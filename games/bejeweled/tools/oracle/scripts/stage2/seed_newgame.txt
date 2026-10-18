@@ -1,0 +1,17 @@
+# Stage 2, run with -gameseed=4242: New Game on the untouched seeded board (Yes: the board shakes and falls,
+# GameOver(50) from RequestNewGame, which is no game over for the seed;
+# games/bejeweled/docs/CODE_MODS_DESIGN.md 4.10) starts MTRand(4242)'s board again. A match on it,
+# (2,2)->(3,2), plays the seed, so the next New Game is unseeded.
+300 click 320 398
+460 click 96 162
+470 screenshot shots/e01_confirm_new_game.png
+480 click 338 169
+520 screenshot shots/e02_shaking.png
+820 screenshot shots/e03_seeded_again.png
+# (2,2)->(3,2) -> score 10
+850 click 329 142
+851 click 380 142
+1000 click 96 162
+1020 click 338 169
+1400 screenshot shots/e04_unseeded.png
+1450 quit

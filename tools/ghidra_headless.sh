@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# Re-process the analyzed game program: apply symbol files, then re-export decompilation.
-#   tools/ghidra_headless.sh apply re/symbols/*.jsonl      # apply + export to re/game
-#   tools/ghidra_headless.sh export                        # export only
+# Re-process the analyzed Bejeweled program: apply symbol files, then re-export decompilation.
+#   tools/ghidra_headless.sh apply re/bejeweled/symbols/*.jsonl   # apply + export to re/bejeweled/game
+#   tools/ghidra_headless.sh export                               # export only
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd -W 2>/dev/null || pwd)"
 GHIDRA="${GHIDRA_HOME:-E:/retools/ghidra_12.1.4_PUBLIC}"
@@ -16,8 +16,8 @@ if [ "$mode" = apply ]; then
   scripts+=(-postScript ApplySymbols.java "${files[@]}")
 fi
 if [ "${NO_EXPORT:-0}" != 1 ]; then
-  rm -rf "$ROOT/re/game/decomp"
-  scripts+=(-postScript ExportAll.java "$ROOT/re/game")
+  rm -rf "$ROOT/re/bejeweled/game/decomp"
+  scripts+=(-postScript ExportAll.java "$ROOT/re/bejeweled/game")
 fi
 "$GHIDRA/support/analyzeHeadless.bat" "$PROJ" bejeweled_game -process BejeweledGame.exe -noanalysis \
   -scriptPath "$ROOT/tools/ghidra_scripts" "${scripts[@]}" 2>&1 \

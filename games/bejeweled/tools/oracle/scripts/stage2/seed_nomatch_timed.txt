@@ -1,0 +1,19 @@
+# Stage 2, run with -gameseed=4242: a swap that makes no match does not play the seed
+# (games/bejeweled/docs/CODE_MODS_DESIGN.md 4.10). (0,6)->(1,6) swaps back, so Timed needs no confirmation
+# and the timed board is MTRand(4242)'s again. Its own first match, (2,2)->(3,2), uses the seed up: after
+# Normal (Yes saves the timed game) the normal board draws from the global stream.
+300 click 320 398
+# (0,6)->(1,6): no match, the gems swap back
+460 click 227 346
+461 click 278 346
+480 screenshot shots/c01_swapping.png
+560 click 135 200
+740 screenshot shots/c02_timed_seeded.png
+# (2,2)->(3,2) -> score 20 (timed level 1 scores double)
+760 click 329 142
+761 click 380 142
+900 click 57 200
+910 screenshot shots/c03_confirm_normal.png
+920 click 338 169
+1080 screenshot shots/c04_normal_unseeded.png
+1100 quit

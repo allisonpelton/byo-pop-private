@@ -9,7 +9,7 @@ reads these parameters from mod tunables instead of hard-coding them.
 | Allow invalid moves | Swap rule flag: keep a swap that makes no match instead of swapping back (and decide whether it counts as a move / costs time). |
 | More gem colors | Gem-type count above 7: extra rows in the gem sheet (image patch or a taller `gemsheet6`), colour list for effects that tint by gem, RNG `% n` with the new count. |
 | Board size and arbitrary shapes | Width/height parameters and a cell mask (holes) instead of the fixed 8x8 grid; layout/centering, gravity that skips holes, refill per column, hit testing. |
-| Dirt tiles (Jewel Quest) | Cells that hold no gem and block falling gems. A match next to one removes a layer, and gems slide past diagonally, alternating left and right. Design: docs/CODE_MODS_DESIGN.md 4.14. |
+| Dirt tiles (Jewel Quest) | Cells that hold no gem and block falling gems. A match next to one removes a layer, and gems slide past diagonally, alternating left and right. Design: games/bejeweled/docs/CODE_MODS_DESIGN.md 4.14. |
 | Chuzzle-style play | New move type: drag a whole row or column with wrap-around; match check after release, revert if no match (unless invalid moves are allowed). |
 | Bejeweled Twist-style play | New move type: rotate a 2x2 group clockwise around a grid intersection; cursor between cells. |
 | Jewel Quest-style "gold board" mode | Per-cell state layer under the gems (plain / gold); every cell covered by a scored run turns gold, and the level is won when all cells are gold, instead of filling the bonus bar (Jewel Quest also gives each board a time limit and odd board shapes, so it builds on the board-shape and timer hooks). Needs: the cell layer saved with the game, gold tile art drawn in place of the checkerboard (mod-supplied, e.g. a `goldtile` image), a progress display (cells left), and level rules (time limit, what happens on no moves). |
@@ -68,9 +68,9 @@ the engine - still applies). Installed in `A:\SteamLibrary\steamapps\common`: Bu
 Build-a-lot -- The Elizabethan Era, Build-a-Lot- On Vacation, Build-a-Lot- Fairy Tales, Build-a-lot
 Mysteries, Build-a-lot 10. Survey them (engine, protection, shared code between entries) before starting.
 
-To make that cheap, the shared pieces stay game-agnostic: the portable SexyAppFramework (`src/SexyAppFramework`),
-the platform layer and mod system (`src/platform`), the web shell, and the RE tooling. Game code lives in its
-own folder (`src/game` for Bejeweled).
+To make that cheap, the shared pieces stay game-agnostic: the portable SexyAppFramework (`framework/`),
+the platform layer and mod system (`platform/`), the web shell, and the RE tooling. Game code lives in its
+own folder (`games/bejeweled/src` for Bejeweled).
 
 Already shipped as data-only mods: HD gem art (`example-crystal-gems`), single-sprite replacement
 (`mines-trilliant`, `true-gem`), string overrides, Bejeweled 2 audio (`bejeweled2-audio`, generated locally).

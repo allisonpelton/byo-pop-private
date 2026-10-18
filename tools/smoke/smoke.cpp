@@ -1,5 +1,6 @@
 // Toolchain smoke test: SDL2 window + renderer, stb_image texture, libxmp S3M playback through SDL audio.
-// Usage: smoke <assets dir> [wav]   ("wav" renders 30 s of music offline to smoke.wav and reports peaks)
+// Usage: smoke <Bejeweled files> [wav]   ("wav" renders 30 s of music offline to smoke.wav and reports peaks)
+// The default, assets/bejeweled, is the staged copy (from the repository root; preloaded there on the web).
 #include <SDL.h>
 #include <stb_image.h>
 #include <xmp.h>
@@ -89,7 +90,7 @@ static int RenderWav(const std::string& path)
 
 int main(int argc, char** argv)
 {
-	std::string assets = argc > 1 ? argv[1] : "assets";
+	std::string assets = argc > 1 ? argv[1] : "assets/bejeweled";
 	gXmp = xmp_create_context();
 	if (xmp_load_module(gXmp, (assets + "/music/1980-Autonomus.s3m").c_str()) != 0)
 	{

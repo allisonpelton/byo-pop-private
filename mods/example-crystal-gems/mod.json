@@ -1,7 +1,0 @@
-{
-  "id": "example-crystal-gems",
-  "name": "Crystal Gems HD",
-  "version": "1.0",
-  "author": "wasm-bejeweled examples",
-  "description": "Replaces the gem sprites with new double-resolution art (images/gemsheet6@2x.png)."
-}

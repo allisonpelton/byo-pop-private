@@ -2,10 +2,10 @@
 //
 //   rundesk.exe <program> [args...]
 //
-// Test runs of the game (tools/oracle/compare.sh, stress loops, -script and -autoplay runs) open a real
-// window and raise it, which steals focus from whatever the user is doing. A window on another desktop
-// is never shown and cannot take focus. Child processes inherit the desktop, so wrapping a shell script
-// puts every game it starts there too. Rendering is unaffected: the game draws into a render-target
+// Test runs of the game (games/bejeweled/tools/oracle/compare.sh, stress loops, -script and -autoplay runs)
+// open a real window and raise it, which steals focus from whatever the user is doing. A window on another
+// desktop is never shown and cannot take focus. Child processes inherit the desktop, so wrapping a shell
+// script puts every game it starts there too. Rendering is unaffected: the game draws into a render-target
 // texture and screenshots read that texture, not the window.
 //
 // Test runs are silent too: the children always get SDL's "dummy" audio driver, which plays nothing but

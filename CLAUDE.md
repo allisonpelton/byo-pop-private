@@ -1,4 +1,8 @@
-# Working on this repo
+# Working on this repo (byo-pop)
+
+One repository for every game: shared `framework/`, `platform/`, `web/`, `tools/` and `docs/`, and one
+folder per game under `games/<game>/` (Bejeweled: `games/bejeweled`). Game files are staged into
+`assets/<game>/` and Ghidra exports go to `re/<game>/`; both are git-ignored and must never be committed.
 
 ## Running the game in tests
 
@@ -10,7 +14,7 @@ the same machine. A plain run opens a window, raises it over whatever the user i
   `build/native/rundesk.exe bash my-loop.sh`. rundesk puts the command and all its children on a private
   desktop, gives them SDL's silent audio driver (always: it replaces any `SDL_AUDIODRIVER` you set) and
   below-normal priority. Build it with `cmake --build build/native --target rundesk`.
-- `tools/oracle/compare.sh` already re-runs itself under rundesk.
+- `games/bejeweled/tools/oracle/compare.sh` already re-runs itself under rundesk.
 - Open the web builds in the Browser pane only with `?silent=1`, e.g.
   `http://127.0.0.1:18766/bejeweled.html?silent=1`: the pane may be hidden, and without it the game plays
   its music and sounds on the user's speakers. The status line ends in "silent" when it is on.

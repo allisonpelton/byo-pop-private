@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """Merge symbol identifications (workflow results) into a Ghidra ApplySymbols JSON-lines file.
 
-    python tools/merge_symbols.py <workflow-output.json> re/symbols/10_framework.jsonl [--notes docs/FRAMEWORK_NOTES.md]
+    python tools/merge_symbols.py <workflow-output.json> re/bejeweled/symbols/10_framework.jsonl
+                                  [--notes docs/FRAMEWORK_NOTES.md]
 
 The input is the JSON written by a Workflow run whose result is a list of
 {key, symbols:[{addr,name,sig,confidence,evidence}], notes}. Conflicting names for one address are

@@ -1,0 +1,13 @@
+{
+  "id": "example-voice-lines",
+  "name": "New Messages",
+  "version": "1.0",
+  "author": "byo-pop examples",
+  "description": "Changes a few on-screen messages using string overrides.",
+  "strings": {
+    "EXCELLENT": "BRILLIANT!",
+    "NO_MOVES": "OUT OF MOVES!",
+    "GO": "LET'S GO!",
+    "TIME_UP": "TIME'S UP!"
+  }
+}

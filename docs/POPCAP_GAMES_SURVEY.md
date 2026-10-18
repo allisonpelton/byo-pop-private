@@ -23,12 +23,12 @@ Contents:
 
 ### 1.1 The Bejeweled method
 
-See [RE_NOTES.md](RE_NOTES.md) and the README section "How it was reverse engineered". The four steps are:
+See [RE_NOTES.md](../games/bejeweled/docs/RE_NOTES.md) and the Bejeweled README section "[How it was reverse engineered](../games/bejeweled/README.md#how-it-was-reverse-engineered)". The four steps are:
 
 1. **Carve.** The Steam exe is PopCap's DRM wrapper with the real game PE appended after `!popcapdrmprotect!`. `tools/extract_game_exe.py` carves it out.
 2. **Analyse.** Ghidra 12 runs headless, recovers C++ classes from RTTI and exports every decompiled function (`tools/ghidra_import.sh`).
 3. **Identify the framework.** Framework functions are matched against the public SexyAppFramework (SAF) trees (1.2, 1.3, 1.34). For Bejeweled, only about 60 KB of the 1 MB `.text` was game code; the rest was framework, libraries and CRT.
-4. **Translate.** The game classes are translated function by function onto our portable SAF 1.3 (`src/SexyAppFramework`, SDL2 + Emscripten), with every function annotated with its original address.
+4. **Translate.** The game classes are translated function by function onto our portable SAF 1.3 (`framework/`, SDL2 + Emscripten), with every function annotated with its original address.
 
 ### 1.2 What makes a game a good candidate
 
@@ -426,7 +426,7 @@ No game was found to be impossible.
 
 **Code.**
 - The game region is 0x4D4540-0x553230: 1,568 functions, about 497 KB, including about 40 KB of generated resource-binding code.
-- WinFish's game source is 150 files, 47,328 lines and about 1,150 member functions. Our Bejeweled `src/game` is 4,853 lines.
+- WinFish's game source is 150 files, 47,328 lines and about 1,150 member functions. Our Bejeweled `games/bejeweled/src` is 4,853 lines.
 
 **Data formats.** All files are loose; there is no `main.pak`.
 - **Resources:** `properties/resources.xml`.
@@ -457,7 +457,7 @@ No game was found to be impossible.
 Two more projects reimplement the game rather than use WinFish's code: [AmeerMH/insaniquarium-web](https://github.com/AmeerMH/insaniquarium-web), a TypeScript reimplementation that documents 75 of the 76 tuning constants with their addresses, and [AScriver/TurbofishDeluxe](https://github.com/AScriver/TurbofishDeluxe) (Rust, WIP). The addresses in PopCap-Decompilations and AmeerMH (0x413AD0, 0x4DB250, 0x4D8C10, 0x4ED471, 0x4E9291, 0x54DA98) all match our carved exe. WinFish targets the same 1.1 build as the Steam copy.
 
 **Plan.**
-1. **Vendor WinFish.** Use Vindirect/WinFish at `f919b3c`, or kyle-sylvestre's fork with its extra fixes, as a second game target (for example `src/insaniquarium`). Build it against our `src/SexyAppFramework`; its vendored framework is near-stock pcf 1.3, the same API as ours. Whether vendoring is acceptable is a licensing decision for the user (section 5).
+1. **Vendor WinFish.** Use Vindirect/WinFish at `f919b3c`, or kyle-sylvestre's fork with its extra fixes, as a second game target (for example `games/insaniquarium`). Build it against our `framework/`; its vendored framework is near-stock pcf 1.3, the same API as ours. Whether vendoring is acceptable is a licensing decision for the user (section 5).
 2. **Framework additions:**
    - libopenmpt, keeping the order offsets and fades;
    - a µ-law AU decoder;
@@ -467,7 +467,7 @@ Two more projects reimplement the game rather than use WinFish's code: [AmeerMH/
    - IDBFS saves;
    - keeping the 28 ms frame time data-driven.
 3. **Accuracy pass.** Check Fish, FishTypePet, OtherTypePet, Board, Alien, Coin, Breeder, Food and Missle function by function against our Ghidra export, which has the RTTI classes named.
-   - Annotate addresses the way `src/game` does.
+   - Annotate addresses the way `games/bejeweled/src` does.
    - Cross-check against SaMeiers' bug list, kyle-sylvestre's release notes and the PopCap-Decompilations address notes, reading those projects only.
 4. **Mods.** Asset and audio overlays and string patches through the existing VFS and ModManager. Expose tunables (prices, hunger and alien timers, drop rates), starting from AmeerMH's documented constants.
 
@@ -538,7 +538,7 @@ Two more projects reimplement the game rather than use WinFish's code: [AmeerMH/
 - [YoussefAminGomaa/FF2Theora](https://github.com/YoussefAminGomaa/FF2Theora): the same `.theora` container.
 
 **Plan.** This goes through the Sprout line; see section 4.
-1. **Pizza Frenzy pilot.** Build the existing decompilation on Windows against the user's `.saf`. If it plays, port its first-generation engine's platform layer (DDraw display, SimpleSoundDX, Win32 window, thread and registry, WinInet) to SDL2/Emscripten, reusing our `src/platform` code but not SAF's API. That gives a working SAF-archive, XML, font, screen-layout, particle and splat stack.
+1. **Pizza Frenzy pilot.** Build the existing decompilation on Windows against the user's `.saf`. If it plays, port its first-generation engine's platform layer (DDraw display, SimpleSoundDX, Win32 window, thread and registry, WinInet) to SDL2/Emscripten, reusing our `platform/` code but not SAF's API. That gives a working SAF-archive, XML, font, screen-layout, particle and splat stack.
 2. **Second-generation engine.** Extend it with the dxdriver split, Scene, Modifier, BltFx, PixelFx, WaveFx and the DataSet loaders, using the RTTI and vtables of both Talismania and Feeding Frenzy 2. Plan the two games as a pair.
 3. **Translate Talismania's game classes.** Start from the RTTI-named state machines (GameLevel, AtlantisChapter, the CBaseCell family, Gameboard) and the `*ClassLoader` XML parsers, which must reproduce every attribute exactly.
 4. **Assets.**
@@ -664,7 +664,7 @@ These are small, shared pieces. Do them alongside or right after Big Money.
 | G3 | `extract_game_exe.py` and `triage_popcap.py`: accept `!popcapcdprotect!` | BookWorm 1.03, Twist retail |
 | G4 | Ghidra pipeline fixes for MSVC 7.0 and VC6 binaries, moved into `tools/`: RTTI scan → `ApplySymbols`, the noreturn-analyzer preScript, a `CLASS_RECOVERY=0` option for very large binaries, the JDK class-version fix, a single script directory | all 2003-2005 titles, Bookworm Adventures |
 | G5 | **JPEG 2000 → PNG** conversion during asset staging (Pillow/OpenJPEG), or an OpenJPEG decoder | both Bookworm Adventures games, the Peggle family, Bejeweled 3, Twist, Zuma's Revenge |
-| G6 | Multi-game layout: game code per target (`src/<game>`), per-game asset staging and web shell, shared framework, platform and mod code | every later game |
+| G6 | Multi-game layout: game code per target (`games/<game>/`), per-game asset staging and web shell, shared framework, platform and mod code | every later game |
 
 ### Order
 
