@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# Re-process the analyzed game program: apply symbol files, then re-export decompilation.
-#   tools/ghidra_headless.sh apply re/symbols/*.jsonl      # apply + export to re/game
-#   tools/ghidra_headless.sh export                        # export only
+# Re-process the analyzed Bejeweled program: apply symbol files, then re-export decompilation.
+#   tools/ghidra_headless.sh apply re/bejeweled/symbols/*.jsonl   # apply + export to re/bejeweled/game
+#   tools/ghidra_headless.sh export                               # export only
 # Another program: GHIDRA_PROJECT=<project> GHIDRA_PROGRAM=<file name> EXPORT_DIR=<dir> (defaults: Bejeweled's).
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd -W 2>/dev/null || pwd)"
@@ -11,7 +11,7 @@ export GHIDRA_HEADLESS_MAXMEM="${GHIDRA_HEADLESS_MAXMEM:-12G}"
 PROJ="${GHIDRA_PROJECTS:-E:/retools/projects}"
 GPROJECT="${GHIDRA_PROJECT:-bejeweled_game}"
 GPROGRAM="${GHIDRA_PROGRAM:-BejeweledGame.exe}"
-EXPORT="${EXPORT_DIR:-$ROOT/re/game}"
+EXPORT="${EXPORT_DIR:-$ROOT/re/bejeweled/game}"
 mode="${1:-export}"; shift || true
 scripts=()
 if [ "$mode" = apply ]; then

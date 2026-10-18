@@ -2,9 +2,10 @@
 """Carve the real game executable out of PopCap's DRM wrapper (WinBej.exe).
 
 The Steam build of Bejeweled Deluxe appends the unencrypted game PE after a `!popcapdrmprotect!`
-marker. This writes it to re/bin/BejeweledGame.exe for analysis in Ghidra.
+marker. This writes it to re/bejeweled/bin/BejeweledGame.exe for analysis in Ghidra.
 
-    python tools/extract_game_exe.py ["A:/.../Bejeweled Deluxe/WinBej.exe"] [-o re/bin/BejeweledGame.exe]
+    python tools/extract_game_exe.py ["A:/.../Bejeweled Deluxe/WinBej.exe"]
+                                     [-o re/bejeweled/bin/BejeweledGame.exe]
 """
 import argparse
 import os
@@ -34,7 +35,8 @@ def main():
     here = os.path.dirname(os.path.abspath(__file__))
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("wrapper", nargs="?", default=DEFAULT)
-    ap.add_argument("-o", "--out", default=os.path.join(here, "..", "re", "bin", "BejeweledGame.exe"))
+    ap.add_argument("-o", "--out",
+                    default=os.path.join(here, "..", "re", "bejeweled", "bin", "BejeweledGame.exe"))
     args = ap.parse_args()
 
     data = open(args.wrapper, "rb").read()

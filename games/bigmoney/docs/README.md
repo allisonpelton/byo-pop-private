@@ -2,7 +2,7 @@
 
 Big Money Deluxe (PopCap Games, 2005) is the second game in this repository. It is decompiled and
 ported the same way as Bejeweled Deluxe: the original's game classes are translated function by
-function onto the portable SexyAppFramework (`src/SexyAppFramework`, SDL2 + Emscripten), and the game
+function onto the portable SexyAppFramework (`framework/`, SDL2 + Emscripten), and the game
 data is copied from the user's own install. Nothing from the game itself is in the repository.
 
 | Document | Contents |
@@ -113,11 +113,11 @@ code-mods branch and its move to the byo-pop layout:
 
 | File | Change |
 |---|---|
-| `CMakeLists.txt` | `BUILD_BIGMONEY` option and `add_subdirectory(games/bigmoney/src)` at the end |
+| `CMakeLists.txt` | `BUILD_BIGMONEY` option and `add_subdirectory(games/bigmoney)` next to Bejeweled's |
 | `.claude/launch.json` | `bigmoney-web`: a static server for this checkout's `build/web` on port 18767 (Browser pane tests) |
-| `src/platform/Audio.cpp` | Sun `.au` decoding in `Mixer::LoadSoundData` (8-bit mu-law with the framework's own table, 8-bit linear), survey item G2 |
-| `src/platform/Audio.cpp` | Ogg files stb_vorbis cannot open (Vorbis floor 0: all of Big Money's 2002 sounds) are decoded with Tremor, the decoder SAF 1.2 used |
-| `third_party/tremor/` (new), `third_party/CMakeLists.txt`, `src/CMakeLists.txt` | Xiph Tremor 2002 (BSD, from the SAF 1.2 tree; one MinGW typedef fix), linked into `sexyframework` |
+| `platform/Audio.cpp` | Sun `.au` decoding in `Mixer::LoadSoundData` (8-bit mu-law with the framework's own table, 8-bit linear), survey item G2 |
+| `platform/Audio.cpp` | Ogg files stb_vorbis cannot open (Vorbis floor 0: all of Big Money's 2002 sounds) are decoded with Tremor, the decoder SAF 1.2 used |
+| `third_party/tremor/` (new), `third_party/CMakeLists.txt`, `framework/CMakeLists.txt` | Xiph Tremor 2002 (BSD, from the SAF 1.2 tree; one MinGW typedef fix), linked into `sexyframework` |
 | `tools/ghidra_import.sh` | `MSVC70=1` and `SYMBOLS=<jsonl>` options (defaults unchanged) |
 | `tools/ghidra_headless.sh` | `GHIDRA_PROJECT` / `GHIDRA_PROGRAM` / `EXPORT_DIR` overrides (defaults: Bejeweled's) |
 | `tools/ghidra_scripts/DisableNoReturnDiscovery.java` | new pre-script (G4) |

@@ -5,7 +5,7 @@ port in `games/bigmoney/src/`, on the shared portable SexyAppFramework and platf
 
 ## 1. Approach
 
-The same method as Bejeweled (`src/game`, `docs/GAME_NOTES.md`):
+The same method as Bejeweled (`games/bejeweled/src`, `games/bejeweled/docs/GAME_NOTES.md`):
 
 1. **Analysis per module group.** Behaviour specs with class layouts at their original offsets, every
    function, and every random draw in call order. Five groups: Board rules, Board drawing plus

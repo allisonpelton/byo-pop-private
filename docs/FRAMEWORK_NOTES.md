@@ -153,7 +153,7 @@ GAME OVERRIDES BY SLOT:
 
 ## vt-app
 
-VERIFIER SUMMARY (assignment vt-app). I re-derived every medium/low entry and every third high entry from the decompiled code, llvm-objdump disassembly of re/bin/BejeweledGame.exe, and the reference trees. Most identifications hold.
+VERIFIER SUMMARY (assignment vt-app). I re-derived every medium/low entry and every third high entry from the decompiled code, llvm-objdump disassembly of re/bejeweled/bin/BejeweledGame.exe, and the reference trees. Most identifications hold.
 
 Fixes:
 - 0x464720 renamed Sexy::MTRand::NextNoAssert. Sexy::Rand (0x469260) jumps to 0x464710 (MTRand::Next), which jumps to 0x464720.
@@ -332,7 +332,7 @@ ODDITIES (behavior the port should reproduce):
 
 ## vt-media
 
-I checked every medium entry against the disassembly (llvm-objdump on re/bin/BejeweledGame.exe) and the 1.3 source, plus at least a third of the high ones. I checked the `ret N` size of every listed vtable slot and walked every indirect call in 0x4c9a94-0x4d87bc.
+I checked every medium entry against the disassembly (llvm-objdump on re/bejeweled/bin/BejeweledGame.exe) and the 1.3 source, plus at least a third of the high ones. I checked the `ret N` size of every listed vtable slot and walked every indirect call in 0x4c9a94-0x4d87bc.
 
 The vtable mapping holds: all 12 tables follow 1.3 declaration order, with no virtuals added or removed.
 
@@ -659,7 +659,7 @@ SexyAppBase::GetImage is vtable +0x104 (slot 65). The game assumes it returns a 
 ## graphics
 
 VERIFICATION SUMMARY
-I re-derived 16 entries from raw llvm-objdump disassembly of re/bin/BejeweledGame.exe, the 1.3 source and the call sites: the one medium entry, every third high entry, and several others.
+I re-derived 16 entries from raw llvm-objdump disassembly of re/bejeweled/bin/BejeweledGame.exe, the 1.3 source and the call sites: the one medium entry, every third high entry, and several others.
 - All 39 names and signatures stand.
 - One upgrade: 0x438070 (TRect<int> copy ctor) goes from medium to high. Its only caller in the whole binary is TRect<int>::Inflate at 0x4d298e, whose `return *this` uses it.
 - Small corrections:
@@ -928,7 +928,7 @@ HELPER SEMANTICS THE PORT MUST REPRODUCE
 
 VERIFIER SUMMARY (assignment "widgets-misc")
 - All 47 callees in the assigned ranges are covered.
-- I re-derived every medium/low entry and every third high entry from the disassembly (llvm-objdump on re/bin/BejeweledGame.exe), the 1.3 source and the call sites. I also spot-checked most of the other entries.
+- I re-derived every medium/low entry and every third high entry from the disassembly (llvm-objdump on re/bejeweled/bin/BejeweledGame.exe), the 1.3 source and the call sites. I also spot-checked most of the other entries.
 - No identification was refuted.
 - One change: 0x482770 is upgraded from medium to high. The binary contains the RTTI string .?AVUpdateCheckDialog@Sexy@@ and the ctor installs that vftable.
 - The migrator helpers (0x474480-0x474760) stay "unk_" with low confidence because the class is not in any reference tree. Their behaviour is fully verified.
@@ -1156,7 +1156,7 @@ Ghidra labels to correct:
 
 ## crt
 
-CORRECTIONS (verified against llvm-objdump disassembly of re/bin/BejeweledGame.exe)
+CORRECTIONS (verified against llvm-objdump disassembly of re/bejeweled/bin/BejeweledGame.exe)
 1. REFUTED: "the binary has no srand". srand is at 0x4dd82a. It is called once, from SexyAppBase::Init at 0x44ea23, as srand(GetTickCount()) right after mRandSeed=GetTickCount(); SRand(mRandSeed). This matches 1.3 SexyAppBase.cpp lines 6149-6165. CRT rand is still unused by the game.
 2. REFUTED: 0x4d89a9 is not _Getcoll. It is _Getcvt: it returns {lc_handle[LC_CTYPE], lc_codepage}. Its callers are num_get, num_put and numpunct::_Init, which store _Cvt at facet+8/+0xc; it is not called from collate. Ghidra's FLIRT label is wrong. The STL code at 0x4d6000-0x4d87bc is the num_get<char, istreambuf_iterator> instantiation (ctor, _Getloctxt, use_facet, Getcat, 11 do_get overloads); there is no collate.
 3. REFUTED: the Board-ctor move offsets. The ctor stores the move at +0x1b8 (x1), +0x1bc (y1) and +0x1c0 (x2), not +0x130/+0x134/+0x138. Full Board-ctor generation loop (0x4cb7f4-0x4cb8c1):

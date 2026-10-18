@@ -5,22 +5,22 @@
 // FillRect, text in both fonts, a ButtonWidget and a modal Dialog (both play a sound when pressed).
 //
 // Arguments:
-//   -gamedir=<dir>       game data folder (default: the repo's assets folder; /assets on the web)
+//   -gamedir=<dir>       game data folder (default: the repo's assets/bejeweled; /assets on the web)
 //   -frames=N            after N frames drawn once loading has finished...
 //   -screenshot=<png>    ...save the screen (DDInterface::ReadScreen) as PNG, then shut down
 
-#include "SexyAppFramework/SexyAppBase.h"
-#include "SexyAppFramework/WidgetManager.h"
-#include "SexyAppFramework/Widget.h"
-#include "SexyAppFramework/ButtonWidget.h"
-#include "SexyAppFramework/ButtonListener.h"
-#include "SexyAppFramework/Dialog.h"
-#include "SexyAppFramework/Graphics.h"
-#include "SexyAppFramework/DDImage.h"
-#include "SexyAppFramework/DDInterface.h"
-#include "SexyAppFramework/ImageFont.h"
-#include "SexyAppFramework/SoundManager.h"
-#include "SexyAppFramework/MusicInterface.h"
+#include "SexyAppBase.h"
+#include "WidgetManager.h"
+#include "Widget.h"
+#include "ButtonWidget.h"
+#include "ButtonListener.h"
+#include "Dialog.h"
+#include "Graphics.h"
+#include "DDImage.h"
+#include "DDInterface.h"
+#include "ImageFont.h"
+#include "SoundManager.h"
+#include "MusicInterface.h"
 #include "platform/VFS.h"
 
 #include <SDL.h>
@@ -29,7 +29,7 @@
 #include <vector>
 
 #ifndef FWTEST_GAMEDIR
-#define FWTEST_GAMEDIR "assets"
+#define FWTEST_GAMEDIR "assets/bejeweled"
 #endif
 #ifndef FWTEST_USERDIR
 #define FWTEST_USERDIR "userdata"

@@ -1,9 +1,13 @@
 cmake_minimum_required(VERSION 3.20)
-project(BejeweledPort C CXX)
+# byo-pop (Bring Your Own Pop[Cap]): decompilations, SDL2/WebAssembly ports and mods of PopCap games. One
+# build makes every game's targets; the game files come from the user's own installs (assets/<game>/).
+project(byo-pop C CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+# Every game and tool lands in the build folder itself (build/native/bejeweled.exe, build/web/rulestest.js)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 
 if(EMSCRIPTEN)
   set(SDL2_LIBRARIES "")
@@ -21,17 +25,32 @@ endif()
 
 add_subdirectory(third_party)
 
+# The web smoke and fwtest pack Bejeweled's staged files (assets/bejeweled/) into their .data file, so a
+# web build leaves them out until those files are staged (games/bejeweled/tools/stage_assets.py, then
+# configure again). Native builds read the files at run time and always build them.
+set(BEJ_ASSETS_DIR "${PROJECT_SOURCE_DIR}/assets/bejeweled")
+set(WEB_LACKS_BEJ_ASSETS OFF)
+if(EMSCRIPTEN AND NOT IS_DIRECTORY "${BEJ_ASSETS_DIR}")
+  set(WEB_LACKS_BEJ_ASSETS ON)
+endif()
+
+# Toolchain smoke test (tools/smoke): decodes Bejeweled's gem sheet and plays its music, framework-free.
 option(BUILD_SMOKE "Build the toolchain smoke test" OFF)
-if(BUILD_SMOKE)
+if(BUILD_SMOKE AND WEB_LACKS_BEJ_ASSETS)
+  message(WARNING "BUILD_SMOKE: assets/bejeweled/ is not staged, so the web smoke test is not built")
+elseif(BUILD_SMOKE)
   add_executable(smoke tools/smoke/smoke.cpp)
   target_link_libraries(smoke PRIVATE ${PORT_SDL} stb xmp_lite)
   if(EMSCRIPTEN)
     set_target_properties(smoke PROPERTIES SUFFIX ".html")
-    target_link_options(smoke PRIVATE "--preload-file=${CMAKE_SOURCE_DIR}/assets@/assets" "-sALLOW_MEMORY_GROWTH=1")
+    target_link_options(smoke PRIVATE "--preload-file=${BEJ_ASSETS_DIR}@/assets/bejeweled"
+      "-sALLOW_MEMORY_GROWTH=1")
   endif()
 endif()
 
-add_subdirectory(src)
+# Shared by every game: the portable SexyAppFramework (framework/) and the platform layer (platform/),
+# built together as the sexyframework library (framework/CMakeLists.txt).
+add_subdirectory(framework)
 
 if(NOT EMSCRIPTEN)
   # Native builds run from the build folder: SDL2.dll and the llvm-mingw runtime DLLs go next to the exe
@@ -39,60 +58,12 @@ if(NOT EMSCRIPTEN)
   file(GLOB PORT_RUNTIME_DLLS "${PORT_COMPILER_DIR}/../i686-w64-mingw32/bin/*.dll")
 endif()
 
-# The game: Bejeweled Deluxe 1.87 (src/game) on the portable framework.
-# Native: bejeweled.exe [-gamedir=<dir>] [-userdir=<dir>] [-modsdir=<dir>] (see src/main.cpp).
-# Web: bejeweled.html/.js/.wasm; web/shell.html imports the user's game files into /persist (IDBFS)
-# and starts the game with callMain().
-file(GLOB GAME_SOURCES CONFIGURE_DEPENDS ${CMAKE_SOURCE_DIR}/src/game/*.cpp)
-# Test hooks (-tracehash, -autoplay): test code kept out of src/game (the autoplay bot has its own RNG)
-file(GLOB TESTHOOK_SOURCES CONFIGURE_DEPENDS ${CMAKE_SOURCE_DIR}/src/testhooks/*.cpp)
-add_executable(bejeweled src/main.cpp src/SteamPath.cpp ${GAME_SOURCES} ${TESTHOOK_SOURCES})
-target_include_directories(bejeweled PRIVATE ${CMAKE_SOURCE_DIR}/src/game)
-target_link_libraries(bejeweled PRIVATE sexyframework)
-if(NOT MSVC)
-  target_compile_options(bejeweled PRIVATE -Wall -Wno-unused-private-field)
-endif()
-# Code mods (docs/CODE_MODS_DESIGN.md 2.2): BEJ_NO_VARIANTS makes every Board variant flag a compile-time
-# false, so the compiler drops the variant hooks; that build must pass the regression oracle too.
-option(BEJ_NO_VARIANTS "Build the game without the code-mod variant paths" OFF)
-if(BEJ_NO_VARIANTS)
-  target_compile_definitions(bejeweled PRIVATE BEJ_NO_VARIANTS)
-endif()
-if(EMSCRIPTEN)
-  set_target_properties(bejeweled PROPERTIES SUFFIX ".html")
-  set_property(TARGET bejeweled APPEND PROPERTY LINK_DEPENDS ${CMAKE_SOURCE_DIR}/web/shell.html)
-  target_link_options(bejeweled PRIVATE
-    "--shell-file=${CMAKE_SOURCE_DIR}/web/shell.html"
-    "-sALLOW_MEMORY_GROWTH=1" "-sFORCE_FILESYSTEM=1" "-sINVOKE_RUN=0"
-    "-sEXPORTED_RUNTIME_METHODS=['FS','callMain']" "-lidbfs.js")
-else()
-  add_custom_command(TARGET bejeweled POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:SDL2::SDL2> ${PORT_RUNTIME_DLLS} $<TARGET_FILE_DIR:bejeweled>
-    VERBATIM)
-endif()
-
-# Code-mod rules tests (tools/rulestest): the framework-free GameRules with its unit fixtures and RulesId
-# vectors, and the MTRand a board owns. Native: rulestest.exe. Web: rulestest.js, run with Node (the
-# vectors must match native).
-option(BUILD_RULESTEST "Build the code-mod rules tests" ON)
-if(BUILD_RULESTEST)
-  add_executable(rulestest tools/rulestest/rulestest.cpp src/game/GameRules.cpp src/game/Sha256.cpp src/platform/Json.cpp
-    src/SexyAppFramework/MTRand.cpp)
-  target_include_directories(rulestest PRIVATE ${CMAKE_SOURCE_DIR}/src/game ${CMAKE_SOURCE_DIR}/src
-    ${CMAKE_SOURCE_DIR}/src/SexyAppFramework)
-  if(NOT MSVC)
-    target_compile_options(rulestest PRIVATE -Wall)
-  endif()
-  if(EMSCRIPTEN)
-    set_target_properties(rulestest PROPERTIES SUFFIX ".js")
-    target_link_options(rulestest PRIVATE "-sENVIRONMENT=node" "-sEXIT_RUNTIME=1" "-sALLOW_MEMORY_GROWTH=1")
-  endif()
-endif()
-
-# Framework test app (tools/fwtest): loads the game's assets through the portable framework and draws a
+# Framework test app (tools/fwtest): loads Bejeweled's assets through the portable framework and draws a
 # test screen. Native: fwtest.exe -frames=N -screenshot=<png> saves a screenshot and quits.
 option(BUILD_FWTEST "Build the framework test app" ON)
-if(BUILD_FWTEST)
+if(BUILD_FWTEST AND WEB_LACKS_BEJ_ASSETS)
+  message(STATUS "assets/bejeweled/ is not staged, so the web fwtest is not built")
+elseif(BUILD_FWTEST)
   add_executable(fwtest tools/fwtest/fwtest.cpp)
   target_link_libraries(fwtest PRIVATE sexyframework)
   if(NOT MSVC)
@@ -101,23 +72,26 @@ if(BUILD_FWTEST)
   if(EMSCRIPTEN)
     target_compile_definitions(fwtest PRIVATE FWTEST_GAMEDIR="/assets" FWTEST_USERDIR="/userdata")
     set_target_properties(fwtest PROPERTIES SUFFIX ".html")
-    target_link_options(fwtest PRIVATE "--preload-file=${CMAKE_SOURCE_DIR}/assets@/assets" "-sALLOW_MEMORY_GROWTH=1")
+    target_link_options(fwtest PRIVATE "--preload-file=${BEJ_ASSETS_DIR}@/assets" "-sALLOW_MEMORY_GROWTH=1")
   else()
-    target_compile_definitions(fwtest PRIVATE FWTEST_GAMEDIR="${CMAKE_SOURCE_DIR}/assets" FWTEST_USERDIR="${CMAKE_BINARY_DIR}/userdata")
+    target_compile_definitions(fwtest PRIVATE FWTEST_GAMEDIR="${BEJ_ASSETS_DIR}"
+      FWTEST_USERDIR="${CMAKE_BINARY_DIR}/userdata")
     add_custom_command(TARGET fwtest POST_BUILD
       COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:SDL2::SDL2> ${PORT_RUNTIME_DLLS} $<TARGET_FILE_DIR:fwtest>
       VERBATIM)
   endif()
 endif()
 
-# Test launcher (tools/rundesk): runs a command on a private, invisible desktop so test runs of the game
-# never show a window or take focus. tools/oracle/compare.sh runs itself under it.
+# Test launcher (tools/rundesk): runs a command on a private, invisible desktop so test runs of a game
+# never show a window or take focus. games/bejeweled/tools/oracle/compare.sh runs itself under it.
 if(WIN32 AND NOT EMSCRIPTEN)
   add_executable(rundesk tools/rundesk/rundesk.c)
 endif()
 
-# Big Money Deluxe (games/bigmoney): a second game on the same framework and platform layer.
+# The games, each in games/<game>/
+add_subdirectory(games/bejeweled)
+# Big Money Deluxe: optional while it is new; the build skips it if its sources are missing
 option(BUILD_BIGMONEY "Build the Big Money Deluxe port" ON)
-if(BUILD_BIGMONEY AND EXISTS ${CMAKE_SOURCE_DIR}/games/bigmoney/src/WinBMApp.cpp)
-  add_subdirectory(games/bigmoney/src)
+if(BUILD_BIGMONEY AND EXISTS ${PROJECT_SOURCE_DIR}/games/bigmoney/src/WinBMApp.cpp)
+  add_subdirectory(games/bigmoney)
 endif()

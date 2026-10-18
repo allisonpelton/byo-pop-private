@@ -2,7 +2,7 @@
 
 This is the behavioural specification of Big Money Deluxe's game code: 0x401000-0x421830 of the game
 PE carved from `WinBM.exe`, linked 2005-11-14 with MSVC 7.0 on SexyAppFramework 1.2. It plays the same
-role as Bejeweled's `docs/GAME_NOTES.md`. Translators use it together with:
+role as Bejeweled's `games/bejeweled/docs/GAME_NOTES.md`. Translators use it together with:
 - the decompilation in `re/bigmoney/ghidra/` (git-ignored; regenerate as in [README.md](README.md));
 - the framework slot and field reference [FRAMEWORK_12.md](FRAMEWORK_12.md);
 - the function list [INVENTORY.md](INVENTORY.md).
@@ -3694,7 +3694,7 @@ Sources: `re/bigmoney/ghidra/all.c` plus the disassembly of every function below
 arguments in most of these bodies: all coordinates, colours and call arguments here were read from the
 disassembly). Framework semantics from `E:\retools\refs\saf12`. The code is a close relative of
 Bejeweled Deluxe's HighScoreWidget / HighScoreDialog / OptionsDialog / RecordScoreDialog
-(`docs/GAME_NOTES.md` sections 6-9, `src/game/*.h`): same file format, same checksum, same
+(`games/bejeweled/docs/GAME_NOTES.md` sections 6-9, `games/bejeweled/src/*.h`): same file format, same checksum, same
 EditWidget colours, same edit-box drawing, same OptionsDialog link mechanism. Differences are called
 out as **(vs Bejeweled)**.
 

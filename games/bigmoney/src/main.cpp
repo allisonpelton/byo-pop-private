@@ -21,7 +21,7 @@
 
 using namespace Sexy;
 
-// src/SteamPath.cpp: Steam's install folder from the Windows registry ("" elsewhere)
+// platform/SteamPath.cpp (part of sexyframework): Steam's install folder from the Windows registry ("" elsewhere)
 std::string GetSteamInstallPath();
 
 static std::string ArgValue(int argc, char** argv, const char* theKey)

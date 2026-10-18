@@ -1,0 +1,487 @@
+# Oracle expectations (games/bejeweled/tools/oracle/compare.py, "Expectations"): facts each case's
+# candidate run must show, whatever the baselines do. "<case> <key> <value>" per line. Derived facts are
+# rewritten by "compare.py expect-update build/oracle games/bejeweled/tools/oracle/expect.txt" (only
+# after checking that the change is intended); "row <settle update> <row> <colours>" lines are
+# hand-written and kept. Game state only: update numbers, scores, gem colour indices, decoded save
+# headers; no asset data.
+
+main exit 0
+main mods none
+main user hiscores.dat registry.ini savegame.dat
+main settle 438 normal level 1 score 0 board tick 139
+main settle 586 normal level 1 score 30 board tick 287
+main settle 747 normal level 1 score 100 board tick 448
+main settle 861 normal level 1 score 130 board tick 562
+main settle 952 normal level 1 score 130 board tick 653
+main settle 1132 normal level 1 score 90 board tick 833
+main settle 1403 timed level 1 score 0 board tick 144
+main settle 1546 timed level 1 score 80 board tick 287
+main settle 18544 timed level 1 score 0 board tick 145
+main states 17736:game_over 18068:game_over_done
+main save savegame.dat v1 normal level 0 (shown 1), 64 gems, state 1 (playing), score 90, play seconds 8, 7873 bytes
+
+load exit 0
+load mods none
+load user hiscores.dat registry.ini savegame.dat
+load settle 340 normal level 1 score 90 board tick 1
+load states none
+load save savegame.dat v1 normal level 0 (shown 1), 64 gems, state 1 (playing), score 90, play seconds 10, 7873 bytes
+
+level exit 0
+level mods none
+level user registry.ini savegame.dat
+level settle 439 normal level 1 score 0 board tick 140
+level settle 667 normal level 1 score 240 board tick 368
+level settle 886 normal level 1 score 340 board tick 587
+level settle 1027 normal level 1 score 380 board tick 728
+level settle 1390 normal level 1 score 630 board tick 1091
+level settle 1943 normal level 2 score 630 board tick 1644
+level states 1391:vortex 1644:level_wipe
+level save savegame.dat v1 normal level 1 (shown 2), 64 gems, state 1 (playing), score 630, play seconds 17, 7873 bytes
+
+mods exit 0
+mods mods TRUE, Mines Trilliant, New Messages, Relaxed Hints, Crystal Gems HD, Bejeweled 2 Audio
+mods user mods.json registry.ini savegame-58ebd9d7.dat
+mods settle 439 normal level 1 score 0 board tick 140
+mods settle 673 normal level 1 score 240 board tick 374
+mods states none
+mods save savegame-58ebd9d7.dat v1 normal level 0 (shown 1), 64 gems, state 1 (playing), score 230, play seconds 7, 7873 bytes
+
+drag_swaps exit 0
+drag_swaps mods none
+drag_swaps user registry.ini savegame.dat
+drag_swaps settle 438 normal level 1 score 0 board tick 139
+drag_swaps settle 589 normal level 1 score 30 board tick 290
+drag_swaps settle 747 normal level 1 score 60 board tick 448
+drag_swaps settle 864 normal level 1 score 70 board tick 565
+drag_swaps settle 964 normal level 1 score 80 board tick 665
+drag_swaps settle 1215 normal level 1 score 110 board tick 916
+drag_swaps settle 1312 normal level 1 score 120 board tick 1013
+drag_swaps settle 1459 normal level 1 score 150 board tick 1160
+drag_swaps settle 1543 normal level 1 score 150 board tick 1244
+drag_swaps settle 1662 normal level 1 score 160 board tick 1363
+drag_swaps states none
+drag_swaps save savegame.dat v1 normal level 0 (shown 1), 64 gems, state 1 (playing), score 160, play seconds 15, 7873 bytes
+
+input_edges exit 0
+input_edges mods none
+input_edges user registry.ini savegame.dat
+input_edges settle 438 normal level 1 score 0 board tick 139
+input_edges settle 610 normal level 1 score 30 board tick 311
+input_edges settle 724 normal level 1 score 40 board tick 425
+input_edges settle 900 normal level 1 score 70 board tick 601
+input_edges settle 1090 normal level 1 score 100 board tick 791
+input_edges settle 1213 normal level 1 score 110 board tick 914
+input_edges states none
+input_edges save savegame.dat v1 normal level 0 (shown 1), 64 gems, state 1 (playing), score 110, play seconds 11, 7873 bytes
+
+rclick exit 0
+rclick mods none
+rclick user registry.ini savegame.dat
+rclick settle 438 normal level 1 score 0 board tick 139
+rclick settle 610 normal level 1 score 30 board tick 311
+rclick settle 783 normal level 1 score 40 board tick 464
+rclick states none
+rclick save savegame.dat v1 normal level 0 (shown 1), 64 gems, state 1 (playing), score 40, play seconds 5, 7873 bytes
+
+falling_select exit 0
+falling_select mods none
+falling_select user registry.ini savegame.dat
+falling_select settle 438 normal level 1 score 0 board tick 139
+falling_select settle 586 normal level 1 score 30 board tick 287
+falling_select settle 671 normal level 1 score 30 board tick 372
+falling_select settle 838 normal level 1 score 70 board tick 539
+falling_select settle 1026 normal level 1 score 100 board tick 727
+falling_select states none
+falling_select save savegame.dat v1 normal level 0 (shown 1), 64 gems, state 1 (playing), score 100, play seconds 9, 7873 bytes
+
+options_highscores exit 0
+options_highscores mods none
+options_highscores user hiscores.dat registry.ini savegame.dat
+options_highscores settle 438 normal level 1 score 0 board tick 139
+options_highscores settle 586 normal level 1 score 30 board tick 287
+options_highscores settle 862 normal level 1 score 40 board tick 463
+options_highscores states none
+options_highscores save savegame.dat v1 normal level 0 (shown 1), 64 gems, state 1 (playing), score 40, play seconds 7, 7873 bytes
+
+pause exit 0
+pause mods none
+pause user registry.ini savegame.dat
+pause settle 438 normal level 1 score 0 board tick 139
+pause settle 826 normal level 1 score 30 board tick 287
+pause states none
+pause save savegame.dat v1 normal level 0 (shown 1), 64 gems, state 1 (playing), score 30, play seconds 8, 7873 bytes
+
+nomoves_normal exit 0
+nomoves_normal mods none
+nomoves_normal user hiscores.dat registry.ini
+nomoves_normal settle 142 normal level 1 score 0 board tick 139
+nomoves_normal settle 249 normal level 1 score 0 board tick 246
+nomoves_normal settle 350 normal level 1 score 10 board tick 347
+nomoves_normal settle 476 normal level 1 score 20 board tick 473
+nomoves_normal settle 670 normal level 1 score 50 board tick 667
+nomoves_normal settle 1501 normal level 1 score 0 board tick 142
+nomoves_normal states 808:game_over 1141:game_over_done
+nomoves_normal save none
+
+timed_fallout exit 0
+timed_fallout mods none
+timed_fallout user registry.ini savegame.dat
+timed_fallout settle 142 timed level 1 score 0 board tick 138
+timed_fallout settle 231 timed level 1 score 0 board tick 227
+timed_fallout settle 356 timed level 1 score 20 board tick 352
+timed_fallout settle 437 timed level 1 score 20 board tick 433
+timed_fallout settle 659 timed level 1 score 140 board tick 655
+timed_fallout settle 737 timed level 1 score 140 board tick 733
+timed_fallout settle 884 timed level 1 score 160 board tick 880
+timed_fallout settle 978 timed level 1 score 180 board tick 974
+timed_fallout settle 1063 timed level 1 score 180 board tick 1059
+timed_fallout settle 1184 timed level 1 score 200 board tick 1180
+timed_fallout settle 1305 timed level 1 score 220 board tick 1301
+timed_fallout settle 1439 timed level 1 score 280 board tick 1435
+timed_fallout settle 1530 timed level 1 score 280 board tick 1526
+timed_fallout settle 1635 timed level 1 score 300 board tick 1631
+timed_fallout settle 1714 timed level 1 score 300 board tick 1710
+timed_fallout settle 1899 timed level 1 score 360 board tick 1895
+timed_fallout settle 1998 timed level 1 score 380 board tick 1994
+timed_fallout settle 2109 timed level 1 score 400 board tick 2105
+timed_fallout settle 2214 timed level 1 score 420 board tick 2210
+timed_fallout settle 2310 timed level 1 score 440 board tick 2306
+timed_fallout settle 2429 timed level 1 score 460 board tick 2425
+timed_fallout settle 2523 timed level 1 score 460 board tick 2519
+timed_fallout settle 3103 timed level 1 score 480 board tick 3099
+timed_fallout settle 3182 timed level 1 score 480 board tick 3178
+timed_fallout settle 3281 timed level 1 score 480 board tick 3277
+timed_fallout settle 3413 timed level 1 score 480 board tick 3409
+timed_fallout settle 3548 timed level 1 score 500 board tick 3544
+timed_fallout settle 3635 timed level 1 score 500 board tick 3631
+timed_fallout settle 3799 timed level 1 score 580 board tick 3795
+timed_fallout settle 4355 timed level 2 score 580 board tick 4351
+timed_fallout settle 4502 timed level 2 score 605 board tick 4498
+timed_fallout settle 4622 timed level 2 score 630 board tick 4618
+timed_fallout states 2672:fall_out 3800:vortex 4053:level_wipe
+timed_fallout save savegame.dat v1 timed level 1 (shown 2), 64 gems, state 1 (playing), score 630, play seconds 46, 7873 bytes
+timed_fallout row 3103 0 6 1 6 6 4 0 4 1
+timed_fallout row 3182 0 6 1 6 6 4 0 5 1
+
+timed_fallout_load exit 0
+timed_fallout_load mods none
+timed_fallout_load user registry.ini savegame.dat
+timed_fallout_load settle 340 timed level 2 score 630 board tick 1
+timed_fallout_load states none
+timed_fallout_load save savegame.dat v1 timed level 1 (shown 2), 64 gems, state 1 (playing), score 630, play seconds 55, 7873 bytes
+
+mode_switch exit 0
+mode_switch mods none
+mode_switch user registry.ini savegame.dat
+mode_switch settle 457 timed level 1 score 0 board tick 138
+mode_switch settle 617 timed level 1 score 60 board tick 298
+mode_switch settle 908 normal level 1 score 0 board tick 139
+mode_switch states none
+mode_switch save savegame.dat v1 timed level 0 (shown 1), 64 gems, state 1 (playing), score 60, play seconds 3, 7873 bytes
+
+mode_switch_load exit 0
+mode_switch_load mods none
+mode_switch_load user registry.ini savegame.dat
+mode_switch_load settle 340 timed level 1 score 60 board tick 1
+mode_switch_load states none
+mode_switch_load save savegame.dat v1 timed level 0 (shown 1), 64 gems, state 1 (playing), score 60, play seconds 12, 7873 bytes
+
+save_states exit 0
+save_states mods none
+save_states user registry.ini savegame.dat
+save_states settle 439 normal level 1 score 0 board tick 140
+save_states settle 667 normal level 1 score 240 board tick 368
+save_states settle 742 normal level 1 score 240 board tick 443
+save_states settle 964 normal level 1 score 340 board tick 665
+save_states settle 1105 normal level 1 score 380 board tick 806
+save_states settle 1468 normal level 1 score 630 board tick 1169
+save_states settle 2022 normal level 2 score 630 board tick 1723
+save_states states 1469:vortex 1722:level_wipe
+save_states snap s1_clearing.dat v1 normal level 0 (shown 1), 64 gems, state 4 (clearing), score 60, play seconds 1, 7873 bytes
+save_states snap s2_falling.dat v1 normal level 0 (shown 1), 64 gems, state 0 (falling), score 60, play seconds 2, 7873 bytes
+save_states snap s3_swapping.dat v1 normal level 0 (shown 1), 64 gems, state 1 (playing), score 240, play seconds 3, 7873 bytes
+save_states snap s4_swapping_back.dat v1 normal level 0 (shown 1), 64 gems, state 1 (playing), score 240, play seconds 4, 7873 bytes
+save_states snap s5_vortex.dat v1 normal level 0 (shown 1), 64 gems, state 7 (vortex), score 630, play seconds 12, 7873 bytes
+save_states snap s6_wipe.dat v1 normal level 1 (shown 1), 0 gems, state 8 (level wipe), score 630, play seconds 14, 193 bytes
+save_states save savegame.dat v1 normal level 1 (shown 2), 64 gems, state 1 (playing), score 630, play seconds 18, 7873 bytes
+
+save_states.quit.s1_clearing exit 0
+save_states.quit.s1_clearing mods none
+save_states.quit.s1_clearing user registry.ini savegame.dat
+save_states.quit.s1_clearing settle 439 normal level 1 score 0 board tick 140
+save_states.quit.s1_clearing states none
+save_states.quit.s1_clearing save savegame.dat v1 normal level 0 (shown 1), 64 gems, state 4 (clearing), score 60, play seconds 1, 7873 bytes
+
+save_states.quit.s2_falling exit 0
+save_states.quit.s2_falling mods none
+save_states.quit.s2_falling user registry.ini savegame.dat
+save_states.quit.s2_falling settle 439 normal level 1 score 0 board tick 140
+save_states.quit.s2_falling states none
+save_states.quit.s2_falling save savegame.dat v1 normal level 0 (shown 1), 64 gems, state 0 (falling), score 60, play seconds 2, 7873 bytes
+
+save_states.quit.s3_swapping exit 0
+save_states.quit.s3_swapping mods none
+save_states.quit.s3_swapping user registry.ini savegame.dat
+save_states.quit.s3_swapping settle 439 normal level 1 score 0 board tick 140
+save_states.quit.s3_swapping settle 667 normal level 1 score 240 board tick 368
+save_states.quit.s3_swapping states none
+save_states.quit.s3_swapping save savegame.dat v1 normal level 0 (shown 1), 64 gems, state 1 (playing), score 240, play seconds 3, 7873 bytes
+
+save_states.quit.s4_swapping_back exit 0
+save_states.quit.s4_swapping_back mods none
+save_states.quit.s4_swapping_back user registry.ini savegame.dat
+save_states.quit.s4_swapping_back settle 439 normal level 1 score 0 board tick 140
+save_states.quit.s4_swapping_back settle 667 normal level 1 score 240 board tick 368
+save_states.quit.s4_swapping_back states none
+save_states.quit.s4_swapping_back save savegame.dat v1 normal level 0 (shown 1), 64 gems, state 1 (playing), score 240, play seconds 4, 7873 bytes
+
+save_states.quit.s5_vortex exit 0
+save_states.quit.s5_vortex mods none
+save_states.quit.s5_vortex user registry.ini savegame.dat
+save_states.quit.s5_vortex settle 439 normal level 1 score 0 board tick 140
+save_states.quit.s5_vortex settle 667 normal level 1 score 240 board tick 368
+save_states.quit.s5_vortex settle 742 normal level 1 score 240 board tick 443
+save_states.quit.s5_vortex settle 964 normal level 1 score 340 board tick 665
+save_states.quit.s5_vortex settle 1105 normal level 1 score 380 board tick 806
+save_states.quit.s5_vortex settle 1468 normal level 1 score 630 board tick 1169
+save_states.quit.s5_vortex states 1469:vortex
+save_states.quit.s5_vortex save savegame.dat v1 normal level 0 (shown 1), 64 gems, state 7 (vortex), score 630, play seconds 12, 7873 bytes
+
+save_states.quit.s6_wipe exit 0
+save_states.quit.s6_wipe mods none
+save_states.quit.s6_wipe user registry.ini savegame.dat
+save_states.quit.s6_wipe settle 439 normal level 1 score 0 board tick 140
+save_states.quit.s6_wipe settle 667 normal level 1 score 240 board tick 368
+save_states.quit.s6_wipe settle 742 normal level 1 score 240 board tick 443
+save_states.quit.s6_wipe settle 964 normal level 1 score 340 board tick 665
+save_states.quit.s6_wipe settle 1105 normal level 1 score 380 board tick 806
+save_states.quit.s6_wipe settle 1468 normal level 1 score 630 board tick 1169
+save_states.quit.s6_wipe states 1469:vortex 1722:level_wipe
+save_states.quit.s6_wipe save savegame.dat v1 normal level 1 (shown 1), 0 gems, state 8 (level wipe), score 630, play seconds 14, 193 bytes
+
+save_states.load.s1_clearing exit 0
+save_states.load.s1_clearing mods none
+save_states.load.s1_clearing user registry.ini savegame.dat
+save_states.load.s1_clearing settle 466 normal level 1 score 100 board tick 127
+save_states.load.s1_clearing states none
+save_states.load.s1_clearing save savegame.dat v1 normal level 0 (shown 1), 64 gems, state 1 (playing), score 100, play seconds 10, 7873 bytes
+
+save_states.load.s2_falling exit 0
+save_states.load.s2_falling mods none
+save_states.load.s2_falling user registry.ini savegame.dat
+save_states.load.s2_falling settle 452 normal level 1 score 240 board tick 113
+save_states.load.s2_falling states none
+save_states.load.s2_falling save savegame.dat v1 normal level 0 (shown 1), 64 gems, state 1 (playing), score 240, play seconds 11, 7873 bytes
+
+save_states.load.s3_swapping exit 0
+save_states.load.s3_swapping mods none
+save_states.load.s3_swapping user registry.ini savegame.dat
+save_states.load.s3_swapping settle 340 normal level 1 score 240 board tick 1
+save_states.load.s3_swapping states none
+save_states.load.s3_swapping save savegame.dat v1 normal level 0 (shown 1), 64 gems, state 1 (playing), score 240, play seconds 12, 7873 bytes
+
+save_states.load.s4_swapping_back exit 0
+save_states.load.s4_swapping_back mods none
+save_states.load.s4_swapping_back user registry.ini savegame.dat
+save_states.load.s4_swapping_back settle 340 normal level 1 score 240 board tick 1
+save_states.load.s4_swapping_back states none
+save_states.load.s4_swapping_back save savegame.dat v1 normal level 0 (shown 1), 64 gems, state 1 (playing), score 240, play seconds 13, 7873 bytes
+
+save_states.load.s5_vortex exit 0
+save_states.load.s5_vortex mods none
+save_states.load.s5_vortex user registry.ini savegame.dat
+save_states.load.s5_vortex settle 806 normal level 2 score 630 board tick 467
+save_states.load.s5_vortex states 340:vortex 502:level_wipe
+save_states.load.s5_vortex save savegame.dat v1 normal level 1 (shown 2), 64 gems, state 1 (playing), score 630, play seconds 21, 7873 bytes
+
+save_states.load.s6_wipe exit 0
+save_states.load.s6_wipe mods none
+save_states.load.s6_wipe user registry.ini savegame.dat
+save_states.load.s6_wipe settle 607 normal level 2 score 630 board tick 268
+save_states.load.s6_wipe states 340:level_wipe
+save_states.load.s6_wipe save savegame.dat v1 normal level 1 (shown 2), 64 gems, state 1 (playing), score 630, play seconds 23, 7873 bytes
+
+pergame exit 0
+pergame mods Stage 2: a seed for every game
+pergame user hiscores.dat mods-status.json registry.ini savegame.dat
+pergame settle 439 normal level 1 score 0 board tick 140
+pergame settle 532 normal level 1 score 0 board tick 233
+pergame settle 702 normal level 1 score 10 board tick 403
+pergame settle 832 normal level 1 score 10 board tick 533
+pergame settle 1027 normal level 1 score 40 board tick 728
+pergame settle 1123 normal level 1 score 40 board tick 824
+pergame settle 1405 timed level 1 score 0 board tick 146
+pergame settle 1492 timed level 1 score 0 board tick 233
+pergame settle 18544 timed level 1 score 0 board tick 145
+pergame states 16154:game_over 16486:game_over_done
+pergame save savegame.dat v1 normal level 0 (shown 1), 64 gems, state 1 (playing), score 40, play seconds 8, 7873 bytes
+pergame status rulesId 0e0943ce3dc5f173, scoreKey -, features seeds(perGame), 0 warnings, errors -, dropped -
+pergame seeds 439:2135392491/pergame@2 1405:946286476/pergame@3 18544:491263/pergame@5
+
+rules_inert exit 0
+rules_inert mods Stage 1: no invalid moves, Stage 1: twist, Stage 1: slides, Stage 1: free swaps, Stage 1: out of range, Stage 1: diamond with dirt, Stage 1: features, Stage 1: nine colours, Stage 1: undo
+rules_inert user hiscores-11724ae5.dat mods-status.json registry.ini savegame-11724ae5.dat
+rules_inert settle 439 normal level 1 score 0 board tick 140
+rules_inert settle 532 normal level 1 score 0 board tick 233
+rules_inert settle 702 normal level 1 score 10 board tick 403
+rules_inert settle 832 normal level 1 score 10 board tick 533
+rules_inert settle 1027 normal level 1 score 40 board tick 728
+rules_inert settle 1123 normal level 1 score 40 board tick 824
+rules_inert settle 1405 timed level 1 score 0 board tick 146
+rules_inert settle 1492 timed level 1 score 0 board tick 233
+rules_inert settle 18544 timed level 1 score 0 board tick 145
+rules_inert states 16154:game_over 16486:game_over_done
+rules_inert save savegame-11724ae5.dat v1 normal level 0 (shown 1), 64 gems, state 1 (playing), score 40, play seconds 8, 7873 bytes
+rules_inert status rulesId 0d71b685522c108e, scoreKey 11724ae5, features seeds(entry, perGame), replays(keep 5), 11 warnings, errors s1-bad, dropped s1-free-swaps
+rules_inert seeds 439:2135392491/pergame@2 1405:946286476/pergame@3 18544:491263/pergame@5
+
+rules_only exit 0
+rules_only mods Stage 2: one rule
+rules_only user hiscores-3467f5b4.dat mods-status.json registry.ini savegame-3467f5b4.dat
+rules_only settle 439 normal level 1 score 0 board tick 140
+rules_only settle 532 normal level 1 score 0 board tick 233
+rules_only settle 702 normal level 1 score 10 board tick 403
+rules_only settle 832 normal level 1 score 10 board tick 533
+rules_only settle 1027 normal level 1 score 40 board tick 728
+rules_only settle 1123 normal level 1 score 40 board tick 824
+rules_only settle 1405 timed level 1 score 0 board tick 146
+rules_only settle 1492 timed level 1 score 0 board tick 233
+rules_only settle 18544 timed level 1 score 0 board tick 145
+rules_only states 16154:game_over 16486:game_over_done
+rules_only save savegame-3467f5b4.dat v1 normal level 0 (shown 1), 64 gems, state 1 (playing), score 40, play seconds 8, 7873 bytes
+rules_only status rulesId bb62a5598f159348, scoreKey 3467f5b4, features none, 1 warnings, errors -, dropped -
+rules_only seeds 439:2135392491/pergame@2 1405:946286476/pergame@3 18544:491263/pergame@5
+
+seeds_entry exit 0
+seeds_entry mods Stage 2: seed field only
+seeds_entry user hiscores.dat mods-status.json registry.ini savegame.dat
+seeds_entry settle 438 normal level 1 score 0 board tick 139
+seeds_entry settle 586 normal level 1 score 30 board tick 287
+seeds_entry settle 747 normal level 1 score 100 board tick 448
+seeds_entry settle 861 normal level 1 score 130 board tick 562
+seeds_entry settle 952 normal level 1 score 130 board tick 653
+seeds_entry settle 1132 normal level 1 score 90 board tick 833
+seeds_entry settle 1403 timed level 1 score 0 board tick 144
+seeds_entry settle 1546 timed level 1 score 80 board tick 287
+seeds_entry settle 18544 timed level 1 score 0 board tick 145
+seeds_entry states 17736:game_over 18068:game_over_done
+seeds_entry save savegame.dat v1 normal level 0 (shown 1), 64 gems, state 1 (playing), score 90, play seconds 8, 7873 bytes
+seeds_entry status rulesId 0e0943ce3dc5f173, scoreKey -, features seeds(entry), 1 warnings, errors -, dropped -
+
+seed_normal exit 0
+seed_normal mods none
+seed_normal user hiscores-seeded.dat registry.ini
+seed_normal settles 183
+seed_normal last-settle 24974 normal level 4 score 3450 board tick 24971
+seed_normal states 6281:vortex 6534:level_wipe 14061:vortex 14314:level_wipe 22521:vortex 22774:level_wipe 25106:game_over 25439:game_over_done
+seed_normal save none
+seed_normal seeds 153:4242/user
+seed_normal end update 25439: game over -> game over done, level 4, score 3475, board tick 25436, Rand() draws 1
+
+seed_max exit 0
+seed_max mods none
+seed_max user registry.ini
+seed_max settle 443 normal level 1 score 0 board tick 144
+seed_max states none
+seed_max save none
+seed_max seeds 443:4294967295/user
+
+seed_resume exit 0
+seed_resume mods none
+seed_resume user hiscores-seeded.dat hiscores.dat registry.ini savegame.dat
+seed_resume settle 340 normal level 1 score 90 board tick 1
+seed_resume settle 596 timed level 1 score 0 board tick 147
+seed_resume states 15244:game_over 15572:game_over_done
+seed_resume save savegame.dat v1 normal level 0 (shown 1), 64 gems, state 1 (playing), score 90, play seconds 8, 7873 bytes
+seed_resume seeds 340:- 596:31337/user
+
+seed_keyed exit 0
+seed_keyed mods Stage 2: tunables only
+seed_keyed user hiscores-26c65d57-seeded.dat registry.ini
+seed_keyed settle 449 normal level 1 score 0 board tick 150
+seed_keyed states none
+seed_keyed save none
+seed_keyed seeds 449:4242/user
+
+seed_highscores exit 0
+seed_highscores mods none
+seed_highscores user hiscores-seeded.dat registry.ini savegame.dat
+seed_highscores settle 449 normal level 1 score 0 board tick 150
+seed_highscores settle 553 normal level 1 score 10 board tick 254
+seed_highscores settle 842 normal level 1 score 20 board tick 443
+seed_highscores settle 1063 normal level 1 score 30 board tick 664
+seed_highscores states none
+seed_highscores save savegame.dat v1 normal level 0 (shown 1), 64 gems, state 1 (playing), score 30, play seconds 7, 7873 bytes
+seed_highscores seeds 449:4242/user
+
+seed_timed exit 0
+seed_timed mods none
+seed_timed user hiscores-seeded.dat registry.ini
+seed_timed settle 449 normal level 1 score 0 board tick 150
+seed_timed settle 609 timed level 1 score 0 board tick 150
+seed_timed settle 15876 timed level 1 score 0 board tick 141
+seed_timed states 15254:game_over 15586:game_over_done
+seed_timed save none
+seed_timed seeds 449:4242/user 609:4242/user 15876:-
+
+seed_match_timed exit 0
+seed_match_timed mods none
+seed_match_timed user registry.ini savegame.dat
+seed_match_timed settle 449 normal level 1 score 0 board tick 150
+seed_match_timed settle 553 normal level 1 score 10 board tick 254
+seed_match_timed settle 764 timed level 1 score 0 board tick 145
+seed_match_timed settle 938 normal level 1 score 0 board tick 139
+seed_match_timed states none
+seed_match_timed save savegame.dat v1 normal level 0 (shown 1), 64 gems, state 1 (playing), score 10, play seconds 3, 7873 bytes
+seed_match_timed seeds 449:4242/user 764:- 938:-
+
+seed_nomatch_timed exit 0
+seed_nomatch_timed mods none
+seed_nomatch_timed user registry.ini savegame.dat
+seed_nomatch_timed settle 449 normal level 1 score 0 board tick 150
+seed_nomatch_timed settle 532 normal level 1 score 0 board tick 233
+seed_nomatch_timed settle 709 timed level 1 score 0 board tick 150
+seed_nomatch_timed settle 843 timed level 1 score 20 board tick 284
+seed_nomatch_timed settle 1064 normal level 1 score 0 board tick 145
+seed_nomatch_timed states none
+seed_nomatch_timed save savegame.dat v1 timed level 0 (shown 1), 64 gems, state 1 (playing), score 20, play seconds 3, 7873 bytes
+seed_nomatch_timed seeds 449:4242/user 709:4242/user 1064:-
+
+seed_newgame exit 0
+seed_newgame mods none
+seed_newgame user registry.ini
+seed_newgame settle 449 normal level 1 score 0 board tick 150
+seed_newgame settle 804 normal level 1 score 0 board tick 150
+seed_newgame settle 932 normal level 1 score 10 board tick 278
+seed_newgame settle 1343 normal level 1 score 0 board tick 145
+seed_newgame states 480:game_over 1020:game_over
+seed_newgame save none
+seed_newgame seeds 449:4242/user 804:4242/user 1343:-
+
+autoplay_normal exit 0
+autoplay_normal mods none
+autoplay_normal user hiscores.dat registry.ini
+autoplay_normal settles 76
+autoplay_normal last-settle 10376 normal level 2 score 1400 board tick 10373
+autoplay_normal states 5109:vortex 5362:level_wipe 10496:game_over 10825:game_over_done
+autoplay_normal save none
+autoplay_normal end update 10825: game over -> game over done, level 2, score 1415, board tick 10822, Rand() draws 5787
+
+autoplay_timed exit 0
+autoplay_timed mods none
+autoplay_timed user hiscores.dat registry.ini
+autoplay_timed settles 760
+autoplay_timed last-settle 105159 timed level 10 score 49500 board tick 105155
+autoplay_timed states 2672:fall_out 3800:vortex 4053:level_wipe 5127:fall_out 7810:vortex 8063:level_wipe 9894:fall_out 12405:fall_out 13234:vortex 13487:level_wipe 19041:fall_out 21764:fall_out 25603:vortex 25856:level_wipe 29233:vortex 29486:level_wipe 36097:vortex 36350:level_wipe 51627:vortex 51880:level_wipe 68817:vortex 69070:level_wipe 83046:fall_out 87444:vortex 87697:level_wipe 91025:fall_out 95075:fall_out 105170:game_over 105502:game_over_done
+autoplay_timed save none
+autoplay_timed end update 105502: game over -> game over done, level 10, score 49500, board tick 105498, Rand() draws 29193
+
+autoplay_cap exit 0
+autoplay_cap mods none
+autoplay_cap user registry.ini savegame.dat
+autoplay_cap settles 47
+autoplay_cap last-settle 5959 normal level 1 score 380 board tick 5956
+autoplay_cap states none
+autoplay_cap save savegame.dat v1 normal level 0 (shown 1), 64 gems, state 1 (playing), score 380, play seconds 59, 7873 bytes
+autoplay_cap end update 5999: update cap

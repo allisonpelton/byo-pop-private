@@ -1,0 +1,12 @@
+{
+  "id": "example-relaxed",
+  "name": "Relaxed Hints",
+  "version": "1.0",
+  "author": "byo-pop examples",
+  "description": "Hints cost 10 points instead of 50 (per level multiplier). Uses its own high-score table.",
+  "tunables": {
+    "scoring": {
+      "hintPenalty": 10
+    }
+  }
+}
