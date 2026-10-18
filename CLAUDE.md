@@ -18,7 +18,13 @@ the same machine. A plain run opens a window, raises it over whatever the user i
 - Open the web builds in the Browser pane only with `?silent=1`, e.g.
   `http://127.0.0.1:18766/bejeweled.html?silent=1`: the pane may be hidden, and without it the game plays
   its music and sounds on the user's speakers. The status line ends in "silent" when it is on.
+- Under rundesk (and the oracle) the framework never opens a URL; it logs "OpenURL in a test run". Builds or
+  frozen exes from before that guard do open them: a click on a game's "more games" link (a steam:// URL)
+  brings up the user's Steam client on their desktop. Random or generated input must not click link
+  buttons (Options dialog, "buy" or "more games" screens) in any build.
 - Run at most 3 game processes at a time, and never add artificial CPU load.
 - Do not leave anything running: loops started in the background must end before you finish, and a stopped
   task's child processes must be killed.
+- Stop only processes you started, identified by a command line inside your own folder or worktree. Several
+  sessions share this machine, so never stop a game exe by its name alone.
 - Never run `-script`/`-autoplay` runs on the user's desktop. `ORACLE_VISIBLE=1` exists only for the user.

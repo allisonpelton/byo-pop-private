@@ -9,6 +9,8 @@ __pycache__/
 
 # Bejeweled mods generated from the user's other games (contain their copyrighted assets)
 /games/bejeweled/mods/bejeweled2-audio/
+# Close recreation of Bejeweled 2's gem art (procedural; regenerate with tools/make_bej2_gems_mod.py)
+/games/bejeweled/mods/bejeweled2-gems/
 # Third-party picture used by the TRUE joke mod (downloaded locally, not ours to commit)
 /games/bejeweled/mods/true-gem/source/true.*
 /games/bejeweled/mods/true-gem/patches/
