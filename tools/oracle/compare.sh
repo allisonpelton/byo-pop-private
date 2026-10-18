@@ -52,6 +52,19 @@ while [ $# -gt 0 ]; do
 	esac
 done
 
+# Every game this script starts runs on a private, invisible desktop (tools/rundesk): test windows are
+# never shown and never take focus from the user. Children inherit the desktop, so re-running this script
+# under rundesk covers every exe it starts. ORACLE_VISIBLE=1 runs on the user's desktop instead.
+RUNDESK="$ROOT/build/native/rundesk.exe"
+if [ -z "${BEJ_TEST_DESKTOP:-}" ] && [ -z "${ORACLE_VISIBLE:-}" ]; then
+	if [ ! -x "$RUNDESK" ]; then
+		echo "compare.sh: $RUNDESK is missing; build it (cmake --build build/native --target rundesk) or set ORACLE_VISIBLE=1" >&2
+		exit 2
+	fi
+	export BEJ_TEST_DESKTOP=1
+	exec "$RUNDESK" bash "$0" "$@"
+fi
+
 winpath() { if command -v cygpath > /dev/null 2>&1; then cygpath -m "$1"; else echo "$1"; fi; }
 PY="${PYTHON:-python}"
 COMPARE_PY="$(winpath "$ROOT/tools/oracle/compare.py")"

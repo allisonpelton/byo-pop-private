@@ -109,3 +109,9 @@ if(BUILD_FWTEST)
       VERBATIM)
   endif()
 endif()
+
+# Test launcher (tools/rundesk): runs a command on a private, invisible desktop so test runs of the game
+# never show a window or take focus. tools/oracle/compare.sh runs itself under it.
+if(WIN32 AND NOT EMSCRIPTEN)
+  add_executable(rundesk tools/rundesk/rundesk.c)
+endif()
