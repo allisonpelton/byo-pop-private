@@ -1604,6 +1604,7 @@ and address; its count is tracked per stage.
 | 1 | 55 | 22 | `InitVariant()` in the ctor; loop bounds `BOARD_ROWS`/`BOARD_COLS`/8/7 → `mRows`/`mCols`; `BOARD_X`/`BOARD_Y` → `mLayout.mOriginX/Y` in `GetColX`/`GetRowY`; `mHeight` → `mLayout.mScreenBottom` (480) in `UpdateGameOver`/`UpdateFallOut`; `sizeof(Piece)` → `Piece::SAVE_SIZE` in the save |
 | 2 | 63 | 27 | Set seed (12.3): `ChooseBoardRng()` in `WinDMApp::NewGame`; `UsePendingSeed()` on the board's first tick in `Update` (after the pause checks); `GameLoadedVariant()` at the end of a successful `LoadGame`; `delete mOwnRng` in `~Board`; `HighScoreWidget`: the table file chosen in the ctor and used by `LoadHighScores`/`SaveHighScores`, the SEED line in `Draw`. The 9 `Rand()` draws keep their text: `Board::Rand()` hides `Sexy::Rand` by class scope |
 | 2, seed rule | 65 | 30 | The pending seed waits for play (12.3, the user's decision of 2026-10-18): `UsePendingSeed()` leaves `Update` for `UpdateSwap` (after `mIsNewGame = false`) and `GameOver`; `RequestNewGame` clears `mTakesPendingSeed` before its `GameOver(50)` |
+| 2b | 67 | 32 | Auto LiveSplit (12.4): `LiveSplitObserver::AfterUpdate` at the end of `WinDMApp::UpdateFrames` (after the update and the test hooks, only while wanted), `LiveSplitObserver::AppDestroyed` at the end of `~WinDMApp`. No Board function changes: the board serial and the resumed mark are set in `InitVariant` and `GameLoadedVariant` |
 
 With the original rules every edited line computes what the original did: the board is 8x8, the layout
 is the original constants, and no hook reads the variant flags yet. `UpdateClearing`'s refill pass,
@@ -1679,6 +1680,50 @@ games/bejeweled/docs/CODE_MODS_DESIGN.md 4.10 and 6.2, as built:
   end), so a save's `RNGS` reader (stages 3 and 5) can treat `false` as a chunk error.
   `MTRand::Serialize()` keeps no index (a copy made from it restarts at the next 624-word block); it stays
   as it is because the `-tracehash` FULL hash hashes it.
+
+### 12.4 Auto LiveSplit (code mods, stage 2b)
+
+games/bejeweled/docs/CODE_MODS_DESIGN.md 4.15, as built:
+
+- **The block** (`LiveSplitBlock.h`, layout 1, 0xB0 bytes, a `static_assert` per offset) is
+  `gLiveSplitBlock` in `LiveSplitObserver.cpp`: constant-initialised, `aligned(64)`, `used`, so its magic
+  ("BYOPOP-LIVESPLIT" F0 F1 F2 F3, a brace list of bytes) is in the exe once, in `.data`'s raw data. In
+  every Windows build; nothing writes it until `features.livesplit` is on (`active` and `self` stay 0).
+  Elsewhere (web) the observer is empty inlines and GameConfig warns "features.livesplit: desktop only,
+  ignored"; the feature is parsed everywhere, so `mods-status.json` names it on every build.
+- **The observer** (`LiveSplitObserver::AfterUpdate`, after each app update while the feature is on, or
+  once more to write `active = 0` after a `gGameConfig.Load()` turned it off) only reads: `mBoard`'s
+  fields, the score key, the board's RulesId, `gGameConfig.mFeatures`. Each write is seq odd, release fence,
+  the fields from a shadow copy, release fence, seq even. Against the previous update of the same board:
+  GO when the tick passes 150 on a board that did not resume a save; a level clear when the board enters
+  state 7 on an update its tick advanced; a game over when it enters state 5, its cause New Game
+  (`mNewGamePending`), else time up (from state 1), else no moves (from state 0), else other. A board's
+  first update, the activation's update and the update a `LoadGame` ran in (the resumed mark turned on)
+  are baselines only: a loaded vortex save enters state 7 on an update whose tick advances (the board
+  updates in the same frame as the dialog's button), so the tick test alone would count it.
+  `displayScoreMax` follows `mDisplayScore` up to the game-over update, then stays. Flags: 01 timed, 02
+  resumed, 04 no score key and no chosen seed, 08 chosen seed, 10 own RNG, 40 game over (per board), 80
+  paused (`mPauseCount` or `mUserPauseCount`); 20 (replay) waits for stage 3.
+- **Board bookkeeping:** `InitVariant` sets `mBoardSerial` (1, 2, ... per process) and clears `mResumed`;
+  `GameLoadedVariant` sets `mResumed`. Both outside the `BEJ_NO_VARIANTS` parts; neither is hashed (the
+  FULL and LOGIC lists leave them out), saved or read by play.
+- **Activation** (the first update with the feature on): `self`, `qpcFrequency`, `active = 1`, the status
+  line "livesplit: block at 0x...", and the split templates: every `*.lss` in the `livesplit/` folder of
+  the mod that turned the feature on (`GameFeatures::mLiveSplitMod`) is copied to `<user dir>/livesplit/`
+  unless a file of that name is there (written as `<name>.tmp` and renamed when complete, so a failed copy
+  leaves no truncated template). `~WinDMApp` makes the last write: `active = 0`, `boardSerial = 0`, which
+  tells `lsprobe` a clean quit from a crash; the script skips inactive copies and resets on a quit through
+  the board-less update after `Shutdown` deleted a game in progress, or its `exit` action.
+- **Status lines** (SDL_Log, only with the feature): the address, the templates, each GO, level clear and
+  game over with its tick, a resumed board's GO that is not counted, "off". `-livesplitlog=<file>` appends
+  "u=<update>" and the block's fields per write, with `self` and the clock masked.
+- **Mod signs (Q18):** a mod whose `mod.json` has only descriptive keys (id, name, version, author,
+  description, priority) and `"features": {"livesplit": ...}`, and no `images`, `sounds`, `music`, `data`
+  or `properties` folder, does not count for `GameConfig::mAnyModEnabled`: no crossbar on GO's G, no fourth
+  hint sparkle.
+- **Checks:** the oracle's `livesplit` cases (every playtest, stage-0 and autoplay case with the mod
+  against an inert `features.livesplit: false` twin, and the block's log against `-tracehash`), and
+  `games/bejeweled/tools/livesplit/run_tests.sh` (lsprobe, the script compiled as C# 5, the decisions).
 
 ---
 

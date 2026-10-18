@@ -640,6 +640,22 @@ static void TestFeatures()
 	r = Merge({{"typo", "{\"features\": {\"replay\": true}}"}});
 	Check(HasMessage(r.mStatus.mWarnings, "typo", "did you mean features.replays?"), "unknown feature" + Messages(r));
 	Check(r.mFeatures.Text() == "none", "unknown feature ignored");
+
+	// Stage 2b: features.livesplit (games/bejeweled/docs/CODE_MODS_DESIGN.md 4.15): no gameplay, no options;
+	// the mod that turns it on supplies the split templates
+	r = Merge({{"livesplit", "{\"features\": {\"livesplit\": true}}"}});
+	Check(r.mFeatures.mLiveSplit && (r.mFeatures.mLiveSplitMod == "livesplit") && (r.mFeatures.Text() == "livesplit") &&
+		Prov(r, "features.livesplit") == "livesplit" && !r.mRules.HasVariantRules() && Clean(r), "livesplit: true" + Messages(r));
+	Check(r.mRules.RulesIdHex() == Merge({}).mRules.RulesIdHex(), "livesplit is not part of the RulesId");
+	r = Merge({{"low", "{\"features\": {\"livesplit\": true, \"seeds\": true}}"}, {"high", "{\"features\": {\"livesplit\": false}}"}});
+	Check(!r.mFeatures.mLiveSplit && r.mFeatures.mLiveSplitMod.empty() && r.mFeatures.mSeeds &&
+		HasMessage(r.mStatus.mWarnings, "high", "features.livesplit overrides low"), "livesplit: false overrides" + Messages(r));
+	r = Merge({{"opts", "{\"features\": {\"livesplit\": {\"port\": 1}}}"}});
+	Check(r.mFeatures.mLiveSplit && HasMessage(r.mStatus.mWarnings, "opts", "unknown key features.livesplit.port ignored"),
+		"livesplit {}: on, with no options" + Messages(r));
+	r = Merge({{"bad", "{\"features\": {\"livesplit\": 1}}"}});
+	Check(!r.mFeatures.mLiveSplit && HasMessage(r.mStatus.mErrors, "bad", "features ignored: features.livesplit must be"),
+		"livesplit: a number is refused" + Messages(r));
 }
 
 // JSON has no NaN or Infinity, though strtod reads them: rejected, so no libc's NaN reaches a RulesId

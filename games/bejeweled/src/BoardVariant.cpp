@@ -4,17 +4,23 @@
 // as the original; later stages switch the generalised paths on.
 // Stage 2: the board's RNG (6.2). A seed the player chose, any rule, or the seeds.perGame feature gives
 // the board its own MTRand, which Board::Rand draws from; every other board draws from the global stream
-// as the original does.
+// as the original does. Stage 2b: the board serial and the resumed mark the LiveSplit observer reads (4.15).
 
 #include "Board.h"
 #include "GameConfig.h"
 
 using namespace Sexy;
 
+// The boards made in this process, for the LiveSplit observer (games/bejeweled/docs/CODE_MODS_DESIGN.md 4.15)
+static uint32_t sBoardSerial = 0;
+
 // Called first in the constructor (0x4cb5bc), before SetupLevel and FillBoard use the layout and the RNG
 void Board::InitVariant()
 {
 	mRules = gGameConfig.mRules;
+	// The LiveSplit observer's bookkeeping, in every build (BEJ_NO_VARIANTS too)
+	mBoardSerial = ++sBoardSerial;
+	mResumed = false;
 	// The board shape rules (board.cols/rows/mask/levels) take effect in stage 7 (FillBoardVariant,
 	// RefillMasked, DrawVariant); until then the layout keeps the original constants
 	mLayout = BoardLayout();
@@ -74,9 +80,11 @@ void Board::UsePendingSeed()
 // stage 5; games/bejeweled/docs/CODE_MODS_DESIGN.md 7.2, 7.3) the v1 save has nothing to restore. So for
 // now the game goes on unseeded: it draws from the global stream, its scores go to the normal table, and
 // the game-over screen shows no SEED line. The v1 save is written as before. The pending seed stays for the
-// next game.
+// next game. Stage 2b: the board is marked resumed for the LiveSplit observer (no run starts on it).
 void Board::GameLoadedVariant()
 {
+	// The LiveSplit observer counts no GO on this board (in every build, BEJ_NO_VARIANTS too)
+	mResumed = true;
 	mTakesPendingSeed = false;
 	delete mOwnRng;
 	mOwnRng = NULL;

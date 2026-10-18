@@ -131,6 +131,9 @@ public:
 	//                        it appears, just before the slide ends (a script line, so a replay takes it)
 	//   script command "save <file>": writes the save a shutdown would write now (GetShutdownSave) to
 	//                        <file> without touching the game; it logs only when it cannot
+	//   -livesplitlog=<file> port(variant): while features.livesplit is on (desktop builds), appends one line
+	//                        per LiveSplit block write: "u=<update>" and the block's fields, with the
+	//                        address and the clock masked (LiveSplitObserver.h, LiveSplitBlock.h)
 	std::string		mTraceHashFileName;
 	FILE*			mTraceHashFile;
 	bool			mAutoplay;

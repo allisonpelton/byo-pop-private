@@ -224,6 +224,10 @@ public:
 	bool			mRanked;                // a ranked online game (stage 14); always false for now
 	uint32_t		mBoardDraws;            // Board::Rand() calls (for spotting outside draws, stage 3)
 	bool			mTakesPendingSeed;      // seeded with GameConfig::mPendingSeed, unplayed: a matching swap or a game over uses it up (4.10)
+	// LiveSplit observer bookkeeping (4.15; LiveSplitObserver.cpp), not game state: unhashed, unsaved. Set
+	// outside the BEJ_NO_VARIANTS parts, so that build counts GO like the others
+	uint32_t		mBoardSerial;           // 1, 2, ... per board made in this process (InitVariant)
+	bool			mResumed;               // the board resumed a saved game (GameLoadedVariant): its GO is not a run start
 
 public:
 	int				GetColX(int theCol);                            // 0x4c9b25 theCol*51 + 203 (thiscall in the binary, this unused; port(variant): a member, + mLayout.mOriginX)

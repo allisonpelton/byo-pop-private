@@ -32,7 +32,9 @@
 # reported, never played) and leaves mods-status.json. Stage 2 (set seed) adds candidate runs with
 # -gameseed and the fixtures of mods/stage2 and scripts/stage2, checked against a model of the board RNG
 # (compare.py "seeded", "sameboard", "samegrids"), the -gameseed refusals and
-# games/bejeweled/tools/check_rng_use.py.
+# games/bejeweled/tools/check_rng_use.py. Stage 2b (Auto LiveSplit) runs the playtest, stage-0 and autoplay
+# cases with games/bejeweled/mods/livesplit and with its inert twin (mods/stage2b/off): identical outputs,
+# and the block's -livesplitlog against hash.txt (compare.py "livesplit"); plus check_asl_offsets.py.
 set -u
 
 ROOT="$(cd "$(dirname "$0")/../../../.." && pwd)"  # the repository root
@@ -53,7 +55,7 @@ while [ $# -gt 0 ]; do
 		--candidate-args) read -r -a CAND_ARGS <<< "$2"; shift 2 ;;
 		--out) OUT="$(mkdir -p "$2" && cd "$2" && pwd)"; shift 2 ;;
 		--compare-only) COMPARE_ONLY=1; shift ;;
-		*) sed -n '2,35p' "$0"; exit 2 ;;
+		*) sed -n '2,38p' "$0"; exit 2 ;;
 	esac
 done
 
@@ -402,6 +404,66 @@ echo "  candidate rng_rules: exit $(cat "$OUT/candidate/rng_rules/exit.txt")"
 autoplay autoplay_normal "-autoplay=1: normal game to no moves (level 2), quit 100 updates into the high-score screen" 1 -autoplay=1
 autoplay autoplay_timed "-autoplay=2 -autoplaytimed: timed game to time up (level 10): fall-outs, stale selections" 1 -autoplay=2 -autoplaytimed
 autoplay autoplay_cap "-autoplay=7 -autoplaycap=6000, seed 2: quits at the cap, mid-game (savegame.dat)" 2 -autoplay=7 -autoplaycap=6000
+
+# Stage 2b: Auto LiveSplit (games/bejeweled/docs/CODE_MODS_DESIGN.md 4.15). The candidate with the livesplit
+# mod (games/bejeweled/mods/livesplit, copied into a mods folder of its own) against the candidate with its
+# inert twin (mods/stage2b/off: features.livesplit false). Neither shows mod signs, so the twin is the
+# reference for everything: compare.py "livesplit" (TRACE, hash.txt, the user dir but mods-status.json and
+# the copied livesplit/ templates, screenshots, snapshots, the logs without their "livesplit:" and "mods:"
+# lines) and the block's event log (-livesplitlog) against hash.txt's states.
+LSMODS="$OUT/gen/livesplit-mods"
+LSOFF="$GAME/tools/oracle/mods/stage2b/off"
+rm -rf "$LSMODS"
+mkdir -p "$LSMODS"
+cp -r "$MODS/livesplit" "$LSMODS/livesplit"
+# lscase <case> <description> <seed> <script or -> [options]: <case>.lsoff (the reference) and <case>.ls; a
+# "from=<case>" option starts each from the user dir of the same twin of <case>
+lscase() {
+	local name=$1 desc=$2 seed=$3 script=$4
+	shift 4
+	local off=() on=()
+	for opt in "$@"; do
+		case "$opt" in
+			from=*) off+=("from=${opt#from=}.lsoff"); on+=("from=${opt#from=}.ls") ;;
+			*) off+=("$opt"); on+=("$opt") ;;
+		esac
+	done
+	printf '%s\t%s\t%s\t\n' "$name.lsoff" lsref "$desc, with the inert features.livesplit=false mod (the reference)" >> "$OUT/cases.txt"
+	run candidate "$name.lsoff" "$seed" "$script" modsdir="$LSOFF" "${off[@]}"
+	printf '%s\t%s\t%s\t%s\n' "$name.ls" livesplit "$desc, with the livesplit mod" "ref=$name.lsoff" >> "$OUT/cases.txt"
+	run candidate "$name.ls" "$seed" "$script" modsdir="$LSMODS" arg=-livesplitlog=livesplit.txt "${on[@]}"
+}
+lscase main "playtest.txt" 1 "$PT/playtest.txt"
+lscase load "playtest_load.txt in main's user dir (a resumed board: no GO counted)" 1 "$PT/playtest_load.txt" from=main
+lscase level "playtest_level.txt (a level clear)" 3 "$PT/playtest_level.txt"
+for s in drag_swaps input_edges rclick falling_select options_highscores pause nomoves_normal timed_fallout mode_switch; do
+	lscase "$s" "stage-0 $s.txt" 1 "$S0/$s.txt"
+done
+lscase timed_fallout_load "load_resume.txt in timed_fallout's user dir" 1 "$S0/load_resume.txt" from=timed_fallout
+lscase mode_switch_load "load_resume.txt in mode_switch's user dir" 1 "$S0/load_resume.txt" from=mode_switch
+lscase save_states "save_states.txt (snapshots in every state)" 3 "$S0/save_states.txt"
+for snap in s5_vortex s6_wipe; do
+	lscase "save_states.load.$snap" "load_resume.txt with the $snap save (LoadGame restores the vortex or wipe: no level clear)" \
+		1 "$S0/load_resume.txt" savegame="$OUT/candidate/save_states/snaps/$snap.dat"
+done
+lscase autoplay_normal "-autoplay=1 (normal, no moves)" 1 - arg=-autoplay=1 arg=-autoplaylog=autoplay.txt
+lscase autoplay_timed "-autoplay=2 -autoplaytimed (timed, level 10, time up)" 1 - arg=-autoplay=2 arg=-autoplaytimed \
+	arg=-autoplaylog=autoplay.txt
+# The script reads the block the game writes, and the block is in the exe once (check_asl_offsets.py, with
+# lsprobe -dumplayout from build/native)
+printf '%s\t%s\t%s\t\n' livesplit_layout lint "games/bejeweled/tools/livesplit/check_asl_offsets.py: the script's magic and field table against the game's layout 1; the magic once, in the candidate's .data" >> "$OUT/cases.txt"
+mkdir -p "$OUT/candidate/livesplit_layout"
+LSPROBE="$ROOT/build/native/lsprobe.exe"
+if [ -x "$LSPROBE" ]; then
+	"$LSPROBE" -dumplayout > "$OUT/candidate/livesplit_layout/layout.txt"
+	"$PY" "$(winpath "$GAME/tools/livesplit/check_asl_offsets.py")" "$(winpath "$GAME/tools/livesplit/BejeweledDeluxe-byopop.asl")" \
+		"$(winpath "$OUT/candidate/livesplit_layout/layout.txt")" "$(winpath "${EXE[candidate]}")" > "$OUT/candidate/livesplit_layout/check.txt" 2>&1
+	echo $? > "$OUT/candidate/livesplit_layout/exit.txt"
+else
+	echo "$LSPROBE is missing (cmake --build build/native --target lsprobe)" > "$OUT/candidate/livesplit_layout/check.txt"
+	echo 1 > "$OUT/candidate/livesplit_layout/exit.txt"
+fi
+echo "  candidate livesplit_layout: exit $(cat "$OUT/candidate/livesplit_layout/exit.txt")"
 
 echo
 "$PY" "$COMPARE_PY" compare "$(winpath "$OUT")" "$EXPECT"

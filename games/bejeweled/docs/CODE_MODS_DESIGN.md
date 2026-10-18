@@ -1019,6 +1019,9 @@ speedrun.com entry this port can run; the other five Bejeweled entries are other
 | Timetrial | The same, in Timetrial | 5, 10, 15, 20 Levels |
 | Timetrial - Score Attack | From GO until the target score or more is on screen | 10K, 25K, 50K, 100K, 150K, 200K Points |
 
+Each category's subcategory variable has its own name: `Normal`, `Timetrial` and, for Score Attack,
+`Timetrial - Score rush` (speedrun.com API, checked 2026-10-18).
+
 **Events and readings.**
 
 | Event | Code | Reading |
@@ -1091,14 +1094,18 @@ little-endian, naturally aligned, 0xB0 bytes:
 |---|---|---|
 | New board, or none | The serial differs (0 without a board) | `boardSerial`, `boardLevelClears = 0`, `goTick = -1`, `displayScoreMax = 0`, flags; RulesId once per board |
 | GO | `prevTick < 150 <= mUpdateCnt`, same board, not resumed, not a replay | `goCount++`, `goSerial`, `goTick` |
-| Level clear | `mState == 7 && prevState != 7`, and the tick advanced (a `LoadGame` that restores state 7 does not) | `levelClears++`, its serial, `boardLevelClears++` |
+| Level clear | `mState == 7 && prevState != 7`, the tick advanced, and not the update a `LoadGame` ran in (`mResumed` turned on: a loaded vortex save enters state 7 on an update whose tick does advance, since the board updates in the frame of the dialog's button) | `levelClears++`, its serial, `boardLevelClears++` |
 | Game over | `mState == 5 && prevState != 5` (`GameOver` is the only setter) | `gameOvers++`, its serial, flag 0x40, one cause: `mNewGamePending` → newGame; else previous state PLAYING → timeUp (only state 1 checks the time); else FALLING → noMoves; else other |
 | Every update | Always; `displayScoreMax` only up to and including the game-over update, then frozen | `displayScoreMax = max(displayScoreMax, mDisplayScore)`, then the snapshot fields |
 
 - **Activation:** the first update with the feature on writes `self`, `qpcFrequency` and `active = 1`,
-  logs the address and copies the templates. **Deactivation:** `NewGame`'s `gGameConfig.Load()` with the
-  feature off writes `active = 0`. `~WinDMApp` writes `active = 0` and `boardSerial = 0`, so the script
-  sees the quit and `lsprobe` can tell a clean quit from a crash.
+  logs the address and copies the templates; the board on screen then is new to the block (its update is
+  a baseline). **Deactivation:** the first update after a `gGameConfig.Load()` (in `NewGame`) found the
+  feature off writes `active = 0`. `~WinDMApp` writes `active = 0` and `boardSerial = 0`, so `lsprobe`
+  and other readers can tell a clean quit from a crash. The script skips inactive copies, so it does not
+  see that write: it resets on a quit through the update after `Shutdown` deleted a game in progress
+  (`boardSerial` 0 while still active: `resetQuit`), or otherwise (a board with no move yet, or after its
+  game over, stays) through its `exit` action.
 - **It only reads** `mBoard`'s fields, `ModManager::GetScoreKey()`, `mRules.RulesId()` and
   `gGameConfig.mFeatures`. It never calls `Rand()` (`games/bejeweled/tools/check_rng_use.py` covers it),
   writes game state, marks anything dirty, draws, or touches saves, `hiscores`, the registry or replays.
@@ -1125,26 +1132,31 @@ little-endian, naturally aligned, 0xB0 bytes:
   scripts with `CSharpCodeProvider` (`CompilerVersion v4.0`, the .NET Framework compiler), and its generated
   usings lack `System.Text.RegularExpressions`; Roslyn is only on master. So the script writes
   `System.Text.RegularExpressions.Regex` in full or, simpler, parses split names by hand.
+- **Brace characters.** ScriptableAutoSplit's grammar (`ASLGrammar`'s `MatchCodeTerminal`, read from memory
+  of its source, not rechecked) ends an action where the brace characters balance, counting those in
+  strings, chars and comments too. An unbalanced one in a literal ends the action early and the script does
+  not load, so the script writes them as `(char)0x7B` and `(char)0x7D` and keeps those in comments
+  balanced; `asltest` fails when that count would end an action anywhere but at its closing brace.
 - **Processes:** `state("bejeweled") {}` (the target in `games/bejeweled/CMakeLists.txt`) and
   `state("popcapgame1")` for the original. ASL attaches to the newest live process of the first listed name
   that has one, at connect time only. 64-bit LiveSplit reads the 32-bit game through `ModulesWow64Safe()`.
 
 | Action | Rule |
 |---|---|
-| `startup` | `refreshRate = 100`; the settings; `vars.Mode = "none"` and empty `vars.Target`/`vars.IsScore`, so no action meets an unset var; helpers `FindBlock`, `ReadBlock`, `ParseSplits`, `UpdateOriginal`; a `TimerModel` for `exit` |
+| `startup` | `refreshRate = 100`; the settings; `vars.Mode = "none"` and empty `vars.Target`/`vars.IsScore`, so no action meets an unset var; helpers `FindBlock`, `ReadBlock`, `ParseSplits`, `Reached` (the `split` test, shared with `reset`), `UpdateOriginal`; a `TimerModel` for `exit` |
 | `init` | Sets an explicit list of custom fields to 0 every time (ASL reuses the state object across reconnects). `popcapgame1`: `Mode = "probe"` when the `original` setting is on and `ModuleMemorySize == 0x192000`, else ignored. Port: `Mode = "port"`, `FindBlock`. Never throws: an exception reruns `init` every cycle and logs each time |
-| `update` | Port: until the block is found, rescan once a second. A rejected read returns false; the counters catch up next cycle. `active == 0`: one `MessageBox` per attach ("turn on the game's livesplit mod"; `print` reaches only DebugView), return false. Otherwise copy the fields into `current`; the first copy after attaching or activation is a baseline only (returns false), so a game in progress is never a run. `probe`: the vftable check below |
+| `update` | Port: until the block is found, rescan once a second. A rejected read returns false; the counters catch up next cycle. `active == 0`: one `MessageBox` per attach ("turn on the game's livesplit mod"; `print` reaches only DebugView) once the block has stayed inactive 10 s after attaching (a starting game activates it within its first update) and never after it was active in this attach (the quit), return false. Otherwise copy the fields into `current`; the first copy after attaching or activation is a baseline only (returns false), so a game in progress is never a run. The clock is `vars.Now` (`Environment.TickCount`; `asltest` replaces it with the replayed polls' times). `probe`: the vftable check below |
 | `start` | `goCount` changed and `goSerial == boardSerial`; **mode guard** (setting): a category name containing "Timetrial" needs a timed board, one containing "Normal" an untimed one; not a replay (0x20); with `vanillaOnly`, flag 0x04 |
-| `onStart` | Always parses the segment names. Sets `vars.RunSerial = current.boardSerial` only when `current != null` and `Mode` is "port" or "original": a manual start with no game attached must not throw |
+| `onStart` | Always parses the segment names. Sets `vars.RunSerial = current.boardSerial` only when `current != null` and `Mode` is "port" or "original": a manual start with no game attached must not throw. Clears `vars.PendingReset` |
 | `split` | Only while `boardSerial == RunSerial`. Segment `i = timer.CurrentSplitIndex`: a score split needs `displayScoreMax >= threshold`, the k-th level split `boardLevelClears >= k`. It depends only on the index, the names and the snapshot, so skips and undos cannot desynchronise it (an undone level split splits again on the next poll; the README says so) |
-| `reset` | With `resets` and `RunSerial != 0`: `gameOvers` changed with `gameOverSerial == RunSerial` → by cause; the run's board replaced while its flag 0x40 is clear → `resetQuit` (new serial 0) or `resetReplaced` |
-| `onReset`, `exit` | `RunSerial = 0`. `exit`: while Running or Paused, with `settings.ResetEnabled`, `resets` and `resetQuit` on, `vars.TimerModel.Reset()` |
+| `reset` | With `resets` and `RunSerial != 0`: `gameOvers` changed with `gameOverSerial == RunSerial` → by cause; the run's board replaced while its flag 0x40 is clear → `resetQuit` (new serial 0) or `resetReplaced`; else a cause held back earlier. When the poll that sees the game over also meets the current segment (`Reached`, with `settings.SplitEnabled`), the segment was reached by the game over and counts (A7), so `reset` holds the cause in `vars.PendingReset` and returns false: `split` splits in this cycle and the reset follows in a later one (a stalled poll, or a score shown within one poll period of TIME UP, would otherwise lose the split) |
+| `onReset`, `exit` | `RunSerial = 0`, `PendingReset` cleared. `exit`: while Running or Paused, for a run that belongs to a board (`RunSerial != 0`), with `settings.ResetEnabled`, `resets` and `resetQuit` on, `vars.TimerModel.Reset()` |
 
 - ASL evaluates `start` only while NotRunning, and `reset`, then `split` if there was no reset, only while
   Running or Paused. Nothing runs while Ended, so a finished run stays until the runner resets it.
-- **Split names:** a subsplit `-` or `{Section}` prefix is stripped; an integer of at least 1000 (also
-  written `25,000` or `25K`) is a score split, anything else a level split. One split per cycle is enough:
-  the HUD rolls at most 3 × multiplier points per tick (36 at level 20).
+- **Split names:** a subsplit `-` prefix or a section prefix in braces (`{Section}`) is stripped; an
+  integer of at least 1000 (also written `25,000` or `25K`) is a score split, anything else a level split.
+  One split per cycle is enough: the HUD rolls at most 3 × multiplier points per tick (36 at level 20).
 - **Settings** (ASL settings are booleans): `modeGuard` on; `vanillaOnly` off (practice; the mod signs and
   the SEED line show on video anyway); `resets` on, with `resetNoMoves`, `resetTimeUp`, `resetNewGame`,
   `resetReplaced` and `resetQuit` under it (the registry README calls automatic reset dangerous, so each is
@@ -1222,29 +1234,37 @@ little-endian, naturally aligned, 0xB0 bytes:
   GitHub creates the fork, branch and PR); check Activate once.
 
 **Templates and the mod.**
-- `games/bejeweled/tools/make_example_mods.py` generates `games/bejeweled/mods/livesplit/`: `mod.json`
-  (`{"id": "livesplit", "name": "LiveSplit", "version": "1.0", "features": {"livesplit": true}}`),
-  `livesplit/*.lss`, a copy of the script to load by hand, and `README.txt`.
+- `games/bejeweled/tools/make_example_mods.py` (`--only livesplit` for just this one) generates
+  `games/bejeweled/mods/livesplit/`: `mod.json`
+  (`{"id": "livesplit", "name": "LiveSplit", "version": "1.0", "features": {"livesplit": true}}`, plus
+  author and description), `livesplit/*.lss`, a copy of the script to load by hand, and `README.txt`.
+  The names are speedrun.com's: the category (`Normal`, `Timetrial`, `Timetrial - Score Attack`) and
+  that category's own subcategory variable (`Normal`, `Timetrial`, `Timetrial - Score rush`), so that
+  LiveSplit's speedrun.com association works; the mode guard only looks for "Timetrial" and "Normal".
 - Twelve `.lss` files in LiveSplit's 1.7.0 format: game name "Bejeweled Deluxe", the category name, the
   subcategory as a metadata variable with speedrun.com's names (`Normal` = "5 Levels",
-  `Timetrial - Score rush` = "100K Points"), platform PC, and an empty `AutoSplitterSettings` that
+  `Timetrial - Score rush` = "100K Points" under the category `Timetrial - Score Attack`), platform PC, and an empty `AutoSplitterSettings` that
   LiveSplit fills after Activate. LiveSplit writes those settings only while the splitter is active, so
   splits saved with it inactive lose them; the tools README says so.
 
 | Templates | Segments |
 |---|---|
 | Normal 5 / 10 Levels; Timetrial 5 / 10 / 15 / 20 Levels | `Level 1` … `Level N` (a 20-Levels file also gives the 5, 10 and 15 times) |
-| Score Attack 10K / 25K / 50K / 100K / 150K / 200K Points | `10000`, `25000`, `50000`, `100000`, `150000`, `200000`, up to the target |
+| Score category 10K / 25K / 50K / 100K / 150K / 200K Points | `10000`, `25000`, `50000`, `100000`, `150000`, `200000`, up to the target |
 
-- Score Attack names are plain integers, which HyperNervie's Bejeweled 3 grammar (ascending integers
+- Score segment names are plain integers, which HyperNervie's Bejeweled 3 grammar (ascending integers
   only) also accepts.
-- On activation the game copies missing files to `<userdir>/livesplit/` and never overwrites one, since
-  LiveSplit saves PBs into the file it opened. No oracle step compares those copies.
+- On activation the game copies the missing `*.lss` files of the `livesplit/` folder of the mod that
+  turned the feature on (`GameFeatures::mLiveSplitMod`) to `<userdir>/livesplit/` and never overwrites one,
+  since LiveSplit saves PBs into the file it opened. The oracle leaves those copies out of its identity
+  comparison and only checks that they equal the mod's.
 - **Plumbing:** `FEATURE_LIVESPLIT` in `gFeatureNames`, `ParseFeature` and `MergeFeatures`;
   `GameFeatures::mLiveSplit`, shown as "livesplit". It is not in the RulesId or the score key, and
   `ComputeVariantFlags` never reads it, so the RNG source and the save format do not change.
 - **Mod signs:** any enabled mod adds the crossbar on GO's G and a fourth hint sparkle, which would show
-  in run videos. Q18 proposes leaving a mod whose only key is `features.livesplit` out of `mAnyModEnabled`.
+  in run videos. Per Q18 a mod whose `mod.json` has only descriptive keys (id, name, version, author,
+  description, priority) and `"features": {"livesplit": ...}`, and no `images`, `sounds`, `music`, `data` or
+  `properties` folder, stays out of `mAnyModEnabled`.
 - **Desktop only:** the block and the observer sit under `#if defined(_WIN32) && !defined(__EMSCRIPTEN__)`
   around the whole translation unit (the source glob also feeds the web build). The feature is parsed
   everywhere, so `mods-status.json` is the same; the web build warns "features.livesplit: desktop only,
@@ -1265,18 +1285,25 @@ StateCodec row, so FULL hashes stay equal to the stage-0 baselines.
    and none on the resumed one (`playtest_load`), one level clear per entry into state 7, the right death
    cause, monotonic counters, a new serial at each `NewGame`.
 3. **`lsprobe`** (Win32 C++, about 250 lines, built x86_64 with llvm-mingw so that it reads the 32-bit game
-   as LiveSplit does): `rundesk lsprobe -log=<f> -- bejeweled.exe -script=... -livesplitlog=<g>` finds and
-   reads the block exactly as the script does. `check_lslog.py` checks that the address equals the logged
-   one and that every accepted snapshot equals the game-log line with its `seq`. Also a `-fast` stress run,
-   `-dumplayout` (for `check_asl_offsets.py`) and `-original` (the 1.87 adapter).
+   as LiveSplit does; the `lsprobe` target of the native build): `rundesk lsprobe -log=<f> -- bejeweled.exe
+   -script=... -livesplitlog=<g>` finds and reads the block exactly as the script does and logs every poll
+   (`snap`, `same`, `skip`, each with the probe's QPC). `check_lslog.py` checks that the address equals the
+   logged one and that every accepted snapshot equals the game-log line with its `seq`. The stress run is a
+   `-fast` game polled every millisecond (`-interval=1`; `-scan` shortens the once-a-second search for
+   short games). Also `-dumplayout` (for `check_asl_offsets.py`) and `-attach=<pid>`; `-original` (the 1.87
+   adapter) comes with the original's test (Q15).
 4. **`lsdecide.py`:** an independent re-implementation of the script's decisions and ASL's phase rules,
    with expected events for Normal 5 Levels, Score Attack 10K, the mode guard, a resumed save (no start; a
-   manual start), each reset, the feature off, and attaching mid-game. It runs on game logs (exact ticks)
-   and on probe logs (real polling).
-5. **`asltest`** (about 200 lines of C#): compiles the published `.asl` with the in-box .NET Framework
-   `csc.exe` (C# 5, as 1.8.37 does) in a wrapper with 9c1e207's using list (without `System.Text.Json`),
-   stubs only the members the script uses, and replays test 4's logs. Its events must equal
+   manual start), each reset, the feature off, attaching mid-game, and a stall (polls dropped from a log)
+   after which one poll sees a score or level segment reached and the game over: split, then reset. It
+   runs on game logs (exact ticks) and on probe logs (real polling).
+5. **`asltest`** (C#, built with the in-box .NET Framework `csc.exe`): compiles the published `.asl` at run
+   time the way 1.8.37 does (`CSharpCodeProvider` with `CompilerVersion` v4.0, which runs that `csc.exe`,
+   C# 5; one class per action) in a wrapper with 9c1e207's using list (without `System.Text.Json`), stubs
+   only the members the script uses (`MessageBox` becomes a recorder), and replays test 4's logs as polls
+   of a fake PE image. It turns the `log` setting on to learn each reset's cause. Its events must equal
    `lsdecide.py`'s.
+   `games/bejeweled/tools/livesplit/run_tests.sh` runs tests 3 to 6.
 6. **`check_asl_offsets.py`** (the script's magic and offsets against `lsprobe -dumplayout`) and the
    magic-once build check.
 7. **Manual, once, after the user approves the download (Q23):** LiveSplit 1.8.37 (released 2026-02-15)

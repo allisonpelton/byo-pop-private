@@ -78,9 +78,24 @@ Set seed (stage 2; the baselines do not know -gameseed, so candidate runs; cases
               shifts) identical, <case> with a settle after update <after> (a refill after the dialog) and
               user/<table> (the dialog's HighScoreWidget saved it, so its constructor drew the tip), the
               other run without it: an outside draw does not reach the board's own stream
-  lint        games/bejeweled/tools/check_rng_use.py (6.1 rule 1) must pass (check.txt, exit.txt)
+  lint        games/bejeweled/tools/check_rng_use.py (6.1 rule 1) must pass (check.txt, exit.txt); also
+              livesplit_layout: games/bejeweled/tools/livesplit/check_asl_offsets.py (stage 2b)
   cli         -gameseed values that must be refused (cli.txt: "<argument> <tab> <exit> <tab> <stderr>"):
               exit status 2 and the range in the message, before anything starts
+Auto LiveSplit (stage 2b, games/bejeweled/docs/CODE_MODS_DESIGN.md 4.15; candidate runs):
+  lsref       <case>.lsoff: the candidate with the inert features.livesplit=false mod, the reference
+  livesplit   <case>.ls (flags "ref=<case>.lsoff"): the candidate with the livesplit mod must play exactly
+              like its reference: exit, stdout.txt, hash.txt, autoplay.txt, snaps/, shots/ and the user dir
+              (but mods-status.json, whose features differ, and livesplit/, the copied split templates)
+              identical; stderr.txt identical without its "livesplit:" and "mods:" lines; the screenshots
+              also equal those of <case> without mods (the mod shows no mod signs). The mod's templates,
+              and nothing else, are in user/livesplit/; the reference has none. Its -livesplitlog
+              (livesplit.txt, one line per block write) must agree with hash.txt: the state at every
+              update, seq and updates counting the writes, a level clear exactly where hash.txt enters the
+              vortex (not where a LoadGame restores one), a game over exactly where it enters game over
+              (no moves after falling, time up after playing), one GO at tick 150 for every board that did
+              not resume a save and none for one that did, counters that never go back, displayScoreMax
+              rising with the HUD score until the game over and then frozen, and the last write inactive
 Expectations (the expect file, checked against the candidate for the script, load, quitcut, inert and
 autoplay cases): what each case is about must still happen, even when every side changes together (a change to
 assets/bejeweled/ or the mods, a script that no longer reaches its scenario). Facts derived from the outputs:
@@ -120,6 +135,7 @@ EXPECT_KINDS = ("script", "load", "quitcut", "inert", "autoplay", "seeded")
 AUTO_KEYS = ("exit", "mods", "user", "settle", "settles", "last-settle", "states", "snap", "save", "status", "seeds",
              "end")
 NO_RUN_KINDS = ("lint", "cli")  # checks that run no game
+LS_LOG_LINES = re.compile(r"^INFO: (livesplit|mods): |^INFO: game: .*\| mods: ")  # dropped from a livesplit run's stderr
 
 
 # ---------------------------------------------------------------------------------------------------
@@ -725,11 +741,185 @@ def lint_check(r, run):
     status = read_bytes(exit_path).decode("latin-1").strip() if os.path.exists(exit_path) else "missing"
     lines = read_lines(os.path.join(run, "check.txt")) if os.path.exists(os.path.join(run, "check.txt")) else []
     for line in lines:
-        if line.startswith("VIOLATION"):
+        if line.startswith(("VIOLATION", "DIFF")):
             r.out("    " + line)
     if status != "0":
-        r.fail("games/bejeweled/tools/check_rng_use.py exit status %s" % status)
+        r.fail("the check's exit status %s" % status)
     r.out("    " + (lines[-1] if lines else "(no output)"))
+    return r.failures == before
+
+
+def livesplit_fields(words):
+    """The block's fields of a -livesplitlog line (LiveSplitBlock.h's FormatLiveSplitBlock) as ints"""
+    f = {}
+    for w in words:
+        key, _, value = w.partition("=")
+        if key in ("go", "lc", "over"):
+            a, b = value.split("/")
+            f[key], f[key + "Serial"] = int(a), int(b)
+        elif key == "deaths":
+            f["noMoves"], f["timeUp"], f["newGame"], f["other"] = (int(x) for x in value.split(","))
+        elif key == "flags":
+            f[key] = int(value, 16)
+        elif key not in ("rules", "self", "qpc", "qpcf"):
+            f[key] = int(value)
+    return f
+
+
+def livesplit_log_check(r, run, label):
+    """The block's event log against hash.txt (CODE_MODS_DESIGN.md 4.15, test 2)"""
+    before = r.failures
+    log_path, hash_path = os.path.join(run, "livesplit.txt"), os.path.join(run, "hash.txt")
+    if not (os.path.exists(log_path) and os.path.exists(hash_path)):
+        r.fail("%s: livesplit.txt or hash.txt missing" % label)
+        return False
+    states = []
+    for line in read_lines(hash_path):
+        parts = line.split()
+        if len(parts) >= 2:
+            states.append((int(parts[0]), int(parts[1])))
+    state_at = dict(states)
+    enter = {7: [], 5: []}
+    for i, (u, st) in enumerate(states):
+        if st in enter and (i == 0 or states[i - 1][1] != st):
+            enter[st].append(u)
+    prev_state = {u: states[i - 1][1] if i else -1 for i, (u, _) in enumerate(states)}
+    lines = []
+    for line in read_lines(log_path):
+        words = line.split()
+        if words and words[0].startswith("u="):
+            lines.append((int(words[0][2:]), livesplit_fields(words[1:])))
+    problems = []
+    clears, overs, loads, causes = [], [], [], {}
+    boards = {}  # serial -> {"resumed", "go", "max tick", "over dsmax"}
+    prev = None
+    for n, (u, f) in enumerate(lines):
+        where = "livesplit.txt line %d (update %d)" % (n + 1, u)
+        if f["seq"] != 2 * (n + 1) or f["updates"] != n + 1:
+            problems.append("%s: seq %d, updates %d: not one write per line" % (where, f["seq"], f["updates"]))
+        if f["active"] != (0 if n == len(lines) - 1 else 1):
+            problems.append("%s: active %d" % (where, f["active"]))
+        if f["active"] and state_at.get(u, f["state"]) != f["state"]:
+            problems.append("%s: state %d, hash.txt %d" % (where, f["state"], state_at[u]))
+        if f["noMoves"] + f["timeUp"] + f["newGame"] + f["other"] != f["over"]:
+            problems.append("%s: the death causes do not add up to the game overs" % where)
+        b = f["board"]
+        info = boards.setdefault(b, {"resumed": False, "go": 0, "tick": -1, "over": None, "dsmax": 0})
+        p = prev or {k: 0 for k in f}
+        for key in ("go", "lc", "over", "noMoves", "timeUp", "newGame", "other"):
+            if f[key] < p[key] or f[key] > p[key] + 1:
+                problems.append("%s: %s went from %d to %d" % (where, key, p[key], f[key]))
+        new_board = prev is None or b != prev["board"]
+        if new_board and prev is not None and b != 0 and b < prev["board"]:
+            problems.append("%s: board serial %d after %d" % (where, b, prev["board"]))
+        if new_board and (f["blc"] != 0 or (f["gotick"] != -1 and f["go"] == p["go"])):
+            problems.append("%s: a new board starts with level clears %d, GO tick %d" % (where, f["blc"], f["gotick"]))
+        if f["flags"] & 0x02 and not info["resumed"]:
+            info["resumed"] = True
+            if not new_board:
+                loads.append(u)
+        if b:
+            info["tick"] = max(info["tick"], f["tick"])
+        if f["go"] > p["go"]:
+            info["go"] += 1
+            if f["tick"] != 150 or f["gotick"] != 150 or f["goSerial"] != b or f["flags"] & 0x02:
+                problems.append("%s: GO at tick %d (GO tick %d, board %d/%d, flags %02x)" % (where, f["tick"], f["gotick"],
+                                                                                          f["goSerial"], b, f["flags"]))
+        if f["lc"] > p["lc"]:
+            clears.append(u)
+            if f["lcSerial"] != b or f["blc"] != (0 if new_board else p["blc"]) + 1:
+                problems.append("%s: level clear of board %d on board %d, board clears %d" % (where, f["lcSerial"], b, f["blc"]))
+        if f["over"] > p["over"]:
+            overs.append(u)
+            cause = [k for k in ("noMoves", "timeUp", "newGame", "other") if f[k] > p[k]][0]
+            causes[cause] = causes.get(cause, 0) + 1
+            if f["overSerial"] != b or not f["flags"] & 0x40:
+                problems.append("%s: game over of board %d on board %d, flags %02x" % (where, f["overSerial"], b, f["flags"]))
+            if (cause == "noMoves" and prev_state.get(u) != 0) or (cause == "timeUp" and prev_state.get(u) != 1):
+                problems.append("%s: game over cause %s after state %s" % (where, cause, prev_state.get(u)))
+        if b and not new_board:
+            if f["dsmax"] < p["dsmax"]:
+                problems.append("%s: displayScoreMax went down" % where)
+            if info["over"] is None and f["dsmax"] < f["dscore"]:
+                problems.append("%s: displayScoreMax %d below the HUD score %d" % (where, f["dsmax"], f["dscore"]))
+            if info["over"] is not None and f["dsmax"] != info["over"]:
+                problems.append("%s: displayScoreMax moved after the game over" % where)
+        if b and f["flags"] & 0x40 and info["over"] is None:
+            info["over"] = f["dsmax"]
+        prev = f
+    if clears != [u for u in enter[7] if u not in loads]:
+        problems.append("level clears at updates %s, hash.txt enters the vortex at %s (loads at %s)" % (clears, enter[7], loads))
+    if overs != enter[5]:
+        problems.append("game overs at updates %s, hash.txt enters game over at %s" % (overs, enter[5]))
+    for b, info in sorted(boards.items()):
+        want = 1 if (b and not info["resumed"] and info["tick"] >= 150) else 0
+        if info["go"] != want:
+            problems.append("board %d (resumed %s, last tick %d): %d GO, expected %d" % (b, info["resumed"], info["tick"], info["go"], want))
+    for p in problems[:10]:
+        r.fail("%s: %s" % (label, p))
+    if len(problems) > 10:
+        r.fail("%s: ... %d more" % (label, len(problems) - 10))
+    if r.failures == before:
+        real = [b for b in boards if b]
+        r.out("    %s: %d writes agree with hash.txt: %d boards (%d resumed), %d GO, level clears at %s%s, game overs at %s (%s)"
+              % (label, len(lines), len(real), sum(boards[b]["resumed"] for b in real), sum(boards[b]["go"] for b in real),
+                 clears or "-", " (a LoadGame's vortex at %s not counted)" % loads if [u for u in loads if u in enter[7]] else "",
+                 overs or "-", ", ".join("%s %d" % kv for kv in sorted(causes.items())) or "none"))
+    return r.failures == before
+
+
+def livesplit_check(r, oracle, ref, run, label):
+    """A run with the livesplit mod against its inert twin, then its event log"""
+    before = r.failures
+    compare_exit(r, ref, run, label + ": ")
+    for stream in ("stdout.txt", "stderr.txt"):
+        pa, pb = os.path.join(ref, stream), os.path.join(run, stream)
+        if not (os.path.exists(pa) and os.path.exists(pb)):
+            r.fail("%s: %s missing" % (label, stream))
+            continue
+        la = [mask_wall_clock(x) for x in read_lines(pa)]
+        lb = [mask_wall_clock(x) for x in read_lines(pb)]
+        if stream == "stderr.txt":
+            la = [x for x in la if not LS_LOG_LINES.search(x)]
+            lb = [x for x in lb if not LS_LOG_LINES.search(x)]
+        diff = first_list_diff(la, lb, label + ": " + stream)
+        if diff:
+            r.fail(diff)
+    keep = lambda p: (p in ("hash.txt", "autoplay.txt") or p.startswith(("user/", "shots/", "snaps/"))) and \
+        p != "user/mods-status.json" and not p.startswith("user/livesplit")
+    counts = compare_tree(r, ref, run, label + ": ", keep)
+    status, ref_status = mods_status(run), mods_status(ref)
+    if (status or {}).get("features") != "livesplit" or (ref_status or {}).get("features") != "none":
+        r.fail("%s: mods-status.json features %s, the reference's %s" % (label, (status or {}).get("features"),
+                                                                       (ref_status or {}).get("features")))
+    stderr = read_lines(os.path.join(run, "stderr.txt")) if os.path.exists(os.path.join(run, "stderr.txt")) else []
+    if len([x for x in stderr if "livesplit: block at 0x" in x]) != 1:
+        r.fail("%s: not one \"livesplit: block at\" line in stderr.txt" % label)
+    templates = os.path.join(oracle, "gen", "livesplit-mods", "livesplit", "livesplit")
+    names = sorted(x for x in os.listdir(templates) if x.endswith(".lss")) if os.path.isdir(templates) else []
+    copied = [x for x in names if os.path.exists(os.path.join(run, "user", "livesplit", x)) and
+              read_bytes(os.path.join(run, "user", "livesplit", x)) == read_bytes(os.path.join(templates, x))]
+    if not names or copied != names or os.path.exists(os.path.join(ref, "user", "livesplit")):
+        r.fail("%s: %d of the mod's %d templates in user/livesplit/; the reference has the folder: %s"
+               % (label, len(copied), len(names), os.path.exists(os.path.join(ref, "user", "livesplit"))))
+    # nothing else there (a copy goes through "<name>.tmp", renamed once complete)
+    folder = os.path.join(run, "user", "livesplit")
+    extra = sorted(set(os.listdir(folder)) - set(names)) if os.path.isdir(folder) else []
+    if extra:
+        r.fail("%s: user/livesplit/ also holds %s" % (label, ", ".join(extra)))
+    # No mod signs (Q18): the screenshots also equal those of the same case without any mod
+    plain = os.path.join(oracle, "candidate", os.path.basename(run)[:-len(".ls")])
+    shots = 0
+    if os.path.isdir(plain):
+        shots = compare_tree(r, plain, run, label + " (and the run without mods): ", lambda p: p.startswith("shots/")).get("shots", 0)
+    if r.failures == before:
+        r.out("    %s: exit, stdout.txt, hash.txt, %d user files, %d screenshots, %d snapshots%s identical, stderr.txt"
+              " too without its livesplit: and mods: lines; %d templates copied; %s"
+              % (label, counts.get("user", 0), counts.get("shots", 0), counts.get("snaps", 0),
+                 ", autoplay.txt" if counts.get("autoplay.txt") else "", len(copied),
+                 "the %d screenshots equal the run without mods (no mod signs)" % shots if os.path.isdir(plain)
+                 else "no run without mods to compare the screenshots with"))
+    livesplit_log_check(r, run, "livesplit.txt")
     return r.failures == before
 
 
@@ -1129,6 +1319,10 @@ def compare(oracle, expect_path=None):
                       " under the same -seed" % parent)
         elif kind == "lint":
             lint_check(r, run)
+        elif kind == "lsref":
+            r.out("    the reference of %s.ls" % name[:-len(".lsoff")])
+        elif kind == "livesplit":
+            livesplit_check(r, oracle, os.path.join(cand, f.get("ref", "")), run, "cross " + f.get("ref", ""))
         elif kind == "cli":
             cli_check(r, run)
         elif kind == "nosave":

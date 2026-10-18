@@ -47,6 +47,7 @@ struct GameConfig
 
 	// Any mod is enabled, even one that only changes art or sound. Not a gameplay setting (it does not
 	// affect the score key); it switches on the small "modded" signs (ModIndicators.h).
+	// port(variant): a mod that only turns on features.livesplit does not count (GameConfigMods.cpp)
 	bool mAnyModEnabled = false;
 
 	// port(variant): the merged rules of the enabled mods (tunables included) and the port features

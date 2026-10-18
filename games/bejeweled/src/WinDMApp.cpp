@@ -7,6 +7,7 @@
 #include "RecordScoreDialog.h"
 #include "GameConfig.h"
 #include "ModIndicators.h"
+#include "LiveSplitObserver.h"
 
 #include "WidgetManager.h"
 #include "ButtonWidget.h"
@@ -153,6 +154,7 @@ WinDMApp::~WinDMApp()
 	delete mAutoplayBot;
 	if (mTraceHashFile != NULL)
 		fclose(mTraceHashFile);
+	LiveSplitObserver::AppDestroyed(this); // port(variant): the LiveSplit block's last write: not active, no board
 }
 
 // 0x4d43f9
@@ -449,6 +451,7 @@ void WinDMApp::UpdateFrames()
 		mAutoplayBot = new AutoplayBot(this, mAutoplaySeed, mAutoplayTimed, mAutoplayCap, mAutoplayLogFileName, mAutoplayShotFileName);
 	if (mAutoplayBot != NULL)
 		mAutoplayBot->Update();
+	if (LiveSplitObserver::Wanted()) LiveSplitObserver::AfterUpdate(this); // port(variant): fills the LiveSplit block (features.livesplit, desktop)
 }
 
 // port: the game's command-line test hooks (see WinDMApp.h); everything else goes to the framework
@@ -471,6 +474,9 @@ void WinDMApp::HandleCmdLineParam(const std::string& theParamName, const std::st
 		mAutoplayLogFileName = theParamValue;
 	else if (theParamName == "-autoplayshot")
 		mAutoplayShotFileName = theParamValue;
+	// port(variant): -livesplitlog=<file>: one line per LiveSplit block write (LiveSplitObserver.h)
+	else if (theParamName == "-livesplitlog")
+		LiveSplitObserver::SetLogFile(theParamValue);
 	else
 		SexyApp::HandleCmdLineParam(theParamName, theParamValue);
 }

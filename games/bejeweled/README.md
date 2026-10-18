@@ -50,6 +50,7 @@ Command-line options (native; the web shell passes the equivalent paths):
 | `-seed=<n>` | fixed random seed (default: time based, like the original) |
 | `-gameseed=<n>` | play the next game on seed n (1 to 4294967295): the same board every time. The seed waits until you play it: a mode switch or New Game before your first match, or a resumed saved game, leaves it for the next game; your first match or a game over uses it up. On the web: `bejeweled.html?seed=<n>`. The game-over screen shows the seed, and the scores go to a separate high-score table |
 | `-script=<file>`, `-fast`, `-trace` | scripted input and screenshots for automated tests |
+| `-livesplitlog=<file>` | with the `livesplit` mod (Windows): one line per write of the LiveSplit block, for tests |
 
 ## Mods
 
@@ -99,6 +100,7 @@ The mods live in `games/bejeweled/mods/`; the generators write there by default.
 | `example-crystal-gems`: new HD gem art (original artwork) | `python games/bejeweled/tools/make_example_mods.py` |
 | `example-voice-lines`: string overrides | same script |
 | `example-relaxed`: cheaper hints, separate high scores | same script |
+| `livesplit`: LiveSplit auto splitter support (Windows): the block the auto splitter reads, 12 split templates and the script ([tools/livesplit](tools/livesplit/README.md)); changes nothing in play or on screen | same script (`--only livesplit`) |
 | `mines-trilliant`: orange gem as a trilliant cut shaped like the Colorado School of Mines triangle | `python games/bejeweled/tools/make_trilliant_mod.py` |
 | `true-gem`: every gem becomes a badly recoloured "True..." meme card, the logo reads BE TRUE LED, EXCELLENT! becomes TRUE... and NO MOVES! becomes NO TRUE... | `python games/bejeweled/tools/make_true_mod.py --image <picture>` |
 | `hd4x-textures`: every image at 4x, upscaled from your own game files with Real-ESRGAN (needs [realesrgan-ncnn-vulkan](https://github.com/xinntao/Real-ESRGAN/releases) and a Vulkan GPU). Shows its detail in a large window or fullscreen | `python games/bejeweled/tools/make_hd4x_mod.py` |
@@ -107,7 +109,8 @@ The mods live in `games/bejeweled/mods/`; the generators write there by default.
 Mods built from other games' files or third-party pictures are generated locally and git-ignored.
 
 When any mod is enabled, two small signs show it: hints get a fourth sparkle, and the G in banner text
-(GO!, ...) gets a crossbar.
+(GO!, ...) gets a crossbar. A mod that only turns on LiveSplit support shows neither, since it changes
+nothing in play.
 
 HD art (`name@2x.png` .. `name@4x.png`) also reaches images the game builds at run time, such as the
 board background, the banner text and the shrinking gems. Software drawing repeats each draw on the HD
@@ -134,6 +137,10 @@ Planned gameplay mods (board shapes, other move types, special gems, undo, repla
   origin from `build/web` (port 18765), so test runs keep their browser storage apart from your own.
 - `games/bejeweled/tools/check_rng_use.py` and `list_variant_hooks.py`: the randomness rules and the
   code-mod hooks in the translated code.
+- `games/bejeweled/tools/livesplit/run_tests.sh`: the LiveSplit auto splitter without LiveSplit: games
+  probed from outside by `build/native/lsprobe.exe` as the script reads them, the script compiled as
+  LiveSplit compiles it (the .NET Framework's C# 5 compiler) and its start, split and reset decisions in
+  27 scenarios ([tools/livesplit/README.md](tools/livesplit/README.md)).
 
 ## How it was reverse engineered
 

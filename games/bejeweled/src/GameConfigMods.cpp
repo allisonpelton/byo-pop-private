@@ -2,12 +2,16 @@
 // and the user dir; GameConfig.cpp is the framework-free half. See GameConfig.h.
 
 #include "GameConfig.h"
+#include "LiveSplitObserver.h"
 #include "platform/ModManager.h"
+#include "platform/VFS.h"
 #include "PakInterface.h"
 
 #include <SDL.h>
 #include <algorithm>
 #include <cstdio>
+#include <cstring>
+#include <iterator>
 #include <sstream>
 
 using namespace Sexy;
@@ -141,6 +145,12 @@ static void AddBuildWarnings(const GameRules& theRules, const GameFeatures& theF
 		theStatus->mWarnings.push_back({aByMod[i].first, aText});
 	}
 
+#ifndef BEJ_HAS_LIVESPLIT
+	// The LiveSplit block exists in desktop builds only (LiveSplitObserver.h)
+	if (theFeatures.mLiveSplit)
+		theStatus->mWarnings.push_back({theFeatures.mLiveSplitMod, "features.livesplit: desktop only, ignored"});
+#endif
+
 	if (theRules.mBoard.mGemColors > 7)
 	{
 		char aText[128];
@@ -227,13 +237,61 @@ static std::string StatusText(const GameRules& theRules, const GameFeatures& the
 	return aStatus.Dump(2) + "\n";
 }
 
+// A folder named theName (any case) directly in theDir (VFS::FindCaseInsensitive finds files only)
+static bool HasFolder(const std::string& theDir, const char* theName)
+{
+	for (const std::string& anEntry : Platform::ListDirectory(theDir))
+	{
+		if ((anEntry.size() == strlen(theName)) && (SDL_strcasecmp(anEntry.c_str(), theName) == 0) &&
+			Platform::IsDirectory(theDir + "/" + anEntry))
+			return true;
+	}
+	return false;
+}
+
+// port(variant): a mod whose only effect is features.livesplit (games/bejeweled/docs/CODE_MODS_DESIGN.md
+// 4.15, Q18): its mod.json has only descriptive keys and a "features" object whose one key is "livesplit",
+// and its folder has none of the game's data folders. It changes nothing on screen or in play, so it shows
+// no mod signs, which would otherwise be in every run video.
+static bool IsLiveSplitOnly(const Platform::ModInfo& theMod)
+{
+	static const char* const aInfoKeys[] = {"id", "name", "version", "author", "description", "priority"};
+	static const char* const aDataFolders[] = {"images", "sounds", "music", "data", "properties"};
+	const JsonValue& aManifest = theMod.mManifest;
+	if (!theMod.mHasManifest || !aManifest.IsObject())
+		return false;
+	bool hasLiveSplit = false;
+	for (size_t i = 0; i < aManifest.Members().size(); i++)
+	{
+		const std::string& aKey = aManifest.Members()[i].first;
+		const JsonValue& aValue = aManifest.Members()[i].second;
+		if (aKey == "features")
+		{
+			if (!aValue.IsObject() || (aValue.Members().size() != 1) || (aValue.Members()[0].first != "livesplit"))
+				return false;
+			hasLiveSplit = true;
+		}
+		else if (std::find(std::begin(aInfoKeys), std::end(aInfoKeys), aKey) == std::end(aInfoKeys))
+			return false;
+	}
+	for (const char* aFolder : aDataFolders)
+	{
+		if (HasFolder(theMod.mPath, aFolder))
+			return false;
+	}
+	return hasLiveSplit;
+}
+
 void GameConfig::Load()
 {
 	Platform::ModManager& aMods = Platform::ModManager::Get();
 	RulesStatus aStatus;
 	ResolveRules(&mRules, &mFeatures, &aStatus);
 	LoadFromRules(mRules);
-	mAnyModEnabled = !aMods.GetEnabledMods().empty();
+	// port(variant): a mod that only turns on LiveSplit does not count (IsLiveSplitOnly)
+	mAnyModEnabled = false;
+	for (const Platform::ModInfo* aMod : aMods.GetEnabledMods())
+		mAnyModEnabled = mAnyModEnabled || !IsLiveSplitOnly(*aMod);
 
 	// Mods without rules or features leave the user dir as it was (no status file, no log lines)
 	if (!aMods.HasRulesOrFeatures())

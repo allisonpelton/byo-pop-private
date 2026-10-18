@@ -265,9 +265,11 @@ struct GameFeatures
 	bool							mReplayHover = false;
 	bool							mLeaderboard = false;   // implies replays and seeds.perGame
 	bool							mRankedAlways = false;  // leaderboard.ranked "always" (else "ask")
+	bool							mLiveSplit = false;     // fill the LiveSplit block (desktop builds, 4.15)
+	std::string						mLiveSplitMod;          // the mod that turned it on (its livesplit/ templates)
 
-	bool							Any() const { return mSeeds || mReplays || mLeaderboard; }
-	std::string						Text() const;           // "seeds(entry, perGame), replays(keep 20)" or "none"
+	bool							Any() const { return mSeeds || mReplays || mLeaderboard || mLiveSplit; }
+	std::string						Text() const;           // "seeds(entry, perGame), replays(keep 20), livesplit" or "none"
 };
 
 // One enabled mod's gameplay keys, as ModManager read them from its mod.json

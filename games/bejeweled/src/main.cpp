@@ -14,8 +14,8 @@
 //                    gets the seed until one is played on it (its first match or its game over), so a
 //                    mode switch or New Game before the first match starts on it again
 // Remaining "-key=value" arguments are passed to the app (SexyAppBase::HandleCmdLineParam), e.g. the
-// test hooks -seed=N, -script=<file>, -fast and -trace (see SexyAppBase.h) and the game's -tracehash
-// and -autoplay (see WinDMApp.h).
+// test hooks -seed=N, -script=<file>, -fast and -trace (see SexyAppBase.h) and the game's -tracehash,
+// -autoplay and -livesplitlog (see WinDMApp.h).
 
 #include "WinDMApp.h"
 #include "GameConfig.h"
