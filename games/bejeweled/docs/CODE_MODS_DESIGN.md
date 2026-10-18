@@ -34,6 +34,8 @@ panel:
 11. undo
 12. online leaderboards
 
+Added later: dirt tiles (4.14), auto LiveSplit support (4.15) and Twilight gravity (4.16).
+
 Where it makes sense the features combine. For example, a diamond board with Twist moves, flame
 gems, a gold layer and undo is a single valid set of rules, built from four mods or from one.
 
@@ -57,7 +59,7 @@ gems, a gold layer and undo is a single valid set of rules, built from four mods
    `StateCodec`). The game, the hint search and the headless verifier all share that code.
 3. **Mods remain data.** `mod.json` gains three keys:
    - `rules`: gameplay. Rules affect scores.
-   - `features`: replays, seed entry and leaderboard. These never change gameplay.
+   - `features`: replays, seed entry, leaderboard and LiveSplit. These never change gameplay.
    - `imageOps`: generated art.
 
    The engine implements every rule; a mod only switches it on and sets its parameters. A
@@ -151,12 +153,16 @@ struct VariantFlags
 	bool mInvalid;    // moves.allowInvalid
 	bool mNoMoves;    // a non-default noMoves rule
 	bool mNoTutorial; // the tutorial move (rows 4..6, cols 1..6, horizontal 3-run) cannot apply
+	bool mGravity;    // board.gravity.direction != down: the flip, fall-out and game-over variants (4.16)
+	bool mFall;       // FallPiecesVariant, RefillMasked, FillBoardVariant: mShape, mGravity or fallAccel != 180
+	bool mChecker;    // DrawVariantChecker in SetupLevel: mShape || look.backdrop == "twilight"
 	bool mSpecials, mGold, mUndo;
 };
 ```
 
 - **`-forcevariant`** is a test hook parsed in `main.cpp`, like `-nomods`.
-  - It sets `mShape`, `mMatch`, `mSearch` and `mDraw` while the rules stay the default.
+  - It sets `mShape`, `mMatch`, `mSearch` and `mDraw` while the rules stay the default. From stage 7c
+    it also sets `mGravity`, `mFall` and `mChecker` (4.16).
   - It leaves `mAny`, `mOwnRng` and `mNoTutorial` alone, so the RNG source, the save format and
     the tutorial stay original.
   - Every generalised path then runs at default rules, and the oracle must still match: traces,
@@ -171,7 +177,7 @@ struct VariantFlags
 |---|---|---|
 | `games/bejeweled/src/GameRules.h/.cpp` | new | The `GameRules` value type (board, moves, noMoves, match, specials, gold, undo, plus the legacy tunables and the 12 diff values). Covers the schema table, defaults, `LoadFromMerged()`, `Validate()`, `Canonical()` (binary), `RulesId()` (SHA-256) and `FromCanonical()`, used by replays. SDL-free. |
 | `games/bejeweled/src/GameConfig.*` | changed | Split in two. `GameConfig.cpp` stays SDL-free and holds `SetValue` and `LoadFromRules`. The new `GameConfigMods.cpp` holds `Load()` from ModManager and `ScopedFileName`. Adds `GameRules mRules`, `GameFeatures mFeatures` and `mNextBoardSeed`. The gem-colour clamp becomes 3..12. |
-| `games/bejeweled/src/BoardLayout.h` | new, header only | Columns, rows, playable mask, per-column playable rows, logical origin, extent `D`, scale, `mScreenBottom`, `ToScreen`/`ToLogical`, contiguous line segments. On 8x8 the default layout is exactly the original constants. |
+| `games/bejeweled/src/BoardLayout.h` | new, header only | Columns, rows, playable mask, per-column playable rows, logical origin, extent `D`, scale, `mScreenBottom`, `ToScreen`/`ToLogical`, contiguous line segments, and from stage 7c the clip's bottom edge `mClipBottom` in logical space (4.16). On 8x8 the default layout is exactly the original constants. |
 | `games/bejeweled/src/MatchFinder.h/.cpp` | new, pure | `ColorGrid` (int8 colour, -1 empty, -2 hole, plus a kind byte), `FindGroups(grid, MatchRules, out)` in the original scan order, `AnyGroup`, `GroupsThrough(cells)`, and pattern compilation (rotations, mirrors). No Sexy headers. |
 | `games/bejeweled/src/MoveSet.h/.cpp` | new, pure | `Move {type, a, b, c, d}`, `EnumerateMoves(grid, layout, rules, visitor)` in a fixed order, `ApplyMove(grid&, move)`, `MovedCells(move)`. |
 | `games/bejeweled/src/StateCodec.h/.cpp` | new | One field table that drives the v2 save chunks, undo snapshots, and the FULL and LOGIC hashes (6.6). |
@@ -184,15 +190,18 @@ struct VariantFlags
 | `games/bejeweled/src/Replay.h/.cpp`, `ReplayRecorder.*`, `WatchController.*` | new | The `.bjr` format, recording, the playback driver and gate checks, segments and the sidecar. |
 | `games/bejeweled/src/BoardTrace.cpp` | new (moved) | `TraceBoard`, moved out of `WinDMApp.cpp` so the verifier prints the same trace. |
 | `games/bejeweled/src/ExtrasDialog.*`, `ReplayBrowserDialog.*` | new | UI, reachable only with feature mods. |
+| `games/bejeweled/src/LiveSplitBlock.h`, `LiveSplitObserver.*` | new, desktop only | The LiveSplit block (layout 1, `static_assert`s on every offset) and the read-only observer that fills it after each app update (4.15). |
 | `framework/MTRand.*` | small addition | `GetState(uint32_t mt[624], int* mti)` / `SetState`. `Serialize()` drops `mti`, and the serialising constructor forces `mti = N+1`. |
 | `framework/Common.*` | small addition | `Sexy::GetRandCount()`: a counter incremented in the three `Rand` overloads. |
 | `framework/SexyAppBase.*` | small addition | `virtual bool HandleScriptCommand(name, args)`, so the game can add `save` and `autoplay` script commands. `GetShutdownSave` becomes `GetShutdownSaves(std::vector<BackupFile>*)`. |
+| `framework/SoundManager.h`, `SDLSoundManager.*` | small addition | `SetDefaultPitch(steps)`: `GetSoundInstance` applies `AdjustPitch(steps)` to every instance it hands out (4.16). |
 | `platform/ModManager.*` | changed | Reads `rules`, `features` and `imageOps`. Merges with provenance, atomic groups, keyed objects, `null` resets and a union operator. Marks rule mods and `diff.txt` overriders as score-affecting. Writes `mods-status.json`. |
 | `platform/ImagePatch.cpp` | addition | `imageOps` `extendRows`: copies or recolours a base row on both `mBits` and `mHDBits` of a `LoadedImage`. |
 | `games/bejeweled/src/headless/` | new | Header shims, `WinDMAppHeadless.cpp`, `verify_main.cpp`, `sha256.c`. Target `bejeweled_verify`. |
 | `server/leaderboard/` | new | Worker (TypeScript), `schema.sql`, `wrangler.toml`. |
 | `web/shell.html` | changed | `?seed=`, `?replay=`, `-replaydir`, gameplay/feature tags, rules status, Replays and Leaderboard panels. |
 | `games/bejeweled/tools/oracle/` | new | `compare.sh`, `compare.py` (masks, PNG diff), `list_variant_hooks.py`, new playtest scripts. |
+| `games/bejeweled/tools/livesplit/` | new | `BejeweledDeluxe-byopop.asl` with its README and licence, `lsprobe`, `lsdecide.py`, `asltest`, `check_lslog.py`, `check_asl_offsets.py` (4.15). |
 
 ### 2.4 Data additions
 
@@ -225,6 +234,8 @@ as they are: they describe the binary's layout, not the port's.
 	const Buffer*    mPlaybackLoad;   // LoadGame reads this instead of the file (playback LOAD)
 	Buffer           mPlaybackSave;   // SaveGame writes here instead of the file (playback SAVE)
 	RngStart         mRngStart;       // seed, or MT state captured at ctor entry (only when recording)
+	uint32_t         mBoardSerial;  bool mResumed;      // LiveSplit observer bookkeeping, unhashed (4.15)
+	int              mGravityFlips; bool mGravityNoFlip; // Twilight gravity (4.16, stage 7c)
 ```
 
 **Piece.** `Board::SaveGame` writes the first 0x78 bytes raw. The new fields go after them:
@@ -281,7 +292,7 @@ Kinds of change:
 | `RequestNewGame` | 0x4c9bab | H, R | First line: `mTakesPendingSeed = false;` (stage 2: New Game is no game over for the seed, 4.10). `NEW_GAME` event. |
 | `IsGameInProgress` | 0x4c9bbe | H | `if (mPlaybackOnly) return false;` Covers both checks in `~Board`, `Shutdown`, `GetShutdownSaves` and `ConfirmQuit`. |
 | `Pause`, `Unpause` | 0x4c9bda, 0x4c9c2d | R | `PAUSE u` / `UNPAUSE u`. Calls nested inside `SaveGame` are suppressed, because the `SAVE` event replays them. |
-| `GetPieceAt` | 0x4c9c7c | B | Logical coordinates, so `GEM_SIZE` stays. |
+| `GetPieceAt` | 0x4c9c7c | B, H | Logical coordinates, so `GEM_SIZE` stays. Stage 7c: `if (mVariant.mGravity && GravityUp() && theY >= mLayout.mClipBottom) return NULL;` (a rising gem hidden under the clip; `GravityUp()` keeps it off under `-forcevariant`, 4.16). |
 | `HasMatch` | 0x4c9cf5 | B, H | `if (mVariant.mMatch) return HasMatchVariant();` |
 | `GetPanForX` | 0x4c9d94 | B, L | Static becomes member. |
 | `FindMove` | 0x4c9dda | B, N, H | `if (mVariant.mSearch) return FindMoveVariant(...)`. Before the swap: `if (mBoard[aRow2][aCol2] == NULL) continue;` (hole target). |
@@ -294,13 +305,13 @@ Kinds of change:
 | `MouseUp` | 0x4ca8b7 | H | Playback guard. `if (mVariant.mMoves) MouseUpVariant(x, y);` |
 | `MouseDrag` | 0x4ca8c1 | H, N, R | Playback guard, `ToLogical`. `if (mVariant.mMoves) { MouseDragVariant(x, y); return; }` The four `StartSwap` calls get NULL-neighbour guards (holes). `TARGET` event. |
 | `KeyChar` | 0x4ca9d3 | H | Playback guard. `if (mVariant.mUndo && IsUndoKey(theChar)) { RequestUndo(); return; }` Other keys still toggle pause. |
-| `UpdateClearing` | 0x4ca9ed | B, H | The shrink pass stays. Refill: `if (mVariant.mShape) RefillMasked(); else { original do/while }` |
-| `UpdateGameOver` | 0x4cab82 | B, L | `mHeight + GEM_SIZE` becomes `mLayout.mScreenBottom + GEM_SIZE` (480 unless scaled). |
+| `UpdateClearing` | 0x4ca9ed | B, H | The shrink pass stays. Refill: `if (mVariant.mShape) RefillMasked(); else { original do/while }` (stage 7c: `mFall`). |
+| `UpdateGameOver` | 0x4cab82 | B, L, H | `mHeight + GEM_SIZE` becomes `mLayout.mScreenBottom + GEM_SIZE` (480 unless scaled). Stage 7c, fall phase: `if (mVariant.mGravity) allGone = GameOverFallVariant(); else { original loop }`. |
 | `DoHint` | 0x4cad2f | H | After the penalty lines: `if (mVariant.mSearch) { DoHintVariant(); return; }` (which also sets `mIdleTicks = 0`). |
-| `SetupLevel` | 0x4cae29 | H | Tile loop: `if (mVariant.mShape) DrawVariantChecker(&g, anImageA, anImageB); else { original 10x10 loop }`. At the end: `if (mVariant.mAny) SetupLevelVariant();` (next level's layout into `mPendingLayout`, gold reset, gold timer). |
-| `FillBoard` | 0x4cb182 | H | First line: `if (mVariant.mShape) { FillBoardVariant(); return; }` |
+| `SetupLevel` | 0x4cae29 | H | Tile loop: `if (mVariant.mShape) DrawVariantChecker(&g, anImageA, anImageB); else { original 10x10 loop }` (stage 7c: `mChecker`, which adds the Twilight backdrop). At the end: `if (mVariant.mAny) SetupLevelVariant();` (next level's layout into `mPendingLayout`, gold reset, gold timer). |
+| `FillBoard` | 0x4cb182 | H | First line: `if (mVariant.mShape) { FillBoardVariant(); return; }` (stage 7c: `mFall`). |
 | `UpdateLevelWipe` | 0x4cb284 | none | Screen-space background; `FillBoard` dispatches itself. |
-| `UpdateFallOut` | 0x4cb3bf | B, L | One `Rand()%15` per column per tick (8 by default). `mHeight + 32` becomes `mLayout.mScreenBottom + 32`. |
+| `UpdateFallOut` | 0x4cb3bf | B, L, H | One `Rand()%15` per column per tick (8 by default). `mHeight + 32` becomes `mLayout.mScreenBottom + 32`. Stage 7c, first line: `if (mVariant.mGravity) { UpdateFallOutVariant(); return; }` |
 | `ShowHint` | 0x4cb475 | H, R | `if (mPlaybackOnly) return;` and `HINT` inside its `if`. |
 | `Board::Board` | 0x4cb5bc | H | After the existing `memset(mBoard...)`: `InitVariant();` (rules, flags, layout, RNG, `mRngStart`). Tutorial loop: `if (mVariant.mNoTutorial) FillBoardWithMove(); else { original do/while }` |
 | `UpdateBlackHole` | 0x4cb931 | B, H | After the deletion loop in the done-block: `if (mVariant.mShape) ApplyPendingLayout();`, so the loop deletes with the old bounds. |
@@ -312,7 +323,7 @@ Kinds of change:
 | `DeleteSaveGame` | 0x4cd130 | H | Also deletes the sidecar when one exists. |
 | `~Board` | 0x4cd1ba | B, R | `mRecorder->OnBoardDestroyed()` (finalises the replay). |
 | `ProcessMatches` | 0x4cd287 | B, H | First line: `if (mVariant.mMatch) return ProcessMatchesVariant();` Bounds: `aLines = aPass ? mRows : mCols`, `aLen = aPass ? mCols : mRows`, `j != aLen - 1`. |
-| `UpdateFalling` | 0x4cd687 | B, N, H | `if (aPiece == NULL) continue;` (holes). No-moves branch: `if (mVariant.mNoMoves) OnNoMovesVariant(); else if (mTimedMode) ...` |
+| `UpdateFalling` | 0x4cd687 | B, N, H | `if (aPiece == NULL) continue;` (holes). No-moves branch: `if (mVariant.mNoMoves) OnNoMovesVariant(); else if (mTimedMode) ...` Stage 7c: the per-piece loop becomes `if (mVariant.mFall) aSettled = FallPiecesVariant(&aLandedCount, &aLandedXSum); else { original loop }`, which then hosts the hole guard, 7b's x settling, the direction and `fallAccel`; at the end of the no-match branch `if (mVariant.mGravity) OnGravitySettle();` |
 | `UpdateSwap` | 0x4cd84f | H | After `mIsNewGame = false;`: `UsePendingSeed();` (stage 2, 4.10). Swap back only `if ((mState == STATE_SWAPPING) && !mRules.mMoves.mAllowInvalid)`. New `else if (mState == STATE_SWAPPING) KeepInvalidMove();` In the final `else` (swap-back done): `if (mVariant.mUndo) mUndo.PopLast();` |
 | `Update` | 0x4cdabc | H, R | Top: `if (mRecorder) mRecorder->SyncExternalRand();` Drain predicate adds `\|\| IsVariantMoveState(mState)`. After the bar clamp: `if (mVariant.mGold) aTargetWidth = GoldBarTarget();` Level block: `if (mVariant.mGold) UpdateGoldGoal(); else if (mState == STATE_PLAYING) { original }` New `case`s 10..13. After the switch: `if (mRecorder) mRecorder->AfterUpdate();` (CHECK at settle). The tick-150 block is untouched. |
 
@@ -339,9 +350,11 @@ New states, which never occur under the original rules:
 |---|---|
 | `WinDMApp::NewGame` (0x4d4455) | After `gGameConfig.Load()`, chooses the next board's RNG source (6.2) and stores it in `gGameConfig.mNextBoardSeed`. After `new Board`, attaches the recorder when recording. In watch mode the replay's config is used instead of `Load()`. |
 | `WinDMApp::LoadingThreadProc` (0x4d82d2) | `mGemShrinkImages` has `max(7, gemColors)` rows. `EnsureGemSheetRows(n)` runs only when n exceeds the sheet's rows. `NUM_LOADING_TASKS` stays 60: the extra shrink rows are counted in the last task, so the loading bar is unchanged. Optional art (`images/flamegem`, `lightninggem`, `goldtile`, `twistcursor`, `voidtile`) is loaded without the failure `Popup`. |
-| `~WinDMApp` (0x4d4b08) | Frees the stored shrink-row count instead of `NUM_GEM_COLORS`. |
-| `WinDMApp::UpdateFrames` (0x4d4921) | Before `SexyApp::UpdateFrames()`: `if (mWatch) mWatch->BeforeFrame();` (due events, extra updates for speed). The `TraceBoard` call moves to `BoardTrace.cpp`. |
-| `WinDMApp::ShowInstructionsDialog` (0x4d59cc) | The text id comes from `mBoard->InstructionsStringId()`. That is `"INSTRUCTIONDIALOG"` unless twist or slide is active, in which case it is `_TWIST` or `_SLIDE`, falling back to the default text. |
+| `~WinDMApp` (0x4d4b08) | Frees the stored shrink-row count instead of `NUM_GEM_COLORS`. Its port section makes the last LiveSplit block write: `active = 0`, `boardSerial = 0` (4.15). |
+| `WinDMApp::UpdateFrames` (0x4d4921) | Before `SexyApp::UpdateFrames()`: `if (mWatch) mWatch->BeforeFrame();` (due events, extra updates for speed). The `TraceBoard` call moves to `BoardTrace.cpp`. After it and the test hooks (stage 2b, desktop): `if (LiveSplitObserver::Wanted()) LiveSplitObserver::AfterUpdate(this);` (4.15). |
+| `WinDMApp::HandleCmdLineParam` (port) | `-livesplitlog=<file>` (4.15). |
+| `WinDMApp::ShowInstructionsDialog` (0x4d59cc) | The text id comes from `mBoard->InstructionsStringId()`. That is `"INSTRUCTIONDIALOG"` unless twist or slide is active, in which case it is `_TWIST` or `_SLIDE`, falling back to the default text. With a gravity rule it is `_TWILIGHT` or `_GRAVITY_UP` (4.16). |
+| `SoundManager::GetSoundInstance` (framework) | Applies the default pitch that `Board::InitVariant` sets from `look.soundPitch` (4.16). |
 | `WinDMApp::ButtonDepress` (0x4d6a40) | `BUTTON_UNDO = 16`. Extras ids. While watching, side-bar presses go to the watch controller. |
 | `WinDMApp::TitleScreenIsFinished` (0x4d6f28) | Creates the undo hotspot only when `undo.enabled`. With `-replay=` it enters watch mode instead of the two `NewGame` calls. |
 | `WinDMApp::GetShutdownSave` (port) | Becomes `GetShutdownSaves(std::vector<BackupFile>*)`: the save snapshot plus the sidecar ending in a `SAVE(snapshot)` marker, taken at the same tick. `SexyAppBase::UpdateUserDataBackup` stages each file. |
@@ -358,7 +371,7 @@ New states, which never occur under the original rules:
 | Key | Affects the score key | Purpose |
 |---|---|---|
 | `"rules"` | yes | Gameplay. Flattened into the same dotted-key map as `"tunables"` (a superset of it; inside one mod `rules` wins over `tunables`). Its presence makes the mod score-affecting. |
-| `"features"` | no | Port features with no gameplay effect: `seeds`, `replays`, `leaderboard`. |
+| `"features"` | no | Port features with no gameplay effect: `seeds`, `replays`, `leaderboard`, `livesplit`. |
 | `"imageOps"` | no | Asset generation, such as extra gem rows. |
 
 Optional art uses fixed VFS paths, like any mod image:
@@ -380,6 +393,8 @@ Defaults are the original behaviour.
 | `board.mask` | string[] | full | `rows` strings of `cols` characters: `#` is a cell, `.` a hole, `d` dirt with one layer and `2`..`9` dirt with that many layers (4.14). Without `cols`/`rows`, they come from the mask. *shape* |
 | `board.levels` | object[] | none | `[{cols, rows, mask}]`. Level L uses `levels[L % n]`. Excludes `mask` in the same mod. *shape* |
 | `board.gemColors` | int | 7 | 3..12. Also a legacy tunable; the clamp rises from 7 to 12. |
+| `board.gravity.direction` | `"down"` / `"up"` / `"alternate"` | `"down"` | `"up"`: every fall, refill and fill rises. `"alternate"`: Bejeweled 2's Twilight (4.16). Atomic group *gravity*. |
+| `board.gravity.fallAccel` | int | 180 | 50..1000: the fall acceleration in `UpdateFalling`, in thousandths of a logical pixel per tick² (the original 0.18). *gravity* |
 | `moves.type` | string or string[] | `"swap"` | Any of `"swap"`, `"twist"`, `"slide"`. Atomic group *moves*. |
 | `moves.addTypes` | string[] | none | Union operator: added to the lower-priority mods' `type` (4.4). |
 | `moves.twist.direction` | `"cw"` / `"both"` | `"cw"` | `"both"`: a right click rotates counter-clockwise. *moves* |
@@ -401,10 +416,13 @@ Defaults are the original behaviour.
 | `gold.timeLimit.normal`, `.timed` | null or `{base, perLevel, min}` in seconds | null / `{180, -10, 60}` | Per mode. |
 | `gold.timeBonus` | int | 10 | Points per second left, times the multiplier. |
 | `undo.enabled`, `.depth`, `.max`, `.penalty`, `.inTimed`, `.restoreTime`, `.restoreRng` | | false, 1, -1, 0, false, false, true | Atomic group *undo*. depth 1..100; max per game, -1 = unlimited. |
+| `look.backdrop` | `"normal"` / `"twilight"` | `"normal"` | `"twilight"`: the level backdrop mirrored left to right at half brightness (4.16). Presentation: never makes a variant board, but as a `rules` key it is in the RulesId and the score key (Q27). |
+| `look.soundPitch` | int | 0 | -12..12 semitones for every sound effect (4.16). Presentation. |
 | `scoring.*`, `timing.*` | | as in `GameConfig.h` | Legacy tunables. They are also accepted under `rules`. |
 | `features.seeds` | `true` or `{entry, perGame}` | off | `entry`: seed field in Extras. `perGame`: every game gets a shown, replayable seed. `true` turns on both; the object form only the members it sets to `true`. |
 | `features.replays` | `true` or `{keep, hover}` | off | `keep` (default 20) recent replays are kept automatically. `hover`: record the hover channel. |
 | `features.leaderboard` | `true` or `{ranked: "ask"\|"always"}` | off | Implies `replays` and `seeds.perGame`. The endpoint is always same-origin `/api`, never set by a mod. |
+| `features.livesplit` | `true` | off | Desktop builds fill the LiveSplit block that the published auto splitter reads (4.15). No options yet; the web build warns and ignores it. |
 
 **Pattern names** (used by `bonus` and `createdBy`):
 - `runN`: a straight run of length N or more. Only `run4` and longer are meaningful as triggers.
@@ -501,9 +519,9 @@ dotted leaves. `rules` goes into the same map, with these additions:
 
 1. **Leaves.** Higher priority wins. Arrays are replaced as a whole.
 2. **Atomic groups**: *shape* (`board.cols/rows/mask/levels`), *moves* (`type`, `twist.*`,
-   `slide.*`), *gold*, *undo*. The highest-priority mod that sets any key of a group supplies the
-   whole group. Keys it leaves out take their defaults, never another mod's values. So one mod's
-   mask never meets another mod's row count.
+   `slide.*`), *gold*, *undo*, *gravity* (`board.gravity.*`, 4.16). The highest-priority mod that
+   sets any key of a group supplies the whole group. Keys it leaves out take their defaults, never
+   another mod's values. So one mod's mask never meets another mod's row count.
 3. **Keyed objects**: `match.shapes.<id>`, `match.bonus.<id>`, `specials.flame`,
    `specials.lightning`. These merge per id.
 4. **`null` resets.** `"specials": { "lightning": null }` or `"gold": null` returns a key or
@@ -543,11 +561,11 @@ dotted leaves. `rules` goes into the same map, with these additions:
 |---|---|
 | `cols`/`rows` 3..16. Each mask has `rows` strings of `cols` characters from `#.d23456789`. At least 9 cells. The same for every `levels[i]`. `mask` and `levels` not both in one mod. | Reject the mod's rules. |
 | Some line has at least `minRun` consecutive cells. `twist` needs at least one full 2x2 of cells; `slide` at least one segment of length 2 or more. | Reject. |
-| `gemColors` is at least the fill minimum. Brute force in fill order (rows bottom-up, columns left to right, cells only): for each cell, count the pattern instances, runs included, whose other cells are already filled. The minimum is 1 + the maximum count. Examples: orthogonal runs give 3; `minRun: 2` with diagonals gives 5; squares give 4. | Reject (in the merged set: drop the lowest contributor). The message names the minimum. |
+| `gemColors` is at least the fill minimum. Brute force in fill order (rows bottom-up, columns left to right, cells only): for each cell, count the pattern instances, runs included, whose other cells are already filled. The minimum is 1 + the maximum count. Examples: orthogonal runs give 3; `minRun: 2` with diagonals gives 5; squares give 4. With a gravity rule, the larger result over the fill orders in use (4.16). | Reject (in the merged set: drop the lowest contributor). The message names the minimum. |
 | `gemColors` exceeds the rows in the gem sheet. | Not an error: rows are generated (4.2). |
 | `createdBy` names a pattern that cannot occur under the merged `match` rules. Flame and lightning triggers identical. | Reject. |
 | `noMoves: "continue"` without `allowInvalid`. | Reject. |
-| `gold.timeLimit` values ≥ 10 s; `undo.depth` 1..100; `slide.snapTicks` 4..60. | Clamp and warn. |
+| `gold.timeLimit` values ≥ 10 s; `undo.depth` 1..100; `slide.snapTicks` 4..60; `board.gravity.fallAccel` 50..1000; `look.soundPitch` -12..12. | Clamp and warn. |
 | Unknown keys under `rules` or `features`. | Warn ("did you mean ..."), then ignore. |
 
 As a backstop for combinations the static check cannot predict, `FillBoardVariant` caps rerolls:
@@ -935,8 +953,6 @@ The Worker side is in 6.10.
      to `mLastScoreName`. `EM_JS bj_submit(path)` hands the replay to the shell, which POSTs it.
 - **Native:** no HTTP client. Exported `.bjr` files can be uploaded from the web page (Q10).
 
----
-
 ### 4.14 Dirt tiles and diagonal falling (Jewel Quest)
 
 Added from the user's answer to Q6 (2026-10-18): gems fall through holes, and boards can also have
@@ -982,13 +998,531 @@ Added from the user's answer to Q6 (2026-10-18): gems fall through holes, and bo
   dirt in the top row, multi-layer dirt, two groups next to one dirt cell, dirt + holes + gold, a
   save mid-cascade, and replay verification.
 
+### 4.15 Auto LiveSplit (`features.livesplit`)
+
+Added from the user's decision (2026-10-18): "Use a published autosplitter script (ASL) reading a tagged
+memory block, so it works through LiveSplit's normal Activate flow." Desktop builds expose a read-only
+block; a published ASL script finds it and starts, splits and resets LiveSplit's timer. Publishing, the
+licence, contacting HyperNervie and the registry PR are steps for the user to approve later.
+
+**Boards** ([bejeweled1](https://www.speedrun.com/bejeweled1), as of 2026-10-18). It is the only
+speedrun.com entry this port can run; the other five Bejeweled entries are other games.
+- Real time only (no game time, no load removal), video required, emulators not allowed, platforms PC,
+  Xbox and Mac, no individual levels, no game-level rules text, no autosplitter. 118 verified runs: 116 PC,
+  1 Xbox, 1 without a platform.
+- Moderators retime from video: from the first frame GO shows to the gems starting to move (or the first
+  frame of the vortex). One run can serve several boards: a 20-Levels run also gave a 100K time.
+
+| Category | Timing | Subcategories |
+|---|---|---|
+| Normal | From GO until the wormhole animation starts | 5 Levels, 10 Levels |
+| Timetrial | The same, in Timetrial | 5, 10, 15, 20 Levels |
+| Timetrial - Score Attack | From GO until the target score or more is on screen | 10K, 25K, 50K, 100K, 150K, 200K Points |
+
+**Events and readings.**
+
+| Event | Code | Reading |
+|---|---|---|
+| Start | Tick 150 of a board that did not resume a save: `Board::Update` plays `SOUND_GO`, then shows the GO banner or, in a profile's first 5 games, the instructions dialog | A1: tick 150, although the banner's first non-zero alpha comes at tick 151 (Q21). It is about 0.1–0.2 s before a "GO visible" retime (derived from the fade, not measured), so times run slightly long. A2: the same tick when the dialog replaces the banner. A3: never a resumed board (`LoadGame` does not restore `mUpdateCnt`, so it shows GO again) |
+| Level split | `StartBlackHole` (entry into state 7) | A4: "N Levels" is N wormholes; the run ends while the HUD still shows level N. A5: the `StartBlackHole` tick; the gems visibly move one tick later |
+| Score split | The first tick with the HUD score at or above the threshold | A6: "on screen" is the rolling `mDisplayScore`, not `mScore`. A7: no split after `GameOver`, although the HUD keeps rolling during the shake (ask the moderators). A8: hints roll the HUD down; a split is never undone |
+| Reset | Game over (no moves in Normal, time up, New Game), board replaced (mode switch), quit | A Timetrial fall-out is not a reset |
+| None | Pauses, dialogs, focus loss | A9: real time runs on; the splitter never pauses the timer. A10: no rule covers ports; whether runs on this port count is for the moderators |
+
+**Timing.**
+- LiveSplit's real-time timer only. The script defines no `gameTime` or `isLoading`: board ticks stop on
+  pauses, modal dialogs, focus loss and minimising, so they would be game time, which speedrun.com does not
+  accept.
+- The game sees each event on its exact tick; LiveSplit learns of it by polling. ASL runs on a
+  `System.Windows.Forms.Timer` with `Interval = round(1000 / refreshRate)`, stopped during each tick, with
+  no `timeBeginPeriod`. With `refreshRate = 100` (as in HyperNervie's Twist script; Q24) the period should
+  be about 16 ms and sometimes about 31 ms (read from the source, not measured).
+- So each event reaches LiveSplit between 0 and one period (about 15–30 ms) late, and a duration is off by
+  the difference of two independent lags: up to about ±30 ms, zero on average. Moderators retime from
+  video anyway. `qpc` lets `lsprobe` and the `log` setting measure the lag; v1 does not correct for it.
+
+**The block (layout 1).** `games/bejeweled/src/LiveSplitBlock.h`, shared by the observer and `lsprobe`;
+little-endian, naturally aligned, 0xB0 bytes:
+
+```
+0x00 u8  magic[20]      "BYOPOP-LIVESPLIT" F0 F1 F2 F3, initialised as a brace list of bytes
+0x14 u32 gameId         0x58444A42u: the bytes "BJDX" in memory (clang's 'BJDX' would be 0x424A4458)
+0x18 u16 layoutVersion  1;   0x1A u16 size 0xB0
+0x1C u32 self           the block's own address once active, else 0
+0x20 u32 seq            odd while the game writes
+0x24 u32 active         1 while features.livesplit is on;   0x28 u32 updates (heartbeat)
+0x2C u32 flags          01 timed, 02 resumed, 04 vanilla (no score key, no chosen seed), 08 chosen seed,
+                        10 own RNG, 20 replay (stage 3), 40 game over (latched per board), 80 paused
+0x30 u32 boardSerial    the current board, 0 = none
+0x34 u32 goCount, goSerial;   0x3C levelClears, levelClearSerial;   0x44 gameOvers, gameOverSerial
+0x4C u32 deathsNoMoves, deathsTimeUp, deathsNewGame, deathsOther    (they add up to gameOvers)
+0x5C i32 tick, state, level, displayLevel, displayScore, score, boardLevelClears, goTick (-1 before GO)
+0x7C i32 displayScoreMax  the board's highest displayScore up to its game-over tick, then frozen
+0x80 u8  rulesId[32];   0xA0 u64 qpc (SDL_GetPerformanceCounter at this write);   0xA8 u64 qpcFrequency
+```
+
+- **Counters, not pulses.** The event counters only ever increase, each with its board's serial, so a late
+  poll never loses an event (SAR's block uses a 50 ms pulse instead). `displayScoreMax` does the same for
+  score splits: the HUD score can roll back down, and a crossing shown for 1–2 ticks would otherwise fall
+  between polls.
+- **Append-only.** Fields are never moved, resized or given a new meaning. An append bumps `layoutVersion`
+  and `size`; a script for layout N accepts `layoutVersion >= N` and `size >= size_N` and reads `size_N`
+  bytes. An incompatible change gets a new magic.
+- **Definition** (`games/bejeweled/src/LiveSplitObserver.cpp`):
+  `extern "C" __attribute__((used, aligned(64))) volatile LiveSplitBlockV1 gLiveSplitBlock = {...};`
+  It is constant-initialised (C++17, no constructor), so the magic exists only in `.data`'s initialised
+  bytes. A build check asserts that it occurs exactly once in the exe, inside `.data`'s raw range. `used`
+  matters only if gc-sections or LTO is ever added (lld's MinGW driver defaults to `-opt:noref`, and the
+  build adds no LTO).
+- **In every desktop build, written only with the feature** (Q19). While the feature is off nothing writes
+  it (`active` and `self` stay 0), so the script can tell a runner to turn the mod on. A static `.data`
+  object adds no file, log line, key or UI (principle 7).
+
+**Observer.**
+- **Hook:** `WinDMApp::UpdateFrames` (0x4d4921), after `SexyApp::UpdateFrames()` and the test hooks:
+  `if (LiveSplitObserver::Wanted()) LiveSplitObserver::AfterUpdate(this);` (`port(variant)`).
+  `Board::Update` runs at most once per app update, so the observer sees every board tick once, before
+  its frame is drawn. Each write is `seq++` (odd), release fence, the fields, release fence, `seq++`.
+- **Board data**, outside translated functions: `InitVariant` sets `mBoardSerial = ++sBoardSerial;
+  mResumed = false;` and `GameLoadedVariant` sets `mResumed = true`, both outside their
+  `#ifndef BEJ_NO_VARIANTS` parts, or the `BEJ_NO_VARIANTS` oracle would count GO on resumed boards.
+
+| Event | Condition (against the previous update's serial, tick and state) | Writes |
+|---|---|---|
+| New board, or none | The serial differs (0 without a board) | `boardSerial`, `boardLevelClears = 0`, `goTick = -1`, `displayScoreMax = 0`, flags; RulesId once per board |
+| GO | `prevTick < 150 <= mUpdateCnt`, same board, not resumed, not a replay | `goCount++`, `goSerial`, `goTick` |
+| Level clear | `mState == 7 && prevState != 7`, and the tick advanced (a `LoadGame` that restores state 7 does not) | `levelClears++`, its serial, `boardLevelClears++` |
+| Game over | `mState == 5 && prevState != 5` (`GameOver` is the only setter) | `gameOvers++`, its serial, flag 0x40, one cause: `mNewGamePending` → newGame; else previous state PLAYING → timeUp (only state 1 checks the time); else FALLING → noMoves; else other |
+| Every update | Always; `displayScoreMax` only up to and including the game-over update, then frozen | `displayScoreMax = max(displayScoreMax, mDisplayScore)`, then the snapshot fields |
+
+- **Activation:** the first update with the feature on writes `self`, `qpcFrequency` and `active = 1`,
+  logs the address and copies the templates. **Deactivation:** `NewGame`'s `gGameConfig.Load()` with the
+  feature off writes `active = 0`. `~WinDMApp` writes `active = 0` and `boardSerial = 0`, so the script
+  sees the quit and `lsprobe` can tell a clean quit from a crash.
+- **It only reads** `mBoard`'s fields, `ModManager::GetScoreKey()`, `mRules.RulesId()` and
+  `gGameConfig.mFeatures`. It never calls `Rand()` (`games/bejeweled/tools/check_rng_use.py` covers it),
+  writes game state, marks anything dirty, draws, or touches saves, `hiscores`, the registry or replays.
+  QPC comes from `SDL_GetPerformanceCounter`, so there is no `<windows.h>` (the clash noted in
+  `platform/SteamPath.cpp`).
+- **Status lines** (SDL_Log, only with the feature on): the block address, the templates copied, a resumed
+  board whose GO is not counted, each GO, level clear and game over with its tick, and "off".
+  `-livesplitlog=<file>` appends one deterministic line per write (`self` and QPC masked) for the oracle.
+
+**Finding and reading it** (the script and `lsprobe` alike).
+- The port's exe has ASLR (DllCharacteristics 0x8140), so there is no fixed address. The reader takes the
+  main module's PE header from the game's memory (checking `MZ`, `PE\0\0` and positive sizes, since
+  `SignatureScanner`'s constructor throws) and scans only the `IMAGE_SCN_MEM_WRITE` sections (`.data`,
+  `.tls`), one read each, at 4-byte alignment. (`MemoryPages()` skips image sections, and one scan
+  over the whole module fails on a single unreadable page.) A hit counts only with
+  `gameId == 0x58444A42`, `layoutVersion >= 1`, `size >= 0xB0`, and `self` 0 or equal to the hit.
+- Reading: `seq` → s1, the 0xB0 bytes, `seq` → s2, in three `ReadProcessMemory` calls. The copy counts when
+  s1 == s2, s1 is even and the copy's `seq` equals s1; otherwise retry up to 3 times, then skip the cycle.
+  This is sound on x86 for a 32-bit game read by 64-bit LiveSplit (stores and loads keep their order); the
+  C++ memory model does not cover it.
+
+**The script** (`games/bejeweled/tools/livesplit/BejeweledDeluxe-byopop.asl`, about 200 lines).
+- **C# 5 only.** LiveSplit 1.8.37, the latest release, bundles ScriptableAutoSplit 9c1e207. It compiles
+  scripts with `CSharpCodeProvider` (`CompilerVersion v4.0`, the .NET Framework compiler), and its generated
+  usings lack `System.Text.RegularExpressions`; Roslyn is only on master. So the script writes
+  `System.Text.RegularExpressions.Regex` in full or, simpler, parses split names by hand.
+- **Processes:** `state("bejeweled") {}` (the target in `games/bejeweled/CMakeLists.txt`) and
+  `state("popcapgame1")` for the original. ASL attaches to the newest live process of the first listed name
+  that has one, at connect time only. 64-bit LiveSplit reads the 32-bit game through `ModulesWow64Safe()`.
+
+| Action | Rule |
+|---|---|
+| `startup` | `refreshRate = 100`; the settings; `vars.Mode = "none"` and empty `vars.Target`/`vars.IsScore`, so no action meets an unset var; helpers `FindBlock`, `ReadBlock`, `ParseSplits`, `UpdateOriginal`; a `TimerModel` for `exit` |
+| `init` | Sets an explicit list of custom fields to 0 every time (ASL reuses the state object across reconnects). `popcapgame1`: `Mode = "probe"` when the `original` setting is on and `ModuleMemorySize == 0x192000`, else ignored. Port: `Mode = "port"`, `FindBlock`. Never throws: an exception reruns `init` every cycle and logs each time |
+| `update` | Port: until the block is found, rescan once a second. A rejected read returns false; the counters catch up next cycle. `active == 0`: one `MessageBox` per attach ("turn on the game's livesplit mod"; `print` reaches only DebugView), return false. Otherwise copy the fields into `current`; the first copy after attaching or activation is a baseline only (returns false), so a game in progress is never a run. `probe`: the vftable check below |
+| `start` | `goCount` changed and `goSerial == boardSerial`; **mode guard** (setting): a category name containing "Timetrial" needs a timed board, one containing "Normal" an untimed one; not a replay (0x20); with `vanillaOnly`, flag 0x04 |
+| `onStart` | Always parses the segment names. Sets `vars.RunSerial = current.boardSerial` only when `current != null` and `Mode` is "port" or "original": a manual start with no game attached must not throw |
+| `split` | Only while `boardSerial == RunSerial`. Segment `i = timer.CurrentSplitIndex`: a score split needs `displayScoreMax >= threshold`, the k-th level split `boardLevelClears >= k`. It depends only on the index, the names and the snapshot, so skips and undos cannot desynchronise it (an undone level split splits again on the next poll; the README says so) |
+| `reset` | With `resets` and `RunSerial != 0`: `gameOvers` changed with `gameOverSerial == RunSerial` → by cause; the run's board replaced while its flag 0x40 is clear → `resetQuit` (new serial 0) or `resetReplaced` |
+| `onReset`, `exit` | `RunSerial = 0`. `exit`: while Running or Paused, with `settings.ResetEnabled`, `resets` and `resetQuit` on, `vars.TimerModel.Reset()` |
+
+- ASL evaluates `start` only while NotRunning, and `reset`, then `split` if there was no reset, only while
+  Running or Paused. Nothing runs while Ended, so a finished run stays until the runner resets it.
+- **Split names:** a subsplit `-` or `{Section}` prefix is stripped; an integer of at least 1000 (also
+  written `25,000` or `25K`) is a score split, anything else a level split. One split per cycle is enough:
+  the HUD rolls at most 3 × multiplier points per tick (36 at level 20).
+- **Settings** (ASL settings are booleans): `modeGuard` on; `vanillaOnly` off (practice; the mod signs and
+  the SEED line show on video anyway); `resets` on, with `resetNoMoves`, `resetTimeUp`, `resetNewGame`,
+  `resetReplaced` and `resetQuit` under it (the registry README calls automatic reset dangerous, so each is
+  switchable, and an Ended run is never reset; Q20); `original` on; `log` off (appends each event and its
+  lag to a text file).
+- **Cases:** a resumed save never starts by itself, but a manual start uses that board and splits
+  (practice). Seeded and modded games start unless `vanillaOnly` is on. Replays never start. An unrelated
+  `popcapgame1` (another Steam PopCap game) that attaches first holds the script until it exits.
+
+**The original 1.87 in the same script** (optional, recommended).
+- Steam's `WinBej.exe` is only PopCap's 2007 wrapper, so the game should run as `popcapgame1`. That is
+  inferred from other games on the same wrapper (the registry's Feeding Frenzy 2 script uses the name), not
+  observed.
+- The carved image has no ASLR (ImageBase 0x400000, no `.reloc`, SizeOfImage 0x192000), and `gApp` is a
+  static object, so one dereference reaches the board. The offsets come from
+  `games/bejeweled/src/Board.h`, `WinDMApp.h` and `docs/FRAMEWORK_NOTES.md`:
+
+  ```csharp
+  state("popcapgame1")                          // offsets relative to the main module
+  {
+      uint appVtbl : 0x13B570;                  // gApp 0x53B570; its vftable is 0x507CCC
+      uint board   : 0x13BCF8;                  // gApp.mBoard (+0x788)
+      int  tick    : 0x13BCF8, 0x28;            // mUpdateCnt
+      int  level   : 0x13BCF8, 0x8C;     int state : 0x13BCF8, 0x194;     bool timed : 0x13BCF8, 0x198;
+      int  score   : 0x13BCF8, 0x1EC;    int displayScore : 0x13BCF8, 0x1F8;
+      bool newGame : 0x13BCF8, 0x240;           // mNewGamePending
+  }
+  ```
+
+- **Identity:** `ModuleMemorySize == 0x192000` (the file the wrapper writes may differ, so the test checks
+  it) and `appVtbl == base + 0x107CCC`. A static constructor writes the vftable during CRT start-up, which
+  can come after `init` when LiveSplit was open first, so `update` re-checks it each cycle for about 15 s
+  before giving up. Other PopCap games that run as `popcapgame1` stay inert.
+- **`UpdateOriginal`** builds the block's fields by polling. The serial comes from `board` pointer changes
+  (`NewGame` defers deleting the old board, so a new board never reuses its address), the counters from
+  polled transitions (state 7 lasts about 250 ticks, state 5 at least 50). A board is resumed when its
+  score or level is non-zero before tick 50 (a new board's gems take about 70 ticks to land); one first
+  seen after tick 50 is never a run. The death cause comes from `newGame`, then timed or previous state 1
+  → time up, else no moves. `RequestNewGame` sets state 5 (in `GameOver`) before `mNewGamePending`, so a
+  poll between the two stores takes a New Game for another cause, about once in 10⁴; that matters only
+  when the runner turned one cause off. `displayScoreMax` comes from polled values, so on the original a
+  threshold shown for less than one poll period can be missed; only the port's block is lossless.
+- **Testing it is the user's call.** It needs Steam; it plays sound through BASS and DirectSound, which
+  rundesk cannot silence; DirectDraw on rundesk's hidden desktop is untested. With the user's OK, the user
+  plays a few short games (Normal to the first wormhole, then no moves or New Game; Timetrial with a time
+  up; quit and resume; a mode switch) while `lsprobe -original` logs, and `lsdecide.py` checks the
+  decisions. The session also confirms the process name and module size.
+- **Include it only after that test, and only if the script is registered as "Bejeweled Deluxe" (Q15):**
+  all 118 runs are of the original, and a port-only entry would take the name without serving them.
+  Otherwise the script stays port-only and unregistered, loaded by hand.
+
+**Registry and publishing** (every step needs the user's approval).
+- **One entry per game name.** Activate looks the splits' game name up in the registry's
+  `LiveSplit.AutoSplitters.xml`, which LiveSplit lower-cases into a `ToDictionary`. A duplicate name
+  throws; from 1.8.37's source the exception probably escapes on every splits load, for every user. The
+  registry CI runs LiveSplit's tests on each PR, so a second "Bejeweled Deluxe" entry cannot be merged.
+- **HyperNervie** (the Bejeweled 3 and Twist splitters; Unlicense; last push 2024-11-03) lists a
+  Bejeweled 1 splitter as coming soon and invites pull requests. **Recommendation (Q14):** ask first (an
+  issue on their repo, or the Bejeweled Discord) and propose **one combined script** for the port and the
+  original 1.87 under "Bejeweled Deluxe", with them as co-maintainer. If they would rather own the entry,
+  contribute the port path to their script. A separate name such as "Bejeweled Deluxe (byo-pop)" would
+  split Activate from LiveSplit's speedrun.com features; not recommended.
+- **Hosting (Q17):** GitHub raw from byo-pop's default branch once it is pushed and public (it has an
+  `origin` but was never pushed), or a small separate public repo. LiveSplit downloads a Script entry again
+  on every activation, so a push reaches every user at their next start: the file changes only through
+  commits that pass the tests below. LiveSplit saves the file under the URL's last path segment in its
+  Components folder, and the name `BejeweledDeluxe-byopop.asl` avoids other entries' files there.
+- **Entry:** `<Game>Bejeweled Deluxe</Game>`, the raw URL (not a `/blob/` link), `<Type>Script</Type>`
+  without `ScriptType` (that is for ASR), a Description of at most 120 characters, a Website. The PR
+  template asks the author to confirm no malicious code, no replacement of another author's splitter
+  without permission, and an open-source licence. byo-pop has none, so the script needs its own (Q16).
+- **Steps, in order:** choose the licence; push byo-pop or create the script repo; ask the speedrun.com
+  moderators whether port runs count (A10), how to read A7 and whether they would list the splitter (Q22);
+  contact HyperNervie; the manual test (and the original's); open the registry PR (editing the XML on
+  GitHub creates the fork, branch and PR); check Activate once.
+
+**Templates and the mod.**
+- `games/bejeweled/tools/make_example_mods.py` generates `games/bejeweled/mods/livesplit/`: `mod.json`
+  (`{"id": "livesplit", "name": "LiveSplit", "version": "1.0", "features": {"livesplit": true}}`),
+  `livesplit/*.lss`, a copy of the script to load by hand, and `README.txt`.
+- Twelve `.lss` files in LiveSplit's 1.7.0 format: game name "Bejeweled Deluxe", the category name, the
+  subcategory as a metadata variable with speedrun.com's names (`Normal` = "5 Levels",
+  `Timetrial - Score rush` = "100K Points"), platform PC, and an empty `AutoSplitterSettings` that
+  LiveSplit fills after Activate. LiveSplit writes those settings only while the splitter is active, so
+  splits saved with it inactive lose them; the tools README says so.
+
+| Templates | Segments |
+|---|---|
+| Normal 5 / 10 Levels; Timetrial 5 / 10 / 15 / 20 Levels | `Level 1` … `Level N` (a 20-Levels file also gives the 5, 10 and 15 times) |
+| Score Attack 10K / 25K / 50K / 100K / 150K / 200K Points | `10000`, `25000`, `50000`, `100000`, `150000`, `200000`, up to the target |
+
+- Score Attack names are plain integers, which HyperNervie's Bejeweled 3 grammar (ascending integers
+  only) also accepts.
+- On activation the game copies missing files to `<userdir>/livesplit/` and never overwrites one, since
+  LiveSplit saves PBs into the file it opened. No oracle step compares those copies.
+- **Plumbing:** `FEATURE_LIVESPLIT` in `gFeatureNames`, `ParseFeature` and `MergeFeatures`;
+  `GameFeatures::mLiveSplit`, shown as "livesplit". It is not in the RulesId or the score key, and
+  `ComputeVariantFlags` never reads it, so the RNG source and the save format do not change.
+- **Mod signs:** any enabled mod adds the crossbar on GO's G and a fourth hint sparkle, which would show
+  in run videos. Q18 proposes leaving a mod whose only key is `features.livesplit` out of `mAnyModEnabled`.
+- **Desktop only:** the block and the observer sit under `#if defined(_WIN32) && !defined(__EMSCRIPTEN__)`
+  around the whole translation unit (the source glob also feeds the web build). The feature is parsed
+  everywhere, so `mods-status.json` is the same; the web build warns "features.livesplit: desktop only,
+  ignored".
+
+**Fidelity.** No translated Board function changes and the observer only reads, so the default oracle is
+unchanged: the block is never written. `mBoardSerial` and `mResumed` are observer bookkeeping. They go on
+the "Left out" list of the FULL hash in `games/bejeweled/src/testhooks/StateHash.cpp` and get no
+StateCodec row, so FULL hashes stay equal to the stage-0 baselines.
+
+**Tests** (LiveSplit itself is not needed):
+1. **Oracle case "livesplit":** the candidate with the `livesplit` mod against the candidate with an inert
+   `{"features": {"livesplit": false}}` mod (the same mod signs), over the `playtest*.txt` scripts, the
+   stage-0 cases and `-autoplay` in both modes. TRACE, saves, `hiscores`, `registry.ini`, `-tracehash` and
+   screenshots are identical; the logs are equal without the `livesplit:` and `mods:` lines. Repeated
+   under `-forcevariant` and on the `BEJ_NO_VARIANTS` build.
+2. **Event log:** `-livesplitlog` against the `-tracehash` state column: GO at tick 150 of each fresh board
+   and none on the resumed one (`playtest_load`), one level clear per entry into state 7, the right death
+   cause, monotonic counters, a new serial at each `NewGame`.
+3. **`lsprobe`** (Win32 C++, about 250 lines, built x86_64 with llvm-mingw so that it reads the 32-bit game
+   as LiveSplit does): `rundesk lsprobe -log=<f> -- bejeweled.exe -script=... -livesplitlog=<g>` finds and
+   reads the block exactly as the script does. `check_lslog.py` checks that the address equals the logged
+   one and that every accepted snapshot equals the game-log line with its `seq`. Also a `-fast` stress run,
+   `-dumplayout` (for `check_asl_offsets.py`) and `-original` (the 1.87 adapter).
+4. **`lsdecide.py`:** an independent re-implementation of the script's decisions and ASL's phase rules,
+   with expected events for Normal 5 Levels, Score Attack 10K, the mode guard, a resumed save (no start; a
+   manual start), each reset, the feature off, and attaching mid-game. It runs on game logs (exact ticks)
+   and on probe logs (real polling).
+5. **`asltest`** (about 200 lines of C#): compiles the published `.asl` with the in-box .NET Framework
+   `csc.exe` (C# 5, as 1.8.37 does) in a wrapper with 9c1e207's using list (without `System.Text.Json`),
+   stubs only the members the script uses, and replays test 4's logs. Its events must equal
+   `lsdecide.py`'s.
+6. **`check_asl_offsets.py`** (the script's magic and offsets against `lsprobe -dumplayout`) and the
+   magic-once build check.
+7. **Manual, once, after the user approves the download (Q23):** LiveSplit 1.8.37 (released 2026-02-15)
+   with the script loaded from a local file. Normal 5 Levels and Score Attack 10K are recorded and
+   compared with a frame retime; the `log` setting turns the lag estimate into a measurement. Activate is
+   checked after the registry PR.
+
+**Size and stage.** About 1,550 lines, about 340 of them game code: block header ~80, observer ~210,
+feature plumbing ~35, hooks ~15, script ~200, mod and templates ~150, `lsprobe` ~250, `lsdecide.py` ~200,
+`asltest` ~200, checks ~120, docs ~80. Stage **2b** comes after stage 2 and before stage 3; it needs only
+stage 1's `features` plumbing. The stage commit holds the game side, the mod, the script and tests 1–6.
+Publishing, test 7 and the original's test are separate steps the user approves.
+
+**Sources:**
+- speedrun.com: [Bejeweled Deluxe categories](https://www.speedrun.com/api/v1/games/46w3v591/categories?embed=variables),
+  [verified runs](https://www.speedrun.com/api/v1/runs?game=46w3v591&status=verified&max=200)
+- LiveSplit 1.8.37: [AutoSplitterFactory.cs](https://raw.githubusercontent.com/LiveSplit/LiveSplit/1.8.37/src/LiveSplit.Core/Model/AutoSplitterFactory.cs),
+  [SignatureScanner.cs](https://raw.githubusercontent.com/LiveSplit/LiveSplit/1.8.37/src/LiveSplit.Core/ComponentUtil/SignatureScanner.cs),
+  [XMLRunSaver.cs](https://raw.githubusercontent.com/LiveSplit/LiveSplit/1.8.37/src/LiveSplit.Core/Model/RunSavers/XMLRunSaver.cs)
+- ScriptableAutoSplit 9c1e207, bundled with 1.8.37: [ASL/](https://github.com/LiveSplit/LiveSplit.ScriptableAutoSplit/tree/9c1e207059d80615408750f709309dba87a929ea/src/LiveSplit.ScriptableAutoSplit/ASL)
+  (`ASLScript.cs`, `ASLMethod.cs`), [Component.cs](https://raw.githubusercontent.com/LiveSplit/LiveSplit.ScriptableAutoSplit/9c1e207059d80615408750f709309dba87a929ea/src/LiveSplit.ScriptableAutoSplit/Component.cs)
+- The registry: [README](https://github.com/LiveSplit/LiveSplit.AutoSplitters),
+  [PR template](https://raw.githubusercontent.com/LiveSplit/LiveSplit.AutoSplitters/master/.github/pull_request_template.md),
+  [LiveSplit's registry test](https://raw.githubusercontent.com/LiveSplit/LiveSplit/master/test/LiveSplit.Tests/AutoSplitterTests/AutoSplitterXML.cs)
+- Precedents: [HyperNervie/Bejeweled-Autosplitters](https://github.com/HyperNervie/Bejeweled-Autosplitters),
+  [FeedingFrenzy2.asl](https://raw.githubusercontent.com/Xh3o1vn/FeedingFrenzy2_Autosplitter/main/FeedingFrenzy2.asl);
+  [GCC: multi-character constants](https://gcc.gnu.org/onlinedocs/cpp/Implementation-defined-behavior.html)
+
+### 4.16 Twilight gravity (Bejeweled 2)
+
+Added from the user's decisions (2026-10-18): Bejeweled 2's secret Twilight mode, matched exactly, with all
+three of its cosmetic touches, in Normal and Timed, and with no direction indicator.
+
+**What Bejeweled 2 does.** These facts were read from a static disassembly of the game embedded in the
+installed `WinBej2.exe` (file offset 0x1841a2, image base 0x400000, built April 2007). Nothing was run or
+observed in play. The web descriptions are loose and disagree in places (wiki.gg's Bejeweled 2 page has
+gravity change with every match); where they differ, the code wins.
+
+| Fact | Address |
+|---|---|
+| Twilight is mode 4, the secret counterpart of Classic, and unlocks after Classic level 17. Otherwise it plays as Classic (untimed, level bar, game over when no move is left; wiki.gg). | `IsModeUnlocked(4)` 0x5cf3e3 |
+| One gravity byte on the board (+0x1721), which the constructor sets in mode 4: Twilight starts **up**. | 0x5adb76..0x5adb9c |
+| Up: rows count from the bottom (`GetRowY` 620 − 84·row, else 32 + 84·row); refills spawn below the screen; `FillBoard` starts its gems below. | 0x594bd5, 0x5a7255, 0x597efd |
+| **The only flip** is in `UpdateFalling`: everything has settled, `ProcessMatches` found nothing, and the state has just become idle. The same step swaps grid rows r and 7 − r, so row 0 is always the entry side. | 0x5a9edb..0x5a9f5d |
+| So a move's cascades share one direction, and a swap that makes no match never flips: the swap-back goes straight to idle. | 0x5a8b99..0x5a8ba5 |
+| The opening fill runs with the flag set, so **the opening board rises**; its settle flips, so the first move's gems fall from the top and the second's rise. | 0x5aded3 |
+| Each level's fill also flips at its settle, so the last move of a level and the first of the next share a direction. There is no reset per level; the flag is saved. | 0x597f15, 0x5a51c2, 0x59c993 |
+| Slower falls: acceleration 0.1 per tick in Twilight, in both directions, against 0.24 in the other modes (in 84-px cells). | 0x5a9de0..0x5a9e07 |
+| Every sound plays with `AdjustPitch(-2.0)`, 2 semitones lower. | 0x5dbec8..0x5dbefe |
+| The backdrop has each pixel row mirrored left to right and each colour channel halved. | 0x59bfbd..0x59c066 |
+| Power Gems and Hypercubes are still created. | 0x5a8119..0x5a81a3 |
+| Mode 4 saves to `s_normal.sav`. `twilight.sav` belongs to mode 8, probably the hidden Original mode (an inference). | 0x59c512..0x59c54a |
+
+**Rule keys** (3.2).
+- `board.gravity.direction`: `"down"` (default), `"up"` or `"alternate"` (Twilight).
+- `board.gravity.fallAccel`: the fall acceleration in `UpdateFalling`, in thousandths of a logical pixel
+  per tick², default 180. `180 / 1000.0` is the same double as the original literal `0.18`, so the default
+  is bit-identical. It is an integer, as 6.1 asks of new rules.
+- `look.backdrop` (`"normal"` / `"twilight"`) and `look.soundPitch` (semitones, default 0) are
+  presentation. They sit in `rules` so that a replay's RULE record carries them and a watched game looks
+  the same. Like tunables, they never make a variant board, but they do enter the RulesId and the score
+  key, so a look-only mod gets its own tables (Q27).
+- Not included: a choice of starting direction, other flip triggers (Astraware's flips on illegal moves, a
+  per-refill zig-zag) and a direction indicator. Each can come later as a key with a default, which leaves
+  existing RulesIds unchanged.
+
+```jsonc
+{ "id": "twilight", "name": "Twilight", "version": "1.0",
+  "rules": { "board": { "gravity": { "direction": "alternate", "fallAccel": 75 } },
+             "look":  { "backdrop": "twilight", "soundPitch": -2 } } }
+```
+
+- `fallAccel` 75 applies Bejeweled 2's slowdown (0.24 → 0.1, ×0.42) to BJ1's 0.18. 100 would copy
+  Bejeweled 2's number, which is in its 84-px cells (Q25).
+- The preset is BJ1 Normal or Timed plus gravity. Bejeweled 2's Twilight also has Power Gems and
+  Hypercubes, which BJ1 does not; `power-gems` (4.8) combines with it.
+
+**Merge, validation, RulesId.**
+- **Group:** a new atomic group *gravity* (`board.gravity.*`), appended before `NUM_GROUPS`; group numbers
+  are not part of the canonical form. `"board": {"gravity": null}` resets it. `look.*` are leaves.
+- **Schema:** ids 7 and 8 in the `board` block (1..6 are taken), 144 and 145 in a new `look` block;
+  `board.gravity` and `look` join `gNamespaces`.
+- **Validation:** enum values (reject the mod's rules); `fallAccel` 50..1000 and `soundPitch` -12..12
+  (clamp and warn). The fill colour minimum (3.6) is computed for each fill order in use (`down` bottom-up,
+  `up` top-down, `alternate` both) and the larger is taken. The orders differ for cell patterns that are
+  not closed under a vertical mirror, and for vertically asymmetric masks or levels.
+  `board.gravity.direction` joins that check's cause keys, so the merged-set drop finds the right
+  contributor.
+- **RulesId:** the new fields are written only when they differ from their defaults (3.7), so every
+  existing id stays. A Twilight mod has `rules`, so it gets its own score tables, and a non-default
+  `direction` or `fallAccel` makes a variant board (own RNG, v2 save, variant trace).
+
+**Semantics.**
+- **State:** `int mGravityFlips` (settles that flipped) and `bool mGravityNoFlip`. `GravityUp()` is true
+  for `up`, false for `down`, and `(mGravityFlips & 1) == 0` for `alternate`, which therefore starts up.
+- **The flip** (`alternate` only): `OnGravitySettle()` runs at the end of `UpdateFalling`'s no-match
+  branch. If the state is now `STATE_PLAYING` and `mGravityNoFlip` is clear, `mGravityFlips++`; it always
+  clears `mGravityNoFlip`. That gives exactly Bejeweled 2's sequence:
+  - the opening fill rises and its settle flips, so the first move's gems fall from the top and the
+    second's rise;
+  - all of a move's cascades use one direction;
+  - a swap that makes no match never flips. A swap-back returns to `STATE_PLAYING` from `UpdateSwap`
+    without a settle, and `KeepInvalidMove` (4.1) sets `mGravityNoFlip`. Twist and slide (4.4, 4.5) behave
+    the same;
+  - every fill flips once at its settle (level, timed fall-out), so across a level-up the last move and
+    the first move of the next level share a direction.
+- **No moves** is the port's choice, since Bejeweled 2's no-moves path was not read and it has no Timed
+  Twilight: a settle that ends with no moves does not flip. Normal ends, and Timed falls out in the
+  current direction, then its refill's settle flips.
+- Gravity never changes while a piece moves. Every fall (refill, cascade, fill, fall-out, game-over fall)
+  reads `GravityUp()` when it starts.
+- Bejeweled 2 swaps the grid rows at each flip so that row 0 is the entry side. The port keeps the grid in
+  screen order and orders each column from the entry side instead: the same motion, with saves, hints and
+  traces keeping their meaning.
+
+**Falling, refill and fill.**
+- **`FallPiecesVariant`** (the `UpdateFalling` loop when `mFall`): speeds stay positive (1.0 for a moved
+  gem, 0.3 for a spawned one), and the side of its cell gives the direction: a piece above its rest Y
+  falls, one below it rises. `mVelY += fallAccel / 1000.0`. Only `+ - /` and comparisons are used, so
+  native and wasm agree (6.1). Fall-out and the game-over fall keep their own constants (0.18, 0.15): the
+  slowdown read in Bejeweled 2 is in its `UpdateFalling`.
+- **`RefillMasked`** (5.4): each column's playable rows `V` are ordered entry side first (reversed under
+  up), and spawns start at `edgeY ± 69`. The RNG order is unchanged (columns ascending, one draw per column
+  with a gap in each pass), and the down branch is the original pass line for line. An upward refill draws
+  the same colours as the downward refill of the vertically mirrored grid, since `(int)` truncates toward
+  the board on both sides. On 8x8, upward spawns start at y ≥ 442, under the clip's bottom edge 428.
+- **`FillBoardVariant`** (5.5): under up, rows `0..rows-1`; the reference Y is the nearest filled cell
+  above, else M = `GetRowY(0) + GetRowY(rows-1)` (389 on 8x8); gems start at `ref + Rand()%240 + 65`. For
+  one RNG state the upward fill is the vertical mirror of the downward one, with the same draws.
+- **Seeds (4.10):** the tutorial loop keeps the first fill with the tutorial move in rows 4..6, and a
+  rising fill puts its mirror in rows 1..3, so a seed may keep a different fill. A seed's Twilight board is
+  therefore not simply the mirror of its Classic board.
+- **Fall-out and game over follow gravity** (Q26). `UpdateFallOutVariant` keeps one `Rand()%15` per
+  column per tick, scans from the top under up, moves by `-mVelY` and drops a piece at
+  y ≤ M − (`mScreenBottom` + 32), −123 on 8x8. `GameOverFallVariant` leaves the shake and explosion draws
+  in translated code and mirrors only the fall (gone at M − (`mScreenBottom` + 49), −140).
+- Hint, the no-moves search and the tutorial search test only the grid, so they do not change.
+
+**What the player sees.**
+- No direction indicator, as in Bejeweled 2.
+- **Backdrop** (`look.backdrop: "twilight"`). BJ1 has no backdrop picture, only the level's tinted checker
+  tiles, so this approximates Bejeweled 2's effect. `SetupLevel`'s tile-loop hook (`mChecker`) runs
+  `DrawVariantChecker`, which draws the tiles, then mirrors that layer left to right about the board
+  centre x 406 and halves each colour channel. The translated `IMAGE_ALPHABACK` draw (frame and HUD)
+  follows unchanged, so the HUD is not mirrored. The constructor's copy and the level wipe show the
+  result.
+- **Pitch** (`look.soundPitch: -2`). `SoundManager` gains a default pitch that `GetSoundInstance` applies
+  to every instance it hands out (`SDLSoundInstance::AdjustPitch` already exists). `InitVariant` sets it
+  from the rules (0 otherwise). That covers `PlaySample` and the whirlpool instance that `StartBlackHole`
+  takes directly, with no edit in translated code. Music is unchanged.
+- **Clip** (amends stage 7's `DrawVariant`). The gem layer is clipped to the board's own screen
+  rectangle, `ToScreen(origin) − (9, 4)` to `ToScreen(origin + (w, h)) + (13, 6)`. On 8x8 that is
+  (194, 12)–(622, 428), the original `ClipRect(194, 12, 428, 416)`. On short boards such as 10x7 the fixed
+  8x8 clip would show spawns in the void, in either direction.
+- **Hidden gems.** `GetPieceAt` gets
+  `if (mVariant.mGravity && GravityUp() && theY >= mLayout.mClipBottom) return NULL;`, where `mClipBottom`
+  is the clip's bottom edge in logical space (428 on 8x8), since `GetPieceAt` receives logical
+  coordinates. Otherwise a rising gem hidden in the bar row could be selected, and its cursor (drawn
+  without the clip) would show over the HUD. The guard needs `GravityUp()`, not only the flag: `MouseDown`
+  blocks only states 5–8, so the original can select a gem falling out at y 428..480, and
+  `-forcevariant`, which sets the flag at default rules, must not change that.
+- **Help.** `InstructionsStringId()` (2.6) returns `INSTRUCTIONDIALOG_TWILIGHT` for `alternate` and
+  `_GRAVITY_UP` for `up`, unless the twist or slide text applies. Help uses a replacement for
+  `FULL_INSTRUCTIONS2`, whose description of gems dropping in from above would be wrong. The engine ships
+  English defaults; mods override them through `strings`.
+
+**Interactions.**
+
+| Feature | Interaction |
+|---|---|
+| Holes and masks (5.4) | `V` and M come from the current layout; gems rise through holes as they fall through them. |
+| Dirt (4.14, 7b) | Mirrored: dirt is a floor for down and a ceiling for up, only the entry-side segment is refilled, and diagonal slides come from the entry side. `mDiagonalLeftFirst` is shared. 7b adds a warning per direction in use: dirt at a column's entry-side end blocks its refill. |
+| Shapes and per-level shapes (5.3) | No restriction: the layout switches in `UpdateBlackHole` before `FillBoard` uses the new M. |
+| Scaled boards (5.1) | Logical space throughout; the limits are `mScreenBottom` and its mirror; the clip above. |
+| Twist, slide (4.4, 4.5) | A matching move flips at its settle; `_BACK` returns to PLAYING without a settle, so it never flips. |
+| Allow invalid moves (4.1) | A kept invalid move never flips (`mGravityNoFlip`). With `noMoves: "continue"`, a move's settle still reaches PLAYING and flips. |
+| Flame and lightning (4.8) | Blasts resolve within the move; the refill takes the move's direction. |
+| Gold (4.9) | The gold layer is per cell and does not move. Gold's fall-out and time-up game over follow gravity. |
+| Undo (4.12, 6.7) | The `StartSwap` snapshot, taken after the previous settle's flip, holds `mGravityFlips` and `mGravityNoFlip`, so undo restores the direction, and with `restoreRng` the repeated move refills the same way. |
+| Replays (6.3) | No new events: gravity follows from the moves. |
+| StateCodec, hashes, trace (6.6) | Rows for `mGravityFlips` and `mGravityNoFlip` (V2, UNDO, LOGIC, FULL) and the trace field `gravity up\|down flips n` exist only when the rules set a gravity rule. The condition reads `mRules`, not the flags `-forcevariant` sets, so default-rules hashes and the stage-0 `-tracehash` baselines stay frozen. |
+| v2 save (7.2) | Chunk `GRAV {i32 flips, u8 noFlip}` under the same condition; a missing chunk reads as 0. Saves mid-cascade (states 0 and 4) resume in the saved direction, since `LoadGame` snaps positions. A save in `STATE_SWAPPING_BACK` already holds the swapped grid as state 1, as in the original; no flip is involved. |
+| Set seed (4.10) | `UsePendingSeed` is unchanged; see the fill note above. |
+| Leaderboards (4.13) | The RulesId covers gravity and look, so Twilight gets its own boards. |
+| Patterns, gem colours (4.6, 4.2) | Matching does not depend on gravity; only the fill minimum needs both orders. |
+| Timed mode | Timed Twilight is new (Bejeweled 2's is untimed). The drain runs only in states 1 and 2, so slower falls cost no time. |
+| Auto LiveSplit (4.15) | A Twilight game is not vanilla (flag 0x04 clear); `vanillaOnly` refuses it. |
+
+**Code plan.**
+- **`VariantFlags`** (2.2): `mGravity` (direction not down), `mFall` (`mShape || mGravity || fallAccel !=
+  180`), `mChecker` (`mShape || look.backdrop == "twilight"`). `-forcevariant` also sets `mGravity`, `mFall`
+  and `mChecker`; the rules stay down, so the flip and the `GetPieceAt` guard stay off.
+- **Translated hooks** (2.5): `UpdateFalling` (the loop goes to `FallPiecesVariant` when `mFall`, and
+  `OnGravitySettle` ends the no-match branch), `UpdateClearing` and `FillBoard` (condition `mFall`),
+  `UpdateGameOver` (fall phase), `UpdateFallOut` (first line), `GetPieceAt` (guard), `SetupLevel`
+  (condition `mChecker`). About 6 tagged lines, none in `Draw`. `UpdateSwap` is not touched: the flip sits
+  at the settle, where Bejeweled 2 has it.
+- **Variant code** (`BoardShape.cpp`): `FallPiecesVariant`, the direction branches of `RefillMasked` and
+  `FillBoardVariant`, `UpdateFallOutVariant`, `GameOverFallVariant`, `OnGravitySettle`, the backdrop pass,
+  the `GRAV` chunk, the StateCodec rows and the trace field. `KeepInvalidMove` sets `mGravityNoFlip`.
+- **Outside Board:** `SoundManager::SetDefaultPitch` (framework), `InstructionsStringId`, the strings.
+
+**Tests.**
+- **Identity at down.** `-forcevariant` runs every new path at default rules (the guard and the flip stay
+  off): traces, files and screenshots pixel-exact. The stage-0 no-moves game-over and timed fall-out
+  scripts cover the end animations. Default-rules `-tracehash` baselines are unchanged. `BEJ_NO_VARIANTS`
+  must match too, and the difftest now covers the gravity paths at down.
+- **Mirror unit tests** (verifier): for one RNG state, `FillBoardVariant(up)` and `RefillMasked(up)` on a
+  grid with holes equal the mirrors of the down versions, in colours, rows and draw counts.
+- **`bejeweled_verify mirrortest --seeds 1..200`**: a mirrored copy of a down board is restored into an
+  `up` board with the same RNG state, and the bot plays mirrored moves. Grid, score and stats are compared
+  at every settle until the first level-up, fall-out or game over, whose draws depend on tick alignment.
+  Settle-tick differences are warnings (float rounding at another magnitude).
+- **Scripts with screenshots:** the opening rise, the first move falling and the second rising; a level-up
+  (last and first move share a direction); a swap-back and a kept invalid move (`allowInvalid`) that do not
+  flip; a Timed fall-out; a game over going up; a save in state 4 going up, then load and finish; undo;
+  diamond + Twilight; the backdrop; landing ticks with `fallAccel`.
+- **Pitch:** a `fwtest` check that `GetSoundInstance` applies the default pitch.
+- **Replay:** record → in-game → native → wasm verifier, with equal `CHECK` and `END`.
+- **`rulestest`:** group merge, `null` reset, canonical bytes of fields 7, 8, 144 and 145, existing
+  RulesIds unchanged, the fill minimum for an asymmetric mask under up and alternate.
+
+**Size and stage.** About 690 lines: rules and `rulestest` ~150, flags, helpers and hooks ~50, falling,
+refill and fill ~90, fall-out and game over ~70, clip and guard ~30, chunk, StateCodec, trace and strings
+~60, backdrop and pitch ~60, mirror tests and scripts ~180. Stage **7c** comes after stage 7 and before 7b.
+It needs stages 3 (StateCodec), 5 (v2 chunks), 6 (the undo row) and 7 (`RefillMasked`, `FillBoardVariant`,
+`DrawVariant`), and coming before 7b lets 7b write its diagonal pass and x settling direction-aware once.
+
+**Sources:**
+- The installed Bejeweled 2 Deluxe (Steam): the game embedded in `WinBej2.exe`, disassembled statically.
+- [wiki.gg: Twilight](https://bejeweled.wiki.gg/wiki/Twilight),
+  [wiki.gg: Bejeweled 2](https://bejeweled.wiki.gg/wiki/Bejeweled_2),
+  [Wikipedia: Bejeweled 2](https://en.wikipedia.org/wiki/Bejeweled_2),
+  [kosgames: unlockable modes](https://kosgames.com/bejeweled-2-deluxe-all-the-unlockable-modes-2585/),
+  [Astraware Palm manual](https://tapwave.net/files/bejeweled-2/dl/Astraware%20Bejeweled%202%20for%20Palm.htm)
+
+---
+
 ## 5. Board geometry and rendering
 
 ### 5.1 Logical space
 
-Every board is simulated with the original constants: pitch 51, gem 49, gravity +0.18 per tick,
-spawn `-Rand()%240-65` and `minY-69`, the vortex thresholds 64/80/96, the click zone 22..88.2 /
-26, and the drag threshold 16. Only `BoardLayout` differs:
+Every board is simulated with the original constants: pitch 51, gem 49, gravity +0.18 per tick
+(`board.gravity.fallAccel` can change it in `UpdateFalling`, 4.16), spawn `-Rand()%240-65` and
+`minY-69`, the vortex thresholds 64/80/96, the click zone 22..88.2 / 26, and the drag threshold 16.
+Only `BoardLayout` differs:
 
 ```
 w  = cols*51 - 2;   h = rows*51 - 2;   D = max(406, w, h)          // 8x8: w = h = D = 406
@@ -1061,7 +1595,8 @@ do { changed = false;
 ```
 
 On a full column `V = 0..rows-1`, which is line for line the original pass, with the same `Rand`
-order. `UpdateFalling` already settles each piece to `GetRowY(mRow)`.
+order. `UpdateFalling` already settles each piece to `GetRowY(mRow)`. Stage 7c orders `V` from the entry
+side, so the same pass also refills upward (4.16).
 
 ### 5.5 Fill with holes (`FillBoardVariant`)
 
@@ -1071,7 +1606,7 @@ order. `UpdateFalling` already settles each piece to `GetRowY(mRow)`.
   the nearest playable cell below, which is already filled since filling runs bottom-up; else 0.
 - Each cell draws `Rand()%240`, then rerolls `Rand() % gemColors` while `HasMatch()` (the variant
   when `mMatch`), with the cap from 3.6.
-- On a full 8x8 this is the original algorithm.
+- On a full 8x8 this is the original algorithm. Stage 7c adds the mirrored upward fill (4.16).
 - **`FillBoardWithMove()`** replaces the tutorial loop when `mNoTutorial` is set:
   `do FillBoardVariant(); while (!AnyMove() && ++n < 100);`. It leaves `mTutorialCol = -1`.
 
@@ -1090,7 +1625,8 @@ order. `UpdateFalling` already settles each piece to `GetRowY(mRow)`.
 - **Centre-based drawing:** the banner, the vortex image and the hole mask use the screen centre
   (406, 219), not the logical centre.
 - **Unchanged:** the clip `(194, 12, 428, 416)`, the level wipe (screen space) and the HUD. The
-  gold HUD is added on top.
+  gold HUD is added on top. Stage 7c replaces the fixed clip with the board's own screen rectangle,
+  which is the same on 8x8 (4.16).
 - **Tutorial arrows:** only when `mTutorialCol >= 0`.
 
 **Checkerboard (`DrawVariantChecker`, into `mNextBackgroundImage`).** The original draws 10x10
@@ -1112,8 +1648,8 @@ generalisation:
 | Effect | Handling |
 |---|---|
 | Vortex (`StartBlackHole`/`UpdateBlackHole`) | `GetBoardCenter`/`GetBoardSize` are logical, so `aMaxRadius = (int)((int)sqrt(w²+h²)/2.2)` grows with the board (260 at 8x8). Pieces spiral in logical space. The 256 px vortex image is drawn unscaled at (406, 219). |
-| Game-over shake and fall | Per piece; the fall limit is `mScreenBottom + GEM_SIZE`. |
-| Fall-out | `mCols` draws per tick; the limit is `mScreenBottom + 32`. |
+| Game-over shake and fall | Per piece; the fall limit is `mScreenBottom + GEM_SIZE` (mirrored under up gravity, 4.16). |
+| Fall-out | `mCols` draws per tick; the limit is `mScreenBottom + 32` (mirrored under up gravity, 4.16). |
 | Level wipe | Unchanged (full screen); `FillBoard` dispatches. |
 | `HighScoreWidget::Resize` (0x4cedf5) | Draws `mApp->mBoard->Draw` into its snapshot, so it picks up `DrawVariant` by itself. |
 
@@ -1487,7 +2023,8 @@ All new UI depends on mods. Without them the screens are pixel-identical.
 | Undo | Red-orb hotspot with a hover glow and a remaining-count digit when `max ≥ 0`; keys z, u, Backspace; a short "UNDO" banner. | `undo.enabled` |
 | Gold HUD | "GOLD n/m" over the bar; the bar shows progress (untimed) or time (timed); gold tiles under the gems. | `gold.enabled` |
 | Twist / slide | Ring cursor at the hovered intersection; the dragged segment follows the pointer, with its wrap copy. | move types |
-| Instructions | `INSTRUCTIONDIALOG_TWIST`, `_SLIDE`, and `FULL_INSTRUCTIONS_TWIST/_SLIDE` paragraphs appended by Help. Strings have defaults and can be overridden by mods. | move types |
+| Instructions | `INSTRUCTIONDIALOG_TWIST`, `_SLIDE`, and `FULL_INSTRUCTIONS_TWIST/_SLIDE` paragraphs appended by Help. `INSTRUCTIONDIALOG_TWILIGHT`, `_GRAVITY_UP` and a replacement `FULL_INSTRUCTIONS2` text for gravity rules (4.16). Strings have defaults and can be overridden by mods. | move types, gravity |
+| Twilight look | The level backdrop mirrored left to right at half brightness; sounds pitched down. No gravity indicator. | `look.*` |
 | Specials | Overlays, blast and beam effects, optional `PATTERN_<name>` banners. | specials / patterns |
 | Replay browser (new) | `ListWidget` + `ScrollbarWidget`, rows "date · mode · rules title · score · seed". Buttons Watch / Keep / Delete / Close. | `replays` |
 | Watch mode | Banner "REPLAY 2x". Space or click pauses, 1–4 set the speed, N steps to the next move, Esc exits. End screen "REPLAY END" (Watch again / Back). A transparent overlay widget above the board takes the clicks and keys. Side-bar buttons are routed to the controller. | watching |
@@ -1539,12 +2076,14 @@ tests. Sizes are new or changed lines.
 | 0 | Oracle hardening | Commit/baseline. `compare.sh`/`compare.py`. Global RNG counter. `HandleScriptCommand` with script `save <file>` (snapshot during swap, clearing, vortex and wipe states). `-tracehash=<file>` (per-tick FULL hash from a hand-written field list). `-autoplay=<seed>` (bot with its own `std::mt19937`, input through the same mouse path, to game over or a tick cap). New scripts: normal no-moves game over, timed fall-out, drag swaps in 4 directions and at the edge, selection during falling (stale selection), save mid-swap/clearing/vortex then load, timed level 2+, Options → High Scores mid-game, pause/unpause, mode-switch save. | Plain `-trace` byte-identical to the baseline; new hash, snapshot and autoplay baselines recorded with both exes | ~500 |
 | 1 | Rules plumbing, no behaviour | `GameRules` (schema, merge, validation, canonical, RulesId), ModManager `rules`/`features`/`imageOps` with provenance, groups, keyed, `null`, union, `mods-status.json`, `diff.txt` detection, shell tags and status. `GameConfig` split. `mBoard[16][16]`, bounds, `BoardLayout`, `GetColX/GetRowY` members, `Piece::SAVE_SIZE` + tail, `VariantFlags`, `-forcevariant` (inert so far), `-dumprules`, `BEJ_NO_VARIANTS`, hook lister. | Oracle; `rulestest` unit fixtures (merge, groups, keyed, null, union, drop-lowest, hash vectors stable across native/wasm); `playtest_mods` keeps `savegame-58ebd9d7.dat` | ~1,000 |
 | 2 | RNG core + set seed (9) | `MTRand` Get/SetState, `Board::Rand`, owned RNG, `NewGame` seed choice, pending-seed rule, `-gameseed`, `?seed=`, game-over SEED line, `-seeded` table | Oracle (global stream untouched); two `-gameseed` runs with different `-seed` give identical board traces; double-NewGame startup plays the seed; SEED screenshot only for seeded games | ~350 |
+| 2b | Auto LiveSplit (4.15) | `features.livesplit`; `LiveSplitBlock.h` (layout 1) and `LiveSplitObserver` (detection, counters, `displayScoreMax`, sequence counter, status lines, template copy) under the desktop `#if`; Board serial and `mResumed`; `UpdateFrames` and `~WinDMApp` hooks; `-livesplitlog`; the `livesplit` mod with 12 templates; `BejeweledDeluxe-byopop.asl` (the original 1.87 only after its test) | Oracle case "livesplit" (also `-forcevariant` and `BEJ_NO_VARIANTS`); `-livesplitlog` against `-tracehash` states; `lsprobe` with `check_lslog.py`, incl. a `-fast` stress run; `lsdecide.py` scenarios; `asltest` (Framework csc, 1.8.37's usings) equals `lsdecide.py`; `check_asl_offsets.py`; magic once in `.data`. Publishing and the manual LiveSplit test wait for the user | ~1,550 (≈340 game) |
 | 3 | Replay core (10) + StateCodec | StateCodec table and hashes; recorder hooks; `SyncExternalRand`; `HOVER`; `CHECK`; `.bjr` writer and reader; playback driver with gates; `-replay=`; `mPlaybackOnly`, `mPlaybackLoad/Save`; segments and sidecar; `GetShutdownSaves`; `-replaydir`, `/persist/replays`; pruning | 9.1 items 5 and 6 (in-game); scripted resume (`playtest_load`) as a two-segment replay; external-draw script replays; StateCodec round trip at every settle | ~1,300 |
 | 4 | Headless verifier | Shims, `WinDMAppHeadless`, `verify_main`, `BoardTrace` move, standalone wasm, Node runner, difftest harness, CI job | Verifier = game for all corpus replays; native-recorded → wasm-verified; difftest runs (trivially equal until stage 7); the Node runner takes the stage-0 switches (`-script`, `-tracehash`, `-autoplay`), which the web shell does not pass, and the oracle scripts' LOGIC hashes match native | ~900 |
 | 5 | Allow invalid moves (1) + noMoves + v2 save | `UpdateSwap` branch, `KeepInvalidMove`, `OnNoMovesVariant`, v2 header and chunks (`RNGS`, `MOVE`), variant trace lines | Kept-swap script; `"continue"` script; v2 save → quit → load round trip; replay verify; v1 untouched (oracle) | ~450 |
 | 6 | Undo (11) | UNDO profile, `UndoStack`, `RequestUndo`/`Undo`, pop/clear points, keys and orb hotspot, `UNDO` event | Undo script (repeat the same move → identical refill); timed `inTimed`/`restoreTime`; replay with undos verifies; snapshot round trip | ~450 |
 | 7 | Geometry and shapes (3) | `BoardLayout` scaling, `ToLogical`, `FillBoardVariant`, `RefillMasked`, `FillBoardWithMove`, NULL guards, `DrawVariant`, `DrawVariantChecker`, per-level shapes (pending → apply), v2 dims | `-forcevariant` oracle incl. pixel-exact screenshots; difftest now meaningful; scripts and screenshots for 6x6, 10x7, 16x16, diamond and a two-level shape mod (board, vortex, wipe, game-over fall); save/load on level 2; replay verify | ~1,400 |
-| 7b | Dirt tiles and diagonal falling (4.14) | Mask legend `d`/`2`..`9`, dirt cells in input/match/hint code, layer clearing next to groups (and blasts), `RefillDiagonal` with the alternating toggle, `mVelX` in `UpdateFalling`, dirt art and dust effect, `DIRT` chunk | Fixture boards (alternation, top-row dirt, layers, two adjacent groups); screenshots; save mid-cascade; replay verify; boards without dirt unchanged (oracle, difftest) | ~700 |
+| 7c | Twilight gravity (4.16) | `board.gravity.*` and `look.*` (group, validation, fill minimum per order); `mGravity`, `mFall`, `mChecker`; `FallPiecesVariant` (direction, `fallAccel`); direction-aware `RefillMasked` and `FillBoardVariant`; fall-out and game-over variants; `OnGravitySettle`; `GetPieceAt` guard; per-board clip; `GRAV` chunk, StateCodec rows and trace field (gravity rule sets only); backdrop pass; default sound pitch; help strings | `-forcevariant` oracle pixel-exact, default-rules hashes unchanged; difftest; mirror unit tests and `mirrortest`; Twilight scripts and screenshots (opening rise, alternation, flip per fill, no flip on swap-back or kept invalid move, Timed fall-out, game over, save mid-cascade, undo, diamond); replay verify; `rulestest` | ~690 |
+| 7b | Dirt tiles and diagonal falling (4.14) | Mask legend `d`/`2`..`9`, dirt cells in input/match/hint code, layer clearing next to groups (and blasts), `RefillDiagonal` with the alternating toggle, `mVelX` in `UpdateFalling` (inside 7c's `FallPiecesVariant`), dirt art and dust effect, `DIRT` chunk | Fixture boards (alternation, top-row dirt, layers, two adjacent groups); screenshots; save mid-cascade; replay verify; boards without dirt unchanged (oracle, difftest) | ~700 |
 | 8 | More gem colours (2) | Clamp 12, `imageOps.extendRows` (1x + HD), default op, glyphs, N shrink images, tints, `EnsureGemColors` | PNG of the generated sheet (1x and `example-crystal-gems` HD); 9- and 12-colour screenshots; loading bar unchanged | ~450 |
 | 9 | Patterns (6) | `MatchFinder` (runs, diagonals, crossings, cell patterns), `ProcessMatchesVariant`, `ScoreGroup`, `HasMatchVariant`, `FindMoveVariant` (swap), `DoHintVariant`, fill cap, colour-minimum validation | `-forcevariant` oracle (exact run order and scoring); finder fixtures (L3, square, diagonal, minRun 2, merge L/T/plus, subset skip); hint equals brute force; scripts | ~1,200 |
 | 10 | Twist + slide (5, 4) + combinations | States 10–13, variant input, integer twist table, segments, `MoveSet` twist and slide, multi-type input, instruction strings, trace lines | Rotate and drag scripts (coordinates from the trace); kept vs reverted with `allowInvalid`; diamond + twist; swap+twist+slide input matrix; save mid-move; replay verify; generic search equals brute force | ~1,500 |
@@ -1553,9 +2092,10 @@ tests. Sizes are new or changed lines.
 | 13 | UI | Extras dialog, Options button, replay browser, watch controller and session save/restore, game-over links, shell Replays panel and badges | Screenshots with and without feature mods (default Options and game-over pixel-identical); watch-to-end matches `END` at every speed; resume offered after watching; browser smoke test | ~1,000 |
 | 14 | Leaderboards (12) | Worker, D1 schema, sessions, daily seeds, submit checks, rate limits, shell panel, `bj_submit`, docs (README Mods section, MOD_ROADMAP, GAME_NOTES) | `wrangler dev` with the corpus: accepted; tampered score, event, rules, reused or expired token, and a wrong RNG on resume all rejected; CPU timing of a long timed replay | ~1,400 (≈700 TS) |
 
-The total is about 13k lines. Stage 6 comes early on purpose: its round-trip test guards every later
-change to a chunk. Stages 7–12 can be reordered after stage 6. Stage 14 needs stages 3, 4 and 2's
-owned RNG.
+The total is about 16.6k lines. Stage 6 comes early on purpose: its round-trip test guards every later
+change to a chunk. Stages 7–12 can be reordered after stage 6. Stage 2b needs only stage 1. Stage 7c
+needs stages 3, 5, 6 and 7 and comes before 7b, so 7b writes its diagonal pass direction-aware once.
+Stage 14 needs stages 3, 4 and 2's owned RNG.
 
 ---
 
@@ -1592,8 +2132,19 @@ owned RNG.
 - **Seed timing** (asked after stage 2: should a chosen seed wait until you actually start
   playing?): yes. A chosen seed stays pending until the first move or game over, so switching to
   Timed straight away still plays the seed. See 4.10.
+- **Auto LiveSplit:** "Use a published autosplitter script (ASL) reading a tagged memory block, so it works
+  through LiveSplit's normal Activate flow." See 4.15 and stage 2b. Questions 14–24 remain.
+- **Twilight gravity:** match Bejeweled 2 exactly. Gravity flips each time the board comes to rest after a
+  move with no further match (one direction for a move's whole cascade; a swap that makes no match never
+  flips), and once per board fill: the opening board rises, so the first move's new gems fall from the
+  top, and each level's fill flips too. All three Bejeweled 2 touches are part of the mod: the backdrop
+  mirrored left to right with each colour channel halved, slower falls (fall acceleration 0.1 per tick in
+  both directions instead of 0.24, a rule value, so it enters the RulesId) and every sound 2 semitones
+  lower. Normal and Timed (Timed Twilight is new). No indicator, as in Bejeweled 2; a key can add one
+  later. See 4.16 and stage 7c. Questions 25–27 remain.
 - **All other questions:** the recommendations in brackets below apply unless the user says
-  otherwise.
+  otherwise. Q14–Q17, Q22 and Q23 are the exception: contacting HyperNervie or the moderators, running
+  the original, the licence, publishing and the download each wait for the user's explicit approval.
 
 Recommendations are in brackets.
 
@@ -1626,6 +2177,39 @@ Recommendations are in brackets.
 12. **Background after loading a variant save.** Rebuild it for the loaded level (fixes the
     original's level-0 background, on variant boards only), or keep the original bug? [rebuild]
 13. **Maximum gem colours** 12, or more (16)? [12, for legibility]
+14. **The "Bejeweled Deluxe" registry entry.** There can be only one, and HyperNervie lists a Bejeweled 1
+    splitter as coming soon. Ask them first, proposing one combined script (port and original) with them
+    as co-maintainer, or contributing the port path to their script? [ask first; the combined script]
+15. **The original 1.87 in the script.** It needs one session of the original with its sound on (Steam,
+    BASS): you play while `lsprobe` logs, or you allow a session to run it. [yes, if the script is
+    registered under the name; otherwise port-only and unregistered]
+16. **Licence for the script.** The registry requires an open-source one, and byo-pop has none. [the
+    Unlicense, as HyperNervie's, so either way of coordinating works]
+17. **Hosting.** Make byo-pop public when it is pushed and serve the raw URL, or put the script in a small
+    separate public repo? [byo-pop, default branch]
+18. **Mod signs.** Should a mod whose only key is `features.livesplit` skip the crossbar on GO's G and the
+    fourth hint sparkle, which would otherwise show in every run video? [skip them; that mod changes
+    nothing on screen or in play]
+19. **The block in every desktop build**, inert until the mod is on, so the script can say "turn on the
+    mod"? Or written even without the mod? [in every build; written only with the mod, as decided in Q3]
+20. **Resets** on by default (game over, New Game, mode switch, quit), each switchable, and a finished run
+    never reset? [yes]
+21. **Start tick:** 150 (go1 sound, banner created) or 151 (first visible banner alpha)? [150]
+22. **speedrun.com moderators.** Ask before the registry PR whether runs on the port are accepted (A10),
+    how to read A7 (a score shown after TIME UP), and whether they would list the splitter? [yes; the site
+    does not say]
+23. **Manual test.** A one-time download of LiveSplit 1.8.37 for the manual test (4.15 test 7)? [yes]
+24. **Poll rate.** `refreshRate` 100, revisited after the manual test's lag numbers? [yes]
+25. **Twilight fall acceleration.** Bejeweled 2 slows its falls from 0.24 to 0.1 in its 84-px cells, and
+    BJ1 falls at 0.18 in 51-px cells. Apply the same ×0.42 to BJ1's 0.18 (75), copy the number (100), or
+    keep Bejeweled 2's speed in cells (0.1 × 51/84, 61, if its tick is also 10 ms; not checked)? [75]
+26. **Twilight fall-out and game over.** Bejeweled 2 has no timed Twilight, and its game-over fall was not
+    read. Should the timed fall-out and the game-over fall follow gravity, or always fall down? [follow
+    gravity]
+27. **Twilight look keys.** `look.backdrop` and `look.soundPitch` sit under `rules` so that replays carry
+    them, which also puts them in the RulesId and the score key: a mod that only lowers the pitch gets its
+    own high-score tables and leaderboard boards. Keep them there, or make them a non-scoring key that
+    replays do not carry? [keep them in `rules`; the Twilight preset has its own tables anyway]
 
 ---
 

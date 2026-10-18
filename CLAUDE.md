@@ -21,4 +21,6 @@ the same machine. A plain run opens a window, raises it over whatever the user i
 - Run at most 3 game processes at a time, and never add artificial CPU load.
 - Do not leave anything running: loops started in the background must end before you finish, and a stopped
   task's child processes must be killed.
+- Stop only processes you started, identified by a command line inside your own folder or worktree. Several
+  sessions share this machine, so never stop a game exe by its name alone.
 - Never run `-script`/`-autoplay` runs on the user's desktop. `ORACLE_VISIBLE=1` exists only for the user.
