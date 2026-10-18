@@ -115,3 +115,9 @@ endif()
 if(WIN32 AND NOT EMSCRIPTEN)
   add_executable(rundesk tools/rundesk/rundesk.c)
 endif()
+
+# Big Money Deluxe (games/bigmoney): a second game on the same framework and platform layer.
+option(BUILD_BIGMONEY "Build the Big Money Deluxe port" ON)
+if(BUILD_BIGMONEY AND EXISTS ${CMAKE_SOURCE_DIR}/games/bigmoney/src/WinBMApp.cpp)
+  add_subdirectory(games/bigmoney/src)
+endif()
