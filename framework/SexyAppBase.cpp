@@ -789,6 +789,16 @@ bool SexyAppBase::OpenURL(const std::string& theURL, bool shutdownOnOpen)
 		mOpeningURL = theURL;
 		mOpeningURLTime = GetTickCount();
 
+		// port: a test run (tools/rundesk sets BYOPOP_TEST_RUN, the oracle BEJ_TEST_DESKTOP) never hands a
+		// URL to the system: its window is hidden, but a browser or the Steam client (the Steam builds' links
+		// are steam:// URLs) would open on the user's desktop. It logs the URL and carries on as if opened.
+		if ((SDL_getenv("BYOPOP_TEST_RUN") != NULL) || (SDL_getenv("BEJ_TEST_DESKTOP") != NULL))
+		{
+			SDL_Log("OpenURL in a test run, not opened: %s", theURL.c_str());
+			URLOpenSucceeded(theURL);
+			return true;
+		}
+
 		// port: SDL_OpenURL hands the URL to the system browser (window.open on the web). 1.3 waited for
 		// the browser to take the focus before reporting success; SDL can't see that, so success is
 		// reported as soon as the URL was handed over.

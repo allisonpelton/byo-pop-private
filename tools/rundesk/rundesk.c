@@ -12,6 +12,8 @@
 // still pulls audio at the device rate (the game does not depend on it). An SDL_AUDIODRIVER the caller
 // set is replaced, so a real driver chosen for other programs cannot make hidden runs audible.
 // And they run at below-normal priority (inherited by their children), so the machine stays responsive.
+// BYOPOP_TEST_RUN=1 marks the run: the framework then never opens a URL (a game's "more games" link is a
+// steam:// URL that would bring up the user's Steam client on their desktop).
 //
 // The rest of the command line is passed through verbatim, the standard handles are inherited, and the
 // exit code is the child's. The desktop ("bejeweled-test") is created on first use and goes away when
@@ -54,6 +56,7 @@ int main(void)
 	}
 
 	SetEnvironmentVariableW(L"SDL_AUDIODRIVER", L"dummy");
+	SetEnvironmentVariableW(L"BYOPOP_TEST_RUN", L"1");
 
 	const wchar_t* aDesktopName = L"bejeweled-test";
 	HDESK aDesktop = CreateDesktopW(aDesktopName, NULL, NULL, 0, GENERIC_ALL, NULL);
