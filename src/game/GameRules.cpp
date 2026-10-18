@@ -2575,9 +2575,11 @@ bool ParseFeature(int theFeature, const JsonValue& theValue, GameFeatures* theOu
 	switch (theFeature)
 	{
 	case FEATURE_SEEDS:
+		// true turns on both; the object form only the members it sets to true, so {"entry": true} is the
+		// seed field alone: perGame changes the RNG of every game (docs/CODE_MODS_DESIGN.md 6.2)
 		theOut->mSeeds = anOn;
-		theOut->mSeedEntry = anOn;
-		theOut->mSeedPerGame = anOn;
+		theOut->mSeedEntry = anOn && theValue.IsBool();
+		theOut->mSeedPerGame = anOn && theValue.IsBool();
 		break;
 	case FEATURE_REPLAYS:
 		theOut->mReplays = anOn;

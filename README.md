@@ -53,6 +53,7 @@ Command-line options (native; the web shell passes the equivalent paths):
 | `-modsdir=<dir>` | mods folder (default: `mods` next to the executable) |
 | `-nomods` | start without mods |
 | `-seed=<n>` | fixed random seed (default: time based, like the original) |
+| `-gameseed=<n>` | play the first new game on seed n (1 to 4294967295; in Normal mode, unless a saved game is resumed first): the same board every time. On the web: `bejeweled.html?seed=<n>`. The game-over screen shows the seed, and the scores go to a separate high-score table |
 | `-script=<file>`, `-fast`, `-trace` | scripted input and screenshots for automated tests |
 
 ## Mods

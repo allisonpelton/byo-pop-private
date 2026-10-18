@@ -39,6 +39,10 @@
 // App state (both hashes): the global Rand() draw count (Sexy::GetRandCount), the mode,
 // mShowInstructions and mTimesPlayed (both decide the tick-150 tutorial), the open dialog ids and whether
 // the game-over HighScoreWidget exists (they route and pause input); FULL adds the title screen.
+// port(variant), set seed (both hashes, after the rest): a pending seed the player chose, and a board's own
+// RNG (seed, the player's or not, whether its first tick uses up the pending seed, Board::Rand count,
+// MTRand state words and index). They are hashed only when present, so an original game, which has
+// neither, hashes as in the stage-0 build.
 //
 // Portability: no pointer, padding or map-order dependence in LOGIC (its only libm-derived values are
 // swap positions, (int)-truncated), but nothing runs it on the web build yet: web/shell.html passes no
@@ -47,6 +51,7 @@
 #include "StateHash.h"
 #include "game/WinDMApp.h"
 #include "game/Board.h"
+#include "game/GameConfig.h"
 #include "Common.h"
 
 #include <cstring>
@@ -162,6 +167,22 @@ void HashCells(StateHasher& h, Board* b, bool full)
 	}
 }
 
+// port(variant): a board's own RNG (stage 2); nothing for a board on the global stream
+void HashOwnRng(StateHasher& h, Board* b)
+{
+	if (b->mOwnRng == NULL)
+		return;
+	h.Int((int) b->mGameSeed);
+	h.Bool(b->mUserSeeded);
+	h.Bool(b->mTakesPendingSeed);
+	h.Int((int) b->mBoardDraws);
+	uint32_t aState[MTRAND_N];
+	int anIndex;
+	b->mOwnRng->GetState(aState, &anIndex);
+	h.Bytes(aState, sizeof(aState));
+	h.Int(anIndex);
+}
+
 void HashBoardLogic(StateHasher& h, Board* b)
 {
 	h.Int(b->mUpdateCnt);  // board tick (Widget::mUpdateCnt)
@@ -221,6 +242,7 @@ void HashBoardLogic(StateHasher& h, Board* b)
 	h.Int(b->mTimeDrainDelay);
 	h.Double(b->mBlackHoleLevel);
 	h.Bool(b->mLevelTextShown);
+	HashOwnRng(h, b);
 }
 
 // Every Board field in declaration order (Board.h), pieces as raw bytes
@@ -310,6 +332,7 @@ void HashBoardFull(StateHasher& h, Board* b)
 	h.Double(b->mBlackHoleLevel);
 	h.Bool(b->mLevelTextShown);
 	h.Int((int) b->mOrphanedPieces.size());
+	HashOwnRng(h, b);
 }
 
 void HashApp(StateHasher& h, WinDMApp* theApp)
@@ -323,6 +346,8 @@ void HashApp(StateHasher& h, WinDMApp* theApp)
 	h.Int((int) theApp->mDialogMap.size());
 	for (DialogMap::iterator anItr = theApp->mDialogMap.begin(); anItr != theApp->mDialogMap.end(); ++anItr)
 		h.Int(anItr->first);
+	if (gGameConfig.mPendingSeed != 0)
+		h.Int((int) gGameConfig.mPendingSeed);
 }
 
 }

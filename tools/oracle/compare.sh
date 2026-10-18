@@ -25,8 +25,11 @@
 #
 # The scripts: tools/oracle/scripts/playtest*.txt (the original playtests, in the old run.sh/runm.sh
 # order and seeds) and tools/oracle/scripts/stage0/*.txt. Stage 1 adds an "inert" case: the candidate with
-# the rule mods of tools/oracle/mods/stage1 must play exactly like its run of the same script without mods
-# (rules are read, merged, checked and reported, never played), and leave mods-status.json.
+# the rule mods of tools/oracle/mods/stage1 plays exactly like a reference run (rules are read, merged,
+# checked and reported, never played) and leaves mods-status.json. Stage 2 (set seed) adds candidate runs
+# with -gameseed and the fixtures of tools/oracle/mods/stage2 and scripts/stage2, checked against a model of
+# the board RNG (compare.py "seeded", "sameboard", "samegrids"), the -gameseed refusals and
+# tools/check_rng_use.py.
 set -u
 
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
@@ -45,7 +48,7 @@ while [ $# -gt 0 ]; do
 		--candidate-args) read -r -a CAND_ARGS <<< "$2"; shift 2 ;;
 		--out) OUT="$(mkdir -p "$2" && cd "$2" && pwd)"; shift 2 ;;
 		--compare-only) COMPARE_ONLY=1; shift ;;
-		*) sed -n '2,28p' "$0"; exit 2 ;;
+		*) sed -n '2,32p' "$0"; exit 2 ;;
 	esac
 done
 
@@ -217,12 +220,30 @@ plain() {
 	run candidate "$name.plain" "$@" nohash
 }
 
-# inert <case> <reference case> <description> <seed> <script> [options]: a run of the candidate only (the
-# baselines know no rules), which must play exactly like the candidate's <reference case>
+# inert <case> <description> <flags> <seed> <script> [options]: a run of the candidate only (the baselines
+# know no rules), which must play exactly like the candidate's run of the case its flags name ("ref=<case>")
 inert() {
-	local name=$1 ref=$2 desc=$3
+	local name=$1 desc=$2 flags=$3
 	shift 3
-	printf '%s\t%s\t%s\tref=%s\n' "$name" inert "$desc" "$ref" >> "$OUT/cases.txt"
+	printf '%s\t%s\t%s\t%s\n' "$name" inert "$desc" "$flags" >> "$OUT/cases.txt"
+	run candidate "$name" "$@"
+}
+
+# seeded <case> <description> <flags> <seed> <script or -> [options]: a run of the candidate only, checked
+# against compare.py's model of the board RNG (compare.py, "seeded"; flags "k=v;k=v")
+seeded() {
+	local name=$1 desc=$2 flags=$3
+	shift 3
+	printf '%s\t%s\t%s\t%s\n' "$name" seeded "$desc" "$flags" >> "$OUT/cases.txt"
+	run candidate "$name" "$@"
+}
+
+# cross <case> <kind> <description> <flags> <seed> <script or -> [options]: a candidate run that compare.py
+# checks against another candidate run (kinds sameboard, repeat)
+cross() {
+	local name=$1 kind=$2 desc=$3 flags=$4
+	shift 4
+	printf '%s\t%s\t%s\t%s\n' "$name" "$kind" "$desc" "$flags" >> "$OUT/cases.txt"
 	run candidate "$name" "$@"
 }
 
@@ -287,9 +308,64 @@ while read -r snap update; do
 	done
 done <<< "$SNAPS"
 
-# Stage 1: rule mods are read, merged, checked and reported (mods-status.json, -dumprules), never played
-inert rules_inert main "playtest.txt with the rule, feature and imageOps mods of tools/oracle/mods/stage1: plays exactly like main" \
-	1 "$PT/playtest.txt" modsdir="$ROOT/tools/oracle/mods/stage1" dumprules
+# Stage 2: set seed. A board owns an MTRand for a seed the player chose (-gameseed), for any rule, and for
+# the seeds.perGame feature (docs/CODE_MODS_DESIGN.md 6.2). The baselines ignore -gameseed, so these are
+# candidate runs, checked against compare.py's model of the board RNG and against each other.
+S2="$PT/stage2"
+M2="$ROOT/tools/oracle/mods/stage2"
+GS=4242
+SEEDBOT=(arg=-gameseed=$GS arg=-autoplay=1 arg=-autoplaylog=autoplay.txt arg=-autoplayshot=shots/gameover.png)
+# per-game seeds: playtest.txt with a seeds.perGame feature mod (no rules): every NewGame draws the board's
+# seed from the global stream, the scores stay in the normal table
+seeded pergame "playtest.txt with a seeds.perGame feature mod: each game's seed is a global draw in NewGame" \
+	"boards=pergame,pergame,pergame;rngseed=1" 1 "$PT/playtest.txt" modsdir="$M2/pergame"
+# Stage 1's rule mods: read, merged, checked and reported (mods-status.json, -dumprules), still not played;
+# since stage 2 any rule gives the board its own RNG, so they play exactly like the per-game-seed reference
+inert rules_inert "playtest.txt with the rule, feature and imageOps mods of tools/oracle/mods/stage1: plays exactly like pergame" \
+	"ref=pergame;boards=pergame,pergame,pergame;rngseed=1" 1 "$PT/playtest.txt" modsdir="$ROOT/tools/oracle/mods/stage1" dumprules
+cross rules_inert.repeat repeat "rules_inert again: the same game under the same -seed" "" \
+	1 "$PT/playtest.txt" modsdir="$ROOT/tools/oracle/mods/stage1"
+inert rules_only "playtest.txt with one rule mod and no features: a rule alone gives the board its per-game seed" \
+	"ref=pergame;boards=pergame,pergame,pergame;rngseed=1" 1 "$PT/playtest.txt" modsdir="$M2/rules" dumprules
+# the seed field alone (features.seeds {"entry": true}; the object form leaves perGame off): every game stays
+# on the global stream, exactly like main
+inert seeds_entry "playtest.txt with a features.seeds {entry: true} mod: perGame stays off, it plays exactly like main" \
+	"ref=main" 1 "$PT/playtest.txt" modsdir="$M2/entry" dumprules
+# a seed the player chose, normal mode: the bot plays it to game over (SEED line, the seeded table)
+seeded seed_normal "-gameseed=$GS -autoplay=1: the startup boards get the seed, a normal game on it to game over" \
+	"boards=user;gameseed=$GS;shot=shots/gameover.png;plainshot=nomoves_normal/shots/n05_high_score_screen.png" \
+	1 - "${SEEDBOT[@]}"
+cross seed_normal.seed2 sameboard "seed_normal with -seed=2: the same game, only the global stream differs" \
+	"ref=seed_normal" 2 - "${SEEDBOT[@]}"
+seeded seed_max "-gameseed=4294967295: the largest seed, another board" \
+	"boards=user;gameseed=4294967295;differs=seed_normal" 1 "$S2/seed_start.txt" arg=-gameseed=4294967295
+seeded seed_resume "-gameseed=31337 in main's user dir: resume the save (the seed stays pending), then a timed game on it" \
+	"boards=-,user;gameseed=31337;shot=shots/s05_timed_game_over.png" 1 "$S2/seed_resume.txt" from=main arg=-gameseed=31337
+seeded seed_keyed "-gameseed=$GS with a tunables-only mod: original rules, the seeded table hiscores-<key>-seeded.dat" \
+	"boards=user;gameseed=$GS" 1 "$S2/seed_keyed.txt" modsdir="$M2/keyed" arg=-gameseed=$GS
+# an outside draw (Options -> High Scores mid-game: the tip, GAME_NOTES 3.16) must not reach the stream of a
+# board with its own RNG: the same moves with and without the dialog give the same refills
+seeded seed_highscores "-gameseed=$GS: Options -> High Scores mid-game (a global draw for the tip), then two refills" \
+	"boards=user;gameseed=$GS" 1 "$S2/seed_highscores.txt" arg=-gameseed=$GS
+cross seed_highscores.nodialog samegrids "seed_highscores without the dialog: the same settled boards" \
+	"ref=seed_highscores;after=720;table=hiscores-seeded.dat" 1 "$S2/seed_highscores_nodialog.txt" arg=-gameseed=$GS
+# -gameseed values main.cpp must refuse, and docs/CODE_MODS_DESIGN.md 6.1 rule 1 on the sources
+printf '%s\t%s\t%s\t\n' gameseed_cli cli "-gameseed=0, out of range, signed, not a number or empty: refused before the game starts" >> "$OUT/cases.txt"
+mkdir -p "$OUT/candidate/gameseed_cli"
+: > "$OUT/candidate/gameseed_cli/cli.txt"
+for bad in -gameseed=0 -gameseed=4294967296 -gameseed=99999999999999999999 -gameseed=-5 -gameseed=+5 -gameseed=12a \
+		-gameseed=0x10 -gameseed= -gameseed; do
+	(cd "$OUT/candidate/gameseed_cli" && timeout 60 "${EXE[candidate]}" -gamedir="$ASSETS_W" -userdir=user -modsdir=mods \
+		"${CAND_ARGS[@]}" "$bad" > stdout.txt 2> stderr.txt
+	 printf '%s\t%s\t%s\n' "$bad" "$?" "$(head -n 1 stderr.txt | tr -d '\r')" >> cli.txt)
+done
+rm -f "$OUT/candidate/gameseed_cli/stdout.txt" "$OUT/candidate/gameseed_cli/stderr.txt"
+echo "  candidate gameseed_cli: $(wc -l < "$OUT/candidate/gameseed_cli/cli.txt") runs"
+printf '%s\t%s\t%s\t\n' rng_rules lint "tools/check_rng_use.py: no other randomness in src/game, Board draws only through Board::Rand" >> "$OUT/cases.txt"
+mkdir -p "$OUT/candidate/rng_rules"
+"$PY" "$(winpath "$ROOT/tools/check_rng_use.py")" > "$OUT/candidate/rng_rules/check.txt" 2>&1
+echo $? > "$OUT/candidate/rng_rules/exit.txt"
+echo "  candidate rng_rules: exit $(cat "$OUT/candidate/rng_rules/exit.txt")"
 
 # Autoplay
 autoplay autoplay_normal "-autoplay=1: normal game to no moves (level 2), quit 100 updates into the high-score screen" 1 -autoplay=1

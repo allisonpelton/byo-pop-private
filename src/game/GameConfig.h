@@ -26,6 +26,7 @@
 
 #include "GameRules.h"
 
+#include <cstdint>
 #include <string>
 #include <vector>
 
@@ -56,6 +57,15 @@ struct GameConfig
 	// rules (Board::InitVariant); the RNG source, the save format and the tutorial stay original
 	bool mForceVariant = false;
 
+	// port(variant): set seed (docs/CODE_MODS_DESIGN.md 4.10, 6.2). mPendingSeed is a seed the player chose
+	// (-gameseed=N in main.cpp, ?seed=N on the web), 0 for none: every board NewGame creates gets it until
+	// one of them runs its first tick without having loaded a save (Board::UsePendingSeed). mNextBoardSeed
+	// is NewGame's choice for the board it is about to create (WinDMApp::ChooseBoardRng): 0 for the
+	// original global stream, else the board owns MTRand(mNextBoardSeed); Board::InitVariant takes it.
+	uint32_t mPendingSeed = 0;
+	uint32_t mNextBoardSeed = 0;
+	bool mNextBoardUserSeeded = false;
+
 	// Base points of the n-th run (1-based) of the current move.
 	int SetValue(int theRunNumber) const;
 
@@ -76,6 +86,11 @@ struct GameConfig
 	// File name for a userdata file that must be kept apart for gameplay-changing mod sets,
 	// e.g. "userdata\\hiscores.dat" -> "userdata\\hiscores-1a2b3c4d.dat".
 	static std::string ScopedFileName(const std::string& theFileName);
+
+	// port(variant): the same for a game on a seed the player chose (docs/CODE_MODS_DESIGN.md 3.7), kept
+	// apart from the normal table: "userdata\\hiscores.dat" -> "userdata\\hiscores-seeded.dat", or
+	// "userdata\\hiscores-1a2b3c4d-seeded.dat" with gameplay mods.
+	static std::string SeededFileName(const std::string& theFileName);
 };
 
 extern GameConfig gGameConfig;

@@ -1,0 +1,7 @@
+{
+  "id": "s2-rules",
+  "name": "Stage 2: one rule",
+  "version": "1.0",
+  "description": "Oracle fixture: a rule (not played yet) and no features. Any rule gives the board its own RNG with a seed drawn in NewGame, exactly as features.seeds.perGame does.",
+  "rules": { "undo": { "enabled": true } }
+}

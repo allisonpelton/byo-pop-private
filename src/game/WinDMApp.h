@@ -126,7 +126,9 @@ public:
 	//   -autoplay=<seed>     a bot with its own RNG plays through script input until the game is over
 	//                        (src/testhooks/Autoplay.h); -autoplaytimed: in timed mode;
 	//                        -autoplaycap=<n>: quits at update n (default 200000);
-	//                        -autoplaylog=<file>: writes its input as a -script file
+	//                        -autoplaylog=<file>: writes its input as a -script file;
+	//                        -autoplayshot=<png>: a screenshot of the game-over screen 59 updates after
+	//                        it appears, just before the slide ends (a script line, so a replay takes it)
 	//   script command "save <file>": writes the save a shutdown would write now (GetShutdownSave) to
 	//                        <file> without touching the game; it logs only when it cannot
 	std::string		mTraceHashFileName;
@@ -136,6 +138,7 @@ public:
 	bool			mAutoplayTimed;
 	int				mAutoplayCap;
 	std::string		mAutoplayLogFileName;
+	std::string		mAutoplayShotFileName;
 	AutoplayBot*	mAutoplayBot;
 
 public:
@@ -186,6 +189,9 @@ public:
 	// port (web): the page can be closed or crash without Shutdown(); see SexyAppBase::UpdateUserDataBackup
 	virtual bool	GetShutdownSave(std::string* theFileName, Buffer* theBuffer);
 	virtual void	WriteShutdownRegistry();
+
+	// port(variant): set seed (docs/CODE_MODS_DESIGN.md 6.2): NewGame's choice of the new board's RNG
+	void			ChooseBoardRng();
 
 	// port: test hooks (see mTraceHashFileName)
 	virtual void	HandleCmdLineParam(const std::string& theParamName, const std::string& theParamValue);

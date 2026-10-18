@@ -1,0 +1,20 @@
+# Stage 2, run with -gameseed=4242: the seeded counterpart of stage0/options_highscores.txt. Options -> High
+# Scores in the middle of the game: the dialog's hidden HighScoreWidget draws its tip, Rand() % 9, from the
+# global stream while the board is paused. The board draws from its own MTRand(4242), so every refill after
+# the dialog is the one seed_highscores_nodialog.txt (the same moves without the dialog) gets.
+300 click 320 398
+# (2,2)->(3,2) -> score 10
+470 click 329 142
+471 click 380 142
+620 click 96 261
+660 click 484 232
+680 screenshot shots/h01_seeded_high_scores.png
+# Done (hiscores-seeded.dat written), then the Options dialog's Done
+700 click 407 335
+720 click 407 299
+# (3,3)->(3,2) -> score 20, then (4,3)->(5,3): their refills come from the board's own stream
+760 click 380 193
+761 click 380 142
+960 click 431 193
+961 click 482 193
+1200 quit

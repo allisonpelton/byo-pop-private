@@ -257,7 +257,7 @@ public:
 // Port features (3.1): no gameplay effect, not part of the RulesId or the score key
 struct GameFeatures
 {
-	bool							mSeeds = false;
+	bool							mSeeds = false;         // true: both below; an object: the members it sets to true
 	bool							mSeedEntry = false;     // seed field in Extras
 	bool							mSeedPerGame = false;   // every game gets a shown, replayable seed
 	bool							mReplays = false;

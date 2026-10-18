@@ -401,7 +401,7 @@ Defaults are the original behaviour.
 | `gold.timeBonus` | int | 10 | Points per second left, times the multiplier. |
 | `undo.enabled`, `.depth`, `.max`, `.penalty`, `.inTimed`, `.restoreTime`, `.restoreRng` | | false, 1, -1, 0, false, false, true | Atomic group *undo*. depth 1..100; max per game, -1 = unlimited. |
 | `scoring.*`, `timing.*` | | as in `GameConfig.h` | Legacy tunables. They are also accepted under `rules`. |
-| `features.seeds` | `true` or `{entry, perGame}` | off | `entry`: seed field in Extras. `perGame`: every game gets a shown, replayable seed. |
+| `features.seeds` | `true` or `{entry, perGame}` | off | `entry`: seed field in Extras. `perGame`: every game gets a shown, replayable seed. `true` turns on both; the object form only the members it sets to `true`. |
 | `features.replays` | `true` or `{keep, hover}` | off | `keep` (default 20) recent replays are kept automatically. `hover`: record the hover channel. |
 | `features.leaderboard` | `true` or `{ranked: "ask"\|"always"}` | off | Implies `replays` and `seeds.perGame`. The endpoint is always same-origin `/api`, never set by a mod. |
 

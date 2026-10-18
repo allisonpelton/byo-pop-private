@@ -9,6 +9,8 @@
 //                    merge report, then exit (docs/CODE_MODS_DESIGN.md 3.7)
 //   -forcevariant    test hook: every board takes its generalised code paths at default rules
 //                    (GameConfig::mForceVariant; nothing reads them yet in stage 1)
+//   -gameseed=N      play the next game on seed N, 1..4294967295 (GameConfig::mPendingSeed; the web shell
+//                    passes ?seed=N this way); anything else is refused with exit status 2
 // Remaining "-key=value" arguments are passed to the app (SexyAppBase::HandleCmdLineParam), e.g. the
 // test hooks -seed=N, -script=<file>, -fast and -trace (see SexyAppBase.h) and the game's -tracehash
 // and -autoplay (see WinDMApp.h).
@@ -20,6 +22,7 @@
 #include "platform/WebPersist.h"
 
 #include <SDL.h>
+#include <cstdint>
 #include <cstdio>
 #include <cstring>
 #include <string>
@@ -55,6 +58,38 @@ static bool HasFlag(int argc, char** argv, const char* theFlag)
 			return true;
 	}
 	return false;
+}
+
+// -gameseed=N: a decimal 1..4294967295 (MTRand plays 0 as 4357, so 0 is no seed of its own). Returns
+// false, with theError set, for anything else; true and 0 when the switch is absent.
+static bool ParseGameSeed(int argc, char** argv, uint32_t* theSeed, std::string* theError)
+{
+	*theSeed = 0;
+	for (int i = 1; i < argc; i++)
+	{
+		const char* a = argv[i];
+		while (*a == '-')
+			a++;
+		if (strncmp(a, "gameseed", 8) != 0 || (a[8] != '=' && a[8] != 0))
+			continue;
+		const char* aValue = (a[8] == '=') ? a + 9 : "";
+		uint64_t aSeed = 0;
+		bool isValid = (*aValue != 0);
+		for (const char* c = aValue; isValid && *c != 0; c++)
+		{
+			isValid = (*c >= '0') && (*c <= '9');
+			aSeed = aSeed * 10 + (uint64_t)(*c - '0');
+			if (aSeed > 0xFFFFFFFFull)
+				isValid = false;
+		}
+		if (!isValid || aSeed == 0)
+		{
+			*theError = std::string("-gameseed=") + aValue + ": the seed must be a whole number from 1 to 4294967295";
+			return false;
+		}
+		*theSeed = (uint32_t) aSeed;
+	}
+	return true;
 }
 
 static bool LooksLikeGameDir(const std::string& theDir)
@@ -127,6 +162,15 @@ static std::string FindGameDir()
 
 int main(int argc, char** argv)
 {
+	// port(variant): -gameseed=N (docs/CODE_MODS_DESIGN.md 4.10), checked before anything starts
+	uint32_t gameSeed = 0;
+	std::string gameSeedError;
+	if (!ParseGameSeed(argc, argv, &gameSeed, &gameSeedError))
+	{
+		fprintf(stderr, "%s\n", gameSeedError.c_str());
+		return 2;
+	}
+
 	std::string gameDir = ArgValue(argc, argv, "gamedir");
 	std::string userDir = ArgValue(argc, argv, "userdir");
 	std::string modsDir = ArgValue(argc, argv, "modsdir");
@@ -183,6 +227,7 @@ int main(int argc, char** argv)
 	}
 	if (HasFlag(argc, argv, "forcevariant"))
 		gGameConfig.mForceVariant = true;
+	gGameConfig.mPendingSeed = gameSeed;
 
 	// The original keeps the app as a global object and calls Init, Start and Shutdown on it.
 	static WinDMApp* anApp = new WinDMApp();

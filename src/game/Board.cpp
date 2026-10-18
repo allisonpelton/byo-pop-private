@@ -498,6 +498,7 @@ bool Board::LoadGame()
 	mLevelTextShown = ReadSaveBool(aBuffer);
 
 	mApp->mShowInstructions = false;
+	GameLoadedVariant(); // port(variant): the resumed game drops the board's own RNG (BoardVariant.cpp)
 	return true;
 }
 
@@ -619,6 +620,7 @@ Board::~Board()
 	}
 	for (size_t i = 0; i < mOrphanedPieces.size(); i++)
 		delete mOrphanedPieces[i];
+	delete mOwnRng; // port(variant): the board's own RNG
 }
 
 // 0x4cd287
@@ -892,6 +894,8 @@ void Board::Update()
 		return;
 	if (mUserPauseCount > 0)
 		return;
+	if (mTakesPendingSeed) // port(variant): the first tick uses up the pending seed (BoardVariant.cpp)
+		UsePendingSeed();
 
 	if (mInputDelay > 0)
 		mInputDelay--;

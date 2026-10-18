@@ -214,6 +214,7 @@ void WinDMApp::NewGame()
 
 	// port: pick up the tunables of the currently enabled mods
 	gGameConfig.Load();
+	ChooseBoardRng(); // port(variant): the new board's RNG source
 
 	mBoard = new Board(this, mTimedMode);
 	mBoard->Resize(0, 0, 640, 480);
@@ -230,6 +231,28 @@ void WinDMApp::NewGame()
 	{
 		mMusicInterface->FadeOut(MUSIC_TIMED, true, 0.004);
 		mMusicInterface->FadeIn(MUSIC_NORMAL, -1, 0.002, false);
+	}
+}
+
+// port(variant): the RNG source of the board NewGame is about to create (docs/CODE_MODS_DESIGN.md 6.2), for
+// Board::InitVariant. A seed the player chose (GameConfig::mPendingSeed) comes first. Without one, rules
+// and the seeds.perGame feature get a seed drawn from the global stream here, so it follows -seed. Any
+// other game (the original rules, tunables-only mods included) draws from the global stream exactly as
+// the original: nothing is drawn here.
+void WinDMApp::ChooseBoardRng()
+{
+	gGameConfig.mNextBoardSeed = 0;
+	gGameConfig.mNextBoardUserSeeded = false;
+	if (gGameConfig.mPendingSeed != 0)
+	{
+		gGameConfig.mNextBoardSeed = gGameConfig.mPendingSeed;
+		gGameConfig.mNextBoardUserSeeded = true;
+	}
+	else if (Board::ComputeVariantFlags(gGameConfig.mRules, gGameConfig.mFeatures).mOwnRng)
+	{
+		// Rand() is 0..2^31-1. MTRand plays seed 0 as 4357, so a drawn 0 is shown and kept as 4357.
+		uint32_t aSeed = (uint32_t) Sexy::Rand();
+		gGameConfig.mNextBoardSeed = (aSeed != 0) ? aSeed : 4357;
 	}
 }
 
@@ -357,6 +380,7 @@ void WinDMApp::ShowHighScoreDialog()
 
 // port: -trace (SexyAppBase test hooks). Prints the grid's gem colours, the score and the valid swaps
 // (as click coordinates) each time a board settles into STATE_PLAYING, for writing -script runs.
+// port(variant): a board with its own RNG also prints its seed.
 static void TraceBoard(WinDMApp* theApp)
 {
 	static Board* sLastBoard = NULL;
@@ -379,6 +403,9 @@ static void TraceBoard(WinDMApp* theApp)
 			printf(" %d", (aBoard->mBoard[aRow][aCol] != NULL) ? aBoard->mBoard[aRow][aCol]->mColor : -1);
 		printf("\n");
 	}
+	// port(variant): "user" for a seed the player chose; after the rows, which keep their place under the header
+	if (aBoard->mOwnRng != NULL)
+		printf("TRACE   seed %u %s\n", (unsigned) aBoard->mGameSeed, aBoard->mUserSeeded ? "user" : "pergame");
 	int aMove[4];
 	for (int i = 0; aBoard->FindMove(aMove, i, true, true); i++)
 		printf("TRACE   move %d: (%d,%d)->(%d,%d) click %d %d then %d %d\n", i, aMove[0], aMove[1], aMove[2], aMove[3],
@@ -419,7 +446,7 @@ void WinDMApp::UpdateFrames()
 	if (!mTraceHashFileName.empty())
 		TraceHash(this);
 	if ((mAutoplay) && (mAutoplayBot == NULL))
-		mAutoplayBot = new AutoplayBot(this, mAutoplaySeed, mAutoplayTimed, mAutoplayCap, mAutoplayLogFileName);
+		mAutoplayBot = new AutoplayBot(this, mAutoplaySeed, mAutoplayTimed, mAutoplayCap, mAutoplayLogFileName, mAutoplayShotFileName);
 	if (mAutoplayBot != NULL)
 		mAutoplayBot->Update();
 }
@@ -442,6 +469,8 @@ void WinDMApp::HandleCmdLineParam(const std::string& theParamName, const std::st
 		mAutoplayCap = atoi(theParamValue.c_str());
 	else if (theParamName == "-autoplaylog")
 		mAutoplayLogFileName = theParamValue;
+	else if (theParamName == "-autoplayshot")
+		mAutoplayShotFileName = theParamValue;
 	else
 		SexyApp::HandleCmdLineParam(theParamName, theParamValue);
 }

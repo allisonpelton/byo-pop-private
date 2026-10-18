@@ -32,7 +32,8 @@ struct Piece;
 class AutoplayBot
 {
 public:
-	AutoplayBot(WinDMApp* theApp, unsigned long theSeed, bool timedMode, int theUpdateCap, const std::string& theLogFileName);
+	AutoplayBot(WinDMApp* theApp, unsigned long theSeed, bool timedMode, int theUpdateCap, const std::string& theLogFileName,
+		const std::string& theShotFileName);
 	~AutoplayBot();
 
 	// After each update (WinDMApp::UpdateFrames): looks at the game, queues input for the next update
@@ -75,6 +76,7 @@ private:
 	bool mWantTimed;
 	int mUpdateCap;
 	FILE* mLog;
+	std::string mShotFileName;  // -autoplayshot
 	bool mDone;
 	bool mTitleClicked;
 	bool mTimedClicked;
@@ -91,6 +93,7 @@ private:
 
 	int Random(int theRange);
 	void Queue(const std::string& theCommand, int theX, int theY);
+	void Queue(const std::string& theCommand, const std::string& theArgs);
 	void Note(const char* theFormat, ...);
 	void LogChanges();
 	bool InputBlocked();

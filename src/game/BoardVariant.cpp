@@ -2,13 +2,16 @@
 // Stage 1 (9.2): the rules snapshot, the layout and the variant flags. The layout is the original 8x8
 // whatever the rules say, and no translated function reads the flags yet, so every board plays as the
 // original; later stages switch the generalised paths on.
+// Stage 2: the board's RNG (6.2). A seed the player chose, any rule, or the seeds.perGame feature gives
+// the board its own MTRand, which Board::Rand draws from; every other board draws from the global stream
+// as the original does.
 
 #include "Board.h"
 #include "GameConfig.h"
 
 using namespace Sexy;
 
-// Called first in the constructor (0x4cb5bc), before SetupLevel and FillBoard use the layout
+// Called first in the constructor (0x4cb5bc), before SetupLevel and FillBoard use the layout and the RNG
 void Board::InitVariant()
 {
 	mRules = gGameConfig.mRules;
@@ -30,6 +33,51 @@ void Board::InitVariant()
 		mVariant.mDraw = true;
 	}
 #endif
+
+	// The RNG source WinDMApp::NewGame chose (WinDMApp::ChooseBoardRng), taken once: a board made any other
+	// way draws from the global stream
+	mOwnRng = NULL;
+	mGameSeed = gGameConfig.mNextBoardSeed;
+	mUserSeeded = (mGameSeed != 0) && gGameConfig.mNextBoardUserSeeded;
+	mRanked = false;
+	mBoardDraws = 0;
+	mTakesPendingSeed = mUserSeeded && (mGameSeed == gGameConfig.mPendingSeed);
+	gGameConfig.mNextBoardSeed = 0;
+	gGameConfig.mNextBoardUserSeeded = false;
+	if (mGameSeed != 0)
+		mOwnRng = new MTRand(mGameSeed);
+#ifndef BEJ_NO_VARIANTS
+	// ComputeVariantFlags says whether the rules need an own RNG; NewGame drew its seed (or took the
+	// player's), and -forcevariant leaves the source alone
+	mVariant.mOwnRng = (mOwnRng != NULL);
+#endif
+}
+
+// The first tick of a board that got the pending seed (Board::Update, 0x4cdabc, after its pause checks):
+// the seed has been played, so the next new game no longer gets it. A board replaced before it ever ran
+// (the first of the double NewGame in TitleScreenIsFinished) or one that resumed a save leaves it pending.
+void Board::UsePendingSeed()
+{
+	mTakesPendingSeed = false;
+	if (gGameConfig.mPendingSeed == mGameSeed)
+		gGameConfig.mPendingSeed = 0;
+}
+
+// The end of a LoadGame (0x4cca98) that succeeded. The resumed game is not the one the board's seed would
+// make, and until saves keep the RNG state (the default-rules sidecar of stage 3, the v2 RNGS chunk of
+// stage 5; docs/CODE_MODS_DESIGN.md 7.2, 7.3) the v1 save has nothing to restore. So for now the game
+// goes on unseeded: it draws from the global stream, its scores go to the normal table, and the game-over
+// screen shows no SEED line. The v1 save is written as before. The pending seed stays for the next game.
+void Board::GameLoadedVariant()
+{
+	mTakesPendingSeed = false;
+	delete mOwnRng;
+	mOwnRng = NULL;
+	mGameSeed = 0;
+	mUserSeeded = false;
+#ifndef BEJ_NO_VARIANTS
+	mVariant.mOwnRng = false;
+#endif
 }
 
 VariantFlags Board::ComputeVariantFlags(const GameRules& theRules, const GameFeatures& theFeatures)
@@ -41,7 +89,8 @@ VariantFlags Board::ComputeVariantFlags(const GameRules& theRules, const GameFea
 	bool hasNonSwapMoves = theRules.mMoves.mTypes != GameRules::MOVE_SWAP;
 
 	aFlags.mAny = theRules.HasVariantRules();
-	// An explicit seed (stage 2) also gives the board its own RNG
+	// The rules and features that give a board its own RNG even without a seed the player chose
+	// (WinDMApp::ChooseBoardRng)
 	aFlags.mOwnRng = aFlags.mAny || theFeatures.mSeedPerGame || theFeatures.mLeaderboard;
 
 	BoardLayout aFirst = theRules.LayoutForLevel(0);

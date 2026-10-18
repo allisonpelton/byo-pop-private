@@ -8,6 +8,7 @@
 // Behaviour spec: docs/GAME_NOTES.md (Board section).
 
 #include "Widget.h"
+#include "MTRand.h"
 #include "Piece.h"
 #include "GameRules.h"
 #include "BoardLayout.h"
@@ -69,7 +70,7 @@ inline constexpr int gMatchBaseScores[9] = {10, 20, 30, 40, 60, 80, 110, 160, 21
 struct VariantFlags
 {
 	bool mAny = false;          // any rule differs from default: v2 save, variant trace lines
-	bool mOwnRng = false;       // board owns an MTRand (seeded / rules / seeds feature / ranked game)
+	bool mOwnRng = false;       // board owns an MTRand (seeded / rules / seeds feature / ranked game); see Board::mOwnRng
 	bool mShape = false;        // not a full 8x8: size, mask or per-level shapes
 	bool mScaled = false;       // logical extent D > 406, so the view scales (5.1)
 	bool mDraw = false;         // DrawVariant: mShape || specials || gold || non-swap moves || mNoTutorial
@@ -213,6 +214,14 @@ public:
 	BoardLayout		mLayout;                // current level's layout (8x8: origin 203/16, D 406, bottom 480)
 	int				mCols;                  // == mLayout.mCols; 8
 	int				mRows;                  // == mLayout.mRows; 8
+	// The board's RNG (docs/CODE_MODS_DESIGN.md 6.2), chosen by WinDMApp::NewGame (GameConfig::mNextBoardSeed).
+	// Not a code path, so BEJ_NO_VARIANTS keeps it (mVariant.mOwnRng then reads false)
+	MTRand*			mOwnRng;                // NULL: Sexy::Rand, the original global stream; owned, freed in ~Board
+	uint32_t		mGameSeed;              // mOwnRng's seed; 0 without one
+	bool			mUserSeeded;            // a seed the player chose (-gameseed, ?seed=): the "-seeded" high-score table
+	bool			mRanked;                // a ranked online game (stage 14); always false for now
+	uint32_t		mBoardDraws;            // Board::Rand() calls (for spotting outside draws, stage 3)
+	bool			mTakesPendingSeed;      // seeded with GameConfig::mPendingSeed: the first tick uses it up (4.10)
 
 public:
 	int				GetColX(int theCol);                            // 0x4c9b25 theCol*51 + 203 (thiscall in the binary, this unused; port(variant): a member, + mLayout.mOriginX)
@@ -264,8 +273,15 @@ public:
 	virtual void	Update();                                       // 0x4cdabc Widget slot 22
 
 	// port(variant): code mods (BoardVariant.cpp)
-	void			InitVariant();                                  // first in the ctor: rules, layout, flags
+	void			InitVariant();                                  // first in the ctor: rules, layout, flags, RNG
 	static VariantFlags ComputeVariantFlags(const GameRules& theRules, const GameFeatures& theFeatures);
+	void			UsePendingSeed();                               // the first tick of a board seeded with the pending seed
+	void			GameLoadedVariant();                            // the end of a LoadGame that succeeded
+
+	// port(variant): every draw of the translated code. Class scope finds it before Sexy::Rand, so the 9
+	// Rand() expressions keep their text; without an own MTRand it is the original global stream, draw for
+	// draw (MTRand::Next and Sexy::Rand return the same value)
+	int				Rand() { mBoardDraws++; return (mOwnRng != NULL) ? (int) mOwnRng->Next() : Sexy::Rand(); }
 
 	using Widget::MouseDown;
 	using Widget::MouseUp;

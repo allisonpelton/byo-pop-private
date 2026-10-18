@@ -72,11 +72,14 @@ else()
 endif()
 
 # Code-mod rules tests (tools/rulestest): the framework-free GameRules with its unit fixtures and RulesId
-# vectors. Native: rulestest.exe. Web: rulestest.js, run with Node (the vectors must match native).
+# vectors, and the MTRand a board owns. Native: rulestest.exe. Web: rulestest.js, run with Node (the
+# vectors must match native).
 option(BUILD_RULESTEST "Build the code-mod rules tests" ON)
 if(BUILD_RULESTEST)
-  add_executable(rulestest tools/rulestest/rulestest.cpp src/game/GameRules.cpp src/game/Sha256.cpp src/platform/Json.cpp)
-  target_include_directories(rulestest PRIVATE ${CMAKE_SOURCE_DIR}/src/game ${CMAKE_SOURCE_DIR}/src)
+  add_executable(rulestest tools/rulestest/rulestest.cpp src/game/GameRules.cpp src/game/Sha256.cpp src/platform/Json.cpp
+    src/SexyAppFramework/MTRand.cpp)
+  target_include_directories(rulestest PRIVATE ${CMAKE_SOURCE_DIR}/src/game ${CMAKE_SOURCE_DIR}/src
+    ${CMAKE_SOURCE_DIR}/src/SexyAppFramework)
   if(NOT MSVC)
     target_compile_options(rulestest PRIVATE -Wall)
   endif()

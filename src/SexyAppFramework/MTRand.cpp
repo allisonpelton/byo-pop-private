@@ -198,3 +198,27 @@ std::string MTRand::Serialize()
 
 	return aString;
 }
+
+void MTRand::GetState(uint32_t theState[MTRAND_N], int* theIndex) const
+{
+	for (int i = 0; i < MTRAND_N; i++)
+		theState[i] = (uint32_t) mt[i];
+	*theIndex = mti;
+}
+
+bool MTRand::SetState(const uint32_t theState[MTRAND_N], int theIndex)
+{
+	if ((theIndex < 0) || (theIndex > MTRAND_N + 1))
+		return false;
+	// The recurrence reads only the top bit of mt[0]: with that and mt[1..N-1] all zero every later block
+	// is zero, and each draw 0 (a FillBoard that rerolls until a colour fits would never end)
+	bool isZero = (theState[0] & UPPER_MASK) == 0;
+	for (int i = 1; isZero && (i < MTRAND_N); i++)
+		isZero = (theState[i] == 0);
+	if (isZero)
+		return false;
+	for (int i = 0; i < MTRAND_N; i++)
+		mt[i] = theState[i];
+	mti = theIndex;
+	return true;
+}

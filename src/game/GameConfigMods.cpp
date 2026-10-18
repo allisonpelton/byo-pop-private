@@ -90,16 +90,20 @@ static std::vector<std::string> ProvenanceFor(const RulesStatus& theStatus, cons
 	return aMods;
 }
 
-// What this build does not do yet (docs/CODE_MODS_DESIGN.md 9.2: stage 1 only reads, merges, checks and
-// reports the rules and features), as warnings for mods-status.json: one per mod, naming every key of
-// its own that has no effect
+// What this build does not do yet (docs/CODE_MODS_DESIGN.md 9.2: stage 1 reads, merges, checks and reports
+// the rules and features; stage 2 plays seeds, so any rule gives the board its own RNG and seeds.perGame
+// works, but the rules themselves are not played yet), as warnings for mods-status.json: one per mod,
+// naming every key of its own that is not played; for rule keys it says what they do change, the RNG
 static void AddBuildWarnings(const GameRules& theRules, const GameFeatures& theFeatures, RulesStatus* theStatus)
 {
-	std::vector<std::pair<std::string, std::string> > aByMod;
+	// per mod: its rule keys, its feature keys
+	std::vector<std::pair<std::string, std::pair<std::string, std::string> > > aByMod;
 	std::vector<std::string> aKeys = theRules.VariantKeys();
-	// The features that are on; seeds and replays may be on only because the leaderboard implies them
-	const char* const aFeatureKeys[3] = {"features.seeds", "features.replays", "features.leaderboard"};
-	const bool aFeatureOn[3] = {theFeatures.mSeeds, theFeatures.mReplays, theFeatures.mLeaderboard};
+	const size_t aNumRuleKeys = aKeys.size();
+	// The features that are on but do nothing yet (the seed field comes with the Extras dialog); replays may
+	// be on only because the leaderboard implies them
+	const char* const aFeatureKeys[3] = {"features.seeds.entry", "features.replays", "features.leaderboard"};
+	const bool aFeatureOn[3] = {theFeatures.mSeedEntry, theFeatures.mReplays, theFeatures.mLeaderboard};
 	for (int i = 0; i < 3; i++)
 	{
 		if (aFeatureOn[i])
@@ -107,7 +111,8 @@ static void AddBuildWarnings(const GameRules& theRules, const GameFeatures& theF
 	}
 	for (size_t i = 0; i < aKeys.size(); i++)
 	{
-		std::vector<std::string> aMods = ProvenanceFor(*theStatus, aKeys[i]);
+		// Provenance is kept per feature: features.seeds.entry comes from the mod that set features.seeds
+		std::vector<std::string> aMods = ProvenanceFor(*theStatus, (aKeys[i] == "features.seeds.entry") ? "features.seeds" : aKeys[i]);
 		if (aMods.empty() && (aKeys[i].compare(0, 9, "features.") == 0))
 			aMods = ProvenanceFor(*theStatus, "features.leaderboard");
 		if (aMods.empty())
@@ -118,13 +123,22 @@ static void AddBuildWarnings(const GameRules& theRules, const GameFeatures& theF
 			while ((j < aByMod.size()) && (aByMod[j].first != aMods[m]))
 				j++;
 			if (j == aByMod.size())
-				aByMod.push_back(std::make_pair(aMods[m], aKeys[i]));
-			else
-				aByMod[j].second += ", " + aKeys[i];
+				aByMod.push_back(std::make_pair(aMods[m], std::make_pair(std::string(), std::string())));
+			std::string& aList = (i < aNumRuleKeys) ? aByMod[j].second.first : aByMod[j].second.second;
+			aList += (aList.empty() ? "" : ", ") + aKeys[i];
 		}
 	}
 	for (size_t i = 0; i < aByMod.size(); i++)
-		theStatus->mWarnings.push_back({aByMod[i].first, "not in this build yet, no effect: " + aByMod[i].second});
+	{
+		const std::string& aRuleList = aByMod[i].second.first;
+		const std::string& aFeatureList = aByMod[i].second.second;
+		std::string aText;
+		if (!aRuleList.empty())
+			aText = "not played in this build yet (for now a rule only gives each game its own seed, shown at game over): " + aRuleList;
+		if (!aFeatureList.empty())
+			aText += (aText.empty() ? "" : "; ") + std::string("not in this build yet, no effect: ") + aFeatureList;
+		theStatus->mWarnings.push_back({aByMod[i].first, aText});
+	}
 
 	if (theRules.mBoard.mGemColors > 7)
 	{
@@ -278,14 +292,26 @@ std::string GameConfig::DumpRules()
 	return aText;
 }
 
-std::string GameConfig::ScopedFileName(const std::string& theFileName)
+// theFileName with theSuffix before its extension
+static std::string WithSuffix(const std::string& theFileName, const std::string& theSuffix)
 {
-	const std::string& aKey = Platform::ModManager::Get().GetScoreKey();
-	if (aKey.empty())
+	if (theSuffix.empty())
 		return theFileName;
 	size_t aDot = theFileName.find_last_of('.');
 	size_t aSlash = theFileName.find_last_of("/\\");
 	if (aDot == std::string::npos || (aSlash != std::string::npos && aDot < aSlash))
-		return theFileName + "-" + aKey;
-	return theFileName.substr(0, aDot) + "-" + aKey + theFileName.substr(aDot);
+		return theFileName + theSuffix;
+	return theFileName.substr(0, aDot) + theSuffix + theFileName.substr(aDot);
+}
+
+std::string GameConfig::ScopedFileName(const std::string& theFileName)
+{
+	const std::string& aKey = Platform::ModManager::Get().GetScoreKey();
+	return WithSuffix(theFileName, aKey.empty() ? std::string() : "-" + aKey);
+}
+
+std::string GameConfig::SeededFileName(const std::string& theFileName)
+{
+	const std::string& aKey = Platform::ModManager::Get().GetScoreKey();
+	return WithSuffix(theFileName, (aKey.empty() ? std::string() : "-" + aKey) + "-seeded");
 }

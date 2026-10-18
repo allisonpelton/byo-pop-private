@@ -1,0 +1,18 @@
+# Stage 2, run with -gameseed=N in a copy of main's user dir (main's normal-mode save): the double NewGame
+# gives both boards the pending seed, but the player resumes the save. The resumed game drops the seeded
+# RNG (for now: saves do not keep RNG state until stages 3 and 5) and does not use the seed up, so the next
+# new game, a timed one, gets it: its first board is MTRand(N)'s. No move is made: time up, game over at
+# 15572, the seeded table (score 0, no record dialog), and the SEED line on the timed game-over screen.
+300 click 320 398
+330 screenshot shots/s01_confirm_load.png
+# Yes: the save is resumed, unseeded
+340 click 330 201
+400 screenshot shots/s02_resumed.png
+# Timed: the game in progress needs a confirmation; Yes saves it and starts the timed game on the seed
+420 click 135 200
+440 screenshot shots/s03_confirm_timed.png
+450 click 338 169
+700 screenshot shots/s04_timed_seeded.png
+# 59 updates into the game-over screen, as the panel is about to stop (the band compare.py checks)
+15631 screenshot shots/s05_timed_game_over.png
+15672 quit

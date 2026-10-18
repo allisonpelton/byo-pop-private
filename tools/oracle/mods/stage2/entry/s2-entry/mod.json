@@ -1,0 +1,7 @@
+{
+  "id": "s2-entry",
+  "name": "Stage 2: seed field only",
+  "version": "1.0",
+  "description": "Oracle fixture: features.seeds.entry only, the Extras seed field (not built yet). perGame stays off, so every game draws from the global stream exactly as without mods.",
+  "features": { "seeds": { "entry": true } }
+}

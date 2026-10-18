@@ -4,6 +4,7 @@
 #include "game/WinDMApp.h"
 #include "game/Board.h"
 #include "game/TitleScreen.h"
+#include "game/GameConfig.h"
 #include "WidgetManager.h"
 #include "HyperlinkWidget.h"
 
@@ -23,13 +24,15 @@ static const char* StateName(int theState)
 	return ((theState >= 0) && (theState < (int) (sizeof(gStateNames) / sizeof(gStateNames[0])))) ? gStateNames[theState] : "?";
 }
 
-AutoplayBot::AutoplayBot(WinDMApp* theApp, unsigned long theSeed, bool timedMode, int theUpdateCap, const std::string& theLogFileName) :
+AutoplayBot::AutoplayBot(WinDMApp* theApp, unsigned long theSeed, bool timedMode, int theUpdateCap, const std::string& theLogFileName,
+	const std::string& theShotFileName) :
 	mApp(theApp),
 	mRand((std::mt19937::result_type) theSeed),
 	mSeed(theSeed),
 	mWantTimed(timedMode),
 	mUpdateCap(theUpdateCap),
 	mLog(NULL),
+	mShotFileName(theShotFileName),
 	mDone(false),
 	mTitleClicked(false),
 	mTimedClicked(false),
@@ -50,8 +53,10 @@ AutoplayBot::AutoplayBot(WinDMApp* theApp, unsigned long theSeed, bool timedMode
 			SDL_Log("autoplay: cannot write %s", theLogFileName.c_str());
 	}
 
-	Note("-autoplay=%lu -seed=%lu%s -autoplaycap=%d: the bot's input as a -script file", mSeed, (unsigned long) mApp->mRandSeed,
-		mWantTimed ? " -autoplaytimed" : "", mUpdateCap);
+	// port(variant): a seed the player chose (-gameseed) is part of the run, too
+	std::string aGameSeed = (gGameConfig.mPendingSeed != 0) ? " -gameseed=" + std::to_string(gGameConfig.mPendingSeed) : "";
+	Note("-autoplay=%lu -seed=%lu%s%s -autoplaycap=%d: the bot's input as a -script file", mSeed, (unsigned long) mApp->mRandSeed,
+		aGameSeed.c_str(), mWantTimed ? " -autoplaytimed" : "", mUpdateCap);
 }
 
 AutoplayBot::~AutoplayBot()
@@ -82,14 +87,16 @@ void AutoplayBot::Note(const char* theFormat, ...)
 // Queues one script command for the next update, and logs it as a script line
 void AutoplayBot::Queue(const std::string& theCommand, int theX, int theY)
 {
+	Queue(theCommand, (theCommand != "quit") ? std::to_string(theX) + " " + std::to_string(theY) : std::string());
+}
+
+void AutoplayBot::Queue(const std::string& theCommand, const std::string& theArgs)
+{
 	int anUpdate = mApp->mUpdateCount + 1;
-	std::string anArgs;
-	if (theCommand != "quit")
-		anArgs = std::to_string(theX) + " " + std::to_string(theY);
-	mApp->AddScriptCommand(anUpdate, theCommand, anArgs);
+	mApp->AddScriptCommand(anUpdate, theCommand, theArgs);
 
 	if (mLog != NULL)
-		fprintf(mLog, "%d %s%s%s\n", anUpdate, theCommand.c_str(), anArgs.empty() ? "" : " ", anArgs.c_str());
+		fprintf(mLog, "%d %s%s%s\n", anUpdate, theCommand.c_str(), theArgs.empty() ? "" : " ", theArgs.c_str());
 }
 
 void AutoplayBot::LogChanges()
@@ -433,6 +440,9 @@ void AutoplayBot::Update()
 	{
 		if (mGameOverUpdate < 0)
 			mGameOverUpdate = mApp->mUpdateCount;
+		// -autoplayshot: as the panel is about to stop, before a record-score dialog covers the middle
+		if ((!mShotFileName.empty()) && (aNext == mGameOverUpdate + 59))
+			Queue("screenshot", mShotFileName);
 		if (mApp->mUpdateCount >= mGameOverUpdate + 100)
 		{
 			Queue("quit", 0, 0);

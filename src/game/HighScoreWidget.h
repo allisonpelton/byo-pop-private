@@ -10,9 +10,12 @@
 // Behaviour spec: docs/GAME_NOTES.md (HighScoreWidget section).
 // Port: hiscores.dat lives in the VFS user dir under GameConfig::ScopedFileName (gameplay mods get
 // their own table); the game is always registered, so only the record-score dialog path is ported.
+// port(variant): a game on a seed the player chose has a separate table (GameConfig::SeededFileName), and
+// the game-over screen of a board with its own RNG shows its seed (docs/CODE_MODS_DESIGN.md 4.10).
 
 #include "Widget.h"
 #include "ButtonListener.h"
+#include <string>
 
 namespace Sexy
 {
@@ -47,6 +50,10 @@ public:
 	SexyString		mNames[NUM_HIGH_SCORE_MODES][NUM_HIGH_SCORES];  // +0x0f8 all-time names (mode stride 0x8c)
 	int				mScores[NUM_HIGH_SCORE_MODES][NUM_HIGH_SCORES]; // +0x210 all-time scores, descending
 	int				mColorCycle;                            // +0x238 hue counter, ++ every 10 ticks
+	// port(variant): the table file, chosen in the ctor from the game then on the board (a seed the player
+	// chose has its own table). Kept for the dtor's save: NewGame deletes the widget only after the next
+	// board has replaced mApp->mBoard (SafeDeleteWidget).
+	std::string		mFileName;
 
 public:
 	static int		GetDayNumber();                                 // 0x4ced59 tm_year*366 + tm_yday (thiscall, this unused)

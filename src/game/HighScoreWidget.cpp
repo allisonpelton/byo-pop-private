@@ -64,6 +64,25 @@ static void WriteHighScoreRecord(FILE* theFile, const SexyString& theName, int t
 	fwrite(&aChecksum, 4, 1, theFile);
 }
 
+// port(variant): the table a game's scores go to: hiscores.dat (scoped for gameplay mods), or for a seed the
+// player chose, practice on a known board, its own "-seeded" table (docs/CODE_MODS_DESIGN.md 3.7, 4.10).
+// Per-game seeds (rules, seeds.perGame) keep the normal table.
+static std::string HighScoreFileName(Board* theBoard)
+{
+	if ((theBoard != NULL) && (theBoard->mUserSeeded))
+		return GameConfig::SeededFileName(HIGHSCORE_FILE_NAME);
+	return GameConfig::ScopedFileName(HIGHSCORE_FILE_NAME);
+}
+
+// port(variant): "SEED n" between the stats and the tip, for a board with its own RNG. Original games have
+// none, so their screen is unchanged. Mods can rename it with the string HSWIDGET_SEED.
+static void DrawSeedLine(Graphics* g, WinDMApp* theApp, Board* theBoard)
+{
+	g->SetFont(theApp->mMainFont);
+	g->SetColor(Color(255, 100, 220));
+	HighScoreWidget::DrawCenteredString(g, theApp->GetString("HSWIDGET_SEED", _S("SEED")) + StrFormat(_S(" %u"), (unsigned) theBoard->mGameSeed), 408, 120);
+}
+
 // port: inlined in the original
 static void DrawRightAlignedString(Graphics* g, const SexyString& theString, int theRight, int theY)
 {
@@ -152,7 +171,7 @@ void HighScoreWidget::ButtonDepress(int theId)
 // 0x4ceec2
 void HighScoreWidget::LoadHighScores()
 {
-	FILE* aFile = Platform::VFS::Get().Open(GameConfig::ScopedFileName(HIGHSCORE_FILE_NAME), "rb");
+	FILE* aFile = Platform::VFS::Get().Open(mFileName, "rb"); // port(variant): was GameConfig::ScopedFileName(HIGHSCORE_FILE_NAME)
 	if (aFile == NULL)
 		return;
 
@@ -194,7 +213,7 @@ void HighScoreWidget::LoadHighScores()
 // 0x4cf1b4
 void HighScoreWidget::SaveHighScores()
 {
-	std::string aFileName = GameConfig::ScopedFileName(HIGHSCORE_FILE_NAME);
+	std::string aFileName = mFileName; // port(variant): was GameConfig::ScopedFileName(HIGHSCORE_FILE_NAME)
 	mApp->EraseFile(aFileName);
 	// port: the VFS creates the user dir (the original calls MkDir(GetAppDataFolder() + "userdata"))
 	FILE* aFile = Platform::VFS::Get().Open(aFileName, "wb");
@@ -273,6 +292,9 @@ void HighScoreWidget::Draw(Graphics* g)
 	DrawRightAlignedString(&aPanelG, StrFormat("%d", aBoard->mGemsCleared), 382, 105);
 	DrawRightAlignedString(&aPanelG, StrFormat("%d", aBoard->mLongestCascade), 587, 88);
 	DrawRightAlignedString(&aPanelG, StrFormat("%d", aBoard->mBestMoveScore), 587, 105);
+
+	if (aBoard->mOwnRng != NULL) // port(variant): the game's seed
+		DrawSeedLine(&aPanelG, mApp, aBoard);
 
 	aPanelG.SetFont(mApp->mMainFont);
 	aPanelG.SetColor(Color(250, 0, 0));
@@ -407,6 +429,7 @@ HighScoreWidget::HighScoreWidget(WinDMApp* theApp)
 	mNames[1][4] = _S("Wim");
 	mScores[1][4] = 600;
 
+	mFileName = HighScoreFileName(mApp->mBoard); // port(variant): the table of the game on the board
 	LoadHighScores();
 }
 

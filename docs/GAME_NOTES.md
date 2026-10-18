@@ -906,6 +906,7 @@ Not restored:
 - the swap pointers/center, selection and tutorial
 - the whirlpool sound (a state-7 save resumes silently)
 - the popups and mPlayStartTick
+- port(variant): a seeded board's own RNG: the resumed game goes on unseeded (12.3)
 
 `SetupLevel()` is NOT called, so the background stays the level-0 look (faithful bug). A state-4 save resumes with dying gems.
 
@@ -944,6 +945,9 @@ Callers:
 5. UpdateFallOut: 8 x `%15` per tick.
 6. Outside Board: `HighScoreWidget()` ctor: 1 x `%9` (game over and every High Scores dialog open).
 7. Startup consumes RNG in two Board ctors (TitleScreenIsFinished calls NewGame twice).
+
+port(variant): items 1-5 draw through `Board::Rand()`, which is this stream unless a seed or a code mod
+gives the board its own (12.3); then NewGame draws the board's seed (one `Rand()`) instead.
 
 ---
 
@@ -1279,6 +1283,8 @@ It is never re-laid-out after this.
    - Normal: Ace 1000, John 900, Chris 800, Brian 700, Ben 600.
    - Timed: Bradley 1000, Mike 900, Billy 800, Jason 700, Wim 600.
 6. `LoadHighScores()`.
+7. port(variant): the table file is chosen before the load, from the board then in `mApp->mBoard`: a
+   user-seeded game has its own table (12.3).
 
 **`~HighScoreWidget` (0x4d0dad).** Delete mBoardImage and mPlayAgainLink, then `SaveHighScores()`. It always re-saves.
 
@@ -1596,6 +1602,7 @@ per stage.
 | Stage | Hook lines | Translated functions | What |
 |---|---|---|---|
 | 1 | 55 | 22 | `InitVariant()` in the ctor; loop bounds `BOARD_ROWS`/`BOARD_COLS`/8/7 → `mRows`/`mCols`; `BOARD_X`/`BOARD_Y` → `mLayout.mOriginX/Y` in `GetColX`/`GetRowY`; `mHeight` → `mLayout.mScreenBottom` (480) in `UpdateGameOver`/`UpdateFallOut`; `sizeof(Piece)` → `Piece::SAVE_SIZE` in the save |
+| 2 | 63 | 27 | Set seed (12.3): `ChooseBoardRng()` in `WinDMApp::NewGame`; `UsePendingSeed()` on the board's first tick in `Update` (after the pause checks); `GameLoadedVariant()` at the end of a successful `LoadGame`; `delete mOwnRng` in `~Board`; `HighScoreWidget`: the table file chosen in the ctor and used by `LoadHighScores`/`SaveHighScores`, the SEED line in `Draw`. The 9 `Rand()` draws keep their text: `Board::Rand()` hides `Sexy::Rand` by class scope |
 
 With the original rules every edited line computes what the original did: the board is 8x8, the layout
 is the original constants, and no hook reads the variant flags yet. `UpdateClearing`'s refill pass,
@@ -1612,6 +1619,59 @@ replaced by variant paths, not generalised.
 - `Json.cpp` rejects `nan`, `inf` and numbers too large for a double (strtod accepts them, JSON does not
   have them), so such a `mod.json` fails to parse like any other invalid JSON. Before stage 1 the mod
   loaded and the value played differently on native and web.
+
+### 12.3 Set seed (code mods, stage 2)
+
+docs/CODE_MODS_DESIGN.md 4.10 and 6.2, as built:
+
+- **Board RNG.** Every draw of the translated code goes through `Board::Rand()`: the board's own
+  `MTRand` (`mOwnRng`) when it has one, else `Sexy::Rand()`, the global stream, draw for draw as the
+  original (`MTRand::Next` and `Sexy::Rand` return the same value). Without a seed source nothing else
+  changes: no draw moves, nothing new is drawn, logged, saved or shown.
+- **Source** (`WinDMApp::ChooseBoardRng` in NewGame, read by `Board::InitVariant`):
+  1. a seed the player chose (`GameConfig::mPendingSeed`: `-gameseed=N`, `?seed=N` on the web): the
+     board owns `MTRand(N)` and is user-seeded;
+  2. else any rule, or `features.seeds.perGame` (also implied by `features.leaderboard`): NewGame draws
+     `seed = Sexy::Rand()` from the global stream (so it follows `-seed`; a drawn 0 becomes 4357, the
+     seed MTRand plays for 0) and the board owns `MTRand(seed)`. `"seeds": true` turns on `entry` and
+     `perGame`; the object form only the members it sets to true, so `{"entry": true}`, the seed field
+     alone, keeps every game on the global stream;
+  3. else the global stream. Tunables-only mods count as the original rules (`example-relaxed` plays as
+     before).
+- **The pending seed.** NewGame gives it to every board it creates. The board's first tick (`Update`
+  past its pause checks) uses it up, so both boards of the startup double NewGame get it (4.2: the first
+  never ticks) and the second plays it. A board that resumes a save does not use it up: the next new
+  game gets it (resume, then a mode switch plays the seed in timed mode). So after a fresh start the
+  seed is always played in normal mode: the startup board ticks as soon as the title screen is gone, and
+  a Timed click on it starts an unseeded game (design 4.10's rule; a seeded timed game from a fresh start
+  needs a change to it, an open question). Seeds are 1..4294967295 (leading zeros allowed); main.cpp
+  refuses anything else with exit status 2, the web shell starts without a seed and says so in its status
+  line.
+- **Shown and kept apart.** The game-over screen of a board with its own RNG shows "SEED n" (mainfont,
+  y 120, between the stats at 105 and the tip at 136; string `HSWIDGET_SEED`, default "SEED"). A
+  user-seeded game uses its own table, `hiscores-seeded.dat` (`hiscores-<key>-seeded.dat` with gameplay
+  mods), also in Options → High Scores during it; per-game seeds keep the normal table. The
+  HighScoreWidget remembers its file (`mFileName`): NewGame deletes it only after the next board has
+  replaced `mApp->mBoard`.
+- **Resume (interim, until stages 3 and 5).** Saves keep no RNG state yet: the default-rules sidecar
+  (design 7.3) and the v2 `RNGS` chunk (7.2) come later. So a successful `LoadGame` drops the board's own
+  RNG (`GameLoadedVariant`): the resumed game goes on unseeded on the global stream, with the normal
+  table and no SEED line, also on a rule-mod board. The v1 save bytes are unchanged; a seeded game is
+  saved and resumed like any other. A known gap until then: a user-seeded game that is quit and resumed
+  finishes in the normal table, against design 3.7. Stage 3 must close it: the sidecar's `RNGS` record
+  carries `userSeeded`, so the resumed game keeps its stream, its SEED line and the `-seeded` table (an
+  oracle case: a seeded game, quit, resume, game over, the seeded table).
+- **Builds and test hooks.** The RNG source is not a code path: `-forcevariant` leaves it alone, and the
+  `BEJ_NO_VARIANTS` build keeps it (seeds, per-game seeds, the SEED line and the seeded table work there
+  too; only `mVariant.mOwnRng` reads false). `-trace` prints `TRACE   seed n user|pergame` after the rows
+  of a board with its own RNG; `-tracehash` adds that RNG's state (seed, draw count, MT words and index)
+  and a pending seed, only when present, so original games hash as before.
+- **Checks.** `tools/check_rng_use.py` (design 6.1 rule 1) and the oracle's stage-2 cases; `MTRand`
+  `GetState`/`SetState` round trips in `tools/rulestest`. `SetState` refuses an index outside 0..625 and
+  the all-zero state (every draw 0: `FillBoard` would never end), so a save's `RNGS` reader (stages 3
+  and 5) can treat `false` as a chunk error. `MTRand::Serialize()` keeps no index (a copy
+  made from it restarts at the next 624-word block); it stays as it is because the `-tracehash` FULL
+  hash hashes it.
 
 ---
 

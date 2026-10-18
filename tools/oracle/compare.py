@@ -55,20 +55,45 @@ Cross-checks (cases.txt kinds; the case name gives the related case), all on can
               autoplay run (exit, logs, hash.txt, user dir): the bot acts only through script input
   inert       a candidate-only run with mods that the baselines cannot read (cases.txt flags "ref=<case>"):
               stdout.txt (TRACE) and hash.txt must equal the candidate's <case>, so the mods changed nothing
-              in play (stage 1: rules are read, merged, checked and reported, never played); its
-              mods-status.json must exist and name the RulesId that -dumprules (dumprules.txt) prints
+              in play beyond what <case> does (stage 2: rules are not played, they only give each board its
+              own RNG, as <case>'s seeds.perGame feature does); its mods-status.json must exist and name
+              the RulesId that -dumprules (dumprules.txt) prints. With "boards=" flags, the seed checks too.
+  repeat      <case>.repeat: the same run again must be identical (exit, logs, hash.txt, user dir, shots)
+Set seed (stage 2; the baselines do not know -gameseed, so candidate runs; cases.txt flags "k=v;k=v"):
+  seeded      the boards of the run, from its TRACE lines (a board starts where the board tick drops), must
+              be "boards=" (per board "user", "pergame" or "-" for none, from the "TRACE   seed" line);
+              each seeded board's first settle must be the board Board::Board fills from MTRand(seed)
+              (the model below), a "user" seed must be "gameseed=", and a "pergame" seed must be a draw of
+              the global stream MTRand(-seed) ("rngseed="), at increasing positions. "shot=" (a game-over
+              screenshot 59 updates in) must show text in the SEED line's band, "plainshot=" (another
+              case's, unseeded, same timing) none; "differs=<case>": its first board differs from that one
+  sameboard   <case>.seed2 (flags "ref=<case>"): the same -gameseed run with another -seed: stdout.txt and
+              the board-state and LOGIC columns of hash.txt identical, the FULL column (which hashes the
+              global RNG state) different somewhere, user dir identical: the board stream ignores -seed
+  samegrids   <case>.nodialog (flags "ref=<case>;after=<update>;table=<file>"): <case> with the lines of
+              a dialog that draws from the global stream left out of its script: every TRACE settle block
+              (rows, score, seed and moves; not the update and board tick numbers, which the paused board
+              shifts) identical, <case> with a settle after update <after> (a refill after the dialog) and
+              user/<table> (the dialog's HighScoreWidget saved it, so its constructor drew the tip), the
+              other run without it: an outside draw does not reach the board's own stream
+  lint        tools/check_rng_use.py (6.1 rule 1) must pass (check.txt, exit.txt)
+  cli         -gameseed values that must be refused (cli.txt: "<argument> <tab> <exit> <tab> <stderr>"):
+              exit status 2 and the range in the message, before anything starts
 Expectations (the expect file, checked against the candidate for the script, load, quitcut, inert and
 autoplay cases): what each case is about must still happen, even when every side changes together (a change to
 assets/ or mods/, a script that no longer reaches its scenario). Facts derived from the outputs:
   exit <status>, mods <the "mods:" log line>, user <user dir files>,
   settle <update> <mode level score board tick>   every TRACE settle header (scripts and loads), in order
-  settles <count> / last-settle <...>             the same for autoplay runs
+  settles <count> / last-settle <...>             the same for autoplay runs (and other -autoplay runs)
   states <update>:<state> ...                     hash.txt: each update the board enters game over, game
                                                   over done, vortex, level wipe or fall out
   snap <file> <decoded>, save <file> <decoded>|none
                                                   save snapshots, and the savegame*.dat the quit left
   end <the bot's last note>                       autoplay: how the game ended
   status <RulesId prefix, message counts, ...>    user/mods-status.json, when the run left one (rule mods)
+  seeds <update>:<seed>/<kind>[@<draw>] ...       when a board has its own RNG: per board (first settle),
+                                                  "-" for one on the global stream; @: the position of a
+                                                  per-game seed in the global stream (rngseed flag)
 and hand-written ones, kept by expect-update:
   row <settle update> <row> <8 colours>           that TRACE row line at that settle
 """
@@ -88,8 +113,10 @@ HOOK_FILES = ("hash.txt", "autoplay.txt")
 RUN_FILES = ("script.txt", "stdout.txt", "stderr.txt", "exit.txt", "modsdir-changed.txt")
 WALL_CLOCK = [(re.compile(r"Seconds = [0-9.e+-]+"), "Seconds = *"),
               (re.compile(r"Resource Loading Time: [0-9]+"), "Resource Loading Time: *")]
-EXPECT_KINDS = ("script", "load", "quitcut", "inert", "autoplay")
-AUTO_KEYS = ("exit", "mods", "user", "settle", "settles", "last-settle", "states", "snap", "save", "status", "end")
+EXPECT_KINDS = ("script", "load", "quitcut", "inert", "autoplay", "seeded")
+AUTO_KEYS = ("exit", "mods", "user", "settle", "settles", "last-settle", "states", "snap", "save", "status", "seeds",
+             "end")
+NO_RUN_KINDS = ("lint", "cli")  # checks that run no game
 
 
 # ---------------------------------------------------------------------------------------------------
@@ -347,6 +374,347 @@ def tree_filter(hook_outputs):
 
 
 # ---------------------------------------------------------------------------------------------------
+# Set seed (stage 2): a model of the board RNG, to check a seeded board against its seed
+
+class MTRand:
+    """Sexy::MTRand (MT19937, init_genrand seeding; seed 0 plays as 4357); next() is MTRand::Next(),
+    31 bits, the value of Sexy::Rand() and Board::Rand()."""
+    N, M = 624, 397
+
+    def __init__(self, seed):
+        seed &= 0xffffffff
+        if seed == 0:
+            seed = 4357
+        self.mt = [seed] + [0] * (self.N - 1)
+        for i in range(1, self.N):
+            self.mt[i] = (1812433253 * (self.mt[i - 1] ^ (self.mt[i - 1] >> 30)) + i) & 0xffffffff
+        self.mti = self.N
+
+    def next(self):
+        mt, n = self.mt, self.N
+        if self.mti >= n:
+            for k in range(n):
+                y = (mt[k] & 0x80000000) | (mt[(k + 1) % n] & 0x7fffffff)
+                mt[k] = mt[(k + self.M) % n] ^ (y >> 1) ^ (0x9908b0df if y & 1 else 0)
+            self.mti = 0
+        y = mt[self.mti]
+        self.mti += 1
+        y ^= y >> 11
+        y ^= (y << 7) & 0x9d2c5680
+        y ^= (y << 15) & 0xefc60000
+        y ^= y >> 18
+        return y & 0x7fffffff
+
+
+def model_has_match(grid):
+    """Board::HasMatch (0x4c9cf5): a run of 3 in a row or a column; None is an empty cell"""
+    for lines in (grid, list(zip(*grid))):
+        for line in lines:
+            color, count = -1, 0
+            for v in line:
+                if v is None:
+                    color = -1
+                elif v == color:
+                    count += 1
+                    if count == 3:
+                        return True
+                else:
+                    color, count = v, 1
+    return False
+
+
+def model_tutorial_move(grid):
+    """The constructor's test on Board::FindMove (0x4c9dda, horizontal runs only): a move one column to
+    the right in rows 4..6, columns 1..6"""
+    for r in range(8):
+        for c in range(8):
+            for dc, dr in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+                c2, r2 = c + dc, r + dr
+                if not (0 <= c2 < 8 and 0 <= r2 < 8):
+                    continue
+                grid[r][c], grid[r2][c2] = grid[r2][c2], grid[r][c]
+                color = grid[r][c]
+                left = right = c
+                while left > 0 and grid[r][left - 1] == color:
+                    left -= 1
+                while right < 7 and grid[r][right + 1] == color:
+                    right += 1
+                grid[r][c], grid[r2][c2] = grid[r2][c2], grid[r][c]
+                if right - left >= 2 and c2 == c + 1 and 4 <= r <= 6 and 1 <= c < 7:
+                    return True
+    return False
+
+
+def model_first_board(seed, colors=7):
+    """The grid Board::Board (0x4cb5bc) leaves with the board's own MTRand(seed): FillBoard (0x4cb182; per
+    cell, bottom row first: a %240 draw for the start height, then colours until there is no match) until
+    the board has the tutorial move. Rows of colour indices."""
+    rng = MTRand(seed)
+    while True:
+        grid = [[None] * 8 for _ in range(8)]
+        for r in range(7, -1, -1):
+            for c in range(8):
+                rng.next()
+                while True:
+                    grid[r][c] = rng.next() % colors
+                    if not model_has_match(grid):
+                        break
+        if model_tutorial_move(grid):
+            return grid
+
+
+_STREAMS = {}
+
+
+def global_draw_position(rngseed, value, limit=200000):
+    """1-based position of value among the first draws of the global stream MTRand(rngseed), or None"""
+    stream, rng = _STREAMS.setdefault(rngseed, ([], MTRand(rngseed)))
+    if value in stream:
+        return stream.index(value) + 1
+    while len(stream) < limit:
+        stream.append(rng.next())
+        if stream[-1] == value:
+            return len(stream)
+    return None
+
+
+def trace_settles(stdout):
+    """The settle blocks of a -trace run: update, mode, board tick, rows, seed and kind ("user", "pergame";
+    None for a board on the global stream)"""
+    settles = []
+    for line in stdout:
+        m = re.match(r"TRACE update (\d+): (\w+) level \d+ score -?\d+ board tick (\d+)$", line)
+        if m:
+            settles.append({"update": int(m.group(1)), "mode": m.group(2), "tick": int(m.group(3)), "grid": [],
+                            "seed": None, "kind": None})
+            continue
+        m = re.match(r"TRACE   row (\d+): (.*)$", line)
+        if m and settles:
+            settles[-1]["grid"].append([int(v) for v in m.group(2).split()])
+            continue
+        m = re.match(r"TRACE   seed (\d+) (\w+)$", line)
+        if m and settles:
+            settles[-1]["seed"], settles[-1]["kind"] = int(m.group(1)), m.group(2)
+    return settles
+
+
+def trace_boards(stdout):
+    """The boards of a -trace run in order: a settle starts a new board when the board tick drops (a new or
+    a resumed board counts from 0), or the mode or the seed differ from the board before (a resumed board
+    settles at tick 1, the next one later). Per board its first settle: update, mode, tick, grid, seed,
+    kind."""
+    boards = []
+    for settle in trace_settles(stdout):
+        last = boards[-1] if boards else None
+        if (last is None or settle["tick"] < last["last tick"] or settle["mode"] != last["mode"] or
+                (settle["seed"], settle["kind"]) != (last["seed"], last["kind"])):
+            boards.append(dict(settle))
+            last = boards[-1]
+        last["last tick"] = settle["tick"]
+    return boards
+
+
+def parse_flags(flags):
+    """cases.txt flags "k=v;k=v" (also the single "ref=<case>" and "hooksonly")"""
+    out = {}
+    for part in flags.split(";"):
+        if part:
+            key, _, value = part.partition("=")
+            out[key] = value
+    return out
+
+
+def run_stdout(run):
+    path = os.path.join(run, "stdout.txt")
+    return read_lines(path) if os.path.exists(path) else []
+
+
+def seed_facts(run, flags):
+    """The "seeds" fact, or None when no board of the run has its own RNG"""
+    boards = trace_boards(run_stdout(run))
+    if not any(b["seed"] is not None for b in boards):
+        return None
+    rngseed = parse_flags(flags).get("rngseed")
+    parts = []
+    for b in boards:
+        if b["seed"] is None:
+            parts.append("%d:-" % b["update"])
+            continue
+        text = "%d:%d/%s" % (b["update"], b["seed"], b["kind"])
+        if b["kind"] == "pergame" and rngseed is not None:
+            pos = global_draw_position(int(rngseed), b["seed"])
+            text += "@%s" % (pos if pos is not None else "?")
+        parts.append(text)
+    return " ".join(parts)
+
+
+SEED_BAND = (192, 91, 624, 109)  # x0, y0, x1, y1 (inclusive): between the stats and the tip, 59 updates in
+PANEL_COLOR = bytes((21, 0, 56))   # HighScoreWidget::Draw's panel fill
+
+
+def seed_band_pixels(path):
+    """Pixels of a game-over screenshot that are not the panel colour in the SEED line's band"""
+    w, _, px = png_pixels(path)
+    x0, y0, x1, y1 = SEED_BAND
+    return sum(1 for y in range(y0, y1 + 1) for x in range(x0, x1 + 1)
+               if px[(y * w + x) * 4:(y * w + x) * 4 + 3] != PANEL_COLOR)
+
+
+def seed_check(r, cand, run, flags, label):
+    """The "seeded" checks (module comment) of one candidate run"""
+    before = r.failures
+    f = parse_flags(flags)
+    boards = trace_boards(run_stdout(run))
+    kinds = [b["kind"] or "-" for b in boards]
+    if "boards" in f and kinds != f["boards"].split(","):
+        r.fail("%s: boards %s, expected %s" % (label, ",".join(kinds) or "(none)", f["boards"]))
+    notes = []
+    last_pos = 0
+    for b in boards:
+        if b["seed"] is None:
+            notes.append("%d: global stream" % b["update"])
+            continue
+        if b["grid"] != model_first_board(b["seed"]):
+            r.fail("%s: the board of update %d is not MTRand(%d)'s first board" % (label, b["update"], b["seed"]))
+        text = "%d: MTRand(%d)'s board, %s" % (b["update"], b["seed"], b["kind"])
+        if b["kind"] == "user" and "gameseed" in f and b["seed"] != int(f["gameseed"]):
+            r.fail("%s: the board of update %d has seed %d, -gameseed=%s" % (label, b["update"], b["seed"], f["gameseed"]))
+        if b["kind"] == "pergame" and "rngseed" in f:
+            pos = global_draw_position(int(f["rngseed"]), b["seed"])
+            if pos is None or pos <= last_pos:
+                r.fail("%s: the per-game seed %d of update %d is not a later draw of the global stream MTRand(%s)"
+                       % (label, b["seed"], b["update"], f["rngseed"]))
+            else:
+                last_pos = pos
+                text += " = global draw %d" % pos
+        notes.append(text)
+    if "shot" in f:
+        path = os.path.join(run, f["shot"])
+        n = seed_band_pixels(path) if os.path.exists(path) else -1
+        if n <= 0:
+            r.fail("%s: %s: no SEED line between the stats and the tip (%d pixels)" % (label, f["shot"], n))
+        else:
+            notes.append("SEED line in %s (%d pixels)" % (f["shot"], n))
+    if "plainshot" in f:
+        path = os.path.join(cand, f["plainshot"])
+        n = seed_band_pixels(path) if os.path.exists(path) else -1
+        if n != 0:
+            r.fail("%s: %s: the unseeded game-over screen has %d pixels in the SEED band" % (label, f["plainshot"], n))
+        else:
+            notes.append("none in the unseeded %s" % f["plainshot"])
+    if "differs" in f:
+        mine = [b for b in boards if b["seed"] is not None]
+        theirs = [b for b in trace_boards(run_stdout(os.path.join(cand, f["differs"]))) if b["seed"] is not None]
+        if not mine or not theirs or mine[0]["grid"] == theirs[0]["grid"]:
+            r.fail("%s: the first seeded board does not differ from %s's" % (label, f["differs"]))
+        else:
+            notes.append("its first board differs from %s's (seed %d)" % (f["differs"], theirs[0]["seed"]))
+    if r.failures == before:
+        r.out("    seeds: " + "; ".join(notes))
+    return r.failures == before
+
+
+def sameboard_check(r, ref, run, label):
+    """Two runs of one -gameseed with different -seed (module comment, "sameboard")"""
+    before = r.failures
+    compare_exit(r, ref, run, label + ": ")
+    la = [mask_wall_clock(x) for x in run_stdout(ref)]
+    lb = [mask_wall_clock(x) for x in run_stdout(run)]
+    diff = first_list_diff(la, lb, label + ": stdout.txt")
+    if diff or not lb:
+        r.fail(diff or "%s: no stdout.txt" % label)
+    ha, hb = os.path.join(ref, "hash.txt"), os.path.join(run, "hash.txt")
+    full_diffs = 0
+    if not (os.path.exists(ha) and os.path.exists(hb)):
+        r.fail("%s: hash.txt missing" % label)
+    else:
+        a, b = read_lines(ha), read_lines(hb)
+        if len(a) != len(b):
+            r.fail("%s: hash.txt %d vs %d lines" % (label, len(a), len(b)))
+        for x, y in zip(a, b):
+            xa, ya = x.split(), y.split()
+            if xa[:3] != ya[:3]:
+                r.fail("%s: hash.txt board state or LOGIC differs:\n        %s\n        %s" % (label, x, y))
+                break
+            full_diffs += xa[3:] != ya[3:]
+        if full_diffs == 0:
+            r.fail("%s: the FULL hashes never differ: the two runs had the same global stream" % label)
+    compare_tree(r, os.path.join(ref, "user"), os.path.join(run, "user"), label + ": user/", lambda p: True)
+    if r.failures == before:
+        r.out("    %s: stdout.txt (%d lines), the board state and LOGIC hash of %d updates and the user dir identical;"
+              " FULL (global RNG state) differs at %d updates: the board's stream ignores -seed"
+              % (label, len(lb), len(read_lines(hb)), full_diffs))
+    return r.failures == before
+
+
+def settle_blocks(stdout):
+    """The TRACE settle blocks of a run, each as (update, the header without its update and board tick
+    numbers followed by the block's other TRACE lines)"""
+    blocks = []
+    for line in stdout:
+        m = re.match(r"TRACE update (\d+): (.*) board tick \d+$", line)
+        if m:
+            blocks.append((int(m.group(1)), [m.group(2)]))
+        elif line.startswith("TRACE   ") and blocks:
+            blocks[-1][1].append(line)
+    return blocks
+
+
+def samegrids_check(r, ref, run, flags, label):
+    """A run with a dialog that draws from the global stream against the same run without it (module
+    comment, "samegrids")"""
+    before = r.failures
+    f = parse_flags(flags)
+    compare_exit(r, ref, run, label + ": ")
+    ba, bb = settle_blocks(run_stdout(ref)), settle_blocks(run_stdout(run))
+    after = int(f.get("after", "0"))
+    if not any(update > after for update, _ in ba):
+        r.fail("%s: no settle after update %d" % (label, after))
+    diff = first_list_diff(["\n".join(b) for _, b in ba], ["\n".join(b) for _, b in bb], label + ": settle blocks")
+    if diff or not bb:
+        r.fail(diff or "%s: no settles" % label)
+    table = f.get("table", "")
+    has_ref, has_run = (os.path.exists(os.path.join(d, "user", table)) for d in (ref, run))
+    if not table or not has_ref or has_run:
+        r.fail("%s: user/%s %s / %s: expected only with the dialog" % (label, table, has_ref, has_run))
+    if r.failures == before:
+        r.out("    %s: %d settle blocks identical (%d after update %d, the dialog's end); only %s wrote user/%s:"
+              " the dialog's draw did not reach the board's stream"
+              % (label, len(bb), sum(1 for update, _ in ba if update > after), after, os.path.basename(ref), table))
+    return r.failures == before
+
+
+def lint_check(r, run):
+    before = r.failures
+    exit_path = os.path.join(run, "exit.txt")
+    status = read_bytes(exit_path).decode("latin-1").strip() if os.path.exists(exit_path) else "missing"
+    lines = read_lines(os.path.join(run, "check.txt")) if os.path.exists(os.path.join(run, "check.txt")) else []
+    for line in lines:
+        if line.startswith("VIOLATION"):
+            r.out("    " + line)
+    if status != "0":
+        r.fail("tools/check_rng_use.py exit status %s" % status)
+    r.out("    " + (lines[-1] if lines else "(no output)"))
+    return r.failures == before
+
+
+def cli_check(r, run):
+    before = r.failures
+    path = os.path.join(run, "cli.txt")
+    lines = read_lines(path) if os.path.exists(path) else []
+    if not lines:
+        r.fail("cli.txt missing or empty")
+    for line in lines:
+        arg, status, message = (line.split("\t") + ["", ""])[:3]
+        if status != "2" or "1 to 4294967295" not in message:
+            r.fail("%s: exit %s, \"%s\": expected exit 2 and the seed range" % (arg, status, message))
+    if r.failures == before:
+        r.out("    %d bad -gameseed values refused with exit status 2 before the game starts: %s"
+              % (len(lines), " ".join(line.split("\t")[0] for line in lines)))
+    return r.failures == before
+
+
+# ---------------------------------------------------------------------------------------------------
 # Comparison
 
 class Report:
@@ -499,7 +867,7 @@ def savegames(run):
     return list_tree(os.path.join(run, "user"), lambda p: re.fullmatch(r"savegame[^/]*\.dat", p) is not None)
 
 
-def derive_facts(run, kind):
+def derive_facts(run, kind, flags=""):
     """The facts of a candidate run, as "key value" lines (see the module comment)."""
     facts = []
     exit_path = os.path.join(run, "exit.txt")
@@ -510,13 +878,15 @@ def derive_facts(run, kind):
     user = list_tree(os.path.join(run, "user"), lambda p: True)
     facts.append("user " + (" ".join(user) if user else "(empty)"))
 
+    # a bot run (also a seeded one) is summed up: its settles depend on every move it makes
+    bot = (kind == "autoplay") or os.path.exists(os.path.join(run, "autoplay.txt"))
     stdout = read_lines(os.path.join(run, "stdout.txt")) if os.path.exists(os.path.join(run, "stdout.txt")) else []
     settles = []
     for line in stdout:
         m = re.match(r"TRACE update (\d+): (.*)$", line)
         if m:
             settles.append("%s %s" % (m.group(1), m.group(2)))
-    if kind == "autoplay":
+    if bot:
         facts.append("settles %d" % len(settles))
         facts.append("last-settle " + (settles[-1] if settles else "none"))
     else:
@@ -546,8 +916,11 @@ def derive_facts(run, kind):
     status = mods_status(run)
     if status is not None:
         facts.append("status " + status_text(status))
+    seeds = seed_facts(run, flags)
+    if seeds is not None:
+        facts.append("seeds " + seeds)
 
-    if kind == "autoplay":
+    if bot:
         notes = []
         if os.path.exists(os.path.join(run, "autoplay.txt")):
             notes = [line for line in read_lines(os.path.join(run, "autoplay.txt")) if line.startswith("# update")]
@@ -600,10 +973,10 @@ def inert_check(r, ref, run, label):
     elif status.get("rulesId") != dumped.get("rulesId") or status.get("canonical") != dumped.get("canonical"):
         r.fail("%s: mods-status.json rulesId %s, -dumprules %s" % (label, status.get("rulesId"), dumped.get("rulesId")))
     if r.failures == before:
-        r.out("    %s: stdout.txt (%d lines) and hash.txt (%d hashes) identical: the mods changed nothing in play;"
-              " mods-status.json and -dumprules agree on RulesId %s" % (label, len(read_lines(os.path.join(run, "stdout.txt"))),
-                                                                     len(read_lines(os.path.join(run, "hash.txt"))),
-                                                                     str(status.get("rulesId"))[:16]))
+        r.out("    %s: stdout.txt (%d lines) and hash.txt (%d hashes) identical: the mods changed nothing in play beyond"
+              " the reference; mods-status.json and -dumprules agree on RulesId %s"
+              % (label, len(read_lines(os.path.join(run, "stdout.txt"))), len(read_lines(os.path.join(run, "hash.txt"))),
+                 str(status.get("rulesId"))[:16]))
     return r.failures == before
 
 
@@ -641,12 +1014,12 @@ def check_row(stdout, value):
     return "row fact: no settle at update %s" % parts[0]
 
 
-def check_expect(r, run, kind, entries):
+def check_expect(r, run, kind, entries, flags=""):
     if not entries:
         r.fail("expect: no facts for this case in the expect file (compare.py expect-update)")
         return
     want = ["%s %s" % (k, v) for k, v in entries if k in AUTO_KEYS]
-    got = derive_facts(run, kind)
+    got = derive_facts(run, kind, flags)
     before = r.failures
     if want != got:
         for line in difflib.unified_diff(want, got, "expected", "candidate", lineterm="", n=0):
@@ -695,16 +1068,34 @@ def compare(oracle, expect_path=None):
         before = r.failures
         run = os.path.join(cand, name)
 
+        f = parse_flags(flags)
         if kind == "plain":
             parent = name[:-len(".plain")]
             for side in base_sides:
                 compare_case(r, side, os.path.join(oracle, side, parent), run, False)
         elif kind == "inert":
-            ref = flags[len("ref="):] if flags.startswith("ref=") else ""
+            ref = f.get("ref", "")
             inert_check(r, os.path.join(cand, ref), run, "cross " + ref)
             status = mods_status(run)
             if status is not None:
                 r.out("    mods-status.json: " + status_text(status))
+            if "boards" in f:
+                seed_check(r, cand, run, flags, "seeds")
+        elif kind == "seeded":
+            seed_check(r, cand, run, flags, "seeds")
+        elif kind == "sameboard":
+            sameboard_check(r, os.path.join(cand, f.get("ref", "")), run, "cross " + f.get("ref", ""))
+        elif kind == "samegrids":
+            samegrids_check(r, os.path.join(cand, f.get("ref", "")), run, flags, "cross " + f.get("ref", ""))
+        elif kind == "repeat":
+            parent = name[:-len(".repeat")]
+            if same_run(r, os.path.join(cand, parent), run, "cross " + parent):
+                r.out("    candidate %s run again: exit, logs, hash.txt, user dir and screenshots identical: deterministic"
+                      " under the same -seed" % parent)
+        elif kind == "lint":
+            lint_check(r, run)
+        elif kind == "cli":
+            cli_check(r, run)
         elif kind == "nosave":
             parent = name[:-len(".nosave")]
             if same_run(r, os.path.join(cand, parent), run, "cross " + parent):
@@ -743,14 +1134,16 @@ def compare(oracle, expect_path=None):
             if os.path.exists(changed):
                 r.fail("%s: the run changed the mods folder: %s" % (side, read_bytes(changed).decode("latin-1")[:300]))
         exit_path = os.path.join(run, "exit.txt")
-        if os.path.isdir(run) and (not os.path.exists(exit_path) or read_bytes(exit_path).strip() != b"0"):
+        if kind in NO_RUN_KINDS:
+            pass
+        elif os.path.isdir(run) and (not os.path.exists(exit_path) or read_bytes(exit_path).strip() != b"0"):
             r.fail("the candidate run did not exit with status 0")
         # every candidate run but the plain ones has -tracehash
-        if os.path.exists(os.path.join(run, "hash.txt")) != (kind != "plain"):
+        if (kind not in NO_RUN_KINDS) and os.path.exists(os.path.join(run, "hash.txt")) != (kind != "plain"):
             r.fail("the candidate run %s hash.txt" % ("has a" if kind == "plain" else "has no"))
         if kind in EXPECT_KINDS and expect_path:
-            check_expect(r, run, kind, expect.get(name, []))
-        if kind in ("script", "load", "inert", "autoplay"):
+            check_expect(r, run, kind, expect.get(name, []), flags)
+        if kind in ("script", "load", "inert", "autoplay", "seeded"):
             for s in list_tree(os.path.join(run, "snaps"), lambda p: not p.endswith("/")):
                 r.out("    snapshot %s: %s" % (s, save_state(os.path.join(run, "snaps", s))))
             for s in savegames(run):
@@ -781,11 +1174,11 @@ DEFAULT_EXPECT_HEADER = [
 def expect_update(oracle, path):
     old, header = read_expect(path)
     lines = list(header or DEFAULT_EXPECT_HEADER)
-    for name, kind, _, _ in read_cases(oracle):
+    for name, kind, _, flags in read_cases(oracle):
         if kind not in EXPECT_KINDS:
             continue
         lines.append("")
-        for fact in derive_facts(os.path.join(oracle, "candidate", name), kind):
+        for fact in derive_facts(os.path.join(oracle, "candidate", name), kind, flags):
             lines.append("%s %s" % (name, fact))
         for key, value in old.get(name, []):
             if key == "row":

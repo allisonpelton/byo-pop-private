@@ -1,7 +1,8 @@
 // Unit fixtures for the code-mod rules (src/game/GameRules.h; docs/CODE_MODS_DESIGN.md 3.5-3.7 and the
 // stage 1 row of 9.2): merge, atomic groups, keyed objects, null resets, the addTypes union, validation
 // with drop-lowest, the canonical form, and RulesId vectors that the native and the wasm build must
-// both reproduce. Framework-free: GameRules.cpp, Sha256.cpp and Json.cpp only.
+// both reproduce. Stage 2: MTRand draws and GetState/SetState round trips (the RNG a board owns).
+// Framework-free: GameRules.cpp, Sha256.cpp, Json.cpp and the framework's MTRand.cpp only.
 //
 //   rulestest              run every fixture; prints a summary, exit status 0 when all pass
 //   rulestest -v           also print each check and the vectors' canonical text
@@ -11,6 +12,7 @@
 
 #include "GameRules.h"
 #include "Sha256.h"
+#include "MTRand.h"
 
 #include <climits>
 #include <cstdio>
@@ -610,6 +612,20 @@ static void TestFeatures()
 	Result r = Merge({{"seeds", "{\"features\": {\"seeds\": true}}"}});
 	Check(r.mFeatures.mSeeds && r.mFeatures.mSeedEntry && r.mFeatures.mSeedPerGame && !r.mFeatures.mReplays, "seeds: true");
 	Check(Prov(r, "features.seeds") == "seeds" && !r.mRules.HasVariantRules(), "features: provenance, no rules");
+	// The object form turns on only the members it sets: the seed field alone keeps every game on the global
+	// stream (perGame gives each game its own RNG, docs/CODE_MODS_DESIGN.md 6.2)
+	r = Merge({{"entry", "{\"features\": {\"seeds\": {\"entry\": true}}}"}});
+	Check(r.mFeatures.mSeeds && r.mFeatures.mSeedEntry && !r.mFeatures.mSeedPerGame && (r.mFeatures.Text() == "seeds(entry)"),
+		"seeds {entry: true}: entry only (" + r.mFeatures.Text() + ")");
+	r = Merge({{"pergame", "{\"features\": {\"seeds\": {\"perGame\": true}}}"}});
+	Check(r.mFeatures.mSeeds && !r.mFeatures.mSeedEntry && r.mFeatures.mSeedPerGame && (r.mFeatures.Text() == "seeds(perGame)"),
+		"seeds {perGame: true}: perGame only (" + r.mFeatures.Text() + ")");
+	r = Merge({{"empty", "{\"features\": {\"seeds\": {}}}"}});
+	Check(!r.mFeatures.mSeeds && !r.mFeatures.mSeedEntry && !r.mFeatures.mSeedPerGame && (r.mFeatures.Text() == "none"),
+		"seeds {}: nothing on (" + r.mFeatures.Text() + ")");
+	r = Merge({{"low", "{\"features\": {\"seeds\": true}}"}, {"high", "{\"features\": {\"seeds\": {\"entry\": true}}}"}});
+	Check(r.mFeatures.mSeedEntry && !r.mFeatures.mSeedPerGame && HasMessage(r.mStatus.mWarnings, "high", "features.seeds overrides low"),
+		"seeds: the higher mod's object supplies the whole feature" + Messages(r));
 	r = Merge({{"r", "{\"features\": {\"replays\": {\"keep\": 5, \"hover\": true}}}"}});
 	Check(r.mFeatures.mReplays && r.mFeatures.mReplayKeep == 5 && r.mFeatures.mReplayHover, "replays options");
 	r = Merge({{"online", "{\"features\": {\"leaderboard\": {\"ranked\": \"always\"}}}"}});
@@ -799,6 +815,90 @@ static void TestVectors()
 	Check(anIds[3] == anIds[2], "RulesId: -0 is 0");
 }
 
+// Set seed (stage 2): the generator a board owns (Sexy::MTRand). Its draws must be the reference MT19937's
+// (31 bits) on every platform, and GetState/SetState must carry the whole state (words and index), which
+// Serialize() does not (MTRand.h)
+static void TestMTRand()
+{
+	struct Draw { unsigned long mSeed; int mNumber; unsigned long mValue; };
+	// MT19937 init_genrand: seed 5489's first draw is 3499211612 & 0x7fffffff; seed 1's second and third are the
+	// per-game seeds of the oracle's -seed=1 runs; seed 0 plays as 4357
+	const Draw aDraws[] =
+	{
+		{5489, 1, 1351727964}, {1, 1, 1791095845}, {1, 2, 2135392491}, {1, 3, 946286476}, {0, 1, 2146374468},
+		{4357, 1, 2146374468}, {4357, 2, 699692587}, {4242, 1, 1395647406}, {4242, 1000, 1622832918},
+		{4294967295ul, 1, 419326371}
+	};
+	for (size_t i = 0; i < sizeof(aDraws) / sizeof(aDraws[0]); i++)
+	{
+		MTRand aRand(aDraws[i].mSeed);
+		unsigned long aValue = 0;
+		for (int n = 0; n < aDraws[i].mNumber; n++)
+			aValue = aRand.Next();
+		Check(aValue == aDraws[i].mValue, "MTRand(" + std::to_string(aDraws[i].mSeed) + ") draw " + std::to_string(aDraws[i].mNumber) +
+			" = " + std::to_string(aDraws[i].mValue) + " (got " + std::to_string(aValue) + ")");
+	}
+
+	// SetState(GetState()) goes on with the same draws, wherever in the 624-word block it was taken
+	const int aSkips[] = {0, 1, 300, 623, 624, 625, 1247, 1248, 5000};
+	for (size_t i = 0; i < sizeof(aSkips) / sizeof(aSkips[0]); i++)
+	{
+		MTRand anOriginal(4242);
+		for (int n = 0; n < aSkips[i]; n++)
+			anOriginal.Next();
+		uint32_t aState[MTRAND_N];
+		int anIndex = -1;
+		anOriginal.GetState(aState, &anIndex);
+		MTRand aCopy(1);
+		bool isSet = aCopy.SetState(aState, anIndex);
+		bool isSame = isSet && (anIndex == ((aSkips[i] == 0) ? MTRAND_N : (aSkips[i] - 1) % MTRAND_N + 1));
+		for (int n = 0; (n < 2000) && isSame; n++)
+			isSame = anOriginal.Next() == aCopy.Next();
+		Check(isSame, "MTRand SetState(GetState()) after " + std::to_string(aSkips[i]) + " draws: the same next 2000 draws");
+	}
+
+	// An index outside 0..MTRAND_N+1 is refused and changes nothing
+	MTRand aRand(7);
+	MTRand aReference(7);
+	uint32_t aState[MTRAND_N];
+	int anIndex;
+	MTRand(99).GetState(aState, &anIndex);
+	Check(!aRand.SetState(aState, -1) && !aRand.SetState(aState, MTRAND_N + 2) && (aRand.Next() == aReference.Next()),
+		"MTRand SetState refuses an index outside 0..625");
+
+	// The all-zero state draws 0 forever (FillBoard would never find a colour): refused at every index. Only
+	// the top bit of the first word takes part in the recurrence, so its low bits do not make it valid
+	for (int aFirst = 0; aFirst < 2; aFirst++)
+	{
+		for (int i = 0; i < MTRAND_N; i++)
+			aState[i] = 0;
+		aState[0] = (aFirst == 0) ? 0 : 0x7fffffffu;
+		bool isRefused = true;
+		for (int anAt = 0; anAt <= MTRAND_N + 1; anAt++)
+			isRefused = isRefused && !aRand.SetState(aState, anAt);
+		Check(isRefused && (aRand.Next() == aReference.Next()), std::string("MTRand SetState refuses the zero state") +
+			((aFirst == 0) ? "" : " with low bits in the first word"));
+	}
+	aState[0] = 0x80000000u;
+	bool isDrawing = aRand.SetState(aState, MTRAND_N);
+	unsigned long anOr = 0;
+	for (int n = 0; (n < 2 * MTRAND_N) && isDrawing; n++)
+		anOr |= aRand.Next();
+	Check(isDrawing && (anOr != 0), "MTRand SetState takes a state whose only set bit is the first word's top bit");
+
+	// The documented Serialize() limit: a copy made from it skips the rest of the current block
+	MTRand aSerialized(4242);
+	for (int n = 0; n < 100; n++)
+		aSerialized.Next();
+	MTRand aFromSerial(aSerialized.Serialize());
+	for (int n = 100; n < MTRAND_N; n++)
+		aSerialized.Next();
+	bool isNextBlock = true;
+	for (int n = 0; (n < 1000) && isNextBlock; n++)
+		isNextBlock = aSerialized.Next() == aFromSerial.Next();
+	Check(isNextBlock, "MTRand(Serialize()) goes on from the next block (Serialize keeps no index)");
+}
+
 int main(int argc, char** argv)
 {
 	for (int i = 1; i < argc; i++)
@@ -823,6 +923,7 @@ int main(int argc, char** argv)
 	TestJson();
 	TestCanonical();
 	TestVectors();
+	TestMTRand();
 
 	printf("rulestest: %d checks, %d failures: %s\n", gChecks, gFailures, gFailures == 0 ? "PASS" : "FAIL");
 	return gFailures == 0 ? 0 : 1;

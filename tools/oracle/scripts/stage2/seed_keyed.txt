@@ -1,0 +1,10 @@
+# Stage 2, run with -gameseed=N and a tunables-only mod (a score key, the original rules): Options -> High
+# Scores shows and re-saves the table of the game on the board, the seeded one, hiscores-<key>-seeded.dat.
+300 click 320 398
+500 click 96 261
+520 click 484 232
+540 screenshot shots/k01_seeded_high_scores.png
+# Done (the table is written), then the Options dialog's Done
+560 click 407 335
+580 click 407 299
+650 quit

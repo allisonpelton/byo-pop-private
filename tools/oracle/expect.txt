@@ -301,21 +301,118 @@ save_states.load.s6_wipe settle 607 normal level 2 score 630 board tick 268
 save_states.load.s6_wipe states 340:level_wipe
 save_states.load.s6_wipe save savegame.dat v1 normal level 1 (shown 2), 64 gems, state 1 (playing), score 630, play seconds 23, 7873 bytes
 
+pergame exit 0
+pergame mods Stage 2: a seed for every game
+pergame user hiscores.dat mods-status.json registry.ini savegame.dat
+pergame settle 439 normal level 1 score 0 board tick 140
+pergame settle 532 normal level 1 score 0 board tick 233
+pergame settle 702 normal level 1 score 10 board tick 403
+pergame settle 832 normal level 1 score 10 board tick 533
+pergame settle 1027 normal level 1 score 40 board tick 728
+pergame settle 1123 normal level 1 score 40 board tick 824
+pergame settle 1405 timed level 1 score 0 board tick 146
+pergame settle 1492 timed level 1 score 0 board tick 233
+pergame settle 18544 timed level 1 score 0 board tick 145
+pergame states 16154:game_over 16486:game_over_done
+pergame save savegame.dat v1 normal level 0 (shown 1), 64 gems, state 1 (playing), score 40, play seconds 8, 7873 bytes
+pergame status rulesId 0e0943ce3dc5f173, scoreKey -, features seeds(perGame), 0 warnings, errors -, dropped -
+pergame seeds 439:2135392491/pergame@2 1405:946286476/pergame@3 18544:491263/pergame@5
+
 rules_inert exit 0
 rules_inert mods Stage 1: no invalid moves, Stage 1: twist, Stage 1: slides, Stage 1: free swaps, Stage 1: out of range, Stage 1: diamond with dirt, Stage 1: features, Stage 1: nine colours, Stage 1: undo
 rules_inert user hiscores-11724ae5.dat mods-status.json registry.ini savegame-11724ae5.dat
-rules_inert settle 438 normal level 1 score 0 board tick 139
-rules_inert settle 586 normal level 1 score 30 board tick 287
-rules_inert settle 747 normal level 1 score 100 board tick 448
-rules_inert settle 861 normal level 1 score 130 board tick 562
-rules_inert settle 952 normal level 1 score 130 board tick 653
-rules_inert settle 1132 normal level 1 score 90 board tick 833
-rules_inert settle 1403 timed level 1 score 0 board tick 144
-rules_inert settle 1546 timed level 1 score 80 board tick 287
+rules_inert settle 439 normal level 1 score 0 board tick 140
+rules_inert settle 532 normal level 1 score 0 board tick 233
+rules_inert settle 702 normal level 1 score 10 board tick 403
+rules_inert settle 832 normal level 1 score 10 board tick 533
+rules_inert settle 1027 normal level 1 score 40 board tick 728
+rules_inert settle 1123 normal level 1 score 40 board tick 824
+rules_inert settle 1405 timed level 1 score 0 board tick 146
+rules_inert settle 1492 timed level 1 score 0 board tick 233
 rules_inert settle 18544 timed level 1 score 0 board tick 145
-rules_inert states 17736:game_over 18068:game_over_done
-rules_inert save savegame-11724ae5.dat v1 normal level 0 (shown 1), 64 gems, state 1 (playing), score 90, play seconds 8, 7873 bytes
+rules_inert states 16154:game_over 16486:game_over_done
+rules_inert save savegame-11724ae5.dat v1 normal level 0 (shown 1), 64 gems, state 1 (playing), score 40, play seconds 8, 7873 bytes
 rules_inert status rulesId 0d71b685522c108e, scoreKey 11724ae5, features seeds(entry, perGame), replays(keep 5), 11 warnings, errors s1-bad, dropped s1-free-swaps
+rules_inert seeds 439:2135392491/pergame@2 1405:946286476/pergame@3 18544:491263/pergame@5
+
+rules_only exit 0
+rules_only mods Stage 2: one rule
+rules_only user hiscores-3467f5b4.dat mods-status.json registry.ini savegame-3467f5b4.dat
+rules_only settle 439 normal level 1 score 0 board tick 140
+rules_only settle 532 normal level 1 score 0 board tick 233
+rules_only settle 702 normal level 1 score 10 board tick 403
+rules_only settle 832 normal level 1 score 10 board tick 533
+rules_only settle 1027 normal level 1 score 40 board tick 728
+rules_only settle 1123 normal level 1 score 40 board tick 824
+rules_only settle 1405 timed level 1 score 0 board tick 146
+rules_only settle 1492 timed level 1 score 0 board tick 233
+rules_only settle 18544 timed level 1 score 0 board tick 145
+rules_only states 16154:game_over 16486:game_over_done
+rules_only save savegame-3467f5b4.dat v1 normal level 0 (shown 1), 64 gems, state 1 (playing), score 40, play seconds 8, 7873 bytes
+rules_only status rulesId bb62a5598f159348, scoreKey 3467f5b4, features none, 1 warnings, errors -, dropped -
+rules_only seeds 439:2135392491/pergame@2 1405:946286476/pergame@3 18544:491263/pergame@5
+
+seeds_entry exit 0
+seeds_entry mods Stage 2: seed field only
+seeds_entry user hiscores.dat mods-status.json registry.ini savegame.dat
+seeds_entry settle 438 normal level 1 score 0 board tick 139
+seeds_entry settle 586 normal level 1 score 30 board tick 287
+seeds_entry settle 747 normal level 1 score 100 board tick 448
+seeds_entry settle 861 normal level 1 score 130 board tick 562
+seeds_entry settle 952 normal level 1 score 130 board tick 653
+seeds_entry settle 1132 normal level 1 score 90 board tick 833
+seeds_entry settle 1403 timed level 1 score 0 board tick 144
+seeds_entry settle 1546 timed level 1 score 80 board tick 287
+seeds_entry settle 18544 timed level 1 score 0 board tick 145
+seeds_entry states 17736:game_over 18068:game_over_done
+seeds_entry save savegame.dat v1 normal level 0 (shown 1), 64 gems, state 1 (playing), score 90, play seconds 8, 7873 bytes
+seeds_entry status rulesId 0e0943ce3dc5f173, scoreKey -, features seeds(entry), 1 warnings, errors -, dropped -
+
+seed_normal exit 0
+seed_normal mods none
+seed_normal user hiscores-seeded.dat registry.ini
+seed_normal settles 183
+seed_normal last-settle 24974 normal level 4 score 3450 board tick 24971
+seed_normal states 6281:vortex 6534:level_wipe 14061:vortex 14314:level_wipe 22521:vortex 22774:level_wipe 25106:game_over 25439:game_over_done
+seed_normal save none
+seed_normal seeds 153:4242/user
+seed_normal end update 25439: game over -> game over done, level 4, score 3475, board tick 25436, Rand() draws 1
+
+seed_max exit 0
+seed_max mods none
+seed_max user registry.ini
+seed_max settle 443 normal level 1 score 0 board tick 144
+seed_max states none
+seed_max save none
+seed_max seeds 443:4294967295/user
+
+seed_resume exit 0
+seed_resume mods none
+seed_resume user hiscores-seeded.dat hiscores.dat registry.ini savegame.dat
+seed_resume settle 340 normal level 1 score 90 board tick 1
+seed_resume settle 596 timed level 1 score 0 board tick 147
+seed_resume states 15244:game_over 15572:game_over_done
+seed_resume save savegame.dat v1 normal level 0 (shown 1), 64 gems, state 1 (playing), score 90, play seconds 8, 7873 bytes
+seed_resume seeds 340:- 596:31337/user
+
+seed_keyed exit 0
+seed_keyed mods Stage 2: tunables only
+seed_keyed user hiscores-26c65d57-seeded.dat registry.ini
+seed_keyed settle 449 normal level 1 score 0 board tick 150
+seed_keyed states none
+seed_keyed save none
+seed_keyed seeds 449:4242/user
+
+seed_highscores exit 0
+seed_highscores mods none
+seed_highscores user hiscores-seeded.dat registry.ini savegame.dat
+seed_highscores settle 449 normal level 1 score 0 board tick 150
+seed_highscores settle 553 normal level 1 score 10 board tick 254
+seed_highscores settle 842 normal level 1 score 20 board tick 443
+seed_highscores settle 1063 normal level 1 score 30 board tick 664
+seed_highscores states none
+seed_highscores save savegame.dat v1 normal level 0 (shown 1), 64 gems, state 1 (playing), score 30, play seconds 7, 7873 bytes
+seed_highscores seeds 449:4242/user
 
 autoplay_normal exit 0
 autoplay_normal mods none
