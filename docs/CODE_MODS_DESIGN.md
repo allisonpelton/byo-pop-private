@@ -376,7 +376,7 @@ Defaults are the original behaviour.
 | Key | Type | Default | Range and meaning |
 |---|---|---|---|
 | `board.cols`, `board.rows` | int | 8 | 3..16. Atomic group *shape*. |
-| `board.mask` | string[] | full | `rows` strings of `cols` characters: `#` is a cell, `.` a hole. Without `cols`/`rows`, they come from the mask. *shape* |
+| `board.mask` | string[] | full | `rows` strings of `cols` characters: `#` is a cell, `.` a hole, `d` dirt with one layer and `2`..`9` dirt with that many layers (4.14). Without `cols`/`rows`, they come from the mask. *shape* |
 | `board.levels` | object[] | none | `[{cols, rows, mask}]`. Level L uses `levels[L % n]`. Excludes `mask` in the same mod. *shape* |
 | `board.gemColors` | int | 7 | 3..12. Also a legacy tunable; the clamp rises from 7 to 12. |
 | `moves.type` | string or string[] | `"swap"` | Any of `"swap"`, `"twist"`, `"slide"`. Atomic group *moves*. |
@@ -540,7 +540,7 @@ dotted leaves. `rules` goes into the same map, with these additions:
 
 | Check | On failure |
 |---|---|
-| `cols`/`rows` 3..16. Each mask has `rows` strings of `cols` characters from `#.`. At least 9 cells. The same for every `levels[i]`. `mask` and `levels` not both in one mod. | Reject the mod's rules. |
+| `cols`/`rows` 3..16. Each mask has `rows` strings of `cols` characters from `#.d23456789`. At least 9 cells. The same for every `levels[i]`. `mask` and `levels` not both in one mod. | Reject the mod's rules. |
 | Some line has at least `minRun` consecutive cells. `twist` needs at least one full 2x2 of cells; `slide` at least one segment of length 2 or more. | Reject. |
 | `gemColors` is at least the fill minimum. Brute force in fill order (rows bottom-up, columns left to right, cells only): for each cell, count the pattern instances, runs included, whose other cells are already filled. The minimum is 1 + the maximum count. Examples: orthogonal runs give 3; `minRun: 2` with diagonals gives 5; squares give 4. | Reject (in the merged set: drop the lowest contributor). The message names the minimum. |
 | `gemColors` exceeds the rows in the gem sheet. | Not an error: rows are generated (4.2). |
@@ -918,6 +918,51 @@ The Worker side is in 6.10.
 - **Native:** no HTTP client. Exported `.bjr` files can be uploaded from the web page (Q10).
 
 ---
+
+### 4.14 Dirt tiles and diagonal falling (Jewel Quest)
+
+Added from the user's answer to Q6 (2026-10-18): gems fall through holes, and boards can also have
+**dirt tiles** that block falling gems, while gems still slide past them diagonally.
+
+- **Rule:** the mask legend gains dirt: `d` is a dirt tile with one layer, `2`..`9` one with that many
+  layers. Dirt counts as a playable cell for the "at least 9 cells" check. It works in `board.mask`
+  and in every `board.levels[i].mask`. Dirt is part of the *shape* group (3.5), so the score key
+  follows.
+- **A dirt cell** holds no gem. It cannot be selected, swapped, slid, rotated or matched, and the
+  hint search (`FindMoveVariant`) skips it. It stops vertical falls: a gem above it rests on it.
+- **Clearing:** each scored match group removes one layer from every dirt cell orthogonally next to
+  any of its gems. A dirt cell next to two groups in the same resolution step loses two layers. With
+  special gems, cells in a blast lose one layer too. When the last layer goes, the cell becomes an
+  empty playable cell that gravity fills, with a dust `BoardEffect`. Dirt removal scores
+  `dirtPoints × multiplier` (default 0).
+- **Gravity (`RefillDiagonal`, replaces `RefillMasked` when the board has dirt):**
+  1. *Vertical pass:* `RefillMasked`, with dirt cells as floors. Each column splits into segments
+     between dirt cells. Only the top segment is refilled from the spawn above row 0; lower segments
+     are filled only by diagonal slides. A column whose top cell is dirt spawns nothing.
+  2. *Diagonal pass:* scan rows from the bottom up, columns left to right. For each empty playable
+     cell E that no vertical fall can reach (the cell straight above is dirt or a hole with nothing
+     falling through it), the candidates are the resting gems at up-left and up-right. A gem is
+     resting when the cell below it is occupied or dirt. If both sides have one, the board-level
+     toggle `mDiagonalLeftFirst` picks the side. It starts true, flips after every diagonal slide,
+     and is saved and hashed, so replays stay exact. The chosen gem moves into E with a diagonal
+     animation (`mVelX`, variant-only). Then go back to step 1, because the slide opened a cell
+     above.
+  3. Repeat until nothing moves. `UpdateFalling` settles x and y independently.
+
+  On a board without dirt, `RefillDiagonal` is never used, so the vertical pass stays the original
+  refill, line for line.
+- **Fill (`FillBoardVariant`):** dirt cells are skipped like holes. The reroll-until-no-match rule
+  treats dirt as a run breaker.
+- **Gold mode (4.9):** a dirt cell cannot be gilded until its last layer is gone. By default
+  `gold.countDirt: true`, so dirt cells count toward the cells left. Revealing a cell does not gild
+  it; a later match there does.
+- **Save:** `DIRT` chunk (layers per cell, u8) plus `mDiagonalLeftFirst` in the v2 header.
+- **Art:** `images/dirttile` from a mod if present. Otherwise a generated overlay: the level's
+  checker tile darkened and tinted brown, with one crack line per layer, built once per level. It is
+  drawn above the checker and below the gems.
+- **Tests:** fixture boards with dirt mid-column (the diagonal fill alternates left and right),
+  dirt in the top row, multi-layer dirt, two groups next to one dirt cell, dirt + holes + gold, a
+  save mid-cascade, and replay verification.
 
 ## 5. Board geometry and rendering
 
@@ -1481,6 +1526,7 @@ tests. Sizes are new or changed lines.
 | 5 | Allow invalid moves (1) + noMoves + v2 save | `UpdateSwap` branch, `KeepInvalidMove`, `OnNoMovesVariant`, v2 header and chunks (`RNGS`, `MOVE`), variant trace lines | Kept-swap script; `"continue"` script; v2 save → quit → load round trip; replay verify; v1 untouched (oracle) | ~450 |
 | 6 | Undo (11) | UNDO profile, `UndoStack`, `RequestUndo`/`Undo`, pop/clear points, keys and orb hotspot, `UNDO` event | Undo script (repeat the same move → identical refill); timed `inTimed`/`restoreTime`; replay with undos verifies; snapshot round trip | ~450 |
 | 7 | Geometry and shapes (3) | `BoardLayout` scaling, `ToLogical`, `FillBoardVariant`, `RefillMasked`, `FillBoardWithMove`, NULL guards, `DrawVariant`, `DrawVariantChecker`, per-level shapes (pending → apply), v2 dims | `-forcevariant` oracle incl. pixel-exact screenshots; difftest now meaningful; scripts and screenshots for 6x6, 10x7, 16x16, diamond and a two-level shape mod (board, vortex, wipe, game-over fall); save/load on level 2; replay verify | ~1,400 |
+| 7b | Dirt tiles and diagonal falling (4.14) | Mask legend `d`/`2`..`9`, dirt cells in input/match/hint code, layer clearing next to groups (and blasts), `RefillDiagonal` with the alternating toggle, `mVelX` in `UpdateFalling`, dirt art and dust effect, `DIRT` chunk | Fixture boards (alternation, top-row dirt, layers, two adjacent groups); screenshots; save mid-cascade; replay verify; boards without dirt unchanged (oracle, difftest) | ~700 |
 | 8 | More gem colours (2) | Clamp 12, `imageOps.extendRows` (1x + HD), default op, glyphs, N shrink images, tints, `EnsureGemColors` | PNG of the generated sheet (1x and `example-crystal-gems` HD); 9- and 12-colour screenshots; loading bar unchanged | ~450 |
 | 9 | Patterns (6) | `MatchFinder` (runs, diagonals, crossings, cell patterns), `ProcessMatchesVariant`, `ScoreGroup`, `HasMatchVariant`, `FindMoveVariant` (swap), `DoHintVariant`, fill cap, colour-minimum validation | `-forcevariant` oracle (exact run order and scoring); finder fixtures (L3, square, diagonal, minRun 2, merge L/T/plus, subset skip); hint equals brute force; scripts | ~1,200 |
 | 10 | Twist + slide (5, 4) + combinations | States 10–13, variant input, integer twist table, segments, `MoveSet` twist and slide, multi-type input, instruction strings, trace lines | Rotate and drag scripts (coordinates from the trace); kept vs reverted with `allowInvalid`; diamond + twist; swap+twist+slide input matrix; save mid-move; replay verify; generic search equals brute force | ~1,500 |
@@ -1516,6 +1562,17 @@ owned RNG.
 ---
 
 ## 11. Open questions for the user
+
+**Answers (2026-10-18):**
+- **Q1, version control:** yes. The baseline is commit `9dcba7d` on `master`; the stages are
+  committed on the `code-mods` branch. The frozen baseline exe is `build/baseline/bejeweled.exe`.
+- **Q3, feature gating:** feature mods.
+- **Q6, holes:** gems fall through holes. Also add dirt tiles that need a match next to them, block
+  falling gems, and let gems fall diagonally, alternating left and right (Jewel Quest). See 4.14
+  and stage 7b.
+- **Q8, special gems:** Bejeweled 2 rules, including cascades.
+- **All other questions:** the recommendations in brackets below apply unless the user says
+  otherwise.
 
 Recommendations are in brackets.
 
