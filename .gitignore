@@ -1,0 +1,17 @@
+# Ghidra exports / decompiler output derived from the original binary (regenerate locally)
+/re/
+# Game assets copied from the user's own install - never commit or redistribute
+/assets/
+/build*/
+/dist/
+*.pyc
+__pycache__/
+
+# Mods generated from the user's other games (contain their copyrighted assets)
+/mods/bejeweled2-audio/
+# Third-party picture used by the TRUE joke mod (downloaded locally, not ours to commit)
+/mods/true-gem/source/true.*
+/mods/true-gem/patches/
+/mods/true-gem/images/
+/mods/true-gem/data/
+/mods/hd4x-textures/

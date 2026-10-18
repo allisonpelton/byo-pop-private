@@ -1,0 +1,16 @@
+{
+  "id": "mines-trilliant",
+  "name": "Mines Trilliant",
+  "version": "1.0",
+  "author": "wasm-bejeweled",
+  "description": "Replaces the orange gem with a trilliant cut whose table is the Colorado School of Mines legacy triangle (a Reuleaux triangle). HD (@2x) art; the other gems are untouched.",
+  "imagePatches": [
+    {
+      "target": "images/gemsheet6",
+      "image": "patches/orange-trilliant@2x.png",
+      "x": 0,
+      "y": 520,
+      "mode": "replace"
+    }
+  ]
+}
