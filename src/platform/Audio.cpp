@@ -135,6 +135,11 @@ Mixer& Mixer::Get()
 	return sMixer;
 }
 
+Mixer::~Mixer()
+{
+	Shutdown();
+}
+
 bool Mixer::Init()
 {
 	if (mDevice)

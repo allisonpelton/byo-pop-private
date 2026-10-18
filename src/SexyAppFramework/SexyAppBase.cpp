@@ -25,6 +25,7 @@
 #include "../platform/ImageLoader.h"
 #include "../platform/ModManager.h"
 #include "../platform/WebPersist.h"
+#include "../platform/Audio.h"
 
 #include <SDL.h>
 #include <stb_image_write.h>
@@ -580,6 +581,9 @@ SexyAppBase::~SexyAppBase()
 	mMusicInterface = NULL;
 	delete mSoundManager;
 	mSoundManager = NULL;
+	// port: close the audio device now. Nothing closed it before, so SDL's audio thread kept calling the
+	// mixer until the process ended and could mix into the destroyed static Mixer (a rare crash at exit)
+	Platform::Mixer::Get().Shutdown();
 
 	for (int i = 0; i < SDL_NUM_SYSTEM_CURSORS; i++)
 	{

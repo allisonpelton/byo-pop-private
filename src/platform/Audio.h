@@ -26,6 +26,9 @@ class Mixer
 {
 public:
 	static Mixer& Get();
+	// Closes the device if it is still open: the instance is a function-local static, destroyed at exit,
+	// and SDL's audio thread must not mix into it after that (~SexyAppBase normally closes it first).
+	~Mixer();
 
 	bool Init();
 	void Shutdown();
