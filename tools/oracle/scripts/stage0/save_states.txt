@@ -1,0 +1,34 @@
+# Seed 3, normal mode: the moves of playtest_level.txt (one later: an illegal swap is added first), with
+# "save <file>" snapshots, the save a shutdown would write at that moment, in every state a game in
+# progress can be in: clearing, falling, swapping, swapping back, vortex and level wipe. A swap in
+# progress is written as STATE_PLAYING, like the second of a shutdown's two saves. The oracle checks each
+# snapshot against the savegame.dat of the same script cut off by a quit at that update (also with the
+# exe that has no save command), and loads each one with load_resume.txt.
+300 click 320 398
+# the 6-run EXCELLENT move ends the new game (mIsNewGame) -> 667, score 240
+454 click 329 142
+455 click 380 142
+495 save snaps/s1_clearing.dat
+495 screenshot shots/s1_clearing.png
+520 save snaps/s2_falling.dat
+520 screenshot shots/s2_falling.png
+# (6,7)->(7,7) is illegal: swapping 671..706, swapping back 707..742
+670 click 533 397
+671 click 584 397
+690 save snaps/s3_swapping.dat
+690 screenshot shots/s3_swapping.png
+720 save snaps/s4_swapping_back.dat
+720 screenshot shots/s4_swapping_back.png
+# the remaining moves of playtest_level.txt, 78 updates later -> 964, 1105, 1468 (score 630)
+760 click 329 193
+761 click 329 142
+979 click 482 397
+980 click 533 397
+1120 click 431 346
+1121 click 431 295
+# level 1 is complete: vortex, then the level wipe (all gems deleted) -> level 2 at 2022
+1560 save snaps/s5_vortex.dat
+1560 screenshot shots/s5_vortex.png
+1760 save snaps/s6_wipe.dat
+1760 screenshot shots/s6_wipe.png
+2100 quit

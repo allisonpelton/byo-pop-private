@@ -1,0 +1,47 @@
+# Seed 1, normal mode: the exact limits of the click zone and the drag threshold (Board::MouseDown and
+# MouseDrag, GAME_NOTES). Each pair first misses the limit by one pixel (no swap: no state change, no
+# settle), then meets it (a swap). Click zone: 22 <= major <= 88.2 and minor <= 26 from the selected gem's
+# centre; drag: |dx| or |dy| >= 16 from the button-down point. The settles (TRACE update / score) and the
+# swap starts (state 2 in -tracehash) are noted.
+300 click 320 398
+# major 89 then 88, right of (5,5) (centre 482 295; the tutorial move). 89 lands on (7,5): not adjacent,
+# bad2 sound, the selection is dropped. 88 is in the zone: swap with (6,5) at 483 -> settles at 610, score 30
+460 click 482 295
+463 click 571 295
+465 screenshot shots/e01_major89_nothing_selected.png
+480 click 482 295
+483 click 570 295
+# minor 27 then 26, below (4,4) (centre 431 244, dy 40). 27 lands on (5,5): diagonal, no swap. 26 is in
+# the zone: swap with (4,5) at 643 -> 724, score 40
+630 click 431 244
+633 click 458 284
+640 click 431 244
+643 click 457 284
+# major 21 then 22, below (3,4) (centre 380 244). 21 is still on (3,4) itself: a second click on the
+# selected gem deselects it. 22 is in the zone: swap with (3,5) at 753 -> 900, score 70
+740 click 380 244
+743 click 380 265
+745 screenshot shots/e02_major21_deselected.png
+750 click 380 244
+753 click 380 266
+# drag 15 then 16 px right from (4,4) (431 244). 15 does nothing and (4,4) stays selected (a click on it
+# deselects it); 16 swaps with (5,4) at 942 -> 1090, score 100
+920 down 431 244
+922 move 446 244
+923 up 446 244
+925 screenshot shots/e03_drag15_still_selected.png
+930 click 431 244
+940 down 431 244
+942 move 447 244
+943 up 447 244
+# drag 15 then 16 px up from (3,1) (380 91): 16 swaps with (3,0) at 1132 -> 1213, score 110
+1110 down 380 91
+1112 move 380 76
+1113 up 380 76
+1120 click 380 91
+1130 down 380 91
+1132 move 380 75
+1133 up 380 75
+1300 screenshot shots/e04_after_up_drag.png
+# quit saves the game in progress
+1400 quit

@@ -1,0 +1,15 @@
+# Seed 3: four greedy moves (the first is a 6-run EXCELLENT) finish level 1 -> vortex -> wipe -> level 2.
+300 click 320 398
+454 click 329 142
+455 click 380 142
+682 click 329 193
+683 click 329 142
+901 click 482 397
+902 click 533 397
+1042 click 431 346
+1043 click 431 295
+1425 screenshot shots/31_vortex_excellent.png
+1525 screenshot shots/32_vortex.png
+1675 screenshot shots/33_level_wipe.png
+1950 screenshot shots/34_level2.png
+2000 quit

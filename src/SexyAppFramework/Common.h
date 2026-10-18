@@ -111,6 +111,12 @@ int					Rand();
 int					Rand(int range);
 float				Rand(float range);
 void				SRand(ulong theSeed);
+// port: test hook. Number of Rand() draws (all three overloads) since the program started; it only
+// counts and never changes the stream (used by -tracehash, later by replays to spot outside draws).
+uint				GetRandCount();
+// port: test hook. A copy of the Rand() generator's state words (MTRand::Serialize: mt[], without the
+// index, which the draw count implies); reads only (used by the -tracehash FULL hash).
+std::string			GetRandState();
 extern std::string	vformat(const char* fmt, va_list argPtr);
 extern std::wstring	vformat(const wchar_t* fmt, va_list argPtr);
 extern std::string	StrFormat(const char* fmt ...);

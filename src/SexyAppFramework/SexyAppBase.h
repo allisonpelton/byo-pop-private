@@ -299,6 +299,7 @@ public:
 	//                   command per line, "<update count> <command> [args]", run when mUpdateCount
 	//                   reaches the count (before that update; '#' starts a comment):
 	//                     click <x> <y>        mouse down + up (left button) at logical coordinates
+	//                     rclick <x> <y>       mouse down + up with the right button
 	//                     down|up|move <x> <y> one mouse event (a move with the button down drags)
 	//                     key <keycode>        key down + up (number or KeyCodes.cpp name, e.g. RETURN);
 	//                                          Enter, Backspace, Tab and Esc also type their character
@@ -306,6 +307,7 @@ public:
 	//                     screenshot <png>     draw the screen now and save it
 	//                     screenshotfull <png> the same at the render target's size (shows HD art)
 	//                     quit                 Shutdown()
+	//                   Other commands go to the game's HandleScriptCommand (WinDMApp: save <file>).
 	//   -fast           updates run back to back on a virtual clock and the screen is drawn every
 	//                   FAST_DRAW_INTERVAL updates, so a script runs as fast as the machine allows
 	//   -trace          the game prints its state to stdout (WinDMApp: the board when it settles)
@@ -321,6 +323,7 @@ public:
 	std::string mScriptFileName;
 	std::vector<ScriptCommand> mScript;
 	size_t mScriptPos;         // next command to run
+	bool mScriptedInput;       // a test bot (the game's -autoplay) feeds mScript: real input is ignored as in a -script run
 
 protected:
 	void RehupFocus();
@@ -354,6 +357,8 @@ protected:
 	DWORD GetClockTime();  // timeGetTime(), or the virtual clock with -fast
 	bool LoadScript(const std::string& theFileName);
 	void RunScript();
+	// A script command the framework does not know; return true if handled (the default handles none)
+	virtual bool HandleScriptCommand(const ScriptCommand& theCommand);
 	bool SaveScreenshot(const std::string& theFileName, bool fullResolution = false);
 
 	// Registry emulation helpers
@@ -567,6 +572,9 @@ public:
 	std::string GetShutdownRegistryText();
 	void UpdateUserDataBackup(bool force);
 	void PageGoingAway();
+	// Test hook: queues a command as if it were a -script line, run by RunScript after the commands
+	// already queued for that update. A test bot uses it, so its input takes exactly the script's path.
+	void AddScriptCommand(int theUpdateCount, const std::string& theCommand, const std::string& theArgs);
 };
 
 extern SexyAppBase* gSexyAppBase;

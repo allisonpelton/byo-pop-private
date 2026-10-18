@@ -1,0 +1,62 @@
+# Normal game -> swaps (tutorial move with a cascade, a 4-run + cascade, a two-run move, an illegal swap,
+# a drag swap) -> hint -> options -> timed mode -> pause -> time up -> high score entry -> play again -> quit.
+# Run: bejeweled.exe -gamedir=<assets> -userdir=<empty dir> -modsdir=<empty dir> -seed=1 -fast -trace -script=playtest.txt
+20 screenshot shots/01_title.png
+300 click 320 398
+445 screenshot shots/02_board_settled.png
+455 screenshot shots/03_instructions.png
+460 click 482 295
+461 click 533 295
+470 screenshot shots/04_swapping.png
+500 screenshot shots/05_clearing.png
+520 screenshot shots/06_refill.png
+600 click 380 193
+601 click 380 142
+660 screenshot shots/07_move2_clearing.png
+760 click 329 40
+761 click 380 40
+790 screenshot shots/08_move3_multishot.png
+880 click 227 397
+881 click 278 397
+905 screenshot shots/09_illegal_swap.png
+980 click 90 340
+995 screenshot shots/10_hint.png
+1050 down 431 244
+1052 move 431 275
+1053 up 431 275
+1075 screenshot shots/11_drag_swap.png
+1150 click 96 261
+1170 screenshot shots/12_options.png
+1200 click 407 299
+1215 screenshot shots/13_options_closed.png
+1230 click 135 200
+1250 screenshot shots/14_confirm_timed.png
+1260 click 338 169
+1300 screenshot shots/15_timed_falling.png
+1420 click 533 295
+1421 click 533 346
+1450 screenshot shots/16_timed_move_go.png
+2000 char p
+2050 screenshot shots/17_timed_paused.png
+2100 click 400 300
+2150 screenshot shots/18_timed_resumed.png
+17000 screenshot shots/19_timed_low_bar.png
+17850 screenshot shots/20_time_up.png
+18000 screenshot shots/21_game_over_explode.png
+18060 screenshot shots/22_game_over_fallen.png
+18120 screenshot shots/23_highscore_slide.png
+18250 screenshot shots/24_record_score_dialog.png
+18260 char T
+18262 char e
+18264 char s
+18266 char t
+18268 char e
+18270 char r
+18280 screenshot shots/25_name_typed.png
+18290 click 338 207
+18300 screenshot shots/26_high_scores_saved.png
+18400 click 408 400
+18450 screenshot shots/27_play_again_timed.png
+18700 click 96 425
+18720 screenshot shots/28_confirm_quit.png
+18730 click 338 169

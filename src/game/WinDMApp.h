@@ -13,6 +13,7 @@
 
 #include "SexyApp.h"
 #include "Res.h"
+#include <cstdio>
 #include <list>
 
 namespace Sexy
@@ -28,6 +29,7 @@ class ImageFont;
 class ButtonWidget;
 class Dialog;
 class MusicInterface;
+class AutoplayBot;
 
 // Dialog ids (SexyAppBase dialog map). YES/OK/footer presses arrive in ButtonDepress as 2000+id,
 // NO/CANCEL as 3000+id.
@@ -116,6 +118,26 @@ public:
 	bool			mNoPopLink;                 // +0x876 registry NoPopLink, read only, never used
 	bool			mIsDiamondMine;             // +0x877 property IsDiamondMine (PreDisplayHook): Diamond Mine strings
 
+	// port: the game's test hooks (the framework's -seed, -script, -fast and -trace are in SexyAppBase.h).
+	// None of them changes the game or its Rand() stream.
+	//   -tracehash=<file>    after every update appends "<update> <board state> <logic> <full>": two
+	//                        hashes, of the state play depends on and of everything (raw Piece bytes
+	//                        included); src/testhooks/StateHash.cpp has the field lists
+	//   -autoplay=<seed>     a bot with its own RNG plays through script input until the game is over
+	//                        (src/testhooks/Autoplay.h); -autoplaytimed: in timed mode;
+	//                        -autoplaycap=<n>: quits at update n (default 200000);
+	//                        -autoplaylog=<file>: writes its input as a -script file
+	//   script command "save <file>": writes the save a shutdown would write now (GetShutdownSave) to
+	//                        <file> without touching the game; it logs only when it cannot
+	std::string		mTraceHashFileName;
+	FILE*			mTraceHashFile;
+	bool			mAutoplay;
+	ulong			mAutoplaySeed;
+	bool			mAutoplayTimed;
+	int				mAutoplayCap;
+	std::string		mAutoplayLogFileName;
+	AutoplayBot*	mAutoplayBot;
+
 public:
 	WinDMApp();                                                     // 0x4d4d82
 	virtual ~WinDMApp();                                            // 0x4d4b08 (scalar deleting dtor 0x4d4d0e)
@@ -164,6 +186,10 @@ public:
 	// port (web): the page can be closed or crash without Shutdown(); see SexyAppBase::UpdateUserDataBackup
 	virtual bool	GetShutdownSave(std::string* theFileName, Buffer* theBuffer);
 	virtual void	WriteShutdownRegistry();
+
+	// port: test hooks (see mTraceHashFileName)
+	virtual void	HandleCmdLineParam(const std::string& theParamName, const std::string& theParamValue);
+	virtual bool	HandleScriptCommand(const ScriptCommand& theCommand);
 
 	using SexyApp::ButtonPress;
 	using SexyApp::KillDialog;

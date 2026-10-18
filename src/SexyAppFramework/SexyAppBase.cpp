@@ -518,6 +518,7 @@ SexyAppBase::SexyAppBase()
 	mFastClock = 0;
 	mLastFastDrawUpdate = 0;
 	mScriptPos = 0;
+	mScriptedInput = false;
 
 	int i;
 
@@ -1700,8 +1701,9 @@ void SexyAppBase::MouseMoveTo(int theX, int theY)
 void SexyAppBase::HandleEvent(const SDL_Event& theEvent)
 {
 	// port: a -script run takes its input only from the script, and focus changes (which pause the
-	// game) are ignored too, so the run is the same whatever happens to the window
-	if (!mScript.empty())
+	// game) are ignored too, so the run is the same whatever happens to the window (also while a test
+	// bot drives the game, see mScriptedInput)
+	if ((!mScript.empty()) || (mScriptedInput))
 	{
 		switch (theEvent.type)
 		{
@@ -2902,13 +2904,15 @@ void SexyAppBase::RunScript()
 {
 	while ((mScriptPos < mScript.size()) && (mScript[mScriptPos].mUpdateCount <= mUpdateCount) && (!mShutdown))
 	{
-		const ScriptCommand& aCommand = mScript[mScriptPos++];
+		// A copy: the command reaches game code (HandleScriptCommand, widgets), which may queue more
+		// commands with AddScriptCommand and so reallocate mScript
+		const ScriptCommand aCommand = mScript[mScriptPos++];
 		const std::string& aName = aCommand.mCommand;
 		std::istringstream anArgs(aCommand.mArgs);
 		int x = 0;
 		int y = 0;
 
-		if ((aName == "click") || (aName == "down") || (aName == "up") || (aName == "move"))
+		if ((aName == "click") || (aName == "rclick") || (aName == "down") || (aName == "up") || (aName == "move"))
 		{
 			if (!(anArgs >> x >> y))
 			{
@@ -2920,6 +2924,12 @@ void SexyAppBase::RunScript()
 				mWidgetManager->MouseDown(x, y, 1);
 			if ((aName == "click") || (aName == "up"))
 				mWidgetManager->MouseUp(x, y, 1);
+			if (aName == "rclick")
+			{
+				// right button: click code -1, as GetClickCode gives a real right click
+				mWidgetManager->MouseDown(x, y, -1);
+				mWidgetManager->MouseUp(x, y, -1);
+			}
 		}
 		else if (aName == "key")
 		{
@@ -2945,9 +2955,30 @@ void SexyAppBase::RunScript()
 			SaveScreenshot(aCommand.mArgs, true);
 		else if (aName == "quit")
 			Shutdown();
-		else
+		else if (!HandleScriptCommand(aCommand))
 			SDL_Log("script: line %d: unknown command '%s %s'", aCommand.mLine, aName.c_str(), aCommand.mArgs.c_str());
 	}
+}
+
+bool SexyAppBase::HandleScriptCommand(const ScriptCommand& theCommand)
+{
+	return false;
+}
+
+void SexyAppBase::AddScriptCommand(int theUpdateCount, const std::string& theCommand, const std::string& theArgs)
+{
+	ScriptCommand aCommand;
+	aCommand.mUpdateCount = theUpdateCount;
+	aCommand.mCommand = theCommand;
+	aCommand.mArgs = theArgs;
+	aCommand.mLine = 0;
+
+	// mScript stays sorted by update count (RunScript relies on it). Only commands from mScriptPos on
+	// move, so this may also run inside RunScript (which works on a copy of the current command).
+	std::vector<ScriptCommand>::iterator anItr = mScript.begin() + mScriptPos;
+	while ((anItr != mScript.end()) && (anItr->mUpdateCount <= theUpdateCount))
+		++anItr;
+	mScript.insert(anItr, aCommand);
 }
 
 // Draws the whole screen now and saves it as a PNG, at the logical size or (fullResolution) at the

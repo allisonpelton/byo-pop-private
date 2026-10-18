@@ -1,0 +1,21 @@
+# Seed 1, normal mode: Options -> High Scores in the middle of a game. The hidden HighScoreWidget that the
+# High Scores dialog owns draws one Rand() % 9 for its tip while the board is paused (GAME_NOTES 3.16),
+# so every later refill uses a stream shifted by one draw; closing the dialog re-saves hiscores.dat.
+300 click 320 398
+# the tutorial move -> 586, score 30
+460 click 482 295
+461 click 533 295
+620 click 96 261
+640 screenshot shots/o01_options.png
+660 click 484 232
+680 screenshot shots/o02_high_scores.png
+# Done (hiscores.dat written), then the Options dialog's Done
+700 click 407 335
+710 screenshot shots/o03_back_to_options.png
+720 click 407 299
+740 screenshot shots/o04_options_closed.png
+# (4,3)->(4,4): its refill comes from the shifted stream
+760 click 431 193
+761 click 431 244
+900 screenshot shots/o05_refill_after_high_scores.png
+1200 quit

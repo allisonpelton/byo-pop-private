@@ -20,8 +20,12 @@
 #include "SoundManager.h"
 #include "SDLMusicInterface.h"
 #include "PakInterface.h"
+#include "testhooks/StateHash.h"
+#include "testhooks/Autoplay.h"
 
+#include <SDL.h>
 #include <cstdio>
+#include <cstdlib>
 #include <sstream>
 
 using namespace Sexy;
@@ -75,6 +79,14 @@ WinDMApp::WinDMApp()
 	mNormalModeButton = NULL;
 	mTimedModeButton = NULL;
 	mTimedMode = false;
+
+	// port: test hooks
+	mTraceHashFile = NULL;
+	mAutoplay = false;
+	mAutoplaySeed = 0;
+	mAutoplayTimed = false;
+	mAutoplayCap = 200000;
+	mAutoplayBot = NULL;
 }
 
 // 0x4d4b08
@@ -136,6 +148,11 @@ WinDMApp::~WinDMApp()
 		mWidgetManager->RemoveWidget(mTitleScreen);
 		delete mTitleScreen;
 	}
+
+	// port: test hooks
+	delete mAutoplayBot;
+	if (mTraceHashFile != NULL)
+		fclose(mTraceHashFile);
 }
 
 // 0x4d43f9
@@ -369,6 +386,27 @@ static void TraceBoard(WinDMApp* theApp)
 	fflush(stdout);
 }
 
+// port: -tracehash (see WinDMApp.h): "<update> <board state> <logic hash> <full hash>" after every update
+static void TraceHash(WinDMApp* theApp)
+{
+	if (theApp->mTraceHashFile == NULL)
+	{
+		theApp->mTraceHashFile = fopen(theApp->mTraceHashFileName.c_str(), "wb");
+		if (theApp->mTraceHashFile == NULL)
+		{
+			SDL_Log("tracehash: cannot write %s", theApp->mTraceHashFileName.c_str());
+			theApp->mTraceHashFileName.clear();
+			return;
+		}
+	}
+
+	uint64_t aLogicHash;
+	uint64_t aFullHash;
+	HashGameState(theApp, &aLogicHash, &aFullHash);
+	fprintf(theApp->mTraceHashFile, "%d %d %016llx %016llx\n", theApp->mUpdateCount, (theApp->mBoard != NULL) ? theApp->mBoard->mState : -1,
+		(unsigned long long) aLogicHash, (unsigned long long) aFullHash);
+}
+
 // 0x4d4921
 void WinDMApp::UpdateFrames()
 {
@@ -376,6 +414,61 @@ void WinDMApp::UpdateFrames()
 
 	if (mTraceMode)
 		TraceBoard(this);
+
+	// port: test hooks (see WinDMApp.h)
+	if (!mTraceHashFileName.empty())
+		TraceHash(this);
+	if ((mAutoplay) && (mAutoplayBot == NULL))
+		mAutoplayBot = new AutoplayBot(this, mAutoplaySeed, mAutoplayTimed, mAutoplayCap, mAutoplayLogFileName);
+	if (mAutoplayBot != NULL)
+		mAutoplayBot->Update();
+}
+
+// port: the game's command-line test hooks (see WinDMApp.h); everything else goes to the framework
+void WinDMApp::HandleCmdLineParam(const std::string& theParamName, const std::string& theParamValue)
+{
+	if (theParamName == "-tracehash")
+		mTraceHashFileName = theParamValue;
+	else if (theParamName == "-autoplay")
+	{
+		mAutoplay = true;
+		mAutoplaySeed = strtoul(theParamValue.c_str(), NULL, 10);
+		// the bot's input only, as in a -script run (from the start: focus changes would pause the game)
+		mScriptedInput = true;
+	}
+	else if (theParamName == "-autoplaytimed")
+		mAutoplayTimed = true;
+	else if (theParamName == "-autoplaycap")
+		mAutoplayCap = atoi(theParamValue.c_str());
+	else if (theParamName == "-autoplaylog")
+		mAutoplayLogFileName = theParamValue;
+	else
+		SexyApp::HandleCmdLineParam(theParamName, theParamValue);
+}
+
+// port: script command "save <file>" (see WinDMApp.h). Silent when it works, so a script with save
+// lines logs exactly what the same script without them logs.
+bool WinDMApp::HandleScriptCommand(const ScriptCommand& theCommand)
+{
+	if (theCommand.mCommand != "save")
+		return false;
+
+	std::string aSaveName;
+	Buffer aBuffer;
+	if (theCommand.mArgs.empty())
+		SDL_Log("script: line %d: save needs <file>", theCommand.mLine);
+	else if (!GetShutdownSave(&aSaveName, &aBuffer))
+		SDL_Log("script: line %d: save: no game in progress, %s not written", theCommand.mLine, theCommand.mArgs.c_str());
+	else
+	{
+		FILE* aFile = fopen(theCommand.mArgs.c_str(), "wb");
+		bool success = (aFile != NULL) && (fwrite(aBuffer.GetDataPtr(), 1, aBuffer.GetDataLen(), aFile) == (size_t) aBuffer.GetDataLen());
+		if ((aFile != NULL) && (fclose(aFile) != 0))
+			success = false;
+		if (!success)
+			SDL_Log("script: line %d: save: cannot write %s", theCommand.mLine, theCommand.mArgs.c_str());
+	}
+	return true;
 }
 
 // 0x4d4926

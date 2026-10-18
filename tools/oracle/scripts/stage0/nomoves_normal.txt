@@ -1,0 +1,62 @@
+# Seed 1, normal mode (input recorded by -autoplay=9 -autoplaylog; the "# update" comments are the
+# bot's notes): after six moves the refill leaves no valid move, so UpdateFalling shows NO MOVES and
+# calls GameOver(200) (808): the board shakes, explodes and falls, then the high-score screen (1141)
+# with a score of 60, the day's first, so a name is asked for (Cancel). "Play again" starts a new game;
+# the quit leaves no save (nothing in progress), and hiscores.dat from the game-over screen.
+4 click 320 398
+# update 4: new board (normal)
+# update 4: ? -> falling, level 1, score 0, board tick 1
+# update 30: select (2,1) while falling
+# update 31: plan dropped (falling)
+# update 142: falling -> playing, level 1, score 0, board tick 139
+# update 142: move 1: (3,2)->(3,1) valid, click
+152 click 386 143
+# update 155: plan dropped (playing)
+# update 156: move 2: selected (3,2) -> (2,2)
+178 click 322 149
+# update 178: playing -> swapping, level 1, score 0, board tick 175
+# update 213: swapping -> swapping back, level 1, score 0, board tick 210
+# update 249: swapping back -> playing, level 1, score 0, board tick 246
+# update 249: move 3: (2,5)->(1,5) valid, click
+262 click 333 303
+270 click 276 299
+# update 270: playing -> swapping, level 1, score 0, board tick 267
+# update 305: swapping -> clearing, level 1, score 10, board tick 302
+# update 322: clearing -> falling, level 1, score 10, board tick 319
+# update 350: falling -> playing, level 1, score 10, board tick 347
+# update 350: move 4: (5,0)->(5,1) valid, click
+392 click 488 40
+395 click 483 86
+# update 395: playing -> swapping, level 1, score 10, board tick 392
+# update 430: swapping -> clearing, level 1, score 20, board tick 427
+# update 448: clearing -> falling, level 1, score 20, board tick 445
+# update 476: falling -> playing, level 1, score 20, board tick 473
+# update 476: move 5: (4,2)->(5,2) valid, click
+512 click 433 140
+525 click 483 139
+# update 525: playing -> swapping, level 1, score 20, board tick 522
+# update 560: swapping -> clearing, level 1, score 30, board tick 557
+# update 577: clearing -> falling, level 1, score 30, board tick 574
+# update 605: falling -> clearing, level 1, score 50, board tick 602
+# update 622: clearing -> falling, level 1, score 50, board tick 619
+# update 670: falling -> playing, level 1, score 50, board tick 667
+# update 670: move 6: (1,3)->(1,4) valid, zone click
+693 click 270 197
+707 click 272 220
+# update 707: playing -> swapping, level 1, score 50, board tick 704
+# update 742: swapping -> clearing, level 1, score 60, board tick 739
+# update 760: clearing -> falling, level 1, score 60, board tick 757
+790 screenshot shots/n01_last_move_refill.png
+# update 808: falling -> game over, level 1, score 60, board tick 805
+812 screenshot shots/n02_no_moves.png
+880 screenshot shots/n03_shaking.png
+1000 screenshot shots/n04_exploded.png
+# update 1141: game over -> game over done, level 1, score 60, board tick 1138
+1200 screenshot shots/n05_high_score_screen.png
+# the first score of the day asks for a name: Cancel, then "play again" starts a new game
+1320 screenshot shots/n06_record_score_dialog.png
+1330 click 476 207
+1340 screenshot shots/n07_cancelled.png
+1360 click 408 400
+1400 screenshot shots/n08_new_game.png
+1600 quit

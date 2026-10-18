@@ -6,7 +6,8 @@
 //   -modsdir=<dir>   folder containing mods (one sub-folder per mod)
 //   -nomods          start without any mods
 // Remaining "-key=value" arguments are passed to the app (SexyAppBase::HandleCmdLineParam), e.g. the
-// test hooks -seed=N, -script=<file>, -fast and -trace (see SexyAppBase.h).
+// test hooks -seed=N, -script=<file>, -fast and -trace (see SexyAppBase.h) and the game's -tracehash
+// and -autoplay (see WinDMApp.h).
 
 #include "game/WinDMApp.h"
 #include "platform/ModManager.h"

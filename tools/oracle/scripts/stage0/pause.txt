@@ -1,0 +1,25 @@
+# Seed 1, normal mode: the user pause (any key toggles it, a click on the board ends it) while playing,
+# in the middle of a swap and while the board falls; the 10-update input delay after an unpause; the
+# play seconds each pause commits (in the save the quit writes).
+300 click 320 398
+# paused right after the first board settled (438): the gems are hidden and the board stops ticking
+440 char p
+450 screenshot shots/p01_paused.png
+# a click unpauses (and is used up); the next click inside the input delay is ignored
+500 click 400 300
+505 click 482 295
+507 screenshot shots/p02_click_ignored_in_input_delay.png
+# then the tutorial move (5,5)->(6,5)
+520 click 482 295
+521 click 533 295
+# paused in the middle of the swap, resumed with a key
+530 char p
+540 screenshot shots/p03_paused_mid_swap.png
+600 char p
+603 screenshot shots/p04_swap_resumed.png
+# paused while the refill falls, resumed with a click
+690 char p
+700 screenshot shots/p05_paused_while_falling.png
+800 click 300 300
+900 screenshot shots/p06_resumed.png
+1500 quit

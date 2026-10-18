@@ -1,0 +1,64 @@
+# Seed 1, normal mode: drag swaps (down, move >= 16 px, up) in all four directions, at the board edge,
+# below the drag threshold, on a tie (|dx| == |dy| goes vertical) and an illegal drag that swaps back.
+# Coordinates from the -trace move lists; each drag's settle is noted (TRACE update / score).
+300 click 320 398
+# right: (5,5)->(6,5), the tutorial move (cascade) -> settles at 589, score 30
+460 down 482 295
+462 move 500 297
+463 up 500 297
+470 screenshot shots/d01_drag_right_swapping.png
+# left: (3,3)->(2,3) -> 747, score 60
+600 down 380 193
+602 move 360 194
+603 up 360 194
+# down: (1,3)->(1,4) -> 864, score 70
+760 down 278 193
+762 move 279 215
+763 up 279 215
+# up: (2,1)->(2,0) -> 964, score 80
+880 down 329 91
+882 move 330 70
+883 up 330 70
+890 screenshot shots/d02_drag_up_swapping.png
+# off the edge: right from column 7, up from row 0, left from column 0, down from row 7. Each only
+# drops the selection (no swap, no settle until the next move)
+980 down 584 244
+982 move 612 245
+984 up 612 245
+1000 down 380 40
+1002 move 381 14
+1003 up 381 14
+1020 down 227 346
+1022 move 200 347
+1023 up 200 347
+1040 down 431 397
+1042 move 432 424
+1043 up 432 424
+1050 screenshot shots/d03_edge_drags_nothing_selected.png
+# below the threshold (10, 6): no swap, (4,4) stays selected; a click on (4,5) then swaps -> 1215, score 110
+1060 down 431 244
+1062 move 441 250
+1063 up 441 250
+1065 screenshot shots/d04_short_drag_still_selected.png
+1070 click 431 295
+# from the edge inward: (4,0) dragged down -> 1312, score 120
+1230 down 431 40
+1232 move 433 62
+1233 up 433 62
+# tie (20, 20) goes vertical: (5,2)->(5,3) -> 1459, score 150
+1330 down 482 142
+1332 move 502 162
+1333 up 502 162
+1340 screenshot shots/d05_tie_drag_vertical.png
+# illegal: (2,6)->(3,6) swaps back -> 1543, score 150
+1470 down 329 346
+1472 move 352 347
+1473 up 352 347
+1520 screenshot shots/d06_illegal_drag_swapping_back.png
+# column 7 dragged left: (7,2)->(6,2) -> 1662, score 160
+1560 down 584 142
+1562 move 560 143
+1563 up 560 143
+1700 screenshot shots/d07_after_edge_drag.png
+# quit saves the game in progress
+1800 quit

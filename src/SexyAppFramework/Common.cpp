@@ -40,24 +40,41 @@ void OutputDebug(const SexyChar* fmt ...)
 	SDL_Log("%s", Sexy::SexyStringToString(aStr).c_str());
 }
 
+// port: test hook, see GetRandCount (SRand does not reset it)
+static uint gRandCount = 0;
+
 int Sexy::Rand()
 {
+	gRandCount++;
 	return gMTRand.Next();
 }
 
 int Sexy::Rand(int range)
 {
+	gRandCount++;
 	return gMTRand.Next((unsigned long)range);
 }
 
 float Sexy::Rand(float range)
 {
+	gRandCount++;
 	return gMTRand.Next(range);
 }
 
 void Sexy::SRand(ulong theSeed)
 {
 	gMTRand.SRand(theSeed);
+}
+
+uint Sexy::GetRandCount()
+{
+	return gRandCount;
+}
+
+// port: test hook, see GetRandState
+std::string Sexy::GetRandState()
+{
+	return gMTRand.Serialize();
 }
 
 // port: the Windows version checks have no meaning on the port's platforms.

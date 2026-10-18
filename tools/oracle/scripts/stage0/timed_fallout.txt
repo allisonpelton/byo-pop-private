@@ -1,0 +1,253 @@
+# Seed 1, timed mode (input recorded by -autoplay=2 -autoplaytimed -autoplaylog, cut at update 4560; the
+# "# update" comments are the bot's notes on what the game did). Covers: a no-moves fall-out (2672..2956),
+# a gem selected while the board falls out (2744), which FillBoard drops from the grid: the selection
+# goes stale, and the click at 3111 swaps the stale gem with (6,1). The swap is illegal, and swapping
+# back puts the stale gem (colour 5) into the grid at (6,0) in place of the colour-4 gem the new board
+# had there (TRACE rows 0 at 3103 and 3182; GAME_NOTES 3.6). Then a timed vortex at level 1 (3800),
+# the wipe and timed level 2 (4214). The quit saves the level-2 game (loaded by timed_fallout_load).
+4 click 320 398
+# update 4: new board (normal)
+# update 4: ? -> falling, level 1, score 0, board tick 1
+5 click 135 200
+# update 5: new board (timed)
+# update 5: ? -> falling, level 1, score 0, board tick 1
+# update 88: select (3,5) while falling
+90 click 380 234
+# update 142: falling -> playing, level 1, score 0, board tick 138
+# update 142: move 1: selected (3,5) -> (4,5)
+160 click 435 303
+# update 160: playing -> swapping, level 1, score 0, board tick 156
+# update 195: swapping -> swapping back, level 1, score 0, board tick 191
+# update 231: swapping back -> playing, level 1, score 0, board tick 227
+# update 231: move 2: (6,3)->(7,3) valid, zone click
+245 click 533 194
+254 click 592 190
+# update 254: playing -> swapping, level 1, score 0, board tick 250
+# update 289: swapping -> clearing, level 1, score 20, board tick 285
+# update 291: select (2,2) while clearing
+293 click 329 142
+# update 308: clearing -> falling, level 1, score 20, board tick 304
+# update 356: falling -> playing, level 1, score 20, board tick 352
+# update 356: move 3: selected (2,2) -> (3,2)
+366 click 372 141
+# update 366: playing -> swapping, level 1, score 20, board tick 362
+# update 401: swapping -> swapping back, level 1, score 20, board tick 397
+# update 437: swapping back -> playing, level 1, score 20, board tick 433
+# update 437: move 4: (7,6)->(7,5) valid, drag
+464 down 576 338
+467 move 581 320
+# update 467: playing -> swapping, level 1, score 20, board tick 463
+470 up 581 320
+# update 502: swapping -> clearing, level 1, score 40, board tick 498
+# update 510: select (5,6) while clearing
+512 click 482 346
+# update 521: clearing -> falling, level 1, score 40, board tick 517
+# update 549: falling -> clearing, level 1, score 80, board tick 545
+# update 566: clearing -> falling, level 1, score 80, board tick 562
+# update 594: falling -> clearing, level 1, score 140, board tick 590
+# update 611: clearing -> falling, level 1, score 140, board tick 607
+# update 646: select (4,7) while falling
+648 click 431 397
+# update 659: falling -> playing, level 1, score 140, board tick 655
+# update 659: move 5: selected (4,7) -> (5,7)
+666 click 476 405
+# update 666: playing -> swapping, level 1, score 140, board tick 662
+# update 701: swapping -> swapping back, level 1, score 140, board tick 697
+# update 737: swapping back -> playing, level 1, score 140, board tick 733
+# update 737: move 6: (2,2)->(1,2) valid, click
+766 click 327 137
+782 click 270 135
+# update 782: playing -> swapping, level 1, score 140, board tick 778
+# update 817: swapping -> clearing, level 1, score 160, board tick 813
+# update 836: clearing -> falling, level 1, score 160, board tick 832
+# update 884: falling -> playing, level 1, score 160, board tick 880
+# update 884: move 7: (2,5)->(1,5) valid, drag
+896 down 332 292
+897 move 316 294
+# update 897: playing -> swapping, level 1, score 160, board tick 893
+898 up 316 294
+# update 932: swapping -> clearing, level 1, score 180, board tick 928
+# update 950: clearing -> falling, level 1, score 180, board tick 946
+# update 966: select (4,0) while falling
+968 click 431 1
+# update 978: falling -> playing, level 1, score 180, board tick 974
+# update 978: move 8: selected (4,0) -> (5,0)
+992 click 485 46
+# update 992: playing -> swapping, level 1, score 180, board tick 988
+# update 1027: swapping -> swapping back, level 1, score 180, board tick 1023
+# update 1063: swapping back -> playing, level 1, score 180, board tick 1059
+# update 1063: move 9: (3,4)->(2,4) valid, click
+1078 click 388 236
+1084 click 335 252
+# update 1084: playing -> swapping, level 1, score 180, board tick 1080
+# update 1119: swapping -> clearing, level 1, score 200, board tick 1115
+# update 1136: clearing -> falling, level 1, score 200, board tick 1132
+# update 1184: falling -> playing, level 1, score 200, board tick 1180
+# update 1184: move 10: (5,4)->(6,4) valid, click
+1204 click 488 248
+1224 click 527 244
+# update 1224: playing -> swapping, level 1, score 200, board tick 1220
+# update 1259: swapping -> clearing, level 1, score 220, board tick 1255
+# update 1277: clearing -> falling, level 1, score 220, board tick 1273
+# update 1305: falling -> playing, level 1, score 220, board tick 1301
+# update 1305: move 11: (4,4)->(3,4) valid, click
+1323 click 426 248
+1338 click 387 236
+# update 1338: playing -> swapping, level 1, score 220, board tick 1334
+# update 1373: swapping -> clearing, level 1, score 280, board tick 1369
+# update 1391: clearing -> falling, level 1, score 280, board tick 1387
+# update 1439: falling -> playing, level 1, score 280, board tick 1435
+# update 1439: move 12: (4,6)->(4,7) random, click
+1453 click 423 339
+1459 click 424 399
+# update 1459: playing -> swapping, level 1, score 280, board tick 1455
+# update 1494: swapping -> swapping back, level 1, score 280, board tick 1490
+# update 1530: swapping back -> playing, level 1, score 280, board tick 1526
+# update 1530: move 13: (3,6)->(2,6) valid, click
+1543 click 384 347
+1554 click 323 348
+# update 1554: playing -> swapping, level 1, score 280, board tick 1550
+# update 1589: swapping -> clearing, level 1, score 300, board tick 1585
+# update 1607: clearing -> falling, level 1, score 300, board tick 1603
+# update 1624: select (3,6) while falling
+1626 click 380 340
+# update 1635: falling -> playing, level 1, score 300, board tick 1631
+# update 1635: move 14: selected (3,6) -> (2,6)
+1643 click 329 352
+# update 1643: playing -> swapping, level 1, score 300, board tick 1639
+# update 1678: swapping -> swapping back, level 1, score 300, board tick 1674
+# update 1714: swapping back -> playing, level 1, score 300, board tick 1710
+# update 1714: move 15: (6,5)->(5,5) valid, zone click
+1740 click 528 287
+1752 click 476 300
+# update 1752: playing -> swapping, level 1, score 300, board tick 1748
+# update 1787: swapping -> clearing, level 1, score 320, board tick 1783
+# update 1805: clearing -> falling, level 1, score 320, board tick 1801
+# update 1853: falling -> clearing, level 1, score 360, board tick 1849
+# update 1871: clearing -> falling, level 1, score 360, board tick 1867
+# update 1899: falling -> playing, level 1, score 360, board tick 1895
+# update 1899: move 16: (6,3)->(6,4) valid, drag
+1917 down 531 194
+1918 move 534 221
+# update 1918: playing -> swapping, level 1, score 360, board tick 1914
+1921 up 534 221
+# update 1953: swapping -> clearing, level 1, score 380, board tick 1949
+# update 1970: clearing -> falling, level 1, score 380, board tick 1966
+# update 1998: falling -> playing, level 1, score 380, board tick 1994
+# update 1998: move 17: (3,1)->(2,1) valid, drag
+2025 down 380 99
+2029 move 346 103
+# update 2029: playing -> swapping, level 1, score 380, board tick 2025
+2031 up 346 103
+# update 2064: swapping -> clearing, level 1, score 400, board tick 2060
+# update 2081: clearing -> falling, level 1, score 400, board tick 2077
+# update 2109: falling -> playing, level 1, score 400, board tick 2105
+# update 2109: move 18: (4,3)->(4,2) valid, drag
+2131 down 438 191
+2132 move 435 174
+# update 2132: playing -> swapping, level 1, score 400, board tick 2128
+2133 up 435 174
+# update 2167: swapping -> clearing, level 1, score 420, board tick 2163
+# update 2186: clearing -> falling, level 1, score 420, board tick 2182
+# update 2214: falling -> playing, level 1, score 420, board tick 2210
+# update 2214: move 19: (2,2)->(2,1) valid, drag
+2227 down 327 136
+2228 move 326 100
+# update 2228: playing -> swapping, level 1, score 420, board tick 2224
+2229 up 326 100
+# update 2263: swapping -> clearing, level 1, score 440, board tick 2259
+# update 2282: clearing -> falling, level 1, score 440, board tick 2278
+# update 2310: falling -> playing, level 1, score 440, board tick 2306
+# update 2310: move 20: (1,2)->(1,1) valid, zone click
+2322 click 276 150
+2328 click 277 92
+# update 2328: playing -> swapping, level 1, score 440, board tick 2324
+# update 2363: swapping -> clearing, level 1, score 460, board tick 2359
+# update 2381: clearing -> falling, level 1, score 460, board tick 2377
+# update 2394: select (1,6) while falling
+2396 click 278 346
+# update 2429: falling -> playing, level 1, score 460, board tick 2425
+# update 2429: move 21: selected (1,6) -> (1,5)
+2452 click 271 300
+# update 2452: playing -> swapping, level 1, score 460, board tick 2448
+# update 2487: swapping -> swapping back, level 1, score 460, board tick 2483
+# update 2523: swapping back -> playing, level 1, score 460, board tick 2519
+# update 2523: move 22: (0,0)->(1,0) valid, click
+2562 click 220 41
+2570 click 275 34
+# update 2570: playing -> swapping, level 1, score 460, board tick 2566
+# update 2605: swapping -> clearing, level 1, score 480, board tick 2601
+# update 2624: clearing -> falling, level 1, score 480, board tick 2620
+# update 2672: falling -> fall out, level 1, score 480, board tick 2668
+2700 screenshot shots/t01_fall_out.png
+# update 2742: select (6,0) while fall out
+2744 click 533 40
+2746 screenshot shots/t02_selected_while_falling_out.png
+# update 2956: fall out -> falling, level 1, score 480, board tick 2952
+2960 screenshot shots/t03_new_board_stale_selection.png
+# update 3103: falling -> playing, level 1, score 480, board tick 3099
+# update 3103: move 23: selected (6,0) (stale) -> (6,1)
+3111 click 525 88
+# update 3111: playing -> swapping, level 1, score 480, board tick 3107
+3125 screenshot shots/t04_swap_with_stale_gem.png
+# update 3146: swapping -> swapping back, level 1, score 480, board tick 3142
+3160 screenshot shots/t05_stale_swap_back.png
+# update 3182: swapping back -> playing, level 1, score 480, board tick 3178
+# update 3182: move 24: (4,2)->(4,1) random, click
+3190 screenshot shots/t06_stale_gem_back_in_grid.png
+3192 click 423 146
+3210 click 431 97
+# update 3210: playing -> swapping, level 1, score 480, board tick 3206
+# update 3245: swapping -> swapping back, level 1, score 480, board tick 3241
+# update 3281: swapping back -> playing, level 1, score 480, board tick 3277
+# update 3281: move 25: (4,4)->(4,5) random, click
+3320 click 437 252
+3342 click 433 298
+# update 3342: playing -> swapping, level 1, score 480, board tick 3338
+# update 3377: swapping -> swapping back, level 1, score 480, board tick 3373
+# update 3413: swapping back -> playing, level 1, score 480, board tick 3409
+# update 3413: move 26: (2,4)->(1,4) valid, drag
+3445 down 330 241
+3447 move 295 242
+# update 3447: playing -> swapping, level 1, score 480, board tick 3443
+3448 up 295 242
+# update 3482: swapping -> clearing, level 1, score 500, board tick 3478
+# update 3500: clearing -> falling, level 1, score 500, board tick 3496
+# update 3548: falling -> playing, level 1, score 500, board tick 3544
+# update 3548: move 27: (7,2)->(7,3) random, click
+3559 click 586 138
+3564 click 588 199
+# update 3564: playing -> swapping, level 1, score 500, board tick 3560
+# update 3599: swapping -> swapping back, level 1, score 500, board tick 3595
+# update 3635: swapping back -> playing, level 1, score 500, board tick 3631
+# update 3635: move 28: (1,2)->(0,2) valid, click
+3678 click 280 140
+3691 click 233 136
+# update 3691: playing -> swapping, level 1, score 500, board tick 3687
+# update 3726: swapping -> clearing, level 1, score 580, board tick 3722
+# update 3743: clearing -> falling, level 1, score 580, board tick 3739
+# update 3799: falling -> playing, level 1, score 580, board tick 3795
+# update 3799: move 29: (2,5)->(3,5) valid, click
+# update 3800: playing -> vortex, level 1, score 580, board tick 3796
+# update 3829: plan dropped (vortex)
+3900 screenshot shots/t07_timed_vortex.png
+# update 4053: vortex -> level wipe, level 1, score 580, board tick 4049
+4100 screenshot shots/t08_level_wipe.png
+# update 4214: level wipe -> falling, level 2, score 580, board tick 4210
+# update 4355: falling -> playing, level 2, score 580, board tick 4351
+# update 4355: move 30: (3,3)->(3,2) valid, click
+4360 screenshot shots/t09_timed_level2.png
+4390 click 373 185
+4402 click 374 135
+# update 4402: playing -> swapping, level 2, score 580, board tick 4398
+# update 4437: swapping -> clearing, level 2, score 605, board tick 4433
+# update 4454: clearing -> falling, level 2, score 605, board tick 4450
+# update 4502: falling -> playing, level 2, score 605, board tick 4498
+# update 4502: move 31: (2,6)->(2,7) valid, drag
+4520 down 327 339
+4522 move 325 369
+# update 4522: playing -> swapping, level 2, score 605, board tick 4518
+4523 up 325 369
+# update 4557: swapping -> clearing, level 2, score 630, board tick 4553
+4600 screenshot shots/t10_level2_moves.png
+4700 quit
