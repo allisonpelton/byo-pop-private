@@ -221,7 +221,7 @@ public:
 	bool			mUserSeeded;            // a seed the player chose (-gameseed, ?seed=): the "-seeded" high-score table
 	bool			mRanked;                // a ranked online game (stage 14); always false for now
 	uint32_t		mBoardDraws;            // Board::Rand() calls (for spotting outside draws, stage 3)
-	bool			mTakesPendingSeed;      // seeded with GameConfig::mPendingSeed: the first tick uses it up (4.10)
+	bool			mTakesPendingSeed;      // seeded with GameConfig::mPendingSeed, unplayed: a matching swap or a game over uses it up (4.10)
 
 public:
 	int				GetColX(int theCol);                            // 0x4c9b25 theCol*51 + 203 (thiscall in the binary, this unused; port(variant): a member, + mLayout.mOriginX)
@@ -275,7 +275,7 @@ public:
 	// port(variant): code mods (BoardVariant.cpp)
 	void			InitVariant();                                  // first in the ctor: rules, layout, flags, RNG
 	static VariantFlags ComputeVariantFlags(const GameRules& theRules, const GameFeatures& theFeatures);
-	void			UsePendingSeed();                               // the first tick of a board seeded with the pending seed
+	void			UsePendingSeed();                               // a matching swap or a game over of a board that holds the pending seed
 	void			GameLoadedVariant();                            // the end of a LoadGame that succeeded
 
 	// port(variant): every draw of the translated code. Class scope finds it before Sexy::Rand, so the 9

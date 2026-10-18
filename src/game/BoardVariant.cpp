@@ -53,11 +53,16 @@ void Board::InitVariant()
 #endif
 }
 
-// The first tick of a board that got the pending seed (Board::Update, 0x4cdabc, after its pause checks):
-// the seed has been played, so the next new game no longer gets it. A board replaced before it ever ran
-// (the first of the double NewGame in TitleScreenIsFinished) or one that resumed a save leaves it pending.
+// A seed the player chose stays pending until a game on it is played (docs/CODE_MODS_DESIGN.md 4.10, the
+// user's decision of 2026-10-18): the board that got it uses it up with its first swap that makes a match
+// (UpdateSwap, 0x4cd84f, where mIsNewGame is cleared) or its game over (GameOver, 0x4c9b47; not the one
+// RequestNewGame starts, which clears mTakesPendingSeed first). Until then every board that replaces it
+// gets the seed again: the second of the double NewGame in TitleScreenIsFinished, a mode switch, New Game.
+// A board that resumed a save (GameLoadedVariant) never uses it up.
 void Board::UsePendingSeed()
 {
+	if (!mTakesPendingSeed)
+		return;
 	mTakesPendingSeed = false;
 	if (gGameConfig.mPendingSeed == mGameSeed)
 		gGameConfig.mPendingSeed = 0;

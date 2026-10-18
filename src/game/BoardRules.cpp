@@ -63,11 +63,13 @@ void Board::GameOver(int theShakeTicks)
 	mGameDuration = (int)((uint)(mUpdateCnt - mPlayStartTick) / 100) + mPlaySeconds;
 	mGameOverCountdown = theShakeTicks;
 	mApp->mTimesPlayed++;
+	UsePendingSeed(); // port(variant): a game over uses up a seed the player chose (BoardVariant.cpp)
 }
 
 // 0x4c9bab
 void Board::RequestNewGame()
 {
+	mTakesPendingSeed = false; // port(variant): New Game is no game over: an unplayed seed goes on to the next board
 	GameOver(50);
 	mNewGamePending = true;
 }

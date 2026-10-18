@@ -10,7 +10,9 @@
 //   -forcevariant    test hook: every board takes its generalised code paths at default rules
 //                    (GameConfig::mForceVariant; nothing reads them yet in stage 1)
 //   -gameseed=N      play the next game on seed N, 1..4294967295 (GameConfig::mPendingSeed; the web shell
-//                    passes ?seed=N this way); anything else is refused with exit status 2
+//                    passes ?seed=N this way); anything else is refused with exit status 2. Every new game
+//                    gets the seed until one is played on it (its first match or its game over), so a
+//                    mode switch or New Game before the first match starts on it again
 // Remaining "-key=value" arguments are passed to the app (SexyAppBase::HandleCmdLineParam), e.g. the
 // test hooks -seed=N, -script=<file>, -fast and -trace (see SexyAppBase.h) and the game's -tracehash
 // and -autoplay (see WinDMApp.h).

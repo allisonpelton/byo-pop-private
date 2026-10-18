@@ -1,8 +1,9 @@
 # Stage 2, run with -gameseed=N in a copy of main's user dir (main's normal-mode save): the double NewGame
 # gives both boards the pending seed, but the player resumes the save. The resumed game drops the seeded
-# RNG (for now: saves do not keep RNG state until stages 3 and 5) and does not use the seed up, so the next
+# RNG (for now: saves do not keep RNG state until stages 3 and 5) and never uses the seed up, so the next
 # new game, a timed one, gets it: its first board is MTRand(N)'s. No move is made: time up, game over at
-# 15572, the seeded table (score 0, no record dialog), and the SEED line on the timed game-over screen.
+# 15244 (which uses the seed up), the game-over screen at 15572 with the SEED line, and the seeded table
+# (score 0, no record dialog).
 300 click 320 398
 330 screenshot shots/s01_confirm_load.png
 # Yes: the save is resumed, unseeded

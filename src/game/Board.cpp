@@ -855,6 +855,7 @@ void Board::UpdateSwap()
 				mApp->mShowInstructions = false;
 			}
 			mIsNewGame = false;
+			UsePendingSeed(); // port(variant): the game has started: it uses up a seed the player chose (BoardVariant.cpp)
 		}
 		else if (mState == STATE_SWAPPING)
 		{
@@ -894,8 +895,6 @@ void Board::Update()
 		return;
 	if (mUserPauseCount > 0)
 		return;
-	if (mTakesPendingSeed) // port(variant): the first tick uses up the pending seed (BoardVariant.cpp)
-		UsePendingSeed();
 
 	if (mInputDelay > 0)
 		mInputDelay--;

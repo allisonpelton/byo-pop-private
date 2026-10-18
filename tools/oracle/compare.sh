@@ -39,6 +39,7 @@ CAND_EXE="$ROOT/build/native/bejeweled.exe"
 CAND_ARGS=()
 OUT="$ROOT/build/oracle"
 COMPARE_ONLY=0
+ARGS=("$@")  # for the re-run under rundesk below: the loop consumes them
 while [ $# -gt 0 ]; do
 	case "$1" in
 		--baseline) BASE_EXE="$2"; shift 2 ;;
@@ -62,7 +63,7 @@ if [ -z "${BEJ_TEST_DESKTOP:-}" ] && [ -z "${ORACLE_VISIBLE:-}" ]; then
 		exit 2
 	fi
 	export BEJ_TEST_DESKTOP=1
-	exec "$RUNDESK" bash "$0" "$@"
+	exec "$RUNDESK" bash "$0" "${ARGS[@]}"
 fi
 
 winpath() { if command -v cygpath > /dev/null 2>&1; then cygpath -m "$1"; else echo "$1"; fi; }
@@ -362,6 +363,17 @@ seeded seed_highscores "-gameseed=$GS: Options -> High Scores mid-game (a global
 	"boards=user;gameseed=$GS" 1 "$S2/seed_highscores.txt" arg=-gameseed=$GS
 cross seed_highscores.nodialog samegrids "seed_highscores without the dialog: the same settled boards" \
 	"ref=seed_highscores;after=720;table=hiscores-seeded.dat" 1 "$S2/seed_highscores_nodialog.txt" arg=-gameseed=$GS
+# the seed stays pending until a game on it is played: the first swap that makes a match, or a game over
+# (docs/CODE_MODS_DESIGN.md 4.10, the user's decision of 2026-10-18). Until then a mode switch or New Game
+# starts on it again
+seeded seed_timed "-gameseed=$GS, Timed before any move: a timed game on the seed to time up (SEED line, seeded table); play again is unseeded" \
+	"boards=user,user,-;gameseed=$GS;shot=shots/t03_timed_game_over.png" 1 "$S2/seed_timed.txt" arg=-gameseed=$GS
+seeded seed_match_timed "-gameseed=$GS: a match plays the seed, so Timed after it and Normal after that are unseeded" \
+	"boards=user,-,-;gameseed=$GS" 1 "$S2/seed_match_timed.txt" arg=-gameseed=$GS
+seeded seed_nomatch_timed "-gameseed=$GS: a swap without a match leaves the seed pending: Timed is seeded, and its match uses the seed up" \
+	"boards=user,user,-;gameseed=$GS" 1 "$S2/seed_nomatch_timed.txt" arg=-gameseed=$GS
+seeded seed_newgame "-gameseed=$GS: New Game on the untouched board starts the seed again; after a match New Game is unseeded" \
+	"boards=user,user,-;gameseed=$GS" 1 "$S2/seed_newgame.txt" arg=-gameseed=$GS
 # -gameseed values main.cpp must refuse, and docs/CODE_MODS_DESIGN.md 6.1 rule 1 on the sources
 printf '%s\t%s\t%s\t\n' gameseed_cli cli "-gameseed=0, out of range, signed, not a number or empty: refused before the game starts" >> "$OUT/cases.txt"
 mkdir -p "$OUT/candidate/gameseed_cli"

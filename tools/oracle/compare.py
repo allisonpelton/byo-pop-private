@@ -60,13 +60,14 @@ Cross-checks (cases.txt kinds; the case name gives the related case), all on can
               the RulesId that -dumprules (dumprules.txt) prints. With "boards=" flags, the seed checks too.
   repeat      <case>.repeat: the same run again must be identical (exit, logs, hash.txt, user dir, shots)
 Set seed (stage 2; the baselines do not know -gameseed, so candidate runs; cases.txt flags "k=v;k=v"):
-  seeded      the boards of the run, from its TRACE lines (a board starts where the board tick drops), must
-              be "boards=" (per board "user", "pergame" or "-" for none, from the "TRACE   seed" line);
-              each seeded board's first settle must be the board Board::Board fills from MTRand(seed)
-              (the model below), a "user" seed must be "gameseed=", and a "pergame" seed must be a draw of
-              the global stream MTRand(-seed) ("rngseed="), at increasing positions. "shot=" (a game-over
-              screenshot 59 updates in) must show text in the SEED line's band, "plainshot=" (another
-              case's, unseeded, same timing) none; "differs=<case>": its first board differs from that one
+  seeded      the boards of the run, from its TRACE lines and hash.txt (a board starts where hash.txt shows
+              one created or the board tick stops growing, see trace_boards), must be "boards=" (per board
+              "user", "pergame" or "-" for none, from the "TRACE   seed" line); each seeded board's first
+              settle must be the board Board::Board fills from MTRand(seed) (the model below), a "user" seed
+              must be "gameseed=", and a "pergame" seed must be a draw of the global stream MTRand(-seed)
+              ("rngseed="), at increasing positions. "shot=" (a game-over screenshot 59 updates in) must
+              show text in the SEED line's band, "plainshot=" (another case's, unseeded, same timing) none;
+              "differs=<case>": its first board differs from that one
   sameboard   <case>.seed2 (flags "ref=<case>"): the same -gameseed run with another -seed: stdout.txt and
               the board-state and LOGIC columns of hash.txt identical, the FULL column (which hashes the
               global RNG state) different somewhere, user dir identical: the board stream ignores -seed
@@ -109,6 +110,7 @@ import zlib
 STATE_NAMES = ["falling", "playing", "swapping", "swapping back", "clearing", "game over", "game over done",
                "vortex", "level wipe", "fall out"]
 EVENT_STATES = {5: "game_over", 6: "game_over_done", 7: "vortex", 8: "level_wipe", 9: "fall_out"}
+REFILL_STATES = (0, 4, 8, 9)  # a board goes on falling, or refills, from these (UpdateClearing, FillBoard)
 HOOK_FILES = ("hash.txt", "autoplay.txt")
 RUN_FILES = ("script.txt", "stdout.txt", "stderr.txt", "exit.txt", "modsdir-changed.txt")
 WALL_CLOCK = [(re.compile(r"Seconds = [0-9.e+-]+"), "Seconds = *"),
@@ -498,20 +500,52 @@ def trace_settles(stdout):
     return settles
 
 
-def trace_boards(stdout):
-    """The boards of a -trace run in order: a settle starts a new board when the board tick drops (a new or
-    a resumed board counts from 0), or the mode or the seed differ from the board before (a resumed board
-    settles at tick 1, the next one later). Per board its first settle: update, mode, tick, grid, seed,
+def hash_board_starts(run):
+    """The updates at which the run's hash.txt shows a new board: the state becomes falling (Board::Board
+    ends in FillBoard) straight from one no board refills from (REFILL_STATES): none, playing, swapping,
+    swapping back, game over (New Game), game over done (play again) or vortex. Empty without hash.txt."""
+    path = os.path.join(run, "hash.txt")
+    starts = []
+    last = -1
+    for line in (read_lines(path) if os.path.exists(path) else []):
+        parts = line.split()
+        if len(parts) < 2:
+            continue
+        state = int(parts[1])
+        if state == 0 and last not in REFILL_STATES:
+            starts.append(int(parts[0]))
+        last = state
+    return starts
+
+
+def trace_boards(stdout, starts=()):
+    """The boards of a -trace run in order: a settle starts a new board when one was created since the
+    settle before (starts, from hash_board_starts), when the board tick does not grow (a new or a resumed
+    board counts from 0, and one board never settles twice in a tick: a board that replaces an untouched
+    one on the same seed settles at the same tick), or when the mode or the seed differ from the board
+    before (a resumed board settles at tick 1, the next one later). The tick alone misses a new unseeded
+    board that settles later than the untouched one it replaces in the same mode (first settles vary,
+    ticks 130..155 or so); starts miss a board created while the one before was falling, clearing or
+    refilling, which only a mode switch can do (the mode differs): a new board in the same mode comes
+    from game over (New Game, play again). Per board its first settle: update, mode, tick, grid, seed,
     kind."""
     boards = []
+    last_update = -1
     for settle in trace_settles(stdout):
         last = boards[-1] if boards else None
-        if (last is None or settle["tick"] < last["last tick"] or settle["mode"] != last["mode"] or
+        created = any(last_update < update <= settle["update"] for update in starts)
+        if (last is None or created or settle["tick"] <= last["last tick"] or settle["mode"] != last["mode"] or
                 (settle["seed"], settle["kind"]) != (last["seed"], last["kind"])):
             boards.append(dict(settle))
             last = boards[-1]
         last["last tick"] = settle["tick"]
+        last_update = settle["update"]
     return boards
+
+
+def run_boards(run):
+    """trace_boards of a run directory, with its hash.txt"""
+    return trace_boards(run_stdout(run), hash_board_starts(run))
 
 
 def parse_flags(flags):
@@ -531,7 +565,7 @@ def run_stdout(run):
 
 def seed_facts(run, flags):
     """The "seeds" fact, or None when no board of the run has its own RNG"""
-    boards = trace_boards(run_stdout(run))
+    boards = run_boards(run)
     if not any(b["seed"] is not None for b in boards):
         return None
     rngseed = parse_flags(flags).get("rngseed")
@@ -564,7 +598,7 @@ def seed_check(r, cand, run, flags, label):
     """The "seeded" checks (module comment) of one candidate run"""
     before = r.failures
     f = parse_flags(flags)
-    boards = trace_boards(run_stdout(run))
+    boards = run_boards(run)
     kinds = [b["kind"] or "-" for b in boards]
     if "boards" in f and kinds != f["boards"].split(","):
         r.fail("%s: boards %s, expected %s" % (label, ",".join(kinds) or "(none)", f["boards"]))
@@ -604,7 +638,7 @@ def seed_check(r, cand, run, flags, label):
             notes.append("none in the unseeded %s" % f["plainshot"])
     if "differs" in f:
         mine = [b for b in boards if b["seed"] is not None]
-        theirs = [b for b in trace_boards(run_stdout(os.path.join(cand, f["differs"]))) if b["seed"] is not None]
+        theirs = [b for b in run_boards(os.path.join(cand, f["differs"])) if b["seed"] is not None]
         if not mine or not theirs or mine[0]["grid"] == theirs[0]["grid"]:
             r.fail("%s: the first seeded board does not differ from %s's" % (label, f["differs"]))
         else:

@@ -414,6 +414,50 @@ seed_highscores states none
 seed_highscores save savegame.dat v1 normal level 0 (shown 1), 64 gems, state 1 (playing), score 30, play seconds 7, 7873 bytes
 seed_highscores seeds 449:4242/user
 
+seed_timed exit 0
+seed_timed mods none
+seed_timed user hiscores-seeded.dat registry.ini
+seed_timed settle 449 normal level 1 score 0 board tick 150
+seed_timed settle 609 timed level 1 score 0 board tick 150
+seed_timed settle 15876 timed level 1 score 0 board tick 141
+seed_timed states 15254:game_over 15586:game_over_done
+seed_timed save none
+seed_timed seeds 449:4242/user 609:4242/user 15876:-
+
+seed_match_timed exit 0
+seed_match_timed mods none
+seed_match_timed user registry.ini savegame.dat
+seed_match_timed settle 449 normal level 1 score 0 board tick 150
+seed_match_timed settle 553 normal level 1 score 10 board tick 254
+seed_match_timed settle 764 timed level 1 score 0 board tick 145
+seed_match_timed settle 938 normal level 1 score 0 board tick 139
+seed_match_timed states none
+seed_match_timed save savegame.dat v1 normal level 0 (shown 1), 64 gems, state 1 (playing), score 10, play seconds 3, 7873 bytes
+seed_match_timed seeds 449:4242/user 764:- 938:-
+
+seed_nomatch_timed exit 0
+seed_nomatch_timed mods none
+seed_nomatch_timed user registry.ini savegame.dat
+seed_nomatch_timed settle 449 normal level 1 score 0 board tick 150
+seed_nomatch_timed settle 532 normal level 1 score 0 board tick 233
+seed_nomatch_timed settle 709 timed level 1 score 0 board tick 150
+seed_nomatch_timed settle 843 timed level 1 score 20 board tick 284
+seed_nomatch_timed settle 1064 normal level 1 score 0 board tick 145
+seed_nomatch_timed states none
+seed_nomatch_timed save savegame.dat v1 timed level 0 (shown 1), 64 gems, state 1 (playing), score 20, play seconds 3, 7873 bytes
+seed_nomatch_timed seeds 449:4242/user 709:4242/user 1064:-
+
+seed_newgame exit 0
+seed_newgame mods none
+seed_newgame user registry.ini
+seed_newgame settle 449 normal level 1 score 0 board tick 150
+seed_newgame settle 804 normal level 1 score 0 board tick 150
+seed_newgame settle 932 normal level 1 score 10 board tick 278
+seed_newgame settle 1343 normal level 1 score 0 board tick 145
+seed_newgame states 480:game_over 1020:game_over
+seed_newgame save none
+seed_newgame seeds 449:4242/user 804:4242/user 1343:-
+
 autoplay_normal exit 0
 autoplay_normal mods none
 autoplay_normal user hiscores.dat registry.ini

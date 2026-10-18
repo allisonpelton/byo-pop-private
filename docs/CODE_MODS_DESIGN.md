@@ -276,8 +276,8 @@ Kinds of change:
 |---|---|---|---|
 | `Piece::Piece` | 0x4c9aec | none | The memset covers the new tail. |
 | `GetColX`, `GetRowY` | 0x4c9b25, 0x4c9b37 | L | Static becomes member (`this` is unused in the binary anyway): `theCol * CELL_SIZE + mLayout.mOriginX`. |
-| `GameOver` | 0x4c9b47 | R | `mRecorder->OnGameOver()` (result snapshot). |
-| `RequestNewGame` | 0x4c9bab | R | `NEW_GAME` event. |
+| `GameOver` | 0x4c9b47 | H, R | `UsePendingSeed();` (stage 2: a game over uses up a seed the player chose, 4.10). `mRecorder->OnGameOver()` (result snapshot). |
+| `RequestNewGame` | 0x4c9bab | H, R | First line: `mTakesPendingSeed = false;` (stage 2: New Game is no game over for the seed, 4.10). `NEW_GAME` event. |
 | `IsGameInProgress` | 0x4c9bbe | H | `if (mPlaybackOnly) return false;` Covers both checks in `~Board`, `Shutdown`, `GetShutdownSaves` and `ConfirmQuit`. |
 | `Pause`, `Unpause` | 0x4c9bda, 0x4c9c2d | R | `PAUSE u` / `UNPAUSE u`. Calls nested inside `SaveGame` are suppressed, because the `SAVE` event replays them. |
 | `GetPieceAt` | 0x4c9c7c | B | Logical coordinates, so `GEM_SIZE` stays. |
@@ -312,7 +312,7 @@ Kinds of change:
 | `~Board` | 0x4cd1ba | B, R | `mRecorder->OnBoardDestroyed()` (finalises the replay). |
 | `ProcessMatches` | 0x4cd287 | B, H | First line: `if (mVariant.mMatch) return ProcessMatchesVariant();` Bounds: `aLines = aPass ? mRows : mCols`, `aLen = aPass ? mCols : mRows`, `j != aLen - 1`. |
 | `UpdateFalling` | 0x4cd687 | B, N, H | `if (aPiece == NULL) continue;` (holes). No-moves branch: `if (mVariant.mNoMoves) OnNoMovesVariant(); else if (mTimedMode) ...` |
-| `UpdateSwap` | 0x4cd84f | H | Swap back only `if ((mState == STATE_SWAPPING) && !mRules.mMoves.mAllowInvalid)`. New `else if (mState == STATE_SWAPPING) KeepInvalidMove();` In the final `else` (swap-back done): `if (mVariant.mUndo) mUndo.PopLast();` |
+| `UpdateSwap` | 0x4cd84f | H | After `mIsNewGame = false;`: `UsePendingSeed();` (stage 2, 4.10). Swap back only `if ((mState == STATE_SWAPPING) && !mRules.mMoves.mAllowInvalid)`. New `else if (mState == STATE_SWAPPING) KeepInvalidMove();` In the final `else` (swap-back done): `if (mVariant.mUndo) mUndo.PopLast();` |
 | `Update` | 0x4cdabc | H, R | Top: `if (mRecorder) mRecorder->SyncExternalRand();` Drain predicate adds `\|\| IsVariantMoveState(mState)`. After the bar clamp: `if (mVariant.mGold) aTargetWidth = GoldBarTarget();` Level block: `if (mVariant.mGold) UpdateGoldGoal(); else if (mState == STATE_PLAYING) { original }` New `case`s 10..13. After the switch: `if (mRecorder) mRecorder->AfterUpdate();` (CHECK at settle). The tick-150 block is untouched. |
 
 New states, which never occur under the original rules:
@@ -833,12 +833,29 @@ The RNG model is in 6.2.
 - `?seed=N` on the web (the shell passes `-gameseed=N`; digits only);
 - the Extras dialog field (`features.seeds.entry`).
 
-**When the pending seed is used:**
-- `NewGame` gives the pending seed to every board it creates.
-- The seed is consumed when such a board first runs an `Update` without having loaded a save.
-- So both boards of the double `NewGame` in `TitleScreenIsFinished` get it, and the surviving one
-  plays it.
-- Later games get per-game seeds (with `perGame`), or the original stream (without it).
+**When the pending seed is used** (the user's decision of 2026-10-18: a chosen seed waits until the
+player actually starts playing, so switching to Timed straight away still plays it):
+- `NewGame` gives the pending seed to every board it creates (`mTakesPendingSeed`).
+- The seed is used up (`Board::UsePendingSeed`) when a game on it is played:
+  - at the board's first swap that makes a match: `UpdateSwap`, where `mIsNewGame` is cleared, the
+    same moment that decides whether quitting saves the game;
+  - or at its game over: `GameOver`, the one entry to `STATE_GAME_OVER` (no moves in Normal mode,
+    time up). A timed game can run out without any move.
+- New Game is no game over: `RequestNewGame` clears `mTakesPendingSeed` before its `GameOver(50)`.
+- Until then every board that replaces the untouched one gets the seed again: the second board of
+  the double `NewGame` in `TitleScreenIsFinished`, a mode switch (which needs no confirmation while
+  `mIsNewGame` is set), and New Game. A swap that makes no match does not count.
+- A board that resumes a save never uses the seed up (it plays unseeded until stage 3, GAME_NOTES
+  12.3), so the next new game gets it.
+- A timed fall-out is not a game over: the game goes on with a refilled board. It also cannot come
+  before the first match, because the constructor's board always has a move, and only a match's
+  refill can leave none.
+- Later paths that clear `mIsNewGame` (a kept invalid move, 4.1; twist and slide matches, 4.4,
+  4.5) call `UsePendingSeed()` there too.
+- Once the seed is used up, later games get per-game seeds (with `perGame`), or the original
+  stream (without it).
+- Oracle cases: `seed_timed`, `seed_match_timed`, `seed_nomatch_timed`, `seed_newgame` (with
+  `seed_start` and `seed_resume`).
 
 **Display:**
 - For every owned-RNG game, `HighScoreWidget::Draw` shows "SEED n" (mainfont, about y = 120,
@@ -1571,6 +1588,9 @@ owned RNG.
   falling gems, and let gems fall diagonally, alternating left and right (Jewel Quest). See 4.14
   and stage 7b.
 - **Q8, special gems:** Bejeweled 2 rules, including cascades.
+- **Seed timing** (asked after stage 2: should a chosen seed wait until you actually start
+  playing?): yes. A chosen seed stays pending until the first move or game over, so switching to
+  Timed straight away still plays the seed. See 4.10.
 - **All other questions:** the recommendations in brackets below apply unless the user says
   otherwise.
 

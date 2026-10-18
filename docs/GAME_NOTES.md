@@ -1603,6 +1603,7 @@ per stage.
 |---|---|---|---|
 | 1 | 55 | 22 | `InitVariant()` in the ctor; loop bounds `BOARD_ROWS`/`BOARD_COLS`/8/7 → `mRows`/`mCols`; `BOARD_X`/`BOARD_Y` → `mLayout.mOriginX/Y` in `GetColX`/`GetRowY`; `mHeight` → `mLayout.mScreenBottom` (480) in `UpdateGameOver`/`UpdateFallOut`; `sizeof(Piece)` → `Piece::SAVE_SIZE` in the save |
 | 2 | 63 | 27 | Set seed (12.3): `ChooseBoardRng()` in `WinDMApp::NewGame`; `UsePendingSeed()` on the board's first tick in `Update` (after the pause checks); `GameLoadedVariant()` at the end of a successful `LoadGame`; `delete mOwnRng` in `~Board`; `HighScoreWidget`: the table file chosen in the ctor and used by `LoadHighScores`/`SaveHighScores`, the SEED line in `Draw`. The 9 `Rand()` draws keep their text: `Board::Rand()` hides `Sexy::Rand` by class scope |
+| 2, seed rule | 65 | 30 | The pending seed waits for play (12.3, the user's decision of 2026-10-18): `UsePendingSeed()` leaves `Update` for `UpdateSwap` (after `mIsNewGame = false`) and `GameOver`; `RequestNewGame` clears `mTakesPendingSeed` before its `GameOver(50)` |
 
 With the original rules every edited line computes what the original did: the board is 8x8, the layout
 is the original constants, and no hook reads the variant flags yet. `UpdateClearing`'s refill pass,
@@ -1638,13 +1639,18 @@ docs/CODE_MODS_DESIGN.md 4.10 and 6.2, as built:
      alone, keeps every game on the global stream;
   3. else the global stream. Tunables-only mods count as the original rules (`example-relaxed` plays as
      before).
-- **The pending seed.** NewGame gives it to every board it creates. The board's first tick (`Update`
-  past its pause checks) uses it up, so both boards of the startup double NewGame get it (4.2: the first
-  never ticks) and the second plays it. A board that resumes a save does not use it up: the next new
-  game gets it (resume, then a mode switch plays the seed in timed mode). So after a fresh start the
-  seed is always played in normal mode: the startup board ticks as soon as the title screen is gone, and
-  a Timed click on it starts an unseeded game (design 4.10's rule; a seeded timed game from a fresh start
-  needs a change to it, an open question). Seeds are 1..4294967295 (leading zeros allowed); main.cpp
+- **The pending seed** (design 4.10, the user's decision of 2026-10-18). NewGame gives it to every board
+  it creates (`mTakesPendingSeed`), until a game on it is played: the board uses it up
+  (`UsePendingSeed`) with its first swap that makes a match (`UpdateSwap`, where `mIsNewGame` is
+  cleared, the moment that also decides whether quitting saves the game) or at its game over
+  (`GameOver`: no moves in normal mode, time up; a timed game can run out without any move). New Game is
+  no game over: `RequestNewGame` clears `mTakesPendingSeed` before its `GameOver(50)`. Until then every
+  board that replaces the untouched one gets the seed again: the second board of the startup double
+  NewGame (4.2), a mode switch (Timed straight after a fresh start plays the seed; with `mIsNewGame` set
+  it needs no confirmation), New Game. A swap that makes no match leaves it pending. A board that
+  resumes a save never uses it up: the next new game gets it (resume, then a mode switch plays the seed
+  in timed mode). A timed fall-out is not a game over and cannot come before the first match (the
+  constructor's board always has a move). Seeds are 1..4294967295 (leading zeros allowed); main.cpp
   refuses anything else with exit status 2, the web shell starts without a seed and says so in its status
   line.
 - **Shown and kept apart.** The game-over screen of a board with its own RNG shows "SEED n" (mainfont,
@@ -1666,12 +1672,13 @@ docs/CODE_MODS_DESIGN.md 4.10 and 6.2, as built:
   too; only `mVariant.mOwnRng` reads false). `-trace` prints `TRACE   seed n user|pergame` after the rows
   of a board with its own RNG; `-tracehash` adds that RNG's state (seed, draw count, MT words and index)
   and a pending seed, only when present, so original games hash as before.
-- **Checks.** `tools/check_rng_use.py` (design 6.1 rule 1) and the oracle's stage-2 cases; `MTRand`
-  `GetState`/`SetState` round trips in `tools/rulestest`. `SetState` refuses an index outside 0..625 and
-  the all-zero state (every draw 0: `FillBoard` would never end), so a save's `RNGS` reader (stages 3
-  and 5) can treat `false` as a chunk error. `MTRand::Serialize()` keeps no index (a copy
-  made from it restarts at the next 624-word block); it stays as it is because the `-tracehash` FULL
-  hash hashes it.
+- **Checks.** `tools/check_rng_use.py` (design 6.1 rule 1) and the oracle's stage-2 cases (the pending
+  seed: `seed_start`, `seed_resume`, `seed_timed`, `seed_match_timed`, `seed_nomatch_timed`,
+  `seed_newgame`); `MTRand` `GetState`/`SetState` round trips in `tools/rulestest`. `SetState` refuses an
+  index outside 0..625 and the all-zero state (every draw 0: `FillBoard` would never end), so a save's
+  `RNGS` reader (stages 3 and 5) can treat `false` as a chunk error. `MTRand::Serialize()` keeps no index
+  (a copy made from it restarts at the next 624-word block); it stays as it is because the `-tracehash`
+  FULL hash hashes it.
 
 ---
 

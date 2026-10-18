@@ -59,9 +59,10 @@ struct GameConfig
 
 	// port(variant): set seed (docs/CODE_MODS_DESIGN.md 4.10, 6.2). mPendingSeed is a seed the player chose
 	// (-gameseed=N in main.cpp, ?seed=N on the web), 0 for none: every board NewGame creates gets it until
-	// one of them runs its first tick without having loaded a save (Board::UsePendingSeed). mNextBoardSeed
-	// is NewGame's choice for the board it is about to create (WinDMApp::ChooseBoardRng): 0 for the
-	// original global stream, else the board owns MTRand(mNextBoardSeed); Board::InitVariant takes it.
+	// a game on it is played, by its first swap that makes a match or its game over (Board::UsePendingSeed;
+	// a board that resumed a save does not count). mNextBoardSeed is NewGame's choice for the board it is
+	// about to create (WinDMApp::ChooseBoardRng): 0 for the original global stream, else the board owns
+	// MTRand(mNextBoardSeed); Board::InitVariant takes it.
 	uint32_t mPendingSeed = 0;
 	uint32_t mNextBoardSeed = 0;
 	bool mNextBoardUserSeeded = false;

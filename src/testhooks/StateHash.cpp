@@ -40,9 +40,9 @@
 // mShowInstructions and mTimesPlayed (both decide the tick-150 tutorial), the open dialog ids and whether
 // the game-over HighScoreWidget exists (they route and pause input); FULL adds the title screen.
 // port(variant), set seed (both hashes, after the rest): a pending seed the player chose, and a board's own
-// RNG (seed, the player's or not, whether its first tick uses up the pending seed, Board::Rand count,
-// MTRand state words and index). They are hashed only when present, so an original game, which has
-// neither, hashes as in the stage-0 build.
+// RNG (seed, the player's or not, whether it still holds the pending seed, Board::Rand count, MTRand state
+// words and index). They are hashed only when present, so an original game, which has neither, hashes as
+// in the stage-0 build.
 //
 // Portability: no pointer, padding or map-order dependence in LOGIC (its only libm-derived values are
 // swap positions, (int)-truncated), but nothing runs it on the web build yet: web/shell.html passes no
