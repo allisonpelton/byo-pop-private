@@ -1,6 +1,7 @@
 #include "ModManager.h"
 #include "ImageLoader.h"
 #include "VFS.h"
+#include "WebPersist.h"
 
 #include <SDL.h>
 #include <algorithm>
@@ -59,7 +60,7 @@ void ModManager::LoadManifest(ModInfo& theMod)
 	theMod.mAuthor = m["author"].AsString("");
 	theMod.mDescription = m["description"].AsString("");
 	theMod.mPriority = m["priority"].AsInt(0);
-	theMod.mAffectsScores = m["affectsScores"].AsBool(false) || m.Has("tunables");
+	theMod.mAffectsScores = m["affectsScores"].AsBool(false) || m.Has("tunables") || m.Has("rules");
 }
 
 void ModManager::Refresh()
@@ -211,10 +212,18 @@ void ModManager::Apply()
 	}
 	VFS::Get().SetRemaps(remaps);
 
+	// port(variant): a mod that replaces data/diff.txt (a file in the mod or a "files" remap) changes the
+	// level parameters, so it counts for the score key
+	std::string diffMod;
+	VFS::Get().Resolve("data/diff.txt", &diffMod);
+	mImageOps.clear();
+
 	// Data merges run lowest priority first so higher-priority mods win.
-	for (auto it = enabled.rbegin(); it != enabled.rend(); ++it)
+	for (auto it = mMods.rbegin(); it != mMods.rend(); ++it)
 	{
-		const ModInfo& m = **it;
+		ModInfo& m = *it;
+		if (!m.mEnabled)
+			continue;
 		const JsonValue& man = m.mManifest;
 		if (man["imageScale"].AsInt(1) > 1)
 			SetModDefaultImageScale(m.mId, man["imageScale"].AsInt(1));
@@ -263,8 +272,12 @@ void ModManager::Apply()
 		}
 
 		const JsonValue& tun = man["tunables"];
+		m.mTunablesJson = JsonValue();
 		if (tun.IsObject())
+		{
 			FlattenInto(tun, "");
+			m.mTunablesJson = tun;
+		}
 		else if (tun.IsString())
 		{
 			std::string p = VFS::FindCaseInsensitive(m.mPath, tun.AsString());
@@ -272,11 +285,45 @@ void ModManager::Apply()
 			JsonValue t;
 			std::string err;
 			if (!p.empty() && ReadTextFile(p, text) && ParseJson(text, t, &err))
+			{
 				FlattenInto(t, "");
+				m.mTunablesJson = t;
+			}
 			else
 				SDL_Log("mod %s: cannot read tunables %s %s", m.mId.c_str(), tun.AsString().c_str(), err.c_str());
 		}
-		if (m.mAffectsScores)
+
+		// port(variant): "rules" (inline, or a JSON file in the mod like "tunables"), "features" and
+		// "imageOps"; GameConfig::Load merges the rules and features (game/GameRules.h)
+		m.mHasRules = man.Has("rules");
+		m.mHasFeatures = man.Has("features");
+		m.mHasImageOps = man.Has("imageOps");
+		m.mOverridesDiff = !diffMod.empty() && (diffMod == m.mId);
+		m.mRulesJson = man["rules"];
+		m.mRulesError.clear();
+		if (m.mRulesJson.IsString())
+		{
+			std::string name = m.mRulesJson.AsString();
+			std::string p = VFS::FindCaseInsensitive(m.mPath, name);
+			std::string text;
+			JsonValue r;
+			std::string err;
+			if (p.empty())
+				m.mRulesError = "rules file " + name + ": not found";
+			else if (!ReadTextFile(p, text))
+				m.mRulesError = "rules file " + name + ": cannot be read";
+			else if (!ParseJson(text, r, &err))
+				m.mRulesError = "rules file " + name + ": " + err;
+			else
+				m.mRulesJson = r;
+			if (!m.mRulesError.empty())
+				SDL_Log("mod %s: %s", m.mId.c_str(), m.mRulesError.c_str());
+		}
+		m.mFeaturesJson = man["features"];
+		for (const JsonValue& op : man["imageOps"].Items())
+			mImageOps.push_back({m.mId, op});
+
+		if (m.AffectsScores())
 			scoreMods.push_back(m.mId + "@" + m.mVersion);
 	}
 
@@ -328,6 +375,43 @@ std::vector<double> ModManager::GetTunableArray(const std::string& theKey, const
 	for (const JsonValue& v : it->second.Items())
 		out.push_back(v.AsNumber());
 	return out.empty() ? theDefault : out;
+}
+
+bool ModManager::HasRulesOrFeatures() const
+{
+	for (const ModInfo* m : GetEnabledMods())
+		if (m->mHasRules || m->mHasFeatures)
+			return true;
+	return false;
+}
+
+void ModManager::WriteStatus(const std::string& theText)
+{
+	std::string path = VFS::Get().GetUserDir() + "/mods-status.json";
+	if (theText.empty())
+	{
+		mStatusWritten.clear();
+		// Only a stale file from an earlier start is removed: a user dir without one stays untouched
+		if (IsFile(path))
+		{
+			remove(path.c_str());
+			SyncUserData();
+		}
+		return;
+	}
+	if (theText == mStatusWritten)
+		return;
+	MakeDirs(VFS::Get().GetUserDir());
+	FILE* f = fopen(path.c_str(), "wb");
+	if (!f)
+	{
+		SDL_Log("mods: cannot write %s", path.c_str());
+		return;
+	}
+	fwrite(theText.data(), 1, theText.size(), f);
+	fclose(f);
+	mStatusWritten = theText;
+	SyncUserData();
 }
 
 std::string ModManager::GetSummary() const

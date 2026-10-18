@@ -1,5 +1,7 @@
+// GameConfig (GameConfig.h), the framework-free half. port(variant): split; the half that reads the mods is
+// GameConfigMods.cpp
+
 #include "GameConfig.h"
-#include "../platform/ModManager.h"
 
 #include <algorithm>
 
@@ -15,35 +17,20 @@ int GameConfig::SetValue(int theRunNumber) const
 	return mSetValues[std::min(anIndex, (int)mSetValues.size() - 1)];
 }
 
-void GameConfig::Load()
+void GameConfig::LoadFromRules(const GameRules& theRules)
 {
-	const Platform::ModManager& aMods = Platform::ModManager::Get();
-	GameConfig aDefaults;
-
-	std::vector<double> aDefaultSets(aDefaults.mSetValues.begin(), aDefaults.mSetValues.end());
-	std::vector<double> aSets = aMods.GetTunableArray("scoring.setValues", aDefaultSets);
-	mSetValues.assign(aSets.begin(), aSets.end());
-	mLengthBonus = aMods.GetTunableInt("scoring.lengthBonus", aDefaults.mLengthBonus);
-	mLongLengthBonus = aMods.GetTunableInt("scoring.longLengthBonus", aDefaults.mLongLengthBonus);
-	mExcellentFactor = aMods.GetTunable("scoring.excellentFactor", aDefaults.mExcellentFactor);
-	mHintPenalty = aMods.GetTunable("scoring.hintPenalty", aDefaults.mHintPenalty);
+	const GameRules::TunableRules& aTunables = theRules.mTunables;
+	mSetValues = aTunables.mSetValues;
+	mLengthBonus = aTunables.mLengthBonus;
+	mLongLengthBonus = aTunables.mLongLengthBonus;
+	mExcellentFactor = aTunables.mExcellentFactor;
+	mHintPenalty = aTunables.mHintPenalty;
 	// The gem sheet has 7 colours. FillBoard rerolls a gem until it makes no 3-in-a-row; the two gems to
 	// its left and the two below can rule out two colours, so it needs at least 3 or it can loop forever.
-	mGemColors = std::max(3, std::min(7, aMods.GetTunableInt("board.gemColors", aDefaults.mGemColors)));
-	mStartDrainDelay = aMods.GetTunableInt("timing.startDrainDelay", aDefaults.mStartDrainDelay);
-	mLevelDrainDelay = aMods.GetTunableInt("timing.levelDrainDelay", aDefaults.mLevelDrainDelay);
-	mWarningFraction = aMods.GetTunable("timing.warningFraction", aDefaults.mWarningFraction);
-	mAnyModEnabled = !aMods.GetEnabledMods().empty();
-}
-
-std::string GameConfig::ScopedFileName(const std::string& theFileName)
-{
-	const std::string& aKey = Platform::ModManager::Get().GetScoreKey();
-	if (aKey.empty())
-		return theFileName;
-	size_t aDot = theFileName.find_last_of('.');
-	size_t aSlash = theFileName.find_last_of("/\\");
-	if (aDot == std::string::npos || (aSlash != std::string::npos && aDot < aSlash))
-		return theFileName + "-" + aKey;
-	return theFileName.substr(0, aDot) + "-" + aKey + theFileName.substr(aDot);
+	// port(variant): the rules allow up to 12 (GameRules::MAX_GEM_COLORS); until the extra gem art exists
+	// (docs/CODE_MODS_DESIGN.md 4.2, stage 8) the game keeps the old clamp at 7.
+	mGemColors = std::max(3, std::min(7, theRules.mBoard.mGemColors));
+	mStartDrainDelay = aTunables.mStartDrainDelay;
+	mLevelDrainDelay = aTunables.mLevelDrainDelay;
+	mWarningFraction = aTunables.mWarningFraction;
 }

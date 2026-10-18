@@ -225,8 +225,8 @@ void AutoplayBot::PlanMove()
 	for (size_t i = 0; i < aMoves.size(); )
 	{
 		int aMove = aMoves[i];
-		if ((OnBoard(Board::GetColX(aMove >> 9) + 24, Board::GetRowY((aMove >> 6) & 7) + 24)) &&
-			(OnBoard(Board::GetColX((aMove >> 3) & 7) + 24, Board::GetRowY(aMove & 7) + 24)))
+		if ((OnBoard(aBoard->GetColX(aMove >> 9) + 24, aBoard->GetRowY((aMove >> 6) & 7) + 24)) &&
+			(OnBoard(aBoard->GetColX((aMove >> 3) & 7) + 24, aBoard->GetRowY(aMove & 7) + 24)))
 			i++;
 		else
 			aMoves.erase(aMoves.begin() + i);
@@ -302,7 +302,7 @@ void AutoplayBot::PlanTarget(Piece* theSelected)
 	for (size_t i = 0; i < aTargets.size(); )
 	{
 		int aCell = aTargets[i];
-		if (OnBoard(Board::GetColX(aCell % Board::BOARD_COLS) + 24, Board::GetRowY(aCell / Board::BOARD_COLS) + 24))
+		if (OnBoard(aBoard->GetColX(aCell % Board::BOARD_COLS) + 24, aBoard->GetRowY(aCell / Board::BOARD_COLS) + 24))
 			i++;
 		else
 			aTargets.erase(aTargets.begin() + i);

@@ -47,6 +47,7 @@ Board::Board(WinDMApp* theApp, bool timedMode)
 {
 	// port: the original leaves these uninitialised; the cells must be NULL before the first FillBoard
 	memset(mBoard, 0, sizeof(mBoard));
+	InitVariant(); // port(variant): rules snapshot, layout and variant flags (BoardVariant.cpp)
 	mState = STATE_FALLING;
 	mSwapAngle = 0;
 	mSwapCenterX = 0;
@@ -176,9 +177,9 @@ void Board::UpdateBlackHole()
 	double aMaxRadiusBefore = 0.0;
 	double aMaxRadiusAfter = 0.0;
 	bool aDone = true;
-	for (int aRow = 0; aRow < BOARD_ROWS; aRow++)
+	for (int aRow = 0; aRow < mRows; aRow++) // port(variant): was BOARD_ROWS
 	{
-		for (int aCol = 0; aCol < BOARD_COLS; aCol++)
+		for (int aCol = 0; aCol < mCols; aCol++) // port(variant): was BOARD_COLS
 		{
 			Piece* aPiece = mBoard[aRow][aCol];
 			if (aPiece == NULL)
@@ -232,9 +233,9 @@ void Board::UpdateBlackHole()
 	{
 		mLevel++;
 		SetupLevel();
-		for (int aRow = 0; aRow < BOARD_ROWS; aRow++)
+		for (int aRow = 0; aRow < mRows; aRow++) // port(variant): was BOARD_ROWS
 		{
-			for (int aCol = 0; aCol < BOARD_COLS; aCol++)
+			for (int aCol = 0; aCol < mCols; aCol++) // port(variant): was BOARD_COLS
 			{
 				delete mBoard[aRow][aCol];
 				mBoard[aRow][aCol] = NULL;
@@ -445,9 +446,9 @@ bool Board::LoadGame()
 	mApp->SetTimedMode(ReadSaveBool(aBuffer), false);
 	aBuffer.ReadBytes((uchar*)&mLevel, 4);
 	aBuffer.ReadBytes((uchar*)&mDisplayLevel, 4);
-	for (int aRow = 0; aRow < BOARD_ROWS; aRow++)
+	for (int aRow = 0; aRow < mRows; aRow++) // port(variant): was BOARD_ROWS
 	{
-		for (int aCol = 0; aCol < BOARD_COLS; aCol++)
+		for (int aCol = 0; aCol < mCols; aCol++) // port(variant): was BOARD_COLS
 		{
 			delete mBoard[aRow][aCol];
 			uchar aPresent = 0;
@@ -458,7 +459,7 @@ bool Board::LoadGame()
 			{
 				// The whole struct is stored raw; only the position is snapped back to the grid
 				Piece* aPiece = new Piece();
-				aBuffer.ReadBytes((uchar*)aPiece, sizeof(Piece));
+				aBuffer.ReadBytes((uchar*)aPiece, Piece::SAVE_SIZE); // port(variant): was sizeof(Piece)
 				aPiece->mX = GetColX(aPiece->mCol);
 				aPiece->mY = GetRowY(aPiece->mRow);
 				mBoard[aRow][aCol] = aPiece;
@@ -546,15 +547,15 @@ void Board::WriteSaveGame(Buffer* theBuffer, int thePlaySeconds, int theState)
 	aBuffer.WriteBytes((const uchar*)&mTimedMode, 1);
 	aBuffer.WriteBytes((const uchar*)&mLevel, 4);
 	aBuffer.WriteBytes((const uchar*)&mDisplayLevel, 4);
-	for (int aRow = 0; aRow < BOARD_ROWS; aRow++)
+	for (int aRow = 0; aRow < mRows; aRow++) // port(variant): was BOARD_ROWS
 	{
-		for (int aCol = 0; aCol < BOARD_COLS; aCol++)
+		for (int aCol = 0; aCol < mCols; aCol++) // port(variant): was BOARD_COLS
 		{
 			Piece* aPiece = mBoard[aRow][aCol];
 			uchar aPresent = (aPiece != NULL) ? 1 : 0;
 			aBuffer.WriteBytes(&aPresent, 1);
 			if (aPresent != 0)
-				aBuffer.WriteBytes((const uchar*)aPiece, sizeof(Piece));
+				aBuffer.WriteBytes((const uchar*)aPiece, Piece::SAVE_SIZE); // port(variant): was sizeof(Piece)
 		}
 	}
 
@@ -611,9 +612,9 @@ Board::~Board()
 		mApp->mTimesPlayed++;
 
 	// port: the original leaks all pieces
-	for (int aRow = 0; aRow < BOARD_ROWS; aRow++)
+	for (int aRow = 0; aRow < mRows; aRow++) // port(variant): was BOARD_ROWS
 	{
-		for (int aCol = 0; aCol < BOARD_COLS; aCol++)
+		for (int aCol = 0; aCol < mCols; aCol++) // port(variant): was BOARD_COLS
 			delete mBoard[aRow][aCol];
 	}
 	for (size_t i = 0; i < mOrphanedPieces.size(); i++)
@@ -631,13 +632,15 @@ bool Board::ProcessMatches()
 	// a vertical and a horizontal run scores in both.
 	for (int aPass = 0; aPass < 2; aPass++)
 	{
-		for (int i = 0; i < 8; i++)
+		int aLines = (aPass == 0) ? mCols : mRows; // port(variant): was 8
+		int aLength = (aPass == 0) ? mRows : mCols; // port(variant): was 8
+		for (int i = 0; i < aLines; i++) // port(variant): was 8
 		{
 			int aColor = -1;
 			int aCount = 0;
 			int aStartCol = 0;
 			int aStartRow = 0;
-			for (int j = 0; j < 8; j++)
+			for (int j = 0; j < aLength; j++) // port(variant): was 8
 			{
 				int aCol = (aPass == 0) ? i : j;
 				int aRow = (aPass == 0) ? j : i;
@@ -645,7 +648,7 @@ bool Board::ProcessMatches()
 				if ((aPiece != NULL) && (aPiece->mColor == aColor))
 				{
 					aCount++;
-					if (j != 7)
+					if (j != aLength - 1) // port(variant): was 7
 						continue;
 				}
 
@@ -746,10 +749,10 @@ void Board::UpdateFalling()
 	int aLandedXSum = 0;
 	bool aSettled = true;
 	// The board is always full in this state
-	for (int aRow = 0; aRow < BOARD_ROWS; aRow++)
+	for (int aRow = 0; aRow < mRows; aRow++) // port(variant): was BOARD_ROWS
 	{
 		double aRestY = GetRowY(aRow);
-		for (int aCol = 0; aCol < BOARD_COLS; aCol++)
+		for (int aCol = 0; aCol < mCols; aCol++) // port(variant): was BOARD_COLS
 		{
 			Piece* aPiece = mBoard[aRow][aCol];
 			if (aPiece->mY == aRestY)
@@ -1079,9 +1082,9 @@ void Board::Update()
 		mCursorFrame++;
 	}
 
-	for (int aRow = 0; aRow < BOARD_ROWS; aRow++)
+	for (int aRow = 0; aRow < mRows; aRow++) // port(variant): was BOARD_ROWS
 	{
-		for (int aCol = 0; aCol < BOARD_COLS; aCol++)
+		for (int aCol = 0; aCol < mCols; aCol++) // port(variant): was BOARD_COLS
 		{
 			Piece* aPiece = mBoard[aRow][aCol];
 			if (aPiece == NULL)

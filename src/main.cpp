@@ -5,11 +5,16 @@
 //   -userdir=<dir>   writable folder for saves, settings and mods.json
 //   -modsdir=<dir>   folder containing mods (one sub-folder per mod)
 //   -nomods          start without any mods
+//   -dumprules       print the enabled mods' merged rules (canonical form as text), their RulesId and the
+//                    merge report, then exit (docs/CODE_MODS_DESIGN.md 3.7)
+//   -forcevariant    test hook: every board takes its generalised code paths at default rules
+//                    (GameConfig::mForceVariant; nothing reads them yet in stage 1)
 // Remaining "-key=value" arguments are passed to the app (SexyAppBase::HandleCmdLineParam), e.g. the
 // test hooks -seed=N, -script=<file>, -fast and -trace (see SexyAppBase.h) and the game's -tracehash
 // and -autoplay (see WinDMApp.h).
 
 #include "game/WinDMApp.h"
+#include "game/GameConfig.h"
 #include "platform/ModManager.h"
 #include "platform/VFS.h"
 #include "platform/WebPersist.h"
@@ -168,6 +173,16 @@ int main(int argc, char** argv)
 	if (!HasFlag(argc, argv, "nomods"))
 		Platform::ModManager::Get().Refresh();
 	SDL_Log("game: %s | user: %s | mods: %s", gameDir.c_str(), userDir.c_str(), modsDir.c_str());
+
+	// port(variant): code-mod test switches
+	if (HasFlag(argc, argv, "dumprules"))
+	{
+		printf("%s", GameConfig::DumpRules().c_str());
+		fflush(stdout);
+		return 0;
+	}
+	if (HasFlag(argc, argv, "forcevariant"))
+		gGameConfig.mForceVariant = true;
 
 	// The original keeps the app as a global object and calls Init, Start and Shutdown on it.
 	static WinDMApp* anApp = new WinDMApp();

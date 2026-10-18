@@ -1,0 +1,7 @@
+{
+  "id": "s1-features",
+  "name": "Stage 1: features",
+  "version": "1.0",
+  "description": "Oracle fixture: features only (replays and seeds), which do not count for the score key.",
+  "features": { "replays": { "keep": 5 }, "seeds": true }
+}

@@ -122,6 +122,7 @@ structs use a different base per class:
 - It leaves the padding (+0x04, +0x24, +0x39..+0x3f, +0x4d..+0x4f) and the vortex fields (+0x60, +0x68, +0x70) uninitialised.
 - The struct is written raw to savegame.dat (0x78 bytes per present cell).
 - port: zero everything. When loading, accept arbitrary padding bytes.
+- port: code-mod fields follow the record at +0x78 (`Piece::SAVE_SIZE`); the save still writes and reads 0x78 bytes per piece (12.1).
 
 ---
 
@@ -1572,7 +1573,9 @@ On OK (2008): AddHighScore + mLastScoreName, then KillDialog(8). Cancel (3008): 
   - pieces in ~Board
   - WinDMApp mScoreFont and the shrink arrays
 - Leaks the port must NOT fix by deleting: the pieces FillBoard orphans. Park them in a Board-owned list (3.6).
-- The Piece byte layout (0x78, padding included) is part of savegame.dat. Keep `Piece.h` exactly as is.
+- The Piece byte layout (0x78, padding included) is part of savegame.dat. Keep the 0x78-byte record
+  (`Piece::SAVE_SIZE`) exactly as is: the code-mod fields (`mKind`, `mKindFrame`) follow it, and the save
+  writes and reads exactly the record.
 - Keep every RNG draw site and its order (3.16), including:
   - the double NewGame at startup
   - the tip roll in every HighScoreWidget ctor (also the dialog's hidden one)
@@ -1582,6 +1585,33 @@ On OK (2008): AddHighScore + mLastScoreName, then KillDialog(8). Cancel (3008): 
   - TitleScreen nag, register link, RegisterDialog, UpdateCheckDialog and DoUpdateCheck are dead in that configuration
   - ShowRegisterDialog only needs the dialog-19 branch
 - Paths: "userdata\\x" maps to the user dir. `data\\diff.txt` and the property files are read through the VFS (mods can override them).
+
+### 12.1 Variant hooks (code mods)
+
+The code mods (docs/CODE_MODS_DESIGN.md) touch the translated functions only with constants that become
+members holding the same value and with inert hooks, each line tagged `// port(variant):`.
+`tools/list_variant_hooks.py` prints those lines grouped by function and address; its count is tracked
+per stage.
+
+| Stage | Hook lines | Translated functions | What |
+|---|---|---|---|
+| 1 | 55 | 22 | `InitVariant()` in the ctor; loop bounds `BOARD_ROWS`/`BOARD_COLS`/8/7 → `mRows`/`mCols`; `BOARD_X`/`BOARD_Y` → `mLayout.mOriginX/Y` in `GetColX`/`GetRowY`; `mHeight` → `mLayout.mScreenBottom` (480) in `UpdateGameOver`/`UpdateFallOut`; `sizeof(Piece)` → `Piece::SAVE_SIZE` in the save |
+
+With the original rules every edited line computes what the original did: the board is 8x8, the layout
+is the original constants, and no hook reads the variant flags yet. `UpdateClearing`'s refill pass,
+`FillBoard`, `SetupLevel`'s tile loop and `Draw` keep their 8x8 constants: on other boards they will be
+replaced by variant paths, not generalised.
+
+### 12.2 Mod numbers (port)
+
+- Tunables (`mod.json` "tunables", `GameConfig`) are read as the native game always read them: a wrong
+  type gives the default, numbers are truncated, and a number outside the int range (2^31 or more, or
+  below -2^31) gives INT_MIN, the x86 (int) cast's "integer indefinite". The web build used to saturate
+  instead (INT_MAX); since stage 1 it reads such a value as the native game does. Example: `board.gemColors`
+  3e9 plays with 3 colours on both.
+- `Json.cpp` rejects `nan`, `inf` and numbers too large for a double (strtod accepts them, JSON does not
+  have them), so such a `mod.json` fails to parse like any other invalid JSON. Before stage 1 the mod
+  loaded and the value played differently on native and web.
 
 ---
 

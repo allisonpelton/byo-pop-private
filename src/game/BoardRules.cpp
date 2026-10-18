@@ -44,13 +44,13 @@ Piece::Piece()
 // 0x4c9b25
 int Board::GetColX(int theCol)
 {
-	return theCol * CELL_SIZE + BOARD_X;
+	return theCol * CELL_SIZE + mLayout.mOriginX; // port(variant): was BOARD_X
 }
 
 // 0x4c9b37
 int Board::GetRowY(int theRow)
 {
-	return theRow * CELL_SIZE + BOARD_Y;
+	return theRow * CELL_SIZE + mLayout.mOriginY; // port(variant): was BOARD_Y
 }
 
 // 0x4c9b47
@@ -119,9 +119,9 @@ void Board::Unpause(bool theUserPause)
 // 0x4c9c7c
 Piece* Board::GetPieceAt(int theX, int theY)
 {
-	for (int aRow = 0; aRow < BOARD_ROWS; aRow++)
+	for (int aRow = 0; aRow < mRows; aRow++) // port(variant): was BOARD_ROWS
 	{
-		for (int aCol = 0; aCol < BOARD_COLS; aCol++)
+		for (int aCol = 0; aCol < mCols; aCol++) // port(variant): was BOARD_COLS
 		{
 			Piece* aPiece = mBoard[aRow][aCol];
 			if (aPiece != NULL &&
@@ -137,11 +137,11 @@ Piece* Board::GetPieceAt(int theX, int theY)
 // 0x4c9cf5
 bool Board::HasMatch()
 {
-	for (int aRow = 0; aRow < BOARD_ROWS; aRow++)
+	for (int aRow = 0; aRow < mRows; aRow++) // port(variant): was BOARD_ROWS
 	{
 		int aCount = 0;
 		int aColor = -1;
-		for (int aCol = 0; aCol < BOARD_COLS; aCol++)
+		for (int aCol = 0; aCol < mCols; aCol++) // port(variant): was BOARD_COLS
 		{
 			Piece* aPiece = mBoard[aRow][aCol];
 			if (aPiece == NULL)
@@ -159,11 +159,11 @@ bool Board::HasMatch()
 		}
 	}
 
-	for (int aCol = 0; aCol < BOARD_COLS; aCol++)
+	for (int aCol = 0; aCol < mCols; aCol++) // port(variant): was BOARD_COLS
 	{
 		int aCount = 0;
 		int aColor = -1;
-		for (int aRow = 0; aRow < BOARD_ROWS; aRow++)
+		for (int aRow = 0; aRow < mRows; aRow++) // port(variant): was BOARD_ROWS
 		{
 			Piece* aPiece = mBoard[aRow][aCol];
 			if (aPiece == NULL)
@@ -189,7 +189,7 @@ int Board::GetPanForX(int theX)
 {
 	// -800 at the left edge of the board .. 800 at the right edge
 	int aLeft = GetColX(0);
-	int aWidth = GetColX(BOARD_COLS - 1) + GEM_SIZE - aLeft;
+	int aWidth = GetColX(mCols - 1) + GEM_SIZE - aLeft; // port(variant): was BOARD_COLS
 	return (int)((double)(theX - aWidth / 2 - aLeft) / aWidth * 2.0 * 800.0);
 }
 
@@ -199,9 +199,9 @@ bool Board::FindMove(int* theMove, int theMoveNum, bool horizontal, bool vertica
 	static const int aDirs[4][2] = {{1, 0}, {-1, 0}, {0, 1}, {0, -1}};
 
 	int aMoveCount = 0;
-	for (int aRow = 0; aRow < BOARD_ROWS; aRow++)
+	for (int aRow = 0; aRow < mRows; aRow++) // port(variant): was BOARD_ROWS
 	{
-		for (int aCol = 0; aCol < BOARD_COLS; aCol++)
+		for (int aCol = 0; aCol < mCols; aCol++) // port(variant): was BOARD_COLS
 		{
 			if (mBoard[aRow][aCol] == NULL)
 				continue;
@@ -210,7 +210,7 @@ bool Board::FindMove(int* theMove, int theMoveNum, bool horizontal, bool vertica
 			{
 				int aCol2 = aCol + aDirs[aDir][0];
 				int aRow2 = aRow + aDirs[aDir][1];
-				if (aCol2 < 0 || aCol2 >= BOARD_COLS || aRow2 < 0 || aRow2 >= BOARD_ROWS)
+				if (aCol2 < 0 || aCol2 >= mCols || aRow2 < 0 || aRow2 >= mRows) // port(variant): was BOARD_COLS, BOARD_ROWS
 					continue;
 
 				// Only the gem swapped into (aCol, aRow) is measured, so each swap can be found from
@@ -224,13 +224,13 @@ bool Board::FindMove(int* theMove, int theMoveNum, bool horizontal, bool vertica
 				while (aLeft > 0 && mBoard[aRow][aLeft - 1] != NULL && mBoard[aRow][aLeft - 1]->mColor == aColor)
 					aLeft--;
 				int aRight = aCol;
-				while (aRight < BOARD_COLS - 1 && mBoard[aRow][aRight + 1] != NULL && mBoard[aRow][aRight + 1]->mColor == aColor)
+				while (aRight < mCols - 1 && mBoard[aRow][aRight + 1] != NULL && mBoard[aRow][aRight + 1]->mColor == aColor) // port(variant): was BOARD_COLS
 					aRight++;
 				int anUp = aRow;
 				while (anUp > 0 && mBoard[anUp - 1][aCol] != NULL && mBoard[anUp - 1][aCol]->mColor == aColor)
 					anUp--;
 				int aDown = aRow;
-				while (aDown < BOARD_ROWS - 1 && mBoard[aDown + 1][aCol] != NULL && mBoard[aDown + 1][aCol]->mColor == aColor)
+				while (aDown < mRows - 1 && mBoard[aDown + 1][aCol] != NULL && mBoard[aDown + 1][aCol]->mColor == aColor) // port(variant): was BOARD_ROWS
 					aDown++;
 
 				std::swap(mBoard[aRow][aCol], mBoard[aRow2][aCol2]);
@@ -304,15 +304,15 @@ void Board::StartSwap(Piece* thePiece1, Piece* thePiece2)
 // 0x4ca13e
 void Board::GetBoardSize(int* theWidth, int* theHeight)
 {
-	*theWidth = GetColX(BOARD_COLS - 1) + GEM_SIZE - GetColX(0);
-	*theHeight = GetRowY(BOARD_ROWS - 1) + GEM_SIZE - GetRowY(0);
+	*theWidth = GetColX(mCols - 1) + GEM_SIZE - GetColX(0); // port(variant): was BOARD_COLS
+	*theHeight = GetRowY(mRows - 1) + GEM_SIZE - GetRowY(0); // port(variant): was BOARD_ROWS
 }
 
 // 0x4ca179
 void Board::GetBoardCenter(int* theX, int* theY)
 {
-	*theX = (GetColX(BOARD_COLS - 1) + GEM_SIZE - GetColX(0)) / 2 + GetColX(0);
-	*theY = (GetRowY(BOARD_ROWS - 1) + GEM_SIZE - GetRowY(0)) / 2 + GetRowY(0);
+	*theX = (GetColX(mCols - 1) + GEM_SIZE - GetColX(0)) / 2 + GetColX(0); // port(variant): was BOARD_COLS
+	*theY = (GetRowY(mRows - 1) + GEM_SIZE - GetRowY(0)) / 2 + GetRowY(0); // port(variant): was BOARD_ROWS
 }
 
 // 0x4ca1c8
@@ -436,9 +436,9 @@ void Board::StartBlackHole()
 	int aCenterX;
 	int aCenterY;
 	GetBoardCenter(&aCenterX, &aCenterY);
-	for (int aRow = 0; aRow < BOARD_ROWS; aRow++)
+	for (int aRow = 0; aRow < mRows; aRow++) // port(variant): was BOARD_ROWS
 	{
-		for (int aCol = 0; aCol < BOARD_COLS; aCol++)
+		for (int aCol = 0; aCol < mCols; aCol++) // port(variant): was BOARD_COLS
 		{
 			Piece* aPiece = mBoard[aRow][aCol];
 			if (aPiece == NULL)
@@ -513,7 +513,7 @@ void Board::MouseDown(int x, int y, int theClickCount)
 		else
 			aRow += (aDeltaY < 0) ? -1 : 1;
 
-		if (aCol >= 0 && aCol < BOARD_COLS && aRow >= 0 && aRow < BOARD_ROWS)
+		if (aCol >= 0 && aCol < mCols && aRow >= 0 && aRow < mRows) // port(variant): was BOARD_COLS, BOARD_ROWS
 			aTarget = mBoard[aRow][aCol];
 	}
 
@@ -546,14 +546,14 @@ void Board::MouseDrag(int x, int y)
 	int aRow = mSelectedPiece->mRow;
 	if (abs(aDeltaX) > abs(aDeltaY))
 	{
-		if (aDeltaX > 0 && aCol < BOARD_COLS - 1)
+		if (aDeltaX > 0 && aCol < mCols - 1) // port(variant): was BOARD_COLS
 			StartSwap(mSelectedPiece, mBoard[aRow][aCol + 1]);
 		else if (aDeltaX < 0 && aCol > 0)
 			StartSwap(mSelectedPiece, mBoard[aRow][aCol - 1]);
 	}
 	else
 	{
-		if (aDeltaY > 0 && aRow < BOARD_ROWS - 1)
+		if (aDeltaY > 0 && aRow < mRows - 1) // port(variant): was BOARD_ROWS
 			StartSwap(mSelectedPiece, mBoard[aRow + 1][aCol]);
 		else if (aDeltaY < 0 && aRow > 0)
 			StartSwap(mSelectedPiece, mBoard[aRow - 1][aCol]);
@@ -576,9 +576,9 @@ void Board::KeyChar(SexyChar theChar)
 void Board::UpdateClearing()
 {
 	bool aShrinkDone = true;
-	for (int aRow = 0; aRow < BOARD_ROWS; aRow++)
+	for (int aRow = 0; aRow < mRows; aRow++) // port(variant): was BOARD_ROWS
 	{
-		for (int aCol = 0; aCol < BOARD_COLS; aCol++)
+		for (int aCol = 0; aCol < mCols; aCol++) // port(variant): was BOARD_COLS
 		{
 			Piece* aPiece = mBoard[aRow][aCol];
 			if (aPiece == NULL || !aPiece->mDying)
@@ -671,9 +671,9 @@ void Board::UpdateGameOver()
 		// Shake every 6 ticks; on the last tick also give every gem its explosion velocity
 		if (mUpdateCnt % 6 == 0 || mGameOverCountdown == 0)
 		{
-			for (int aRow = 0; aRow < BOARD_ROWS; aRow++)
+			for (int aRow = 0; aRow < mRows; aRow++) // port(variant): was BOARD_ROWS
 			{
-				for (int aCol = 0; aCol < BOARD_COLS; aCol++)
+				for (int aCol = 0; aCol < mCols; aCol++) // port(variant): was BOARD_COLS
 				{
 					Piece* aPiece = mBoard[aRow][aCol];
 					if (aPiece == NULL)
@@ -693,9 +693,9 @@ void Board::UpdateGameOver()
 	else
 	{
 		bool allGone = true;
-		for (int aRow = 0; aRow < BOARD_ROWS; aRow++)
+		for (int aRow = 0; aRow < mRows; aRow++) // port(variant): was BOARD_ROWS
 		{
-			for (int aCol = 0; aCol < BOARD_COLS; aCol++)
+			for (int aCol = 0; aCol < mCols; aCol++) // port(variant): was BOARD_COLS
 			{
 				Piece* aPiece = mBoard[aRow][aCol];
 				if (aPiece == NULL)
@@ -704,7 +704,7 @@ void Board::UpdateGameOver()
 				aPiece->mX += aPiece->mVelX;
 				aPiece->mY += aPiece->mVelY;
 				aPiece->mVelY += 0.15;
-				if (aPiece->mY < mHeight + GEM_SIZE)
+				if (aPiece->mY < mLayout.mScreenBottom + GEM_SIZE) // port(variant): was mHeight
 					allGone = false;
 			}
 		}
@@ -880,12 +880,12 @@ void Board::UpdateFallOut()
 	bool allGone = true;
 	MarkDirty();
 
-	for (int aCol = 0; aCol < BOARD_COLS; aCol++)
+	for (int aCol = 0; aCol < mCols; aCol++) // port(variant): was BOARD_COLS
 	{
 		// One draw per column per tick, even for an empty column; on a hit the column's lowest
 		// resting gem starts to fall (it moves from the next tick on)
 		bool aRelease = Rand() % 15 == 0;
-		for (int aRow = BOARD_ROWS - 1; aRow >= 0; aRow--)
+		for (int aRow = mRows - 1; aRow >= 0; aRow--) // port(variant): was BOARD_ROWS
 		{
 			Piece* aPiece = mBoard[aRow][aCol];
 			if (aPiece == NULL)
@@ -905,7 +905,7 @@ void Board::UpdateFallOut()
 				aPiece->mVelY += 0.18;
 			}
 
-			if (aPiece->mY < mHeight + 32)
+			if (aPiece->mY < mLayout.mScreenBottom + 32) // port(variant): was mHeight
 				allGone = false;
 		}
 	}

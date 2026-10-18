@@ -89,7 +89,15 @@ void JsonValue::DumpTo(std::string& out, int theIndent, int theDepth) const
 		if (std::floor(mNumber) == mNumber && std::fabs(mNumber) < 1e15)
 			snprintf(buf, sizeof(buf), "%.0f", mNumber);
 		else
-			snprintf(buf, sizeof(buf), "%.17g", mNumber);
+		{
+			// The shortest text that reads back as the same double (0.005, not 0.0050000000000000001)
+			for (int precision = 15; precision <= 17; precision++)
+			{
+				snprintf(buf, sizeof(buf), "%.*g", precision, mNumber);
+				if (strtod(buf, nullptr) == mNumber)
+					break;
+			}
+		}
 		out += buf;
 		break;
 	}
@@ -347,6 +355,10 @@ struct Parser
 			std::string num(p, std::min<size_t>(end - p, 64));
 			double d = strtod(num.c_str(), &stop);
 			if (stop == num.c_str())
+				return Fail("bad number");
+			// strtod also reads nan and inf, which JSON does not have, and a number too large for a double
+			// becomes inf; each libc spells and signs these its own way
+			if (!std::isfinite(d))
 				return Fail("bad number");
 			p += stop - num.c_str();
 			out = JsonValue(d);

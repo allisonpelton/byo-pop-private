@@ -1,0 +1,7 @@
+{
+  "id": "s1-undo",
+  "name": "Stage 1: undo",
+  "version": "1.0",
+  "description": "Oracle fixture: undo.depth 200 is clamped to 100 with a warning; match.minrun is an unknown key (did you mean match.minRun?).",
+  "rules": { "undo": { "enabled": true, "depth": 200, "penalty": 25 }, "match": { "minrun": 4 } }
+}

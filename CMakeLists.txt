@@ -52,6 +52,12 @@ target_link_libraries(bejeweled PRIVATE sexyframework)
 if(NOT MSVC)
   target_compile_options(bejeweled PRIVATE -Wall -Wno-unused-private-field)
 endif()
+# Code mods (docs/CODE_MODS_DESIGN.md 2.2): BEJ_NO_VARIANTS makes every Board variant flag a compile-time
+# false, so the compiler drops the variant hooks; that build must pass the regression oracle too.
+option(BEJ_NO_VARIANTS "Build the game without the code-mod variant paths" OFF)
+if(BEJ_NO_VARIANTS)
+  target_compile_definitions(bejeweled PRIVATE BEJ_NO_VARIANTS)
+endif()
 if(EMSCRIPTEN)
   set_target_properties(bejeweled PROPERTIES SUFFIX ".html")
   set_property(TARGET bejeweled APPEND PROPERTY LINK_DEPENDS ${CMAKE_SOURCE_DIR}/web/shell.html)
@@ -63,6 +69,21 @@ else()
   add_custom_command(TARGET bejeweled POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:SDL2::SDL2> ${PORT_RUNTIME_DLLS} $<TARGET_FILE_DIR:bejeweled>
     VERBATIM)
+endif()
+
+# Code-mod rules tests (tools/rulestest): the framework-free GameRules with its unit fixtures and RulesId
+# vectors. Native: rulestest.exe. Web: rulestest.js, run with Node (the vectors must match native).
+option(BUILD_RULESTEST "Build the code-mod rules tests" ON)
+if(BUILD_RULESTEST)
+  add_executable(rulestest tools/rulestest/rulestest.cpp src/game/GameRules.cpp src/game/Sha256.cpp src/platform/Json.cpp)
+  target_include_directories(rulestest PRIVATE ${CMAKE_SOURCE_DIR}/src/game ${CMAKE_SOURCE_DIR}/src)
+  if(NOT MSVC)
+    target_compile_options(rulestest PRIVATE -Wall)
+  endif()
+  if(EMSCRIPTEN)
+    set_target_properties(rulestest PROPERTIES SUFFIX ".js")
+    target_link_options(rulestest PRIVATE "-sENVIRONMENT=node" "-sEXIT_RUNTIME=1" "-sALLOW_MEMORY_GROWTH=1")
+  endif()
 endif()
 
 # Framework test app (tools/fwtest): loads the game's assets through the portable framework and draws a

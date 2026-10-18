@@ -3,7 +3,10 @@
 # over every oracle case, each run in a fresh directory, then compares the outputs with compare.py.
 #
 #   tools/oracle/compare.sh [--baseline <exe>] [--hooks-baseline <exe> | --no-hooks-baseline]
-#                           [--candidate <exe>] [--out <dir>] [--compare-only]
+#                           [--candidate <exe>] [--candidate-args "<switches>"] [--out <dir>] [--compare-only]
+#
+# --candidate-args adds switches to every candidate run, e.g. "-forcevariant" (docs/CODE_MODS_DESIGN.md 9.1:
+# the generalised paths at default rules must match the baselines too).
 #
 # Three sides, each run in <out>/<side>/<case>/:
 #   baseline        build/baseline/bejeweled.exe: the build before stage 0, the identity proof for the
@@ -21,13 +24,16 @@
 # made from the game files. Run all exes on the same day: hiscores.dat stores day numbers (compare.py).
 #
 # The scripts: tools/oracle/scripts/playtest*.txt (the original playtests, in the old run.sh/runm.sh
-# order and seeds) and tools/oracle/scripts/stage0/*.txt.
+# order and seeds) and tools/oracle/scripts/stage0/*.txt. Stage 1 adds an "inert" case: the candidate with
+# the rule mods of tools/oracle/mods/stage1 must play exactly like its run of the same script without mods
+# (rules are read, merged, checked and reported, never played), and leave mods-status.json.
 set -u
 
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 BASE_EXE="$ROOT/build/baseline/bejeweled.exe"
 HOOKS_EXE="$ROOT/build/baseline-stage0/bejeweled.exe"
 CAND_EXE="$ROOT/build/native/bejeweled.exe"
+CAND_ARGS=()
 OUT="$ROOT/build/oracle"
 COMPARE_ONLY=0
 while [ $# -gt 0 ]; do
@@ -36,9 +42,10 @@ while [ $# -gt 0 ]; do
 		--hooks-baseline) HOOKS_EXE="$2"; shift 2 ;;
 		--no-hooks-baseline) HOOKS_EXE=""; shift ;;
 		--candidate) CAND_EXE="$2"; shift 2 ;;
+		--candidate-args) read -r -a CAND_ARGS <<< "$2"; shift 2 ;;
 		--out) OUT="$(mkdir -p "$2" && cd "$2" && pwd)"; shift 2 ;;
 		--compare-only) COMPARE_ONLY=1; shift ;;
-		*) sed -n '2,24p' "$0"; exit 2 ;;
+		*) sed -n '2,28p' "$0"; exit 2 ;;
 	esac
 done
 
@@ -96,6 +103,7 @@ mkdir -p "$OUT/gen"
 for side in "${SIDES[@]}"; do mkdir -p "$OUT/$side"; done
 mv "$OUT/exes.tmp" "$OUT/exes.txt"
 printf 'sides=%s\n' "${SIDES[*]}" >> "$OUT/exes.txt"
+printf 'candidate.args=%s\n' "${CAND_ARGS[*]}" >> "$OUT/exes.txt"
 : > "$OUT/cases.txt"
 
 # The examples case loads exactly the six example mods in runm.sh's order: every other mod in mods/
@@ -116,7 +124,10 @@ MODS_JSON="$MODS_JSON] }"
 
 mods_listing() { (cd "$MODS" && find . -printf '%P\t%y\t%s\t%T@\n' | LC_ALL=C sort); }
 
-# run <side> <case> <seed> <script or -> [mods=examples] [from=<case>] [savegame=<file>] [strip] [nohash] [arg=<switch>]...
+# run <side> <case> <seed> <script or -> [mods=examples] [modsdir=<dir>] [from=<case>] [savegame=<file>] [strip]
+#     [nohash] [dumprules] [arg=<switch>]...
+#   modsdir=<dir>    use the mods in <dir> (all enabled, in their priority order; no mods.json)
+#   dumprules        afterwards, the same exe with -dumprules into dumprules.txt
 #   from=<case>      start from a copy of that case's user dir (same side) instead of a fresh one
 #   savegame=<file>  copy <file> in as user/savegame.dat (nothing if it does not exist)
 #   strip            comment out the script's "save" lines even for an exe that has the command
@@ -125,11 +136,14 @@ run() {
 	local side=$1 name=$2 seed=$3 script=$4
 	shift 4
 	local exe=${EXE[$side]} hooks=${HOOKS[$side]}
-	local dir="$OUT/$side/$name" modsdir=mods mods=none from="" savegame="" strip=no
+	local dir="$OUT/$side/$name" modsdir=mods mods=none from="" savegame="" strip=no dumprules=no
 	local args=() hash=(-tracehash=hash.txt)
+	[ "$side" = candidate ] && args+=("${CAND_ARGS[@]}")
 	for opt in "$@"; do
 		case "$opt" in
 			mods=examples) mods=examples; modsdir="$MODS_W" ;;
+			modsdir=*) modsdir="$(winpath "${opt#modsdir=}")" ;;
+			dumprules) dumprules=yes ;;
 			from=*) from="${opt#from=}" ;;
 			savegame=*) savegame="${opt#savegame=}" ;;
 			strip) strip=yes ;;
@@ -167,6 +181,10 @@ run() {
 	# stdout lines. exit 124: killed after ORACLE_TIMEOUT seconds (default 600; a -fast run takes seconds)
 	(cd "$dir" && timeout "${ORACLE_TIMEOUT:-600}" "$exe" -gamedir="$ASSETS_W" -userdir=user -modsdir="$modsdir" \
 		-seed="$seed" -fast -trace "${hash[@]}" "${args[@]}" > stdout.txt 2> stderr.txt; echo $? > exit.txt)
+	if [ "$dumprules" = yes ]; then
+		(cd "$dir" && timeout 60 "$exe" -gamedir="$ASSETS_W" -userdir=user -modsdir="$modsdir" -dumprules \
+			> dumprules.txt 2> dumprules-stderr.txt)
+	fi
 	if [ "$mods" = examples ]; then
 		mods_listing > "$OUT/gen/mods-after.txt"
 		cmp -s "$OUT/gen/mods-before.txt" "$OUT/gen/mods-after.txt" ||
@@ -197,6 +215,15 @@ plain() {
 	shift
 	printf '%s\t%s\t%s\t\n' "$name.plain" plain "the candidate without -tracehash against the baselines' $name" >> "$OUT/cases.txt"
 	run candidate "$name.plain" "$@" nohash
+}
+
+# inert <case> <reference case> <description> <seed> <script> [options]: a run of the candidate only (the
+# baselines know no rules), which must play exactly like the candidate's <reference case>
+inert() {
+	local name=$1 ref=$2 desc=$3
+	shift 3
+	printf '%s\t%s\t%s\tref=%s\n' "$name" inert "$desc" "$ref" >> "$OUT/cases.txt"
+	run candidate "$name" "$@"
 }
 
 # autoplay <case> <description> <seed> <switches>...: a bot run on every exe with the hooks, then the
@@ -259,6 +286,10 @@ while read -r snap update; do
 		run "$side" "save_states.load.$snap" 1 "$S0/load_resume.txt" savegame="$save"
 	done
 done <<< "$SNAPS"
+
+# Stage 1: rule mods are read, merged, checked and reported (mods-status.json, -dumprules), never played
+inert rules_inert main "playtest.txt with the rule, feature and imageOps mods of tools/oracle/mods/stage1: plays exactly like main" \
+	1 "$PT/playtest.txt" modsdir="$ROOT/tools/oracle/mods/stage1" dumprules
 
 # Autoplay
 autoplay autoplay_normal "-autoplay=1: normal game to no moves (level 2), quit 100 updates into the high-score screen" 1 -autoplay=1

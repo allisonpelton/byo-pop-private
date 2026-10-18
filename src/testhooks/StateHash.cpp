@@ -101,7 +101,7 @@ void HashPiece(StateHasher& h, Board* theBoard, Piece* thePiece, bool full)
 {
 	if (full)
 	{
-		h.Bytes(thePiece, sizeof(Piece));
+		h.Bytes(thePiece, Piece::SAVE_SIZE);  // the savegame.dat record (Piece.h)
 		return;
 	}
 
@@ -122,8 +122,8 @@ void HashPiece(StateHasher& h, Board* theBoard, Piece* thePiece, bool full)
 	h.Double(thePiece->mHoleRadius);
 }
 
-// A piece pointer as its cell (row * 8 + col), -1 for NULL, or 64 and the piece's fields for a piece
-// that is not in the grid (a stale selection that FillBoard dropped, GAME_NOTES 3.6)
+// A piece pointer as its cell (row * cols + col), -1 for NULL, or rows * cols and the piece's fields for a
+// piece that is not in the grid (a stale selection that FillBoard dropped, GAME_NOTES 3.6); 8x8: 64
 void HashPieceRef(StateHasher& h, Board* theBoard, Piece* thePiece, bool full)
 {
 	if (thePiece == NULL)
@@ -132,27 +132,27 @@ void HashPieceRef(StateHasher& h, Board* theBoard, Piece* thePiece, bool full)
 		return;
 	}
 
-	for (int aRow = 0; aRow < Board::BOARD_ROWS; aRow++)
+	for (int aRow = 0; aRow < theBoard->mRows; aRow++)
 	{
-		for (int aCol = 0; aCol < Board::BOARD_COLS; aCol++)
+		for (int aCol = 0; aCol < theBoard->mCols; aCol++)
 		{
 			if (theBoard->mBoard[aRow][aCol] == thePiece)
 			{
-				h.Int(aRow * Board::BOARD_COLS + aCol);
+				h.Int(aRow * theBoard->mCols + aCol);
 				return;
 			}
 		}
 	}
 
-	h.Int(Board::BOARD_ROWS * Board::BOARD_COLS);
+	h.Int(theBoard->mRows * theBoard->mCols);
 	HashPiece(h, theBoard, thePiece, full);
 }
 
 void HashCells(StateHasher& h, Board* b, bool full)
 {
-	for (int aRow = 0; aRow < Board::BOARD_ROWS; aRow++)
+	for (int aRow = 0; aRow < b->mRows; aRow++)
 	{
-		for (int aCol = 0; aCol < Board::BOARD_COLS; aCol++)
+		for (int aCol = 0; aCol < b->mCols; aCol++)
 		{
 			Piece* aPiece = b->mBoard[aRow][aCol];
 			h.Bool(aPiece != NULL);

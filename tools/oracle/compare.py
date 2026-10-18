@@ -53,8 +53,12 @@ Cross-checks (cases.txt kinds; the case name gives the related case), all on can
               to the run with them, hash.txt included: save changes nothing
   replay      <case>.replay: a -script run of the input that -autoplay recorded must be identical to the
               autoplay run (exit, logs, hash.txt, user dir): the bot acts only through script input
-Expectations (the expect file, checked against the candidate for the script, load, quitcut and autoplay
-cases): what each case is about must still happen, even when every side changes together (a change to
+  inert       a candidate-only run with mods that the baselines cannot read (cases.txt flags "ref=<case>"):
+              stdout.txt (TRACE) and hash.txt must equal the candidate's <case>, so the mods changed nothing
+              in play (stage 1: rules are read, merged, checked and reported, never played); its
+              mods-status.json must exist and name the RulesId that -dumprules (dumprules.txt) prints
+Expectations (the expect file, checked against the candidate for the script, load, quitcut, inert and
+autoplay cases): what each case is about must still happen, even when every side changes together (a change to
 assets/ or mods/, a script that no longer reaches its scenario). Facts derived from the outputs:
   exit <status>, mods <the "mods:" log line>, user <user dir files>,
   settle <update> <mode level score board tick>   every TRACE settle header (scripts and loads), in order
@@ -64,11 +68,13 @@ assets/ or mods/, a script that no longer reaches its scenario). Facts derived f
   snap <file> <decoded>, save <file> <decoded>|none
                                                   save snapshots, and the savegame*.dat the quit left
   end <the bot's last note>                       autoplay: how the game ended
+  status <RulesId prefix, message counts, ...>    user/mods-status.json, when the run left one (rule mods)
 and hand-written ones, kept by expect-update:
   row <settle update> <row> <8 colours>           that TRACE row line at that settle
 """
 
 import difflib
+import json
 import os
 import re
 import struct
@@ -82,8 +88,8 @@ HOOK_FILES = ("hash.txt", "autoplay.txt")
 RUN_FILES = ("script.txt", "stdout.txt", "stderr.txt", "exit.txt", "modsdir-changed.txt")
 WALL_CLOCK = [(re.compile(r"Seconds = [0-9.e+-]+"), "Seconds = *"),
               (re.compile(r"Resource Loading Time: [0-9]+"), "Resource Loading Time: *")]
-EXPECT_KINDS = ("script", "load", "quitcut", "autoplay")
-AUTO_KEYS = ("exit", "mods", "user", "settle", "settles", "last-settle", "states", "snap", "save", "end")
+EXPECT_KINDS = ("script", "load", "quitcut", "inert", "autoplay")
+AUTO_KEYS = ("exit", "mods", "user", "settle", "settles", "last-settle", "states", "snap", "save", "status", "end")
 
 
 # ---------------------------------------------------------------------------------------------------
@@ -537,12 +543,68 @@ def derive_facts(run, kind):
     saves = savegames(run)
     facts += ["save %s %s" % (s, save_state(os.path.join(run, "user", s))) for s in saves] or ["save none"]
 
+    status = mods_status(run)
+    if status is not None:
+        facts.append("status " + status_text(status))
+
     if kind == "autoplay":
         notes = []
         if os.path.exists(os.path.join(run, "autoplay.txt")):
             notes = [line for line in read_lines(os.path.join(run, "autoplay.txt")) if line.startswith("# update")]
         facts.append("end " + (notes[-1][2:] if notes else "(no notes)"))
     return facts
+
+
+def mods_status(run):
+    """user/mods-status.json (GameConfig::Load, for rule and feature mods) as a dict, None without one"""
+    path = os.path.join(run, "user", "mods-status.json")
+    if not os.path.exists(path):
+        return None
+    try:
+        with open(path, encoding="utf-8") as f:
+            return json.load(f)
+    except ValueError as e:
+        return {"unreadable": str(e)}
+
+
+def status_text(status):
+    if "unreadable" in status:
+        return "unreadable (%s)" % status["unreadable"]
+    ids = lambda key: ",".join(sorted(set(m.get("mod", "") for m in status.get(key, [])))) or "-"
+    return ("rulesId %s, scoreKey %s, features %s, %d warnings, errors %s, dropped %s"
+            % (str(status.get("rulesId", "?"))[:16], status.get("scoreKey", "?") or "-", status.get("features", "?"),
+               len(status.get("warnings", [])), ids("errors"), ids("dropped")))
+
+
+def inert_check(r, ref, run, label):
+    """An inert run against the candidate's reference run: the same play (TRACE lines and hash.txt) and a
+    status file whose RulesId -dumprules prints too"""
+    before = r.failures
+    for name in ("stdout.txt", "hash.txt"):
+        pa, pb = os.path.join(ref, name), os.path.join(run, name)
+        if not (os.path.exists(pa) and os.path.exists(pb)):
+            r.fail("%s: %s missing: %s / %s" % (label, name, os.path.exists(pa), os.path.exists(pb)))
+            continue
+        diff = first_list_diff([mask_wall_clock(x) for x in read_lines(pa)], [mask_wall_clock(x) for x in read_lines(pb)],
+                               label + ": " + name)
+        if diff:
+            r.fail(diff)
+    status = mods_status(run)
+    dumped = {}
+    if os.path.exists(os.path.join(run, "dumprules.txt")):
+        for line in read_lines(os.path.join(run, "dumprules.txt")):
+            key, _, value = line.partition(" = ")
+            dumped[key] = value
+    if status is None:
+        r.fail("%s: no user/mods-status.json" % label)
+    elif status.get("rulesId") != dumped.get("rulesId") or status.get("canonical") != dumped.get("canonical"):
+        r.fail("%s: mods-status.json rulesId %s, -dumprules %s" % (label, status.get("rulesId"), dumped.get("rulesId")))
+    if r.failures == before:
+        r.out("    %s: stdout.txt (%d lines) and hash.txt (%d hashes) identical: the mods changed nothing in play;"
+              " mods-status.json and -dumprules agree on RulesId %s" % (label, len(read_lines(os.path.join(run, "stdout.txt"))),
+                                                                     len(read_lines(os.path.join(run, "hash.txt"))),
+                                                                     str(status.get("rulesId"))[:16]))
+    return r.failures == before
 
 
 def read_expect(path):
@@ -617,6 +679,8 @@ def compare(oracle, expect_path=None):
     for side in sides:
         r.out("%-15s %s (stage-0 hooks: %s)" % (side + ":", info.get(side + ".exe", "?"), info.get(side + ".hooks", "?")))
         r.out("%-15s sha256 %s, DLLs %s" % ("", info.get(side + ".sha256", "?"), info.get(side + ".dlls", "?")))
+    if info.get("candidate.args"):
+        r.out("%-15s every candidate run with %s" % ("", info["candidate.args"]))
     for side in base_sides:
         if info.get(side + ".sha256") and info.get(side + ".sha256") == info.get("candidate.sha256"):
             r.note("%s and candidate are the same binary: comparing them only shows that the runs repeat" % side)
@@ -635,6 +699,12 @@ def compare(oracle, expect_path=None):
             parent = name[:-len(".plain")]
             for side in base_sides:
                 compare_case(r, side, os.path.join(oracle, side, parent), run, False)
+        elif kind == "inert":
+            ref = flags[len("ref="):] if flags.startswith("ref=") else ""
+            inert_check(r, os.path.join(cand, ref), run, "cross " + ref)
+            status = mods_status(run)
+            if status is not None:
+                r.out("    mods-status.json: " + status_text(status))
         elif kind == "nosave":
             parent = name[:-len(".nosave")]
             if same_run(r, os.path.join(cand, parent), run, "cross " + parent):
@@ -680,7 +750,7 @@ def compare(oracle, expect_path=None):
             r.fail("the candidate run %s hash.txt" % ("has a" if kind == "plain" else "has no"))
         if kind in EXPECT_KINDS and expect_path:
             check_expect(r, run, kind, expect.get(name, []))
-        if kind in ("script", "load", "autoplay"):
+        if kind in ("script", "load", "inert", "autoplay"):
             for s in list_tree(os.path.join(run, "snaps"), lambda p: not p.endswith("/")):
                 r.out("    snapshot %s: %s" % (s, save_state(os.path.join(run, "snaps", s))))
             for s in savegames(run):

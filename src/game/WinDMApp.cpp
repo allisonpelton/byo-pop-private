@@ -372,17 +372,17 @@ static void TraceBoard(WinDMApp* theApp)
 
 	printf("TRACE update %d: %s level %d score %d board tick %d\n", theApp->mUpdateCount, aBoard->mTimedMode ? "timed" : "normal",
 		aBoard->mDisplayLevel, aBoard->mScore, aBoard->mUpdateCnt);
-	for (int aRow = 0; aRow < Board::BOARD_ROWS; aRow++)
+	for (int aRow = 0; aRow < aBoard->mRows; aRow++)
 	{
 		printf("TRACE   row %d:", aRow);
-		for (int aCol = 0; aCol < Board::BOARD_COLS; aCol++)
+		for (int aCol = 0; aCol < aBoard->mCols; aCol++)
 			printf(" %d", (aBoard->mBoard[aRow][aCol] != NULL) ? aBoard->mBoard[aRow][aCol]->mColor : -1);
 		printf("\n");
 	}
 	int aMove[4];
 	for (int i = 0; aBoard->FindMove(aMove, i, true, true); i++)
 		printf("TRACE   move %d: (%d,%d)->(%d,%d) click %d %d then %d %d\n", i, aMove[0], aMove[1], aMove[2], aMove[3],
-			Board::GetColX(aMove[0]) + 24, Board::GetRowY(aMove[1]) + 24, Board::GetColX(aMove[2]) + 24, Board::GetRowY(aMove[3]) + 24);
+			aBoard->GetColX(aMove[0]) + 24, aBoard->GetRowY(aMove[1]) + 24, aBoard->GetColX(aMove[2]) + 24, aBoard->GetRowY(aMove[3]) + 24);
 	fflush(stdout);
 }
 

@@ -1,0 +1,7 @@
+{
+  "id": "s1-bad",
+  "name": "Stage 1: out of range",
+  "version": "1.0",
+  "description": "Oracle fixture: board.cols 20 fails the range check, so its rules are ignored (it still counts for the score key).",
+  "rules": { "board": { "cols": 20 } }
+}

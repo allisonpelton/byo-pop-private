@@ -11,6 +11,8 @@ namespace Sexy
 // layout (including padding) is part of the save format; the explicit padding members keep it
 // identical on every target. The original ctor (0x4c9aec) leaves the padding and +0x60..+0x77
 // uninitialised; the port zero-initialises everything.
+// port(variant): the code-mod fields follow the 0x78-byte record (SAVE_SIZE); the save still writes and
+// reads exactly the record (docs/CODE_MODS_DESIGN.md 2.4).
 struct Piece
 {
 	int		mColor;          // +0x00 gem color 0..6 (Rand()%7); gemsheet row = mColor*104
@@ -38,10 +40,15 @@ struct Piece
 	double	mHoleAngVel;     // +0x68 vortex angular velocity
 	double	mHoleRadius;     // +0x70 vortex radius, -1 per tick, clamped at 0
 
+	enum { SAVE_SIZE = 0x78 };  // port(variant): the raw savegame.dat record; the layout up to here is unchanged
+	// port(variant): not part of the raw save record
+	int		mKind;           // +0x78 special gem: 0 normal, 1 flame, 2 lightning (docs/CODE_MODS_DESIGN.md 4.8)
+	int		mKindFrame;      // +0x7c special gem overlay animation frame (cosmetic)
+
 	Piece();                 // 0x4c9aec
 };
 
-static_assert(sizeof(Piece) == 0x78, "Piece must stay 0x78 bytes (savegame.dat format)");
+static_assert(offsetof(Piece, mKind) == Piece::SAVE_SIZE, "the variant tail starts after the 0x78-byte savegame.dat record");
 static_assert(offsetof(Piece, mX) == 0x08, "Piece layout");
 static_assert(offsetof(Piece, mVelY) == 0x28, "Piece layout");
 static_assert(offsetof(Piece, mGlowAlpha) == 0x40, "Piece layout");

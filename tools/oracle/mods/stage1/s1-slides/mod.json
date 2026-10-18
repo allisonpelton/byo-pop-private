@@ -1,0 +1,8 @@
+{
+  "id": "s1-slides",
+  "name": "Stage 1: slides",
+  "version": "1.0",
+  "description": "Oracle fixture: a moves group that s1-twist overrides; its addTypes union still adds slides.",
+  "priority": 3,
+  "rules": { "moves": { "type": "slide", "slide": { "snapTicks": 20 }, "addTypes": ["slide"] } }
+}

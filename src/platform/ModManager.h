@@ -19,8 +19,17 @@
 //                "sounds/select.ogg": "sfx/click.ogg" },   // redirect game paths to mod files
 //     "strings": { "EXCELLENT": "AWESOME!" },             // or ["properties/strings.xml"]
 //     "tunables": { "scoring": { "hintPenalty": 25 } },   // or "tunables.json"
-//     "affectsScores": false               // forced true when the mod changes tunables
+//     "rules": { "moves": { "allowInvalid": true } },     // code-mod gameplay rules (or "rules.json"),
+//                                                         // a superset of "tunables" (game/GameRules.h)
+//     "features": { "replays": true },                    // port features without gameplay effect
+//     "imageOps": [ { "target": "images/gemsheet6", "op": "extendRows", ... } ],  // generated art
+//     "affectsScores": false               // forced true when the mod changes tunables or rules
 //   }
+//
+// A mod affects scores (and so gets the enabled set its own high-score table and save) when it says so,
+// has "tunables" or "rules", or when data/diff.txt resolves into it (a file in the mod, or a "files"
+// remap). The merged rules, their RulesId and any warnings are written to <user dir>/mods-status.json
+// (GameConfig::Load) when an enabled mod has "rules" or "features".
 //
 // The enabled set and order are stored in <user dir>/mods.json:
 //   { "order": ["hd-gems", "other"], "disabled": ["other"] }
@@ -48,6 +57,26 @@ struct ModInfo
 	bool mHasManifest = false;
 	std::string mError;  // manifest parse error, if any
 	JsonValue mManifest;
+
+	// port(variant): set by Apply() for enabled mods
+	bool mHasRules = false;       // "rules" in mod.json
+	bool mHasFeatures = false;    // "features"
+	bool mHasImageOps = false;    // "imageOps"
+	bool mOverridesDiff = false;  // data/diff.txt resolves into this mod
+	JsonValue mTunablesJson;      // "tunables", read from its file when it names one
+	JsonValue mRulesJson;         // "rules", likewise
+	std::string mRulesError;      // why the file "rules" names could not be read (then reported as the mod's error)
+	JsonValue mFeaturesJson;      // "features"
+
+	// Counts for the score key: affectsScores, tunables, rules or data/diff.txt
+	bool AffectsScores() const { return mAffectsScores || mOverridesDiff; }
+};
+
+// port(variant): one entry of a mod's "imageOps" (applied from docs/CODE_MODS_DESIGN.md stage 8 on)
+struct ModImageOp
+{
+	std::string mModId;
+	JsonValue mOp;
 };
 
 class ModManager
@@ -87,6 +116,16 @@ public:
 	// Non-empty when enabled mods change gameplay; used to keep separate high-score tables.
 	const std::string& GetScoreKey() const { return mScoreKey; }
 
+	// port(variant): the enabled mods' "imageOps", lowest priority first, each with its mod
+	const std::vector<ModImageOp>& GetImageOps() const { return mImageOps; }
+
+	// port(variant): an enabled mod has "rules" or "features" (then mods-status.json is written)
+	bool HasRulesOrFeatures() const;
+
+	// port(variant): writes <user dir>/mods-status.json, or removes it when theText is empty. Unchanged
+	// text is not written again.
+	void WriteStatus(const std::string& theText);
+
 	// "Mods: a, b" style summary for the title screen / logs.
 	std::string GetSummary() const;
 
@@ -100,6 +139,8 @@ private:
 	std::map<std::string, std::string> mStrings;
 	std::vector<std::string> mPropertyFiles;
 	std::string mScoreKey;
+	std::vector<ModImageOp> mImageOps;
+	std::string mStatusWritten;
 };
 
 }

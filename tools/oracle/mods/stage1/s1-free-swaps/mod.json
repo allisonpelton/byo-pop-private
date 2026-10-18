@@ -1,0 +1,8 @@
+{
+  "id": "s1-free-swaps",
+  "name": "Stage 1: free swaps",
+  "version": "1.0",
+  "description": "Oracle fixture: valid alone (example 1 of the design), dropped by the merged check under s1-strict.",
+  "priority": 2,
+  "rules": { "moves": { "allowInvalid": true }, "noMoves": { "normal": "continue" } }
+}

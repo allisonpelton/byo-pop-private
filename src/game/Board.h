@@ -9,6 +9,8 @@
 
 #include "Widget.h"
 #include "Piece.h"
+#include "GameRules.h"
+#include "BoardLayout.h"
 #include <list>
 #include <vector>
 
@@ -61,6 +63,27 @@ inline constexpr int gBoardTileColors[4][2][3] =
 // 0x4cd3b7: 1..8 index this table, anything above 8 uses the last entry).
 inline constexpr int gMatchBaseScores[9] = {10, 20, 30, 40, 60, 80, 110, 160, 210};
 
+// port(variant): which generalised code paths a board takes (docs/CODE_MODS_DESIGN.md 2.2). Computed once by
+// Board::InitVariant from the rules snapshot; every flag is false for the original rules and for
+// tunables-only mods. Nothing reads them yet: the variant paths arrive in later stages.
+struct VariantFlags
+{
+	bool mAny = false;          // any rule differs from default: v2 save, variant trace lines
+	bool mOwnRng = false;       // board owns an MTRand (seeded / rules / seeds feature / ranked game)
+	bool mShape = false;        // not a full 8x8: size, mask or per-level shapes
+	bool mScaled = false;       // logical extent D > 406, so the view scales (5.1)
+	bool mDraw = false;         // DrawVariant: mShape || specials || gold || non-swap moves || mNoTutorial
+	bool mMatch = false;        // ProcessMatchesVariant / HasMatchVariant: patterns, minRun != 3, specials, gold
+	bool mSearch = false;       // FindMoveVariant / DoHintVariant: patterns, minRun != 3, non-swap move types
+	bool mMoves = false;        // twist / slide in the move set: the variant input layer
+	bool mInvalid = false;      // moves.allowInvalid
+	bool mNoMoves = false;      // a noMoves rule other than the original (normal: game over, timed: fall out)
+	bool mNoTutorial = false;   // the tutorial move (rows 4..6, cols 1..6, horizontal 3-run) cannot apply
+	bool mSpecials = false;
+	bool mGold = false;
+	bool mUndo = false;
+};
+
 class Board : public Widget
 {
 public:
@@ -80,13 +103,19 @@ public:
 		BAR_COLOR_NORMAL = 23,
 		BAR_COLOR_FLASH = 24,
 		TUTORIAL_DIALOG_ID = 9,     // WinDMApp DIALOG_INSTRUCTIONS
-		SAVEGAME_VERSION = 1
+		SAVEGAME_VERSION = 1,
+		// port(variant): code mods (docs/CODE_MODS_DESIGN.md 2.4)
+		MAX_COLS = BoardLayout::MAX_COLS,
+		MAX_ROWS = BoardLayout::MAX_ROWS,
+		MAX_GEM_COLORS = GameRules::MAX_GEM_COLORS,
+		SAVEGAME_VERSION_VARIANT = 0x101
 	};
 
 	WinDMApp*		mApp;                   // +0x088 owning app (ctor arg)
 	int				mLevel;                 // +0x08c 0-based level; ++ when the vortex finishes; drives level%4 tint, level%5 texture and the diff.txt formulas
 	int				mDisplayLevel;          // +0x090 1-based level shown in the HUD; ctor 1, = mLevel+1 at the end of the wipe
-	Piece*			mBoard[8][8];           // +0x094 grid [row][col] (original index row*8+col), NULL = empty; ends at +0x193
+	// port(variant): enlarged from [8][8] to [MAX_ROWS][MAX_COLS]; the original grid is [0..7][0..7]
+	Piece*			mBoard[MAX_ROWS][MAX_COLS]; // +0x094 grid [row][col] (original index row*8+col), NULL = empty; ends at +0x193
 	int				mState;                 // +0x194 BoardState
 	bool			mTimedMode;             // +0x198 time-trial board (ctor arg = app->mTimedMode)
 	SoundInstance*	mWhirlpoolSound;        // +0x19c looping whirlpool1 instance (StartBlackHole); released at the end of the wipe / in ~Board
@@ -174,9 +203,20 @@ public:
 	// stay valid because mSelectedPiece can still point at one. Owned here and freed in ~Board.
 	std::vector<Piece*> mOrphanedPieces;
 
+	// ---- port(variant): code mods (docs/CODE_MODS_DESIGN.md 2.4); all inert for the original rules ----
+	GameRules		mRules;                 // snapshot of gGameConfig.mRules taken in InitVariant
+#ifdef BEJ_NO_VARIANTS
+	static constexpr VariantFlags mVariant = {}; // every flag false: the compiler drops every variant hook
+#else
+	VariantFlags	mVariant;
+#endif
+	BoardLayout		mLayout;                // current level's layout (8x8: origin 203/16, D 406, bottom 480)
+	int				mCols;                  // == mLayout.mCols; 8
+	int				mRows;                  // == mLayout.mRows; 8
+
 public:
-	static int		GetColX(int theCol);                            // 0x4c9b25 theCol*51 + 203 (thiscall in the binary, this unused)
-	static int		GetRowY(int theRow);                            // 0x4c9b37 theRow*51 + 16
+	int				GetColX(int theCol);                            // 0x4c9b25 theCol*51 + 203 (thiscall in the binary, this unused; port(variant): a member, + mLayout.mOriginX)
+	int				GetRowY(int theRow);                            // 0x4c9b37 theRow*51 + 16 (port(variant): + mLayout.mOriginY)
 	void			GameOver(int theShakeTicks);                    // 0x4c9b47
 	void			RequestNewGame();                               // 0x4c9bab GameOver(50) + mNewGamePending
 	bool			IsGameInProgress();                             // 0x4c9bbe !mIsNewGame && state != 5 && state != 6
@@ -184,13 +224,13 @@ public:
 	void			Unpause(bool theUserPause);                     // 0x4c9c2d
 	Piece*			GetPieceAt(int theX, int theY);                 // 0x4c9c7c
 	bool			HasMatch();                                     // 0x4c9cf5
-	static int		GetPanForX(int theX);                           // 0x4c9d94
+	int				GetPanForX(int theX);                           // 0x4c9d94 (port(variant): a member, for the board width)
 	bool			FindMove(int* theMove, int theMoveNum, bool horizontal, bool vertical); // 0x4c9dda theMove = {col,row,col2,row2} or NULL
 	virtual void	MouseMove(int x, int y);                        // 0x4c9fd0 Widget slot 52
 	virtual void	MouseLeave();                                   // 0x4c9fe9 Widget slot 51
 	void			StartSwap(Piece* thePiece1, Piece* thePiece2);  // 0x4c9ff8
-	static void		GetBoardSize(int* theWidth, int* theHeight);    // 0x4ca13e (406, 406)
-	static void		GetBoardCenter(int* theX, int* theY);           // 0x4ca179 (406, 219)
+	void			GetBoardSize(int* theWidth, int* theHeight);    // 0x4ca13e (406, 406) (port(variant): a member)
+	void			GetBoardCenter(int* theX, int* theY);           // 0x4ca179 (406, 219) (port(variant): a member)
 	void			ShowText(const SexyString& theText, int theDuration); // 0x4ca1c8
 	void			ColorizeText();                                 // 0x4ca36e
 	void			StartBlackHole();                               // 0x4ca58d
@@ -222,6 +262,10 @@ public:
 	void			UpdateFalling();                                // 0x4cd687 state 0
 	void			UpdateSwap();                                   // 0x4cd84f states 2, 3
 	virtual void	Update();                                       // 0x4cdabc Widget slot 22
+
+	// port(variant): code mods (BoardVariant.cpp)
+	void			InitVariant();                                  // first in the ctor: rules, layout, flags
+	static VariantFlags ComputeVariantFlags(const GameRules& theRules, const GameFeatures& theFeatures);
 
 	using Widget::MouseDown;
 	using Widget::MouseUp;

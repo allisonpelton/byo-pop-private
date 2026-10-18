@@ -99,6 +99,12 @@ input[type=file] { display: none; }
 .mod .name { font-weight: 600; }
 .mod .sub { color: var(--muted); font-size: 12.5px; overflow-wrap: anywhere; }
 .mod .tag { font-size: 11px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--warn); }
+.mod .tag.features { color: var(--accent); }
+.msg { font-size: 12px; overflow-wrap: anywhere; color: var(--muted); }
+.msg.error { color: var(--gem-ruby); }
+.msg.warn { color: var(--warn); }
+.rules-status { display: grid; gap: 4px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; }
+.rules-status .head { font-size: 12.5px; color: var(--muted); }
 .mod .actions { display: flex; gap: 4px; }
 .mod .actions button { padding: 2px 8px; }
 .empty { color: var(--muted); border: 1px dashed var(--line); border-radius: 8px; padding: 14px; }
@@ -173,6 +179,7 @@ input[type=file] { display: none; }
       <input type="file" id="pick-mod-zip" accept=".zip,application/zip" multiple>
     </div>
     <div class="mods" id="mod-list"></div>
+    <div class="rules-status" id="rules-status" hidden></div>
     <p class="note" id="mod-msg"></p>
     <div class="row"><button class="primary" id="btn-apply-mods" type="button">Apply and restart</button></div>
   </div>
@@ -374,13 +381,72 @@ input[type=file] { display: none; }
     try { return JSON.parse(FS().readFile(path, { encoding: "utf8" })); } catch (e) { return fallback; }
   }
   function modConfig() { return readJson(USER + "/mods.json", { order: [], disabled: [] }); }
+  function findNoCase(dir, name) {
+    var lower = name.toLowerCase(), hit = null;
+    listDir(dir).forEach(function (n) { if (n.toLowerCase() === lower) hit = dir + "/" + n; });
+    return hit;
+  }
+  // VFS::Normalize: forward slashes, no empty or "." parts, ".." folded
+  function normPath(p) {
+    var parts = [];
+    String(p).replace(/\\/g, "/").split("/").forEach(function (s) {
+      if (s === "..") { if (parts.length && parts[parts.length - 1] !== "..") parts.pop(); else parts.push(s); }
+      else if (s && s !== ".") parts.push(s);
+    });
+    return parts.join("/");
+  }
+  // VFS::FindCaseInsensitive: the file at rel under root, each part matched in any case, or null
+  function findFileNoCase(root, rel) {
+    var parts = normPath(rel).split("/"), cur = root;
+    if (!parts[0]) return null;
+    for (var i = 0; i < parts.length; i++) {
+      var last = i === parts.length - 1, exact = cur + "/" + parts[i];
+      if (exists(exact) && isDir(exact) !== last) { cur = exact; continue; }
+      cur = parts[i] === ".." ? null : findNoCase(cur, parts[i]);
+      if (!cur || isDir(cur) === last) return null;
+    }
+    return cur;
+  }
+  // The file a mod's "files" remap of data/diff.txt points to, or null
+  function diffRemap(m) {
+    var hit = null;
+    Object.keys(m.files).forEach(function (k) {
+      var v = m.files[k], file = typeof v === "string" ? v : (v && typeof v.file === "string" ? v.file : "");
+      if (normPath(k).toLowerCase() === "data/diff.txt" && file) hit = findFileNoCase(MODS + "/" + m.dir, file) || hit;
+    });
+    return hit;
+  }
+  // The mod that data/diff.txt resolves into among mods (ModManager::Apply asks VFS::Resolve): the game orders
+  // mods by "priority", higher first, then by the panel's order; a "files" remap wins over a file in a mod,
+  // and the highest-priority remap or file wins
+  function diffMod(mods) {
+    var ordered = mods.slice().sort(function (a, b) {
+      return (b.priority - a.priority) || (modState.indexOf(a) - modState.indexOf(b));
+    });
+    return ordered.filter(diffRemap)[0] ||
+      ordered.filter(function (m) { return findFileNoCase(MODS + "/" + m.dir, "data/diff.txt"); })[0] || null;
+  }
+  // "Changes gameplay · separate high scores": what makes ModManager count a mod for the score key. A mod that
+  // replaces data/diff.txt counts when the game reads its copy, i.e. it wins among the enabled mods (with
+  // itself enabled), as ModManager::Apply decides
+  function changesGameplay(m) {
+    if (m.scoring) return true;
+    if (!m.shipsDiff) return false;
+    return diffMod(modState.filter(function (o) { return o.enabled || o === m; })) === m;
+  }
   function scanMods() {
     var cfg = modConfig();
     var mods = listDir(MODS).filter(function (n) { return isDir(MODS + "/" + n); }).map(function (dir) {
       var man = readJson(MODS + "/" + dir + "/mod.json", {});
-      return { dir: dir, id: man.id || dir, name: man.name || dir, version: man.version || "", author: man.author || "",
-               description: man.description || "", gameplay: !!(man.affectsScores || man.tunables),
-               enabled: (cfg.disabled || []).indexOf(man.id || dir) < 0 };
+      var m = { dir: dir, id: man.id || dir, name: man.name || dir, version: man.version || "", author: man.author || "",
+                description: man.description || "",
+                scoring: !!(man.affectsScores || man.tunables || man.rules),
+                features: !!man.features,
+                priority: typeof man.priority === "number" ? Math.trunc(man.priority) : 0,
+                files: man.files && typeof man.files === "object" && !Array.isArray(man.files) ? man.files : {},
+                enabled: (cfg.disabled || []).indexOf(man.id || dir) < 0 };
+      m.shipsDiff = !!(diffRemap(m) || findFileNoCase(MODS + "/" + dir, "data/diff.txt"));
+      return m;
     });
     var order = cfg.order || [];
     mods.sort(function (a, b) {
@@ -391,8 +457,38 @@ input[type=file] { display: none; }
     return mods;
   }
   var modState = [];
+  // <user dir>/mods-status.json: what the enabled mods' "rules" and "features" resolved to when the game last
+  // started (written only when an enabled mod has either)
+  var modsStatus = null;
+  function statusMessages(modId) {
+    var out = [];
+    if (!modsStatus) return out;
+    [["errors", "error", ""], ["dropped", "error", "Dropped: "], ["warnings", "warn", ""]].forEach(function (k) {
+      (modsStatus[k[0]] || []).forEach(function (m) {
+        if ((m.mod || "") === modId) out.push({ cls: k[1], text: k[2] + m.text });
+      });
+    });
+    return out;
+  }
+  function renderRulesStatus() {
+    var box = $("rules-status");
+    box.textContent = "";
+    box.hidden = !modsStatus;
+    if (!modsStatus) return;
+    var head = document.createElement("div");
+    head.className = "head";
+    head.textContent = "Rules as of the last start: id " + String(modsStatus.rulesId || "").substring(0, 12) +
+      " · features: " + (modsStatus.features || "none") + ". Changes apply after a restart.";
+    box.appendChild(head);
+    statusMessages("").forEach(function (m) {
+      var d = document.createElement("div");
+      d.className = "msg " + m.cls; d.textContent = m.text;
+      box.appendChild(d);
+    });
+  }
   function renderMods() {
     var list = $("mod-list");
+    renderRulesStatus();
     list.textContent = "";
     if (!modState.length) {
       var empty = document.createElement("div");
@@ -406,12 +502,22 @@ input[type=file] { display: none; }
       row.className = "mod";
       var cb = document.createElement("input");
       cb.type = "checkbox"; cb.checked = m.enabled; cb.id = "mod-" + i; cb.setAttribute("aria-label", "Enable " + m.name);
-      cb.addEventListener("change", function () { m.enabled = cb.checked; });
+      cb.addEventListener("change", function () {
+        // Which mod's data/diff.txt the game reads depends on the enabled set: redraw the tags
+        m.enabled = cb.checked; renderMods();
+        var again = $("mod-" + i); if (again) again.focus();
+      });
       var meta = document.createElement("label");
       meta.className = "meta"; meta.htmlFor = cb.id;
-      meta.innerHTML = '<div class="name"></div><div class="sub"></div>' + (m.gameplay ? '<div class="tag">Changes gameplay · separate high scores</div>' : "");
+      meta.innerHTML = '<div class="name"></div><div class="sub"></div>' + (changesGameplay(m) ? '<div class="tag">Changes gameplay · separate high scores</div>' : "") +
+        (m.features ? '<div class="tag features">Adds features</div>' : "");
       meta.querySelector(".name").textContent = m.name + (m.version ? " " + m.version : "");
       meta.querySelector(".sub").textContent = [m.author && ("by " + m.author), m.description].filter(Boolean).join(" · ") || m.dir;
+      statusMessages(m.id).forEach(function (s) {
+        var d = document.createElement("div");
+        d.className = "msg " + s.cls; d.textContent = s.text;
+        meta.appendChild(d);
+      });
       var actions = document.createElement("div");
       actions.className = "actions";
       [["↑", "Move up", -1], ["↓", "Move down", 1]].forEach(function (a) {
@@ -465,7 +571,7 @@ input[type=file] { display: none; }
       $("mod-msg").textContent = "Added " + dirName + ". Apply and restart to use it.";
     });
   }
-  function refreshMods() { modState = scanMods(); renderMods(); }
+  function refreshMods() { modsStatus = readJson(USER + "/mods-status.json", null); modState = scanMods(); renderMods(); }
 
   // ---------- boot ----------
   function startGame() {

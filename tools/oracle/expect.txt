@@ -301,6 +301,22 @@ save_states.load.s6_wipe settle 607 normal level 2 score 630 board tick 268
 save_states.load.s6_wipe states 340:level_wipe
 save_states.load.s6_wipe save savegame.dat v1 normal level 1 (shown 2), 64 gems, state 1 (playing), score 630, play seconds 23, 7873 bytes
 
+rules_inert exit 0
+rules_inert mods Stage 1: no invalid moves, Stage 1: twist, Stage 1: slides, Stage 1: free swaps, Stage 1: out of range, Stage 1: diamond with dirt, Stage 1: features, Stage 1: nine colours, Stage 1: undo
+rules_inert user hiscores-11724ae5.dat mods-status.json registry.ini savegame-11724ae5.dat
+rules_inert settle 438 normal level 1 score 0 board tick 139
+rules_inert settle 586 normal level 1 score 30 board tick 287
+rules_inert settle 747 normal level 1 score 100 board tick 448
+rules_inert settle 861 normal level 1 score 130 board tick 562
+rules_inert settle 952 normal level 1 score 130 board tick 653
+rules_inert settle 1132 normal level 1 score 90 board tick 833
+rules_inert settle 1403 timed level 1 score 0 board tick 144
+rules_inert settle 1546 timed level 1 score 80 board tick 287
+rules_inert settle 18544 timed level 1 score 0 board tick 145
+rules_inert states 17736:game_over 18068:game_over_done
+rules_inert save savegame-11724ae5.dat v1 normal level 0 (shown 1), 64 gems, state 1 (playing), score 90, play seconds 8, 7873 bytes
+rules_inert status rulesId 0d71b685522c108e, scoreKey 11724ae5, features seeds(entry, perGame), replays(keep 5), 11 warnings, errors s1-bad, dropped s1-free-swaps
+
 autoplay_normal exit 0
 autoplay_normal mods none
 autoplay_normal user hiscores.dat registry.ini
