@@ -36,7 +36,8 @@ tools/build.sh web      # build/web/bejeweled.html (+ .js, .wasm)
 
 Edit the paths at the top of `tools/build.sh` (or set `SDL2_DIR`, `EMSDK_ROOT`, `LLVM_MINGW_ROOT`) to
 match your installation. To try the web build locally, serve `build/web` over HTTP, e.g.
-`python -m http.server 18765 --directory build/web`, and open `bejeweled.html`.
+`python -m http.server 18765 --directory build/web`, and open `bejeweled.html`. Automated tests open
+`bejeweled.html?silent=1`, which plays no sound.
 
 On the web, the game files, mods and saves stay in the browser's storage for that site (IndexedDB).
 Saving works as in the original: quitting saves a game in progress, and the next start offers

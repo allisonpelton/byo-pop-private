@@ -79,6 +79,7 @@ private:
 	int mRate = 48000;
 	float mMusicMaster = 1.0f;
 	float mSfxMaster = 1.0f;
+	bool mSilent = false;  // web test runs (web/shell.html ?silent=1): mix as usual, output silence
 	std::vector<std::unique_ptr<Voice>> mVoices;
 	std::vector<std::unique_ptr<Song>> mSongs;
 	int mNextVoiceSerial = 1;

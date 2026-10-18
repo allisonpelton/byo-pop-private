@@ -8,8 +8,9 @@
 // puts every game it starts there too. Rendering is unaffected: the game draws into a render-target
 // texture and screenshots read that texture, not the window.
 //
-// Test runs are silent too: unless SDL_AUDIODRIVER is already set, the children get SDL's "dummy" audio
-// driver, which plays nothing but still pulls audio at the device rate (the game does not depend on it).
+// Test runs are silent too: the children always get SDL's "dummy" audio driver, which plays nothing but
+// still pulls audio at the device rate (the game does not depend on it). An SDL_AUDIODRIVER the caller
+// set is replaced, so a real driver chosen for other programs cannot make hidden runs audible.
 // And they run at below-normal priority (inherited by their children), so the machine stays responsive.
 //
 // The rest of the command line is passed through verbatim, the standard handles are inherited, and the
@@ -52,8 +53,7 @@ int main(void)
 		return 2;
 	}
 
-	if (GetEnvironmentVariableW(L"SDL_AUDIODRIVER", NULL, 0) == 0)
-		SetEnvironmentVariableW(L"SDL_AUDIODRIVER", L"dummy");
+	SetEnvironmentVariableW(L"SDL_AUDIODRIVER", L"dummy");
 
 	const wchar_t* aDesktopName = L"bejeweled-test";
 	HDESK aDesktop = CreateDesktopW(aDesktopName, NULL, NULL, 0, GENERIC_ALL, NULL);

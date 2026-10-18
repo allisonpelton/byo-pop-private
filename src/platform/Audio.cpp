@@ -167,6 +167,10 @@ bool Mixer::Init()
 			}
 		}
 	});
+	// Test runs in a browser pane can be hidden, so they must not play sound. The page asks with
+	// ?silent=1; SDL's dummy driver needs threads, so the device stays real and the callback outputs
+	// silence after mixing, which keeps playback timing as it is (like rundesk's dummy driver on native).
+	mSilent = EM_ASM_INT({ return Module['silentAudio'] ? 1 : 0; }) != 0;
 	const int bufferFrames = 2048;
 #else
 	const int bufferFrames = 1024;
@@ -565,6 +569,8 @@ void Mixer::Callback(void* theUser, uint8_t* theStream, int theLen)
 {
 	Mixer* m = (Mixer*)theUser;
 	m->Mix((float*)theStream, theLen / (int)(sizeof(float) * 2));
+	if (m->mSilent)
+		memset(theStream, 0, theLen);
 }
 
 void Mixer::Mix(float* theOut, int theFrames)

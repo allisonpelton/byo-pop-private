@@ -8,9 +8,12 @@ the same machine. A plain run opens a window, raises it over whatever the user i
 - Start every game exe (`bejeweled.exe`, `fwtest.exe`, `smoke.exe`, frozen exes under `build/baseline*`,
   scratch builds) through `build/native/rundesk.exe`, or run the script that starts them under it:
   `build/native/rundesk.exe bash my-loop.sh`. rundesk puts the command and all its children on a private
-  desktop, gives them SDL's silent audio driver and below-normal priority. Build it with
-  `cmake --build build/native --target rundesk`.
+  desktop, gives them SDL's silent audio driver (always: it replaces any `SDL_AUDIODRIVER` you set) and
+  below-normal priority. Build it with `cmake --build build/native --target rundesk`.
 - `tools/oracle/compare.sh` already re-runs itself under rundesk.
+- Open the web builds in the Browser pane only with `?silent=1`, e.g.
+  `http://127.0.0.1:18766/bejeweled.html?silent=1`: the pane may be hidden, and without it the game plays
+  its music and sounds on the user's speakers. The status line ends in "silent" when it is on.
 - Run at most 3 game processes at a time, and never add artificial CPU load.
 - Do not leave anything running: loops started in the background must end before you finish, and a stopped
   task's child processes must be killed.

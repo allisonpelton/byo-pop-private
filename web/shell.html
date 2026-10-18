@@ -584,12 +584,16 @@ input[type=file] { display: none; }
     var seed = /^[0-9]{1,10}$/.test(digits) ? Number(digits) : 0;
     return (seed >= 1 && seed <= 4294967295) ? seed : -1;
   }
+  // ?silent=1: no sound, for automated tests in a browser pane that may be hidden (CLAUDE.md). The game
+  // still mixes and plays its sounds as usual; Platform::Mixer outputs silence (Module.silentAudio).
+  function pageSilent() { return new URLSearchParams(location.search).get("silent") === "1"; }
   function startGame() {
     $("start-overlay").hidden = true;
     var enabled = modState.filter(function (m) { return m.enabled; }).length;
     var seed = pageSeed();
     var seedText = (seed > 0) ? " · seed " + seed : (seed < 0) ? " · seed ignored: it must be 1 to 4294967295" : "";
-    setStatus((enabled ? enabled + " mod" + (enabled > 1 ? "s" : "") + " active" : "No mods active") + seedText);
+    Module.silentAudio = pageSilent();
+    setStatus((enabled ? enabled + " mod" + (enabled > 1 ? "s" : "") + " active" : "No mods active") + seedText + (Module.silentAudio ? " · silent" : ""));
     Module.callMain(["-gamedir=" + GAME, "-userdir=" + USER, "-modsdir=" + MODS].concat((seed > 0) ? ["-gameseed=" + seed] : []));
     $("canvas").focus();
   }
