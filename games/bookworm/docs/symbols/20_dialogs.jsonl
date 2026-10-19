@@ -1,0 +1,96 @@
+{"addr": "0041ddb0", "name": "Sexy::DeleteUserDialog::dtor_body", "sig": "void __thiscall dtor_body(void)", "comment": "~DeleteUserDialog body; does not delete mUserList (leak)"}
+{"addr": "0041ddd0", "name": "Sexy::DeleteUserDialog::GetPreferredHeight", "sig": "int __thiscall GetPreferredHeight(int theWidth)", "comment": "slot 50: Dialog's + 16 + list optimal height"}
+{"addr": "0041de10", "name": "Sexy::DeleteUserDialog::Resize", "sig": "void __thiscall Resize(int theX, int theY, int theWidth, int theHeight)", "comment": "slot 13: list above the buttons, buttons re-laid (same as SelectUserDialog without UpdateList)"}
+{"addr": "0041df60", "name": "Sexy::DeleteUserDialog::ButtonPress", "sig": "void __thiscall ButtonPress(int theId)", "comment": "+0x58 slot 3; folded with SelectUserDialog::ButtonPress: Dialog::ButtonPress, click unless yes/no"}
+{"addr": "0041dfb0", "name": "Sexy::DeleteUserDialog::~DeleteUserDialog", "sig": "void * __thiscall ~DeleteUserDialog(uint flags)", "comment": "slot 0"}
+{"addr": "0041e020", "name": "Sexy::DeleteUserDialog::ConfirmDelete", "sig": "void __thiscall ConfirmDelete(void * theName)", "comment": "app DoDialog(21, ARE YOU SURE?, YES_NO)"}
+{"addr": "0041e150", "name": "Sexy::DeleteUserDialog::ListClicked", "sig": "void __thiscall ListClicked(int theId, int theIdx, int theClickCount)", "comment": "+0x120 ListListener slot 0; double click -> ConfirmDelete"}
+{"addr": "0041e220", "name": "Sexy::DeleteUserDialog::ButtonDepress", "sig": "void __thiscall ButtonDepress(int theId)", "comment": "+0x58 slot 4; OK -> ConfirmDelete(selected), CANCEL -> SelectUserDialog(19)::UpdateList"}
+{"addr": "0041e370", "name": "Sexy::DeleteUserDialog::DeleteUserDialog", "sig": "void * __thiscall DeleteUserDialog(void * theApp, void * theNamesFirst, void * theNamesLast, void * theNamesEnd)", "comment": "ctor; sizeof 0x130; std::vector<std::string> names passed by value (allocator + 3 pointers)"}
+{"addr": "0041e620", "name": "Sexy::DeleteUserDialog::DeleteSelectedUser", "sig": "void __thiscall DeleteSelectedUser(void)", "comment": "called by BookWormApp::ButtonDepress on 2021; ProfileMgr::DeleteProfile, new current user, re-fit dialog 19"}
+{"addr": "00428f50", "name": "Sexy::GetStringDialog::dtor_body", "sig": "void __thiscall dtor_body(void)", "comment": "deletes mEditWidget and mLabel"}
+{"addr": "00428fd0", "name": "Sexy::GetStringDialog::SetColor", "sig": "void __thiscall SetColor(int theIdx, void * theColor)", "comment": "slot 7; game colour indices 6..19 routed to dialog/buttons/edit/label"}
+{"addr": "00429140", "name": "Sexy::GetStringDialog::AddedToManager", "sig": "void __thiscall AddedToManager(void * theWidgetManager)", "comment": "slot 1; adds label, adds and focuses the edit"}
+{"addr": "00429190", "name": "Sexy::GetStringDialog::RemovedFromManager", "sig": "void __thiscall RemovedFromManager(void * theWidgetManager)", "comment": "slot 2"}
+{"addr": "004291d0", "name": "Sexy::GetStringDialog::GetPreferredHeight", "sig": "int __thiscall GetPreferredHeight(int theWidth)", "comment": "slot 50: Dialog's + 70 (+ icon height + 12)"}
+{"addr": "00429210", "name": "Sexy::GetStringDialog::Resize", "sig": "void __thiscall Resize(int theX, int theY, int theWidth, int theHeight)", "comment": "slot 13: moves label and edit by the position delta"}
+{"addr": "00429290", "name": "Sexy::GetStringDialog::Update", "sig": "void __thiscall Update(void)", "comment": "slot 17; jmp Dialog::Update; folded: also MoneyDialog, HintDialog, RegisterDialog (and their subclasses) slot 17"}
+{"addr": "004292a0", "name": "Sexy::GetStringDialog::EditWidgetText", "sig": "void __thiscall EditWidgetText(int theId, void * theString)", "comment": "+0x110 EditListener slot 0: app->ButtonDepress(mId + 2000)"}
+{"addr": "004292d0", "name": "Sexy::GetStringDialog::GetStringDialog", "sig": "void * __thiscall GetStringDialog(void * theApp, int theId, bool isModal, void * theComponentImage, void * theButtonComponentImage, void * theDialogHeader, void * theDialogLines, void * theDialogFooter, void * theHeaderFont, void * theLinesFont, void * theEditFont, void * theLabelText, void * theLabelFont, void * theEditBoxImage, int theButtonMode)", "comment": "ctor; sizeof 0x128; only use: internet high-score alias (dialog 23, app 0x414080)"}
+{"addr": "00429590", "name": "Sexy::GetStringDialog::~GetStringDialog", "sig": "void * __thiscall ~GetStringDialog(uint flags)", "comment": "slot 0"}
+{"addr": "004295c0", "name": "Sexy::GetStringDialog::DrawEditBox", "sig": "void __thiscall DrawEditBox(void * g, void * theRect)", "comment": "slot 52 (new virtual): 3-slice frame from mEditBoxImage"}
+{"addr": "00429710", "name": "Sexy::GetStringDialog::Draw", "sig": "void __thiscall Draw(void * g)", "comment": "slot 16"}
+{"addr": "0042a820", "name": "Sexy::HintDialog::dtor_body", "sig": "void __thiscall dtor_body(void)", "comment": "deletes mDisableButton"}
+{"addr": "0042a890", "name": "Sexy::HintDialog::AddedToManager", "sig": "void __thiscall AddedToManager(void * theWidgetManager)", "comment": "slot 1"}
+{"addr": "0042a8c0", "name": "Sexy::HintDialog::RemovedFromManager", "sig": "void __thiscall RemovedFromManager(void * theWidgetManager)", "comment": "slot 2"}
+{"addr": "0042a8f0", "name": "Sexy::HintDialog::GetPreferredHeight", "sig": "int __thiscall GetPreferredHeight(int theWidth)", "comment": "slot 50: Dialog's + 4 + max(yes height, 32)"}
+{"addr": "0042a920", "name": "Sexy::HintDialog::ButtonPress", "sig": "void __thiscall ButtonPress(int theId, int theClickCount)", "comment": "+0x58 slot 2: Dialog::ButtonPress(id) then PlaySample(0)"}
+{"addr": "0042a950", "name": "Sexy::HintDialog::ButtonDepress", "sig": "void __thiscall ButtonDepress(int theId)", "comment": "+0x58 slot 4: id 26 -> show hints off, KillDialog(15)"}
+{"addr": "0042a990", "name": "Sexy::HintDialog::~HintDialog", "sig": "void * __thiscall ~HintDialog(uint flags)", "comment": "slot 0"}
+{"addr": "0042af50", "name": "Sexy::HintDialog::HintDialog", "sig": "void * __thiscall HintDialog(void * theApp, int theHintId, void * theDialogHeader, void * theDialogLines, void * theDialogFooter, int theButtonMode)", "comment": "ctor; sizeof 0x120; dialog 15"}
+{"addr": "0042b160", "name": "Sexy::HintDialog::Resize", "sig": "void __thiscall Resize(int theX, int theY, int theWidth, int theHeight)", "comment": "slot 13: uppercases the header; disable button under the moved-up footer button"}
+{"addr": "0042b3e0", "name": "Sexy::HintDialog::WasHintShown", "sig": "bool __cdecl WasHintShown(int theHintId)", "comment": "ignores its argument (looks up key 0); gHintShownMap is never filled: always false"}
+{"addr": "0042e3d0", "name": "Sexy::MoneyDialog::MoneyDialog", "sig": "void * __thiscall MoneyDialog(void * theApp, void * theComponentImage, void * theButtonComponentImage, int theId, bool isModal, void * theDialogHeader, void * theDialogLines, void * theDialogFooter, int theButtonMode)", "comment": "ctor; Dialog + mApp at +0x110; sizeof 0x120 (inferred)"}
+{"addr": "0042e420", "name": "Sexy::MoneyDialog::dtor_body", "sig": "void __thiscall dtor_body(void)", "comment": "restores vtables, Dialog dtor body (12 callers)"}
+{"addr": "0042e440", "name": "Sexy::MoneyDialog::Draw", "sig": "void __thiscall Draw(void * g)", "comment": "slot 16 = Dialog::Draw; folded: also HintDialog slot 16"}
+{"addr": "0042e450", "name": "Sexy::MoneyDialog::~MoneyDialog", "sig": "void * __thiscall ~MoneyDialog(uint flags)", "comment": "slot 0"}
+{"addr": "0042e480", "name": "Sexy::NewUserDialog::dtor_body", "sig": "void __thiscall dtor_body(void)", "comment": "deletes mNameEdit"}
+{"addr": "0042e4f0", "name": "Sexy::NewUserDialog::GetPreferredHeight", "sig": "int __thiscall GetPreferredHeight(int theWidth)", "comment": "slot 50: Dialog's + 56"}
+{"addr": "0042e510", "name": "Sexy::NewUserDialog::AddedToManager", "sig": "void __thiscall AddedToManager(void * theWidgetManager)", "comment": "slot 1: adds and focuses the name edit"}
+{"addr": "0042e550", "name": "Sexy::NewUserDialog::RemovedFromManager", "sig": "void __thiscall RemovedFromManager(void * theWidgetManager)", "comment": "slot 2"}
+{"addr": "0042e580", "name": "Sexy::NewUserDialog::Resize", "sig": "void __thiscall Resize(int theX, int theY, int theWidth, int theHeight)", "comment": "slot 13: edit at (X+48, Y+H-110, W-96, 24)"}
+{"addr": "0042e5d0", "name": "Sexy::NewUserDialog::EditWidgetText", "sig": "void __thiscall EditWidgetText(int theId, void * theString)", "comment": "+0x120 EditListener slot 0: app->ButtonDepress(mId + 2000)"}
+{"addr": "0042e5f0", "name": "Sexy::NewUserDialog::AllowChar", "sig": "bool __thiscall AllowChar(int theId, char theChar)", "comment": "EditListener slot 2: isalpha or space; folded: also GetStringDialog"}
+{"addr": "0042e620", "name": "Sexy::NewUserDialog::~NewUserDialog", "sig": "void * __thiscall ~NewUserDialog(uint flags)", "comment": "slot 0"}
+{"addr": "0042e650", "name": "Sexy::NewUserDialog::DrawEditBox", "sig": "void __thiscall DrawEditBox(void * g, void * theRect)", "comment": "non-virtual 3-slice frame from IMAGE_EDITBOX (app images +0x30)"}
+{"addr": "0042e7c0", "name": "Sexy::NewUserDialog::NewUserDialog", "sig": "void * __thiscall NewUserDialog(void * theApp, void * theDialogLines)", "comment": "ctor; sizeof 0x130; dialog 22"}
+{"addr": "0042ea10", "name": "Sexy::NewUserDialog::Draw", "sig": "void __thiscall Draw(void * g)", "comment": "slot 16: Dialog::Draw, edit frame, Enter Your Name caption"}
+{"addr": "0042eb40", "name": "Sexy::OptionsDialog::SliderVal", "sig": "void __thiscall SliderVal(int theId, double theVal)", "comment": "+0x120 SliderListener slot 0: 42 music, 43 sfx (+ goldtile when released)"}
+{"addr": "0042eba0", "name": "Sexy::OptionsDialog::ButtonPress", "sig": "void __thiscall ButtonPress(int theId)", "comment": "+0x58 slot 3"}
+{"addr": "0042ebe0", "name": "Sexy::OptionsDialog::Update", "sig": "void __thiscall Update(void)", "comment": "slot 17: slide in/out (phase += 0.055, x = 240 + (1 - sin) * W)"}
+{"addr": "0042ed00", "name": "Sexy::OptionsDialog::ApplyAndClose", "sig": "void __thiscall ApplyAndClose(void)", "comment": "slot 52 (new virtual): apply screen mode/3D/cursors/hints/defs, save profile, start slide-out"}
+{"addr": "0042ee20", "name": "Sexy::OptionsDialog::SetColor", "sig": "void __thiscall SetColor(int theIdx, void * theColor)", "comment": "slot 7: idx 3 also recolours Register/Help/Credits/link buttons"}
+{"addr": "0042eeb0", "name": "Sexy::OptionsDialog::AddedToManager", "sig": "void __thiscall AddedToManager(void * theWidgetManager)", "comment": "slot 1"}
+{"addr": "0042efa0", "name": "Sexy::OptionsDialog::RemovedFromManager", "sig": "void __thiscall RemovedFromManager(void * theWidgetManager)", "comment": "slot 2"}
+{"addr": "0042f090", "name": "Sexy::OptionsDialog::Resize", "sig": "void __thiscall Resize(int theX, int theY, int theWidth, int theHeight)", "comment": "slot 13"}
+{"addr": "0042f450", "name": "Sexy::OptionsDialog::GetPreferredHeight", "sig": "int __thiscall GetPreferredHeight(int theWidth)", "comment": "slot 50: OptionsDialogHeight (330) + 36 * min(NumOptionsLinks, 3), cached in statics"}
+{"addr": "0042f600", "name": "Sexy::OptionsDialog::Draw", "sig": "void __thiscall Draw(void * g)", "comment": "slot 16"}
+{"addr": "0042fa50", "name": "Sexy::OptionsDialog::CheckboxChecked", "sig": "void __thiscall CheckboxChecked(int theId, bool checked)", "comment": "+0x124 CheckboxListener slot 0"}
+{"addr": "0042fbe0", "name": "Sexy::OptionsDialog::ButtonDepress", "sig": "void __thiscall ButtonDepress(int theId)", "comment": "+0x58 slot 4: 33 Help, 34 Register, 35 Credits, 1036 link URL"}
+{"addr": "0042fc90", "name": "Sexy::OptionsDialog::dtor_body", "sig": "void __thiscall dtor_body(void)"}
+{"addr": "0042fe60", "name": "Sexy::OptionsDialog::~OptionsDialog", "sig": "void * __thiscall ~OptionsDialog(uint flags)", "comment": "slot 0"}
+{"addr": "0042fe90", "name": "Sexy::OptionsDialog::OptionsDialog", "sig": "void * __thiscall OptionsDialog(void * theApp)", "comment": "ctor; sizeof 0x188; dialog 1"}
+{"addr": "00431b50", "name": "Sexy::RegisterDialog::dtor_body", "sig": "void __thiscall dtor_body(void)", "comment": "not ported; deletes edits and buttons, back to fullscreen if it left it"}
+{"addr": "00431c20", "name": "Sexy::RegisterDialog::GetPreferredHeight", "sig": "int __thiscall GetPreferredHeight(int theWidth)", "comment": "slot 50: backdrop_register height"}
+{"addr": "00431c40", "name": "Sexy::RegisterDialog::AddedToManager", "sig": "void __thiscall AddedToManager(void * theWidgetManager)", "comment": "slot 1"}
+{"addr": "00431cb0", "name": "Sexy::RegisterDialog::RemovedFromManager", "sig": "void __thiscall RemovedFromManager(void * theWidgetManager)", "comment": "slot 2"}
+{"addr": "00431d10", "name": "Sexy::RegisterDialog::Resize", "sig": "void __thiscall Resize(int theX, int theY, int theWidth, int theHeight)", "comment": "slot 13"}
+{"addr": "00431dc0", "name": "Sexy::RegisterDialog::Draw", "sig": "void __thiscall Draw(void * g)", "comment": "slot 16: backdrop_register only"}
+{"addr": "00431df0", "name": "Sexy::RegisterDialog::EditWidgetText", "sig": "void __thiscall EditWidgetText(int theId, void * theString)", "comment": "+0x110 slot 0: name -> focus code, code -> app ButtonDepress(mId+2000)"}
+{"addr": "00431e30", "name": "Sexy::RegisterDialog::ButtonPress", "sig": "void __thiscall ButtonPress(int theId)", "comment": "+0x58 slot 3: PlaySample(0)"}
+{"addr": "00431e50", "name": "Sexy::RegisterDialog::~RegisterDialog", "sig": "void * __thiscall ~RegisterDialog(uint flags)", "comment": "slot 0"}
+{"addr": "00431e80", "name": "Sexy::RegisterDialog::RegisterDialog", "sig": "void * __thiscall RegisterDialog(void * theApp)", "comment": "ctor; sizeof 0x138; dialog 2; not ported"}
+{"addr": "00432500", "name": "Sexy::RegisterDialog::ButtonDepress", "sig": "void __thiscall ButtonDepress(int theId)", "comment": "+0x58 slot 4: id 0 opens the registration web page; others to Dialog::ButtonDepress"}
+{"addr": "004325f0", "name": "Sexy::SelectUserDialog::dtor_body", "sig": "void __thiscall dtor_body(void)", "comment": "re-enables the game selector (app+0x1168); does not delete mUserList (leak)"}
+{"addr": "00432670", "name": "Sexy::SelectUserDialog::SetColor", "sig": "void __thiscall SetColor(int theIdx, void * theColor)", "comment": "slot 7 = Dialog::SetColor; folded: also DeleteUserDialog"}
+{"addr": "00432680", "name": "Sexy::SelectUserDialog::AddedToManager", "sig": "void __thiscall AddedToManager(void * theWidgetManager)", "comment": "slot 1; folded: also DeleteUserDialog"}
+{"addr": "004326b0", "name": "Sexy::SelectUserDialog::RemovedFromManager", "sig": "void __thiscall RemovedFromManager(void * theWidgetManager)", "comment": "slot 2; folded: also DeleteUserDialog"}
+{"addr": "004326e0", "name": "Sexy::SelectUserDialog::Draw", "sig": "void __thiscall Draw(void * g)", "comment": "slot 16 = MoneyDialog::Draw; folded: also DeleteUserDialog"}
+{"addr": "004326f0", "name": "Sexy::SelectUserDialog::~SelectUserDialog", "sig": "void * __thiscall ~SelectUserDialog(uint flags)", "comment": "slot 0"}
+{"addr": "00432720", "name": "Sexy::SelectUserDialog::ButtonDepress", "sig": "void __thiscall ButtonDepress(int theId)", "comment": "+0x58 slot 4: OK -> SetCurrentUser(selected), LoadCurrentProfile"}
+{"addr": "00432810", "name": "Sexy::SelectUserDialog::UpdateList", "sig": "void __thiscall UpdateList(void)", "comment": "refills the list from the ProfileMgr (create/delete lines, max 5 names)"}
+{"addr": "00432b00", "name": "Sexy::SelectUserDialog::GetPreferredHeight", "sig": "int __thiscall GetPreferredHeight(int theWidth)", "comment": "slot 50: UpdateList; Dialog's + 16 + list optimal height"}
+{"addr": "00432b40", "name": "Sexy::SelectUserDialog::Resize", "sig": "void __thiscall Resize(int theX, int theY, int theWidth, int theHeight)", "comment": "slot 13"}
+{"addr": "00432c90", "name": "Sexy::SelectUserDialog::SelectUserDialog", "sig": "void * __thiscall SelectUserDialog(void * theApp)", "comment": "ctor; sizeof 0x130; dialog 19"}
+{"addr": "00432f00", "name": "Sexy::SelectUserDialog::ListClicked", "sig": "void __thiscall ListClicked(int theId, int theIdx, int theClickCount)", "comment": "+0x120 ListListener slot 0: create/delete lines, double click selects and closes"}
+{"addr": "0052f530", "label": "gNewUserEditColors", "comment": "int[5][4] NewUserDialog edit colours: (0,0,0,0), (0,0,0,0), (240,240,255,255), (255,255,255,255), (0,0,0,255)"}
+{"addr": "0052f5c0", "label": "gOptionsButtonColors", "comment": "int[2][3] OptionsDialog buttons: (221,152,83), (255,255,0)"}
+{"addr": "0052f788", "label": "gSelectUserListColors", "comment": "int[5][3] list: (53,43,29), (0,0,0), (255,225,73), (255,255,255), (188,22,22)"}
+{"addr": "0052ea00", "label": "gDeleteUserListColors", "comment": "int[5][3], same values as gSelectUserListColors"}
+{"addr": "0052efd8", "label": "gGetStringDialogColors", "comment": "int[15][4] default colours for indices 5..19"}
+{"addr": "0052f27c", "label": "gHintDisableButtonColors", "comment": "int[2][3] black, white"}
+{"addr": "0052f6f8", "label": "gRegisterEditColors", "comment": "int[5][4] RegisterDialog edit colours (not ported)"}
+{"addr": "00534c38", "label": "gHintShownMap", "comment": "std::map<int,bool> (HintDialog.cpp); never filled"}
+{"addr": "00534dd8", "label": "gOptionsDialogHeight", "comment": "OptionsDialog::GetPreferredHeight static: GetInteger(OptionsDialogHeight, 330)"}
+{"addr": "00534ddc", "label": "gNumOptionsLinks", "comment": "OptionsDialog::GetPreferredHeight static: min(GetInteger(NumOptionsLinks, 1), 3)"}
+{"addr": "00534de0", "label": "gOptionsDialogStaticsGuard", "comment": "init-guard bits of the two statics above"}

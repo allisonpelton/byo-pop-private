@@ -1,0 +1,34 @@
+# BookWorm Deluxe (PopCap, 2004; games/bookworm/src) on the shared framework and platform layer. The game
+# code is a translation of the original's game classes (games/bookworm/docs), written against the 2004
+# framework compatibility map (docs/FRAMEWORK_2004.md); Compat2004.* holds the old framework behaviours.
+# Native: bookworm.exe [-gamedir=<dir>] [-userdir=<dir>] [-modsdir=<dir>] (see src/main.cpp); it finds
+# assets/bookworm/ (games/bookworm/tools/stage_bookworm_assets.py) or the retail install by itself.
+# Web: bookworm.html/.js/.wasm; games/bookworm/web/shell.html imports the user's game files into /bwpersist
+# (IDBFS) and starts the game with callMain(). The music is an MO3 module: libopenmpt via sexyopenmpt.
+file(GLOB BOOKWORM_SOURCES CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp)
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/src/BookWormApp.cpp)
+  add_executable(bookworm ${BOOKWORM_SOURCES})
+  target_include_directories(bookworm PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
+  target_link_libraries(bookworm PRIVATE sexyframework sexyopenmpt)
+  if(NOT MSVC)
+    target_compile_options(bookworm PRIVATE -Wall -Wno-unused-private-field)
+  endif()
+  if(EMSCRIPTEN)
+    set_target_properties(bookworm PROPERTIES SUFFIX ".html")
+    set_property(TARGET bookworm APPEND PROPERTY LINK_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/web/shell.html)
+    target_link_options(bookworm PRIVATE
+      "--shell-file=${CMAKE_CURRENT_SOURCE_DIR}/web/shell.html"
+      "-sALLOW_MEMORY_GROWTH=1" "-sFORCE_FILESYSTEM=1" "-sINVOKE_RUN=0"
+      "-sEXPORTED_RUNTIME_METHODS=['FS','callMain']" "-lidbfs.js")
+  else()
+    add_custom_command(TARGET bookworm POST_BUILD
+      COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:SDL2::SDL2> ${PORT_RUNTIME_DLLS} $<TARGET_FILE_DIR:bookworm>
+      VERBATIM)
+  endif()
+endif()
+
+# mo3info: prints an MO3 module's orders and per-order levels (native tool, no audio device)
+if(NOT EMSCRIPTEN)
+  add_executable(mo3info tools/mo3info/mo3info.cpp)
+  target_link_libraries(mo3info PRIVATE openmpt)
+endif()
