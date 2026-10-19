@@ -1,7 +1,8 @@
 # Mod menu: design
 
-Status (2026-10-19): the shared stages M0-M4 and M8 are built (branch `shared/modmenu`). M5 (Bejeweled), M6 (Big
-Money) and M7 (BookWorm) are the game sessions' (9). The guide for mod authors is [MOD_MENU.md](MOD_MENU.md).
+Status (2026-10-19): the shared stages M0-M4 and M8 are built (branch `shared/modmenu`), and so is Big Money's M6
+(d4fe95b, 8.3). M5 (Bejeweled) and M7 (BookWorm) are the game sessions' (9). The guide for mod authors is
+[MOD_MENU.md](MOD_MENU.md).
 
 This document has four parts:
 - **The user's decisions** (just below), taken after the design and its review. They win over the design.
@@ -30,7 +31,7 @@ Taken from the design's recommendations:
 - nothing restarts by itself, and "Restart game" asks only when a game is in progress;
 - mods are not removed from the in-game menu;
 - a restart drops `-nomods`;
-- the Options button shows only when an installed mod has settings;
+- the Options button shows only when an installed mod has settings (Bejeweled: an enabled one, 8.2);
 - Big Money's high scores are scoped with the score key.
 
 ## As built (shared stages)
@@ -89,8 +90,9 @@ Taken from the design's recommendations:
   (review A15).
 - **Script commands.** `modmenu restart confirm` was added. `modmenu page` opens the menu. There are also
   `keydown`/`keyup`, and `#` inside `"..."` is no longer a comment (review A17).
-- **The restart question** needs the game's `HasGameInProgress`; no game overrides it yet (M5, M6), so until
-  then Restart restarts at once. The game in progress is still saved as on Quit.
+- **The restart question** needs the game's `HasGameInProgress`. Big Money overrides it (M6, 8.3); Bejeweled
+  (M5) and BookWorm (M7) do not yet, so there Restart restarts at once. The game in progress is still saved as on
+  Quit.
 - **Not done.** A relaunch from a folder with non-ASCII characters: the file layer's ANSI calls fail there first
   (review A15).
 
@@ -1005,7 +1007,7 @@ These are framework commands in `RunScript`, so every game has them:
 
 Everything in 2.3 that is marked as coordinator-owned:
 - the model;
-- the menu, the default skin and the font;
+- the menu and its one look: the default skin, drawn with primitives and the built-in font (decision 2);
 - the restart plumbing and relaunch;
 - the script commands and `-dumpmods`;
 - the C API, `modpanel.js` and `cmake/ByopopWeb.cmake`;
@@ -1016,19 +1018,18 @@ A shared `web/modpanel.js` is a step towards the survey's shell template (G6, `d
 
 ### 8.2 Bejeweled (Bejeweled session)
 
-- **Skin:**
-  - Body and buttons use `mMainFont`.
-  - The title uses `mHeaderFont`, upper-cased because that font is upper case only.
-  - The frame is `IMAGE_DIALOGBOX` and the buttons are `IMAGE_BOXBUTTON`, as in `WinDMApp::NewDialog` (`WinDMApp.cpp:312-320`).
-  - The checkbox uses the `IMAGE_CHECKBOX` halves and the slider uses `IMAGE_SLIDER_TRACK/THUMB`, as in Options (`OptionsDialog.cpp:154-203`).
-  - `PlayClick` plays `SOUND_MENUCLICK`.
-  - Before loading finishes, the default parts are used.
+- **Look:** the shared default skin, as in every game (decision 2). The menu draws no Bejeweled art, fonts or
+  sounds, so nothing waits for loading.
 - **Options:** a "MODS" `DialogButton` with a new id under 1000, in the register slot (`mX+30+bw`, `mY+166`; CODE_MODS_DESIGN 2.6). The slot shows:
   - "EXTRAS" when an Extras feature is on (stage 13). The Extras dialog then gets a "Mods..." button.
-  - Otherwise "MODS", when an installed mod has settings.
+  - Otherwise "MODS", when an **enabled** mod has settings. Bejeweled gates on an enabled mod, not on an
+    installed one as Big Money does (8.3): the oracle's examples case has `example-settings` installed but off
+    (compare.sh lists every mod outside its six as disabled), and its Options screens must not change.
   - Otherwise nothing: the original row.
 - **The Extras gate** must also leave out livesplit-only (an amendment to CODE_MODS_DESIGN 2.6). LiveSplit adds nothing to Extras, and the livesplit oracle runs open Options.
-- **Next-game values and per-board names** (6.2). Main calls `SetNextGameKeys(true)`.
+- **Next-game values and per-board names** (6.2; decision 3). Main sets the next-game filter
+  (`ModManager::SetNextGameFilter`, As built M0/M1) to the paths it re-reads at a new game, so gameplay and
+  feature values apply at the next fresh game without a restart.
 - **`GetModMessages`:** the rules errors, dropped mods and warnings of `RulesStatus` per mod (`GameConfigMods.cpp:209-253`).
 - **When `mods-status.json` is written** (unchanged rule), its entries for enabled mods gain `values`.
 - **`GetRestartArgs`:** `-replaydir`, and `-gameseed` only while it is pending.
@@ -1046,42 +1047,47 @@ A shared `web/modpanel.js` is a step towards the survey's shell template (G6, `d
     `platform/ModSettings.cpp` and `platform/Text.cpp` to the verifier's sources) and report setting errors in
     its `errors`.
 
-### 8.3 Big Money (Big Money session, after merging the trunk)
+### 8.3 Big Money (Big Money session; built in M6, d4fe95b)
 
-The Big Money branch lacks stages 2b and 3. It still has `GetShutdownSave` in the singular (`SexyAppBase.h:569` on its branch).
+M6 was built on a merge of main (ed588ec), so it has the trunk's `GetShutdownSaves` and stages 2b and 3.
 
-- **Skin:**
-  - The frame is `IMAGE_OLDDIALOG` and the buttons are `IMAGE_DIALOGBUTTON`.
-  - Body and buttons use `mFont3`; the title uses `mFont1`.
-  - The title is white and the text green, with insets of 36, as in `WinBMApp::NewDialog` (`WinBMApp.cpp:215-226`).
-  - There are no running lights.
-  - All art loads in Init, so no fallback is needed after Init.
-- **Options:** "MODS" in the Register slot, which is created but never laid out (`OptionsDialog.h:11-12, 38`). It is shown only when an installed mod has settings.
+- **Look:** the shared default skin, as in every game (decision 2). The menu draws no Big Money art or fonts.
+- **Options:** while any installed mod, on or off, has settings, the Register slot (created but never laid out
+  in this build, `OptionsDialog.h`) holds a MODS button (`OPTIONS_MODS`). It opens the menu over Options, which
+  stays open. Without such a mod the row is the original. Bejeweled gates on an enabled mod instead (8.2).
 - **Pausing:** the menu inherits `ModalOpen`, which pauses only the Action type. The other types have no timer, so nothing advances without input.
-- **Scores:**
-  - Big Money adopts a shared `Platform::ScopedUserFileName` for `savegame.dat` (`Board.cpp:~208`) and for its high-score file.
-  - Its save name is unscoped today. With this, a gameplay setting in a Big Money mod gets its own tables.
-  - Nothing changes while the key is empty, which is always the case today.
-- **Values:** all values are restart-level (`SetNextGameKeys` stays false).
-- **`CanRestartNow`:** false while its record-score dialog is open.
-- **`HasGameInProgress`:** `CanSaveGame()`.
+- **Scores:** the save and the high-score files were already scoped by the score key since 9538925, through Big
+  Money's own `ScopedUserFileName` (`ModRules.h`; `Board.cpp`, `HighScoreWidget.cpp`), so a gameplay setting gets
+  its own tables. Nothing changes while the key is empty.
+- **Values:** all values are restart-level. Big Money sets no next-game filter.
+- **Effective manifests:** `ModRules` reads each enabled mod's effective manifest (the settings' values put in),
+  so a value that leaves a key out (`$omit`) counts. `settings` itself is a meta key.
+- **`HasGameInProgress`:** `CanSaveGame()`, a game the shutdown would save (never a replay).
+- **`CanRestartNow`:** false while the record-score dialog (`DIALOG_RECORD_SCORE`) is open: the high-score name is
+  being entered.
+- **`GetRestartArgs`:** the framework's, plus `-replaydir` only when it was given (without it the folder follows
+  the user dir again), and `-gameseed` while that seed still waits for its game. Not `-replay`.
 - **Main:** the relaunch lines and `-dumpmods`.
-- **Web shell:**
-  - Its own Mods panel code is replaced by `modpanel.js`.
-  - It gains the restart and autostart paths.
+- **Web shell** (M4):
+  - It uses `modpanel.js` through `byopop_web_game`, with the restart and autostart paths.
   - It keeps `/bmpersist` and its lock name `big-money-deluxe-instance`.
 - **The `$` mod sign** (`WinBMApp.cpp:628-629`) is unchanged.
 
-### 8.4 BookWorm (BookWorm session, once it runs)
+### 8.4 BookWorm (BookWorm session, M7)
 
-- Main: the relaunch lines and `-dumpmods`.
-- The default skin until the game has one; after that, its own dialog art and fonts.
-- An Options slot, if the game has a free one.
+BookWorm runs (milestones 2 and 3, merged at 1b89ee2). The framework already gives it the menu: F2 opens it, in
+the shared look, on any screen. M7 adds:
+- **Look:** none of its own: the shared default skin, as in every game (decision 2).
+- **Main:** the relaunch lines (`TakeRelaunch`, `Platform::Relaunch`) and `-dumpmods`. Until then the menu's
+  Restart game shuts BookWorm down, saved as on Quit, and does not start it again.
+- **Web:** the game links through `byopop_web_game` (`cmake/ByopopWeb.cmake`), so its page gets `modpanel.js`,
+  the C API, restarts and autostart. Today `games/bookworm/CMakeLists.txt` sets its own link options and
+  `games/bookworm/web/shell.html` has its own Mods panel.
+- **Options:** a MODS button only if the game has a free slot, and only when a mod has settings.
 - **Scores:**
   - Mods that change the word list or other play data must count for the score key. Their settings use `"affectsScores": true`, or BookWorm marks those data paths the way Bejeweled marks `diff.txt`.
   - Its save and high-score files are scoped with the key.
 - All values are restart-level.
-- The shell uses `modpanel.js`.
 - The menu needs only `SexyAppBase`, `WidgetManager` and `Graphics`, which the 2004 compatibility layer shares.
 
 ---
@@ -1095,11 +1101,11 @@ Sizes are new or changed lines.
 | M0 | Groundwork | coordinator | `SaveConfig` re-reads, merges and keeps unknown keys; atomic user-file writes and the backup-dirty callback (also for `WriteStatus`); both shells' `saveModConfig` keep unknown keys; `byopop_userdata_restore` before the shell reads; `UTF8ToLatin1` moved to `Common` | Oracle; a `mods.json` with an unknown key survives a panel save; a status write reaches the backup | ~200 |
 | M1 | Settings model | coordinator | `ModSettings`; effective manifests in `Apply`; desired state, edits, `mod-settings.json`, pending changes, the next key; score-key entries; `-dumpmods` | `modsettingstest` (native and Node); oracle identical; the `example-relaxed` key | ~1,300 (≈450 of it tests) |
 | M2 | Restart | coordinator, plus 3 lines in each game's main | `RequestRestart` and its virtuals; `Relaunch`; web exit info; shell restart and autostart; rundesk job wait; `modmenu restart` | The restart rows of 7.3; oracle | ~450 |
-| M3 | Menu | coordinator | `BuiltinFont`, the skin and the default skin, `ModMenu`, F2, the `modmenu` commands, strings | screens, edit, keys and pause tests with the default skin in both games; the fwtest hotkey test; RNG | ~2,100 |
+| M3 | Menu | coordinator | `BuiltinFont`, the one look (the default skin; no per-game skins, decision 2), `ModMenu`, F2, the `modmenu` commands, strings | screens, edit, keys and pause tests in both games; the fwtest hotkey test; RNG | ~2,100 |
 | M4 | Web views | coordinator, plus the Big Money session for its shell | The C API, `modpanel.js`, both shells, `cmake/ByopopWeb.cmake` | The web row of 7.3 | ~900 (the shells lose more JS than this adds) |
-| M5 | Bejeweled | Bejeweled session | The skin, the Options slot rule, messages, restart arguments, `CanRestartNow`, next-game values with per-board names | Oracle ×3; the `modmenu_*` tests with the game skin; `modmenu_nextgame`; replay verify | ~550 |
-| M6 | Big Money | Big Money session, after a trunk merge | The skin, Options MODS, scoped files, the main lines, the shell | Its scripts and autoplay; restart; web | ~350 |
-| M7 | BookWorm | BookWorm session, once it runs | The main lines, the skin, the scores rule for word lists | Its own tests | ~200 |
+| M5 | Bejeweled | Bejeweled session | The Options slot rule (MODS while an enabled mod has settings), messages, restart arguments, `CanRestartNow`, `HasGameInProgress`, next-game values with per-board names; the shared look | Oracle ×3 (the examples case's Options screens unchanged); the `modmenu_*` tests; `modmenu_nextgame`; replay verify | ~550 |
+| M6 | Big Money | Big Money session, after a trunk merge | **Built (d4fe95b):** Options MODS while an installed mod has settings, effective manifests in `ModRules`, `HasGameInProgress`, `CanRestartNow`, `GetRestartArgs`; the shared look. The scoped files (9538925), the main lines and the shell were already in | `modmenutest bigmoney`; its screenshot regression; autoplay | ~350 (built: ~80) |
+| M7 | BookWorm | BookWorm session (it runs since milestone 2) | The main lines, the web link through `byopop_web_game` and `modpanel.js`, the scores rule for word lists; the shared look | Its own tests; `modmenutest` once it covers BookWorm | ~200 |
 | M8 | Docs | coordinator and the games | `docs/MOD_MENU.md` for mod authors (settings, placeholders, levels, scores); README Mods sections (F2, `mod-settings.json`); the schema comment in `ModManager.h` | — | ~300 |
 
 **Total:** about 6,350 lines.

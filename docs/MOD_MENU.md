@@ -11,7 +11,9 @@ same `settings` block.
 
 - **Opening it.** Press **F2** in any game, natively or in the browser, on the title screen or during play.
   On the web, the tool bar's **Mods** button also opens it while the game runs. F2 works without Ctrl, Shift
-  or Alt, and holding it down does not repeat.
+  or Alt, and holding it down does not repeat. In Big Money, Options also has a **MODS** button while an
+  installed mod, on or off, has settings. Bejeweled's, which its own menu integration adds, shows while an
+  enabled mod has settings. The menu looks the same in every game.
 - **Closing it.** Press F2 again, press Esc on the list, or use **Close**.
 - **Pausing.** While the menu is open the game is paused, as it is while Options is open.
 - **The list page** shows every installed mod in load order:
@@ -26,8 +28,8 @@ same `settings` block.
   - "Restart to apply: ..." for changes that need a restart;
   - "Applies to your next game: ..." for values the game reads at its next new game.
 - **Restart game.** This button restarts the game; the game in progress is saved as on Quit. In a game that
-  reports a game in progress (`SexyAppBase::HasGameInProgress`, which no game overrides yet: Bejeweled's and
-  Big Money's own menu integration adds it), it asks first and says where that game goes: it can be continued
+  reports a game in progress (`SexyAppBase::HasGameInProgress`: Big Money does, while its game can be saved;
+  Bejeweled's own menu integration adds it), it asks first and says where that game goes: it can be continued
   after the restart, or, when the restart changes the score key, it stays saved with the current mods and
   continues when the player switches back to them. Elsewhere it restarts at once and says nothing, and a game
   saved under the old key is offered again only once the mods are switched back. Nothing restarts by itself:
