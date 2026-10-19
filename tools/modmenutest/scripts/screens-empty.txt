@@ -1,0 +1,5 @@
+# Any game with no mods installed, started with -nomods: the menu says both.
+250 modmenu open
+260 screenshot shots/e01_empty_nomods.png
+270 modmenu close
+280 quit

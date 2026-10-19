@@ -14,12 +14,7 @@ if(NOT MSVC)
   target_compile_options(bigmoney PRIVATE -Wall -Wno-unused-private-field)
 endif()
 if(EMSCRIPTEN)
-  set_target_properties(bigmoney PROPERTIES SUFFIX ".html")
-  set_property(TARGET bigmoney APPEND PROPERTY LINK_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/web/shell.html)
-  target_link_options(bigmoney PRIVATE
-    "--shell-file=${CMAKE_CURRENT_SOURCE_DIR}/web/shell.html"
-    "-sALLOW_MEMORY_GROWTH=1" "-sFORCE_FILESYSTEM=1" "-sINVOKE_RUN=0"
-    "-sEXPORTED_RUNTIME_METHODS=['FS','callMain']" "-lidbfs.js")
+  byopop_web_game(bigmoney ${CMAKE_CURRENT_SOURCE_DIR}/web/shell.html)
 else()
   add_custom_command(TARGET bigmoney POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:SDL2::SDL2> ${PORT_RUNTIME_DLLS} $<TARGET_FILE_DIR:bigmoney>

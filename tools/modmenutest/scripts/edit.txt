@@ -1,0 +1,33 @@
+# The "modmenu" edit commands, with the menu closed and then open, on the title screen of any game. The user dir
+# starts with tools/modmenutest/user/{mods,mod-settings}.json: an unknown key in each, a mod that is not installed
+# (gone-mod) in the order and with values of its own. run_tests.sh compares the files with expect/edit-*.json.
+250 modmenu enable plain-demo 0
+# no-op (no write), then a move, then one that cannot be made (logged)
+251 modmenu enable plain-demo 0
+252 modmenu move plain-demo -1
+253 modmenu move plain-demo -1
+254 modmenu set settings-demo minRun 2
+255 modmenu set settings-demo minRun 2
+256 modmenu set settings-demo shape "diamond"
+# a colour in quotes is not a comment; upper case becomes lower case
+257 modmenu set settings-demo tint "#00FF80"
+# charset "upper", and '%' (this text lands in "strings") becomes '?'
+258 modmenu set settings-demo praise "50% off"
+# snapped to the 0.1 step, clamped to 2..5
+259 modmenu set settings-demo speed 1.25
+260 modmenu set settings-demo minRun 9
+# refused (logged): not a bool, no such setting, no such mod, not JSON
+261 modmenu set settings-demo undo "yes"
+262 modmenu set settings-demo nosuch 1
+263 modmenu enable nosuch 1
+264 modmenu set settings-demo minRun three
+265 modmenu dump edit-state1.json
+# with the menu open the same commands go through it; the reset leaves only the values set after it
+270 modmenu open
+271 modmenu reset settings-demo
+272 modmenu set settings-demo music "remix"
+273 modmenu set settings-demo volume 30
+274 modmenu enable plain-demo 1
+280 modmenu dump edit-state.json
+290 modmenu close
+300 quit

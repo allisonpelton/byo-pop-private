@@ -1,0 +1,21 @@
+# Edits that change nothing write nothing: the user dir starts with tools/modmenutest/user-noop/*.json, written
+# compactly by hand (an empty "next", an empty object for a mod that is not installed), and run_tests.sh checks
+# that both files keep their bytes. On the title screen of any game.
+250 modmenu enable plain-demo 0
+251 modmenu enable settings-demo 1
+# refused (logged): plain-demo is first
+252 modmenu move plain-demo -1
+253 modmenu set settings-demo minRun 4
+# a value at its default is not stored, so setting the default changes nothing
+254 modmenu set settings-demo shape "full"
+255 modmenu set settings-demo undo "yes"
+# in the menu: Delete on a setting at its default (Undo), Left on a greyed-out one (Undo depth), Esc twice
+260 modmenu open
+261 modmenu page settings-demo
+262 key DOWN
+263 key DELETE
+264 key DOWN
+265 key LEFT
+266 key ESCAPE
+267 key ESCAPE
+280 quit

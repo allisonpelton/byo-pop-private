@@ -46,7 +46,8 @@ Command-line options (native; the web shell passes the equivalent paths):
 | `-gamedir=<dir>` | game data folder |
 | `-userdir=<dir>` | saves, settings (`registry.ini`) and `mods.json` |
 | `-modsdir=<dir>` | mods folder (default: `mods` next to the executable) |
-| `-nomods` | start without mods |
+| `-nomods` | start without mods (once: the mod menu's Restart game starts with them again) |
+| `-dumpmods` | print the mods, their settings and what is waiting as JSON (the mod menu's model), then exit |
 | `-seed=<n>` | fixed random seed (default: time based, like the original) |
 | `-gameseed=<n>` | play the next game on seed n (1 to 4294967295): the same board every time. The seed waits until you play it: a mode switch or New Game before your first match, or a resumed saved game, leaves it for the next game; your first match or a game over uses it up. On the web: `bejeweled.html?seed=<n>`. The game-over screen shows the seed, and the scores go to a separate high-score table |
 | `-script=<file>`, `-fast`, `-trace` | scripted input and screenshots for automated tests |
@@ -56,9 +57,14 @@ Command-line options (native; the web shell passes the equivalent paths):
 
 A mod is a folder in the mods directory. It contains files at the same paths the game uses
 (`images/`, `sounds/`, `music/`, `data/`, `properties/`), plus an optional `mod.json`. When two mods
-change the same file, the one higher in the load order wins. On the web, use the **Mods** panel to
-add mod folders or .zip files, enable/disable them and change their order. Natively, edit
-`<userdir>/mods.json` (`{"order": [...], "disabled": [...]}`); new mods are enabled automatically.
+change the same file, the one higher in the load order wins.
+
+Press **F2** (or, on the web, click **Mods** while the game runs) for the mod menu. It turns mods on and
+off, changes their order and the settings a mod offers, and restarts the game when a change needs it. New
+mods are enabled automatically. On the web, the **Mods** panel adds mod folders or .zip files and removes
+them; the menu's **Add or remove mods** opens it during play. The menu keeps its choices in
+`<userdir>/mods.json` and `<userdir>/mod-settings.json`, which can also be edited by hand. Mod settings are
+described in [docs/MOD_MENU.md](../../docs/MOD_MENU.md); `mods/example-settings` is an example.
 
 ```jsonc
 {
@@ -100,6 +106,7 @@ The mods live in `games/bejeweled/mods/`; the generators write there by default.
 | `example-crystal-gems`: new HD gem art (original artwork) | `python games/bejeweled/tools/make_example_mods.py` |
 | `example-voice-lines`: string overrides | same script |
 | `example-relaxed`: cheaper hints, separate high scores | same script |
+| `example-settings`: the hint cost, when the Timed bar flashes, replays and the big-move message, set in the mod menu ([docs/MOD_MENU.md](../../docs/MOD_MENU.md)) | in the repository |
 | `livesplit`: LiveSplit auto splitter support (Windows): the block the auto splitter reads, 12 split templates and the script ([tools/livesplit](tools/livesplit/README.md)); changes nothing in play or on screen | same script (`--only livesplit`) |
 | `mines-trilliant`: orange gem as a trilliant cut shaped like the Colorado School of Mines triangle | `python games/bejeweled/tools/make_trilliant_mod.py` |
 | `true-gem`: every gem becomes a badly recoloured "True..." meme card, the logo reads BE TRUE LED, EXCELLENT! becomes TRUE... and NO MOVES! becomes NO TRUE... | `python games/bejeweled/tools/make_true_mod.py --image <picture>` |

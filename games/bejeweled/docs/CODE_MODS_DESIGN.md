@@ -576,8 +576,9 @@ deterministic.
 
 ### 3.7 Score keys, RulesId
 
-- **Local file key.** It is unchanged: FNV-1a over the sorted `id@version;` of the score-affecting
-  mods.
+- **Local file key.** FNV-1a over the `id@version;` of the score-affecting mods in load order (sorted
+  until the shared mod menu's integration: a reorder that changes which mod's rules win must change the
+  key too, or a v2 save is kept under rules it was not made with; docs/MOD_MENU_DESIGN.md 3.7).
   - Score-affecting now means `affectsScores || tunables || rules`.
   - A mod is also score-affecting if `data/diff.txt` resolves into it (a file in the mod root, or
     a `"files"` remap). Today such a mod changes gameplay without changing the key.

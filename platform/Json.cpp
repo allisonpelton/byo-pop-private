@@ -48,6 +48,19 @@ JsonValue& JsonValue::Set(const std::string& theKey, const JsonValue& v)
 	return mObject.back().second;
 }
 
+bool JsonValue::Remove(const std::string& theKey)
+{
+	for (auto it = mObject.begin(); it != mObject.end(); ++it)
+	{
+		if (it->first == theKey)
+		{
+			mObject.erase(it);
+			return true;
+		}
+	}
+	return false;
+}
+
 static void EscapeString(const std::string& s, std::string& out)
 {
 	out += '"';

@@ -5,6 +5,8 @@
 //   -userdir=<dir>   writable folder for saves, settings and mods.json
 //   -modsdir=<dir>   folder containing mods (one sub-folder per mod)
 //   -nomods          start without any mods
+//   -dumpmods        print the mods, their settings and what is pending as JSON (the mod menu's model,
+//                    Platform::ModManager::GetStateJson), then exit
 //   -dumprules       print the enabled mods' merged rules (canonical form as text), their RulesId and the
 //                    merge report, then exit (games/bejeweled/docs/CODE_MODS_DESIGN.md 3.7)
 //   -forcevariant    test hook: every board takes its generalised code paths at default rules
@@ -22,6 +24,7 @@
 #include "WinDMApp.h"
 #include "GameConfig.h"
 #include "platform/ModManager.h"
+#include "platform/Relaunch.h"
 #include "platform/VFS.h"
 #include "platform/WebPersist.h"
 
@@ -225,6 +228,12 @@ int main(int argc, char** argv)
 		Platform::ModManager::Get().Refresh();
 	SDL_Log("game: %s | user: %s | mods: %s", gameDir.c_str(), userDir.c_str(), modsDir.c_str());
 
+	if (HasFlag(argc, argv, "dumpmods"))
+	{
+		printf("%s\n", Platform::ModManager::Get().GetStateJson().c_str());
+		fflush(stdout);
+		return 0;
+	}
 	// port(variant): code-mod test switches
 	if (HasFlag(argc, argv, "dumprules"))
 	{
@@ -253,7 +262,12 @@ int main(int argc, char** argv)
 	anApp->Start();
 #ifndef __EMSCRIPTEN__
 	anApp->Shutdown();
+	// port: the mod menu's "Restart game" starts the game again (platform/Relaunch.h; the web page reloads)
+	std::vector<std::string> aRestartArgs;
+	bool restart = anApp->TakeRelaunch(&aRestartArgs);
 	delete anApp;
+	if (restart)
+		Platform::Relaunch(aRestartArgs, "Bejeweled Deluxe");
 #endif
 	return 0;
 }

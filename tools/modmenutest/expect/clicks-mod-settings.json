@@ -1,0 +1,16 @@
+{
+  "v": 1,
+  "mods": {
+    "settings-demo": {
+      "minRun": 4,
+      "undo": true,
+      "shape": "diamond",
+      "speed": 2,
+      "replays": true,
+      "undoDepth": 3,
+      "praise": "WOW",
+      "tint": "#ff8000",
+      "volume": 90
+    }
+  }
+}

@@ -1,0 +1,12 @@
+# Bejeweled: the reference for pause-menu.txt and pause-esc.txt. Options opens at update 620 and closes at 720
+# in a game (seed 1, the tutorial move), then a move; run with -tracehash: the board, its RNG and the
+# global RNG after every update.
+300 click 320 398
+460 click 482 295
+461 click 533 295
+620 click 96 261
+640 screenshot shots/p01_options.png
+720 click 407 299
+760 click 431 193
+761 click 431 244
+900 quit

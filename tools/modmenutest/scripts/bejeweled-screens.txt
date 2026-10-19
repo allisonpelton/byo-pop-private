@@ -1,0 +1,29 @@
+# Bejeweled: screenshots of the menu for a person to look at (run_tests.sh): over the title screen, a page, its
+# end, an error in the footer, over Options in a game, back to Options, a change waiting for a restart.
+250 modmenu open
+255 screenshot shots/s01_list_title.png
+256 modmenu page settings-demo
+260 screenshot shots/s02_page.png
+261 key END
+265 screenshot shots/s03_page_end.png
+266 modmenu set settings-demo undo "yes"
+270 screenshot shots/s04_note.png
+271 modmenu close
+300 click 320 398
+460 click 482 295
+461 click 533 295
+620 click 96 261
+630 modmenu open
+640 screenshot shots/s05_over_options.png
+650 modmenu close
+660 screenshot shots/s06_options_again.png
+670 click 407 299
+700 modmenu open
+701 modmenu set settings-demo praise "WOW"
+702 modmenu enable plain-demo 0
+710 screenshot shots/s07_list_pending.png
+711 modmenu page settings-demo
+715 screenshot shots/s08_page_pending.png
+720 modmenu close
+730 screenshot shots/s09_closed.png
+800 quit
