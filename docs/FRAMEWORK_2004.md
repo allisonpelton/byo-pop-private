@@ -3522,9 +3522,11 @@ The port uses the same std containers (`SexyString` = `std::string`), so in almo
 
 The port's framework is SAF 1.3 (built for Bejeweled). Game code written against the 2004 framework is
 translated onto it method by method; the table lists every old behaviour that would otherwise change what
-the player sees or hears, and where the port handles it. "Game shim" means BookWorm's own
-`games/bookworm/src/Compat2004.*` (the place for these until Typer Shark or AstroPop needs them too; then
-they move to a shared home). Details and addresses are in the sections cited.
+the player sees or hears, and where the port handles it. "Game shim" means the shared compatibility
+library `framework/compat2004/Compat2004.*` (CMake target `sexycompat2004`), which every game of this
+generation links: `Dialog2004`, `Slider2004`, `WriteString2004` / `WriteWordWrapped2004` /
+`GetWordWrappedHeight2004`, `SeedMTRand2004`, `CrtRand` / `CrtSRand`, `GameTickCount`,
+`GetLastMouseDownTick`. Details and addresses are in the sections cited.
 
 | # | 2004 behaviour | Port | Handling | Section |
 |---|---|---|---|---|

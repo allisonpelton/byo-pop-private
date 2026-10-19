@@ -34,3 +34,10 @@ endif()
 # (and call Platform::RegisterOpenMPTModules) carry libopenmpt.
 add_library(sexyopenmpt STATIC ${SHARED_ROOT}/platform/openmpt/OpenMPTPlayer.cpp)
 target_link_libraries(sexyopenmpt PUBLIC sexyframework PRIVATE openmpt)
+
+# The early-2004 SexyAppFramework's behaviours (legacy dialog buttons, the 2004 Slider, the 2004 text layout,
+# MTRand 1.2 seeding, MSVC rand, the repeatable game clock) that its games (BookWorm, Typer Shark, AstroPop)
+# rely on: framework/compat2004, docs/FRAMEWORK_2004.md section 8. A separate library a game links to opt in.
+add_library(sexycompat2004 STATIC ${CMAKE_CURRENT_SOURCE_DIR}/compat2004/Compat2004.cpp)
+target_include_directories(sexycompat2004 PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/compat2004)
+target_link_libraries(sexycompat2004 PUBLIC sexyframework)

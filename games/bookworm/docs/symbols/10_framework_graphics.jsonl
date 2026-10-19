@@ -1,0 +1,231 @@
+{"addr": "00437e90", "name": "Sexy::Color::Color_rgba", "sig": "void __thiscall Color_rgba(int theRed, int theGreen, int theBlue, int theAlpha)", "comment": "Color(int r,int g,int b,int a)"}
+{"addr": "004401b0", "name": "Sexy::Color::Color", "sig": "void __thiscall Color(void)", "comment": "Color() = (0,0,0,255)"}
+{"addr": "004401d0", "name": "Sexy::Color::Color_int", "sig": "void __thiscall Color_int(int theColor)", "comment": "Color(int 0xAARRGGBB): alpha 0 -> 255"}
+{"addr": "00440210", "name": "Sexy::Color::Color_rgb", "sig": "void __thiscall Color_rgb(int theRed, int theGreen, int theBlue)", "comment": "Color(int r,int g,int b), alpha 255"}
+{"addr": "00440240", "name": "Sexy::Color::Color_intarray", "sig": "void __thiscall Color_intarray(int * theElements)", "comment": "Color(const int* rgb), alpha 255"}
+{"addr": "00440270", "name": "Sexy::Color::GetRed", "sig": "int __thiscall GetRed(void)", "comment": "folded 'return this[0]'; GetGreen=00446d10, GetBlue=00468620, GetAlpha=00496c00 (folded getters)"}
+{"addr": "00440280", "name": "Sexy::Color::ToInt", "sig": "unsigned int __thiscall ToInt(void)", "comment": "(a<<24)|(r<<16)|(g<<8)|b"}
+{"addr": "004402a0", "name": "Sexy::operator_eq_Color", "sig": "bool __cdecl operator_eq_Color(void * theColor1, void * theColor2)", "comment": "bool operator==(const Color&, const Color&)"}
+{"addr": "004402e0", "name": "Sexy::operator_ne_Color", "sig": "bool __cdecl operator_ne_Color(void * theColor1, void * theColor2)", "comment": "bool operator!=(const Color&, const Color&)"}
+{"addr": "00446bd0", "name": "Sexy::Graphics::~Graphics_body", "sig": "void __thiscall ~Graphics_body(void)", "comment": "non-deleting dtor (inline; only resets vfptr). Called for every stack Graphics"}
+{"addr": "00446be0", "name": "Sexy::Graphics::GetFont", "sig": "void * __thiscall GetFont(void)", "comment": "return mFont (+0x40)"}
+{"addr": "00446bf0", "name": "Sexy::Graphics::SetFont", "sig": "void __thiscall SetFont(void * theFont)", "comment": "mFont (+0x40)"}
+{"addr": "00446c00", "name": "Sexy::Graphics::SetColor", "sig": "void __thiscall SetColor(void * theColor)", "comment": "mColor (+0x20)"}
+{"addr": "00446c30", "name": "Sexy::Graphics::GetColor", "sig": "void * __thiscall GetColor(void)", "comment": "return &mColor (+0x20)"}
+{"addr": "00446c40", "name": "Sexy::Graphics::SetDrawMode", "sig": "void __thiscall SetDrawMode(int theDrawMode)", "comment": "mDrawMode (+0x44): 0 normal, 1 additive"}
+{"addr": "00446c50", "name": "Sexy::Graphics::GetDrawMode", "sig": "int __thiscall GetDrawMode(void)", "comment": "mDrawMode (+0x44)"}
+{"addr": "00446c60", "name": "Sexy::Graphics::SetColorizeImages", "sig": "void __thiscall SetColorizeImages(bool colorizeImages)", "comment": "mColorizeImages (+0x48)"}
+{"addr": "00446c70", "name": "Sexy::Graphics::GetColorizeImages", "sig": "bool __thiscall GetColorizeImages(void)", "comment": "mColorizeImages (+0x48)"}
+{"addr": "00446c80", "name": "Sexy::Graphics::SetFastStretch", "sig": "void __thiscall SetFastStretch(bool fastStretch)", "comment": "mFastStretch (+0x49)"}
+{"addr": "00446c90", "name": "Sexy::Graphics::DrawString", "sig": "void __thiscall DrawString(void * theString, int theX, int theY)", "comment": "if (mFont) mFont->DrawString(this,x,y,str,mColor,mClipRect) (Font slot 10)"}
+{"addr": "00446cc0", "name": "Sexy::Graphics::Translate", "sig": "void __thiscall Translate(int theTransX, int theTransY)", "comment": "integer mTransX/mTransY (+8/+0xc)"}
+{"addr": "00446ce0", "name": "Sexy::Graphics::StringWidth", "sig": "int __thiscall StringWidth(void * theString)", "comment": "tail-jumps to mFont->StringWidth (Font slot 7); no NULL check"}
+{"addr": "0044b790", "name": "Sexy::Graphics::Graphics_copy", "sig": "void * __thiscall Graphics_copy(void * theGraphics)", "comment": "Graphics(const Graphics&): copies +4..+0x2c,+0x40..+0x49; the Color at +0x30 is re-defaulted, not copied"}
+{"addr": "0044b810", "name": "Sexy::Graphics::~Graphics", "sig": "void * __thiscall ~Graphics(unsigned int theFlags)", "comment": "slot 0 (scalar deleting dtor)"}
+{"addr": "0044b840", "name": "Sexy::Graphics::Graphics", "sig": "void * __thiscall Graphics(void * theDestImage)", "comment": "Graphics(Image* = NULL): NULL -> &mStaticImage (005698e8); clip = (0,0,w,h)"}
+{"addr": "0044b8c0", "name": "Sexy::Graphics::Create", "sig": "void * __thiscall Create(void)", "comment": "new Graphics(*this) (0x58 bytes)"}
+{"addr": "0044b8e0", "name": "Sexy::Graphics::FillRect", "sig": "void __thiscall FillRect(int theX, int theY, int theWidth, int theHeight)", "comment": "skips when mColor.mAlpha==0; mDestImage->FillRect (Image slot 1)"}
+{"addr": "0044b940", "name": "Sexy::Graphics::DrawRect", "sig": "void __thiscall DrawRect(int theX, int theY, int theWidth, int theHeight)", "comment": "w+1/h+1 outline; unclipped -> Image slot 2, else 4 FillRects"}
+{"addr": "0044ba30", "name": "Sexy::Graphics::DrawImage_xy", "sig": "void __thiscall DrawImage_xy(void * theImage, int theX, int theY)", "comment": "clip, mDestImage->Blt (Image slot 6) with colorize?mColor:White"}
+{"addr": "0044bad0", "name": "Sexy::Graphics::DrawImage_xysrc", "sig": "void __thiscall DrawImage_xysrc(void * theImage, int theX, int theY, void * theSrcRect)", "comment": "DrawImage(Image*,int,int,const Rect& src); returns if src exceeds the image"}
+{"addr": "0044bbb0", "name": "Sexy::Graphics::DrawImage_destsrc", "sig": "void __thiscall DrawImage_destsrc(void * theImage, void * theDestRect, void * theSrcRect)", "comment": "DrawImage(Image*,const Rect& dest,const Rect& src): clips dest, FRect src, Image slot 9 StretchBlt(...,mFastStretch)"}
+{"addr": "0044bce0", "name": "Sexy::Graphics::DrawImageRotatedF_center", "sig": "void __thiscall DrawImageRotatedF_center(void * theImage, float theX, float theY, double theRot, float theRotCenterX, float theRotCenterY, void * theSrcRect)", "comment": "DrawImageRotatedF(...,cx,cy,const Rect* src) -> Image slot 8 BltRotated"}
+{"addr": "0044bdb0", "name": "Sexy::Graphics::ClipRect", "sig": "void __thiscall ClipRect(int theX, int theY, int theWidth, int theHeight)", "comment": "mClipRect = mClipRect intersect (x+tx,y+ty,w,h)"}
+{"addr": "0044be10", "name": "Sexy::Graphics::ClipRect_rect", "sig": "void __thiscall ClipRect_rect(void * theRect)", "comment": "ClipRect(const Rect&)"}
+{"addr": "0044be30", "name": "Sexy::Graphics::DrawImageBox_src", "sig": "void __thiscall DrawImageBox_src(void * theSrc, void * theDest, void * theComponentImage)", "comment": "DrawImageBox(const Rect& src,const Rect& dest,Image*): 3x3 tiling (not stretching)"}
+{"addr": "0044f7a0", "name": "Sexy::Graphics::DrawImageRotatedF", "sig": "void __thiscall DrawImageRotatedF(void * theImage, float theX, float theY, double theRot, void * theSrcRect)", "comment": "centre = INTEGER w/2,h/2 of the image or src rect"}
+{"addr": "0044f820", "name": "Sexy::Graphics::DrawImageBox", "sig": "void __thiscall DrawImageBox(void * theDest, void * theComponentImage)", "comment": "DrawImageBox(const Rect& dest, Image*)"}
+{"addr": "00450230", "name": "Sexy::Graphics::DrawImageRotated", "sig": "void __thiscall DrawImageRotated(void * theImage, int theX, int theY, double theRot, void * theSrcRect)", "comment": "int overload -> DrawImageRotatedF((float)x,(float)y,...)"}
+{"addr": "00446cf0", "name": "Sexy::Image::Image", "sig": "void __thiscall Image(void)", "comment": "w=h=0, mNumRows=mNumCols=1, mAnimInfo=NULL (no mNumTotal/mDrawn/mFilePath)"}
+{"addr": "00446d10", "name": "Sexy::Image::GetWidth", "sig": "int __thiscall GetWidth(void)", "comment": "folded 'return [this+4]': also Font::GetAscent (slot 1), Color::GetGreen, ImageLib::Image::GetWidth"}
+{"addr": "00468620", "name": "Sexy::Image::GetHeight", "sig": "int __thiscall GetHeight(void)", "comment": "folded 'return [this+8]': also Font::GetAscentPadding (slot 2), Color::GetBlue, ImageLib::Image::GetHeight"}
+{"addr": "00496c00", "name": "Sexy::Font::GetHeight", "sig": "int __thiscall GetHeight(void)", "comment": "Font slot 4; folded 'return [this+0xc]': also Color::GetAlpha, ImageLib::Image::GetBits, Image mNumRows"}
+{"addr": "0041d910", "name": "Sexy::Font::GetLineSpacingOffset", "sig": "int __thiscall GetLineSpacingOffset(void)", "comment": "Font slot 5; folded 'return [this+0x10]' (lies in the game region)"}
+{"addr": "00446d20", "name": "Sexy::Image::DrawLine", "sig": "void __thiscall DrawLine(double theStartX, double theStartY, double theEndX, double theEndY, void * theColor, int theDrawMode)", "comment": "Image slot 4, empty (ret 0x28); MemoryImage does not override"}
+{"addr": "00446d30", "name": "Sexy::Image::BltF", "sig": "void __thiscall BltF(void * theImage, float theX, float theY, void * theSrcRect, void * theClipRect, void * theColor, int theDrawMode)", "comment": "Image slot 7, empty (ret 0x1c)"}
+{"addr": "00446d40", "name": "Sexy::Image::BltRotated", "sig": "void __thiscall BltRotated(void * theImage, float theX, float theY, void * theSrcRect, void * theClipRect, void * theColor, int theDrawMode, double theRot, float theRotCenterX, float theRotCenterY)", "comment": "Image slot 8, empty (ret 0x2c)"}
+{"addr": "00446d50", "name": "Sexy::Image::Blt", "sig": "void __thiscall Blt(void * theImage, int theX, int theY, void * theSrcRect, void * theColor, int theDrawMode)", "comment": "Image slots 6 and 9 (StretchBlt) and Font slot 10 (DrawString): folded empty 'ret 0x18'"}
+{"addr": "0044c290", "name": "Sexy::Image::DrawRect", "sig": "void __thiscall DrawRect(void * theRect, void * theColor, int theDrawMode)", "comment": "Image slot 2: 4 x FillRect (slot 1)"}
+{"addr": "0044c360", "name": "Sexy::Image::FillScanLines", "sig": "void __thiscall FillScanLines(void * theSpans, int theSpanCount, void * theColor, int theDrawMode)", "comment": "Image slot 5"}
+{"addr": "00458fa0", "name": "Sexy::Image::~Image_body", "sig": "void __thiscall ~Image_body(void)", "comment": "deletes mAnimInfo"}
+{"addr": "00460160", "name": "Sexy::Image::~Image", "sig": "void * __thiscall ~Image(unsigned int theFlags)", "comment": "slot 0"}
+{"addr": "00460190", "name": "Sexy::Image::Image_copy", "sig": "void * __thiscall Image_copy(void * theImage)", "comment": "Image(const Image&): deep-copies AnimInfo"}
+{"addr": "00458fc0", "name": "Sexy::Image::CopyAttributes", "sig": "void __thiscall CopyAttributes(void * theFrom)", "comment": "mNumRows, mNumCols, AnimInfo (no mNumTotal)"}
+{"addr": "00458f30", "name": "Sexy::AnimInfo::AnimInfo_copy", "sig": "void * __thiscall AnimInfo_copy(void * theAnimInfo)", "comment": "AnimInfo(const AnimInfo&), 0x30 bytes"}
+{"addr": "004556a0", "name": "Sexy::AnimInfo::~AnimInfo", "sig": "void __thiscall ~AnimInfo(void)", "comment": "frees mFrameMap/mPerFrameDelay vectors (inferred)"}
+{"addr": "004598f0", "name": "Sexy::MemoryImage::MemoryImage", "sig": "void * __thiscall MemoryImage(void * theApp)", "comment": "MemoryImage(SexyAppBase*): fields zeroed, mApp +0x44, mApp->AddMemoryImage(this)"}
+{"addr": "00459970", "name": "Sexy::MemoryImage::~MemoryImage_body", "sig": "void __thiscall ~MemoryImage_body(void)", "comment": "RemoveMemoryImage, frees bits/alpha caches/palette"}
+{"addr": "00461320", "name": "Sexy::MemoryImage::~MemoryImage", "sig": "void * __thiscall ~MemoryImage(unsigned int theFlags)", "comment": "slot 0"}
+{"addr": "00461350", "name": "Sexy::MemoryImage::MemoryImage_copy", "sig": "void * __thiscall MemoryImage_copy(void * theMemoryImage)", "comment": "MemoryImage(const MemoryImage&)"}
+{"addr": "00447850", "name": "Sexy::MemoryImage::FillRect", "sig": "void __thiscall FillRect(void * theRect, void * theColor, int theDrawMode)", "comment": "slot 1"}
+{"addr": "00447a40", "name": "Sexy::MemoryImage::ClearRect", "sig": "void __thiscall ClearRect(void * theRect)", "comment": "slot 3"}
+{"addr": "00449160", "name": "Sexy::MemoryImage::Blt", "sig": "void __thiscall Blt(void * theImage, int theX, int theY, void * theSrcRect, void * theColor, int theDrawMode)", "comment": "slot 6: mode 0 NormalBlt, 1 AdditiveBlt"}
+{"addr": "004491b0", "name": "Sexy::MemoryImage::BltF", "sig": "void __thiscall BltF(void * theImage, float theX, float theY, void * theSrcRect, void * theClipRect, void * theColor, int theDrawMode)", "comment": "slot 7: BltRotated with rot 0"}
+{"addr": "0044c7e0", "name": "Sexy::MemoryImage::BltRotated", "sig": "void __thiscall BltRotated(void * theImage, float theX, float theY, void * theSrcRect, void * theClipRect, void * theColor, int theDrawMode, double theRot, float theRotCenterX, float theRotCenterY)", "comment": "slot 8"}
+{"addr": "0044a700", "name": "Sexy::MemoryImage::StretchBlt", "sig": "void __thiscall StretchBlt(void * theImage, void * theDestRect, void * theSrcFRect, void * theColor, int theDrawMode, bool fastStretch)", "comment": "slot 9; dest already clipped, src is TRect<double>"}
+{"addr": "00447020", "name": "Sexy::MemoryImage::GetNativeAlphaData", "sig": "void * __thiscall GetNativeAlphaData(int theBitDepth, unsigned int theRMask, unsigned int theGMask, unsigned int theBMask)", "comment": "slot 10 (1.2 takes NativeDisplay*)"}
+{"addr": "00447240", "name": "Sexy::MemoryImage::GetRLAlphaData", "sig": "void * __thiscall GetRLAlphaData(void)", "comment": "slot 11"}
+{"addr": "00447440", "name": "Sexy::MemoryImage::GetRLAdditiveData", "sig": "void * __thiscall GetRLAdditiveData(int theBitDepth, unsigned int theRMask, unsigned int theGMask, unsigned int theBMask)", "comment": "slot 12"}
+{"addr": "00447650", "name": "Sexy::MemoryImage::DeleteSWBuffers", "sig": "void __thiscall DeleteSWBuffers(void)", "comment": "slot 13"}
+{"addr": "00447690", "name": "Sexy::MemoryImage::Delete3DBuffers", "sig": "void __thiscall Delete3DBuffers(void)", "comment": "slot 14: mApp->Remove3DData(this)"}
+{"addr": "004476a0", "name": "Sexy::MemoryImage::DeleteExtraBuffers", "sig": "void __thiscall DeleteExtraBuffers(void)", "comment": "slot 15"}
+{"addr": "00446e80", "name": "Sexy::MemoryImage::BitsChanged", "sig": "void __thiscall BitsChanged(void)", "comment": "slot 16"}
+{"addr": "00446ec0", "name": "Sexy::MemoryImage::CommitBits", "sig": "void __thiscall CommitBits(void)", "comment": "slot 17: recompute mHasTrans/mHasAlpha unless mForcedMode"}
+{"addr": "004476b0", "name": "Sexy::MemoryImage::DeleteNativeData", "sig": "void __thiscall DeleteNativeData(void)", "comment": "slot 18"}
+{"addr": "00447ab0", "name": "Sexy::MemoryImage::Clear", "sig": "void __thiscall Clear(void)", "comment": "slot 19"}
+{"addr": "004476e0", "name": "Sexy::MemoryImage::SetBits", "sig": "void __thiscall SetBits(void * theBits, int theWidth, int theHeight)", "comment": "slot 20: no commitBits arg; always BitsChanged+CommitBits"}
+{"addr": "00447760", "name": "Sexy::MemoryImage::Create", "sig": "void __thiscall Create(int theWidth, int theHeight)", "comment": "slot 21: mHasTrans=mHasAlpha=true"}
+{"addr": "004477a0", "name": "Sexy::MemoryImage::GetBits", "sig": "void * __thiscall GetBits(void)", "comment": "slot 22: allocates zeroed bits / expands palette"}
+{"addr": "00446ff0", "name": "Sexy::MemoryImage::SetImageMode", "sig": "void __thiscall SetImageMode(bool hasTrans, bool hasAlpha)", "comment": "slot 23: sets mForcedMode"}
+{"addr": "00447010", "name": "Sexy::MemoryImage::SetVolatile", "sig": "void __thiscall SetVolatile(bool isVolatile)", "comment": "slot 24"}
+{"addr": "0044e450", "name": "Sexy::MemoryImage::Palletize", "sig": "bool __thiscall Palletize(void)", "comment": "slot 25"}
+{"addr": "00448540", "name": "Sexy::MemoryImage::NormalBlt", "sig": "void __thiscall NormalBlt(void * theImage, int theX, int theY, void * theSrcRect, void * theColor)", "comment": "non-virtual"}
+{"addr": "00447af0", "name": "Sexy::MemoryImage::AdditiveBlt", "sig": "void __thiscall AdditiveBlt(void * theImage, int theX, int theY, void * theSrcRect, void * theColor)", "comment": "non-virtual"}
+{"addr": "004491e0", "name": "Sexy::MemoryImage::SlowStretchBlt", "sig": "void __thiscall SlowStretchBlt(void * theImage, void * theDestRect, void * theSrcFRect, void * theColor, int theDrawMode)", "comment": "non-virtual"}
+{"addr": "0044a4e0", "name": "Sexy::MemoryImage::FastStretchBlt", "sig": "void __thiscall FastStretchBlt(void * theImage, void * theDestRect, void * theSrcFRect, void * theColor, int theDrawMode)", "comment": "non-virtual"}
+{"addr": "0044c520", "name": "Sexy::MemoryImage::BltRotatedClipHelper", "sig": "bool __cdecl BltRotatedClipHelper(void)", "comment": "shared by MemoryImage/DDImage BltRotated (inferred)"}
+{"addr": "0044a800", "name": "Sexy::Quantize32Bit", "sig": "bool __cdecl Quantize32Bit(void * theSrcBits, int theWidth, int theHeight, void * theDestColorIndices, void * theDestColorTable)", "comment": "used by Palletize"}
+{"addr": "0044a990", "name": "Sexy::TRect_double::Intersects", "sig": "bool __thiscall Intersects(void * theRect)", "comment": "FRect (inferred)"}
+{"addr": "0044a9f0", "name": "Sexy::TRect_double::Intersection", "sig": "void * __thiscall Intersection(void * theResult, void * theRect)", "comment": "FRect (inferred)"}
+{"addr": "0045aa00", "name": "Sexy::DDImage::DDImage", "sig": "void * __thiscall DDImage(void * theDDInterface)", "comment": "DDImage(DDInterface*), 0xc4 bytes"}
+{"addr": "0045aa70", "name": "Sexy::DDImage::~DDImage_body", "sig": "void __thiscall ~DDImage_body(void)", "comment": "releases mSurface"}
+{"addr": "00461890", "name": "Sexy::DDImage::~DDImage", "sig": "void * __thiscall ~DDImage(unsigned int theFlags)", "comment": "slot 0"}
+{"addr": "00455360", "name": "Sexy::DDImage::FillRect", "sig": "void __thiscall FillRect(void * theRect, void * theColor, int theDrawMode)", "comment": "slot 1"}
+{"addr": "00455410", "name": "Sexy::DDImage::DrawLine", "sig": "void __thiscall DrawLine(double theStartX, double theStartY, double theEndX, double theEndY, void * theColor, int theDrawMode)", "comment": "slot 4"}
+{"addr": "0045aad0", "name": "Sexy::DDImage::Blt", "sig": "void __thiscall Blt(void * theImage, int theX, int theY, void * theSrcRect, void * theColor, int theDrawMode)", "comment": "slot 6"}
+{"addr": "0045abd0", "name": "Sexy::DDImage::BltF", "sig": "void __thiscall BltF(void * theImage, float theX, float theY, void * theSrcRect, void * theClipRect, void * theColor, int theDrawMode)", "comment": "slot 7"}
+{"addr": "0045acb0", "name": "Sexy::DDImage::BltRotated", "sig": "void __thiscall BltRotated(void * theImage, float theX, float theY, void * theSrcRect, void * theClipRect, void * theColor, int theDrawMode, double theRot, float theRotCenterX, float theRotCenterY)", "comment": "slot 8"}
+{"addr": "0045e200", "name": "Sexy::DDImage::StretchBlt", "sig": "void __thiscall StretchBlt(void * theImage, void * theDestRect, void * theSrcFRect, void * theColor, int theDrawMode, bool fastStretch)", "comment": "slot 9"}
+{"addr": "0044b4e0", "name": "Sexy::DDImage::DeleteExtraBuffers", "sig": "void __thiscall DeleteExtraBuffers(void)", "comment": "slot 15: jmp MemoryImage::DeleteExtraBuffers"}
+{"addr": "0044b500", "name": "Sexy::DDImage::BitsChanged", "sig": "void __thiscall BitsChanged(void)", "comment": "slot 16: also releases mSurface"}
+{"addr": "0044b4f0", "name": "Sexy::DDImage::CommitBits", "sig": "void __thiscall CommitBits(void)", "comment": "slot 17: only when mSurface==NULL"}
+{"addr": "00443050", "name": "Sexy::DDImage::Create", "sig": "void __thiscall Create(int theWidth, int theHeight)", "comment": "slot 21: does NOT set mHasTrans/mHasAlpha"}
+{"addr": "0044b520", "name": "Sexy::DDImage::GetBits", "sig": "void * __thiscall GetBits(void)", "comment": "slot 22: reads back from the surface"}
+{"addr": "0044f780", "name": "Sexy::DDImage::Palletize", "sig": "bool __thiscall Palletize(void)", "comment": "slot 25"}
+{"addr": "00441830", "name": "Sexy::DDImage::SetVideoMemory", "sig": "void __thiscall SetVideoMemory(bool wantVideoMemory)", "comment": "slot 26"}
+{"addr": "00441860", "name": "Sexy::DDImage::RehupFirstPixelTrans", "sig": "void __thiscall RehupFirstPixelTrans(void)", "comment": "slot 27"}
+{"addr": "00443090", "name": "Sexy::DDImage::NormalFillRect", "sig": "void __thiscall NormalFillRect(void * theRect, void * theColor)", "comment": "slot 28"}
+{"addr": "00443540", "name": "Sexy::DDImage::AdditiveFillRect", "sig": "void __thiscall AdditiveFillRect(void * theRect, void * theColor)", "comment": "slot 29"}
+{"addr": "00443830", "name": "Sexy::DDImage::NormalBlt", "sig": "void __thiscall NormalBlt(void * theImage, int theX, int theY, void * theSrcRect, void * theColor)", "comment": "slot 30"}
+{"addr": "00445a50", "name": "Sexy::DDImage::AdditiveBlt", "sig": "void __thiscall AdditiveBlt(void * theImage, int theX, int theY, void * theSrcRect, void * theColor)", "comment": "slot 31"}
+{"addr": "00441950", "name": "Sexy::DDImage::NormalDrawLine", "sig": "void __thiscall NormalDrawLine(double theStartX, double theStartY, double theEndX, double theEndY, void * theColor)", "comment": "slot 32"}
+{"addr": "00442760", "name": "Sexy::DDImage::AdditiveDrawLine", "sig": "void __thiscall AdditiveDrawLine(double theStartX, double theStartY, double theEndX, double theEndY, void * theColor)", "comment": "slot 33"}
+{"addr": "0044b490", "name": "Sexy::DDImage::LockSurface", "sig": "bool __thiscall LockSurface(void)", "comment": "slot 34"}
+{"addr": "00440db0", "name": "Sexy::DDImage::UnlockSurface", "sig": "bool __thiscall UnlockSurface(void)", "comment": "slot 35"}
+{"addr": "00440de0", "name": "Sexy::DDImage::SetSurface", "sig": "void __thiscall SetSurface(void * theSurface)", "comment": "slot 36"}
+{"addr": "00440e40", "name": "Sexy::DDImage::GenerateDDSurface", "sig": "bool __thiscall GenerateDDSurface(void)", "comment": "non-virtual; called by game 00411220"}
+{"addr": "004417d0", "name": "Sexy::DDImage::DeleteDDSurface", "sig": "void __thiscall DeleteDDSurface(void)", "comment": "non-virtual"}
+{"addr": "00441930", "name": "Sexy::DDImage::GetSurface", "sig": "void * __thiscall GetSurface(void)", "comment": "GenerateDDSurface if needed"}
+{"addr": "00440d90", "name": "Sexy::DDImage::Check3D", "sig": "bool __thiscall Check3D(void)", "comment": "mDDInterface->mIs3D && mSurface == the DDInterface draw surface (inferred)"}
+{"addr": "00441800", "name": "Sexy::DDImage::PurgeBits", "sig": "void __thiscall PurgeBits(void)", "comment": "non-virtual in 2004: GenerateDDSurface then free mBits (inferred)"}
+{"addr": "00446b30", "name": "Sexy::Font::Font", "sig": "void __thiscall Font(void)"}
+{"addr": "00446b50", "name": "Sexy::Font::Font_copy", "sig": "void __thiscall Font_copy(void * theFont)"}
+{"addr": "00446b80", "name": "Sexy::Font::~Font_body", "sig": "void __thiscall ~Font_body(void)"}
+{"addr": "0044b760", "name": "Sexy::Font::~Font", "sig": "void * __thiscall ~Font(unsigned int theFlags)", "comment": "slot 0"}
+{"addr": "00446b90", "name": "Sexy::Font::GetDescent", "sig": "int __thiscall GetDescent(void)", "comment": "slot 3: mHeight-mAscent"}
+{"addr": "00446ba0", "name": "Sexy::Font::GetLineSpacing", "sig": "int __thiscall GetLineSpacing(void)", "comment": "slot 6: mHeight+mLineSpacingOffset"}
+{"addr": "00446bb0", "name": "Sexy::Font::StringWidth", "sig": "int __thiscall StringWidth(void * theString)", "comment": "slot 7 base: returns 0"}
+{"addr": "00455610", "name": "Sexy::Font::CharWidth", "sig": "int __thiscall CharWidth(char theChar)", "comment": "slot 8 base: StringWidth(string(1,c))"}
+{"addr": "00446bc0", "name": "Sexy::Font::CharWidthKern", "sig": "int __thiscall CharWidthKern(char theChar, char thePrevChar)", "comment": "slot 9 base: CharWidth(c)"}
+{"addr": "00465d60", "name": "Sexy::ImageFont::ImageFont", "sig": "void * __thiscall ImageFont(void * theSexyApp, void * theFontDescFileName)", "comment": "ImageFont(SexyAppBase*, const std::string&): new FontData(0x198), Load, GenerateActiveFontLayers"}
+{"addr": "00465e30", "name": "Sexy::ImageFont::ImageFont_legacy", "sig": "void * __thiscall ImageFont_legacy(void * theFontImage, void * theFontDescFileName)", "comment": "ImageFont(Image*, const std::string&) -> FontData::LoadLegacy (ResourceManager only)"}
+{"addr": "00462ec0", "name": "Sexy::ImageFont::ImageFont_copy", "sig": "void * __thiscall ImageFont_copy(void * theImageFont)", "comment": "ImageFont(const ImageFont&): FontData Ref, copies active layers if valid"}
+{"addr": "00458670", "name": "Sexy::ImageFont::~ImageFont_body", "sig": "void __thiscall ~ImageFont_body(void)", "comment": "FontData DeRef"}
+{"addr": "00459200", "name": "Sexy::ImageFont::~ImageFont", "sig": "void * __thiscall ~ImageFont(unsigned int theFlags)", "comment": "slot 0"}
+{"addr": "0044f8e0", "name": "Sexy::ImageFont::StringWidth", "sig": "int __thiscall StringWidth(void * theString)", "comment": "slot 7: sum of CharWidthKern"}
+{"addr": "00446db0", "name": "Sexy::ImageFont::CharWidth", "sig": "int __thiscall CharWidth(char theChar)", "comment": "slot 8"}
+{"addr": "004502c0", "name": "Sexy::ImageFont::CharWidthKern", "sig": "int __thiscall CharWidthKern(char theChar, char thePrevChar)", "comment": "slot 9"}
+{"addr": "00446dd0", "name": "Sexy::ImageFont::DrawString", "sig": "void __thiscall DrawString(void * g, int theX, int theY, void * theString, void * theColor, void * theClipRect)", "comment": "slot 10 -> DrawStringEx(...,NULL,NULL)"}
+{"addr": "00462f70", "name": "Sexy::ImageFont::Duplicate", "sig": "void * __thiscall Duplicate(void)", "comment": "slot 11: new ImageFont(*this), 0x48 bytes"}
+{"addr": "00460cc0", "name": "Sexy::ImageFont::GenerateActiveFontLayers", "sig": "void __thiscall GenerateActiveFontLayers(void)", "comment": "slot 12"}
+{"addr": "00459230", "name": "Sexy::ImageFont::DrawStringEx", "sig": "void __thiscall DrawStringEx(void * g, int theX, int theY, void * theString, void * theColor, void * theClipRect, void * theDrawnAreas, int * theWidth)", "comment": "slot 13; called directly by ShadowFont"}
+{"addr": "00446e00", "name": "Sexy::ImageFont::SetPointSize", "sig": "void __thiscall SetPointSize(int thePointSize)", "comment": "slot 14"}
+{"addr": "00446e40", "name": "Sexy::ImageFont::GetPointSize", "sig": "int __thiscall GetPointSize(void)", "comment": "slot 15"}
+{"addr": "00446e20", "name": "Sexy::ImageFont::SetScale", "sig": "void __thiscall SetScale(double theScale)", "comment": "slot 16"}
+{"addr": "00446e50", "name": "Sexy::ImageFont::GetDefaultPointSize", "sig": "int __thiscall GetDefaultPointSize(void)", "comment": "slot 17"}
+{"addr": "00462fd0", "name": "Sexy::ImageFont::AddTag", "sig": "bool __thiscall AddTag(void * theTagName)", "comment": "slot 18: stores StringToUpper(tag)"}
+{"addr": "00459820", "name": "Sexy::ImageFont::RemoveTag", "sig": "bool __thiscall RemoveTag(void * theTagName)", "comment": "slot 19"}
+{"addr": "004503f0", "name": "Sexy::ImageFont::HasTag", "sig": "bool __thiscall HasTag(void * theTagName)", "comment": "slot 20: case-sensitive find (1.2 behaviour)"}
+{"addr": "00455c90", "name": "Sexy::ImageFont::GetDefine", "sig": "void * __thiscall GetDefine(void * theResult, void * theName)", "comment": "slot 21"}
+{"addr": "00446e60", "name": "Sexy::ImageFont::Prepare", "sig": "void __thiscall Prepare(void)", "comment": "slot 22"}
+{"addr": "00461900", "name": "Sexy::ImageFont::CopyActiveLayerList", "sig": "void __thiscall CopyActiveLayerList(void * theList)", "comment": "std::list<ActiveFontLayer>::operator= (inferred)"}
+{"addr": "00450cd0", "name": "Sexy::ImageFont::EraseActiveLayers", "sig": "void * __thiscall EraseActiveLayers(void * theResult, void * theFirst, void * theLast)", "comment": "std::list<ActiveFontLayer>::erase(first,last) (inferred)"}
+{"addr": "0044fca0", "name": "Sexy::ActiveFontLayerList::_Buynode", "sig": "void * __cdecl _Buynode(void * theNext, void * thePrev, void * theValue)", "comment": "node 0x1018 (inferred)"}
+{"addr": "0044fed0", "name": "Sexy::StringVector_find", "sig": "void * __cdecl StringVector_find(void * theResult, void * theFirst, void * theLast, void * theValue)", "comment": "std::find over vector<string> (inferred)"}
+{"addr": "0044c420", "name": "Sexy::ActiveFontLayer::ActiveFontLayer", "sig": "void __thiscall ActiveFontLayer(void)"}
+{"addr": "0044c480", "name": "Sexy::ActiveFontLayer::ActiveFontLayer_copy", "sig": "void * __thiscall ActiveFontLayer_copy(void * theActiveFontLayer)", "comment": "an owned scaled image is duplicated with SexyAppBase::CopyImage"}
+{"addr": "00446d90", "name": "Sexy::ActiveFontLayer::~ActiveFontLayer_body", "sig": "void __thiscall ~ActiveFontLayer_body(void)", "comment": "deletes mScaledImage if mOwnsImage"}
+{"addr": "0044c450", "name": "Sexy::ActiveFontLayer::~ActiveFontLayer", "sig": "void * __thiscall ~ActiveFontLayer(unsigned int theFlags)", "comment": "slot 0"}
+{"addr": "00465970", "name": "Sexy::FontData::FontData", "sig": "void * __thiscall FontData(void)", "comment": "0x198 bytes, no DescParser base"}
+{"addr": "00465ab0", "name": "Sexy::FontData::~FontData_body", "sig": "void __thiscall ~FontData_body(void)", "comment": "deletes define-map values and cached layer images"}
+{"addr": "00465f00", "name": "Sexy::FontData::~FontData", "sig": "void * __thiscall ~FontData(unsigned int theFlags)", "comment": "slot 0 (its only virtual)"}
+{"addr": "00446d80", "name": "Sexy::FontData::DeRef", "sig": "void __thiscall DeRef(void)", "comment": "--mRefCount (+8); delete when 0. Ref() is folded at 0041e8c0 (named Sexy::Effect::vf01)"}
+{"addr": "00465150", "name": "Sexy::FontData::Load", "sig": "bool __thiscall Load(void * theSexyApp, void * theFontDescFileName)", "comment": "ifstream parser (';' commands, '#' comments, quotes, backslash escapes) -> HandleCommand"}
+{"addr": "004655a0", "name": "Sexy::FontData::LoadLegacy", "sig": "bool __thiscall LoadLegacy(void * theFontImage, void * theFontDescFileName)"}
+{"addr": "00463100", "name": "Sexy::FontData::HandleCommand", "sig": "bool __thiscall HandleCommand(void * theCommandLine)", "comment": "takes the raw command string: ParseToList, then 25 commands"}
+{"addr": "004557e0", "name": "Sexy::FontData::Error", "sig": "void __thiscall Error(void * theError)", "comment": "mApp->Popup(mFontErrorHeader + err + ' on ' + mCurrentLine) (app slot 21)"}
+{"addr": "00450ee0", "name": "Sexy::FontData::Dereference", "sig": "void * __thiscall Dereference(void * theName)", "comment": "mDefineMap.find(StringToUpper(name))"}
+{"addr": "00455a40", "name": "Sexy::FontData::DataToString", "sig": "bool __thiscall DataToString(void * theSource, void * theString)"}
+{"addr": "00450f90", "name": "Sexy::Unquote", "sig": "void * __cdecl Unquote(void * theResult, void * theQuotedString)", "comment": "DescParser::Unquote (free function here)"}
+{"addr": "00455b70", "name": "Sexy::FontData::DataToLayer", "sig": "bool __thiscall DataToLayer(void * theSource, void * theFontLayer)", "comment": "'Undefined Layer'"}
+{"addr": "00460620", "name": "Sexy::FontData::GetValues", "sig": "bool __thiscall GetValues(void * theSource, void * theValues)", "comment": "'Unable to Dereference'"}
+{"addr": "00460900", "name": "Sexy::FontData::DataToList", "sig": "bool __thiscall DataToList(void * theSource, void * theValues)"}
+{"addr": "004629d0", "name": "Sexy::FontData::DataToStringVector", "sig": "bool __thiscall DataToStringVector(void * theSource, void * theStringVector)"}
+{"addr": "00462c20", "name": "Sexy::FontData::DataToIntVector", "sig": "bool __thiscall DataToIntVector(void * theSource, void * theIntVector)"}
+{"addr": "00462d70", "name": "Sexy::FontData::DataToDoubleVector", "sig": "bool __thiscall DataToDoubleVector(void * theSource, void * theDoubleVector)"}
+{"addr": "00460950", "name": "Sexy::FontData::ParseToList", "sig": "bool __thiscall ParseToList(void * theString, void * theList, bool expectListEnd, int * theStringPos)"}
+{"addr": "004558c0", "name": "Sexy::FontData::DataElementToString", "sig": "void * __thiscall DataElementToString(void * theResult, void * theDataElement)", "comment": "recursive"}
+{"addr": "004590d0", "name": "Sexy::FontLayer::FontLayer", "sig": "void * __thiscall FontLayer(void * theFontData)", "comment": "0x1207c bytes; drawMode/min/max point size -1, mColorMult White, mColorAdd 0"}
+{"addr": "00460490", "name": "Sexy::FontLayer::FontLayer_copy", "sig": "void * __thiscall FontLayer_copy(void * theFontLayer)"}
+{"addr": "004585e0", "name": "Sexy::FontLayer::~FontLayer", "sig": "void __thiscall ~FontLayer(void)", "comment": "tag vectors (inferred)"}
+{"addr": "0044c3f0", "name": "Sexy::CharData::CharData", "sig": "void * __thiscall CharData(void)", "comment": "0x120 bytes"}
+{"addr": "00461960", "name": "Sexy::FontLayerList::_Buynode", "sig": "void * __cdecl _Buynode(void * theNext, void * thePrev, void * theValue)", "comment": "node 0x12084"}
+{"addr": "00463060", "name": "Sexy::FontLayerList::push_back", "sig": "void __thiscall push_back(void * theFontLayer)"}
+{"addr": "00446d60", "name": "Sexy::DataElement::DataElement", "sig": "void __thiscall DataElement(void)", "comment": "mIsList=false"}
+{"addr": "00446d70", "name": "Sexy::DataElement::~DataElement_body", "sig": "void __thiscall ~DataElement_body(void)"}
+{"addr": "0044c3c0", "name": "Sexy::DataElement::~DataElement", "sig": "void * __thiscall ~DataElement(unsigned int theFlags)", "comment": "slot 0"}
+{"addr": "00450260", "name": "Sexy::SingleDataElement::SingleDataElement", "sig": "void * __thiscall SingleDataElement(void)", "comment": "0x24 bytes"}
+{"addr": "00450df0", "name": "Sexy::SingleDataElement::SingleDataElement_str", "sig": "void * __thiscall SingleDataElement_str(void * theString)", "comment": "SingleDataElement(std::string by value)"}
+{"addr": "00450e70", "name": "Sexy::SingleDataElement::SingleDataElement_copy", "sig": "void * __thiscall SingleDataElement_copy(void * theElement)"}
+{"addr": "00450280", "name": "Sexy::SingleDataElement::~SingleDataElement_body", "sig": "void __thiscall ~SingleDataElement_body(void)"}
+{"addr": "00450870", "name": "Sexy::SingleDataElement::~SingleDataElement", "sig": "void * __thiscall ~SingleDataElement(unsigned int theFlags)", "comment": "slot 0"}
+{"addr": "004556e0", "name": "Sexy::SingleDataElement::Duplicate", "sig": "void * __thiscall Duplicate(void)", "comment": "slot 1"}
+{"addr": "00459080", "name": "Sexy::ListDataElement::ListDataElement", "sig": "void * __thiscall ListDataElement(void)", "comment": "0x18 bytes, mIsList=true"}
+{"addr": "00460250", "name": "Sexy::ListDataElement::ListDataElement_copy", "sig": "void * __thiscall ListDataElement_copy(void * theElement)"}
+{"addr": "00455740", "name": "Sexy::ListDataElement::~ListDataElement_body", "sig": "void __thiscall ~ListDataElement_body(void)", "comment": "deletes children"}
+{"addr": "004585b0", "name": "Sexy::ListDataElement::~ListDataElement", "sig": "void * __thiscall ~ListDataElement(unsigned int theFlags)", "comment": "slot 0"}
+{"addr": "00460430", "name": "Sexy::ListDataElement::Duplicate", "sig": "void * __thiscall Duplicate(void)", "comment": "slot 1"}
+{"addr": "00460340", "name": "Sexy::ListDataElement::operator_assign", "sig": "void * __thiscall operator_assign(void * theElement)"}
+{"addr": "0044f950", "name": "Sexy::SysFont::SysFont", "sig": "void * __thiscall SysFont(void * theApp, void * theFace, int thePointSize, int theScript, bool bold, bool italics, bool underline)", "comment": "GDI CreateFontA, height -MulDiv(pt,LOGPIXELSY,72), ANTIALIASED_QUALITY"}
+{"addr": "0044a750", "name": "Sexy::SysFont::SysFont_copy", "sig": "void * __thiscall SysFont_copy(void * theSysFont)"}
+{"addr": "0044a7c0", "name": "Sexy::SysFont::~SysFont_body", "sig": "void __thiscall ~SysFont_body(void)", "comment": "DeleteObject(mHFont)"}
+{"addr": "0044e4f0", "name": "Sexy::SysFont::~SysFont", "sig": "void * __thiscall ~SysFont(unsigned int theFlags)", "comment": "slot 0"}
+{"addr": "0044fa30", "name": "Sexy::SysFont::StringWidth", "sig": "int __thiscall StringWidth(void * theString)", "comment": "slot 7: DrawTextEx DT_CALCRECT"}
+{"addr": "0044fac0", "name": "Sexy::SysFont::DrawString", "sig": "void __thiscall DrawString(void * g, int theX, int theY, void * theString, void * theColor, void * theClipRect)", "comment": "slot 10: GDI TextOut on the DDImage surface at y-mAscent+1, alpha ignored"}
+{"addr": "0044a7e0", "name": "Sexy::SysFont::Duplicate", "sig": "void * __thiscall Duplicate(void)", "comment": "slot 11"}
+{"addr": "004905f0", "name": "ImageLib::Image::Image", "sig": "void __thiscall Image(void)", "comment": "0x10 bytes: mWidth +4, mHeight +8, mBits +0xc"}
+{"addr": "00490610", "name": "ImageLib::Image::~Image_body", "sig": "void __thiscall ~Image_body(void)"}
+{"addr": "00490690", "name": "ImageLib::Image::~Image", "sig": "void * __thiscall ~Image(unsigned int theFlags)", "comment": "slot 0"}
+{"addr": "00491750", "name": "ImageLib::GetImage", "sig": "void * __cdecl GetImage(void * theFileName, bool lookForAlphaImage)", "comment": "ext order .tga .jpg .png .gif; alpha '_name' then 'name_' (low/blue byte)"}
+{"addr": "004906c0", "name": "ImageLib::GetPNGImage", "sig": "void * __cdecl GetPNGImage(void * theFileName)", "comment": "libpng 1.0.5, fopen (loose files)"}
+{"addr": "004908b0", "name": "ImageLib::GetTGAImage", "sig": "void * __cdecl GetTGAImage(void * theFileName)", "comment": "32-bit, descriptor 0x28 only"}
+{"addr": "00490a10", "name": "ImageLib::GetGIFImage", "sig": "void * __cdecl GetGIFImage(void * theFileName)", "comment": "transparent index -> pixel 0"}
+{"addr": "00491550", "name": "ImageLib::GetJPEGImage", "sig": "void * __cdecl GetJPEGImage(void * theFileName)"}
+{"addr": "004913c0", "name": "ImageLib::WritePNGImage", "sig": "bool __cdecl WritePNGImage(void * theFileName, void * theImage)", "comment": "inferred (libpng write, called from the app's screenshot code 0048b370)"}
+{"addr": "004911e0", "name": "ImageLib::WriteJPEGImage", "sig": "bool __cdecl WriteJPEGImage(void * theFileName, void * theImage)", "comment": "inferred (called from 0048b370)"}
+{"addr": "00490630", "name": "ImageLib::GIFReadBlobBlock", "sig": "int __cdecl GIFReadBlobBlock(void * theFile, void * theData)", "comment": "inferred"}
+{"addr": "00490670", "name": "ImageLib::png_error_longjmp", "sig": "void __cdecl png_error_longjmp(void * thePng, void * theMessage)", "comment": "inferred"}
+{"addr": "0047d930", "name": "Sexy::SexyApp::GetImage", "sig": "void * __thiscall GetImage(void * theFileName)", "comment": "DDImage* GetImage(const std::string&): no commitBits arg, no mFilePath; SetBits(bits,w,h)"}
+{"addr": "0047d9f0", "name": "Sexy::SexyApp::CopyImage_rect", "sig": "void * __thiscall CopyImage_rect(void * theImage, void * theRect)", "comment": "DDImage* CopyImage(Image*, const Rect&)"}
+{"addr": "0047e330", "name": "Sexy::SexyApp::CopyImage", "sig": "void * __thiscall CopyImage(void * theImage)", "comment": "DDImage* CopyImage(Image*)"}
+{"addr": "0047dab0", "name": "Sexy::SexyApp::FlipImage", "sig": "void __thiscall FlipImage(void * theImage)", "comment": "vertical flip of a MemoryImage, then BitsChanged"}
+{"addr": "00488b50", "name": "Sexy::SexyApp::AddMemoryImage", "sig": "void __thiscall AddMemoryImage(void * theMemoryImage)", "comment": "mMemoryImageSet at app+0x494 under the DDInterface crit sect"}
+{"addr": "004874a0", "name": "Sexy::SexyApp::RemoveMemoryImage", "sig": "void __thiscall RemoveMemoryImage(void * theMemoryImage)"}
+{"addr": "0047dd90", "name": "Sexy::SexyApp::Remove3DData", "sig": "void __thiscall Remove3DData(void * theMemoryImage)", "comment": "-> DDInterface 00459ff0"}
+{"addr": "005698c8", "label": "Sexy::Color::White", "comment": "Color(255,255,255,255)"}
+{"addr": "005698e8", "label": "Sexy::Graphics::mStaticImage", "comment": "Image (0x0) used when Graphics(NULL)"}
+{"addr": "005698b0", "label": "Sexy::gRenderCritSec", "comment": "ImageFont::DrawStringEx critical section"}
+{"addr": "00535080", "label": "Sexy::gRenderTail", "comment": "RenderCommand* [256]"}
+{"addr": "00535488", "label": "Sexy::gRenderHead", "comment": "RenderCommand* [256]"}
+{"addr": "005358b0", "label": "Sexy::gRenderCommandPool", "comment": "RenderCommand[4096], 0x34 bytes each"}
+{"addr": "0052f96c", "label": "Sexy::Widget::mWriteColoredString", "comment": "static bool, initialised 1; gates ^RRGGBB^ in Widget::WriteString/WriteWordWrapped"}
