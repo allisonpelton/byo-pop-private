@@ -115,5 +115,6 @@ export are in the git-ignored `assets/bookworm/` and `re/bookworm/`. Shared chan
 | `CMakeLists.txt`: `BUILD_BOOKWORM` | 84f596c |
 | `.claude/launch.json`: `bookworm-web` (this checkout's build/web on port 18768) | dc9add8 |
 | `docs/FRAMEWORK_2004.md` (new) | 456fc08 |
+| `framework/compat2004` (new, library `sexycompat2004`): the 2004 framework behaviours, shared with Typer Shark and AstroPop | 100e1e5 |
 | Big Money's MSVC 7.0 tools and `.au`/Tremor audio, unchanged copies | f2497b4 |
 | `WidgetManager::mLastMouseDownTick`, public `GetClockTime()` (Lex's idle timer, repeatable game clocks) | coordinator, abfb135 |
