@@ -133,6 +133,9 @@ Planned gameplay mods (board shapes, other move types, special gems, undo, repla
   (`compare.sh --candidate-args -forcevariant --out build/oracle-forcevariant`) and the build without
   them (`tools/build.sh novariants`, then
   `compare.sh --candidate build/native-novariants/bejeweled.exe --out build/oracle-novariants`).
+  `compare.sh --variants default,forcevariant,novariants` runs all three in one go. It runs three games at
+  a time (`--jobs`) and keeps the frozen baselines' runs in `build/oracle-cache`, so after the first run
+  only the candidates play; `--no-cache --jobs 1` runs everything now, one game at a time.
 - `build/web-test/` (`tools/build.sh web-test`): the web build for automated browser tests, served on
   port 18766 by `.claude/launch.json`'s `web-test` server and opened with `?silent=1`. It is a different
   origin from `build/web` (port 18765), so test runs keep their browser storage apart from your own.

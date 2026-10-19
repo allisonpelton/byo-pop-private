@@ -1,0 +1,131 @@
+{"addr": "00401000", "name": "Sexy::Piece::Piece", "sig": "void __thiscall Piece(void)"}
+{"addr": "004010b0", "name": "Sexy::Piece::~Piece", "sig": "void __thiscall ~Piece(void)"}
+{"addr": "00401d10", "name": "Sexy::Piece::scalar_deleting_dtor", "sig": "void * __thiscall scalar_deleting_destructor(unsigned int flags)"}
+{"addr": "004010c0", "name": "std::char_traits<char>::assign", "sig": "void __cdecl assign(char * dst, char * src)"}
+{"addr": "004010d0", "name": "Sexy::Board::CanSaveGame", "sig": "bool __thiscall CanSaveGame(void)"}
+{"addr": "004010f0", "name": "Sexy::SaveGameExists", "sig": "bool __cdecl SaveGameExists(void)"}
+{"addr": "00401120", "name": "Sexy::ReadPiece", "sig": "void __cdecl ReadPiece(void * theFile, void * thePiece)"}
+{"addr": "004012b0", "name": "Sexy::WritePiece", "sig": "void __cdecl WritePiece(void * theFile, void * thePiece)"}
+{"addr": "00401440", "name": "Sexy::DeleteSaveGame", "sig": "bool __cdecl DeleteSaveGame(void)"}
+{"addr": "00401460", "name": "Sexy::Board::OrderInManagerChanged", "sig": "void __thiscall OrderInManagerChanged(void)"}
+{"addr": "00401490", "name": "Sexy::Board::SetupLevelParams", "sig": "void __thiscall SetupLevelParams(void)"}
+{"addr": "004015e0", "name": "Sexy::Board::ColX", "sig": "int __cdecl ColX(int theCol)"}
+{"addr": "004015f0", "name": "Sexy::Board::RowY", "sig": "int __cdecl RowY(int theRow)"}
+{"addr": "00401600", "name": "Sexy::Board::ResetMarks", "sig": "void __thiscall ResetMarks(void)"}
+{"addr": "00401660", "name": "Sexy::Board::SetDangerFlash", "sig": "void __thiscall SetDangerFlash(bool on)"}
+{"addr": "00401720", "name": "Sexy::Board::FloodFill", "sig": "void __thiscall FloodFill(int theCol, int theRow, int theMark, bool sameColor, int * theCount, int * theSum)"}
+{"addr": "00401840", "name": "Sexy::Board::FindGroups", "sig": "void __thiscall FindGroups(void)"}
+{"addr": "00401960", "name": "Sexy::Board::PieceAt", "sig": "void * __thiscall PieceAt(int x, int y)"}
+{"addr": "00401a20", "name": "Sexy::Board::ShowHintAt", "sig": "void __thiscall ShowHintAt(int theId, int * thePos, int theDuration)"}
+{"addr": "00401a80", "name": "Sexy::Board::HideHint", "sig": "void __thiscall HideHint(void)"}
+{"addr": "00401a90", "name": "Sexy::Board::CountCoinColumns", "sig": "int __thiscall CountCoinColumns(void)"}
+{"addr": "00401af0", "name": "Sexy::Board::GetTopCoinRow", "sig": "int __thiscall GetTopCoinRow(void)"}
+{"addr": "00401b40", "name": "Sexy::Board::GetAverageCoinRow", "sig": "double __thiscall GetAverageCoinRow(void)"}
+{"addr": "00401bd0", "name": "Sexy::Board::UpdateMovesLeft", "sig": "void __thiscall UpdateMovesLeft(void)"}
+{"addr": "00401c70", "name": "Sexy::Board::ButtonPress", "sig": "void __thiscall ButtonPress(int theId)"}
+{"addr": "00401c90", "name": "std::vector<int>::size", "sig": "int __thiscall size(void)"}
+{"addr": "00401cd0", "name": "std::vector<std::string>::size", "sig": "int __thiscall size(void)"}
+{"addr": "00401d00", "name": "operator_delete_thunk", "sig": "void __cdecl operator_delete_thunk(void * p)"}
+{"addr": "00401d30", "name": "Sexy::Board::GameOver", "sig": "void __thiscall GameOver(void)"}
+{"addr": "00401e30", "name": "Sexy::Board::GetBagSlotPos", "sig": "void __thiscall GetBagSlotPos(int * thePos, int theIndex)"}
+{"addr": "00401e90", "name": "Sexy::Board::UpdateHover", "sig": "void __thiscall UpdateHover(void)"}
+{"addr": "00401fa0", "name": "Sexy::Board::MouseLeave", "sig": "void __thiscall MouseLeave(void)"}
+{"addr": "00401fb0", "name": "Sexy::Board::MouseMove", "sig": "void __thiscall MouseMove(int x, int y)"}
+{"addr": "00401fe0", "name": "Sexy::Board::ShowHint", "sig": "void __thiscall ShowHint(int theId, void * thePiece, int theDuration)"}
+{"addr": "00402060", "name": "Sexy::Board::DrawPiece", "sig": "void __thiscall DrawPiece(void * g, void * thePiece)"}
+{"addr": "00402510", "name": "std::string::_Myptr", "sig": "char * __thiscall _Myptr(void)"}
+{"addr": "00402520", "name": "std::string::_Eos", "sig": "void __thiscall _Eos(unsigned int n)"}
+{"addr": "00402540", "name": "std::string::_Tidy", "sig": "void __thiscall _Tidy(bool built)"}
+{"addr": "00402580", "name": "std::_Uninit_fill_int", "sig": "void __cdecl _Uninit_fill_int(int * first, int * last, int * val)"}
+{"addr": "004025a0", "name": "std::_Uninit_copy_Point", "sig": "void __cdecl _Uninit_copy_Point(int * first, int * last, int * dst)"}
+{"addr": "004025d0", "name": "std::string::_Tidy0", "sig": "void __thiscall _Tidy0(void)"}
+{"addr": "004025f0", "name": "std::list<Particle>::_Buyhead", "sig": "void * __cdecl _Buyhead(void)"}
+{"addr": "00402610", "name": "std::list<Bill>::_Buyhead", "sig": "void * __cdecl _Buyhead(void)"}
+{"addr": "00402630", "name": "std::list<TubeCoin>::_Buyhead", "sig": "void * __cdecl _Buyhead(void)"}
+{"addr": "00402650", "name": "std::list<int>::_Buyhead", "sig": "void * __cdecl _Buyhead(void)"}
+{"addr": "00402670", "name": "std::string::_Grow_alloc", "sig": "void __cdecl _Grow_alloc(unsigned int n)"}
+{"addr": "004026ee", "name": "std::string::_Grow_copy", "sig": "void __fastcall _Grow_copy(int unused, void * newbuf)"}
+{"addr": "00402790", "name": "std::list<void*>::_Buynode", "sig": "void * __cdecl _Buynode(void * next, void * prev, void * val)"}
+{"addr": "004027c0", "name": "std::list<Particle>::_Buynode", "sig": "void * __cdecl _Buynode(void * next, void * prev, void * val)"}
+{"addr": "004027f0", "name": "std::list<Bill>::_Buynode", "sig": "void * __cdecl _Buynode(void * next, void * prev, void * val)"}
+{"addr": "00402820", "name": "std::list<TubeCoin>::_Buynode", "sig": "void * __cdecl _Buynode(void * next, void * prev, void * val)"}
+{"addr": "00402850", "name": "std::_Fill_Point", "sig": "void __cdecl _Fill_Point(int * first, int * last, int * val)"}
+{"addr": "00402880", "name": "std::_Copy_backward_Point", "sig": "void __cdecl _Copy_backward_Point(int * out, int first, int last, int * dst)"}
+{"addr": "004028b0", "name": "std::_Uninit_fill_n_Point", "sig": "void __cdecl _Uninit_fill_n_Point(int * first, int n, int * val)"}
+{"addr": "00402930", "name": "Sexy::Board::Pause", "sig": "void __thiscall Pause(bool pause)"}
+{"addr": "00402b70", "name": "Sexy::Board::Compact", "sig": "void __thiscall Compact(void)"}
+{"addr": "00403050", "name": "Sexy::Board::KeyChar", "sig": "void __thiscall KeyChar(char theChar)"}
+{"addr": "00403070", "name": "std::list<void*>::~list", "sig": "void __thiscall ~list(void)"}
+{"addr": "004030b0", "name": "std::string::_Grow", "sig": "bool __thiscall _Grow(unsigned int n, bool trim)"}
+{"addr": "00403180", "name": "std::string::append_n_chars", "sig": "void * __thiscall append_n_chars(unsigned int n)"}
+{"addr": "00403250", "name": "std::list<void*>::erase_range", "sig": "void __thiscall erase_range(void * out, void * first, void * last)"}
+{"addr": "004032a0", "name": "std::_Uninit_copy_int_wrap", "sig": "void __cdecl _Uninit_copy_int_wrap(int * first, int * last, int * dst)"}
+{"addr": "004032d0", "name": "std::_Uninit_copy_Point_wrap", "sig": "void __cdecl _Uninit_copy_Point_wrap(int * first, int * last, int * dst)"}
+{"addr": "00403300", "name": "Sexy::Board::SaveGame", "sig": "bool __thiscall SaveGame(void)"}
+{"addr": "00403a20", "name": "Sexy::Board::RemovePointsWidgets", "sig": "void __thiscall RemovePointsWidgets(void)"}
+{"addr": "00403aa0", "name": "Sexy::Board::RemovedFromManager", "sig": "void __thiscall RemovedFromManager(void * theManager)"}
+{"addr": "00403b80", "name": "Sexy::Board::Freeze", "sig": "void __thiscall Freeze(void)"}
+{"addr": "00403ba0", "name": "std::string::erase", "sig": "void * __thiscall erase(unsigned int pos, unsigned int n)"}
+{"addr": "00403c60", "name": "std::string::assign_substr", "sig": "void * __thiscall assign_substr(void * str, unsigned int pos, unsigned int n)"}
+{"addr": "00403d10", "name": "std::_Uninit_fill_n_int_ret", "sig": "int * __cdecl _Uninit_fill_n_int_ret(int * first, int n, int * val)"}
+{"addr": "00403d40", "name": "std::_Uninit_fill_n_Point_ret", "sig": "int * __cdecl _Uninit_fill_n_Point_ret(int * first, int n, int * val)"}
+{"addr": "00403d70", "name": "std::string::assign_ptr_len", "sig": "void * __thiscall assign_ptr_len(char * s, unsigned int n)"}
+{"addr": "00403e10", "name": "std::string::_Tidy_free", "sig": "void __cdecl _Tidy_free(void * str)"}
+{"addr": "00403e40", "name": "std::string::string_copy", "sig": "void * __thiscall string_copy(void * str)"}
+{"addr": "00403e70", "name": "std::string::resize", "sig": "void __thiscall resize(unsigned int n)"}
+{"addr": "00403ea0", "name": "std::string::assign_cstr", "sig": "void __thiscall assign_cstr(char * s)"}
+{"addr": "00403ed0", "name": "std::_Destroy_strings", "sig": "void __cdecl _Destroy_strings(void * first, void * last)"}
+{"addr": "00403f10", "name": "Sexy::Board::~Board", "sig": "void __thiscall ~Board(void)"}
+{"addr": "00404150", "name": "std::string::string_cstr", "sig": "void * __thiscall string_cstr(char * s)"}
+{"addr": "00404190", "name": "std::string::assign_str", "sig": "void __thiscall assign_str(void * str)"}
+{"addr": "00404220", "name": "std::list<void*>::_Incsize", "sig": "void __thiscall _Incsize(unsigned int n)"}
+{"addr": "004042d0", "name": "std::list<Particle>::_Incsize", "sig": "void __thiscall _Incsize(unsigned int n)"}
+{"addr": "00404380", "name": "std::list<Bill>::_Incsize", "sig": "void __thiscall _Incsize(unsigned int n)"}
+{"addr": "00404430", "name": "std::list<TubeCoin>::_Incsize", "sig": "void __thiscall _Incsize(unsigned int n)"}
+{"addr": "004044e0", "name": "std::vector::_Xlen", "sig": "void __cdecl _Xlen(void)"}
+{"addr": "00404560", "name": "std::_Copy_strings", "sig": "void * __cdecl _Copy_strings(void * first, void * last, void * dst)"}
+{"addr": "004045a0", "name": "Sexy::Board::scalar_deleting_dtor", "sig": "void * __thiscall scalar_deleting_destructor(unsigned int flags)"}
+{"addr": "004045e0", "name": "Sexy::Board::ShowContinueButton", "sig": "void __thiscall ShowContinueButton(void)"}
+{"addr": "00404950", "name": "Sexy::Board::DrawStatsPanel", "sig": "void __thiscall DrawStatsPanel(void * g)"}
+{"addr": "00405480", "name": "Sexy::Board::Draw", "sig": "void __thiscall Draw(void * g)"}
+{"addr": "00406ec0", "name": "std::vector<int>::_Buy", "sig": "bool __thiscall _Buy(unsigned int n)"}
+{"addr": "00406f20", "name": "std::vector<std::string>::_Buy", "sig": "bool __thiscall _Buy(unsigned int n)"}
+{"addr": "00406f80", "name": "std::_Destroy_strings_wrap", "sig": "void __cdecl _Destroy_strings_wrap(int first, int last)"}
+{"addr": "00406fa0", "name": "std::vector<std::string>::_Tidy", "sig": "void __thiscall _Tidy(void)"}
+{"addr": "00406fe0", "name": "std::vector<int>::_Insert_n", "sig": "void __thiscall _Insert_n(int * where, unsigned int n, int * val)"}
+{"addr": "00407280", "name": "std::vector<Point>::_Insert_n", "sig": "void __thiscall _Insert_n(int * where, unsigned int n, int * val)"}
+{"addr": "00407530", "name": "std::_Uninit_copy_strings", "sig": "void * __cdecl _Uninit_copy_strings(void * first, void * last, void * dst)"}
+{"addr": "004075d0", "name": "Sexy::Board::LoadGame", "sig": "bool __thiscall LoadGame(void)"}
+{"addr": "00407ea0", "name": "Sexy::Board::AddPoints", "sig": "void __thiscall AddPoints(int thePoints, int x, int y, bool toMeter)"}
+{"addr": "00408110", "name": "Sexy::Board::ShowBonusText", "sig": "void __thiscall ShowBonusText(void * theText)"}
+{"addr": "00408220", "name": "Sexy::Board::FlingAllCoins", "sig": "void __thiscall FlingAllCoins(void)"}
+{"addr": "004083d0", "name": "Sexy::Board::LevelComplete", "sig": "void __thiscall LevelComplete(void)"}
+{"addr": "00408650", "name": "Sexy::Board::ClearBoardForLevelEnd", "sig": "void __thiscall ClearBoardForLevelEnd(void)"}
+{"addr": "004088a0", "name": "Sexy::Board::PushRow", "sig": "void __thiscall PushRow(void)"}
+{"addr": "00408a60", "name": "Sexy::Board::UpdatePhysics", "sig": "void __thiscall UpdatePhysics(void)"}
+{"addr": "00409520", "name": "Sexy::Board::UpdateLoosePieces", "sig": "void __thiscall UpdateLoosePieces(void)"}
+{"addr": "00409e00", "name": "Sexy::Board::TowerToppler", "sig": "bool __thiscall TowerToppler(void)"}
+{"addr": "0040a080", "name": "std::vector<int>::push_back", "sig": "void __thiscall push_back(int * val)"}
+{"addr": "0040a0f0", "name": "std::_Uninit_copy_strings_wrap", "sig": "void __cdecl _Uninit_copy_strings_wrap(void * first, void * last, void * dst)"}
+{"addr": "0040a110", "name": "Sexy::Board::GenerateBoard", "sig": "void __thiscall GenerateBoard(void)"}
+{"addr": "0040ae20", "name": "Sexy::Board::NextLevel", "sig": "void __thiscall NextLevel(void)"}
+{"addr": "0040aea0", "name": "Sexy::Board::DropSpecial", "sig": "void __thiscall DropSpecial(int theType)"}
+{"addr": "0040b120", "name": "Sexy::Board::OnClick", "sig": "void __thiscall OnClick(void * thePiece)"}
+{"addr": "0040c5c0", "name": "Sexy::Board::ClickAt", "sig": "void __thiscall ClickAt(int x, int y)"}
+{"addr": "0040c5f0", "name": "Sexy::Board::MouseDown", "sig": "void __thiscall MouseDown(int x, int y, int theClickCount)"}
+{"addr": "0040c640", "name": "Sexy::Board::UpdateMeter", "sig": "void __thiscall UpdateMeter(void)"}
+{"addr": "0040c9f0", "name": "Sexy::Board::Update", "sig": "void __thiscall Update(void)"}
+{"addr": "0040e4b0", "name": "Sexy::Board::StartNextLevel", "sig": "void __thiscall StartNextLevel(void)"}
+{"addr": "0040e580", "name": "Sexy::Board::ButtonDepress", "sig": "void __thiscall ButtonDepress(int theId)"}
+{"addr": "0040e5c0", "name": "std::vector<std::string>::operator=", "sig": "void * __thiscall operator_assign(void * other)"}
+{"addr": "0040e760", "name": "Sexy::Board::Board", "sig": "void * __thiscall Board(void * theApp)"}
+{"addr": "0052d860", "label": "gPieceCount"}
+{"addr": "0052d864", "label": "gRankNames"}
+{"addr": "004f53c0", "label": "gRankThresholds"}
+{"addr": "0052d8c8", "label": "gCoinColors"}
+{"addr": "0052d878", "label": "gCoinLightColors"}
+{"addr": "005285b8", "label": "gImageNames"}
+{"addr": "005286d8", "label": "gSoundNames"}
+{"addr": "004f5430", "label": "vftable_Sexy_Piece"}
+{"addr": "004f54c4", "label": "vftable_Sexy_Board_ButtonListener"}
+{"addr": "004f54e4", "label": "vftable_Sexy_Board"}

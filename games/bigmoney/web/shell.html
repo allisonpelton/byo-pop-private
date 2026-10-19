@@ -1,0 +1,683 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Big Money Deluxe Web Port</title>
+<style>
+/* Layout: a single 4:3 stage that fills the viewport, with a slim tool bar and two slide-over panels
+   (game files, mods). Same shell as Bejeweled's (web/shell.html); palette: banknote green and coin gold. */
+:root {
+  --bg: #eceaf2;
+  --panel: #ffffff;
+  --panel-2: #f5f3fa;
+  --fg: #1d1a29;
+  --muted: #5d5872;
+  --line: #d6d2e3;
+  --accent: #2f7d32;        /* banknote green */
+  --accent-fg: #ffffff;
+  --gem-ruby: #c9302c;
+  --coin: #d9a520;
+  --ok: #1f8a5b;
+  --warn: #a8660a;
+  --stage: #000000;
+  --font-ui: "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: ui-monospace, "Cascadia Mono", Consolas, "SF Mono", monospace;
+  --radius: 10px;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #14111d; --panel: #1f1a2c; --panel-2: #272136; --fg: #ece8f6; --muted: #a59fbb;
+    --line: #3a3350; --accent: #7bd17f; --accent-fg: #14111d; --gem-ruby: #ff6b86; --ok: #4fd39a; --warn: #f0b252;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #14111d; --panel: #1f1a2c; --panel-2: #272136; --fg: #ece8f6; --muted: #a59fbb;
+  --line: #3a3350; --accent: #7bd17f; --accent-fg: #14111d; --gem-ruby: #ff6b86; --ok: #4fd39a; --warn: #f0b252;
+  color-scheme: dark;
+}
+[hidden] { display: none !important; }  /* .overlay/.panel set display, which would override the attribute */
+html, body { height: 100%; }
+body {
+  margin: 0; background: var(--bg); color: var(--fg); font: 14px/1.5 var(--font-ui);
+  display: flex; flex-direction: column;
+}
+.bar {
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+  padding-block: 8px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  border-bottom: 1px solid var(--line); background: var(--panel);
+}
+.brand { font-weight: 700; letter-spacing: 0.02em; display: flex; align-items: center; gap: 8px; }
+.brand .gem { width: 12px; height: 12px; background: var(--coin, #d9a520); border-radius: 50%; }
+.bar .status { color: var(--muted); font-size: 13px; flex: 1 1 200px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+button, .button {
+  font: inherit; border: 1px solid var(--line); background: var(--panel-2); color: var(--fg);
+  padding: 6px 12px; border-radius: 8px; cursor: pointer;
+}
+button:hover, .button:hover { border-color: var(--accent); }
+button:focus-visible, .button:focus-within { outline: 2px solid var(--accent); outline-offset: 2px; }
+button.primary { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); font-weight: 600; }
+button[disabled] { opacity: 0.5; cursor: default; }
+.stage-wrap { flex: 1; min-height: 0; display: grid; place-items: center; padding: 12px; }
+.stage {
+  position: relative; background: var(--stage); aspect-ratio: 4 / 3; max-width: 100%;
+  width: min(100%, calc((100vh - 90px) * 4 / 3)); box-shadow: 0 10px 40px rgba(0, 0, 0, 0.35); border-radius: 4px; overflow: hidden;
+}
+canvas#canvas { display: block; width: 100%; height: 100%; outline: none; image-rendering: auto; }
+.overlay {
+  position: absolute; inset: 0; display: grid; place-items: center; padding: 16px;
+  background: color-mix(in srgb, var(--bg) 88%, transparent);
+}
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 24px; max-width: 520px; display: grid; gap: 14px; }
+.card h2 { margin: 0; font-size: 20px; text-wrap: balance; }
+.card p { margin: 0; color: var(--muted); }
+.card code, .mono { font-family: var(--font-mono); font-size: 12.5px; }
+.row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.note { font-size: 12.5px; color: var(--muted); }
+.progress { height: 6px; background: var(--panel-2); border-radius: 99px; overflow: hidden; }
+.progress > div { height: 100%; width: 0; background: var(--accent); transition: width 120ms linear; }
+.error { color: var(--gem-ruby); }
+input[type=file] { display: none; }
+
+/* Slide-over panels */
+.panel {
+  position: fixed; top: 0; right: 0; bottom: 0; width: min(440px, 100%); background: var(--panel);
+  border-left: 1px solid var(--line); box-shadow: -10px 0 40px rgba(0, 0, 0, 0.3); z-index: 10;
+  display: flex; flex-direction: column;
+  padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); padding-right: env(safe-area-inset-right, 0px);
+}
+.panel header { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; border-bottom: 1px solid var(--line); }
+.panel header h2 { margin: 0; font-size: 16px; }
+.panel .body { padding: 16px; overflow: auto; display: grid; gap: 14px; align-content: start; }
+.mods { display: grid; gap: 8px; }
+.mod {
+  display: grid; grid-template-columns: auto 1fr auto; gap: 4px 12px; align-items: start;
+  padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel-2);
+}
+.mod .meta { min-width: 0; }
+.mod .name { font-weight: 600; }
+.mod .sub { color: var(--muted); font-size: 12.5px; overflow-wrap: anywhere; }
+.mod .tag { font-size: 11px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--warn); }
+.mod .tag.features { color: var(--accent); }
+.msg { font-size: 12px; overflow-wrap: anywhere; color: var(--muted); }
+.msg.error { color: var(--gem-ruby); }
+.msg.warn { color: var(--warn); }
+.mod .actions { display: flex; gap: 4px; }
+.mod .actions button { padding: 2px 8px; }
+.empty { color: var(--muted); border: 1px dashed var(--line); border-radius: 8px; padding: 14px; }
+@media (prefers-reduced-motion: reduce) { .progress > div { transition: none; } }
+</style>
+</head>
+<body>
+<div class="bar">
+  <span class="brand"><span class="gem" aria-hidden="true"></span>Big Money Deluxe</span>
+  <span class="status" id="status">Starting…</span>
+  <button id="btn-mods" type="button">Mods</button>
+  <button id="btn-replays" type="button">Replays</button>
+  <button id="btn-files" type="button">Game files</button>
+  <button id="btn-full" type="button">Fullscreen</button>
+</div>
+
+<div class="stage-wrap">
+  <div class="stage" id="stage">
+    <canvas id="canvas" tabindex="0" oncontextmenu="event.preventDefault()"></canvas>
+
+    <div class="overlay" id="import-overlay" hidden>
+      <div class="card">
+        <h2>Load your Big Money Deluxe files</h2>
+        <p>Choose the game's install folder (for Steam: <span class="mono">steamapps/common/Big Money Deluxe</span>) or a .zip of it.
+          Only the <span class="mono">images, data, sounds, music</span> and <span class="mono">properties</span> folders are copied.</p>
+        <div class="row">
+          <label class="button primary" for="pick-game-folder">Choose folder</label>
+          <input type="file" id="pick-game-folder" webkitdirectory multiple>
+          <label class="button" for="pick-game-zip">Choose .zip</label>
+          <input type="file" id="pick-game-zip" accept=".zip,application/zip">
+        </div>
+        <div class="progress" aria-hidden="true"><div id="import-progress"></div></div>
+        <p class="note" id="import-msg">Files stay in this browser's storage. Nothing is uploaded.</p>
+      </div>
+    </div>
+
+    <div class="overlay" id="start-overlay" hidden>
+      <div class="card">
+        <h2>Ready</h2>
+        <p>Click to start. Browsers only allow sound after you interact with the page.</p>
+        <div class="row"><button class="primary" id="btn-start" type="button">Play</button></div>
+      </div>
+    </div>
+
+    <div class="overlay" id="busy-overlay" hidden>
+      <div class="card">
+        <h2>Already open</h2>
+        <p>Big Money is already running in another tab or window. Its saves live in this browser, so only one copy can run at a time.
+          This page starts by itself once the other one is closed.</p>
+      </div>
+    </div>
+
+    <div class="overlay" id="exit-overlay" hidden>
+      <div class="card">
+        <h2>Thanks for playing</h2>
+        <p id="exit-msg">Saving…</p>
+        <div class="row"><button class="primary" id="btn-play-again" type="button" disabled>Play again</button></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<aside class="panel" id="panel-mods" hidden aria-label="Mods">
+  <header><h2>Mods</h2><button type="button" data-close>Close</button></header>
+  <div class="body">
+    <p class="note">Mods replace game files: put images, sounds, music or data in the same folders the game uses
+      (for example <span class="mono">images/coins.gif</span>, or <span class="mono">images/coins@2x.png</span> for an HD version).
+      The top of the list wins when two mods change the same file.</p>
+    <div class="row">
+      <label class="button" for="pick-mod-folder">Add mod folder</label>
+      <input type="file" id="pick-mod-folder" webkitdirectory multiple>
+      <label class="button" for="pick-mod-zip">Add mod .zip</label>
+      <input type="file" id="pick-mod-zip" accept=".zip,application/zip" multiple>
+    </div>
+    <div class="mods" id="mod-list"></div>
+    <p class="note" id="mod-msg"></p>
+    <div class="row"><button class="primary" id="btn-apply-mods" type="button">Apply and restart</button></div>
+  </div>
+</aside>
+
+<aside class="panel" id="panel-replays" hidden aria-label="Replays">
+  <header><h2>Replays</h2><button type="button" data-close>Close</button></header>
+  <div class="body">
+    <p class="note">With the <span class="mono">replays</span> mod on, every finished game is kept here (the newest 50,
+      and every one that made a high-score table). Watch one, or press R on the game-over screen to watch the game
+      you just played. While watching: 1 to 4 for the speed, space to pause, Esc to stop.</p>
+    <div class="row">
+      <label class="button" for="pick-replay">Import .bmr</label>
+      <input type="file" id="pick-replay" accept=".bmr" multiple>
+    </div>
+    <div class="mods" id="replay-list"></div>
+    <p class="note" id="replay-msg"></p>
+  </div>
+</aside>
+
+<aside class="panel" id="panel-files" hidden aria-label="Game files">
+  <header><h2>Game files</h2><button type="button" data-close>Close</button></header>
+  <div class="body">
+    <p id="files-summary" class="note"></p>
+    <div class="row">
+      <button type="button" id="btn-reimport">Import again</button>
+      <button type="button" id="btn-forget">Forget game files</button>
+    </div>
+    <p class="note" id="forget-confirm" hidden>This removes the copied game files from this browser. Saves and mods stay.
+      <button type="button" id="btn-forget-yes">Remove files</button></p>
+    <p class="note">Saves (high scores, the game in progress and settings) are kept in this browser's storage.</p>
+  </div>
+</aside>
+
+<script>
+(function () {
+  "use strict";
+  // Its own IndexedDB folder (IDBFS names the database after the mount point), so Big Money and
+  // Bejeweled can be served from the same site without sharing files or saves
+  var PERSIST = "/bmpersist";
+  var GAME = PERSIST + "/game";
+  var USER = PERSIST + "/userdata";
+  var MODS = PERSIST + "/mods";
+  // Replays (games/bigmoney/src/Replay.h): beside the user dir, so its localStorage backup does not carry them
+  var REPLAYS = PERSIST + "/replays";
+  var GAME_DIRS = ["images", "data", "sounds", "music", "properties"];
+  var $ = function (id) { return document.getElementById(id); };
+  var statusEl = $("status");
+  function setStatus(t) { statusEl.textContent = t; }
+
+  var Module = window.Module = {
+    canvas: $("canvas"),
+    noInitialRun: true,
+    print: function (t) { console.log(t); },
+    printErr: function (t) { console.warn(t); },
+    setStatus: function (t) { if (t) setStatus(t); },
+    onRuntimeInitialized: function () { acquireInstanceLock().then(mountStorage).then(boot); },
+    onAbort: function (what) { setStatus("The game stopped: " + what); },
+    // Called by the game after it quits (the tab can't close itself): silence it, wait for the save
+    // to reach browser storage, then offer a restart.
+    onGameExit: function () {
+      try { if (Module.SDL2 && Module.SDL2.audioContext) Module.SDL2.audioContext.suspend(); } catch (e) {}
+      setStatus("Game closed");
+      $("exit-overlay").hidden = false;
+      var waitForSave = function () {
+        if (Module.sexySyncBusy || Module.sexySyncPending) { setTimeout(waitForSave, 100); return; }
+        // The game writes savegame.dat only for a game in progress
+        var hasSave = listDir(USER).some(function (n) { return /^savegame.*\.dat$/i.test(n); });
+        $("exit-msg").textContent = hasSave
+          ? "The game has closed. Your game in progress was saved, and you can continue it when you play again."
+          : "The game has closed. Your settings and high scores are saved.";
+        $("btn-play-again").disabled = false;
+        $("btn-play-again").focus();
+      };
+      waitForSave();
+    }
+  };
+
+  // ---------- one copy at a time ----------
+  // Like the original (mOnlyAllowOneCopyToRun). Two pages would each write their own copy of the saves to
+  // IndexedDB and to the localStorage backup, overwriting the other's. The lock is held until the page
+  // goes away; a second page waits for it before it reads browser storage. Without the Web Locks API
+  // (older browsers, plain http on another host) there is no check.
+  var INSTANCE_LOCK = "big-money-deluxe-instance";
+  function acquireInstanceLock() {
+    if (!(navigator.locks && navigator.locks.request)) return Promise.resolve();
+    return new Promise(function (resolve) {
+      var hold = function () {
+        $("busy-overlay").hidden = true;
+        resolve();
+        return new Promise(function () {});
+      };
+      navigator.locks.request(INSTANCE_LOCK, { ifAvailable: true }, function (lock) {
+        if (lock) return hold();
+        setStatus("Already open");
+        $("busy-overlay").hidden = false;
+        navigator.locks.request(INSTANCE_LOCK, hold);
+      }).catch(function () { resolve(); });
+    });
+  }
+
+  // ---------- storage (IDBFS) ----------
+  function FS() { return Module.FS; }
+  function sync(populate) {
+    return new Promise(function (resolve, reject) {
+      FS().syncfs(populate, function (err) { err ? reject(err) : resolve(); });
+    });
+  }
+  function mountStorage() {
+    var fs = FS();
+    try { fs.mkdir(PERSIST); } catch (e) {}
+    fs.mount(fs.filesystems.IDBFS, {}, PERSIST);
+    return sync(true).then(function () {
+      [GAME, USER, MODS, REPLAYS].forEach(function (d) { try { fs.mkdirTree(d); } catch (e) {} });
+    });
+  }
+
+  function exists(path) { try { FS().stat(path); return true; } catch (e) { return false; } }
+  function isDir(path) { try { return FS().isDir(FS().stat(path).mode); } catch (e) { return false; } }
+  function listDir(path) { try { return FS().readdir(path).filter(function (n) { return n !== "." && n !== ".."; }); } catch (e) { return []; } }
+  function rmTree(path) {
+    if (!exists(path)) return;
+    if (isDir(path)) { listDir(path).forEach(function (n) { rmTree(path + "/" + n); }); FS().rmdir(path); }
+    else FS().unlink(path);
+  }
+  function writeFile(path, bytes) {
+    FS().mkdirTree(path.substring(0, path.lastIndexOf("/")));
+    FS().writeFile(path, bytes);
+  }
+  function hasGameFiles() {
+    return listDir(GAME + "/images").some(function (n) { return /^mrmoneybags\./i.test(n); });
+  }
+
+  // ---------- zip reading (stored + deflate via DecompressionStream) ----------
+  function readZip(buffer) {
+    var view = new DataView(buffer), bytes = new Uint8Array(buffer);
+    var eocd = -1;
+    for (var i = bytes.length - 22; i >= Math.max(0, bytes.length - 65557); i--) {
+      if (view.getUint32(i, true) === 0x06054b50) { eocd = i; break; }
+    }
+    if (eocd < 0) throw new Error("This file is not a .zip archive.");
+    var count = view.getUint16(eocd + 10, true), off = view.getUint32(eocd + 16, true);
+    var entries = [];
+    for (var n = 0; n < count; n++) {
+      if (view.getUint32(off, true) !== 0x02014b50) throw new Error("The .zip directory is damaged.");
+      var method = view.getUint16(off + 10, true), csize = view.getUint32(off + 20, true);
+      var nameLen = view.getUint16(off + 28, true), extraLen = view.getUint16(off + 30, true), commentLen = view.getUint16(off + 32, true);
+      var local = view.getUint32(off + 42, true);
+      var name = new TextDecoder().decode(bytes.subarray(off + 46, off + 46 + nameLen));
+      entries.push({ name: name.replace(/\\/g, "/"), method: method, csize: csize, local: local });
+      off += 46 + nameLen + extraLen + commentLen;
+    }
+    return entries.filter(function (e) { return !/\/$/.test(e.name); }).map(function (e) {
+      return {
+        path: e.name,
+        read: function () {
+          var lnl = view.getUint16(e.local + 26, true), lel = view.getUint16(e.local + 28, true);
+          var data = bytes.subarray(e.local + 30 + lnl + lel, e.local + 30 + lnl + lel + e.csize);
+          if (e.method === 0) return Promise.resolve(data.slice());
+          if (e.method !== 8) return Promise.reject(new Error("Unsupported compression in " + e.name));
+          var ds = new DecompressionStream("deflate-raw");
+          return new Response(new Blob([data]).stream().pipeThrough(ds)).arrayBuffer().then(function (b) { return new Uint8Array(b); });
+        }
+      };
+    });
+  }
+  function filesFromInput(fileList) {
+    return Array.prototype.map.call(fileList, function (f) {
+      return { path: (f.webkitRelativePath || f.name).replace(/\\/g, "/"),
+               read: function () { return f.arrayBuffer().then(function (b) { return new Uint8Array(b); }); } };
+    });
+  }
+  function filesFromZip(file) { return file.arrayBuffer().then(readZip); }
+
+  // Finds the folder inside an upload that holds images/mrmoneybags.* (the game root).
+  function findGameRoot(entries) {
+    for (var i = 0; i < entries.length; i++) {
+      var m = /^(.*?)(?:^|\/)?images\/mrmoneybags\.[a-z]+$/i.exec(entries[i].path);
+      if (m) {
+        var p = entries[i].path, idx = p.toLowerCase().lastIndexOf("images/mrmoneybags");
+        return p.substring(0, idx);
+      }
+    }
+    return null;
+  }
+
+  function importGame(entries) {
+    var root = findGameRoot(entries);
+    var msg = $("import-msg");
+    if (root === null) {
+      msg.innerHTML = '<span class="error">That folder doesn\'t contain the game\'s images/mrmoneybags file. Pick the Big Money Deluxe install folder itself.</span>';
+      return Promise.resolve(false);
+    }
+    var wanted = entries.filter(function (e) {
+      if (e.path.substring(0, root.length) !== root) return false;
+      var rel = e.path.substring(root.length), top = rel.split("/")[0].toLowerCase();
+      return GAME_DIRS.indexOf(top) >= 0 && !/\.sig$/i.test(rel);
+    });
+    var done = 0, bar = $("import-progress");
+    msg.textContent = "Copying " + wanted.length + " files…";
+    rmTree(GAME); FS().mkdirTree(GAME);
+    return wanted.reduce(function (p, e) {
+      return p.then(function () {
+        return e.read().then(function (data) {
+          writeFile(GAME + "/" + e.path.substring(root.length), data);
+          bar.style.width = (++done * 100 / wanted.length) + "%";
+        });
+      });
+    }, Promise.resolve()).then(function () { return sync(false); }).then(function () {
+      msg.textContent = "Copied " + wanted.length + " files.";
+      return true;
+    });
+  }
+
+  // ---------- mods ----------
+  function readJson(path, fallback) {
+    try { return JSON.parse(FS().readFile(path, { encoding: "utf8" })); } catch (e) { return fallback; }
+  }
+  function modConfig() { return readJson(USER + "/mods.json", { order: [], disabled: [] }); }
+  function findNoCase(dir, name) {
+    var lower = name.toLowerCase(), hit = null;
+    listDir(dir).forEach(function (n) { if (n.toLowerCase() === lower) hit = dir + "/" + n; });
+    return hit;
+  }
+  // VFS::Normalize: forward slashes, no empty or "." parts, ".." folded
+  function normPath(p) {
+    var parts = [];
+    String(p).replace(/\\/g, "/").split("/").forEach(function (s) {
+      if (s === "..") { if (parts.length && parts[parts.length - 1] !== "..") parts.pop(); else parts.push(s); }
+      else if (s && s !== ".") parts.push(s);
+    });
+    return parts.join("/");
+  }
+  // VFS::FindCaseInsensitive: the file at rel under root, each part matched in any case, or null
+  function findFileNoCase(root, rel) {
+    var parts = normPath(rel).split("/"), cur = root;
+    if (!parts[0]) return null;
+    for (var i = 0; i < parts.length; i++) {
+      var last = i === parts.length - 1, exact = cur + "/" + parts[i];
+      if (exists(exact) && isDir(exact) !== last) { cur = exact; continue; }
+      cur = parts[i] === ".." ? null : findNoCase(cur, parts[i]);
+      if (!cur || isDir(cur) === last) return null;
+    }
+    return cur;
+  }
+  function scanMods() {
+    var cfg = modConfig();
+    var mods = listDir(MODS).filter(function (n) { return isDir(MODS + "/" + n); }).map(function (dir) {
+      var man = readJson(MODS + "/" + dir + "/mod.json", {});
+      var m = { dir: dir, id: man.id || dir, name: man.name || dir, version: man.version || "", author: man.author || "",
+                description: man.description || "",
+                enabled: (cfg.disabled || []).indexOf(man.id || dir) < 0 };
+      return m;
+    });
+    var order = cfg.order || [];
+    mods.sort(function (a, b) {
+      var ra = order.indexOf(a.id), rb = order.indexOf(b.id);
+      ra = ra < 0 ? 1e9 : ra; rb = rb < 0 ? 1e9 : rb;
+      return ra - rb || a.id.localeCompare(b.id);
+    });
+    return mods;
+  }
+  var modState = [];
+  function renderMods() {
+    var list = $("mod-list");
+    list.textContent = "";
+    if (!modState.length) {
+      var empty = document.createElement("div");
+      empty.className = "empty";
+      empty.textContent = "No mods installed. Add a mod folder or .zip to change the game's graphics, sounds or music.";
+      list.appendChild(empty);
+      return;
+    }
+    modState.forEach(function (m, i) {
+      var row = document.createElement("div");
+      row.className = "mod";
+      var cb = document.createElement("input");
+      cb.type = "checkbox"; cb.checked = m.enabled; cb.id = "mod-" + i; cb.setAttribute("aria-label", "Enable " + m.name);
+      cb.addEventListener("change", function () { m.enabled = cb.checked; });
+      var meta = document.createElement("label");
+      meta.className = "meta"; meta.htmlFor = cb.id;
+      meta.innerHTML = '<div class="name"></div><div class="sub"></div>';
+      meta.querySelector(".name").textContent = m.name + (m.version ? " " + m.version : "");
+      meta.querySelector(".sub").textContent = [m.author && ("by " + m.author), m.description].filter(Boolean).join(" · ") || m.dir;
+      var actions = document.createElement("div");
+      actions.className = "actions";
+      [["↑", "Move up", -1], ["↓", "Move down", 1]].forEach(function (a) {
+        var b = document.createElement("button");
+        b.type = "button"; b.textContent = a[0]; b.title = a[1]; b.setAttribute("aria-label", a[1] + " " + m.name);
+        b.addEventListener("click", function () {
+          var j = i + a[2];
+          if (j < 0 || j >= modState.length) return;
+          var t = modState[i]; modState[i] = modState[j]; modState[j] = t; renderMods();
+        });
+        actions.appendChild(b);
+      });
+      var del = document.createElement("button");
+      del.type = "button"; del.textContent = "Remove"; del.setAttribute("aria-label", "Remove " + m.name);
+      del.addEventListener("click", function () {
+        if (del.dataset.armed) { rmTree(MODS + "/" + m.dir); modState.splice(i, 1); renderMods(); saveModConfig(); }
+        else { del.dataset.armed = "1"; del.textContent = "Confirm"; }
+      });
+      actions.appendChild(del);
+      row.appendChild(cb); row.appendChild(meta); row.appendChild(actions);
+      list.appendChild(row);
+    });
+  }
+  function saveModConfig() {
+    var cfg = { order: modState.map(function (m) { return m.id; }),
+                disabled: modState.filter(function (m) { return !m.enabled; }).map(function (m) { return m.id; }) };
+    writeFile(USER + "/mods.json", new TextEncoder().encode(JSON.stringify(cfg, null, 2)));
+    return sync(false);
+  }
+  function importMod(entries, fallbackName) {
+    if (!entries.length) return Promise.resolve();
+    // A mod's root is the folder that holds mod.json, or the common top folder.
+    var manifest = entries.filter(function (e) { return /(^|\/)mod\.json$/i.test(e.path); })
+      .sort(function (a, b) { return a.path.length - b.path.length; })[0];
+    var root = manifest ? manifest.path.replace(/mod\.json$/i, "") : "";
+    if (!manifest) {
+      var tops = {};
+      entries.forEach(function (e) { tops[e.path.split("/")[0]] = 1; });
+      var keys = Object.keys(tops);
+      var gameTop = keys.some(function (k) { return GAME_DIRS.indexOf(k.toLowerCase()) >= 0; });
+      root = keys.length === 1 && !gameTop ? keys[0] + "/" : "";
+    }
+    var dirName = (root.replace(/\/$/, "").split("/").pop() || fallbackName || "mod").replace(/[^A-Za-z0-9._-]+/g, "-");
+    var target = MODS + "/" + dirName;
+    rmTree(target);
+    var files = entries.filter(function (e) { return e.path.substring(0, root.length) === root; });
+    $("mod-msg").textContent = "Copying " + files.length + " files into " + dirName + "…";
+    return files.reduce(function (p, e) {
+      return p.then(function () { return e.read().then(function (d) { writeFile(target + "/" + e.path.substring(root.length), d); }); });
+    }, Promise.resolve()).then(function () {
+      $("mod-msg").textContent = "Added " + dirName + ". Apply and restart to use it.";
+    });
+  }
+  function refreshMods() { modState = scanMods(); renderMods(); }
+
+  // ---------- boot ----------
+  // ?silent=1: no sound, for automated tests in a browser pane that may be hidden (CLAUDE.md). The game
+  // still mixes and plays its sounds as usual; Platform::Mixer outputs silence (Module.silentAudio).
+  function pageSilent() { return new URLSearchParams(location.search).get("silent") === "1"; }
+  // ?seed=N: passed on as -gameseed=N, the seed of every new game until one is played on it (its first
+  // valid click or its game over; games/bigmoney/src/ModRules.h). Digits only, 1..4294967295 (leading
+  // zeros allowed, as on native). 0 without the parameter; -1 for any other value: the game starts
+  // without a seed, and the status line says so. As in web/shell.html.
+  function pageSeed() {
+    var params = new URLSearchParams(location.search);
+    if (!params.has("seed")) return 0;
+    var digits = (params.get("seed") || "").replace(/^0+(?=[0-9])/, "");
+    var seed = /^[0-9]{1,10}$/.test(digits) ? Number(digits) : 0;
+    return (seed >= 1 && seed <= 4294967295) ? seed : -1;
+  }
+  // ?replay=<name>: watch that replay from REPLAYS (passed on as -replay=). A plain file name only.
+  function pageReplay() {
+    var name = new URLSearchParams(location.search).get("replay") || "";
+    return (/^[A-Za-z0-9._-]+\.bmr$/.test(name) && exists(REPLAYS + "/" + name)) ? name : "";
+  }
+
+  // ---------- replays ----------
+  var MODE_NAMES = { action: "Action", strategy: "Strategy", puzzle: "Puzzle" };
+  function renderReplays() {
+    var list = $("replay-list");
+    list.textContent = "";
+    var names = listDir(REPLAYS).filter(function (n) { return /\.bmr$/i.test(n); }).sort().reverse();
+    if (!names.length) {
+      var empty = document.createElement("div");
+      empty.className = "empty";
+      empty.textContent = "No replays yet.";
+      list.appendChild(empty);
+      return;
+    }
+    names.forEach(function (n) {
+      // <yyyymmdd>-<hhmmss>-<mode>-<skill>-<score>[-<n>][-keep].bmr
+      var m = /^(\d{4})(\d{2})(\d{2})-(\d{2})(\d{2})\d{2}-([a-z]+)-([a-z]+)-(\d+)/.exec(n);
+      var row = document.createElement("div");
+      row.className = "mod";
+      var meta = document.createElement("div");
+      meta.className = "meta";
+      meta.innerHTML = '<div class="name"></div><div class="sub"></div>';
+      meta.querySelector(".name").textContent = m ? (MODE_NAMES[m[6]] || m[6]) + ", " + m[7] + ": $" + m[8] : n;
+      meta.querySelector(".sub").textContent = m ? m[1] + "-" + m[2] + "-" + m[3] + " " + m[4] + ":" + m[5] +
+        (/-keep\.bmr$/i.test(n) ? " · kept" : "") : "";
+      var actions = document.createElement("div");
+      actions.className = "actions";
+      var watch = document.createElement("button");
+      watch.type = "button"; watch.textContent = "Watch"; watch.setAttribute("aria-label", "Watch " + n);
+      watch.addEventListener("click", function () {
+        var params = new URLSearchParams(location.search);
+        params.set("replay", n);
+        params.delete("seed");
+        location.search = params.toString();
+      });
+      var save = document.createElement("button");
+      save.type = "button"; save.textContent = "Download"; save.setAttribute("aria-label", "Download " + n);
+      save.addEventListener("click", function () {
+        var url = URL.createObjectURL(new Blob([FS().readFile(REPLAYS + "/" + n)], { type: "application/octet-stream" }));
+        var a = document.createElement("a");
+        a.href = url; a.download = n;
+        document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+      });
+      var del = document.createElement("button");
+      del.type = "button"; del.textContent = "Delete"; del.setAttribute("aria-label", "Delete " + n);
+      del.addEventListener("click", function () {
+        if (del.dataset.armed) { try { FS().unlink(REPLAYS + "/" + n); } catch (e) {} sync(false).then(renderReplays); }
+        else { del.dataset.armed = "1"; del.textContent = "Confirm"; }
+      });
+      actions.appendChild(watch); actions.appendChild(save); actions.appendChild(del);
+      row.appendChild(meta); row.appendChild(actions);
+      list.appendChild(row);
+    });
+  }
+  function importReplays(files) {
+    var bad = [];
+    return Array.prototype.slice.call(files).reduce(function (p, f) {
+      return p.then(function () { return f.arrayBuffer(); }).then(function (buf) {
+        var b = new Uint8Array(buf);
+        var name = f.name.replace(/[^A-Za-z0-9._-]/g, "_");
+        if (b.length < 8 || String.fromCharCode(b[0], b[1], b[2], b[3]) !== "BMRP" || !/\.bmr$/i.test(name)) { bad.push(f.name); return; }
+        writeFile(REPLAYS + "/" + name, b);
+      });
+    }, Promise.resolve()).then(function () { return sync(false); }).then(function () {
+      $("replay-msg").textContent = bad.length ? "Not a Big Money replay: " + bad.join(", ") : "";
+      renderReplays();
+    });
+  }
+
+  function startGame() {
+    $("start-overlay").hidden = true;
+    var enabled = modState.filter(function (m) { return m.enabled; }).length;
+    var seed = pageSeed();
+    var seedText = (seed > 0) ? " · seed " + seed : (seed < 0) ? " · seed ignored: it must be 1 to 4294967295" : "";
+    var replay = pageReplay();
+    var replayText = replay ? " · watching a replay" : "";
+    Module.silentAudio = pageSilent();
+    setStatus((enabled ? enabled + " mod" + (enabled > 1 ? "s" : "") + " active" : "No mods active") + seedText + replayText + (Module.silentAudio ? " · silent" : ""));
+    Module.callMain(["-gamedir=" + GAME, "-userdir=" + USER, "-modsdir=" + MODS, "-replaydir=" + REPLAYS]
+      .concat((seed > 0) ? ["-gameseed=" + seed] : []).concat(replay ? ["-replay=" + REPLAYS + "/" + replay] : []));
+    $("canvas").focus();
+  }
+  function boot() {
+    refreshMods();
+    if (!hasGameFiles()) {
+      setStatus("Game files needed");
+      $("import-overlay").hidden = false;
+      return;
+    }
+    setStatus("Ready");
+    $("start-overlay").hidden = false;
+  }
+
+  function onGamePicked(promise) {
+    promise.then(importGame).then(function (ok) {
+      if (ok) { $("import-overlay").hidden = true; boot(); }
+    }).catch(function (e) { $("import-msg").innerHTML = '<span class="error"></span>'; $("import-msg").firstChild.textContent = e.message; });
+  }
+  $("pick-game-folder").addEventListener("change", function (ev) { onGamePicked(Promise.resolve(filesFromInput(ev.target.files))); ev.target.value = ""; });
+  $("pick-game-zip").addEventListener("change", function (ev) { if (ev.target.files[0]) onGamePicked(filesFromZip(ev.target.files[0])); ev.target.value = ""; });
+  $("btn-start").addEventListener("click", startGame);
+  $("btn-play-again").addEventListener("click", function () { location.reload(); });
+
+  $("pick-mod-folder").addEventListener("change", function (ev) {
+    importMod(filesFromInput(ev.target.files)).then(function () { return sync(false); }).then(refreshMods);
+    ev.target.value = "";
+  });
+  $("pick-mod-zip").addEventListener("change", function (ev) {
+    var files = Array.prototype.slice.call(ev.target.files);
+    files.reduce(function (p, f) {
+      return p.then(function () { return filesFromZip(f).then(function (e) { return importMod(e, f.name.replace(/\.zip$/i, "")); }); });
+    }, Promise.resolve()).then(function () { return sync(false); }).then(refreshMods)
+      .catch(function (e) { $("mod-msg").textContent = e.message; });
+    ev.target.value = "";
+  });
+  $("btn-apply-mods").addEventListener("click", function () { saveModConfig().then(function () { location.reload(); }); });
+
+  function openPanel(id) { ["panel-mods", "panel-replays", "panel-files"].forEach(function (p) { $(p).hidden = p !== id; }); }
+  document.querySelectorAll("[data-close]").forEach(function (b) {
+    b.addEventListener("click", function () { b.closest(".panel").hidden = true; $("canvas").focus(); });
+  });
+  $("btn-mods").addEventListener("click", function () { refreshMods(); openPanel("panel-mods"); });
+  $("btn-replays").addEventListener("click", function () { renderReplays(); openPanel("panel-replays"); });
+  $("pick-replay").addEventListener("change", function (ev) { importReplays(ev.target.files); ev.target.value = ""; });
+  $("btn-files").addEventListener("click", function () {
+    var n = 0;
+    GAME_DIRS.forEach(function (d) { n += listDir(GAME + "/" + d).length; });
+    $("files-summary").textContent = hasGameFiles() ? n + " game files are stored in this browser." : "No game files are stored yet.";
+    openPanel("panel-files");
+  });
+  $("btn-reimport").addEventListener("click", function () { openPanel(null); $("import-overlay").hidden = false; });
+  $("btn-forget").addEventListener("click", function () { $("forget-confirm").hidden = false; });
+  $("btn-forget-yes").addEventListener("click", function () { rmTree(GAME); sync(false).then(function () { location.reload(); }); });
+  $("btn-full").addEventListener("click", function () {
+    var el = $("stage");
+    if (el.requestFullscreen) el.requestFullscreen().catch(function () {});
+  });
+})();
+</script>
+{{{ SCRIPT }}}
+</body>
+</html>

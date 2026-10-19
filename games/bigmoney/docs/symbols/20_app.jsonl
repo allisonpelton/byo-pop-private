@@ -1,0 +1,79 @@
+{"addr": "0041b670", "name": "WinMain", "sig": "int __stdcall WinMain(void * hInstance, void * hPrevInstance, char * lpCmdLine, int nCmdShow)"}
+{"addr": "0041b6a0", "name": "Sexy::WinBMApp::RemoveBoard", "sig": "void __thiscall RemoveBoard(void)"}
+{"addr": "0041b6f0", "name": "Sexy::WinBMApp::ShowHelp", "sig": "void __thiscall ShowHelp(void)"}
+{"addr": "0041b7f0", "name": "Sexy::WinBMApp::RemoveHelp", "sig": "void __thiscall RemoveHelp(void)"}
+{"addr": "0041b840", "name": "Sexy::WinBMApp::ShowGameSelector", "sig": "void __thiscall ShowGameSelector(void)"}
+{"addr": "0041b9c0", "name": "Sexy::WinBMApp::RemoveGameSelector", "sig": "void __thiscall RemoveGameSelector(void)"}
+{"addr": "0041ba00", "name": "Sexy::WinBMApp::ShowHighScoreDialog", "sig": "void __thiscall ShowHighScoreDialog(void)"}
+{"addr": "0041baf0", "name": "Sexy::WinBMApp::ShowCreditsDialog", "sig": "void __thiscall ShowCreditsDialog(void)"}
+{"addr": "0041bbe0", "name": "Sexy::WinBMApp::ShowOptionsDialog", "sig": "void __thiscall ShowOptionsDialog(void)"}
+{"addr": "0041bd00", "name": "Sexy::WinBMApp::ShowRecordScoreDialog", "sig": "void __thiscall ShowRecordScoreDialog(void * theLines)"}
+{"addr": "0041bd90", "name": "Sexy::WinBMApp::NewDialog", "sig": "void * __thiscall NewDialog(int theDialogId, bool isModal, void * theDialogHeader, void * theDialogLines, void * theDialogFooter, int theButtonMode)"}
+{"addr": "0041bf00", "name": "Sexy::WinBMApp::ModalOpen", "sig": "void __thiscall ModalOpen(void)"}
+{"addr": "0041bf20", "name": "Sexy::WinBMApp::ModalClose", "sig": "void __thiscall ModalClose(void)"}
+{"addr": "0041bf40", "name": "Sexy::WinBMApp::GotFocus", "sig": "void __thiscall GotFocus(void)"}
+{"addr": "0041bf60", "name": "Sexy::WinBMApp::LostFocus", "sig": "void __thiscall LostFocus(void)"}
+{"addr": "0041bf80", "name": "Sexy::WinBMApp::URLOpenSucceeded", "sig": "void __thiscall URLOpenSucceeded(void * theURL)"}
+{"addr": "0041bfa0", "name": "Sexy::WinBMApp::ButtonPress", "sig": "void __thiscall ButtonPress(int theId)"}
+{"addr": "0041bfb0", "name": "Sexy::WinBMApp::NewGame", "sig": "void __thiscall NewGame(void)"}
+{"addr": "0041c170", "name": "Sexy::WinBMApp::StartGame", "sig": "void __thiscall StartGame(void)"}
+{"addr": "0041c1c0", "name": "Sexy::WinBMApp::KillDialog", "sig": "bool __thiscall KillDialog(int theDialogId)"}
+{"addr": "0041c200", "name": "std_string_equals_cstr", "sig": "bool __cdecl std_string_equals_cstr(void * theString, char * theCStr)"}
+{"addr": "0041c240", "name": "Sexy::WinBMApp::~WinBMApp", "sig": "void __thiscall ~WinBMApp(void)"}
+{"addr": "0041c5f0", "name": "std_string_substr", "sig": "void * __thiscall std_string_substr(void * theResult, unsigned int thePos, unsigned int theCount)"}
+{"addr": "0041c630", "name": "std_list_IncsizeCheck", "sig": "void __thiscall std_list_IncsizeCheck(unsigned int theCount)"}
+{"addr": "0041c6e0", "name": "std_string_concat_cstr_str", "sig": "void * __cdecl std_string_concat_cstr_str(void * theResult, char * theLeft, void * theRight)"}
+{"addr": "0041c790", "name": "Sexy::WinBMApp::WinBMApp", "sig": "void * __thiscall WinBMApp(void)"}
+{"addr": "0041c9d0", "name": "Sexy::WinBMApp::scalar_deleting_dtor", "sig": "void * __thiscall scalar_deleting_dtor(unsigned int theFlags)"}
+{"addr": "0041c9f0", "name": "Sexy::WinBMApp::WriteToRegistry", "sig": "void __thiscall WriteToRegistry(void)"}
+{"addr": "0041cb60", "name": "Sexy::WinBMApp::ReadFromRegistry", "sig": "void __thiscall ReadFromRegistry(void)"}
+{"addr": "0041cd60", "name": "Sexy::WinBMApp::ShowRegisterDialog", "sig": "void __thiscall ShowRegisterDialog(void)"}
+{"addr": "0041d090", "name": "Sexy::WinBMApp::ShowInvalidCodeDialog", "sig": "void __thiscall ShowInvalidCodeDialog(void)"}
+{"addr": "0041d2e0", "name": "Sexy::WinBMApp::ShowOneLevelOnlyDialog", "sig": "void __thiscall ShowOneLevelOnlyDialog(void)"}
+{"addr": "0041d4c0", "name": "Sexy::WinBMApp::ShowNextLevelLockedDialog", "sig": "void __thiscall ShowNextLevelLockedDialog(void)"}
+{"addr": "0041d6a0", "name": "Sexy::WinBMApp::ShowRegisterToRecordScoreDialog", "sig": "void __thiscall ShowRegisterToRecordScoreDialog(void * theLines)"}
+{"addr": "0041d7d0", "name": "Sexy::WinBMApp::LoadAppImage", "sig": "bool __thiscall LoadAppImage(int theImageId)"}
+{"addr": "0041d9a0", "name": "Sexy::WinBMApp::Init", "sig": "void __thiscall Init(void)"}
+{"addr": "0041efd0", "name": "Sexy::WinBMApp::LoadingThreadProc", "sig": "void __thiscall LoadingThreadProc(void)"}
+{"addr": "0041fe80", "name": "Sexy::WinBMApp::URLOpenFailed", "sig": "void __thiscall URLOpenFailed(void * theURL)"}
+{"addr": "00420140", "name": "Sexy::WinBMApp::OpenURL", "sig": "bool __thiscall OpenURL(void * theURL, bool shutdownOnOpen)"}
+{"addr": "00420370", "name": "Sexy::WinBMApp::ConfirmContinueGame", "sig": "void __thiscall ConfirmContinueGame(void)"}
+{"addr": "00420560", "name": "Sexy::WinBMApp::ConfirmQuit", "sig": "void __thiscall ConfirmQuit(void)"}
+{"addr": "004207e0", "name": "Sexy::WinBMApp::ConfirmNewGame", "sig": "void __thiscall ConfirmNewGame(void)"}
+{"addr": "00420a30", "name": "Sexy::WinBMApp::ConfirmCheckForUpdates", "sig": "void __thiscall ConfirmCheckForUpdates(void)"}
+{"addr": "00420c50", "name": "Sexy::WinBMApp::DoUpdateCheck", "sig": "void __thiscall DoUpdateCheck(void)"}
+{"addr": "00420f10", "name": "Sexy::WinBMApp::ButtonDepress", "sig": "void __thiscall ButtonDepress(int theId)"}
+{"addr": "00421450", "name": "Sexy::WinBMApp::LoadingThreadCompleted", "sig": "void __thiscall LoadingThreadCompleted(void)"}
+{"addr": "00421470", "name": "Sexy::WinBMApp::MakeButton", "sig": "void * __thiscall MakeButton(int theId, void * theRect, void * theOverImage, void * theDownImage)"}
+{"addr": "004215c0", "name": "Sexy::WinBMApp::TitleScreenIsFinished", "sig": "void __thiscall TitleScreenIsFinished(void)"}
+{"addr": "00414e00", "name": "Sexy::MoneyDialog::MoneyDialog", "sig": "void * __thiscall MoneyDialog(void * theApp, void * theComponentImage, void * theButtonComponentImage, int theId, bool isModal, void * theDialogHeader, void * theDialogLines, void * theDialogFooter, int theButtonMode)"}
+{"addr": "00414e60", "name": "Sexy::MoneyDialog::~MoneyDialog", "sig": "void __thiscall ~MoneyDialog(void)"}
+{"addr": "00414e80", "name": "Sexy::MoneyDialog::Update", "sig": "void __thiscall Update(void)"}
+{"addr": "00414ee0", "name": "Sexy::MoneyDialog::scalar_deleting_dtor", "sig": "void * __thiscall scalar_deleting_dtor(unsigned int theFlags)"}
+{"addr": "00414f00", "name": "Sexy::MoneyDialog::Draw", "sig": "void __thiscall Draw(void * g)"}
+{"addr": "00414d80", "name": "Sexy::LockableButton::LockableButton", "sig": "void * __thiscall LockableButton(void * theApp, int theId, void * theButtonListener)"}
+{"addr": "00414dc0", "name": "Sexy::LockableButton::~LockableButton", "sig": "void __thiscall ~LockableButton(void)"}
+{"addr": "00414dd0", "name": "Sexy::LockableButton::Draw", "sig": "void __thiscall Draw(void * g)"}
+{"addr": "00414de0", "name": "Sexy::LockableButton::scalar_deleting_dtor", "sig": "void * __thiscall scalar_deleting_dtor(unsigned int theFlags)"}
+{"addr": "004188e0", "name": "Sexy::RegisterDialog::RegisterDialog", "sig": "void * __thiscall RegisterDialog(void * theApp)"}
+{"addr": "00417e80", "name": "Sexy::RegisterDialog::~RegisterDialog", "sig": "void __thiscall ~RegisterDialog(void)"}
+{"addr": "004183d0", "name": "Sexy::RegisterDialog::scalar_deleting_dtor", "sig": "void * __thiscall scalar_deleting_dtor(unsigned int theFlags)"}
+{"addr": "00417f90", "name": "Sexy::RegisterDialog::GetPreferredHeight", "sig": "int __thiscall GetPreferredHeight(int theWidth)"}
+{"addr": "00417fa0", "name": "Sexy::RegisterDialog::AddedToManager", "sig": "void __thiscall AddedToManager(void * theWidgetManager)"}
+{"addr": "00418010", "name": "Sexy::RegisterDialog::RemovedFromManager", "sig": "void __thiscall RemovedFromManager(void * theWidgetManager)"}
+{"addr": "00418070", "name": "Sexy::RegisterDialog::Resize", "sig": "void __thiscall Resize(int theX, int theY, int theWidth, int theHeight)"}
+{"addr": "00418140", "name": "Sexy::RegisterDialog::Update", "sig": "void __thiscall Update(void)"}
+{"addr": "004181a0", "name": "Sexy::RegisterDialog::Draw", "sig": "void __thiscall Draw(void * g)"}
+{"addr": "00418240", "name": "Sexy::RegisterDialog::EditWidgetText", "sig": "void __thiscall EditWidgetText(int theId, void * theString)"}
+{"addr": "00419160", "name": "Sexy::RegisterDialog::ButtonDepress", "sig": "void __thiscall ButtonDepress(int theId)"}
+{"addr": "004f3a20", "name": "dynamic_initializer_gWinBMApp", "sig": "void __cdecl dynamic_initializer_gWinBMApp(void)"}
+{"addr": "004f4150", "name": "dynamic_atexit_destructor_gWinBMApp", "sig": "void __cdecl dynamic_atexit_destructor_gWinBMApp(void)"}
+{"addr": "0052ddc8", "label": "gWinBMApp"}
+{"addr": "00563f78", "label": "gHInstance"}
+{"addr": "00565044", "label": "gSexyAppBase"}
+{"addr": "005285b8", "label": "gImageNames"}
+{"addr": "005286d8", "label": "gSoundNames"}
+{"addr": "00528914", "label": "Sexy::DIALOG_YES_STRING"}
+{"addr": "00528930", "label": "Sexy::DIALOG_NO_STRING"}
+{"addr": "0052894c", "label": "Sexy::DIALOG_OK_STRING"}
+{"addr": "00528968", "label": "Sexy::DIALOG_CANCEL_STRING"}

@@ -2969,7 +2969,15 @@ void SexyAppBase::RunScript()
 			mWidgetManager->KeyUp(aKeyCode);
 		}
 		else if ((aName == "char") && (!aCommand.mArgs.empty()))
-			mWidgetManager->KeyChar((SexyChar) aCommand.mArgs[0]);
+		{
+			// The arguments are trimmed, so a space is spelled "char SPACE" (exactly; anything else types
+			// its first character, as before). "key SPACE" types nothing: only the keys GetControlChar
+			// covers do.
+			if (aCommand.mArgs == "SPACE")
+				mWidgetManager->KeyChar((SexyChar) ' ');
+			else
+				mWidgetManager->KeyChar((SexyChar) aCommand.mArgs[0]);
+		}
 		else if ((aName == "screenshot") && (!aCommand.mArgs.empty()))
 			SaveScreenshot(aCommand.mArgs);
 		else if ((aName == "screenshotfull") && (!aCommand.mArgs.empty()))

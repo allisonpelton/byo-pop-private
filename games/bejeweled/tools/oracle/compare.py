@@ -25,15 +25,24 @@ expect.txt.
                                             rewrites the expect file's derived facts from the candidate
                                             runs (keeps its comments and "row" lines) and prints the diff.
                                             Only after checking that the change in behaviour is intended.
+  compare.py cache-key <run dir>            for compare.sh's run cache: the sha256 of the key text on
+                                            stdin and the prepared run directory (paths and contents, the
+                                            day fields of hiscores*.dat masked)
+  compare.py tree-hash <dir>                the sha256 of a directory tree (paths and contents)
+  compare.py shift-hiscores-days <dir> <days>
+                                            adds <days> to both day fields of every hiscores*.dat in <dir>
+  compare.py hiscores-day <dir> <day>       exit status 0 if every hiscores*.dat in <dir> holds <day> in
+                                            both day fields (compare.sh caches a run only then)
 
 Sides (exes.txt): "baseline" (the build before stage 0, no test hooks), "hooks-baseline" (the frozen
 stage-0 build) and "candidate". Each baseline side is compared with the candidate.
 
 What "identical" means, per case and baseline side:
   stdout.txt  (TRACE) and stderr.txt (SDL_Log) line for line, after masking the wall-clock numbers only:
-              "Seconds = <s>" and "Resource Loading Time: <ms>" (the rest of the "Seconds =" line, the
-              update and draw counts, is compared). They are separate files because stderr is
-              block-buffered when redirected: in one file its chunks would split stdout lines.
+              "Seconds = <s>", "Resource Loading Time: <ms>" and the draw count of the "Seconds =" line,
+              which is checked on its own (DRAWS below); its sleep and update counts are compared. They
+              are separate files because stderr is block-buffered when redirected: in one file its chunks
+              would split stdout lines.
   file tree   the whole run directory, files and directories (an empty directory counts), the same on both
               sides; then every file byte-identical, except:
                 shots/*.png   pixel-identical (byte-identical files are not decoded)
@@ -42,14 +51,30 @@ What "identical" means, per case and baseline side:
                               across midnight or a year end): each of the two mode blocks starts with an
                               int32 day (HighScoreWidget::GetDayNumber, tm_year * 366 + tm_yday), at offset
                               0 and at offset 4 + the size of mode 0's six records (each record: u16 name
-                              length n, n name bytes, int32 score, int32 checksum = 10 + n bytes)
+                              length n, n name bytes, int32 score, int32 checksum = 10 + n bytes). A run
+                              compare.sh took from its cache (cached.txt: made-day, restored-day) was made
+                              on an earlier day: its days must be that many days behind (again 1 or 2 more
+                              or less across midnight or a year end)
               Not in the tree comparison: script.txt (input), stdout/stderr/exit (compared above), retried.txt
-              (below) and, when the baseline has no hooks (or for a .plain case), the hook outputs: hash.txt,
-              autoplay.txt and the files in snaps/.
+              (below), cached.txt (where a cached run came from) and, when the baseline has no hooks (or for a
+              .plain case), the hook outputs: hash.txt, autoplay.txt and the files in snaps/.
+  DRAWS       the "Seconds = <s>, Sleep Count = <n>, Update Count = <n>, Draw Count = <d>" line of
+              MainLoopFinished: under -fast, updates and the sleeps they replace run on the virtual clock
+              (sleeps are never counted, so the sleep count is 0), but SexyAppBase::DrawDirtyStuff still
+              reads the wall clock: every FAST_DRAW_INTERVAL-th update a frame is drawn if a widget is dirty
+              (deterministic) or if a second of real time passed since the last draw. Those extra draws of
+              an unchanged screen depend on how fast the machine ran the game (other processes, other oracle
+              jobs) and only add: at most one per wall-clock second after the last draw, so at most
+              floor(<s>) in a run. Two draw counts that differ by no more than floor(<s>) of the run with
+              more draws are a note; a larger difference is a difference. A baseline run of compare.sh's
+              cache must not carry such draws into later oracles (a slow run there would widen the note's
+              window and could match a candidate's real extra draw): gen/draws-noted.txt lists the
+              baseline runs of every draw count difference, and compare.sh drops their cache entries.
   exit.txt    the exit status; besides, every candidate run must exit with 0. A frozen baseline exe that
               crashed at exit (139 or an access violation; those builds predate the audio shutdown fix
               af758b9) was run once more by compare.sh, which left the first status in retried.txt: the
-              second run is compared and the report notes the retry. The candidate is never retried
+              second run is compared and the report notes the retry (also when the run, retry and all, came
+              from the cache). The candidate is never retried
   hash.txt    every candidate run but the .plain ones has one (-tracehash), compared with a hooks
               baseline's; lines "<update> <board state> <logic hash> <full hash>"
   mods folder a run with the real mods/ folder (the examples case) must leave it unchanged
@@ -161,6 +186,7 @@ and hand-written ones, kept by expect-update:
 """
 
 import difflib
+import hashlib
 import json
 import os
 import re
@@ -176,9 +202,11 @@ STATE_NAMES = ["falling", "playing", "swapping", "swapping back", "clearing", "g
 EVENT_STATES = {5: "game_over", 6: "game_over_done", 7: "vortex", 8: "level_wipe", 9: "fall_out"}
 REFILL_STATES = (0, 4, 8, 9)  # a board goes on falling, or refills, from these (UpdateClearing, FillBoard)
 HOOK_FILES = ("hash.txt", "autoplay.txt")
-RUN_FILES = ("script.txt", "stdout.txt", "stderr.txt", "exit.txt", "modsdir-changed.txt", "retried.txt")
+RUN_FILES = ("script.txt", "stdout.txt", "stderr.txt", "exit.txt", "modsdir-changed.txt", "retried.txt", "cached.txt")
 WALL_CLOCK = [(re.compile(r"Seconds = [0-9.e+-]+"), "Seconds = *"),
-              (re.compile(r"Resource Loading Time: [0-9]+"), "Resource Loading Time: *")]
+              (re.compile(r"Resource Loading Time: [0-9]+"), "Resource Loading Time: *"),
+              (re.compile(r"(Update Count = -?[0-9]+, Draw Count = )[0-9]+"), r"\1*")]  # DRAWS: compare_log
+DRAW_LINE = re.compile(r"Seconds = ([0-9.e+-]+), Sleep Count = -?[0-9]+, Update Count = -?[0-9]+, Draw Count = ([0-9]+)")
 EXPECT_KINDS = ("script", "load", "quitcut", "inert", "autoplay", "seeded", "recording", "samestream", "reference",
                 "playback")
 AUTO_KEYS = ("exit", "mods", "user", "settle", "settles", "last-settle", "states", "snap", "save", "sidecar", "replay",
@@ -359,8 +387,11 @@ def hiscores_day_offsets(data):
         return None
 
 
-def compare_hiscores(da, db):
-    """None if equal, ('masked', text) if equal once a midnight rollover is masked, else a description."""
+def compare_hiscores(da, db, shift=0):
+    """None if equal, ('masked', text) if equal once a midnight rollover is masked, else a description.
+    shift: the days the candidate's day fields must be ahead of the baseline's (a baseline run compare.sh took
+    from its cache, made that many days ago; day_shift); None if they are, ('masked', text) if they are 1 or 2
+    days more or less (midnight or a year end on top)."""
     if da == db:
         return None
     oa, ob = hiscores_day_offsets(da), hiscores_day_offsets(db)
@@ -375,9 +406,81 @@ def compare_hiscores(da, db):
         return "after masking the day fields: " + first_byte_diff(bytes(ma), bytes(mb))
     if days_a[0] != days_a[1] or days_b[0] != days_b[1]:
         return "day fields disagree within a file: baseline %s, candidate %s" % (days_a, days_b)
-    if abs(days_a[0] - days_b[0]) not in (1, 2):
-        return "day %d vs %d: not a midnight rollover" % (days_a[0], days_b[0])
-    return ("masked", "day %d vs %d" % (days_a[0], days_b[0]))
+    if shift and days_b[0] - days_a[0] == shift:
+        return None
+    if abs(days_b[0] - days_a[0] - shift) not in (1, 2):
+        return "day %d vs %d: not a midnight rollover%s" % (days_a[0], days_b[0],
+                                                           " (a cached run %d days behind)" % shift if shift else "")
+    return ("masked", "day %d vs %d%s" % (days_a[0], days_b[0], " (a cached run %d days behind)" % shift if shift else ""))
+
+
+def shift_hiscores_days(folder, days):
+    """Adds days to both day fields of every hiscores*.dat in folder (compare.sh: a baseline run that starts from
+    the user dir of a run taken from the cache, made days ago, gets the days a run of today would have left)"""
+    for name in sorted(os.listdir(folder)):
+        path = os.path.join(folder, name)
+        if not name.lower().startswith("hiscores") or not os.path.isfile(path):
+            continue
+        data = bytearray(read_bytes(path))
+        offsets = hiscores_day_offsets(bytes(data))
+        if offsets is None:
+            continue
+        for o in offsets:
+            struct.pack_into("<i", data, o, struct.unpack_from("<i", data, o)[0] + days)
+        with open(path, "wb") as f:
+            f.write(bytes(data))
+
+
+def hiscores_of_day(folder, day):
+    """Whether every hiscores*.dat in folder holds day in both day fields (compare.sh caches a run only if the user dir
+    it started from was of the day it ran: the cache key masks the day fields, and the game keeps "today's" score
+    only on the day it was saved). False for a hiscores file that does not parse."""
+    if not os.path.isdir(folder):
+        return True
+    for name in sorted(os.listdir(folder)):
+        path = os.path.join(folder, name)
+        if not name.lower().startswith("hiscores") or not os.path.isfile(path):
+            continue
+        data = read_bytes(path)
+        offsets = hiscores_day_offsets(data)
+        if offsets is None or any(struct.unpack_from("<i", data, o)[0] != day for o in offsets):
+            return False
+    return True
+
+
+def tree_digest(root, extra=b"", mask_days=False):
+    """sha256 of extra and of the tree under root: every directory and file by relative path, files with their
+    size and contents; with mask_days the day fields of hiscores*.dat count as 0 (compare.sh's cache key)"""
+    h = hashlib.sha256(extra)
+    for path in list_tree(root, lambda p: True):
+        if path.endswith("/"):
+            h.update(b"D %s\n" % path.encode("utf-8"))
+            continue
+        data = read_bytes(os.path.join(root, path))
+        if mask_days and os.path.basename(path).lower().startswith("hiscores"):
+            offsets = hiscores_day_offsets(data)
+            if offsets is not None:
+                masked = bytearray(data)
+                for o in offsets:
+                    masked[o:o + 4] = b"\0\0\0\0"
+                data = bytes(masked)
+        h.update(b"F %s %d %s\n" % (path.encode("utf-8"), len(data), hashlib.sha256(data).hexdigest().encode("ascii")))
+    return h.hexdigest()
+
+
+def cached_info(run):
+    """cached.txt of a run compare.sh took from its cache (key=value lines), or None"""
+    path = os.path.join(run, "cached.txt")
+    return read_kv(path) if os.path.exists(path) else None
+
+
+def day_shift(run):
+    """How many days before its restore a cached run was made (0 for a run made now)"""
+    info = cached_info(run)
+    try:
+        return int(info["restored-day"]) - int(info["made-day"]) if info else 0
+    except (KeyError, ValueError):
+        return 0
 
 
 def first_byte_diff(da, db):
@@ -408,6 +511,37 @@ def mask_wall_clock(line):
     for pattern, replacement in WALL_CLOCK:
         line = pattern.sub(replacement, line)
     return line
+
+
+DRAWS_RUNS = set()  # the run directories of every draw count difference (compare: gen/draws-noted.txt)
+
+
+def compare_log(r, la, lb, what, runs=()):
+    """Two logs (lists of lines) line for line after mask_wall_clock, then the draw counts that masks: DRAWS in the
+    module comment. runs: the two run directories, kept in DRAWS_RUNS on a draw count difference. Returns whether
+    they matched (a note is a match)."""
+    diff = first_list_diff([mask_wall_clock(x) for x in la], [mask_wall_clock(x) for x in lb], what)
+    if diff:
+        r.fail(diff)
+        return False
+    ok = True
+    counts_a = [m.groups() for m in (DRAW_LINE.search(x) for x in la) if m]
+    counts_b = [m.groups() for m in (DRAW_LINE.search(x) for x in lb) if m]
+    for (sa, da), (sb, db) in zip(counts_a, counts_b):
+        da, db = int(da), int(db)
+        if da == db:
+            continue
+        DRAWS_RUNS.update(runs)
+        # the run with more draws had at most floor(its seconds) draws of an unchanged screen more
+        seconds = int(float(sb if db > da else sa))
+        if abs(da - db) <= seconds:
+            r.note("%s: Draw Count %d / %d: within the %d wall-clock seconds of the run with more draws (DRAWS: a"
+                   " frame of an unchanged screen is drawn once a second of real time passed)" % (what, da, db, seconds))
+        else:
+            r.fail("%s: Draw Count %d / %d: more than the %d wall-clock seconds of the run with more draws can"
+                   " explain (DRAWS)" % (what, da, db, seconds))
+            ok = False
+    return ok
 
 
 def first_list_diff(a, b, what):
@@ -1052,14 +1186,11 @@ def livesplit_check(r, oracle, ref, run, label):
         if not (os.path.exists(pa) and os.path.exists(pb)):
             r.fail("%s: %s missing" % (label, stream))
             continue
-        la = [mask_wall_clock(x) for x in read_lines(pa)]
-        lb = [mask_wall_clock(x) for x in read_lines(pb)]
+        la, lb = read_lines(pa), read_lines(pb)
         if stream == "stderr.txt":
             la = [x for x in la if not LS_LOG_LINES.search(x)]
             lb = [x for x in lb if not LS_LOG_LINES.search(x)]
-        diff = first_list_diff(la, lb, label + ": " + stream)
-        if diff:
-            r.fail(diff)
+        compare_log(r, la, lb, label + ": " + stream)
     keep = lambda p: (p in ("hash.txt", "autoplay.txt") or p.startswith(("user/", "shots/", "snaps/"))) and \
         p != "user/mods-status.json" and not p.startswith("user/livesplit")
     counts = compare_tree(r, ref, run, label + ": ", keep)
@@ -1154,20 +1285,18 @@ def compare_streams(r, a, b, label):
         if not (os.path.exists(pa) and os.path.exists(pb)):
             r.fail("%s%s missing: %s / %s" % (label, stream, os.path.exists(pa), os.path.exists(pb)))
             continue
-        la = [mask_wall_clock(line) for line in read_lines(pa)]
-        lb = [mask_wall_clock(line) for line in read_lines(pb)]
-        diff = first_list_diff(la, lb, label + stream)
-        if diff:
-            r.fail(diff)
+        lb = read_lines(pb)
+        compare_log(r, read_lines(pa), lb, label + stream, (a, b))
         if stream == "stdout.txt":
             count = len(lb)
     return count
 
 
-def compare_tree(r, a, b, label, keep):
+def compare_tree(r, a, b, label, keep, shift=0):
     """The file trees under a and b (paths for which keep() is true): the same list, then every file.
     Finished replays are matched and compared without their wall-clock date (normal_path, compare_bjr).
-    Returns {top-level entry: number of files compared}."""
+    shift: compare_hiscores' (a baseline run from compare.sh's cache). Returns {top-level entry: number of
+    files compared}."""
     ma = {normal_path(p): p for p in list_tree(a, keep)}
     mb = {normal_path(p): p for p in list_tree(b, keep)}
     fa, fb = sorted(ma), sorted(mb)
@@ -1191,7 +1320,7 @@ def compare_tree(r, a, b, label, keep):
             if da == db:
                 diff = None
             elif os.path.basename(name).lower().startswith("hiscores"):
-                diff = compare_hiscores(da, db)
+                diff = compare_hiscores(da, db, shift)
                 if isinstance(diff, tuple):
                     r.note("%s%s: equal once the day-number fields are masked (%s: runs on both sides of midnight)"
                            % (label, name, diff[1]))
@@ -1215,9 +1344,12 @@ def compare_case(r, side, a, b, hook_outputs):
     label = "vs %s: " % side
     compare_exit(r, a, b, label)
     lines = compare_streams(r, a, b, label)
-    counts = compare_tree(r, a, b, label, tree_filter(hook_outputs))
+    # a run from compare.sh's cache made days ago has hiscores days that many days behind
+    counts = compare_tree(r, a, b, label, tree_filter(hook_outputs), day_shift(a) - day_shift(b))
     summary = ["%d stdout lines" % lines, "%d user files" % counts.get("user", 0),
                "%d screenshots" % counts.get("shots", 0)]
+    if cached_info(a) is not None:
+        label = "vs %s (cached): " % side
     if hook_outputs:
         if counts.get("snaps"):
             summary.append("%d snapshots" % counts["snaps"])
@@ -1419,11 +1551,9 @@ def recording_check(r, ref, run, label):
         if not (os.path.exists(pa) and os.path.exists(pb)):
             r.fail("%s: %s missing: %s / %s" % (label, name, os.path.exists(pa), os.path.exists(pb)))
             continue
-        la = [mask_wall_clock(x) for x in read_lines(pa) if not x.startswith(LOG_OF_MODS)]
-        lb = [mask_wall_clock(x) for x in read_lines(pb) if not x.startswith(LOG_OF_MODS)]
-        diff = first_list_diff(la, lb, label + ": " + name)
-        if diff:
-            r.fail(diff)
+        la = [x for x in read_lines(pa) if not x.startswith(LOG_OF_MODS)]
+        lb = [x for x in read_lines(pb) if not x.startswith(LOG_OF_MODS)]
+        compare_log(r, la, lb, label + ": " + name)
     ua, ub = os.path.join(ref, "user"), os.path.join(run, "user")
     fa = list_tree(ua, lambda p: True)
     fb = list_tree(ub, lambda p: True)
@@ -1670,6 +1800,12 @@ def compare(oracle, expect_path=None):
     for side in sides:
         r.out("%-15s %s (stage-0 hooks: %s)" % (side + ":", info.get(side + ".exe", "?"), info.get(side + ".hooks", "?")))
         r.out("%-15s sha256 %s, DLLs %s" % ("", info.get(side + ".sha256", "?"), info.get(side + ".dlls", "?")))
+        folder = os.path.join(oracle, side)
+        runs = sorted(os.listdir(folder)) if side != "candidate" and os.path.isdir(folder) else []
+        cached = [c for c in (cached_info(os.path.join(folder, x)) for x in runs) if c is not None]
+        if cached:
+            r.out("%-15s %d of its %d runs from compare.sh's cache (made %s)"
+                  % ("", len(cached), len(runs), ", ".join(sorted(set(c.get("made", "?")[:10] for c in cached)))))
     if info.get("candidate.args"):
         r.out("%-15s every candidate run with %s" % ("", info["candidate.args"]))
     for side in base_sides:
@@ -1689,8 +1825,10 @@ def compare(oracle, expect_path=None):
         for side in base_sides:
             retried = os.path.join(oracle, side, name, "retried.txt")
             if os.path.exists(retried):
+                cached = cached_info(os.path.join(oracle, side, name))
                 r.note("%s exited %s at first (a frozen exe's crash at exit, before af758b9) and was run once more:"
-                       " the second run is compared" % (side, read_bytes(retried).decode("latin-1").strip()))
+                       " the second run is compared%s" % (side, read_bytes(retried).decode("latin-1").strip(),
+                                                          " (a cached run, made %s)" % cached.get("made", "?") if cached else ""))
         f = parse_flags(flags)
         if kind == "plain":
             parent = name[:-len(".plain")]
@@ -1797,6 +1935,11 @@ def compare(oracle, expect_path=None):
                                                       "ALL IDENTICAL" if r.failures == 0 else "DIFFERENCES FOUND"))
     with open(os.path.join(oracle, "report.txt"), "w", encoding="latin-1", newline="\n") as f:
         f.write("\n".join(r.lines) + "\n")
+    # DRAWS: the baseline runs of every draw count difference, whose cache entries compare.sh drops
+    if os.path.isdir(os.path.join(oracle, "gen")):
+        noted = sorted(set(os.path.relpath(p, oracle).replace("\\", "/") for p in DRAWS_RUNS))
+        with open(os.path.join(oracle, "gen", "draws-noted.txt"), "w", encoding="utf-8", newline="\n") as f:
+            f.writelines(p + "\n" for p in noted if p.split("/")[0] in base_sides)
     return 0 if r.failures == 0 else 1
 
 
@@ -1855,6 +1998,17 @@ def main(argv):
         return compare(argv[2], argv[3] if len(argv) == 4 else None)
     if len(argv) == 4 and argv[1] == "expect-update":
         return expect_update(argv[2], argv[3])
+    if len(argv) == 3 and argv[1] == "cache-key":
+        print(tree_digest(argv[2], sys.stdin.buffer.read(), mask_days=True))
+        return 0
+    if len(argv) == 3 and argv[1] == "tree-hash":
+        print(tree_digest(argv[2]))
+        return 0
+    if len(argv) == 4 and argv[1] == "shift-hiscores-days":
+        shift_hiscores_days(argv[2], int(argv[3]))
+        return 0
+    if len(argv) == 4 and argv[1] == "hiscores-day":
+        return 0 if hiscores_of_day(argv[2], int(argv[3])) else 1
     sys.stderr.write(__doc__)
     return 2
 
