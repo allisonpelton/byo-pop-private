@@ -32,13 +32,21 @@
 # reported, never played) and leaves mods-status.json. Stage 2 (set seed) adds candidate runs with
 # -gameseed and the fixtures of mods/stage2 and scripts/stage2, checked against a model of the board RNG
 # (compare.py "seeded", "sameboard", "samegrids"), the -gameseed refusals and
-# games/bejeweled/tools/check_rng_use.py. Stage 3 (replays) adds candidate runs with the replays feature mod of
-# mods/stage3, each checked against the candidate's run of its case without mods (compare.py "recording":
-# recording is inert, 9.1 item 5), and a seeded game quit and resumed (scripts/stage3; "samestream", "seeded").
-# Stage 3b (watching) plays every recording back in the game (-replay, compare.py "playback": 9.1 item 6 in the
-# game), and replays broken on purpose, which the player must call corrupt. After the stage 3 review: recordings
-# without the hover channel and resumed under the other setting, a quit mid-swap, a save that replaces another
-# board's, and Options -> High Scores while watching.
+# games/bejeweled/tools/check_rng_use.py. Stage 2b (Auto LiveSplit) runs the playtest, stage-0 and autoplay
+# cases with games/bejeweled/mods/livesplit and with its inert twin (mods/stage2b/off): identical outputs,
+# and the block's -livesplitlog against hash.txt (compare.py "livesplit"); plus check_asl_offsets.py. Stage 3
+# (replays) adds candidate runs with the replays feature mod of mods/stage3, each checked against the
+# candidate's run of its case without mods (compare.py "recording": recording is inert, 9.1 item 5), and a
+# seeded game quit and resumed (scripts/stage3; "samestream", "seeded"). Stage 3b (watching) plays every
+# recording back in the game (-replay, compare.py "playback": 9.1 item 6 in the game), and replays broken on
+# purpose, which the player must call corrupt. After the stage 3 review: recordings without the hover channel
+# and resumed under the other setting, a quit mid-swap, a save that replaces another board's, and Options ->
+# High Scores while watching. With both: a watch with the livesplit mod (a playback board is never a run).
+#
+# The frozen exes (build/baseline, build/baseline-stage0) predate the audio shutdown fix (af758b9) and can
+# crash on exit after writing all their outputs: a baseline or hooks-baseline run that exits 139 or with an
+# access violation (3221225477 = 0xC0000005, or its 8-bit form 5) is run once more, and report.txt notes it
+# (<out>/<side>/<case>/retried.txt). The candidate is never retried.
 set -u
 
 ROOT="$(cd "$(dirname "$0")/../../../.." && pwd)"  # the repository root
@@ -59,7 +67,7 @@ while [ $# -gt 0 ]; do
 		--candidate-args) read -r -a CAND_ARGS <<< "$2"; shift 2 ;;
 		--out) OUT="$(mkdir -p "$2" && cd "$2" && pwd)"; shift 2 ;;
 		--compare-only) COMPARE_ONLY=1; shift ;;
-		*) sed -n '2,41p' "$0"; exit 2 ;;
+		*) sed -n '2,49p' "$0"; exit 2 ;;
 	esac
 done
 
@@ -162,7 +170,25 @@ mods_listing() { (cd "$MODS" && find . -printf '%P\t%y\t%s\t%T@\n' | LC_ALL=C so
 #   nohash           no -tracehash
 #   fakereplays      ten old replays in user/replays first, one of them pinned (compare.py fake-replays)
 #   replay=<file>    watch a copy of <file> (replay.bjr in the run directory): -replay=replay.bjr -replayquit
+# A frozen reference exe (baseline, hooks-baseline) that crashes at exit (exit 139, or an access violation
+# 0xC0000005 as 3221225477, -1073741819 or its low byte 5) is run once more from scratch: those builds predate
+# the audio shutdown fix (af758b9) and can crash after writing all their outputs. The second run is the one
+# compared; retried.txt keeps the first exit status for compare.py's report. The candidate gets no retry.
 run() {
+	local side=$1 name=$2
+	run_once "$@"
+	[ "$side" = candidate ] && return
+	local code
+	code=$(tr -d '\r\n' < "$OUT/$side/$name/exit.txt")
+	case "$code" in
+		139|5|3221225477|-1073741819)
+			echo "  $side $name: exit $code, a crash at exit (frozen exe without af758b9): run once more"
+			run_once "$@"
+			printf '%s\n' "$code" > "$OUT/$side/$name/retried.txt"
+			;;
+	esac
+}
+run_once() {
 	local side=$1 name=$2 seed=$3 script=$4
 	shift 4
 	local exe=${EXE[$side]} hooks=${HOOKS[$side]}
@@ -626,6 +652,71 @@ playback watch_mode_switch_match "rec_mode_switch_match's sidecar: the normal ga
 	"$C/rec_mode_switch_match/user/savegame.bjr"
 playback watch_seed_quit_highscores "rec_seed_quit's sidecar (seed $GS, user) with Options -> High Scores mid-watch: the player's hiscores.dat, no -seeded table" \
 	"trace=rec_seed_quit;user=hiscores.dat,registry.ini" "$C/rec_seed_quit/user/savegame.bjr" script="$S3/watch_highscores.txt"
+
+# Stage 2b: Auto LiveSplit (games/bejeweled/docs/CODE_MODS_DESIGN.md 4.15). The candidate with the livesplit
+# mod (games/bejeweled/mods/livesplit, copied into a mods folder of its own) against the candidate with its
+# inert twin (mods/stage2b/off: features.livesplit false). Neither shows mod signs, so the twin is the
+# reference for everything: compare.py "livesplit" (TRACE, hash.txt, the user dir but mods-status.json and
+# the copied livesplit/ templates, screenshots, snapshots, the logs without their "livesplit:" and "mods:"
+# lines) and the block's event log (-livesplitlog) against hash.txt's states.
+LSMODS="$OUT/gen/livesplit-mods"
+LSOFF="$GAME/tools/oracle/mods/stage2b/off"
+rm -rf "$LSMODS"
+mkdir -p "$LSMODS"
+cp -r "$MODS/livesplit" "$LSMODS/livesplit"
+# lscase <case> <description> <seed> <script or -> [options]: <case>.lsoff (the reference) and <case>.ls; a
+# "from=<case>" option starts each from the user dir of the same twin of <case>
+lscase() {
+	local name=$1 desc=$2 seed=$3 script=$4
+	shift 4
+	local off=() on=()
+	for opt in "$@"; do
+		case "$opt" in
+			from=*) off+=("from=${opt#from=}.lsoff"); on+=("from=${opt#from=}.ls") ;;
+			*) off+=("$opt"); on+=("$opt") ;;
+		esac
+	done
+	printf '%s\t%s\t%s\t\n' "$name.lsoff" lsref "$desc, with the inert features.livesplit=false mod (the reference)" >> "$OUT/cases.txt"
+	run candidate "$name.lsoff" "$seed" "$script" modsdir="$LSOFF" "${off[@]}"
+	printf '%s\t%s\t%s\t%s\n' "$name.ls" livesplit "$desc, with the livesplit mod" "ref=$name.lsoff" >> "$OUT/cases.txt"
+	run candidate "$name.ls" "$seed" "$script" modsdir="$LSMODS" arg=-livesplitlog=livesplit.txt "${on[@]}"
+}
+lscase main "playtest.txt" 1 "$PT/playtest.txt"
+lscase load "playtest_load.txt in main's user dir (a resumed board: no GO counted)" 1 "$PT/playtest_load.txt" from=main
+lscase level "playtest_level.txt (a level clear)" 3 "$PT/playtest_level.txt"
+for s in drag_swaps input_edges rclick falling_select options_highscores pause nomoves_normal timed_fallout mode_switch; do
+	lscase "$s" "stage-0 $s.txt" 1 "$S0/$s.txt"
+done
+lscase timed_fallout_load "load_resume.txt in timed_fallout's user dir" 1 "$S0/load_resume.txt" from=timed_fallout
+lscase mode_switch_load "load_resume.txt in mode_switch's user dir" 1 "$S0/load_resume.txt" from=mode_switch
+lscase save_states "save_states.txt (snapshots in every state)" 3 "$S0/save_states.txt"
+for snap in s5_vortex s6_wipe; do
+	lscase "save_states.load.$snap" "load_resume.txt with the $snap save (LoadGame restores the vortex or wipe: no level clear)" \
+		1 "$S0/load_resume.txt" savegame="$OUT/candidate/save_states/snaps/$snap.dat"
+done
+lscase autoplay_normal "-autoplay=1 (normal, no moves)" 1 - arg=-autoplay=1 arg=-autoplaylog=autoplay.txt
+lscase autoplay_timed "-autoplay=2 -autoplaytimed (timed, level 10, time up)" 1 - arg=-autoplay=2 arg=-autoplaytimed \
+	arg=-autoplaylog=autoplay.txt
+# The script reads the block the game writes, and the block is in the exe once (check_asl_offsets.py, with
+# lsprobe -dumplayout from build/native)
+printf '%s\t%s\t%s\t\n' livesplit_layout lint "games/bejeweled/tools/livesplit/check_asl_offsets.py: the script's magic and field table against the game's layout 1; the magic once, in the candidate's .data" >> "$OUT/cases.txt"
+mkdir -p "$OUT/candidate/livesplit_layout"
+LSPROBE="$ROOT/build/native/lsprobe.exe"
+if [ -x "$LSPROBE" ]; then
+	"$LSPROBE" -dumplayout > "$OUT/candidate/livesplit_layout/layout.txt"
+	"$PY" "$(winpath "$GAME/tools/livesplit/check_asl_offsets.py")" "$(winpath "$GAME/tools/livesplit/BejeweledDeluxe-byopop.asl")" \
+		"$(winpath "$OUT/candidate/livesplit_layout/layout.txt")" "$(winpath "${EXE[candidate]}")" > "$OUT/candidate/livesplit_layout/check.txt" 2>&1
+	echo $? > "$OUT/candidate/livesplit_layout/exit.txt"
+else
+	echo "$LSPROBE is missing (cmake --build build/native --target lsprobe)" > "$OUT/candidate/livesplit_layout/check.txt"
+	echo 1 > "$OUT/candidate/livesplit_layout/exit.txt"
+fi
+echo "  candidate livesplit_layout: exit $(cat "$OUT/candidate/livesplit_layout/exit.txt")"
+
+# Stage 2b with stage 3: a watch with the livesplit mod against the same watch with its inert twin. The playback
+# board (Board::mPlaybackOnly) carries the replay flag (0x20) and is never a run: no GO is counted on it
+# (compare.py "livesplit": a replay board expects none), while its level clears and game over are, as on any board.
+lscase watch_main_timed "rec_main's timed game watched (-replay): a playback board, flag 0x20, no GO" 1 "$S3/watch.txt" 	replay="$(one "$C/rec_main/user/replays/*-timed-*.bjr")"
 
 echo
 "$PY" "$COMPARE_PY" compare "$(winpath "$OUT")" "$EXPECT"

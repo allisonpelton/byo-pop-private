@@ -2553,6 +2553,8 @@ std::string GameFeatures::Text() const
 		aParts.push_back("replays(keep " + IntText(mReplayKeep) + (mReplayHover ? ", hover)" : ")"));
 	if (mLeaderboard)
 		aParts.push_back(std::string("leaderboard(") + (mRankedAlways ? "always" : "ask") + ")");
+	if (mLiveSplit)
+		aParts.push_back("livesplit");
 	std::string aText;
 	for (size_t i = 0; i < aParts.size(); i++)
 		aText += (i ? ", " : "") + aParts[i];
@@ -2562,8 +2564,8 @@ std::string GameFeatures::Text() const
 namespace
 {
 
-enum { FEATURE_SEEDS, FEATURE_REPLAYS, FEATURE_LEADERBOARD, NUM_FEATURES };
-const char* const gFeatureNames[NUM_FEATURES] = {"seeds", "replays", "leaderboard"};
+enum { FEATURE_SEEDS, FEATURE_REPLAYS, FEATURE_LEADERBOARD, FEATURE_LIVESPLIT, NUM_FEATURES };
+const char* const gFeatureNames[NUM_FEATURES] = {"seeds", "replays", "leaderboard", "livesplit"};
 
 // One feature's value: false / null (off), true (on with its defaults) or its options object
 bool ParseFeature(int theFeature, const JsonValue& theValue, GameFeatures* theOut, ParseLog& theLog)
@@ -2590,6 +2592,10 @@ bool ParseFeature(int theFeature, const JsonValue& theValue, GameFeatures* theOu
 	case FEATURE_LEADERBOARD:
 		theOut->mLeaderboard = anOn;
 		theOut->mRankedAlways = false;
+		break;
+	case FEATURE_LIVESPLIT:
+		// no options yet: an object turns it on like true, and each of its members is an unknown key
+		theOut->mLiveSplit = anOn;
 		break;
 	}
 	if (!theValue.IsObject())
@@ -2631,7 +2637,7 @@ bool ParseFeature(int theFeature, const JsonValue& theValue, GameFeatures* theOu
 				aKnown = {aKey + ".entry", aKey + ".perGame"};
 			else if (theFeature == FEATURE_REPLAYS)
 				aKnown = {aKey + ".keep", aKey + ".hover"};
-			else
+			else if (theFeature == FEATURE_LEADERBOARD)
 				aKnown = {aKey + ".ranked"};
 			theLog.Warning(UnknownKey(aSubKey, aKnown));
 		}
@@ -2660,7 +2666,7 @@ void Sexy::MergeFeatures(const std::vector<RulesSource>& theSources, GameFeature
 			continue;
 		ParseLog aLog;
 		GameFeatures aParsed;
-		bool aSet[NUM_FEATURES] = {false, false, false};
+		bool aSet[NUM_FEATURES] = {false, false, false, false};
 		if (!aSource.mFeatures.IsObject())
 			aLog.Error("\"features\" must be an object");
 		else
@@ -2706,10 +2712,15 @@ void Sexy::MergeFeatures(const std::vector<RulesSource>& theSources, GameFeature
 				aMerged.mReplayKeep = aParsed.mReplayKeep;
 				aMerged.mReplayHover = aParsed.mReplayHover;
 			}
-			else
+			else if (k == FEATURE_LEADERBOARD)
 			{
 				aMerged.mLeaderboard = aParsed.mLeaderboard;
 				aMerged.mRankedAlways = aParsed.mRankedAlways;
+			}
+			else
+			{
+				aMerged.mLiveSplit = aParsed.mLiveSplit;
+				aMerged.mLiveSplitMod = aParsed.mLiveSplit ? aSource.mModId : std::string();
 			}
 			GameFeatures aText;
 			if (k == FEATURE_SEEDS)
@@ -2724,11 +2735,13 @@ void Sexy::MergeFeatures(const std::vector<RulesSource>& theSources, GameFeature
 				aText.mReplayKeep = aParsed.mReplayKeep;
 				aText.mReplayHover = aParsed.mReplayHover;
 			}
-			else
+			else if (k == FEATURE_LEADERBOARD)
 			{
 				aText.mLeaderboard = aParsed.mLeaderboard;
 				aText.mRankedAlways = aParsed.mRankedAlways;
 			}
+			else
+				aText.mLiveSplit = aParsed.mLiveSplit;
 			if (!aSetter[k].empty() && (aSetterText[k] != aText.Text()))
 				theStatus->mWarnings.push_back({aSource.mModId, std::string("features.") + gFeatureNames[k] + " overrides " + aSetter[k]});
 			aSetter[k] = aSource.mModId;

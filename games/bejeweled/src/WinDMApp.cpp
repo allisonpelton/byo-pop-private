@@ -7,6 +7,7 @@
 #include "RecordScoreDialog.h"
 #include "GameConfig.h"
 #include "ModIndicators.h"
+#include "LiveSplitObserver.h"
 
 #include "WidgetManager.h"
 #include "ButtonWidget.h"
@@ -161,6 +162,7 @@ WinDMApp::~WinDMApp()
 		fclose(mTraceHashFile);
 	delete mCodecCheck;
 	delete mWatch; // port(variant)
+	LiveSplitObserver::AppDestroyed(this); // port(variant): the LiveSplit block's last write: not active, no board
 }
 
 // 0x4d43f9
@@ -482,6 +484,7 @@ void WinDMApp::UpdateFrames()
 		mCodecCheck = new CodecCheck(this, mCodecCheckFileName);
 	if (mCodecCheck != NULL)
 		mCodecCheck->AfterUpdate();
+	if (LiveSplitObserver::Wanted()) LiveSplitObserver::AfterUpdate(this); // port(variant): fills the LiveSplit block (features.livesplit, desktop)
 }
 
 // port: the game's command-line test hooks (see WinDMApp.h); everything else goes to the framework
@@ -510,6 +513,9 @@ void WinDMApp::HandleCmdLineParam(const std::string& theParamName, const std::st
 		mWatch = new WatchController(this, theParamValue);
 	else if (theParamName == "-replayquit")
 		mReplayQuit = true;
+	// port(variant): -livesplitlog=<file>: one line per LiveSplit block write (LiveSplitObserver.h)
+	else if (theParamName == "-livesplitlog")
+		LiveSplitObserver::SetLogFile(theParamValue);
 	else
 		SexyApp::HandleCmdLineParam(theParamName, theParamValue);
 }

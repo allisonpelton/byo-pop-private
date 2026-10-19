@@ -234,6 +234,10 @@ public:
 	const Buffer*	mPlaybackLoad;          // playback LOAD: LoadGame reads these bytes instead of the file (NULL: the file)
 	Buffer			mPlaybackSave;          // playback SAVE: SaveGame leaves its bytes here instead of writing the file
 	Replay::RngStart mRngStart;             // what Board::Rand started from: the seed, or the global stream's state at the constructor (when recording)
+	// LiveSplit observer bookkeeping (4.15; LiveSplitObserver.cpp), not game state: unhashed, unsaved. Set
+	// outside the BEJ_NO_VARIANTS parts, so that build counts GO like the others
+	uint32_t		mBoardSerial;           // 1, 2, ... per board made in this process (InitVariant)
+	bool			mResumed;               // the board resumed a saved game (GameLoadedVariant): its GO is not a run start
 
 public:
 	int				GetColX(int theCol);                            // 0x4c9b25 theCol*51 + 203 (thiscall in the binary, this unused; port(variant): a member, + mLayout.mOriginX)

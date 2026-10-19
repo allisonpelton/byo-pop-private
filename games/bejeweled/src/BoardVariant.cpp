@@ -4,7 +4,7 @@
 // as the original; later stages switch the generalised paths on.
 // Stage 2: the board's RNG (6.2). A seed the player chose, any rule, or the seeds.perGame feature gives
 // the board its own MTRand, which Board::Rand draws from; every other board draws from the global stream
-// as the original does.
+// as the original does. Stage 2b: the board serial and the resumed mark the LiveSplit observer reads (4.15).
 // Stage 3: replays (6.3-6.5). The recorder and playback members, the RNG start a recording begins with,
 // the sidecar next to the save (7.3) that keeps a recording and a board's own RNG across a resume, and the
 // scratch board StateCodec's round trip restores into. Stage 3b: the playback board a replay player
@@ -22,10 +22,16 @@
 
 using namespace Sexy;
 
+// The boards made in this process, for the LiveSplit observer (games/bejeweled/docs/CODE_MODS_DESIGN.md 4.15)
+static uint32_t sBoardSerial = 0;
+
 // Called first in the constructor (0x4cb5bc), before SetupLevel and FillBoard use the layout and the RNG
 void Board::InitVariant()
 {
 	mRules = gGameConfig.mRules;
+	// The LiveSplit observer's bookkeeping, in every build (BEJ_NO_VARIANTS too)
+	mBoardSerial = ++sBoardSerial;
+	mResumed = false;
 	// The board shape rules (board.cols/rows/mask/levels) take effect in stage 7 (FillBoardVariant,
 	// RefillMasked, DrawVariant); until then the layout keeps the original constants
 	mLayout = BoardLayout();
@@ -196,6 +202,10 @@ Board::Board(WinDMApp* theApp, ScratchBoardTag)
 	mPlaybackOnly = true;
 	mPlaybackApplying = false;
 	mPlaybackLoad = NULL;
+	// No serial (it is never the app's mBoard, so the LiveSplit observer never sees it) and no row in the
+	// snapshot that overwrites the rest
+	mBoardSerial = 0;
+	mResumed = false;
 }
 
 // A seed the player chose stays pending until a game on it is played
@@ -221,9 +231,12 @@ void Board::UsePendingSeed()
 // seeded game keeps its stream, its SEED line and (a seed the player chose) the -seeded table, and a quit
 // and resume cannot reroll it. Without one (a game on the global stream, or a save from before stage 3)
 // the game goes on on the global stream. Either way the pending seed stays for the next game. A recording
-// then records LOAD and goes on with the sidecar's replay.
+// then records LOAD and goes on with the sidecar's replay. Stage 2b: the board is marked resumed for the
+// LiveSplit observer (no run starts on it), a replay's board too.
 void Board::GameLoadedVariant(const Buffer& theSave)
 {
+	// The LiveSplit observer counts no GO on this board (in every build, BEJ_NO_VARIANTS too)
+	mResumed = true;
 	mTakesPendingSeed = false;
 	// A replay's LOAD (stage 3b): no file of the user dir is read; the player gives the board the RNG the
 	// recorded one went on with, the segment's RNGS (SetPlaybackRng)

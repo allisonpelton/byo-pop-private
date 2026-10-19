@@ -2,11 +2,15 @@
 """Generate example mods with original (procedurally drawn) art.
 
     python games/bejeweled/tools/make_example_mods.py [--out <mods folder, default games/bejeweled/mods>]
+        [--only livesplit]
 
-Creates, in games/bejeweled/mods/:
+Creates, in games/bejeweled/mods/ (--only livesplit: just that one):
   example-crystal-gems/   HD (@2x) replacement for images/gemsheet6 with new gem art
   example-voice-lines/    text-only mod: changes on-screen messages via string overrides
   example-relaxed/        gameplay mod: tunables (cheaper hints) -> separate high-score table
+  livesplit/              features.livesplit: the LiveSplit block for the auto splitter (desktop builds),
+                          12 split templates (livesplit/*.lss), a copy of the script and README.txt
+                          (games/bejeweled/docs/CODE_MODS_DESIGN.md 4.15)
 
 The gem sheet layout matches the game's: 15 columns x 14 rows of 52x52 cells; gem g uses row 2g
 (spin animation) and row 2g+1 (glint animation). At @2x each cell is 104x104.
@@ -15,6 +19,8 @@ import argparse
 import json
 import math
 import os
+import shutil
+from xml.sax.saxutils import escape
 
 from PIL import Image, ImageDraw, ImageFilter
 
@@ -134,11 +140,107 @@ def write_json(path, data):
         f.write("\n")
 
 
+# The auto splitter's templates (CODE_MODS_DESIGN.md 4.15): category, subcategory, segments. "Normal" and
+# "Timetrial" segments are levels (a split at each wormhole); the score segments are plain integers (a split
+# when the score on screen reaches them). Category, variable and value names are speedrun.com's for
+# bejeweled1 (API, checked 2026-10-18): each category's subcategory variable has its own name.
+LIVESPLIT_GAME = "Bejeweled Deluxe"
+SCORE_CATEGORY = "Timetrial - Score Attack"
+SCORE_VARIABLE = "Timetrial - Score rush"
+SCORE_TARGETS = [10000, 25000, 50000, 100000, 150000, 200000]
+LIVESPLIT_TEMPLATES = (  # (category, subcategory variable, its value, segments)
+    [("Normal", "Normal", "%d Levels" % n, ["Level %d" % i for i in range(1, n + 1)]) for n in (5, 10)] +
+    [("Timetrial", "Timetrial", "%d Levels" % n, ["Level %d" % i for i in range(1, n + 1)])
+     for n in (5, 10, 15, 20)] +
+    [(SCORE_CATEGORY, SCORE_VARIABLE, "%dK Points" % (t // 1000), [str(x) for x in SCORE_TARGETS if x <= t])
+     for t in SCORE_TARGETS])
+SCRIPT_NAME = "BejeweledDeluxe-byopop.asl"
+
+LIVESPLIT_README = """LiveSplit for Bejeweled Deluxe (byo-pop)
+========================================
+
+This mod turns on the game's LiveSplit support (features.livesplit). The Windows build of the game then
+keeps a small read-only block in its memory up to date, and the auto splitter script
+BejeweledDeluxe-byopop.asl reads it: it starts LiveSplit's timer at GO, splits at each wormhole (or when
+the score on screen reaches a split's number) and resets when the run's game ends. It changes nothing
+else: no gameplay, no high-score tables, and none of the small signs other mods show (the crossbar on
+GO's G, the fourth hint sparkle). The web build ignores it.
+
+Using it
+1. Enable this mod (natively: put this folder in the game's mods folder; mods.json enables new mods).
+2. Start the game once: it copies the 12 split templates from livesplit/ to the livesplit folder in its
+   user dir (the folder with savegame.dat), and never overwrites one there.
+3. In LiveSplit: Open Splits, then one of those templates. Until the script is in LiveSplit's auto
+   splitter list, load it by hand: Edit Layout, +, Control, Scriptable Auto Splitter, Script Path: the
+   BejeweledDeluxe-byopop.asl in this folder.
+4. The script's settings: start only in the category's mode (on), only without gameplay mods and a
+   chosen seed (off), reset when the game ends (no moves, time up, New Game, a mode switch, quitting;
+   each on, each can be turned off), and a log of each event with its lag (off).
+
+Notes
+- Real time only, as speedrun.com times the game: the timer runs on through pauses and dialogs.
+- Segment names: a number of at least 1000 (10000, 25,000 or 25K) splits when the score on screen
+  reaches it; any other name is a level and splits when that level's wormhole starts. "N Levels" ends at
+  the N-th wormhole. A finished run is never reset by the script.
+- A resumed saved game never starts the timer; a start by hand on it splits as usual (practice).
+- LiveSplit saves the script's settings into the splits file only while the script is active, so
+  splits saved without it lose them.
+- Whether runs on this port count is for the speedrun.com moderators.
+"""
+
+
+def lss(category, variable, subcategory, segments):
+    """A LiveSplit splits file (format 1.7.0) with empty times and an empty AutoSplitterSettings, which
+    LiveSplit fills once the auto splitter is active"""
+    lines = ['<?xml version="1.0" encoding="UTF-8"?>', '<Run version="1.7.0">', "  <GameIcon />",
+             "  <GameName>%s</GameName>" % escape(LIVESPLIT_GAME), "  <CategoryName>%s</CategoryName>" % escape(category),
+             "  <LayoutPath>", "  </LayoutPath>", "  <Metadata>", '    <Run id="" />',
+             '    <Platform usesEmulator="False">PC</Platform>', "    <Region>", "    </Region>", "    <Variables>",
+             '      <Variable name="%s">%s</Variable>' % (escape(variable), escape(subcategory)),
+             "    </Variables>", "  </Metadata>", "  <Offset>00:00:00</Offset>", "  <AttemptCount>0</AttemptCount>",
+             "  <AttemptHistory />", "  <Segments>"]
+    for name in segments:
+        lines += ["    <Segment>", "      <Name>%s</Name>" % escape(name), "      <Icon />", "      <SplitTimes>",
+                  '        <SplitTime name="Personal Best" />', "      </SplitTimes>", "      <BestSegmentTime />",
+                  "      <SegmentHistory />", "    </Segment>"]
+    lines += ["  </Segments>", "  <AutoSplitterSettings />", "</Run>"]
+    return "\n".join(lines) + "\n"
+
+
+def make_livesplit_mod(out):
+    mod = os.path.join(out, "livesplit")
+    write_json(os.path.join(mod, "mod.json"), {
+        "id": "livesplit",
+        "name": "LiveSplit",
+        "version": "1.0",
+        "author": "byo-pop",
+        "description": "Auto splitter support (Windows): fills the block BejeweledDeluxe-byopop.asl reads. "
+                       "Changes nothing in play or on screen. Split templates in livesplit/.",
+        "features": {"livesplit": True},
+    })
+    templates = os.path.join(mod, "livesplit")
+    if os.path.isdir(templates):
+        shutil.rmtree(templates)
+    os.makedirs(templates)
+    for category, variable, subcategory, segments in LIVESPLIT_TEMPLATES:
+        with open(os.path.join(templates, "%s - %s.lss" % (category, subcategory)), "w", encoding="utf-8", newline="\n") as f:
+            f.write(lss(category, variable, subcategory, segments))
+    shutil.copyfile(os.path.join(os.path.dirname(os.path.abspath(__file__)), "livesplit", SCRIPT_NAME),
+                    os.path.join(mod, SCRIPT_NAME))
+    with open(os.path.join(mod, "README.txt"), "w", encoding="utf-8", newline="\n") as f:
+        f.write(LIVESPLIT_README)
+    print("livesplit mod: %d templates" % len(LIVESPLIT_TEMPLATES))
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--out", default=os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "mods"))
+    ap.add_argument("--only", choices=["livesplit"], help="make only this mod")
     args = ap.parse_args()
     out = os.path.abspath(args.out)
+    if args.only == "livesplit":
+        make_livesplit_mod(out)
+        return
 
     gems = os.path.join(out, "example-crystal-gems")
     write_json(os.path.join(gems, "mod.json"), {
@@ -175,6 +277,7 @@ def main():
         "description": "Hints cost 10 points instead of 50 (per level multiplier). Uses its own high-score table.",
         "tunables": {"scoring": {"hintPenalty": 10}},
     })
+    make_livesplit_mod(out)
     print(f"example mods written to {out}")
 
 

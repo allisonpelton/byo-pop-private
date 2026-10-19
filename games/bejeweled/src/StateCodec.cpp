@@ -531,7 +531,8 @@ template<class V> void VisitBoard(V& v, Board* b)
 	v.DerivedInt("mOrphanedPieces", (int) b->mOrphanedPieces.size(), FULL | DERIVED);
 	// port(variant) members (stage 2: the board's RNG; mOwnRng, mGameSeed, mUserSeeded, mRanked, mBoardDraws,
 	// mTakesPendingSeed). Not in the table: mRules, mVariant, mLayout (the rules snapshot and what follows
-	// from it), the recorder and playback members, mRngStart (replay bookkeeping)
+	// from it), the recorder and playback members, mRngStart (replay bookkeeping), mBoardSerial and mResumed
+	// (the LiveSplit observer's bookkeeping, stage 2b: design 4.15 gives them no row)
 	v.Rng(FULL | LOGIC | SNAP | V2 | UNDO);
 }
 

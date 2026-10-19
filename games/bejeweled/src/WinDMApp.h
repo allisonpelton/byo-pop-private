@@ -141,6 +141,9 @@ public:
 	//                        6.8) instead of the game the title screen starts; "REPLAY" lines on stdout say
 	//                        how it went (games/bejeweled/src/WatchController.h). -replayquit: quit when it
 	//                        ends (else its last board stays until New Game or a mode button)
+	//   -livesplitlog=<file> port(variant): while features.livesplit is on (desktop builds), appends one line
+	//                        per LiveSplit block write: "u=<update>" and the block's fields, with the
+	//                        address and the clock masked (LiveSplitObserver.h, LiveSplitBlock.h)
 	std::string		mTraceHashFileName;
 	FILE*			mTraceHashFile;
 	bool			mAutoplay;

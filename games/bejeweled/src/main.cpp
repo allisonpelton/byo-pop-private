@@ -17,7 +17,7 @@
 //                    default <user dir>/replays natively, /persist/replays on the web)
 // Remaining "-key=value" arguments are passed to the app (SexyAppBase::HandleCmdLineParam), e.g. the
 // test hooks -seed=N, -script=<file>, -fast and -trace (see SexyAppBase.h), the game's -tracehash,
-// -autoplay and -codeccheck, and -replay=<file> (watch a replay; -replayquit) (see WinDMApp.h).
+// -autoplay, -codeccheck and -livesplitlog, and -replay=<file> (watch a replay; -replayquit) (see WinDMApp.h).
 
 #include "WinDMApp.h"
 #include "GameConfig.h"

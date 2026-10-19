@@ -14,7 +14,9 @@ the same machine. A plain run opens a window, raises it over whatever the user i
   `build/native/rundesk.exe bash my-loop.sh`. rundesk puts the command and all its children on a private
   desktop, gives them SDL's silent audio driver (always: it replaces any `SDL_AUDIODRIVER` you set) and
   below-normal priority. Build it with `cmake --build build/native --target rundesk`.
-- `games/bejeweled/tools/oracle/compare.sh` already re-runs itself under rundesk.
+- `games/bejeweled/tools/oracle/compare.sh` already re-runs itself under rundesk, and so does
+  `games/bejeweled/tools/livesplit/run_tests.sh`. `build/native/lsprobe.exe` starts the game it probes:
+  run it under rundesk too.
 - Open the web builds in the Browser pane only with `?silent=1`, e.g.
   `http://127.0.0.1:18766/bejeweled.html?silent=1`: the pane may be hidden, and without it the game plays
   its music and sounds on the user's speakers. The status line ends in "silent" when it is on.

@@ -11,8 +11,9 @@
 // (what savegame.dat stores, padding included) of every cell, every Board field in declaration order
 // (cosmetic ones too: glow, hover, banner, popups, tutorial bob, sound throttles), the global RNG state
 // (draw count and state words), and the app fields below. Same platform only (raw doubles from libm).
-// Left out: images, fonts and sounds (only whether a banner image exists), mUnusedString, and
-// mWhirlpoolSound, which depends on the audio device. Nothing the hash reads is written by Draw (the
+// Left out: images, fonts and sounds (only whether a banner image exists), mUnusedString,
+// mWhirlpoolSound, which depends on the audio device, and the LiveSplit observer's bookkeeping
+// (mBoardSerial, mResumed; stage 2b), so FULL hashes stay equal to the stage-0 baselines. Nothing the hash reads is written by Draw (the
 // banner's ColorizeText only writes image bits), so the draw schedule (-fast, -renderscale) does not
 // change it; with script or -autoplay input the mouse fields are as deterministic as the clicks.
 //
@@ -32,7 +33,8 @@
 //     mHintGlowDuration (hint-button glow), mScorePopups, the banner (mShowingText, mTextPhase,
 //     mTextDuration, mTextTimeLeft, the text images), mMouseX/Y (hover only: they feed the glow),
 //     mLastLandSoundTick and mLastWarningTick (sound throttles), images, fonts and sounds,
-//     mBackgroundChanged (dead), mOrphanedPieces (port bookkeeping; a stale selection is hashed below).
+//     mBackgroundChanged (dead), mOrphanedPieces (port bookkeeping; a stale selection is hashed below),
+//     mBoardSerial and mResumed (the LiveSplit observer's bookkeeping; no game decision reads them).
 // Kept although they look cosmetic:
 //   - gem positions outside state 7: GetPieceAt reads them for a click in states 0..4 and 9 (also in
 //     mid-swap), and falls, the fall-out and the game-over explosion end on them;
