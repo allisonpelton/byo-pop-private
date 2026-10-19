@@ -17,6 +17,10 @@ the same machine. A plain run opens a window, raises it over whatever the user i
 - `games/bejeweled/tools/oracle/compare.sh` already re-runs itself under rundesk, and so does
   `games/bejeweled/tools/livesplit/run_tests.sh`. `build/native/lsprobe.exe` starts the game it probes:
   run it under rundesk too.
+- Bejeweled's headless verifier (`build/native/bejeweled_verify.exe`, and its wasm under Node) and the web
+  build under Node (`node games/bejeweled/tools/verify/wasmrun.js game build/web/bejeweled.js ...`) open no
+  window, play no sound and open no URL, so they need no rundesk; a web build under Node still counts as a
+  game process below.
 - Open the web builds in the Browser pane only with `?silent=1`, e.g.
   `http://127.0.0.1:18766/bejeweled.html?silent=1`: the pane may be hidden, and without it the game plays
   its music and sounds on the user's speakers. The status line ends in "silent" when it is on.
@@ -60,7 +64,8 @@ The work is split across Claude sessions (the user's design, 2026-10-19):
   above) with a precise spec: what, why, which files, how to test. A tiny shared fix it cannot wait for
   goes in its own commit titled `shared: ...`, so the coordinator can review it and carry it over. Game
   sessions do not edit another game's folder.
-- **Trunk:** `code-mods` (to be renamed `main`). Game branches merge the trunk in regularly.
+- **Trunk:** `main` (named `code-mods` until 2026-10-19, after Bejeweled's code-mods stages 4 and 5). Game branches
+  merge the trunk in regularly.
 - **Mark overrides.** Port-side game code that overrides a framework virtual (hooks such as
   `GetShutdownSaves`, `HandleScriptCommand`, `OpenURL`) must say `override`, so a renamed or changed hook
   breaks the build instead of silently never being called. (A rename once left Big Money's web backup

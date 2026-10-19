@@ -12,6 +12,7 @@
 #include "Common.h"
 #include "MTRand.h"
 
+#include <algorithm>
 #include <cstring>
 
 using namespace Sexy;
@@ -44,14 +45,18 @@ public:
 	int				mProfileFlag;
 	bool			mSkipDerived;
 	const MTRand*	mRng;
-	std::string		mOut;
+	std::string		mOut;             // mLen bytes written; Bytes() gives them
+	size_t			mLen;
 	std::vector<std::pair<size_t, const char*> >* mRows;
 	std::vector<Piece*> mOrphans;     // SNAPSHOT: pieces outside the grid, in the order first referenced
 
 	Writer(Board* theBoard, int theProfile, const MTRand* theRng, bool skipDerived, std::vector<std::pair<size_t, const char*> >* theRows) :
-		mBoard(theBoard), mSkipDerived(skipDerived), mRng(theRng), mRows(theRows)
+		mBoard(theBoard), mSkipDerived(skipDerived), mRng(theRng), mLen(0), mRows(theRows)
 	{
 		mProfileFlag = (theProfile == StateCodec::PROFILE_FULL) ? FULL : (theProfile == StateCodec::PROFILE_LOGIC) ? LOGIC : SNAP;
+		// An 8x8 board's encodings are 3..7 KB: written into place without a reallocation (the difftest and
+		// -codeccheck encode after every update)
+		mOut.resize(8192);
 	}
 
 	bool Want(int theFlags, const char* theName)
@@ -59,18 +64,35 @@ public:
 		if (((theFlags & mProfileFlag) == 0) || (mSkipDerived && ((theFlags & DERIVED) != 0)))
 			return false;
 		if (mRows != NULL)
-			mRows->push_back(std::make_pair(mOut.size(), theName));
+			mRows->push_back(std::make_pair(mLen, theName));
 		return true;
 	}
 
-	void PutByte(uint8_t theByte) { mOut.push_back((char) theByte); }
-
-	void PutInt(int theValue)
+	// Room for theSize more bytes; where they go
+	char* Grow(size_t theSize)
 	{
-		uint32_t aValue = (uint32_t) theValue;
-		for (int i = 0; i < 4; i++)
-			PutByte((uint8_t) (aValue >> (i * 8)));
+		if (mLen + theSize > mOut.size())
+			mOut.resize(std::max(mOut.size() * 2, mLen + theSize));
+		char* aPlace = &mOut[mLen];
+		mLen += theSize;
+		return aPlace;
 	}
+
+	std::string Bytes()
+	{
+		mOut.resize(mLen);
+		return std::move(mOut);
+	}
+
+	static void LittleEndian(char* theOut, uint64_t theValue, int theSize)
+	{
+		for (int i = 0; i < theSize; i++)
+			theOut[i] = (char) (uint8_t) (theValue >> (i * 8));
+	}
+
+	void PutByte(uint8_t theByte) { *Grow(1) = (char) theByte; }
+
+	void PutInt(int theValue) { LittleEndian(Grow(4), (uint32_t) theValue, 4); }
 
 	void PutBool(bool theValue) { PutByte(theValue ? 1 : 0); }
 
@@ -78,17 +100,21 @@ public:
 	{
 		uint64_t aBits;
 		memcpy(&aBits, &theValue, sizeof(aBits));
-		for (int i = 0; i < 8; i++)
-			PutByte((uint8_t) (aBits >> (i * 8)));
+		LittleEndian(Grow(8), aBits, 8);
 	}
 
-	void PutRaw(const void* theData, size_t theSize) { mOut.append((const char*) theData, theSize); }
+	void PutRaw(const void* theData, size_t theSize)
+	{
+		if (theSize > 0)
+			memcpy(Grow(theSize), theData, theSize);
+	}
 
 	void PutMt(const uint32_t theState[MTRAND_N], int theIndex)
 	{
+		char* aPlace = Grow((MTRAND_N + 1) * 4);
 		for (int i = 0; i < MTRAND_N; i++)
-			PutInt((int) theState[i]);
-		PutInt(theIndex);
+			LittleEndian(aPlace + i * 4, theState[i], 4);
+		LittleEndian(aPlace + MTRAND_N * 4, (uint32_t) theIndex, 4);
 	}
 
 	void Int(const char* theName, int& theValue, int theFlags) { if (Want(theFlags, theName)) PutInt(theValue); }
@@ -96,6 +122,8 @@ public:
 	void Double(const char* theName, double& theValue, int theFlags) { if (Want(theFlags, theName)) PutDouble(theValue); }
 	void DerivedBool(const char* theName, bool theValue, int theFlags) { if (Want(theFlags, theName)) PutBool(theValue); }
 	void DerivedInt(const char* theName, int theValue, int theFlags) { if (Want(theFlags, theName)) PutInt(theValue); }
+	// A variant board's own field: in its encodings only (a board of the original rules encodes as before)
+	void VariantInt(const char* theName, int& theValue, int theFlags) { if (mBoard->mVariant.mAny) Int(theName, theValue, theFlags); }
 
 	void Layout(int theFlags)
 	{
@@ -328,6 +356,8 @@ public:
 	void Double(const char* theName, double& theValue, int theFlags) { if (theFlags & SNAP) theValue = GetDouble(theName); }
 	void DerivedBool(const char*, bool, int) {}
 	void DerivedInt(const char*, int, int) {}
+	// The target board's flags say whether the snapshot has the row (RoundTrip gives it the source's)
+	void VariantInt(const char* theName, int& theValue, int theFlags) { if (mBoard->mVariant.mAny) Int(theName, theValue, theFlags); }
 
 	void Layout(int theFlags)
 	{
@@ -534,6 +564,12 @@ template<class V> void VisitBoard(V& v, Board* b)
 	// from it), the recorder and playback members, mRngStart (replay bookkeeping), mBoardSerial and mResumed
 	// (the LiveSplit observer's bookkeeping, stage 2b: design 4.15 gives them no row)
 	v.Rng(FULL | LOGIC | SNAP | V2 | UNDO);
+	// Stage 5, the moves (the v2 save's MOVE chunk), on a variant board only. Not FULL: that stays the stage-0
+	// list and the board's own RNG, so a rule set that plays as the original (the oracle's inert cases) hashes
+	// as its reference; LOGIC (the replays' CHECK and END) and SNAPSHOT take them
+	v.VariantInt("mMoveCount", b->mMoveCount, LOGIC | SNAP | V2 | UNDO);
+	v.VariantInt("mInvalidMoves", b->mInvalidMoves, LOGIC | SNAP | V2 | UNDO);
+	v.VariantInt("mUndosUsed", b->mUndosUsed, LOGIC | SNAP | V2);
 }
 
 }
@@ -543,7 +579,7 @@ std::string StateCodec::Encode(Board* theBoard, int theProfile, const MTRand* th
 {
 	Writer aWriter(theBoard, theProfile, theRng, skipDerived, theRows);
 	VisitBoard(aWriter, theBoard);
-	return aWriter.mOut;
+	return aWriter.Bytes();
 }
 
 bool StateCodec::Decode(Board* theBoard, const std::string& theBytes, std::string* theError)

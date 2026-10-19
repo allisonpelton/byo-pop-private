@@ -5,6 +5,7 @@
 #include "Sha256.h"
 #include "Piece.h"
 
+#include <algorithm>
 #include <cmath>
 #include <cstring>
 
@@ -29,6 +30,11 @@ const uint32_t TAG_END = Replay::Tag("END ");
 
 const size_t RNGS_SIZE = 4 + 1 + 1 + Replay::MT_WORDS * 4 + 4;
 const size_t END_SIZE = 1 + 4 + 4 + 4 + 4 + 8 + 4;
+
+// The v2 save's chunks (Replay.h); RNGS is the replay's tag
+const uint32_t TAG_MOVE = Replay::Tag("MOVE");
+const size_t MOVE_SIZE = 3 * 4;
+const size_t SAVE_HEADER_FIXED = 4 + Replay::RULES_ID_SIZE + 2 + 2 + 4; // the version up to the mask
 
 void PutU8(std::string* theOut, int theValue)
 {
@@ -197,8 +203,7 @@ bool ReadSegment(Reader& theReader, Replay::Segment* theSegment, size_t* theEven
 		return false;
 	}
 	// Every event takes at least 2 bytes (a tick delta and an op): a count the payload cannot hold, or more
-	// events than a file may have, is refused before anything is allocated for it. The events are added as
-	// they are parsed, so what is allocated grows with the bytes read.
+	// events than a file may have, is refused before anything is allocated for it.
 	if (aCount > (theReader.mEnd - theReader.mPos) / 2)
 	{
 		*theError = "SEGM: " + std::to_string(aCount) + " events cannot fit in " + std::to_string(theReader.mEnd - theReader.mPos) + " bytes";
@@ -211,35 +216,58 @@ bool ReadSegment(Reader& theReader, Replay::Segment* theSegment, size_t* theEven
 		return false;
 	}
 	*theEventBudget -= aCount;
-	uint64_t aTick = 0;
-	for (uint32_t i = 0; i < aCount; i++)
+	// Two passes over the events: the first checks them all (ticks, CheckPlayable's bound on one tick, ops, the
+	// end of the payload) and keeps none, so a file that fails allocates nothing for them; the second keeps them,
+	// in room made for exactly that many (sizeof(Event) per 2 bytes of the file at most; no vector doubling,
+	// whose peak is three times as much and stays in a wasm instance's memory)
+	size_t anEventsAt = theReader.mPos;
+	for (int aPass = 0; aPass < 2; aPass++)
 	{
-		theSegment->mEvents.push_back(Replay::Event());
-		Replay::Event& anEvent = theSegment->mEvents.back();
-		uint64_t aDelta = theReader.Varint();
-		aTick += (aDelta <= 0xffffffffull) ? aDelta : 0x100000000ull;
-		if (aTick > 0xffffffffull)
+		if (aPass == 1)
 		{
-			*theError = "SEGM: event " + std::to_string(i) + ": tick past 2^32";
+			theReader.mPos = anEventsAt;
+			theSegment->mEvents.reserve(aCount);
+		}
+		uint64_t aTick = 0;
+		uint32_t aTickStart = 0; // the first event at the tick of event i
+		for (uint32_t i = 0; i < aCount; i++)
+		{
+			Replay::Event anEvent;
+			uint64_t aDelta = theReader.Varint();
+			aTick += (aDelta <= 0xffffffffull) ? aDelta : 0x100000000ull;
+			if (aTick > 0xffffffffull)
+			{
+				*theError = "SEGM: event " + std::to_string(i) + ": tick past 2^32";
+				return false;
+			}
+			if (aDelta != 0)
+				aTickStart = i;
+			if (i - aTickStart >= (uint32_t) Replay::MAX_EVENTS_PER_TICK)
+			{
+				*theError = "SEGM: event " + std::to_string(i) + ": more than " + std::to_string((int) Replay::MAX_EVENTS_PER_TICK) +
+					" events at one tick";
+				return false;
+			}
+			anEvent.mTick = (uint32_t) aTick;
+			anEvent.mOp = theReader.U8();
+			int anArgs = Replay::OpArgCount(anEvent.mOp);
+			if (!theReader.mOk)
+				break;
+			if (anArgs < 0)
+			{
+				*theError = "SEGM: event " + std::to_string(i) + ": unknown op " + std::to_string(anEvent.mOp);
+				return false;
+			}
+			for (int a = 0; a < anArgs; a++)
+				anEvent.mArgs[a] = Replay::UnZigZag(theReader.Varint());
+			if (aPass == 1)
+				theSegment->mEvents.push_back(anEvent);
+		}
+		if (!theReader.AtEnd())
+		{
+			*theError = theReader.mOk ? "SEGM: data after the last event" : "SEGM: truncated event";
 			return false;
 		}
-		anEvent.mTick = (uint32_t) aTick;
-		anEvent.mOp = theReader.U8();
-		int anArgs = Replay::OpArgCount(anEvent.mOp);
-		if (!theReader.mOk)
-			break;
-		if (anArgs < 0)
-		{
-			*theError = "SEGM: event " + std::to_string(i) + ": unknown op " + std::to_string(anEvent.mOp);
-			return false;
-		}
-		for (int a = 0; a < anArgs; a++)
-			anEvent.mArgs[a] = Replay::UnZigZag(theReader.Varint());
-	}
-	if (!theReader.AtEnd())
-	{
-		*theError = theReader.mOk ? "SEGM: data after the last event" : "SEGM: truncated event";
-		return false;
 	}
 	return true;
 }
@@ -335,6 +363,199 @@ int Replay::CountMoves(const Segment& theSegment)
 			aMoves++;
 	}
 	return aMoves;
+}
+
+std::string Replay::VariantSaveHeader(const VariantSave& theSave)
+{
+	std::string aHeader((const char*) theSave.mRulesId, RULES_ID_SIZE);
+	PutU16(&aHeader, (uint32_t) theSave.mCols);
+	PutU16(&aHeader, (uint32_t) theSave.mRows);
+	PutU32(&aHeader, (uint32_t) theSave.mLevelShape);
+	std::string aMask(((size_t) theSave.mCols * theSave.mRows + 7) / 8, '\0');
+	for (size_t i = 0; (i < theSave.mPlayable.size()) && (i < aMask.size() * 8); i++)
+	{
+		if (theSave.mPlayable[i])
+			aMask[i / 8] = (char) (aMask[i / 8] | (1 << (i % 8)));
+	}
+	return aHeader + aMask;
+}
+
+std::string Replay::VariantSaveChunks(const VariantSave& theSave)
+{
+	std::string aChunks;
+	PutRecord(&aChunks, TAG_RNGS, RngPayload(theSave.mRng));
+	std::string aMoves;
+	PutU32(&aMoves, (uint32_t) theSave.mMoves);
+	PutU32(&aMoves, (uint32_t) theSave.mInvalidMoves);
+	PutU32(&aMoves, (uint32_t) theSave.mUndosUsed);
+	PutRecord(&aChunks, TAG_MOVE, aMoves);
+	PutRecord(&aChunks, TAG_END, "");
+	return aChunks;
+}
+
+bool Replay::ReadVariantSave(const std::string& theSave, VariantSave* theOut, std::string* theError)
+{
+	std::string aDummy;
+	std::string& anErr = (theError != NULL) ? *theError : aDummy;
+	*theOut = VariantSave();
+	VariantSave& s = *theOut;
+	if (theSave.size() < SAVE_HEADER_FIXED)
+	{
+		anErr = "shorter than the v2 header";
+		return false;
+	}
+	Reader aHeader(theSave, 0, theSave.size());
+	uint32_t aVersion = aHeader.U32();
+	if (aVersion != (uint32_t) SAVE_VERSION_VARIANT)
+	{
+		anErr = "version " + std::to_string(aVersion) + ", not the v2 save's " + std::to_string((int) SAVE_VERSION_VARIANT);
+		return false;
+	}
+	memcpy(s.mRulesId, theSave.data() + 4, RULES_ID_SIZE);
+	aHeader.mPos += RULES_ID_SIZE;
+	s.mCols = (int) aHeader.U16();
+	s.mRows = (int) aHeader.U16();
+	s.mLevelShape = (int32_t) aHeader.U32();
+	if ((s.mCols < 3) || (s.mCols > 16) || (s.mRows < 3) || (s.mRows > 16))
+	{
+		anErr = "a " + std::to_string(s.mCols) + "x" + std::to_string(s.mRows) + " board (3..16 each)";
+		return false;
+	}
+	size_t aCells = (size_t) s.mCols * s.mRows;
+	size_t aMaskSize = (aCells + 7) / 8;
+	if (theSave.size() - aHeader.mPos < aMaskSize)
+	{
+		anErr = "it ends in the mask";
+		return false;
+	}
+	for (size_t i = 0; i < aCells; i++)
+		s.mPlayable.push_back((((uint8_t) theSave[aHeader.mPos + i / 8] >> (i % 8)) & 1) != 0);
+	size_t aPos = aHeader.mPos + aMaskSize;
+	s.mBodyStart = aPos;
+
+	// The v1 field sequence: its size follows from the present bytes
+	if (theSave.size() - aPos < (size_t) SAVE_HEAD_SIZE)
+	{
+		anErr = "it ends before the cells";
+		return false;
+	}
+	aPos += SAVE_HEAD_SIZE;
+	for (size_t i = 0; i < aCells; i++)
+	{
+		if (aPos >= theSave.size())
+		{
+			anErr = "it ends in the cells";
+			return false;
+		}
+		bool isPresent = (theSave[aPos++] != 0);
+		if (!isPresent)
+			continue;
+		if (!s.mPlayable[i])
+		{
+			anErr = "a gem in the hole at cell (" + std::to_string(i % s.mCols) + "," + std::to_string(i / s.mCols) + ")";
+			return false;
+		}
+		if (theSave.size() - aPos < Piece::SAVE_SIZE)
+		{
+			anErr = "it ends in the cells";
+			return false;
+		}
+		aPos += Piece::SAVE_SIZE;
+	}
+	if (theSave.size() - aPos < (size_t) SAVE_TAIL_SIZE)
+	{
+		anErr = "it ends before the chunks";
+		return false;
+	}
+	aPos += SAVE_TAIL_SIZE;
+	s.mBodyEnd = aPos;
+
+	// The chunks, up to END
+	bool hasRng = false;
+	bool hasMoves = false;
+	for (;;)
+	{
+		if (theSave.size() - aPos < 8)
+		{
+			anErr = "no END chunk (truncated?)";
+			return false;
+		}
+		Reader aChunkHeader(theSave, aPos, aPos + 8);
+		uint32_t aTag = aChunkHeader.U32();
+		uint32_t aLen = aChunkHeader.U32();
+		aPos += 8;
+		if (aLen > theSave.size() - aPos)
+		{
+			anErr = TagName(aTag) + ": " + std::to_string(aLen) + " bytes, " + std::to_string(theSave.size() - aPos) + " left";
+			return false;
+		}
+		Reader aReader(theSave, aPos, aPos + aLen);
+		aPos += aLen;
+		if (aTag == TAG_END)
+		{
+			if (aLen != 0)
+			{
+				anErr = "END: " + std::to_string(aLen) + " bytes, not 0";
+				return false;
+			}
+			break;
+		}
+		if (aTag == TAG_RNGS)
+		{
+			if (hasRng || (aLen != RNGS_SIZE) || !ReadRng(aReader, &s.mRng))
+			{
+				anErr = hasRng ? std::string("RNGS twice") : "RNGS: " + std::to_string(aLen) + " bytes, not " + std::to_string(RNGS_SIZE);
+				return false;
+			}
+			hasRng = true;
+		}
+		else if (aTag == TAG_MOVE)
+		{
+			if (hasMoves || (aLen != MOVE_SIZE))
+			{
+				anErr = hasMoves ? std::string("MOVE twice") : "MOVE: " + std::to_string(aLen) + " bytes, not " + std::to_string(MOVE_SIZE);
+				return false;
+			}
+			s.mMoves = (int32_t) aReader.U32();
+			s.mInvalidMoves = (int32_t) aReader.U32();
+			s.mUndosUsed = (int32_t) aReader.U32();
+			hasMoves = true;
+		}
+		// any other chunk: a later stage's, skipped
+	}
+	if (aPos != theSave.size())
+	{
+		anErr = std::to_string(theSave.size() - aPos) + " bytes after END";
+		return false;
+	}
+	if (!hasRng || !hasMoves)
+	{
+		anErr = !hasRng ? "no RNGS chunk" : "no MOVE chunk";
+		return false;
+	}
+	return true;
+}
+
+bool Replay::SaveIsTimed(const std::string& theSave, bool* isTimed)
+{
+	if (theSave.size() < 4)
+		return false;
+	Reader aReader(theSave, 0, 4);
+	uint32_t aVersion = aReader.U32();
+	size_t aPos = 0;
+	if (aVersion == (uint32_t) SAVE_VERSION)
+		aPos = 4;
+	else if ((aVersion == (uint32_t) SAVE_VERSION_VARIANT) && (theSave.size() >= SAVE_HEADER_FIXED))
+	{
+		Reader aSize(theSave, 4 + RULES_ID_SIZE, SAVE_HEADER_FIXED);
+		size_t aCols = aSize.U16();
+		size_t aRows = aSize.U16();
+		aPos = SAVE_HEADER_FIXED + (aCols * aRows + 7) / 8;
+	}
+	if ((aPos == 0) || (aPos >= theSave.size()))
+		return false;
+	*isTimed = (theSave[aPos] != 0);
+	return true;
 }
 
 namespace
@@ -433,14 +654,37 @@ void CheckPiece(SaveCheck& theCheck, int theCol, int theRow)
 
 }
 
-bool Replay::CheckSave(const std::string& theSave, int theCols, int theRows, std::string* theError)
+bool Replay::CheckSave(const std::string& theSave, int theCols, int theRows, std::string* theError, const uint8_t* theRulesId)
 {
 	std::string aDummy;
 	std::string& anErr = (theError != NULL) ? *theError : aDummy;
 	SaveCheck c(theSave);
 	const int64_t SCORE_MAX = 1000000000;   // far over any game's, and its sums and *340 bar products stay in an int
 	const int64_t LEVEL_MAX = 100000;
-	c.Int("the version", 1, 1);
+	// A v2 save (stage 5): of the replay's rules and the board's shape, its chunks well-formed; the same fields
+	// follow its header as a v1 save's version
+	VariantSave aVariant;
+	bool isVariant = (theSave.size() >= 4) && (theSave.compare(0, 4, std::string("\x01\x01\0\0", 4)) == 0);
+	if (isVariant)
+	{
+		std::string aWhy;
+		if (theRulesId == NULL)
+			c.mError = "a v2 save, and the replay names no rules for it";
+		else if (!ReadVariantSave(theSave, &aVariant, &aWhy))
+			c.mError = "a v2 save that does not read: " + aWhy;
+		else if (memcmp(aVariant.mRulesId, theRulesId, RULES_ID_SIZE) != 0)
+			c.mError = "a v2 save of other rules than the replay's";
+		else if ((aVariant.mCols != theCols) || (aVariant.mRows != theRows) || (aVariant.mLevelShape != 0))
+			c.mError = "a v2 save of a " + std::to_string(aVariant.mCols) + "x" + std::to_string(aVariant.mRows) + " board, level shape " +
+				std::to_string(aVariant.mLevelShape);
+		else if (std::find(aVariant.mPlayable.begin(), aVariant.mPlayable.end(), false) != aVariant.mPlayable.end())
+			c.mError = "a v2 save with holes in its mask";
+		else if ((aVariant.mMoves < 0) || (aVariant.mInvalidMoves < 0) || (aVariant.mUndosUsed < 0))
+			c.mError = "a v2 save whose MOVE counts go below 0";
+		c.mPos = aVariant.mBodyStart;
+	}
+	else
+		c.Int("the version", 1, 1);
 	int isTimed = c.Bool("mTimedMode");
 	c.Int("mLevel", 0, LEVEL_MAX);        // level % 4 and % 5 index SetupLevel's tables
 	c.Int("mDisplayLevel", 1, LEVEL_MAX + 1);
@@ -484,7 +728,7 @@ bool Replay::CheckSave(const std::string& theSave, int theCols, int theRows, std
 	c.Int("mBlackHoleFrame", 0, 8);       // a source column of the black hole image
 	c.Real("mBlackHoleLevel", 0.0, 1.0);
 	c.Bool("mLevelTextShown");
-	if (c.Ok() && (c.mPos != theSave.size()))
+	if (c.Ok() && (c.mPos != (isVariant ? aVariant.mBodyEnd : theSave.size())))
 		c.mError = std::to_string(theSave.size() - c.mPos) + " bytes after the last field";
 	if (!c.Ok())
 	{
@@ -495,13 +739,16 @@ bool Replay::CheckSave(const std::string& theSave, int theCols, int theRows, std
 }
 
 // The checks a replay passes before a board is made for it (Replay.h). Each message names where it fails.
-bool Replay::CheckPlayable(const File& theFile, int theCols, int theRows, std::string* theError)
+bool Replay::CheckPlayable(const File& theFile, int theCols, int theRows, std::string* theError, bool isOriginalRules)
 {
 	std::string aDummy;
 	std::string& anErr = (theError != NULL) ? *theError : aDummy;
-	if (theFile.mEngineAbi != (uint32_t) ENGINE_ABI)
+	bool isAbiPlayable = (theFile.mEngineAbi == (uint32_t) ENGINE_ABI) ||
+		(isOriginalRules && (theFile.mEngineAbi >= (uint32_t) FIRST_ENGINE_ABI) && (theFile.mEngineAbi < (uint32_t) ENGINE_ABI));
+	if (!isAbiPlayable)
 	{
-		anErr = "recorded by engine " + std::to_string(theFile.mEngineAbi) + ", this build plays engine " + std::to_string((int) ENGINE_ABI);
+		anErr = "recorded by engine " + std::to_string(theFile.mEngineAbi) + ", this build plays engine " + std::to_string((int) ENGINE_ABI) +
+			(isOriginalRules ? " (and the original rules' replays from engine " + std::to_string((int) FIRST_ENGINE_ABI) + " on)" : "");
 		return false;
 	}
 	if (!theFile.mHasRules)
@@ -542,7 +789,7 @@ bool Replay::CheckPlayable(const File& theFile, int theCols, int theRows, std::s
 			return false;
 		}
 		// The bytes an LDSV gives the original LoadGame, which trusts a save (Replay.h, CheckSave)
-		if (aSegment.mHasLoadSave && !CheckSave(aSegment.mLoadSave, theCols, theRows, &anErr))
+		if (aSegment.mHasLoadSave && !CheckSave(aSegment.mLoadSave, theCols, theRows, &anErr, theFile.mHasRulesId ? theFile.mRulesId : NULL))
 		{
 			anErr = aWhere + "LDSV: " + anErr;
 			return false;
@@ -558,6 +805,7 @@ bool Replay::CheckPlayable(const File& theFile, int theCols, int theRows, std::s
 			return false;
 		}
 		int aLoads = 0;
+		int aSaves = 0;
 		size_t aTickStart = 0; // the first event at the tick of event i
 		for (size_t i = 0; i < aSegment.mEvents.size(); i++)
 		{
@@ -625,6 +873,19 @@ bool Replay::CheckPlayable(const File& theFile, int theCols, int theRows, std::s
 				if (((a[0] != SAVE_GAME) && (a[0] != SAVE_SNAPSHOT)) || (a[1] < 0) || (a[1] > 0xffffffffll))
 				{
 					anErr = anAt + "not a save kind and hash";
+					return false;
+				}
+				// The game saves as its board goes away (Shutdown, ~Board; a snapshot sidecar adds its SAVE after
+				// them): never before the segment's last tick, and never more than a few times. Each SAVE makes a
+				// save and hashes it, so this also bounds the work
+				if (anEvent.mTick != aSegment.mEvents.back().mTick)
+				{
+					anErr = anAt + "a SAVE before the segment's last tick (the game saves only as its board goes away)";
+					return false;
+				}
+				if (++aSaves > MAX_SAVES_PER_SEGMENT)
+				{
+					anErr = anAt + "more than " + std::to_string((int) MAX_SAVES_PER_SEGMENT) + " SAVEs in one segment";
 					return false;
 				}
 				break;
@@ -859,6 +1120,12 @@ bool Replay::Read(const std::string& theBytes, File* theFile, std::string* theEr
 		}
 		else if (aTag == TAG_SEGM)
 		{
+			if (theFile->mSegments.size() >= (size_t) MAX_SEGMENTS)
+			{
+				anErr = "SEGM at byte " + std::to_string(aStart - 8) + ": more than the " + std::to_string((int) MAX_SEGMENTS) +
+					" segments a replay may have";
+				return false;
+			}
 			theFile->mSegments.push_back(Segment());
 			Segment& aSegment = theFile->mSegments.back();
 			if (!ReadSegment(aReader, &aSegment, &anEventBudget, &anErr))

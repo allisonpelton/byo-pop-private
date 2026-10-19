@@ -161,7 +161,8 @@ struct VariantFlags
 ```
 
 - **`-forcevariant`** is a test hook parsed in `main.cpp`, like `-nomods`.
-  - It sets `mShape`, `mMatch`, `mSearch` and `mDraw` while the rules stay the default. From stage 7c
+  - It sets `mShape`, `mMatch`, `mSearch` and `mDraw` while the rules stay the default. From stage 5
+    it also sets `mNoMoves` (its default branches are the original ones, 4.1). From stage 7c
     it also sets `mGravity`, `mFall` and `mChecker` (4.16).
   - It leaves `mAny`, `mOwnRng` and `mNoTutorial` alone, so the RNG source, the save format and
     the tutorial stay original.
@@ -316,7 +317,7 @@ Kinds of change:
 | `Board::Board` | 0x4cb5bc | H | After the existing `memset(mBoard...)`: `InitVariant();` (rules, flags, layout, RNG, `mRngStart`). Tutorial loop: `if (mVariant.mNoTutorial) FillBoardWithMove(); else { original do/while }` |
 | `UpdateBlackHole` | 0x4cb931 | B, H | After the deletion loop in the done-block: `if (mVariant.mShape) ApplyPendingLayout();`, so the loop deletes with the old bounds. |
 | `Draw` | 0x4cbc70 | H | First line: `if (mVariant.mDraw) { DrawVariant(g); return; }` Nothing else changes. |
-| `LoadGame` | 0x4cca98 | B, H, R | The file read becomes `mPlaybackLoad ? copy : file`. Version: `if (mVariant.mAny && aVersion == SAVEGAME_VERSION_VARIANT) { if (!ReadVariantHeader(aBuffer)) return false; } else if (aVersion != SAVEGAME_VERSION) return false;` `SAVE_SIZE` replaces `sizeof(Piece)`. States 10..13 map to 1 like 2/3. At the end: `if (mVariant.mAny) ReadVariantChunks(aBuffer);` and `LOAD` (R). |
+| `LoadGame` | 0x4cca98 | B, H, R | The file read becomes `mPlaybackLoad ? copy : file`. Version (as built, stage 5): `if (mVariant.mAny ? !ReadVariantHeader(aBuffer, aVersion) : (aVersion != SAVEGAME_VERSION)) return false;`, so a variant board takes only a v2 save and every other board only v1 (7.2). `SAVE_SIZE` replaces `sizeof(Piece)`. States 10..13 map to 1 like 2/3. At the end `GameLoadedVariant`, which for a variant board reads the chunks (`ReadVariantChunks`), and `LOAD` (R). |
 | `SaveGame` | 0x4ccdfe | H, R | Before the file write: `if (mPlaybackOnly) { mPlaybackSave = aBuffer; return true; }` `SAVE` marker and sidecar write (R). |
 | `WriteSaveGame` (port) | body of 0x4ccdfe | B, H | `SAVE_SIZE`. Variant boards write `SAVEGAME_VERSION_VARIANT` and the header after the version, then chunks at the end. |
 | `SaveGameSnapshot` (port) | | H | States 10..13 map to 1. |
@@ -324,7 +325,7 @@ Kinds of change:
 | `~Board` | 0x4cd1ba | B, R | `mRecorder->OnBoardDestroyed()` (finalises the replay). |
 | `ProcessMatches` | 0x4cd287 | B, H | First line: `if (mVariant.mMatch) return ProcessMatchesVariant();` Bounds: `aLines = aPass ? mRows : mCols`, `aLen = aPass ? mCols : mRows`, `j != aLen - 1`. |
 | `UpdateFalling` | 0x4cd687 | B, N, H | `if (aPiece == NULL) continue;` (holes). No-moves branch: `if (mVariant.mNoMoves) OnNoMovesVariant(); else if (mTimedMode) ...` Stage 7c: the per-piece loop becomes `if (mVariant.mFall) aSettled = FallPiecesVariant(&aLandedCount, &aLandedXSum); else { original loop }`, which then hosts the hole guard, 7b's x settling, the direction and `fallAccel`; at the end of the no-match branch `if (mVariant.mGravity) OnGravitySettle();` |
-| `UpdateSwap` | 0x4cd84f | H | After `mIsNewGame = false;`: `UsePendingSeed();` (stage 2, 4.10). Swap back only `if ((mState == STATE_SWAPPING) && !mRules.mMoves.mAllowInvalid)`. New `else if (mState == STATE_SWAPPING) KeepInvalidMove();` In the final `else` (swap-back done): `if (mVariant.mUndo) mUndo.PopLast();` |
+| `UpdateSwap` | 0x4cd84f | H | After `mIsNewGame = false;`: `UsePendingSeed();` (stage 2, 4.10), since stage 5 `OnMoveMade();` (it also counts the move). Swap back only `if ((mState == STATE_SWAPPING) && !mVariant.mInvalid)`. New `else if (mState == STATE_SWAPPING) KeepInvalidMove();` In the final `else` (swap-back done): `if (mVariant.mUndo) mUndo.PopLast();` |
 | `Update` | 0x4cdabc | H, R | Top: `if (mRecorder) mRecorder->SyncExternalRand();` Drain predicate adds `\|\| IsVariantMoveState(mState)`. After the bar clamp: `if (mVariant.mGold) aTargetWidth = GoldBarTarget();` Level block: `if (mVariant.mGold) UpdateGoldGoal(); else if (mState == STATE_PLAYING) { original }` New `case`s 10..13. After the switch: `if (mRecorder) mRecorder->AfterUpdate();` (CHECK at settle). The tick-150 block is untouched. |
 
 New states, which never occur under the original rules:
@@ -391,7 +392,7 @@ Defaults are the original behaviour.
 |---|---|---|---|
 | `board.cols`, `board.rows` | int | 8 | 3..16. Atomic group *shape*. |
 | `board.mask` | string[] | full | `rows` strings of `cols` characters: `#` is a cell, `.` a hole, `d` dirt with one layer and `2`..`9` dirt with that many layers (4.14). Without `cols`/`rows`, they come from the mask. *shape* |
-| `board.levels` | object[] | none | `[{cols, rows, mask}]`. Level L uses `levels[L % n]`. Excludes `mask` in the same mod. *shape* |
+| `board.levels` | object[] | none | `[{cols, rows, mask}]`, 1..64 of them. Level L uses `levels[L % n]`. Excludes `mask` in the same mod. *shape* |
 | `board.gemColors` | int | 7 | 3..12. Also a legacy tunable; the clamp rises from 7 to 12. |
 | `board.gravity.direction` | `"down"` / `"up"` / `"alternate"` | `"down"` | `"up"`: every fall, refill and fill rises. `"alternate"`: Bejeweled 2's Twilight (4.16). Atomic group *gravity*. |
 | `board.gravity.fallAccel` | int | 180 | 50..1000: the fall acceleration in `UpdateFalling`, in thousandths of a logical pixel per tick² (the original 0.18). *gravity* |
@@ -406,7 +407,7 @@ Defaults are the original behaviour.
 | `match.minRun` | int | 3 | 2..5 (straight runs). |
 | `match.diagonal`, `match.diagonalMinRun` | bool, int | false, = minRun | Both diagonals. |
 | `match.crossings` | `"separate"` / `"merge"` | `"separate"` | `"merge"`: same-colour crossing runs form one group, classified `L`, `T` or `plus`. |
-| `match.shapes.<id>` | object or null | none | Keyed: `{"preset": "square"\|"L3"\|"T4"}` or `{"cells": [[x,y],...], "rotations": bool, "mirror": bool}`. |
+| `match.shapes.<id>` | object or null | none | Keyed: `{"preset": "square"\|"L3"\|"T4"}` or `{"cells": [[x,y],...], "rotations": bool, "mirror": bool}`. At most 32 shapes (stage 4 review: the fill minimum's work grows with shapes x levels; 12 colours fill only a few shapes anyway). |
 | `match.bonus.<pattern>` | int | 0 | Base points added before the multiplier. Patterns: `diagonal`, `L`, `T`, `plus` or a shape id. |
 | `specials.flame` | object or null | null | `{"createdBy": [patterns], "radius": 1..3, "points": int}`. Radius 1 is 3x3. Keyed. |
 | `specials.lightning` | object or null | null | `{"createdBy": [patterns], "points": int}`: clears the row and the column. Keyed. |
@@ -560,6 +561,7 @@ dotted leaves. `rules` goes into the same map, with these additions:
 | Check | On failure |
 |---|---|
 | `cols`/`rows` 3..16. Each mask has `rows` strings of `cols` characters from `#.d23456789`. At least 9 cells. The same for every `levels[i]`. `mask` and `levels` not both in one mod. | Reject the mod's rules. |
+| At most 64 `levels` and 32 `match.shapes` (a mod that sets more is refused as it is parsed; a merged set of more fails before the fill minimum is computed). | Reject (in the merged set: drop the lowest contributor). |
 | Some line has at least `minRun` consecutive cells. `twist` needs at least one full 2x2 of cells; `slide` at least one segment of length 2 or more. | Reject. |
 | `gemColors` is at least the fill minimum. Brute force in fill order (rows bottom-up, columns left to right, cells only): for each cell, count the pattern instances, runs included, whose other cells are already filled. The minimum is 1 + the maximum count. Examples: orthogonal runs give 3; `minRun: 2` with diagonals gives 5; squares give 4. With a gravity rule, the larger result over the fill orders in use (4.16). | Reject (in the merged set: drop the lowest contributor). The message names the minimum. |
 | `gemColors` exceeds the rows in the gem sheet. | Not an error: rows are generated (4.2). |
@@ -627,6 +629,46 @@ deterministic.
   still make invalid moves. `"fallOut"` reuses `STATE_FALL_OUT`.
 - **Save:** v2 with a `MOVE` chunk.
 - **Replay:** no new events.
+
+**As built (stage 5, `Board::KeepInvalidMove`, `OnNoMovesVariant` and `OnMoveMade` in `BoardVariant.cpp`):**
+- **The hooks.** `UpdateSwap`: the swap-back branch takes `!mVariant.mInvalid`, a new branch calls
+  `KeepInvalidMove()`, and the match branch's `UsePendingSeed()` became `OnMoveMade()`. `UpdateFalling`: `else if
+  (mVariant.mNoMoves) OnNoMovesVariant();` before the original branches. Seven hook lines in all with the save's
+  (7.2). After the review two more for a hint without a move (below): `ShowHint` returns `if (NoHintVariant())`, and
+  `Update`'s idle glow is switched off again `if (NoHintVariant())`. The count is 115 in 47 functions (GAME_NOTES 12.1).
+- **A kept move** is the swap at 180 degrees with no match: the swap pieces go, the penalty is taken as above, bad2
+  plays, `mInvalidMoves` counts it, and with `invalidCountsAsMove` the game has started (`mIsNewGame` cleared:
+  a quit saves it, a mode switch asks first) and `OnMoveMade` counts the move and uses a chosen seed up (4.10).
+  `mCascadeCount` becomes 0, so the settle after it records no cascade for a move without a run. Two gems of one
+  colour swapped are a kept move too (nothing changes on the board). The swap costs its 36 ticks as any swap (the
+  timed drain runs in `STATE_SWAPPING`), and the penalty lowers the bar like a hint's: that is all the time it
+  costs. With `invalidCountsAsMove` false a kept swap leaves the game new: no save at a quit, a mode switch without
+  a question, the chosen seed still pending, `mMoveCount` unchanged.
+- **The tutorial.** A kept swap changes the board, so the move the first-game tutorial shows may make no match
+  afterwards. `KeepInvalidMove` tries it (swap, `HasMatch`, swap back); if it no longer matches, the arrows and the
+  instructions go as at a game over (`mShowTutorial` false, `KillDialog`; `mShowInstructions` stays, so the next game
+  shows them again). One that still matches stays up until a match, as before.
+- **The move counts** (`mMoveCount`, `mInvalidMoves`, and `mUndosUsed`, 0 until stage 6) are counted on every
+  board, but saved (`MOVE`), hashed (LOGIC, 6.6) and traced only on a variant board. `mMoveCount` counts the moves
+  that stood: matches, and kept swaps that count as moves. Not, as 2.5 had it for `StartSwap`, every swap
+  started: a swap that goes back is no move.
+- **"continue"** shows `NO_MATCHES_LEFT`, default "NO MATCHES!" (the board's width, like "NO MOVES!"; "NO MATCHES
+  LEFT!" ran past it), at every settle without a move, and returns to `STATE_PLAYING`. `-trace` prints such a
+  settle without move lines. Hint has nothing to show there (`Board::NoHintVariant`: allowInvalid, `STATE_PLAYING`,
+  no move): `ShowHint` gives none, so no hint penalty is taken and no `HINT` recorded, the idle hint glow stays off,
+  and the replay player refuses a `HINT` there as one `ShowHint` would not give.
+- **Gold's default.** With `gold.enabled`, `noMoves.normal` defaults to "fallOut" (3.2). Stage 5 plays the noMoves
+  rule, so a gold mod already gets that fall-out in Normal mode before the gold rule itself (stage 12):
+  `mods-status.json` says so for the mod that turned gold on, unless a mod sets `noMoves.normal`.
+- **Variant trace line.** After the rows (and the seed line) a variant board's settle prints `TRACE   variant moves
+  <mMoveCount> invalid <mInvalidMoves>`.
+- **Warnings.** `mods-status.json` no longer lists `moves.allowInvalid`, `invalidPenalty`, `invalidCountsAsMove`
+  and `noMoves.*` among the rules "not played in this build yet" (a `BEJ_NO_VARIANTS` build still does).
+- **Oracle** (`compare.py` "variant", mods/stage5): kept swaps and two "continue" games (normal and timed), the
+  `fallOut` and `gameOver` branches with `invalidCountsAsMove` false (the bot's games, and `strict_last`, where kept
+  swaps take the last move in both modes and break the tutorial's move first), Hint on a "continue" board, the gold
+  warning, the pending seed after a kept swap (used up, or not), a v2 save quit and resumed with the refills of the
+  game played through, v2 saves refused both ways and under edited rules, and their recordings played back.
 
 ### 4.2 More gem colours
 
@@ -1752,6 +1794,11 @@ generalisation:
    - Never `-ffast-math`.
    - New code clamps doubles before `(int)` casts: out-of-range conversion differs between x86 and
      wasm.
+   - Translated code cannot clamp, and legal tunables and `diff.txt` values push its casts out of
+     range (a score past 2^31, a level's points). Since the stage 4 review the web builds compile the
+     game and the verifier with `-mno-nontrapping-fptoint`: such a conversion gives x86's `INT_MIN`
+     (also for NaN) instead of wasm's saturated value, so a replay recorded on one platform verifies
+     on the other.
 4. **Trig stays libm.** `cos` (`UpdateSwap`), `cos/sin` (`UpdateBlackHole`) and `atan2`
    (`StartBlackHole`) only set positions that no gameplay decision reads:
    - `MouseDown` returns in state 7;
@@ -1877,14 +1924,27 @@ records { u32 tag, u32 len, payload }:
   constructor's values can be stale by then: `NewGame` deletes the board it replaces after making
   the new one, and that `~Board` counts a game in progress as played. The player sets them before
   that update.
+- **Engine ABI** (stage 5): 2. Stage 5 changed the variant simulation (kept swaps, the noMoves rule, the v2 save, the
+  variant boards' MOVE fields in LOGIC). The original rules are frozen, so the player (`Replay::CheckPlayable`,
+  `isOriginalRules`) still plays a replay of them from engine 1; a replay of variant rules only on its own engine.
+  The recorder makes the same exemption when a resume continues a sidecar (`ReplayRecorder::OnLoad`): a game of the
+  original rules that engine 1 recorded goes on, and the merged replay is this engine's. A sidecar that goes with the
+  save but is not continued (other rules, or an engine it cannot continue) is kept as a finished replay before it
+  is deleted (`Board::DeleteSaveSidecar`), as for a declined resume.
 - Op numbers: `SELECT` 1, `DESELECT` 2, `TARGET` 3 (-1 -1 for no cell), `TWIST` 4, `SLIDE` 5,
   `HINT` 6, `PAUSE` 7, `UNPAUSE` 8, `UNDO` 9, `NEW_GAME` 10, `XRAND` 11, `HOVER` 12 (-1 -1:
   left), `SAVE` 13, `LOAD` 14, `CHECK` 15. `CHECK` carries the u64 as the int64 with the same bits.
   An unknown op makes the file unreadable. Unknown record tags are skipped wherever they are.
 - The reader refuses a file over 16 MB (`MAX_FILE_SIZE`), a wrong magic or format, a record running
   past the end or out of order, a payload of the wrong size, an event count the payload cannot hold or
-  more than 4M events in all (`MAX_EVENTS`; both before allocating, and events are added as they are
-  parsed), a varint over 10 bytes, an `END` reason over 5, and data after `END`.
+  more than 4M events in all (`MAX_EVENTS`; both before allocating), a varint over 10 bytes, an `END`
+  reason over 5, and data after `END`. Since the stage 4 review also more than 1,000 segments
+  (`MAX_SEGMENTS`; each holds two MT states, 5 KB, however small its record: a 256 KB file could ask for
+  9,000) and more than 10,000 events at one tick of a segment (the player's bound, 6.8, checked as the
+  events are read). A segment's events are read twice: once to check them all, keeping none, then into
+  room made for exactly that many (48 bytes per 2 bytes of the file at most, 192 MB for `MAX_EVENTS`; no
+  vector doubling, whose peak would stay in a wasm instance). The recorder starts a fresh replay that holds
+  the save (`LDSV`) rather than add a 1,001st segment.
 
 ### 6.5 Segments: save, resume and the web backup
 
@@ -1996,6 +2056,11 @@ must be identical. A variant field missing from the table fails this test.
   SNAPSHOT → restore into a scratch board (`Board(app, SCRATCH_BOARD)`) → SNAPSHOT, and compares
   the bytes, the FULL encoding (without whether banner images exist and the parked orphan count)
   and the LOGIC hash. The oracle runs it in every stage-3 case.
+- **Stage 5.** Rows `mMoveCount`, `mInvalidMoves` (LOGIC, SNAP, V2, UNDO) and `mUndosUsed` (LOGIC, SNAP, V2), written
+  and read only for a variant board (`VariantFlags::mAny`), so a board of the original rules encodes as before. Not
+  FULL: that stays the stage-0 list and the board's own RNG, so a rule set that plays as the original (the oracle's
+  inert cases) hashes as its reference. `-codeccheck` also checks a variant board's v2 save: `CheckSave` with its
+  RulesId, and its chunks read back as the board's.
 
 ### 6.7 Undo snapshots
 
@@ -2046,7 +2111,10 @@ for (;;) {
   when the hover flag says every segment has the hover channel: the raw pieces in a save hold the
   hover glow, which follows the pointer. Without it the LOGIC hash, which leaves the glow out, still
   matches, and a `LOAD` of those bytes gives the same LOGIC state. A sidecar's trailing `RNGS` must be
-  the board's RNG at the end.
+  the board's RNG at the end. Since stage 4 neither is checked for a save made in the vortex either: there
+  the pieces' positions and angles come from libm's `cos`, `sin` and `atan2`, whose last bits differ
+  between native and wasm, so a replay recorded on one makes other bytes on the other (the verifier's drift
+  guard found it on the oracle's quit during the vortex); the LOGIC hash leaves those fields out.
 - **The end.** The last segment ends at the game-over screen, after New Game's fall, or at `END`'s
   tick with no event left; `END` must match (tick, score, level, gems, draws, LOGIC hash, and a
   reason that fits: game over, a `NEW_GAME` applied, a last `SAVE`). Every earlier segment ends with
@@ -2066,7 +2134,21 @@ for (;;) {
   - Bounds on the work a file can ask for: at most 24 hours of board ticks in all segments, each up
     to its last event and the last up to `END` (`MAX_TICKS`, 8.64M; the leaderboard's cap is 6 hours,
     6.10), at most 10,000 events at one tick of a segment, at most 1,000,000 outside draws in the file.
-    The player reads at most `MAX_FILE_SIZE` + 1 bytes.
+    The player reads at most `MAX_FILE_SIZE` + 1 bytes. Since the stage 4 review: `SAVE`s only at their
+    segment's last tick, at most 4 in a segment (`MAX_SAVES_PER_SEGMENT`): the game saves only as a board
+    goes away (`Shutdown`, `~Board`, then a snapshot sidecar's), and each `SAVE` makes a save (40 us; 4M of
+    them took minutes). The player hashes a save only where it compares the hash. The other events cost a
+    microsecond or less (`HINT`'s search about 1 us).
+  - **`RULE`** (stage 4 review: the 12 `diff.txt` values went to the board unchecked, and a 0 points base
+    made `Board::Update` divide by zero, natively a crash, in wasm a trap): `FromCanonical`, the record must
+    be the canonical bytes of the rules it decodes to (one rule set, one RulesId), and
+    `GameRules::CheckRecorded` must pass: the rules are exactly what `MergeRules` makes of a mod.json that
+    says them (every field in the mod path's range and spelling, `Validate` passed: at most 32 shapes and 64
+    levels are checked first), every tunable double is finite, and the `diff.txt` values are finite with
+    points and multiplier bases above 0 whose product is at least 1 and per-level steps not below 0, so
+    `SetupLevel`'s `mLevelPoints`, `Update`'s divisor, is at least 1 at every level (or, past the int range,
+    `INT_MIN`). Else "cannot play: RULE: ...". The game's own `diff.txt` is still read as the original reads
+    it.
 - **Output.** `REPLAY start`, `REPLAY segment k` and `REPLAY end: ok, <n> CHECKs, END ...` or
   `REPLAY end: CORRUPT at segment k tick t event i <op>: <why>` on stdout. The oracle's playback
   cases (9.1 item 6, in the game) play every recording of the stage-3 cases and four broken copies.
@@ -2111,6 +2193,79 @@ for (;;) {
 - **Shim drift guard (CI):** every replay in the corpus is played in the real game
   (`-replay -fast -trace`), in the native verifier and in the wasm verifier, and the TRACE, `CHECK`
   and `END` values must agree.
+
+**As built (stage 4, `games/bejeweled/src/headless`; GAME_NOTES 12.6):**
+- **The driver is the game's.** The verifier plays a replay with the game's own replay player,
+  `WatchController.cpp`, compiled unchanged behind the shims with a headless app, not with a second driver: the
+  gates, CHECKs, END and segments have one implementation, and the drift guard covers the player too. The
+  player gained `SetBytes` (a replay from memory: `bv_verify` has no file) and result getters; its "cannot play"
+  line is kept in `GetResult` too.
+- **Sources.** As listed, with `Sha256.cpp` (the game's) for `sha256.c`, plus `WatchController.cpp`,
+  `framework/Color.cpp`, and in `headless/`: `HeadlessShims.cpp` (`Common.cpp`'s functions, `SDL_Log`,
+  `GameConfig::ScopedFileName`), `WinDMAppHeadless.cpp` with `HeadlessApp.h`, `ReplayRecorderHeadless.cpp` (the
+  board's recorder hooks link; no verifier board records), `DiffBot`, `Verifier` and `verify_main.cpp`. Only
+  the framework headers whose implementations need SDL are shimmed; `Common.h`, `Rect.h`, `Color.h`, `Flags.h`,
+  `Buffer.h`, `MTRand.h` and the listener interfaces are the real ones. About 1,000 lines of shims and headless app,
+  670 of verifier, 470 of difftest bot, 370 of Node runner and 310 of test scripts.
+- **`BoardTrace`** holds the settle check (`BoardTracer`) and the block (`PrintBoardTrace`); the game's
+  `TraceBoard` keeps only the watch's ended-board line and calls it.
+- **Native CLI:** `bejeweled_verify <replay.bjr> [-trace] [-forcevariant]` prints the game's REPLAY lines (and
+  TRACE settles) and then the result JSON as the last line; exit status 0 for ok, 1 for corrupt or unplayable.
+  Also `difftest` and `rulesid <mod.json>`.
+- **Difftest:** each board has an app of its own (the tick-150 block and a scoring swap read and write
+  `mShowInstructions` and `mTimesPlayed`, so one app would couple the two boards), and the autoplay bot of 6.9
+  is a board-level `DiffBot` (the game's autoplay bot drives the whole app through script input). The LOGIC
+  encodings are compared whole after every update (stronger than comparing their hashes), and at every settle
+  also the move lists (`FindMove`, which `FindMoveVariant` replaces in stage 9) and the shutdown save. A game
+  runs to its game-over screen, New Game's end or `--ticks` (default 60,000 updates). `--mode` picks normal,
+  timed or both.
+- **Wasm:** `-O3` (the Release build) rather than `-O2`, and a 1 MB stack. Imports: WASI `fd_write`, `fd_read`,
+  `fd_close`, `fd_seek` and `env.emscripten_notify_memory_growth`; no `proc_exit` or clock. Exports beyond the
+  four: `_initialize`, `bv_set_options` (trace, forcevariant) and `bv_difftest`. `bv_verify` returns the result
+  JSON and writes the REPLAY and TRACE lines to fd 1. `bv_rules_id(ptr, len)` takes a mod.json's text and
+  returns JSON with the RulesId of its tunables and rules over the defaults and the original diff.txt values,
+  and the merge's errors, dropped mods and warnings.
+- **The Node runner** (`games/bejeweled/tools/verify/wasmrun.js`) also runs the game's shipped web build with the
+  stage-0 switches on a stubbed page (no separate Node build of the game); the only change to the web build is
+  that it exports `fflush`, which the runner calls when the game quits.
+- **The drift guard runs in the oracle** (`games/bejeweled/tools/verify/oracle_cases.sh`, sourced by `compare.sh`),
+  with the web build's LOGIC check and the 500-seed difftest, there being no CI.
+- **StateCodec** writes in place (the same bytes, about six times faster): the difftest encodes two boards after
+  every update.
+- **Found by the drift guard:** a replay with the hover channel whose `SAVE` falls in the vortex (the oracle's
+  `save_states` snapshot `s5_vortex`) verified natively but was corrupt in wasm: the save's raw piece bytes
+  hold libm-set doubles there. The player no longer compares those bytes (6.8 "Saves"); every other check
+  stands, and the LOGIC hash never took those fields.
+- **After the stage 4 review** (hostile and extreme inputs):
+  - *Conversions.* emcc lowers `(int)double` to wasm's saturating conversion (`INT_MAX`, `INT_MIN`, NaN 0), x86 to
+    `INT_MIN` for all three; legal tunables (`setValues` 2,000,000,000 times the timed multiplier 2) and an `LDSV`
+    at level 10000 pushed the board's casts out of range, so the same replay was ok on one platform and corrupt
+    on the other. The game and the verifier now build with `-mno-nontrapping-fptoint` on the web (6.1 rule 3).
+  - *RULE* is checked before a board is made (6.8 "Before it starts"): a 0 points base had made
+    `Board::Update` divide by zero (a native crash, a wasm trap, no JSON), and a NaN multiplier base trapped wasm.
+  - *Work and memory bounds:* at most 1,000 segments (9,300 empty ones took the wasm memory to 278 MB), events
+    at one tick refused as they are read and a segment's events allocated once, exactly (an 8 MB file of 4M
+    events at one tick took 688 MB; now 17 MB, the module's start), `SAVE`s only where the game makes them
+    (4M took minutes), 32 `match.shapes` (1,000 shapes on 64 levels took `bv_rules_id` 33 s in wasm) and a
+    fill minimum computed per placement rather than per cell (the same numbers, 3,000 random rule sets
+    compared; about 16 times less work), a mod.json for `bv_rules_id` of at most 1 MB.
+  - *Parsed once:* the verifier takes the file's JSON fields from the player's own `Replay::Read`, and the bytes
+    are moved in, not copied.
+  - *`bv_difftest`* checks its arguments (seed 0, a range backwards or of more than 100,000 seeds, ticks outside
+    1..8.64M, modes outside 1..3: a "difftest: <why>" report, nothing played); the native CLI goes through the
+    same check.
+  - *The host contract* (`wasmrun.js`, and the Worker of stage 14): an instance that trapped is never called
+    again (a trap leaves its stack pointer where it was: 3,000 traps left one that failed every later call), nor
+    one whose memory grew past 64 MB (wasm memory never shrinks); the next call gets a fresh instance.
+  - *Not done:* the `LDSV` level bound stays 100,000 (the conversions now agree on both platforms, and legal
+    tunables reach out-of-range values without any `LDSV`); the `diff.txt` values get no upper caps (only what
+    makes a level of no points is refused; larger values convert alike); events stay 48 bytes each (a 16 MB
+    file of 4M events still takes 200 MB; the leaderboard's 256 KB cap bounds a submission at a few).
+  - *Oracle:* `run_tests.sh` gained the RULE and limits files no player can start, a three-pass fuzz of
+    extreme `diff.txt` values (native and wasm print the same LOGIC hashes), the largest `bv_rules_id` inputs
+    and `bv_difftest`'s argument checks; `oracle_cases.sh` two more broken copies (a zero and a NaN `diff.txt`
+    value) and two games recorded natively and by the web build, each recording watched and verified on both:
+    the overflowing tunables mod (`mods/stage4`) and the level-10000 vortex save.
 
 ### 6.10 Leaderboard service (Cloudflare Worker + D1)
 
@@ -2194,6 +2349,29 @@ END
 - The header is checked before anything is changed. Chunk errors make `LoadGame` return false, as a
   truncated v1 file would.
 
+**As built (stage 5, `BoardSave.cpp`; the format in `Replay.h`, `Replay::VariantSave`):**
+- **Layout.** As above; the mask is one bit per cell, row-major, least significant bit first in each byte. A chunk
+  tag is its 4 ASCII bytes in file order, as in the replay format, and `END` has length 0 and ends the file. `RNGS`
+  is the replay's payload (seed 0: the global stream). `MOVE` holds `undosUsed` already (0 until stage 6). An 8x8
+  save is 10,463 bytes: 52 of header, the v1 fields, 2,514 of `RNGS`, 20 of `MOVE` and 8 of `END`.
+- **Writing.** `WriteSaveGame` writes `0x101`, the header after the version and the chunks after the v1 fields, for
+  a variant board only (three hook lines). Every other board writes v1 byte for byte, rule mods in a
+  `BEJ_NO_VARIANTS` build included.
+- **Reading.** `LoadGame` hands the version to `ReadVariantHeader`, which reads the whole file first
+  (`Replay::ReadVariantSave`: the header, the v1 fields walked by their present bytes, a gem in a hole refused, the
+  chunks; `RNGS` and `MOVE` required, each once, unknown tags skipped, nothing after `END`), then requires the
+  board's RulesId, its size, level shape 0 and mask (stage 7 applies the save's shape instead), and an RNG state
+  `MTRand` takes. Anything else is refused before the board changes, with a log line `savegame: <file> not loaded:
+  <why>`: a v1 save, a save of other rules (a mod edited without a version bump: the same file name, another
+  RulesId), another shape, a file cut short. The original then deletes the save as for any version it does not
+  take. `GameLoadedVariant` gives the board the chunks' RNG and counts; the sidecar of a variant board's save only
+  continues a recording.
+- **Both ways.** A v2 save on a board of the original rules fails the original check (as in the frozen builds:
+  the oracle's `v2_refused` runs on every exe), and a v1 save on a variant board fails `ReadVariantHeader`.
+- **Replays.** A playback board writes and loads v2 like a live one; a `LOAD` on a variant board also requires the
+  segment's `RNGS` to be the RNG its v2 save holds. An `LDSV` may be a v2 save of the replay's rules
+  (`Replay::CheckSave` with the replay's `RLID`).
+
 ### 7.3 Sidecar (in-progress replay)
 
 The file is `<save name>.bjr`, scoped like the save (for example `userdata/savegame.bjr`). It
@@ -2217,8 +2395,8 @@ It exists only when recording, or when a default-rules game owns its RNG. It is 
 - **Replaced or declined.** The first sidecar a recording board writes replaces the one there is: when
   that one goes with the save there is and holds a recorded move, its game is kept as a finished replay
   first (END "saved"), as No in the load dialog keeps it.
-- **Stage 5.** v1 is still the only save format, so for now this also covers rule-mod boards.
-  Stage 5's v2 `RNGS` chunk takes over for variant boards.
+- **Stage 5.** A variant board's v2 save keeps its RNG in its `RNGS` chunk, so it leaves no RNG sidecar
+  (`WriteSaveSidecar`, `SidecarSnapshot`); a recording still leaves its sidecar, with the trailing `RNGS`.
 
 **The "save" script command** writes the sidecar of its snapshot next to the `<file>` it names,
 with the `.bjr` extension, only when there is one.
@@ -2346,7 +2524,8 @@ Stage 14 needs stages 3, 4 and 2's owned RNG.
 
 **Answers (2026-10-18):**
 - **Q1, version control:** yes. The baseline is commit `9dcba7d` on `master`; the stages are
-  committed on the `code-mods` branch. The frozen baseline exe is `build/baseline/bejeweled.exe`.
+  committed on the `code-mods` branch (the trunk, renamed `main` after stage 5). The frozen baseline exe is
+  `build/baseline/bejeweled.exe`.
 - **Q3, feature gating:** feature mods.
 - **Q6, holes:** gems fall through holes. Also add dirt tiles that need a match next to them, block
   falling gems, and let gems fall diagonally, alternating left and right (Jewel Quest). See 4.14

@@ -20,12 +20,20 @@ if(BEJ_NO_VARIANTS)
   target_compile_definitions(bejeweled PRIVATE BEJ_NO_VARIANTS)
 endif()
 if(EMSCRIPTEN)
+  # A double out of the int range converts as on x86 (cvttsd2si: INT_MIN, NaN too), not as wasm's saturating
+  # conversion (INT_MAX, INT_MIN, NaN 0) that emcc emits by default: the board casts doubles that tunables and
+  # diff.txt values can push out of range, and a replay recorded on one platform must verify on the other
+  # (games/bejeweled/docs/CODE_MODS_DESIGN.md 6.1 rule 3). The same switch for bejeweled_verify below.
+  target_compile_options(bejeweled PRIVATE -mno-nontrapping-fptoint)
   set_target_properties(bejeweled PROPERTIES SUFFIX ".html")
   set_property(TARGET bejeweled APPEND PROPERTY LINK_DEPENDS ${PROJECT_SOURCE_DIR}/web/shell.html)
   target_link_options(bejeweled PRIVATE
     "--shell-file=${PROJECT_SOURCE_DIR}/web/shell.html"
     "-sALLOW_MEMORY_GROWTH=1" "-sFORCE_FILESYSTEM=1" "-sINVOKE_RUN=0"
-    "-sEXPORTED_RUNTIME_METHODS=['FS','callMain']" "-lidbfs.js")
+    "-sEXPORTED_RUNTIME_METHODS=['FS','callMain']" "-lidbfs.js"
+    # fflush: the Node runner (tools/verify/wasmrun.js) flushes the test hooks' files (-tracehash, -autoplaylog,
+    # -codeccheck) when the game quits; a page never deletes the app, which closes them natively
+    "-sEXPORTED_FUNCTIONS=['_main','_fflush']")
 else()
   add_custom_command(TARGET bejeweled POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:SDL2::SDL2> ${PORT_RUNTIME_DLLS} $<TARGET_FILE_DIR:bejeweled>
@@ -47,6 +55,50 @@ if(BUILD_RULESTEST)
   if(EMSCRIPTEN)
     set_target_properties(rulestest PROPERTIES SUFFIX ".js")
     target_link_options(rulestest PRIVATE "-sENVIRONMENT=node" "-sEXIT_RUNTIME=1" "-sALLOW_MEMORY_GROWTH=1")
+  endif()
+endif()
+
+# Headless verifier, bejeweled_verify (games/bejeweled/docs/CODE_MODS_DESIGN.md 6.9, src/headless/Verifier.h): the
+# Board sources unchanged, compiled against the framework shims in src/headless/shim, which come first on the
+# include path ("Widget.h", "SexyApp.h", <SDL.h> ... are the shims; the game's own headers in src/ are found
+# next to the sources that include them). No SDL, no framework library, fonts, images, user files or mods.
+# Native: bejeweled_verify.exe (i686, the game's floating point). Web: bejeweled_verify.wasm, a standalone module
+# without JS glue (its WASI imports stubbed by the host: games/bejeweled/tools/verify/wasmrun.js under Node).
+option(BUILD_VERIFY "Build the headless replay verifier" ON)
+if(BUILD_VERIFY)
+  add_executable(bejeweled_verify
+    src/Board.cpp src/BoardRules.cpp src/BoardVariant.cpp src/BoardSave.cpp src/BoardTrace.cpp src/GameConfig.cpp src/GameRules.cpp
+    src/StateCodec.cpp src/Replay.cpp src/Sha256.cpp src/WatchController.cpp
+    src/headless/HeadlessShims.cpp src/headless/WinDMAppHeadless.cpp src/headless/ReplayRecorderHeadless.cpp
+    src/headless/DiffBot.cpp src/headless/Verifier.cpp src/headless/verify_main.cpp
+    ${PROJECT_SOURCE_DIR}/framework/MTRand.cpp ${PROJECT_SOURCE_DIR}/framework/Buffer.cpp
+    ${PROJECT_SOURCE_DIR}/framework/Color.cpp ${PROJECT_SOURCE_DIR}/platform/Json.cpp)
+  target_include_directories(bejeweled_verify PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src/headless/shim
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/headless ${CMAKE_CURRENT_SOURCE_DIR}/src ${PROJECT_SOURCE_DIR}/framework
+    ${PROJECT_SOURCE_DIR})
+  if(NOT MSVC)
+    target_compile_options(bejeweled_verify PRIVATE -Wall -Wno-unused-private-field)
+    # Two framework idioms the framework library builds without -Wall (framework/CMakeLists.txt)
+    set_source_files_properties(${PROJECT_SOURCE_DIR}/framework/Buffer.cpp ${PROJECT_SOURCE_DIR}/framework/Color.cpp
+      TARGET_DIRECTORY bejeweled_verify PROPERTIES COMPILE_OPTIONS "-Wno-parentheses;-Wno-reorder-ctor")
+  endif()
+  # The board plays as the game's build does: the same variant switch, the same floating point (framework/CMakeLists.txt)
+  if(BEJ_NO_VARIANTS)
+    target_compile_definitions(bejeweled_verify PRIVATE BEJ_NO_VARIANTS)
+  endif()
+  if((NOT EMSCRIPTEN) AND (NOT MSVC) AND (CMAKE_SYSTEM_PROCESSOR MATCHES "^(i[3-6]86|x86)$"))
+    target_compile_options(bejeweled_verify PRIVATE -msse2 -mfpmath=sse)
+  endif()
+  if(EMSCRIPTEN)
+    # Out-of-range double-to-int conversions as on x86 and in the web game (bejeweled above)
+    target_compile_options(bejeweled_verify PRIVATE -mno-nontrapping-fptoint)
+    set_target_properties(bejeweled_verify PROPERTIES SUFFIX ".wasm")
+    target_link_options(bejeweled_verify PRIVATE "-sSTANDALONE_WASM" "--no-entry" "-sFILESYSTEM=0"
+      "-sALLOW_MEMORY_GROWTH=1" "-sSTACK_SIZE=1048576")
+  else()
+    add_custom_command(TARGET bejeweled_verify POST_BUILD
+      COMMAND ${CMAKE_COMMAND} -E copy_if_different ${PORT_RUNTIME_DLLS} $<TARGET_FILE_DIR:bejeweled_verify>
+      VERBATIM)
   endif()
 endif()
 

@@ -65,6 +65,8 @@ WatchController::WatchController(WinDMApp* theApp, const std::string& theFileNam
 {
 	mApp = theApp;
 	mFileName = theFileName;
+	mHasBytes = false;
+	mIsRead = false;
 	mStatus = STATUS_IDLE;
 	mSwappedIn = false;
 	mSavedTimedMode = false;
@@ -76,36 +78,54 @@ WatchController::WatchController(WinDMApp* theApp, const std::string& theFileNam
 	mBoardEnded = false;
 	mNewGameApplied = false;
 	mPrevSeeded = false;
+	mLastSaveExact = false;
 	mChecks = 0;
 	mEventsApplied = 0;
 }
 
 // The file, read and checked before anything changes: no larger than a replay may be, well-formed
-// (Replay::Read), playable by this build (Replay::CheckPlayable, which also checks the save bytes of an LDSV),
-// RLID the SHA-256 of RULE, RULE canonical rules, every RNG state one MTRand takes
+// (Replay::Read), RULE canonical rules the game makes (GameRules::CheckRecorded: what the mod path makes of some
+// mods, and diff.txt values every level can play with), playable by this build (Replay::CheckPlayable, which also
+// checks the save bytes of an LDSV; the original rules from any engine), RLID the SHA-256 of RULE, every RNG state
+// one MTRand takes
 bool WatchController::Load(std::string* theError)
 {
-	FILE* aFile = fopen(mFileName.c_str(), "rb");
-	if (aFile == NULL)
-	{
-		*theError = "cannot open the file";
-		return false;
-	}
-	// At most one byte more than a replay may have, which Replay::Read then refuses
+	mIsRead = false;
 	std::string aBytes;
-	char aChunk[65536];
-	size_t aCount;
-	while ((aBytes.size() <= (size_t) Replay::MAX_FILE_SIZE) && ((aCount = fread(aChunk, 1, sizeof(aChunk), aFile)) > 0))
-		aBytes.append(aChunk, aCount);
-	fclose(aFile);
+	if (mHasBytes)
+		aBytes.swap(mBytes); // the verifier's (SetBytes)
+	else
+	{
+		FILE* aFile = fopen(mFileName.c_str(), "rb");
+		if (aFile == NULL)
+		{
+			*theError = "cannot open the file";
+			return false;
+		}
+		// At most one byte more than a replay may have, which Replay::Read then refuses
+		char aChunk[65536];
+		size_t aCount;
+		while ((aBytes.size() <= (size_t) Replay::MAX_FILE_SIZE) && ((aCount = fread(aChunk, 1, sizeof(aChunk), aFile)) > 0))
+			aBytes.append(aChunk, aCount);
+		fclose(aFile);
+	}
 
 	std::string anError;
-	if (!Replay::Read(aBytes, &mFile, &anError))
+	bool isRead = Replay::Read(aBytes, &mFile, &anError);
+	std::string().swap(aBytes);
+	if (!isRead)
 	{
 		*theError = "not a well-formed replay: " + anError;
 		return false;
 	}
-	if (!Replay::CheckPlayable(mFile, Board::BOARD_COLS, Board::BOARD_ROWS, &anError))
+	mIsRead = true;
+	// The rules first (stage 5): a replay of the original rules plays whichever engine recorded it
+	if (!mFile.mHasRules || !mRules.FromCanonical(mFile.mRules, &anError))
+	{
+		*theError = mFile.mHasRules ? "RULE: " + anError : std::string("no RULE record");
+		return false;
+	}
+	if (!Replay::CheckPlayable(mFile, Board::BOARD_COLS, Board::BOARD_ROWS, &anError, !mRules.HasVariantRules()))
 	{
 		*theError = anError;
 		return false;
@@ -117,7 +137,15 @@ bool WatchController::Load(std::string* theError)
 		*theError = "RLID is not the SHA-256 of RULE";
 		return false;
 	}
-	if (!mRules.FromCanonical(mFile.mRules, &anError))
+	// Someone else's rules: the play code divides by, indexes and loops with what they say (the 12 diff.txt
+	// values give SetupLevel's mLevelPoints, Update's divisor), so only rules the game itself makes. Canonical
+	// bytes again: one rule set has one RulesId
+	if (mRules.Canonical() != mFile.mRules)
+	{
+		*theError = "RULE: not the canonical form of the rules it holds";
+		return false;
+	}
+	if (!mRules.CheckRecorded(&anError))
 	{
 		*theError = "RULE: " + anError;
 		return false;
@@ -178,7 +206,8 @@ bool WatchController::Start()
 	std::string anError;
 	if (!Load(&anError))
 	{
-		Print("REPLAY " + mFileName + ": cannot play: " + anError);
+		mResult = "REPLAY " + mFileName + ": cannot play: " + anError;
+		Print(mResult);
 		mStatus = STATUS_STOPPED;
 		if (mApp->mReplayQuit)
 		{
@@ -405,8 +434,9 @@ bool WatchController::Apply(const Replay::Event& theEvent)
 		break;
 
 	case Replay::OP_HINT:
-		// ShowHint's gate; the board's own ShowHint ignores a playback board
-		if ((b->mState != STATE_PLAYING) || (b->mPauseCount != 0))
+		// ShowHint's gate; the board's own ShowHint ignores a playback board. Stage 5: a board playing without a
+		// move gives no hint either (Board::NoHintVariant)
+		if ((b->mState != STATE_PLAYING) || (b->mPauseCount != 0) || b->NoHintVariant())
 		{
 			aWhy = "a hint ShowHint would not give";
 			isOk = false;
@@ -448,6 +478,12 @@ bool WatchController::Apply(const Replay::Event& theEvent)
 
 	case Replay::OP_SAVE:
 		{
+			// The save holds the raw pieces, whose hover glow follows the pointer: only a replay with the hover
+			// channel makes the same bytes (without it, the LOGIC hash, which leaves the glow out, still matches).
+			// In the vortex their positions and angles come from libm's cos, sin and atan2, whose last bits differ
+			// between platforms (the LOGIC hash leaves them out too): a replay recorded natively, played in wasm
+			// (the verifier, stage 4), or the other way round, makes other bytes there
+			mLastSaveExact = ((mFile.mFlags & Replay::FLAG_HOVER) != 0) && (b->mState != STATE_BLACK_HOLE);
 			if (a[0] == Replay::SAVE_GAME)
 				b->SaveGame(); // into mPlaybackSave (Board::WriteSaveFile)
 			else
@@ -456,17 +492,19 @@ bool WatchController::Apply(const Replay::Event& theEvent)
 				b->SaveGameSnapshot(&aSnapshot);
 				b->mPlaybackSave = aSnapshot;
 			}
-			// The save holds the raw pieces, whose hover glow follows the pointer: only a replay with the hover
-			// channel makes the same bytes (without it, the LOGIC hash, which leaves the glow out, still matches)
-			std::string aSave = BufferBytes(b->mPlaybackSave);
-			uint32_t aHash = Replay::SaveHash(aSave.data(), aSave.size());
-			if (((mFile.mFlags & Replay::FLAG_HOVER) != 0) && (aHash != (uint32_t) a[1]))
+			// Hashed only where it is compared
+			if (mLastSaveExact)
 			{
-				char aText[64];
-				snprintf(aText, sizeof(aText), "the save's hash is %08x, the replay's %08x", (unsigned) aHash, (unsigned) a[1]);
-				aWhy = aText;
-				isOk = false;
-				break;
+				std::string aSave = BufferBytes(b->mPlaybackSave);
+				uint32_t aHash = Replay::SaveHash(aSave.data(), aSave.size());
+				if (aHash != (uint32_t) a[1])
+				{
+					char aText[64];
+					snprintf(aText, sizeof(aText), "the save's hash is %08x, the replay's %08x", (unsigned) aHash, (unsigned) a[1]);
+					aWhy = aText;
+					isOk = false;
+					break;
+				}
 			}
 			// What the resume of the next segment may check its RNGS against
 			Replay::RngState aRng;
@@ -504,6 +542,16 @@ bool WatchController::Apply(const Replay::Event& theEvent)
 			if (!aSegment.mHasLoadSave && mPrevSeeded && !SameRng(aRng, mPrevRng))
 			{
 				aWhy = "RNGS is not the RNG the saved game had";
+				isOk = false;
+				break;
+			}
+			// A variant board's v2 save holds the RNG the game goes on with (its RNGS chunk, stage 5): the segment's
+			// RNGS must be that one (LDSV bytes too)
+			Replay::RngState aSaved;
+			b->GetRngState(&aSaved);
+			if (b->mVariant.mAny && ((aSaved.mSeed != 0) || (aRng.mSeed != 0)) && !SameRng(aRng, aSaved))
+			{
+				aWhy = "RNGS is not the RNG the v2 save holds";
 				isOk = false;
 				break;
 			}
@@ -591,8 +639,9 @@ bool WatchController::Finish()
 			(int) anEnd.mLevel, (int) anEnd.mGems, (unsigned) anEnd.mBoardDraws, (unsigned long long) anEnd.mLogicHash);
 		aWhy = aText;
 	}
-	// A sidecar: the save it goes with (with the hover channel, as at SAVE), and the RNG the save was made with
-	if (aWhy.empty() && mFile.mHasSaveHash && ((mFile.mFlags & Replay::FLAG_HOVER) != 0))
+	// A sidecar: the save it goes with (where SAVE compares the bytes: with the hover channel, out of the vortex),
+	// and the RNG the save was made with
+	if (aWhy.empty() && mFile.mHasSaveHash && mLastSaveExact)
 	{
 		std::string aSave = BufferBytes(b->mPlaybackSave);
 		if (Replay::SaveHash(aSave.data(), aSave.size()) != mFile.mSaveHash)

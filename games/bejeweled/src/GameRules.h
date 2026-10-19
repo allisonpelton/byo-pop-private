@@ -114,7 +114,9 @@ public:
 	{
 		RULES_VERSION = 1,
 		MIN_GEM_COLORS = 3,
-		MAX_GEM_COLORS = 12
+		MAX_GEM_COLORS = 12,
+		MAX_LEVELS = 64,        // board.levels
+		MAX_SHAPES = 32         // match.shapes: Validate's fill minimum grows with shapes x levels
 	};
 
 	enum MoveType
@@ -240,6 +242,15 @@ public:
 	bool							Validate(std::string* theMessage, std::vector<std::string>* theKeys) const;
 	// Only the shape group's checks (sizes, masks, at least 9 cells): what one mod is checked for alone
 	bool							ValidateShape(std::string* theMessage) const;
+
+	// Rules decoded from someone else's file (a replay's RULE, FromCanonical): whether they are rules the game
+	// makes, exactly what MergeRules makes of a mod.json that says them (every field in the range the mod path
+	// takes and normalised as it normalises, every check of Validate passed, so the canonical bytes come out
+	// alike), with a finite tunable in every double, and 12 diff.txt values every level of the original
+	// SetupLevel plays with: finite, points and multiplier bases above 0 whose product is at least 1, per-level
+	// steps not below 0, so mLevelPoints, Board::Update's divisor, is at least 1 on every level (or past the int
+	// range). False with a message. (The game's own diff.txt is read as the original reads it.)
+	bool							CheckRecorded(std::string* theError) const;
 
 	// The fewest gem colours the fill can always complete with (3.6): 1 + the most pattern instances a
 	// cell can complete in fill order, over every level's layout

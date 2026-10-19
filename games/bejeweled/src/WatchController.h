@@ -63,6 +63,17 @@ public:
 	// an update, which the recorded board, deleted right after, never showed.
 	bool			IsEndedBoard(const Board* theBoard) const;
 
+	// The headless verifier (games/bejeweled/src/headless, games/bejeweled/docs/CODE_MODS_DESIGN.md 6.9) plays a
+	// replay it holds in memory with this same player: Start reads theBytes instead of the file (its name is then
+	// only the one the REPLAY lines show; the bytes are taken, not copied). Afterwards: the REPLAY line it ended
+	// with ("REPLAY end: ..." or "REPLAY <file>: cannot play: ..."), the CHECKs that matched, the events applied,
+	// and the file as Start read it (NULL when it was no well-formed replay), so the verifier parses it once.
+	void			SetBytes(std::string theBytes) { mBytes.swap(theBytes); mHasBytes = true; }
+	const std::string& GetResult() const { return mResult; }
+	int				GetChecks() const { return mChecks; }
+	int				GetEventsApplied() const { return mEventsApplied; }
+	const Replay::File* GetFile() const { return mIsRead ? &mFile : NULL; }
+
 private:
 	enum Status
 	{
@@ -83,7 +94,10 @@ private:
 
 	WinDMApp*		mApp;
 	std::string		mFileName;
+	bool			mHasBytes;          // SetBytes: the replay's bytes, instead of the file's
+	std::string		mBytes;
 	Replay::File	mFile;
+	bool			mIsRead;            // Replay::Read took the file (mFile is all of it)
 	GameRules		mRules;             // the replay's RULE
 	Status			mStatus;
 	AppState		mOther;             // the replay's state while the player's is in the app, and the other way round
@@ -98,6 +112,7 @@ private:
 	bool			mBoardEnded;        // the board called NewGame (New Game's fall is over)
 	bool			mNewGameApplied;    // a NEW_GAME event was applied in the last segment
 	Buffer			mLoadSave;          // what the next LOAD reads
+	bool			mLastSaveExact;     // the last SAVE's bytes were compared with its hash (and a sidecar's SVHA is)
 	bool			mPrevSeeded;        // the segment before ended on an own seeded RNG ...
 	Replay::RngState mPrevRng;          // ... in this state at its last SAVE
 	int				mChecks;            // CHECKs that matched

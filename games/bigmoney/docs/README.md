@@ -238,7 +238,7 @@ Example mods (`games/bigmoney/mods/`):
 Big Money's own code, docs, tools and web shell are in `games/bigmoney/` (`src`, `docs`, `tools`, `web`,
 `mods`); its staged game files and Ghidra export are in the git-ignored `assets/bigmoney/` and
 `re/bigmoney/`. Shared files changed for it, each small and self-contained so it merges with the
-code-mods branch and its move to the byo-pop layout:
+trunk (main):
 
 | File | Change |
 |---|---|

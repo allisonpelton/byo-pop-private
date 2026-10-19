@@ -1,0 +1,19 @@
+# Stage 5, run with -gameseed=4242 and mods/stage5/free: a kept swap is a move (moves.invalidCountsAsMove, the
+# default): the game has started, so the chosen seed is used up (games/bejeweled/docs/CODE_MODS_DESIGN.md 4.10)
+# and Timed asks first. Yes saves the normal game (v2); the timed board is on a per-game seed. There a kept swap
+# and a match; the quit saves the timed game over the normal one.
+300 click 320 398
+# (0,6)->(1,6): no match, kept: moves 1 invalid 1
+460 click 227 346
+461 click 278 346
+540 screenshot shots/k01_kept.png
+560 click 135 200
+570 screenshot shots/k02_confirm_timed.png
+580 click 338 169
+740 screenshot shots/k03_timed_pergame.png
+# the timed board: (0,7)->(1,7), no match, kept; then (4,2)->(3,2), a match
+760 click 227 397
+761 click 278 397
+850 click 431 142
+851 click 380 142
+1100 quit

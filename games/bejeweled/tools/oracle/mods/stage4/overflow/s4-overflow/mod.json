@@ -1,0 +1,7 @@
+{
+  "id": "s4-overflow",
+  "name": "Stage 4: scores past the int range",
+  "version": "1.0",
+  "description": "Oracle fixture: a tunable the mod path takes (setValues in the int range) whose points times the multiplier leave it: Board's (int) casts convert out of range. The native game gets INT_MIN (x86); the web build must too, so a replay recorded on one verifies on the other.",
+  "tunables": { "scoring": { "setValues": [2000000000] } }
+}

@@ -4,7 +4,7 @@
 // port(mods): Big Money's LiveSplit block, layout 1. A tagged, read-only block in the game's .data that the
 // auto splitter (games/bigmoney/tools/livesplit/BigMoneyDeluxe-byopop.asl) finds and reads from outside the
 // process; LiveSplitObserver.cpp fills it. It follows Bejeweled's block (games/bejeweled/src/LiveSplitBlock.h
-// on the code-mods trunk): the same magic and write protocol, and the same offsets for the fields both games
+// on the trunk): the same magic and write protocol, and the same offsets for the fields both games
 // have, with game id "BMDX" and Big Money's own fields where Bejeweled has its RulesId.
 //
 // Little-endian, naturally aligned, 0xB0 bytes:

@@ -36,6 +36,7 @@ ReplayRecorder::ReplayRecorder(WinDMApp* theApp, Board* theBoard)
 	mSaving = false;
 	mSaved = false;
 	mLoaded = false;
+	mContinued = false;
 	mWroteSidecar = false;
 	mLastState = theBoard->mState;
 	mMoves = 0;
@@ -351,9 +352,17 @@ void ReplayRecorder::OnLoad(const std::string& theSave, const Replay::File* theS
 	Add(Replay::OP_LOAD);
 	mLoaded = true;
 
-	// The sidecar continues: its segments come first, if it is a recording of the same rules
-	bool isContinued = (theSidecar != NULL) && !theSidecar->mSegments.empty() && theSidecar->mHasRulesId &&
-		(memcmp(theSidecar->mRulesId, mFile.mRulesId, Replay::RULES_ID_SIZE) == 0) && (theSidecar->mEngineAbi == mFile.mEngineAbi);
+	// The sidecar continues: its segments come first, if it is a recording of the same rules by this engine, or
+	// by an earlier one under the original rules, whose play no engine since has changed (the exemption
+	// Replay::CheckPlayable makes; the merged replay is this engine's), with room for one segment more (a reader
+	// takes at most Replay::MAX_SEGMENTS; else a fresh replay that holds the save)
+	bool isSameEngine = (theSidecar != NULL) && ((theSidecar->mEngineAbi == mFile.mEngineAbi) ||
+		(!mBoard->mRules.HasVariantRules() && (theSidecar->mEngineAbi >= (uint32_t) Replay::FIRST_ENGINE_ABI) &&
+		(theSidecar->mEngineAbi < (uint32_t) Replay::ENGINE_ABI)));
+	bool isContinued = isSameEngine && !theSidecar->mSegments.empty() && theSidecar->mHasRulesId &&
+		(memcmp(theSidecar->mRulesId, mFile.mRulesId, Replay::RULES_ID_SIZE) == 0) &&
+		(theSidecar->mSegments.size() < (size_t) Replay::MAX_SEGMENTS);
+	mContinued = isContinued;
 	if (isContinued)
 	{
 		mFile.mSegments = theSidecar->mSegments;
@@ -431,10 +440,11 @@ void ReplayRecorder::KeepSidecarGame(const std::string& theSidecar, const std::s
 	aFile.mHasSaveHash = false;
 	aFile.mHasMeta = true;
 	aFile.mMeta = Meta();
-	// Its mode: the save's (a v1 save has it right after its version: a LOAD may have changed the board's),
-	// else the last segment's
-	bool isV1 = (theSave.size() > 4) && (theSave.compare(0, 4, std::string("\1\0\0\0", 4)) == 0);
-	bool isTimed = isV1 ? (theSave[4] != 0) : (aFile.mSegments.back().mMode != 0);
+	// Its mode: the save's (a LOAD may have changed the board's; a v1 save has it right after its version, a v2
+	// save after its header), else the last segment's
+	bool isTimed = false;
+	if (!Replay::SaveIsTimed(theSave, &isTimed))
+		isTimed = (aFile.mSegments.back().mMode != 0);
 	WriteFinished(aFile, isTimed, false);
 }
 

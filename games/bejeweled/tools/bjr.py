@@ -9,10 +9,10 @@ for looking at a replay:
 read(data) returns a dict, or raises BjrError for anything that is not exactly a well-formed file (the same
 rules as Replay::Read: at most MAX_FILE_SIZE bytes, magic, format 1, records inside the file and in their order
 (RULE RLID META SESS, then per segment [LDSV] [RNGS] SEGM, then [RNGS] [SVHA] END, each at most once where it
-stands), payload sizes, known ops, varints of at most 10 bytes, at most MAX_EVENTS events, END reason 0..5,
-END present and last). Unknown record tags are skipped wherever they are. META is text decoded from UTF-8
-with surrogateescape: bytes that are not UTF-8 read (the game's reader keeps them too) and write back as they
-were. write(replay) makes the bytes of such a dict again (write(read(data)) == data for every file the game
+stands), payload sizes, known ops, varints of at most 10 bytes, at most MAX_EVENTS events and at most
+MAX_EVENTS_PER_TICK at one tick of a segment, at most MAX_SEGMENTS segments, END reason 0..5, END present and
+last). Unknown record tags are skipped wherever they are. META is text decoded from UTF-8 with surrogateescape:
+bytes that are not UTF-8 read (the game's reader keeps them too) and write back as they were. write(replay) makes the bytes of such a dict again (write(read(data)) == data for every file the game
 writes), for tests that change a replay.
 """
 
@@ -27,6 +27,10 @@ END_REASONS = {0: "abandoned", 1: "no moves", 2: "time up", 3: "new game", 4: "g
 MT_WORDS = 624
 MAX_FILE_SIZE = 16 * 1024 * 1024
 MAX_EVENTS = 4000000
+MAX_EVENTS_PER_TICK = 10000
+MAX_SEGMENTS = 1000
+ENGINE_ABI = 2          # Replay.h ENGINE_ABI, the engine this build plays (verify/run_tests.sh checks they agree)
+FIRST_ENGINE_ABI = 1    # Replay.h FIRST_ENGINE_ABI: the oldest engine whose replays of the original rules still play
 RNGS_SIZE = 4 + 1 + 1 + MT_WORDS * 4 + 4
 END_SIZE = 1 + 4 + 4 + 4 + 4 + 8 + 4
 
@@ -107,11 +111,16 @@ def read_segment(r, budget):
         raise BjrError("SEGM: %d events cannot fit in %d bytes" % (count, r.end - r.pos))
     if count > budget:
         raise BjrError("SEGM: %d events, more than the %d a replay may have" % (count, MAX_EVENTS))
-    events, tick = [], 0
+    events, tick, tick_start = [], 0, 0
     for i in range(count):
-        tick += r.varint("event")
+        delta = r.varint("event")
+        tick += delta
         if tick > 0xffffffff:
             raise BjrError("SEGM: event %d: tick past 2^32" % i)
+        if delta:
+            tick_start = i
+        if i - tick_start >= MAX_EVENTS_PER_TICK:
+            raise BjrError("SEGM: event %d: more than %d events at one tick" % (i, MAX_EVENTS_PER_TICK))
         op = r.u8("event")
         if op not in OPS:
             raise BjrError("SEGM: event %d: unknown op %d" % (i, op))
@@ -192,6 +201,8 @@ def read(data):
                 raise BjrError("RNGS: %d bytes, not %d" % (length, RNGS_SIZE))
             pending["loadRng"] = read_rng(r)
         elif tag == b"SEGM":
+            if len(out["segments"]) >= MAX_SEGMENTS:
+                raise BjrError("SEGM at byte %d: more than the %d segments a replay may have" % (start - 8, MAX_SEGMENTS))
             seg = read_segment(r, budget)
             budget -= len(seg["events"])
             seg.update(pending)

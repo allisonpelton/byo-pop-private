@@ -16,7 +16,9 @@ expect.txt.
                                             a copy of a replay with one thing broken, for the player's
                                             corrupt-replay cases: "check" (the first CHECK's hash), "select"
                                             (the first SELECT twice), "unpause" (the last UNPAUSE dropped),
-                                            "end" (END's score); prints what it changed
+                                            "end" (END's score); or "engine<N>": nothing broken, the file as
+                                            engine N would have written it (its engine ABI N); prints what it
+                                            changed
   compare.py compare <oracle dir> [<expect file>]
                                             compares every baseline side with candidate/ for every case
                                             in <oracle dir>/cases.txt, and checks the candidate against
@@ -25,6 +27,11 @@ expect.txt.
                                             rewrites the expect file's derived facts from the candidate
                                             runs (keeps its comments and "row" lines) and prints the diff.
                                             Only after checking that the change in behaviour is intended.
+                                            From the oracle of a BEJ_NO_VARIANTS candidate (exes.txt
+                                            candidate.variants=no) it writes only "<case>@novariants" facts:
+                                            those of the cases whose facts differ from the default build's
+                                            (the rule-mod cases that build plays as before stage 5); the
+                                            check takes them instead of <case>'s for such a candidate
   compare.py cache-key <run dir>            for compare.sh's run cache: the sha256 of the key text on
                                             stdin and the prepared run directory (paths and contents, the
                                             day fields of hiscores*.dat masked)
@@ -91,8 +98,10 @@ Cross-checks (cases.txt kinds; the case name gives the related case), all on can
   inert       a candidate-only run with mods that the baselines cannot read (cases.txt flags "ref=<case>"):
               stdout.txt (TRACE) and hash.txt must equal the candidate's <case>, so the mods changed nothing
               in play beyond what <case> does (stage 2: rules are not played, they only give each board its
-              own RNG, as <case>'s seeds.perGame feature does); its mods-status.json must exist and name
-              the RulesId that -dumprules (dumprules.txt) prints. With "boards=" flags, the seed checks too.
+              own RNG, as <case>'s seeds.perGame feature does; stage 5: their boards are variant boards, whose
+              "TRACE   variant" lines are left out, and they save v2, which hash.txt does not see); its
+              mods-status.json must exist and name the RulesId that -dumprules (dumprules.txt) prints. With
+              "boards=" flags, the seed checks too.
   repeat      <case>.repeat: the same run again must be identical (exit, logs, hash.txt, user dir, shots)
 Set seed (stage 2; the baselines do not know -gameseed, so candidate runs; cases.txt flags "k=v;k=v"):
   seeded      the boards of the run, from its TRACE lines and hash.txt (a board starts where hash.txt shows
@@ -142,6 +151,35 @@ Replays (stage 3; candidate runs, flags "k=v;k=v"):
               registry.ini, with TimesPlayed 0: watching saves, counts and records nothing ("user=" lists the
               files a script's own actions leave, such as hiscores.dat from Options -> High Scores). With
               "corrupt=", the line must say CORRUPT and contain that text
+The headless verifier (stage 4, games/bejeweled/docs/CODE_MODS_DESIGN.md 6.9; the cases come from
+games/bejeweled/tools/verify/oracle_cases.sh, which compare.sh sources):
+  verifier    <watch>.verify (flags "watch=<case>" and that case's flags, or "unplayable"): the native verifier
+              (native.txt) and the wasm verifier under Node (wasm.txt) played the watch case's replay.bjr with
+              -trace. Their REPLAY and TRACE lines must be the game's in <case>/stdout.txt (but the number in
+              "TRACE update N:", the app's update count) and each other's (the JSON result too), their JSON
+              result the game's verdict ("ok", "corrupt", or "unplayable" for "cannot play") with the game's
+              REPLAY line as its message, and their exit status 0 for ok, else 1: game, native verifier and wasm
+              verifier agree on TRACE, CHECK and END (9.1 item 6, the shim drift guard). With "verdict=ok" the
+              game's verdict must be ok too (a watch run that is no playback case: one without -codeccheck, whose
+              saves the save check of an LDSV refuses on purpose, such as a score past the int range)
+  wasmlogic   <case>.wasm (flags "ref=<case>"): the game's web build under Node (wasmrun.js game) ran <case>'s
+              switches and inputs: hash.txt's update, board state and LOGIC columns and stdout.txt identical to
+              the candidate's <case> (the FULL column, same platform only, is reported, not required)
+  difftest    bejeweled_verify difftest (report.txt, exit.txt): both modes' summaries say 0 differ (9.1 item 7)
+  verify_tests (kind lint) is games/bejeweled/tools/verify/run_tests.sh
+Allow invalid moves, the noMoves rule and the v2 save (stage 5; candidate runs with the rule mods of mods/stage5,
+left out for a candidate built without variant paths, BEJ_NO_VARIANTS; flags "k=v;k=v"):
+  variant     every settle has its "TRACE   variant moves M invalid I" line (a variant board); from one settle to
+              the next on the same board exactly one move happened: +1 move (a match), or +1 invalid and +1 move
+              (+0 with "countsasmove=0"), or nothing across a vortex, wipe or fall-out (hash.txt); a kept move
+              with no refill between is one swap of neighbours in the grid and scores nothing. "kept=N": at least
+              N such swaps. Settles without a move only with "continue=N": at least N that the same board goes
+              on from (noMoves "continue"). "log=<text>": a stderr line with it (a refused save logs
+              "savegame: ... not loaded: <why>"; without the flag no save may be refused). "nosave": no
+              savegame*.dat left. "v2" ("v2=last"): every savegame*.dat is a v2 save of the run's RulesId
+              (mods-status.json; with "last", its MOVE counts those of the last settle). "timesplayed=N": the
+              user dir's registry.ini has TimesPlayed N (game overs counted). "warn=<text>": a warning in
+              mods-status.json contains it. "boards=": the seed checks.
 Finished replays are named after the wall clock: compared and listed with replays/<yyyymmdd>-<hhmmss>- masked
 as replays/*- (normal_path), their contents without META's date (compare_bjr).
 Auto LiveSplit (stage 2b, games/bejeweled/docs/CODE_MODS_DESIGN.md 4.15; candidate runs):
@@ -174,6 +212,7 @@ assets/bejeweled/ or the mods, a script that no longer reaches its scenario). Fa
                                                   stage 3: user/savegame*.bjr and user/replays/*.bjr (bjr.py's
                                                   summary: END, segments, RNG, event counts; whether a sidecar
                                                   goes with its save)
+  variant <last counts, settles without a move>   stage 5: a run of variant boards ("TRACE   variant" lines)
   codec <summary>                                 the -codeccheck summary line
   watch <the REPLAY end line>                     playback: how the replay ended (-replay)
   end <the bot's last note>                       autoplay: how the game ended
@@ -200,7 +239,8 @@ import bjr  # noqa: E402  (games/bejeweled/tools/bjr.py: the .bjr reader)
 STATE_NAMES = ["falling", "playing", "swapping", "swapping back", "clearing", "game over", "game over done",
                "vortex", "level wipe", "fall out"]
 EVENT_STATES = {5: "game_over", 6: "game_over_done", 7: "vortex", 8: "level_wipe", 9: "fall_out"}
-REFILL_STATES = (0, 4, 8, 9)  # a board goes on falling, or refills, from these (UpdateClearing, FillBoard)
+REFILL_STATES = (0, 2, 4, 8, 9)  # a board goes on falling, or refills, from these (UpdateClearing, FillBoard; stage 5: a
+                                 # kept swap falls from swapping, Board::KeepInvalidMove)
 HOOK_FILES = ("hash.txt", "autoplay.txt")
 RUN_FILES = ("script.txt", "stdout.txt", "stderr.txt", "exit.txt", "modsdir-changed.txt", "retried.txt", "cached.txt")
 WALL_CLOCK = [(re.compile(r"Seconds = [0-9.e+-]+"), "Seconds = *"),
@@ -208,13 +248,15 @@ WALL_CLOCK = [(re.compile(r"Seconds = [0-9.e+-]+"), "Seconds = *"),
               (re.compile(r"(Update Count = -?[0-9]+, Draw Count = )[0-9]+"), r"\1*")]  # DRAWS: compare_log
 DRAW_LINE = re.compile(r"Seconds = ([0-9.e+-]+), Sleep Count = -?[0-9]+, Update Count = -?[0-9]+, Draw Count = ([0-9]+)")
 EXPECT_KINDS = ("script", "load", "quitcut", "inert", "autoplay", "seeded", "recording", "samestream", "reference",
-                "playback")
+                "playback", "variant")
 AUTO_KEYS = ("exit", "mods", "user", "settle", "settles", "last-settle", "states", "snap", "save", "sidecar", "replay",
-             "status", "seeds", "end", "codec", "watch")
+             "status", "seeds", "end", "codec", "watch", "variant")
+NOVARIANTS = "@novariants"  # expect.txt: "<case>@novariants" facts, a BEJ_NO_VARIANTS candidate's own (expect-update)
+VARIANT_LINE = "TRACE   variant "  # stage 5: a variant board's line in its settle blocks (moves, kept invalid moves)
 # A finished replay is named after the wall clock (<yyyymmdd>-<hhmmss>-<mode>-<score>...): the date and time are
 # masked wherever runs are compared or facts derived (normal_path)
 REPLAY_NAME = re.compile(r"(^|/)replays/\d{8}-\d{6}-")
-NO_RUN_KINDS = ("lint", "cli")  # checks that run no game
+NO_RUN_KINDS = ("lint", "cli", "verifier", "difftest")  # checks that run no game (of their own)
 LS_LOG_LINES = re.compile(r"^INFO: (livesplit|mods): |^INFO: game: .*\| mods: ")  # dropped from a livesplit run's stderr
 
 
@@ -263,15 +305,31 @@ def quit_cuts(src, outdir):
         print(name, update)
 
 
+SAVE_VERSION_VARIANT = 0x101  # the v2 save of a variant board (stage 5, CODE_MODS_DESIGN.md 7.2)
+
+
 def save_state(path):
-    """Header and state of a v1 savegame.dat (Board::WriteSaveGame), as a short text."""
+    """Header and state of a savegame (Board::WriteSaveGame), as a short text: a v1 save, or the v2 save of a
+    variant board (stage 5: its version 0x101 and header with the RulesId, size, level shape and mask before
+    the same fields, then its chunks, which the text names: the RNGS seed, the MOVE counts)."""
     try:
         with open(path, "rb") as f:
             b = f.read()
-        version, timed, level, display_level = struct.unpack_from("<iBii", b, 0)
-        o = 13
+        version, = struct.unpack_from("<i", b, 0)
+        o = 4
+        cols = rows = 8
+        variant = ""
+        if version == SAVE_VERSION_VARIANT:
+            rules = b[4:36].hex()[:16]
+            cols, rows, shape = struct.unpack_from("<HHi", b, 36)
+            mask = b[44:44 + (cols * rows + 7) // 8]
+            holes = sum(1 for i in range(cols * rows) if not (mask[i // 8] >> (i % 8)) & 1)
+            o = 44 + len(mask)
+            variant = "rules %s, %dx%d, level shape %d, %d holes" % (rules, cols, rows, shape, holes)
+        timed, level, display_level = struct.unpack_from("<Bii", b, o)
+        o += 9
         cells = 0
-        for _ in range(64):
+        for _ in range(cols * rows):
             present = b[o]
             o += 1
             if present:
@@ -280,9 +338,27 @@ def save_state(path):
         state, = struct.unpack_from("<i", b, o)
         _, is_new, bar, seconds, idle, score = struct.unpack_from("<BBiiii", b, o + 4)
         name = STATE_NAMES[state] if 0 <= state < len(STATE_NAMES) else "?"
-        return ("v%d %s level %d (shown %d), %d gems, state %d (%s), score %d, play seconds %d, %d bytes"
-                % (version, "timed" if timed else "normal", level, display_level, cells, state, name, score,
-                   seconds, len(b)))
+        text = ("v%s %s level %d (shown %d), %d gems, state %d (%s), score %d, play seconds %d, %d bytes"
+                % ("2" if version == SAVE_VERSION_VARIANT else str(version), "timed" if timed else "normal", level,
+                   display_level, cells, state, name, score, seconds, len(b)))
+        if version == SAVE_VERSION_VARIANT:
+            o += 116
+            chunks = []
+            while o + 8 <= len(b):
+                tag, size = b[o:o + 4], struct.unpack_from("<I", b, o + 4)[0]
+                payload = b[o + 8:o + 8 + size]
+                o += 8 + size
+                if tag == b"RNGS":
+                    seed, user = struct.unpack_from("<IB", payload, 0)
+                    chunks.append("RNGS seed %d%s" % (seed, " user" if user else ""))
+                elif tag == b"MOVE":
+                    chunks.append("MOVE moves %d invalid %d undos %d" % struct.unpack_from("<iii", payload, 0))
+                else:
+                    chunks.append(tag.decode("latin-1").strip())
+                if tag == b"END ":
+                    break
+            text += "; %s; %s%s" % (variant, ", ".join(chunks), "" if o == len(b) else ", %d bytes after" % (len(b) - o))
+        return text
     except (OSError, struct.error, IndexError) as e:
         return "unreadable (%s)" % e
 
@@ -677,6 +753,9 @@ def corrupt_replay(src, dst, kind):
     elif kind == "end":
         replay["end"]["score"] += 1
         what = "END score %d" % replay["end"]["score"]
+    elif re.match(r"engine\d+$", kind):
+        replay["engineAbi"] = int(kind[len("engine"):])
+        what = "engine ABI %d (was %d)" % (replay["engineAbi"], bjr.read(read_bytes(src))["engineAbi"])
     else:
         raise ValueError("unknown corruption " + kind)
     with open(dst, "wb") as f:
@@ -811,8 +890,9 @@ def trace_settles(stdout):
 
 def hash_board_starts(run):
     """The updates at which the run's hash.txt shows a new board: the state becomes falling (Board::Board
-    ends in FillBoard) straight from one no board refills from (REFILL_STATES): none, playing, swapping,
-    swapping back, game over (New Game), game over done (play again) or vortex. Empty without hash.txt."""
+    ends in FillBoard) straight from one no board refills from (REFILL_STATES): none, playing, swapping back,
+    game over (New Game), game over done (play again) or vortex. Not swapping (stage 5: a kept swap falls from
+    it); a board a mode switch makes mid-swap is told by its mode (trace_boards). Empty without hash.txt."""
     path = os.path.join(run, "hash.txt")
     starts = []
     last = -1
@@ -1463,6 +1543,9 @@ def derive_facts(run, kind, flags=""):
     status = mods_status(run)
     if status is not None:
         facts.append("status " + status_text(status))
+    variant = variant_fact(stdout)
+    if variant is not None:
+        facts.append("variant " + variant)
     seeds = seed_facts(run, flags)
     if seeds is not None:
         facts.append("seeds " + seeds)
@@ -1511,8 +1594,10 @@ def inert_check(r, ref, run, label):
         if not (os.path.exists(pa) and os.path.exists(pb)):
             r.fail("%s: %s missing: %s / %s" % (label, name, os.path.exists(pa), os.path.exists(pb)))
             continue
-        diff = first_list_diff([mask_wall_clock(x) for x in read_lines(pa)], [mask_wall_clock(x) for x in read_lines(pb)],
-                               label + ": " + name)
+        # stage 5: a board of rules is a variant board, whose settles add their variant line; the reference's
+        # boards have none
+        diff = first_list_diff([mask_wall_clock(x) for x in read_lines(pa)],
+                               [mask_wall_clock(x) for x in read_lines(pb) if not x.startswith(VARIANT_LINE)], label + ": " + name)
         if diff:
             r.fail(diff)
     status = mods_status(run)
@@ -1622,6 +1707,158 @@ def recording_check(r, ref, run, label):
     return r.failures == before
 
 
+def variant_settles(stdout):
+    """The settles of a -trace run with what stage 5 checks: update, mode, score, board tick, grid, seed, the
+    variant line's counts (None without one) and the number of move lines"""
+    settles = []
+    for line in stdout:
+        m = re.match(r"TRACE update (\d+): (\w+) level \d+ score (-?\d+) board tick (\d+)$", line)
+        if m:
+            settles.append({"update": int(m.group(1)), "mode": m.group(2), "score": int(m.group(3)), "tick": int(m.group(4)),
+                            "grid": [], "seed": None, "moves": None, "invalid": None, "found": 0})
+        elif settles and line.startswith("TRACE   row "):
+            settles[-1]["grid"].append([int(v) for v in line.split(":", 1)[1].split()])
+        elif settles and line.startswith("TRACE   seed "):
+            settles[-1]["seed"] = line[len("TRACE   seed "):]
+        elif settles and line.startswith(VARIANT_LINE):
+            m = re.match(r"TRACE   variant moves (-?\d+) invalid (-?\d+)$", line)
+            if m:
+                settles[-1]["moves"], settles[-1]["invalid"] = int(m.group(1)), int(m.group(2))
+        elif settles and line.startswith("TRACE   move "):
+            settles[-1]["found"] += 1
+    return settles
+
+
+def variant_fact(stdout):
+    """The "variant" fact (stage 5), None for a run without variant lines: the last variant line's counts and
+    how many settles had no move (a noMoves "continue" board)"""
+    settles = variant_settles(stdout)
+    last = [s for s in settles if s["moves"] is not None]
+    if not last:
+        return None
+    return "last moves %d invalid %d, %d of %d settles without a move" % (
+        last[-1]["moves"], last[-1]["invalid"], sum(1 for s in settles if s["found"] == 0), len(settles))
+
+
+def swapped_cells(a, b):
+    """The two cells two grids differ in when they are one swap of neighbours apart ([] for the same grid: two
+    neighbours of one colour swapped), else None"""
+    if len(a) != len(b) or any(len(x) != len(y) for x, y in zip(a, b)):
+        return None
+    cells = [(c, r) for r in range(len(a)) for c in range(len(a[r])) if a[r][c] != b[r][c]]
+    if not cells:
+        return cells
+    if len(cells) != 2:
+        return None
+    (c0, r0), (c1, r1) = cells
+    if abs(c0 - c1) + abs(r0 - r1) != 1 or a[r0][c0] != b[r1][c1] or a[r1][c1] != b[r0][c0]:
+        return None
+    return cells
+
+
+def variant_check(r, cand, run, flags, label):
+    """A run with stage-5 rules (module comment, "variant")"""
+    before = r.failures
+    f = parse_flags(flags)
+    stdout = run_stdout(run)
+    settles = variant_settles(stdout)
+    notes = []
+    if not settles:
+        r.fail("%s: no settles" % label)
+        return False
+    missing = [s["update"] for s in settles if s["moves"] is None]
+    if missing:
+        r.fail("%s: settles without a variant line (updates %s): not a variant board" % (label, missing[:5]))
+    # the states hash.txt shows between two settles: a vortex, wipe or fall-out refills the board without a move
+    states = []
+    hash_path = os.path.join(run, "hash.txt")
+    for line in (read_lines(hash_path) if os.path.exists(hash_path) else []):
+        parts = line.split()
+        if len(parts) >= 2:
+            states.append((int(parts[0]), int(parts[1])))
+    counts_as_move = f.get("countsasmove", "1") == "1"
+    kept = 0
+    for s0, s1 in zip(settles, settles[1:]):
+        same_board = s1["tick"] > s0["tick"] and s1["mode"] == s0["mode"] and s1["seed"] == s0["seed"]
+        if not same_board or s0["moves"] is None or s1["moves"] is None:
+            continue
+        refilled = any(s0["update"] < u <= s1["update"] and st in (7, 8, 9) for u, st in states)
+        dm, di = s1["moves"] - s0["moves"], s1["invalid"] - s0["invalid"]
+        allowed = [(1, 0), (1, 1) if counts_as_move else (0, 1)] + ([(0, 0)] if refilled else [])
+        if (dm, di) not in allowed:
+            r.fail("%s: from the settle of update %d to update %d the counts went %+d moves %+d invalid: not one move" %
+                   (label, s0["update"], s1["update"], dm, di))
+            break
+        if di == 1 and not refilled:
+            # a kept invalid move: one swap of neighbours, nothing else changed (no match, no refill)
+            cells = swapped_cells(s0["grid"], s1["grid"])
+            if cells is None:
+                r.fail("%s: the kept move between updates %d and %d is not one swap of neighbours" % (label, s0["update"], s1["update"]))
+                break
+            if s1["score"] > s0["score"]:
+                r.fail("%s: the kept move between updates %d and %d scored" % (label, s0["update"], s1["update"]))
+                break
+            kept += 1
+    if "kept" in f:
+        if kept < int(f["kept"]):
+            r.fail("%s: %d kept invalid moves seen as swaps, expected at least %s" % (label, kept, f["kept"]))
+        else:
+            notes.append("%d kept invalid moves, each one swap of neighbours" % kept)
+    nomove = [i for i, s in enumerate(settles) if s["found"] == 0]
+    if "continue" in f:
+        went_on = [i for i in nomove if i + 1 < len(settles) and settles[i + 1]["tick"] > settles[i]["tick"] and
+                   settles[i + 1]["seed"] == settles[i]["seed"]]
+        if len(went_on) < int(f["continue"]):
+            r.fail("%s: %d settles without a move that the game went on from, expected at least %s" % (label, len(went_on), f["continue"]))
+        else:
+            notes.append("%d settles without a move, the game went on from %d of them (noMoves \"continue\")" % (len(nomove), len(went_on)))
+    elif nomove:
+        r.fail("%s: settles without a move at updates %s, and this rule set does not continue" % (label, [settles[i]["update"] for i in nomove][:5]))
+    stderr = read_lines(os.path.join(run, "stderr.txt")) if os.path.exists(os.path.join(run, "stderr.txt")) else []
+    if "log" in f:
+        if not any(f["log"] in line for line in stderr):
+            r.fail("%s: stderr.txt has no line with \"%s\"" % (label, f["log"]))
+        else:
+            notes.append("logged \"%s\"" % f["log"])
+    elif any("not loaded:" in line for line in stderr):
+        r.fail("%s: a save was refused: %s" % (label, [line for line in stderr if "not loaded:" in line][0]))
+    saves = savegames(run)
+    if "nosave" in f and saves:
+        r.fail("%s: %s left, expected no save" % (label, saves))
+    if "timesplayed" in f:
+        registry_path = os.path.join(run, "user", "registry.ini")
+        registry = read_bytes(registry_path).decode("latin-1") if os.path.exists(registry_path) else ""
+        if ("TimesPlayed=dword:%s" % f["timesplayed"]) not in registry.splitlines():
+            r.fail("%s: registry.ini has %s, expected TimesPlayed %s" % (label, re.findall(r"TimesPlayed=\S*", registry) or "no TimesPlayed",
+                                                                        f["timesplayed"]))
+        else:
+            notes.append("TimesPlayed %s" % f["timesplayed"])
+    if "warn" in f:
+        warnings = [str(w.get("text", "")) for w in (mods_status(run) or {}).get("warnings", []) if isinstance(w, dict)]
+        if not any(f["warn"] in w for w in warnings):
+            r.fail("%s: no warning in mods-status.json contains \"%s\" (%s)" % (label, f["warn"], warnings))
+        else:
+            notes.append("warned \"%s\"" % f["warn"])
+    if "v2" in f:
+        status = mods_status(run) or {}
+        rules = str(status.get("rulesId", "?"))[:16]
+        last = settles[-1]
+        want = "MOVE moves %d invalid %d undos 0" % (last["moves"] or 0, last["invalid"] or 0)
+        for s in saves:
+            text = save_state(os.path.join(run, "user", s))
+            if not text.startswith("v2 ") or ("rules %s," % rules) not in text or (f["v2"] == "last" and want not in text):
+                r.fail("%s: %s: %s (expected a v2 save of rules %s%s)" % (label, s, text, rules, ", " + want if f["v2"] == "last" else ""))
+        if not saves:
+            r.fail("%s: no save" % label)
+        else:
+            notes.append("v2 saves of rules %s: %s" % (rules, ", ".join(saves)))
+    if "boards" in f:
+        seed_check(r, cand, run, flags, "seeds")
+    if r.failures == before:
+        r.out("    %s: %d settles, every one a variant board's, each step one move; %s" % (label, len(settles), "; ".join(notes) or "-"))
+    return r.failures == before
+
+
 def samestream_check(r, first, run, ref, label):
     """A seeded game played, quit and resumed (first: the session up to the quit; run: the session that resumed
     it) against the same moves played without the quit (ref): the settle blocks (rows, score, seed and moves;
@@ -1728,6 +1965,120 @@ def playback_check(r, cand, run, flags, label):
     return r.failures == before
 
 
+def verifier_lines(lines):
+    """The REPLAY and TRACE lines of a watch or a verifier run, with "TRACE update N:" (the app's count) masked"""
+    out = []
+    for line in lines:
+        if line.startswith("TRACE update "):
+            out.append(re.sub(r"^TRACE update \d+:", "TRACE update *:", line))
+        elif line.startswith(("TRACE", "REPLAY")):
+            out.append(line)
+    return out
+
+
+def first_difference(a, b):
+    """The index of the first line at which two lists differ (None when equal)"""
+    for i in range(max(len(a), len(b))):
+        if i >= len(a) or i >= len(b) or a[i] != b[i]:
+            return i
+    return None
+
+
+def verifier_check(r, cand, run, flags, label):
+    """Both verifiers against the game's watch of the same replay (the module comment, "verifier")"""
+    before = r.failures
+    f = parse_flags(flags)
+    game = verifier_lines(run_stdout(os.path.join(cand, f.get("watch", ""))))
+    ends = [line for line in game if line.startswith("REPLAY end: ") or ": cannot play: " in line]
+    if len(ends) != 1:
+        r.fail("%s: the game's watch %s has %d REPLAY end lines" % (label, f.get("watch", ""), len(ends)))
+        return False
+    verdict = "ok" if ends[0].startswith("REPLAY end: ok, ") else \
+        "corrupt" if ends[0].startswith("REPLAY end: CORRUPT ") else "unplayable"
+    if ("unplayable" in f) != (verdict == "unplayable"):
+        r.fail("%s: the game's verdict is %s: %s" % (label, verdict, ends[0]))
+    if "verdict" in f and f["verdict"] != verdict:
+        r.fail("%s: the game's verdict is %s, not %s: %s" % (label, verdict, f["verdict"], ends[0]))
+    results = {}
+    for side in ("native", "wasm"):
+        path = os.path.join(run, side + ".txt")
+        lines = read_lines(path) if os.path.exists(path) else []
+        exit_path = os.path.join(run, side + "-exit.txt")
+        status = read_bytes(exit_path).decode("latin-1").strip() if os.path.exists(exit_path) else "missing"
+        try:
+            result = json.loads(lines[-1]) if lines else None
+        except ValueError:
+            result = None
+        if not isinstance(result, dict):
+            r.fail("%s: the %s verifier printed no JSON result (exit %s)" % (label, side, status))
+            continue
+        got = verifier_lines(lines[:-1])
+        results[side] = (got, result, status)
+        at = first_difference(got, game)
+        if at is not None:
+            r.fail("%s: the %s verifier's %d REPLAY/TRACE lines are not the game's %d: line %d: %s / %s" % (
+                label, side, len(got), len(game), at + 1, got[at] if at < len(got) else "(none)",
+                game[at] if at < len(game) else "(none)"))
+        if result.get("result") != verdict or result.get("message") != ends[0]:
+            r.fail("%s: the %s verifier's result %s (%s), the game's %s" % (
+                label, side, result.get("result"), result.get("message"), verdict))
+        if status != ("0" if verdict == "ok" else "1"):
+            r.fail("%s: the %s verifier's exit status %s for %s" % (label, side, status, verdict))
+    if len(results) == 2 and results["native"][:2] != results["wasm"][:2]:
+        r.fail("%s: the native and the wasm verifier differ" % label)
+    if r.failures == before:
+        settles = sum(1 for line in game if line.startswith("TRACE update "))
+        r.out("    %s: the native and the wasm verifier print the game's %d REPLAY and TRACE lines (%d settles) and"
+              " its verdict: %s" % (label, len(game), settles, ends[0]))
+    return r.failures == before
+
+
+def wasmlogic_check(r, cand, run, flags, label):
+    """The web build under Node against the candidate's run of the same case (the module comment, "wasmlogic")"""
+    before = r.failures
+    ref = os.path.join(cand, parse_flags(flags).get("ref", ""))
+    hashes = []
+    for path in (os.path.join(ref, "hash.txt"), os.path.join(run, "hash.txt")):
+        hashes.append([line.split() for line in read_lines(path)] if os.path.exists(path) else [])
+    logic = [[" ".join(fields[:3]) for fields in h] for h in hashes]
+    at = first_difference(logic[0], logic[1])
+    if not logic[0] or at is not None:
+        r.fail("%s: hash.txt's LOGIC column: %d and %d updates, first difference at line %s: %s / %s" % (
+            label, len(logic[0]), len(logic[1]), "-" if at is None else at + 1,
+            logic[0][at] if at is not None and at < len(logic[0]) else "(none)",
+            logic[1][at] if at is not None and at < len(logic[1]) else "(none)"))
+    out_ref, out_run = run_stdout(ref), run_stdout(run)
+    at = first_difference(out_ref, out_run)
+    if at is not None:
+        r.fail("%s: stdout.txt (%d and %d lines) differs at line %d: %s / %s" % (
+            label, len(out_ref), len(out_run), at + 1, out_ref[at] if at < len(out_ref) else "(none)",
+            out_run[at] if at < len(out_run) else "(none)"))
+    if r.failures == before:
+        full = [[fields[3] if len(fields) > 3 else "" for fields in h] for h in hashes]
+        at = first_difference(full[0], full[1])
+        r.out("    %s: %d updates with the candidate's LOGIC hashes, its %d stdout lines (TRACE%s); the FULL hashes %s" % (
+            label, len(logic[0]), len(out_ref), ", REPLAY" if any(x.startswith("REPLAY") for x in out_ref) else "",
+            "too" if at is None else "differ from update %s (same platform only)" % hashes[0][at][0]))
+    return r.failures == before
+
+
+def difftest_check(r, run):
+    """bejeweled_verify difftest's report (the module comment, "difftest")"""
+    before = r.failures
+    exit_path = os.path.join(run, "exit.txt")
+    status = read_bytes(exit_path).decode("latin-1").strip() if os.path.exists(exit_path) else "missing"
+    report = os.path.join(run, "report.txt")
+    lines = read_lines(report) if os.path.exists(report) else []
+    for line in [line for line in lines if "DIFFERS" in line][:10]:
+        r.out("    " + line)
+    summaries = [line for line in lines if re.match(r"difftest (normal|timed): ", line)]
+    if status != "0" or len(summaries) != 2 or not all(", 0 differ;" in line for line in summaries):
+        r.fail("the difftest's exit status %s, %d mode summaries" % (status, len(summaries)))
+    for line in summaries:
+        r.out("    " + line)
+    return r.failures == before
+
+
 def read_expect(path):
     """({case: [(key, value)]}, header comment lines)."""
     expect, header = {}, []
@@ -1795,6 +2146,7 @@ def compare(oracle, expect_path=None):
     cand = os.path.join(oracle, "candidate")
     cases = read_cases(oracle)
     expect, _ = read_expect(expect_path)
+    novariants = info.get("candidate.variants") == "no"
 
     r = Report()
     for side in sides:
@@ -1844,6 +2196,8 @@ def compare(oracle, expect_path=None):
                 seed_check(r, cand, run, flags, "seeds")
         elif kind == "seeded":
             seed_check(r, cand, run, flags, "seeds")
+        elif kind == "variant":
+            variant_check(r, cand, run, flags, "variant")
         elif kind == "recording":
             recording_check(r, os.path.join(cand, f.get("ref", "")), run, "cross " + f.get("ref", ""))
             if "boards" in f:
@@ -1872,6 +2226,12 @@ def compare(oracle, expect_path=None):
             livesplit_check(r, oracle, os.path.join(cand, f.get("ref", "")), run, "cross " + f.get("ref", ""))
         elif kind == "cli":
             cli_check(r, run)
+        elif kind == "verifier":
+            verifier_check(r, cand, run, flags, "verifier")
+        elif kind == "wasmlogic":
+            wasmlogic_check(r, cand, run, flags, "wasm")
+        elif kind == "difftest":
+            difftest_check(r, run)
         elif kind == "nosave":
             parent = name[:-len(".nosave")]
             if same_run(r, os.path.join(cand, parent), run, "cross " + parent):
@@ -1918,8 +2278,12 @@ def compare(oracle, expect_path=None):
         if (kind not in NO_RUN_KINDS) and os.path.exists(os.path.join(run, "hash.txt")) != (kind != "plain"):
             r.fail("the candidate run %s hash.txt" % ("has a" if kind == "plain" else "has no"))
         if kind in EXPECT_KINDS and expect_path:
-            check_expect(r, run, kind, expect.get(name, []), flags)
-        if kind in ("script", "load", "inert", "autoplay", "seeded", "recording", "samestream", "reference"):
+            if novariants and (name + NOVARIANTS) in expect:
+                r.out("    expect: the facts of %s%s (a BEJ_NO_VARIANTS candidate)" % (name, NOVARIANTS))
+                check_expect(r, run, kind, expect[name + NOVARIANTS], flags)
+            else:
+                check_expect(r, run, kind, expect.get(name, []), flags)
+        if kind in ("script", "load", "inert", "autoplay", "seeded", "recording", "samestream", "reference", "variant"):
             for s in list_tree(os.path.join(run, "snaps"), lambda p: p.endswith(".dat")):
                 r.out("    snapshot %s: %s" % (s, save_state(os.path.join(run, "snaps", s))))
             for s in savegames(run):
@@ -1956,15 +2320,44 @@ DEFAULT_EXPECT_HEADER = [
 def expect_update(oracle, path):
     old, header = read_expect(path)
     lines = list(header or DEFAULT_EXPECT_HEADER)
-    for name, kind, _, flags in read_cases(oracle):
-        if kind not in EXPECT_KINDS:
-            continue
-        lines.append("")
-        for fact in derive_facts(os.path.join(oracle, "candidate", name), kind, flags):
-            lines.append("%s %s" % (name, fact))
-        for key, value in old.get(name, []):
-            if key == "row":
-                lines.append("%s row %s" % (name, value))
+    if read_kv(os.path.join(oracle, "exes.txt")).get("candidate.variants") == "no":
+        # A BEJ_NO_VARIANTS candidate: only its own facts, "<case>@novariants", for the cases whose facts differ
+        # from the default build's; the rest of the file stays as it is
+        own = {}
+        ran = set()
+        for name, kind, _, flags in read_cases(oracle):
+            if kind not in EXPECT_KINDS:
+                continue
+            ran.add(name)
+            facts = derive_facts(os.path.join(oracle, "candidate", name), kind, flags)
+            if facts != ["%s %s" % (k, v) for k, v in old.get(name, []) if k in AUTO_KEYS]:
+                own[name] = facts
+        for name, entries in old.items():
+            if name.endswith(NOVARIANTS):
+                base = name[:-len(NOVARIANTS)]
+                if base not in old and base not in ran and base not in own:
+                    lines.append("")
+                    lines.extend("%s %s %s" % (name, k, v) for k, v in entries)
+                continue
+            lines.append("")
+            lines.extend("%s %s %s" % (name, k, v) for k, v in entries)
+            if name in own:
+                lines.extend("%s%s %s" % (name, NOVARIANTS, fact) for fact in own[name])
+            elif name not in ran:
+                lines.extend("%s%s %s %s" % (name, NOVARIANTS, k, v) for k, v in old.get(name + NOVARIANTS, []))
+    else:
+        for name, kind, _, flags in read_cases(oracle):
+            if kind not in EXPECT_KINDS:
+                continue
+            lines.append("")
+            for fact in derive_facts(os.path.join(oracle, "candidate", name), kind, flags):
+                lines.append("%s %s" % (name, fact))
+            for key, value in old.get(name, []):
+                if key == "row":
+                    lines.append("%s row %s" % (name, value))
+            # a BEJ_NO_VARIANTS candidate's own facts for the case stay (expect-update from its oracle)
+            for key, value in old.get(name + NOVARIANTS, []):
+                lines.append("%s%s %s %s" % (name, NOVARIANTS, key, value))
     before = []
     if os.path.exists(path):
         before = read_lines(path)

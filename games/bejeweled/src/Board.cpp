@@ -441,7 +441,7 @@ bool Board::LoadGame()
 
 	int aVersion = 0;
 	aBuffer.ReadBytes((uchar*)&aVersion, 4);
-	if (aVersion != SAVEGAME_VERSION)
+	if (mVariant.mAny ? !ReadVariantHeader(aBuffer, aVersion) : (aVersion != SAVEGAME_VERSION)) // port(variant): was aVersion != SAVEGAME_VERSION; a variant board takes only the v2 save of its rules (BoardSave.cpp)
 		return false;
 
 	mApp->SetTimedMode(ReadSaveBool(aBuffer), false);
@@ -499,7 +499,7 @@ bool Board::LoadGame()
 	mLevelTextShown = ReadSaveBool(aBuffer);
 
 	mApp->mShowInstructions = false;
-	GameLoadedVariant(aBuffer); // port(variant): the RNG the sidecar kept, and the LOAD event (BoardVariant.cpp)
+	GameLoadedVariant(aBuffer); // port(variant): the RNG the v2 save or the sidecar kept, and the LOAD event (BoardVariant.cpp)
 	return true;
 }
 
@@ -541,12 +541,14 @@ void Board::SaveGameSnapshot(Buffer* theBuffer)
 }
 
 // Body of 0x4ccdfe: raw little-endian fields, no padding; a present cell is followed by the 0x78
-// Piece bytes
+// Piece bytes. port(variant): a variant board writes the v2 save, the same fields between its header and its
+// chunks (games/bejeweled/docs/CODE_MODS_DESIGN.md 7.2)
 void Board::WriteSaveGame(Buffer* theBuffer, int thePlaySeconds, int theState)
 {
 	Buffer& aBuffer = *theBuffer;
-	int aVersion = SAVEGAME_VERSION;
+	int aVersion = mVariant.mAny ? SAVEGAME_VERSION_VARIANT : SAVEGAME_VERSION; // port(variant): was SAVEGAME_VERSION
 	aBuffer.WriteBytes((const uchar*)&aVersion, 4);
+	if (mVariant.mAny) WriteVariantHeader(&aBuffer); // port(variant): the rules, the shape and its mask (BoardSave.cpp)
 	aBuffer.WriteBytes((const uchar*)&mTimedMode, 1);
 	aBuffer.WriteBytes((const uchar*)&mLevel, 4);
 	aBuffer.WriteBytes((const uchar*)&mDisplayLevel, 4);
@@ -589,6 +591,7 @@ void Board::WriteSaveGame(Buffer* theBuffer, int thePlaySeconds, int theState)
 	aBuffer.WriteBytes((const uchar*)&mBlackHoleFrame, 4);
 	aBuffer.WriteBytes((const uchar*)&mBlackHoleLevel, 8);
 	aBuffer.WriteBytes((const uchar*)&mLevelTextShown, 1);
+	if (mVariant.mAny) WriteVariantChunks(&aBuffer); // port(variant): RNGS, MOVE, END (BoardSave.cpp)
 }
 
 // 0x4cd130
@@ -802,6 +805,7 @@ void Board::UpdateFalling()
 
 			if (FindMove(NULL, 0, true, true))
 				mState = STATE_PLAYING;
+			else if (mVariant.mNoMoves) OnNoMovesVariant(); // port(variant): the noMoves rule decides (BoardVariant.cpp)
 			else if (mTimedMode)
 				mState = STATE_FALL_OUT;
 			else
@@ -860,9 +864,9 @@ void Board::UpdateSwap()
 				mApp->mShowInstructions = false;
 			}
 			mIsNewGame = false;
-			UsePendingSeed(); // port(variant): the game has started: it uses up a seed the player chose (BoardVariant.cpp)
+			OnMoveMade(); // port(variant): the game has started: the move counts, a seed the player chose is used up (BoardVariant.cpp)
 		}
-		else if (mState == STATE_SWAPPING)
+		else if ((mState == STATE_SWAPPING) && !mVariant.mInvalid) // port(variant): was (mState == STATE_SWAPPING)
 		{
 			// Swap back along the same circle. The second gem mirrors the first one's offsets, which
 			// is off by 1 px when the centre was rounded.
@@ -874,6 +878,7 @@ void Board::UpdateSwap()
 			mApp->PlaySample(SOUND_BAD);
 			mState = STATE_SWAPPING_BACK;
 		}
+		else if (mState == STATE_SWAPPING) KeepInvalidMove(); // port(variant): moves.allowInvalid: the swap stays (BoardVariant.cpp)
 		else
 		{
 			mSwapPiece1 = NULL;
@@ -1046,6 +1051,7 @@ void Board::Update()
 		mIdleTicks = 0;
 		mHintGlowDuration = 400;
 		mHintGlowTimer = 400;
+		if (NoHintVariant()) mHintGlowTimer = 0; // port(variant): no glow without a hint to give (a noMoves "continue" board, BoardVariant.cpp)
 	}
 
 	// The displayed score rolls toward the real one, faster the further behind it is (3, 2 or 1

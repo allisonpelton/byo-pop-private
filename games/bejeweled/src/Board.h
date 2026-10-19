@@ -68,7 +68,9 @@ inline constexpr int gMatchBaseScores[9] = {10, 20, 30, 40, 60, 80, 110, 160, 21
 
 // port(variant): which generalised code paths a board takes (games/bejeweled/docs/CODE_MODS_DESIGN.md 2.2).
 // Computed once by Board::InitVariant from the rules snapshot; every flag is false for the original rules
-// and for tunables-only mods. Nothing reads them yet: the variant paths arrive in later stages.
+// and for tunables-only mods. Read since stage 5: mAny (the v2 save, the variant trace line), mInvalid
+// (UpdateSwap keeps a swap that made no match) and mNoMoves (UpdateFalling's no-moves branch); the other
+// variant paths arrive in later stages.
 struct VariantFlags
 {
 	bool mAny = false;          // any rule differs from default: v2 save, variant trace lines
@@ -238,6 +240,11 @@ public:
 	// outside the BEJ_NO_VARIANTS parts, so that build counts GO like the others
 	uint32_t		mBoardSerial;           // 1, 2, ... per board made in this process (InitVariant)
 	bool			mResumed;               // the board resumed a saved game (GameLoadedVariant): its GO is not a run start
+	// Moves (stage 5, games/bejeweled/docs/CODE_MODS_DESIGN.md 4.1): counted on every board, saved (the v2 save's
+	// MOVE chunk), hashed (LOGIC) and traced only on a variant board
+	int				mMoveCount;             // moves that stood: swaps that made a match, kept invalid moves that count as moves (OnMoveMade)
+	int				mInvalidMoves;          // kept invalid moves (moves.allowInvalid, KeepInvalidMove)
+	int				mUndosUsed;             // undos taken (stage 6); 0 until then
 
 public:
 	int				GetColX(int theCol);                            // 0x4c9b25 theCol*51 + 203 (thiscall in the binary, this unused; port(variant): a member, + mLayout.mOriginX)
@@ -294,6 +301,16 @@ public:
 	void			InitVariant();                                  // first in the ctor: rules, layout, flags, RNG
 	static VariantFlags ComputeVariantFlags(const GameRules& theRules, const GameFeatures& theFeatures);
 	void			UsePendingSeed();                               // a matching swap or a game over of a board that holds the pending seed
+	void			OnMoveMade();                                   // a move stood (UpdateSwap's match, a kept invalid move): it counts, the pending seed is used up
+	void			KeepInvalidMove();                              // UpdateSwap: a swap that made no match stays (moves.allowInvalid, 4.1)
+	void			OnNoMovesVariant();                             // UpdateFalling: settled without a move, the noMoves rule decides (4.1)
+	bool			NoHintVariant();                                // a board playing without a move (noMoves "continue"): no hint, no hint glow
+	// The v2 save of a variant board (games/bejeweled/docs/CODE_MODS_DESIGN.md 7.2; BoardSave.cpp)
+	void			GetVariantSave(Replay::VariantSave* theSave);  // the header and chunk values of the board as it is
+	void			WriteVariantHeader(Buffer* theBuffer);          // WriteSaveGame, after the version: rules, shape, mask
+	void			WriteVariantChunks(Buffer* theBuffer);          // WriteSaveGame, after the v1 fields: RNGS, MOVE, END
+	bool			ReadVariantHeader(const Buffer& theBuffer, int theVersion); // LoadGame, after the version: the whole save checked first
+	void			ReadVariantChunks(const Buffer& theBuffer);    // GameLoadedVariant: the RNG and the MOVE counts the save holds
 	void			GameLoadedVariant(const Buffer& theSave);       // the end of a LoadGame that succeeded: the RNG from the sidecar, the LOAD event
 	bool			ReadSaveFile(Buffer* theBuffer);               // LoadGame's read: the save file, or in playback mPlaybackLoad
 	bool			WriteSaveFile(const Buffer& theBuffer);        // SaveGame's write: SAVE, the sidecar and the save file, or in playback mPlaybackSave

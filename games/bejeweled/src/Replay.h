@@ -43,14 +43,22 @@ namespace Replay
 enum
 {
 	FORMAT = 1,
-	ENGINE_ABI = 1,                 // bumped whenever variant simulation output changes (6.4)
+	// Bumped whenever variant simulation output changes (6.4). 2: stage 5, kept invalid moves, the noMoves rule,
+	// the v2 save and the variant boards' MOVE fields in the LOGIC hash. The original rules are frozen, so a
+	// replay of them from an earlier engine still plays (CheckPlayable). games/bejeweled/tools/bjr.py repeats both
+	// values (the verifier's tests check that they agree)
+	ENGINE_ABI = 2,
+	FIRST_ENGINE_ABI = 1,
 	MT_WORDS = 624,
 	RULES_ID_SIZE = 32,
 	MAX_ARGS = 5,
 	// What a reader takes on: Read refuses a larger file, or more events in all, before it allocates for them
-	// (a long game with the hover channel at one event per tick is about 2M events and 13 MB in 6 hours)
+	// (a long game with the hover channel at one event per tick is about 2M events and 13 MB in 6 hours), and
+	// more segments than MAX_SEGMENTS before it makes the next one (each holds two MT states, 5 KB, however
+	// small its record: a game gets one per resume, and the recorder starts a fresh replay before this many)
 	MAX_FILE_SIZE = 16 * 1024 * 1024,
-	MAX_EVENTS = 4000000
+	MAX_EVENTS = 4000000,
+	MAX_SEGMENTS = 1000
 };
 
 enum Flags
@@ -187,8 +195,12 @@ std::string			Write(const File& theFile);
 // Parses a whole file. False, with theError set, for anything that is not exactly a well-formed file:
 // more than MAX_FILE_SIZE bytes, a wrong magic or format, a record running past the end, a record out of
 // the order above or repeated, a payload of the wrong size, an unknown op, a varint over 10 bytes, an event
-// count the payload cannot hold or more than MAX_EVENTS events in all, an END reason other than 0..5, no END
-// or data after it. Never reads outside theBytes; what it allocates grows with the events it has parsed.
+// count the payload cannot hold or more than MAX_EVENTS events in all, more than MAX_EVENTS_PER_TICK events
+// at one tick of a segment (as they are parsed: CheckPlayable's bound, so a file that asks for more stops
+// early), more than MAX_SEGMENTS segments, an END reason other than 0..5, no END or data after it. Never reads
+// outside theBytes; it allocates for a segment's events once its payload has been found to hold that many
+// (sizeof(Event), 48 bytes, per 2 bytes of the file at most: 192 MB for MAX_EVENTS) and for each segment
+// as it comes (5 KB each, MAX_SEGMENTS at most).
 bool				Read(const std::string& theBytes, File* theFile, std::string* theError = NULL);
 
 // Building blocks, exposed for the tests
@@ -204,33 +216,89 @@ uint32_t			SaveHash(const void* theData, size_t theSize);
 int					CountMoves(const Segment& theSegment);
 
 // Whether the replay player of this build (WatchController, games/bejeweled/docs/CODE_MODS_DESIGN.md 6.8)
-// can start theFile on a theCols x theRows board: this engine's ABI and a RULE record; one segment at least;
+// can start theFile on a theCols x theRows board: this engine's ABI (any from FIRST_ENGINE_ABI for a replay of
+// the original rules, isOriginalRules: their simulation never changes) and a RULE record; one segment at least;
 // every segment in mode 0 or 1, from a seed other than 0 or a global-stream state, user-seeded only with a
 // seed; only the commands the original rules' game makes (no TWIST, SLIDE or UNDO yet), their arguments in
 // range (cells of the board, TARGET -1 -1, pause flags 0/1, 1..MAX_XRAND outside draws, save kinds, int
 // positions); in every segment after the first, and only with its RNGS (and in the first only with its
 // LDSV), one LOAD at tick 0, whose bytes are the segment's LDSV (a save CheckSave takes) or the SAVE that
-// ends the segment before; every segment another follows ending in a SAVE; no event after the END tick; no
-// CHECK at tick 0. Bounds on the work it can ask for: at most MAX_TICKS board ticks in all (each segment up
-// to its last event, the last one up to END), at most MAX_EVENTS_PER_TICK events at one tick of a segment,
-// at most MAX_XRAND outside draws in the whole file. The
+// ends the segment before; every segment another follows ending in a SAVE; SAVEs only at the segment's last
+// tick (the game saves as its board goes away: Shutdown and ~Board, a snapshot sidecar's SAVE after them), at
+// most MAX_SAVES_PER_SEGMENT of them; no event after the END tick; no CHECK at tick 0. Bounds on the work it
+// can ask for: at most MAX_TICKS board ticks in all (each segment up to its last event, the last one up to
+// END), at most MAX_EVENTS_PER_TICK events at one tick of a segment, at most MAX_XRAND outside draws in the
+// whole file, SAVEs (a save made and hashed, 40 us each) as above. The
 // RNG states themselves (MTRand refuses some) and everything that depends on play are checked while it
 // plays. False with theError set.
 enum
 {
 	MAX_XRAND = 1000000,            // outside draws, in one XRAND and in the whole file (real games: a few)
 	MAX_TICKS = 8640000,            // 24 hours of board ticks in all segments (the leaderboard's cap is 6 hours, 6.10)
-	MAX_EVENTS_PER_TICK = 10000     // events stamped with one tick (a paused board's tick holds them all)
+	MAX_EVENTS_PER_TICK = 10000,    // events stamped with one tick (a paused board's tick holds them all)
+	MAX_SAVES_PER_SEGMENT = 4       // the game makes 3 at most: Shutdown's, ~Board's, a snapshot sidecar's
 };
-bool				CheckPlayable(const File& theFile, int theCols, int theRows, std::string* theError = NULL);
+bool				CheckPlayable(const File& theFile, int theCols, int theRows, std::string* theError = NULL,
+						bool isOriginalRules = false);
 
 // Whether theSave is a save the original rules' LoadGame (Board.cpp, 0x4cca98) can take from an LDSV record
 // without trusting it: version 1, exactly the length its present cells make on a theCols x theRows board,
 // and every value inside what a game in progress can have, where the board draws, indexes or loops with it
 // (piece colour 0..6 and the cell it is in, the animation frames, bools 0 or 1, finite doubles, the state,
 // level, bar, vortex and wipe values). LoadGame takes any savegame.dat as the original does; a replay's
-// bytes come from someone else. False with theError set.
-bool				CheckSave(const std::string& theSave, int theCols, int theRows, std::string* theError = NULL);
+// bytes come from someone else. With theRulesId (the replay's RLID) a v2 save of those rules passes too
+// (stage 5, below): its header names them and the board's shape (a full theCols x theRows board, level shape
+// 0), the same fields follow, then its chunks (ReadVariantSave; the MOVE counts not below 0). Which of the two
+// a board takes is LoadGame's to say: a variant board only v2, any other only v1. False with theError set.
+bool				CheckSave(const std::string& theSave, int theCols, int theRows, std::string* theError = NULL,
+						const uint8_t* theRulesId = NULL);
+
+// The v2 save of a variant board (games/bejeweled/docs/CODE_MODS_DESIGN.md 7.2; Board::WriteSaveGame and
+// Board::LoadGame, the board's part in BoardSave.cpp), little-endian:
+//   u32 version 0x101, u8 rulesId[32], u16 cols, u16 rows, i32 levelShape, u8 mask[(cols * rows + 7) / 8] (bit i,
+//   least significant first in each byte: cell (i % cols, i / cols) is playable), then the v1 field sequence
+//   from mTimedMode on (Board.cpp), its cells over rows x cols (a hole absent), then chunks { u32 tag (4 ASCII
+//   bytes in file order), u32 len, data } up to END (len 0), which ends the file; a reader skips unknown tags:
+//     RNGS  the RNG the game goes on with, as the replay's RNGS record (u32 seed, 0: the global stream; u8
+//           userSeeded, u8 ranked, 624 x u32 mt, i32 mti)
+//     MOVE  i32 moves, i32 invalidMoves, i32 undosUsed
+//   Later stages add KIND, GOLD, GTIM (7.2), DIRT and GRAV.
+// A v1 save (version 1) has the v1 field sequence right after its version.
+enum
+{
+	SAVE_VERSION = 1,
+	SAVE_VERSION_VARIANT = 0x101,
+	SAVE_HEAD_SIZE = 9,         // the v1 fields before the cells: mTimedMode, mLevel, mDisplayLevel
+	SAVE_TAIL_SIZE = 116        // the v1 fields after the cells, mState to mLevelTextShown
+};
+
+struct VariantSave
+{
+	uint8_t			mRulesId[RULES_ID_SIZE] = {};
+	int				mCols = 0;
+	int				mRows = 0;
+	int32_t			mLevelShape = 0;            // index into the rules' board.levels (0 without levels)
+	std::vector<bool> mPlayable;                // mCols * mRows, row-major: a cell, not a hole
+	RngState		mRng;                       // RNGS
+	int32_t			mMoves = 0;                 // MOVE
+	int32_t			mInvalidMoves = 0;
+	int32_t			mUndosUsed = 0;
+	size_t			mBodyStart = 0;             // ReadVariantSave: where the v1 field sequence starts (mTimedMode)
+	size_t			mBodyEnd = 0;               // and where the chunks start
+};
+
+// The bytes after the version up to the v1 field sequence, and the chunks after it (RNGS, MOVE, END)
+std::string			VariantSaveHeader(const VariantSave& theSave);
+std::string			VariantSaveChunks(const VariantSave& theSave);
+
+// Splits a whole v2 save into its header, its v1 field sequence (walked by the present bytes: the cells it
+// holds and where it ends) and its chunks. False with theError set for anything else: not version 0x101, a
+// size outside 3..16, a hole with a gem, a part cut short, a known chunk of the wrong size or twice, no RNGS
+// or no MOVE, no END, or data after it. The values themselves are not checked (CheckSave does).
+bool				ReadVariantSave(const std::string& theSave, VariantSave* theOut, std::string* theError = NULL);
+
+// Whether a save (v1 or v2) is of a timed game: its mTimedMode byte. False when it is neither.
+bool				SaveIsTimed(const std::string& theSave, bool* isTimed);
 
 }
 
