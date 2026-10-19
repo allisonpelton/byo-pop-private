@@ -35,6 +35,8 @@ images/gemsheet6@4x.png file, so the gems show whatever other gem-sheet mod is e
             each (180 degrees per cycle; every solid here is symmetric under that half turn, so the
             loop is seamless);
   glow row: the rest pose with an extra light circling the gem (24 degrees per frame, one turn).
+Unless --no-title is given, a second @4x patch ("over", with alpha) draws the same gems over the five
+gems of the title picture (images/titlescreen6; see TITLE_GEMS).
 """
 import argparse
 import itertools
@@ -71,6 +73,20 @@ def rot_y(deg):
     t = math.radians(deg)
     c, s = math.cos(t), math.sin(t)
     return np.array([[c, 0, s], [0, 1, 0], [-s, 0, c]])
+
+
+def rot_x(deg):
+    """Positive: the top turns toward the viewer."""
+    t = math.radians(deg)
+    c, s = math.cos(t), math.sin(t)
+    return np.array([[1, 0, 0], [0, c, -s], [0, s, c]])
+
+
+def rot_z(deg):
+    """Positive: counter-clockwise on screen."""
+    t = math.radians(deg)
+    c, s = math.cos(t), math.sin(t)
+    return np.array([[c, -s, 0], [s, c, 0], [0, 0, 1]])
 
 
 # --- geometry ----------------------------------------------------------------------------------------
@@ -133,6 +149,32 @@ def hull_planes(points):
             seen.add(key)
             out.append((n, float(dd)))
     return out
+
+
+def support_planes(points, count):
+    """Half-spaces around a dense point sample of a smooth convex solid: for `count` directions spread
+    evenly over the sphere (plus the axes and the diagonals of the xy plane), the plane touching the
+    points from outside. Returns the planes and the touching points (the solid's vertices for its
+    silhouettes). The points must look the same after a half turn about the vertical axis,
+    (x, y, z) -> (-x, y, -z). The directions are a spiral over the front half (z > 0) plus its half
+    turn, and the touching points come with their half turns too (ties on flat parts pick any one), so
+    the back is exactly the front turned and the spin loop is seamless (180 degrees looks like 0)."""
+    half = count // 2
+    k = np.arange(half) + 0.5
+    z = 1 - k / half
+    phi = k * math.pi * (3 - math.sqrt(5))
+    r = np.sqrt(1 - z * z)
+    front = np.stack([r * np.cos(phi), r * np.sin(phi), z], 1)
+    dirs = [front, front * [-1.0, 1.0, -1.0]]
+    dirs.append(np.array([(1, 0, 0), (-1, 0, 0), (0, 1, 0), (0, -1, 0), (0, 0, 1), (0, 0, -1)], dtype=np.float64))
+    dirs.append(unit(np.array([(1, 1, 0), (1, -1, 0), (-1, 1, 0), (-1, -1, 0)], dtype=np.float64)))
+    dirs = np.concatenate(dirs)
+    p = np.asarray(points, dtype=np.float64)
+    s = p @ dirs.T
+    top = s.argmax(0)
+    planes = [(n, float(dd)) for n, dd in zip(dirs, s[top, np.arange(len(dirs))])]
+    touch = p[np.unique(top)]
+    return planes, np.unique(np.concatenate([touch, touch * [-1.0, 1.0, -1.0]]), axis=0)
 
 
 def solid_vertices(n, d):
@@ -220,7 +262,8 @@ class Gem:
         self.name = name
         self.n = np.array([p[0] for p in planes])
         self.d = np.array([p[1] for p in planes])
-        self.verts = solid_vertices(self.n, self.d)
+        verts = kw.pop("verts", None)                   # given for solids of many planes (support_planes)
+        self.verts = solid_vertices(self.n, self.d) if verts is None else np.asarray(verts, dtype=np.float64)
         self.ramp = ramp
         self.r0 = kw.pop("r0", np.eye(3))       # rest orientation (applied before the spin)
         self.bend = kw.pop("bend", None)
@@ -409,61 +452,107 @@ def cushion_normals(gem, xm, face, nf):
     return unit(np.stack([sgn * gx * np.sin(th), gy * np.sin(th), sgn * np.cos(th)], axis=1))
 
 
-def red_shade(gem, n, xm, xh):
-    """The red's own shading, straight in colour-ramp units (0 = the dark floor ... 1 = the highlight):
-    a look-up by the view-space normal (tilt th from the view axis, screen azimuth ph) plus a soft
-    gradient across the screen. a = +1 for surfaces facing upper-left ... -1 lower-right; b = +-1 for
-    upper-right / lower-left. Terms (keys of the gem's `look`):
+def red_shade(gem, n, nm, xm):
+    """The red's own shading, straight in colour-ramp units (0 = the dark floor ... 1 = the highlight).
+    The terms look up the view-space normal n (tilt th from the view axis, screen azimuth ph); some are
+    limited to parts of the cut by the face tilt thf, the tilt of the model-space normal nm from the axis
+    of its own table (the back is the front turned half a turn): the tables are thf = 0, the girdle band
+    90. At rest th = thf on the front. a = +1 for normals toward the upper-left ... -1 lower-right;
+    b = +-1 for upper-right / lower-left. Terms (keys of the gem's `look`):
       table          level of front-facing surfaces;
-      grad           (kx, ky, r): the front brightens toward the left and the top of the screen;
+      grad           (kx, ky, r): the tables brighten toward their left and top edges (at the hit point
+                     xm, model space; the back's left is the front's right);
       streak         a hard bright band where a surface facing upper-left is tilted about th_s;
-      ul_dark        upper-left surfaces fall to the floor as they steepen (the dark top/left rim);
+      sheen          (k, w, m0, m1): a broad glossy band where the bevels and the girdle face the eye
+                     (view tilt within about w, face tilt m0..m1): the capsule look of the half turn;
+      ul_dark        (k, t0, t1, t2): surfaces facing upper-left fall to the floor as they steepen
+                     from t0 to t1 (the dark top/left rim); only the bevels (not the tables, which
+                     face sideways in the half turn, nor the girdle band, t2 .. 90);
       lr_facet       a lift for gently tilted lower-right surfaces (the lit lower-right corner facet);
       lr_line        a dip where the right and bottom bevels leave the table (a dark edge line);
       diag           gently tilted surfaces facing upper-right / lower-left read dark (corner facets);
       rim            everything darkens toward the silhouette;
       cap            the brightest value (a flat, pale plateau rather than white)."""
     L = gem.p["look"]
-    th = np.degrees(np.arccos(np.clip(n[:, 2], -1, 1)))
-    ph = np.radians(np.degrees(np.arctan2(n[:, 1] + 0.0, n[:, 0] + 0.0)) - 135.0)
-    # the azimuth means nothing on surfaces facing the eye: fade the direction-dependent terms in
-    w = smoothstep(0.5, 4.0, th)
-    a, b = np.cos(ph) * w, np.sin(ph) * w
-    front = 1 - smoothstep(4, 20, th)
+
+    def tilt_dir(v):
+        th = np.degrees(np.arccos(np.clip(v[:, 2], -1, 1)))
+        ph = np.radians(np.degrees(np.arctan2(v[:, 1] + 0.0, v[:, 0] + 0.0)) - 135.0)
+        # the azimuth means nothing on surfaces facing straight out: fade the direction terms in
+        w = smoothstep(0.5, 4.0, th)
+        return th, np.cos(ph) * w, np.sin(ph) * w
+
+    th, a, b = tilt_dir(n)
+    f = np.where((nm[:, 2] < 0)[:, None], nm * [-1.0, 1.0, -1.0], nm)
+    thf = tilt_dir(f)[0]
+    table = 1 - smoothstep(4, 20, thf)
+    fx = np.where(nm[:, 2] < 0, -xm[:, 0], xm[:, 0])
     gx, gy, gr = L["grad"]
-    i = L["table"] + (gx * np.clip(-xh[:, 0] / gr, -1, 1) + gy * np.clip(xh[:, 1] / gr, -1, 1)) * front
+    i = L["table"] + (gx * np.clip(-fx / gr, -1, 1) + gy * np.clip(xm[:, 1] / gr, -1, 1)) * table
+    # the terms for the bevels and corner facets leave the flat tables alone, which turn through their
+    # tilts in the half turn
+    facet = smoothstep(0.5, 2.0, thf)
     sk, ts, sw = L["streak"]
-    i += sk * np.exp(-0.5 * ((th - ts) / sw) ** 2) * smoothstep(-0.1, 0.7, a)
-    dk, d0, d1 = L["ul_dark"]
-    i -= dk * smoothstep(d0, d1, th) * smoothstep(-0.4, 0.5, a)
+    i += sk * np.exp(-0.5 * ((th - ts) / sw) ** 2) * smoothstep(-0.1, 0.7, a) * facet
+    hk, hw, h0, h1 = L["sheen"]
+    i += hk * np.exp(-0.5 * (th / hw) ** 2) * smoothstep(h0, h1, thf)
+    dk, d0, d1, d2 = L["ul_dark"]
+    bevel = smoothstep(8.0, 18.0, thf) * (1 - smoothstep(d2, 90.0, thf))
+    i -= dk * smoothstep(d0, d1, th) * smoothstep(-0.4, 0.5, a) * bevel
     fk, ft, fw = L["lr_facet"]
-    i += fk * np.exp(-0.5 * ((th - ft) / fw) ** 2) * smoothstep(-0.85, -0.97, a)
+    i += fk * np.exp(-0.5 * ((th - ft) / fw) ** 2) * smoothstep(-0.85, -0.97, a) * facet
     ek, et, ew = L["lr_line"]
-    i -= ek * np.exp(-0.5 * ((th - et) / ew) ** 2) * smoothstep(-0.3, -0.6, a) * (1 - smoothstep(-0.85, -0.97, a))
+    i -= (ek * np.exp(-0.5 * ((th - et) / ew) ** 2) * smoothstep(-0.3, -0.6, a)
+          * (1 - smoothstep(-0.85, -0.97, a)) * facet)
     ck, cp, c0, c1 = L["diag"]
-    i -= ck * np.abs(b) ** cp * smoothstep(c0, c1, th) * (1 - smoothstep(30, 50, th))
+    i -= ck * np.abs(b) ** cp * smoothstep(c0, c1, th) * (1 - smoothstep(30, 50, th)) * facet
     rk, r0, r1 = L["rim"]
     i -= rk * smoothstep(r0, r1, th)
     return np.minimum(i, L["cap"])
 
 
-def gem_red():
+def loft_points(W, C, rings, count=720):
+    """Outline curves of a cushion built as the convex hull of horizontal rings (a loft): ring
+    (z, inset, a, p) is the square outline of half-width W with chamfered corners (C), moved `inset`
+    inwards, and cut by the superellipse |x/a|^p + |y/a|^p = 1 (a = 0: no cut), which rounds it. The
+    back mirrors the front. The hull of all rings is the solid (support_planes)."""
+    phi = np.linspace(0, 2 * math.pi, count, endpoint=False)
+    c, s = np.cos(phi), np.sin(phi)
+    # edges of the outline: distance from the centre and direction of the outward normal
+    edges = [(W, k * 90.0) for k in range(4)] + [((2 * W - C) / math.sqrt(2), 45.0 + k * 90.0) for k in range(4)]
+    pts = []
+    for z, inset, a, p in rings:
+        r = np.full(count, np.inf)
+        for dist, ang in edges:
+            cosd = np.cos(phi - math.radians(ang))
+            r = np.where(cosd > 1e-9, np.minimum(r, (dist - inset) / np.maximum(cosd, 1e-9)), r)
+        if a > 0:
+            r = np.minimum(r, a / (np.abs(c) ** p + np.abs(s) ** p) ** (1 / p))
+        for zz in {z, -z}:
+            pts.append(np.stack([r * c, r * s, np.full(count, zz)], 1))
+    return np.concatenate(pts)
+
+
+# the red's loft (z, inset, superellipse a, p): the girdle outline (frame 0's silhouette), its top edge
+# with rounded corners, a rounder mid-bevel ring and the table, a rounded square of half-width 20
+RED_LOFT = ((0.0, 0.0, 0.0, 2.0), (8.0, 0.5, 35.0, 4.0), (17.0, 7.5, 29.0, 3.0), (24.0, 14.0, 21.0, 3.0))
+
+
+def gem_red(rings=RED_LOFT):
     """Thick square cushion with chamfered corners: crescent bevels around a pinched table, corner facets
-    (pale upper-left, dark upper-right and lower-left, light lower-right). Its own shading (red_shade)."""
+    (pale upper-left, dark upper-right and lower-left, light lower-right). Its own shading (red_shade).
+    The solid is a loft of rounded rings (loft_points: the outline at the girdle, rounder squares up to
+    the table), so the half turn shows round, capsule-like silhouettes; the crescents and corner facets
+    are in the shading normals (cushion_normals)."""
     W, c = 34.0, 6.0
-    dg = (2 * W - c) / math.sqrt(2)
-    planes = ring(4, 0, 90, W, 0) + ring(4, 45, 90, dg, 0)
-    # the solid (silhouettes): a straight bevel from the girdle edge (W, 10) to the table edge (0.6 W, 24),
-    # which gives the narrow, octagonal side views; the shading normals round it (cushion_normals)
-    tilt = math.degrees(math.atan2(14.0, 0.4 * W))
-    crown = ring(4, 0, tilt, W, 10.0) + ring(4, 45, tilt, dg, 10.0) + [plane((0, 0, 1), (0, 0, 24.0))]
-    planes += both_sides(crown)
+    planes, verts = support_planes(loft_points(W, c, rings), 900)
     ramp = ramp8([(152, 0, 0), (178, 11, 11), (234, 36, 36), (254, 78, 78), (254, 124, 124),
                   (254, 169, 169), (254, 189, 189), (254, 241, 241)])
-    look = dict(table=0.61, grad=(0.18, 0.08, 20.0), streak=(0.40, 8.0, 5.0), ul_dark=(0.62, 22.0, 55.0),
-                lr_facet=(0.22, 13.0, 6.0), lr_line=(0.25, 7.0, 4.0),
+    look = dict(table=0.61, grad=(0.18, 0.08, 20.0), streak=(0.40, 8.0, 5.0), sheen=(0.3, 14.0, 30.0, 50.0),
+                ul_dark=(0.62, 22.0, 55.0, 72.0), lr_facet=(0.22, 13.0, 6.0), lr_line=(0.25, 7.0, 4.0),
                 diag=(0.42, 4, 4.0, 10.0), rim=(0.6, 45.0, 80.0), cap=0.97)
-    return Gem("red", planes, ramp, normal_fn=cushion_normals, shade_fn=red_shade, look=look, tone=0.0,
+    return Gem("red", planes, ramp, verts=verts, normal_fn=cushion_normals, shade_fn=red_shade, look=look,
+               tone=0.0,
                # rims 16 (top, left) / 12 (bottom, right) wide at mid-side, 7 at the corners, chamfer rims 6;
                # table corner cut |x| + |y| = 28, corner facets drop 6 (exponent 1.3)
                cushion=(16.0, 12.0, 7.0, 1.5, 2.0, 28.0, 6.0, 1.3, 6.0))
@@ -566,18 +655,24 @@ def project(gem, rot):
     return hull2d(v[:, :2] * s[:, None])
 
 
-def bbox_centre(gem, spin=0.0):
-    h = project(gem, rot_y(spin) @ gem.r0)
+def orientation(gem, spin=0.0, pose=None):
+    """Model-to-view rotation: the rest orientation, the spin about the vertical axis, then `pose`."""
+    rot = rot_y(spin) @ gem.r0
+    return rot if pose is None else pose @ rot
+
+
+def bbox_centre(gem, spin=0.0, pose=None):
+    h = project(gem, orientation(gem, spin, pose))
     return (h[:, 0].min() + h[:, 0].max()) / 2, (h[:, 1].min() + h[:, 1].max()) / 2
 
 
-def render(gem, spin, size, unit_px, origin, ss=SS, glow=None):
+def render(gem, spin, size, unit_px, origin, ss=SS, glow=None, pose=None):
     """Render `gem` turned `spin` degrees about the vertical axis into a (size x size) RGBA float image
     (straight alpha). unit_px: output pixels per model unit. origin: output pixel position (x right,
     y down, continuous) of the model's image-plane point (0, 0). glow: azimuth (degrees, 90 = from the
-    top, counter-clockwise) of the extra hover light, or None."""
+    top, counter-clockwise) of the extra hover light, or None. pose: a further rotation (view space)."""
     p = gem.p
-    rot = rot_y(spin) @ gem.r0
+    rot = orientation(gem, spin, pose)
     nv = gem.n @ rot.T
     d = gem.d
     hull = project(gem, rot)
@@ -607,14 +702,21 @@ def render(gem, spin, size, unit_px, origin, ss=SS, glow=None):
 
     eye = np.array([0.0, 0.0, EYE])
     dirs = unit(np.stack([sx, sy, np.full_like(sx, -EYE)], 1))
-    denom = dirs @ nv.T
     num = d - nv @ eye
-    with np.errstate(divide="ignore", invalid="ignore"):
-        t = num / denom
-    t_in = np.where(denom < 0, t, -np.inf)
-    face = t_in.argmax(1)
-    t_hit = t_in.max(1)
-    t_out = np.where(denom > 0, t, np.inf).min(1)
+    face = np.zeros(len(sx), dtype=int)
+    t_hit = np.full(len(sx), -np.inf)
+    t_out = np.full(len(sx), np.inf)
+    rays = np.nonzero(inside)[0]
+    step = max(1, 4000000 // len(d))          # rays per chunk (solids of many planes)
+    for c0 in range(0, len(rays), step):
+        r = rays[c0:c0 + step]
+        denom = dirs[r] @ nv.T
+        with np.errstate(divide="ignore", invalid="ignore"):
+            t = num / denom
+        t_in = np.where(denom < 0, t, -np.inf)
+        face[r] = t_in.argmax(1)
+        t_hit[r] = t_in.max(1)
+        t_out[r] = np.where(denom > 0, t, np.inf).min(1)
     hit = inside & (t_hit < t_out) & np.isfinite(t_hit)
 
     rgb = np.zeros((len(sx), 3))
@@ -624,7 +726,8 @@ def render(gem, spin, size, unit_px, origin, ss=SS, glow=None):
         xh = eye + t_hit[h, None] * dh
         fh = face[h]
         xm = xh @ rot                       # back to model space
-        n = gem.shading_normals(xm, fh) @ rot.T
+        nm = gem.shading_normals(xm, fh)      # model space
+        n = nm @ rot.T
         v = -dh
         ndv = np.clip((n * v).sum(1), 0.0, 1.0)
         refl = 2 * ndv[:, None] * n - v
@@ -633,7 +736,7 @@ def render(gem, spin, size, unit_px, origin, ss=SS, glow=None):
         limb = np.clip((limb_n * v).sum(1), 0.0, 1.0) ** p["limb"]
         key = unit(p["key"]) if p["key"] is not None else KEY
         if p["shade_fn"] is not None:
-            inten = p["shade_fn"](gem, n, xm, xh)
+            inten = p["shade_fn"](gem, n, nm, xm)
         else:
             inten = (p["amb"] + p["kd1"] * np.clip(n @ key, 0, None) ** p["q1"] * limb
                      + p["kd2"] * np.clip(n @ FILL, 0, None) ** p["q2"] + bands_at(p["bands"], refl))
@@ -740,20 +843,124 @@ def box_down(img, k):
     return to_image(downsample(a, k))
 
 
+# --- title screen -------------------------------------------------------------------------------------
+# The title picture (images/titlescreen6, 640 x 480) has five Bejeweled Deluxe gems under the logo: blue,
+# green, purple, orange and red, each with a soft glow. The title patch draws the new gems over them, at
+# their places and sizes, on a backdrop of the slate background and new glows; the patch fades out
+# around the gems (alpha), so the old gems are covered and the picture continues around them. Nothing
+# is read from the picture: places, sizes and colours below are hand-set constants (each gem's
+# bounding box matches the old gem's outline, glows excluded).
+TITLE_TARGET = "images/titlescreen6"
+TITLE_RECT = (160, 146, 292, 120)        # x, y, width, height of the patch (title pixels)
+# back to front: colour index, centre of the bounding box (title pixels), title pixels per model unit,
+# spin, tilt (top toward the viewer) and roll (counter-clockwise), degrees
+TITLE_GEMS = (
+    (2, (211.0, 204.5), 0.93, 0.0, 0.0, 0.0),     # blue brilliant
+    (6, (261.5, 219.0), 0.90, 0.0, 0.0, 0.0),     # green octagon
+    (5, (357.5, 219.5), 1.06, 0.0, 0.0, 0.0),     # orange d20
+    (3, (402.75, 199.5), 0.915, 0.0, 0.0, 0.0),   # red cushion
+    (4, (310.0, 188.5), 0.97, 0.0, 0.0, 0.0),     # purple triangle
+)
+TITLE_STONE = (46, 52, 66)               # the slate background (its mean colour) ...
+TITLE_NOISE = 1.5                        # ... and its grain (standard deviation, levels)
+# glows, at d title pixels outside a gem: a wide warm haze (colour TITLE_HAZE), the gem's colour and a
+# white rim, each k * exp(-d / s), given as (k, s) pairs
+TITLE_HAZE = (1.0, 0.2, 0.0)
+TITLE_GLOW = ((0.15, 10.0), (0.25, 6.0), (0.3, 2.0))
+TITLE_COVER = (3.0, 7.0)                 # the patch is opaque up to 3 px outside the gems, gone at 10
+TITLE_TOP = (147.0, 152.0)               # ... and fades out from y = 152 up to 147 (the logo's shadow)
+
+
+def polygon_distance(poly, X, Y):
+    """Signed distance (positive outside, mitred corners) from points X, Y to a convex polygon."""
+    c = poly.mean(0)
+    out = np.full(X.shape, -np.inf)
+    for p0, p1 in zip(poly, np.roll(poly, -1, axis=0)):
+        n = np.array([p1[1] - p0[1], p0[0] - p1[0]])
+        ln = np.linalg.norm(n)
+        if ln < 1e-9:
+            continue
+        n /= ln
+        if n @ (c - p0) > 0:
+            n = -n
+        out = np.maximum(out, (X - p0[0]) * n[0] + (Y - p0[1]) * n[1])
+    return out
+
+
+def render_title(scale=SCALE, ss=SS, log=None):
+    """The title patch: an RGBA image of TITLE_RECT at `scale` (see TITLE_TARGET)."""
+    gems = all_gems()
+    x0, y0, w, h = TITLE_RECT
+    pw, ph = w * scale, h * scale
+    X, Y = np.meshgrid(x0 + (np.arange(pw) + 0.5) / scale, y0 + (np.arange(ph) + 0.5) / scale)
+    rng = np.random.default_rng(1)
+    grain = rng.normal(0.0, TITLE_NOISE / 255.0, (h, w)).astype(np.float32)
+    grain = np.asarray(Image.fromarray(grain, "F").resize((pw, ph), Image.BILINEAR), dtype=np.float64)
+    rgb = np.array(TITLE_STONE, dtype=np.float64)[None, None, :] / 255.0 + grain[..., None]
+    (kh, sh), (kc, sc), (kw, sw) = TITLE_GLOW
+    haze = np.array(TITLE_HAZE)
+    near = np.full(X.shape, np.inf)
+    layers = []
+    for ci, (cx, cy), upx, spin, tilt, roll in TITLE_GEMS:
+        gem = gems[ci]
+        pose = rot_z(roll) @ rot_x(tilt)
+        hull = project(gem, orientation(gem, spin, pose))
+        bx, by = (hull.min(0) + hull.max(0)) / 2
+        ox, oy = cx - bx * upx, cy + by * upx                  # title position of the model's origin
+        dist = polygon_distance(np.stack([ox + hull[:, 0] * upx, oy - hull[:, 1] * upx], 1), X, Y)
+        near = np.minimum(near, dist)
+        out = np.clip(dist, 0, None)
+        tint = ramp_colour(gem.ramp, np.array(0.75))
+        rgb += ((kh * np.exp(-out / sh))[..., None] * haze + (kc * np.exp(-out / sc))[..., None] * tint
+                + (kw * np.exp(-out / sw))[..., None])
+        # the gem itself, rendered into a square tile around its origin
+        size = int(math.ceil(np.abs(hull).max() * 2 * upx * scale)) + 8
+        opx, opy = (ox - x0) * scale, (oy - y0) * scale
+        tx, ty = int(math.floor(opx - size / 2)), int(math.floor(opy - size / 2))
+        layers.append((render(gem, spin, size, upx * scale, (opx - tx, opy - ty), ss=ss, pose=pose), tx, ty))
+        if log:
+            log(f"  title {gem.name}")
+    rgb = np.clip(rgb, 0, 1)
+    for img, tx, ty in layers:
+        # paste the tile, clipped to the patch
+        sx0, sy0 = max(0, -tx), max(0, -ty)
+        dx0, dy0 = max(0, tx), max(0, ty)
+        cw, chh = min(img.shape[1] - sx0, pw - dx0), min(img.shape[0] - sy0, ph - dy0)
+        if cw <= 0 or chh <= 0:
+            continue
+        src = img[sy0:sy0 + chh, sx0:sx0 + cw]
+        dst = rgb[dy0:dy0 + chh, dx0:dx0 + cw]
+        dst[:] = dst * (1 - src[..., 3:4]) + src[..., :3] * src[..., 3:4]
+    m0, m1 = TITLE_COVER
+    cover = (1 - smoothstep(m0, m0 + m1, near)) * smoothstep(*TITLE_TOP, Y)
+    return to_image(np.dstack([rgb, cover]))
+
+
 def main():
     here = os.path.dirname(os.path.abspath(__file__))
     ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     ap.add_argument("--out", default=os.path.join(here, "..", "mods"))
+    ap.add_argument("--no-title", action="store_true", help="leave the title screen's gems as they are")
     ap.add_argument("--preview", help="also write a preview PNG (the sheet on a dark background, @4x and 1x)")
     args = ap.parse_args()
     mod = os.path.join(os.path.abspath(args.out), "bejeweled2-gems")
     patch_rel = "patches/bej2-gems@4x.png"
+    title_rel = "patches/bej2-title@4x.png"
     print("rendering")
     sheet = make_sheet(log=print)
     assert sheet.size == (FRAMES * CELL * SCALE, 14 * CELL * SCALE)
     path = os.path.join(mod, *patch_rel.split("/"))
     os.makedirs(os.path.dirname(path), exist_ok=True)
     sheet.save(path, optimize=True)
+    patches = [{"target": "images/gemsheet6", "image": patch_rel, "x": 0, "y": 0, "mode": "replace"}]
+    title_path = os.path.join(mod, *title_rel.split("/"))
+    if args.no_title:
+        if os.path.exists(title_path):
+            os.remove(title_path)
+    else:
+        render_title(log=print).save(title_path, optimize=True)
+        patches.append({"target": TITLE_TARGET, "image": title_rel, "x": TITLE_RECT[0], "y": TITLE_RECT[1],
+                        "mode": "over"})
     with open(os.path.join(mod, "mod.json"), "w", encoding="utf-8") as f:
         json.dump({
             "id": "bejeweled2-gems",
@@ -762,10 +969,9 @@ def main():
             "author": "byo-pop",
             "description": "The seven gems redrawn after Bejeweled 2 (new procedural art, close recreations): "
                            "lemon step cut, white football, azure brilliant, coral cushion, magenta triangle, "
-                           "orange d20 and green truncated octahedron. HD (@4x); spin and hover animations.",
-            "imagePatches": [
-                {"target": "images/gemsheet6", "image": patch_rel, "x": 0, "y": 0, "mode": "replace"}
-            ],
+                           "orange d20 and green truncated octahedron. HD (@4x); spin and hover animations"
+                           + ("." if args.no_title else "; the same gems on the title screen."),
+            "imagePatches": patches,
         }, f, indent=2)
         f.write("\n")
     print(f"wrote {mod}")
