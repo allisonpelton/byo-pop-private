@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
-"""Carve the real game executable out of PopCap's DRM wrapper (WinBej.exe).
+"""Carve the real game executable out of PopCap's DRM wrapper (WinBej.exe) or CD-protect launcher.
 
 The Steam build of Bejeweled Deluxe appends the unencrypted game PE after a `!popcapdrmprotect!`
-marker. This writes it to re/bejeweled/bin/BejeweledGame.exe for analysis in Ghidra.
+marker. This writes it to re/bejeweled/bin/BejeweledGame.exe for analysis in Ghidra. PopCap's retail
+"CDProtect" launcher (BookWorm Deluxe 1.03's Bookworm.exe, Bejeweled Twist retail) appends it the same
+way after `!popcapcdprotect!`.
 
     python tools/extract_game_exe.py ["A:/.../Bejeweled Deluxe/WinBej.exe"]
                                      [-o re/bejeweled/bin/BejeweledGame.exe]
@@ -12,7 +14,7 @@ import os
 import struct
 import sys
 
-MARKER = b"!popcapdrmprotect!"
+MARKERS = (b"!popcapdrmprotect!", b"!popcapcdprotect!")
 DEFAULT = r"A:\SteamLibrary\steamapps\common\Bejeweled Deluxe\WinBej.exe"
 
 
@@ -41,8 +43,10 @@ def main():
 
     data = open(args.wrapper, "rb").read()
     overlay = pe_end(data, 0)
-    if data[overlay:overlay + len(MARKER)] != MARKER:
-        sys.exit(f"no {MARKER!r} marker at overlay offset {overlay:#x}; not a PopCap DRM wrapper?")
+    marker = next((m for m in MARKERS if data[overlay:overlay + len(m)] == m), None)
+    if marker is None:
+        sys.exit(f"no {' or '.join(repr(m) for m in MARKERS)} marker at overlay offset {overlay:#x}; "
+                 "not a PopCap DRM wrapper?")
     start = data.find(b"MZ", overlay)
     if start < 0:
         sys.exit("no embedded PE found after the marker")

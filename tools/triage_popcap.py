@@ -14,7 +14,7 @@ import re
 import struct
 import sys
 
-MARKER = b"!popcapdrmprotect!"
+MARKERS = (b"!popcapdrmprotect!", b"!popcapcdprotect!")  # DRM wrapper, retail CDProtect launcher
 PAK_MAGIC = bytes(b ^ 0xF7 for b in b"\xc0\x4a\xc0\xba")  # PopCap pak header 0xBAC04AC0 XOR 0xF7
 
 
@@ -63,7 +63,7 @@ def triage_exe(path):
         return info
     info["outer"] = outer
     blob = data
-    m = data.find(MARKER)
+    m = max(data.find(marker) for marker in MARKERS)
     if m >= 0:
         inner_start = data.find(b"MZ", m)
         inner = pe_info(data, inner_start) if inner_start >= 0 else None
