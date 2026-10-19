@@ -50,13 +50,13 @@ public:
 		const SexyString& theDialogHeader, const SexyString& theDialogLines, const SexyString& theDialogFooter,
 		int theButtonMode);
 
-	virtual void	ButtonPress(int theId);
-	virtual void	ButtonDepress(int theId);
-	virtual void	ButtonDownTick(int theId);
+	virtual void	ButtonPress(int theId) override;
+	virtual void	ButtonDepress(int theId) override;
+	virtual void	ButtonDownTick(int theId) override;
 	// The 2004 layout wraps mDialogLines with the 2004 word wrap (WriteWordWrapped2004); otherwise the same
 	// as the port's (no grey fallback box: every 2004 dialog has a component image)
-	virtual void	Draw(Graphics* g);
-	virtual int		GetPreferredHeight(int theWidth);
+	virtual void	Draw(Graphics* g) override;
+	virtual int		GetPreferredHeight(int theWidth) override;
 
 	using Dialog::ButtonPress;
 };
@@ -68,8 +68,8 @@ class Slider2004 : public Slider
 public:
 	Slider2004(Image* theTrackImage, Image* theThumbImage, int theId, SliderListener* theListener);
 
-	virtual void	SetValue(double theValue);
-	virtual void	MouseDown(int x, int y, int theClickCount);
+	virtual void	SetValue(double theValue) override;
+	virtual void	MouseDown(int x, int y, int theClickCount) override;
 	using Slider::MouseDown;
 };
 

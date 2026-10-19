@@ -2939,8 +2939,8 @@ address | callees.md name | verdict
   toupper, length >= 3 kept); Board 0040abd0 inserts into a set<string> too. Ordering is std::less<string>
   (unsigned byte compare, then length): identical to libc++.
 - `std::multiset<HighScoreEntry, Pred>` x4 in BookWormApp: three with **ByScore** (+0x117c, +0x1188,
-  +0x1194) and one with **ByWordLength** (+0x11a0); default tables built by 00418bd0 ("DESIGN",
-  "Dan'sMom"...) with `if (size < N && find(e) == end()) insert(e)`, N = 10 for +0x117c and +0x1188, 3 for
+  +0x1194) and one with **ByWordLength** (+0x11a0); default tables built by 00418bd0 (the
+  default names and scores, BookWorm's `GT_HS_NAME_*` texts) with `if (size < N && find(e) == end()) insert(e)`, N = 10 for +0x117c and +0x1188, 3 for
   +0x1194 and for the ByWordLength table +0x11a0. HighScoreEntry (name invented) is 0x40 bytes: `std::string name` +0, `std::string word` +0x1c, `int score` +0x38, `bool` +0x3c.
   The predicates are game code, taking both entries BY VALUE (hence the copy-ctor/dtor pairs around every
   comparison): ByScore 004115d0 = `a.score != b.score ? a.score > b.score : strcmp(a.word, b.word) < 0`;
@@ -3535,14 +3535,14 @@ generation links: `Dialog2004`, `Slider2004`, `WriteString2004` / `WriteWordWrap
 | 3 | WidgetManager records the tick of the last mouse-down (WM+0x168, GetTickCount(), 0 before the first press); Lex's idle animation compares it with GetTickCount() | no such field | framework addition `WidgetManager::mLastMouseDownTick`, set in MouseDown from `SexyAppBase::GetClockTime()`; the game compares it with GetClockTime() and treats 0 as "never pressed" (the original's GetTickCount() is milliseconds since boot, so it reads as idle until the first press) | 3 (D2) |
 | 4 | Slider: clicking the track does not move the thumb; SetValue does not clamp | 1.3 jumps to the click | game shim: Slider subclass whose MouseDown ignores track clicks | 3 (D4) |
 | 5 | Widgets without a font fall back to `SysFont("SansSerif", ...)` | no SysFont | none for BookWorm (it sets every font); a translation must keep every SetFont call | 3 (D5), 5 |
-| 6 | Text layout (WriteString, WriteWordWrapped, GetWordWrappedHeight, WriteCenteredLine) are Widget virtuals taking a Graphics*; WriteWordWrapped keeps extra spaces after a wrap and adds no height for a trailing newline | Graphics methods, 1.3 wrapping | translate to the Graphics methods with the justification the binary passes; a game-side 2004 wrapping helper only for texts that hit the difference | 3 (D11), 5 |
-| 7 | `MTRand::SRand` uses SAF 1.2 seeding (`mt[i] = mt[i-1] * 69069`) | 1.3 seeding | game shim: seed the game's own MTRand objects the 1.2 way (as Big Money's `SeedMTRand12`); CRT `rand()` reproduced with MSVC's LCG | 7.1 |
+| 6 | Text layout (WriteString, WriteWordWrapped, GetWordWrappedHeight, WriteCenteredLine) are Widget virtuals taking a Graphics*; WriteWordWrapped keeps extra spaces after a wrap and adds no height for a trailing newline | Graphics methods, 1.3 wrapping | game shim: `WriteString2004` / `WriteWordWrapped2004` / `GetWordWrappedHeight2004` for every Widget text write (BookWorm routes all of them through it; 41 of its word definitions have double spaces, so the difference shows) | 3 (D11), 5 |
+| 7 | `MTRand::SRand` uses SAF 1.2 seeding (`mt[i] = mt[i-1] * 69069`) | 1.3 seeding | game shim: `SeedMTRand2004` seeds the game's own MTRand objects the 1.2 way (Big Money has its own `SeedMTRand12`); `CrtRand` / `CrtSRand` reproduce MSVC's CRT `rand()` | 7.1 |
 | 8 | Music: BASS 2.0 MO3 by order position; the game's UpdateFrames calls the music Update twice per tick (fades at double speed); BASS sets the module global volume to the full volume (1.2: 0.4x) | libopenmpt for MO3 (`platform/openmpt`), SDLMusicInterface | translate the double Update literally; set the music interface's maximum volume as the game does; calibrate loudness by ear | 6 |
 | 9 | Sounds: `cached_<name>.wav` decode cache, then .wav/.ogg/.au; a failed load ends Init | Mixer decodes .ogg/.au/.wav | never write a cache; keep the game's failure check | 6 |
 | 10 | Cursor ids 0-5 (5 = none); custom image cursors only with "CustomCursors" | CURSOR_* enum | map id 5 to CURSOR_NONE | 4 |
 | 11 | Command line: unknown switches pop up an error and exit | port test switches (-seed, -script, -fast) | do not translate the base HandleCmdLineParam | 4 |
 | 12 | Timing: 100 updates/s; backlog clamp 1000 ms; Windows idle "screen saver" freeze; losing focus mutes; the loading thread is a real thread; game clocks read GetTickCount() | 100 Hz, 200 ms clamp, synchronous loading; GetTickCount()/timeGetTime() are real time even under -fast, `SexyAppBase::GetClockTime()` is the clock -fast advances | keep the port's loop; mute on focus loss as the game does; game timing that must repeat in scripted -fast runs (level clocks, idle timers) reads GetClockTime() | 4 |
-| 13 | Online code: HTTPTransfer (used by the Hall of Fame), InternetManager (update check, ads), registration, BetaSupport, SEH reporting, demo record/playback | none | game shim: an HTTPTransfer stand-in that never connects; drop the rest (partner.xml already selects the offline, registered paths) | 4, 7.1 |
+| 13 | Online code: HTTPTransfer (used by the Hall of Fame), InternetManager (update check, ads), registration, BetaSupport, SEH reporting, demo record/playback | none | none: the online code is not ported (BookWorm's Hall of Fame drops its HTTPTransfer use); drop the rest too (partner.xml already selects the offline, registered paths) | 4, 7.1 |
 | 14 | Folded getters: one function serves Image::GetWidth, Font::GetAscent and Color::GetGreen (and similar) | separate methods | read by the object's type when translating | 5, 7.1 |
 | 15 | `DrawImageRotated(int ...)` rotates about integer centres | int and float overloads | use the port's int overload | 5 |
 | 16 | Image loading: `GetImage(file)` tries .tga/.jpg/.png/.gif, alpha masks `_name` and `name_` (blue channel) | `platform/ImageLoader` does the same | none | 5 |
@@ -3578,8 +3578,6 @@ generation links: `Dialog2004`, `Slider2004`, `WriteString2004` / `WriteWordWrap
 - DDImage +0x50/+0x52 names (mNoLock / mFirstPixelTrans) are inferred from 1.2 code shape.
 - 0044c520 (BltRotatedClipHelper), 0044a990/0044a9f0 (FRect helpers), 00441800 (PurgeBits-like),
   004911e0/004913c0 (image writers) are named from call shape only.
-- Whether any BookWorm wrapped text actually hits the 2004 space-skipping difference (needs a check of
-  the texts passed to Widget slot 37, e.g. help pages and dialogs).
 - FontData::Popup on descriptor errors goes through app slot 21; confirm with the app group that slot
   21 is `Popup(const std::string&)`.
 - Color::Black's address was not located (no reference in linked code).
@@ -3613,4 +3611,5 @@ Steps for the next 2004 game:
    (BookWorm's export is named from `games/bookworm/docs/symbols/`).
 3. Compare the vtable sizes with section 2 and the field stores in the constructors with the field tables
    here; record the differences in that game's notes.
-4. Reuse BookWorm's game shims (section 8) through their shared home once they move there.
+4. Link `sexycompat2004` (`framework/compat2004`, section 8) and check each shim's addresses against the new
+   binary.
