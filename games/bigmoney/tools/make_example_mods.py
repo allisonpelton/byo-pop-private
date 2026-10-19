@@ -17,6 +17,13 @@ Creates, in games/bigmoney/mods/:
                                 of the game screens (156x76)
       properties/fakemoney.xml  the 27 rank titles of the stats panel (gRankNames, same score thresholds)
                                 and the texts that name the game
+  small-change/ "Small Change": an easier game through "tunables" (games/bigmoney/src/ModRules.h): three
+                coin colours from the start, groups of two, a smaller money meter, slower minting, at most
+                six bags a level
+  high-roller/  "High Roller": a harder game for bigger scores: five colours from the start, faster
+                minting, a bigger meter, at least two bags a level, and a doubled score multiplier with
+                more points for big groups
+A mod with tunables keeps its own high-score tables and save, so these never mix with the normal game's.
 
 The coin rows keep the game's colours (red, blue, yellow, green, purple), so groups read the same; each
 gets a symbol in the spirit of a cryptocurrency mark, drawn from simple shapes: a tilted B with bars (red
@@ -509,12 +516,56 @@ def make_fake_money(mods_dir):
     print("wrote", out_dir)
 
 
+# Gameplay examples: only a mod.json each
+TUNABLE_MODS = [
+    {
+        "id": "small-change",
+        "name": "Small Change",
+        "description": "An easier game: three coin colours from the start, groups of two, a smaller money meter, "
+                       "slower minting and at most six bags a level. Keeps its own high scores.",
+        "tunables": {
+            "coins": {"colors": 3, "fewerOnFirstLevel": False},
+            "groups": {"minSize": 2},
+            "meter": {"capacityBase": 200, "capacityPerLevel": 10},
+            "minting": {"speedBase": 0.0018, "speedPerLevel": 0.0007, "perClickBase": 0.18},
+            "bags": {"max": 6},
+        },
+    },
+    {
+        "id": "high-roller",
+        "name": "High Roller",
+        "description": "A harder game for bigger scores: five coin colours from the start, faster minting, a "
+                       "bigger money meter, at least two bags a level, a doubled score multiplier and more "
+                       "points for big groups. Keeps its own high scores.",
+        "tunables": {
+            "coins": {"colors": 5, "fewerOnFirstLevel": False},
+            "minting": {"speedBase": 0.0035, "speedPerLevel": 0.0012, "perClickBase": 0.3},
+            "meter": {"capacityBase": 400, "capacityPerLevel": 30},
+            "bags": {"min": 2},
+            "scoring": {"multBase": 1.0, "multPerLevel": 0.2, "groupPointsStep": 40},
+        },
+    },
+]
+
+
+def make_tunable_mods(mods_dir):
+    for mod in TUNABLE_MODS:
+        out_dir = os.path.join(mods_dir, mod["id"])
+        os.makedirs(out_dir, exist_ok=True)
+        manifest = {"id": mod["id"], "name": mod["name"], "version": "1.0", "author": "byo-pop examples",
+                    "description": mod["description"], "tunables": mod["tunables"]}
+        with open(os.path.join(out_dir, "mod.json"), "w", encoding="utf-8", newline="\n") as f:
+            f.write(json.dumps(manifest, indent=2) + "\n")
+        print("wrote", out_dir)
+
+
 def main():
     here = os.path.dirname(os.path.abspath(__file__))
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("--out", default=os.path.join(here, "..", "mods"), help="mods folder")
     args = ap.parse_args()
     make_fake_money(os.path.abspath(args.out))
+    make_tunable_mods(os.path.abspath(args.out))
 
 
 if __name__ == "__main__":

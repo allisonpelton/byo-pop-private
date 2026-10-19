@@ -110,6 +110,28 @@ Big Money uses the shared mod system (`platform/ModManager.h`).
 - **Music.** The music is one module, `music/QualityTime_BigMoney.it`, whose songs start at set order
   positions. A mod can replace the whole module with one that has the same layout. Replacing a single
   song would need the shared mixer to remap per order position (not yet).
+- **Gameplay settings.** A mod.json `"tunables"` object can change:
+  - minting speed (Action) and rows per click (Strategy);
+  - the money meter's size and drain;
+  - the number of coin colours;
+  - the smallest clickable group;
+  - bags per level;
+  - the score multiplier and the points for each group size;
+  - how many levels ahead Normal and Hard start.
+
+  `src/ModRules.h` lists every key with the original's value and its allowed range. A mod with tunables
+  keeps its own high-score tables and save (`hiscores-<key>.dat`, `savegame-<key>.dat`), so its scores
+  never mix with the normal game's. Without tunables the game plays exactly as before: the screenshot
+  regression and autoplay input logs in all three modes are unchanged.
+- **Set seed.** `-gameseed=N` (native) or `?seed=N` (web), with N from 1 to 4294967295. Every new game
+  gets the seed until one is played on it (its first valid click or its game over).
+  - In a seeded game, every random choice that shapes the board comes from the seed's own generator:
+    new coins, bag columns, puzzles and dollar bombs. Effects draw from a second generator.
+  - So the first level always starts the same, and in Strategy and Puzzle the same clicks give the same
+    game. Action mints in real time, so there it depends on timing as well.
+  - Seeded games keep their own high-score tables (`hiscores-seeded.dat`).
+  - A seeded save ends in an 8-byte trailer, which the original's reader ignores, so the game stays
+    seeded when resumed. Unseeded saves are unchanged.
 
 Example mods (`games/bigmoney/mods/`):
 - **`fake-money/`: "Fake Money! Deluxe".**
@@ -119,6 +141,11 @@ Example mods (`games/bigmoney/mods/`):
   - 27 crypto rank titles, from "Nocoiner" to "Probably Satoshi".
   - All of it is original art and text, drawn and written by `tools/make_example_mods.py`, which
     regenerates it.
+- **`small-change/`: "Small Change", an easier game.** Three colours from the start, groups of two, a
+  smaller meter, slower minting and at most six bags a level.
+- **`high-roller/`: "High Roller", a harder game for bigger scores.** Five colours from the start,
+  faster minting, a bigger meter, at least two bags a level, a doubled multiplier and more points for
+  big groups.
 - **`hd4x-textures/`: every image at 4x.** Generate it with `tools/make_hd4x_mod.py`, which upscales
   the player's own game files with Real-ESRGAN on the GPU. It contains the game's art, so it is
   git-ignored: never commit or share it.

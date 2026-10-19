@@ -14,6 +14,7 @@
 
 #include "SexyApp.h"
 #include "Res.h"
+#include <cstdint>
 #include <list>
 #include <string>
 
@@ -140,6 +141,10 @@ public:
 	virtual bool	GetShutdownSave(std::string* theFileName, Buffer* theBuffer);
 	virtual void	WriteShutdownRegistry();
 	virtual void	ShutdownHook();                                 // port (web): ~WinBMApp's save (the app is never deleted)
+
+	// port(mods): a seed the player chose (-gameseed=N, set by main.cpp; ?seed=N on the web), 0 for none:
+	// every new game gets it until a game on it is played (Board::UsePendingSeed, ModRules.h)
+	uint32_t		mPendingSeed;
 
 	// port: test hooks (not in the original; the framework's -seed, -script, -fast and -trace are in
 	// SexyAppBase.h). None of them changes the game or its random streams.

@@ -55,6 +55,8 @@ static ulong GreyPixel(ulong thePixel)
 // 0x41c790
 WinBMApp::WinBMApp()
 {
+	mPendingSeed = 0; // port(mods)
+
 	// port: test hooks
 	mAutoplay = false;
 	mAutoplaySeed = 0;
@@ -1087,6 +1089,8 @@ void WinBMApp::UpdateFrames()
 // port: the game's command-line test hooks (see WinBMApp.h); everything else goes to the framework
 void WinBMApp::HandleCmdLineParam(const std::string& theParamName, const std::string& theParamValue)
 {
+	if (theParamName == "-gameseed")
+		return; // port(mods): main.cpp checked it and set mPendingSeed
 	if (theParamName == "-autoplay")
 	{
 		mAutoplay = true;

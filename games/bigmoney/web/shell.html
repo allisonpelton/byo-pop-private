@@ -504,12 +504,25 @@ input[type=file] { display: none; }
   // ?silent=1: no sound, for automated tests in a browser pane that may be hidden (CLAUDE.md). The game
   // still mixes and plays its sounds as usual; Platform::Mixer outputs silence (Module.silentAudio).
   function pageSilent() { return new URLSearchParams(location.search).get("silent") === "1"; }
+  // ?seed=N: passed on as -gameseed=N, the seed of every new game until one is played on it (its first
+  // valid click or its game over; games/bigmoney/src/ModRules.h). Digits only, 1..4294967295 (leading
+  // zeros allowed, as on native). 0 without the parameter; -1 for any other value: the game starts
+  // without a seed, and the status line says so. As in web/shell.html.
+  function pageSeed() {
+    var params = new URLSearchParams(location.search);
+    if (!params.has("seed")) return 0;
+    var digits = (params.get("seed") || "").replace(/^0+(?=[0-9])/, "");
+    var seed = /^[0-9]{1,10}$/.test(digits) ? Number(digits) : 0;
+    return (seed >= 1 && seed <= 4294967295) ? seed : -1;
+  }
   function startGame() {
     $("start-overlay").hidden = true;
     var enabled = modState.filter(function (m) { return m.enabled; }).length;
+    var seed = pageSeed();
+    var seedText = (seed > 0) ? " · seed " + seed : (seed < 0) ? " · seed ignored: it must be 1 to 4294967295" : "";
     Module.silentAudio = pageSilent();
-    setStatus((enabled ? enabled + " mod" + (enabled > 1 ? "s" : "") + " active" : "No mods active") + (Module.silentAudio ? " · silent" : ""));
-    Module.callMain(["-gamedir=" + GAME, "-userdir=" + USER, "-modsdir=" + MODS]);
+    setStatus((enabled ? enabled + " mod" + (enabled > 1 ? "s" : "") + " active" : "No mods active") + seedText + (Module.silentAudio ? " · silent" : ""));
+    Module.callMain(["-gamedir=" + GAME, "-userdir=" + USER, "-modsdir=" + MODS].concat((seed > 0) ? ["-gameseed=" + seed] : []));
     $("canvas").focus();
   }
   function boot() {

@@ -15,6 +15,7 @@
 #include "Color.h"
 #include "Point.h"
 #include "MTRand.h"
+#include "ModRules.h"
 #include "Piece.h"
 #include "Res.h"
 #include <list>
@@ -288,6 +289,12 @@ public:
 	int				mBagFlashCount;         // +0x804 3 pulses per banked bag
 	double			mBagFlash;              // +0x808 0..1 pulse phase (sizeof 0x810)
 
+	// port(mods): not in the original (ModRules.h)
+	BoardTunables	mTunables;              // the mods' tunables that are not original members
+	uint32_t		mGameSeed;              // the seed the player chose for this game, 0 for none
+	bool			mUserSeeded;            // mGameSeed != 0: the board plays on it, with its own high-score tables
+	MTRand			mEffectsRand;           // a seeded game's effects (EffectsRand)
+
 public:
 	Board(WinBMApp* theApp);                                        // 0x40e760
 	virtual ~Board();                                               // 0x403f10 (scalar deleting dtor 0x4045a0, slot 0)
@@ -366,6 +373,12 @@ public:
 	// port (web persistence): the bytes SaveGame would write now, without touching the game
 	void			SaveGameSnapshot(Buffer* theBuffer);
 	void			WriteSaveGame(Buffer* theBuffer);               // port: the body of 0x403300
+
+	// port(mods): tunables and the set seed (ModRules.h)
+	void			LoadTunables();
+	unsigned long	EffectsRand();
+	int				BagColumnRand();
+	void			UsePendingSeed();
 	static std::string GetSaveGameFileName();                       // port: "userdata\\savegame.dat"
 
 	using Widget::MouseDown;

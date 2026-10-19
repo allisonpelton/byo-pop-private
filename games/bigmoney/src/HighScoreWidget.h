@@ -42,6 +42,7 @@ public:
 	// +0x090 DialogButton* "submit to internet high score list" (id 0, never sized): internet high scores, not ported
 	// +0x094 Widget*, +0x098 Widget* (always NULL, deleted by the dtor), +0x09c std::string (unused): internet leftovers, not ported
 	int				mColorCycle;                            // +0x0b8 ++ every 10 updates; row hues
+	std::string		mFileName;                              // port(mods): hiscores.dat, or its copy for the gameplay mods / a set seed (ModRules.h)
 	// +0x0bc int, never initialised or used
 	std::string		mTodayNames[NUM_HIGH_SCORE_MODES];      // +0x0c0 today's best name per mode ("" if none)
 	int				mTodayScores[NUM_HIGH_SCORE_MODES];     // +0x114 today's best score per mode (0 = none: "N/A")
@@ -62,7 +63,7 @@ public:
 	virtual void	Update();                                       // 0x4144e0 slot 9
 	virtual void	CheckForHighScore();                            // 0x414520 slot 54 (jmp 0x4133b0); WinBMApp calls it after a registration
 	virtual void	AddHighScore(const std::string& theName);       // 0x414530 slot 55; WinBMApp on RecordScoreDialog OK / Enter
-	HighScoreWidget(WinBMApp* theApp);                              // 0x414640
+	HighScoreWidget(WinBMApp* theApp, bool theSeededTables = false); // 0x414640 (port(mods): theSeededTables, ModRules.h)
 	virtual ~HighScoreWidget();                                     // 0x414c50 (scalar deleting dtor 0x414d60 slot 0); always re-saves
 
 	// ButtonListener slot 1: 0x401c70, one body shared with Board (mApp->PlaySample(SOUND_BUTTONCLICK)).

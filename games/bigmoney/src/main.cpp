@@ -5,6 +5,8 @@
 //   -userdir=<dir>   writable folder for savegame.dat, hiscores.dat, registry.ini and mods.json
 //   -modsdir=<dir>   folder containing data mods (one sub-folder per mod)
 //   -nomods          start without any mods
+//   -gameseed=N      play the next game on seed N, 1..4294967295 (ModRules.h; the web shell passes ?seed=N
+//                    as this)
 // Remaining "-key=value" arguments are passed to the app (SexyAppBase::HandleCmdLineParam), e.g. the
 // framework's test hooks -seed=N, -script=<file>, -fast and -trace (see SexyAppBase.h).
 
@@ -15,6 +17,7 @@
 
 #include <SDL.h>
 #include <cstdio>
+#include <cstdint>
 #include <cstring>
 #include <string>
 #include <vector>
@@ -118,8 +121,49 @@ static std::string FindGameDir()
 }
 #endif
 
+// -gameseed=N: a decimal 1..4294967295 (the 1.2 MTRand seeding plays 0 as 4357, so 0 is no seed of its
+// own). Returns false, with theError set, for anything else; true and 0 when the switch is absent.
+static bool ParseGameSeed(int argc, char** argv, uint32_t* theSeed, std::string* theError)
+{
+	*theSeed = 0;
+	for (int i = 1; i < argc; i++)
+	{
+		const char* a = argv[i];
+		while (*a == '-')
+			a++;
+		if (strncmp(a, "gameseed", 8) != 0 || (a[8] != '=' && a[8] != 0))
+			continue;
+		const char* aValue = (a[8] == '=') ? a + 9 : "";
+		uint64_t aSeed = 0;
+		bool isValid = (*aValue != 0);
+		for (const char* c = aValue; isValid && *c != 0; c++)
+		{
+			isValid = (*c >= '0') && (*c <= '9');
+			aSeed = aSeed * 10 + (uint64_t)(*c - '0');
+			if (aSeed > 0xFFFFFFFFull)
+				isValid = false;
+		}
+		if (!isValid || aSeed == 0)
+		{
+			*theError = std::string("-gameseed=") + aValue + ": the seed must be a whole number from 1 to 4294967295";
+			return false;
+		}
+		*theSeed = (uint32_t) aSeed;
+	}
+	return true;
+}
+
 int main(int argc, char** argv)
 {
+	// port(mods): -gameseed=N, checked before anything starts
+	uint32_t gameSeed = 0;
+	std::string gameSeedError;
+	if (!ParseGameSeed(argc, argv, &gameSeed, &gameSeedError))
+	{
+		fprintf(stderr, "%s\n", gameSeedError.c_str());
+		return 2;
+	}
+
 	std::string gameDir = ArgValue(argc, argv, "gamedir");
 	std::string userDir = ArgValue(argc, argv, "userdir");
 	std::string modsDir = ArgValue(argc, argv, "modsdir");
@@ -172,6 +216,9 @@ int main(int argc, char** argv)
 	// The original keeps the app as a global object and calls Init, Start and Shutdown on it.
 	static WinBMApp* anApp = new WinBMApp();
 	anApp->SetCmdLine(argc, argv);
+	anApp->mPendingSeed = gameSeed; // port(mods)
+	if (gameSeed != 0)
+		SDL_Log("gameseed: %u (the next game played)", (unsigned) gameSeed);
 	anApp->Init();
 	anApp->Start();
 #ifndef __EMSCRIPTEN__
