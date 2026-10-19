@@ -1,4 +1,4 @@
-// asltest for Big Money: a copy of games/bejeweled/tools/livesplit/asltest/asltest.cs (code-mods trunk) with
+// asltest for Big Money: a copy of games/bejeweled/tools/livesplit/asltest/asltest.cs (on the trunk) with
 // Big Money's module, game and log names; nothing else differs. It compiles
 // games/bigmoney/tools/livesplit/BigMoneyDeluxe-byopop.asl the way LiveSplit 1.8.37's
 // ScriptableAutoSplit compiles a script (CSharpCodeProvider with CompilerVersion v4.0, which runs the .NET

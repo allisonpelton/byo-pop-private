@@ -141,6 +141,13 @@ public:
 	// port (web): the page can be closed or crash without the app being deleted, which is where the
 	// original saves a game in progress (see SexyAppBase::UpdateUserDataBackup)
 	virtual void	GetShutdownSaves(std::vector<ShutdownSave>* theSaves) override;
+
+	// port(mods): the mod menu's "Restart game" (docs/MOD_MENU_DESIGN.md 6, 8.3): a game that can be saved is in
+	// progress (Restart asks first); no restart while the high-score name is being entered; a restart keeps the
+	// replay folder and a seed still waiting for its game
+	virtual bool	HasGameInProgress() override;
+	virtual bool	CanRestartNow(SexyString* theReason) override;
+	virtual void	GetRestartArgs(std::vector<std::string>* theArgs) override;
 	virtual void	WriteShutdownRegistry() override;
 	virtual void	ShutdownHook() override;                                 // port (web): ~WinBMApp's save (the app is never deleted)
 

@@ -10,7 +10,7 @@
 // Real time only: there is no game time or load removal. Big Money has no speedrun.com board (checked
 // 2026-10-19); the categories of the split templates are suggestions.
 // Adapted from the Bejeweled Deluxe port's script (games/bejeweled/tools/livesplit/BejeweledDeluxe-byopop.asl
-// on the code-mods trunk): the same block framing and decisions.
+// on the trunk): the same block framing and decisions.
 // Written for LiveSplit 1.8.37's ScriptableAutoSplit (C# 5: the .NET Framework compiler).
 // SPDX-License-Identifier: CC0-1.0. To the extent possible under law, the authors have waived all copyright
 // and related rights to this script: https://creativecommons.org/publicdomain/zero/1.0/

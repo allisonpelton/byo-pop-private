@@ -84,13 +84,16 @@ int Sexy::ModFeatureInt(const char* theName, const char* theKey, int theDefault,
 
 bool Sexy::AnyContentModEnabled()
 {
-	static const char* kMetaKeys[] = { "id", "name", "version", "author", "description", "priority", "features", "affectsScores" };
+	// "settings" declares values, which count only where the effective manifest uses them
+	static const char* kMetaKeys[] = { "id", "name", "version", "author", "description", "priority", "features", "affectsScores",
+		"settings" };
 	static const char* kDataDirs[] = { "images", "sounds", "music", "data", "properties" };
 	for (const Platform::ModInfo* aMod : Platform::ModManager::Get().GetEnabledMods())
 	{
-		if (aMod->mManifest.IsObject())
+		// The effective manifest: the settings' values put in, so a value that leaves a key out ($omit) counts
+		if (aMod->mEffective.IsObject())
 		{
-			for (const auto& aMember : aMod->mManifest.Members())
+			for (const auto& aMember : aMod->mEffective.Members())
 			{
 				bool isMeta = false;
 				for (const char* aKey : kMetaKeys)

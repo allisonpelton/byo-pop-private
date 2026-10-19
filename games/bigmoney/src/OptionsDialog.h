@@ -9,7 +9,8 @@
 // (subobject +0x158), CheckboxListener 0x4fb744 (subobject +0x15c). Offsets are absolute.
 // Behaviour spec: re/bigmoney/analysis/dialogs.md (section 3).
 // The Steam build is registered and build-unlocked (NoReg) and has DontUpdate, so Register and Check
-// Updates are created and added but never laid out (0x0, invisible), as in the original.
+// Updates are created and added but never laid out (0x0, invisible), as in the original. port(mods): when an
+// installed mod has settings, the Register slot holds a MODS button (mModsButton).
 
 #include "MoneyDialog.h"
 #include "SliderListener.h"
@@ -59,6 +60,9 @@ public:
 	DialogButton*	mCheckUpdatesButton;        // +0x180 id 5 CHECK_UPDATES (laid out only without DontUpdate)
 	DialogButton*	mCreditsButton;             // +0x184 id 6 CREDITS
 	std::vector<DialogButton*> mLinkButtons;    // +0x188 ids 100+i, labels OptionsLinkText%d (VC7 vector: first +0x18c, last +0x190, end +0x194)
+	// port(mods): an installed mod has settings: the Register button (never laid out in this build) becomes
+	// "MODS" in its slot and opens the mod menu (docs/MOD_MENU_DESIGN.md 8.3)
+	bool			mModsButton;
 
 public:
 	virtual void	SetColor(int theIdx, const Color& theColor) override;    // 0x415560 slot 19 (idx 3 also recolours the five buttons)

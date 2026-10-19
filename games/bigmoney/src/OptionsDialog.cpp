@@ -8,6 +8,7 @@
 #include "DialogButton.h"
 #include "Checkbox.h"
 #include "WidgetManager.h"
+#include "platform/ModManager.h"
 
 using namespace Sexy;
 
@@ -140,7 +141,7 @@ void OptionsDialog::Resize(int theX, int theY, int theWidth, int theHeight)
 		mCreditsButton->Resize(mX + aLeft + 3 + aHalfWidth, aRowY, aHalfWidth, BUTTON_HEIGHT);
 		aRowY -= ROW_PITCH;
 
-		if (!mApp->mBuildUnlocked)
+		if ((!mApp->mBuildUnlocked) || (mModsButton)) // port(mods): the MODS button takes the Register slot
 		{
 			int aThirdWidth = (anInnerWidth - 6) / 3;
 			mHelpButton->Resize(mX + aLeft, aRowY, aThirdWidth, BUTTON_HEIGHT);
@@ -160,7 +161,7 @@ void OptionsDialog::Resize(int theX, int theY, int theWidth, int theHeight)
 		mCreditsButton->Resize(mX + aLeft + 3 + aHalfWidth, aRowY, aHalfWidth, BUTTON_HEIGHT);
 		aRowY -= ROW_PITCH;
 
-		if (!mApp->mBuildUnlocked)
+		if ((!mApp->mBuildUnlocked) || (mModsButton)) // port(mods): the MODS button takes the Register slot
 		{
 			mRegisterButton->Resize(mX + aLeft, aRowY, aHalfWidth, BUTTON_HEIGHT);
 			mScoresButton->Resize(mX + aLeft + 3 + aHalfWidth, aRowY, aHalfWidth, BUTTON_HEIGHT);
@@ -206,6 +207,12 @@ void OptionsDialog::ButtonDepress(int theId)
 	switch (theId)
 	{
 	case REGISTER_BUTTON_ID:
+		// port(mods): as MODS, it opens the mod menu over this dialog, which stays open
+		if (mModsButton)
+		{
+			mApp->OpenModMenu();
+			break;
+		}
 		// Only laid out in a locked build; registered, the app shows "already registered"
 		mApp->ShowRegisterDialog();
 		break;
@@ -242,6 +249,12 @@ OptionsDialog::OptionsDialog(WinBMApp* theApp) :
 	mRegisterButton = new DialogButton(mApp->mImages[IMAGE_DIALOGBUTTON], REGISTER_BUTTON_ID, this);
 	mRegisterButton->SetFont(mApp->mFont3);
 	mRegisterButton->mLabel = mApp->GetString("REGISTER");
+	// port(mods): MODS in the Register slot while an installed mod (on or off) has settings
+	mModsButton = false;
+	for (const Platform::ModInfo& aMod : Platform::ModManager::Get().GetMods())
+		mModsButton = mModsButton || aMod.HasSettings();
+	if (mModsButton)
+		mRegisterButton->mLabel = mApp->GetString("OPTIONS_MODS", _S("MODS"));
 
 	mScoresButton = new DialogButton(mApp->mImages[IMAGE_DIALOGBUTTON], SCORES_BUTTON_ID, this);
 	mScoresButton->SetFont(mApp->mFont3);
