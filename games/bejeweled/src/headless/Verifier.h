@@ -2,7 +2,7 @@
 #define __VERIFIER_H__
 
 // port(variant): the headless verifier, bejeweled_verify (games/bejeweled/docs/CODE_MODS_DESIGN.md 6.9). Not part
-// of the original game. The game's own Board sources (Board.cpp, BoardRules.cpp, BoardVariant.cpp: unchanged,
+// of the original game. The game's own Board sources (Board.cpp, BoardRules.cpp, BoardVariant.cpp, BoardSave.cpp: unchanged,
 // compiled against the framework shims in headless/shim) played without a window, sound, fonts, images, user
 // files or mods: what a server has. Its entry points are verify_main.cpp's (the native exe's command line and
 // the standalone wasm's exports); the work is here.

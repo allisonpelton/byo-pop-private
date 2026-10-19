@@ -67,7 +67,7 @@ endif()
 option(BUILD_VERIFY "Build the headless replay verifier" ON)
 if(BUILD_VERIFY)
   add_executable(bejeweled_verify
-    src/Board.cpp src/BoardRules.cpp src/BoardVariant.cpp src/BoardTrace.cpp src/GameConfig.cpp src/GameRules.cpp
+    src/Board.cpp src/BoardRules.cpp src/BoardVariant.cpp src/BoardSave.cpp src/BoardTrace.cpp src/GameConfig.cpp src/GameRules.cpp
     src/StateCodec.cpp src/Replay.cpp src/Sha256.cpp src/WatchController.cpp
     src/headless/HeadlessShims.cpp src/headless/WinDMAppHeadless.cpp src/headless/ReplayRecorderHeadless.cpp
     src/headless/DiffBot.cpp src/headless/Verifier.cpp src/headless/verify_main.cpp

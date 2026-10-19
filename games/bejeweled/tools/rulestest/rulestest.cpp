@@ -7,7 +7,8 @@
 // truncation and on corrupt input. Stage 3b: what the replay player accepts (Replay::CheckPlayable), the
 // record order and the reader's limits, and the check of a replay's save bytes (Replay::CheckSave). After the
 // stage 4 review: the check of a replay's RULE (GameRules::CheckRecorded), the match.shapes cap, the reader's
-// segment and per-tick limits, and where a replay may hold SAVEs.
+// segment and per-tick limits, and where a replay may hold SAVEs. Stage 5: the v2 save's format (header,
+// chunks, what a reader refuses), a v2 LDSV, the mode of a save, engine ABI 2.
 // Framework-free: GameRules.cpp, Sha256.cpp, Replay.cpp, Json.cpp and the framework's MTRand.cpp only.
 //
 //   rulestest              run every fixture; prints a summary, exit status 0 when all pass
@@ -1217,9 +1218,9 @@ static void TestReplayFormat()
 		"replay: every op 1..15 has a name and an argument count, 0 and 16 none");
 
 	// A golden vector: the smallest file (header and END) and a one-segment file, byte for byte, the same on
-	// native and wasm
+	// native and wasm (engine ABI 2 since stage 5)
 	Replay::File anEmpty;
-	Check(Hex(Replay::Write(anEmpty)) == "424a5250010000000100000045" "4e4420" "1d000000" "00" "00000000" "00000000" "00000000"
+	Check(Hex(Replay::Write(anEmpty)) == "424a5250010000000200000045" "4e4420" "1d000000" "00" "00000000" "00000000" "00000000"
 		"00000000" "0000000000000000" "00000000", "replay: golden bytes of a file with only END");
 	Replay::File aSmall;
 	Replay::Segment aSegment;
@@ -1230,7 +1231,7 @@ static void TestReplayFormat()
 	aSmall.mEnd.mReason = Replay::END_NO_MOVES;
 	aSmall.mEnd.mScore = 90;
 	std::string aSmallHex = Hex(Replay::Write(aSmall));
-	Check(aSmallHex == "424a52500100000001000000" "5345474d" "1d000000" "00" "00" "92100000" "00" "00" "00000000" "00000000"
+	Check(aSmallHex == "424a52500100000002000000" "5345474d" "1d000000" "00" "00" "92100000" "00" "00" "00000000" "00000000"
 		"02000000" "a001" "01" "0a" "0a" "01" "03" "01" "01"
 		"454e4420" "1d000000" "01" "00000000" "5a000000" "00000000" "00000000" "0000000000000000" "00000000",
 		"replay: golden bytes of a one-segment file (got " + aSmallHex + ")");
@@ -1714,6 +1715,171 @@ static void TestReplayPlayable()
 		aSaves.mSegments[0].mEvents.push_back(MakeEvent(171, Replay::OP_SAVE, Replay::SAVE_GAME, i));
 	aWhy.clear();
 	Check(Replay::CheckPlayable(aSaves, 8, 8, &aWhy), "playable: MAX_SAVES_PER_SEGMENT SAVEs at the segment's last tick (" + aWhy + ")");
+
+	// Stage 5: engine ABI 2; a replay of the original rules from engine 1 still plays (their simulation never
+	// changes), one of variant rules only on its own engine
+	Replay::File anOld = PlayableReplay();
+	anOld.mEngineAbi = 1;
+	aWhy.clear();
+	Check(Replay::CheckPlayable(anOld, 8, 8, &aWhy, true), "playable: the original rules recorded by engine 1 (" + aWhy + ")");
+	aWhy.clear();
+	Check(!Replay::CheckPlayable(anOld, 8, 8, &aWhy, false) && !aWhy.empty(), "playable: refused: variant rules recorded by engine 1 (" + aWhy + ")");
+	anOld.mEngineAbi = Replay::ENGINE_ABI + 1;
+	Check(!Replay::CheckPlayable(anOld, 8, 8, &aWhy, true), "playable: refused: a later engine, even for the original rules");
+	anOld.mEngineAbi = 0;
+	Check(!Replay::CheckPlayable(anOld, 8, 8, &aWhy, true), "playable: refused: engine 0");
+	Check(Replay::ENGINE_ABI == 2, "playable: this is engine 2 (stage 5)");
+}
+
+// A v2 save (Replay.h, games/bejeweled/docs/CODE_MODS_DESIGN.md 7.2) around the v1 test save's fields: the rules
+// of the design's example 1, an 8x8 board, MTRand(4242) after 1700 draws, 2 moves of which 1 kept invalid move
+static Replay::VariantSave TestVariantSave()
+{
+	GameRules aRules;
+	aRules.mMoves.mAllowInvalid = true;
+	aRules.mNoMoves.mNormal = GameRules::NOMOVES_CONTINUE;
+	Replay::VariantSave aSave;
+	aRules.RulesId(aSave.mRulesId);
+	aSave.mCols = 8;
+	aSave.mRows = 8;
+	aSave.mPlayable.assign(64, true);
+	MTRand aRng(4242);
+	for (int i = 0; i < 1700; i++)
+		aRng.Next();
+	int anIndex = 0;
+	aRng.GetState(aSave.mRng.mMt, &anIndex);
+	aSave.mRng.mMti = anIndex;
+	aSave.mRng.mSeed = 4242;
+	aSave.mRng.mUserSeeded = true;
+	aSave.mMoves = 2;
+	aSave.mInvalidMoves = 1;
+	return aSave;
+}
+
+static std::string V2Save(const Replay::VariantSave& theSave, const std::string& theV1 = V1Save())
+{
+	std::string aVersion("\x01\x01\0\0", 4);
+	return aVersion + Replay::VariantSaveHeader(theSave) + theV1.substr(4) + Replay::VariantSaveChunks(theSave);
+}
+
+// Stage 5: the v2 save's format (Replay::VariantSaveHeader, VariantSaveChunks, ReadVariantSave), what a replay's
+// LDSV may hold of it (Replay::CheckSave with the replay's RulesId), and the mode of either save (SaveIsTimed)
+static void TestReplayVariantSave()
+{
+	std::string aWhy;
+	Replay::VariantSave aSave = TestVariantSave();
+	std::string aBytes = V2Save(aSave);
+	const size_t aHeader = 4 + 32 + 2 + 2 + 4 + 8;
+	const size_t aChunks = (8 + 2506) + (8 + 12) + 8;
+	Check(aBytes.size() == aHeader + (7873 - 4) + aChunks, "v2: the full 8x8 save is " + std::to_string(aHeader + 7869 + aChunks) + " bytes (" +
+		std::to_string(aBytes.size()) + ")");
+	Check(Hex(Replay::VariantSaveHeader(aSave).substr(32)) == "08000800" "00000000" "ffffffffffffffff",
+		"v2: golden header bytes after the RulesId (8x8, level shape 0, a full mask)");
+	Check(Hex(Replay::VariantSaveChunks(aSave).substr(2514)) == "4d4f56450c000000" "02000000" "01000000" "00000000" "454e442000000000",
+		"v2: golden MOVE and END chunks");
+
+	Replay::VariantSave aRead;
+	Check(Replay::ReadVariantSave(aBytes, &aRead, &aWhy), "v2: reads back (" + aWhy + ")");
+	Check((memcmp(aRead.mRulesId, aSave.mRulesId, 32) == 0) && (aRead.mCols == 8) && (aRead.mRows == 8) && (aRead.mLevelShape == 0) &&
+		(aRead.mPlayable == aSave.mPlayable) && SameRng(aRead.mRng, aSave.mRng) && (aRead.mMoves == 2) && (aRead.mInvalidMoves == 1) &&
+		(aRead.mUndosUsed == 0), "v2: every header and chunk value read back");
+	Check((aRead.mBodyStart == aHeader) && (aRead.mBodyEnd == aBytes.size() - aChunks), "v2: where the v1 fields start and end");
+
+	// A hole: absent in the cells, a 0 bit in the mask; a shape another stage writes
+	Replay::VariantSave aHoled = aSave;
+	aHoled.mPlayable[9] = false;
+	std::string aV1Hole = V1Save();
+	aV1Hole = aV1Hole.substr(0, SAVE_CELLS_AT + 9 * SAVE_CELL_SIZE) + std::string(1, '\0') + aV1Hole.substr(SAVE_CELLS_AT + 10 * SAVE_CELL_SIZE);
+	Check(Replay::ReadVariantSave(V2Save(aHoled, aV1Hole), &aRead, &aWhy) && !aRead.mPlayable[9] && aRead.mPlayable[8],
+		"v2: a hole, absent in the cells, reads (" + aWhy + ")");
+	aWhy.clear();
+	Check(!Replay::ReadVariantSave(V2Save(aHoled), &aRead, &aWhy) && !aWhy.empty(), "v2: refused: a gem in a hole (" + aWhy + ")");
+
+	// An unknown chunk before END is skipped
+	std::string anExtra = aBytes.substr(0, aBytes.size() - 8) + "GOLD" + std::string("\x02\0\0\0", 4) + "ab" + aBytes.substr(aBytes.size() - 8);
+	Check(Replay::ReadVariantSave(anExtra, &aRead, &aWhy) && (aRead.mMoves == 2), "v2: an unknown chunk is skipped (" + aWhy + ")");
+
+	struct Bad { const char* mWhat; std::string mBytes; };
+	std::string aNoEnd = aBytes.substr(0, aBytes.size() - 8);
+	std::string aMove = aBytes.substr(aBytes.size() - 28, 20);
+	std::string aRngs = aBytes.substr(aBytes.size() - aChunks, 8 + 2506);
+	const size_t aChunkAt = aBytes.size() - aChunks;
+	const Bad aBads[] =
+	{
+		{"version 1", std::string("\x01\0\0\0", 4) + aBytes.substr(4)},
+		{"version 0x102", std::string("\x02\x01\0\0", 4) + aBytes.substr(4)},
+		{"2 columns", aBytes.substr(0, 36) + std::string("\x02\0", 2) + aBytes.substr(38)},
+		{"17 rows", aBytes.substr(0, 38) + std::string("\x11\0", 2) + aBytes.substr(40)},
+		{"no END", aNoEnd},
+		{"a byte after END", aBytes + "x"},
+		{"END with a payload", aNoEnd + "END " + std::string("\x01\0\0\0", 4) + "x"},
+		{"MOVE twice", aNoEnd + aMove + aBytes.substr(aBytes.size() - 8)},
+		{"RNGS twice", aNoEnd + aRngs + aBytes.substr(aBytes.size() - 8)},
+		{"no RNGS", aBytes.substr(0, aChunkAt) + aBytes.substr(aChunkAt + 8 + 2506)},
+		{"no MOVE", aBytes.substr(0, aBytes.size() - 28) + aBytes.substr(aBytes.size() - 8)},
+		{"MOVE of 8 bytes", aBytes.substr(0, aBytes.size() - 28) + "MOVE" + std::string("\x08\0\0\0", 4) + aMove.substr(8, 8) + aBytes.substr(aBytes.size() - 8)},
+		{"a chunk longer than the file", aNoEnd + "GOLD" + std::string("\xff\0\0\0", 4)},
+	};
+	for (size_t i = 0; i < sizeof(aBads) / sizeof(aBads[0]); i++)
+	{
+		aWhy.clear();
+		Check(!Replay::ReadVariantSave(aBads[i].mBytes, &aRead, &aWhy) && !aWhy.empty(), std::string("v2: refused: ") + aBads[i].mWhat + " (" + aWhy + ")");
+	}
+	int aCuts = 0;
+	for (size_t aLen = 0; aLen < aBytes.size(); aLen += 7)
+		aCuts += Replay::ReadVariantSave(aBytes.substr(0, aLen), &aRead) ? 1 : 0;
+	Check(aCuts == 0, "v2: every cut is refused (" + std::to_string(aCuts) + " read)");
+
+	// CheckSave: a replay's LDSV may be a v2 save of the replay's rules, of the board's shape
+	uint8_t anId[32];
+	memcpy(anId, aSave.mRulesId, 32);
+	aWhy.clear();
+	Check(Replay::CheckSave(aBytes, 8, 8, &aWhy, anId), "v2 check: a v2 save of the replay's rules passes (" + aWhy + ")");
+	aWhy.clear();
+	Check(!Replay::CheckSave(aBytes, 8, 8, &aWhy) && !aWhy.empty(), "v2 check: refused: a v2 save where the replay names no rules (" + aWhy + ")");
+	uint8_t anOther[32];
+	memcpy(anOther, anId, 32);
+	anOther[31] ^= 1;
+	aWhy.clear();
+	Check(!Replay::CheckSave(aBytes, 8, 8, &aWhy, anOther) && !aWhy.empty(), "v2 check: refused: a v2 save of other rules (" + aWhy + ")");
+	aWhy.clear();
+	Check(!Replay::CheckSave(aBytes, 7, 8, &aWhy, anId) && !aWhy.empty(), "v2 check: refused: a save of another board size (" + aWhy + ")");
+	aWhy.clear();
+	Check(!Replay::CheckSave(V2Save(aHoled, aV1Hole), 8, 8, &aWhy, anId) && !aWhy.empty(), "v2 check: refused: holes on the 8x8 board (" + aWhy + ")");
+	Replay::VariantSave aNegative = aSave;
+	aNegative.mInvalidMoves = -1;
+	aWhy.clear();
+	Check(!Replay::CheckSave(V2Save(aNegative), 8, 8, &aWhy, anId) && !aWhy.empty(), "v2 check: refused: a MOVE count below 0 (" + aWhy + ")");
+	// The v1 fields are checked as a v1 save's, after the header
+	std::string aBadColour = aBytes;
+	int32_t aSeven = 7;
+	memcpy(&aBadColour[aHeader - 4 + SavePieceAt(2, 3, offsetof(Piece, mColor))], &aSeven, 4);
+	aWhy.clear();
+	Check(!Replay::CheckSave(aBadColour, 8, 8, &aWhy, anId) && !aWhy.empty(), "v2 check: refused: colour 7 in a cell (" + aWhy + ")");
+	aWhy.clear();
+	Check(Replay::CheckSave(V1Save(), 8, 8, &aWhy, anId), "v2 check: a v1 save still passes (LoadGame says which a board takes) (" + aWhy + ")");
+
+	// The replay player: an LDSV that is a v2 save of the replay's rules
+	Replay::File aFresh = PlayableReplay();
+	aFresh.mSegments.erase(aFresh.mSegments.begin());
+	aFresh.mSegments[0].mHasLoadSave = true;
+	aFresh.mSegments[0].mLoadSave = aBytes;
+	aFresh.mHasRulesId = true;
+	memcpy(aFresh.mRulesId, anId, 32);
+	aWhy.clear();
+	Check(Replay::CheckPlayable(aFresh, 8, 8, &aWhy), "v2 check: a fresh replay whose LDSV is a v2 save of its rules (" + aWhy + ")");
+	aFresh.mRulesId[0] ^= 1;
+	aWhy.clear();
+	Check(!Replay::CheckPlayable(aFresh, 8, 8, &aWhy) && !aWhy.empty(), "v2 check: refused: an LDSV of other rules than the RLID (" + aWhy + ")");
+
+	// The mode of a save, v1 or v2
+	bool isTimed = true;
+	Check(Replay::SaveIsTimed(V1Save(), &isTimed) && !isTimed, "save mode: a v1 normal game");
+	std::string aTimed = V1Save();
+	aTimed[4] = 1;
+	Check(Replay::SaveIsTimed(V2Save(aSave, aTimed), &isTimed) && isTimed, "save mode: a v2 timed game");
+	Check(Replay::SaveIsTimed(aBytes, &isTimed) && !isTimed, "save mode: a v2 normal game");
+	Check(!Replay::SaveIsTimed("BJRP", &isTimed) && !Replay::SaveIsTimed(std::string("\x01\x01\0\0", 4), &isTimed), "save mode: no save, no mode");
 }
 
 int main(int argc, char** argv)
@@ -1747,6 +1913,7 @@ int main(int argc, char** argv)
 	TestReplayPlayable();
 	TestReplaySave();
 	TestReplayLimits();
+	TestReplayVariantSave();
 
 	printf("rulestest: %d checks, %d failures: %s\n", gChecks, gFailures, gFailures == 0 ? "PASS" : "FAIL");
 	return gFailures == 0 ? 0 : 1;

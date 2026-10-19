@@ -1,0 +1,7 @@
+{
+  "id": "s5-strict",
+  "name": "Stage 5: kept swaps that are no moves",
+  "version": "1.0",
+  "description": "Oracle fixture: moves.allowInvalid without a penalty, moves.invalidCountsAsMove false (a kept swap leaves the game new: no save at a quit, a chosen seed stays pending), noMoves \"fallOut\" in normal mode and \"gameOver\" in timed mode (the other two branches of the rule).",
+  "rules": { "moves": { "allowInvalid": true, "invalidCountsAsMove": false }, "noMoves": { "normal": "fallOut", "timed": "gameOver" } }
+}

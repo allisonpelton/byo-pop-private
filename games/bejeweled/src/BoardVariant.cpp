@@ -9,6 +9,10 @@
 // the sidecar next to the save (7.3) that keeps a recording and a board's own RNG across a resume, and the
 // scratch board StateCodec's round trip restores into. Stage 3b: the playback board a replay player
 // (WatchController) makes, with its own MTRand from the segment's RNG start, and the RNG its LOAD goes on with.
+// Stage 5: allow invalid moves and the noMoves rule (4.1): a swap that made no match stays (KeepInvalidMove), a
+// board that settles without a move does what its mode's noMoves rule says (OnNoMovesVariant), and the moves
+// that stood are counted. A variant board saves the v2 save (BoardSave.cpp), whose RNGS chunk keeps its RNG, so
+// it leaves no RNG sidecar.
 
 #include "Board.h"
 #include "GameConfig.h"
@@ -18,6 +22,7 @@
 #include "Common.h"
 
 #include <SDL.h>
+#include <algorithm>
 #include <cstring>
 
 using namespace Sexy;
@@ -43,13 +48,19 @@ void Board::InitVariant()
 	if (gGameConfig.mForceVariant)
 	{
 		// -forcevariant: every generalised path at default rules; the RNG source, the save format and the
-		// tutorial stay original (mAny, mOwnRng and mNoTutorial are left alone)
+		// tutorial stay original (mAny, mOwnRng and mNoTutorial are left alone). The noMoves rule's path too
+		// (stage 5): its default "gameOver" and "fallOut" are the original branches. Not mInvalid: keeping a
+		// swap is no default rule.
 		mVariant.mShape = true;
 		mVariant.mMatch = true;
 		mVariant.mSearch = true;
 		mVariant.mDraw = true;
+		mVariant.mNoMoves = true;
 	}
 #endif
+	mMoveCount = 0;
+	mInvalidMoves = 0;
+	mUndosUsed = 0;
 
 	// The RNG source WinDMApp::NewGame chose (WinDMApp::ChooseBoardRng), taken once: a board made any other
 	// way draws from the global stream
@@ -206,6 +217,9 @@ Board::Board(WinDMApp* theApp, ScratchBoardTag)
 	// snapshot that overwrites the rest
 	mBoardSerial = 0;
 	mResumed = false;
+	mMoveCount = 0;
+	mInvalidMoves = 0;
+	mUndosUsed = 0;
 }
 
 // A seed the player chose stays pending until a game on it is played
@@ -224,6 +238,98 @@ void Board::UsePendingSeed()
 		gGameConfig.mPendingSeed = 0;
 }
 
+// A move stood, where mIsNewGame is cleared (games/bejeweled/docs/CODE_MODS_DESIGN.md 4.10): a swap that made a
+// match (UpdateSwap, 0x4cd84f), or a kept invalid move that counts as a move (KeepInvalidMove). The game has
+// started, so it uses up a seed the player chose, and the move counts (the v2 save's MOVE chunk).
+void Board::OnMoveMade()
+{
+	mMoveCount++;
+	UsePendingSeed();
+}
+
+// UpdateSwap (0x4cd84f) with moves.allowInvalid: the swap made no match and stays (4.1). The two gems are in
+// their new cells already. Instead of the swap back: the swap pieces go, moves.invalidPenalty is taken as
+// DoHint takes the hint penalty (times the multiplier, the score floored at 0; in timed mode the bar shows it,
+// so it costs time there), bad2 plays as for a swap back, and with moves.invalidCountsAsMove the game has
+// started (mIsNewGame cleared: a quit saves it, a mode switch asks first) like after a match: the move counts and
+// a seed the player chose is used up. The swap took its 36 ticks like any swap (the timed drain runs in them, as
+// for a swap that goes back). Then STATE_FALLING: on the next tick UpdateFalling finds every gem at rest, no
+// match, and decides as after any move, FindMove: STATE_PLAYING, or the board has no move left and the noMoves
+// rule decides (a kept swap can take the last move away). A move without a run has no cascade, so that settle
+// counts none (mLongestCascade). Replays record the move as any swap (SELECT, TARGET): no new command.
+// The first-game tutorial: a swap that goes back leaves the board as it was, so its arrows stay right; a kept one
+// changes the board, and the move the arrows show may make no match any more. Then the arrows and the instructions
+// go, as at a game over (GameOver, 0x4c9b47): mShowInstructions stays, so the next game shows them again (the
+// player has made no match yet). A tutorial move that still matches keeps them up until a match, as before.
+void Board::KeepInvalidMove()
+{
+	mSwapPiece1 = NULL;
+	mSwapPiece2 = NULL;
+	mCascadeCount = 0;
+	if (mShowTutorial && (mTutorialCol >= 0))
+	{
+		Piece*& aLeft = mBoard[mTutorialRow][mTutorialCol];
+		Piece*& aRight = mBoard[mTutorialRow][mTutorialCol2];
+		std::swap(aLeft, aRight);
+		bool isStillMove = HasMatch();
+		std::swap(aLeft, aRight);
+		if (!isStillMove)
+		{
+			mShowTutorial = false;
+			mApp->KillDialog(DIALOG_INSTRUCTIONS);
+		}
+	}
+	if (mRules.mMoves.mInvalidPenalty != 0)
+	{
+		mScore = (int)((double)mScore - mPointMultiplier * mRules.mMoves.mInvalidPenalty);
+		if (mScore < 0)
+			mScore = 0;
+	}
+	mInvalidMoves++;
+	if (mRules.mMoves.mInvalidCountsAsMove)
+	{
+		mIsNewGame = false;
+		OnMoveMade();
+	}
+	mApp->PlaySample(SOUND_BAD);
+	mState = STATE_FALLING;
+}
+
+// UpdateFalling (0x4cd687): the board settled with no match and no move left (4.1). The mode's noMoves rule:
+// "gameOver" and "fallOut" are the original branches (normal: NO MOVES and the game over; timed: the fall-out
+// and a new board), "continue" (which needs moves.allowInvalid) shows the banner NO_MATCHES_LEFT (default "NO
+// MATCHES!", short enough for the board's width, like "NO MOVES!") and goes on: the player swaps on, every swap
+// kept, until one makes a move again. A board with gold.enabled defaults to "fallOut" in
+// normal mode too (GameRules).
+void Board::OnNoMovesVariant()
+{
+	switch (mRules.NoMovesFor(mTimedMode))
+	{
+	case GameRules::NOMOVES_CONTINUE:
+		ShowText(mApp->GetString("NO_MATCHES_LEFT", _S("NO MATCHES!")), 400);
+		mState = STATE_PLAYING;
+		break;
+	case GameRules::NOMOVES_FALL_OUT:
+		mState = STATE_FALL_OUT;
+		break;
+	default:
+		ShowText(mApp->GetString("NO_MOVES"), 400);
+		GameOver(200);
+		break;
+	}
+}
+
+// A board that plays without a move: only a noMoves "continue" board (OnNoMovesVariant), which needs
+// moves.allowInvalid; under the original rules STATE_PLAYING always has a move (UpdateFalling). There Hint has
+// nothing to show: ShowHint (0x4cb475) gives none, so DoHint takes no penalty for it, and the idle glow
+// (Update, 0x4cdabc) does not invite one. A replay's HINT on such a board is one ShowHint would not give
+// (WatchController). False at once on every other board, and in any other state (FindMove needs the full,
+// settled board of STATE_PLAYING).
+bool Board::NoHintVariant()
+{
+	return mVariant.mInvalid && (mState == STATE_PLAYING) && !FindMove(NULL, 0, true, true);
+}
+
 // The end of a LoadGame (0x4cca98) that succeeded. The resumed game is not the one the board's seed would
 // make: it goes on with the RNG it was saved with. The v1 save holds none, so the sidecar does
 // (games/bejeweled/docs/CODE_MODS_DESIGN.md 7.3; stage 5's v2 save keeps it in its RNGS chunk): a sidecar
@@ -232,12 +338,15 @@ void Board::UsePendingSeed()
 // and resume cannot reroll it. Without one (a game on the global stream, or a save from before stage 3)
 // the game goes on on the global stream. Either way the pending seed stays for the next game. A recording
 // then records LOAD and goes on with the sidecar's replay. Stage 2b: the board is marked resumed for the
-// LiveSplit observer (no run starts on it), a replay's board too.
+// LiveSplit observer (no run starts on it), a replay's board too. Stage 5: a variant board's v2 save holds its
+// RNG and its MOVE counts (ReadVariantChunks); its sidecar, if any, only continues the recording.
 void Board::GameLoadedVariant(const Buffer& theSave)
 {
 	// The LiveSplit observer counts no GO on this board (in every build, BEJ_NO_VARIANTS too)
 	mResumed = true;
 	mTakesPendingSeed = false;
+	if (mVariant.mAny)
+		ReadVariantChunks(theSave);
 	// A replay's LOAD (stage 3b): no file of the user dir is read; the player gives the board the RNG the
 	// recorded one went on with, the segment's RNGS (SetPlaybackRng)
 	if (mPlaybackOnly)
@@ -246,25 +355,28 @@ void Board::GameLoadedVariant(const Buffer& theSave)
 	Replay::File aSidecar;
 	bool hasSidecar = ReadSaveSidecar(aSave, &aSidecar);
 
-	MTRand* aRng = NULL;
-	const Replay::RngState& aState = aSidecar.mTrailingRng;
-	if (hasSidecar && aSidecar.mHasTrailingRng && (aState.mSeed != 0))
+	if (!mVariant.mAny)
 	{
-		aRng = new MTRand(aState.mSeed);
-		if (!aRng->SetState(aState.mMt, aState.mMti))
+		MTRand* aRng = NULL;
+		const Replay::RngState& aState = aSidecar.mTrailingRng;
+		if (hasSidecar && aSidecar.mHasTrailingRng && (aState.mSeed != 0))
 		{
-			delete aRng;
-			aRng = NULL;
+			aRng = new MTRand(aState.mSeed);
+			if (!aRng->SetState(aState.mMt, aState.mMti))
+			{
+				delete aRng;
+				aRng = NULL;
+			}
 		}
-	}
-	delete mOwnRng;
-	mOwnRng = aRng;
-	mGameSeed = (aRng != NULL) ? aState.mSeed : 0;
-	mUserSeeded = (aRng != NULL) && aState.mUserSeeded;
-	mRanked = (aRng != NULL) && aState.mRanked;
+		delete mOwnRng;
+		mOwnRng = aRng;
+		mGameSeed = (aRng != NULL) ? aState.mSeed : 0;
+		mUserSeeded = (aRng != NULL) && aState.mUserSeeded;
+		mRanked = (aRng != NULL) && aState.mRanked;
 #ifndef BEJ_NO_VARIANTS
-	mVariant.mOwnRng = (mOwnRng != NULL);
+		mVariant.mOwnRng = (mOwnRng != NULL);
 #endif
+	}
 
 	if (mRecorder != NULL)
 		mRecorder->OnLoad(aSave, hasSidecar ? &aSidecar : NULL);
@@ -382,16 +494,17 @@ std::string Board::SidecarSnapshot(const std::string& theSave)
 {
 	if ((mRecorder != NULL) && mRecorder->FitsBackup())
 		return mRecorder->SnapshotSidecar(theSave);
-	if (mOwnRng != NULL)
+	if ((mOwnRng != NULL) && !mVariant.mAny)
 		return RngSidecar(this, theSave);
 	return "";
 }
 
 // SaveGame (0x4ccdfe), just before the save is written: a recording records SAVE and leaves the game so far
-// next to the save; a board with its own RNG leaves that RNG. Any other save has no sidecar, so an old one
-// (which could not match it anyway) goes. A game on the global stream without replays never had one: the
-// erase finds nothing and changes nothing. The first save of a recording board replaces another board's
-// save (a mode switch saved one game, the next is saved too): that game's recording is kept first.
+// next to the save; a board with its own RNG leaves that RNG, unless it is a variant board, whose v2 save holds
+// it (stage 5). Any other save has no sidecar, so an old one (which could not match it anyway) goes. A game on
+// the global stream without replays never had one: the erase finds nothing and changes nothing. The first save
+// of a recording board replaces another board's save (a mode switch saved one game, the next is saved too):
+// that game's recording is kept first.
 void Board::WriteSaveSidecar(const Buffer& theSave)
 {
 	std::string aSave((const char*) theSave.GetDataPtr(), (size_t) theSave.GetDataLen());
@@ -402,7 +515,7 @@ void Board::WriteSaveSidecar(const Buffer& theSave)
 			KeepSidecarGame();
 		aSidecar = mRecorder->EndSave(aSave);
 	}
-	else if (mOwnRng != NULL)
+	else if ((mOwnRng != NULL) && !mVariant.mAny)
 		aSidecar = RngSidecar(this, aSave);
 	if (aSidecar.empty())
 	{
@@ -425,10 +538,12 @@ void Board::KeepSidecarGame()
 }
 
 // DeleteSaveGame (0x4cd130): the sidecar goes with the save. When the player declined the resume, a
-// recorded game in it ended by being saved: it is kept as a finished replay first.
+// recorded game in it ended by being saved: it is kept as a finished replay first. So is one the resume did not
+// go on with (ReplayRecorder::OnLoad: other rules, or an engine whose replays of these rules this one cannot
+// continue): the new replay holds only the loaded save (LDSV), and the moves before it are not lost.
 void Board::DeleteSaveSidecar()
 {
-	if ((mRecorder != NULL) && !mRecorder->Loaded())
+	if ((mRecorder != NULL) && (!mRecorder->Loaded() || !mRecorder->ContinuedSidecar()))
 		KeepSidecarGame();
 	mApp->EraseFile(GetSidecarFileName());
 }

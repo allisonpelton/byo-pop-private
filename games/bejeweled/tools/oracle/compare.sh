@@ -79,6 +79,11 @@
 # the stage-0 scripts and bot runs, a seeded game, a recording and two watches (the candidate's LOGIC hashes and
 # TRACE), and two games whose (int) casts leave the int range, recorded natively and by the web build, each
 # recording watched and verified on both.
+# Stage 5 (allow invalid moves, the noMoves rule, the v2 save) plays the rule mods of mods/stage5 (compare.py
+# "variant"): kept swaps, "continue", the other noMoves branches, v2 saves resumed and refused both ways, their
+# recordings and playbacks. A candidate built without the variant paths (BEJ_NO_VARIANTS: its -dumprules text
+# says "variants = off") plays no rule: the stage-5 cases are left out, and stage 1's and 2's rule-mod cases
+# expect what such a build writes (expect.txt's "<case>@novariants" facts: a v1 save and the RNG sidecar).
 #
 # The frozen exes (build/baseline, build/baseline-stage0) predate the audio shutdown fix (af758b9) and can
 # crash on exit after writing all their outputs: a baseline or hooks-baseline run that exits 139 or with an
@@ -155,7 +160,7 @@ MODS_W="$(winpath "$MODS")"
 
 # The variants: V_NAME, V_OUT (absolute), V_EXE (the candidate), V_ARGS (its switches)
 NV=0
-declare -a V_NAME V_OUT V_EXE V_ARGS V_HOOKS
+declare -a V_NAME V_OUT V_EXE V_ARGS V_HOOKS V_VARIANTS
 add_variant() {
 	mkdir -p "$2" || exit 2
 	V_NAME[NV]=$1
@@ -231,8 +236,12 @@ for ((v = 0; v < NV; v++)); do
 	[ "$X_HOOKS" = yes ] || { echo "the candidate has no stage-0 hooks: ${V_EXE[v]}"; exit 2; }
 	V_EXE[v]=$X_EXE
 	V_HOOKS[v]=$X_HOOKS
-	SIDE_LINES[candidate.$v]=$(printf 'candidate.exe=%s\ncandidate.hooks=%s\ncandidate.sha256=%s\ncandidate.dlls=%s' \
-		"$(winpath "$X_EXE")" "$X_HOOKS" "$X_SHA" "$X_DLLS")
+	# A candidate built with BEJ_NO_VARIANTS plays no rule (its -dumprules text says so): the stage-5 cases are left
+	# out (they test the variant paths, which it does not have)
+	V_VARIANTS[v]=yes
+	grep -q -a "variants = off (a BEJ_NO_VARIANTS build" "$X_EXE" && V_VARIANTS[v]=no
+	SIDE_LINES[candidate.$v]=$(printf 'candidate.exe=%s\ncandidate.hooks=%s\ncandidate.sha256=%s\ncandidate.dlls=%s\ncandidate.variants=%s' \
+		"$(winpath "$X_EXE")" "$X_HOOKS" "$X_SHA" "$X_DLLS" "${V_VARIANTS[v]}")
 done
 if [ -n "$HOOKS_EXE" ] && [ "${HOOKS[hooks-baseline]}" != yes ]; then
 	echo "the hooks baseline has no stage-0 hooks: ${EXE[hooks-baseline]}"
@@ -246,6 +255,7 @@ set_variant() {
 	C="$OUT/candidate"
 	EXE[candidate]=${V_EXE[VIDX]}
 	HOOKS[candidate]=${V_HOOKS[VIDX]}
+	CAND_VARIANTS=${V_VARIANTS[VIDX]}
 	read -r -a CAND_ARGS <<< "${V_ARGS[VIDX]}"
 	VTAG=""
 	[ $NV -eq 1 ] || VTAG="[${V_NAME[VIDX]}]"
@@ -280,12 +290,13 @@ one() {
 	printf '%s' "${hits[0]}"
 }
 
-# run <side> <case> <seed> <script or -> [mods=examples] [modsdir=<dir>] [from=<case>] [savegame=<file>] [strip]
-#     [nohash] [dumprules] [fakereplays] [replay=<file or glob>] [arg=<switch>]...
+# run <side> <case> <seed> <script or -> [mods=examples] [modsdir=<dir>] [from=<case>] [savegame=<file>]
+#     [saveas=<name>] [strip] [nohash] [dumprules] [fakereplays] [replay=<file or glob>] [arg=<switch>]...
 #   modsdir=<dir>    use the mods in <dir> (all enabled, in their priority order; no mods.json)
 #   dumprules        afterwards, the same exe with -dumprules into dumprules.txt
 #   from=<case>      start from a copy of that case's user dir (same side) instead of a fresh one
 #   savegame=<file>  copy <file> in as user/savegame.dat (nothing if it does not exist)
+#   saveas=<name>    ... as user/<name> instead (a gameplay mod's scoped save, savegame-<key>.dat)
 #   strip            comment out the script's "save" lines even for an exe that has the command
 #   nohash           no -tracehash
 #   fakereplays      ten old replays in user/replays first, one of them pinned (compare.py fake-replays)
@@ -303,7 +314,7 @@ one() {
 prepare_run() {
 	local side=$1 name=$2 seed=$3 script=$4
 	shift 4
-	local hooks=${HOOKS[$side]} dir="$OUT/$side/$name" modsdir=mods from="" savegame="" strip=no replay="" opt
+	local hooks=${HOOKS[$side]} dir="$OUT/$side/$name" modsdir=mods from="" savegame="" saveas=savegame.dat strip=no replay="" opt
 	local args=() hash=(-tracehash=hash.txt)
 	R_DIR=$dir R_SIDE=$side R_NAME=$name R_EXE=${EXE[$side]} R_MODS=none R_DUMPRULES=no R_FAKE=no
 	[ "$side" = candidate ] && args+=("${CAND_ARGS[@]}")
@@ -314,6 +325,7 @@ prepare_run() {
 			dumprules) R_DUMPRULES=yes ;;
 			from=*) from="${opt#from=}" ;;
 			savegame=*) savegame="${opt#savegame=}" ;;
+			saveas=*) saveas="${opt#saveas=}" ;;
 			strip) strip=yes ;;
 			nohash) hash=() ;;
 			fakereplays) R_FAKE=yes ;;
@@ -344,7 +356,7 @@ prepare_run() {
 		printf '%s\n' "$MODS_JSON" > "$dir/user/mods.json"
 	fi
 	if [ -n "$savegame" ] && [ -f "$savegame" ]; then
-		cp "$savegame" "$dir/user/savegame.dat"
+		cp "$savegame" "$dir/user/$saveas"
 	fi
 	if [ "$R_FAKE" = yes ]; then
 		"$PY" "$COMPARE_PY" fake-replays "$(winpath "$dir/user/replays")"
@@ -581,6 +593,10 @@ corrupt_job() {  # corrupt_job <kind>: a copy of rec_pause's sidecar broken on p
 	"$PY" "$COMPARE_PY" corrupt-replay "$(winpath "$C/rec_pause/user/savegame.bjr")" "$(winpath "$OUT/gen/corrupt_$1.bjr")" "$1" \
 		> "$OUT/gen/corrupt_$1.txt"
 }
+engine_job() {  # engine_job <n>: rec_main's sidecar as engine n would have written it (compare.py corrupt-replay engine<n>)
+	"$PY" "$COMPARE_PY" corrupt-replay "$(winpath "$C/rec_main/user/savegame.bjr")" "$(winpath "$OUT/gen/engine$1_sidecar.bjr")" \
+		"engine$1" > "$OUT/gen/engine$1_sidecar.txt"
+}
 
 # all <case> <kind> <description> <seed> <script> [hooksonly] [options]: the same run with every exe
 # (hooksonly: only the exes with the stage-0 hooks, for a script that uses a stage-0 command)
@@ -706,7 +722,9 @@ define_cases() {
 	seeded pergame "playtest.txt with a seeds.perGame feature mod: each game's seed is a global draw in NewGame" \
 		"boards=pergame,pergame,pergame;rngseed=1" 1 "$PT/playtest.txt" modsdir="$M2/pergame"
 	# Stage 1's rule mods: read, merged, checked and reported (mods-status.json, -dumprules), still not played;
-	# since stage 2 any rule gives the board its own RNG, so they play exactly like the per-game-seed reference
+	# since stage 2 any rule gives the board its own RNG, so they play exactly like the per-game-seed reference.
+	# Since stage 5 their boards are variant boards (a variant line in each settle, the v2 save, no RNG sidecar); a
+	# BEJ_NO_VARIANTS candidate plays them as before (v1 and the sidecar): its own facts, expect.txt's <case>@novariants
 	inert rules_inert "playtest.txt with the rule, feature and imageOps mods of games/bejeweled/tools/oracle/mods/stage1: plays exactly like pergame" \
 		"ref=pergame;boards=pergame,pergame,pergame;rngseed=1" 1 "$PT/playtest.txt" modsdir="$GAME/tools/oracle/mods/stage1" dumprules
 	cross rules_inert.repeat repeat "rules_inert again: the same game under the same -seed" "" \
@@ -954,6 +972,24 @@ define_cases() {
 	playback watch_seed_quit_highscores "rec_seed_quit's sidecar (seed $GS, user) with Options -> High Scores mid-watch: the player's hiscores.dat, no -seeded table" \
 		"trace=rec_seed_quit;user=hiscores.dat,registry.ini" "$C/rec_seed_quit/user/savegame.bjr" script="$S3/watch_highscores.txt"
 
+	# Stage 5 raised the engine ABI to 2 (a replay of the original rules from engine 1 still plays). A game of the
+	# original rules that engine 1 recorded and saved is resumed as before: ReplayRecorder::OnLoad continues its sidecar,
+	# as Replay::CheckPlayable plays it. A sidecar the resume cannot continue (here one a later engine wrote) is kept as
+	# a finished replay first, END saved (Board::DeleteSaveSidecar), so its moves are not lost; the new replay holds the
+	# loaded save (LDSV). rec_main's sidecar with its engine ABI changed (compare.py corrupt-replay engine<n>) stands in.
+	for n in 1 3; do
+		dep_id candidate/rec_main
+		enqueue "gen/engine${n}_sidecar.bjr" engine_job "$n"
+	done
+	recording rec_load_engine1 "playtest_load.txt in a copy of rec_main's user dir whose sidecar engine 1 wrote: the original rules' replay goes on, two segments as in rec_load" \
+		load 1 "$PT/playtest_load.txt" from=rec_main savegame="$OUT/gen/engine1_sidecar.bjr" saveas=savegame.bjr
+	recording rec_load_engine3 "the same with a sidecar of engine 3, which this build cannot continue: a fresh replay of the loaded save (LDSV); the sidecar's game is kept in replays/ (END saved)" \
+		load 1 "$PT/playtest_load.txt" from=rec_main savegame="$OUT/gen/engine3_sidecar.bjr" saveas=savegame.bjr
+	playback watch_main_engine1 "rec_main's sidecar as engine 1 wrote it: an original-rules replay of engine 1 plays" "trace=rec_main" \
+		"$OUT/gen/engine1_sidecar.bjr"
+	playback watch_load_engine1 "rec_load_engine1's sidecar: engine 1's segment and this engine's in one replay" "trace=rec_main,rec_load_engine1" \
+		"$C/rec_load_engine1/user/savegame.bjr"
+
 	# Stage 2b: Auto LiveSplit (games/bejeweled/docs/CODE_MODS_DESIGN.md 4.15). The candidate with the livesplit
 	# mod (games/bejeweled/mods/livesplit, copied into a mods folder of its own) against the candidate with its
 	# inert twin (mods/stage2b/off: features.livesplit false). Neither shows mod signs, so the twin is the
@@ -1006,6 +1042,98 @@ define_cases() {
 	# board (Board::mPlaybackOnly) carries the replay flag (0x20) and is never a run: no GO is counted on it
 	# (compare.py "livesplit": a replay board expects none), while its level clears and game over are, as on any board.
 	lscase watch_main_timed "rec_main's timed game watched (-replay): a playback board, flag 0x20, no GO" 1 "$S3/watch.txt" 	replay="$C/rec_main/user/replays/*-timed-*.bjr"
+
+	# Stage 5: allow invalid moves, the noMoves rule and the v2 save (games/bejeweled/docs/CODE_MODS_DESIGN.md 4.1,
+	# 4.10, 6.6, 7.2). The rule mods of mods/stage5 are played: s5-free (moves.allowInvalid, a penalty of 10, noMoves
+	# "continue" in both modes), its twin under edited rules (same id and version: the same save file name, another
+	# RulesId), s5-free0 (s5-free without the penalty), s5-strict (kept swaps that are no moves, noMoves "fallOut" in
+	# normal and "gameOver" in timed mode) and s5-gold (gold.enabled alone). compare.py "variant" checks every settle
+	# step of these runs (one move each, a kept move one swap of neighbours), the "continue" boards, the v2 saves, the
+	# refusals, TimesPlayed and the warnings; the recordings must be inert and play back. A BEJ_NO_VARIANTS candidate
+	# plays no rule: it leaves this block out.
+	if [ "$CAND_VARIANTS" = yes ]; then
+		S5="$PT/stage5"
+		M5="$GAME/tools/oracle/mods/stage5"
+		FREE_SAVE=savegame-899ba83c   # s5-free@1.0's score key (FNV-1a of "s5-free@1.0;", CODE_MODS_DESIGN.md 3.7)
+		# variant <case> <description> <flags> <seed> <script or -> [options]: a candidate run with -codeccheck
+		variant() {
+			local name=$1 desc=$2 flags=$3
+			shift 3
+			printf '%s\t%s\t%s\t%s\n' "$name" variant "$desc" "$flags" >> "$OUT/cases.txt"
+			run candidate "$name" "$@" arg=-codeccheck=codec.txt
+		}
+		FREEBOT=(arg=-autoplaycap=20000 arg=-autoplaylog=autoplay.txt)
+		variant free_quit "-gameseed=$GS, mods/stage5/free: a match, a kept swap (10 off), the quit: a v2 save with MTRand($GS) and the counts" \
+			"kept=1;v2=last;boards=user;gameseed=$GS" 1 "$S5/free_quit.txt" modsdir="$M5/free" arg=-gameseed=$GS
+		variant free_through "free_quit's moves and free_quit.resume's in one game: two kept swaps" \
+			"kept=2;v2=last;boards=user;gameseed=$GS" 1 "$S5/free_through.txt" modsdir="$M5/free" arg=-gameseed=$GS
+		cross free_quit.resume samestream "free_quit's user dir, no -gameseed: Yes loads the v2 save (MTRand($GS) and the counts as saved); a match, a kept swap, a match" \
+			"first=free_quit;ref=free_through" 1 "$S5/free_quit_resume.txt" from=free_quit modsdir="$M5/free" arg=-codeccheck=codec.txt
+		variant free_quit.edited "free_quit's user dir with s5-free under edited rules (another RulesId, the same file name): the v2 save is refused" \
+			"log=not loaded: a save of other rules;nosave" 1 "$S0/load_resume.txt" from=free_quit modsdir="$M5/edited"
+		variant v1_refused "main's v1 save as s5-free's save file: a variant board takes only the v2 save" \
+			"log=not loaded: a v1 save;nosave" 1 "$S0/load_resume.txt" modsdir="$M5/free" savegame="$C/main/user/savegame.dat" \
+			saveas="$FREE_SAVE.dat"
+		all v2_refused load "free_quit's v2 save as savegame.dat without mods: the original version check refuses it, as in every build" \
+			1 "$S0/load_resume.txt" savegame="$C/free_quit/user/$FREE_SAVE.dat"
+		variant kept_timed "-gameseed=$GS, mods/stage5/free: a kept swap first is a move: the seed is used up, Timed asks (Yes saves v2) and is on a per-game seed" \
+			"kept=2;v2=last;boards=user,pergame;gameseed=$GS;rngseed=1" 1 "$S5/kept_timed.txt" modsdir="$M5/free" arg=-gameseed=$GS
+		variant strict_timed "-gameseed=$GS, mods/stage5/strict: a kept swap is no move: no question, the timed board on the seed again, nothing saved" \
+			"kept=2;countsasmove=0;nosave;boards=user,user;gameseed=$GS" 1 "$S5/strict_timed.txt" modsdir="$M5/strict" arg=-gameseed=$GS
+		# Kept swaps that take the board's last move (MTRand($GS)'s first board, in both modes): the fall-out in normal
+		# mode, after which the game is still new and the seed still pending; NO MOVES and the game over in timed mode,
+		# which uses the seed up and counts a game played. The first of them breaks the tutorial's move: its arrows go
+		variant strict_last "-gameseed=$GS, mods/stage5/strict: kept swaps take the last move: a fall-out (normal), no question at Timed, the same in timed mode: game over (TimesPlayed 1), play again unseeded" \
+			"kept=6;countsasmove=0;nosave;timesplayed=1;boards=user,user,pergame;gameseed=$GS;rngseed=1" 1 "$S5/strict_last.txt" \
+			modsdir="$M5/strict" arg=-gameseed=$GS
+		# Hint on a "continue" board without a move: no penalty, no sparkle, no idle glow (s5-free0 keeps the score)
+		variant free_hint "-gameseed=$GS, mods/stage5/free0: a match (10), kept swaps to a board without a move (\"continue\"): Hint there costs nothing, no idle glow" \
+			"kept=6;continue=1;v2=last;boards=user;gameseed=$GS" 1 "$S5/free_hint.txt" modsdir="$M5/free0" arg=-gameseed=$GS
+		# gold.enabled alone: the gold rule is not played yet, but its derived noMoves.normal "fallOut" is, and
+		# mods-status.json says so
+		variant gold_status "mods/stage5/gold (gold.enabled alone): a variant board; mods-status.json says its noMoves.normal \"fallOut\" is played" \
+			"nosave;warn=the gold rule is not played yet, but with it noMoves.normal defaults to" 1 "$PT/stage2/seed_start.txt" modsdir="$M5/gold"
+		variant free_auto "-autoplay=1, mods/stage5/free, 20000 updates: the bot's random swaps are kept, boards without a move go on (\"continue\")" \
+			"kept=20;continue=2;v2" 1 - modsdir="$M5/free" arg=-autoplay=1 "${FREEBOT[@]}"
+		variant free_auto_timed "-autoplay=2 -autoplaytimed, mods/stage5/free, 20000 updates: \"continue\" in timed mode" \
+			"kept=5;continue=2;v2" 1 - modsdir="$M5/free" arg=-autoplay=2 arg=-autoplaytimed "${FREEBOT[@]}"
+		variant strict_auto "-autoplay=1, mods/stage5/strict, 20000 updates: kept swaps that are no moves, a fall-out in normal mode (\"fallOut\")" \
+			"kept=20;countsasmove=0;v2" 1 - modsdir="$M5/strict" arg=-autoplay=1 "${FREEBOT[@]}"
+		variant strict_auto_timed "-autoplay=2 -autoplaytimed, mods/stage5/strict: kept swaps that are no moves; game over at no moves in timed mode (\"gameOver\", after a match)" \
+			"kept=5;countsasmove=0" 1 - modsdir="$M5/strict" arg=-autoplay=2 arg=-autoplaytimed arg=-autoplaylog=autoplay.txt
+		# Recorded (mods/stage5/*-replays: the rule mod and stage 3's replays feature mod): inert, and played back
+		recording rec_free_quit "free_quit recorded: a kept swap is a move like any (SELECT, TARGET); the sidecar next to the v2 save" \
+			free_quit 1 "$S5/free_quit.txt" modsdir="$M5/free-replays" arg=-gameseed=$GS
+		recording rec_free_quit.resume "free_quit.resume in a copy of rec_free_quit's user dir: the sidecar's replay goes on (two segments, a v2 LOAD)" \
+			free_quit.resume 1 "$S5/free_quit_resume.txt" from=rec_free_quit modsdir="$M5/free-replays"
+		recording rec_free_ldsv "free_quit.resume in a copy of free_quit's user dir (no sidecar): a fresh replay that holds the v2 save (LDSV)" \
+			free_quit.resume 1 "$S5/free_quit_resume.txt" from=free_quit modsdir="$M5/free-replays"
+		recording rec_strict_last "strict_last recorded: the normal game kept at the mode switch (END abandoned), the timed one ended by no moves" \
+			strict_last 1 "$S5/strict_last.txt" modsdir="$M5/strict-replays" arg=-gameseed=$GS
+		recording rec_free_hint "free_hint recorded: the hint ShowHint does not give is no HINT" free_hint 1 "$S5/free_hint.txt" \
+			modsdir="$M5/free0-replays" arg=-gameseed=$GS
+		recording rec_free_auto "free_auto recorded: kept swaps and \"continue\" boards, saved at the cap" free_auto 1 - \
+			modsdir="$M5/free-replays" arg=-autoplay=1 "${FREEBOT[@]}"
+		recording rec_strict_auto_timed "strict_auto_timed recorded: a finished replay, END no moves" strict_auto_timed 1 - \
+			modsdir="$M5/strict-replays" arg=-autoplay=2 arg=-autoplaytimed arg=-autoplaylog=autoplay.txt
+		playback watch_free_quit "rec_free_quit's sidecar: a kept swap, END saved" "trace=rec_free_quit" "$C/rec_free_quit/user/$FREE_SAVE.bjr"
+		playback watch_free_resume "rec_free_quit.resume's sidecar: the v2 save LOADed by the second segment's board" \
+			"trace=rec_free_quit,rec_free_quit.resume" "$C/rec_free_quit.resume/user/$FREE_SAVE.bjr"
+		playback watch_free_ldsv "rec_free_ldsv's sidecar: a fresh replay whose LDSV is a v2 save" "trace=rec_free_ldsv" \
+			"$C/rec_free_ldsv/user/$FREE_SAVE.bjr"
+		playback watch_strict_last_normal "rec_strict_last's normal game: kept swaps, the tutorial gone, the fall-out at no moves, END abandoned" \
+			"trace=rec_strict_last" "$C/rec_strict_last/user/replays/*-normal-*.bjr"
+		playback watch_strict_last_timed "rec_strict_last's timed game: game over at no moves after a kept swap" "trace=rec_strict_last" \
+			"$C/rec_strict_last/user/replays/*-timed-*.bjr"
+		playback watch_free_hint "rec_free_hint's sidecar: kept swaps to a board without a move, no HINT, END saved" "trace=rec_free_hint" \
+			"$C/rec_free_hint/user/savegame-*.bjr"
+		playback watch_free_auto "rec_free_auto's sidecar: 20000 updates of kept swaps and \"continue\" boards" "trace=rec_free_auto" \
+			"$C/rec_free_auto/user/$FREE_SAVE.bjr"
+		playback watch_strict_auto_timed "rec_strict_auto_timed's replay: kept swaps, game over at no moves (after a match)" \
+			"trace=rec_strict_auto_timed" "$C/rec_strict_auto_timed/user/replays/*.bjr"
+	else
+		echo "$VTAG  (the candidate has no variant paths: the stage-5 cases are left out)"
+	fi
 
 	# Stage 4: the headless verifier and the web build under Node (games/bejeweled/tools/verify/oracle_cases.sh): the
 	# drift guard on every replay above, the verifier's tests and difftest, LOGIC hashes of the web build

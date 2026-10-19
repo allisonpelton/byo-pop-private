@@ -1,0 +1,7 @@
+{
+  "id": "s5-free",
+  "name": "Stage 5: free swaps, edited",
+  "version": "1.0",
+  "description": "Oracle fixture: s5-free with another penalty (20) and the same id and version, so the same score key and save file name but another RulesId: its boards refuse the other's v2 save.",
+  "rules": { "moves": { "allowInvalid": true, "invalidPenalty": 20 }, "noMoves": { "normal": "continue", "timed": "continue" } }
+}

@@ -70,6 +70,8 @@ public:
 	void			OnBoardDestroyed();
 
 	bool			Loaded() const { return mLoaded; }
+	// LOAD went on with the sidecar's replay (OnLoad): its segments are this replay's first
+	bool			ContinuedSidecar() const { return mContinued; }
 	// The sidecar a shutdown would leave now with theSave (a SaveGameSnapshot): the game so far ending in
 	// SAVE(snapshot); "" once the game has ended
 	std::string		SnapshotSidecar(const std::string& theSave);
@@ -103,6 +105,7 @@ private:
 	bool			mSaving;            // inside SaveGame
 	bool			mSaved;             // the last event is a SAVE: the sidecar holds the game
 	bool			mLoaded;            // LOAD was recorded
+	bool			mContinued;         // ... and the sidecar's replay went on (OnLoad)
 	bool			mWroteSidecar;      // this board has written a sidecar (FirstSidecar)
 	int				mLastState;         // the board state after the last update (CHECK at a settle)
 	int				mMoves;             // TARGET events with a cell, this board's and the resumed ones

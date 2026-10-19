@@ -161,7 +161,8 @@ struct VariantFlags
 ```
 
 - **`-forcevariant`** is a test hook parsed in `main.cpp`, like `-nomods`.
-  - It sets `mShape`, `mMatch`, `mSearch` and `mDraw` while the rules stay the default. From stage 7c
+  - It sets `mShape`, `mMatch`, `mSearch` and `mDraw` while the rules stay the default. From stage 5
+    it also sets `mNoMoves` (its default branches are the original ones, 4.1). From stage 7c
     it also sets `mGravity`, `mFall` and `mChecker` (4.16).
   - It leaves `mAny`, `mOwnRng` and `mNoTutorial` alone, so the RNG source, the save format and
     the tutorial stay original.
@@ -316,7 +317,7 @@ Kinds of change:
 | `Board::Board` | 0x4cb5bc | H | After the existing `memset(mBoard...)`: `InitVariant();` (rules, flags, layout, RNG, `mRngStart`). Tutorial loop: `if (mVariant.mNoTutorial) FillBoardWithMove(); else { original do/while }` |
 | `UpdateBlackHole` | 0x4cb931 | B, H | After the deletion loop in the done-block: `if (mVariant.mShape) ApplyPendingLayout();`, so the loop deletes with the old bounds. |
 | `Draw` | 0x4cbc70 | H | First line: `if (mVariant.mDraw) { DrawVariant(g); return; }` Nothing else changes. |
-| `LoadGame` | 0x4cca98 | B, H, R | The file read becomes `mPlaybackLoad ? copy : file`. Version: `if (mVariant.mAny && aVersion == SAVEGAME_VERSION_VARIANT) { if (!ReadVariantHeader(aBuffer)) return false; } else if (aVersion != SAVEGAME_VERSION) return false;` `SAVE_SIZE` replaces `sizeof(Piece)`. States 10..13 map to 1 like 2/3. At the end: `if (mVariant.mAny) ReadVariantChunks(aBuffer);` and `LOAD` (R). |
+| `LoadGame` | 0x4cca98 | B, H, R | The file read becomes `mPlaybackLoad ? copy : file`. Version (as built, stage 5): `if (mVariant.mAny ? !ReadVariantHeader(aBuffer, aVersion) : (aVersion != SAVEGAME_VERSION)) return false;`, so a variant board takes only a v2 save and every other board only v1 (7.2). `SAVE_SIZE` replaces `sizeof(Piece)`. States 10..13 map to 1 like 2/3. At the end `GameLoadedVariant`, which for a variant board reads the chunks (`ReadVariantChunks`), and `LOAD` (R). |
 | `SaveGame` | 0x4ccdfe | H, R | Before the file write: `if (mPlaybackOnly) { mPlaybackSave = aBuffer; return true; }` `SAVE` marker and sidecar write (R). |
 | `WriteSaveGame` (port) | body of 0x4ccdfe | B, H | `SAVE_SIZE`. Variant boards write `SAVEGAME_VERSION_VARIANT` and the header after the version, then chunks at the end. |
 | `SaveGameSnapshot` (port) | | H | States 10..13 map to 1. |
@@ -324,7 +325,7 @@ Kinds of change:
 | `~Board` | 0x4cd1ba | B, R | `mRecorder->OnBoardDestroyed()` (finalises the replay). |
 | `ProcessMatches` | 0x4cd287 | B, H | First line: `if (mVariant.mMatch) return ProcessMatchesVariant();` Bounds: `aLines = aPass ? mRows : mCols`, `aLen = aPass ? mCols : mRows`, `j != aLen - 1`. |
 | `UpdateFalling` | 0x4cd687 | B, N, H | `if (aPiece == NULL) continue;` (holes). No-moves branch: `if (mVariant.mNoMoves) OnNoMovesVariant(); else if (mTimedMode) ...` Stage 7c: the per-piece loop becomes `if (mVariant.mFall) aSettled = FallPiecesVariant(&aLandedCount, &aLandedXSum); else { original loop }`, which then hosts the hole guard, 7b's x settling, the direction and `fallAccel`; at the end of the no-match branch `if (mVariant.mGravity) OnGravitySettle();` |
-| `UpdateSwap` | 0x4cd84f | H | After `mIsNewGame = false;`: `UsePendingSeed();` (stage 2, 4.10). Swap back only `if ((mState == STATE_SWAPPING) && !mRules.mMoves.mAllowInvalid)`. New `else if (mState == STATE_SWAPPING) KeepInvalidMove();` In the final `else` (swap-back done): `if (mVariant.mUndo) mUndo.PopLast();` |
+| `UpdateSwap` | 0x4cd84f | H | After `mIsNewGame = false;`: `UsePendingSeed();` (stage 2, 4.10), since stage 5 `OnMoveMade();` (it also counts the move). Swap back only `if ((mState == STATE_SWAPPING) && !mVariant.mInvalid)`. New `else if (mState == STATE_SWAPPING) KeepInvalidMove();` In the final `else` (swap-back done): `if (mVariant.mUndo) mUndo.PopLast();` |
 | `Update` | 0x4cdabc | H, R | Top: `if (mRecorder) mRecorder->SyncExternalRand();` Drain predicate adds `\|\| IsVariantMoveState(mState)`. After the bar clamp: `if (mVariant.mGold) aTargetWidth = GoldBarTarget();` Level block: `if (mVariant.mGold) UpdateGoldGoal(); else if (mState == STATE_PLAYING) { original }` New `case`s 10..13. After the switch: `if (mRecorder) mRecorder->AfterUpdate();` (CHECK at settle). The tick-150 block is untouched. |
 
 New states, which never occur under the original rules:
@@ -628,6 +629,46 @@ deterministic.
   still make invalid moves. `"fallOut"` reuses `STATE_FALL_OUT`.
 - **Save:** v2 with a `MOVE` chunk.
 - **Replay:** no new events.
+
+**As built (stage 5, `Board::KeepInvalidMove`, `OnNoMovesVariant` and `OnMoveMade` in `BoardVariant.cpp`):**
+- **The hooks.** `UpdateSwap`: the swap-back branch takes `!mVariant.mInvalid`, a new branch calls
+  `KeepInvalidMove()`, and the match branch's `UsePendingSeed()` became `OnMoveMade()`. `UpdateFalling`: `else if
+  (mVariant.mNoMoves) OnNoMovesVariant();` before the original branches. Seven hook lines in all with the save's
+  (7.2). After the review two more for a hint without a move (below): `ShowHint` returns `if (NoHintVariant())`, and
+  `Update`'s idle glow is switched off again `if (NoHintVariant())`. The count is 115 in 47 functions (GAME_NOTES 12.1).
+- **A kept move** is the swap at 180 degrees with no match: the swap pieces go, the penalty is taken as above, bad2
+  plays, `mInvalidMoves` counts it, and with `invalidCountsAsMove` the game has started (`mIsNewGame` cleared:
+  a quit saves it, a mode switch asks first) and `OnMoveMade` counts the move and uses a chosen seed up (4.10).
+  `mCascadeCount` becomes 0, so the settle after it records no cascade for a move without a run. Two gems of one
+  colour swapped are a kept move too (nothing changes on the board). The swap costs its 36 ticks as any swap (the
+  timed drain runs in `STATE_SWAPPING`), and the penalty lowers the bar like a hint's: that is all the time it
+  costs. With `invalidCountsAsMove` false a kept swap leaves the game new: no save at a quit, a mode switch without
+  a question, the chosen seed still pending, `mMoveCount` unchanged.
+- **The tutorial.** A kept swap changes the board, so the move the first-game tutorial shows may make no match
+  afterwards. `KeepInvalidMove` tries it (swap, `HasMatch`, swap back); if it no longer matches, the arrows and the
+  instructions go as at a game over (`mShowTutorial` false, `KillDialog`; `mShowInstructions` stays, so the next game
+  shows them again). One that still matches stays up until a match, as before.
+- **The move counts** (`mMoveCount`, `mInvalidMoves`, and `mUndosUsed`, 0 until stage 6) are counted on every
+  board, but saved (`MOVE`), hashed (LOGIC, 6.6) and traced only on a variant board. `mMoveCount` counts the moves
+  that stood: matches, and kept swaps that count as moves. Not, as 2.5 had it for `StartSwap`, every swap
+  started: a swap that goes back is no move.
+- **"continue"** shows `NO_MATCHES_LEFT`, default "NO MATCHES!" (the board's width, like "NO MOVES!"; "NO MATCHES
+  LEFT!" ran past it), at every settle without a move, and returns to `STATE_PLAYING`. `-trace` prints such a
+  settle without move lines. Hint has nothing to show there (`Board::NoHintVariant`: allowInvalid, `STATE_PLAYING`,
+  no move): `ShowHint` gives none, so no hint penalty is taken and no `HINT` recorded, the idle hint glow stays off,
+  and the replay player refuses a `HINT` there as one `ShowHint` would not give.
+- **Gold's default.** With `gold.enabled`, `noMoves.normal` defaults to "fallOut" (3.2). Stage 5 plays the noMoves
+  rule, so a gold mod already gets that fall-out in Normal mode before the gold rule itself (stage 12):
+  `mods-status.json` says so for the mod that turned gold on, unless a mod sets `noMoves.normal`.
+- **Variant trace line.** After the rows (and the seed line) a variant board's settle prints `TRACE   variant moves
+  <mMoveCount> invalid <mInvalidMoves>`.
+- **Warnings.** `mods-status.json` no longer lists `moves.allowInvalid`, `invalidPenalty`, `invalidCountsAsMove`
+  and `noMoves.*` among the rules "not played in this build yet" (a `BEJ_NO_VARIANTS` build still does).
+- **Oracle** (`compare.py` "variant", mods/stage5): kept swaps and two "continue" games (normal and timed), the
+  `fallOut` and `gameOver` branches with `invalidCountsAsMove` false (the bot's games, and `strict_last`, where kept
+  swaps take the last move in both modes and break the tutorial's move first), Hint on a "continue" board, the gold
+  warning, the pending seed after a kept swap (used up, or not), a v2 save quit and resumed with the refills of the
+  game played through, v2 saves refused both ways and under edited rules, and their recordings played back.
 
 ### 4.2 More gem colours
 
@@ -1883,6 +1924,13 @@ records { u32 tag, u32 len, payload }:
   constructor's values can be stale by then: `NewGame` deletes the board it replaces after making
   the new one, and that `~Board` counts a game in progress as played. The player sets them before
   that update.
+- **Engine ABI** (stage 5): 2. Stage 5 changed the variant simulation (kept swaps, the noMoves rule, the v2 save, the
+  variant boards' MOVE fields in LOGIC). The original rules are frozen, so the player (`Replay::CheckPlayable`,
+  `isOriginalRules`) still plays a replay of them from engine 1; a replay of variant rules only on its own engine.
+  The recorder makes the same exemption when a resume continues a sidecar (`ReplayRecorder::OnLoad`): a game of the
+  original rules that engine 1 recorded goes on, and the merged replay is this engine's. A sidecar that goes with the
+  save but is not continued (other rules, or an engine it cannot continue) is kept as a finished replay before it
+  is deleted (`Board::DeleteSaveSidecar`), as for a declined resume.
 - Op numbers: `SELECT` 1, `DESELECT` 2, `TARGET` 3 (-1 -1 for no cell), `TWIST` 4, `SLIDE` 5,
   `HINT` 6, `PAUSE` 7, `UNPAUSE` 8, `UNDO` 9, `NEW_GAME` 10, `XRAND` 11, `HOVER` 12 (-1 -1:
   left), `SAVE` 13, `LOAD` 14, `CHECK` 15. `CHECK` carries the u64 as the int64 with the same bits.
@@ -2008,6 +2056,11 @@ must be identical. A variant field missing from the table fails this test.
   SNAPSHOT → restore into a scratch board (`Board(app, SCRATCH_BOARD)`) → SNAPSHOT, and compares
   the bytes, the FULL encoding (without whether banner images exist and the parked orphan count)
   and the LOGIC hash. The oracle runs it in every stage-3 case.
+- **Stage 5.** Rows `mMoveCount`, `mInvalidMoves` (LOGIC, SNAP, V2, UNDO) and `mUndosUsed` (LOGIC, SNAP, V2), written
+  and read only for a variant board (`VariantFlags::mAny`), so a board of the original rules encodes as before. Not
+  FULL: that stays the stage-0 list and the board's own RNG, so a rule set that plays as the original (the oracle's
+  inert cases) hashes as its reference. `-codeccheck` also checks a variant board's v2 save: `CheckSave` with its
+  RulesId, and its chunks read back as the board's.
 
 ### 6.7 Undo snapshots
 
@@ -2296,6 +2349,29 @@ END
 - The header is checked before anything is changed. Chunk errors make `LoadGame` return false, as a
   truncated v1 file would.
 
+**As built (stage 5, `BoardSave.cpp`; the format in `Replay.h`, `Replay::VariantSave`):**
+- **Layout.** As above; the mask is one bit per cell, row-major, least significant bit first in each byte. A chunk
+  tag is its 4 ASCII bytes in file order, as in the replay format, and `END` has length 0 and ends the file. `RNGS`
+  is the replay's payload (seed 0: the global stream). `MOVE` holds `undosUsed` already (0 until stage 6). An 8x8
+  save is 10,463 bytes: 52 of header, the v1 fields, 2,514 of `RNGS`, 20 of `MOVE` and 8 of `END`.
+- **Writing.** `WriteSaveGame` writes `0x101`, the header after the version and the chunks after the v1 fields, for
+  a variant board only (three hook lines). Every other board writes v1 byte for byte, rule mods in a
+  `BEJ_NO_VARIANTS` build included.
+- **Reading.** `LoadGame` hands the version to `ReadVariantHeader`, which reads the whole file first
+  (`Replay::ReadVariantSave`: the header, the v1 fields walked by their present bytes, a gem in a hole refused, the
+  chunks; `RNGS` and `MOVE` required, each once, unknown tags skipped, nothing after `END`), then requires the
+  board's RulesId, its size, level shape 0 and mask (stage 7 applies the save's shape instead), and an RNG state
+  `MTRand` takes. Anything else is refused before the board changes, with a log line `savegame: <file> not loaded:
+  <why>`: a v1 save, a save of other rules (a mod edited without a version bump: the same file name, another
+  RulesId), another shape, a file cut short. The original then deletes the save as for any version it does not
+  take. `GameLoadedVariant` gives the board the chunks' RNG and counts; the sidecar of a variant board's save only
+  continues a recording.
+- **Both ways.** A v2 save on a board of the original rules fails the original check (as in the frozen builds:
+  the oracle's `v2_refused` runs on every exe), and a v1 save on a variant board fails `ReadVariantHeader`.
+- **Replays.** A playback board writes and loads v2 like a live one; a `LOAD` on a variant board also requires the
+  segment's `RNGS` to be the RNG its v2 save holds. An `LDSV` may be a v2 save of the replay's rules
+  (`Replay::CheckSave` with the replay's `RLID`).
+
 ### 7.3 Sidecar (in-progress replay)
 
 The file is `<save name>.bjr`, scoped like the save (for example `userdata/savegame.bjr`). It
@@ -2319,8 +2395,8 @@ It exists only when recording, or when a default-rules game owns its RNG. It is 
 - **Replaced or declined.** The first sidecar a recording board writes replaces the one there is: when
   that one goes with the save there is and holds a recorded move, its game is kept as a finished replay
   first (END "saved"), as No in the load dialog keeps it.
-- **Stage 5.** v1 is still the only save format, so for now this also covers rule-mod boards.
-  Stage 5's v2 `RNGS` chunk takes over for variant boards.
+- **Stage 5.** A variant board's v2 save keeps its RNG in its `RNGS` chunk, so it leaves no RNG sidecar
+  (`WriteSaveSidecar`, `SidecarSnapshot`); a recording still leaves its sidecar, with the trailing `RNGS`.
 
 **The "save" script command** writes the sidecar of its snapshot next to the `<file>` it names,
 with the `.bjr` extension, only when there is one.

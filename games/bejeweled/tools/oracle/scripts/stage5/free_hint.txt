@@ -1,0 +1,32 @@
+# Stage 5, run with -gameseed=4242 and mods/stage5/free0 (moves.allowInvalid without a penalty, noMoves "continue"):
+# Hint on a board without a move. A match scores 10; five kept swaps then leave no move, and the board goes on
+# ("continue", NO MATCHES!). Hint there has nothing to show: it takes no penalty (the default 50 would leave 0) and
+# no gem sparkles, and the idle glow does not light the hint button (Board::NoHintVariant).
+300 click 320 398
+# (2,2)->(3,2), a match: score 10, the instructions close
+470 click 329 142
+471 click 380 142
+# (6,3)<->(6,4), (2,1)<->(2,2), (5,3)<->(6,3), (0,0)<->(1,0), (3,5)<->(3,6): kept, the last leaves no move
+560 click 533 193
+561 click 533 244
+620 click 329 91
+621 click 329 142
+680 click 482 193
+681 click 533 193
+740 click 227 40
+741 click 278 40
+800 click 380 295
+801 click 380 346
+880 screenshot shots/h01_no_matches.png
+# Hint: nothing happens; the snapshot keeps the score 10
+900 click 90 340
+940 save snaps/h02_after_hint.dat
+940 screenshot shots/h02_after_hint.png
+# the pointer off the button (its "over" image shows the same words as the glow), then 1500 updates after the match's
+# clearing the idle check finds no hint to give: no glow
+950 move 30 460
+2100 screenshot shots/h03_no_glow.png
+# (3,5)<->(3,6) again: kept, and it brings a move back; the quit saves the game (v2, score 10)
+2200 click 380 295
+2201 click 380 346
+2400 quit

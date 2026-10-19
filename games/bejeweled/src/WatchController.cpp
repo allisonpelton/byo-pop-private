@@ -84,9 +84,10 @@ WatchController::WatchController(WinDMApp* theApp, const std::string& theFileNam
 }
 
 // The file, read and checked before anything changes: no larger than a replay may be, well-formed
-// (Replay::Read), playable by this build (Replay::CheckPlayable, which also checks the save bytes of an LDSV),
-// RLID the SHA-256 of RULE, RULE canonical rules the game makes (GameRules::CheckRecorded: what the mod path
-// makes of some mods, and diff.txt values every level can play with), every RNG state one MTRand takes
+// (Replay::Read), RULE canonical rules the game makes (GameRules::CheckRecorded: what the mod path makes of some
+// mods, and diff.txt values every level can play with), playable by this build (Replay::CheckPlayable, which also
+// checks the save bytes of an LDSV; the original rules from any engine), RLID the SHA-256 of RULE, every RNG state
+// one MTRand takes
 bool WatchController::Load(std::string* theError)
 {
 	mIsRead = false;
@@ -118,7 +119,13 @@ bool WatchController::Load(std::string* theError)
 		return false;
 	}
 	mIsRead = true;
-	if (!Replay::CheckPlayable(mFile, Board::BOARD_COLS, Board::BOARD_ROWS, &anError))
+	// The rules first (stage 5): a replay of the original rules plays whichever engine recorded it
+	if (!mFile.mHasRules || !mRules.FromCanonical(mFile.mRules, &anError))
+	{
+		*theError = mFile.mHasRules ? "RULE: " + anError : std::string("no RULE record");
+		return false;
+	}
+	if (!Replay::CheckPlayable(mFile, Board::BOARD_COLS, Board::BOARD_ROWS, &anError, !mRules.HasVariantRules()))
 	{
 		*theError = anError;
 		return false;
@@ -133,11 +140,6 @@ bool WatchController::Load(std::string* theError)
 	// Someone else's rules: the play code divides by, indexes and loops with what they say (the 12 diff.txt
 	// values give SetupLevel's mLevelPoints, Update's divisor), so only rules the game itself makes. Canonical
 	// bytes again: one rule set has one RulesId
-	if (!mRules.FromCanonical(mFile.mRules, &anError))
-	{
-		*theError = "RULE: " + anError;
-		return false;
-	}
 	if (mRules.Canonical() != mFile.mRules)
 	{
 		*theError = "RULE: not the canonical form of the rules it holds";
@@ -432,8 +434,9 @@ bool WatchController::Apply(const Replay::Event& theEvent)
 		break;
 
 	case Replay::OP_HINT:
-		// ShowHint's gate; the board's own ShowHint ignores a playback board
-		if ((b->mState != STATE_PLAYING) || (b->mPauseCount != 0))
+		// ShowHint's gate; the board's own ShowHint ignores a playback board. Stage 5: a board playing without a
+		// move gives no hint either (Board::NoHintVariant)
+		if ((b->mState != STATE_PLAYING) || (b->mPauseCount != 0) || b->NoHintVariant())
 		{
 			aWhy = "a hint ShowHint would not give";
 			isOk = false;
@@ -539,6 +542,16 @@ bool WatchController::Apply(const Replay::Event& theEvent)
 			if (!aSegment.mHasLoadSave && mPrevSeeded && !SameRng(aRng, mPrevRng))
 			{
 				aWhy = "RNGS is not the RNG the saved game had";
+				isOk = false;
+				break;
+			}
+			// A variant board's v2 save holds the RNG the game goes on with (its RNGS chunk, stage 5): the segment's
+			// RNGS must be that one (LDSV bytes too)
+			Replay::RngState aSaved;
+			b->GetRngState(&aSaved);
+			if (b->mVariant.mAny && ((aSaved.mSeed != 0) || (aRng.mSeed != 0)) && !SameRng(aRng, aSaved))
+			{
+				aWhy = "RNGS is not the RNG the v2 save holds";
 				isOk = false;
 				break;
 			}

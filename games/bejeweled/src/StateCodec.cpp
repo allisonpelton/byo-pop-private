@@ -122,6 +122,8 @@ public:
 	void Double(const char* theName, double& theValue, int theFlags) { if (Want(theFlags, theName)) PutDouble(theValue); }
 	void DerivedBool(const char* theName, bool theValue, int theFlags) { if (Want(theFlags, theName)) PutBool(theValue); }
 	void DerivedInt(const char* theName, int theValue, int theFlags) { if (Want(theFlags, theName)) PutInt(theValue); }
+	// A variant board's own field: in its encodings only (a board of the original rules encodes as before)
+	void VariantInt(const char* theName, int& theValue, int theFlags) { if (mBoard->mVariant.mAny) Int(theName, theValue, theFlags); }
 
 	void Layout(int theFlags)
 	{
@@ -354,6 +356,8 @@ public:
 	void Double(const char* theName, double& theValue, int theFlags) { if (theFlags & SNAP) theValue = GetDouble(theName); }
 	void DerivedBool(const char*, bool, int) {}
 	void DerivedInt(const char*, int, int) {}
+	// The target board's flags say whether the snapshot has the row (RoundTrip gives it the source's)
+	void VariantInt(const char* theName, int& theValue, int theFlags) { if (mBoard->mVariant.mAny) Int(theName, theValue, theFlags); }
 
 	void Layout(int theFlags)
 	{
@@ -560,6 +564,12 @@ template<class V> void VisitBoard(V& v, Board* b)
 	// from it), the recorder and playback members, mRngStart (replay bookkeeping), mBoardSerial and mResumed
 	// (the LiveSplit observer's bookkeeping, stage 2b: design 4.15 gives them no row)
 	v.Rng(FULL | LOGIC | SNAP | V2 | UNDO);
+	// Stage 5, the moves (the v2 save's MOVE chunk), on a variant board only. Not FULL: that stays the stage-0
+	// list and the board's own RNG, so a rule set that plays as the original (the oracle's inert cases) hashes
+	// as its reference; LOGIC (the replays' CHECK and END) and SNAPSHOT take them
+	v.VariantInt("mMoveCount", b->mMoveCount, LOGIC | SNAP | V2 | UNDO);
+	v.VariantInt("mInvalidMoves", b->mInvalidMoves, LOGIC | SNAP | V2 | UNDO);
+	v.VariantInt("mUndosUsed", b->mUndosUsed, LOGIC | SNAP | V2);
 }
 
 }

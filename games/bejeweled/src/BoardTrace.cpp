@@ -19,7 +19,8 @@ void BoardTracer::AfterUpdate(Board* theBoard, int theUpdate)
 }
 
 // port(variant): a board with a seed of its own also prints it (a replay's board on the global stream's state has
-// an MTRand of its own, but no seed).
+// an MTRand of its own, but no seed), and a variant board its variant line. A board of a noMoves "continue" rule
+// can settle without a move: no move lines then.
 void Sexy::PrintBoardTrace(Board* theBoard, int theUpdate)
 {
 	Board* aBoard = theBoard;
@@ -35,6 +36,9 @@ void Sexy::PrintBoardTrace(Board* theBoard, int theUpdate)
 	// port(variant): "user" for a seed the player chose; after the rows, which keep their place under the header
 	if (aBoard->mGameSeed != 0)
 		printf("TRACE   seed %u %s\n", (unsigned) aBoard->mGameSeed, aBoard->mUserSeeded ? "user" : "pergame");
+	// port(variant): a variant board's own state (stage 5: the moves that stood, the kept invalid moves)
+	if (aBoard->mVariant.mAny)
+		printf("TRACE   variant moves %d invalid %d\n", aBoard->mMoveCount, aBoard->mInvalidMoves);
 	int aMove[4];
 	for (int i = 0; aBoard->FindMove(aMove, i, true, true); i++)
 		printf("TRACE   move %d: (%d,%d)->(%d,%d) click %d %d then %d %d\n", i, aMove[0], aMove[1], aMove[2], aMove[3],

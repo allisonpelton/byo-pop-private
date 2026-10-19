@@ -99,7 +99,8 @@ static std::vector<std::string> ProvenanceFor(const RulesStatus& theStatus, cons
 // and seeds.perGame works, but the rules themselves are not played yet), as warnings for mods-status.json:
 // one per mod, naming every key of its own that is not played; for rule keys it says what they do change,
 // the RNG. Stage 3 records replays and plays them back from the command line only (-replay=<file>); the replay
-// browser comes with stage 13
+// browser comes with stage 13. Stage 5 plays moves.allowInvalid (with its penalty and invalidCountsAsMove) and
+// the noMoves rule
 static void AddBuildWarnings(const GameRules& theRules, const GameFeatures& theFeatures, RulesStatus* theStatus)
 {
 	// per mod: its rule keys, its feature keys (features.replays apart)
@@ -112,6 +113,13 @@ static void AddBuildWarnings(const GameRules& theRules, const GameFeatures& theF
 	};
 	std::vector<ModKeys> aByMod;
 	std::vector<std::string> aKeys = theRules.VariantKeys();
+#ifndef BEJ_NO_VARIANTS
+	// Played since stage 5 (4.1): kept invalid moves and the noMoves rule. A BEJ_NO_VARIANTS build plays no rule.
+	static const char* const aPlayed[] = {"moves.allowInvalid", "moves.invalidPenalty", "moves.invalidCountsAsMove", "noMoves.normal",
+		"noMoves.timed"};
+	for (size_t i = 0; i < sizeof(aPlayed) / sizeof(aPlayed[0]); i++)
+		aKeys.erase(std::remove(aKeys.begin(), aKeys.end(), std::string(aPlayed[i])), aKeys.end());
+#endif
 	const size_t aNumRuleKeys = aKeys.size();
 	// The features that are on but not complete yet (the seed field comes with the Extras dialog, replays are
 	// recorded but watched only from the command line); replays may be on only because the leaderboard
@@ -159,6 +167,18 @@ static void AddBuildWarnings(const GameRules& theRules, const GameFeatures& theF
 				aMod.mReplays;
 		theStatus->mWarnings.push_back({aMod.mModId, aText});
 	}
+#ifndef BEJ_NO_VARIANTS
+	// The gold rule is not played yet (stage 12), but the noMoves rule is, and with gold.enabled its normal-mode
+	// default is "fallOut" (GameRules::ResolveDerived): that part of gold already plays. Said for the mod that turned
+	// gold on, when no mod set noMoves.normal itself
+	if (theRules.mGold.mEnabled && (theRules.mNoMoves.mNormal == GameRules::NOMOVES_FALL_OUT) && ProvenanceFor(*theStatus, "noMoves.normal").empty())
+	{
+		std::vector<std::string> aMods = ProvenanceFor(*theStatus, "gold.enabled");
+		theStatus->mWarnings.push_back({aMods.empty() ? std::string() : aMods[0],
+			"gold.enabled: the gold rule is not played yet, but with it noMoves.normal defaults to \"fallOut\", which this build "
+			"plays: a Normal game left without a move falls out and goes on instead of ending"});
+	}
+#endif
 
 #ifndef BEJ_HAS_LIVESPLIT
 	// The LiveSplit block exists in desktop builds only (LiveSplitObserver.h)
@@ -350,6 +370,13 @@ std::string GameConfig::DumpRules()
 	aText += "features = " + aFeatures.Text() + "\n";
 	const std::string& aKey = Platform::ModManager::Get().GetScoreKey();
 	aText += "scoreKey = " + (aKey.empty() ? std::string("(none)") : aKey) + "\n";
+	// Whether this build plays rules at all (the oracle reads this text in the exe: a BEJ_NO_VARIANTS candidate
+	// skips the cases that play rules)
+#ifdef BEJ_NO_VARIANTS
+	aText += "variants = off (a BEJ_NO_VARIANTS build: no rule is played)\n";
+#else
+	aText += "variants = on\n";
+#endif
 	for (std::map<std::string, std::vector<std::string> >::const_iterator it = aStatus.mProvenance.begin(); it != aStatus.mProvenance.end(); ++it)
 	{
 		aText += "provenance " + it->first + " <-";
