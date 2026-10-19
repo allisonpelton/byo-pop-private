@@ -24,6 +24,13 @@ the same machine. A plain run opens a window, raises it over whatever the user i
 - Open the web builds in the Browser pane only with `?silent=1`, e.g.
   `http://127.0.0.1:18766/bejeweled.html?silent=1`: the pane may be hidden, and without it the game plays
   its music and sounds on the user's speakers. The status line ends in "silent" when it is on.
+- Driving an SDL web build in the Browser pane (found by the BookWorm and Big Money sessions):
+  - The pane's `left_click` sends no `mousemove`, so SDL sees the click at the previous pointer position.
+    Hover over the point first, or dispatch `mousemove`, `mousedown` and `mouseup` on the canvas from JS.
+  - Its `type` and `key` actions produce no `keypress` events, so text never reaches the game. Dispatch
+    `KeyboardEvent`s (`keydown`, `keypress`) to `window` from JS instead.
+  - A hidden pane runs `requestAnimationFrame` at only a few frames a second: the game runs slowly but
+    correctly. For testing only, replace it in the page with a 16 ms `setTimeout`.
 - Under rundesk (and the oracle) the framework never opens a URL; it logs "OpenURL in a test run". Builds or
   frozen exes from before that guard do open them: a click on a game's "more games" link (a steam:// URL)
   brings up the user's Steam client on their desktop. Random or generated input must not click link
