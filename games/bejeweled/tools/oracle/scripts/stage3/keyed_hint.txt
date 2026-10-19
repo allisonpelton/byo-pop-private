@@ -1,0 +1,9 @@
+# Stage 3b, seed 1, with a tunables-only mod (scoring.hintPenalty 25): the tutorial move scores 30, then a hint
+# costs 25 x 1 (with the default 50 the score would drop to 0), then the quit saves the game. Recorded with the
+# replays mod as well (mods/stage3/keyed), the replay carries the tunables in its RULE, which the player must use:
+# it watches in a session without mods.
+300 click 320 398
+460 click 482 295
+461 click 533 295
+700 click 90 340
+900 quit

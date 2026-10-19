@@ -1,0 +1,11 @@
+# Stage 3b, run with -replay=replay.bjr -replayquit: Options -> High Scores while the replay plays. The dialogs
+# hold the watch (a modal pauses it, as it pauses a game). The table they show and re-save when they close is the
+# player's (hiscores.dat, as Options -> High Scores always does), never the replay's: watching a game on a seed the
+# player chose makes no hiscores-seeded.dat. The quit below only stops a replay that never ends.
+300 click 320 398
+400 click 96 261
+420 click 484 232
+430 screenshot shots/w01_high_scores.png
+440 click 407 335
+460 click 407 299
+400000 quit

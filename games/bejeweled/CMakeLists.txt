@@ -33,11 +33,11 @@ else()
 endif()
 
 # Code-mod rules tests (games/bejeweled/tools/rulestest): the framework-free GameRules with its unit
-# fixtures and RulesId vectors, and the MTRand a board owns. Native: rulestest.exe. Web: rulestest.js,
-# run with Node (the vectors must match native).
+# fixtures and RulesId vectors, the MTRand a board owns, and the .bjr replay format (stage 3). Native:
+# rulestest.exe. Web: rulestest.js, run with Node (the vectors must match native).
 option(BUILD_RULESTEST "Build the code-mod rules tests" ON)
 if(BUILD_RULESTEST)
-  add_executable(rulestest tools/rulestest/rulestest.cpp src/GameRules.cpp src/Sha256.cpp
+  add_executable(rulestest tools/rulestest/rulestest.cpp src/GameRules.cpp src/Sha256.cpp src/Replay.cpp
     ${PROJECT_SOURCE_DIR}/platform/Json.cpp ${PROJECT_SOURCE_DIR}/framework/MTRand.cpp)
   target_include_directories(rulestest PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src ${PROJECT_SOURCE_DIR}
     ${PROJECT_SOURCE_DIR}/framework)
@@ -47,5 +47,27 @@ if(BUILD_RULESTEST)
   if(EMSCRIPTEN)
     set_target_properties(rulestest PROPERTIES SUFFIX ".js")
     target_link_options(rulestest PRIVATE "-sENVIRONMENT=node" "-sEXIT_RUNTIME=1" "-sALLOW_MEMORY_GROWTH=1")
+  endif()
+endif()
+
+# LiveSplit probe (games/bejeweled/tools/livesplit/lsprobe): reads the game's LiveSplit block from outside
+# the way the auto splitter does (games/bejeweled/docs/CODE_MODS_DESIGN.md 4.15). A 64-bit exe, like
+# LiveSplit, so it reads the 32-bit game across WOW64: built with llvm-mingw's x86_64 compiler next to the
+# i686 one, statically linked (the build folder's runtime DLLs are 32-bit).
+option(BUILD_LSPROBE "Build the LiveSplit probe (Windows)" ON)
+if(BUILD_LSPROBE AND WIN32 AND NOT EMSCRIPTEN)
+  get_filename_component(LSPROBE_COMPILER_DIR "${CMAKE_CXX_COMPILER}" DIRECTORY)
+  set(LSPROBE_CXX "${LSPROBE_COMPILER_DIR}/x86_64-w64-mingw32-clang++${CMAKE_EXECUTABLE_SUFFIX}")
+  if(EXISTS "${LSPROBE_CXX}")
+    set(LSPROBE_SOURCE ${CMAKE_CURRENT_SOURCE_DIR}/tools/livesplit/lsprobe/lsprobe.cpp)
+    add_custom_command(OUTPUT ${CMAKE_BINARY_DIR}/lsprobe.exe
+      COMMAND "${LSPROBE_CXX}" -std=c++17 -O2 -Wall -static -I${CMAKE_CURRENT_SOURCE_DIR}/src
+        -o ${CMAKE_BINARY_DIR}/lsprobe.exe ${LSPROBE_SOURCE} -lpsapi
+      DEPENDS ${LSPROBE_SOURCE} ${CMAKE_CURRENT_SOURCE_DIR}/src/LiveSplitBlock.h
+      COMMENT "Building lsprobe.exe (x86_64)"
+      VERBATIM)
+    add_custom_target(lsprobe ALL DEPENDS ${CMAKE_BINARY_DIR}/lsprobe.exe)
+  else()
+    message(STATUS "lsprobe is not built: no x86_64 compiler at ${LSPROBE_CXX}")
   endif()
 endif()

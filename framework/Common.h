@@ -117,6 +117,10 @@ uint				GetRandCount();
 // port: test hook. A copy of the Rand() generator's state words (MTRand::Serialize: mt[], without the
 // index, which the draw count implies); reads only (used by the -tracehash FULL hash).
 std::string			GetRandState();
+// port: the Rand() generator's complete state, the 624 state words and the index (MTRand::GetState); reads
+// only. A replay of a game on the global stream starts from it, and its CHECK hashes it
+// (games/bejeweled/docs/CODE_MODS_DESIGN.md 6.2, 6.6).
+void				GetRandMTState(uint32_t* theState, int* theIndex);
 extern std::string	vformat(const char* fmt, va_list argPtr);
 extern std::wstring	vformat(const wchar_t* fmt, va_list argPtr);
 extern std::string	StrFormat(const char* fmt ...);

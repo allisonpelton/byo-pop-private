@@ -2,8 +2,11 @@
 // games/bejeweled/docs/CODE_MODS_DESIGN.md 3.5-3.7 and the stage 1 row of 9.2): merge, atomic groups, keyed
 // objects, null resets, the addTypes union, validation with drop-lowest, the canonical form, and RulesId
 // vectors that the native and the wasm build must both reproduce. Stage 2: MTRand draws and
-// GetState/SetState round trips (the RNG a board owns). Framework-free: GameRules.cpp, Sha256.cpp, Json.cpp
-// and the framework's MTRand.cpp only.
+// GetState/SetState round trips (the RNG a board owns). Stage 3: the .bjr replay format (Replay.cpp):
+// varints, a write/read round trip of every record and op, a golden byte vector, and the reader on every
+// truncation and on corrupt input. Stage 3b: what the replay player accepts (Replay::CheckPlayable), the
+// record order and the reader's limits, and the check of a replay's save bytes (Replay::CheckSave).
+// Framework-free: GameRules.cpp, Sha256.cpp, Replay.cpp, Json.cpp and the framework's MTRand.cpp only.
 //
 //   rulestest              run every fixture; prints a summary, exit status 0 when all pass
 //   rulestest -v           also print each check and the vectors' canonical text
@@ -14,8 +17,11 @@
 #include "GameRules.h"
 #include "Sha256.h"
 #include "MTRand.h"
+#include "Replay.h"
+#include "Piece.h"
 
 #include <climits>
+#include <cmath>
 #include <cstdio>
 #include <cstring>
 #include <limits>
@@ -640,6 +646,22 @@ static void TestFeatures()
 	r = Merge({{"typo", "{\"features\": {\"replay\": true}}"}});
 	Check(HasMessage(r.mStatus.mWarnings, "typo", "did you mean features.replays?"), "unknown feature" + Messages(r));
 	Check(r.mFeatures.Text() == "none", "unknown feature ignored");
+
+	// Stage 2b: features.livesplit (games/bejeweled/docs/CODE_MODS_DESIGN.md 4.15): no gameplay, no options;
+	// the mod that turns it on supplies the split templates
+	r = Merge({{"livesplit", "{\"features\": {\"livesplit\": true}}"}});
+	Check(r.mFeatures.mLiveSplit && (r.mFeatures.mLiveSplitMod == "livesplit") && (r.mFeatures.Text() == "livesplit") &&
+		Prov(r, "features.livesplit") == "livesplit" && !r.mRules.HasVariantRules() && Clean(r), "livesplit: true" + Messages(r));
+	Check(r.mRules.RulesIdHex() == Merge({}).mRules.RulesIdHex(), "livesplit is not part of the RulesId");
+	r = Merge({{"low", "{\"features\": {\"livesplit\": true, \"seeds\": true}}"}, {"high", "{\"features\": {\"livesplit\": false}}"}});
+	Check(!r.mFeatures.mLiveSplit && r.mFeatures.mLiveSplitMod.empty() && r.mFeatures.mSeeds &&
+		HasMessage(r.mStatus.mWarnings, "high", "features.livesplit overrides low"), "livesplit: false overrides" + Messages(r));
+	r = Merge({{"opts", "{\"features\": {\"livesplit\": {\"port\": 1}}}"}});
+	Check(r.mFeatures.mLiveSplit && HasMessage(r.mStatus.mWarnings, "opts", "unknown key features.livesplit.port ignored"),
+		"livesplit {}: on, with no options" + Messages(r));
+	r = Merge({{"bad", "{\"features\": {\"livesplit\": 1}}"}});
+	Check(!r.mFeatures.mLiveSplit && HasMessage(r.mStatus.mErrors, "bad", "features ignored: features.livesplit must be"),
+		"livesplit: a number is refused" + Messages(r));
 }
 
 // JSON has no NaN or Infinity, though strtod reads them: rejected, so no libc's NaN reaches a RulesId
@@ -900,6 +922,649 @@ static void TestMTRand()
 	Check(isNextBlock, "MTRand(Serialize()) goes on from the next block (Serialize keeps no index)");
 }
 
+static Replay::Event MakeEvent(uint32_t theTick, int theOp, int64_t a0 = 0, int64_t a1 = 0, int64_t a2 = 0, int64_t a3 = 0, int64_t a4 = 0)
+{
+	Replay::Event anEvent;
+	anEvent.mTick = theTick;
+	anEvent.mOp = theOp;
+	int64_t anArgs[5] = {a0, a1, a2, a3, a4};
+	for (int i = 0; i < 5; i++)
+		anEvent.mArgs[i] = (i < Replay::OpArgCount(theOp)) ? anArgs[i] : 0;
+	return anEvent;
+}
+
+static bool SameRng(const Replay::RngState& a, const Replay::RngState& b)
+{
+	return (a.mSeed == b.mSeed) && (a.mUserSeeded == b.mUserSeeded) && (a.mRanked == b.mRanked) && (a.mMti == b.mMti) &&
+		(memcmp(a.mMt, b.mMt, sizeof(a.mMt)) == 0);
+}
+
+static bool SameFile(const Replay::File& a, const Replay::File& b, std::string* theWhat)
+{
+	if ((a.mFormat != b.mFormat) || (a.mFlags != b.mFlags) || (a.mEngineAbi != b.mEngineAbi))
+		*theWhat = "header";
+	else if ((a.mHasRules != b.mHasRules) || (a.mRules != b.mRules) || (a.mHasRulesId != b.mHasRulesId) ||
+		(memcmp(a.mRulesId, b.mRulesId, sizeof(a.mRulesId)) != 0))
+		*theWhat = "RULE / RLID";
+	else if ((a.mHasMeta != b.mHasMeta) || (a.mMeta != b.mMeta) || (a.mHasSession != b.mHasSession) || (a.mSession != b.mSession))
+		*theWhat = "META / SESS";
+	else if (a.mSegments.size() != b.mSegments.size())
+		*theWhat = "segment count";
+	else if ((a.mHasTrailingRng != b.mHasTrailingRng) || (a.mHasTrailingRng && !SameRng(a.mTrailingRng, b.mTrailingRng)))
+		*theWhat = "trailing RNGS";
+	else if ((a.mHasSaveHash != b.mHasSaveHash) || (a.mSaveHash != b.mSaveHash))
+		*theWhat = "SVHA";
+	else if ((a.mEnd.mReason != b.mEnd.mReason) || (a.mEnd.mEndTick != b.mEnd.mEndTick) || (a.mEnd.mScore != b.mEnd.mScore) ||
+		(a.mEnd.mLevel != b.mEnd.mLevel) || (a.mEnd.mGems != b.mEnd.mGems) || (a.mEnd.mLogicHash != b.mEnd.mLogicHash) ||
+		(a.mEnd.mBoardDraws != b.mEnd.mBoardDraws))
+		*theWhat = "END";
+	for (size_t s = 0; theWhat->empty() && (s < a.mSegments.size()); s++)
+	{
+		const Replay::Segment& x = a.mSegments[s];
+		const Replay::Segment& y = b.mSegments[s];
+		bool isSame = (x.mMode == y.mMode) && (x.mRng.mKind == y.mRng.mKind) && (x.mUserSeeded == y.mUserSeeded) &&
+			(x.mShowInstructions == y.mShowInstructions) && (x.mTimesPlayed == y.mTimesPlayed) && (x.mPointsAscent == y.mPointsAscent) &&
+			(x.mHasLoadRng == y.mHasLoadRng) && (!x.mHasLoadRng || SameRng(x.mLoadRng, y.mLoadRng)) &&
+			(x.mHasLoadSave == y.mHasLoadSave) && (x.mLoadSave == y.mLoadSave) && (x.mEvents.size() == y.mEvents.size());
+		if (isSame && (x.mRng.mKind == Replay::RNG_SEED))
+			isSame = (x.mRng.mSeed == y.mRng.mSeed);
+		else if (isSame)
+			isSame = (x.mRng.mMti == y.mRng.mMti) && (memcmp(x.mRng.mMt, y.mRng.mMt, sizeof(x.mRng.mMt)) == 0);
+		for (size_t e = 0; isSame && (e < x.mEvents.size()); e++)
+		{
+			isSame = (x.mEvents[e].mTick == y.mEvents[e].mTick) && (x.mEvents[e].mOp == y.mEvents[e].mOp);
+			for (int i = 0; isSame && (i < Replay::MAX_ARGS); i++)
+				isSame = (x.mEvents[e].mArgs[i] == y.mEvents[e].mArgs[i]);
+		}
+		if (!isSame)
+			*theWhat = "segment " + std::to_string(s);
+	}
+	return theWhat->empty();
+}
+
+// A file with every record and every op, the arguments at their extremes
+static Replay::File FullReplay()
+{
+	Replay::File aFile;
+	aFile.mFlags = Replay::FLAG_HOVER | Replay::FLAG_MULTI_SEGMENT;
+	aFile.mHasRules = true;
+	aFile.mRules = std::string("\x01\x00\x00\x00rules", 9);
+	aFile.mHasRulesId = true;
+	Sha256::Hash(aFile.mRules.data(), aFile.mRules.size(), aFile.mRulesId);
+	aFile.mHasMeta = true;
+	aFile.mMeta = "{\"name\":\"T\\u00e9st\",\"date\":\"2026-10-18T12:00:00\"}";
+	aFile.mHasSession = true;
+	aFile.mSession = "token";
+
+	Replay::Segment aFirst;
+	aFirst.mMode = 0;
+	aFirst.mRng.mKind = Replay::RNG_SEED;
+	aFirst.mRng.mSeed = 4294967295u;
+	aFirst.mUserSeeded = true;
+	aFirst.mShowInstructions = true;
+	aFirst.mTimesPlayed = -7;
+	aFirst.mPointsAscent = 32;
+	aFirst.mEvents.push_back(MakeEvent(0, Replay::OP_PAUSE, 0));
+	aFirst.mEvents.push_back(MakeEvent(0, Replay::OP_UNPAUSE, 1));
+	aFirst.mEvents.push_back(MakeEvent(139, Replay::OP_CHECK, (int64_t) 0xfedcba9876543210ull));
+	aFirst.mEvents.push_back(MakeEvent(160, Replay::OP_SELECT, 5, 5));
+	aFirst.mEvents.push_back(MakeEvent(161, Replay::OP_TARGET, 6, 5));
+	aFirst.mEvents.push_back(MakeEvent(161, Replay::OP_TARGET, -1, -1));
+	aFirst.mEvents.push_back(MakeEvent(200, Replay::OP_DESELECT));
+	aFirst.mEvents.push_back(MakeEvent(201, Replay::OP_TWIST, 3, 4, -1));
+	aFirst.mEvents.push_back(MakeEvent(202, Replay::OP_SLIDE, 1, 7, 0, 3, -51));
+	aFirst.mEvents.push_back(MakeEvent(300, Replay::OP_HINT));
+	aFirst.mEvents.push_back(MakeEvent(301, Replay::OP_UNDO));
+	aFirst.mEvents.push_back(MakeEvent(302, Replay::OP_XRAND, 1));
+	aFirst.mEvents.push_back(MakeEvent(303, Replay::OP_HOVER, -1, -1));
+	aFirst.mEvents.push_back(MakeEvent(70000, Replay::OP_NEW_GAME));
+	aFirst.mEvents.push_back(MakeEvent(4000000000u, Replay::OP_SAVE, Replay::SAVE_GAME, 4294967295ll));
+	aFirst.mEvents.push_back(MakeEvent(4000000000u, Replay::OP_CHECK, INT64_MIN));
+	aFirst.mEvents.push_back(MakeEvent(4294967295u, Replay::OP_CHECK, INT64_MAX));
+	aFile.mSegments.push_back(aFirst);
+
+	Replay::Segment aSecond;
+	aSecond.mMode = 1;
+	aSecond.mRng.mKind = Replay::RNG_STATE;
+	MTRand(5489).GetState(aSecond.mRng.mMt, &aSecond.mRng.mMti);
+	aSecond.mHasLoadSave = true;
+	aSecond.mLoadSave = std::string("\x01\x00\x00\x00save", 8) + std::string(1, '\0') + "bytes";
+	aSecond.mHasLoadRng = true;
+	aSecond.mLoadRng.mSeed = 4242;
+	aSecond.mLoadRng.mUserSeeded = true;
+	MTRand(4242).GetState(aSecond.mLoadRng.mMt, &aSecond.mLoadRng.mMti);
+	aSecond.mEvents.push_back(MakeEvent(0, Replay::OP_LOAD));
+	aSecond.mEvents.push_back(MakeEvent(1, Replay::OP_CHECK, 1));
+	aFile.mSegments.push_back(aSecond);
+
+	aFile.mHasTrailingRng = true;
+	aFile.mTrailingRng.mSeed = 1;
+	aFile.mTrailingRng.mRanked = true;
+	MTRand(1).GetState(aFile.mTrailingRng.mMt, &aFile.mTrailingRng.mMti);
+	aFile.mHasSaveHash = true;
+	aFile.mSaveHash = 0x6a004117;
+	aFile.mEnd.mReason = Replay::END_SAVED;
+	aFile.mEnd.mEndTick = 260;
+	aFile.mEnd.mScore = -5;
+	aFile.mEnd.mLevel = 2;
+	aFile.mEnd.mGems = 25;
+	aFile.mEnd.mLogicHash = 0x8000000000000001ull;
+	aFile.mEnd.mBoardDraws = 4294967295u;
+	return aFile;
+}
+
+static void TestReplayVarints()
+{
+	const int64_t aValues[] = {0, 1, -1, 63, -64, 64, -65, 127, 128, 300, -300, 2147483647, -2147483647 - 1, 4294967295ll,
+		INT64_MAX, INT64_MIN, INT64_MIN + 1};
+	bool isOk = true;
+	for (size_t i = 0; i < sizeof(aValues) / sizeof(aValues[0]); i++)
+	{
+		std::string aBytes;
+		Replay::PutVarint(&aBytes, Replay::ZigZag(aValues[i]));
+		size_t aPos = 0;
+		uint64_t aRead = 0;
+		isOk = isOk && Replay::GetVarint(aBytes, &aPos, aBytes.size(), &aRead) && (aPos == aBytes.size()) &&
+			(Replay::UnZigZag(aRead) == aValues[i]) && (aBytes.size() <= 10);
+	}
+	Check(isOk, "replay: zigzag varints round trip 0, +-1, the 7-bit edges, the i32 and i64 extremes");
+	Check((Replay::ZigZag(0) == 0) && (Replay::ZigZag(-1) == 1) && (Replay::ZigZag(1) == 2) && (Replay::ZigZag(-2) == 3) &&
+		(Replay::ZigZag(INT64_MIN) == UINT64_MAX), "replay: zigzag maps 0, -1, 1, -2, INT64_MIN to 0, 1, 2, 3, 2^64-1");
+
+	std::string aMax;
+	Replay::PutVarint(&aMax, UINT64_MAX);
+	Check(Hex(aMax) == "ffffffffffffffffff01", "replay: 2^64-1 is the 10 bytes ff x9 01 (got " + Hex(aMax) + ")");
+	size_t aPos = 0;
+	uint64_t aValue = 0;
+	std::string anOver = std::string(9, '\xff') + "\x02";
+	Check(!Replay::GetVarint(anOver, &aPos, anOver.size(), &aValue) && (aPos == 0), "replay: a tenth varint byte over 1 is refused");
+	std::string aLong = std::string(10, '\x80') + std::string(1, '\0');
+	Check(!Replay::GetVarint(aLong, &aPos, aLong.size(), &aValue), "replay: an 11-byte varint is refused");
+	std::string aCut = "\x80\x80";
+	Check(!Replay::GetVarint(aCut, &aPos, aCut.size(), &aValue) && !Replay::GetVarint(aMax, &aPos, 5, &aValue),
+		"replay: a varint cut off by the end (of the data, or of the record) is refused");
+}
+
+static void TestReplayFormat()
+{
+	// SaveHash: SHA-256("abc") = ba7816bf..., little-endian
+	Check(Replay::SaveHash("abc", 3) == 0xbf1678bau, "replay: SaveHash(\"abc\") is SHA-256's first 4 bytes, little-endian");
+
+	// Round trip: every record, every op
+	Replay::File aFile = FullReplay();
+	std::string aBytes = Replay::Write(aFile);
+	Replay::File aRead;
+	std::string anError;
+	std::string aWhat;
+	bool isRead = Replay::Read(aBytes, &aRead, &anError);
+	Check(isRead && SameFile(aFile, aRead, &aWhat), "replay: write, read: every record and op as written (" + anError + aWhat + ")");
+	Check(isRead && (Replay::Write(aRead) == aBytes), "replay: read, write: the same bytes");
+	Check((Replay::CountMoves(aRead.mSegments[0]) == 1) && (Replay::CountMoves(aRead.mSegments[1]) == 0),
+		"replay: CountMoves counts the TARGETs that name a cell");
+	bool areCounted = true;
+	for (int anOp = 1; anOp < Replay::NUM_OPS; anOp++)
+		areCounted = areCounted && (Replay::OpArgCount(anOp) >= 0) && (strcmp(Replay::OpName(anOp), "?") != 0);
+	Check(areCounted && (Replay::OpArgCount(0) < 0) && (Replay::OpArgCount(Replay::NUM_OPS) < 0),
+		"replay: every op 1..15 has a name and an argument count, 0 and 16 none");
+
+	// A golden vector: the smallest file (header and END) and a one-segment file, byte for byte, the same on
+	// native and wasm
+	Replay::File anEmpty;
+	Check(Hex(Replay::Write(anEmpty)) == "424a5250010000000100000045" "4e4420" "1d000000" "00" "00000000" "00000000" "00000000"
+		"00000000" "0000000000000000" "00000000", "replay: golden bytes of a file with only END");
+	Replay::File aSmall;
+	Replay::Segment aSegment;
+	aSegment.mRng.mSeed = 4242;
+	aSegment.mEvents.push_back(MakeEvent(160, Replay::OP_SELECT, 5, 5));
+	aSegment.mEvents.push_back(MakeEvent(161, Replay::OP_TARGET, -1, -1));
+	aSmall.mSegments.push_back(aSegment);
+	aSmall.mEnd.mReason = Replay::END_NO_MOVES;
+	aSmall.mEnd.mScore = 90;
+	std::string aSmallHex = Hex(Replay::Write(aSmall));
+	Check(aSmallHex == "424a52500100000001000000" "5345474d" "1d000000" "00" "00" "92100000" "00" "00" "00000000" "00000000"
+		"02000000" "a001" "01" "0a" "0a" "01" "03" "01" "01"
+		"454e4420" "1d000000" "01" "00000000" "5a000000" "00000000" "00000000" "0000000000000000" "00000000",
+		"replay: golden bytes of a one-segment file (got " + aSmallHex + ")");
+
+	// Every truncation fails: END is last, so even a cut at a record boundary is caught
+	int aParsed = 0;
+	for (size_t aLen = 0; aLen < aBytes.size(); aLen++)
+	{
+		Replay::File aCut;
+		if (Replay::Read(aBytes.substr(0, aLen), &aCut))
+			aParsed++;
+	}
+	Check(aParsed == 0, "replay: each of the " + std::to_string(aBytes.size()) + " truncations is refused (" + std::to_string(aParsed) + " read)");
+
+	// Corrupt input: single-byte changes never crash the reader; what it still reads writes back readable
+	int aRefused = 0;
+	bool isStable = true;
+	for (size_t i = 0; i < aBytes.size(); i += (i < 200) ? 1 : 7)
+	{
+		for (int aMask = 1; aMask < 256; aMask <<= 3)
+		{
+			std::string aBad = aBytes;
+			aBad[i] = (char) (aBad[i] ^ aMask);
+			Replay::File aMaybe;
+			if (!Replay::Read(aBad, &aMaybe))
+				aRefused++;
+			else
+			{
+				Replay::File anAgain;
+				isStable = isStable && Replay::Read(Replay::Write(aMaybe), &anAgain);
+			}
+		}
+	}
+	Check(isStable && (aRefused > 0), "replay: flipped bits never crash the reader, " + std::to_string(aRefused) +
+		" corruptions refused, the rest read back after a write");
+
+	// Specific corruptions
+	struct Bad { const char* mWhat; size_t mAt; std::string mBytes; };
+	std::string aSmallBytes = Replay::Write(aSmall);
+	const size_t aSegmPayload = 12 + 8;                    // the SEGM payload in aSmall
+	const size_t aCountAt = aSegmPayload + 1 + 1 + 4 + 1 + 1 + 4 + 4;
+	const size_t aFirstOpAt = aCountAt + 4 + 2;
+	const Bad aBads[] =
+	{
+		{"a wrong magic", 0, "X"},
+		{"format 2", 4, std::string("\x02", 1)},
+		{"a record longer than the file", 16, std::string("\xff\xff\x00\x00", 4)},
+		{"an event count of 2^32-1", aCountAt, std::string("\xff\xff\xff\xff", 4)},
+		{"one event more than the payload holds", aCountAt, std::string("\x03", 1)},
+		{"an unknown op", aFirstOpAt, std::string("\x10", 1)},
+		{"op 0", aFirstOpAt, std::string("\x00", 1)},
+		{"an RNG start kind of 2", aSegmPayload + 1, std::string("\x02", 1)},
+	};
+	for (size_t i = 0; i < sizeof(aBads) / sizeof(aBads[0]); i++)
+	{
+		std::string aBad = aSmallBytes;
+		aBad.replace(aBads[i].mAt, aBads[i].mBytes.size(), aBads[i].mBytes);
+		Replay::File aNot;
+		std::string aWhy;
+		bool isRefused = !Replay::Read(aBad, &aNot, &aWhy);
+		Check(isRefused && !aWhy.empty(), std::string("replay: ") + aBads[i].mWhat + " is refused (" + aWhy + ")");
+	}
+	Replay::File aNot;
+	std::string aWhy;
+	Check(!Replay::Read(aSmallBytes + "x", &aNot, &aWhy), "replay: data after END is refused (" + aWhy + ")");
+	std::string aTwoEnds = aSmallBytes + aSmallBytes.substr(aSmallBytes.size() - 37);
+	Check(!Replay::Read(aTwoEnds, &aNot, &aWhy), "replay: a second END is refused (" + aWhy + ")");
+	// An unknown record is skipped (a later format addition)
+	std::string anExtra = aSmallBytes.substr(0, aSmallBytes.size() - 37) + "XTRA" + std::string("\x03\x00\x00\x00", 4) + "abc" +
+		aSmallBytes.substr(aSmallBytes.size() - 37);
+	aWhy.clear();
+	Check(Replay::Read(anExtra, &aNot, &aWhy) && (Replay::Write(aNot) == aSmallBytes), "replay: an unknown record is skipped (" + aWhy + ")");
+	// A RNGS or an RLID of the wrong size
+	std::string aShortRng = aSmallBytes.substr(0, 12) + "RNGS" + std::string("\x04\x00\x00\x00", 4) + "abcd" + aSmallBytes.substr(12);
+	Check(!Replay::Read(aShortRng, &aNot, &aWhy), "replay: an RNGS of 4 bytes is refused (" + aWhy + ")");
+	std::string aShortId = aSmallBytes.substr(0, 12) + "RLID" + std::string("\x04\x00\x00\x00", 4) + "abcd" + aSmallBytes.substr(12);
+	Check(!Replay::Read(aShortId, &aNot, &aWhy), "replay: an RLID of 4 bytes is refused (" + aWhy + ")");
+}
+
+// A v1 save as Board::WriteSaveGame writes one: an 8x8 game in play, every cell present (7873 bytes). Its
+// layout for the tests below: the header (version, timed, level, display level) is 13 bytes, each cell a
+// present byte and the 0x78 Piece bytes, then the 116 bytes of the board's other fields.
+enum { SAVE_CELLS_AT = 13, SAVE_CELL_SIZE = 1 + Piece::SAVE_SIZE, SAVE_TAIL_AT = SAVE_CELLS_AT + 64 * SAVE_CELL_SIZE };
+
+static size_t SavePieceAt(int theCol, int theRow, size_t theOffset)
+{
+	return SAVE_CELLS_AT + (theRow * 8 + theCol) * SAVE_CELL_SIZE + 1 + theOffset;
+}
+
+static std::string V1Save()
+{
+	std::string s;
+	auto I32 = [&s](int32_t v) { s.append((const char*) &v, 4); };
+	auto U8 = [&s](int v) { s.push_back((char) v); };
+	auto F64 = [&s](double v) { s.append((const char*) &v, 8); };
+	I32(1);
+	U8(0);
+	I32(0);
+	I32(1);
+	for (int r = 0; r < 8; r++)
+	{
+		for (int c = 0; c < 8; c++)
+		{
+			U8(1);
+			unsigned char aPiece[Piece::SAVE_SIZE] = {};
+			int32_t aColor = (r * 3 + c) % 7;
+			int32_t aCol = c;
+			int32_t aRow = r;
+			double aX = 203 + 51 * c;
+			double aY = 16 + 51 * r;
+			double anAlpha = -0.011;
+			memcpy(aPiece + offsetof(Piece, mColor), &aColor, 4);
+			memcpy(aPiece + offsetof(Piece, mX), &aX, 8);
+			memcpy(aPiece + offsetof(Piece, mY), &aY, 8);
+			memcpy(aPiece + offsetof(Piece, mCol), &aCol, 4);
+			memcpy(aPiece + offsetof(Piece, mRow), &aRow, 4);
+			memcpy(aPiece + offsetof(Piece, mGlowAlpha), &anAlpha, 8);
+			memset(aPiece + offsetof(Piece, mPad39), 0xcd, 7); // padding: anything
+			s.append((const char*) aPiece, sizeof(aPiece));
+		}
+	}
+	I32(1);          // STATE_PLAYING
+	U8(0);
+	U8(0);
+	I32(170);        // mBarWidth
+	I32(12);
+	I32(30);
+	I32(150);        // mScore
+	F64(1.0);
+	I32(150);
+	I32(9);
+	I32(3);
+	I32(1);
+	I32(1);
+	I32(150);
+	U8(0);
+	I32(-559038737); // mUnused264: anything
+	I32(0);
+	I32(1000);       // mLevelTargetScore
+	I32(1000);
+	F64(0.0);
+	F64(0.0);
+	F64(0.0);
+	I32(23);         // mBarColor
+	I32(0);
+	I32(0);
+	F64(0.0);
+	U8(0);
+	return s;
+}
+
+// Replay::CheckSave: a save the game makes passes; each value out of range that the original LoadGame would
+// take on trust, and Draw or an update would index, loop or divide with, is refused
+static void TestReplaySave()
+{
+	std::string aWhy;
+	std::string aGood = V1Save();
+	Check(aGood.size() == 7873, "save: the test save is the 7873 bytes of a full 8x8 board (" + std::to_string(aGood.size()) + ")");
+	Check(Replay::CheckSave(aGood, 8, 8, &aWhy), "save: a game in play passes (" + aWhy + ")");
+	std::string aSwapping = aGood;
+	int32_t aState = 3;
+	memcpy(&aSwapping[SAVE_TAIL_AT], &aState, 4);
+	Check(Replay::CheckSave(aSwapping, 8, 8, &aWhy), "save: a swap going back passes (LoadGame makes it STATE_PLAYING) (" + aWhy + ")");
+	// A cell without a gem: its present byte 0 and no Piece bytes
+	std::string aHole = aGood.substr(0, SAVE_CELLS_AT) + std::string(1, '\0') + aGood.substr(SAVE_CELLS_AT + SAVE_CELL_SIZE);
+	Check(Replay::CheckSave(aHole, 8, 8, &aWhy), "save: an empty cell passes (" + aWhy + ")");
+
+	struct Bad { const char* mWhat; size_t mAt; std::string mBytes; };
+	auto I32 = [](int32_t v) { return std::string((const char*) &v, 4); };
+	auto F64 = [](double v) { return std::string((const char*) &v, 8); };
+	const size_t T = SAVE_TAIL_AT;
+	const Bad aBads[] =
+	{
+		{"version 2", 0, I32(2)},
+		{"timed 2", 4, std::string(1, '\2')},
+		{"level -1", 5, I32(-1)},
+		{"display level 0", 9, I32(0)},
+		{"a present byte of 2", SAVE_CELLS_AT, std::string(1, '\2')},
+		{"colour 7", SavePieceAt(0, 0, offsetof(Piece, mColor)), I32(7)},
+		{"colour 0x01000000", SavePieceAt(5, 6, offsetof(Piece, mColor)), I32(0x01000000)},
+		{"a piece that says it is in another column", SavePieceAt(3, 2, offsetof(Piece, mCol)), I32(4)},
+		{"a piece that says it is in row 8", SavePieceAt(3, 7, offsetof(Piece, mRow)), I32(8)},
+		{"mVelY NaN", SavePieceAt(1, 1, offsetof(Piece, mVelY)), F64(std::nan(""))},
+		{"mGlowing 2", SavePieceAt(1, 1, offsetof(Piece, mGlowing)), std::string(1, '\2')},
+		{"mGlowAlpha 1.5", SavePieceAt(1, 1, offsetof(Piece, mGlowAlpha)), F64(1.5)},
+		{"mGlowFrame 15", SavePieceAt(1, 1, offsetof(Piece, mGlowFrame)), I32(15)},
+		{"mDying 2", SavePieceAt(1, 1, offsetof(Piece, mDying)), std::string(1, '\2')},
+		{"mDyingFrame 6", SavePieceAt(7, 7, offsetof(Piece, mDyingFrame)), I32(6)},
+		{"mSpinFrame 15", SavePieceAt(1, 1, offsetof(Piece, mSpinFrame)), I32(15)},
+		{"mSparkleCount 59", SavePieceAt(1, 1, offsetof(Piece, mSparkleCount)), I32(59)},
+		{"mSparkleFrame -1", SavePieceAt(1, 1, offsetof(Piece, mSparkleFrame)), I32(-1)},
+		{"mHoleAngle infinite", SavePieceAt(1, 1, offsetof(Piece, mHoleAngle)), F64(INFINITY)},
+		{"mHoleRadius -1", SavePieceAt(1, 1, offsetof(Piece, mHoleRadius)), F64(-1.0)},
+		{"state 5 (game over)", T, I32(5)},
+		{"state 10", T, I32(10)},
+		{"the two timed bytes differ", T + 4, std::string(1, '\1')},
+		{"bar width 341", T + 6, I32(341)},
+		{"score -1", T + 18, I32(-1)},
+		{"multiplier 0", T + 22, F64(0.0)},
+		{"level start score = target", T + 59, I32(1000)},
+		{"time drain NaN", T + 71, F64(std::nan(""))},
+		{"bar colour 25", T + 95, I32(25)},
+		{"wipe -3", T + 99, I32(-3)},
+		{"black hole frame 9", T + 103, I32(9)},
+		{"black hole level 1.5", T + 107, F64(1.5)},
+		{"level text shown 2", T + 115, std::string(1, '\2')},
+	};
+	for (size_t i = 0; i < sizeof(aBads) / sizeof(aBads[0]); i++)
+	{
+		std::string aBad = aGood;
+		aBad.replace(aBads[i].mAt, aBads[i].mBytes.size(), aBads[i].mBytes);
+		aWhy.clear();
+		Check(!Replay::CheckSave(aBad, 8, 8, &aWhy) && !aWhy.empty(), std::string("save: refused: ") + aBads[i].mWhat + " (" + aWhy + ")");
+	}
+	aWhy.clear();
+	Check(!Replay::CheckSave(aGood + "x", 8, 8, &aWhy), "save: refused: a byte after the last field (" + aWhy + ")");
+	aWhy.clear();
+	Check(!Replay::CheckSave(aGood.substr(0, aGood.size() - 1), 8, 8, &aWhy), "save: refused: one byte short (" + aWhy + ")");
+	int aRead = 0;
+	for (size_t aLen = 0; aLen < aGood.size(); aLen += 13)
+		aRead += Replay::CheckSave(aGood.substr(0, aLen), 8, 8) ? 1 : 0;
+	Check(aRead == 0, "save: every cut is refused (" + std::to_string(aRead) + " passed)");
+}
+
+static Replay::File PlayableReplay();
+
+// The record order (Replay.h), the END reason, and what the reader and the player take on at most
+static void TestReplayLimits()
+{
+	Replay::File aSmall;
+	Replay::Segment aSegment;
+	aSegment.mRng.mSeed = 4242;
+	aSegment.mEvents.push_back(MakeEvent(160, Replay::OP_SELECT, 5, 5));
+	aSmall.mSegments.push_back(aSegment);
+	aSmall.mEnd.mReason = Replay::END_NO_MOVES;
+	std::string aSmallBytes = Replay::Write(aSmall);
+	std::string aHeader = aSmallBytes.substr(0, 12);
+	size_t anEndAt = aSmallBytes.size() - 37;
+	std::string aSegm = aSmallBytes.substr(12, anEndAt - 12);
+	std::string anEnd = aSmallBytes.substr(anEndAt);
+	auto Rec = [](const char* theTag, const std::string& thePayload)
+	{
+		uint32_t aLen = (uint32_t) thePayload.size();
+		return std::string(theTag, 4) + std::string((const char*) &aLen, 4) + thePayload;
+	};
+	Replay::File aWithRng;
+	aWithRng.mHasTrailingRng = true;
+	MTRand(9).GetState(aWithRng.mTrailingRng.mMt, &aWithRng.mTrailingRng.mMti);
+	std::string anRngs = Replay::Write(aWithRng);
+	anRngs = anRngs.substr(12, anRngs.size() - 12 - 37);
+	std::string aRule = Rec("RULE", "rules");
+	std::string anId = Rec("RLID", std::string(32, 'i'));
+	std::string aMeta = Rec("META", "{}");
+	std::string aSvha = Rec("SVHA", std::string(4, 's'));
+	std::string aLdsv = Rec("LDSV", "save");
+
+	Replay::File aNot;
+	std::string aWhy;
+	Check(Replay::Read(aHeader + aRule + anId + aMeta + aLdsv + anRngs + aSegm + anRngs + aSvha + anEnd, &aNot, &aWhy),
+		"limits: every record once, in order, reads (" + aWhy + ")");
+	struct Bad { const char* mWhat; std::string mBytes; };
+	const Bad aBads[] =
+	{
+		{"RULE twice", aHeader + aRule + aRule + aSegm + anEnd},
+		{"RLID before RULE", aHeader + anId + aRule + aSegm + anEnd},
+		{"META after a SEGM", aHeader + aRule + aSegm + aMeta + anEnd},
+		{"RULE after an RNGS", aHeader + anRngs + aRule + aSegm + anEnd},
+		{"two RNGS before a SEGM", aHeader + anRngs + anRngs + aSegm + anEnd},
+		{"an RNGS before an LDSV", aHeader + anRngs + aLdsv + aSegm + anEnd},
+		{"two LDSV before a SEGM", aHeader + aLdsv + aLdsv + aSegm + anEnd},
+		{"an LDSV after the last SEGM", aHeader + aSegm + aLdsv + anEnd},
+		{"an LDSV before SVHA", aHeader + aSegm + aLdsv + aSvha + anEnd},
+		{"two SVHA", aHeader + aSegm + aSvha + aSvha + anEnd},
+		{"an RNGS after SVHA", aHeader + aSegm + aSvha + anRngs + anEnd},
+		{"a SEGM after SVHA", aHeader + aSegm + aSvha + aSegm + anEnd},
+		{"END reason 6", aHeader + aSegm + anEnd.substr(0, 8) + std::string(1, '\6') + anEnd.substr(9)},
+		{"END reason 255", aHeader + aSegm + anEnd.substr(0, 8) + std::string(1, '\xff') + anEnd.substr(9)},
+	};
+	for (size_t i = 0; i < sizeof(aBads) / sizeof(aBads[0]); i++)
+	{
+		aWhy.clear();
+		Check(!Replay::Read(aBads[i].mBytes, &aNot, &aWhy) && !aWhy.empty(), std::string("limits: refused: ") + aBads[i].mWhat + " (" + aWhy + ")");
+	}
+	aWhy.clear();
+	Check(Replay::Read(aHeader + aRule + Rec("XTRA", "x") + anId + aSegm + Rec("XTRA", "") + anEnd, &aNot, &aWhy),
+		"limits: unknown records are skipped anywhere (" + aWhy + ")");
+
+	// Sizes: a file over MAX_FILE_SIZE, and a SEGM with more events than a replay may have (refused before it
+	// allocates for them: the payload holds 2 bytes for each)
+	std::string aBig = aSmallBytes.substr(0, anEndAt) + Rec("XTRA", std::string(Replay::MAX_FILE_SIZE - aSmallBytes.size() - 7, 'x')) + anEnd;
+	aWhy.clear();
+	Check((aBig.size() == (size_t) Replay::MAX_FILE_SIZE + 1) && !Replay::Read(aBig, &aNot, &aWhy),
+		"limits: refused: a file of MAX_FILE_SIZE + 1 bytes (" + aWhy + ")");
+	aBig = aSmallBytes.substr(0, anEndAt) + Rec("XTRA", std::string(Replay::MAX_FILE_SIZE - aSmallBytes.size() - 8, 'x')) + anEnd;
+	aWhy.clear();
+	Check((aBig.size() == (size_t) Replay::MAX_FILE_SIZE) && Replay::Read(aBig, &aNot, &aWhy),
+		"limits: a file of MAX_FILE_SIZE bytes reads (" + aWhy + ")");
+	aBig.clear();
+	aBig.shrink_to_fit();
+	std::string aMany = aSegm.substr(8, 1 + 1 + 4 + 1 + 1 + 4 + 4);
+	uint32_t aCount = Replay::MAX_EVENTS + 1;
+	aMany += std::string((const char*) &aCount, 4) + std::string(2 * (size_t) aCount, '\1');
+	aWhy.clear();
+	Check(!Replay::Read(aHeader + Rec("SEGM", aMany) + anEnd, &aNot, &aWhy), "limits: refused: a SEGM of MAX_EVENTS + 1 events (" + aWhy + ")");
+
+	// The player: the END tick, events at one tick, outside draws in all
+	Replay::File aGood = PlayableReplay();
+	aWhy.clear();
+	Check(Replay::CheckPlayable(aGood, 8, 8, &aWhy), "limits: the playable replay (" + aWhy + ")");
+	Replay::File aLong = aGood;
+	aLong.mEnd.mEndTick = Replay::MAX_TICKS + 1;
+	aWhy.clear();
+	Check(!Replay::CheckPlayable(aLong, 8, 8, &aWhy), "limits: refused: END past MAX_TICKS (" + aWhy + ")");
+	// All segments' ticks count: segment 0 plays to its SAVE at tick 171
+	aLong.mEnd.mEndTick = Replay::MAX_TICKS - 171;
+	aLong.mSegments[1].mEvents.back().mTick = Replay::MAX_TICKS - 171;
+	aWhy.clear();
+	Check(Replay::CheckPlayable(aLong, 8, 8, &aWhy), "limits: 171 ticks, then an END at MAX_TICKS - 171 (" + aWhy + ")");
+	aLong.mEnd.mEndTick++;
+	aLong.mSegments[1].mEvents.back().mTick++;
+	aWhy.clear();
+	Check(!Replay::CheckPlayable(aLong, 8, 8, &aWhy), "limits: refused: one tick more in all (" + aWhy + ")");
+	Replay::File aBusy = aGood;
+	std::vector<Replay::Event>& aBusyEvents = aBusy.mSegments[0].mEvents;
+	aBusyEvents.insert(aBusyEvents.begin() + 5, Replay::MAX_EVENTS_PER_TICK - 2, MakeEvent(170, Replay::OP_HOVER, 1, 2));
+	aWhy.clear();
+	Check(Replay::CheckPlayable(aBusy, 8, 8, &aWhy), "limits: MAX_EVENTS_PER_TICK events at one tick (" + aWhy + ")");
+	aBusyEvents.insert(aBusyEvents.begin() + 5, MakeEvent(170, Replay::OP_HOVER, 1, 2));
+	aWhy.clear();
+	Check(!Replay::CheckPlayable(aBusy, 8, 8, &aWhy), "limits: refused: one event more at that tick (" + aWhy + ")");
+	Replay::File aDraws = aGood;
+	aDraws.mSegments[1].mEvents[4].mArgs[0] = Replay::MAX_XRAND;
+	aWhy.clear();
+	Check(Replay::CheckPlayable(aDraws, 8, 8, &aWhy), "limits: MAX_XRAND outside draws in all (" + aWhy + ")");
+	aDraws.mSegments[1].mEvents.insert(aDraws.mSegments[1].mEvents.begin() + 4, MakeEvent(9, Replay::OP_XRAND, 1));
+	aWhy.clear();
+	Check(!Replay::CheckPlayable(aDraws, 8, 8, &aWhy), "limits: refused: one outside draw more in the replay (" + aWhy + ")");
+}
+
+// A two-segment replay the player of this build can start: a seeded game saved, then resumed
+static Replay::File PlayableReplay()
+{
+	Replay::File aFile;
+	aFile.mHasRules = true;
+	aFile.mRules = std::string("\x01\x00rules", 7);
+	Replay::Segment aFirst;
+	aFirst.mRng.mKind = Replay::RNG_SEED;
+	aFirst.mRng.mSeed = 4242;
+	aFirst.mUserSeeded = true;
+	aFirst.mEvents.push_back(MakeEvent(140, Replay::OP_CHECK, 7));
+	aFirst.mEvents.push_back(MakeEvent(160, Replay::OP_SELECT, 0, 7));
+	aFirst.mEvents.push_back(MakeEvent(161, Replay::OP_TARGET, 7, 7));
+	aFirst.mEvents.push_back(MakeEvent(161, Replay::OP_TARGET, -1, -1));
+	aFirst.mEvents.push_back(MakeEvent(170, Replay::OP_PAUSE, 1));
+	aFirst.mEvents.push_back(MakeEvent(170, Replay::OP_HOVER, 639, -1));
+	aFirst.mEvents.push_back(MakeEvent(171, Replay::OP_SAVE, Replay::SAVE_GAME, 4294967295ll));
+	aFile.mSegments.push_back(aFirst);
+	Replay::Segment aSecond;
+	aSecond.mRng.mKind = Replay::RNG_STATE;
+	MTRand(5489).GetState(aSecond.mRng.mMt, &aSecond.mRng.mMti);
+	aSecond.mHasLoadRng = true;
+	aSecond.mLoadRng.mSeed = 4242;
+	aSecond.mEvents.push_back(MakeEvent(0, Replay::OP_PAUSE, 0));
+	aSecond.mEvents.push_back(MakeEvent(0, Replay::OP_UNPAUSE, 0));
+	aSecond.mEvents.push_back(MakeEvent(0, Replay::OP_LOAD));
+	aSecond.mEvents.push_back(MakeEvent(1, Replay::OP_CHECK, 9));
+	aSecond.mEvents.push_back(MakeEvent(9, Replay::OP_XRAND, 1));
+	aSecond.mEvents.push_back(MakeEvent(9, Replay::OP_SAVE, Replay::SAVE_SNAPSHOT, 0));
+	aFile.mSegments.push_back(aSecond);
+	aFile.mEnd.mReason = Replay::END_SAVED;
+	aFile.mEnd.mEndTick = 9;
+	return aFile;
+}
+
+// Replay::CheckPlayable: the replay above passes, written and read back too; each change below makes it
+// one the player refuses before it makes a board
+static void TestReplayPlayable()
+{
+	std::string aWhy;
+	Replay::File aGood = PlayableReplay();
+	Check(Replay::CheckPlayable(aGood, 8, 8, &aWhy), "playable: a seeded game saved and resumed (" + aWhy + ")");
+	Replay::File aRead;
+	Check(Replay::Read(Replay::Write(aGood), &aRead, &aWhy) && Replay::CheckPlayable(aRead, 8, 8, &aWhy),
+		"playable: also after a write and read (" + aWhy + ")");
+	Check(!Replay::CheckPlayable(Replay::File(), 8, 8, &aWhy), "playable: an empty file is refused (" + aWhy + ")");
+	Check(!Replay::CheckPlayable(FullReplay(), 8, 8, &aWhy), "playable: TWIST, SLIDE and UNDO are refused (" + aWhy + ")");
+
+	struct Case
+	{
+		const char*		mWhat;
+		void			(*mBreak)(Replay::File* f);
+	};
+	static const Case aCases[] =
+	{
+		{"another engine ABI", [](Replay::File* f) { f->mEngineAbi = Replay::ENGINE_ABI + 1; }},
+		{"no RULE", [](Replay::File* f) { f->mHasRules = false; }},
+		{"no segment", [](Replay::File* f) { f->mSegments.clear(); }},
+		{"mode 2", [](Replay::File* f) { f->mSegments[0].mMode = 2; }},
+		{"a seed of 0", [](Replay::File* f) { f->mSegments[0].mRng.mSeed = 0; }},
+		{"user-seeded on a state", [](Replay::File* f) { f->mSegments[1].mUserSeeded = true; }},
+		{"SELECT off the board", [](Replay::File* f) { f->mSegments[0].mEvents[1].mArgs[0] = 8; }},
+		{"SELECT -1 -1", [](Replay::File* f) { f->mSegments[0].mEvents[1].mArgs[0] = -1; f->mSegments[0].mEvents[1].mArgs[1] = -1; }},
+		{"TARGET -1 0", [](Replay::File* f) { f->mSegments[0].mEvents[3].mArgs[1] = 0; }},
+		{"PAUSE 2", [](Replay::File* f) { f->mSegments[0].mEvents[4].mArgs[0] = 2; }},
+		{"HOVER past the int range", [](Replay::File* f) { f->mSegments[0].mEvents[5].mArgs[0] = 0x80000000ll; }},
+		{"SAVE kind 3", [](Replay::File* f) { f->mSegments[0].mEvents[6].mArgs[0] = 3; }},
+		{"SAVE hash 2^32", [](Replay::File* f) { f->mSegments[0].mEvents[6].mArgs[1] = 0x100000000ll; }},
+		{"XRAND 0", [](Replay::File* f) { f->mSegments[1].mEvents[4].mArgs[0] = 0; }},
+		{"XRAND past MAX_XRAND", [](Replay::File* f) { f->mSegments[1].mEvents[4].mArgs[0] = Replay::MAX_XRAND + 1; }},
+		{"a TWIST", [](Replay::File* f) { f->mSegments[0].mEvents[2] = MakeEvent(161, Replay::OP_TWIST, 3, 3, 1); }},
+		{"an UNDO", [](Replay::File* f) { f->mSegments[0].mEvents[2] = MakeEvent(161, Replay::OP_UNDO); }},
+		{"a CHECK at tick 0", [](Replay::File* f) { f->mSegments[1].mEvents[0] = MakeEvent(0, Replay::OP_CHECK, 1); }},
+		{"a LOAD after tick 0", [](Replay::File* f) { f->mSegments[1].mEvents[2].mTick = 1; }},
+		{"two LOADs", [](Replay::File* f) { f->mSegments[1].mEvents[1] = MakeEvent(0, Replay::OP_LOAD); }},
+		{"a LOAD without RNGS", [](Replay::File* f) { f->mSegments[1].mHasLoadRng = false; }},
+		{"RNGS without a LOAD", [](Replay::File* f) { f->mSegments[0].mHasLoadRng = true; }},
+		{"LDSV without a LOAD", [](Replay::File* f) { f->mSegments[0].mHasLoadSave = true; }},
+		{"a later segment without a LOAD", [](Replay::File* f) { f->mSegments[1].mEvents.erase(f->mSegments[1].mEvents.begin() + 2); }},
+		{"a segment before another not ending in a SAVE", [](Replay::File* f) { f->mSegments[0].mEvents.pop_back(); }},
+		{"a first segment that LOADs without LDSV", [](Replay::File* f) { f->mSegments.erase(f->mSegments.begin()); }},
+		{"an event after the END tick", [](Replay::File* f) { f->mEnd.mEndTick = 8; }},
+	};
+	for (size_t i = 0; i < sizeof(aCases) / sizeof(aCases[0]); i++)
+	{
+		Replay::File aBad = PlayableReplay();
+		aCases[i].mBreak(&aBad);
+		aWhy.clear();
+		Check(!Replay::CheckPlayable(aBad, 8, 8, &aWhy) && !aWhy.empty(), std::string("playable: refused: ") + aCases[i].mWhat + " (" + aWhy + ")");
+	}
+
+	// What makes it playable again: the first segment's save comes with it (LDSV), then it may LOAD
+	Replay::File aFresh = PlayableReplay();
+	aFresh.mSegments.erase(aFresh.mSegments.begin());
+	aFresh.mSegments[0].mHasLoadSave = true;
+	aFresh.mSegments[0].mLoadSave = V1Save();
+	aWhy.clear();
+	Check(Replay::CheckPlayable(aFresh, 8, 8, &aWhy), "playable: a fresh replay that brings the save it LOADs (LDSV) (" + aWhy + ")");
+	aFresh.mSegments[0].mLoadSave = "save";
+	aWhy.clear();
+	Check(!Replay::CheckPlayable(aFresh, 8, 8, &aWhy) && !aWhy.empty(), "playable: refused: an LDSV that is no save (" + aWhy + ")");
+	Check(!Replay::CheckPlayable(aGood, 7, 8, &aWhy), "playable: a 7-column board has no column 7 (" + aWhy + ")");
+}
+
 int main(int argc, char** argv)
 {
 	for (int i = 1; i < argc; i++)
@@ -925,6 +1590,11 @@ int main(int argc, char** argv)
 	TestCanonical();
 	TestVectors();
 	TestMTRand();
+	TestReplayVarints();
+	TestReplayFormat();
+	TestReplayPlayable();
+	TestReplaySave();
+	TestReplayLimits();
 
 	printf("rulestest: %d checks, %d failures: %s\n", gChecks, gFailures, gFailures == 0 ? "PASS" : "FAIL");
 	return gFailures == 0 ? 0 : 1;

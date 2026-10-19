@@ -1,0 +1,25 @@
+# Stage 3: stage 0's mode_switch.txt, then a match on the new normal game and a quit. Seed 1: Timed mode on a
+# new game switches at once; after a scoring move the Normal button asks first: No keeps playing, Yes starts a
+# normal game and the deleted timed board saves itself. The quit then saves the normal game over it: with the
+# replays mod, the timed game's recording (the sidecar of its save) is kept as a finished replay (END saved)
+# before the normal game's sidecar replaces it.
+300 click 320 398
+# Timed Trial on a new game: no confirmation
+320 click 135 200
+340 screenshot shots/m01_timed_new_game.png
+# (2,5)->(3,5) -> 617, score 60
+470 click 329 295
+471 click 380 295
+650 click 57 200
+660 screenshot shots/m02_confirm_normal_mode.png
+# No
+680 click 476 169
+690 screenshot shots/m03_kept_playing.png
+750 click 57 200
+# Yes: the timed game is saved, a normal game starts
+770 click 338 169
+790 screenshot shots/m04_normal_new_game.png
+# (1,0)->(1,1) on the new normal game, a match; then the quit saves it over the timed game
+940 click 278 40
+941 click 278 91
+1200 quit

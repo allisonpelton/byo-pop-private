@@ -67,10 +67,11 @@ static void WriteHighScoreRecord(FILE* theFile, const SexyString& theName, int t
 // port(variant): the table a game's scores go to: hiscores.dat (scoped for gameplay mods), or for a seed the
 // player chose, practice on a known board, its own "-seeded" table
 // (games/bejeweled/docs/CODE_MODS_DESIGN.md 3.7, 4.10). Per-game seeds (rules, seeds.perGame) keep the
-// normal table.
+// normal table. A replay's board (stage 3b, Options -> High Scores while watching) is not the player's game:
+// the player's table.
 static std::string HighScoreFileName(Board* theBoard)
 {
-	if ((theBoard != NULL) && (theBoard->mUserSeeded))
+	if ((theBoard != NULL) && (theBoard->mUserSeeded) && (!theBoard->mPlaybackOnly))
 		return GameConfig::SeededFileName(HIGHSCORE_FILE_NAME);
 	return GameConfig::ScopedFileName(HIGHSCORE_FILE_NAME);
 }

@@ -1,0 +1,4 @@
+# Stage 3, with -autoplay in a copy of a user dir that has a save: the bot clicks the title screen's link,
+# this script answers Yes in the load dialog that follows (the bot waits while a dialog is open), then the
+# bot plays the resumed game to its end.
+340 click 330 201

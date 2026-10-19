@@ -206,6 +206,9 @@ input[type=file] { display: none; }
   var GAME = PERSIST + "/game";
   var USER = PERSIST + "/userdata";
   var MODS = PERSIST + "/mods";
+  // Finished replays (features.replays): a sibling of the user dir, so IDBFS keeps them but the user dir's
+  // localStorage backup (one item) does not carry them
+  var REPLAYS = PERSIST + "/replays";
   var GAME_DIRS = ["images", "data", "sounds", "music", "properties"];
   var $ = function (id) { return document.getElementById(id); };
   var statusEl = $("status");
@@ -595,7 +598,7 @@ input[type=file] { display: none; }
     var seedText = (seed > 0) ? " · seed " + seed : (seed < 0) ? " · seed ignored: it must be 1 to 4294967295" : "";
     Module.silentAudio = pageSilent();
     setStatus((enabled ? enabled + " mod" + (enabled > 1 ? "s" : "") + " active" : "No mods active") + seedText + (Module.silentAudio ? " · silent" : ""));
-    Module.callMain(["-gamedir=" + GAME, "-userdir=" + USER, "-modsdir=" + MODS].concat((seed > 0) ? ["-gameseed=" + seed] : []));
+    Module.callMain(["-gamedir=" + GAME, "-userdir=" + USER, "-modsdir=" + MODS, "-replaydir=" + REPLAYS].concat((seed > 0) ? ["-gameseed=" + seed] : []));
     $("canvas").focus();
   }
   function boot() {

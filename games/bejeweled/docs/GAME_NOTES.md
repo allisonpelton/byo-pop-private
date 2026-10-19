@@ -906,7 +906,9 @@ Not restored:
 - the swap pointers/center, selection and tutorial
 - the whirlpool sound (a state-7 save resumes silently)
 - the popups and mPlayStartTick
-- port(variant): a seeded board's own RNG: the resumed game goes on unseeded (12.3)
+- port(variant): a board's own RNG is not in the v1 save; the sidecar next to it (`savegame.bjr`, its
+  `RNGS` record) restores it: seed, stream, SEED line and the `-seeded` table. Without a matching sidecar
+  the resumed game goes on on the global stream (12.3)
 
 `SetupLevel()` is NOT called, so the background stays the level-0 look (faithful bug). A state-4 save resumes with dying gems.
 
@@ -1604,6 +1606,9 @@ and address; its count is tracked per stage.
 | 1 | 55 | 22 | `InitVariant()` in the ctor; loop bounds `BOARD_ROWS`/`BOARD_COLS`/8/7 → `mRows`/`mCols`; `BOARD_X`/`BOARD_Y` → `mLayout.mOriginX/Y` in `GetColX`/`GetRowY`; `mHeight` → `mLayout.mScreenBottom` (480) in `UpdateGameOver`/`UpdateFallOut`; `sizeof(Piece)` → `Piece::SAVE_SIZE` in the save |
 | 2 | 63 | 27 | Set seed (12.3): `ChooseBoardRng()` in `WinDMApp::NewGame`; `UsePendingSeed()` on the board's first tick in `Update` (after the pause checks); `GameLoadedVariant()` at the end of a successful `LoadGame`; `delete mOwnRng` in `~Board`; `HighScoreWidget`: the table file chosen in the ctor and used by `LoadHighScores`/`SaveHighScores`, the SEED line in `Draw`. The 9 `Rand()` draws keep their text: `Board::Rand()` hides `Sexy::Rand` by class scope |
 | 2, seed rule | 65 | 30 | The pending seed waits for play (12.3, the user's decision of 2026-10-18): `UsePendingSeed()` leaves `Update` for `UpdateSwap` (after `mIsNewGame = false`) and `GameOver`; `RequestNewGame` clears `mTakesPendingSeed` before its `GameOver(50)` |
+| 3a | 94 | 41 | Replays, recording side (12.4). One-line observer hooks `if (mRecorder != NULL) mRecorder->...;` in `GameOver`, `RequestNewGame` (NEW_GAME), `Pause`/`Unpause`, `MouseMove`/`MouseLeave` (HOVER), `MouseDown` (SELECT, DESELECT, TARGET), `MouseDrag` (TARGET), `DoHint` (HINT), `SaveGame` (`BeginSave`), `~Board` (`OnBoardDestroyed`, `delete mRecorder`), `Update` (entry `SyncExternalRand`, end `AfterUpdate`); `WinDMApp::NewGame` attaches the recorder. Playback guards `if (mPlaybackOnly) return;` in `IsGameInProgress` and the input handlers, for stage 3b. `LoadGame`'s file read and `SaveGame`'s write go through `ReadSaveFile`/`WriteSaveFile` (playback bytes; SAVE and the sidecar), `DeleteSaveGame` deletes the sidecar, `GameLoadedVariant(aBuffer)` restores the sidecar's RNG |
+| 3b | 104 | 47 | Replays, playback side (12.4). `Pause`/`Unpause`: a playback board takes pauses only from its player (`if (mPlaybackOnly && !mPlaybackApplying) return;`). `WinDMApp`: `mWatch`/`mReplayQuit` set in the ctor, `mWatch` deleted in the dtor; `UpdateFrames` runs `mWatch->BeforeFrame()` first; `TitleScreenIsFinished` starts the watch instead of its two new games; `ButtonDepress` gives New Game and the mode buttons to the watch; `NewGame` and `ShowHighScoreWidget` return at once when the playback board calls them (its game ended) |
+| 2b | 106 | 47 | Auto LiveSplit (12.5), merged after stage 3 (on stage 2's code it was 67 lines in 32 functions): `LiveSplitObserver::AfterUpdate` at the end of `WinDMApp::UpdateFrames` (after 3b's `mWatch->BeforeFrame()`, the update and the test hooks, `CodecCheck` included; only while wanted), `LiveSplitObserver::AppDestroyed` at the end of `~WinDMApp` (after 3b's `delete mWatch`). Both functions were already edited by 3b, so the count of functions stays. No Board function changes: the board serial and the resumed mark are set in `InitVariant` and `GameLoadedVariant` |
 
 With the original rules every edited line computes what the original did: the board is 8x8, the layout
 is the original constants, and no hook reads the variant flags yet. `UpdateClearing`'s refill pass,
@@ -1659,14 +1664,17 @@ games/bejeweled/docs/CODE_MODS_DESIGN.md 4.10 and 6.2, as built:
   mods), also in Options → High Scores during it; per-game seeds keep the normal table. The
   HighScoreWidget remembers its file (`mFileName`): NewGame deletes it only after the next board has
   replaced `mApp->mBoard`.
-- **Resume (interim, until stages 3 and 5).** Saves keep no RNG state yet: the default-rules sidecar
-  (design 7.3) and the v2 `RNGS` chunk (7.2) come later. So a successful `LoadGame` drops the board's own
-  RNG (`GameLoadedVariant`): the resumed game goes on unseeded on the global stream, with the normal
-  table and no SEED line, also on a rule-mod board. The v1 save bytes are unchanged; a seeded game is
-  saved and resumed like any other. A known gap until then: a user-seeded game that is quit and resumed
-  finishes in the normal table, against design 3.7. Stage 3 must close it: the sidecar's `RNGS` record
-  carries `userSeeded`, so the resumed game keeps its stream, its SEED line and the `-seeded` table (an
-  oracle case: a seeded game, quit, resume, game over, the seeded table).
+- **Resume (stage 3).** The v1 save bytes stay as they are. A board with its own RNG leaves a sidecar next
+  to its save (`savegame.bjr`, scoped like the save; design 7.3): an `RNGS` record with the seed,
+  `userSeeded` and the MT state at the save, and the save's hash (`SVHA`). A successful `LoadGame` whose
+  sidecar goes with the loaded save gives the board that RNG (`GameLoadedVariant`): the resumed game keeps
+  its stream (the refills after the resume are the ones the uninterrupted game gets, so quit and resume
+  cannot reroll), its SEED line and, for a seed the player chose, the `-seeded` table. Without a matching
+  sidecar (a game on the global stream, a save from before stage 3) the resumed game goes on on the global
+  stream as before. Either way the resume never uses the pending seed up. Until stage 5's v2 save this
+  covers rule-mod boards too. Oracle: `seed_quit` (a match, quit: the sidecar), `seed_quit.resume` (no
+  -gameseed: the next two moves give `seed_highscores.nodialog`'s refills), `seed_quit.bot` (the bot
+  plays the resumed game to game over: SEED 4242, `hiscores-seeded.dat` only).
 - **Builds and test hooks.** The RNG source is not a code path: `-forcevariant` leaves it alone, and the
   `BEJ_NO_VARIANTS` build keeps it (seeds, per-game seeds, the SEED line and the seeded table work there
   too; only `mVariant.mOwnRng` reads false). `-trace` prints `TRACE   seed n user|pergame` after the rows
@@ -1679,6 +1687,135 @@ games/bejeweled/docs/CODE_MODS_DESIGN.md 4.10 and 6.2, as built:
   end), so a save's `RNGS` reader (stages 3 and 5) can treat `false` as a chunk error.
   `MTRand::Serialize()` keeps no index (a copy made from it restarts at the next 624-word block); it stays
   as it is because the `-tracehash` FULL hash hashes it.
+
+### 12.4 Replays (code mods, stage 3: recording and watching)
+
+games/bejeweled/docs/CODE_MODS_DESIGN.md 4.11, 6.2-6.6 and 7.3, as built:
+
+- **Recording.** With `features.replays`, `WinDMApp::NewGame` gives each board a `ReplayRecorder`
+  (`games/bejeweled/src/ReplayRecorder.h`), and `Board::InitVariant` records the RNG start: the seed, or
+  the global stream's whole state before the constructor's first draw. The hooks only read: no draw, no
+  field play reads, no log line. The commands are stamped with the board tick at which they happened and
+  are applied before the next update: `SELECT`, `DESELECT`, `TARGET`, `HINT`, `PAUSE`/`UNPAUSE` (not the
+  pair `SaveGame` makes), `NEW_GAME`, `HOVER` (with `hover`). The markers are `XRAND` (outside draws, on
+  the global stream only), `SAVE`, `LOAD` and `CHECK`, the LOGIC hash at each settle.
+- **Session mode.** Without a seed source (`seeds.perGame` off, no rule, no `-gameseed`) a recorded game is
+  on the global stream exactly as without the mod. The oracle's `rec_*` cases play the stage-0 scripts and
+  the autoplay games with `mods/stage3/replays` and compare them with their runs without mods: TRACE,
+  `hash.txt`, logs, saves, high scores and registry are identical (design 9.1 item 5).
+- **Files.** Finished replays go to `replays/` in the user dir (natively; `/persist/replays` on the web,
+  `-replaydir`) when the game-over screen appears, after New Game, or for a game dropped unsaved. A
+  saved game goes on in the sidecar (12.3) and continues as more segments when it is resumed. A declined
+  resume, or the first save of another board that replaces it (a mode switch saved one game, the next one
+  is saved too), turns the sidecar into a finished replay with END "saved". Games without a move are
+  dropped. `-keep` pins replays that qualified for the table, and pruning keeps the newest `keep` others,
+  newest by the time each file was written. The hover flag of a replay says every segment has the hover
+  channel (a game resumed under the other setting has it off, and the player then checks no save bytes).
+  A recording too long for the web backup's one localStorage item (100,000 events) leaves only its RNG
+  sidecar there.
+- **StateCodec.** One field table (`games/bejeweled/src/StateCodec.cpp`) drives three encodings:
+  - FULL, which is the `-tracehash` FULL column byte for byte;
+  - LOGIC, the replay hash;
+  - SNAPSHOT, restorable, the base for the v2 save and undo.
+
+  `-codeccheck=<file>` runs the write → restore → write round trip after every update.
+- **ENV** (stage 3b): the recorder takes `mShowInstructions` and `mTimesPlayed` at the start of the update
+  that runs the tick-150 block, not at the constructor: `NewGame` deletes the board it replaces after the
+  new one is made, and that `~Board` counts a game in progress as played (4.2), so the constructor's count
+  can be one low.
+- **Watching** (stage 3b, `games/bejeweled/src/WatchController.h`, design 6.8 "As built"): `-replay=<file>`
+  plays a replay instead of the game the title screen starts (`-replayquit`: quit at its end). Each segment
+  gets a playback board that owns an `MTRand` from the segment's RNG start (`Board::InitVariant`), takes no
+  input (the handlers' `mPlaybackOnly` guards) and no pause but the replay's (`Pause`/`Unpause`), never
+  saves, counts or deletes anything (`IsGameInProgress`), and loads the bytes the segment before saved (or
+  its `LDSV`) with the segment's `RNGS` (`GameLoadedVariant` reads no sidecar for it). The player updates it
+  once per frame (the widget manager does not), applies each event at its board tick after its gate,
+  compares every `CHECK` and `END`, and swaps the replay's app state (rules, tunables, diff values, ENV) in
+  for each step only. A corrupt replay stops with the reason on stdout ("REPLAY end: CORRUPT ..."). Options
+  → High Scores while watching shows the player's table (`HighScoreFileName` takes a playback board for no
+  board), and after the end the board that stays on screen has no more `-trace` settles (its last `SAVE`
+  can drop a swap to `STATE_PLAYING`, which the recorded board, deleted at once, never showed).
+- **Untrusted files** (after the stage 3 review). A replay is someone else's file, while the original
+  `LoadGame` trusts a save: an `LDSV`'s bytes must pass `Replay::CheckSave` (every value `Draw` or an update
+  indexes, loops or divides with in range) before they reach it; `-codeccheck` checks every board state's
+  save against the same check. The reader takes at most 16 MB and 4M events, refuses records out of order
+  or repeated and an `END` reason over 5; the player refuses more than 24 hours of board ticks in all, more
+  than 10,000 events at one tick and more than 1,000,000 outside draws. `savegame.dat` is still read as the
+  original reads it.
+- **Oracle** (stage 3b): the playback cases (`watch_*`) play every recording of the stage-3 cases in a fresh
+  user dir: every `CHECK` and `END` match, each segment's TRACE settles are the recording's, StateCodec's
+  round trip holds after every update, nothing is written; seeded, per-game and global-stream games, normal
+  and timed, resumes as two segments, a tunables `RULE`, outside draws (`XRAND`), and four broken copies the
+  player calls corrupt. After the review: recordings without the hover channel and resumed under the other
+  setting (`rec_main_nohover`, `rec_load_hover_on`, `rec_load_hover_off`), a quit mid-swap
+  (`quit_midswap`), a save that replaces a recorded one (`mode_switch_match`: the timed game kept), and
+  Options → High Scores mid-watch (`watch_seed_quit_highscores`). The browser, the speeds and the REPLAY
+  END screen are stage 13.
+
+### 12.5 Auto LiveSplit (code mods, stage 2b)
+
+games/bejeweled/docs/CODE_MODS_DESIGN.md 4.15, as built:
+
+- **The block** (`LiveSplitBlock.h`, layout 1, 0xB0 bytes, a `static_assert` per offset) is
+  `gLiveSplitBlock` in `LiveSplitObserver.cpp`: constant-initialised, `aligned(64)`, `used`, so its magic
+  ("BYOPOP-LIVESPLIT" F0 F1 F2 F3, a brace list of bytes) is in the exe once, in `.data`'s raw data. In
+  every Windows build; nothing writes it until `features.livesplit` is on (`active` and `self` stay 0).
+  Elsewhere (web) the observer is empty inlines and GameConfig warns "features.livesplit: desktop only,
+  ignored"; the feature is parsed everywhere, so `mods-status.json` names it on every build.
+- **The observer** (`LiveSplitObserver::AfterUpdate`, after each app update while the feature is on, or
+  once more to write `active = 0` after a `gGameConfig.Load()` turned it off) only reads: `mBoard`'s
+  fields, the score key, the board's RulesId, `gGameConfig.mFeatures`. Each write is seq odd, release fence,
+  the fields from a shadow copy, release fence, seq even. Against the previous update of the same board:
+  GO when the tick passes 150 on a board that did not resume a save and is no replay's playback board
+  (`mPlaybackOnly`, 12.4); a level clear when the board enters state 7 on an update its tick advanced; a
+  game over when it enters state 5, its cause New Game (`mNewGamePending`), else time up (from state 1),
+  else no moves (from state 0), else other. A board's
+  first update, the activation's update and the update a `LoadGame` ran in (the resumed mark turned on)
+  are baselines only: a loaded vortex save enters state 7 on an update whose tick advances (the board
+  updates in the same frame as the dialog's button), so the tick test alone would count it.
+  `displayScoreMax` follows `mDisplayScore` up to the game-over update, then stays. Flags: 01 timed, 02
+  resumed, 04 no score key and no chosen seed, 08 chosen seed, 10 own RNG, 40 game over (per board), 80
+  paused (`mPauseCount` or `mUserPauseCount`), 20 replay (a playback board, `mPlaybackOnly`: `-replay`
+  watches; the script never starts a run on one).
+- **Board bookkeeping:** `InitVariant` sets `mBoardSerial` (1, 2, ... per process) and clears `mResumed`;
+  `GameLoadedVariant` sets `mResumed` (a playback board's LOAD too, before its early return). Both outside
+  the `BEJ_NO_VARIANTS` parts; neither is hashed (the FULL and LOGIC lists leave them out; StateCodec has
+  no row for them, 12.4), saved, recorded or read by play. StateCodec's scratch board sets them to 0 and
+  false; it is never `mBoard`, so the observer never sees it.
+- **Activation** (the first update with the feature on): `self`, `qpcFrequency`, `active = 1`, the status
+  line "livesplit: block at 0x...", and the split templates: every `*.lss` in the `livesplit/` folder of
+  the mod that turned the feature on (`GameFeatures::mLiveSplitMod`) is copied to `<user dir>/livesplit/`
+  unless a file of that name is there (written as `<name>.tmp` and renamed when complete, so a failed copy
+  leaves no truncated template). `~WinDMApp` makes the last write: `active = 0`, `boardSerial = 0`, which
+  tells `lsprobe` a clean quit from a crash; the script skips inactive copies and resets on a quit through
+  the board-less update after `Shutdown` deleted a game in progress, or its `exit` action.
+- **Status lines** (SDL_Log, only with the feature): the address, the templates, each GO, level clear and
+  game over with its tick, a resumed board's GO that is not counted, "off". `-livesplitlog=<file>` appends
+  "u=<update>" and the block's fields per write, with `self` and the clock masked.
+- **Mod signs (Q18):** a mod whose `mod.json` has only descriptive keys (id, name, version, author,
+  description, priority) and `"features": {"livesplit": ...}`, and no `images`, `sounds`, `music`, `data`
+  or `properties` folder, does not count for `GameConfig::mAnyModEnabled`: no crossbar on GO's G, no fourth
+  hint sparkle.
+- **The script's timing** (`tools/livesplit/BejeweledDeluxe-byopop.asl`): nothing may run for the first
+  time between a decision in `start`, `split` or `reset` and LiveSplit's timer. The C# binder compiles a
+  `dynamic` call site on its first run (about a millisecond each), and a first `DateTime.Now` or file
+  append costs milliseconds too. In the live test with LiveSplit 1.8.37 the first script lost 20–35 ms to
+  that in each session's first start and a few more in its first split, so that run started 15–18 ms late
+  and its splits came out about 10 ms short. Now `start`, `split` and `reset` (a poll whose game over
+  `reset` holds back splits in the same cycle, after it) read every field, var and setting they use into
+  typed locals in every cycle (`Reached` both its fields), the typed `LogEvent` runs once in `startup` and
+  only stamps the decision and keeps the line, and `onStart`, `onSplit` and `onReset` write the line after
+  LiveSplit took the event's time; `update` drops a line no event took (timed in `asltest`: the first
+  start 0.04–0.23 ms instead of 22–40 ms, the first split under 0.02 ms, and the held-back split's cycle
+  under 0.02 ms instead of 10–14 ms). ScriptableAutoSplit
+  runs `exit` without `old`, `current` and `game` (`DoExit` clears the process, then `RunNoProcessMethod`)
+  but the timer events' actions with the last copies (`RunMethod`), so the reset that `exit` makes is
+  logged by `onReset` as `reset exit` (`vars.ExitReset` is set around it).
+- **Checks:** the oracle's `livesplit` cases (every playtest, stage-0 and autoplay case with the mod
+  against an inert `features.livesplit: false` twin, and the block's log against `-tracehash`; since the
+  merge with stage 3 also a watch, `watch_main_timed.ls`: the playback board carries flag 0x20 and counts
+  no GO), and `games/bejeweled/tools/livesplit/run_tests.sh` (lsprobe, the script compiled as C# 5, the
+  decisions).
 
 ---
 

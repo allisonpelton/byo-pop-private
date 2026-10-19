@@ -864,8 +864,8 @@ player actually starts playing, so switching to Timed straight away still plays 
 - Until then every board that replaces the untouched one gets the seed again: the second board of
   the double `NewGame` in `TitleScreenIsFinished`, a mode switch (which needs no confirmation while
   `mIsNewGame` is set), and New Game. A swap that makes no match does not count.
-- A board that resumes a save never uses the seed up (it plays unseeded until stage 3, GAME_NOTES
-  12.3), so the next new game gets it.
+- A board that resumes a save never uses the seed up (since stage 3 it goes on with the RNG its
+  sidecar kept, else on the global stream; GAME_NOTES 12.3), so the next new game gets it.
 - A timed fall-out is not a game over: the game goes on with a refilled board. It also cannot come
   before the first match, because the constructor's board always has a move, and only a match's
   refill can leave none.
@@ -912,6 +912,36 @@ Format, recording and playback are in section 6.
     `<date>-<mode>-<score>.bjr`.
   - The newest `keep` are kept, plus every replay that made a local high-score table or that the
     user marked Keep.
+  - As built (stage 3a): the name is `<yyyymmdd>-<hhmmss>-<normal|timed>-<score>[-<n>][-keep].bjr`
+    (local time; `-<n>` from 2 when the name is taken). `-keep` pins the file: the score qualified
+    for the game-over screen's table (as `DoCheckForHighScore` decides), or later the user's Keep.
+  - Pruning, after each write, removes the oldest unpinned replays beyond `keep`: oldest by the time the
+    file was written (its mtime, so a daylight-saving or time-zone change reorders nothing), within one
+    second by the name's time, then its copy number (`-2` came after the name it avoided). Files with
+    other names are never touched.
+  - `-replaydir=<dir>` sets the folder: main.cpp; the web shell passes `/persist/replays`.
+  - A game without a `TARGET` naming a cell is dropped.
+  - A saved game whose save goes away unresumed becomes a finished replay (END "saved"): No in the load
+    dialog, or the first save of another board, which replaces it (a mode switch saved the timed game,
+    the next game is saved at the quit).
+- **As built (stage 3b, `games/bejeweled/src/WatchController.h`):** watching starts only from the command
+  line, `-replay=<file>` (parsed by `WinDMApp::HandleCmdLineParam`, like the other game switches);
+  the replay browser, `?replay=`, the speeds, the overlay keys and the REPLAY END screen are stage 13.
+  - `TitleScreenIsFinished` starts the watch instead of its two new games. The controller makes each
+    segment's playback board itself, as `NewGame` does (no `Load()`, no `ChooseBoardRng`, no
+    recorder), and the widget manager never updates it (`WIDGETFLAGS_UPDATE` removed): the
+    controller's step is its only update.
+  - Instead of saving the player's state once and restoring it at the end, the controller swaps the
+    replay's state in for each step and out after it: `gGameConfig` (the replay's `RULE` through
+    `FromCanonical` and `LoadFromRules`, no features, no pending seed), the 12 diff values, and
+    `mShowInstructions` and `mTimesPlayed` from the segment's ENV. So a registry written mid-watch
+    (the web backup, Quit) holds the player's values, and the playback board's `GameOver` counts
+    nothing. Only the mode buttons show the replay's mode until the watch stops.
+  - The end: "REPLAY end" on stdout, the last board stays. `-replayquit` quits then (the CLI, the
+    oracle). New Game and the mode buttons end the watch (while it plays too): the player's mode,
+    then `NewGame(); ConfirmLoadGame();` as in step 5. Options, Quit and Hint work as usual (a
+    playback board ignores `ShowHint`); a modal dialog holds the watch, as it pauses a game. Options →
+    High Scores shows and re-saves the player's table, never a replay's `-seeded` one.
 
 ### 4.12 Undo
 
@@ -1019,6 +1049,9 @@ speedrun.com entry this port can run; the other five Bejeweled entries are other
 | Timetrial | The same, in Timetrial | 5, 10, 15, 20 Levels |
 | Timetrial - Score Attack | From GO until the target score or more is on screen | 10K, 25K, 50K, 100K, 150K, 200K Points |
 
+Each category's subcategory variable has its own name: `Normal`, `Timetrial` and, for Score Attack,
+`Timetrial - Score rush` (speedrun.com API, checked 2026-10-18).
+
 **Events and readings.**
 
 | Event | Code | Reading |
@@ -1091,14 +1124,18 @@ little-endian, naturally aligned, 0xB0 bytes:
 |---|---|---|
 | New board, or none | The serial differs (0 without a board) | `boardSerial`, `boardLevelClears = 0`, `goTick = -1`, `displayScoreMax = 0`, flags; RulesId once per board |
 | GO | `prevTick < 150 <= mUpdateCnt`, same board, not resumed, not a replay | `goCount++`, `goSerial`, `goTick` |
-| Level clear | `mState == 7 && prevState != 7`, and the tick advanced (a `LoadGame` that restores state 7 does not) | `levelClears++`, its serial, `boardLevelClears++` |
+| Level clear | `mState == 7 && prevState != 7`, the tick advanced, and not the update a `LoadGame` ran in (`mResumed` turned on: a loaded vortex save enters state 7 on an update whose tick does advance, since the board updates in the frame of the dialog's button) | `levelClears++`, its serial, `boardLevelClears++` |
 | Game over | `mState == 5 && prevState != 5` (`GameOver` is the only setter) | `gameOvers++`, its serial, flag 0x40, one cause: `mNewGamePending` → newGame; else previous state PLAYING → timeUp (only state 1 checks the time); else FALLING → noMoves; else other |
 | Every update | Always; `displayScoreMax` only up to and including the game-over update, then frozen | `displayScoreMax = max(displayScoreMax, mDisplayScore)`, then the snapshot fields |
 
 - **Activation:** the first update with the feature on writes `self`, `qpcFrequency` and `active = 1`,
-  logs the address and copies the templates. **Deactivation:** `NewGame`'s `gGameConfig.Load()` with the
-  feature off writes `active = 0`. `~WinDMApp` writes `active = 0` and `boardSerial = 0`, so the script
-  sees the quit and `lsprobe` can tell a clean quit from a crash.
+  logs the address and copies the templates; the board on screen then is new to the block (its update is
+  a baseline). **Deactivation:** the first update after a `gGameConfig.Load()` (in `NewGame`) found the
+  feature off writes `active = 0`. `~WinDMApp` writes `active = 0` and `boardSerial = 0`, so `lsprobe`
+  and other readers can tell a clean quit from a crash. The script skips inactive copies, so it does not
+  see that write: it resets on a quit through the update after `Shutdown` deleted a game in progress
+  (`boardSerial` 0 while still active: `resetQuit`), or otherwise (a board with no move yet, or after its
+  game over, stays) through its `exit` action.
 - **It only reads** `mBoard`'s fields, `ModManager::GetScoreKey()`, `mRules.RulesId()` and
   `gGameConfig.mFeatures`. It never calls `Rand()` (`games/bejeweled/tools/check_rng_use.py` covers it),
   writes game state, marks anything dirty, draws, or touches saves, `hiscores`, the registry or replays.
@@ -1125,31 +1162,55 @@ little-endian, naturally aligned, 0xB0 bytes:
   scripts with `CSharpCodeProvider` (`CompilerVersion v4.0`, the .NET Framework compiler), and its generated
   usings lack `System.Text.RegularExpressions`; Roslyn is only on master. So the script writes
   `System.Text.RegularExpressions.Regex` in full or, simpler, parses split names by hand.
+- **Brace characters.** ScriptableAutoSplit's grammar (`ASLGrammar`'s `MatchCodeTerminal`, read from memory
+  of its source, not rechecked) ends an action where the brace characters balance, counting those in
+  strings, chars and comments too. An unbalanced one in a literal ends the action early and the script does
+  not load, so the script writes them as `(char)0x7B` and `(char)0x7D` and keeps those in comments
+  balanced; `asltest` fails when that count would end an action anywhere but at its closing brace.
 - **Processes:** `state("bejeweled") {}` (the target in `games/bejeweled/CMakeLists.txt`) and
   `state("popcapgame1")` for the original. ASL attaches to the newest live process of the first listed name
   that has one, at connect time only. 64-bit LiveSplit reads the 32-bit game through `ModulesWow64Safe()`.
 
 | Action | Rule |
 |---|---|
-| `startup` | `refreshRate = 100`; the settings; `vars.Mode = "none"` and empty `vars.Target`/`vars.IsScore`, so no action meets an unset var; helpers `FindBlock`, `ReadBlock`, `ParseSplits`, `UpdateOriginal`; a `TimerModel` for `exit` |
+| `startup` | `refreshRate = 100`; the settings; `vars.Mode = "none"` and empty `vars.Target`/`vars.IsScore`, so no action meets an unset var; helpers `FindBlock`, `ReadBlock`, `ParseSplits`, `Reached` (the `split` test, shared with `reset`), `UpdateOriginal`; a `TimerModel` for `exit`; the `log` helpers (below), `LogEvent` called once as a warm-up |
 | `init` | Sets an explicit list of custom fields to 0 every time (ASL reuses the state object across reconnects). `popcapgame1`: `Mode = "probe"` when the `original` setting is on and `ModuleMemorySize == 0x192000`, else ignored. Port: `Mode = "port"`, `FindBlock`. Never throws: an exception reruns `init` every cycle and logs each time |
-| `update` | Port: until the block is found, rescan once a second. A rejected read returns false; the counters catch up next cycle. `active == 0`: one `MessageBox` per attach ("turn on the game's livesplit mod"; `print` reaches only DebugView), return false. Otherwise copy the fields into `current`; the first copy after attaching or activation is a baseline only (returns false), so a game in progress is never a run. `probe`: the vftable check below |
-| `start` | `goCount` changed and `goSerial == boardSerial`; **mode guard** (setting): a category name containing "Timetrial" needs a timed board, one containing "Normal" an untimed one; not a replay (0x20); with `vanillaOnly`, flag 0x04 |
-| `onStart` | Always parses the segment names. Sets `vars.RunSerial = current.boardSerial` only when `current != null` and `Mode` is "port" or "original": a manual start with no game attached must not throw |
-| `split` | Only while `boardSerial == RunSerial`. Segment `i = timer.CurrentSplitIndex`: a score split needs `displayScoreMax >= threshold`, the k-th level split `boardLevelClears >= k`. It depends only on the index, the names and the snapshot, so skips and undos cannot desynchronise it (an undone level split splits again on the next poll; the README says so) |
-| `reset` | With `resets` and `RunSerial != 0`: `gameOvers` changed with `gameOverSerial == RunSerial` → by cause; the run's board replaced while its flag 0x40 is clear → `resetQuit` (new serial 0) or `resetReplaced` |
-| `onReset`, `exit` | `RunSerial = 0`. `exit`: while Running or Paused, with `settings.ResetEnabled`, `resets` and `resetQuit` on, `vars.TimerModel.Reset()` |
+| `update` | First drops a `log` line that no timer event wrote (its Start, Split or Reset box unticked). Port: until the block is found, rescan once a second. A rejected read returns false; the counters catch up next cycle. `active == 0`: one `MessageBox` per attach ("turn on the game's livesplit mod"; `print` reaches only DebugView) once the block has stayed inactive 10 s after attaching (a starting game activates it within its first update) and never after it was active in this attach (the quit), return false. Otherwise copy the fields into `current`; the first copy after attaching or activation is a baseline only (returns false), so a game in progress is never a run. The clock is `vars.Now` (`Environment.TickCount`; `asltest` replaces it with the replayed polls' times). `probe`: the vftable check below |
+| `start` | `goCount` changed and `goSerial == boardSerial`; **mode guard** (setting): a category name containing "Timetrial" needs a timed board, one containing "Normal" an untimed one; not a replay (0x20); with `vanillaOnly`, flag 0x04. First reads every field, var and setting it uses into typed locals and casts `LogEvent`, in every cycle, so the cycle that starts a run runs nothing for the first time (below) |
+| `onStart` | Always parses the segment names. Sets `vars.RunSerial = current.boardSerial` only when `current != null` and `Mode` is "port" or "original": a manual start with no game attached must not throw. Clears `vars.PendingReset`. Writes the `log` line |
+| `split` | Reads its fields, the `log` setting and `LogEvent` in every cycle, as `start` does; `Reached` reads both `displayScoreMax` and `boardLevelClears`. Only while `boardSerial == RunSerial`. Segment `i = timer.CurrentSplitIndex`: a score split needs `displayScoreMax >= threshold`, the k-th level split `boardLevelClears >= k`. It depends only on the index, the names and the snapshot, so skips and undos cannot desynchronise it (an undone level split splits again on the next poll; the README says so) |
+| `reset` | With `resets` and `RunSerial != 0`: `gameOvers` changed with `gameOverSerial == RunSerial` → by cause; the run's board replaced while its flag 0x40 is clear → `resetQuit` (new serial 0) or `resetReplaced`; else a cause held back earlier. When the poll that sees the game over also meets the current segment (`Reached`, with `settings.SplitEnabled`), the segment was reached by the game over and counts (A7), so `reset` holds the cause in `vars.PendingReset` and returns false: `split` splits in this cycle and the reset follows in a later one (a stalled poll, or a score shown within one poll period of TIME UP, would otherwise lose the split). Because `reset` runs before that split, it reads every field, var and setting it uses (the cause's setting too), casts `LogEvent` and calls `Reached` in every cycle, as `start` and `split` do |
+| `onSplit` | Writes the `log` line |
+| `onReset`, `exit` | `RunSerial = 0`, `PendingReset` cleared. `exit`: while Running or Paused, for a run that belongs to a board (`RunSerial != 0`), with `settings.ResetEnabled`, `resets` and `resetQuit` on, `vars.TimerModel.Reset()` with `vars.ExitReset` set around it. `onReset` makes the `log` line "reset exit" for that reset, from the last copy, then writes the line. LiveSplit 1.8.37 runs `exit` without `old`, `current` or `game` (`ASLScript.DoExit` clears the process, then `RunNoProcessMethod`), but the timer events' actions with the last `old` and `current` (`RunMethod`; read from ScriptableAutoSplit's IL) |
 
 - ASL evaluates `start` only while NotRunning, and `reset`, then `split` if there was no reset, only while
   Running or Paused. Nothing runs while Ended, so a finished run stays until the runner resets it.
-- **Split names:** a subsplit `-` or `{Section}` prefix is stripped; an integer of at least 1000 (also
-  written `25,000` or `25K`) is a score split, anything else a level split. One split per cycle is enough:
-  the HUD rolls at most 3 × multiplier points per tick (36 at level 20).
+- **Split names:** a subsplit `-` prefix or a section prefix in braces (`{Section}`) is stripped; an
+  integer of at least 1000 (also written `25,000` or `25K`) is a score split, anything else a level split.
+  One split per cycle is enough: the HUD rolls at most 3 × multiplier points per tick (36 at level 20).
 - **Settings** (ASL settings are booleans): `modeGuard` on; `vanillaOnly` off (practice; the mod signs and
   the SEED line show on video anyway); `resets` on, with `resetNoMoves`, `resetTimeUp`, `resetNewGame`,
   `resetReplaced` and `resetQuit` under it (the registry README calls automatic reset dangerous, so each is
-  switchable, and an Ended run is never reset; Q20); `original` on; `log` off (appends each event and its
-  lag to a text file).
+  switchable, and an Ended run is never reset; Q20); `original` on; `log` off.
+- **The `log` setting** appends one line per timer event the script caused to `BejeweledDeluxe-byopop.log`
+  in LiveSplit's folder: the time of the decision, `start`, `split <index>`, `reset <cause>` (the setting
+  that allowed it, or `exit` for the `exit` action's reset), the board, its tick and `lag_ms=<a>..<b>`, the
+  time from the copy's write and from the previous copy's write to the decision (the event lies between;
+  both stamped with the game's QPC, the clock of `Stopwatch`). `start`, `split` and `reset` only stamp the
+  decision and keep the line (`LogEvent`, typed arguments); `onStart`, `onSplit` and `onReset` write it
+  (`WriteLog`), after LiveSplit took the event's time, and `update` drops a line no event wrote.
+- **Nothing runs for the first time between a decision and the timer.** The C# binder compiles a
+  `dynamic` call site the first time it runs (about a millisecond each), and a first `DateTime.Now` or
+  file append takes milliseconds too. In the live test (test 7) the first script spent 20–35 ms on that
+  in each LiveSplit session's first start, and a few more in its first split, between the decision and
+  LiveSplit's timer, so the session's first run started about 15–18 ms late and its split times came out
+  about 10 ms short. So `start`, `split` and `reset` (which runs before `split` in the same cycle) read
+  everything in every cycle, `LogEvent` runs once in `startup`, and the file is written after the event.
+  Timed in a fresh `asltest` process (the bot's Normal 5 Levels game, from the action's call to its
+  return): the first start took 22–40 ms before and takes 0.04–0.23 ms now, the first split 2.4–5.0 ms
+  before and under 0.02 ms now, the first reset 10–14 ms before and under 0.02 ms now. In the cycle where
+  `reset` holds a game over back and `split` splits (the stalled-poll scenarios of test 5), `reset`'s
+  first-time work came before the split: 10–14 ms then, under 0.02 ms now.
 - **Cases:** a resumed save never starts by itself, but a manual start uses that board and splits
   (practice). Seeded and modded games start unless `vanillaOnly` is on. Replays never start. An unrelated
   `popcapgame1` (another Steam PopCap game) that attaches first holds the script until it exits.
@@ -1215,36 +1276,44 @@ little-endian, naturally aligned, 0xB0 bytes:
 - **Entry:** `<Game>Bejeweled Deluxe</Game>`, the raw URL (not a `/blob/` link), `<Type>Script</Type>`
   without `ScriptType` (that is for ASR), a Description of at most 120 characters, a Website. The PR
   template asks the author to confirm no malicious code, no replacement of another author's splitter
-  without permission, and an open-source licence. byo-pop has none, so the script needs its own (Q16).
-- **Steps, in order:** choose the licence; push byo-pop or create the script repo; ask the speedrun.com
+  without permission, and an open-source licence: the script is CC0-1.0 (the user's choice, Q16).
+- **Steps, in order:** push byo-pop or create the script repo; ask the speedrun.com
   moderators whether port runs count (A10), how to read A7 and whether they would list the splitter (Q22);
   contact HyperNervie; the manual test (and the original's); open the registry PR (editing the XML on
   GitHub creates the fork, branch and PR); check Activate once.
 
 **Templates and the mod.**
-- `games/bejeweled/tools/make_example_mods.py` generates `games/bejeweled/mods/livesplit/`: `mod.json`
-  (`{"id": "livesplit", "name": "LiveSplit", "version": "1.0", "features": {"livesplit": true}}`),
-  `livesplit/*.lss`, a copy of the script to load by hand, and `README.txt`.
+- `games/bejeweled/tools/make_example_mods.py` (`--only livesplit` for just this one) generates
+  `games/bejeweled/mods/livesplit/`: `mod.json`
+  (`{"id": "livesplit", "name": "LiveSplit", "version": "1.0", "features": {"livesplit": true}}`, plus
+  author and description), `livesplit/*.lss`, a copy of the script to load by hand, and `README.txt`.
+  The names are speedrun.com's: the category (`Normal`, `Timetrial`, `Timetrial - Score Attack`) and
+  that category's own subcategory variable (`Normal`, `Timetrial`, `Timetrial - Score rush`), so that
+  LiveSplit's speedrun.com association works; the mode guard only looks for "Timetrial" and "Normal".
 - Twelve `.lss` files in LiveSplit's 1.7.0 format: game name "Bejeweled Deluxe", the category name, the
   subcategory as a metadata variable with speedrun.com's names (`Normal` = "5 Levels",
-  `Timetrial - Score rush` = "100K Points"), platform PC, and an empty `AutoSplitterSettings` that
+  `Timetrial - Score rush` = "100K Points" under the category `Timetrial - Score Attack`), platform PC, and an empty `AutoSplitterSettings` that
   LiveSplit fills after Activate. LiveSplit writes those settings only while the splitter is active, so
   splits saved with it inactive lose them; the tools README says so.
 
 | Templates | Segments |
 |---|---|
 | Normal 5 / 10 Levels; Timetrial 5 / 10 / 15 / 20 Levels | `Level 1` … `Level N` (a 20-Levels file also gives the 5, 10 and 15 times) |
-| Score Attack 10K / 25K / 50K / 100K / 150K / 200K Points | `10000`, `25000`, `50000`, `100000`, `150000`, `200000`, up to the target |
+| Score category 10K / 25K / 50K / 100K / 150K / 200K Points | `10000`, `25000`, `50000`, `100000`, `150000`, `200000`, up to the target |
 
-- Score Attack names are plain integers, which HyperNervie's Bejeweled 3 grammar (ascending integers
+- Score segment names are plain integers, which HyperNervie's Bejeweled 3 grammar (ascending integers
   only) also accepts.
-- On activation the game copies missing files to `<userdir>/livesplit/` and never overwrites one, since
-  LiveSplit saves PBs into the file it opened. No oracle step compares those copies.
+- On activation the game copies the missing `*.lss` files of the `livesplit/` folder of the mod that
+  turned the feature on (`GameFeatures::mLiveSplitMod`) to `<userdir>/livesplit/` and never overwrites one,
+  since LiveSplit saves PBs into the file it opened. The oracle leaves those copies out of its identity
+  comparison and only checks that they equal the mod's.
 - **Plumbing:** `FEATURE_LIVESPLIT` in `gFeatureNames`, `ParseFeature` and `MergeFeatures`;
   `GameFeatures::mLiveSplit`, shown as "livesplit". It is not in the RulesId or the score key, and
   `ComputeVariantFlags` never reads it, so the RNG source and the save format do not change.
 - **Mod signs:** any enabled mod adds the crossbar on GO's G and a fourth hint sparkle, which would show
-  in run videos. Q18 proposes leaving a mod whose only key is `features.livesplit` out of `mAnyModEnabled`.
+  in run videos. Per Q18 a mod whose `mod.json` has only descriptive keys (id, name, version, author,
+  description, priority) and `"features": {"livesplit": ...}`, and no `images`, `sounds`, `music`, `data` or
+  `properties` folder, stays out of `mAnyModEnabled`.
 - **Desktop only:** the block and the observer sit under `#if defined(_WIN32) && !defined(__EMSCRIPTEN__)`
   around the whole translation unit (the source glob also feeds the web build). The feature is parsed
   everywhere, so `mods-status.json` is the same; the web build warns "features.livesplit: desktop only,
@@ -1265,18 +1334,27 @@ StateCodec row, so FULL hashes stay equal to the stage-0 baselines.
    and none on the resumed one (`playtest_load`), one level clear per entry into state 7, the right death
    cause, monotonic counters, a new serial at each `NewGame`.
 3. **`lsprobe`** (Win32 C++, about 250 lines, built x86_64 with llvm-mingw so that it reads the 32-bit game
-   as LiveSplit does): `rundesk lsprobe -log=<f> -- bejeweled.exe -script=... -livesplitlog=<g>` finds and
-   reads the block exactly as the script does. `check_lslog.py` checks that the address equals the logged
-   one and that every accepted snapshot equals the game-log line with its `seq`. Also a `-fast` stress run,
-   `-dumplayout` (for `check_asl_offsets.py`) and `-original` (the 1.87 adapter).
+   as LiveSplit does; the `lsprobe` target of the native build): `rundesk lsprobe -log=<f> -- bejeweled.exe
+   -script=... -livesplitlog=<g>` finds and reads the block exactly as the script does and logs every poll
+   (`snap`, `same`, `skip`, each with the probe's QPC). `check_lslog.py` checks that the address equals the
+   logged one and that every accepted snapshot equals the game-log line with its `seq`. The stress run is a
+   `-fast` game polled every millisecond (`-interval=1`; `-scan` shortens the once-a-second search for
+   short games). Also `-dumplayout` (for `check_asl_offsets.py`) and `-attach=<pid>`; `-original` (the 1.87
+   adapter) comes with the original's test (Q15).
 4. **`lsdecide.py`:** an independent re-implementation of the script's decisions and ASL's phase rules,
    with expected events for Normal 5 Levels, Score Attack 10K, the mode guard, a resumed save (no start; a
-   manual start), each reset, the feature off, and attaching mid-game. It runs on game logs (exact ticks)
-   and on probe logs (real polling).
-5. **`asltest`** (about 200 lines of C#): compiles the published `.asl` with the in-box .NET Framework
-   `csc.exe` (C# 5, as 1.8.37 does) in a wrapper with 9c1e207's using list (without `System.Text.Json`),
-   stubs only the members the script uses, and replays test 4's logs. Its events must equal
+   manual start), each reset, the feature off, attaching mid-game, and a stall (polls dropped from a log)
+   after which one poll sees a score or level segment reached and the game over: split, then reset. It
+   runs on game logs (exact ticks) and on probe logs (real polling).
+5. **`asltest`** (C#, built with the in-box .NET Framework `csc.exe`): compiles the published `.asl` at run
+   time the way 1.8.37 does (`CSharpCodeProvider` with `CompilerVersion` v4.0, which runs that `csc.exe`,
+   C# 5; one class per action) in a wrapper with 9c1e207's using list (without `System.Text.Json`), stubs
+   only the members the script uses (`MessageBox` becomes a recorder), and replays test 4's logs as polls
+   of a fake PE image. It turns the `log` setting on to learn each reset's cause, which `onReset` writes
+   (the `exit` action's reset must log `exit`); it runs `onStart`, `onSplit` and `onReset` from the timer's
+   events and `exit` without `old`, `current` or `game`, as LiveSplit does. Its events must equal
    `lsdecide.py`'s.
+   `games/bejeweled/tools/livesplit/run_tests.sh` runs tests 3 to 6.
 6. **`check_asl_offsets.py`** (the script's magic and offsets against `lsprobe -dumplayout`) and the
    magic-once build check.
 7. **Manual, once, after the user approves the download (Q23):** LiveSplit 1.8.37 (released 2026-02-15)
@@ -1777,6 +1855,37 @@ records { u32 tag, u32 len, payload }:
 - **`engineAbi`** is bumped whenever variant simulation output changes. The original rules are
   frozen. Old verifier builds are kept per ABI.
 
+**As built (stage 3a, `games/bejeweled/src/Replay.h`; an independent reader is
+`games/bejeweled/tools/bjr.py`):**
+- A tag is its 4 ASCII bytes in file order (`END ` ends in a space). Records come in this order, each
+  at most once where it stands: `[RULE] [RLID] [META] [SESS]`, then per segment `[LDSV] [RNGS] SEGM`,
+  then `[RNGS] [SVHA] END`. A reader refuses any other order or a repeated record, so no two readers
+  can take different copies of one.
+- `RNGS` and `LDSV` belong to the `SEGM` that follows them: the RNG the board goes on with after that
+  segment's `LOAD` (u32 seed, 0 for the global stream, u8 userSeeded, u8 ranked, 624 x u32, i32 mti),
+  and the save bytes it loads when the replay does not hold the segment that wrote them. An `RNGS`
+  after the last `SEGM` is a sidecar's (7.3).
+- Flag bit0 (hover) says every segment has the hover channel: a game resumed under the other
+  `features.replays.hover` setting has it off (each segment still records `HOVER` as its own setting
+  says). `META`'s name is the game's Latin-1 text converted to UTF-8.
+- `SVHA` (sidecar only): u32, the first 4 bytes of the save's SHA-256, little-endian. A `SAVE` event
+  carries the same hash.
+- `END` is mandatory and the last record, so a reader catches every truncation. A sidecar's `END`
+  has reason 5 (saved) and the state at the save.
+- ENV's `showInstructions` and `timesPlayed` are what the board's tick-150 block reads (instructions
+  or GO): the recorder takes them at the start of the update that runs it (stage 3b). The
+  constructor's values can be stale by then: `NewGame` deletes the board it replaces after making
+  the new one, and that `~Board` counts a game in progress as played. The player sets them before
+  that update.
+- Op numbers: `SELECT` 1, `DESELECT` 2, `TARGET` 3 (-1 -1 for no cell), `TWIST` 4, `SLIDE` 5,
+  `HINT` 6, `PAUSE` 7, `UNPAUSE` 8, `UNDO` 9, `NEW_GAME` 10, `XRAND` 11, `HOVER` 12 (-1 -1:
+  left), `SAVE` 13, `LOAD` 14, `CHECK` 15. `CHECK` carries the u64 as the int64 with the same bits.
+  An unknown op makes the file unreadable. Unknown record tags are skipped wherever they are.
+- The reader refuses a file over 16 MB (`MAX_FILE_SIZE`), a wrong magic or format, a record running
+  past the end or out of order, a payload of the wrong size, an event count the payload cannot hold or
+  more than 4M events in all (`MAX_EVENTS`; both before allocating, and events are added as they are
+  parsed), a varint over 10 bytes, an `END` reason over 5, and data after `END`.
+
 ### 6.5 Segments: save, resume and the web backup
 
 **Saving.**
@@ -1816,6 +1925,35 @@ A client that restored a different RNG state diverges, and the next `CHECK` fail
   persist. They are outside the localStorage backup, which copies only the user dir as one item,
   so a browser crash can lose the most recent finished replay.
 
+**As built (stage 3a, `games/bejeweled/src/ReplayRecorder.h`):**
+- `WinDMApp::NewGame` gives each board a `ReplayRecorder` when `features.replays` is on. The board
+  owns it and deletes it in `~Board`.
+- **Session mode.** The recorder's `LOGIC` hashes (`CHECK`, `END`) take the stream as the board sees it:
+  a mirror `MTRand`, started from the segment's RNG start and advanced by the `XRAND` and board
+  draws. The game-over `HighScoreWidget` draws its tip in the board's last update, after the board's
+  last draw. The mirror leaves that draw out, as playback does.
+- **`LOAD`.** The new segment gets an `RNGS` with the RNG it goes on with: the sidecar's for a
+  seeded game, else the global stream's state at the `LOAD`. Tracking of outside draws starts again
+  from there.
+- **END reasons.** `GameOver` reads the state before changing it: from `STATE_FALLING` it is no
+  moves, from `STATE_PLAYING` time up, after a recorded `NEW_GAME` it is a new game. `END` is taken
+  when the game-over screen appears, at `~Board` after New Game, or at `~Board` of an unsaved board
+  (abandoned). A board whose last event is a `SAVE` hands the game to the sidecar.
+- **Declined resume.** No in the load dialog (`DeleteSaveGame` without a `LOAD`) turns the
+  sidecar's recorded game into a finished replay with reason 5.
+- **`HINT`** is recorded in `DoHint`. Its only caller is `ShowHint`, inside the `if`, and playback
+  calls `DoHint` itself.
+- **Replaced.** The first save of a recording board replaces another board's (a mode switch saved the
+  timed game, the next is saved at the quit): the sidecar's game is kept as a finished replay first,
+  as for a declined resume (7.3).
+- **Web backup.** A recording of more than 100,000 events (`ReplayRecorder::BACKUP_MAX_EVENTS`, hours
+  with the hover channel) stages only an RNG sidecar (`RNGS SVHA END`, as an unrecorded game with its
+  own RNG does) in the backup's one localStorage item: a resume from that backup keeps the RNG and
+  starts a fresh replay that holds the save. The snapshot sidecar is built in place, not from a copy of
+  the recording (it is asked for every 250 ms). When the item does not fit, `webpersist_backup` writes
+  it again with data for the staged files only (the save, its sidecar, the registry; the others listed
+  as a file over 1 MB is) before it gives up.
+
 ### 6.6 StateCodec and hashes
 
 `StateCodec.cpp` holds one table with one row per Board field and per Piece field: name, accessor,
@@ -1839,6 +1977,25 @@ type and flags `V2`, `UNDO`, `LOGIC` and `FULL`. The table drives:
 A standing test, from stage 3 on, runs in variant playtests with `-trace=2`: at every settle,
 StateCodec write → restore into a scratch board → write must give identical bytes, and the FULL hash
 must be identical. A variant field missing from the table fails this test.
+
+**As built (stage 3a, `games/bejeweled/src/StateCodec.h`):**
+- **The table.** One visitor list, `VisitBoard`, has one call per field in `Board.h` order, with
+  flags `FULL`, `LOGIC`, `SNAP`, `V2`, `UNDO`. It drives the writer and the reader, so the two cannot
+  drift. `V2` and `UNDO` mark the fields stages 5 and 6 will use.
+- **FULL** is byte for byte the board part of the stage-0 `-tracehash` FULL hash.
+  `testhooks/StateHash.cpp` now hashes this encoding. The oracle's `hash.txt` comparison with the
+  frozen stage-0 build therefore proves that the table holds every field of that list.
+- **The -tracehash LOGIC column** stays the stage-0 hand-written list, which the frozen build is
+  compared against.
+- **LOGIC** (the replay's `CHECK`/`END`) follows the list above. Per cell it also takes `mVelX` and
+  the swap offsets. The RNG part is (seed, userSeeded, ranked, board draws, MT words and index) of
+  the RNG `Board::Rand` draws from (6.5: the recorder's mirror in session mode).
+- **SNAPSHOT** is the decodable profile: every FULL row that can be restored, plus the layout and
+  the RNG with its presence. Pieces outside the grid keep their identity (index after the cells).
+- **The standing test** is the `-codeccheck=<file>` test hook. After every update it does
+  SNAPSHOT → restore into a scratch board (`Board(app, SCRATCH_BOARD)`) → SNAPSHOT, and compares
+  the bytes, the FULL encoding (without whether banner images exist and the parked orphan count)
+  and the LOGIC hash. The oracle runs it in every stage-3 case.
 
 ### 6.7 Undo snapshots
 
@@ -1865,6 +2022,54 @@ for (;;) {
   depending on the speed.
 - **Native CLI:** `-replay=<file> -fast -trace` prints the same TRACE lines as the recording.
   Everything is compared except the app-level `update N` field. The `board tick` field matches.
+
+**As built (stage 3b, `games/bejeweled/src/WatchController.h`):**
+- **The board.** `Board::InitVariant` takes the segment from `GameConfig::mNextBoardPlayback`: the
+  board is `mPlaybackOnly` and owns an `MTRand` from the RNG start (a session-mode start is a full
+  state, `mGameSeed` 0), never takes the pending seed. `TraceBoard` prints the seed line for
+  `mGameSeed != 0`, which is the same as before for every other board.
+- **Pauses.** `Board::Pause` and `Unpause` return at once on a playback board unless the player is
+  applying an event (`mPlaybackApplying`: `PAUSE`, `UNPAUSE`, and `SaveGame`'s pair inside `SAVE`).
+  The app's own calls (`ModalOpen`, `LostFocus`, ...) never reach it.
+- **The loop.** One iteration per app frame, from `WinDMApp::UpdateFrames` before the frame's own
+  update, so the board ticks once per frame as the recorded one did and `-trace` sees the same
+  settles. The board's calls into the app at its end (`NewGame` after New Game's fall,
+  `ShowHighScoreWidget`) return at once while it plays and end the replay.
+- **Gates** (beyond 6.3): `SELECT`, `DESELECT` take `MouseDown`'s (no user pause, no input delay, not
+  states 5..8; `SELECT`: no selection, a gem in the cell). `TARGET` cannot tell a click from a drag
+  (`MouseDrag` has no input-delay gate): `STATE_PLAYING`, a selection, -1 -1 or a gem. `HINT`:
+  `ShowHint`'s, then `DoHint`. `XRAND`: only a board without a seed (session mode), `n` draws of its
+  `MTRand` past `Board::Rand`. `LOAD`: at tick 0, then `SetPlaybackRng` with the segment's `RNGS`;
+  after a segment on a seed, that `RNGS` must be the RNG the board had at its last `SAVE` (6.5).
+  `CHECK` must be the first event at the tick the board settled at, and every settle needs one.
+- **Saves.** `SAVE` checks the hash of the bytes it makes, and a sidecar's `SVHA` the last ones, only
+  when the hover flag says every segment has the hover channel: the raw pieces in a save hold the
+  hover glow, which follows the pointer. Without it the LOGIC hash, which leaves the glow out, still
+  matches, and a `LOAD` of those bytes gives the same LOGIC state. A sidecar's trailing `RNGS` must be
+  the board's RNG at the end.
+- **The end.** The last segment ends at the game-over screen, after New Game's fall, or at `END`'s
+  tick with no event left; `END` must match (tick, score, level, gems, draws, LOGIC hash, and a
+  reason that fits: game over, a `NEW_GAME` applied, a last `SAVE`). Every earlier segment ends with
+  its last event, a `SAVE`; the next one's board `LOAD`s those bytes (or its `LDSV`). The last board
+  stays on screen, but `-trace` and `-codeccheck` see no settle of it once the replay has ended: its
+  last `SAVE` may have dropped a swap to `STATE_PLAYING` without an update, which the recorded board,
+  deleted right after, never showed.
+- **Before it starts** (`Replay::CheckPlayable`, framework-free, in rulestest): the engine ABI, a
+  `RULE` whose SHA-256 is `RLID`, segments the original game can make (no `TWIST`/`SLIDE`/`UNDO`
+  yet), arguments in range, `LOAD`s with their `RNGS` and bytes, and RNG states `MTRand` takes.
+  - An `LDSV`'s bytes reach the original `LoadGame`, which trusts a save, so `Replay::CheckSave` checks
+    them first: version 1, the exact length, and in range every value `Draw` or an update indexes,
+    loops or divides with (a piece's colour 0..6 and its own cell, the frames, bools, finite doubles,
+    a state that is no game over, the level, bar, wipe and vortex values, a level target over its
+    start). `-codeccheck` checks the save of every board state the oracle reaches against it.
+    `savegame.dat` itself is read as the original reads it.
+  - Bounds on the work a file can ask for: at most 24 hours of board ticks in all segments, each up
+    to its last event and the last up to `END` (`MAX_TICKS`, 8.64M; the leaderboard's cap is 6 hours,
+    6.10), at most 10,000 events at one tick of a segment, at most 1,000,000 outside draws in the file.
+    The player reads at most `MAX_FILE_SIZE` + 1 bytes.
+- **Output.** `REPLAY start`, `REPLAY segment k` and `REPLAY end: ok, <n> CHECKs, END ...` or
+  `REPLAY end: CORRUPT at segment k tick t event i <op>: <why>` on stdout. The oracle's playback
+  cases (9.1 item 6, in the game) play every recording of the stage-3 cases and four broken copies.
 
 ### 6.9 Headless verifier (`bejeweled_verify`)
 
@@ -1999,6 +2204,24 @@ contains:
 
 It exists only when recording, or when a default-rules game owns its RNG. It is written by
 `SaveGame`, staged into the web backup by `GetShutdownSaves`, and deleted by `DeleteSaveGame`.
+
+**As built (stage 3a, `Board::WriteSaveSidecar` / `GameLoadedVariant`):**
+- **Contents.** A recording's sidecar is the whole replay so far, ending in `SAVE`. When the board
+  owns its RNG, an `RNGS` follows it. Then come `SVHA` and `END` (reason 5).
+- **Without recording.** A board that owns its RNG (a seed the player chose, `seeds.perGame`, a rule)
+  leaves `RNGS SVHA END` only.
+- **No sidecar.** Any other save writes none and erases a stale one. That erase finds nothing in a
+  game without mods and seeds, which stays unchanged.
+- **Resume.** A sidecar whose `SVHA` matches the loaded save restores the board's RNG, seed and
+  userSeeded from its `RNGS` (GAME_NOTES 12.3).
+- **Replaced or declined.** The first sidecar a recording board writes replaces the one there is: when
+  that one goes with the save there is and holds a recorded move, its game is kept as a finished replay
+  first (END "saved"), as No in the load dialog keeps it.
+- **Stage 5.** v1 is still the only save format, so for now this also covers rule-mod boards.
+  Stage 5's v2 `RNGS` chunk takes over for variant boards.
+
+**The "save" script command** writes the sidecar of its snapshot next to the `<file>` it names,
+with the `.bjr` extension, only when there is one.
 
 ### 7.4 Not saved
 
@@ -2183,8 +2406,8 @@ Recommendations are in brackets.
 15. **The original 1.87 in the script.** It needs one session of the original with its sound on (Steam,
     BASS): you play while `lsprobe` logs, or you allow a session to run it. [yes, if the script is
     registered under the name; otherwise port-only and unregistered]
-16. **Licence for the script.** The registry requires an open-source one, and byo-pop has none. [the
-    Unlicense, as HyperNervie's, so either way of coordinating works]
+16. **Licence for the script.** Answered by the user (2026-10-18): CC0-1.0, a public-domain dedication
+    in the script's header; it also leaves every way of coordinating with HyperNervie open.
 17. **Hosting.** Make byo-pop public when it is pushed and serve the raw URL, or put the script in a small
     separate public repo? [byo-pop, default branch]
 18. **Mod signs.** Should a mod whose only key is `features.livesplit` skip the crossbar on GO's G and the

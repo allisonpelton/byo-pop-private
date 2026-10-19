@@ -2,12 +2,16 @@
 // and the user dir; GameConfig.cpp is the framework-free half. See GameConfig.h.
 
 #include "GameConfig.h"
+#include "LiveSplitObserver.h"
 #include "platform/ModManager.h"
+#include "platform/VFS.h"
 #include "PakInterface.h"
 
 #include <SDL.h>
 #include <algorithm>
 #include <cstdio>
+#include <cstring>
+#include <iterator>
 #include <sstream>
 
 using namespace Sexy;
@@ -94,15 +98,24 @@ static std::vector<std::string> ProvenanceFor(const RulesStatus& theStatus, cons
 // checks and reports the rules and features; stage 2 plays seeds, so any rule gives the board its own RNG
 // and seeds.perGame works, but the rules themselves are not played yet), as warnings for mods-status.json:
 // one per mod, naming every key of its own that is not played; for rule keys it says what they do change,
-// the RNG
+// the RNG. Stage 3 records replays and plays them back from the command line only (-replay=<file>); the replay
+// browser comes with stage 13
 static void AddBuildWarnings(const GameRules& theRules, const GameFeatures& theFeatures, RulesStatus* theStatus)
 {
-	// per mod: its rule keys, its feature keys
-	std::vector<std::pair<std::string, std::pair<std::string, std::string> > > aByMod;
+	// per mod: its rule keys, its feature keys (features.replays apart)
+	struct ModKeys
+	{
+		std::string mModId;
+		std::string mRules;
+		std::string mFeatures;
+		std::string mReplays;
+	};
+	std::vector<ModKeys> aByMod;
 	std::vector<std::string> aKeys = theRules.VariantKeys();
 	const size_t aNumRuleKeys = aKeys.size();
-	// The features that are on but do nothing yet (the seed field comes with the Extras dialog); replays may
-	// be on only because the leaderboard implies them
+	// The features that are on but not complete yet (the seed field comes with the Extras dialog, replays are
+	// recorded but watched only from the command line); replays may be on only because the leaderboard
+	// implies them
 	const char* const aFeatureKeys[3] = {"features.seeds.entry", "features.replays", "features.leaderboard"};
 	const bool aFeatureOn[3] = {theFeatures.mSeedEntry, theFeatures.mReplays, theFeatures.mLeaderboard};
 	for (int i = 0; i < 3; i++)
@@ -121,25 +134,37 @@ static void AddBuildWarnings(const GameRules& theRules, const GameFeatures& theF
 		for (size_t m = 0; m < aMods.size(); m++)
 		{
 			size_t j = 0;
-			while ((j < aByMod.size()) && (aByMod[j].first != aMods[m]))
+			while ((j < aByMod.size()) && (aByMod[j].mModId != aMods[m]))
 				j++;
 			if (j == aByMod.size())
-				aByMod.push_back(std::make_pair(aMods[m], std::make_pair(std::string(), std::string())));
-			std::string& aList = (i < aNumRuleKeys) ? aByMod[j].second.first : aByMod[j].second.second;
+			{
+				aByMod.push_back(ModKeys());
+				aByMod[j].mModId = aMods[m];
+			}
+			std::string& aList = (i < aNumRuleKeys) ? aByMod[j].mRules : (aKeys[i] == "features.replays") ? aByMod[j].mReplays : aByMod[j].mFeatures;
 			aList += (aList.empty() ? "" : ", ") + aKeys[i];
 		}
 	}
 	for (size_t i = 0; i < aByMod.size(); i++)
 	{
-		const std::string& aRuleList = aByMod[i].second.first;
-		const std::string& aFeatureList = aByMod[i].second.second;
+		const ModKeys& aMod = aByMod[i];
 		std::string aText;
-		if (!aRuleList.empty())
-			aText = "not played in this build yet (for now a rule only gives each game its own seed, shown at game over): " + aRuleList;
-		if (!aFeatureList.empty())
-			aText += (aText.empty() ? "" : "; ") + std::string("not in this build yet, no effect: ") + aFeatureList;
-		theStatus->mWarnings.push_back({aByMod[i].first, aText});
+		if (!aMod.mRules.empty())
+			aText = "not played in this build yet (for now a rule only gives each game its own seed, shown at game over): " + aMod.mRules;
+		if (!aMod.mFeatures.empty())
+			aText += (aText.empty() ? "" : "; ") + std::string("not in this build yet, no effect: ") + aMod.mFeatures;
+		if (!aMod.mReplays.empty())
+			aText += (aText.empty() ? "" : "; ") + std::string("games are recorded to the replay folder; this build plays them back only from the command line "
+				"(-replay=<file>), not yet from the game: ") +
+				aMod.mReplays;
+		theStatus->mWarnings.push_back({aMod.mModId, aText});
 	}
+
+#ifndef BEJ_HAS_LIVESPLIT
+	// The LiveSplit block exists in desktop builds only (LiveSplitObserver.h)
+	if (theFeatures.mLiveSplit)
+		theStatus->mWarnings.push_back({theFeatures.mLiveSplitMod, "features.livesplit: desktop only, ignored"});
+#endif
 
 	if (theRules.mBoard.mGemColors > 7)
 	{
@@ -227,13 +252,61 @@ static std::string StatusText(const GameRules& theRules, const GameFeatures& the
 	return aStatus.Dump(2) + "\n";
 }
 
+// A folder named theName (any case) directly in theDir (VFS::FindCaseInsensitive finds files only)
+static bool HasFolder(const std::string& theDir, const char* theName)
+{
+	for (const std::string& anEntry : Platform::ListDirectory(theDir))
+	{
+		if ((anEntry.size() == strlen(theName)) && (SDL_strcasecmp(anEntry.c_str(), theName) == 0) &&
+			Platform::IsDirectory(theDir + "/" + anEntry))
+			return true;
+	}
+	return false;
+}
+
+// port(variant): a mod whose only effect is features.livesplit (games/bejeweled/docs/CODE_MODS_DESIGN.md
+// 4.15, Q18): its mod.json has only descriptive keys and a "features" object whose one key is "livesplit",
+// and its folder has none of the game's data folders. It changes nothing on screen or in play, so it shows
+// no mod signs, which would otherwise be in every run video.
+static bool IsLiveSplitOnly(const Platform::ModInfo& theMod)
+{
+	static const char* const aInfoKeys[] = {"id", "name", "version", "author", "description", "priority"};
+	static const char* const aDataFolders[] = {"images", "sounds", "music", "data", "properties"};
+	const JsonValue& aManifest = theMod.mManifest;
+	if (!theMod.mHasManifest || !aManifest.IsObject())
+		return false;
+	bool hasLiveSplit = false;
+	for (size_t i = 0; i < aManifest.Members().size(); i++)
+	{
+		const std::string& aKey = aManifest.Members()[i].first;
+		const JsonValue& aValue = aManifest.Members()[i].second;
+		if (aKey == "features")
+		{
+			if (!aValue.IsObject() || (aValue.Members().size() != 1) || (aValue.Members()[0].first != "livesplit"))
+				return false;
+			hasLiveSplit = true;
+		}
+		else if (std::find(std::begin(aInfoKeys), std::end(aInfoKeys), aKey) == std::end(aInfoKeys))
+			return false;
+	}
+	for (const char* aFolder : aDataFolders)
+	{
+		if (HasFolder(theMod.mPath, aFolder))
+			return false;
+	}
+	return hasLiveSplit;
+}
+
 void GameConfig::Load()
 {
 	Platform::ModManager& aMods = Platform::ModManager::Get();
 	RulesStatus aStatus;
 	ResolveRules(&mRules, &mFeatures, &aStatus);
 	LoadFromRules(mRules);
-	mAnyModEnabled = !aMods.GetEnabledMods().empty();
+	// port(variant): a mod that only turns on LiveSplit does not count (IsLiveSplitOnly)
+	mAnyModEnabled = false;
+	for (const Platform::ModInfo* aMod : aMods.GetEnabledMods())
+		mAnyModEnabled = mAnyModEnabled || !IsLiveSplitOnly(*aMod);
 
 	// Mods without rules or features leave the user dir as it was (no status file, no log lines)
 	if (!aMods.HasRulesOrFeatures())

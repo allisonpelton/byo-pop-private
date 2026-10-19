@@ -30,6 +30,8 @@ class ButtonWidget;
 class Dialog;
 class MusicInterface;
 class AutoplayBot;
+class CodecCheck;
+class WatchController;
 
 // Dialog ids (SexyAppBase dialog map). YES/OK/footer presses arrive in ButtonDepress as 2000+id,
 // NO/CANCEL as 3000+id.
@@ -129,8 +131,19 @@ public:
 	//                        -autoplaylog=<file>: writes its input as a -script file;
 	//                        -autoplayshot=<png>: a screenshot of the game-over screen 59 updates after
 	//                        it appears, just before the slide ends (a script line, so a replay takes it)
-	//   script command "save <file>": writes the save a shutdown would write now (GetShutdownSave) to
-	//                        <file> without touching the game; it logs only when it cannot
+	//   script command "save <file>": writes the save a shutdown would write now (GetShutdownSaves) to
+	//                        <file> without touching the game, and its sidecar (when it has one) next to it
+	//                        under the sidecar's extension; it logs only when it cannot
+	//   -codeccheck=<file>   port(variant): after every update, StateCodec's round trip (6.6) on the board:
+	//                        a line per settle and per failure, a summary at the end
+	//                        (games/bejeweled/src/testhooks/CodecCheck.h)
+	//   -replay=<file>       port(variant): watch the replay <file> (a .bjr, games/bejeweled/docs/CODE_MODS_DESIGN.md
+	//                        6.8) instead of the game the title screen starts; "REPLAY" lines on stdout say
+	//                        how it went (games/bejeweled/src/WatchController.h). -replayquit: quit when it
+	//                        ends (else its last board stays until New Game or a mode button)
+	//   -livesplitlog=<file> port(variant): while features.livesplit is on (desktop builds), appends one line
+	//                        per LiveSplit block write: "u=<update>" and the block's fields, with the
+	//                        address and the clock masked (LiveSplitObserver.h, LiveSplitBlock.h)
 	std::string		mTraceHashFileName;
 	FILE*			mTraceHashFile;
 	bool			mAutoplay;
@@ -140,6 +153,10 @@ public:
 	std::string		mAutoplayLogFileName;
 	std::string		mAutoplayShotFileName;
 	AutoplayBot*	mAutoplayBot;
+	std::string		mCodecCheckFileName;
+	CodecCheck*		mCodecCheck;
+	WatchController* mWatch;                    // port(variant): -replay (NULL without)
+	bool			mReplayQuit;                // port(variant): -replayquit
 
 public:
 	WinDMApp();                                                     // 0x4d4d82
@@ -186,8 +203,9 @@ public:
 	void			TitleScreenIsFinished();                        // 0x4d6f28
 	virtual void	LoadingThreadProc();                            // 0x4d82d2 slot 22
 
-	// port (web): the page can be closed or crash without Shutdown(); see SexyAppBase::UpdateUserDataBackup
-	virtual bool	GetShutdownSave(std::string* theFileName, Buffer* theBuffer);
+	// port (web): the page can be closed or crash without Shutdown(); see SexyAppBase::UpdateUserDataBackup.
+	// port(variant): the save and its sidecar (games/bejeweled/docs/CODE_MODS_DESIGN.md 6.5, 7.3)
+	virtual void	GetShutdownSaves(std::vector<ShutdownSave>* theSaves);
 	virtual void	WriteShutdownRegistry();
 
 	// port(variant): set seed (games/bejeweled/docs/CODE_MODS_DESIGN.md 6.2): NewGame's choice of the new
