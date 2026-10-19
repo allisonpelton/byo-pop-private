@@ -45,7 +45,8 @@ enum
 	FORMAT = 1,
 	// Bumped whenever variant simulation output changes (6.4). 2: stage 5, kept invalid moves, the noMoves rule,
 	// the v2 save and the variant boards' MOVE fields in the LOGIC hash. The original rules are frozen, so a
-	// replay of them from an earlier engine still plays (CheckPlayable)
+	// replay of them from an earlier engine still plays (CheckPlayable). games/bejeweled/tools/bjr.py repeats both
+	// values (the verifier's tests check that they agree)
 	ENGINE_ABI = 2,
 	FIRST_ENGINE_ABI = 1,
 	MT_WORDS = 624,

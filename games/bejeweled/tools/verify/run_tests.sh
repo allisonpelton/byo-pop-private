@@ -9,6 +9,7 @@
 # Defaults: build/native/bejeweled_verify.exe, build/web/bejeweled_verify.wasm, emsdk's Node, 10 seeds, a
 # temporary folder under build/. Checks, each printed as "ok ..." or "VIOLATION ...", then a summary line;
 # exit status 0 only without a violation:
+#   engine      tools/bjr.py's ENGINE_ABI and FIRST_ENGINE_ABI (what craft_replays.py writes) are Replay.h's
 #   rulesid     the RulesId of fixed mod.json texts, native and wasm, against the vectors of
 #               games/bejeweled/tools/rulestest (the default rules, a tunables-only mod), and alike on both: a
 #               mod.json that is not JSON, one over 1 MB, one of more than 32 match.shapes (refused as it is
@@ -16,9 +17,11 @@
 #   unplayable  files no replay player can start (empty, garbage, a header alone; craft_replays.py synthetic:
 #               RULEs with diff.txt values that make a level of no points or are not finite, a field out of range,
 #               at its default or unknown, a NaN tunable; more than MAX_SEGMENTS segments, more than
-#               MAX_EVENTS_PER_TICK events at one tick, a SAVE before the last tick, five SAVEs): both verifiers
-#               say "cannot play" with the same words and JSON, exit status 1 (the oracle adds broken copies of
-#               real replays, played by the game too)
+#               MAX_EVENTS_PER_TICK events at one tick, a SAVE before the last tick, five SAVEs; a variant rule set
+#               recorded by engine 1): both verifiers say "cannot play" with the same words and JSON, each file
+#               for its own reason, exit status 1 (the oracle adds broken copies of real replays, played by the
+#               game too). The synthetic files are this engine's: tools/bjr.py's ENGINE_ABI, which must be
+#               Replay.h's (checked as "engine")
 #   fuzz        RULEs with extreme diff.txt values the check takes (craft_replays.py synthetic: points and
 #               multipliers to 1e300, the int range's end, drains to +-1e300 and the smallest double, so
 #               SetupLevel's (int) casts and the drain leave the int range), played in three passes (to the first
@@ -83,6 +86,17 @@ nat() {
 }
 wsm() { "$NODE" "$RUNNER" "$@"; }
 
+# engine: tools/bjr.py's ENGINE_ABI and FIRST_ENGINE_ABI, which craft_replays.py writes, are Replay.h's
+ENGINE_ABI=$(sed -n 's/^[[:space:]]*ENGINE_ABI = \([0-9][0-9]*\),.*/\1/p' "$GAME/src/Replay.h")
+FIRST_ENGINE_ABI=$(sed -n 's/^[[:space:]]*FIRST_ENGINE_ABI = \([0-9][0-9]*\),.*/\1/p' "$GAME/src/Replay.h")
+BJR_ENGINES=$("$PYTHON" -c "import sys; sys.path.insert(0, sys.argv[1]); import bjr; print(bjr.ENGINE_ABI, bjr.FIRST_ENGINE_ABI)" \
+	"$(winpath "$GAME/tools")" | tr -d '\r')
+if [ -n "$ENGINE_ABI" ] && [ -n "$FIRST_ENGINE_ABI" ] && [ "$BJR_ENGINES" = "$ENGINE_ABI $FIRST_ENGINE_ABI" ]; then
+	ok "engine: tools/bjr.py and Replay.h say engine $ENGINE_ABI, the original rules' replays from engine $FIRST_ENGINE_ABI"
+else
+	bad "engine: Replay.h says ENGINE_ABI '$ENGINE_ABI' FIRST_ENGINE_ABI '$FIRST_ENGINE_ABI', tools/bjr.py '$BJR_ENGINES'"
+fi
+
 # rulesid: the vectors of games/bejeweled/tools/rulestest (TestVectors)
 rulesid_case() {
 	local name=$1 json=$2 want=$3 dir="$OUT/rulesid-$1"
@@ -146,8 +160,8 @@ rulesid_alike shapes 'more than the 32 shapes'
 rulesid_alike fill 'the fewest colours'
 
 # unplayable: both verifiers, the same words, result "unplayable", exit status 1
-unplayable_case() {
-	local name=$1 dir="$OUT/unplayable-$1"
+unplayable_case() {  # unplayable_case <name> [<text>]: refused, and with <text> in the REPLAY line (the reason)
+	local name=$1 want=${2:-} dir="$OUT/unplayable-$1"
 	local nexit wexit
 	nat "$dir/replay.bjr" > "$dir/native.txt"
 	nexit=$?
@@ -158,6 +172,8 @@ unplayable_case() {
 	elif [ "$nexit" != 1 ] || [ "$wexit" != 1 ] || ! grep -q '"result":"unplayable"' "$dir/native.txt" || \
 			! grep -q '^REPLAY replay.bjr: cannot play: ' "$dir/native.txt"; then
 		bad "unplayable $name: exit $nexit/$wexit: $(head -c 300 "$dir/native.txt")"
+	elif [ -n "$want" ] && ! head -n 1 "$dir/native.txt" | grep -qF "$want"; then
+		bad "unplayable $name: refused for another reason than \"$want\": $(head -n 1 "$dir/native.txt")"
 	else
 		ok "unplayable $name: $(head -n 1 "$dir/native.txt")"
 	fi
@@ -174,14 +190,22 @@ done
 # Well-formed files with what the player refuses: RULEs a game never records, contents past the bounds
 mkdir -p "$OUT/synthetic"
 SYNTH=$("$PYTHON" "$(winpath "$GAME/tools/verify/craft_replays.py")" synthetic "$(winpath "$OUT/synthetic")" | tr -d '\r')
+# Each refused for its own reason, so a change to the order of the player's checks (or an engine bump: the files
+# are this engine's) cannot quietly send a file to another check
 for name in $SYNTH; do
 	case "$name" in
-		rule-*|limits-*)
-			mkdir -p "$OUT/unplayable-$name"
-			cp "$OUT/synthetic/$name.bjr" "$OUT/unplayable-$name/replay.bjr"
-			unplayable_case "$name"
-			;;
+		rule-*) want="cannot play: RULE: " ;;
+		limits-segments) want="segments a replay may have" ;;
+		limits-one-tick) want="events at one tick" ;;
+		limits-save-early) want="a SAVE before the segment's last tick" ;;
+		limits-saves) want="SAVEs in one segment" ;;
+		limits-*) want="cannot play: " ;;
+		engine1-variant) want="recorded by engine 1, this build plays engine $ENGINE_ABI" ;;
+		*) continue ;;
 	esac
+	mkdir -p "$OUT/unplayable-$name"
+	cp "$OUT/synthetic/$name.bjr" "$OUT/unplayable-$name/replay.bjr"
+	unplayable_case "$name" "$want"
 done
 
 # fuzz: extreme diff.txt values the RULE check takes, in three passes (to the first settle; a CHECK of hash 0

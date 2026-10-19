@@ -11,11 +11,12 @@ original game. Reads and writes .bjr files with games/bejeweled/tools/bjr.py.
   craft_replays.py level <save.dat> <out.dat> <level>
       a v1 save with mLevel set (a vortex save at level 10000: SetupLevel's values leave the int range)
   craft_replays.py synthetic <dir>
-      small well-formed replays (seed 1, no move, END tick 400) with RULEs and contents to refuse, into <dir>:
-      rule-*.bjr (diff.txt values a level cannot play with, a field out of range, a field at its default, an
-      unknown field), limits-*.bjr (segments, events at one tick, SAVEs where the game never makes them), and
-      fuzz-*.bjr (extreme diff.txt values the check takes: points and multipliers far past the int range);
-      prints the names
+      small well-formed replays (seed 1, no move, END tick 400; this build's engine, bjr.ENGINE_ABI) with RULEs and
+      contents to refuse, into <dir>: rule-*.bjr (diff.txt values a level cannot play with, a field out of range, a
+      field at its default, an unknown field), limits-*.bjr (segments, events at one tick, SAVEs where the game
+      never makes them), engine1-variant.bjr (a variant rule set recorded by engine 1: only the original rules'
+      replays play from an earlier engine), and fuzz-*.bjr (extreme diff.txt values the check takes: points and
+      multipliers far past the int range); prints the names
   craft_replays.py check <in.bjr> <out.bjr> <tick> [<hash>]
       the replay with a CHECK at <tick>, the board's first settle, of hash 0 (the fuzz files' second pass: the
       player then prints the LOGIC hash it computed there) or <hash> (16 hex digits; the third pass, which then
@@ -56,7 +57,7 @@ def with_rule(replay, rule):
 def minimal(mode=0, events=None, end_tick=400, segments=None):
     seg = {"mode": mode, "rng": {"kind": "seed", "seed": 1}, "userSeeded": False, "showInstructions": False, "timesPlayed": 5,
            "pointsAscent": 0, "events": events or []}
-    replay = {"format": 1, "flags": 0, "engineAbi": 1, "segments": segments or [seg],
+    replay = {"format": 1, "flags": 0, "engineAbi": bjr.ENGINE_ABI, "segments": segments or [seg],
               "end": {"reason": 0, "endTick": end_tick, "score": 0, "level": 0, "gems": 0, "logicHash": 0, "boardDraws": 0}}
     return with_rule(replay, rule_bytes())
 
@@ -112,6 +113,11 @@ def synthetic(out_dir):
     files["rule-default-field"] = with_rule(minimal(), rule_bytes(struct.pack("<HBi", 48, 1, 3)))   # minRun 3 spelled out
     files["rule-unknown-field"] = with_rule(minimal(), rule_bytes(struct.pack("<HBi", 999, 1, 3)))
     files["rule-hint-nan"] = with_rule(minimal(), rule_bytes(struct.pack("<HBd", 116, 3, nan)))     # scoring.hintPenalty
+    # A variant rule set (match.minRun 4, in range) recorded by the first engine: only the original rules' replays
+    # play from an earlier engine (stage 5, Replay::CheckPlayable)
+    old = minimal()
+    old["engineAbi"] = bjr.FIRST_ENGINE_ABI
+    files["engine1-variant"] = with_rule(old, rule_bytes(struct.pack("<HBi", 48, 1, 4)))
     # Contents past the bounds on what a file may make the player do
     files["limits-segments"] = minimal(segments=[minimal()["segments"][0]] * (bjr.MAX_SEGMENTS + 1))
     files["limits-one-tick"] = minimal(events=[(5, "DESELECT", [])] * (bjr.MAX_EVENTS_PER_TICK + 1))

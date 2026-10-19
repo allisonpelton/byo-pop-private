@@ -29,6 +29,8 @@ MAX_FILE_SIZE = 16 * 1024 * 1024
 MAX_EVENTS = 4000000
 MAX_EVENTS_PER_TICK = 10000
 MAX_SEGMENTS = 1000
+ENGINE_ABI = 2          # Replay.h ENGINE_ABI, the engine this build plays (verify/run_tests.sh checks they agree)
+FIRST_ENGINE_ABI = 1    # Replay.h FIRST_ENGINE_ABI: the oldest engine whose replays of the original rules still play
 RNGS_SIZE = 4 + 1 + 1 + MT_WORDS * 4 + 4
 END_SIZE = 1 + 4 + 4 + 4 + 4 + 8 + 4
 
