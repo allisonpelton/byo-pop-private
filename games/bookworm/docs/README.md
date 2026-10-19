@@ -90,6 +90,6 @@ export are in the git-ignored `assets/bookworm/` and `re/bookworm/`. Shared chan
 | `tools/funcmatch.py` (new): carry names between builds of the same compiler | 42986b8 |
 | `third_party/libopenmpt` (0.8.9, user-approved), `platform/Audio.*` (`ModulePlayer`, `RegisterModuleFormat`), `platform/openmpt/`, `sexyopenmpt`: MO3 music only | 25addf0 |
 | `CMakeLists.txt`: `BUILD_BOOKWORM` | 84f596c |
-| `docs/FRAMEWORK_2004.md` (new) | f1c2524 |
+| `docs/FRAMEWORK_2004.md` (new) | 456fc08 |
 | Big Money's MSVC 7.0 tools and `.au`/Tremor audio, unchanged copies | f2497b4 |
 | Requested from the coordinator: `WidgetManager::mLastMouseDownTick` (Lex's idle timer) | pending |
