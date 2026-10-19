@@ -152,6 +152,26 @@ Big Money uses the shared mod system (`platform/ModManager.h`).
   - **Tested.** Replays of all three modes, seeded and with tunables, verify at 1x and 8x, including
     natively recorded replays watched in the web build.
   - **Inspecting files.** `tools/bmr.py` prints a replay's contents.
+- **LiveSplit** (the `livesplit` mod, `features.livesplit`; Windows builds; `src/LiveSplitObserver.h`).
+  - **The block.** After every update the game fills a tagged, read-only block in its `.data`
+    (`src/LiveSplitBlock.h`). It uses the same magic and protocol as the Bejeweled port's, with game id
+    "BMDX".
+  - **The script.** `tools/livesplit/BigMoneyDeluxe-byopop.asl` reads the block. It starts LiveSplit's
+    timer at the first level's "Go!" (never for a resumed save or a replay), splits when a level is
+    complete or the score on screen reaches a segment's number, and resets when the run's game ends.
+  - **Categories.** Big Money has no speedrun.com board, so the categories are suggestions. A category
+    name with a mode and skill in it ("Strategy Easy - 5 Levels") starts only on that mode and skill.
+  - **The mod.** It changes nothing in play (the screenshot regression is byte-identical with it on). On
+    first use it copies its split templates to `<user dir>/livesplit`.
+  - **Tests.** `tools/livesplit/run_tests.sh` (under rundesk) plays bot and scripted games, then checks:
+    - `check_asl_offsets.py`: the script's field table and magic match the game's;
+    - `asltest`: the script compiles as LiveSplit compiles it (C# 5);
+    - `lsprobe.py --check`: a 64-bit process reading the live game finds the block and only ever sees
+      snapshots the game wrote;
+    - `lsdecide.py`: 24 scenarios (levels, scores, mode and skill guards, New Game, quitting, resumed
+      games, replays, the mod off). Each one's events match the expected ones and the real script's
+      decisions, through `asltest`.
+  - **Not done.** A manual test with LiveSplit itself would need it downloaded first (the user's call).
 
 Example mods (`games/bigmoney/mods/`):
 - **`fake-money/`: "Fake Money! Deluxe".**
@@ -168,6 +188,8 @@ Example mods (`games/bigmoney/mods/`):
   big groups.
 - **`replays/`: "Replays".** Turns on replays and nothing else: no change in play, the normal high-score
   tables, and no mods sign.
+- **`livesplit/`: "LiveSplit".** Turns on the LiveSplit block, with a copy of the script, seven split
+  templates and a README for players.
 - **`hd4x-textures/`: every image at 4x.** Generate it with `tools/make_hd4x_mod.py`, which upscales
   the player's own game files with Real-ESRGAN on the GPU. It contains the game's art, so it is
   git-ignored: never commit or share it.

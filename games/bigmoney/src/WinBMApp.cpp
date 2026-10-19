@@ -12,6 +12,7 @@
 #include "CreditsDialog.h"
 #include "testhooks/Autoplay.h"
 #include "Replay.h"
+#include "LiveSplitObserver.h"
 #include <SDL.h>
 #include "ModIndicators.h"
 #include "HDPixels.h"
@@ -146,6 +147,7 @@ WinBMApp::WinBMApp()
 WinBMApp::~WinBMApp()
 {
 	delete mAutoplayBot;  // port: test hook
+	LiveSplitObserver::AppDestroyed(this); // port(mods): the block's last write
 
 	// This is where a game in progress is saved on exit: Shutdown is not overridden
 	if ((mBoard != NULL) && (mBoard->CanSaveGame()))
@@ -1189,6 +1191,9 @@ void WinBMApp::UpdateFrames()
 			mAutoplayLogFileName, mAutoplayShotPrefix);
 	if (mAutoplayBot != NULL)
 		mAutoplayBot->Update();
+
+	// port(mods): the LiveSplit block, after the update (LiveSplitObserver.h)
+	LiveSplitObserver::AfterUpdate(this);
 }
 
 // port: the game's command-line test hooks (see WinBMApp.h); everything else goes to the framework
@@ -1204,6 +1209,11 @@ void WinBMApp::HandleCmdLineParam(const std::string& theParamName, const std::st
 	if (theParamName == "-replaydir")
 	{
 		mReplayDir = theParamValue; // port(mods)
+		return;
+	}
+	if (theParamName == "-livesplitlog")
+	{
+		LiveSplitObserver::SetLogFile(theParamValue); // port(mods): test hook, one line per block write
 		return;
 	}
 	if (theParamName == "-autoplay")

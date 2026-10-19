@@ -25,6 +25,8 @@ Creates, in games/bigmoney/mods/:
                 more points for big groups
 A mod with tunables keeps its own high-score tables and save, so these never mix with the normal game's.
   replays/      "Replays": the port's replay feature (games/bigmoney/src/Replay.h), nothing else
+  livesplit/    "LiveSplit": the auto splitter's block (games/bigmoney/src/LiveSplitObserver.h), a copy of
+                tools/livesplit/BigMoneyDeluxe-byopop.asl, split templates (livesplit/*.lss) and a README
 
 The coin rows keep the game's colours (red, blue, yellow, green, purple), so groups read the same; each
 gets a symbol in the spirit of a cryptocurrency mark, drawn from simple shapes: a tilted B with bars (red
@@ -573,6 +575,82 @@ FEATURE_MODS = [
 ]
 
 
+LIVESPLIT_README = """LiveSplit for Big Money Deluxe (byo-pop)
+=========================================
+
+This mod turns on the game's LiveSplit support (features.livesplit). The Windows build of the game then keeps
+a small read-only block in its memory up to date, and the auto splitter script BigMoneyDeluxe-byopop.asl
+reads it: it starts LiveSplit's timer at the first level's "Go!", splits when a level is complete (or when the
+score on screen reaches a split's number) and resets when the run's game ends. It changes nothing else: no
+gameplay, no high-score tables, and no mods sign on the score. The web build ignores it.
+
+Using it
+1. Enable this mod (natively: put this folder in the game's mods folder, build/native/mods-bigmoney).
+2. Start the game once: it copies the split templates from livesplit/ to the livesplit folder in its user dir
+   (the folder with savegame.dat), and never overwrites one there.
+3. In LiveSplit: Open Splits, then one of those templates. Load the script: Edit Layout, +, Control,
+   Scriptable Auto Splitter, Script Path: the BigMoneyDeluxe-byopop.asl in this folder.
+4. The script's settings: start only in the category's mode and skill (on), only without gameplay mods and a
+   chosen seed (off), reset when the game ends (coins overflow, no moves, New Game, another game, quitting;
+   each on, each can be turned off), and a log of each event with its lag (off).
+
+Notes
+- Real time only: the timer runs on through pauses and dialogs.
+- Category names: "Action", "Strategy" or "Puzzle" and "Easy", "Normal" or "Hard" in the name make the script
+  start only on that mode and skill. Big Money has no speedrun.com board; the templates' categories are only
+  suggestions.
+- Segment names: a number of at least 1000 (10000, 25,000 or 25K) splits when the score on screen reaches it;
+  any other name is a level and splits when that level is complete. A finished run is never reset by the
+  script.
+- A resumed saved game and a replay never start the timer.
+- LiveSplit saves the script's settings into the splits file only while the script is active.
+"""
+
+# (category, segments) of the split templates
+LIVESPLIT_TEMPLATES = [
+    ("%s %s - 5 Levels" % (mode, skill), ["Level %d" % (i + 1) for i in range(5)])
+    for mode in ("Action", "Strategy", "Puzzle") for skill in ("Easy", "Hard")
+] + [("Action Easy - 25K Points", ["5K", "10K", "25K"])]
+
+
+def lss(category, segments):
+    def esc(t):
+        return t.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+    out = ['<?xml version="1.0" encoding="UTF-8"?>', '<Run version="1.7.0">', "  <GameIcon />",
+           "  <GameName>Big Money Deluxe</GameName>", "  <CategoryName>%s</CategoryName>" % esc(category),
+           "  <LayoutPath>", "  </LayoutPath>", "  <Metadata>", '    <Run id="" />',
+           '    <Platform usesEmulator="False">PC</Platform>', "    <Region>", "    </Region>", "    <Variables />",
+           "  </Metadata>", "  <Offset>00:00:00</Offset>", "  <AttemptCount>0</AttemptCount>", "  <AttemptHistory />",
+           "  <Segments>"]
+    for name in segments:
+        out += ["    <Segment>", "      <Name>%s</Name>" % esc(name), "      <Icon />", "      <SplitTimes>",
+                '        <SplitTime name="Personal Best" />', "      </SplitTimes>", "      <BestSegmentTime />",
+                "      <SegmentHistory />", "    </Segment>"]
+    out += ["  </Segments>", "  <AutoSplitterSettings />", "</Run>", ""]
+    return "\n".join(out)
+
+
+def make_livesplit_mod(mods_dir):
+    here = os.path.dirname(os.path.abspath(__file__))
+    out_dir = os.path.join(mods_dir, "livesplit")
+    os.makedirs(os.path.join(out_dir, "livesplit"), exist_ok=True)
+    manifest = {"id": "livesplit", "name": "LiveSplit", "version": "1.0", "author": "byo-pop",
+                "description": "Auto splitter support (Windows): fills the block BigMoneyDeluxe-byopop.asl reads. "
+                               "Changes nothing in play or on screen. Split templates in livesplit/.",
+                "features": {"livesplit": True}}
+    with open(os.path.join(out_dir, "mod.json"), "w", encoding="utf-8", newline="\n") as f:
+        f.write(json.dumps(manifest, indent=2) + "\n")
+    with open(os.path.join(out_dir, "README.txt"), "w", encoding="utf-8", newline="\n") as f:
+        f.write(LIVESPLIT_README)
+    script = open(os.path.join(here, "livesplit", "BigMoneyDeluxe-byopop.asl"), encoding="utf-8").read()
+    with open(os.path.join(out_dir, "BigMoneyDeluxe-byopop.asl"), "w", encoding="utf-8", newline="\n") as f:
+        f.write(script)
+    for category, segments in LIVESPLIT_TEMPLATES:
+        with open(os.path.join(out_dir, "livesplit", category + ".lss"), "w", encoding="utf-8", newline="\n") as f:
+            f.write(lss(category, segments))
+    print("wrote", out_dir)
+
+
 def make_feature_mods(mods_dir):
     for mod in FEATURE_MODS:
         out_dir = os.path.join(mods_dir, mod["id"])
@@ -592,6 +670,7 @@ def main():
     make_fake_money(os.path.abspath(args.out))
     make_tunable_mods(os.path.abspath(args.out))
     make_feature_mods(os.path.abspath(args.out))
+    make_livesplit_mod(os.path.abspath(args.out))
 
 
 if __name__ == "__main__":

@@ -1219,9 +1219,10 @@ bool Board::LoadGame()
 		}
 	}
 
-	// port(mods): a resumed game is not recorded (Replay.h)
+	// port(mods): a resumed game is not recorded (Replay.h), and never starts a LiveSplit run
 	delete mRecorder;
 	mRecorder = NULL;
+	mResumed = true;
 
 	mPlayStarted = true;
 	delete mStatsImage;
@@ -3585,6 +3586,9 @@ Board::Board(WinBMApp* theApp)
 	// port(mods): a playback board starts from its replay instead (Replay.h)
 	mRecorder = NULL;
 	mPlayer = NULL;
+	static uint32_t sBoardSerials = 0; // port(mods): LiveSplit (LiveSplitObserver.h)
+	mBoardSerial = ++sBoardSerials;
+	mResumed = false;
 	if (mApp->mWatchFile != NULL)
 	{
 		mPlayer = new ReplayPlayer(*mApp->mWatchFile);

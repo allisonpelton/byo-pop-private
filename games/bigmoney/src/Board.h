@@ -301,6 +301,9 @@ public:
 	ReplayRecorder*	mRecorder;              // this game is being recorded (the "replays" feature), else NULL
 	ReplayPlayer*	mPlayer;                // a playback board: it plays this replay and ignores the player's input
 	std::string		mReplayPath;            // the replay this game was written to at its game over ("" if none)
+	// port(mods): LiveSplit (LiveSplitObserver.h)
+	uint32_t		mBoardSerial;           // 1, 2, ... for each board the app makes
+	bool			mResumed;               // LoadGame restored a saved game into this board
 
 public:
 	Board(WinBMApp* theApp);                                        // 0x40e760
