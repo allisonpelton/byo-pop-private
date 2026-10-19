@@ -352,7 +352,8 @@ input[type=file] { display: none; }
     var modsText = noMods ? "Mods off for this run" : enabled ? enabled + " mod" + (enabled > 1 ? "s" : "") + " active" : "No mods active";
     Module.silentAudio = pageSilent();
     setStatus(modsText + (Module.silentAudio ? " · silent" : (isAutostart === true ? " · sound after a click or key" : "")));
-    session.markStarting();
+    // Only a start with mods can be one a mod stops: without any, nothing is noted (no write)
+    if (!noMods && enabled > 0) session.markStarting();
     Module.callMain(["-gamedir=" + GAME, "-userdir=" + USER, "-modsdir=" + MODS].concat(noMods ? ["-nomods"] : []));
     $("canvas").focus();
   }
@@ -408,6 +409,9 @@ input[type=file] { display: none; }
 
   // ---------- panels ----------
   function openPanel(id) {
+    // The panels are outside the stage: in fullscreen (the game's own "Add or remove mods") they could not be
+    // seen, yet would take the keys and the next click
+    if (id && document.fullscreenElement && document.exitFullscreen) document.exitFullscreen().catch(function () {});
     ["panel-mods", "panel-files"].forEach(function (p) { $(p).hidden = p !== id; });
     if ((id === "panel-mods") && panel) panel.shown();
     if (id) $(id).focus();
@@ -426,7 +430,11 @@ input[type=file] { display: none; }
     var isPanel = p.classList.contains("panel");
     ["keydown", "keyup", "keypress"].forEach(function (t) {
       p.addEventListener(t, function (e) {
-        if (!isPanel && (e.key === "F2")) return;
+        if (!isPanel && (e.key === "F2")) {
+          // On to the game, which opens its mod menu: the keys that follow are for that menu, not the bar
+          if (started && (t === "keydown")) $("canvas").focus();
+          return;
+        }
         e.stopPropagation();
         if (isPanel && (t === "keydown") && ((e.key === "Escape") || (e.key === "F2"))) {
           e.preventDefault();
@@ -435,12 +443,13 @@ input[type=file] { display: none; }
       });
     });
   });
-  // While a panel is open the game gets no clicks: a press on the stage closes the panel instead (the click that
-  // follows it is dropped too)
+  // While a panel is open the game gets no clicks: a press on the stage closes the panel instead (the release and
+  // click that follow it are dropped too). A press released outside the stage leaves no click to end that: the
+  // next press on the stage, which the game gets, ends it, so the game always gets that press's release.
   var swallowUntilClick = false;
   ["mousedown", "touchstart"].forEach(function (t) {
     $("stage").addEventListener(t, function (e) {
-      if (!anyPanelOpen()) return;
+      if (!anyPanelOpen()) { swallowUntilClick = false; return; }
       e.stopPropagation(); e.preventDefault();
       swallowUntilClick = true;
       closePanels();
@@ -473,6 +482,8 @@ input[type=file] { display: none; }
   $("btn-full").addEventListener("click", function () {
     var el = $("stage");
     if (el.requestFullscreen) el.requestFullscreen().catch(function () {});
+    // The keys go to the game again (the tool bar keeps the keys typed on it)
+    $("canvas").focus();
   });
 })();
 </script>

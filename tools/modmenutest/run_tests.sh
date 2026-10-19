@@ -8,6 +8,7 @@
 #   edit     the "modmenu" edit commands: the exact bytes of mods.json and mod-settings.json (unknown keys, a mod
 #            that is not installed and its values kept), the values as normalised, the refusals logged
 #   noop     edits that change nothing write nothing: hand-written files keep their bytes
+#   strings  a mod's texts with % (no settings): kept, except for a key the game uses as a printf format
 #   keys     the keyboard alone: rows, every type of value, Shift and Alt, text editing, Delete, Tab, Esc
 #   clicks   the mouse alone: switches, order, values, a slider drag, a list drag, a confirmation, Close
 #   restart  "modmenu restart" in a test run: the game's shutdown save and the arguments a restart keeps; then a
@@ -86,6 +87,23 @@ for GAME in $GAMES; do
 	run "$GAME" "$D" "$S/noop.txt" "$HERE/user-noop"
 	check "noop: mods.json keeps its bytes" 'cmp -s "$D/user/mods.json" "$HERE/user-noop/mods.json"'
 	check "noop: mod-settings.json keeps its bytes" 'cmp -s "$D/user/mod-settings.json" "$HERE/user-noop/mod-settings.json"'
+
+	# strings: a mod without settings keeps its texts, a % in them included; only a text for a key whose game text
+	# has % codes (a printf format) must have the same codes, or the game's text is used
+	D="$G/strings"
+	rm -rf "$D"
+	mkdir -p "$D/mods/texts" "$D/user"
+	FORMAT_KEY=LEVEL
+	[ "$GAME" = bigmoney ] && FORMAT_KEY=NEXT_RANK_AT_X_PTS
+	printf '{ "id": "texts", "strings": { "EXCELLENT": "100%% GEMS!", "GO": "GO 100%%!", "MODMENUTEST_NEW": "50%%", "%s": "%%s %%n" } }\n' \
+		"$FORMAT_KEY" > "$D/mods/texts/mod.json"
+	(cd "$D" && timeout 300 "$ROOT/build/native/$GAME.exe" -gamedir="$(winpath "$ROOT/assets/$GAME")" -userdir=user -modsdir=mods \
+		-seed=1 -fast -script="$(winpath "$S/strings.txt")" > stdout.txt 2> log.txt; echo $? > exit.txt)
+	check "strings: the run ended (exit $(cat "$D/exit.txt"))" '[ "$(cat "$D/exit.txt")" = 0 ]'
+	check "strings: texts the game only draws, and new keys, keep a mod's %" \
+		'! grep -q -e "mod strings: EXCELLENT:" -e "mod strings: GO:" -e "mod strings: MODMENUTEST_NEW:" "$D/log.txt"'
+	check "strings: a text for a printf format key ($FORMAT_KEY) with other % codes is refused" \
+		'logged "$D" "mod strings: $FORMAT_KEY: its % codes differ from the game'"'"'s text"'
 
 	# keys
 	D="$G/keys"

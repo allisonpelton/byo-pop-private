@@ -58,9 +58,9 @@
 // Mods found on disk but not listed are appended and enabled. Setting values are stored in
 // <user dir>/mod-settings.json, only those that differ from their defaults:
 //   { "v": 1, "mods": { "hd-gems": { "penalty": 25 } }, "next": { ... } }
-// ("next": values held until the next fresh game, in games that apply values then). Both files are written
-// only when the player changes something, by re-reading them, changing one thing and keeping every key this
-// code does not know.
+// ("next": values held until the next fresh game, in games that apply values then; elsewhere they count as
+// set). Both files are written only when the player changes something, by re-reading them, changing one thing
+// and keeping every key this code does not know (a UTF-8 byte order mark in front is skipped).
 //
 // Two states: the applied one (GetMods, the tunables, strings, score key, VFS roots: what this process runs
 // with, set by Refresh at start) and the desired one (GetDesiredMods: what the files say now, which the mod
@@ -193,10 +193,12 @@ public:
 	// --- Game hooks (docs/MOD_MENU_DESIGN.md 2.2, 3.5) ---
 
 	// Which data paths a game re-reads at every new game ("rules.match.minRun"); settings used only there
-	// apply at the next game. Without a filter (the default) every data value needs a restart.
+	// apply at the next game. Without a filter (the default) every data value needs a restart, and values held
+	// in mod-settings.json's "next" count as committed. Set it before Refresh: the start applies values by it.
 	void SetNextGameFilter(const NextGameFilter& theFilter);
 	// Game paths whose replacement changes play (default: data/diff.txt): a mod they resolve into, and a
-	// setting in their "files" remap, count for the score key.
+	// setting in their "files" remap, count for the score key. Best set before Refresh; set after it, the
+	// applied mods' owners and the score key are worked out again.
 	void SetGameplayFiles(const std::vector<std::string>& theFiles);
 	const std::vector<std::string>& GetGameplayFiles() const { return mGameplayFiles; }
 	// The game's check of the desired data (ModDataCheck); its messages are warnings in GetStateJson
@@ -235,7 +237,11 @@ public:
 	std::string Edit(const std::string& theJson);
 
 	ModPending GetPending();
-	std::string GetNextScoreKey();  // the score key the desired state would give
+	// The score keys of the desired state. GetRestartScoreKey: what a start now would apply (the enabled mods
+	// and order, the committed values), so where a restart files the game in progress. GetNextScoreKey: the key
+	// of the next fresh game, with the values held for it as well (they never apply to a game in progress).
+	std::string GetRestartScoreKey();
+	std::string GetNextScoreKey();
 	// The whole model as JSON (-dumpmods, the web panel, the script command "modmenu dump")
 	std::string GetStateJson();
 
@@ -267,6 +273,7 @@ private:
 	void FlattenInto(const JsonValue& theValue, const std::string& thePrefix);
 	void RebuildTunables();
 	void ComputeScoreKey();
+	void SetGameplayOwners();
 
 	void ReadSettingsFile(SettingsFile* theFile) const;
 	std::string WriteSettingsFile(const SettingsFile& theFile, const JsonValue& theRoot);
@@ -277,7 +284,8 @@ private:
 	ModInfo* FindApplied(const std::string& theId);
 	const ModInfo* FindApplied(const std::string& theId) const;
 	JsonValue DesiredValue(const ModInfo& theMod, const ModSettingDef& theDef) const;
-	void BuildDesiredView(DesiredView* theView);
+	void BuildDesiredView(DesiredView* theView, bool theWithHeld);
+	std::string DesiredScoreKey(bool theWithHeld);
 	std::set<std::string> GameplayOwners(const std::vector<const ModInfo*>& theMods, const std::vector<const JsonValue*>& theEffective) const;
 	bool DesiredAffectsScores(const DesiredView& theView, size_t theIndex, const std::set<std::string>& theGameplayMods) const;
 	void EnsureDesired();

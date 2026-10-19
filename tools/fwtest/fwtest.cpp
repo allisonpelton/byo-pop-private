@@ -230,6 +230,15 @@ public:
 		HandleEvent(anEvent);
 	}
 
+	void SendText(const char* theText)
+	{
+		SDL_Event anEvent;
+		SDL_zero(anEvent);
+		anEvent.type = SDL_TEXTINPUT;
+		SDL_strlcpy(anEvent.text.text, theText, sizeof(anEvent.text.text));
+		HandleEvent(anEvent);
+	}
+
 	void Check(const char* theWhat, bool isOk)
 	{
 		SDL_Log("hotkey: %s: %s", isOk ? "ok" : "FAILED", theWhat);
@@ -282,9 +291,18 @@ public:
 		SendKey(SDL_KEYUP, SDLK_F2, KMOD_NONE, 0);
 		int aChars = mBoard->mKeyChars;
 		int aDowns = mBoard->mKeyDowns;
+		int anUps = mBoard->mKeyUps;
 		SendKey(SDL_KEYDOWN, SDLK_ESCAPE, KMOD_NONE, 0);
 		Check("Esc closes the menu", !IsModMenuOpen());
 		Check("the game gets neither Esc's key nor its character", (mBoard->mKeyChars == aChars) && (mBoard->mKeyDowns == aDowns));
+		// Esc held: its repeats go nowhere (Bejeweled's board would pause on their characters), its release goes on
+		for (int i = 0; i < 3; i++)
+			SendKey(SDL_KEYDOWN, SDLK_ESCAPE, KMOD_NONE, 1);
+		Check("the game gets none of the repeats of the Esc that closed it", (mBoard->mKeyChars == aChars) && (mBoard->mKeyDowns == aDowns));
+		SendKey(SDL_KEYUP, SDLK_ESCAPE, KMOD_NONE, 0);
+		Check("... and gets its release", mBoard->mKeyUps == anUps + 1);
+		SendKey(SDL_KEYDOWN, SDLK_ESCAPE, KMOD_NONE, 0);
+		Check("the next Esc press goes to the game", (mBoard->mKeyChars == aChars + 1) && (mBoard->mKeyDowns == aDowns + 1));
 		SendKey(SDL_KEYUP, SDLK_ESCAPE, KMOD_NONE, 0);
 		ProcessSafeDeleteList();
 
@@ -292,10 +310,35 @@ public:
 		SendKey(SDL_KEYDOWN, SDLK_F2, KMOD_NONE, 0);
 		SendKey(SDL_KEYUP, SDLK_F2, KMOD_NONE, 0);
 		aChars = mBoard->mKeyChars;
+		aDowns = mBoard->mKeyDowns;
 		SendKey(SDL_KEYDOWN, SDLK_RETURN, KMOD_NONE, 0);
 		Check("Enter on Close closes the menu", !IsModMenuOpen());
 		Check("the game gets no character of Enter", mBoard->mKeyChars == aChars);
+		SendKey(SDL_KEYDOWN, SDLK_RETURN, KMOD_NONE, 1);
+		SendKey(SDL_KEYDOWN, SDLK_RETURN, KMOD_NONE, 1);
+		Check("... nor of its repeats", (mBoard->mKeyChars == aChars) && (mBoard->mKeyDowns == aDowns));
 		SendKey(SDL_KEYUP, SDLK_RETURN, KMOD_NONE, 0);
+		ProcessSafeDeleteList();
+
+		// Space on Close: it closes the menu on the text it types; the repeats and their text go nowhere, another
+		// key pressed meanwhile still types
+		SendKey(SDL_KEYDOWN, SDLK_F2, KMOD_NONE, 0);
+		SendKey(SDL_KEYUP, SDLK_F2, KMOD_NONE, 0);
+		aChars = mBoard->mKeyChars;
+		aDowns = mBoard->mKeyDowns;
+		SendKey(SDL_KEYDOWN, SDLK_SPACE, KMOD_NONE, 0);
+		SendText(" ");
+		Check("Space on Close closes the menu", !IsModMenuOpen());
+		SendKey(SDL_KEYDOWN, SDLK_SPACE, KMOD_NONE, 1);
+		SendText(" ");
+		SendKey(SDL_KEYDOWN, SDLK_SPACE, KMOD_NONE, 1);
+		SendText(" ");
+		Check("the game gets nothing of Space or its repeats", (mBoard->mKeyChars == aChars) && (mBoard->mKeyDowns == aDowns));
+		SendKey(SDL_KEYDOWN, SDLK_a, KMOD_NONE, 0);
+		SendText("a");
+		Check("a key pressed while Space is held still reaches the game", (mBoard->mKeyChars == aChars + 1) && (mBoard->mKeyDowns == aDowns + 1));
+		SendKey(SDL_KEYUP, SDLK_a, KMOD_NONE, 0);
+		SendKey(SDL_KEYUP, SDLK_SPACE, KMOD_NONE, 0);
 		ProcessSafeDeleteList();
 
 		SDL_Log("hotkey: %d failed", gHotkeyFailures);

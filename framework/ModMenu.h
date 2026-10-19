@@ -198,7 +198,7 @@ private:
 	bool					mNoMods;
 	std::string				mSettingsFile;
 	std::string				mScoreKey;
-	std::string				mNextScoreKey;
+	std::string				mRestartScoreKey;
 	std::vector<std::string> mPendingRestart;
 	std::vector<std::string> mPendingNextGame;
 	std::vector<std::string> mGameMessages;  // the game's messages about every mod (GetModMessages, mod "")

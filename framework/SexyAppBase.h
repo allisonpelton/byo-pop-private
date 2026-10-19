@@ -368,6 +368,10 @@ public:
 	// exists until it first opens.
 	ModMenu* mModMenu;          // while it is open
 	bool mModMenuKeyDown;       // the F2 that toggled it is down: its key-up is not passed on
+	int mModMenuClosingKey;     // the key that closed it (Esc, Enter, Space) while it is held: its repeats and the
+	                            // text they type are not passed on, so they cannot reach the game (its release is)
+	int mKeyInHandling;         // the key whose real press (or the text it typed) the widgets are getting, else 0
+	int mLastKeyPressed;        // the last real key pressed: the key behind the text input that follows it
 	bool mRestartRequested;     // RequestRestart: the app shuts down to start again (main(): TakeRelaunch)
 
 protected:

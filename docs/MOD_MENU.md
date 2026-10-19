@@ -25,9 +25,13 @@ same `settings` block.
 - **Saving.** Every change is saved at once. The footer says what still waits:
   - "Restart to apply: ..." for changes that need a restart;
   - "Applies to your next game: ..." for values the game reads at its next new game.
-- **Restart game.** This button restarts at once. With a game in progress it asks first; the game is saved as
-  on Quit and can be continued after the restart. Nothing restarts by itself: changes left pending apply at the
-  next start.
+- **Restart game.** This button restarts the game; the game in progress is saved as on Quit. In a game that
+  reports a game in progress (`SexyAppBase::HasGameInProgress`, which no game overrides yet: Bejeweled's and
+  Big Money's own menu integration adds it), it asks first and says where that game goes: it can be continued
+  after the restart, or, when the restart changes the score key, it stays saved with the current mods and
+  continues when the player switches back to them. Elsewhere it restarts at once and says nothing, and a game
+  saved under the old key is offered again only once the mods are switched back. Nothing restarts by itself:
+  changes left pending apply at the next start.
 - **Turning off a broken mod.** Start without mods (`-nomods` natively, **Play without mods** on the web),
   then turn the mod off in the menu and use Restart game. The menu says "Mods are off for this run". The
   restart starts with mods again.
@@ -68,8 +72,10 @@ reads them again. Every change re-reads the file, changes one thing and keeps ev
 this version does not know. Values of a mod that is not installed are kept.
 
 A file that cannot be read counts as empty, and the first change moves it aside (`mods.bad.json`,
-`mod-settings.bad.json`); for `mod-settings.json` the menu also says so. A `mod-settings.json` with a `"v"`
-above 1 was made by a newer version: the menu shows its values but does not change them.
+`mod-settings.bad.json`); for `mod-settings.json` the menu also says so. A UTF-8 byte order mark at the start
+(as Notepad and PowerShell write one) is fine. A `mod-settings.json` with a `"v"` above 1 was made by a newer
+version: the menu shows its values but does not change them. In a game that applies no values at the next game,
+values found under `"next"` count as set: the next start applies them.
 
 ## Declaring settings
 
@@ -118,7 +124,7 @@ names do not exist.
 | `alpha` | color | no (false) | The value is `#rrggbbaa` instead of `#rrggbb` |
 | `apply` | all | no | `live`, `nextGame` or `restart`: when you want the value applied. It can only make that later than the data allows ("When a value applies"). |
 | `affectsScores` | all | no | `true`: the value splits the high scores even where its use alone would not, e.g. a data file the game reads for play |
-| `enabledIf` | all | no | `{"setting": "<an earlier bool or choice>", "equals": v}`, or `"notEquals"`. While false, the row is greyed out and the setting counts as its default. |
+| `enabledIf` | all | no | `{"setting": "<an earlier bool or choice>", "equals": v}`, or `"notEquals"`. While false, the row is greyed out and the setting counts as its default. The condition applies no earlier than the setting; it splits the scores only through its own data uses. |
 
 A mod has at most 64 settings.
 
@@ -197,12 +203,16 @@ Anywhere else (`id`, `name`, `version`, `priority`, `affectsScores`, ...) a plac
 
 Some values are refused in some places:
 - **File names.** A text or colour value cannot name a file (in `files`, `images`, `imagePatches`, `imageOps`,
-  or a `strings` list of files). Use a choice or a bool with a `map` to file names you list. A file reference
-  that leaves the mod's folder (`../`) is treated as missing.
+  or a `strings` list of files). Use a choice or a bool with a `map` to file names you list. A map entry there
+  may not name a file outside the mod's folder (`../`): that is an error. (The mod's own file names, outside
+  placeholders, are taken as they always were.)
 - **Texts with `%`.** A text setting used in `strings` cannot contain `%`: its default may not have one, the
-  menu does not type one, and one in a stored value becomes `?`. The game passes some texts to `printf`, and
-  any mod text whose `%` codes differ from the game's text is not used (the log says so).
-- **Numbers and bools in `strings`** become the text the menu shows.
+  menu does not type one, and one in a stored value becomes `?`. The game passes some of its texts to `printf`
+  (those with `%` codes, such as Bejeweled's `LEVEL`): a mod text for such a key must have the same `%` codes,
+  or the game's text is used (the log says so). Every other text is used as the mod wrote it.
+- **Numbers and bools in `strings`** become text: a setting's value as the menu shows it, and a number that
+  `"as": "int"` or a map entry gives as JSON writes it. A map entry under `strings` that is an object or a list
+  is an error.
 
 When a placeholder is wrong (an unknown setting, a map without the value and without `"*"`, an `as` that does
 not fit the type, a placeholder where none may stand, nesting deeper than 8), the whole top-level key that holds
@@ -248,13 +258,16 @@ so that changed play never mixes with original scores.
   `id@version` whatever the defaults are, so without a new version the high scores and a saved game played
   with the old default would carry on under the new one.
 
-When the player changes a value that moves the key while a game is in progress or saved, the menu says that
-the game stays saved with the current mods and continues when they switch back.
+When the player changes something that moves the key a restart would apply while a game is in progress, the
+menu says that the game stays saved with the current mods and continues when they switch back (in a game that
+reports a game in progress, as for Restart game). A value held for the next fresh game moves no game in
+progress, so it brings no such note.
 
 ## Checking a mod
 
 - **`-dumpmods`** (native) prints the mod menu's model as JSON and exits: every mod with its state, errors,
-  warnings, settings, values, levels, what waits, and the score keys now and after a restart.
+  warnings, settings, values, levels, what waits, and the score keys: now (`scoreKey`), after a restart
+  (`restartScoreKey`) and at the next fresh game, with the values held for it (`nextScoreKey`).
 - **Script commands** (`-script=<file>`; syntax in `framework/SexyAppBase.h`) drive the menu in tests:
   `modmenu open`, `modmenu page <mod>`, `modmenu set <mod> <setting> <JSON value>`, `modmenu enable <mod> 0|1`,
   `modmenu move <mod> -1|1`, `modmenu reset <mod>`, `modmenu restart [confirm]` and `modmenu dump <file>`. A test

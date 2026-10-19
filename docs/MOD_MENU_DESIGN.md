@@ -50,9 +50,24 @@ Taken from the design's recommendations:
 - **Paths and strings** (review A7, A13):
   - text and colour values cannot be placed directly in `files`, `images`, `imagePatches`, `imageOps` or a
     `strings` list of files; they need a mapped choice, bool or int;
-  - a file reference that leaves its mod folder (`../`) is treated as missing, for every mod;
+  - a map entry in those places may not name a file outside the mod folder (`../`): an error. A mod's own
+    literal paths are not checked, as before (nothing changes for a mod without settings);
   - a text setting used under `strings` cannot contain `%`;
-  - `LoadProperties` drops any mod text whose printf conversions differ from the game's.
+  - `LoadProperties` checks the keys whose game text has printf conversions (Bejeweled's `LEVEL`, Big Money's
+    two rank texts): a mod text for one with other conversions is replaced by the game's text, with a log line.
+    Texts the game only draws, and keys a mod adds, are taken as they are;
+  - under `strings`, a number or bool from `as` or a map entry becomes its JSON text, and a map entry that is an
+    object or a list is an error (review A13).
+- **Held values without a filter.** Entries of `"next"` whose setting is not next-game-level in this game (no
+  filter, a level that changed, a hand edit) count as committed: the start applies them, so they never show as
+  pending for ever. `SetNextGameFilter` belongs before `Refresh`; `SetGameplayFiles` after `Refresh` recomputes
+  the applied owners and the score key.
+- **Score keys.** The state JSON has `scoreKey` (applied), `restartScoreKey` (what a start now applies: the
+  desired mods and the committed values) and `nextScoreKey` (the next fresh game, held values included). The
+  restart question and the menu's key note use `restartScoreKey`: held values never move a game in progress.
+- **`enabledIf`.** A condition takes its dependants' level but not their score flag: the dependant's own pair
+  already holds its effective value, so a condition that changes no data changes no key.
+- **User files** with a UTF-8 byte order mark are read as written (not as broken and moved aside).
 - **Writes.** `SetEnabled`, `Move` and `SaveConfig` are gone. `EditEnable`, `EditMove`, `EditSetting` and
   `EditReset` re-read, change one thing and keep unknown keys. Broken files move to `mods.bad.json` and
   `mod-settings.bad.json`. Writes go through `Platform::WriteUserFileAtomic`. On the web, with no app running,
@@ -63,8 +78,9 @@ Taken from the design's recommendations:
 ### M2, M3: restart and the menu
 - **No skins** (decision 2): the look lives in `framework/ModMenu.cpp`.
 - **Keys and focus.** Esc, Enter, Tab, Backspace and Space act on the character they type, so a key that closes
-  the menu never reaches the board (review A1). The menu closes in `KillDialog`'s order and takes the focus
-  back if the game moves it (review A16).
+  the menu never reaches the board (review A1). While the key that closed it is held, its repeats (and the text
+  they type) are dropped in `HandleEvent`; its release goes on. The menu closes in `KillDialog`'s order and takes
+  the focus back if the game moves it (review A16).
 - **Focus model.** Tab steps through every focusable control. On a mod page each row has one keyboard control;
   its −/+ buttons, slider, arrows and text field are mouse targets. A click on a setting's label focuses the
   row, and switches a bool.
@@ -73,6 +89,8 @@ Taken from the design's recommendations:
   (review A15).
 - **Script commands.** `modmenu restart confirm` was added. `modmenu page` opens the menu. There are also
   `keydown`/`keyup`, and `#` inside `"..."` is no longer a comment (review A17).
+- **The restart question** needs the game's `HasGameInProgress`; no game overrides it yet (M5, M6), so until
+  then Restart restarts at once. The game in progress is still saved as on Quit.
 - **Not done.** A relaunch from a folder with non-ASCII characters: the file layer's ANSI calls fail there first
   (review A15).
 
@@ -104,22 +122,25 @@ Taken from the design's recommendations:
     `{"op": "forget"}` (`ModManager::EditForget`) takes its id out of `order` and `disabled` in `mods.json`, so
     the same mod added later starts on. Its values in `mod-settings.json` stay.
   - **In use by the running game:** it is turned off and queued in localStorage
-    (`byopop-pending-remove:<game>`). The page deletes and forgets it at the next boot, before
-    `byopop_mods_open`. The panel offers **Keep** until then.
+    (`byopop-pending-remove:<game>`). The page deletes and forgets it at the next boot. The panel offers
+    **Keep** until then, and turning the mod on again in the in-game menu counts as Keep (the page drops a
+    queued mod that the model shows on, at every change and again at boot).
 - **Adding over a mod in use** (review A14) stages the new version in `<persist>/mods-incoming/<folder>`. It
   replaces the folder at the next boot. Adding a mod also cancels a queued removal of its folder.
 - **Opening the menu and the panel.** The tool bar's **Mods** button opens the in-game menu while the game runs,
   and the panel before that. This replaces the design's "panel and menu together" (5.1). The menu's list page
   has **Add or remove mods** on the web, which opens the panel over it (`Module.onModPanel`).
 - **Input around the panel** (review A2):
-  - Keys typed in a panel or on the tool bar stop there. F2 on the tool bar still reaches the game.
-  - Esc and F2 close a panel.
-  - While a panel is open, a press on the game closes the panel and reaches nothing else.
+  - Keys typed in a panel or on the tool bar stop there. F2 on the tool bar still reaches the game, and moves the
+    focus to the game so the menu it opens gets the keys that follow. Fullscreen gives the focus back to the game.
+  - Esc and F2 close a panel. Opening a panel leaves fullscreen (the panels are outside the stage).
+  - While a panel is open, a press on the game closes the panel and reaches nothing else; its release and click
+    are dropped too, and the next press on the game ends that in any case.
 - **The rescue** when a mod stops the game from starting:
-  - The page marks a start in localStorage (`byopop-starting:<game>`). The mark is cleared when the game has
-    loaded (`Module.onGameLoaded`, a new `EM_JS` call in `SexyAppBase::DoUpdateFrames`) or quits. A mark found
-    at the next boot means that start never finished: the page does not autostart, and offers
-    **Play without mods**.
+  - The page marks a start with mods in localStorage (`byopop-starting:<game>`; a start without any writes
+    nothing). The mark is cleared when the game has loaded (`Module.onGameLoaded`, a new `EM_JS` call in
+    `SexyAppBase::DoUpdateFrames`) or quits. A mark found at the next boot means that start never finished: the
+    page does not autostart, and offers **Play without mods**.
   - `Module.onAbort` shows "The game stopped" with **Play without mods**, which reloads and starts once with
     `-nomods`.
   - With mods off, the menu says so, and Restart game starts with them again.

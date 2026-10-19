@@ -61,18 +61,19 @@ static std::string UserFilePath(const char* theName)
 	return VFS::Get().GetUserDir() + "/" + theName;
 }
 
-// A file reference of a mod that would leave its folder ("../x")
-static bool LeavesRoot(const std::string& theRelPath)
+// A user file as JSON reads it: without a UTF-8 byte order mark, which Windows tools put in front of the text
+// they save (Notepad, PowerShell's Set-Content -Encoding utf8). Such a file is read as written, not as broken.
+static void StripByteOrderMark(std::string* theText)
 {
-	std::string aPath = VFS::Normalize(theRelPath);
-	return (aPath == "..") || (aPath.compare(0, 3, "../") == 0);
+	if (theText->compare(0, 3, "\xEF\xBB\xBF") == 0)
+		theText->erase(0, 3);
 }
 
-// The file theRelPath names in theMod's folder ("" if missing or outside it)
+// The file theRelPath names, relative to theMod's folder ("" if missing). A mod's own literal paths are taken as
+// they always were ("../x" included); a path that a setting's map puts in a file position may not leave the mod's
+// folder (ModSettings::Analyze refuses it).
 static std::string ModFile(const ModInfo& theMod, const std::string& theRelPath)
 {
-	if (theRelPath.empty() || LeavesRoot(theRelPath))
-		return "";
 	return VFS::FindCaseInsensitive(theMod.mPath, theRelPath);
 }
 
@@ -263,6 +264,15 @@ void ModManager::SetNextGameFilter(const NextGameFilter& theFilter)
 	mNextGameFilter = theFilter;
 	Reanalyze(&mMods);
 	Reanalyze(&mDesired);
+	if (mDesiredValid)
+	{
+		// The levels decide which "next" values are held (SetValuesFromRoot): read the values again
+		SettingsFile aFile;
+		ReadSettingsFile(&aFile);
+		SetValuesFromRoot(&mDesired, aFile.mRoot, false);
+		SetValuesFromRoot(&mDesired, aFile.mRoot, true);
+		Changed();
+	}
 }
 
 void ModManager::SetGameplayFiles(const std::vector<std::string>& theFiles)
@@ -270,6 +280,30 @@ void ModManager::SetGameplayFiles(const std::vector<std::string>& theFiles)
 	mGameplayFiles = theFiles;
 	Reanalyze(&mMods);
 	Reanalyze(&mDesired);
+	if (!mApplied)
+		return;
+	// Called after Refresh (a game that registers its files from its app object): the applied mods' owners
+	// and the score key follow the new list, as the desired key does. The settings' own score flags keep what
+	// the start analysed.
+	SetGameplayOwners();
+	ComputeScoreKey();
+	Changed();
+}
+
+// port(variant): a mod that the game's gameplay files (data/diff.txt) resolve into, a file in the mod or a
+// "files" remap, changes play, so it counts for the score key
+void ModManager::SetGameplayOwners()
+{
+	std::set<std::string> gameplayMods;
+	for (const std::string& aFile : mGameplayFiles)
+	{
+		std::string owner;
+		VFS::Get().Resolve(aFile, &owner);
+		if (!owner.empty())
+			gameplayMods.insert(owner);
+	}
+	for (ModInfo& m : mMods)
+		m.mOverridesDiff = m.mEnabled && (gameplayMods.count(m.mId) != 0);
 }
 
 bool ModManager::ReadConfig(JsonValue* theConfig, bool* theIsBroken) const
@@ -279,6 +313,7 @@ bool ModManager::ReadConfig(JsonValue* theConfig, bool* theIsBroken) const
 	std::string text;
 	if (!ReadHostFile(UserFilePath(kConfigFile), &text))
 		return false;
+	StripByteOrderMark(&text);
 	JsonValue cfg;
 	if (ParseJson(text, cfg) && cfg.IsObject())
 		*theConfig = cfg;
@@ -485,14 +520,7 @@ void ModManager::Apply()
 
 	// port(variant): a mod that replaces data/diff.txt (a file in the mod or a "files" remap) changes the
 	// level parameters, so it counts for the score key (the game's gameplay files, SetGameplayFiles)
-	std::set<std::string> gameplayMods;
-	for (const std::string& aFile : mGameplayFiles)
-	{
-		std::string owner;
-		VFS::Get().Resolve(aFile, &owner);
-		if (!owner.empty())
-			gameplayMods.insert(owner);
-	}
+	SetGameplayOwners();
 	mImageOps.clear();
 
 	// Data merges run lowest priority first so higher-priority mods win.
@@ -550,7 +578,6 @@ void ModManager::Apply()
 
 		SetRuleData(m, aData[i], true);
 		FlattenInto(m.mTunablesJson, "");
-		m.mOverridesDiff = gameplayMods.count(m.mId) != 0;
 		for (const JsonValue& op : man["imageOps"].Items())
 			mImageOps.push_back({m.mId, op});
 	}
@@ -638,6 +665,7 @@ void ModManager::ReadSettingsFile(SettingsFile* theFile) const
 	std::string text;
 	if (!ReadHostFile(UserFilePath(kSettingsFile), &text))
 		return;
+	StripByteOrderMark(&text);
 	JsonValue root;
 	if (!ParseJson(text, root) || !root.IsObject())
 	{
@@ -672,6 +700,22 @@ std::string ModManager::WriteSettingsFile(const SettingsFile& theFile, const Jso
 	return "";
 }
 
+// theMod's entries of a "next" section that are held for the next game (theHeld), or the others: values of
+// settings that apply at a restart in this game (one without a next-game filter, a level that changed since the
+// value was held, a hand edit). Those count as committed: a start applies them, so they never wait for ever.
+static JsonValue NextEntries(const ModInfo& theMod, const JsonValue& theSection, bool theHeld)
+{
+	JsonValue anEntries = JsonValue::MakeObject();
+	for (const auto& kv : theSection.Members())
+	{
+		const ModSettingDef* aDef = theMod.mSettings.Find(kv.first);
+		bool isHeld = (aDef == nullptr) || (aDef->mLevel == MOD_LEVEL_NEXT_GAME);
+		if (isHeld == theHeld)
+			anEntries.Set(kv.first, kv.second);
+	}
+	return anEntries;
+}
+
 void ModManager::SetValuesFromRoot(std::vector<ModInfo>* theMods, const JsonValue& theRoot, bool theNext)
 {
 	const JsonValue& aSection = theRoot[theNext ? "next" : "mods"];
@@ -681,14 +725,19 @@ void ModManager::SetValuesFromRoot(std::vector<ModInfo>* theMods, const JsonValu
 		{
 			m.mNextValues.clear();
 			if (m.HasSettings())
-				m.mSettings.ReadValues(aSection[m.mId], false, &m.mNextValues, nullptr);
+				m.mSettings.ReadValues(NextEntries(m, aSection[m.mId], true), false, &m.mNextValues, nullptr);
 		}
 		else
 		{
 			m.mValueWarnings.clear();
 			m.mValues.clear();
-			if (m.HasSettings())
-				m.mSettings.ReadValues(aSection[m.mId], true, &m.mValues, &m.mValueWarnings);
+			if (!m.HasSettings())
+				continue;
+			m.mSettings.ReadValues(aSection[m.mId], true, &m.mValues, &m.mValueWarnings);
+			ModSettingValues aCommitted;
+			m.mSettings.ReadValues(NextEntries(m, theRoot["next"][m.mId], false), false, &aCommitted, nullptr);
+			for (const auto& kv : aCommitted)
+				m.mValues[kv.first] = kv.second;
 		}
 	}
 }
@@ -1182,15 +1231,16 @@ struct ModManager::DesiredView
 	std::vector<std::string> mRulesErrors;
 };
 
-void ModManager::BuildDesiredView(DesiredView* theView)
+void ModManager::BuildDesiredView(DesiredView* theView, bool theWithHeld)
 {
 	EnsureDesired();
 	*theView = DesiredView();
 	for (const ModInfo& d : mDesired)
 	{
 		ModSettingValues aValues = d.mValues;
-		for (const auto& kv : d.mNextValues)
-			aValues[kv.first] = kv.second;
+		if (theWithHeld)
+			for (const auto& kv : d.mNextValues)
+				aValues[kv.first] = kv.second;
 		ModData aData;
 		JsonValue anEffective;
 		std::vector<ModSettingsError> anErrors;
@@ -1236,8 +1286,18 @@ bool ModManager::DesiredAffectsScores(const DesiredView& theView, size_t theInde
 
 std::string ModManager::GetNextScoreKey()
 {
+	return DesiredScoreKey(true);
+}
+
+std::string ModManager::GetRestartScoreKey()
+{
+	return DesiredScoreKey(false);
+}
+
+std::string ModManager::DesiredScoreKey(bool theWithHeld)
+{
 	DesiredView aView;
-	BuildDesiredView(&aView);
+	BuildDesiredView(&aView, theWithHeld);
 	std::vector<const ModInfo*> anEnabled;
 	std::vector<const JsonValue*> anEffective;
 	for (size_t i = 0; i < mDesired.size(); i++)
@@ -1273,12 +1333,15 @@ std::string ModManager::GetStateJson()
 	EnsureDesired();
 	ModPending aPending = GetPending();
 	DesiredView aView;
-	BuildDesiredView(&aView);
+	BuildDesiredView(&aView, true);
 	JsonValue aState = JsonValue::MakeObject();
 	aState.Set("running", JsonValue(mGameRunning));
 	aState.Set("nomods", JsonValue(!mApplied));
 	aState.Set("scoreKey", JsonValue(mScoreKey));
-	aState.Set("nextScoreKey", JsonValue(GetNextScoreKey()));
+	// The two keys differ only by the held values: without any, one is worked out
+	std::string aNextKey = GetNextScoreKey();
+	aState.Set("restartScoreKey", JsonValue(HasNextGameValues() ? GetRestartScoreKey() : aNextKey));
+	aState.Set("nextScoreKey", JsonValue(aNextKey));
 	aState.Set("settingsFile", JsonValue(mSettingsState));
 	JsonValue aPendingJson = JsonValue::MakeObject();
 	aPendingJson.Set("restart", StringArray(aPending.mRestart));

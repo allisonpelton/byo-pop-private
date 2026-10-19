@@ -268,6 +268,8 @@ static bool ParseColor(const std::string& theText, bool theAlpha, std::string* t
 
 static int HexByte(const std::string& theText, size_t thePos)
 {
+	if (thePos + 2 > theText.size())
+		return 0;
 	return (int) strtol(theText.substr(thePos, 2).c_str(), nullptr, 16);
 }
 
@@ -982,6 +984,26 @@ static bool IsPathKey(const std::string& theTop, bool theStringsIsArray)
 		((theTop == "strings") && theStringsIsArray);
 }
 
+// A text in theValue, outside the placeholders nested in it (Analyze checks those itself), that names a path out
+// of the mod's folder ("../x")
+static bool HasPathOutside(const JsonValue& theValue)
+{
+	if (IsPlaceholder(theValue))
+		return false;
+	if (theValue.IsString())
+	{
+		std::string aPath = VFS::Normalize(theValue.AsString());
+		return (aPath == "..") || (aPath.compare(0, 3, "../") == 0);
+	}
+	for (const auto& kv : theValue.Members())
+		if (HasPathOutside(kv.second))
+			return true;
+	for (const JsonValue& anItem : theValue.Items())
+		if (HasPathOutside(anItem))
+			return true;
+	return false;
+}
+
 namespace
 {
 struct Use
@@ -1131,6 +1153,30 @@ struct Analyzer
 			Bad(theTop, "\"" + anId + "\": a text or colour value cannot name a file; use a choice and a \"map\"");
 			return;
 		}
+		if (hasMap && IsPathKey(theTop, mStringsIsArray))
+		{
+			// The files a value can pick stay inside the mod's folder (a mod's own literal paths are not checked)
+			for (const auto& kv : theValue["map"].Members())
+			{
+				if (HasPathOutside(kv.second))
+				{
+					Bad(theTop, "\"" + anId + "\": the map entry \"" + kv.first + "\" names a file outside the mod's folder");
+					return;
+				}
+			}
+		}
+		if (hasMap && (theTop == "strings") && !mStringsIsArray)
+		{
+			// A text, a number or a bool (shown as text), null or $omit: never an object or a list
+			for (const auto& kv : theValue["map"].Members())
+			{
+				if ((kv.second.IsObject() && !IsPlaceholder(kv.second) && !IsOmit(kv.second)) || kv.second.IsArray())
+				{
+					Bad(theTop, "\"" + anId + "\": the map entry \"" + kv.first + "\" is not a text");
+					return;
+				}
+			}
+		}
 
 		Use aUse;
 		aUse.mId = anId;
@@ -1235,8 +1281,10 @@ void ModSettings::Analyze(const JsonValue& theData, const NextGameFilter& theFil
 			mBadKeys.insert("strings");
 		}
 	}
-	// A setting that another one depends on (enabledIf) changes that one's effective value: it applies no
-	// earlier and counts for the scores when that one does. Later settings depend on earlier ones only.
+	// A setting that another one depends on (enabledIf) changes that one's effective value, so it applies no
+	// earlier. It does not count for the scores through it: the dependant's own pair already holds its effective
+	// value (its default while the condition is off), so a condition that changes no data changes no key.
+	// Later settings depend on earlier ones only.
 	for (size_t i = mDefs.size(); i-- > 0;)
 	{
 		const ModSettingDef& aDef = mDefs[i];
@@ -1244,7 +1292,6 @@ void ModSettings::Analyze(const JsonValue& theData, const NextGameFilter& theFil
 			continue;
 		ModSettingDef* aCondition = FindForAnalysis(aDef.mIfSetting);
 		aCondition->mLevel = std::max(aCondition->mLevel, aDef.mLevel);
-		aCondition->mScores = aCondition->mScores || aDef.mScores;
 	}
 }
 
@@ -1261,6 +1308,16 @@ struct Resolver
 
 	bool Convert(const ModSettingDef& theDef, const JsonValue& theValue, const std::string& theAs, JsonValue* theOut)
 	{
+		// Analyze checked this, but the files that "rules" and "tunables" name are read again for every
+		// resolution and may have been edited since: an "as" that does not fit is an error here too
+		bool isColor = (theAs == "rgb") || (theAs == "rgba") || (theAs == "argb");
+		bool isValid = (theAs == "string") || (isColor && (theDef.mType == MOD_SETTING_COLOR)) ||
+			((theAs == "int") && ((theDef.mType == MOD_SETTING_INT) || (theDef.mType == MOD_SETTING_FLOAT)));
+		if (!isValid)
+		{
+			mError = "\"" + theDef.mId + "\": \"as\": \"" + theAs + "\" does not fit a " + ModSettingTypeName(theDef.mType) + " setting";
+			return false;
+		}
 		if (theAs == "string")
 			*theOut = JsonValue(ModSettingText(theDef, theValue));
 		else if (theAs == "int")
@@ -1356,6 +1413,10 @@ struct Resolver
 					return false;
 				if (isOmitted || (isMemberRemovable && isFromPlaceholder && aResult.IsNull()))
 					continue;
+				// strings are text: a number or a bool that a placeholder made ("as": "int", a map entry) is
+				// written as JSON writes it (a direct placeholder was already written as the menu shows it)
+				if ((theTop == "strings") && (theDepth == 0) && isFromPlaceholder && (aResult.IsNumber() || aResult.IsBool()))
+					aResult = JsonValue(aResult.Dump(0));
 				anObject.Set(kv.first, aResult);
 			}
 			*theOut = anObject;

@@ -499,6 +499,9 @@ SexyAppBase::SexyAppBase()
 	mScriptedInput = false;
 	mModMenu = NULL;
 	mModMenuKeyDown = false;
+	mModMenuClosingKey = KEYCODE_UNKNOWN;
+	mKeyInHandling = KEYCODE_UNKNOWN;
+	mLastKeyPressed = KEYCODE_UNKNOWN;
 	mRestartRequested = false;
 
 	int i;
@@ -1912,6 +1915,19 @@ void SexyAppBase::HandleEvent(const SDL_Event& theEvent)
 				}
 			}
 
+			// port: the key that closed the mod menu, held down: its repeats would reach the game below it
+			// (Bejeweled's board pauses on any character). They go nowhere until it is released.
+			if ((mModMenuClosingKey != KEYCODE_UNKNOWN) && (aKeyCode == mModMenuClosingKey))
+			{
+				if ((keyDown) && (theEvent.key.repeat))
+					break;
+				mModMenuClosingKey = KEYCODE_UNKNOWN;
+			}
+			if (keyDown)
+				mLastKeyPressed = aKeyCode;
+			else if (aKeyCode == mLastKeyPressed)
+				mLastKeyPressed = KEYCODE_UNKNOWN;
+
 			if (aKeyCode == KEYCODE_CONTROL)
 				mCtrlDown = keyDown;
 			if (aKeyCode == KEYCODE_MENU)
@@ -1933,6 +1949,7 @@ void SexyAppBase::HandleEvent(const SDL_Event& theEvent)
 			}
 #endif
 
+			mKeyInHandling = aKeyCode;
 			if (aKeyCode != KEYCODE_UNKNOWN)
 			{
 				if ((aKeyCode == 'D') && (mWidgetManager->mKeyDown[KEYCODE_CONTROL]) && (mWidgetManager->mKeyDown[KEYCODE_MENU]))
@@ -1945,6 +1962,7 @@ void SexyAppBase::HandleEvent(const SDL_Event& theEvent)
 			int aChar = GetControlChar(theEvent.key.keysym);
 			if (aChar != 0)
 				mWidgetManager->KeyChar((SexyChar) aChar);
+			mKeyInHandling = KEYCODE_UNKNOWN;
 		}
 		break;
 
@@ -1952,9 +1970,15 @@ void SexyAppBase::HandleEvent(const SDL_Event& theEvent)
 		{
 			mLastUserInputTick = timeGetTime();
 
+			// port: the text a held key that closed the mod menu types again (Space on its Close button; its
+			// repeated presses are dropped above, so no other key was pressed since)
+			if ((mModMenuClosingKey != KEYCODE_UNKNOWN) && (mModMenuClosingKey == mLastKeyPressed))
+				break;
+			mKeyInHandling = mLastKeyPressed;
 			std::string aText = UTF8ToLatin1(theEvent.text.text);
 			for (size_t i = 0; i < aText.length(); i++)
 				mWidgetManager->KeyChar((SexyChar) aText[i]);
+			mKeyInHandling = KEYCODE_UNKNOWN;
 		}
 		break;
 
@@ -2717,25 +2741,19 @@ bool SexyAppBase::LoadProperties()
 		mStringProperties[aString.first] = StringToWString(aString.second);
 
 	// The game passes some texts to printf as formats (Board: StrFormat(GetString("LEVEL"), level)): a mod's
-	// text (or a mod menu value in it) must ask for the same arguments as the game's, or it could read past
-	// them or write through %n. Such a text is not used.
-	for (StringWStringMap::iterator anItr = mStringProperties.begin(); anItr != mStringProperties.end();)
+	// text for a key whose game text has % codes must ask for the same arguments, or it could read past them or
+	// write through %n. Such a text is not used. Every other key (texts the game only draws, keys a mod adds)
+	// takes the mod's text as it is, as before the check. (A mod menu value never has a %: ModSettings.)
+	for (StringWStringMap::iterator anItr = mStringProperties.begin(); anItr != mStringProperties.end(); ++anItr)
 	{
 		StringWStringMap::const_iterator aGame = aGameStrings.find(anItr->first);
-		const std::wstring aGameText = (aGame != aGameStrings.end()) ? aGame->second : std::wstring();
-		if ((anItr->second == aGameText) || (FormatSignature(anItr->second) == FormatSignature(aGameText)))
-		{
-			++anItr;
+		if ((aGame == aGameStrings.end()) || (anItr->second == aGame->second))
 			continue;
-		}
+		std::string aGameSignature = FormatSignature(aGame->second);
+		if (aGameSignature.empty() || (FormatSignature(anItr->second) == aGameSignature))
+			continue;
 		SDL_Log("mod strings: %s: its %% codes differ from the game's text, so the game's text is used", anItr->first.c_str());
-		if (aGame != aGameStrings.end())
-		{
-			anItr->second = aGameText;
-			++anItr;
-		}
-		else
-			anItr = mStringProperties.erase(anItr);
+		anItr->second = aGame->second;
 	}
 	return true;
 }
@@ -3172,6 +3190,9 @@ void SexyAppBase::CloseModMenu()
 	MTAutoDisallowRand aDisallowRand;
 	ModMenu* aMenu = mModMenu;
 	mModMenu = NULL;
+	// Closed by a real key (Esc, Enter or Space typed into it): that key's repeats stay out of the game
+	if ((mKeyInHandling != KEYCODE_UNKNOWN) && (mKeyInHandling != KEYCODE_F2))
+		mModMenuClosingKey = mKeyInHandling;
 	aMenu->Closing();
 	// KillDialog's order: the widget, the game's modal hook, then the focus back to what had it
 	mWidgetManager->RemoveWidget(aMenu);
@@ -3241,9 +3262,9 @@ int SexyAppBase::RequestRestart(bool isConfirmed, SexyString* theMessage)
 	if ((!isConfirmed) && (HasGameInProgress()))
 	{
 		// Where the game in progress goes: it is saved either way, but a score key change files it with the mods it
-		// was played with
+		// was played with. The key is the one the start applies: values held for the next fresh game stay held.
 		Platform::ModManager& aMods = Platform::ModManager::Get();
-		if (aMods.GetNextScoreKey() != aMods.GetScoreKey())
+		if (aMods.GetRestartScoreKey() != aMods.GetScoreKey())
 			aMessage = GetString("MODMENU_RESTART_ASK_KEY", _S("Restart now? Your game stays saved with the current mods and continues when you switch back to them."));
 		else
 			aMessage = GetString("MODMENU_RESTART_ASK", _S("Restart now? Your game is saved and you can continue it after the restart."));

@@ -11,7 +11,8 @@
 //
 // A mod folder the running game uses is never changed under it (it reads data/diff.txt again at every new game):
 // removing it turns it off and deletes the folder at the next start ("byopop-pending-remove:<game>" in
-// localStorage), and adding a mod into its folder waits in the staging folder until the next start.
+// localStorage), and adding a mod into its folder waits in the staging folder until the next start. Turning such
+// a mod on again (in the game's mod menu) keeps it, as the panel's Keep does.
 //
 // The page sets Module.onModsChanged, onModPanel and onModMenuFocus through ModPanel; plain ES5, like the shells.
 
@@ -337,14 +338,19 @@ Module["byopop"] = (function () {
   // waited for this start, then the model
   ModPanel.prototype.boot = function () {
     var o = this.o, self = this, removed = [];
+    this.call("byopop_mods_open", null, ["string", "string"], [o.userDir, o.modsDir]);
+    // A queued mod that is on in mods.json was turned on again after its Remove: it stays
+    this.readState();
     this.queue().forEach(function (e) { rmTree(o.modsDir + "/" + e.dir); removed.push(e.id); });
     this.setQueue([]);
     var staged = listDir(o.stagingDir).filter(safeName);
     staged.forEach(function (dir) { moveTree(o.stagingDir + "/" + dir, o.modsDir + "/" + dir); });
-    this.call("byopop_mods_open", null, ["string", "string"], [o.userDir, o.modsDir]);
+    if (removed.length || staged.length) this.call("byopop_mods_rescan", null, [], []);
     // A removed mod's place in the order and its on/off state go with it (not if another folder has its id)
     removed.forEach(function (id) { if (typeof id === "string" && id) self.edit({ op: "forget", mod: id }); });
-    M["onModsChanged"] = function () { self.stale = true; if (!o.isOpen || o.isOpen()) self.refresh(); };
+    // Every change of the model (the in-game menu's too): read again, so the queue follows it even while the
+    // panel is closed
+    M["onModsChanged"] = function () { self.stale = true; self.refresh(); };
     M["onModPanel"] = function () { if (o.show) o.show(); };
     M["onModMenuFocus"] = function (text) { self.live.textContent = text; };
     this.refresh();
@@ -352,11 +358,27 @@ Module["byopop"] = (function () {
   };
 
   ModPanel.prototype.refresh = function () {
+    this.readState();
+    this.render();
+  };
+  // The model again, then the removal queue made to agree with it
+  ModPanel.prototype.readState = function () {
     var text = this.call("byopop_mods_state", "string", [], []);
     if (text !== null) {
       try { this.state = JSON.parse(text); this.stale = false; } catch (e) { console.warn("mods state", e); }
     }
-    this.render();
+    this.reconcile();
+  };
+  // A queued removal whose mod is on again was taken back in the game's mod menu (Remove turned it off): it is
+  // kept, as with Keep, instead of being deleted at the next start while the menu shows it on
+  ModPanel.prototype.reconcile = function () {
+    var self = this, q = this.queue();
+    if (!q.length || !this.state) return;
+    var kept = q.filter(function (e) {
+      var m = self.mods().filter(function (x) { return x.dir === e.dir; })[0];
+      return !(m && m.enabled);
+    });
+    if (kept.length !== q.length) this.setQueue(kept);
   };
   ModPanel.prototype.mods = function () { return (this.state && this.state.mods) || []; };
   // Mods turned on in mods.json (what the next start applies)
@@ -566,7 +588,14 @@ Module["byopop"] = (function () {
       var q = this.queue().filter(function (e) { return e.dir !== m.dir; });
       q.push({ dir: m.dir, id: m.id, wasEnabled: !!m.enabled });
       this.setQueue(q);
-      if (m.enabled) this.edit({ op: "enable", mod: m.id, on: false });
+      var error = m.enabled ? this.edit({ op: "enable", mod: m.id, on: false }) : "";
+      if (error) {
+        // Still on: it would not be removed (a queued mod that is on is kept)
+        this.unqueue(m.dir);
+        this.say("Could not remove " + m.name + ": " + error);
+        this.refresh();
+        return;
+      }
       this.say(m.name + " is removed when the game starts again. Until then the game keeps using it.");
       this.refresh();
       return;

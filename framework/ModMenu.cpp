@@ -391,7 +391,7 @@ void ModMenu::Refresh()
 	mNoMods = aState["nomods"].AsBool(false);
 	mSettingsFile = aState["settingsFile"].AsString("missing");
 	mScoreKey = aState["scoreKey"].AsString("");
-	mNextScoreKey = aState["nextScoreKey"].AsString("");
+	mRestartScoreKey = aState["restartScoreKey"].AsString("");
 	mPendingRestart.clear();
 	mPendingNextGame.clear();
 	for (const JsonValue& aText : aState["pending"]["restart"].Items())
@@ -966,7 +966,9 @@ void ModMenu::AnnounceFocus()
 void ModMenu::DoEdit(const std::string& theOp, const std::string& theModId, const std::string& theSettingId, const JsonValue& theValue)
 {
 	ModManager& aManager = ModManager::Get();
-	std::string aKeyBefore = mNextScoreKey;
+	// The note below: an edit that moves where a restart would file the game in progress (values held for the
+	// next fresh game never move it)
+	std::string aKeyBefore = mRestartScoreKey;
 	std::string anError;
 	if (theOp == "enable")
 		anError = aManager.EditEnable(theModId, theValue.AsBool(true));
@@ -981,7 +983,7 @@ void ModMenu::DoEdit(const std::string& theOp, const std::string& theModId, cons
 	Refresh();
 	if (!anError.empty())
 		mNote = L1(anError);
-	else if ((mNextScoreKey != aKeyBefore) && (mNextScoreKey != mScoreKey) && mApp->HasGameInProgress())
+	else if ((mRestartScoreKey != aKeyBefore) && (mRestartScoreKey != mScoreKey) && mApp->HasGameInProgress())
 		mNote = Str(mApp, "MODMENU_KEY_NOTE", "Gameplay changes use separate high scores. Your current game stays saved with the current mods and continues when you switch back.");
 	else
 		mNote.clear();

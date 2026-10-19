@@ -624,11 +624,22 @@ static void TestLevels()
 	f = Schema(OneSetting("{ \"id\": \"w\", \"type\": \"bool\", \"label\": \"W\", \"default\": false, \"apply\": \"restart\" }"));
 	Check(f.Find("w")->mLevel == MOD_LEVEL_RESTART, "apply restart without a data use");
 
-	// enabledIf: the condition applies no earlier than what depends on it, and counts for the scores with it
+	// enabledIf: the condition applies no earlier than what depends on it; it counts for the scores only through
+	// its own data uses (the dependant's pair holds its effective value)
 	f = Schema("{ \"settings\": [ { \"id\": \"on\", \"type\": \"bool\", \"label\": \"On\", \"default\": false }, "
 		"{ \"id\": \"n\", \"type\": \"int\", \"label\": \"N\", \"default\": 1, \"enabledIf\": { \"setting\": \"on\", \"equals\": true } } ], "
 		"\"rules\": { \"x\": { \"$setting\": \"n\" } } }", AllNextGame());
-	Check((f.Find("on")->mLevel == MOD_LEVEL_NEXT_GAME) && f.Find("on")->mScores, "an enabledIf condition takes its dependant's level and scores");
+	Check((f.Find("on")->mLevel == MOD_LEVEL_NEXT_GAME) && !f.Find("on")->mScores && f.Find("n")->mScores,
+		"an enabledIf condition takes its dependant's level, not its scores");
+	{
+		ModSettingValues aPairValues;
+		f.ReadValues(J("{ \"on\": true }"), true, &aPairValues, nullptr);
+		CheckEq(f.ScoreKeyPairs(aPairValues), "", "... the condition on with the dependant at its default: no pair (the same data)");
+		f.ReadValues(J("{ \"on\": true, \"n\": 4 }"), true, &aPairValues, nullptr);
+		CheckEq(f.ScoreKeyPairs(aPairValues), "n=4", "... the dependant off its default: its own pair");
+		f.ReadValues(J("{ \"n\": 4 }"), true, &aPairValues, nullptr);
+		CheckEq(f.ScoreKeyPairs(aPairValues), "", "... the condition off: the dependant counts as its default");
+	}
 
 	// '%' never reaches a strings value
 	f = Schema(OneSetting("{ \"id\": \"t\", \"type\": \"text\", \"label\": \"T\", \"default\": \"A\" }", "\"strings\": { \"LEVEL\": { \"$setting\": \"t\" } }"));
@@ -952,6 +963,131 @@ static void TestNextGame()
 //////////////////////////////////////////////////////////////////////////
 // The example mods
 
+//////////////////////////////////////////////////////////////////////////
+// Fixes from the review of M0-M4
+
+static void TestReviewFixes()
+{
+	ModManager& m = ModManager::Get();
+
+	// A mod's own "../" paths load as they always did; a map entry in a file position may not leave the folder
+	{
+		Sandbox aBox("fix-paths");
+		aBox.Mod("a", "{ \"id\": \"a\", \"strings\": [\"../shared.xml\"] }");
+		WriteFile(aBox.mMods + "/shared.xml", "<Properties></Properties>");
+		m.Refresh();
+		CheckEq(std::to_string(m.GetPropertyFiles().size()), "1", "a mod without settings: its strings file \"../shared.xml\" is loaded");
+		const std::string aBool = "{ \"id\": \"m\", \"type\": \"bool\", \"label\": \"M\", \"default\": false }";
+		ModSettings s = Schema(OneSetting(aBool,
+			"\"files\": { \"music/x.ogg\": { \"$setting\": \"m\", \"map\": { \"false\": null, \"true\": \"../other/x.ogg\" } } }"));
+		Check(s.mBadKeys.count("files") && Contains(s.mErrors, "outside the mod's folder"), "a map entry naming ../other/x.ogg in files: an error");
+		s = Schema(OneSetting(aBool,
+			"\"files\": { \"music/x.ogg\": { \"$setting\": \"m\", \"map\": { \"false\": null, \"true\": { \"file\": \"a/../../x.ogg\" } } } }"));
+		Check(s.mBadKeys.count("files") != 0, "... also inside an entry's object, after the path is normalised");
+		s = Schema(OneSetting(aBool,
+			"\"files\": { \"music/x.ogg\": { \"$setting\": \"m\", \"map\": { \"false\": null, \"true\": \"extra/../x.ogg\" } } }"));
+		Check(s.mErrors.empty(), "a map entry that stays in the folder (extra/../x.ogg) is fine");
+	}
+
+	// Under "strings": numbers from "as" and from map entries become text; an object or a list in a map is an error
+	{
+		std::string aSettings = "\"settings\": [ { \"id\": \"f\", \"type\": \"float\", \"label\": \"F\", \"default\": 1.5, \"min\": 0, \"max\": 5, \"step\": 0.5 }, "
+			"{ \"id\": \"c\", \"type\": \"choice\", \"label\": \"C\", \"default\": \"a\", \"choices\": [ { \"value\": \"a\", \"label\": \"A\" }, { \"value\": \"b\", \"label\": \"B\" } ] } ]";
+		std::string aData = "{ " + aSettings + ", \"strings\": { \"S1\": { \"$setting\": \"f\", \"as\": \"int\" }, \"S2\": { \"$setting\": \"f\" }, "
+			"\"S3\": { \"$setting\": \"c\", \"map\": { \"a\": 3, \"b\": \"x\" } }, \"S4\": { \"$setting\": \"c\", \"map\": { \"a\": true, \"b\": 0.25 } } } }";
+		ModSettings s = Schema(aData);
+		std::vector<ModSettingsError> anErrors;
+		JsonValue anEffective = J(Effective(s, aData, "{}", &anErrors));
+		CheckEq(anEffective["strings"].Dump(0), "{\"S1\":\"2\",\"S2\":\"1.5\",\"S3\":\"3\",\"S4\":\"true\"}",
+			"strings: as int, a direct float, map numbers and bools all become text");
+		Check(anErrors.empty() && s.mErrors.empty(), "... without errors");
+		anEffective = J(Effective(s, aData, "{ \"c\": \"b\" }"));
+		CheckEq(anEffective["strings"]["S4"].Dump(0), "\"0.25\"", "... a map float as JSON writes it");
+		s = Schema("{ " + aSettings + ", \"strings\": { \"S\": { \"$setting\": \"c\", \"map\": { \"a\": { \"x\": 1 }, \"b\": \"x\" } } } }");
+		Check(s.mBadKeys.count("strings") && Contains(s.mErrors, "is not a text"), "a map entry that is an object under strings: an error");
+	}
+
+	// A "rules" file edited after the analysis with an "as" that does not fit: an error, not a crash
+	{
+		Sandbox aBox("fix-as");
+		aBox.Mod("r", "{ \"id\": \"r\", \"settings\": [ { \"id\": \"n\", \"type\": \"int\", \"label\": \"N\", \"default\": 1 } ], \"rules\": \"rules.json\" }");
+		WriteFile(aBox.mMods + "/r/rules.json", "{ \"x\": { \"$setting\": \"n\" } }");
+		m.Refresh();
+		Check(J(m.GetStateJson())["mods"][(size_t) 0]["errors"].Items().empty(), "rules from a file: no errors");
+		WriteFile(aBox.mMods + "/r/rules.json", "{ \"x\": { \"$setting\": \"n\", \"as\": \"rgb\" } }");
+		std::string aState = m.GetStateJson();
+		Check(aState.find("does not fit a int setting") != std::string::npos, "the file then gets as rgb on an int: the state reports it");
+	}
+
+	// Values held in "next" in a game without a next-game filter count as set: the start applies them
+	{
+		Sandbox aBox("fix-next-nofilter");
+		aBox.Mod("settings-demo", FixtureManifest());
+		aBox.User("mod-settings.json", "{ \"v\": 1, \"next\": { \"settings-demo\": { \"minRun\": 2 } } }");
+		m.Refresh();
+		CheckEq(Applied("settings-demo")->mRulesJson["match"].Dump(0), "{\"minRun\":2}", "no filter: a \"next\" value is applied at the start");
+		CheckEq(m.GetScoreKey(), Fnv({"settings-demo@1.0?minRun=2"}), "... and in the score key");
+		Check(m.GetPending().mRestart.empty() && m.GetPending().mNextGame.empty() && !m.HasNextGameValues(), "... nothing waits");
+		CheckEq(m.GetRestartScoreKey(), m.GetScoreKey(), "... the restart key is the applied one");
+		CheckEq(m.GetNextScoreKey(), m.GetScoreKey(), "... and so is the next game's");
+		CheckEq(m.EditSetting("settings-demo", "minRun", JsonValue(4.0)), "", "an edit of it");
+		CheckEq(J(aBox.UserText("mod-settings.json")).Dump(0), "{\"v\":1,\"mods\":{\"settings-demo\":{\"minRun\":4}}}",
+			"... goes into \"mods\" and takes the held entry out");
+	}
+
+	// The restart question's key: values held for the next fresh game do not count
+	{
+		Sandbox aBox("fix-restart-key");
+		aBox.Mod("settings-demo", FixtureManifest());
+		m.SetNextGameFilter(AllNextGame());
+		m.Refresh();
+		std::string aKey = m.GetScoreKey();
+		CheckEq(m.EditSetting("settings-demo", "minRun", JsonValue(2.0)), "", "minRun 2, held for the next game");
+		CheckEq(m.GetRestartScoreKey(), aKey, "the restart key stays the applied one");
+		CheckEq(m.GetNextScoreKey(), Fnv({"settings-demo@1.0?minRun=2"}), "the next game's key has minRun=2");
+		CheckEq(J(m.GetStateJson())["restartScoreKey"].AsString(""), aKey, "the state JSON has restartScoreKey");
+		m.Refresh();
+		CheckEq(m.GetScoreKey(), aKey, "after a restart the applied key is unchanged (the value is still held)");
+		Check(m.HasNextGameValues(), "... and still held");
+		CheckEq(m.EditEnable("settings-demo", false), "", "turning the mod off");
+		CheckEq(m.GetRestartScoreKey(), "", "... moves the restart key");
+		m.SetNextGameFilter(NextGameFilter());
+	}
+
+	// User files with a UTF-8 byte order mark read as written
+	{
+		Sandbox aBox("fix-bom");
+		aBox.Mod("a", "{ \"id\": \"a\", \"settings\": [ { \"id\": \"n\", \"type\": \"int\", \"label\": \"N\", \"default\": 1 } ], "
+			"\"tunables\": { \"x\": { \"$setting\": \"n\" } } }");
+		aBox.Mod("b", "{ \"id\": \"b\" }");
+		aBox.User("mods.json", "\xEF\xBB\xBF{ \"order\": [\"b\",\"a\"], \"disabled\": [\"b\"] }");
+		aBox.User("mod-settings.json", "\xEF\xBB\xBF{ \"v\": 1, \"mods\": { \"a\": { \"n\": 7 } } }");
+		m.Refresh();
+		Check(!Applied("b")->mEnabled && Applied("a")->mEnabled, "mods.json with a BOM: b stays off");
+		Check(m.GetTunable("x", 0) == 7, "mod-settings.json with a BOM: n is 7");
+		CheckEq(m.GetSettingsFileState(), "ok", "... and the file reads as ok");
+		CheckEq(m.EditEnable("a", false), "", "an edit of mods.json");
+		CheckEq(J(aBox.UserText("mods.json")).Dump(0), "{\"order\":[\"b\",\"a\"],\"disabled\":[\"b\",\"a\"]}", "... keeps its order and b off");
+		CheckEq(m.EditSetting("a", "n", JsonValue(3.0)), "", "an edit of mod-settings.json");
+		CheckEq(J(aBox.UserText("mod-settings.json")).Dump(0), "{\"v\":1,\"mods\":{\"a\":{\"n\":3}}}", "... merges into it");
+		Check(!aBox.HasUser("mods.bad.json") && !aBox.HasUser("mod-settings.bad.json"), "... nothing is moved aside");
+	}
+
+	// Gameplay files registered after Refresh: the applied key follows, as the desired one does
+	{
+		Sandbox aBox("fix-gameplay-late");
+		aBox.Mod("words", "{ \"id\": \"words\", \"version\": \"1\" }");
+		WriteFile(aBox.mMods + "/words/data/words.txt", "a");
+		m.Refresh();
+		CheckEq(m.GetScoreKey(), "", "with the default gameplay files a word list mod has no key entry");
+		m.SetGameplayFiles(std::vector<std::string>{"data/diff.txt", "data/words.txt"});
+		CheckEq(m.GetScoreKey(), Fnv({"words@1"}), "data/words.txt registered after Refresh: the applied key has words@1");
+		CheckEq(m.GetNextScoreKey(), m.GetScoreKey(), "... the same as the desired key");
+		Check(Applied("words")->mOverridesDiff, "... the mod is marked as a gameplay file's owner");
+		m.SetGameplayFiles(std::vector<std::string>{"data/diff.txt"});
+	}
+}
+
 static void TestExamples()
 {
 	// games/bejeweled/mods/example-settings: valid, and at its defaults the game's own values
@@ -1161,6 +1297,7 @@ int main(int argc, char** argv)
 	TestDiffOwner();
 	TestEdits();
 	TestNextGame();
+	TestReviewFixes();
 	TestExamples();
 	TestMenuControls();
 	TestRelaunchQuoting();
