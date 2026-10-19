@@ -174,17 +174,12 @@ void Slider2004::MouseDown(int x, int y, int theClickCount)
 
 DWORD Sexy::GameTickCount()
 {
-	// = SexyAppBase::GetClockTime() (not public in this framework revision)
-	if ((gSexyAppBase != NULL) && gSexyAppBase->mFastMode)
-		return gSexyAppBase->mFastClock;
-	return GetTickCount();
+	return (gSexyAppBase != NULL) ? gSexyAppBase->GetClockTime() : GetTickCount();
 }
 
 DWORD Sexy::GetLastMouseDownTick(WidgetManager* theWidgetManager)
 {
-	// port: the shared WidgetManager does not record it yet (requested); 0 = no press yet, as at start
-	(void) theWidgetManager;
-	return 0;
+	return (theWidgetManager != NULL) ? theWidgetManager->mLastMouseDownTick : 0;
 }
 
 // 0x43b420

@@ -39,6 +39,7 @@ class Graphics;
 class Color;
 class MusicInterface;
 class BookWormApp;
+class AutoplayBot;
 
 extern BookWormApp* gApp;   // 0x5347d4 (only WinMain used it; port: set by the ctor)
 extern MTRand* gGameRand;   // 0x5347d0 the Board's letter / fire / special / bonus-word generator
@@ -157,6 +158,24 @@ public:
 	int						mMaxTime;           // +0x1340 property MaxTime (60, minutes)
 	// +0x1344 4 bytes never touched (sizeof 0x1348)
 
+	// port: the game's test hooks (the framework's -seed, -script, -fast and -trace are in SexyAppBase.h).
+	// None of them changes the game or its generators.
+	//   -autoplay=<seed>         a bot with its own RNG plays through script input until the game is over
+	//                            (games/bookworm/src/testhooks/Autoplay.h);
+	//   -autoplaymode=<mode>     classic (default), action, or both (Classic, then Action);
+	//   -autoplaycap=<n>         quits at update n (default 200000);
+	//   -autoplaylog=<file>      writes its input as a -script file, with comments on what happened;
+	//   -autoplayshots=<prefix>  screenshots <prefix><mode>-levelup<n>.png, -gameover.png, -fame.png and,
+	//                            every -autoplayshotwords=<n> words (default 25, 0: none), -word<n>.png
+	bool					mAutoplay;
+	unsigned long			mAutoplaySeed;
+	std::string				mAutoplayMode;
+	int						mAutoplayCap;
+	std::string				mAutoplayLogFileName;
+	std::string				mAutoplayShotPrefix;
+	int						mAutoplayShotWords;
+	AutoplayBot*			mAutoplayBot;
+
 public:
 	BookWormApp();                                              // 0x41a0f0
 	virtual ~BookWormApp();                                     // 0x4187b0 body, 0x41a510 slot 14
@@ -202,6 +221,9 @@ public:
 	// game in progress (see SexyAppBase::UpdateUserDataBackup)
 	virtual void	GetShutdownSaves(std::vector<ShutdownSave>* theSaves);
 	virtual void	WriteShutdownRegistry();
+
+	// port: the test hooks' command-line switches (see mAutoplay); everything else goes to the framework
+	virtual void	HandleCmdLineParam(const std::string& theParamName, const std::string& theParamValue);
 
 	// Screens and widgets
 	void			ShutdownWidgets();                          // 0x40ffa0 (Shutdown) saves a game in progress
