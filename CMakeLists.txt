@@ -95,3 +95,8 @@ option(BUILD_BIGMONEY "Build the Big Money Deluxe port" ON)
 if(BUILD_BIGMONEY AND EXISTS ${PROJECT_SOURCE_DIR}/games/bigmoney/src/WinBMApp.cpp)
   add_subdirectory(games/bigmoney)
 endif()
+# BookWorm Deluxe: optional while it is new; the build skips it if its folder is missing
+option(BUILD_BOOKWORM "Build the BookWorm Deluxe port" ON)
+if(BUILD_BOOKWORM AND EXISTS ${PROJECT_SOURCE_DIR}/games/bookworm/CMakeLists.txt)
+  add_subdirectory(games/bookworm)
+endif()

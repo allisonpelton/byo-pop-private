@@ -6,7 +6,8 @@
 // Output is float stereo at the device's native rate (48 kHz on the web, where the AudioContext is
 // created by us because SDL would otherwise inherit a 96/192 kHz context and underrun).
 // Sound effects are decoded and resampled once at load time; tracker music (S3M/MOD/XM/IT) is
-// rendered by libxmp-lite at the device rate inside the audio callback.
+// rendered by libxmp-lite at the device rate inside the audio callback. Other module formats (MO3 via
+// libopenmpt, platform/openmpt/) are rendered by a ModulePlayer a game registers.
 
 #include <cstdint>
 #include <memory>
@@ -15,6 +16,23 @@
 
 namespace Platform
 {
+
+// A tracker-module renderer besides the built-in libxmp-lite. A game that needs another format (e.g. MO3,
+// platform/openmpt/OpenMPTPlayer.h) registers a detector and a factory with Mixer::RegisterModuleFormat
+// before it loads songs; games that register none never link that library.
+class ModulePlayer
+{
+public:
+	virtual ~ModulePlayer() {}
+	// Restarts playback at a module position (BASS_MusicPlayEx offset = MAKELONG(order, row)).
+	virtual void SetPosition(int theOrder, int theRow) = 0;
+	// Writes theFrames interleaved stereo frames (float, +-1.0) at the mixer rate to theOut. Returns false
+	// once a module that does not loop has ended (theOut is then silence from there on).
+	virtual bool Render(float* theOut, int theFrames, bool theLoop) = 0;
+};
+
+typedef bool (*ModuleDetector)(const std::vector<uint8_t>& theFile);
+typedef std::unique_ptr<ModulePlayer> (*ModuleFactory)(const std::vector<uint8_t>& theFile, int theRate);
 
 struct SoundData
 {
@@ -48,7 +66,9 @@ public:
 	bool IsVoicePlaying(int theVoice);
 	void StopAllVoices();
 
-	// --- songs (tracker modules via libxmp, or Ogg/WAV tracks supplied by mods) ---
+	// --- songs (tracker modules via libxmp or a registered ModulePlayer, or Ogg/WAV tracks from mods) ---
+	// Files theDetector accepts are loaded with theFactory instead of libxmp-lite (first match wins).
+	static void RegisterModuleFormat(ModuleDetector theDetector, ModuleFactory theFactory);
 	// Returns a song handle (>0) or 0 on failure. A mod remap of theGamePath (VFS::GetRemap) can set a
 	// start order inside a multi-song module, a stream loop point and a per-track gain.
 	int LoadSong(const std::string& theGamePath);
@@ -84,6 +104,7 @@ private:
 	std::vector<std::unique_ptr<Song>> mSongs;
 	int mNextVoiceSerial = 1;
 	std::vector<short> mSongScratch;
+	std::vector<float> mModuleScratch;
 };
 
 }

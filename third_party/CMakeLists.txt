@@ -30,3 +30,29 @@ if(NOT MSVC)
   # misc.h calls abs() without <stdlib.h> (an error for C99 compilers such as Emscripten's clang)
   target_compile_options(tremor PRIVATE -w -include stdlib.h)
 endif()
+
+# libopenmpt 0.8.9 (BSD-3-Clause, libopenmpt/LICENSE; minimp3 CC0): MO3 music, only for games that link
+# sexyopenmpt (platform/openmpt). Sources as in its Makefile (COMMON, SOUNDLIB and LIBOPENMPT sources),
+# with minimp3 for MP3-compressed samples. Vorbis-compressed samples use the stb_vorbis implementation of
+# the stb library above (libopenmpt includes stb_vorbis.c header-only, common/BuildSettings.h).
+set(OPENMPT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/libopenmpt)
+file(GLOB OPENMPT_SOURCES
+  ${OPENMPT_DIR}/src/openmpt/all/*.cpp ${OPENMPT_DIR}/src/openmpt/base/*.cpp
+  ${OPENMPT_DIR}/src/openmpt/logging/*.cpp ${OPENMPT_DIR}/src/openmpt/random/*.cpp ${OPENMPT_DIR}/common/*.cpp
+  ${OPENMPT_DIR}/src/openmpt/fileformat_base/*.cpp ${OPENMPT_DIR}/src/openmpt/soundbase/*.cpp
+  ${OPENMPT_DIR}/src/openmpt/soundfile_data/*.cpp ${OPENMPT_DIR}/soundlib/*.cpp ${OPENMPT_DIR}/soundlib/plugins/*.cpp
+  ${OPENMPT_DIR}/soundlib/plugins/dmo/*.cpp ${OPENMPT_DIR}/sounddsp/*.cpp ${OPENMPT_DIR}/libopenmpt/*.cpp)
+add_library(openmpt STATIC ${OPENMPT_SOURCES} ${OPENMPT_DIR}/include/minimp3/minimp3.c)
+target_include_directories(openmpt PUBLIC ${OPENMPT_DIR})
+target_include_directories(openmpt PRIVATE ${OPENMPT_DIR}/src ${OPENMPT_DIR}/common ${OPENMPT_DIR}/include)
+target_compile_definitions(openmpt PRIVATE LIBOPENMPT_BUILD MPT_WITH_MINIMP3 MPT_WITH_STBVORBIS
+  STB_VORBIS_NO_PULLDATA_API STB_VORBIS_NO_STDIO)
+target_link_libraries(openmpt PRIVATE stb)
+if(NOT MSVC)
+  target_compile_options(openmpt PRIVATE -w)
+endif()
+if(EMSCRIPTEN)
+  # libopenmpt reports load errors with C++ exceptions (as its own Emscripten build does)
+  target_compile_options(openmpt PRIVATE "-sDISABLE_EXCEPTION_CATCHING=0")
+  target_link_options(openmpt INTERFACE "-sDISABLE_EXCEPTION_CATCHING=0")
+endif()
