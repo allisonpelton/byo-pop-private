@@ -49,11 +49,11 @@ public:
 public:
 	OverlayWidget(BookWormApp* theApp);                             // 0x430c20
 	virtual ~OverlayWidget();                                       // 0x430970 (scalar deleting dtor 0x430ce0) slot 0
-	virtual void	AddedToManager(WidgetManager* theWidgetManager);  // 0x430d10 slot 1
-	virtual void	RemovedFromManager(WidgetManager* theWidgetManager); // 0x430bb0 slot 2
-	virtual void	OrderInManagerChanged();                        // 0x430b90 slot 3
-	virtual void	Draw(Graphics* g);                              // 0x431080 slot 16
-	virtual void	Update();                                       // 0x430e20 slot 17
+	virtual void	AddedToManager(WidgetManager* theWidgetManager) override;  // 0x430d10 slot 1
+	virtual void	RemovedFromManager(WidgetManager* theWidgetManager) override; // 0x430bb0 slot 2
+	virtual void	OrderInManagerChanged() override;               // 0x430b90 slot 3
+	virtual void	Draw(Graphics* g) override;                     // 0x431080 slot 16
+	virtual void	Update() override;                              // 0x430e20 slot 17
 
 	bool			IsBannerMoving();                               // 0x430a00
 	void			AddEffect(Effect* theEffect);                   // 0x430a20

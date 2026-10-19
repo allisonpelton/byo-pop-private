@@ -88,11 +88,11 @@ public:
 
 public:
 	Sparkle(EffectMgr* theEffectMgr);                               // 0x41f2b0
-	virtual void	Update();                                       // 0x41e970 slot 1
-	virtual void	Draw(Graphics* g);                              // 0x41e9e0 slot 2
-	virtual int		GetType() { return EFFECT_SPARKLE; }            // 0x4ba8e0 slot 3 (shared "return 0" stub)
-	virtual void	Save(FILE* theFile);                            // 0x41eb00 slot 5
-	virtual void	Load(FILE* theFile);                            // 0x41eba0 slot 6
+	virtual void	Update() override;                              // 0x41e970 slot 1
+	virtual void	Draw(Graphics* g) override;                     // 0x41e9e0 slot 2
+	virtual int		GetType() override { return EFFECT_SPARKLE; }            // 0x4ba8e0 slot 3 (shared "return 0" stub)
+	virtual void	Save(FILE* theFile) override;                   // 0x41eb00 slot 5
+	virtual void	Load(FILE* theFile) override;                   // 0x41eba0 slot 6
 	virtual ~Sparkle();                                             // 0x41f8a0 slot 7
 };
 
@@ -106,11 +106,11 @@ public:
 
 public:
 	FlyingPieceList(EffectMgr* theEffectMgr, std::list<Piece*>* thePieces); // 0x420920 (thePieces may be NULL)
-	virtual void	Update();                                       // 0x421150 slot 1
-	virtual void	Draw(Graphics* g);                              // 0x41fba0 slot 2
-	virtual int		GetType() { return EFFECT_FLYING_PIECES; }      // 0x4201b0 slot 3
-	virtual void	Save(FILE* theFile);                            // 0x41fee0 slot 5
-	virtual void	Load(FILE* theFile);                            // 0x4209f0 slot 6
+	virtual void	Update() override;                              // 0x421150 slot 1
+	virtual void	Draw(Graphics* g) override;                     // 0x41fba0 slot 2
+	virtual int		GetType() override { return EFFECT_FLYING_PIECES; }      // 0x4201b0 slot 3
+	virtual void	Save(FILE* theFile) override;                   // 0x41fee0 slot 5
+	virtual void	Load(FILE* theFile) override;                   // 0x4209f0 slot 6
 	virtual ~FlyingPieceList();                                     // 0x4200f0 body, 0x4202a0 slot 7
 };
 

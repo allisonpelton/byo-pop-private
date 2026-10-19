@@ -30,8 +30,8 @@ public:
 		const SexyString& theDialogFooter, int theButtonMode);         // 0x42e3d0
 	virtual ~MoneyDialog();                                             // 0x42e420 body, 0x42e450 slot 0
 
-	virtual void	Draw(Graphics* g);                                  // 0x42e440 slot 16 (= Dialog::Draw)
-	virtual void	Update();                                           // 0x429290 slot 17 (folded jmp Dialog::Update)
+	virtual void	Draw(Graphics* g) override;                         // 0x42e440 slot 16 (= Dialog::Draw)
+	virtual void	Update() override;                                  // 0x429290 slot 17 (folded jmp Dialog::Update)
 };
 
 }

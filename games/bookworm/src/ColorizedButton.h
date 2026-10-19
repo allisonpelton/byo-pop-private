@@ -34,11 +34,11 @@ public:
 public:
 	ColorizedButton(int theId, ButtonListener* theListener);        // 0x41bf50
 	virtual ~ColorizedButton();                                     // 0x41b650 (scalar deleting dtor 0x41bd60) slot 0
-	virtual void	Draw(Graphics* g);                              // 0x41b6a0 slot 16
-	virtual void	MouseEnter();                                   // 0x41b3e0 slot 23
-	virtual void	MouseLeave();                                   // 0x41b400 slot 24
-	virtual void	MouseDown(int x, int y, int theClickCount);     // 0x41b450 slot 27
-	virtual void	MouseUp(int x, int y);                          // 0x41b420 slot 30
+	virtual void	Draw(Graphics* g) override;                     // 0x41b6a0 slot 16
+	virtual void	MouseEnter() override;                          // 0x41b3e0 slot 23
+	virtual void	MouseLeave() override;                          // 0x41b400 slot 24
+	virtual void	MouseDown(int x, int y, int theClickCount) override;     // 0x41b450 slot 27
+	virtual void	MouseUp(int x, int y) override;                 // 0x41b420 slot 30
 	virtual void	SetImageColors(int theColors[][4], int theNumColors); // 0x41bed0 slot 49
 	virtual void	SetImageColors(int theColors[][3], int theNumColors); // 0x41be50 slot 50
 	virtual void	SetImageColor(int theIdx, const Color& theColor);    // 0x41b510 slot 51

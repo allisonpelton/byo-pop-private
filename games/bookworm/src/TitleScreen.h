@@ -60,16 +60,16 @@ public:
 public:
 	TitleScreen(BookWormApp* theApp);                               // 0x434380
 	virtual ~TitleScreen();                                         // 0x433300 (scalar deleting dtor 0x433540) slot 0
-	virtual void	AddedToManager(WidgetManager* theWidgetManager);  // 0x433470 slot 1
-	virtual void	RemovedFromManager(WidgetManager* theWidgetManager); // 0x4334b0 slot 2
-	virtual void	Resize(int theX, int theY, int theWidth, int theHeight); // 0x4334f0 slot 13 (shared jump to Widget::Resize)
-	virtual void	Draw(Graphics* g);                              // 0x433900 slot 16
-	virtual void	Update();                                       // 0x433e80 slot 17
+	virtual void	AddedToManager(WidgetManager* theWidgetManager) override;  // 0x433470 slot 1
+	virtual void	RemovedFromManager(WidgetManager* theWidgetManager) override; // 0x4334b0 slot 2
+	virtual void	Resize(int theX, int theY, int theWidth, int theHeight) override; // 0x4334f0 slot 13 (shared jump to Widget::Resize)
+	virtual void	Draw(Graphics* g) override;                     // 0x433900 slot 16
+	virtual void	Update() override;                              // 0x433e80 slot 17
 	// slot 47 ShowTrialExpiredDialog 0x4336f0: trial only, not ported
 	virtual void	DrawLoadingBar(Graphics* g);                    // 0x433570 slot 48
 
-	virtual void	ButtonPress(int theId, int theClickCount);      // 0x401450 ButtonListener slot 2 (shared with BWGameSelector)
-	virtual void	ButtonDepress(int theId);                       // 0x433500 ButtonListener slot 4
+	virtual void	ButtonPress(int theId, int theClickCount) override;      // 0x401450 ButtonListener slot 2 (shared with BWGameSelector)
+	virtual void	ButtonDepress(int theId) override;              // 0x433500 ButtonListener slot 4
 
 	using Widget::Resize;
 	using ButtonListener::ButtonPress;

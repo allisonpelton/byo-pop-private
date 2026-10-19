@@ -38,18 +38,18 @@ public:
 	SelectUserDialog(BookWormApp* theApp);                              // 0x432c90 (disables the game selector)
 	virtual ~SelectUserDialog();                                        // 0x4325f0 body (re-enables it), 0x4326f0 slot 0
 
-	virtual void	AddedToManager(WidgetManager* theWidgetManager);    // 0x432680 slot 1 (shared with DeleteUserDialog)
-	virtual void	RemovedFromManager(WidgetManager* theWidgetManager);// 0x4326b0 slot 2 (shared)
-	virtual void	SetColor(int theIdx, const Color& theColor);        // 0x432670 slot 7 (= Dialog::SetColor; shared)
-	virtual void	Resize(int theX, int theY, int theWidth, int theHeight); // 0x432b40 slot 13 (UpdateList, list above the buttons)
-	virtual void	Draw(Graphics* g);                                  // 0x4326e0 slot 16 (= MoneyDialog::Draw; shared)
-	virtual int		GetPreferredHeight(int theWidth);                   // 0x432b00 slot 50 (UpdateList; + 16 + list height)
+	virtual void	AddedToManager(WidgetManager* theWidgetManager) override;    // 0x432680 slot 1 (shared with DeleteUserDialog)
+	virtual void	RemovedFromManager(WidgetManager* theWidgetManager) override;// 0x4326b0 slot 2 (shared)
+	virtual void	SetColor(int theIdx, const Color& theColor) override;        // 0x432670 slot 7 (= Dialog::SetColor; shared)
+	virtual void	Resize(int theX, int theY, int theWidth, int theHeight) override; // 0x432b40 slot 13 (UpdateList, list above the buttons)
+	virtual void	Draw(Graphics* g) override;                         // 0x4326e0 slot 16 (= MoneyDialog::Draw; shared)
+	virtual int		GetPreferredHeight(int theWidth) override;          // 0x432b00 slot 50 (UpdateList; + 16 + list height)
 
 	void			UpdateList();                                       // 0x432810 (refill from the UserManager, select the current user)
 
-	virtual void	ButtonPress(int theId);                             // 0x41df60 +0x58 slot 3 (shared with DeleteUserDialog)
-	virtual void	ButtonDepress(int theId);                           // 0x432720 +0x58 slot 4 (OK: switch user, LoadUserSettings)
-	virtual void	ListClicked(int theId, int theIdx, int theClickCount); // 0x432f00 +0x120 slot 0
+	virtual void	ButtonPress(int theId) override;                    // 0x41df60 +0x58 slot 3 (shared with DeleteUserDialog)
+	virtual void	ButtonDepress(int theId) override;                  // 0x432720 +0x58 slot 4 (OK: switch user, LoadUserSettings)
+	virtual void	ListClicked(int theId, int theIdx, int theClickCount) override; // 0x432f00 +0x120 slot 0
 
 	using Dialog2004::ButtonPress;
 	using Widget::Resize;

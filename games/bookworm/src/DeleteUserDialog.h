@@ -40,19 +40,19 @@ public:
 	virtual ~DeleteUserDialog();                                        // 0x41ddb0 body, 0x41dfb0 slot 0
 
 	// slots 1, 2, 7, 16 and +0x58 slot 3 are the SelectUserDialog functions (identical-COMDAT folded)
-	virtual void	AddedToManager(WidgetManager* theWidgetManager);    // 0x432680 slot 1
-	virtual void	RemovedFromManager(WidgetManager* theWidgetManager);// 0x4326b0 slot 2
-	virtual void	SetColor(int theIdx, const Color& theColor);        // 0x432670 slot 7 (= Dialog::SetColor)
-	virtual void	Resize(int theX, int theY, int theWidth, int theHeight); // 0x41de10 slot 13
-	virtual void	Draw(Graphics* g);                                  // 0x4326e0 slot 16 (= MoneyDialog::Draw)
-	virtual int		GetPreferredHeight(int theWidth);                   // 0x41ddd0 slot 50 (+ 16 + list height)
+	virtual void	AddedToManager(WidgetManager* theWidgetManager) override;    // 0x432680 slot 1
+	virtual void	RemovedFromManager(WidgetManager* theWidgetManager) override;// 0x4326b0 slot 2
+	virtual void	SetColor(int theIdx, const Color& theColor) override;        // 0x432670 slot 7 (= Dialog::SetColor)
+	virtual void	Resize(int theX, int theY, int theWidth, int theHeight) override; // 0x41de10 slot 13
+	virtual void	Draw(Graphics* g) override;                         // 0x4326e0 slot 16 (= MoneyDialog::Draw)
+	virtual int		GetPreferredHeight(int theWidth) override;          // 0x41ddd0 slot 50 (+ 16 + list height)
 
 	void			ConfirmDelete(const std::string& theName);          // 0x41e020 (app DoDialog 21, YES_NO)
 	void			DeleteSelectedUser();                               // 0x41e620 (called by the app on 2021)
 
-	virtual void	ButtonPress(int theId);                             // 0x41df60 +0x58 slot 3
-	virtual void	ButtonDepress(int theId);                           // 0x41e220 +0x58 slot 4
-	virtual void	ListClicked(int theId, int theIdx, int theClickCount); // 0x41e150 +0x120 slot 0
+	virtual void	ButtonPress(int theId) override;                    // 0x41df60 +0x58 slot 3
+	virtual void	ButtonDepress(int theId) override;                  // 0x41e220 +0x58 slot 4
+	virtual void	ListClicked(int theId, int theIdx, int theClickCount) override; // 0x41e150 +0x120 slot 0
 
 	using Dialog2004::ButtonPress;
 	using Widget::Resize;

@@ -52,18 +52,18 @@ public:
 public:
 	HelpWidget(BookWormApp* theApp);                                // 0x429cd0
 	virtual ~HelpWidget();                                          // 0x4297e0 (scalar deleting dtor 0x429d60) slot 0
-	virtual void	AddedToManager(WidgetManager* theWidgetManager);  // 0x429d90 slot 1
-	virtual void	RemovedFromManager(WidgetManager* theWidgetManager); // 0x4298d0 slot 2
-	virtual void	OrderInManagerChanged();                        // 0x429940 slot 3
-	virtual void	Resize(int theX, int theY, int theWidth, int theHeight); // 0x429990 slot 13
-	virtual void	Draw(Graphics* g);                              // 0x42a420 slot 16
-	virtual void	Update();                                       // 0x429a50 slot 17
+	virtual void	AddedToManager(WidgetManager* theWidgetManager) override;  // 0x429d90 slot 1
+	virtual void	RemovedFromManager(WidgetManager* theWidgetManager) override; // 0x4298d0 slot 2
+	virtual void	OrderInManagerChanged() override;               // 0x429940 slot 3
+	virtual void	Resize(int theX, int theY, int theWidth, int theHeight) override; // 0x429990 slot 13
+	virtual void	Draw(Graphics* g) override;                     // 0x42a420 slot 16
+	virtual void	Update() override;                              // 0x429a50 slot 17
 
 	void			DrawTopicText(Graphics* g);                     // 0x42a170
 
-	virtual void	ButtonPress(int theId);                         // 0x4220c0 ButtonListener slot 3 (shared with FameWidget)
-	virtual void	ButtonDepress(int theId);                       // 0x429c70 ButtonListener slot 4
-	virtual void	CheckboxChecked(int theId, bool checked);       // 0x42a740 CheckboxListener slot 0
+	virtual void	ButtonPress(int theId) override;                // 0x4220c0 ButtonListener slot 3 (shared with FameWidget)
+	virtual void	ButtonDepress(int theId) override;              // 0x429c70 ButtonListener slot 4
+	virtual void	CheckboxChecked(int theId, bool checked) override;       // 0x42a740 CheckboxListener slot 0
 
 	using Widget::Resize;
 	using ButtonListener::ButtonPress;

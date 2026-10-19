@@ -70,17 +70,17 @@ public:
 	LevelUpWidget(BookWormApp* theApp);                                     // 0x42bd50
 	virtual ~LevelUpWidget();                                               // 0x42be40 (scalar deleting 0x42beb0) slot 0
 
-	virtual void	AddedToManager(WidgetManager* theWidgetManager);        // 0x42bb10 slot 1
-	virtual void	RemovedFromManager(WidgetManager* theWidgetManager);    // 0x42bc20 slot 2
-	virtual void	SetVisible(bool isVisible);                             // 0x42baf0 slot 4
-	virtual void	SetDisabled(bool isDisabled);                           // 0x42bad0 slot 10
-	virtual void	Resize(int theX, int theY, int theWidth, int theHeight);// 0x42baa0 slot 13
-	virtual void	Draw(Graphics* g);                                      // 0x42cdd0 slot 16
-	virtual void	Update();                                               // 0x42bee0 slot 17
+	virtual void	AddedToManager(WidgetManager* theWidgetManager) override;        // 0x42bb10 slot 1
+	virtual void	RemovedFromManager(WidgetManager* theWidgetManager) override;    // 0x42bc20 slot 2
+	virtual void	SetVisible(bool isVisible) override;                    // 0x42baf0 slot 4
+	virtual void	SetDisabled(bool isDisabled) override;                  // 0x42bad0 slot 10
+	virtual void	Resize(int theX, int theY, int theWidth, int theHeight) override;// 0x42baa0 slot 13
+	virtual void	Draw(Graphics* g) override;                             // 0x42cdd0 slot 16
+	virtual void	Update() override;                                      // 0x42bee0 slot 17
 
 	// ButtonListener (+0x58)
-	virtual void	ButtonPress(int theId);                                 // 0x42bc80 (+0x58) slot 3
-	virtual void	ButtonDepress(int theId);                               // 0x42bc90 (+0x58) slot 4
+	virtual void	ButtonPress(int theId) override;                        // 0x42bc80 (+0x58) slot 3
+	virtual void	ButtonDepress(int theId) override;                      // 0x42bc90 (+0x58) slot 4
 
 	void			DeletePanel();                                          // 0x42b980
 	void			CreatePanel();                                          // 0x42b9c0

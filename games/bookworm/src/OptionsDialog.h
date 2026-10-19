@@ -77,19 +77,19 @@ public:
 	OptionsDialog(BookWormApp* theApp);                                 // 0x42fe90
 	virtual ~OptionsDialog();                                           // 0x42fc90 body, 0x42fe60 slot 0
 
-	virtual void	AddedToManager(WidgetManager* theWidgetManager);    // 0x42eeb0 slot 1
-	virtual void	RemovedFromManager(WidgetManager* theWidgetManager);// 0x42efa0 slot 2
-	virtual void	SetColor(int theIdx, const Color& theColor);        // 0x42ee20 slot 7 (idx 3 recolours the extra buttons)
-	virtual void	Resize(int theX, int theY, int theWidth, int theHeight); // 0x42f090 slot 13
-	virtual void	Draw(Graphics* g);                                  // 0x42f600 slot 16
-	virtual void	Update();                                           // 0x42ebe0 slot 17 (slide in/out)
-	virtual int		GetPreferredHeight(int theWidth);                   // 0x42f450 slot 50 (property + 36 * links)
+	virtual void	AddedToManager(WidgetManager* theWidgetManager) override;    // 0x42eeb0 slot 1
+	virtual void	RemovedFromManager(WidgetManager* theWidgetManager) override;// 0x42efa0 slot 2
+	virtual void	SetColor(int theIdx, const Color& theColor) override;        // 0x42ee20 slot 7 (idx 3 recolours the extra buttons)
+	virtual void	Resize(int theX, int theY, int theWidth, int theHeight) override; // 0x42f090 slot 13
+	virtual void	Draw(Graphics* g) override;                         // 0x42f600 slot 16
+	virtual void	Update() override;                                  // 0x42ebe0 slot 17 (slide in/out)
+	virtual int		GetPreferredHeight(int theWidth) override;          // 0x42f450 slot 50 (property + 36 * links)
 	virtual void	ApplyAndClose();                                    // 0x42ed00 slot 52 (new virtual)
 
-	virtual void	ButtonPress(int theId);                             // 0x42eba0 +0x58 slot 3
-	virtual void	ButtonDepress(int theId);                           // 0x42fbe0 +0x58 slot 4
-	virtual void	SliderVal(int theId, double theVal);                // 0x42eb40 +0x120 slot 0
-	virtual void	CheckboxChecked(int theId, bool checked);           // 0x42fa50 +0x124 slot 0
+	virtual void	ButtonPress(int theId) override;                    // 0x42eba0 +0x58 slot 3
+	virtual void	ButtonDepress(int theId) override;                  // 0x42fbe0 +0x58 slot 4
+	virtual void	SliderVal(int theId, double theVal) override;       // 0x42eb40 +0x120 slot 0
+	virtual void	CheckboxChecked(int theId, bool checked) override;  // 0x42fa50 +0x124 slot 0
 
 	using Dialog2004::ButtonPress;
 	using Widget::Resize;

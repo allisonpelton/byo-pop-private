@@ -69,12 +69,12 @@ public:
 public:
 	BWGameSelector(BookWormApp* theApp);                            // 0x401600
 	virtual ~BWGameSelector();                                      // 0x401000 (scalar deleting dtor 0x401720) slot 0
-	virtual void	AddedToManager(WidgetManager* theWidgetManager);  // 0x402430 slot 1
-	virtual void	RemovedFromManager(WidgetManager* theWidgetManager); // 0x401370 slot 2
-	virtual void	SetDisabled(bool isDisabled);                   // 0x4013f0 slot 10
-	virtual void	Resize(int theX, int theY, int theWidth, int theHeight); // 0x4334f0 slot 13 (shared jump to Widget::Resize)
-	virtual void	Draw(Graphics* g);                              // 0x402cb0 slot 16
-	virtual void	Update();                                       // 0x402190 slot 17
+	virtual void	AddedToManager(WidgetManager* theWidgetManager) override;  // 0x402430 slot 1
+	virtual void	RemovedFromManager(WidgetManager* theWidgetManager) override; // 0x401370 slot 2
+	virtual void	SetDisabled(bool isDisabled) override;          // 0x4013f0 slot 10
+	virtual void	Resize(int theX, int theY, int theWidth, int theHeight) override; // 0x4334f0 slot 13 (shared jump to Widget::Resize)
+	virtual void	Draw(Graphics* g) override;                     // 0x402cb0 slot 16
+	virtual void	Update() override;                              // 0x402190 slot 17
 	virtual void	StartGame();                                    // 0x401460 slot 47
 	virtual void	StartOpenTransition();                          // 0x4010c0 slot 48
 	virtual void	StartCloseTransition();                         // 0x4011f0 slot 49
@@ -83,8 +83,8 @@ public:
 	void			SetGameOption(int theOption) { mGameOption = theOption; }   // 0x401350
 	void			DrawBubble(Graphics* g);                        // 0x402a50
 
-	virtual void	ButtonPress(int theId, int theClickCount);      // 0x401450 ButtonListener slot 2 (shared with TitleScreen)
-	virtual void	ButtonDepress(int theId);                       // 0x4014c0 ButtonListener slot 4
+	virtual void	ButtonPress(int theId, int theClickCount) override;      // 0x401450 ButtonListener slot 2 (shared with TitleScreen)
+	virtual void	ButtonDepress(int theId) override;              // 0x4014c0 ButtonListener slot 4
 
 	using Widget::Resize;
 	using ButtonListener::ButtonPress;

@@ -36,9 +36,9 @@ public:
 public:
 	CreditsDialog(BookWormApp* theApp);                             // 0x41c0b0
 	virtual ~CreditsDialog();                                       // 0x41bfc0 (scalar deleting dtor 0x41c080) slot 0
-	virtual void	Draw(Graphics* g);                              // 0x41c2a0 slot 16
-	virtual void	Update();                                       // 0x41bff0 slot 17
-	virtual int		GetPreferredHeight(int theWidth);               // 0x41bfe0 slot 50 (constant 396)
+	virtual void	Draw(Graphics* g) override;                     // 0x41c2a0 slot 16
+	virtual void	Update() override;                              // 0x41bff0 slot 17
+	virtual int		GetPreferredHeight(int theWidth) override;      // 0x41bfe0 slot 50 (constant 396)
 };
 
 }

@@ -229,27 +229,27 @@ public:
 	virtual ~Board();                                                   // 0x4062e0 body, 0x406c10 slot 0
 
 	// Widget
-	virtual void		AddedToManager(WidgetManager* theWidgetManager);    // 0x403730 slot 1
-	virtual void		RemovedFromManager(WidgetManager* theWidgetManager); // 0x405b00 slot 2
-	virtual void		OrderInManagerChanged();                        // 0x405240 slot 3
-	virtual void		SetVisible(bool isVisible);                     // 0x405a50 slot 4
-	virtual void		SetDisabled(bool isDisabled);                   // 0x405a20 slot 10
-	virtual void		Draw(Graphics* g);                              // 0x40a980 slot 16 (BoardDraw.cpp)
-	virtual void		Update();                                       // 0x40bd40 slot 17
-	virtual void		KeyChar(SexyChar theChar);                      // 0x405d60 slot 20
-	virtual void		KeyDown(KeyCode theKey);                        // 0x403df0 slot 21
-	virtual void		KeyUp(KeyCode theKey);                          // 0x403e40 slot 22
-	virtual void		MouseLeave();                                   // 0x403a70 slot 24
-	virtual void		MouseMove(int x, int y);                        // 0x403a80 slot 25
-	virtual void		MouseDown(int x, int y, int theClickCount);     // 0x409de0 slot 27
-	virtual void		MouseUp(int x, int y, int theClickCount);       // 0x40fc40 slot 29
-	virtual void		MouseDrag(int x, int y);                        // 0x40a0c0 slot 31
+	virtual void		AddedToManager(WidgetManager* theWidgetManager) override;    // 0x403730 slot 1
+	virtual void		RemovedFromManager(WidgetManager* theWidgetManager) override; // 0x405b00 slot 2
+	virtual void		OrderInManagerChanged() override;               // 0x405240 slot 3
+	virtual void		SetVisible(bool isVisible) override;            // 0x405a50 slot 4
+	virtual void		SetDisabled(bool isDisabled) override;          // 0x405a20 slot 10
+	virtual void		Draw(Graphics* g) override;                     // 0x40a980 slot 16 (BoardDraw.cpp)
+	virtual void		Update() override;                              // 0x40bd40 slot 17
+	virtual void		KeyChar(SexyChar theChar) override;             // 0x405d60 slot 20
+	virtual void		KeyDown(KeyCode theKey) override;               // 0x403df0 slot 21
+	virtual void		KeyUp(KeyCode theKey) override;                 // 0x403e40 slot 22
+	virtual void		MouseLeave() override;                          // 0x403a70 slot 24
+	virtual void		MouseMove(int x, int y) override;               // 0x403a80 slot 25
+	virtual void		MouseDown(int x, int y, int theClickCount) override;     // 0x409de0 slot 27
+	virtual void		MouseUp(int x, int y, int theClickCount) override;       // 0x40fc40 slot 29
+	virtual void		MouseDrag(int x, int y) override;               // 0x40a0c0 slot 31
 	using Widget::MouseDown;
 	using Widget::MouseUp;
 
 	// ButtonListener (+0x58)
-	virtual void		ButtonPress(int theId, int theClickCount);      // 0x4081d0 listener slot 2
-	virtual void		ButtonDepress(int theId);                       // 0x40fdc0 listener slot 4
+	virtual void		ButtonPress(int theId, int theClickCount) override;      // 0x4081d0 listener slot 2
+	virtual void		ButtonDepress(int theId) override;              // 0x40fdc0 listener slot 4
 	using ButtonListener::ButtonPress;
 
 	// geometry

@@ -31,15 +31,15 @@ public:
 		const SexyString& theDialogLines, const SexyString& theDialogFooter, int theButtonMode); // 0x42af50
 	virtual ~HintDialog();                                              // 0x42a820 body, 0x42a990 slot 0
 
-	virtual void	AddedToManager(WidgetManager* theWidgetManager);    // 0x42a890 slot 1
-	virtual void	RemovedFromManager(WidgetManager* theWidgetManager);// 0x42a8c0 slot 2
-	virtual void	Resize(int theX, int theY, int theWidth, int theHeight); // 0x42b160 slot 13 (uppercases the header)
-	virtual void	Draw(Graphics* g);                                  // 0x42e440 slot 16 (= Dialog::Draw, folded with MoneyDialog's)
-	virtual void	Update();                                           // 0x429290 slot 17 (= Dialog::Update)
-	virtual int		GetPreferredHeight(int theWidth);                   // 0x42a8f0 slot 50 (+4 + max(yes height, 32))
+	virtual void	AddedToManager(WidgetManager* theWidgetManager) override;    // 0x42a890 slot 1
+	virtual void	RemovedFromManager(WidgetManager* theWidgetManager) override;// 0x42a8c0 slot 2
+	virtual void	Resize(int theX, int theY, int theWidth, int theHeight) override; // 0x42b160 slot 13 (uppercases the header)
+	virtual void	Draw(Graphics* g) override;                         // 0x42e440 slot 16 (= Dialog::Draw, folded with MoneyDialog's)
+	virtual void	Update() override;                                  // 0x429290 slot 17 (= Dialog::Update)
+	virtual int		GetPreferredHeight(int theWidth) override;          // 0x42a8f0 slot 50 (+4 + max(yes height, 32))
 
-	virtual void	ButtonPress(int theId, int theClickCount);          // 0x42a920 +0x58 slot 2 (Dialog::ButtonPress(id) + click)
-	virtual void	ButtonDepress(int theId);                           // 0x42a950 +0x58 slot 4 (26: hints off, KillDialog(15))
+	virtual void	ButtonPress(int theId, int theClickCount) override; // 0x42a920 +0x58 slot 2 (Dialog::ButtonPress(id) + click)
+	virtual void	ButtonDepress(int theId) override;                  // 0x42a950 +0x58 slot 4 (26: hints off, KillDialog(15))
 
 	static bool		WasHintShown(int theHintId);                        // 0x42b3e0 (cdecl; ignores the id, map never filled: false)
 

@@ -42,7 +42,7 @@ public:
 		int theJustify);                                            // 0x431a50
 	virtual ~Points();                                              // 0x4319e0 body, 0x431a20 slot 0
 
-	virtual void	Draw(Graphics* g);                              // 0x431950 slot 16
+	virtual void	Draw(Graphics* g) override;                     // 0x431950 slot 16
 };
 
 }

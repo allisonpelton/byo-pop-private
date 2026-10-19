@@ -42,8 +42,8 @@ public:
 	BigLex(BookWormApp* theApp);                                    // 0x402df0
 	virtual ~BigLex();                                              // 0x402e30 (deleting dtor 0x402f30) slot 0
 
-	virtual void	Draw(Graphics* g);                              // 0x402e80 slot 16
-	virtual void	Update();                                       // 0x402eb0 slot 17
+	virtual void	Draw(Graphics* g) override;                     // 0x402e80 slot 16
+	virtual void	Update() override;                              // 0x402eb0 slot 17
 
 	void			PlayAnim(int theAnim, bool theLoop);            // 0x402e40
 };

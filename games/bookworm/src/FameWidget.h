@@ -82,13 +82,13 @@ public:
 	FameWidget(BookWormApp* theApp);                                        // 0x428520
 	virtual ~FameWidget();                                                  // 0x4270d0 (scalar deleting 0x428f20) slot 0
 
-	virtual void	AddedToManager(WidgetManager* theWidgetManager);        // 0x421cb0 slot 1
-	virtual void	RemovedFromManager(WidgetManager* theWidgetManager);    // 0x421dc0 slot 2
-	virtual void	SetVisible(bool isVisible);                             // 0x421990 slot 4
-	virtual void	SetDisabled(bool isDisabled);                           // 0x421950 slot 10
-	virtual void	Resize(int theX, int theY, int theWidth, int theHeight);// 0x421a50 slot 13
-	virtual void	Draw(Graphics* g);                                      // 0x421f00 slot 16
-	virtual void	Update();                                               // 0x427f30 slot 17
+	virtual void	AddedToManager(WidgetManager* theWidgetManager) override;        // 0x421cb0 slot 1
+	virtual void	RemovedFromManager(WidgetManager* theWidgetManager) override;    // 0x421dc0 slot 2
+	virtual void	SetVisible(bool isVisible) override;                    // 0x421990 slot 4
+	virtual void	SetDisabled(bool isDisabled) override;                  // 0x421950 slot 10
+	virtual void	Resize(int theX, int theY, int theWidth, int theHeight) override;// 0x421a50 slot 13
+	virtual void	Draw(Graphics* g) override;                             // 0x421f00 slot 16
+	virtual void	Update() override;                                      // 0x427f30 slot 17
 
 	virtual void	DrawLocalScores(Graphics* g);                           // 0x424c30 slot 47
 	// slot 48 DrawInternetScores (0x425880): internet, not ported
@@ -98,10 +98,10 @@ public:
 	virtual void	SetTabAndPeriod(int theTab, int thePeriod);             // 0x421920 slot 52
 
 	// ButtonListener (+0x58)
-	virtual void	ButtonPress(int theId);                                 // 0x4220c0 (+0x58) slot 3
-	virtual void	ButtonDepress(int theId);                               // 0x426c10 (+0x58) slot 4
+	virtual void	ButtonPress(int theId) override;                        // 0x4220c0 (+0x58) slot 3
+	virtual void	ButtonDepress(int theId) override;                      // 0x426c10 (+0x58) slot 4
 	// CheckboxListener (+0x5c)
-	virtual void	CheckboxChecked(int theId, bool checked);               // 0x421f50 (+0x5c) slot 0
+	virtual void	CheckboxChecked(int theId, bool checked) override;      // 0x421f50 (+0x5c) slot 0
 
 	// Internet only, not ported: ShowWaitDialog 0x423fd0, StartNetTransfer 0x4241d0, MarkNewPlaces
 	// 0x4249d0, ShowErrorDialog 0x4262b0, ShowWarningDialog 0x4264f0, AddNewPlace 0x426ab0, AddNetScore

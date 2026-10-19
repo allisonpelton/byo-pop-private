@@ -181,49 +181,49 @@ public:
 	virtual ~BookWormApp();                                     // 0x4187b0 body, 0x41a510 slot 14
 
 	// ButtonListener (dialog buttons are forwarded here by Dialog2004 as 2000 + id / 3000 + id)
-	virtual void	ButtonPress(int theId);                     // 0x410b30 slot 3
-	virtual void	ButtonDepress(int theId);                   // 0x417080 slot 4
+	virtual void	ButtonPress(int theId) override;            // 0x410b30 slot 3
+	virtual void	ButtonDepress(int theId) override;          // 0x417080 slot 4
 
-	virtual void	UpdateFrames();                             // 0x4100f0 slot 7
-	virtual void	LoadingThreadCompleted();                   // 0x4169d0 slot 13 (update check: not ported)
-	virtual void	Init();                                     // 0x414a10 slot 16
-	virtual void	LoadingThreadProc();                        // 0x41a8a0 slot 17
-	virtual void	WriteToRegistry();                          // 0x412000 slot 18
-	virtual void	ReadFromRegistry();                         // 0x41a540 slot 19
+	virtual void	UpdateFrames() override;                    // 0x4100f0 slot 7
+	virtual void	LoadingThreadCompleted() override;          // 0x4169d0 slot 13 (update check: not ported)
+	virtual void	Init() override;                            // 0x414a10 slot 16
+	virtual void	LoadingThreadProc() override;               // 0x41a8a0 slot 17
+	virtual void	WriteToRegistry() override;                 // 0x412000 slot 18
+	virtual void	ReadFromRegistry() override;                // 0x41a540 slot 19
 	virtual Dialog*	NewDialog(int theDialogId, bool isModal, const SexyString& theDialogHeader,
 						const SexyString& theDialogLines, const SexyString& theDialogFooter,
-						int theButtonMode);                     // 0x410970 slot 20
-	virtual void	URLOpenFailed(const std::string& theURL);   // 0x414fa0 slot 24
-	virtual void	URLOpenSucceeded(const std::string& theURL); // 0x410b10 slot 25
-	virtual bool	OpenURL(const std::string& theURL, bool shutdownOnOpen = false); // 0x415100 slot 26
+						int theButtonMode) override;            // 0x410970 slot 20
+	virtual void	URLOpenFailed(const std::string& theURL) override;   // 0x414fa0 slot 24
+	virtual void	URLOpenSucceeded(const std::string& theURL) override; // 0x410b10 slot 25
+	virtual bool	OpenURL(const std::string& theURL, bool shutdownOnOpen = false) override; // 0x415100 slot 26
 	// 0x416090 slot 32 GetGameSEHInfo not ported (crash report)
-	virtual void	Shutdown();                                 // 0x410ca0 slot 33
-	virtual void	SetMusicVolume(double theVolume);           // 0x410110 slot 47
+	virtual void	Shutdown() override;                        // 0x410ca0 slot 33
+	virtual void	SetMusicVolume(double theVolume) override;  // 0x410110 slot 47
 	virtual Dialog*	DoDialog(int theDialogId, bool isModal, const SexyString& theDialogHeader,
 						const SexyString& theDialogLines, const SexyString& theDialogFooter,
-						int theButtonMode);                     // 0x4103e0 slot 55
-	virtual bool	KillDialog(int theDialogId);                // 0x4110b0 slot 58
-	virtual void	ModalOpen();                                // 0x410ad0 slot 60
-	virtual void	ModalClose();                               // 0x410af0 slot 61
-	virtual void	GotFocus();                                 // 0x419000 slot 62
-	virtual void	LostFocus();                                // 0x419040 slot 63
+						int theButtonMode) override;            // 0x4103e0 slot 55
+	virtual bool	KillDialog(int theDialogId) override;       // 0x4110b0 slot 58
+	virtual void	ModalOpen() override;                       // 0x410ad0 slot 60
+	virtual void	ModalClose() override;                      // 0x410af0 slot 61
+	virtual void	GotFocus() override;                        // 0x419000 slot 62
+	virtual void	LostFocus() override;                       // 0x419040 slot 63
 	virtual void	TitleScreenDone();                          // 0x414ef0 slot 67 (TitleScreen::ButtonDepress)
 
 	// port: the 2004 SexyApp makes a BassMusicInterface itself (no virtual); here an SDLMusicInterface
 	// with BASS 2.0's music gain (docs/FRAMEWORK_2004.md section 6, 4.2)
-	virtual MusicInterface* CreateMusicInterface();
+	virtual MusicInterface* CreateMusicInterface() override;
 
 	// port: the game's texts are read from the player's Bookworm.exe (GameText.h) right after the partner
 	// properties, before ReadFromRegistry (the default high scores) and anything that shows text
-	virtual void	InitPropertiesHook();
+	virtual void	InitPropertiesHook() override;
 
 	// port (web): the page can be closed or crash without Shutdown, which is where the original saves a
 	// game in progress (see SexyAppBase::UpdateUserDataBackup)
-	virtual void	GetShutdownSaves(std::vector<ShutdownSave>* theSaves);
-	virtual void	WriteShutdownRegistry();
+	virtual void	GetShutdownSaves(std::vector<ShutdownSave>* theSaves) override;
+	virtual void	WriteShutdownRegistry() override;
 
 	// port: the test hooks' command-line switches (see mAutoplay); everything else goes to the framework
-	virtual void	HandleCmdLineParam(const std::string& theParamName, const std::string& theParamValue);
+	virtual void	HandleCmdLineParam(const std::string& theParamName, const std::string& theParamValue) override;
 
 	// Screens and widgets
 	void			ShutdownWidgets();                          // 0x40ffa0 (Shutdown) saves a game in progress

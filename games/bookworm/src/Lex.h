@@ -110,13 +110,13 @@ public:
 	Lex(BookWormApp* theApp);                                       // 0x42d560
 	virtual ~Lex();                                                 // 0x42d050 (deleting dtor 0x42d650) slot 0
 
-	virtual void	Move(int theNewX, int theNewY);                 // 0x42d370 slot 14
-	virtual void	Draw(Graphics* g);                              // 0x42db60 slot 16
-	virtual void	Update();                                       // 0x42dd20 slot 17
-	virtual void	MouseEnter();                                   // 0x42d9e0 slot 23
-	virtual void	MouseLeave();                                   // 0x42d3f0 slot 24
-	virtual void	MouseDown(int x, int y, int theClickCount);     // 0x42d460 slot 27
-	virtual void	MouseUp(int x, int y, int theClickCount);       // 0x42d4e0 slot 29
+	virtual void	Move(int theNewX, int theNewY) override;        // 0x42d370 slot 14
+	virtual void	Draw(Graphics* g) override;                     // 0x42db60 slot 16
+	virtual void	Update() override;                              // 0x42dd20 slot 17
+	virtual void	MouseEnter() override;                          // 0x42d9e0 slot 23
+	virtual void	MouseLeave() override;                          // 0x42d3f0 slot 24
+	virtual void	MouseDown(int x, int y, int theClickCount) override;     // 0x42d460 slot 27
+	virtual void	MouseUp(int x, int y, int theClickCount) override;       // 0x42d4e0 slot 29
 	virtual void	Save(FILE* theFile);                            // 0x42d060 slot 47 (88-byte record, lex.md 8.1)
 	virtual void	Load(FILE* theFile);                            // 0x42d1c0 slot 48
 

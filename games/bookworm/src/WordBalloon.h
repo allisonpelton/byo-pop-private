@@ -60,9 +60,9 @@ public:
 	// Slots 1, 2, 4, 10 (0x4363b0, 0x4363c0, 0x436350, 0x436340) and 13 (0x4334f0) only jump to the
 	// Widget implementation: not overridden here.
 
-	virtual void	Draw(Graphics* g);                              // 0x4363d0 slot 16
-	virtual void	Update();                                       // 0x437080 slot 17
-	virtual void	MouseDown(int x, int y, int theClickCount);     // 0x436420 slot 27
+	virtual void	Draw(Graphics* g) override;                     // 0x4363d0 slot 16
+	virtual void	Update() override;                              // 0x437080 slot 17
+	virtual void	MouseDown(int x, int y, int theClickCount) override;     // 0x436420 slot 27
 	virtual void	DrawPlain(Graphics* g);                         // 0x4367a0 slot 47
 	virtual void	DrawBox(Graphics* g);                           // 0x436c40 slot 48
 	virtual void	Show(int theDuration);                          // 0x436360 slot 49 (0 = fade out and hide)

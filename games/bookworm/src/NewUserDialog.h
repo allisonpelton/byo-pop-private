@@ -40,16 +40,16 @@ public:
 	NewUserDialog(BookWormApp* theApp, const SexyString& theDialogLines); // 0x42e7c0
 	virtual ~NewUserDialog();                                           // 0x42e480 body, 0x42e620 slot 0
 
-	virtual void	AddedToManager(WidgetManager* theWidgetManager);    // 0x42e510 slot 1 (adds and focuses the edit)
-	virtual void	RemovedFromManager(WidgetManager* theWidgetManager);// 0x42e550 slot 2
-	virtual void	Resize(int theX, int theY, int theWidth, int theHeight); // 0x42e580 slot 13
-	virtual void	Draw(Graphics* g);                                  // 0x42ea10 slot 16
-	virtual int		GetPreferredHeight(int theWidth);                   // 0x42e4f0 slot 50 (+56)
+	virtual void	AddedToManager(WidgetManager* theWidgetManager) override;    // 0x42e510 slot 1 (adds and focuses the edit)
+	virtual void	RemovedFromManager(WidgetManager* theWidgetManager) override;// 0x42e550 slot 2
+	virtual void	Resize(int theX, int theY, int theWidth, int theHeight) override; // 0x42e580 slot 13
+	virtual void	Draw(Graphics* g) override;                         // 0x42ea10 slot 16
+	virtual int		GetPreferredHeight(int theWidth) override;          // 0x42e4f0 slot 50 (+56)
 
 	void			DrawEditBox(Graphics* g, const Rect& theRect);      // 0x42e650 (IMAGE_EDITBOX three-slice frame)
 
-	virtual void	EditWidgetText(int theId, const SexyString& theString); // 0x42e5d0 +0x120 slot 0 -> app ButtonDepress(mId + 2000)
-	virtual bool	AllowChar(int theId, SexyChar theChar);             // 0x42e5f0 +0x120 slot 2 (letters and space)
+	virtual void	EditWidgetText(int theId, const SexyString& theString) override; // 0x42e5d0 +0x120 slot 0 -> app ButtonDepress(mId + 2000)
+	virtual bool	AllowChar(int theId, SexyChar theChar) override;    // 0x42e5f0 +0x120 slot 2 (letters and space)
 
 	using Widget::Resize;
 };

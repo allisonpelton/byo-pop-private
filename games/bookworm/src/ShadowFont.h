@@ -26,10 +26,10 @@ public:
 	ShadowFont(const ImageFont& theFont, const Color& theShadowColor, const Point& theOffset); // 0x433250
 	ShadowFont(const ShadowFont& theFont);                          // 0x433200
 	virtual ~ShadowFont();                                          // 0x4330c0 (scalar deleting dtor 0x4331d0) slot 0
-	virtual int		StringWidth(const SexyString& theString);       // 0x4330d0 slot 7
+	virtual int		StringWidth(const SexyString& theString) override;       // 0x4330d0 slot 7
 	virtual void	DrawString(Graphics* g, int theX, int theY, const SexyString& theString,
-						const Color& theColor, const Rect& theClipRect); // 0x433160 slot 10
-	virtual Font*	Duplicate();                                    // 0x4332a0 slot 11
+						const Color& theColor, const Rect& theClipRect) override; // 0x433160 slot 10
+	virtual Font*	Duplicate() override;                           // 0x4332a0 slot 11
 };
 
 }
