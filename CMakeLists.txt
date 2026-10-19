@@ -90,3 +90,8 @@ endif()
 
 # The games, each in games/<game>/
 add_subdirectory(games/bejeweled)
+# Big Money Deluxe: optional while it is new; the build skips it if its sources are missing
+option(BUILD_BIGMONEY "Build the Big Money Deluxe port" ON)
+if(BUILD_BIGMONEY AND EXISTS ${PROJECT_SOURCE_DIR}/games/bigmoney/src/WinBMApp.cpp)
+  add_subdirectory(games/bigmoney)
+endif()

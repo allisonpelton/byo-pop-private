@@ -1,0 +1,26 @@
+{"addr":"00405480","name":"Sexy::Board::Draw","sig":"void __thiscall Draw(void * g)"}
+{"addr":"00402060","name":"Sexy::Board::DrawPiece","sig":"void __thiscall DrawPiece(void * g, void * thePiece, int theYOffset)"}
+{"addr":"00404950","name":"Sexy::Board::DrawStatsPanel","sig":"void __thiscall DrawStatsPanel(void * g)"}
+{"addr":"00401e30","name":"Sexy::Board::GetBagSlotPos","sig":"void * __thiscall GetBagSlotPos(void * theResult, int theIndex)"}
+{"addr":"004045e0","name":"Sexy::Board::ShowContinueButton","sig":"void __thiscall ShowContinueButton(void)"}
+{"addr":"00415140","name":"Sexy::MrMoney::MrMoney","sig":"void * __thiscall MrMoney(void * theApp)"}
+{"addr":"004151f0","name":"Sexy::MrMoney::~MrMoney","sig":"void __thiscall ~MrMoney(void)"}
+{"addr":"00415200","name":"Sexy::MrMoney::PlayAnim","sig":"void __thiscall PlayAnim(int theAnim)"}
+{"addr":"00415240","name":"Sexy::MrMoney::Move","sig":"void __thiscall Move(int theNewX, int theNewY)"}
+{"addr":"00415290","name":"Sexy::MrMoney::Update","sig":"void __thiscall Update(void)","comment":"body runs to 0x4154ce; Ghidra sized it 1 byte"}
+{"addr":"004154d0","name":"Sexy::MrMoney::Draw","sig":"void __thiscall Draw(void * g)"}
+{"addr":"00415540","name":"Sexy::MrMoney::scalar_deleting_dtor","sig":"void * __thiscall scalar_deleting_dtor(uint theFlags)"}
+{"addr":"00417400","name":"Sexy::OverlayWidget::OverlayWidget","sig":"void * __thiscall OverlayWidget(void * theApp)"}
+{"addr":"00417440","name":"Sexy::OverlayWidget::Draw","sig":"void __thiscall Draw(void * g)"}
+{"addr":"004174d0","name":"Sexy::OverlayWidget::scalar_deleting_dtor","sig":"void * __thiscall scalar_deleting_dtor(uint theFlags)"}
+{"addr":"004174f0","name":"Sexy::Points::Draw","sig":"void __thiscall Draw(void * g)"}
+{"addr":"004175c0","name":"Sexy::Points::~Points","sig":"void __thiscall ~Points(void)"}
+{"addr":"00417610","name":"Sexy::Points::scalar_deleting_dtor","sig":"void * __thiscall scalar_deleting_dtor(uint theFlags)"}
+{"addr":"00417630","name":"Sexy::Points::Points","sig":"void * __thiscall Points(void * theApp, void * theFont, void * theText, int theX, int theY, int theLife, int theJustify)"}
+{"addr":"004f3220","name":"_dynamic_initializer_for_gCoinColors","sig":"void __cdecl _dynamic_initializer_for_gCoinColors(void)"}
+{"addr":"004f32a0","name":"_dynamic_initializer_for_gCoinLightColors","sig":"void __cdecl _dynamic_initializer_for_gCoinLightColors(void)"}
+{"addr":"0052d878","label":"gCoinLightColors"}
+{"addr":"0052d8c8","label":"gCoinColors"}
+{"addr":"0052d864","label":"gRankNames"}
+{"addr":"004f53c0","label":"gRankThresholds"}
+{"addr":"004f6818","label":"gMrMoneyAnims"}

@@ -1,0 +1,47 @@
+{"addr":"0040ee10","name":"Sexy::CreditsDialog::~CreditsDialog","sig":"void __thiscall ~CreditsDialog(void)"}
+{"addr":"0040ee80","name":"Sexy::CreditsDialog::GetPreferredHeight","sig":"int __thiscall GetPreferredHeight(int theWidth)"}
+{"addr":"0040ee90","name":"Sexy::CreditsDialog::Update","sig":"void __thiscall Update(void)"}
+{"addr":"0040ef10","name":"Sexy::CreditsDialog::scalar_deleting_dtor","sig":"void * __thiscall scalar_deleting_dtor(unsigned int flags)"}
+{"addr":"0040ef30","name":"Sexy::CreditsDialog::CreditsDialog","sig":"void * __thiscall CreditsDialog(void * theApp)"}
+{"addr":"0040f190","name":"Sexy::CreditsDialog::Draw","sig":"void __thiscall Draw(void * g)"}
+{"addr":"0040fb90","name":"Sexy::GameSelector::~GameSelector","sig":"void __thiscall ~GameSelector(void)"}
+{"addr":"0040fcb0","name":"Sexy::GameSelector::SetGameType","sig":"void __thiscall SetGameType(int theType)"}
+{"addr":"0040fdc0","name":"Sexy::GameSelector::SetSkill","sig":"void __thiscall SetSkill(int theSkill)"}
+{"addr":"0040fe90","name":"Sexy::GameSelector::Update","sig":"void __thiscall Update(void)"}
+{"addr":"004100b0","name":"Sexy::GameSelector::AddedToManager","sig":"void __thiscall AddedToManager(void * theWidgetManager)"}
+{"addr":"00410140","name":"Sexy::GameSelector::RemovedFromManager","sig":"void __thiscall RemovedFromManager(void * theWidgetManager)"}
+{"addr":"004101d0","name":"Sexy::GameSelector::OrderInManagerChanged","sig":"void __thiscall OrderInManagerChanged(void)"}
+{"addr":"00410260","name":"Sexy::GameSelector::LayoutButtons","sig":"void __thiscall LayoutButtons(void)"}
+{"addr":"00410330","name":"Sexy::GameSelector::ButtonPress","sig":"void __thiscall ButtonPress(int theId, int theClickCount)"}
+{"addr":"00410340","name":"Sexy::GameSelector::StartGame","sig":"void __thiscall StartGame(void)"}
+{"addr":"004103e0","name":"Sexy::GameSelector::SlideIn","sig":"void __thiscall SlideIn(void)"}
+{"addr":"00410590","name":"Sexy::GameSelector::SlideOut","sig":"void __thiscall SlideOut(void)"}
+{"addr":"00410730","name":"Sexy::GameSelector::ButtonDepress","sig":"void __thiscall ButtonDepress(int theId)"}
+{"addr":"004107c0","name":"Sexy::GameSelector::GameSelector","sig":"void * __thiscall GameSelector(void * theApp)"}
+{"addr":"00410bd0","name":"Sexy::GameSelector::scalar_deleting_dtor","sig":"void * __thiscall scalar_deleting_dtor(unsigned int flags)"}
+{"addr":"00410bf0","name":"Sexy::GameSelector::Draw","sig":"void __thiscall Draw(void * g)"}
+{"addr":"00410d50","name":"Sexy::GameSelector::Resize","sig":"void __thiscall Resize(int theX, int theY, int theWidth, int theHeight)"}
+{"addr":"00410d80","name":"Sexy::HelpWidget::~HelpWidget","sig":"void __thiscall ~HelpWidget(void)"}
+{"addr":"00410df0","name":"Sexy::HelpWidget::AddedToManager","sig":"void __thiscall AddedToManager(void * theWidgetManager)"}
+{"addr":"00410e30","name":"Sexy::HelpWidget::RemovedFromManager","sig":"void __thiscall RemovedFromManager(void * theWidgetManager)"}
+{"addr":"00410e70","name":"Sexy::HelpWidget::OrderInManagerChanged","sig":"void __thiscall OrderInManagerChanged(void)"}
+{"addr":"00410eb0","name":"Sexy::HelpWidget::ButtonPress","sig":"void __thiscall ButtonPress(int theId)"}
+{"addr":"00410f00","name":"Sexy::HelpWidget::scalar_deleting_dtor","sig":"void * __thiscall scalar_deleting_dtor(unsigned int flags)"}
+{"addr":"00410f20","name":"Sexy::HelpWidget::HelpWidget","sig":"void * __thiscall HelpWidget(void * theApp)"}
+{"addr":"00411590","name":"Sexy::HelpWidget::Draw","sig":"void __thiscall Draw(void * g)"}
+{"addr":"00419260","name":"Sexy::StartButton::StartButton","sig":"void * __thiscall StartButton(void * theApp, int theId, void * theListener)"}
+{"addr":"004192c0","name":"Sexy::StartButton::~StartButton","sig":"void __thiscall ~StartButton(void)"}
+{"addr":"004192d0","name":"Sexy::StartButton::Update","sig":"void __thiscall Update(void)"}
+{"addr":"004193d0","name":"Sexy::StartButton::scalar_deleting_dtor","sig":"void * __thiscall scalar_deleting_dtor(unsigned int flags)"}
+{"addr":"004193f0","name":"Sexy::StartButton::Draw","sig":"void __thiscall Draw(void * g)"}
+{"addr":"00419630","name":"Sexy::TitleScreen::~TitleScreen","sig":"void __thiscall ~TitleScreen(void)"}
+{"addr":"004196d0","name":"Sexy::TitleScreen::AddedToManager","sig":"void __thiscall AddedToManager(void * theWidgetManager)"}
+{"addr":"00419700","name":"Sexy::TitleScreen::RemovedFromManager","sig":"void __thiscall RemovedFromManager(void * theWidgetManager)"}
+{"addr":"00419730","name":"Sexy::TitleScreen::ButtonDepress","sig":"void __thiscall ButtonDepress(int theId)"}
+{"addr":"00419760","name":"Sexy::TitleScreen::scalar_deleting_dtor","sig":"void * __thiscall scalar_deleting_dtor(unsigned int flags)"}
+{"addr":"00419780","name":"std::string::compare_cstr","sig":"int __thiscall compare_cstr(unsigned int thePos, unsigned int theCount, char * theStr, unsigned int theStrCount)"}
+{"addr":"00419800","name":"std::string_plus_cstr","sig":"void * __cdecl string_plus_cstr(void * theResult, void * theLeft, char * theRight)"}
+{"addr":"004198b0","name":"std::string_plus_string","sig":"void * __cdecl string_plus_string(void * theResult, void * theLeft, void * theRight)"}
+{"addr":"00419950","name":"Sexy::TitleScreen::Draw","sig":"void __thiscall Draw(void * g)"}
+{"addr":"0041a810","name":"Sexy::TitleScreen::Update","sig":"void __thiscall Update(void)"}
+{"addr":"0041b120","name":"Sexy::TitleScreen::TitleScreen","sig":"void * __thiscall TitleScreen(void * theApp)"}

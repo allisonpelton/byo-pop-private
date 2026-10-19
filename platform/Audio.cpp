@@ -3,6 +3,7 @@
 
 #include <SDL.h>
 #include <xmp.h>
+#include <ivorbisfile.h>
 #include <algorithm>
 #include <cmath>
 #include <cstring>
@@ -255,6 +256,138 @@ static void ResampleToStereo(const float* theIn, int theInFrames, int theInChann
 	}
 }
 
+// Ogg Vorbis through Tremor (third_party/tremor), reading the file from memory. 16-bit output as
+// SexyAppFramework 1.2's DSoundManager::LoadOGGSound got it from ov_read.
+struct TremorMemFile
+{
+	const std::vector<uint8_t>* mData;
+	size_t mPos;
+};
+
+static size_t TremorRead(void* thePtr, size_t theSize, size_t theCount, void* theSource)
+{
+	TremorMemFile* f = (TremorMemFile*)theSource;
+	size_t want = theSize * theCount;
+	size_t left = f->mData->size() - f->mPos;
+	size_t n = std::min(want, left);
+	memcpy(thePtr, f->mData->data() + f->mPos, n);
+	f->mPos += n;
+	return theSize ? n / theSize : 0;
+}
+
+static int TremorSeek(void* theSource, ogg_int64_t theOffset, int theWhence)
+{
+	TremorMemFile* f = (TremorMemFile*)theSource;
+	ogg_int64_t base = theWhence == SEEK_CUR ? (ogg_int64_t)f->mPos : theWhence == SEEK_END ? (ogg_int64_t)f->mData->size() : 0;
+	ogg_int64_t pos = base + theOffset;
+	if (pos < 0 || pos > (ogg_int64_t)f->mData->size())
+		return -1;
+	f->mPos = (size_t)pos;
+	return 0;
+}
+
+static int TremorClose(void*)
+{
+	return 0;
+}
+
+static long TremorTell(void* theSource)
+{
+	return (long)((TremorMemFile*)theSource)->mPos;
+}
+
+static bool DecodeOggTremor(const std::vector<uint8_t>& theFile, std::vector<float>& theOut, int* theChannels, int* theRate)
+{
+	TremorMemFile src = {&theFile, 0};
+	ov_callbacks cb = {TremorRead, TremorSeek, TremorClose, TremorTell};
+	OggVorbis_File vf;
+	if (ov_open_callbacks(&src, &vf, NULL, 0, cb) < 0)
+		return false;
+	vorbis_info* info = ov_info(&vf, -1);
+	if (info == NULL || info->channels <= 0)
+	{
+		ov_clear(&vf);
+		return false;
+	}
+	int channels = info->channels;
+	std::vector<short> pcm;
+	char buf[4096];
+	int section = 0;
+	for (;;)
+	{
+		long got = ov_read(&vf, buf, sizeof(buf), &section);
+		if (got <= 0)
+			break;  // 0 = end of stream; a decode error ends the sound there, as in the framework
+		size_t at = pcm.size();
+		pcm.resize(at + got / 2);
+		memcpy(pcm.data() + at, buf, (size_t)(got / 2) * 2);
+	}
+	*theChannels = channels;
+	*theRate = (int)info->rate;
+	ov_clear(&vf);
+	size_t frames = pcm.size() / channels;
+	if (frames == 0)
+		return false;
+	theOut.resize(frames * channels);
+	for (size_t i = 0; i < theOut.size(); i++)
+		theOut[i] = pcm[i] / 32768.0f;
+	return true;
+}
+
+// Sun .au: big-endian header ".snd", header size, data size, encoding, rate, channels. Decodes what
+// SexyAppFramework's DSoundManager::LoadAUSound accepts, the same way: encoding 1 (8-bit mu-law) with
+// the framework's own segment table to 16 bits (sign * level * 4; it is not exact G.711), and
+// encoding 2 (8-bit linear) copied as-is into an 8-bit (unsigned) buffer. Like the framework it reads
+// "data size" bytes after the header and fails when the file is shorter.
+static bool DecodeAU(const std::vector<uint8_t>& theFile, std::vector<float>& theOut, int* theChannels, int* theRate)
+{
+	auto be32 = [&](size_t o) { return ((uint32_t)theFile[o] << 24) | ((uint32_t)theFile[o + 1] << 16) | ((uint32_t)theFile[o + 2] << 8) | theFile[o + 3]; };
+	uint32_t aHeaderSize = be32(4);
+	uint32_t aDataSize = be32(8);
+	uint32_t anEncoding = be32(12);
+	uint32_t aRate = be32(16);
+	uint32_t aChannels = be32(20);
+	if ((anEncoding != 1 && anEncoding != 2) || aChannels == 0 || aChannels > 8 || aRate == 0 ||
+		aHeaderSize > theFile.size() || aDataSize > theFile.size() - aHeaderSize)
+		return false;
+	const uint8_t* aSrc = theFile.data() + aHeaderSize;
+	size_t aCount = aDataSize - aDataSize % aChannels;
+	theOut.resize(aCount);
+	for (size_t i = 0; i < aCount; i++)
+	{
+		int ch = aSrc[i];
+		if (anEncoding == 2)
+		{
+			theOut[i] = (ch - 128) / 128.0f;
+			continue;
+		}
+		int sign = (ch < 128) ? -1 : 1;
+		ch = ch | 0x80;
+		if (ch > 239)
+			ch = ((0xF0 | 15) - ch) * 2;
+		else if (ch > 223)
+			ch = (((0xE0 | 15) - ch) * 4) + 32;
+		else if (ch > 207)
+			ch = (((0xD0 | 15) - ch) * 8) + 96;
+		else if (ch > 191)
+			ch = (((0xC0 | 15) - ch) * 16) + 224;
+		else if (ch > 175)
+			ch = (((0xB0 | 15) - ch) * 32) + 480;
+		else if (ch > 159)
+			ch = (((0xA0 | 15) - ch) * 64) + 992;
+		else if (ch > 143)
+			ch = (((0x90 | 15) - ch) * 128) + 2016;
+		else if (ch > 128)
+			ch = (((0x80 | 15) - ch) * 256) + 4064;
+		else
+			ch = 0xff;
+		theOut[i] = (short)(sign * ch * 4) / 32768.0f;
+	}
+	*theChannels = (int)aChannels;
+	*theRate = (int)aRate;
+	return true;
+}
+
 std::shared_ptr<SoundData> Mixer::LoadSound(const std::string& theGamePath)
 {
 	std::vector<uint8_t> file;
@@ -273,12 +406,34 @@ std::shared_ptr<SoundData> Mixer::LoadSoundData(const std::vector<uint8_t>& file
 		short* pcm = nullptr;
 		int frames = stb_vorbis_decode_memory(file.data(), (int)file.size(), &channels, &rate, &pcm);
 		if (frames <= 0 || !pcm)
-			return nullptr;
+		{
+			// stb_vorbis has no Vorbis floor 0 (pre-1.0 encoders, e.g. Big Money's 2002 sounds): decode
+			// with Tremor, the decoder SexyAppFramework 1.2 itself used
+			free(pcm);
+			std::vector<float> f;
+			if (!DecodeOggTremor(file, f, &channels, &rate))
+				return nullptr;
+			ResampleToStereo(f.data(), (int)(f.size() / channels), channels, rate, mRate, *data);
+			return data;
+		}
 		std::vector<float> f((size_t)frames * channels);
 		for (size_t i = 0; i < f.size(); i++)
 			f[i] = pcm[i] / 32768.0f;
 		free(pcm);
 		ResampleToStereo(f.data(), frames, channels, rate, mRate, *data);
+		return data;
+	}
+	// Sun/NeXT .au (Big Money, Insaniquarium, Typer Shark, BookWorm)
+	if (file.size() >= 24 && !memcmp(file.data(), ".snd", 4))
+	{
+		std::vector<float> f;
+		int channels = 0, rate = 0;
+		if (!DecodeAU(file, f, &channels, &rate))
+		{
+			SDL_Log("cannot decode sound %s (.au: only 8-bit mu-law and 8-bit linear are supported)", theName.c_str());
+			return nullptr;
+		}
+		ResampleToStereo(f.data(), (int)(f.size() / channels), channels, rate, mRate, *data);
 		return data;
 	}
 	// WAV (and anything else SDL can read)
