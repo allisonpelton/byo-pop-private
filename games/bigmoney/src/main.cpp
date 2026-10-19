@@ -5,6 +5,8 @@
 //   -userdir=<dir>   writable folder for savegame.dat, hiscores.dat, registry.ini and mods.json
 //   -modsdir=<dir>   folder containing data mods (one sub-folder per mod)
 //   -nomods          start without any mods
+//   -replay=<file>   watch a replay (Replay.h) once the title has loaded
+//   -replaydir=<dir> where recorded games go (default <user dir>/replays; web /bmpersist/replays)
 //   -gameseed=N      play the next game on seed N, 1..4294967295 (ModRules.h; the web shell passes ?seed=N
 //                    as this)
 // Remaining "-key=value" arguments are passed to the app (SexyAppBase::HandleCmdLineParam), e.g. the
@@ -215,6 +217,12 @@ int main(int argc, char** argv)
 
 	// The original keeps the app as a global object and calls Init, Start and Shutdown on it.
 	static WinBMApp* anApp = new WinBMApp();
+#ifdef __EMSCRIPTEN__
+	// port(mods): beside the user dir, so the user dir's localStorage backup does not carry the replays
+	anApp->mReplayDir = "/bmpersist/replays";
+#else
+	anApp->mReplayDir = userDir + "/replays";
+#endif
 	anApp->SetCmdLine(argc, argv);
 	anApp->mPendingSeed = gameSeed; // port(mods)
 	if (gameSeed != 0)

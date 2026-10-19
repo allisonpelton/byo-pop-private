@@ -1,5 +1,6 @@
 #include "Board.h"
 #include "ModRules.h"
+#include "Replay.h"
 #include <set>
 #include "WinBMApp.h"
 #include "MrMoney.h"
@@ -230,7 +231,7 @@ void Sexy::DeleteSaveGame()
 // 0x4010d0
 bool Board::CanSaveGame()
 {
-	return mPlayStarted && (mState != STATE_GAME_OVER_SCORES);
+	return mPlayStarted && (mState != STATE_GAME_OVER_SCORES) && (mPlayer == NULL); // port(mods): a replay is never saved
 }
 
 // 0x401460
@@ -586,6 +587,9 @@ void Board::UpdateHover()
 void Board::MouseLeave()
 {
 	Widget::MouseLeave();
+	if (mPlayer != NULL) // port(mods): a replay moves its own mouse
+		return;
+	RecordInput(Replay::OP_LEAVE);
 	UpdateHover();
 }
 
@@ -593,6 +597,9 @@ void Board::MouseLeave()
 void Board::MouseMove(int x, int y)
 {
 	Widget::MouseMove(x, y);
+	if (mPlayer != NULL) // port(mods): a replay moves its own mouse
+		return;
+	RecordInput(Replay::OP_MOVE, x, y);
 	mMouseX = x;
 	mMouseY = y;
 	UpdateHover();
@@ -804,6 +811,24 @@ void Board::Compact()
 // 0x403050 slot 31
 void Board::KeyChar(SexyChar theChar)
 {
+	// port(mods): replays (Replay.h). While watching, 1 to 4 set the speed (1x, 2x, 4x, 8x) and Escape stops;
+	// on the game-over screen of a recorded game, R watches it.
+	if (mPlayer != NULL)
+	{
+		if ((theChar >= '1') && (theChar <= '4'))
+			mApp->mWatchSpeed = 1 << (theChar - '1');
+		else if (theChar == 27)
+		{
+			mApp->EndWatch(); // removes this board
+			return;
+		}
+	}
+	else if (((theChar == 'r') || (theChar == 'R')) && (mState == STATE_GAME_OVER_SCORES) && (!mReplayPath.empty()))
+	{
+		mApp->StartWatch(mReplayPath); // deletes this board
+		return;
+	}
+
 	if (theChar == ' ')
 		Pause(mPauseCount == 0);
 }
@@ -1000,6 +1025,8 @@ Board::~Board()
 	delete mStatsImage;
 	delete mStatsFadeImage;
 	delete mLevelUpImage;
+	delete mRecorder; // port(mods)
+	delete mPlayer;
 
 	// port: the original leaks every piece. Each piece is owned by exactly one of mGrid, mNextRow and
 	// mLoosePieces, but UpdatePhysics clears mGrid by the piece's own mRow/mCol (as the original does), so
@@ -1191,6 +1218,10 @@ bool Board::LoadGame()
 			SDL_Log("savegame: seed %u", (unsigned) aSeed);
 		}
 	}
+
+	// port(mods): a resumed game is not recorded (Replay.h)
+	delete mRecorder;
+	mRecorder = NULL;
 
 	mPlayStarted = true;
 	delete mStatsImage;
@@ -1715,8 +1746,10 @@ void Board::UpdateLoosePieces()
 			mApp->mMrMoney->PlayAnim(MRANIM_GAMEOVER);
 			mState = STATE_GAME_OVER_SCORES;
 			mHighScoreDelay = 180;
-			mHighScoreWidget = new HighScoreWidget(mApp, mUserSeeded); // port(mods): seeded games keep their own tables
+			// port(mods): seeded games keep their own tables; a replay's is only shown (ModRules.h, Replay.h)
+			mHighScoreWidget = new HighScoreWidget(mApp, mUserSeeded, mPlayer != NULL);
 			mWidgetManager->AddWidget((Widget*) mHighScoreWidget);
+			ReplayGameOver();
 			ShowContinueButton();
 			// Placed by Update state 6 once the high scores slide in
 			((Widget*) mContinueButton)->Resize(0, 0, 0, 0);
@@ -2661,8 +2694,13 @@ void Board::MouseDown(int x, int y, int theClickCount)
 		Pause(false);
 		return;
 	}
+	if (mPlayer != NULL) // port(mods): a replay plays its own clicks
+		return;
 	if (mState == STATE_PLAYING)
+	{
+		RecordInput(Replay::OP_CLICK, x, y); // port(mods)
 		ClickAt(x, y);
+	}
 }
 
 // 0x40c640: the money meter (section 5.3)
@@ -2797,6 +2835,10 @@ void Board::Update()
 		mApp->mMrMoney->mTargetY = 290;
 		return;
 	}
+
+	// port(mods): a replay's input of this tick, before the tick as the player's came (Replay.h)
+	if (mPlayer != NULL)
+		mPlayer->Apply(this, (uint32_t) mUpdateCnt);
 
 	Widget::Update();
 
@@ -3494,9 +3536,18 @@ void Board::ButtonDepress(int theId)
 {
 	if (mState == STATE_GAME_OVER_SCORES)
 	{
+		if (mPlayer != NULL) // port(mods): the end of a replay
+		{
+			mApp->EndWatch(); // removes this board
+			return;
+		}
 		mApp->NewGame(); // deletes this board
 		return;
 	}
+
+	if (mPlayer != NULL) // port(mods): a replay presses the button itself
+		return;
+	RecordInput(Replay::OP_NEXT); // port(mods)
 
 	// 0x41d4c0: an unregistered Puzzle game asks to register before the next level; not ported (the
 	// build is registered)
@@ -3528,14 +3579,32 @@ Board::Board(WinBMApp* theApp)
 	SeedMTRand12(mRand, (unsigned long)(aSeed * 0xffff));
 	// port(mods): a seed the player chose replaces it, and the effects get a generator of their own
 	// (ModRules.h)
+	mRngSeed = (uint32_t)(unsigned long)(aSeed * 0xffff);
 	mGameSeed = mApp->mPendingSeed;
 	mUserSeeded = (mGameSeed != 0);
+	// port(mods): a playback board starts from its replay instead (Replay.h)
+	mRecorder = NULL;
+	mPlayer = NULL;
+	if (mApp->mWatchFile != NULL)
+	{
+		mPlayer = new ReplayPlayer(*mApp->mWatchFile);
+		mRngSeed = mPlayer->mFile.mRngSeed;
+		SeedMTRand12(mRand, mRngSeed);
+		mUserSeeded = mPlayer->mFile.mUserSeeded;
+		mGameSeed = mUserSeeded ? mPlayer->mFile.mGameSeed : 0;
+	}
 	if (mUserSeeded)
 	{
-		SeedMTRand12(mRand, mGameSeed);
+		if (mPlayer == NULL)
+		{
+			SeedMTRand12(mRand, mGameSeed);
+			mRngSeed = mGameSeed;
+		}
 		SeedMTRand12(mEffectsRand, ~mGameSeed);
 		SDL_Log("board: seed %u", (unsigned) mGameSeed);
 	}
+	if ((mPlayer == NULL) && (ModFeatureEnabled("replays")))
+		mRecorder = new ReplayRecorder(mApp, mRngSeed, mUserSeeded, mGameSeed);
 	mCreateTick = GetTickCount();
 	mTimerTick = mCreateTick;
 
@@ -3744,14 +3813,46 @@ unsigned long Board::EffectsRand()
 // the board's generator, whose draws only the game makes
 int Board::BagColumnRand()
 {
-	return mUserSeeded ? (int)(mRand.Next() & 0x7fff) : CrtRand();
+	if (mUserSeeded)
+		return (int)(mRand.Next() & 0x7fff);
+	// port(mods): a replay has the draws (Replay.h)
+	if (mPlayer != NULL)
+		return mPlayer->NextBagColumn((uint32_t) mUpdateCnt);
+	int aValue = CrtRand();
+	if (mRecorder != NULL)
+		mRecorder->AddBagColumn(aValue);
+	return aValue;
+}
+
+// port(mods): input to record (Replay.h)
+void Board::RecordInput(int theOp, int theX, int theY)
+{
+	if (mRecorder != NULL)
+		mRecorder->AddEvent((uint32_t) mUpdateCnt, theOp, theX, theY);
+}
+
+// port(mods): the game-over screen (UpdateLoosePieces, right after mHighScoreWidget): a recorded game is
+// written (kept for good when its score made a local table: today's best or a place), and a replay ends
+// and is checked (Replay.h)
+void Board::ReplayGameOver()
+{
+	if (mPlayer != NULL)
+		mPlayer->CheckEnd(this, (uint32_t) mUpdateCnt);
+	if (mRecorder != NULL)
+	{
+		bool isPinned = (mHighScoreWidget != NULL) && ((mHighScoreWidget->GetRank(mApp->mGameType, mScore) > 0) ||
+			(mScore > mHighScoreWidget->mTodayScores[mApp->mGameType]));
+		mReplayPath = mRecorder->Finish(this, isPinned);
+		delete mRecorder;
+		mRecorder = NULL;
+	}
 }
 
 // port(mods): a game on the pending seed has been played (its first valid click or its game over), so
 // the next new game is unseeded (ModRules.h)
 void Board::UsePendingSeed()
 {
-	if ((mUserSeeded) && (mApp->mPendingSeed == mGameSeed))
+	if ((mUserSeeded) && (mApp->mPendingSeed == mGameSeed) && (mPlayer == NULL))
 	{
 		mApp->mPendingSeed = 0;
 		SDL_Log("seed %u used", (unsigned) mGameSeed);

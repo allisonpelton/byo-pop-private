@@ -2,6 +2,9 @@
 #include "Board.h"
 
 #include "platform/ModManager.h"
+#include "platform/VFS.h"
+
+#include <cctype>
 
 #include <SDL.h>
 #include <algorithm>
@@ -51,6 +54,64 @@ bool Sexy::ModTunableBool(const char* theKey, bool theDefault)
 	bool aValue = aMods.GetTunableBool(theKey, theDefault);
 	SDL_Log("tunable %s = %s", theKey, aValue ? "true" : "false");
 	return aValue;
+}
+
+// The value of feature theName from the highest-priority enabled mod that names it (null without one)
+static const Platform::JsonValue* FindFeature(const char* theName)
+{
+	for (const Platform::ModInfo* aMod : Platform::ModManager::Get().GetEnabledMods())
+	{
+		if (aMod->mFeaturesJson.IsObject() && aMod->mFeaturesJson.Has(theName))
+			return &aMod->mFeaturesJson[theName];
+	}
+	return NULL;
+}
+
+bool Sexy::ModFeatureEnabled(const char* theName)
+{
+	const Platform::JsonValue* aValue = FindFeature(theName);
+	return (aValue != NULL) && (aValue->IsObject() || aValue->AsBool(false));
+}
+
+int Sexy::ModFeatureInt(const char* theName, const char* theKey, int theDefault, int theMin, int theMax)
+{
+	const Platform::JsonValue* aValue = FindFeature(theName);
+	if ((aValue == NULL) || (!aValue->IsObject()) || (!aValue->Has(theKey)) || (!(*aValue)[theKey].IsNumber()))
+		return theDefault;
+	double aNumber = (*aValue)[theKey].AsNumber();
+	return (int) std::min(std::max(aNumber, (double) theMin), (double) theMax);
+}
+
+bool Sexy::AnyContentModEnabled()
+{
+	static const char* kMetaKeys[] = { "id", "name", "version", "author", "description", "priority", "features", "affectsScores" };
+	static const char* kDataDirs[] = { "images", "sounds", "music", "data", "properties" };
+	for (const Platform::ModInfo* aMod : Platform::ModManager::Get().GetEnabledMods())
+	{
+		if (aMod->mManifest.IsObject())
+		{
+			for (const auto& aMember : aMod->mManifest.Members())
+			{
+				bool isMeta = false;
+				for (const char* aKey : kMetaKeys)
+					isMeta = isMeta || (aMember.first == aKey);
+				if (!isMeta)
+					return true;
+			}
+		}
+		for (const std::string& aName : Platform::ListDirectory(aMod->mPath))
+		{
+			std::string aLower = aName;
+			for (char& c : aLower)
+				c = (char) tolower((unsigned char) c);
+			for (const char* aDir : kDataDirs)
+			{
+				if ((aLower == aDir) && (Platform::IsDirectory(aMod->mPath + "/" + aName)))
+					return true;
+			}
+		}
+	}
+	return false;
 }
 
 // theFileName with theSuffix before its extension

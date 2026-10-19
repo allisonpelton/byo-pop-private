@@ -130,8 +130,28 @@ Big Money uses the shared mod system (`platform/ModManager.h`).
   - So the first level always starts the same, and in Strategy and Puzzle the same clicks give the same
     game. Action mints in real time, so there it depends on timing as well.
   - Seeded games keep their own high-score tables (`hiscores-seeded.dat`).
+  - The stats panel at each level end and at game over shows "SEED n". Unseeded games show nothing
+    there, as the original.
   - A seeded save ends in an 8-byte trailer, which the original's reader ignores, so the game stays
     seeded when resumed. Unseeded saves are unchanged.
+- **Replays** (the `replays` mod, `features.replays`; `src/Replay.h`).
+  - **Recording.** Every game played from its start is recorded and kept when it reaches its game-over
+    screen, as `<date>-<mode>-<skill>-<score>.bmr`. Native replays go to `<user dir>/replays`
+    (`-replaydir=`); web replays go to `/bmpersist/replays`.
+  - **What is kept.** The newest 50 (`keep`), plus every replay whose score made a local table
+    (`-keep` in its name). Abandoned and resumed games are not kept.
+  - **Watching.** Press R on the game-over screen to watch the game just played. Native builds also take
+    `-replay=<file>`, and the web page has a Replays panel to watch, download, delete or import replays.
+    While watching: 1 to 4 for 1x to 8x, space to pause, Esc to stop.
+  - **Limits.** A watch never saves, counts a game or enters a high score. It needs the same gameplay
+    mods as the recording.
+  - **How it works.** A replay holds the board's seed, the player's clicks, hover moves and next-level
+    presses at their board ticks, and the bag-column draws. The board is deterministic from those, so a
+    watch plays the same game, and checks it at the end ("replay: verified" in the log: same end tick,
+    score, level and coins).
+  - **Tested.** Replays of all three modes, seeded and with tunables, verify at 1x and 8x, including
+    natively recorded replays watched in the web build.
+  - **Inspecting files.** `tools/bmr.py` prints a replay's contents.
 
 Example mods (`games/bigmoney/mods/`):
 - **`fake-money/`: "Fake Money! Deluxe".**
@@ -146,6 +166,8 @@ Example mods (`games/bigmoney/mods/`):
 - **`high-roller/`: "High Roller", a harder game for bigger scores.** Five colours from the start,
   faster minting, a bigger meter, at least two bags a level, a doubled multiplier and more points for
   big groups.
+- **`replays/`: "Replays".** Turns on replays and nothing else: no change in play, the normal high-score
+  tables, and no mods sign.
 - **`hd4x-textures/`: every image at 4x.** Generate it with `tools/make_hd4x_mod.py`, which upscales
   the player's own game files with Real-ESRGAN on the GPU. It contains the game's art, so it is
   git-ignored: never commit or share it.

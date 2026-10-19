@@ -34,6 +34,7 @@ class Dialog;
 class MusicInterface;
 
 class AutoplayBot;
+namespace Replay { struct File; }
 
 class WinBMApp : public SexyApp
 {
@@ -145,6 +146,19 @@ public:
 	// port(mods): a seed the player chose (-gameseed=N, set by main.cpp; ?seed=N on the web), 0 for none:
 	// every new game gets it until a game on it is played (Board::UsePendingSeed, ModRules.h)
 	uint32_t		mPendingSeed;
+
+	// port(mods): replays (Replay.h)
+	std::string		mReplayDir;             // where recorded games go (-replaydir=; main.cpp sets the default)
+	std::string		mWatchPath;             // -replay=<file>: watched once the title has loaded
+	Replay::File*	mWatchFile;             // the replay a new board plays (StartWatch .. EndWatch), else NULL
+	int				mWatchSpeed;            // board ticks per update while watching: 1, 2, 4 or 8
+	bool			mWatchAtStart;          // the -replay watch: the continue prompt waits for its end
+	int				mWatchSavedGameType;    // the app's state before the watch, given back by EndWatch
+	int				mWatchSavedSkill;
+	int				mWatchSavedTimesPlayed;
+	bool			mWatchSavedFlags[5];
+	bool			StartWatch(const std::string& thePath);   // false (and a message) when it cannot be played
+	void			EndWatch();
 
 	// port: test hooks (not in the original; the framework's -seed, -script, -fast and -trace are in
 	// SexyAppBase.h). None of them changes the game or its random streams.

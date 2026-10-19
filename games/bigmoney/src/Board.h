@@ -34,6 +34,8 @@ class HighScoreWidget;
 class Points;
 class WidgetManager;
 class Buffer;
+class ReplayRecorder;
+class ReplayPlayer;
 
 // Board::mState (+0xa0)
 enum BoardState
@@ -294,6 +296,11 @@ public:
 	uint32_t		mGameSeed;              // the seed the player chose for this game, 0 for none
 	bool			mUserSeeded;            // mGameSeed != 0: the board plays on it, with its own high-score tables
 	MTRand			mEffectsRand;           // a seeded game's effects (EffectsRand)
+	// port(mods): replays (Replay.h)
+	uint32_t		mRngSeed;               // the seed mRand started from (a replay's start)
+	ReplayRecorder*	mRecorder;              // this game is being recorded (the "replays" feature), else NULL
+	ReplayPlayer*	mPlayer;                // a playback board: it plays this replay and ignores the player's input
+	std::string		mReplayPath;            // the replay this game was written to at its game over ("" if none)
 
 public:
 	Board(WinBMApp* theApp);                                        // 0x40e760
@@ -379,6 +386,9 @@ public:
 	unsigned long	EffectsRand();
 	int				BagColumnRand();
 	void			UsePendingSeed();
+	// port(mods): replays (Replay.h): input to record, and the game-over screen
+	void			RecordInput(int theOp, int theX = 0, int theY = 0);
+	void			ReplayGameOver();
 	static std::string GetSaveGameFileName();                       // port: "userdata\\savegame.dat"
 
 	using Widget::MouseDown;

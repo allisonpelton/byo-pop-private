@@ -1,0 +1,12 @@
+{
+  "id": "replays",
+  "name": "Replays",
+  "version": "1.0",
+  "author": "byo-pop",
+  "description": "Records every finished game (the newest 50, and every one that made a high-score table). Watch one with R on the game-over screen, -replay=<file>, or the web page's Replays panel.",
+  "features": {
+    "replays": {
+      "keep": 50
+    }
+  }
+}

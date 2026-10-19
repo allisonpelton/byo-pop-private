@@ -425,6 +425,23 @@ void Board::Draw(Graphics* g)
 		else
 			g->DrawImage(mStatsFadeImage, 182, mHighScoreSlide + 162);
 	}
+
+	// port(mods): while a replay plays, a line over the coins says so, with its speed and keys (Replay.h)
+	if (mPlayer != NULL)
+	{
+		SexyString aText = mApp->GetString("REPLAY", _S("REPLAY")) + StrFormat(_S(" %dX"), mApp->mWatchSpeed);
+		if (mPauseCount > 0)
+			aText += _S(" ") + mApp->GetString("REPLAY_PAUSED", _S("PAUSED"));
+		SexyString aKeys = mApp->GetString("REPLAY_KEYS", _S("KEYS 1 TO 4 SPEED, SPACE PAUSE, ESC STOP"));
+		Font* aFont = mApp->mFont3;
+		g->SetFont(aFont);
+		g->SetColor(Color(0, 0, 0, 160));
+		g->FillRect(BOARD_X, BOARD_Y, BOARD_COLS * COIN_SIZE, 44);
+		g->SetColor(Color(0, 255, 0));
+		g->DrawString(aText, BOARD_X + (BOARD_COLS * COIN_SIZE - aFont->StringWidth(aText)) / 2, BOARD_Y + 18);
+		g->SetColor(Color(0, 170, 0));
+		g->DrawString(aKeys, BOARD_X + (BOARD_COLS * COIN_SIZE - aFont->StringWidth(aKeys)) / 2, BOARD_Y + 37);
+	}
 }
 
 // 0x402060
@@ -570,6 +587,23 @@ void Board::DrawStatsPanel(Graphics* g)
 		snprintf(aBuffer, sizeof(aBuffer), mApp->GetString("NEXT_RANK_AT_X_PTS").c_str(), aNextRank);
 		g->DrawString(aBuffer, 168, 195);
 	}
+
+	// port(mods): a game on a seed the player chose shows it (ModRules.h); "SEED" can be changed by a
+	// strings mod. Unseeded games draw nothing here, as the original.
+	if (mUserSeeded)
+	{
+		g->SetColor(Color(0, 141, 0));
+		g->DrawString(mApp->GetString("BOARD_SEED", _S("SEED")) + StrFormat(_S(" %u"), (unsigned) mGameSeed), 168, 223);
+	}
+
+	// port(mods): the game-over panel of a recorded game says how to watch it, on its top edge (the high
+	// scores cover its bottom) (Replay.h)
+	if ((isGameOver) && (!mReplayPath.empty()) && (mPlayer == NULL))
+	{
+		SexyString aHint = mApp->GetString("REPLAY_PRESS_R", _S("PRESS R TO WATCH THIS GAME"));
+		g->SetColor(Color(0, 212, 15));
+		g->DrawString(aHint, (396 - g->GetFont()->StringWidth(aHint)) / 2, 33);
+	}
 }
 
 // 0x4045e0
@@ -582,7 +616,9 @@ void Board::ShowContinueButton()
 	mContinueButton = new DialogButton(mApp->mImages[IMAGE_DIALOGBUTTON], 0, this);
 	mContinueButton->SetFont(mApp->mFont3);
 	mContinueButton->SetColor(ButtonWidget::COLOR_LABEL, Color(0, 255, 0));
-	if (mState == STATE_GAME_OVER_SCORES)
+	if ((mState == STATE_GAME_OVER_SCORES) && (mPlayer != NULL)) // port(mods): the end of a replay (Replay.h)
+		mContinueButton->mLabel = mApp->GetString("REPLAY_END", _S("END OF REPLAY. CLICK HERE TO GO ON"));
+	else if (mState == STATE_GAME_OVER_SCORES)
 		mContinueButton->mLabel = mApp->GetString("CLICK_HERE_TO_PLAY_AGAIN");
 	else
 		mContinueButton->mLabel = mApp->GetString("CLICK_HERE_TO_PLAY_NEXT_LEVEL");

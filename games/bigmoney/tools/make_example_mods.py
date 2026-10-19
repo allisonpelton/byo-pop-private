@@ -24,6 +24,7 @@ Creates, in games/bigmoney/mods/:
                 minting, a bigger meter, at least two bags a level, and a doubled score multiplier with
                 more points for big groups
 A mod with tunables keeps its own high-score tables and save, so these never mix with the normal game's.
+  replays/      "Replays": the port's replay feature (games/bigmoney/src/Replay.h), nothing else
 
 The coin rows keep the game's colours (red, blue, yellow, green, purple), so groups read the same; each
 gets a symbol in the spirit of a cryptocurrency mark, drawn from simple shapes: a tilted B with bars (red
@@ -559,6 +560,30 @@ def make_tunable_mods(mods_dir):
         print("wrote", out_dir)
 
 
+# Port features: only a mod.json each; they change nothing in play, keep the normal high scores and show no
+# mods sign (games/bigmoney/src/ModRules.h)
+FEATURE_MODS = [
+    {
+        "id": "replays",
+        "name": "Replays",
+        "description": "Records every finished game (the newest 50, and every one that made a high-score table). "
+                       "Watch one with R on the game-over screen, -replay=<file>, or the web page's Replays panel.",
+        "features": {"replays": {"keep": 50}},
+    },
+]
+
+
+def make_feature_mods(mods_dir):
+    for mod in FEATURE_MODS:
+        out_dir = os.path.join(mods_dir, mod["id"])
+        os.makedirs(out_dir, exist_ok=True)
+        manifest = {"id": mod["id"], "name": mod["name"], "version": "1.0", "author": "byo-pop",
+                    "description": mod["description"], "features": mod["features"]}
+        with open(os.path.join(out_dir, "mod.json"), "w", encoding="utf-8", newline="\n") as f:
+            f.write(json.dumps(manifest, indent=2) + "\n")
+        print("wrote", out_dir)
+
+
 def main():
     here = os.path.dirname(os.path.abspath(__file__))
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
@@ -566,6 +591,7 @@ def main():
     args = ap.parse_args()
     make_fake_money(os.path.abspath(args.out))
     make_tunable_mods(os.path.abspath(args.out))
+    make_feature_mods(os.path.abspath(args.out))
 
 
 if __name__ == "__main__":

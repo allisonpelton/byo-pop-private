@@ -115,6 +115,7 @@ input[type=file] { display: none; }
   <span class="brand"><span class="gem" aria-hidden="true"></span>Big Money Deluxe</span>
   <span class="status" id="status">Starting…</span>
   <button id="btn-mods" type="button">Mods</button>
+  <button id="btn-replays" type="button">Replays</button>
   <button id="btn-files" type="button">Game files</button>
   <button id="btn-full" type="button">Fullscreen</button>
 </div>
@@ -183,6 +184,21 @@ input[type=file] { display: none; }
   </div>
 </aside>
 
+<aside class="panel" id="panel-replays" hidden aria-label="Replays">
+  <header><h2>Replays</h2><button type="button" data-close>Close</button></header>
+  <div class="body">
+    <p class="note">With the <span class="mono">replays</span> mod on, every finished game is kept here (the newest 50,
+      and every one that made a high-score table). Watch one, or press R on the game-over screen to watch the game
+      you just played. While watching: 1 to 4 for the speed, space to pause, Esc to stop.</p>
+    <div class="row">
+      <label class="button" for="pick-replay">Import .bmr</label>
+      <input type="file" id="pick-replay" accept=".bmr" multiple>
+    </div>
+    <div class="mods" id="replay-list"></div>
+    <p class="note" id="replay-msg"></p>
+  </div>
+</aside>
+
 <aside class="panel" id="panel-files" hidden aria-label="Game files">
   <header><h2>Game files</h2><button type="button" data-close>Close</button></header>
   <div class="body">
@@ -206,6 +222,8 @@ input[type=file] { display: none; }
   var GAME = PERSIST + "/game";
   var USER = PERSIST + "/userdata";
   var MODS = PERSIST + "/mods";
+  // Replays (games/bigmoney/src/Replay.h): beside the user dir, so its localStorage backup does not carry them
+  var REPLAYS = PERSIST + "/replays";
   var GAME_DIRS = ["images", "data", "sounds", "music", "properties"];
   var $ = function (id) { return document.getElementById(id); };
   var statusEl = $("status");
@@ -274,7 +292,7 @@ input[type=file] { display: none; }
     try { fs.mkdir(PERSIST); } catch (e) {}
     fs.mount(fs.filesystems.IDBFS, {}, PERSIST);
     return sync(true).then(function () {
-      [GAME, USER, MODS].forEach(function (d) { try { fs.mkdirTree(d); } catch (e) {} });
+      [GAME, USER, MODS, REPLAYS].forEach(function (d) { try { fs.mkdirTree(d); } catch (e) {} });
     });
   }
 
@@ -515,14 +533,92 @@ input[type=file] { display: none; }
     var seed = /^[0-9]{1,10}$/.test(digits) ? Number(digits) : 0;
     return (seed >= 1 && seed <= 4294967295) ? seed : -1;
   }
+  // ?replay=<name>: watch that replay from REPLAYS (passed on as -replay=). A plain file name only.
+  function pageReplay() {
+    var name = new URLSearchParams(location.search).get("replay") || "";
+    return (/^[A-Za-z0-9._-]+\.bmr$/.test(name) && exists(REPLAYS + "/" + name)) ? name : "";
+  }
+
+  // ---------- replays ----------
+  var MODE_NAMES = { action: "Action", strategy: "Strategy", puzzle: "Puzzle" };
+  function renderReplays() {
+    var list = $("replay-list");
+    list.textContent = "";
+    var names = listDir(REPLAYS).filter(function (n) { return /\.bmr$/i.test(n); }).sort().reverse();
+    if (!names.length) {
+      var empty = document.createElement("div");
+      empty.className = "empty";
+      empty.textContent = "No replays yet.";
+      list.appendChild(empty);
+      return;
+    }
+    names.forEach(function (n) {
+      // <yyyymmdd>-<hhmmss>-<mode>-<skill>-<score>[-<n>][-keep].bmr
+      var m = /^(\d{4})(\d{2})(\d{2})-(\d{2})(\d{2})\d{2}-([a-z]+)-([a-z]+)-(\d+)/.exec(n);
+      var row = document.createElement("div");
+      row.className = "mod";
+      var meta = document.createElement("div");
+      meta.className = "meta";
+      meta.innerHTML = '<div class="name"></div><div class="sub"></div>';
+      meta.querySelector(".name").textContent = m ? (MODE_NAMES[m[6]] || m[6]) + ", " + m[7] + ": $" + m[8] : n;
+      meta.querySelector(".sub").textContent = m ? m[1] + "-" + m[2] + "-" + m[3] + " " + m[4] + ":" + m[5] +
+        (/-keep\.bmr$/i.test(n) ? " · kept" : "") : "";
+      var actions = document.createElement("div");
+      actions.className = "actions";
+      var watch = document.createElement("button");
+      watch.type = "button"; watch.textContent = "Watch"; watch.setAttribute("aria-label", "Watch " + n);
+      watch.addEventListener("click", function () {
+        var params = new URLSearchParams(location.search);
+        params.set("replay", n);
+        params.delete("seed");
+        location.search = params.toString();
+      });
+      var save = document.createElement("button");
+      save.type = "button"; save.textContent = "Download"; save.setAttribute("aria-label", "Download " + n);
+      save.addEventListener("click", function () {
+        var url = URL.createObjectURL(new Blob([FS().readFile(REPLAYS + "/" + n)], { type: "application/octet-stream" }));
+        var a = document.createElement("a");
+        a.href = url; a.download = n;
+        document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+      });
+      var del = document.createElement("button");
+      del.type = "button"; del.textContent = "Delete"; del.setAttribute("aria-label", "Delete " + n);
+      del.addEventListener("click", function () {
+        if (del.dataset.armed) { try { FS().unlink(REPLAYS + "/" + n); } catch (e) {} sync(false).then(renderReplays); }
+        else { del.dataset.armed = "1"; del.textContent = "Confirm"; }
+      });
+      actions.appendChild(watch); actions.appendChild(save); actions.appendChild(del);
+      row.appendChild(meta); row.appendChild(actions);
+      list.appendChild(row);
+    });
+  }
+  function importReplays(files) {
+    var bad = [];
+    return Array.prototype.slice.call(files).reduce(function (p, f) {
+      return p.then(function () { return f.arrayBuffer(); }).then(function (buf) {
+        var b = new Uint8Array(buf);
+        var name = f.name.replace(/[^A-Za-z0-9._-]/g, "_");
+        if (b.length < 8 || String.fromCharCode(b[0], b[1], b[2], b[3]) !== "BMRP" || !/\.bmr$/i.test(name)) { bad.push(f.name); return; }
+        writeFile(REPLAYS + "/" + name, b);
+      });
+    }, Promise.resolve()).then(function () { return sync(false); }).then(function () {
+      $("replay-msg").textContent = bad.length ? "Not a Big Money replay: " + bad.join(", ") : "";
+      renderReplays();
+    });
+  }
+
   function startGame() {
     $("start-overlay").hidden = true;
     var enabled = modState.filter(function (m) { return m.enabled; }).length;
     var seed = pageSeed();
     var seedText = (seed > 0) ? " · seed " + seed : (seed < 0) ? " · seed ignored: it must be 1 to 4294967295" : "";
+    var replay = pageReplay();
+    var replayText = replay ? " · watching a replay" : "";
     Module.silentAudio = pageSilent();
-    setStatus((enabled ? enabled + " mod" + (enabled > 1 ? "s" : "") + " active" : "No mods active") + seedText + (Module.silentAudio ? " · silent" : ""));
-    Module.callMain(["-gamedir=" + GAME, "-userdir=" + USER, "-modsdir=" + MODS].concat((seed > 0) ? ["-gameseed=" + seed] : []));
+    setStatus((enabled ? enabled + " mod" + (enabled > 1 ? "s" : "") + " active" : "No mods active") + seedText + replayText + (Module.silentAudio ? " · silent" : ""));
+    Module.callMain(["-gamedir=" + GAME, "-userdir=" + USER, "-modsdir=" + MODS, "-replaydir=" + REPLAYS]
+      .concat((seed > 0) ? ["-gameseed=" + seed] : []).concat(replay ? ["-replay=" + REPLAYS + "/" + replay] : []));
     $("canvas").focus();
   }
   function boot() {
@@ -560,11 +656,13 @@ input[type=file] { display: none; }
   });
   $("btn-apply-mods").addEventListener("click", function () { saveModConfig().then(function () { location.reload(); }); });
 
-  function openPanel(id) { ["panel-mods", "panel-files"].forEach(function (p) { $(p).hidden = p !== id; }); }
+  function openPanel(id) { ["panel-mods", "panel-replays", "panel-files"].forEach(function (p) { $(p).hidden = p !== id; }); }
   document.querySelectorAll("[data-close]").forEach(function (b) {
     b.addEventListener("click", function () { b.closest(".panel").hidden = true; $("canvas").focus(); });
   });
   $("btn-mods").addEventListener("click", function () { refreshMods(); openPanel("panel-mods"); });
+  $("btn-replays").addEventListener("click", function () { renderReplays(); openPanel("panel-replays"); });
+  $("pick-replay").addEventListener("change", function (ev) { importReplays(ev.target.files); ev.target.value = ""; });
   $("btn-files").addEventListener("click", function () {
     var n = 0;
     GAME_DIRS.forEach(function (d) { n += listDir(GAME + "/" + d).length; });

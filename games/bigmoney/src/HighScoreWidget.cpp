@@ -307,7 +307,7 @@ void HighScoreWidget::Update()
 	Widget::Update();
 
 	// About 2.8 s after the Board added the widget (its slide ends at tick 253)
-	if (mUpdateCnt == CHECK_HIGH_SCORE_TICK)
+	if ((mUpdateCnt == CHECK_HIGH_SCORE_TICK) && (!mViewOnly)) // port(mods): not for a replay
 		DoCheckForHighScore();
 
 	if (mUpdateCnt % 10 == 0)
@@ -357,10 +357,11 @@ void HighScoreWidget::AddHighScore(const std::string& theName)
 }
 
 // 0x414640
-HighScoreWidget::HighScoreWidget(WinBMApp* theApp, bool theSeededTables)
+HighScoreWidget::HighScoreWidget(WinBMApp* theApp, bool theSeededTables, bool theViewOnly)
 {
 	mApp = theApp;
 	mColorCycle = 0;
+	mViewOnly = theViewOnly; // port(mods)
 	mFileName = ScopedUserFileName(HIGHSCORE_FILE_NAME, theSeededTables); // port(mods)
 
 	// port: the original first creates the internet submit button (id 0, label
@@ -417,8 +418,10 @@ HighScoreWidget::~HighScoreWidget()
 	// (the original also deletes +0x94, +0x98 (always NULL) and the internet submit button)
 	delete mNewGameButton;
 
-	// Every destruction rewrites hiscores.dat, HighScoreDialog's private copy included
-	SaveHighScores();
+	// Every destruction rewrites hiscores.dat, HighScoreDialog's private copy included. port(mods): not a
+	// replay's
+	if (!mViewOnly)
+		SaveHighScores();
 }
 
 // 0x401c70 (one body with Board's ButtonPress)
