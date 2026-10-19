@@ -8,6 +8,8 @@
 //   -gamedir=<dir>       game data folder (default: the repo's assets/bejeweled; /assets on the web)
 //   -frames=N            after N frames drawn once loading has finished...
 //   -screenshot=<png>    ...save the screen (DDInterface::ReadScreen) as PNG, then shut down
+//   -hotkeytest          the mod menu's F2 (docs/MOD_MENU_DESIGN.md 7.3): SDL key events through HandleEvent, as
+//                        real input arrives; prints one line per check and exits with the number that failed
 
 #include "SexyAppBase.h"
 #include "WidgetManager.h"
@@ -21,6 +23,8 @@
 #include "ImageFont.h"
 #include "SoundManager.h"
 #include "MusicInterface.h"
+#include "ModMenu.h"
+#include "platform/ModManager.h"
 #include "platform/VFS.h"
 
 #include <SDL.h>
@@ -47,12 +51,21 @@ const int BUTTON_DIALOG = 1;
 
 class FwTestApp;
 
+int gHotkeyFailures = 0;
+
 class FwTestBoard : public Widget, public ButtonListener
 {
 public:
 	FwTestApp* mApp;
 	ButtonWidget* mDialogButton;
 	int mUpdateCnt;
+	int mKeyDowns;  // the keys and characters that reached the board (-hotkeytest)
+	int mKeyUps;
+	int mKeyChars;
+
+	virtual void KeyDown(KeyCode theKey) { mKeyDowns++; Widget::KeyDown(theKey); }
+	virtual void KeyUp(KeyCode theKey) { mKeyUps++; Widget::KeyUp(theKey); }
+	virtual void KeyChar(SexyChar theChar) { mKeyChars++; Widget::KeyChar(theChar); }
 
 	FwTestBoard(FwTestApp* theApp);
 	virtual ~FwTestBoard();
@@ -78,6 +91,7 @@ public:
 	int mScreenshotFrames;
 	std::string mScreenshotPath;
 	int mFramesSinceLoaded;
+	bool mHotkeyTest;
 
 	FwTestApp()
 	{
@@ -96,6 +110,7 @@ public:
 		mBoard = NULL;
 		mScreenshotFrames = 0;
 		mFramesSinceLoaded = 0;
+		mHotkeyTest = false;
 	}
 
 	virtual ~FwTestApp()
@@ -119,6 +134,8 @@ public:
 			mScreenshotFrames = atoi(theParamValue.c_str());
 		else if (theParamName == "-screenshot")
 			mScreenshotPath = theParamValue;
+		else if (theParamName == "-hotkeytest")
+			mHotkeyTest = true;
 		else if (theParamName != "-gamedir") // handled by main()
 			SexyAppBase::HandleCmdLineParam(theParamName, theParamValue);
 	}
@@ -201,9 +218,141 @@ public:
 		}
 	}
 
+	void SendKey(Uint32 theType, SDL_Keycode theKey, Uint16 theMod, Uint8 theRepeat)
+	{
+		SDL_Event anEvent;
+		SDL_zero(anEvent);
+		anEvent.type = theType;
+		anEvent.key.state = (theType == SDL_KEYDOWN) ? SDL_PRESSED : SDL_RELEASED;
+		anEvent.key.repeat = theRepeat;
+		anEvent.key.keysym.sym = theKey;
+		anEvent.key.keysym.mod = theMod;
+		HandleEvent(anEvent);
+	}
+
+	void SendText(const char* theText)
+	{
+		SDL_Event anEvent;
+		SDL_zero(anEvent);
+		anEvent.type = SDL_TEXTINPUT;
+		SDL_strlcpy(anEvent.text.text, theText, sizeof(anEvent.text.text));
+		HandleEvent(anEvent);
+	}
+
+	void Check(const char* theWhat, bool isOk)
+	{
+		SDL_Log("hotkey: %s: %s", isOk ? "ok" : "FAILED", theWhat);
+		if (!isOk)
+			gHotkeyFailures++;
+	}
+
+	// F2 opens and closes the mod menu, only as a press without modifiers that is not a repeat, never in a run
+	// with scripted input; neither it nor its release reaches the game; Esc closes the menu and types nothing into
+	// the game
+	void RunHotkeyTest()
+	{
+		KillDialog(DIALOG_TEST);
+		ProcessSafeDeleteList();
+		Check("the board has the keyboard", mWidgetManager->mFocusWidget == mBoard);
+
+		SendKey(SDL_KEYDOWN, SDLK_F2, KMOD_NONE, 0);
+		Check("F2 opens the menu", IsModMenuOpen());
+		Check("the menu has the keyboard", mWidgetManager->mFocusWidget == mModMenu);
+		SendKey(SDL_KEYDOWN, SDLK_F2, KMOD_NONE, 1);
+		Check("a repeat of F2 leaves it open", IsModMenuOpen());
+		SendKey(SDL_KEYUP, SDLK_F2, KMOD_NONE, 0);
+		SendKey(SDL_KEYDOWN, SDLK_F2, KMOD_NUM, 0);
+		Check("F2 (Num Lock on) closes it", !IsModMenuOpen());
+		SendKey(SDL_KEYUP, SDLK_F2, KMOD_NUM, 0);
+		ProcessSafeDeleteList();
+		Check("the board has the keyboard again", mWidgetManager->mFocusWidget == mBoard);
+		Check("the board saw no key of it", (mBoard->mKeyDowns == 0) && (mBoard->mKeyUps == 0) && (mBoard->mKeyChars == 0));
+
+		const Uint16 aMods[] = { KMOD_LSHIFT, KMOD_RCTRL, KMOD_LALT, KMOD_LGUI };
+		const char* aNames[] = { "Shift+F2", "Ctrl+F2", "Alt+F2", "Win+F2" };
+		for (int i = 0; i < 4; i++)
+		{
+			SendKey(SDL_KEYDOWN, SDLK_F2, aMods[i], 0);
+			std::string aWhat = std::string(aNames[i]) + " does not open it";
+			Check(aWhat.c_str(), !IsModMenuOpen());
+			SendKey(SDL_KEYUP, SDLK_F2, aMods[i], 0);
+			CloseModMenu();
+		}
+		Check("... and goes to the game as a key", mBoard->mKeyDowns == 4);
+
+		mScriptedInput = true;
+		SendKey(SDL_KEYDOWN, SDLK_F2, KMOD_NONE, 0);
+		Check("with scripted input F2 does nothing", !IsModMenuOpen());
+		SendKey(SDL_KEYUP, SDLK_F2, KMOD_NONE, 0);
+		mScriptedInput = false;
+
+		// Esc on the list closes the menu, on its character: the game gets the key's release only
+		SendKey(SDL_KEYDOWN, SDLK_F2, KMOD_NONE, 0);
+		SendKey(SDL_KEYUP, SDLK_F2, KMOD_NONE, 0);
+		int aChars = mBoard->mKeyChars;
+		int aDowns = mBoard->mKeyDowns;
+		int anUps = mBoard->mKeyUps;
+		SendKey(SDL_KEYDOWN, SDLK_ESCAPE, KMOD_NONE, 0);
+		Check("Esc closes the menu", !IsModMenuOpen());
+		Check("the game gets neither Esc's key nor its character", (mBoard->mKeyChars == aChars) && (mBoard->mKeyDowns == aDowns));
+		// Esc held: its repeats go nowhere (Bejeweled's board would pause on their characters), its release goes on
+		for (int i = 0; i < 3; i++)
+			SendKey(SDL_KEYDOWN, SDLK_ESCAPE, KMOD_NONE, 1);
+		Check("the game gets none of the repeats of the Esc that closed it", (mBoard->mKeyChars == aChars) && (mBoard->mKeyDowns == aDowns));
+		SendKey(SDL_KEYUP, SDLK_ESCAPE, KMOD_NONE, 0);
+		Check("... and gets its release", mBoard->mKeyUps == anUps + 1);
+		SendKey(SDL_KEYDOWN, SDLK_ESCAPE, KMOD_NONE, 0);
+		Check("the next Esc press goes to the game", (mBoard->mKeyChars == aChars + 1) && (mBoard->mKeyDowns == aDowns + 1));
+		SendKey(SDL_KEYUP, SDLK_ESCAPE, KMOD_NONE, 0);
+		ProcessSafeDeleteList();
+
+		// Enter on the menu's Close button (Tab from the empty list goes round to it) closes it the same way
+		SendKey(SDL_KEYDOWN, SDLK_F2, KMOD_NONE, 0);
+		SendKey(SDL_KEYUP, SDLK_F2, KMOD_NONE, 0);
+		aChars = mBoard->mKeyChars;
+		aDowns = mBoard->mKeyDowns;
+		SendKey(SDL_KEYDOWN, SDLK_RETURN, KMOD_NONE, 0);
+		Check("Enter on Close closes the menu", !IsModMenuOpen());
+		Check("the game gets no character of Enter", mBoard->mKeyChars == aChars);
+		SendKey(SDL_KEYDOWN, SDLK_RETURN, KMOD_NONE, 1);
+		SendKey(SDL_KEYDOWN, SDLK_RETURN, KMOD_NONE, 1);
+		Check("... nor of its repeats", (mBoard->mKeyChars == aChars) && (mBoard->mKeyDowns == aDowns));
+		SendKey(SDL_KEYUP, SDLK_RETURN, KMOD_NONE, 0);
+		ProcessSafeDeleteList();
+
+		// Space on Close: it closes the menu on the text it types; the repeats and their text go nowhere, another
+		// key pressed meanwhile still types
+		SendKey(SDL_KEYDOWN, SDLK_F2, KMOD_NONE, 0);
+		SendKey(SDL_KEYUP, SDLK_F2, KMOD_NONE, 0);
+		aChars = mBoard->mKeyChars;
+		aDowns = mBoard->mKeyDowns;
+		SendKey(SDL_KEYDOWN, SDLK_SPACE, KMOD_NONE, 0);
+		SendText(" ");
+		Check("Space on Close closes the menu", !IsModMenuOpen());
+		SendKey(SDL_KEYDOWN, SDLK_SPACE, KMOD_NONE, 1);
+		SendText(" ");
+		SendKey(SDL_KEYDOWN, SDLK_SPACE, KMOD_NONE, 1);
+		SendText(" ");
+		Check("the game gets nothing of Space or its repeats", (mBoard->mKeyChars == aChars) && (mBoard->mKeyDowns == aDowns));
+		SendKey(SDL_KEYDOWN, SDLK_a, KMOD_NONE, 0);
+		SendText("a");
+		Check("a key pressed while Space is held still reaches the game", (mBoard->mKeyChars == aChars + 1) && (mBoard->mKeyDowns == aDowns + 1));
+		SendKey(SDL_KEYUP, SDLK_a, KMOD_NONE, 0);
+		SendKey(SDL_KEYUP, SDLK_SPACE, KMOD_NONE, 0);
+		ProcessSafeDeleteList();
+
+		SDL_Log("hotkey: %d failed", gHotkeyFailures);
+	}
+
 	virtual bool DrawDirtyStuff()
 	{
 		bool drawn = SexyAppBase::DrawDirtyStuff();
+
+		if ((drawn) && (mLoaded) && (mHotkeyTest) && (mBoard != NULL) && (++mFramesSinceLoaded == 3))
+		{
+			RunHotkeyTest();
+			Shutdown();
+		}
 
 		if ((drawn) && (mLoaded) && (mScreenshotFrames > 0) && (++mFramesSinceLoaded == mScreenshotFrames))
 		{
@@ -245,6 +394,9 @@ FwTestBoard::FwTestBoard(FwTestApp* theApp)
 {
 	mApp = theApp;
 	mUpdateCnt = 0;
+	mKeyDowns = 0;
+	mKeyUps = 0;
+	mKeyChars = 0;
 
 	mDialogButton = new ButtonWidget(BUTTON_DIALOG, this);
 	mDialogButton->mLabel = _S("DIALOG");
@@ -345,6 +497,8 @@ int main(int argc, char* argv[])
 	Platform::MakeDirs(FWTEST_USERDIR);
 	Platform::VFS::Get().SetBaseDir(aGameDir);
 	Platform::VFS::Get().SetUserDir(FWTEST_USERDIR);
+	// the mod menu (-hotkeytest) shows the mods of a folder that does not exist: none
+	Platform::ModManager::Get().SetModsDir(FWTEST_USERDIR "/fwtest-no-mods");
 	SDL_Log("fwtest: game data %s, user data %s", aGameDir.c_str(), FWTEST_USERDIR);
 
 	static FwTestApp* anApp = new FwTestApp();
@@ -355,5 +509,5 @@ int main(int argc, char* argv[])
 	// (on the web Start() hands the loop to the browser and doesn't return)
 	delete anApp;
 #endif
-	return 0;
+	return gHotkeyFailures;
 }

@@ -9,11 +9,14 @@
 //   -replaydir=<dir> where recorded games go (default <user dir>/replays; web /bmpersist/replays)
 //   -gameseed=N      play the next game on seed N, 1..4294967295 (ModRules.h; the web shell passes ?seed=N
 //                    as this)
+//   -dumpmods        print the mods, their settings and what is pending as JSON (the mod menu's model,
+//                    Platform::ModManager::GetStateJson), then exit
 // Remaining "-key=value" arguments are passed to the app (SexyAppBase::HandleCmdLineParam), e.g. the
 // framework's test hooks -seed=N, -script=<file>, -fast and -trace (see SexyAppBase.h).
 
 #include "WinBMApp.h"
 #include "platform/ModManager.h"
+#include "platform/Relaunch.h"
 #include "platform/VFS.h"
 #include "platform/WebPersist.h"
 
@@ -214,6 +217,12 @@ int main(int argc, char** argv)
 	if (!HasFlag(argc, argv, "nomods"))
 		Platform::ModManager::Get().Refresh();
 	SDL_Log("game: %s | user: %s | mods: %s", gameDir.c_str(), userDir.c_str(), modsDir.c_str());
+	if (HasFlag(argc, argv, "dumpmods"))
+	{
+		printf("%s\n", Platform::ModManager::Get().GetStateJson().c_str());
+		fflush(stdout);
+		return 0;
+	}
 
 	// The original keeps the app as a global object and calls Init, Start and Shutdown on it.
 	static WinBMApp* anApp = new WinBMApp();
@@ -231,7 +240,12 @@ int main(int argc, char** argv)
 	anApp->Start();
 #ifndef __EMSCRIPTEN__
 	anApp->Shutdown();
+	// port: the mod menu's "Restart game" starts the game again (platform/Relaunch.h; the web page reloads)
+	std::vector<std::string> aRestartArgs;
+	bool restart = anApp->TakeRelaunch(&aRestartArgs);
 	delete anApp;
+	if (restart)
+		Platform::Relaunch(aRestartArgs, "Big Money Deluxe");
 #endif
 	return 0;
 }

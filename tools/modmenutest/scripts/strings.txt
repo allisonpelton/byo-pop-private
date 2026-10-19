@@ -1,0 +1,3 @@
+# Any game: start with run_tests.sh's "texts" mod (strings with %) and quit at the title screen. The log says which
+# mod texts LoadProperties refused.
+250 quit

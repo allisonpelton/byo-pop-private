@@ -2,6 +2,7 @@
 #include "MTRand.h"
 #include "Debug.h"
 #include "../platform/VFS.h"
+#include "../platform/Text.h"
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <errno.h>
@@ -241,6 +242,11 @@ std::wstring Sexy::SexyStringToWString(const SexyString& theString)
 #else
 	return StringToWString(theString);
 #endif
+}
+
+std::string Sexy::UTF8ToLatin1(const std::string& theString, char theReplacement)
+{
+	return Platform::Utf8ToLatin1(theString, theReplacement);
 }
 
 std::string Sexy::Trim(const std::string& theString)

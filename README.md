@@ -32,19 +32,47 @@ Later candidates, and what it takes to port each, are surveyed in
 [docs/POPCAP_GAMES_SURVEY.md](docs/POPCAP_GAMES_SURVEY.md); planned mods are in
 [docs/MOD_ROADMAP.md](docs/MOD_ROADMAP.md).
 
+## Mods
+
+Every game loads mods the same way (`platform/ModManager.h`). A mod is a folder of files at the game's own paths
+(`images/`, `sounds/`, `music/`, `data/`, `properties/`), plus an optional `mod.json`. Each game's README lists
+what its mods can change.
+
+- **The mod menu.** Press **F2** in any game, natively or in the browser. It lists the installed mods in load
+  order. There you can turn each one on or off, move it, and change the settings a mod offers. It also shows
+  each mod's errors and what is still waiting. Every change is saved at once. **Restart game** applies
+  changes that need a restart; with a game in progress it asks first, and the game is saved as on Quit.
+- **Native.** Mods are folders in the mods folder (`-modsdir=<dir>`, default `mods` next to the game).
+  `-nomods` starts once without them. The menu can then turn off a mod that stops the game from starting, and
+  Restart game brings the mods back.
+- **Web.** The page's **Mods** button opens the menu while the game runs. Before the game starts, it opens a
+  panel that adds mods (a folder or a .zip) and removes them. Inside the game, the menu's **Add or remove
+  mods** opens the same panel. The panel also offers **Play without mods** when a mod stopped the game from
+  starting.
+- **What is stored.** The menu writes two files in the user dir, next to the saves:
+  - `mods.json`: the order and the mods turned off;
+  - `mod-settings.json`: the values that differ from their defaults.
+
+  Both can be edited by hand while the game is closed. Keys the game does not know are kept.
+- **Scores.** Mods and values that change play give the player separate high scores and a separate saved game.
+  The menu marks them SCORES.
+
+How a mod declares settings, and how their values reach its data, is in
+[docs/MOD_MENU.md](docs/MOD_MENU.md); the design is in [docs/MOD_MENU_DESIGN.md](docs/MOD_MENU_DESIGN.md).
+
 ## Layout
 
 ```
 framework/         portable SexyAppFramework 1.3 subset with an SDL2 backend (shared)
-platform/          VFS, audio mixer, mod manager, image loader, JSON, browser save backup, Steam
-                   install lookup (shared)
+platform/          VFS, audio mixer, mod manager and mod settings, image loader, JSON, browser save
+                   backup, the web page's C functions, Steam install lookup (shared)
 third_party/       stb, libxmp-lite
-cmake/             the shared CMake toolchain file (llvm-mingw, i686)
-web/               the HTML shell the web builds use (shared)
+cmake/             the shared CMake toolchain file (llvm-mingw, i686) and the web link options
+web/               the HTML shell the web builds use, and modpanel.js, every page's Mods panel (shared)
 tools/             shared pipeline: build.sh, DRM-wrapper carving, Ghidra scripts, symbol merging,
                    .pak reader, game triage, rundesk (invisible test runs), fwtest, smoke
 docs/              notes shared by every game: framework identification, games survey, mod roadmap,
-                   research
+                   mod settings and the mod menu, research
 games/<game>/      one game: src/ (the translated game code), docs/, mods/, tools/, CMakeLists.txt,
                    README.md
 assets/<game>/     your staged game files (git-ignored)

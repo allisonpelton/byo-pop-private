@@ -1,0 +1,7 @@
+# Big Money: a restart from the menu on the title screen, after a change that waits for it. In a test run the
+# game only logs the restart; run_tests.sh then runs it again with BYOPOP_RELAUNCH_TEST_ARGS, and
+# bigmoney-relaunched.txt runs in the process that starts.
+250 modmenu set settings-demo praise "WOW"
+260 modmenu restart
+# (the game has shut down by now; this line is never reached)
+900 quit

@@ -1,0 +1,13 @@
+{
+  "v": 1,
+  "mods": {
+    "gone-mod": {
+      "speed": 3
+    },
+    "settings-demo": {
+      "music": "remix",
+      "volume": 30
+    }
+  },
+  "extra": "a key the game does not know: kept"
+}

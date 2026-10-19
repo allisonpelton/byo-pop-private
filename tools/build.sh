@@ -36,7 +36,7 @@ case "${1:-all}" in
 	web) web web ;;
 	all) native native; web web ;;
 	novariants) native native-novariants -DBEJ_NO_VARIANTS=ON -DBUILD_FWTEST=OFF -DBUILD_RULESTEST=OFF \
-		-DBUILD_SMOKE=OFF -DBUILD_LSPROBE=OFF ;;
+		-DBUILD_SMOKE=OFF -DBUILD_LSPROBE=OFF -DBUILD_MODSETTINGSTEST=OFF ;;
 	web-test) web web-test -DBUILD_FWTEST=OFF -DBUILD_SMOKE=OFF ;;
 	*) echo "usage: $0 [native|web|all|novariants|web-test]"; exit 2 ;;
 esac

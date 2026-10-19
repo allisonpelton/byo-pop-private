@@ -1,0 +1,15 @@
+# Bejeweled: the mod menu instead of Options (pause-options.txt), opened and closed by command at the same
+# updates, with the mouse moved where the clicks were (after the close, as the click on Options' Done reaches the
+# board after the dialog went): the -tracehash must be the same, except while the game is paused, where Options
+# is an open dialog (both hashes include the dialog ids) and the menu is not.
+300 click 320 398
+460 click 482 295
+461 click 533 295
+620 move 96 261
+620 modmenu open
+640 screenshot shots/p01_menu.png
+720 modmenu close
+720 move 407 299
+760 click 431 193
+761 click 431 244
+900 quit

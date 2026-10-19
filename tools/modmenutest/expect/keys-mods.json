@@ -1,0 +1,9 @@
+{
+  "disabled": [
+    "plain-demo"
+  ],
+  "order": [
+    "plain-demo",
+    "settings-demo"
+  ]
+}

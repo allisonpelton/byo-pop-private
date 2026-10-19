@@ -47,6 +47,7 @@ public:
 	bool Has(const std::string& theKey) const;
 	const JsonValue& operator[](const std::string& theKey) const;
 	JsonValue& Set(const std::string& theKey, const JsonValue& v);
+	bool Remove(const std::string& theKey);  // removes the member; false if there is none
 	const std::vector<std::pair<std::string, JsonValue>>& Members() const { return mObject; }
 
 	std::string Dump(int theIndent = 2) const;

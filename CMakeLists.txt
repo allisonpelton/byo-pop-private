@@ -24,6 +24,8 @@ else()
 endif()
 
 add_subdirectory(third_party)
+# byopop_web_game(): every game's web link options (shell page, runtime methods, the shell's C functions)
+include(cmake/ByopopWeb.cmake)
 
 # The web smoke and fwtest pack Bejeweled's staged files (assets/bejeweled/) into their .data file, so a
 # web build leaves them out until those files are staged (games/bejeweled/tools/stage_assets.py, then
@@ -78,6 +80,33 @@ elseif(BUILD_FWTEST)
       FWTEST_USERDIR="${CMAKE_BINARY_DIR}/userdata")
     add_custom_command(TARGET fwtest POST_BUILD
       COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:SDL2::SDL2> ${PORT_RUNTIME_DLLS} $<TARGET_FILE_DIR:fwtest>
+      VERBATIM)
+  endif()
+endif()
+
+# Mod settings tests (tools/modsettingstest): the settings schema, values, placeholders, levels and score key
+# entries (platform/ModSettings.*) and the mod menu's model in ModManager (mods.json and mod-settings.json
+# edits, the effective manifests, next-game commits). Native: modsettingstest.exe. Web: modsettingstest.js,
+# run with Node; both check the same vectors.
+option(BUILD_MODSETTINGSTEST "Build the mod settings tests" ON)
+if(BUILD_MODSETTINGSTEST)
+  add_executable(modsettingstest tools/modsettingstest/modsettingstest.cpp)
+  target_link_libraries(modsettingstest PRIVATE sexyframework)
+  if(NOT MSVC)
+    target_compile_options(modsettingstest PRIVATE -Wall)
+  endif()
+  if(EMSCRIPTEN)
+    set_target_properties(modsettingstest PROPERTIES SUFFIX ".js")
+    target_compile_definitions(modsettingstest PRIVATE MODSETTINGSTEST_FIXTURES="/fixtures/mods"
+      MODSETTINGSTEST_EXAMPLE="/examples/example-settings/mod.json")
+    target_link_options(modsettingstest PRIVATE "-sENVIRONMENT=node" "-sEXIT_RUNTIME=1" "-sALLOW_MEMORY_GROWTH=1"
+      "--embed-file=${PROJECT_SOURCE_DIR}/tools/fixtures/mods@/fixtures/mods"
+      "--embed-file=${PROJECT_SOURCE_DIR}/games/bejeweled/mods/example-settings/mod.json@/examples/example-settings/mod.json")
+  else()
+    target_compile_definitions(modsettingstest PRIVATE MODSETTINGSTEST_FIXTURES="${PROJECT_SOURCE_DIR}/tools/fixtures/mods"
+      MODSETTINGSTEST_EXAMPLE="${PROJECT_SOURCE_DIR}/games/bejeweled/mods/example-settings/mod.json")
+    add_custom_command(TARGET modsettingstest POST_BUILD
+      COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:SDL2::SDL2> ${PORT_RUNTIME_DLLS} $<TARGET_FILE_DIR:modsettingstest>
       VERBATIM)
   endif()
 endif()

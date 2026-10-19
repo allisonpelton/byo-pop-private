@@ -25,15 +25,9 @@ if(EMSCRIPTEN)
   # diff.txt values can push out of range, and a replay recorded on one platform must verify on the other
   # (games/bejeweled/docs/CODE_MODS_DESIGN.md 6.1 rule 3). The same switch for bejeweled_verify below.
   target_compile_options(bejeweled PRIVATE -mno-nontrapping-fptoint)
-  set_target_properties(bejeweled PROPERTIES SUFFIX ".html")
-  set_property(TARGET bejeweled APPEND PROPERTY LINK_DEPENDS ${PROJECT_SOURCE_DIR}/web/shell.html)
-  target_link_options(bejeweled PRIVATE
-    "--shell-file=${PROJECT_SOURCE_DIR}/web/shell.html"
-    "-sALLOW_MEMORY_GROWTH=1" "-sFORCE_FILESYSTEM=1" "-sINVOKE_RUN=0"
-    "-sEXPORTED_RUNTIME_METHODS=['FS','callMain']" "-lidbfs.js"
-    # fflush: the Node runner (tools/verify/wasmrun.js) flushes the test hooks' files (-tracehash, -autoplaylog,
-    # -codeccheck) when the game quits; a page never deletes the app, which closes them natively
-    "-sEXPORTED_FUNCTIONS=['_main','_fflush']")
+  # fflush: the Node runner (tools/verify/wasmrun.js) flushes the test hooks' files (-tracehash, -autoplaylog,
+  # -codeccheck) when the game quits; a page never deletes the app, which closes them natively
+  byopop_web_game(bejeweled ${PROJECT_SOURCE_DIR}/web/shell.html EXPORTS _fflush)
 else()
   add_custom_command(TARGET bejeweled POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:SDL2::SDL2> ${PORT_RUNTIME_DLLS} $<TARGET_FILE_DIR:bejeweled>
