@@ -25,10 +25,12 @@ and never overwrites one.
 - `games/bejeweled/tools/livesplit/run_tests.sh`: the games (about 3 minutes, two at a time), lsprobe on
   each, `check_lslog.py`, `check_asl_offsets.py`, `asltest.exe -compileonly` and `lsdecide.py run`, which
   checks 27 scenarios on the game's own log (every update) and on lsprobe's log (real polling), each
-  against its expected events and against the real script's decisions through `asltest.exe`. Three of them
-  drop polls from a log (a LiveSplit stall), so that one poll sees a segment reached and the game over:
-  the segment counts (it was reached by the game over), so the script splits first and resets in the next
-  poll.
+  against its expected events and against the real script's decisions through `asltest.exe`, which reads
+  each reset's cause from the script's log (`onReset` writes it; the `exit` action's reset must log
+  `exit`) and runs `onStart`, `onSplit` and `onReset` from the timer's events and `exit` without `old`,
+  `current` or `game`, as LiveSplit does. Three of them drop polls from a log (a LiveSplit stall), so that
+  one poll sees a segment reached and the game over: the segment counts (it was reached by the game over),
+  so the script splits first and resets in the next poll.
 - The oracle (`games/bejeweled/tools/oracle/compare.sh`) runs every playtest, stage-0 and autoplay case
   with the mod and with an inert twin (`features.livesplit: false`): everything the game outputs must be
   identical, and the block's event log must agree with `-tracehash`'s states (compare.py `livesplit`).
@@ -42,8 +44,6 @@ ScriptableAutoSplit 9c1e207; the manual test with LiveSplit itself (4.15 test 7)
 ## Waiting for the user
 
 Every step below needs the user's approval (CODE_MODS_DESIGN.md section 11):
-- Q16: a licence for the script (the registry requires an open-source one; byo-pop has none). Until then
-  the script carries none.
 - Q23: downloading LiveSplit 1.8.37 for the manual test (Normal 5 Levels and Score Attack 10K, recorded and
   retimed from video; the `log` setting measures the lag).
 - Q14, Q17, Q22: contacting HyperNervie and the speedrun.com moderators, hosting, the registry PR.
@@ -56,6 +56,12 @@ Every step below needs the user's approval (CODE_MODS_DESIGN.md section 11):
 Notes for the script: ScriptableAutoSplit ends an action where its brace characters balance, counting
 those in strings, chars and comments too, so the script writes them as `(char)0x7B` and `(char)0x7D` and
 keeps those in comments balanced; `asltest.exe` fails when that count would end an action anywhere but at
-its closing brace. LiveSplit writes `AutoSplitterSettings` into a splits file only while the splitter is
+its closing brace. Between a decision in `start`, `split` or `reset` and LiveSplit's timer nothing may run
+for the first time (a `dynamic` call site's first run costs about a millisecond, a first `DateTime.Now` or
+file append several): `start`, `split` and `reset` (a game over it holds back splits in the same cycle)
+read everything they use in every cycle, and the `log` setting's line is only kept there and written in
+`onStart`, `onSplit` or `onReset`, after the timer took the event's time (`update` drops a line no event
+took). LiveSplit runs `exit` without `old` and `current`; its reset is logged by `onReset` as
+`reset exit`. LiveSplit writes `AutoSplitterSettings` into a splits file only while the splitter is
 active, so splits saved without it lose the script's settings. An undone split splits again on the next
 poll (the script decides from the split index, the names and the block alone).

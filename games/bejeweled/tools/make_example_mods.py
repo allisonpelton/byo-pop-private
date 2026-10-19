@@ -186,6 +186,7 @@ Notes
 - LiveSplit saves the script's settings into the splits file only while the script is active, so
   splits saved without it lose them.
 - Whether runs on this port count is for the speedrun.com moderators.
+- Licence: BejeweledDeluxe-byopop.asl is CC0-1.0 (public domain dedication); see its header.
 """
 
 

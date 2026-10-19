@@ -1173,14 +1173,15 @@ little-endian, naturally aligned, 0xB0 bytes:
 
 | Action | Rule |
 |---|---|
-| `startup` | `refreshRate = 100`; the settings; `vars.Mode = "none"` and empty `vars.Target`/`vars.IsScore`, so no action meets an unset var; helpers `FindBlock`, `ReadBlock`, `ParseSplits`, `Reached` (the `split` test, shared with `reset`), `UpdateOriginal`; a `TimerModel` for `exit` |
+| `startup` | `refreshRate = 100`; the settings; `vars.Mode = "none"` and empty `vars.Target`/`vars.IsScore`, so no action meets an unset var; helpers `FindBlock`, `ReadBlock`, `ParseSplits`, `Reached` (the `split` test, shared with `reset`), `UpdateOriginal`; a `TimerModel` for `exit`; the `log` helpers (below), `LogEvent` called once as a warm-up |
 | `init` | Sets an explicit list of custom fields to 0 every time (ASL reuses the state object across reconnects). `popcapgame1`: `Mode = "probe"` when the `original` setting is on and `ModuleMemorySize == 0x192000`, else ignored. Port: `Mode = "port"`, `FindBlock`. Never throws: an exception reruns `init` every cycle and logs each time |
-| `update` | Port: until the block is found, rescan once a second. A rejected read returns false; the counters catch up next cycle. `active == 0`: one `MessageBox` per attach ("turn on the game's livesplit mod"; `print` reaches only DebugView) once the block has stayed inactive 10 s after attaching (a starting game activates it within its first update) and never after it was active in this attach (the quit), return false. Otherwise copy the fields into `current`; the first copy after attaching or activation is a baseline only (returns false), so a game in progress is never a run. The clock is `vars.Now` (`Environment.TickCount`; `asltest` replaces it with the replayed polls' times). `probe`: the vftable check below |
-| `start` | `goCount` changed and `goSerial == boardSerial`; **mode guard** (setting): a category name containing "Timetrial" needs a timed board, one containing "Normal" an untimed one; not a replay (0x20); with `vanillaOnly`, flag 0x04 |
-| `onStart` | Always parses the segment names. Sets `vars.RunSerial = current.boardSerial` only when `current != null` and `Mode` is "port" or "original": a manual start with no game attached must not throw. Clears `vars.PendingReset` |
-| `split` | Only while `boardSerial == RunSerial`. Segment `i = timer.CurrentSplitIndex`: a score split needs `displayScoreMax >= threshold`, the k-th level split `boardLevelClears >= k`. It depends only on the index, the names and the snapshot, so skips and undos cannot desynchronise it (an undone level split splits again on the next poll; the README says so) |
-| `reset` | With `resets` and `RunSerial != 0`: `gameOvers` changed with `gameOverSerial == RunSerial` → by cause; the run's board replaced while its flag 0x40 is clear → `resetQuit` (new serial 0) or `resetReplaced`; else a cause held back earlier. When the poll that sees the game over also meets the current segment (`Reached`, with `settings.SplitEnabled`), the segment was reached by the game over and counts (A7), so `reset` holds the cause in `vars.PendingReset` and returns false: `split` splits in this cycle and the reset follows in a later one (a stalled poll, or a score shown within one poll period of TIME UP, would otherwise lose the split) |
-| `onReset`, `exit` | `RunSerial = 0`, `PendingReset` cleared. `exit`: while Running or Paused, for a run that belongs to a board (`RunSerial != 0`), with `settings.ResetEnabled`, `resets` and `resetQuit` on, `vars.TimerModel.Reset()` |
+| `update` | First drops a `log` line that no timer event wrote (its Start, Split or Reset box unticked). Port: until the block is found, rescan once a second. A rejected read returns false; the counters catch up next cycle. `active == 0`: one `MessageBox` per attach ("turn on the game's livesplit mod"; `print` reaches only DebugView) once the block has stayed inactive 10 s after attaching (a starting game activates it within its first update) and never after it was active in this attach (the quit), return false. Otherwise copy the fields into `current`; the first copy after attaching or activation is a baseline only (returns false), so a game in progress is never a run. The clock is `vars.Now` (`Environment.TickCount`; `asltest` replaces it with the replayed polls' times). `probe`: the vftable check below |
+| `start` | `goCount` changed and `goSerial == boardSerial`; **mode guard** (setting): a category name containing "Timetrial" needs a timed board, one containing "Normal" an untimed one; not a replay (0x20); with `vanillaOnly`, flag 0x04. First reads every field, var and setting it uses into typed locals and casts `LogEvent`, in every cycle, so the cycle that starts a run runs nothing for the first time (below) |
+| `onStart` | Always parses the segment names. Sets `vars.RunSerial = current.boardSerial` only when `current != null` and `Mode` is "port" or "original": a manual start with no game attached must not throw. Clears `vars.PendingReset`. Writes the `log` line |
+| `split` | Reads its fields, the `log` setting and `LogEvent` in every cycle, as `start` does; `Reached` reads both `displayScoreMax` and `boardLevelClears`. Only while `boardSerial == RunSerial`. Segment `i = timer.CurrentSplitIndex`: a score split needs `displayScoreMax >= threshold`, the k-th level split `boardLevelClears >= k`. It depends only on the index, the names and the snapshot, so skips and undos cannot desynchronise it (an undone level split splits again on the next poll; the README says so) |
+| `reset` | With `resets` and `RunSerial != 0`: `gameOvers` changed with `gameOverSerial == RunSerial` → by cause; the run's board replaced while its flag 0x40 is clear → `resetQuit` (new serial 0) or `resetReplaced`; else a cause held back earlier. When the poll that sees the game over also meets the current segment (`Reached`, with `settings.SplitEnabled`), the segment was reached by the game over and counts (A7), so `reset` holds the cause in `vars.PendingReset` and returns false: `split` splits in this cycle and the reset follows in a later one (a stalled poll, or a score shown within one poll period of TIME UP, would otherwise lose the split). Because `reset` runs before that split, it reads every field, var and setting it uses (the cause's setting too), casts `LogEvent` and calls `Reached` in every cycle, as `start` and `split` do |
+| `onSplit` | Writes the `log` line |
+| `onReset`, `exit` | `RunSerial = 0`, `PendingReset` cleared. `exit`: while Running or Paused, for a run that belongs to a board (`RunSerial != 0`), with `settings.ResetEnabled`, `resets` and `resetQuit` on, `vars.TimerModel.Reset()` with `vars.ExitReset` set around it. `onReset` makes the `log` line "reset exit" for that reset, from the last copy, then writes the line. LiveSplit 1.8.37 runs `exit` without `old`, `current` or `game` (`ASLScript.DoExit` clears the process, then `RunNoProcessMethod`), but the timer events' actions with the last `old` and `current` (`RunMethod`; read from ScriptableAutoSplit's IL) |
 
 - ASL evaluates `start` only while NotRunning, and `reset`, then `split` if there was no reset, only while
   Running or Paused. Nothing runs while Ended, so a finished run stays until the runner resets it.
@@ -1190,8 +1191,26 @@ little-endian, naturally aligned, 0xB0 bytes:
 - **Settings** (ASL settings are booleans): `modeGuard` on; `vanillaOnly` off (practice; the mod signs and
   the SEED line show on video anyway); `resets` on, with `resetNoMoves`, `resetTimeUp`, `resetNewGame`,
   `resetReplaced` and `resetQuit` under it (the registry README calls automatic reset dangerous, so each is
-  switchable, and an Ended run is never reset; Q20); `original` on; `log` off (appends each event and its
-  lag to a text file).
+  switchable, and an Ended run is never reset; Q20); `original` on; `log` off.
+- **The `log` setting** appends one line per timer event the script caused to `BejeweledDeluxe-byopop.log`
+  in LiveSplit's folder: the time of the decision, `start`, `split <index>`, `reset <cause>` (the setting
+  that allowed it, or `exit` for the `exit` action's reset), the board, its tick and `lag_ms=<a>..<b>`, the
+  time from the copy's write and from the previous copy's write to the decision (the event lies between;
+  both stamped with the game's QPC, the clock of `Stopwatch`). `start`, `split` and `reset` only stamp the
+  decision and keep the line (`LogEvent`, typed arguments); `onStart`, `onSplit` and `onReset` write it
+  (`WriteLog`), after LiveSplit took the event's time, and `update` drops a line no event wrote.
+- **Nothing runs for the first time between a decision and the timer.** The C# binder compiles a
+  `dynamic` call site the first time it runs (about a millisecond each), and a first `DateTime.Now` or
+  file append takes milliseconds too. In the live test (test 7) the first script spent 20–35 ms on that
+  in each LiveSplit session's first start, and a few more in its first split, between the decision and
+  LiveSplit's timer, so the session's first run started about 15–18 ms late and its split times came out
+  about 10 ms short. So `start`, `split` and `reset` (which runs before `split` in the same cycle) read
+  everything in every cycle, `LogEvent` runs once in `startup`, and the file is written after the event.
+  Timed in a fresh `asltest` process (the bot's Normal 5 Levels game, from the action's call to its
+  return): the first start took 22–40 ms before and takes 0.04–0.23 ms now, the first split 2.4–5.0 ms
+  before and under 0.02 ms now, the first reset 10–14 ms before and under 0.02 ms now. In the cycle where
+  `reset` holds a game over back and `split` splits (the stalled-poll scenarios of test 5), `reset`'s
+  first-time work came before the split: 10–14 ms then, under 0.02 ms now.
 - **Cases:** a resumed save never starts by itself, but a manual start uses that board and splits
   (practice). Seeded and modded games start unless `vanillaOnly` is on. Replays never start. An unrelated
   `popcapgame1` (another Steam PopCap game) that attaches first holds the script until it exits.
@@ -1257,8 +1276,8 @@ little-endian, naturally aligned, 0xB0 bytes:
 - **Entry:** `<Game>Bejeweled Deluxe</Game>`, the raw URL (not a `/blob/` link), `<Type>Script</Type>`
   without `ScriptType` (that is for ASR), a Description of at most 120 characters, a Website. The PR
   template asks the author to confirm no malicious code, no replacement of another author's splitter
-  without permission, and an open-source licence. byo-pop has none, so the script needs its own (Q16).
-- **Steps, in order:** choose the licence; push byo-pop or create the script repo; ask the speedrun.com
+  without permission, and an open-source licence: the script is CC0-1.0 (the user's choice, Q16).
+- **Steps, in order:** push byo-pop or create the script repo; ask the speedrun.com
   moderators whether port runs count (A10), how to read A7 and whether they would list the splitter (Q22);
   contact HyperNervie; the manual test (and the original's); open the registry PR (editing the XML on
   GitHub creates the fork, branch and PR); check Activate once.
@@ -1331,7 +1350,9 @@ StateCodec row, so FULL hashes stay equal to the stage-0 baselines.
    time the way 1.8.37 does (`CSharpCodeProvider` with `CompilerVersion` v4.0, which runs that `csc.exe`,
    C# 5; one class per action) in a wrapper with 9c1e207's using list (without `System.Text.Json`), stubs
    only the members the script uses (`MessageBox` becomes a recorder), and replays test 4's logs as polls
-   of a fake PE image. It turns the `log` setting on to learn each reset's cause. Its events must equal
+   of a fake PE image. It turns the `log` setting on to learn each reset's cause, which `onReset` writes
+   (the `exit` action's reset must log `exit`); it runs `onStart`, `onSplit` and `onReset` from the timer's
+   events and `exit` without `old`, `current` or `game`, as LiveSplit does. Its events must equal
    `lsdecide.py`'s.
    `games/bejeweled/tools/livesplit/run_tests.sh` runs tests 3 to 6.
 6. **`check_asl_offsets.py`** (the script's magic and offsets against `lsprobe -dumplayout`) and the
@@ -2385,8 +2406,8 @@ Recommendations are in brackets.
 15. **The original 1.87 in the script.** It needs one session of the original with its sound on (Steam,
     BASS): you play while `lsprobe` logs, or you allow a session to run it. [yes, if the script is
     registered under the name; otherwise port-only and unregistered]
-16. **Licence for the script.** The registry requires an open-source one, and byo-pop has none. [the
-    Unlicense, as HyperNervie's, so either way of coordinating works]
+16. **Licence for the script.** Answered by the user (2026-10-18): CC0-1.0, a public-domain dedication
+    in the script's header; it also leaves every way of coordinating with HyperNervie open.
 17. **Hosting.** Make byo-pop public when it is pushed and serve the raw URL, or put the script in a small
     separate public repo? [byo-pop, default branch]
 18. **Mod signs.** Should a mod whose only key is `features.livesplit` skip the crossbar on GO's G and the

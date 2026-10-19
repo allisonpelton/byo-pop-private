@@ -21,8 +21,8 @@
 // with its own FindBlock. vars.Now (the script's clock) is replaced by the poll times.
 //
 // Output, one line per event: "start <poll> board=<b>", "split <index> <poll> board=<b>",
-// "reset <cause> <poll> board=<b>" (the cause from the script's "log" setting, which asltest turns on;
-// "exit" for the reset the exit action makes), "manualstart <poll> board=<b>", "messagebox <poll>".
+// "reset <cause> <poll> board=<b>" (the cause the script's "log" setting writes in onReset, which asltest
+// turns on; "exit" for the reset the exit action makes), "manualstart <poll> board=<b>", "messagebox <poll>".
 //
 // Each action ends where LiveSplit's parser ends it: ScriptableAutoSplit's grammar counts every brace
 // character in an action (in strings, chars and comments too) and ends the action where they balance, so
@@ -603,12 +603,16 @@ namespace AslTest
 				Call("onStart", old, current, reader);
 				output.Add((inManual ? "manualstart " : "start ") + poll + " " + board());
 			};
-			sTimer.OnSplit += (s, e) => output.Add("split " + (sTimer.CurrentSplitIndex - 1) + " " + poll + " " + board());
+			sTimer.OnSplit += (s, e) => {
+				Call("onSplit", old, current, reader);
+				output.Add("split " + (sTimer.CurrentSplitIndex - 1) + " " + poll + " " + board());
+			};
+			// onReset writes the script's log line (and clears RunSerial): the cause is read after it. The exit
+			// action's reset must log "exit"; its board is the run's
 			sTimer.OnReset += (s, e) => {
-				string where = inExit ? "reset exit " + poll + " board=" + Convert.ToInt64(((dynamic)sVars).RunSerial) :
-					"reset " + nextCause() + " " + poll + " " + board();
+				string where = poll + " " + (inExit ? "board=" + Convert.ToInt64(((dynamic)sVars).RunSerial) : board());
 				Call("onReset", old, current, reader);
-				output.Add(where);
+				output.Add("reset " + nextCause() + " " + where);
 			};
 
 			Call("startup", null, null, builder);
@@ -659,7 +663,10 @@ namespace AslTest
 			}
 			poll = polls.Count;
 			inExit = true;
-			Call("exit", old, current, reader);
+			// LiveSplit's ASLScript.DoExit clears its process, then runs exit without old and current
+			// (RunNoProcessMethod); the onReset of exit's reset gets the last old and current (RunMethod)
+			sGame = null;
+			Call("exit", null, null, reader);
 			foreach (string line in output)
 				Console.WriteLine(line);
 			foreach (string note in Notes)
