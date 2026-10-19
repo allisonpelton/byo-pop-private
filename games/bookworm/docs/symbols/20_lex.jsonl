@@ -1,0 +1,61 @@
+{"addr": "00402df0", "name": "Sexy::BigLex::BigLex", "sig": "void * __thiscall BigLex(void * theApp)", "comment": "ctor; sizeof 0x70"}
+{"addr": "00402e30", "name": "Sexy::BigLex::dtor_body", "sig": "void __thiscall dtor_body(void)", "comment": "~BigLex body"}
+{"addr": "00402e40", "name": "Sexy::BigLex::PlayAnim", "sig": "void __thiscall PlayAnim(int theAnim, bool theLoop)", "comment": "row of gBigLexAnims 0x4f9590"}
+{"addr": "00402e80", "name": "Sexy::BigLex::Draw", "sig": "void __thiscall Draw(void * g)", "comment": "slot 16"}
+{"addr": "00402eb0", "name": "Sexy::BigLex::Update", "sig": "void __thiscall Update(void)", "comment": "slot 17"}
+{"addr": "00402f30", "name": "Sexy::BigLex::deleting_dtor", "sig": "void * __thiscall deleting_dtor(uint theFlags)", "comment": "slot 0"}
+{"addr": "0041d2b0", "name": "Sexy::Definitionator::GetDefinition", "sig": "void * __thiscall GetDefinition(void * theResult, void * theWord)", "comment": "returns std::string copy of mDefinitions[word] or empty"}
+{"addr": "0041d8d0", "name": "Sexy::Definitionator::dtor_body", "sig": "void __thiscall dtor_body(void)", "comment": "~Definitionator body: clears the map"}
+{"addr": "0041d920", "name": "Sexy::Definitionator::Load", "sig": "bool __thiscall Load(void * theFileName)", "comment": "reads popdefs.txt: WORD<sep>definition per line"}
+{"addr": "0041dd30", "name": "Sexy::Definitionator::Definitionator", "sig": "void * __thiscall Definitionator(void * theApp)", "comment": "ctor; sizeof 0x14"}
+{"addr": "0041dd80", "name": "Sexy::Definitionator::deleting_dtor", "sig": "void * __thiscall deleting_dtor(uint theFlags)", "comment": "slot 1"}
+{"addr": "0042d050", "name": "Sexy::Lex::dtor_body", "sig": "void __thiscall dtor_body(void)", "comment": "~Lex body"}
+{"addr": "0042d060", "name": "Sexy::Lex::Save", "sig": "void __thiscall Save(void * theFile)", "comment": "slot 47; 88-byte record"}
+{"addr": "0042d1c0", "name": "Sexy::Lex::Load", "sig": "void __thiscall Load(void * theFile)", "comment": "slot 48"}
+{"addr": "0042d320", "name": "Sexy::Lex::PlayAnim", "sig": "void __thiscall PlayAnim(int theAnim, bool theLoop)", "comment": "row of gLexAnims 0x4fd9f0"}
+{"addr": "0042d370", "name": "Sexy::Lex::Move", "sig": "void __thiscall Move(int theNewX, int theNewY)", "comment": "slot 14; target = cur = new position"}
+{"addr": "0042d3c0", "name": "Sexy::Lex::SetSweating", "sig": "void __thiscall SetSweating(bool isSweating)", "comment": "resets mSweatFrame on change; mDoFinger = !isSweating"}
+{"addr": "0042d3f0", "name": "Sexy::Lex::MouseLeave", "sig": "void __thiscall MouseLeave(void)", "comment": "slot 24"}
+{"addr": "0042d460", "name": "Sexy::Lex::MouseDown", "sig": "void __thiscall MouseDown(int x, int y, int theClickCount)", "comment": "slot 27; PlaySample(0)"}
+{"addr": "0042d4e0", "name": "Sexy::Lex::MouseUp", "sig": "void __thiscall MouseUp(int x, int y, int theClickCount)", "comment": "slot 29; Board::Scramble when over"}
+{"addr": "0042d560", "name": "Sexy::Lex::Lex", "sig": "void * __thiscall Lex(void * theApp)", "comment": "ctor; sizeof 0xd0"}
+{"addr": "0042d650", "name": "Sexy::Lex::deleting_dtor", "sig": "void * __thiscall deleting_dtor(uint theFlags)", "comment": "slot 0"}
+{"addr": "0042d680", "name": "Sexy::Lex::Reset", "sig": "void __thiscall Reset(void)", "comment": "stop anim, idle frame, not sweating"}
+{"addr": "0042d6c0", "name": "Sexy::Lex::Say", "sig": "void __thiscall Say(void * theText, void * theFont, int theDuration)", "comment": "speech box 106..213 wide"}
+{"addr": "0042d800", "name": "Sexy::Lex::Think", "sig": "void __thiscall Think(void * theText, void * theFont, int theDuration)", "comment": "thought image backdrop_wb_thought"}
+{"addr": "0042d8d0", "name": "Sexy::Lex::SayDefinition", "sig": "void __thiscall SayDefinition(void * theWord, void * theWordFont, void * theDefinition, void * theDefFont, int theDuration)", "comment": "213-wide box with header"}
+{"addr": "0042d9e0", "name": "Sexy::Lex::MouseEnter", "sig": "void __thiscall MouseEnter(void)", "comment": "slot 23; arms the scramble hint"}
+{"addr": "0042db60", "name": "Sexy::Lex::Draw", "sig": "void __thiscall Draw(void * g)", "comment": "slot 16"}
+{"addr": "0042dd20", "name": "Sexy::Lex::Update", "sig": "void __thiscall Update(void)", "comment": "slot 17; CRT rand() x2-3"}
+{"addr": "00404340", "name": "Sexy::Lex::IsBusy", "sig": "bool __thiscall IsBusy(void)", "comment": "inline, emitted in Board.cpp: mAnim != -1 or moving"}
+{"addr": "00403ab0", "name": "Sexy::Lex::IsMoving", "sig": "bool __thiscall IsMoving(void)", "comment": "inline, emitted in Board.cpp"}
+{"addr": "00436260", "name": "Sexy::WordBalloon::Init", "sig": "void __thiscall Init(void * theApp)", "comment": "called by the ctor"}
+{"addr": "00436310", "name": "Sexy::WordBalloon::SetJustification", "sig": "void __thiscall SetJustification(int theTextJustify, int theHeaderJustify, int theFooterJustify)"}
+{"addr": "00436340", "name": "Sexy::WordBalloon::SetDisabled", "sig": "void __thiscall SetDisabled(bool isDisabled)", "comment": "slot 10; jmp Widget::SetDisabled"}
+{"addr": "00436350", "name": "Sexy::WordBalloon::SetVisible", "sig": "void __thiscall SetVisible(bool isVisible)", "comment": "slot 4; jmp Widget::SetVisible"}
+{"addr": "00436360", "name": "Sexy::WordBalloon::Show", "sig": "void __thiscall Show(int theDuration)", "comment": "slot 49; 0 = fade out"}
+{"addr": "004363b0", "name": "Sexy::WordBalloon::AddedToManager", "sig": "void __thiscall AddedToManager(void * theWidgetManager)", "comment": "slot 1; jmp Widget::AddedToManager"}
+{"addr": "004363c0", "name": "Sexy::WordBalloon::RemovedFromManager", "sig": "void __thiscall RemovedFromManager(void * theWidgetManager)", "comment": "slot 2; jmp Widget::RemovedFromManager"}
+{"addr": "004363d0", "name": "Sexy::WordBalloon::Draw", "sig": "void __thiscall Draw(void * g)", "comment": "slot 16"}
+{"addr": "00436420", "name": "Sexy::WordBalloon::MouseDown", "sig": "void __thiscall MouseDown(int x, int y, int theClickCount)", "comment": "slot 27; dismiss"}
+{"addr": "00436440", "name": "Sexy::WordBalloon::SetPlainImage", "sig": "void __thiscall SetPlainImage(void * theImage, int theLeft, int theTop, int theRight, int theBottom, bool doResize)", "comment": "Insets passed by value"}
+{"addr": "004364d0", "name": "Sexy::WordBalloon::SetBoxImages", "sig": "void __thiscall SetBoxImages(void * theBoxImage, void * theTailImage, int theTailX, int theTailY)", "comment": "Point passed by value"}
+{"addr": "004365d0", "name": "Sexy::WordBalloon::GetTextHeight", "sig": "int __thiscall GetTextHeight(int theWidth, void * theText, void * theFont, int theJustify, int theLineSpacing)", "comment": "slot 50"}
+{"addr": "00436680", "name": "Sexy::WordBalloon::GetPreferredHeight", "sig": "int __thiscall GetPreferredHeight(int theWidth)", "comment": "slot 51"}
+{"addr": "004367a0", "name": "Sexy::WordBalloon::DrawPlain", "sig": "void __thiscall DrawPlain(void * g)", "comment": "slot 47"}
+{"addr": "00436c40", "name": "Sexy::WordBalloon::DrawBox", "sig": "void __thiscall DrawBox(void * g)", "comment": "slot 48"}
+{"addr": "00437080", "name": "Sexy::WordBalloon::Update", "sig": "void __thiscall Update(void)", "comment": "slot 17"}
+{"addr": "004372a0", "name": "Sexy::WordBalloon::WordBalloon", "sig": "void * __thiscall WordBalloon(void * theApp, void * theBoxImage, void * theTailImage, int theTailX, int theTailY)", "comment": "ctor; sizeof 0x120"}
+{"addr": "00437370", "name": "Sexy::WordBalloon::deleting_dtor", "sig": "void * __thiscall deleting_dtor(uint theFlags)", "comment": "slot 0"}
+{"addr": "004373a0", "name": "Sexy::WordBalloon::dtor_body", "sig": "void __thiscall dtor_body(void)", "comment": "~WordBalloon body"}
+{"addr": "00437430", "name": "Sexy::WordBalloon::ClearHeader", "sig": "void __thiscall ClearHeader(void)"}
+{"addr": "00437480", "name": "Sexy::WordBalloon::ClearFooter", "sig": "void __thiscall ClearFooter(void)"}
+{"addr": "004374e0", "name": "Sexy::WordBalloon::SetHeader", "sig": "void __thiscall SetHeader(void * theText, void * theFont, int theJustify)"}
+{"addr": "00437510", "name": "Sexy::WordBalloon::SetText", "sig": "void __thiscall SetText(void * theText, void * theFont, int theJustify)"}
+{"addr": "004fd9f0", "label": "gLexAnims", "comment": "int[28][50][2] {image id, duration in 2-update units}, rows end with {-1,0}"}
+{"addr": "004f9590", "label": "gBigLexAnims", "comment": "int[1][50][2]"}
+{"addr": "0052f428", "label": "gLexSayColors", "comment": "int[4][4]: white, black, black, black"}
+{"addr": "0052f468", "label": "gLexThinkColors", "comment": "int[4][4]: white, black, black, black"}
+{"addr": "0052f8f0", "label": "gWordBalloonColors", "comment": "int[4][4]: white, black, black, black"}
+{"addr": "005006c8", "label": "sLexHintLong", "comment": "'Hey, %s!...' scramble hint format"}
+{"addr": "005006a8", "label": "sLexHintShort", "comment": "GT_LEX_SCRAMBLE_SHORT (Lex's short scramble hint)"}

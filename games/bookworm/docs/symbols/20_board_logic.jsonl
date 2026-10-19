@@ -1,0 +1,119 @@
+{"addr": "00402f60", "name": "Sexy::Board::IsAdjacent", "sig": "bool __cdecl IsAdjacent(void * a, void * b)"}
+{"addr": "00402fd0", "name": "Sexy::Board::SetActionSpeed", "sig": "void __cdecl SetActionSpeed(double speed)"}
+{"addr": "00402ff0", "name": "Sexy::Piece::~Piece", "sig": "void __thiscall ~Piece(void)"}
+{"addr": "00403000", "name": "Sexy::Piece::SetType", "sig": "void __thiscall SetType(int type, bool resetCountdown)"}
+{"addr": "00403030", "name": "Sexy::Piece::StartBurn", "sig": "void __thiscall StartBurn(void)"}
+{"addr": "00403050", "name": "Sexy::Piece::Save", "sig": "void __thiscall Save(void * file)"}
+{"addr": "00403370", "name": "Sexy::Piece::Load", "sig": "void __thiscall Load(void * file)"}
+{"addr": "00403690", "name": "Sexy::StatKeeper::AddBonusWord", "sig": "void __thiscall AddBonusWord(int points)"}
+{"addr": "004036b0", "name": "Sexy::StatKeeper::IncBurned", "sig": "void __thiscall IncBurned(void)"}
+{"addr": "004036c0", "name": "Sexy::StatKeeper::IncScrambles", "sig": "void __thiscall IncScrambles(void)"}
+{"addr": "004036e0", "name": "Sexy::Board::DeleteAllPieces", "sig": "void __thiscall DeleteAllPieces(void)"}
+{"addr": "00403720", "name": "Sexy::Board::IsInProgress", "sig": "bool __thiscall IsInProgress(void)"}
+{"addr": "00403730", "name": "Sexy::Board::AddedToManager", "sig": "void __thiscall AddedToManager(void * theManager)"}
+{"addr": "00403880", "name": "Sexy::Board::LevelThreshold", "sig": "int __cdecl LevelThreshold(unsigned int level)"}
+{"addr": "004038c0", "name": "Sexy::Board::StartGameOverMusic", "sig": "void __thiscall StartGameOverMusic(void)"}
+{"addr": "00403990", "name": "Sexy::Board::ColX", "sig": "int __thiscall ColX(int col)"}
+{"addr": "004039b0", "name": "Sexy::Board::RowY", "sig": "int __thiscall RowY(int col, int row)"}
+{"addr": "004039e0", "name": "Sexy::Board::PieceAt", "sig": "void * __thiscall PieceAt(int x, int y)"}
+{"addr": "00403a70", "name": "Sexy::Board::MouseLeave", "sig": "void __thiscall MouseLeave(void)"}
+{"addr": "00403a80", "name": "Sexy::Board::MouseMove", "sig": "void __thiscall MouseMove(int x, int y)"}
+{"addr": "00403ab0", "name": "Sexy::Lex::IsMoving", "sig": "bool __thiscall IsMoving(void)"}
+{"addr": "00403ae0", "name": "Sexy::Board::UpdatePauseFade", "sig": "void __thiscall UpdatePauseFade(void)"}
+{"addr": "00403bd0", "name": "Sexy::Board::PieceBelow", "sig": "void * __thiscall PieceBelow(void * piece)"}
+{"addr": "00403d10", "name": "Sexy::Board::RandomLetter", "sig": "int __cdecl RandomLetter(void)"}
+{"addr": "00403d80", "name": "Sexy::Board::ShowOverlay", "sig": "void __thiscall ShowOverlay(bool show)"}
+{"addr": "00403df0", "name": "Sexy::Board::KeyDown", "sig": "void __thiscall KeyDown(int key)"}
+{"addr": "00403e40", "name": "Sexy::Board::KeyUp", "sig": "void __thiscall KeyUp(int key)"}
+{"addr": "00403ea0", "name": "Sexy::Board::RemoveLevelUpWidget", "sig": "void __thiscall RemoveLevelUpWidget(void)"}
+{"addr": "00403f10", "name": "Sexy::Piece::Deselect", "sig": "void __cdecl Deselect(void * piece)"}
+{"addr": "00403f20", "name": "Sexy::Piece::Piece", "sig": "void * __thiscall Piece(void)"}
+{"addr": "00404050", "name": "Sexy::Piece::scalar_deleting_dtor", "sig": "void * __thiscall scalar_deleting_dtor(unsigned int flags)"}
+{"addr": "00404080", "name": "Sexy::Piece::ResetBurnCountdown", "sig": "void __thiscall ResetBurnCountdown(void)"}
+{"addr": "004040e0", "name": "Sexy::WordScore::CalcScoreByLength", "sig": "int __thiscall CalcScoreByLength(void)"}
+{"addr": "00404150", "name": "Sexy::Board::NewBoard", "sig": "void __thiscall NewBoard(void)"}
+{"addr": "004042c0", "name": "Sexy::Board::CheckBottomFire", "sig": "void __thiscall CheckBottomFire(void)"}
+{"addr": "00404340", "name": "Sexy::Lex::IsBusy", "sig": "bool __thiscall IsBusy(void)"}
+{"addr": "00404b40", "name": "Sexy::Board::ShowSummary", "sig": "void __thiscall ShowSummary(void)"}
+{"addr": "00404e10", "name": "Sexy::StatKeeper::Save", "sig": "void __thiscall Save(void * file)"}
+{"addr": "00404f60", "name": "Sexy::WordScore::CalcScore", "sig": "int __thiscall CalcScore(void)"}
+{"addr": "00404fe0", "name": "Sexy::WordScore::Save", "sig": "void __thiscall Save(void * file)"}
+{"addr": "00405140", "name": "Sexy::StatKeeper::~StatKeeper", "sig": "void __thiscall ~StatKeeper(void)"}
+{"addr": "00405190", "name": "Sexy::WordScore::WordScore", "sig": "void * __thiscall WordScore(void)"}
+{"addr": "004051d0", "name": "Sexy::WordScore::~WordScore", "sig": "void __thiscall ~WordScore(void)"}
+{"addr": "00405240", "name": "Sexy::Board::OrderInManagerChanged", "sig": "void __thiscall OrderInManagerChanged(void)"}
+{"addr": "004052d0", "name": "Sexy::Board::RemovePieces", "sig": "void __thiscall RemovePieces(void * pieceList)"}
+{"addr": "00405810", "name": "Sexy::Board::RemoveButtons", "sig": "void __thiscall RemoveButtons(void)"}
+{"addr": "00405850", "name": "Sexy::Board::SetButtonsVisible", "sig": "void __thiscall SetButtonsVisible(bool visible)"}
+{"addr": "00405890", "name": "Sexy::Board::SetButtonsDisabled", "sig": "void __thiscall SetButtonsDisabled(bool disabled)"}
+{"addr": "004058d0", "name": "std::list<T*>::clear", "sig": "void __thiscall clear(void)"}
+{"addr": "00405900", "name": "std::set<std_string>::lower_bound", "sig": "void * __thiscall lower_bound(void * key)"}
+{"addr": "004059c0", "name": "Sexy::StatKeeper::scalar_deleting_dtor", "sig": "void * __thiscall scalar_deleting_dtor(unsigned int flags)"}
+{"addr": "004059f0", "name": "Sexy::WordScore::scalar_deleting_dtor", "sig": "void * __thiscall scalar_deleting_dtor(unsigned int flags)"}
+{"addr": "00405a20", "name": "Sexy::Board::SetDisabled", "sig": "void __thiscall SetDisabled(bool disabled)"}
+{"addr": "00405a50", "name": "Sexy::Board::SetVisible", "sig": "void __thiscall SetVisible(bool visible)"}
+{"addr": "00405a80", "name": "Sexy::Board::ClearPopups", "sig": "void __thiscall ClearPopups(void)"}
+{"addr": "00405b00", "name": "Sexy::Board::RemovedFromManager", "sig": "void __thiscall RemovedFromManager(void * theManager)"}
+{"addr": "00405be0", "name": "Sexy::Board::Pause", "sig": "void __thiscall Pause(bool pause)"}
+{"addr": "00405cd0", "name": "Sexy::Board::Abandon", "sig": "void __thiscall Abandon(void)"}
+{"addr": "00405cf0", "name": "Sexy::Board::TruncateAfter", "sig": "void __thiscall TruncateAfter(void * piece)"}
+{"addr": "00405d60", "name": "Sexy::Board::KeyChar", "sig": "void __thiscall KeyChar(char c)"}
+{"addr": "00405de0", "name": "Sexy::Board::DeleteButtons", "sig": "void __thiscall DeleteButtons(void)"}
+{"addr": "00405ea0", "name": "std::set<std_string>::find", "sig": "void __thiscall find(void * result, void * key)"}
+{"addr": "00405fa0", "name": "Sexy::StatKeeper::Load", "sig": "void __thiscall Load(void * file)"}
+{"addr": "00406130", "name": "Sexy::WordScore::CheckValid", "sig": "bool __thiscall CheckValid(void * dictionary)"}
+{"addr": "00406180", "name": "Sexy::WordScore::Load", "sig": "void __thiscall Load(void * file)"}
+{"addr": "004062e0", "name": "Sexy::Board::~Board", "sig": "void __thiscall ~Board(void)"}
+{"addr": "004068a0", "name": "Sexy::StatKeeper::AddWord", "sig": "void __thiscall AddWord(void * wordScore)"}
+{"addr": "00406950", "name": "Sexy::StatKeeper::Reset", "sig": "void __thiscall Reset(void)"}
+{"addr": "004069c0", "name": "Sexy::WordScore::Clear", "sig": "void __thiscall Clear(void)"}
+{"addr": "00406a10", "name": "Sexy::WordScore::Build", "sig": "void __thiscall Build(void * pieceList)"}
+{"addr": "00406b00", "name": "Sexy::WordScore::CommonPrefix", "sig": "void * __thiscall CommonPrefix(void * result, void * other)"}
+{"addr": "00406c10", "name": "Sexy::Board::scalar_deleting_dtor", "sig": "void * __thiscall scalar_deleting_dtor(unsigned int flags)"}
+{"addr": "00406c40", "name": "Sexy::Board::SaveGame", "sig": "bool __thiscall SaveGame(int mode)"}
+{"addr": "004078b0", "name": "Sexy::Board::DeleteSavedGame", "sig": "bool __thiscall DeleteSavedGame(int mode)"}
+{"addr": "00407a50", "name": "Sexy::Board::LevelUp", "sig": "void __thiscall LevelUp(void)"}
+{"addr": "00407b90", "name": "Sexy::WordScore::operator_assign", "sig": "void * __thiscall operator_assign(void * other)"}
+{"addr": "00407bf0", "name": "Sexy::Board::ClearWord", "sig": "void __thiscall ClearWord(void)"}
+{"addr": "00408000", "name": "Sexy::Board::NextLevel", "sig": "void __thiscall NextLevel(void)"}
+{"addr": "00408030", "name": "Sexy::Board::PickBonusWord", "sig": "void __thiscall PickBonusWord(void)"}
+{"addr": "004081d0", "name": "Sexy::Board::ButtonPress", "sig": "void __thiscall ButtonPress(int id, int clickCount)"}
+{"addr": "00408690", "name": "Sexy::StatKeeper::StatKeeper", "sig": "void * __thiscall StatKeeper(void * app)"}
+{"addr": "00408700", "name": "Sexy::Board::BurnTiles", "sig": "void __thiscall BurnTiles(bool advance)"}
+{"addr": "00408ab0", "name": "Sexy::Board::LoadGame", "sig": "bool __thiscall LoadGame(int mode)"}
+{"addr": "00409970", "name": "Sexy::Board::AddScorePopup", "sig": "void __thiscall AddScorePopup(int score, int x, int y)"}
+{"addr": "00409b70", "name": "Sexy::Board::ShowMessage", "sig": "void __thiscall ShowMessage(void * text, int yOffset)"}
+{"addr": "00409c60", "name": "Sexy::Board::AddLetter", "sig": "void __thiscall AddLetter(void * piece)"}
+{"addr": "00409de0", "name": "Sexy::Board::MouseDown", "sig": "void __thiscall MouseDown(int x, int y, int clickCount)"}
+{"addr": "0040a0c0", "name": "Sexy::Board::MouseDrag", "sig": "void __thiscall MouseDrag(int x, int y)"}
+{"addr": "0040abd0", "name": "Sexy::Board::BonusWordScored", "sig": "void __thiscall BonusWordScored(int points, int x, int y)"}
+{"addr": "0040ad00", "name": "Sexy::Board::MakeButton", "sig": "void * __thiscall MakeButton(int id, void * rect, void * btnImage, void * overImage, void * downImage, void * label)"}
+{"addr": "0040ae90", "name": "Sexy::Board::Board", "sig": "void * __thiscall Board(void * app)"}
+{"addr": "0040b540", "name": "Sexy::Board::Refill", "sig": "void __thiscall Refill(void)"}
+{"addr": "0040b9e0", "name": "Sexy::Board::GetNormalPieces", "sig": "void __thiscall GetNormalPieces(void * outVector)"}
+{"addr": "0040ba80", "name": "Sexy::Board::AwardSpecialTile", "sig": "void __thiscall AwardSpecialTile(void * wordScore)"}
+{"addr": "0040bd40", "name": "Sexy::Board::Update", "sig": "void __thiscall Update(void)"}
+{"addr": "0040ed70", "name": "Sexy::Board::Scramble", "sig": "void __thiscall Scramble(void)"}
+{"addr": "0040f5b0", "name": "Sexy::Board::Submit", "sig": "void __thiscall Submit(int x, int y)"}
+{"addr": "0040fc40", "name": "Sexy::Board::MouseUp", "sig": "void __thiscall MouseUp(int x, int y, int clickCount)"}
+{"addr": "0040fdc0", "name": "Sexy::Board::ButtonDepress", "sig": "void __thiscall ButtonDepress(int id)"}
+{"addr": "0040fe80", "name": "WinMain", "sig": "int __stdcall WinMain(void * hInstance, void * hPrev, char * cmdLine, int show)"}
+{"addr": "0052e278", "label": "gActionSpeedValue"}
+{"addr": "0052e280", "label": "gSubmitColorsInvalid"}
+{"addr": "0052e298", "label": "gSubmitColorsValid"}
+{"addr": "0052e2b0", "label": "gLastLetterIdx"}
+{"addr": "0052e2b4", "label": "gPlayersDir"}
+{"addr": "0052e3a0", "label": "gLastRefillLevel"}
+{"addr": "00534720", "label": "gLivePieceCount"}
+{"addr": "005347c8", "label": "gLen6Gate"}
+{"addr": "005347d0", "label": "gGameRand"}
+{"addr": "004f97e0", "label": "gLevelThresholds"}
+{"addr": "004f9888", "label": "gLetterValues"}
+{"addr": "004f98f0", "label": "gLengthBonus"}
+{"addr": "004f9918", "label": "gLetterWeights"}
+{"addr": "004f9980", "label": "gFireChanceByLevel"}
+{"addr": "004f99b8", "label": "gFireMeterRefill"}
+{"addr": "004f9a18", "label": "gActionSpeed"}
+{"addr": "004f9a40", "label": "gFireMeterByLength"}
+{"addr": "004f9a70", "label": "gBonusWordPoints"}
+{"addr": "004f9a9c", "label": "gBonusWordLength"}
