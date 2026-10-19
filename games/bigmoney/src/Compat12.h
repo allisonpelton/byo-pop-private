@@ -26,8 +26,8 @@ class Slider12 : public Slider
 public:
 	Slider12(Image* theTrackImage, Image* theThumbImage, int theId, SliderListener* theListener);
 
-	virtual void	SetValue(double theValue);
-	virtual void	MouseDown(int x, int y, int theClickCount);
+	virtual void	SetValue(double theValue) override;
+	virtual void	MouseDown(int x, int y, int theClickCount) override;
 };
 
 }

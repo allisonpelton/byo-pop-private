@@ -42,19 +42,19 @@ public:
 
 public:
 	virtual ~RecordScoreDialog();                                   // 0x417730 (scalar deleting dtor 0x417890 slot 0)
-	virtual int		GetPreferredHeight(int theWidth);               // 0x4177a0 slot 57 (Dialog's + 56)
-	virtual void	AddedToManager(WidgetManager* theWidgetManager);  // 0x4177b0 slot 7
-	virtual void	RemovedFromManager(WidgetManager* theWidgetManager); // 0x4177e0 slot 8
-	virtual void	Resize(int theX, int theY, int theWidth, int theHeight); // 0x417810 slot 25
-	virtual void	EditWidgetText(int theId, const std::string& theString); // 0x417860 EditListener slot 0 (Enter = OK)
+	virtual int		GetPreferredHeight(int theWidth) override;               // 0x4177a0 slot 57 (Dialog's + 56)
+	virtual void	AddedToManager(WidgetManager* theWidgetManager) override;  // 0x4177b0 slot 7
+	virtual void	RemovedFromManager(WidgetManager* theWidgetManager) override; // 0x4177e0 slot 8
+	virtual void	Resize(int theX, int theY, int theWidth, int theHeight) override; // 0x417810 slot 25
+	virtual void	EditWidgetText(int theId, const std::string& theString) override; // 0x417860 EditListener slot 0 (Enter = OK)
 	// EditListener slots 1-3 (AllowKey / AllowChar / AllowText) are the shared 'return true' 0x417880: the defaults
 	void			DrawEditBox(Graphics* g, const Rect& theRect);  // 0x4178b0
 	RecordScoreDialog(WinBMApp* theApp, const std::string& theLines); // 0x417a30
-	virtual void	Draw(Graphics* g);                              // 0x417d00 slot 13
+	virtual void	Draw(Graphics* g) override;                              // 0x417d00 slot 13
 
 	// port: 1.2's EditWidget only takes characters 0x20..0x7e; the port's framework allows Latin-1
 	// above that (mbAllowExtendedChars). This keeps the original's range for the name.
-	virtual bool	AllowChar(int theId, SexyChar theChar);
+	virtual bool	AllowChar(int theId, SexyChar theChar) override;
 
 	using Widget::Resize;
 };

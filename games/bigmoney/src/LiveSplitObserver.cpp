@@ -1,0 +1,396 @@
+// port(mods): the LiveSplit block and its observer. See LiveSplitObserver.h and LiveSplitBlock.h.
+//
+// The block is a constant-initialised static object, so its magic exists only in .data's initialised bytes,
+// once in the exe. It is in every Windows build but written only while the "livesplit" feature is on; until
+// then active and self stay 0, which tells the script to ask for the mod. The observer runs after each app
+// update. Board::Update runs once per update (a replay at 2x-8x runs more board ticks per update, and is
+// flagged), so the observer sees each board tick once. It reads the board's fields and the score key only.
+//
+// Events, against the previous update of the same board:
+//   GO          Board::mGoTimer reaches 0 at level 0 (the "Go!" sound), on a board that did not resume a save
+//               and is not a replay
+//   level clear the board enters STATE_LEVEL_COMPLETE (LevelComplete)
+//   game over   the board enters STATE_GAME_OVER (GameOver): no moves in Puzzle (no group left), else
+//               overflow (Action's countdown, Strategy's full board); or STATE_FROZEN before its game over
+//               (New Game: the game selector slides over the board and then removes it)
+// A board's first update is a baseline only.
+
+#include "LiveSplitObserver.h"
+
+#ifdef BIGMONEY_HAS_LIVESPLIT
+
+#include "LiveSplitBlock.h"
+#include "WinBMApp.h"
+#include "Board.h"
+#include "ModRules.h"
+#include "platform/ModManager.h"
+#include "platform/VFS.h"
+
+#include <SDL.h>
+#include <algorithm>
+#include <atomic>
+#include <cctype>
+#include <cstdio>
+#include <cstring>
+#include <vector>
+
+using namespace Sexy;
+
+// The block (layout 1): constant-initialised, aligned, kept by the linker. Only Publish() writes it.
+extern "C" __attribute__((used, aligned(64))) volatile LiveSplitBlockV1 gLiveSplitBlock = {
+	LIVESPLIT_MAGIC_BYTES, LIVESPLIT_GAME_ID, LIVESPLIT_LAYOUT_VERSION, LIVESPLIT_SIZE_V1
+};
+
+namespace
+{
+
+LiveSplitBlockV1	sShadow;                    // what the next write publishes (the header fields unused)
+bool				sActive = false;            // the block says active
+bool				sGameOver = false;          // the current board had its game over (flag 0x40)
+int					sPrevGoTimer = 0;           // the current board at the previous update
+int					sPrevState = -1;
+std::string			sLogFileName;               // -livesplitlog
+FILE*				sLogFile = NULL;
+
+const char* const	gCauseNames[4] = { "overflow", "no moves", "New Game", "other" };
+
+// One write: seq odd, the fields, seq even (LiveSplitBlock.h)
+void Publish(int theUpdate)
+{
+	volatile LiveSplitBlockV1& b = gLiveSplitBlock;
+	const LiveSplitBlockV1& s = sShadow;
+	uint32_t aSeq = b.seq + 1;
+	b.seq = aSeq;
+	std::atomic_thread_fence(std::memory_order_release);
+	b.self = s.self;
+	b.active = s.active;
+	b.updates = s.updates;
+	b.flags = s.flags;
+	b.boardSerial = s.boardSerial;
+	b.goCount = s.goCount;
+	b.goSerial = s.goSerial;
+	b.levelClears = s.levelClears;
+	b.levelClearSerial = s.levelClearSerial;
+	b.gameOvers = s.gameOvers;
+	b.gameOverSerial = s.gameOverSerial;
+	b.deathsOverflow = s.deathsOverflow;
+	b.deathsNoMoves = s.deathsNoMoves;
+	b.deathsNewGame = s.deathsNewGame;
+	b.deathsOther = s.deathsOther;
+	b.tick = s.tick;
+	b.state = s.state;
+	b.level = s.level;
+	b.displayLevel = s.displayLevel;
+	b.displayScore = s.displayScore;
+	b.score = s.score;
+	b.boardLevelClears = s.boardLevelClears;
+	b.goTick = s.goTick;
+	b.displayScoreMax = s.displayScoreMax;
+	b.mode = s.mode;
+	b.skill = s.skill;
+	for (int i = 0; i < 8; i++)
+		b.scoreKey[i] = s.scoreKey[i];
+	b.qpc = s.qpc;
+	b.qpcFrequency = s.qpcFrequency;
+	std::atomic_thread_fence(std::memory_order_release);
+	b.seq = aSeq + 1;
+	sShadow.seq = aSeq + 1;
+
+	if (!sLogFileName.empty())
+	{
+		if (sLogFile == NULL)
+		{
+			sLogFile = fopen(sLogFileName.c_str(), "ab");
+			if (sLogFile == NULL)
+			{
+				SDL_Log("livesplit: cannot write %s", sLogFileName.c_str());
+				sLogFileName.clear();
+				return;
+			}
+		}
+		// The fields (volatile ones masked), then the block's bytes as the script reads them
+		char aLine[600];
+		FormatLiveSplitBlock(sShadow, true, aLine, sizeof(aLine));
+		LiveSplitBlockV1 aCopy;
+		memcpy(&aCopy, (const void*) &gLiveSplitBlock, sizeof(aCopy));
+		char aHex[LIVESPLIT_SIZE_V1 * 2 + 1];
+		const uint8_t* aBytes = (const uint8_t*) &aCopy;
+		for (unsigned i = 0; i < LIVESPLIT_SIZE_V1; i++)
+			snprintf(aHex + 2 * i, 3, "%02x", aBytes[i]);
+		fprintf(sLogFile, "u=%d %s hex=%s\n", theUpdate, aLine, aHex);
+		fflush(sLogFile);
+	}
+}
+
+bool EndsWithNoCase(const std::string& theText, const char* theEnd)
+{
+	size_t n = strlen(theEnd);
+	if (theText.size() < n)
+		return false;
+	for (size_t i = 0; i < n; i++)
+	{
+		if (tolower((unsigned char) theText[theText.size() - n + i]) != tolower((unsigned char) theEnd[i]))
+			return false;
+	}
+	return true;
+}
+
+// Written to "<name>.tmp" and renamed once complete, so a failed copy leaves no truncated template
+bool CopyHostFile(const std::string& theFrom, const std::string& theTo)
+{
+	FILE* anIn = fopen(theFrom.c_str(), "rb");
+	if (anIn == NULL)
+		return false;
+	std::vector<char> aData;
+	char aBuffer[4096];
+	size_t aCount;
+	while ((aCount = fread(aBuffer, 1, sizeof(aBuffer), anIn)) > 0)
+		aData.insert(aData.end(), aBuffer, aBuffer + aCount);
+	bool isRead = (ferror(anIn) == 0);
+	fclose(anIn);
+	if (!isRead)
+		return false;
+	std::string aTemp = theTo + ".tmp";
+	FILE* anOut = fopen(aTemp.c_str(), "wb");
+	if (anOut == NULL)
+		return false;
+	bool isWritten = aData.empty() || (fwrite(&aData[0], 1, aData.size(), anOut) == aData.size());
+	isWritten = (fclose(anOut) == 0) && isWritten;
+	if (isWritten && (rename(aTemp.c_str(), theTo.c_str()) == 0))
+		return true;
+	remove(aTemp.c_str());
+	return false;
+}
+
+// The split templates (*.lss in the livesplit/ folder of the mod that turned the feature on) to
+// <user dir>/livesplit/, each only if it is missing there: LiveSplit saves personal bests into the file it
+// opened, so a copy is never overwritten
+void CopyTemplates()
+{
+	const Platform::ModInfo* aMod = NULL;
+	for (const Platform::ModInfo* aCandidate : Platform::ModManager::Get().GetEnabledMods())
+	{
+		const Platform::JsonValue& aFeatures = aCandidate->mFeaturesJson;
+		if ((aMod == NULL) && aFeatures.IsObject() && aFeatures.Has("livesplit"))
+			aMod = aCandidate;
+	}
+	std::string aFrom;
+	if (aMod != NULL)
+	{
+		for (const std::string& anEntry : Platform::ListDirectory(aMod->mPath))
+		{
+			if ((SDL_strcasecmp(anEntry.c_str(), "livesplit") == 0) && Platform::IsDirectory(aMod->mPath + "/" + anEntry))
+				aFrom = aMod->mPath + "/" + anEntry;
+		}
+	}
+	if (aFrom.empty())
+	{
+		SDL_Log("livesplit: templates: none in the mod");
+		return;
+	}
+	std::vector<std::string> aNames = Platform::ListDirectory(aFrom);
+	std::sort(aNames.begin(), aNames.end());
+	std::string aTo = Platform::VFS::Get().GetUserDir() + "/livesplit";
+	int aCopied = 0;
+	int aKept = 0;
+	int aFailed = 0;
+	for (const std::string& aName : aNames)
+	{
+		if (!EndsWithNoCase(aName, ".lss") || !Platform::IsFile(aFrom + "/" + aName))
+			continue;
+		if (Platform::IsFile(aTo + "/" + aName))
+		{
+			aKept++;
+			continue;
+		}
+		Platform::MakeDirs(aTo);
+		if (CopyHostFile(aFrom + "/" + aName, aTo + "/" + aName))
+			aCopied++;
+		else
+			aFailed++;
+	}
+	SDL_Log("livesplit: templates: %d copied, %d already there, %d failed: %s", aCopied, aKept, aFailed, aTo.c_str());
+}
+
+// The fields of "no board" (boardSerial 0): before the first board, and after the last one
+void ClearBoardFields()
+{
+	LiveSplitBlockV1& s = sShadow;
+	s.boardSerial = 0;
+	s.boardLevelClears = 0;
+	s.goTick = -1;
+	s.displayScoreMax = 0;
+	s.flags = 0;
+	s.tick = 0;
+	s.state = -1;
+	s.level = 0;
+	s.displayLevel = 0;
+	s.displayScore = 0;
+	s.score = 0;
+	s.mode = -1;
+	s.skill = 0;
+}
+
+void Activate()
+{
+	sActive = true;
+	sShadow.self = (uint32_t)(uintptr_t) &gLiveSplitBlock;
+	sShadow.active = 1;
+	sShadow.qpcFrequency = SDL_GetPerformanceFrequency();
+	memset(sShadow.scoreKey, 0, sizeof(sShadow.scoreKey));
+	const std::string& aKey = Platform::ModManager::Get().GetScoreKey();
+	for (size_t i = 0; (i < aKey.size()) && (i < 8); i++)
+		sShadow.scoreKey[i] = (uint8_t) aKey[i];
+	SDL_Log("livesplit: block at 0x%08x (layout %u, %u bytes)", (unsigned) sShadow.self, (unsigned) LIVESPLIT_LAYOUT_VERSION,
+		(unsigned) LIVESPLIT_SIZE_V1);
+	CopyTemplates();
+}
+
+} // namespace
+
+void LiveSplitObserver::SetLogFile(const std::string& theFileName)
+{
+	sLogFileName = theFileName;
+}
+
+void LiveSplitObserver::AfterUpdate(WinBMApp* theApp)
+{
+	if ((!sActive) && (!ModFeatureEnabled("livesplit")))
+		return;
+	LiveSplitBlockV1& s = sShadow;
+	// On activation the current board (or none) is new to the block: its first update is a baseline
+	bool isActivation = !sActive;
+	if (isActivation)
+		Activate();
+
+	Board* aBoard = theApp->mBoard;
+	uint32_t aSerial = (aBoard != NULL) ? aBoard->mBoardSerial : 0;
+	bool isNewBoard = isActivation || (aSerial != s.boardSerial);
+	if (isNewBoard)
+	{
+		s.boardSerial = aSerial;
+		s.boardLevelClears = 0;
+		s.goTick = -1;
+		s.displayScoreMax = 0;
+		sGameOver = false;
+	}
+
+	if (aBoard == NULL)
+		ClearBoardFields();
+	else
+	{
+		int aState = aBoard->mState;
+		bool isReplay = (aBoard->mPlayer != NULL);
+		bool isOverNow = false;
+		if (!isNewBoard)
+		{
+			if ((sPrevGoTimer > 0) && (aBoard->mGoTimer == 0) && (aBoard->mLevel == 0))
+			{
+				if (aBoard->mResumed)
+					SDL_Log("livesplit: board %u resumed a saved game: GO not counted", (unsigned) aSerial);
+				else if (!isReplay)
+				{
+					s.goCount++;
+					s.goSerial = aSerial;
+					s.goTick = aBoard->mUpdateCnt;
+					SDL_Log("livesplit: board %u GO at tick %d (mode %d, skill %d)", (unsigned) aSerial, aBoard->mUpdateCnt,
+						theApp->mGameType, theApp->mSkillLevel);
+				}
+			}
+			if ((aState == STATE_LEVEL_COMPLETE) && (sPrevState != STATE_LEVEL_COMPLETE))
+			{
+				s.levelClears++;
+				s.levelClearSerial = aSerial;
+				s.boardLevelClears++;
+				SDL_Log("livesplit: board %u level clear %d (level %d) at tick %d", (unsigned) aSerial, (int) s.boardLevelClears,
+					aBoard->mLevel + 1, aBoard->mUpdateCnt);
+			}
+			bool isGameOver = (aState == STATE_GAME_OVER) && (sPrevState != STATE_GAME_OVER);
+			bool isNewGame = (aState == STATE_FROZEN) && (sPrevState != STATE_FROZEN) && (!sGameOver);
+			if (isGameOver || isNewGame)
+			{
+				int aCause;
+				if (isNewGame)
+				{
+					aCause = 2;
+					s.deathsNewGame++;
+				}
+				else if ((theApp->mGameType == GAMETYPE_PUZZLE) && (!aBoard->mHasMoves))
+				{
+					aCause = 1;
+					s.deathsNoMoves++;
+				}
+				else if (theApp->mGameType != GAMETYPE_PUZZLE)
+				{
+					aCause = 0;
+					s.deathsOverflow++;
+				}
+				else
+				{
+					aCause = 3;
+					s.deathsOther++;
+				}
+				s.gameOvers++;
+				s.gameOverSerial = aSerial;
+				isOverNow = true;
+				SDL_Log("livesplit: board %u game over (%s) at tick %d", (unsigned) aSerial, gCauseNames[aCause], aBoard->mUpdateCnt);
+			}
+		}
+
+		// The HUD score rolls up to mScore; the splitter reads its high-water mark, frozen after the game over
+		if (!sGameOver)
+			s.displayScoreMax = std::max(s.displayScoreMax, (int32_t) aBoard->mDisplayScore);
+		if (isOverNow)
+			sGameOver = true;
+
+		uint32_t aFlags = 0;
+		if (aBoard->mResumed)
+			aFlags |= LIVESPLIT_FLAG_RESUMED;
+		if (Platform::ModManager::Get().GetScoreKey().empty() && !aBoard->mUserSeeded)
+			aFlags |= LIVESPLIT_FLAG_VANILLA;
+		if (aBoard->mUserSeeded)
+			aFlags |= LIVESPLIT_FLAG_CHOSEN_SEED;
+		if (isReplay)
+			aFlags |= LIVESPLIT_FLAG_REPLAY;
+		if (sGameOver)
+			aFlags |= LIVESPLIT_FLAG_GAME_OVER;
+		if (aBoard->mPauseCount > 0)
+			aFlags |= LIVESPLIT_FLAG_PAUSED;
+		s.flags = aFlags;
+		s.tick = aBoard->mUpdateCnt;
+		s.state = aState;
+		s.level = aBoard->mLevel;
+		s.displayLevel = aBoard->mLevel + 1;
+		s.displayScore = aBoard->mDisplayScore;
+		s.score = aBoard->mScore;
+		s.mode = theApp->mGameType;
+		s.skill = theApp->mSkillLevel;
+
+		sPrevGoTimer = aBoard->mGoTimer;
+		sPrevState = aState;
+	}
+
+	s.updates++;
+	s.qpc = SDL_GetPerformanceCounter();
+	Publish(theApp->mUpdateCount);
+}
+
+void LiveSplitObserver::AppDestroyed(WinBMApp* theApp)
+{
+	if (sActive)
+	{
+		sActive = false;
+		sShadow.active = 0;
+		ClearBoardFields();
+		sShadow.updates++;
+		sShadow.qpc = SDL_GetPerformanceCounter();
+		Publish(theApp->mUpdateCount);
+	}
+	if (sLogFile != NULL)
+	{
+		fclose(sLogFile);
+		sLogFile = NULL;
+	}
+}
+
+#endif

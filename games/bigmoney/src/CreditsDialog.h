@@ -32,9 +32,9 @@ public:
 public:
 	CreditsDialog(WinBMApp* theApp);                                // 0x40ef30
 	virtual ~CreditsDialog();                                       // 0x40ee10 (scalar deleting dtor 0x40ef10) slot 0
-	virtual void	Update();                                       // 0x40ee90 slot 9
-	virtual void	Draw(Graphics* g);                              // 0x40f190 slot 13
-	virtual int		GetPreferredHeight(int theWidth);               // 0x40ee80 slot 57 (COMDAT shared with HighScoreDialog)
+	virtual void	Update() override;                                       // 0x40ee90 slot 9
+	virtual void	Draw(Graphics* g) override;                              // 0x40f190 slot 13
+	virtual int		GetPreferredHeight(int theWidth) override;               // 0x40ee80 slot 57 (COMDAT shared with HighScoreDialog)
 };
 
 }

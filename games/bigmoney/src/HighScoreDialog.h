@@ -33,8 +33,8 @@ public:
 public:
 	virtual ~HighScoreDialog();                                     // 0x412280 (scalar deleting dtor 0x4122f0 slot 0)
 	HighScoreDialog(WinBMApp* theApp);                              // 0x412310
-	virtual void	Draw(Graphics* g);                              // 0x4125c0 slot 13
-	virtual int		GetPreferredHeight(int theWidth);               // 0x40ee80 slot 57 (one body with CreditsDialog's: 396)
+	virtual void	Draw(Graphics* g) override;                              // 0x4125c0 slot 13
+	virtual int		GetPreferredHeight(int theWidth) override;               // 0x40ee80 slot 57 (one body with CreditsDialog's: 396)
 };
 
 }

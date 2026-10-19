@@ -27,8 +27,8 @@ public:
 public:
 	StartButton(WinBMApp* theApp, int theId, ButtonListener* theListener); // 0x419260
 	virtual ~StartButton();                                         // 0x4192c0 (scalar deleting dtor 0x4193d0) slot 0
-	virtual void	Update();                                       // 0x4192d0 slot 9
-	virtual void	Draw(Graphics* g);                              // 0x4193f0 slot 13
+	virtual void	Update() override;                                       // 0x4192d0 slot 9
+	virtual void	Draw(Graphics* g) override;                              // 0x4193f0 slot 13
 };
 
 }

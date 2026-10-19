@@ -15,6 +15,7 @@
 #include "Color.h"
 #include "Point.h"
 #include "MTRand.h"
+#include "ModRules.h"
 #include "Piece.h"
 #include "Res.h"
 #include <list>
@@ -33,6 +34,8 @@ class HighScoreWidget;
 class Points;
 class WidgetManager;
 class Buffer;
+class ReplayRecorder;
+class ReplayPlayer;
 
 // Board::mState (+0xa0)
 enum BoardState
@@ -288,23 +291,37 @@ public:
 	int				mBagFlashCount;         // +0x804 3 pulses per banked bag
 	double			mBagFlash;              // +0x808 0..1 pulse phase (sizeof 0x810)
 
+	// port(mods): not in the original (ModRules.h)
+	BoardTunables	mTunables;              // the mods' tunables that are not original members
+	uint32_t		mGameSeed;              // the seed the player chose for this game, 0 for none
+	bool			mUserSeeded;            // mGameSeed != 0: the board plays on it, with its own high-score tables
+	MTRand			mEffectsRand;           // a seeded game's effects (EffectsRand)
+	// port(mods): replays (Replay.h)
+	uint32_t		mRngSeed;               // the seed mRand started from (a replay's start)
+	ReplayRecorder*	mRecorder;              // this game is being recorded (the "replays" feature), else NULL
+	ReplayPlayer*	mPlayer;                // a playback board: it plays this replay and ignores the player's input
+	std::string		mReplayPath;            // the replay this game was written to at its game over ("" if none)
+	// port(mods): LiveSplit (LiveSplitObserver.h)
+	uint32_t		mBoardSerial;           // 1, 2, ... for each board the app makes
+	bool			mResumed;               // LoadGame restored a saved game into this board
+
 public:
 	Board(WinBMApp* theApp);                                        // 0x40e760
 	virtual ~Board();                                               // 0x403f10 (scalar deleting dtor 0x4045a0, slot 0)
 
 	// Widget
-	virtual void	RemovedFromManager(WidgetManager* theWidgetManager); // 0x403aa0 slot 8
-	virtual void	Update();                                       // 0x40c9f0 slot 9
-	virtual void	Draw(Graphics* g);                              // 0x405480 slot 13 (BoardDraw.cpp)
-	virtual void	OrderInManagerChanged();                        // 0x401460 slot 15
-	virtual void	KeyChar(SexyChar theChar);                      // 0x403050 slot 31
-	virtual void	MouseLeave();                                   // 0x401fa0 slot 35
-	virtual void	MouseMove(int x, int y);                        // 0x401fb0 slot 36
-	virtual void	MouseDown(int x, int y, int theClickCount);     // 0x40c5f0 slot 38
+	virtual void	RemovedFromManager(WidgetManager* theWidgetManager) override; // 0x403aa0 slot 8
+	virtual void	Update() override;                                       // 0x40c9f0 slot 9
+	virtual void	Draw(Graphics* g) override;                              // 0x405480 slot 13 (BoardDraw.cpp)
+	virtual void	OrderInManagerChanged() override;                        // 0x401460 slot 15
+	virtual void	KeyChar(SexyChar theChar) override;                      // 0x403050 slot 31
+	virtual void	MouseLeave() override;                                   // 0x401fa0 slot 35
+	virtual void	MouseMove(int x, int y) override;                        // 0x401fb0 slot 36
+	virtual void	MouseDown(int x, int y, int theClickCount) override;     // 0x40c5f0 slot 38
 
 	// ButtonListener (+0x80)
-	virtual void	ButtonPress(int theId);                         // 0x401c70 slot 1
-	virtual void	ButtonDepress(int theId);                       // 0x40e580 slot 2
+	virtual void	ButtonPress(int theId) override;                         // 0x401c70 slot 1
+	virtual void	ButtonDepress(int theId) override;                       // 0x40e580 slot 2
 
 	// Geometry and grid
 	static int		ColX(int theCol);                               // 0x4015e0 29*c + 177
@@ -366,6 +383,15 @@ public:
 	// port (web persistence): the bytes SaveGame would write now, without touching the game
 	void			SaveGameSnapshot(Buffer* theBuffer);
 	void			WriteSaveGame(Buffer* theBuffer);               // port: the body of 0x403300
+
+	// port(mods): tunables and the set seed (ModRules.h)
+	void			LoadTunables();
+	unsigned long	EffectsRand();
+	int				BagColumnRand();
+	void			UsePendingSeed();
+	// port(mods): replays (Replay.h): input to record, and the game-over screen
+	void			RecordInput(int theOp, int theX = 0, int theY = 0);
+	void			ReplayGameOver();
 	static std::string GetSaveGameFileName();                       // port: "userdata\\savegame.dat"
 
 	using Widget::MouseDown;

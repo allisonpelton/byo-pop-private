@@ -13,6 +13,7 @@
 
 #include <cstdlib>
 #include <ctime>
+#include "ModRules.h"
 
 using namespace Sexy;
 
@@ -152,7 +153,7 @@ void HighScoreWidget::RemovedFromManager(WidgetManager* theWidgetManager)
 void HighScoreWidget::LoadHighScores()
 {
 	Buffer aBuffer;
-	if (!mApp->ReadBufferFromFile(HIGHSCORE_FILE_NAME, &aBuffer))
+	if (!mApp->ReadBufferFromFile(mFileName, &aBuffer))
 		return;
 
 	// port: the original never checks fread and reuses stale locals on a short file; here loading stops
@@ -192,7 +193,7 @@ void HighScoreWidget::LoadHighScores()
 // 0x413100
 void HighScoreWidget::SaveHighScores()
 {
-	mApp->EraseFile(HIGHSCORE_FILE_NAME);
+	mApp->EraseFile(mFileName);
 
 	Buffer aBuffer;
 	for (int aMode = 0; aMode < NUM_HIGH_SCORE_MODES; aMode++)
@@ -205,7 +206,7 @@ void HighScoreWidget::SaveHighScores()
 	}
 
 	// port: the original pops this up when fopen fails, before writing anything
-	if (!mApp->WriteBufferToFile(HIGHSCORE_FILE_NAME, &aBuffer))
+	if (!mApp->WriteBufferToFile(mFileName, &aBuffer))
 		mApp->Popup("Failed to create high score file!\nPlease report error to support@popcap.com.");
 }
 
@@ -306,7 +307,7 @@ void HighScoreWidget::Update()
 	Widget::Update();
 
 	// About 2.8 s after the Board added the widget (its slide ends at tick 253)
-	if (mUpdateCnt == CHECK_HIGH_SCORE_TICK)
+	if ((mUpdateCnt == CHECK_HIGH_SCORE_TICK) && (!mViewOnly)) // port(mods): not for a replay
 		DoCheckForHighScore();
 
 	if (mUpdateCnt % 10 == 0)
@@ -356,10 +357,12 @@ void HighScoreWidget::AddHighScore(const std::string& theName)
 }
 
 // 0x414640
-HighScoreWidget::HighScoreWidget(WinBMApp* theApp)
+HighScoreWidget::HighScoreWidget(WinBMApp* theApp, bool theSeededTables, bool theViewOnly)
 {
 	mApp = theApp;
 	mColorCycle = 0;
+	mViewOnly = theViewOnly; // port(mods)
+	mFileName = ScopedUserFileName(HIGHSCORE_FILE_NAME, theSeededTables); // port(mods)
 
 	// port: the original first creates the internet submit button (id 0, label
 	// CLICK_HERE_TO_SUBMIT_TO_INTERNET_HIGH_SCORE_LIST, never sized or handled): not ported
@@ -415,8 +418,10 @@ HighScoreWidget::~HighScoreWidget()
 	// (the original also deletes +0x94, +0x98 (always NULL) and the internet submit button)
 	delete mNewGameButton;
 
-	// Every destruction rewrites hiscores.dat, HighScoreDialog's private copy included
-	SaveHighScores();
+	// Every destruction rewrites hiscores.dat, HighScoreDialog's private copy included. port(mods): not a
+	// replay's
+	if (!mViewOnly)
+		SaveHighScores();
 }
 
 // 0x401c70 (one body with Board's ButtonPress)

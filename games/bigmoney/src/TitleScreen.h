@@ -14,6 +14,9 @@
 #include "Widget.h"
 #include "ButtonListener.h"
 #include "Common.h"
+#include "HDPixels.h"
+
+#include <vector>
 
 namespace Sexy
 {
@@ -61,16 +64,19 @@ public:
 	int				mDeluxeLum;             // +0x10c luminosity added to the badge, 256 -> 0 (-16 every 8 updates once shown)
 	bool			mDeluxeDirty;           // +0x110 rebuild mDeluxeImage in Draw (port: initialised; the original leaves it unset but never reads it first)
 	bool			mDeluxeShown;           // +0x111 set at update 180
+	// port: the same for a mod's HD badge (HDPixels.h): its HSL copy and the edited HD pixels
+	std::vector<ulong> mDeluxeHDHSL;
+	HDPixels		mDeluxeHD;
 
 public:
 	TitleScreen(WinBMApp* theApp);                                  // 0x41b120
 	virtual ~TitleScreen();                                         // 0x419630 (scalar deleting dtor 0x419760) slot 0
-	virtual void	AddedToManager(WidgetManager* theWidgetManager);  // 0x4196d0 slot 7
-	virtual void	RemovedFromManager(WidgetManager* theWidgetManager); // 0x419700 slot 8
-	virtual void	Update();                                       // 0x41a810 slot 9
-	virtual void	Draw(Graphics* g);                              // 0x419950 slot 13
-	virtual void	Resize(int theX, int theY, int theWidth, int theHeight); // 0x412c50 slot 25 (jmp Widget::Resize)
-	virtual void	ButtonDepress(int theId);                       // 0x419730 ButtonListener slot 2
+	virtual void	AddedToManager(WidgetManager* theWidgetManager) override;  // 0x4196d0 slot 7
+	virtual void	RemovedFromManager(WidgetManager* theWidgetManager) override; // 0x419700 slot 8
+	virtual void	Update() override;                                       // 0x41a810 slot 9
+	virtual void	Draw(Graphics* g) override;                              // 0x419950 slot 13
+	virtual void	Resize(int theX, int theY, int theWidth, int theHeight) override; // 0x412c50 slot 25 (jmp Widget::Resize)
+	virtual void	ButtonDepress(int theId) override;                       // 0x419730 ButtonListener slot 2
 
 	using Widget::Resize;
 };

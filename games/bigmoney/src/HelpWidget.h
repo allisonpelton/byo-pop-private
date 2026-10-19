@@ -39,11 +39,11 @@ public:
 public:
 	HelpWidget(WinBMApp* theApp);                                   // 0x410f20
 	virtual ~HelpWidget();                                          // 0x410d80 (scalar deleting dtor 0x410f00) slot 0
-	virtual void	AddedToManager(WidgetManager* theWidgetManager);  // 0x410df0 slot 7
-	virtual void	RemovedFromManager(WidgetManager* theWidgetManager); // 0x410e30 slot 8
-	virtual void	Draw(Graphics* g);                              // 0x411590 slot 13
-	virtual void	OrderInManagerChanged();                        // 0x410e70 slot 15
-	virtual void	ButtonPress(int theId);                         // 0x410eb0 ButtonListener slot 1 (mouse down)
+	virtual void	AddedToManager(WidgetManager* theWidgetManager) override;  // 0x410df0 slot 7
+	virtual void	RemovedFromManager(WidgetManager* theWidgetManager) override; // 0x410e30 slot 8
+	virtual void	Draw(Graphics* g) override;                              // 0x411590 slot 13
+	virtual void	OrderInManagerChanged() override;                        // 0x410e70 slot 15
+	virtual void	ButtonPress(int theId) override;                         // 0x410eb0 ButtonListener slot 1 (mouse down)
 
 	using ButtonListener::ButtonPress;
 };

@@ -85,6 +85,115 @@ tools/build.sh web                             # build/web/bigmoney.html/.js/.wa
   selector and help screens, plays groups, clicks "next level", enters a name for a high score and
   plays again. `-autoplaylog` writes its input as a replayable `-script` file.
 
+## Mods
+
+Big Money uses the shared mod system (`platform/ModManager.h`).
+- **Installing a mod (native).** Copy the mod's folder into `build/native/mods-bigmoney/`, or pass
+  `-modsdir=`.
+- **Installing a mod (web).** Use the page's Mods dialog.
+- **What a mod can change.** These are checked for Big Money:
+  - image replacements, including HD art (`images/<name>@2x.png` or `@4x`);
+  - `imagePatches` that replace part of a sheet;
+  - sound remaps (`files`);
+  - texts: inline `strings`, or properties files that can also replace the 27 rank titles (`gRankNames`).
+- **HD art through the game's own pixel edits.** Five places edit pixels directly:
+  - the highlighted coins;
+  - the grey selector pictures;
+  - the "Deluxe" badge's flash;
+  - the level-up squash;
+  - the stats panel's fade.
+
+  `src/HDPixels.h` repeats each edit on the HD pixels, so HD art stays sharp there too.
+- **Sign that mods are on.** With any mod enabled, the "$" of the score display gets a double stroke
+  (`src/ModIndicators.h`). It uses no random numbers, so a modded game plays out exactly like an
+  unmodded one.
+- **Music.** The music is one module, `music/QualityTime_BigMoney.it`, whose songs start at set order
+  positions. A mod can replace the whole module with one that has the same layout. Replacing a single
+  song would need the shared mixer to remap per order position (not yet).
+- **Gameplay settings.** A mod.json `"tunables"` object can change:
+  - minting speed (Action) and rows per click (Strategy);
+  - the money meter's size and drain;
+  - the number of coin colours;
+  - the smallest clickable group;
+  - bags per level;
+  - the score multiplier and the points for each group size;
+  - how many levels ahead Normal and Hard start.
+
+  `src/ModRules.h` lists every key with the original's value and its allowed range. A mod with tunables
+  keeps its own high-score tables and save (`hiscores-<key>.dat`, `savegame-<key>.dat`), so its scores
+  never mix with the normal game's. Without tunables the game plays exactly as before: the screenshot
+  regression and autoplay input logs in all three modes are unchanged.
+- **Set seed.** `-gameseed=N` (native) or `?seed=N` (web), with N from 1 to 4294967295. Every new game
+  gets the seed until one is played on it (its first valid click or its game over).
+  - In a seeded game, every random choice that shapes the board comes from the seed's own generator:
+    new coins, bag columns, puzzles and dollar bombs. Effects draw from a second generator.
+  - So the first level always starts the same, and in Strategy and Puzzle the same clicks give the same
+    game. Action mints in real time, so there it depends on timing as well.
+  - Seeded games keep their own high-score tables (`hiscores-seeded.dat`).
+  - The stats panel at each level end and at game over shows "SEED n". Unseeded games show nothing
+    there, as the original.
+  - A seeded save ends in an 8-byte trailer, which the original's reader ignores, so the game stays
+    seeded when resumed. Unseeded saves are unchanged.
+- **Replays** (the `replays` mod, `features.replays`; `src/Replay.h`).
+  - **Recording.** Every game played from its start is recorded and kept when it reaches its game-over
+    screen, as `<date>-<mode>-<skill>-<score>.bmr`. Native replays go to `<user dir>/replays`
+    (`-replaydir=`); web replays go to `/bmpersist/replays`.
+  - **What is kept.** The newest 50 (`keep`), plus every replay whose score made a local table
+    (`-keep` in its name). Abandoned and resumed games are not kept.
+  - **Watching.** Press R on the game-over screen to watch the game just played. Native builds also take
+    `-replay=<file>`, and the web page has a Replays panel to watch, download, delete or import replays.
+    While watching: 1 to 4 for 1x to 8x, space to pause, Esc to stop.
+  - **Limits.** A watch never saves, counts a game or enters a high score. It needs the same gameplay
+    mods as the recording.
+  - **How it works.** A replay holds the board's seed, the player's clicks, hover moves and next-level
+    presses at their board ticks, and the bag-column draws. The board is deterministic from those, so a
+    watch plays the same game, and checks it at the end ("replay: verified" in the log: same end tick,
+    score, level and coins).
+  - **Tested.** Replays of all three modes, seeded and with tunables, verify at 1x and 8x, including
+    natively recorded replays watched in the web build.
+  - **Inspecting files.** `tools/bmr.py` prints a replay's contents.
+- **LiveSplit** (the `livesplit` mod, `features.livesplit`; Windows builds; `src/LiveSplitObserver.h`).
+  - **The block.** After every update the game fills a tagged, read-only block in its `.data`
+    (`src/LiveSplitBlock.h`). It uses the same magic and protocol as the Bejeweled port's, with game id
+    "BMDX".
+  - **The script.** `tools/livesplit/BigMoneyDeluxe-byopop.asl` reads the block. It starts LiveSplit's
+    timer at the first level's "Go!" (never for a resumed save or a replay), splits when a level is
+    complete or the score on screen reaches a segment's number, and resets when the run's game ends.
+  - **Categories.** Big Money has no speedrun.com board, so the categories are suggestions. A category
+    name with a mode and skill in it ("Strategy Easy - 5 Levels") starts only on that mode and skill.
+  - **The mod.** It changes nothing in play (the screenshot regression is byte-identical with it on). On
+    first use it copies its split templates to `<user dir>/livesplit`.
+  - **Tests.** `tools/livesplit/run_tests.sh` (under rundesk) plays bot and scripted games, then checks:
+    - `check_asl_offsets.py`: the script's field table and magic match the game's;
+    - `asltest`: the script compiles as LiveSplit compiles it (C# 5);
+    - `lsprobe.py --check`: a 64-bit process reading the live game finds the block and only ever sees
+      snapshots the game wrote;
+    - `lsdecide.py`: 24 scenarios (levels, scores, mode and skill guards, New Game, quitting, resumed
+      games, replays, the mod off). Each one's events match the expected ones and the real script's
+      decisions, through `asltest`.
+  - **Not done.** A manual test with LiveSplit itself would need it downloaded first (the user's call).
+
+Example mods (`games/bigmoney/mods/`):
+- **`fake-money/`: "Fake Money! Deluxe".**
+  - Crypto-style coins: a tilted B with bars, a stacked diamond, a D with a bar, a T with a ring and
+    three slanted bars. They are HD flip frames and coin faces in the game's five colours.
+  - A "Fake money!" logo for the title screen and the game screens.
+  - 27 crypto rank titles, from "Nocoiner" to "Probably Satoshi".
+  - All of it is original art and text, drawn and written by `tools/make_example_mods.py`, which
+    regenerates it.
+- **`small-change/`: "Small Change", an easier game.** Three colours from the start, groups of two, a
+  smaller meter, slower minting and at most six bags a level.
+- **`high-roller/`: "High Roller", a harder game for bigger scores.** Five colours from the start,
+  faster minting, a bigger meter, at least two bags a level, a doubled multiplier and more points for
+  big groups.
+- **`replays/`: "Replays".** Turns on replays and nothing else: no change in play, the normal high-score
+  tables, and no mods sign.
+- **`livesplit/`: "LiveSplit".** Turns on the LiveSplit block, with a copy of the script, seven split
+  templates and a README for players.
+- **`hd4x-textures/`: every image at 4x.** Generate it with `tools/make_hd4x_mod.py`, which upscales
+  the player's own game files with Real-ESRGAN on the GPU. It contains the game's art, so it is
+  git-ignored: never commit or share it.
+
 ## Status (2026-10-18)
 
 - **Analysis**: complete. GAME_NOTES.md has the overview plus five parts; every game function is in the
@@ -142,3 +251,4 @@ code-mods branch and its move to the byo-pop layout:
 | `tools/ghidra_headless.sh` | `GHIDRA_PROJECT` / `GHIDRA_PROGRAM` / `EXPORT_DIR` overrides (defaults: Bejeweled's) |
 | `tools/ghidra_scripts/DisableNoReturnDiscovery.java` | new pre-script (G4) |
 | `tools/rtti_msvc70.py`, `tools/saf_vtable_layout.py`, `tools/saf_struct_layout.py` | new, game-agnostic (G4; the 1.2 maps are reused for Hammer Heads) |
+| `framework/PropertiesParser.cpp` | a `StringArray` replaces an earlier one of the same id (as `String`, `Integer` etc. already do), so a mod's properties file can change one, e.g. the rank titles; the games' own files repeat none |

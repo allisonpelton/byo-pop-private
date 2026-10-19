@@ -1,0 +1,30 @@
+{
+  "id": "high-roller",
+  "name": "High Roller",
+  "version": "1.0",
+  "author": "byo-pop examples",
+  "description": "A harder game for bigger scores: five coin colours from the start, faster minting, a bigger money meter, at least two bags a level, a doubled score multiplier and more points for big groups. Keeps its own high scores.",
+  "tunables": {
+    "coins": {
+      "colors": 5,
+      "fewerOnFirstLevel": false
+    },
+    "minting": {
+      "speedBase": 0.0035,
+      "speedPerLevel": 0.0012,
+      "perClickBase": 0.3
+    },
+    "meter": {
+      "capacityBase": 400,
+      "capacityPerLevel": 30
+    },
+    "bags": {
+      "min": 2
+    },
+    "scoring": {
+      "multBase": 1.0,
+      "multPerLevel": 0.2,
+      "groupPointsStep": 40
+    }
+  }
+}

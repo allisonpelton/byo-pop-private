@@ -25,7 +25,7 @@ public:
 	LockableButton(WinBMApp* theApp, int theId, ButtonListener* theButtonListener); // 0x414d80
 	virtual ~LockableButton();                                      // 0x414dc0 (scalar deleting dtor 0x414de0)
 
-	virtual void	Draw(Graphics* g);                              // 0x414dd0 slot 13 (jmp ButtonWidget::Draw)
+	virtual void	Draw(Graphics* g) override;                              // 0x414dd0 slot 13 (jmp ButtonWidget::Draw)
 };
 
 }

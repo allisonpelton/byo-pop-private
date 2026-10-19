@@ -14,7 +14,9 @@
 
 #include "SexyApp.h"
 #include "Res.h"
+#include <cstdint>
 #include <list>
+#include <vector>
 #include <string>
 
 namespace Sexy
@@ -33,6 +35,7 @@ class Dialog;
 class MusicInterface;
 
 class AutoplayBot;
+namespace Replay { struct File; }
 
 class WinBMApp : public SexyApp
 {
@@ -94,23 +97,23 @@ public:
 	WinBMApp();                                                     // 0x41c790
 	virtual ~WinBMApp();                                            // 0x41c240 (scalar deleting dtor 0x41c9d0, slot 17)
 
-	virtual void	ButtonPress(int theId);                         // 0x41bfa0 slot 1 (PlaySample(SOUND_BUTTONCLICK))
-	virtual void	ButtonDepress(int theId);                       // 0x420f10 slot 2
-	virtual void	LoadingThreadCompleted();                       // 0x421450 slot 16 (update check prompt, not ported)
-	virtual MusicInterface* CreateMusicInterface();                 // port: SexyAppBase's default in the original (BASS); here SDLMusicInterface
-	virtual void	LoadingThreadProc();                            // 0x41efd0 slot 22
-	virtual void	WriteToRegistry();                              // 0x41c9f0 slot 23
-	virtual void	ReadFromRegistry();                             // 0x41cb60 slot 24
-	virtual Dialog*	NewDialog(int theDialogId, bool isModal, const SexyString& theDialogHeader, const SexyString& theDialogLines, const SexyString& theDialogFooter, int theButtonMode); // 0x41bd90 slot 25
-	virtual void	URLOpenFailed(const std::string& theURL);       // 0x41fe80 slot 33
-	virtual void	URLOpenSucceeded(const std::string& theURL);    // 0x41bf80 slot 34
-	virtual bool	OpenURL(const std::string& theURL, bool shutdownOnOpen = false); // 0x420140 slot 35
-	virtual void	Init();                                         // 0x41d9a0 slot 45
-	virtual bool	KillDialog(int theDialogId);                    // 0x41c1c0 slot 71
-	virtual void	ModalOpen();                                    // 0x41bf00 slot 73 (pauses Action only)
-	virtual void	ModalClose();                                   // 0x41bf20 slot 74
-	virtual void	GotFocus();                                     // 0x41bf40 slot 75
-	virtual void	LostFocus();                                    // 0x41bf60 slot 76
+	virtual void	ButtonPress(int theId) override;                         // 0x41bfa0 slot 1 (PlaySample(SOUND_BUTTONCLICK))
+	virtual void	ButtonDepress(int theId) override;                       // 0x420f10 slot 2
+	virtual void	LoadingThreadCompleted() override;                       // 0x421450 slot 16 (update check prompt, not ported)
+	virtual MusicInterface* CreateMusicInterface() override;                 // port: SexyAppBase's default in the original (BASS); here SDLMusicInterface
+	virtual void	LoadingThreadProc() override;                            // 0x41efd0 slot 22
+	virtual void	WriteToRegistry() override;                              // 0x41c9f0 slot 23
+	virtual void	ReadFromRegistry() override;                             // 0x41cb60 slot 24
+	virtual Dialog*	NewDialog(int theDialogId, bool isModal, const SexyString& theDialogHeader, const SexyString& theDialogLines, const SexyString& theDialogFooter, int theButtonMode) override; // 0x41bd90 slot 25
+	virtual void	URLOpenFailed(const std::string& theURL) override;       // 0x41fe80 slot 33
+	virtual void	URLOpenSucceeded(const std::string& theURL) override;    // 0x41bf80 slot 34
+	virtual bool	OpenURL(const std::string& theURL, bool shutdownOnOpen = false) override; // 0x420140 slot 35
+	virtual void	Init() override;                                         // 0x41d9a0 slot 45
+	virtual bool	KillDialog(int theDialogId) override;                    // 0x41c1c0 slot 71
+	virtual void	ModalOpen() override;                                    // 0x41bf00 slot 73 (pauses Action only)
+	virtual void	ModalClose() override;                                   // 0x41bf20 slot 74
+	virtual void	GotFocus() override;                                     // 0x41bf40 slot 75
+	virtual void	LostFocus() override;                                    // 0x41bf60 slot 76
 	virtual void	TitleScreenIsFinished();                        // 0x4215c0 slot 96 (new virtual; TitleScreen::ButtonDepress)
 
 	bool			LoadAppImage(int theImageId);                   // 0x41d7d0
@@ -137,9 +140,26 @@ public:
 
 	// port (web): the page can be closed or crash without the app being deleted, which is where the
 	// original saves a game in progress (see SexyAppBase::UpdateUserDataBackup)
-	virtual bool	GetShutdownSave(std::string* theFileName, Buffer* theBuffer);
-	virtual void	WriteShutdownRegistry();
-	virtual void	ShutdownHook();                                 // port (web): ~WinBMApp's save (the app is never deleted)
+	virtual void	GetShutdownSaves(std::vector<ShutdownSave>* theSaves) override;
+	virtual void	WriteShutdownRegistry() override;
+	virtual void	ShutdownHook() override;                                 // port (web): ~WinBMApp's save (the app is never deleted)
+
+	// port(mods): a seed the player chose (-gameseed=N, set by main.cpp; ?seed=N on the web), 0 for none:
+	// every new game gets it until a game on it is played (Board::UsePendingSeed, ModRules.h)
+	uint32_t		mPendingSeed;
+
+	// port(mods): replays (Replay.h)
+	std::string		mReplayDir;             // where recorded games go (-replaydir=; main.cpp sets the default)
+	std::string		mWatchPath;             // -replay=<file>: watched once the title has loaded
+	Replay::File*	mWatchFile;             // the replay a new board plays (StartWatch .. EndWatch), else NULL
+	int				mWatchSpeed;            // board ticks per update while watching: 1, 2, 4 or 8
+	bool			mWatchAtStart;          // the -replay watch: the continue prompt waits for its end
+	int				mWatchSavedGameType;    // the app's state before the watch, given back by EndWatch
+	int				mWatchSavedSkill;
+	int				mWatchSavedTimesPlayed;
+	bool			mWatchSavedFlags[5];
+	bool			StartWatch(const std::string& thePath);   // false (and a message) when it cannot be played
+	void			EndWatch();
 
 	// port: test hooks (not in the original; the framework's -seed, -script, -fast and -trace are in
 	// SexyAppBase.h). None of them changes the game or its random streams.
@@ -157,8 +177,8 @@ public:
 	std::string		mAutoplayLogFileName;
 	std::string		mAutoplayShotPrefix;
 	AutoplayBot*	mAutoplayBot;
-	virtual void	UpdateFrames();
-	virtual void	HandleCmdLineParam(const std::string& theParamName, const std::string& theParamValue);
+	virtual void	UpdateFrames() override;
+	virtual void	HandleCmdLineParam(const std::string& theParamName, const std::string& theParamValue) override;
 
 	using SexyApp::ButtonPress;
 	using SexyApp::KillDialog;

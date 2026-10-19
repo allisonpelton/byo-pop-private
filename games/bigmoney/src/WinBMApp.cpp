@@ -11,6 +11,12 @@
 #include "RecordScoreDialog.h"
 #include "CreditsDialog.h"
 #include "testhooks/Autoplay.h"
+#include "Replay.h"
+#include "LiveSplitObserver.h"
+#include <SDL.h>
+#include "ModIndicators.h"
+#include "HDPixels.h"
+#include "platform/ModManager.h"
 
 #include "WidgetManager.h"
 #include "ButtonWidget.h"
@@ -27,9 +33,42 @@
 
 using namespace Sexy;
 
+// The highlighted-coin colour (Init): every colour channel c -> min(255, c * 280 / 255 + 48), alpha kept
+static ulong BrightCoinPixel(ulong thePixel)
+{
+	ulong aBlue = ((thePixel & 0xff) * 280) / 255 + 48;
+	ulong aGreen = (((thePixel >> 8) & 0xff) * 280) / 255 + 48;
+	ulong aRed = (((thePixel >> 16) & 0xff) * 280) / 255 + 48;
+	if (aBlue > 255)
+		aBlue = 255;
+	if (aGreen > 255)
+		aGreen = 255;
+	if (aRed > 255)
+		aRed = 255;
+	return (thePixel & 0xff000000) | (aRed << 16) | (aGreen << 8) | aBlue;
+}
+
+// The grey selector illustrations (LoadingThreadProc): (r + g + b) / 3, alpha kept
+static ulong GreyPixel(ulong thePixel)
+{
+	ulong aGrey = (((thePixel >> 16) & 0xff) + ((thePixel >> 8) & 0xff) + (thePixel & 0xff)) / 3;
+	return (aGrey << 16) | (aGrey << 8) | (thePixel & 0xff000000) | aGrey;
+}
+
 // 0x41c790
 WinBMApp::WinBMApp()
 {
+	mPendingSeed = 0; // port(mods)
+	mReplayDir = "replays";
+	mWatchFile = NULL;
+	mWatchSpeed = 1;
+	mWatchAtStart = false;
+	mWatchSavedGameType = 0;
+	mWatchSavedSkill = 1;
+	mWatchSavedTimesPlayed = 0;
+	for (int i = 0; i < 5; i++)
+		mWatchSavedFlags[i] = false;
+
 	// port: test hooks
 	mAutoplay = false;
 	mAutoplaySeed = 0;
@@ -108,6 +147,7 @@ WinBMApp::WinBMApp()
 WinBMApp::~WinBMApp()
 {
 	delete mAutoplayBot;  // port: test hook
+	LiveSplitObserver::AppDestroyed(this); // port(mods): the block's last write
 
 	// This is where a game in progress is saved on exit: Shutdown is not overridden
 	if ((mBoard != NULL) && (mBoard->CanSaveGame()))
@@ -182,6 +222,7 @@ WinBMApp::~WinBMApp()
 	}
 
 	delete mBrightCoinsImage; // port: the original never deletes it
+	delete mWatchFile; // port(mods)
 
 	// mBoard and mHelpWidget are not deleted (as in the original: the process ends)
 }
@@ -558,20 +599,13 @@ void WinBMApp::Init()
 	ulong* aDestBits = mBrightCoinsImage->GetBits();
 	int aNumPixels = aCoinsImage->GetWidth() * aCoinsImage->GetHeight();
 	for (int i = 0; i < aNumPixels; i++)
-	{
-		ulong aPixel = aSrcBits[i];
-		ulong aBlue = ((aPixel & 0xff) * 280) / 255 + 48;
-		ulong aGreen = (((aPixel >> 8) & 0xff) * 280) / 255 + 48;
-		ulong aRed = (((aPixel >> 16) & 0xff) * 280) / 255 + 48;
-		if (aBlue > 255)
-			aBlue = 255;
-		if (aGreen > 255)
-			aGreen = 255;
-		if (aRed > 255)
-			aRed = 255;
-		aDestBits[i] = (aPixel & 0xff000000) | (aRed << 16) | (aGreen << 8) | aBlue;
-	}
+		aDestBits[i] = BrightCoinPixel(aSrcBits[i]);
+	// port: the same for a mod's HD coins (HDPixels.h)
+	HDPixels aCoinsHD = GetHDPixels(aCoinsImage);
+	for (size_t i = 0; i < aCoinsHD.mBits.size(); i++)
+		aCoinsHD.mBits[i] = (uint32_t) BrightCoinPixel(aCoinsHD.mBits[i]);
 	mBrightCoinsImage->BitsChanged();
+	SetHDPixels(mBrightCoinsImage, aCoinsHD);
 
 	mFont1 = new ImageFont(this, FONT_FILE_1);
 
@@ -607,6 +641,8 @@ void WinBMApp::Init()
 	mFont3OutlineUnderlined->Prepare();
 
 	mScoreFont = new ImageFont(this, FONT_FILE_SCORE);
+	if (AnyContentModEnabled()) // not for a mod that only turns on replays or LiveSplit (ModRules.h)
+		AddModsDoubleStrokeToDollar(mScoreFont);  // port: a sign that mods are in use (ModIndicators.h)
 	mScoreFontSmall = new ImageFont(*mScoreFont);
 	mScoreFontSmall->SetPointSize(20);
 
@@ -666,12 +702,13 @@ void WinBMApp::LoadingThreadProc()
 	ulong* aDestBits = aGreyImage->GetBits();
 	int aNumPixels = anIllustrations->GetWidth() * anIllustrations->GetHeight();
 	for (int i = 0; i < aNumPixels; i++)
-	{
-		ulong aPixel = aSrcBits[i];
-		ulong aGrey = (((aPixel >> 16) & 0xff) + ((aPixel >> 8) & 0xff) + (aPixel & 0xff)) / 3;
-		aDestBits[i] = (aGrey << 16) | (aGrey << 8) | (aPixel & 0xff000000) | aGrey;
-	}
+		aDestBits[i] = GreyPixel(aSrcBits[i]);
+	// port: the same for a mod's HD illustrations (HDPixels.h)
+	HDPixels anIllustrationsHD = GetHDPixels(anIllustrations);
+	for (size_t i = 0; i < anIllustrationsHD.mBits.size(); i++)
+		anIllustrationsHD.mBits[i] = (uint32_t) GreyPixel(anIllustrationsHD.mBits[i]);
 	aGreyImage->BitsChanged();
+	SetHDPixels(aGreyImage, anIllustrationsHD);
 
 	// Game-type tiles, 154 px columns of the selector background: normal (darkened, grey text and
 	// picture), over (yellow text) and down (green text, coloured picture)
@@ -1019,18 +1056,105 @@ void WinBMApp::TitleScreenIsFinished()
 	mWidgetManager->AddWidget(mMrMoney);
 
 	ShowGameSelector();
+
+	// port(mods): -replay=<file>: the replay first; the continue prompt comes when it ends (EndWatch)
+	if (!mWatchPath.empty())
+	{
+		std::string aPath = mWatchPath;
+		mWatchPath.clear();
+		if (StartWatch(aPath))
+		{
+			mWatchAtStart = true;
+			return;
+		}
+	}
 	ConfirmContinueGame();
 }
 
-// port (web): the save the original's ~WinBMApp would write now (see SexyAppBase::UpdateUserDataBackup)
-bool WinBMApp::GetShutdownSave(std::string* theFileName, Buffer* theBuffer)
+// port(mods): watches the replay thePath (Replay.h): a playback board in the replay's mode and skill, with
+// the app's one-time flags as they were. Everything it changes in the app is given back by EndWatch.
+bool WinBMApp::StartWatch(const std::string& thePath)
+{
+	Replay::File aFile;
+	std::string anError;
+	bool isOk = Replay::LoadFile(thePath, &aFile, &anError);
+	if ((isOk) && (aFile.mScoreKey != Platform::ModManager::Get().GetScoreKey()))
+	{
+		isOk = false;
+		anError = "it was recorded with other gameplay mods";
+	}
+	if (!isOk)
+	{
+		SDL_Log("replay: cannot watch %s: %s", thePath.c_str(), anError.c_str());
+		DoDialog(DIALOG_INFO, true, GetString("REPLAY", _S("REPLAY")), GetString("REPLAY_CANNOT_PLAY", _S("This replay cannot be played: ")) + anError + ".",
+			GetString("DIALOG_BUTTON_OK"), Dialog::BUTTONS_FOOTER);
+		return false;
+	}
+	SDL_Log("replay: watching %s", thePath.c_str());
+
+	if (mWatchFile == NULL)
+	{
+		mWatchSavedGameType = mGameType;
+		mWatchSavedSkill = mSkillLevel;
+		mWatchSavedTimesPlayed = mTimesPlayed;
+		mWatchSavedFlags[0] = mShowInstructor;
+		mWatchSavedFlags[1] = mHasClickedGroup;
+		mWatchSavedFlags[2] = mDangerHintShown;
+		mWatchSavedFlags[3] = mBagCollectedOnce;
+		mWatchSavedFlags[4] = mBombSeenOnce;
+	}
+	delete mWatchFile;
+	mWatchFile = new Replay::File(aFile);
+	mWatchSpeed = 1;
+	mGameType = aFile.mGameType;
+	mSkillLevel = aFile.mSkill;
+	mShowInstructor = (aFile.mAppFlags & Replay::APP_SHOW_INSTRUCTOR) != 0;
+	mHasClickedGroup = (aFile.mAppFlags & Replay::APP_HAS_CLICKED_GROUP) != 0;
+	mDangerHintShown = (aFile.mAppFlags & Replay::APP_DANGER_HINT_SHOWN) != 0;
+	mBagCollectedOnce = (aFile.mAppFlags & Replay::APP_BAG_COLLECTED_ONCE) != 0;
+	mBombSeenOnce = (aFile.mAppFlags & Replay::APP_BOMB_SEEN_ONCE) != 0;
+	NewGame(); // the board's constructor takes mWatchFile
+	return true;
+}
+
+// port(mods): the watch is over (its end, or Escape): the app's state comes back and the game selector
+// slides in over the playback board, which it then removes
+void WinBMApp::EndWatch()
+{
+	if (mWatchFile == NULL)
+		return;
+	delete mWatchFile;
+	mWatchFile = NULL;
+	mWatchSpeed = 1;
+	mGameType = mWatchSavedGameType;
+	mSkillLevel = mWatchSavedSkill;
+	mTimesPlayed = mWatchSavedTimesPlayed;
+	mShowInstructor = mWatchSavedFlags[0];
+	mHasClickedGroup = mWatchSavedFlags[1];
+	mDangerHintShown = mWatchSavedFlags[2];
+	mBagCollectedOnce = mWatchSavedFlags[3];
+	mBombSeenOnce = mWatchSavedFlags[4];
+	ShowGameSelector();
+	if (mWatchAtStart)
+	{
+		mWatchAtStart = false;
+		ConfirmContinueGame();
+	}
+}
+
+// port (web): the save the original's ~WinBMApp would write now (see SexyAppBase::UpdateUserDataBackup):
+// savegame.dat (or its copy for the gameplay mods, ModRules.h) of a game in progress
+void WinBMApp::GetShutdownSaves(std::vector<ShutdownSave>* theSaves)
 {
 	if ((mBoard == NULL) || (!mBoard->CanSaveGame()))
-		return false;
+		return;
 
-	*theFileName = Board::GetSaveGameFileName();
-	mBoard->SaveGameSnapshot(theBuffer);
-	return true;
+	Buffer aBuffer;
+	mBoard->SaveGameSnapshot(&aBuffer);
+	ShutdownSave aSave;
+	aSave.mFileName = Board::GetSaveGameFileName();
+	aSave.mData.assign((const char*) aBuffer.GetDataPtr(), (size_t) aBuffer.GetDataLen());
+	theSaves->push_back(aSave);
 }
 
 // port (web): Shutdown's WriteToRegistry is the last registry write (the save in ~WinBMApp changes no
@@ -1042,7 +1166,7 @@ void WinBMApp::WriteShutdownRegistry()
 
 // port (web): the original saves a game in progress only in ~WinBMApp, and the web build never deletes
 // the app; without this the save of a quit game would exist only in the localStorage backup
-// (GetShutdownSave).
+// (GetShutdownSaves).
 void WinBMApp::ShutdownHook()
 {
 #ifdef __EMSCRIPTEN__
@@ -1056,16 +1180,46 @@ void WinBMApp::UpdateFrames()
 {
 	SexyApp::UpdateFrames();
 
+	// port(mods): replays (Replay.h). A -replay watch starts once the title has loaded, as if its play link
+	// were clicked; a faster watch runs the playback board's extra ticks.
+	if ((!mWatchPath.empty()) && (mTitleScreen != NULL) && (mTitleScreen->mLoadDone))
+		TitleScreenIsFinished();
+	if ((mWatchFile != NULL) && (mBoard != NULL) && (mBoard->mPlayer != NULL))
+	{
+		for (int i = 1; i < mWatchSpeed; i++)
+			mBoard->Update();
+	}
+
 	if ((mAutoplay) && (mAutoplayBot == NULL))
 		mAutoplayBot = new AutoplayBot(this, mAutoplaySeed, mAutoplayMode, mAutoplaySkill, mAutoplayGames, mAutoplayCap,
 			mAutoplayLogFileName, mAutoplayShotPrefix);
 	if (mAutoplayBot != NULL)
 		mAutoplayBot->Update();
+
+	// port(mods): the LiveSplit block, after the update (LiveSplitObserver.h)
+	LiveSplitObserver::AfterUpdate(this);
 }
 
 // port: the game's command-line test hooks (see WinBMApp.h); everything else goes to the framework
 void WinBMApp::HandleCmdLineParam(const std::string& theParamName, const std::string& theParamValue)
 {
+	if (theParamName == "-gameseed")
+		return; // port(mods): main.cpp checked it and set mPendingSeed
+	if (theParamName == "-replay")
+	{
+		mWatchPath = theParamValue; // port(mods)
+		return;
+	}
+	if (theParamName == "-replaydir")
+	{
+		mReplayDir = theParamValue; // port(mods)
+		return;
+	}
+	if (theParamName == "-livesplitlog")
+	{
+		LiveSplitObserver::SetLogFile(theParamValue); // port(mods): test hook, one line per block write
+		return;
+	}
 	if (theParamName == "-autoplay")
 	{
 		mAutoplay = true;

@@ -23,9 +23,12 @@ with the build differences below applied, and checked against the binary:
 | `std::string mDemoCommentStr; ulong mDemoCommentDec;` | absent | `mDemoBuffer` directly follows `mDemoFileName` (0x510) in the ctor |
 | `int mDemoPlayFrame;` | absent | ctor stores 0x530..0x54c match the header order without it |
 | `float mMouseSensitivity;` | absent | `mStringProperties` at 0x598 |
+| `int Image::mNumTotal;` | absent | the Image ctor (0x432680) stores +4..+0x10 and then only 0 at +0x14 (`mAnimInfo`); `MemoryImage(SexyAppBase*)` (0x44c820) stores `mApp` at +0x48 and its Init (0x432850) `mBits` at +0x18; the DDImage ctor (0x44d640) stores `mDDInterface` at +0x4c |
 
 So sizeof(SexyAppBase) = 0x5e0 (0x5dc of members, 8-aligned), sizeof(SexyApp) = 0x6d0, and WinBMApp's
-own members start at +0x6d0.
+own members start at +0x6d0. Without `mNumTotal`, sizeof(Image) = 0x18 and every MemoryImage and
+DDImage field is 4 lower than in the public headers (sizeof 0x4c and 0xcc). BookWorm's 2004 build has
+the same Image ctor.
 
 **Container sizes** (VC7 Dinkumware): `std::string` 28 bytes (allocator, 16-byte buffer at +4, size
 +0x14, capacity +0x18; heap pointer at +4 when capacity > 15), `std::list`/`map`/`set` 12 (allocator,
@@ -1440,53 +1443,52 @@ dialogs, see the RTTI vtable offsets in the inventory).
 ### Image
 
 ```
-== Image  sizeof 0x1c (28)
+== Image  sizeof 0x18 (24)
   +0x000    4  vfptr                                    __vfptr  [Image]
   +0x004    4  int                                      mWidth  [Image]
   +0x008    4  int                                      mHeight  [Image]
   +0x00c    4  int                                      mNumRows  [Image]
   +0x010    4  int                                      mNumCols  [Image]
-  +0x014    4  int                                      mNumTotal  [Image]
-  +0x018    4  AnimInfo*                                mAnimInfo  [Image]
+  +0x014    4  AnimInfo*                                mAnimInfo  [Image]
 ```
 
 ### MemoryImage
 
 ```
-== MemoryImage  sizeof 0x50 (80)
-  +0x01c    4  ulong*                                   mBits  [MemoryImage]
-  +0x020    4  int                                      mBitsChangedCount  [MemoryImage]
-  +0x024    4  void*                                    mD3DData  [MemoryImage]
-  +0x028    4  DWORD                                    mD3DFlags  [MemoryImage]
-  +0x02c    4  ulong*                                   mColorTable  [MemoryImage]
-  +0x030    4  uchar*                                   mColorIndices  [MemoryImage]
-  +0x034    1  bool                                     mForcedMode  [MemoryImage]
-  +0x035    1  bool                                     mHasTrans  [MemoryImage]
-  +0x036    1  bool                                     mHasAlpha  [MemoryImage]
-  +0x037    1  bool                                     mIsVolatile  [MemoryImage]
-  +0x038    1  bool                                     mPurgeBits  [MemoryImage]
-  +0x039    1  bool                                     mWantPal  [MemoryImage]
-  +0x03c    4  ulong*                                   mNativeAlphaData  [MemoryImage]
-  +0x040    4  uchar*                                   mRLAlphaData  [MemoryImage]
-  +0x044    4  uchar*                                   mRLAdditiveData  [MemoryImage]
-  +0x048    1  bool                                     mBitsChanged  [MemoryImage]
-  +0x04c    4  SexyAppBase*                             mApp  [MemoryImage]
+== MemoryImage  sizeof 0x4c (76)
+  +0x018    4  ulong*                                   mBits  [MemoryImage]
+  +0x01c    4  int                                      mBitsChangedCount  [MemoryImage]
+  +0x020    4  void*                                    mD3DData  [MemoryImage]
+  +0x024    4  DWORD                                    mD3DFlags  [MemoryImage]
+  +0x028    4  ulong*                                   mColorTable  [MemoryImage]
+  +0x02c    4  uchar*                                   mColorIndices  [MemoryImage]
+  +0x030    1  bool                                     mForcedMode  [MemoryImage]
+  +0x031    1  bool                                     mHasTrans  [MemoryImage]
+  +0x032    1  bool                                     mHasAlpha  [MemoryImage]
+  +0x033    1  bool                                     mIsVolatile  [MemoryImage]
+  +0x034    1  bool                                     mPurgeBits  [MemoryImage]
+  +0x035    1  bool                                     mWantPal  [MemoryImage]
+  +0x038    4  ulong*                                   mNativeAlphaData  [MemoryImage]
+  +0x03c    4  uchar*                                   mRLAlphaData  [MemoryImage]
+  +0x040    4  uchar*                                   mRLAdditiveData  [MemoryImage]
+  +0x044    1  bool                                     mBitsChanged  [MemoryImage]
+  +0x048    4  SexyAppBase*                             mApp  [MemoryImage]
 ```
 
 ### DDImage
 
 ```
-== DDImage  sizeof 0xd0 (208)
-  +0x050    4  DDInterface*                             mDDInterface  [DDImage]
-  +0x054    4  LPDIRECTDRAWSURFACE                      mSurface  [DDImage]
-  +0x058    1  bool                                     mSurfaceSet  [DDImage]
-  +0x059    1  bool                                     mNoLock  [DDImage]
-  +0x05a    1  bool                                     mVideoMemory  [DDImage]
-  +0x05b    1  bool                                     mFirstPixelTrans  [DDImage]
-  +0x05c    1  bool                                     mWantDDSurface  [DDImage]
-  +0x05d    1  bool                                     mDrawToBits  [DDImage]
-  +0x060    4  int                                      mLockCount  [DDImage]
-  +0x064  108  DDSURFACEDESC                            mLockedSurfaceDesc  [DDImage]
+== DDImage  sizeof 0xcc (204)
+  +0x04c    4  DDInterface*                             mDDInterface  [DDImage]
+  +0x050    4  LPDIRECTDRAWSURFACE                      mSurface  [DDImage]
+  +0x054    1  bool                                     mSurfaceSet  [DDImage]
+  +0x055    1  bool                                     mNoLock  [DDImage]
+  +0x056    1  bool                                     mVideoMemory  [DDImage]
+  +0x057    1  bool                                     mFirstPixelTrans  [DDImage]
+  +0x058    1  bool                                     mWantDDSurface  [DDImage]
+  +0x059    1  bool                                     mDrawToBits  [DDImage]
+  +0x05c    4  int                                      mLockCount  [DDImage]
+  +0x060  108  DDSURFACEDESC                            mLockedSurfaceDesc  [DDImage]
 ```
 
 ### Font

@@ -1,4 +1,6 @@
 #include "Board.h"
+#include "ModRules.h"
+#include "Replay.h"
 #include <set>
 #include "WinBMApp.h"
 #include "MrMoney.h"
@@ -20,6 +22,10 @@
 #include <cmath>
 #include <cstdlib>
 #include <cstdint>
+#include <cstring>
+#include <algorithm>
+#include <SDL.h>
+#include "platform/ModManager.h"
 
 using namespace Sexy;
 
@@ -207,7 +213,7 @@ static void ReadColor(Buffer* theBuffer, Color* theColor)
 // whose copy DeleteSaveGame could never erase, so the "continue?" prompt would return every run.
 std::string Board::GetSaveGameFileName()
 {
-	return "userdata\\savegame.dat";
+	return ScopedUserFileName("userdata\\savegame.dat"); // port(mods): one per gameplay mod set (ModRules.h)
 }
 
 // 0x4010f0
@@ -225,7 +231,7 @@ void Sexy::DeleteSaveGame()
 // 0x4010d0
 bool Board::CanSaveGame()
 {
-	return mPlayStarted && (mState != STATE_GAME_OVER_SCORES);
+	return mPlayStarted && (mState != STATE_GAME_OVER_SCORES) && (mPlayer == NULL); // port(mods): a replay is never saved
 }
 
 // 0x401460
@@ -243,28 +249,29 @@ void Board::SetupLevelParams()
 	int aLevel = mLevel;
 	int aSkill = mApp->mSkillLevel;
 	if (aSkill != 1)
-		aLevel += (aSkill == 2) ? 4 : 7;
+		aLevel += (aSkill == 2) ? mTunables.mNormalLevels : mTunables.mHardLevels; // port(mods): 4 and 7 (ModRules.h)
 
 	double aL = (double) aLevel;
 	int aBags;
 	if (mApp->mGameType == GAMETYPE_PUZZLE)
 	{
-		mNumColors = 5;
+		mNumColors = mTunables.mPuzzleColors; // port(mods): 5 (ModRules.h)
 		aBags = (int)(aL * mPuzzleBagsPerLevel + mPuzzleBagsBase);
 	}
 	else
 	{
-		mNumColors = 4;
+		mNumColors = mTunables.mColors; // port(mods): 4
 		aBags = (int)(aL * mBagsPerLevel + mBagsBase);
 	}
 
-	if (aBags >= 8)
-		aBags = 8;
-	else if (aBags <= 1)
-		aBags = 1;
+	// port(mods): 8 and 1 unless a mod changes them
+	if (aBags >= mTunables.mBagsMax)
+		aBags = mTunables.mBagsMax;
+	else if (aBags <= mTunables.mBagsMin)
+		aBags = mTunables.mBagsMin;
 	mBagsNeeded = aBags;
 
-	if (aLevel < 1)
+	if ((aLevel < 1) && (mTunables.mFewerColorsFirstLevel) && (mNumColors > 1)) // port(mods): always true without mods
 		mNumColors--;
 
 	mMintSpeed = aL * mMintSpeedPerLevel + mMintSpeedBase;
@@ -275,7 +282,7 @@ void Board::SetupLevelParams()
 	mPointsMult = aMult;
 	mMintPerClick = aL * mPerClickPerLevel + mPerClickBase;
 	if (mApp->mGameType == GAMETYPE_PUZZLE)
-		mPointsMult = aMult * 3.0;
+		mPointsMult = aMult * mTunables.mPuzzleMult; // port(mods): 3.0
 }
 
 // 0x4015e0
@@ -537,6 +544,7 @@ void Board::GameOver()
 	mStatsFade = 0.0;
 	mState = STATE_GAME_OVER;
 	mGameOverRiseDelay = 100;
+	UsePendingSeed(); // port(mods)
 	mStatsDirty = true;
 	mFlingDelay = (mApp->mGameType == GAMETYPE_PUZZLE) ? 200 : 1;
 	HideHint();
@@ -579,6 +587,9 @@ void Board::UpdateHover()
 void Board::MouseLeave()
 {
 	Widget::MouseLeave();
+	if (mPlayer != NULL) // port(mods): a replay moves its own mouse
+		return;
+	RecordInput(Replay::OP_LEAVE);
 	UpdateHover();
 }
 
@@ -586,6 +597,9 @@ void Board::MouseLeave()
 void Board::MouseMove(int x, int y)
 {
 	Widget::MouseMove(x, y);
+	if (mPlayer != NULL) // port(mods): a replay moves its own mouse
+		return;
+	RecordInput(Replay::OP_MOVE, x, y);
 	mMouseX = x;
 	mMouseY = y;
 	UpdateHover();
@@ -797,6 +811,24 @@ void Board::Compact()
 // 0x403050 slot 31
 void Board::KeyChar(SexyChar theChar)
 {
+	// port(mods): replays (Replay.h). While watching, 1 to 4 set the speed (1x, 2x, 4x, 8x) and Escape stops;
+	// on the game-over screen of a recorded game, R watches it.
+	if (mPlayer != NULL)
+	{
+		if ((theChar >= '1') && (theChar <= '4'))
+			mApp->mWatchSpeed = 1 << (theChar - '1');
+		else if (theChar == 27)
+		{
+			mApp->EndWatch(); // removes this board
+			return;
+		}
+	}
+	else if (((theChar == 'r') || (theChar == 'R')) && (mState == STATE_GAME_OVER_SCORES) && (!mReplayPath.empty()))
+	{
+		mApp->StartWatch(mReplayPath); // deletes this board
+		return;
+	}
+
 	if (theChar == ' ')
 		Pause(mPauseCount == 0);
 }
@@ -813,7 +845,7 @@ bool Board::SaveGame()
 	return mApp->WriteBufferToFile(GetSaveGameFileName(), &aBuffer);
 }
 
-// port (web persistence, WinBMApp::GetShutdownSave): the bytes SaveGame would write now. Its
+// port (web persistence, WinBMApp::GetShutdownSaves): the bytes SaveGame would write now. Its
 // Pause(true) / Pause(false) affects only unsaved values (and the music), so it is skipped here.
 void Board::SaveGameSnapshot(Buffer* theBuffer)
 {
@@ -931,6 +963,13 @@ void Board::WriteSaveGame(Buffer* theBuffer)
 	WriteRaw(theBuffer, mMoveDigit);
 	WriteRaw(theBuffer, mMoveDigitFade);
 	WriteBool(theBuffer, mContinueButton != NULL);
+
+	// port(mods): a seeded game's trailer, which the original's reader ignores (ModRules.h)
+	if (mUserSeeded)
+	{
+		theBuffer->WriteBytes((const uchar*) "BMSD", 4);
+		WriteRaw(theBuffer, mGameSeed);
+	}
 }
 
 // 0x403a20
@@ -986,6 +1025,8 @@ Board::~Board()
 	delete mStatsImage;
 	delete mStatsFadeImage;
 	delete mLevelUpImage;
+	delete mRecorder; // port(mods)
+	delete mPlayer;
 
 	// port: the original leaks every piece. Each piece is owned by exactly one of mGrid, mNextRow and
 	// mLoosePieces, but UpdatePhysics clears mGrid by the piece's own mRow/mCol (as the original does), so
@@ -1160,6 +1201,29 @@ bool Board::LoadGame()
 	if (aHasButton)
 		ShowContinueButton();
 
+	// port(mods): a seeded game's trailer (WriteSaveGame); without one the game plays on unseeded
+	mGameSeed = 0;
+	mUserSeeded = false;
+	if (aBuffer.mReadBitPos / 8 + 8 <= aBuffer.GetDataLen())
+	{
+		uchar aTag[4];
+		aBuffer.ReadBytes(aTag, 4);
+		uint32_t aSeed = 0;
+		ReadRaw(&aBuffer, &aSeed);
+		if ((memcmp(aTag, "BMSD", 4) == 0) && (aSeed != 0))
+		{
+			mGameSeed = aSeed;
+			mUserSeeded = true;
+			SeedMTRand12(mEffectsRand, ~aSeed);
+			SDL_Log("savegame: seed %u", (unsigned) aSeed);
+		}
+	}
+
+	// port(mods): a resumed game is not recorded (Replay.h), and never starts a LiveSplit run
+	delete mRecorder;
+	mRecorder = NULL;
+	mResumed = true;
+
 	mPlayStarted = true;
 	delete mStatsImage;
 	mStatsImage = NULL;
@@ -1239,12 +1303,12 @@ void Board::FlingAllCoins()
 				continue;
 
 			mGrid[aRow][aCol] = NULL;
-			aPiece->mVX = (double)(mRand.Next() % 300) * 0.01 - 1.5;
+			aPiece->mVX = (double)(EffectsRand() % 300) * 0.01 - 1.5;
 			aPiece->mImageSet = 1;
 			aPiece->mSpin = 0.0;
 			aPiece->mSpinSpeed = (double)(CrtRand() % 1000) * 4e-05;
 			double aHeightFactor = (double) aRow / (double) mRows + 0.1;
-			aPiece->mVY = (double)(-(int)(mRand.Next() % 500)) * aHeightFactor * 0.01;
+			aPiece->mVY = (double)(-(int)(EffectsRand() % 500)) * aHeightFactor * 0.01;
 			if (aPiece->mVX > 0.0)
 				aPiece->mVX += 0.5;
 			else
@@ -1329,7 +1393,7 @@ void Board::ClearBoardForLevelEnd()
 				continue;
 
 			aPiece->mRow = mRows + 2;
-			aPiece->mVY = (double)(mRand.Next() % 200) * 0.01;
+			aPiece->mVY = (double)(EffectsRand() % 200) * 0.01;
 			if ((mApp->mGameType != GAMETYPE_PUZZLE) && (aPiece->mIsSpecial) && (aPiece->mSpecialType == PIECE_MONEYBAG))
 			{
 				aBags++;
@@ -1683,8 +1747,10 @@ void Board::UpdateLoosePieces()
 			mApp->mMrMoney->PlayAnim(MRANIM_GAMEOVER);
 			mState = STATE_GAME_OVER_SCORES;
 			mHighScoreDelay = 180;
-			mHighScoreWidget = new HighScoreWidget(mApp);
+			// port(mods): seeded games keep their own tables; a replay's is only shown (ModRules.h, Replay.h)
+			mHighScoreWidget = new HighScoreWidget(mApp, mUserSeeded, mPlayer != NULL);
 			mWidgetManager->AddWidget((Widget*) mHighScoreWidget);
+			ReplayGameOver();
 			ShowContinueButton();
 			// Placed by Update state 6 once the high scores slide in
 			((Widget*) mContinueButton)->Resize(0, 0, 0, 0);
@@ -1843,7 +1909,7 @@ void Board::UpdateLoosePieces()
 				{
 					aPiece->mVY = aPiece->mVY * -0.8;
 					if (aPiece->mVY > -4.0)
-						aPiece->mVY = -4.0 - (double)(mRand.Next() % 100) * 0.01;
+						aPiece->mVY = -4.0 - (double)(EffectsRand() % 100) * 0.01;
 					aPiece->mY = (double) RowY(mRows - 1);
 					if (aPiece->mVX < 0.0)
 						aPiece->mVX -= 0.5;
@@ -2142,7 +2208,7 @@ void Board::GenerateBoard()
 		int aBagColumns = (mBagsNeeded - mApp->mSkillLevel) + 4;
 		for (int i = 0; i < mCols - aBagColumns; i++)
 		{
-			unsigned int anIndex = (unsigned int) CrtRand() % (unsigned int) aColumns.size();
+			unsigned int anIndex = (unsigned int) BagColumnRand() % (unsigned int) aColumns.size();
 			aColumns.erase(aColumns.begin() + anIndex);
 		}
 		for (size_t i = 0; i < aColumns.size(); i++)
@@ -2316,6 +2382,7 @@ void Board::OnClick(Piece* thePiece)
 	{
 		mApp->mTimesPlayed++;
 		mPlayStarted = true;
+		UsePendingSeed(); // port(mods)
 	}
 	mApp->mHasClickedGroup = true;
 
@@ -2354,11 +2421,9 @@ void Board::OnClick(Piece* thePiece)
 		}
 	}
 
-	int aScore;
-	if (aCount - 2 < 14)
-		aScore = gGroupBaseScores[aCount - 2];
-	else
-		aScore = (aCount - 2) * 25 - 145;
+	// gGroupBaseScores[aCount - 2], or (aCount - 2) * 25 - 145 past its end. port(mods): a mod can change
+	// both (BoardTunables::GroupPoints)
+	int aScore = mTunables.GroupPoints(aCount);
 	if (aBagsAbove > 0)
 		aScore *= 2;
 
@@ -2630,8 +2695,13 @@ void Board::MouseDown(int x, int y, int theClickCount)
 		Pause(false);
 		return;
 	}
+	if (mPlayer != NULL) // port(mods): a replay plays its own clicks
+		return;
 	if (mState == STATE_PLAYING)
+	{
+		RecordInput(Replay::OP_CLICK, x, y); // port(mods)
 		ClickAt(x, y);
+	}
 }
 
 // 0x40c640: the money meter (section 5.3)
@@ -2766,6 +2836,10 @@ void Board::Update()
 		mApp->mMrMoney->mTargetY = 290;
 		return;
 	}
+
+	// port(mods): a replay's input of this tick, before the tick as the player's came (Replay.h)
+	if (mPlayer != NULL)
+		mPlayer->Apply(this, (uint32_t) mUpdateCnt);
 
 	Widget::Update();
 
@@ -3108,8 +3182,8 @@ void Board::Update()
 						if (aPiece == NULL)
 							continue;
 						double anAmplitude = ((double) mOverflowTicks * 0.0033333333333333335 * 0.5 + 0.6) * aWeight[aCol];
-						aPiece->mShakeX = (int)(((double)(mRand.Next() % 100) * 0.01 - 0.5) * anAmplitude * 5.0);
-						double aShakeY = ((double)(mRand.Next() % 100) * 0.01 - 0.5) * anAmplitude;
+						aPiece->mShakeX = (int)(((double)(EffectsRand() % 100) * 0.01 - 0.5) * anAmplitude * 5.0);
+						double aShakeY = ((double)(EffectsRand() % 100) * 0.01 - 0.5) * anAmplitude;
 						aPiece->mShakeY = (int)(aShakeY + aShakeY);
 					}
 				}
@@ -3463,9 +3537,18 @@ void Board::ButtonDepress(int theId)
 {
 	if (mState == STATE_GAME_OVER_SCORES)
 	{
+		if (mPlayer != NULL) // port(mods): the end of a replay
+		{
+			mApp->EndWatch(); // removes this board
+			return;
+		}
 		mApp->NewGame(); // deletes this board
 		return;
 	}
+
+	if (mPlayer != NULL) // port(mods): a replay presses the button itself
+		return;
+	RecordInput(Replay::OP_NEXT); // port(mods)
 
 	// 0x41d4c0: an unregistered Puzzle game asks to register before the next level; not ported (the
 	// build is registered)
@@ -3495,6 +3578,37 @@ Board::Board(WinBMApp* theApp)
 
 	int aSeed = CrtRand();
 	SeedMTRand12(mRand, (unsigned long)(aSeed * 0xffff));
+	// port(mods): a seed the player chose replaces it, and the effects get a generator of their own
+	// (ModRules.h)
+	mRngSeed = (uint32_t)(unsigned long)(aSeed * 0xffff);
+	mGameSeed = mApp->mPendingSeed;
+	mUserSeeded = (mGameSeed != 0);
+	// port(mods): a playback board starts from its replay instead (Replay.h)
+	mRecorder = NULL;
+	mPlayer = NULL;
+	static uint32_t sBoardSerials = 0; // port(mods): LiveSplit (LiveSplitObserver.h)
+	mBoardSerial = ++sBoardSerials;
+	mResumed = false;
+	if (mApp->mWatchFile != NULL)
+	{
+		mPlayer = new ReplayPlayer(*mApp->mWatchFile);
+		mRngSeed = mPlayer->mFile.mRngSeed;
+		SeedMTRand12(mRand, mRngSeed);
+		mUserSeeded = mPlayer->mFile.mUserSeeded;
+		mGameSeed = mUserSeeded ? mPlayer->mFile.mGameSeed : 0;
+	}
+	if (mUserSeeded)
+	{
+		if (mPlayer == NULL)
+		{
+			SeedMTRand12(mRand, mGameSeed);
+			mRngSeed = mGameSeed;
+		}
+		SeedMTRand12(mEffectsRand, ~mGameSeed);
+		SDL_Log("board: seed %u", (unsigned) mGameSeed);
+	}
+	if ((mPlayer == NULL) && (ModFeatureEnabled("replays")))
+		mRecorder = new ReplayRecorder(mApp, mRngSeed, mUserSeeded, mGameSeed);
 	mCreateTick = GetTickCount();
 	mTimerTick = mCreateTick;
 
@@ -3585,6 +3699,7 @@ Board::Board(WinBMApp* theApp)
 	mPuzzleBagsPerLevel = 0.26;
 	mPerClickBase = 0.24501;
 	mPerClickPerLevel = 0.011;
+	LoadTunables(); // port(mods)
 	mBombColor = 0;
 	mBombIdle = 0;
 	mHoverBag = false;
@@ -3603,7 +3718,7 @@ Board::Board(WinBMApp* theApp)
 	mHintFollowMeter = false;
 	mGoTimer = 140;
 	mLastBonusText = NULL;
-	mMinGroup = (mApp->mGameType != GAMETYPE_PUZZLE) ? 3 : 2;
+	mMinGroup = (mApp->mGameType != GAMETYPE_PUZZLE) ? mTunables.mMinGroup : mTunables.mPuzzleMinGroup; // port(mods): 3 : 2
 	// port: the original assumes a sound manager
 	mExplodeSound = (mApp->mSoundManager != NULL) ? mApp->mSoundManager->GetSoundInstance(SOUND_EXPLODE) : NULL;
 	mGlintActive = false;
@@ -3642,4 +3757,108 @@ Board::Board(WinBMApp* theApp)
 	mColorStreak = 0;
 	mBagFlashCount = 0;
 	mBagFlash = 0.0;
+}
+
+// port(mods): the enabled mods' tunables (ModRules.h) over the constructor's values. Without tunables
+// nothing changes.
+void Board::LoadTunables()
+{
+	mMintSpeedBase = ModTunable("minting.speedBase", mMintSpeedBase, 0.0, 1.0);
+	mMintSpeedPerLevel = ModTunable("minting.speedPerLevel", mMintSpeedPerLevel, 0.0, 1.0);
+	mMintAccelBase = ModTunable("minting.accelBase", mMintAccelBase, 0.0, 1.0);
+	mMintAccelPerLevel = ModTunable("minting.accelPerLevel", mMintAccelPerLevel, 0.0, 1.0);
+	mPerClickBase = ModTunable("minting.perClickBase", mPerClickBase, 0.001, 15.0);
+	mPerClickPerLevel = ModTunable("minting.perClickPerLevel", mPerClickPerLevel, 0.0, 15.0);
+	mMeterCapBase = ModTunable("meter.capacityBase", mMeterCapBase, 1.0, 1e9);
+	mMeterCapPerLevel = ModTunable("meter.capacityPerLevel", mMeterCapPerLevel, 0.0, 1e9);
+	mDrainBase = ModTunable("meter.drainBase", mDrainBase, 0.0, 1.0);
+	mDrainPerLevel = ModTunable("meter.drainPerLevel", mDrainPerLevel, 0.0, 1.0);
+	mPointsMultBase = ModTunable("scoring.multBase", mPointsMultBase, 0.0, 1e6);
+	mPointsMultPerLevel = ModTunable("scoring.multPerLevel", mPointsMultPerLevel, 0.0, 1e6);
+	mBagsBase = ModTunable("bags.base", mBagsBase, 0.0, 100.0);
+	mBagsPerLevel = ModTunable("bags.perLevel", mBagsPerLevel, 0.0, 100.0);
+	mPuzzleBagsBase = ModTunable("bags.puzzleBase", mPuzzleBagsBase, 0.0, 100.0);
+	mPuzzleBagsPerLevel = ModTunable("bags.puzzlePerLevel", mPuzzleBagsPerLevel, 0.0, 100.0);
+
+	BoardTunables& t = mTunables;
+	t.mColors = ModTunableInt("coins.colors", t.mColors, 1, 5);
+	t.mPuzzleColors = ModTunableInt("coins.puzzleColors", t.mPuzzleColors, 1, 5);
+	t.mFewerColorsFirstLevel = ModTunableBool("coins.fewerOnFirstLevel", t.mFewerColorsFirstLevel);
+	t.mMinGroup = ModTunableInt("groups.minSize", t.mMinGroup, 2, 15);
+	t.mPuzzleMinGroup = ModTunableInt("groups.puzzleMinSize", t.mPuzzleMinGroup, 2, 15);
+	t.mBagsMin = ModTunableInt("bags.min", t.mBagsMin, 1, 8);
+	t.mBagsMax = ModTunableInt("bags.max", t.mBagsMax, t.mBagsMin, 8);
+	t.mPuzzleMult = ModTunable("scoring.puzzleMult", t.mPuzzleMult, 0.0, 1e6);
+	t.mGroupPointsStep = ModTunableInt("scoring.groupPointsStep", t.mGroupPointsStep, -1000000, 1000000);
+	t.mNormalLevels = ModTunableInt("skill.normalLevels", t.mNormalLevels, 0, 50);
+	t.mHardLevels = ModTunableInt("skill.hardLevels", t.mHardLevels, 0, 50);
+	Platform::ModManager& aMods = Platform::ModManager::Get();
+	if (aMods.HasTunable("scoring.groupPoints"))
+	{
+		std::vector<double> aPoints = aMods.GetTunableArray("scoring.groupPoints", std::vector<double>());
+		if (!aPoints.empty())
+		{
+			t.mGroupPoints.clear();
+			for (double aValue : aPoints)
+				t.mGroupPoints.push_back((int) std::min(std::max(aValue, -1e6), 1e6));
+			SDL_Log("tunable scoring.groupPoints = %d values", (int) t.mGroupPoints.size());
+		}
+	}
+}
+
+// port(mods): the draws of effects (flung and falling coins, shakes): the board's generator, as in the
+// original, or in a seeded game a generator of their own, so they do not shift the board's choices
+unsigned long Board::EffectsRand()
+{
+	return mUserSeeded ? mEffectsRand.Next() : mRand.Next();
+}
+
+// port(mods): the bag columns of a level (GenerateBoard): CRT rand as in the original, or in a seeded game
+// the board's generator, whose draws only the game makes
+int Board::BagColumnRand()
+{
+	if (mUserSeeded)
+		return (int)(mRand.Next() & 0x7fff);
+	// port(mods): a replay has the draws (Replay.h)
+	if (mPlayer != NULL)
+		return mPlayer->NextBagColumn((uint32_t) mUpdateCnt);
+	int aValue = CrtRand();
+	if (mRecorder != NULL)
+		mRecorder->AddBagColumn(aValue);
+	return aValue;
+}
+
+// port(mods): input to record (Replay.h)
+void Board::RecordInput(int theOp, int theX, int theY)
+{
+	if (mRecorder != NULL)
+		mRecorder->AddEvent((uint32_t) mUpdateCnt, theOp, theX, theY);
+}
+
+// port(mods): the game-over screen (UpdateLoosePieces, right after mHighScoreWidget): a recorded game is
+// written (kept for good when its score made a local table: today's best or a place), and a replay ends
+// and is checked (Replay.h)
+void Board::ReplayGameOver()
+{
+	if (mPlayer != NULL)
+		mPlayer->CheckEnd(this, (uint32_t) mUpdateCnt);
+	if (mRecorder != NULL)
+	{
+		bool isPinned = (mHighScoreWidget != NULL) && ((mHighScoreWidget->GetRank(mApp->mGameType, mScore) > 0) ||
+			(mScore > mHighScoreWidget->mTodayScores[mApp->mGameType]));
+		mReplayPath = mRecorder->Finish(this, isPinned);
+		delete mRecorder;
+		mRecorder = NULL;
+	}
+}
+
+// port(mods): a game on the pending seed has been played (its first valid click or its game over), so
+// the next new game is unseeded (ModRules.h)
+void Board::UsePendingSeed()
+{
+	if ((mUserSeeded) && (mApp->mPendingSeed == mGameSeed) && (mPlayer == NULL))
+	{
+		mApp->mPendingSeed = 0;
+		SDL_Log("seed %u used", (unsigned) mGameSeed);
+	}
 }
