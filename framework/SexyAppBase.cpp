@@ -288,6 +288,13 @@ EM_JS(void, sexyapp_notify_exit, (int isRestart, const char* theDroppedJson), {
 		Module['onGameExit']({ restart: !!isRestart, dropped: JSON.parse(UTF8ToString(theDroppedJson)) });
 });
 
+// port: the game has loaded (its loading "thread" completed). The page takes a start that got this far as one
+// that no mod broke; one that never does is offered a start without mods next time (web/modpanel.js).
+EM_JS(void, sexyapp_notify_loaded, (), {
+	if (typeof Module['onGameLoaded'] === 'function')
+		Module['onGameLoaded']();
+});
+
 EM_JS(void, sexyapp_alert, (const char* theText), {
 	alert(UTF8ToString(theText));
 });
@@ -1396,6 +1403,9 @@ bool SexyAppBase::DoUpdateFrames()
 		mLoaded = true;
 		mYieldMainThread = false;
 		LoadingThreadCompleted();
+#ifdef __EMSCRIPTEN__
+		sexyapp_notify_loaded();
+#endif
 	}
 
 	UpdateFrames();

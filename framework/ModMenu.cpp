@@ -30,6 +30,19 @@ EM_JS(void, modmenu_announce, (const char* theText), {
 	if (typeof Module['onModMenuFocus'] === 'function')
 		Module['onModMenuFocus'](UTF8ToString(theText));
 });
+
+// The page's Mods panel (web/modpanel.js), which adds and removes mods: the list page offers it when the page has
+// one. Opened after this event, not inside it: the panel reads the mods model as it opens.
+EM_JS(int, modmenu_has_panel, (), {
+	return (typeof Module['onModPanel'] === 'function') ? 1 : 0;
+});
+
+EM_JS(void, modmenu_open_panel, (), {
+	setTimeout(function() {
+		if (typeof Module['onModPanel'] === 'function')
+			Module['onModPanel']();
+	}, 0);
+});
 #endif
 
 namespace
@@ -329,6 +342,11 @@ ModMenu::ModMenu(SexyAppBase* theApp)
 	mConfirm = CONFIRM_NONE;
 	mRestartAction = 0;
 	mOldCursor = theApp->GetCursor();
+#ifdef __EMSCRIPTEN__
+	mHasModPanel = modmenu_has_panel() != 0;
+#else
+	mHasModPanel = false;
+#endif
 
 	int aWidth = std::min(PANEL_WIDTH, theApp->mWidth - 16);
 	int aHeight = std::min(PANEL_HEIGHT, theApp->mHeight - 16);
@@ -480,7 +498,7 @@ void ModMenu::ShowList()
 		if (mMods[i].mId == aFrom)
 			SetFocusTarget(T_ROW, (int) i);
 	if (mFocusKind == T_NONE)
-		SetFocusTarget(mMods.empty() ? T_CLOSE : T_ROW, mMods.empty() ? -1 : 0);
+		SetFocusTarget(mMods.empty() ? (mHasModPanel ? T_FILES : T_CLOSE) : T_ROW, mMods.empty() ? -1 : 0);
 	MarkDirty();
 }
 
@@ -581,7 +599,8 @@ void ModMenu::Layout()
 			if (mMods.empty())
 			{
 #ifdef __EMSCRIPTEN__
-				addText(ITEM_EMPTY, -1, Str(mApp, "MODMENU_EMPTY_WEB", "No mods installed. Add mods in the Mods panel."), TEXT_DIM, 3);
+				addText(ITEM_EMPTY, -1, mHasModPanel ? Str(mApp, "MODMENU_EMPTY_WEB", "No mods installed. Add some with \"Add or remove mods\" below.") :
+					Str(mApp, "MODMENU_EMPTY_NOPANEL", "No mods installed."), TEXT_DIM, 3);
 #else
 				addText(ITEM_EMPTY, -1, Str(mApp, "MODMENU_EMPTY", "No mods installed. Mods are folders in") + " " +
 					L1(ModManager::Get().GetModsDir()) + ".", TEXT_DIM, 3);
@@ -728,6 +747,11 @@ void ModMenu::Layout()
 		AddTarget(T_RESET, -1, Rect(mPanel.mX + 8, aButtonY, std::max(72, mBold->StringWidth(aLabel) + 20), BUTTON_HEIGHT),
 			!hasValues || isReadOnly, false);
 	}
+	if (mPageMod.empty() && (mConfirm == CONFIRM_NONE) && mHasModPanel)
+	{
+		std::string aLabel = Str(mApp, "MODMENU_ADD_REMOVE", "Add or remove mods");
+		AddTarget(T_FILES, -1, Rect(mPanel.mX + 8, aButtonY, std::max(72, mBold->StringWidth(aLabel) + 20), BUTTON_HEIGHT), false, false);
+	}
 	for (const Target& aTarget : aFooter)
 		mTargets.push_back(aTarget);
 }
@@ -773,6 +797,7 @@ bool ModMenu::IsFocusable(const Target& theTarget) const
 	case T_RESET:
 	case T_YES:
 	case T_NO:
+	case T_FILES:
 		return !theTarget.mDisabled;
 	default:
 		return false;
@@ -922,6 +947,7 @@ void ModMenu::AnnounceFocus()
 		case T_RESTART: aText = Str(mApp, "MODMENU_RESTART", "Restart game"); break;
 		case T_CLOSE: aText = Str(mApp, "MODMENU_CLOSE", "Close"); break;
 		case T_RESET: aText = Str(mApp, "MODMENU_RESET", "Reset to defaults"); break;
+		case T_FILES: aText = Str(mApp, "MODMENU_ADD_REMOVE", "Add or remove mods"); break;
 		case T_YES: aText = mConfirmText; break;
 		case T_NO: aText = Str(mApp, "MODMENU_CANCEL", "Cancel"); break;
 		}
@@ -1091,6 +1117,12 @@ void ModMenu::Activate(int theKind, int theItem, bool isSpace)
 		break;
 	case T_RESTART:
 		PressRestart(false);
+		break;
+	case T_FILES:
+#ifdef __EMSCRIPTEN__
+		CommitEdit();
+		modmenu_open_panel();
+#endif
 		break;
 	case T_CLOSE:
 		Close();
@@ -1956,6 +1988,7 @@ void ModMenu::Draw(Graphics* g)
 		case T_CLOSE: aLabel = Str(mApp, "MODMENU_CLOSE", "Close"); break;
 		case T_BACK: aLabel = Str(mApp, "MODMENU_BACK_BUTTON", "Back"); break;
 		case T_RESET: aLabel = Str(mApp, "MODMENU_RESET", "Reset to defaults"); break;
+		case T_FILES: aLabel = Str(mApp, "MODMENU_ADD_REMOVE", "Add or remove mods"); break;
 		case T_YES: aLabel = Str(mApp, (mConfirm == CONFIRM_RESET) ? "MODMENU_RESET_YES" : "MODMENU_RESTART_YES", (mConfirm == CONFIRM_RESET) ? "Reset" : "Restart"); break;
 		case T_NO: aLabel = Str(mApp, "MODMENU_CANCEL", "Cancel"); break;
 		}
@@ -2070,3 +2103,59 @@ void ModMenu::RunScriptCommand(SexyAppBase* theApp, const ScriptCommand& theComm
 	if (!anError.empty())
 		SDL_Log("script: line %d: modmenu %s: %s", theCommand.mLine, aWhat.c_str(), anError.c_str());
 }
+
+//////////////////////////////////////////////////////////////////////////
+// The web page's calls into the running game (docs/MOD_MENU_DESIGN.md 4.5; cmake/ByopopWeb.cmake exports them,
+// web/modpanel.js calls them). They run between two of the game's frames, as SDL's input events do.
+
+#ifdef __EMSCRIPTEN__
+extern "C"
+{
+
+// The page's Mods button: theOn 1 opens the mod menu, 0 closes it, -1 toggles it. Returns 1 when it is open
+// afterwards, 0 when not, -1 when no game runs (before callMain, after it quit).
+EMSCRIPTEN_KEEPALIVE int byopop_menu(int theOn)
+{
+	SexyAppBase* anApp = gSexyAppBase;
+	if ((anApp == NULL) || (!anApp->mInitialized) || (anApp->mShutdown))
+		return -1;
+	bool isOpen = anApp->IsModMenuOpen();
+	bool wantOpen = (theOn < 0) ? !isOpen : (theOn != 0);
+	if (wantOpen && !isOpen)
+		anApp->OpenModMenu();
+	else if (!wantOpen && isOpen)
+	{
+		anApp->mModMenu->CommitEdit();
+		anApp->CloseModMenu();
+	}
+	return anApp->IsModMenuOpen() ? 1 : 0;
+}
+
+// The panel's Restart: SexyAppBase::RequestRestart. Returns {"result": "started"|"confirm"|"blocked"|"none",
+// "message": "..."}: "confirm" asks theMessage first (a game is in progress; call again with isConfirmed),
+// "blocked" says why not now, "none" when no game runs. Once started, the game shuts down and Module.onGameExit
+// reloads the page.
+EMSCRIPTEN_KEEPALIVE const char* byopop_restart(int isConfirmed)
+{
+	static std::string sResult;
+	SexyAppBase* anApp = gSexyAppBase;
+	JsonValue aResult = JsonValue::MakeObject();
+	if ((anApp == NULL) || (!anApp->mInitialized) || (anApp->mShutdown))
+		aResult.Set("result", JsonValue(std::string("none")));
+	else
+	{
+		// a text being typed in the open menu counts, as it does for the menu's own Restart
+		if (anApp->mModMenu != NULL)
+			anApp->mModMenu->CommitEdit();
+		SexyString aMessage;
+		int aStatus = anApp->RequestRestart(isConfirmed != 0, &aMessage);
+		const char* aName = (aStatus == RESTART_STARTED) ? "started" : (aStatus == RESTART_CONFIRM) ? "confirm" : "blocked";
+		aResult.Set("result", JsonValue(std::string(aName)));
+		aResult.Set("message", JsonValue(Platform::Latin1ToUtf8(SexyStringToString(aMessage))));
+	}
+	sResult = aResult.Dump(0);
+	return sResult.c_str();
+}
+
+}
+#endif

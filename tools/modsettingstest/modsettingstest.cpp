@@ -3,8 +3,9 @@
 // $omit, nesting, errors), the levels of 3.5, score key entries (example-relaxed keeps 58ebd9d7), float values
 // that are the same bits on native and wasm, the data/diff.txt owner as VFS::Resolve finds it, and the
 // edits of mods.json and mod-settings.json (unknown keys kept, no write for a no-op, next-game commits); the mod
-// menu's controls (ModSettingStep, the step indexes of its sliders, typed characters) and the quoting of the
-// arguments a native restart passes on (platform/Relaunch.h).
+// menu's controls (ModSettingStep, the step indexes of its sliders, typed characters), the quoting of the
+// arguments a native restart passes on (platform/Relaunch.h), the "forget" edit of a removed mod and, in the web
+// build, the C functions the page's Mods panel calls (platform/WebApi.cpp).
 //
 //   modsettingstest [-v] [<temp dir>]   every check; prints a summary, exit status 0 when all pass
 //
@@ -1057,6 +1058,82 @@ static void TestNoOpBytes()
 	SetUserDataChangedCallback(nullptr);
 }
 
+// The web page's Remove: a mod whose folder is gone leaves mods.json ("forget")
+static void TestForget()
+{
+	gUserDataChanges = 0;
+	SetUserDataChangedCallback(&OnUserDataChanged);
+	Sandbox aBox("forget");
+	aBox.Mod("a", "{ \"id\": \"a\" }");
+	aBox.Mod("b", "{ \"id\": \"b\" }");
+	ModManager& m = ModManager::Get();
+	m.ScanDesired();
+	int aChanges = gUserDataChanges;
+	CheckEq(m.EditForget("gone"), "", "forgetting a mod without mods.json");
+	Check(!aBox.HasUser("mods.json") && (gUserDataChanges == aChanges), "... writes nothing");
+
+	std::string aText = "{\"order\":[\"b\",\"gone\",\"a\"],\"disabled\":[\"gone\",\"a\"],\"x\":1}";
+	aBox.User("mods.json", aText);
+	Check(m.EditForget("a") != "", "a mod that is still installed is not forgotten");
+	CheckEq(m.Edit("{\"op\":\"forget\",\"mod\":\"other\"}"), "", "forgetting an id mods.json does not have");
+	CheckEq(aBox.UserText("mods.json"), aText, "... keeps its bytes");
+	Check(gUserDataChanges == aChanges, "... nothing written");
+	CheckEq(m.Edit("{\"op\":\"forget\",\"mod\":\"gone\"}"), "", "forgetting a removed mod");
+	JsonValue aConfig = J(aBox.UserText("mods.json"));
+	CheckEq(aConfig["order"].Dump(0), "[\"b\",\"a\"]", "... it leaves the order");
+	CheckEq(aConfig["disabled"].Dump(0), "[\"a\"]", "... and the disabled list");
+	Check(aConfig["x"].AsNumber() == 1, "... the unknown key stays");
+	Check(gUserDataChanges == aChanges + 1, "... one write");
+
+	aBox.User("mods.json", "{ broken");
+	CheckEq(m.EditForget("gone"), "", "a broken mods.json");
+	CheckEq(aBox.UserText("mods.json"), "{ broken", "... is left as it is");
+	SetUserDataChangedCallback(nullptr);
+}
+
+#ifdef __EMSCRIPTEN__
+extern "C" {
+void byopop_mods_open(const char* theUserDir, const char* theModsDir);
+const char* byopop_mods_state();
+const char* byopop_mods_edit(const char* theJson);
+void byopop_mods_rescan();
+}
+
+// The page's calls (platform/WebApi.cpp), as web/modpanel.js makes them before the game starts
+static void TestWebApi()
+{
+	Sandbox aBox("webapi");
+	aBox.Mod("settings-demo", FixtureManifest());
+	aBox.Mod("plain", "{ \"id\": \"plain\", \"name\": \"Plain\", \"version\": \"2\" }");
+	aBox.User("mods.json", "{\"order\":[\"plain\"],\"disabled\":[],\"keep\":true}");
+	VFS::Get().SetUserDir("/nowhere");
+	ModManager::Get().SetModsDir("/nowhere");
+	byopop_mods_open(aBox.mUser.c_str(), aBox.mMods.c_str());
+	Check(VFS::Get().GetUserDir() == aBox.mUser && ModManager::Get().GetModsDir() == aBox.mMods, "byopop_mods_open sets both folders");
+	JsonValue aState = J(byopop_mods_state());
+	CheckEq(std::to_string(aState["mods"].Items().size()), "2", "byopop_mods_state lists both mods");
+	CheckEq(aState["mods"][(size_t) 0]["id"].AsString("") + "," + aState["mods"][(size_t) 1]["id"].AsString(""), "plain,settings-demo", "... in mods.json's order");
+	Check(!aState["running"].AsBool(true), "... the game is not running");
+	CheckEq(aState["mods"][(size_t) 0]["dir"].AsString(""), "plain", "... with each mod's folder");
+	Check(aState["mods"][(size_t) 1]["hasSettings"].AsBool(false), "... and whether it has settings");
+
+	CheckEq(byopop_mods_edit("{\"op\":\"enable\",\"mod\":\"plain\",\"on\":false}"), "", "byopop_mods_edit turns plain off");
+	JsonValue aConfig = J(aBox.UserText("mods.json"));
+	CheckEq(aConfig["disabled"].Dump(0), "[\"plain\"]", "... in mods.json");
+	Check(aConfig["keep"].AsBool(false), "... which keeps its unknown key");
+	Check(byopop_mods_edit("{\"op\":\"enable\",\"mod\":\"none\"}")[0] != 0, "an edit of an unknown mod says why not");
+	Check(std::string(byopop_mods_edit("not json")).find("not a JSON object") == 0, "... as does text that is not JSON");
+
+	// The page removes a folder, rescans, and forgets the mod
+	RemoveTree(aBox.mMods + "/plain");
+	byopop_mods_rescan();
+	CheckEq(std::to_string(J(byopop_mods_state())["mods"].Items().size()), "1", "after a rescan the removed mod is gone");
+	CheckEq(byopop_mods_edit("{\"op\":\"forget\",\"mod\":\"plain\"}"), "", "forget");
+	aConfig = J(aBox.UserText("mods.json"));
+	CheckEq(aConfig["order"].Dump(0) + aConfig["disabled"].Dump(0), "[][]", "... takes it out of mods.json");
+}
+#endif
+
 int main(int argc, char** argv)
 {
 	std::string aTemp;
@@ -1088,6 +1165,10 @@ int main(int argc, char** argv)
 	TestMenuControls();
 	TestRelaunchQuoting();
 	TestNoOpBytes();
+	TestForget();
+#ifdef __EMSCRIPTEN__
+	TestWebApi();
+#endif
 
 	RemoveTree(gTemp);
 	printf("modsettingstest: %d checks, %d failed\n", gChecks, gFailures);

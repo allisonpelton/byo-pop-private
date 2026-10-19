@@ -24,10 +24,28 @@
 //     "features": { "replays": true },                    // port features without gameplay effect
 //     "imageOps": [ { "target": "images/gemsheet6", "op": "extendRows", ... } ],  // generated art
 //     "affectsScores": false,              // forced true when the mod changes tunables or rules
-//     "settings": [ { "id": "penalty", "label": "Hint cost", "type": "int", "default": 50 } ]
-//                                          // values the player sets in the mod menu, put into the data
-//                                          // with {"$setting": "penalty"} (platform/ModSettings.h)
+//     "settings": [                        // values the player sets in the mod menu (F2)
+//       { "type": "section", "label": "Play" },
+//       { "id": "penalty", "label": "Hint cost", "type": "int", "default": 50, "min": 0, "max": 100,
+//         "step": 5, "help": "..." },
+//       { "id": "shape", "label": "Board", "type": "choice", "default": "full",
+//         "choices": [ { "value": "full", "label": "8 x 8" }, { "value": "diamond", "label": "Diamond" } ] }
+//     ]
 //   }
+//
+// Settings (platform/ModSettings.h; for mod authors docs/MOD_MENU.md): each has an "id", a "type" (bool, int,
+// float, choice, text, color, or section for a heading), a "label" and a "default", and by type "min", "max",
+// "step", "unit", "decimals", "choices", "maxLength", "charset" or "alpha"; any may have "help", "apply",
+// "affectsScores" and "enabledIf". At most 64. A value reaches the data through a placeholder that stands
+// where a value would, in "tunables", "rules" and "features" (and the files they name), in the members of
+// "files", "images" and "strings", in "imageScale", or in the elements of "imagePatches" and "imageOps":
+//   "tunables": { "scoring": { "hintPenalty": { "$setting": "penalty" } } },
+//   "rules": { "board": { "$setting": "shape", "map": { "full": { "$omit": true }, "diamond": { "mask": [...] } } } }
+// ("map": an entry per value, "*" for the rest; "as": "int", "string", "rgb", "rgba" or "argb"; {"$omit": true}
+// removes the member or element). Apply() reads every mod through its effective manifest: mod.json with the
+// files "tunables" and "rules" name read in and every placeholder replaced by its value. A mod without
+// "settings" is its own effective manifest. Where a value is used decides when a change applies (at once, at
+// the next game, at a restart) and whether it splits the high scores.
 //
 // A mod affects scores (and so gets the enabled set its own high-score table and save) when it says so,
 // has "tunables" or "rules", when data/diff.txt resolves into it (a file in the mod, or a "files"
@@ -47,7 +65,9 @@
 // Two states: the applied one (GetMods, the tunables, strings, score key, VFS roots: what this process runs
 // with, set by Refresh at start) and the desired one (GetDesiredMods: what the files say now, which the mod
 // menu shows and edits). Edits change only the desired state and the files; they apply at a restart, at
-// the next game (CommitNextGameValues) or at once (values only game code reads, GetLiveValue).
+// the next game (CommitNextGameValues) or at once (values only game code reads, GetLiveValue). The mod menu
+// (framework/ModMenu.h), the web page's Mods panel (platform/WebApi.cpp, web/modpanel.js), the script command
+// "modmenu" and -dumpmods (GetStateJson) are all views of this one model.
 
 #include "Json.h"
 #include "ModSettings.h"
@@ -207,7 +227,11 @@ public:
 	std::string EditMove(const std::string& theId, int theDelta);
 	std::string EditSetting(const std::string& theId, const std::string& theSettingId, const JsonValue& theValue);
 	std::string EditReset(const std::string& theId);  // every setting back to its default
-	// {"op": "enable"|"move"|"set"|"reset", "mod": id, "on": bool, "delta": -1|1, "setting": id, "value": v}
+	// A mod whose folders are all gone (the web page's Remove): its id leaves "order" and "disabled" of mods.json,
+	// so the same mod added again later starts out enabled at the end of the order. Its values in
+	// mod-settings.json stay. Refused while a folder with that id is installed.
+	std::string EditForget(const std::string& theId);
+	// {"op": "enable"|"move"|"set"|"reset"|"forget", "mod": id, "on": bool, "delta": -1|1, "setting": id, "value": v}
 	std::string Edit(const std::string& theJson);
 
 	ModPending GetPending();

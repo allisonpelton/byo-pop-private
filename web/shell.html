@@ -90,24 +90,8 @@ input[type=file] { display: none; }
 .panel header { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; border-bottom: 1px solid var(--line); }
 .panel header h2 { margin: 0; font-size: 16px; }
 .panel .body { padding: 16px; overflow: auto; display: grid; gap: 14px; align-content: start; }
-.mods { display: grid; gap: 8px; }
-.mod {
-  display: grid; grid-template-columns: auto 1fr auto; gap: 4px 12px; align-items: start;
-  padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel-2);
-}
-.mod .meta { min-width: 0; }
-.mod .name { font-weight: 600; }
-.mod .sub { color: var(--muted); font-size: 12.5px; overflow-wrap: anywhere; }
-.mod .tag { font-size: 11px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--warn); }
-.mod .tag.features { color: var(--accent); }
-.msg { font-size: 12px; overflow-wrap: anywhere; color: var(--muted); }
-.msg.error { color: var(--gem-ruby); }
-.msg.warn { color: var(--warn); }
-.rules-status { display: grid; gap: 4px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; }
-.rules-status .head { font-size: 12.5px; color: var(--muted); }
-.mod .actions { display: flex; gap: 4px; }
-.mod .actions button { padding: 2px 8px; }
-.empty { color: var(--muted); border: 1px dashed var(--line); border-radius: 8px; padding: 14px; }
+.panel:focus { outline: none; }
+/* The Mods panel's insides are web/modpanel.js's (shared by every game) */
 @media (prefers-reduced-motion: reduce) { .progress > div { transition: none; } }
 </style>
 </head>
@@ -144,7 +128,10 @@ input[type=file] { display: none; }
       <div class="card">
         <h2>Ready</h2>
         <p>Click to start. Browsers only allow sound after you interact with the page.</p>
-        <div class="row"><button class="primary" id="btn-start" type="button">Play</button></div>
+        <p id="start-rescue" hidden>The game did not finish starting last time. If a mod stops it from starting, play once
+          without mods, then turn that mod off in the mod menu (F2) or remove it under Mods.</p>
+        <div class="row"><button class="primary" id="btn-start" type="button">Play</button>
+          <button id="btn-start-nomods" type="button" hidden>Play without mods</button></div>
       </div>
     </div>
 
@@ -160,32 +147,20 @@ input[type=file] { display: none; }
       <div class="card">
         <h2 id="exit-title">Thanks for playing</h2>
         <p id="exit-msg">Saving…</p>
-        <div class="row"><button class="primary" id="btn-play-again" type="button" disabled>Play again</button></div>
+        <div class="row"><button class="primary" id="btn-play-again" type="button" disabled>Play again</button>
+          <button id="btn-exit-nomods" type="button" hidden>Play without mods</button></div>
       </div>
     </div>
   </div>
 </div>
 
-<aside class="panel" id="panel-mods" hidden aria-label="Mods">
+<!-- Filled by web/modpanel.js (Module.byopop.ModPanel): adding and removing mods -->
+<aside class="panel" id="panel-mods" hidden aria-label="Mods" tabindex="-1">
   <header><h2>Mods</h2><button type="button" data-close>Close</button></header>
-  <div class="body">
-    <p class="note">Mods replace game files: put images, sounds, music or data in the same folders the game uses
-      (for example <span class="mono">images/gemsheet6.png</span>, or <span class="mono">images/gemsheet6@2x.png</span> for an HD version).
-      The top of the list wins when two mods change the same file.</p>
-    <div class="row">
-      <label class="button" for="pick-mod-folder">Add mod folder</label>
-      <input type="file" id="pick-mod-folder" webkitdirectory multiple>
-      <label class="button" for="pick-mod-zip">Add mod .zip</label>
-      <input type="file" id="pick-mod-zip" accept=".zip,application/zip" multiple>
-    </div>
-    <div class="mods" id="mod-list"></div>
-    <div class="rules-status" id="rules-status" hidden></div>
-    <p class="note" id="mod-msg"></p>
-    <div class="row"><button class="primary" id="btn-apply-mods" type="button">Apply and restart</button></div>
-  </div>
+  <div class="body" id="mods-body"></div>
 </aside>
 
-<aside class="panel" id="panel-files" hidden aria-label="Game files">
+<aside class="panel" id="panel-files" hidden aria-label="Game files" tabindex="-1">
   <header><h2>Game files</h2><button type="button" data-close>Close</button></header>
   <div class="body">
     <p id="files-summary" class="note"></p>
@@ -206,6 +181,8 @@ input[type=file] { display: none; }
   var GAME = PERSIST + "/game";
   var USER = PERSIST + "/userdata";
   var MODS = PERSIST + "/mods";
+  // A mod added while the game runs over a mod it uses waits here for the next start (web/modpanel.js)
+  var MODS_INCOMING = PERSIST + "/mods-incoming";
   // Finished replays (features.replays): a sibling of the user dir, so IDBFS keeps them but the user dir's
   // localStorage backup (one item) does not carry them
   var REPLAYS = PERSIST + "/replays";
@@ -214,6 +191,13 @@ input[type=file] { display: none; }
   var statusEl = $("status");
   function setStatus(t) { statusEl.textContent = t; }
 
+  // web/modpanel.js, linked into the game's script: the Mods panel, restarts and the file helpers. It is there
+  // once the game's script has loaded, before onRuntimeInitialized.
+  function web() { return Module.byopop; }
+  var session = null;  // web().Session
+  var panel = null;    // web().ModPanel
+  var started = false;
+
   var Module = window.Module = {
     canvas: $("canvas"),
     noInitialRun: true,
@@ -221,24 +205,28 @@ input[type=file] { display: none; }
     printErr: function (t) { console.warn(t); },
     setStatus: function (t) { if (t) setStatus(t); },
     onRuntimeInitialized: function () { acquireInstanceLock().then(mountStorage).then(boot); },
-    onAbort: function (what) { setStatus("The game stopped: " + what); },
+    onAbort: function (what) { showStopped(what); },
+    // The game has loaded: no mod stopped this start
+    onGameLoaded: function () { if (session) session.markFinished(); },
     // Called by the game after it quits (the tab can't close itself): silence it, wait for the save
     // to reach browser storage, then offer a restart. info.restart: the game's mod menu asked to restart, so the
-    // page reloads and starts the game again by itself (restartPage).
+    // page reloads and starts the game again by itself (Session.restartPage).
     onGameExit: function (info) {
       try { if (Module.SDL2 && Module.SDL2.audioContext) Module.SDL2.audioContext.suspend(); } catch (e) {}
+      if (session) session.markFinished();
       var restart = !!(info && info.restart);
       setStatus(restart ? "Restarting…" : "Game closed");
       if (restart) {
         $("exit-title").textContent = "Restarting";
         $("exit-msg").textContent = "Saving, then starting again…";
       }
+      closePanels();
       $("exit-overlay").hidden = false;
       var waitForSave = function () {
         if (Module.sexySyncBusy || Module.sexySyncPending) { setTimeout(waitForSave, 100); return; }
-        if (restart) { restartPage(info); return; }
+        if (restart) { session.restartPage(info); return; }
         // The game writes savegame.dat (savegame-<key>.dat with gameplay mods) only for a game in progress
-        var hasSave = listDir(USER).some(function (n) { return /^savegame.*\.dat$/i.test(n); });
+        var hasSave = web().fs.listDir(USER).some(function (n) { return /^savegame.*\.dat$/i.test(n); });
         $("exit-msg").textContent = hasSave
           ? "The game has closed. Your game in progress was saved, and you can continue it when you play again."
           : "The game has closed. Your settings and high scores are saved.";
@@ -249,26 +237,22 @@ input[type=file] { display: none; }
     }
   };
 
-  // ---------- restart (the game's mod menu) ----------
-  // The page reloads (the game cannot run twice in one page) and starts the game at once, without the Play
-  // overlay: a flag in this tab's sessionStorage. Sound comes back with the first click or key. A restart drops
-  // some of the game's arguments (info.dropped): -gameseed takes ?seed= with it, so a seed that was played is not
-  // played again.
-  var AUTOSTART = "byopop-autostart:bejeweled";
-  function restartPage(info) {
-    try { sessionStorage.setItem(AUTOSTART, "1"); } catch (e) {}
-    if ((info.dropped || []).indexOf("-gameseed") >= 0) {
-      var url = new URL(location.href);
-      url.searchParams.delete("seed");
-      history.replaceState(null, "", url.toString());
-    }
-    location.reload();
-  }
-  function takeAutostart() {
-    try {
-      if (sessionStorage.getItem(AUTOSTART)) { sessionStorage.removeItem(AUTOSTART); return true; }
-    } catch (e) {}
-    return false;
+  // The game stopped with an error (a crash, out of memory): nothing more runs in this page. A mod may be the
+  // cause, so the next start can leave them out.
+  function showStopped(what) {
+    try { if (Module.SDL2 && Module.SDL2.audioContext) Module.SDL2.audioContext.suspend(); } catch (e) {}
+    if (panel) panel.dead = true;
+    var hasMods = !!(panel && panel.enabledCount() > 0);
+    setStatus("The game stopped");
+    closePanels();
+    ["import-overlay", "start-overlay", "busy-overlay"].forEach(function (id) { $(id).hidden = true; });
+    $("exit-title").textContent = "The game stopped";
+    $("exit-msg").textContent = "Something went wrong" + (what ? " (" + String(what).substring(0, 200) + ")" : "") + ". " +
+      (hasMods ? "If a mod caused it, play once without mods, then turn that mod off in the mod menu (F2) or remove it under Mods."
+               : "Play again to start over.");
+    $("btn-play-again").disabled = false;
+    $("btn-exit-nomods").hidden = !hasMods;
+    $("exit-overlay").hidden = false;
   }
 
   // ---------- one copy at a time ----------
@@ -295,17 +279,13 @@ input[type=file] { display: none; }
   }
 
   // ---------- storage (IDBFS) ----------
-  function FS() { return Module.FS; }
-  function sync(populate) {
-    return new Promise(function (resolve, reject) {
-      FS().syncfs(populate, function (err) { err ? reject(err) : resolve(); });
-    });
-  }
   function mountStorage() {
-    var fs = FS();
+    var fs = Module.FS;
     try { fs.mkdir(PERSIST); } catch (e) {}
     fs.mount(fs.filesystems.IDBFS, {}, PERSIST);
-    return sync(true).then(function () {
+    return new Promise(function (resolve, reject) {
+      fs.syncfs(true, function (err) { err ? reject(err) : resolve(); });
+    }).then(function () {
       [GAME, USER, MODS].forEach(function (d) { try { fs.mkdirTree(d); } catch (e) {} });
       // Files written as the page was closed may only have reached the game's localStorage backup: bring them
       // back before this page reads the user dir (main() restores it again, which then changes nothing)
@@ -313,64 +293,9 @@ input[type=file] { display: none; }
       catch (e) { console.warn("restoring the user data backup failed", e); }
     });
   }
-  window.bejSyncUserData = function () { sync(false).catch(function (e) { console.warn("save sync failed", e); }); };
-
-  function exists(path) { try { FS().stat(path); return true; } catch (e) { return false; } }
-  function isDir(path) { try { return FS().isDir(FS().stat(path).mode); } catch (e) { return false; } }
-  function listDir(path) { try { return FS().readdir(path).filter(function (n) { return n !== "." && n !== ".."; }); } catch (e) { return []; } }
-  function rmTree(path) {
-    if (!exists(path)) return;
-    if (isDir(path)) { listDir(path).forEach(function (n) { rmTree(path + "/" + n); }); FS().rmdir(path); }
-    else FS().unlink(path);
-  }
-  function writeFile(path, bytes) {
-    FS().mkdirTree(path.substring(0, path.lastIndexOf("/")));
-    FS().writeFile(path, bytes);
-  }
   function hasGameFiles() {
-    return listDir(GAME + "/images").some(function (n) { return /^gemsheet6\./i.test(n); });
+    return web().fs.listDir(GAME + "/images").some(function (n) { return /^gemsheet6\./i.test(n); });
   }
-
-  // ---------- zip reading (stored + deflate via DecompressionStream) ----------
-  function readZip(buffer) {
-    var view = new DataView(buffer), bytes = new Uint8Array(buffer);
-    var eocd = -1;
-    for (var i = bytes.length - 22; i >= Math.max(0, bytes.length - 65557); i--) {
-      if (view.getUint32(i, true) === 0x06054b50) { eocd = i; break; }
-    }
-    if (eocd < 0) throw new Error("This file is not a .zip archive.");
-    var count = view.getUint16(eocd + 10, true), off = view.getUint32(eocd + 16, true);
-    var entries = [];
-    for (var n = 0; n < count; n++) {
-      if (view.getUint32(off, true) !== 0x02014b50) throw new Error("The .zip directory is damaged.");
-      var method = view.getUint16(off + 10, true), csize = view.getUint32(off + 20, true);
-      var nameLen = view.getUint16(off + 28, true), extraLen = view.getUint16(off + 30, true), commentLen = view.getUint16(off + 32, true);
-      var local = view.getUint32(off + 42, true);
-      var name = new TextDecoder().decode(bytes.subarray(off + 46, off + 46 + nameLen));
-      entries.push({ name: name.replace(/\\/g, "/"), method: method, csize: csize, local: local });
-      off += 46 + nameLen + extraLen + commentLen;
-    }
-    return entries.filter(function (e) { return !/\/$/.test(e.name); }).map(function (e) {
-      return {
-        path: e.name,
-        read: function () {
-          var lnl = view.getUint16(e.local + 26, true), lel = view.getUint16(e.local + 28, true);
-          var data = bytes.subarray(e.local + 30 + lnl + lel, e.local + 30 + lnl + lel + e.csize);
-          if (e.method === 0) return Promise.resolve(data.slice());
-          if (e.method !== 8) return Promise.reject(new Error("Unsupported compression in " + e.name));
-          var ds = new DecompressionStream("deflate-raw");
-          return new Response(new Blob([data]).stream().pipeThrough(ds)).arrayBuffer().then(function (b) { return new Uint8Array(b); });
-        }
-      };
-    });
-  }
-  function filesFromInput(fileList) {
-    return Array.prototype.map.call(fileList, function (f) {
-      return { path: (f.webkitRelativePath || f.name).replace(/\\/g, "/"),
-               read: function () { return f.arrayBuffer().then(function (b) { return new Uint8Array(b); }); } };
-    });
-  }
-  function filesFromZip(file) { return file.arrayBuffer().then(readZip); }
 
   // Finds the folder inside an upload that holds images/gemsheet6.* (the game root).
   function findGameRoot(entries) {
@@ -385,232 +310,33 @@ input[type=file] { display: none; }
   }
 
   function importGame(entries) {
-    var root = findGameRoot(entries);
+    var W = web(), root = findGameRoot(entries);
     var msg = $("import-msg");
     if (root === null) {
       msg.innerHTML = '<span class="error">That folder doesn\'t contain the game\'s images/gemsheet6 file. Pick the Bejeweled Deluxe install folder itself.</span>';
       return Promise.resolve(false);
     }
-    var wanted = entries.filter(function (e) {
-      if (e.path.substring(0, root.length) !== root) return false;
-      var rel = e.path.substring(root.length), top = rel.split("/")[0].toLowerCase();
-      return GAME_DIRS.indexOf(top) >= 0 && !/\.sig$/i.test(rel);
+    var wanted = [];
+    entries.forEach(function (e) {
+      if (e.path.substring(0, root.length) !== root) return;
+      var rel = W.fs.safeRel(e.path.substring(root.length));
+      if (rel && GAME_DIRS.indexOf(rel.split("/")[0].toLowerCase()) >= 0 && !/\.sig$/i.test(rel)) wanted.push({ rel: rel, read: e.read });
     });
     var done = 0, bar = $("import-progress");
     msg.textContent = "Copying " + wanted.length + " files…";
-    rmTree(GAME); FS().mkdirTree(GAME);
+    W.fs.rmTree(GAME); Module.FS.mkdirTree(GAME);
     return wanted.reduce(function (p, e) {
       return p.then(function () {
         return e.read().then(function (data) {
-          writeFile(GAME + "/" + e.path.substring(root.length), data);
+          W.fs.writeFile(GAME + "/" + e.rel, data);
           bar.style.width = (++done * 100 / wanted.length) + "%";
         });
       });
-    }, Promise.resolve()).then(function () { return sync(false); }).then(function () {
+    }, Promise.resolve()).then(W.sync).then(function () {
       msg.textContent = "Copied " + wanted.length + " files.";
       return true;
     });
   }
-
-  // ---------- mods ----------
-  function readJson(path, fallback) {
-    try { return JSON.parse(FS().readFile(path, { encoding: "utf8" })); } catch (e) { return fallback; }
-  }
-  function modConfig() { return readJson(USER + "/mods.json", { order: [], disabled: [] }); }
-  function findNoCase(dir, name) {
-    var lower = name.toLowerCase(), hit = null;
-    listDir(dir).forEach(function (n) { if (n.toLowerCase() === lower) hit = dir + "/" + n; });
-    return hit;
-  }
-  // VFS::Normalize: forward slashes, no empty or "." parts, ".." folded
-  function normPath(p) {
-    var parts = [];
-    String(p).replace(/\\/g, "/").split("/").forEach(function (s) {
-      if (s === "..") { if (parts.length && parts[parts.length - 1] !== "..") parts.pop(); else parts.push(s); }
-      else if (s && s !== ".") parts.push(s);
-    });
-    return parts.join("/");
-  }
-  // VFS::FindCaseInsensitive: the file at rel under root, each part matched in any case, or null
-  function findFileNoCase(root, rel) {
-    var parts = normPath(rel).split("/"), cur = root;
-    if (!parts[0]) return null;
-    for (var i = 0; i < parts.length; i++) {
-      var last = i === parts.length - 1, exact = cur + "/" + parts[i];
-      if (exists(exact) && isDir(exact) !== last) { cur = exact; continue; }
-      cur = parts[i] === ".." ? null : findNoCase(cur, parts[i]);
-      if (!cur || isDir(cur) === last) return null;
-    }
-    return cur;
-  }
-  // The file a mod's "files" remap of data/diff.txt points to, or null
-  function diffRemap(m) {
-    var hit = null;
-    Object.keys(m.files).forEach(function (k) {
-      var v = m.files[k], file = typeof v === "string" ? v : (v && typeof v.file === "string" ? v.file : "");
-      if (normPath(k).toLowerCase() === "data/diff.txt" && file) hit = findFileNoCase(MODS + "/" + m.dir, file) || hit;
-    });
-    return hit;
-  }
-  // The mod that data/diff.txt resolves into among mods (ModManager::Apply asks VFS::Resolve): the game orders
-  // mods by "priority", higher first, then by the panel's order; a "files" remap wins over a file in a mod,
-  // and the highest-priority remap or file wins
-  function diffMod(mods) {
-    var ordered = mods.slice().sort(function (a, b) {
-      return (b.priority - a.priority) || (modState.indexOf(a) - modState.indexOf(b));
-    });
-    return ordered.filter(diffRemap)[0] ||
-      ordered.filter(function (m) { return findFileNoCase(MODS + "/" + m.dir, "data/diff.txt"); })[0] || null;
-  }
-  // "Changes gameplay · separate high scores": what makes ModManager count a mod for the score key. A mod that
-  // replaces data/diff.txt counts when the game reads its copy, i.e. it wins among the enabled mods (with
-  // itself enabled), as ModManager::Apply decides
-  function changesGameplay(m) {
-    if (m.scoring) return true;
-    if (!m.shipsDiff) return false;
-    return diffMod(modState.filter(function (o) { return o.enabled || o === m; })) === m;
-  }
-  function scanMods() {
-    var cfg = modConfig();
-    var mods = listDir(MODS).filter(function (n) { return isDir(MODS + "/" + n); }).map(function (dir) {
-      var man = readJson(MODS + "/" + dir + "/mod.json", {});
-      var m = { dir: dir, id: man.id || dir, name: man.name || dir, version: man.version || "", author: man.author || "",
-                description: man.description || "",
-                scoring: !!(man.affectsScores || man.tunables || man.rules),
-                features: !!man.features,
-                priority: typeof man.priority === "number" ? Math.trunc(man.priority) : 0,
-                files: man.files && typeof man.files === "object" && !Array.isArray(man.files) ? man.files : {},
-                enabled: (cfg.disabled || []).indexOf(man.id || dir) < 0 };
-      m.shipsDiff = !!(diffRemap(m) || findFileNoCase(MODS + "/" + dir, "data/diff.txt"));
-      return m;
-    });
-    var order = cfg.order || [];
-    mods.sort(function (a, b) {
-      var ra = order.indexOf(a.id), rb = order.indexOf(b.id);
-      ra = ra < 0 ? 1e9 : ra; rb = rb < 0 ? 1e9 : rb;
-      return ra - rb || a.id.localeCompare(b.id);
-    });
-    return mods;
-  }
-  var modState = [];
-  // <user dir>/mods-status.json: what the enabled mods' "rules" and "features" resolved to when the game last
-  // started (written only when an enabled mod has either)
-  var modsStatus = null;
-  function statusMessages(modId) {
-    var out = [];
-    if (!modsStatus) return out;
-    [["errors", "error", ""], ["dropped", "error", "Dropped: "], ["warnings", "warn", ""]].forEach(function (k) {
-      (modsStatus[k[0]] || []).forEach(function (m) {
-        if ((m.mod || "") === modId) out.push({ cls: k[1], text: k[2] + m.text });
-      });
-    });
-    return out;
-  }
-  function renderRulesStatus() {
-    var box = $("rules-status");
-    box.textContent = "";
-    box.hidden = !modsStatus;
-    if (!modsStatus) return;
-    var head = document.createElement("div");
-    head.className = "head";
-    head.textContent = "Rules as of the last start: id " + String(modsStatus.rulesId || "").substring(0, 12) +
-      " · features: " + (modsStatus.features || "none") + ". Changes apply after a restart.";
-    box.appendChild(head);
-    statusMessages("").forEach(function (m) {
-      var d = document.createElement("div");
-      d.className = "msg " + m.cls; d.textContent = m.text;
-      box.appendChild(d);
-    });
-  }
-  function renderMods() {
-    var list = $("mod-list");
-    renderRulesStatus();
-    list.textContent = "";
-    if (!modState.length) {
-      var empty = document.createElement("div");
-      empty.className = "empty";
-      empty.textContent = "No mods installed. Add a mod folder or .zip to change the game's graphics, sounds or music.";
-      list.appendChild(empty);
-      return;
-    }
-    modState.forEach(function (m, i) {
-      var row = document.createElement("div");
-      row.className = "mod";
-      var cb = document.createElement("input");
-      cb.type = "checkbox"; cb.checked = m.enabled; cb.id = "mod-" + i; cb.setAttribute("aria-label", "Enable " + m.name);
-      cb.addEventListener("change", function () {
-        // Which mod's data/diff.txt the game reads depends on the enabled set: redraw the tags
-        m.enabled = cb.checked; renderMods();
-        var again = $("mod-" + i); if (again) again.focus();
-      });
-      var meta = document.createElement("label");
-      meta.className = "meta"; meta.htmlFor = cb.id;
-      meta.innerHTML = '<div class="name"></div><div class="sub"></div>' + (changesGameplay(m) ? '<div class="tag">Changes gameplay · separate high scores</div>' : "") +
-        (m.features ? '<div class="tag features">Adds features</div>' : "");
-      meta.querySelector(".name").textContent = m.name + (m.version ? " " + m.version : "");
-      meta.querySelector(".sub").textContent = [m.author && ("by " + m.author), m.description].filter(Boolean).join(" · ") || m.dir;
-      statusMessages(m.id).forEach(function (s) {
-        var d = document.createElement("div");
-        d.className = "msg " + s.cls; d.textContent = s.text;
-        meta.appendChild(d);
-      });
-      var actions = document.createElement("div");
-      actions.className = "actions";
-      [["↑", "Move up", -1], ["↓", "Move down", 1]].forEach(function (a) {
-        var b = document.createElement("button");
-        b.type = "button"; b.textContent = a[0]; b.title = a[1]; b.setAttribute("aria-label", a[1] + " " + m.name);
-        b.addEventListener("click", function () {
-          var j = i + a[2];
-          if (j < 0 || j >= modState.length) return;
-          var t = modState[i]; modState[i] = modState[j]; modState[j] = t; renderMods();
-        });
-        actions.appendChild(b);
-      });
-      var del = document.createElement("button");
-      del.type = "button"; del.textContent = "Remove"; del.setAttribute("aria-label", "Remove " + m.name);
-      del.addEventListener("click", function () {
-        if (del.dataset.armed) { rmTree(MODS + "/" + m.dir); modState.splice(i, 1); renderMods(); saveModConfig(); }
-        else { del.dataset.armed = "1"; del.textContent = "Confirm"; }
-      });
-      actions.appendChild(del);
-      row.appendChild(cb); row.appendChild(meta); row.appendChild(actions);
-      list.appendChild(row);
-    });
-  }
-  function saveModConfig() {
-    // Only the order and the disabled mods change: keys this page does not know stay as they are
-    var cfg = modConfig();
-    if (!cfg || typeof cfg !== "object" || Array.isArray(cfg)) cfg = {};
-    cfg.order = modState.map(function (m) { return m.id; });
-    cfg.disabled = modState.filter(function (m) { return !m.enabled; }).map(function (m) { return m.id; });
-    writeFile(USER + "/mods.json", new TextEncoder().encode(JSON.stringify(cfg, null, 2)));
-    return sync(false);
-  }
-  function importMod(entries, fallbackName) {
-    if (!entries.length) return Promise.resolve();
-    // A mod's root is the folder that holds mod.json, or the common top folder.
-    var manifest = entries.filter(function (e) { return /(^|\/)mod\.json$/i.test(e.path); })
-      .sort(function (a, b) { return a.path.length - b.path.length; })[0];
-    var root = manifest ? manifest.path.replace(/mod\.json$/i, "") : "";
-    if (!manifest) {
-      var tops = {};
-      entries.forEach(function (e) { tops[e.path.split("/")[0]] = 1; });
-      var keys = Object.keys(tops);
-      var gameTop = keys.some(function (k) { return GAME_DIRS.indexOf(k.toLowerCase()) >= 0; });
-      root = keys.length === 1 && !gameTop ? keys[0] + "/" : "";
-    }
-    var dirName = (root.replace(/\/$/, "").split("/").pop() || fallbackName || "mod").replace(/[^A-Za-z0-9._-]+/g, "-");
-    var target = MODS + "/" + dirName;
-    rmTree(target);
-    var files = entries.filter(function (e) { return e.path.substring(0, root.length) === root; });
-    $("mod-msg").textContent = "Copying " + files.length + " files into " + dirName + "…";
-    return files.reduce(function (p, e) {
-      return p.then(function () { return e.read().then(function (d) { writeFile(target + "/" + e.path.substring(root.length), d); }); });
-    }, Promise.resolve()).then(function () {
-      $("mod-msg").textContent = "Added " + dirName + ". Apply and restart to use it.";
-    });
-  }
-  function refreshMods() { modsStatus = readJson(USER + "/mods-status.json", null); modState = scanMods(); renderMods(); }
 
   // ---------- boot ----------
   // ?seed=N: passed on as -gameseed=N, the seed of every new game until one is played on it (its first
@@ -627,26 +353,50 @@ input[type=file] { display: none; }
   // ?silent=1: no sound, for automated tests in a browser pane that may be hidden (CLAUDE.md). The game
   // still mixes and plays its sounds as usual; Platform::Mixer outputs silence (Module.silentAudio).
   function pageSilent() { return new URLSearchParams(location.search).get("silent") === "1"; }
-  function startGame(isAutostart) {
+  // noMods: this run only (-nomods), the rescue when a mod stops the game from starting
+  function startGame(isAutostart, noMods) {
+    if (started) return;
+    started = true;
+    closePanels();
     $("start-overlay").hidden = true;
-    var enabled = modState.filter(function (m) { return m.enabled; }).length;
+    var enabled = panel.enabledCount();
     var seed = pageSeed();
     var seedText = (seed > 0) ? " · seed " + seed : (seed < 0) ? " · seed ignored: it must be 1 to 4294967295" : "";
+    var modsText = noMods ? "Mods off for this run" : enabled ? enabled + " mod" + (enabled > 1 ? "s" : "") + " active" : "No mods active";
     Module.silentAudio = pageSilent();
-    setStatus((enabled ? enabled + " mod" + (enabled > 1 ? "s" : "") + " active" : "No mods active") + seedText + (Module.silentAudio ? " · silent" : (isAutostart === true ? " · sound after a click or key" : "")));
-    Module.callMain(["-gamedir=" + GAME, "-userdir=" + USER, "-modsdir=" + MODS, "-replaydir=" + REPLAYS].concat((seed > 0) ? ["-gameseed=" + seed] : []));
+    setStatus(modsText + seedText + (Module.silentAudio ? " · silent" : (isAutostart === true ? " · sound after a click or key" : "")));
+    session.markStarting();
+    Module.callMain(["-gamedir=" + GAME, "-userdir=" + USER, "-modsdir=" + MODS, "-replaydir=" + REPLAYS]
+      .concat((seed > 0) ? ["-gameseed=" + seed] : []).concat(noMods ? ["-nomods"] : []));
     $("canvas").focus();
   }
   function boot() {
-    refreshMods();
+    var W = web();
+    if (!session) session = new W.Session("bejeweled");
+    if (!panel) {
+      panel = new W.ModPanel({
+        game: "bejeweled", body: $("mods-body"), userDir: USER, modsDir: MODS, stagingDir: MODS_INCOMING, gameDirs: GAME_DIRS,
+        intro: "Mods replace game files: images, sounds, music or data in the same folders the game uses (for example " +
+          "images/gemsheet6.png, or images/gemsheet6@2x.png for an HD version), plus an optional mod.json.",
+        isOpen: function () { return !$("panel-mods").hidden; },
+        show: function () { openPanel("panel-mods"); },
+        canPlay: function () { return !started && hasGameFiles(); },
+        playWithoutMods: function () { startGame(false, true); }
+      });
+    }
+    // Removals and replacements that waited for this start, then the mods as the game will see them
+    panel.boot();
     if (!hasGameFiles()) {
       setStatus("Game files needed");
       $("import-overlay").hidden = false;
       return;
     }
-    // After the game's own restart: straight back in
-    if (takeAutostart()) { startGame(true); return; }
-    setStatus("Ready");
+    // After the game's own restart: straight back in, unless the start before did not finish (a mod may stop it)
+    var autostart = session.takeAutostart(), noMods = session.takeNoMods();
+    var failed = session.lastStartFailed() && panel.enabledCount() > 0;
+    if (autostart && (noMods || !failed)) { startGame(true, noMods); return; }
+    setStatus(failed ? "The last start did not finish" : "Ready");
+    $("start-rescue").hidden = $("btn-start-nomods").hidden = !failed;
     $("start-overlay").hidden = false;
   }
 
@@ -655,44 +405,85 @@ input[type=file] { display: none; }
       if (ok) { $("import-overlay").hidden = true; boot(); }
     }).catch(function (e) { $("import-msg").innerHTML = '<span class="error"></span>'; $("import-msg").firstChild.textContent = e.message; });
   }
-  $("pick-game-folder").addEventListener("change", function (ev) { onGamePicked(Promise.resolve(filesFromInput(ev.target.files))); ev.target.value = ""; });
-  $("pick-game-zip").addEventListener("change", function (ev) { if (ev.target.files[0]) onGamePicked(filesFromZip(ev.target.files[0])); ev.target.value = ""; });
-  $("btn-start").addEventListener("click", function () { startGame(false); });
+  $("pick-game-folder").addEventListener("change", function (ev) {
+    var files = web().zip.fromInput(ev.target.files);
+    ev.target.value = "";
+    onGamePicked(Promise.resolve(files));
+  });
+  $("pick-game-zip").addEventListener("change", function (ev) {
+    var file = ev.target.files[0];
+    ev.target.value = "";
+    if (file) onGamePicked(web().zip.fromFile(file));
+  });
+  $("btn-start").addEventListener("click", function () { startGame(false, false); });
+  $("btn-start-nomods").addEventListener("click", function () { startGame(false, true); });
   $("btn-play-again").addEventListener("click", function () { location.reload(); });
+  $("btn-exit-nomods").addEventListener("click", function () { session.reloadWithoutMods(); });
 
-  $("pick-mod-folder").addEventListener("change", function (ev) {
-    importMod(filesFromInput(ev.target.files)).then(function () { return sync(false); }).then(refreshMods);
-    ev.target.value = "";
+  // ---------- panels ----------
+  function openPanel(id) {
+    ["panel-mods", "panel-files"].forEach(function (p) { $(p).hidden = p !== id; });
+    if ((id === "panel-mods") && panel) panel.shown();
+    if (id) $(id).focus();
+  }
+  function anyPanelOpen() { return !$("panel-mods").hidden || !$("panel-files").hidden; }
+  function closePanels() {
+    var wasOpen = anyPanelOpen();
+    openPanel(null);
+    if (wasOpen) $("canvas").focus();
+  }
+  // Keys typed in a panel or on the tool bar stay there: SDL listens to the whole window and would also give them
+  // to the game (Bejeweled pauses on any character, and the open mod menu would act on them) and keep Backspace,
+  // Tab and the arrows from the page's controls. Esc and F2 close a panel; on the tool bar F2 still reaches the
+  // game (its mod menu).
+  document.querySelectorAll(".panel, .bar").forEach(function (p) {
+    var isPanel = p.classList.contains("panel");
+    ["keydown", "keyup", "keypress"].forEach(function (t) {
+      p.addEventListener(t, function (e) {
+        if (!isPanel && (e.key === "F2")) return;
+        e.stopPropagation();
+        if (isPanel && (t === "keydown") && ((e.key === "Escape") || (e.key === "F2"))) {
+          e.preventDefault();
+          closePanels();
+        }
+      });
+    });
   });
-  $("pick-mod-zip").addEventListener("change", function (ev) {
-    var files = Array.prototype.slice.call(ev.target.files);
-    files.reduce(function (p, f) {
-      return p.then(function () { return filesFromZip(f).then(function (e) { return importMod(e, f.name.replace(/\.zip$/i, "")); }); });
-    }, Promise.resolve()).then(function () { return sync(false); }).then(refreshMods)
-      .catch(function (e) { $("mod-msg").textContent = e.message; });
-    ev.target.value = "";
+  // While a panel is open the game gets no clicks: a press on the stage closes the panel instead (the click that
+  // follows it is dropped too)
+  var swallowUntilClick = false;
+  ["mousedown", "touchstart"].forEach(function (t) {
+    $("stage").addEventListener(t, function (e) {
+      if (!anyPanelOpen()) return;
+      e.stopPropagation(); e.preventDefault();
+      swallowUntilClick = true;
+      closePanels();
+    }, { capture: true, passive: false });
   });
-  $("btn-apply-mods").addEventListener("click", function () { saveModConfig().then(function () { location.reload(); }); });
-
-  // Keys typed in a panel stay there: SDL listens to the whole window and would also give them to the game (and
-  // keep Backspace, Tab and the arrows from the panel's fields)
-  document.querySelectorAll(".panel").forEach(function (p) {
-    ["keydown", "keyup", "keypress"].forEach(function (t) { p.addEventListener(t, function (e) { e.stopPropagation(); }); });
+  ["mouseup", "touchend", "click"].forEach(function (t) {
+    $("stage").addEventListener(t, function (e) {
+      if (!swallowUntilClick) return;
+      e.stopPropagation(); e.preventDefault();
+      if (t !== "mouseup") swallowUntilClick = false;
+    }, { capture: true, passive: false });
   });
-  function openPanel(id) { ["panel-mods", "panel-files"].forEach(function (p) { $(p).hidden = p !== id; }); }
-  document.querySelectorAll("[data-close]").forEach(function (b) {
-    b.addEventListener("click", function () { b.closest(".panel").hidden = true; $("canvas").focus(); });
+  document.querySelectorAll("[data-close]").forEach(function (b) { b.addEventListener("click", closePanels); });
+  // Mods: while the game runs, its own mod menu (where its "Add or remove mods" opens this panel); before
+  // that, the panel
+  $("btn-mods").addEventListener("click", function () {
+    if (!$("panel-mods").hidden) { closePanels(); return; }
+    if (started && panel && (panel.menu(-1) >= 0)) { closePanels(); $("canvas").focus(); return; }
+    openPanel("panel-mods");
   });
-  $("btn-mods").addEventListener("click", function () { refreshMods(); openPanel("panel-mods"); });
   $("btn-files").addEventListener("click", function () {
     var n = 0;
-    GAME_DIRS.forEach(function (d) { n += listDir(GAME + "/" + d).length; });
+    GAME_DIRS.forEach(function (d) { n += web().fs.listDir(GAME + "/" + d).length; });
     $("files-summary").textContent = hasGameFiles() ? n + " game files are stored in this browser." : "No game files are stored yet.";
     openPanel("panel-files");
   });
   $("btn-reimport").addEventListener("click", function () { openPanel(null); $("import-overlay").hidden = false; });
   $("btn-forget").addEventListener("click", function () { $("forget-confirm").hidden = false; });
-  $("btn-forget-yes").addEventListener("click", function () { rmTree(GAME); sync(false).then(function () { location.reload(); }); });
+  $("btn-forget-yes").addEventListener("click", function () { web().fs.rmTree(GAME); web().sync().then(function () { location.reload(); }); });
   $("btn-full").addEventListener("click", function () {
     var el = $("stage");
     if (el.requestFullscreen) el.requestFullscreen().catch(function () {});

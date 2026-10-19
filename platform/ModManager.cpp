@@ -1071,6 +1071,33 @@ std::string ModManager::EditReset(const std::string& theId)
 	return "";
 }
 
+std::string ModManager::EditForget(const std::string& theId)
+{
+	EnsureDesired();
+	for (const ModInfo& m : mDesired)
+		if (m.mId == theId)
+			return "\"" + theId + "\" is still installed";
+	JsonValue cfg;
+	bool isBroken;
+	if (!ReadConfig(&cfg, &isBroken) || isBroken)
+		return "";  // nothing to forget; a broken file stays as it is until an edit has to replace it
+	JsonValue anOld = cfg;
+	static const char* const aKeys[] = { "order", "disabled" };
+	for (const char* aKey : aKeys)
+	{
+		if (!cfg[aKey].IsArray())
+			continue;
+		JsonValue aKept = JsonValue::MakeArray();
+		for (const JsonValue& v : cfg[aKey].Items())
+			if (!v.IsString() || (v.AsString() != theId))
+				aKept.Push(v);
+		cfg.Set(aKey, aKept);
+	}
+	std::string anError = WriteConfig(anOld, cfg, false);
+	Changed();
+	return anError;
+}
+
 std::string ModManager::Edit(const std::string& theJson)
 {
 	JsonValue anEdit;
@@ -1087,6 +1114,8 @@ std::string ModManager::Edit(const std::string& theJson)
 		return EditSetting(aMod, anEdit["setting"].AsString(""), anEdit["value"]);
 	if (anOp == "reset")
 		return EditReset(aMod);
+	if (anOp == "forget")
+		return EditForget(aMod);
 	return "unknown op \"" + anOp + "\"";
 }
 

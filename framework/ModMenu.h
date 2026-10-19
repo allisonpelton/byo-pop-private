@@ -18,6 +18,9 @@
 // out (closes on the list page); F2 closes. Enter, Esc, Tab, Backspace and Space act on the character they type,
 // the last event of their key press, so a key that closes the menu sends nothing on to the game (Bejeweled's
 // board pauses on any typed character). Mouse: click, wheel, drag a slider or the list.
+//
+// On the web the list page also has "Add or remove mods", which opens the page's Mods panel (web/modpanel.js) over
+// the menu; the page calls byopop_menu and byopop_restart (end of ModMenu.cpp) for its Mods button and Restart.
 
 #include "Widget.h"
 #include "../platform/Json.h"
@@ -88,7 +91,8 @@ public:
 		T_NEXT,
 		T_FIELD,
 		T_LABEL,      // a setting's label: a click focuses it (and switches a bool, as a label does its checkbox)
-		T_SCROLL      // the scroll bar (mouse only)
+		T_SCROLL,     // the scroll bar (mouse only)
+		T_FILES       // web: "Add or remove mods", the page's Mods panel (Module.onModPanel)
 	};
 
 	struct Target
@@ -235,6 +239,7 @@ private:
 	int						mRestartAction; // 0, or 1/2: the Restart button was pressed (unconfirmed/confirmed),
 											// done at the next Update outside the menu's no-random scope
 	int						mOldCursor;
+	bool					mHasModPanel;   // web: the page has a Mods panel that adds and removes mods
 };
 
 }
