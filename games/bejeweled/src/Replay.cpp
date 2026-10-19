@@ -197,8 +197,7 @@ bool ReadSegment(Reader& theReader, Replay::Segment* theSegment, size_t* theEven
 		return false;
 	}
 	// Every event takes at least 2 bytes (a tick delta and an op): a count the payload cannot hold, or more
-	// events than a file may have, is refused before anything is allocated for it. The events are added as
-	// they are parsed, so what is allocated grows with the bytes read.
+	// events than a file may have, is refused before anything is allocated for it.
 	if (aCount > (theReader.mEnd - theReader.mPos) / 2)
 	{
 		*theError = "SEGM: " + std::to_string(aCount) + " events cannot fit in " + std::to_string(theReader.mEnd - theReader.mPos) + " bytes";
@@ -211,35 +210,58 @@ bool ReadSegment(Reader& theReader, Replay::Segment* theSegment, size_t* theEven
 		return false;
 	}
 	*theEventBudget -= aCount;
-	uint64_t aTick = 0;
-	for (uint32_t i = 0; i < aCount; i++)
+	// Two passes over the events: the first checks them all (ticks, CheckPlayable's bound on one tick, ops, the
+	// end of the payload) and keeps none, so a file that fails allocates nothing for them; the second keeps them,
+	// in room made for exactly that many (sizeof(Event) per 2 bytes of the file at most; no vector doubling,
+	// whose peak is three times as much and stays in a wasm instance's memory)
+	size_t anEventsAt = theReader.mPos;
+	for (int aPass = 0; aPass < 2; aPass++)
 	{
-		theSegment->mEvents.push_back(Replay::Event());
-		Replay::Event& anEvent = theSegment->mEvents.back();
-		uint64_t aDelta = theReader.Varint();
-		aTick += (aDelta <= 0xffffffffull) ? aDelta : 0x100000000ull;
-		if (aTick > 0xffffffffull)
+		if (aPass == 1)
 		{
-			*theError = "SEGM: event " + std::to_string(i) + ": tick past 2^32";
+			theReader.mPos = anEventsAt;
+			theSegment->mEvents.reserve(aCount);
+		}
+		uint64_t aTick = 0;
+		uint32_t aTickStart = 0; // the first event at the tick of event i
+		for (uint32_t i = 0; i < aCount; i++)
+		{
+			Replay::Event anEvent;
+			uint64_t aDelta = theReader.Varint();
+			aTick += (aDelta <= 0xffffffffull) ? aDelta : 0x100000000ull;
+			if (aTick > 0xffffffffull)
+			{
+				*theError = "SEGM: event " + std::to_string(i) + ": tick past 2^32";
+				return false;
+			}
+			if (aDelta != 0)
+				aTickStart = i;
+			if (i - aTickStart >= (uint32_t) Replay::MAX_EVENTS_PER_TICK)
+			{
+				*theError = "SEGM: event " + std::to_string(i) + ": more than " + std::to_string((int) Replay::MAX_EVENTS_PER_TICK) +
+					" events at one tick";
+				return false;
+			}
+			anEvent.mTick = (uint32_t) aTick;
+			anEvent.mOp = theReader.U8();
+			int anArgs = Replay::OpArgCount(anEvent.mOp);
+			if (!theReader.mOk)
+				break;
+			if (anArgs < 0)
+			{
+				*theError = "SEGM: event " + std::to_string(i) + ": unknown op " + std::to_string(anEvent.mOp);
+				return false;
+			}
+			for (int a = 0; a < anArgs; a++)
+				anEvent.mArgs[a] = Replay::UnZigZag(theReader.Varint());
+			if (aPass == 1)
+				theSegment->mEvents.push_back(anEvent);
+		}
+		if (!theReader.AtEnd())
+		{
+			*theError = theReader.mOk ? "SEGM: data after the last event" : "SEGM: truncated event";
 			return false;
 		}
-		anEvent.mTick = (uint32_t) aTick;
-		anEvent.mOp = theReader.U8();
-		int anArgs = Replay::OpArgCount(anEvent.mOp);
-		if (!theReader.mOk)
-			break;
-		if (anArgs < 0)
-		{
-			*theError = "SEGM: event " + std::to_string(i) + ": unknown op " + std::to_string(anEvent.mOp);
-			return false;
-		}
-		for (int a = 0; a < anArgs; a++)
-			anEvent.mArgs[a] = Replay::UnZigZag(theReader.Varint());
-	}
-	if (!theReader.AtEnd())
-	{
-		*theError = theReader.mOk ? "SEGM: data after the last event" : "SEGM: truncated event";
-		return false;
 	}
 	return true;
 }
@@ -558,6 +580,7 @@ bool Replay::CheckPlayable(const File& theFile, int theCols, int theRows, std::s
 			return false;
 		}
 		int aLoads = 0;
+		int aSaves = 0;
 		size_t aTickStart = 0; // the first event at the tick of event i
 		for (size_t i = 0; i < aSegment.mEvents.size(); i++)
 		{
@@ -625,6 +648,19 @@ bool Replay::CheckPlayable(const File& theFile, int theCols, int theRows, std::s
 				if (((a[0] != SAVE_GAME) && (a[0] != SAVE_SNAPSHOT)) || (a[1] < 0) || (a[1] > 0xffffffffll))
 				{
 					anErr = anAt + "not a save kind and hash";
+					return false;
+				}
+				// The game saves as its board goes away (Shutdown, ~Board; a snapshot sidecar adds its SAVE after
+				// them): never before the segment's last tick, and never more than a few times. Each SAVE makes a
+				// save and hashes it, so this also bounds the work
+				if (anEvent.mTick != aSegment.mEvents.back().mTick)
+				{
+					anErr = anAt + "a SAVE before the segment's last tick (the game saves only as its board goes away)";
+					return false;
+				}
+				if (++aSaves > MAX_SAVES_PER_SEGMENT)
+				{
+					anErr = anAt + "more than " + std::to_string((int) MAX_SAVES_PER_SEGMENT) + " SAVEs in one segment";
 					return false;
 				}
 				break;
@@ -859,6 +895,12 @@ bool Replay::Read(const std::string& theBytes, File* theFile, std::string* theEr
 		}
 		else if (aTag == TAG_SEGM)
 		{
+			if (theFile->mSegments.size() >= (size_t) MAX_SEGMENTS)
+			{
+				anErr = "SEGM at byte " + std::to_string(aStart - 8) + ": more than the " + std::to_string((int) MAX_SEGMENTS) +
+					" segments a replay may have";
+				return false;
+			}
 			theFile->mSegments.push_back(Segment());
 			Segment& aSegment = theFile->mSegments.back();
 			if (!ReadSegment(aReader, &aSegment, &anEventBudget, &anErr))

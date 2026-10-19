@@ -72,6 +72,13 @@
 # purpose, which the player must call corrupt. After the stage 3 review: recordings without the hover channel
 # and resumed under the other setting, a quit mid-swap, a save that replaces another board's, and Options ->
 # High Scores while watching. With both: a watch with the livesplit mod (a playback board is never a run).
+# Stage 4 (the headless verifier, games/bejeweled/tools/verify/oracle_cases.sh, sourced at the end of define_cases):
+# every watched replay played again by the native and the wasm verifier (the same REPLAY and TRACE lines as the
+# game), copies no player can start, the verifier's tests and its difftest (the plain and the -forcevariant board in
+# lockstep; these two start in the background as the cases are defined), the web build under Node on the playtests,
+# the stage-0 scripts and bot runs, a seeded game, a recording and two watches (the candidate's LOGIC hashes and
+# TRACE), and two games whose (int) casts leave the int range, recorded natively and by the web build, each
+# recording watched and verified on both.
 #
 # The frozen exes (build/baseline, build/baseline-stage0) predate the audio shutdown fix (af758b9) and can
 # crash on exit after writing all their outputs: a baseline or hooks-baseline run that exits 139 or with an
@@ -999,6 +1006,10 @@ define_cases() {
 	# board (Board::mPlaybackOnly) carries the replay flag (0x20) and is never a run: no GO is counted on it
 	# (compare.py "livesplit": a replay board expects none), while its level clears and game over are, as on any board.
 	lscase watch_main_timed "rec_main's timed game watched (-replay): a playback board, flag 0x20, no GO" 1 "$S3/watch.txt" 	replay="$C/rec_main/user/replays/*-timed-*.bjr"
+
+	# Stage 4: the headless verifier and the web build under Node (games/bejeweled/tools/verify/oracle_cases.sh): the
+	# drift guard on every replay above, the verifier's tests and difftest, LOGIC hashes of the web build
+	. "$GAME/tools/verify/oracle_cases.sh"
 }
 
 # The cache's part of every key that is the same for all runs (see the top)

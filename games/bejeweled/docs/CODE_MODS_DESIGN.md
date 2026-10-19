@@ -391,7 +391,7 @@ Defaults are the original behaviour.
 |---|---|---|---|
 | `board.cols`, `board.rows` | int | 8 | 3..16. Atomic group *shape*. |
 | `board.mask` | string[] | full | `rows` strings of `cols` characters: `#` is a cell, `.` a hole, `d` dirt with one layer and `2`..`9` dirt with that many layers (4.14). Without `cols`/`rows`, they come from the mask. *shape* |
-| `board.levels` | object[] | none | `[{cols, rows, mask}]`. Level L uses `levels[L % n]`. Excludes `mask` in the same mod. *shape* |
+| `board.levels` | object[] | none | `[{cols, rows, mask}]`, 1..64 of them. Level L uses `levels[L % n]`. Excludes `mask` in the same mod. *shape* |
 | `board.gemColors` | int | 7 | 3..12. Also a legacy tunable; the clamp rises from 7 to 12. |
 | `board.gravity.direction` | `"down"` / `"up"` / `"alternate"` | `"down"` | `"up"`: every fall, refill and fill rises. `"alternate"`: Bejeweled 2's Twilight (4.16). Atomic group *gravity*. |
 | `board.gravity.fallAccel` | int | 180 | 50..1000: the fall acceleration in `UpdateFalling`, in thousandths of a logical pixel per tick² (the original 0.18). *gravity* |
@@ -406,7 +406,7 @@ Defaults are the original behaviour.
 | `match.minRun` | int | 3 | 2..5 (straight runs). |
 | `match.diagonal`, `match.diagonalMinRun` | bool, int | false, = minRun | Both diagonals. |
 | `match.crossings` | `"separate"` / `"merge"` | `"separate"` | `"merge"`: same-colour crossing runs form one group, classified `L`, `T` or `plus`. |
-| `match.shapes.<id>` | object or null | none | Keyed: `{"preset": "square"\|"L3"\|"T4"}` or `{"cells": [[x,y],...], "rotations": bool, "mirror": bool}`. |
+| `match.shapes.<id>` | object or null | none | Keyed: `{"preset": "square"\|"L3"\|"T4"}` or `{"cells": [[x,y],...], "rotations": bool, "mirror": bool}`. At most 32 shapes (stage 4 review: the fill minimum's work grows with shapes x levels; 12 colours fill only a few shapes anyway). |
 | `match.bonus.<pattern>` | int | 0 | Base points added before the multiplier. Patterns: `diagonal`, `L`, `T`, `plus` or a shape id. |
 | `specials.flame` | object or null | null | `{"createdBy": [patterns], "radius": 1..3, "points": int}`. Radius 1 is 3x3. Keyed. |
 | `specials.lightning` | object or null | null | `{"createdBy": [patterns], "points": int}`: clears the row and the column. Keyed. |
@@ -560,6 +560,7 @@ dotted leaves. `rules` goes into the same map, with these additions:
 | Check | On failure |
 |---|---|
 | `cols`/`rows` 3..16. Each mask has `rows` strings of `cols` characters from `#.d23456789`. At least 9 cells. The same for every `levels[i]`. `mask` and `levels` not both in one mod. | Reject the mod's rules. |
+| At most 64 `levels` and 32 `match.shapes` (a mod that sets more is refused as it is parsed; a merged set of more fails before the fill minimum is computed). | Reject (in the merged set: drop the lowest contributor). |
 | Some line has at least `minRun` consecutive cells. `twist` needs at least one full 2x2 of cells; `slide` at least one segment of length 2 or more. | Reject. |
 | `gemColors` is at least the fill minimum. Brute force in fill order (rows bottom-up, columns left to right, cells only): for each cell, count the pattern instances, runs included, whose other cells are already filled. The minimum is 1 + the maximum count. Examples: orthogonal runs give 3; `minRun: 2` with diagonals gives 5; squares give 4. With a gravity rule, the larger result over the fill orders in use (4.16). | Reject (in the merged set: drop the lowest contributor). The message names the minimum. |
 | `gemColors` exceeds the rows in the gem sheet. | Not an error: rows are generated (4.2). |
@@ -1752,6 +1753,11 @@ generalisation:
    - Never `-ffast-math`.
    - New code clamps doubles before `(int)` casts: out-of-range conversion differs between x86 and
      wasm.
+   - Translated code cannot clamp, and legal tunables and `diff.txt` values push its casts out of
+     range (a score past 2^31, a level's points). Since the stage 4 review the web builds compile the
+     game and the verifier with `-mno-nontrapping-fptoint`: such a conversion gives x86's `INT_MIN`
+     (also for NaN) instead of wasm's saturated value, so a replay recorded on one platform verifies
+     on the other.
 4. **Trig stays libm.** `cos` (`UpdateSwap`), `cos/sin` (`UpdateBlackHole`) and `atan2`
    (`StartBlackHole`) only set positions that no gameplay decision reads:
    - `MouseDown` returns in state 7;
@@ -1883,8 +1889,14 @@ records { u32 tag, u32 len, payload }:
   An unknown op makes the file unreadable. Unknown record tags are skipped wherever they are.
 - The reader refuses a file over 16 MB (`MAX_FILE_SIZE`), a wrong magic or format, a record running
   past the end or out of order, a payload of the wrong size, an event count the payload cannot hold or
-  more than 4M events in all (`MAX_EVENTS`; both before allocating, and events are added as they are
-  parsed), a varint over 10 bytes, an `END` reason over 5, and data after `END`.
+  more than 4M events in all (`MAX_EVENTS`; both before allocating), a varint over 10 bytes, an `END`
+  reason over 5, and data after `END`. Since the stage 4 review also more than 1,000 segments
+  (`MAX_SEGMENTS`; each holds two MT states, 5 KB, however small its record: a 256 KB file could ask for
+  9,000) and more than 10,000 events at one tick of a segment (the player's bound, 6.8, checked as the
+  events are read). A segment's events are read twice: once to check them all, keeping none, then into
+  room made for exactly that many (48 bytes per 2 bytes of the file at most, 192 MB for `MAX_EVENTS`; no
+  vector doubling, whose peak would stay in a wasm instance). The recorder starts a fresh replay that holds
+  the save (`LDSV`) rather than add a 1,001st segment.
 
 ### 6.5 Segments: save, resume and the web backup
 
@@ -2046,7 +2058,10 @@ for (;;) {
   when the hover flag says every segment has the hover channel: the raw pieces in a save hold the
   hover glow, which follows the pointer. Without it the LOGIC hash, which leaves the glow out, still
   matches, and a `LOAD` of those bytes gives the same LOGIC state. A sidecar's trailing `RNGS` must be
-  the board's RNG at the end.
+  the board's RNG at the end. Since stage 4 neither is checked for a save made in the vortex either: there
+  the pieces' positions and angles come from libm's `cos`, `sin` and `atan2`, whose last bits differ
+  between native and wasm, so a replay recorded on one makes other bytes on the other (the verifier's drift
+  guard found it on the oracle's quit during the vortex); the LOGIC hash leaves those fields out.
 - **The end.** The last segment ends at the game-over screen, after New Game's fall, or at `END`'s
   tick with no event left; `END` must match (tick, score, level, gems, draws, LOGIC hash, and a
   reason that fits: game over, a `NEW_GAME` applied, a last `SAVE`). Every earlier segment ends with
@@ -2066,7 +2081,21 @@ for (;;) {
   - Bounds on the work a file can ask for: at most 24 hours of board ticks in all segments, each up
     to its last event and the last up to `END` (`MAX_TICKS`, 8.64M; the leaderboard's cap is 6 hours,
     6.10), at most 10,000 events at one tick of a segment, at most 1,000,000 outside draws in the file.
-    The player reads at most `MAX_FILE_SIZE` + 1 bytes.
+    The player reads at most `MAX_FILE_SIZE` + 1 bytes. Since the stage 4 review: `SAVE`s only at their
+    segment's last tick, at most 4 in a segment (`MAX_SAVES_PER_SEGMENT`): the game saves only as a board
+    goes away (`Shutdown`, `~Board`, then a snapshot sidecar's), and each `SAVE` makes a save (40 us; 4M of
+    them took minutes). The player hashes a save only where it compares the hash. The other events cost a
+    microsecond or less (`HINT`'s search about 1 us).
+  - **`RULE`** (stage 4 review: the 12 `diff.txt` values went to the board unchecked, and a 0 points base
+    made `Board::Update` divide by zero, natively a crash, in wasm a trap): `FromCanonical`, the record must
+    be the canonical bytes of the rules it decodes to (one rule set, one RulesId), and
+    `GameRules::CheckRecorded` must pass: the rules are exactly what `MergeRules` makes of a mod.json that
+    says them (every field in the mod path's range and spelling, `Validate` passed: at most 32 shapes and 64
+    levels are checked first), every tunable double is finite, and the `diff.txt` values are finite with
+    points and multiplier bases above 0 whose product is at least 1 and per-level steps not below 0, so
+    `SetupLevel`'s `mLevelPoints`, `Update`'s divisor, is at least 1 at every level (or, past the int range,
+    `INT_MIN`). Else "cannot play: RULE: ...". The game's own `diff.txt` is still read as the original reads
+    it.
 - **Output.** `REPLAY start`, `REPLAY segment k` and `REPLAY end: ok, <n> CHECKs, END ...` or
   `REPLAY end: CORRUPT at segment k tick t event i <op>: <why>` on stdout. The oracle's playback
   cases (9.1 item 6, in the game) play every recording of the stage-3 cases and four broken copies.
@@ -2111,6 +2140,79 @@ for (;;) {
 - **Shim drift guard (CI):** every replay in the corpus is played in the real game
   (`-replay -fast -trace`), in the native verifier and in the wasm verifier, and the TRACE, `CHECK`
   and `END` values must agree.
+
+**As built (stage 4, `games/bejeweled/src/headless`; GAME_NOTES 12.6):**
+- **The driver is the game's.** The verifier plays a replay with the game's own replay player,
+  `WatchController.cpp`, compiled unchanged behind the shims with a headless app, not with a second driver: the
+  gates, CHECKs, END and segments have one implementation, and the drift guard covers the player too. The
+  player gained `SetBytes` (a replay from memory: `bv_verify` has no file) and result getters; its "cannot play"
+  line is kept in `GetResult` too.
+- **Sources.** As listed, with `Sha256.cpp` (the game's) for `sha256.c`, plus `WatchController.cpp`,
+  `framework/Color.cpp`, and in `headless/`: `HeadlessShims.cpp` (`Common.cpp`'s functions, `SDL_Log`,
+  `GameConfig::ScopedFileName`), `WinDMAppHeadless.cpp` with `HeadlessApp.h`, `ReplayRecorderHeadless.cpp` (the
+  board's recorder hooks link; no verifier board records), `DiffBot`, `Verifier` and `verify_main.cpp`. Only
+  the framework headers whose implementations need SDL are shimmed; `Common.h`, `Rect.h`, `Color.h`, `Flags.h`,
+  `Buffer.h`, `MTRand.h` and the listener interfaces are the real ones. About 1,000 lines of shims and headless app,
+  670 of verifier, 470 of difftest bot, 370 of Node runner and 310 of test scripts.
+- **`BoardTrace`** holds the settle check (`BoardTracer`) and the block (`PrintBoardTrace`); the game's
+  `TraceBoard` keeps only the watch's ended-board line and calls it.
+- **Native CLI:** `bejeweled_verify <replay.bjr> [-trace] [-forcevariant]` prints the game's REPLAY lines (and
+  TRACE settles) and then the result JSON as the last line; exit status 0 for ok, 1 for corrupt or unplayable.
+  Also `difftest` and `rulesid <mod.json>`.
+- **Difftest:** each board has an app of its own (the tick-150 block and a scoring swap read and write
+  `mShowInstructions` and `mTimesPlayed`, so one app would couple the two boards), and the autoplay bot of 6.9
+  is a board-level `DiffBot` (the game's autoplay bot drives the whole app through script input). The LOGIC
+  encodings are compared whole after every update (stronger than comparing their hashes), and at every settle
+  also the move lists (`FindMove`, which `FindMoveVariant` replaces in stage 9) and the shutdown save. A game
+  runs to its game-over screen, New Game's end or `--ticks` (default 60,000 updates). `--mode` picks normal,
+  timed or both.
+- **Wasm:** `-O3` (the Release build) rather than `-O2`, and a 1 MB stack. Imports: WASI `fd_write`, `fd_read`,
+  `fd_close`, `fd_seek` and `env.emscripten_notify_memory_growth`; no `proc_exit` or clock. Exports beyond the
+  four: `_initialize`, `bv_set_options` (trace, forcevariant) and `bv_difftest`. `bv_verify` returns the result
+  JSON and writes the REPLAY and TRACE lines to fd 1. `bv_rules_id(ptr, len)` takes a mod.json's text and
+  returns JSON with the RulesId of its tunables and rules over the defaults and the original diff.txt values,
+  and the merge's errors, dropped mods and warnings.
+- **The Node runner** (`games/bejeweled/tools/verify/wasmrun.js`) also runs the game's shipped web build with the
+  stage-0 switches on a stubbed page (no separate Node build of the game); the only change to the web build is
+  that it exports `fflush`, which the runner calls when the game quits.
+- **The drift guard runs in the oracle** (`games/bejeweled/tools/verify/oracle_cases.sh`, sourced by `compare.sh`),
+  with the web build's LOGIC check and the 500-seed difftest, there being no CI.
+- **StateCodec** writes in place (the same bytes, about six times faster): the difftest encodes two boards after
+  every update.
+- **Found by the drift guard:** a replay with the hover channel whose `SAVE` falls in the vortex (the oracle's
+  `save_states` snapshot `s5_vortex`) verified natively but was corrupt in wasm: the save's raw piece bytes
+  hold libm-set doubles there. The player no longer compares those bytes (6.8 "Saves"); every other check
+  stands, and the LOGIC hash never took those fields.
+- **After the stage 4 review** (hostile and extreme inputs):
+  - *Conversions.* emcc lowers `(int)double` to wasm's saturating conversion (`INT_MAX`, `INT_MIN`, NaN 0), x86 to
+    `INT_MIN` for all three; legal tunables (`setValues` 2,000,000,000 times the timed multiplier 2) and an `LDSV`
+    at level 10000 pushed the board's casts out of range, so the same replay was ok on one platform and corrupt
+    on the other. The game and the verifier now build with `-mno-nontrapping-fptoint` on the web (6.1 rule 3).
+  - *RULE* is checked before a board is made (6.8 "Before it starts"): a 0 points base had made
+    `Board::Update` divide by zero (a native crash, a wasm trap, no JSON), and a NaN multiplier base trapped wasm.
+  - *Work and memory bounds:* at most 1,000 segments (9,300 empty ones took the wasm memory to 278 MB), events
+    at one tick refused as they are read and a segment's events allocated once, exactly (an 8 MB file of 4M
+    events at one tick took 688 MB; now 17 MB, the module's start), `SAVE`s only where the game makes them
+    (4M took minutes), 32 `match.shapes` (1,000 shapes on 64 levels took `bv_rules_id` 33 s in wasm) and a
+    fill minimum computed per placement rather than per cell (the same numbers, 3,000 random rule sets
+    compared; about 16 times less work), a mod.json for `bv_rules_id` of at most 1 MB.
+  - *Parsed once:* the verifier takes the file's JSON fields from the player's own `Replay::Read`, and the bytes
+    are moved in, not copied.
+  - *`bv_difftest`* checks its arguments (seed 0, a range backwards or of more than 100,000 seeds, ticks outside
+    1..8.64M, modes outside 1..3: a "difftest: <why>" report, nothing played); the native CLI goes through the
+    same check.
+  - *The host contract* (`wasmrun.js`, and the Worker of stage 14): an instance that trapped is never called
+    again (a trap leaves its stack pointer where it was: 3,000 traps left one that failed every later call), nor
+    one whose memory grew past 64 MB (wasm memory never shrinks); the next call gets a fresh instance.
+  - *Not done:* the `LDSV` level bound stays 100,000 (the conversions now agree on both platforms, and legal
+    tunables reach out-of-range values without any `LDSV`); the `diff.txt` values get no upper caps (only what
+    makes a level of no points is refused; larger values convert alike); events stay 48 bytes each (a 16 MB
+    file of 4M events still takes 200 MB; the leaderboard's 256 KB cap bounds a submission at a few).
+  - *Oracle:* `run_tests.sh` gained the RULE and limits files no player can start, a three-pass fuzz of
+    extreme `diff.txt` values (native and wasm print the same LOGIC hashes), the largest `bv_rules_id` inputs
+    and `bv_difftest`'s argument checks; `oracle_cases.sh` two more broken copies (a zero and a NaN `diff.txt`
+    value) and two games recorded natively and by the web build, each recording watched and verified on both:
+    the overflowing tunables mod (`mods/stage4`) and the level-10000 vortex save.
 
 ### 6.10 Leaderboard service (Cloudflare Worker + D1)
 

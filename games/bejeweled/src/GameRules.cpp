@@ -1424,8 +1424,8 @@ bool ParseStrict(const FieldDef& theField, const JsonValue& theValue, GameRules&
 	case KIND_LEVELS:
 	{
 		std::vector<LevelShape> aLevels;
-		if (!theValue.IsArray() || (theValue.Size() < 1) || (theValue.Size() > 64))
-			return theLog.Error(aKey + " must be a list of 1..64 shapes {cols, rows, mask}");
+		if (!theValue.IsArray() || (theValue.Size() < 1) || (theValue.Size() > (size_t) GameRules::MAX_LEVELS))
+			return theLog.Error(aKey + " must be a list of 1.." + IntText(GameRules::MAX_LEVELS) + " shapes {cols, rows, mask}");
 		for (size_t i = 0; i < theValue.Size(); i++)
 		{
 			LevelShape aLevel;
@@ -1570,6 +1570,12 @@ void ParseKeyed(ModView& theView, int theField, const JsonValue& theValue, Parse
 			{
 				aShapes[anId] = aShape;
 				theView.mShapeEntries[anId] = true;
+			}
+			// Validate refuses more (a bound on FillMinimum's work); a mod.json of thousands stops here
+			if (aShapes.size() > (size_t) GameRules::MAX_SHAPES)
+			{
+				theLog.Error(aKey + " has more than the " + IntText(GameRules::MAX_SHAPES) + " shapes a rule set may have");
+				return;
 			}
 		}
 		else
@@ -2253,34 +2259,45 @@ int GameRules::FillMinimum() const
 			}
 		}
 
+		// A cell's count is the pattern instances whose other cells are all filled before it: the instances on gem
+		// cells only, each counted at its cell that comes last in fill order. One pass over the placements (the
+		// cells of a normalised pattern start at 0, so a placement starts on the board), not one per cell.
+		int aCounts[BoardLayout::MAX_ROWS][BoardLayout::MAX_COLS] = {};
+		for (size_t p = 0; p < aPatterns.size(); p++)
+		{
+			const CellList& aPattern = aPatterns[p];
+			for (int aY = 0; aY < aLayout.mRows; aY++)
+			{
+				for (int anX = 0; anX < aLayout.mCols; anX++)
+				{
+					int aLastX = -1;
+					int aLastY = -1;
+					for (size_t q = 0; q < aPattern.size(); q++)
+					{
+						int x = anX + aPattern[q].first;
+						int y = aY + aPattern[q].second;
+						if (!aLayout.IsPlayable(x, y))
+						{
+							aLastX = -1;
+							break;
+						}
+						if ((aLastX < 0) || (anOrder[y][x] > anOrder[aLastY][aLastX]))
+						{
+							aLastX = x;
+							aLastY = y;
+						}
+					}
+					if (aLastX >= 0)
+						aCounts[aLastY][aLastX]++;
+				}
+			}
+		}
 		for (int r = 0; r < aLayout.mRows; r++)
 		{
 			for (int c = 0; c < aLayout.mCols; c++)
 			{
-				if (anOrder[r][c] < 0)
-					continue;
-				int aCount = 0;
-				for (size_t p = 0; p < aPatterns.size(); p++)
-				{
-					const CellList& aPattern = aPatterns[p];
-					for (size_t o = 0; o < aPattern.size(); o++)
-					{
-						int anX = c - aPattern[o].first;
-						int aY = r - aPattern[o].second;
-						bool aComplete = true;
-						for (size_t q = 0; (q < aPattern.size()) && aComplete; q++)
-						{
-							int x = anX + aPattern[q].first;
-							int y = aY + aPattern[q].second;
-							if ((x == c) && (y == r))
-								continue;
-							aComplete = aLayout.IsPlayable(x, y) && (anOrder[y][x] < anOrder[r][c]);
-						}
-						if (aComplete)
-							aCount++;
-					}
-				}
-				aMost = std::max(aMost, aCount);
+				if (anOrder[r][c] >= 0)
+					aMost = std::max(aMost, aCounts[r][c]);
 			}
 		}
 	}
@@ -2290,6 +2307,9 @@ int GameRules::FillMinimum() const
 bool GameRules::ValidateShape(std::string* theMessage) const
 {
 	std::string aMessage;
+	// The mod path takes at most MAX_LEVELS (ParseStrict); rules decoded from a file can say more
+	if ((int) mBoard.mLevels.size() > MAX_LEVELS)
+		aMessage = "board.levels has " + IntText((int) mBoard.mLevels.size()) + " shapes, more than " + IntText(MAX_LEVELS);
 	for (int aLevel = 0; (aLevel < ShapeCount()) && aMessage.empty(); aLevel++)
 	{
 		LevelShape aShape = ShapeForLevel(aLevel);
@@ -2341,6 +2361,14 @@ bool GameRules::Validate(std::string* theMessage, std::vector<std::string>* theK
 			aCause.MoveType(MOVE_SLIDE);
 		}
 		aLongest = std::max(aLongest, aLayout.LongestLine());
+	}
+
+	// FillMinimum's work grows with the shapes (8 orientations each) times the levels: a bound for any input
+	if (aMessage.empty() && ((int) mMatch.mShapes.size() > MAX_SHAPES))
+	{
+		aMessage = "match.shapes has " + IntText((int) mMatch.mShapes.size()) + " shapes, more than the " + IntText(MAX_SHAPES) +
+			" a rule set may have";
+		aCause.Field("match.shapes");
 	}
 
 	if (aMessage.empty())
@@ -2415,6 +2443,109 @@ bool GameRules::Validate(std::string* theMessage, std::vector<std::string>* theK
 		*theMessage = aMessage;
 	if (theKeys != NULL)
 		*theKeys = aCause.mKeys;
+	return false;
+}
+
+// theValue at a dotted key path of theObject ("gold.timeLimit.normal"), making the objects on the way
+static void SetJsonPath(JsonValue& theObject, const std::string& thePath, const JsonValue& theValue)
+{
+	size_t aDot = thePath.find('.');
+	if (aDot == std::string::npos)
+	{
+		theObject.Set(thePath, theValue);
+		return;
+	}
+	std::string aHead = thePath.substr(0, aDot);
+	JsonValue aChild = (theObject.Has(aHead) && theObject[aHead].IsObject()) ? theObject[aHead] : JsonValue::MakeObject();
+	SetJsonPath(aChild, thePath.substr(aDot + 1), theValue);
+	theObject.Set(aHead, aChild);
+}
+
+bool GameRules::CheckRecorded(std::string* theError) const
+{
+	std::string anError;
+	// The diff.txt values. SetupLevel: mPointMultiplier = multPerLevel * L + multBase, mLevelPoints =
+	// (int)((pointsPerLevel * L + pointsBase) * mPointMultiplier), and Update divides by mLevelPoints. With both
+	// bases above 0, their product at least 1 and both steps at least 0, every level L >= 0 gets at least 1 (the
+	// same doubles at L = 0, larger ones after; past the int range the conversion gives INT_MIN, never 0)
+	const DiffValues& d = mDiff;
+	const double aValues[12] =
+	{
+		(double) d.mNormalPointsBase, d.mNormalPointsPerLevel, d.mNormalMultBase, d.mNormalMultPerLevel,
+		(double) d.mTimedPointsBase, d.mTimedPointsPerLevel, d.mTimedMultBase, d.mTimedMultPerLevel,
+		d.mTimeDrainBase, d.mTimeDrainPerLevel, d.mTimeDrainAccelBase, d.mTimeDrainAccelPerLevel
+	};
+	for (int i = 0; (i < 12) && anError.empty(); i++)
+	{
+		if (!std::isfinite(aValues[i]))
+			anError = "diff.txt value " + IntText(i + 1) + " is not a finite number";
+	}
+	for (int aMode = 0; (aMode < 2) && anError.empty(); aMode++)
+	{
+		int aBase = (aMode == 0) ? d.mNormalPointsBase : d.mTimedPointsBase;
+		double aPerLevel = (aMode == 0) ? d.mNormalPointsPerLevel : d.mTimedPointsPerLevel;
+		double aMultBase = (aMode == 0) ? d.mNormalMultBase : d.mTimedMultBase;
+		double aMultPerLevel = (aMode == 0) ? d.mNormalMultPerLevel : d.mTimedMultPerLevel;
+		double aLevelZero = (aPerLevel * 0.0 + aBase) * (aMultPerLevel * 0.0 + aMultBase); // SetupLevel's doubles
+		if ((aBase < 1) || !(aPerLevel >= 0.0) || !(aMultBase > 0.0) || !(aMultPerLevel >= 0.0) || !(aLevelZero >= 1.0))
+			anError = std::string("diff.txt's ") + ((aMode == 0) ? "normal" : "timed") + " points and multiplier make a level of no points " +
+				"(the bases must be above 0 with a product of at least 1, the steps per level at least 0)";
+	}
+
+	// What the mod path refuses anyway, before the work grows with it (a RULE can hold 65,535 of each)
+	if (anError.empty() && ((int) mMatch.mShapes.size() > MAX_SHAPES))
+		anError = "match.shapes has " + IntText((int) mMatch.mShapes.size()) + " shapes, more than " + IntText(MAX_SHAPES);
+	if (anError.empty() && ((int) mBoard.mLevels.size() > MAX_LEVELS))
+		anError = "board.levels has " + IntText((int) mBoard.mLevels.size()) + " shapes, more than " + IntText(MAX_LEVELS);
+
+	// The rules: a mod.json that says every field this set holds off its default (the tunables under "tunables",
+	// read as leniently as the game reads them; the rest under "rules"), through the mod path
+	GameRules aDefaults = DefaultsFor(*this);
+	JsonValue aTunables = JsonValue::MakeObject();
+	JsonValue aRules = JsonValue::MakeObject();
+	for (int f = 0; (f < NUM_FIELDS) && anError.empty(); f++)
+	{
+		const FieldDef& aField = gFields[f];
+		if (EncodeField(aField, *this) == EncodeField(aField, aDefaults))
+			continue;
+		JsonValue aValue;
+		if (aField.mKind == KIND_DOUBLE)
+		{
+			double aDouble = FieldRef<double>(aField, *this);
+			if (!std::isfinite(aDouble))
+			{
+				anError = std::string(aField.mKey) + " is not a finite number";
+				break;
+			}
+			aValue = JsonValue(aDouble); // its bits as they are
+		}
+		else
+			aValue = ValueJson(aField, *this);
+		SetJsonPath((aField.mFlags & FLAG_TUNABLE) ? aTunables : aRules, aField.mKey, aValue);
+	}
+	if (anError.empty())
+	{
+		RulesSource aSource;
+		aSource.mModId = "RULE";
+		aSource.mTunables = aTunables;
+		if (aRules.Size() > 0)
+			aSource.mRules = aRules;
+		GameRules aMerged;
+		RulesStatus aStatus;
+		MergeRules(std::vector<RulesSource>(1, aSource), &aMerged, &aStatus);
+		aMerged.mDiff = mDiff;
+		if (!aStatus.mErrors.empty())
+			anError = aStatus.mErrors[0].mText;
+		else if (!aStatus.mDropped.empty())
+			anError = "rules a game cannot play: " + aStatus.mDropped[0].mText;
+		else if (aMerged.Canonical() != Canonical())
+			anError = "rules no mod makes (a value out of its range or not in its one spelling)";
+	}
+
+	if (anError.empty())
+		return true;
+	if (theError != NULL)
+		*theError = anError;
 	return false;
 }
 

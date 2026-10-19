@@ -1609,6 +1609,7 @@ and address; its count is tracked per stage.
 | 3a | 94 | 41 | Replays, recording side (12.4). One-line observer hooks `if (mRecorder != NULL) mRecorder->...;` in `GameOver`, `RequestNewGame` (NEW_GAME), `Pause`/`Unpause`, `MouseMove`/`MouseLeave` (HOVER), `MouseDown` (SELECT, DESELECT, TARGET), `MouseDrag` (TARGET), `DoHint` (HINT), `SaveGame` (`BeginSave`), `~Board` (`OnBoardDestroyed`, `delete mRecorder`), `Update` (entry `SyncExternalRand`, end `AfterUpdate`); `WinDMApp::NewGame` attaches the recorder. Playback guards `if (mPlaybackOnly) return;` in `IsGameInProgress` and the input handlers, for stage 3b. `LoadGame`'s file read and `SaveGame`'s write go through `ReadSaveFile`/`WriteSaveFile` (playback bytes; SAVE and the sidecar), `DeleteSaveGame` deletes the sidecar, `GameLoadedVariant(aBuffer)` restores the sidecar's RNG |
 | 3b | 104 | 47 | Replays, playback side (12.4). `Pause`/`Unpause`: a playback board takes pauses only from its player (`if (mPlaybackOnly && !mPlaybackApplying) return;`). `WinDMApp`: `mWatch`/`mReplayQuit` set in the ctor, `mWatch` deleted in the dtor; `UpdateFrames` runs `mWatch->BeforeFrame()` first; `TitleScreenIsFinished` starts the watch instead of its two new games; `ButtonDepress` gives New Game and the mode buttons to the watch; `NewGame` and `ShowHighScoreWidget` return at once when the playback board calls them (its game ended) |
 | 2b | 106 | 47 | Auto LiveSplit (12.5), merged after stage 3 (on stage 2's code it was 67 lines in 32 functions): `LiveSplitObserver::AfterUpdate` at the end of `WinDMApp::UpdateFrames` (after 3b's `mWatch->BeforeFrame()`, the update and the test hooks, `CodecCheck` included; only while wanted), `LiveSplitObserver::AppDestroyed` at the end of `~WinDMApp` (after 3b's `delete mWatch`). Both functions were already edited by 3b, so the count of functions stays. No Board function changes: the board serial and the resumed mark are set in `InitVariant` and `GameLoadedVariant` |
+| 4 | 106 | 47 | The headless verifier (12.6) compiles the translated Board sources as they are: no hook. `TraceBoard`, a port test hook, moved its settle check and block to `BoardTrace.cpp`; the watch's ended-board line stays in `WinDMApp.cpp` |
 
 With the original rules every edited line computes what the original did: the board is 8x8, the layout
 is the original constants, and no hook reads the variant flags yet. `UpdateClearing`'s refill pass,
@@ -1625,6 +1626,14 @@ replaced by variant paths, not generalised.
 - `Json.cpp` rejects `nan`, `inf` and numbers too large for a double (strtod accepts them, JSON does not
   have them), so such a `mod.json` fails to parse like any other invalid JSON. Before stage 1 the mod
   loaded and the value played differently on native and web.
+- The board's own `(int)` casts of doubles (a match's points times the multiplier, `SetupLevel`'s level
+  points, the hint penalty, the score roll) leave the int range with legal values too: `setValues`
+  2,000,000,000 in a timed game, a `diff.txt` with large steps. Natively they give `INT_MIN` (x86's
+  `cvttsd2si`, also for NaN); emcc's default, wasm's saturating conversion, gave `INT_MAX`, `INT_MIN` or 0, so
+  the score and the replay's CHECKs differed between the builds. Since the stage 4 review the web build (and
+  the verifier's wasm) compiles the game with `-mno-nontrapping-fptoint`, whose range-checked conversion gives
+  `INT_MIN` as x86 does: the timed bot game with that mod scores -2,147,483,648 on both, and each build's
+  replay verifies on the other (the oracle's `overflow` cases). The sums that follow wrap on both.
 
 ### 12.3 Set seed (code mods, stage 2)
 
@@ -1710,7 +1719,9 @@ games/bejeweled/docs/CODE_MODS_DESIGN.md 4.11, 6.2-6.6 and 7.3, as built:
   is saved too), turns the sidecar into a finished replay with END "saved". Games without a move are
   dropped. `-keep` pins replays that qualified for the table, and pruning keeps the newest `keep` others,
   newest by the time each file was written. The hover flag of a replay says every segment has the hover
-  channel (a game resumed under the other setting has it off, and the player then checks no save bytes).
+  channel (a game resumed under the other setting has it off, and the player then checks no save bytes; since
+  stage 4 it checks none of a save made in the vortex either, whose libm-set positions and angles differ in the
+  last bits between native and wasm, 12.6).
   A recording too long for the web backup's one localStorage item (100,000 events) leaves only its RNG
   sidecar there.
 - **StateCodec.** One field table (`games/bejeweled/src/StateCodec.cpp`) drives three encodings:
@@ -1741,7 +1752,15 @@ games/bejeweled/docs/CODE_MODS_DESIGN.md 4.11, 6.2-6.6 and 7.3, as built:
   save against the same check. The reader takes at most 16 MB and 4M events, refuses records out of order
   or repeated and an `END` reason over 5; the player refuses more than 24 hours of board ticks in all, more
   than 10,000 events at one tick and more than 1,000,000 outside draws. `savegame.dat` is still read as the
-  original reads it.
+  original reads it. After the stage 4 review (games/bejeweled/docs/CODE_MODS_DESIGN.md 6.4, 6.8): the reader
+  also takes at most 1,000 segments and refuses more than 10,000 events at one tick as it reads them (a
+  segment's events are checked, then allocated once); the player takes `SAVE`s only at their segment's last
+  tick, at most 4 a segment, and a `RULE` only if it is the canonical form of rules the mod path makes
+  (`GameRules::CheckRecorded`) with `diff.txt` values that give every level at least 1 point (finite, bases
+  above 0 with a product of at least 1, steps not below 0): a 0 points base made `Board::Update` divide by
+  zero. A sidecar of 1,000 segments is not continued: the resume starts a fresh replay that holds the save.
+  A score or level points past the int range (the `overflow` and `highlevel` cases, 12.2) give saves the
+  `LDSV` check refuses, so the oracle watches those recordings without `-codeccheck`.
 - **Oracle** (stage 3b): the playback cases (`watch_*`) play every recording of the stage-3 cases in a fresh
   user dir: every `CHECK` and `END` match, each segment's TRACE settles are the recording's, StateCodec's
   round trip holds after every update, nothing is written; seeded, per-game and global-stream games, normal
@@ -1818,6 +1837,100 @@ games/bejeweled/docs/CODE_MODS_DESIGN.md 4.15, as built:
   decisions).
 
 ---
+
+### 12.6 Headless verifier (code mods, stage 4)
+
+games/bejeweled/docs/CODE_MODS_DESIGN.md 6.9, as built (`games/bejeweled/src/headless`, target `bejeweled_verify`):
+
+- **What it compiles.** The translated `Board.cpp` and `BoardRules.cpp` and the port's `BoardVariant.cpp`
+  unchanged, with `BoardTrace`, `GameRules`, `GameConfig.cpp` (the framework-free half), `StateCodec`, `Replay`,
+  `Sha256`, `WatchController` (the game's replay player), `MTRand`, `Buffer`, `Color` and `Json`. The include
+  path starts with `headless/shim`, so the framework headers whose implementations need SDL resolve to shims:
+  `Widget.h` (`mUpdateCnt` counted as `WidgetContainer::Update` counts it, `Resize`, the mouse-handler
+  dispatch), `Graphics.h`, `Image.h`, `MemoryImage.h`, `DDImage.h` (no drawing: Draw, the background and the
+  banner write only image bits), `Font.h`/`ImageFont.h` (metrics only; the points font's ascent, which moves the
+  score popups, from the replay's ENV), `SoundInstance.h`/`SoundManager.h` (no sound instance, as without an
+  audio device), `MusicInterface.h`, `WidgetManager.h`, `SexyApp.h` and `<SDL.h>`. The SDL-free framework
+  headers (`Common.h`, `Rect.h`, `Color.h`, `Flags.h`, `Buffer.h`, `MTRand.h`, the listeners) are the real
+  ones; `HeadlessShims.cpp` replaces `Common.cpp`'s `Rand`, `GetRandCount`, `GetRandMTState`, `vformat` and
+  `StrFormat`, `SDL_Log` (stderr) and `GameConfig::ScopedFileName` (no mods: the name unchanged). Built with the
+  game's switches: `-msse2 -mfpmath=sse` on i686, `BEJ_NO_VARIANTS` in the novariants build.
+- **The app** (`HeadlessApp.h`, `WinDMAppHeadless.cpp`): every `WinDMApp` member a board or the player calls,
+  on the real `WinDMApp.h`. `NewGame` and `ShowHighScoreWidget` end the watched replay
+  (`WatchController::OnBoardEnd`) or set an end flag; `SetTimedMode` sets the mode; `KillDialog` and
+  `ShowInstructionsDialog` do nothing (that dialog is not modal); files live in memory; `SafeDeleteWidget`
+  defers the delete to the end of the frame as the framework does, so a segment's new board never takes the old
+  one's address (the trace's settle rule compares boards). The diff.txt values start as the original's. The
+  recorder's methods (`ReplayRecorderHeadless.cpp`) only link: no verifier board records.
+- **A replay** is played by the game's own `WatchController` (one implementation of the gates, the CHECKs and
+  END, 12.4): `SetBytes` gives it the file from memory, `GetResult`, `GetChecks` and `GetEventsApplied`
+  report. Each verifier frame is the game's: `BeforeFrame` (one board update), the `-trace` settle
+  check (`BoardTracer`, which the game's `-trace` uses since `TraceBoard` moved to `BoardTrace.cpp`), the
+  deferred deletes. So `bejeweled_verify replay.bjr -trace` prints the game's `-replay=replay.bjr -replayquit
+  -trace` lines exactly (the REPLAY lines and the TRACE settles; only "TRACE update N", the app's count,
+  differs), then one line of JSON: `result` ok, corrupt or unplayable, `message` (the REPLAY end line),
+  `checks`, `events`, `updates`, and from the file `segments`, `engineAbi`, `flags`, `rulesId`, `end`,
+  `seeds`. Exit status 0 only for ok. `-forcevariant` plays it on the generalised paths.
+- **Difftest** (`bejeweled_verify difftest --seeds a..b [--ticks n] [--mode normal|timed|both] [-v]`): per seed and
+  mode two boards on `MTRand(seed)`, each with its own app (a board's tick-150 block and its swaps read and
+  write the app's `mShowInstructions` and `mTimesPlayed`), one plain and one with the `-forcevariant` flags, each
+  played by a `DiffBot` with the seed (`headless/DiffBot.h`: the autoplay bot's moves, clicks, zone clicks and
+  drags through the board's own handlers, random swaps, hints, right clicks, selections while falling, key
+  and dialog pauses, New Game in one game of 40; timed games mostly slow, so that time runs out). After every
+  update the two LOGIC encodings must be equal (compared whole, which is stronger than their hashes), at every
+  settle also the move lists and the save a shutdown would write; a game runs to its game-over screen, New
+  Game's end, or 60,000 updates. Seeds 1..500, both modes (stage 4): 1,000 games, none differs (normal: 470 game
+  overs, 12 New Game, 18 at the cap, levels up to 7; timed: 286 time ups, 14 New Game, 200 at the cap, levels up to
+  10; 33 million updates, 167,329 settles, under 4 minutes natively). Until the variant paths arrive (stage 7 on) the
+  two boards take the same code, so this proves the harness more than the paths.
+- **StateCodec's writer** now writes in place (8 KB reserved, one bounds check per value) instead of appending
+  byte by byte: the same bytes, about six times faster, for the difftest and `-codeccheck`, which encode after
+  every update.
+- **Wasm** (`build/web/bejeweled_verify.wasm`, `-sSTANDALONE_WASM --no-entry -sFILESYSTEM=0
+  -sALLOW_MEMORY_GROWTH=1`, 1 MB stack, no JS glue): imports only `fd_write`, `fd_read`, `fd_close`, `fd_seek`
+  and `emscripten_notify_memory_growth`; exports `_initialize` (call first), `bv_alloc`, `bv_free`,
+  `bv_verify(ptr, len)` (the JSON; the REPLAY and TRACE lines go to fd 1, the file named replay.bjr),
+  `bv_set_options` (1 -trace, 2 -forcevariant), `bv_rules_id(ptr, len)` (a mod.json's text: the RulesId of its
+  tunables and rules over the defaults with the original diff.txt values, with the merge's errors, dropped
+  mods and warnings) and `bv_difftest(first, last, ticks, modes)` (+4 for a line per game).
+- **The Node runner** (`games/bejeweled/tools/verify/wasmrun.js`, Node's own modules only): `verify`,
+  `difftest` and `rulesid` on the wasm verifier, which print what the native exe prints; and `game`, the
+  game's shipped web build (`build/web/bejeweled.js`) with the native test switches the web shell never
+  passes (`-script`, `-trace`, `-tracehash`, `-autoplay...`, `-codeccheck`, `-replay`, `-gameseed`,
+  `-forcevariant`). It copies the working directory into the build's in-memory file system (and switches
+  naming absolute host paths, read-only), stubs the page (a canvas whose 2D context keeps nothing, so SDL renders
+  in software; no WebGL, no AudioContext, `window.open` a no-op; the browser's frames back to back), puts
+  finished replays in `<user dir>/replays` as natively, and when the game quits flushes its files (the web build
+  exports `fflush`: a page never deletes the app, whose destructor closes them natively) and writes back what
+  it wrote or deleted. On the oracle's scripts its LOGIC column and TRACE are the native game's, and so are its
+  saves, its registry and mostly even the FULL column (not in the vortex, whose positions libm's cos and sin
+  set). What a page never writes, the native game writes when it deletes the app: the high-score table of a game
+  quit on its game-over screen (`~HighScoreWidget` saves it) and `-codeccheck`'s summary line.
+- **Checks.** `games/bejeweled/tools/verify/run_tests.sh` (RulesId vectors native and wasm, the costliest
+  `bv_rules_id` inputs alike, files no player can start, extreme `diff.txt` values played to END with the same
+  LOGIC hashes native and wasm, a short difftest whose per-game lines must be the same native and wasm,
+  `bv_difftest`'s argument checks, command lines), and the oracle's stage-4 cases
+  (`games/bejeweled/tools/verify/oracle_cases.sh`, sourced at the end of `compare.sh`'s case list; the tests and
+  the difftest start in the background as the cases are defined): every watched replay played again by both
+  verifiers with the game's REPLAY and TRACE lines and verdict (the drift guard, 9.1 item 6), broken copies no
+  player can start, the difftest over 500 seeds, the web build under Node on the playtests, the stage-0 scripts,
+  the bot runs, a seeded game, a recording and two watches with the candidate's LOGIC hashes and TRACE, and two
+  games whose casts leave the int range (12.2) recorded natively and by the web build, each recording watched
+  and verified on both.
+- **Found on the way:** a replay whose `SAVE` falls in the vortex (the oracle's `s5_vortex` snapshot) played
+  natively but was corrupt in wasm: the save's raw piece bytes hold the positions and angles libm's `cos`, `sin`
+  and `atan2` set, whose last bits differ between the two. The player (12.4) no longer compares a vortex save's
+  bytes with the replay's hash (nor a sidecar's `SVHA` after one); CHECK and END, whose LOGIC hash never took
+  those fields, still decide.
+- **After the review** (CODE_MODS_DESIGN.md 6.9 "After the stage 4 review"): the web builds convert doubles to
+  int as x86 does (12.2), a replay's `RULE` and its contents are bounded before a board is made (12.4), the
+  verifier parses a file once and takes its bytes without a copy, `bv_difftest` and `bv_rules_id` check their
+  inputs (seeds, ticks, modes; a mod.json of at most 1 MB, at most 32 `match.shapes`), the fill minimum counts
+  each pattern placement once at its last cell (the same numbers, a sixteenth of the work for 16-cell shapes),
+  and the Node runner, like the Worker to come, replaces an instance after a trap or once its memory passed 64
+  MB. `games/bejeweled/tools/verify/craft_replays.py` makes the broken and extreme files the tests and the oracle
+  use.
+- Neither verifier nor the web build under Node opens a window, plays a sound or opens a URL: no rundesk.
 
 ## 13. Naming reconciliation (analyst names → chosen names)
 

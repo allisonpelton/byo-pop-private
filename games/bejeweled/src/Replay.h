@@ -48,9 +48,12 @@ enum
 	RULES_ID_SIZE = 32,
 	MAX_ARGS = 5,
 	// What a reader takes on: Read refuses a larger file, or more events in all, before it allocates for them
-	// (a long game with the hover channel at one event per tick is about 2M events and 13 MB in 6 hours)
+	// (a long game with the hover channel at one event per tick is about 2M events and 13 MB in 6 hours), and
+	// more segments than MAX_SEGMENTS before it makes the next one (each holds two MT states, 5 KB, however
+	// small its record: a game gets one per resume, and the recorder starts a fresh replay before this many)
 	MAX_FILE_SIZE = 16 * 1024 * 1024,
-	MAX_EVENTS = 4000000
+	MAX_EVENTS = 4000000,
+	MAX_SEGMENTS = 1000
 };
 
 enum Flags
@@ -187,8 +190,12 @@ std::string			Write(const File& theFile);
 // Parses a whole file. False, with theError set, for anything that is not exactly a well-formed file:
 // more than MAX_FILE_SIZE bytes, a wrong magic or format, a record running past the end, a record out of
 // the order above or repeated, a payload of the wrong size, an unknown op, a varint over 10 bytes, an event
-// count the payload cannot hold or more than MAX_EVENTS events in all, an END reason other than 0..5, no END
-// or data after it. Never reads outside theBytes; what it allocates grows with the events it has parsed.
+// count the payload cannot hold or more than MAX_EVENTS events in all, more than MAX_EVENTS_PER_TICK events
+// at one tick of a segment (as they are parsed: CheckPlayable's bound, so a file that asks for more stops
+// early), more than MAX_SEGMENTS segments, an END reason other than 0..5, no END or data after it. Never reads
+// outside theBytes; it allocates for a segment's events once its payload has been found to hold that many
+// (sizeof(Event), 48 bytes, per 2 bytes of the file at most: 192 MB for MAX_EVENTS) and for each segment
+// as it comes (5 KB each, MAX_SEGMENTS at most).
 bool				Read(const std::string& theBytes, File* theFile, std::string* theError = NULL);
 
 // Building blocks, exposed for the tests
@@ -210,17 +217,20 @@ int					CountMoves(const Segment& theSegment);
 // range (cells of the board, TARGET -1 -1, pause flags 0/1, 1..MAX_XRAND outside draws, save kinds, int
 // positions); in every segment after the first, and only with its RNGS (and in the first only with its
 // LDSV), one LOAD at tick 0, whose bytes are the segment's LDSV (a save CheckSave takes) or the SAVE that
-// ends the segment before; every segment another follows ending in a SAVE; no event after the END tick; no
-// CHECK at tick 0. Bounds on the work it can ask for: at most MAX_TICKS board ticks in all (each segment up
-// to its last event, the last one up to END), at most MAX_EVENTS_PER_TICK events at one tick of a segment,
-// at most MAX_XRAND outside draws in the whole file. The
+// ends the segment before; every segment another follows ending in a SAVE; SAVEs only at the segment's last
+// tick (the game saves as its board goes away: Shutdown and ~Board, a snapshot sidecar's SAVE after them), at
+// most MAX_SAVES_PER_SEGMENT of them; no event after the END tick; no CHECK at tick 0. Bounds on the work it
+// can ask for: at most MAX_TICKS board ticks in all (each segment up to its last event, the last one up to
+// END), at most MAX_EVENTS_PER_TICK events at one tick of a segment, at most MAX_XRAND outside draws in the
+// whole file, SAVEs (a save made and hashed, 40 us each) as above. The
 // RNG states themselves (MTRand refuses some) and everything that depends on play are checked while it
 // plays. False with theError set.
 enum
 {
 	MAX_XRAND = 1000000,            // outside draws, in one XRAND and in the whole file (real games: a few)
 	MAX_TICKS = 8640000,            // 24 hours of board ticks in all segments (the leaderboard's cap is 6 hours, 6.10)
-	MAX_EVENTS_PER_TICK = 10000     // events stamped with one tick (a paused board's tick holds them all)
+	MAX_EVENTS_PER_TICK = 10000,    // events stamped with one tick (a paused board's tick holds them all)
+	MAX_SAVES_PER_SEGMENT = 4       // the game makes 3 at most: Shutdown's, ~Board's, a snapshot sidecar's
 };
 bool				CheckPlayable(const File& theFile, int theCols, int theRows, std::string* theError = NULL);
 

@@ -46,7 +46,7 @@ void CodecCheck::AfterUpdate()
 	if (mScratch == NULL)
 		mScratch = new Board(mApp, Board::SCRATCH_BOARD);
 
-	// The settles -trace prints (TraceBoard): a watched replay's last board has none once the replay has ended
+	// The settles -trace prints (TraceBoard, BoardTrace.h): a watched replay's last board has none once the replay has ended
 	bool isEnded = (mApp->mWatch != NULL) && mApp->mWatch->IsEndedBoard(aBoard);
 	bool isSettle = !isEnded && (aBoard->mState == STATE_PLAYING) && ((aBoard != mLastBoard) || (mLastState != STATE_PLAYING));
 	mLastBoard = aBoard;

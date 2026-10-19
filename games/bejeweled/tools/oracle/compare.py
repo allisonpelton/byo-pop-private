@@ -142,6 +142,22 @@ Replays (stage 3; candidate runs, flags "k=v;k=v"):
               registry.ini, with TimesPlayed 0: watching saves, counts and records nothing ("user=" lists the
               files a script's own actions leave, such as hiscores.dat from Options -> High Scores). With
               "corrupt=", the line must say CORRUPT and contain that text
+The headless verifier (stage 4, games/bejeweled/docs/CODE_MODS_DESIGN.md 6.9; the cases come from
+games/bejeweled/tools/verify/oracle_cases.sh, which compare.sh sources):
+  verifier    <watch>.verify (flags "watch=<case>" and that case's flags, or "unplayable"): the native verifier
+              (native.txt) and the wasm verifier under Node (wasm.txt) played the watch case's replay.bjr with
+              -trace. Their REPLAY and TRACE lines must be the game's in <case>/stdout.txt (but the number in
+              "TRACE update N:", the app's update count) and each other's (the JSON result too), their JSON
+              result the game's verdict ("ok", "corrupt", or "unplayable" for "cannot play") with the game's
+              REPLAY line as its message, and their exit status 0 for ok, else 1: game, native verifier and wasm
+              verifier agree on TRACE, CHECK and END (9.1 item 6, the shim drift guard). With "verdict=ok" the
+              game's verdict must be ok too (a watch run that is no playback case: one without -codeccheck, whose
+              saves the save check of an LDSV refuses on purpose, such as a score past the int range)
+  wasmlogic   <case>.wasm (flags "ref=<case>"): the game's web build under Node (wasmrun.js game) ran <case>'s
+              switches and inputs: hash.txt's update, board state and LOGIC columns and stdout.txt identical to
+              the candidate's <case> (the FULL column, same platform only, is reported, not required)
+  difftest    bejeweled_verify difftest (report.txt, exit.txt): both modes' summaries say 0 differ (9.1 item 7)
+  verify_tests (kind lint) is games/bejeweled/tools/verify/run_tests.sh
 Finished replays are named after the wall clock: compared and listed with replays/<yyyymmdd>-<hhmmss>- masked
 as replays/*- (normal_path), their contents without META's date (compare_bjr).
 Auto LiveSplit (stage 2b, games/bejeweled/docs/CODE_MODS_DESIGN.md 4.15; candidate runs):
@@ -214,7 +230,7 @@ AUTO_KEYS = ("exit", "mods", "user", "settle", "settles", "last-settle", "states
 # A finished replay is named after the wall clock (<yyyymmdd>-<hhmmss>-<mode>-<score>...): the date and time are
 # masked wherever runs are compared or facts derived (normal_path)
 REPLAY_NAME = re.compile(r"(^|/)replays/\d{8}-\d{6}-")
-NO_RUN_KINDS = ("lint", "cli")  # checks that run no game
+NO_RUN_KINDS = ("lint", "cli", "verifier", "difftest")  # checks that run no game (of their own)
 LS_LOG_LINES = re.compile(r"^INFO: (livesplit|mods): |^INFO: game: .*\| mods: ")  # dropped from a livesplit run's stderr
 
 
@@ -1728,6 +1744,120 @@ def playback_check(r, cand, run, flags, label):
     return r.failures == before
 
 
+def verifier_lines(lines):
+    """The REPLAY and TRACE lines of a watch or a verifier run, with "TRACE update N:" (the app's count) masked"""
+    out = []
+    for line in lines:
+        if line.startswith("TRACE update "):
+            out.append(re.sub(r"^TRACE update \d+:", "TRACE update *:", line))
+        elif line.startswith(("TRACE", "REPLAY")):
+            out.append(line)
+    return out
+
+
+def first_difference(a, b):
+    """The index of the first line at which two lists differ (None when equal)"""
+    for i in range(max(len(a), len(b))):
+        if i >= len(a) or i >= len(b) or a[i] != b[i]:
+            return i
+    return None
+
+
+def verifier_check(r, cand, run, flags, label):
+    """Both verifiers against the game's watch of the same replay (the module comment, "verifier")"""
+    before = r.failures
+    f = parse_flags(flags)
+    game = verifier_lines(run_stdout(os.path.join(cand, f.get("watch", ""))))
+    ends = [line for line in game if line.startswith("REPLAY end: ") or ": cannot play: " in line]
+    if len(ends) != 1:
+        r.fail("%s: the game's watch %s has %d REPLAY end lines" % (label, f.get("watch", ""), len(ends)))
+        return False
+    verdict = "ok" if ends[0].startswith("REPLAY end: ok, ") else \
+        "corrupt" if ends[0].startswith("REPLAY end: CORRUPT ") else "unplayable"
+    if ("unplayable" in f) != (verdict == "unplayable"):
+        r.fail("%s: the game's verdict is %s: %s" % (label, verdict, ends[0]))
+    if "verdict" in f and f["verdict"] != verdict:
+        r.fail("%s: the game's verdict is %s, not %s: %s" % (label, verdict, f["verdict"], ends[0]))
+    results = {}
+    for side in ("native", "wasm"):
+        path = os.path.join(run, side + ".txt")
+        lines = read_lines(path) if os.path.exists(path) else []
+        exit_path = os.path.join(run, side + "-exit.txt")
+        status = read_bytes(exit_path).decode("latin-1").strip() if os.path.exists(exit_path) else "missing"
+        try:
+            result = json.loads(lines[-1]) if lines else None
+        except ValueError:
+            result = None
+        if not isinstance(result, dict):
+            r.fail("%s: the %s verifier printed no JSON result (exit %s)" % (label, side, status))
+            continue
+        got = verifier_lines(lines[:-1])
+        results[side] = (got, result, status)
+        at = first_difference(got, game)
+        if at is not None:
+            r.fail("%s: the %s verifier's %d REPLAY/TRACE lines are not the game's %d: line %d: %s / %s" % (
+                label, side, len(got), len(game), at + 1, got[at] if at < len(got) else "(none)",
+                game[at] if at < len(game) else "(none)"))
+        if result.get("result") != verdict or result.get("message") != ends[0]:
+            r.fail("%s: the %s verifier's result %s (%s), the game's %s" % (
+                label, side, result.get("result"), result.get("message"), verdict))
+        if status != ("0" if verdict == "ok" else "1"):
+            r.fail("%s: the %s verifier's exit status %s for %s" % (label, side, status, verdict))
+    if len(results) == 2 and results["native"][:2] != results["wasm"][:2]:
+        r.fail("%s: the native and the wasm verifier differ" % label)
+    if r.failures == before:
+        settles = sum(1 for line in game if line.startswith("TRACE update "))
+        r.out("    %s: the native and the wasm verifier print the game's %d REPLAY and TRACE lines (%d settles) and"
+              " its verdict: %s" % (label, len(game), settles, ends[0]))
+    return r.failures == before
+
+
+def wasmlogic_check(r, cand, run, flags, label):
+    """The web build under Node against the candidate's run of the same case (the module comment, "wasmlogic")"""
+    before = r.failures
+    ref = os.path.join(cand, parse_flags(flags).get("ref", ""))
+    hashes = []
+    for path in (os.path.join(ref, "hash.txt"), os.path.join(run, "hash.txt")):
+        hashes.append([line.split() for line in read_lines(path)] if os.path.exists(path) else [])
+    logic = [[" ".join(fields[:3]) for fields in h] for h in hashes]
+    at = first_difference(logic[0], logic[1])
+    if not logic[0] or at is not None:
+        r.fail("%s: hash.txt's LOGIC column: %d and %d updates, first difference at line %s: %s / %s" % (
+            label, len(logic[0]), len(logic[1]), "-" if at is None else at + 1,
+            logic[0][at] if at is not None and at < len(logic[0]) else "(none)",
+            logic[1][at] if at is not None and at < len(logic[1]) else "(none)"))
+    out_ref, out_run = run_stdout(ref), run_stdout(run)
+    at = first_difference(out_ref, out_run)
+    if at is not None:
+        r.fail("%s: stdout.txt (%d and %d lines) differs at line %d: %s / %s" % (
+            label, len(out_ref), len(out_run), at + 1, out_ref[at] if at < len(out_ref) else "(none)",
+            out_run[at] if at < len(out_run) else "(none)"))
+    if r.failures == before:
+        full = [[fields[3] if len(fields) > 3 else "" for fields in h] for h in hashes]
+        at = first_difference(full[0], full[1])
+        r.out("    %s: %d updates with the candidate's LOGIC hashes, its %d stdout lines (TRACE%s); the FULL hashes %s" % (
+            label, len(logic[0]), len(out_ref), ", REPLAY" if any(x.startswith("REPLAY") for x in out_ref) else "",
+            "too" if at is None else "differ from update %s (same platform only)" % hashes[0][at][0]))
+    return r.failures == before
+
+
+def difftest_check(r, run):
+    """bejeweled_verify difftest's report (the module comment, "difftest")"""
+    before = r.failures
+    exit_path = os.path.join(run, "exit.txt")
+    status = read_bytes(exit_path).decode("latin-1").strip() if os.path.exists(exit_path) else "missing"
+    report = os.path.join(run, "report.txt")
+    lines = read_lines(report) if os.path.exists(report) else []
+    for line in [line for line in lines if "DIFFERS" in line][:10]:
+        r.out("    " + line)
+    summaries = [line for line in lines if re.match(r"difftest (normal|timed): ", line)]
+    if status != "0" or len(summaries) != 2 or not all(", 0 differ;" in line for line in summaries):
+        r.fail("the difftest's exit status %s, %d mode summaries" % (status, len(summaries)))
+    for line in summaries:
+        r.out("    " + line)
+    return r.failures == before
+
+
 def read_expect(path):
     """({case: [(key, value)]}, header comment lines)."""
     expect, header = {}, []
@@ -1872,6 +2002,12 @@ def compare(oracle, expect_path=None):
             livesplit_check(r, oracle, os.path.join(cand, f.get("ref", "")), run, "cross " + f.get("ref", ""))
         elif kind == "cli":
             cli_check(r, run)
+        elif kind == "verifier":
+            verifier_check(r, cand, run, flags, "verifier")
+        elif kind == "wasmlogic":
+            wasmlogic_check(r, cand, run, flags, "wasm")
+        elif kind == "difftest":
+            difftest_check(r, run)
         elif kind == "nosave":
             parent = name[:-len(".nosave")]
             if same_run(r, os.path.join(cand, parent), run, "cross " + parent):
