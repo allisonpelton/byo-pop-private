@@ -1796,6 +1796,21 @@ games/bejeweled/docs/CODE_MODS_DESIGN.md 4.15, as built:
   description, priority) and `"features": {"livesplit": ...}`, and no `images`, `sounds`, `music`, `data`
   or `properties` folder, does not count for `GameConfig::mAnyModEnabled`: no crossbar on GO's G, no fourth
   hint sparkle.
+- **The script's timing** (`tools/livesplit/BejeweledDeluxe-byopop.asl`): nothing may run for the first
+  time between a decision in `start`, `split` or `reset` and LiveSplit's timer. The C# binder compiles a
+  `dynamic` call site on its first run (about a millisecond each), and a first `DateTime.Now` or file
+  append costs milliseconds too. In the live test with LiveSplit 1.8.37 the first script lost 20–35 ms to
+  that in each session's first start and a few more in its first split, so that run started 15–18 ms late
+  and its splits came out about 10 ms short. Now `start`, `split` and `reset` (a poll whose game over
+  `reset` holds back splits in the same cycle, after it) read every field, var and setting they use into
+  typed locals in every cycle (`Reached` both its fields), the typed `LogEvent` runs once in `startup` and
+  only stamps the decision and keeps the line, and `onStart`, `onSplit` and `onReset` write the line after
+  LiveSplit took the event's time; `update` drops a line no event took (timed in `asltest`: the first
+  start 0.04–0.23 ms instead of 22–40 ms, the first split under 0.02 ms, and the held-back split's cycle
+  under 0.02 ms instead of 10–14 ms). ScriptableAutoSplit
+  runs `exit` without `old`, `current` and `game` (`DoExit` clears the process, then `RunNoProcessMethod`)
+  but the timer events' actions with the last copies (`RunMethod`), so the reset that `exit` makes is
+  logged by `onReset` as `reset exit` (`vars.ExitReset` is set around it).
 - **Checks:** the oracle's `livesplit` cases (every playtest, stage-0 and autoplay case with the mod
   against an inert `features.livesplit: false` twin, and the block's log against `-tracehash`; since the
   merge with stage 3 also a watch, `watch_main_timed.ls`: the playback board carries flag 0x20 and counts

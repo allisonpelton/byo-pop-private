@@ -7,7 +7,8 @@
 //   reset  when the run's game ends: no moves, time up, New Game, a mode switch, quitting (each switchable)
 // Real time only: there is no game time or load removal, as speedrun.com times the game.
 // Written for LiveSplit 1.8.37's ScriptableAutoSplit (C# 5: the .NET Framework compiler).
-// Licence: not chosen yet (CODE_MODS_DESIGN.md Q16).
+// SPDX-License-Identifier: CC0-1.0. To the extent possible under law, the authors have waived all copyright
+// and related rights to this script: https://creativecommons.org/publicdomain/zero/1.0/
 
 state("bejeweled") {}
 
@@ -208,10 +209,12 @@ startup
 
 	// Whether the run's current segment is reached in this snapshot of the run's board: a score segment by
 	// the highest score the HUD showed (displayScoreMax), the k-th level segment by the board's k-th level
-	// clear. split splits on it; reset holds a game over back for it
+	// clear. split splits on it; reset holds a game over back for it. Both fields are read in every call (see
+	// the "log" setting below): a run whose segments mix scores and levels meets no first read when it splits
 	vars.Reached = (Func<dynamic, LiveSplitState, bool>)((state, t) => {
 		if ((long)vars.RunSerial == 0 || (long)state.boardSerial != (long)vars.RunSerial)
 			return false;
+		long scoreMax = (long)state.displayScoreMax, levelClears = (long)state.boardLevelClears;
 		if (t.Run.Count != ((long[])vars.Target).Length)
 			vars.ParseSplits(t);
 		long[] target = (long[])vars.Target;
@@ -219,33 +222,54 @@ startup
 		int index = t.CurrentSplitIndex;
 		if (index < 0 || index >= target.Length)
 			return false;
-		return isScore[index] ? (long)state.displayScoreMax >= target[index] : (long)state.boardLevelClears >= target[index];
+		return isScore[index] ? scoreMax >= target[index] : levelClears >= target[index];
 	});
 
 	// The "log" setting: an event, the board, its tick and the lag bounds. The event happened after the
 	// previous copy's write and at or before this copy's (both stamped with the game's QPC, the same clock
-	// as Stopwatch).
-	vars.LogEvent = (Action<string, dynamic, dynamic>)((what, now, before) => {
-		try
+	// as Stopwatch). Nothing between a decision and LiveSplit's timer may run for the first time: the C#
+	// binder compiles a dynamic call site the first time it runs (about a millisecond each), and a first
+	// DateTime.Now or file write takes milliseconds too. So start, split and reset (whose cycle may split)
+	// read the block's fields, the vars, the settings and LogEvent in every cycle; LogEvent takes typed
+	// values, only stamps the decision and keeps the line, and runs once here; WriteLog adds the time and
+	// appends the line in onStart, onSplit or onReset, after LiveSplit took the event's time. update drops a
+	// line no timer event took.
+	string[] logLine = new string[1];
+	DateTime[] logTime = new DateTime[1];
+	Action<string, long, long, long, long, long> logEvent = (what, board, tick, qpc, frequency, beforeQpc) => {
+		long stamp = Stopwatch.GetTimestamp();
+		logTime[0] = DateTime.UtcNow;
+		string lag = "";
+		if (frequency > 0 && qpc > 0)
 		{
-			long stamp = Stopwatch.GetTimestamp();
-			long frequency = (long)now.qpcFrequency;
-			string lag = "";
-			if (frequency > 0 && (long)now.qpc > 0)
-			{
-				double newest = (stamp - (long)now.qpc) * 1000.0 / frequency;
-				double oldest = (long)before.qpc > 0 ? (stamp - (long)before.qpc) * 1000.0 / frequency : newest;
-				lag = " lag_ms=" + newest.ToString("F1", System.Globalization.CultureInfo.InvariantCulture) + ".." +
-					oldest.ToString("F1", System.Globalization.CultureInfo.InvariantCulture);
-			}
-			string line = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff", System.Globalization.CultureInfo.InvariantCulture) + " " +
-				what + " board=" + (long)now.boardSerial + " tick=" + (long)now.tick + lag + Environment.NewLine;
-			File.AppendAllText(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "BejeweledDeluxe-byopop.log"), line);
+			double newest = (stamp - qpc) * 1000.0 / frequency;
+			double oldest = beforeQpc > 0 ? (stamp - beforeQpc) * 1000.0 / frequency : newest;
+			lag = " lag_ms=" + newest.ToString("F1", System.Globalization.CultureInfo.InvariantCulture) + ".." +
+				oldest.ToString("F1", System.Globalization.CultureInfo.InvariantCulture);
 		}
-		catch (Exception)
+		logLine[0] = what + " board=" + board + " tick=" + tick + lag;
+	};
+	logEvent("warm-up", 0, 0, 1, 1, 1);
+	logLine[0] = null;
+	vars.LogEvent = logEvent;
+	vars.DropLog = (Action)(() => logLine[0] = null);
+	vars.WriteLog = (Action)(() => {
+		string line = logLine[0];
+		logLine[0] = null;
+		if (line != null)
 		{
+			try
+			{
+				File.AppendAllText(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "BejeweledDeluxe-byopop.log"),
+					logTime[0].ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss.fff", System.Globalization.CultureInfo.InvariantCulture) +
+					" " + line + Environment.NewLine);
+			}
+			catch (Exception)
+			{
+			}
 		}
 	});
+	vars.ExitReset = false;
 }
 
 init
@@ -271,6 +295,8 @@ init
 
 update
 {
+	// A log line whose timer event did not come (its start, split or reset box unticked) is dropped
+	vars.DropLog();
 	if (vars.Mode != "port")
 		return false;
 	try
@@ -321,21 +347,27 @@ update
 
 start
 {
-	if (current.goCount == old.goCount || current.goSerial != current.boardSerial || (current.flags & vars.FlagReplay) != 0)
+	// Every dynamic read runs in every cycle, none for the first time in the cycle that starts the timer
+	long goCount = current.goCount, oldGoCount = old.goCount, goSerial = current.goSerial, board = current.boardSerial;
+	long flags = current.flags, tick = current.tick, qpc = current.qpc, frequency = current.qpcFrequency, oldQpc = old.qpc;
+	long flagReplay = vars.FlagReplay, flagVanilla = vars.FlagVanilla, flagTimed = vars.FlagTimed;
+	bool vanillaOnly = settings["vanillaOnly"], modeGuard = settings["modeGuard"], log = settings["log"];
+	var logEvent = (Action<string, long, long, long, long, long>)vars.LogEvent;
+	if (goCount == oldGoCount || goSerial != board || (flags & flagReplay) != 0)
 		return false;
-	if (settings["vanillaOnly"] && (current.flags & vars.FlagVanilla) == 0)
+	if (vanillaOnly && (flags & flagVanilla) == 0)
 		return false;
-	if (settings["modeGuard"])
+	if (modeGuard)
 	{
 		string category = timer.Run.CategoryName ?? "";
-		bool timed = (current.flags & vars.FlagTimed) != 0;
+		bool timed = (flags & flagTimed) != 0;
 		if (category.IndexOf("Timetrial", StringComparison.OrdinalIgnoreCase) >= 0 && !timed)
 			return false;
 		if (category.IndexOf("Normal", StringComparison.OrdinalIgnoreCase) >= 0 && timed)
 			return false;
 	}
-	if (settings["log"])
-		vars.LogEvent("start", current, old);
+	if (log)
+		logEvent("start", board, tick, qpc, frequency, oldQpc);
 	return true;
 }
 
@@ -347,53 +379,79 @@ onStart
 	vars.PendingReset = "";
 	if (current != null && (vars.Mode == "port" || vars.Mode == "original"))
 		vars.RunSerial = (long)current.boardSerial;
+	vars.WriteLog();
 }
 
 split
 {
+	// As in start: every dynamic read in every cycle
 	int index = timer.CurrentSplitIndex;
+	long board = current.boardSerial, tick = current.tick, qpc = current.qpc, frequency = current.qpcFrequency, oldQpc = old.qpc;
+	bool log = settings["log"];
+	var logEvent = (Action<string, long, long, long, long, long>)vars.LogEvent;
 	bool reached = vars.Reached(current, timer);
-	if (reached && settings["log"])
-		vars.LogEvent("split " + index, current, old);
+	if (reached && log)
+		logEvent("split " + index, board, tick, qpc, frequency, oldQpc);
 	return reached;
+}
+
+onSplit
+{
+	vars.WriteLog();
 }
 
 reset
 {
-	if (!settings["resets"] || vars.RunSerial == 0)
+	// As in start and split: every dynamic read in every cycle. A poll that sees the run's game end may also
+	// split, in this cycle after this action (below)
+	long runSerial = vars.RunSerial, board = current.boardSerial, oldBoard = old.boardSerial, oldFlags = old.flags;
+	long gameOvers = current.gameOvers, oldGameOvers = old.gameOvers, gameOverSerial = current.gameOverSerial;
+	long noMoves = current.deathsNoMoves, oldNoMoves = old.deathsNoMoves, timeUp = current.deathsTimeUp;
+	long oldTimeUp = old.deathsTimeUp, newGame = current.deathsNewGame, oldNewGame = old.deathsNewGame;
+	long tick = current.tick, qpc = current.qpc, frequency = current.qpcFrequency, oldQpc = old.qpc;
+	long flagGameOver = vars.FlagGameOver;
+	string pending = vars.PendingReset;
+	bool resets = settings["resets"], splitEnabled = settings.SplitEnabled, log = settings["log"];
+	var logEvent = (Action<string, long, long, long, long, long>)vars.LogEvent;
+	bool reached = vars.Reached(current, timer);
+	if (!resets || runSerial == 0)
 		return false;
 	// The run's game ended in this cycle, or in an earlier one that held its reset back (below)
-	string cause = vars.PendingReset;
-	vars.PendingReset = "";
-	if (current.gameOvers != old.gameOvers && current.gameOverSerial == vars.RunSerial)
+	string cause = pending;
+	if (gameOvers != oldGameOvers && gameOverSerial == runSerial)
 	{
-		if (current.deathsNoMoves != old.deathsNoMoves)
+		if (noMoves != oldNoMoves)
 			cause = "resetNoMoves";
-		else if (current.deathsTimeUp != old.deathsTimeUp)
+		else if (timeUp != oldTimeUp)
 			cause = "resetTimeUp";
-		else if (current.deathsNewGame != old.deathsNewGame)
+		else if (newGame != oldNewGame)
 			cause = "resetNewGame";
 		else
 			cause = "resets";
 	}
-	else if (old.boardSerial == vars.RunSerial && current.boardSerial != vars.RunSerial && (old.flags & vars.FlagGameOver) == 0)
-		cause = current.boardSerial == 0 ? "resetQuit" : "resetReplaced";
-	if (string.IsNullOrEmpty(cause) || !settings[cause])
-		return false;
+	else if (oldBoard == runSerial && board != runSerial && (oldFlags & flagGameOver) == 0)
+		cause = board == 0 ? "resetQuit" : "resetReplaced";
+	// The cause's setting, read in every cycle too ("resets" when there is no cause)
+	bool allowed = settings[string.IsNullOrEmpty(cause) ? "resets" : cause];
+	allowed = allowed && !string.IsNullOrEmpty(cause);
 	// One poll saw the game over and also the current segment reached, which happened by the game over (the
 	// score was on screen, or the wormhole started) and counts: split in this cycle, reset in a later one
-	if (settings.SplitEnabled && vars.Reached(current, timer))
-	{
-		vars.PendingReset = cause;
+	bool holdBack = allowed && splitEnabled && reached;
+	vars.PendingReset = holdBack ? cause : "";
+	if (!allowed || holdBack)
 		return false;
-	}
-	if (settings["log"])
-		vars.LogEvent("reset " + cause, current, old);
+	if (log)
+		logEvent("reset " + cause, board, tick, qpc, frequency, oldQpc);
 	return true;
 }
 
 onReset
 {
+	// The exit action's reset: LiveSplit runs exit without old and current, onReset with the last copies
+	if (vars.ExitReset && settings["log"] && current != null)
+		((Action<string, long, long, long, long, long>)vars.LogEvent)("reset exit", (long)current.boardSerial,
+			(long)current.tick, (long)current.qpc, (long)current.qpcFrequency, (long)current.qpc);
+	vars.WriteLog();
 	vars.RunSerial = 0L;
 	vars.PendingReset = "";
 }
@@ -404,7 +462,17 @@ exit
 	var phase = timer.CurrentPhase;
 	if ((phase == TimerPhase.Running || phase == TimerPhase.Paused) && vars.RunSerial != 0 && settings.ResetEnabled &&
 		settings["resets"] && settings["resetQuit"])
-		vars.TimerModel.Reset();
+	{
+		vars.ExitReset = true;
+		try
+		{
+			vars.TimerModel.Reset();
+		}
+		finally
+		{
+			vars.ExitReset = false;
+		}
+	}
 	vars.RunSerial = 0L;
 	vars.PendingReset = "";
 	vars.Mode = "none";
