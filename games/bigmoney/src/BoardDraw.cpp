@@ -201,9 +201,8 @@ void Board::Draw(Graphics* g)
 		Image* aLevelUp = mApp->mImages[IMAGE_LEVELUP];
 		if (mLevelUpBouncing)
 		{
-			// port: explicit int centre; 1.2's DrawImageRotated(img, x, y, rot, NULL) rotates about
-			// (w/2, h/2) in ints, the port's about (w/2.0f, h/2.0f) (189 rows: 94 vs 94.5)
-			g->DrawImageRotated(aLevelUp, 238, (int)mLevelUpY, mLevelUpAngle, aLevelUp->GetWidth()/2, aLevelUp->GetHeight()/2, NULL);
+			// Rotated about the image's integer centre (w/2, h/2), as in 1.2
+			g->DrawImageRotated(aLevelUp, 238, (int)mLevelUpY, mLevelUpAngle, NULL);
 		}
 		else
 		{

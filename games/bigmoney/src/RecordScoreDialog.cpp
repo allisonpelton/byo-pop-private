@@ -97,3 +97,11 @@ void RecordScoreDialog::Draw(Graphics* g)
 	g->SetColor(Color(255, 173, 17));
 	g->DrawString(mApp->GetString("ENTER_YOUR_NAME"), mNameWidget->mX - mX, mNameWidget->mY - mY - 8);
 }
+
+// port: the original's EditListener::AllowChar is the shared 'return true' (0x417880); its 1.2
+// EditWidget itself rejected characters outside 0x20..0x7e, which the port's EditWidget lets through
+bool RecordScoreDialog::AllowChar(int theId, SexyChar theChar)
+{
+	unsigned char aChar = (unsigned char) theChar;
+	return (aChar >= 32) && (aChar < 127);
+}

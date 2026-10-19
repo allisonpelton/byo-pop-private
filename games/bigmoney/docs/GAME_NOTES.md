@@ -3119,7 +3119,7 @@ release inside).
       `DrawImage(IMG[6], 120, mBarDY + 381, Rect(0, 0, w, 76))`; then a 16-column fade:
       `for (i = 0; i < 16; i++) { SetColorizeImages(true); SetColor(Color(255,255,255,
       (int)(cos(i * 0.0981746875) * 255.0))); DrawImage(IMG[6], w + i + 120, mBarDY + 381,
-      Rect(w + i, 0, 1, 76)); SetColorizeImages(false); }` (0.0981746875 ~ pi/32; alphas 255..25).
+      Rect(w + i, 0, 1, 76)); SetColorizeImages(false); }` (0.0981746875 ~ pi/32; alphas 255..24).
     - `<= 0`: nothing.
 12. Deluxe badge, `if (mDeluxeShown)`: if `mDeluxeDirty`: for every pixel `k`:
     `v = mDeluxeHSL[k]; L = ((v >> 16) & 0xff) + mDeluxeLum; mDeluxeWork[k] = (L > 255) ? (v | 0xff0000)

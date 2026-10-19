@@ -5,7 +5,9 @@
 # Web: bigmoney.html/.js/.wasm; web/shell.html's Big Money copy (games/bigmoney/web/shell.html) imports
 # the user's game files into /bmpersist (IDBFS) and starts the game with callMain().
 file(GLOB BIGMONEY_SOURCES CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp)
-add_executable(bigmoney ${BIGMONEY_SOURCES})
+# Test hooks (-autoplay): test code kept out of the game code (the bot has its own RNG)
+file(GLOB BIGMONEY_TESTHOOK_SOURCES CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/src/testhooks/*.cpp)
+add_executable(bigmoney ${BIGMONEY_SOURCES} ${BIGMONEY_TESTHOOK_SOURCES})
 target_include_directories(bigmoney PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
 target_link_libraries(bigmoney PRIVATE sexyframework)
 if(NOT MSVC)

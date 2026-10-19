@@ -1,4 +1,5 @@
 #include "Board.h"
+#include <set>
 #include "WinBMApp.h"
 #include "MrMoney.h"
 #include "Points.h"
@@ -104,8 +105,11 @@ template <typename T> static void WriteRaw(Buffer* theBuffer, const T& theValue)
 	theBuffer->WriteBytes((const uchar*) &theValue, (int) sizeof(T));
 }
 
+// As the original's fread: a field savegame.dat does not hold (a damaged file) keeps its value
 template <typename T> static void ReadRaw(Buffer* theBuffer, T* theValue)
 {
+	if (theBuffer->mReadBitPos / 8 + (int) sizeof(T) > theBuffer->GetDataLen())
+		return;
 	theBuffer->ReadBytes((uchar*) theValue, (int) sizeof(T));
 }
 
@@ -115,11 +119,13 @@ static void WriteBool(Buffer* theBuffer, bool theValue)
 	theBuffer->WriteBytes(&aByte, 1);
 }
 
-static bool ReadBool(Buffer* theBuffer)
+static void ReadBool(Buffer* theBuffer, bool* theValue)
 {
+	if (theBuffer->mReadBitPos / 8 + 1 > theBuffer->GetDataLen())
+		return;
 	uchar aByte = 0;
 	theBuffer->ReadBytes(&aByte, 1);
-	return aByte != 0;
+	*theValue = (aByte != 0);
 }
 
 // 0x4012b0: the 108-byte record
@@ -163,19 +169,19 @@ static void ReadPiece(Buffer* theBuffer, Piece* thePiece)
 	ReadRaw(theBuffer, &thePiece->mCol);
 	ReadRaw(theBuffer, &thePiece->mRow);
 	ReadRaw(theBuffer, &thePiece->mColor);
-	thePiece->mIsSpecial = ReadBool(theBuffer);
-	thePiece->mFallThrough = ReadBool(theBuffer);
+	ReadBool(theBuffer, &thePiece->mIsSpecial);
+	ReadBool(theBuffer, &thePiece->mFallThrough);
 	ReadRaw(theBuffer, &thePiece->mSpecialType);
 	ReadRaw(theBuffer, &thePiece->mImageSet);
 	ReadRaw(theBuffer, &thePiece->mFrame);
-	thePiece->mFlying = ReadBool(theBuffer);
+	ReadBool(theBuffer, &thePiece->mFlying);
 	ReadRaw(theBuffer, &thePiece->mFlyT);
 	ReadRaw(theBuffer, &thePiece->mFlySpeed);
 	ReadRaw(theBuffer, &thePiece->mStartX);
 	ReadRaw(theBuffer, &thePiece->mStartY);
 	ReadRaw(theBuffer, &thePiece->mTargetX);
 	ReadRaw(theBuffer, &thePiece->mTargetY);
-	thePiece->mDying = ReadBool(theBuffer);
+	ReadBool(theBuffer, &thePiece->mDying);
 	ReadRaw(theBuffer, &thePiece->mLifeTimer);
 	ReadRaw(theBuffer, &thePiece->mUnusedA0);
 }
@@ -981,15 +987,20 @@ Board::~Board()
 	delete mStatsFadeImage;
 	delete mLevelUpImage;
 
-	// port: the original leaks every piece
+	// port: the original leaks every piece. Each piece is owned by exactly one of mGrid, mNextRow and
+	// mLoosePieces, but UpdatePhysics clears mGrid by the piece's own mRow/mCol (as the original does), so
+	// collect them first and delete each once in case two places ever held the same piece.
+	std::set<Piece*> aPieces;
 	for (int aRow = 0; aRow < BOARD_ROWS; aRow++)
 	{
 		for (int aCol = 0; aCol < BOARD_COLS; aCol++)
-			delete mGrid[aRow][aCol];
+			aPieces.insert(mGrid[aRow][aCol]);
 	}
 	for (int aCol = 0; aCol < BOARD_COLS; aCol++)
-		delete mNextRow[aCol];
-	for (std::list<Piece*>::iterator anItr = mLoosePieces.begin(); anItr != mLoosePieces.end(); ++anItr)
+		aPieces.insert(mNextRow[aCol]);
+	aPieces.insert(mLoosePieces.begin(), mLoosePieces.end());
+	aPieces.erase(NULL);
+	for (std::set<Piece*>::iterator anItr = aPieces.begin(); anItr != aPieces.end(); ++anItr)
 		delete *anItr;
 }
 
@@ -1023,13 +1034,16 @@ bool Board::LoadGame()
 	else
 		SeedMTRand12(mRand, 4357);
 
-	// port: the original overwrites the constructor's pieces without deleting them
+	// The constructor's grid and next-row pieces are deleted as each cell is read, as the original does
+	// (0x40774b, 0x4077a2)
 	for (int aRow = 0; aRow < BOARD_ROWS; aRow++)
 	{
 		for (int aCol = 0; aCol < BOARD_COLS; aCol++)
 		{
 			Piece* aPiece = NULL;
-			if (ReadBool(&aBuffer))
+			bool aPresent = false;
+			ReadBool(&aBuffer, &aPresent);
+			if (aPresent)
 			{
 				aPiece = new Piece();
 				ReadPiece(&aBuffer, aPiece);
@@ -1048,7 +1062,7 @@ bool Board::LoadGame()
 
 	ReadRaw(&aBuffer, &mMinGroup);
 	ReadRaw(&aBuffer, &mRiseOffset);
-	mHasMoves = ReadBool(&aBuffer);
+	ReadBool(&aBuffer, &mHasMoves);
 	ReadRaw(&aBuffer, &mCols);
 	ReadRaw(&aBuffer, &mRows);
 	ReadRaw(&aBuffer, &mMintPixels);
@@ -1104,30 +1118,30 @@ bool Board::LoadGame()
 	ReadRaw(&aBuffer, &mMeterFlashFrame);
 	ReadRaw(&aBuffer, &mMeterFlashTimer);
 	ReadRaw(&aBuffer, &mBagsNeeded);
-	mLevelUpActive = ReadBool(&aBuffer);
+	ReadBool(&aBuffer, &mLevelUpActive);
 	ReadRaw(&aBuffer, &mLevelUpY);
 	ReadRaw(&aBuffer, &mLevelUpAngle);
 	ReadRaw(&aBuffer, &mLevelUpUnused);
 	ReadRaw(&aBuffer, &mLevelUpStretch);
-	mLevelUpBouncing = ReadBool(&aBuffer);
+	ReadBool(&aBuffer, &mLevelUpBouncing);
 	ReadRaw(&aBuffer, &mLevelUpLeftY);
 	ReadRaw(&aBuffer, &mLevelUpLeftVY);
 	ReadRaw(&aBuffer, &mLevelUpRightY);
 	ReadRaw(&aBuffer, &mLevelUpRightVY);
 	ReadRaw(&aBuffer, &mMintDelay);
-	mPiecesMoving = ReadBool(&aBuffer);
+	ReadBool(&aBuffer, &mPiecesMoving);
 	ReadRaw(&aBuffer, &mLevel);
 	ReadRaw(&aBuffer, &mLevelEndDelay);
 	ReadRaw(&aBuffer, &mPauseCount);
 	ReadRaw(&aBuffer, &mPauseFade);
 	ReadRaw(&aBuffer, &mPauseAnim);
-	mPauseClickable = ReadBool(&aBuffer);
+	ReadBool(&aBuffer, &mPauseClickable);
 	ReadRaw(&aBuffer, &mGoTimer);
-	mBannerVisible = ReadBool(&aBuffer);
+	ReadBool(&aBuffer, &mBannerVisible);
 	ReadRaw(&aBuffer, &mBannerTimer);
 	ReadRaw(&aBuffer, &mOverflowTicks);
 	ReadRaw(&aBuffer, &mFlingDelay);
-	mCountdownActive = ReadBool(&aBuffer);
+	ReadBool(&aBuffer, &mCountdownActive);
 	ReadRaw(&aBuffer, &mCountdownValue);
 	ReadRaw(&aBuffer, &mGameOverRiseDelay);
 	ReadRaw(&aBuffer, &mLevelCoinsCleared);
@@ -1138,10 +1152,12 @@ bool Board::LoadGame()
 	ReadRaw(&aBuffer, &mGameBiggestCombo);
 	ReadRaw(&aBuffer, &mBombColor);
 	ReadRaw(&aBuffer, &mBombIdle);
-	mMoveDigitActive = ReadBool(&aBuffer);
+	ReadBool(&aBuffer, &mMoveDigitActive);
 	ReadRaw(&aBuffer, &mMoveDigit);
 	ReadRaw(&aBuffer, &mMoveDigitFade);
-	if (ReadBool(&aBuffer))
+	bool aHasButton = false;
+	ReadBool(&aBuffer, &aHasButton);
+	if (aHasButton)
 		ShowContinueButton();
 
 	mPlayStarted = true;
@@ -2059,7 +2075,11 @@ void Board::GenerateBoard()
 							break;
 						for (int aNeighbourCol = aX - 1; aNeighbourCol <= aX + 1; aNeighbourCol++)
 						{
-							aCheck = mGrid[aRow][aNeighbourCol];
+							// The original does not bounds-check this column: aX - 1 = -1 reads mGrid[aRow - 1][13]
+							// and aX + 1 = 14 reads mGrid[aRow + 1][0] (row-major wrap); kept, through a flat index.
+							// aRow >= 1 here (rows 0 and 1 stay empty while the generator runs), so it stays in mGrid.
+							int aCell = aRow * BOARD_COLS + aNeighbourCol;
+							aCheck = mGrid[aCell / BOARD_COLS][aCell % BOARD_COLS];
 							if ((aCheck != NULL) && (aCheck->mColor == aColor) && (aCheck->mMark != 1))
 								isOk = false;
 						}

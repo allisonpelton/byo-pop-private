@@ -32,6 +32,8 @@ class ButtonWidget;
 class Dialog;
 class MusicInterface;
 
+class AutoplayBot;
+
 class WinBMApp : public SexyApp
 {
 public:
@@ -137,6 +139,26 @@ public:
 	// original saves a game in progress (see SexyAppBase::UpdateUserDataBackup)
 	virtual bool	GetShutdownSave(std::string* theFileName, Buffer* theBuffer);
 	virtual void	WriteShutdownRegistry();
+	virtual void	ShutdownHook();                                 // port (web): ~WinBMApp's save (the app is never deleted)
+
+	// port: test hooks (not in the original; the framework's -seed, -script, -fast and -trace are in
+	// SexyAppBase.h). None of them changes the game or its random streams.
+	//   -autoplay=<seed>       a bot with its own RNG plays through script input (testhooks/Autoplay.h);
+	//                          -autoplaymode=0..2 (Action/Strategy/Puzzle), -autoplayskill=1..3,
+	//                          -autoplaygames=<n> games (default 1), -autoplaycap=<n> updates
+	//                          (default 200000), -autoplaylog=<file> (the input as a -script file),
+	//                          -autoplayshot=<prefix> (screenshots at level ends and game overs)
+	bool			mAutoplay;
+	unsigned long	mAutoplaySeed;
+	int				mAutoplayMode;
+	int				mAutoplaySkill;
+	int				mAutoplayGames;
+	int				mAutoplayCap;
+	std::string		mAutoplayLogFileName;
+	std::string		mAutoplayShotPrefix;
+	AutoplayBot*	mAutoplayBot;
+	virtual void	UpdateFrames();
+	virtual void	HandleCmdLineParam(const std::string& theParamName, const std::string& theParamValue);
 
 	using SexyApp::ButtonPress;
 	using SexyApp::KillDialog;

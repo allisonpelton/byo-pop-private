@@ -79,6 +79,11 @@ tools/build.sh web                             # build/web/bigmoney.html/.js/.wa
   `bigmoney.exe`, if one was left over.
 - The same seed and script give identical screenshots on every run. The game's random numbers are the
   board's MT19937 and an exact copy of MSVC `rand()`, both seeded from `-seed`.
+- `-autoplay=<seed>` (with `-autoplaymode=0..2`, `-autoplayskill=1..3`, `-autoplaygames=N`,
+  `-autoplaycap=N`, `-autoplaylog=<file>`, `-autoplayshot=<prefix>`): a bot with its own RNG plays whole
+  games through script input (`games/bigmoney/src/testhooks/Autoplay.h`). It goes through the title,
+  selector and help screens, plays groups, clicks "next level", enters a name for a high score and
+  plays again. `-autoplaylog` writes its input as a replayable `-script` file.
 
 ## Status (2026-10-18)
 
@@ -100,6 +105,21 @@ tools/build.sh web                             # build/web/bigmoney.html/.js/.wa
   - a reload in the middle of a game: the localStorage backup brings the save back, and "Continue?"
     restores it;
   - no console errors.
+- **Translation review** (2026-10-19): six independent reviews compared every function in
+  `games/bigmoney/src` with the disassembly: every constant, x87 operand, draw call and random draw.
+  Their reports are in `re/bigmoney/review/` (git-ignored).
+  - They found one crash: CreditsDialog had no lines font, which 1.2 filled in with a SysFont. It is
+    fixed.
+  - They found no gameplay, RNG or drawing difference.
+  - Minor items were also fixed:
+    - a damaged `savegame.dat` now reads with the original's `fread` semantics;
+    - the Puzzle generator's wrap-around read is now well-defined C++;
+    - the name box keeps 1.2's character range;
+    - the web build writes the save on Quit.
+- **Music**: every song/order the game uses plays its own section and loops inside it with
+  libxmp-lite, as with BASS (checked by tracing the order positions offline).
+- **Autoplay**: Action (skills 1 and 3), Strategy (skill 3) and Puzzle (skill 2) play through level ends, game overs, name
+  entry and play again.
 - **Not yet compared with the original**: the original exe is not run (BASS sound, DRM), so frame-level
   fidelity rests on the analysis. Part 1 section 11 and the open-question lists say where it is
   uncertain.

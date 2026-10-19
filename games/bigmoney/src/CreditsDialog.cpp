@@ -15,6 +15,11 @@ CreditsDialog::CreditsDialog(WinBMApp* theApp) :
 	mApp = theApp;
 	mContentInsets = Insets(36, 36, 36, 36);
 	SetButtonFont(mApp->mFont3);
+	// port: 1.2's Dialog::Draw gave a dialog without header/lines fonts SysFont defaults (EnsureFonts
+	// 0x427ac0); the port has no SysFont and its Draw needs both. The header and lines are empty, so
+	// nothing is drawn with them.
+	SetHeaderFont(mApp->mFont3);
+	SetLinesFont(mApp->mFont3);
 	mCloudRot = 0.0;
 	mCloudX = 0.0;
 	mCloudY = 0.0;

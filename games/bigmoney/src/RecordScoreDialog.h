@@ -52,6 +52,10 @@ public:
 	RecordScoreDialog(WinBMApp* theApp, const std::string& theLines); // 0x417a30
 	virtual void	Draw(Graphics* g);                              // 0x417d00 slot 13
 
+	// port: 1.2's EditWidget only takes characters 0x20..0x7e; the port's framework allows Latin-1
+	// above that (mbAllowExtendedChars). This keeps the original's range for the name.
+	virtual bool	AllowChar(int theId, SexyChar theChar);
+
 	using Widget::Resize;
 };
 

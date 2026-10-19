@@ -10,6 +10,7 @@
 #include "OptionsDialog.h"
 #include "RecordScoreDialog.h"
 #include "CreditsDialog.h"
+#include "testhooks/Autoplay.h"
 
 #include "WidgetManager.h"
 #include "ButtonWidget.h"
@@ -29,6 +30,15 @@ using namespace Sexy;
 // 0x41c790
 WinBMApp::WinBMApp()
 {
+	// port: test hooks
+	mAutoplay = false;
+	mAutoplaySeed = 0;
+	mAutoplayMode = GAMETYPE_ACTION;
+	mAutoplaySkill = 1;
+	mAutoplayGames = 1;
+	mAutoplayCap = 200000;
+	mAutoplayBot = NULL;
+
 	mFont1 = NULL;
 	mFont1NoShadow = NULL;
 	mFont1OutlineNoShadow = NULL;
@@ -97,6 +107,8 @@ WinBMApp::WinBMApp()
 // 0x41c240
 WinBMApp::~WinBMApp()
 {
+	delete mAutoplayBot;  // port: test hook
+
 	// This is where a game in progress is saved on exit: Shutdown is not overridden
 	if ((mBoard != NULL) && (mBoard->CanSaveGame()))
 		mBoard->SaveGame();
@@ -811,6 +823,9 @@ void WinBMApp::URLOpenFailed(const std::string& theURL)
 }
 
 // 0x420140
+// port: the original keeps dialog 10 up until the browser takes the focus, and after 12 s with the window
+// still active replaces it with dialog 11 (URLOpenFailed). SDL cannot see the browser take the focus, so
+// SexyAppBase::OpenURL reports success at once and dialog 10 is killed before it is drawn.
 bool WinBMApp::OpenURL(const std::string& theURL, bool shutdownOnOpen)
 {
 	Dialog* aDialog = NewDialog(DIALOG_OPENING_BROWSER, true, "", GetString("OPENING_BROWSER"), "", Dialog::BUTTONS_NONE);
@@ -1023,4 +1038,53 @@ bool WinBMApp::GetShutdownSave(std::string* theFileName, Buffer* theBuffer)
 void WinBMApp::WriteShutdownRegistry()
 {
 	WriteToRegistry();
+}
+
+// port (web): the original saves a game in progress only in ~WinBMApp, and the web build never deletes
+// the app; without this the save of a quit game would exist only in the localStorage backup
+// (GetShutdownSave).
+void WinBMApp::ShutdownHook()
+{
+#ifdef __EMSCRIPTEN__
+	if ((mBoard != NULL) && (mBoard->CanSaveGame()))
+		mBoard->SaveGame();
+#endif
+}
+
+// port: test hooks (see WinBMApp.h). The original does not override UpdateFrames.
+void WinBMApp::UpdateFrames()
+{
+	SexyApp::UpdateFrames();
+
+	if ((mAutoplay) && (mAutoplayBot == NULL))
+		mAutoplayBot = new AutoplayBot(this, mAutoplaySeed, mAutoplayMode, mAutoplaySkill, mAutoplayGames, mAutoplayCap,
+			mAutoplayLogFileName, mAutoplayShotPrefix);
+	if (mAutoplayBot != NULL)
+		mAutoplayBot->Update();
+}
+
+// port: the game's command-line test hooks (see WinBMApp.h); everything else goes to the framework
+void WinBMApp::HandleCmdLineParam(const std::string& theParamName, const std::string& theParamValue)
+{
+	if (theParamName == "-autoplay")
+	{
+		mAutoplay = true;
+		mAutoplaySeed = strtoul(theParamValue.c_str(), NULL, 10);
+		// the bot's input only, as in a -script run (from the start: focus changes would pause the game)
+		mScriptedInput = true;
+	}
+	else if (theParamName == "-autoplaymode")
+		mAutoplayMode = atoi(theParamValue.c_str());
+	else if (theParamName == "-autoplayskill")
+		mAutoplaySkill = atoi(theParamValue.c_str());
+	else if (theParamName == "-autoplaygames")
+		mAutoplayGames = atoi(theParamValue.c_str());
+	else if (theParamName == "-autoplaycap")
+		mAutoplayCap = atoi(theParamValue.c_str());
+	else if (theParamName == "-autoplaylog")
+		mAutoplayLogFileName = theParamValue;
+	else if (theParamName == "-autoplayshot")
+		mAutoplayShotPrefix = theParamValue;
+	else
+		SexyApp::HandleCmdLineParam(theParamName, theParamValue);
 }

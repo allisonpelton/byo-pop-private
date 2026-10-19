@@ -118,8 +118,8 @@ void MrMoney::Update()
 {
 	Widget::Update();
 
-	// Wake-up line after 120 s without input (once per idle stretch; mIdleWoke starts true, so the
-	// first stretch after the title screen needs an input first).
+	// Wake-up line after 120 s without input, once per idle stretch (any input clears mIdleWoke; the
+	// title screen is left with a click, so the first stretch already counts).
 	if ((unsigned int)(mWidgetManager->mUpdateCnt - mWidgetManager->mLastInputUpdateCnt) > IDLE_WAKE_TICKS)
 	{
 		if (!mIdleWoke)
@@ -180,9 +180,6 @@ void MrMoney::Draw(Graphics* g)
 		g->DrawImage(mApp->mMrMoneyImages[mFrame], 0, 0);
 	else
 	{
-		// port: explicit int centre (1.2 rotates about (w/2, h/2) in ints, the port's NULL-rect overload
-		// about (w/2.0f, h/2.0f)); the same (92, 68) for the 184x136 frames
-		Image* anImage = mApp->mMrMoneyImages[mFrame];
-		g->DrawImageRotated(anImage, 0, 0, mRot, anImage->GetWidth()/2, anImage->GetHeight()/2, NULL);
+		g->DrawImageRotated(mApp->mMrMoneyImages[mFrame], 0, 0, mRot, NULL);
 	}
 }
