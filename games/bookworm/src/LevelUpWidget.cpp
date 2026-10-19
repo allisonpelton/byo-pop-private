@@ -240,6 +240,12 @@ void LevelUpWidget::Update()
 	if (mDisabled)
 		return;
 
+	// port: a test script's "quit" runs Shutdown in the middle of an update; ShutdownWidgets has then removed
+	// the board (deleted later, which removes this widget) but WidgetManager::UpdateFrame still updates this
+	// widget in the same update. The original never updates after Shutdown.
+	if (mApp->mBoard == NULL)
+		return;
+
 	Lex* aLex = mApp->mBoard->mLex;
 
 	if (mFalling)

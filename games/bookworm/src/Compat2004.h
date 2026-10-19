@@ -88,14 +88,14 @@ int		WriteWordWrapped2004(Graphics* g, const Rect& theRect, const SexyString& th
 // 0x4389f0 (Widget slot 38): WriteWordWrapped2004 measured with g's font, Rect(0, 0, theWidth, 0), left
 int		GetWordWrappedHeight2004(Graphics* g, int theWidth, const SexyString& theLine, int theLineSpacing);
 
-// The game's GetTickCount(): the framework's clock (SexyAppBase::GetClockTime(): real milliseconds, or the
-// virtual clock that -fast advances), so timing the game reads (level clocks, Lex's idle timer) repeats in
-// scripted runs. The port's GetTickCount() is real time even under -fast.
+// The game's GetTickCount(): SexyAppBase::GetClockTime() (real milliseconds, or the virtual clock that -fast
+// advances), so timing the game reads (level clocks, Lex's idle timer) repeats in scripted runs. The port's
+// GetTickCount() is real time even under -fast.
 DWORD	GameTickCount();
 
 // GetTickCount() of the last mouse press anywhere (the 2004 WidgetManager's field at +0x168, set by every
-// WidgetManager::MouseDown; 0 until the first press). Lex's idle behaviour reads it. Until the shared
-// framework records it (requested from the coordinator), this reports "never pressed" (0).
+// WidgetManager::MouseDown; 0 until the first press): WidgetManager::mLastMouseDownTick, which the framework
+// sets from GetClockTime(). Lex's idle behaviour compares it with GameTickCount().
 DWORD	GetLastMouseDownTick(WidgetManager* theWidgetManager);
 
 }

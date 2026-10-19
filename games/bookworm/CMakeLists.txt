@@ -6,8 +6,10 @@
 # Web: bookworm.html/.js/.wasm; games/bookworm/web/shell.html imports the user's game files into /bwpersist
 # (IDBFS) and starts the game with callMain(). The music is an MO3 module: libopenmpt via sexyopenmpt.
 file(GLOB BOOKWORM_SOURCES CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp)
+# Test hooks (-autoplay): test code kept out of the game code (the autoplay bot has its own RNG)
+file(GLOB BOOKWORM_TESTHOOK_SOURCES CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/src/testhooks/*.cpp)
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/src/BookWormApp.cpp)
-  add_executable(bookworm ${BOOKWORM_SOURCES})
+  add_executable(bookworm ${BOOKWORM_SOURCES} ${BOOKWORM_TESTHOOK_SOURCES})
   target_include_directories(bookworm PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
   target_link_libraries(bookworm PRIVATE sexyframework sexyopenmpt)
   if(NOT MSVC)

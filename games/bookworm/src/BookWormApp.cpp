@@ -15,6 +15,7 @@
 #include "DeleteUserDialog.h"
 #include "HintDialog.h"
 #include "GameText.h"
+#include "testhooks/Autoplay.h"
 
 #include "WidgetManager.h"
 #include "Dialog.h"
@@ -323,11 +324,21 @@ BookWormApp::BookWormApp()
 	// port: WinMain sets the window size before Init (the port's default is the same)
 	mWidth = 640;
 	mHeight = 480;
+
+	// port: the test hooks (see BookWormApp.h)
+	mAutoplay = false;
+	mAutoplaySeed = 0;
+	mAutoplayMode = "classic";
+	mAutoplayCap = 200000;
+	mAutoplayShotWords = 25;
+	mAutoplayBot = NULL;
 }
 
 // 0x4187b0. The widgets were removed and deleted by ShutdownWidgets (the help widget is not: original).
 BookWormApp::~BookWormApp()
 {
+	delete mAutoplayBot; // port: the -autoplay test hook
+
 	if (mUserManager != NULL)
 	{
 		delete mUserManager;
@@ -581,6 +592,37 @@ void BookWormApp::UpdateFrames()
 {
 	SexyApp::UpdateFrames();
 	mMusicInterface->Update();
+
+	// port: the -autoplay test hook (see BookWormApp.h): the bot looks at the game after each update
+	if ((mAutoplay) && (mAutoplayBot == NULL))
+		mAutoplayBot = new AutoplayBot(this, mAutoplaySeed, mAutoplayMode, mAutoplayCap, mAutoplayLogFileName,
+			mAutoplayShotPrefix, mAutoplayShotWords);
+	if (mAutoplayBot != NULL)
+		mAutoplayBot->Update();
+}
+
+// port: the game's command-line test hooks (see BookWormApp.h); everything else goes to the framework
+void BookWormApp::HandleCmdLineParam(const std::string& theParamName, const std::string& theParamValue)
+{
+	if (theParamName == "-autoplay")
+	{
+		mAutoplay = true;
+		mAutoplaySeed = strtoul(theParamValue.c_str(), NULL, 10);
+		// the bot's input only, as in a -script run (from the start: focus changes would pause the game)
+		mScriptedInput = true;
+	}
+	else if (theParamName == "-autoplaymode")
+		mAutoplayMode = theParamValue;
+	else if (theParamName == "-autoplaycap")
+		mAutoplayCap = atoi(theParamValue.c_str());
+	else if (theParamName == "-autoplaylog")
+		mAutoplayLogFileName = theParamValue;
+	else if (theParamName == "-autoplayshots")
+		mAutoplayShotPrefix = theParamValue;
+	else if (theParamName == "-autoplayshotwords")
+		mAutoplayShotWords = atoi(theParamValue.c_str());
+	else
+		SexyApp::HandleCmdLineParam(theParamName, theParamValue);
 }
 
 // 0x4169d0 slot 13: `if (!GetBoolean("DontUpdate", true) && ShouldCheckForUpdate()) AskForUpdateCheck()`;
