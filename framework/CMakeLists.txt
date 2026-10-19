@@ -29,3 +29,8 @@ if((NOT EMSCRIPTEN) AND (NOT MSVC) AND (CMAKE_SYSTEM_PROCESSOR MATCHES "^(i[3-6]
   # sizes), so keep floating point on SSE2 explicitly.
   target_compile_options(sexyframework PUBLIC -msse2 -mfpmath=sse)
 endif()
+
+# MO3 music through libopenmpt (platform/openmpt): a separate library, so only the games that link it
+# (and call Platform::RegisterOpenMPTModules) carry libopenmpt.
+add_library(sexyopenmpt STATIC ${SHARED_ROOT}/platform/openmpt/OpenMPTPlayer.cpp)
+target_link_libraries(sexyopenmpt PUBLIC sexyframework PRIVATE openmpt)

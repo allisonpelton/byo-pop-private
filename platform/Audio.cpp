@@ -32,12 +32,30 @@ struct Mixer::Voice
 	int mHandle = 0;
 };
 
-// A song is either a tracker module (libxmp) or an audio track supplied by a mod. Ogg tracks are
+struct ModuleFormat
+{
+	ModuleDetector mDetect;
+	ModuleFactory mCreate;
+};
+
+static std::vector<ModuleFormat>& ModuleFormats()
+{
+	static std::vector<ModuleFormat> sFormats;
+	return sFormats;
+}
+
+void Mixer::RegisterModuleFormat(ModuleDetector theDetector, ModuleFactory theFactory)
+{
+	ModuleFormats().push_back({theDetector, theFactory});
+}
+
+// A song is either a tracker module (libxmp, or a registered ModulePlayer) or an audio track supplied by a mod. Ogg tracks are
 // decoded while they play (a rendered 30-minute suite would need ~700 MB as float PCM); WAV tracks
 // are decoded up front. Both are resampled to the device rate with linear interpolation.
 struct Mixer::Song
 {
 	xmp_context mCtx = nullptr;
+	std::unique_ptr<ModulePlayer> mModule;   // a registered module format (e.g. MO3 via libopenmpt)
 
 	std::vector<uint8_t> mFile;              // Ogg bytes, kept alive for the decoder
 	stb_vorbis* mVorbis = nullptr;
@@ -612,6 +630,22 @@ int Mixer::LoadSong(const std::string& theGamePath)
 	}
 	else
 	{
+		for (const ModuleFormat& fmt : ModuleFormats())
+		{
+			if (fmt.mDetect(file))
+			{
+				song->mModule = fmt.mCreate(file, mRate);
+				if (!song->mModule)
+				{
+					SDL_Log("cannot load music %s", theGamePath.c_str());
+					return 0;
+				}
+				break;
+			}
+		}
+	}
+	if (!song->IsStream() && !song->mModule)
+	{
 		song->mCtx = xmp_create_context();
 		if (xmp_load_module_from_memory(song->mCtx, file.data(), (long)file.size()) != 0)
 		{
@@ -667,11 +701,16 @@ void Mixer::PlaySong(int theSong, int theOrder, int theRow, bool theLoop, bool t
 			// A mod remap can start a track partway into a multi-song module; the game's own offset
 			// is relative to that.
 			int order = theOrder + std::max(0, s->mDefaultOrder);
+			if (s->mModule)
+				s->mModule->SetPosition(order, theRow);
+			else
+			{
 			xmp_restart_module(s->mCtx);
 			if (order > 0)
 				xmp_set_position(s->mCtx, order);
 			if (theRow > 0)
 				xmp_set_row(s->mCtx, theRow);
+			}
 		}
 		s->mLoop = theLoop;
 		s->mPlaying = true;
@@ -798,6 +837,20 @@ void Mixer::Mix(float* theOut, int theFrames)
 					s.mPlaying = false;
 					break;
 				}
+			}
+			s.mCurGain = s.mGain;
+			continue;
+		}
+		if (s.mModule)
+		{
+			mModuleScratch.resize((size_t)theFrames * 2);
+			if (!s.mModule->Render(mModuleScratch.data(), theFrames, s.mLoop))
+				s.mPlaying = false;
+			for (int i = 0; i < theFrames; i++)
+			{
+				float g = g0 + (g1 - g0) * ((float)i / theFrames);
+				theOut[i * 2] += mModuleScratch[i * 2] * g;
+				theOut[i * 2 + 1] += mModuleScratch[i * 2 + 1] * g;
 			}
 			s.mCurGain = s.mGain;
 			continue;
