@@ -43,7 +43,11 @@ namespace Replay
 enum
 {
 	FORMAT = 1,
-	ENGINE_ABI = 1,                 // bumped whenever variant simulation output changes (6.4)
+	// Bumped whenever variant simulation output changes (6.4). 2: stage 5, kept invalid moves, the noMoves rule,
+	// the v2 save and the variant boards' MOVE fields in the LOGIC hash. The original rules are frozen, so a
+	// replay of them from an earlier engine still plays (CheckPlayable)
+	ENGINE_ABI = 2,
+	FIRST_ENGINE_ABI = 1,
 	MT_WORDS = 624,
 	RULES_ID_SIZE = 32,
 	MAX_ARGS = 5,
@@ -204,7 +208,8 @@ uint32_t			SaveHash(const void* theData, size_t theSize);
 int					CountMoves(const Segment& theSegment);
 
 // Whether the replay player of this build (WatchController, games/bejeweled/docs/CODE_MODS_DESIGN.md 6.8)
-// can start theFile on a theCols x theRows board: this engine's ABI and a RULE record; one segment at least;
+// can start theFile on a theCols x theRows board: this engine's ABI (any from FIRST_ENGINE_ABI for a replay of
+// the original rules, isOriginalRules: their simulation never changes) and a RULE record; one segment at least;
 // every segment in mode 0 or 1, from a seed other than 0 or a global-stream state, user-seeded only with a
 // seed; only the commands the original rules' game makes (no TWIST, SLIDE or UNDO yet), their arguments in
 // range (cells of the board, TARGET -1 -1, pause flags 0/1, 1..MAX_XRAND outside draws, save kinds, int
@@ -222,15 +227,67 @@ enum
 	MAX_TICKS = 8640000,            // 24 hours of board ticks in all segments (the leaderboard's cap is 6 hours, 6.10)
 	MAX_EVENTS_PER_TICK = 10000     // events stamped with one tick (a paused board's tick holds them all)
 };
-bool				CheckPlayable(const File& theFile, int theCols, int theRows, std::string* theError = NULL);
+bool				CheckPlayable(const File& theFile, int theCols, int theRows, std::string* theError = NULL,
+						bool isOriginalRules = false);
 
 // Whether theSave is a save the original rules' LoadGame (Board.cpp, 0x4cca98) can take from an LDSV record
 // without trusting it: version 1, exactly the length its present cells make on a theCols x theRows board,
 // and every value inside what a game in progress can have, where the board draws, indexes or loops with it
 // (piece colour 0..6 and the cell it is in, the animation frames, bools 0 or 1, finite doubles, the state,
 // level, bar, vortex and wipe values). LoadGame takes any savegame.dat as the original does; a replay's
-// bytes come from someone else. False with theError set.
-bool				CheckSave(const std::string& theSave, int theCols, int theRows, std::string* theError = NULL);
+// bytes come from someone else. With theRulesId (the replay's RLID) a v2 save of those rules passes too
+// (stage 5, below): its header names them and the board's shape (a full theCols x theRows board, level shape
+// 0), the same fields follow, then its chunks (ReadVariantSave; the MOVE counts not below 0). Which of the two
+// a board takes is LoadGame's to say: a variant board only v2, any other only v1. False with theError set.
+bool				CheckSave(const std::string& theSave, int theCols, int theRows, std::string* theError = NULL,
+						const uint8_t* theRulesId = NULL);
+
+// The v2 save of a variant board (games/bejeweled/docs/CODE_MODS_DESIGN.md 7.2; Board::WriteSaveGame and
+// Board::LoadGame, the board's part in BoardSave.cpp), little-endian:
+//   u32 version 0x101, u8 rulesId[32], u16 cols, u16 rows, i32 levelShape, u8 mask[(cols * rows + 7) / 8] (bit i,
+//   least significant first in each byte: cell (i % cols, i / cols) is playable), then the v1 field sequence
+//   from mTimedMode on (Board.cpp), its cells over rows x cols (a hole absent), then chunks { u32 tag (4 ASCII
+//   bytes in file order), u32 len, data } up to END (len 0), which ends the file; a reader skips unknown tags:
+//     RNGS  the RNG the game goes on with, as the replay's RNGS record (u32 seed, 0: the global stream; u8
+//           userSeeded, u8 ranked, 624 x u32 mt, i32 mti)
+//     MOVE  i32 moves, i32 invalidMoves, i32 undosUsed
+//   Later stages add KIND, GOLD, GTIM (7.2), DIRT and GRAV.
+// A v1 save (version 1) has the v1 field sequence right after its version.
+enum
+{
+	SAVE_VERSION = 1,
+	SAVE_VERSION_VARIANT = 0x101,
+	SAVE_HEAD_SIZE = 9,         // the v1 fields before the cells: mTimedMode, mLevel, mDisplayLevel
+	SAVE_TAIL_SIZE = 116        // the v1 fields after the cells, mState to mLevelTextShown
+};
+
+struct VariantSave
+{
+	uint8_t			mRulesId[RULES_ID_SIZE] = {};
+	int				mCols = 0;
+	int				mRows = 0;
+	int32_t			mLevelShape = 0;            // index into the rules' board.levels (0 without levels)
+	std::vector<bool> mPlayable;                // mCols * mRows, row-major: a cell, not a hole
+	RngState		mRng;                       // RNGS
+	int32_t			mMoves = 0;                 // MOVE
+	int32_t			mInvalidMoves = 0;
+	int32_t			mUndosUsed = 0;
+	size_t			mBodyStart = 0;             // ReadVariantSave: where the v1 field sequence starts (mTimedMode)
+	size_t			mBodyEnd = 0;               // and where the chunks start
+};
+
+// The bytes after the version up to the v1 field sequence, and the chunks after it (RNGS, MOVE, END)
+std::string			VariantSaveHeader(const VariantSave& theSave);
+std::string			VariantSaveChunks(const VariantSave& theSave);
+
+// Splits a whole v2 save into its header, its v1 field sequence (walked by the present bytes: the cells it
+// holds and where it ends) and its chunks. False with theError set for anything else: not version 0x101, a
+// size outside 3..16, a hole with a gem, a part cut short, a known chunk of the wrong size or twice, no RNGS
+// or no MOVE, no END, or data after it. The values themselves are not checked (CheckSave does).
+bool				ReadVariantSave(const std::string& theSave, VariantSave* theOut, std::string* theError = NULL);
+
+// Whether a save (v1 or v2) is of a timed game: its mTimedMode byte. False when it is neither.
+bool				SaveIsTimed(const std::string& theSave, bool* isTimed);
 
 }
 

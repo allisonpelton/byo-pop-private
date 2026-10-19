@@ -10,6 +10,7 @@
 #include "MTRand.h"
 
 #include <SDL.h>
+#include <cstring>
 
 using namespace Sexy;
 
@@ -54,14 +55,31 @@ void CodecCheck::AfterUpdate()
 	mChecked++;
 	std::string aDiff = StateCodec::RoundTrip(aBoard, mScratch);
 	// The save the board would make now passes the check a replay's LDSV gets (Replay::CheckSave), unless the
-	// game is over (no save then)
+	// game is over (no save then); a variant board's v2 save (stage 5) with its rules' RulesId, and its
+	// header, field sequence and chunks read back as written (Replay::ReadVariantSave)
 	if (aDiff.empty() && (aBoard->mState != STATE_GAME_OVER) && (aBoard->mState != STATE_GAME_OVER_DONE))
 	{
 		Buffer aSave;
 		aBoard->SaveGameSnapshot(&aSave);
+		std::string aBytes((const char*) aSave.GetDataPtr(), (size_t) aSave.GetDataLen());
 		std::string aWhy;
-		if (!Replay::CheckSave(std::string((const char*) aSave.GetDataPtr(), (size_t) aSave.GetDataLen()), aBoard->mCols, aBoard->mRows, &aWhy))
+		uint8_t anId[Replay::RULES_ID_SIZE] = {};
+		if (aBoard->mVariant.mAny)
+			aBoard->mRules.RulesId(anId);
+		if (!Replay::CheckSave(aBytes, aBoard->mCols, aBoard->mRows, &aWhy, aBoard->mVariant.mAny ? anId : NULL))
 			aDiff = "the save: " + aWhy;
+		else if (aBoard->mVariant.mAny)
+		{
+			Replay::VariantSave aRead;
+			Replay::VariantSave aWritten;
+			aBoard->GetVariantSave(&aWritten);
+			if (!Replay::ReadVariantSave(aBytes, &aRead, &aWhy))
+				aDiff = "the v2 save: " + aWhy;
+			else if ((aRead.mMoves != aWritten.mMoves) || (aRead.mInvalidMoves != aWritten.mInvalidMoves) ||
+				(aRead.mUndosUsed != aWritten.mUndosUsed) || (aRead.mRng.mSeed != aWritten.mRng.mSeed) ||
+				(memcmp(aRead.mRng.mMt, aWritten.mRng.mMt, sizeof(aRead.mRng.mMt)) != 0) || (aRead.mRng.mMti != aWritten.mRng.mMti))
+				aDiff = "the v2 save's chunks are not the board's";
+		}
 	}
 	if (!aDiff.empty())
 	{
@@ -111,6 +129,10 @@ void CodecCheck::CheckSynthetic(Board* theBoard)
 		b->mUserSeeded = true;
 		b->mTakesPendingSeed = true;
 		b->mBoardDraws = 700;
+		// A variant board's move counts (stage 5; a board of the original rules has no rows for them)
+		b->mMoveCount = 17;
+		b->mInvalidMoves = 5;
+		b->mUndosUsed = 2;
 		aDiff = StateCodec::RoundTrip(b, mScratch);
 	}
 	if (!aDiff.empty())

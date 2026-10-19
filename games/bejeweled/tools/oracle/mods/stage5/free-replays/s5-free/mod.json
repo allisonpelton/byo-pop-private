@@ -1,0 +1,7 @@
+{
+  "id": "s5-free",
+  "name": "Stage 5: free swaps",
+  "version": "1.0",
+  "description": "Oracle fixture: moves.allowInvalid with a penalty of 10 (times the multiplier), and noMoves \"continue\" in both modes: a swap that makes no match stays, and a board without a move goes on.",
+  "rules": { "moves": { "allowInvalid": true, "invalidPenalty": 10 }, "noMoves": { "normal": "continue", "timed": "continue" } }
+}

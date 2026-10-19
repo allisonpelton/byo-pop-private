@@ -858,6 +858,9 @@ All `/2`, `/3`, `/6` are int divisions. blackcover.png is never used.
 
 ### 3.14 Savegame (`<AppData>userdata\savegame.dat`)
 
+The original format, version 1. port(variant): a board of code-mod rules writes the v2 save instead: a header
+before these fields and chunks after them (12.6).
+
 **`SaveGameExists()` (0x4cca37):** `app->FileExists(GetAppDataFolder() + "userdata\\savegame.dat")`.
 
 **`SaveGame()` (0x4ccdfe).**
@@ -1609,6 +1612,8 @@ and address; its count is tracked per stage.
 | 3a | 94 | 41 | Replays, recording side (12.4). One-line observer hooks `if (mRecorder != NULL) mRecorder->...;` in `GameOver`, `RequestNewGame` (NEW_GAME), `Pause`/`Unpause`, `MouseMove`/`MouseLeave` (HOVER), `MouseDown` (SELECT, DESELECT, TARGET), `MouseDrag` (TARGET), `DoHint` (HINT), `SaveGame` (`BeginSave`), `~Board` (`OnBoardDestroyed`, `delete mRecorder`), `Update` (entry `SyncExternalRand`, end `AfterUpdate`); `WinDMApp::NewGame` attaches the recorder. Playback guards `if (mPlaybackOnly) return;` in `IsGameInProgress` and the input handlers, for stage 3b. `LoadGame`'s file read and `SaveGame`'s write go through `ReadSaveFile`/`WriteSaveFile` (playback bytes; SAVE and the sidecar), `DeleteSaveGame` deletes the sidecar, `GameLoadedVariant(aBuffer)` restores the sidecar's RNG |
 | 3b | 104 | 47 | Replays, playback side (12.4). `Pause`/`Unpause`: a playback board takes pauses only from its player (`if (mPlaybackOnly && !mPlaybackApplying) return;`). `WinDMApp`: `mWatch`/`mReplayQuit` set in the ctor, `mWatch` deleted in the dtor; `UpdateFrames` runs `mWatch->BeforeFrame()` first; `TitleScreenIsFinished` starts the watch instead of its two new games; `ButtonDepress` gives New Game and the mode buttons to the watch; `NewGame` and `ShowHighScoreWidget` return at once when the playback board calls them (its game ended) |
 | 2b | 106 | 47 | Auto LiveSplit (12.5), merged after stage 3 (on stage 2's code it was 67 lines in 32 functions): `LiveSplitObserver::AfterUpdate` at the end of `WinDMApp::UpdateFrames` (after 3b's `mWatch->BeforeFrame()`, the update and the test hooks, `CodecCheck` included; only while wanted), `LiveSplitObserver::AppDestroyed` at the end of `~WinDMApp` (after 3b's `delete mWatch`). Both functions were already edited by 3b, so the count of functions stays. No Board function changes: the board serial and the resumed mark are set in `InitVariant` and `GameLoadedVariant` |
+| 5 | 113 | 47 | Allow invalid moves, the noMoves rule and the v2 save (12.6). `UpdateSwap`: the swap back only `&& !mVariant.mInvalid`, then `else if (mState == STATE_SWAPPING) KeepInvalidMove();`, and the match branch's `UsePendingSeed()` became `OnMoveMade()` (it also counts the move). `UpdateFalling`: `else if (mVariant.mNoMoves) OnNoMovesVariant();` before the original no-moves branches. `LoadGame`: the version check becomes `mVariant.mAny ? !ReadVariantHeader(aBuffer, aVersion) : (aVersion != SAVEGAME_VERSION)`. `WriteSaveGame`: the version `0x101` and the header after it, the chunks after the last field, on a variant board only. Every function was edited before, so the count of functions stays |
+| 5, review | 115 | 47 | Hint on a board without a move (12.6): `ShowHint`: `if (NoHintVariant()) return;` after the playback guard; `Update`: after the idle glow's two lines, `if (NoHintVariant()) mHintGlowTimer = 0;`. Both functions were edited before |
 
 With the original rules every edited line computes what the original did: the board is 8x8, the layout
 is the original constants, and no hook reads the variant flags yet. `UpdateClearing`'s refill pass,
@@ -1671,8 +1676,8 @@ games/bejeweled/docs/CODE_MODS_DESIGN.md 4.10 and 6.2, as built:
   its stream (the refills after the resume are the ones the uninterrupted game gets, so quit and resume
   cannot reroll), its SEED line and, for a seed the player chose, the `-seeded` table. Without a matching
   sidecar (a game on the global stream, a save from before stage 3) the resumed game goes on on the global
-  stream as before. Either way the resume never uses the pending seed up. Until stage 5's v2 save this
-  covers rule-mod boards too. Oracle: `seed_quit` (a match, quit: the sidecar), `seed_quit.resume` (no
+  stream as before. Either way the resume never uses the pending seed up. A board of rules (a variant board)
+  keeps its RNG in its v2 save instead since stage 5 (12.6). Oracle: `seed_quit` (a match, quit: the sidecar), `seed_quit.resume` (no
   -gameseed: the next two moves give `seed_highscores.nodialog`'s refills), `seed_quit.bot` (the bot
   plays the resumed game to game over: SEED 4242, `hiscores-seeded.dat` only).
 - **Builds and test hooks.** The RNG source is not a code path: `-forcevariant` leaves it alone, and the
@@ -1816,6 +1821,72 @@ games/bejeweled/docs/CODE_MODS_DESIGN.md 4.15, as built:
   merge with stage 3 also a watch, `watch_main_timed.ls`: the playback board carries flag 0x20 and counts
   no GO), and `games/bejeweled/tools/livesplit/run_tests.sh` (lsprobe, the script compiled as C# 5, the
   decisions).
+
+### 12.6 Allow invalid moves, the noMoves rule and the v2 save (code mods, stage 5)
+
+games/bejeweled/docs/CODE_MODS_DESIGN.md 4.1 and 7.2, as built:
+
+- **Kept swaps** (`moves.allowInvalid`). A swap that makes no match stays: at 180 degrees, where the original swaps
+  back, `KeepInvalidMove` leaves the two gems in their new cells, takes `moves.invalidPenalty` times the multiplier
+  off the score (floored at 0, as a hint's penalty), plays bad2 and counts it (`mInvalidMoves`); with
+  `moves.invalidCountsAsMove` (the default) the game has started as after a match: `mIsNewGame` is cleared (a quit
+  saves the game, a mode switch asks first), the move counts (`mMoveCount`) and a seed the player chose is used up
+  (12.3). Then `STATE_FALLING`: the next update finds every gem at rest and no match, and goes on as after any
+  move: `STATE_PLAYING`, or no move is left and the noMoves rule decides. The swap takes its 36 ticks like any swap
+  (the timed drain runs in them) and the penalty lowers the bar like a hint's; nothing else costs time. Two gems of
+  one colour can be swapped too (no change on the board, a move all the same). Without `invalidCountsAsMove` a kept
+  swap is no move: the game stays new (no save at a quit, no question at a mode switch, a chosen seed stays
+  pending), only `mInvalidMoves` counts it. A kept swap leaves `mCascadeCount` 0, so the settle after it records no
+  cascade.
+- **The first-game tutorial.** A swap that goes back leaves the board as it was, so the arrows stay right; a kept swap
+  changes the board, and the swap the arrows show may make no match any more. `KeepInvalidMove` tries it (the two
+  gems swapped, `HasMatch`, swapped back): if it no longer matches, the arrows and the instructions dialog go, as at
+  a game over (`mShowTutorial` false, `KillDialog`), and `mShowInstructions` stays, so the next game shows them again
+  (no match has been made). A tutorial move that still matches keeps them up until a match, as before.
+- **The noMoves rule** (`OnNoMovesVariant`, for a board that settles without a move). "gameOver" and "fallOut" are
+  the original branches (NO MOVES! and the game over; the fall-out and a refilled board), in either mode;
+  "continue" (only with `allowInvalid`) shows the banner `NO_MATCHES_LEFT` (default "NO MATCHES!") and the game goes
+  on in `STATE_PLAYING`: the player swaps on until a kept swap makes a move again. A normal game under "continue"
+  ends only by New Game, a quit or (penalties pushing the score a level down) TIME UP; a timed one by time up.
+  `-forcevariant` also takes this path, with the default rules. With `gold.enabled` the rule's normal-mode default is
+  "fallOut" (`GameRules::ResolveDerived`): before the gold rule itself is played (stage 12) that part of it already
+  is, and `mods-status.json` says so for the mod that turned gold on (unless a mod sets `noMoves.normal`).
+- **Hint without a move.** The original never plays a board without a move, so its Hint always finds one. A
+  "continue" board has none: `DoHint` would take the hint penalty and show nothing, and the idle glow (every 1500
+  ticks) would invite that. `Board::NoHintVariant` (moves.allowInvalid, `STATE_PLAYING`, `FindMove` finds nothing):
+  `ShowHint` then gives no hint (no penalty, no sparkle, no `HINT` recorded) and the glow stays off; the replay player's
+  `HINT` gate refuses one there too.
+- **The v2 save.** A variant board (any rule beyond the tunables; `VariantFlags::mAny`) writes version `0x101`: a
+  header (its RulesId, 8x8, level shape 0, the mask), the v1 fields, then the chunks `RNGS` (the RNG the game goes on
+  with) and `MOVE` (the move counts), `END`; 10,463 bytes at 8x8. It takes only a v2 save of its own rules and
+  shape, checked whole before anything changes; a v1 save, a save of other rules (a mod edited without a new
+  version keeps its file name) or one cut short is refused with "savegame: <file> not loaded: <why>" on the log,
+  and deleted as the original deletes a save of another version. A board of the original rules refuses a v2 save
+  by the original version check. A variant board leaves no RNG sidecar (its save holds the RNG); a recording's
+  sidecar continues across the resume as before. The resume restores what v1 restores plus the RNG and the counts.
+- **Replays.** A kept swap is recorded as any swap (`SELECT`, `TARGET`): no new command. The LOGIC hash of a variant
+  board includes its move counts; engine ABI 2 (a replay of the original rules from engine 1 still plays). A
+  playback board writes and loads v2 like a live one, and its `LOAD` requires the segment's `RNGS` to be the RNG its
+  v2 save holds. A resume continues the sidecar of a game of the original rules that engine 1 recorded, as the
+  player plays it (`ReplayRecorder::OnLoad`; the merged replay is engine 2's). A sidecar the resume does not continue
+  (other rules, or an engine whose replays of those rules this one cannot continue) is kept as a finished replay
+  (END saved) before the save and the sidecar go (`Board::DeleteSaveSidecar`), so its moves are not lost; the new
+  replay holds the loaded save (`LDSV`).
+- **Trace.** A variant board's settle prints `TRACE   variant moves <mMoveCount> invalid <mInvalidMoves>` after the
+  rows and the seed line; a "continue" board settles without move lines.
+- **Oracle** (`compare.py` "variant", mods/stage5, scripts/stage5): `free_quit` (a match, a kept swap, the quit:
+  v2), `free_quit.resume` against `free_through` (the resumed v2 save gives the refills of the game played
+  through), `free_quit.edited`, `v1_refused` and `v2_refused` (the refusals; `v2_refused` on every exe),
+  `kept_timed` and `strict_timed` (the pending seed after a kept swap that is, or is not, a move), `strict_last`
+  (kept swaps that take the last move: the tutorial's move broken first, then the fall-out in normal mode, which
+  leaves the game new and the seed pending, and NO MOVES and the game over in timed mode, TimesPlayed 1 and the seed
+  used up), `free_hint` (Hint on a "continue" board: no penalty, no glow), `gold_status`, four bot games (kept swaps;
+  "continue" in normal and timed mode; `fallOut` in normal and `gameOver` in timed mode, each after a match), and
+  their recordings played back (two segments with a v2 `LOAD`, an `LDSV` that is a v2 save, the `strict_last`
+  games). `rec_load_engine1`/`rec_load_engine3` resume a sidecar engine 1 wrote (continued) and one it cannot
+  continue (kept in replays/). A candidate built with `BEJ_NO_VARIANTS` plays no rule and leaves the stage-5 rule
+  cases out; it plays stage 1's and 2's rule cases as before stage 5, against their own facts in expect.txt
+  (`<case>@novariants`: the v1 save and the RNG sidecar).
 
 ---
 

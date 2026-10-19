@@ -944,6 +944,7 @@ void Board::UpdateFallOut()
 void Board::ShowHint()
 {
 	if (mPlaybackOnly) return; // port(variant)
+	if (NoHintVariant()) return; // port(variant): no move to show (a noMoves "continue" board): no hint, no penalty (BoardVariant.cpp)
 	if (mState == STATE_PLAYING && mPauseCount == 0)
 		DoHint();
 }
