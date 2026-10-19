@@ -1,0 +1,5 @@
+# Stage 3b, run with -replay=replay.bjr -replayquit: the title screen's link starts the watch instead of a game
+# (WinDMApp::TitleScreenIsFinished); the player quits when the replay ends. The quit below only stops a replay
+# that never ends.
+300 click 320 398
+400000 quit

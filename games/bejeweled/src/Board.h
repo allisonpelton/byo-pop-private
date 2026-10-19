@@ -12,6 +12,8 @@
 #include "Piece.h"
 #include "GameRules.h"
 #include "BoardLayout.h"
+#include "Buffer.h"
+#include "Replay.h"
 #include <list>
 #include <vector>
 
@@ -19,12 +21,12 @@ namespace Sexy
 {
 
 class WinDMApp;
-class Buffer;
 class Graphics;
 class DDImage;
 class MemoryImage;
 class ImageFont;
 class SoundInstance;
+class ReplayRecorder;
 
 // Board::mState (+0x194)
 enum BoardState
@@ -224,6 +226,14 @@ public:
 	bool			mRanked;                // a ranked online game (stage 14); always false for now
 	uint32_t		mBoardDraws;            // Board::Rand() calls (for spotting outside draws, stage 3)
 	bool			mTakesPendingSeed;      // seeded with GameConfig::mPendingSeed, unplayed: a matching swap or a game over uses it up (4.10)
+	// Replays (games/bejeweled/docs/CODE_MODS_DESIGN.md 6.3-6.5): observers of play, so like the RNG source
+	// they are no code path and BEJ_NO_VARIANTS keeps them
+	ReplayRecorder*	mRecorder;              // records this board's game (features.replays); NULL unless recording; owned, deleted in ~Board
+	bool			mPlaybackOnly;          // driven by a replay player (WatchController) or the verifier: takes no input, never saves, counts or deletes
+	bool			mPlaybackApplying;      // the player is applying an event: only then do Pause and Unpause reach a playback board
+	const Buffer*	mPlaybackLoad;          // playback LOAD: LoadGame reads these bytes instead of the file (NULL: the file)
+	Buffer			mPlaybackSave;          // playback SAVE: SaveGame leaves its bytes here instead of writing the file
+	Replay::RngStart mRngStart;             // what Board::Rand started from: the seed, or the global stream's state at the constructor (when recording)
 
 public:
 	int				GetColX(int theCol);                            // 0x4c9b25 theCol*51 + 203 (thiscall in the binary, this unused; port(variant): a member, + mLayout.mOriginX)
@@ -259,6 +269,8 @@ public:
 	void			ShowHint();                                     // 0x4cb475 button 15
 
 	Board(WinDMApp* theApp, bool timedMode);                        // 0x4cb5bc
+	enum ScratchBoardTag { SCRATCH_BOARD };
+	Board(WinDMApp* theApp, ScratchBoardTag);                       // port(variant): a target for StateCodec's round trip: nothing drawn, loaded, saved or shown
 	void			UpdateBlackHole();                              // 0x4cb931 state 7
 	virtual void	Draw(Graphics* g);                              // 0x4cbc70 Widget slot 26
 	bool			SaveGameExists();                               // 0x4cca37
@@ -278,7 +290,19 @@ public:
 	void			InitVariant();                                  // first in the ctor: rules, layout, flags, RNG
 	static VariantFlags ComputeVariantFlags(const GameRules& theRules, const GameFeatures& theFeatures);
 	void			UsePendingSeed();                               // a matching swap or a game over of a board that holds the pending seed
-	void			GameLoadedVariant();                            // the end of a LoadGame that succeeded
+	void			GameLoadedVariant(const Buffer& theSave);       // the end of a LoadGame that succeeded: the RNG from the sidecar, the LOAD event
+	bool			ReadSaveFile(Buffer* theBuffer);               // LoadGame's read: the save file, or in playback mPlaybackLoad
+	bool			WriteSaveFile(const Buffer& theBuffer);        // SaveGame's write: SAVE, the sidecar and the save file, or in playback mPlaybackSave
+	// The sidecar of the save (games/bejeweled/docs/CODE_MODS_DESIGN.md 7.3): savegame.bjr next to savegame.dat
+	static std::string GetSidecarFileName();
+	void			WriteSaveSidecar(const Buffer& theSave);       // SaveGame: the SAVE event and the sidecar, or no sidecar
+	void			DeleteSaveSidecar();                            // DeleteSaveGame: the sidecar goes with the save
+	void			KeepSidecarGame();                              // the recorded game of the sidecar there is, kept as a finished replay
+	std::string		SidecarSnapshot(const std::string& theSave);   // the sidecar a shutdown would leave with theSave ("" for none)
+	bool			ReadSaveSidecar(const std::string& theSave, Replay::File* theSidecar); // the sidecar, if it goes with theSave
+	void			GetRngState(Replay::RngState* theRng);         // the RNG Board::Rand draws from, as RNGS stores it
+	bool			SetPlaybackRng(const Replay::RngState& theRng); // a playback LOAD: the RNG the recorded board went on with (RNGS)
+	Replay::EndInfo	GetEndInfo(int theReason, const MTRand* theRng = NULL); // the END record of the game as it is now
 
 	// port(variant): every draw of the translated code. Class scope finds it before Sexy::Rand, so the 9
 	// Rand() expressions keep their text; without an own MTRand it is the original global stream, draw for

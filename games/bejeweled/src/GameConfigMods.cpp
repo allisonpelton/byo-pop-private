@@ -94,15 +94,24 @@ static std::vector<std::string> ProvenanceFor(const RulesStatus& theStatus, cons
 // checks and reports the rules and features; stage 2 plays seeds, so any rule gives the board its own RNG
 // and seeds.perGame works, but the rules themselves are not played yet), as warnings for mods-status.json:
 // one per mod, naming every key of its own that is not played; for rule keys it says what they do change,
-// the RNG
+// the RNG. Stage 3 records replays and plays them back from the command line only (-replay=<file>); the replay
+// browser comes with stage 13
 static void AddBuildWarnings(const GameRules& theRules, const GameFeatures& theFeatures, RulesStatus* theStatus)
 {
-	// per mod: its rule keys, its feature keys
-	std::vector<std::pair<std::string, std::pair<std::string, std::string> > > aByMod;
+	// per mod: its rule keys, its feature keys (features.replays apart)
+	struct ModKeys
+	{
+		std::string mModId;
+		std::string mRules;
+		std::string mFeatures;
+		std::string mReplays;
+	};
+	std::vector<ModKeys> aByMod;
 	std::vector<std::string> aKeys = theRules.VariantKeys();
 	const size_t aNumRuleKeys = aKeys.size();
-	// The features that are on but do nothing yet (the seed field comes with the Extras dialog); replays may
-	// be on only because the leaderboard implies them
+	// The features that are on but not complete yet (the seed field comes with the Extras dialog, replays are
+	// recorded but watched only from the command line); replays may be on only because the leaderboard
+	// implies them
 	const char* const aFeatureKeys[3] = {"features.seeds.entry", "features.replays", "features.leaderboard"};
 	const bool aFeatureOn[3] = {theFeatures.mSeedEntry, theFeatures.mReplays, theFeatures.mLeaderboard};
 	for (int i = 0; i < 3; i++)
@@ -121,24 +130,30 @@ static void AddBuildWarnings(const GameRules& theRules, const GameFeatures& theF
 		for (size_t m = 0; m < aMods.size(); m++)
 		{
 			size_t j = 0;
-			while ((j < aByMod.size()) && (aByMod[j].first != aMods[m]))
+			while ((j < aByMod.size()) && (aByMod[j].mModId != aMods[m]))
 				j++;
 			if (j == aByMod.size())
-				aByMod.push_back(std::make_pair(aMods[m], std::make_pair(std::string(), std::string())));
-			std::string& aList = (i < aNumRuleKeys) ? aByMod[j].second.first : aByMod[j].second.second;
+			{
+				aByMod.push_back(ModKeys());
+				aByMod[j].mModId = aMods[m];
+			}
+			std::string& aList = (i < aNumRuleKeys) ? aByMod[j].mRules : (aKeys[i] == "features.replays") ? aByMod[j].mReplays : aByMod[j].mFeatures;
 			aList += (aList.empty() ? "" : ", ") + aKeys[i];
 		}
 	}
 	for (size_t i = 0; i < aByMod.size(); i++)
 	{
-		const std::string& aRuleList = aByMod[i].second.first;
-		const std::string& aFeatureList = aByMod[i].second.second;
+		const ModKeys& aMod = aByMod[i];
 		std::string aText;
-		if (!aRuleList.empty())
-			aText = "not played in this build yet (for now a rule only gives each game its own seed, shown at game over): " + aRuleList;
-		if (!aFeatureList.empty())
-			aText += (aText.empty() ? "" : "; ") + std::string("not in this build yet, no effect: ") + aFeatureList;
-		theStatus->mWarnings.push_back({aByMod[i].first, aText});
+		if (!aMod.mRules.empty())
+			aText = "not played in this build yet (for now a rule only gives each game its own seed, shown at game over): " + aMod.mRules;
+		if (!aMod.mFeatures.empty())
+			aText += (aText.empty() ? "" : "; ") + std::string("not in this build yet, no effect: ") + aMod.mFeatures;
+		if (!aMod.mReplays.empty())
+			aText += (aText.empty() ? "" : "; ") + std::string("games are recorded to the replay folder; this build plays them back only from the command line "
+				"(-replay=<file>), not yet from the game: ") +
+				aMod.mReplays;
+		theStatus->mWarnings.push_back({aMod.mModId, aText});
 	}
 
 	if (theRules.mBoard.mGemColors > 7)

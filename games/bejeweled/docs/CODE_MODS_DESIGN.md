@@ -864,8 +864,8 @@ player actually starts playing, so switching to Timed straight away still plays 
 - Until then every board that replaces the untouched one gets the seed again: the second board of
   the double `NewGame` in `TitleScreenIsFinished`, a mode switch (which needs no confirmation while
   `mIsNewGame` is set), and New Game. A swap that makes no match does not count.
-- A board that resumes a save never uses the seed up (it plays unseeded until stage 3, GAME_NOTES
-  12.3), so the next new game gets it.
+- A board that resumes a save never uses the seed up (since stage 3 it goes on with the RNG its
+  sidecar kept, else on the global stream; GAME_NOTES 12.3), so the next new game gets it.
 - A timed fall-out is not a game over: the game goes on with a refilled board. It also cannot come
   before the first match, because the constructor's board always has a move, and only a match's
   refill can leave none.
@@ -912,6 +912,36 @@ Format, recording and playback are in section 6.
     `<date>-<mode>-<score>.bjr`.
   - The newest `keep` are kept, plus every replay that made a local high-score table or that the
     user marked Keep.
+  - As built (stage 3a): the name is `<yyyymmdd>-<hhmmss>-<normal|timed>-<score>[-<n>][-keep].bjr`
+    (local time; `-<n>` from 2 when the name is taken). `-keep` pins the file: the score qualified
+    for the game-over screen's table (as `DoCheckForHighScore` decides), or later the user's Keep.
+  - Pruning, after each write, removes the oldest unpinned replays beyond `keep`: oldest by the time the
+    file was written (its mtime, so a daylight-saving or time-zone change reorders nothing), within one
+    second by the name's time, then its copy number (`-2` came after the name it avoided). Files with
+    other names are never touched.
+  - `-replaydir=<dir>` sets the folder: main.cpp; the web shell passes `/persist/replays`.
+  - A game without a `TARGET` naming a cell is dropped.
+  - A saved game whose save goes away unresumed becomes a finished replay (END "saved"): No in the load
+    dialog, or the first save of another board, which replaces it (a mode switch saved the timed game,
+    the next game is saved at the quit).
+- **As built (stage 3b, `games/bejeweled/src/WatchController.h`):** watching starts only from the command
+  line, `-replay=<file>` (parsed by `WinDMApp::HandleCmdLineParam`, like the other game switches);
+  the replay browser, `?replay=`, the speeds, the overlay keys and the REPLAY END screen are stage 13.
+  - `TitleScreenIsFinished` starts the watch instead of its two new games. The controller makes each
+    segment's playback board itself, as `NewGame` does (no `Load()`, no `ChooseBoardRng`, no
+    recorder), and the widget manager never updates it (`WIDGETFLAGS_UPDATE` removed): the
+    controller's step is its only update.
+  - Instead of saving the player's state once and restoring it at the end, the controller swaps the
+    replay's state in for each step and out after it: `gGameConfig` (the replay's `RULE` through
+    `FromCanonical` and `LoadFromRules`, no features, no pending seed), the 12 diff values, and
+    `mShowInstructions` and `mTimesPlayed` from the segment's ENV. So a registry written mid-watch
+    (the web backup, Quit) holds the player's values, and the playback board's `GameOver` counts
+    nothing. Only the mode buttons show the replay's mode until the watch stops.
+  - The end: "REPLAY end" on stdout, the last board stays. `-replayquit` quits then (the CLI, the
+    oracle). New Game and the mode buttons end the watch (while it plays too): the player's mode,
+    then `NewGame(); ConfirmLoadGame();` as in step 5. Options, Quit and Hint work as usual (a
+    playback board ignores `ShowHint`); a modal dialog holds the watch, as it pauses a game. Options →
+    High Scores shows and re-saves the player's table, never a replay's `-seeded` one.
 
 ### 4.12 Undo
 
@@ -1777,6 +1807,37 @@ records { u32 tag, u32 len, payload }:
 - **`engineAbi`** is bumped whenever variant simulation output changes. The original rules are
   frozen. Old verifier builds are kept per ABI.
 
+**As built (stage 3a, `games/bejeweled/src/Replay.h`; an independent reader is
+`games/bejeweled/tools/bjr.py`):**
+- A tag is its 4 ASCII bytes in file order (`END ` ends in a space). Records come in this order, each
+  at most once where it stands: `[RULE] [RLID] [META] [SESS]`, then per segment `[LDSV] [RNGS] SEGM`,
+  then `[RNGS] [SVHA] END`. A reader refuses any other order or a repeated record, so no two readers
+  can take different copies of one.
+- `RNGS` and `LDSV` belong to the `SEGM` that follows them: the RNG the board goes on with after that
+  segment's `LOAD` (u32 seed, 0 for the global stream, u8 userSeeded, u8 ranked, 624 x u32, i32 mti),
+  and the save bytes it loads when the replay does not hold the segment that wrote them. An `RNGS`
+  after the last `SEGM` is a sidecar's (7.3).
+- Flag bit0 (hover) says every segment has the hover channel: a game resumed under the other
+  `features.replays.hover` setting has it off (each segment still records `HOVER` as its own setting
+  says). `META`'s name is the game's Latin-1 text converted to UTF-8.
+- `SVHA` (sidecar only): u32, the first 4 bytes of the save's SHA-256, little-endian. A `SAVE` event
+  carries the same hash.
+- `END` is mandatory and the last record, so a reader catches every truncation. A sidecar's `END`
+  has reason 5 (saved) and the state at the save.
+- ENV's `showInstructions` and `timesPlayed` are what the board's tick-150 block reads (instructions
+  or GO): the recorder takes them at the start of the update that runs it (stage 3b). The
+  constructor's values can be stale by then: `NewGame` deletes the board it replaces after making
+  the new one, and that `~Board` counts a game in progress as played. The player sets them before
+  that update.
+- Op numbers: `SELECT` 1, `DESELECT` 2, `TARGET` 3 (-1 -1 for no cell), `TWIST` 4, `SLIDE` 5,
+  `HINT` 6, `PAUSE` 7, `UNPAUSE` 8, `UNDO` 9, `NEW_GAME` 10, `XRAND` 11, `HOVER` 12 (-1 -1:
+  left), `SAVE` 13, `LOAD` 14, `CHECK` 15. `CHECK` carries the u64 as the int64 with the same bits.
+  An unknown op makes the file unreadable. Unknown record tags are skipped wherever they are.
+- The reader refuses a file over 16 MB (`MAX_FILE_SIZE`), a wrong magic or format, a record running
+  past the end or out of order, a payload of the wrong size, an event count the payload cannot hold or
+  more than 4M events in all (`MAX_EVENTS`; both before allocating, and events are added as they are
+  parsed), a varint over 10 bytes, an `END` reason over 5, and data after `END`.
+
 ### 6.5 Segments: save, resume and the web backup
 
 **Saving.**
@@ -1816,6 +1877,35 @@ A client that restored a different RNG state diverges, and the next `CHECK` fail
   persist. They are outside the localStorage backup, which copies only the user dir as one item,
   so a browser crash can lose the most recent finished replay.
 
+**As built (stage 3a, `games/bejeweled/src/ReplayRecorder.h`):**
+- `WinDMApp::NewGame` gives each board a `ReplayRecorder` when `features.replays` is on. The board
+  owns it and deletes it in `~Board`.
+- **Session mode.** The recorder's `LOGIC` hashes (`CHECK`, `END`) take the stream as the board sees it:
+  a mirror `MTRand`, started from the segment's RNG start and advanced by the `XRAND` and board
+  draws. The game-over `HighScoreWidget` draws its tip in the board's last update, after the board's
+  last draw. The mirror leaves that draw out, as playback does.
+- **`LOAD`.** The new segment gets an `RNGS` with the RNG it goes on with: the sidecar's for a
+  seeded game, else the global stream's state at the `LOAD`. Tracking of outside draws starts again
+  from there.
+- **END reasons.** `GameOver` reads the state before changing it: from `STATE_FALLING` it is no
+  moves, from `STATE_PLAYING` time up, after a recorded `NEW_GAME` it is a new game. `END` is taken
+  when the game-over screen appears, at `~Board` after New Game, or at `~Board` of an unsaved board
+  (abandoned). A board whose last event is a `SAVE` hands the game to the sidecar.
+- **Declined resume.** No in the load dialog (`DeleteSaveGame` without a `LOAD`) turns the
+  sidecar's recorded game into a finished replay with reason 5.
+- **`HINT`** is recorded in `DoHint`. Its only caller is `ShowHint`, inside the `if`, and playback
+  calls `DoHint` itself.
+- **Replaced.** The first save of a recording board replaces another board's (a mode switch saved the
+  timed game, the next is saved at the quit): the sidecar's game is kept as a finished replay first,
+  as for a declined resume (7.3).
+- **Web backup.** A recording of more than 100,000 events (`ReplayRecorder::BACKUP_MAX_EVENTS`, hours
+  with the hover channel) stages only an RNG sidecar (`RNGS SVHA END`, as an unrecorded game with its
+  own RNG does) in the backup's one localStorage item: a resume from that backup keeps the RNG and
+  starts a fresh replay that holds the save. The snapshot sidecar is built in place, not from a copy of
+  the recording (it is asked for every 250 ms). When the item does not fit, `webpersist_backup` writes
+  it again with data for the staged files only (the save, its sidecar, the registry; the others listed
+  as a file over 1 MB is) before it gives up.
+
 ### 6.6 StateCodec and hashes
 
 `StateCodec.cpp` holds one table with one row per Board field and per Piece field: name, accessor,
@@ -1839,6 +1929,25 @@ type and flags `V2`, `UNDO`, `LOGIC` and `FULL`. The table drives:
 A standing test, from stage 3 on, runs in variant playtests with `-trace=2`: at every settle,
 StateCodec write → restore into a scratch board → write must give identical bytes, and the FULL hash
 must be identical. A variant field missing from the table fails this test.
+
+**As built (stage 3a, `games/bejeweled/src/StateCodec.h`):**
+- **The table.** One visitor list, `VisitBoard`, has one call per field in `Board.h` order, with
+  flags `FULL`, `LOGIC`, `SNAP`, `V2`, `UNDO`. It drives the writer and the reader, so the two cannot
+  drift. `V2` and `UNDO` mark the fields stages 5 and 6 will use.
+- **FULL** is byte for byte the board part of the stage-0 `-tracehash` FULL hash.
+  `testhooks/StateHash.cpp` now hashes this encoding. The oracle's `hash.txt` comparison with the
+  frozen stage-0 build therefore proves that the table holds every field of that list.
+- **The -tracehash LOGIC column** stays the stage-0 hand-written list, which the frozen build is
+  compared against.
+- **LOGIC** (the replay's `CHECK`/`END`) follows the list above. Per cell it also takes `mVelX` and
+  the swap offsets. The RNG part is (seed, userSeeded, ranked, board draws, MT words and index) of
+  the RNG `Board::Rand` draws from (6.5: the recorder's mirror in session mode).
+- **SNAPSHOT** is the decodable profile: every FULL row that can be restored, plus the layout and
+  the RNG with its presence. Pieces outside the grid keep their identity (index after the cells).
+- **The standing test** is the `-codeccheck=<file>` test hook. After every update it does
+  SNAPSHOT → restore into a scratch board (`Board(app, SCRATCH_BOARD)`) → SNAPSHOT, and compares
+  the bytes, the FULL encoding (without whether banner images exist and the parked orphan count)
+  and the LOGIC hash. The oracle runs it in every stage-3 case.
 
 ### 6.7 Undo snapshots
 
@@ -1865,6 +1974,54 @@ for (;;) {
   depending on the speed.
 - **Native CLI:** `-replay=<file> -fast -trace` prints the same TRACE lines as the recording.
   Everything is compared except the app-level `update N` field. The `board tick` field matches.
+
+**As built (stage 3b, `games/bejeweled/src/WatchController.h`):**
+- **The board.** `Board::InitVariant` takes the segment from `GameConfig::mNextBoardPlayback`: the
+  board is `mPlaybackOnly` and owns an `MTRand` from the RNG start (a session-mode start is a full
+  state, `mGameSeed` 0), never takes the pending seed. `TraceBoard` prints the seed line for
+  `mGameSeed != 0`, which is the same as before for every other board.
+- **Pauses.** `Board::Pause` and `Unpause` return at once on a playback board unless the player is
+  applying an event (`mPlaybackApplying`: `PAUSE`, `UNPAUSE`, and `SaveGame`'s pair inside `SAVE`).
+  The app's own calls (`ModalOpen`, `LostFocus`, ...) never reach it.
+- **The loop.** One iteration per app frame, from `WinDMApp::UpdateFrames` before the frame's own
+  update, so the board ticks once per frame as the recorded one did and `-trace` sees the same
+  settles. The board's calls into the app at its end (`NewGame` after New Game's fall,
+  `ShowHighScoreWidget`) return at once while it plays and end the replay.
+- **Gates** (beyond 6.3): `SELECT`, `DESELECT` take `MouseDown`'s (no user pause, no input delay, not
+  states 5..8; `SELECT`: no selection, a gem in the cell). `TARGET` cannot tell a click from a drag
+  (`MouseDrag` has no input-delay gate): `STATE_PLAYING`, a selection, -1 -1 or a gem. `HINT`:
+  `ShowHint`'s, then `DoHint`. `XRAND`: only a board without a seed (session mode), `n` draws of its
+  `MTRand` past `Board::Rand`. `LOAD`: at tick 0, then `SetPlaybackRng` with the segment's `RNGS`;
+  after a segment on a seed, that `RNGS` must be the RNG the board had at its last `SAVE` (6.5).
+  `CHECK` must be the first event at the tick the board settled at, and every settle needs one.
+- **Saves.** `SAVE` checks the hash of the bytes it makes, and a sidecar's `SVHA` the last ones, only
+  when the hover flag says every segment has the hover channel: the raw pieces in a save hold the
+  hover glow, which follows the pointer. Without it the LOGIC hash, which leaves the glow out, still
+  matches, and a `LOAD` of those bytes gives the same LOGIC state. A sidecar's trailing `RNGS` must be
+  the board's RNG at the end.
+- **The end.** The last segment ends at the game-over screen, after New Game's fall, or at `END`'s
+  tick with no event left; `END` must match (tick, score, level, gems, draws, LOGIC hash, and a
+  reason that fits: game over, a `NEW_GAME` applied, a last `SAVE`). Every earlier segment ends with
+  its last event, a `SAVE`; the next one's board `LOAD`s those bytes (or its `LDSV`). The last board
+  stays on screen, but `-trace` and `-codeccheck` see no settle of it once the replay has ended: its
+  last `SAVE` may have dropped a swap to `STATE_PLAYING` without an update, which the recorded board,
+  deleted right after, never showed.
+- **Before it starts** (`Replay::CheckPlayable`, framework-free, in rulestest): the engine ABI, a
+  `RULE` whose SHA-256 is `RLID`, segments the original game can make (no `TWIST`/`SLIDE`/`UNDO`
+  yet), arguments in range, `LOAD`s with their `RNGS` and bytes, and RNG states `MTRand` takes.
+  - An `LDSV`'s bytes reach the original `LoadGame`, which trusts a save, so `Replay::CheckSave` checks
+    them first: version 1, the exact length, and in range every value `Draw` or an update indexes,
+    loops or divides with (a piece's colour 0..6 and its own cell, the frames, bools, finite doubles,
+    a state that is no game over, the level, bar, wipe and vortex values, a level target over its
+    start). `-codeccheck` checks the save of every board state the oracle reaches against it.
+    `savegame.dat` itself is read as the original reads it.
+  - Bounds on the work a file can ask for: at most 24 hours of board ticks in all segments, each up
+    to its last event and the last up to `END` (`MAX_TICKS`, 8.64M; the leaderboard's cap is 6 hours,
+    6.10), at most 10,000 events at one tick of a segment, at most 1,000,000 outside draws in the file.
+    The player reads at most `MAX_FILE_SIZE` + 1 bytes.
+- **Output.** `REPLAY start`, `REPLAY segment k` and `REPLAY end: ok, <n> CHECKs, END ...` or
+  `REPLAY end: CORRUPT at segment k tick t event i <op>: <why>` on stdout. The oracle's playback
+  cases (9.1 item 6, in the game) play every recording of the stage-3 cases and four broken copies.
 
 ### 6.9 Headless verifier (`bejeweled_verify`)
 
@@ -1999,6 +2156,24 @@ contains:
 
 It exists only when recording, or when a default-rules game owns its RNG. It is written by
 `SaveGame`, staged into the web backup by `GetShutdownSaves`, and deleted by `DeleteSaveGame`.
+
+**As built (stage 3a, `Board::WriteSaveSidecar` / `GameLoadedVariant`):**
+- **Contents.** A recording's sidecar is the whole replay so far, ending in `SAVE`. When the board
+  owns its RNG, an `RNGS` follows it. Then come `SVHA` and `END` (reason 5).
+- **Without recording.** A board that owns its RNG (a seed the player chose, `seeds.perGame`, a rule)
+  leaves `RNGS SVHA END` only.
+- **No sidecar.** Any other save writes none and erases a stale one. That erase finds nothing in a
+  game without mods and seeds, which stays unchanged.
+- **Resume.** A sidecar whose `SVHA` matches the loaded save restores the board's RNG, seed and
+  userSeeded from its `RNGS` (GAME_NOTES 12.3).
+- **Replaced or declined.** The first sidecar a recording board writes replaces the one there is: when
+  that one goes with the save there is and holds a recorded move, its game is kept as a finished replay
+  first (END "saved"), as No in the load dialog keeps it.
+- **Stage 5.** v1 is still the only save format, so for now this also covers rule-mod boards.
+  Stage 5's v2 `RNGS` chunk takes over for variant boards.
+
+**The "save" script command** writes the sidecar of its snapshot next to the `<file>` it names,
+with the `.bjr` extension, only when there is one.
 
 ### 7.4 Not saved
 

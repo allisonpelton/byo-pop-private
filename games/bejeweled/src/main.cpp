@@ -13,9 +13,11 @@
 //                    passes ?seed=N this way); anything else is refused with exit status 2. Every new game
 //                    gets the seed until one is played on it (its first match or its game over), so a
 //                    mode switch or New Game before the first match starts on it again
+//   -replaydir=<dir> where finished replays go with the features.replays mod feature (GameConfig::mReplayDir;
+//                    default <user dir>/replays natively, /persist/replays on the web)
 // Remaining "-key=value" arguments are passed to the app (SexyAppBase::HandleCmdLineParam), e.g. the
-// test hooks -seed=N, -script=<file>, -fast and -trace (see SexyAppBase.h) and the game's -tracehash
-// and -autoplay (see WinDMApp.h).
+// test hooks -seed=N, -script=<file>, -fast and -trace (see SexyAppBase.h), the game's -tracehash,
+// -autoplay and -codeccheck, and -replay=<file> (watch a replay; -replayquit) (see WinDMApp.h).
 
 #include "WinDMApp.h"
 #include "GameConfig.h"
@@ -233,6 +235,16 @@ int main(int argc, char** argv)
 	if (HasFlag(argc, argv, "forcevariant"))
 		gGameConfig.mForceVariant = true;
 	gGameConfig.mPendingSeed = gameSeed;
+	// port(variant): replays, outside the user dir on the web (its localStorage backup is one item)
+	gGameConfig.mReplayDir = ArgValue(argc, argv, "replaydir");
+	if (gGameConfig.mReplayDir.empty())
+	{
+#ifdef __EMSCRIPTEN__
+		gGameConfig.mReplayDir = "/persist/replays";
+#else
+		gGameConfig.mReplayDir = userDir + "/replays";
+#endif
+	}
 
 	// The original keeps the app as a global object and calls Init, Start and Shutdown on it.
 	static WinDMApp* anApp = new WinDMApp();

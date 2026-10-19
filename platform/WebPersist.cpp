@@ -14,7 +14,8 @@ EM_JS(void, webpersist_stage, (const char* thePath, const unsigned char* theData
 
 // The backup is one localStorage item per user dir:
 //   { v: 1, time, files: { "<path relative to the user dir>": { m: <mtime ms>, d: <base64> } } }
-// Files over 1 MB are listed without data (d), so that they are never taken for deleted ones.
+// Files over 1 MB are listed without data (d), so that they are never taken for deleted ones. When the item
+// does not fit, it is written again with data for the staged files only.
 // (EM_JS bodies go through the C preprocessor: no empty '' strings.)
 EM_JS(void, webpersist_backup, (const char* theDir), {
 	var dir = UTF8ToString(theDir);
@@ -51,7 +52,9 @@ EM_JS(void, webpersist_backup, (const char* theDir), {
 	walk(dir, "");
 
 	var now = Date.now();
+	var isStaged = {};
 	staged.forEach(function(s) {
+		isStaged[s.path] = true;
 		var real = null;
 		try { real = FS.readFile(dir + '/' + s.path); } catch (e) {}
 		var same = (real !== null) && (real.length === s.bytes.length);
@@ -62,11 +65,24 @@ EM_JS(void, webpersist_backup, (const char* theDir), {
 	});
 
 	var key = 'sexy-userdata-backup:' + dir;
+	var write = function(theFiles) {
+		localStorage.setItem(key, JSON.stringify({ v: 1, time: now, files: theFiles }));
+	};
 	try {
-		localStorage.setItem(key, JSON.stringify({ v: 1, time: now, files: files }));
+		write(files);
 	} catch (e) {
-		// Unavailable, or full: an older backup would now be out of date
-		try { localStorage.removeItem(key); } catch (e2) {}
+		// Full: the staged files (the game's save, what goes with it, the settings) come first. The others are
+		// listed without data, as a file over 1 MB is: a restore leaves them as the file system has them.
+		var lean = {};
+		Object.keys(files).forEach(function(r) {
+			lean[r] = isStaged[r] ? files[r] : { m: files[r].m };
+		});
+		try {
+			write(lean);
+		} catch (e2) {
+			// Unavailable, or full even so: an older backup would now be out of date
+			try { localStorage.removeItem(key); } catch (e3) {}
+		}
 	}
 });
 

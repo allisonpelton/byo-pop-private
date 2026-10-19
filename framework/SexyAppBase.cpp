@@ -1233,9 +1233,8 @@ void SexyAppBase::SyncUserData()
 	mBackupDirty = true;
 }
 
-bool SexyAppBase::GetShutdownSave(std::string* /*theFileName*/, Buffer* /*theBuffer*/)
+void SexyAppBase::GetShutdownSaves(std::vector<ShutdownSave>* /*theSaves*/)
 {
-	return false;
 }
 
 void SexyAppBase::WriteShutdownRegistry()
@@ -1281,12 +1280,16 @@ void SexyAppBase::UpdateUserDataBackup(bool force)
 		return;
 	mLastBackupCheck = aTime;
 
-	std::string aFileName;
-	Buffer aBuffer;
-	bool hasSave = GetShutdownSave(&aFileName, &aBuffer);
+	std::vector<ShutdownSave> aSaves;
+	GetShutdownSaves(&aSaves);
+	bool hasSave = !aSaves.empty();
 	std::string aSave;
-	if (hasSave)
-		aSave.assign((const char*) aBuffer.GetDataPtr(), aBuffer.GetDataLen());
+	for (size_t i = 0; i < aSaves.size(); i++)
+	{
+		aSave += aSaves[i].mFileName;
+		aSave += '\0';
+		aSave += std::to_string(aSaves[i].mData.size()) + ':' + aSaves[i].mData;
+	}
 	std::string aRegistry = GetShutdownRegistryText();
 
 	bool saveChanged = (hasSave != mBackupHasSave) || (aSave != mBackupSave);
@@ -1297,8 +1300,11 @@ void SexyAppBase::UpdateUserDataBackup(bool force)
 	std::vector<Platform::BackupFile> aFiles;
 	if (!aRegistry.empty())
 		aFiles.push_back(Platform::BackupFile{ UserDirRelativePath(RegistryPath()), aRegistry });
-	if ((hasSave) && (!UserDirRelativePath(aFileName).empty()))
-		aFiles.push_back(Platform::BackupFile{ UserDirRelativePath(aFileName), aSave });
+	for (size_t i = 0; i < aSaves.size(); i++)
+	{
+		if (!UserDirRelativePath(aSaves[i].mFileName).empty())
+			aFiles.push_back(Platform::BackupFile{ UserDirRelativePath(aSaves[i].mFileName), aSaves[i].mData });
+	}
 	Platform::BackupUserData(aFiles);
 
 	mBackupDirty = false;

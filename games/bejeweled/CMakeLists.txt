@@ -33,11 +33,11 @@ else()
 endif()
 
 # Code-mod rules tests (games/bejeweled/tools/rulestest): the framework-free GameRules with its unit
-# fixtures and RulesId vectors, and the MTRand a board owns. Native: rulestest.exe. Web: rulestest.js,
-# run with Node (the vectors must match native).
+# fixtures and RulesId vectors, the MTRand a board owns, and the .bjr replay format (stage 3). Native:
+# rulestest.exe. Web: rulestest.js, run with Node (the vectors must match native).
 option(BUILD_RULESTEST "Build the code-mod rules tests" ON)
 if(BUILD_RULESTEST)
-  add_executable(rulestest tools/rulestest/rulestest.cpp src/GameRules.cpp src/Sha256.cpp
+  add_executable(rulestest tools/rulestest/rulestest.cpp src/GameRules.cpp src/Sha256.cpp src/Replay.cpp
     ${PROJECT_SOURCE_DIR}/platform/Json.cpp ${PROJECT_SOURCE_DIR}/framework/MTRand.cpp)
   target_include_directories(rulestest PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src ${PROJECT_SOURCE_DIR}
     ${PROJECT_SOURCE_DIR}/framework)

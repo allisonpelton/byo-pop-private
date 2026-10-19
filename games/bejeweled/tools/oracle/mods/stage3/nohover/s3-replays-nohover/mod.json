@@ -1,0 +1,7 @@
+{
+  "id": "s3-replays-nohover",
+  "name": "Stage 3: replays without the hover channel",
+  "version": "1.0",
+  "description": "Oracle fixture: features.replays without the hover channel (the default) and features.seeds {entry}, perGame off: every game is recorded in session mode, and a replay checks no save bytes (they hold the hover glow). Resumed under the other setting, the replay's hover flag goes off.",
+  "features": { "replays": { "keep": 3, "hover": false }, "seeds": { "entry": true } }
+}

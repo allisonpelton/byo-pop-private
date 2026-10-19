@@ -1,0 +1,11 @@
+# Stage 3, in a copy of seed_quit's user dir, without -gameseed: Yes resumes the seeded game, and the
+# sidecar's RNGS gives the board MTRand(4242) as it was at the save. The next two moves are the ones
+# stage2/seed_highscores_nodialog.txt makes without a quit: the same refills (compare.py "samestream").
+300 click 320 398
+340 click 330 201
+# (3,3)->(3,2) -> score 20, then (4,3)->(5,3)
+500 click 380 193
+501 click 380 142
+700 click 431 193
+701 click 482 193
+900 quit

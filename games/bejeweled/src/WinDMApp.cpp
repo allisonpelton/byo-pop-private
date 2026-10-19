@@ -20,8 +20,11 @@
 #include "SoundManager.h"
 #include "SDLMusicInterface.h"
 #include "PakInterface.h"
+#include "ReplayRecorder.h"
 #include "testhooks/StateHash.h"
 #include "testhooks/Autoplay.h"
+#include "testhooks/CodecCheck.h"
+#include "WatchController.h"
 
 #include <SDL.h>
 #include <cstdio>
@@ -87,6 +90,9 @@ WinDMApp::WinDMApp()
 	mAutoplayTimed = false;
 	mAutoplayCap = 200000;
 	mAutoplayBot = NULL;
+	mCodecCheck = NULL;
+	mWatch = NULL; // port(variant): watching a replay (-replay, WatchController.h)
+	mReplayQuit = false; // port(variant)
 }
 
 // 0x4d4b08
@@ -153,6 +159,8 @@ WinDMApp::~WinDMApp()
 	delete mAutoplayBot;
 	if (mTraceHashFile != NULL)
 		fclose(mTraceHashFile);
+	delete mCodecCheck;
+	delete mWatch; // port(variant)
 }
 
 // 0x4d43f9
@@ -173,15 +181,28 @@ void WinDMApp::Shutdown()
 	}
 }
 
-// port (web): the save Shutdown() would write now (see SexyAppBase::UpdateUserDataBackup)
-bool WinDMApp::GetShutdownSave(std::string* theFileName, Buffer* theBuffer)
+// port (web): the save Shutdown() would write now (see SexyAppBase::UpdateUserDataBackup).
+// port(variant): and its sidecar, ending in SAVE(snapshot) for a recording, taken at the same tick, so a
+// backup restored after a crash is consistent (games/bejeweled/docs/CODE_MODS_DESIGN.md 6.5)
+void WinDMApp::GetShutdownSaves(std::vector<ShutdownSave>* theSaves)
 {
 	if ((mBoard == NULL) || (!mBoard->IsGameInProgress()))
-		return false;
+		return;
 
-	*theFileName = Board::GetSaveGameFileName();
-	mBoard->SaveGameSnapshot(theBuffer);
-	return true;
+	Buffer aBuffer;
+	mBoard->SaveGameSnapshot(&aBuffer);
+	ShutdownSave aSave;
+	aSave.mFileName = Board::GetSaveGameFileName();
+	aSave.mData.assign((const char*) aBuffer.GetDataPtr(), (size_t) aBuffer.GetDataLen());
+	theSaves->push_back(aSave);
+
+	ShutdownSave aSidecar;
+	aSidecar.mData = mBoard->SidecarSnapshot(aSave.mData);
+	if (!aSidecar.mData.empty())
+	{
+		aSidecar.mFileName = Board::GetSidecarFileName();
+		theSaves->push_back(aSidecar);
+	}
 }
 
 // port (web): Shutdown() writes the registry before the deferred delete of the board counts a game in
@@ -199,6 +220,7 @@ void WinDMApp::WriteShutdownRegistry()
 // 0x4d4455
 void WinDMApp::NewGame()
 {
+	if ((mWatch != NULL) && mWatch->OnBoardEnd(false)) return; // port(variant): a replay's board after New Game: its watch ends (WatchController.h)
 	if (mHighScoreWidget != NULL)
 	{
 		mWidgetManager->RemoveWidget(mHighScoreWidget);
@@ -217,6 +239,8 @@ void WinDMApp::NewGame()
 	ChooseBoardRng(); // port(variant): the new board's RNG source
 
 	mBoard = new Board(this, mTimedMode);
+	if (gGameConfig.mFeatures.mReplays) // port(variant): record the game (features.replays, ReplayRecorder.h)
+		mBoard->mRecorder = new ReplayRecorder(this, mBoard); // port(variant)
 	mBoard->Resize(0, 0, 640, 480);
 	mWidgetManager->AddWidget(mBoard);
 	mWidgetManager->BringToBack(mBoard);
@@ -347,6 +371,7 @@ void WinDMApp::SetTimedMode(bool isTimed, bool startNewGame)
 // 0x4d47b1
 void WinDMApp::ShowHighScoreWidget()
 {
+	if ((mWatch != NULL) && mWatch->OnBoardEnd(true)) return; // port(variant): a replay's game over: its watch ends, no high-score screen
 	// The board is only removed: mBoard keeps it until the next NewGame deletes it
 	mWidgetManager->RemoveWidget(mBoard);
 
@@ -380,13 +405,16 @@ void WinDMApp::ShowHighScoreDialog()
 
 // port: -trace (SexyAppBase test hooks). Prints the grid's gem colours, the score and the valid swaps
 // (as click coordinates) each time a board settles into STATE_PLAYING, for writing -script runs.
-// port(variant): a board with its own RNG also prints its seed.
+// port(variant): a board with a seed of its own also prints it (a replay's board on the global stream's state has
+// an MTRand of its own, but no seed).
 static void TraceBoard(WinDMApp* theApp)
 {
 	static Board* sLastBoard = NULL;
 	static int sLastState = -1;
 
 	Board* aBoard = theApp->mBoard;
+	if ((theApp->mWatch != NULL) && theApp->mWatch->IsEndedBoard(aBoard)) // port(variant): a watched replay's last board settles no more
+		aBoard = NULL;
 	int aState = (aBoard != NULL) ? aBoard->mState : -1;
 	bool settled = (aState == STATE_PLAYING) && ((aBoard != sLastBoard) || (sLastState != STATE_PLAYING));
 	sLastBoard = aBoard;
@@ -404,7 +432,7 @@ static void TraceBoard(WinDMApp* theApp)
 		printf("\n");
 	}
 	// port(variant): "user" for a seed the player chose; after the rows, which keep their place under the header
-	if (aBoard->mOwnRng != NULL)
+	if (aBoard->mGameSeed != 0)
 		printf("TRACE   seed %u %s\n", (unsigned) aBoard->mGameSeed, aBoard->mUserSeeded ? "user" : "pergame");
 	int aMove[4];
 	for (int i = 0; aBoard->FindMove(aMove, i, true, true); i++)
@@ -437,6 +465,7 @@ static void TraceHash(WinDMApp* theApp)
 // 0x4d4921
 void WinDMApp::UpdateFrames()
 {
+	if (mWatch != NULL) mWatch->BeforeFrame(); // port(variant): a replay's events and its board's update (WatchController.h)
 	SexyApp::UpdateFrames();
 
 	if (mTraceMode)
@@ -449,6 +478,10 @@ void WinDMApp::UpdateFrames()
 		mAutoplayBot = new AutoplayBot(this, mAutoplaySeed, mAutoplayTimed, mAutoplayCap, mAutoplayLogFileName, mAutoplayShotFileName);
 	if (mAutoplayBot != NULL)
 		mAutoplayBot->Update();
+	if ((!mCodecCheckFileName.empty()) && (mCodecCheck == NULL))
+		mCodecCheck = new CodecCheck(this, mCodecCheckFileName);
+	if (mCodecCheck != NULL)
+		mCodecCheck->AfterUpdate();
 }
 
 // port: the game's command-line test hooks (see WinDMApp.h); everything else goes to the framework
@@ -471,8 +504,24 @@ void WinDMApp::HandleCmdLineParam(const std::string& theParamName, const std::st
 		mAutoplayLogFileName = theParamValue;
 	else if (theParamName == "-autoplayshot")
 		mAutoplayShotFileName = theParamValue;
+	else if (theParamName == "-codeccheck")
+		mCodecCheckFileName = theParamValue;
+	else if ((theParamName == "-replay") && (mWatch == NULL)) // port(variant): watch a replay (WatchController.h)
+		mWatch = new WatchController(this, theParamValue);
+	else if (theParamName == "-replayquit")
+		mReplayQuit = true;
 	else
 		SexyApp::HandleCmdLineParam(theParamName, theParamValue);
+}
+
+// theName with the extension of theOther ("snaps/s1.dat", "x\\savegame.bjr" -> "snaps/s1.bjr")
+static std::string WithExtensionOf(const std::string& theName, const std::string& theOther)
+{
+	size_t aDot = theName.find_last_of('.');
+	size_t aSlash = theName.find_last_of("/\\");
+	std::string aStem = ((aDot != std::string::npos) && ((aSlash == std::string::npos) || (aDot > aSlash))) ? theName.substr(0, aDot) : theName;
+	size_t anOtherDot = theOther.find_last_of('.');
+	return aStem + ((anOtherDot != std::string::npos) ? theOther.substr(anOtherDot) : std::string());
 }
 
 // port: script command "save <file>" (see WinDMApp.h). Silent when it works, so a script with save
@@ -482,20 +531,24 @@ bool WinDMApp::HandleScriptCommand(const ScriptCommand& theCommand)
 	if (theCommand.mCommand != "save")
 		return false;
 
-	std::string aSaveName;
-	Buffer aBuffer;
+	std::vector<ShutdownSave> aSaves;
+	if (!theCommand.mArgs.empty())
+		GetShutdownSaves(&aSaves);
 	if (theCommand.mArgs.empty())
 		SDL_Log("script: line %d: save needs <file>", theCommand.mLine);
-	else if (!GetShutdownSave(&aSaveName, &aBuffer))
+	else if (aSaves.empty())
 		SDL_Log("script: line %d: save: no game in progress, %s not written", theCommand.mLine, theCommand.mArgs.c_str());
-	else
+	for (size_t i = 0; i < aSaves.size(); i++)
 	{
-		FILE* aFile = fopen(theCommand.mArgs.c_str(), "wb");
-		bool success = (aFile != NULL) && (fwrite(aBuffer.GetDataPtr(), 1, aBuffer.GetDataLen(), aFile) == (size_t) aBuffer.GetDataLen());
+		// The save itself to <file>; port(variant): its sidecar next to it
+		std::string aName = (i == 0) ? theCommand.mArgs : WithExtensionOf(theCommand.mArgs, aSaves[i].mFileName);
+		const std::string& aData = aSaves[i].mData;
+		FILE* aFile = fopen(aName.c_str(), "wb");
+		bool success = (aFile != NULL) && (fwrite(aData.data(), 1, aData.size(), aFile) == aData.size());
 		if ((aFile != NULL) && (fclose(aFile) != 0))
 			success = false;
 		if (!success)
-			SDL_Log("script: line %d: save: cannot write %s", theCommand.mLine, theCommand.mArgs.c_str());
+			SDL_Log("script: line %d: save: cannot write %s", theCommand.mLine, aName.c_str());
 	}
 	return true;
 }
@@ -723,6 +776,7 @@ void WinDMApp::Init()
 // 0x4d6a40
 void WinDMApp::ButtonDepress(int theId)
 {
+	if ((mWatch != NULL) && mWatch->ButtonDepress(theId)) return; // port(variant): New Game and the mode buttons end a watch
 	if ((theId % 10000 >= 2000) && (theId % 10000 < 3000))
 	{
 		// YES / OK / footer of dialog theId - 2000
@@ -873,6 +927,7 @@ void WinDMApp::TitleScreenIsFinished()
 	aHintButton->mMouseInsets = Insets(-16, -8, -16, -8);
 
 	// SetTimedMode already starts a game; the second NewGame replaces that board (both consume Rand())
+	if ((mWatch != NULL) && mWatch->Start()) return; // port(variant): -replay=<file>: the replay instead of the two new games
 	SetTimedMode(false, true);
 	NewGame();
 	ConfirmLoadGame();

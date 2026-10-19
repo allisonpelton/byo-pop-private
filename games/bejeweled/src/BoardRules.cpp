@@ -12,6 +12,7 @@
 #include "ImageFont.h"
 #include "SoundManager.h"
 #include "SoundInstance.h"
+#include "ReplayRecorder.h"
 
 #include <cmath>
 #include <vector>
@@ -56,6 +57,7 @@ int Board::GetRowY(int theRow)
 // 0x4c9b47
 void Board::GameOver(int theShakeTicks)
 {
+	if (mRecorder != NULL) mRecorder->OnGameOver(); // port(variant): how the game ended (END), seen before the state changes
 	mSelectedPiece = NULL;
 	mShowTutorial = false;
 	mApp->KillDialog(DIALOG_INSTRUCTIONS);
@@ -69,6 +71,7 @@ void Board::GameOver(int theShakeTicks)
 // 0x4c9bab
 void Board::RequestNewGame()
 {
+	if (mRecorder != NULL) mRecorder->OnNewGame(); // port(variant): NEW_GAME
 	mTakesPendingSeed = false; // port(variant): New Game is no game over: an unplayed seed goes on to the next board
 	GameOver(50);
 	mNewGamePending = true;
@@ -77,12 +80,15 @@ void Board::RequestNewGame()
 // 0x4c9bbe
 bool Board::IsGameInProgress()
 {
+	if (mPlaybackOnly) return false; // port(variant): a replay's board never saves, counts or deletes anything
 	return !mIsNewGame && mState != STATE_GAME_OVER && mState != STATE_GAME_OVER_DONE;
 }
 
 // 0x4c9bda
 void Board::Pause(bool theUserPause)
 {
+	if (mPlaybackOnly && !mPlaybackApplying) return; // port(variant): a replay's board pauses only as its replay says (WatchController)
+	if (mRecorder != NULL) mRecorder->OnPause(theUserPause); // port(variant): PAUSE u
 	if (mPauseCount == 0)
 	{
 		// Commit the whole seconds played since play (re)started; the remainder is lost
@@ -103,6 +109,8 @@ void Board::Pause(bool theUserPause)
 // 0x4c9c2d
 void Board::Unpause(bool theUserPause)
 {
+	if (mPlaybackOnly && !mPlaybackApplying) return; // port(variant)
+	if (mRecorder != NULL) mRecorder->OnUnpause(theUserPause); // port(variant): UNPAUSE u
 	mInputDelay = 10;
 
 	if (theUserPause && mUserPauseCount > 0)
@@ -262,15 +270,19 @@ bool Board::FindMove(int* theMove, int theMoveNum, bool horizontal, bool vertica
 // 0x4c9fd0
 void Board::MouseMove(int x, int y)
 {
+	if (mPlaybackOnly) return; // port(variant): a replay's board takes its input from the replay only
 	mMouseX = x;
 	mMouseY = y;
+	if (mRecorder != NULL) mRecorder->OnHover(x, y); // port(variant): HOVER (the optional hover channel)
 }
 
 // 0x4c9fe9
 void Board::MouseLeave()
 {
+	if (mPlaybackOnly) return; // port(variant)
 	mMouseX = -1;
 	mMouseY = -1;
+	if (mRecorder != NULL) mRecorder->OnHover(-1, -1); // port(variant): HOVER -1 -1
 }
 
 // 0x4c9ff8
@@ -461,6 +473,7 @@ void Board::StartBlackHole()
 // 0x4ca6b0
 void Board::MouseDown(int x, int y, int theClickCount)
 {
+	if (mPlaybackOnly) return; // port(variant)
 	if (mUserPauseCount != 0)
 	{
 		Unpause(true);
@@ -481,6 +494,7 @@ void Board::MouseDown(int x, int y, int theClickCount)
 	{
 		mSelectedPiece = NULL;
 		MarkDirty();
+		if (mRecorder != NULL) mRecorder->OnDeselect(); // port(variant): DESELECT
 		return;
 	}
 
@@ -494,6 +508,7 @@ void Board::MouseDown(int x, int y, int theClickCount)
 		mSelectedPiece = aTarget;
 		MarkDirty();
 		mApp->PlaySample(SOUND_SELECT, GetPanForX((int)(mSelectedPiece->mX + 24.0)));
+		if (mRecorder != NULL) mRecorder->OnSelect(aTarget); // port(variant): SELECT c r
 		return;
 	}
 
@@ -524,17 +539,20 @@ void Board::MouseDown(int x, int y, int theClickCount)
 		StartSwap(mSelectedPiece, aTarget);
 	mSelectedPiece = NULL;
 	MarkDirty();
+	if (mRecorder != NULL) mRecorder->OnTarget(aTarget); // port(variant): TARGET c r (-1 -1 for none)
 }
 
 // 0x4ca8b7
 void Board::MouseUp(int x, int y, int theClickCount)
 {
+	if (mPlaybackOnly) return; // port(variant)
 	mMouseDown = false;
 }
 
 // 0x4ca8c1
 void Board::MouseDrag(int x, int y)
 {
+	if (mPlaybackOnly) return; // port(variant)
 	if (!mMouseDown || mSelectedPiece == NULL || mState != STATE_PLAYING)
 		return;
 
@@ -563,11 +581,13 @@ void Board::MouseDrag(int x, int y)
 
 	mSelectedPiece = NULL;
 	MarkDirty();
+	if (mRecorder != NULL) mRecorder->OnTarget((mState == STATE_SWAPPING) ? mSwapPiece2 : NULL); // port(variant): TARGET: the neighbour a swap started with, -1 -1 off the edge
 }
 
 // 0x4ca9d3
 void Board::KeyChar(SexyChar theChar)
 {
+	if (mPlaybackOnly) return; // port(variant)
 	if (mUserPauseCount > 0)
 		Unpause(true);
 	else
@@ -728,6 +748,7 @@ void Board::UpdateGameOver()
 // 0x4cad2f
 void Board::DoHint()
 {
+	if (mRecorder != NULL) mRecorder->OnHint(); // port(variant): HINT (ShowHint's only call, inside its if; playback calls DoHint)
 	mScore = (int)((double)mScore - mPointMultiplier * gGameConfig.mHintPenalty);
 	if (mScore < 0)
 		mScore = 0;
@@ -922,6 +943,7 @@ void Board::UpdateFallOut()
 // 0x4cb475
 void Board::ShowHint()
 {
+	if (mPlaybackOnly) return; // port(variant)
 	if (mState == STATE_PLAYING && mPauseCount == 0)
 		DoHint();
 }

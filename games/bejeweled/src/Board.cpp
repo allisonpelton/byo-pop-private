@@ -13,6 +13,7 @@
 #include "ImageFont.h"
 #include "SoundInstance.h"
 #include "Buffer.h"
+#include "ReplayRecorder.h"
 
 #include <algorithm>
 #include <cmath>
@@ -435,7 +436,7 @@ bool Board::SaveGameExists()
 bool Board::LoadGame()
 {
 	Buffer aBuffer;
-	if (!mApp->ReadBufferFromFile(GetSaveGameFileName(), &aBuffer, false))
+	if (!ReadSaveFile(&aBuffer)) // port(variant): was mApp->ReadBufferFromFile(GetSaveGameFileName(), &aBuffer, false); playback reads mPlaybackLoad
 		return false;
 
 	int aVersion = 0;
@@ -498,13 +499,14 @@ bool Board::LoadGame()
 	mLevelTextShown = ReadSaveBool(aBuffer);
 
 	mApp->mShowInstructions = false;
-	GameLoadedVariant(); // port(variant): the resumed game drops the board's own RNG (BoardVariant.cpp)
+	GameLoadedVariant(aBuffer); // port(variant): the RNG the sidecar kept, and the LOAD event (BoardVariant.cpp)
 	return true;
 }
 
 // 0x4ccdfe
 bool Board::SaveGame()
 {
+	if (mRecorder != NULL) mRecorder->BeginSave(); // port(variant): the Pause and Unpause below are part of the SAVE event
 	// Commits the play seconds so far
 	Pause(false);
 	Unpause(false);
@@ -517,10 +519,10 @@ bool Board::SaveGame()
 	if ((mState == STATE_SWAPPING) || (mState == STATE_SWAPPING_BACK))
 		mState = STATE_PLAYING;
 
-	return mApp->WriteBufferToFile(GetSaveGameFileName(), &aBuffer);
+	return WriteSaveFile(aBuffer); // port(variant): was mApp->WriteBufferToFile(GetSaveGameFileName(), &aBuffer); also SAVE and the sidecar
 }
 
-// port: the file a shutdown would leave now, but the game goes on untouched (WinDMApp::GetShutdownSave).
+// port: the file a shutdown would leave now, but the game goes on untouched (WinDMApp::GetShutdownSaves).
 // A shutdown saves twice (WinDMApp::Shutdown, then the deferred ~Board), so the file holds a swap in
 // progress as STATE_PLAYING, which the first save dropped it to. The play seconds Pause() would commit
 // are counted without committing them (committing drops the fraction of a second), and a swap in
@@ -592,6 +594,7 @@ void Board::WriteSaveGame(Buffer* theBuffer, int thePlaySeconds, int theState)
 // 0x4cd130
 bool Board::DeleteSaveGame()
 {
+	DeleteSaveSidecar(); // port(variant): the sidecar goes with the save (BoardVariant.cpp)
 	return mApp->EraseFile(GetSaveGameFileName());
 }
 
@@ -611,6 +614,7 @@ Board::~Board()
 	// An abandoned game counts as played
 	if (IsGameInProgress())
 		mApp->mTimesPlayed++;
+	if (mRecorder != NULL) mRecorder->OnBoardDestroyed(); // port(variant): the game's replay ends (finished, or kept on in the sidecar)
 
 	// port: the original leaks all pieces
 	for (int aRow = 0; aRow < mRows; aRow++) // port(variant): was BOARD_ROWS
@@ -621,6 +625,7 @@ Board::~Board()
 	for (size_t i = 0; i < mOrphanedPieces.size(); i++)
 		delete mOrphanedPieces[i];
 	delete mOwnRng; // port(variant): the board's own RNG
+	delete mRecorder; // port(variant)
 }
 
 // 0x4cd287
@@ -891,6 +896,7 @@ void Board::UpdateSwap()
 // 0x4cdabc
 void Board::Update()
 {
+	if (mRecorder != NULL) mRecorder->SyncExternalRand(); // port(variant): draws from the global stream since the last update (XRAND)
 	if (mPauseCount > 0)
 		return;
 	if (mUserPauseCount > 0)
@@ -1200,4 +1206,6 @@ void Board::Update()
 		UpdateFallOut();
 		break;
 	}
+
+	if (mRecorder != NULL) mRecorder->AfterUpdate(); // port(variant): CHECK at a settle, END at the game-over screen
 }

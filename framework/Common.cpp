@@ -77,6 +77,12 @@ std::string Sexy::GetRandState()
 	return gMTRand.Serialize();
 }
 
+// port: see GetRandMTState
+void Sexy::GetRandMTState(uint32_t* theState, int* theIndex)
+{
+	gMTRand.GetState(theState, theIndex);
+}
+
 // port: the Windows version checks have no meaning on the port's platforms.
 bool Sexy::CheckFor98Mill()
 {

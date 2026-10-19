@@ -17,8 +17,11 @@
 // change it; with script or -autoplay input the mouse fields are as deterministic as the clicks.
 //
 // LOGIC: the hand-written list below, the state later play can depend on; a narrower hash that a
-// cosmetic change (glow, sparkle, vortex spiral) leaves alone. Stage 3's StateCodec LOGIC hash, which
-// native-vs-wasm and replays will compare, replaces it. Rule: a field is in the list if a later decision
+// cosmetic change (glow, sparkle, vortex spiral) leaves alone. It stays the stage-0 list, since the oracle
+// compares this column with the frozen stage-0 build; the replays' CHECK and END take StateCodec's LOGIC
+// hash (games/bejeweled/src/StateCodec.h), which is portable and leaves out the libm-set positions and
+// mHoleRadius this one keeps. The board part of FULL is StateCodec's FULL encoding (port(variant), stage 3:
+// the same bytes the stage-0 field list hashed). Rule: a field is in the list if a later decision
 // of the game (a state change, a score, a Rand() draw, the handling of an input, what a save or load
 // writes) can depend on it, or if it is a Board field that savegame.dat stores. Left out on purpose:
 //   - Piece: mGlowing, mGlowAlpha, mGlowFrame (hover glow), mSpinFrame, mSparkleCount, mSparkleFrame
@@ -52,6 +55,7 @@
 #include "WinDMApp.h"
 #include "Board.h"
 #include "GameConfig.h"
+#include "StateCodec.h"
 #include "Common.h"
 
 #include <cstring>
@@ -245,94 +249,12 @@ void HashBoardLogic(StateHasher& h, Board* b)
 	HashOwnRng(h, b);
 }
 
-// Every Board field in declaration order (Board.h), pieces as raw bytes
+// Every Board field in declaration order (Board.h), pieces as raw bytes. port(variant): StateCodec's FULL
+// encoding, the same bytes this function hashed field by field in stage 0 (the field table is the one list)
 void HashBoardFull(StateHasher& h, Board* b)
 {
-	h.Int(b->mUpdateCnt);  // board tick (Widget::mUpdateCnt)
-	h.Int(b->mLevel);
-	h.Int(b->mDisplayLevel);
-	HashCells(h, b, true);
-	h.Int(b->mState);
-	h.Bool(b->mTimedMode);
-	h.Bool(b->mIsNewGame);
-	HashPieceRef(h, b, b->mSelectedPiece, true);
-	h.Int(b->mCursorFrame);
-	h.Bool(b->mShowTutorial);
-	h.Int(b->mTutorialBob);
-	h.Int(b->mTutorialBobDir);
-	h.Int(b->mTutorialCol);
-	h.Int(b->mTutorialRow);
-	h.Int(b->mTutorialCol2);
-	HashPieceRef(h, b, b->mSwapPiece1, true);
-	HashPieceRef(h, b, b->mSwapPiece2, true);
-	h.Int(b->mSwapAngle);
-	h.Int(b->mSwapCenterX);
-	h.Int(b->mSwapCenterY);
-	h.Int(b->mBarWidth);
-	h.Int(b->mPlayStartTick);
-	h.Int(b->mPlaySeconds);
-	h.Int(b->mGameDuration);
-	h.Int(b->mIdleTicks);
-	h.Int(b->mScore);
-	h.Double(b->mPointMultiplier);
-	h.Int(b->mDisplayScore);
-	h.Int(b->mGemsCleared);
-	h.Int(b->mMoveMatchCount);
-	h.Int(b->mCascadeCount);
-	h.Int(b->mLastLandSoundTick);
-	h.Int(b->mGameOverCountdown);
-	h.Int(b->mLongestCascade);
-	h.Int(b->mBestMoveScore);
-	h.Int(b->mUnused218);
-	h.Int(b->mMoveScore);
-	h.Int(b->mMoveScoreTimer);
-	h.Double(b->mMoveScoreAlpha);
-	h.Double(b->mHintGlowAlpha);
-	h.Int(b->mHintGlowTimer);
-	h.Int(b->mHintGlowDuration);
-	h.Bool(b->mNewGamePending);
-	h.Int(b->mPauseCount);
-	h.Int(b->mUserPauseCount);
-	h.Int((int) b->mScorePopups.size());
-	for (std::list<ScorePopup>::iterator anItr = b->mScorePopups.begin(); anItr != b->mScorePopups.end(); ++anItr)
-	{
-		h.Int(anItr->mX);
-		h.Int(anItr->mY);
-		h.Int(anItr->mLife);
-		h.Int(anItr->mUnused);
-		h.Int(anItr->mPoints);
-	}
-	h.Bool(b->mStatsDisabled);
-	h.Int(b->mUnused264);
-	h.Int(b->mLevelStartScore);
-	h.Int(b->mLevelTargetScore);
-	h.Int(b->mLevelPoints);
-	h.Double(b->mTimeDrain);
-	h.Double(b->mTimeDrainRate);
-	h.Double(b->mTimeDrainAccel);
-	h.Int(b->mBarColor);
-	h.Int(b->mLastWarningTick);
-	h.Int(b->mMouseX);
-	h.Int(b->mMouseY);
-	h.Int(b->mMouseDownX);
-	h.Int(b->mMouseDownY);
-	h.Bool(b->mMouseDown);
-	h.Int(b->mInputDelay);
-	h.Bool(b->mBackgroundChanged);
-	h.Bool(b->mTextImage != NULL);
-	h.Bool(b->mTextColorImage != NULL);
-	h.Bool(b->mShowingText);
-	h.Double(b->mTextPhase);
-	h.Int(b->mTextDuration);
-	h.Int(b->mTextTimeLeft);
-	h.Int(b->mWipeY);
-	h.Int(b->mElectOffset);
-	h.Int(b->mBlackHoleFrame);
-	h.Int(b->mTimeDrainDelay);
-	h.Double(b->mBlackHoleLevel);
-	h.Bool(b->mLevelTextShown);
-	h.Int((int) b->mOrphanedPieces.size());
-	HashOwnRng(h, b);
+	std::string aFull = StateCodec::Encode(b, StateCodec::PROFILE_FULL);
+	h.Bytes(aFull.data(), aFull.size());
 }
 
 void HashApp(StateHasher& h, WinDMApp* theApp)

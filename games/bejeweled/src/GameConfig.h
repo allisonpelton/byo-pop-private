@@ -25,6 +25,7 @@
 // (SetValue, LoadFromRules); GameConfigMods.cpp reads ModManager and the user dir (Load, ScopedFileName).
 
 #include "GameRules.h"
+#include "Replay.h"
 
 #include <cstdint>
 #include <string>
@@ -66,6 +67,16 @@ struct GameConfig
 	uint32_t mPendingSeed = 0;
 	uint32_t mNextBoardSeed = 0;
 	bool mNextBoardUserSeeded = false;
+
+	// port(variant): replays (games/bejeweled/docs/CODE_MODS_DESIGN.md 4.11): the folder finished replays go
+	// to with features.replays (main.cpp: -replaydir=<dir>, else <user dir>/replays natively and
+	// /persist/replays on the web, outside the user dir's localStorage backup)
+	std::string mReplayDir;
+
+	// port(variant): watching a replay (stage 3b, WatchController): the segment the board about to be created
+	// plays. Board::InitVariant takes it (a playback board that owns an MTRand from the segment's RNG start)
+	// and clears it; NULL for every other board.
+	const Replay::Segment* mNextBoardPlayback = nullptr;
 
 	// Base points of the n-th run (1-based) of the current move.
 	int SetValue(int theRunNumber) const;

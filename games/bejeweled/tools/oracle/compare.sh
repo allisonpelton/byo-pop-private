@@ -32,7 +32,13 @@
 # reported, never played) and leaves mods-status.json. Stage 2 (set seed) adds candidate runs with
 # -gameseed and the fixtures of mods/stage2 and scripts/stage2, checked against a model of the board RNG
 # (compare.py "seeded", "sameboard", "samegrids"), the -gameseed refusals and
-# games/bejeweled/tools/check_rng_use.py.
+# games/bejeweled/tools/check_rng_use.py. Stage 3 (replays) adds candidate runs with the replays feature mod of
+# mods/stage3, each checked against the candidate's run of its case without mods (compare.py "recording":
+# recording is inert, 9.1 item 5), and a seeded game quit and resumed (scripts/stage3; "samestream", "seeded").
+# Stage 3b (watching) plays every recording back in the game (-replay, compare.py "playback": 9.1 item 6 in the
+# game), and replays broken on purpose, which the player must call corrupt. After the stage 3 review: recordings
+# without the hover channel and resumed under the other setting, a quit mid-swap, a save that replaces another
+# board's, and Options -> High Scores while watching.
 set -u
 
 ROOT="$(cd "$(dirname "$0")/../../../.." && pwd)"  # the repository root
@@ -53,7 +59,7 @@ while [ $# -gt 0 ]; do
 		--candidate-args) read -r -a CAND_ARGS <<< "$2"; shift 2 ;;
 		--out) OUT="$(mkdir -p "$2" && cd "$2" && pwd)"; shift 2 ;;
 		--compare-only) COMPARE_ONLY=1; shift ;;
-		*) sed -n '2,35p' "$0"; exit 2 ;;
+		*) sed -n '2,41p' "$0"; exit 2 ;;
 	esac
 done
 
@@ -147,18 +153,20 @@ MODS_JSON="$MODS_JSON] }"
 mods_listing() { (cd "$MODS" && find . -printf '%P\t%y\t%s\t%T@\n' | LC_ALL=C sort); }
 
 # run <side> <case> <seed> <script or -> [mods=examples] [modsdir=<dir>] [from=<case>] [savegame=<file>] [strip]
-#     [nohash] [dumprules] [arg=<switch>]...
+#     [nohash] [dumprules] [fakereplays] [replay=<file>] [arg=<switch>]...
 #   modsdir=<dir>    use the mods in <dir> (all enabled, in their priority order; no mods.json)
 #   dumprules        afterwards, the same exe with -dumprules into dumprules.txt
 #   from=<case>      start from a copy of that case's user dir (same side) instead of a fresh one
 #   savegame=<file>  copy <file> in as user/savegame.dat (nothing if it does not exist)
 #   strip            comment out the script's "save" lines even for an exe that has the command
 #   nohash           no -tracehash
+#   fakereplays      ten old replays in user/replays first, one of them pinned (compare.py fake-replays)
+#   replay=<file>    watch a copy of <file> (replay.bjr in the run directory): -replay=replay.bjr -replayquit
 run() {
 	local side=$1 name=$2 seed=$3 script=$4
 	shift 4
 	local exe=${EXE[$side]} hooks=${HOOKS[$side]}
-	local dir="$OUT/$side/$name" modsdir=mods mods=none from="" savegame="" strip=no dumprules=no
+	local dir="$OUT/$side/$name" modsdir=mods mods=none from="" savegame="" strip=no dumprules=no fakereplays=no replay=""
 	local args=() hash=(-tracehash=hash.txt)
 	[ "$side" = candidate ] && args+=("${CAND_ARGS[@]}")
 	for opt in "$@"; do
@@ -170,6 +178,8 @@ run() {
 			savegame=*) savegame="${opt#savegame=}" ;;
 			strip) strip=yes ;;
 			nohash) hash=() ;;
+			fakereplays) fakereplays=yes ;;
+			replay=*) replay="${opt#replay=}" ;;
 			arg=*) args+=("${opt#arg=}") ;;
 		esac
 	done
@@ -189,6 +199,13 @@ run() {
 	fi
 	if [ -n "$savegame" ] && [ -f "$savegame" ]; then
 		cp "$savegame" "$dir/user/savegame.dat"
+	fi
+	if [ "$fakereplays" = yes ]; then
+		"$PY" "$COMPARE_PY" fake-replays "$(winpath "$dir/user/replays")"
+	fi
+	if [ -n "$replay" ]; then
+		cp "$replay" "$dir/replay.bjr"
+		args+=(-replay=replay.bjr -replayquit)
 	fi
 	if [ "$script" != - ]; then
 		if [ "$hooks" = yes ] && [ "$strip" = no ]; then
@@ -402,6 +419,213 @@ echo "  candidate rng_rules: exit $(cat "$OUT/candidate/rng_rules/exit.txt")"
 autoplay autoplay_normal "-autoplay=1: normal game to no moves (level 2), quit 100 updates into the high-score screen" 1 -autoplay=1
 autoplay autoplay_timed "-autoplay=2 -autoplaytimed: timed game to time up (level 10): fall-outs, stale selections" 1 -autoplay=2 -autoplaytimed
 autoplay autoplay_cap "-autoplay=7 -autoplaycap=6000, seed 2: quits at the cap, mid-game (savegame.dat)" 2 -autoplay=7 -autoplaycap=6000
+
+# Stage 3: replays (games/bejeweled/docs/CODE_MODS_DESIGN.md 6.2-6.6, 7.3, 9.1 item 5). With the replays
+# feature mod of mods/stage3/replays (the hover channel on, seeds {entry}, perGame off: every game is recorded
+# on the global stream, XRAND for the outside draws) each case must play exactly like the candidate's run of
+# it without mods, and leave only replays/, the sidecar and mods-status.json more. -codeccheck adds StateCodec's
+# round trip after every update (6.6), which must be inert too.
+S3="$PT/stage3"
+M3="$GAME/tools/oracle/mods/stage3/replays"
+# recording <case> <description> <reference case> <seed> <script or -> [options] (a modsdir= among them replaces the
+# replays mod)
+recording() {
+	local name=$1 desc=$2 ref=$3
+	shift 3
+	printf '%s\t%s\t%s\t%s\n' "$name" recording "$desc" "ref=$ref" >> "$OUT/cases.txt"
+	run candidate "$name" "$1" "$2" modsdir="$M3" "${@:3}" arg=-codeccheck=codec.txt
+}
+recording rec_main "playtest.txt recorded: the timed game a finished replay (time up), the normal game a sidecar (saved)" \
+	main 1 "$PT/playtest.txt"
+recording rec_load "playtest_load.txt in a copy of rec_main's user dir: the resume continues the sidecar's replay (two segments)" \
+	load 1 "$PT/playtest_load.txt" from=rec_main
+recording rec_level "playtest_level.txt recorded: level 1, vortex, wipe, level 2" level 3 "$PT/playtest_level.txt"
+recording rec_drag_swaps "drag_swaps.txt recorded: TARGET from drags, off the edges" drag_swaps 1 "$S0/drag_swaps.txt"
+recording rec_falling_select "falling_select.txt recorded: SELECT while falling, a dying selected gem" falling_select 1 "$S0/falling_select.txt"
+recording rec_options_highscores "options_highscores.txt recorded: the dialog's tip draw is an XRAND" options_highscores 1 \
+	"$S0/options_highscores.txt"
+recording rec_pause "pause.txt recorded: PAUSE/UNPAUSE, the input delay" pause 1 "$S0/pause.txt"
+recording rec_nomoves_normal "nomoves_normal.txt recorded: no moves, a finished replay kept (-keep: a high score)" nomoves_normal 1 \
+	"$S0/nomoves_normal.txt"
+recording rec_timed_fallout "timed_fallout.txt recorded: fall-out, a stale selection swapped back, timed level 2" timed_fallout 1 \
+	"$S0/timed_fallout.txt"
+recording rec_timed_fallout_load "load_resume.txt in a copy of rec_timed_fallout's user dir: the timed level-2 resume" \
+	timed_fallout_load 1 "$S0/load_resume.txt" from=rec_timed_fallout
+recording rec_mode_switch "mode_switch.txt recorded: the mode switch saves the timed game (sidecar)" mode_switch 1 "$S0/mode_switch.txt"
+recording rec_mode_switch_load "load_resume.txt in a copy of rec_mode_switch's user dir" mode_switch_load 1 "$S0/load_resume.txt" \
+	from=rec_mode_switch
+recording rec_save_states "save_states.txt recorded: each save snapshot with its sidecar, ending in SAVE(snapshot)" save_states 3 \
+	"$S0/save_states.txt"
+recording rec_autoplay_normal "the -autoplay=1 game recorded: to no moves on level 2" autoplay_normal 1 - arg=-autoplay=1 \
+	arg=-autoplaylog=autoplay.txt
+recording rec_autoplay_timed "the -autoplay=2 timed game recorded: to time up on level 10, fall-outs and stale selections" \
+	autoplay_timed 1 - arg=-autoplay=2 arg=-autoplaytimed arg=-autoplaylog=autoplay.txt
+all decline load "load_no.txt in a copy of main's user dir: No in the load dialog deletes the save" 1 "$S3/load_no.txt" from=main
+recording rec_decline "load_no.txt in a copy of rec_main's user dir: the declined game's sidecar becomes a finished replay (END saved)" \
+	decline 1 "$S3/load_no.txt" from=rec_main
+recording rec_prune "nomoves_normal.txt with ten old replays (one pinned) and keep 3: the newest 3 unpinned by the time they were written stay (not by name), every pinned one" \
+	nomoves_normal 1 "$S0/nomoves_normal.txt" fakereplays
+# A resumed seeded game keeps its stream (GAME_NOTES 12.3): the sidecar's RNGS record replaces stage 2's
+# interim (a resume went on unseeded). seed_highscores.nodialog is the same three moves without the quit.
+seeded seed_quit "-gameseed=$GS: a match plays the seed, then the quit saves: savegame.bjr keeps the board's RNG" \
+	"boards=user;gameseed=$GS" 1 "$S3/seed_quit.txt" arg=-gameseed=$GS arg=-codeccheck=codec.txt
+cross seed_quit.resume samestream "seed_quit's user dir, no -gameseed: Yes resumes on MTRand($GS) as saved; two more moves" \
+	"first=seed_quit;ref=seed_highscores.nodialog" 1 "$S3/seed_quit_resume.txt" from=seed_quit arg=-codeccheck=codec.txt
+seeded seed_quit.bot "seed_quit's user dir, no -gameseed: Yes, then the bot plays the resumed game to game over: SEED line, the seeded table" \
+	"boards=user*;gameseed=$GS;shot=shots/gameover.png" 1 "$S3/load_yes.txt" from=seed_quit arg=-autoplay=1 \
+	arg=-autoplaylog=autoplay.txt arg=-autoplayshot=shots/gameover.png
+recording rec_seed_quit_resume "seed_quit.resume recorded: a fresh replay that holds the loaded save (LDSV) and the restored RNG" \
+	seed_quit.resume 1 "$S3/seed_quit_resume.txt" from=seed_quit
+
+# Stage 3b: recordings of games with their own RNG (a seed the player chose, per-game seeds) and of a tunables mod,
+# for the player below. Each must again play exactly like its run without the replays mod.
+recording rec_pergame "playtest.txt recorded with per-game seeds (mods/stage3/pergame): replays that start from a seed" pergame 1 \
+	"$PT/playtest.txt" modsdir="$GAME/tools/oracle/mods/stage3/pergame"
+recording rec_seed_normal "seed_normal recorded: a game on the seed the player chose, to no moves (the bot)" seed_normal 1 - \
+	"${SEEDBOT[@]}"
+recording rec_seed_nomatch_timed "seed_nomatch_timed recorded: a seeded normal game dropped (END abandoned), the timed game on the seed saved" \
+	seed_nomatch_timed 1 "$S2/seed_nomatch_timed.txt" arg=-gameseed=$GS
+recording rec_seed_highscores "seed_highscores recorded: an outside draw that does not reach a seeded board (no XRAND)" \
+	seed_highscores 1 "$S2/seed_highscores.txt" arg=-gameseed=$GS
+recording rec_seed_quit "seed_quit recorded: a seeded game saved at the quit, its sidecar the recording and the RNG" seed_quit 1 \
+	"$S3/seed_quit.txt" arg=-gameseed=$GS
+recording rec_seed_quit.bot "seed_quit.bot recorded in a copy of rec_seed_quit's user dir: resumed and played to game over, a two-segment replay" \
+	seed_quit.bot 1 "$S3/load_yes.txt" from=rec_seed_quit arg=-autoplay=1 arg=-autoplaylog=autoplay.txt \
+	arg=-autoplayshot=shots/gameover.png
+printf '%s\t%s\t%s\t\n' keyed_hint reference "keyed_hint.txt with a tunables-only mod (hintPenalty 25): a match, a hint, the quit" \
+	>> "$OUT/cases.txt"
+run candidate keyed_hint 1 "$S3/keyed_hint.txt" modsdir="$M2/keyed"
+recording rec_keyed_hint "keyed_hint recorded (mods/stage3/keyed: the tunables mod and the replays mod): a RULE with tunables" \
+	keyed_hint 1 "$S3/keyed_hint.txt" modsdir="$GAME/tools/oracle/mods/stage3/keyed"
+
+# Stage 3b: watching (games/bejeweled/docs/CODE_MODS_DESIGN.md 6.8, 9.1 item 6 in the game). The candidate plays a
+# copy of each recording above in a fresh user dir without mods (-replay, -codeccheck), compare.py "playback": the
+# replay is ok (every CHECK and END), the TRACE settles of each segment are a run of the recording's, and nothing
+# is written. Files the oracle has twice (a copy in another case's user dir, the same game recorded again) are
+# played once.
+C="$OUT/candidate"
+# one <glob>: the one file the glob names (compare.sh stops if it names none or more)
+one() {
+	local hits=( $1 )
+	if [ ${#hits[@]} -ne 1 ] || [ ! -f "${hits[0]}" ]; then
+		echo "compare.sh: $1 names ${#hits[@]} files" >&2
+		exit 2
+	fi
+	printf '%s' "${hits[0]}"
+}
+# playback <case> <description> <flags> <file> [script=<file>] [options]: watch.txt, or the script given
+playback() {
+	local name=$1 desc=$2 flags=$3 file=$4 script="$S3/watch.txt"
+	shift 4
+	if [ $# -gt 0 ] && [ "${1#script=}" != "$1" ]; then
+		script="${1#script=}"
+		shift
+	fi
+	printf '%s\t%s\t%s\t%s\n' "$name" playback "$desc" "$flags" >> "$OUT/cases.txt"
+	run candidate "$name" 1 "$script" replay="$file" arg=-codeccheck=codec.txt "$@"
+}
+playback watch_main_timed "rec_main's timed game: time up, on the global stream (XRAND none)" "trace=rec_main" \
+	"$(one "$C/rec_main/user/replays/*-timed-*.bjr")"
+playback watch_main_sidecar "rec_main's sidecar: the normal game to the mode switch's save (END saved)" "trace=rec_main" \
+	"$C/rec_main/user/savegame.bjr"
+playback watch_load "rec_load's sidecar: playtest_load as a two-segment replay (SAVE, then a new board's LOAD of it)" \
+	"trace=rec_main,rec_load" "$C/rec_load/user/savegame.bjr"
+playback watch_level "rec_level's sidecar: level 1, vortex, wipe, level 2" "trace=rec_level" "$C/rec_level/user/savegame.bjr"
+playback watch_drag_swaps "rec_drag_swaps' sidecar: TARGET from drags" "trace=rec_drag_swaps" "$C/rec_drag_swaps/user/savegame.bjr"
+playback watch_falling_select "rec_falling_select's sidecar: SELECT while falling, a dying selected gem" "trace=rec_falling_select" \
+	"$C/rec_falling_select/user/savegame.bjr"
+playback watch_options_highscores "rec_options_highscores' sidecar: the dialog's tip draw replayed as an XRAND" \
+	"trace=rec_options_highscores" "$C/rec_options_highscores/user/savegame.bjr"
+playback watch_pause "rec_pause's sidecar: PAUSE/UNPAUSE, the input delay" "trace=rec_pause" "$C/rec_pause/user/savegame.bjr"
+playback watch_nomoves_normal "rec_nomoves_normal's replay: no moves, game over" "trace=rec_nomoves_normal" \
+	"$(one "$C/rec_nomoves_normal/user/replays/*-normal-*.bjr")"
+playback watch_timed_fallout "rec_timed_fallout's sidecar: fall-outs, a stale selection, timed level 2" "trace=rec_timed_fallout" \
+	"$C/rec_timed_fallout/user/savegame.bjr"
+playback watch_timed_fallout_load "rec_timed_fallout_load's sidecar: the timed level-2 game resumed (two segments)" \
+	"trace=rec_timed_fallout,rec_timed_fallout_load" "$C/rec_timed_fallout_load/user/savegame.bjr"
+playback watch_mode_switch "rec_mode_switch's sidecar: the timed game the mode switch saved" "trace=rec_mode_switch" \
+	"$C/rec_mode_switch/user/savegame.bjr"
+playback watch_mode_switch_load "rec_mode_switch_load's sidecar: resumed (two segments)" "trace=rec_mode_switch,rec_mode_switch_load" \
+	"$C/rec_mode_switch_load/user/savegame.bjr"
+playback watch_save_states "rec_save_states' sidecar: to level 2" "trace=rec_save_states" "$C/rec_save_states/user/savegame.bjr"
+for snap in s1_clearing s2_falling s3_swapping s4_swapping_back s5_vortex s6_wipe; do
+	playback "watch_save_states.$snap" "rec_save_states' snapshot sidecar $snap.bjr: ends in SAVE(snapshot), SaveGameSnapshot again" \
+		"trace=rec_save_states" "$C/rec_save_states/snaps/$snap.bjr"
+done
+playback watch_autoplay_normal "rec_autoplay_normal's replay: the bot's game to no moves on level 2" "trace=rec_autoplay_normal" \
+	"$(one "$C/rec_autoplay_normal/user/replays/*.bjr")"
+playback watch_autoplay_timed "rec_autoplay_timed's replay: the bot's timed game to time up on level 10" "trace=rec_autoplay_timed" \
+	"$(one "$C/rec_autoplay_timed/user/replays/*.bjr")"
+playback watch_decline "rec_decline's replay of the declined resume: rec_main's normal game, END saved" "trace=rec_main" \
+	"$(one "$C/rec_decline/user/replays/*-normal-*.bjr")"
+playback watch_seed_quit_resume "rec_seed_quit_resume's sidecar: a fresh replay with the loaded save (LDSV) and RNGS seed $GS" \
+	"trace=rec_seed_quit_resume" "$C/rec_seed_quit_resume/user/savegame.bjr"
+playback watch_pergame_timed "rec_pergame's timed game: a per-game seed, time up" "trace=rec_pergame" \
+	"$(one "$C/rec_pergame/user/replays/*-timed-*.bjr")"
+playback watch_pergame_sidecar "rec_pergame's sidecar: a per-game seed, the RNG the save was made with" "trace=rec_pergame" \
+	"$C/rec_pergame/user/savegame.bjr"
+playback watch_seed_normal "rec_seed_normal's replay: seed $GS (user), to no moves" "trace=rec_seed_normal" \
+	"$(one "$C/rec_seed_normal/user/replays/*.bjr")"
+playback watch_seed_abandoned "rec_seed_nomatch_timed's replay: seed $GS (user), a swap without a match, then Timed (END abandoned)" \
+	"trace=rec_seed_nomatch_timed" "$(one "$C/rec_seed_nomatch_timed/user/replays/*-normal-*.bjr")"
+playback watch_seed_timed "rec_seed_nomatch_timed's sidecar: the timed game on seed $GS, its match, the save at Normal" \
+	"trace=rec_seed_nomatch_timed" "$C/rec_seed_nomatch_timed/user/savegame.bjr"
+playback watch_seed_highscores "rec_seed_highscores' sidecar: seed $GS, an outside draw that is no XRAND" "trace=rec_seed_highscores" \
+	"$C/rec_seed_highscores/user/savegame.bjr"
+playback watch_seed_quit "rec_seed_quit's sidecar: seed $GS to the quit, its RNGS the board's RNG at the save" "trace=rec_seed_quit" \
+	"$C/rec_seed_quit/user/savegame.bjr"
+playback watch_seed_quit_bot "rec_seed_quit.bot's replay: seed $GS quit, resumed with the sidecar's RNG, played to game over" \
+	"trace=rec_seed_quit,rec_seed_quit.bot" "$(one "$C/rec_seed_quit.bot/user/replays/*.bjr")"
+playback watch_keyed_hint "rec_keyed_hint's sidecar: the hint costs the RULE's 25, not the session's 50" "trace=rec_keyed_hint" \
+	"$(one "$C/rec_keyed_hint/user/savegame*.bjr")"
+# Replays broken on purpose (compare.py corrupt-replay, from rec_pause's sidecar): the player stops at the fault
+for kind in check select unpause end; do
+	"$PY" "$COMPARE_PY" corrupt-replay "$(winpath "$C/rec_pause/user/savegame.bjr")" "$(winpath "$OUT/gen/corrupt_$kind.bjr")" "$kind" \
+		> "$OUT/gen/corrupt_$kind.txt"
+done
+playback watch_corrupt_check "rec_pause's sidecar with a CHECK hash changed: the LOGIC hash differs there" "corrupt=LOGIC hash" \
+	"$OUT/gen/corrupt_check.bjr"
+playback watch_corrupt_select "rec_pause's sidecar with its first SELECT twice: the second fails SELECT's gate" \
+	"corrupt=a selection MouseDown would not make" "$OUT/gen/corrupt_select.bjr"
+playback watch_corrupt_unpause "rec_pause's sidecar without its last UNPAUSE: the board stays paused" "corrupt=no event unpauses it" \
+	"$OUT/gen/corrupt_unpause.bjr"
+playback watch_corrupt_end "rec_pause's sidecar with END's score changed: END differs" "corrupt=END differs" "$OUT/gen/corrupt_end.bjr"
+
+# Stage 3, after the review. The hover channel without it (features.replays alone, mods/stage3/nohover) and a game
+# resumed under the other setting: the replay's hover flag says every segment has the channel, so a mixed one has
+# none, and the player checks no save bytes. A quit in the middle of a swap: the watch's last board, whose SAVE
+# dropped the swap, shows no settle after the end. A save that replaces another board's (a mode switch saved the
+# timed game, the quit saves the normal one): the timed game's recording is kept as a finished replay first.
+# Options -> High Scores while watching a game on a seed the player chose: the player's table, no -seeded one.
+M3N="$GAME/tools/oracle/mods/stage3/nohover"
+recording rec_main_nohover "playtest.txt recorded without the hover channel (mods/stage3/nohover): no hover flag" main 1 \
+	"$PT/playtest.txt" modsdir="$M3N"
+recording rec_load_hover_on "playtest_load.txt with the hover channel in a copy of rec_main_nohover's user dir: segment 0 has none, so the replay has no hover flag" \
+	load 1 "$PT/playtest_load.txt" from=rec_main_nohover
+recording rec_load_hover_off "playtest_load.txt without the hover channel in a copy of rec_main's user dir: segment 1 has none, so the replay has no hover flag" \
+	load 1 "$PT/playtest_load.txt" from=rec_main modsdir="$M3N"
+all quit_midswap script "Seed 1: a match, then a quit in the middle of the next swap (Shutdown's SaveGame drops the swap)" 1 \
+	"$S3/quit_midswap.txt"
+recording rec_quit_midswap "quit_midswap.txt recorded: the sidecar ends in the two SAVEs of the quit, the first of them mid-swap" \
+	quit_midswap 1 "$S3/quit_midswap.txt"
+all mode_switch_match script "mode_switch.txt, then a match on the new normal game and a quit, which saves it over the timed game" 1 \
+	"$S3/mode_switch_match.txt"
+recording rec_mode_switch_match "mode_switch_match.txt recorded: the timed game's sidecar is kept as a finished replay (END saved) before the quit's save replaces it" \
+	mode_switch_match 1 "$S3/mode_switch_match.txt"
+playback watch_main_nohover "rec_main_nohover's sidecar: no hover channel, no save bytes checked" "trace=rec_main_nohover" \
+	"$C/rec_main_nohover/user/savegame.bjr"
+playback watch_load_hover_on "rec_load_hover_on's sidecar: segment 0 without the hover channel, segment 1 with it" \
+	"trace=rec_main_nohover,rec_load_hover_on" "$C/rec_load_hover_on/user/savegame.bjr"
+playback watch_load_hover_off "rec_load_hover_off's sidecar: segment 0 with the hover channel, segment 1 without it" \
+	"trace=rec_main,rec_load_hover_off" "$C/rec_load_hover_off/user/savegame.bjr"
+playback watch_quit_midswap "rec_quit_midswap's sidecar: its last SAVEs drop a swap; the board that stays settles no more" \
+	"trace=rec_quit_midswap" "$C/rec_quit_midswap/user/savegame.bjr"
+playback watch_mode_switch_kept "rec_mode_switch_match's replay of the timed game the quit's save replaced (END saved)" \
+	"trace=rec_mode_switch_match" "$(one "$C/rec_mode_switch_match/user/replays/*-timed-*.bjr")"
+playback watch_mode_switch_match "rec_mode_switch_match's sidecar: the normal game to the quit" "trace=rec_mode_switch_match" \
+	"$C/rec_mode_switch_match/user/savegame.bjr"
+playback watch_seed_quit_highscores "rec_seed_quit's sidecar (seed $GS, user) with Options -> High Scores mid-watch: the player's hiscores.dat, no -seeded table" \
+	"trace=rec_seed_quit;user=hiscores.dat,registry.ini" "$C/rec_seed_quit/user/savegame.bjr" script="$S3/watch_highscores.txt"
 
 echo
 "$PY" "$COMPARE_PY" compare "$(winpath "$OUT")" "$EXPECT"

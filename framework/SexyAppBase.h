@@ -69,6 +69,13 @@ struct ScriptCommand
 	int mLine;
 };
 
+// port (web): a file the app writes at shutdown, as it would be written now (SexyAppBase::GetShutdownSaves)
+struct ShutdownSave
+{
+	std::string mFileName;  // the app's name for it, e.g. "userdata\savegame.dat"
+	std::string mData;
+};
+
 enum
 {
 	CURSOR_POINTER,
@@ -288,8 +295,8 @@ public:
 	bool mBackupDirty;  // Emscripten: a user file changed since the last UpdateUserDataBackup()
 	DWORD mLastBackupCheck;  // Emscripten: when UpdateUserDataBackup() last compared, and last backed up
 	DWORD mLastBackupTime;
-	bool mBackupHasSave;  // Emscripten: what the last backup held as the shutdown save and registry
-	std::string mBackupSave;
+	bool mBackupHasSave;  // Emscripten: what the last backup held as the shutdown saves and registry
+	std::string mBackupSave;  // the saves' names and bytes, one after the other
 	std::string mBackupRegistry;
 	bool mRegistryCapture;  // RegistryWrite() only changes mRegistry (GetShutdownRegistryText)
 
@@ -564,9 +571,10 @@ public:
 	// Web: a page can be closed, reloaded, discarded or crash without the app shutting down, and the
 	// browser may not even report it. So localStorage keeps a backup of the user dir as it would be
 	// after a shutdown at this moment (Platform::BackupUserData), restored at the next start: the user
-	// files, with the registry as WriteToRegistry() would leave it, plus GetShutdownSave(), the save the
-	// app writes at shutdown (false if none). Saves and settings still reach the user dir only as in 1.3.
-	virtual bool GetShutdownSave(std::string* theFileName, Buffer* theBuffer);
+	// files, with the registry as WriteToRegistry() would leave it, plus GetShutdownSaves(), the files the
+	// app writes at shutdown (none: no file; Bejeweled: the save and its sidecar, taken at the same tick).
+	// Saves and settings still reach the user dir only as in 1.3.
+	virtual void GetShutdownSaves(std::vector<ShutdownSave>* theSaves);
 	// The registry writes a shutdown makes, last one last (only mRegistry changes; see mRegistryCapture)
 	virtual void WriteShutdownRegistry();
 	std::string GetShutdownRegistryText();

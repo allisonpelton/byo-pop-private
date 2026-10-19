@@ -11,6 +11,12 @@ expect.txt.
                                             the script up to that command, then "quit" at its update;
                                             prints "<name> <update>" per save
   compare.py savestate <savegame.dat>...    decodes the header and state of v1 savegames
+  compare.py fake-replays <dir>             ten old replays (one pinned) for the pruning case
+  compare.py corrupt-replay <in> <out> <kind>
+                                            a copy of a replay with one thing broken, for the player's
+                                            corrupt-replay cases: "check" (the first CHECK's hash), "select"
+                                            (the first SELECT twice), "unpause" (the last UNPAUSE dropped),
+                                            "end" (END's score); prints what it changed
   compare.py compare <oracle dir> [<expect file>]
                                             compares every baseline side with candidate/ for every case
                                             in <oracle dir>/cases.txt, and checks the candidate against
@@ -81,16 +87,50 @@ Set seed (stage 2; the baselines do not know -gameseed, so candidate runs; cases
   lint        games/bejeweled/tools/check_rng_use.py (6.1 rule 1) must pass (check.txt, exit.txt)
   cli         -gameseed values that must be refused (cli.txt: "<argument> <tab> <exit> <tab> <stderr>"):
               exit status 2 and the range in the message, before anything starts
-Expectations (the expect file, checked against the candidate for the script, load, quitcut, inert and
-autoplay cases): what each case is about must still happen, even when every side changes together (a change to
+              A "boards=" kind "user*" is a board that resumed a save of a game on such a seed (stage 3): its
+              first settle is at board tick 1 with the loaded grid, its seed "gameseed=" if given
+Replays (stage 3; candidate runs, flags "k=v;k=v"):
+  recording   (flags "ref=<case>") 9.1 item 5, recording is inert: the run with the replays feature mod
+              (mods/stage3/replays: replays with the hover channel, seeds {entry}, perGame off, so every game is
+              recorded on the global stream) against the candidate's <case> without mods: stdout.txt, hash.txt
+              and stderr.txt (but the mod's "mods:" lines and the "game:" line) identical, every user file of
+              <case> identical (its sidecars, a seeded game's, gain the recording), and only these new: mods-status.json, replays/ with its finished replays, the
+              sidecars savegame*.bjr; every .bjr well-formed (games/bejeweled/tools/bjr.py), each sidecar goes with
+              its save (its SVHA), each sidecar the "save" command left in snaps/ ends in SAVE(snapshot) of its
+              snapshot; with -codeccheck, codec.txt has no failure and a line per TRACE settle
+  samestream  (flags "first=<case>;ref=<case>") a seeded game played to a quit (first), resumed in its user dir
+              (this run), and the same moves played through (ref): the settle blocks of first and of this run
+              (after its first, the loaded game, which is first's last) are ref's: the resume restored the RNG
+              A recording's mods-status.json is not compared with its reference's (the mods differ by design).
+  reference   a candidate run other cases are checked against (a recording's run without the replays mod); only
+              its exit status and expect facts
+  playback    (flags "trace=<case>[,<case>...]" or "corrupt=<text>", "user=<file>,...") 9.1 item 6, in the game: the candidate
+              watches replay.bjr (-replay=replay.bjr -replayquit, a copy of a recorded file) in a fresh user dir.
+              Its "REPLAY end" line must be "ok" with the file's CHECK count and END values (every CHECK and END
+              matched in the game), its TRACE settle blocks (all but the update number) per segment ("REPLAY
+              segment k" lines) a contiguous run of the blocks of the k-th trace case's stdout (the last one for
+              the rest), codec.txt without a failure and one settle per TRACE settle, and the user dir only
+              registry.ini, with TimesPlayed 0: watching saves, counts and records nothing ("user=" lists the
+              files a script's own actions leave, such as hiscores.dat from Options -> High Scores). With
+              "corrupt=", the line must say CORRUPT and contain that text
+Finished replays are named after the wall clock: compared and listed with replays/<yyyymmdd>-<hhmmss>- masked
+as replays/*- (normal_path), their contents without META's date (compare_bjr).
+Expectations (the expect file, checked against the candidate for the script, load, quitcut, inert, autoplay,
+seeded, recording and samestream cases): what each case is about must still happen, even when every side changes together (a change to
 assets/bejeweled/ or the mods, a script that no longer reaches its scenario). Facts derived from the outputs:
   exit <status>, mods <the "mods:" log line>, user <user dir files>,
   settle <update> <mode level score board tick>   every TRACE settle header (scripts and loads), in order
-  settles <count> / last-settle <...>             the same for autoplay runs (and other -autoplay runs)
+  settles <count> / last-settle <...>             the same for autoplay runs (and other -autoplay runs) and playbacks
   states <update>:<state> ...                     hash.txt: each update the board enters game over, game
                                                   over done, vortex, level wipe or fall out
   snap <file> <decoded>, save <file> <decoded>|none
                                                   save snapshots, and the savegame*.dat the quit left
+  sidecar <file> <summary>, replay <file> <summary>
+                                                  stage 3: user/savegame*.bjr and user/replays/*.bjr (bjr.py's
+                                                  summary: END, segments, RNG, event counts; whether a sidecar
+                                                  goes with its save)
+  codec <summary>                                 the -codeccheck summary line
+  watch <the REPLAY end line>                     playback: how the replay ended (-replay)
   end <the bot's last note>                       autoplay: how the game ended
   status <RulesId prefix, message counts, ...>    user/mods-status.json, when the run left one (rule mods)
   seeds <update>:<seed>/<kind>[@<draw>] ...       when a board has its own RNG: per board (first settle),
@@ -108,6 +148,9 @@ import struct
 import sys
 import zlib
 
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
+import bjr  # noqa: E402  (games/bejeweled/tools/bjr.py: the .bjr reader)
+
 STATE_NAMES = ["falling", "playing", "swapping", "swapping back", "clearing", "game over", "game over done",
                "vortex", "level wipe", "fall out"]
 EVENT_STATES = {5: "game_over", 6: "game_over_done", 7: "vortex", 8: "level_wipe", 9: "fall_out"}
@@ -116,9 +159,13 @@ HOOK_FILES = ("hash.txt", "autoplay.txt")
 RUN_FILES = ("script.txt", "stdout.txt", "stderr.txt", "exit.txt", "modsdir-changed.txt")
 WALL_CLOCK = [(re.compile(r"Seconds = [0-9.e+-]+"), "Seconds = *"),
               (re.compile(r"Resource Loading Time: [0-9]+"), "Resource Loading Time: *")]
-EXPECT_KINDS = ("script", "load", "quitcut", "inert", "autoplay", "seeded")
-AUTO_KEYS = ("exit", "mods", "user", "settle", "settles", "last-settle", "states", "snap", "save", "status", "seeds",
-             "end")
+EXPECT_KINDS = ("script", "load", "quitcut", "inert", "autoplay", "seeded", "recording", "samestream", "reference",
+                "playback")
+AUTO_KEYS = ("exit", "mods", "user", "settle", "settles", "last-settle", "states", "snap", "save", "sidecar", "replay",
+             "status", "seeds", "end", "codec", "watch")
+# A finished replay is named after the wall clock (<yyyymmdd>-<hhmmss>-<mode>-<score>...): the date and time are
+# masked wherever runs are compared or facts derived (normal_path)
+REPLAY_NAME = re.compile(r"(^|/)replays/\d{8}-\d{6}-")
 NO_RUN_KINDS = ("lint", "cli")  # checks that run no game
 
 
@@ -376,6 +423,112 @@ def tree_filter(hook_outputs):
     return keep
 
 
+def normal_path(path):
+    """path with a finished replay's wall-clock date and time masked: replays/*-normal-60-keep.bjr"""
+    return REPLAY_NAME.sub(lambda m: m.group(1) + "replays/*-", path)
+
+
+def replay_without_date(data):
+    """A .bjr parsed, its META date left out: what two runs of the same game must agree on"""
+    replay = bjr.read(data)
+    if "meta" in replay:
+        meta = json.loads(replay["meta"])
+        meta.pop("date", None)
+        replay["meta"] = meta
+    return replay
+
+
+def compare_bjr(da, db):
+    if da == db:
+        return None
+    try:
+        if replay_without_date(da) == replay_without_date(db):
+            return None
+        return "the replays differ (beyond META's date)"
+    except (bjr.BjrError, ValueError) as e:
+        return "not a well-formed replay: %s" % e
+
+
+def sidecar_text(user, name):
+    """A sidecar (user/savegame*.bjr) as a fact: its summary, and whether it goes with the save next to it"""
+    try:
+        replay = bjr.read(read_bytes(os.path.join(user, name)))
+    except bjr.BjrError as e:
+        return "unreadable (%s)" % e
+    save = os.path.join(user, name[:-4] + ".dat")
+    if "saveHash" not in replay:
+        match = "no save hash"
+    elif not os.path.exists(save):
+        match = "no save"
+    else:
+        match = "goes with the save" if bjr.save_hash(read_bytes(save)) == replay["saveHash"] else "does NOT go with the save"
+    return "%s; %s" % (bjr.summary(replay), match)
+
+
+def replay_text(path):
+    try:
+        return bjr.summary(bjr.read(read_bytes(path)))
+    except bjr.BjrError as e:
+        return "unreadable (%s)" % e
+
+
+def fake_replays(outdir):
+    """Old replays for the pruning case, each a well-formed file of only its header and END (score = its day),
+    written at the time its name says (mtime, UTC midnight of that day): seven of 2000-01-01..07 and one pinned
+    ("-keep") of 2000-01-01; a second "-2" of 2000-01-05, written in the same second as the first (by its name
+    the newer, though "-2" sorts before "."); and one whose name says 2099 but that was written on 1999-12-31
+    (by its mtime the oldest). ReplayRecorder::Prune orders by the mtime, then the name's time and copy number:
+    with keep 3, nomoves_normal (whose own replay is pinned) leaves 2000-01-07, 06 and the 05 "-2"."""
+    os.makedirs(outdir, exist_ok=True)
+    day = lambda d: 946684800 + (d - 1) * 86400  # 2000-01-0d 00:00:00 UTC
+    names = [("20000101-000000-normal-1-keep.bjr", 1, day(1))]
+    names += [("2000010%d-000000-normal-%d.bjr" % (d, d), d, day(d)) for d in range(1, 8)]
+    names += [("20000105-000000-normal-5-2.bjr", 5, day(5)), ("20991231-000000-normal-9.bjr", 9, day(0))]
+    for name, score, mtime in names:
+        end = struct.pack("<BIiiiQI", 1, 1000, score, 1, 3, 0, 0)
+        data = b"BJRP" + struct.pack("<HHI", 1, 0, 1) + b"END " + struct.pack("<I", len(end)) + end
+        bjr.read(data)
+        path = os.path.join(outdir, name)
+        with open(path, "wb") as f:
+            f.write(data)
+        os.utime(path, (mtime, mtime))
+
+
+def corrupt_replay(src, dst, kind):
+    """A copy of the replay src with one thing broken (the module comment, "corrupt-replay"), written to dst"""
+    replay = bjr.read(read_bytes(src))
+    events = [(s, i) for s, seg in enumerate(replay["segments"]) for i in range(len(seg["events"]))]
+
+    def find(op, last=False):
+        hits = [(s, i) for s, i in events if replay["segments"][s]["events"][i][1] == op]
+        if not hits:
+            raise ValueError("%s has no %s" % (src, op))
+        return hits[-1] if last else hits[0]
+
+    if kind == "check":
+        s, i = find("CHECK")
+        tick, op, args = replay["segments"][s]["events"][i]
+        replay["segments"][s]["events"][i] = (tick, op, [args[0] ^ 1])
+        what = "segment %d event %d: CHECK at tick %d with its hash's lowest bit flipped" % (s, i, tick)
+    elif kind == "select":
+        s, i = find("SELECT")
+        replay["segments"][s]["events"].insert(i + 1, replay["segments"][s]["events"][i])
+        what = "segment %d event %d: the SELECT at tick %d twice" % (s, i, replay["segments"][s]["events"][i][0])
+    elif kind == "unpause":
+        s, i = find("UNPAUSE", last=True)
+        tick = replay["segments"][s]["events"][i][0]
+        del replay["segments"][s]["events"][i]
+        what = "segment %d event %d: the last UNPAUSE (tick %d) dropped" % (s, i, tick)
+    elif kind == "end":
+        replay["end"]["score"] += 1
+        what = "END score %d" % replay["end"]["score"]
+    else:
+        raise ValueError("unknown corruption " + kind)
+    with open(dst, "wb") as f:
+        f.write(bjr.write(replay))
+    print(what)
+
+
 # ---------------------------------------------------------------------------------------------------
 # Set seed (stage 2): a model of the board RNG, to check a seeded board against its seed
 
@@ -601,13 +754,23 @@ def seed_check(r, cand, run, flags, label):
     f = parse_flags(flags)
     boards = run_boards(run)
     kinds = [b["kind"] or "-" for b in boards]
-    if "boards" in f and kinds != f["boards"].split(","):
+    # "user*": a board that resumed a save of a game on that kind of seed (stage 3: the sidecar keeps its
+    # RNG), which settles first at board tick 1 with the loaded grid, not the seed's first board
+    expected = f["boards"].split(",") if "boards" in f else []
+    if "boards" in f and kinds != [k.rstrip("*") for k in expected]:
         r.fail("%s: boards %s, expected %s" % (label, ",".join(kinds) or "(none)", f["boards"]))
     notes = []
     last_pos = 0
-    for b in boards:
+    for i, b in enumerate(boards):
         if b["seed"] is None:
             notes.append("%d: global stream" % b["update"])
+            continue
+        if i < len(expected) and expected[i].endswith("*"):
+            if b["tick"] > 1:
+                r.fail("%s: the board of update %d first settles at board tick %d, not as a resumed game" % (label, b["update"], b["tick"]))
+            if "gameseed" in f and b["seed"] != int(f["gameseed"]):
+                r.fail("%s: the resumed board of update %d has seed %d, not %s" % (label, b["update"], b["seed"], f["gameseed"]))
+            notes.append("%d: resumed on its saved MTRand(%d) stream, %s" % (b["update"], b["seed"], b["kind"]))
             continue
         if b["grid"] != model_first_board(b["seed"]):
             r.fail("%s: the board of update %d is not MTRand(%d)'s first board" % (label, b["update"], b["seed"]))
@@ -801,8 +964,11 @@ def compare_streams(r, a, b, label):
 
 def compare_tree(r, a, b, label, keep):
     """The file trees under a and b (paths for which keep() is true): the same list, then every file.
+    Finished replays are matched and compared without their wall-clock date (normal_path, compare_bjr).
     Returns {top-level entry: number of files compared}."""
-    fa, fb = list_tree(a, keep), list_tree(b, keep)
+    ma = {normal_path(p): p for p in list_tree(a, keep)}
+    mb = {normal_path(p): p for p in list_tree(b, keep)}
+    fa, fb = sorted(ma), sorted(mb)
     if fa != fb:
         only_a = [p for p in fa if p not in set(fb)]
         only_b = [p for p in fb if p not in set(fa)]
@@ -813,9 +979,11 @@ def compare_tree(r, a, b, label, keep):
             continue
         top = name.split("/", 1)[0] if "/" in name else name
         counts[top] = counts.get(top, 0) + 1
-        pa, pb = os.path.join(a, name), os.path.join(b, name)
+        pa, pb = os.path.join(a, ma[name]), os.path.join(b, mb[name])
         if name.lower().endswith(".png"):
             diff = compare_png(pa, pb)
+        elif name.lower().endswith(".bjr"):
+            diff = compare_bjr(read_bytes(pa), read_bytes(pb))
         else:
             da, db = read_bytes(pa), read_bytes(pb)
             if da == db:
@@ -910,10 +1078,11 @@ def derive_facts(run, kind, flags=""):
     stderr = read_lines(os.path.join(run, "stderr.txt")) if os.path.exists(os.path.join(run, "stderr.txt")) else []
     mods = [line.split("mods: ", 1)[1] for line in stderr if line.startswith("INFO: mods: ")]
     facts.append("mods " + (mods[0] if mods else "(no mods line)"))
-    user = list_tree(os.path.join(run, "user"), lambda p: True)
+    user = sorted(normal_path(p) for p in list_tree(os.path.join(run, "user"), lambda p: True))
     facts.append("user " + (" ".join(user) if user else "(empty)"))
 
-    # a bot run (also a seeded one) is summed up: its settles depend on every move it makes
+    # a bot run (also a seeded one) is summed up: its settles depend on every move it makes; so is a playback (its
+    # settles are the recording's, which compare.py checks)
     bot = (kind == "autoplay") or os.path.exists(os.path.join(run, "autoplay.txt"))
     stdout = read_lines(os.path.join(run, "stdout.txt")) if os.path.exists(os.path.join(run, "stdout.txt")) else []
     settles = []
@@ -921,7 +1090,7 @@ def derive_facts(run, kind, flags=""):
         m = re.match(r"TRACE update (\d+): (.*)$", line)
         if m:
             settles.append("%s %s" % (m.group(1), m.group(2)))
-    if bot:
+    if bot or kind == "playback":
         facts.append("settles %d" % len(settles))
         facts.append("last-settle " + (settles[-1] if settles else "none"))
     else:
@@ -944,9 +1113,18 @@ def derive_facts(run, kind, flags=""):
         facts.append("states (no hash.txt)")
 
     for snap in list_tree(os.path.join(run, "snaps"), lambda p: not p.endswith("/")):
-        facts.append("snap %s %s" % (snap, save_state(os.path.join(run, "snaps", snap))))
+        if snap.endswith(".bjr"):  # stage 3: the sidecar a "save" command writes next to a recorded game's snapshot
+            facts.append("snap %s %s" % (snap, sidecar_text(os.path.join(run, "snaps"), snap)))
+        else:
+            facts.append("snap %s %s" % (snap, save_state(os.path.join(run, "snaps", snap))))
     saves = savegames(run)
     facts += ["save %s %s" % (s, save_state(os.path.join(run, "user", s))) for s in saves] or ["save none"]
+    # stage 3: the sidecars next to the saves and the finished replays (games/bejeweled/tools/bjr.py)
+    user_dir = os.path.join(run, "user")
+    for s in list_tree(user_dir, lambda p: re.fullmatch(r"savegame[^/]*\.bjr", p) is not None):
+        facts.append("sidecar %s %s" % (s, sidecar_text(user_dir, s)))
+    for p in list_tree(user_dir, lambda p: re.fullmatch(r"replays/[^/]+\.bjr", p) is not None):
+        facts.append("replay %s %s" % (normal_path(p), replay_text(os.path.join(user_dir, p))))
 
     status = mods_status(run)
     if status is not None:
@@ -960,6 +1138,12 @@ def derive_facts(run, kind, flags=""):
         if os.path.exists(os.path.join(run, "autoplay.txt")):
             notes = [line for line in read_lines(os.path.join(run, "autoplay.txt")) if line.startswith("# update")]
         facts.append("end " + (notes[-1][2:] if notes else "(no notes)"))
+    if os.path.exists(os.path.join(run, "codec.txt")):
+        lines = read_lines(os.path.join(run, "codec.txt"))
+        facts.append("codec " + (lines[-1] if lines else "(empty)"))
+    watched = [line for line in stdout if line.startswith("REPLAY end: ") or ": cannot play: " in line]
+    if watched:
+        facts.append("watch " + watched[-1])
     return facts
 
 
@@ -1012,6 +1196,203 @@ def inert_check(r, ref, run, label):
               " the reference; mods-status.json and -dumprules agree on RulesId %s"
               % (label, len(read_lines(os.path.join(run, "stdout.txt"))), len(read_lines(os.path.join(run, "hash.txt"))),
                  str(status.get("rulesId"))[:16]))
+    return r.failures == before
+
+
+RECORDING_EXTRA = re.compile(r"mods-status\.json|replays/|replays/[^/]+\.bjr|savegame[^/]*\.bjr")
+LOG_OF_MODS = ("INFO: mods:", "INFO: game:")
+
+
+def recording_check(r, ref, run, label):
+    """A run with the replays feature mod against the candidate's run of the same case without mods
+    (games/bejeweled/docs/CODE_MODS_DESIGN.md 9.1 item 5, "recording is inert"): stdout.txt (TRACE), hash.txt and
+    stderr.txt (but the mod's "mods:" lines and the "game:" line naming the mods folder) identical, every file of
+    the reference's user dir identical, and the run's user dir has only these more: mods-status.json, replays/
+    and the finished replays in it, the sidecars savegame*.bjr. Every .bjr must read (bjr.py), each sidecar must
+    go with its save, each snapshot sidecar in snaps/ with its snapshot and end in SAVE(snapshot); with
+    -codeccheck, codec.txt must report no failure and one settle per TRACE settle."""
+    before = r.failures
+    for name in ("stdout.txt", "hash.txt", "stderr.txt"):
+        pa, pb = os.path.join(ref, name), os.path.join(run, name)
+        if not (os.path.exists(pa) and os.path.exists(pb)):
+            r.fail("%s: %s missing: %s / %s" % (label, name, os.path.exists(pa), os.path.exists(pb)))
+            continue
+        la = [mask_wall_clock(x) for x in read_lines(pa) if not x.startswith(LOG_OF_MODS)]
+        lb = [mask_wall_clock(x) for x in read_lines(pb) if not x.startswith(LOG_OF_MODS)]
+        diff = first_list_diff(la, lb, label + ": " + name)
+        if diff:
+            r.fail(diff)
+    ua, ub = os.path.join(ref, "user"), os.path.join(run, "user")
+    fa = list_tree(ua, lambda p: True)
+    fb = list_tree(ub, lambda p: True)
+    for p in fa:
+        if p not in fb:
+            r.fail("%s: user/%s is missing" % (label, p))
+        # a reference's own sidecar (a seeded game) gains the recording; a reference with mods has a status of its own
+        elif not p.endswith("/") and not p.endswith(".bjr") and p != "mods-status.json":
+            da, db = read_bytes(os.path.join(ua, p)), read_bytes(os.path.join(ub, p))
+            diff = None
+            if da != db:
+                diff = compare_hiscores(da, db) if os.path.basename(p).startswith("hiscores") else first_byte_diff(da, db)
+                if isinstance(diff, tuple):
+                    diff = None
+            if diff:
+                r.fail("%s: user/%s: %s" % (label, p, diff))
+    extra = [p for p in fb if p not in fa]
+    for p in extra:
+        if not RECORDING_EXTRA.fullmatch(p):
+            r.fail("%s: user/%s is new, and not a replay, a sidecar or mods-status.json" % (label, p))
+    if "mods-status.json" not in fb:
+        r.fail("%s: no user/mods-status.json" % label)
+    replays = [p for p in fb if p.endswith(".bjr")]
+    for p in replays:
+        text = sidecar_text(ub, p) if p.startswith("savegame") else replay_text(os.path.join(ub, p))
+        if "unreadable" in text or "NOT" in text or "no save" in text:
+            r.fail("%s: user/%s: %s" % (label, p, text))
+    # snapshots: the reference's identical; a sidecar next to each, for its snapshot
+    sa, sb = os.path.join(ref, "snaps"), os.path.join(run, "snaps")
+    snaps_a = list_tree(sa, lambda p: True)
+    snaps_b = list_tree(sb, lambda p: True)
+    for p in snaps_a:
+        if p not in snaps_b or read_bytes(os.path.join(sa, p)) != read_bytes(os.path.join(sb, p)):
+            r.fail("%s: snaps/%s differs or is missing" % (label, p))
+    snap_sidecars = [p for p in snaps_b if p not in snaps_a]
+    for p in snap_sidecars:
+        if not p.endswith(".bjr"):
+            r.fail("%s: snaps/%s is new, and not a sidecar" % (label, p))
+            continue
+        try:
+            replay = bjr.read(read_bytes(os.path.join(sb, p)))
+            dat = read_bytes(os.path.join(sb, p[:-4] + ".dat"))
+            last = replay["segments"][-1]["events"][-1] if replay["segments"] and replay["segments"][-1]["events"] else None
+            if replay.get("saveHash") != bjr.save_hash(dat) or last is None or last[1] != "SAVE" or last[2] != [2, bjr.save_hash(dat)]:
+                r.fail("%s: snaps/%s does not end in SAVE(snapshot) of %s" % (label, p, p[:-4] + ".dat"))
+        except (OSError, bjr.BjrError) as e:
+            r.fail("%s: snaps/%s: %s" % (label, p, e))
+    codec = os.path.join(run, "codec.txt")
+    codec_note = ""
+    if os.path.exists(codec):
+        lines = read_lines(codec)
+        settles = len(trace_settles(run_stdout(run)))
+        m = re.fullmatch(r"codeccheck: (\d+) updates checked, (\d+) settles, (\d+) failures", lines[-1] if lines else "")
+        if not m or m.group(3) != "0" or int(m.group(2)) != settles:
+            r.fail("%s: codec.txt: %s (%d TRACE settles)" % (label, lines[-1] if lines else "empty", settles))
+            for line in lines:
+                if line.startswith("FAIL"):
+                    r.out("          " + line)
+                    break
+        else:
+            codec_note = "; StateCodec round trip after each of %s updates" % m.group(1)
+    if r.failures == before:
+        r.out("    %s: TRACE, hash.txt, logs and the user files identical; new: %s; %d .bjr files read, the sidecars go with"
+              " their saves, %d snapshot sidecars%s" % (label, " ".join(normal_path(p) for p in extra), len(replays),
+                                                        len(snap_sidecars), codec_note))
+    return r.failures == before
+
+
+def samestream_check(r, first, run, ref, label):
+    """A seeded game played, quit and resumed (first: the session up to the quit; run: the session that resumed
+    it) against the same moves played without the quit (ref): the settle blocks (rows, score, seed and moves;
+    not the update and tick numbers) of first and of run after its first one are ref's, and run's first (the
+    loaded game) is first's last: the resumed game goes on with its stream (the sidecar's RNGS)"""
+    before = r.failures
+    a, b, c = settle_blocks(run_stdout(first)), settle_blocks(run_stdout(run)), settle_blocks(run_stdout(ref))
+    if not a or not b:
+        r.fail("%s: no settles" % label)
+        return False
+    if b[0][1] != a[-1][1]:
+        r.fail("%s: the resumed game's first settle is not the saved one" % label)
+    joined = ["\n".join(x[1]) for x in a + b[1:]]
+    diff = first_list_diff(["\n".join(x[1]) for x in c], joined, label + ": settle blocks")
+    if diff:
+        r.fail(diff)
+    if not any("TRACE   seed" in line for x in b for line in x[1]):
+        r.fail("%s: the resumed game has no seed line" % label)
+    if r.failures == before:
+        r.out("    %s: %d settles before the quit and %d after the resume are the %d of the game played through"
+              % (label, len(a), len(b) - 1, len(c)))
+    return r.failures == before
+
+
+def trace_blocks(stdout):
+    """The TRACE settle blocks of a run, each the header without its update number (the board tick stays) and
+    the block's other TRACE lines, split per playback segment at "REPLAY segment" lines: [[block, ...], ...]"""
+    segments = [[]]
+    for line in stdout:
+        if line.startswith("REPLAY segment "):
+            segments.append([])
+            continue
+        m = re.match(r"TRACE update \d+: (.*)$", line)
+        if m:
+            segments[-1].append([m.group(1)])
+        elif line.startswith("TRACE   ") and segments[-1]:
+            segments[-1][-1].append(line)
+    return segments
+
+
+def contiguous_in(part, whole):
+    """The index at which the list part is a contiguous run of whole, or None"""
+    for i in range(len(whole) - len(part) + 1):
+        if whole[i:i + len(part)] == part:
+            return i
+    return None
+
+
+def playback_check(r, cand, run, flags, label):
+    """The candidate watching a recorded replay (the module comment, "playback")"""
+    before = r.failures
+    f = parse_flags(flags)
+    stdout = run_stdout(run)
+    ends = [line for line in stdout if line.startswith("REPLAY end: ") or ": cannot play: " in line]
+    try:
+        replay = bjr.read(read_bytes(os.path.join(run, "replay.bjr")))
+    except (OSError, bjr.BjrError) as e:
+        r.fail("%s: replay.bjr: %s" % (label, e))
+        return False
+    if len(ends) != 1:
+        r.fail("%s: %d REPLAY end lines" % (label, len(ends)))
+        return False
+    if "corrupt" in f:
+        if not ends[0].startswith("REPLAY end: CORRUPT") or f["corrupt"] not in ends[0]:
+            r.fail("%s: expected CORRUPT ... %s, got: %s" % (label, f["corrupt"], ends[0]))
+    else:
+        end = replay["end"]
+        checks = sum(1 for seg in replay["segments"] for _, op, _ in seg["events"] if op == "CHECK")
+        want = "REPLAY end: ok, %d CHECKs, END %s tick %d score %d level %d gems %d draws %d" % (
+            checks, end["reasonName"], end["endTick"], end["score"], end["level"], end["gems"], end["boardDraws"])
+        if ends[0] != want:
+            r.fail("%s: %s, expected: %s" % (label, ends[0], want))
+        played = trace_blocks(stdout)[1:]
+        if len(played) != len(replay["segments"]):
+            r.fail("%s: %d segments played, the replay has %d" % (label, len(played), len(replay["segments"])))
+        traces = f.get("trace", "").split(",")
+        for k, blocks in enumerate(played):
+            source = traces[min(k, len(traces) - 1)]
+            recorded = [b for seg in trace_blocks(run_stdout(os.path.join(cand, source))) for b in seg]
+            if not recorded or contiguous_in(blocks, recorded) is None:
+                first = next((i for i, b in enumerate(blocks) if b not in recorded), None)
+                r.fail("%s: segment %d: its %d TRACE settles are not a run of %s's %d%s" % (
+                    label, k, len(blocks), source, len(recorded),
+                    "" if first is None else " (settle %d: %s)" % (first, blocks[first][0])))
+        codec = os.path.join(run, "codec.txt")
+        lines = read_lines(codec) if os.path.exists(codec) else []
+        settles = sum(len(b) for b in played)
+        m = re.fullmatch(r"codeccheck: (\d+) updates checked, (\d+) settles, (\d+) failures", lines[-1] if lines else "")
+        if not m or m.group(3) != "0" or int(m.group(2)) != settles:
+            r.fail("%s: codec.txt: %s (%d TRACE settles)" % (label, lines[-1] if lines else "missing", settles))
+    user = sorted(list_tree(os.path.join(run, "user"), lambda p: True))
+    allowed = sorted(f.get("user", "registry.ini").split(","))
+    registry = read_bytes(os.path.join(run, "user", "registry.ini")).decode("latin-1") if "registry.ini" in user else ""
+    if user != allowed or "TimesPlayed=dword:0" not in registry.splitlines():
+        r.fail("%s: the user dir is %s (expected %s), TimesPlayed %s: watching must save, count and record nothing" % (
+            label, user, allowed, re.findall(r"TimesPlayed=\S*", registry)))
+    if r.failures == before:
+        if "corrupt" in f:
+            r.out("    %s: %s" % (label, ends[0]))
+        else:
+            r.out("    %s: %s; %d segments, each a run of %s's TRACE settles; StateCodec round trip after every update;"
+                  " the user dir %s" % (label, ends[0][len("REPLAY end: "):], len(replay["segments"]), f.get("trace", ""),
+                                        "untouched" if "user" not in f else "only " + ", ".join(user)))
     return r.failures == before
 
 
@@ -1118,6 +1499,17 @@ def compare(oracle, expect_path=None):
                 seed_check(r, cand, run, flags, "seeds")
         elif kind == "seeded":
             seed_check(r, cand, run, flags, "seeds")
+        elif kind == "recording":
+            recording_check(r, os.path.join(cand, f.get("ref", "")), run, "cross " + f.get("ref", ""))
+            if "boards" in f:
+                seed_check(r, cand, run, flags, "seeds")
+        elif kind == "playback":
+            playback_check(r, cand, run, flags, "watch")
+        elif kind == "reference":
+            r.out("    a reference for other cases: its exit status and expect facts only")
+        elif kind == "samestream":
+            samestream_check(r, os.path.join(cand, f.get("first", "")), run, os.path.join(cand, f.get("ref", "")),
+                             "cross " + f.get("first", "") + " + " + f.get("ref", ""))
         elif kind == "sameboard":
             sameboard_check(r, os.path.join(cand, f.get("ref", "")), run, "cross " + f.get("ref", ""))
         elif kind == "samegrids":
@@ -1178,8 +1570,8 @@ def compare(oracle, expect_path=None):
             r.fail("the candidate run %s hash.txt" % ("has a" if kind == "plain" else "has no"))
         if kind in EXPECT_KINDS and expect_path:
             check_expect(r, run, kind, expect.get(name, []), flags)
-        if kind in ("script", "load", "inert", "autoplay", "seeded"):
-            for s in list_tree(os.path.join(run, "snaps"), lambda p: not p.endswith("/")):
+        if kind in ("script", "load", "inert", "autoplay", "seeded", "recording", "samestream", "reference"):
+            for s in list_tree(os.path.join(run, "snaps"), lambda p: p.endswith(".dat")):
                 r.out("    snapshot %s: %s" % (s, save_state(os.path.join(run, "snaps", s))))
             for s in savegames(run):
                 r.out("    %s: %s" % (s, save_state(os.path.join(run, "user", s))))
@@ -1237,6 +1629,12 @@ def main(argv):
         return 0
     if len(argv) == 4 and argv[1] == "quit-cuts":
         quit_cuts(argv[2], argv[3])
+        return 0
+    if len(argv) == 3 and argv[1] == "fake-replays":
+        fake_replays(argv[2])
+        return 0
+    if len(argv) == 5 and argv[1] == "corrupt-replay":
+        corrupt_replay(argv[2], argv[3], argv[4])
         return 0
     if len(argv) >= 3 and argv[1] == "savestate":
         for p in argv[2:]:
