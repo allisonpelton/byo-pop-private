@@ -2524,7 +2524,8 @@ Stage 14 needs stages 3, 4 and 2's owned RNG.
 
 **Answers (2026-10-18):**
 - **Q1, version control:** yes. The baseline is commit `9dcba7d` on `master`; the stages are
-  committed on the `code-mods` branch. The frozen baseline exe is `build/baseline/bejeweled.exe`.
+  committed on the `code-mods` branch (the trunk, renamed `main` after stage 5). The frozen baseline exe is
+  `build/baseline/bejeweled.exe`.
 - **Q3, feature gating:** feature mods.
 - **Q6, holes:** gems fall through holes. Also add dirt tiles that need a match next to them, block
   falling gems, and let gems fall diagonally, alternating left and right (Jewel Quest). See 4.14

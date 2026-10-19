@@ -64,7 +64,8 @@ The work is split across Claude sessions (the user's design, 2026-10-19):
   above) with a precise spec: what, why, which files, how to test. A tiny shared fix it cannot wait for
   goes in its own commit titled `shared: ...`, so the coordinator can review it and carry it over. Game
   sessions do not edit another game's folder.
-- **Trunk:** `code-mods` (to be renamed `main`). Game branches merge the trunk in regularly.
+- **Trunk:** `main` (named `code-mods` until 2026-10-19, after Bejeweled's code-mods stages 4 and 5). Game branches
+  merge the trunk in regularly.
 - **Mark overrides.** Port-side game code that overrides a framework virtual (hooks such as
   `GetShutdownSaves`, `HandleScriptCommand`, `OpenURL`) must say `override`, so a renamed or changed hook
   breaks the build instead of silently never being called. (A rename once left Big Money's web backup
