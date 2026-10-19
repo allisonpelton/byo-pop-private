@@ -998,10 +998,17 @@ static void SetValueInRoot(JsonValue* theRoot, const ModInfo& theMod, const ModS
 			aModValues.Set(theDef.mId, theValue);
 		aModNext.Remove(theDef.mId);
 	}
-	PutObject(&aMods, theMod.mId, aModValues);
-	PutObject(&aNext, theMod.mId, aModNext);
-	PutObject(theRoot, "mods", aMods);
-	PutObject(theRoot, "next", aNext);
+	// Only what changed is put back: an empty object the file already has stays (no write for a no-op)
+	if (aModValues.Dump(0) != ObjectAt(aMods, theMod.mId).Dump(0))
+	{
+		PutObject(&aMods, theMod.mId, aModValues);
+		PutObject(theRoot, "mods", aMods);
+	}
+	if (aModNext.Dump(0) != ObjectAt(aNext, theMod.mId).Dump(0))
+	{
+		PutObject(&aNext, theMod.mId, aModNext);
+		PutObject(theRoot, "next", aNext);
+	}
 }
 
 std::string ModManager::EditSetting(const std::string& theId, const std::string& theSettingId, const JsonValue& theValue)

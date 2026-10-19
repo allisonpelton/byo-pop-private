@@ -1,0 +1,105 @@
+# The menu by keyboard alone, on the title screen of any game, from an empty user dir (F2 itself is real input
+# only: fwtest -hotkeytest). run_tests.sh compares the files with expect/keys-*.json.
+250 modmenu open
+# The list: plain-demo has the focus. Space switches it off, Alt+Down moves it below settings-demo
+260 char SPACE
+261 keydown MENU
+262 key DOWN
+263 keyup MENU
+# Up to settings-demo, Enter opens its page; the focus is on Shortest match (3)
+270 key UP
+271 key RETURN
+280 screenshot shots/k01_page.png
+# Shortest match: Right three times stops at 5, Left gives 4
+281 key RIGHT
+282 key RIGHT
+283 key RIGHT
+284 key LEFT
+# Undo on (Space)
+290 key DOWN
+291 char SPACE
+# Undo depth: Shift+Right is ten steps (stops at 10), then Left: 9
+300 key DOWN
+301 keydown SHIFT
+302 key RIGHT
+303 keyup SHIFT
+304 key LEFT
+# Board: Enter cycles to Diamond
+310 key DOWN
+311 key RETURN
+# Speed: Shift+Left, ten steps of 0.1 from 1.0, stops at 0.5
+320 key DOWN
+321 keydown SHIFT
+322 key LEFT
+323 keyup SHIFT
+# Record replays: Space on, Delete puts it back to its default (off)
+330 key DOWN
+331 char SPACE
+332 key DELETE
+# Praise text: Enter edits; Esc cancels an edit; then a new text (charset upper: "hi!" types "HI!")
+340 key DOWN
+341 key RETURN
+342 char X
+343 key ESCAPE
+344 key RETURN
+345 key BACK
+346 key BACK
+347 key BACK
+348 key BACK
+349 key BACK
+350 key BACK
+351 key BACK
+352 key BACK
+353 key BACK
+354 key BACK
+355 char h
+356 char i
+357 char !
+358 key HOME
+359 char O
+360 key END
+361 screenshot shots/k02_editing.png
+362 key RETURN
+# Music: Right, to Remix
+370 key DOWN
+371 key RIGHT
+# Tint: Right goes to the palette colour nearest #ff8800 (#ff8000), Right again to the next (#ffff00); then the
+# hex is typed: Enter, Backspace up to the '#', "00FF80" (made lower case), Enter
+380 key DOWN
+381 key RIGHT
+382 key RIGHT
+383 key RETURN
+384 key BACK
+385 key BACK
+386 key BACK
+387 key BACK
+388 key BACK
+389 key BACK
+392 char 0
+393 char 0
+394 char F
+395 char F
+396 char 8
+397 char 0
+398 key RETURN
+# Volume (live): Left, 90; End and Home go to the last and first rows
+400 key DOWN
+401 key LEFT
+402 key HOME
+403 key END
+404 screenshot shots/k03_page_end.png
+# Tab from the last row goes to the footer's Reset; Enter on it asks first, Esc says no
+410 key TAB
+411 key RETURN
+412 screenshot shots/k04_reset_question.png
+413 key ESCAPE
+# Esc goes back to the list (settings-demo focused, the first row): Tab to its Down button, Enter moves it down
+420 key ESCAPE
+421 key TAB
+422 key RETURN
+423 screenshot shots/k05_list.png
+430 modmenu dump keys-state.json
+# Esc closes the menu
+440 key ESCAPE
+441 screenshot shots/k06_closed.png
+450 quit

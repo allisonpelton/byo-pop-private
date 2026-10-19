@@ -1516,4 +1516,142 @@ JsonValue ModSettingSchemaJson(const ModSettingDef& theDef)
 	return aJson;
 }
 
+
+//////////////////////////////////////////////////////////////////////////
+// The mod menu's controls
+
+// The colours "Left" and "Right" step through on a colour setting
+static const char* const kPalette[] =
+{
+	"#ffffff", "#c0c0c0", "#808080", "#000000", "#ff0000", "#ff8000", "#ffff00", "#80ff00",
+	"#00ff00", "#00ff80", "#00ffff", "#0080ff", "#0000ff", "#8000ff", "#ff00ff", "#ff0080"
+};
+
+int64_t ModSettingStepCount(const ModSettingDef& theDef)
+{
+	if ((theDef.mType == MOD_SETTING_INT) || (theDef.mType == MOD_SETTING_FLOAT))
+		return (theDef.mMax - theDef.mMin) / theDef.mStep;
+	if (theDef.mType == MOD_SETTING_CHOICE)
+		return theDef.mChoices.empty() ? 0 : (int64_t) theDef.mChoices.size() - 1;
+	if (theDef.mType == MOD_SETTING_BOOL)
+		return 1;
+	return 0;
+}
+
+int64_t ModSettingStepIndex(const ModSettingDef& theDef, const JsonValue& theValue)
+{
+	switch (theDef.mType)
+	{
+	case MOD_SETTING_BOOL:
+		return theValue.AsBool(false) ? 1 : 0;
+	case MOD_SETTING_INT:
+	case MOD_SETTING_FLOAT:
+	{
+		int64_t aUnits = 0;
+		if (theDef.mType == MOD_SETTING_FLOAT)
+			aUnits = UnitsOf(theValue.AsNumber(), theDef.mScale);
+		else if (!IsWholeNumber(theValue, &aUnits))
+			aUnits = theDef.mMin;
+		int64_t k = (aUnits - theDef.mMin) / theDef.mStep;
+		return std::max((int64_t) 0, std::min(ModSettingStepCount(theDef), k));
+	}
+	case MOD_SETTING_CHOICE:
+	{
+		std::string aText;
+		ScalarText(theValue, &aText);
+		for (size_t i = 0; i < theDef.mChoices.size(); i++)
+			if (theDef.mChoices[i].mCanonical == aText)
+				return (int64_t) i;
+		return 0;
+	}
+	default:
+		return 0;
+	}
+}
+
+JsonValue ModSettingAtStep(const ModSettingDef& theDef, int64_t theIndex)
+{
+	int64_t k = std::max((int64_t) 0, std::min(ModSettingStepCount(theDef), theIndex));
+	switch (theDef.mType)
+	{
+	case MOD_SETTING_BOOL:
+		return JsonValue(k != 0);
+	case MOD_SETTING_INT:
+		return JsonValue((double) (theDef.mMin + k * theDef.mStep));
+	case MOD_SETTING_FLOAT:
+		return JsonValue(FromUnits(theDef.mMin + k * theDef.mStep, theDef.mScale));
+	case MOD_SETTING_CHOICE:
+		return theDef.mChoices.empty() ? theDef.mDefault : theDef.mChoices[(size_t) k].mValue;
+	default:
+		return theDef.mDefault;
+	}
+}
+
+JsonValue ModSettingStep(const ModSettingDef& theDef, const JsonValue& theValue, int theSteps)
+{
+	switch (theDef.mType)
+	{
+	case MOD_SETTING_BOOL:
+		return JsonValue(((theSteps % 2) != 0) ? !theValue.AsBool(false) : theValue.AsBool(false));
+	case MOD_SETTING_INT:
+	case MOD_SETTING_FLOAT:
+		return ModSettingAtStep(theDef, ModSettingStepIndex(theDef, theValue) + theSteps);
+	case MOD_SETTING_CHOICE:
+	{
+		int64_t aCount = (int64_t) theDef.mChoices.size();
+		if (aCount == 0)
+			return theValue;
+		int64_t k = ((ModSettingStepIndex(theDef, theValue) + theSteps) % aCount + aCount) % aCount;
+		return theDef.mChoices[(size_t) k].mValue;
+	}
+	case MOD_SETTING_COLOR:
+	{
+		// From the palette colour nearest to the value
+		std::string aColor;
+		if (!theValue.IsString() || !ParseColor(theValue.AsString(), theDef.mAlpha, &aColor))
+			aColor = theDef.mDefault.AsString("#000000");
+		int aNearest = 0;
+		long aBest = -1;
+		for (int i = 0; i < 16; i++)
+		{
+			long aDistance = 0;
+			for (int c = 0; c < 3; c++)
+			{
+				long d = HexByte(aColor, 1 + 2 * (size_t) c) - HexByte(kPalette[i], 1 + 2 * (size_t) c);
+				aDistance += d * d;
+			}
+			if ((aBest < 0) || (aDistance < aBest))
+			{
+				aBest = aDistance;
+				aNearest = i;
+			}
+		}
+		int aSteps = theSteps;
+		if ((aBest != 0) && (aSteps != 0))
+			aSteps += (aSteps > 0) ? -1 : 1;  // the first step lands on the nearest colour itself
+		int k = ((aNearest + aSteps) % 16 + 16) % 16;
+		std::string aResult = kPalette[k];
+		if (theDef.mAlpha)
+			aResult += (aColor.size() == 9) ? aColor.substr(7) : "ff";
+		return JsonValue(aResult);
+	}
+	default:
+		return theValue;
+	}
+}
+
+unsigned char ModSettingTypedChar(const ModSettingDef& theDef, unsigned char theChar)
+{
+	if (theDef.mType == MOD_SETTING_COLOR)
+	{
+		if (theChar == '#')
+			return theChar;
+		return isxdigit(theChar) ? (unsigned char) tolower(theChar) : 0;
+	}
+	if (theDef.mType != MOD_SETTING_TEXT)
+		return 0;
+	unsigned char c = CharsetChar(theChar, theDef.mCharset, theDef.mNoPercent);
+	return ((c == '?') && (theChar != '?')) ? 0 : c;
+}
+
 }

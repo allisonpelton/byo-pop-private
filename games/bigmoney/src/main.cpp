@@ -12,6 +12,7 @@
 
 #include "WinBMApp.h"
 #include "platform/ModManager.h"
+#include "platform/Relaunch.h"
 #include "platform/VFS.h"
 #include "platform/WebPersist.h"
 
@@ -184,7 +185,12 @@ int main(int argc, char** argv)
 	anApp->Start();
 #ifndef __EMSCRIPTEN__
 	anApp->Shutdown();
+	// port: the mod menu's "Restart game" starts the game again (platform/Relaunch.h; the web page reloads)
+	std::vector<std::string> aRestartArgs;
+	bool restart = anApp->TakeRelaunch(&aRestartArgs);
 	delete anApp;
+	if (restart)
+		Platform::Relaunch(aRestartArgs, "Big Money Deluxe");
 #endif
 	return 0;
 }

@@ -76,6 +76,25 @@ struct ShutdownSave
 	std::string mData;
 };
 
+// port: a game's message about a mod, shown in the mod menu (SexyAppBase::GetModMessages), e.g. a rule the
+// game could not use
+struct ModMessage
+{
+	std::string mModId;  // "" for a message about all mods
+	std::string mText;   // UTF-8
+	bool mIsError;
+};
+
+// port: what SexyAppBase::RequestRestart did
+enum
+{
+	RESTART_STARTED,   // the app shuts down and starts again
+	RESTART_CONFIRM,   // a game is in progress: ask first (theMessage), then call again confirmed
+	RESTART_BLOCKED    // not now (theMessage says why)
+};
+
+class ModMenu;
+
 enum
 {
 	CURSOR_POINTER,
@@ -304,13 +323,15 @@ public:
 	//   -seed=N         seed Rand() with N instead of the tick count
 	//   -script=<file>  scripted input; the real mouse, keyboard and focus changes are ignored. One
 	//                   command per line, "<update count> <command> [args]", run when mUpdateCount
-	//                   reaches the count (before that update; '#' starts a comment):
+	//                   reaches the count (before that update; '#' starts a comment, except inside "..."):
 	//                     click <x> <y>        mouse down + up (left button) at logical coordinates
 	//                     rclick <x> <y>       mouse down + up with the right button
 	//                     down|up|move <x> <y> one mouse event (a move with the button down drags)
 	//                     key <keycode>        key down + up (number or KeyCodes.cpp name, e.g. RETURN);
 	//                                          Enter, Backspace, Tab and Esc also type their character
 	//                                          (no other key does: "key SPACE" types no space)
+	//                     keydown|keyup <keycode>  only the key down (typing nothing) or only the key up,
+	//                                          e.g. to hold SHIFT or MENU (Alt) around another key
 	//                     char <c>             one typed character (KeyChar): the first character of
 	//                                          the argument, which is trimmed; "char SPACE" (exactly)
 	//                                          types a space
@@ -319,6 +340,11 @@ public:
 	//                                          rendering, see CreateCrossfadeImage)
 	//                     screenshotfull <png> the same at the render target's size (shows HD art)
 	//                     quit                 Shutdown()
+	//                     modmenu <what> ...   the mod menu (framework/ModMenu.h; a mod id with spaces in
+	//                                          "..."): open, close, page <mod> | list, enable <mod> 0|1,
+	//                                          move <mod> -1|1, set <mod> <setting> <JSON value>, reset <mod>,
+	//                                          restart [confirm], dump <file> (the state JSON). F2 is real
+	//                                          input only: "key F2" goes to the focused widget.
 	//                   Other commands go to the game's HandleScriptCommand (WinDMApp: save <file>).
 	//   -fast           updates run back to back on a virtual clock and the screen is drawn every
 	//                   FAST_DRAW_INTERVAL updates, so a script runs as fast as the machine allows
@@ -337,6 +363,12 @@ public:
 	std::vector<ScriptCommand> mScript;
 	size_t mScriptPos;         // next command to run
 	bool mScriptedInput;       // a test bot (the game's -autoplay) feeds mScript: real input is ignored as in a -script run
+
+	// port: the mod menu (framework/ModMenu.h, docs/MOD_MENU_DESIGN.md). F2 opens and closes it; nothing of it
+	// exists until it first opens.
+	ModMenu* mModMenu;          // while it is open
+	bool mModMenuKeyDown;       // the F2 that toggled it is down: its key-up is not passed on
+	bool mRestartRequested;     // RequestRestart: the app shuts down to start again (main(): TakeRelaunch)
 
 protected:
 	void RehupFocus();
@@ -589,6 +621,34 @@ public:
 	// Test hook: queues a command as if it were a -script line, run by RunScript after the commands
 	// already queued for that update. A test bot uses it, so its input takes exactly the script's path.
 	void AddScriptCommand(int theUpdateCount, const std::string& theCommand, const std::string& theArgs);
+
+	// --- port: the mod menu and restarts (docs/MOD_MENU_DESIGN.md 5, 6) ---
+	// The menu is a base modal widget above everything (not a dialog: it is not in mDialogMap). It pauses the
+	// game through ModalOpen()/ModalClose() exactly as a modal dialog does. F2 (no modifiers, no repeat) toggles
+	// it with real input, never in a -script run; scripts use "modmenu ..." (RunScript).
+	void OpenModMenu();
+	void CloseModMenu();
+	bool IsModMenuOpen() const { return mModMenu != NULL; }
+
+	// Restarts the game: the app shuts down as on Quit (the game's own shutdown save) and starts again. Natively
+	// main() starts the exe again (TakeRelaunch, Platform::Relaunch); on the web the page reloads. Returns
+	// RESTART_BLOCKED when CanRestartNow says no, RESTART_CONFIRM when a game is in progress and isConfirmed is
+	// false (theMessage: the question), else RESTART_STARTED.
+	int RequestRestart(bool isConfirmed, SexyString* theMessage);
+	// main(), after Shutdown() and before deleting the app: true when the app should start again with theArgs
+	// (logs "restart: <args>"). A test run (rundesk's BYOPOP_TEST_RUN, the oracle's BEJ_TEST_DESKTOP, -script or a
+	// test bot) does not start again unless BYOPOP_RELAUNCH_TEST_ARGS is set: then its arguments are added.
+	bool TakeRelaunch(std::vector<std::string>* theArgs);
+	// Hooks, each with a default: whether a restart is possible now (default yes), whether a game is in progress
+	// (the restart then asks first; default no), the arguments a restart keeps (default: -gamedir, -userdir,
+	// -modsdir, -changedir, -renderscale as given; a game adds its own), and the game's messages per mod.
+	virtual bool CanRestartNow(SexyString* theReason);
+	virtual bool HasGameInProgress();
+	virtual void GetRestartArgs(std::vector<std::string>* theArgs);
+	virtual void GetModMessages(std::vector<ModMessage>* theMessages);
+	// True in a test run (rundesk, the oracle, a -script run or a test bot): a restart does not start the game
+	// again (TakeRelaunch)
+	bool IsTestRun();
 };
 
 extern SexyAppBase* gSexyAppBase;

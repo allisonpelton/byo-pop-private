@@ -158,7 +158,7 @@ input[type=file] { display: none; }
 
     <div class="overlay" id="exit-overlay" hidden>
       <div class="card">
-        <h2>Thanks for playing</h2>
+        <h2 id="exit-title">Thanks for playing</h2>
         <p id="exit-msg">Saving…</p>
         <div class="row"><button class="primary" id="btn-play-again" type="button" disabled>Play again</button></div>
       </div>
@@ -223,13 +223,20 @@ input[type=file] { display: none; }
     onRuntimeInitialized: function () { acquireInstanceLock().then(mountStorage).then(boot); },
     onAbort: function (what) { setStatus("The game stopped: " + what); },
     // Called by the game after it quits (the tab can't close itself): silence it, wait for the save
-    // to reach browser storage, then offer a restart.
-    onGameExit: function () {
+    // to reach browser storage, then offer a restart. info.restart: the game's mod menu asked to restart, so the
+    // page reloads and starts the game again by itself (restartPage).
+    onGameExit: function (info) {
       try { if (Module.SDL2 && Module.SDL2.audioContext) Module.SDL2.audioContext.suspend(); } catch (e) {}
-      setStatus("Game closed");
+      var restart = !!(info && info.restart);
+      setStatus(restart ? "Restarting…" : "Game closed");
+      if (restart) {
+        $("exit-title").textContent = "Restarting";
+        $("exit-msg").textContent = "Saving, then starting again…";
+      }
       $("exit-overlay").hidden = false;
       var waitForSave = function () {
         if (Module.sexySyncBusy || Module.sexySyncPending) { setTimeout(waitForSave, 100); return; }
+        if (restart) { restartPage(info); return; }
         // The game writes savegame.dat (savegame-<key>.dat with gameplay mods) only for a game in progress
         var hasSave = listDir(USER).some(function (n) { return /^savegame.*\.dat$/i.test(n); });
         $("exit-msg").textContent = hasSave
@@ -241,6 +248,28 @@ input[type=file] { display: none; }
       waitForSave();
     }
   };
+
+  // ---------- restart (the game's mod menu) ----------
+  // The page reloads (the game cannot run twice in one page) and starts the game at once, without the Play
+  // overlay: a flag in this tab's sessionStorage. Sound comes back with the first click or key. A restart drops
+  // some of the game's arguments (info.dropped): -gameseed takes ?seed= with it, so a seed that was played is not
+  // played again.
+  var AUTOSTART = "byopop-autostart:bejeweled";
+  function restartPage(info) {
+    try { sessionStorage.setItem(AUTOSTART, "1"); } catch (e) {}
+    if ((info.dropped || []).indexOf("-gameseed") >= 0) {
+      var url = new URL(location.href);
+      url.searchParams.delete("seed");
+      history.replaceState(null, "", url.toString());
+    }
+    location.reload();
+  }
+  function takeAutostart() {
+    try {
+      if (sessionStorage.getItem(AUTOSTART)) { sessionStorage.removeItem(AUTOSTART); return true; }
+    } catch (e) {}
+    return false;
+  }
 
   // ---------- one copy at a time ----------
   // Like the original (mOnlyAllowOneCopyToRun). Two pages would each write their own copy of the saves to
@@ -598,13 +627,13 @@ input[type=file] { display: none; }
   // ?silent=1: no sound, for automated tests in a browser pane that may be hidden (CLAUDE.md). The game
   // still mixes and plays its sounds as usual; Platform::Mixer outputs silence (Module.silentAudio).
   function pageSilent() { return new URLSearchParams(location.search).get("silent") === "1"; }
-  function startGame() {
+  function startGame(isAutostart) {
     $("start-overlay").hidden = true;
     var enabled = modState.filter(function (m) { return m.enabled; }).length;
     var seed = pageSeed();
     var seedText = (seed > 0) ? " · seed " + seed : (seed < 0) ? " · seed ignored: it must be 1 to 4294967295" : "";
     Module.silentAudio = pageSilent();
-    setStatus((enabled ? enabled + " mod" + (enabled > 1 ? "s" : "") + " active" : "No mods active") + seedText + (Module.silentAudio ? " · silent" : ""));
+    setStatus((enabled ? enabled + " mod" + (enabled > 1 ? "s" : "") + " active" : "No mods active") + seedText + (Module.silentAudio ? " · silent" : (isAutostart === true ? " · sound after a click or key" : "")));
     Module.callMain(["-gamedir=" + GAME, "-userdir=" + USER, "-modsdir=" + MODS, "-replaydir=" + REPLAYS].concat((seed > 0) ? ["-gameseed=" + seed] : []));
     $("canvas").focus();
   }
@@ -615,6 +644,8 @@ input[type=file] { display: none; }
       $("import-overlay").hidden = false;
       return;
     }
+    // After the game's own restart: straight back in
+    if (takeAutostart()) { startGame(true); return; }
     setStatus("Ready");
     $("start-overlay").hidden = false;
   }
@@ -626,7 +657,7 @@ input[type=file] { display: none; }
   }
   $("pick-game-folder").addEventListener("change", function (ev) { onGamePicked(Promise.resolve(filesFromInput(ev.target.files))); ev.target.value = ""; });
   $("pick-game-zip").addEventListener("change", function (ev) { if (ev.target.files[0]) onGamePicked(filesFromZip(ev.target.files[0])); ev.target.value = ""; });
-  $("btn-start").addEventListener("click", startGame);
+  $("btn-start").addEventListener("click", function () { startGame(false); });
   $("btn-play-again").addEventListener("click", function () { location.reload(); });
 
   $("pick-mod-folder").addEventListener("change", function (ev) {
@@ -643,6 +674,11 @@ input[type=file] { display: none; }
   });
   $("btn-apply-mods").addEventListener("click", function () { saveModConfig().then(function () { location.reload(); }); });
 
+  // Keys typed in a panel stay there: SDL listens to the whole window and would also give them to the game (and
+  // keep Backspace, Tab and the arrows from the panel's fields)
+  document.querySelectorAll(".panel").forEach(function (p) {
+    ["keydown", "keyup", "keypress"].forEach(function (t) { p.addEventListener(t, function (e) { e.stopPropagation(); }); });
+  });
   function openPanel(id) { ["panel-mods", "panel-files"].forEach(function (p) { $(p).hidden = p !== id; }); }
   document.querySelectorAll("[data-close]").forEach(function (b) {
     b.addEventListener("click", function () { b.closest(".panel").hidden = true; $("canvas").focus(); });

@@ -1,0 +1,4 @@
+# Big Money, started again by bigmoney-restart.txt: the state shows the changed value applied.
+250 screenshot shots/r01_title.png
+260 modmenu dump relaunched-state.json
+300 quit

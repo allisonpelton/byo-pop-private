@@ -2,7 +2,9 @@
 // (docs/MOD_MENU_DESIGN.md 3 and 4): the schema checks of 3.6, stored values, placeholders (map, as, null,
 // $omit, nesting, errors), the levels of 3.5, score key entries (example-relaxed keeps 58ebd9d7), float values
 // that are the same bits on native and wasm, the data/diff.txt owner as VFS::Resolve finds it, and the
-// edits of mods.json and mod-settings.json (unknown keys kept, no write for a no-op, next-game commits).
+// edits of mods.json and mod-settings.json (unknown keys kept, no write for a no-op, next-game commits); the mod
+// menu's controls (ModSettingStep, the step indexes of its sliders, typed characters) and the quoting of the
+// arguments a native restart passes on (platform/Relaunch.h).
 //
 //   modsettingstest [-v] [<temp dir>]   every check; prints a summary, exit status 0 when all pass
 //
@@ -14,6 +16,7 @@
 
 #include "platform/ModManager.h"
 #include "platform/ModSettings.h"
+#include "platform/Relaunch.h"
 #include "platform/UserFiles.h"
 #include "platform/VFS.h"
 
@@ -964,6 +967,96 @@ static void TestExamples()
 		(s.Find("excellent")->mLevel == MOD_LEVEL_RESTART), "example-settings levels");
 }
 
+//////////////////////////////////////////////////////////////////////////
+// The mod menu's controls (ModSettingStep and friends) and its restart (Relaunch's quoting)
+
+static void TestMenuControls()
+{
+	ModSettings s = Schema("{ \"settings\": ["
+		"{ \"id\": \"b\", \"type\": \"bool\", \"label\": \"B\", \"default\": false },"
+		"{ \"id\": \"i\", \"type\": \"int\", \"label\": \"I\", \"default\": 4, \"min\": 0, \"max\": 9, \"step\": 2 },"
+		"{ \"id\": \"f\", \"type\": \"float\", \"label\": \"F\", \"default\": 1, \"min\": 0.5, \"max\": 2, \"step\": 0.1 },"
+		"{ \"id\": \"c\", \"type\": \"choice\", \"label\": \"C\", \"default\": 2, \"choices\": [ { \"value\": 1, \"label\": \"One\" }, { \"value\": 2, \"label\": \"Two\" }, "
+		"{ \"value\": \"three\", \"label\": \"Three\" } ] },"
+		"{ \"id\": \"t\", \"type\": \"text\", \"label\": \"T\", \"default\": \"HI\", \"maxLength\": 6, \"charset\": \"upper\" },"
+		"{ \"id\": \"d\", \"type\": \"text\", \"label\": \"D\", \"default\": \"1\", \"charset\": \"digits\" },"
+		"{ \"id\": \"k\", \"type\": \"color\", \"label\": \"K\", \"default\": \"#000000\" },"
+		"{ \"id\": \"a\", \"type\": \"color\", \"label\": \"A\", \"default\": \"#11223344\", \"alpha\": true } ] }");
+	const ModSettingDef& b = *s.Find("b");
+	const ModSettingDef& i = *s.Find("i");
+	const ModSettingDef& f = *s.Find("f");
+	const ModSettingDef& c = *s.Find("c");
+	const ModSettingDef& t = *s.Find("t");
+	const ModSettingDef& d = *s.Find("d");
+	const ModSettingDef& k = *s.Find("k");
+	const ModSettingDef& a = *s.Find("a");
+
+	CheckEq(std::to_string(ModSettingStepCount(i)) + " " + std::to_string(ModSettingStepCount(f)) + " " +
+		std::to_string(ModSettingStepCount(c)) + " " + std::to_string(ModSettingStepCount(b)) + " " + std::to_string(ModSettingStepCount(t)),
+		"4 15 2 1 0", "step counts: int 0..8 by 2, float 0.5..2 by 0.1, three choices, a bool, text none");
+	CheckEq(ModSettingStep(i, J("4"), 1).Dump(0) + " " + ModSettingStep(i, J("4"), 10).Dump(0) + " " + ModSettingStep(i, J("4"), -10).Dump(0),
+		"6 8 0", "int steps stop at the range's ends (8 is the last step under 9)");
+	CheckEq(ModSettingStep(f, J("1"), 1).Dump(0) + " " + ModSettingStep(f, J("1"), -10).Dump(0) + " " + ModSettingStep(f, J("1"), 100).Dump(0),
+		"1.1 0.5 2", "float steps: the same doubles as the JSON text, within the range");
+	Check(ModSettingStep(f, J("0.5"), 2).AsNumber() == 0.7, "... 0.5 + 2 steps is the double 0.7 (not 0.7000000000000001)");
+	CheckEq(ModSettingStep(c, J("2"), 1).Dump(0) + " " + ModSettingStep(c, J("\"three\""), 1).Dump(0) + " " + ModSettingStep(c, J("1"), -1).Dump(0),
+		"\"three\" 1 \"three\"", "choices go round");
+	CheckEq(ModSettingStep(b, J("false"), 1).Dump(0) + " " + ModSettingStep(b, J("false"), 2).Dump(0) + " " + ModSettingStep(b, J("true"), -1).Dump(0),
+		"true false false", "a bool toggles on an odd count");
+	CheckEq(ModSettingStep(k, J("\"#ff0000\""), 1).Dump(0) + " " + ModSettingStep(k, J("\"#ff0000\""), -1).Dump(0), "\"#ff8000\" \"#000000\"",
+		"a palette colour steps to its neighbours");
+	CheckEq(ModSettingStep(k, J("\"#ff8800\""), 1).Dump(0) + " " + ModSettingStep(k, J("\"#ff8800\""), 2).Dump(0), "\"#ff8000\" \"#ffff00\"",
+		"another colour steps to the nearest palette colour first");
+	CheckEq(ModSettingStep(k, J("\"#ffffff\""), -1).Dump(0), "\"#ff0080\"", "the palette goes round");
+	CheckEq(ModSettingStep(a, J("\"#11223344\""), 1).Dump(0), "\"#00000044\"", "with alpha the alpha stays");
+	CheckEq(ModSettingStep(t, J("\"HI\""), 1).Dump(0), "\"HI\"", "text does not step");
+	CheckEq(std::to_string(ModSettingStepIndex(i, J("6"))) + " " + std::to_string(ModSettingStepIndex(f, J("2"))) + " " +
+		std::to_string(ModSettingStepIndex(c, J("\"three\""))), "3 15 2", "step indexes (the sliders)");
+	CheckEq(ModSettingAtStep(f, 7).Dump(0) + " " + ModSettingAtStep(i, 99).Dump(0) + " " + ModSettingAtStep(c, 0).Dump(0), "1.2 8 1",
+		"values at a step index, clamped");
+
+	CheckEq(std::string(1, (char) ModSettingTypedChar(t, 'a')) + (char) ModSettingTypedChar(t, '%') + (char) ModSettingTypedChar(t, '?') +
+		(char) ModSettingTypedChar(t, 0xE9), "A%?\xC9", "typing into an upper-case text makes capitals");
+	Check(ModSettingTypedChar(d, 'x') == 0, "... a digit-only text takes no letter");
+	CheckEq(std::string(1, (char) ModSettingTypedChar(k, 'F')) + (char) ModSettingTypedChar(k, '#'), "f#", "a colour takes hex digits (lower case) and #");
+	Check(ModSettingTypedChar(k, 'g') == 0, "... and nothing else");
+	Check(ModSettingTypedChar(b, 'x') == 0, "nothing is typed into a bool");
+}
+
+static void TestRelaunchQuoting()
+{
+	CheckEq(QuoteCommandLineArg("-gamedir=C:/Games/Bejeweled"), "-gamedir=C:/Games/Bejeweled", "an argument without spaces as it is");
+	CheckEq(QuoteCommandLineArg("-userdir=C:/My Games/x"), "\"-userdir=C:/My Games/x\"", "one with a space in quotes");
+	CheckEq(QuoteCommandLineArg(""), "\"\"", "an empty one as \"\"");
+	CheckEq(QuoteCommandLineArg("a\"b"), "\"a\\\"b\"", "a quote escaped");
+	CheckEq(QuoteCommandLineArg("C:\\dir with space\\"), "\"C:\\dir with space\\\\\"", "a trailing backslash doubled before the closing quote");
+	CheckEq(QuoteCommandLineArg("a\\\\\"b c"), "\"a\\\\\\\\\\\"b c\"", "backslashes before a quote doubled, plus the quote's own");
+	CheckEq(QuoteCommandLineArg("C:\\a\\b"), "C:\\a\\b", "backslashes elsewhere stay single");
+}
+
+// An edit that changes nothing leaves a hand-written file alone, empty objects in it included
+static void TestNoOpBytes()
+{
+	gUserDataChanges = 0;
+	SetUserDataChangedCallback(&OnUserDataChanged);
+	Sandbox aBox("noop");
+	aBox.Mod("settings-demo", FixtureManifest());
+	std::string aText = "{\"v\":1,\"mods\":{\"settings-demo\":{\"minRun\":4},\"gone\":{}},\"next\":{},\"x\":0}";
+	aBox.User("mod-settings.json", aText);
+	ModManager& m = ModManager::Get();
+	m.Refresh();
+	int aChanges = gUserDataChanges;
+	CheckEq(m.EditSetting("settings-demo", "minRun", JsonValue(4.0)), "", "setting a value it already has");
+	CheckEq(m.EditSetting("settings-demo", "shape", J("\"full\"")), "", "setting a value at its default (not stored)");
+	CheckEq(aBox.UserText("mod-settings.json"), aText, "... the file keeps its bytes (its empty objects too)");
+	Check(gUserDataChanges == aChanges, "... nothing written");
+	CheckEq(m.EditSetting("settings-demo", "minRun", JsonValue(5.0)), "", "a real change");
+	JsonValue aRoot = J(aBox.UserText("mod-settings.json"));
+	CheckEq(aRoot["mods"].Dump(0), "{\"settings-demo\":{\"minRun\":5},\"gone\":{}}", "... changes that mod only");
+	Check(aRoot.Has("next") && aRoot.Has("x"), "... the rest stays");
+	SetUserDataChangedCallback(nullptr);
+}
+
 int main(int argc, char** argv)
 {
 	std::string aTemp;
@@ -992,6 +1085,9 @@ int main(int argc, char** argv)
 	TestEdits();
 	TestNextGame();
 	TestExamples();
+	TestMenuControls();
+	TestRelaunchQuoting();
+	TestNoOpBytes();
 
 	RemoveTree(gTemp);
 	printf("modsettingstest: %d checks, %d failed\n", gChecks, gFailures);

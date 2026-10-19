@@ -184,6 +184,18 @@ const char* ModSettingLevelName(int theLevel);
 // The schema of one setting as JSON (the state JSON of ModManager::GetStateJson)
 JsonValue ModSettingSchemaJson(const ModSettingDef& theDef);
 
+// The mod menu's controls (framework/ModMenu.cpp). An int, float, choice or bool has steps 0..StepCount: an int
+// or float min + k * step, a choice its k-th entry, a bool false and true.
+int64_t ModSettingStepCount(const ModSettingDef& theDef);
+int64_t ModSettingStepIndex(const ModSettingDef& theDef, const JsonValue& theValue);
+JsonValue ModSettingAtStep(const ModSettingDef& theDef, int64_t theIndex);
+// theValue moved by theSteps: an int or float within its range, a choice round its list, a bool toggled by an odd
+// count, a colour round a palette of 16 (from the palette colour nearest to it); text as it is
+JsonValue ModSettingStep(const ModSettingDef& theDef, const JsonValue& theValue, int theSteps);
+// A character typed into a text or colour setting (Latin-1): what its charset makes of it (a capital for
+// "upper", a lower-case hex digit for a colour), or 0 when it cannot be typed there
+unsigned char ModSettingTypedChar(const ModSettingDef& theDef, unsigned char theChar);
+
 }
 
 #endif

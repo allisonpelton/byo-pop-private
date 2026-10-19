@@ -1,0 +1,23 @@
+# Bejeweled: as pause-menu.txt, but the menu is used by keyboard (a page, a changed value, Space, Enter) and
+# closed by Esc: Esc and Enter act on the character they type, so none reaches the board (which would pause on
+# it). The -tracehash must be the same as pause-options.txt.
+300 click 320 398
+460 click 482 295
+461 click 533 295
+620 move 96 261
+620 modmenu open
+630 key DOWN
+631 key RETURN
+640 key RIGHT
+650 key DOWN
+651 char SPACE
+660 key RETURN
+661 char Z
+662 key RETURN
+670 screenshot shots/p01_menu.png
+700 key ESCAPE
+720 key ESCAPE
+720 move 407 299
+760 click 431 193
+761 click 431 244
+900 quit

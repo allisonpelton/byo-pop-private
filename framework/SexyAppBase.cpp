@@ -21,11 +21,14 @@
 #include "SDLSoundManager.h"
 #include "SDLMusicInterface.h"
 #include "SoundInstance.h"
+#include "ModMenu.h"
 #include "../platform/VFS.h"
 #include "../platform/ImageLoader.h"
 #include "../platform/ModManager.h"
 #include "../platform/WebPersist.h"
 #include "../platform/UserFiles.h"
+#include "../platform/Relaunch.h"
+#include "../platform/Json.h"
 #include "../platform/Audio.h"
 
 #include <SDL.h>
@@ -277,10 +280,12 @@ EM_JS_DEPS(sexyappbase, "$UTF8ToString");
 
 // A browser tab can't close itself, so after the game shuts down the page decides what to show
 // (Module.onGameExit, set by web/shell.html). Saves are written by then; the page waits for
-// Module.sexySyncBusy/sexySyncPending to clear before offering a reload.
-EM_JS(void, sexyapp_notify_exit, (), {
+// Module.sexySyncBusy/sexySyncPending to clear before offering a reload. port: the argument says whether the
+// game asked to restart (SexyAppBase::RequestRestart: the page then reloads and starts the game again) and
+// which of its arguments a restart drops (e.g. "-gameseed": the page's ?seed= goes too).
+EM_JS(void, sexyapp_notify_exit, (int isRestart, const char* theDroppedJson), {
 	if (typeof Module['onGameExit'] === 'function')
-		Module['onGameExit']();
+		Module['onGameExit']({ restart: !!isRestart, dropped: JSON.parse(UTF8ToString(theDroppedJson)) });
 });
 
 EM_JS(void, sexyapp_alert, (const char* theText), {
@@ -485,6 +490,9 @@ SexyAppBase::SexyAppBase()
 	mLastFastDrawUpdate = 0;
 	mScriptPos = 0;
 	mScriptedInput = false;
+	mModMenu = NULL;
+	mModMenuKeyDown = false;
+	mRestartRequested = false;
 
 	int i;
 
@@ -526,6 +534,15 @@ SexyAppBase::~SexyAppBase()
 	}
 	mDialogMap.clear();
 	mDialogList.clear();
+
+	// port: the mod menu, then its fonts and their image (while the display still exists)
+	if (mModMenu != NULL)
+	{
+		mWidgetManager->RemoveWidget(mModMenu);
+		delete mModMenu;
+		mModMenu = NULL;
+	}
+	ModMenu::FreeResources();
 
 	delete mWidgetManager;
 	mWidgetManager = NULL;
@@ -1859,6 +1876,32 @@ void SexyAppBase::HandleEvent(const SDL_Event& theEvent)
 
 			mLastUserInputTick = timeGetTime();
 
+			// port: F2 opens and closes the mod menu (docs/MOD_MENU_DESIGN.md 5.1): a press without modifiers
+			// that is not a key repeat. The game sees neither that press nor its release. (A -script run never
+			// gets here: its real input is dropped above.)
+			if ((aKeyCode == KEYCODE_F2) && (mInitialized) && (!mShutdown))
+			{
+				if ((keyDown) && (!theEvent.key.repeat) &&
+					((theEvent.key.keysym.mod & (KMOD_CTRL | KMOD_SHIFT | KMOD_ALT | KMOD_GUI)) == 0))
+				{
+					mModMenuKeyDown = true;
+					if (mModMenu != NULL)
+					{
+						mModMenu->CommitEdit();
+						CloseModMenu();
+					}
+					else
+						OpenModMenu();
+					break;
+				}
+				if (mModMenuKeyDown)
+				{
+					if (!keyDown)
+						mModMenuKeyDown = false;
+					break;
+				}
+			}
+
 			if (aKeyCode == KEYCODE_CONTROL)
 				mCtrlDown = keyDown;
 			if (aKeyCode == KEYCODE_MENU)
@@ -2377,7 +2420,26 @@ void SexyAppBase::EmscriptenMainLoop(void* theArg)
 		// Deletes the board, which saves a game in progress, and writes the settings
 		anApp->MainLoopFinished();
 		anApp->UpdateUserDataBackup(true);
-		sexyapp_notify_exit();
+		// port: a restart (RequestRestart) reloads the page, which starts the game again with its own arguments
+		// less those a restart drops
+		Platform::JsonValue aDropped = Platform::JsonValue::MakeArray();
+		if (anApp->mRestartRequested)
+		{
+			std::vector<std::string> aKept;
+			anApp->GetRestartArgs(&aKept);
+			std::vector<std::string> aNames;
+			for (const std::string& anArg : anApp->mCmdLineArgs)
+			{
+				std::string aName = anArg.substr(0, anArg.find('='));
+				if ((std::find(aKept.begin(), aKept.end(), anArg) == aKept.end()) && (std::find(aNames.begin(), aNames.end(), aName) == aNames.end()))
+				{
+					aNames.push_back(aName);
+					aDropped.Push(Platform::JsonValue(aName));
+				}
+			}
+			SDL_Log("restart: the page reloads");
+		}
+		sexyapp_notify_exit(anApp->mRestartRequested ? 1 : 0, aDropped.Dump(0).c_str());
 	}
 	else
 		anApp->UpdateUserDataBackup(false);
@@ -2500,6 +2562,7 @@ void SexyAppBase::Start()
 	DWORD aStartTime = timeGetTime();
 
 	mRunning = true;
+	Platform::ModManager::Get().SetGameRunning(true);
 	mLastTime = aStartTime;
 	mLastUserInputTick = aStartTime;
 	mLastTimerTime = aStartTime;
@@ -2513,6 +2576,7 @@ void SexyAppBase::MainLoopFinished()
 	ProcessSafeDeleteList();
 
 	mRunning = false;
+	Platform::ModManager::Get().SetGameRunning(false);
 
 	SDL_Log("Seconds = %g, Sleep Count = %d, Update Count = %d, Draw Count = %d",
 		(timeGetTime() - mTimeLoaded) / 1000.0, mSleepCount, mUpdateCount, mDrawCount);
@@ -2926,9 +2990,18 @@ bool SexyAppBase::LoadScript(const std::string& theFileName)
 	{
 		aLineNum++;
 		std::string aText = aLine;
-		size_t aComment = aText.find('#');
-		if (aComment != std::string::npos)
-			aText.erase(aComment);
+		// '#' starts a comment, except inside "..." (a colour: modmenu set <mod> tint "#ff8800")
+		bool isQuoted = false;
+		for (size_t i = 0; i < aText.size(); i++)
+		{
+			if (aText[i] == '"')
+				isQuoted = !isQuoted;
+			else if ((aText[i] == '#') && (!isQuoted))
+			{
+				aText.erase(i);
+				break;
+			}
+		}
 		if (aText.find_first_not_of(" \t\r\n") == std::string::npos)
 			continue;
 
@@ -3002,6 +3075,24 @@ void SexyAppBase::RunScript()
 				mWidgetManager->KeyChar((SexyChar) aKeyCode);
 			mWidgetManager->KeyUp(aKeyCode);
 		}
+		else if ((aName == "keydown") || (aName == "keyup"))
+		{
+			// port: one half of a key press, e.g. to hold SHIFT or MENU (Alt) around another key; types nothing
+			char* anEnd = NULL;
+			long aNum = strtol(aCommand.mArgs.c_str(), &anEnd, 10);
+			KeyCode aKeyCode = ((anEnd != aCommand.mArgs.c_str()) && (*anEnd == 0)) ? (KeyCode) aNum : GetKeyCodeFromName(aCommand.mArgs);
+			if ((aKeyCode <= KEYCODE_UNKNOWN) || (aKeyCode >= 0xFF))
+			{
+				SDL_Log("script: line %d: unknown key '%s'", aCommand.mLine, aCommand.mArgs.c_str());
+				continue;
+			}
+			if (aName == "keydown")
+				mWidgetManager->KeyDown(aKeyCode);
+			else
+				mWidgetManager->KeyUp(aKeyCode);
+		}
+		else if (aName == "modmenu")
+			ModMenu::RunScriptCommand(this, aCommand);
 		else if ((aName == "char") && (!aCommand.mArgs.empty()))
 		{
 			// The arguments are trimmed, so a space is spelled "char SPACE" (exactly; anything else types
@@ -3042,6 +3133,168 @@ void SexyAppBase::AddScriptCommand(int theUpdateCount, const std::string& theCom
 	while ((anItr != mScript.end()) && (anItr->mUpdateCount <= theUpdateCount))
 		++anItr;
 	mScript.insert(anItr, aCommand);
+}
+
+//////////////////////////////////////////////////////////////////////////
+// port: the mod menu and restarts (docs/MOD_MENU_DESIGN.md 5, 6)
+
+void SexyAppBase::OpenModMenu()
+{
+	if ((mModMenu != NULL) || (mShutdown) || (!mInitialized) || (mWidgetManager == NULL))
+		return;
+
+	MTAutoDisallowRand aDisallowRand;
+	mModMenu = new ModMenu(this);
+	mModMenu->Resize(0, 0, mWidth, mHeight);
+	mWidgetManager->AddWidget(mModMenu);
+	mWidgetManager->BringToFront(mModMenu);
+	// As AddDialog does for a modal dialog: the widgets below get no mouse or keys, and the game pauses
+	mWidgetManager->AddBaseModal(mModMenu);
+	mWidgetManager->SetFocus(mModMenu);
+	ModalOpen();
+}
+
+void SexyAppBase::CloseModMenu()
+{
+	if (mModMenu == NULL)
+		return;
+
+	MTAutoDisallowRand aDisallowRand;
+	ModMenu* aMenu = mModMenu;
+	mModMenu = NULL;
+	aMenu->Closing();
+	// KillDialog's order: the widget, the game's modal hook, then the focus back to what had it
+	mWidgetManager->RemoveWidget(aMenu);
+	ModalClose();
+	mWidgetManager->RemoveBaseModal(aMenu);
+	SafeDeleteWidget(aMenu);
+}
+
+bool SexyAppBase::CanRestartNow(SexyString* /*theReason*/)
+{
+	return true;
+}
+
+bool SexyAppBase::HasGameInProgress()
+{
+	return false;
+}
+
+// Strips the leading dashes and the value: "-gamedir=x" -> "gamedir"
+static std::string CmdLineName(const std::string& theArg)
+{
+	size_t aStart = theArg.find_first_not_of('-');
+	if (aStart == std::string::npos)
+		return "";
+	size_t anEnd = theArg.find('=');
+	return theArg.substr(aStart, (anEnd == std::string::npos) ? std::string::npos : anEnd - aStart);
+}
+
+void SexyAppBase::GetRestartArgs(std::vector<std::string>* theArgs)
+{
+	// The same game files, user dir and mods; the session's render scale. Not -nomods (the restart is how the
+	// menu applies mods), not -seed (a test hook: the same boards again) and no other test hook.
+	static const char* const aKept[] = { "gamedir", "userdir", "modsdir", "changedir", "renderscale" };
+	for (const std::string& anArg : mCmdLineArgs)
+	{
+		std::string aName = CmdLineName(anArg);
+		for (const char* aKeptName : aKept)
+		{
+			if (aName == aKeptName)
+			{
+				theArgs->push_back(anArg);
+				break;
+			}
+		}
+	}
+}
+
+void SexyAppBase::GetModMessages(std::vector<ModMessage>* /*theMessages*/)
+{
+}
+
+bool SexyAppBase::IsTestRun()
+{
+	return (SDL_getenv("BYOPOP_TEST_RUN") != NULL) || (SDL_getenv("BEJ_TEST_DESKTOP") != NULL) || (!mScriptFileName.empty()) ||
+		(mScriptedInput);
+}
+
+int SexyAppBase::RequestRestart(bool isConfirmed, SexyString* theMessage)
+{
+	SexyString aMessage;
+	if ((mShutdown) || (!CanRestartNow(&aMessage)))
+	{
+		if (theMessage != NULL)
+			*theMessage = aMessage;
+		return RESTART_BLOCKED;
+	}
+	if ((!isConfirmed) && (HasGameInProgress()))
+	{
+		// Where the game in progress goes: it is saved either way, but a score key change files it with the mods it
+		// was played with
+		Platform::ModManager& aMods = Platform::ModManager::Get();
+		if (aMods.GetNextScoreKey() != aMods.GetScoreKey())
+			aMessage = GetString("MODMENU_RESTART_ASK_KEY", _S("Restart now? Your game stays saved with the current mods and continues when you switch back to them."));
+		else
+			aMessage = GetString("MODMENU_RESTART_ASK", _S("Restart now? Your game is saved and you can continue it after the restart."));
+		if (theMessage != NULL)
+			*theMessage = aMessage;
+		return RESTART_CONFIRM;
+	}
+
+	mRestartRequested = true;
+	SDL_Log("restart: shutting down to start again");
+	// The new window should come to the front, but Shutdown hides this one at once (Windows only)
+	Platform::AllowRelaunchForeground();
+	// The game's own shutdown: its save and the settings, as on Quit
+	Shutdown();
+	return RESTART_STARTED;
+}
+
+bool SexyAppBase::TakeRelaunch(std::vector<std::string>* theArgs)
+{
+	theArgs->clear();
+	if (!mRestartRequested)
+		return false;
+
+	GetRestartArgs(theArgs);
+	bool isTestRun = IsTestRun();
+	const char* aTestArgs = SDL_getenv("BYOPOP_RELAUNCH_TEST_ARGS");
+	bool hasTestArgs = (aTestArgs != NULL) && (*aTestArgs != 0);
+	if (isTestRun && hasTestArgs)
+	{
+		// Words; "..." for one with spaces
+		std::string aText = aTestArgs;
+		size_t i = 0;
+		while (i < aText.size())
+		{
+			while ((i < aText.size()) && isspace((uchar) aText[i]))
+				i++;
+			if (i >= aText.size())
+				break;
+			std::string aWord;
+			bool isQuoted = false;
+			for (; (i < aText.size()) && (isQuoted || !isspace((uchar) aText[i])); i++)
+			{
+				if (aText[i] == '"')
+					isQuoted = !isQuoted;
+				else
+					aWord += aText[i];
+			}
+			theArgs->push_back(aWord);
+		}
+	}
+
+	std::string aLine;
+	for (const std::string& anArg : *theArgs)
+		aLine += " " + Platform::QuoteCommandLineArg(anArg);
+	if (isTestRun && !hasTestArgs)
+	{
+		SDL_Log("restart:%s (a test run: the game does not start again)", aLine.c_str());
+		return false;
+	}
+	SDL_Log("restart:%s", aLine.c_str());
+	return true;
 }
 
 // Draws the whole screen now and saves it as a PNG, at the logical size or (fullResolution) at the
