@@ -480,7 +480,7 @@ They are an error in `id`, `name`, `version`, `author`, `description`, `priority
   - it says `"affectsScores": true`.
 
   A mod with a score-affecting setting is score-affecting. A mod with `tunables` or `rules` already is (`ModManager.cpp:63`).
-- **Key entries.** The local key stays FNV-1a over the sorted entries (`ModManager.cpp:330-342`). Each score-affecting mod's entry is:
+- **Key entries.** The local key is FNV-1a over the entries in load order (`ModManager.cpp`, `HashKey`; sorted until the integration onto main, where a reorder in the menu could change the rules under an unchanged key, and Bejeweled then refused and deleted the v2 save kept under it). With one score-affecting mod, or several already in id order, the key is the same as the sorted one. Each score-affecting mod's entry is:
   - `id@version` when all its score-affecting settings are at their defaults (after `enabledIf`). This is today's entry.
   - Otherwise `id@version?` followed by `sid=canonical` pairs joined with `&`, sorted by `sid`. For example: `example-relaxed@1.0?hintPenalty=25`.
 - **Consequences.**
@@ -1036,6 +1036,15 @@ A shared `web/modpanel.js` is a step towards the survey's shell template (G6, `d
 - **`HasGameInProgress`:** `mBoard && mBoard->IsGameInProgress()`.
 - **Main:** the relaunch lines and `-dumpmods`.
 - **Shell:** the JavaScript for tags, `diff.txt` detection and status goes, because the API provides them. Seeds and replays stay.
+- **Known gaps from the integration onto main (2026-10-19), for M5:**
+  - On the web, Bejeweled's rule errors, dropped mods and warnings (`mods-status.json`, including stage 5's
+    warnings) show nowhere until `GetModMessages` above: main's shell read that file, the shared panel reads only
+    the state JSON. CODE_MODS_DESIGN 3.5 rule 8 still describes the old shell.
+  - `bejeweled_verify rulesid` and `bv_rules_id` (`games/bejeweled/src/headless/Verifier.cpp`, `RulesIdJson`) merge a
+    mod.json's raw `tunables` and `rules`, so a mod with `$setting` placeholders gets a wrong RulesId with no error.
+    Resolve the placeholders at their defaults first (`ModSettings::Parse`, `Analyze`, `Resolve`; add
+    `platform/ModSettings.cpp` and `platform/Text.cpp` to the verifier's sources) and report setting errors in
+    its `errors`.
 
 ### 8.3 Big Money (Big Money session, after merging the trunk)
 

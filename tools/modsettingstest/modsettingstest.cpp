@@ -711,6 +711,26 @@ static void TestScoreKey()
 		CheckEq(ModManager::Get().GetScoreKey(), Fnv({"hard@2?hard=true"}), "... and so has the applied key after a restart");
 		Check(Applied("hard")->mOverridesDiff, "... data/diff.txt resolves into it");
 	}
+	{
+		// Two mods that set the same tunable: the load order decides which value plays, so it is part of the key
+		// (the key is taken in load order, not sorted; a reorder must not keep a game under rules it was not made with)
+		Sandbox aBox("key-order");
+		aBox.Mod("aa", "{ \"id\": \"aa\", \"version\": \"1\", \"tunables\": { \"scoring\": { \"hintPenalty\": 20 } } }");
+		aBox.Mod("bb", "{ \"id\": \"bb\", \"version\": \"1\", \"tunables\": { \"scoring\": { \"hintPenalty\": 30 } } }");
+		ModManager& m = ModManager::Get();
+		m.Refresh();
+		std::string aKeyAB = m.GetScoreKey();
+		double aPenaltyAB = m.GetTunable("scoring.hintPenalty", 50);
+		CheckEq(aKeyAB, Fnv({"aa@1", "bb@1"}), "two score mods in folder order: the key over aa then bb");
+		aBox.User("mods.json", "{ \"order\": [ \"bb\", \"aa\" ] }");
+		m.Refresh();
+		CheckEq(m.GetScoreKey(), Fnv({"bb@1", "aa@1"}), "the other order: the key over bb then aa");
+		Check(m.GetScoreKey() != aKeyAB, "... a key of its own");
+		Check(m.GetTunable("scoring.hintPenalty", 50) != aPenaltyAB, "... and the other mod's hintPenalty plays");
+		CheckEq(m.EditMove("aa", -1), "", "the menu moves aa up again");
+		CheckEq(m.GetRestartScoreKey(), aKeyAB, "... the restart key is aa then bb's");
+		Check(m.GetRestartScoreKey() != m.GetScoreKey(), "... so the restart changes the key (the menu says so)");
+	}
 }
 
 static void TestDiffOwner()

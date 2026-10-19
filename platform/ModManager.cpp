@@ -85,12 +85,13 @@ static std::string LowerPath(const std::string& thePath)
 	return aPath;
 }
 
-// The FNV-1a key over the sorted entries ("" without any)
-static std::string HashKey(std::vector<std::string> theEntries)
+// The FNV-1a key over the entries in load order ("" without any). Not sorted: two mods that set the same rule
+// play differently in the other order (the higher one wins), so the order is part of what the key stands for;
+// a reorder that changes the rules then also changes the key, and the game saved under the old key stays there
+static std::string HashKey(const std::vector<std::string>& theEntries)
 {
 	if (theEntries.empty())
 		return "";
-	std::sort(theEntries.begin(), theEntries.end());
 	uint32_t h = 2166136261u;
 	for (const std::string& s : theEntries)
 		for (unsigned char c : s + ";")

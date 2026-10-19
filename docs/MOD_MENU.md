@@ -251,6 +251,9 @@ so that changed play never mixes with original scores.
   settings block to an existing mod keeps its players' scores and saved game. A score-affecting value away from
   its default adds itself to the entry, e.g. `example-relaxed@1.0?hintPenalty=25`, and every such combination
   gets its own high scores and saved game.
+- **The order of score-affecting mods counts.** The key is taken over their entries in load order, so moving
+  one of them past another gives a new key (when two mods set the same rule, the higher one wins, so the play
+  can differ). Moving a mod past a cosmetic one changes nothing.
 - **Cosmetic values never split scores.** These are values in `strings`, `images`, `files` other than gameplay
   files, and `features`.
 - **A value that counts for the scores is never live.** It applies at the next game at the earliest.

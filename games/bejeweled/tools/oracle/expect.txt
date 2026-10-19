@@ -322,7 +322,7 @@ pergame seeds 439:2135392491/pergame@2 1405:946286476/pergame@3 18544:491263/per
 
 rules_inert exit 0
 rules_inert mods Stage 1: no invalid moves, Stage 1: twist, Stage 1: slides, Stage 1: free swaps, Stage 1: out of range, Stage 1: diamond with dirt, Stage 1: features, Stage 1: nine colours, Stage 1: undo
-rules_inert user hiscores-11724ae5.dat mods-status.json registry.ini replays/ replays/*-timed-0.bjr savegame-11724ae5.bjr savegame-11724ae5.dat
+rules_inert user hiscores-c06fee23.dat mods-status.json registry.ini replays/ replays/*-timed-0.bjr savegame-c06fee23.bjr savegame-c06fee23.dat
 rules_inert settle 439 normal level 1 score 0 board tick 140
 rules_inert settle 532 normal level 1 score 0 board tick 233
 rules_inert settle 702 normal level 1 score 10 board tick 403
@@ -333,15 +333,15 @@ rules_inert settle 1405 timed level 1 score 0 board tick 146
 rules_inert settle 1492 timed level 1 score 0 board tick 233
 rules_inert settle 18544 timed level 1 score 0 board tick 145
 rules_inert states 16154:game_over 16486:game_over_done
-rules_inert save savegame-11724ae5.dat v2 normal level 0 (shown 1), 64 gems, state 1 (playing), score 40, play seconds 8, 10463 bytes; rules 0d71b685522c108e, 8x8, level shape 0, 0 holes; RNGS seed 2135392491, MOVE moves 2 invalid 0 undos 0, END
-rules_inert sidecar savegame-11724ae5.bjr end saved tick 880 score 40 level 1 gems 9 draws 529; seg0 normal seed 2135392491 CHECK6,PAUSE2,SAVE1,SELECT5,TARGET5,UNPAUSE2; rng seed 2135392491; goes with the save
+rules_inert save savegame-c06fee23.dat v2 normal level 0 (shown 1), 64 gems, state 1 (playing), score 40, play seconds 8, 10463 bytes; rules 0d71b685522c108e, 8x8, level shape 0, 0 holes; RNGS seed 2135392491, MOVE moves 2 invalid 0 undos 0, END
+rules_inert sidecar savegame-c06fee23.bjr end saved tick 880 score 40 level 1 gems 9 draws 529; seg0 normal seed 2135392491 CHECK6,PAUSE2,SAVE1,SELECT5,TARGET5,UNPAUSE2; rng seed 2135392491; goes with the save
 rules_inert replay replays/*-timed-0.bjr end time up tick 15127 score 0 level 1 gems 0 draws 4611; seg0 timed seed 946286476 CHECK2,PAUSE1,SELECT1,TARGET1,UNPAUSE1
-rules_inert status rulesId 0d71b685522c108e, scoreKey 11724ae5, features seeds(entry, perGame), replays(keep 5), 11 warnings, errors s1-bad, dropped s1-free-swaps
+rules_inert status rulesId 0d71b685522c108e, scoreKey c06fee23, features seeds(entry, perGame), replays(keep 5), 11 warnings, errors s1-bad, dropped s1-free-swaps
 rules_inert variant last moves 0 invalid 0, 0 of 9 settles without a move
 rules_inert seeds 439:2135392491/pergame@2 1405:946286476/pergame@3 18544:491263/pergame@5
 rules_inert@novariants exit 0
 rules_inert@novariants mods Stage 1: no invalid moves, Stage 1: twist, Stage 1: slides, Stage 1: free swaps, Stage 1: out of range, Stage 1: diamond with dirt, Stage 1: features, Stage 1: nine colours, Stage 1: undo
-rules_inert@novariants user hiscores-11724ae5.dat mods-status.json registry.ini replays/ replays/*-timed-0.bjr savegame-11724ae5.bjr savegame-11724ae5.dat
+rules_inert@novariants user hiscores-c06fee23.dat mods-status.json registry.ini replays/ replays/*-timed-0.bjr savegame-c06fee23.bjr savegame-c06fee23.dat
 rules_inert@novariants settle 439 normal level 1 score 0 board tick 140
 rules_inert@novariants settle 532 normal level 1 score 0 board tick 233
 rules_inert@novariants settle 702 normal level 1 score 10 board tick 403
@@ -352,10 +352,10 @@ rules_inert@novariants settle 1405 timed level 1 score 0 board tick 146
 rules_inert@novariants settle 1492 timed level 1 score 0 board tick 233
 rules_inert@novariants settle 18544 timed level 1 score 0 board tick 145
 rules_inert@novariants states 16154:game_over 16486:game_over_done
-rules_inert@novariants save savegame-11724ae5.dat v1 normal level 0 (shown 1), 64 gems, state 1 (playing), score 40, play seconds 8, 7873 bytes
-rules_inert@novariants sidecar savegame-11724ae5.bjr end saved tick 880 score 40 level 1 gems 9 draws 529; seg0 normal seed 2135392491 CHECK6,PAUSE2,SAVE1,SELECT5,TARGET5,UNPAUSE2; rng seed 2135392491; goes with the save
+rules_inert@novariants save savegame-c06fee23.dat v1 normal level 0 (shown 1), 64 gems, state 1 (playing), score 40, play seconds 8, 7873 bytes
+rules_inert@novariants sidecar savegame-c06fee23.bjr end saved tick 880 score 40 level 1 gems 9 draws 529; seg0 normal seed 2135392491 CHECK6,PAUSE2,SAVE1,SELECT5,TARGET5,UNPAUSE2; rng seed 2135392491; goes with the save
 rules_inert@novariants replay replays/*-timed-0.bjr end time up tick 15127 score 0 level 1 gems 0 draws 4611; seg0 timed seed 946286476 CHECK2,PAUSE1,SELECT1,TARGET1,UNPAUSE1
-rules_inert@novariants status rulesId 0d71b685522c108e, scoreKey 11724ae5, features seeds(entry, perGame), replays(keep 5), 11 warnings, errors s1-bad, dropped s1-free-swaps
+rules_inert@novariants status rulesId 0d71b685522c108e, scoreKey c06fee23, features seeds(entry, perGame), replays(keep 5), 11 warnings, errors s1-bad, dropped s1-free-swaps
 rules_inert@novariants seeds 439:2135392491/pergame@2 1405:946286476/pergame@3 18544:491263/pergame@5
 
 rules_only exit 0
