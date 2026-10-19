@@ -11,6 +11,9 @@
 #include "RecordScoreDialog.h"
 #include "CreditsDialog.h"
 #include "testhooks/Autoplay.h"
+#include "ModIndicators.h"
+#include "HDPixels.h"
+#include "platform/ModManager.h"
 
 #include "WidgetManager.h"
 #include "ButtonWidget.h"
@@ -26,6 +29,28 @@
 #include "SDLMusicInterface.h"
 
 using namespace Sexy;
+
+// The highlighted-coin colour (Init): every colour channel c -> min(255, c * 280 / 255 + 48), alpha kept
+static ulong BrightCoinPixel(ulong thePixel)
+{
+	ulong aBlue = ((thePixel & 0xff) * 280) / 255 + 48;
+	ulong aGreen = (((thePixel >> 8) & 0xff) * 280) / 255 + 48;
+	ulong aRed = (((thePixel >> 16) & 0xff) * 280) / 255 + 48;
+	if (aBlue > 255)
+		aBlue = 255;
+	if (aGreen > 255)
+		aGreen = 255;
+	if (aRed > 255)
+		aRed = 255;
+	return (thePixel & 0xff000000) | (aRed << 16) | (aGreen << 8) | aBlue;
+}
+
+// The grey selector illustrations (LoadingThreadProc): (r + g + b) / 3, alpha kept
+static ulong GreyPixel(ulong thePixel)
+{
+	ulong aGrey = (((thePixel >> 16) & 0xff) + ((thePixel >> 8) & 0xff) + (thePixel & 0xff)) / 3;
+	return (aGrey << 16) | (aGrey << 8) | (thePixel & 0xff000000) | aGrey;
+}
 
 // 0x41c790
 WinBMApp::WinBMApp()
@@ -558,20 +583,13 @@ void WinBMApp::Init()
 	ulong* aDestBits = mBrightCoinsImage->GetBits();
 	int aNumPixels = aCoinsImage->GetWidth() * aCoinsImage->GetHeight();
 	for (int i = 0; i < aNumPixels; i++)
-	{
-		ulong aPixel = aSrcBits[i];
-		ulong aBlue = ((aPixel & 0xff) * 280) / 255 + 48;
-		ulong aGreen = (((aPixel >> 8) & 0xff) * 280) / 255 + 48;
-		ulong aRed = (((aPixel >> 16) & 0xff) * 280) / 255 + 48;
-		if (aBlue > 255)
-			aBlue = 255;
-		if (aGreen > 255)
-			aGreen = 255;
-		if (aRed > 255)
-			aRed = 255;
-		aDestBits[i] = (aPixel & 0xff000000) | (aRed << 16) | (aGreen << 8) | aBlue;
-	}
+		aDestBits[i] = BrightCoinPixel(aSrcBits[i]);
+	// port: the same for a mod's HD coins (HDPixels.h)
+	HDPixels aCoinsHD = GetHDPixels(aCoinsImage);
+	for (size_t i = 0; i < aCoinsHD.mBits.size(); i++)
+		aCoinsHD.mBits[i] = (uint32_t) BrightCoinPixel(aCoinsHD.mBits[i]);
 	mBrightCoinsImage->BitsChanged();
+	SetHDPixels(mBrightCoinsImage, aCoinsHD);
 
 	mFont1 = new ImageFont(this, FONT_FILE_1);
 
@@ -607,6 +625,8 @@ void WinBMApp::Init()
 	mFont3OutlineUnderlined->Prepare();
 
 	mScoreFont = new ImageFont(this, FONT_FILE_SCORE);
+	if (!Platform::ModManager::Get().GetEnabledMods().empty())
+		AddModsDoubleStrokeToDollar(mScoreFont);  // port: a sign that mods are in use (ModIndicators.h)
 	mScoreFontSmall = new ImageFont(*mScoreFont);
 	mScoreFontSmall->SetPointSize(20);
 
@@ -666,12 +686,13 @@ void WinBMApp::LoadingThreadProc()
 	ulong* aDestBits = aGreyImage->GetBits();
 	int aNumPixels = anIllustrations->GetWidth() * anIllustrations->GetHeight();
 	for (int i = 0; i < aNumPixels; i++)
-	{
-		ulong aPixel = aSrcBits[i];
-		ulong aGrey = (((aPixel >> 16) & 0xff) + ((aPixel >> 8) & 0xff) + (aPixel & 0xff)) / 3;
-		aDestBits[i] = (aGrey << 16) | (aGrey << 8) | (aPixel & 0xff000000) | aGrey;
-	}
+		aDestBits[i] = GreyPixel(aSrcBits[i]);
+	// port: the same for a mod's HD illustrations (HDPixels.h)
+	HDPixels anIllustrationsHD = GetHDPixels(anIllustrations);
+	for (size_t i = 0; i < anIllustrationsHD.mBits.size(); i++)
+		anIllustrationsHD.mBits[i] = (uint32_t) GreyPixel(anIllustrationsHD.mBits[i]);
 	aGreyImage->BitsChanged();
+	SetHDPixels(aGreyImage, anIllustrationsHD);
 
 	// Game-type tiles, 154 px columns of the selector background: normal (darkened, grey text and
 	// picture), over (yellow text) and down (green text, coloured picture)

@@ -3,6 +3,8 @@
 // re/bigmoney/analysis/board_draw.md section 2.
 
 #include "Board.h"
+#include "HDPixels.h"
+#include <algorithm>
 #include "Piece.h"
 #include "WinBMApp.h"
 #include "Res.h"
@@ -222,6 +224,12 @@ void Board::Draw(Graphics* g)
 
 			ulong* aDestBits = mLevelUpImage->GetBits();
 			ulong* aSrcBits = aSrcImage->GetBits();
+			// port: a mod's HD sign gets the same row copies, s HD rows per 1x row (HDPixels.h)
+			HDPixels aSrcHD = GetHDPixels(aSrcImage);
+			HDPixels aDestHD;
+			if (aSrcHD.IsValid())
+				aDestHD = GetOrCreateHDPixels(mLevelUpImage, aSrcHD.mScale);
+			int aDestRow = 0;
 			int aSum = 0;
 			for (int aRow = 0; aRow < aHeight; aRow++)
 			{
@@ -231,10 +239,15 @@ void Board::Draw(Graphics* g)
 					ulong* aSrc = aSrcBits + aSrcRow*aWidth;
 					for (int x = 0; x < aWidth; x++)
 						*(aDestBits++) = *(aSrc++);
+					for (int s = 0; s < aDestHD.mScale; s++)
+						std::copy(aSrcHD.Row(aSrcRow * aSrcHD.mScale + s), aSrcHD.Row(aSrcRow * aSrcHD.mScale + s) + aDestHD.mWidth,
+							aDestHD.Row(aDestRow * aDestHD.mScale + s));
+					aDestRow++;
 				}
 				aSum += aHeight;
 			}
 			mLevelUpImage->BitsChanged();
+			SetHDPixels(mLevelUpImage, aDestHD);
 			g->DrawImage(mLevelUpImage, 238, (int)mLevelUpY);
 		}
 	}
@@ -357,6 +370,11 @@ void Board::Draw(Graphics* g)
 			ulong* aSrcBits = mStatsImage->GetBits();
 			ulong* aDestBits = mStatsFadeImage->GetBits();
 			int anAlpha = (int)(mStatsFade * 256.0);
+			// port: the panel's HD pixels (drawn from a mod's HD art) get the same shifts, scaled (HDPixels.h)
+			HDPixels aSrcHD = GetHDPixels(mStatsImage);
+			HDPixels aDestHD;
+			if (aSrcHD.IsValid())
+				aDestHD = GetOrCreateHDPixels(mStatsFadeImage, aSrcHD.mScale);
 			for (int y = 0; y < mStatsImage->GetHeight(); y++)
 			{
 				ulong* aSrc = aSrcBits + mStatsImage->GetWidth() * y;
@@ -379,8 +397,26 @@ void Board::Draw(Graphics* g)
 					ulong aPixel = *(aSrc++);
 					*(aDest++) = (((((aPixel >> 24) & 0xff) * anAlpha) >> 8) << 24) | (aPixel & 0xffffff);
 				}
+
+				for (int s = 0; s < aDestHD.mScale; s++)
+				{
+					int aScale = aDestHD.mScale;
+					const uint32_t* aSrcHDRow = aSrcHD.Row(y * aScale + s);
+					uint32_t* aDestHDRow = aDestHD.Row(y * aScale + s);
+					int aCountHD = aCount * aScale;
+					if (anOffset < 0)
+						aSrcHDRow += -anOffset * aScale;
+					else
+						aDestHDRow += anOffset * aScale;
+					for (int i = 0; i < aCountHD; i++)
+					{
+						uint32_t aPixel = aSrcHDRow[i];
+						aDestHDRow[i] = (((((aPixel >> 24) & 0xff) * anAlpha) >> 8) << 24) | (aPixel & 0xffffff);
+					}
+				}
 			}
 			mStatsFadeImage->BitsChanged();
+			SetHDPixels(mStatsFadeImage, aDestHD);
 			mStatsDirty = false;
 		}
 

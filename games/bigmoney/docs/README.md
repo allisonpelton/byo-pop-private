@@ -85,6 +85,44 @@ tools/build.sh web                             # build/web/bigmoney.html/.js/.wa
   selector and help screens, plays groups, clicks "next level", enters a name for a high score and
   plays again. `-autoplaylog` writes its input as a replayable `-script` file.
 
+## Mods
+
+Big Money uses the shared mod system (`platform/ModManager.h`).
+- **Installing a mod (native).** Copy the mod's folder into `build/native/mods-bigmoney/`, or pass
+  `-modsdir=`.
+- **Installing a mod (web).** Use the page's Mods dialog.
+- **What a mod can change.** These are checked for Big Money:
+  - image replacements, including HD art (`images/<name>@2x.png` or `@4x`);
+  - `imagePatches` that replace part of a sheet;
+  - sound remaps (`files`);
+  - texts: inline `strings`, or properties files that can also replace the 27 rank titles (`gRankNames`).
+- **HD art through the game's own pixel edits.** Five places edit pixels directly:
+  - the highlighted coins;
+  - the grey selector pictures;
+  - the "Deluxe" badge's flash;
+  - the level-up squash;
+  - the stats panel's fade.
+
+  `src/HDPixels.h` repeats each edit on the HD pixels, so HD art stays sharp there too.
+- **Sign that mods are on.** With any mod enabled, the "$" of the score display gets a double stroke
+  (`src/ModIndicators.h`). It uses no random numbers, so a modded game plays out exactly like an
+  unmodded one.
+- **Music.** The music is one module, `music/QualityTime_BigMoney.it`, whose songs start at set order
+  positions. A mod can replace the whole module with one that has the same layout. Replacing a single
+  song would need the shared mixer to remap per order position (not yet).
+
+Example mods (`games/bigmoney/mods/`):
+- **`fake-money/`: "Fake Money! Deluxe".**
+  - Crypto-style coins: a tilted B with bars, a stacked diamond, a D with a bar, a T with a ring and
+    three slanted bars. They are HD flip frames and coin faces in the game's five colours.
+  - A "Fake money!" logo for the title screen and the game screens.
+  - 27 crypto rank titles, from "Nocoiner" to "Probably Satoshi".
+  - All of it is original art and text, drawn and written by `tools/make_example_mods.py`, which
+    regenerates it.
+- **`hd4x-textures/`: every image at 4x.** Generate it with `tools/make_hd4x_mod.py`, which upscales
+  the player's own game files with Real-ESRGAN on the GPU. It contains the game's art, so it is
+  git-ignored: never commit or share it.
+
 ## Status (2026-10-18)
 
 - **Analysis**: complete. GAME_NOTES.md has the overview plus five parts; every game function is in the
@@ -142,3 +180,4 @@ code-mods branch and its move to the byo-pop layout:
 | `tools/ghidra_headless.sh` | `GHIDRA_PROJECT` / `GHIDRA_PROGRAM` / `EXPORT_DIR` overrides (defaults: Bejeweled's) |
 | `tools/ghidra_scripts/DisableNoReturnDiscovery.java` | new pre-script (G4) |
 | `tools/rtti_msvc70.py`, `tools/saf_vtable_layout.py`, `tools/saf_struct_layout.py` | new, game-agnostic (G4; the 1.2 maps are reused for Hammer Heads) |
+| `framework/PropertiesParser.cpp` | a `StringArray` replaces an earlier one of the same id (as `String`, `Integer` etc. already do), so a mod's properties file can change one, e.g. the rank titles; the games' own files repeat none |

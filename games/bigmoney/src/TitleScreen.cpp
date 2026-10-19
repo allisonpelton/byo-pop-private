@@ -11,6 +11,15 @@
 
 using namespace Sexy;
 
+// The "Deluxe" badge's flash (Draw): theLum added to the luminosity of an HSL pixel, capped at 255
+static ulong BoostLuminosity(ulong theHSL, int theLum)
+{
+	int aLum = (int)((theHSL >> 16) & 0xff) + theLum;
+	if (aLum > 255)
+		return theHSL | 0xff0000;
+	return (theHSL & 0xff00ffff) | ((ulong)aLum << 16);
+}
+
 // 0x41b120
 TitleScreen::TitleScreen(WinBMApp* theApp)
 {
@@ -74,6 +83,25 @@ TitleScreen::TitleScreen(WinBMApp* theApp)
 	mDeluxeHSL = new ulong[aSize];
 	mApp->RGBToHSL(aSrcImage->GetBits(), mDeluxeHSL, aSize);
 	mDeluxeWork = new ulong[aSize];
+	// port: a mod's HD badge gets the same HSL copy (HDPixels.h). SexyAppBase::RGBToHSL packs a saturation
+	// of 256 for any colour with a zero channel, which spills into the luminosity and leaves the pixel grey.
+	// The game's badge has no such colours, but upscaled art is full of them, so its zero channels are
+	// raised to 1 first (an invisible change).
+	mDeluxeHD = GetHDPixels(aSrcImage);
+	if (mDeluxeHD.IsValid())
+	{
+		std::vector<ulong> aHDBits(mDeluxeHD.mBits.begin(), mDeluxeHD.mBits.end());
+		for (ulong& aPixel : aHDBits)
+		{
+			for (int aShift = 0; aShift < 24; aShift += 8)
+			{
+				if (((aPixel >> aShift) & 0xff) == 0)
+					aPixel |= (ulong) 1 << aShift;
+			}
+		}
+		mDeluxeHDHSL.resize(aHDBits.size());
+		mApp->RGBToHSL(&aHDBits[0], &mDeluxeHDHSL[0], (int) aHDBits.size());
+	}
 	mDeluxeLum = 256;
 	mDeluxeDirty = false; // port: left uninitialised by the original (only read after Update has set it)
 	mDeluxeShown = false;
@@ -314,16 +342,20 @@ void TitleScreen::Draw(Graphics* g)
 			ulong* aBits = mDeluxeImage->GetBits();
 			int aSize = mDeluxeImage->GetWidth() * mDeluxeImage->GetHeight();
 			for (int i = 0; i < aSize; i++)
-			{
-				ulong aHSL = mDeluxeHSL[i];
-				int aLum = (int)((aHSL >> 16) & 0xff) + mDeluxeLum;
-				if (aLum > 255)
-					mDeluxeWork[i] = aHSL | 0xff0000;
-				else
-					mDeluxeWork[i] = (aHSL & 0xff00ffff) | ((ulong)aLum << 16);
-			}
+				mDeluxeWork[i] = BoostLuminosity(mDeluxeHSL[i], mDeluxeLum);
 			mApp->HSLToRGB(mDeluxeWork, aBits, aSize);
+			// port: the same for a mod's HD badge (HDPixels.h)
+			if (mDeluxeHD.IsValid())
+			{
+				std::vector<ulong> aWork(mDeluxeHDHSL.size());
+				std::vector<ulong> anRGB(mDeluxeHDHSL.size());
+				for (size_t i = 0; i < aWork.size(); i++)
+					aWork[i] = BoostLuminosity(mDeluxeHDHSL[i], mDeluxeLum);
+				mApp->HSLToRGB(&aWork[0], &anRGB[0], (int) aWork.size());
+				mDeluxeHD.mBits.assign(anRGB.begin(), anRGB.end());
+			}
 			mDeluxeImage->BitsChanged();
+			SetHDPixels(mDeluxeImage, mDeluxeHD);
 			mDeluxeDirty = false;
 		}
 		g->DrawImage(mDeluxeImage, 478, 18);

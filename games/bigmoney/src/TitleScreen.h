@@ -14,6 +14,9 @@
 #include "Widget.h"
 #include "ButtonListener.h"
 #include "Common.h"
+#include "HDPixels.h"
+
+#include <vector>
 
 namespace Sexy
 {
@@ -61,6 +64,9 @@ public:
 	int				mDeluxeLum;             // +0x10c luminosity added to the badge, 256 -> 0 (-16 every 8 updates once shown)
 	bool			mDeluxeDirty;           // +0x110 rebuild mDeluxeImage in Draw (port: initialised; the original leaves it unset but never reads it first)
 	bool			mDeluxeShown;           // +0x111 set at update 180
+	// port: the same for a mod's HD badge (HDPixels.h): its HSL copy and the edited HD pixels
+	std::vector<ulong> mDeluxeHDHSL;
+	HDPixels		mDeluxeHD;
 
 public:
 	TitleScreen(WinBMApp* theApp);                                  // 0x41b120
