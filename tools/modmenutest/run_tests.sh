@@ -3,7 +3,12 @@
 # and a fresh mods dir holding the fixture mods (tools/fixtures/mods/settings-demo, tools/modmenutest/mods/
 # plain-demo). Every game exe runs under build/native/rundesk.exe (this script re-runs itself there): invisible,
 # silent, below-normal priority. One game process at a time.
-#   tools/modmenutest/run_tests.sh [bejeweled|bigmoney|all]     (default all; needs tools/build.sh native)
+#   tools/modmenutest/run_tests.sh [--gamedir GAME=PATH]... [bejeweled|bigmoney|all]
+#       (default all; needs tools/build.sh native)
+#   --gamedir GAME=PATH   (repeatable; also --gamedir=GAME=PATH) the staged game files of GAME (bejeweled or
+#                         bigmoney); default $ROOT/assets/<game>. A relative PATH is taken from the current directory.
+#                         A game's worktree points it at its own staged files or at another checkout's, e.g. from a
+#                         worktree's root: --gamedir bejeweled=../../../assets/bejeweled
 # Cases (scripts/), for each game:
 #   edit     the "modmenu" edit commands: the exact bytes of mods.json and mod-settings.json (unknown keys, a mod
 #            that is not installed and its values kept), the values as normalised, the refusals logged
@@ -18,19 +23,48 @@
 #   pause    the menu pauses and resumes the board exactly as Options does: the same -tracehash (board, both
 #            RNGs) whether it closes by command or by Esc after keyboard use
 # And fwtest -hotkeytest (F2 through HandleEvent), and check_no_rand.py (no random draw in the menu's sources).
+# fwtest runs on Bejeweled's files (--gamedir bejeweled=PATH): when they are missing and only one other game is
+# selected ("run_tests.sh bigmoney"), the fwtest step is skipped with a note and does not count as failed; with
+# "all" or "bejeweled" it stays a failure.
 # Output: build/modmenutest/<game>/<case>/. Every case also checks that nothing was written into its mods dir.
 # Exit status: the number of failed checks.
 set -u
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 HERE="$ROOT/tools/modmenutest"
 OUT="$ROOT/build/modmenutest"
-GAMES="${1:-all}"
-[ "$GAMES" = "all" ] && GAMES="bejeweled bigmoney"
+ALL_GAMES="bejeweled bigmoney"
+ARGS=("$@")
+
+usage() { echo "usage: $0 [--gamedir GAME=PATH]... [bejeweled|bigmoney|all]" >&2; exit 2; }
+declare -A GAMEDIR=()
+# add_gamedir GAME=PATH: PATH made absolute when it exists (the runs start in their case dirs)
+add_gamedir() {
+	local game="${1%%=*}" dir="${1#*=}"
+	[ "$game" != "$1" ] && [ -n "$game" ] && [ -n "$dir" ] || { echo "run_tests.sh: --gamedir wants GAME=PATH, not \"$1\"" >&2; usage; }
+	case " $ALL_GAMES " in *" $game "*) ;; *) echo "run_tests.sh: --gamedir: unknown game \"$game\" (one of: $ALL_GAMES)" >&2; usage ;; esac
+	[ -d "$dir" ] && dir="$(cd "$dir" && pwd)"
+	GAMEDIR[$game]="$dir"
+}
+SELECTION=""
+while [ $# -gt 0 ]; do
+	case "$1" in
+		--gamedir) [ $# -ge 2 ] || usage; add_gamedir "$2"; shift 2 ;;
+		--gamedir=*) add_gamedir "${1#--gamedir=}"; shift ;;
+		-*) echo "run_tests.sh: unknown option $1" >&2; usage ;;
+		*) [ -z "$SELECTION" ] || usage; SELECTION="$1"; shift ;;
+	esac
+done
+SELECTION="${SELECTION:-all}"
+case " all $ALL_GAMES " in *" $SELECTION "*) ;; *) echo "run_tests.sh: unknown game \"$SELECTION\"" >&2; usage ;; esac
+GAMES="$SELECTION"
+[ "$GAMES" = "all" ] && GAMES="$ALL_GAMES"
+# gamedir GAME: the folder with GAME's staged files
+gamedir() { echo "${GAMEDIR[$1]:-$ROOT/assets/$1}"; }
 
 RUNDESK="$ROOT/build/native/rundesk.exe"
 if [ -z "${BYOPOP_TEST_RUN:-}" ]; then
 	[ -x "$RUNDESK" ] || { echo "run_tests.sh: $RUNDESK is missing (tools/build.sh native)" >&2; exit 2; }
-	exec "$RUNDESK" bash "$0" "$@"
+	exec "$RUNDESK" bash "$0" "${ARGS[@]}"
 fi
 
 winpath() { if command -v cygpath > /dev/null 2>&1; then cygpath -m "$1"; else echo "$1"; fi; }
@@ -53,7 +87,7 @@ run() {
 	cp -r "$ROOT/tools/fixtures/mods/settings-demo" "$HERE/mods/plain-demo" "$dir/mods/"
 	[ "$prep" != "-" ] && cp "$prep"/* "$dir/user/"
 	MODS_HASH=$(tree_hash "$dir/mods")
-	(cd "$dir" && timeout 300 "$ROOT/build/native/$game.exe" -gamedir="$(winpath "$ROOT/assets/$game")" -userdir=user \
+	(cd "$dir" && timeout 300 "$ROOT/build/native/$game.exe" -gamedir="$(winpath "$(gamedir "$game")")" -userdir=user \
 		-modsdir=mods -seed=1 -fast -script="$(winpath "$script")" "$@" > stdout.txt 2> log.txt; echo $? > exit.txt)
 	check "$(basename "$dir"): the run ended (exit $(cat "$dir/exit.txt"))" '[ "$(cat "$dir/exit.txt")" = 0 ]'
 	check "$(basename "$dir"): nothing written into the mods dir" '[ "$(tree_hash "$dir/mods")" = "$MODS_HASH" ]'
@@ -63,7 +97,7 @@ logged() { grep -q -F -- "$2" "$1/log.txt"; }
 
 for GAME in $GAMES; do
 	[ -f "$ROOT/build/native/$GAME.exe" ] || { echo "$GAME: build/native/$GAME.exe is missing"; FAILED=$((FAILED + 1)); continue; }
-	[ -d "$ROOT/assets/$GAME" ] || { echo "$GAME: assets/$GAME is not staged"; FAILED=$((FAILED + 1)); continue; }
+	[ -d "$(gamedir "$GAME")" ] || { echo "$GAME: $(gamedir "$GAME") is not staged (give --gamedir $GAME=PATH)"; FAILED=$((FAILED + 1)); continue; }
 	echo "$GAME:"
 	G="$OUT/$GAME"
 	S="$HERE/scripts"
@@ -97,7 +131,7 @@ for GAME in $GAMES; do
 	[ "$GAME" = bigmoney ] && FORMAT_KEY=NEXT_RANK_AT_X_PTS
 	printf '{ "id": "texts", "strings": { "EXCELLENT": "100%% GEMS!", "GO": "GO 100%%!", "MODMENUTEST_NEW": "50%%", "%s": "%%s %%n" } }\n' \
 		"$FORMAT_KEY" > "$D/mods/texts/mod.json"
-	(cd "$D" && timeout 300 "$ROOT/build/native/$GAME.exe" -gamedir="$(winpath "$ROOT/assets/$GAME")" -userdir=user -modsdir=mods \
+	(cd "$D" && timeout 300 "$ROOT/build/native/$GAME.exe" -gamedir="$(winpath "$(gamedir "$GAME")")" -userdir=user -modsdir=mods \
 		-seed=1 -fast -script="$(winpath "$S/strings.txt")" > stdout.txt 2> log.txt; echo $? > exit.txt)
 	check "strings: the run ended (exit $(cat "$D/exit.txt"))" '[ "$(cat "$D/exit.txt")" = 0 ]'
 	check "strings: texts the game only draws, and new keys, keep a mod's %" \
@@ -125,7 +159,7 @@ for GAME in $GAMES; do
 	D="$G/restart"
 	run "$GAME" "$D" "$S/$GAME-restart.txt" -
 	check "restart: the arguments a restart keeps are logged" \
-		'logged "$D" "restart: -gamedir=$(winpath "$ROOT/assets/$GAME") -userdir=user -modsdir=mods (a test run: the game does not start again)"'
+		'logged "$D" "restart: -gamedir=$(winpath "$(gamedir "$GAME")") -userdir=user -modsdir=mods (a test run: the game does not start again)"'
 	if [ "$GAME" = bejeweled ]; then
 		check "restart: the game in progress was saved" 'ls "$D/user" | grep -q "^savegame-.*\.dat$"'
 	fi
@@ -168,7 +202,7 @@ for GAME in $GAMES; do
 	D="$G/screens-empty"
 	rm -rf "$D"
 	mkdir -p "$D/mods" "$D/user" "$D/shots"
-	(cd "$D" && timeout 300 "$ROOT/build/native/$GAME.exe" -gamedir="$(winpath "$ROOT/assets/$GAME")" -userdir=user -modsdir=mods \
+	(cd "$D" && timeout 300 "$ROOT/build/native/$GAME.exe" -gamedir="$(winpath "$(gamedir "$GAME")")" -userdir=user -modsdir=mods \
 		-seed=1 -fast -nomods -script="$(winpath "$S/screens-empty.txt")" > stdout.txt 2> log.txt; echo $? > exit.txt)
 	check "screens: empty and -nomods" '[ -f "$D/shots/e01_empty_nomods.png" ]'
 	echo "  screenshots: $(winpath "$G")/screens*/shots"
@@ -178,13 +212,21 @@ echo "sources:"
 check "no random draw in the menu's sources (check_no_rand.py)" '"$PY" "$(winpath "$HERE/check_no_rand.py")" > /dev/null'
 
 echo "fwtest:"
-if [ -f "$ROOT/build/native/fwtest.exe" ]; then
-	(cd "$ROOT/build/native" && timeout 300 ./fwtest.exe -hotkeytest > "$OUT/fwtest-hotkey.txt" 2>&1)
+BEJ_DIR="$(gamedir bejeweled)"
+if [ ! -f "$ROOT/build/native/fwtest.exe" ]; then
+	fail "build/native/fwtest.exe is missing"
+elif [ ! -d "$BEJ_DIR" ]; then
+	if [ "$SELECTION" != all ] && [ "$SELECTION" != bejeweled ]; then
+		echo "  skipped: fwtest -hotkeytest needs Bejeweled's files, not found at $(winpath "$BEJ_DIR") (give --gamedir bejeweled=PATH)"
+	else
+		fail "fwtest -hotkeytest: Bejeweled's files are not found at $(winpath "$BEJ_DIR") (give --gamedir bejeweled=PATH)"
+	fi
+else
+	mkdir -p "$OUT"
+	(cd "$ROOT/build/native" && timeout 300 ./fwtest.exe -hotkeytest -gamedir="$(winpath "$BEJ_DIR")" > "$OUT/fwtest-hotkey.txt" 2>&1)
 	FW=$?
 	grep "hotkey:" "$OUT/fwtest-hotkey.txt" | sed 's/^INFO: /  /'
 	check "fwtest -hotkeytest" '[ $FW = 0 ]'
-else
-	fail "build/native/fwtest.exe is missing"
 fi
 
 echo "$FAILED failed"
