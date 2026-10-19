@@ -142,15 +142,21 @@ Module["byopop"] = (function () {
   }
   // The game's own restart (Module.onGameExit({restart, dropped})): the page reloads, since the game cannot run
   // twice in one page, and starts it at once, without the Play overlay. Sound comes back with the first click or
-  // key. A restart drops some of the game's arguments: -gameseed takes ?seed= with it, so a seed that was
-  // played is not played again; -nomods is not passed again.
+  // key. A restart drops some of the game's arguments, and the page parameter that passed one goes with it:
+  // -gameseed takes ?seed=, so a seed that was played is not played again, and -replay (Big Money's page) takes
+  // ?replay=, so the replay that was being watched is not watched again; -nomods is not passed again.
+  var DROPPED_PARAMS = { "-gameseed": "seed", "-replay": "replay" };
   Session.prototype.restartPage = function (info) {
     setItem("sessionStorage", this.autostartKey, "1");
-    if (((info && info.dropped) || []).indexOf("-gameseed") >= 0) {
-      var url = new URL(location.href);
-      url.searchParams.delete("seed");
-      history.replaceState(null, "", url.toString());
-    }
+    var dropped = (info && info.dropped) || [];
+    var url = new URL(location.href), changed = false;
+    Object.keys(DROPPED_PARAMS).forEach(function (arg) {
+      if ((dropped.indexOf(arg) >= 0) && url.searchParams.has(DROPPED_PARAMS[arg])) {
+        url.searchParams.delete(DROPPED_PARAMS[arg]);
+        changed = true;
+      }
+    });
+    if (changed) history.replaceState(null, "", url.toString());
     location.reload();
   };
   // After the game stopped: reload and start once without mods

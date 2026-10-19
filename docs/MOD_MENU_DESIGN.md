@@ -918,7 +918,8 @@ if (restart) Platform::Relaunch(args);
    - shows "Restarting…" instead of "Thanks for playing";
    - waits for `sexySyncBusy` and `sexySyncPending` to clear (`shell.html:227-242`);
    - sets `sessionStorage['byopop-autostart']`;
-   - removes `seed` from the URL with `history.replaceState` when `-gameseed` was dropped;
+   - removes `seed` from the URL with `history.replaceState` when `-gameseed` was dropped, and `replay` (Big Money's
+     page) when `-replay` was (`Session.restartPage`, `web/modpanel.js`);
    - calls `location.reload()`.
 
    `?silent=1` stays in the URL.
