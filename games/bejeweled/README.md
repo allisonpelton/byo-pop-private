@@ -105,7 +105,7 @@ The mods live in `games/bejeweled/mods/`; the generators write there by default.
 | `true-gem`: every gem becomes a badly recoloured "True..." meme card, the logo reads BE TRUE LED, EXCELLENT! becomes TRUE... and NO MOVES! becomes NO TRUE... | `python games/bejeweled/tools/make_true_mod.py --image <picture>` |
 | `hd4x-textures`: every image at 4x, upscaled from your own game files with Real-ESRGAN (needs [realesrgan-ncnn-vulkan](https://github.com/xinntao/Real-ESRGAN/releases) and a Vulkan GPU). Shows its detail in a large window or fullscreen | `python games/bejeweled/tools/make_hd4x_mod.py` |
 | `bejeweled2-audio`: Bejeweled 2's music and sound effects (needs your Bejeweled 2 Deluxe install and an ffmpeg build with libopenmpt) | `python games/bejeweled/tools/make_bej2_audio_mod.py` |
-| `bejeweled2-gems`: the seven gems redrawn in the style of Bejeweled 2, HD (@4x) with spin and hover animations. New procedural art that reads no game files, but a close recreation of another game's look | `python games/bejeweled/tools/make_bej2_gems_mod.py` |
+| `bejeweled2-gems`: the seven gems redrawn in the style of Bejeweled 2, HD (@4x) with spin and hover animations, and the same gems over the five on the title screen (leave those out with `--no-title`). New procedural art that reads no game files, but a close recreation of another game's look | `python games/bejeweled/tools/make_bej2_gems_mod.py` |
 
 Mods built from other games' files or third-party pictures, or closely recreating another game's art, are generated locally and git-ignored.
 
@@ -114,7 +114,7 @@ When any mod is enabled, two small signs show it: hints get a fourth sparkle, an
 nothing in play.
 
 HD art (`name@2x.png` .. `name@4x.png`) also reaches images the game builds at run time, such as the
-board background, the banner text and the shrinking gems. Software drawing repeats each draw on the HD
+board background, the banner text, the shrinking gems and (at render scales above 1x) the hovered gem. Software drawing repeats each draw on the HD
 pixels whenever HD art is involved (`MemoryImage::BeginHDMirror`).
 
 Planned gameplay mods (board shapes, other move types, special gems, undo, replays, ...) are listed in

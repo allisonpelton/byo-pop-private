@@ -515,6 +515,7 @@ SexyAppBase::SexyAppBase()
 	mHasSeedParam = false;
 	mFastMode = false;
 	mForcedRenderScale = 0;
+	mDrawingLogicalShot = false;
 	mTraceMode = false;
 	mFastClock = 0;
 	mLastFastDrawUpdate = 0;
@@ -3008,9 +3009,11 @@ bool SexyAppBase::SaveScreenshot(const std::string& theFileName, bool fullResolu
 	MTAutoDisallowRand aDisallowRand;
 
 	mIsDrawing = true;
+	mDrawingLogicalShot = !fullResolution;
 	mDDInterface->BeginFrame();
 	mWidgetManager->MarkAllDirty();
 	mWidgetManager->DrawScreen();
+	mDrawingLogicalShot = false;
 	mIsDrawing = false;
 
 	if (fullResolution)
@@ -3269,6 +3272,58 @@ Sexy::DDImage* SexyAppBase::CreateCrossfadeImage(Sexy::Image* theImage1, const R
 	}
 
 	anImage->BitsChanged();
+
+	// port: HD sources give the crossfade HD pixels too (the same blend on them), so a hovered gem stays
+	// sharp at HD render scales. 1x output does not change: at render scale 1 the 1x pixels stay the
+	// texture, as in the original, and so they do for a screenshot at the logical size, which is drawn
+	// at the render scale and box-downsampled (the regression oracle's screenshots).
+	if ((mDDInterface != NULL) && (mDDInterface->mRenderScale > 1) && (!mDrawingLogicalShot))
+	{
+		MemoryImage* aSources[2] = { aMemoryImage1, aMemoryImage2 };
+		const Rect* aRects[2] = { &theRect1, &theRect2 };
+		int aScales[2];
+		const uint32_t* aPixels[2];  // each source's pixels at its own scale
+		int aPitches[2];
+		int aScale = 1;
+		for (int i = 0; i < 2; i++)
+		{
+			bool isHD = aSources[i]->HasMirrorableHDBits();
+			aScales[i] = isHD ? aSources[i]->mHDScale : 1;
+			aPixels[i] = isHD ? &aSources[i]->mHDBits[0] : (const uint32_t*) (i == 0 ? aSrcBits1 : aSrcBits2);
+			aPitches[i] = isHD ? aSources[i]->mHDWidth : aSources[i]->mWidth;
+			aScale = std::max(aScale, aScales[i]);
+		}
+		// a source at another density is sampled down to its own pixels (nearest); one that does not
+		// divide the HD scale leaves the crossfade at 1x
+		bool aCanHD = (aScale > 1) && (aScale % aScales[0] == 0) && (aScale % aScales[1] == 0);
+		if (aCanHD)
+		{
+			int aHDWidth = aWidth * aScale;
+			int aHDHeight = aHeight * aScale;
+			std::vector<uint32_t> anHD((size_t) aHDWidth * aHDHeight);
+			const uint32_t* aRows[2];
+			for (int y = 0; y < aHDHeight; y++)
+			{
+				for (int i = 0; i < 2; i++)
+				{
+					int aSrcY = (aRects[i]->mY * aScale + y) * aScales[i] / aScale;
+					aRows[i] = aPixels[i] + (size_t) aSrcY * aPitches[i];
+				}
+				uint32_t* d = &anHD[(size_t) y * aHDWidth];
+				for (int x = 0; x < aHDWidth; x++)
+				{
+					uint32_t p1 = aRows[0][(theRect1.mX * aScale + x) * aScales[0] / aScale];
+					uint32_t p2 = aRows[1][(theRect2.mX * aScale + x) * aScales[1] / aScale];
+					*d++ =
+						((((p1 & 0x000000FF)*aOMM + (p2 & 0x000000FF)*aMult)>>8) & 0x000000FF) |
+						((((p1 & 0x0000FF00)*aOMM + (p2 & 0x0000FF00)*aMult)>>8) & 0x0000FF00) |
+						((((p1 & 0x00FF0000)*aOMM + (p2 & 0x00FF0000)*aMult)>>8) & 0x00FF0000) |
+						((((p1 >> 24)*aOMM + (p2 >> 24)*aMult)<<16) & 0xFF000000);
+				}
+			}
+			anImage->SetHDBits(&anHD[0], aHDWidth, aHDHeight, aScale);
+		}
+	}
 
 	return anImage;
 }

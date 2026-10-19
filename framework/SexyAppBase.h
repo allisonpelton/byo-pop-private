@@ -311,7 +311,9 @@ public:
 	//                     key <keycode>        key down + up (number or KeyCodes.cpp name, e.g. RETURN);
 	//                                          Enter, Backspace, Tab and Esc also type their character
 	//                     char <c>             one typed character (KeyChar)
-	//                     screenshot <png>     draw the screen now and save it
+	//                     screenshot <png>     draw the screen now and save it at the logical size (the
+	//                                          hovered gem's crossfade from the 1x pixels, as in 1x
+	//                                          rendering, see CreateCrossfadeImage)
 	//                     screenshotfull <png> the same at the render target's size (shows HD art)
 	//                     quit                 Shutdown()
 	//                   Other commands go to the game's HandleScriptCommand (WinDMApp: save <file>).
@@ -325,6 +327,7 @@ public:
 	bool mFastMode;
 	bool mTraceMode;
 	int mForcedRenderScale;  // -renderscale=N
+	bool mDrawingLogicalShot;  // SaveScreenshot at the logical size is drawing
 	DWORD mFastClock;          // -fast: virtual milliseconds, advanced instead of sleeping
 	int mLastFastDrawUpdate;   // -fast: mUpdateCount at the last draw
 	std::string mScriptFileName;
