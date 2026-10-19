@@ -1,6 +1,7 @@
 # BookWorm Deluxe (PopCap, 2004; games/bookworm/src) on the shared framework and platform layer. The game
 # code is a translation of the original's game classes (games/bookworm/docs), written against the 2004
-# framework compatibility map (docs/FRAMEWORK_2004.md); Compat2004.* holds the old framework behaviours.
+# framework compatibility map (docs/FRAMEWORK_2004.md); the shared sexycompat2004 (framework/compat2004) holds the
+# old framework behaviours.
 # Native: bookworm.exe [-gamedir=<dir>] [-userdir=<dir>] [-modsdir=<dir>] (see src/main.cpp); it finds
 # assets/bookworm/ (games/bookworm/tools/stage_bookworm_assets.py) or the retail install by itself.
 # Web: bookworm.html/.js/.wasm; games/bookworm/web/shell.html imports the user's game files into /bwpersist
@@ -11,7 +12,7 @@ file(GLOB BOOKWORM_TESTHOOK_SOURCES CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/src/BookWormApp.cpp)
   add_executable(bookworm ${BOOKWORM_SOURCES} ${BOOKWORM_TESTHOOK_SOURCES})
   target_include_directories(bookworm PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
-  target_link_libraries(bookworm PRIVATE sexyframework sexyopenmpt)
+  target_link_libraries(bookworm PRIVATE sexyframework sexycompat2004 sexyopenmpt)
   if(NOT MSVC)
     target_compile_options(bookworm PRIVATE -Wall -Wno-unused-private-field)
   endif()
