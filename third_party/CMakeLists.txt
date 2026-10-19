@@ -19,3 +19,14 @@ target_compile_definitions(xmp_lite PRIVATE LIBXMP_CORE_PLAYER _USE_MATH_DEFINES
 if(NOT MSVC)
   target_compile_options(xmp_lite PRIVATE -w)
 endif()
+
+# Tremor (Xiph.Org, BSD-style, see tremor/COPYING): the 2002 integer Ogg Vorbis decoder that
+# SexyAppFramework 1.2 shipped and decoded sounds with. Platform::Mixer uses it for Ogg files stb_vorbis
+# cannot open: Big Money's 2002 sounds use Vorbis floor 0, which stb_vorbis does not support.
+file(GLOB TREMOR_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/tremor/*.c)
+add_library(tremor STATIC ${TREMOR_SOURCES})
+target_include_directories(tremor PUBLIC tremor)
+if(NOT MSVC)
+  # misc.h calls abs() without <stdlib.h> (an error for C99 compilers such as Emscripten's clang)
+  target_compile_options(tremor PRIVATE -w -include stdlib.h)
+endif()
