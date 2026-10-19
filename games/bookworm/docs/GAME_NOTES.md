@@ -6872,8 +6872,8 @@ does not set it, so mUserTimesPlayed and mTimesPlayed never grow in play. Transl
    `RegistryEraseKey` result.
 6. **Play counting** (D49): literal translation leaves `GT_SELECTOR_WELCOME_BACK` to registry values from an original install.
    Keep literal (proposed) or set MaxTime = 0 in the port's properties?
-7. **GetLastMouseDownTick** returns 0 until the framework records mouse presses: Lex::mIdle (saved byte 65 of the
-   Lex record) then differs from the original; no visible effect.
+7. **GetLastMouseDownTick**: the port's framework had no last-press field (WM+0x168), which Lex::mIdle (saved
+   byte 65 of the Lex record) depends on; no visible effect. Resolved, see L7.
 8. **mGameOption** (app +0x12dc / selector +0x80): copied back and forth, never read; meaning unknown. Kept.
 9. **Dialogs 0 and 3** are killed/handled but never created (app open question 1): dead branches kept literally.
 
@@ -6894,6 +6894,8 @@ L5. Emulated registry: `UserManager` sorts the subkey names from `RegistryGetSub
     (Windows' RegEnumKeyEx order). `RegistryEraseKey` returns true when the profile key had values, which a
     profile always has, so `DeleteUser` behaves as in the original.
 L6. Play counting stays literal (MaxTime 60: never counts in the retail build).
-L7. `GetLastMouseDownTick` (Compat2004) returns 0 until the shared WidgetManager records the tick (the
-    coordinator is adding it); then it returns the field. Lex's idle byte follows.
+L7. `GetLastMouseDownTick` (Compat2004) returns `WidgetManager::mLastMouseDownTick` (framework commit
+    abfb135), which every WidgetManager::MouseDown sets from `GetClockTime()`; 0 means no press yet. Lex's
+    idle test compares it with `GameTickCount()` and treats 0 as idle, as the original's GetTickCount()
+    (milliseconds since boot) always did, so the idle byte follows the original and repeats under -fast.
 L8. `mGameOption` and the dead dialog-0/3 branches are kept as in the original.
