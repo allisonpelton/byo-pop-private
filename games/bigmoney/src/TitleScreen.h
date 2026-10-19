@@ -71,12 +71,12 @@ public:
 public:
 	TitleScreen(WinBMApp* theApp);                                  // 0x41b120
 	virtual ~TitleScreen();                                         // 0x419630 (scalar deleting dtor 0x419760) slot 0
-	virtual void	AddedToManager(WidgetManager* theWidgetManager);  // 0x4196d0 slot 7
-	virtual void	RemovedFromManager(WidgetManager* theWidgetManager); // 0x419700 slot 8
-	virtual void	Update();                                       // 0x41a810 slot 9
-	virtual void	Draw(Graphics* g);                              // 0x419950 slot 13
-	virtual void	Resize(int theX, int theY, int theWidth, int theHeight); // 0x412c50 slot 25 (jmp Widget::Resize)
-	virtual void	ButtonDepress(int theId);                       // 0x419730 ButtonListener slot 2
+	virtual void	AddedToManager(WidgetManager* theWidgetManager) override;  // 0x4196d0 slot 7
+	virtual void	RemovedFromManager(WidgetManager* theWidgetManager) override; // 0x419700 slot 8
+	virtual void	Update() override;                                       // 0x41a810 slot 9
+	virtual void	Draw(Graphics* g) override;                              // 0x419950 slot 13
+	virtual void	Resize(int theX, int theY, int theWidth, int theHeight) override; // 0x412c50 slot 25 (jmp Widget::Resize)
+	virtual void	ButtonDepress(int theId) override;                       // 0x419730 ButtonListener slot 2
 
 	using Widget::Resize;
 };

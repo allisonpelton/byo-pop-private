@@ -90,9 +90,9 @@ public:
 	virtual ~MrMoney();                                             // 0x4151f0 (scalar deleting dtor 0x415540) slot 0
 
 	void			PlayAnim(int theAnim);                          // 0x415200
-	virtual void	Move(int theNewX, int theNewY);                 // 0x415240 slot 26
-	virtual void	Update();                                       // 0x415290 slot 9
-	virtual void	Draw(Graphics* g);                              // 0x4154d0 slot 13
+	virtual void	Move(int theNewX, int theNewY) override;                 // 0x415240 slot 26
+	virtual void	Update() override;                                       // 0x415290 slot 9
+	virtual void	Draw(Graphics* g) override;                              // 0x4154d0 slot 13
 };
 
 }

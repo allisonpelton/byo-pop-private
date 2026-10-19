@@ -64,18 +64,18 @@ public:
 public:
 	GameSelector(WinBMApp* theApp);                                 // 0x4107c0
 	virtual ~GameSelector();                                        // 0x40fb90 (scalar deleting dtor 0x410bd0) slot 0
-	virtual void	AddedToManager(WidgetManager* theWidgetManager);  // 0x4100b0 slot 7
-	virtual void	RemovedFromManager(WidgetManager* theWidgetManager); // 0x410140 slot 8
-	virtual void	Update();                                       // 0x40fe90 slot 9
-	virtual void	Draw(Graphics* g);                              // 0x410bf0 slot 13
-	virtual void	OrderInManagerChanged();                        // 0x4101d0 slot 15
-	virtual void	Resize(int theX, int theY, int theWidth, int theHeight); // 0x410d50 slot 25
+	virtual void	AddedToManager(WidgetManager* theWidgetManager) override;  // 0x4100b0 slot 7
+	virtual void	RemovedFromManager(WidgetManager* theWidgetManager) override; // 0x410140 slot 8
+	virtual void	Update() override;                                       // 0x40fe90 slot 9
+	virtual void	Draw(Graphics* g) override;                              // 0x410bf0 slot 13
+	virtual void	OrderInManagerChanged() override;                        // 0x4101d0 slot 15
+	virtual void	Resize(int theX, int theY, int theWidth, int theHeight) override; // 0x410d50 slot 25
 	virtual void	StartGame();                                    // 0x410340 slot 54 (new)
 	virtual void	SlideIn();                                      // 0x4103e0 slot 55 (new)
 	virtual void	SlideOut();                                     // 0x410590 slot 56 (new)
 
-	virtual void	ButtonPress(int theId, int theClickCount);      // 0x410330 ButtonListener slot 0 (click sound)
-	virtual void	ButtonDepress(int theId);                       // 0x410730 ButtonListener slot 2
+	virtual void	ButtonPress(int theId, int theClickCount) override;      // 0x410330 ButtonListener slot 0 (click sound)
+	virtual void	ButtonDepress(int theId) override;                       // 0x410730 ButtonListener slot 2
 
 	void			SetGameType(int theType);                       // 0x40fcb0
 	void			SetSkill(int theSkill);                         // 0x40fdc0

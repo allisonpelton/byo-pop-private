@@ -61,17 +61,17 @@ public:
 	std::vector<DialogButton*> mLinkButtons;    // +0x188 ids 100+i, labels OptionsLinkText%d (VC7 vector: first +0x18c, last +0x190, end +0x194)
 
 public:
-	virtual void	SetColor(int theIdx, const Color& theColor);    // 0x415560 slot 19 (idx 3 also recolours the five buttons)
-	virtual void	SliderVal(int theId, double theVal);            // 0x4155e0 SliderListener slot 0
-	virtual void	CheckboxChecked(int theId, bool checked);       // 0x415620 CheckboxListener slot 0
-	virtual void	ButtonPress(int theId);                         // 0x415660 ButtonListener slot 1 (buttonclick)
-	virtual int		GetPreferredHeight(int theWidth);               // 0x4156b0 slot 57 (308 + 34*links)
-	virtual void	AddedToManager(WidgetManager* theWidgetManager);  // 0x415770 slot 7
-	virtual void	RemovedFromManager(WidgetManager* theWidgetManager); // 0x415830 slot 8
+	virtual void	SetColor(int theIdx, const Color& theColor) override;    // 0x415560 slot 19 (idx 3 also recolours the five buttons)
+	virtual void	SliderVal(int theId, double theVal) override;            // 0x4155e0 SliderListener slot 0
+	virtual void	CheckboxChecked(int theId, bool checked) override;       // 0x415620 CheckboxListener slot 0
+	virtual void	ButtonPress(int theId) override;                         // 0x415660 ButtonListener slot 1 (buttonclick)
+	virtual int		GetPreferredHeight(int theWidth) override;               // 0x4156b0 slot 57 (308 + 34*links)
+	virtual void	AddedToManager(WidgetManager* theWidgetManager) override;  // 0x415770 slot 7
+	virtual void	RemovedFromManager(WidgetManager* theWidgetManager) override; // 0x415830 slot 8
 	virtual ~OptionsDialog();                                       // 0x415970 (scalar deleting dtor 0x416700 slot 0)
-	virtual void	Resize(int theX, int theY, int theWidth, int theHeight); // 0x415ad0 slot 25
-	virtual void	Draw(Graphics* g);                              // 0x415eb0 slot 13
-	virtual void	ButtonDepress(int theId);                       // 0x416210 ButtonListener slot 2
+	virtual void	Resize(int theX, int theY, int theWidth, int theHeight) override; // 0x415ad0 slot 25
+	virtual void	Draw(Graphics* g) override;                              // 0x415eb0 slot 13
+	virtual void	ButtonDepress(int theId) override;                       // 0x416210 ButtonListener slot 2
 	OptionsDialog(WinBMApp* theApp);                                // 0x416720
 
 	using Dialog::ButtonPress;

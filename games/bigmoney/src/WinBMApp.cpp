@@ -1142,15 +1142,19 @@ void WinBMApp::EndWatch()
 	}
 }
 
-// port (web): the save the original's ~WinBMApp would write now (see SexyAppBase::UpdateUserDataBackup)
-bool WinBMApp::GetShutdownSave(std::string* theFileName, Buffer* theBuffer)
+// port (web): the save the original's ~WinBMApp would write now (see SexyAppBase::UpdateUserDataBackup):
+// savegame.dat (or its copy for the gameplay mods, ModRules.h) of a game in progress
+void WinBMApp::GetShutdownSaves(std::vector<ShutdownSave>* theSaves)
 {
 	if ((mBoard == NULL) || (!mBoard->CanSaveGame()))
-		return false;
+		return;
 
-	*theFileName = Board::GetSaveGameFileName();
-	mBoard->SaveGameSnapshot(theBuffer);
-	return true;
+	Buffer aBuffer;
+	mBoard->SaveGameSnapshot(&aBuffer);
+	ShutdownSave aSave;
+	aSave.mFileName = Board::GetSaveGameFileName();
+	aSave.mData.assign((const char*) aBuffer.GetDataPtr(), (size_t) aBuffer.GetDataLen());
+	theSaves->push_back(aSave);
 }
 
 // port (web): Shutdown's WriteToRegistry is the last registry write (the save in ~WinBMApp changes no
@@ -1162,7 +1166,7 @@ void WinBMApp::WriteShutdownRegistry()
 
 // port (web): the original saves a game in progress only in ~WinBMApp, and the web build never deletes
 // the app; without this the save of a quit game would exist only in the localStorage backup
-// (GetShutdownSave).
+// (GetShutdownSaves).
 void WinBMApp::ShutdownHook()
 {
 #ifdef __EMSCRIPTEN__

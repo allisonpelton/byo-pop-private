@@ -845,7 +845,7 @@ bool Board::SaveGame()
 	return mApp->WriteBufferToFile(GetSaveGameFileName(), &aBuffer);
 }
 
-// port (web persistence, WinBMApp::GetShutdownSave): the bytes SaveGame would write now. Its
+// port (web persistence, WinBMApp::GetShutdownSaves): the bytes SaveGame would write now. Its
 // Pause(true) / Pause(false) affects only unsaved values (and the music), so it is skipped here.
 void Board::SaveGameSnapshot(Buffer* theBuffer)
 {

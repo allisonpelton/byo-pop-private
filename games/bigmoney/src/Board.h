@@ -310,18 +310,18 @@ public:
 	virtual ~Board();                                               // 0x403f10 (scalar deleting dtor 0x4045a0, slot 0)
 
 	// Widget
-	virtual void	RemovedFromManager(WidgetManager* theWidgetManager); // 0x403aa0 slot 8
-	virtual void	Update();                                       // 0x40c9f0 slot 9
-	virtual void	Draw(Graphics* g);                              // 0x405480 slot 13 (BoardDraw.cpp)
-	virtual void	OrderInManagerChanged();                        // 0x401460 slot 15
-	virtual void	KeyChar(SexyChar theChar);                      // 0x403050 slot 31
-	virtual void	MouseLeave();                                   // 0x401fa0 slot 35
-	virtual void	MouseMove(int x, int y);                        // 0x401fb0 slot 36
-	virtual void	MouseDown(int x, int y, int theClickCount);     // 0x40c5f0 slot 38
+	virtual void	RemovedFromManager(WidgetManager* theWidgetManager) override; // 0x403aa0 slot 8
+	virtual void	Update() override;                                       // 0x40c9f0 slot 9
+	virtual void	Draw(Graphics* g) override;                              // 0x405480 slot 13 (BoardDraw.cpp)
+	virtual void	OrderInManagerChanged() override;                        // 0x401460 slot 15
+	virtual void	KeyChar(SexyChar theChar) override;                      // 0x403050 slot 31
+	virtual void	MouseLeave() override;                                   // 0x401fa0 slot 35
+	virtual void	MouseMove(int x, int y) override;                        // 0x401fb0 slot 36
+	virtual void	MouseDown(int x, int y, int theClickCount) override;     // 0x40c5f0 slot 38
 
 	// ButtonListener (+0x80)
-	virtual void	ButtonPress(int theId);                         // 0x401c70 slot 1
-	virtual void	ButtonDepress(int theId);                       // 0x40e580 slot 2
+	virtual void	ButtonPress(int theId) override;                         // 0x401c70 slot 1
+	virtual void	ButtonDepress(int theId) override;                       // 0x40e580 slot 2
 
 	// Geometry and grid
 	static int		ColX(int theCol);                               // 0x4015e0 29*c + 177

@@ -54,14 +54,14 @@ public:
 public:
 	static int		GetDayNumber();                                 // 0x412b80 tm_year*366 + tm_yday (local time)
 	int				GetRank(int theMode, int theScore);             // 0x412bb0 1-based place, 0 = none; ties do not place
-	virtual void	AddedToManager(WidgetManager* theWidgetManager);  // 0x412bf0 slot 7
-	virtual void	RemovedFromManager(WidgetManager* theWidgetManager); // 0x412c20 slot 8
+	virtual void	AddedToManager(WidgetManager* theWidgetManager) override;  // 0x412bf0 slot 7
+	virtual void	RemovedFromManager(WidgetManager* theWidgetManager) override; // 0x412c20 slot 8
 	// slot 25 Resize (0x412c50) is a bare jmp to Widget::Resize: not overridden here
 	void			LoadHighScores();                               // 0x412eb0
 	void			SaveHighScores();                               // 0x413100
 	void			DoCheckForHighScore();                          // 0x4133b0 body of CheckForHighScore (Update calls it directly)
-	virtual void	Draw(Graphics* g);                              // 0x413b10 slot 13
-	virtual void	Update();                                       // 0x4144e0 slot 9
+	virtual void	Draw(Graphics* g) override;                              // 0x413b10 slot 13
+	virtual void	Update() override;                                       // 0x4144e0 slot 9
 	virtual void	CheckForHighScore();                            // 0x414520 slot 54 (jmp 0x4133b0); WinBMApp calls it after a registration
 	virtual void	AddHighScore(const std::string& theName);       // 0x414530 slot 55; WinBMApp on RecordScoreDialog OK / Enter
 	HighScoreWidget(WinBMApp* theApp, bool theSeededTables = false, bool theViewOnly = false); // 0x414640 (port(mods): theSeededTables, ModRules.h; theViewOnly, Replay.h)
@@ -69,7 +69,7 @@ public:
 
 	// ButtonListener slot 1: 0x401c70, one body shared with Board (mApp->PlaySample(SOUND_BUTTONCLICK)).
 	// Slot 2 ButtonDepress is the empty default: the own button does nothing.
-	virtual void	ButtonPress(int theId);                         // 0x401c70 ButtonListener slot 1
+	virtual void	ButtonPress(int theId) override;                         // 0x401c70 ButtonListener slot 1
 
 	using ButtonListener::ButtonPress;
 };

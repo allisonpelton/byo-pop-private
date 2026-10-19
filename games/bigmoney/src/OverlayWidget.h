@@ -27,7 +27,7 @@ public:
 	OverlayWidget(WinBMApp* theApp);                                // 0x417400
 	virtual ~OverlayWidget();                                       // (scalar deleting dtor 0x4174d0) slot 0
 
-	virtual void	Draw(Graphics* g);                              // 0x417440 slot 13
+	virtual void	Draw(Graphics* g) override;                              // 0x417440 slot 13
 };
 
 }

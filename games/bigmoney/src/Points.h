@@ -40,7 +40,7 @@ public:
 	Points(WinBMApp* theApp, Font* theFont, const std::string& theText, int theX, int theY, int theLife, int theJustify); // 0x417630
 	virtual ~Points();                                              // 0x4175c0 (scalar deleting dtor 0x417610) slot 0
 
-	virtual void	Draw(Graphics* g);                              // 0x4174f0 slot 13
+	virtual void	Draw(Graphics* g) override;                              // 0x4174f0 slot 13
 };
 
 }
