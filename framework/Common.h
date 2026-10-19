@@ -146,6 +146,9 @@ std::string			Lower(const std::string& theData);
 std::wstring		Lower(const std::wstring& theData);
 std::string			Trim(const std::string& theString);
 std::wstring		Trim(const std::wstring& theString);
+// port: UTF-8 (SDL, the browser, mod.json) to Latin-1, the narrow SexyChar text the framework draws. Code
+// points above U+00FF and malformed sequences are dropped, or become theReplacement when it is not 0.
+std::string			UTF8ToLatin1(const std::string& theString, char theReplacement = 0);
 bool				StringToInt(const std::string theString, int* theIntVal);
 bool				StringToDouble(const std::string theString, double* theDoubleVal);
 bool				StringToInt(const std::wstring theString, int* theIntVal);

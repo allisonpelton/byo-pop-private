@@ -275,6 +275,10 @@ input[type=file] { display: none; }
     fs.mount(fs.filesystems.IDBFS, {}, PERSIST);
     return sync(true).then(function () {
       [GAME, USER, MODS].forEach(function (d) { try { fs.mkdirTree(d); } catch (e) {} });
+      // Files written as the page was closed may only have reached the game's localStorage backup: bring them
+      // back before this page reads the user dir (main() restores it again, which then changes nothing)
+      try { Module.ccall("byopop_userdata_restore", null, ["string"], [USER]); }
+      catch (e) { console.warn("restoring the user data backup failed", e); }
     });
   }
 
@@ -469,8 +473,11 @@ input[type=file] { display: none; }
     });
   }
   function saveModConfig() {
-    var cfg = { order: modState.map(function (m) { return m.id; }),
-                disabled: modState.filter(function (m) { return !m.enabled; }).map(function (m) { return m.id; }) };
+    // Only the order and the disabled mods change: keys this page does not know stay as they are
+    var cfg = modConfig();
+    if (!cfg || typeof cfg !== "object" || Array.isArray(cfg)) cfg = {};
+    cfg.order = modState.map(function (m) { return m.id; });
+    cfg.disabled = modState.filter(function (m) { return !m.enabled; }).map(function (m) { return m.id; });
     writeFile(USER + "/mods.json", new TextEncoder().encode(JSON.stringify(cfg, null, 2)));
     return sync(false);
   }

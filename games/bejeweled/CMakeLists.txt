@@ -20,12 +20,7 @@ if(BEJ_NO_VARIANTS)
   target_compile_definitions(bejeweled PRIVATE BEJ_NO_VARIANTS)
 endif()
 if(EMSCRIPTEN)
-  set_target_properties(bejeweled PROPERTIES SUFFIX ".html")
-  set_property(TARGET bejeweled APPEND PROPERTY LINK_DEPENDS ${PROJECT_SOURCE_DIR}/web/shell.html)
-  target_link_options(bejeweled PRIVATE
-    "--shell-file=${PROJECT_SOURCE_DIR}/web/shell.html"
-    "-sALLOW_MEMORY_GROWTH=1" "-sFORCE_FILESYSTEM=1" "-sINVOKE_RUN=0"
-    "-sEXPORTED_RUNTIME_METHODS=['FS','callMain']" "-lidbfs.js")
+  byopop_web_game(bejeweled ${PROJECT_SOURCE_DIR}/web/shell.html)
 else()
   add_custom_command(TARGET bejeweled POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:SDL2::SDL2> ${PORT_RUNTIME_DLLS} $<TARGET_FILE_DIR:bejeweled>

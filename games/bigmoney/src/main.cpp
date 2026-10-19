@@ -5,6 +5,8 @@
 //   -userdir=<dir>   writable folder for savegame.dat, hiscores.dat, registry.ini and mods.json
 //   -modsdir=<dir>   folder containing data mods (one sub-folder per mod)
 //   -nomods          start without any mods
+//   -dumpmods        print the mods, their settings and what is pending as JSON (the mod menu's model,
+//                    Platform::ModManager::GetStateJson), then exit
 // Remaining "-key=value" arguments are passed to the app (SexyAppBase::HandleCmdLineParam), e.g. the
 // framework's test hooks -seed=N, -script=<file>, -fast and -trace (see SexyAppBase.h).
 
@@ -168,6 +170,12 @@ int main(int argc, char** argv)
 	if (!HasFlag(argc, argv, "nomods"))
 		Platform::ModManager::Get().Refresh();
 	SDL_Log("game: %s | user: %s | mods: %s", gameDir.c_str(), userDir.c_str(), modsDir.c_str());
+	if (HasFlag(argc, argv, "dumpmods"))
+	{
+		printf("%s\n", Platform::ModManager::Get().GetStateJson().c_str());
+		fflush(stdout);
+		return 0;
+	}
 
 	// The original keeps the app as a global object and calls Init, Start and Shutdown on it.
 	static WinBMApp* anApp = new WinBMApp();

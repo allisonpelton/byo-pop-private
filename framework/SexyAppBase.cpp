@@ -25,6 +25,7 @@
 #include "../platform/ImageLoader.h"
 #include "../platform/ModManager.h"
 #include "../platform/WebPersist.h"
+#include "../platform/UserFiles.h"
 #include "../platform/Audio.h"
 
 #include <SDL.h>
@@ -48,6 +49,14 @@ static SDL_Cursor* gSystemCursors[SDL_NUM_SYSTEM_CURSORS];
 //////////////////////////////////////////////////////////////////////////
 // Helpers
 
+// Platform::UserDataChanged (platform/UserFiles.h): a user file the platform layer wrote (mods.json,
+// mod-settings.json, mods-status.json) goes into the next localStorage backup like the game's own saves
+static void OnUserDataChanged()
+{
+	if (gSexyAppBase != NULL)
+		gSexyAppBase->mBackupDirty = true;
+}
+
 // Game strings are narrow Windows-1252/Latin-1 text; SDL and the browser use UTF-8.
 static std::string Latin1ToUTF8(const std::string& theString)
 {
@@ -62,52 +71,6 @@ static std::string Latin1ToUTF8(const std::string& theString)
 			aResult += (char) (0xC0 | (c >> 6));
 			aResult += (char) (0x80 | (c & 0x3F));
 		}
-	}
-	return aResult;
-}
-
-// Keeps the code points that fit in a narrow SexyChar (Latin-1) and drops the rest.
-static std::string UTF8ToLatin1(const char* theString)
-{
-	std::string aResult;
-	const uchar* p = (const uchar*) theString;
-	while (*p != 0)
-	{
-		uint aCodePoint;
-		int aLength;
-		if (*p < 0x80)
-		{
-			aCodePoint = *p;
-			aLength = 1;
-		}
-		else if ((*p & 0xE0) == 0xC0)
-		{
-			aCodePoint = *p & 0x1F;
-			aLength = 2;
-		}
-		else if ((*p & 0xF0) == 0xE0)
-		{
-			aCodePoint = *p & 0x0F;
-			aLength = 3;
-		}
-		else if ((*p & 0xF8) == 0xF0)
-		{
-			aCodePoint = *p & 0x07;
-			aLength = 4;
-		}
-		else
-		{
-			p++;
-			continue;
-		}
-
-		int i = 1;
-		for (; (i < aLength) && ((p[i] & 0xC0) == 0x80); i++)
-			aCodePoint = (aCodePoint << 6) | (p[i] & 0x3F);
-		p += i;
-
-		if ((i == aLength) && (aCodePoint < 0x100))
-			aResult += (char) aCodePoint;
 	}
 	return aResult;
 }
@@ -371,6 +334,7 @@ static EM_BOOL EmscriptenFocusCallback(int theEventType, const EmscriptenFocusEv
 SexyAppBase::SexyAppBase()
 {
 	gSexyAppBase = this;
+	Platform::SetUserDataChangedCallback(&OnUserDataChanged);
 
 	mOnlyAllowOneCopyToRun = true;
 	mNoDefer = false;
@@ -602,6 +566,7 @@ SexyAppBase::~SexyAppBase()
 		SDL_DestroyWindow(aWindow);
 	}
 
+	Platform::SetUserDataChangedCallback(NULL);
 	gSexyAppBase = NULL;
 }
 
@@ -2600,11 +2565,58 @@ bool SexyAppBase::LoadProperties(const std::string& theFileName, bool required, 
 		return true;
 }
 
+// The printf conversions of a text, in order ("d;s;" for "LEVEL %d of %s"; "%%" is none). Malformed ones count
+// as "?", so two texts match only if printf reads the same arguments from both.
+static std::string FormatSignature(const std::wstring& theText)
+{
+	std::string aSignature;
+	for (size_t i = 0; i < theText.size(); i++)
+	{
+		if (theText[i] != L'%')
+			continue;
+		if ((i + 1 < theText.size()) && (theText[i + 1] == L'%'))
+		{
+			i++;
+			continue;
+		}
+		size_t j = i + 1;
+		while ((j < theText.size()) && wcschr(L"-+ #0", theText[j]) && (theText[j] != 0))
+			j++;
+		for (int aPart = 0; aPart < 2; aPart++)
+		{
+			// width, then .precision; '*' takes an argument of its own
+			if ((aPart == 1) && (j < theText.size()) && (theText[j] == L'.'))
+				j++;
+			else if (aPart == 1)
+				break;
+			if ((j < theText.size()) && (theText[j] == L'*'))
+			{
+				aSignature += "*;";
+				j++;
+			}
+			else
+				while ((j < theText.size()) && (theText[j] >= L'0') && (theText[j] <= L'9'))
+					j++;
+		}
+		std::string aLength;
+		while ((j < theText.size()) && wcschr(L"hlLqjzt", theText[j]) && (theText[j] != 0))
+			aLength += (char) theText[j++];
+		if ((j < theText.size()) && wcschr(L"diouxXeEfFgGaAcspn", theText[j]) && (theText[j] != 0))
+			aSignature += aLength + (char) theText[j] + ";";
+		else
+			aSignature += "?;";
+		i = (j < theText.size()) ? j : theText.size();
+	}
+	return aSignature;
+}
+
 bool SexyAppBase::LoadProperties()
 {
 	// Load required language-file properties
 	if (!LoadProperties("properties\\default.xml", true, false))
 		return false;
+	// port: what the game's own texts say, to check the mods' texts against
+	StringWStringMap aGameStrings = mStringProperties;
 
 	// port: mods can add or replace strings, either with extra properties files (same XML format) or
 	// inline in mod.json ("strings": {"EXCELLENT": "TRUE"}); later (higher-priority) mods win.
@@ -2629,6 +2641,28 @@ bool SexyAppBase::LoadProperties()
 	}
 	for (const auto& aString : aMods.GetStringOverrides())
 		mStringProperties[aString.first] = StringToWString(aString.second);
+
+	// The game passes some texts to printf as formats (Board: StrFormat(GetString("LEVEL"), level)): a mod's
+	// text (or a mod menu value in it) must ask for the same arguments as the game's, or it could read past
+	// them or write through %n. Such a text is not used.
+	for (StringWStringMap::iterator anItr = mStringProperties.begin(); anItr != mStringProperties.end();)
+	{
+		StringWStringMap::const_iterator aGame = aGameStrings.find(anItr->first);
+		const std::wstring aGameText = (aGame != aGameStrings.end()) ? aGame->second : std::wstring();
+		if ((anItr->second == aGameText) || (FormatSignature(anItr->second) == FormatSignature(aGameText)))
+		{
+			++anItr;
+			continue;
+		}
+		SDL_Log("mod strings: %s: its %% codes differ from the game's text, so the game's text is used", anItr->first.c_str());
+		if (aGame != aGameStrings.end())
+		{
+			anItr->second = aGameText;
+			++anItr;
+		}
+		else
+			anItr = mStringProperties.erase(anItr);
+	}
 	return true;
 }
 
