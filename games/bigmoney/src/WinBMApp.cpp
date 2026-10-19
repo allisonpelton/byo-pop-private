@@ -1157,6 +1157,40 @@ void WinBMApp::GetShutdownSaves(std::vector<ShutdownSave>* theSaves)
 	theSaves->push_back(aSave);
 }
 
+// port(mods): a game in progress is one the shutdown would save (Board::CanSaveGame): Restart asks first and
+// says where it goes. A replay is never one (Replay.h).
+bool WinBMApp::HasGameInProgress()
+{
+	return (mBoard != NULL) && (mBoard->CanSaveGame());
+}
+
+// port(mods): not while the high-score name is being entered: the score would be lost
+bool WinBMApp::CanRestartNow(SexyString* theReason)
+{
+	if (GetDialog(DIALOG_RECORD_SCORE) != NULL)
+	{
+		if (theReason != NULL)
+			*theReason = GetString("MODMENU_RESTART_RECORD_SCORE", _S("Enter your name for the high score first."));
+		return false;
+	}
+	return SexyApp::CanRestartNow(theReason);
+}
+
+// port(mods): the framework's (game files, user dir, mods, render scale), -replaydir as given (without it the
+// folder follows the user dir again), and -gameseed while that seed still waits for its game
+// (Board::UsePendingSeed). Not -replay: a restart does not watch again.
+void WinBMApp::GetRestartArgs(std::vector<std::string>* theArgs)
+{
+	SexyApp::GetRestartArgs(theArgs);
+	for (const std::string& anArg : mCmdLineArgs)
+	{
+		if ((anArg.compare(0, 11, "-replaydir=") == 0) || (anArg.compare(0, 12, "--replaydir=") == 0))
+			theArgs->push_back(anArg);
+	}
+	if (mPendingSeed != 0)
+		theArgs->push_back(StrFormat("-gameseed=%u", (unsigned) mPendingSeed));
+}
+
 // port (web): Shutdown's WriteToRegistry is the last registry write (the save in ~WinBMApp changes no
 // registry value), so the registry a shutdown leaves is WriteToRegistry's
 void WinBMApp::WriteShutdownRegistry()

@@ -110,6 +110,16 @@ Big Money uses the shared mod system (`platform/ModManager.h`).
 - **Music.** The music is one module, `music/QualityTime_BigMoney.it`, whose songs start at set order
   positions. A mod can replace the whole module with one that has the same layout. Replacing a single
   song would need the shared mixer to remap per order position (not yet).
+- **The mod menu** (shared; `docs/MOD_MENU.md`). It turns mods on and off, orders them, and edits the
+  settings mods declare.
+  - **Opening it.** Press F2 on any screen. Options also gets a MODS button, in the original's unused
+    Register slot, shown while an installed mod has settings.
+  - **When values apply.** In Big Money every value applies at a restart.
+  - **Restart game.** While a game can be saved, it asks first and says where that game goes. It is
+    refused while a high-score name is being entered. A restart keeps `-replaydir` and a `-gameseed`
+    still waiting for its game (`WinBMApp::HasGameInProgress`, `CanRestartNow`, `GetRestartArgs`).
+  - **Settings.** Setting values reach the tunables, features and sign checks through each mod's
+    effective manifest.
 - **Gameplay settings.** A mod.json `"tunables"` object can change:
   - minting speed (Action) and rows per click (Strategy);
   - the money meter's size and drain;
