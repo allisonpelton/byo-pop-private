@@ -124,7 +124,9 @@ bool PropertiesParser::ParseProperties()
 
 				std::string anId = SexyStringToStringFast(aXMLElement.mAttributes[_S("id")]);
 
-				mApp->mStringVectorProperties.insert(StringStringVectorMap::value_type(anId, aDef));
+				// port: replaces an earlier array of the same id, as SetString etc. do, so a mod's properties
+				// file can change one (the original inserts: the first wins; the games' files have no repeats)
+				mApp->mStringVectorProperties[anId] = aDef;
 			}
 			else if (aXMLElement.mValue == _S("Boolean"))
 			{

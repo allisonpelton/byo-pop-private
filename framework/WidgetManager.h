@@ -70,6 +70,9 @@ public:
 	int						mDownButtons;
 	int						mActualDownButtons;
 	int						mLastInputUpdateCnt;
+	// port: the 2004 framework's last-press time (+0x168 there; docs/FRAMEWORK_2004.md): the app clock
+	// (SexyAppBase::GetClockTime) at the last MouseDown, 0 before the first. BookWorm's idle test reads it.
+	DWORD					mLastMouseDownTick;
 	
 	bool					mKeyDown[0xFF];
 	int						mLastDownButtonId;	

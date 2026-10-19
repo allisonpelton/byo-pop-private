@@ -310,7 +310,10 @@ public:
 	//                     down|up|move <x> <y> one mouse event (a move with the button down drags)
 	//                     key <keycode>        key down + up (number or KeyCodes.cpp name, e.g. RETURN);
 	//                                          Enter, Backspace, Tab and Esc also type their character
-	//                     char <c>             one typed character (KeyChar)
+	//                                          (no other key does: "key SPACE" types no space)
+	//                     char <c>             one typed character (KeyChar): the first character of
+	//                                          the argument, which is trimmed; "char SPACE" (exactly)
+	//                                          types a space
 	//                     screenshot <png>     draw the screen now and save it at the logical size (the
 	//                                          hovered gem's crossfade from the 1x pixels, as in 1x
 	//                                          rendering, see CreateCrossfadeImage)
@@ -364,7 +367,6 @@ protected:
 	void MouseMoveTo(int theX, int theY);  // the part of a mouse event shared by real and scripted input
 
 	// Test hooks (see mScript)
-	DWORD GetClockTime();  // timeGetTime(), or the virtual clock with -fast
 	bool LoadScript(const std::string& theFileName);
 	void RunScript();
 	// A script command the framework does not know; return true if handled (the default handles none)
@@ -390,6 +392,9 @@ protected:
 public:
 	SexyAppBase();
 	virtual ~SexyAppBase();
+
+	// port: the app clock: timeGetTime(), or the virtual clock with -fast (public for WidgetManager)
+	DWORD GetClockTime();
 
 	// Common overrides:
 	virtual MusicInterface* CreateMusicInterface();

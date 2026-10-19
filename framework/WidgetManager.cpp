@@ -31,6 +31,7 @@ WidgetManager::WidgetManager(SexyAppBase* theApp)
 	mHeight = 0;
 	mHasFocus = true;
 	mUpdateCnt = 0;
+	mLastMouseDownTick = 0;
 	mLastDownButtonId = 0;
 	mDownButtons = 0;
 	mActualDownButtons = 0;
@@ -606,6 +607,7 @@ bool WidgetManager::MouseUp(int x, int y, int theClickCount)
 bool WidgetManager::MouseDown(int x, int y, int theClickCount) 
 {	
 	mLastInputUpdateCnt = mUpdateCnt;
+	mLastMouseDownTick = mApp->GetClockTime(); // port: the 2004 field, set on every press (FRAMEWORK_2004.md)
 
 	if (theClickCount < 0)
 		mActualDownButtons |= 0x02;

@@ -1,0 +1,28 @@
+{
+  "id": "small-change",
+  "name": "Small Change",
+  "version": "1.0",
+  "author": "byo-pop examples",
+  "description": "An easier game: three coin colours from the start, groups of two, a smaller money meter, slower minting and at most six bags a level. Keeps its own high scores.",
+  "tunables": {
+    "coins": {
+      "colors": 3,
+      "fewerOnFirstLevel": false
+    },
+    "groups": {
+      "minSize": 2
+    },
+    "meter": {
+      "capacityBase": 200,
+      "capacityPerLevel": 10
+    },
+    "minting": {
+      "speedBase": 0.0018,
+      "speedPerLevel": 0.0007,
+      "perClickBase": 0.18
+    },
+    "bags": {
+      "max": 6
+    }
+  }
+}

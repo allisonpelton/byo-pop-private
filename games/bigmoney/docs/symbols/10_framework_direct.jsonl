@@ -1,0 +1,59 @@
+{"addr":"00421990","name":"Sexy::WidgetManager::SetFocus","sig":"void __thiscall SetFocus(void * theWidget)"}
+{"addr":"00423490","name":"Sexy::WidgetContainer::MarkAllDirty","sig":"void __thiscall MarkAllDirty(void)"}
+{"addr":"00423ab0","name":"Sexy::WidgetManager::DrawWidgetsTo","sig":"void __thiscall DrawWidgetsTo(void * g)"}
+{"addr":"00423cf0","name":"Sexy::WidgetContainer::RemoveWidget","sig":"void __thiscall RemoveWidget(void * theWidget)"}
+{"addr":"004292d0","name":"Sexy::WidgetContainer::AddWidget","sig":"void __thiscall AddWidget(void * theWidget)"}
+{"addr":"00429360","name":"Sexy::WidgetContainer::BringToBack","sig":"void __thiscall BringToBack(void * theWidget)"}
+{"addr":"00429410","name":"Sexy::WidgetContainer::PutInfront","sig":"void __thiscall PutInfront(void * theWidget, void * theRefWidget)"}
+{"addr":"0042a400","name":"Sexy::Dialog::Dialog","comment":"Dialog(Image* theComponentImage, Image* theButtonComponentImage, int theId, bool isModal, const std::string& theDialogHeader, const std::string& theDialogLines, const std::string& theDialogFooter, int theButtonMode)"}
+{"addr":"0042b450","name":"Sexy::Color::Color_default","comment":"Color() = (0,0,0,255)"}
+{"addr":"0042b470","name":"Sexy::Color::Color_argb","comment":"Color(int theColor): alpha 0 -> 255"}
+{"addr":"0042b4b0","name":"Sexy::Color::Color_rgb","comment":"Color(int r, int g, int b)"}
+{"addr":"0042b4e0","name":"Sexy::Color::Color_rgba","comment":"Color(int r, int g, int b, int a)"}
+{"addr":"0042b540","name":"Sexy::Color::operator_index","comment":"int& Color::operator[](int)"}
+{"addr":"0042b5f0","name":"Sexy::Color::operator_ne","comment":"bool operator!=(const Color&, const Color&)"}
+{"addr":"0042c270","name":"Sexy::DDImage::GenerateDDSurface"}
+{"addr":"00432530","name":"Sexy::Graphics::GetFont"}
+{"addr":"00432540","name":"Sexy::Graphics::SetFont"}
+{"addr":"00432550","name":"Sexy::Graphics::SetColor"}
+{"addr":"00432590","name":"Sexy::Graphics::SetDrawMode"}
+{"addr":"004325b0","name":"Sexy::Graphics::SetColorizeImages"}
+{"addr":"004325d0","name":"Sexy::Graphics::SetFastStretch"}
+{"addr":"004325f0","name":"Sexy::Graphics::DrawString","comment":"DrawString(const SexyString& theString, int theX, int theY)"}
+{"addr":"00432620","name":"Sexy::Graphics::Translate","comment":"Translate(int theTransX, int theTransY)"}
+{"addr":"0043ac00","name":"Sexy::Graphics::FillRect","comment":"FillRect(int theX, int theY, int theWidth, int theHeight)"}
+{"addr":"0043ac70","name":"Sexy::Graphics::DrawRect","comment":"DrawRect(int theX, int theY, int theWidth, int theHeight)"}
+{"addr":"0043af80","name":"Sexy::Graphics::DrawImage_xy","comment":"DrawImage(Image* theImage, int theX, int theY)"}
+{"addr":"0043b030","name":"Sexy::Graphics::DrawImage_xysrc","comment":"DrawImage(Image* theImage, int theX, int theY, const Rect& theSrcRect)"}
+{"addr":"0043b110","name":"Sexy::Graphics::DrawImage_destsrc","comment":"DrawImage(Image* theImage, const Rect& theDestRect, const Rect& theSrcRect) (StretchBlt)"}
+{"addr":"0043b250","name":"Sexy::Graphics::ClipRect","comment":"ClipRect(int theX, int theY, int theWidth, int theHeight)"}
+{"addr":"0043b2b0","name":"Sexy::Graphics::ClipRect_rect","comment":"ClipRect(const Rect&)"}
+{"addr":"0043f820","name":"Sexy::Graphics::DrawImageRotated","comment":"DrawImageRotated(Image* theImage, int theX, int theY, double theRot, const Rect* theSrcRect)"}
+{"addr":"00441f70","name":"Sexy::Graphics::DrawImageBox","comment":"DrawImageBox(const Rect& theDest, Image* theComponentImage)"}
+{"addr":"0045bc80","name":"Sexy::MTRand::MTRand_seed","comment":"MTRand(ulong seed)"}
+{"addr":"0045c750","name":"Sexy::MTRand::SRand_state","comment":"SRand(const std::string& theSerialData): 624-word state, else SRand(4357)"}
+{"addr":"0045fd90","name":"Sexy::MTRand::Serialize","comment":"std::string Serialize(): the 624-word state, 0x9c0 bytes"}
+{"addr":"0045d100","name":"std_string_Tidy","comment":"std::string reset to empty (MSVC _Tidy(true))"}
+{"addr":"00465070","name":"Sexy::StrFormat","comment":"std::string StrFormat(const char* fmt, ...)"}
+{"addr":"00476bc0","name":"Sexy::SexyAppBase::SetCursorImage","comment":"SetCursorImage(int theCursorNum, Image* theImage)"}
+{"addr":"00478040","name":"Sexy::SexyAppBase::EnableCustomCursors","comment":"EnableCustomCursors(bool)"}
+{"addr":"00478120","name":"Sexy::SexyAppBase::CopyImage_rect","comment":"DDImage* CopyImage(Image* theImage, const Rect& theRect)"}
+{"addr":"00479260","name":"Sexy::SexyAppBase::CopyImage","comment":"DDImage* CopyImage(Image* theImage)"}
+{"addr":"004781e0","name":"Sexy::SexyAppBase::MirrorImage","comment":"MirrorImage(Image* theImage): reverses each row"}
+{"addr":"00478280","name":"Sexy::SexyAppBase::HSLToRGB","comment":"ulong HSLToRGB(int h, int s, int l)"}
+{"addr":"00478520","name":"Sexy::SexyAppBase::HSLToRGB_array","comment":"HSLToRGB(const ulong* theSource, ulong* theDest, int theSize)"}
+{"addr":"00478590","name":"Sexy::SexyAppBase::RGBToHSL_array","comment":"RGBToHSL(const ulong* theSource, ulong* theDest, int theSize)"}
+{"addr":"0047cab0","name":"Sexy::SexyAppBase::GetBoolean","comment":"bool GetBoolean(const std::string& theId, bool theDefault)"}
+{"addr":"0047caf0","name":"Sexy::SexyAppBase::GetInteger","comment":"int GetInteger(const std::string& theId, int theDefault)"}
+{"addr":"0047cb30","name":"Sexy::SexyAppBase::GetString_default","comment":"std::string GetString(const std::string& theId, const std::string& theDefault)"}
+{"addr":"00482210","name":"Sexy::SexyAppBase::LoadProperties","comment":"bool LoadProperties(): properties\default.xml"}
+{"addr":"004822a0","name":"Sexy::SexyAppBase::GetString","comment":"std::string GetString(const std::string& theId)"}
+{"addr":"004856f0","name":"Sexy::SexyAppBase::GetStringVector","comment":"StringVector GetStringVector(const std::string& theId)"}
+{"addr":"0048be70","name":"Sexy::SexyApp::Validate","comment":"registration code check (BigInt); not ported"}
+{"addr":"004d81bc","name":"fopen"}
+{"addr":"004d8798","name":"_ftol","comment":"(int) of the x87 top of stack, truncating"}
+{"addr":"004d8f75","name":"sprintf"}
+{"addr":"004d9285","name":"__RTDynamicCast"}
+{"addr":"004326a0","name":"get_field_04","comment":"folded: Font::GetAscent (vtable slot 1), Image::GetWidth, any 'return this+4'"}
+{"addr":"004326b0","name":"get_field_08","comment":"folded: Font::GetAscentPadding (vtable slot 2), Image::GetHeight, any 'return this+8'"}
+{"addr":"00496be0","name":"get_field_0c","comment":"folded: Font::GetHeight (vtable slot 4), any 'return this+0xc'"}

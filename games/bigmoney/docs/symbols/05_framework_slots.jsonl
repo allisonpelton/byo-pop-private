@@ -1,0 +1,405 @@
+{"addr": "00476c80", "name": "folded_stub_00476c80"}
+{"addr": "004927d0", "name": "folded_stub_004927d0"}
+{"addr": "00476cd0", "name": "folded_stub_00476cd0"}
+{"addr": "00476c90", "name": "folded_stub_00476c90"}
+{"addr": "004d9ccd", "name": "folded_stub_004d9ccd"}
+{"addr": "00417880", "name": "folded_stub_00417880"}
+{"addr": "00421ff0", "name": "folded_stub_00421ff0"}
+{"addr": "00432700", "name": "folded_stub_00432700"}
+{"addr": "004927c0", "name": "folded_stub_004927c0"}
+{"addr": "004927f0", "name": "folded_stub_004927f0"}
+{"addr": "00492800", "name": "folded_stub_00492800"}
+{"addr": "0043b4c0", "name": "Sexy::ActiveFontLayer::dtor_ActiveFontLayer", "comment": "vtable slot 0: ~ActiveFontLayer()"}
+{"addr": "00492b80", "name": "Sexy::BASS_INSTANCE::dtor_BASS_INSTANCE", "comment": "vtable slot 0: ~BASS_INSTANCE()"}
+{"addr": "004968f0", "name": "Sexy::BassMusicInterface::dtor_BassMusicInterface", "comment": "vtable slot 0: ~BassMusicInterface()"}
+{"addr": "00495f30", "name": "Sexy::BassMusicInterface::LoadMusic", "comment": "vtable slot 1: LoadMusic(int theSongId, const std::string& theFileName)"}
+{"addr": "00494280", "name": "Sexy::BassMusicInterface::PlayMusic", "comment": "vtable slot 2: PlayMusic(int theSongId, int theOffset, bool noLoop)"}
+{"addr": "00494390", "name": "Sexy::BassMusicInterface::StopMusic", "comment": "vtable slot 3: StopMusic(int theSongId)"}
+{"addr": "004944a0", "name": "Sexy::BassMusicInterface::PauseMusic", "comment": "vtable slot 4: PauseMusic(int theSongId)"}
+{"addr": "004944e0", "name": "Sexy::BassMusicInterface::ResumeMusic", "comment": "vtable slot 5: ResumeMusic(int theSongId)"}
+{"addr": "00493ce0", "name": "Sexy::BassMusicInterface::StopAllMusic", "comment": "vtable slot 6: StopAllMusic()"}
+{"addr": "004958d0", "name": "Sexy::BassMusicInterface::UnloadMusic", "comment": "vtable slot 7: UnloadMusic(int theSongId)"}
+{"addr": "004943f0", "name": "Sexy::BassMusicInterface::UnloadAllMusic", "comment": "vtable slot 8: UnloadAllMusic()"}
+{"addr": "00493d50", "name": "Sexy::BassMusicInterface::PauseAllMusic", "comment": "vtable slot 9: PauseAllMusic()"}
+{"addr": "00493d90", "name": "Sexy::BassMusicInterface::ResumeAllMusic", "comment": "vtable slot 10: ResumeAllMusic()"}
+{"addr": "00494520", "name": "Sexy::BassMusicInterface::FadeIn", "comment": "vtable slot 11: FadeIn(int theSongId, int theOffset, double theSpeed, bool noLoop)"}
+{"addr": "00494640", "name": "Sexy::BassMusicInterface::FadeOut", "comment": "vtable slot 12: FadeOut(int theSongId, bool stopSong, double theSpeed)"}
+{"addr": "00493dd0", "name": "Sexy::BassMusicInterface::FadeOutAll", "comment": "vtable slot 13: FadeOutAll(bool stopSong, double theSpeed)"}
+{"addr": "00494690", "name": "Sexy::BassMusicInterface::SetSongVolume", "comment": "vtable slot 14: SetSongVolume(int theSongId, double theVolume)"}
+{"addr": "004946f0", "name": "Sexy::BassMusicInterface::SetSongMaxVolume", "comment": "vtable slot 15: SetSongMaxVolume(int theSongId, double theMaxVolume)"}
+{"addr": "00494760", "name": "Sexy::BassMusicInterface::IsPlaying", "comment": "vtable slot 16: IsPlaying(int theSongId)"}
+{"addr": "00492280", "name": "Sexy::BassMusicInterface::SetVolume", "comment": "vtable slot 17: SetVolume(double theVolume)"}
+{"addr": "004947b0", "name": "Sexy::BassMusicInterface::SetMusicAmplify", "comment": "vtable slot 18: SetMusicAmplify(int theSongId, double theAmp)"}
+{"addr": "00493e40", "name": "Sexy::BassMusicInterface::Update", "comment": "vtable slot 19: Update()"}
+{"addr": "00465360", "name": "Sexy::Buffer::dtor_Buffer", "comment": "vtable slot 0: ~Buffer()"}
+{"addr": "00401ae0", "name": "Sexy::ButtonListener::ButtonPress", "comment": "vtable slot 0: ButtonPress(int theId, int theClickCount)"}
+{"addr": "00427430", "name": "Sexy::ButtonWidget::dtor_ButtonWidget", "comment": "vtable slot 0: ~ButtonWidget()"}
+{"addr": "00422780", "name": "Sexy::ButtonWidget::Update", "comment": "vtable slot 9: Update()"}
+{"addr": "00427460", "name": "Sexy::ButtonWidget::Draw", "comment": "vtable slot 13: Draw(Graphics* g)"}
+{"addr": "00424620", "name": "Sexy::ButtonWidget::SetDisabled", "comment": "vtable slot 22: SetDisabled(bool isDisabled)"}
+{"addr": "00424660", "name": "Sexy::ButtonWidget::MouseEnter", "comment": "vtable slot 34: MouseEnter()"}
+{"addr": "004246f0", "name": "Sexy::ButtonWidget::MouseLeave", "comment": "vtable slot 35: MouseLeave()"}
+{"addr": "004226d0", "name": "Sexy::ButtonWidget::MouseMove", "comment": "vtable slot 36: MouseMove(int theX, int theY)"}
+{"addr": "00422700", "name": "Sexy::ButtonWidget::MouseDown", "comment": "vtable slot 38: MouseDown(int theX, int theY, int theClickCount)"}
+{"addr": "00422740", "name": "Sexy::ButtonWidget::MouseUp", "comment": "vtable slot 41: MouseUp(int theX, int theY)"}
+{"addr": "00422690", "name": "Sexy::ButtonWidget::DrawButtonImage", "comment": "vtable slot 54: DrawButtonImage(Graphics *g, Image *theImage, const Rect &theRect, int x, int y)"}
+{"addr": "00422610", "name": "Sexy::ButtonWidget::SetFont", "comment": "vtable slot 55: SetFont(Font* theFont)"}
+{"addr": "00422640", "name": "Sexy::ButtonWidget::IsButtonDown", "comment": "vtable slot 56: IsButtonDown()"}
+{"addr": "00422470", "name": "Sexy::Checkbox::Draw", "comment": "vtable slot 13: Draw(Graphics* g)"}
+{"addr": "004225c0", "name": "Sexy::Checkbox::MouseDown", "comment": "vtable slot 38: MouseDown(int x, int y, int theClickCount)"}
+{"addr": "00422420", "name": "Sexy::Checkbox::SetChecked", "comment": "vtable slot 54: SetChecked(bool checked, bool tellListener)"}
+{"addr": "00422460", "name": "Sexy::Checkbox::IsChecked", "comment": "vtable slot 55: IsChecked()"}
+{"addr": "0044ceb0", "name": "Sexy::D3DInterface::dtor_D3DInterface", "comment": "vtable slot 0: ~D3DInterface()"}
+{"addr": "0043e8e0", "name": "Sexy::D3DTestImage::dtor_D3DTestImage", "comment": "vtable slot 0: ~D3DTestImage()"}
+{"addr": "00440190", "name": "Sexy::D3DTester::dtor_D3DTester", "comment": "vtable slot 0: ~D3DTester()"}
+{"addr": "0044ec60", "name": "Sexy::DDImage::dtor_DDImage", "comment": "vtable slot 0: ~DDImage()"}
+{"addr": "004474c0", "name": "Sexy::DDImage::PolyFill3D", "comment": "vtable slot 1: PolyFill3D(const Point theVertices[], int theNumVertices, const Rect *theClipRect, const Color &theColor, int theDrawMode, int tx, int ty, bool comvex)"}
+{"addr": "00447510", "name": "Sexy::DDImage::FillRect", "comment": "vtable slot 2: FillRect(const Rect& theRect, const Color& theColor, int theDrawMode)"}
+{"addr": "004475d0", "name": "Sexy::DDImage::DrawLine", "comment": "vtable slot 5: DrawLine(double theStartX, double theStartY, double theEndX, double theEndY, const Color& theColor, int theDrawMode)"}
+{"addr": "00457950", "name": "Sexy::DDImage::Blt", "comment": "vtable slot 7: Blt(Image* theImage, int theX, int theY, const Rect& theSrcRect, const Color& theColor, int theDrawMode)"}
+{"addr": "00457bc0", "name": "Sexy::DDImage::BltF", "comment": "vtable slot 8: BltF(Image* theImage, float theX, float theY, const Rect& theSrcRect, const Rect &theClipRect, const Color& theColor, int theDrawMode)"}
+{"addr": "0044ed40", "name": "Sexy::DDImage::BltRotated", "comment": "vtable slot 9: BltRotated(Image* theImage, float theX, float theY, const Rect &theSrcRect, const Rect& theClipRect, const Color& theColor, int theDrawMode, double theRot, float theRotCenterX, float theRotCenterY)"}
+{"addr": "00452e80", "name": "Sexy::DDImage::StretchBlt", "comment": "vtable slot 10: StretchBlt(Image* theImage, const Rect& theDestRect, const Rect& theSrcRect, const Rect& theClipRect, const Color& theColor, int theDrawMode, bool fastStretch)"}
+{"addr": "0044d700", "name": "Sexy::DDImage::BltMatrix", "comment": "vtable slot 11: BltMatrix(Image* theImage, float x, float y, const SexyMatrix3 &theMatrix, const Rect& theClipRect, const Color& theColor, int theDrawMode, const Rect &theSrcRect, bool blend)"}
+{"addr": "0044d810", "name": "Sexy::DDImage::BltTrianglesTex", "comment": "vtable slot 12: BltTrianglesTex(Image *theTexture, const TriVertex theVertices[][3], int theNumTriangles, const Rect& theClipRect, const Color &theColor, int theDrawMode, float tx, float ty, bool blend)"}
+{"addr": "0044ec90", "name": "Sexy::DDImage::BltMirror", "comment": "vtable slot 13: BltMirror(Image* theImage, int theX, int theY, const Rect& theSrcRect, const Color& theColor, int theDrawMode)"}
+{"addr": "00454e90", "name": "Sexy::DDImage::StretchBltMirror", "comment": "vtable slot 14: StretchBltMirror(Image* theImage, const Rect& theDestRectOrig, const Rect& theSrcRect, const Rect& theClipRect, const Color& theColor, int theDrawMode, bool fastStretch)"}
+{"addr": "00438720", "name": "Sexy::DDImage::PurgeBits", "comment": "vtable slot 18: PurgeBits()"}
+{"addr": "004387d0", "name": "Sexy::DDImage::DeleteExtraBuffers", "comment": "vtable slot 21: DeleteExtraBuffers()"}
+{"addr": "00438700", "name": "Sexy::DDImage::ReInit", "comment": "vtable slot 22: ReInit()"}
+{"addr": "00438800", "name": "Sexy::DDImage::BitsChanged", "comment": "vtable slot 23: BitsChanged()"}
+{"addr": "004387f0", "name": "Sexy::DDImage::CommitBits", "comment": "vtable slot 24: CommitBits()"}
+{"addr": "004387b0", "name": "Sexy::DDImage::DeleteNativeData", "comment": "vtable slot 25: DeleteNativeData()"}
+{"addr": "0042e9d0", "name": "Sexy::DDImage::Create", "comment": "vtable slot 28: Create(int theWidth, int theHeight)"}
+{"addr": "0044b100", "name": "Sexy::DDImage::GetBits", "comment": "vtable slot 29: GetBits()"}
+{"addr": "0043ea30", "name": "Sexy::DDImage::Palletize", "comment": "vtable slot 32: Palletize()"}
+{"addr": "0042cc00", "name": "Sexy::DDImage::SetVideoMemory", "comment": "vtable slot 33: SetVideoMemory(bool wantVideoMemory)"}
+{"addr": "0042cc30", "name": "Sexy::DDImage::RehupFirstPixelTrans", "comment": "vtable slot 34: RehupFirstPixelTrans()"}
+{"addr": "0042ea10", "name": "Sexy::DDImage::NormalFillRect", "comment": "vtable slot 35: NormalFillRect(const Rect& theRect, const Color& theColor)"}
+{"addr": "0042ee40", "name": "Sexy::DDImage::AdditiveFillRect", "comment": "vtable slot 36: AdditiveFillRect(const Rect& theRect, const Color& theColor)"}
+{"addr": "0042f1e0", "name": "Sexy::DDImage::NormalBlt", "comment": "vtable slot 37: NormalBlt(Image* theImage, int theX, int theY, const Rect& theSrcRect, const Color& theColor)"}
+{"addr": "00431360", "name": "Sexy::DDImage::AdditiveBlt", "comment": "vtable slot 38: AdditiveBlt(Image* theImage, int theX, int theY, const Rect& theSrcRect, const Color& theColor)"}
+{"addr": "0042cd20", "name": "Sexy::DDImage::NormalDrawLine", "comment": "vtable slot 39: NormalDrawLine(double theStartX, double theStartY, double theEndX, double theEndY, const Color& theColor)"}
+{"addr": "0042de40", "name": "Sexy::DDImage::AdditiveDrawLine", "comment": "vtable slot 40: AdditiveDrawLine(double theStartX, double theStartY, double theEndX, double theEndY, const Color& theColor)"}
+{"addr": "00438820", "name": "Sexy::DDImage::NormalBltMirror", "comment": "vtable slot 41: NormalBltMirror(Image* theImage, int theX, int theY, const Rect& theSrcRect, const Color& theColor)"}
+{"addr": "00439b20", "name": "Sexy::DDImage::AdditiveBltMirror", "comment": "vtable slot 42: AdditiveBltMirror(Image* theImage, int theX, int theY, const Rect& theSrcRect, const Color& theColor)"}
+{"addr": "004386a0", "name": "Sexy::DDImage::LockSurface", "comment": "vtable slot 43: LockSurface()"}
+{"addr": "0042c1e0", "name": "Sexy::DDImage::UnlockSurface", "comment": "vtable slot 44: UnlockSurface()"}
+{"addr": "0042c210", "name": "Sexy::DDImage::SetSurface", "comment": "vtable slot 45: SetSurface(LPDIRECTDRAWSURFACE theSurface)"}
+{"addr": "0044e8c0", "name": "Sexy::DDInterface::dtor_DDInterface", "comment": "vtable slot 0: ~DDInterface()"}
+{"addr": "00492b50", "name": "Sexy::DSoundInstance::dtor_DSoundInstance", "comment": "vtable slot 0: ~DSoundInstance()"}
+{"addr": "00491c80", "name": "Sexy::DSoundInstance::Release", "comment": "vtable slot 1: Release()"}
+{"addr": "00491cd0", "name": "Sexy::DSoundInstance::SetBaseVolume", "comment": "vtable slot 2: SetBaseVolume(double theBaseVolume)"}
+{"addr": "00491cf0", "name": "Sexy::DSoundInstance::SetBasePan", "comment": "vtable slot 3: SetBasePan(int theBasePan)"}
+{"addr": "00491da0", "name": "Sexy::DSoundInstance::AdjustPitch", "comment": "vtable slot 4: AdjustPitch(double theNumSteps)"}
+{"addr": "00491c90", "name": "Sexy::DSoundInstance::SetVolume", "comment": "vtable slot 5: SetVolume(double theVolume)"}
+{"addr": "00491cb0", "name": "Sexy::DSoundInstance::SetPan", "comment": "vtable slot 6: SetPan(int thePosition)"}
+{"addr": "00491d10", "name": "Sexy::DSoundInstance::Play", "comment": "vtable slot 7: Play(bool looping, bool autoRelease)"}
+{"addr": "00491d70", "name": "Sexy::DSoundInstance::Stop", "comment": "vtable slot 8: Stop()"}
+{"addr": "00491e20", "name": "Sexy::DSoundInstance::IsPlaying", "comment": "vtable slot 9: IsPlaying()"}
+{"addr": "00491e50", "name": "Sexy::DSoundInstance::IsReleased", "comment": "vtable slot 10: IsReleased()"}
+{"addr": "00491e80", "name": "Sexy::DSoundInstance::GetVolume", "comment": "vtable slot 11: GetVolume()"}
+{"addr": "00494250", "name": "Sexy::DSoundManager::dtor_DSoundManager", "comment": "vtable slot 0: ~DSoundManager()"}
+{"addr": "00491840", "name": "Sexy::DSoundManager::Initialized", "comment": "vtable slot 1: Initialized()"}
+{"addr": "00493c50", "name": "Sexy::DSoundManager::LoadSound", "comment": "vtable slot 2: LoadSound(const std::string& theFilename)"}
+{"addr": "004955c0", "name": "Sexy::DSoundManager::LoadSound", "comment": "vtable slot 3: LoadSound(unsigned int theSfxID, const std::string& theFilename)"}
+{"addr": "00494c10", "name": "Sexy::DSoundManager::ReleaseSound", "comment": "vtable slot 4: ReleaseSound(unsigned int theSfxID)"}
+{"addr": "004929f0", "name": "Sexy::DSoundManager::SetVolume", "comment": "vtable slot 5: SetVolume(double theVolume)"}
+{"addr": "00491890", "name": "Sexy::DSoundManager::SetBaseVolume", "comment": "vtable slot 6: SetBaseVolume(unsigned int theSfxID, double theBaseVolume)"}
+{"addr": "004918c0", "name": "Sexy::DSoundManager::SetBasePan", "comment": "vtable slot 7: SetBasePan(unsigned int theSfxID, int theBasePan)"}
+{"addr": "00493790", "name": "Sexy::DSoundManager::GetSoundInstance", "comment": "vtable slot 8: GetSoundInstance(unsigned int theSfxID)"}
+{"addr": "004918f0", "name": "Sexy::DSoundManager::ReleaseSounds", "comment": "vtable slot 9: ReleaseSounds()"}
+{"addr": "00491920", "name": "Sexy::DSoundManager::ReleaseChannels", "comment": "vtable slot 10: ReleaseChannels()"}
+{"addr": "004919c0", "name": "Sexy::DSoundManager::GetMasterVolume", "comment": "vtable slot 11: GetMasterVolume()"}
+{"addr": "00491ac0", "name": "Sexy::DSoundManager::SetMasterVolume", "comment": "vtable slot 12: SetMasterVolume(double theVolume)"}
+{"addr": "00491bc0", "name": "Sexy::DSoundManager::SetCooperativeWindow", "comment": "vtable slot 14: SetCooperativeWindow(HWND theHWnd, bool isWindowed)"}
+{"addr": "00491990", "name": "Sexy::DSoundManager::StopAllSounds", "comment": "vtable slot 15: StopAllSounds()"}
+{"addr": "0043b430", "name": "Sexy::DataElement::dtor_DataElement", "comment": "vtable slot 0: ~DataElement()"}
+{"addr": "004665d0", "name": "Sexy::DescParser::Error", "comment": "vtable slot 0: Error(const std::string& theError)"}
+{"addr": "004608e0", "name": "Sexy::DescParser::Dereference", "comment": "vtable slot 1: Dereference(const std::string& theString)"}
+{"addr": "00470dd0", "name": "Sexy::DescParser::dtor_DescParser", "comment": "vtable slot 3: ~DescParser()"}
+{"addr": "00427a90", "name": "Sexy::Dialog::dtor_Dialog", "comment": "vtable slot 0: ~Dialog()"}
+{"addr": "00429ba0", "name": "Sexy::Dialog::AddedToManager", "comment": "vtable slot 7: AddedToManager(WidgetManager* theWidgetManager)"}
+{"addr": "004247b0", "name": "Sexy::Dialog::RemovedFromManager", "comment": "vtable slot 8: RemovedFromManager(WidgetManager* theWidgetManager)"}
+{"addr": "00422ac0", "name": "Sexy::Dialog::Update", "comment": "vtable slot 9: Update()"}
+{"addr": "00427dd0", "name": "Sexy::Dialog::Draw", "comment": "vtable slot 13: Draw(Graphics* g)"}
+{"addr": "00429be0", "name": "Sexy::Dialog::OrderInManagerChanged", "comment": "vtable slot 15: OrderInManagerChanged()"}
+{"addr": "0042a730", "name": "Sexy::Dialog::SetColor", "comment": "vtable slot 19: SetColor(int theIdx, const Color& theColor)"}
+{"addr": "004247f0", "name": "Sexy::Dialog::Resize", "comment": "vtable slot 25: Resize(int theX, int theY, int theWidth, int theHeight)"}
+{"addr": "00422920", "name": "Sexy::Dialog::MouseDown", "comment": "vtable slot 38: MouseDown(int x, int y, int theClickCount)"}
+{"addr": "00422a90", "name": "Sexy::Dialog::MouseUp", "comment": "vtable slot 41: MouseUp(int x, int y)"}
+{"addr": "00422970", "name": "Sexy::Dialog::MouseDrag", "comment": "vtable slot 42: MouseDrag(int x, int y)"}
+{"addr": "00422880", "name": "Sexy::Dialog::SetButtonFont", "comment": "vtable slot 54: SetButtonFont(Font* theFont)"}
+{"addr": "004228c0", "name": "Sexy::Dialog::SetHeaderFont", "comment": "vtable slot 55: SetHeaderFont(Font* theFont)"}
+{"addr": "004228f0", "name": "Sexy::Dialog::SetLinesFont", "comment": "vtable slot 56: SetLinesFont(Font* theFont)"}
+{"addr": "00427c50", "name": "Sexy::Dialog::GetPreferredHeight", "comment": "vtable slot 57: GetPreferredHeight(int theWidth)"}
+{"addr": "00422ad0", "name": "Sexy::Dialog::IsModal", "comment": "vtable slot 58: IsModal()"}
+{"addr": "00422ae0", "name": "Sexy::Dialog::WaitForResult", "comment": "vtable slot 59: WaitForResult(bool autoKill)"}
+{"addr": "00428090", "name": "Sexy::DialogButton::Draw", "comment": "vtable slot 13: Draw(Graphics* g)"}
+{"addr": "00425dc0", "name": "Sexy::EditWidget::dtor_EditWidget", "comment": "vtable slot 0: ~EditWidget()"}
+{"addr": "00424600", "name": "Sexy::EditWidget::MarkDirty", "comment": "vtable slot 4: MarkDirty()"}
+{"addr": "00422270", "name": "Sexy::EditWidget::Update", "comment": "vtable slot 9: Update()"}
+{"addr": "00425e60", "name": "Sexy::EditWidget::Draw", "comment": "vtable slot 13: Draw(Graphics* g)"}
+{"addr": "004245d0", "name": "Sexy::EditWidget::Resize", "comment": "vtable slot 25: Resize(int theX, int theY, int theWidth, int theHeight)"}
+{"addr": "00422230", "name": "Sexy::EditWidget::GotFocus", "comment": "vtable slot 29: GotFocus()"}
+{"addr": "00422250", "name": "Sexy::EditWidget::LostFocus", "comment": "vtable slot 30: LostFocus()"}
+{"addr": "00422350", "name": "Sexy::EditWidget::KeyChar", "comment": "vtable slot 31: KeyChar(char theChar)"}
+{"addr": "00422300", "name": "Sexy::EditWidget::KeyDown", "comment": "vtable slot 32: KeyDown(KeyCode theKey)"}
+{"addr": "00422400", "name": "Sexy::EditWidget::MouseEnter", "comment": "vtable slot 34: MouseEnter()"}
+{"addr": "00422410", "name": "Sexy::EditWidget::MouseLeave", "comment": "vtable slot 35: MouseLeave()"}
+{"addr": "00425080", "name": "Sexy::EditWidget::MouseDown", "comment": "vtable slot 38: MouseDown(int x, int y, int theClickCount)"}
+{"addr": "00422370", "name": "Sexy::EditWidget::MouseUp", "comment": "vtable slot 40: MouseUp(int x, int y, int theClickCount)"}
+{"addr": "004223b0", "name": "Sexy::EditWidget::MouseDrag", "comment": "vtable slot 42: MouseDrag(int x, int y)"}
+{"addr": "004264b0", "name": "Sexy::EditWidget::ProcessKey", "comment": "vtable slot 54: ProcessKey(KeyCode theKey, char theChar)"}
+{"addr": "004298f0", "name": "Sexy::EditWidget::SetFont", "comment": "vtable slot 55: SetFont(Font* theFont, Font* theWidthCheckFont)"}
+{"addr": "00425df0", "name": "Sexy::EditWidget::SetText", "comment": "vtable slot 56: SetText(const std::string& theText, bool leftPosToZero)"}
+{"addr": "004222c0", "name": "Sexy::EditWidget::IsPartOfWord", "comment": "vtable slot 57: IsPartOfWord(char theChar)"}
+{"addr": "00427130", "name": "Sexy::EditWidget::GetCharAt", "comment": "vtable slot 58: GetCharAt(int x, int y)"}
+{"addr": "00427280", "name": "Sexy::EditWidget::FocusCursor", "comment": "vtable slot 59: FocusCursor(bool bigJump)"}
+{"addr": "00492bb0", "name": "Sexy::FMOD_INSTANCE::dtor_FMOD_INSTANCE", "comment": "vtable slot 0: ~FMOD_INSTANCE()"}
+{"addr": "00496a80", "name": "Sexy::FModMusicInterface::dtor_FModMusicInterface", "comment": "vtable slot 0: ~FModMusicInterface()"}
+{"addr": "004965f0", "name": "Sexy::FModMusicInterface::LoadMusic", "comment": "vtable slot 1: LoadMusic(int theSongId, const std::string& theFileName)"}
+{"addr": "00494800", "name": "Sexy::FModMusicInterface::PlayMusic", "comment": "vtable slot 2: PlayMusic(int theSongId, int theOffset, bool noLoop)"}
+{"addr": "00494990", "name": "Sexy::FModMusicInterface::StopMusic", "comment": "vtable slot 3: StopMusic(int theSongId)"}
+{"addr": "004948f0", "name": "Sexy::FModMusicInterface::PauseMusic", "comment": "vtable slot 4: PauseMusic(int theSongId)"}
+{"addr": "00494940", "name": "Sexy::FModMusicInterface::ResumeMusic", "comment": "vtable slot 5: ResumeMusic(int theSongId)"}
+{"addr": "00493f50", "name": "Sexy::FModMusicInterface::StopAllMusic", "comment": "vtable slot 6: StopAllMusic()"}
+{"addr": "004949f0", "name": "Sexy::FModMusicInterface::FadeIn", "comment": "vtable slot 11: FadeIn(int theSongId, int theOffset, double theSpeed, bool noLoop)"}
+{"addr": "00494b00", "name": "Sexy::FModMusicInterface::FadeOut", "comment": "vtable slot 12: FadeOut(int theSongId, bool stopSong, double theSpeed)"}
+{"addr": "00493fd0", "name": "Sexy::FModMusicInterface::FadeOutAll", "comment": "vtable slot 13: FadeOutAll(bool stopSong, double theSpeed)"}
+{"addr": "00494b40", "name": "Sexy::FModMusicInterface::SetSongVolume", "comment": "vtable slot 14: SetSongVolume(int theSongId, double theVolume)"}
+{"addr": "00494bc0", "name": "Sexy::FModMusicInterface::IsPlaying", "comment": "vtable slot 16: IsPlaying(int theSongId)"}
+{"addr": "00493ff0", "name": "Sexy::FModMusicInterface::SetVolume", "comment": "vtable slot 17: SetVolume(double theVolume)"}
+{"addr": "004940b0", "name": "Sexy::FModMusicInterface::Update", "comment": "vtable slot 19: Update()"}
+{"addr": "00496290", "name": "Sexy::FModMusicInterface::LoadSample", "comment": "vtable slot 20: LoadSample(int theSongId, const std::string& theIntroFileName, const std::string& theRepeatFileName, bool repeat)"}
+{"addr": "00496190", "name": "Sexy::FModMusicInterface::LoadSample", "comment": "vtable slot 21: LoadSample(int theSongId, const std::string& theFileName, bool repeat)"}
+{"addr": "0043abd0", "name": "Sexy::Font::dtor_Font", "comment": "vtable slot 0: ~Font()"}
+{"addr": "004326a0", "name": "Sexy::Font::GetAscent", "comment": "vtable slot 1: GetAscent()"}
+{"addr": "004326b0", "name": "Sexy::Font::GetAscentPadding", "comment": "vtable slot 2: GetAscentPadding()"}
+{"addr": "00432460", "name": "Sexy::Font::GetDescent", "comment": "vtable slot 3: GetDescent()"}
+{"addr": "00496be0", "name": "Sexy::Font::GetHeight", "comment": "vtable slot 4: GetHeight()"}
+{"addr": "00432470", "name": "Sexy::Font::GetLineSpacingOffset", "comment": "vtable slot 5: GetLineSpacingOffset()"}
+{"addr": "00432480", "name": "Sexy::Font::GetLineSpacing", "comment": "vtable slot 6: GetLineSpacing()"}
+{"addr": "00432490", "name": "Sexy::Font::StringWidth", "comment": "vtable slot 7: StringWidth(const std::string& theString)"}
+{"addr": "00447810", "name": "Sexy::Font::CharWidth", "comment": "vtable slot 8: CharWidth(char theChar)"}
+{"addr": "004324a0", "name": "Sexy::Font::CharWidthKern", "comment": "vtable slot 9: CharWidthKern(char theChar, char thePrevChar)"}
+{"addr": "00447fd0", "name": "Sexy::FontData::Error", "comment": "vtable slot 0: Error(const std::string& theError)"}
+{"addr": "00457f80", "name": "Sexy::FontData::HandleCommand", "comment": "vtable slot 2: HandleCommand(const ListDataElement& theParams)"}
+{"addr": "0045a710", "name": "Sexy::FontData::dtor_FontData", "comment": "vtable slot 3: ~FontData()"}
+{"addr": "00441f40", "name": "Sexy::Graphics::dtor_Graphics", "comment": "vtable slot 0: ~Graphics()"}
+{"addr": "0045eee0", "name": "Sexy::HTTPTransfer::dtor_HTTPTransfer", "comment": "vtable slot 0: ~HTTPTransfer()"}
+{"addr": "0044d920", "name": "Sexy::Image::dtor_Image", "comment": "vtable slot 0: ~Image()"}
+{"addr": "004326d0", "name": "Sexy::Image::PolyFill3D", "comment": "vtable slot 1: PolyFill3D(const Point theVertices[], int theNumVertices, const Rect *theClipRect, const Color &theColor, int theDrawMode, int tx, int ty, bool convex)"}
+{"addr": "0043b300", "name": "Sexy::Image::DrawRect", "comment": "vtable slot 3: DrawRect(const Rect& theRect, const Color& theColor, int theDrawMode)"}
+{"addr": "004326c0", "name": "Sexy::Image::DrawLine", "comment": "vtable slot 5: DrawLine(double theStartX, double theStartY, double theEndX, double theEndY, const Color& theColor, int theDrawMode)"}
+{"addr": "0043b3d0", "name": "Sexy::Image::FillScanLines", "comment": "vtable slot 6: FillScanLines(Span* theSpans, int theSpanCount, const Color& theColor, int theDrawMode)"}
+{"addr": "00432710", "name": "Sexy::Image::BltF", "comment": "vtable slot 8: BltF(Image* theImage, float theX, float theY, const Rect& theSrcRect, const Rect &theClipRect, const Color& theColor, int theDrawMode)"}
+{"addr": "004326e0", "name": "Sexy::Image::BltRotated", "comment": "vtable slot 9: BltRotated(Image* theImage, float theX, float theY, const Rect &theSrcRect, const Rect& theClipRect, const Color& theColor, int theDrawMode, double theRot, float theRotCenterX, float theRotCenterY)"}
+{"addr": "004326f0", "name": "Sexy::Image::BltMatrix", "comment": "vtable slot 11: BltMatrix(Image* theImage, float x, float y, const SexyMatrix3 &theMatrix, const Rect& theClipRect, const Color& theColor, int theDrawMode, const Rect &theSrcRect, bool blend)"}
+{"addr": "0044c130", "name": "Sexy::ImageFont::dtor_ImageFont", "comment": "vtable slot 0: ~ImageFont()"}
+{"addr": "0043eaf0", "name": "Sexy::ImageFont::StringWidth", "comment": "vtable slot 7: StringWidth(const std::string& theString)"}
+{"addr": "00432780", "name": "Sexy::ImageFont::CharWidth", "comment": "vtable slot 8: CharWidth(char theChar)"}
+{"addr": "0043f8b0", "name": "Sexy::ImageFont::CharWidthKern", "comment": "vtable slot 9: CharWidthKern(char theChar, char thePrevChar)"}
+{"addr": "004327a0", "name": "Sexy::ImageFont::DrawString", "comment": "vtable slot 10: DrawString(Graphics* g, int theX, int theY, const std::string& theString, const Color& theColor, const Rect& theClipRect)"}
+{"addr": "00457df0", "name": "Sexy::ImageFont::Duplicate", "comment": "vtable slot 11: Duplicate()"}
+{"addr": "0044ddf0", "name": "Sexy::ImageFont::GenerateActiveFontLayers", "comment": "vtable slot 12: GenerateActiveFontLayers()"}
+{"addr": "0044c160", "name": "Sexy::ImageFont::DrawStringEx", "comment": "vtable slot 13: DrawStringEx(Graphics* g, int theX, int theY, const std::string& theString, const Color& theColor, const Rect* theClipRect, RectList* theDrawnAreas, int* theWidth)"}
+{"addr": "004327d0", "name": "Sexy::ImageFont::SetPointSize", "comment": "vtable slot 14: SetPointSize(int thePointSize)"}
+{"addr": "00432810", "name": "Sexy::ImageFont::GetPointSize", "comment": "vtable slot 15: GetPointSize()"}
+{"addr": "004327f0", "name": "Sexy::ImageFont::SetScale", "comment": "vtable slot 16: SetScale(double theScale)"}
+{"addr": "00432820", "name": "Sexy::ImageFont::GetDefaultPointSize", "comment": "vtable slot 17: GetDefaultPointSize()"}
+{"addr": "00457e50", "name": "Sexy::ImageFont::AddTag", "comment": "vtable slot 18: AddTag(const std::string& theTagName)"}
+{"addr": "0044c750", "name": "Sexy::ImageFont::RemoveTag", "comment": "vtable slot 19: RemoveTag(const std::string& theTagName)"}
+{"addr": "0043f9e0", "name": "Sexy::ImageFont::HasTag", "comment": "vtable slot 20: HasTag(const std::string& theTagName)"}
+{"addr": "00448350", "name": "Sexy::ImageFont::GetDefine", "comment": "vtable slot 21: GetDefine(const std::string& theName)"}
+{"addr": "00432830", "name": "Sexy::ImageFont::Prepare", "comment": "vtable slot 22: Prepare()"}
+{"addr": "0044b350", "name": "Sexy::ListDataElement::dtor_ListDataElement", "comment": "vtable slot 0: ~ListDataElement()"}
+{"addr": "0044dbf0", "name": "Sexy::ListDataElement::Duplicate", "comment": "vtable slot 1: Duplicate()"}
+{"addr": "0044e4a0", "name": "Sexy::MemoryImage::dtor_MemoryImage", "comment": "vtable slot 0: ~MemoryImage()"}
+{"addr": "00434030", "name": "Sexy::MemoryImage::FillRect", "comment": "vtable slot 2: FillRect(const Rect& theRect, const Color& theColor, int theDrawMode)"}
+{"addr": "00434220", "name": "Sexy::MemoryImage::ClearRect", "comment": "vtable slot 4: ClearRect(const Rect& theRect)"}
+{"addr": "0043b590", "name": "Sexy::MemoryImage::DrawLine", "comment": "vtable slot 5: DrawLine(double theStartX, double theStartY, double theEndX, double theEndY, const Color& theColor, int theDrawMode)"}
+{"addr": "00435940", "name": "Sexy::MemoryImage::Blt", "comment": "vtable slot 7: Blt(Image* theImage, int theX, int theY, const Rect& theSrcRect, const Color& theColor, int theDrawMode)"}
+{"addr": "00435990", "name": "Sexy::MemoryImage::BltF", "comment": "vtable slot 8: BltF(Image* theImage, float theX, float theY, const Rect& theSrcRect, const Rect &theClipRect, const Color& theColor, int theDrawMode)"}
+{"addr": "0043bbf0", "name": "Sexy::MemoryImage::BltRotated", "comment": "vtable slot 9: BltRotated(Image* theImage, float theX, float theY, const Rect &theSrcRect, const Rect& theClipRect, const Color& theColor, int theDrawMode, double theRot, float theRotCenterX, float theRotCenterY)"}
+{"addr": "0043da30", "name": "Sexy::MemoryImage::StretchBlt", "comment": "vtable slot 10: StretchBlt(Image* theImage, const Rect& theDestRect, const Rect& theSrcRect, const Rect& theClipRect, const Color& theColor, int theDrawMode, bool fastStretch)"}
+{"addr": "00437110", "name": "Sexy::MemoryImage::BltMatrix", "comment": "vtable slot 11: BltMatrix(Image* theImage, float x, float y, const SexyMatrix3 &theMatrix, const Rect& theClipRect, const Color& theColor, int theDrawMode, const Rect &theSrcRect, bool blend)"}
+{"addr": "00437290", "name": "Sexy::MemoryImage::BltTrianglesTex", "comment": "vtable slot 12: BltTrianglesTex(Image *theTexture, const TriVertex theVertices[][3], int theNumTriangles, const Rect& theClipRect, const Color &theColor, int theDrawMode, float tx, float ty, bool blend)"}
+{"addr": "004337d0", "name": "Sexy::MemoryImage::GetNativeAlphaData", "comment": "vtable slot 15: GetNativeAlphaData(NativeDisplay *theNative)"}
+{"addr": "004339e0", "name": "Sexy::MemoryImage::GetRLAlphaData", "comment": "vtable slot 16: GetRLAlphaData()"}
+{"addr": "00433bf0", "name": "Sexy::MemoryImage::GetRLAdditiveData", "comment": "vtable slot 17: GetRLAdditiveData(NativeDisplay *theNative)"}
+{"addr": "00433df0", "name": "Sexy::MemoryImage::PurgeBits", "comment": "vtable slot 18: PurgeBits()"}
+{"addr": "00433e70", "name": "Sexy::MemoryImage::DeleteSWBuffers", "comment": "vtable slot 19: DeleteSWBuffers()"}
+{"addr": "00433ec0", "name": "Sexy::MemoryImage::Delete3DBuffers", "comment": "vtable slot 20: Delete3DBuffers()"}
+{"addr": "00433ed0", "name": "Sexy::MemoryImage::DeleteExtraBuffers", "comment": "vtable slot 21: DeleteExtraBuffers()"}
+{"addr": "00433ee0", "name": "Sexy::MemoryImage::ReInit", "comment": "vtable slot 22: ReInit()"}
+{"addr": "00432890", "name": "Sexy::MemoryImage::BitsChanged", "comment": "vtable slot 23: BitsChanged()"}
+{"addr": "00433670", "name": "Sexy::MemoryImage::CommitBits", "comment": "vtable slot 24: CommitBits()"}
+{"addr": "00433f10", "name": "Sexy::MemoryImage::DeleteNativeData", "comment": "vtable slot 25: DeleteNativeData()"}
+{"addr": "00434290", "name": "Sexy::MemoryImage::Clear", "comment": "vtable slot 26: Clear()"}
+{"addr": "00433f50", "name": "Sexy::MemoryImage::SetBits", "comment": "vtable slot 27: SetBits(ulong* theBits, int theWidth, int theHeight, bool commitBits)"}
+{"addr": "00433ff0", "name": "Sexy::MemoryImage::Create", "comment": "vtable slot 28: Create(int theWidth, int theHeight)"}
+{"addr": "004483c0", "name": "Sexy::MemoryImage::GetBits", "comment": "vtable slot 29: GetBits()"}
+{"addr": "004337a0", "name": "Sexy::MemoryImage::SetImageMode", "comment": "vtable slot 30: SetImageMode(bool hasTrans, bool hasAlpha)"}
+{"addr": "004337c0", "name": "Sexy::MemoryImage::SetVolatile", "comment": "vtable slot 31: SetVolatile(bool isVolatile)"}
+{"addr": "0043dad0", "name": "Sexy::MemoryImage::Palletize", "comment": "vtable slot 32: Palletize()"}
+{"addr": "00492be0", "name": "Sexy::MusicInterface::dtor_MusicInterface", "comment": "vtable slot 0: ~MusicInterface()"}
+{"addr": "004927e0", "name": "Sexy::MusicInterface::FadeIn", "comment": "vtable slot 11: FadeIn(int theSongId, int theOffset, double theSpeed, bool noLoop)"}
+{"addr": "0043b2d0", "name": "Sexy::NativeDisplay::dtor_NativeDisplay", "comment": "vtable slot 0: ~NativeDisplay()"}
+{"addr": "0045ee40", "name": "Sexy::PropertiesParser::dtor_PropertiesParser", "comment": "vtable slot 0: ~PropertiesParser()"}
+{"addr": "0046acd0", "name": "Sexy::ResourceManager::DeleteResources", "comment": "vtable slot 0: DeleteResources(const std::string &theGroup)"}
+{"addr": "0045de10", "name": "Sexy::ResourceManager::DeleteResources", "comment": "vtable slot 1: DeleteResources(ResMap &theMap, const std::string &theGroup)"}
+{"addr": "0046ad10", "name": "Sexy::ResourceManager::DoLoadImage", "comment": "vtable slot 2: DoLoadImage(ImageRes *theRes)"}
+{"addr": "00465f10", "name": "Sexy::ResourceManager::DoLoadFont", "comment": "vtable slot 3: DoLoadFont(FontRes* theRes)"}
+{"addr": "0046e3c0", "name": "Sexy::ResourceManager::dtor_ResourceManager", "comment": "vtable slot 4: ~ResourceManager()"}
+{"addr": "0045ef10", "name": "Sexy::ResourceManager::LoadNextImage", "comment": "vtable slot 5: LoadNextImage()"}
+{"addr": "00465d80", "name": "Sexy::ResourceManager::LoadNextSound", "comment": "vtable slot 6: LoadNextSound()"}
+{"addr": "0045efa0", "name": "Sexy::ResourceManager::LoadNextFont", "comment": "vtable slot 7: LoadNextFont()"}
+{"addr": "0045b4c0", "name": "Sexy::ResourceManager::LoadNextResource", "comment": "vtable slot 8: LoadNextResource()"}
+{"addr": "00466250", "name": "Sexy::ResourceManager::StartLoadResources", "comment": "vtable slot 9: StartLoadResources(const std::string &theGroup)"}
+{"addr": "00469270", "name": "Sexy::ResourceManager::LoadResources", "comment": "vtable slot 10: LoadResources(const std::string &theGroup)"}
+{"addr": "00466290", "name": "Sexy::ResourceManager::GetImageThrow", "comment": "vtable slot 11: GetImageThrow(const std::string &theId)"}
+{"addr": "00466410", "name": "Sexy::ResourceManager::GetSoundThrow", "comment": "vtable slot 12: GetSoundThrow(const std::string &theId)"}
+{"addr": "004664f0", "name": "Sexy::ResourceManager::GetFontThrow", "comment": "vtable slot 13: GetFontThrow(const std::string &theId)"}
+{"addr": "0048bb30", "name": "Sexy::SexyApp::dtor_SexyApp", "comment": "vtable slot 17: ~SexyApp()"}
+{"addr": "0048b840", "name": "Sexy::SexyApp::PreTerminate", "comment": "vtable slot 21: PreTerminate()"}
+{"addr": "0048caa0", "name": "Sexy::SexyApp::WriteToRegistry", "comment": "vtable slot 23: WriteToRegistry()"}
+{"addr": "0048c1d0", "name": "Sexy::SexyApp::ReadFromRegistry", "comment": "vtable slot 24: ReadFromRegistry()"}
+{"addr": "0048b890", "name": "Sexy::SexyApp::PreDisplayHook", "comment": "vtable slot 26: PreDisplayHook()"}
+{"addr": "0048b810", "name": "Sexy::SexyApp::URLOpenSucceeded", "comment": "vtable slot 34: URLOpenSucceeded(const std::string& theURL)"}
+{"addr": "0048d5d0", "name": "Sexy::SexyApp::GetGameSEHInfo", "comment": "vtable slot 38: GetGameSEHInfo()"}
+{"addr": "0048e340", "name": "Sexy::SexyApp::GetSEHWebParams", "comment": "vtable slot 39: GetSEHWebParams(DefinesMap* theDefinesMap)"}
+{"addr": "0048d280", "name": "Sexy::SexyApp::HandleCmdLineParam", "comment": "vtable slot 43: HandleCmdLineParam(const std::string& theParamName, const std::string& theParamValue)"}
+{"addr": "0048dd40", "name": "Sexy::SexyApp::Init", "comment": "vtable slot 45: Init()"}
+{"addr": "0048cf20", "name": "Sexy::SexyApp::CheckSignature", "comment": "vtable slot 83: CheckSignature(const Buffer& theBuffer, const std::string& theFileName)"}
+{"addr": "0048d990", "name": "Sexy::SexyApp::InitPropertiesHook", "comment": "vtable slot 86: InitPropertiesHook()"}
+{"addr": "0048b780", "name": "Sexy::SexyApp::ShouldCheckForUpdate", "comment": "vtable slot 90: ShouldCheckForUpdate()"}
+{"addr": "0048b7e0", "name": "Sexy::SexyApp::UpdateCheckQueried", "comment": "vtable slot 91: UpdateCheckQueried()"}
+{"addr": "0048f260", "name": "Sexy::SexyApp::OpenRegisterPage", "comment": "vtable slot 92: OpenRegisterPage()"}
+{"addr": "0048e6b0", "name": "Sexy::SexyApp::OpenRegisterPage", "comment": "vtable slot 93: OpenRegisterPage(DefinesMap theDefinesMap)"}
+{"addr": "0048dee0", "name": "Sexy::SexyApp::OpenHTMLTemplate", "comment": "vtable slot 94: OpenHTMLTemplate(const std::string& theTemplateFile, const DefinesMap& theDefinesMap)"}
+{"addr": "0048baa0", "name": "Sexy::SexyApp::OpenUpdateURL", "comment": "vtable slot 95: OpenUpdateURL()"}
+{"addr": "0047a8c0", "name": "Sexy::SexyAppBase::Process", "comment": "vtable slot 7: Process(bool allowSleep)"}
+{"addr": "00484310", "name": "Sexy::SexyAppBase::UpdateFrames", "comment": "vtable slot 8: UpdateFrames()"}
+{"addr": "004790e0", "name": "Sexy::SexyAppBase::DoUpdateFrames", "comment": "vtable slot 9: DoUpdateFrames()"}
+{"addr": "00476ca0", "name": "Sexy::SexyAppBase::DoUpdateFramesF", "comment": "vtable slot 10: DoUpdateFramesF(float theFrac)"}
+{"addr": "004896a0", "name": "Sexy::SexyAppBase::MakeWindow", "comment": "vtable slot 11: MakeWindow()"}
+{"addr": "00477c20", "name": "Sexy::SexyAppBase::EnforceCursor", "comment": "vtable slot 12: EnforceCursor()"}
+{"addr": "0047a790", "name": "Sexy::SexyAppBase::ReInitImages", "comment": "vtable slot 13: ReInitImages()"}
+{"addr": "0047a660", "name": "Sexy::SexyAppBase::DeleteNativeImageData", "comment": "vtable slot 14: DeleteNativeImageData()"}
+{"addr": "0047a6d0", "name": "Sexy::SexyAppBase::DeleteExtraImageData", "comment": "vtable slot 15: DeleteExtraImageData()"}
+{"addr": "0048b750", "name": "Sexy::SexyAppBase::dtor_SexyAppBase", "comment": "vtable slot 17: ~SexyAppBase()"}
+{"addr": "00477f30", "name": "Sexy::SexyAppBase::CreateMusicInterface", "comment": "vtable slot 18: CreateMusicInterface(HWND theHWnd)"}
+{"addr": "0047fbf0", "name": "Sexy::SexyAppBase::WriteToRegistry", "comment": "vtable slot 23: WriteToRegistry()"}
+{"addr": "004805e0", "name": "Sexy::SexyAppBase::ReadFromRegistry", "comment": "vtable slot 24: ReadFromRegistry()"}
+{"addr": "004769b0", "name": "Sexy::SexyAppBase::NewDialog", "comment": "vtable slot 25: NewDialog(int theDialogId, bool isModal, const std::string& theDialogHeader, const std::string& theDialogLines, const std::string& theDialogFooter, int theButtonMode)"}
+{"addr": "00476e10", "name": "Sexy::SexyAppBase::BeginPopup", "comment": "vtable slot 27: BeginPopup()"}
+{"addr": "004791d0", "name": "Sexy::SexyAppBase::EndPopup", "comment": "vtable slot 28: EndPopup()"}
+{"addr": "00479850", "name": "Sexy::SexyAppBase::MsgBox", "comment": "vtable slot 29: MsgBox(const std::string &theText, const std::string &theTitle, int theFlags)"}
+{"addr": "004798d0", "name": "Sexy::SexyAppBase::Popup", "comment": "vtable slot 30: Popup(const std::string& theString)"}
+{"addr": "004797b0", "name": "Sexy::SexyAppBase::LogScreenSaverError", "comment": "vtable slot 31: LogScreenSaverError(const std::string &theError)"}
+{"addr": "00484360", "name": "Sexy::SexyAppBase::SafeDeleteWidget", "comment": "vtable slot 32: SafeDeleteWidget(Widget* theWidget)"}
+{"addr": "00476b60", "name": "Sexy::SexyAppBase::URLOpenFailed", "comment": "vtable slot 33: URLOpenFailed(const std::string& theURL)"}
+{"addr": "00476b70", "name": "Sexy::SexyAppBase::URLOpenSucceeded", "comment": "vtable slot 34: URLOpenSucceeded(const std::string& theURL)"}
+{"addr": "0047f1d0", "name": "Sexy::SexyAppBase::OpenURL", "comment": "vtable slot 35: OpenURL(const std::string& theURL, bool shutdownOnOpen)"}
+{"addr": "0047f290", "name": "Sexy::SexyAppBase::GetProductVersion", "comment": "vtable slot 36: GetProductVersion(const std::string& thePath)"}
+{"addr": "00476c50", "name": "Sexy::SexyAppBase::SEHOccured", "comment": "vtable slot 37: SEHOccured()"}
+{"addr": "00480ae0", "name": "Sexy::SexyAppBase::GetGameSEHInfo", "comment": "vtable slot 38: GetGameSEHInfo()"}
+{"addr": "004890b0", "name": "Sexy::SexyAppBase::Shutdown", "comment": "vtable slot 40: Shutdown()"}
+{"addr": "00482320", "name": "Sexy::SexyAppBase::DoParseCmdLine", "comment": "vtable slot 41: DoParseCmdLine()"}
+{"addr": "004823e0", "name": "Sexy::SexyAppBase::ParseCmdLine", "comment": "vtable slot 42: ParseCmdLine(const std::string& theCmdLine)"}
+{"addr": "00488620", "name": "Sexy::SexyAppBase::HandleCmdLineParam", "comment": "vtable slot 43: HandleCmdLineParam(const std::string& theParamName, const std::string& theParamValue)"}
+{"addr": "0047ae50", "name": "Sexy::SexyAppBase::Start", "comment": "vtable slot 44: Start()"}
+{"addr": "00488990", "name": "Sexy::SexyAppBase::Init", "comment": "vtable slot 45: Init()"}
+{"addr": "00478630", "name": "Sexy::SexyAppBase::PlaySample", "comment": "vtable slot 48: PlaySample(int theSoundNum, int thePan)"}
+{"addr": "00478600", "name": "Sexy::SexyAppBase::PlaySample", "comment": "vtable slot 49: PlaySample(int theSoundNum)"}
+{"addr": "00478840", "name": "Sexy::SexyAppBase::GetMasterVolume", "comment": "vtable slot 50: GetMasterVolume()"}
+{"addr": "00478740", "name": "Sexy::SexyAppBase::GetMusicVolume", "comment": "vtable slot 51: GetMusicVolume()"}
+{"addr": "004787c0", "name": "Sexy::SexyAppBase::GetSfxVolume", "comment": "vtable slot 52: GetSfxVolume()"}
+{"addr": "00478670", "name": "Sexy::SexyAppBase::IsMuted", "comment": "vtable slot 53: IsMuted()"}
+{"addr": "00478850", "name": "Sexy::SexyAppBase::SetMasterVolume", "comment": "vtable slot 54: SetMasterVolume(double theVolume)"}
+{"addr": "00478750", "name": "Sexy::SexyAppBase::SetMusicVolume", "comment": "vtable slot 55: SetMusicVolume(double theVolume)"}
+{"addr": "004787d0", "name": "Sexy::SexyAppBase::SetSfxVolume", "comment": "vtable slot 56: SetSfxVolume(double theVolume)"}
+{"addr": "00478680", "name": "Sexy::SexyAppBase::Mute", "comment": "vtable slot 57: Mute(bool autoMute)"}
+{"addr": "004786e0", "name": "Sexy::SexyAppBase::Unmute", "comment": "vtable slot 58: Unmute(bool autoMute)"}
+{"addr": "00476bf0", "name": "Sexy::SexyAppBase::GetLoadingThreadProgress", "comment": "vtable slot 59: GetLoadingThreadProgress()"}
+{"addr": "00478060", "name": "Sexy::SexyAppBase::GetImage", "comment": "vtable slot 60: GetImage(const std::string& theFileName, bool commitBits)"}
+{"addr": "00485a30", "name": "Sexy::SexyAppBase::GetSharedImage", "comment": "vtable slot 61: GetSharedImage(const std::string& theFileName, const std::string& theVariant, bool* isNew)"}
+{"addr": "00489c20", "name": "Sexy::SexyAppBase::SwitchScreenMode", "comment": "vtable slot 62: SwitchScreenMode(bool wantWindowed, bool is3d, bool force)"}
+{"addr": "00479220", "name": "Sexy::SexyAppBase::SwitchScreenMode", "comment": "vtable slot 63: SwitchScreenMode(bool wantWindowed)"}
+{"addr": "00479240", "name": "Sexy::SexyAppBase::SwitchScreenMode", "comment": "vtable slot 64: SwitchScreenMode()"}
+{"addr": "00477bd0", "name": "Sexy::SexyAppBase::SetAlphaDisabled", "comment": "vtable slot 65: SetAlphaDisabled(bool isDisabled)"}
+{"addr": "00476a30", "name": "Sexy::SexyAppBase::DoDialog", "comment": "vtable slot 66: DoDialog(int theDialogId, bool isModal, const std::string& theDialogHeader, const std::string& theDialogLines, const std::string& theDialogFooter, int theButtonMode)"}
+{"addr": "0047b7b0", "name": "Sexy::SexyAppBase::GetDialog", "comment": "vtable slot 67: GetDialog(int theDialogId)"}
+{"addr": "00476aa0", "name": "Sexy::SexyAppBase::AddDialog", "comment": "vtable slot 68: AddDialog(Dialog* theDialog)"}
+{"addr": "00484210", "name": "Sexy::SexyAppBase::AddDialog", "comment": "vtable slot 69: AddDialog(int theDialogId, Dialog* theDialog)"}
+{"addr": "00476a80", "name": "Sexy::SexyAppBase::KillDialog", "comment": "vtable slot 70: KillDialog(Dialog* theDialog)"}
+{"addr": "0047f0e0", "name": "Sexy::SexyAppBase::KillDialog", "comment": "vtable slot 71: KillDialog(int theDialogId)"}
+{"addr": "004790d0", "name": "Sexy::SexyAppBase::GetDialogCount", "comment": "vtable slot 72: GetDialogCount()"}
+{"addr": "00477990", "name": "Sexy::SexyAppBase::IsAltKeyUsed", "comment": "vtable slot 77: IsAltKeyUsed(WPARAM wParam)"}
+{"addr": "00489350", "name": "Sexy::SexyAppBase::DebugKeyDown", "comment": "vtable slot 78: DebugKeyDown(int theKey)"}
+{"addr": "004779b0", "name": "Sexy::SexyAppBase::DebugKeyDownAsync", "comment": "vtable slot 79: DebugKeyDownAsync(int theKey, bool ctrlDown, bool altDown)"}
+{"addr": "00481ff0", "name": "Sexy::SexyAppBase::NotifyCrashHook", "comment": "vtable slot 82: NotifyCrashHook()"}
+{"addr": "004817c0", "name": "Sexy::SexyAppBase::DrawDirtyStuff", "comment": "vtable slot 84: DrawDirtyStuff()"}
+{"addr": "004891b0", "name": "Sexy::SexyAppBase::Redraw", "comment": "vtable slot 85: Redraw(Rect* theClipRect)"}
+{"addr": "00477ea0", "name": "Sexy::SexyAppBase::DoMainLoop", "comment": "vtable slot 87: DoMainLoop()"}
+{"addr": "0047c4e0", "name": "Sexy::SexyAppBase::UpdateAppStep", "comment": "vtable slot 88: UpdateAppStep(bool* updated)"}
+{"addr": "00477ee0", "name": "Sexy::SexyAppBase::UpdateApp", "comment": "vtable slot 89: UpdateApp()"}
+{"addr": "00440210", "name": "Sexy::SingleDataElement::dtor_SingleDataElement", "comment": "vtable slot 0: ~SingleDataElement()"}
+{"addr": "00447ed0", "name": "Sexy::SingleDataElement::Duplicate", "comment": "vtable slot 1: Duplicate()"}
+{"addr": "00423010", "name": "Sexy::Slider::Draw", "comment": "vtable slot 13: Draw(Graphics* g)"}
+{"addr": "00422200", "name": "Sexy::Slider::MouseLeave", "comment": "vtable slot 35: MouseLeave()"}
+{"addr": "00422070", "name": "Sexy::Slider::MouseMove", "comment": "vtable slot 36: MouseMove(int x, int y)"}
+{"addr": "00422000", "name": "Sexy::Slider::MouseDown", "comment": "vtable slot 38: MouseDown(int x, int y, int theClickCount)"}
+{"addr": "004221c0", "name": "Sexy::Slider::MouseUp", "comment": "vtable slot 41: MouseUp(int x, int y)"}
+{"addr": "004220e0", "name": "Sexy::Slider::MouseDrag", "comment": "vtable slot 42: MouseDrag(int x, int y)"}
+{"addr": "00421fd0", "name": "Sexy::Slider::SetValue", "comment": "vtable slot 54: SetValue(double theValue)"}
+{"addr": "00491810", "name": "Sexy::SoundInstance::dtor_SoundInstance", "comment": "vtable slot 0: ~SoundInstance()"}
+{"addr": "004917d0", "name": "Sexy::SoundManager::dtor_SoundManager", "comment": "vtable slot 0: ~SoundManager()"}
+{"addr": "0043db80", "name": "Sexy::SysFont::dtor_SysFont", "comment": "vtable slot 0: ~SysFont()"}
+{"addr": "0043ec40", "name": "Sexy::SysFont::StringWidth", "comment": "vtable slot 7: StringWidth(const std::string& theString)"}
+{"addr": "00440c60", "name": "Sexy::SysFont::DrawString", "comment": "vtable slot 10: DrawString(Graphics* g, int theX, int theY, const std::string& theString, const Color& theColor, const Rect& theClipRect)"}
+{"addr": "00437390", "name": "Sexy::SysFont::Duplicate", "comment": "vtable slot 11: Duplicate()"}
+{"addr": "004257e0", "name": "Sexy::Widget::dtor_Widget", "comment": "vtable slot 0: ~Widget()"}
+{"addr": "00421c70", "name": "Sexy::Widget::Update", "comment": "vtable slot 9: Update()"}
+{"addr": "004243c0", "name": "Sexy::Widget::SetVisible", "comment": "vtable slot 16: SetVisible(bool isVisible)"}
+{"addr": "00424e50", "name": "Sexy::Widget::SetColors", "comment": "vtable slot 17: SetColors(int theColors[][4], int theNumColors)"}
+{"addr": "00424dd0", "name": "Sexy::Widget::SetColors", "comment": "vtable slot 18: SetColors(int theColors[][3], int theNumColors)"}
+{"addr": "0042a2a0", "name": "Sexy::Widget::SetColor", "comment": "vtable slot 19: SetColor(int theIdx, const Color& theColor)"}
+{"addr": "00424490", "name": "Sexy::Widget::GetColor", "comment": "vtable slot 20: GetColor(int theIdx, const Color& theDefaultColor)"}
+{"addr": "00424400", "name": "Sexy::Widget::GetColor", "comment": "vtable slot 21: GetColor(int theIdx)"}
+{"addr": "00424560", "name": "Sexy::Widget::SetDisabled", "comment": "vtable slot 22: SetDisabled(bool isDisabled)"}
+{"addr": "00421cb0", "name": "Sexy::Widget::ShowFinger", "comment": "vtable slot 23: ShowFinger(bool on)"}
+{"addr": "00421c00", "name": "Sexy::Widget::Resize", "comment": "vtable slot 24: Resize(const Rect& theRect)"}
+{"addr": "00424500", "name": "Sexy::Widget::Resize", "comment": "vtable slot 25: Resize(int theX, int theY, int theWidth, int theHeight)"}
+{"addr": "00421c20", "name": "Sexy::Widget::Move", "comment": "vtable slot 26: Move(int theNewX, int theNewY)"}
+{"addr": "00421c40", "name": "Sexy::Widget::WantsFocus", "comment": "vtable slot 27: WantsFocus()"}
+{"addr": "00421c50", "name": "Sexy::Widget::GotFocus", "comment": "vtable slot 29: GotFocus()"}
+{"addr": "00421c60", "name": "Sexy::Widget::LostFocus", "comment": "vtable slot 30: LostFocus()"}
+{"addr": "00421c80", "name": "Sexy::Widget::KeyDown", "comment": "vtable slot 32: KeyDown(KeyCode theKey)"}
+{"addr": "00421ce0", "name": "Sexy::Widget::MouseDown", "comment": "vtable slot 38: MouseDown(int x, int y, int theClickCount)"}
+{"addr": "00421d40", "name": "Sexy::Widget::MouseUp", "comment": "vtable slot 40: MouseUp(int x, int y, int theClickCount)"}
+{"addr": "00422ec0", "name": "Sexy::Widget::WriteCenteredLine", "comment": "vtable slot 45: WriteCenteredLine(Graphics* g, int anOffset, const std::string& theLine, Color theColor1, Color theColor2, const Point& theShadowOffset,2))"}
+{"addr": "00422e50", "name": "Sexy::Widget::WriteCenteredLine", "comment": "vtable slot 46: WriteCenteredLine(Graphics* g, int anOffset, const std::string& theLine)"}
+{"addr": "00421db0", "name": "Sexy::Widget::WriteString", "comment": "vtable slot 47: WriteString(Graphics* g, const std::string& theString, int theX, int theY, int theWidth, int theJustification, bool drawString, int theOffset, int theLength)"}
+{"addr": "00421e00", "name": "Sexy::Widget::WriteWordWrapped", "comment": "vtable slot 48: WriteWordWrapped(Graphics* g, const Rect& theRect, const std::string& theLine, int theLineSpacing, int theJustification)"}
+{"addr": "00421e40", "name": "Sexy::Widget::GetWordWrappedHeight", "comment": "vtable slot 49: GetWordWrappedHeight(Graphics* g, int theWidth, const std::string& theLine, int aLineSpacing)"}
+{"addr": "00421e60", "name": "Sexy::Widget::GetNumDigits", "comment": "vtable slot 50: GetNumDigits(int theNumber)"}
+{"addr": "00421e90", "name": "Sexy::Widget::WriteNumberFromStrip", "comment": "vtable slot 51: WriteNumberFromStrip(Graphics* g, int theNumber, int theX, int theY, Image* theNumberStrip, int aSpacing)"}
+{"addr": "00421f90", "name": "Sexy::Widget::Contains", "comment": "vtable slot 52: Contains(int theX, int theY)"}
+{"addr": "00422fd0", "name": "Sexy::Widget::GetInsetRect", "comment": "vtable slot 53: GetInsetRect()"}
+{"addr": "00424d50", "name": "Sexy::WidgetContainer::dtor_WidgetContainer", "comment": "vtable slot 0: ~WidgetContainer()"}
+{"addr": "00422c40", "name": "Sexy::WidgetContainer::GetRect", "comment": "vtable slot 1: GetRect()"}
+{"addr": "00422c70", "name": "Sexy::WidgetContainer::Intersects", "comment": "vtable slot 2: Intersects(WidgetContainer* theWidget)"}
+{"addr": "00423700", "name": "Sexy::WidgetContainer::MarkDirty", "comment": "vtable slot 3: MarkDirty(WidgetContainer* theWidget)"}
+{"addr": "00421830", "name": "Sexy::WidgetContainer::MarkDirty", "comment": "vtable slot 4: MarkDirty()"}
+{"addr": "00423580", "name": "Sexy::WidgetContainer::MarkDirtyFull", "comment": "vtable slot 5: MarkDirtyFull(WidgetContainer* theWidget)"}
+{"addr": "00421850", "name": "Sexy::WidgetContainer::MarkDirtyFull", "comment": "vtable slot 6: MarkDirtyFull()"}
+{"addr": "004234d0", "name": "Sexy::WidgetContainer::AddedToManager", "comment": "vtable slot 7: AddedToManager(WidgetManager* theWidgetManager)"}
+{"addr": "00423520", "name": "Sexy::WidgetContainer::RemovedFromManager", "comment": "vtable slot 8: RemovedFromManager(WidgetManager* theWidgetManager)"}
+{"addr": "00421870", "name": "Sexy::WidgetContainer::Update", "comment": "vtable slot 9: Update()"}
+{"addr": "004237a0", "name": "Sexy::WidgetContainer::UpdateAll", "comment": "vtable slot 10: UpdateAll(ModalFlags* theFlags)"}
+{"addr": "004238d0", "name": "Sexy::WidgetContainer::UpdateFAll", "comment": "vtable slot 12: UpdateFAll(ModalFlags* theFlags, float theFrac)"}
+{"addr": "0042ab30", "name": "Sexy::WidgetContainer::DrawAll", "comment": "vtable slot 14: DrawAll(ModalFlags* theFlags, Graphics* g)"}
+{"addr": "00428dc0", "name": "Sexy::WidgetManager::dtor_WidgetManager", "comment": "vtable slot 0: ~WidgetManager()"}
+{"addr": "0045fb20", "name": "Sexy::XMLParser::dtor_XMLParser", "comment": "vtable slot 0: ~XMLParser()"}

@@ -1,0 +1,41 @@
+<?xml version="1.0"?>
+<Properties version="1.0" language="en" country="US">
+
+<!-- Fake Money! Deluxe: rank titles of the stats panel, lowest first (27, as in the game) -->
+<StringArray id="gRankNames">
+  <String>Nocoiner</String>
+  <String>Faucet Dripper</String>
+  <String>Airdrop Hunter</String>
+  <String>Gas Fee Victim</String>
+  <String>Paper Hands</String>
+  <String>Bag Holder</String>
+  <String>Dip Buyer</String>
+  <String>Memecoin Minnow</String>
+  <String>Fomo Trader</String>
+  <String>Rug Pull Survivor</String>
+  <String>Moon Boy</String>
+  <String>Degen Ape</String>
+  <String>Shiller</String>
+  <String>Hodler</String>
+  <String>Yield Farmer</String>
+  <String>Node Runner</String>
+  <String>Miner</String>
+  <String>Validator</String>
+  <String>Diamond Hands</String>
+  <String>Influencer</String>
+  <String>Crypto Bro</String>
+  <String>Exchange Founder</String>
+  <String>Whale</String>
+  <String>Mega Whale</String>
+  <String>Lambo Owner</String>
+  <String>Island Owner</String>
+  <String>Probably Satoshi</String>
+</StringArray>
+
+<!-- Texts that name the game -->
+<String id="BIG_MONEY_COMBO">Fake Money Combo!</String>
+<String id="HOW_TO_PLAY_BIG_MONEY_PUZZLE">^FFFF51^How to play Fake Money: Puzzle</String>
+<String id="X_HOW_TO_PLAY_BIG_MONEY_ACTION">^FFFF51^How to play Fake Money: Action</String>
+<String id="X_HOW_TO_PLAY_BIG_MONEY_STRATEGY">^FFFF51^How to play Fake Money: Strategy</String>
+
+</Properties>
