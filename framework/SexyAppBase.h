@@ -367,7 +367,6 @@ protected:
 	void MouseMoveTo(int theX, int theY);  // the part of a mouse event shared by real and scripted input
 
 	// Test hooks (see mScript)
-	DWORD GetClockTime();  // timeGetTime(), or the virtual clock with -fast
 	bool LoadScript(const std::string& theFileName);
 	void RunScript();
 	// A script command the framework does not know; return true if handled (the default handles none)
@@ -393,6 +392,9 @@ protected:
 public:
 	SexyAppBase();
 	virtual ~SexyAppBase();
+
+	// port: the app clock: timeGetTime(), or the virtual clock with -fast (public for WidgetManager)
+	DWORD GetClockTime();
 
 	// Common overrides:
 	virtual MusicInterface* CreateMusicInterface();
