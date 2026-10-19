@@ -1,0 +1,65 @@
+{"addr": "00421860", "name": "Sexy::FameWidget::SetTab", "sig": "void __thiscall SetTab(int theTab)"}
+{"addr": "00421910", "name": "Sexy::FameWidget::SetPeriod", "sig": "void __thiscall SetPeriod(int thePeriod)"}
+{"addr": "00421920", "name": "Sexy::FameWidget::SetTabAndPeriod", "sig": "void __thiscall SetTabAndPeriod(int theTab, int thePeriod)"}
+{"addr": "00421950", "name": "Sexy::FameWidget::SetDisabled", "sig": "void __thiscall SetDisabled(bool isDisabled)"}
+{"addr": "00421990", "name": "Sexy::FameWidget::SetVisible", "sig": "void __thiscall SetVisible(bool isVisible)"}
+{"addr": "004219e0", "name": "Sexy::FameWidget::ShowInternetControls", "sig": "void __thiscall ShowInternetControls(bool show)"}
+{"addr": "00421a50", "name": "Sexy::FameWidget::Resize", "sig": "void __thiscall Resize(int theX, int theY, int theWidth, int theHeight)"}
+{"addr": "00421cb0", "name": "Sexy::FameWidget::AddedToManager", "sig": "void __thiscall AddedToManager(void * theManager)"}
+{"addr": "00421dc0", "name": "Sexy::FameWidget::RemovedFromManager", "sig": "void __thiscall RemovedFromManager(void * theManager)"}
+{"addr": "00421f00", "name": "Sexy::FameWidget::Draw", "sig": "void __thiscall Draw(void * g)"}
+{"addr": "00421f30", "name": "Sexy::FameWidget::KillErrorDialog", "sig": "void __thiscall KillErrorDialog(void)"}
+{"addr": "00421f40", "name": "Sexy::FameWidget::KillWarningDialog", "sig": "void __thiscall KillWarningDialog(void)"}
+{"addr": "00421f50", "name": "Sexy::FameWidget::CheckboxChecked", "sig": "void __thiscall CheckboxChecked(int theId, bool checked)"}
+{"addr": "004220c0", "name": "Sexy::FameWidget::ButtonPress", "sig": "void __thiscall ButtonPress(int theId)"}
+{"addr": "00422f20", "name": "Sexy::StringToLowerInPlace", "sig": "void __cdecl StringToLowerInPlace(void * theString)"}
+{"addr": "00423fd0", "name": "Sexy::FameWidget::ShowWaitDialog", "sig": "void __thiscall ShowWaitDialog(void * theText)"}
+{"addr": "004241d0", "name": "Sexy::FameWidget::StartNetTransfer", "sig": "void __thiscall StartNetTransfer(void)"}
+{"addr": "004249d0", "name": "Sexy::FameWidget::MarkNewPlaces", "sig": "void __thiscall MarkNewPlaces(void)"}
+{"addr": "00424c30", "name": "Sexy::FameWidget::DrawLocalScores", "sig": "void __thiscall DrawLocalScores(void * g)"}
+{"addr": "00425880", "name": "Sexy::FameWidget::DrawInternetScores", "sig": "void __thiscall DrawInternetScores(void * g)"}
+{"addr": "004262b0", "name": "Sexy::FameWidget::ShowErrorDialog", "sig": "void __thiscall ShowErrorDialog(void * theText, bool useErrorText)"}
+{"addr": "004264f0", "name": "Sexy::FameWidget::ShowWarningDialog", "sig": "void __thiscall ShowWarningDialog(void * theText)"}
+{"addr": "00426ab0", "name": "Sexy::FameWidget::AddNewPlace", "sig": "void __thiscall AddNewPlace(int theTab, int theServerPeriod, int thePlace)"}
+{"addr": "00426c10", "name": "Sexy::FameWidget::ButtonDepress", "sig": "void __thiscall ButtonDepress(int theId)"}
+{"addr": "004270d0", "name": "Sexy::FameWidget::~FameWidget", "sig": "void __thiscall ~FameWidget(void)"}
+{"addr": "00427550", "name": "Sexy::FameWidget::AddNetScore", "sig": "void __thiscall AddNetScore(int theTab, int thePeriod, void * theName, int theScore, void * theWord)"}
+{"addr": "00427650", "name": "Sexy::FameWidget::ParseServerReply", "sig": "bool __thiscall ParseServerReply(void * theReply)"}
+{"addr": "00427f30", "name": "Sexy::FameWidget::Update", "sig": "void __thiscall Update(void)"}
+{"addr": "00428520", "name": "Sexy::FameWidget::FameWidget", "sig": "void * __thiscall FameWidget(void * theApp)"}
+{"addr": "00428f20", "name": "Sexy::FameWidget::scalar_deleting_dtor", "sig": "void * __thiscall scalar_deleting_dtor(unsigned int flags)"}
+{"addr": "0042b730", "name": "Sexy::LabelWidget::Draw", "sig": "void __thiscall Draw(void * g)"}
+{"addr": "0042b830", "name": "Sexy::LabelWidget::~LabelWidget", "sig": "void __thiscall ~LabelWidget(void)"}
+{"addr": "0042b890", "name": "Sexy::LabelWidget::scalar_deleting_dtor", "sig": "void * __thiscall scalar_deleting_dtor(unsigned int flags)"}
+{"addr": "0042b8c0", "name": "Sexy::LabelWidget::LabelWidget", "sig": "void * __thiscall LabelWidget(void * theLabel, void * theFont)"}
+{"addr": "0042b980", "name": "Sexy::LevelUpWidget::DeletePanel", "sig": "void __thiscall DeletePanel(void)"}
+{"addr": "0042b9c0", "name": "Sexy::LevelUpWidget::CreatePanel", "sig": "void __thiscall CreatePanel(void)"}
+{"addr": "0042baa0", "name": "Sexy::LevelUpWidget::Resize", "sig": "void __thiscall Resize(int theX, int theY, int theWidth, int theHeight)"}
+{"addr": "0042bad0", "name": "Sexy::LevelUpWidget::SetDisabled", "sig": "void __thiscall SetDisabled(bool isDisabled)"}
+{"addr": "0042baf0", "name": "Sexy::LevelUpWidget::SetVisible", "sig": "void __thiscall SetVisible(bool isVisible)"}
+{"addr": "0042bb10", "name": "Sexy::LevelUpWidget::AddedToManager", "sig": "void __thiscall AddedToManager(void * theManager)"}
+{"addr": "0042bc20", "name": "Sexy::LevelUpWidget::RemovedFromManager", "sig": "void __thiscall RemovedFromManager(void * theManager)"}
+{"addr": "0042bc80", "name": "Sexy::LevelUpWidget::ButtonPress", "sig": "void __thiscall ButtonPress(int theId)"}
+{"addr": "0042bc90", "name": "Sexy::LevelUpWidget::ButtonDepress", "sig": "void __thiscall ButtonDepress(int theId)"}
+{"addr": "0042bd50", "name": "Sexy::LevelUpWidget::LevelUpWidget", "sig": "void * __thiscall LevelUpWidget(void * theApp)"}
+{"addr": "0042be40", "name": "Sexy::LevelUpWidget::~LevelUpWidget", "sig": "void __thiscall ~LevelUpWidget(void)"}
+{"addr": "0042beb0", "name": "Sexy::LevelUpWidget::scalar_deleting_dtor", "sig": "void * __thiscall scalar_deleting_dtor(unsigned int flags)"}
+{"addr": "0042bee0", "name": "Sexy::LevelUpWidget::Update", "sig": "void __thiscall Update(void)"}
+{"addr": "0042c210", "name": "Sexy::LevelUpWidget::DrawPanel", "sig": "void __thiscall DrawPanel(void * g)"}
+{"addr": "0042cdd0", "name": "Sexy::LevelUpWidget::Draw", "sig": "void __thiscall Draw(void * g)"}
+{"addr": "0052ee68", "label": "gMonthNames"}
+{"addr": "0052f334", "label": "gLabelWidgetColors"}
+{"addr": "0052f368", "label": "gRankNames"}
+{"addr": "00534a28", "label": "gIHSPeriodSelectedColor"}
+{"addr": "00534a38", "label": "gIHSPeriodColor"}
+{"addr": "00534a48", "label": "gIHSPeriodColorsInitFlags"}
+{"addr": "00534a50", "label": "gFameBestNameColor"}
+{"addr": "00534a60", "label": "gFameClassicNameColor"}
+{"addr": "00534a70", "label": "gFameClassicScoreColor"}
+{"addr": "00534a80", "label": "gFameBestWordColor"}
+{"addr": "00534a90", "label": "gFameActionScoreColor"}
+{"addr": "00534aa0", "label": "gFameActionNameColor"}
+{"addr": "00534ab0", "label": "gFameLongestWordColor"}
+{"addr": "00534ac0", "label": "gFameLongestNameColor"}
+{"addr": "00534ad0", "label": "gFameBestScoreColor"}
+{"addr": "00534b30", "label": "gFameLongestLengthColor"}

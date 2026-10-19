@@ -1,0 +1,698 @@
+{"addr": "00401360", "name": "std::char_traits<char>::assign", "comment": "Big Money 004010c0 (call)"}
+{"addr": "00401540", "name": "operator_delete_thunk", "comment": "Big Money 00401d00 (call)"}
+{"addr": "00401580", "name": "std::string::compare_cstr", "comment": "Big Money 00419780 (call)"}
+{"addr": "004017e0", "name": "std::string::_Eos", "comment": "Big Money 00402520 (call)"}
+{"addr": "00401810", "name": "std::string::_Tidy", "comment": "Big Money 00402540 (call)"}
+{"addr": "00401890", "name": "std::string::_Tidy0", "comment": "Big Money 004025d0 (exact)"}
+{"addr": "004018e0", "name": "std::string::_Grow_alloc", "comment": "Big Money 00402670 (exact)"}
+{"addr": "0040195e", "name": "std::string::_Grow_copy", "comment": "Big Money 004026ee (exact)"}
+{"addr": "00401a00", "name": "std_string_equals_cstr", "comment": "Big Money 0041c200 (call)"}
+{"addr": "00401a40", "name": "std::string::_Grow", "comment": "Big Money 004030b0 (call)"}
+{"addr": "00401b10", "name": "std_string_append_substr", "comment": "Big Money 00412cb0 (call)"}
+{"addr": "00401c10", "name": "std::string::erase", "comment": "Big Money 00403ba0 (call)"}
+{"addr": "00401cf0", "name": "std::string::append_n_chars", "comment": "Big Money 00403180 (call)"}
+{"addr": "00401dd0", "name": "std::string::assign_substr", "comment": "Big Money 00403c60 (call)"}
+{"addr": "00401e90", "name": "std::string::assign_ptr_len", "comment": "Big Money 00403d70 (call)"}
+{"addr": "00401f40", "name": "std_string_append_chars", "comment": "Big Money 00412da0 (call)"}
+{"addr": "00402060", "name": "std::string::string_copy", "comment": "Big Money 00403e40 (call)"}
+{"addr": "004020d0", "name": "std::string::string_cstr", "comment": "Big Money 00404150 (call)"}
+{"addr": "00402130", "name": "std::string::assign_cstr", "comment": "Big Money 00403ea0 (call)"}
+{"addr": "004029a0", "name": "std::string_plus_cstr", "comment": "Big Money 00419800 (call)"}
+{"addr": "004036d0", "name": "folded_stub_00476c90", "comment": "Big Money 00476c90 (call)"}
+{"addr": "00403ee0", "name": "std::vector<std::string>::size", "comment": "Big Money 00401cd0 (exact)"}
+{"addr": "00404c70", "name": "std::string::_Myptr", "comment": "Big Money 00402510 (exact)"}
+{"addr": "00405e70", "name": "std::string::resize", "comment": "Big Money 00403e70 (call)"}
+{"addr": "00405f10", "name": "std::string_plus_string", "comment": "Big Money 004198b0 (call)"}
+{"addr": "00406240", "name": "std::logic_error::ctor_or_dtor_4040f0", "comment": "Big Money 004040f0 (call)"}
+{"addr": "004062a0", "name": "std::logic_error::ctor_or_dtor_4028e0", "comment": "Big Money 004028e0 (exact)"}
+{"addr": "00406800", "name": "std_string_concat_cstr_str", "comment": "Big Money 0041c6e0 (call)"}
+{"addr": "00411c60", "name": "std::string::_Tidy_free", "comment": "Big Money 00403e10 (call)"}
+{"addr": "00411c90", "name": "std::_Destroy_strings", "comment": "Big Money 00403ed0 (call)"}
+{"addr": "00412360", "name": "std_string_substr", "comment": "Big Money 0041c5f0 (call)"}
+{"addr": "004124c0", "name": "std::length_error::ctor_or_dtor_4612d0", "comment": "Big Money 004612d0 (group)"}
+{"addr": "00412d00", "name": "std::_Uninit_copy_strings", "comment": "Big Money 00407530 (call)"}
+{"addr": "004164d0", "name": "std::vector<int>::_Buy", "comment": "Big Money 00406ec0 (call)"}
+{"addr": "00416530", "name": "std::vector<std::string>::_Buy", "comment": "Big Money 00406f20 (call)"}
+{"addr": "00416cf0", "name": "std::length_error::ctor_or_dtor_483b90", "comment": "Big Money 00483b90 (exact)"}
+{"addr": "00417e70", "name": "std::vector<std::string>::_Tidy", "comment": "Big Money 00406fa0 (call)"}
+{"addr": "0041b5d0", "name": "std::length_error::ctor_or_dtor_4254a0", "comment": "Big Money 004254a0 (call)"}
+{"addr": "0041d4b0", "name": "std::length_error::ctor_or_dtor_468840", "comment": "Big Money 00468840 (exact)"}
+{"addr": "00421750", "name": "std::locale::id::operator_unsigned_int", "comment": "Big Money 0042b090 (exact)"}
+{"addr": "00422170", "name": "std::basic_streambuf<char,std::char_traits<char>_>::setg", "comment": "Big Money 004377c0 (exact)"}
+{"addr": "00422460", "name": "std::locale::facet::ctor_or_dtor_437e20", "comment": "Big Money 00437e20 (exact)"}
+{"addr": "00437e90", "name": "Sexy::Color::Color_rgba", "comment": "Big Money 0042b4e0 (exact): Color(int r, int g, int b, int a)"}
+{"addr": "00437fd0", "name": "Sexy::EditWidget::IsPartOfWord", "comment": "BookWorm slot 50; Big Money 004222c0 (exact): Big Money slot 57: IsPartOfWord(char theChar)"}
+{"addr": "00438050", "name": "Sexy::EditWidget::MouseUp", "comment": "BookWorm slot 29; Big Money 00422370 (fuzzy:0.73): Big Money slot 40: MouseUp(int x, int y, int theClickCount)"}
+{"addr": "00438240", "name": "Sexy::ButtonWidget::SetFont", "comment": "BookWorm slot 47; Big Money 00422610 (fuzzy:0.56): Big Money slot 55: SetFont(Font* theFont)"}
+{"addr": "00438270", "name": "Sexy::ButtonWidget::IsButtonDown", "comment": "BookWorm slot 48; Big Money 00422640 (fuzzy:0.50): Big Money slot 56: IsButtonDown()"}
+{"addr": "004384a0", "name": "Sexy::Dialog::SetButtonFont", "comment": "BookWorm slot 47; Big Money 00422880 (fuzzy:0.52): Big Money slot 54: SetButtonFont(Font* theFont)"}
+{"addr": "00438570", "name": "Sexy::Dialog::MouseDrag", "comment": "BookWorm slot 31; Big Money 00422970 (fuzzy:0.60): Big Money slot 42: MouseDrag(int x, int y)"}
+{"addr": "00438870", "name": "Sexy::Widget::WriteCenteredLine", "comment": "BookWorm slot 35; Big Money 00422e50 (fuzzy:0.94): Big Money slot 46: WriteCenteredLine(Graphics* g, int anOffset, const std::string& theLine)"}
+{"addr": "004388e0", "name": "Sexy::Widget::WriteCenteredLine", "comment": "BookWorm slot 34; Big Money 00422ec0 (fuzzy:0.93): Big Money slot 45: WriteCenteredLine(Graphics* g, int anOffset, const std::string& theLine, Color theColor1, Color theColor2, const Point& theShadowOffset,2))"}
+{"addr": "00438b70", "name": "Sexy::Slider::Draw", "comment": "BookWorm slot 16; Big Money 00423010 (fuzzy:0.54): Big Money slot 13: Draw(Graphics* g)"}
+{"addr": "00438ec0", "name": "Sexy::Dialog::GetPreferredHeight", "comment": "BookWorm slot 50; Big Money 00427c50 (call): Big Money slot 57: GetPreferredHeight(int theWidth)"}
+{"addr": "004398f0", "name": "Sexy::EditWidget::KeyDown", "comment": "BookWorm slot 21; Big Money 00422300 (fuzzy:0.64): Big Money slot 32: KeyDown(KeyCode theKey)"}
+{"addr": "0043a450", "name": "Sexy::EditWidget::Resize", "comment": "BookWorm slot 13; Big Money 004245d0 (fuzzy:0.87): Big Money slot 25: Resize(int theX, int theY, int theWidth, int theHeight)"}
+{"addr": "0043aae0", "name": "Sexy::WidgetManager::dtor_WidgetManager", "comment": "BookWorm slot 00; Big Money 00428dc0 (fuzzy:1.00): Big Money slot 0: ~WidgetManager()"}
+{"addr": "0043b050", "name": "Sexy::EditWidget::MouseDown", "comment": "BookWorm slot 27; Big Money 00425080 (fuzzy:0.74): Big Money slot 38: MouseDown(int x, int y, int theClickCount)"}
+{"addr": "0043b3f0", "name": "Sexy::Widget::dtor_Widget", "comment": "BookWorm slot 00; Big Money 004257e0 (fuzzy:1.00): Big Money slot 0: ~Widget()"}
+{"addr": "0043beb0", "name": "Sexy::EditWidget::dtor_EditWidget", "comment": "BookWorm slot 00; Big Money 00425dc0 (fuzzy:1.00): Big Money slot 0: ~EditWidget()"}
+{"addr": "0043bf20", "name": "Sexy::EditWidget::Draw", "comment": "BookWorm slot 16; Big Money 00425e60 (fuzzy:0.52): Big Money slot 13: Draw(Graphics* g)"}
+{"addr": "0043c3a0", "name": "Sexy::EditWidget::ProcessKey", "comment": "BookWorm slot 47; Big Money 004264b0 (fuzzy:0.57): Big Money slot 54: ProcessKey(KeyCode theKey, char theChar)"}
+{"addr": "0043d1a0", "name": "Sexy::EditWidget::FocusCursor", "comment": "BookWorm slot 52; Big Money 00427280 (fuzzy:0.63): Big Money slot 59: FocusCursor(bool bigJump)"}
+{"addr": "0043d350", "name": "Sexy::ButtonWidget::dtor_ButtonWidget", "comment": "BookWorm slot 00; Big Money 00427430 (fuzzy:1.00): Big Money slot 0: ~ButtonWidget()"}
+{"addr": "0043d920", "name": "Sexy::Dialog::dtor_Dialog", "comment": "BookWorm slot 00; Big Money 00427a90 (fuzzy:1.00): Big Money slot 0: ~Dialog()"}
+{"addr": "0043ee00", "name": "Sexy::Widget::SetColor", "comment": "BookWorm slot 08; Big Money 0042a2a0 (fuzzy:0.53): Big Money slot 19: SetColor(int theIdx, const Color& theColor)"}
+{"addr": "0043f190", "name": "Sexy::Dialog::SetColor", "comment": "BookWorm slot 07; Big Money 0042a730 (fuzzy:0.52): Big Money slot 19: SetColor(int theIdx, const Color& theColor)"}
+{"addr": "004401b0", "name": "Sexy::Color::Color_default", "comment": "Big Money 0042b450 (exact): Color() = (0,0,0,255)"}
+{"addr": "004401d0", "name": "Sexy::Color::Color_argb", "comment": "Big Money 0042b470 (exact): Color(int theColor): alpha 0 -> 255"}
+{"addr": "00440210", "name": "Sexy::Color::Color_rgb", "comment": "Big Money 0042b4b0 (exact): Color(int r, int g, int b)"}
+{"addr": "004402e0", "name": "Sexy::Color::operator_ne", "comment": "Big Money 0042b5f0 (exact): bool operator!=(const Color&, const Color&)"}
+{"addr": "00440a40", "name": "Sexy::D3DTestImage::ctor_or_dtor_42be60", "comment": "Big Money 0042be60 (group)"}
+{"addr": "00440db0", "name": "Sexy::DDImage::UnlockSurface", "comment": "BookWorm slot 35; Big Money 0042c1e0 (fuzzy:0.51): Big Money slot 44: UnlockSurface()"}
+{"addr": "00440de0", "name": "Sexy::DDImage::SetSurface", "comment": "BookWorm slot 36; Big Money 0042c210 (fuzzy:0.78): Big Money slot 45: SetSurface(LPDIRECTDRAWSURFACE theSurface)"}
+{"addr": "00441830", "name": "Sexy::DDImage::SetVideoMemory", "comment": "BookWorm slot 26; Big Money 0042cc00 (fuzzy:0.57): Big Money slot 33: SetVideoMemory(bool wantVideoMemory)"}
+{"addr": "00443050", "name": "Sexy::DDImage::Create", "comment": "BookWorm slot 21; Big Money 0042e9d0 (fuzzy:0.87): Big Money slot 28: Create(int theWidth, int theHeight)"}
+{"addr": "00445a50", "name": "Sexy::DDImage::AdditiveBlt", "comment": "BookWorm slot 31; Big Money 00431360 (fuzzy:0.72): Big Money slot 38: AdditiveBlt(Image* theImage, int theX, int theY, const Rect& theSrcRect, const Color& theColor)"}
+{"addr": "00446b30", "name": "Sexy::Font::ctor_or_dtor_432400", "comment": "Big Money 00432400 (exact)"}
+{"addr": "00446b50", "name": "Sexy::Font::ctor_or_dtor_432420", "comment": "Big Money 00432420 (exact)"}
+{"addr": "00446b80", "name": "Sexy::Font::ctor_or_dtor_432450", "comment": "Big Money 00432450 (call)"}
+{"addr": "00446b90", "name": "Sexy::Font::GetDescent", "comment": "BookWorm slot 03; Big Money 00432460 (exact): Big Money slot 3: GetDescent()"}
+{"addr": "00446ba0", "name": "Sexy::Font::GetLineSpacing", "comment": "BookWorm slot 06; Big Money 00432480 (exact): Big Money slot 6: GetLineSpacing()"}
+{"addr": "00446bc0", "name": "Sexy::Font::CharWidthKern", "comment": "BookWorm slot 09; Big Money 004324a0 (exact): Big Money slot 9: CharWidthKern(char theChar, char thePrevChar)"}
+{"addr": "00446c00", "name": "Sexy::Graphics::SetColor", "comment": "Big Money 00432550 (exact)"}
+{"addr": "00446cf0", "name": "Sexy::Image::ctor_or_dtor_432680", "comment": "Big Money 00432680 (exact)"}
+{"addr": "00446d10", "name": "get_field_04", "comment": "BookWorm slot 01; Big Money 004326a0 (call): folded: Font::GetAscent (Big Money slot 1), Image::GetWidth, any 'return this+4'"}
+{"addr": "00446d60", "name": "Sexy::DataElement::ctor_or_dtor_432720", "comment": "Big Money 00432720 (exact)"}
+{"addr": "00446d70", "name": "Sexy::DataElement::ctor_or_dtor_432730", "comment": "Big Money 00432730 (call)"}
+{"addr": "00446d90", "name": "Sexy::ActiveFontLayer::ctor_or_dtor_432760", "comment": "Big Money 00432760 (exact)"}
+{"addr": "00446db0", "name": "Sexy::ImageFont::CharWidth", "comment": "BookWorm slot 08; Big Money 00432780 (exact): Big Money slot 8: CharWidth(char theChar)"}
+{"addr": "00446dd0", "name": "Sexy::ImageFont::DrawString", "comment": "BookWorm slot 10; Big Money 004327a0 (exact): Big Money slot 10: DrawString(Graphics* g, int theX, int theY, const std::string& theString, const Color& theColor, const Rect& theClipRect)"}
+{"addr": "00446e00", "name": "Sexy::ImageFont::SetPointSize", "comment": "BookWorm slot 14; Big Money 004327d0 (exact): Big Money slot 14: SetPointSize(int thePointSize)"}
+{"addr": "00446e20", "name": "Sexy::ImageFont::SetScale", "comment": "BookWorm slot 16; Big Money 004327f0 (exact): Big Money slot 16: SetScale(double theScale)"}
+{"addr": "00446e60", "name": "Sexy::ImageFont::Prepare", "comment": "BookWorm slot 22; Big Money 00432830 (exact): Big Money slot 22: Prepare()"}
+{"addr": "00446ec0", "name": "Sexy::MemoryImage::CommitBits", "comment": "BookWorm slot 17; Big Money 00433670 (fuzzy:0.96): Big Money slot 24: CommitBits()"}
+{"addr": "00446ff0", "name": "Sexy::MemoryImage::SetImageMode", "comment": "BookWorm slot 23; Big Money 004337a0 (exact): Big Money slot 30: SetImageMode(bool hasTrans, bool hasAlpha)"}
+{"addr": "00447010", "name": "Sexy::MemoryImage::SetVolatile", "comment": "BookWorm slot 24; Big Money 004337c0 (exact): Big Money slot 31: SetVolatile(bool isVolatile)"}
+{"addr": "00447240", "name": "Sexy::MemoryImage::GetRLAlphaData", "comment": "BookWorm slot 11; Big Money 004339e0 (fuzzy:0.77): Big Money slot 16: GetRLAlphaData()"}
+{"addr": "004476a0", "name": "Sexy::MemoryImage::DeleteExtraBuffers", "comment": "BookWorm slot 15; Big Money 00433ed0 (fuzzy:0.56): Big Money slot 21: DeleteExtraBuffers()"}
+{"addr": "00447760", "name": "Sexy::MemoryImage::Create", "comment": "BookWorm slot 21; Big Money 00433ff0 (fuzzy:0.89): Big Money slot 28: Create(int theWidth, int theHeight)"}
+{"addr": "00447850", "name": "Sexy::MemoryImage::FillRect", "comment": "BookWorm slot 01; Big Money 00434030 (fuzzy:0.97): Big Money slot 2: FillRect(const Rect& theRect, const Color& theColor, int theDrawMode)"}
+{"addr": "00447a40", "name": "Sexy::MemoryImage::ClearRect", "comment": "BookWorm slot 03; Big Money 00434220 (fuzzy:0.89): Big Money slot 4: ClearRect(const Rect& theRect)"}
+{"addr": "00447ab0", "name": "Sexy::MemoryImage::Clear", "comment": "BookWorm slot 19; Big Money 00434290 (fuzzy:0.79): Big Money slot 26: Clear()"}
+{"addr": "00449160", "name": "Sexy::MemoryImage::Blt", "comment": "BookWorm slot 06; Big Money 00435940 (exact): Big Money slot 7: Blt(Image* theImage, int theX, int theY, const Rect& theSrcRect, const Color& theColor, int theDrawMode)"}
+{"addr": "004491b0", "name": "Sexy::MemoryImage::BltF", "comment": "BookWorm slot 07; Big Money 00435990 (fuzzy:0.86): Big Money slot 8: BltF(Image* theImage, float theX, float theY, const Rect& theSrcRect, const Rect &theClipRect, const Color& theColor, int theDrawMode)"}
+{"addr": "0044a750", "name": "Sexy::SysFont::ctor_or_dtor_437300", "comment": "Big Money 00437300 (exact)"}
+{"addr": "0044a7c0", "name": "Sexy::SysFont::ctor_or_dtor_437370", "comment": "Big Money 00437370 (exact)"}
+{"addr": "0044a7e0", "name": "Sexy::SysFont::Duplicate", "comment": "BookWorm slot 11; Big Money 00437390 (exact): Big Money slot 11: Duplicate()"}
+{"addr": "0044aaf0", "name": "std::vector<int>::size", "comment": "Big Money 00401c90 (exact)"}
+{"addr": "0044b490", "name": "Sexy::DDImage::LockSurface", "comment": "BookWorm slot 34; Big Money 004386a0 (fuzzy:0.65): Big Money slot 43: LockSurface()"}
+{"addr": "0044b500", "name": "Sexy::DDImage::BitsChanged", "comment": "BookWorm slot 16; Big Money 00438800 (fuzzy:0.76): Big Money slot 23: BitsChanged()"}
+{"addr": "0044b520", "name": "Sexy::DDImage::GetBits", "comment": "BookWorm slot 22; Big Money 0044b100 (fuzzy:0.70): Big Money slot 29: GetBits()"}
+{"addr": "0044b760", "name": "Sexy::Font::dtor_Font", "comment": "BookWorm slot 00; Big Money 0043abd0 (fuzzy:1.00): Big Money slot 0: ~Font()"}
+{"addr": "0044b810", "name": "Sexy::Graphics::dtor_Graphics", "comment": "BookWorm slot 00; Big Money 00441f40 (fuzzy:1.00): Big Money slot 0: ~Graphics()"}
+{"addr": "0044ba30", "name": "Sexy::Graphics::DrawImage_xy", "comment": "Big Money 0043af80 (call): DrawImage(Image* theImage, int theX, int theY)"}
+{"addr": "0044bdb0", "name": "Sexy::Graphics::ClipRect", "comment": "Big Money 0043b250 (call): ClipRect(int theX, int theY, int theWidth, int theHeight)"}
+{"addr": "0044be10", "name": "Sexy::Graphics::ClipRect_rect", "comment": "Big Money 0043b2b0 (exact): ClipRect(const Rect&)"}
+{"addr": "0044c290", "name": "Sexy::Image::DrawRect", "comment": "BookWorm slot 02; Big Money 0043b300 (fuzzy:0.92): Big Money slot 3: DrawRect(const Rect& theRect, const Color& theColor, int theDrawMode)"}
+{"addr": "0044c360", "name": "Sexy::Image::FillScanLines", "comment": "BookWorm slot 05; Big Money 0043b3d0 (fuzzy:0.94): Big Money slot 6: FillScanLines(Span* theSpans, int theSpanCount, const Color& theColor, int theDrawMode)"}
+{"addr": "0044c3c0", "name": "Sexy::DataElement::dtor_DataElement", "comment": "BookWorm slot 00; Big Money 0043b430 (fuzzy:1.00): Big Money slot 0: ~DataElement()"}
+{"addr": "0044c420", "name": "Sexy::ActiveFontLayer::ctor_or_dtor_43b490", "comment": "Big Money 0043b490 (exact)"}
+{"addr": "0044c450", "name": "Sexy::ActiveFontLayer::dtor_ActiveFontLayer", "comment": "BookWorm slot 00; Big Money 0043b4c0 (fuzzy:1.00): Big Money slot 0: ~ActiveFontLayer()"}
+{"addr": "0044c480", "name": "Sexy::ActiveFontLayer::ctor_or_dtor_43b4f0", "comment": "Big Money 0043b4f0 (call)"}
+{"addr": "0044e450", "name": "Sexy::MemoryImage::Palletize", "comment": "BookWorm slot 25; Big Money 0043dad0 (call): Big Money slot 32: Palletize()"}
+{"addr": "0044e4f0", "name": "Sexy::SysFont::dtor_SysFont", "comment": "BookWorm slot 00; Big Money 0043db80 (fuzzy:1.00): Big Money slot 0: ~SysFont()"}
+{"addr": "0044f650", "name": "Sexy::D3DTestImage::dtor_D3DTestImage", "comment": "BookWorm slot 00; Big Money 0043e8e0 (fuzzy:1.00): Big Money slot 0: ~D3DTestImage()"}
+{"addr": "0044f680", "name": "Sexy::D3DTestImage::ctor_or_dtor_43e910", "comment": "Big Money 0043e910 (exact)"}
+{"addr": "0044f780", "name": "Sexy::DDImage::Palletize", "comment": "BookWorm slot 25; Big Money 0043ea30 (exact): Big Money slot 32: Palletize()"}
+{"addr": "0044f820", "name": "Sexy::Graphics::DrawImageBox", "comment": "Big Money 00441f70 (exact): DrawImageBox(const Rect& theDest, Image* theComponentImage)"}
+{"addr": "0044f8e0", "name": "Sexy::ImageFont::StringWidth", "comment": "BookWorm slot 07; Big Money 0043eaf0 (exact): Big Money slot 7: StringWidth(const std::string& theString)"}
+{"addr": "0044fa30", "name": "Sexy::SysFont::StringWidth", "comment": "BookWorm slot 07; Big Money 0043ec40 (fuzzy:0.87): Big Money slot 7: StringWidth(const std::string& theString)"}
+{"addr": "00450230", "name": "Sexy::Graphics::DrawImageRotated", "comment": "Big Money 0043f820 (exact): DrawImageRotated(Image* theImage, int theX, int theY, double theRot, const Rect* theSrcRect)"}
+{"addr": "00450260", "name": "Sexy::SingleDataElement::ctor_or_dtor_43f850", "comment": "Big Money 0043f850 (exact)"}
+{"addr": "00450280", "name": "Sexy::SingleDataElement::ctor_or_dtor_43f870", "comment": "Big Money 0043f870 (exact)"}
+{"addr": "004502c0", "name": "Sexy::ImageFont::CharWidthKern", "comment": "BookWorm slot 09; Big Money 0043f8b0 (fuzzy:0.90): Big Money slot 9: CharWidthKern(char theChar, char thePrevChar)"}
+{"addr": "004503f0", "name": "Sexy::ImageFont::HasTag", "comment": "BookWorm slot 20; Big Money 0043f9e0 (exact): Big Money slot 20: HasTag(const std::string& theTagName)"}
+{"addr": "00450840", "name": "Sexy::D3DTester::dtor_D3DTester", "comment": "BookWorm slot 00; Big Money 00440190 (fuzzy:1.00): Big Money slot 0: ~D3DTester()"}
+{"addr": "00450870", "name": "Sexy::SingleDataElement::dtor_SingleDataElement", "comment": "BookWorm slot 00; Big Money 00440210 (fuzzy:1.00): Big Money slot 0: ~SingleDataElement()"}
+{"addr": "00450d30", "name": "Sexy::D3DTester::TestException::ctor_or_dtor_441490", "comment": "Big Money 00441490 (call)"}
+{"addr": "00450df0", "name": "Sexy::SingleDataElement::ctor_or_dtor_441fb0", "comment": "Big Money 00441fb0 (exact)"}
+{"addr": "004510f0", "name": "std::out_of_range::ctor_or_dtor_4420a0", "comment": "Big Money 004420a0 (call)"}
+{"addr": "00451440", "name": "std::length_error::ctor_or_dtor_442500", "comment": "Big Money 00442500 (call)"}
+{"addr": "00451b40", "name": "std::locale::facet::ctor_or_dtor_442c00", "comment": "Big Money 00442c00 (exact)"}
+{"addr": "00453340", "name": "std::length_error::ctor_or_dtor_4444a0", "comment": "Big Money 004444a0 (exact)"}
+{"addr": "004533e0", "name": "std::length_error::ctor_or_dtor_444540", "comment": "Big Money 00444540 (call)"}
+{"addr": "00453460", "name": "std::length_error::ctor_or_dtor_4445c0", "comment": "Big Money 004445c0 (exact)"}
+{"addr": "004551c0", "name": "Sexy::ResourceManagerException::ctor_or_dtor_4663a0", "comment": "Big Money 004663a0 (group)"}
+{"addr": "00455410", "name": "Sexy::DDImage::DrawLine", "comment": "BookWorm slot 04; Big Money 004475d0 (fuzzy:0.67): Big Money slot 5: DrawLine(double theStartX, double theStartY, double theEndX, double theEndY, const Color& theColor, int theDrawMode)"}
+{"addr": "00455610", "name": "Sexy::Font::CharWidth", "comment": "BookWorm slot 08; Big Money 00447810 (exact): Big Money slot 8: CharWidth(char theChar)"}
+{"addr": "004556e0", "name": "Sexy::SingleDataElement::Duplicate", "comment": "BookWorm slot 01; Big Money 00447ed0 (exact): Big Money slot 1: Duplicate()"}
+{"addr": "00455740", "name": "Sexy::ListDataElement::ctor_or_dtor_447f30", "comment": "Big Money 00447f30 (exact)"}
+{"addr": "00455c90", "name": "Sexy::ImageFont::GetDefine", "comment": "BookWorm slot 21; Big Money 00448350 (fuzzy:0.77): Big Money slot 21: GetDefine(const std::string& theName)"}
+{"addr": "004585b0", "name": "Sexy::ListDataElement::dtor_ListDataElement", "comment": "BookWorm slot 00; Big Money 0044b350 (fuzzy:1.00): Big Money slot 0: ~ListDataElement()"}
+{"addr": "00458670", "name": "Sexy::ImageFont::ctor_or_dtor_44b450", "comment": "Big Money 0044b450 (exact)"}
+{"addr": "00458920", "name": "std::length_error::ctor_or_dtor_4290e0", "comment": "Big Money 004290e0 (group)"}
+{"addr": "00458fa0", "name": "Sexy::Image::ctor_or_dtor_44bed0", "comment": "Big Money 0044bed0 (exact)"}
+{"addr": "00459080", "name": "Sexy::ListDataElement::ctor_or_dtor_44bfb0", "comment": "Big Money 0044bfb0 (exact)"}
+{"addr": "00459200", "name": "Sexy::ImageFont::dtor_ImageFont", "comment": "BookWorm slot 00; Big Money 0044c130 (fuzzy:1.00): Big Money slot 0: ~ImageFont()"}
+{"addr": "00459230", "name": "Sexy::ImageFont::DrawStringEx", "comment": "BookWorm slot 13; Big Money 0044c160 (fuzzy:0.94): Big Money slot 13: DrawStringEx(Graphics* g, int theX, int theY, const std::string& theString, const Color& theColor, const Rect* theClipRect, RectList* theDrawnAreas, int* theWidth)"}
+{"addr": "00459820", "name": "Sexy::ImageFont::RemoveTag", "comment": "BookWorm slot 19; Big Money 0044c750 (exact): Big Money slot 19: RemoveTag(const std::string& theTagName)"}
+{"addr": "0045a090", "name": "Sexy::D3DInterface::dtor_D3DInterface", "comment": "BookWorm slot 00; Big Money 0044ceb0 (fuzzy:1.00): Big Money slot 0: ~D3DInterface()"}
+{"addr": "00460160", "name": "Sexy::Image::dtor_Image", "comment": "BookWorm slot 00; Big Money 0044d920 (fuzzy:1.00): Big Money slot 0: ~Image()"}
+{"addr": "00460190", "name": "Sexy::Image::ctor_or_dtor_44d950", "comment": "Big Money 0044d950 (exact)"}
+{"addr": "00460250", "name": "Sexy::ListDataElement::ctor_or_dtor_44da10", "comment": "Big Money 0044da10 (exact)"}
+{"addr": "00460430", "name": "Sexy::ListDataElement::Duplicate", "comment": "BookWorm slot 01; Big Money 0044dbf0 (exact): Big Money slot 1: Duplicate()"}
+{"addr": "00460cc0", "name": "Sexy::ImageFont::GenerateActiveFontLayers", "comment": "BookWorm slot 12; Big Money 0044ddf0 (fuzzy:0.61): Big Money slot 12: GenerateActiveFontLayers()"}
+{"addr": "00461320", "name": "Sexy::MemoryImage::dtor_MemoryImage", "comment": "BookWorm slot 00; Big Money 0044e4a0 (fuzzy:1.00): Big Money slot 0: ~MemoryImage()"}
+{"addr": "00461710", "name": "Sexy::DDInterface::dtor_DDInterface", "comment": "BookWorm slot 00; Big Money 0044e8c0 (fuzzy:1.00): Big Money slot 0: ~DDInterface()"}
+{"addr": "00461890", "name": "Sexy::DDImage::dtor_DDImage", "comment": "BookWorm slot 00; Big Money 0044ec60 (fuzzy:1.00): Big Money slot 0: ~DDImage()"}
+{"addr": "00462f70", "name": "Sexy::ImageFont::Duplicate", "comment": "BookWorm slot 11; Big Money 00457df0 (fuzzy:0.91): Big Money slot 11: Duplicate()"}
+{"addr": "00462fd0", "name": "Sexy::ImageFont::AddTag", "comment": "BookWorm slot 18; Big Money 00457e50 (exact): Big Money slot 18: AddTag(const std::string& theTagName)"}
+{"addr": "00465f00", "name": "Sexy::FontData::dtor_FontData", "comment": "BookWorm slot 00; Big Money 0045a710 (fuzzy:1.00): Big Money slot 3: ~FontData()"}
+{"addr": "004673d0", "name": "Sexy::MTRand::SRand_state", "comment": "Big Money 0045c750 (exact): SRand(const std::string& theSerialData): 624-word state, else SRand(4357)"}
+{"addr": "00467b40", "name": "Sexy::PropertiesParser::ctor_or_dtor_45d130", "comment": "Big Money 0045d130 (exact)"}
+{"addr": "00467b70", "name": "Sexy::PropertiesParser::ctor_or_dtor_45d160", "comment": "Big Money 0045d160 (exact)"}
+{"addr": "00467fc0", "name": "Sexy::HTTPTransfer::ctor_or_dtor_45d5c0", "comment": "Big Money 0045d5c0 (exact)"}
+{"addr": "00468070", "name": "Sexy::HTTPTransfer::ctor_or_dtor_45d670", "comment": "Big Money 0045d670 (exact)"}
+{"addr": "00469040", "name": "Sexy::PropertiesParser::dtor_PropertiesParser", "comment": "BookWorm slot 00; Big Money 0045ee40 (fuzzy:1.00): Big Money slot 0: ~PropertiesParser()"}
+{"addr": "004690e0", "name": "Sexy::HTTPTransfer::dtor_HTTPTransfer", "comment": "BookWorm slot 00; Big Money 0045eee0 (fuzzy:1.00): Big Money slot 0: ~HTTPTransfer()"}
+{"addr": "00469760", "name": "Sexy::XMLParser::ctor_or_dtor_45f840", "comment": "Big Money 0045f840 (exact)"}
+{"addr": "004698f0", "name": "Sexy::XMLParser::dtor_XMLParser", "comment": "BookWorm slot 00; Big Money 0045fb20 (fuzzy:1.00): Big Money slot 0: ~XMLParser()"}
+{"addr": "00469b50", "name": "Sexy::MTRand::Serialize", "comment": "Big Money 0045fd90 (exact): std::string Serialize(): the 624-word state, 0x9c0 bytes"}
+{"addr": "0046a3d0", "name": "Sexy::Buffer::ctor_or_dtor_460610", "comment": "Big Money 00460610 (exact)"}
+{"addr": "0046a8e0", "name": "std::length_error::ctor_or_dtor_461110", "comment": "Big Money 00461110 (call)"}
+{"addr": "0046aa00", "name": "std::length_error::ctor_or_dtor_461370", "comment": "Big Money 00461370 (exact)"}
+{"addr": "0046ab50", "name": "std::out_of_range::ctor_or_dtor_461850", "comment": "Big Money 00461850 (exact)"}
+{"addr": "0046b150", "name": "std::out_of_range::ctor_or_dtor_461410", "comment": "Big Money 00461410 (call)"}
+{"addr": "0046e5d0", "name": "Sexy::StrFormat", "comment": "Big Money 00465070 (exact): std::string StrFormat(const char* fmt, ...)"}
+{"addr": "0046e8c0", "name": "Sexy::Buffer::dtor_Buffer", "comment": "BookWorm slot 00; Big Money 00465360 (fuzzy:1.00): Big Money slot 0: ~Buffer()"}
+{"addr": "0046f2e0", "name": "Sexy::ResourceManager::DoLoadFont", "comment": "BookWorm slot 01; Big Money 00465f10 (fuzzy:0.73): Big Money slot 3: DoLoadFont(FontRes* theRes)"}
+{"addr": "0046f700", "name": "std::length_error::ctor_or_dtor_466980", "comment": "Big Money 00466980 (call)"}
+{"addr": "0046fcf0", "name": "std::out_of_range::ctor_or_dtor_467530", "comment": "Big Money 00467530 (exact)"}
+{"addr": "00470ec0", "name": "std::length_error::ctor_or_dtor_468c90", "comment": "Big Money 00468c90 (exact)"}
+{"addr": "00471080", "name": "std::length_error::ctor_or_dtor_468e50", "comment": "Big Money 00468e50 (exact)"}
+{"addr": "004713d0", "name": "Sexy::XMLParser::ctor_or_dtor_4690f0", "comment": "Big Money 004690f0 (exact)"}
+{"addr": "004714a0", "name": "Sexy::Buffer::ctor_or_dtor_4691e0", "comment": "Big Money 004691e0 (exact)"}
+{"addr": "00472d60", "name": "std::out_of_range::ctor_or_dtor_46bcf0", "comment": "Big Money 0046bcf0 (exact)"}
+{"addr": "004755c0", "name": "Sexy::ResourceManager::dtor_ResourceManager", "comment": "BookWorm slot 02; Big Money 0046e3c0 (fuzzy:1.00): Big Money slot 4: ~ResourceManager()"}
+{"addr": "00475640", "name": "std::length_error::ctor_or_dtor_46e9e0", "comment": "Big Money 0046e9e0 (exact)"}
+{"addr": "00479d10", "name": "Sexy::InternetManager::ctor_or_dtor_473040", "comment": "Big Money 00473040 (exact)"}
+{"addr": "0047baf0", "name": "Sexy::InternetManager::ctor_or_dtor_475930", "comment": "Big Money 00475930 (exact)"}
+{"addr": "0047d9f0", "name": "Sexy::SexyAppBase::CopyImage_rect", "comment": "Big Money 00478120 (call): DDImage* CopyImage(Image* theImage, const Rect& theRect)"}
+{"addr": "0047e210", "name": "Sexy::SexyAppBase::GetDialogCount", "comment": "BookWorm slot 59; Big Money 004790d0 (exact): Big Money slot 72: GetDialogCount()"}
+{"addr": "0047e330", "name": "Sexy::SexyAppBase::CopyImage", "comment": "Big Money 00479260 (exact): DDImage* CopyImage(Image* theImage)"}
+{"addr": "0047e950", "name": "std::list<Bill>::_Buyhead", "comment": "Big Money 00402610 (exact)"}
+{"addr": "0047f470", "name": "std_string_Tidy", "comment": "Big Money 0045d100 (exact): std::string reset to empty (MSVC _Tidy(true))"}
+{"addr": "00480fe0", "name": "std::length_error::ctor_or_dtor_47ce80", "comment": "Big Money 0047ce80 (call)"}
+{"addr": "00482000", "name": "std::length_error::ctor_or_dtor_47dea0", "comment": "Big Money 0047dea0 (group)"}
+{"addr": "00482160", "name": "std::length_error::ctor_or_dtor_47e0a0", "comment": "Big Money 0047e0a0 (exact)"}
+{"addr": "00482200", "name": "std::length_error::ctor_or_dtor_47e300", "comment": "Big Money 0047e300 (call)"}
+{"addr": "004823c0", "name": "std::length_error::ctor_or_dtor_47e4c0", "comment": "Big Money 0047e4c0 (exact)"}
+{"addr": "00482920", "name": "std::out_of_range::ctor_or_dtor_47ea20", "comment": "Big Money 0047ea20 (exact)"}
+{"addr": "00482c00", "name": "std::out_of_range::ctor_or_dtor_47ed00", "comment": "Big Money 0047ed00 (group)"}
+{"addr": "004830b0", "name": "Sexy::SexyApp::Validate", "comment": "BookWorm slot 23; Big Money 0048be70 (fuzzy:0.99): registration code check (BigInt); not ported"}
+{"addr": "004834c0", "name": "Sexy::SexyAppBase::GetProductVersion", "comment": "BookWorm slot 30; Big Money 0047f290 (exact): Big Money slot 36: GetProductVersion(const std::string& thePath)"}
+{"addr": "004880e0", "name": "std::out_of_range::ctor_or_dtor_483620", "comment": "Big Money 00483620 (exact)"}
+{"addr": "00488c00", "name": "std::length_error::ctor_or_dtor_44b720", "comment": "Big Money 0044b720 (group)"}
+{"addr": "00488dc0", "name": "std::length_error::ctor_or_dtor_483d50", "comment": "Big Money 00483d50 (group)"}
+{"addr": "00488f80", "name": "std::length_error::ctor_or_dtor_483f10", "comment": "Big Money 00483f10 (call)"}
+{"addr": "0048a330", "name": "Sexy::SexyApp::OpenHTMLTemplate", "comment": "BookWorm slot 27; Big Money 0048dee0 (fuzzy:0.98): Big Money slot 94: OpenHTMLTemplate(const std::string& theTemplateFile, const DefinesMap& theDefinesMap)"}
+{"addr": "0048df70", "name": "Sexy::SexyApp::OpenRegisterPage", "comment": "BookWorm slot 29; Big Money 0048e6b0 (fuzzy:0.91): Big Money slot 93: OpenRegisterPage(DefinesMap theDefinesMap)"}
+{"addr": "0048eb20", "name": "Sexy::SexyApp::OpenRegisterPage", "comment": "BookWorm slot 28; Big Money 0048f260 (fuzzy:0.92): Big Money slot 92: OpenRegisterPage()"}
+{"addr": "004905c0", "name": "Sexy::SexyApp::dtor_SexyApp", "comment": "BookWorm slot 14; Big Money 0048bb30 (fuzzy:1.00): Big Money slot 17: ~SexyApp()"}
+{"addr": "004905f0", "name": "ImageLib::Image::ctor_or_dtor_48fff0", "comment": "Big Money 0048fff0 (call)"}
+{"addr": "00490610", "name": "ImageLib::Image::ctor_or_dtor_490010", "comment": "Big Money 00490010 (exact)"}
+{"addr": "00491d20", "name": "Sexy::SoundManager::dtor_SoundManager", "comment": "BookWorm slot 00; Big Money 004917d0 (fuzzy:1.00): Big Money slot 0: ~SoundManager()"}
+{"addr": "00491d60", "name": "Sexy::SoundInstance::dtor_SoundInstance", "comment": "BookWorm slot 00; Big Money 00491810 (fuzzy:1.00): Big Money slot 0: ~SoundInstance()"}
+{"addr": "00491de0", "name": "Sexy::DSoundManager::SetBaseVolume", "comment": "BookWorm slot 03; Big Money 00491890 (fuzzy:0.82): Big Money slot 6: SetBaseVolume(unsigned int theSfxID, double theBaseVolume)"}
+{"addr": "00491e10", "name": "Sexy::DSoundManager::SetBasePan", "comment": "BookWorm slot 04; Big Money 004918c0 (fuzzy:0.82): Big Money slot 7: SetBasePan(unsigned int theSfxID, int theBasePan)"}
+{"addr": "00491e40", "name": "Sexy::DSoundManager::ReleaseSounds", "comment": "BookWorm slot 07; Big Money 004918f0 (exact): Big Money slot 9: ReleaseSounds()"}
+{"addr": "00491e70", "name": "Sexy::DSoundManager::ReleaseChannels", "comment": "BookWorm slot 08; Big Money 00491920 (fuzzy:0.85): Big Money slot 10: ReleaseChannels()"}
+{"addr": "00491ee0", "name": "Sexy::DSoundManager::StopAllSounds", "comment": "BookWorm slot 13; Big Money 00491990 (fuzzy:0.87): Big Money slot 15: StopAllSounds()"}
+{"addr": "00491f10", "name": "Sexy::DSoundManager::GetMasterVolume", "comment": "BookWorm slot 09; Big Money 004919c0 (exact): Big Money slot 11: GetMasterVolume()"}
+{"addr": "00492010", "name": "Sexy::DSoundManager::SetMasterVolume", "comment": "BookWorm slot 10; Big Money 00491ac0 (exact): Big Money slot 12: SetMasterVolume(double theVolume)"}
+{"addr": "00492110", "name": "Sexy::DSoundManager::SetCooperativeWindow", "comment": "BookWorm slot 12; Big Money 00491bc0 (fuzzy:0.80): Big Money slot 14: SetCooperativeWindow(HWND theHWnd, bool isWindowed)"}
+{"addr": "004921d0", "name": "Sexy::DSoundInstance::Release", "comment": "BookWorm slot 01; Big Money 00491c80 (exact): Big Money slot 1: Release()"}
+{"addr": "004921e0", "name": "Sexy::DSoundInstance::SetVolume", "comment": "BookWorm slot 05; Big Money 00491c90 (exact): Big Money slot 5: SetVolume(double theVolume)"}
+{"addr": "00492200", "name": "Sexy::DSoundInstance::SetPan", "comment": "BookWorm slot 06; Big Money 00491cb0 (exact): Big Money slot 6: SetPan(int thePosition)"}
+{"addr": "00492220", "name": "Sexy::DSoundInstance::SetBaseVolume", "comment": "BookWorm slot 02; Big Money 00491cd0 (exact): Big Money slot 2: SetBaseVolume(double theBaseVolume)"}
+{"addr": "00492240", "name": "Sexy::DSoundInstance::SetBasePan", "comment": "BookWorm slot 03; Big Money 00491cf0 (exact): Big Money slot 3: SetBasePan(int theBasePan)"}
+{"addr": "00492260", "name": "Sexy::DSoundInstance::Play", "comment": "BookWorm slot 07; Big Money 00491d10 (exact): Big Money slot 7: Play(bool looping, bool autoRelease)"}
+{"addr": "004922c0", "name": "Sexy::DSoundInstance::Stop", "comment": "BookWorm slot 08; Big Money 00491d70 (exact): Big Money slot 8: Stop()"}
+{"addr": "004922f0", "name": "Sexy::DSoundInstance::AdjustPitch", "comment": "BookWorm slot 04; Big Money 00491da0 (exact): Big Money slot 4: AdjustPitch(double theNumSteps)"}
+{"addr": "00492370", "name": "Sexy::DSoundInstance::IsPlaying", "comment": "BookWorm slot 09; Big Money 00491e20 (exact): Big Money slot 9: IsPlaying()"}
+{"addr": "004923a0", "name": "Sexy::DSoundInstance::IsReleased", "comment": "BookWorm slot 10; Big Money 00491e50 (exact): Big Money slot 10: IsReleased()"}
+{"addr": "004926b0", "name": "Sexy::BASS_INSTANCE::ctor_or_dtor_492190", "comment": "Big Money 00492190 (group)"}
+{"addr": "00492790", "name": "Sexy::BassMusicInterface::SetVolume", "comment": "BookWorm slot 12; Big Money 00492280 (fuzzy:0.56): Big Money slot 17: SetVolume(double theVolume)"}
+{"addr": "00492830", "name": "Sexy::FMOD_INSTANCE::ctor_or_dtor_492330", "comment": "Big Money 00492330 (exact)"}
+{"addr": "00492bb0", "name": "Sexy::FMOD_INSTANCE::ctor_or_dtor_4926b0", "comment": "Big Money 004926b0 (group)"}
+{"addr": "00492c90", "name": "Sexy::MusicInterface::ctor_or_dtor_4927a0", "comment": "Big Money 004927a0 (exact)"}
+{"addr": "00492ca0", "name": "Sexy::MusicInterface::ctor_or_dtor_4927b0", "comment": "Big Money 004927b0 (call)"}
+{"addr": "00492f10", "name": "Sexy::DSoundManager::SetVolume", "comment": "BookWorm slot 05; Big Money 004929f0 (fuzzy:0.76): Big Money slot 5: SetVolume(double theVolume)"}
+{"addr": "00493070", "name": "Sexy::DSoundInstance::dtor_DSoundInstance", "comment": "BookWorm slot 00; Big Money 00492b50 (fuzzy:1.00): Big Money slot 0: ~DSoundInstance()"}
+{"addr": "004930a0", "name": "Sexy::BASS_INSTANCE::dtor_BASS_INSTANCE", "comment": "BookWorm slot 00; Big Money 00492b80 (fuzzy:1.00): Big Money slot 0: ~BASS_INSTANCE()"}
+{"addr": "004930d0", "name": "Sexy::FMOD_INSTANCE::dtor_FMOD_INSTANCE", "comment": "BookWorm slot 00; Big Money 00492bb0 (fuzzy:1.00): Big Money slot 0: ~FMOD_INSTANCE()"}
+{"addr": "00493100", "name": "Sexy::MusicInterface::dtor_MusicInterface", "comment": "BookWorm slot 00; Big Money 00492be0 (fuzzy:1.00): Big Money slot 0: ~MusicInterface()"}
+{"addr": "00493250", "name": "Sexy::DSoundManager::dtor_DSoundManager", "comment": "BookWorm slot 00; Big Money 00494250 (fuzzy:1.00): Big Money slot 0: ~DSoundManager()"}
+{"addr": "00493d90", "name": "Sexy::DSoundManager::GetSoundInstance", "comment": "BookWorm slot 06; Big Money 00493790 (fuzzy:0.86): Big Money slot 8: GetSoundInstance(unsigned int theSfxID)"}
+{"addr": "00493f60", "name": "Sexy::BassMusicInterface::StopAllMusic", "comment": "BookWorm slot 06; Big Money 00493ce0 (fuzzy:0.79): Big Money slot 6: StopAllMusic()"}
+{"addr": "00493fd0", "name": "Sexy::BassMusicInterface::FadeOutAll", "comment": "BookWorm slot 09; Big Money 00493dd0 (fuzzy:0.69): Big Money slot 13: FadeOutAll(bool stopSong, double theSpeed)"}
+{"addr": "00494040", "name": "Sexy::BassMusicInterface::Update", "comment": "BookWorm slot 14; Big Money 00493e40 (fuzzy:0.53): Big Money slot 19: Update()"}
+{"addr": "00494150", "name": "Sexy::FModMusicInterface::StopAllMusic", "comment": "BookWorm slot 06; Big Money 00493f50 (fuzzy:0.81): Big Money slot 6: StopAllMusic()"}
+{"addr": "004941d0", "name": "Sexy::FModMusicInterface::FadeOutAll", "comment": "BookWorm slot 09; Big Money 00493fd0 (fuzzy:0.81): Big Money slot 13: FadeOutAll(bool stopSong, double theSpeed)"}
+{"addr": "004941f0", "name": "Sexy::FModMusicInterface::SetVolume", "comment": "BookWorm slot 12; Big Money 00493ff0 (fuzzy:0.92): Big Money slot 17: SetVolume(double theVolume)"}
+{"addr": "004942b0", "name": "Sexy::FModMusicInterface::Update", "comment": "BookWorm slot 14; Big Money 004940b0 (fuzzy:0.69): Big Money slot 19: Update()"}
+{"addr": "00494450", "name": "Sexy::BassMusicInterface::PlayMusic", "comment": "BookWorm slot 02; Big Money 00494280 (fuzzy:0.59): Big Money slot 2: PlayMusic(int theSongId, int theOffset, bool noLoop)"}
+{"addr": "00494540", "name": "Sexy::BassMusicInterface::StopMusic", "comment": "BookWorm slot 03; Big Money 00494390 (exact): Big Money slot 3: StopMusic(int theSongId)"}
+{"addr": "004945a0", "name": "Sexy::BassMusicInterface::PauseMusic", "comment": "BookWorm slot 04; Big Money 004944a0 (exact): Big Money slot 4: PauseMusic(int theSongId)"}
+{"addr": "004945e0", "name": "Sexy::BassMusicInterface::ResumeMusic", "comment": "BookWorm slot 05; Big Money 004944e0 (exact): Big Money slot 5: ResumeMusic(int theSongId)"}
+{"addr": "00494620", "name": "Sexy::BassMusicInterface::FadeIn", "comment": "BookWorm slot 07; Big Money 00494520 (fuzzy:0.53): Big Money slot 11: FadeIn(int theSongId, int theOffset, double theSpeed, bool noLoop)"}
+{"addr": "00494710", "name": "Sexy::BassMusicInterface::FadeOut", "comment": "BookWorm slot 08; Big Money 00494640 (fuzzy:0.91): Big Money slot 12: FadeOut(int theSongId, bool stopSong, double theSpeed)"}
+{"addr": "00494760", "name": "Sexy::BassMusicInterface::SetSongVolume", "comment": "BookWorm slot 10; Big Money 00494690 (exact): Big Money slot 14: SetSongVolume(int theSongId, double theVolume)"}
+{"addr": "004947c0", "name": "Sexy::BassMusicInterface::IsPlaying", "comment": "BookWorm slot 11; Big Money 00494760 (exact): Big Money slot 16: IsPlaying(int theSongId)"}
+{"addr": "00494810", "name": "Sexy::BassMusicInterface::SetMusicAmplify", "comment": "BookWorm slot 13; Big Money 004947b0 (exact): Big Money slot 18: SetMusicAmplify(int theSongId, double theAmp)"}
+{"addr": "00494860", "name": "Sexy::FModMusicInterface::PlayMusic", "comment": "BookWorm slot 02; Big Money 00494800 (fuzzy:0.71): Big Money slot 2: PlayMusic(int theSongId, int theOffset, bool noLoop)"}
+{"addr": "00494950", "name": "Sexy::FModMusicInterface::PauseMusic", "comment": "BookWorm slot 04; Big Money 004948f0 (exact): Big Money slot 4: PauseMusic(int theSongId)"}
+{"addr": "004949a0", "name": "Sexy::FModMusicInterface::ResumeMusic", "comment": "BookWorm slot 05; Big Money 00494940 (exact): Big Money slot 5: ResumeMusic(int theSongId)"}
+{"addr": "004949f0", "name": "Sexy::FModMusicInterface::StopMusic", "comment": "BookWorm slot 03; Big Money 00494990 (exact): Big Money slot 3: StopMusic(int theSongId)"}
+{"addr": "00494a50", "name": "Sexy::FModMusicInterface::FadeIn", "comment": "BookWorm slot 07; Big Money 004949f0 (fuzzy:0.97): Big Money slot 11: FadeIn(int theSongId, int theOffset, double theSpeed, bool noLoop)"}
+{"addr": "00494b60", "name": "Sexy::FModMusicInterface::FadeOut", "comment": "BookWorm slot 08; Big Money 00494b00 (fuzzy:0.89): Big Money slot 12: FadeOut(int theSongId, bool stopSong, double theSpeed)"}
+{"addr": "00494ba0", "name": "Sexy::FModMusicInterface::SetSongVolume", "comment": "BookWorm slot 10; Big Money 00494b40 (exact): Big Money slot 14: SetSongVolume(int theSongId, double theVolume)"}
+{"addr": "00494c20", "name": "Sexy::FModMusicInterface::IsPlaying", "comment": "BookWorm slot 11; Big Money 00494bc0 (exact): Big Money slot 16: IsPlaying(int theSongId)"}
+{"addr": "00495f50", "name": "Sexy::BassMusicInterface::LoadMusic", "comment": "BookWorm slot 01; Big Money 00495f30 (fuzzy:0.64): Big Money slot 1: LoadMusic(int theSongId, const std::string& theFileName)"}
+{"addr": "004961b0", "name": "Sexy::FModMusicInterface::LoadSample", "comment": "BookWorm slot 16; Big Money 00496190 (fuzzy:0.78): Big Money slot 21: LoadSample(int theSongId, const std::string& theFileName, bool repeat)"}
+{"addr": "00496610", "name": "Sexy::FModMusicInterface::LoadMusic", "comment": "BookWorm slot 01; Big Money 004965f0 (fuzzy:0.61): Big Money slot 1: LoadMusic(int theSongId, const std::string& theFileName)"}
+{"addr": "004966c0", "name": "Sexy::BassMusicInterface::ctor_or_dtor_4966a0", "comment": "Big Money 004966a0 (exact)"}
+{"addr": "00496790", "name": "Sexy::FModMusicInterface::ctor_or_dtor_496960", "comment": "Big Money 00496960 (exact)"}
+{"addr": "004969d0", "name": "Sexy::BassMusicInterface::dtor_BassMusicInterface", "comment": "BookWorm slot 00; Big Money 004968f0 (fuzzy:1.00): Big Money slot 0: ~BassMusicInterface()"}
+{"addr": "00496aa0", "name": "Sexy::FModMusicInterface::dtor_FModMusicInterface", "comment": "BookWorm slot 00; Big Money 00496a80 (fuzzy:1.00): Big Money slot 0: ~FModMusicInterface()"}
+{"addr": "00496ad0", "name": "BigInt::ctor_or_dtor_496ab0", "comment": "Big Money 00496ab0 (exact)"}
+{"addr": "00496af0", "name": "BigInt::ctor_or_dtor_496ad0", "comment": "Big Money 00496ad0 (exact)"}
+{"addr": "00496c00", "name": "get_field_0c", "comment": "BookWorm slot 04; Big Money 00496be0 (call): folded: Font::GetHeight (Big Money slot 4), any 'return this+0xc'"}
+{"addr": "00497910", "name": "BigInt::ctor_or_dtor_4978f0", "comment": "Big Money 004978f0 (exact)"}
+{"addr": "00497970", "name": "BigInt::ctor_or_dtor_497950", "comment": "Big Money 00497950 (exact)"}
+{"addr": "00498430", "name": "BigInt::ctor_or_dtor_498410", "comment": "Big Money 00498410 (exact)"}
+{"addr": "00499260", "name": "std::length_error::ctor_or_dtor_4611b0", "comment": "Big Money 004611b0 (call)"}
+{"addr": "004999b0", "name": "std::out_of_range::ctor_or_dtor_46edf0", "comment": "Big Money 0046edf0 (exact)"}
+{"addr": "00499d80", "name": "std::length_error::ctor_or_dtor_470f90", "comment": "Big Money 00470f90 (exact)"}
+{"addr": "004cab10", "name": "operator_new", "comment": "Big Money 004c8cc0 (exact)"}
+{"addr": "004cab34", "name": "std::out_of_range::ctor_or_dtor_4c8ce4", "comment": "Big Money 004c8ce4 (call)"}
+{"addr": "004cab74", "name": "std::length_error::ctor_or_dtor_4c8d24", "comment": "Big Money 004c8d24 (call)"}
+{"addr": "004cabb4", "name": "std::ios_base::_Callfns", "comment": "Big Money 004c9565 (exact)"}
+{"addr": "004cac2b", "name": "std::ios_base::_Tidy", "comment": "Big Money 004c9587 (exact)"}
+{"addr": "004cac6d", "name": "std::ios_base::ctor_or_dtor_4c95c9", "comment": "Big Money 004c95c9 (exact)"}
+{"addr": "004cacad", "name": "std::runtime_error::ctor_or_dtor_4c9609", "comment": "Big Money 004c9609 (exact)"}
+{"addr": "004cacf2", "name": "std::runtime_error::ctor_or_dtor_4c964e", "comment": "Big Money 004c964e (exact)"}
+{"addr": "004cad55", "name": "std::ios_base::failure::ctor_or_dtor_4c96b1", "comment": "Big Money 004c96b1 (exact)"}
+{"addr": "004cae1b", "name": "std::runtime_error::ctor_or_dtor_4c9777", "comment": "Big Money 004c9777 (exact)"}
+{"addr": "004cae5e", "name": "std::ios_base::failure::ctor_or_dtor_4c97ba", "comment": "Big Money 004c97ba (exact)"}
+{"addr": "004cae94", "name": "std::ios_base::_Init", "comment": "Big Money 004c97f0 (exact)"}
+{"addr": "004cb1a3", "name": "___Wcrtomb_lk", "comment": "Big Money 004c8f94 (exact)"}
+{"addr": "004cb32f", "name": "std::_Init_locks::_Init_locks", "comment": "Big Money 004c9120 (exact)"}
+{"addr": "004cb3be", "name": "std::_Fac_node::~_Fac_node", "comment": "Big Money 004c91af (exact)"}
+{"addr": "004cb3d3", "name": "__Deletegloballocale", "comment": "Big Money 004c91c4 (exact)"}
+{"addr": "004cb3ef", "name": "tidy_global", "comment": "Big Money 004c91e0 (exact)"}
+{"addr": "004cb437", "name": "std::locale::_Getfacet", "comment": "Big Money 004c9228 (exact)"}
+{"addr": "004cb46c", "name": "__Fac_tidy", "comment": "Big Money 004c925d (exact)"}
+{"addr": "004cb4af", "name": "std::locale::facet::_Register", "comment": "Big Money 004c92a0 (exact)"}
+{"addr": "004cb5db", "name": "std::locale::_Locimp::ctor_or_dtor_4c93cc", "comment": "Big Money 004c93cc (exact)"}
+{"addr": "004cb75b", "name": "std::locale::locale", "comment": "Big Money 004c954c (exact)"}
+{"addr": "004cb8e6", "name": "std::locale::_Locimp::_Addfac", "comment": "Big Money 004c99e7 (exact)"}
+{"addr": "004cbc61", "name": "std::locale::_Locimp::ctor_or_dtor_4c9d62", "comment": "Big Money 004c9d62 (exact)"}
+{"addr": "004cbdbf", "name": "__Stod", "comment": "Big Money 004c9e53 (exact)"}
+{"addr": "004cbe47", "name": "std::_Nomemory", "comment": "Big Money 004c9f4d (exact)"}
+{"addr": "004cbea8", "name": "__Atexit", "comment": "Big Money 004c9fda (exact)"}
+{"addr": "004cbef1", "name": "std::_Locinfo::_Gettnames", "comment": "Big Money 004ca023 (exact)"}
+{"addr": "004cbf91", "name": "Init", "comment": "Big Money 004ca0c3 (exact)"}
+{"addr": "004cbff6", "name": "FID_conflict:messages<wchar_t>", "comment": "Big Money 004ca128 (call)"}
+{"addr": "004cc045", "name": "FID_conflict:messages<wchar_t>", "comment": "Big Money 004ca177 (call)"}
+{"addr": "004cc094", "name": "Tidy", "comment": "Big Money 004ca293 (exact)"}
+{"addr": "004cc0cb", "name": "FID_conflict:messages<wchar_t>", "comment": "Big Money 004ca1ee (call)"}
+{"addr": "004cc136", "name": "FID_conflict:messages<wchar_t>", "comment": "Big Money 004ca23d (call)"}
+{"addr": "004cc185", "name": "Makpat", "comment": "Big Money 004ca2b3 (exact)"}
+{"addr": "004cc1e3", "name": "FID_conflict:money_put<char,std::ostreambuf_iterator<char,std::char_traits<char>_>_>", "comment": "Big Money 004ca311 (call)"}
+{"addr": "004cc3e8", "name": "Getcat", "comment": "Big Money 004ca5ff (call)"}
+{"addr": "004cc431", "name": "FID_conflict:money_put<char,std::ostreambuf_iterator<char,std::char_traits<char>_>_>", "comment": "Big Money 004ca648 (call)"}
+{"addr": "004cc598", "name": "Getcat", "comment": "Big Money 004ca6c6 (call)"}
+{"addr": "004cc5e1", "name": "ctype<>", "comment": "Big Money 004ca70f (call)"}
+{"addr": "004cc792", "name": "std::locale::facet::ctor_or_dtor_4ca8c7", "comment": "Big Money 004ca8c7 (group)"}
+{"addr": "004cc7b2", "name": "ctype<>", "comment": "Big Money 004ca8e7 (call)"}
+{"addr": "004cc7d1", "name": "Getcat", "comment": "Big Money 004ca906 (call)"}
+{"addr": "004cc81a", "name": "ctype<>", "comment": "Big Money 004ca94f (call)"}
+{"addr": "004cc9f9", "name": "std::locale::facet::ctor_or_dtor_4cab27", "comment": "Big Money 004cab27 (group)"}
+{"addr": "004cca19", "name": "ctype<>", "comment": "Big Money 004cab47 (call)"}
+{"addr": "004cca38", "name": "Getcat", "comment": "Big Money 004cab66 (call)"}
+{"addr": "004cca81", "name": "time_put<>", "comment": "Big Money 004cabaf (call)"}
+{"addr": "004ccafc", "name": "std::locale::facet::ctor_or_dtor_4cac2a", "comment": "Big Money 004cac2a (group)"}
+{"addr": "004ccb39", "name": "Getcat", "comment": "Big Money 004cac67 (call)"}
+{"addr": "004ccb82", "name": "time_put<>", "comment": "Big Money 004cacb0 (call)"}
+{"addr": "004ccbfd", "name": "std::locale::facet::ctor_or_dtor_4cad2b", "comment": "Big Money 004cad2b (group)"}
+{"addr": "004ccc3a", "name": "Getcat", "comment": "Big Money 004cad68 (call)"}
+{"addr": "004ccc83", "name": "Getcat", "comment": "Big Money 004cadb1 (call)"}
+{"addr": "004ccccc", "name": "Getcat", "comment": "Big Money 004cadfa (call)"}
+{"addr": "004ccd7b", "name": "Getcat", "comment": "Big Money 004caebb (call)"}
+{"addr": "004ccdc4", "name": "Getcat", "comment": "Big Money 004caf04 (call)"}
+{"addr": "004cce57", "name": "std::collate<unsigned_short>::do_compare", "comment": "Big Money 004caf6e (exact)"}
+{"addr": "004ccef7", "name": "collate<>", "comment": "Big Money 004cb023 (call)"}
+{"addr": "004ccf51", "name": "FID_conflict:messages<wchar_t>", "comment": "Big Money 004cb07d (call)"}
+{"addr": "004ccfa0", "name": "FID_conflict:messages<wchar_t>", "comment": "Big Money 004cb0cc (call)"}
+{"addr": "004ccfef", "name": "FID_conflict:messages<wchar_t>", "comment": "Big Money 004cb11b (call)"}
+{"addr": "004cd03e", "name": "collate<>", "comment": "Big Money 004cb16a (call)"}
+{"addr": "004cd098", "name": "FID_conflict:messages<wchar_t>", "comment": "Big Money 004cb1c4 (call)"}
+{"addr": "004cd0e7", "name": "FID_conflict:messages<wchar_t>", "comment": "Big Money 004cb213 (call)"}
+{"addr": "004cd136", "name": "FID_conflict:messages<wchar_t>", "comment": "Big Money 004cb262 (call)"}
+{"addr": "004cd7cf", "name": "Getcat", "comment": "Big Money 004cb8fb (call)"}
+{"addr": "004cd818", "name": "Getcat", "comment": "Big Money 004cb944 (call)"}
+{"addr": "004cd861", "name": "Getcat", "comment": "Big Money 004cb98d (call)"}
+{"addr": "004cd8aa", "name": "Getcat", "comment": "Big Money 004cb9d6 (call)"}
+{"addr": "004cd8f3", "name": "Getcat", "comment": "Big Money 004cba1f (call)"}
+{"addr": "004cd93c", "name": "Getcat", "comment": "Big Money 004cba68 (call)"}
+{"addr": "004cd985", "name": "Getcat", "comment": "Big Money 004cbab1 (call)"}
+{"addr": "004cd9ce", "name": "Getcat", "comment": "Big Money 004cbafa (call)"}
+{"addr": "004ce29d", "name": "_Mpunct<>", "comment": "Big Money 004cc3c4 (call)"}
+{"addr": "004ce33c", "name": "_Mpunct<>", "comment": "Big Money 004cc463 (call)"}
+{"addr": "004ce446", "name": "Getcat", "comment": "Big Money 004cc56d (call)"}
+{"addr": "004ce48f", "name": "moneypunct<>", "comment": "Big Money 004cc5b6 (call)"}
+{"addr": "004ce4c9", "name": "moneypunct<>", "comment": "Big Money 004cc5f0 (call)"}
+{"addr": "004ce4ec", "name": "Getcat", "comment": "Big Money 004cc613 (call)"}
+{"addr": "004ce535", "name": "moneypunct<>", "comment": "Big Money 004cc65c (call)"}
+{"addr": "004ce558", "name": "moneypunct<>", "comment": "Big Money 004cc69b (call)"}
+{"addr": "004ce592", "name": "moneypunct<>", "comment": "Big Money 004cc6b9 (call)"}
+{"addr": "004ce5ac", "name": "moneypunct<>", "comment": "Big Money 004cc6d3 (call)"}
+{"addr": "004ce5c6", "name": "moneypunct<>", "comment": "Big Money 004cc6ed (call)"}
+{"addr": "004ce5e0", "name": "moneypunct<>", "comment": "Big Money 004cc707 (call)"}
+{"addr": "004ce9db", "name": "Getcat", "comment": "Big Money 004ccb02 (call)"}
+{"addr": "004cea24", "name": "Getcat", "comment": "Big Money 004ccb4b (call)"}
+{"addr": "004cea6d", "name": "Getcat", "comment": "Big Money 004ccb94 (call)"}
+{"addr": "004ceab6", "name": "Getcat", "comment": "Big Money 004ccbdd (call)"}
+{"addr": "004cef5e", "name": "equal", "comment": "Big Money 004cefdc (exact)"}
+{"addr": "004cef98", "name": "Peek", "comment": "Big Money 004cd085 (exact)"}
+{"addr": "004cf1ca", "name": "FID_conflict:append", "comment": "Big Money 004cd299 (exact)"}
+{"addr": "004cf247", "name": "FID_conflict:assign", "comment": "Big Money 004cd316 (group)"}
+{"addr": "004d1096", "name": "FID_conflict:assign", "comment": "Big Money 004cf0d7 (group)"}
+{"addr": "004d2a10", "name": "std::_Locinfo::_Getdays", "comment": "Big Money 004d0b09 (exact)"}
+{"addr": "004d2a4d", "name": "std::_Locinfo::_Getmonths", "comment": "Big Money 004d0b46 (exact)"}
+{"addr": "004d2dcb", "name": "FID_conflict:assign", "comment": "Big Money 004d0e9d (call)"}
+{"addr": "004d2f0c", "name": "FID_conflict:resize", "comment": "Big Money 004d0fde (call)"}
+{"addr": "004d3171", "name": "FID_conflict:assign", "comment": "Big Money 004d1243 (call)"}
+{"addr": "004d3c00", "name": "do_get_weekday", "comment": "Big Money 004d1cd6 (group)"}
+{"addr": "004d3c3e", "name": "do_get_monthname", "comment": "Big Money 004d1d14 (group)"}
+{"addr": "004d4f77", "name": "Getcat", "comment": "Big Money 004d304d (call)"}
+{"addr": "004d61fd", "name": "Getcat", "comment": "Big Money 004d4301 (call)"}
+{"addr": "004d6dbb", "name": "std::locale::facet::ctor_or_dtor_4d4eca", "comment": "Big Money 004d4eca (exact)"}
+{"addr": "004d6df1", "name": "collate<>", "comment": "Big Money 004d4f00 (call)"}
+{"addr": "004d6e4b", "name": "FID_conflict:messages<wchar_t>", "comment": "Big Money 004d4f5a (call)"}
+{"addr": "004d6e9a", "name": "FID_conflict:messages<wchar_t>", "comment": "Big Money 004d4fa9 (call)"}
+{"addr": "004d6ee9", "name": "FID_conflict:messages<wchar_t>", "comment": "Big Money 004d4ff8 (call)"}
+{"addr": "004d6f38", "name": "time_put<>", "comment": "Big Money 004d5047 (call)"}
+{"addr": "004d70e7", "name": "Getcat", "comment": "Big Money 004d51f6 (call)"}
+{"addr": "004d7130", "name": "Getcat", "comment": "Big Money 004d523f (call)"}
+{"addr": "004d7179", "name": "Getcat", "comment": "Big Money 004d5288 (call)"}
+{"addr": "004d71c2", "name": "Getcat", "comment": "Big Money 004d52d1 (call)"}
+{"addr": "004d720b", "name": "Getcat", "comment": "Big Money 004d531a (exact)"}
+{"addr": "004d7254", "name": "_Mpunct<>", "comment": "Big Money 004d5363 (call)"}
+{"addr": "004d761e", "name": "moneypunct<>", "comment": "Big Money 004d572d (call)"}
+{"addr": "004d765d", "name": "moneypunct<>", "comment": "Big Money 004d576c (call)"}
+{"addr": "004d767b", "name": "moneypunct<>", "comment": "Big Money 004d578a (call)"}
+{"addr": "004d7695", "name": "moneypunct<>", "comment": "Big Money 004d57a4 (call)"}
+{"addr": "004d76af", "name": "Getcat", "comment": "Big Money 004d57be (call)"}
+{"addr": "004d76f8", "name": "Getcat", "comment": "Big Money 004d5807 (call)"}
+{"addr": "004d92d2", "name": "do_get_weekday", "comment": "Big Money 004d7404 (group)"}
+{"addr": "004d9310", "name": "do_get_monthname", "comment": "Big Money 004d7442 (group)"}
+{"addr": "004d93ad", "name": "Getcat", "comment": "Big Money 004d74df (exact)"}
+{"addr": "004d9ad5", "name": "_btowc", "comment": "Big Money 004d7c07 (exact)"}
+{"addr": "004d9b16", "name": "__Getwctype", "comment": "Big Money 004d7c48 (exact)"}
+{"addr": "004d9b41", "name": "__Getwctypes", "comment": "Big Money 004d7c73 (exact)"}
+{"addr": "004d9f41", "name": "_JumpToContinuation", "comment": "Big Money 004d896c (exact)"}
+{"addr": "004d9f71", "name": "FID_conflict:_CallMemberFunction1", "comment": "Big Money 004d899c (exact)"}
+{"addr": "004d9f78", "name": "_UnwindNestedFrames", "comment": "Big Money 004d89a3 (exact)"}
+{"addr": "004da095", "name": "_GetRangeOfTrysToCheck", "comment": "Big Money 004d8ac0 (exact)"}
+{"addr": "004da158", "name": "_FindAndUnlinkFrame", "comment": "Big Money 004d8b83 (exact)"}
+{"addr": "004da2a4", "name": "__global_unwind2", "comment": "Big Money 004d8cd0 (exact)"}
+{"addr": "004da2e6", "name": "__local_unwind2", "comment": "Big Money 004d8d12 (exact)"}
+{"addr": "004da34e", "name": "__abnormal_termination", "comment": "Big Money 004d8d7a (exact)"}
+{"addr": "004da371", "name": "__NLG_Notify1", "comment": "Big Money 004d8d9d (exact)"}
+{"addr": "004da3a0", "name": "_memchr", "comment": "Big Money 004d9c20 (exact)"}
+{"addr": "004da450", "name": "_memmove", "comment": "Big Money 004d81d0 (call)"}
+{"addr": "004da7dd", "name": "__CxxThrowException@8", "comment": "Big Money 004d8932 (exact)"}
+{"addr": "004da818", "name": "_ftol", "comment": "Big Money 004d8798 (exact): (int) of the x87 top of stack, truncating"}
+{"addr": "004da88d", "name": "__onexit_lk", "comment": "Big Money 004d962a (exact)"}
+{"addr": "004da90d", "name": "___onexitinit", "comment": "Big Money 004d96aa (exact)"}
+{"addr": "004da935", "name": "__onexit", "comment": "Big Money 004d96d2 (exact)"}
+{"addr": "004da96d", "name": "_atexit", "comment": "Big Money 004d970a (exact)"}
+{"addr": "004da97f", "name": "__fwrite_lk", "comment": "Big Money 004d8642 (call)"}
+{"addr": "004daa86", "name": "_fwrite", "comment": "Big Money 004d8749 (call)"}
+{"addr": "004daad2", "name": "__fread_lk", "comment": "Big Money 004d850d (call)"}
+{"addr": "004dabbb", "name": "_fread", "comment": "Big Money 004d85f6 (call)"}
+{"addr": "004dac46", "name": "_isupper", "comment": "Big Money 004daea2 (call)"}
+{"addr": "004dac80", "name": "_islower", "comment": "Big Money 004daedc (call)"}
+{"addr": "004dacba", "name": "_isdigit", "comment": "Big Money 004daf16 (call)"}
+{"addr": "004dad33", "name": "_isspace", "comment": "Big Money 004daf8f (call)"}
+{"addr": "004dad6d", "name": "exception::ctor_or_dtor_4d8dbe", "comment": "Big Money 004d8dbe (exact)"}
+{"addr": "004dad7e", "name": "exception::ctor_or_dtor_4d8dcf", "comment": "Big Money 004d8dcf (exact)"}
+{"addr": "004dadbb", "name": "exception::ctor_or_dtor_4d8e0c", "comment": "Big Money 004d8e0c (exact)"}
+{"addr": "004dae05", "name": "exception::ctor_or_dtor_4d8e56", "comment": "Big Money 004d8e56 (exact)"}
+{"addr": "004dae28", "name": "bad_cast::ctor_or_dtor_4d8e79", "comment": "Big Money 004d8e79 (exact)"}
+{"addr": "004daf24", "name": "__fclose_lk", "comment": "Big Money 004d80c3 (exact)"}
+{"addr": "004daf70", "name": "_fclose", "comment": "Big Money 004d810f (call)"}
+{"addr": "004dafc1", "name": "__fsopen", "comment": "Big Money 004d8160 (call)"}
+{"addr": "004db01d", "name": "fopen", "comment": "Big Money 004d81bc (exact)"}
+{"addr": "004db042", "name": "__dosmaperr", "comment": "Big Money 004dab5c (exact)"}
+{"addr": "004db0b5", "name": "sprintf", "comment": "Big Money 004d8f75 (call)"}
+{"addr": "004db10d", "name": "FID_conflict:__time32", "comment": "Big Money 004d989c (exact)"}
+{"addr": "004db15c", "name": "FindSITargetTypeInstance", "comment": "Big Money 004d8fe3 (exact)"}
+{"addr": "004db1b1", "name": "PMDtoOffset", "comment": "Big Money 004d9038 (exact)"}
+{"addr": "004db1d0", "name": "FindMITargetTypeInstance", "comment": "Big Money 004d9057 (exact)"}
+{"addr": "004db2c9", "name": "FindVITargetTypeInstance", "comment": "Big Money 004d9150 (exact)"}
+{"addr": "004db3fe", "name": "__RTDynamicCast", "comment": "Big Money 004d9285 (exact)"}
+{"addr": "004db5a7", "name": "_toupper", "comment": "Big Money 004d9d9f (call)"}
+{"addr": "004db5c9", "name": "_free", "comment": "Big Money 004d9e8d (call)"}
+{"addr": "004db63a", "name": "__heap_alloc", "comment": "Big Money 004dc403 (call)"}
+{"addr": "004db6b5", "name": "__nh_malloc", "comment": "Big Money 004dc47e (exact)"}
+{"addr": "004db6e1", "name": "_malloc", "comment": "Big Money 004dc4aa (exact)"}
+{"addr": "004db6f8", "name": "_atol", "comment": "Big Money 004d9e00 (call)"}
+{"addr": "004db785", "name": "___crtExitProcess", "comment": "Big Money 004dbebe (exact)"}
+{"addr": "004db910", "name": "__exit", "comment": "Big Money 004dc049 (exact)"}
+{"addr": "004db93f", "name": "FID_conflict:_getc", "comment": "Big Money 004da7fb (exact)"}
+{"addr": "004db990", "name": "__chkstk", "comment": "Big Money 004da420 (exact)"}
+{"addr": "004dba95", "name": "_tolower", "comment": "Big Money 004db1a3 (call)"}
+{"addr": "004dbab7", "name": "_setvbuf", "comment": "Big Money 004da45d (exact)"}
+{"addr": "004dbb93", "name": "__flush", "comment": "Big Money 004da539 (exact)"}
+{"addr": "004dbbf0", "name": "__fflush_lk", "comment": "Big Money 004da596 (exact)"}
+{"addr": "004dbc1e", "name": "flsall", "comment": "Big Money 004da5c4 (exact)"}
+{"addr": "004dbcf3", "name": "_fflush", "comment": "Big Money 004da699 (exact)"}
+{"addr": "004dbd43", "name": "__flushall", "comment": "Big Money 004da6e9 (call)"}
+{"addr": "004dbd4c", "name": "__ungetc_lk", "comment": "Big Money 004da6f2 (exact)"}
+{"addr": "004dbdb8", "name": "_ungetc", "comment": "Big Money 004da75e (exact)"}
+{"addr": "004dbdfd", "name": "FID_conflict:_fputc", "comment": "Big Money 004da7a3 (exact)"}
+{"addr": "004dbe55", "name": "_fgetpos", "comment": "Big Money 004da84b (exact)"}
+{"addr": "004dbe77", "name": "__fseek_lk", "comment": "Big Money 004da86d (exact)"}
+{"addr": "004dbf06", "name": "_fseek", "comment": "Big Money 004da8fc (exact)"}
+{"addr": "004dbf4f", "name": "_fsetpos", "comment": "Big Money 004da945 (exact)"}
+{"addr": "004dbf67", "name": "__ArrayUnwind", "comment": "Big Money 004d98d5 (exact)"}
+{"addr": "004dbfc5", "name": "`eh_vector_destructor_iterator'", "comment": "Big Money 004d9933 (exact)"}
+{"addr": "004dc025", "name": "`eh_vector_constructor_iterator'", "comment": "Big Money 004d9993 (exact)"}
+{"addr": "004dc094", "name": "_rand", "comment": "Big Money 004d9372 (exact)"}
+{"addr": "004dc0b6", "name": "__amsg_exit", "comment": "Big Money 004d99fa (exact)"}
+{"addr": "004dc0db", "name": "fast_error_exit", "comment": "Big Money 004d9a1f (exact)"}
+{"addr": "004dc2d1", "name": "report_failure", "comment": "Big Money 004d9dc1 (exact)"}
+{"addr": "004dc302", "name": "__security_check_cookie", "comment": "Big Money 004d9df2 (exact)"}
+{"addr": "004dc310", "name": "__alldiv", "comment": "Big Money 004da030 (exact)"}
+{"addr": "004dc3c0", "name": "__allmul", "comment": "Big Money 004da0e0 (exact)"}
+{"addr": "004dc650", "name": "shortsort", "comment": "Big Money 004da120 (exact)"}
+{"addr": "004dc950", "name": "strtoxl", "comment": "Big Money 004da95d (call)"}
+{"addr": "004dcb0f", "name": "_strtol", "comment": "Big Money 004dab1c (call)"}
+{"addr": "004dcb26", "name": "_strtoul", "comment": "Big Money 004dab33 (call)"}
+{"addr": "004dcb43", "name": "strtoxq", "comment": "Big Money 004dabd5 (call)"}
+{"addr": "004dcda3", "name": "__strtoi64", "comment": "Big Money 004dae35 (group)"}
+{"addr": "004dcdba", "name": "__strtoui64", "comment": "Big Money 004dae4c (group)"}
+{"addr": "004dce60", "name": "_strrchr", "comment": "Big Money 004db050 (exact)"}
+{"addr": "004dce8d", "name": "FID_conflict:_fwprintf", "comment": "Big Money 004db07d (exact)"}
+{"addr": "004dd177", "name": "_realloc", "comment": "Big Money 004db55c (exact)"}
+{"addr": "004dd440", "name": "_strncmp", "comment": "Big Money 004db820 (exact)"}
+{"addr": "004dd557", "name": "__beginthread", "comment": "Big Money 004dba62 (exact)"}
+{"addr": "004dd5e8", "name": "_sscanf", "comment": "Big Money 004dbb59 (call)"}
+{"addr": "004dd61c", "name": "__ftell_lk", "comment": "Big Money 004dbb8d (exact)"}
+{"addr": "004dd77e", "name": "_ftell", "comment": "Big Money 004dbcef (exact)"}
+{"addr": "004dd7c0", "name": "_strcspn", "comment": "Big Money 004dbda0 (exact)"}
+{"addr": "004dd810", "name": "_strncpy", "comment": "Big Money 004db860 (exact)"}
+{"addr": "004dd950", "name": "_strchr", "comment": "Big Money 004dbe00 (exact)"}
+{"addr": "004ddb19", "name": "_localtime", "comment": "Big Money 004d971c (exact)"}
+{"addr": "004ddc9c", "name": "_longjmp", "comment": "Big Money 004dc0a4 (exact)"}
+{"addr": "004ddd18", "name": "__setjmp3", "comment": "Big Money 004dc120 (exact)"}
+{"addr": "004de051", "name": "`eh_vector_copy_constructor_iterator'", "comment": "Big Money 004dbaf3 (exact)"}
+{"addr": "004de166", "name": "___endstdio", "comment": "Big Money 004dc244 (exact)"}
+{"addr": "004de17a", "name": "__lock_file", "comment": "Big Money 004dc258 (call)"}
+{"addr": "004de1a9", "name": "__lock_file2", "comment": "Big Money 004dc287 (call)"}
+{"addr": "004de1cc", "name": "__unlock_file", "comment": "Big Money 004dc2aa (call)"}
+{"addr": "004de1fb", "name": "__unlock_file2", "comment": "Big Money 004dc2d9 (call)"}
+{"addr": "004de21e", "name": "_gmtime", "comment": "Big Money 004dc2fc (call)"}
+{"addr": "004de325", "name": "_calloc", "comment": "Big Money 004dc4bc (call)"}
+{"addr": "004de3e0", "name": "__getenv_lk", "comment": "Big Money 004dc577 (exact)"}
+{"addr": "004de461", "name": "_getenv", "comment": "Big Money 004dc5f8 (exact)"}
+{"addr": "004de4a0", "name": "__callnewh", "comment": "Big Money 004dc637 (exact)"}
+{"addr": "004de4c0", "name": "_strlen", "comment": "Big Money 004dc660 (exact)"}
+{"addr": "004de550", "name": "_memcpy", "comment": "Big Money 004dc6f0 (call)"}
+{"addr": "004de8af", "name": "TypeMatch", "comment": "Big Money 004ddd9e (exact)"}
+{"addr": "004de91c", "name": "___FrameUnwindToState", "comment": "Big Money 004dde0b (exact)"}
+{"addr": "004de9ea", "name": "___DestructExceptionObject", "comment": "Big Money 004dded9 (exact)"}
+{"addr": "004dec06", "name": "BuildCatchObject", "comment": "Big Money 004de0f5 (exact)"}
+{"addr": "004ded82", "name": "CatchIt", "comment": "Big Money 004de271 (exact)"}
+{"addr": "004df08b", "name": "___InternalCxxFrameHandler", "comment": "Big Money 004de57a (exact)"}
+{"addr": "004df130", "name": "_memset", "comment": "Big Money 004ddcb0 (exact)"}
+{"addr": "004df190", "name": "___crtLCMapStringA", "comment": "Big Money 004dca4f (exact)"}
+{"addr": "004df71b", "name": "____lc_codepage_func", "comment": "Big Money 004dcfda (call)"}
+{"addr": "004df74d", "name": "____lc_handle_func", "comment": "Big Money 004dd00c (call)"}
+{"addr": "004df766", "name": "__mtinitlocks", "comment": "Big Money 004dd025 (exact)"}
+{"addr": "004df7af", "name": "__mtdeletelocks", "comment": "Big Money 004dd06e (exact)"}
+{"addr": "004df898", "name": "__lock", "comment": "Big Money 004dd157 (exact)"}
+{"addr": "004dfa61", "name": "__strcats", "comment": "Big Money 004dd320 (call)"}
+{"addr": "004dfb57", "name": "___lc_lctostr", "comment": "Big Money 004dd416 (exact)"}
+{"addr": "004dfba5", "name": "___updatetlocinfo", "comment": "Big Money 004dd464 (exact)"}
+{"addr": "004e01c8", "name": "_setlocale", "comment": "Big Money 004dda87 (exact)"}
+{"addr": "004e0330", "name": "_memcmp", "comment": "Big Money 004ddbf0 (exact)"}
+{"addr": "004e03e8", "name": "_strtod", "comment": "Big Money 004ddd10 (exact)"}
+{"addr": "004e0476", "name": "_abort", "comment": "Big Money 004de61c (exact)"}
+{"addr": "004e05a2", "name": "__Gettnames", "comment": "Big Money 004de748 (exact)"}
+{"addr": "004e07f5", "name": "FID_conflict:__store_num", "comment": "Big Money 004de99b (exact)"}
+{"addr": "004e0f64", "name": "__Strftime", "comment": "Big Money 004df10a (exact)"}
+{"addr": "004e0fac", "name": "_strncnt", "comment": "Big Money 004df152 (exact)"}
+{"addr": "004e1352", "name": "___crtGetStringTypeW", "comment": "Big Money 004df4f8 (exact)"}
+{"addr": "004e1577", "name": "wcsncnt", "comment": "Big Money 004df71d (exact)"}
+{"addr": "004e1595", "name": "___crtCompareStringW", "comment": "Big Money 004df73b (exact)"}
+{"addr": "004e1a40", "name": "_strcmp", "comment": "Big Money 004dfbf0 (exact)"}
+{"addr": "004e1ac8", "name": "terminate", "comment": "Big Money 004e1041 (exact)"}
+{"addr": "004e1afd", "name": "_inconsistency", "comment": "Big Money 004e1076 (exact)"}
+{"addr": "004e1b48", "name": "__initptd", "comment": "Big Money 004e10c1 (exact)"}
+{"addr": "004e1b5b", "name": "__getptd", "comment": "Big Money 004e10d4 (exact)"}
+{"addr": "004e1db0", "name": "__CallSettingFrame@12", "comment": "Big Money 004e1320 (exact)"}
+{"addr": "004e1dfc", "name": "__forcdecpt", "comment": "Big Money 004dfc78 (exact)"}
+{"addr": "004e1e9d", "name": "__fassign", "comment": "Big Money 004dfd19 (exact)"}
+{"addr": "004e1edb", "name": "__shift", "comment": "Big Money 004dfd57 (exact)"}
+{"addr": "004e1ef8", "name": "__cftoe2", "comment": "Big Money 004dfd74 (exact)"}
+{"addr": "004e21be", "name": "__cfltcvt", "comment": "Big Money 004e003a (exact)"}
+{"addr": "004e2221", "name": "__ms_p5_test_fdiv", "comment": "Big Money 004e009d (exact)"}
+{"addr": "004e2261", "name": "__ms_p5_mp_test_fdiv", "comment": "Big Money 004e00dd (exact)"}
+{"addr": "004e22f0", "name": "__msize", "comment": "Big Money 004e2f78 (call)"}
+{"addr": "004e2368", "name": "__SEH_prolog", "comment": "Big Money 004e0250 (exact)"}
+{"addr": "004e23a3", "name": "__SEH_epilog", "comment": "Big Money 004e028b (exact)"}
+{"addr": "004e23b4", "name": "__flsbuf", "comment": "Big Money 004e0881 (call)"}
+{"addr": "004e2672", "name": "__write", "comment": "Big Money 004e0b3f (call)"}
+{"addr": "004e271d", "name": "__filbuf", "comment": "Big Money 004e0526 (call)"}
+{"addr": "004e29cb", "name": "__read", "comment": "Big Money 004e07d6 (group)"}
+{"addr": "004e2c6b", "name": "__close", "comment": "Big Money 004e0189 (exact)"}
+{"addr": "004e2d06", "name": "__freebuf", "comment": "Big Money 004e0224 (exact)"}
+{"addr": "004e2d31", "name": "__openfile", "comment": "Big Money 004e029c (exact)"}
+{"addr": "004e2fbb", "name": "write_char", "comment": "Big Money 004e1468 (exact)"}
+{"addr": "004e2fee", "name": "write_multi_char", "comment": "Big Money 004e149b (exact)"}
+{"addr": "004e3012", "name": "write_string", "comment": "Big Money 004e14bf (exact)"}
+{"addr": "004e37e0", "name": "__aulldiv", "comment": "Big Money 004e35f0 (exact)"}
+{"addr": "004e3848", "name": "___heap_select", "comment": "Big Money 004e4052 (exact)"}
+{"addr": "004e3862", "name": "__heap_init", "comment": "Big Money 004e406c (exact)"}
+{"addr": "004e38b3", "name": "___sbh_heap_init", "comment": "Big Money 004e42d4 (exact)"}
+{"addr": "004e38fb", "name": "___sbh_find_block", "comment": "Big Money 004e431c (exact)"}
+{"addr": "004e3926", "name": "___sbh_free_block", "comment": "Big Money 004e4347 (exact)"}
+{"addr": "004e3c3e", "name": "___sbh_alloc_new_region", "comment": "Big Money 004e465f (exact)"}
+{"addr": "004e3cf5", "name": "___sbh_alloc_new_group", "comment": "Big Money 004e4716 (exact)"}
+{"addr": "004e3dfb", "name": "___sbh_resize_block", "comment": "Big Money 004e481c (exact)"}
+{"addr": "004e40da", "name": "___sbh_alloc_block", "comment": "Big Money 004e4afb (exact)"}
+{"addr": "004e445e", "name": "__commit", "comment": "Big Money 004e4ec8 (exact)"}
+{"addr": "004e451a", "name": "__getbuf", "comment": "Big Money 004e4f84 (exact)"}
+{"addr": "004e455e", "name": "__ftelli64_lk", "comment": "Big Money 004e4fc8 (exact)"}
+{"addr": "004e46f3", "name": "__ftelli64", "comment": "Big Money 004e515d (exact)"}
+{"addr": "004e473a", "name": "__lseek_lk", "comment": "Big Money 004e51a4 (exact)"}
+{"addr": "004e47ae", "name": "__lseek", "comment": "Big Money 004e5218 (call)"}
+{"addr": "004e4859", "name": "__fseeki64_lk", "comment": "Big Money 004e52c3 (exact)"}
+{"addr": "004e48ec", "name": "__fseeki64", "comment": "Big Money 004e5356 (exact)"}
+{"addr": "004e4aaf", "name": "__FF_MSGBANNER", "comment": "Big Money 004e37cf (exact)"}
+{"addr": "004e4ae8", "name": "__XcptFilter", "comment": "Big Money 004e3808 (exact)"}
+{"addr": "004e4f8a", "name": "___crtGetEnvironmentStringsA", "comment": "Big Money 004e3caa (exact)"}
+{"addr": "004e576a", "name": "FID_conflict:__floor_default", "comment": "Big Money 004e0f0a (exact)"}
+{"addr": "004e5910", "name": "__aulldvrm", "comment": "Big Money 004e53b0 (exact)"}
+{"addr": "004e59a5", "name": "__stbuf", "comment": "Big Money 004e5445 (call)"}
+{"addr": "004e5a2d", "name": "__ftbuf", "comment": "Big Money 004e54cd (exact)"}
+{"addr": "004e5a57", "name": "__inc", "comment": "Big Money 004e54f7 (exact)"}
+{"addr": "004e6786", "name": "cvtdate", "comment": "Big Money 004e325f (exact)"}
+{"addr": "004e6b17", "name": "__rt_probe_read4@4", "comment": "Big Money 004e5fb5 (exact)"}
+{"addr": "004e7aa7", "name": "__startOneArgErrorHandling", "comment": "Big Money 004e2bd7 (call)"}
+{"addr": "004e7b35", "name": "__fload_withFB", "comment": "Big Money 004e2c65 (exact)"}
+{"addr": "004e7ce6", "name": "__powhlp", "comment": "Big Money 004e2e16 (exact)"}
+{"addr": "004e7e48", "name": "__fcloseall", "comment": "Big Money 004e5ff7 (exact)"}
+{"addr": "004e7ee3", "name": "__mbsnbicoll", "comment": "Big Money 004e6092 (exact)"}
+{"addr": "004e7f9c", "name": "FID_conflict:_ValidateRead", "comment": "Big Money 004e7c4b (call)"}
+{"addr": "004e7fb8", "name": "FID_conflict:_ValidateRead", "comment": "Big Money 004e7c67 (call)"}
+{"addr": "004e7fd4", "name": "_ValidateExecute", "comment": "Big Money 004e7c83 (exact)"}
+{"addr": "004e82d5", "name": "___crtGetStringTypeA", "comment": "Big Money 004e6434 (exact)"}
+{"addr": "004e85c0", "name": "___crtInitCritSecNoSpinCount@8", "comment": "Big Money 004e671f (exact)"}
+{"addr": "004e85d0", "name": "___crtInitCritSecAndSpinCount", "comment": "Big Money 004e672f (exact)"}
+{"addr": "004e865b", "name": "__get_lc_time", "comment": "Big Money 004e67ba (exact)"}
+{"addr": "004e89c2", "name": "___free_lc_time", "comment": "Big Money 004e6b21 (exact)"}
+{"addr": "004e8bb1", "name": "___free_lconv_num", "comment": "Big Money 004e6d10 (exact)"}
+{"addr": "004e8c10", "name": "___init_numeric", "comment": "Big Money 004e6d6f (exact)"}
+{"addr": "004e8ddd", "name": "___free_lconv_mon", "comment": "Big Money 004e6f3c (exact)"}
+{"addr": "004e8eb6", "name": "___init_monetary", "comment": "Big Money 004e7015 (exact)"}
+{"addr": "004e90f8", "name": "_TranslateName", "comment": "Big Money 004e7257 (call)"}
+{"addr": "004e9158", "name": "_GetLcidFromDefault", "comment": "Big Money 004e72b7 (exact)"}
+{"addr": "004e92ef", "name": "_LcidFromHexString", "comment": "Big Money 004e744e (exact)"}
+{"addr": "004e9324", "name": "_GetPrimaryLen", "comment": "Big Money 004e7483 (exact)"}
+{"addr": "004e9743", "name": "_GetLcidFromCountry", "comment": "Big Money 004e78a2 (exact)"}
+{"addr": "004e977a", "name": "_GetLcidFromLangCountry", "comment": "Big Money 004e78d9 (exact)"}
+{"addr": "004e9800", "name": "_GetLcidFromLanguage", "comment": "Big Money 004e795f (exact)"}
+{"addr": "004e9855", "name": "___get_qualified_locale", "comment": "Big Money 004e79b4 (exact)"}
+{"addr": "004e9a10", "name": "_strpbrk", "comment": "Big Money 004e7b70 (exact)"}
+{"addr": "004e9aeb", "name": "siglookup", "comment": "Big Money 004e7c9b (exact)"}
+{"addr": "004e9b19", "name": "_raise", "comment": "Big Money 004e7cc9 (exact)"}
+{"addr": "004e9ca0", "name": "___ascii_stricmp", "comment": "Big Money 004e7e50 (exact)"}
+{"addr": "004e9d1d", "name": "setSBCS", "comment": "Big Money 004e96e7 (exact)"}
+{"addr": "004e9ed8", "name": "___updatetmbcinfo", "comment": "Big Money 004e98a2 (exact)"}
+{"addr": "004ea0dd", "name": "__setmbcp", "comment": "Big Money 004e9aa7 (exact)"}
+{"addr": "004ea22d", "name": "___initmbctable", "comment": "Big Money 004e9bf7 (exact)"}
+{"addr": "004ea24b", "name": "__ZeroTail", "comment": "Big Money 004e7e9e (exact)"}
+{"addr": "004ea27d", "name": "__IncMan", "comment": "Big Money 004e7ed0 (exact)"}
+{"addr": "004ea2ca", "name": "__RoundMan", "comment": "Big Money 004e7f1d (exact)"}
+{"addr": "004ea33c", "name": "__CopyMan", "comment": "Big Money 004e7f8f (exact)"}
+{"addr": "004ea357", "name": "__IsZeroMan", "comment": "Big Money 004e7faa (exact)"}
+{"addr": "004ea370", "name": "__ShrMan", "comment": "Big Money 004e7fc3 (exact)"}
+{"addr": "004ea3eb", "name": "__ld12cvt", "comment": "Big Money 004e803e (exact)"}
+{"addr": "004ea543", "name": "FID_conflict:__ld12tod", "comment": "Big Money 004e8196 (call)"}
+{"addr": "004ea559", "name": "FID_conflict:__ld12tod", "comment": "Big Money 004e81ac (call)"}
+{"addr": "004ea66c", "name": "___dtold", "comment": "Big Money 004e82bf (exact)"}
+{"addr": "004ea7a1", "name": "__abstract_cw", "comment": "Big Money 004e83f4 (exact)"}
+{"addr": "004ea833", "name": "__hw_cw", "comment": "Big Money 004e8486 (exact)"}
+{"addr": "004ea8c1", "name": "__control87", "comment": "Big Money 004e8514 (exact)"}
+{"addr": "004ea8f3", "name": "__controlfp", "comment": "Big Money 004e8546 (exact)"}
+{"addr": "004ea9ec", "name": "__isatty", "comment": "Big Money 004e8dd9 (exact)"}
+{"addr": "004eaa16", "name": "__lseeki64_lk", "comment": "Big Money 004e8c98 (exact)"}
+{"addr": "004eaa99", "name": "__lseeki64", "comment": "Big Money 004e8d1b (exact)"}
+{"addr": "004eab57", "name": "__set_osfhnd", "comment": "Big Money 004e855c (exact)"}
+{"addr": "004eabd3", "name": "__free_osfhnd", "comment": "Big Money 004e85d8 (exact)"}
+{"addr": "004eac52", "name": "__get_osfhandle", "comment": "Big Money 004e8657 (exact)"}
+{"addr": "004ead06", "name": "__unlock_fhandle", "comment": "Big Money 004e870b (exact)"}
+{"addr": "004eb15c", "name": "__sopen", "comment": "Big Money 004e8c43 (exact)"}
+{"addr": "004eb1b1", "name": "___wctomb_mt", "comment": "Big Money 004e9c15 (exact)"}
+{"addr": "004eb211", "name": "_wctomb", "comment": "Big Money 004e9c75 (exact)"}
+{"addr": "004eb238", "name": "___crtMessageBoxA", "comment": "Big Money 004eabc3 (exact)"}
+{"addr": "004eb373", "name": "__raise_exc", "comment": "Big Money 004e8e03 (exact)"}
+{"addr": "004eb83a", "name": "FID_conflict:__set_errno_from_matherr", "comment": "Big Money 004e92ca (exact)"}
+{"addr": "004eb862", "name": "__errcode", "comment": "Big Money 004e92f2 (exact)"}
+{"addr": "004eb88f", "name": "__umatherr", "comment": "Big Money 004e931f (exact)"}
+{"addr": "004eb92d", "name": "__handle_qnan1", "comment": "Big Money 004e93bd (exact)"}
+{"addr": "004eba51", "name": "__set_exp", "comment": "Big Money 004e94e1 (exact)"}
+{"addr": "004eba7b", "name": "__sptype", "comment": "Big Money 004e950b (exact)"}
+{"addr": "004ebbab", "name": "__ctrlfp", "comment": "Big Money 004e963b (exact)"}
+{"addr": "004ebc28", "name": "___mbtowc_mt", "comment": "Big Money 004eacfe (exact)"}
+{"addr": "004ecc43", "name": "findenv", "comment": "Big Money 004eade9 (exact)"}
+{"addr": "004ecc90", "name": "copy_environ", "comment": "Big Money 004eae36 (exact)"}
+{"addr": "004ecea6", "name": "___crtGetLocaleInfoW", "comment": "Big Money 004eb04c (exact)"}
+{"addr": "004ecfd6", "name": "___crtGetLocaleInfoA", "comment": "Big Money 004eb17c (exact)"}
+{"addr": "004ed116", "name": "__stricmp", "comment": "Big Money 004eb2bc (exact)"}
+{"addr": "004ed17f", "name": "__strnicmp", "comment": "Big Money 004eb325 (exact)"}
+{"addr": "004ed23c", "name": "__itoa", "comment": "Big Money 004eb3e2 (exact)"}
+{"addr": "004ed6a0", "name": "___addl", "comment": "Big Money 004eb846 (exact)"}
+{"addr": "004ed6c1", "name": "___add_12", "comment": "Big Money 004eb867 (exact)"}
+{"addr": "004ed71f", "name": "___shl_12", "comment": "Big Money 004eb8c5 (exact)"}
+{"addr": "004ed74d", "name": "___shr_12", "comment": "Big Money 004eb8f3 (exact)"}
+{"addr": "004edc2d", "name": "__strdup", "comment": "Big Money 004ebdd3 (exact)"}
+{"addr": "004edc58", "name": "__mbschr", "comment": "Big Money 004ebdfe (exact)"}
+{"addr": "004edce0", "name": "___ascii_strnicmp", "comment": "Big Money 004ebe80 (exact)"}
+{"addr": "004ef006", "name": "__mbctoupper", "comment": "Big Money 004ec45c (exact)"}

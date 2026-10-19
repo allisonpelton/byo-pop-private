@@ -1,0 +1,76 @@
+{"addr": "0040a980", "name": "Sexy::Board::Draw", "sig": "void __thiscall Draw(void * g)"}
+{"addr": "004056e0", "name": "Sexy::Board::DrawLevelText", "sig": "void __thiscall DrawLevelText(void * g)"}
+{"addr": "00403c00", "name": "Sexy::Board::DrawProgressBar", "sig": "void __thiscall DrawProgressBar(void * g)"}
+{"addr": "00405580", "name": "Sexy::Board::DrawScore", "sig": "void __thiscall DrawScore(void * g)"}
+{"addr": "00407c60", "name": "Sexy::Board::DrawWord", "sig": "void __thiscall DrawWord(void * g)"}
+{"addr": "0040a160", "name": "Sexy::Board::DrawPieces", "sig": "void __thiscall DrawPieces(void * g)"}
+{"addr": "004044f0", "name": "Sexy::Board::DrawPiece", "sig": "void __thiscall DrawPiece(void * g, void * thePiece)"}
+{"addr": "00404380", "name": "Sexy::Board::DrawPieceBlank", "sig": "void __thiscall DrawPieceBlank(void * g, void * thePiece)"}
+{"addr": "00405340", "name": "Sexy::Board::DrawSelection", "sig": "void __thiscall DrawSelection(void * g)"}
+{"addr": "00406560", "name": "Sexy::WordScore::WordScore_copy", "sig": "void * __thiscall WordScore_copy(void * theOther)"}
+{"addr": "0041e880", "name": "Sexy::Effect::Effect", "sig": "void * __thiscall Effect(void * theEffectMgr)"}
+{"addr": "0041e8c0", "name": "Sexy::Effect::Update", "sig": "void __thiscall Update(void)"}
+{"addr": "0041e8d0", "name": "Sexy::Effect::Save", "sig": "void __thiscall Save(void * theFile)"}
+{"addr": "0041e920", "name": "Sexy::Effect::Load", "sig": "void __thiscall Load(void * theFile)"}
+{"addr": "0041e950", "name": "Sexy::Effect::DeleteEffect", "sig": "void __thiscall DeleteEffect(void * theEffect)"}
+{"addr": "0041f260", "name": "Sexy::Effect::GetType", "sig": "int __thiscall GetType(void)"}
+{"addr": "0041f270", "name": "Sexy::Effect::~Effect", "sig": "void __thiscall ~Effect(void)"}
+{"addr": "0041f280", "name": "Sexy::Effect::scalar_deleting_dtor", "sig": "void * __thiscall scalar_deleting_dtor(unsigned int theFlags)"}
+{"addr": "0041e970", "name": "Sexy::Sparkle::Update", "sig": "void __thiscall Update(void)"}
+{"addr": "0041e9e0", "name": "Sexy::Sparkle::Draw", "sig": "void __thiscall Draw(void * g)"}
+{"addr": "0041eb00", "name": "Sexy::Sparkle::Save", "sig": "void __thiscall Save(void * theFile)"}
+{"addr": "0041eba0", "name": "Sexy::Sparkle::Load", "sig": "void __thiscall Load(void * theFile)"}
+{"addr": "0041f2b0", "name": "Sexy::Sparkle::Sparkle", "sig": "void * __thiscall Sparkle(void * theEffectMgr)"}
+{"addr": "0041f8a0", "name": "Sexy::Sparkle::scalar_deleting_dtor", "sig": "void * __thiscall scalar_deleting_dtor(unsigned int theFlags)"}
+{"addr": "0041ec40", "name": "Sexy::Ember::~Ember", "sig": "void __thiscall ~Ember(void)"}
+{"addr": "0041ec50", "name": "Sexy::Ember::Reset", "sig": "void __thiscall Reset(void * theMgr)"}
+{"addr": "0041ecb0", "name": "Sexy::Ember::Update", "sig": "void __thiscall Update(void)"}
+{"addr": "0041f0a0", "name": "Sexy::Ember::Save", "sig": "void __thiscall Save(void * theFile)"}
+{"addr": "0041f180", "name": "Sexy::Ember::Load", "sig": "void __thiscall Load(void * theFile)"}
+{"addr": "0041f300", "name": "Sexy::Ember::Ember", "sig": "void * __thiscall Ember(void * theMgr)"}
+{"addr": "0041f320", "name": "Sexy::Ember::Draw", "sig": "void __thiscall Draw(void * g)"}
+{"addr": "0041f8d0", "name": "Sexy::EmberListMgr::Draw", "sig": "void __thiscall Draw(void * g)"}
+{"addr": "0041f930", "name": "Sexy::EffectMgr::Clear", "sig": "void __thiscall Clear(void)"}
+{"addr": "0041f990", "name": "Sexy::EffectMgr::Update", "sig": "char __thiscall Update(void)"}
+{"addr": "0041fa10", "name": "Sexy::EffectMgr::Draw", "sig": "void __thiscall Draw(void * g)"}
+{"addr": "0041fa50", "name": "Sexy::EffectMgr::HasEffectOfType", "sig": "char __thiscall HasEffectOfType(int theType)"}
+{"addr": "0041faa0", "name": "Sexy::EffectMgr::Save", "sig": "void __thiscall Save(void * theFile)"}
+{"addr": "0041fba0", "name": "Sexy::FlyingPieceList::Draw", "sig": "void __thiscall Draw(void * g)"}
+{"addr": "0041fee0", "name": "Sexy::FlyingPieceList::Save", "sig": "void __thiscall Save(void * theFile)"}
+{"addr": "0041ff80", "name": "Sexy::EmberListMgr::Save", "sig": "void __thiscall Save(void * theFile)"}
+{"addr": "00420060", "name": "Sexy::EffectMgr::~EffectMgr", "sig": "void __thiscall ~EffectMgr(void)"}
+{"addr": "004200f0", "name": "Sexy::FlyingPieceList::~FlyingPieceList", "sig": "void __thiscall ~FlyingPieceList(void)"}
+{"addr": "004201b0", "name": "Sexy::FlyingPieceList::GetType", "sig": "int __thiscall GetType(void)"}
+{"addr": "004201c0", "name": "Sexy::EffectMgr::EffectMgr", "sig": "void * __thiscall EffectMgr(void * theApp)"}
+{"addr": "00420270", "name": "Sexy::EffectMgr::scalar_deleting_dtor", "sig": "void * __thiscall scalar_deleting_dtor(unsigned int theFlags)"}
+{"addr": "004202a0", "name": "Sexy::FlyingPieceList::scalar_deleting_dtor", "sig": "void * __thiscall scalar_deleting_dtor(unsigned int theFlags)"}
+{"addr": "004202d0", "name": "Sexy::EmberListMgr::Clear", "sig": "void __thiscall Clear(void)"}
+{"addr": "004203a0", "name": "Sexy::EmberListMgr::~EmberListMgr", "sig": "void __thiscall ~EmberListMgr(void)"}
+{"addr": "00420520", "name": "Sexy::EmberListMgr::scalar_deleting_dtor", "sig": "void * __thiscall scalar_deleting_dtor(unsigned int theFlags)"}
+{"addr": "004207f0", "name": "Sexy::EffectMgr::AddEffect", "sig": "void __thiscall AddEffect(void * theEffect)"}
+{"addr": "00420830", "name": "Sexy::EffectMgr::GetEffectsOfType", "sig": "void * __thiscall GetEffectsOfType(int theType)"}
+{"addr": "00420920", "name": "Sexy::FlyingPieceList::FlyingPieceList", "sig": "void * __thiscall FlyingPieceList(void * theEffectMgr, void * thePieces)"}
+{"addr": "004209f0", "name": "Sexy::FlyingPieceList::Load", "sig": "void __thiscall Load(void * theFile)"}
+{"addr": "00420b70", "name": "Sexy::EffectMgr::Load", "sig": "void __thiscall Load(void * theFile)"}
+{"addr": "00420d60", "name": "Sexy::EmberListMgr::NewEmber", "sig": "void * __thiscall NewEmber(void)"}
+{"addr": "00420e00", "name": "Sexy::EmberListMgr::AddEmber", "sig": "void __thiscall AddEmber(int theType, double theX, double theY, double theVX, double theVY, char theLoop, double theAlpha, double theAlphaDecay)"}
+{"addr": "00420e70", "name": "Sexy::EmberListMgr::Load", "sig": "void __thiscall Load(void * theFile)"}
+{"addr": "00420fd0", "name": "Sexy::EmberListMgr::Update", "sig": "char __thiscall Update(void)"}
+{"addr": "00421070", "name": "Sexy::EmberListMgr::EmberListMgr", "sig": "void * __thiscall EmberListMgr(void * theApp, int thePoolSize)"}
+{"addr": "00421150", "name": "Sexy::FlyingPieceList::Update", "sig": "void __thiscall Update(void)"}
+{"addr": "004216e0", "name": "MapTableIndex", "sig": "int __cdecl MapTableIndex(int theIndex)"}
+{"addr": "00431950", "name": "Sexy::Points::Draw", "sig": "void __thiscall Draw(void * g)"}
+{"addr": "004319e0", "name": "Sexy::Points::~Points", "sig": "void __thiscall ~Points(void)"}
+{"addr": "00431a20", "name": "Sexy::Points::scalar_deleting_dtor", "sig": "void * __thiscall scalar_deleting_dtor(unsigned int theFlags)"}
+{"addr": "00431a50", "name": "Sexy::Points::Points", "sig": "void * __thiscall Points(void * theApp, void * theFont, void * theText, int theX, int theY, int theLife, int theJustify)"}
+{"addr": "004f9888", "label": "gLetterValues"}
+{"addr": "004044d0", "label": "switchdata_DrawPieceBlank_type"}
+{"addr": "00404b20", "label": "switchdata_DrawPiece_type"}
+{"addr": "0041f070", "label": "switchdata_Ember_Update_type"}
+{"addr": "0041f868", "label": "switchdata_Ember_Draw_type"}
+{"addr": "004fc450", "label": "vftable_Sexy_Effect"}
+{"addr": "004fc474", "label": "vftable_Sexy_Sparkle"}
+{"addr": "004fc4a0", "label": "vftable_Sexy_FlyingPieceList"}
+{"addr": "004fc498", "label": "vftable_Sexy_EffectMgr"}
+{"addr": "004fc4c4", "label": "vftable_Sexy_EmberListMgr"}
+{"addr": "00500e0c", "label": "vftable_Sexy_Points"}

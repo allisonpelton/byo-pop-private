@@ -1,0 +1,186 @@
+{"addr": "0040fe80", "name": "WinMain", "sig": "int __stdcall WinMain(void * hInstance, void * hPrevInstance, char * lpCmdLine, int nShowCmd)"}
+{"addr": "0040ffa0", "name": "Sexy::BookWormApp::ShutdownWidgets", "sig": "void __thiscall ShutdownWidgets(void)"}
+{"addr": "00410090", "name": "Sexy::DrawShadowedString", "sig": "void __cdecl DrawShadowedString(void * g, int x, int y, void * theString, void * theColor, bool shadow, void * theShadowColor)"}
+{"addr": "004100f0", "name": "Sexy::BookWormApp::UpdateFrames", "sig": "void __thiscall UpdateFrames(void)"}
+{"addr": "00410110", "name": "Sexy::BookWormApp::SetMusicVolume", "sig": "void __thiscall SetMusicVolume(double theVolume)"}
+{"addr": "00410180", "name": "Sexy::BookWormApp::RemoveBoard", "sig": "void __thiscall RemoveBoard(void)"}
+{"addr": "004101c0", "name": "Sexy::BookWormApp::ShowHelp", "sig": "void __thiscall ShowHelp(void)"}
+{"addr": "004102d0", "name": "Sexy::BookWormApp::HideHelp", "sig": "void __thiscall HideHelp(void)"}
+{"addr": "00410360", "name": "Sexy::BookWormApp::RemoveGameSelector", "sig": "void __thiscall RemoveGameSelector(void)"}
+{"addr": "004103a0", "name": "Sexy::BookWormApp::RemoveFameWidget", "sig": "void __thiscall RemoveFameWidget(void)"}
+{"addr": "004103e0", "name": "Sexy::BookWormApp::DoDialog", "sig": "void * __thiscall DoDialog(int theDialogId, bool isModal, void * theHeader, void * theLines, void * theFooter, int theButtonMode)"}
+{"addr": "00410520", "name": "Sexy::BookWormApp::ShowSelectUserDialog", "sig": "void __thiscall ShowSelectUserDialog(void)"}
+{"addr": "004105d0", "name": "Sexy::BookWormApp::ShowHint", "sig": "void __thiscall ShowHint(int theHintId, void * theHeader, void * theLines, void * theFooter, int theButtonMode)"}
+{"addr": "004106c0", "name": "Sexy::BookWormApp::ShowCredits", "sig": "void __thiscall ShowCredits(void)"}
+{"addr": "004107c0", "name": "Sexy::BookWormApp::ShowOptions", "sig": "void __thiscall ShowOptions(void)"}
+{"addr": "004108c0", "name": "Sexy::BookWormApp::ShowNewUserDialog", "sig": "void __thiscall ShowNewUserDialog(void * theText)"}
+{"addr": "00410970", "name": "Sexy::BookWormApp::NewDialog", "sig": "void * __thiscall NewDialog(int theDialogId, bool isModal, void * theHeader, void * theLines, void * theFooter, int theButtonMode)"}
+{"addr": "00410ad0", "name": "Sexy::BookWormApp::ModalOpen", "sig": "void __thiscall ModalOpen(void)"}
+{"addr": "00410af0", "name": "Sexy::BookWormApp::ModalClose", "sig": "void __thiscall ModalClose(void)"}
+{"addr": "00410b10", "name": "Sexy::BookWormApp::URLOpenSucceeded", "sig": "void __thiscall URLOpenSucceeded(void * theURL)"}
+{"addr": "00410b30", "name": "Sexy::BookWormApp::ButtonPress", "sig": "void __thiscall ButtonPress(int theId)"}
+{"addr": "00410ca0", "name": "Sexy::BookWormApp::Shutdown", "sig": "void __thiscall Shutdown(void)"}
+{"addr": "00410d10", "name": "Sexy::BookWormApp::StartGame", "sig": "void __thiscall StartGame(void)"}
+{"addr": "00410f00", "name": "Sexy::BookWormApp::ShowGameSelector", "sig": "void __thiscall ShowGameSelector(void)"}
+{"addr": "00411020", "name": "Sexy::BookWormApp::ShowHallOfFame", "sig": "void __thiscall ShowHallOfFame(void)"}
+{"addr": "004110b0", "name": "Sexy::BookWormApp::KillDialog", "sig": "bool __thiscall KillDialog(int theDialogId)"}
+{"addr": "00411220", "name": "Sexy::OptimizeImage"}
+{"addr": "004112f0", "name": "Sexy::UpperCaseString", "sig": "void __cdecl UpperCaseString(void * theString)"}
+{"addr": "00411570", "name": "HighScoreByWordLength::operator()"}
+{"addr": "004115d0", "name": "HighScoreByScore::operator()"}
+{"addr": "00411cd0", "name": "Sexy::BookWormApp::FormatTime", "sig": "void * __thiscall FormatTime(void * theResult, int theSeconds)"}
+{"addr": "00411ea0", "name": "Sexy::BookWormApp::GetLevelTimeString", "sig": "void * __thiscall GetLevelTimeString(void * theResult, void * thePrefix)"}
+{"addr": "00411f50", "name": "Sexy::BookWormApp::GetTotalTimeString", "sig": "void * __thiscall GetTotalTimeString(void * theResult, void * thePrefix)"}
+{"addr": "00412000", "name": "Sexy::BookWormApp::WriteToRegistry", "sig": "void __thiscall WriteToRegistry(void)"}
+{"addr": "00412100", "name": "Sexy::BookWormApp::SaveCurrentUser", "sig": "bool __thiscall SaveCurrentUser(void)"}
+{"addr": "00412190", "name": "Sexy::BookWormApp::HasSavedGame", "sig": "bool __thiscall HasSavedGame(void * theUserName, int theMode)"}
+{"addr": "004122e0", "name": "Sexy::TrimString", "sig": "void __cdecl TrimString(void * theString, void * theChars)"}
+{"addr": "00412da0", "name": "Sexy::TruncateToWidth", "sig": "void * __cdecl TruncateToWidth(void * theResult, void * g, void * theString, int theMaxWidth, void * theEllipsis)"}
+{"addr": "00412ec0", "name": "Sexy::BookWormApp::SaveHighScores", "sig": "void __thiscall SaveHighScores(void)"}
+{"addr": "00413a40", "name": "Sexy::BookWormApp::LoadUserSettings", "sig": "void __thiscall LoadUserSettings(void)"}
+{"addr": "00413c80", "name": "Sexy::BookWormApp::StartGameForUser", "sig": "void __thiscall StartGameForUser(void)"}
+{"addr": "00413cb0", "name": "Sexy::BookWormApp::ShowRegisterDialog", "sig": "void __thiscall ShowRegisterDialog(void)"}
+{"addr": "00413f30", "name": "Sexy::BookWormApp::ShowInvalidCodeDialog", "sig": "void __thiscall ShowInvalidCodeDialog(void)"}
+{"addr": "00414080", "name": "Sexy::BookWormApp::ShowAliasDialog", "sig": "void __thiscall ShowAliasDialog(void * theAlias)"}
+{"addr": "004144b0", "name": "Sexy::BookWormApp::LoadImage", "sig": "bool __thiscall LoadImage(int theImageId)"}
+{"addr": "004146d0", "name": "Sexy::BookWormApp::LoadFont", "sig": "bool __thiscall LoadFont(int theFontId)"}
+{"addr": "00414910", "name": "Sexy::BookWormApp::CheckRegistryAccess", "sig": "bool __thiscall CheckRegistryAccess(void)"}
+{"addr": "00414a10", "name": "Sexy::BookWormApp::Init", "sig": "void __thiscall Init(void)"}
+{"addr": "00414ef0", "name": "Sexy::BookWormApp::TitleScreenDone", "sig": "void __thiscall TitleScreenDone(void)"}
+{"addr": "00414fa0", "name": "Sexy::BookWormApp::URLOpenFailed", "sig": "void __thiscall URLOpenFailed(void * theURL)"}
+{"addr": "00415100", "name": "Sexy::BookWormApp::OpenURL", "sig": "bool __thiscall OpenURL(void * theURL, bool shutdownOnOpen)"}
+{"addr": "004152a0", "name": "Sexy::BookWormApp::IsInternetScoresEnabled", "sig": "bool __thiscall IsInternetScoresEnabled(void)"}
+{"addr": "004153c0", "name": "Sexy::BookWormApp::SelectGameMode", "sig": "void __thiscall SelectGameMode(int theMode)"}
+{"addr": "00415660", "name": "Sexy::BookWormApp::ShowQuitDialog", "sig": "void __thiscall ShowQuitDialog(void)"}
+{"addr": "004157e0", "name": "Sexy::BookWormApp::GoToMainMenu", "sig": "void __thiscall GoToMainMenu(void)"}
+{"addr": "00415a20", "name": "Sexy::BookWormApp::ConfirmInternetConnect", "sig": "void __thiscall ConfirmInternetConnect(void)"}
+{"addr": "00415c40", "name": "Sexy::BookWormApp::AskForUpdateCheck", "sig": "void __thiscall AskForUpdateCheck(void)"}
+{"addr": "00415de0", "name": "Sexy::BookWormApp::DoUpdateCheck", "sig": "void __thiscall DoUpdateCheck(void)"}
+{"addr": "00416090", "name": "Sexy::BookWormApp::GetGameSEHInfo", "sig": "void * __thiscall GetGameSEHInfo(void * theResult)"}
+{"addr": "004169d0", "name": "Sexy::BookWormApp::LoadingThreadCompleted", "sig": "void __thiscall LoadingThreadCompleted(void)"}
+{"addr": "00417080", "name": "Sexy::BookWormApp::ButtonDepress", "sig": "void __thiscall ButtonDepress(int theId)"}
+{"addr": "004184d0", "name": "Sexy::BookWormApp::PauseAllMusic", "sig": "void __thiscall PauseAllMusic(bool pause)"}
+{"addr": "00418590", "name": "Sexy::BookWormApp::ShowDeleteUserDialog"}
+{"addr": "004187b0", "name": "Sexy::BookWormApp::dtor_body", "sig": "void __thiscall dtor_body(void)"}
+{"addr": "00418bd0", "name": "Sexy::BookWormApp::AddDefaultHighScores", "sig": "void __thiscall AddDefaultHighScores(void)"}
+{"addr": "00419000", "name": "Sexy::BookWormApp::GotFocus", "sig": "void __thiscall GotFocus(void)"}
+{"addr": "00419040", "name": "Sexy::BookWormApp::LostFocus", "sig": "void __thiscall LostFocus(void)"}
+{"addr": "00419080", "name": "Sexy::BookWormApp::LoadHighScores", "sig": "void __thiscall LoadHighScores(void)"}
+{"addr": "00419cd0", "name": "Sexy::BookWormApp::SubmitHighScores", "sig": "void __thiscall SubmitHighScores(void * theStats)"}
+{"addr": "0041a0f0", "name": "Sexy::BookWormApp::BookWormApp", "sig": "void * __thiscall BookWormApp(void)"}
+{"addr": "0041a510", "name": "Sexy::BookWormApp::scalar_deleting_dtor", "sig": "void * __thiscall scalar_deleting_dtor(unsigned int theFlags)"}
+{"addr": "0041a540", "name": "Sexy::BookWormApp::ReadFromRegistry", "sig": "void __thiscall ReadFromRegistry(void)"}
+{"addr": "0041a5b0", "name": "Sexy::BookWormApp::LoadWordList", "sig": "bool __thiscall LoadWordList(void * theFileName, void * theSet, void * theVector)"}
+{"addr": "0041a860", "name": "Sexy::BookWormApp::LoadDictionary", "sig": "bool __thiscall LoadDictionary(void * theFileName, void * theSet)"}
+{"addr": "0041a880", "name": "Sexy::BookWormApp::LoadBonusWords", "sig": "bool __thiscall LoadBonusWords(void * theFileName, void * theVector)"}
+{"addr": "0041a8a0", "name": "Sexy::BookWormApp::LoadingThreadProc", "sig": "void __thiscall LoadingThreadProc(void)"}
+{"addr": "0042e330", "name": "Sexy::Math::Math", "sig": "void * __thiscall Math(void)"}
+{"addr": "0042e390", "name": "Sexy::Math::dtor_body", "sig": "void __thiscall dtor_body(void)"}
+{"addr": "0042e3a0", "name": "Sexy::Math::scalar_deleting_dtor", "sig": "void * __thiscall scalar_deleting_dtor(unsigned int theFlags)"}
+{"addr": "00402090", "name": "Sexy::UserManager::GetCurrentUserName", "sig": "void * __thiscall GetCurrentUserName(void * theResult)"}
+{"addr": "00434800", "name": "Sexy::UserManager::FindUser", "sig": "void * __thiscall FindUser(void * theName)"}
+{"addr": "00434960", "name": "Sexy::User::User", "sig": "void * __thiscall User(void * theName)"}
+{"addr": "004349e0", "name": "Sexy::UserManager::ReadUserInt", "sig": "bool __thiscall ReadUserInt(void * theUserName, void * theValueName, int * theValue)"}
+{"addr": "00434b70", "name": "Sexy::UserManager::WriteUserString", "sig": "bool __thiscall WriteUserString(void * theUserName, void * theValueName, void * theValue)"}
+{"addr": "00434d10", "name": "Sexy::UserManager::WriteUserInt", "sig": "bool __thiscall WriteUserInt(void * theUserName, void * theValueName, int theValue)"}
+{"addr": "00434e90", "name": "Sexy::UserManager::SaveUser", "sig": "void __thiscall SaveUser(void * theUser)"}
+{"addr": "004352e0", "name": "Sexy::UserManager::DeleteUser", "sig": "void __thiscall DeleteUser(void * theName)"}
+{"addr": "00435470", "name": "Sexy::UserManager::LoadUser", "sig": "void * __thiscall LoadUser(void * theName)"}
+{"addr": "004356d0", "name": "Sexy::UserManager::SetCurrentUser", "sig": "bool __thiscall SetCurrentUser(void * theName)"}
+{"addr": "00435880", "name": "Sexy::UserManager::SetCurrentAlias", "sig": "bool __thiscall SetCurrentAlias(void * theAlias)"}
+{"addr": "00435910", "name": "Sexy::UserManager::GetCurrentAlias", "sig": "void * __thiscall GetCurrentAlias(void * theResult)"}
+{"addr": "004359b0", "name": "Sexy::UserManager::GetLastUser", "sig": "void * __thiscall GetLastUser(void * theResult)"}
+{"addr": "00435b50", "name": "Sexy::UserManager::UserManager", "sig": "void * __thiscall UserManager(void * theApp)"}
+{"addr": "00410b40", "name": "std::multiset<HighScoreEntry>::_Max"}
+{"addr": "00410b60", "name": "std::multiset<HighScoreEntry>::_Min"}
+{"addr": "00410b80", "name": "std::multiset<HighScoreEntry>::_Rrotate"}
+{"addr": "00410be0", "name": "std::multiset<HighScoreEntry>::iterator::_Inc"}
+{"addr": "00410c40", "name": "std::set<std_string>::iterator::_Inc"}
+{"addr": "00411100", "name": "std::string::find_last_not_of_ptr"}
+{"addr": "00411190", "name": "std::multiset<HighScoreEntry>::_Lrotate"}
+{"addr": "004111f0", "name": "std::_Uninit_copy_ptr"}
+{"addr": "00411350", "name": "std::basic_ostream<char>::flush"}
+{"addr": "004113b0", "name": "std::basic_ostream<char>::sentry::sentry"}
+{"addr": "00411440", "name": "std::list<std_string>::_Buyhead"}
+{"addr": "00411460", "name": "std::multiset<HighScoreEntry>::_Buyhead"}
+{"addr": "004114a0", "name": "std::fill_ptr"}
+{"addr": "004114c0", "name": "std::list<std_string>::_Destroyval"}
+{"addr": "004114f0", "name": "std::set<std_string>::_Destroyval"}
+{"addr": "00411520", "name": "std::pair<const_std_string,std_string>::~pair"}
+{"addr": "00411670", "name": "std::basic_ostream<char>::sentry::~sentry"}
+{"addr": "004116e0", "name": "std::operator<<_cstr"}
+{"addr": "004118ad", "name": "std::operator<<_cstr_tail"}
+{"addr": "00411970", "name": "std::operator<<_char"}
+{"addr": "00411c00", "name": "std::uninitialized_copy_ptr"}
+{"addr": "00411c30", "name": "std::uninitialized_fill_n_ptr"}
+{"addr": "00411c60", "name": "std::string::_Tidy_free"}
+{"addr": "00411c90", "name": "std::_Destroy_strings"}
+{"addr": "00412080", "name": "HighScoreEntry::HighScoreEntry_copy"}
+{"addr": "00412360", "name": "std_string_substr"}
+{"addr": "004123a0", "name": "std::vector<T>::_Xlen_2"}
+{"addr": "00412420", "name": "std::list<std_string>::_Buynode"}
+{"addr": "004124c0", "name": "std::list<std_string>::_Incsize"}
+{"addr": "00412560", "name": "std::multiset<HighScoreEntry,ByScore>::_Lbound"}
+{"addr": "00412600", "name": "std::multiset<HighScoreEntry,ByWordLength>::_Lbound"}
+{"addr": "00412780", "name": "std::list<T*>::_Incsize_2"}
+{"addr": "00412820", "name": "std::list<std_string>::erase"}
+{"addr": "00412870", "name": "std::set<std_string>::erase"}
+{"addr": "00412b80", "name": "std::out_of_range::out_of_range_copy"}
+{"addr": "00412ba0", "name": "std::multiset<HighScoreEntry,ByScore>::_Erase"}
+{"addr": "00412bf0", "name": "std::multiset<HighScoreEntry,ByWordLength>::_Erase"}
+{"addr": "00412c40", "name": "std::set<std_string>::_Erase"}
+{"addr": "00412c90", "name": "std::fill_strings"}
+{"addr": "00412cc0", "name": "std::_Copy_backward_strings"}
+{"addr": "00412d00", "name": "std::_Uninit_copy_strings"}
+{"addr": "00416180", "name": "std::multiset<HighScoreEntry>::erase"}
+{"addr": "004164d0", "name": "std::vector<int>::_Buy"}
+{"addr": "00416530", "name": "std::vector<std_string>::_Buy"}
+{"addr": "00416590", "name": "std::vector<int>::_Insert_n_2"}
+{"addr": "00416830", "name": "std::_Destroy_strings_wrap"}
+{"addr": "00416850", "name": "std::multiset<HighScoreEntry>::_Buynode"}
+{"addr": "004168f0", "name": "std::copy_backward_strings"}
+{"addr": "00416930", "name": "std::_Uninit_fill_n_strings"}
+{"addr": "00416a90", "name": "std::list<std_string>::push_back"}
+{"addr": "00416ad0", "name": "std::multiset<HighScoreEntry,ByScore>::find"}
+{"addr": "00416b60", "name": "std::multiset<HighScoreEntry,ByWordLength>::find"}
+{"addr": "00416bf0", "name": "std::list<T*>::push_back_2"}
+{"addr": "00416c30", "name": "std::multiset<HighScoreEntry,ByScore>::erase_range"}
+{"addr": "00416cf0", "name": "std::multiset<HighScoreEntry>::_Insert"}
+{"addr": "00416eb0", "name": "std::multiset<HighScoreEntry,ByWordLength>::erase_range"}
+{"addr": "00416f70", "name": "std::set<std_string>::erase_range"}
+{"addr": "00417030", "name": "std::_Uninit_copy_strings_wrap"}
+{"addr": "00417050", "name": "std::_Uninit_copy_strings_wrap_2"}
+{"addr": "00417d50", "name": "std::vector<int>::push_back_2"}
+{"addr": "00417dc0", "name": "std::vector<std_string>::vector_copy"}
+{"addr": "00417e70", "name": "std::vector<std_string>::_Tidy"}
+{"addr": "00417ec0", "name": "std::_Ufill_strings"}
+{"addr": "00417ef0", "name": "std::multiset<HighScoreEntry,ByScore>::insert"}
+{"addr": "00417fb0", "name": "std::multiset<HighScoreEntry,ByWordLength>::insert"}
+{"addr": "00418160", "name": "std::vector<std_string>::_Insert_n"}
+{"addr": "00418680", "name": "std::vector<std_string>::insert"}
+{"addr": "004186f0", "name": "std::multiset<HighScoreEntry,ByScore>::~multiset"}
+{"addr": "00418730", "name": "std::multiset<HighScoreEntry,ByWordLength>::~multiset"}
+{"addr": "00418770", "name": "std::set<std_string>::~set"}
+{"addr": "0041a020", "name": "std::vector<std_string>::push_back"}
+{"addr": "0041a0b0", "name": "std::multiset<HighScoreEntry>::multiset"}
+{"addr": "005347d4", "label": "gApp"}
+{"addr": "005347d0", "label": "gGameRand"}
+{"addr": "0052e3c0", "label": "gFontNames"}
+{"addr": "0052e410", "label": "gImageNames"}
+{"addr": "0052e668", "label": "gSoundNames"}
+{"addr": "0052e728", "label": "gAliasDialogColors"}
+{"addr": "0052e818", "label": "gPlayersDir_BookWormApp"}
+{"addr": "00534828", "label": "sImagePath"}
+{"addr": "00534844", "label": "sImagePath_guard"}
+{"addr": "00534848", "label": "sFontPath"}
+{"addr": "00534864", "label": "sFontPath_guard"}
+{"addr": "00534868", "label": "gSoundPath"}
+{"addr": "00534884", "label": "gSoundPath_guard"}
+{"addr": "004fa480", "label": "gLetterValues"}
+{"addr": "004fa4e8", "label": "gDefaultClassicScores"}
+{"addr": "004fa588", "label": "gDefaultActionScores"}
+{"addr": "004fa628", "label": "gDefaultLongestWords"}
+{"addr": "004fa658", "label": "gDefaultBestWords"}
+{"addr": "004fbda4", "label": "vftable_Sexy_BookWormApp"}
+{"addr": "0050074c", "label": "vftable_Sexy_Math"}
+{"addr": "00500740", "label": "kOneOver180"}
