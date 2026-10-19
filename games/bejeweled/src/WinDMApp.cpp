@@ -1,5 +1,6 @@
 #include "WinDMApp.h"
 #include "Board.h"
+#include "BoardTrace.h"
 #include "TitleScreen.h"
 #include "HighScoreWidget.h"
 #include "HighScoreDialog.h"
@@ -405,42 +406,16 @@ void WinDMApp::ShowHighScoreDialog()
 	AddDialog(DIALOG_HIGH_SCORES, aDialog);
 }
 
-// port: -trace (SexyAppBase test hooks). Prints the grid's gem colours, the score and the valid swaps
-// (as click coordinates) each time a board settles into STATE_PLAYING, for writing -script runs.
-// port(variant): a board with a seed of its own also prints it (a replay's board on the global stream's state has
-// an MTRand of its own, but no seed).
+// port: -trace (SexyAppBase test hooks): the board's settles (BoardTrace.h, which the headless verifier
+// prints too)
 static void TraceBoard(WinDMApp* theApp)
 {
-	static Board* sLastBoard = NULL;
-	static int sLastState = -1;
+	static BoardTracer sTracer;
 
 	Board* aBoard = theApp->mBoard;
 	if ((theApp->mWatch != NULL) && theApp->mWatch->IsEndedBoard(aBoard)) // port(variant): a watched replay's last board settles no more
 		aBoard = NULL;
-	int aState = (aBoard != NULL) ? aBoard->mState : -1;
-	bool settled = (aState == STATE_PLAYING) && ((aBoard != sLastBoard) || (sLastState != STATE_PLAYING));
-	sLastBoard = aBoard;
-	sLastState = aState;
-	if (!settled)
-		return;
-
-	printf("TRACE update %d: %s level %d score %d board tick %d\n", theApp->mUpdateCount, aBoard->mTimedMode ? "timed" : "normal",
-		aBoard->mDisplayLevel, aBoard->mScore, aBoard->mUpdateCnt);
-	for (int aRow = 0; aRow < aBoard->mRows; aRow++)
-	{
-		printf("TRACE   row %d:", aRow);
-		for (int aCol = 0; aCol < aBoard->mCols; aCol++)
-			printf(" %d", (aBoard->mBoard[aRow][aCol] != NULL) ? aBoard->mBoard[aRow][aCol]->mColor : -1);
-		printf("\n");
-	}
-	// port(variant): "user" for a seed the player chose; after the rows, which keep their place under the header
-	if (aBoard->mGameSeed != 0)
-		printf("TRACE   seed %u %s\n", (unsigned) aBoard->mGameSeed, aBoard->mUserSeeded ? "user" : "pergame");
-	int aMove[4];
-	for (int i = 0; aBoard->FindMove(aMove, i, true, true); i++)
-		printf("TRACE   move %d: (%d,%d)->(%d,%d) click %d %d then %d %d\n", i, aMove[0], aMove[1], aMove[2], aMove[3],
-			aBoard->GetColX(aMove[0]) + 24, aBoard->GetRowY(aMove[1]) + 24, aBoard->GetColX(aMove[2]) + 24, aBoard->GetRowY(aMove[3]) + 24);
-	fflush(stdout);
+	sTracer.AfterUpdate(aBoard, theApp->mUpdateCount);
 }
 
 // port: -tracehash (see WinDMApp.h): "<update> <board state> <logic hash> <full hash>" after every update

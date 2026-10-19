@@ -5,7 +5,9 @@
 // GetState/SetState round trips (the RNG a board owns). Stage 3: the .bjr replay format (Replay.cpp):
 // varints, a write/read round trip of every record and op, a golden byte vector, and the reader on every
 // truncation and on corrupt input. Stage 3b: what the replay player accepts (Replay::CheckPlayable), the
-// record order and the reader's limits, and the check of a replay's save bytes (Replay::CheckSave).
+// record order and the reader's limits, and the check of a replay's save bytes (Replay::CheckSave). After the
+// stage 4 review: the check of a replay's RULE (GameRules::CheckRecorded), the match.shapes cap, the reader's
+// segment and per-tick limits, and where a replay may hold SAVEs.
 // Framework-free: GameRules.cpp, Sha256.cpp, Replay.cpp, Json.cpp and the framework's MTRand.cpp only.
 //
 //   rulestest              run every fixture; prints a summary, exit status 0 when all pass
@@ -781,6 +783,113 @@ static void TestCanonical()
 	Check(Hex(aMinRun.substr(0, 11)) == "0100300001040000000000", "canonical bytes of match.minRun 4");
 }
 
+// GameRules::CheckRecorded, which a replay's RULE passes before it is played (stage 4 review): every rule set the
+// mod path makes passes, with the original diff.txt values; a value no mod gives, one out of the mod path's
+// ranges or spelling, and diff.txt values that make a level of no points fail
+static void TestRecorded()
+{
+	std::vector<std::string> aSets = {"{}", "{\"tunables\": {\"scoring\": {\"hintPenalty\": 10.25, \"setValues\": [1, -2, 3]}}}",
+		"{\"tunables\": {\"scoring\": {\"setValues\": [2000000000], \"hintPenalty\": -1e300}, \"timing\": {\"startDrainDelay\": -2147483648}}}",
+		"{\"tunables\": {\"board\": {\"gemColors\": 3e9}}}", gTwistedQuest,
+		"{\"rules\": {\"board\": {\"mask\": [\"#d##\", \"#29#\", \"####\", \"#..#\"], \"dirtPoints\": 7}, \"gold\": {\"countDirt\": false, "
+		"\"timeLimit\": {\"normal\": {\"base\": 200, \"perLevel\": -3, \"min\": 20}, \"timed\": null}}}}",
+		"{\"rules\": {\"board\": {\"gemColors\": 12}, \"match\": {\"minRun\": 4, \"diagonal\": true, \"diagonalMinRun\": 2, \"shapes\": {\"zz\": {\"cells\": [[3,1],[4,1],[3,2]], "
+		"\"mirror\": true}, \"aa\": {\"preset\": \"T4\"}}, \"bonus\": {\"zz\": -4, \"aa\": 99}}, \"moves\": {\"type\": [\"slide\"], \"slide\": {\"snapTicks\": 30}, "
+		"\"invalidPenalty\": 5, \"invalidCountsAsMove\": false, \"allowInvalid\": true}, \"noMoves\": {\"normal\": \"continue\", \"timed\": \"gameOver\"}, "
+		"\"specials\": {\"chain\": false, \"createIn\": \"move\"}, \"undo\": {\"enabled\": true, \"max\": 3, \"inTimed\": true, \"restoreTime\": true, \"restoreRng\": false}, "
+		"\"timing\": {\"warningFraction\": 0.3, \"startDrainDelay\": 1, \"levelDrainDelay\": 2}, \"scoring\": {\"excellentFactor\": 99.5, \"lengthBonus\": -1, "
+		"\"longLengthBonus\": 0}}}",
+		"{\"rules\": {\"board\": {\"levels\": [{\"cols\": 5, \"rows\": 7}, {\"mask\": [\"####\", \"#..#\", \"####\", \"####\"]}, {\"cols\": 16, \"rows\": 3}]}, "
+		"\"gold\": {\"enabled\": true, \"timeLimit\": {\"normal\": {\"base\": 100, \"perLevel\": 0, \"min\": 10}}}, \"specials\": {\"flame\": {\"createdBy\": [\"run4\", \"sq\"], "
+		"\"radius\": 3}}, \"match\": {\"shapes\": {\"sq\": {\"preset\": \"square\"}}}}}"};
+	for (size_t i = 0; i < sizeof(gDesignExamples) / sizeof(gDesignExamples[0]); i++)
+		aSets.push_back(gDesignExamples[i].mJson);
+	for (size_t i = 0; i < aSets.size(); i++)
+	{
+		Result r = Merge({{"m", aSets[i].c_str()}});
+		std::string anError;
+		Check(r.mRules.CheckRecorded(&anError), "recorded: set " + std::to_string(i) + " passes (" + anError + ")");
+		// as a replay has it: canonical bytes, decoded
+		GameRules aDecoded;
+		anError.clear();
+		Check(aDecoded.FromCanonical(r.mRules.Canonical(), &anError) && aDecoded.CheckRecorded(&anError),
+			"recorded: set " + std::to_string(i) + " decoded passes (" + anError + ")");
+	}
+
+	struct Case
+	{
+		const char*		mWhat;
+		void			(*mBreak)(GameRules* r);
+	};
+	static const Case aCases[] =
+	{
+		{"normal points base 0", [](GameRules* r) { r->mDiff.mNormalPointsBase = 0; }},
+		{"normal points base and per level 0", [](GameRules* r) { r->mDiff.mNormalPointsBase = 0; r->mDiff.mNormalPointsPerLevel = 0; }},
+		{"timed points base -250", [](GameRules* r) { r->mDiff.mTimedPointsBase = -250; }},
+		{"normal points per level -1", [](GameRules* r) { r->mDiff.mNormalPointsPerLevel = -1; }},
+		{"normal multiplier base NaN", [](GameRules* r) { r->mDiff.mNormalMultBase = std::numeric_limits<double>::quiet_NaN(); }},
+		{"timed multiplier base 0", [](GameRules* r) { r->mDiff.mTimedMultBase = 0.0; }},
+		{"timed multiplier per level -0.5", [](GameRules* r) { r->mDiff.mTimedMultPerLevel = -0.5; }},
+		{"normal points x multiplier below 1", [](GameRules* r) { r->mDiff.mNormalMultBase = 1e-9; }},
+		{"time drain base infinite", [](GameRules* r) { r->mDiff.mTimeDrainBase = std::numeric_limits<double>::infinity(); }},
+		{"time drain accel per level NaN", [](GameRules* r) { r->mDiff.mTimeDrainAccelPerLevel = std::numeric_limits<double>::quiet_NaN(); }},
+		{"match.minRun 9", [](GameRules* r) { r->mMatch.mMinRun = 9; }},
+		{"board.gemColors 0", [](GameRules* r) { r->mBoard.mGemColors = 0; }},
+		{"board.cols 40", [](GameRules* r) { r->mBoard.mCols = 40; }},
+		{"undo.depth 200 (the mod path clamps it)", [](GameRules* r) { r->mUndo.mEnabled = true; r->mUndo.mDepth = 200; }},
+		{"scoring.hintPenalty NaN", [](GameRules* r) { r->mTunables.mHintPenalty = std::numeric_limits<double>::quiet_NaN(); }},
+		{"scoring.excellentFactor infinite", [](GameRules* r) { r->mTunables.mExcellentFactor = std::numeric_limits<double>::infinity(); }},
+		{"scoring.setValues empty", [](GameRules* r) { r->mTunables.mSetValues.clear(); }},
+		{"an 8x8 mask of cells only (the mod path drops it)", [](GameRules* r) { r->mBoard.mMask.assign(8, "########"); }},
+		{"a mask of 2 rows on 8 rows", [](GameRules* r) { r->mBoard.mMask.assign(2, "########"); }},
+		{"createdBy out of order", [](GameRules* r) {
+			r->mSpecials.mFlame.mEnabled = true; r->mSpecials.mFlame.mCreatedBy = {"run5", "run4"}; r->mSpecials.mFlame.mRadius = 1; }},
+		{"a shape cell outside 0..15", [](GameRules* r) {
+			ShapePattern aShape; aShape.mCells = {{0, 0}, {0, 99}}; r->mMatch.mShapes["far"] = aShape; r->mBoard.mGemColors = 12; }},
+		{"33 shapes", [](GameRules* r) {
+			r->mBoard.mGemColors = 12;
+			for (int i = 0; i < 33; i++)
+			{
+				ShapePattern aShape;
+				aShape.mCells = {{0, 0}, {i % 16, 1 + i / 16}};
+				r->mMatch.mShapes[std::string("s") + std::to_string(i)] = aShape;
+			}
+		}},
+		{"moves.type none", [](GameRules* r) { r->mMoves.mTypes = 0; }},
+		{"noMoves.timed 7", [](GameRules* r) { r->mNoMoves.mTimed = 7; }},
+		{"65 levels", [](GameRules* r) { r->mBoard.mLevels.assign(65, LevelShape{8, 8, {}}); }},
+	};
+	for (size_t i = 0; i < sizeof(aCases) / sizeof(aCases[0]); i++)
+	{
+		GameRules aRules = Merge({}).mRules;
+		aCases[i].mBreak(&aRules);
+		std::string anError;
+		Check(!aRules.CheckRecorded(&anError) && !anError.empty(), std::string("recorded: refused: ") + aCases[i].mWhat + " (" + anError + ")");
+	}
+
+	// The shape cap in the mod path too (a bound on Validate's FillMinimum, whose work grows with shapes x levels).
+	// So many shapes never fill with 12 colours anyway: at MAX_SHAPES the colour minimum drops the mod; past it the
+	// mod's rules are refused as they are parsed, and a merged set past it drops a contributor before FillMinimum
+	auto Shapes = [](int theFirst, int theCount)
+	{
+		std::string aJson = "{\"rules\": {\"board\": {\"gemColors\": 12}, \"match\": {\"shapes\": {";
+		for (int i = theFirst; i < theFirst + theCount; i++)
+			aJson += std::string((i > theFirst) ? ", " : "") + "\"s" + std::to_string(i) + "\": {\"cells\": [[0,0],[" + std::to_string(i % 16) + "," +
+				std::to_string(1 + i / 16) + "]]}";
+		return aJson + "}}}}";
+	};
+	std::string aMost = Shapes(0, GameRules::MAX_SHAPES);
+	Result r = Merge({{"most", aMost.c_str()}});
+	Check(HasMessage(r.mStatus.mDropped, "most", "fewest colours"), "MAX_SHAPES shapes: the colour minimum" + Messages(r));
+	std::string aMany = Shapes(0, GameRules::MAX_SHAPES + 1);
+	r = Merge({{"many", aMany.c_str()}});
+	Check(HasMessage(r.mStatus.mErrors, "many", "more than the 32"), "MAX_SHAPES + 1 shapes in one mod: refused" + Messages(r));
+	std::string aLow = Shapes(0, 20);
+	std::string aHigh = Shapes(20, 20);
+	r = Merge({{"low", aLow.c_str()}, {"high", aHigh.c_str()}});
+	Check(HasMessage(r.mStatus.mDropped, "low", "more than the 32"), "40 shapes from two mods: the lower one dropped for the count" + Messages(r));
+}
+
 // RulesId vectors: the expected values are fixed here, so the native and the wasm build check the same
 // numbers (doubles hashed as IEEE bits, ints little-endian, no text formatting)
 struct Vector
@@ -1427,6 +1536,35 @@ static void TestReplayLimits()
 	aWhy.clear();
 	Check(!Replay::Read(aHeader + Rec("SEGM", aMany) + anEnd, &aNot, &aWhy), "limits: refused: a SEGM of MAX_EVENTS + 1 events (" + aWhy + ")");
 
+	// Segments: each one holds two MT states (5 KB) however small its record, so the reader takes at most
+	// MAX_SEGMENTS (a minimal SEGM is 28 bytes: a 256 KB file could ask for 9,000)
+	std::string aSegments;
+	for (int i = 0; i < Replay::MAX_SEGMENTS; i++)
+		aSegments += aSegm;
+	aWhy.clear();
+	Check(Replay::Read(aHeader + aSegments + anEnd, &aNot, &aWhy) && (aNot.mSegments.size() == (size_t) Replay::MAX_SEGMENTS),
+		"limits: MAX_SEGMENTS segments read (" + aWhy + ")");
+	aWhy.clear();
+	Check(!Replay::Read(aHeader + aSegments + aSegm + anEnd, &aNot, &aWhy) && (aWhy.find("segments a replay may have") != std::string::npos),
+		"limits: refused: MAX_SEGMENTS + 1 segments (" + aWhy + ")");
+	// Events at one tick: refused while they are parsed, as CheckPlayable refuses them (a file of millions of
+	// events at one tick stops after MAX_EVENTS_PER_TICK + 1)
+	auto Busy = [&](uint32_t theCount)
+	{
+		std::string aPayload = aSegm.substr(8, 1 + 1 + 4 + 1 + 1 + 4 + 4);
+		aPayload += std::string((const char*) &theCount, 4);
+		aPayload += std::string("\x05\x02", 2);                     // tick 5, DESELECT
+		for (uint32_t i = 1; i < theCount; i++)
+			aPayload += std::string("\x00\x02", 2);                 // the same tick
+		return aHeader + Rec("SEGM", aPayload) + anEnd;
+	};
+	aWhy.clear();
+	Check(Replay::Read(Busy(Replay::MAX_EVENTS_PER_TICK), &aNot, &aWhy), "limits: MAX_EVENTS_PER_TICK events at one tick read (" + aWhy + ")");
+	aWhy.clear();
+	Check(!Replay::Read(Busy(Replay::MAX_EVENTS_PER_TICK + 1), &aNot, &aWhy) && (aWhy.find("events at one tick") != std::string::npos) &&
+		(aNot.mSegments.empty() || (aNot.mSegments.back().mEvents.size() <= (size_t) Replay::MAX_EVENTS_PER_TICK + 1)),
+		"limits: refused while reading: one event more at that tick (" + aWhy + ")");
+
 	// The player: the END tick, events at one tick, outside draws in all
 	Replay::File aGood = PlayableReplay();
 	aWhy.clear();
@@ -1543,6 +1681,11 @@ static void TestReplayPlayable()
 		{"a segment before another not ending in a SAVE", [](Replay::File* f) { f->mSegments[0].mEvents.pop_back(); }},
 		{"a first segment that LOADs without LDSV", [](Replay::File* f) { f->mSegments.erase(f->mSegments.begin()); }},
 		{"an event after the END tick", [](Replay::File* f) { f->mEnd.mEndTick = 8; }},
+		{"a SAVE before the segment's last tick", [](Replay::File* f) {
+			f->mSegments[0].mEvents.insert(f->mSegments[0].mEvents.begin() + 4, MakeEvent(170, Replay::OP_SAVE, Replay::SAVE_GAME, 1)); }},
+		{"five SAVEs in a segment", [](Replay::File* f) {
+			for (int i = 0; i < 4; i++)
+				f->mSegments[0].mEvents.push_back(MakeEvent(171, Replay::OP_SAVE, Replay::SAVE_SNAPSHOT, i)); }},
 	};
 	for (size_t i = 0; i < sizeof(aCases) / sizeof(aCases[0]); i++)
 	{
@@ -1563,6 +1706,14 @@ static void TestReplayPlayable()
 	aWhy.clear();
 	Check(!Replay::CheckPlayable(aFresh, 8, 8, &aWhy) && !aWhy.empty(), "playable: refused: an LDSV that is no save (" + aWhy + ")");
 	Check(!Replay::CheckPlayable(aGood, 7, 8, &aWhy), "playable: a 7-column board has no column 7 (" + aWhy + ")");
+
+	// The SAVEs the game makes as a board goes away, at its last tick: Shutdown's, ~Board's, a snapshot's, and one
+	// more is still taken (MAX_SAVES_PER_SEGMENT)
+	Replay::File aSaves = PlayableReplay();
+	for (int i = 0; i < Replay::MAX_SAVES_PER_SEGMENT - 1; i++)
+		aSaves.mSegments[0].mEvents.push_back(MakeEvent(171, Replay::OP_SAVE, Replay::SAVE_GAME, i));
+	aWhy.clear();
+	Check(Replay::CheckPlayable(aSaves, 8, 8, &aWhy), "playable: MAX_SAVES_PER_SEGMENT SAVEs at the segment's last tick (" + aWhy + ")");
 }
 
 int main(int argc, char** argv)
@@ -1588,6 +1739,7 @@ int main(int argc, char** argv)
 	TestFeatures();
 	TestJson();
 	TestCanonical();
+	TestRecorded();
 	TestVectors();
 	TestMTRand();
 	TestReplayVarints();

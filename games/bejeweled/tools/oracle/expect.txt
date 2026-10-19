@@ -1457,3 +1457,39 @@ watch_seed_quit_highscores save none
 watch_seed_quit_highscores seeds 510:4242/user
 watch_seed_quit_highscores codec codeccheck: 462 updates checked, 2 settles, 0 failures
 watch_seed_quit_highscores watch REPLAY end: ok, 2 CHECKs, END saved tick 400 score 10 level 1 gems 3 draws 1702
+
+overflow exit 0
+overflow mods Stage 4: scores past the int range
+overflow user hiscores-2e51efc7.dat registry.ini
+overflow settles 4
+overflow last-settle 437 timed level 1 score -2147483648 board tick 433
+overflow states 438:game_over 770:game_over_done
+overflow save none
+overflow end update 770: game over -> game over done, level 1, score -2147483648, board tick 766, Rand() draws 5653
+
+rec_overflow exit 0
+rec_overflow mods Stage 3: replays, Stage 4: scores past the int range
+rec_overflow user hiscores-2e51efc7.dat mods-status.json registry.ini replays/ replays/*-timed--2147483648.bjr
+rec_overflow settles 4
+rec_overflow last-settle 437 timed level 1 score -2147483648 board tick 433
+rec_overflow states 438:game_over 770:game_over_done
+rec_overflow save none
+rec_overflow replay replays/*-timed--2147483648.bjr end time up tick 766 score -2147483648 level 1 gems 3 draws 4872; seg0 timed global stream state CHECK4,HOVER8,SELECT3,TARGET3; flags hover
+rec_overflow status rulesId 72ab294017c5cf30, scoreKey 2e51efc7, features seeds(entry), replays(keep 3, hover), 1 warnings, errors -, dropped -
+rec_overflow end update 770: game over -> game over done, level 1, score -2147483648, board tick 766, Rand() draws 5653
+
+highlevel_load exit 0
+highlevel_load mods none
+highlevel_load user registry.ini savegame.dat
+highlevel_load settle 806 normal level 10002 score 630 board tick 467
+highlevel_load states 340:vortex 502:level_wipe 807:vortex 1060:level_wipe
+highlevel_load save savegame.dat v1 normal level 10002 (shown 10003), 64 gems, state 0 (falling), score 630, play seconds 21, 7873 bytes
+
+rec_highlevel exit 0
+rec_highlevel mods Stage 3: replays
+rec_highlevel user mods-status.json registry.ini savegame.bjr savegame.dat
+rec_highlevel settle 806 normal level 10002 score 630 board tick 467
+rec_highlevel states 340:vortex 502:level_wipe 807:vortex 1060:level_wipe
+rec_highlevel save savegame.dat v1 normal level 10002 (shown 10003), 64 gems, state 0 (falling), score 630, play seconds 21, 7873 bytes
+rec_highlevel sidecar savegame.bjr end saved tick 960 score 630 level 10003 gems 56 draws 605; seg0 normal global stream state +save load(global stream) CHECK1,HOVER3,LOAD1,PAUSE1,SAVE2,UNPAUSE1; flags hover; goes with the save
+rec_highlevel status rulesId 0e0943ce3dc5f173, scoreKey -, features seeds(entry), replays(keep 3, hover), 1 warnings, errors -, dropped -

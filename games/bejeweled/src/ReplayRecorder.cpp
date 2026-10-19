@@ -351,9 +351,11 @@ void ReplayRecorder::OnLoad(const std::string& theSave, const Replay::File* theS
 	Add(Replay::OP_LOAD);
 	mLoaded = true;
 
-	// The sidecar continues: its segments come first, if it is a recording of the same rules
+	// The sidecar continues: its segments come first, if it is a recording of the same rules with room for one
+	// segment more (a reader takes at most Replay::MAX_SEGMENTS; else a fresh replay that holds the save)
 	bool isContinued = (theSidecar != NULL) && !theSidecar->mSegments.empty() && theSidecar->mHasRulesId &&
-		(memcmp(theSidecar->mRulesId, mFile.mRulesId, Replay::RULES_ID_SIZE) == 0) && (theSidecar->mEngineAbi == mFile.mEngineAbi);
+		(memcmp(theSidecar->mRulesId, mFile.mRulesId, Replay::RULES_ID_SIZE) == 0) && (theSidecar->mEngineAbi == mFile.mEngineAbi) &&
+		(theSidecar->mSegments.size() < (size_t) Replay::MAX_SEGMENTS);
 	if (isContinued)
 	{
 		mFile.mSegments = theSidecar->mSegments;

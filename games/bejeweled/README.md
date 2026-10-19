@@ -141,6 +141,15 @@ Planned gameplay mods (board shapes, other move types, special gems, undo, repla
   origin from `build/web` (port 18765), so test runs keep their browser storage apart from your own.
 - `games/bejeweled/tools/check_rng_use.py` and `list_variant_hooks.py`: the randomness rules and the
   code-mod hooks in the translated code.
+- `build/native/bejeweled_verify.exe` and `build/web/bejeweled_verify.wasm`: the headless replay verifier,
+  the game's own board code without window, sound or game files (`games/bejeweled/src/headless`).
+  `bejeweled_verify <replay.bjr> [-trace]` plays a replay as the game's `-replay` does and prints its
+  verdict as JSON; `bejeweled_verify difftest --seeds 1..500` plays bot games on the plain and the
+  `-forcevariant` board side by side. `node games/bejeweled/tools/verify/wasmrun.js` runs the wasm verifier
+  under Node, and the game's web build with the native test switches (`-script`, `-tracehash`,
+  `-autoplay`, ...); `games/bejeweled/tools/verify/run_tests.sh` holds the verifier's own tests (its broken and
+  extreme replays come from `craft_replays.py`), and the oracle checks that the game, both verifiers and the web
+  build agree.
 - `games/bejeweled/tools/livesplit/run_tests.sh`: the LiveSplit auto splitter without LiveSplit: games
   probed from outside by `build/native/lsprobe.exe` as the script reads them, the script compiled as
   LiveSplit compiles it (the .NET Framework's C# 5 compiler) and its start, split and reset decisions in

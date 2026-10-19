@@ -50,8 +50,9 @@
 // in the stage-0 build.
 //
 // Portability: no pointer, padding or map-order dependence in LOGIC (its only libm-derived values are
-// swap positions, (int)-truncated), but nothing runs it on the web build yet: web/shell.html passes no
-// test switches. Stage 4's Node/wasm runner has to accept them to compare LOGIC across platforms.
+// swap positions, (int)-truncated). web/shell.html passes no test switches; the Node runner
+// (games/bejeweled/tools/verify/wasmrun.js, stage 4) runs the web build with them, and the oracle's ".wasm"
+// cases compare its LOGIC column with the native game's.
 
 #include "StateHash.h"
 #include "WinDMApp.h"

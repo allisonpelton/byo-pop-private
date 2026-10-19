@@ -17,6 +17,10 @@ the same machine. A plain run opens a window, raises it over whatever the user i
 - `games/bejeweled/tools/oracle/compare.sh` already re-runs itself under rundesk, and so does
   `games/bejeweled/tools/livesplit/run_tests.sh`. `build/native/lsprobe.exe` starts the game it probes:
   run it under rundesk too.
+- Bejeweled's headless verifier (`build/native/bejeweled_verify.exe`, and its wasm under Node) and the web
+  build under Node (`node games/bejeweled/tools/verify/wasmrun.js game build/web/bejeweled.js ...`) open no
+  window, play no sound and open no URL, so they need no rundesk; a web build under Node still counts as a
+  game process below.
 - Open the web builds in the Browser pane only with `?silent=1`, e.g.
   `http://127.0.0.1:18766/bejeweled.html?silent=1`: the pane may be hidden, and without it the game plays
   its music and sounds on the user's speakers. The status line ends in "silent" when it is on.
