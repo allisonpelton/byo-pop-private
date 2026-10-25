@@ -666,6 +666,7 @@ void Board::Draw(Graphics* g)
 	DrawTexts(g);
 	if (anApp->mBonusRound || (anApp->mGameMode != GAMEMODE_PUZZLE))
 		DrawLevelNumber(g);
+	DrawModNote(g);
 
 	if (mComboShown > 0)
 	{

@@ -1,0 +1,15 @@
+{
+  "id": "tide",
+  "name": "Tide",
+  "version": "1.0",
+  "author": "byo-pop",
+  "description": "Sets how fast the flood rises in the action game. 100 is the original's pace for the level and difficulty; 50 is half as fast, 200 twice; 0 holds the water back for good, for a game of pure puzzling. Takes effect from the next level. Games with it keep their own high scores and saved game.",
+  "affectsScores": true,
+  "features": {
+    "tide": true
+  },
+  "settings": [
+    { "id": "speed", "label": "Flood speed (%)", "type": "int", "default": 100, "min": 0, "max": 400,
+      "help": "100 is the original. 0 stops the water; a game then only ends when no pair is left." }
+  ]
+}

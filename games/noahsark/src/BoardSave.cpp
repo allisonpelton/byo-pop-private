@@ -9,6 +9,7 @@
 #include "NoahApp.h"
 #include "Screens.h"
 #include "GameText.h"
+#include "ModFeatures.h"
 #include "platform/UserFiles.h"
 #include "platform/VFS.h"
 
@@ -101,7 +102,8 @@ const SexyString& Board::HintLine(int theIndex, int theLine)
 
 std::string Board::SavePath()
 {
-	return "savegame.dat";
+	// port(mod): games played with mods that change play have their own saved game
+	return "savegame" + ScoreKeySuffix() + ".dat";
 }
 
 // 0x40dbe0
@@ -113,6 +115,12 @@ bool Board::SaveGame()
 	if (mApp->mNextLevelWidget != NULL)
 		mApp->mNextLevelWidget->ButtonDepress(1);   // the original presses its button: the next level starts first
 
+	return Platform::WriteUserFileAtomic(SavePath(), SaveState());
+}
+
+// the board's state as the saved game holds it (port(mod): also the undo mod's snapshots)
+std::string Board::SaveState()
+{
 	Writer w;
 	w.Int(2);
 	uint32_t aState[MTRAND_N];
@@ -201,16 +209,23 @@ bool Board::SaveGame()
 	}
 	w.Int(mApp->mGameScore);
 	w.Int(mApp->mShownScore);
-	return Platform::WriteUserFileAtomic(SavePath(), w.mData);
+	return w.mData;
 }
 
 // 0x40d3c0
 bool Board::LoadGame()
 {
 	mLoadedGame = false;
-	Reader r;
-	if (!Platform::ReadHostFile(Platform::VFS::Get().GetUserDir() + "/" + SavePath(), &r.mData))
+	std::string aData;
+	if (!Platform::ReadHostFile(Platform::VFS::Get().GetUserDir() + "/" + SavePath(), &aData))
 		return false;
+	return LoadState(aData);
+}
+
+bool Board::LoadState(const std::string& theData)
+{
+	Reader r;
+	r.mData = theData;
 	if (r.Int() != 2)
 		return false;
 	if (r.Int() != MTRAND_N)

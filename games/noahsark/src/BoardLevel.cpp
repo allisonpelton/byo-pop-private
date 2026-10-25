@@ -47,6 +47,8 @@ static inline int Rand9()
 Board::Board(NoahApp* theApp, bool theContinue)
 {
 	mApp = theApp;
+	mCtrlDown = false;
+	mTidePercent = 100;
 	mLoadedGame = theContinue;       // +0xd90 (the original passes the flag on to every vector's allocator byte too)
 	mMouseX = mMouseY = 0;
 	for (int x = 0; x < 9; x++)
@@ -181,6 +183,7 @@ void Board::NewLevel()
 		}
 	}
 	mGravity = false;
+	ModsNewLevel();
 	InitGrid();
 	if (mLoadedGame)
 	{

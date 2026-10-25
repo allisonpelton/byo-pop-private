@@ -1,0 +1,15 @@
+{
+  "id": "helper",
+  "name": "Move Helper",
+  "version": "1.0",
+  "author": "byo-pop",
+  "description": "H flashes a pair of animals you can join (in the puzzle, a swap that makes three), at any time, without waiting for the idle hint. H again plays that move for you, as two clicks. Not in the Stampede bonus round. Games with it keep their own high scores and saved game.",
+  "affectsScores": true,
+  "features": {
+    "helper": true
+  },
+  "settings": [
+    { "id": "playSecond", "label": "A second H plays the move", "type": "bool", "default": true,
+      "help": "Off: H only shows a move, again and again; you play it yourself." }
+  ]
+}

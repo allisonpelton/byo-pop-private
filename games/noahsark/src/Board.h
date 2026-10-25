@@ -163,6 +163,12 @@ public:
 	int						mSteps;             // +0x1100
 	int						mPathLength;        // +0x1104
 
+	// port(mod): the mods' state (Mods.cpp): undo, the move helper, the tide and the daily board
+	bool					mCtrlDown;
+	std::vector<std::string>	mUndoStack;     // the board before each of the last moves
+	int						mTidePercent;       // mod "tide": the flood's speed, 100 as the original's
+	std::string				mModNote;           // a line under the ark: the daily board's date
+
 public:
 	Board(NoahApp* theApp, bool theContinue);
 	virtual ~Board();
@@ -174,6 +180,8 @@ public:
 	virtual void			MouseUp(int x, int y) override;
 	virtual void			MouseUp(int x, int y, int theClickCount) override;
 	virtual void			MouseDrag(int x, int y) override;
+	virtual void			KeyDown(KeyCode theKey) override;
+	virtual void			KeyUp(KeyCode theKey) override;
 	using Widget::MouseDown;
 	using Widget::MouseUp;
 
@@ -260,7 +268,19 @@ public:
 	// BoardSave.cpp
 	bool					LoadGame();                     // 0x40d3c0
 	bool					SaveGame();                     // 0x40dbe0
+	std::string				SaveState();                    // the saved game's content (also the undo mod's snapshots)
+	bool					LoadState(const std::string& theData);
 	static std::string		SavePath();
+
+	// Mods.cpp: port(mod)
+	void					MouseDownImpl(int x, int y, int theClickCount);
+	void					ModsNewLevel();                 // before a level's board is made: the daily seed, the tide, a clean undo list
+	bool					ModBoardSettled();              // no animal walking, flying, fading or falling
+	bool					ModUndoBegin(std::string& theSnapshot);
+	void					ModUndoEnd(const std::string& theSnapshot, int theStateBefore);
+	bool					ModUndo();
+	void					ModShowMove();
+	void					DrawModNote(Graphics* g);
 };
 
 SexyString FormatText(const SexyString& theFormat, int theValue);

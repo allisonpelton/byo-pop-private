@@ -4,6 +4,7 @@
 #include "NoahApp.h"
 #include "Board.h"
 #include "GameText.h"
+#include "ModFeatures.h"
 #include "Compat2004.h"
 #include "Graphics.h"
 #include "ImageFont.h"
@@ -494,7 +495,7 @@ void HighScoreWidget::Resize(int theX, int theY, int theWidth, int theHeight)
 void HighScoreWidget::Load()
 {
 	std::string aData;
-	if (!Platform::ReadHostFile(Platform::VFS::Get().GetUserDir() + "/hiscores.dat", &aData))
+	if (!Platform::ReadHostFile(Platform::VFS::Get().GetUserDir() + "/hiscores" + ScoreKeySuffix() + ".dat", &aData))
 		return;
 	size_t aPos = 0;
 	std::string aNames[5];
@@ -544,7 +545,7 @@ void HighScoreWidget::Save()
 			aCheck ^= (unsigned int) (mNames[i][j] * 0x11);
 		aData.append((const char*) &aCheck, 4);
 	}
-	Platform::WriteUserFileAtomic("hiscores.dat", aData);
+	Platform::WriteUserFileAtomic("hiscores" + ScoreKeySuffix() + ".dat", aData);
 }
 
 // 0x412680

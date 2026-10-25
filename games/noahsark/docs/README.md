@@ -10,6 +10,7 @@ Nothing from the game itself is in the repository: not its images, sounds, music
 |---|---|
 | [GAME_NOTES.md](GAME_NOTES.md) | Behaviour notes of the game code: binary layout, resources, the board's data and rules |
 | [FRAMEWORK_2002.md](FRAMEWORK_2002.md) | The 2002 SexyApp framework the game was built on, and how the port maps it |
+| [MOD_IDEAS.md](MOD_IDEAS.md) | The brainstorm for this game's mods, what was made and how each mod works |
 | `symbols/*.jsonl` | Names for Ghidra (`ApplySymbols.java`): the framework's core classes |
 
 ## The binary
@@ -70,6 +71,16 @@ game-over line of each run) are in `tools/check.sh`. `-script=<file>` drives the
 build with AddressSanitizer (llvm-mingw has the i386 runtime) is the way to find heap errors: configure a second build
 folder with `-fsanitize=address -g` and run the bot in it.
 
+## Mods
+
+Four mods are in `games/noahsark/mods/` (the shared mod system, docs/MOD_MENU.md; F2 opens the mod menu in the game):
+`undo` (Ctrl+Z or U takes back the last move), `helper` (H shows a move, H again plays it), `tide` (the flood's pace as a
+percentage, 0 to 400) and `daily-board` (every level starts from the same animals for everyone on a day). Natively copy a
+folder into `build/native/mods-noahsark/` or pass `-modsdir=`; on the web give the Mods panel the folder or a .zip. A mod
+set that changes play gives the games played with it their own high scores and saved game (`hiscores-<key>.dat`,
+`savegame-<key>.dat`). MOD_IDEAS.md has the brainstorm and the design of each. `tools/check.sh noahsark` tests them
+(`games/noahsark/tools/run_mod_tests.sh`).
+
 ## Status (2026-10-25)
 
 The game plays natively and in the browser from the title screen through the menu, the difficulty dialog, the tutorial,
@@ -81,7 +92,7 @@ registered game (the title shows "Thanks for registering") and has no trial limi
 
 Milestones (2026-10-25, this machine's clock): the session started about 06:28; Ghidra's import and export were done at
 06:31; the title screen, the menu and the text reader were committed at 07:25; the whole game with its bot and the check suite
-at 07:41; the web page and a played web game at 07:45.
+at 07:41; the web page and a played web game at 07:45; the four mods, their tests and a web run of two of them at 08:00.
 
 ## Where the work was hard
 

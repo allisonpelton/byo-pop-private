@@ -58,6 +58,9 @@ void Board::Update()
 
 	mUpdateCnt++;
 	NoahApp* anApp = mApp;
+	// port(mod): the mods' keys (Mods.cpp) go to the board; a dialog that closed leaves no widget with the focus
+	if (mApp->mWidgetManager->mFocusWidget == NULL)
+		mApp->mWidgetManager->SetFocus(this);
 	if (((anApp->mNextLevelWidget != NULL) || (anApp->mHighScoreWidget != NULL)) &&
 		((mWaterY < -0x1d) || (anApp->mGameMode == GAMEMODE_STRATEGY)))
 	{
@@ -717,8 +720,12 @@ void Board::Update()
 		mState = BOARD_PLAYING;
 
 	// the flood
+	// port(mod): "tide" scales the pace, and 0 stops the water
+	int aFloodPeriod = 0x22 - mFloodSpeed / 6;
+	if (mTidePercent != 100)
+		aFloodPeriod = (mTidePercent > 0) ? std::max(1, aFloodPeriod * 100 / mTidePercent) : 0;
 	bool aFloodStops = (anApp->mGameMode == GAMEMODE_STRATEGY) || (anApp->mGameMode == GAMEMODE_STAMPEDE) ||
-		(mUpdateCnt % (0x22 - mFloodSpeed / 6) != 0) || (mState != BOARD_PLAYING) || (AnimalCount() < 1);
+		(aFloodPeriod == 0) || (mUpdateCnt % aFloodPeriod != 0) || (mState != BOARD_PLAYING) || (AnimalCount() < 1);
 	if (aFloodStops)
 	{
 		if (mState == BOARD_NO_MOVES)

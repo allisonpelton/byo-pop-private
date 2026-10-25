@@ -210,8 +210,18 @@ void Board::LinkPieces(Piece* theFirst, Piece* theSecond)
 	theSecond->mFacingRight = false;
 }
 
-// 0x40e340
+// 0x40e340. port(mod): the undo mod takes the board as it was before a click that starts a move (Mods.cpp)
 void Board::MouseDown(int x, int y, int theClickCount)
+{
+	std::string aBefore;
+	int aStateBefore = mState;
+	bool aWatch = ModUndoBegin(aBefore);
+	MouseDownImpl(x, y, theClickCount);
+	if (aWatch)
+		ModUndoEnd(aBefore, aStateBefore);
+}
+
+void Board::MouseDownImpl(int x, int y, int theClickCount)
 {
 	if ((mApp->mNextLevelWidget != NULL) || (mApp->mHighScoreWidget != NULL))
 		return;
