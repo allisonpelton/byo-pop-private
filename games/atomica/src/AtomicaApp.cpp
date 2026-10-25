@@ -69,6 +69,17 @@ void AtomicaApp::Init()
 	mMonitorFontMedium = new ImageFont(this, "data\\monitorfont(medium).txt");
 	mMonitorFontSmall = new ImageFont(this, "data\\monitorfont(small).txt");
 
+	Sprite* aCursor = mSprites->Load("cursor1");
+	SetCursorImage(CURSOR_POINTER, aCursor->mImage);
+	aCursor = mSprites->Load("pointer2");
+	SetCursorImage(CURSOR_HAND, aCursor->mImage);
+	aCursor = mSprites->Load("overhand");
+	SetCursorImage(CURSOR_DRAGGING, aCursor->mImage);
+	aCursor = mSprites->Load("typer");
+	SetCursorImage(CURSOR_TEXT, aCursor->mImage);
+	mDialogMonitor = mSprites->Load("dialogmonitor");
+	mSndCapClick = new Sound(this, "capclick");
+
 	mTitleScreen = new TitleScreen(this);
 	mTitleScreen->Resize(0, 0, mWidth, mHeight);
 	mWidgetManager->AddWidget(mTitleScreen);
@@ -80,11 +91,16 @@ void AtomicaApp::TitleScreenDone()
 	SDL_Log("title screen done");
 }
 
-// 0x406f90
-void AtomicaApp::LoadingThreadProc()
+// port: the loading runs in the main thread (the framework runs LoadingThreadProc once the first frame is up), so the
+// proc draws the title screen's bar itself now and then
+void AtomicaApp::PumpLoading()
 {
-	mNumLoadingThreadTasks = 1;
-	mCompletedLoadingThreadTasks = 1;
+	if (mTitleScreen != NULL)
+	{
+		mTitleScreen->mProgress = GetLoadingThreadProgress();
+		mTitleScreen->MarkDirty();
+		DrawDirtyStuff();
+	}
 }
 
 void AtomicaApp::LoadingThreadCompleted()
