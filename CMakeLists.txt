@@ -129,3 +129,8 @@ option(BUILD_BOOKWORM "Build the BookWorm Deluxe port" ON)
 if(BUILD_BOOKWORM AND EXISTS ${PROJECT_SOURCE_DIR}/games/bookworm/CMakeLists.txt)
   add_subdirectory(games/bookworm)
 endif()
+# Noah's Ark Deluxe: optional while it is new; the build skips it if its folder is missing
+option(BUILD_NOAHSARK "Build the Noah's Ark Deluxe port" ON)
+if(BUILD_NOAHSARK AND EXISTS ${PROJECT_SOURCE_DIR}/games/noahsark/CMakeLists.txt)
+  add_subdirectory(games/noahsark)
+endif()
