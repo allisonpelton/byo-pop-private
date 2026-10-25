@@ -34,7 +34,8 @@ panel:
 11. undo
 12. online leaderboards
 
-Added later: dirt tiles (4.14), auto LiveSplit support (4.15) and Twilight gravity (4.16).
+Added later: dirt tiles (4.14), auto LiveSplit support (4.15), Twilight gravity (4.16), Steven
+Universe gems (4.17) and code-drawn art with no image files (4.18).
 
 Where it makes sense the features combine. For example, a diamond board with Twist moves, flame
 gems, a gold layer and undo is a single valid set of rules, built from four mods or from one.
@@ -1634,6 +1635,116 @@ It needs stages 3 (StateCodec), 5 (v2 chunks), 6 (the undo row) and 7 (`RefillMa
   [kosgames: unlockable modes](https://kosgames.com/bejeweled-2-deluxe-all-the-unlockable-modes-2585/),
   [Astraware Palm manual](https://tapwave.net/files/bejeweled-2/dl/Astraware%20Bejeweled%202%20for%20Palm.htm)
 
+### 4.17 Steven Universe gems (`su-gems`)
+
+- **What:** a mod with images only, built like `bejeweled2-gems`: the seven gems redrawn as gems from
+  Steven Universe, each keeping its Bejeweled colour so play reads the same. It has the gem sheet's spin
+  and hover rows at @4x and, unless `--no-title`, the same gems over the five on the title screen.
+- **Gems** by colour index [Q28]: 0 yellow Yellow Diamond, 1 white Pearl, 2 blue Sapphire, 3 red Ruby,
+  4 purple Amethyst, 5 orange Jasper, 6 green Peridot. For stage 8's extra colours: Rose Quartz, Lapis
+  Lazuli, Bismuth and Garnet. Ruby is a rounded square cut, Sapphire a teardrop, Amethyst an oval
+  facet cut, Peridot an inverted triangle, Pearl a smooth oval with no facets. Jasper's and Yellow
+  Diamond's cuts are set on the preview.
+- **Look:** the show's flat, cel-shaded gems [Q29]. Each facet gets one flat tone from a fixed light
+  (3 to 5 tones per gem), plus one hard white glint and a dark outline, with no refraction. The tones
+  stay readable at 52 px, and a spin reads clearly because the facets change tone as the solid turns.
+- **Generator:** `games/bejeweled/tools/make_su_gems_mod.py`. It takes these from
+  `make_bej2_gems_mod.py`: the facet solids, the spin and glow frame layout, the @4x patch writer and
+  the title-gem placement. Those shared parts move into `games/bejeweled/tools/gemsheet.py`, and
+  both generators import it. New parts:
+  - the cel shader: a quantised Lambert term with a rim tone, one glint at the light's reflection,
+    and the outline from the silhouette's distance field;
+  - Pearl's smooth gem: an ellipsoid with a pastel hue shift by view angle.
+- **Files and git:** the generator reads no file. Its output, `games/bejeweled/mods/su-gems/` (a patch
+  over `images/gemsheet6`, plus the title gems), stays git-ignored like `bejeweled2-gems` [Q32]. It is
+  new art, but fan art of a TV show's character designs. The mod's title calls it fan art; no logo,
+  still or character art is read or drawn.
+- **References:** no downloads. The shapes come from the show's well-known designs, and you judge
+  them on `--preview` sheets [Q30].
+- **No code change.** The oracle and every hash stay as they are. It combines with every rule mod,
+  and with stage 8 once that stage adds rows for more colours.
+- **Tests:**
+  - `make_bej2_gems_mod.py`'s output is byte-identical before and after the split;
+  - the `--preview` sheet;
+  - every frame stays inside its 52-px cell, with the rest pose centred;
+  - screenshots under rundesk at 640x480 and @4x: title, board, a selected gem spinning, the hint glow.
+- **Size:** ~650 lines of Python (gem models and cel shader ~350, moved into `gemsheet.py` ~200, tests
+  and preview ~100).
+
+### 4.18 Code-drawn art, no image files (`features.codeArt`)
+
+- **What:** code draws every image and bitmap font the game loads, at load time. The game then runs
+  without its image files (`images/`, and the five fonts' metrics in `data/*.txt`), and is sharp at
+  any window size.
+  - The generated images keep the originals' names and sizes [Q33]. The translated Draw code, the
+    layout and the hit testing therefore do not change.
+  - Sounds and music still come from the game files [Q35].
+- **Look:** its own design [Q34], in the original images' sizes, colours and roles, so the game reads
+  the same: flat and bevelled panels, procedural textures and vector text.
+  - It copies no art, so nothing it draws needs to be git-ignored.
+  - Generated images are never written as assets. An optional cache in the user dir is keyed on the
+    build and the scale.
+- **Feature mod:** `features.codeArt` is cosmetic: no rules and no score key.
+  - **Settings** in the mod menu (M5): the gem style (`cel`, `glossy`, and `su` once stage 15's models
+    are ported) and the background palette. They apply at the next start (the menu's restart).
+  - **Mods above it still apply.** Mod images replace generated ones, and image patches
+    (`bejeweled2-gems`, `mines-trilliant`) draw over generated art, as they draw over the game's files
+    today.
+- **Loader (shared, the coordinator's):** an image source in the platform loader, next to
+  `platform/ImagePatch.cpp`, ahead of the game files. The game registers
+  `RegisterImageGenerator(name, w, h, fn)`, where `fn(MemoryImage&, scale)` draws the 1x bits and the
+  HD bits at the render scale.
+  - When the feature is on, the loader asks the registry first and then applies mods and patches as
+    usual. A missing game file is then not an error.
+  - A font's generator also returns the ImageFont descriptor text, so the game's `ImageFont` reads
+    generated metrics unchanged.
+  - About 150 lines, specified to the coordinator when the stage starts.
+- **Rasteriser:** `games/bejeweled/src/art/Raster.*` draws into ARGB bits:
+  - anti-aliased polygon and path fill (scanline coverage);
+  - linear and radial gradients, and strokes;
+  - box blur and source-over compositing.
+  It has no game dependencies, so it can move to `framework/` when another game wants it (the
+  coordinator's call).
+- **Vector font:** `art/VectorFont.*`, with glyph outlines written for the port. It covers ASCII
+  32..126 and the Latin-1 letters the game's strings use. It is like `BuiltinFont`, but it scales.
+  - Each game font gets its style passes: fill gradient, outline, drop shadow and glow. The fonts are
+    the main font, the score font, the big word font, the digits and the small font.
+  - Each keeps the original's cell height, so text stays in place.
+- **Gems:** `art/GemArt.*` draws the gem sheet's spin and glow rows for each colour, once per scale.
+  - It ray-casts facet solids, the Bejeweled 2 and stage 15 models ported from Python, with 2 or 3
+    samples per pixel.
+  - On the web this costs load time: it is drawn during the loading screen, and the cache helps.
+- **Everything else:** one generator function per image, sized like the original, grouped by role:
+  - board textures: the five checker tile pairs, which the game colourises (procedural stone noise);
+  - the board frame and HUD: `alphaback1` (panels, the score area, the bar holder), `timerbar`,
+    `bagholder`;
+  - the title screen: `titlescreen6` with the logo in vector text, the menu buttons' pushed and
+    selected states `over1`..`over8`, `titlegreenbar2`, and the loading bar `waitbar`;
+  - dialogs and widgets: `dialogbox2`, `boxbutton2`, `checkbox1`, `slider-*`, `editbox`;
+  - cursors and pointers: `cursor1`, `pointer2`, `overhand`, `typer`;
+  - effects: `sparkle`, `elect`, `blackhole`, `holemask`, `blackcover`, `swapper1`/`2`, `target1`,
+    `trialcircle2`.
+  Generated images carry their own alpha, so they need no `_name` masks. Partner backgrounds that the
+  port never loads get no generator.
+- **Determinism:** generators use their own fixed-seed noise, never `Sexy::Rand` or the board's RNG.
+  The global draw counter, the oracle's hashes and replays are unaffected, and generation runs
+  outside the 100 Hz update.
+- **Tests:**
+  1. No image files: a copy of the game files without `images/` and the font metrics. The game
+     starts, and every oracle script runs to the end with `codeArt` on, with LOGIC hashes equal to
+     the default run's.
+  2. Each generated image has the original's width and height, checked against the staged files
+     (sizes only).
+  3. Screenshots of every screen at 640x480 and @4x, for review: title, menus, each level's
+     background, help, high scores, dialogs, game over, vortex, wipe and the timed bar.
+  4. The web build without the images in its preload package (a smaller download) loads and plays
+     under Node (`wasmrun.js`) and in the Browser pane with `?silent=1`.
+  5. With `bejeweled2-gems` and `hd4x-textures` above it, mod images win and patches draw over
+     generated art.
+  6. Without the mod, the oracle three ways is ALL IDENTICAL (the registry is empty).
+- **Size:** ~3,800 lines (about 150 of them shared): rasteriser ~700, vector font and styles ~900, gem
+  renderer ~700, the other generators ~1,100, tests and screenshots ~250.
+
 ---
 
 ## 5. Board geometry and rendering
@@ -2493,11 +2604,16 @@ tests. Sizes are new or changed lines.
 | 12 | Gold board (8) | Gold layer, `UpdateGoldGoal`, bar and HUD, gold tile, `noMoves` defaults, `GOLD`/`GTIM`, levels + gold | Small gold mod: a script completes level 1 → vortex → level-2 mask; timed time-up; save/load mid-level; the Twisted Quest combination script | ~750 |
 | 13 | UI | Extras dialog, Options button, replay browser, watch controller and session save/restore, game-over links, shell Replays panel and badges | Screenshots with and without feature mods (default Options and game-over pixel-identical); watch-to-end matches `END` at every speed; resume offered after watching; browser smoke test | ~1,000 |
 | 14 | Leaderboards (12) | Worker, D1 schema, sessions, daily seeds, submit checks, rate limits, shell panel, `bj_submit`, docs (README Mods section, MOD_ROADMAP, GAME_NOTES) | `wrangler dev` with the corpus: accepted; tampered score, event, rules, reused or expired token, and a wrong RNG on resume all rejected; CPU timing of a long timed replay | ~1,400 (≈700 TS) |
+| 15 | Steven Universe gems (4.17) | `make_su_gems_mod.py`; `gemsheet.py` split out of the Bejeweled 2 generator; gem models (seven, plus four for stage 8), cel shader, Pearl's smooth gem; spin and glow rows; title gems | Bejeweled 2 output byte-identical after the split; `--preview` sheet; frames inside their cells; screenshots at 640x480 and @4x (title, board, spin, glow); oracle untouched (images only) | ~650 (Python) |
+| 16 | Code-drawn art (4.18) | Shared loader hook (`RegisterImageGenerator`, generated font metrics); `features.codeArt` and its menu settings; `art/Raster`, `art/VectorFont` and the font styles, `art/GemArt` (the facet models in C++); one generator per image; optional user-dir cache | No image files: the oracle scripts run to the end with LOGIC hashes equal to the default run's; sizes equal the originals'; screenshots of every screen at 1x and @4x; web build without images under Node and in the Browser pane; mod images and patches over generated art; oracle three ways without the mod | ~3,800 (≈150 shared) |
 
-The total is about 16.6k lines. Stage 6 comes early on purpose: its round-trip test guards every later
+The total is about 21k lines (16.6k for stages 0–14). Stage 6 comes early on purpose: its round-trip test guards every later
 change to a chunk. Stages 7–12 can be reordered after stage 6. Stage 2b needs only stage 1. Stage 7c
 needs stages 3, 5, 6 and 7 and comes before 7b, so 7b writes its diagonal pass direction-aware once.
 Stage 14 needs stages 3, 4 and 2's owned RNG.
+Stage 15 is images only and needs no other stage. Stage 16 needs stage 1's `features`, the shared
+loader hook and M5's mod menu (for its settings). It comes last so that its gem renderer can take
+stage 15's models and draw stage 8's extra colours.
 
 ---
 
@@ -2613,6 +2729,27 @@ Recommendations are in brackets.
     them, which also puts them in the RulesId and the score key: a mod that only lowers the pitch gets its
     own high-score tables and leaderboard boards. Keep them there, or make them a non-scoring key that
     replays do not carry? [keep them in `rules`; the Twilight preset has its own tables anyway]
+28. **Steven Universe gems, one per colour.** [yellow Yellow Diamond, white Pearl, blue Sapphire, red
+    Ruby, purple Amethyst, orange Jasper, green Peridot; for stage 8's extra colours Rose Quartz, Lapis
+    Lazuli, Bismuth and Garnet]
+29. **Their look.** The show's flat cel shading (facet tones, one hard glint, a dark outline), or glossy
+    and see-through like the Bejeweled 2 gems? [cel]
+30. **References.** Shapes from the show's well-known designs, judged by you on preview sheets, or
+    reference stills downloaded first (a download: name, source and size for your OK)? [no download;
+    previews]
+31. **More than gems.** Should Steven's star also mark the selection or the hint glow, or should the
+    backdrop get a pink tint? [the gems and the title-screen gems only]
+32. **Name and git.** Mod `su-gems`, titled as Steven Universe fan art, with its output git-ignored like
+    `bejeweled2-gems` and never redistributed? [yes]
+33. **Code-drawn art: when it draws.** Images drawn by code at load time, under the game's own image
+    names and sizes, so the translated Draw code is unchanged? Or every frame drawn by code, which
+    rewrites each Draw function and breaks principle 1? [at load time]
+34. **Code-drawn art: its look.** Its own clean design in the originals' sizes, colours and roles? Or as
+    close to the original art as code can get, which makes it a close recreation whose cache must stay
+    git-ignored? [its own design]
+35. **Sounds and music** still come from the game files. Should the game also start without them
+    (silent, with a status line), so that with code-drawn art it needs no game files at all? Publishing
+    such a build stays your decision at push time. [yes]
 
 ---
 
