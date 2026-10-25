@@ -137,7 +137,7 @@ There are two generators, and the framework's global `Sexy::Rand()` is not used 
 | `savegame.dat` | Board (SaveGame 0x403300, LoadGame 0x4075d0) | Part 1 section 9: 0x14-byte header (version 0, game type, skill, state, 0x9c0), the board RNG's 624 MT words, then plain field writes; no checksum. Written only by the app's destructor for a game in progress; loaded (then deleted) from the "Continue?" dialog |
 | `hiscores.dat` | HighScoreWidget | Part 5 section 5: three tables (Action, Strategy, Puzzle), each a day number plus today's record plus 5 all-time records; each record carries a name, a score and a checksum |
 | Registry `PopCap\BigMoney` | WinBMApp + framework | Part 3 section 7: LastScoreName, SkillLevel, GameType, NoPopLink, DontShowHelp0..2, plus the framework's own values |
-| `properties/partner.xml` | framework | Steam: NoReg, DontUpdate, one options link ("More Games") |
+| `properties/partner.xml` | framework | Steam: NoReg, DontUpdate, one options link (not ported) |
 
 In the port, files and the registry live in the user dir; the byte formats are unchanged.
 
@@ -2646,9 +2646,9 @@ mBuildUnlocked) and `DontUpdate=true`; `RealArcade` and `Cobranded` are absent/f
   (LoadingThreadCompleted -> ShouldCheckForUpdate is false; OptionsDialog's button 5 is not laid out when
   DontUpdate), dialogs 6/7/10007/20007, and
   `OpenRegisterPage` (RegisterDialog only).
-- OpenURL stays live (OptionsDialog links: "OptionsLinkURL0" = `steam://publisher/popcap` on Steam,
-  button 3 "http://www.popcap.com"); port: platform open, the "opening browser" dialog 10 can be kept
-  or skipped (it is killed by URLOpenSucceeded).
+- OpenURL is reached only from OptionsDialog: the partner links ("OptionsLinkURL0", a Steam store page)
+  and button 3 (never created, a PopCap page). Port: neither is ported (the user's decision, 2026-10-24),
+  so nothing opens a URL; the dialog is 308 high, as with no links, and WinBMApp::OpenURL stays, unused.
 
 ### 7. Registry, properties and files
 
