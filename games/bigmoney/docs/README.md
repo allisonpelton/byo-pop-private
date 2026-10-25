@@ -286,6 +286,25 @@ Big Money uses the shared mod system (`platform/ModManager.h`).
       the game when lost"); all 13 replays verified.
     - Every Puzzle game ended with none left; a level the solver called lost played on while some were.
     - An undo of a Pickpocket gave it back; a saved game resumed with the count it was saved with.
+- **Board size** (the `small-board` mod, `features.boardSize`). Every mode: fewer columns (4 to 14) and
+  rows (6 to 15), 10 x 12 by default.
+  - **Smaller only.** The 29-pixel coins already fill the vault (14 x 15), so a bigger board would need
+    smaller coins and new art.
+  - **How.** The game's rules already loop over its own column and row counts; the board uses the top-left
+    part of the 14 x 15 grid and is drawn centred on the same floor, with the rest of the vault dimmed.
+    The Puzzle generator uses the board's columns and floor where the original has 14 and 15, fills each
+    column to 3/5 of its height (row 6 of 15) and keeps two empty rows on top. Action and Strategy start
+    with 6 rows of 15 in proportion.
+  - **Puzzle.** A level needs no more bags than the board has columns for (one fewer). The solver keeps
+    its 14 x 15 model with the board on its floor (the empty columns past the side change nothing:
+    gaps close only between coins). Winnable Puzzles builds to the board's size.
+  - **Savegames** keep the original's layout: a blank next coin is written past the board's columns.
+  - **Scores.** The mod says it affects scores (its own high-score tables, the mods sign).
+  - **Tested** (bot games under rundesk, 10 x 12, 4 x 6, 6 x 15 and 14 x 8, every mode):
+    - With Winnable Puzzles and the solver, the bot reached level 101 on 10 x 12 (Hard) and 224 on 4 x 6
+      without losing one; every board's reverse build order won (383 boards, with 56 at 14 x 8).
+    - The solver on the original generator at 6 x 15: no wrong answer.
+    - 20 replays verified; a saved game on a small board resumed.
 
 Example mods (`games/bigmoney/mods/`):
 - **`fake-money/`: "Fake Money! Deluxe".**
@@ -304,6 +323,7 @@ Example mods (`games/bigmoney/mods/`):
   hints and undos, warns about losing clicks, and can end the game when the level can't be won.
 - **`winnable-puzzles/`: "Winnable Puzzles".** Puzzle only: builds boards that can always be won.
 - **`pickpocket/`: "Pickpocket".** A powerup that lifts a group too small to click (right click, or P).
+- **`small-board/`: "Small Board".** Plays on a smaller board (10 x 12 by default, settings for both).
 - **`replays/`: "Replays".** Turns on replays and nothing else: no change in play, the normal high-score
   tables, and no mods sign.
 - **`livesplit/`: "LiveSplit".** Turns on the LiveSplit block, with a copy of the script, seven split

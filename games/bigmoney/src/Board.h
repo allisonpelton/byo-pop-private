@@ -489,6 +489,7 @@ public:
 	bool			IsSolverWarnPiece(Piece* thePiece) const;
 	void			StartSolverLevel();
 	void			GetSolverModel(PuzzleModel* theModel);
+	int				SolverRowOffset() const { return BOARD_ROWS - mRows; } // the board's row 0 in the solver's model
 	int				SolverGroupKey(int theCol, int theRow) const;
 	void			UpdateSolverCheck();
 	bool			CheckSolverClick(Piece* thePiece);

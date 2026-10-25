@@ -37,6 +37,11 @@ using namespace Sexy;
 
 std::vector<std::string> Sexy::gRankNames;
 
+// port(mods): a smaller board's offsets from the full board's place (Board::ColX, RowY; the "boardSize"
+// feature): centred, on the same floor. Each board sets them; they are 0 without the feature.
+static int gBoardOffsetX = 0;
+static int gBoardOffsetY = 0;
+
 // The SexyAppFramework 1.2 MTRand seeding (0x45ae40): Knuth's 69069 generator, seed 0 -> 4357, the
 // next draw starts a new block (mti = 624). The port's MTRand(seed) / SRand(seed) are 1.3's
 // (1812433253 initialiser) and would give another stream.
@@ -271,6 +276,10 @@ void Board::SetupLevelParams()
 		aBags = mTunables.mBagsMax;
 	else if (aBags <= mTunables.mBagsMin)
 		aBags = mTunables.mBagsMin;
+	// port(mods): a smaller Puzzle board needs no more bags than it has columns for (GenerateBoard puts bags on
+	// mBagsNeeded - skill + 4 columns)
+	if ((mApp->mGameType == GAMETYPE_PUZZLE) && (mCols < BOARD_COLS) && (aBags > mCols - 1))
+		aBags = mCols - 1;
 	mBagsNeeded = aBags;
 
 	if ((aLevel < 1) && (mTunables.mFewerColorsFirstLevel) && (mNumColors > 1)) // port(mods): always true without mods
@@ -287,16 +296,16 @@ void Board::SetupLevelParams()
 		mPointsMult = aMult * mTunables.mPuzzleMult; // port(mods): 3.0
 }
 
-// 0x4015e0
+// 0x4015e0. port(mods): plus a smaller board's offset
 int Board::ColX(int theCol)
 {
-	return theCol * COIN_SIZE + BOARD_X;
+	return theCol * COIN_SIZE + BOARD_X + gBoardOffsetX;
 }
 
-// 0x4015f0
+// 0x4015f0. port(mods): plus a smaller board's offset
 int Board::RowY(int theRow)
 {
-	return theRow * COIN_SIZE + BOARD_Y;
+	return theRow * COIN_SIZE + BOARD_Y + gBoardOffsetY;
 }
 
 // 0x401600
@@ -907,8 +916,10 @@ void Board::WriteSaveGame(Buffer* theBuffer)
 				WritePiece(theBuffer, aPiece);
 		}
 	}
+	// port(mods): a smaller board ("boardSize") has no next coin past mCols: a blank one is written there
+	static const Piece aBlank;
 	for (int aCol = 0; aCol < BOARD_COLS; aCol++)
-		WritePiece(theBuffer, mNextRow[aCol]);
+		WritePiece(theBuffer, (mNextRow[aCol] != NULL) ? mNextRow[aCol] : &aBlank);
 
 	WriteRaw(theBuffer, mMinGroup);
 	WriteRaw(theBuffer, mRiseOffset);
@@ -1166,6 +1177,11 @@ bool Board::ReadSaveGame(Buffer* theBuffer, bool theTrailer)
 		ReadPiece(theBuffer, aPiece);
 		delete mNextRow[aCol];
 		mNextRow[aCol] = aPiece;
+		if (aCol >= mCols) // port(mods): past a smaller board's columns
+		{
+			delete aPiece;
+			mNextRow[aCol] = NULL;
+		}
 	}
 
 	ReadRaw(theBuffer, &mMinGroup);
@@ -2092,8 +2108,12 @@ void Board::GenerateBoard()
 
 	if (mApp->mGameType == GAMETYPE_PUZZLE)
 	{
-		// The constructive generator: grow random same-colour groups until every column reaches row 6
+		// The constructive generator: grow random same-colour groups until every column reaches row 6.
+		// port(mods): a smaller board (mCols x mRows, "boardSize") fills each column to 3/5 of its height
+		// (row 6 of 15), keeps two empty rows on top as the original, and uses its own columns and floor
+		// where the original has 14 and 15.
 		static const int aDirs[5][2] = { {0, 0}, {-1, 0}, {1, 0}, {0, 1}, {0, -1} };
+		int aFillRow = mRows - (3 * mRows + 4) / 5;
 
 		if (mWinnablePuzzles) // port(mods): a board whose build order, reversed, wins (PuzzleBuilder.h)
 			BuildWinnablePuzzle();
@@ -2104,14 +2124,14 @@ void Board::GenerateBoard()
 			bool allFull = true;
 			for (int aCol = 0; aCol < mCols; aCol++)
 			{
-				Piece* aRow6 = mGrid[6][aCol];
+				Piece* aRow6 = mGrid[aFillRow][aCol];
 				if ((aRow6 != NULL) && (!aRow6->mIsSpecial))
 					continue;
 
 				bool aNearStack = false;
 				for (int k = aCol - 1; k <= aCol + 1; k++)
 				{
-					if ((k >= 0) && (k < 14) && (mGrid[14][k] != NULL))
+					if ((k >= 0) && (k < mCols) && (mGrid[mRows - 1][k] != NULL))
 						aNearStack = true;
 				}
 				if (aNearStack)
@@ -2123,18 +2143,18 @@ void Board::GenerateBoard()
 
 			int aCol;
 			if (aCandidates.empty())
-				aCol = (int)(mRand.Next() % 14);
+				aCol = (int)(mRand.Next() % (unsigned long) mCols);
 			else
 				aCol = aCandidates[mRand.Next() % (unsigned long) aCandidates.size()];
 
 			int anEmpty = 0;
-			while ((anEmpty < 15) && (mGrid[anEmpty][aCol] == NULL))
+			while ((anEmpty < mRows) && (mGrid[anEmpty][aCol] == NULL))
 				anEmpty++;
 			if (anEmpty <= 1)
 				continue;
 
 			unsigned long aRand = mRand.Next() % 100000;
-			int aStartRow = (int) ceil(14.0 - (double)(15 - anEmpty) * pow((double) aRand * 5e-06, 2.0) * 4.0);
+			int aStartRow = (int) ceil((double)(mRows - 1) - (double)(mRows - anEmpty) * pow((double) aRand * 5e-06, 2.0) * 4.0);
 			int aColor = (int)(mRand.Next() % (unsigned long) mNumColors); // overwritten before use
 			ResetMarks();
 			Piece* aFirst = NULL;
@@ -2157,7 +2177,7 @@ void Board::GenerateBoard()
 				int aY;
 				if (aFirst == NULL)
 				{
-					if ((anAttempt > 4) && (aStartRow < 14))
+					if ((anAttempt > 4) && (aStartRow < mRows - 1))
 						aStartRow++;
 					aX = aCol;
 					aY = aStartRow;
@@ -2182,7 +2202,7 @@ void Board::GenerateBoard()
 					aY = aMembers[anIndex].mY + aDirs[aDir][1];
 				}
 
-				if ((aX >= 0) && (aX < 14) && (aY >= 0) && (aY < 15) && ((aY == 14) || (mGrid[aY + 1][aX] != NULL)))
+				if ((aX >= 0) && (aX < mCols) && (aY >= 0) && (aY < mRows) && ((aY == mRows - 1) || (mGrid[aY + 1][aX] != NULL)))
 				{
 					// No contact with another coin of the same colour (also next to the pieces this
 					// insertion pushes up)
@@ -2190,11 +2210,11 @@ void Board::GenerateBoard()
 					Piece* aCheck = mGrid[aY][aX];
 					if ((aCheck != NULL) && (aCheck->mColor == aColor) && (aCheck->mMark != 1))
 						isOk = false;
-					if ((aX - 1 >= 0) && (aX - 1 < 14) && ((aCheck = mGrid[aY][aX - 1]) != NULL) && (aCheck->mColor == aColor) && (aCheck->mMark != 1))
+					if ((aX - 1 >= 0) && (aX - 1 < mCols) && ((aCheck = mGrid[aY][aX - 1]) != NULL) && (aCheck->mColor == aColor) && (aCheck->mMark != 1))
 						isOk = false;
-					if ((aX + 1 >= 0) && (aX + 1 < 14) && ((aCheck = mGrid[aY][aX + 1]) != NULL) && (aCheck->mColor == aColor) && (aCheck->mMark != 1))
+					if ((aX + 1 >= 0) && (aX + 1 < mCols) && ((aCheck = mGrid[aY][aX + 1]) != NULL) && (aCheck->mColor == aColor) && (aCheck->mMark != 1))
 						isOk = false;
-					if ((aY + 1 >= 0) && (aY + 1 < 15) && ((aCheck = mGrid[aY + 1][aX]) != NULL) && (aCheck->mColor == aColor) && (aCheck->mMark != 1))
+					if ((aY + 1 >= 0) && (aY + 1 < mRows) && ((aCheck = mGrid[aY + 1][aX]) != NULL) && (aCheck->mColor == aColor) && (aCheck->mMark != 1))
 						isOk = false;
 					for (int aRow = aY - 1; aRow >= 0; aRow--)
 					{
@@ -2245,8 +2265,8 @@ void Board::GenerateBoard()
 					// A lone coin is no group: take it back and repack its column
 					delete aFirst;
 					mGrid[aStartRow][aCol] = NULL;
-					int aDest = 14;
-					for (int aRow = 14; aRow >= 0; aRow--)
+					int aDest = mRows - 1;
+					for (int aRow = mRows - 1; aRow >= 0; aRow--)
 					{
 						Piece* aPiece = mGrid[aRow][aCol];
 						if (aPiece != NULL)
@@ -2278,7 +2298,7 @@ void Board::GenerateBoard()
 			Piece* aBag = new Piece();
 			int aCol = aColumns[i];
 			aBag->mCol = aCol;
-			int aRow = 14;
+			int aRow = mRows - 1;
 			while (mGrid[aRow][aCol] != NULL)
 				aRow--;
 			aBag->mRow = aRow;
@@ -2311,7 +2331,7 @@ void Board::GenerateBoard()
 		{
 			int aY = -58;
 			double aX = (double) ColX(aCol);
-			for (int aRow = mRows - 1; aRow >= mRows - 6; aRow--)
+			for (int aRow = mRows - 1; aRow >= mRows - (6 * mRows + 7) / 15; aRow--) // port(mods): 6 of 15 rows
 			{
 				aY += (int)(((double)(mRand.Next() % 10) * 0.3333333333333333 + 1.2) * -29.0);
 				Piece* aPiece = new Piece();
@@ -2326,7 +2346,7 @@ void Board::GenerateBoard()
 	}
 
 	// The next row
-	double aNextY = (double)(RowY(15) + 6);
+	double aNextY = (double)(RowY(mRows) + 6);
 	for (int aCol = 0; aCol < mCols; aCol++)
 	{
 		mColTowerHeight[aCol] = 0.0;
@@ -3679,6 +3699,17 @@ Board::Board(WinBMApp* theApp)
 	gRankNames = mApp->GetStringVector("gRankNames");
 	mCols = BOARD_COLS;
 	mRows = BOARD_ROWS;
+	// port(mods): a smaller board (the "boardSize" feature): the grid's top-left mCols x mRows, drawn centred
+	// on the full board's floor. The solver's model keeps 14 x 15 with the board on its floor
+	// (SolverRowOffset).
+	if (ModFeatureEnabled("boardSize"))
+	{
+		mCols = ModFeatureInt("boardSize", "columns", BOARD_COLS, 4, BOARD_COLS);
+		mRows = ModFeatureInt("boardSize", "rows", BOARD_ROWS, 6, BOARD_ROWS);
+		SDL_Log("board: %d columns, %d rows", mCols, mRows);
+	}
+	gBoardOffsetX = (BOARD_COLS - mCols) * COIN_SIZE / 2;
+	gBoardOffsetY = (BOARD_ROWS - mRows) * COIN_SIZE;
 
 	// port: the original leaves the grid to GenerateBoard (it only nulls it); zeroed here so the port
 	// can delete the next row's pieces it replaces
@@ -4148,14 +4179,16 @@ void Board::StartSolverLevel()
 	mSolverUndos.clear();
 }
 
-// The grid as the solver sees it
+// The grid as the solver sees it: a smaller board ("boardSize") on the floor of its 14 x 15 model, columns
+// past mCols empty (Compact closes no gap that reaches the side, so the model plays the same)
 void Board::GetSolverModel(PuzzleModel* theModel)
 {
 	for (int aRow = 0; aRow < BOARD_ROWS; aRow++)
 	{
 		for (int aCol = 0; aCol < BOARD_COLS; aCol++)
 		{
-			Piece* aPiece = mGrid[aRow][aCol];
+			int aBoardRow = aRow - SolverRowOffset();
+			Piece* aPiece = (aBoardRow >= 0) ? mGrid[aBoardRow][aCol] : NULL;
 			if (aPiece == NULL)
 				theModel->mCell[aRow][aCol] = PuzzleModel::EMPTY;
 			else if (aPiece->mIsSpecial)
@@ -4168,7 +4201,8 @@ void Board::GetSolverModel(PuzzleModel* theModel)
 	theModel->mNeeded = mBagsNeeded;
 }
 
-// A group of the solver's board by its first cell (row * BOARD_COLS + col); -1 if it is no group of 2
+// A group of the solver's board by its first cell (row * BOARD_COLS + col, in the model's rows); -1 if it is
+// no group of 2
 int Board::SolverGroupKey(int theCol, int theRow) const
 {
 	std::vector<int> aCells;
@@ -4200,7 +4234,7 @@ void Board::UpdateSolverCheck()
 		for (int aCol = 0; (aCol < BOARD_COLS) && (aHover < 0); aCol++)
 		{
 			if ((mGrid[aRow][aCol] != NULL) && (mGrid[aRow][aCol]->mHighlighted))
-				aHover = SolverGroupKey(aCol, aRow);
+				aHover = SolverGroupKey(aCol, aRow + SolverRowOffset());
 		}
 	}
 
@@ -4242,7 +4276,7 @@ void Board::UpdateSolverCheck()
 		std::vector<int> aCells;
 		mSolver->GetBoard().GetGroup(aHover % BOARD_COLS, aHover / BOARD_COLS, &aCells);
 		for (int aCell : aCells)
-			aWarnCell[aCell / BOARD_COLS][aCell % BOARD_COLS] = true;
+			aWarnCell[aCell / BOARD_COLS - SolverRowOffset()][aCell % BOARD_COLS] = true;
 	}
 	if ((isWarning != mSolverWarning) || (memcmp(aWarnCell, mSolverWarnCell, sizeof(aWarnCell)) != 0))
 	{
@@ -4265,7 +4299,7 @@ bool Board::CheckSolverClick(Piece* thePiece)
 	GetSolverModel(&aModel);
 	if ((aModel.Hash() != mSolverVerdictBoard) || (mSolver->GetBoardHash() != mSolverVerdictBoard))
 		return true;
-	int aKey = SolverGroupKey(thePiece->mCol, thePiece->mRow);
+	int aKey = SolverGroupKey(thePiece->mCol, thePiece->mRow + SolverRowOffset());
 	if (aKey < 0)
 		return true;
 	int aVerdict = mSolverVerdict[aKey];
@@ -4335,7 +4369,7 @@ void Board::GiveSolverHint()
 	mSolver->GetBoard().GetGroup(aMove.mCol, aMove.mRow, &aCells);
 	memset(mSolverHint, 0, sizeof(mSolverHint));
 	for (int aCell : aCells)
-		mSolverHint[aCell / BOARD_COLS][aCell % BOARD_COLS] = true;
+		mSolverHint[aCell / BOARD_COLS - SolverRowOffset()][aCell % BOARD_COLS] = true;
 	mSolverHintBoard = mSolver->GetBoardHash();
 	mScore -= aCost;
 	mSolverSpent += aCost;
@@ -4606,18 +4640,19 @@ bool Board::GetSolverStatusRect(Rect* theRect, std::vector<SolverLine>* theLines
 void Board::BuildWinnablePuzzle()
 {
 	PuzzleModel aBoard;
-	PuzzleBuilder::Build(mRand, mNumColors, &aBoard, &mBuildPlan);
-	for (int aRow = 0; aRow < BOARD_ROWS; aRow++)
+	PuzzleBuilder::Build(mRand, mNumColors, mCols, mRows, &aBoard, &mBuildPlan);
+	for (int aRow = 0; aRow < mRows; aRow++)
 	{
-		for (int aCol = 0; aCol < BOARD_COLS; aCol++)
+		for (int aCol = 0; aCol < mCols; aCol++)
 		{
-			if (aBoard.mCell[aRow][aCol] == PuzzleModel::EMPTY)
+			int8_t aCell = aBoard.mCell[aRow + SolverRowOffset()][aCol];
+			if (aCell == PuzzleModel::EMPTY)
 				continue;
 			Piece* aPiece = new Piece();
 			aPiece->mCol = aCol;
 			aPiece->mRow = aRow;
 			aPiece->mX = (double) ColX(aCol);
-			aPiece->mColor = aBoard.mCell[aRow][aCol];
+			aPiece->mColor = aCell;
 			mGrid[aRow][aCol] = aPiece;
 		}
 	}
@@ -4756,7 +4791,7 @@ void Board::UsePickpocket(int x, int y)
 
 	Compact();
 	if (TowerToppler())
-		AddPoints(125, aTarget->mCol * COIN_SIZE + BOARD_X + 14, aTarget->mRow * COIN_SIZE + BOARD_Y + 14, true);
+		AddPoints(125, ColX(aTarget->mCol) + 14, RowY(aTarget->mRow) + 14, true);
 
 	// Strategy: a move like a click (OnClick)
 	if (mApp->mGameType == GAMETYPE_STRATEGY)
