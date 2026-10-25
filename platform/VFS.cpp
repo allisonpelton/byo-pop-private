@@ -1,4 +1,5 @@
 #include "VFS.h"
+#include "Text.h"
 
 #include <algorithm>
 #include <cctype>
@@ -34,35 +35,7 @@ static std::string Lower(std::string s)
 
 std::string VFS::Normalize(const std::string& thePath)
 {
-	std::string p = thePath;
-	std::replace(p.begin(), p.end(), '\\', '/');
-	std::vector<std::string> parts;
-	size_t start = 0;
-	while (start <= p.size())
-	{
-		size_t end = p.find('/', start);
-		if (end == std::string::npos)
-			end = p.size();
-		std::string part = p.substr(start, end - start);
-		if (part == "..")
-		{
-			if (!parts.empty() && parts.back() != "..")
-				parts.pop_back();
-			else
-				parts.push_back(part);
-		}
-		else if (!part.empty() && part != ".")
-			parts.push_back(part);
-		start = end + 1;
-	}
-	std::string out;
-	for (size_t i = 0; i < parts.size(); i++)
-	{
-		if (i)
-			out += '/';
-		out += parts[i];
-	}
-	return out;
+	return NormalizePath(thePath);
 }
 
 bool IsDirectory(const std::string& thePath)

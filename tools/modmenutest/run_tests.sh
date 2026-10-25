@@ -99,8 +99,8 @@ logged() { grep -q -F -- "$2" "$1/log.txt"; }
 # state_json <state JSON> <expression of s>: the expression's value as JSON
 state_json() { "$PY" -c "import json,sys; s=json.load(open(sys.argv[1])); print(json.dumps(eval(sys.argv[2])))" "$(winpath "$1")" "$2"; }
 # forgame <dir> <file>: the game's own copy (<dir>/<game>-<file>) when there is one, else the shared one. Bejeweled
-# has its own keys and clicks results (its rule values wait for the next game) and clicks script (its message line
-# on the mod's page)
+# has its own keys and clicks results (its rule values wait for the next game). The scripts are shared: a game's
+# messages have their own slot under the menu's content, so the rows are where they are in every game
 forgame() { if [ -f "$1/$GAME-$2" ]; then echo "$1/$GAME-$2"; else echo "$1/$2"; fi; }
 
 for GAME in $GAMES; do

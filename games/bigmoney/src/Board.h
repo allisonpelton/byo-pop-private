@@ -18,6 +18,7 @@
 #include "ModRules.h"
 #include "Piece.h"
 #include "Res.h"
+#include "PuzzleSolver.h"
 #include <list>
 #include <string>
 #include <vector>
@@ -65,13 +66,16 @@ enum HintId
 
 // Coin colours (Piece::mColor) as r, g, b. In the original these are Color[5] built by the dynamic
 // initialisers 0x4f3220 / 0x4f32a0 (alpha 255).
-inline constexpr int gCoinColors[Piece::NUM_COIN_COLORS][3] =      // @0x52d8c8, dollar-bomb tint
+// port(mods): 5..7 are the extra colours (Piece::MAX_COIN_COLORS), whose coins are also tinted with gCoinColors.
+inline constexpr int gCoinColors[Piece::MAX_COIN_COLORS][3] =      // @0x52d8c8, dollar-bomb tint
 {
-	{255, 0, 0}, {0, 148, 255}, {255, 255, 0}, {0, 255, 0}, {255, 0, 255}
+	{255, 0, 0}, {0, 148, 255}, {255, 255, 0}, {0, 255, 0}, {255, 0, 255},
+	{255, 140, 0}, {0, 230, 230}, {215, 215, 225}
 };
-inline constexpr int gCoinLightColors[Piece::NUM_COIN_COLORS][3] = // @0x52d878, selection glow tint
+inline constexpr int gCoinLightColors[Piece::MAX_COIN_COLORS][3] = // @0x52d878, selection glow tint
 {
-	{255, 128, 128}, {128, 128, 255}, {240, 240, 64}, {87, 255, 87}, {240, 64, 240}
+	{255, 128, 128}, {128, 128, 255}, {240, 240, 64}, {87, 255, 87}, {240, 64, 240},
+	{255, 190, 110}, {128, 255, 255}, {245, 245, 250}
 };
 
 // Rank thresholds (@0x4f53c0): rank = highest i with gRankThresholds[i] <= score (names gRankNames)
@@ -153,6 +157,7 @@ public:
 	bool			mHasMoves;              // +0x42c a group >= mMinGroup exists (FindGroups)
 	int				mCols;                  // +0x430 14
 	int				mRows;                  // +0x434 15
+	bool			mDiagonal;              // port(mods): coins touching at a corner group too ("diagonalGroups")
 	int				mMintPixels;            // +0x438 (int)((1-mMint)*29): px of the next row still hidden
 	double			mMint;                  // +0x440 next-row progress; > 1 pushes a row
 	double			mMintTarget;            // +0x448 mMint eases up to it at 0.015/tick; 0.25 at level start
@@ -304,6 +309,89 @@ public:
 	// port(mods): LiveSplit (LiveSplitObserver.h)
 	uint32_t		mBoardSerial;           // 1, 2, ... for each board the app makes
 	bool			mResumed;               // LoadGame restored a saved game into this board
+	// port(mods): the Puzzle solver (PuzzleSolver.h; the "puzzleSolver" feature)
+	enum
+	{
+		SOLVER_SHOW_ALWAYS = 0,         // the status line says what the solver found
+		SOLVER_SHOW_LOST = 1,           // only that the level can't be won
+		SOLVER_SHOW_NEVER = 2,
+		SOLVER_PRICE_FREE = 0,
+		SOLVER_PRICE_PERCENT = 1,       // mSolverHintValue percent of the score, rounded up
+		SOLVER_PRICE_AMOUNT = 2,        // mSolverHintValue dollars
+		SOLVER_MESSAGE_TICKS = 300,
+		SOLVER_WARN_OFF = 0,
+		SOLVER_WARN_SHOW = 1,           // the hovered group is red when its click loses the level
+		SOLVER_WARN_BLOCK = 2,          // and that click does nothing (while another click can still win)
+		SOLVER_LINE_STATUS = 0,         // the status lines (GetSolverStatusRect)
+		SOLVER_LINE_WARNING = 1,
+		SOLVER_LINE_HINT = 2,           // how to get a hint, or the answer to the last hint or undo asked for
+		SOLVER_LINE_UNDO = 3
+	};
+	struct SolverLine
+	{
+		SexyString	mText;
+		int			mKind;                  // SOLVER_LINE_*
+	};
+	// The game just before a click, for the solver's undo: the savegame's bytes and what it leaves out
+	struct SolverUndo
+	{
+		std::vector<unsigned char> mSave;   // WriteSaveGame
+		MTRand		mRand;                  // whole (the savegame keeps the draw index out)
+		int			mLastColor;
+		int			mColorStreak;
+		int			mLastGroupSize;
+		int			mPrevGroupSize;
+		double		mColTowerHeight[BOARD_COLS];
+		int			mScore;
+		int			mSpent;                 // mSolverSpent then
+		uint64_t	mBoard;                 // the board's PuzzleModel::Hash, 0 if it was moving
+		int			mTick;
+		int			mPickpockets;
+	};
+	PuzzleSolver*	mSolver;                // a Puzzle board with the feature on, else NULL
+	int				mSolverShow;            // SOLVER_SHOW_*
+	bool			mSolverEndWhenLost;     // the game is over as soon as the level can't be won
+	bool			mSolverHints;           // H (or a click on the status line) shows a winning click
+	int				mSolverHintPrice;       // SOLVER_PRICE_*
+	int				mSolverHintValue;
+	int				mSolverBudget;          // positions the solver looks at per board tick
+	bool			mSolverHintWanted;      // a hint was asked for; given once the board is still and solved
+	uint64_t		mSolverHintBoard;       // the board (PuzzleModel::Hash) the hint shown is for, 0 for none
+	bool			mSolverHint[BOARD_ROWS][BOARD_COLS]; // the hinted group
+	int				mSolverLogged;          // the status last logged
+	int				mSolverLostLevel;       // the level the solver found lost (a test: it must not be won)
+	SexyString		mSolverMessage;         // an answer to a hint or undo request on the status line
+	int				mSolverMessageTicks;
+	int				mSolverFreeHints;       // hints free in each level
+	bool			mSolverUndo;            // U (or a click on the undo line) takes back the last click
+	int				mSolverUndoPrice;       // SOLVER_PRICE_*
+	int				mSolverUndoValue;
+	int				mSolverUndoLimit;       // undos in each level
+	int				mSolverWarn;            // SOLVER_WARN_*
+	int				mSolverLevel;           // the level the counts below are for
+	int				mSolverHintsTaken;      // hints given in this level
+	int				mSolverUndosTaken;      // undos in this level
+	int				mSolverSpent;           // dollars paid for hints and undos in this game
+	std::vector<SolverUndo> mSolverUndos;   // this level's last clicks, the latest last
+	PuzzleClickCheck* mSolverCheck;         // mSolverWarn: checks the hovered group's click, else NULL
+	uint64_t		mSolverVerdictBoard;    // the board mSolverVerdict is for
+	int8_t			mSolverVerdict[BOARD_ROWS * BOARD_COLS]; // a group's (by its first cell) PuzzleClickCheck::Verdict
+	int				mSolverCheckGroup;      // the group mSolverCheck is checking, -1 for none
+	bool			mSolverWarnCell[BOARD_ROWS][BOARD_COLS]; // the hovered group, when its click loses
+	bool			mSolverWarning;         // mSolverWarnCell has a group
+	int				mSolverExpect;          // a test: the verdict of the last click's group (VERDICT_NONE: none)
+	uint64_t		mSolverExpectBoard;     // the board it was clicked on
+	// port(mods): Puzzle boards built to be winnable (PuzzleBuilder.h; the "winnablePuzzles" feature)
+	bool			mWinnablePuzzles;
+	std::vector<PuzzleSolver::Move> mBuildPlan; // the clicks that win this level's board as built (until the solver has them)
+	uint64_t		mBuildPlanBoard;        // that board, bags and all (PuzzleModel::Hash)
+	// port(mods): Pickpockets (the "pickpocket" feature): each lifts a group too small to click, for no points
+	bool			mPickpocket;            // the feature is on
+	int				mPickpockets;           // in hand (saved in the savegame's trailer)
+	int				mPickpocketsPerLevel;   // more at each new level
+	int				mPickpocketsMax;        // the most in hand
+	bool			mPickpocketArmed;       // P (or a click on the counter): the next click on a small group uses one
+	int				mPickpocketsUsed;       // in this board's game (the log)
 
 public:
 	Board(WinBMApp* theApp);                                        // 0x40e760
@@ -383,6 +471,7 @@ public:
 	// port (web persistence): the bytes SaveGame would write now, without touching the game
 	void			SaveGameSnapshot(Buffer* theBuffer);
 	void			WriteSaveGame(Buffer* theBuffer);               // port: the body of 0x403300
+	bool			ReadSaveGame(Buffer* theBuffer, bool theTrailer); // port: the body of 0x4075d0
 
 	// port(mods): tunables and the set seed (ModRules.h)
 	void			LoadTunables();
@@ -392,7 +481,38 @@ public:
 	// port(mods): replays (Replay.h): input to record, and the game-over screen
 	void			RecordInput(int theOp, int theX = 0, int theY = 0);
 	void			ReplayGameOver();
-	static std::string GetSaveGameFileName();                       // port: "userdata\\savegame.dat"
+	// port(mods): the Puzzle solver (PuzzleSolver.h)
+	void			UpdateSolver();
+	void			RequestSolverHint();
+	void			GiveSolverHint();
+	void			ClearSolverHint();
+	int				SolverPrice(int thePrice, int theValue, int theScore) const;
+	int				SolverHintCost() const;
+	int				SolverUndoCost() const;
+	bool			IsSolverHintPiece(Piece* thePiece) const;
+	bool			IsSolverWarnPiece(Piece* thePiece) const;
+	void			StartSolverLevel();
+	void			GetSolverModel(PuzzleModel* theModel);
+	int				SolverRowOffset() const { return BOARD_ROWS - mRows; } // the board's row 0 in the solver's model
+	int				GroupDirs() const { return mDiagonal ? 8 : 4; } // port(mods): the gGroupDirs a group spreads through
+	int				SolverGroupKey(int theCol, int theRow) const;
+	void			UpdateSolverCheck();
+	bool			CheckSolverClick(Piece* thePiece);
+	void			SaveSolverUndo();
+	void			RequestSolverUndo();
+	bool			GetSolverStatusRect(Rect* theRect, std::vector<SolverLine>* theLines);
+	void			BuildWinnablePuzzle();
+	void			CheckWinnablePuzzle();
+	void			DrawSolverStatus(Graphics* g);
+	// port(mods): Pickpockets
+	void			GetPickpocketGroup(Piece* thePiece, std::vector<Piece*>* theGroup);
+	bool			IsPickpocketTarget(Piece* thePiece);
+	bool			CanPickpocket();
+	void			ArmPickpocket(bool theArmed);
+	void			UsePickpocket(int x, int y);
+	bool			GetPickpocketRect(Rect* theRect, SexyString* theText);
+	void			DrawPickpockets(Graphics* g);
+	static std::string GetSaveGameFileName();                      // port: "userdata\\savegame.dat"
 
 	using Widget::MouseDown;
 	using ButtonListener::ButtonPress;

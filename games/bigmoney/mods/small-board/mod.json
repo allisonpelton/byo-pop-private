@@ -1,0 +1,21 @@
+{
+  "id": "small-board",
+  "name": "Small Board",
+  "version": "1.0",
+  "author": "byo-pop examples",
+  "description": "Plays on a smaller board: fewer columns, fewer rows, or both (10 x 12 by default), centred in the vault on the same floor. Every mode. In Puzzle a level needs no more bags than the board has columns for. Keeps its own high scores.",
+  "affectsScores": true,
+  "settings": [
+    { "type": "section", "label": "Board" },
+    { "id": "columns", "label": "Columns", "type": "int", "default": 10, "min": 4, "max": 14,
+      "help": "The full board has 14." },
+    { "id": "rows", "label": "Rows", "type": "int", "default": 12, "min": 6, "max": 15,
+      "help": "The full board has 15." }
+  ],
+  "features": {
+    "boardSize": {
+      "columns": { "$setting": "columns" },
+      "rows": { "$setting": "rows" }
+    }
+  }
+}

@@ -11,6 +11,11 @@
 #include "LevelUpWidget.h"
 #include "Definitionator.h"
 #include "GameText.h"
+#include "ModFeatures.h"
+#include "ModWords.h"
+#include "Solver.h"
+#include "Undo.h"
+#include "GreedyBots.h"
 
 #include "WidgetManager.h"
 #include "DialogButton.h"
@@ -586,8 +591,34 @@ Board::Board(BookWormApp* theApp)
 	mLexPraiseType = 0;
 
 	mSubmitButton = MakeButton(BOARD_BUTTON_SUBMIT, Rect(6, 100, 211, 30), NULL, NULL, NULL, GameText(GT_BOARD_SUBMIT));
-	MakeButton(BOARD_BUTTON_OPTIONS, Rect(6, 181, 211, 30), NULL, NULL, NULL, GameText(GT_OPTIONS));
+	DialogButton* anOptionsButton = MakeButton(BOARD_BUTTON_OPTIONS, Rect(6, 181, 211, 30), NULL, NULL, NULL, GameText(GT_OPTIONS));
 	MakeButton(BOARD_BUTTON_LEAVE, Rect(6, 446, 211, 30), NULL, NULL, NULL, GameText(GT_BOARD_LEAVE_GAME));
+
+	// port(mod): the word solver's HINT takes the right part of SUBMIT's plank
+	mSolver = NULL;
+	mHintButton = NULL;
+	if (ModFeatureEnabled("solver"))
+	{
+		mSolver = new Solver(this);
+		mSubmitButton->Resize(6, 100, 130, 30);
+		mHintButton = MakeButton(BOARD_BUTTON_HINT, Rect(136, 100, 81, 30), NULL, NULL, NULL, "HINT");
+	}
+
+	// port(mod): undo's UNDO takes the right part of OPTIONS' plank
+	mUndo = NULL;
+	mUndoButton = NULL;
+	mModFireDue = 0;
+	mModDangerPending = false;
+	mModWordsPlayed = 0;
+	mBots = NULL;
+	mBotsChecked = false;
+	mModMoves = 0;
+	if (ModFeatureEnabled("undo"))
+	{
+		mUndo = new UndoStack(this);
+		anOptionsButton->Resize(6, 181, 130, 30);
+		mUndoButton = MakeButton(BOARD_BUTTON_UNDO, Rect(136, 181, 81, 30), NULL, NULL, NULL, "UNDO");
+	}
 
 	// new MTRand(Sexy::Rand()) with the 2004 seeding; the EffectMgr and EmberListMgr ctors draw the next two
 	// Sexy::Rand() seeds (NAMES.md 2.11)
@@ -659,6 +690,13 @@ Board::Board(BookWormApp* theApp)
 Board::~Board()
 {
 	RemoveLevelUpWidget();
+
+	delete mSolver;     // port(mod)
+	mSolver = NULL;
+	delete mUndo;       // port(mod)
+	mUndo = NULL;
+	delete mBots;       // port(mod)
+	mBots = NULL;
 
 	if (mRand != NULL)
 	{
@@ -924,6 +962,13 @@ void Board::KeyDown(KeyCode theKey)
 	if (theKey == KEYCODE_CONTROL)
 		mCtrlDown = true;
 
+	// port(mod): Tab asks the word solver for its next hint
+	if ((theKey == KEYCODE_TAB) && (mSolver != NULL) && (mState == BOARD_PLAYING))
+		mSolver->RequestHint();
+	// port(mod): Ctrl+Z undoes the last move
+	if ((theKey == (KeyCode)'Z') && (mCtrlDown) && (mUndo != NULL))
+		mUndo->RequestUndo();
+
 	if ((mApp->mIsRegistered) && (mState == BOARD_PLAYING))
 	{
 		// port: the CRT table lookup only for 0..255 (the original indexes it with any key code)
@@ -1036,6 +1081,7 @@ void Board::Refill()
 	bool aMoved = false;
 	int aFireDue = 0;
 	gLastRefillLevel = mLevel;
+	std::vector<Piece*> aNewTiles;  // port(mod): for mModFireDue
 
 	// classic: a random fire tile (skipped once after a bonus word)
 	int aChance = gFireChanceByLevel[((unsigned int)mLevel > 11) ? 12 : mLevel];
@@ -1124,6 +1170,8 @@ void Board::Refill()
 
 			mBoard[aRow][aCol] = aPiece;
 			aY += -57 - (int)(mRand->Next() % 80);
+			if (mModFireDue > 0)
+				aNewTiles.push_back(aPiece);
 		}
 
 		// fire tiles: the tile below gets its countdown; one at the bottom schedules the fire alert hint
@@ -1146,6 +1194,12 @@ void Board::Refill()
 				mApp->mFireAlertHintShown = true;
 			}
 		}
+	}
+
+	if (mModFireDue > 0)
+	{
+		SetModFire(aNewTiles, mModFireDue);
+		mModFireDue = 0;
 	}
 
 	// tiles moved: keep the selection up to the first tile that is no longer selected or adjacent. The
@@ -1381,6 +1435,11 @@ void Board::Scramble()
 			}
 		}
 	}
+
+	if (mUndo != NULL)
+		mUndo->Push();  // port(mod): the board before the scramble
+	mModMoves++;        // port(mod): the move, for the -autoplay bot's model check
+	mModLastMove.clear();
 
 	// play counting: never in the retail build (MaxTime 60, NAMES.md D49 / L6)
 	if ((!mPlayCounted) && (mApp->mMaxTime == 0) && (mApp->mMaxPlays == 0))
@@ -1619,6 +1678,30 @@ void Board::AddLetter(Piece* thePiece)
 	MarkDirty();
 }
 
+// port(mod): the selection becomes thePath, as clicks on its tiles one after another make it (MouseDown's
+// AddLetter, without its sound per tile): the old selection is dropped, the word built and checked, SUBMIT
+// lit for a word, and a click on the last tile submits it (SELECT_CLICKED)
+void Board::SelectTiles(const std::vector<Piece*>& thePath)
+{
+	std::for_each(mSelection.begin(), mSelection.end(), Piece::Deselect);
+	mSelection.clear();
+	for (size_t i = 0; i < thePath.size(); i++)
+	{
+		thePath[i]->mSelected = true;
+		mSelection.push_back(thePath[i]);
+	}
+	mWord.Build(&mSelection);
+	mWord.CheckValid(&mApp->mDictionary);
+	mSubmitButton->SetColors(mWord.mValid ? gSubmitColorsValid : gSubmitColorsInvalid, 2);
+	// ClearWord, after the last word, marks the button not under the mouse even where it still is; a
+	// button takes a click only under the mouse, so a hint asked for by key and then Submit clicked without
+	// leaving the button would do nothing
+	mSubmitButton->mIsOver = (mWidgetManager != NULL) && (mWidgetManager->mOverWidget == mSubmitButton);
+	mSelectMode = SELECT_CLICKED;
+	mApp->PlaySample(SOUND_NEXTSELECT);
+	MarkDirty();
+}
+
 // 0x405cf0: deselects and drops every tile after thePiece
 void Board::TruncateAfter(Piece* thePiece)
 {
@@ -1657,12 +1740,40 @@ void Board::Submit(int x, int y)
 		}
 		else
 		{
-			if ((mApp->mShowDefs) && (mApp->mDefinitionator != NULL))
+			if (mUndo != NULL)
+				mUndo->Push();  // port(mod): the board before the word
+			// port(mod): a mod's word with effects (rude-words): Lex comments on it, with its definition
+			ModWordEffects aModEffects;
+			bool isModWord = ModWordGetEffects(mWord.mWord, &aModEffects);
+			SexyString aReaction = isModWord ? ModWordReaction(mWord.mWord, mModWordsPlayed) : SexyString();
+			if (aReaction.size() != 0)
+			{
+				SexyString aDefinition;
+				if ((mApp->mShowDefs) && (mApp->mDefinitionator != NULL))
+					aDefinition = mApp->mDefinitionator->GetDefinition(mWord.mWord);
+				mLex->SayReaction(mWord.mWord, aReaction, aDefinition,
+					(int)(aReaction.size() + aDefinition.size()) * 3 + 400);
+			}
+			else if ((mApp->mShowDefs) && (mApp->mDefinitionator != NULL))
 			{
 				SexyString aDefinition = mApp->mDefinitionator->GetDefinition(mWord.mWord);
+				if (aDefinition.size() == 0)
+					aDefinition = ModWordNote(mWord.mWord);  // port(mod): which mod's list has it
 				if (aDefinition.size() != 0)
 					mLex->SayDefinition(mWord.mWord, mApp->mFonts[FONT_MYRIADWEB12BOLD], aDefinition,
 						mApp->mFonts[FONT_MYRIADWEB10], (int)aDefinition.size() * 3 + 400);
+			}
+			if (isModWord)
+			{
+				mModDangerPending = aModEffects.mComment;
+				// a points multiplier below 0 takes no more than the level's points so far
+				if ((mWord.mScore < 0) && (mWord.mScore < -mLevelStats->mScore))
+					mWord.mScore = -mLevelStats->mScore;
+				if (ModWordCounted(mWord.mWord))
+				{
+					mModWordsPlayed++;
+					AddModWordsAllTime(1);
+				}
 			}
 
 			if (mSubmitBlinkWords > 0)
@@ -1729,6 +1840,12 @@ void Board::Submit(int x, int y)
 			else
 				mApp->PlaySample(SOUND_REDTILECLEARED);
 
+			// port(mod): the move, for the -autoplay bot's model check
+			mModMoves++;
+			mModLastMove.clear();
+			for (PieceList::iterator anItr = mSelection.begin(); anItr != mSelection.end(); ++anItr)
+				mModLastMove.push_back((*anItr)->mRow * BOARD_COLS + (*anItr)->mCol);
+
 			// the tiles leave the grid and fly to Lex (the FlyingPieceList owns them now)
 			RemovePieces(&mSelection);
 			FlyingPieceList* aFlyingPieces = new FlyingPieceList(mOverlay->mEffectMgr, &mSelection);
@@ -1746,8 +1863,15 @@ void Board::Submit(int x, int y)
 				mLevelUpPending = true;
 			}
 
+			// port(mod): a mod's word may set fire to some of the tiles that replace it (not as the level ends)
+			mModFireDue = 0;
+			if ((isModWord) && (mState == BOARD_PLAYING))
+				mModFireDue = aModEffects.mEveryTile ? BOARD_ROWS * BOARD_COLS : aModEffects.mFire;
 			Refill();
-			AwardSpecialTile(mWord);
+			if ((!isModWord) || (aModEffects.mBonus == MODWORD_BONUS_KEEP))
+				AwardSpecialTile(mWord);
+			else if (aModEffects.mBonus == MODWORD_BONUS_REMOVE)
+				RemoveBonusTiles();
 			AddScorePopup(mWord.mScore, x, y);
 			ClearWord();
 			CheckBottomFire();
@@ -1762,6 +1886,89 @@ void Board::Submit(int x, int y)
 
 	mFlameSoundPlayed = false;
 	MarkDirty();
+}
+
+// port(mod): theCount of the normal new tiles catch fire, none on the bottom row (a fire tile there would
+// have to be taken by the next word), picked with the game's generator, so an undo and the same word again
+// bring the same fire
+void Board::SetModFire(const std::vector<Piece*>& theNewTiles, int theCount)
+{
+	std::vector<Piece*> aCandidates;
+	for (Piece* aPiece : theNewTiles)
+	{
+		if ((aPiece->mType == TILE_NORMAL) && (aPiece->mRow < 7))
+			aCandidates.push_back(aPiece);
+	}
+	bool aLit = false;
+	for (int i = 0; (i < theCount) && (!aCandidates.empty()); i++)
+	{
+		unsigned int anIndex = gGameRand->Next() % (unsigned int)aCandidates.size();
+		Piece* aPiece = aCandidates[anIndex];
+		aCandidates.erase(aCandidates.begin() + anIndex);
+		aPiece->SetType(TILE_FIRE, true);
+		mFireTileCount++;
+		Piece* aBelow = PieceBelow(aPiece);
+		if ((aBelow != NULL) && (aBelow->mBurnCountdown < 1))
+			aBelow->ResetBurnCountdown();
+		aLit = true;
+	}
+	if (!aLit)
+		return;
+	if (mSelection.size() != 0)
+	{
+		mWord.Build(&mSelection);
+		mWord.CheckValid(&mApp->mDictionary);
+	}
+	if (!mFlameSoundPlayed)
+	{
+		mFlameSoundPlayed = true;
+		mApp->PlaySample(SOUND_FLAMETILE);
+	}
+}
+
+// port(mod): every special tile on the board (green, gold, sapphire, diamond) turns plain; one under a fire
+// tile burns as soon as a plain one would
+void Board::RemoveBonusTiles()
+{
+	bool aRemoved = false;
+	for (int aCol = 0; aCol < BOARD_COLS; aCol++)
+	{
+		for (int aRow = TopRow(aCol); aRow < BOARD_ROWS; aRow++)
+		{
+			Piece* aPiece = mBoard[aRow][aCol];
+			if ((aPiece == NULL) || (aPiece->mType == TILE_NORMAL) || (aPiece->mType == TILE_FIRE))
+				continue;
+			aPiece->SetType(TILE_NORMAL, false);
+			if (aPiece->mBurnCountdown > 1)
+				aPiece->mBurnCountdown = 1;
+			aRemoved = true;
+		}
+	}
+	if ((aRemoved) && (mSelection.size() != 0))
+	{
+		mWord.Build(&mSelection);
+		mWord.CheckValid(&mApp->mDictionary);
+	}
+}
+
+// port(mod): the current player's all-time count of the stats' mod words
+int Board::GetModWordsAllTime()
+{
+	SexyString aName = mApp->mUserManager->GetCurrentUserName();
+	SexyString aValueName = ModWordStatsValueName();
+	int aValue = 0;
+	if ((aName.length() != 0) && (aValueName.length() != 0))
+		mApp->mUserManager->ReadUserInt(aName, aValueName, &aValue);
+	return aValue;
+}
+
+void Board::AddModWordsAllTime(int theDelta)
+{
+	SexyString aName = mApp->mUserManager->GetCurrentUserName();
+	SexyString aValueName = ModWordStatsValueName();
+	if ((theDelta == 0) || (aName.length() == 0) || (aValueName.length() == 0))
+		return;
+	mApp->mUserManager->WriteUserInt(aName, aValueName, std::max(0, GetModWordsAllTime() + theDelta));
 }
 
 // 0x40abd0: bonus word message and stats, the next bonus word is picked and the banner slides away
@@ -1821,8 +2028,12 @@ void Board::AddScorePopup(int theScore, int x, int y)
 	else if (aLife < 150)
 		aLife = 150;
 
-	Points* aPopup = new Points(mApp, mApp->mFonts[FONT_GOLDSCORE], StrFormat("+%d", aShownScore), mX + x, mY + y,
-		aLife, Points::JUSTIFY_CENTER);
+	// port(mod): a mod's word may score 0 or less (rude-words' multiplier); the score font has no minus
+	Points* aPopup = (aShownScore >= 0) ?
+		new Points(mApp, mApp->mFonts[FONT_GOLDSCORE], StrFormat("+%d", aShownScore), mX + x, mY + y,
+			aLife, Points::JUSTIFY_CENTER) :
+		new Points(mApp, mApp->mFonts[FONT_LOCKERGNOME24], StrFormat("%d", aShownScore), mX + x, mY + y,
+			aLife, Points::JUSTIFY_CENTER);
 	mPopups.push_back(aPopup);
 	mWidgetManager->AddWidget(aPopup);
 
@@ -2071,6 +2282,10 @@ void Board::ButtonDepress(int theId)
 	}
 	else if (theId == BOARD_BUTTON_OPTIONS)
 		mApp->ShowOptions();
+	else if ((theId == BOARD_BUTTON_HINT) && (mSolver != NULL))
+		mSolver->RequestHint();     // port(mod)
+	else if ((theId == BOARD_BUTTON_UNDO) && (mUndo != NULL))
+		mUndo->RequestUndo();       // port(mod)
 	else if ((theId == BOARD_BUTTON_LEAVE) && (IsInProgress()))
 		mApp->GoToMainMenu();
 }
@@ -2260,6 +2475,11 @@ void Board::Update()
 	mWidgetManager->BringToBack(this);
 	mPiecesFlying = false;
 	Widget::Update();
+	if (mSolver != NULL)
+		mSolver->Update();  // port(mod): a hint asked for while the tiles moved
+	if (mUndo != NULL)
+		mUndo->Update();    // port(mod): an undo asked for while the tiles moved
+	UpdateBots();           // port(mod)
 	mApp->mPlayTicks++;
 
 	PieceList aDeadPieces;  // tiles burned away this tick, deleted at the end
@@ -3207,6 +3427,17 @@ void Board::Update()
 		}
 	}
 
+	// port(mod): Lex's danger clip for a mod's word, once he has eaten its tiles (before any praise)
+	if ((mModDangerPending) && (!isFlying) && (LexIdle(mLex)))
+	{
+		mModDangerPending = false;
+		if (mState == BOARD_PLAYING)
+		{
+			mLex->PlayAnim(LEXANIM_DANGER, false);
+			mApp->PlaySample(SOUND_LEX_DANGER);
+		}
+	}
+
 	// 27. Lex praises a special tile (the draw is spent for other types)
 	if ((mLexPraisePending) && (!isFlying) && (LexIdle(mLex)) &&
 		((mState == BOARD_PLAYING) || (mState == BOARD_LEVEL_COMPLETE) || (mState == BOARD_GAMEOVER_PENDING)))
@@ -3539,6 +3770,13 @@ void Board::WriteSavedGame(FILE* theFile, int theMode, bool isHelpOpen)
 	// 30-31
 	FileWriteString(theFile, mGameLog.ToWebString());
 	FileWriteBool(theFile, isHelpOpen);
+
+	// port(mod): the game's count of the stats' mod words, after the original record
+	if (ModWordStatsLabel().length() != 0)
+		FileWriteInt(theFile, mModWordsPlayed);
+	// port(mod): then the greedy bots' results and games (read by LoadGame: an undo leaves the bots as they are)
+	if (ModFeatureEnabled("greedyBots"))
+		GreedyBots::Write(theFile, mBots);
 }
 
 // 0x408ab0 (the app's 2005, after StartGame made a fresh board): reads the record into this board. Versions
@@ -3555,217 +3793,13 @@ bool Board::LoadGame(int theMode)
 	if (aFile == NULL)
 		return false;
 
-	int aVersion = 0;
-	FileReadInt(aFile, &aVersion);
-	if (aVersion < 2)
-	{
-		fclose(aFile);
-		return false;
-	}
-
-	// port: the original's OutputDebugString "BookWorm: loading and converting obsolete saved game." for
-	// versions 2-4 is dropped
-	SexyString aString;
-	if (aVersion > 4)
-	{
-		// product version, build number, build date: read and dropped
-		int aBuildNum = 0;
-		FileReadString(aFile, &aString);
-		FileReadInt(aFile, &aBuildNum);
-		FileReadString(aFile, &aString);
-	}
-
-	FileReadInt(aFile, &mApp->mGameMode);
-	FileReadBool(aFile, &mApp->mShowHints);
-	FileReadString(aFile, &aString);
-	mRand->SRand(aString);  // the state words; the index of the next draw stays the fresh generator's
-
-	for (int aRow = 0; aRow < BOARD_ROWS; aRow++)
-	{
-		for (int aCol = 0; aCol < BOARD_COLS; aCol++)
-		{
-			Piece* aPiece = NULL;
-			bool isPresent = false;
-			FileReadBool(aFile, &isPresent);
-			if (isPresent)
-			{
-				aPiece = new Piece();
-				aPiece->Load(aFile);
-			}
-			if (mBoard[aRow][aCol] != NULL)
-				delete mBoard[aRow][aCol];
-			mBoard[aRow][aCol] = aPiece;
-		}
-	}
-
-	if (aVersion > 2)
-		FileReadInt(aFile, &mLevelSeconds);
-	FileReadInt(aFile, &mTotalSeconds);
-	FileReadInt(aFile, &mLevelSecondsBanked);
-	mOverlay->LoadState(aFile);
-	mEffectMgr->Clear();
-	mEffectMgr->Load(aFile);
-	mEmberMgr->Clear();
-	mEmberMgr->Load(aFile);
-
-	FileReadInt(aFile, &mState);
-	FileReadInt(aFile, &mSelectMode);
-	int aCount = 0;
-	FileReadInt(aFile, &aCount);
-	mSelection.clear();
-	for (int i = 0; i < aCount; i++)
-	{
-		int aRow = 0;
-		int aCol = 0;
-		FileReadInt(aFile, &aRow);
-		FileReadInt(aFile, &aCol);
-		// port: a cell outside the grid (a damaged file) is skipped like an empty one
-		if ((aRow < 0) || (aRow >= BOARD_ROWS) || (aCol < 0) || (aCol >= BOARD_COLS))
-			continue;
-		if (mBoard[aRow][aCol] != NULL)
-			mSelection.push_back(mBoard[aRow][aCol]);
-	}
-
-	FileReadDouble(aFile, &mFireMeter);
-	FileReadBool(aFile, &mSkipRandomFire);
-	FileReadBool(aFile, &mBurnedDown);
-	fread(&mUnused1b2, 1, 1, aFile);
-	FileReadBool(aFile, &mPiecesFlying);
-	FileReadBool(aFile, &mFlameSoundPlayed);
-	FileReadInt(aFile, &mRewardStreak);
-	FileReadDouble(aFile, &mScrambleProgress);
-	FileReadDouble(aFile, &mLevelProgress);
-	FileReadDouble(aFile, &mShownProgress);
-
-	mWord.Load(aFile);
-	mLastWord.Load(aFile);
-	FileReadInt(aFile, &mLastWordColor.mRed);
-	FileReadInt(aFile, &mLastWordColor.mGreen);
-	FileReadInt(aFile, &mLastWordColor.mBlue);
-	FileReadInt(aFile, &mLastWordColor.mAlpha);
-	FileReadDouble(aFile, &mLastWordAlpha);
-	FileReadBool(aFile, &mNewHighScore);
-	FileReadInt(aFile, &mBonusWordsGiven);
-	FileReadString(aFile, &mBonusWord);
-
-	mGameStats->Load(aFile);
-	mLevelStats->Load(aFile);
-	FileReadString(aFile, &mUnusedStr2b0);
-	FileReadInt(aFile, &mUnused2cc);
-	FileReadString(aFile, &mUnusedStr2d0);
-	FileReadInt(aFile, &mUnused2ec);
-	FileReadInt(aFile, &mUpSoundIdx);
-	FileReadInt(aFile, &mUpSoundCount);
-	FileReadInt(aFile, &mUpSoundDelay);
-
-	bool isPresent = false;
-	FileReadBool(aFile, &isPresent);
-	if (isPresent)
-	{
-		int aRow = 0;
-		int aCol = 0;
-		FileReadInt(aFile, &aRow);
-		FileReadInt(aFile, &aCol);
-		// port: NULL for a cell outside the grid (a damaged file)
-		mGameOverPiece = ((aRow >= 0) && (aRow < BOARD_ROWS) && (aCol >= 0) && (aCol < BOARD_COLS)) ?
-			mBoard[aRow][aCol] : NULL;
-	}
-	FileReadInt(aFile, &mDeadSparkDelay);
-	FileReadInt(aFile, &mBoardBurnDelay);
-	FileReadDouble(aFile, &mBoardBurnAlpha);
-	FileReadInt(aFile, &mBlinkDelay);
-	FileReadInt(aFile, &mBlinkRepeats);
-	FileReadInt(aFile, &mGameOverMusicDelay);
-	FileReadInt(aFile, &mFireLineDelay);
-
-	isPresent = false;
-	FileReadBool(aFile, &isPresent);
-	if (isPresent)
-	{
-		int aRow = 0;
-		int aCol = 0;
-		FileReadInt(aFile, &aRow);
-		FileReadInt(aFile, &aCol);
-		mFireLinePiece = ((aRow >= 0) && (aRow < BOARD_ROWS) && (aCol >= 0) && (aCol < BOARD_COLS)) ?
-			mBoard[aRow][aCol] : NULL;
-	}
-	FileReadDouble(aFile, &mFireLineAlpha);
-	FileReadInt(aFile, &mFireLineScroll);
-	FileReadInt(aFile, &mFireTileCount);
-	FileReadInt(aFile, &mActionFireTimer);
-	FileReadInt(aFile, &mActionCountdown);
-	FileReadInt(aFile, &mWarnBeeps);
-	FileReadInt(aFile, &mWarnBeepDelay);
-	FileReadInt(aFile, &mHintDelay);
-	FileReadInt(aFile, &mHintId);
-
-	// Lex: a new one reads his record
-	isPresent = false;
-	FileReadBool(aFile, &isPresent);
-	if (isPresent)
-	{
-		if (mLex != NULL)
-		{
-			if (mApp->mWidgetManager->HasWidget(mLex))
-				mApp->mWidgetManager->RemoveWidget(mLex);
-			delete mLex;
-			mLex = NULL;
-		}
-
-		Image* anImage = mApp->mImages[IMAGE_LEX_EATING];
-		mLex = new Lex(mApp);
-		mLex->Resize(0, 0, anImage->GetWidth(), anImage->GetHeight());
-		mWidgetManager->AddWidget(mLex);
-		mLex->Load(aFile);
-		mLex->SetVisible(mVisible);
-	}
-
-	FileReadBool(aFile, &mLexGreetPending);
-	FileReadBool(aFile, &mLexDangerTalkReady);
-	FileReadBool(aFile, &mLevelUpPending);
-	FileReadInt(aFile, &mBlinkFrames);
-	FileReadBool(aFile, &mBurpPending);
-	FileReadBool(aFile, &mBurping);
-	FileReadInt(aFile, &mBurpDelay);
-	FileReadDouble(aFile, &mBurpAlpha);
-	FileReadInt(aFile, &mHighlightKey);
-	mHighlightKey = 0;
-	FileReadBool(aFile, &mCtrlDown);
-	mCtrlDown = false;
-	FileReadInt(aFile, &mSubmitBlinkWords);
-	mSubmitBlinkWords = 3;
-	FileReadInt(aFile, &mCols);
-	FileReadInt(aFile, &mRows);
-	FileReadInt(aFile, &mPointsAwarded);
-	FileReadInt(aFile, &mShownScore);
-	FileReadDouble(aFile, &mScoreScale);
-	FileReadBool(aFile, &mSummaryShown);
-	FileReadBool(aFile, &mPiecesMoving);
-	FileReadInt(aFile, &mLevel);
-	FileReadInt(aFile, &mPauseCount);
-	FileReadDouble(aFile, &mPauseFade);
-	FileReadInt(aFile, &mUnused3d8);
-	FileReadBool(aFile, &mPauseNoDialogs);
-	FileReadInt(aFile, &mBestWordThisLevel);
-	FileReadInt(aFile, &mBestWordThisGame);
-	FileReadInt(aFile, &mUnused3e8);
-	FileReadInt(aFile, &mUnused3ec);
-
-	// the game log, as a web string
-	uint32_t aLogLength = 0;
-	fread(&aLogLength, 1, 4, aFile);
-	if ((int)aLogLength > 0)
-	{
-		mGameLog.Clear();
-		aString.resize(aLogLength, '\0');
-		fread(&aString[0], 1, aLogLength, aFile);
-		mGameLog.FromWebString(aString);
-	}
-
 	bool isHelpOpen = false;
-	if (aVersion > 3)
-		FileReadBool(aFile, &isHelpOpen);
+	bool isRead = ReadSavedGame(aFile, &isHelpOpen);
+	if ((isRead) && (ModFeatureEnabled("greedyBots")))
+		ReadBots(aFile);    // port(mod)
 	fclose(aFile);
+	if (!isRead)
+		return false;
 
 	mPlayCounted = false;
 
@@ -3802,6 +3836,286 @@ bool Board::LoadGame(int theMode)
 		mApp->ShowHelp();
 
 	return true;
+}
+
+// port: LoadGame's reading of the record (board_logic.md 6.1) into this board. Versions 2-4 lack fields 2-4,
+// version 2 also the level seconds, versions up to 3 the help byte.
+bool Board::ReadSavedGame(FILE* theFile, bool* isHelpOpen)
+{
+	int aVersion = 0;
+	FileReadInt(theFile, &aVersion);
+	if (aVersion < 2)
+		return false;
+
+	// port: the original's OutputDebugString "BookWorm: loading and converting obsolete saved game." for
+	// versions 2-4 is dropped
+	SexyString aString;
+	if (aVersion > 4)
+	{
+		// product version, build number, build date: read and dropped
+		int aBuildNum = 0;
+		FileReadString(theFile, &aString);
+		FileReadInt(theFile, &aBuildNum);
+		FileReadString(theFile, &aString);
+	}
+
+	FileReadInt(theFile, &mApp->mGameMode);
+	FileReadBool(theFile, &mApp->mShowHints);
+	FileReadString(theFile, &aString);
+	mRand->SRand(aString);  // the state words; the index of the next draw stays the fresh generator's
+
+	for (int aRow = 0; aRow < BOARD_ROWS; aRow++)
+	{
+		for (int aCol = 0; aCol < BOARD_COLS; aCol++)
+		{
+			Piece* aPiece = NULL;
+			bool isPresent = false;
+			FileReadBool(theFile, &isPresent);
+			if (isPresent)
+			{
+				aPiece = new Piece();
+				aPiece->Load(theFile);
+			}
+			if (mBoard[aRow][aCol] != NULL)
+				delete mBoard[aRow][aCol];
+			mBoard[aRow][aCol] = aPiece;
+		}
+	}
+
+	if (aVersion > 2)
+		FileReadInt(theFile, &mLevelSeconds);
+	FileReadInt(theFile, &mTotalSeconds);
+	FileReadInt(theFile, &mLevelSecondsBanked);
+	mOverlay->LoadState(theFile);
+	mEffectMgr->Clear();
+	mEffectMgr->Load(theFile);
+	mEmberMgr->Clear();
+	mEmberMgr->Load(theFile);
+
+	FileReadInt(theFile, &mState);
+	FileReadInt(theFile, &mSelectMode);
+	int aCount = 0;
+	FileReadInt(theFile, &aCount);
+	mSelection.clear();
+	for (int i = 0; i < aCount; i++)
+	{
+		int aRow = 0;
+		int aCol = 0;
+		FileReadInt(theFile, &aRow);
+		FileReadInt(theFile, &aCol);
+		// port: a cell outside the grid (a damaged file) is skipped like an empty one
+		if ((aRow < 0) || (aRow >= BOARD_ROWS) || (aCol < 0) || (aCol >= BOARD_COLS))
+			continue;
+		if (mBoard[aRow][aCol] != NULL)
+			mSelection.push_back(mBoard[aRow][aCol]);
+	}
+
+	FileReadDouble(theFile, &mFireMeter);
+	FileReadBool(theFile, &mSkipRandomFire);
+	FileReadBool(theFile, &mBurnedDown);
+	fread(&mUnused1b2, 1, 1, theFile);
+	FileReadBool(theFile, &mPiecesFlying);
+	FileReadBool(theFile, &mFlameSoundPlayed);
+	FileReadInt(theFile, &mRewardStreak);
+	FileReadDouble(theFile, &mScrambleProgress);
+	FileReadDouble(theFile, &mLevelProgress);
+	FileReadDouble(theFile, &mShownProgress);
+
+	mWord.Load(theFile);
+	mLastWord.Load(theFile);
+	FileReadInt(theFile, &mLastWordColor.mRed);
+	FileReadInt(theFile, &mLastWordColor.mGreen);
+	FileReadInt(theFile, &mLastWordColor.mBlue);
+	FileReadInt(theFile, &mLastWordColor.mAlpha);
+	FileReadDouble(theFile, &mLastWordAlpha);
+	FileReadBool(theFile, &mNewHighScore);
+	FileReadInt(theFile, &mBonusWordsGiven);
+	FileReadString(theFile, &mBonusWord);
+
+	mGameStats->Load(theFile);
+	mLevelStats->Load(theFile);
+	FileReadString(theFile, &mUnusedStr2b0);
+	FileReadInt(theFile, &mUnused2cc);
+	FileReadString(theFile, &mUnusedStr2d0);
+	FileReadInt(theFile, &mUnused2ec);
+	FileReadInt(theFile, &mUpSoundIdx);
+	FileReadInt(theFile, &mUpSoundCount);
+	FileReadInt(theFile, &mUpSoundDelay);
+
+	bool isPresent = false;
+	FileReadBool(theFile, &isPresent);
+	if (isPresent)
+	{
+		int aRow = 0;
+		int aCol = 0;
+		FileReadInt(theFile, &aRow);
+		FileReadInt(theFile, &aCol);
+		// port: NULL for a cell outside the grid (a damaged file)
+		mGameOverPiece = ((aRow >= 0) && (aRow < BOARD_ROWS) && (aCol >= 0) && (aCol < BOARD_COLS)) ?
+			mBoard[aRow][aCol] : NULL;
+	}
+	FileReadInt(theFile, &mDeadSparkDelay);
+	FileReadInt(theFile, &mBoardBurnDelay);
+	FileReadDouble(theFile, &mBoardBurnAlpha);
+	FileReadInt(theFile, &mBlinkDelay);
+	FileReadInt(theFile, &mBlinkRepeats);
+	FileReadInt(theFile, &mGameOverMusicDelay);
+	FileReadInt(theFile, &mFireLineDelay);
+
+	isPresent = false;
+	FileReadBool(theFile, &isPresent);
+	if (isPresent)
+	{
+		int aRow = 0;
+		int aCol = 0;
+		FileReadInt(theFile, &aRow);
+		FileReadInt(theFile, &aCol);
+		mFireLinePiece = ((aRow >= 0) && (aRow < BOARD_ROWS) && (aCol >= 0) && (aCol < BOARD_COLS)) ?
+			mBoard[aRow][aCol] : NULL;
+	}
+	FileReadDouble(theFile, &mFireLineAlpha);
+	FileReadInt(theFile, &mFireLineScroll);
+	FileReadInt(theFile, &mFireTileCount);
+	FileReadInt(theFile, &mActionFireTimer);
+	FileReadInt(theFile, &mActionCountdown);
+	FileReadInt(theFile, &mWarnBeeps);
+	FileReadInt(theFile, &mWarnBeepDelay);
+	FileReadInt(theFile, &mHintDelay);
+	FileReadInt(theFile, &mHintId);
+
+	// Lex: a new one reads his record
+	isPresent = false;
+	FileReadBool(theFile, &isPresent);
+	if (isPresent)
+	{
+		if (mLex != NULL)
+		{
+			if (mApp->mWidgetManager->HasWidget(mLex))
+				mApp->mWidgetManager->RemoveWidget(mLex);
+			delete mLex;
+			mLex = NULL;
+		}
+
+		Image* anImage = mApp->mImages[IMAGE_LEX_EATING];
+		mLex = new Lex(mApp);
+		mLex->Resize(0, 0, anImage->GetWidth(), anImage->GetHeight());
+		mWidgetManager->AddWidget(mLex);
+		mLex->Load(theFile);
+		mLex->SetVisible(mVisible);
+	}
+
+	FileReadBool(theFile, &mLexGreetPending);
+	FileReadBool(theFile, &mLexDangerTalkReady);
+	FileReadBool(theFile, &mLevelUpPending);
+	FileReadInt(theFile, &mBlinkFrames);
+	FileReadBool(theFile, &mBurpPending);
+	FileReadBool(theFile, &mBurping);
+	FileReadInt(theFile, &mBurpDelay);
+	FileReadDouble(theFile, &mBurpAlpha);
+	FileReadInt(theFile, &mHighlightKey);
+	mHighlightKey = 0;
+	FileReadBool(theFile, &mCtrlDown);
+	mCtrlDown = false;
+	FileReadInt(theFile, &mSubmitBlinkWords);
+	mSubmitBlinkWords = 3;
+	FileReadInt(theFile, &mCols);
+	FileReadInt(theFile, &mRows);
+	FileReadInt(theFile, &mPointsAwarded);
+	FileReadInt(theFile, &mShownScore);
+	FileReadDouble(theFile, &mScoreScale);
+	FileReadBool(theFile, &mSummaryShown);
+	FileReadBool(theFile, &mPiecesMoving);
+	FileReadInt(theFile, &mLevel);
+	FileReadInt(theFile, &mPauseCount);
+	FileReadDouble(theFile, &mPauseFade);
+	FileReadInt(theFile, &mUnused3d8);
+	FileReadBool(theFile, &mPauseNoDialogs);
+	FileReadInt(theFile, &mBestWordThisLevel);
+	FileReadInt(theFile, &mBestWordThisGame);
+	FileReadInt(theFile, &mUnused3e8);
+	FileReadInt(theFile, &mUnused3ec);
+
+	// the game log, as a web string
+	uint32_t aLogLength = 0;
+	fread(&aLogLength, 1, 4, theFile);
+	if ((int)aLogLength > 0)
+	{
+		mGameLog.Clear();
+		aString.resize(aLogLength, '\0');
+		fread(&aString[0], 1, aLogLength, theFile);
+		mGameLog.FromWebString(aString);
+	}
+
+	*isHelpOpen = false;
+	if (aVersion > 3)
+		FileReadBool(theFile, isHelpOpen);
+
+	// port(mod): the count of the stats' mod words, when the record has it
+	mModWordsPlayed = 0;
+	mModDangerPending = false;
+	int aModWords = 0;
+	if ((ModWordStatsLabel().length() != 0) && (fread(&aModWords, 1, 4, theFile) == 4) && (aModWords >= 0))
+		mModWordsPlayed = aModWords;
+	return true;
+}
+
+// port(mod): the greedy bots of a saved game, after its record; none there (a game saved without the mod), and
+// the bots begin only if the game has not: a fresh game's first board
+void Board::ReadBots(FILE* theFile)
+{
+	delete mBots;
+	mBots = new GreedyBots();
+	if (!mBots->Read(theFile, mApp))
+	{
+		delete mBots;
+		mBots = NULL;
+	}
+	mBotsChecked = mBots != NULL;
+}
+
+// port(mod): the greedy bots begin at a fresh Classic game's first board and play some moves each tick, a
+// little while the player plays and more once the game is over, where the summary shows their results
+void Board::UpdateBots()
+{
+	if ((!mBotsChecked) && (mState == BOARD_PLAYING))
+	{
+		mBotsChecked = true;
+		if ((mBots == NULL) && (mApp->mGameMode == GAMEMODE_CLASSIC) && (ModFeatureEnabled("greedyBots")) &&
+			(mGameStats->mWords == 0) && (mGameStats->mScrambles == 0))
+		{
+			mBots = new GreedyBots();
+			mBots->Start(this);
+		}
+	}
+	if (mBots != NULL)
+		mBots->Update(((mState == BOARD_GAMEOVER) || (mState == BOARD_GAMEOVER_MUSIC)) ? 12.0 : 2.0);
+}
+
+void Board::GetGlobalState(int* theLastLetterIdx, int* theLastRefillLevel)
+{
+	*theLastLetterIdx = gLastLetterIdx;
+	*theLastRefillLevel = gLastRefillLevel;
+}
+
+void Board::SetGlobalState(int theLastLetterIdx, int theLastRefillLevel)
+{
+	gLastLetterIdx = theLastLetterIdx;
+	gLastRefillLevel = theLastRefillLevel;
+}
+
+// port(mod): a record SaveGameSnapshot made, read back (the undo mod, Undo.h)
+bool Board::ReadSavedGame(const Buffer& theRecord)
+{
+	FILE* aFile = tmpfile();
+	if (aFile == NULL)
+		return false;
+	if (theRecord.GetDataLen() > 0)
+		fwrite(theRecord.GetDataPtr(), 1, (size_t)theRecord.GetDataLen(), aFile);
+	fseek(aFile, 0, SEEK_SET);
+	bool isHelpOpen = false;
+	bool isRead = ReadSavedGame(aFile, &isHelpOpen);
+	fclose(aFile);
+	return isRead;
 }
 
 // 0x4078b0 (the app's 2005 / 3005, LevelUpWidget): the saved game is single-use

@@ -10,6 +10,7 @@
 //   -screenshot=<png>    ...save the screen (DDInterface::ReadScreen) as PNG, then shut down
 //   -hotkeytest          the mod menu's F2 (docs/MOD_MENU_DESIGN.md 7.3): SDL key events through HandleEvent, as
 //                        real input arrives; prints one line per check and exits with the number that failed
+// Exits with 1 when the game files fail to load.
 
 #include "SexyAppBase.h"
 #include "WidgetManager.h"
@@ -505,9 +506,10 @@ int main(int argc, char* argv[])
 	anApp->SetCmdLine(argc, argv);
 	anApp->Init();
 	anApp->Start();
-#ifndef __EMSCRIPTEN__
 	// (on the web Start() hands the loop to the browser and doesn't return)
+	int aResult = anApp->mLoadingFailed ? 1 : gHotkeyFailures;
+#ifndef __EMSCRIPTEN__
 	delete anApp;
 #endif
-	return gHotkeyFailures;
+	return aResult;
 }

@@ -54,6 +54,11 @@ public:
 	HelpWidget*		mHelpWidget;                // +0x6e0 ShowHelp / RemoveHelp
 	Image**			mImages;                    // +0x6e4 new Image*[NUM_IMAGES] (DDImages from GetImage)
 	MemoryImage*	mBrightCoinsImage;          // +0x6e8 IMAGE_COINS with c' = min(255, c*280/255 + 48); never deleted
+	// port(mods): the coins of the extra colours 5..7 (Piece::MAX_COIN_COLORS), one row each, from IMAGE_COINS,
+	// IMAGE_HORZCOINS and mBrightCoinsImage (MakeExtraCoins)
+	MemoryImage*	mExtraCoinsImage;
+	MemoryImage*	mExtraHorzCoinsImage;
+	MemoryImage*	mExtraBrightCoinsImage;
 	ImageFont*		mFont1;                     // +0x6ec bigmoneyfont1
 	ImageFont*		mFont1NoShadow;             // +0x6f0 copy + "noshadow"
 	ImageFont*		mFont1OutlineNoShadow;      // +0x6f4 copy + "outline" + "noshadow"
@@ -183,6 +188,11 @@ public:
 	int				mAutoplayCap;
 	std::string		mAutoplayLogFileName;
 	std::string		mAutoplayShotPrefix;
+	int				mAutoplaySolver;        // -autoplaysolver[=N]: the bot clicks the Puzzle solver's plan N% of the time (100)
+	bool			mAutoplayHints;         // -autoplayhints: and presses H first (PuzzleSolver.h)
+	int				mAutoplayUndo;          // -autoplayundo[=N] (AutoplayBot::mPressUndo)
+	bool			mAutoplayCheck;         // -autoplaycheck (AutoplayBot::mCheckClicks)
+	int				mAutoplayPocket;        // -autoplaypocket[=N] (AutoplayBot::mUsePockets)
 	AutoplayBot*	mAutoplayBot;
 	virtual void	UpdateFrames() override;
 	virtual void	HandleCmdLineParam(const std::string& theParamName, const std::string& theParamValue) override;

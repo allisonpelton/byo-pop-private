@@ -1,5 +1,6 @@
 #include "SDLMusicInterface.h"
 #include "../platform/Audio.h"
+#include "../platform/Placeholders.h"
 
 #include <algorithm>
 
@@ -26,7 +27,12 @@ bool SDLMusicInterface::LoadMusic(int theSongId, const std::string& theFileName)
 {
 	int handle = Mixer::Get().LoadSong(theFileName);
 	if (!handle)
+	{
+		// port: -placeholders (platform/Placeholders.h): a song that did not load plays as silence anyway; listed
+		if (Platform::Placeholders())
+			Platform::NoteMissing(theFileName);
 		return false;
+	}
 	UnloadMusic(theSongId);
 	SongInfo info;
 	info.mHandle = handle;

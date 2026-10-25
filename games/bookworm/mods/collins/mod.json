@@ -1,0 +1,27 @@
+{
+  "id": "collins",
+  "name": "Collins Scrabble Words",
+  "version": "1.0",
+  "author": "byo-pop",
+  "description": "Adds Collins Scrabble Words, the international tournament list (about 280,000 words), to BookWorm's dictionary, with its definitions in Lex's balloon; a click on the balloon looks the word up online. The list comes from your own copy: make collins-words.txt (and collins-defs.txt) in this folder with games/bookworm/tools/make_collins_mod.py; without them the mod adds nothing. Games with it keep their own high scores.",
+  "affectsScores": true,
+  "features": {
+    "words": {
+      "add": ["collins-words.txt"],
+      "definitions": ["collins-defs.txt"],
+      "note": "A word from Collins Scrabble Words.",
+      "lookup": {
+        "collins": "https://www.collinsdictionary.com/dictionary/english/{word}",
+        "wiktionary": "https://en.wiktionary.org/wiki/{word}"
+      }
+    }
+  },
+  "settings": [
+    { "id": "lookup", "label": "Click on Lex's balloon", "type": "choice", "default": "collins",
+      "choices": [ { "value": "collins", "label": "Collins Dictionary" }, { "value": "wiktionary", "label": "Wiktionary" },
+                   { "value": "off", "label": "Nothing" } ],
+      "help": "A click on a word's definition opens the word in this online dictionary (in your browser)." },
+    { "id": "note", "label": "Lex names the list", "type": "bool", "default": true,
+      "help": "For a word only Collins has and no definition, Lex's balloon says it is a Collins word." }
+  ]
+}

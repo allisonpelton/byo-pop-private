@@ -6,9 +6,18 @@
 #include "Rect.h"
 #include "Debug.h"
 #include "SexyMatrix.h"
+#include "SexyAppBase.h"
 #include <math.h>
 
 using namespace Sexy;
+
+// port: a placeholder for a missing image (-placeholders, SexyAppBase::GetImage) grows to hold any part of it the game
+// draws, so the stand-in shows wherever the original would and no blit reads past it
+static void FitPlaceholder(Image* theImage, const Rect& theSrcRect)
+{
+	if ((theImage != NULL) && (theImage->mPlaceholder))
+		SexyAppBase::GrowPlaceholder(theImage, theSrcRect.mX + theSrcRect.mWidth, theSrcRect.mY + theSrcRect.mHeight);
+}
 
 Image GraphicsState::mStaticImage;
 const Point* Graphics::mPFPoints;
@@ -666,6 +675,7 @@ void Graphics::DrawImage(Sexy::Image* theImage, int theX, int theY)
 
 void Graphics::DrawImage(Image* theImage, int theX, int theY, const Rect& theSrcRect)
 {
+	FitPlaceholder(theImage, theSrcRect);
 	DBG_ASSERTE(theSrcRect.mX + theSrcRect.mWidth <= theImage->GetWidth());	
 	DBG_ASSERTE(theSrcRect.mY + theSrcRect.mHeight <= theImage->GetHeight());	
 
@@ -697,6 +707,7 @@ void Graphics::DrawImageMirror(Image* theImage, int theX, int theY, bool mirror)
 
 void Graphics::DrawImageMirror(Image* theImage, int theX, int theY, const Rect& theSrcRect, bool mirror)
 {
+	FitPlaceholder(theImage, theSrcRect);
 	if (!mirror)
 	{
 		DrawImage(theImage, theX, theY, theSrcRect);
@@ -727,6 +738,7 @@ void Graphics::DrawImageMirror(Image* theImage, int theX, int theY, const Rect& 
 
 void Graphics::DrawImageMirror(Image* theImage, const Rect& theDestRect, const Rect& theSrcRect, bool mirror)
 {
+	FitPlaceholder(theImage, theSrcRect);
 	if (!mirror)
 	{
 		DrawImage(theImage,theDestRect,theSrcRect);
@@ -749,6 +761,7 @@ void Graphics::DrawImage(Image* theImage, int theX, int theY, int theStretchedWi
 
 void Graphics::DrawImage(Image* theImage, const Rect& theDestRect, const Rect& theSrcRect)
 {	
+	FitPlaceholder(theImage, theSrcRect);
 	Rect aDestRect = Rect(theDestRect.mX + mTransX, theDestRect.mY + mTransY, theDestRect.mWidth, theDestRect.mHeight);
 
 	mDestImage->StretchBlt(theImage, aDestRect, theSrcRect, mClipRect, mColorizeImages ? mColor : Color::White, mDrawMode, mFastStretch);
@@ -765,6 +778,7 @@ void Graphics::DrawImageF(Image* theImage, float theX, float theY)
 
 void Graphics::DrawImageF(Image* theImage, float theX, float theY, const Rect& theSrcRect)
 {
+	FitPlaceholder(theImage, theSrcRect);
 	DBG_ASSERTE(theSrcRect.mX + theSrcRect.mWidth <= theImage->GetWidth());	
 	DBG_ASSERTE(theSrcRect.mY + theSrcRect.mHeight <= theImage->GetHeight());
 
@@ -776,6 +790,8 @@ void Graphics::DrawImageF(Image* theImage, float theX, float theY, const Rect& t
 
 void Graphics::DrawImageRotated(Image* theImage, int theX, int theY, double theRot, const Rect *theSrcRect)
 {	
+	if (theSrcRect != NULL)
+		FitPlaceholder(theImage, *theSrcRect);
 	if (theSrcRect == NULL)
 	{
 		int aRotCenterX = theImage->GetWidth() / 2;
@@ -794,6 +810,8 @@ void Graphics::DrawImageRotated(Image* theImage, int theX, int theY, double theR
 
 void Graphics::DrawImageRotatedF(Image* theImage, float theX, float theY, double theRot, const Rect *theSrcRect)
 {	
+	if (theSrcRect != NULL)
+		FitPlaceholder(theImage, *theSrcRect);
 	if (theSrcRect == NULL)
 	{
 		float aRotCenterX = theImage->GetWidth() / 2.0f;
@@ -812,11 +830,15 @@ void Graphics::DrawImageRotatedF(Image* theImage, float theX, float theY, double
 
 void Graphics::DrawImageRotated(Image* theImage, int theX, int theY, double theRot, int theRotCenterX, int theRotCenterY, const Rect *theSrcRect)
 {
+	if (theSrcRect != NULL)
+		FitPlaceholder(theImage, *theSrcRect);
 	DrawImageRotatedF(theImage,theX,theY,theRot,theRotCenterX,theRotCenterY,theSrcRect);
 }
 
 void Graphics::DrawImageRotatedF(Image* theImage, float theX, float theY, double theRot, float theRotCenterX, float theRotCenterY, const Rect *theSrcRect)
 {
+	if (theSrcRect != NULL)
+		FitPlaceholder(theImage, *theSrcRect);
 	theX += mTransX;
 	theY += mTransY;	
 
@@ -837,11 +859,13 @@ void Graphics::DrawImageMatrix(Image* theImage, const SexyMatrix3 &theMatrix, fl
 
 void Graphics::DrawImageMatrix(Image* theImage, const SexyMatrix3 &theMatrix, const Rect &theSrcRect, float x, float y)
 {
+	FitPlaceholder(theImage, theSrcRect);
 	mDestImage->BltMatrix(theImage,x+mTransX,y+mTransY,theMatrix,mClipRect,mColorizeImages?mColor:Color::White,mDrawMode,theSrcRect,mLinearBlend);
 }
 
 void Graphics::DrawImageTransformHelper(Image* theImage, const Transform &theTransform, const Rect &theSrcRect, float x, float y, bool useFloat)
 {
+	FitPlaceholder(theImage, theSrcRect);
 	if (theTransform.mComplex || (DDImage::Check3D(mDestImage) && useFloat))
 	{
 		DrawImageMatrix(theImage,theTransform.GetMatrix(),theSrcRect,x,y);
@@ -991,6 +1015,7 @@ void Graphics::DrawImageBox(const Rect& theDest, Image* theComponentImage)
 
 void Graphics::DrawImageBox(const Rect& theSrc, const Rect &theDest, Image* theComponentImage)
 {	
+	FitPlaceholder(theComponentImage, theSrc);
 	if (theSrc.mWidth<=0 || theSrc.mHeight<=0)
 		return;
 

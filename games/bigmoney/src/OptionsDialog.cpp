@@ -64,7 +64,8 @@ void OptionsDialog::ButtonPress(int theId)
 // 0x4156b0
 int OptionsDialog::GetPreferredHeight(int theWidth)
 {
-	return (int) mLinkButtons.size() * ROW_PITCH + BASE_PREFERRED_HEIGHT;
+	// The original adds ROW_PITCH per partner link (342 with Steam's one); the links are not ported
+	return BASE_PREFERRED_HEIGHT;
 }
 
 // 0x415770
@@ -80,8 +81,6 @@ void OptionsDialog::AddedToManager(WidgetManager* theWidgetManager)
 	theWidgetManager->AddWidget(mFullscreenCheckbox);
 	theWidgetManager->AddWidget(mCheckUpdatesButton);
 	theWidgetManager->AddWidget(mCreditsButton);
-	for (int i = 0; i < (int) mLinkButtons.size(); i++)
-		theWidgetManager->AddWidget(mLinkButtons[i]);
 }
 
 // 0x415830
@@ -97,8 +96,6 @@ void OptionsDialog::RemovedFromManager(WidgetManager* theWidgetManager)
 	theWidgetManager->RemoveWidget(mCustomCursorsCheckbox);
 	theWidgetManager->RemoveWidget(mCheckUpdatesButton);
 	theWidgetManager->RemoveWidget(mCreditsButton);
-	for (int i = 0; i < (int) mLinkButtons.size(); i++)
-		theWidgetManager->RemoveWidget(mLinkButtons[i]);
 }
 
 // 0x415970
@@ -113,8 +110,6 @@ OptionsDialog::~OptionsDialog()
 	delete mFullscreenCheckbox;
 	delete mCustomCursorsCheckbox;
 	delete mHelpButton;
-	for (int i = 0; i < (int) mLinkButtons.size(); i++)
-		delete mLinkButtons[i];
 }
 
 // 0x415ad0
@@ -125,14 +120,11 @@ void OptionsDialog::Resize(int theX, int theY, int theWidth, int theHeight)
 
 	int aLeft = mContentInsets.mLeft;
 	int anInnerWidth = mWidth - aLeft - mContentInsets.mRight;
-	int aLinkCount = (int) mLinkButtons.size();
 
-	// The links stack up from just above Done
-	for (int i = 0; i < aLinkCount; i++)
-		mLinkButtons[i]->Resize(mX + aLeft, (i - aLinkCount) * ROW_PITCH + mYesButton->mY, anInnerWidth, BUTTON_HEIGHT);
-
-	// Then two rows of buttons above the links; a button that is not laid out stays 0x0 (invisible)
-	int aRowY = mYesButton->mY - (aLinkCount + 1) * ROW_PITCH;
+	// Two rows of buttons above Done; a button that is not laid out stays 0x0 (invisible). The original
+	// stacks the partner links (not ported) up from just above Done first, one row each, and puts these
+	// rows above them; the dialog is that much shorter, so everything else keeps its place from the top.
+	int aRowY = mYesButton->mY - ROW_PITCH;
 	int aHalfWidth = (anInnerWidth - 3) / 2;
 	bool dontUpdate = mApp->GetBoolean("DontUpdate", false);
 	if (!dontUpdate)
@@ -197,12 +189,8 @@ void OptionsDialog::ButtonDepress(int theId)
 	// Done (footer) reaches WinBMApp::ButtonDepress(2001), which applies the checkboxes and closes
 	Dialog::ButtonDepress(theId);
 
-	if ((theId >= LINK_BUTTON_ID_BASE) && (theId < LINK_BUTTON_ID_BASE + 100))
-	{
-		// Shipped: OptionsLinkURL0 = steam://publisher/popcap
-		mApp->OpenURL(mApp->GetString(StrFormat("OptionsLinkURL%d", theId - LINK_BUTTON_ID_BASE), "http://www.popcap.com"), false);
-		return;
-	}
+	// The original opens partner link i's OptionsLinkURL%d for ids 100..199 (Steam: a store page); the
+	// links are not ported
 
 	switch (theId)
 	{
@@ -219,9 +207,6 @@ void OptionsDialog::ButtonDepress(int theId)
 	case SCORES_BUTTON_ID:
 		// Opens on top of this dialog, which stays open
 		mApp->ShowHighScoreDialog();
-		break;
-	case VISIT_POPCAP_BUTTON_ID:
-		mApp->OpenURL("http://www.popcap.com", false);
 		break;
 	case HELP_BUTTON_ID:
 		// Closes this dialog (KillDialog(1)) and shows the help screen
@@ -285,13 +270,7 @@ OptionsDialog::OptionsDialog(WinBMApp* theApp) :
 	mCustomCursorsCheckbox = new Checkbox(mApp->mCheckboxUncheckedImage, mApp->mCheckboxCheckedImage, CUSTOM_CURSORS_CHECKBOX_ID, this);
 	mCustomCursorsCheckbox->SetChecked(mApp->mCustomCursorsEnabled, true);
 
-	// Both properties are read again for every test. partner.xml (Steam): one link, "More Games".
-	for (int i = 0; i < mApp->GetInteger("NumOptionsLinks", mApp->GetBoolean("NoPopLink", false) ? 0 : 1); i++)
-	{
-		DialogButton* aLinkButton = new DialogButton(mApp->mImages[IMAGE_DIALOGBUTTON], LINK_BUTTON_ID_BASE + i, this);
-		aLinkButton->SetFont(mApp->mFont3);
-		aLinkButton->SetColor(DialogButton::COLOR_LABEL, Color(187, 255, 1));
-		aLinkButton->mLabel = mApp->GetString(StrFormat("OptionsLinkText%d", i), "Visit PopCap.com For More Games!");
-		mLinkButtons.push_back(aLinkButton);
-	}
+	// port: the original ends by making one button per partner link (properties NumOptionsLinks, or one
+	// unless NoPopLink, with labels OptionsLinkText%d; Steam's partner.xml has one). The links are not ported
+	// (the user's decision, 2026-10-24).
 }

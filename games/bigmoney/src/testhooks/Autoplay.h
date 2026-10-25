@@ -37,11 +37,27 @@ public:
 	// After each update (WinBMApp::UpdateFrames): looks at the game, queues input for the next update
 	void Update();
 
+	// -autoplaysolver[=N]: in Puzzle with the solver on, N% of the clicks are its plan's next group (waiting
+	// while it thinks), so a test can see each plan win in the game; -autoplayhints presses H before each
+	// (a test of hint prices in replays)
+	int mFollowSolver = 0;
+	bool mPressHints = false;
+	// -autoplayundo[=N]: N% of the bot's turns in a Puzzle game with undos press U, whether or not the coins
+	// rest; -autoplaycheck: with the solver's warnings on, a click on a group first moves the mouse there
+	// and waits (up to 30 seconds) for the check of its click
+	int mPressUndo = 0;
+	bool mCheckClicks = false;
+	// -autoplaypocket[=N]: with Pickpockets in hand, N% of the bot's turns (and every turn with no group to
+	// click) lift a small group: by P and a click, or by a right click, in turn
+	int mUsePockets = 0;
+
 private:
 	void Queue(const std::string& theCommand, const std::string& theArgs);
 	void Click(int theX, int theY, const char* theWhat);
 	void Shot(int theGame, const char* theEvent);
 	bool PickGroup(Board* theBoard, int* theX, int* theY, int* theSize);
+	bool UsePickpocket(Board* theBoard, int theNow);
+	int HoverVerdict(Board* theBoard);
 
 	WinBMApp* mApp;
 	std::mt19937 mRand;
@@ -59,6 +75,11 @@ private:
 	Board* mLastBoard;
 	int mQuitAt;            // update count of the quit, once decided
 	bool mDone;
+	bool mCheckPending = false; // -autoplaycheck: the mouse is on a group, the click waits for its check
+	int mPocketsUsed = 0;       // -autoplaypocket: by P and a click when odd
+	std::string mCheckArgs;
+	std::string mCheckWhat;
+	int mCheckSince = 0;
 };
 
 }

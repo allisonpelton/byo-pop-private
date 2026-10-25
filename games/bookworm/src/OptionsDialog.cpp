@@ -23,7 +23,7 @@ static int gOptionsButtonColors[2][3] =
 
 // GetPreferredHeight's function-local statics (guard bits 0x534de0): read once per run
 static unsigned int gOptionsDialogStaticsGuard = 0;    // 0x534de0
-static int gNumOptionsLinks = 0;                        // 0x534ddc
+// 0x534ddc the partner link count (guard bit 1): the links are not ported
 static int gOptionsDialogHeight = 0;                    // 0x534dd8
 
 // 0x42eb40 (SliderListener, +0x120 slot 0)
@@ -108,7 +108,7 @@ void OptionsDialog::ApplyAndClose()
 // 0x42ee20 (slot 7)
 void OptionsDialog::SetColor(int theIdx, const Color& theColor)
 {
-	// The button text colour also goes to the register, help and credits buttons and the links
+	// The button text colour also goes to the register, help and credits buttons (and the links, not ported)
 	Dialog2004::SetColor(theIdx, theColor);
 	if (theIdx == COLOR_BUTTON_TEXT)
 	{
@@ -118,8 +118,6 @@ void OptionsDialog::SetColor(int theIdx, const Color& theColor)
 			mHelpButton->SetColor(DialogButton::COLOR_LABEL, theColor);
 		if (mCreditsButton != NULL)
 			mCreditsButton->SetColor(DialogButton::COLOR_LABEL, theColor);
-		for (std::list<DialogButton*>::iterator anItr = mLinkButtons.begin(); anItr != mLinkButtons.end(); ++anItr)
-			(*anItr)->SetColor(DialogButton::COLOR_LABEL, theColor);
 	}
 }
 
@@ -139,8 +137,6 @@ void OptionsDialog::AddedToManager(WidgetManager* theWidgetManager)
 	theWidgetManager->AddWidget(mCreditsButton);
 	if (!mApp2->mBuildUnlocked)     // the original reads gSexyAppBase (the same app)
 		theWidgetManager->AddWidget(mRegisterButton);
-	for (std::list<DialogButton*>::iterator anItr = mLinkButtons.begin(); anItr != mLinkButtons.end(); ++anItr)
-		theWidgetManager->AddWidget(*anItr);
 }
 
 // 0x42efa0 (slot 2)
@@ -159,8 +155,6 @@ void OptionsDialog::RemovedFromManager(WidgetManager* theWidgetManager)
 	theWidgetManager->RemoveWidget(mCreditsButton);
 	if (!mApp2->mBuildUnlocked)
 		theWidgetManager->RemoveWidget(mRegisterButton);
-	for (std::list<DialogButton*>::iterator anItr = mLinkButtons.begin(); anItr != mLinkButtons.end(); ++anItr)
-		theWidgetManager->RemoveWidget(*anItr);
 }
 
 // 0x42f090 (slot 13; also every slide frame). Screen coordinates (2004 widgets are all top-level).
@@ -172,22 +166,9 @@ void OptionsDialog::Resize(int theX, int theY, int theWidth, int theHeight)
 	int aLabelWidth = mYesButton->mFont->StringWidth(mYesButton->mLabel);
 	mYesButton->Resize((mWidth - (aLabelWidth + 40)) / 2 + mX, mHeight - 60 + mY, aLabelWidth + 40, 32);
 
-	// The links stack upwards from 36 px above it, all as wide as the widest label + 30
+	// The help / register / credits row 36 px above it. The original stacks the partner links (not ported)
+	// upwards from there first, one row each, and puts this row above them.
 	int aRowY = mYesButton->mY - ROW_PITCH;
-	int aLinkWidth = 0;
-	for (std::list<DialogButton*>::iterator anItr = mLinkButtons.begin(); anItr != mLinkButtons.end(); ++anItr)
-	{
-		DialogButton* aButton = *anItr;
-		if (aLinkWidth <= aButton->mFont->StringWidth(aButton->mLabel) + 30)
-			aLinkWidth = aButton->mFont->StringWidth(aButton->mLabel) + 30;
-	}
-	for (std::list<DialogButton*>::iterator anItr = mLinkButtons.begin(); anItr != mLinkButtons.end(); ++anItr)
-	{
-		(*anItr)->Resize((mWidth - aLinkWidth) / 2 + mX, aRowY, aLinkWidth, 32);
-		aRowY -= ROW_PITCH;
-	}
-
-	// The help / register / credits row above them
 	if (!mApp2->mBuildUnlocked)
 	{
 		int aButtonWidth = (mWidth - mContentInsets.mRight - mContentInsets.mLeft - 6) / 3;
@@ -225,24 +206,18 @@ void OptionsDialog::Resize(int theX, int theY, int theWidth, int theHeight)
 		mShowDefsCheckbox->Resize(mX + 190, mY + 164, 26, 26);
 }
 
-// 0x42f450 (slot 50): ignores the width and the Dialog formula. Both properties are read on the first call
-// only (function-local statics), and the link count is capped at 3 as in the ctor.
+// 0x42f450 (slot 50): ignores the width and the Dialog formula. OptionsDialogHeight is read on the first
+// call only (a function-local static). port: the original adds 36 px per partner link (NumOptionsLinks,
+// read the same way, at most 3); the links are not ported, so the dialog is 315 px high with the retail
+// partner.xml, where the original's one link made it 351.
 int OptionsDialog::GetPreferredHeight(int theWidth)
 {
-	if ((gOptionsDialogStaticsGuard & 1) == 0)
-	{
-		gOptionsDialogStaticsGuard |= 1;
-		if (mApp2->GetInteger("NumOptionsLinks", 1) < MAX_LINKS + 1)
-			gNumOptionsLinks = mApp2->GetInteger("NumOptionsLinks", 1);
-		else
-			gNumOptionsLinks = MAX_LINKS;
-	}
 	if ((gOptionsDialogStaticsGuard & 2) == 0)
 	{
 		gOptionsDialogStaticsGuard |= 2;
 		gOptionsDialogHeight = mApp2->GetInteger("OptionsDialogHeight", DEFAULT_DIALOG_HEIGHT);
 	}
-	return gOptionsDialogHeight + gNumOptionsLinks * ROW_PITCH;
+	return gOptionsDialogHeight;
 }
 
 // 0x42f600 (slot 16). DrawString's y is the baseline; coordinates are dialog-relative.
@@ -313,13 +288,8 @@ void OptionsDialog::ButtonDepress(int theId)
 	// The footer button (2001) goes to the app, which calls ApplyAndClose
 	Dialog2004::ButtonDepress(theId);
 
-	if (theId % 1000 > 35)
-	{
-		// A link. Every link button has id 1036, so each of them opens the first URL (with the retail
-		// partner.xml there is only one)
-		mApp2->OpenURL(mLinkURLs[theId % 1000 - 36], false);
-		return;
-	}
+	// port: the original opens a partner link's URL here (id % 1000 > 35, every link being 1036): the links
+	// are not ported
 
 	if (theId == HELP_BUTTON_ID)
 		mApp2->ShowHelp();         // applies and closes this dialog, then opens the help screen
@@ -347,10 +317,6 @@ OptionsDialog::~OptionsDialog()
 	delete mShowDefsCheckbox;
 	delete m3DCheckbox;
 	delete mHelpButton;
-	for (std::list<DialogButton*>::iterator anItr = mLinkButtons.begin(); anItr != mLinkButtons.end(); ++anItr)
-		delete *anItr;
-	mLinkButtons.clear();
-	mLinkURLs.clear();
 }
 
 // 0x42fe90. The creator (BookWormApp::ShowOptions) then sets colours 0, 1 (white) and 3 (black, through
@@ -397,22 +363,9 @@ OptionsDialog::OptionsDialog(BookWormApp* theApp) :
 	mCreditsButton->mLabel = GameText(GT_OPTIONS_CREDITS);
 	mCreditsButton->SetColors(gOptionsButtonColors, 2);
 
-	// The partner links (properties/partner.xml; the retail file has one, the default GT_OPTIONS_MORE_GAMES).
-	// At most 3; a negative count makes none.
-	int aNumLinks;
-	if (mApp2->GetInteger("NumOptionsLinks", 1) < MAX_LINKS + 1)
-		aNumLinks = mApp2->GetInteger("NumOptionsLinks", 1);
-	else
-		aNumLinks = MAX_LINKS;
-	for (int i = 0; i < aNumLinks; i++)
-	{
-		DialogButton* aLinkButton = new DialogButton(theApp->mImages[IMAGE_DIALOGBUTTON_PLAIN], LINK_BUTTON_ID, this);
-		aLinkButton->SetFont(aButtonFont);
-		aLinkButton->SetColors(gOptionsButtonColors, 2);
-		aLinkButton->mLabel = mApp2->GetString(StrFormat("OptionsLinkText%d", i), GameText(GT_OPTIONS_MORE_GAMES));
-		mLinkButtons.push_back(aLinkButton);
-		mLinkURLs.push_back(mApp2->GetString(StrFormat("OptionsLinkURL%d", i), "http://www.popcap.com"));
-	}
+	// port: the partner links (properties/partner.xml NumOptionsLinks, OptionsLinkText%d,
+	// OptionsLinkURL%d; the retail file has one, GT_OPTIONS_MORE_GAMES, opening a PopCap page) are not
+	// ported, the user's decision (2026-10-24)
 
 	mMusicSlider = new Slider2004(theApp->mImages[IMAGE_SLIDERTRACK], theApp->mImages[IMAGE_SLIDERTHUMB],
 		MUSIC_SLIDER_ID, this);

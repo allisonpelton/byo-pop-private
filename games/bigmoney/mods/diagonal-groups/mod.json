@@ -1,0 +1,11 @@
+{
+  "id": "diagonal-groups",
+  "name": "Diagonal Groups",
+  "version": "1.0",
+  "author": "byo-pop examples",
+  "description": "Coins that touch at a corner join a group too, in every mode: groups are bigger and easier to find. Puzzle's solver and Winnable Puzzles play by the same rule. Keeps its own high scores.",
+  "affectsScores": true,
+  "features": {
+    "diagonalGroups": true
+  }
+}

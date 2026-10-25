@@ -499,7 +499,14 @@ public:
 	void SetCursor(int theCursorNum);
 	int GetCursor();
 	void EnableCustomCursors(bool enabled);
+	// GetImage gives NULL for a missing file, or with -placeholders (platform/Placeholders.h) a checkerboard of the
+	// size GetPlaceholderSize gives (default 64x64; a game overrides it with its images' sizes, so cels and layout
+	// stay put). GetOptionalImage never gives a placeholder: for a file a game may lack (a co-brand image).
+	// GrowPlaceholder enlarges a placeholder to at least theWidth x theHeight (a font's glyphs need the room).
 	virtual DDImage* GetImage(const std::string& theFileName, bool commitBits = true);
+	DDImage* GetOptionalImage(const std::string& theFileName, bool commitBits = true);
+	virtual void GetPlaceholderSize(const std::string& theFileName, int* theWidth, int* theHeight);
+	static void GrowPlaceholder(Image* theImage, int theWidth, int theHeight);
 	virtual SharedImageRef GetSharedImage(const std::string& theFileName, const std::string& theVariant = "", bool* isNew = NULL);
 
 	void CleanSharedImages();
@@ -659,7 +666,7 @@ public:
 	virtual void GetRestartArgs(std::vector<std::string>* theArgs);
 	virtual void GetModMessages(std::vector<ModMessage>* theMessages);
 	// True in a test run (rundesk, the oracle, a -script run or a test bot): a restart does not start the game
-	// again (TakeRelaunch)
+	// again (TakeRelaunch), and MsgBox and Popup only log their message, since nobody could answer them
 	bool IsTestRun();
 };
 

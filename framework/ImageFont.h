@@ -89,6 +89,8 @@ public:
 
 	bool					Load(SexyAppBase* theSexyApp, const std::string& theFontDescFileName);
 	bool					LoadLegacy(Image* theFontImage, const std::string& theFontDescFileName);
+	// port: -placeholders: the stand-in for a missing descriptor, the framework's built-in letters
+	bool					LoadBuiltinFallback();
 };
 
 class ActiveFontLayer

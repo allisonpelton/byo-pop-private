@@ -11,8 +11,8 @@
 //
 // Watching (WinBMApp::StartWatch): -replay=<file> (the web page's Replays panel passes ?replay=), or R on
 // the game-over screen for the game just played. Keys while watching: 1, 2, 3, 4 for 1x, 2x, 4x, 8x, space
-// to pause, Escape to stop. A watch never saves, counts a game or enters a high score, and it needs the
-// same gameplay mods as the recording (the same ModManager::GetScoreKey).
+// to pause, Escape (or the New Game button) to stop. A watch never saves, counts a game or enters a high
+// score, and it needs the same gameplay mods as the recording (the same ModManager::GetScoreKey).
 //
 // Why this is enough to play a game again: the board is deterministic from its start. Its generator
 // (Board::mRand) is seeded once, in the constructor, and everything a board tick does follows from the
@@ -64,7 +64,14 @@ enum Op
 	OP_MOVE = 2,    // x y: Board::MouseMove
 	OP_LEAVE = 3,   // Board::MouseLeave
 	OP_NEXT = 4,    // the "play next level" button (Board::ButtonDepress)
-	NUM_OPS = 5
+	OP_HINT = 5,    // H: a Puzzle solver hint (Board::KeyChar; PuzzleSolver.h). A click on the solver's status
+	                // line is an OP_CLICK.
+	OP_UNDO = 6,    // U: takes back the last click (the Puzzle solver's undo; Board::KeyChar). A click on the
+	                // solver's undo line is an OP_CLICK.
+	OP_POCKET = 7,  // x y: a Pickpocket lifts the small group there (Board::MouseDown, UsePickpocket): a right
+	                // click on it, or a click while one is armed. Arming one (P, or a click on its counter) is
+	                // not recorded.
+	NUM_OPS = 8
 };
 
 enum AppFlags

@@ -65,7 +65,7 @@ public:
 	FILE* Open(const std::string& theGamePath, const char* theMode) const;
 	bool ReadAll(const std::string& theGamePath, std::vector<uint8_t>& theData) const;
 
-	// Normalizes separators to '/', strips "./" and leading slashes, collapses "a/../".
+	// Normalizes separators to '/', strips "./" and leading slashes, collapses "a/../" (Platform::NormalizePath).
 	static std::string Normalize(const std::string& thePath);
 
 	// Case-insensitive lookup of a relative path under a real directory. Returns the real path or "".

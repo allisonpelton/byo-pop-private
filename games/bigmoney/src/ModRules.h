@@ -15,7 +15,7 @@
 //                  "perClickBase": 0.24501, "perClickPerLevel": 0.011 }, Strategy: rows per click (> 0)
 //     "meter":   { "capacityBase": 300, "capacityPerLevel": 20,          points per full meter (>= 1)
 //                  "drainBase": 0, "drainPerLevel": 7e-5 },              Action: meter drain (>= 0)
-//     "coins":   { "colors": 4, "puzzleColors": 5,                       coin colours, 1..5
+//     "coins":   { "colors": 4, "puzzleColors": 5,                       coin colours, 1..8 (6..8: extra coins)
 //                  "fewerOnFirstLevel": true },                          one colour less on the first level
 //     "groups":  { "minSize": 3, "puzzleMinSize": 2 },                   smallest clickable group, 2..15
 //     "bags":    { "base": 2.6, "perLevel": 0.26,                        money bags to collect per level
@@ -78,17 +78,22 @@ double	ModTunable(const char* theKey, double theDefault, double theMin, double t
 int		ModTunableInt(const char* theKey, int theDefault, int theMin, int theMax);
 bool	ModTunableBool(const char* theKey, bool theDefault);
 
-// Port features (mod.json "features"; they change nothing in play): theName is on when an enabled mod sets
-// it to true or to an object of settings. The highest-priority mod that names it decides.
+// Port features (mod.json "features"): theName is on when an enabled mod sets it to true or to an object of
+// settings. The highest-priority mod that names it decides.
 //   "features": { "replays": { "keep": 50 } }     record finished games (Replay.h); keep the newest 50
 //   "features": { "livesplit": true }              fill the LiveSplit block (LiveSplitObserver.h; Windows)
+//   "features": { "puzzleSolver": { ... } }        the Puzzle solver (PuzzleSolver.h; mods/puzzle-solver).
+//                                                  It changes play, so its mod says "affectsScores": true.
 bool	ModFeatureEnabled(const char* theName);
 // A number in the feature's object ({"keep": 50}), clamped; theDefault when the feature is just true
 int		ModFeatureInt(const char* theName, const char* theKey, int theDefault, int theMin, int theMax);
+// A true/false or a string in the feature's object; theDefault when it has none
+bool	ModFeatureBool(const char* theName, const char* theKey, bool theDefault);
+std::string ModFeatureString(const char* theName, const char* theKey, const std::string& theDefault);
 
 // An enabled mod changes something the player sees or plays: anything besides "features" in its mod.json,
-// or game files (images, sounds, music, data, properties). The "mods are on" sign (ModIndicators.h) shows
-// for these, not for a mod that only turns on replays or LiveSplit.
+// "affectsScores": true, or game files (images, sounds, music, data, properties). The "mods are on" sign
+// (ModIndicators.h) shows for these, not for a mod that only turns on replays or LiveSplit.
 bool	AnyContentModEnabled();
 
 // "userdata\\savegame.dat" -> "userdata\\savegame-1a2b3c4d.dat" when the enabled mods change gameplay

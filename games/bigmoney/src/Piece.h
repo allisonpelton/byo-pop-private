@@ -26,6 +26,7 @@ public:
 	enum
 	{
 		NUM_COIN_COLORS = 5,    // mColor 0..4 = red, blue, yellow, green, magenta (gCoinColors)
+		MAX_COIN_COLORS = 8,    // port(mods): 5..7 = orange, cyan, silver, with coins.colors above 5 (WinBMApp::MakeExtraCoins)
 		SAVE_SIZE = 108         // savegame.dat record (ReadPiece 0x401120 / WritePiece 0x4012b0)
 	};
 

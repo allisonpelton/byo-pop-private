@@ -3,6 +3,7 @@
 // re/bigmoney/analysis/board_draw.md section 2.
 
 #include "Board.h"
+#include "PuzzleSolver.h"
 #include "HDPixels.h"
 #include <algorithm>
 #include "Piece.h"
@@ -20,7 +21,7 @@
 
 using namespace Sexy;
 
-static Color CoinColor(const int theTable[5][3], int theColor)
+static Color CoinColor(const int theTable[Piece::MAX_COIN_COLORS][3], int theColor)
 {
 	return Color(theTable[theColor][0], theTable[theColor][1], theTable[theColor][2]);
 }
@@ -40,6 +41,23 @@ void Board::Draw(Graphics* g)
 		g->SetColorizeImages(true);
 		g->DrawImage(mApp->mImages[IMAGE_BOTTOMLINE], 156, 432);
 		g->SetColorizeImages(false);
+
+		// port(mods): a smaller board ("boardSize"): the vault around it is dimmed
+		if ((mCols < BOARD_COLS) || (mRows < BOARD_ROWS))
+		{
+			int aLeft = ColX(0);
+			int aRight = ColX(mCols);
+			int aTop = RowY(0);
+			g->SetColor(Color(0, 0, 0, 150));
+			if (aLeft > 178)
+			{
+				g->FillRect(178, 4, aLeft - 178, 428);
+				g->FillRect(aRight, 4, 584 - aRight, 428);
+			}
+			if (aTop > 4)
+				g->FillRect(aLeft, 4, aRight - aLeft, aTop - 4);
+			g->SetColor(mMovesColor);
+		}
 
 		// Glows under the highlighted group, row-major, unclipped. Neither mBlinkHidden nor mIsSpecial
 		// is tested here.
@@ -442,6 +460,58 @@ void Board::Draw(Graphics* g)
 		g->SetColor(Color(0, 170, 0));
 		g->DrawString(aKeys, BOARD_X + (BOARD_COLS * COIN_SIZE - aFont->StringWidth(aKeys)) / 2, BOARD_Y + 37);
 	}
+
+	DrawSolverStatus(g); // port(mods)
+	DrawPickpockets(g); // port(mods)
+}
+
+// port(mods): the Puzzle solver's status lines (Board::GetSolverStatusRect; PuzzleSolver.h)
+void Board::DrawSolverStatus(Graphics* g)
+{
+	Rect aRect;
+	std::vector<SolverLine> aLines;
+	if (!GetSolverStatusRect(&aRect, &aLines))
+		return;
+	if (mPlayer != NULL)
+		aRect.mY += 44; // under the replay's lines
+	Font* aFont = mApp->mFont3;
+	g->SetFont(aFont);
+	g->SetColor(Color(0, 0, 0, 160));
+	g->FillRect(aRect);
+	int aY = aRect.mY + 18;
+	for (const SolverLine& aLine : aLines)
+	{
+		bool isRed = (aLine.mKind == SOLVER_LINE_WARNING) ||
+			((aLine.mKind == SOLVER_LINE_STATUS) && (mSolver->mStatus == PuzzleSolver::STATUS_LOST));
+		if (isRed)
+			g->SetColor(Color(255, 64, 64));
+		else if (aLine.mKind == SOLVER_LINE_STATUS)
+			g->SetColor(Color(0, 255, 0));
+		else
+			g->SetColor(Color(0, 170, 0));
+		g->DrawString(aLine.mText, aRect.mX + (aRect.mWidth - aFont->StringWidth(aLine.mText)) / 2, aY);
+		aY += 19;
+	}
+}
+
+// port(mods): the Pickpocket counter (Board::GetPickpocketRect); armed, it blinks
+void Board::DrawPickpockets(Graphics* g)
+{
+	Rect aRect;
+	SexyString aText;
+	if (!GetPickpocketRect(&aRect, &aText))
+		return;
+	Font* aFont = mApp->mFont3;
+	g->SetFont(aFont);
+	g->SetColor(Color(0, 0, 0, 160));
+	g->FillRect(aRect);
+	if (mPickpocketArmed)
+		g->SetColor(((mUpdateCnt / 20) % 2 == 0) ? Color(255, 255, 0) : Color(170, 140, 0));
+	else if (mPickpockets > 0)
+		g->SetColor(Color(0, 255, 0));
+	else
+		g->SetColor(Color(0, 120, 0));
+	g->DrawString(aText, aRect.mX + (aRect.mWidth - aFont->StringWidth(aText)) / 2, aRect.mY + 18);
 }
 
 // 0x402060
@@ -509,15 +579,39 @@ void Board::DrawPiece(Graphics* g, Piece* thePiece, int theYOffset)
 		return;
 	}
 
+	// port(mods): the hovered group throbs red when the solver found its click loses the level
+	bool isLosing = IsSolverWarnPiece(thePiece);
 	Image* aCoins = mApp->mImages[IMAGE_COINS];
 	if (thePiece->mImageSet == 1)
 		aCoins = mApp->mImages[IMAGE_HORZCOINS];
-	else if (thePiece->mHighlighted || thePiece->mDanger)
+	else if ((thePiece->mHighlighted || thePiece->mDanger) && (!isLosing))
 		aCoins = mApp->mBrightCoinsImage;
+	else if ((IsSolverHintPiece(thePiece)) && ((mUpdateCnt / 25) % 2 == 0)) // port(mods): the solver's hint blinks
+		aCoins = mApp->mBrightCoinsImage;
+	// port(mods): the extra colours' coins (Piece::MAX_COIN_COLORS) have images of their own
+	int aColorRow = thePiece->mColor;
+	if (aColorRow >= Piece::NUM_COIN_COLORS)
+	{
+		aColorRow -= Piece::NUM_COIN_COLORS;
+		if (aCoins == mApp->mImages[IMAGE_HORZCOINS])
+			aCoins = mApp->mExtraHorzCoinsImage;
+		else if (aCoins == mApp->mBrightCoinsImage)
+			aCoins = mApp->mExtraBrightCoinsImage;
+		else
+			aCoins = mApp->mExtraCoinsImage;
+	}
 
 	int aY = (int)(thePiece->mShakeY + thePiece->mY + theYOffset);
 	int aX = (int)(thePiece->mShakeX + thePiece->mX);
-	g->DrawImage(aCoins, aX, aY, Rect(thePiece->mFrame*29, thePiece->mColor*29, 29, 29));
+	if (isLosing)
+	{
+		// Throbs between red and dark red, so even red coins show it
+		g->SetColorizeImages(true);
+		g->SetColor(((mUpdateCnt / 15) % 2 == 0) ? Color(255, 60, 60) : Color(110, 20, 20));
+	}
+	g->DrawImage(aCoins, aX, aY, Rect(thePiece->mFrame*29, aColorRow*29, 29, 29));
+	if (isLosing)
+		g->SetColorizeImages(false);
 }
 
 // 0x401e30

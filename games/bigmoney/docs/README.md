@@ -152,7 +152,7 @@ Big Money uses the shared mod system (`platform/ModManager.h`).
     (`-keep` in its name). Abandoned and resumed games are not kept.
   - **Watching.** Press R on the game-over screen to watch the game just played. Native builds also take
     `-replay=<file>`, and the web page has a Replays panel to watch, download, delete or import replays.
-    While watching: 1 to 4 for 1x to 8x, space to pause, Esc to stop.
+    While watching: 1 to 4 for 1x to 8x, space to pause, Esc or New Game to stop.
   - **Limits.** A watch never saves, counts a game or enters a high score. It needs the same gameplay
     mods as the recording.
   - **How it works.** A replay holds the board's seed, the player's clicks, hover moves and next-level
@@ -182,6 +182,159 @@ Big Money uses the shared mod system (`platform/ModManager.h`).
       games, replays, the mod off). Each one's events match the expected ones and the real script's
       decisions, through `asltest`.
   - **Not done.** A manual test with LiveSplit itself would need it downloaded first (the user's call).
+- **Puzzle solver** (the `puzzle-solver` mod, `features.puzzleSolver`; `src/PuzzleSolver.h`). Puzzle
+  mode only.
+  - **What it works out.** Whether some clicks still drop the bags the level needs. It looks again
+    whenever the board stops moving. A line above the coins shows what it found: thinking, "can still be
+    won", "can no longer be won" (in red), or "too many ways to tell" when it reaches its limit first.
+  - **Hints.** H, or a click on that line, makes the next group of a winning line blink. A hint costs a
+    share of the score (10% by default, rounded up), a fixed amount, or nothing. The first hints of each
+    level are free (one by default). A hint is refused when the score can't pay, and there is one hint
+    per board position.
+  - **Undo.** U, or a click on the undo line, takes back the last click: coins, bags, score and streaks
+    go back to just before it.
+    - **Price.** A fixed amount (250 by default), a share of the score it goes back to, or nothing.
+      Hints and undos bought since that click stay paid. Each level has three undos by default.
+    - **How.** Each click first keeps a snapshot: the savegame's bytes, plus what the savegame leaves
+      out (the colour and combo streaks, the whole random generator). An undo reads that snapshot back,
+      so the game goes on exactly as if the click had never been made. A level keeps as many snapshots
+      as it has undos, and a new level starts with none.
+    - **Limits.** There is no undo after the game is over, so with "End the game when lost" on, a losing
+      click can't be taken back.
+  - **Warnings.** "Losing clicks" can be set to "Show in red": the group under the mouse turns dark red,
+    and the status line says so, when clicking it would leave a level that no clicks can win. "Show and
+    refuse" also refuses that click, as long as the solver has a winning one.
+    - **How.** A second search checks the hovered group once the board is still and the solver has its
+      answer, with the same budget per tick. A group "loses" only when no way the bags can land is
+      winnable.
+    - **Limits.** The answer for a group stays until the board changes. There are no warnings in a level
+      that is already lost.
+  - **Ending the game.** With "End the game when lost" on, the game is over as soon as no clicks can win
+    the level, instead of when no group is left.
+  - **Settings** (mod menu, F2; all apply at a restart):
+    - what to show (always, only when lost, never), and ending the game when lost;
+    - hints on or off, their price and the free ones;
+    - undo on or off, its price and how many per level;
+    - losing clicks: not checked, shown in red, or shown and refused.
+  - **How it works.** A model of the board copies the game's rules for falling coins, departing bags and
+    closing gaps, quirks included. The search tries beams of the best positions first, then every
+    position, and proves "can no longer be won" only when no clicks win in any order the bags could
+    leave in. It looks at 300 positions per board tick, so the same board gets the same answer at the
+    same tick everywhere. Replays record H and U (new events) and play hints, undos, prices, refused
+    clicks and early game overs back the same.
+  - **Scores.** The mod says it affects scores, so its games keep their own high-score tables, and the
+    mods sign shows.
+  - **Tested** (bot games under rundesk; `-autoplaysolver[=N]` makes the bot click the solver's plan N% of
+    the time, `-autoplayhints` press H first):
+    - Following the plans, the bot played to level 200 at Easy and 180 at Hard without losing a level.
+    - No level the solver called lost was ever won (the game logs "solver: WRONG" if one is).
+    - Nine games with H presses, prices and "end the game when lost" each replayed exactly ("replay:
+      verified").
+    - An answer took a median of about 9,000 positions at Easy and 33,000 at Hard (0.3 s and 1.1 s of
+      play); at Hard about one search in 20 reached the limit.
+    - Undo and free hints (`-autoplayundo[=N]` presses U in N% of the bot's turns): 45 undos, at rest
+      and mid-fall. After each, the board was the one clicked (the game logs "solver: WRONG" if not).
+    - Warnings (`-autoplaycheck` moves the mouse to a group and waits for its check before clicking):
+      about 1,600 checked clicks in 36 games. All 27 clicks on groups found to lose left a lost level;
+      no click found to win did. A check took a median of 1,800 positions (6 ticks).
+    - Refused clicks: 78 refusals in two games with "Show and refuse".
+    - All 12 replays of these games verified, with their undos, free hints and refused clicks.
+    - The web build compiles it; it has not been played in a browser yet.
+- **Winnable Puzzle boards** (the `winnable-puzzles` mod, `features.winnablePuzzles`;
+  `src/PuzzleBuilder.h`). Puzzle mode only: every board can be won.
+  - **Why the original's can't always be.** It builds a board backwards, pushing small groups of one
+    colour into the columns as if clicks were taken back. But a group can come out split (another coin
+    ends up between its coins) or touching coins of its own colour, and then clicking the groups in the
+    reverse order is not a legal win.
+  - **What the mod does.** It grows its groups the same way, from the same random numbers, but keeps a
+    coin only if the group stays exactly what a click on it would take: connected, and touching no other
+    coin of its colour. A new column starts only next to the columns already there, one per group at
+    most, so the columns empty one at a time from the outside in. (When a click emptied two columns at
+    once, a bag could land in the outer one, and the game closed the gap before the bag left.) The bags
+    go on as in the original.
+  - **The winning line.** Clicking the groups in the reverse of the order they were built clears the
+    board and drops every bag. When a board is made, the game plays that line on the solver's model
+    and logs "winnable: level N: … clicking them in reverse wins" (or "WRONG"). With the Puzzle Solver
+    on, that line is its first answer, so it says "can still be won" at once and its hints follow it.
+  - **Scores.** The mod says it affects scores (its own high-score tables, the mods sign).
+  - **Tested** (bot games under rundesk):
+    - 251 boards at Easy, Normal and Hard: the reverse order won every one. (Before the one-new-column
+      rule, about 4% failed.)
+    - Following the solver, the bot reached levels 77, 75 and 73 (Easy, Normal, Hard) without losing a
+      level, and the solver needed no search of its own on any of them.
+    - Six replays (random play, with and without the solver) verified.
+- **Pickpockets** (the `pickpocket` mod, `features.pickpocket`; `Board::UsePickpocket`). A powerup in every
+  mode.
+  - **What one does.** It lifts a group too small to click: a single coin, or two where three are needed.
+    The coins go in a puff, as under a bag, for no points; combos and colour streaks don't count it. In
+    Strategy it uses up a move, like a click.
+  - **How.** Right-click the group. Or press P, or click the counter on the steps under Mr. Money: it
+    blinks "pickpocket ready", small groups light up under the mouse, and the next click on one uses
+    it. P again puts it away.
+  - **How many.** Three at the start of a game, one more at each new level, five at most (all three
+    are settings). The count is kept in the savegame (a "BMPK" trailer the original's reader ignores).
+  - **Puzzle.** The game goes on while a Pickpocket can still lift a coin, and with no click left one is
+    armed by itself. The Puzzle Solver counts no Pickpockets: on a level it can't win it says "no way
+    to win without a pickpocket", "end the game when lost" waits until they are gone, and its undo
+    gives back a Pickpocket it takes back.
+  - **Replays.** A use is a new event (`OP_POCKET`, with where). Arming one is not recorded: it changes
+    only what lights up.
+  - **Scores.** The mod says it affects scores (its own high-score tables, the mods sign).
+  - **Tested** (bot games under rundesk; `-autoplaypocket[=N]` lifts a small group in N% of the bot's
+    turns and whenever nothing can be clicked, by P and a click or by a right click in turn):
+    - 100 Pickpockets in 15 games of Action, Strategy and Puzzle (two with the solver, undo and "end
+      the game when lost"); all 13 replays verified.
+    - Every Puzzle game ended with none left; a level the solver called lost played on while some were.
+    - An undo of a Pickpocket gave it back; a saved game resumed with the count it was saved with.
+- **Board size** (the `small-board` mod, `features.boardSize`). Every mode: fewer columns (4 to 14) and
+  rows (6 to 15), 10 x 12 by default.
+  - **Smaller only.** The 29-pixel coins already fill the vault (14 x 15), so a bigger board would need
+    smaller coins and new art.
+  - **How.** The game's rules already loop over its own column and row counts; the board uses the top-left
+    part of the 14 x 15 grid and is drawn centred on the same floor, with the rest of the vault dimmed.
+    The Puzzle generator uses the board's columns and floor where the original has 14 and 15, fills each
+    column to 3/5 of its height (row 6 of 15) and keeps two empty rows on top. Action and Strategy start
+    with 6 rows of 15 in proportion.
+  - **Puzzle.** A level needs no more bags than the board has columns for (one fewer). The solver keeps
+    its 14 x 15 model with the board on its floor (the empty columns past the side change nothing:
+    gaps close only between coins). Winnable Puzzles builds to the board's size.
+  - **Savegames** keep the original's layout: a blank next coin is written past the board's columns.
+  - **Scores.** The mod says it affects scores (its own high-score tables, the mods sign).
+  - **Tested** (bot games under rundesk, 10 x 12, 4 x 6, 6 x 15 and 14 x 8, every mode):
+    - With Winnable Puzzles and the solver, the bot reached level 101 on 10 x 12 (Hard) and 224 on 4 x 6
+      without losing one; every board's reverse build order won (383 boards, with 56 at 14 x 8).
+    - The solver on the original generator at 6 x 15: no wrong answer.
+    - 20 replays verified; a saved game on a small board resumed.
+- **More coin colours** (the `more-colours` mod; the tunables `coins.colors` and `coins.puzzleColors` now go
+  up to 8). Three colours after the game's five: orange, cyan and silver. Six in every mode by default,
+  with a setting for Action and Strategy and one for Puzzle (2 to 8).
+  - **The coins** are made when the game starts, from the game's coins or a mod's (HD too): each new colour
+    takes another colour's coins with their brightness and its own hue, so the shine stays white. Orange
+    has the pound sign, cyan the dollar, silver the yen, each unlike the colour it shares the sign with.
+    The highlighted coins, both flip-frame sets, the selection glow and the dollar bomb's tint have them.
+  - **Rules** are the game's: as with five colours, the first level on Easy has one fewer.
+  - **Puzzle.** The solver and Winnable Puzzles take up to 8 colours. The solver's position hashes for the
+    game's five colours are unchanged.
+  - **Scores.** A mod with tunables affects scores (its own high-score tables, the mods sign).
+  - **Tested** (bot games under rundesk, 6, 7 and 8 colours, every mode): with Winnable Puzzles and the
+    solver the bot reached level 74 on Hard with 8 colours without losing one; the solver gave no wrong
+    answer with 7 on the original generator; 19 replays verified, and older solver replays still verify.
+- **Diagonal groups** (the `diagonal-groups` mod, `features.diagonalGroups`). Every mode: coins of a colour
+  that touch at a corner are one group, so groups are bigger and easier to find.
+  - **How.** The game's group flood (Board::FloodFill) also goes across corners: the hover, the click, the
+    group sizes for "no moves left" and the hints. The flood Compact uses to close gaps does not (it
+    measures the pile, not a colour).
+  - **Puzzle.** The solver's groups follow the rule. Winnable Puzzles keeps a built group only if nothing
+    of its colour touches it at a corner either. The original generator is unchanged, so its boards get
+    easier.
+  - **Pickpockets** lift groups by the same rule.
+  - **Scores.** The mod says it affects scores (its own high-score tables, the mods sign).
+  - **Tested** (bot games under rundesk, every mode, alone and with More Colours, Pickpocket, Small Board
+    and the Puzzle Solver together):
+    - With Winnable Puzzles and the solver the bot reached levels 73 (Hard) and 77 (Easy) without losing
+      one; the solver gave no wrong answer on the original generator or with the other mods.
+    - Much easier: Strategy reached level 24 (440,489) and Easy Puzzle level 30.
+    - 15 replays verified; 44 Pickpockets used with diagonal groups.
 
 Example mods (`games/bigmoney/mods/`):
 - **`fake-money/`: "Fake Money! Deluxe".**
@@ -196,6 +349,13 @@ Example mods (`games/bigmoney/mods/`):
 - **`high-roller/`: "High Roller", a harder game for bigger scores.** Five colours from the start,
   faster minting, a bigger meter, at least two bags a level, a doubled multiplier and more points for
   big groups.
+- **`puzzle-solver/`: "Puzzle Solver".** Puzzle only: tells whether the level can still be won, sells
+  hints and undos, warns about losing clicks, and can end the game when the level can't be won.
+- **`winnable-puzzles/`: "Winnable Puzzles".** Puzzle only: builds boards that can always be won.
+- **`pickpocket/`: "Pickpocket".** A powerup that lifts a group too small to click (right click, or P).
+- **`small-board/`: "Small Board".** Plays on a smaller board (10 x 12 by default, settings for both).
+- **`more-colours/`: "More Colours".** Orange, cyan and silver coins: six colours by default, up to eight.
+- **`diagonal-groups/`: "Diagonal Groups".** Coins that touch at a corner are one group.
 - **`replays/`: "Replays".** Turns on replays and nothing else: no change in play, the normal high-score
   tables, and no mods sign.
 - **`livesplit/`: "LiveSplit".** Turns on the LiveSplit block, with a copy of the script, seven split

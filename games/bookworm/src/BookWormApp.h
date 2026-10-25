@@ -166,7 +166,9 @@ public:
 	//   -autoplaycap=<n>         quits at update n (default 200000);
 	//   -autoplaylog=<file>      writes its input as a -script file, with comments on what happened;
 	//   -autoplayshots=<prefix>  screenshots <prefix><mode>-levelup<n>.png, -gameover.png, -fame.png and,
-	//                            every -autoplayshotwords=<n> words (default 25, 0: none), -word<n>.png
+	//                            every -autoplayshotwords=<n> words (default 25, 0: none), -word<n>.png;
+	//   -autoplayhints=1         plays the word solver's first hint every move (the mod "solver" on);
+	//   -autoplayundo=1          with it, undoes every other word and checks the board (the mod "undo" on)
 	bool					mAutoplay;
 	unsigned long			mAutoplaySeed;
 	std::string				mAutoplayMode;
@@ -174,6 +176,10 @@ public:
 	std::string				mAutoplayLogFileName;
 	std::string				mAutoplayShotPrefix;
 	int						mAutoplayShotWords;
+	bool					mAutoplayHints;
+	bool					mAutoplayUndo;
+	bool					mAutoplayModel;         // -autoplaymodel=1: the greedy bots' model checked (Autoplay.h)
+	bool					mAutoplayContinue;      // -autoplaycontinue=1: the saved game goes on (Autoplay.h)
 	AutoplayBot*			mAutoplayBot;
 
 public:

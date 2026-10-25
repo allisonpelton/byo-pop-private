@@ -41,12 +41,12 @@
 384 click 200 70
 # A press on the list that moves more than 6 pixels scrolls it (to its end) instead of clicking
 385 down 150 300
-386 move 150 220
-387 up 150 220
+386 move 150 150
+387 up 150 150
 388 screenshot shots/c03_scrolled.png
 # Tint >: the palette colour nearest #ff8800 (#ff8000); Volume -: 90
-390 click 442 331
-391 click 294 361
+390 click 442 297
+391 click 294 327
 # Reset to defaults asks first: Cancel
 400 click 100 436
 410 screenshot shots/c04_reset_question.png

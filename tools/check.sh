@@ -8,7 +8,8 @@
 #   build        tools/build.sh native, incremental (seconds to minutes)
 #   build-web    tools/build.sh web
 #   build-nov    tools/build.sh novariants (Bejeweled without its variant code, for the oracle)
-#   unit         rulestest, modsettingstest and fwtest -hotkeytest, native (under a minute)
+#   unit         rulestest, modsettingstest and fwtest -hotkeytest, native (under a minute); fwtest is skipped
+#                without assets/bejeweled; then fwtest -hotkeytest -placeholders with no game files at all
 #   unit-web     rulestest and modsettingstest under Node (needs build-web)
 #   verify       Bejeweled's headless verifier tests (games/bejeweled/tools/verify/run_tests.sh)
 #   modmenu      the mod menu's scripted runs, all games (tools/modmenutest/run_tests.sh all)
@@ -81,15 +82,26 @@ suite_build-web() { build_suite web "$1"; }
 suite_build-nov() { build_suite novariants "$1"; }
 
 suite_unit() {
-	local st=0 a b c
-	(cd build/native && ./rulestest.exe) > "$1" 2>&1 || st=1
+	local st=0 a b c d
+	(cd build/native && timeout 120 ./rulestest.exe) > "$1" 2>&1 || st=1
 	a="$(lastof "$1" 'checks')"
-	(cd build/native && ./modsettingstest.exe) > "$1.mst" 2>&1 || st=1
+	(cd build/native && timeout 120 ./modsettingstest.exe) > "$1.mst" 2>&1 || st=1
 	b="$(lastof "$1.mst" 'checks')"
-	"build/native/fwtest.exe" -hotkeytest > "$1.fw" 2>&1 || st=1
-	c="fwtest $(lastof "$1.fw" 'hotkey: [0-9]+ failed')"
-	cat "$1.mst" "$1.fw" >> "$1"; rm -f "$1.mst" "$1.fw"
-	SUMMARY="$a; $b; $c"
+	# fwtest draws with Bejeweled's files: without them (a worktree before tools/setup_worktree.sh) it is skipped
+	if [ -d assets/bejeweled ]; then
+		timeout 120 "build/native/fwtest.exe" -hotkeytest > "$1.fw" 2>&1 || st=1
+		c="fwtest $(lastof "$1.fw" 'hotkey: [0-9]+ failed')"
+	else
+		echo "fwtest -hotkeytest skipped: no assets/bejeweled (tools/setup_worktree.sh)" > "$1.fw"
+		c="fwtest skipped (no assets/bejeweled)"
+	fi
+	# -placeholders with no game files at all: every image, font, sound and song a stand-in (platform/Placeholders.h)
+	mkdir -p "$OUT/no-game-files"
+	timeout 120 "build/native/fwtest.exe" -hotkeytest -placeholders -gamedir="$OUT/no-game-files" > "$1.ph" 2>&1 || st=1
+	d="placeholders: $(lastof "$1.ph" 'placeholders: [0-9]+ game files? missing' | sed 's/^placeholders: //'), $(lastof "$1.ph" 'hotkey: [0-9]+ failed')"
+	grep -q -E 'placeholders: [1-9][0-9]* game files? missing' "$1.ph" || st=1
+	cat "$1.mst" "$1.fw" "$1.ph" >> "$1"; rm -f "$1.mst" "$1.fw" "$1.ph"
+	SUMMARY="$a; $b; $c; $d"
 	return $st
 }
 
@@ -121,6 +133,8 @@ suite_modmenu() {
 
 suite_livesplit() {
 	local st=0 a b
+	# fresh folders: a game's user folder left by an earlier run (its play count, high scores) changes the games
+	rm -rf "$OUT/livesplit-bejeweled" "$OUT/livesplit-bigmoney"
 	games/bejeweled/tools/livesplit/run_tests.sh --out "$OUT/livesplit-bejeweled" > "$1" 2>&1 || st=1
 	a="bejeweled: $(lastof "$1" 'PASSED|FAILED|failed')"
 	bash games/bigmoney/tools/livesplit/run_tests.sh "$OUT/livesplit-bigmoney" > "$1.bm" 2>&1
