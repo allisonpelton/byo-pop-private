@@ -50,10 +50,11 @@ enum
 	// masks, level shapes), which earlier engines played on the original 8x8, and the displayed score's fast roll
 	// with a mod's scoring tunables (Board::RollScoreFast). 4: stage 7b, dirt cells (board.mask "d"), which earlier
 	// engines played as holes, and their diagonal slides. 5: stage 8, board.gemColors 8..12, which earlier engines
-	// played as 7. 6: stage 9, the match rules (match.*), which earlier engines played as runs of 3. The original rules are frozen, so a replay of them (no variant rule, no scoring tunable changed,
+	// played as 7. 6: stage 9, the match rules (match.*), which earlier engines played as runs of 3. 7: stage 10, twists and
+	// slides (moves.type), which earlier engines played as swaps. The original rules are frozen, so a replay of them (no variant rule, no scoring tunable changed,
 	// at most 7 gem colours: GameRules::PlaysAlikeInEveryEngine) from an earlier engine still plays (CheckPlayable). games/bejeweled/tools/bjr.py repeats both
 	// values (the verifier's tests check that they agree)
-	ENGINE_ABI = 6,
+	ENGINE_ABI = 7,
 	FIRST_ENGINE_ABI = 1,
 	MT_WORDS = 624,
 	RULES_ID_SIZE = 32,

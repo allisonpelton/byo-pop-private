@@ -108,6 +108,9 @@
 # colours, recorded and watched without the mod (compare.py "colors").
 # Stage 9 (match rules) plays the rule mods of mods/stage9: merged crossings and squares, diagonals, runs of 2 and
 # of 4 by the bot, recorded and played back (compare.py "variant" with "match" and "kinds"). Left out the same way.
+# Stage 10 (twists and slides) plays the rule mods of mods/stage10: twists, slides, both with swaps, kept without a
+# group and on the diamond by the bot, a scripted game saved in the middle of a twist and resumed, recorded and played
+# back (compare.py "variant" with "moves"). Left out the same way.
 #
 # The frozen exes (build/baseline, build/baseline-stage0) predate the audio shutdown fix (af758b9) and can
 # crash on exit after writing all their outputs: a baseline or hooks-baseline run that exits 139 or with an
@@ -1333,8 +1336,47 @@ define_cases() {
 			match_shapes_auto_timed 1 - modsdir="$M9/shapes-replays" arg=-autoplay=2 arg=-autoplaytimed "${SHAPEBOT[@]}"
 		playback watch_match_shapes_auto_timed "rec_match_shapes_auto_timed's sidecar (saved at the cap): the same groups again" \
 			"trace=rec_match_shapes_auto_timed" "$C/rec_match_shapes_auto_timed/user/savegame-*.bjr"
+
+		# Stage 10: twists and slides (games/bejeweled/docs/CODE_MODS_DESIGN.md 4.4, 4.5, 4.7). The rule mods of
+		# mods/stage10: s10-twist (twists both ways), s10-slide, s10-all (swaps, twists and slides at once, a snap of 8
+		# ticks), s10-kept (moves.allowInvalid: a twist or slide without a group stays), s10-diamond (stage 7's diamond:
+		# segments of 1 to 9 cells) and s1-twist over s1-slides (twist-slide). The bot plays each one; compare.py
+		# "variant" with moves= finds no group in any settled grid and the move lines MoveSet's, by brute force, and
+		# kept= the kept moves each one move of those types. A scripted game (-gameseed) twists, slides a row round,
+		# and quits in the middle of an anticlockwise twist (the v2 save holds the board before it); its resume makes
+		# that twist again, a twist that turns back, a drag let go too short and a column slide. Recorded and played
+		# back (engine 7: the TWIST and SLIDE events).
+		M10="$GAME/tools/oracle/mods/stage10"
+		S10="$PT/stage10"
+		variant moves_twist_auto "-autoplay=1, mods/stage10/twist, 20000 updates: twists both ways" \
+			"moves=twist;twist=both" 1 - modsdir="$M10/twist" arg=-autoplay=1 "${SHAPEBOT[@]}"
+		variant moves_slide_auto "-autoplay=1, mods/stage10/slide, 20000 updates: slides" \
+			"moves=slide" 1 - modsdir="$M10/slide" arg=-autoplay=1 "${SHAPEBOT[@]}"
+		variant moves_all_auto_timed "-autoplay=2 -autoplaytimed, mods/stage10/all, 20000 updates: swaps, twists and slides" \
+			"moves=swap+twist+slide;twist=both" 1 - modsdir="$M10/all" arg=-autoplay=2 arg=-autoplaytimed "${SHAPEBOT[@]}"
+		variant moves_kept_auto "-autoplay=1, mods/stage10/kept, 20000 updates: twists and slides kept without a group" \
+			"moves=twist+slide;kept=1" 1 - modsdir="$M10/kept" arg=-autoplay=1 "${SHAPEBOT[@]}"
+		variant moves_diamond_auto "-autoplay=1, mods/stage10/diamond, 20000 updates: twists and slides on the diamond's segments" \
+			"moves=twist+slide;shapes=9x9:40" 1 - modsdir="$M10/diamond" arg=-autoplay=1 "${SHAPEBOT[@]}"
+		variant moves_auto_timed "-autoplay=2 -autoplaytimed, mods/stage10/twist-slide, 20000 updates" \
+			"moves=twist+slide;twist=both" 1 - modsdir="$M10/twist-slide" arg=-autoplay=2 arg=-autoplaytimed "${SHAPEBOT[@]}"
+		variant moves_quit "-gameseed=$GS, mods/stage10/twist-slide: a twist, a row slid round; the quit in an anticlockwise twist: a v2 save of the board before it" \
+			"moves=twist+slide;twist=both;v2=last" 1 "$S10/moves_quit.txt" modsdir="$M10/twist-slide" arg=-gameseed=$GS
+		variant moves_quit.resume "moves_quit's user dir: Yes resumes the board before the twist; it again, a twist that turns back, a short drag, a column slide" \
+			"moves=twist+slide;twist=both" 1 "$S10/moves_resume.txt" from=moves_quit modsdir="$M10/twist-slide"
+		# Recorded (mods/stage10/twist-slide-replays: s1-twist, s1-slides and stage 3's replays feature mod) and played back
+		recording rec_moves_auto_timed "moves_auto_timed recorded: twists and slides in a replay" \
+			moves_auto_timed 1 - modsdir="$M10/twist-slide-replays" arg=-autoplay=2 arg=-autoplaytimed "${SHAPEBOT[@]}"
+		recording rec_moves_quit "moves_quit recorded: the sidecar next to the v2 save made in the twist" \
+			moves_quit 1 "$S10/moves_quit.txt" modsdir="$M10/twist-slide-replays" arg=-gameseed=$GS
+		recording rec_moves_quit.resume "moves_quit.resume in a copy of rec_moves_quit's user dir: the sidecar goes on" \
+			moves_quit.resume 1 "$S10/moves_resume.txt" from=rec_moves_quit modsdir="$M10/twist-slide-replays"
+		playback watch_moves_auto_timed "rec_moves_auto_timed's sidecar (saved at the cap): the same twists and slides again" \
+			"trace=rec_moves_auto_timed" "$C/rec_moves_auto_timed/user/savegame-*.bjr"
+		playback watch_moves_resume "rec_moves_quit.resume's sidecar: the second segment LOADs the save made in the twist" \
+			"trace=rec_moves_quit,rec_moves_quit.resume" "$C/rec_moves_quit.resume/user/savegame-*.bjr"
 	else
-		echo "$VTAG  (the candidate has no variant paths: the stage-5, 6, 7, 7c, 7b and 9 cases are left out)"
+		echo "$VTAG  (the candidate has no variant paths: the stage-5, 6, 7, 7c, 7b, 9 and 10 cases are left out)"
 	fi
 
 	# Stage 8: more gem colours (games/bejeweled/docs/CODE_MODS_DESIGN.md 4.2), a tunable every build plays. sheet.txt

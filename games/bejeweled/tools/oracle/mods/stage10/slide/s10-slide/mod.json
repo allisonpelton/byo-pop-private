@@ -1,0 +1,7 @@
+{
+  "id": "s10-slide",
+  "name": "Stage 10: slides",
+  "version": "1.0",
+  "description": "Oracle fixture: slides only: a drag along a row or a column slides its gems, wrapping round; the default snap of 12 ticks.",
+  "rules": { "moves": { "type": "slide" } }
+}

@@ -866,6 +866,17 @@ The search order is fixed: swaps (original order), then twists, then slides (4.7
 - The fill cap is stage 7's `MAX_FILL_REROLLS`, and Validate already checks the colour minimum
   (`GameRules::FillMinimum`); the fill now asks `AnyGroup`.
 
+**As built (stage 10, `MoveSet.cpp`, `BoardMoves.cpp`; GAME_NOTES 12.15):** 4.4, 4.5 and this section, where they differ:
+- The search is `MoveSet::FindMove`: a move is `{type, A..E}` (a slide's E is its k). `FindMove`'s contract stays
+  `{to, from}`, the cell where the first moved gem that lands in a group lands and the cell it comes from, with no
+  type in it; a twist or slide is found once, at that gem. `DoHint` needs no variant path.
+- The grid is the board before the move until the forward animation ends, as planned; with no group the move is
+  undone in the grid at once and only the positions animate back.
+- There is no `images/twistcursor`: the ring is four 26x26 quarters of `IMAGE_TARGET`.
+- With slides present a press at a twist point waits for the mouse up, so a drag from it slides.
+- The instruction strings are `INSTRUCTIONDIALOG_<types>` and `FULL_INSTRUCTIONS_<types>` (`TWIST`, `SWAP_SLIDE`,
+  ...), with generated English defaults. Engine ABI 7.
+
 ### 4.8 Flame and lightning gems
 
 - **Data:** `Piece::mKind` and `mKindFrame` (2.4).

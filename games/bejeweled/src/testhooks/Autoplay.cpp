@@ -17,7 +17,7 @@ using namespace Sexy;
 static const char* const gStateNames[] =
 {
 	"falling", "playing", "swapping", "swapping back", "clearing", "game over", "game over done",
-	"vortex", "level wipe", "fall out"
+	"vortex", "level wipe", "fall out", "twisting", "twisting back", "sliding", "sliding back"
 };
 
 static const char* StateName(int theState)
@@ -214,6 +214,11 @@ void AutoplayBot::PlanMove()
 		mPlan.push_back(aHint);
 		return;
 	}
+	if (aBoard->mVariant.mMoves && (aBoard->mRules.mMoves.mTypes != GameRules::MOVE_SWAP))
+	{
+		PlanVariantMove(aKind < 12, aThink);
+		return;
+	}
 
 	// Only moves whose two gems take a click (the first game's instructions cover the top rows). A move is packed
 	// 4 bits a coordinate; the board's own size and its playable cells (stage 7: on the original 8x8 the same list)
@@ -265,6 +270,153 @@ void AutoplayBot::PlanMove()
 	Note("move %d: (%d,%d)->(%d,%d) %s, %s", ++mMoveNum, aMove[0], aMove[1], aMove[2], aMove[3], aKindName,
 		(aStyle < 6) ? "click" : (aStyle < 8) ? "zone click" : "drag");
 	AddTargetSteps(aMove[0], aMove[1], aMove[2], aMove[3], aStyle, aThink);
+}
+
+// The input points of a move take a click: a swap's two gems, a twist's point where its four gems meet, a slide's
+// drag from a cell's centre k cells on (or length - k back, when that is shorter), as BoardTrace prints them
+bool AutoplayBot::VariantMoveOnBoard(const MoveSet::Move& theMove)
+{
+	Board* b = mApp->mBoard;
+	const MoveSet::Move& m = theMove;
+	if (m.mType == GameRules::MOVE_SWAP)
+		return OnBoard(b->GetColX(m.mA) + 24, b->GetRowY(m.mB) + 24) && OnBoard(b->GetColX(m.mC) + 24, b->GetRowY(m.mD) + 24);
+	if (m.mType == GameRules::MOVE_TWIST)
+		return OnBoard(b->GetColX(m.mA + 1) - 1, b->GetRowY(m.mB + 1) - 1);
+	bool isRow = (m.mA == MoveSet::AXIS_ROW);
+	bool isBack = (m.mD - m.mE < m.mE);
+	int aFrom = isBack ? m.mC + m.mD - 1 : m.mC;
+	int aTo = isBack ? aFrom - (m.mD - m.mE) : aFrom + m.mE;
+	return OnBoard(b->GetColX(isRow ? aFrom : m.mB) + 24, b->GetRowY(isRow ? m.mB : aFrom) + 24) &&
+		OnBoard(b->GetColX(isRow ? aTo : m.mB) + 24, b->GetRowY(isRow ? m.mB : aTo) + 24);
+}
+
+// PlanMove on a board with twists or slides (stage 10): a valid move of any type (MoveSet's search), or a random one
+// of a random type the rules have (usually without a group). A swap as AddTargetSteps makes it (not as a drag where a
+// drag slides); a twist as a click within 8 px of the point where its gems meet (13 px take it), a right click for
+// one anticlockwise; a slide as a press within 8 px of a cell's centre and a drag of 1 to 3 moves along the line to
+// k cells on, give or take 20 px (26 px would round to another k)
+void AutoplayBot::PlanVariantMove(bool isRandom, int theDelay)
+{
+	Board* b = mApp->mBoard;
+	int aTypes = b->mRules.mMoves.mTypes;
+	std::vector<MoveSet::Move> aMoves;
+	const char* aKindName = isRandom ? "random" : "valid";
+	if (isRandom)
+	{
+		std::vector<int> aTypeList;
+		for (int aType = GameRules::MOVE_SWAP; aType <= GameRules::MOVE_SLIDE; aType <<= 1)
+		{
+			if (aTypes & aType)
+				aTypeList.push_back(aType);
+		}
+		int aType = aTypeList[Random((int) aTypeList.size())];
+		for (int aRow = 0; aRow < b->mRows; aRow++)
+		{
+			for (int aCol = 0; aCol < b->mCols; aCol++)
+			{
+				MoveSet::Move aMove;
+				aMove.mType = aType;
+				if ((aType == GameRules::MOVE_SWAP) && b->mLayout.IsPlayable(aCol, aRow))
+				{
+					aMove.mA = aCol;
+					aMove.mB = aRow;
+					if (b->mLayout.IsPlayable(aCol + 1, aRow))
+					{
+						aMove.mC = aCol + 1;
+						aMove.mD = aRow;
+						aMoves.push_back(aMove);
+					}
+					if (b->mLayout.IsPlayable(aCol, aRow + 1))
+					{
+						aMove.mC = aCol;
+						aMove.mD = aRow + 1;
+						aMoves.push_back(aMove);
+					}
+				}
+				else if ((aType == GameRules::MOVE_TWIST) && b->mLayout.IsPlayable(aCol, aRow) && b->mLayout.IsPlayable(aCol + 1, aRow) &&
+					b->mLayout.IsPlayable(aCol, aRow + 1) && b->mLayout.IsPlayable(aCol + 1, aRow + 1))
+				{
+					aMove.mA = aCol;
+					aMove.mB = aRow;
+					aMove.mC = (b->mRules.mMoves.mTwistBoth && (Random(2) == 0)) ? -1 : 1;
+					aMoves.push_back(aMove);
+				}
+				else if (aType == GameRules::MOVE_SLIDE)
+				{
+					// each segment once, from its first cell
+					for (int anAxis = MoveSet::AXIS_ROW; anAxis <= MoveSet::AXIS_COL; anAxis++)
+					{
+						int aStart = 0;
+						int aLength = 0;
+						if (MoveSet::SegmentAt(b->mLayout, anAxis, aCol, aRow, &aStart, &aLength) && (aLength >= 2) &&
+							(aStart == ((anAxis == MoveSet::AXIS_ROW) ? aCol : aRow)))
+						{
+							aMove.mA = anAxis;
+							aMove.mB = (anAxis == MoveSet::AXIS_ROW) ? aRow : aCol;
+							aMove.mC = aStart;
+							aMove.mD = aLength;
+							aMove.mE = 1 + Random(aLength - 1);
+							aMoves.push_back(aMove);
+						}
+					}
+				}
+			}
+		}
+	}
+	else
+	{
+		std::vector<MoveSet::Found> aFound;
+		b->FindVariantMoves(&aFound);
+		for (size_t i = 0; i < aFound.size(); i++)
+			aMoves.push_back(aFound[i].mMove);
+	}
+	for (size_t i = 0; i < aMoves.size(); )
+	{
+		if (VariantMoveOnBoard(aMoves[i]))
+			i++;
+		else
+			aMoves.erase(aMoves.begin() + i);
+	}
+	if (aMoves.empty())
+		return;
+
+	const MoveSet::Move m = aMoves[Random((int) aMoves.size())];
+	if (m.mType == GameRules::MOVE_SWAP)
+	{
+		int aStyle = Random((aTypes & GameRules::MOVE_SLIDE) ? 8 : 10);
+		Note("move %d: (%d,%d)->(%d,%d) %s, %s", ++mMoveNum, m.mA, m.mB, m.mC, m.mD, aKindName,
+			(aStyle < 6) ? "click" : (aStyle < 8) ? "zone click" : "drag");
+		AddTargetSteps(m.mA, m.mB, m.mC, m.mD, aStyle, theDelay);
+	}
+	else if (m.mType == GameRules::MOVE_TWIST)
+	{
+		Note("move %d: twist (%d,%d) %s, %s", ++mMoveNum, m.mA, m.mB, (m.mC > 0) ? "cw" : "ccw", aKindName);
+		Step aClick = {STEP_CLICK_AT, ROLE_SELECT, (m.mC > 0) ? 0 : 1, 0, b->GetColX(m.mA + 1) - 1 + Random(17) - 8,
+			b->GetRowY(m.mB + 1) - 1 + Random(17) - 8, theDelay};
+		mPlan.push_back(aClick);
+	}
+	else
+	{
+		bool isRow = (m.mA == MoveSet::AXIS_ROW);
+		bool isBack = (m.mD - m.mE < m.mE);
+		int aFrom = isBack ? m.mC + m.mD - 1 : m.mC;
+		int aDistance = (isBack ? -(m.mD - m.mE) : m.mE) * Board::CELL_SIZE + Random(41) - 20;
+		Note("move %d: slide %s %d from %d length %d by %d, %s", ++mMoveNum, isRow ? "row" : "col", m.mB, m.mC, m.mD, m.mE, aKindName);
+		Step aDown = {STEP_DOWN_AT, ROLE_SELECT, 0, 0, b->GetColX(isRow ? aFrom : m.mB) + 24 + Random(17) - 8,
+			b->GetRowY(isRow ? m.mB : aFrom) + 24 + Random(17) - 8, theDelay};
+		mPlan.push_back(aDown);
+		int aParts = 1 + Random(3);
+		int aDone = 0;
+		for (int i = 1; i <= aParts; i++)
+		{
+			int aPart = aDistance * i / aParts - aDone;
+			aDone += aPart;
+			Step aMove = {STEP_DRAG_MOVE, ROLE_ANY, 0, 0, isRow ? aPart : Random(5) - 2, isRow ? Random(5) - 2 : aPart, 1 + Random(4)};
+			mPlan.push_back(aMove);
+		}
+		Step anUp = {STEP_DRAG_UP, ROLE_ANY, 0, 0, 0, 0, 1 + Random(3)};
+		mPlan.push_back(anUp);
+	}
 }
 
 // While the board falls, clears or falls out: select a random gem (a fall-out leaves it stale)
@@ -406,6 +558,20 @@ bool AutoplayBot::RunStep(const Step& theStep)
 				return false;
 			Queue("click", ScreenX(x), ScreenY(y));
 		}
+		return true;
+
+	case STEP_CLICK_AT:
+	case STEP_DOWN_AT:
+		if (!OnBoard(theStep.mDX, theStep.mDY))
+			return false;
+		if (theStep.mKind == STEP_DOWN_AT)
+		{
+			mDragX = theStep.mDX;
+			mDragY = theStep.mDY;
+			Queue("down", ScreenX(mDragX), ScreenY(mDragY));
+		}
+		else
+			Queue((theStep.mCol == 1) ? "rclick" : "click", ScreenX(theStep.mDX), ScreenY(theStep.mDY));
 		return true;
 
 	case STEP_DRAG_MOVE:

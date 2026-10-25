@@ -1,0 +1,7 @@
+{
+  "id": "s10-all",
+  "name": "Stage 10: every move type",
+  "version": "1.0",
+  "description": "Oracle fixture: swaps, twists both ways and slides at once (design 4.4's input table): a click where four gems meet twists, a click on a gem selects, a drag slides; slides snap in 8 ticks.",
+  "rules": { "moves": { "type": ["swap", "twist", "slide"], "twist": { "direction": "both" }, "slide": { "snapTicks": 8 } } }
+}
