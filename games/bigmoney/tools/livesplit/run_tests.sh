@@ -23,6 +23,11 @@ ROOT="$(cd "$HERE/../../../.." && pwd)"
 OUT="${1:?usage: run_tests.sh <out dir>}"
 mkdir -p "$OUT"
 OUT="$(cd "$OUT" && pwd)"
+# Every run starts afresh: a user folder left by an earlier run (its high scores and registry.ini) changes
+# how the bot's games go
+for d in bot_strategy bot_puzzle bot_seeded newgame quit resume replay probe_strategy off; do
+	rm -rf "${OUT:?}/${d:?}"
+done
 EXE="$(cygpath -w "$ROOT/build/native/bigmoney.exe")"
 ASL="$(cygpath -w "$HERE/BigMoneyDeluxe-byopop.asl")"
 CSC=/c/Windows/Microsoft.NET/Framework/v4.0.30319/csc.exe
