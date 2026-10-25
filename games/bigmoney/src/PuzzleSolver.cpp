@@ -7,19 +7,20 @@
 using namespace Sexy;
 
 // Zobrist keys from a fixed generator (splitmix64), so hashes are the same on every machine and the game's
-// own random numbers are not touched. Per cell: colours 0..4 and the bag; then the released count; then the
-// extra colours 5..7 per cell, added after the others so the first keys stay as they were.
+// own random numbers are not touched. Per cell: colours 0..4 and the bag; then the released count; then each
+// extra colour 5..15 for every cell, after the others so the first keys stay as they were. (Only equal hashes
+// count, so the keys could change without changing an answer.)
 enum
 {
 	ZOBRIST_CELL = 6,
 	ZOBRIST_RELEASED = PuzzleModel::ROWS * PuzzleModel::COLS * ZOBRIST_CELL,
 	ZOBRIST_EXTRA = ZOBRIST_RELEASED + 64,
-	ZOBRIST_EXTRA_CELL = PuzzleModel::COLORS - 5
+	ZOBRIST_EXTRA_COLORS = PuzzleModel::COLORS - 5
 };
 
 static const uint64_t* ZobristKeys()
 {
-	static uint64_t sKeys[ZOBRIST_EXTRA + PuzzleModel::ROWS * PuzzleModel::COLS * ZOBRIST_EXTRA_CELL];
+	static uint64_t sKeys[ZOBRIST_EXTRA + ZOBRIST_EXTRA_COLORS * PuzzleModel::ROWS * PuzzleModel::COLS];
 	static bool sReady = false;
 	if (!sReady)
 	{
@@ -283,7 +284,7 @@ uint64_t PuzzleModel::Hash() const
 		if (v == BAG)
 			aHash ^= aKeys[i * ZOBRIST_CELL + 5];
 		else if ((v >= 5) && (v < COLORS))
-			aHash ^= aKeys[ZOBRIST_EXTRA + i * ZOBRIST_EXTRA_CELL + (v - 5)];
+			aHash ^= aKeys[ZOBRIST_EXTRA + (v - 5) * ROWS * COLS + i];
 		else if (v != EMPTY)
 			aHash ^= aKeys[i * ZOBRIST_CELL + v];
 	}

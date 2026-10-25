@@ -42,12 +42,15 @@ Big Money (`bigmoney.*`) and BookWorm (`bookworm.*`) have the same three files.
 ## The top bar and side panels
 
 The bar and panels are ordinary HTML around the canvas, not part of the game. They reach the game in
-three ways:
+four ways:
 
 - **Function calls.** `platform/WebApi.cpp` exports a few C functions (`byopop_mods_open`,
   `byopop_mods_state`, `byopop_mods_edit`, `byopop_mods_rescan`), and `framework/ModMenu.cpp` exports
   `byopop_menu` and `byopop_restart`. The page calls them with `Module.ccall`. The game calls back
   through `Module.onModsChanged` when the mods change.
+- **The screen's shape.** The stage is 4:3 unless the game calls `Module.onGameScreen(width, height)`
+  before it makes its window: BookWorm's mod "widescreen" gives 854 x 480 (`SidePanel::TellPage`). The stage
+  takes that shape and SDL sizes the canvas to it.
 - **Files.** Adding a mod writes its files into `/persist/mods` and syncs them to IndexedDB. The game
   reads them at its next start.
 - **Reloads.** "Restart game", in the game's F2 menu, reloads the page. A mark in localStorage tells the
@@ -137,6 +140,26 @@ At configure time `byopop_web_shell()` in `cmake/ByopopWeb.cmake` writes both fi
 Each game sets its own name, its notice (the copyright and trademark lines of its readme) and any libraries of
 its own: `byopop_web_game(<target> TITLE "..." COPYRIGHT "..." [LICENSES <name>...])` in its `CMakeLists.txt`
 (BookWorm: `LICENSES libopenmpt`). A web host serves the copyright page with the game's page.
+
+## The site's logo and icons
+
+`web/brand` holds byo-pop's logo and icons. `byopop_web_game()` copies them next to the pages (`build/web`), and
+both page templates link them. A web host serves them with the pages.
+
+| File | What it is |
+|---|---|
+| `favicon.svg` | The mark: a bottle opener (chrome head, red handle) on a sky-blue tile. It is the tab icon in browsers that take SVG icons. |
+| `favicon.ico` | The mark at 16, 32 and 48 px, for browsers without SVG icons. |
+| `apple-touch-icon.png` | 180 px, opaque, for home screens (iOS rounds the corners itself). |
+| `logo.svg`, `logo-dark.svg` | The mark and the wordmark "byo-pop", whose "o" in "pop" is a red crown cap. One file for light backgrounds, one for dark. The top bar shows the one that matches the page's theme, before the game's mark and name. The copyright page shows it at the top. |
+
+- **Colours.** The colours are taken from PopCap's classic logo: its red (#ED1C24), sky blue and chrome. The shapes
+  and lettering are byo-pop's own, and none of PopCap's are copied. The outline is the dark blue #12304A.
+- **The 16 px grid.** The mark is drawn on a grid of 4 units in its 64-unit box. One unit of that grid is one pixel
+  at 16 px, so the tab icon stays sharp: a white head with a dark mouth, the tooth hanging into it, and a red handle.
+- **Editing.** The SVGs are the sources; edit them by hand. After a change to `favicon.svg`, run
+  `python tools/brand_icons.py` to make the ICO and the PNG again. It draws them with headless Edge, so they match
+  what a browser draws from the SVG.
 
 ## Testing other copies of a game: `?placeholders=1`
 

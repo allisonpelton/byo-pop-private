@@ -4,12 +4,16 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>@BYOPOP_TITLE@ Web Port</title>
+<link rel="icon" href="favicon.ico" sizes="16x16 32x32 48x48">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
 <style>
-/* Every game's page (docs/WEB_PLAYER.md). Layout: a single 4:3 stage that fills the viewport, with a slim tool
-   bar and slide-over panels (mods, game files and any of the game's own). The game's parts come from its
-   games/<game>/web folder: page.js (its settings, below), page.css (its colours and brand mark) and page.html (its
-   own panels), put in at the byopop:game-js, byopop:game-css and byopop:game-panels markers by byopop_web_game()
-   (cmake/ByopopWeb.cmake). The base palette: an amethyst accent on a dark velvet tray; the light theme is a pale tray. */
+/* Every game's page (docs/WEB_PLAYER.md). Layout: a single stage that fills the viewport (4:3, or the shape the game
+   gives: Module.onGameScreen), with a slim tool bar and slide-over panels (mods, game files and any of the game's
+   own). The game's parts come from its games/<game>/web folder: page.js (its settings, below), page.css (its colours
+   and brand mark) and page.html (its own panels), put in at the byopop:game-js, byopop:game-css and
+   byopop:game-panels markers by byopop_web_game() (cmake/ByopopWeb.cmake). The base palette: an amethyst accent on a
+   dark velvet tray; the light theme is a pale tray. */
 :root {
   --bg: #eceaf2;
   --panel: #ffffff;
@@ -52,6 +56,17 @@ body {
   border-bottom: 1px solid var(--line); background: var(--panel);
 }
 .brand { font-weight: 700; letter-spacing: 0.02em; display: flex; align-items: center; gap: 8px; }
+/* the site's logo (web/brand: one file per theme), then the game's mark and name */
+.brand .site { display: flex; padding-right: 12px; border-right: 1px solid var(--line); }
+.brand .site img { height: 22px; width: auto; }
+.brand .logo-light { display: block; }
+.brand .logo-dark { display: none; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .brand .logo-light { display: none; }
+  :root:not([data-theme="light"]) .brand .logo-dark { display: block; }
+}
+:root[data-theme="dark"] .brand .logo-light { display: none; }
+:root[data-theme="dark"] .brand .logo-dark { display: block; }
 /* the game's mark before its name: page.css draws its own */
 .brand .mark { width: 12px; height: 12px; background: var(--accent); border-radius: 2px; }
 .bar .status { color: var(--muted); font-size: 13px; flex: 1 1 200px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -65,8 +80,8 @@ button.primary { background: var(--accent); color: var(--accent-fg); border-colo
 button[disabled] { opacity: 0.5; cursor: default; }
 .stage-wrap { flex: 1; min-height: 0; display: grid; place-items: center; padding: 12px; }
 .stage {
-  position: relative; background: var(--stage); aspect-ratio: 4 / 3; max-width: 100%;
-  width: min(100%, calc((100vh - 90px) * 4 / 3)); box-shadow: 0 10px 40px rgba(0, 0, 0, 0.35); border-radius: 4px; overflow: hidden;
+  position: relative; background: var(--stage); aspect-ratio: var(--aspect, 4 / 3); max-width: 100%;
+  width: min(100%, calc((100vh - 90px) * var(--aspect-w, 1.3333))); box-shadow: 0 10px 40px rgba(0, 0, 0, 0.35); border-radius: 4px; overflow: hidden;
 }
 canvas#canvas { display: block; width: 100%; height: 100%; outline: none; image-rendering: auto; }
 .overlay {
@@ -102,7 +117,7 @@ input[type=file] { display: none; }
 </head>
 <body>
 <div class="bar">
-  <span class="brand"><span class="mark" aria-hidden="true"></span><span id="brand-name">@BYOPOP_TITLE@</span></span>
+  <span class="brand"><span class="site"><img class="logo-light" src="logo.svg" alt="byo-pop" width="96" height="22"><img class="logo-dark" src="logo-dark.svg" alt="" width="96" height="22"></span><span class="mark" aria-hidden="true"></span><span id="brand-name">@BYOPOP_TITLE@</span></span>
   <span class="status" id="status">Starting…</span>
   <button id="btn-mods" type="button">Mods</button>
   <button id="btn-files" type="button">Game files</button>
@@ -260,6 +275,15 @@ input[type=file] { display: none; }
     onAbort: function (what) { showStopped(what); },
     // The game has loaded: no mod stopped this start
     onGameLoaded: function () { if (session) session.markFinished(); },
+    // The game screen's size, which a game gives before it makes its window when it is not 640 x 480 (BookWorm's
+    // mod "widescreen": 854 x 480, SidePanel::TellPage): the stage takes its shape and SDL sizes the canvas to the
+    // stage. The logical size, not the canvas's, so leaving fullscreen keeps it. Other games stay 4:3.
+    onGameScreen: function (w, h) {
+      if (!(w > 0 && h > 0)) return;
+      var s = $("stage");
+      s.style.setProperty("--aspect", w + " / " + h);
+      s.style.setProperty("--aspect-w", String(w / h));
+    },
     // -placeholders: a game file the game did not find got a stand-in (listed in the Game files panel)
     onMissingFile: function (path) { missingFiles.push(path); setStatus(statusText); showMissingFiles(); },
     // Called by the game after it quits (the tab can't close itself): silence it, wait for the save

@@ -22,6 +22,8 @@ get_filename_component(BYOPOP_WEB_SHELL "${CMAKE_CURRENT_LIST_DIR}/../web/shell.
 get_filename_component(BYOPOP_WEB_POST_JS "${CMAKE_CURRENT_LIST_DIR}/../web/modpanel.js" ABSOLUTE)
 get_filename_component(BYOPOP_WEB_FOOTER "${CMAKE_CURRENT_LIST_DIR}/../web/footer.html" ABSOLUTE)
 get_filename_component(BYOPOP_WEB_FOOTER_CSS "${CMAKE_CURRENT_LIST_DIR}/../web/footer.css" ABSOLUTE)
+# the site's logo and icons (web/brand; docs/WEB_PLAYER.md), copied next to the pages, which link them
+set(BYOPOP_WEB_BRAND favicon.svg favicon.ico apple-touch-icon.png logo.svg logo-dark.svg)
 
 # byopop_web_shell(<var> <target> <page folder> TITLE <name> COPYRIGHT <notice> [LICENSES <name>...]): the game's
 # page template: web/shell.html with the game's page.js, page.css and page.html (from <page folder>) at its
@@ -100,6 +102,10 @@ function(byopop_web_shell var target pagedir)
   foreach(field TITLE COPYRIGHT)
     string(REPLACE "&" "&amp;" arg_${field} "${arg_${field}}")
     string(REPLACE "<" "&lt;" arg_${field} "${arg_${field}}")
+  endforeach()
+
+  foreach(name ${BYOPOP_WEB_BRAND})
+    configure_file(${web}/brand/${name} ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${name} COPYONLY)
   endforeach()
 
   set(copyright_page ${target}-copyright.html)

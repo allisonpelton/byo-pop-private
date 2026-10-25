@@ -50,12 +50,28 @@ public:
 	// -autoplaypocket[=N]: with Pickpockets in hand, N% of the bot's turns (and every turn with no group to
 	// click) lift a small group: by P and a click, or by a right click, in turn
 	int mUsePockets = 0;
+	// -autoplaybest=N: N% of the bot's picks are the largest group, the others a random clickable group (default
+	// 3 in 4); -autoplaypace=N: about N updates between its clicks, N/2 to 3N/2 - 1 (default 20 to 59). For
+	// bots that play like a given player (mod balance benchmarks).
+	int mBest = -1;
+	int mPace = 0;
+	// -autoplaybags: the best pick is a group under a bag when there is one (PickGroup); -autoplaylook[=H,B]:
+	// the best pick is the one that looks best one click ahead (its points and the groups it leaves, less H
+	// per row of the tallest column, plus B for a bag freed; 10 and 30 by default)
+	bool mBags = false;
+	bool mLook = false;
+	// -autoplaypocketbags: Pickpockets as a player might use them: on a small group right under a bag, or
+	// when nothing can be clicked (instead of -autoplaypocket's N% of the turns)
+	bool mPocketBags = false;
+	int mLookHeight = 10;
+	int mLookBag = 30;
 
 private:
 	void Queue(const std::string& theCommand, const std::string& theArgs);
 	void Click(int theX, int theY, const char* theWhat);
 	void Shot(int theGame, const char* theEvent);
 	bool PickGroup(Board* theBoard, int* theX, int* theY, int* theSize);
+	int ClickDelay();
 	bool UsePickpocket(Board* theBoard, int theNow);
 	int HoverVerdict(Board* theBoard);
 
