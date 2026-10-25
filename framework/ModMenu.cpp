@@ -252,10 +252,11 @@ void CheckMark(Graphics* g, const Rect& theBox, const Color& theColor)
 		g->FillRect(theBox.mX + aPoint[0], theBox.mY + aPoint[1], 2, 2);
 }
 
-void Checkbox(Graphics* g, const Rect& theBox, bool isChecked, bool isDisabled)
+// isHover: the pointer is over its click target (ModMenu::T_SWITCH)
+void Checkbox(Graphics* g, const Rect& theBox, bool isChecked, bool isDisabled, bool isHover)
 {
-	Fill(g, theBox, kField);
-	Outline(g, theBox, isDisabled ? kDisabled : kDim);
+	Fill(g, theBox, isHover ? kButtonHover : kField);
+	Outline(g, theBox, isDisabled ? kDisabled : isHover ? kText : kDim);
 	if (isChecked)
 		CheckMark(g, theBox, isDisabled ? kDisabled : kText);
 }
@@ -655,7 +656,10 @@ void ModMenu::Layout()
 			int aDownX = anOpenX - 8 - 24;
 			int anUpX = aDownX - 4 - 24;
 			int aButtonY = aRow.mY + (aRow.mHeight - BUTTON_HEIGHT) / 2;
-			AddTarget(T_ROW, anItem.mIndex, Rect(aRow.mX, aRow.mY, anUpX - 8 - aRow.mX, aRow.mHeight), aView.mDuplicate, true);
+			// a click only focuses the row, so even a duplicate's can be read (its error)
+			AddTarget(T_ROW, anItem.mIndex, Rect(aRow.mX, aRow.mY, anUpX - 8 - aRow.mX, aRow.mHeight), false, true);
+			// the checkbox (16 x 16 at 8, 7; DrawListRow) and 4 pixels around it
+			AddTarget(T_SWITCH, anItem.mIndex, Rect(aRow.mX + 4, aRow.mY + 3, 24, 24), aView.mDuplicate, true);
 			AddTarget(T_UP, anItem.mIndex, Rect(anUpX, aButtonY, 24, BUTTON_HEIGHT), !aView.mCanUp, true);
 			AddTarget(T_DOWN, anItem.mIndex, Rect(aDownX, aButtonY, 24, BUTTON_HEIGHT), !aView.mCanDown, true);
 			AddTarget(T_OPEN, anItem.mIndex, Rect(anOpenX, aButtonY, 72, BUTTON_HEIGHT), aView.mDuplicate, true);
@@ -671,9 +675,13 @@ void ModMenu::Layout()
 			int y = aRow.mY + (aRow.mHeight - BUTTON_HEIGHT) / 2;
 			int i = anItem.mIndex;
 			AddTarget(T_VALUE, i, Rect(x - 3, aRow.mY + 1, aWidth + 6, aRow.mHeight - 2), isDisabled, true);
-			AddTarget(T_LABEL, i, Rect(aRow.mX, aRow.mY, LABEL_WIDTH, aRow.mHeight), isDisabled, true);
+			AddTarget(T_LABEL, i, Rect(aRow.mX, aRow.mY, LABEL_WIDTH, aRow.mHeight), false, true);  // greyed: its help still shows
 			switch (aSetting->mDef.mType)
 			{
+			case Platform::MOD_SETTING_BOOL:
+				// the checkbox (16 x 16 at 4, 4; DrawSettingRow) and 4 pixels around it
+				AddTarget(T_SWITCH, i, Rect(x, y, 24, BUTTON_HEIGHT), isDisabled, true);
+				break;
 			case Platform::MOD_SETTING_INT:
 			case Platform::MOD_SETTING_FLOAT:
 				AddTarget(T_MINUS, i, Rect(x, y, 24, BUTTON_HEIGHT), isDisabled, true);
@@ -771,8 +779,8 @@ const ModMenu::Target* ModMenu::TargetAt(int x, int y) const
 			continue;
 		if (aTarget.mInContent && !aContent.Contains(x, y))
 			continue;
-		// a control's parts win over the whole control
-		if ((aFound == NULL) || (aFound->mKind == T_VALUE))
+		// a control's parts win over the whole control, and a mod's checkbox over its row
+		if ((aFound == NULL) || (aFound->mKind == T_VALUE) || (aFound->mKind == T_ROW))
 			aFound = &aTarget;
 	}
 	return aFound;
@@ -1185,13 +1193,32 @@ void ModMenu::Activate(int theKind, int theItem, bool isSpace)
 	case T_FIELD:
 		StartEdit(theItem);
 		break;
-	case T_LABEL:
-		if (const SettingView* aSetting = PageSetting(theItem))
-			if (aSetting->mDef.mType == Platform::MOD_SETTING_BOOL)
-				ChangeValue(theItem, 1);
+	case T_SWITCH:
+		if (mPageMod.empty())
+			Activate(T_ROW, theItem, true);
+		else
+			ChangeValue(theItem, 1);
 		break;
 	}
 	MarkDirty();
+}
+
+// Whether a click on a setting's control itself, outside its parts, changes it: a choice steps on, a text or a colour
+// starts its edit. A bool switches only on its checkbox (T_SWITCH), a number only on its buttons and slider.
+bool ModMenu::ClickChangesValue(int theItem)
+{
+	const SettingView* aSetting = PageSetting(theItem);
+	if (aSetting == NULL)
+		return false;
+	switch (aSetting->mDef.mType)
+	{
+	case Platform::MOD_SETTING_CHOICE:
+	case Platform::MOD_SETTING_TEXT:
+	case Platform::MOD_SETTING_COLOR:
+		return true;
+	default:
+		return false;
+	}
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -1432,10 +1459,9 @@ void ModMenu::MouseMove(int x, int y)
 	{
 		mHoverKind = aKind;
 		mHoverItem = anItem;
-		// the hand over what a click changes (a label only for a bool)
-		const SettingView* aSetting = (aKind == T_LABEL) ? PageSetting(anItem) : NULL;
-		bool isClickable = (aKind != T_NONE) && (aKind != T_SCROLL) &&
-			((aKind != T_LABEL) || ((aSetting != NULL) && (aSetting->mDef.mType == Platform::MOD_SETTING_BOOL)));
+		// the hand over what a click changes: not a mod's row or a setting's label, which a click only focuses
+		bool isClickable = (aKind != T_NONE) && (aKind != T_SCROLL) && (aKind != T_ROW) && (aKind != T_LABEL) &&
+			((aKind != T_VALUE) || ClickChangesValue(anItem));
 		mApp->SetCursor(isClickable ? CURSOR_HAND : CURSOR_POINTER);
 		MarkDirty();
 	}
@@ -1505,8 +1531,8 @@ void ModMenu::MouseDown(int x, int y, int theClickCount)
 
 	if (IsFocusable(*aTarget))
 		SetFocusTarget(aTarget->mKind, aTarget->mItem);
-	else if (aTarget->mInContent && !mPageMod.empty())
-		SetFocusTarget(T_VALUE, aTarget->mItem);
+	else if (aTarget->mInContent)
+		SetFocusTarget(mPageMod.empty() ? T_ROW : T_VALUE, aTarget->mItem);  // a part of a row's control
 	MarkDirty();
 }
 
@@ -1573,8 +1599,14 @@ void ModMenu::MouseUp(int x, int y, int theClickCount)
 		Close();
 		return;
 	}
-	// A click on a mod's row switches it, as a label does its checkbox
-	Activate(aKind, anItem, aKind == T_ROW);
+	// Only a checkbox switches (T_SWITCH): a click on a mod's row or a setting's label, or beside a control's parts,
+	// just focuses it (the press did), and the footer shows its description
+	if ((aKind == T_ROW) || (aKind == T_LABEL) || ((aKind == T_VALUE) && !ClickChangesValue(anItem)))
+	{
+		MarkDirty();
+		return;
+	}
+	Activate(aKind, anItem, false);
 }
 
 void ModMenu::MouseWheel(int theDelta)
@@ -1729,14 +1761,15 @@ void ModMenu::DrawListRow(Graphics* g, const Item& theItem)
 		return;
 	Rect aRow = aRowTarget->mRect;
 	bool isFocused = (mFocusItem == theItem.mIndex) && ((mFocusKind == T_ROW) || (mFocusKind == T_UP) || (mFocusKind == T_DOWN) || (mFocusKind == T_OPEN));
-	if (isFocused || ((mHoverKind == T_ROW) && (mHoverItem == theItem.mIndex)))
+	bool isSwitchHover = (mHoverKind == T_SWITCH) && (mHoverItem == theItem.mIndex);
+	if (isFocused || isSwitchHover || ((mHoverKind == T_ROW) && (mHoverItem == theItem.mIndex)))
 	{
 		const Target* aLast = FindTarget(T_OPEN, theItem.mIndex);
 		int aRight = (aLast != NULL) ? aLast->mRect.mX + aLast->mRect.mWidth + 4 : aRow.mX + aRow.mWidth;
 		Fill(g, Rect(aRow.mX, aRow.mY + 1, aRight - aRow.mX, aRow.mHeight - 2), kRowFocus);
 	}
 
-	Checkbox(g, Rect(aRow.mX + 8, aRow.mY + 7, 16, 16), aView.mEnabled, aView.mDuplicate);
+	Checkbox(g, Rect(aRow.mX + 8, aRow.mY + 7, 16, 16), aView.mEnabled, aView.mDuplicate, isSwitchHover);
 
 	// Badges after the name: separate high scores, features, an error, a change that waits
 	std::vector<std::pair<std::string, Color> > aBadges;
@@ -1827,7 +1860,7 @@ void ModMenu::DrawSettingRow(Graphics* g, const Item& theItem)
 	case Platform::MOD_SETTING_BOOL:
 	{
 		bool isOn = aValue.AsBool(false);
-		Checkbox(g, Rect(x + 4, y + 4, 16, 16), isOn, isDisabled);
+		Checkbox(g, Rect(x + 4, y + 4, 16, 16), isOn, isDisabled, (mHoverKind == T_SWITCH) && (mHoverItem == theItem.mIndex));
 		Text(g, mFont, isOn ? Str(mApp, "MODMENU_ON", "On") : Str(mApp, "MODMENU_OFF", "Off"), x + 28, CenterBaseline(aBox), aTextColor);
 		break;
 	}
