@@ -89,9 +89,14 @@ The work is split across Claude sessions (the user's design, 2026-10-19):
 Git and publishing:
 - Game sessions may commit on their own branch at verified milestones without asking the user each time.
   Only the coordinator commits on the trunk. Nobody merges into `master`.
-- Never push. The user decided when the repository is first pushed: once every Bejeweled mod is done and
-  Big Money fully works natively and in the browser. The coordinator does that, after auditing the whole
-  history for game files.
+- Never push. The user decided when the repository is first pushed (2026-10-24): when the Bejeweled, Big Money
+  and BookWorm sessions have finished their mods, before any new decompilation starts. The coordinator does
+  that, after auditing the whole history for game files.
+- **Order of work (the user, 2026-10-24):** those three sessions finish their mods; then the push; then one
+  session alone decompiles the simplest remaining game, and its performance is measured against the earlier
+  games; only if that shows an improvement do up to three sessions run at once again. New game sessions list
+  the mods worth making but make none without the user's approval, and no further game gets mods until every
+  PopCap game works in the browser.
 - Never commit or redistribute game files or anything derived from them (staged assets, Ghidra exports,
   word lists and other game data, mods built from another game's files, close recreations of another
   game's art): keep them git-ignored. Docs and code comments refer to a game's texts by id and paraphrase;
