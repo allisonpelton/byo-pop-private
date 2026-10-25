@@ -65,9 +65,14 @@ static uint32_t TintCoinPixel(uint32_t thePixel, const int theTint[3])
 	return anOut;
 }
 
-// port(mods): the row of IMAGE_COINS each extra colour is made from, for its symbol: orange the pound, cyan
-// the dollar, silver the yen (each unlike the colour it shares the symbol with)
-static const int gExtraCoinRows[Piece::MAX_COIN_COLORS - Piece::NUM_COIN_COLORS] = { 1, 0, 3 };
+// port(mods): the row of IMAGE_COINS each extra colour is made from, for its symbol (0 dollar, 1 pound, 2 cent,
+// 3 yen, 4 euro): colours that look alike have different ones
+static const int gExtraCoinRows[Piece::MAX_COIN_COLORS - Piece::NUM_COIN_COLORS] =
+{
+	1, 0, 3,    // orange, cyan, silver
+	0, 4, 3, 0, // purple, brown, pink, charcoal
+	4, 1, 2, 2  // lime, teal, navy, maroon
+};
 
 // port(mods): theSource's rows for the extra colours, tinted with gCoinColors (and brightened for the
 // highlighted coins), with a mod's HD coins done the same way (HDPixels.h)
@@ -154,6 +159,13 @@ WinBMApp::WinBMApp()
 	mAutoplayHints = false;
 	mAutoplayUndo = 0;
 	mAutoplayPocket = 0;
+	mAutoplayBest = -1;
+	mAutoplayPace = 0;
+	mAutoplayBags = false;
+	mAutoplayPocketBags = false;
+	mAutoplayLook = false;
+	mAutoplayLookHeight = 10;
+	mAutoplayLookBag = 30;
 	mAutoplayCheck = false;
 	mAutoplayBot = NULL;
 
@@ -1346,6 +1358,13 @@ void WinBMApp::UpdateFrames()
 		mAutoplayBot->mPressUndo = mAutoplayUndo;
 		mAutoplayBot->mCheckClicks = mAutoplayCheck;
 		mAutoplayBot->mUsePockets = mAutoplayPocket;
+		mAutoplayBot->mBest = mAutoplayBest;
+		mAutoplayBot->mPace = mAutoplayPace;
+		mAutoplayBot->mBags = mAutoplayBags;
+		mAutoplayBot->mPocketBags = mAutoplayPocketBags;
+		mAutoplayBot->mLook = mAutoplayLook;
+		mAutoplayBot->mLookHeight = mAutoplayLookHeight;
+		mAutoplayBot->mLookBag = mAutoplayLookBag;
 	}
 	if (mAutoplayBot != NULL)
 		mAutoplayBot->Update();
@@ -1403,6 +1422,19 @@ void WinBMApp::HandleCmdLineParam(const std::string& theParamName, const std::st
 		mAutoplayCheck = true;
 	else if (theParamName == "-autoplaypocket")
 		mAutoplayPocket = theParamValue.empty() ? 10 : atoi(theParamValue.c_str());
+	else if (theParamName == "-autoplaybest")
+		mAutoplayBest = atoi(theParamValue.c_str());
+	else if (theParamName == "-autoplaypace")
+		mAutoplayPace = atoi(theParamValue.c_str());
+	else if (theParamName == "-autoplaybags")
+		mAutoplayBags = true;
+	else if (theParamName == "-autoplaypocketbags")
+		mAutoplayPocketBags = true;
+	else if (theParamName == "-autoplaylook")
+	{
+		mAutoplayLook = true;
+		sscanf(theParamValue.c_str(), "%d,%d", &mAutoplayLookHeight, &mAutoplayLookBag);
+	}
 	else
 		SexyApp::HandleCmdLineParam(theParamName, theParamValue);
 }
