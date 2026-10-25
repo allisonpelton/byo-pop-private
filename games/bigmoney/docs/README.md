@@ -271,8 +271,23 @@ Big Money uses the shared mod system (`platform/ModManager.h`).
   - **How.** Right-click the group. Or press P, or click the counter on the steps under Mr. Money: it
     blinks "pickpocket ready", small groups light up under the mouse, and the next click on one uses
     it. P again puts it away.
-  - **How many.** Three at the start of a game, one more at each new level, five at most (all three
-    are settings). The count is kept in the savegame (a "BMPK" trailer the original's reader ignores).
+  - **How many.** Three at the start of a game, five at most, and more are earned with spare bags
+    (below); a free one at each new level is a setting, off by default (version 1.0 gave one). The
+    count is kept in the savegame (a "BMPK" trailer the original's reader ignores).
+  - **Spare bags** (`perBag`, one by default; `Board::EarnPickpockets`). So that Pickpockets don't just
+    make the game easier, they are earned with bags the level didn't need:
+    - Action and Strategy: one for each bag still on the board when the level ends (the bags the
+      original counts for its Excess Baggage bonus, `ClearBoardForLevelEnd`).
+    - Puzzle: a won level goes on while a group can be clicked ("extra bags earn pickpockets";
+      `Board::PuzzlePlaysOn`), then it is swept as before. Each bag dropped past the needed ones, on
+      the winning click or after it, earns one and flies to the counter. The solver rests while the
+      level plays on, and its undo is gone, as after any win.
+    - "+1 pickpocket" pops up for each one earned; none past the most in hand.
+    - Tested (version 2.0, bot games under rundesk; `-autoplaypocketbags` lifts the coin under a bag):
+      36 games in every mode, 52 Pickpockets earned, 159 used, 85 Puzzle levels played on and every
+      one of them ended; all 12 replays verified; a game saved while a won level played on resumed in
+      it. The bots earned about one every five levels in Action, one every three in Strategy and one
+      every two in Puzzle (where they don't aim for bags).
   - **Puzzle.** The game goes on while a Pickpocket can still lift a coin, and with no click left one is
     armed by itself. The Puzzle Solver counts no Pickpockets: on a level it can't win it says "no way
     to win without a pickpocket", "end the game when lost" waits until they are gone, and its undo
@@ -306,19 +321,26 @@ Big Money uses the shared mod system (`platform/ModManager.h`).
     - The solver on the original generator at 6 x 15: no wrong answer.
     - 20 replays verified; a saved game on a small board resumed.
 - **More coin colours** (the `more-colours` mod; the tunables `coins.colors` and `coins.puzzleColors` now go
-  up to 8). Three colours after the game's five: orange, cyan and silver. Six in every mode by default,
-  with a setting for Action and Strategy and one for Puzzle (2 to 8).
+  up to 16). Eleven colours after the game's five: orange, cyan, silver, purple, brown, pink, charcoal,
+  lime, teal, navy and maroon, in that order. Six in every mode by default, with a setting for Action and
+  Strategy and one for Puzzle (2 to 16). Many colours make Diagonal Groups' Puzzle hard again.
   - **The coins** are made when the game starts, from the game's coins or a mod's (HD too): each new colour
-    takes another colour's coins with their brightness and its own hue, so the shine stays white. Orange
-    has the pound sign, cyan the dollar, silver the yen, each unlike the colour it shares the sign with.
+    takes another colour's coins with their brightness and its own hue, so the shine stays white. Each
+    keeps that colour's sign, chosen so colours that look alike have different ones (navy the cent, blue
+    the pound; maroon the cent, red the dollar; charcoal the dollar, silver the yen).
     The highlighted coins, both flip-frame sets, the selection glow and the dollar bomb's tint have them.
   - **Rules** are the game's: as with five colours, the first level on Easy has one fewer.
-  - **Puzzle.** The solver and Winnable Puzzles take up to 8 colours. The solver's position hashes for the
-    game's five colours are unchanged.
+  - **Puzzle.** The solver and Winnable Puzzles take up to 16 colours (the solver's bag marker moved from 8
+    to 16). The solver's position hashes for the game's five colours are unchanged; only equal hashes
+    count, so the others changing changed no answer.
   - **Scores.** A mod with tunables affects scores (its own high-score tables, the mods sign).
-  - **Tested** (bot games under rundesk, 6, 7 and 8 colours, every mode): with Winnable Puzzles and the
-    solver the bot reached level 74 on Hard with 8 colours without losing one; the solver gave no wrong
-    answer with 7 on the original generator; 19 replays verified, and older solver replays still verify.
+  - **Tested** (bot games under rundesk, 6 to 16 colours, every mode, with and without Diagonal Groups):
+    - With Winnable Puzzles and the solver the bot won every level to 74 on Hard with 8 colours, and to 75
+      (Hard) and 79 (Easy) with 16 and diagonal groups.
+    - The solver gave no wrong answer with 7, 12 and 16 colours on the original generator.
+    - With 16 colours and diagonal groups the bot's Easy Puzzle games ended at levels 6 to 8 (17 to 30
+      with the game's colours).
+    - 37 replays verified; replays recorded before the 16-colour change still verify.
 - **Diagonal groups** (the `diagonal-groups` mod, `features.diagonalGroups`). Every mode: coins of a colour
   that touch at a corner are one group, so groups are bigger and easier to find.
   - **How.** The game's group flood (Board::FloodFill) also goes across corners: the hover, the click, the
@@ -352,9 +374,10 @@ Example mods (`games/bigmoney/mods/`):
 - **`puzzle-solver/`: "Puzzle Solver".** Puzzle only: tells whether the level can still be won, sells
   hints and undos, warns about losing clicks, and can end the game when the level can't be won.
 - **`winnable-puzzles/`: "Winnable Puzzles".** Puzzle only: builds boards that can always be won.
-- **`pickpocket/`: "Pickpocket".** A powerup that lifts a group too small to click (right click, or P).
+- **`pickpocket/`: "Pickpocket".** A powerup that lifts a group too small to click (right click, or P),
+  earned with spare bags.
 - **`small-board/`: "Small Board".** Plays on a smaller board (10 x 12 by default, settings for both).
-- **`more-colours/`: "More Colours".** Orange, cyan and silver coins: six colours by default, up to eight.
+- **`more-colours/`: "More Colours".** Eleven new coin colours: six colours by default, up to sixteen.
 - **`diagonal-groups/`: "Diagonal Groups".** Coins that touch at a corner are one group.
 - **`replays/`: "Replays".** Turns on replays and nothing else: no change in play, the normal high-score
   tables, and no mods sign.
@@ -363,6 +386,45 @@ Example mods (`games/bigmoney/mods/`):
 - **`hd4x-textures/`: every image at 4x.** Generate it with `tools/make_hd4x_mod.py`, which upscales
   the player's own game files with Real-ESRGAN on the GPU. It contains the game's art, so it is
   git-ignored: never commit or share it.
+
+### Balanced combinations (bot benchmarks, 2026-10-25)
+
+Which mods and settings keep a mode about as hard as the original, measured with bots that score like a
+player who gets about 30,000 in Action, 60,000 in Puzzle and is weakest in Strategy:
+- Action: `-autoplaypace=55` (slower clicks).
+- Strategy: `-autoplaylook=10,150 -autoplaybest=100` (looks one click ahead, keeps columns low).
+- Puzzle: the Puzzle Solver with `-autoplaysolver=98` (its plan 98% of the time).
+- With Pickpockets, `-autoplaypocketbags`.
+
+Each line is 12 games on Normal (the same seeds for every line): the median score and levels cleared.
+The spread is wide (a game can score a tenth or ten times the median), so a factor of two is noise and
+only the large gaps count.
+
+| Mods (D: Diagonal Groups; C, P: More Colours' Action/Strategy and Puzzle colours; K: Pickpocket 2.0; B: Small Board 10 x 12; W: Winnable Puzzles) | Action | Strategy | Puzzle |
+|---|---|---|---|
+| none | 43k, 7 | 5.3k, 1 | 68k, 10 |
+| K | 24k, 5 | 4.1k, 1 | 57k, 9 |
+| D | no end | 54k, 8 | 1.5M, 41 |
+| D + C6 | 74k, 8 | 9.9k, 2.5 | |
+| D + C6 + K | 70k, 8 | 11k, 3 | |
+| D + C7 | 4.9k, 1 | 1.9k, 0 | |
+| D + P8 / P10 / P12 / P14 / P16 | | | 156k, 13.5 / 80k, 9.5 / 87k, 10.5 / 52k, 7 / 74k, 9.5 |
+| D + P12 + K | | | 60k, 7.5 |
+| W / W + D + P12 / W + D + P16 | | | 177k, 14 / 202k, 15 / 199k, 15.5 |
+| B | 1.9k, 0 | 5.3k, 2 | 11k, 2.5 |
+| B + D (+ C5 / C6, P8 / P10) | no end (162k, 11 / 4.3k, 1) | 371k, 25 (54k, 10.5 / 2.8k, 1) | 515k, 29 (108k, 14.5 / 49k, 8.5) |
+
+- **Balanced:**
+  - Action: D + C6, with or without K. Seven colours with diagonals is a hard mode.
+  - Strategy: D + C6, with or without K; a little easier than the original.
+  - Puzzle: D with 10 to 16 colours (the same from 10 up), D + P12 + K, or B + D + P10.
+- **Easy and Hard.** In Strategy, D + C6 matches the original on Easy and on Hard. In Action it is two
+  or three levels easier on both. D + P12 is a little harder than the original Puzzle on Easy and on
+  Hard.
+- **Cliffs.** With diagonals, one colour more or less is the difference between endless and
+  hopeless, more so on the small board: tune colours one at a time.
+- **Pickpocket 2.0** is about even in every mode. Version 1.0's runs (one free each level) are left
+  out: the bot then used them at random.
 
 ## Status (2026-10-18)
 

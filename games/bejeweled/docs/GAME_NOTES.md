@@ -2069,6 +2069,53 @@ takes no mouse on any other board.
   variant line ends in `undos <n>` on a board with undo. An undo is a settle of its own in `-trace` and
   `-codeccheck`, and `-codeccheck` also round-trips the UNDO encoding in every update of play.
 
+### 12.10 Board sizes and shapes (code mods, stage 7)
+
+games/bejeweled/docs/CODE_MODS_DESIGN.md 4.3 and 5, as built (`BoardShape.cpp`, `BoardDrawVariant.cpp`). The
+rules `board.cols`, `board.rows`, `board.mask` and `board.levels` (3..16 a side). Nothing here runs on a board of
+one full 8x8 shape: `mVariant.mShape` is set when `board.levels` has more than one shape or the first is not the
+original. Dirt cells (`d`, `2`..`9`) play as holes until stage 7b.
+
+- **Flags.** `mScaled` when any shape's logical extent passes 406 px (the view then scales by 406/D about the
+  board window's corner, 203,16). `mNoTutorial` when the tutorial move cannot apply: it looks for a horizontal
+  3-run swap in rows 4..6, so it needs swap moves, runs of 3, no diagonals and a first shape of at least 8x7
+  whose rows 4..6 are playable in columns 0..7. `mDraw` (the copy of Draw) with either.
+- **Holes** are permanent NULLs in `mBoard[16][16]`. Three places assumed a full board and test for NULL now:
+  `UpdateFalling` (0x4cd687), `FindMove`'s target cell (0x4c9dda) and `MouseDrag`'s neighbour (0x4ca8c1).
+- **Fill.** `FillBoard` (0x4cb182) calls `FillBoardVariant`: the original's park-and-fill over the playable cells,
+  bottom row first, each gem placed above the nearest gem below. After 1000 rerolls it logs and starts again. The
+  constructor (0x4cb5bc) with `mNoTutorial` fills until a move exists (at most 100 fills), with no tutorial move.
+- **Refill.** `UpdateClearing` (0x4ca9ed) calls `RefillMasked`: the original pass over each column's playable
+  rows, so gems fall through holes, and a new gem spawns above the column's top playable cell.
+- **Input.** On a scaled board `MouseMove`, `MouseDown` and `MouseDrag` take the window position to the logical
+  one (`BoardLayout::ToLogical`) before the original code runs.
+- **Level change.** `SetupLevel` (0x4cae29) draws the next level's background for its shape
+  (`DrawVariantChecker`) and sets `mPendingLayout`. `UpdateBlackHole` (0x4cb931) deletes the old gems with the old
+  bounds, then applies it (`ApplyPendingLayout`: layout, size, `mLevelShape` = level % shapes).
+- **Background.** The window is first filled with a void tile: a mod's `images\voidtile`, else the level's
+  texture coloured (40, 32, 36). Then the cells and a ring of one cell around them get the original checker
+  tiles, holes the void tile. Unscaled boards draw whole tiles as the original does (an 8x8 board is pixel for
+  pixel the original's); scaled ones draw each into its rounded window rectangle.
+- **Drawing.** `DrawVariant`, a copy of Draw (0x4cbc70): the gems, sparkles, cursor and tutorial arrows through
+  a scaled `Graphics`, the score popups at their window positions in the unscaled font; the vortex, banner, hole
+  mask and pause text centred on the window.
+- **Saves.** The v2 header holds the level's shape, size and mask. `ReadVariantHeader` refuses a save whose shape
+  is not one of the rules', is not its level's (level % shapes) or has another size or mask, and applies the shape
+  before the cells are read. `GameLoadedVariant` then rebuilds the background for the loaded level and shape
+  (the original keeps level 0's after a load).
+- **StateCodec.** `mLevelShape` is in SNAPSHOT and V2. LOGIC has the level and the board's size already; UNDO
+  leaves it out, as no undo crosses a level.
+- **Replays.** Engine ABI 3. `Replay::CheckSave` and `CheckPlayable` take the rules' shapes and check a LOAD's or
+  LDSV's v2 save against them. `-trace` prints window positions as a move's clicks on a scaled board, and the
+  autoplay bot and the verifier's diff bot click there too and leave holes alone.
+- **The score roll with a mod's scoring tunables** (a fix found by the stage 7 tests). Update (0x4cdabc) rolls
+  the displayed score toward the real one by at most 3 times the multiplier a tick, and its level-up and TIME_UP
+  tests read the displayed score. With thousands of points a match it falls levels behind: the next level,
+  which starts at the real score, then ends at once in TIME_UP (and a hint penalty of thousands would give free
+  levels). On a board whose scoring tunables differ from the original's (`mFastScoreRoll`), a gap past 150
+  times the multiplier now closes by an eighth a tick (`RollScoreFast`), and the original roll does the rest.
+  Engine 3 refuses earlier engines' replays of such rules (`GameRules::PlaysAlikeInEveryEngine`).
+
 ---
 
 ## 13. Naming reconciliation (analyst names → chosen names)

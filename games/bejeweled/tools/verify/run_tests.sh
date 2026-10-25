@@ -19,7 +19,7 @@
 #               RULEs with diff.txt values that make a level of no points or are not finite, a field out of range,
 #               at its default or unknown, a NaN tunable; more than MAX_SEGMENTS segments, more than
 #               MAX_EVENTS_PER_TICK events at one tick, a SAVE before the last tick, five SAVEs; a variant rule set
-#               recorded by engine 1): both verifiers say "cannot play" with the same words and JSON, each file
+#               and a scoring tunable recorded by engine 1): both verifiers say "cannot play" with the same words and JSON, each file
 #               for its own reason, exit status 1 (the oracle adds broken copies of real replays, played by the
 #               game too). The synthetic files are this engine's: tools/bjr.py's ENGINE_ABI, which must be
 #               Replay.h's (checked as "engine")
@@ -205,7 +205,7 @@ for name in $SYNTH; do
 		limits-save-early) want="a SAVE before the segment's last tick" ;;
 		limits-saves) want="SAVEs in one segment" ;;
 		limits-*) want="cannot play: " ;;
-		engine1-variant) want="recorded by engine 1, this build plays engine $ENGINE_ABI" ;;
+		engine1-variant|engine1-scoring) want="recorded by engine 1, this build plays engine $ENGINE_ABI" ;;
 		*) continue ;;
 	esac
 	mkdir -p "$OUT/unplayable-$name"

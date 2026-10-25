@@ -220,6 +220,7 @@ static void TestDefaults()
 	Check(r.mRules.Canonical() == aDefaults.Canonical(), "no mods: the default rules");
 	Check(Clean(r), "no mods: no messages" + Messages(r));
 	Check(!r.mRules.HasVariantRules(), "defaults are not variant rules");
+	Check(!r.mRules.ScoringTunablesChanged() && r.mRules.PlaysAlikeInEveryEngine(), "defaults: original scoring, alike in every engine");
 	Check(r.mRules.FillMinimum() == 3, "orthogonal runs need 3 colours (3.6)");
 	std::string aMessage;
 	Check(r.mRules.Validate(&aMessage, NULL), "the defaults validate");
@@ -237,6 +238,19 @@ static void TestTunables()
 	Check(Clean(r), "example-relaxed: no messages" + Messages(r));
 	Check(!r.mRules.HasVariantRules(), "tunables are not variant rules");
 	Check(Prov(r, "scoring.hintPenalty") == "example-relaxed", "provenance of a tunable");
+	// Stage 7: a scoring tunable gets the fast score roll, so its replays from engines before 3 play otherwise; a
+	// timing tunable does not
+	Check(r.mRules.ScoringTunablesChanged() && !r.mRules.PlaysAlikeInEveryEngine(), "example-relaxed: scoring changed, not alike in every engine");
+	for (const char* aScoring : {"{\"setValues\": [5000]}", "{\"lengthBonus\": 11}", "{\"longLengthBonus\": 9}", "{\"excellentFactor\": 100}"})
+	{
+		std::string aJson = std::string("{\"tunables\": {\"scoring\": ") + aScoring + "}}";
+		Result aChanged = Merge({{"scoring", aJson.c_str()}});
+		Check(aChanged.mRules.ScoringTunablesChanged(), std::string("scoring changed: ") + aScoring);
+	}
+	Result aTiming = Merge({{"timing", "{\"tunables\": {\"timing\": {\"startDrainDelay\": 100}}}"}});
+	Check(!aTiming.mRules.ScoringTunablesChanged() && aTiming.mRules.PlaysAlikeInEveryEngine(), "a timing tunable: alike in every engine");
+	Result aVariant = Merge({{"undo", "{\"rules\": {\"undo\": {\"enabled\": true}}}"}});
+	Check(!aVariant.mRules.ScoringTunablesChanged() && !aVariant.mRules.PlaysAlikeInEveryEngine(), "a variant rule: not alike in every engine");
 
 	// The old lenient reading: wrong types give the default, numbers are truncated, empty arrays are
 	// ignored, gemColors is clamped (to 3..12 here; GameConfig plays at most 7 until stage 8), unknown keys
@@ -1218,9 +1232,9 @@ static void TestReplayFormat()
 		"replay: every op 1..15 has a name and an argument count, 0 and 16 none");
 
 	// A golden vector: the smallest file (header and END) and a one-segment file, byte for byte, the same on
-	// native and wasm (engine ABI 2 since stage 5)
+	// native and wasm (engine ABI 3 since stage 7)
 	Replay::File anEmpty;
-	Check(Hex(Replay::Write(anEmpty)) == "424a5250010000000200000045" "4e4420" "1d000000" "00" "00000000" "00000000" "00000000"
+	Check(Hex(Replay::Write(anEmpty)) == "424a5250010000000300000045" "4e4420" "1d000000" "00" "00000000" "00000000" "00000000"
 		"00000000" "0000000000000000" "00000000", "replay: golden bytes of a file with only END");
 	Replay::File aSmall;
 	Replay::Segment aSegment;
@@ -1231,7 +1245,7 @@ static void TestReplayFormat()
 	aSmall.mEnd.mReason = Replay::END_NO_MOVES;
 	aSmall.mEnd.mScore = 90;
 	std::string aSmallHex = Hex(Replay::Write(aSmall));
-	Check(aSmallHex == "424a52500100000002000000" "5345474d" "1d000000" "00" "00" "92100000" "00" "00" "00000000" "00000000"
+	Check(aSmallHex == "424a52500100000003000000" "5345474d" "1d000000" "00" "00" "92100000" "00" "00" "00000000" "00000000"
 		"02000000" "a001" "01" "0a" "0a" "01" "03" "01" "01"
 		"454e4420" "1d000000" "01" "00000000" "5a000000" "00000000" "00000000" "0000000000000000" "00000000",
 		"replay: golden bytes of a one-segment file (got " + aSmallHex + ")");
@@ -1321,7 +1335,7 @@ static size_t SavePieceAt(int theCol, int theRow, size_t theOffset)
 	return SAVE_CELLS_AT + (theRow * 8 + theCol) * SAVE_CELL_SIZE + 1 + theOffset;
 }
 
-static std::string V1Save()
+static std::string V1Save(int theCols = 8, int theRows = 8)
 {
 	std::string s;
 	auto I32 = [&s](int32_t v) { s.append((const char*) &v, 4); };
@@ -1331,9 +1345,9 @@ static std::string V1Save()
 	U8(0);
 	I32(0);
 	I32(1);
-	for (int r = 0; r < 8; r++)
+	for (int r = 0; r < theRows; r++)
 	{
-		for (int c = 0; c < 8; c++)
+		for (int c = 0; c < theCols; c++)
 		{
 			U8(1);
 			unsigned char aPiece[Piece::SAVE_SIZE] = {};
@@ -1733,7 +1747,13 @@ static void TestReplayPlayable()
 	Check(!Replay::CheckPlayable(anOld, 8, 8, &aWhy, true), "playable: refused: a later engine, even for the original rules");
 	anOld.mEngineAbi = 0;
 	Check(!Replay::CheckPlayable(anOld, 8, 8, &aWhy, true), "playable: refused: engine 0");
-	Check(Replay::ENGINE_ABI == 2, "playable: this is engine 2 (stage 5)");
+	// Stage 7: engine 3 (the board shape rules); engine 2's replays of variant rules no longer play, its replays of
+	// the original rules do
+	anOld.mEngineAbi = 2;
+	aWhy.clear();
+	Check(Replay::CheckPlayable(anOld, 8, 8, &aWhy, true), "playable: the original rules recorded by engine 2 (" + aWhy + ")");
+	Check(!Replay::CheckPlayable(anOld, 8, 8, &aWhy, false), "playable: refused: variant rules recorded by engine 2");
+	Check(Replay::ENGINE_ABI == 3, "playable: this is engine 3 (stage 7)");
 }
 
 // A v2 save (Replay.h, games/bejeweled/docs/CODE_MODS_DESIGN.md 7.2) around the v1 test save's fields: the rules
@@ -1864,6 +1884,42 @@ static void TestReplayVariantSave()
 	aWhy.clear();
 	Check(Replay::CheckSave(V1Save(), 8, 8, &aWhy, anId), "v2 check: a v1 save still passes (LoadGame says which a board takes) (" + aWhy + ")");
 
+	// Stage 7: with the rules' level shapes a v2 save may be of any of them, in its size and mask and of one of its
+	// levels; here the holed 8x8 as the second of two shapes (level 1's), and a 6x6 board
+	std::vector<BoardLayout> aTwo(2);
+	aTwo[1].mCell[1][1] = BoardLayout::CELL_HOLE;
+	Replay::VariantSave aSecond = aHoled;
+	aSecond.mLevelShape = 1;
+	std::string aLevel1 = aV1Hole;
+	aLevel1[5] = 1;
+	aWhy.clear();
+	Check(Replay::CheckSave(V2Save(aSecond, aLevel1), 8, 8, &aWhy, anId, &aTwo), "v2 shapes: level 1's holed shape passes (" + aWhy + ")");
+	aWhy.clear();
+	Check(Replay::CheckSave(aBytes, 8, 8, &aWhy, anId, &aTwo), "v2 shapes: level 0's full shape passes (" + aWhy + ")");
+	aWhy.clear();
+	Check(!Replay::CheckSave(V2Save(aHoled, aLevel1), 8, 8, &aWhy, anId, &aTwo) && !aWhy.empty(),
+		"v2 shapes: refused: the holed mask as shape 0 (" + aWhy + ")");
+	aWhy.clear();
+	Check(!Replay::CheckSave(V2Save(aSecond, aV1Hole), 8, 8, &aWhy, anId, &aTwo) && !aWhy.empty(),
+		"v2 shapes: refused: shape 1 on level 0, whose shape is 0 (" + aWhy + ")");
+	Replay::VariantSave aThird = aSave;
+	aThird.mLevelShape = 2;
+	aWhy.clear();
+	Check(!Replay::CheckSave(V2Save(aThird), 8, 8, &aWhy, anId, &aTwo) && !aWhy.empty(), "v2 shapes: refused: shape 2 of two (" + aWhy + ")");
+	Replay::VariantSave aSmall = aSave;
+	aSmall.mCols = 6;
+	aSmall.mRows = 6;
+	aSmall.mPlayable.assign(36, true);
+	std::string aSmallBytes = V2Save(aSmall, V1Save(6, 6));
+	std::vector<BoardLayout> aSix(1);
+	aSix[0].SetFull(6, 6);
+	aWhy.clear();
+	Check(Replay::CheckSave(aSmallBytes, 6, 6, &aWhy, anId, &aSix), "v2 shapes: a 6x6 save of a 6x6 board (" + aWhy + ")");
+	aWhy.clear();
+	Check(!Replay::CheckSave(aSmallBytes, 8, 8, &aWhy, anId, &aTwo) && !aWhy.empty(), "v2 shapes: refused: a 6x6 save of 8x8 shapes (" + aWhy + ")");
+	aWhy.clear();
+	Check(!Replay::CheckSave(aSmallBytes, 8, 8, &aWhy, anId) && !aWhy.empty(), "v2 shapes: refused: a 6x6 save without shapes, of an 8x8 board (" + aWhy + ")");
+
 	// The replay player: an LDSV that is a v2 save of the replay's rules
 	Replay::File aFresh = PlayableReplay();
 	aFresh.mSegments.erase(aFresh.mSegments.begin());
@@ -1876,6 +1932,10 @@ static void TestReplayVariantSave()
 	aFresh.mRulesId[0] ^= 1;
 	aWhy.clear();
 	Check(!Replay::CheckPlayable(aFresh, 8, 8, &aWhy) && !aWhy.empty(), "v2 check: refused: an LDSV of other rules than the RLID (" + aWhy + ")");
+	aFresh.mRulesId[0] ^= 1;
+	aFresh.mSegments[0].mLoadSave = aSmallBytes;
+	aWhy.clear();
+	Check(Replay::CheckPlayable(aFresh, 6, 6, &aWhy, false, &aSix), "v2 shapes: a fresh replay of a 6x6 board whose LDSV is its save (" + aWhy + ")");
 
 	// The mode of a save, v1 or v2
 	bool isTimed = true;

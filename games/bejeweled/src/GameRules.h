@@ -233,6 +233,12 @@ public:
 
 	// Any rule beyond the legacy tunables differs from its default (a variant board, 1.2 principle 4)
 	bool							HasVariantRules() const;
+	// A scoring tunable (setValues, lengthBonus, longLengthBonus, excellentFactor, hintPenalty) differs from the
+	// original's: the board's displayed score then closes large gaps fast (Board::RollScoreFast, stage 7)
+	bool							ScoringTunablesChanged() const;
+	// Replays of these rules play alike in every engine from Replay::FIRST_ENGINE_ABI on: no variant rule and no
+	// scoring tunable changed (engine 3 changed how their displayed score rolls)
+	bool							PlaysAlikeInEveryEngine() const;
 	std::vector<std::string>		VariantKeys() const;   // those keys, in schema order
 
 	// The checks of 3.6 (all of them, for the merged set). False with a message and the causes of the

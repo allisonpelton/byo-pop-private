@@ -359,11 +359,11 @@ void ReplayRecorder::OnLoad(const std::string& theSave, const Replay::File* theS
 	mLoaded = true;
 
 	// The sidecar continues: its segments come first, if it is a recording of the same rules by this engine, or
-	// by an earlier one under the original rules, whose play no engine since has changed (the exemption
+	// by an earlier one under rules that play alike in every engine (GameRules::PlaysAlikeInEveryEngine) (the exemption
 	// Replay::CheckPlayable makes; the merged replay is this engine's), with room for one segment more (a reader
 	// takes at most Replay::MAX_SEGMENTS; else a fresh replay that holds the save)
 	bool isSameEngine = (theSidecar != NULL) && ((theSidecar->mEngineAbi == mFile.mEngineAbi) ||
-		(!mBoard->mRules.HasVariantRules() && (theSidecar->mEngineAbi >= (uint32_t) Replay::FIRST_ENGINE_ABI) &&
+		(mBoard->mRules.PlaysAlikeInEveryEngine() && (theSidecar->mEngineAbi >= (uint32_t) Replay::FIRST_ENGINE_ABI) &&
 		(theSidecar->mEngineAbi < (uint32_t) Replay::ENGINE_ABI)));
 	bool isContinued = isSameEngine && !theSidecar->mSegments.empty() && theSidecar->mHasRulesId &&
 		(memcmp(theSidecar->mRulesId, mFile.mRulesId, Replay::RULES_ID_SIZE) == 0) &&

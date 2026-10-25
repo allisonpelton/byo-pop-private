@@ -23,6 +23,7 @@ namespace Sexy
 class WinDMApp;
 class Graphics;
 class DDImage;
+class Image;
 class MemoryImage;
 class ImageFont;
 class SoundInstance;
@@ -70,7 +71,10 @@ inline constexpr int gMatchBaseScores[9] = {10, 20, 30, 40, 60, 80, 110, 160, 21
 // Computed once by Board::InitVariant from the rules snapshot; every flag is false for the original rules
 // and for tunables-only mods. Read since stage 5: mAny (the v2 save, the variant trace line), mInvalid
 // (UpdateSwap keeps a swap that made no match) and mNoMoves (UpdateFalling's no-moves branch); since stage 6
-// mUndo (the undo snapshots, keys and orb); the other variant paths arrive in later stages.
+// mUndo (the undo snapshots, keys and orb); since stage 7 mShape (the fill, the refill, the checkerboard and
+// the level shapes, BoardShape.cpp), mScaled (input in logical space), mDraw (DrawVariant,
+// BoardDrawVariant.cpp) and mNoTutorial (a fill with a move instead of the tutorial loop); the other variant
+// paths arrive in later stages.
 struct VariantFlags
 {
 	bool mAny = false;          // any rule differs from default: v2 save, variant trace lines
@@ -219,6 +223,13 @@ public:
 	BoardLayout		mLayout;                // current level's layout (8x8: origin 203/16, D 406, bottom 480)
 	int				mCols;                  // == mLayout.mCols; 8
 	int				mRows;                  // == mLayout.mRows; 8
+	// Stage 7 (games/bejeweled/docs/CODE_MODS_DESIGN.md 5.3): the layout of the level SetupLevel set up, which
+	// UpdateBlackHole applies after its deletion loop (ApplyPendingLayout); equal to mLayout between ticks
+	BoardLayout		mPendingLayout;
+	int				mLevelShape;            // index into the rules' board.levels: mLevel % their count (0 without levels)
+	// A mod's scoring tunables (GameRules::ScoringTunablesChanged): the displayed score closes a large gap fast
+	// (RollScoreFast). A fix of the tunables rather than a variant path, so BEJ_NO_VARIANTS keeps it
+	bool			mFastScoreRoll;
 	// The board's RNG (games/bejeweled/docs/CODE_MODS_DESIGN.md 6.2), chosen by WinDMApp::NewGame
 	// (GameConfig::mNextBoardSeed). Not a code path, so BEJ_NO_VARIANTS keeps it (mVariant.mOwnRng then
 	// reads false)
@@ -339,6 +350,16 @@ public:
 	void			GetRngState(Replay::RngState* theRng);         // the RNG Board::Rand draws from, as RNGS stores it
 	bool			SetPlaybackRng(const Replay::RngState& theRng); // a playback LOAD: the RNG the recorded board went on with (RNGS)
 	Replay::EndInfo	GetEndInfo(int theReason, const MTRand* theRng = NULL); // the END record of the game as it is now
+	// Shapes (stage 7, games/bejeweled/docs/CODE_MODS_DESIGN.md 4.3, section 5; BoardShape.cpp)
+	void			FillBoardVariant();                             // FillBoard on a shape board: holes skipped, rerolls capped
+	void			RefillMasked();                                 // UpdateClearing's refill over each column's cells
+	void			FillBoardWithMove();                            // the constructor's fill when the tutorial move cannot apply
+	void			DrawVariantChecker(Graphics* g, Image* theTileA, Image* theTileB); // SetupLevel's tiles for its level's shape
+	void			ApplyPendingLayout();                           // UpdateBlackHole, after the deletion loop: the new level's shape
+	void			SetLoadedLayout(const BoardLayout& theLayout, int theLevelShape); // ReadVariantHeader: the save's shape
+	void			RebuildLoadedBackground();                      // GameLoadedVariant: the background of the loaded level and shape
+	void			DrawVariant(Graphics* g);                       // Draw for mDraw boards (BoardDrawVariant.cpp)
+	void			RollScoreFast();                                // Update, before the score roll: a large gap closes fast (mFastScoreRoll)
 
 	// port(variant): every draw of the translated code. Class scope finds it before Sexy::Rand, so the 9
 	// Rand() expressions keep their text; without an own MTRand it is the original global stream, draw for

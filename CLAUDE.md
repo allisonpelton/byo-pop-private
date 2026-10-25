@@ -44,6 +44,11 @@ the same machine. A plain run opens a window, raises it over whatever the user i
   bound, not a difference (compare.py, DRAWS); compare.sh then drops the cache entries of the baseline runs
   involved, so the next oracle makes them again. If such a note repeats in the same case, check it with
   `--no-cache --jobs 1`.
+- While working on a few cases, run only those (it saves time and tokens): `compare.sh --cases <glob>,...`,
+  e.g. `--cases "shape_*,rules_inert"` (matched against the whole case name), with any `--variants`. It runs the
+  matching cases, the cases compare.py compares them with, and the runs they read (Bejeweled's stage 7 cases,
+  three ways: 164 s instead of about 950 s). Its report says it was partial and expect-update refuses it: the
+  whole oracle is still the check before a commit.
 - Do not leave anything running: loops started in the background must end before you finish, and a stopped
   task's child processes must be killed.
 - Stop only processes you started, identified by a command line inside your own folder or worktree. Several

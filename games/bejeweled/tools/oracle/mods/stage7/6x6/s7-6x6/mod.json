@@ -1,0 +1,7 @@
+{
+  "id": "s7-6x6",
+  "name": "Stage 7: a 6x6 board",
+  "version": "1.0",
+  "description": "Oracle fixture: a full 6x6 board, centred in the original window at the original size (no scaling). The tutorial move cannot apply (it needs 8 columns), so the first board is filled until it has a move.",
+  "rules": { "board": { "cols": 6, "rows": 6 } }
+}

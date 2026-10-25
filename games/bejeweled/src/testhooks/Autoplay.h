@@ -83,7 +83,7 @@ private:
 	std::vector<Step> mPlan;
 	size_t mPlanPos;
 	int mNextStepUpdate;   // update at which mPlan[mPlanPos] is due
-	int mDragX;            // drag start (STEP_DOWN_CELL) and end (STEP_DRAG_MOVE)
+	int mDragX;            // drag start (STEP_DOWN_CELL) and end (STEP_DRAG_MOVE), board positions
 	int mDragY;
 	int mGameOverUpdate;   // update the game-over screen was first seen, -1 before
 	int mMoveNum;
@@ -97,6 +97,8 @@ private:
 	void Note(const char* theFormat, ...);
 	void LogChanges();
 	bool InputBlocked();
+	int ScreenX(int theX);
+	int ScreenY(int theY);
 	bool OnBoard(int theX, int theY);
 	void PlanMove();
 	void PlanFallingSelect();

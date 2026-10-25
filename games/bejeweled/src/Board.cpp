@@ -141,6 +141,8 @@ Board::Board(WinDMApp* theApp, bool timedMode)
 
 	// Boards are generated until one has a horizontal-run move to the right in rows 4..6, columns
 	// 1..6, for the first-game tutorial arrows; the rejected boards still consume Rand()
+	if (mVariant.mNoTutorial) FillBoardWithMove(); // port(variant): a board without that move: filled until it has one (BoardShape.cpp)
+	else
 	do
 	{
 		FillBoard();
@@ -246,6 +248,7 @@ void Board::UpdateBlackHole()
 				mBoard[aRow][aCol] = NULL;
 			}
 		}
+		if (mVariant.mShape) ApplyPendingLayout(); // port(variant): the new level's shape, once the old bounds are cleared (BoardShape.cpp)
 		mLevelTargetScore = mLevelPoints + mScore;
 		mLevelStartScore = mScore;
 		mApp->PlaySample(SOUND_FIRECRACKLE);
@@ -259,6 +262,7 @@ void Board::UpdateBlackHole()
 // 0x4cbc70
 void Board::Draw(Graphics* g)
 {
+	if (mVariant.mDraw) { DrawVariant(g); return; } // port(variant): scaled boards, holes (BoardDrawVariant.cpp)
 	int aCenterX;
 	int aCenterY;
 	GetBoardCenter(&aCenterX, &aCenterY);
@@ -769,6 +773,7 @@ void Board::UpdateFalling()
 		for (int aCol = 0; aCol < mCols; aCol++) // port(variant): was BOARD_COLS
 		{
 			Piece* aPiece = mBoard[aRow][aCol];
+			if (aPiece == NULL) continue; // port(variant): a hole
 			if (aPiece->mY == aRestY)
 				aPiece->mVelY = 0.0;
 			else
@@ -1062,6 +1067,7 @@ void Board::Update()
 	// The displayed score rolls toward the real one, faster the further behind it is (3, 2 or 1
 	// times the multiplier per tick; the last step only every other tick when close). The second
 	// pass rolls it down after a hint penalty.
+	if (mFastScoreRoll) RollScoreFast(); // port(variant): a mod's scoring tunables can open a gap of levels (BoardVariant.cpp)
 	int aScoreDiff = mScore - mDisplayScore;
 	bool aRolled = true;
 	if (aScoreDiff >= (int)(mPointMultiplier * 150.0))

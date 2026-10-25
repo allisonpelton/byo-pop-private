@@ -138,7 +138,9 @@ Planned gameplay mods (board shapes, other move types, special gems, replays, ..
 `max`, `penalty`, `inTimed`, `restoreTime` and `restoreRng`). With undo, **z**, **u** or **Backspace**, or a click on
 the red orb left of the timer bar, takes the last move back. The orb lights up while an undo is possible and shows
 how many are left when `max` limits them. Repeating the move refills the board the same way, so undo cannot reroll
-the new gems.
+the new gems. Boards can have other sizes and shapes: `"board": {"cols": 10, "rows": 7}` (3 to 16 a side), a
+`mask` of rows with `#` for a cell and `.` for a hole, or `levels`, a list of such shapes that the levels take in
+turn. Gems fall through holes, and boards wider or taller than 8 cells are scaled to fit the window.
 
 ## Tests
 

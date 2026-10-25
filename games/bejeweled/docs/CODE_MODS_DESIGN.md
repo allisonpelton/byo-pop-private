@@ -715,6 +715,25 @@ Section 5 has the details.
   run. With standard matching they need only bounds edits.
 - **Save:** v2 header with dims and level-shape index *before* the cell records (7.2).
 
+**As built (stage 7, `BoardShape.cpp`, `BoardDrawVariant.cpp`; GAME_NOTES 12.10):**
+- There is no `SetupLevelVariant`: `SetupLevel` calls `DrawVariantChecker` in place of its tile loop, and that
+  sets `mPendingLayout` before drawing the next background.
+- `FillBoardVariant` gives up after 1000 rerolls of a cell, logs it and fills the board again. On the default
+  rules the cap is never reached.
+- `mNoTutorial` is set when the first shape cannot hold the tutorial move (rows 4..6 playable in columns 0..7).
+  Swaps, runs of 3 and no diagonals join the test in the stages that play moves.type and the match rules (8 and
+  9): until then the board swaps and matches 3-runs whatever those rules say, and the tutorial must stay
+  (`rules_inert`, whose stage 1 mods set twists).
+- `mLevelShape` is not in StateCodec's LOGIC (the level and the board's size are), so the stage 6 replays' hashes
+  hold. Engine ABI 3. `Replay::CheckSave` and `CheckPlayable` take the rules' shapes, and `WatchController` passes
+  them.
+- On a scaled board the `-trace` move lines give window positions as clicks, and the autoplay bot and the
+  verifier's diff bot click there.
+- Dirt cells play as holes until stage 7b.
+- A fix the shape tests found: with a mod's scoring tunables the displayed score falls levels behind, and the
+  next level ended at once in TIME_UP. Such a board now closes large gaps fast (`Board::RollScoreFast`,
+  GAME_NOTES 12.10), and engine 3 refuses earlier replays of such rules.
+
 ### 4.4 Chuzzle-style slides and move-type combinations
 
 **Slides (`STATE_SLIDING`/`_BACK`).**
@@ -1773,6 +1792,44 @@ It needs stages 3 (StateCodec), 5 (v2 chunks), 6 (the undo row) and 7 (`RefillMa
 - **Size:** ~3,800 lines (about 150 of them shared): rasteriser ~700, vector font and styles ~900, gem
   renderer ~700, the other generators ~1,100, tests and screenshots ~250.
 
+### 4.19 Detailed game-over stats (`features.gameStats`)
+
+- **What:** the game-over screen (`HighScoreWidget`) shows three stats: gems cleared, longest cascade
+  and best single move. With the feature mod on, it also has a **Stats** button [Q36]. The button opens
+  a page of the whole game in detail, and a click returns to the screen as it was.
+- **On the page** [Q37]:
+  - **Play:** moves made, swaps that went back, kept invalid moves, hints taken and their cost, undos,
+    time played, and the average time per move.
+  - **Matches:** runs by length (3, 4, 5+) with their points, cascades by depth, and gems cleared per
+    colour, drawn as a row of gem icons with counts.
+  - **Levels:** for each level its points, time and moves. A bar chart of points per level, and a line
+    of the score over time with the level-ups marked.
+  - **Board:** the rules' name and RulesId, the board's shape (stage 7), and the seed when there is
+    one. Later stages add their own rows: specials made and detonated (11), gold covered (12), twists
+    and slides (10).
+- **Counting:** a `GameStats` observer that the board calls from hooks in `ProcessMatches` (each scored
+  run: length, colour, cascade depth, points), `StartSwap`, the swap back, `DoHint`, `Undo`, the level-up
+  and game over.
+  - Like the LiveSplit observer and the replay recorder, it is no simulation state. It never draws
+    from an RNG, is not in StateCodec's LOGIC and adds nothing to the score key. LOGIC hashes with the
+    feature on equal those with it off.
+  - An undo takes back the counts of the move it undoes: the observer keeps one entry per undo
+    snapshot.
+  - **Across a save** [Q38]: the counts go into the save's sidecar as their own chunk, next to the
+    replay's, so a resumed game shows its whole history. A save without the chunk resumes with the
+    counts from the resume on, and the page says so.
+  - **Watching** (stage 3b): a watched replay counts as it plays, so its game-over screen has the page
+    too.
+- **Drawing:** the game's fonts and images only (no new art), in the board window's 406 x 406 px over
+  the game-over screen. Charts are flat bars and lines in the HUD's colours, and @4x art and HD
+  drawing apply as usual. Without the feature the game-over screen is pixel-identical (oracle).
+- **Tests:** the counts checked against the `-trace` settles of the oracle's scripts and autoplay runs
+  (moves, gems cleared, and the score as the sum of the counted points); LOGIC hashes equal with the
+  feature on and off; an undo, a resume and a watched replay give the same page as the game played
+  through; screenshots of the page for normal and timed games, at 640x480 and @4x; oracle three ways
+  without the mod.
+- **Size:** ~900 lines: observer and hooks ~250, sidecar chunk ~100, page and charts ~400, tests ~150.
+
 ---
 
 ## 5. Board geometry and rendering
@@ -2642,14 +2699,28 @@ tests. Sizes are new or changed lines.
 | 14 | Leaderboards (12) | Worker, D1 schema, sessions, daily seeds, submit checks, rate limits, shell panel, `bj_submit`, docs (README Mods section, MOD_ROADMAP, GAME_NOTES) | `wrangler dev` with the corpus: accepted; tampered score, event, rules, reused or expired token, and a wrong RNG on resume all rejected; CPU timing of a long timed replay | ~1,400 (≈700 TS) |
 | 15 | Steven Universe gems (4.17) | `make_su_gems_mod.py`; `gemsheet.py` split out of the Bejeweled 2 generator; gem models (seven, plus four for stage 8), cel shader, Pearl's smooth gem; spin and glow rows; title gems | Bejeweled 2 output byte-identical after the split; `--preview` sheet; frames inside their cells; screenshots at 640x480 and @4x (title, board, spin, glow); oracle untouched (images only) | ~650 (Python) |
 | 16 | Code-drawn art (4.18) | Shared loader hook (`RegisterImageGenerator`, generated font metrics); `features.codeArt` and its menu settings; `art/Raster`, `art/VectorFont` and the font styles, `art/GemArt` (the facet models in C++); one generator per image; optional user-dir cache | No image files: the oracle scripts run to the end with LOGIC hashes equal to the default run's; sizes equal the originals'; screenshots of every screen at 1x and @4x; web build without images under Node and in the Browser pane; mod images and patches over generated art; oracle three ways without the mod | ~3,800 (≈150 shared) |
+| 17 | Detailed game-over stats (4.19) | `features.gameStats`; `GameStats` observer and its hooks (runs, moves, swaps back, hints, undos, levels, game over); undo entries; sidecar chunk; the Stats button and page with its two charts | Counts against the `-trace` settles of the scripts and autoplay runs; LOGIC equal on and off; undo, resume and watched replay give the same page; screenshots normal and timed, 1x and @4x; oracle three ways without the mod | ~900 |
 
-The total is about 21k lines (16.6k for stages 0–14). Stage 6 comes early on purpose: its round-trip test guards every later
+The total is about 22k lines (16.6k for stages 0–14). Stage 6 comes early on purpose: its round-trip test guards every later
 change to a chunk. Stages 7–12 can be reordered after stage 6. Stage 2b needs only stage 1. Stage 7c
 needs stages 3, 5, 6 and 7 and comes before 7b, so 7b writes its diagonal pass direction-aware once.
 Stage 14 needs stages 3, 4 and 2's owned RNG.
 Stage 15 is images only and needs no other stage. Stage 16 needs stage 1's `features`, the shared
 loader hook and M5's mod menu (for its settings). It comes last so that its gem renderer can take
-stage 15's models and draw stage 8's extra colours.
+stage 15's models and draw stage 8's extra colours. Stage 17 needs stage 1's `features` and stage 3's
+sidecar, and can come any time after stage 6; it is listed last because it was asked for last. Each later
+stage adds its own rows to its page.
+
+**After the mods: game modes (the user, 2026-10-25).** Once every stage above is done, combinations of mods and
+settings that make fun, balanced game modes for the user to play, each tested with the autoplay bot, with ways to
+put numbers on "fun" in a game of Bejeweled. A first list of measures, from many seeded bot games per mode:
+choice (how many moves a board offers, and how different they are in points), cascades (how often a move chains,
+and how long the chains are), tension (how often the timed bar runs low, or a board comes close to no moves, and
+recovers), pace (the time between level-ups over a game), balance (how scores and game lengths spread over the
+seeds, and how much a better bot gains over a random one: skill should pay), and frustration (dead boards, long
+stretches with no match). The bot plays unlike a person, so the measures compare modes with the original rules
+rather than stand alone. Stage 17's counts are the natural source. Mostly mod files and a measuring script; the
+modes and the measures go to the user before they are tuned.
 
 ---
 
@@ -2786,6 +2857,13 @@ Recommendations are in brackets.
 35. **Sounds and music** still come from the game files. Should the game also start without them
     (silent, with a status line), so that with code-drawn art it needs no game files at all? Publishing
     such a build stays your decision at push time. [yes]
+36. **Game-over stats: where.** A Stats button on the game-over screen that opens the detail page, so the
+    original screen stays as it is, or the details on the game-over screen itself, in place of the tip
+    and the high-score tables? [a button and its own page]
+37. **Game-over stats: what.** The counts (play, matches, levels, board) and two charts (points per level,
+    score over time), or the counts alone? [counts and both charts]
+38. **Game-over stats: across a save.** Keep the counts in the save's sidecar, so a resumed game shows its
+    whole history, or count from the resume only? [keep them in the sidecar]
 
 ---
 

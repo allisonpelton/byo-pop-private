@@ -72,7 +72,10 @@ void CodecCheck::AfterUpdate()
 		uint8_t anId[Replay::RULES_ID_SIZE] = {};
 		if (aBoard->mVariant.mAny)
 			aBoard->mRules.RulesId(anId);
-		if (!Replay::CheckSave(aBytes, aBoard->mCols, aBoard->mRows, &aWhy, aBoard->mVariant.mAny ? anId : NULL))
+		std::vector<BoardLayout> aShapes;
+		for (int i = 0; i < aBoard->mRules.ShapeCount(); i++)
+			aShapes.push_back(aBoard->mRules.LayoutForLevel(i));
+		if (!Replay::CheckSave(aBytes, aBoard->mCols, aBoard->mRows, &aWhy, aBoard->mVariant.mAny ? anId : NULL, aBoard->mVariant.mAny ? &aShapes : NULL))
 			aDiff = "the save: " + aWhy;
 		else if (aBoard->mVariant.mAny)
 		{

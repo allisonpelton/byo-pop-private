@@ -15,6 +15,9 @@
 // it leaves no RNG sidecar.
 // Stage 6: undo (4.12, 6.7): a stack of StateCodec UNDO snapshots taken before each move, and the undo that
 // restores the newest one (TakeUndoSnapshot ... Undo).
+// Stage 7: board sizes and shapes (4.3, section 5): the layout of the rules' level 0 (InitVariant); the shape code
+// itself is in BoardShape.cpp and BoardDrawVariant.cpp. And a fix for a mod's scoring tunables: the displayed
+// score closes a large gap fast (RollScoreFast).
 
 #include "Board.h"
 #include "GameConfig.h"
@@ -40,11 +43,18 @@ void Board::InitVariant()
 	// The LiveSplit observer's bookkeeping, in every build (BEJ_NO_VARIANTS too)
 	mBoardSerial = ++sBoardSerial;
 	mResumed = false;
-	// The board shape rules (board.cols/rows/mask/levels) take effect in stage 7 (FillBoardVariant,
-	// RefillMasked, DrawVariant); until then the layout keeps the original constants
+	// The board shape rules (board.cols/rows/mask/levels, stage 7): level 0's shape, which SetupLevel then draws.
+	// BEJ_NO_VARIANTS plays every rule set on the original 8x8
+#ifndef BEJ_NO_VARIANTS
+	mLayout = mRules.LayoutForLevel(0);
+#else
 	mLayout = BoardLayout();
+#endif
+	mPendingLayout = mLayout;
+	mLevelShape = 0;
 	mCols = mLayout.mCols;
 	mRows = mLayout.mRows;
+	mFastScoreRoll = mRules.ScoringTunablesChanged();
 
 #ifndef BEJ_NO_VARIANTS
 	mVariant = ComputeVariantFlags(mRules, gGameConfig.mFeatures);
@@ -204,6 +214,9 @@ Board::Board(WinDMApp* theApp, ScratchBoardTag)
 
 	mRules = gGameConfig.mRules;
 	mLayout = BoardLayout();
+	mPendingLayout = mLayout;
+	mLevelShape = 0;
+	mFastScoreRoll = false;
 	mCols = mLayout.mCols;
 	mRows = mLayout.mRows;
 	mOwnRng = NULL;
@@ -351,6 +364,10 @@ void Board::GameLoadedVariant(const Buffer& theSave)
 	mUndoStack.clear(); // a save holds no undo snapshots (4.12)
 	if (mVariant.mAny)
 		ReadVariantChunks(theSave);
+	// Stage 7: the loaded level's background, in its shape (BoardShape.cpp); not under -forcevariant, which keeps
+	// the original's level-0 background
+	if (mVariant.mAny && mVariant.mShape)
+		RebuildLoadedBackground();
 	// A replay's LOAD (stage 3b): no file of the user dir is read; the player gives the board the RNG the
 	// recorded one went on with, the segment's RNGS (SetPlaybackRng)
 	if (mPlaybackOnly)
@@ -710,9 +727,11 @@ VariantFlags Board::ComputeVariantFlags(const GameRules& theRules, const GameFea
 	for (int aLevel = 0; aLevel < theRules.ShapeCount(); aLevel++)
 		aFlags.mScaled = aFlags.mScaled || (theRules.LayoutForLevel(aLevel).mExtent > BoardLayout::VIEW_SIZE);
 
-	// The tutorial looks for a horizontal 3-run swap to the right in rows 4..6, columns 1..6
-	bool canTutorial = ((theRules.mMoves.mTypes & GameRules::MOVE_SWAP) != 0) && (aMatch.mMinRun == 3) && !aMatch.mDiagonal &&
-		(aFirst.mCols >= 8) && (aFirst.mRows >= 7);
+	// The tutorial looks for a horizontal 3-run swap to the right in rows 4..6, columns 1..6. Only the shape is
+	// played so far: the board swaps and matches runs of 3 whatever moves.type, match.minRun and match.diagonal say
+	// (AddBuildWarnings), so those join this test in the stages that play them (8 and 9), not before; a stage 1
+	// mod set with twists kept the tutorial (oracle case rules_inert)
+	bool canTutorial = (aFirst.mCols >= 8) && (aFirst.mRows >= 7);
 	for (int aRow = 4; (aRow <= 6) && canTutorial; aRow++)
 	{
 		for (int aCol = 0; aCol < 8; aCol++)
@@ -730,4 +749,21 @@ VariantFlags Board::ComputeVariantFlags(const GameRules& theRules, const GameFea
 	aFlags.mNoMoves = (theRules.mNoMoves.mNormal != GameRules::NOMOVES_GAME_OVER) || (theRules.mNoMoves.mTimed != GameRules::NOMOVES_FALL_OUT);
 	aFlags.mDraw = aFlags.mShape || hasSpecials || aFlags.mGold || hasNonSwapMoves || aFlags.mNoTutorial;
 	return aFlags;
+}
+
+// Update (0x4cdabc), before the score roll, on a board with a mod's scoring tunables (mFastScoreRoll). The roll
+// moves the displayed score 3 times the multiplier a tick at most, which suits the original's points; with a
+// mod's thousands a match it falls levels behind, and Update's level-up and TIME_UP tests read the displayed
+// score: the next level, which starts at the real score, ends at once in TIME_UP (or a hint penalty of
+// thousands gives free levels). A gap past the original's fastest band (150 times the multiplier) closes by an
+// eighth a tick down to that band, which the original roll then closes as before.
+void Board::RollScoreFast()
+{
+	int64_t aGap = (int64_t) mScore - mDisplayScore;
+	int64_t aBand = (int) (mPointMultiplier * 150.0);
+	if ((aGap > aBand) || (aGap < -aBand))
+	{
+		mDisplayScore = (int) (mDisplayScore + aGap / 8);
+		MarkDirty();
+	}
 }

@@ -3,9 +3,22 @@
 #include "DiffBot.h"
 #include "Board.h"
 
+#include <cmath>
 #include <cstdlib>
 
 using namespace Sexy;
+
+// A board position (Piece::mX) as the board's handlers take it, a window position: on a scaled board (stage 7)
+// scaled about the board window's corner, else itself (the game's autoplay bot does the same)
+static int ScreenX(Board* theBoard, int theX)
+{
+	return theBoard->mVariant.mScaled ? (int) floor(theBoard->mLayout.ToScreenX(theX) + 0.5) : theX;
+}
+
+static int ScreenY(Board* theBoard, int theY)
+{
+	return theBoard->mVariant.mScaled ? (int) floor(theBoard->mLayout.ToScreenY(theY) + 0.5) : theY;
+}
 
 DiffBot::DiffBot(uint32_t theSeed) :
 	mMoves(0),
@@ -87,7 +100,8 @@ void DiffBot::PlanMove(Board* theBoard)
 				{
 					int aCol2 = aCol + aDirs[aDir][0];
 					int aRow2 = aRow + aDirs[aDir][1];
-					if ((aCol2 >= 0) && (aCol2 < theBoard->mCols) && (aRow2 >= 0) && (aRow2 < theBoard->mRows))
+					if ((aCol2 >= 0) && (aCol2 < theBoard->mCols) && (aRow2 >= 0) && (aRow2 < theBoard->mRows) &&
+						theBoard->mLayout.IsPlayable(aCol, aRow) && theBoard->mLayout.IsPlayable(aCol2, aRow2))
 						aMoves.push_back(((aCol * 16 + aRow) * 16 + aCol2) * 16 + aRow2);
 				}
 			}
@@ -139,7 +153,7 @@ void DiffBot::PlanTarget(Board* theBoard)
 		{
 			int aCol2 = aCol + aDirs[aDir][0];
 			int aRow2 = aRow + aDirs[aDir][1];
-			if ((aCol2 >= 0) && (aCol2 < theBoard->mCols) && (aRow2 >= 0) && (aRow2 < theBoard->mRows))
+			if ((aCol2 >= 0) && (aCol2 < theBoard->mCols) && (aRow2 >= 0) && (aRow2 < theBoard->mRows) && theBoard->mLayout.IsPlayable(aCol2, aRow2))
 				aTargets.push_back(aRow2 * 16 + aCol2);
 		}
 	}
@@ -266,18 +280,20 @@ bool DiffBot::RunStep(Board* theBoard, const Step& theStep)
 				return false;
 			int x = (int) aPiece->mX + 24 + theStep.mDX;
 			int y = (int) aPiece->mY + 24 + theStep.mDY;
-			theBoard->MouseMove(x, y);
+			int sx = ScreenX(theBoard, x);
+			int sy = ScreenY(theBoard, y);
+			theBoard->MouseMove(sx, sy);
 			if (theStep.mKind == STEP_DOWN_CELL)
 			{
 				mDragX = x;
 				mDragY = y;
-				theBoard->MouseDown(x, y, 1);
+				theBoard->MouseDown(sx, sy, 1);
 			}
 			else
 			{
 				int aClickCount = (theStep.mKind == STEP_RCLICK_CELL) ? -1 : 1;
-				theBoard->MouseDown(x, y, aClickCount);
-				theBoard->MouseUp(x, y, aClickCount);
+				theBoard->MouseDown(sx, sy, aClickCount);
+				theBoard->MouseUp(sx, sy, aClickCount);
 			}
 		}
 		return true;
@@ -285,8 +301,8 @@ bool DiffBot::RunStep(Board* theBoard, const Step& theStep)
 	case STEP_CLICK_ZONE:
 		{
 			Piece* aSelected = theBoard->mSelectedPiece;
-			int x = (int) aSelected->mX + 24 + theStep.mDX;
-			int y = (int) aSelected->mY + 24 + theStep.mDY;
+			int x = ScreenX(theBoard, (int) aSelected->mX + 24 + theStep.mDX);
+			int y = ScreenY(theBoard, (int) aSelected->mY + 24 + theStep.mDY);
 			theBoard->MouseMove(x, y);
 			theBoard->MouseDown(x, y, 1);
 			theBoard->MouseUp(x, y, 1);
@@ -296,11 +312,11 @@ bool DiffBot::RunStep(Board* theBoard, const Step& theStep)
 	case STEP_DRAG_MOVE:
 		mDragX += theStep.mDX;
 		mDragY += theStep.mDY;
-		theBoard->MouseDrag(mDragX, mDragY);
+		theBoard->MouseDrag(ScreenX(theBoard, mDragX), ScreenY(theBoard, mDragY));
 		return true;
 
 	case STEP_DRAG_UP:
-		theBoard->MouseUp(mDragX, mDragY, 1);
+		theBoard->MouseUp(ScreenX(theBoard, mDragX), ScreenY(theBoard, mDragY), 1);
 		return true;
 
 	case STEP_HINT:

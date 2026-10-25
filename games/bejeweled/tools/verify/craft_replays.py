@@ -14,8 +14,8 @@ original game. Reads and writes .bjr files with games/bejeweled/tools/bjr.py.
       small well-formed replays (seed 1, no move, END tick 400; this build's engine, bjr.ENGINE_ABI) with RULEs and
       contents to refuse, into <dir>: rule-*.bjr (diff.txt values a level cannot play with, a field out of range, a
       field at its default, an unknown field), limits-*.bjr (segments, events at one tick, SAVEs where the game
-      never makes them), engine1-variant.bjr (a variant rule set recorded by engine 1: only the original rules'
-      replays play from an earlier engine), and fuzz-*.bjr (extreme diff.txt values the check takes: points and
+      never makes them), engine1-variant.bjr and engine1-scoring.bjr (a variant rule set and a scoring tunable
+      recorded by engine 1: only the original rules' replays play from an earlier engine), and fuzz-*.bjr (extreme diff.txt values the check takes: points and
       multipliers far past the int range); prints the names
   craft_replays.py check <in.bjr> <out.bjr> <tick> [<hash>]
       the replay with a CHECK at <tick>, the board's first settle, of hash 0 (the fuzz files' second pass: the
@@ -118,6 +118,11 @@ def synthetic(out_dir):
     old = minimal()
     old["engineAbi"] = bjr.FIRST_ENGINE_ABI
     files["engine1-variant"] = with_rule(old, rule_bytes(struct.pack("<HBi", 48, 1, 4)))
+    # A scoring tunable (scoring.hintPenalty 25) recorded by the first engine: engine 3 changed how their displayed
+    # score rolls (Board::RollScoreFast), so they no longer play from an earlier engine either
+    old_scoring = minimal()
+    old_scoring["engineAbi"] = bjr.FIRST_ENGINE_ABI
+    files["engine1-scoring"] = with_rule(old_scoring, rule_bytes(struct.pack("<HBd", 116, 3, 25.0)))
     # Contents past the bounds on what a file may make the player do
     files["limits-segments"] = minimal(segments=[minimal()["segments"][0]] * (bjr.MAX_SEGMENTS + 1))
     files["limits-one-tick"] = minimal(events=[(5, "DESELECT", [])] * (bjr.MAX_EVENTS_PER_TICK + 1))
