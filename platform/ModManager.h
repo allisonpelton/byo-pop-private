@@ -273,6 +273,7 @@ private:
 	void FlattenInto(const JsonValue& theValue, const std::string& thePrefix);
 	void RebuildTunables();
 	void ComputeScoreKey();
+	friend void SetPlaceholders(bool on);  // -placeholders changes the score key (platform/Placeholders.h)
 	void SetGameplayOwners();
 
 	void ReadSettingsFile(SettingsFile* theFile) const;

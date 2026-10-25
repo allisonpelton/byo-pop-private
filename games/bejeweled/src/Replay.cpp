@@ -838,9 +838,11 @@ bool Replay::CheckPlayable(const File& theFile, int theCols, int theRows, std::s
 				break;
 			case OP_TWIST:
 			case OP_SLIDE:
-			case OP_UNDO:
 				anErr = anAt + "a move this build does not play";
 				return false;
+			case OP_UNDO:
+				// stage 6: no arguments; whether the board may undo then is the player's gate (WatchController)
+				break;
 			case OP_PAUSE:
 			case OP_UNPAUSE:
 				if ((a[0] != 0) && (a[0] != 1))

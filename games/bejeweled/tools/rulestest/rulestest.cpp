@@ -1646,7 +1646,7 @@ static void TestReplayPlayable()
 	Check(Replay::Read(Replay::Write(aGood), &aRead, &aWhy) && Replay::CheckPlayable(aRead, 8, 8, &aWhy),
 		"playable: also after a write and read (" + aWhy + ")");
 	Check(!Replay::CheckPlayable(Replay::File(), 8, 8, &aWhy), "playable: an empty file is refused (" + aWhy + ")");
-	Check(!Replay::CheckPlayable(FullReplay(), 8, 8, &aWhy), "playable: TWIST, SLIDE and UNDO are refused (" + aWhy + ")");
+	Check(!Replay::CheckPlayable(FullReplay(), 8, 8, &aWhy), "playable: TWIST and SLIDE are refused (" + aWhy + ")");
 
 	struct Case
 	{
@@ -1671,7 +1671,6 @@ static void TestReplayPlayable()
 		{"XRAND 0", [](Replay::File* f) { f->mSegments[1].mEvents[4].mArgs[0] = 0; }},
 		{"XRAND past MAX_XRAND", [](Replay::File* f) { f->mSegments[1].mEvents[4].mArgs[0] = Replay::MAX_XRAND + 1; }},
 		{"a TWIST", [](Replay::File* f) { f->mSegments[0].mEvents[2] = MakeEvent(161, Replay::OP_TWIST, 3, 3, 1); }},
-		{"an UNDO", [](Replay::File* f) { f->mSegments[0].mEvents[2] = MakeEvent(161, Replay::OP_UNDO); }},
 		{"a CHECK at tick 0", [](Replay::File* f) { f->mSegments[1].mEvents[0] = MakeEvent(0, Replay::OP_CHECK, 1); }},
 		{"a LOAD after tick 0", [](Replay::File* f) { f->mSegments[1].mEvents[2].mTick = 1; }},
 		{"two LOADs", [](Replay::File* f) { f->mSegments[1].mEvents[1] = MakeEvent(0, Replay::OP_LOAD); }},
@@ -1695,6 +1694,12 @@ static void TestReplayPlayable()
 		aWhy.clear();
 		Check(!Replay::CheckPlayable(aBad, 8, 8, &aWhy) && !aWhy.empty(), std::string("playable: refused: ") + aCases[i].mWhat + " (" + aWhy + ")");
 	}
+
+	// Stage 6 plays UNDO (WatchController checks CanUndo as it applies one)
+	Replay::File anUndo = PlayableReplay();
+	anUndo.mSegments[0].mEvents[2] = MakeEvent(161, Replay::OP_UNDO);
+	aWhy.clear();
+	Check(Replay::CheckPlayable(anUndo, 8, 8, &aWhy), "playable: an UNDO (" + aWhy + ")");
 
 	// What makes it playable again: the first segment's save comes with it (LDSV), then it may LOAD
 	Replay::File aFresh = PlayableReplay();

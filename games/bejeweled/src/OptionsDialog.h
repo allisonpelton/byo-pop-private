@@ -41,6 +41,7 @@ public:
 		HIGH_SCORES_BUTTON_ID = 2,
 		VISIT_POPCAP_BUTTON_ID = 3,     // handled in ButtonDepress, never created
 		CHECK_UPDATES_BUTTON_ID = 4,    // created but never sized (invisible)
+		MODS_BUTTON_ID = 6,             // port(mods): Mods (5 is kept for Extras, games/bejeweled/docs/CODE_MODS_DESIGN.md 2.6)
 		LINK_BUTTON_ID_BASE = 100,      // link i has id 100+i (ButtonDepress accepts 100..199)
 		LINK_BUTTON_PITCH = 34,
 		BASE_PREFERRED_HEIGHT = 256
@@ -59,6 +60,9 @@ public:
 	DialogButton*	mCheckUpdatesButton;        // +0x188 id 4 OPTIONSDLG_CHECK_FOR_UPDATES (never resized: 0x0, invisible)
 	Image*			mCheckboxCheckedImage;      // +0x18c CopyImage(checkbox1, Rect(0,0,31,32)), owned
 	Image*			mCheckboxUncheckedImage;    // +0x190 CopyImage(checkbox1, Rect(31,0,31,32)), owned
+	// port(mods): Mods in the register slot while an enabled mod has settings: it opens the mod menu over this
+	// dialog (docs/MOD_MENU_DESIGN.md 8.2). NULL otherwise: the row is the original.
+	DialogButton*	mModsButton;
 
 public:
 	virtual void	SliderVal(int theId, double theVal);            // 0x4d1227 SliderListener slot 0

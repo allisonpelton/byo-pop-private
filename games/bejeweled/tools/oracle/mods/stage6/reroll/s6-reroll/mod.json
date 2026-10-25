@@ -1,0 +1,7 @@
+{
+  "id": "s6-reroll",
+  "name": "Stage 6: undo without the RNG",
+  "version": "1.0",
+  "description": "Oracle fixture: undo (depth 1, no limit, no penalty) with restoreRng false: the board comes back but the RNG goes on, so the same move again refills differently.",
+  "rules": { "undo": { "enabled": true, "restoreRng": false } }
+}

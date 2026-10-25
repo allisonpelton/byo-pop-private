@@ -1,4 +1,5 @@
 #include "Lex.h"
+#include "ModWords.h"
 #include "WordBalloon.h"
 #include "BookWormApp.h"
 #include "UserManager.h"
@@ -317,8 +318,37 @@ void Lex::SayDefinition(const SexyString& theWord, Font* theWordFont, const Sexy
 		Point((int)(0.75 * 213.0), -2));
 	aBalloon->SetHeader(theWord, theWordFont, -1);
 	aBalloon->SetText(theDefinition, theDefFont, -1);
+	aBalloon->mLookupURL = ModWordLookupURL(theWord);  // port(mod): a link to the word's definition
+	aBalloon->mDoFinger = !aBalloon->mLookupURL.empty();
 	aBalloon->SetColors(gLexSayColors, 4);
 	aBalloon->ClearFooter();
+	aBalloon->mTextInsets = Insets(12, 0, 12, 0);
+	aBalloon->Resize(0, 0, 213, aBalloon->GetPreferredHeight(213));
+	aBalloon->Show(theDuration);
+}
+
+// port(mod): Lex's comment on a mod's word (rude-words, ModWordReaction) in SayDefinition's box: the word as
+// the header, the comment, and the word's definition (if any) under it. Unlike a definition it replaces
+// whatever the balloon shows, a hint included.
+void Lex::SayReaction(const SexyString& theWord, const SexyString& theReaction, const SexyString& theDefinition,
+	int theDuration)
+{
+	OverlayWidget* anOverlay = mApp->mBoard->mOverlay;
+	if (anOverlay == NULL)
+		return;
+	WordBalloon* aBalloon = anOverlay->mBalloon;
+	mHintShowing = false;
+
+	aBalloon->SetBoxImages(mApp->mImages[IMAGE_BACKDROP_WB_TEXT], mApp->mImages[IMAGE_WB_TEXT_TALK_TAIL],
+		Point((int)(0.75 * 213.0), -2));
+	aBalloon->SetHeader(theWord, mApp->mFonts[FONT_MYRIADWEB12BOLD], -1);
+	aBalloon->SetText(theReaction, mApp->mFonts[FONT_MYRIADWEB10], -1);
+	aBalloon->ClearFooter();
+	if (theDefinition.size() != 0)
+		aBalloon->SetFooter(theDefinition, mApp->mFonts[FONT_MYRIADWEB10], -1);
+	aBalloon->mLookupURL = ModWordLookupURL(theWord);
+	aBalloon->mDoFinger = !aBalloon->mLookupURL.empty();
+	aBalloon->SetColors(gLexSayColors, 4);
 	aBalloon->mTextInsets = Insets(12, 0, 12, 0);
 	aBalloon->Resize(0, 0, 213, aBalloon->GetPreferredHeight(213));
 	aBalloon->Show(theDuration);

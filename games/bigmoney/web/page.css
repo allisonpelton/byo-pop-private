@@ -1,0 +1,17 @@
+/* Big Money's look on the shared page (web/shell.html): banknote green and coin gold, and the Replays panel's list
+   (page.html) */
+:root { --accent: #2f7d32; --gem-ruby: #c9302c; --coin: #d9a520; }  /* banknote green */
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --accent: #7bd17f; } }
+:root[data-theme="dark"] { --accent: #7bd17f; }
+.brand .mark { width: 12px; height: 12px; background: var(--coin); border-radius: 50%; }
+.replays { display: grid; gap: 8px; }
+.replay {
+  display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; align-items: start;
+  padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel-2);
+}
+.replay .meta { min-width: 0; }
+.replay .name { font-weight: 600; }
+.replay .sub { color: var(--muted); font-size: 12.5px; overflow-wrap: anywhere; }
+.replay .actions { display: flex; gap: 4px; }
+.replay .actions button { padding: 2px 8px; }
+.replays .empty { color: var(--muted); border: 1px dashed var(--line); border-radius: 8px; padding: 14px; }

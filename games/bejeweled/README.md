@@ -66,6 +66,13 @@ them; the menu's **Add or remove mods** opens it during play. The menu keeps its
 `<userdir>/mods.json` and `<userdir>/mod-settings.json`, which can also be edited by hand. Mod settings are
 described in [docs/MOD_MENU.md](../../docs/MOD_MENU.md); `mods/example-settings` is an example.
 
+In Bejeweled, a setting used only in `rules`, `tunables` or `features` applies at the next fresh game, without a
+restart (except `features.livesplit`). While a game is in progress or saved, the value waits, so that game keeps
+its rules and its high-score table; a board nobody has played yet is made again with it. While an enabled mod
+has settings, Options shows a **Mods** button that opens the menu. Restart game asks first while a game is in
+progress (it is saved and offered again), keeps `-replaydir` and a `-gameseed` that has not been played yet,
+and waits while a high-score name is being entered. The menu also shows each mod's rule errors and warnings.
+
 ```jsonc
 {
   "id": "my-mod", "name": "My Mod", "version": "1.0", "author": "you",
@@ -124,9 +131,14 @@ HD art (`name@2x.png` .. `name@4x.png`) also reaches images the game builds at r
 board background, the banner text, the shrinking gems and (at render scales above 1x) the hovered gem. Software drawing repeats each draw on the HD
 pixels whenever HD art is involved (`MemoryImage::BeginHDMirror`).
 
-Planned gameplay mods (board shapes, other move types, special gems, undo, replays, ...) are listed in
+Planned gameplay mods (board shapes, other move types, special gems, replays, ...) are listed in
 [docs/MOD_ROADMAP.md](../../docs/MOD_ROADMAP.md); their design and the staged plan are in
-[docs/CODE_MODS_DESIGN.md](docs/CODE_MODS_DESIGN.md).
+[docs/CODE_MODS_DESIGN.md](docs/CODE_MODS_DESIGN.md). Some already play: swaps that make no match can stay
+(`"moves": {"allowInvalid": true}`, with the `noMoves` rule), and undo (`"undo": {"enabled": true}`, with `depth`,
+`max`, `penalty`, `inTimed`, `restoreTime` and `restoreRng`). With undo, **z**, **u** or **Backspace**, or a click on
+the red orb left of the timer bar, takes the last move back. The orb lights up while an undo is possible and shows
+how many are left when `max` limits them. Repeating the move refills the board the same way, so undo cannot reroll
+the new gems.
 
 ## Tests
 

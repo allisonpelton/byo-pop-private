@@ -1,0 +1,15 @@
+{
+  "id": "undo",
+  "name": "Undo",
+  "version": "1.0",
+  "author": "byo-pop",
+  "description": "UNDO (beside OPTIONS) or Ctrl+Z takes back the last word or scramble: the board, score, fire tiles and bonus word as they were. The same word played again brings the same new tiles. Only within a level. Games with it keep their own high scores.",
+  "affectsScores": true,
+  "features": {
+    "undo": true
+  },
+  "settings": [
+    { "id": "depth", "label": "Moves that can be undone", "type": "int", "default": 10, "min": 1, "max": 100,
+      "help": "How many of the level's last words and scrambles UNDO can take back, one after another." }
+  ]
+}

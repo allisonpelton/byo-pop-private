@@ -51,6 +51,7 @@ public:
 	double			mFadeSpeed;             // +0x110 0.1 per update
 	int				mTimer;                 // +0x118 0; updates left while > 0; -1 = until Show(0) or a click
 	bool			mClicked;               // +0x11c false; dismissed by a click (ends the mouse-over hold)
+	std::string		mLookupURL;             // port(mod): a definition's link, opened by the click (ModWordLookupURL)
 	// +0x11d..+0x11f pad; sizeof 0x120
 
 public:
@@ -78,6 +79,7 @@ public:
 	void			SetBoxImages(Image* theBoxImage, Image* theTailImage, Point theTailPos); // 0x4364d0
 	void			ClearHeader();                                  // 0x437430 (text erased, font NULL)
 	void			ClearFooter();                                  // 0x437480
+	void			SetFooter(const SexyString& theText, Font* theFont, int theJustify); // port(mod)
 	void			SetHeader(const SexyString& theText, Font* theFont, int theJustify); // 0x4374e0
 	void			SetText(const SexyString& theText, Font* theFont, int theJustify);   // 0x437510
 

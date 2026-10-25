@@ -224,6 +224,9 @@ int main(int argc, char** argv)
 	Platform::VFS::Get().SetBaseDir(gameDir);
 	Platform::VFS::Get().SetUserDir(userDir);
 	Platform::ModManager::Get().SetModsDir(modsDir);
+	// port(mods): settings used only in rules, tunables and features apply at the next fresh game (before Refresh:
+	// the start applies values by it; docs/MOD_MENU_DESIGN.md 6.2)
+	Platform::ModManager::Get().SetNextGameFilter(GameConfig::IsNextGamePath);
 	if (!HasFlag(argc, argv, "nomods"))
 		Platform::ModManager::Get().Refresh();
 	SDL_Log("game: %s | user: %s | mods: %s", gameDir.c_str(), userDir.c_str(), modsDir.c_str());

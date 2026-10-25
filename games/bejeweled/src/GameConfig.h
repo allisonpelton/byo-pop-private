@@ -82,9 +82,19 @@ struct GameConfig
 	// Base points of the n-th run (1-based) of the current move.
 	int SetValue(int theRunNumber) const;
 
+	// port(mods): what the last Load's merge reported (errors, dropped mods, warnings): the mod menu's messages
+	// (WinDMApp::GetModMessages); empty when no enabled mod has rules or features
+	RulesStatus mStatus;
+
 	// Reads the enabled mods' tunables and rules (Platform::ModManager). Called at startup and before each
 	// game. Writes <user dir>/mods-status.json when an enabled mod has "rules" or "features".
-	void Load();
+	// port(mods): first commits the mod settings' values held for the next fresh game when theCanCommit
+	// (no game would be stranded: WinDMApp::CanCommitNextGameValues; docs/MOD_MENU_DESIGN.md 6.2)
+	void Load(bool theCanCommit = false);
+
+	// port(mods): the data paths a new game reads again ("rules.match.minRun"), so a mod setting used only there
+	// applies at the next fresh game without a restart (ModManager::SetNextGameFilter, set by main.cpp)
+	static bool IsNextGamePath(const std::string& thePath);
 
 	// port(variant): the tunables of theRules into the members above
 	void LoadFromRules(const GameRules& theRules);

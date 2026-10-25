@@ -1,4 +1,5 @@
-# Bejeweled: a restart from the menu in a game (seed 1, the tutorial move), after a change that waits for it.
+# Bejeweled: a restart from the menu in a game (seed 1, the tutorial move), after a change that waits for it;
+# the menu asks first, since a game is in progress.
 # In a test run the game only logs the restart; run_tests.sh then runs it again with BYOPOP_RELAUNCH_TEST_ARGS,
 # and bejeweled-relaunched.txt runs in the process that starts.
 300 click 320 398
@@ -7,5 +8,7 @@
 600 modmenu set settings-demo praise "WOW"
 610 modmenu open
 620 modmenu restart
+# a game is in progress (HasGameInProgress), so the menu asks first
+625 modmenu restart confirm
 # (the game has shut down by now; this line is never reached)
 900 quit

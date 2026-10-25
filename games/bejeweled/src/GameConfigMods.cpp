@@ -100,7 +100,7 @@ static std::vector<std::string> ProvenanceFor(const RulesStatus& theStatus, cons
 // one per mod, naming every key of its own that is not played; for rule keys it says what they do change,
 // the RNG. Stage 3 records replays and plays them back from the command line only (-replay=<file>); the replay
 // browser comes with stage 13. Stage 5 plays moves.allowInvalid (with its penalty and invalidCountsAsMove) and
-// the noMoves rule
+// the noMoves rule, stage 6 the undo group
 static void AddBuildWarnings(const GameRules& theRules, const GameFeatures& theFeatures, RulesStatus* theStatus)
 {
 	// per mod: its rule keys, its feature keys (features.replays apart)
@@ -114,9 +114,10 @@ static void AddBuildWarnings(const GameRules& theRules, const GameFeatures& theF
 	std::vector<ModKeys> aByMod;
 	std::vector<std::string> aKeys = theRules.VariantKeys();
 #ifndef BEJ_NO_VARIANTS
-	// Played since stage 5 (4.1): kept invalid moves and the noMoves rule. A BEJ_NO_VARIANTS build plays no rule.
+	// Played since stage 5 (4.1): kept invalid moves and the noMoves rule; since stage 6 (4.12) undo. A BEJ_NO_VARIANTS
+	// build plays no rule.
 	static const char* const aPlayed[] = {"moves.allowInvalid", "moves.invalidPenalty", "moves.invalidCountsAsMove", "noMoves.normal",
-		"noMoves.timed"};
+		"noMoves.timed", "undo.enabled", "undo.depth", "undo.max", "undo.penalty", "undo.inTimed", "undo.restoreTime", "undo.restoreRng"};
 	for (size_t i = 0; i < sizeof(aPlayed) / sizeof(aPlayed[0]); i++)
 		aKeys.erase(std::remove(aKeys.begin(), aKeys.end(), std::string(aPlayed[i])), aKeys.end());
 #endif
@@ -265,6 +266,14 @@ static std::string StatusText(const GameRules& theRules, const GameFeatures& the
 		anEntry.Set("features", JsonValue(aMod->mHasFeatures));
 		anEntry.Set("imageOps", JsonValue(aMod->mHasImageOps));
 		anEntry.Set("diff", JsonValue(aMod->mOverridesDiff));
+		// port(mods): a mod with settings: the values this start plays with (docs/MOD_MENU_DESIGN.md 8.2)
+		if (aMod->HasSettings())
+		{
+			JsonValue aValues = JsonValue::MakeObject();
+			for (const auto& aValue : aMod->mValues)
+				aValues.Set(aValue.first, aValue.second);
+			anEntry.Set("values", aValues);
+		}
 		aMods.Push(anEntry);
 	}
 	aStatus.Set("mods", aMods);
@@ -288,11 +297,14 @@ static bool HasFolder(const std::string& theDir, const char* theName)
 // 4.15, Q18): its mod.json has only descriptive keys and a "features" object whose one key is "livesplit",
 // and its folder has none of the game's data folders. It changes nothing on screen or in play, so it shows
 // no mod signs, which would otherwise be in every run video.
+// port(mods): read in the effective manifest (the settings' values put in, so a key a value leaves out does not
+// count), and "settings" is descriptive: a livesplit mod that gains options stays sign-free
+// (docs/MOD_MENU_DESIGN.md 6.2 item 5)
 static bool IsLiveSplitOnly(const Platform::ModInfo& theMod)
 {
-	static const char* const aInfoKeys[] = {"id", "name", "version", "author", "description", "priority"};
+	static const char* const aInfoKeys[] = {"id", "name", "version", "author", "description", "priority", "settings"};
 	static const char* const aDataFolders[] = {"images", "sounds", "music", "data", "properties"};
-	const JsonValue& aManifest = theMod.mManifest;
+	const JsonValue& aManifest = theMod.mEffective.IsObject() ? theMod.mEffective : theMod.mManifest;
 	if (!theMod.mHasManifest || !aManifest.IsObject())
 		return false;
 	bool hasLiveSplit = false;
@@ -317,9 +329,11 @@ static bool IsLiveSplitOnly(const Platform::ModInfo& theMod)
 	return hasLiveSplit;
 }
 
-void GameConfig::Load()
+void GameConfig::Load(bool theCanCommit)
 {
 	Platform::ModManager& aMods = Platform::ModManager::Get();
+	aMods.CommitNextGameValues(theCanCommit); // port(mods): returns at once when nothing is held
+	mStatus = RulesStatus();
 	RulesStatus aStatus;
 	ResolveRules(&mRules, &mFeatures, &aStatus);
 	LoadFromRules(mRules);
@@ -336,6 +350,7 @@ void GameConfig::Load()
 	}
 
 	AddBuildWarnings(mRules, mFeatures, &aStatus);
+	mStatus = aStatus;
 	std::string aText = StatusText(mRules, mFeatures, aStatus);
 	static std::string sLogged;
 	if (aText != sLogged)
@@ -351,6 +366,20 @@ void GameConfig::Load()
 			SDL_Log("mods: warning: %s: %s", aStatus.mWarnings[i].mModId.c_str(), aStatus.mWarnings[i].mText.c_str());
 	}
 	aMods.WriteStatus(aText);
+}
+
+// port(mods): NewGame's Load reads "rules", "tunables" and "features" again (ResolveRules; the legacy tunables through
+// ModManager::GetTunable*), so a value used only there applies at the next fresh game. Not features.livesplit: the
+// LiveSplit observer's run state and block outlive a board, so turning it on or off waits for a restart.
+bool GameConfig::IsNextGamePath(const std::string& thePath)
+{
+	auto isUnder = [&thePath](const char* theKey) {
+		size_t aLength = strlen(theKey);
+		return (thePath.compare(0, aLength, theKey) == 0) && ((thePath.size() == aLength) || (thePath[aLength] == '.'));
+	};
+	if (isUnder("features.livesplit") || (thePath == "features"))
+		return false;
+	return isUnder("rules") || isUnder("tunables") || isUnder("features");
 }
 
 std::string GameConfig::DumpRules()

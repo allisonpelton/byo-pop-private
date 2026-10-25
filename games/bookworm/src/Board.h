@@ -40,6 +40,9 @@ class EffectMgr;
 class EmberListMgr;
 class Points;
 class WidgetManager;
+class Solver;
+class UndoStack;
+class GreedyBots;
 
 // Board::mState (+0x194)
 enum BoardState
@@ -68,7 +71,9 @@ enum BoardButtonId
 {
 	BOARD_BUTTON_SUBMIT = 16,
 	BOARD_BUTTON_OPTIONS = 17,
-	BOARD_BUTTON_LEAVE = 18
+	BOARD_BUTTON_LEAVE = 18,
+	BOARD_BUTTON_HINT = 19,         // port(mod): the solver's HINT, beside SUBMIT (Solver.h)
+	BOARD_BUTTON_UNDO = 20          // port(mod): UNDO, beside OPTIONS (Undo.h)
 };
 
 // Board::mHintId (+0x34c), passed to BookWormApp::ShowHint; only 1, 2, 4 and 10 are ever scheduled
@@ -224,6 +229,31 @@ public:
 	int					mUnused3e8;             // +0x3e8 zeroed by LevelUp, saved only
 	int					mUnused3ec;             // +0x3ec saved only
 
+	// port(mod): the word solver (mod "solver"); NULL while no enabled mod turns it on. Then SUBMIT takes the
+	// left part of its plank and HINT the right part.
+	Solver*				mSolver;
+	DialogButton*		mHintButton;
+	// port(mod): undo (mod "undo"); NULL without it. Then OPTIONS takes the left part of its plank and UNDO
+	// the right part.
+	UndoStack*			mUndo;
+	DialogButton*		mUndoButton;
+	// port(mod): a mod's words with effects (ModWordEffects, mod "rude-words"): the fire tiles the next
+	// Refill sets among its new tiles (set by Submit, 0 otherwise), Lex's danger clip once he has eaten the
+	// word, and the words of the game the stats count (kept at the end of the saved game while such a mod is
+	// on; the player's all-time total is in the registry, ModWordStatsValueName)
+	int					mModFireDue;
+	bool				mModDangerPending;
+	int					mModWordsPlayed;
+	// port(mod): the greedy bots (mod "greedy-bots", GreedyBots.h): two players' games from this game's start,
+	// a few moves each tick; NULL without the mod, in Action, and for a game begun without them.
+	// mBotsChecked: the start was looked at (the bots begin only at a fresh game's)
+	GreedyBots*			mBots;
+	bool				mBotsChecked;
+	// port(mod): the moves (words and scrambles) so far and the last word's cells (row * BOARD_COLS + col, in
+	// order; empty for a scramble), for the -autoplay bot's check of the bots' model (-autoplaymodel)
+	int					mModMoves;
+	std::vector<int>	mModLastMove;
+
 public:
 	Board(BookWormApp* theApp);                                         // 0x40ae90
 	virtual ~Board();                                                   // 0x4062e0 body, 0x406c10 slot 0
@@ -267,6 +297,12 @@ public:
 	// board contents
 	void				NewBoard();                                     // 0x404150
 	void				Refill();                                       // 0x40b540
+	void				SetModFire(const std::vector<Piece*>& theNewTiles, int theCount); // port(mod)
+	void				RemoveBonusTiles();                             // port(mod)
+	int					GetModWordsAllTime();                           // port(mod)
+	void				AddModWordsAllTime(int theDelta);               // port(mod)
+	void				UpdateBots();                                   // port(mod)
+	void				ReadBots(FILE* theFile);                        // port(mod)
 	void				DeleteAllPieces();                              // 0x4036e0
 	void				RemovePieces(PieceList* thePieces);             // 0x4052d0
 	void				GetNormalPieces(std::vector<Piece*>* thePieces); // 0x40b9e0
@@ -278,6 +314,8 @@ public:
 	// selection and words
 	void				AddLetter(Piece* thePiece);                     // 0x409c60
 	void				TruncateAfter(Piece* thePiece);                 // 0x405cf0
+	// port(mod): selects thePath as clicks on its tiles would (the solver's hints)
+	void				SelectTiles(const std::vector<Piece*>& thePath);
 	void				ClearWord();                                    // 0x407bf0
 	void				Submit(int x, int y);                           // 0x40f5b0
 	void				BonusWordScored(int thePoints, int x, int y);   // 0x40abd0
@@ -307,6 +345,15 @@ public:
 	// saved games (players/<user>/classic.dat, action.dat)
 	bool				SaveGame(int theMode);                          // 0x406c40
 	bool				LoadGame(int theMode);                          // 0x408ab0
+	// port: LoadGame's reading of the record; false for a version before 2. The undo mod's restore reads
+	// a record made by SaveGameSnapshot.
+	bool				ReadSavedGame(FILE* theFile, bool* isHelpOpen);
+	bool				ReadSavedGame(const Buffer& theRecord);
+	// port(mod): the program-wide state the record leaves out, for the undo mod: RandomLetter's previous
+	// letter (never drawn twice running; each rejected letter costs a gGameRand draw) and Refill's
+	// previous level
+	static void			GetGlobalState(int* theLastLetterIdx, int* theLastRefillLevel);
+	static void			SetGlobalState(int theLastLetterIdx, int theLastRefillLevel);
 	bool				DeleteSavedGame(int theMode);                   // 0x4078b0
 	void				WriteSavedGame(FILE* theFile, int theMode, bool isHelpOpen); // 0x406c40 (the record, SaveGame's second half)
 	// port (BookWormApp::GetShutdownSaves, web persistence): the bytes SaveGame(theMode) would write now,
@@ -322,6 +369,8 @@ public:
 	void				DrawProgressBar(Graphics* g);                   // 0x403c00
 	void				DrawScore(Graphics* g);                         // 0x405580
 	void				DrawWord(Graphics* g);                          // 0x407c60 (writes mLastWordColor)
+	// port(mod): a groove across a left-panel plank at theX, where a mod's button splits it
+	void				DrawPlankDivider(Graphics* g, int theX, int theY);
 };
 
 }

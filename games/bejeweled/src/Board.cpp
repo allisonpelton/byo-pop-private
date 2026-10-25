@@ -24,7 +24,10 @@ using namespace Sexy;
 
 // port: the original prefixes GetAppDataFolder(), which is "" before Vista; the framework maps
 // "userdata\\" to the user dir and creates it when writing. Gameplay mods get their own save.
-std::string Board::GetSaveGameFileName()
+// port(mods): each board takes this name in its constructor (GetSaveGameFileName), because a value held for the
+// next game can change the score key while the old board waits for its deferred delete, which saves it
+// (docs/MOD_MENU_DESIGN.md 6.2)
+std::string Board::ScopedSaveGameFileName()
 {
 	return GameConfig::ScopedFileName("userdata\\savegame.dat");
 }
@@ -48,6 +51,7 @@ Board::Board(WinDMApp* theApp, bool timedMode)
 {
 	// port: the original leaves these uninitialised; the cells must be NULL before the first FillBoard
 	memset(mBoard, 0, sizeof(mBoard));
+	mSaveGameFileName = ScopedSaveGameFileName(); // port(mods): the board's own save name
 	InitVariant(); // port(variant): rules snapshot, layout and variant flags (BoardVariant.cpp)
 	mState = STATE_FALLING;
 	mSwapAngle = 0;
@@ -884,6 +888,7 @@ void Board::UpdateSwap()
 			mSwapPiece1 = NULL;
 			mSwapPiece2 = NULL;
 			mState = STATE_PLAYING;
+			if (mVariant.mUndo) PopUndoSnapshot(); // port(variant): the move went back, so does its undo snapshot (BoardVariant.cpp)
 		}
 	}
 	else

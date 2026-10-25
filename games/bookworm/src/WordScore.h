@@ -29,6 +29,8 @@ public:
 	int				mTypeCount[NUM_TILE_TYPES]; // +0x28..+0x3c tiles of each TileType
 	int				mNumPieces;                 // +0x40 tiles in the word
 	int				mScore;                     // +0x44
+	int				mLevel;                     // port(mod): the level scored at, -1 (the default) the board's
+	                                            // (the greedy bots' games have their own levels)
 
 public:
 	WordScore();                                                // 0x405190

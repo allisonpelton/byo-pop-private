@@ -84,6 +84,9 @@
 # recordings and playbacks. A candidate built without the variant paths (BEJ_NO_VARIANTS: its -dumprules text
 # says "variants = off") plays no rule: the stage-5 cases are left out, and stage 1's and 2's rule-mod cases
 # expect what such a build writes (expect.txt's "<case>@novariants" facts: a v1 save and the RNG sidecar).
+# Stage 6 (undo) plays the rule mods of mods/stage6 the same way (compare.py "variant" with "undos", "redo" and
+# "rerolled"): every way to undo, the limit, restoreRng off, timed mode with and without inTimed, a resume (no
+# snapshots in a save), a recording and its playback. A BEJ_NO_VARIANTS candidate leaves them out too.
 #
 # The frozen exes (build/baseline, build/baseline-stage0) predate the audio shutdown fix (af758b9) and can
 # crash on exit after writing all their outputs: a baseline or hooks-baseline run that exits 139 or with an
@@ -1131,8 +1134,30 @@ define_cases() {
 			"$C/rec_free_auto/user/$FREE_SAVE.bjr"
 		playback watch_strict_auto_timed "rec_strict_auto_timed's replay: kept swaps, game over at no moves (after a match)" \
 			"trace=rec_strict_auto_timed" "$C/rec_strict_auto_timed/user/replays/*.bjr"
+
+		# Stage 6: undo (games/bejeweled/docs/CODE_MODS_DESIGN.md 4.12, 6.7). The rule mods of mods/stage6: s6-undo (depth
+		# 3, max 4, penalty 5, not in timed mode), s6-reroll (restoreRng false) and s6-timed (inTimed). compare.py "variant"
+		# checks that each undo brings back the board the move was made from, counts the undos and whether the same move
+		# again refills the same way; -codeccheck round-trips the UNDO snapshot in every update of play.
+		S6="$PT/stage6"
+		M6="$GAME/tools/oracle/mods/stage6"
+		variant undo_main "-gameseed=$GS, mods/stage6/undo: three moves; undos by z, u, Backspace and the red orb, the same move again after them; the fifth undo refused (max 4); the quit: a v2 save with 4 undos" \
+			"undos=4;redo=2;v2=last" 1 "$S6/undo_main.txt" modsdir="$M6/undo" arg=-gameseed=$GS
+		variant undo_reroll "-gameseed=$GS, mods/stage6/reroll: a move, z, the same move again: another refill (restoreRng false)" \
+			"undos=1;rerolled=1;v2=last" 1 "$S6/undo_reroll.txt" modsdir="$M6/reroll" arg=-gameseed=$GS
+		variant undo_reroll.resume "undo_reroll's user dir: Yes resumes its v2 save (1 undo); z is refused, no snapshot survives a save" \
+			"v2=last" 1 "$S6/undo_reroll_resume.txt" from=undo_reroll modsdir="$M6/reroll"
+		variant undo_timed "-gameseed=$GS, mods/stage6/timed: the timed board, a move, z (inTimed), the same move again: the same refill" \
+			"undos=1;redo=1" 1 "$S6/undo_timed.txt" modsdir="$M6/timed" arg=-gameseed=$GS
+		variant undo_timed_off "-gameseed=$GS, mods/stage6/undo in timed mode (inTimed false): z pauses as any key, no undo" \
+			"v2=last" 1 "$S6/undo_timed_off.txt" modsdir="$M6/undo" arg=-gameseed=$GS
+		# Recorded (mods/stage6/undo-replays: s6-undo and stage 3's replays feature mod) and played back: the UNDO events
+		recording rec_undo_main "undo_main recorded: UNDO events, the refused ones not recorded; the sidecar next to the v2 save" \
+			undo_main 1 "$S6/undo_main.txt" modsdir="$M6/undo-replays" arg=-gameseed=$GS
+		playback watch_undo_main "rec_undo_main's sidecar: four UNDOs played back, each undo's board and the same refills" \
+			"trace=rec_undo_main" "$C/rec_undo_main/user/savegame-*.bjr"
 	else
-		echo "$VTAG  (the candidate has no variant paths: the stage-5 cases are left out)"
+		echo "$VTAG  (the candidate has no variant paths: the stage-5 and stage-6 cases are left out)"
 	fi
 
 	# Stage 4: the headless verifier and the web build under Node (games/bejeweled/tools/verify/oracle_cases.sh): the

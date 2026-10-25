@@ -1,8 +1,11 @@
 # Web link options shared by every game (docs/MOD_MENU_DESIGN.md 2.3). Used from a game's CMakeLists.txt:
 #   if(EMSCRIPTEN)
-#     byopop_web_game(<target> <shell.html> TITLE <name> COPYRIGHT <notice> [LICENSES <name>...]
-#       [EXPORTS <C function>...])
+#     byopop_web_game(<target> TITLE <name> COPYRIGHT <notice> [LICENSES <name>...] [EXPORTS <C function>...]
+#       [PAGE <folder>])
 #   endif()
+# Every game's page is web/shell.html with the game's parts from PAGE (by default the game's web/ folder): its
+# page.js (its settings: storage folder, lock, game files, texts; the list is in web/shell.html), and optionally
+# page.css (its colours and brand mark) and page.html (its own panels). TITLE is the game's name on the page.
 # TITLE, COPYRIGHT and LICENSES make the game's copyright page, linked from its page's footer; see
 # byopop_web_shell() below.
 # EXPORTS adds a game's own functions to the exported list (Bejeweled: _fflush, for its Node test runner).
@@ -15,19 +18,20 @@
 set(BYOPOP_WEB_EXPORTED_FUNCTIONS _main _byopop_userdata_restore _byopop_mods_open _byopop_mods_state
   _byopop_mods_edit _byopop_mods_rescan _byopop_menu _byopop_restart)
 set(BYOPOP_WEB_RUNTIME_METHODS FS callMain ccall)
+get_filename_component(BYOPOP_WEB_SHELL "${CMAKE_CURRENT_LIST_DIR}/../web/shell.html" ABSOLUTE)
 get_filename_component(BYOPOP_WEB_POST_JS "${CMAKE_CURRENT_LIST_DIR}/../web/modpanel.js" ABSOLUTE)
 get_filename_component(BYOPOP_WEB_FOOTER "${CMAKE_CURRENT_LIST_DIR}/../web/footer.html" ABSOLUTE)
 get_filename_component(BYOPOP_WEB_FOOTER_CSS "${CMAKE_CURRENT_LIST_DIR}/../web/footer.css" ABSOLUTE)
 
-# byopop_web_shell(<var> <target> <shell.html> TITLE <name> COPYRIGHT <notice> [LICENSES <name>...]): the game's
-# page template, with the shared footer (web/footer.html, its style web/footer.css before </head>) at the shell's
-# "<!-- byopop:footer -->" line. The footer links to the game's copyright page, <target>-copyright.html next to the
+# byopop_web_shell(<var> <target> <page folder> TITLE <name> COPYRIGHT <notice> [LICENSES <name>...]): the game's
+# page template: web/shell.html with the game's page.js, page.css and page.html (from <page folder>) at its
+# byopop:game-js, byopop:game-css and byopop:game-panels markers, its <name> for @BYOPOP_TITLE@, and the shared
+# footer (web/footer.html, its style web/footer.css before </head>) at its "<!-- byopop:footer -->" line. The footer links to the game's copyright page, <target>-copyright.html next to the
 # game, written here from web/copyright.html: the game's <name> and <notice> (plain text: the copyright and
 # trademark lines of the readme that comes with the game), what the player is, and the license of every library
 # in web/licenses/ that the page is built from. LICENSES adds a game's own libraries (BookWorm: libopenmpt).
 # Sets <var> to the generated template in the build folder, for --shell-file. Both files are rewritten only when
-# their text changes, and CMake runs again when one of their inputs changes. A game that links without
-# byopop_web_game() (BookWorm) uses this directly.
+# their text changes, and CMake runs again when one of their inputs changes. byopop_web_game() calls it.
 set(BYOPOP_WEB_LICENSES popcap-framework sdl2 stb libxmp-lite tremor)
 set(BYOPOP_WEB_TOOLCHAIN_LICENSES emscripten musl)
 
@@ -41,13 +45,35 @@ function(byopop_write_if_changed path text)
   endif()
 endfunction()
 
-function(byopop_web_shell var target shell)
+# Puts <text> into the page text in <var> at <marker>, which web/shell.html has once
+function(byopop_web_insert var marker text)
+  string(FIND "${${var}}" "${marker}" first)
+  string(FIND "${${var}}" "${marker}" last REVERSE)
+  if(first EQUAL -1 OR NOT first EQUAL last)
+    message(FATAL_ERROR "${BYOPOP_WEB_SHELL} needs one \"${marker}\"")
+  endif()
+  string(REPLACE "${marker}" "${text}" inserted "${${var}}")
+  set(${var} "${inserted}" PARENT_SCOPE)
+endfunction()
+
+function(byopop_web_shell var target pagedir)
   cmake_parse_arguments(PARSE_ARGV 3 arg "" "TITLE;COPYRIGHT" "LICENSES")
   if(arg_UNPARSED_ARGUMENTS OR NOT arg_TITLE OR NOT arg_COPYRIGHT)
     message(FATAL_ERROR "byopop_web_shell(${target}): TITLE <the game's name> and COPYRIGHT <its notice> are required")
   endif()
+  if(NOT EXISTS ${pagedir}/page.js)
+    message(FATAL_ERROR "byopop_web_shell(${target}): no ${pagedir}/page.js (the game's settings for web/shell.html)")
+  endif()
   get_filename_component(web ${BYOPOP_WEB_FOOTER} DIRECTORY)
-  set(inputs ${shell} ${BYOPOP_WEB_FOOTER} ${BYOPOP_WEB_FOOTER_CSS} ${web}/copyright.html)
+  set(inputs ${BYOPOP_WEB_SHELL} ${pagedir}/page.js ${BYOPOP_WEB_FOOTER} ${BYOPOP_WEB_FOOTER_CSS} ${web}/copyright.html)
+  # the game's parts: page.js, and page.css and page.html where it has them
+  foreach(name js css html)
+    set(game_${name} "")
+    if(EXISTS ${pagedir}/page.${name})
+      list(APPEND inputs ${pagedir}/page.${name})
+      file(READ ${pagedir}/page.${name} game_${name})
+    endif()
+  endforeach()
   set(licenses "")
   foreach(name ${BYOPOP_WEB_LICENSES} ${arg_LICENSES} ${BYOPOP_WEB_TOOLCHAIN_LICENSES})
     set(file ${web}/licenses/${name}.txt)
@@ -85,15 +111,15 @@ function(byopop_web_shell var target shell)
 " "${licenses}" text "${text}")
   byopop_write_if_changed(${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${copyright_page} "${text}")
 
-  file(READ ${shell} page)
+  file(READ ${BYOPOP_WEB_SHELL} page)
+  byopop_web_insert(page "/* byopop:game-js */" "${game_js}")
+  byopop_web_insert(page "/* byopop:game-css */" "${game_css}")
+  byopop_web_insert(page "<!-- byopop:game-panels -->" "${game_html}")
+  string(REPLACE "@BYOPOP_TITLE@" "${arg_TITLE}" page "${page}")
   file(READ ${BYOPOP_WEB_FOOTER} footer)
   file(READ ${BYOPOP_WEB_FOOTER_CSS} css)
-  string(FIND "${page}" "<!-- byopop:footer -->" at)
-  if(at EQUAL -1)
-    message(FATAL_ERROR "${shell} has no \"<!-- byopop:footer -->\" line for the shared footer")
-  endif()
   string(REPLACE "@BYOPOP_COPYRIGHT_PAGE@" "${copyright_page}" footer "${footer}")
-  string(REPLACE "<!-- byopop:footer -->" "${footer}" page "${page}")
+  byopop_web_insert(page "<!-- byopop:footer -->" "${footer}")
   string(REPLACE "</head>" "<style>
 ${css}</style>
 </head>" page "${page}")
@@ -102,12 +128,15 @@ ${css}</style>
   set(${var} ${out} PARENT_SCOPE)
 endfunction()
 
-function(byopop_web_game target shell)
-  cmake_parse_arguments(PARSE_ARGV 2 arg "" "TITLE;COPYRIGHT" "EXPORTS;LICENSES")
+function(byopop_web_game target)
+  cmake_parse_arguments(PARSE_ARGV 1 arg "" "TITLE;COPYRIGHT;PAGE" "EXPORTS;LICENSES")
   if(arg_UNPARSED_ARGUMENTS)
     message(FATAL_ERROR "byopop_web_game(${target}): unknown arguments ${arg_UNPARSED_ARGUMENTS}")
   endif()
-  byopop_web_shell(page ${target} ${shell} TITLE "${arg_TITLE}" COPYRIGHT "${arg_COPYRIGHT}" LICENSES ${arg_LICENSES})
+  if(NOT arg_PAGE)
+    set(arg_PAGE ${CMAKE_CURRENT_SOURCE_DIR}/web)
+  endif()
+  byopop_web_shell(page ${target} ${arg_PAGE} TITLE "${arg_TITLE}" COPYRIGHT "${arg_COPYRIGHT}" LICENSES ${arg_LICENSES})
   set(export_list ${BYOPOP_WEB_EXPORTED_FUNCTIONS} ${arg_EXPORTS})
   list(REMOVE_DUPLICATES export_list)
   list(JOIN export_list "','" exports)

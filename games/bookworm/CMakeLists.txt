@@ -4,8 +4,8 @@
 # old framework behaviours.
 # Native: bookworm.exe [-gamedir=<dir>] [-userdir=<dir>] [-modsdir=<dir>] (see src/main.cpp); it finds
 # assets/bookworm/ (games/bookworm/tools/stage_bookworm_assets.py) or the retail install by itself.
-# Web: bookworm.html/.js/.wasm; games/bookworm/web/shell.html imports the user's game files into /bwpersist
-# (IDBFS) and starts the game with callMain(). The music is an MO3 module: libopenmpt via sexyopenmpt.
+# Web: bookworm.html/.js/.wasm; its page (web/shell.html with web/page.js and page.css here) imports the user's game
+# files into /bwpersist (IDBFS) and starts the game with callMain(). The music is an MO3 module: libopenmpt via sexyopenmpt.
 file(GLOB BOOKWORM_SOURCES CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp)
 # Test hooks (-autoplay): test code kept out of the game code (the autoplay bot has its own RNG)
 file(GLOB BOOKWORM_TESTHOOK_SOURCES CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/src/testhooks/*.cpp)
@@ -17,14 +17,8 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/src/BookWormApp.cpp)
     target_compile_options(bookworm PRIVATE -Wall -Wno-unused-private-field)
   endif()
   if(EMSCRIPTEN)
-    set_target_properties(bookworm PROPERTIES SUFFIX ".html")
-    byopop_web_shell(page bookworm ${CMAKE_CURRENT_SOURCE_DIR}/web/shell.html TITLE "BookWorm Deluxe"
+    byopop_web_game(bookworm TITLE "BookWorm Deluxe"
       COPYRIGHT "BookWorm Deluxe © 2002, 2003 PopCap Games, Inc. All rights reserved." LICENSES libopenmpt)
-    set_property(TARGET bookworm APPEND PROPERTY LINK_DEPENDS ${page})
-    target_link_options(bookworm PRIVATE
-      "--shell-file=${page}"
-      "-sALLOW_MEMORY_GROWTH=1" "-sFORCE_FILESYSTEM=1" "-sINVOKE_RUN=0"
-      "-sEXPORTED_RUNTIME_METHODS=['FS','callMain']" "-lidbfs.js")
   else()
     add_custom_command(TARGET bookworm POST_BUILD
       COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:SDL2::SDL2> ${PORT_RUNTIME_DLLS} $<TARGET_FILE_DIR:bookworm>

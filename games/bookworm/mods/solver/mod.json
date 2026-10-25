@@ -1,0 +1,19 @@
+{
+  "id": "solver",
+  "name": "Word Solver",
+  "version": "1.0",
+  "author": "byo-pop",
+  "description": "HINT (beside SUBMIT) or Tab selects a word the board spells: first one that puts out the lowest fire tile, then the bonus word, the best-scoring words and the longest. Press again for the next. Games with it keep their own high scores.",
+  "affectsScores": true,
+  "features": {
+    "solver": true
+  },
+  "settings": [
+    { "id": "fireFirst", "label": "Fire tiles first", "type": "bool", "default": true,
+      "help": "While fire tiles are on the board, the first hint is the word that takes the lowest one." },
+    { "id": "best", "label": "Best words in the cycle", "type": "int", "default": 10, "min": 1, "max": 30,
+      "help": "How many of the best-scoring words HINT goes through before the longest word and the start again." },
+    { "id": "tag", "label": "Show what a hint is", "type": "bool", "default": true,
+      "help": "A tag above the hint's first tile: best, fire, bonus or longest, its place in the cycle, and a warning for an unsafe word." }
+  ]
+}

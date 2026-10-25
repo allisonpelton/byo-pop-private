@@ -445,6 +445,17 @@ bool WatchController::Apply(const Replay::Event& theEvent)
 		b->DoHint();
 		break;
 
+	case Replay::OP_UNDO:
+		// Stage 6: RequestUndo's gate (Board::CanUndo); the board's own RequestUndo ignores a playback board
+		if (!b->CanUndo())
+		{
+			aWhy = "an undo RequestUndo would refuse";
+			isOk = false;
+			break;
+		}
+		b->Undo();
+		break;
+
 	case Replay::OP_PAUSE:
 		b->Pause(a[0] != 0);
 		break;

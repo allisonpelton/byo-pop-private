@@ -293,6 +293,7 @@ void Board::StartSwap(Piece* thePiece1, Piece* thePiece2)
 		mApp->PlaySample(SOUND_BAD);
 		return;
 	}
+	if (mVariant.mUndo) TakeUndoSnapshot(); // port(variant): undo, the board before the move (BoardVariant.cpp)
 
 	// Only the demonstrated move (the tutorial's left gem swapped right) dismisses the tutorial here
 	if (mShowTutorial && thePiece1->mCol == mTutorialCol && thePiece1->mRow == mTutorialRow &&
@@ -445,6 +446,7 @@ void Board::StartBlackHole()
 	mLevelTextShown = false;
 	mBlackHoleFrame = 0;
 	mSelectedPiece = NULL;
+	if (mVariant.mUndo) mUndoStack.clear(); // port(variant): undo never crosses a level
 
 	// Polar coordinates of each gem's center around the board center
 	int aCenterX;
@@ -588,6 +590,7 @@ void Board::MouseDrag(int x, int y)
 void Board::KeyChar(SexyChar theChar)
 {
 	if (mPlaybackOnly) return; // port(variant)
+	if ((mUserPauseCount == 0) && IsUndoKey(theChar) && UndoKeysActive()) { RequestUndo(); return; } // port(variant): undo, not a pause (BoardVariant.cpp)
 	if (mUserPauseCount > 0)
 		Unpause(true);
 	else

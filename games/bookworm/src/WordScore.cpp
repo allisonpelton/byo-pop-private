@@ -1,6 +1,7 @@
 #include "WordScore.h"
 #include "Board.h"
 #include "BookWormApp.h"
+#include "ModWords.h"
 
 #include <cstdint>
 
@@ -43,6 +44,7 @@ WordScore::WordScore()
 		mTypeCount[i] = 0;
 	mNumPieces = 0;
 	mScore = 0;
+	mLevel = -1;
 }
 
 // 0x406560 (only BoardDraw::DrawWord copies one)
@@ -55,6 +57,7 @@ WordScore::WordScore(const WordScore& theOther)
 		mTypeCount[i] = theOther.mTypeCount[i];
 	mNumPieces = theOther.mNumPieces;
 	mScore = theOther.mScore;
+	mLevel = theOther.mLevel;
 }
 
 // 0x4051d0 (scalar deleting dtor 0x4059f0)
@@ -72,6 +75,7 @@ WordScore& WordScore::operator=(const WordScore& theOther)
 		mTypeCount[i] = theOther.mTypeCount[i];
 	mNumPieces = theOther.mNumPieces;
 	mScore = theOther.mScore;
+	mLevel = theOther.mLevel;
 	return *this;
 }
 
@@ -121,6 +125,7 @@ void WordScore::Build(const PieceList* thePieces)
 		mScore = CalcScore();
 	else
 		mScore = 0;
+	mScore = ModWordScore(mWord, mScore);  // port(mod): a mod's points multiplier (rude-words)
 }
 
 // 0x404f60: the live formula. (letter values + level + 1) * 10 * (length + 2 per green, 4 per gold,
@@ -147,7 +152,8 @@ int WordScore::CalcScore()
 	if (mTypeCount[TILE_FIRE] == mNumPieces)
 		aMult = aMult - 1 + mNumPieces;
 
-	return aMult * (aSum + mApp->mBoard->mLevel + 1) * 10;
+	int aLevel = (mLevel >= 0) ? mLevel : mApp->mBoard->mLevel;
+	return aMult * (aSum + aLevel + 1) * 10;
 }
 
 // 0x4040e0: the length formula, selected by mScoringMethod 0 (never: the app sets 1)
@@ -158,7 +164,7 @@ int WordScore::CalcScoreByLength()
 		return 0;
 
 	unsigned int anIndex = (aLength > 7) ? 8 : aLength;
-	int aBase = mApp->mBoard->mLevel + gLengthBonus[anIndex];
+	int aBase = ((mLevel >= 0) ? mLevel : mApp->mBoard->mLevel) + gLengthBonus[anIndex];
 	if (aLength > 8)
 		aBase += (int)(aLength - 8) * 500;
 

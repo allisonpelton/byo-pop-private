@@ -77,6 +77,9 @@ const int LIST_ROW = 44;
 const int SETTING_ROW = 30;
 const int SECTION_ROW = 24;
 const int LINE = 14;
+// The page's messages (the game's, a mod's errors and warnings) have a slot of their own under the content, on every
+// page: the rows are then where they are in every game, scrolled or not, whatever the game has to say
+const int MESSAGE_SLOT = 2 * LINE + 6;
 const int SCROLLBAR = 12;
 const int BUTTON_HEIGHT = 24;
 const int LABEL_WIDTH = 230;
@@ -533,7 +536,7 @@ bool ModMenu::ShowMod(const std::string& theModId)
 
 Rect ModMenu::ContentRect() const
 {
-	return Rect(mPanel.mX + 8, mPanel.mY + HEADER_HEIGHT, mPanel.mWidth - 16, mPanel.mHeight - HEADER_HEIGHT - FOOTER_HEIGHT);
+	return Rect(mPanel.mX + 8, mPanel.mY + HEADER_HEIGHT, mPanel.mWidth - 16, mPanel.mHeight - HEADER_HEIGHT - MESSAGE_SLOT - FOOTER_HEIGHT);
 }
 
 int ModMenu::ContentHeight() const
@@ -594,8 +597,6 @@ void ModMenu::Layout()
 				addText(ITEM_BANNER, -1, Str(mApp, "MODMENU_SETTINGS_UNREADABLE", "mod-settings.json could not be read: every value is at its default."), TEXT_WARN, 2);
 			else if (isReadOnly)
 				addText(ITEM_BANNER, -1, Str(mApp, "MODMENU_SETTINGS_NEWER", "mod-settings.json was made by a newer version of the game: values cannot be changed here."), TEXT_WARN, 2);
-			for (const std::string& aMessage : mGameMessages)
-				addText(ITEM_BANNER, -1, "! " + aMessage, TEXT_WARN, 2);
 			if (mMods.empty())
 			{
 #ifdef __EMSCRIPTEN__
@@ -613,10 +614,6 @@ void ModMenu::Layout()
 		{
 			if (!aView->mDescription.empty())
 				addText(ITEM_TEXT, -1, aView->mDescription, TEXT_DIM, 3);
-			for (const std::string& anError : aView->mErrors)
-				addText(ITEM_TEXT, -1, "! " + anError, TEXT_ERROR, 2);
-			for (const std::string& aWarning : aView->mWarnings)
-				addText(ITEM_TEXT, -1, "! " + aWarning, TEXT_WARN, 2);
 			if (isReadOnly)
 				addText(ITEM_TEXT, -1, Str(mApp, "MODMENU_SETTINGS_NEWER", "mod-settings.json was made by a newer version of the game: values cannot be changed here."), TEXT_WARN, 2);
 			bool hasValues = false;
@@ -1610,6 +1607,54 @@ std::string ModMenu::PendingText() const
 	return aText;
 }
 
+// The list's: the game's messages about every mod. A mod's page: its errors, then its warnings (the shared ones and
+// the game's)
+std::vector<std::pair<std::string, int> > ModMenu::PageMessages()
+{
+	std::vector<std::pair<std::string, int> > aMessages;
+	if (mPageMod.empty())
+	{
+		for (const std::string& aMessage : mGameMessages)
+			aMessages.push_back(std::make_pair(aMessage, (int) TEXT_WARN));
+	}
+	else if (const ModView* aView = PageModView())
+	{
+		for (const std::string& anError : aView->mErrors)
+			aMessages.push_back(std::make_pair(anError, (int) TEXT_ERROR));
+		for (const std::string& aWarning : aView->mWarnings)
+			aMessages.push_back(std::make_pair(aWarning, (int) TEXT_WARN));
+	}
+	return aMessages;
+}
+
+// The slot under the content: one message on its two lines, or the first two on one line each, the second ending
+// with how many more there are
+void ModMenu::DrawMessages(Graphics* g)
+{
+	std::vector<std::pair<std::string, int> > aMessages = PageMessages();
+	if (aMessages.empty())
+		return;
+	Rect aContent = ContentRect();
+	int aWidth = aContent.mWidth - 16;
+	std::vector<std::pair<std::string, int> > aLines;
+	if (aMessages.size() == 1)
+	{
+		for (const std::string& aLine : Wrap(mFont, "! " + aMessages[0].first, aWidth, 2))
+			aLines.push_back(std::make_pair(aLine, aMessages[0].second));
+	}
+	else
+	{
+		aLines.push_back(std::make_pair(Fit(mFont, "! " + aMessages[0].first, aWidth), aMessages[0].second));
+		std::string aMore;
+		if (aMessages.size() > 2)
+			aMore = "  " + Replace(Str(mApp, "MODMENU_MORE_MESSAGES", "+{count} more"), "{count}", std::to_string(aMessages.size() - 2));
+		aLines.push_back(std::make_pair(Fit(mFont, "! " + aMessages[1].first, aWidth - mFont->StringWidth(aMore)) + aMore, aMessages[1].second));
+	}
+	int aTop = aContent.mY + aContent.mHeight;
+	for (size_t i = 0; i < aLines.size(); i++)
+		Text(g, mFont, aLines[i].first, aContent.mX + 8, aTop + 13 + (int) i * LINE, TextColor(aLines[i].second));
+}
+
 std::string ModMenu::FooterHelp()
 {
 	if ((mFocusKind == T_VALUE) && !mPageMod.empty())
@@ -1953,6 +1998,8 @@ void ModMenu::Draw(Graphics* g)
 			DrawButton(g, aTarget.mRect, Str(mApp, "MODMENU_SETTINGS", "Settings"), T_OPEN, aTarget.mItem, aTarget.mDisabled);
 	}
 	g->PopState();
+
+	DrawMessages(g);
 
 	// The footer: help and what is pending, or a question or a note, then the buttons
 	int aSeparatorY = mPanel.mY + mPanel.mHeight - FOOTER_HEIGHT;

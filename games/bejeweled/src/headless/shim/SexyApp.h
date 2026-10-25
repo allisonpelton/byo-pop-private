@@ -49,6 +49,14 @@ struct ShutdownSave
 	std::string mData;
 };
 
+// A game's message about a mod (SexyAppBase.h): only the type, for WinDMApp::GetModMessages
+struct ModMessage
+{
+	std::string mModId;
+	std::string mText;
+	bool mIsError;
+};
+
 class SexyAppBase : public ButtonListener, public DialogListener
 {
 public:
@@ -82,6 +90,36 @@ public:
 	virtual bool		KillDialog(int theDialogId, bool removeWidget, bool deleteWidget) { return false; }
 	virtual bool		KillDialog(int theDialogId) { return false; }
 	virtual bool		KillDialog(Dialog* theDialog) { return false; }
+
+	// The framework virtuals WinDMApp.h overrides (it marks them override), so that header compiles against this
+	// shim. The verifier calls none of them.
+	virtual void		Shutdown() {}
+	virtual void		LoadingThreadCompleted() {}
+	virtual void		URLOpenSucceeded(const std::string& theURL) {}
+	virtual MusicInterface* CreateMusicInterface() { return NULL; }
+	virtual Dialog*		NewDialog(int theDialogId, bool isModal, const SexyString& theDialogHeader, const SexyString& theDialogLines, const SexyString& theDialogFooter, int theButtonMode) { return NULL; }
+	virtual void		ModalOpen() {}
+	virtual void		LostFocus() {}
+	virtual void		ModalClose() {}
+	virtual void		GotFocus() {}
+	virtual void		UpdateFrames() {}
+	virtual void		SetMusicVolume(double theVolume) {}
+	virtual std::string	GetGameSEHInfo() { return ""; }
+	virtual void		URLOpenFailed(const std::string& theURL) {}
+	virtual bool		OpenURL(const std::string& theURL, bool shutdownOnOpen = false) { return false; }
+	virtual void		WriteToRegistry() {}
+	virtual void		ReadFromRegistry() {}
+	virtual void		PreDisplayHook() {}
+	virtual void		Init() {}
+	virtual void		LoadingThreadProc() {}
+	virtual void		GetShutdownSaves(std::vector<ShutdownSave>* theSaves) {}
+	virtual void		WriteShutdownRegistry() {}
+	virtual void		HandleCmdLineParam(const std::string& theParamName, const std::string& theParamValue) {}
+	virtual bool		HandleScriptCommand(const ScriptCommand& theCommand) { return false; }
+	virtual bool		HasGameInProgress() { return false; }
+	virtual bool		CanRestartNow(SexyString* theReason) { return true; }
+	virtual void		GetRestartArgs(std::vector<std::string>* theArgs) {}
+	virtual void		GetModMessages(std::vector<ModMessage>* theMessages) {}
 
 	SexyString			GetString(const std::string& theId) { return StringToSexyStringFast(theId); }
 	SexyString			GetString(const std::string& theId, const SexyString& theDefault) { return theDefault; }
