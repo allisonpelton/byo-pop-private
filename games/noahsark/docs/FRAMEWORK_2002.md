@@ -65,14 +65,29 @@ but stores its score as `score % 256`, and reads on; a mod set that changes play
 word-wrapped lines, then either yes/no buttons or one footer button (button mode 3), inside content insets. Its preferred
 height (`GetPreferredHeight`, slot 47, 0x428580) is the two insets, plus the header font's height, plus the wrapped
 lines' height when there are lines (10 below the header), plus a row of yes/no buttons unless the mode is the footer
-one, plus the footer button's font height with 8 above and 8 below. Only `DifficultyDialog` overrides it (0x411130).
+one, plus the footer button's font height with 8 above and 8 below. The dialogs with a fixed size do not use it:
 
-Open: the Options, Tutorial and High Scores dialogs have no override, and the Options and Tutorial ones pass an empty
-lines text (0x49c510 is the empty string), so that formula gives about 150 pixels, far too little for the controls that
-`OptionsDialog`'s Resize (0x41cf00) lays out relative to the dialog's top and footer button. The port's constants for
-them (400, 0x17c, and 0x140 for the difficulty dialog) are guesses that look right except that the Options dialog's
-"Visit PopCap.com" button covers the "Show Hints" label. Where the original's real height comes from is not known;
-check the dialog's vtable and `AddDialog`/`DoDialog` (0x418c40 is `ShowOptions`) before trusting a dialog size.
+The dialogs that have a fixed size override slot 47 with a function that only returns a constant, and Ghidra does not
+make functions of those (two instructions, `mov eax, N; ret 4`), so they are missing from the decompilation: found by
+reading the vtables (find a dialog class's vtable from the address of one of its functions, then slot 47 at offset
+0xbc). The sizes, and the calls that place the dialogs (the app's `Show...` functions, each ending in a virtual
+`Resize(x, y, w, h)` with y centred as `(480 - h) / 2` where the table says so):
+
+| Dialog | Slot 47 | Height | Placed by |
+|---|---|---|---|
+| Options | 0x4209f0 | 0x1b6 (438) | 0x418c40: Resize(0xd5, centred, 0x17c, h) |
+| Tutorial | 0x4209f0 (the same) | 0x1b6 | 0x418d70: Resize(0xd5, centred, 0x17c, h) |
+| Difficulty | 0x411130 | 0x140 (320) | |
+| High scores | 0x411730 | 0x12c (300) | 0x41ae80: Resize(0xf5, 0x5a, 0x12c, h) |
+| Record a score | 0x411730 (the same) | 0x12c | 0x41add0: Resize(0x96, centred, 0x154, h) |
+| Register | 0x41e570 | 0x160 (352) | |
+
+The decompiler hides what happens between two calls of one slot: `h = GetPreferredHeight(w)` is followed by a second
+call of the same slot with the width as its argument, to centre the dialog, and the width of the dialog is pushed for the
+`Resize` before that call, so the width it passes to `Resize` can differ from the one it passes to the height
+function (the record-score dialog asks for the height with 0x13c and is 0x154 wide). Disassemble the creator
+(`llvm-objdump -d --x86-asm-syntax=intel --start-address=...` on the exe reads PE files directly) when a decompiled
+`Resize` call has lost its arguments.
 
 ## Reading this compiler's output
 
