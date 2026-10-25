@@ -16,7 +16,8 @@
 #   livesplit    Bejeweled's, Big Money's and BookWorm's LiveSplit tests (BookWorm's once its branch is merged)
 #   bookworm     BookWorm's bot: classic and action games, and a classic rerun with the same screenshots
 #   bigmoney     Big Money's bot: one game
-#   noahsark     Noah's Ark's bot: action, strategy and puzzle games, and an action rerun with the same screenshots
+#   noahsark     Noah's Ark's bot: action, strategy and puzzle games, an action rerun with the same screenshots, and
+#                the mods' tests (games/noahsark/tools/run_mod_tests.sh)
 #   oracle       Bejeweled's oracle three ways (compare.sh --variants default,forcevariant,novariants); over
 #                ten minutes, so never in a subagent; refuses to start while another oracle runs
 # Sets: quick = build unit; games = bookworm bigmoney noahsark; all = every suite, builds first.
@@ -207,7 +208,7 @@ noahsark_game() {  # <name> <mode> <cap>: a bot game; prints the last "level don
 }
 
 suite_noahsark() {
-	local st=0 a s p r
+	local st=0 a s p r m
 	need_assets noahsark || return 1
 	a="$(noahsark_game action action 20000)"; s="$(noahsark_game strategy strategy 20000)"
 	p="$(noahsark_game puzzle puzzle 30000)"; r="$(noahsark_game action2 action 20000)"
@@ -216,7 +217,10 @@ suite_noahsark() {
 	[ "$s" = "$NA_STRATEGY" ] || st=1
 	[ "$p" = "$NA_PUZZLE" ] || st=1
 	if diff -rq "$OUT/noahsark/action/shots" "$OUT/noahsark/action2/shots" >> "$1" 2>&1 && [ "$a" = "$r" ]; then r="rerun identical"; else r="RERUN DIFFERS"; st=1; fi
-	SUMMARY="action ${a#level }; strategy ${s#level }; puzzle ${p#game }; $r"
+	mkdir -p "$OUT/noahsark"
+	if bash games/noahsark/tools/run_mod_tests.sh "$OUT/noahsark/mods" > "$OUT/noahsark/mods.txt" 2>&1; then m="mods $(grep -c '^ok' "$OUT/noahsark/mods.txt") checks ok"; else m="MODS FAILED (see $OUT/noahsark/mods.txt)"; st=1; fi
+	cat "$OUT/noahsark/mods.txt" >> "$1"
+	SUMMARY="action ${a#level }; strategy ${s#level }; puzzle ${p#game }; $r; $m"
 	[ $st -eq 0 ] || SUMMARY="$SUMMARY (expected action '$NA_ACTION', strategy '$NA_STRATEGY', puzzle '$NA_PUZZLE')"
 	return $st
 }
