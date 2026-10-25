@@ -42,12 +42,15 @@ Big Money (`bigmoney.*`) and BookWorm (`bookworm.*`) have the same three files.
 ## The top bar and side panels
 
 The bar and panels are ordinary HTML around the canvas, not part of the game. They reach the game in
-three ways:
+four ways:
 
 - **Function calls.** `platform/WebApi.cpp` exports a few C functions (`byopop_mods_open`,
   `byopop_mods_state`, `byopop_mods_edit`, `byopop_mods_rescan`), and `framework/ModMenu.cpp` exports
   `byopop_menu` and `byopop_restart`. The page calls them with `Module.ccall`. The game calls back
   through `Module.onModsChanged` when the mods change.
+- **The screen's shape.** The stage is 4:3 unless the game calls `Module.onGameScreen(width, height)`
+  before it makes its window: BookWorm's mod "widescreen" gives 854 x 480 (`SidePanel::TellPage`). The stage
+  takes that shape and SDL sizes the canvas to it.
 - **Files.** Adding a mod writes its files into `/persist/mods` and syncs them to IndexedDB. The game
   reads them at its next start.
 - **Reloads.** "Restart game", in the game's F2 menu, reloads the page. A mark in localStorage tells the
