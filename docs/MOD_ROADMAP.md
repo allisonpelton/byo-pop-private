@@ -53,7 +53,7 @@ Once Bejeweled Deluxe and all of the mods above are done and working:
       layout groundwork (survey G6).
    2. Typer Shark! Deluxe, which uses the same 2004 framework.
    3. Bookworm Adventures Deluxe + Volume 2.
-   4. The Sprout-engine line: Feeding Frenzy 2 + Talismania, then Iggle Pop. The public Pizza Frenzy
+   4. The Sprout-engine line: Feeding Frenzy 2 + Talismania, then Iggle Pop and Feeding Frenzy Deluxe (added 2026-10-25). The public Pizza Frenzy
       decompilation serves as an engine reference only.
    5. Bejeweled 2 Deluxe.
    6. The Peggle family. Thunderball is a partial decompilation (about 39%), so Peggle stays in the order.

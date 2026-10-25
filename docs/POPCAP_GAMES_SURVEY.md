@@ -677,8 +677,9 @@ None of these is a blocker: the image is not packed and has full RTTI. It is jus
 > Noah's Ark's 2002 framework.
 >
 > **Decision (2026-10-25, later), after Appendix C:** Chuzzle Deluxe is skipped (someone else has reportedly
-> decompiled it), and so is its Christmas Edition. Alchemy Deluxe, Mummy Maze Deluxe, Banana Bugs and Gyromancer
-> are added; Gyromancer comes after Twist, whose battles it uses. Every game PopCap released after EA bought it in
+> decompiled it), and so is its Christmas Edition. Alchemy Deluxe, Mummy Maze Deluxe, Banana Bugs, Gyromancer and
+> Feeding Frenzy Deluxe are added. Gyromancer comes after Twist, whose battles it uses, and Feeding Frenzy joins the
+> Sprout line. Every game PopCap released after EA bought it in
 > 2011 is out. Appendix C has the rest.
 
 Bejeweled Deluxe and then Big Money Deluxe are already planned ([MOD_ROADMAP.md](MOD_ROADMAP.md)). Big Money is DIRECT at about 2x. It builds the SAF 1.2 vtable map that Hammer Heads reuses, and its `.it` music already plays with libxmp-lite.
@@ -1145,10 +1146,10 @@ like), Bejeweled Live (Windows Phone and Windows 8), Peggle 2 (consoles only) an
 Solitaire: Secret Island appears on one list of SpinTop's games, but Mumbo Jumbo seems to have published it.
 
 The user's decisions on this list (2026-10-25):
-- **To port:** Alchemy Deluxe, Mummy Maze Deluxe, Banana Bugs and Gyromancer (after Twist). Each needs the user's
-  own copy first.
+- **To port:** Alchemy Deluxe, Mummy Maze Deluxe, Banana Bugs, Gyromancer (after Twist) and Feeding Frenzy Deluxe
+  (in the Sprout line; its 2004-2005 build may share the first-generation engine with Pizza Frenzy and Iggle Pop,
+  not yet checked). Each needs the user's own copy first.
 - **Waiting on the user's research:** Cosmic Bugs, Water Bugs and the two Mahjong Escape games.
-- **Not decided:** Feeding Frenzy Deluxe, which belongs with the Sprout line.
 - **Skipped:** Chuzzle: Christmas Edition, along with Chuzzle Deluxe, which someone else has reportedly decompiled.
   Sweet Tooth To Go is skipped too, though a Bejeweled mod with its look may come later (MOD_ROADMAP.md).
   The Wizard's Pen counts as a hidden-object game, so it is skipped.
