@@ -650,6 +650,13 @@ None of these is a blocker: the image is not packed and has full RTTI. It is jus
 >   only as an engine reference.
 >
 > [MOD_ROADMAP.md](MOD_ROADMAP.md) holds the resulting list.
+>
+> **Decision (2026-10-24), replacing the order below where they differ:** finish the BookWorm series
+> (Deluxe, then Adventures and Adventures Vol. 2), then Bejeweled Twist. After those, take games in order
+> of least predicted effort. Typer Shark and Talismania move to the end. Any game with an existing
+> recompilation or decompilation is skipped (Zuma, Plants vs. Zombies, Insaniquarium, Pizza Frenzy).
+> First, one small game from Appendix B is ported by a single agent as a measured experiment: its token
+> use is compared with Big Money's and BookWorm's before several games run at once.
 
 Bejeweled Deluxe and then Big Money Deluxe are already planned ([MOD_ROADMAP.md](MOD_ROADMAP.md)). Big Money is DIRECT at about 2x. It builds the SAF 1.2 vtable map that Hammer Heads reuses, and its `.it` music already plays with libxmp-lite.
 
@@ -1040,3 +1047,32 @@ Scripts worth promoting into `tools/` when the corresponding game starts:
 - `saf.py` + `keyedmd5.py` (Sprout archives);
 - `poplua.py` / `luc50.py` / `disasm.py` (PopLua);
 - `funcsim.py` and `sweep.py` + `match.py` (cross-binary function matching).
+
+## Appendix B: nine more games from the user's installers (2026-10-24)
+
+The user's own installers, from their Downloads folder. None was run. All nine hold a Microsoft Cabinet:
+four are self-extracting cabinets, and five are PopCap's own installer, a signed PE with an 8-byte header
+and then the cabinet in its overlay (`!popcapinstallersig!` marks the code-signing certificate after it). The
+cabinets were carved and unpacked with 7-Zip into the git-ignored `re/_installers/<installer>/`, then run
+through `tools/triage_popcap.py`. No existing decompilation or recompilation was found for any of them
+(two searches, 2026-10-24).
+
+| Game | Exe (inner) | Built | Code | Framework | Data | Effort (Bejeweled = 1x) |
+|---|---|---|---|---|---|---|
+| Noah's Ark Deluxe | WinNoah.exe | 2002-10 | 552 KB | early SAF (48 class strings), no wrapper | GIF/JPG/OGG, one `.au` | **~1-1.5x**, the cheapest |
+| Seven Seas Deluxe | WinSS.exe | 2003-01 | 596 KB | early SAF (34), no wrapper | GIF/JPG/PNG/OGG, `.it` music | **~1-1.5x** |
+| Atomica Deluxe | Atomica.exe | 2003-03 | 708 KB | early SAF (30), no wrapper | GIF/JPG/OGG, `.it` music | ~1.5x |
+| TipTop Deluxe | TipTop.exe | 2003-02 | 438 KB | not SAF (own engine) | two `.dat` archives | ~2-3x (the archive format first) |
+| Ning Po Mahjong Deluxe | Ningpo.exe | 2002-09 | 396 KB | not SAF | one `ningpo.pyz` archive | ~2-3x (the archive format first) |
+| Pixelus Deluxe | Pixelus.exe (DRM wrapper) | 2004-07 | 1.09 MB | SAF, BookWorm's generation (53) | 283 `.txt` levels, GIF/PNG/OGG | ~3x, with the 2004 compatibility library |
+| Word Harmony | WordHarmony.exe (DRM wrapper) | 2006-02 | 517 KB | not SAF (an `engine` namespace) | WAV, two `.db` | ~3-4x |
+| Venice Deluxe | Venice.exe (DRM wrapper) | 2007-06 | 1.59 MB | SAF with PakInterface, plus PopLua | `main.pak` (XOR 0xF7), 15 `.luc` scripts | ~5x (PopLua: see the Sprout notes) |
+| Bonnie's Bookstore Deluxe | BonniesBookstore.exe (DRM wrapper) | 2006-11 | 349 KB | not SAF; PopLua `.luc` scripts | JPG/PNG/OGG, one `.pak` | ~4-6x |
+
+Notes:
+- The three 2002-2003 SAF games predate the Bejeweled Deluxe framework this port is built on only
+  slightly, so the existing framework and platform layers should fit with small differences. That makes
+  Noah's Ark or Seven Seas the natural first game for the measured experiment.
+- "DRM wrapper" means `tools/extract_game_exe.py` carves the inner game image, as for BookWorm.
+- The effort figures are first estimates from the triage alone (code size, framework, data formats), not
+  from a Ghidra export.
