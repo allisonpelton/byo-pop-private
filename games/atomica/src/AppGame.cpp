@@ -76,10 +76,48 @@ void AtomicaApp::ShowHighScores()
 	puts("high scores box (not ported)");
 }
 
+// 0x41e440: a score that earns a place or the best of the day gets the entry box
+void AtomicaApp::ShowHighScoreEntry(int theScore)
+{
+	if (mScoreDialog == NULL)
+	{
+		mSndNewHighScore->Play();
+		HighScoreDialog* aDialog = new HighScoreDialog(this, theScore);
+		mScoreDialog = aDialog;
+		mWidgetManager->AddWidget(aDialog);
+	}
+}
+
+// 0x405ed0: HS.CFG holds the two tables
+void AtomicaApp::ReadHighScores()
+{
+	Buffer aBuffer;
+	if (ReadBufferFromFile("HS.CFG", &aBuffer) && (aBuffer.GetDataLen() >= 2 * (int) (4 * 6 + 150 + 30 + 20)))
+	{
+		mScoreTables[0].Read(&aBuffer);
+		mScoreTables[1].Read(&aBuffer);
+	}
+	else
+	{
+		mScoreTables[0].Reset();
+		mScoreTables[1].Reset();
+	}
+}
+
+// 0x405f30
+void AtomicaApp::WriteHighScores()
+{
+	Buffer aBuffer;
+	mScoreTables[0].Write(&aBuffer);
+	mScoreTables[1].Write(&aBuffer);
+	WriteBufferToFile("HS.CFG", &aBuffer);
+}
+
 // a game of the given mode starts (from the menu)
 void AtomicaApp::StartNewGame(int theMode, int theExpert)
 {
 	CloseMenu();
+	CloseBoard();
 	mMode = theMode;
 	mExpertMode = theExpert;
 	mPauseCount = 0;
@@ -129,6 +167,7 @@ void AtomicaApp::ResumeGame()
 	if (!ReadBufferFromFile("SAVEGAME.DAT", &aBuffer) || (aBuffer.GetDataLen() <= 8))
 		return;
 	CloseMenu();
+	CloseBoard();
 	FILE* aFile = tmpfile();
 	if (aFile == NULL)
 		return;
@@ -161,8 +200,21 @@ void AtomicaApp::EndGame()
 	}
 }
 
-// 0x405d70: the main menu (theGameOver: after a game)
+// 0x405d70: the main menu (theGameOver: after a game). The board stays under it until a game starts (0x405e20 closes it);
+// a game in progress waits meanwhile.
 void AtomicaApp::ShowMainMenu(bool theGameOver)
+{
+	CloseMenu();
+	if ((mBoard != NULL) && !theGameOver)
+		mPauseCount++;
+	MainMenu* aMenu = new MainMenu(this, theGameOver);
+	aMenu->Resize(0, 0, mWidth, mHeight);
+	mMenu = aMenu;
+	mWidgetManager->AddWidget(aMenu);
+}
+
+// 0x405e20: the board goes
+void AtomicaApp::CloseBoard()
 {
 	if (mBoard != NULL)
 	{
@@ -170,11 +222,7 @@ void AtomicaApp::ShowMainMenu(bool theGameOver)
 		SafeDeleteWidget(mBoard);
 		mBoard = NULL;
 	}
-	CloseMenu();
-	MainMenu* aMenu = new MainMenu(this, theGameOver);
-	aMenu->Resize(0, 0, mWidth, mHeight);
-	mMenu = aMenu;
-	mWidgetManager->AddWidget(aMenu);
+	mPauseCount = 0;
 }
 
 // 0x406200

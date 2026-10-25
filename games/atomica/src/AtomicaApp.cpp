@@ -61,6 +61,7 @@ AtomicaApp::AtomicaApp()
 	for (int i = 0; i < 0xff; i++)
 		mHintsShown[i] = false;
 	mLevelUpDialog = NULL;
+	mScoreDialog = NULL;
 	mQuitDialog = NULL;
 	mConfirmDialog = NULL;
 	mOptionsDialog = NULL;
@@ -82,6 +83,7 @@ void AtomicaApp::Init()
 	mRand.Seed(mHasSeedParam ? (unsigned int) mRandSeed : (unsigned int) GetTickCount());
 	CrtSRand(mHasSeedParam ? (unsigned int) mRandSeed : (unsigned int) GetTickCount());
 
+	ReadHighScores();
 	mMusicInterface->LoadMusic(0, "music\\atomica.it");
 	mMusicInterface->LoadMusic(1, "music\\atomica.it");
 

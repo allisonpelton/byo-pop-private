@@ -175,11 +175,35 @@ void AtomicaApp::AutoplayUpdate()
 		return;
 	}
 
+	if (mScoreDialog != NULL)
+	{
+		// the high score entry: wait until the box is in place, give a name, press the button
+		HighScoreDialog* aDialog = (HighScoreDialog*) mScoreDialog;
+		if (aDialog->mBoxY >= 0)
+		{
+			if (!mAutoplayShots.empty())
+				SaveScreenshot(StrFormat("%s-entry%d.png", mAutoplayShots.c_str(), s->mGames));
+			aDialog->mEdit->SetText("BOT");
+			aDialog->ButtonDepress(2);
+			s->mWait = 5;
+		}
+		return;
+	}
 	if (mMenu != NULL)
 	{
 		MainMenu* aMenu = (MainMenu*) mMenu;
 		if (!aMenu->mPanelShown)
 			return;
+		if (aMenu->mGameOver && !aMenu->mEntryShown)
+			return;
+		if (aMenu->mGameOver && !s->mMenuSeen)
+		{
+			s->mMenuSeen = true;
+			if (!mAutoplayShots.empty())
+				SaveScreenshot(StrFormat("%s-menuover%d.png", mAutoplayShots.c_str(), s->mGames));
+			s->mWait = 3;
+			return;
+		}
 		if (s->mGames >= mAutoplayGames)
 		{
 			Log(s, "done after %d games at update %d", s->mGames, s->mTick);
@@ -189,11 +213,12 @@ void AtomicaApp::AutoplayUpdate()
 			return;
 		}
 		s->mGames++;
+		s->mMenuSeen = false;
 		s->mOverLogged = false;
 		s->mLevelLogged = false;
 		s->mMoves = 0;
 		s->mLastLevel = 0;
-		aMenu->ButtonDepress(mAutoplayMode == 1 ? 2 : 0);
+		aMenu->ButtonDepress(aMenu->mGameOver ? 7 : (mAutoplayMode == 1 ? 2 : 0));
 		Log(s, "game %d starts at update %d", s->mGames, s->mTick);
 		s->mWait = 20;
 		return;

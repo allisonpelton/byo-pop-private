@@ -10,6 +10,8 @@
 #include "ButtonListener.h"
 #include "ButtonWidget.h"
 #include "Support.h"
+#include "EditWidget.h"
+#include "EditListener.h"
 #include "Slider.h"
 #include "SliderListener.h"
 #include <string>
@@ -80,6 +82,26 @@ public:
 	virtual void	Resize(int theX, int theY, int theWidth, int theHeight) override;	// 0x422100
 	virtual void	Draw(Graphics* g) override;			// 0x4221d0
 	virtual void	ButtonDepress(int theId) override;	// 0x422170
+};
+
+// 0x41cc00: a score in the high score table: the player types a name
+class HighScoreDialog : public GameDialog, public EditListener
+{
+public:
+	int				mScore;				// +0xb4
+	int				mTick;				// +0xb8
+	const char*		mPhrase;			// +0xc0 what the monitor says
+	EditWidget*		mEdit;				// +0xc4
+	ButtonWidget*	mOk;				// +0xc8 id 2
+	ButtonWidget*	mSkip;				// +0xcc id 3
+
+	HighScoreDialog(AtomicaApp* theApp, int theScore);	// 0x41cc00
+	virtual ~HighScoreDialog();							// 0x41ca20
+	virtual void	Resize(int theX, int theY, int theWidth, int theHeight) override;	// 0x41caf0
+	virtual void	Update() override;
+	virtual void	Draw(Graphics* g) override;			// 0x41cf90
+	virtual void	ButtonDepress(int theId) override;	// 0x41cf00
+	virtual void	EditWidgetText(int theId, const SexyString& theString) override;
 };
 
 // 0x417b90: "confirm quit": quit the game in progress, saving it or not
