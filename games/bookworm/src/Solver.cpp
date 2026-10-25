@@ -328,6 +328,14 @@ void Solver::SelectHint(int theIdx)
 	mBoard->SelectTiles(mHints[theIdx].mPath);
 }
 
+void Solver::Reset()
+{
+	mHints.clear();
+	mHintIdx = -1;
+	mBoardSig.clear();
+	mPending = false;
+}
+
 void Solver::RequestHint()
 {
 	mPending = true;

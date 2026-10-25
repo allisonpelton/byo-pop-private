@@ -13,6 +13,7 @@
 #include "ColorizedButton.h"
 #include "Res.h"
 #include "Solver.h"
+#include "Undo.h"
 
 #include "WidgetManager.h"
 #include "ButtonWidget.h"
@@ -109,7 +110,8 @@ bool SameWordIgnoringCase(const std::string& theWord1, const std::string& theWor
 }
 
 AutoplayBot::AutoplayBot(BookWormApp* theApp, unsigned long theSeed, const std::string& theMode, int theUpdateCap,
-	const std::string& theLogFileName, const std::string& theShotPrefix, int theShotWords, bool theUseHints) :
+	const std::string& theLogFileName, const std::string& theShotPrefix, int theShotWords, bool theUseHints,
+	bool theTestUndo) :
 	mApp(theApp),
 	mRand((std::mt19937::result_type) theSeed),
 	mSeed(theSeed),
@@ -121,6 +123,11 @@ AutoplayBot::AutoplayBot(BookWormApp* theApp, unsigned long theSeed, const std::
 	mUseHints(theUseHints),
 	mHintScore(0),
 	mHintMismatches(0),
+	mTestUndo(theTestUndo),
+	mUndoPhase(0),
+	mUndoWordsScored(0),
+	mUndoChecks(0),
+	mUndoMismatches(0),
 	mDone(false),
 	mQuitAt(-1),
 	mTitleClicked(false),
@@ -169,8 +176,9 @@ AutoplayBot::AutoplayBot(BookWormApp* theApp, unsigned long theSeed, const std::
 		mModes.push_back(GAMEMODE_CLASSIC);
 	}
 
-	Note("-autoplay=%lu -seed=%lu -autoplaymode=%s -autoplaycap=%d%s: the bot's input as a -script file", mSeed,
-		(unsigned long) mApp->mRandSeed, mModeName.c_str(), mUpdateCap, mUseHints ? " -autoplayhints=1" : "");
+	Note("-autoplay=%lu -seed=%lu -autoplaymode=%s -autoplaycap=%d%s%s: the bot's input as a -script file", mSeed,
+		(unsigned long) mApp->mRandSeed, mModeName.c_str(), mUpdateCap, mUseHints ? " -autoplayhints=1" : "",
+		mTestUndo ? " -autoplayundo=1" : "");
 }
 
 AutoplayBot::~AutoplayBot()
@@ -294,6 +302,8 @@ void AutoplayBot::LogChanges(Board* theBoard)
 			Note("game over: a fire tile burned through the bottom");
 			if (mUseHints)
 				Note("hints: %d words scored, %d mismatches", mWordsScored, mHintMismatches);
+			if (mTestUndo)
+				Note("undo: %d checks, %d mismatches", mUndoChecks, mUndoMismatches);
 		}
 		mLastState = theBoard->mState;
 	}
@@ -554,6 +564,77 @@ void AutoplayBot::FindWords(Board* theBoard, std::vector<FoundWord>* theWords)
 	});
 }
 
+// -autoplayundo: what an undo must put back, and a replay make again: every cell's letter and tile type,
+// the score, the fire meter and the bonus word
+std::string AutoplayBot::BoardState(Board* theBoard)
+{
+	std::string aState;
+	for (int aCell = 0; aCell < BOARD_ROWS * BOARD_COLS; aCell++)
+	{
+		Piece* aPiece = CellPiece(theBoard, aCell);
+		aState += (aPiece == NULL) ? '.' : aPiece->mLetter;
+		aState += (aPiece == NULL) ? '.' : (char)('0' + aPiece->mType);
+	}
+	return aState + StrFormat(" score %d fire %.4f tiles %d bonus %s", theBoard->mGameStats->mScore,
+		theBoard->mFireMeter, theBoard->mFireTileCount, theBoard->mBonusWord.c_str());
+}
+
+void AutoplayBot::CheckUndo(Board* theBoard, const std::string& theExpected, const char* theWhat)
+{
+	mUndoChecks++;
+	std::string aState = BoardState(theBoard);
+	if (aState == theExpected)
+		Note("undo: %s as it should be", theWhat);
+	else
+	{
+		mUndoMismatches++;
+		Note("UNDO MISMATCH: %s: %s, expected %s", theWhat, aState.c_str(), theExpected.c_str());
+	}
+}
+
+// -autoplayundo: the step of the undo test this move takes (true: planned or waiting), or false for a
+// plain hint move. Every other word: played, undone, checked, played again, checked.
+bool AutoplayBot::PlanUndoTest(Board* theBoard)
+{
+	if (mUndoPhase == 1)
+	{
+		// the word was played and the board rests: undo it (not across a level-up, nor a word not taken)
+		if ((mWordsScored == mUndoWordsScored) || (theBoard->mUndo->Count() == 0))
+			mUndoPhase = 0;
+		else
+		{
+			mUndoAfter = BoardState(theBoard);
+			mPlanKind = PLAN_UNDO;
+			mPlanWord = "";
+			Note("plan %d: undo the last word", mPlanNum);
+			AddStep(STEP_UNDO, (mUndoChecks % 4 == 0) ? -1 : -2, theBoard, 15 + Random(40));
+			mUndoPhase = 2;
+			return true;
+		}
+	}
+	if (mUndoPhase == 2)
+	{
+		if (theBoard->mUndo->mPending)
+			return true;
+		CheckUndo(theBoard, mUndoBefore, "the board after the undo");
+		mUndoPhase = 3;
+		mUndoWordsScored = mWordsScored;
+		return false;
+	}
+	if (mUndoPhase == 3)
+	{
+		if ((mWordsScored != mUndoWordsScored) && (mApp->mGameMode != GAMEMODE_ACTION))
+			CheckUndo(theBoard, mUndoAfter, "the board after the word played again");
+		mUndoPhase = 4;
+		return false;
+	}
+	// phase 4: the word after a tested one was untested; this one is
+
+	mUndoWordsScored = mWordsScored;
+	mUndoPhase = 1;
+	return false;
+}
+
 std::string AutoplayBot::PathWord(Board* theBoard, const std::vector<int>& thePath)
 {
 	std::string aWord;
@@ -632,6 +713,13 @@ void AutoplayBot::PlanNext(Board* theBoard)
 		Note("-autoplayhints: the mod \"solver\" is off, so the bot picks its own words");
 		mUseHints = false;
 	}
+	if ((mTestUndo) && ((!mUseHints) || (theBoard->mUndo == NULL)))
+	{
+		Note("-autoplayundo: needs -autoplayhints=1 and the mod \"undo\"; no undo test");
+		mTestUndo = false;
+	}
+	if ((mTestUndo) && (PlanUndoTest(theBoard)))
+		return;
 	if ((mUseHints) && (!aWords.empty()))
 	{
 		mPlanKind = PLAN_HINT;
@@ -864,18 +952,34 @@ int AutoplayBot::RunStep(Board* theBoard, const Step& theStep)
 				return RUN_DROP;
 			static const char* const KIND_NAMES[] = { "fire", "bonus", "best", "longest" };
 			static const char* const SAFETY_NAMES[] = { "safe", "fire to the bottom", "ends the game" };
+			if ((mTestUndo) && (mUndoPhase == 1))
+				mUndoBefore = BoardState(theBoard);     // the board the undo must put back
 			mPlanWord = aHint->mWord;
 			mHintWord = aHint->mWord;
 			mHintScore = aHint->mScore;
-			Note("hint %d/%u: %s (%s, %d points, %d fire tiles, %s)", theBoard->mSolver->mHintIdx + 1,
+			std::string aCells;
+			for (size_t i = 0; i < aHint->mPath.size(); i++)
+				aCells += StrFormat("%s%d", (i == 0) ? "" : " ", aHint->mPath[i]->mRow * BOARD_COLS + aHint->mPath[i]->mCol);
+			Note("hint %d/%u: %s (%s, %d points, %d fire tiles, %s; cells %s)", theBoard->mSolver->mHintIdx + 1,
 				(unsigned) theBoard->mSolver->mHints.size(), aHint->mWord.c_str(), KIND_NAMES[aHint->mKind],
-				aHint->mScore, aHint->mFireTiles, SAFETY_NAMES[aHint->mSafety]);
+				aHint->mScore, aHint->mFireTiles, SAFETY_NAMES[aHint->mSafety], aCells.c_str());
 		}
 		return ClickWidget(theBoard->mSubmitButton, "the Submit button") ? RUN_DONE : RUN_WAIT;
 
 	case STEP_KEY_HINT:
 		Queue("key", "TAB");
 		return RUN_DONE;
+
+	case STEP_UNDO:
+		if (theStep.mCell == -2)
+		{
+			Note("Ctrl+Z");
+			Queue("keydown", "CONTROL");
+			Queue("key", "Z");
+			Queue("keyup", "CONTROL");
+			return RUN_DONE;
+		}
+		return ClickWidget(theBoard->mUndoButton, "the Undo button") ? RUN_DONE : RUN_WAIT;
 
 	case STEP_CLICK_LEX:
 		{
@@ -989,6 +1093,10 @@ void AutoplayBot::Update()
 	if (aNext >= mUpdateCap)
 	{
 		Note("update cap");
+		if (mUseHints)
+			Note("hints: %d words scored, %d mismatches", mWordsScored, mHintMismatches);
+		if (mTestUndo)
+			Note("undo: %d checks, %d mismatches", mUndoChecks, mUndoMismatches);
 		Quit();
 		return;
 	}

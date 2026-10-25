@@ -65,6 +65,8 @@ void Board::Draw(Graphics* g)
 	DrawWord(g);
 	if (mHintButton != NULL)
 		DrawPlankDivider(g, 136, 100);  // port(mod)
+	if (mUndoButton != NULL)
+		DrawPlankDivider(g, 136, 181);  // port(mod)
 
 	if (mBurping)
 	{

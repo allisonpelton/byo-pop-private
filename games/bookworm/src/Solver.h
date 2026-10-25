@@ -72,6 +72,7 @@ public:
 	Solver(Board* theBoard);
 
 	void					RequestHint();          // HINT / Tab: the next hint, now or once the tiles rest
+	void					Reset();                // the tiles were replaced (an undo): no hint shown
 	void					Update();               // a waiting request
 	void					Draw(Graphics* g);      // the tag of the hint the selection shows
 	const SolverWord*		ShownHint() const;      // that hint, null when the selection is none

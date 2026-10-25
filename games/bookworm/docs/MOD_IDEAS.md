@@ -11,8 +11,8 @@ redistributed, stay git-ignored. How to install and test the mods that exist: RE
 | Order | Mod | State |
 |---|---|---|
 | 1 | Word solver (`mods/solver`) | done |
-| 2 | Undo | next |
-| 3 | Bigger dictionary, with Collins | planned |
+| 2 | Undo (`mods/undo`) | done |
+| 3 | Bigger dictionary, with Collins | next |
 | 4 | Rude words that set fires; the greedy-bot comparison; HD art; the smaller ideas | planned |
 
 Code mods read their switches from the mod's `"features"` (`src/ModFeatures.h`: a feature on, a live
@@ -40,14 +40,25 @@ others. Tested by the bot's `-autoplayhints=1` (README.md): every hinted word sc
 
 Possible later: the whole list of hints in the widescreen layout's side panel (4.4).
 
-## 2. Undo (next)
+## 2. Undo (done)
 
-An UNDO button (the OPTIONS plank split like SUBMIT | HINT) and Ctrl+Z. Before each submitted word and each
-scramble, a snapshot: the board as the saved game writes it (Board's save code into memory) plus the state of
-the game's generators (`gGameRand`, the board's `MTRand`), so an undone move replayed gives the same new tiles.
-Undo restores the last snapshot (LoadGame's reader on that memory). The stack is cleared at a level-up; undo
-only while the board is in play. Scores with undo are their own table (`affectsScores`). Test: the bot plays,
-undoes and replays a move and gets byte-identical screenshots.
+`src/Undo.cpp`, mod `undo`. UNDO (the OPTIONS plank split like SUBMIT | HINT) and Ctrl+Z. Before each word
+Submit takes and each scramble, a snapshot: the board's saved-game record (`SaveGameSnapshot`, into memory)
+plus what that record leaves out but the next tiles depend on:
+- both generators whole (`gGameRand` draws letters, fire, special tiles and bonus words; the record keeps the
+  board generator's state words but not its position in them);
+- RandomLetter's program-wide previous letter (never the same letter twice running, and each rejected letter
+  costs a draw) and Refill's previous level;
+- the app's next bonus word (a bonus word played picks the next one, avoiding the current one).
+
+Undo reads the last record back (`ReadSavedGame`, LoadGame's reader split out) once the tiles rest and the
+eaten word's tiles have reached Lex. The clocks, the pause count and the held Ctrl key stay as they are; Lex's
+definition balloon of the undone word fades and its "+points" popup goes. Only in play and within a level (a
+level-up leaves the earlier level's moves behind); up to 10 moves (setting). The bot test (README.md) checks
+the board after each undo and after the same word played again.
+
+Possible later: undo after the move that ended a Classic game (the game-over sequence would have to be
+stopped).
 
 ## 3. Bigger dictionary, with Collins (planned)
 

@@ -84,14 +84,19 @@ original's.
 | Mod | What it does |
 |---|---|
 | `solver` (Word Solver) | A HINT button beside SUBMIT, and Tab: selects a word on the board, scored exactly as Submit would. First the word that takes the lowest fire tile (while there are fire tiles), then the bonus word, the 10 best-scoring words and the longest; each press gives the next. A tag beside the word says which it is and warns when a word ends the game (a bottom-row fire tile left out, in Classic) or drops a fire tile to the bottom row. Settings: fire first, how many best words, the tag. |
+| `undo` (Undo) | An UNDO button beside OPTIONS, and Ctrl+Z: takes back the last word or scramble (up to 10, setting 1..100), within a level and while in play. The board, score, fire meter, Lex and bonus word come back as they were, and the same word played again brings the same new tiles (the generators come back too). The clocks run on. |
 
-The solver's test: the `-autoplay` bot with `-autoplayhints=1` plays the first hint every move (Tab, then
-Submit) and logs `HINT MISMATCH` wherever the game scores a word otherwise than the solver said. On seed 1 it
-plays Classic to level 24 in 30,000 updates (193 words, fire, bonus and best hints) with no mismatch:
+The tests use the `-autoplay` bot. With `-autoplayhints=1` it plays the solver's first hint every move (Tab,
+then Submit) and logs `HINT MISMATCH` wherever the game scores a word otherwise than the solver said; on seed 1
+it plays Classic to level 24 in 30,000 updates (193 words, fire, bonus and best hints) with no mismatch. With
+`-autoplayundo=1` as well it undoes every other word (the button and Ctrl+Z in turn), checks the board against
+the one before the word, plays the same hint again and checks the board against the first play's (Classic
+only: in Action the timed fire tiles depend on when the word comes); `UNDO MISMATCH` where one differs. Seed
+1, 30,000 updates: Classic 109 checks, Action 56, no mismatch.
 
 ```bash
-mkdir -p <dir>/mods && cp -r games/bookworm/mods/solver <dir>/mods/
-timeout 600 build/native/rundesk.exe <full path of build/native/bookworm.exe> -userdir=<dir>/user -modsdir=<dir>/mods -fast -seed=1 -autoplay=1 -autoplaymode=classic -autoplayhints=1 -autoplaycap=30000 -autoplaylog=<dir>/log.txt
+mkdir -p <dir>/mods && cp -r games/bookworm/mods/solver games/bookworm/mods/undo <dir>/mods/
+timeout 600 build/native/rundesk.exe <full path of build/native/bookworm.exe> -userdir=<dir>/user -modsdir=<dir>/mods -fast -seed=1 -autoplay=1 -autoplaymode=classic -autoplayhints=1 -autoplayundo=1 -autoplaycap=30000 -autoplaylog=<dir>/log.txt
 ```
 
 ## Status (2026-10-19)
