@@ -53,3 +53,44 @@ The original's save format is "version 2" (the board, the pieces, the app's coun
 `savegame.dat` in the user folder with the same field order, and `hiscores.dat` in the original layout with the
 original's checksum. The registry values (options, the registered flag, the name of the last score) go to
 `registry.ini`, as in the other ports.
+
+The high-score file is five records of `[u16 length][name][i32 score][i32 check]`, the check being the score xor
+0x42beef xor each name byte (a signed char) times 0x11. The loader (0x411ea0) keeps a record whose check does not match
+but stores its score as `score % 256`, and reads on; a mod set that changes play gets the file name's score key
+(`hiscores-<key>.dat`, `savegame-<key>.dat`).
+
+## Dialogs
+
+`Dialog` (0x428360 to 0x4290e0) is the 2002 class that the port's `Dialog2004` stands in for: a header, a block of
+word-wrapped lines, then either yes/no buttons or one footer button (button mode 3), inside content insets. Its preferred
+height (`GetPreferredHeight`, slot 47, 0x428580) is the two insets, plus the header font's height, plus the wrapped
+lines' height when there are lines (10 below the header), plus a row of yes/no buttons unless the mode is the footer
+one, plus the footer button's font height with 8 above and 8 below. Only `DifficultyDialog` overrides it (0x411130).
+
+Open: the Options, Tutorial and High Scores dialogs have no override, and the Options and Tutorial ones pass an empty
+lines text (0x49c510 is the empty string), so that formula gives about 150 pixels, far too little for the controls that
+`OptionsDialog`'s Resize (0x41cf00) lays out relative to the dialog's top and footer button. The port's constants for
+them (400, 0x17c, and 0x140 for the difficulty dialog) are guesses that look right except that the Options dialog's
+"Visit PopCap.com" button covers the "Show Hints" label. Where the original's real height comes from is not known;
+check the dialog's vtable and `AddDialog`/`DoDialog` (0x418c40 is `ShowOptions`) before trusting a dialog size.
+
+## Reading this compiler's output
+
+The decompiler shows Visual C++ 6.0 code with idioms that are easy to translate wrongly (the review of the port
+against the decompilation found the first three as bugs):
+
+A loop that starts its counter at -1 and tests `limit < i` before incrementing runs one iteration more than the `for`
+loop with the same bound: the abandon penalty's partner search (0x4067e0) covers cells 0 to 80, not 0 to 79.
+
+`x & 0x800000ff` followed by `(v - 1 | 0xffffff00) + 1` for negative v is C's signed `x % 256`, not `x & 0xff`.
+
+Moving a piece or an animal between two cells swaps *every* field the original copies, including the pixel position
+(`mPixelX`/`mPixelY`, +0x10/+0x14); the cell that is vacated gets the other cell's old position cut to whole pixels
+(`(float)(int)`, the two `__ftol` calls). An animal that is flying to the ark keeps flying when the board rises or the
+columns close in only because its pixel position moves with it.
+
+`(end - begin) & 0xfffffffc == 0` on a vector of 4-byte elements means "empty": a guard that reads "fewer than 2" in a
+translation is wrong. Strings and vectors are MSVC 6's, shown as inline copies; `decread.py` collapses them.
+
+A comment about what the original does is a claim: check it against the decompilation before writing it (the port had a
+comment that said five rows where the loop fills four, and one that said a bad high-score check ends the load).

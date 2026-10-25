@@ -230,7 +230,7 @@ void Board::NewLevel()
 
 	if (aMode == GAMEMODE_STAMPEDE)
 	{
-		// five rows of animals of three kinds, and the row waiting below
+		// four rows of animals of three kinds (the bottom ones, y 5 to 8), and the row waiting below
 		for (int x = 0; x < 9; x++)
 			for (int y = 5; y < 9; y++)
 				mGrid[x][y]->mType = CrtRand() % aKinds;

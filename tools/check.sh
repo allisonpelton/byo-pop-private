@@ -16,8 +16,8 @@
 #   livesplit    Bejeweled's, Big Money's and BookWorm's LiveSplit tests
 #   bookworm     BookWorm's bot: classic and action games, and a classic rerun with the same screenshots
 #   bigmoney     Big Money's bot: one game
-#   noahsark     Noah's Ark's bot: action, strategy and puzzle games, an action rerun with the same screenshots, and
-#                the mods' tests (games/noahsark/tools/run_mod_tests.sh)
+#   noahsark     Noah's Ark's bot: action, strategy and puzzle games, an action rerun with the same screenshots, the
+#                mods' tests (games/noahsark/tools/run_mod_tests.sh) and the high-score loader's (run_hiscores_test.sh)
 #   oracle       Bejeweled's oracle three ways (compare.sh --variants default,forcevariant,novariants); over
 #                ten minutes, so never in a subagent; refuses to start while another oracle runs
 # Sets: quick = build unit; games = bookworm bigmoney noahsark; all = every suite, builds first.
@@ -32,7 +32,7 @@
 BW_CLASSIC="level 8, score 58970"
 BW_ACTION="level 14, score 152360"
 BM_GAME1="score 66646"
-NA_ACTION="level 4 done at update 17379: score 7197 mode stampede"
+NA_ACTION="level 4 done at update 17083: score 7622 mode stampede"
 NA_STRATEGY="level 4 done at update 15469: score 4430 mode strategy"
 NA_PUZZLE="game 1 over at update 17550: score 4830 level 1 moves 117"
 
@@ -221,7 +221,9 @@ suite_noahsark() {
 	mkdir -p "$OUT/noahsark"
 	if bash games/noahsark/tools/run_mod_tests.sh "$OUT/noahsark/mods" > "$OUT/noahsark/mods.txt" 2>&1; then m="mods $(grep -c '^ok' "$OUT/noahsark/mods.txt") checks ok"; else m="MODS FAILED (see $OUT/noahsark/mods.txt)"; st=1; fi
 	cat "$OUT/noahsark/mods.txt" >> "$1"
-	SUMMARY="action ${a#level }; strategy ${s#level }; puzzle ${p#game }; $r; $m"
+	if bash games/noahsark/tools/run_hiscores_test.sh "$OUT/noahsark/hiscores" > "$OUT/noahsark/hiscores.txt" 2>&1; then h="hiscores $(grep -c '^ok' "$OUT/noahsark/hiscores.txt") checks ok"; else h="HISCORES FAILED (see $OUT/noahsark/hiscores.txt)"; st=1; fi
+	cat "$OUT/noahsark/hiscores.txt" >> "$1"
+	SUMMARY="action ${a#level }; strategy ${s#level }; puzzle ${p#game }; $r; $m; $h"
 	[ $st -eq 0 ] || SUMMARY="$SUMMARY (expected action '$NA_ACTION', strategy '$NA_STRATEGY', puzzle '$NA_PUZZLE')"
 	return $st
 }
