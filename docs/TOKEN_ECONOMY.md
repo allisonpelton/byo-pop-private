@@ -119,6 +119,29 @@ at Opus prices, and every suite passed on the merged trunk (18bb77e). Its mods a
 and BookWorm's, so that phase does not compare one to one. One stumble was the app's, not the model's: the worktree
 was cut from the publish snapshot instead of `main`, and the branch had to be rebased before it could merge.
 
-Not yet measured: how faithful the port is. Its tests are its own bot games, which show that it plays and is
-deterministic, not that it plays like the original; no one has yet compared its translated functions with the
-decompiled originals.
+How faithful the port is was checked afterwards by hand, on a sample of eleven functions compared with the Ghidra
+decompilation: the move rules (0x407600 connecting a pair, 0x406aa0 and 0x406cd0 looking for a move and a partner,
+0x4036f0 the path search along straight runs, 0x4026d0 the reach search), 0x4067e0 the abandon penalty, 0x402260 the
+puzzle matcher, 0x401580 the level set-up, 0x403a90 the board rise, 0x411ea0 the high-score loader, and the gravity,
+settle and swap-back steps of Board::Update (0x403d60). Seven are faithful. The path search follows the original line
+for line; the others reach the same result by another route: a queue and a seen array for the original's two linked
+lists, an early return where the original sets a flag and finishes the loop, a pointer swap where it clones a piece and
+frees the old one. The puzzle matcher returns whether it found a run, which the Ghidra export had dropped; the
+disassembly confirms the port's reading.
+
+One is a real bug. The abandon penalty's partner search stops at cell 79, while the original's loop tests its bound
+before the increment and so reaches cell 80: a partner in the bottom-right cell is never abandoned. Three others
+behave differently in rare cases. The high-score loader drops the whole file at the first record whose check fails,
+where the original keeps that name, cuts the score to its remainder modulo 256 and reads on; the port's comment
+describes the wrong behaviour too. When the board rises (0x403a90) or a column slides over (in Update), the port
+leaves each piece's screen position with the cell instead of moving it with the piece, so an animal flying off to the
+ark at that moment jumps. The rest is small: a guard in 0x407600 that returns when one cell is linked where the
+original returns only when none is, a comment that says five rows where the code makes four, dead writes with a
+garbled expression in the board rise, and a swap-back that would take a lone flagged piece as both ends, which play
+cannot reach.
+
+So the Sonnet port is close but not exact. Its errors are the kind a translator makes while restructuring control
+flow (an off-by-one from turning a test-then-increment loop into a for loop, a misread branch), not invented logic.
+Its own tests could not catch them: its bot games compare the port only with itself, and nothing in them runs the
+original exe for comparison. Whether Opus would have made fewer such errors is not known, since Big Money's and
+BookWorm's ports have not been sampled the same way.
