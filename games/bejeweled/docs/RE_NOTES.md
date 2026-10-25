@@ -6,6 +6,8 @@
 wrapper: a SexyAppFramework + Lua ("PopLua") application that drives the trial/purchase screens
 (`drm/`, `drm.swf`, `Flash.ocx`) and the Steam2 API (`SteamStartup`, `SteamIsAppSubscribed`).
 
+<!-- private: The real game is a second, unencrypted PE inside the wrapper. A private tool (not published) copies it out to `re/bejeweled/bin/BejeweledGame.exe`. -->
+
 The real game is appended to the wrapper as a PE overlay:
 
 | Offset in WinBej.exe | Content |
@@ -15,7 +17,11 @@ The real game is appended to the wrapper as a PE overlay:
 | `0x17b1a2`-`0x2d31a2` | **Embedded game PE** (1,409,024 bytes, linked 2007-04-13, unencrypted) |
 | `0x2d46f0` | Authenticode certificate of the wrapper |
 
-`tools/extract_game_exe.py` carves the embedded image to `re/bejeweled/bin/BejeweledGame.exe`. Its entry point
+`tools/extract_game_exe.py` carves the embedded image to `re/bejeweled/bin/BejeweledGame.exe`.
+
+<!-- /private -->
+
+The game image's entry point
 (`0x4dbf7b`) is the stock MSVC `__security_init_cookie` / `__tmainCRTStartup` pair, its imports are the
 normal Win32 set (DirectDraw is loaded dynamically), and it has full MSVC RTTI, so no unpacking or
 decryption is needed.

@@ -16,10 +16,12 @@ list, bonus words or definitions either.
 
 ## The binary
 
+<!-- private: - The retail install (`C:\Program Files\PopCap Games\BookWorm Deluxe`, version 1.03, a "CD-protect" edition) has one executable, `Bookworm.exe`: PopCap's CDProtect launcher with the game inside it, which a private tool (not published) copies out. -->
 - The retail install (`C:\Program Files\PopCap Games\BookWorm Deluxe`, version 1.03, a "CD-protect"
   edition) has one executable, `Bookworm.exe`. It is PopCap's CDProtect launcher (106,496 bytes) with the
   unencrypted game PE appended after the `!popcapcdprotect!` marker: 1,318,912 bytes at file offset 0x1a011.
   The launcher checks a hardware fingerprint or the CD, then runs a copy of exactly those bytes.
+<!-- /private -->
 - The game PE was linked 2004-04-15 with Visual Studio .NET 2002 (MSVC 7.0, no LTCG). It has full RTTI (159
   classes, 187 vtables). The game code is 0x401000-0x437800: 852 functions in about 33 source files linked in
   alphabetical order.
@@ -32,8 +34,15 @@ list, bonus words or definitions either.
 Ghidra 12.1.4 + JDK 21 (`E:\retools`), Python 3, and Big Money's analysed binary for the carried-over names
 (its worktree, `claude/bigmoney-1912c8`). Long runs go under `build/native/rundesk.exe` (hidden, low priority).
 
+<!-- private: First the game image is copied out of `Bookworm.exe` to `re/bookworm/bin/BookwormGame.exe` with a private tool (not published). -->
+
 ```bash
 python tools/extract_game_exe.py "C:/Program Files/PopCap Games/BookWorm Deluxe/Bookworm.exe" -o re/bookworm/bin/BookwormGame.exe
+```
+
+<!-- /private -->
+
+```bash
 python tools/rtti_msvc70.py re/bookworm/bin/BookwormGame.exe re/bookworm/rtti
 MSVC70=1 SYMBOLS=re/bookworm/rtti.jsonl build/native/rundesk.exe bash tools/ghidra_import.sh re/bookworm/bin/BookwormGame.exe bookworm_game re/bookworm/gh
 python tools/rtti_msvc70.py re/bookworm/bin/BookwormGame.exe re/bookworm/rtti --functions re/bookworm/gh/functions.jsonl
@@ -184,4 +193,6 @@ export are in the git-ignored `assets/bookworm/` and `re/bookworm/`. Shared chan
 | `docs/FRAMEWORK_2004.md` (new) | 456fc08 |
 | `framework/compat2004` (new, library `sexycompat2004`): the 2004 framework behaviours, shared with Typer Shark and AstroPop | f44c585 |
 | Big Money's MSVC 7.0 tools and `.au`/Tremor audio, unchanged copies | f2497b4 |
+
+`tools/extract_game_exe.py` and `tools/triage_popcap.py` are private tools: they are not published.
 | `WidgetManager::mLastMouseDownTick`, public `GetClockTime()` (Lex's idle timer, repeatable game clocks) | coordinator, abfb135 |

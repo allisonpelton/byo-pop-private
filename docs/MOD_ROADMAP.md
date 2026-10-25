@@ -43,7 +43,7 @@ Once Bejeweled Deluxe and all of the mods above are done and working:
 
 1. **Big Money Deluxe** - decompile, port to WASM, and develop mods for it. Installed at
    `A:\SteamLibrary\steamapps\common\Big Money Deluxe`. `WinBM.exe` (2006-08-21) is the same PopCap DRM
-   wrapper (`!popcapdrmprotect!` at 0x53000, SexyAppFramework RTTI), so `tools/extract_game_exe.py`, the
+   wrapper (SexyAppFramework RTTI), so the unwrapping tool (`tools/extract_game_exe.py`, private), the
    Ghidra pipeline (`tools/ghidra_scripts`, `tools/ghidra_headless.sh`) and the framework-identification
    approach carry over. A separate `BigMoney.exe` (2005-11-14, no framework RTTI) needs a look first.
 2. **Other PopCap games**, in the order agreed on 2026-10-18 (since replaced: the order of work in CLAUDE.md, 2026-10-24; details, effort and prerequisites in

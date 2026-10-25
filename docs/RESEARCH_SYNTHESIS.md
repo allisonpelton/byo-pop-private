@@ -19,7 +19,9 @@ Scripts used for the checks are in `C:\Users\Administrator\AppData\Local\Temp\cl
 - Strings: `SteamStartup`, `steam.dll`, `-steamuser`.
 
 **Inner image: the real game is a second PE appended to the file.**
+<!-- private -->
 - Location: file offset `0x17b1a2`, length `0x15aa86` (1,419,910 bytes).
+<!-- /private -->
 - SHA-256 `6257a77f0e54f65b5cdbe36faf1ee6872189a700b05e5ed608ae545c0649466e`.
 - ImageBase 0x400000. TimeDateStamp 2007-04-13 20:28:30 UTC. Not encrypted.
 - `.text` is 0x10404c bytes.
@@ -213,11 +215,13 @@ py -3.12 -m venv C:\re\venv && C:\re\venv\Scripts\pip install pefile==2024.8.26 
 ## 4. Decompilation procedure (steps P0-P2)
 
 ### P0 — Extract the game image, reproducibly
+<!-- private: - Copy the game image out of WinBej.exe with a private tool (not published), checking both files against their SHA-256, into `re/bin/inner.exe`. -->
 - Write `tools/extract_inner.py`. It should:
   1. Check WinBej.exe against SHA-256 `a16fa32d…8376`.
   2. Slice `[0x17b1a2 : 0x17b1a2+0x15aa86]`.
   3. Check the slice against `6257a77f…466e`.
   4. Write it to `re/bin/inner.exe`.
+<!-- /private -->
 - `re/bin/` is git-ignored. The working copy already exists at `…\scratchpad\bin\inner.exe`.
 - Never commit WinBej.exe, inner.exe, bass.dll or any asset.
 

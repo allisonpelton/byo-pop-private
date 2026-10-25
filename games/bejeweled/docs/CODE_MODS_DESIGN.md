@@ -1481,7 +1481,7 @@ Added from the user's decisions (2026-10-18): Bejeweled 2's secret Twilight mode
 three of its cosmetic touches, in Normal and Timed, and with no direction indicator.
 
 **What Bejeweled 2 does.** These facts were read from a static disassembly of the game embedded in the
-installed `WinBej2.exe` (file offset 0x1841a2, image base 0x400000, built April 2007). Nothing was run or
+installed `WinBej2.exe` (image base 0x400000, built April 2007). Nothing was run or
 observed in play. The web descriptions are loose and disagree in places (wiki.gg's Bejeweled 2 page has
 gravity change with every match); where they differ, the code wins.
 
