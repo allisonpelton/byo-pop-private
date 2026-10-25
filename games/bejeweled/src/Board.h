@@ -69,8 +69,8 @@ inline constexpr int gMatchBaseScores[9] = {10, 20, 30, 40, 60, 80, 110, 160, 21
 // port(variant): which generalised code paths a board takes (games/bejeweled/docs/CODE_MODS_DESIGN.md 2.2).
 // Computed once by Board::InitVariant from the rules snapshot; every flag is false for the original rules
 // and for tunables-only mods. Read since stage 5: mAny (the v2 save, the variant trace line), mInvalid
-// (UpdateSwap keeps a swap that made no match) and mNoMoves (UpdateFalling's no-moves branch); the other
-// variant paths arrive in later stages.
+// (UpdateSwap keeps a swap that made no match) and mNoMoves (UpdateFalling's no-moves branch); since stage 6
+// mUndo (the undo snapshots, keys and orb); the other variant paths arrive in later stages.
 struct VariantFlags
 {
 	bool mAny = false;          // any rule differs from default: v2 save, variant trace lines
@@ -240,11 +240,16 @@ public:
 	// outside the BEJ_NO_VARIANTS parts, so that build counts GO like the others
 	uint32_t		mBoardSerial;           // 1, 2, ... per board made in this process (InitVariant)
 	bool			mResumed;               // the board resumed a saved game (GameLoadedVariant): its GO is not a run start
+	// port(mods): the save's name under the score key at the constructor (ScopedSaveGameFileName), not game state
+	std::string		mSaveGameFileName;
 	// Moves (stage 5, games/bejeweled/docs/CODE_MODS_DESIGN.md 4.1): counted on every board, saved (the v2 save's
 	// MOVE chunk), hashed (LOGIC) and traced only on a variant board
 	int				mMoveCount;             // moves that stood: swaps that made a match, kept invalid moves that count as moves (OnMoveMade)
 	int				mInvalidMoves;          // kept invalid moves (moves.allowInvalid, KeepInvalidMove)
-	int				mUndosUsed;             // undos taken (stage 6); 0 until then
+	int				mUndosUsed;             // undos taken (Undo, stage 6)
+	// Undo (stage 6, games/bejeweled/docs/CODE_MODS_DESIGN.md 4.12, 6.7): StateCodec's UNDO encodings of the board
+	// before each move, newest last, at most undo.depth of them; not saved, so a resumed game has none
+	std::vector<std::string> mUndoStack;
 
 public:
 	int				GetColX(int theCol);                            // 0x4c9b25 theCol*51 + 203 (thiscall in the binary, this unused; port(variant): a member, + mLayout.mOriginX)
@@ -289,7 +294,8 @@ public:
 	bool			SaveGame();                                     // 0x4ccdfe
 	void			SaveGameSnapshot(Buffer* theBuffer);            // port: what SaveGame() would write, live game untouched
 	void			WriteSaveGame(Buffer* theBuffer, int thePlaySeconds, int theState); // port: the body of 0x4ccdfe
-	static std::string GetSaveGameFileName();                       // port: "userdata\\savegame.dat", scoped for gameplay mods
+	std::string		GetSaveGameFileName() const { return mSaveGameFileName; } // port: "userdata\\savegame.dat", scoped for gameplay mods (port(mods): the board's own)
+	static std::string ScopedSaveGameFileName();                    // port(mods): that name under the current score key
 	bool			DeleteSaveGame();                               // 0x4cd130
 	virtual ~Board();                                               // 0x4cd1ba (scalar deleting dtor 0x4ce430)
 	bool			ProcessMatches();                               // 0x4cd287
@@ -305,6 +311,15 @@ public:
 	void			KeepInvalidMove();                              // UpdateSwap: a swap that made no match stays (moves.allowInvalid, 4.1)
 	void			OnNoMovesVariant();                             // UpdateFalling: settled without a move, the noMoves rule decides (4.1)
 	bool			NoHintVariant();                                // a board playing without a move (noMoves "continue"): no hint, no hint glow
+	// Undo (stage 6, games/bejeweled/docs/CODE_MODS_DESIGN.md 4.12, 6.7; BoardVariant.cpp)
+	void			TakeUndoSnapshot();                             // StartSwap: the board before the move (in STATE_PLAYING)
+	void			PopUndoSnapshot();                              // UpdateSwap: the swap went back, so does its snapshot
+	bool			CanUndo() const;                                // the UNDO gate, which playback checks again (WatchController)
+	int				UndosLeft() const;                              // undo.max minus the undos taken; -1 without a limit
+	static bool		IsUndoKey(SexyChar theChar);                    // z, u, Backspace
+	bool			UndoKeysActive() const;                         // the undo keys undo (KeyChar) rather than pause
+	bool			RequestUndo();                                  // the keys and the red orb: UNDO recorded, then Undo; refused: bad2
+	void			Undo();                                         // the newest snapshot back (playback applies UNDO with it)
 	// The v2 save of a variant board (games/bejeweled/docs/CODE_MODS_DESIGN.md 7.2; BoardSave.cpp)
 	void			GetVariantSave(Replay::VariantSave* theSave);  // the header and chunk values of the board as it is
 	void			WriteVariantHeader(Buffer* theBuffer);          // WriteSaveGame, after the version: rules, shape, mask
@@ -315,7 +330,7 @@ public:
 	bool			ReadSaveFile(Buffer* theBuffer);               // LoadGame's read: the save file, or in playback mPlaybackLoad
 	bool			WriteSaveFile(const Buffer& theBuffer);        // SaveGame's write: SAVE, the sidecar and the save file, or in playback mPlaybackSave
 	// The sidecar of the save (games/bejeweled/docs/CODE_MODS_DESIGN.md 7.3): savegame.bjr next to savegame.dat
-	static std::string GetSidecarFileName();
+	std::string		GetSidecarFileName() const;
 	void			WriteSaveSidecar(const Buffer& theSave);       // SaveGame: the SAVE event and the sidecar, or no sidecar
 	void			DeleteSaveSidecar();                            // DeleteSaveGame: the sidecar goes with the save
 	void			KeepSidecarGame();                              // the recorded game of the sidecar there is, kept as a finished replay

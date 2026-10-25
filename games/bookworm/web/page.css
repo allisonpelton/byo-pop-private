@@ -1,0 +1,5 @@
+/* BookWorm's look on the shared page (web/shell.html): bookworm green and old paper, a book for the brand mark */
+:root { --accent: #3f7f2a; --gem-ruby: #c9302c; --page: #e3c98f; }  /* bookworm green, old paper */
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --accent: #9ad46f; } }
+:root[data-theme="dark"] { --accent: #9ad46f; }
+.brand .mark { width: 14px; height: 10px; background: var(--page); border: 2px solid var(--accent); border-radius: 2px 6px 6px 2px; }

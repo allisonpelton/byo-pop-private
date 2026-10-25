@@ -53,6 +53,7 @@ class Image
 public:
 	bool					mDrawn;
 	std::string				mFilePath;
+	bool					mPlaceholder; // port: the stand-in for a missing file (-placeholders, SexyAppBase::GetImage)
 	int						mWidth;
 	int						mHeight;
 

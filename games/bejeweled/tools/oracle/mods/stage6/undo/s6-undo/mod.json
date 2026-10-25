@@ -1,0 +1,7 @@
+{
+  "id": "s6-undo",
+  "name": "Stage 6: undo",
+  "version": "1.0",
+  "description": "Oracle fixture: undo with a depth of 3, at most 4 per game and a penalty of 5 (times the multiplier). The RNG comes back with the board (restoreRng, the default): the same move again refills the same way. Off in timed mode (inTimed false, the default).",
+  "rules": { "undo": { "enabled": true, "depth": 3, "max": 4, "penalty": 5 } }
+}

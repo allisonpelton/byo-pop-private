@@ -2,8 +2,9 @@
 #define __OPTIONSDIALOG_H__
 
 // OptionsDialog.cpp: modal options dialog (dialog 1): music / sound sliders, fullscreen and custom
-// cursor checkboxes, Register / Scores / Help / Check Updates / Credits buttons and the partner
-// "more games" links (properties NumOptionsLinks, OptionsLinkText%d, OptionsLinkURL%d).
+// cursor checkboxes, Register / Scores / Help / Check Updates / Credits buttons. The original also has the
+// partner "more games" links (properties NumOptionsLinks, OptionsLinkText%d, OptionsLinkURL%d); the port
+// leaves them out (the user's decision, 2026-10-24) and lays the dialog out as with none.
 // Original: class Sexy::OptionsDialog : public MoneyDialog, public SliderListener, public CheckboxListener,
 // sizeof 0x198. Vtables: primary 0x4fb774 (60), ButtonListener 0x4fb754, SliderListener 0x4fb74c
 // (subobject +0x158), CheckboxListener 0x4fb744 (subobject +0x15c). Offsets are absolute.
@@ -15,7 +16,6 @@
 #include "MoneyDialog.h"
 #include "SliderListener.h"
 #include "CheckboxListener.h"
-#include <vector>
 
 namespace Sexy
 {
@@ -38,14 +38,14 @@ public:
 		CUSTOM_CURSORS_CHECKBOX_ID = 0, // the original gives both checkboxes id 0
 		REGISTER_BUTTON_ID = 1,
 		SCORES_BUTTON_ID = 2,
-		VISIT_POPCAP_BUTTON_ID = 3,     // handled in ButtonDepress, never created
+		VISIT_POPCAP_BUTTON_ID = 3,     // never created; the original's ButtonDepress opens a PopCap page (not ported)
 		HELP_BUTTON_ID = 4,
 		CHECK_UPDATES_BUTTON_ID = 5,
 		CREDITS_BUTTON_ID = 6,
-		LINK_BUTTON_ID_BASE = 100,      // link i has id 100+i (ButtonDepress accepts 100..199)
+		LINK_BUTTON_ID_BASE = 100,      // the original's partner link i has id 100+i (the links are not ported)
 		ROW_PITCH = 34,
 		BUTTON_HEIGHT = 36,
-		BASE_PREFERRED_HEIGHT = 308     // + 34 per link (342 shipped)
+		BASE_PREFERRED_HEIGHT = 308     // the original adds 34 per partner link (342 shipped); the port has none
 	};
 
 	// +0x158 SliderListener vptr, +0x15c CheckboxListener vptr
@@ -59,7 +59,7 @@ public:
 	DialogButton*	mHelpButton;                // +0x17c id 4 HELP
 	DialogButton*	mCheckUpdatesButton;        // +0x180 id 5 CHECK_UPDATES (laid out only without DontUpdate)
 	DialogButton*	mCreditsButton;             // +0x184 id 6 CREDITS
-	std::vector<DialogButton*> mLinkButtons;    // +0x188 ids 100+i, labels OptionsLinkText%d (VC7 vector: first +0x18c, last +0x190, end +0x194)
+	// +0x188 std::vector<DialogButton*> mLinkButtons (ids 100+i): the partner links, not ported
 	// port(mods): an installed mod has settings: the Register button (never laid out in this build) becomes
 	// "MODS" in its slot and opens the mod menu (docs/MOD_MENU_DESIGN.md 8.3)
 	bool			mModsButton;

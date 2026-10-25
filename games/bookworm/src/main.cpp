@@ -98,8 +98,8 @@ int main(int argc, char** argv)
 	std::string modsDir = ArgValue(argc, argv, "modsdir");
 
 #ifdef __EMSCRIPTEN__
-	// port (web): games/bookworm/web/shell.html mounts its own IndexedDB-backed folder, so BookWorm's files
-	// never mix with the other games' on the same site
+	// port (web): its page (web/shell.html, games/bookworm/web/page.js) mounts its own IndexedDB-backed folder, so
+	// BookWorm's files never mix with the other games' on the same site
 	if (gameDir.empty())
 		gameDir = "/bwpersist/game";
 	if (userDir.empty())

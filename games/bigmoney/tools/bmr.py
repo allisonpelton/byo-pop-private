@@ -13,7 +13,7 @@ import sys
 
 MAX_FILE_SIZE = 16 * 1024 * 1024
 MAX_ITEMS = 4000000
-OPS = {1: ("CLICK", 2), 2: ("MOVE", 2), 3: ("LEAVE", 0), 4: ("NEXT", 0)}
+OPS = {1: ("CLICK", 2), 2: ("MOVE", 2), 3: ("LEAVE", 0), 4: ("NEXT", 0), 5: ("HINT", 0), 6: ("UNDO", 0), 7: ("POCKET", 2)}
 MODES = ["action", "strategy", "puzzle"]
 SKILLS = ["", "easy", "normal", "hard"]
 APP_FLAGS = ["showInstructor", "hasClickedGroup", "dangerHintShown", "bagCollectedOnce", "bombSeenOnce"]

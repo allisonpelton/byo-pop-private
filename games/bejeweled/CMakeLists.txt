@@ -1,6 +1,7 @@
 # Bejeweled Deluxe 1.87 (games/bejeweled/src) on the shared framework and platform layer.
 # Native: bejeweled.exe [-gamedir=<dir>] [-userdir=<dir>] [-modsdir=<dir>] (see src/main.cpp).
-# Web: bejeweled.html/.js/.wasm; web/shell.html imports the user's game files into /persist (IDBFS)
+# Web: bejeweled.html/.js/.wasm; its page (web/shell.html with web/page.js and page.css here) imports the user's game
+# files into /persist (IDBFS)
 # and starts the game with callMain().
 file(GLOB GAME_SOURCES CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp)
 list(REMOVE_ITEM GAME_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/src/main.cpp)
@@ -27,7 +28,7 @@ if(EMSCRIPTEN)
   target_compile_options(bejeweled PRIVATE -mno-nontrapping-fptoint)
   # fflush: the Node runner (tools/verify/wasmrun.js) flushes the test hooks' files (-tracehash, -autoplaylog,
   # -codeccheck) when the game quits; a page never deletes the app, which closes them natively
-  byopop_web_game(bejeweled ${PROJECT_SOURCE_DIR}/web/shell.html EXPORTS _fflush TITLE "Bejeweled Deluxe"
+  byopop_web_game(bejeweled EXPORTS _fflush TITLE "Bejeweled Deluxe"
     COPYRIGHT "Bejeweled Deluxe © 2000, 2007 PopCap Games, Inc. All rights reserved. Bejeweled is a trademark of PopCap Games, Inc.")
 else()
   add_custom_command(TARGET bejeweled POST_BUILD
@@ -67,7 +68,8 @@ if(BUILD_VERIFY)
     src/headless/HeadlessShims.cpp src/headless/WinDMAppHeadless.cpp src/headless/ReplayRecorderHeadless.cpp
     src/headless/DiffBot.cpp src/headless/Verifier.cpp src/headless/verify_main.cpp
     ${PROJECT_SOURCE_DIR}/framework/MTRand.cpp ${PROJECT_SOURCE_DIR}/framework/Buffer.cpp
-    ${PROJECT_SOURCE_DIR}/framework/Color.cpp ${PROJECT_SOURCE_DIR}/platform/Json.cpp)
+    ${PROJECT_SOURCE_DIR}/framework/Color.cpp ${PROJECT_SOURCE_DIR}/platform/Json.cpp
+    ${PROJECT_SOURCE_DIR}/platform/ModSettings.cpp ${PROJECT_SOURCE_DIR}/platform/Text.cpp)
   target_include_directories(bejeweled_verify PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src/headless/shim
     ${CMAKE_CURRENT_SOURCE_DIR}/src/headless ${CMAKE_CURRENT_SOURCE_DIR}/src ${PROJECT_SOURCE_DIR}/framework
     ${PROJECT_SOURCE_DIR})

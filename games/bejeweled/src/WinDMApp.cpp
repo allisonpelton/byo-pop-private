@@ -9,6 +9,7 @@
 #include "GameConfig.h"
 #include "ModIndicators.h"
 #include "LiveSplitObserver.h"
+#include "UndoOrb.h"
 
 #include "WidgetManager.h"
 #include "ButtonWidget.h"
@@ -27,6 +28,7 @@
 #include "testhooks/Autoplay.h"
 #include "testhooks/CodecCheck.h"
 #include "WatchController.h"
+#include "platform/ModManager.h"
 
 #include <SDL.h>
 #include <cstdio>
@@ -94,6 +96,7 @@ WinDMApp::WinDMApp()
 	mAutoplayBot = NULL;
 	mCodecCheck = NULL;
 	mWatch = NULL; // port(variant): watching a replay (-replay, WatchController.h)
+	mNextValuesBoard = 0; // port(mods)
 	mReplayQuit = false; // port(variant)
 }
 
@@ -195,7 +198,7 @@ void WinDMApp::GetShutdownSaves(std::vector<ShutdownSave>* theSaves)
 	Buffer aBuffer;
 	mBoard->SaveGameSnapshot(&aBuffer);
 	ShutdownSave aSave;
-	aSave.mFileName = Board::GetSaveGameFileName();
+	aSave.mFileName = mBoard->GetSaveGameFileName(); // port(mods): the board's own name
 	aSave.mData.assign((const char*) aBuffer.GetDataPtr(), (size_t) aBuffer.GetDataLen());
 	theSaves->push_back(aSave);
 
@@ -203,7 +206,7 @@ void WinDMApp::GetShutdownSaves(std::vector<ShutdownSave>* theSaves)
 	aSidecar.mData = mBoard->SidecarSnapshot(aSave.mData);
 	if (!aSidecar.mData.empty())
 	{
-		aSidecar.mFileName = Board::GetSidecarFileName();
+		aSidecar.mFileName = mBoard->GetSidecarFileName();
 		theSaves->push_back(aSidecar);
 	}
 }
@@ -231,14 +234,16 @@ void WinDMApp::NewGame()
 		mHighScoreWidget = NULL;
 	}
 
+	bool canCommit = CanCommitNextGameValues(); // port(mods): asked while the outgoing board is still the board
 	if (mBoard != NULL)
 	{
 		mWidgetManager->RemoveWidget(mBoard);
 		SafeDeleteWidget(mBoard);
 	}
 
-	// port: pick up the tunables of the currently enabled mods
-	gGameConfig.Load();
+	// port: pick up the tunables of the currently enabled mods; port(mods): first the values held for the next
+	// fresh game, unless a game would be stranded
+	gGameConfig.Load(canCommit);
 	ChooseBoardRng(); // port(variant): the new board's RNG source
 
 	mBoard = new Board(this, mTimedMode);
@@ -460,6 +465,89 @@ void WinDMApp::UpdateFrames()
 	if (mCodecCheck != NULL)
 		mCodecCheck->AfterUpdate();
 	if (LiveSplitObserver::Wanted()) LiveSplitObserver::AfterUpdate(this); // port(variant): fills the LiveSplit block (features.livesplit, desktop)
+	ApplyNextGameValues(); // port(mods)
+}
+
+// port(mods): values held for the next fresh game (mod-settings.json "next") may apply only when no game would be
+// stranded (docs/MOD_MENU_DESIGN.md 6.2): not while a replay is watched, not while the board is in progress (NewGame's
+// deferred delete saves it, under its own name) and not while a save exists under the current key
+bool WinDMApp::CanCommitNextGameValues()
+{
+	if ((mWatch != NULL) && mWatch->IsWatching())
+		return false;
+	if ((mBoard != NULL) && mBoard->IsGameInProgress())
+		return false;
+	return !FileExists(Board::ScopedSaveGameFileName());
+}
+
+// port(mods): values held for the next fresh game also reach a board nobody has played yet, the one
+// TitleScreenIsFinished makes or the one left after "Continue? No" (review A9 of docs/MOD_MENU_DESIGN.md): that board
+// is made again with them. Only while values are held, so no oracle run gets here. Never with a dialog or the mod
+// menu open (the menu's no-Rand scope), the title or game-over screen up, or during a shutdown; once per board, so a
+// commit that cannot happen (a newer mod-settings.json) is not tried again every frame.
+void WinDMApp::ApplyNextGameValues()
+{
+	Platform::ModManager& aMods = Platform::ModManager::Get();
+	if ((!aMods.HasNextGameValues()) || (mBoard == NULL) || (mTitleScreen != NULL) || (mHighScoreWidget != NULL) ||
+		IsModMenuOpen() || (!mDialogMap.empty()) || mShutdown)
+		return;
+	if ((!mBoard->mIsNewGame) || (mBoard->mState == STATE_GAME_OVER) || (mBoard->mState == STATE_GAME_OVER_DONE) ||
+		(mBoard->mBoardSerial == mNextValuesBoard) || (!CanCommitNextGameValues()))
+		return;
+	mNextValuesBoard = mBoard->mBoardSerial;
+	if (aMods.CommitNextGameValues(true))
+	{
+		SDL_Log("mods: the values held for the next game apply: the untouched board is made again");
+		NewGame();
+	}
+}
+
+// port(mods): a game in progress is one the shutdown would save (Board::IsGameInProgress; a replay's board never
+// is): the menu's Restart asks first
+bool WinDMApp::HasGameInProgress()
+{
+	return (mBoard != NULL) && mBoard->IsGameInProgress();
+}
+
+// port(mods): not while the high-score name is being entered: the score would be lost
+bool WinDMApp::CanRestartNow(SexyString* theReason)
+{
+	if (GetDialog(DIALOG_RECORD_SCORE) != NULL)
+	{
+		if (theReason != NULL)
+			*theReason = GetString("MODMENU_RESTART_RECORD_SCORE", _S("Enter your name for the high score first."));
+		return false;
+	}
+	return SexyApp::CanRestartNow(theReason);
+}
+
+// port(mods): the framework's (game files, user dir, mods, render scale), -replaydir as given (without it the
+// folder follows the user dir again), and -gameseed while that seed still waits for its game
+// (Board::UsePendingSeed). Not -replay: a restart does not watch again.
+void WinDMApp::GetRestartArgs(std::vector<std::string>* theArgs)
+{
+	SexyApp::GetRestartArgs(theArgs);
+	for (const std::string& anArg : mCmdLineArgs)
+	{
+		if ((anArg.compare(0, 11, "-replaydir=") == 0) || (anArg.compare(0, 12, "--replaydir=") == 0))
+			theArgs->push_back(anArg);
+	}
+	if (gGameConfig.mPendingSeed != 0)
+		theArgs->push_back(StrFormat("-gameseed=%u", (unsigned) gGameConfig.mPendingSeed));
+}
+
+// port(mods): what the enabled mods' rules resolved to at the last GameConfig::Load, per mod: a mod's "rules" or
+// "features" ignored and a mod dropped from the merged set are errors; overridden, unknown and clamped values are
+// warnings (the same messages as mods-status.json and -dumprules)
+void WinDMApp::GetModMessages(std::vector<ModMessage>* theMessages)
+{
+	const RulesStatus& aStatus = gGameConfig.mStatus;
+	for (const RulesMessage& aMessage : aStatus.mErrors)
+		theMessages->push_back({aMessage.mModId, aMessage.mText, true});
+	for (const RulesMessage& aMessage : aStatus.mDropped)
+		theMessages->push_back({aMessage.mModId, aMessage.mText, true});
+	for (const RulesMessage& aMessage : aStatus.mWarnings)
+		theMessages->push_back({aMessage.mModId, aMessage.mText, false});
 }
 
 // port: the game's command-line test hooks (see WinDMApp.h); everything else goes to the framework
@@ -712,8 +800,9 @@ void WinDMApp::Init()
 	SexyApp::Init();
 
 	// port: no Vista AppData migration of userdata (the port's user files live in the VFS user dir).
-	// main() has applied the enabled mods; read their gameplay tunables.
-	gGameConfig.Load();
+	// main() has applied the enabled mods; read their gameplay tunables. port(mods): values held for the next fresh
+	// game apply now unless a saved game waits for "Continue?" (CanCommitNextGameValues)
+	gGameConfig.Load(CanCommitNextGameValues());
 
 	LoadProperties();
 
@@ -871,6 +960,10 @@ void WinDMApp::ButtonDepress(int theId)
 	case BUTTON_HINT:
 		mBoard->ShowHint();
 		break;
+
+	case BUTTON_UNDO: // port(variant)
+		mBoard->RequestUndo();
+		break;
 	}
 }
 
@@ -906,6 +999,13 @@ void WinDMApp::TitleScreenIsFinished()
 	MakeButton(BUTTON_QUIT, Rect(18, 405, 156, 40), -1, IMAGE_OVER_QUIT_PUSHED);
 	ButtonWidget* aHintButton = MakeButton(BUTTON_HINT, Rect(64, 303, 53, 73), IMAGE_OVER_HINT, IMAGE_OVER_HINT);
 	aHintButton->mMouseInsets = Insets(-16, -8, -16, -8);
+#ifndef BEJ_NO_VARIANTS
+	// port(variant): the red orb left of the timer bar, the undo button of a board with undo (UndoOrb.h); it draws
+	// nothing and takes no mouse on any other board
+	UndoOrb* anUndoOrb = new UndoOrb(this, BUTTON_UNDO);
+	mWidgetManager->AddWidget(anUndoOrb);
+	mButtonList.push_back(anUndoOrb);
+#endif
 
 	// SetTimedMode already starts a game; the second NewGame replaces that board (both consume Rand())
 	if ((mWatch != NULL) && mWatch->Start()) return; // port(variant): -replay=<file>: the replay instead of the two new games

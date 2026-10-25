@@ -69,7 +69,8 @@ enum ButtonId
 	BUTTON_TIMED_MODE = 12,
 	BUTTON_OPTIONS = 13,
 	BUTTON_QUIT = 14,
-	BUTTON_HINT = 15
+	BUTTON_HINT = 15,
+	BUTTON_UNDO = 16            // port(variant): the red orb on a board with undo (UndoOrb.h)
 };
 
 class WinDMApp : public SexyApp
@@ -157,35 +158,36 @@ public:
 	CodecCheck*		mCodecCheck;
 	WatchController* mWatch;                    // port(variant): -replay (NULL without)
 	bool			mReplayQuit;                // port(variant): -replayquit
+	uint32_t		mNextValuesBoard;           // port(mods): the board ApplyNextGameValues last tried (Board::mBoardSerial)
 
 public:
 	WinDMApp();                                                     // 0x4d4d82
 	virtual ~WinDMApp();                                            // 0x4d4b08 (scalar deleting dtor 0x4d4d0e)
 
-	virtual void	Shutdown();                                     // 0x4d43f9 slot 42
+	virtual void	Shutdown() override;                                     // 0x4d43f9 slot 42
 	void			NewGame();                                      // 0x4d4455
-	virtual void	LoadingThreadCompleted();                       // 0x4d4591 slot 16 (empty)
-	virtual void	URLOpenSucceeded(const std::string& theURL);    // 0x4d4592 slot 36
-	virtual MusicInterface* CreateMusicInterface();                 // 0x4d45b1 slot 18 (original takes the HWND; always BassMusicInterface, port: SDLMusicInterface)
+	virtual void	LoadingThreadCompleted() override;                       // 0x4d4591 slot 16 (empty)
+	virtual void	URLOpenSucceeded(const std::string& theURL) override;    // 0x4d4592 slot 36
+	virtual MusicInterface* CreateMusicInterface() override;                 // 0x4d45b1 slot 18 (original takes the HWND; always BassMusicInterface, port: SDLMusicInterface)
 	void			ShowRecordScoreDialog(const SexyString& theLines); // 0x4d45e3
-	virtual Dialog*	NewDialog(int theDialogId, bool isModal, const SexyString& theDialogHeader, const SexyString& theDialogLines, const SexyString& theDialogFooter, int theButtonMode); // 0x4d4653 slot 25
-	virtual void	ModalOpen();                                    // 0x4d46fc slot 79 (same body as LostFocus)
-	virtual void	LostFocus();                                    // 0x4d46fc slot 82
-	virtual void	ModalClose();                                   // 0x4d4716 slot 80 (same body as GotFocus)
-	virtual void	GotFocus();                                     // 0x4d4716 slot 81
+	virtual Dialog*	NewDialog(int theDialogId, bool isModal, const SexyString& theDialogHeader, const SexyString& theDialogLines, const SexyString& theDialogFooter, int theButtonMode) override; // 0x4d4653 slot 25
+	virtual void	ModalOpen() override;                                    // 0x4d46fc slot 79 (same body as LostFocus)
+	virtual void	LostFocus() override;                                    // 0x4d46fc slot 82
+	virtual void	ModalClose() override;                                   // 0x4d4716 slot 80 (same body as GotFocus)
+	virtual void	GotFocus() override;                                     // 0x4d4716 slot 81
 	void			SetTimedMode(bool isTimed, bool startNewGame);  // 0x4d4730
 	void			ShowHighScoreWidget();                          // 0x4d47b1
 	void			ShowOptionsDialog();                            // 0x4d483e
-	virtual void	ButtonPress(int theId);                         // 0x4d48a9 slot 1 (PlaySample(SOUND_MENUCLICK))
+	virtual void	ButtonPress(int theId) override;                         // 0x4d48a9 slot 1 (PlaySample(SOUND_MENUCLICK))
 	void			ShowHighScoreDialog();                          // 0x4d48b6
-	virtual void	UpdateFrames();                                 // 0x4d4921 slot 8 (jmp SexyApp::UpdateFrames)
-	virtual void	SetMusicVolume(double theVolume);               // 0x4d4926 slot 60 (forwards to the base)
-	virtual bool	KillDialog(int theDialogId);                    // 0x4d4a0e slot 76
-	virtual std::string GetGameSEHInfo();                           // 0x4d4ad9 slot 40 (forwards to the base)
-	virtual void	URLOpenFailed(const std::string& theURL);       // 0x4d4e97 slot 35
-	virtual bool	OpenURL(const std::string& theURL, bool shutdownOnOpen = false); // 0x4d5077 slot 37
-	virtual void	WriteToRegistry();                              // 0x4d5174 slot 23
-	virtual void	ReadFromRegistry();                             // 0x4d51bc slot 24
+	virtual void	UpdateFrames() override;                                 // 0x4d4921 slot 8 (jmp SexyApp::UpdateFrames)
+	virtual void	SetMusicVolume(double theVolume) override;               // 0x4d4926 slot 60 (forwards to the base)
+	virtual bool	KillDialog(int theDialogId) override;                    // 0x4d4a0e slot 76
+	virtual std::string GetGameSEHInfo() override;                           // 0x4d4ad9 slot 40 (forwards to the base)
+	virtual void	URLOpenFailed(const std::string& theURL) override;       // 0x4d4e97 slot 35
+	virtual bool	OpenURL(const std::string& theURL, bool shutdownOnOpen = false) override; // 0x4d5077 slot 37
+	virtual void	WriteToRegistry() override;                              // 0x4d5174 slot 23
+	virtual void	ReadFromRegistry() override;                             // 0x4d51bc slot 24
 	void			ShowRegisterDialog();                           // 0x4d5272 (registration: port shows only the 'already registered' branch)
 	void			ConfirmLoadGame();                              // 0x4d550d
 	void			ConfirmNewGame();                               // 0x4d5610
@@ -196,25 +198,36 @@ public:
 	void			ShowFullInstructionsDialog();                   // 0x4d5ac1
 	void			ShowColorDepthDialog();                         // 0x4d5bef
 	bool			LoadAppImage(int theImageId);                   // 0x4d62b8
-	virtual void	PreDisplayHook();                               // 0x4d6399 slot 26 (does not call SexyApp::PreDisplayHook)
-	virtual void	Init();                                         // 0x4d649e slot 49
-	virtual void	ButtonDepress(int theId);                       // 0x4d6a40 slot 2
+	virtual void	PreDisplayHook() override;                               // 0x4d6399 slot 26 (does not call SexyApp::PreDisplayHook)
+	virtual void	Init() override;                                         // 0x4d649e slot 49
+	virtual void	ButtonDepress(int theId) override;                       // 0x4d6a40 slot 2
 	ButtonWidget*	MakeButton(int theId, const Rect& theRect, int theOverImageId, int theDownImageId); // 0x4d6e71
 	void			TitleScreenIsFinished();                        // 0x4d6f28
-	virtual void	LoadingThreadProc();                            // 0x4d82d2 slot 22
+	virtual void	LoadingThreadProc() override;                            // 0x4d82d2 slot 22
 
 	// port (web): the page can be closed or crash without Shutdown(); see SexyAppBase::UpdateUserDataBackup.
 	// port(variant): the save and its sidecar (games/bejeweled/docs/CODE_MODS_DESIGN.md 6.5, 7.3)
-	virtual void	GetShutdownSaves(std::vector<ShutdownSave>* theSaves);
-	virtual void	WriteShutdownRegistry();
+	virtual void	GetShutdownSaves(std::vector<ShutdownSave>* theSaves) override;
+	virtual void	WriteShutdownRegistry() override;
 
 	// port(variant): set seed (games/bejeweled/docs/CODE_MODS_DESIGN.md 6.2): NewGame's choice of the new
 	// board's RNG
 	void			ChooseBoardRng();
 
+	// port(mods): the mod menu's "Restart game" and messages (docs/MOD_MENU_DESIGN.md 6, 8.2): a game in progress
+	// (Restart asks first); no restart while the high-score name is being entered; a restart keeps the replay
+	// folder and a seed still waiting for its game; the rules' errors, dropped rules and warnings per mod
+	virtual bool	HasGameInProgress() override;
+	virtual bool	CanRestartNow(SexyString* theReason) override;
+	virtual void	GetRestartArgs(std::vector<std::string>* theArgs) override;
+	virtual void	GetModMessages(std::vector<ModMessage>* theMessages) override;
+	// port(mods): values held for the next fresh game reach a board nobody has played yet (UpdateFrames)
+	void			ApplyNextGameValues();
+	bool			CanCommitNextGameValues();                      // no game would be stranded (NewGame, Init)
+
 	// port: test hooks (see mTraceHashFileName)
-	virtual void	HandleCmdLineParam(const std::string& theParamName, const std::string& theParamValue);
-	virtual bool	HandleScriptCommand(const ScriptCommand& theCommand);
+	virtual void	HandleCmdLineParam(const std::string& theParamName, const std::string& theParamValue) override;
+	virtual bool	HandleScriptCommand(const ScriptCommand& theCommand) override;
 
 	using SexyApp::ButtonPress;
 	using SexyApp::KillDialog;

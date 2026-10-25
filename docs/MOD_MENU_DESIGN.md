@@ -115,7 +115,8 @@ Taken from the design's recommendations:
   gameplay tags.
 - **The panel** (decision 4):
   - It lists the installed mods with their state, tags and errors, and has **Add mod folder**,
-    **Add mod .zip** and **Remove**.
+    **Add mod .zip** and **Remove**. One upload may hold many mods (a whole mods folder): every folder in it that
+    holds a `mod.json` or one of the game's folders is a mod, the outer one where they nest (`importMods`).
   - Before the game starts it also has **Play without mods**.
   - While the game runs and something waits, it shows "Restart to apply: ..." with **Restart game**.
   - Upload paths that would leave the mod folder are dropped, as in the page's game-file import.
@@ -635,6 +636,7 @@ Events from the game to the page:
 |     ! rules: match.minRun 2 needs 5 gem colours                  |
 | [ ] Fake Money! Deluxe 1.0   RESTART                  [^][v]     |
 |     ...                                                     (#)  |
+| ! the game's messages (the message slot, two lines)              |
 |------------------------------------------------------------------|
 | Restart to apply: HD Gems turned off.     [Restart game] [Close] |
 +------------------------------------------------------------------+
@@ -652,10 +654,16 @@ Events from the game to the page:
   - ▲ / ▼, disabled across a priority boundary;
   - "Settings", only when the mod has settings.
 
-  Seven rows are visible at once, with a scrollbar 12 px wide.
+  Six rows are visible at once, with a scrollbar 12 px wide.
 - **Banner rows** at the top:
   - "Mods are off for this run (-nomods)";
   - "mod-settings.json could not be read".
+- **The message slot**, under the content on every page (34 px, two lines, reserved even when empty). It holds the
+  page's messages: on the list, the game's messages about every mod (`GetModMessages` with no mod, such as the
+  placeholder banner); on a mod's page, the mod's errors and then its warnings, the shared ones and the game's.
+  One message may take both lines. With several, the first two get a line each, and the second ends with
+  "+N more". The rows therefore sit at the same place in every game, scrolled or not, whatever a game has to say,
+  so the menu's test scripts are shared (`tools/modmenutest`).
 - **Empty state:**
   - Native: "No mods installed. Mods are folders in <mods dir>."
   - Web: "Add mods in the Mods panel."
@@ -665,7 +673,6 @@ Events from the game to the page:
 ```
 | < Back    SETTINGS DEMO 1.0                              by ...  |
 | Description, wrapped, at most 3 lines                            |
-| ! errors and warnings                                            |
 | PLAY                                                             |
 | Shortest match       SCORES  [-]  2  [+]  ===o====   NEXT GAME   |
 | Undo                 SCORES  [x] On                              |
@@ -673,6 +680,7 @@ Events from the game to the page:
 | Board                SCORES  [<] Diamond [>]                     |
 | LOOK                                                             |
 | Praise text                  [SUPER!__________]      RESTART     |
+| ! errors and warnings (the message slot)                         |
 |------------------------------------------------------------------|
 | Gems in a line needed for a match.          (help of focused row)|
 | [Reset to defaults]                  [Restart game] [Back]       |
@@ -1046,6 +1054,18 @@ A shared `web/modpanel.js` is a step towards the survey's shell template (G6, `d
     Resolve the placeholders at their defaults first (`ModSettings::Parse`, `Analyze`, `Resolve`; add
     `platform/ModSettings.cpp` and `platform/Text.cpp` to the verifier's sources) and report setting errors in
     its `errors`.
+- **As built (M5, 4facce2, merged at e679312):**
+  - Options has the MODS button in the register slot (`mX+30+bw`, `mY+166`) while an enabled mod has settings. Extras
+    (stage 13) is not built yet, so the EXTRAS case waits for it.
+  - The next-game filter is `GameConfig::IsNextGamePath` (`GameConfigMods.cpp`). It covers every path under `rules`,
+    `tunables` and `features` except `features.livesplit`, because the LiveSplit observer's state outlives a board.
+    Those values commit at `NewGame`, and an untouched board is made again with them (modmenutest's Bejeweled
+    nextgame scripts).
+  - A mod's settings page shows the game's `GetModMessages`: the rules errors, dropped mods and warnings. That
+    closes the first known gap above.
+  - `bejeweled_verify` resolves `$setting` placeholders at their defaults (`ModSettings` `Analyze` and `Resolve` in
+    `Verifier.cpp`) and links `platform/ModSettings.cpp` and `platform/Text.cpp`. That closes the second.
+  - The four hooks say `override`: `HasGameInProgress`, `CanRestartNow`, `GetRestartArgs` and `GetModMessages`.
 
 ### 8.3 Big Money (Big Money session; built in M6, d4fe95b)
 
@@ -1080,9 +1100,9 @@ the shared look, on any screen. M7 adds:
 - **Look:** none of its own: the shared default skin, as in every game (decision 2).
 - **Main:** the relaunch lines (`TakeRelaunch`, `Platform::Relaunch`) and `-dumpmods`. Until then the menu's
   Restart game shuts BookWorm down, saved as on Quit, and does not start it again.
-- **Web:** the game links through `byopop_web_game` (`cmake/ByopopWeb.cmake`), so its page gets `modpanel.js`,
-  the C API, restarts and autostart. Today `games/bookworm/CMakeLists.txt` sets its own link options and
-  `games/bookworm/web/shell.html` has its own Mods panel.
+- **Web (done by the coordinator, with the shared page):** the game links through `byopop_web_game`
+  (`cmake/ByopopWeb.cmake`), and its page is every game's `web/shell.html` with `games/bookworm/web/page.js`. So it
+  has `modpanel.js`, the C API, restarts and autostart, and its own Mods panel is gone.
 - **Options:** a MODS button only if the game has a free slot, and only when a mod has settings.
 - **Scores:**
   - Mods that change the word list or other play data must count for the score key. Their settings use `"affectsScores": true`, or BookWorm marks those data paths the way Bejeweled marks `diff.txt`.
@@ -1105,7 +1125,7 @@ Sizes are new or changed lines.
 | M4 | Web views | coordinator, plus the Big Money session for its shell | The C API, `modpanel.js`, both shells, `cmake/ByopopWeb.cmake` | The web row of 7.3 | ~900 (the shells lose more JS than this adds) |
 | M5 | Bejeweled | Bejeweled session | The Options slot rule (MODS while an enabled mod has settings), messages, restart arguments, `CanRestartNow`, `HasGameInProgress`, next-game values with per-board names; the shared look | Oracle ×3 (the examples case's Options screens unchanged); the `modmenu_*` tests; `modmenu_nextgame`; replay verify | ~550 |
 | M6 | Big Money | Big Money session, after a trunk merge | **Built (d4fe95b):** Options MODS while an installed mod has settings, effective manifests in `ModRules`, `HasGameInProgress`, `CanRestartNow`, `GetRestartArgs`; the shared look. The scoped files (9538925), the main lines and the shell were already in | `modmenutest bigmoney`; its screenshot regression; autoplay | ~350 (built: ~80) |
-| M7 | BookWorm | BookWorm session (it runs since milestone 2) | The main lines, the web link through `byopop_web_game` and `modpanel.js`, the scores rule for word lists; the shared look | Its own tests; `modmenutest` once it covers BookWorm | ~200 |
+| M7 | BookWorm | BookWorm session (it runs since milestone 2) | The main lines (the web link through `byopop_web_game` and `modpanel.js` is done), the scores rule for word lists; the shared look | Its own tests; `modmenutest` once it covers BookWorm | ~200 |
 | M8 | Docs | coordinator and the games | `docs/MOD_MENU.md` for mod authors (settings, placeholders, levels, scores); README Mods sections (F2, `mod-settings.json`); the schema comment in `ModManager.h` | — | ~300 |
 
 **Total:** about 6,350 lines.

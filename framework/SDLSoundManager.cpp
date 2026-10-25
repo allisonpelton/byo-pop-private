@@ -1,6 +1,7 @@
 #include "SDLSoundManager.h"
 #include "../platform/Audio.h"
 #include "../platform/VFS.h"
+#include "../platform/Placeholders.h"
 
 #include <cmath>
 
@@ -166,6 +167,14 @@ bool SDLSoundManager::LoadSound(unsigned int theSfxID, const std::string& theFil
 	{
 		if (Platform::VFS::Get().Exists(stem + kSoundExtensions[i]))
 			data = Mixer::Get().LoadSound(stem + kSoundExtensions[i]);
+	}
+	if ((!data) && (Platform::Placeholders()))
+	{
+		// port: -placeholders (platform/Placeholders.h): a silent frame, so the id stays taken and plays nothing
+		data = std::make_shared<Platform::SoundData>();
+		data->mSamples.assign(2, 0.0f);
+		data->mFrames = 1;
+		Platform::NoteMissing(theFilename);
 	}
 	if (!data)
 		return false;

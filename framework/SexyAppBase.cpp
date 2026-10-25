@@ -28,6 +28,7 @@
 #include "../platform/WebPersist.h"
 #include "../platform/UserFiles.h"
 #include "../platform/Relaunch.h"
+#include "../platform/Placeholders.h"
 #include "../platform/Json.h"
 #include "../platform/Audio.h"
 
@@ -1409,6 +1410,7 @@ bool SexyAppBase::DoUpdateFrames()
 		mLoaded = true;
 		mYieldMainThread = false;
 		LoadingThreadCompleted();
+		Platform::ReportMissing();
 #ifdef __EMSCRIPTEN__
 		sexyapp_notify_loaded();
 #endif
@@ -1526,6 +1528,15 @@ int SexyAppBase::MsgBox(const std::string& theText, const std::string& theTitle,
 
 	BeginPopup();
 
+	// port: in a test run nobody can answer a message box (under rundesk it opens on the invisible desktop), so
+	// it would wait forever: the log line is the whole message, and the answer is No, Cancel or OK.
+	if (IsTestRun())
+	{
+		SDL_Log("%s: %s (a test run: not shown)", theTitle.c_str(), theText.c_str());
+		EndPopup();
+		return (aButtons == MB_YESNO) ? IDNO : (aButtons == MB_OKCANCEL) ? IDCANCEL : IDOK;
+	}
+
 #ifdef __EMSCRIPTEN__
 	SDL_Log("%s: %s", theTitle.c_str(), theText.c_str());
 
@@ -1590,14 +1601,18 @@ void SexyAppBase::Popup(const std::string& theString)
 	if (!mShutdown)
 	{
 		std::string aTitle = SexyStringToString(GetString("FATAL_ERROR", _S("FATAL ERROR")));
-		SDL_Log("%s: %s", aTitle.c_str(), theString.c_str());
+		// port: a test run shows no box (see MsgBox), only this line
+		SDL_Log("%s: %s%s", aTitle.c_str(), theString.c_str(), IsTestRun() ? " (a test run: not shown)" : "");
 
+		if (!IsTestRun())
+		{
 #ifdef __EMSCRIPTEN__
-		sexyapp_alert(Latin1ToUTF8(aTitle + "\n\n" + theString).c_str());
+			sexyapp_alert(Latin1ToUTF8(aTitle + "\n\n" + theString).c_str());
 #else
-		SDL_Window* aParent = ((mHWnd != NULL) && (SDL_GetWindowFlags(mHWnd) & SDL_WINDOW_SHOWN)) ? mHWnd : NULL;
-		SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, Latin1ToUTF8(aTitle).c_str(), Latin1ToUTF8(theString).c_str(), aParent);
+			SDL_Window* aParent = ((mHWnd != NULL) && (SDL_GetWindowFlags(mHWnd) & SDL_WINDOW_SHOWN)) ? mHWnd : NULL;
+			SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, Latin1ToUTF8(aTitle).c_str(), Latin1ToUTF8(theString).c_str(), aParent);
 #endif
+		}
 	}
 	EndPopup();
 }
@@ -3018,6 +3033,9 @@ void SexyAppBase::HandleCmdLineParam(const std::string& theParamName, const std:
 		mTraceMode = true;
 	else if (theParamName == "-renderscale")
 		mForcedRenderScale = atoi(theParamValue.c_str());
+	// port: stand-ins for missing game files (platform/Placeholders.h)
+	else if (theParamName == "-placeholders")
+		Platform::SetPlaceholders(true);
 	// port: demo recording/playback (-play, -record, -demofile, ...), -crash and -screensaver are not
 	// supported. Unknown parameters are ignored instead of ending the program, since OS launchers and
 	// web shells may add their own.
@@ -3255,9 +3273,9 @@ static std::string CmdLineName(const std::string& theArg)
 
 void SexyAppBase::GetRestartArgs(std::vector<std::string>* theArgs)
 {
-	// The same game files, user dir and mods; the session's render scale. Not -nomods (the restart is how the
-	// menu applies mods), not -seed (a test hook: the same boards again) and no other test hook.
-	static const char* const aKept[] = { "gamedir", "userdir", "modsdir", "changedir", "renderscale" };
+	// The same game files, user dir and mods; the session's render scale and placeholders. Not -nomods (the restart
+	// is how the menu applies mods), not -seed (a test hook: the same boards again) and no other test hook.
+	static const char* const aKept[] = { "gamedir", "userdir", "modsdir", "changedir", "renderscale", "placeholders" };
 	for (const std::string& anArg : mCmdLineArgs)
 	{
 		std::string aName = CmdLineName(anArg);
@@ -3272,8 +3290,22 @@ void SexyAppBase::GetRestartArgs(std::vector<std::string>* theArgs)
 	}
 }
 
-void SexyAppBase::GetModMessages(std::vector<ModMessage>* /*theMessages*/)
+void SexyAppBase::GetModMessages(std::vector<ModMessage>* theMessages)
 {
+	// port: a game that has its own messages adds these first (SexyAppBase::GetModMessages(theMessages))
+	size_t aMissing = Platform::GetMissing().size();
+	if (aMissing > 0)
+	{
+		ModMessage aMessage;
+		aMessage.mModId = "";
+		aMessage.mText = (aMissing == 1) ? "1 game file is missing; a placeholder stands in for it" :
+			std::to_string(aMissing) + " game files are missing; placeholders stand in for them";
+#ifndef __EMSCRIPTEN__
+		aMessage.mText += " (missing-files.txt in the user folder)";
+#endif
+		aMessage.mIsError = false;
+		theMessages->push_back(aMessage);
+	}
 }
 
 bool SexyAppBase::IsTestRun()
@@ -3555,6 +3587,25 @@ static_assert(sizeof(ulong) == sizeof(uint32_t), "the framework's ARGB pixels ar
 
 Sexy::DDImage* SexyAppBase::GetImage(const std::string& theFileName, bool commitBits)
 {
+	DDImage* anImage = GetOptionalImage(theFileName, commitBits);
+	if ((anImage == NULL) && (Platform::Placeholders()))
+	{
+		// port: -placeholders (platform/Placeholders.h): a stand-in at the size the game expects, so its cels and
+		// layout stay where they were; a new image each time, since every game deletes its own
+		int aWidth = 64;
+		int aHeight = 64;
+		GetPlaceholderSize(theFileName, &aWidth, &aHeight);
+		anImage = new DDImage(mDDInterface);
+		anImage->mFilePath = theFileName;
+		anImage->mPlaceholder = true;
+		GrowPlaceholder(anImage, (aWidth >= 1) ? aWidth : 64, (aHeight >= 1) ? aHeight : 64);
+		Platform::NoteMissing(theFileName);
+	}
+	return anImage;
+}
+
+Sexy::DDImage* SexyAppBase::GetOptionalImage(const std::string& theFileName, bool commitBits)
+{
 	// Platform::LoadGameImage applies the SexyApp rules (extension probing, alpha masks) plus the mod
 	// overlay and HD (@2x) variants
 	Platform::LoadedImage aLoadedImage;
@@ -3571,10 +3622,38 @@ Sexy::DDImage* SexyAppBase::GetImage(const std::string& theFileName, bool commit
 	return anImage;
 }
 
+void SexyAppBase::GetPlaceholderSize(const std::string& /*theFileName*/, int* /*theWidth*/, int* /*theHeight*/)
+{
+}
+
+void SexyAppBase::GrowPlaceholder(Image* theImage, int theWidth, int theHeight)
+{
+	// port: a magenta and black checkerboard, opaque; its squares a quarter of the shorter side, 2 to 16 px
+	MemoryImage* anImage = dynamic_cast<MemoryImage*>(theImage);
+	if ((anImage == NULL) || (!anImage->mPlaceholder))
+		return;
+	int aWidth = std::max(theWidth, anImage->mWidth);
+	int aHeight = std::max(theHeight, anImage->mHeight);
+	if ((aWidth == anImage->mWidth) && (aHeight == anImage->mHeight) && (aWidth > 0) && (aHeight > 0))
+		return;
+	int aSquare = std::min(16, std::max(2, std::min(aWidth, aHeight) / 4));
+	std::vector<ulong> aBits((size_t) aWidth * aHeight);
+	for (int y = 0; y < aHeight; y++)
+	{
+		for (int x = 0; x < aWidth; x++)
+			aBits[(size_t) y * aWidth + x] = (((x / aSquare) + (y / aSquare)) % 2 == 0) ? 0xFFFF00FF : 0xFF000000;
+	}
+	anImage->SetBits(&aBits[0], aWidth, aHeight, true);
+}
+
 Sexy::DDImage* SexyAppBase::CreateCrossfadeImage(Sexy::Image* theImage1, const Rect& theRect1, Sexy::Image* theImage2, const Rect& theRect2, double theFadeFactor)
 {
 	MemoryImage* aMemoryImage1 = dynamic_cast<MemoryImage*>(theImage1);
 	MemoryImage* aMemoryImage2 = dynamic_cast<MemoryImage*>(theImage2);
+
+	// port: a placeholder (-placeholders) grows to hold the parts asked for (see FitPlaceholder in Graphics.cpp)
+	GrowPlaceholder(theImage1, theRect1.mX + theRect1.mWidth, theRect1.mY + theRect1.mHeight);
+	GrowPlaceholder(theImage2, theRect2.mX + theRect2.mWidth, theRect2.mY + theRect2.mHeight);
 
 	if ((aMemoryImage1 == NULL) || (aMemoryImage2 == NULL))
 		return NULL;

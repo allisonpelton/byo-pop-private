@@ -59,6 +59,7 @@ public:
 	void			OnDeselect();
 	void			OnTarget(Piece* thePiece);
 	void			OnHint();
+	void			OnUndo();                       // stage 6: UNDO (Board::RequestUndo)
 	void			OnPause(bool theUserPause);
 	void			OnUnpause(bool theUserPause);
 	void			OnNewGame();

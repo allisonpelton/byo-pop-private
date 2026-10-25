@@ -20,6 +20,8 @@
 #            real restart (BYOPOP_RELAUNCH_TEST_ARGS) that rundesk waits for: the second process applies the value
 #   screens  screenshots for a person to look at (the menu over the title, a game and Options; empty; -nomods)
 # Bejeweled also:
+#   nextgame a value held for the next fresh game: it waits during a game and while a save waits for "Continue?",
+#            and "No" makes the untouched board again with it (the score key it announced); Options shows MODS
 #   pause    the menu pauses and resumes the board exactly as Options does: the same -tracehash (board, both
 #            RNGs) whether it closes by command or by Esc after keyboard use
 # And fwtest -hotkeytest (F2 through HandleEvent), and check_no_rand.py (no random draw in the menu's sources).
@@ -94,6 +96,12 @@ run() {
 }
 
 logged() { grep -q -F -- "$2" "$1/log.txt"; }
+# state_json <state JSON> <expression of s>: the expression's value as JSON
+state_json() { "$PY" -c "import json,sys; s=json.load(open(sys.argv[1])); print(json.dumps(eval(sys.argv[2])))" "$(winpath "$1")" "$2"; }
+# forgame <dir> <file>: the game's own copy (<dir>/<game>-<file>) when there is one, else the shared one. Bejeweled
+# has its own keys and clicks results (its rule values wait for the next game). The scripts are shared: a game's
+# messages have their own slot under the menu's content, so the rows are where they are in every game
+forgame() { if [ -f "$1/$GAME-$2" ]; then echo "$1/$GAME-$2"; else echo "$1/$2"; fi; }
 
 for GAME in $GAMES; do
 	[ -f "$ROOT/build/native/$GAME.exe" ] || { echo "$GAME: build/native/$GAME.exe is missing"; FAILED=$((FAILED + 1)); continue; }
@@ -143,15 +151,15 @@ for GAME in $GAMES; do
 	D="$G/keys"
 	run "$GAME" "$D" "$S/keys.txt" -
 	check "keys: mods.json" 'cmp -s "$D/user/mods.json" "$E/keys-mods.json"'
-	check "keys: mod-settings.json" 'cmp -s "$D/user/mod-settings.json" "$E/keys-mod-settings.json"'
+	check "keys: mod-settings.json" 'cmp -s "$D/user/mod-settings.json" "$(forgame "$E" keys-mod-settings.json)"'
 	check "keys: a live value applies at once" '[ "$(state_value "$D/keys-state.json" settings-demo volume applied)" = 90 ]'
 	check "keys: the menu closed (no screenshot error, no unknown command)" '! grep -q "script: line" "$D/log.txt"'
 
 	# clicks
 	D="$G/clicks"
-	run "$GAME" "$D" "$S/clicks.txt" -
+	run "$GAME" "$D" "$(forgame "$S" clicks.txt)" -
 	check "clicks: mods.json" 'cmp -s "$D/user/mods.json" "$E/clicks-mods.json"'
-	check "clicks: mod-settings.json" 'cmp -s "$D/user/mod-settings.json" "$E/clicks-mod-settings.json"'
+	check "clicks: mod-settings.json" 'cmp -s "$D/user/mod-settings.json" "$(forgame "$E" clicks-mod-settings.json)"'
 	check "clicks: nothing logged by the script" '! grep -q "script: line" "$D/log.txt"'
 
 	# restart: the first run's own restart is only logged (a test run); with BYOPOP_RELAUNCH_TEST_ARGS the game
@@ -194,6 +202,26 @@ for GAME in $GAMES; do
 		check "pause: the board stays paused while the menu is open (its state does not change)" \
 			'[ "$(awk '"'"'$1 >= 621 && $1 < 720 { print $2, $3 }'"'"' "$G/pause-menu/trace.txt" | sort -u | wc -l)" = 1 ]'
 		check "pause: the menu used by keyboard and closed by Esc traces the same" 'cmp -s "$G/pause-menu/trace.txt" "$G/pause-esc/trace.txt"'
+	fi
+
+	# nextgame (Bejeweled): a value held for the next fresh game (docs/MOD_MENU_DESIGN.md 6.2)
+	if [ -f "$S/$GAME-nextgame-held.txt" ]; then
+		D="$G/nextgame-held"
+		run "$GAME" "$D" "$S/$GAME-nextgame-held.txt" -
+		check "nextgame: a value set during a game waits (the game keeps speed 1)" \
+			'[ "$(state_value "$D/held-state.json" settings-demo speed) $(state_value "$D/held-state.json" settings-demo speed applied)" = "2 1" ]'
+		check "nextgame: the menu lists it as waiting for the next game" '[ "$(state_json "$D/held-state.json" "len(s[\"pending\"][\"nextGame\"])")" = 1 ]'
+		check "nextgame: the quit saved the game under its score key, and the value waits in \"next\"" \
+			'ls "$D/user" | grep -q "^savegame-.*\.dat$" && grep -q "\"next\"" "$D/user/mod-settings.json"'
+		D2="$G/nextgame-applied"
+		run "$GAME" "$D2" "$S/$GAME-nextgame-applied.txt" "$D/user"
+		check "nextgame: at the next start it still waits while the save waits for Continue" \
+			'[ "$(state_value "$D2/start-state.json" settings-demo speed applied)" = 1 ]'
+		check "nextgame: Continue? No: the untouched board is made again with the value" \
+			'logged "$D2" "the untouched board is made again" && [ "$(state_value "$D2/applied-state.json" settings-demo speed applied)" = 2 ]'
+		check "nextgame: nothing waits any more, and the score key is the one announced" \
+			'[ "$(state_json "$D2/applied-state.json" "len(s[\"pending\"][\"nextGame\"])")" = 0 ] && [ "$(state_json "$D2/applied-state.json" "s[\"scoreKey\"]")" = "$(state_json "$D2/start-state.json" "s[\"nextScoreKey\"]")" ] && [ "$(state_json "$D2/applied-state.json" "s[\"scoreKey\"]")" != "$(state_json "$D2/start-state.json" "s[\"scoreKey\"]")" ]'
+		check "nextgame: screenshots (Continue, the board, Options with Mods, the menu it opens)" '[ -f "$D2/shots/n04_menu_over_options.png" ]'
 	fi
 
 	# screens: for a person to look at

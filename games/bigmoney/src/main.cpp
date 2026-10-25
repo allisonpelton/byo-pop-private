@@ -174,8 +174,8 @@ int main(int argc, char** argv)
 	std::string modsDir = ArgValue(argc, argv, "modsdir");
 
 #ifdef __EMSCRIPTEN__
-	// port (web): games/bigmoney/web/shell.html mounts its own IndexedDB-backed folder, so Big Money's files
-	// never mix with Bejeweled's (/persist) on the same site
+	// port (web): its page (web/shell.html, games/bigmoney/web/page.js) mounts its own IndexedDB-backed folder, so
+	// Big Money's files never mix with Bejeweled's (/persist) on the same site
 	if (gameDir.empty())
 		gameDir = "/bmpersist/game";
 	if (userDir.empty())

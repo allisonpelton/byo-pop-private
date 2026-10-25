@@ -1,0 +1,11 @@
+{
+  "id": "winnable-puzzles",
+  "name": "Winnable Puzzles",
+  "version": "1.0",
+  "author": "byo-pop examples",
+  "description": "Puzzle mode only. Every board is built so that it can be won: clicking its groups in the reverse of the order they were built in clears it. With the Puzzle Solver on, its first answer on each board is that order. Keeps its own high scores.",
+  "affectsScores": true,
+  "features": {
+    "winnablePuzzles": true
+  }
+}

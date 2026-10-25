@@ -11,7 +11,8 @@
 # exit status 0 only without a violation:
 #   engine      tools/bjr.py's ENGINE_ABI and FIRST_ENGINE_ABI (what craft_replays.py writes) are Replay.h's
 #   rulesid     the RulesId of fixed mod.json texts, native and wasm, against the vectors of
-#               games/bejeweled/tools/rulestest (the default rules, a tunables-only mod), and alike on both: a
+#               games/bejeweled/tools/rulestest (the default rules, a tunables-only mod; a mod with settings at their
+#               defaults, and one with a wrong placeholder), and alike on both: a
 #               mod.json that is not JSON, one over 1 MB, one of more than 32 match.shapes (refused as it is
 #               parsed), and 32 shapes of 16 cells on 64 levels of 16x16 (Validate's fill minimum at its largest)
 #   unplayable  files no replay player can start (empty, garbage, a header alone; craft_replays.py synthetic:
@@ -114,6 +115,10 @@ rulesid_case() {
 }
 rulesid_case default '{}' 0e0943ce3dc5f1735c47f27c4dd38871daec36ba999f20926bb1a8ec3f5032b3
 rulesid_case example-relaxed '{"tunables": {"scoring": {"hintPenalty": 10}}}' 3af35ac3966e672b703bb6ef43acfa840ffc5763d987b4c55df9c84a04060b73
+# A mod with settings plays at their defaults: its "$setting" placeholders are resolved first (the same RulesId as
+# example-relaxed), and a placeholder naming no setting is an error that leaves its key out (the default rules)
+rulesid_case setting-default '{"settings": [{"id": "hint", "label": "Hint", "type": "int", "default": 10, "min": 0, "max": 100}], "tunables": {"scoring": {"hintPenalty": {"$setting": "hint"}}}}' 3af35ac3966e672b703bb6ef43acfa840ffc5763d987b4c55df9c84a04060b73
+rulesid_case setting-unknown '{"settings": [{"id": "hint", "label": "Hint", "type": "int", "default": 10, "min": 0, "max": 100}], "tunables": {"scoring": {"hintPenalty": {"$setting": "nosuch"}}}}' 0e0943ce3dc5f1735c47f27c4dd38871daec36ba999f20926bb1a8ec3f5032b3
 mkdir -p "$OUT/rulesid-notjson"
 printf '{"rules": ' > "$OUT/rulesid-notjson/mod.json"
 nat rulesid "$OUT/rulesid-notjson/mod.json" > "$OUT/rulesid-notjson/native.txt"
