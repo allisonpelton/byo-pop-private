@@ -25,6 +25,7 @@ void ReplayRecorder::OnSelect(Piece* thePiece) { Unreachable("OnSelect"); }
 void ReplayRecorder::OnDeselect() { Unreachable("OnDeselect"); }
 void ReplayRecorder::OnTarget(Piece* thePiece) { Unreachable("OnTarget"); }
 void ReplayRecorder::OnHint() { Unreachable("OnHint"); }
+void ReplayRecorder::OnUndo() { Unreachable("OnUndo"); }
 void ReplayRecorder::OnPause(bool theUserPause) { Unreachable("OnPause"); }
 void ReplayRecorder::OnUnpause(bool theUserPause) { Unreachable("OnUnpause"); }
 void ReplayRecorder::OnNewGame() { Unreachable("OnNewGame"); }

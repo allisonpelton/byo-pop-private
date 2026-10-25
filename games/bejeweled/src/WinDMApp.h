@@ -69,7 +69,8 @@ enum ButtonId
 	BUTTON_TIMED_MODE = 12,
 	BUTTON_OPTIONS = 13,
 	BUTTON_QUIT = 14,
-	BUTTON_HINT = 15
+	BUTTON_HINT = 15,
+	BUTTON_UNDO = 16            // port(variant): the red orb on a board with undo (UndoOrb.h)
 };
 
 class WinDMApp : public SexyApp

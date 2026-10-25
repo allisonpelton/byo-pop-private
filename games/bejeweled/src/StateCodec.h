@@ -20,8 +20,12 @@
 //             END hash it (FNV-1a 64).
 //   SNAPSHOT  a decodable copy of every field FULL hashes that can be restored (not the banner images'
 //             presence or the parked orphan count), with explicit layout and RNG presence: the round trip
-//             of 6.6 (write, restore into a scratch board, write again), and from stages 5 and 6 the base of
-//             the v2 save chunks and the undo snapshots (the V2 and UNDO flags mark their fields already).
+//             of 6.6 (write, restore into a scratch board, write again), and from stage 5 the base of the v2
+//             save chunks (the V2 flag marks their fields).
+//   UNDO      stage 6, an undo snapshot (6.7): the layout, per cell present, colour and kind (in
+//             STATE_PLAYING every gem is at rest), the UNDO-flagged fields and the RNG as SNAPSHOT has it.
+//             Decoding it into the board it came from is the undo: fresh pieces at their rest positions, the
+//             cosmetic fields zero; every other field stays as it is.
 //
 // Values are little-endian: ints as 4 bytes, bools as 1, doubles as their IEEE-754 bits; pointers to
 // pieces as cells (row * cols + col, -1 for none, rows * cols and up for a piece outside the grid: the stale
@@ -45,7 +49,8 @@ public:
 	{
 		PROFILE_FULL,
 		PROFILE_LOGIC,
-		PROFILE_SNAPSHOT
+		PROFILE_SNAPSHOT,
+		PROFILE_UNDO
 	};
 
 	enum Flags
@@ -64,9 +69,10 @@ public:
 	static std::string	Encode(Board* theBoard, int theProfile, const MTRand* theRng = NULL, bool skipDerived = false,
 							std::vector<std::pair<size_t, const char*> >* theRows = NULL);
 
-	// A SNAPSHOT into theBoard, whose layout must match. Replaces its pieces and its own RNG. False, with
-	// theError set and theBoard possibly half written, for bytes that are not a whole snapshot.
-	static bool			Decode(Board* theBoard, const std::string& theBytes, std::string* theError);
+	// A SNAPSHOT (or with theProfile PROFILE_UNDO an UNDO encoding) into theBoard, whose layout must match.
+	// Replaces its pieces and its own RNG. False, with theError set and theBoard possibly half written, for
+	// bytes that are not a whole snapshot.
+	static bool			Decode(Board* theBoard, const std::string& theBytes, std::string* theError, int theProfile = PROFILE_SNAPSHOT);
 
 	static uint64_t		Fnv1a(const std::string& theBytes);
 	static uint64_t		LogicHash(Board* theBoard, const MTRand* theRng = NULL);
@@ -75,6 +81,10 @@ public:
 	// given theBoard's rules and layout here), then written again: the bytes, the FULL encoding without its
 	// derived rows and the LOGIC hash must all match. "" when they do, else what differs.
 	static std::string	RoundTrip(Board* theBoard, Board* theScratch);
+
+	// Stage 6: theBoard's UNDO encoding decoded into theScratch (a copy of it: RoundTrip just passed) and written
+	// again: the same bytes. "" when they are, else what differs.
+	static std::string	UndoRoundTrip(Board* theBoard, Board* theScratch);
 };
 
 }

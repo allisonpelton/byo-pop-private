@@ -24,6 +24,7 @@ CodecCheck::CodecCheck(WinDMApp* theApp, const std::string& theFileName)
 	mSynthetic = NULL;
 	mLastBoard = NULL;
 	mLastState = -1;
+	mLastUndos = 0;
 	mChecked = 0;
 	mSettles = 0;
 	mFailures = 0;
@@ -49,11 +50,16 @@ void CodecCheck::AfterUpdate()
 
 	// The settles -trace prints (TraceBoard, BoardTrace.h): a watched replay's last board has none once the replay has ended
 	bool isEnded = (mApp->mWatch != NULL) && mApp->mWatch->IsEndedBoard(aBoard);
-	bool isSettle = !isEnded && (aBoard->mState == STATE_PLAYING) && ((aBoard != mLastBoard) || (mLastState != STATE_PLAYING));
+	bool isSettle = !isEnded && (aBoard->mState == STATE_PLAYING) &&
+		((aBoard != mLastBoard) || (mLastState != STATE_PLAYING) || (aBoard->mUndosUsed != mLastUndos));
 	mLastBoard = aBoard;
 	mLastState = aBoard->mState;
+	mLastUndos = aBoard->mUndosUsed;
 	mChecked++;
 	std::string aDiff = StateCodec::RoundTrip(aBoard, mScratch);
+	// Stage 6: in play, the undo snapshot a move would take now restores into the copy and reads back the same
+	if (aDiff.empty() && aBoard->mVariant.mUndo && (aBoard->mState == STATE_PLAYING))
+		aDiff = StateCodec::UndoRoundTrip(aBoard, mScratch);
 	// The save the board would make now passes the check a replay's LDSV gets (Replay::CheckSave), unless the
 	// game is over (no save then); a variant board's v2 save (stage 5) with its rules' RulesId, and its
 	// header, field sequence and chunks read back as written (Replay::ReadVariantSave)

@@ -1,0 +1,7 @@
+{
+  "id": "s6-timed",
+  "name": "Stage 6: undo in timed mode",
+  "version": "1.0",
+  "description": "Oracle fixture: undo (depth 2, no penalty) in timed mode too (inTimed), the time kept (restoreTime false, the default): the drain goes on through an undo.",
+  "rules": { "undo": { "enabled": true, "depth": 2, "inTimed": true } }
+}

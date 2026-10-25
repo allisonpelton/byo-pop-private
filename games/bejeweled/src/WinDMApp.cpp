@@ -9,6 +9,7 @@
 #include "GameConfig.h"
 #include "ModIndicators.h"
 #include "LiveSplitObserver.h"
+#include "UndoOrb.h"
 
 #include "WidgetManager.h"
 #include "ButtonWidget.h"
@@ -959,6 +960,10 @@ void WinDMApp::ButtonDepress(int theId)
 	case BUTTON_HINT:
 		mBoard->ShowHint();
 		break;
+
+	case BUTTON_UNDO: // port(variant)
+		mBoard->RequestUndo();
+		break;
 	}
 }
 
@@ -994,6 +999,13 @@ void WinDMApp::TitleScreenIsFinished()
 	MakeButton(BUTTON_QUIT, Rect(18, 405, 156, 40), -1, IMAGE_OVER_QUIT_PUSHED);
 	ButtonWidget* aHintButton = MakeButton(BUTTON_HINT, Rect(64, 303, 53, 73), IMAGE_OVER_HINT, IMAGE_OVER_HINT);
 	aHintButton->mMouseInsets = Insets(-16, -8, -16, -8);
+#ifndef BEJ_NO_VARIANTS
+	// port(variant): the red orb left of the timer bar, the undo button of a board with undo (UndoOrb.h); it draws
+	// nothing and takes no mouse on any other board
+	UndoOrb* anUndoOrb = new UndoOrb(this, BUTTON_UNDO);
+	mWidgetManager->AddWidget(anUndoOrb);
+	mButtonList.push_back(anUndoOrb);
+#endif
 
 	// SetTimedMode already starts a game; the second NewGame replaces that board (both consume Rand())
 	if ((mWatch != NULL) && mWatch->Start()) return; // port(variant): -replay=<file>: the replay instead of the two new games

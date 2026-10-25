@@ -2,8 +2,8 @@
 // 6.6); see StateCodec.h. Not part of the original game.
 //
 // The table is VisitBoard below: one call per field, in Board.h's declaration order, with its flags. The
-// same list drives the writer (FULL, LOGIC, SNAPSHOT) and the SNAPSHOT reader, so the two cannot drift
-// apart. A field added to Board needs a row here (and in the stage-0 list of testhooks/StateHash.cpp's
+// same list drives the writer (FULL, LOGIC, SNAPSHOT, UNDO) and the SNAPSHOT and UNDO reader, so the two
+// cannot drift apart. A field added to Board needs a row here (and in the stage-0 list of testhooks/StateHash.cpp's
 // LOGIC column if play reads it); its FULL bytes go after the existing ones only if the -tracehash
 // baselines are recorded again.
 
@@ -53,7 +53,8 @@ public:
 	Writer(Board* theBoard, int theProfile, const MTRand* theRng, bool skipDerived, std::vector<std::pair<size_t, const char*> >* theRows) :
 		mBoard(theBoard), mSkipDerived(skipDerived), mRng(theRng), mLen(0), mRows(theRows)
 	{
-		mProfileFlag = (theProfile == StateCodec::PROFILE_FULL) ? FULL : (theProfile == StateCodec::PROFILE_LOGIC) ? LOGIC : SNAP;
+		mProfileFlag = (theProfile == StateCodec::PROFILE_FULL) ? FULL : (theProfile == StateCodec::PROFILE_LOGIC) ? LOGIC :
+			(theProfile == StateCodec::PROFILE_UNDO) ? UNDO : SNAP;
 		// An 8x8 board's encodings are 3..7 KB: written into place without a reallocation (the difftest and
 		// -codeccheck encode after every update)
 		mOut.resize(8192);
@@ -134,7 +135,7 @@ public:
 	}
 
 	// One piece: FULL the raw savegame record; LOGIC the fields play reads; SNAPSHOT the record and the
-	// variant tail
+	// variant tail; UNDO the colour and the kind (the piece is at rest in its cell)
 	void PutPiece(Piece* thePiece)
 	{
 		if (mProfileFlag == FULL)
@@ -144,6 +145,11 @@ public:
 			PutRaw(thePiece, Piece::SAVE_SIZE);
 			PutInt(thePiece->mKind);
 			PutInt(thePiece->mKindFrame);
+		}
+		else if (mProfileFlag == UNDO)
+		{
+			PutInt(thePiece->mColor);
+			PutInt(thePiece->mKind);
 		}
 		else
 		{
@@ -238,7 +244,7 @@ public:
 	}
 
 	// FULL: the stage-0 -tracehash list's own-RNG fields, only for a board with its own RNG. LOGIC: the RNG
-	// Board::Rand draws from, whatever it is. SNAPSHOT: everything, with its presence.
+	// Board::Rand draws from, whatever it is. SNAPSHOT and UNDO: everything, with its presence.
 	void Rng(int theFlags)
 	{
 		if (!Want(theFlags, "rng"))
@@ -292,8 +298,9 @@ public:
 	bool			mOk;
 	std::string		mError;
 	std::vector<Piece*> mOrphans;
+	int				mFlag;            // the rows it reads: SNAP, or UNDO for an undo snapshot
 
-	Reader(Board* theBoard, const std::string& theBytes) : mBoard(theBoard), mBytes(theBytes), mPos(0), mOk(true) {}
+	Reader(Board* theBoard, const std::string& theBytes, int theFlag) : mBoard(theBoard), mBytes(theBytes), mPos(0), mOk(true), mFlag(theFlag) {}
 
 	void Fail(const std::string& theError)
 	{
@@ -351,9 +358,9 @@ public:
 		*theIndex = GetInt("rng");
 	}
 
-	void Int(const char* theName, int& theValue, int theFlags) { if (theFlags & SNAP) theValue = GetInt(theName); }
-	void Bool(const char* theName, bool& theValue, int theFlags) { if (theFlags & SNAP) theValue = GetBool(theName); }
-	void Double(const char* theName, double& theValue, int theFlags) { if (theFlags & SNAP) theValue = GetDouble(theName); }
+	void Int(const char* theName, int& theValue, int theFlags) { if (theFlags & mFlag) theValue = GetInt(theName); }
+	void Bool(const char* theName, bool& theValue, int theFlags) { if (theFlags & mFlag) theValue = GetBool(theName); }
+	void Double(const char* theName, double& theValue, int theFlags) { if (theFlags & mFlag) theValue = GetDouble(theName); }
 	void DerivedBool(const char*, bool, int) {}
 	void DerivedInt(const char*, int, int) {}
 	// The target board's flags say whether the snapshot has the row (RoundTrip gives it the source's)
@@ -361,7 +368,7 @@ public:
 
 	void Layout(int theFlags)
 	{
-		if ((theFlags & SNAP) == 0)
+		if ((theFlags & mFlag) == 0)
 			return;
 		int aCols = GetInt("layout");
 		int aRows = GetInt("layout");
@@ -382,9 +389,24 @@ public:
 		return aPiece;
 	}
 
+	// UNDO: a fresh piece at rest in its cell, its cosmetic fields zero (Piece())
+	Piece* NewRestingPiece(int theCol, int theRow)
+	{
+		if (!Has(8, "piece"))
+			return NULL;
+		Piece* aPiece = new Piece();
+		aPiece->mColor = GetInt("piece");
+		aPiece->mKind = GetInt("piece");
+		aPiece->mCol = theCol;
+		aPiece->mRow = theRow;
+		aPiece->mX = mBoard->GetColX(theCol);
+		aPiece->mY = mBoard->GetRowY(theRow);
+		return aPiece;
+	}
+
 	void Cells(int theFlags)
 	{
-		if ((theFlags & SNAP) == 0)
+		if ((theFlags & mFlag) == 0)
 			return;
 		for (int aRow = 0; aRow < mBoard->mRows; aRow++)
 		{
@@ -393,14 +415,14 @@ public:
 				delete mBoard->mBoard[aRow][aCol];
 				mBoard->mBoard[aRow][aCol] = NULL;
 				if (GetBool("mBoard"))
-					mBoard->mBoard[aRow][aCol] = NewPiece();
+					mBoard->mBoard[aRow][aCol] = (mFlag == UNDO) ? NewRestingPiece(aCol, aRow) : NewPiece();
 			}
 		}
 	}
 
 	void PieceRef(const char* theName, Piece*& thePiece, int theFlags)
 	{
-		if ((theFlags & SNAP) == 0)
+		if ((theFlags & mFlag) == 0)
 			return;
 		int aRef = GetInt(theName);
 		int aCells = mBoard->mRows * mBoard->mCols;
@@ -427,7 +449,7 @@ public:
 
 	void Popups(int theFlags)
 	{
-		if ((theFlags & SNAP) == 0)
+		if ((theFlags & mFlag) == 0)
 			return;
 		mBoard->mScorePopups.clear();
 		int aCount = GetInt("mScorePopups");
@@ -450,7 +472,7 @@ public:
 
 	void Rng(int theFlags)
 	{
-		if ((theFlags & SNAP) == 0)
+		if ((theFlags & mFlag) == 0)
 			return;
 		Board* b = mBoard;
 		bool hasOwn = GetBool("rng");
@@ -482,7 +504,7 @@ public:
 // The table: every Board field in declaration order (Board.h), with the encodings that take it
 template<class V> void VisitBoard(V& v, Board* b)
 {
-	v.Layout(LOGIC | SNAP | V2);
+	v.Layout(LOGIC | SNAP | V2 | UNDO);
 	v.Int("mUpdateCnt", b->mUpdateCnt, FULL | LOGIC | SNAP);   // the board tick (WidgetContainer)
 	v.Int("mLevel", b->mLevel, FULL | LOGIC | SNAP | V2 | UNDO);
 	v.Int("mDisplayLevel", b->mDisplayLevel, FULL | LOGIC | SNAP | V2 | UNDO);
@@ -582,9 +604,9 @@ std::string StateCodec::Encode(Board* theBoard, int theProfile, const MTRand* th
 	return aWriter.Bytes();
 }
 
-bool StateCodec::Decode(Board* theBoard, const std::string& theBytes, std::string* theError)
+bool StateCodec::Decode(Board* theBoard, const std::string& theBytes, std::string* theError, int theProfile)
 {
-	Reader aReader(theBoard, theBytes);
+	Reader aReader(theBoard, theBytes, (theProfile == PROFILE_UNDO) ? UNDO : SNAP);
 	VisitBoard(aReader, theBoard);
 	if (aReader.mOk && (aReader.mPos != theBytes.size()))
 		aReader.Fail(std::to_string(theBytes.size() - aReader.mPos) + " bytes after the snapshot");
@@ -658,5 +680,22 @@ std::string StateCodec::RoundTrip(Board* theBoard, Board* theScratch)
 	std::string aScratchLogic = Encode(theScratch, PROFILE_LOGIC);
 	if (aLogic != aScratchLogic)
 		return "LOGIC of the restored board differs at " + FirstDifference(aLogic, aScratchLogic, aRows);
+	return "";
+}
+
+std::string StateCodec::UndoRoundTrip(Board* theBoard, Board* theScratch)
+{
+	std::vector<std::pair<size_t, const char*> > aRows;
+	std::string anUndo = Encode(theBoard, PROFILE_UNDO, NULL, false, &aRows);
+	std::string anError;
+	// The restore replaces the scratch's pieces: nothing may point at the old ones
+	theScratch->mSelectedPiece = NULL;
+	theScratch->mSwapPiece1 = NULL;
+	theScratch->mSwapPiece2 = NULL;
+	if (!Decode(theScratch, anUndo, &anError, PROFILE_UNDO))
+		return "undo snapshot decode: " + anError;
+	std::string anAgain = Encode(theScratch, PROFILE_UNDO);
+	if (anAgain != anUndo)
+		return "undo snapshot written again differs at " + FirstDifference(anUndo, anAgain, aRows);
 	return "";
 }

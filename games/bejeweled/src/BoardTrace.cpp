@@ -11,9 +11,11 @@ using namespace Sexy;
 void BoardTracer::AfterUpdate(Board* theBoard, int theUpdate)
 {
 	int aState = (theBoard != NULL) ? theBoard->mState : -1;
-	bool settled = (aState == STATE_PLAYING) && ((theBoard != mLastBoard) || (mLastState != STATE_PLAYING));
+	int anUndos = (theBoard != NULL) ? theBoard->mUndosUsed : 0;
+	bool settled = (aState == STATE_PLAYING) && ((theBoard != mLastBoard) || (mLastState != STATE_PLAYING) || (anUndos != mLastUndos));
 	mLastBoard = theBoard;
 	mLastState = aState;
+	mLastUndos = anUndos;
 	if (settled)
 		PrintBoardTrace(theBoard, theUpdate);
 }
@@ -36,8 +38,11 @@ void Sexy::PrintBoardTrace(Board* theBoard, int theUpdate)
 	// port(variant): "user" for a seed the player chose; after the rows, which keep their place under the header
 	if (aBoard->mGameSeed != 0)
 		printf("TRACE   seed %u %s\n", (unsigned) aBoard->mGameSeed, aBoard->mUserSeeded ? "user" : "pergame");
-	// port(variant): a variant board's own state (stage 5: the moves that stood, the kept invalid moves)
-	if (aBoard->mVariant.mAny)
+	// port(variant): a variant board's own state (stage 5: the moves that stood, the kept invalid moves; stage 6:
+	// the undos taken, on a board with undo)
+	if (aBoard->mVariant.mAny && aBoard->mVariant.mUndo)
+		printf("TRACE   variant moves %d invalid %d undos %d\n", aBoard->mMoveCount, aBoard->mInvalidMoves, aBoard->mUndosUsed);
+	else if (aBoard->mVariant.mAny)
 		printf("TRACE   variant moves %d invalid %d\n", aBoard->mMoveCount, aBoard->mInvalidMoves);
 	int aMove[4];
 	for (int i = 0; aBoard->FindMove(aMove, i, true, true); i++)

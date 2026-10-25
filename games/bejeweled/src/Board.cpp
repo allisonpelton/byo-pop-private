@@ -888,6 +888,7 @@ void Board::UpdateSwap()
 			mSwapPiece1 = NULL;
 			mSwapPiece2 = NULL;
 			mState = STATE_PLAYING;
+			if (mVariant.mUndo) PopUndoSnapshot(); // port(variant): the move went back, so does its undo snapshot (BoardVariant.cpp)
 		}
 	}
 	else
