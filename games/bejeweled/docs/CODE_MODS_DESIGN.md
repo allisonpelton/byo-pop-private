@@ -2593,6 +2593,27 @@ for (;;) {
     value) and two games recorded natively and by the web build, each recording watched and verified on both:
     the overflowing tunables mod (`mods/stage4`) and the level-10000 vortex save.
 
+**`cascadehunt` (native only, `src/headless/CascadeHunt.cpp`, Verifier.h).** A bot for the original rules, built
+on the player's own code paths. Each board is made as `WatchController::CreateBoard` makes a seeded segment's
+(normal mode, `-gameseed`, ENV without instructions, points ascent 32). Moves are played as `Apply` plays SELECT
+and TARGET, with a CHECK at every settle into play. At each settle, every move (each pair once) is tried on a
+second board restored from the first's SNAPSHOT, up to the move's first settle. That gives its rounds of matches
+(`mCascadeCount - 1`), its runs (`mMoveMatchCount`), its points (`mMoveScore`), whether the level is beaten
+(score at `mLevelTargetScore`: the vortex starts only once the score shown has counted up to it), and the moves
+it leaves. The bot plays the best-scoring move that leaves at least 3. It makes no move while a beaten level's
+vortex is pending: if the vortex started between SELECT and TARGET, the swap would start in the vortex, which the
+game never does (an early version crashed that way). It counts every played move whose outcome differs from its
+trial (none so far).
+- `first` tries every first move of each opening board: the share of boards that beat level 1 in one move, and
+  the best ones.
+- `play` runs games to the game over and prints the move records as they are found.
+- `replay` plays a game again to a given move and writes two replays: the whole game, and a fresh replay that
+  holds the save made just before the move (LDSV + RNGS + LOAD, as `ReplayRecorder::OnLoad` writes one). It
+  verifies both with `VerifyReplay`.
+
+It runs at about 20,000 tried moves a second. Its replays carry the default rules with the original `diff.txt`
+values: the same RulesId as a recording of the game with no mods.
+
 ### 6.10 Leaderboard service (Cloudflare Worker + D1)
 
 **Hosting.** Workers static assets serve the engine and the shell, with `/api/*` on the same

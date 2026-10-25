@@ -744,6 +744,11 @@ std::string MessagesJson(const std::vector<RulesMessage>& theMessages)
 
 }
 
+DiffValues Verifier::OriginalDiffValues()
+{
+	return OriginalDiff();
+}
+
 std::string Verifier::RulesIdJson(const std::string& theModJson)
 {
 	if (theModJson.size() > (size_t) MAX_MOD_JSON)
