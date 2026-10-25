@@ -1,0 +1,47 @@
+{
+  "id": "s7b-levels",
+  "name": "Stage 7b: dirt on two level shapes",
+  "version": "1.0",
+  "description": "Oracle fixture: levels 1, 3 ... play s7b-dirt's mask, levels 2, 4 ... a 7x7 with a 2-layer dirt cell in the middle and one in a corner; a match is worth 5000 points, so every first match finishes the level and the next level's dirt comes back whole.",
+  "rules": {
+    "board": {
+      "levels": [
+        {
+          "cols": 8,
+          "rows": 8,
+          "mask": [
+            "#d######",
+            "########",
+            "#####3##",
+            "########",
+            "##2#####",
+            "########",
+            "######d#",
+            "########"
+          ]
+        },
+        {
+          "cols": 7,
+          "rows": 7,
+          "mask": [
+            "d######",
+            "#######",
+            "#######",
+            "###2###",
+            "#######",
+            "#######",
+            "#######"
+          ]
+        }
+      ],
+      "dirtPoints": 25
+    }
+  },
+  "tunables": {
+    "scoring": {
+      "setValues": [
+        5000
+      ]
+    }
+  }
+}

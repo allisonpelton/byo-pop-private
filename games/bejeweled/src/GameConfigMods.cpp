@@ -116,10 +116,12 @@ static void AddBuildWarnings(const GameRules& theRules, const GameFeatures& theF
 	std::vector<std::string> aKeys = theRules.VariantKeys();
 #ifndef BEJ_NO_VARIANTS
 	// Played since stage 5 (4.1): kept invalid moves and the noMoves rule; since stage 6 (4.12) undo; since stage 7
-	// (4.3) the board's shape; since stage 7c (4.16) gravity. A BEJ_NO_VARIANTS build plays no rule, nor shows look.*.
+	// (4.3) the board's shape; since stage 7c (4.16) gravity; since stage 7b (4.14) dirt. A BEJ_NO_VARIANTS build plays no
+	// rule, nor shows look.*.
 	static const char* const aPlayed[] = {"moves.allowInvalid", "moves.invalidPenalty", "moves.invalidCountsAsMove", "noMoves.normal",
 		"noMoves.timed", "undo.enabled", "undo.depth", "undo.max", "undo.penalty", "undo.inTimed", "undo.restoreTime", "undo.restoreRng",
-		"board.cols", "board.rows", "board.mask", "board.levels", "board.gravity.direction", "board.gravity.fallAccel"};
+		"board.cols", "board.rows", "board.mask", "board.levels", "board.gravity.direction", "board.gravity.fallAccel",
+		"board.dirtPoints"};
 	for (size_t i = 0; i < sizeof(aPlayed) / sizeof(aPlayed[0]); i++)
 		aKeys.erase(std::remove(aKeys.begin(), aKeys.end(), std::string(aPlayed[i])), aKeys.end());
 #else

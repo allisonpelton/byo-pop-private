@@ -272,6 +272,7 @@ public:
 	// A board.gravity rule differs from its default: the board then keeps its gravity state in saves, hashes and
 	// traces (4.16; default rules, -forcevariant included, keep the frozen forms)
 	bool							HasGravityRule() const { return (mBoard.mGravity != GRAVITY_DOWN) || (mBoard.mFallAccel != DEFAULT_FALL_ACCEL); }
+	bool							HasDirtRule() const;   // a level's mask has dirt (stage 7b, 4.14)
 
 	// The checks of 3.6 (all of them, for the merged set). False with a message and the causes of the
 	// failure: the fields the failing check reads whose values differ from their defaults (the board shape

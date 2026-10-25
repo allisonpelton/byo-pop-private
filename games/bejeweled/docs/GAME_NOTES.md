@@ -2139,6 +2139,36 @@ look keys `look.backdrop` and `look.soundPitch`, which change no play and make n
   (English defaults, mod strings override them). `look.soundPitch` sets `SoundManager::SetDefaultPitch`, which
   every new sound instance takes; music is apart.
 
+### 12.12 Dirt and diagonal falling (code mods, stage 7b)
+
+games/bejeweled/docs/CODE_MODS_DESIGN.md 4.14, as built (`BoardShape.cpp`, `BoardDrawVariant.cpp`). A mask cell `d`
+(one layer) or `2`..`9` is dirt: `CELL_DIRT` in the board's own copy of the layout, with its layers in `mDirt`.
+`board.dirtPoints` is what a layer scores, times the multiplier.
+
+- **Flags.** `mDirt` when any level's mask has dirt (`GameRules::HasDirtRule`, `mDirtRules` on the board), and
+  under `-forcevariant`. A mask with dirt is a shape, so `mShape`, `mFall` and `mDraw` are on already.
+- **Clearing.** After each run `ProcessMatches` scores, `ClearDirtNextToRun` takes one layer off each dirt cell
+  orthogonally next to the run, once per run. When the last layer goes, the cell is a gem cell for the rest of
+  the level. A new level's layout comes whole from the rules.
+- **Refill.** `UpdateClearing` calls `RefillDiagonal` in place of `RefillMasked`. It alternates two steps:
+  - segment passes: a column splits at its dirt cells, only the segment on the entry side spawns, and the
+    other segments' gaps gather under their dirt;
+  - one diagonal slide (`SlideDiagonal`): an empty cell under dirt takes a gem from a neighbouring column one
+    row nearer the entry side. When both sides have one, `mDiagonalLeftFirst` picks, and it flips after every
+    slide.
+
+  Without dirt the passes are `RefillMasked`'s, draw for draw. Under up gravity the steps mirror vertically.
+  `FallPiecesVariant` moves a slid gem over to its column once it is no further from its row than from its
+  column, so it falls straight and then glides in at 45 degrees.
+- **State.** The layers and `mDiagonalLeftFirst` are StateCodec rows (FULL, LOGIC, SNAP, V2 and UNDO) and a v2
+  save's `DIRT` chunk, only when the rules have dirt. The save's mask is the current layout, so a cleared cell
+  is a gem cell there (`BoardLayout::FitsSaveMask`). `-trace` prints a dirt cell as `-1 - layers` and adds
+  `dirt <layers> left|right` to the variant line. Engine ABI 4: an earlier engine's replays of variant rules no
+  longer play.
+- **Art.** The level's checker tile is colorized brown, with a crack line per layer left (`DrawDirt`, under the
+  gems). A cleared cell sends a puff of dust (`DrawDirtDust`, over the gems; cosmetic, not saved). A mod's
+  `images/dirttile` replaces the tile.
+
 ---
 
 ## 13. Naming reconciliation (analyst names → chosen names)

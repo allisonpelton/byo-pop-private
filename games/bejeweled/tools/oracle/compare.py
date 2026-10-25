@@ -377,6 +377,9 @@ def save_state(path):
                 elif tag == b"GRAV":
                     flips, no_flip = struct.unpack_from("<iB", payload, 0)
                     chunks.append("GRAV flips %d%s" % (flips, ", no flip" if no_flip else ""))
+                elif tag == b"DIRT":
+                    layers = payload[1:]
+                    chunks.append("DIRT %d layers on %d cells, next %s" % (sum(layers), sum(1 for v in layers if v), "left" if payload[0] else "right"))
                 else:
                     chunks.append(tag.decode("latin-1").strip())
                 if tag == b"END ":
@@ -1775,18 +1778,19 @@ def variant_settles(stdout):
             settles.append({"update": int(m.group(1)), "mode": m.group(2), "level": int(m.group(3)), "score": int(m.group(4)),
                             "tick": int(m.group(5)),
                             "grid": [], "seed": None, "moves": None, "invalid": None, "undos": 0, "gravity": None,
-                            "flips": 0, "found": 0})
+                            "flips": 0, "dirt": None, "side": None, "found": 0})
         elif settles and line.startswith("TRACE   row "):
             settles[-1]["grid"].append([int(v) for v in line.split(":", 1)[1].split()])
         elif settles and line.startswith("TRACE   seed "):
             settles[-1]["seed"] = line[len("TRACE   seed "):]
         elif settles and line.startswith(VARIANT_LINE):
-            m = re.match(r"TRACE   variant moves (-?\d+) invalid (-?\d+)(?: undos (\d+))?(?: gravity (up|down) flips (\d+))?$",
-                         line)
+            m = re.match(r"TRACE   variant moves (-?\d+) invalid (-?\d+)(?: undos (\d+))?(?: gravity (up|down) flips (\d+))?"
+                         r"(?: dirt (\d+) (left|right))?$", line)
             if m:
                 settles[-1]["moves"], settles[-1]["invalid"] = int(m.group(1)), int(m.group(2))
                 settles[-1]["undos"] = int(m.group(3) or 0)
                 settles[-1]["gravity"], settles[-1]["flips"] = m.group(4), int(m.group(5) or 0)
+                settles[-1]["dirt"], settles[-1]["side"] = (int(m.group(6)), m.group(7)) if m.group(6) else (None, None)
         elif settles and line.startswith("TRACE   move "):
             settles[-1]["found"] += 1
     return settles
@@ -1795,7 +1799,8 @@ def variant_settles(stdout):
 def shapes_check(r, settles, spec, label, notes):
     """Stage 7, "shapes=<cols>x<rows>:<holes>,...": the shapes of board.levels in order (one for a board of one
     shape). Every settle's grid has the size of its level's shape ((HUD level - 1) % shapes) and that many holes
-    (-1 cells: a settled board has a gem in every playable cell), the same cells at every settle of that shape"""
+    (-1 cells: a settled board has a gem in every playable cell; a dirt cell, stage 7b, is -1 - its layers), the same
+    cells at every settle of that shape"""
     shapes = []
     for part in spec.split(","):
         m = re.match(r"(\d+)x(\d+):(\d+)$", part)
@@ -1812,7 +1817,7 @@ def shapes_check(r, settles, spec, label, notes):
             r.fail("%s: the settle of update %d (level %d) is %dx%d, its shape %d is %dx%d" %
                    (label, s["update"], s["level"], len(grid[0]) if grid else 0, len(grid), i, cols, rows))
             return
-        holes = frozenset((c, y) for y in range(rows) for c in range(cols) if grid[y][c] < 0)
+        holes = frozenset((c, y) for y in range(rows) for c in range(cols) if grid[y][c] == -1)
         if len(holes) != count:
             r.fail("%s: the settle of update %d (level %d) has %d holes, its shape %d %d" % (label, s["update"], s["level"], len(holes), i, count))
             return
@@ -1824,6 +1829,59 @@ def shapes_check(r, settles, spec, label, notes):
     notes.append("shapes " + ", ".join("%dx%d with %d holes: %d settles" % (shapes[i] + (seen.get(i, 0),)) for i in range(len(shapes))))
 
 
+def dirt_layers(grid):
+    """The dirt layers of a settle's grid (stage 7b: a dirt cell prints as -1 - its layers), {(col, row): layers}"""
+    return {(c, y): -1 - v for y, row in enumerate(grid) for c, v in enumerate(row) if v < -1}
+
+
+def dirt_check(r, settles, spec, label, notes):
+    """Stage 7b, "dirt=<cells>:<layers>,...": the dirt of board.levels' shapes in order (one for a board of one shape),
+    its cells and layers in all. Every settle has at most that, on cells its shape's first settle had, and the
+    variant line's total; a settle after a level change (the board's first, unless a resumed game's) has all of it;
+    from one settle to the next on a level, no cell gains a layer but by an undo (whose board variant_check compares)"""
+    shapes = []
+    for part in spec.split(","):
+        m = re.match(r"(\d+):(\d+)$", part)
+        if not m:
+            r.fail("%s: dirt=%s: not <cells>:<layers>,..." % (label, spec))
+            return
+        shapes.append((int(m.group(1)), int(m.group(2))))
+    cells_of, cleared, cells_cleared, sides = {}, 0, 0, {"left": 0, "right": 0}
+    prev = None
+    for s in settles:
+        i = (s["level"] - 1) % len(shapes)
+        want_cells, want_layers = shapes[i]
+        layers = dirt_layers(s["grid"])
+        total = sum(layers.values())
+        if s["dirt"] != total:
+            r.fail("%s: the settle of update %d says dirt %s, its grid has %d layers" % (label, s["update"], s["dirt"], total))
+            return
+        sides[s["side"]] += 1
+        if len(layers) > want_cells or total > want_layers:
+            r.fail("%s: the settle of update %d has %d dirt cells with %d layers, its shape %d %d with %d" %
+                   (label, s["update"], len(layers), total, i, want_cells, want_layers))
+            return
+        start = cells_of.setdefault(i, set(layers))
+        if not set(layers) <= start:
+            r.fail("%s: the settle of update %d has dirt on cells shape %d had none: %s" % (label, s["update"], i, sorted(set(layers) - start)[:6]))
+            return
+        same_level = prev is not None and s["tick"] > prev["tick"] and s["mode"] == prev["mode"] and s["level"] == prev["level"]
+        if prev is not None and not same_level and (len(layers), total) != (want_cells, want_layers):
+            r.fail("%s: the settle of update %d starts level %d with %d dirt cells, %d layers; its shape %d has %d, %d" %
+                   (label, s["update"], s["level"], len(layers), total, i, want_cells, want_layers))
+            return
+        if same_level and s["undos"] == prev["undos"]:
+            before = dirt_layers(prev["grid"])
+            gained = [cell for cell, n in layers.items() if n > before.get(cell, 0)]
+            if gained:
+                r.fail("%s: from the settle of update %d to update %d dirt gained layers at %s" % (label, prev["update"], s["update"], gained[:6]))
+                return
+            cleared += sum(before.values()) - total
+            cells_cleared += len(before) - len(layers)
+        prev = s
+    notes.append("dirt: %d layers cleared, %d cells; next slide left %d, right %d" % (cleared, cells_cleared, sides["left"], sides["right"]))
+
+
 def variant_fact(stdout):
     """The "variant" fact (stage 5), None for a run without variant lines: the last variant line's counts (with
     its gravity, stage 7c) and how many settles had no move (a noMoves "continue" board)"""
@@ -1832,8 +1890,9 @@ def variant_fact(stdout):
     if not last:
         return None
     gravity = (" gravity %s flips %d" % (last[-1]["gravity"], last[-1]["flips"])) if last[-1]["gravity"] else ""
-    return "last moves %d invalid %d%s, %d of %d settles without a move" % (
-        last[-1]["moves"], last[-1]["invalid"], gravity, sum(1 for s in settles if s["found"] == 0), len(settles))
+    dirt = (" dirt %d %s" % (last[-1]["dirt"], last[-1]["side"])) if last[-1]["dirt"] is not None else ""
+    return "last moves %d invalid %d%s%s, %d of %d settles without a move" % (
+        last[-1]["moves"], last[-1]["invalid"], gravity, dirt, sum(1 for s in settles if s["found"] == 0), len(settles))
 
 
 def swapped_cells(a, b):
@@ -2050,6 +2109,8 @@ def variant_check(r, cand, run, flags, label):
             notes.append("v2 saves of rules %s: %s" % (rules, ", ".join(saves)))
     if "shapes" in f:
         shapes_check(r, settles, f["shapes"], label, notes)
+    if "dirt" in f:
+        dirt_check(r, settles, f["dirt"], label, notes)
     if "boards" in f:
         seed_check(r, cand, run, flags, "seeds")
     if r.failures == before:

@@ -1120,6 +1120,58 @@ Added from the user's answer to Q6 (2026-10-18): gems fall through holes, and bo
   dirt in the top row, multi-layer dirt, two groups next to one dirt cell, dirt + holes + gold, a
   save mid-cascade, and replay verification.
 
+**As built (stage 7b, engine ABI 4).** Where it differs from the plan above:
+
+- **Layers left live in `mLayout`.** A dirt cell is `CELL_DIRT` with `mDirt` layers; when the last one
+  goes, the cell becomes `CELL_GEM` for the rest of the level (`BoardLayout::ClearDirtLayer`). A new
+  level takes a fresh layout from the rules, so its dirt is whole again. A timed board's fall-out
+  refills the same level, so the dirt left stays.
+- **A group is a scored run.** `ClearDirtNextToRun` runs after each run `ProcessMatches` scores. BJ1
+  scores an L or a T as two runs, so a dirt cell next to both of them loses two layers. Special-gem
+  blasts take layers once specials exist (stages 9 and 10). Gold (4.9) comes with its own stage.
+- **Diagonal pass (`SlideDiagonal`).** The rows are scanned from the far side back (bottom to top
+  under down), columns left to right. The first empty gem cell under dirt takes a gem from the
+  neighbouring column one row nearer the entry side. Any gem there counts: the segment passes before
+  have already brought the gems to rest. `mDiagonalLeftFirst` picks the side when both have a gem and
+  flips after every slide. One slide, then the segment passes again, until no slide is possible. A
+  cell under dirt with no gem beside it stays empty; the oracle's fixtures leave none.
+- **No `mVelX`.** `FallPiecesVariant` also settles x toward the gem's column, at its fall speed. It
+  does so only while the gem is no further from its row than from its column. So a slid gem first
+  falls straight, then glides in at 45 degrees under the dirt instead of across it. A gem already
+  over its column moves exactly as before.
+- **Gravity.** Under up (4.16), everything mirrors vertically and the columns keep their order. The
+  verifier's mirrortest has a dirt board (fill, refill and whole games).
+- **Without dirt**, `RefillDiagonal` equals `RefillMasked` draw for draw. `-forcevariant` runs it on
+  every board.
+- **Save.** `DIRT` is a chunk: `u8 leftFirst`, then `u8 layers` for each cell, row-major. The v2
+  header's mask is the current layout, so a cleared dirt cell is a gem cell there.
+  `BoardLayout::FitsSaveMask` checks a save against the level's mask: a dirt cell may go either way,
+  and it has layers exactly where the save's mask has no gem cell. If the chunk is absent, layers
+  follow the save's mask (all of the cell's or none). `ApplyDirtLayers` puts them on the board before
+  `LoadGame` reads the cells.
+- **StateCodec.** The rows `mDirt` (the layers) and `mDiagonalLeftFirst` are in FULL, LOGIC, SNAP, V2
+  and UNDO, only when the rules have dirt (`mDirtRules`, like the gravity rows). So an undo brings the
+  dirt back.
+- **Trace.** A dirt cell prints as `-1 - layers` (-2..-10); holes and empty cells stay -1. The
+  variant line adds `dirt <layers left> left|right`. compare.py's `dirt=<cells>:<layers>,...`
+  (`dirt_check`) checks every settle:
+  - at most the shape's dirt, and on its cells only;
+  - the variant line's total;
+  - all of it after a level change;
+  - no layer gained between two settles of a level, except by an undo.
+- **Art.** The level's checker tile A or B is colorized brown (150, 100, 60), once per level. One
+  crack polyline is drawn per layer left. A cleared cell sends twelve tan grains outward for 40
+  ticks; this dust is cosmetic and not saved. A mod's `images/dirttile` replaces the tile.
+- **Oracle** (`mods/stage7b`, the cases `dirt_*`):
+  - the bot to game over and in timed mode;
+  - under Twilight's gravity;
+  - on two level shapes;
+  - a scripted game (`-gameseed=4242`): A clears (6,6) and slides a gem under (5,2). It is saved in
+    its cascade, resumed (B takes a layer off (2,4)) and undone;
+  - recordings and their playbacks.
+
+  Stage 7's `shape_dirt_diamond_auto_timed` now plays its two dirt cells.
+
 ### 4.15 Auto LiveSplit (`features.livesplit`)
 
 Added from the user's decision (2026-10-18): "Use a published autosplitter script (ASL) reading a tagged

@@ -129,6 +129,18 @@ public:
 	// default rules encodes as before
 	void GravityInt(const char* theName, int& theValue, int theFlags) { if (mBoard->mRules.HasGravityRule()) Int(theName, theValue, theFlags); }
 	void GravityBool(const char* theName, bool& theValue, int theFlags) { if (mBoard->mRules.HasGravityRule()) Bool(theName, theValue, theFlags); }
+	// A dirt rule set's rows (stage 7b), read from the rules as the gravity rows: the layers left on each cell (0 off dirt)
+	void DirtBool(const char* theName, bool& theValue, int theFlags) { if (mBoard->mDirtRules) Bool(theName, theValue, theFlags); }
+	void DirtLayers(int theFlags)
+	{
+		if (!mBoard->mDirtRules || !Want(theFlags, "mDirt"))
+			return;
+		for (int aRow = 0; aRow < mBoard->mRows; aRow++)
+		{
+			for (int aCol = 0; aCol < mBoard->mCols; aCol++)
+				PutByte(mBoard->mLayout.IsDirt(aCol, aRow) ? mBoard->mLayout.mDirt[aRow][aCol] : 0);
+		}
+	}
 
 	void Layout(int theFlags)
 	{
@@ -371,6 +383,25 @@ public:
 	void VariantInt(const char* theName, int& theValue, int theFlags) { if (mBoard->mVariant.mAny) Int(theName, theValue, theFlags); }
 	void GravityInt(const char* theName, int& theValue, int theFlags) { if (mBoard->mRules.HasGravityRule()) Int(theName, theValue, theFlags); }
 	void GravityBool(const char* theName, bool& theValue, int theFlags) { if (mBoard->mRules.HasGravityRule()) Bool(theName, theValue, theFlags); }
+	void DirtBool(const char* theName, bool& theValue, int theFlags) { if (mBoard->mDirtRules) Bool(theName, theValue, theFlags); }
+	// After the cells: a cell with layers holds no gem
+	void DirtLayers(int theFlags)
+	{
+		if (!mBoard->mDirtRules || ((theFlags & mFlag) == 0))
+			return;
+		std::vector<uint8_t> aLayers;
+		for (int i = 0; i < mBoard->mRows * mBoard->mCols; i++)
+		{
+			if (!Has(1, "mDirt"))
+				return;
+			aLayers.push_back((uint8_t) mBytes[mPos++]);
+			if ((aLayers.back() > 0) && (mBoard->mBoard[i / mBoard->mCols][i % mBoard->mCols] != NULL))
+				Fail("a gem on the dirt at cell (" + std::to_string(i % mBoard->mCols) + "," + std::to_string(i / mBoard->mCols) + ")");
+		}
+		std::string aWhy;
+		if (mOk && !mBoard->ApplyDirtLayers(aLayers, &aWhy))
+			Fail(aWhy);
+	}
 
 	void Layout(int theFlags)
 	{
@@ -599,7 +630,7 @@ template<class V> void VisitBoard(V& v, Board* b)
 	v.VariantInt("mInvalidMoves", b->mInvalidMoves, LOGIC | SNAP | V2 | UNDO);
 	v.VariantInt("mUndosUsed", b->mUndosUsed, LOGIC | SNAP | V2);
 	// Stage 7, the level's shape (index into board.levels; the v2 save's header holds it). The layout itself follows
-	// from the rules and this index (not in the table, like mLayout and mPendingLayout, which equals mLayout between
+	// from the rules, this index and the dirt layers below (not in the table, like mLayout and mPendingLayout, which equals mLayout between
 	// ticks); not LOGIC, which has mLevel and the layout's size (so the replays' hashes of stage 6 still hold), nor
 	// UNDO, since an undo never crosses a level
 	v.VariantInt("mLevelShape", b->mLevelShape, SNAP | V2);
@@ -607,6 +638,11 @@ template<class V> void VisitBoard(V& v, Board* b)
 	// rule set plays as the original; UNDO, since an undo restores the direction "alternate" points in
 	v.GravityInt("mGravityFlips", b->mGravityFlips, FULL | LOGIC | SNAP | V2 | UNDO);
 	v.GravityBool("mGravityNoFlip", b->mGravityNoFlip, FULL | LOGIC | SNAP | V2 | UNDO);
+	// Stage 7b, dirt (the v2 save's DIRT chunk), only when the rules have dirt: the layers left, which make mLayout
+	// differ from the level's mask, and the side the next diagonal slide tries first. FULL too, since no such rule set
+	// plays as the original; UNDO, since an undo brings the dirt back
+	v.DirtLayers(FULL | LOGIC | SNAP | V2 | UNDO);
+	v.DirtBool("mDiagonalLeftFirst", b->mDiagonalLeftFirst, FULL | LOGIC | SNAP | V2 | UNDO);
 }
 
 }
@@ -669,6 +705,7 @@ std::string StateCodec::RoundTrip(Board* theBoard, Board* theScratch)
 #endif
 	theScratch->mLayout = theBoard->mLayout;
 	theScratch->mPendingLayout = theBoard->mPendingLayout;
+	theScratch->mDirtRules = theBoard->mDirtRules;
 	theScratch->mCols = theBoard->mCols;
 	theScratch->mRows = theBoard->mRows;
 	// The pieces outside the grid the last restore made (Decode replaces the grid's itself)

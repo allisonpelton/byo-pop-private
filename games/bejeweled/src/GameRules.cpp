@@ -2208,6 +2208,16 @@ bool GameRules::PlaysAlikeInEveryEngine() const
 	return !HasVariantRules() && !ScoringTunablesChanged();
 }
 
+bool GameRules::HasDirtRule() const
+{
+	for (int aLevel = 0; aLevel < ShapeCount(); aLevel++)
+	{
+		if (LayoutForLevel(aLevel).HasDirt())
+			return true;
+	}
+	return false;
+}
+
 int GameRules::ShapeCount() const
 {
 	return mBoard.mLevels.empty() ? 1 : (int) mBoard.mLevels.size();

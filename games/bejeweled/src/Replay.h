@@ -48,11 +48,12 @@ enum
 	// Bumped whenever variant simulation output changes (6.4). 2: stage 5, kept invalid moves, the noMoves rule,
 	// the v2 save and the variant boards' MOVE fields in the LOGIC hash. 3: stage 7, the board shape rules (sizes,
 	// masks, level shapes), which earlier engines played on the original 8x8, and the displayed score's fast roll
-	// with a mod's scoring tunables (Board::RollScoreFast). The original rules are frozen, so a replay of them (no
+	// with a mod's scoring tunables (Board::RollScoreFast). 4: stage 7b, dirt cells (board.mask "d"), which earlier
+	// engines played as holes, and their diagonal slides. The original rules are frozen, so a replay of them (no
 	// variant rule, no scoring tunable changed: GameRules::PlaysAlikeInEveryEngine) from an earlier engine still
 	// plays (CheckPlayable). games/bejeweled/tools/bjr.py repeats both
 	// values (the verifier's tests check that they agree)
-	ENGINE_ABI = 3,
+	ENGINE_ABI = 4,
 	FIRST_ENGINE_ABI = 1,
 	MT_WORDS = 624,
 	RULES_ID_SIZE = 32,
@@ -272,7 +273,10 @@ bool				CheckSave(const std::string& theSave, int theCols, int theRows, std::str
 //     RNGS  the RNG the game goes on with, as the replay's RNGS record (u32 seed, 0: the global stream; u8
 //           userSeeded, u8 ranked, 624 x u32 mt, i32 mti)
 //     MOVE  i32 moves, i32 invalidMoves, i32 undosUsed
-//   Later stages add KIND, GOLD, GTIM (7.2), DIRT and GRAV.
+//     GRAV  i32 flips, u8 noFlip (stage 7c)
+//     DIRT  u8 leftFirst, u8 layers[cols * rows] (stage 7b, row-major: a dirt cell's layers left, 0 elsewhere; a
+//           cell with layers is no gem cell of the mask, and one whose last layer went is)
+//   Later stages add KIND, GOLD and GTIM (7.2).
 // A v1 save (version 1) has the v1 field sequence right after its version.
 enum
 {
@@ -296,11 +300,16 @@ struct VariantSave
 	bool			mHasGravity = false;        // GRAV (stage 7c): written when the rules set a gravity rule; absent reads as 0
 	int32_t			mGravityFlips = 0;
 	bool			mGravityNoFlip = false;
+	bool			mHasDirt = false;           // DIRT (stage 7b): written when the rules have dirt; absent, a dirt cell of the
+	                                            // level's mask has all its layers where the save's mask has no gem cell, else none
+	bool			mDiagonalLeftFirst = true;
+	std::vector<uint8_t> mDirtLayers;           // mCols * mRows, row-major
 	size_t			mBodyStart = 0;             // ReadVariantSave: where the v1 field sequence starts (mTimedMode)
 	size_t			mBodyEnd = 0;               // and where the chunks start
 };
 
-// The bytes after the version up to the v1 field sequence, and the chunks after it (RNGS, MOVE, GRAV when mHasGravity, END)
+// The bytes after the version up to the v1 field sequence, and the chunks after it (RNGS, MOVE, GRAV when mHasGravity,
+// DIRT when mHasDirt, END)
 std::string			VariantSaveHeader(const VariantSave& theSave);
 std::string			VariantSaveChunks(const VariantSave& theSave);
 

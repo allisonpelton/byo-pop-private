@@ -1,0 +1,13 @@
+# Stage 7b, run with -gameseed=4242 and mods/stage7b/undo (s7b-dirt with undo): A clears (6,6) and takes a layer off
+# (5,2); z brings both back with the board before A, and A again clears them the same way
+300 click 320 398
+# A (4,5)->(3,5)
+560 click 431 295
+561 click 380 295
+800 char z
+850 screenshot shots/u01_undone.png
+# A again
+860 click 431 295
+861 click 380 295
+1100 screenshot shots/u02_again.png
+1150 quit

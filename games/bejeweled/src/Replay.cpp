@@ -36,6 +36,7 @@ const uint32_t TAG_MOVE = Replay::Tag("MOVE");
 const size_t MOVE_SIZE = 3 * 4;
 const uint32_t TAG_GRAV = Replay::Tag("GRAV");
 const size_t GRAV_SIZE = 4 + 1;
+const uint32_t TAG_DIRT = Replay::Tag("DIRT"); // u8 leftFirst, then a byte a cell
 const size_t SAVE_HEADER_FIXED = 4 + Replay::RULES_ID_SIZE + 2 + 2 + 4; // the version up to the mask
 
 void PutU8(std::string* theOut, int theValue)
@@ -398,6 +399,14 @@ std::string Replay::VariantSaveChunks(const VariantSave& theSave)
 		PutU8(&aGravity, theSave.mGravityNoFlip ? 1 : 0);
 		PutRecord(&aChunks, TAG_GRAV, aGravity);
 	}
+	if (theSave.mHasDirt)
+	{
+		std::string aDirt;
+		PutU8(&aDirt, theSave.mDiagonalLeftFirst ? 1 : 0);
+		for (size_t i = 0; i < theSave.mDirtLayers.size(); i++)
+			PutU8(&aDirt, theSave.mDirtLayers[i]);
+		PutRecord(&aChunks, TAG_DIRT, aDirt);
+	}
 	PutRecord(&aChunks, TAG_END, "");
 	return aChunks;
 }
@@ -548,6 +557,34 @@ bool Replay::ReadVariantSave(const std::string& theSave, VariantSave* theOut, st
 			s.mGravityNoFlip = (aNoFlip != 0);
 			s.mHasGravity = true;
 			hasGravity = true;
+		}
+		else if (aTag == TAG_DIRT)
+		{
+			size_t aCells = s.mPlayable.size();
+			if (s.mHasDirt || (aLen != 1 + aCells))
+			{
+				anErr = s.mHasDirt ? std::string("DIRT twice") : "DIRT: " + std::to_string(aLen) + " bytes, not " + std::to_string(1 + aCells);
+				return false;
+			}
+			uint32_t aLeftFirst = aReader.U8();
+			if (aLeftFirst > 1)
+			{
+				anErr = "DIRT: leftFirst " + std::to_string(aLeftFirst);
+				return false;
+			}
+			s.mDiagonalLeftFirst = (aLeftFirst != 0);
+			for (size_t i = 0; i < aCells; i++)
+			{
+				uint8_t aLayers = (uint8_t) aReader.U8();
+				if ((aLayers > BoardLayout::MAX_DIRT_LAYERS) || ((aLayers > 0) && s.mPlayable[i]))
+				{
+					anErr = "DIRT: " + std::to_string(aLayers) + " layers at cell (" + std::to_string(i % s.mCols) + "," +
+						std::to_string(i / s.mCols) + ")" + (s.mPlayable[i] ? ", a gem cell" : "");
+					return false;
+				}
+				s.mDirtLayers.push_back(aLayers);
+			}
+			s.mHasDirt = true;
 		}
 		// any other chunk: a later stage's, skipped
 	}
@@ -713,14 +750,9 @@ bool Replay::CheckSave(const std::string& theSave, int theCols, int theRows, std
 					std::to_string(theShapes->size());
 			else
 			{
+				// a dirt cell may have lost its last layer (stage 7b)
 				const BoardLayout& aLayout = (*theShapes)[aVariant.mLevelShape];
-				std::vector<bool> aPlayable;
-				for (int aRow = 0; aRow < aLayout.mRows; aRow++)
-				{
-					for (int aCol = 0; aCol < aLayout.mCols; aCol++)
-						aPlayable.push_back(aLayout.IsPlayable(aCol, aRow));
-				}
-				if ((aVariant.mCols != aLayout.mCols) || (aVariant.mRows != aLayout.mRows) || (aVariant.mPlayable != aPlayable))
+				if (!aLayout.FitsSaveMask(aVariant.mCols, aVariant.mRows, aVariant.mPlayable, aVariant.mHasDirt ? &aVariant.mDirtLayers : NULL))
 					c.mError = "a v2 save of a " + std::to_string(aVariant.mCols) + "x" + std::to_string(aVariant.mRows) +
 						" board that is not its level shape " + std::to_string(aVariant.mLevelShape);
 				aCols = aLayout.mCols;
