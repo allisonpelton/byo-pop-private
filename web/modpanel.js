@@ -261,7 +261,9 @@ Module["byopop"] = (function () {
     this.pickZip.multiple = true;
     [this.pickFolder, this.pickZip].forEach(function (input) { input.hidden = true; input.tabIndex = -1; });
     this.addFolderButton = button("Add mod folder", function () { self.pickFolder.click(); });
+    this.addFolderButton.title = "A mod's folder, or a folder of mods: every folder in it with a mod.json is added";
     this.addZipButton = button("Add mod .zip", function () { self.pickZip.click(); });
+    this.addZipButton.title = "A mod's .zip, or a .zip of several mods";
     pickers.appendChild(this.addFolderButton);
     pickers.appendChild(this.addZipButton);
     pickers.appendChild(this.pickFolder);
@@ -289,7 +291,7 @@ Module["byopop"] = (function () {
     this.pickFolder.addEventListener("change", function (ev) {
       var entries = filesFromInput(ev.target.files);
       ev.target.value = "";
-      self.add(function () { return self.importMod(entries, ""); });
+      self.add(function () { return self.importMods(entries, ""); });
     });
     this.pickZip.addEventListener("change", function (ev) {
       var files = Array.prototype.slice.call(ev.target.files);
@@ -297,8 +299,8 @@ Module["byopop"] = (function () {
       self.add(function () {
         return files.reduce(function (p, f) {
           return p.then(function (done) {
-            return filesFromZip(f).then(function (e) { return self.importMod(e, f.name.replace(/\.zip$/i, "")); })
-              .then(function (r) { return done.concat(r ? [r] : []); });
+            return filesFromZip(f).then(function (e) { return self.importMods(e, f.name.replace(/\.zip$/i, "")); })
+              .then(function (r) { return done.concat(r); });
           });
         }, Promise.resolve([]));
       });
@@ -412,7 +414,7 @@ Module["byopop"] = (function () {
     this.list.textContent = "";
     this.addFolderButton.disabled = this.addZipButton.disabled = this.dead;
     if (!st.mods.length) {
-      var empty = el("li", "mp-empty", "No mods installed. Add a mod folder or a .zip of one.");
+      var empty = el("li", "mp-empty", "No mods installed. Add a mod's folder, a folder of mods, or a .zip of either.");
       this.list.appendChild(empty);
     }
     st.mods.forEach(function (m) {
@@ -508,8 +510,7 @@ Module["byopop"] = (function () {
     this.render();
   };
 
-  // Runs an import (a function returning a Promise of [{dir, inUse, update}] or one such result), then saves and
-  // shows it
+  // Runs an import (a function returning a Promise of [{dir, inUse, update} or {note}]), then saves and shows it
   ModPanel.prototype.add = function (work) {
     var self = this;
     if (this.dead) return;
@@ -534,7 +535,9 @@ Module["byopop"] = (function () {
       if (updated.length) parts.push("Updated " + names(updated) + ".");
       if (running && (added.length || updated.length)) parts.push("Restart the game to use " + (added.length + updated.length > 1 ? "them." : "it."));
       if (waiting.length) parts.push(names(waiting) + ": the new version replaces the one in use when the game starts again.");
-      self.say(parts.join(" ") || "Nothing was added.");
+      if (!parts.length) parts.push("Nothing was added.");
+      results.forEach(function (r) { if (r.note) parts.push(r.note); });
+      self.say(parts.join(" "));
       return sync();
     }).catch(function (e) {
       self.say(e && e.message ? e.message : String(e));
@@ -543,24 +546,76 @@ Module["byopop"] = (function () {
     });
   };
 
-  // One mod from an upload (a folder's files or a .zip's entries). Its root is the folder that holds mod.json, or
-  // the one top folder; the mod's folder is named after it. Resolves to {dir, inUse, update} (null: nothing to add):
-  // inUse, it waits for the next start; update, it replaced a mod of that folder.
-  ModPanel.prototype.importMod = function (entries, fallbackName) {
+  // The mods in an upload (a folder's files or a .zip's entries): every folder that holds a mod.json or one of the
+  // game's folders (images, sounds...: a mod of files alone), the outer one where one holds another, so a folder of
+  // mods adds each of them. With neither anywhere, the one top folder is the mod, or everything is. Each mod's
+  // folder is named after its root. Resolves to [{dir, inUse, update}], and a {note} naming what was left out:
+  // files outside every mod's folder.
+  ModPanel.prototype.importMods = function (entries, fallbackName) {
     var self = this, o = this.o;
-    if (!entries.length) return Promise.resolve(null);
-    var manifest = entries.filter(function (e) { return /(^|\/)mod\.json$/i.test(e.path); })
-      .sort(function (a, b) { return a.path.length - b.path.length; })[0];
-    var root = manifest ? manifest.path.replace(/mod\.json$/i, "") : "";
-    if (!manifest) {
+    if (!entries.length) return Promise.resolve([]);
+    var gameDirs = (o.gameDirs || []).map(function (d) { return d.toLowerCase(); });
+    var roots = [];
+    entries.forEach(function (e) {
+      var parts = e.path.split("/");
+      for (var i = 0; i < parts.length; i++) {
+        var isManifest = (i === parts.length - 1) && /^mod\.json$/i.test(parts[i]);
+        var isGameDir = (i < parts.length - 1) && (gameDirs.indexOf(parts[i].toLowerCase()) >= 0);
+        if (isManifest || isGameDir) {
+          var root = parts.slice(0, i).join("/") + (i ? "/" : "");
+          if (roots.indexOf(root) < 0) roots.push(root);
+          break;
+        }
+      }
+    });
+    roots.sort(function (a, b) { return a.length - b.length; });
+    roots = roots.filter(function (r, i) {
+      return !roots.slice(0, i).some(function (q) { return r.substring(0, q.length) === q; });
+    }).sort();
+    var found = roots.length > 0;
+    if (!found) {
       var tops = {};
       entries.forEach(function (e) { tops[e.path.split("/")[0]] = 1; });
       var keys = Object.keys(tops);
-      var gameTop = keys.some(function (k) { return (o.gameDirs || []).indexOf(k.toLowerCase()) >= 0; });
-      root = keys.length === 1 && !gameTop ? keys[0] + "/" : "";
+      roots = [keys.length === 1 ? keys[0] + "/" : ""];
     }
-    var dir = (root.replace(/\/$/, "").split("/").pop() || fallbackName || "mod").replace(/[^A-Za-z0-9._-]+/g, "-");
-    if (!safeName(dir)) dir = "mod";
+    var dirs = {};
+    var mods = roots.map(function (root) {
+      var dir = (root.replace(/\/$/, "").split("/").pop() || fallbackName || "mod").replace(/[^A-Za-z0-9._-]+/g, "-");
+      if (!safeName(dir)) dir = "mod";
+      // two mods of one upload in folders of the same name (in different places) keep apart
+      for (var n = 2, base = dir; dirs[dir]; n++) dir = base + "-" + n;
+      dirs[dir] = 1;
+      return { root: root, dir: dir };
+    });
+    var notes = [];
+    if (found) {
+      // named from the folder that holds the mods (their roots' common parent), as one would see it opened
+      var base = roots.map(function (r) { return r.replace(/[^\/]*\/$/, ""); }).reduce(function (a, b) {
+        var i = 0;
+        while ((i < a.length) && (i < b.length) && (a[i] === b[i])) i++;
+        return a.substring(0, a.lastIndexOf("/", i - 1) + 1);
+      });
+      var left = {};
+      entries.forEach(function (e) {
+        if (roots.some(function (r) { return e.path.substring(0, r.length) === r; })) return;
+        var rel = (e.path.substring(0, base.length) === base) ? e.path.substring(base.length) : e.path;
+        left[rel.split("/")[0]] = 1;
+      });
+      var names = Object.keys(left);
+      if (names.length) notes.push({ note: "Left out, not a mod (no mod.json and none of the game's folders): " + names.join(", ") + "." });
+    }
+    return mods.reduce(function (p, m) {
+      return p.then(function (done) {
+        return self.importMod(entries, m.root, m.dir).then(function (r) { return done.concat(r ? [r] : []); });
+      });
+    }, Promise.resolve([])).then(function (done) { return done.concat(notes); });
+  };
+
+  // One mod of an upload: the entries under root, into the mods folder dir. Resolves to {dir, inUse, update} (null:
+  // nothing to add): inUse, it waits for the next start; update, it replaced a mod of that folder.
+  ModPanel.prototype.importMod = function (entries, root, dir) {
+    var self = this, o = this.o;
     var files = [];
     entries.forEach(function (e) {
       if (e.path.substring(0, root.length) !== root) return;

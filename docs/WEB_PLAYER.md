@@ -54,7 +54,9 @@ three ways:
   new page to start straight away.
 
 The panels:
-- **Mods** (`web/modpanel.js`) adds mods from a folder or .zip and removes them. Turning mods on and off,
+- **Mods** (`web/modpanel.js`) adds mods from a folder or .zip and removes them. A folder or .zip may hold many
+  mods, a whole mods folder for one: each folder in it with a `mod.json` or one of the game's folders (`images`,
+  `sounds`...) is added as its own mod, and the panel names what it left out. Turning mods on and off,
   their order and their settings live in the game's own F2 menu, as decided for the mod menu
   (`docs/MOD_MENU.md`). The panel also offers "Play without mods" when a mod stopped the last start.
 - **Game files** imports the game again, or forgets the copied files. Saves and mods stay.

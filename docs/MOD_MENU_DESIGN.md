@@ -115,7 +115,8 @@ Taken from the design's recommendations:
   gameplay tags.
 - **The panel** (decision 4):
   - It lists the installed mods with their state, tags and errors, and has **Add mod folder**,
-    **Add mod .zip** and **Remove**.
+    **Add mod .zip** and **Remove**. One upload may hold many mods (a whole mods folder): every folder in it that
+    holds a `mod.json` or one of the game's folders is a mod, the outer one where they nest (`importMods`).
   - Before the game starts it also has **Play without mods**.
   - While the game runs and something waits, it shows "Restart to apply: ..." with **Restart game**.
   - Upload paths that would leave the mod folder are dropped, as in the page's game-file import.
