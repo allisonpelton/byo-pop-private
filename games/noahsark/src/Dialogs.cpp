@@ -115,6 +115,12 @@ HighScoreDialog::HighScoreDialog(NoahApp* theApp) :
 	SetColor(COLOR_HEADER, Color(0xff, 0xff, 0xff));
 }
 
+int HighScoreDialog::GetPreferredHeight(int theWidth)
+{
+	(void) theWidth;
+	return 0x12c;                                       // 0x411730
+}
+
 HighScoreDialog::~HighScoreDialog()
 {
 	delete mScores;
@@ -183,9 +189,12 @@ void RecordScoreDialog::Resize(int theX, int theY, int theWidth, int theHeight)
 	mNameEdit->Resize(theX + mContentInsets.mLeft + 10, theY + theHeight - 0x92, theWidth - mContentInsets.mLeft - mContentInsets.mRight - 20, 0x1c);
 }
 
+// slot 47 of the dialog classes is a function that returns a constant (Ghidra shows none): 0x411730, shared by this
+// dialog and the high-score list, 300; the Options and Tutorial dialogs share 0x4209f0, 438
 int RecordScoreDialog::GetPreferredHeight(int theWidth)
 {
-	return Dialog2004::GetPreferredHeight(theWidth) + 0x40;
+	(void) theWidth;
+	return 0x12c;
 }
 
 // 0x41dac0
@@ -318,7 +327,7 @@ void OptionsDialog::Resize(int theX, int theY, int theWidth, int theHeight)
 int OptionsDialog::GetPreferredHeight(int theWidth)
 {
 	(void) theWidth;
-	return 400;
+	return 0x1b6;                                       // 0x4209f0
 }
 
 void OptionsDialog::SetColor(int theIdx, const Color& theColor)
@@ -436,7 +445,7 @@ void TutorialDialog::Resize(int theX, int theY, int theWidth, int theHeight)
 int TutorialDialog::GetPreferredHeight(int theWidth)
 {
 	(void) theWidth;
-	return 0x17c;
+	return 0x1b6;                                       // 0x4209f0, the same function as the Options dialog's
 }
 
 // 0x420ab0: the picture's little animation (a cursor goes to an animal, clicks, goes to the match)

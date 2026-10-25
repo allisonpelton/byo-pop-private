@@ -11,7 +11,7 @@ import sys
 
 
 def record(name, score, bad):
-    raw = name.encode('latin-1').replace(b'\0', b'\0')
+    raw = name.encode('latin-1').replace(b'\\0', b'\0')
     check = (score & 0xffffffff) ^ 0x42beef
     for c in raw:
         check ^= ((c - 256 if c > 127 else c) * 0x11) & 0xffffffff

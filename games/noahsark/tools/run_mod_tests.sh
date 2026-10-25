@@ -32,7 +32,7 @@ set_default() { sed -i "s/\"default\": $3/\"default\": $4/" "$1/$2/mod.json"; }
 START='301 click 320 456
 360 click 198 188
 381 click 320 195
-420 click 400 376
+420 click 400 405
 700 click 400 240'
 
 # ---- undo + helper

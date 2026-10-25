@@ -54,6 +54,7 @@ public:
 	HighScoreDialog(NoahApp* theApp);
 	virtual ~HighScoreDialog();
 
+	virtual int			GetPreferredHeight(int theWidth) override;
 	virtual void		Draw(Graphics* g) override;
 };
 
