@@ -19,9 +19,11 @@
 #   noahsark     Noah's Ark's bot: action, strategy and puzzle games, an action rerun with the same screenshots, the
 #                mods' tests (games/noahsark/tools/run_mod_tests.sh) and the high-score loader's (run_hiscores_test.sh)
 #   atomica      Atomica's bot: a strategy game, an action game, and a strategy rerun with the same screenshots
+#   sevenseas    Seven Seas' bot: a beginner's game from level 1, one from the bonus screen (level 10) and one from level 21,
+#                and a rerun of the first with the same screenshots (about 15 seconds)
 #   oracle       Bejeweled's oracle three ways (compare.sh --variants default,forcevariant,novariants); over
 #                ten minutes, so never in a subagent; refuses to start while another oracle runs
-# Sets: quick = build unit; games = bookworm bigmoney noahsark atomica; all = every suite, builds first.
+# Sets: quick = build unit; games = bookworm bigmoney noahsark atomica sevenseas; all = every suite, builds first.
 #
 # Prints "PASS <suite> (<seconds>s): <summary>" or "FAIL <suite> (<seconds>s): <summary> -> <log>" for each,
 # then "check: N passed, M failed". Exits 0 only when all passed. Logs: build/logs/check/<suite>.txt (and
@@ -38,6 +40,9 @@ NA_STRATEGY="level 4 done at update 15469: score 4430 mode strategy"
 NA_PUZZLE="game 1 over at update 17550: score 4830 level 1 moves 117"
 AT_STRATEGY="game 1 over at update 6204: score 1440 level 2 moves 85"
 AT_ACTION="update 20000: score 2880 level 2 moves 611 atoms 61"
+SS_BEGINNER="game 2 over at update 5308: score 165 level 2 moves 23"
+SS_BONUS="game 1 over at update 2286: score 330 level 12 moves 15"
+SS_LATE="game 1 over at update 2285: score 390 level 22 moves 13"
 
 set -u
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -50,9 +55,9 @@ while [ $# -gt 0 ]; do
 		--out=*) OUT="${1#--out=}"; shift ;;
 		-h|--help) sed -n '2,/^BW_CLASSIC/p' "$0" | sed '$d' | sed 's/^# \{0,1\}//'; exit 0 ;;
 		quick) SUITES+=(build unit); shift ;;
-		games) SUITES+=(bookworm bigmoney noahsark atomica); shift ;;
-		all) SUITES+=(build build-web build-nov unit unit-web verify modmenu livesplit bookworm bigmoney noahsark atomica oracle); shift ;;
-		build|build-web|build-nov|unit|unit-web|verify|modmenu|livesplit|bookworm|bigmoney|noahsark|atomica|oracle) SUITES+=("$1"); shift ;;
+		games) SUITES+=(bookworm bigmoney noahsark atomica sevenseas); shift ;;
+		all) SUITES+=(build build-web build-nov unit unit-web verify modmenu livesplit bookworm bigmoney noahsark atomica sevenseas oracle); shift ;;
+		build|build-web|build-nov|unit|unit-web|verify|modmenu|livesplit|bookworm|bigmoney|noahsark|atomica|sevenseas|oracle) SUITES+=("$1"); shift ;;
 		*) echo "check.sh: unknown suite '$1' (tools/check.sh --help)" >&2; exit 2 ;;
 	esac
 done
@@ -248,6 +253,29 @@ suite_atomica() {
 	if diff -rq "$OUT/atomica/strategy/shots" "$OUT/atomica/strategy2/shots" >> "$1" 2>&1 && [ "$s" = "$r" ]; then r="rerun identical"; else r="RERUN DIFFERS"; st=1; fi
 	SUMMARY="strategy ${s#game }; action ${a#update }; $r"
 	[ $st -eq 0 ] || SUMMARY="$SUMMARY (expected strategy '$AT_STRATEGY', action '$AT_ACTION')"
+	return $st
+}
+
+sevenseas_game() {  # <name> <seed> <difficulty> <start level> <games>: a bot game; prints the last "game N over" line
+	local d="$OUT/sevenseas/$1"
+	rm -rf "$d"; mkdir -p "$d/shots"
+	timeout 600 "$W/build/native/sevenseas.exe" -userdir="$d/user" -fast -seed="$2" -autoplay="$2" -autoplaydiff="$3" -autoplaylevel="$4" \
+		-autoplaygames="$5" -autoplaycap=60000 -autoplaylog="$d/log.txt" -autoplayshots="$d/shots/s" > "$d/stdout.txt" 2> "$d/stderr.txt"
+	grep -E '^game [0-9]+ over' "$d/log.txt" 2>/dev/null | tail -n 1
+}
+
+suite_sevenseas() {
+	local st=0 a b c r
+	need_assets sevenseas || return 1
+	a="$(sevenseas_game beginner 1 1 0 2)"; b="$(sevenseas_game bonus 2 2 10 1)"
+	c="$(sevenseas_game late 3 3 21 1)"; r="$(sevenseas_game beginner2 1 1 0 2)"
+	{ echo "beginner: $a"; echo "bonus: $b"; echo "late: $c"; echo "beginner rerun: $r"; } > "$1"
+	[ "$a" = "$SS_BEGINNER" ] || st=1
+	[ "$b" = "$SS_BONUS" ] || st=1
+	[ "$c" = "$SS_LATE" ] || st=1
+	if diff -rq "$OUT/sevenseas/beginner/shots" "$OUT/sevenseas/beginner2/shots" >> "$1" 2>&1 && [ "$a" = "$r" ]; then r="rerun identical"; else r="RERUN DIFFERS"; st=1; fi
+	SUMMARY="beginner ${a#game }; bonus ${b#game }; late ${c#game }; $r"
+	[ $st -eq 0 ] || SUMMARY="$SUMMARY (expected beginner '$SS_BEGINNER', bonus '$SS_BONUS', late '$SS_LATE')"
 	return $st
 }
 

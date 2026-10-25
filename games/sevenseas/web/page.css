@@ -1,0 +1,5 @@
+/* Seven Seas' look on the shared page (web/shell.html): deep sea blue and plank brown, a little ship for the brand mark */
+:root { --accent: #1f5f8f; --gem-ruby: #c9302c; --plank: #8a5a2a; }  /* sea blue */
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --accent: #6aa9d8; } }
+:root[data-theme="dark"] { --accent: #6aa9d8; }
+.brand .mark { width: 16px; height: 9px; background: var(--plank); border-radius: 1px 1px 8px 8px; }
