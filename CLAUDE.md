@@ -55,8 +55,8 @@ the same machine. A plain run opens a window, raises it over whatever the user i
 The work is split across Claude sessions (the user's design, 2026-10-19):
 - **One session per game** owns `games/<game>/` on its own branch and worktree: the decompilation, all of its
   testing, and its mods.
-- **The coordinator session** (session id `local_69b2d317-1aff-4b2b-ae9f-c9883bcf6d97`, in the main
-  checkout) owns the shared code: `framework/`, `platform/`, `third_party/`, `web/`, `tools/`, `cmake/`,
+- **The coordinator session** (session id `local_dba6c364-63c7-4e08-8ad1-0d086d673e52` since the folder
+  rename of 2026-10-24, in the main checkout) owns the shared code: `framework/`, `platform/`, `third_party/`, `web/`, `tools/`, `cmake/`,
   `docs/` and the top-level files. It builds shared libraries and decompilation tooling, and it integrates:
   it merges each game's branch into the trunk at that game's milestones, after checking that every game
   still builds and passes its own tests.
@@ -64,6 +64,8 @@ The work is split across Claude sessions (the user's design, 2026-10-19):
   above) with a precise spec: what, why, which files, how to test. A tiny shared fix it cannot wait for
   goes in its own commit titled `shared: ...`, so the coordinator can review it and carry it over. Game
   sessions do not edit another game's folder.
+- **A new worktree** lacks the git-ignored game files, baselines, oracle cache and generated mods: run
+  `tools/setup_worktree.sh` in it once (copies from the main checkout, no junctions).
 - **Trunk:** `main` (named `code-mods` until 2026-10-19, after Bejeweled's code-mods stages 4 and 5). Game branches
   merge the trunk in regularly.
 - **Mark overrides.** Port-side game code that overrides a framework virtual (hooks such as
