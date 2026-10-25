@@ -1,0 +1,18 @@
+{
+  "id": "bwa2-words",
+  "name": "Bookworm Adventures 2 Words",
+  "version": "1.0",
+  "author": "byo-pop",
+  "description": "Adds every word of Bookworm Adventures Volume 2's dictionary to BookWorm's: about 80,000 words BookWorm's own list lacks, 18,000 of them longer than 12 letters, which count only with the mod Words Over 12 Letters. The words come from your own copy of the game: make bwa2-words.txt in this folder with games/bookworm/tools/make_bwa2_mod.py; without it the mod adds nothing. Games with it keep their own high scores.",
+  "affectsScores": true,
+  "features": {
+    "words": {
+      "add": ["bwa2-words.txt"],
+      "note": "A word from Bookworm Adventures Volume 2."
+    }
+  },
+  "settings": [
+    { "id": "note", "label": "Lex names the list", "type": "bool", "default": true,
+      "help": "For a word only Bookworm Adventures Volume 2 has, Lex's balloon says where it comes from (that game has no definitions)." }
+  ]
+}

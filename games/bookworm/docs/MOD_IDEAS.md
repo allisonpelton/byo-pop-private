@@ -23,6 +23,7 @@ redistributed, stay git-ignored. How to install and test the mods that exist: RE
 | 11 | The solver keeps new fire tiles away (`mods/solver` setting `fewerFire`, 4.9), and a third greedy bot that plays so (the user's idea) | done |
 | 12 | Replays (`mods/replays`, 4.10, the user's idea, after Big Money's) | done |
 | 13 | The user's requests from the browser tests (4.11): definitions from the side panel, a second click plays a solver word, number keys play them, a double click on a word played undoes back to it, right click closes Lex's balloon (`mods/close-balloons`), Enter continues a level, the greedy bots play the bonus word first | done |
+| 14 | Bookworm Adventures Volume 2's words (`mods/bwa2-words`) and words over 12 letters (`mods/long-words`), 4.12 (the user's) | done |
 
 Code mods read their switches from the mod's `"features"` (`src/ModFeatures.h`: a feature on, a live
 setting's value) and say `"affectsScores": true`, so their games get their own high scores and saved games
@@ -285,6 +286,29 @@ The solver's setting `hotkeys` (on by default): 1 to 9 and 0 play its first ten 
 panel. With `type-word`, Enter on a level's summary is its Continue once the button has slid in. The new mod
 `close-balloons`: a right click on the board closes Lex's balloon. The greedy bots play the bonus word first when the
 board spells it, unless it ends the game.
+
+### 4.12 Bookworm Adventures 2's words and words over 12 letters (done, the user's, 2026-10-25)
+Volume 2's dictionary is `data/compressed.txt` in its `main.pak` (`tools/popcap_pak.py` reads the pak), in
+wordlist.txt's prefix-compressed format and in lower case: 191,743 words, 191,701 of them playable here (a Q needs
+its U), up to 16 letters; 80,198 are not in BookWorm's list, which has 39,878 that Volume 2 lacks. Volume 2 has no
+definitions; `data/compressed_attribs.dat` holds a number from 0 to 7 for each word, which the mod does not use.
+`tools/make_bwa2_mod.py` writes the playable words into the git-ignored `mods/bwa2-words/bwa2-words.txt`, read by
+the feature `words` as Collins's list is.
+
+BookWorm itself takes a word of any length: only its word list stops at 12 letters. Its displays do not. The word
+box shows the first 12 letters (11 when the 12th is a Q), and the selection draws an X on every tile past 12 letters
+(the registered build's limit; the trial build's 8 is not ported), which is all the original does with the limit:
+Submit takes any length (Board.cpp, `mIsRegistered`). The solver stopped its paths at 12 letters. So a mod's longer
+words are left out unless `long-words` is on (LoadModWords), and with it the limit becomes the dictionary's
+longest word (ModWordMaxLength): the word box fits the whole word in Verdana 14, 12 or 10, the selection's arrows
+and X marks follow the new limit, the level summary's best and longest words drop to Scripps 15 or 13 where 18
+would overflow its 206 px column, and the solver's paths go as far as the longest word. The hall of fame (Legacy
+Serif 12) and the widescreen panel (which cuts a word to its room) needed nothing. Words of 12 letters or fewer
+draw exactly as before.
+
+Tested with seed 1357041, whose first board spells UNRESTRAINEDNESS (16 letters, one of Volume 2's). With both
+mods it shows whole in the word box, scores 4,160 and fills the level summary's columns. With `bwa2-words` alone
+it is cut to UNRESTRAINED, scores nothing, and its last four tiles get an X, as in the original.
 
 ## What works as plain data today (no code)
 
