@@ -1,0 +1,11 @@
+{
+  "id": "select-definitions",
+  "name": "Definitions While Selecting",
+  "version": "1.0",
+  "author": "byo-pop",
+  "description": "Lex gives a word's definition as soon as the tiles you select spell it, not only once it is played; it changes as the selection does. Words with no definition show none, as after playing them (the Collins mod has definitions for most words). Needs definitions on in the options.",
+  "affectsScores": false,
+  "features": {
+    "selectDefinitions": true
+  }
+}

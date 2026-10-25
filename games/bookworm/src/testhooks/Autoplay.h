@@ -168,6 +168,10 @@ private:
 	bool mSummaryNoted;             // the summary on screen was logged (and shot)
 	int mSummaryNotedAt;            // the update it was
 	bool mModsShot;                 // the game-over summary shot again with the mods' balloon
+	int mJournalStep;               // the word journal at game over: 0 to open, 1 opening, 2 shot, 3 closing, 4 done
+	int mJournalStepAt;             // the update of the last step
+	bool mPreviewNoted;             // the selected word's definition was showing at the last update
+	int mPreviewShots;              // its showings so far, +1 once the first is shot
 	bool mFameNoted;
 	int mLevelUps;
 

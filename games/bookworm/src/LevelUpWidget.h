@@ -25,6 +25,8 @@ class MemoryImage;
 class ColorizedButton;
 class WidgetManager;
 class WordBalloon;
+class DialogButton;
+class JournalWidget;
 
 // 0x52f368 rank names shown in the summary, indexed by min(rank, NUM_RANK_NAMES - 1)
 enum
@@ -38,7 +40,8 @@ class LevelUpWidget : public Widget, public ButtonListener
 public:
 	enum
 	{
-		LEVELUP_ID_CONTINUE = 6             // mContinueButton
+		LEVELUP_ID_CONTINUE = 6,            // mContinueButton
+		LEVELUP_ID_JOURNAL = 7              // port(mod): mJournalButton
 	};
 
 	// +0x58 ButtonListener vptr
@@ -69,6 +72,10 @@ public:
 	// owned, NULL until shown. mModsText: its text blocks as last laid out
 	WordBalloon*	mModsBalloon;
 	SexyString		mModsText;
+	// port(mod): the word journal's button at game over, in the left column under Lex, and its page while open
+	// (mod "word-journal"; JournalWidget.h); owned, NULL until made
+	DialogButton*	mJournalButton;
+	JournalWidget*	mJournal;
 	// +0xda..+0xdf padding; sizeof 0xe0
 
 public:
@@ -91,6 +98,7 @@ public:
 	void			CreatePanel();                                          // 0x42b9c0
 	void			DrawPanel(Graphics* g);                                 // 0x42c210
 	void			UpdateModsBalloon();                                    // port(mod)
+	void			UpdateJournal();                                        // port(mod)
 
 	using Widget::Resize;
 	using ButtonListener::ButtonPress;

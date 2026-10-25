@@ -6,8 +6,10 @@
 #include "OverlayWidget.h"
 #include "Res.h"
 #include "Solver.h"
+#include "StatKeeper.h"
 #include "TypedWord.h"
 #include "WordBalloon.h"
+#include "WordJournal.h"
 
 using namespace Sexy;
 
@@ -90,6 +92,7 @@ void UndoStack::Restore()
 	int aPauseCount = mBoard->mPauseCount;
 	bool aCtrlDown = mBoard->mCtrlDown;
 	int aModWordsPlayed = mBoard->mModWordsPlayed;
+	int aWords = mBoard->mGameStats->mWords;
 
 	if (!mBoard->ReadSavedGame(aSnapshot.mRecord))
 	{
@@ -106,6 +109,8 @@ void UndoStack::Restore()
 	mBoard->mPauseCount = aPauseCount;
 	mBoard->mCtrlDown = aCtrlDown;
 	mBoard->AddModWordsAllTime(mBoard->mModWordsPlayed - aModWordsPlayed);  // the undone word's count too
+	if (mBoard->mGameStats->mWords < aWords)
+		WordJournal::WordUndone(mBoard);    // and the word journal's word (an undone scramble has none)
 
 	// the record was made in Submit, with the word selected; Lex is a new one, so nothing would count down
 	// the undone word's definition balloon (and the mouse resting on it would hold it up): it fades now

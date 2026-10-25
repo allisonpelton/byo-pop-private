@@ -4,6 +4,8 @@
 #include "BookWormApp.h"
 #include "Board.h"
 #include "Lex.h"
+#include "OverlayWidget.h"
+#include "WordBalloon.h"
 #include "TitleScreen.h"
 #include "BWGameSelector.h"
 #include "HelpWidget.h"
@@ -151,6 +153,10 @@ AutoplayBot::AutoplayBot(BookWormApp* theApp, unsigned long theSeed, const std::
 	mSummaryNoted(false),
 	mSummaryNotedAt(0),
 	mModsShot(false),
+	mJournalStep(0),
+	mJournalStepAt(0),
+	mPreviewNoted(false),
+	mPreviewShots(0),
 	mFameNoted(false),
 	mLevelUps(0),
 	mPlanPos(0),
@@ -315,6 +321,21 @@ void AutoplayBot::LogChanges(Board* theBoard)
 
 	if (theBoard == NULL)
 		return;
+
+	// the selected word's definition (mod "select-definitions"): noted each time it shows, the first one shot
+	// once its balloon has faded in
+	bool isPreview = (theBoard->mLex != NULL) && (theBoard->mLex->mPreviewShowing);
+	if ((isPreview) && (!mPreviewNoted))
+	{
+		Note("definition shown for the selection %s", theBoard->mSelectDefWord.c_str());
+		mPreviewShots++;
+	}
+	mPreviewNoted = isPreview;
+	if ((isPreview) && (mPreviewShots == 1) && (theBoard->mOverlay != NULL) && (theBoard->mOverlay->mBalloon->mAlpha >= 1.0))
+	{
+		mPreviewShots++;
+		Shot(std::string(ModeName(mApp->mGameMode)) + "-preview");
+	}
 
 	if (theBoard->mState != mLastState)
 	{
@@ -517,6 +538,41 @@ void AutoplayBot::HandleSummary(Board* theBoard)
 	{
 		mModsShot = true;
 		Shot(std::string(ModeName(mApp->mGameMode)) + "-gameover-mods");
+	}
+	// the word journal (mod "word-journal"): at game over its page is opened once, shot and closed with a click
+	// outside the book, before the continue
+	if ((isGameOver) && (aSummary->mJournalButton != NULL) && (mJournalStep < 4))
+	{
+		int aSince = mApp->mUpdateCount - mJournalStepAt;
+		if (mJournalStep == 0)
+		{
+			if ((mApp->mUpdateCount >= mSummaryNotedAt + 30) && (ClickWidget(aSummary->mJournalButton, "the word journal's button")))
+			{
+				mJournalStep = 1;
+				mJournalStepAt = mApp->mUpdateCount;
+			}
+		}
+		else if ((mJournalStep == 1) && (aSummary->mJournal != NULL) && (aSince >= 15))
+		{
+			Shot(std::string(ModeName(mApp->mGameMode)) + "-journal");
+			mJournalStep = 2;
+			mJournalStepAt = mApp->mUpdateCount;
+		}
+		else if ((mJournalStep == 2) && (aSince >= 10))
+		{
+			Note("click the word journal's page, outside the book");
+			QueueAt("click", 30, 30);
+			mJournalStep = 3;
+			mJournalStepAt = mApp->mUpdateCount;
+		}
+		else if ((mJournalStep == 3) && (aSummary->mJournal == NULL))
+			mJournalStep = 4;
+		else if ((mJournalStep != 0) && (aSince >= 200))
+		{
+			Note("the word journal did not %s", (mJournalStep == 1) ? "open" : "close");
+			mJournalStep = 4;
+		}
+		return;
 	}
 	if (Due(aSummary, 30, 80))
 		ClickWidget(aSummary->mContinueButton, isGameOver ? "the game-over summary's continue" : "the level summary's continue");
@@ -1121,6 +1177,9 @@ int AutoplayBot::RunStep(Board* theBoard, const Step& theStep)
 {
 	if (!BoardTakesInput(theBoard))
 		return mDragging ? RUN_DROP : RUN_WAIT;
+	// the first definition shown for a selection (mod "select-definitions") stays until it is shot
+	if ((mPreviewShots == 1) && (theBoard->mLex != NULL) && (theBoard->mLex->mPreviewShowing))
+		return RUN_WAIT;
 
 	switch (theStep.mKind)
 	{
@@ -1430,6 +1489,7 @@ void AutoplayBot::Update()
 	{
 		mSummaryNoted = false;
 		mModsShot = false;
+		mJournalStep = 0;
 	}
 
 	if (!mApp->mDialogMap.empty())

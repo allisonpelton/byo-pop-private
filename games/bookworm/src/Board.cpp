@@ -19,6 +19,7 @@
 #include "TypedWord.h"
 #include "WordReview.h"
 #include "DailyBoard.h"
+#include "WordJournal.h"
 
 #include "WidgetManager.h"
 #include "DialogButton.h"
@@ -619,6 +620,8 @@ Board::Board(BookWormApp* theApp)
 	mTypedWord = ModFeatureEnabled("typeWord") ? new TypedWord(this) : NULL;
 	mWordReview = WordReview::Create(this);
 	mTileSymbols = ModFeatureEnabled("tileSymbols");
+	mSelectDefs = ModFeatureEnabled("selectDefinitions");
+	mSelectDefDelay = 0;
 	if (ModFeatureEnabled("undo"))
 	{
 		mUndo = new UndoStack(this);
@@ -1764,10 +1767,16 @@ void Board::Submit(int x, int y)
 		{
 			if (mUndo != NULL)
 				mUndo->Push();  // port(mod): the board before the word
+			if (mSelectDefs)
+			{
+				mLex->EndPreview(true);     // port(mod): the played word's own balloon comes now
+				mSelectDefWord = "";
+			}
 			// port(mod): the word against the board's best, its tiles still there; the note goes in Lex's balloon
 			SexyString aReviewNote;
 			if (mWordReview != NULL)
 				aReviewNote = mWordReview->WordPlayed(mWord);
+			WordJournal::WordPlayed(this, mWord);   // port(mod): into the player's word journal (word-journal)
 			// port(mod): a mod's word with effects (rude-words): Lex comments on it, with its definition
 			ModWordEffects aModEffects;
 			bool isModWord = ModWordGetEffects(mWord.mWord, &aModEffects);
@@ -2516,6 +2525,7 @@ void Board::Update()
 	if (mUndo != NULL)
 		mUndo->Update();    // port(mod): an undo asked for while the tiles moved
 	UpdateBots();           // port(mod)
+	UpdateSelectDefinition();   // port(mod)
 	mApp->mPlayTicks++;
 
 	PieceList aDeadPieces;  // tiles burned away this tick, deleted at the end
@@ -4140,6 +4150,37 @@ void Board::UpdateBots()
 	}
 	if (mBots != NULL)
 		mBots->Update(((mState == BOARD_GAMEOVER) || (mState == BOARD_GAMEOVER_MUSIC)) ? 12.0 : 2.0);
+}
+
+// port(mod): the selected word's definition (mod "select-definitions"): once the selected tiles have spelled a
+// word for a moment (15 updates, so a drag does not flash every word on its way), Lex's balloon gives its
+// definition as it does for a played word (with definitions on in the options, for a word that has one). It
+// goes when the selection changes or play stops (a summary, game over), and at once when the word is
+// submitted (Submit), for the played word's own balloon. A message already up keeps the balloon; the
+// definition is tried again 10 updates later.
+void Board::UpdateSelectDefinition()
+{
+	if ((!mSelectDefs) || (mLex == NULL))
+		return;
+
+	SexyString aWord;
+	if ((mState == BOARD_PLAYING) && (mWord.mValid) && (mApp->mShowDefs) && (mApp->mDefinitionator != NULL))
+		aWord = mWord.mWord;
+	if (aWord != mSelectDefWord)
+	{
+		mSelectDefWord = aWord;
+		mSelectDefDelay = 15;
+		mLex->EndPreview(false);
+		return;
+	}
+	if ((aWord.length() == 0) || (mSelectDefDelay <= 0) || (--mSelectDefDelay > 0))
+		return;
+
+	SexyString aDefinition = mApp->mDefinitionator->GetDefinition(aWord);
+	if (aDefinition.size() == 0)
+		aDefinition = ModWordNote(aWord);   // which mod's list has it
+	if ((aDefinition.size() != 0) && (!mLex->PreviewDefinition(aWord, aDefinition)))
+		mSelectDefDelay = 10;
 }
 
 void Board::GetGlobalState(int* theLastLetterIdx, int* theLastRefillLevel)

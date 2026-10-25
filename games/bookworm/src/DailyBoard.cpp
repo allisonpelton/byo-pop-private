@@ -4,13 +4,12 @@
 #include "Compat2004.h"
 #include "ModFeatures.h"
 #include "MTRand.h"
+#include "PlayerFiles.h"
 #include "StatKeeper.h"
-#include "UserManager.h"
 #include "platform/VFS.h"
 #include <algorithm>
 #include <cstdint>
 #include <cstring>
-#include <ctime>
 #include <map>
 
 using namespace Sexy;
@@ -18,37 +17,6 @@ using namespace Sexy;
 // The save trailer's tag and version
 static const int DAILY_TAG = 0x44415942;    // "DAYB"
 static const int DAILY_VERSION = 1;
-
-static const char* const gDayNames[7] = { "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat" };
-static const char* const gMonthNames[12] = { "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
-
-// Today's local date as yyyymmdd
-static int Today()
-{
-	time_t aNow = time(NULL);
-	struct tm* aTime = localtime(&aNow);
-	if (aTime == NULL)
-		return 20000101;
-	return (aTime->tm_year + 1900) * 10000 + (aTime->tm_mon + 1) * 100 + aTime->tm_mday;
-}
-
-// "25 Oct", or with the day of the week "Sat 25 Oct"
-static SexyString DateName(int theDate, bool withDay)
-{
-	int aYear = theDate / 10000;
-	int aMonth = (theDate / 100) % 100;
-	int aDay = theDate % 100;
-	if ((aMonth < 1) || (aMonth > 12))
-		return StrFormat("%d", theDate);
-	SexyString aName = StrFormat("%d %s", aDay, gMonthNames[aMonth - 1]);
-	if (!withDay)
-		return aName;
-	// Sakamoto's day of the week, 0 = Sunday
-	static const int aMonthOffsets[12] = { 0, 3, 2, 5, 0, 3, 5, 1, 4, 6, 2, 4 };
-	int aY = (aMonth < 3) ? aYear - 1 : aYear;
-	int aWeekDay = (aY + aY / 4 - aY / 100 + aY / 400 + aMonthOffsets[aMonth - 1] + aDay) % 7;
-	return SexyString(gDayNames[aWeekDay]) + " " + aName;
-}
 
 // A generator's seed for the day, the mode and theStream (0: the letters, 1: the Board's own)
 static unsigned long DaySeed(int theDate, int theMode, int theStream)
@@ -60,15 +28,6 @@ static unsigned long DaySeed(int theDate, int theMode, int theStream)
 	aSeed *= 0x846ca68bu;
 	aSeed ^= aSeed >> 16;
 	return (unsigned long)aSeed;
-}
-
-// The player's results, beside the saved games (BookWormApp::GetSaveGamePath's folder)
-static SexyString RecordPath(const SexyString& theUserName)
-{
-	SexyString aPath = "userdata/players/";
-	if (theUserName.length() != 0)
-		aPath += theUserName + "/";
-	return aPath + "daily-board.txt";
 }
 
 DailyBoard::DailyBoard(Board* theBoard)
@@ -86,7 +45,7 @@ DailyBoard* DailyBoard::Create(Board* theBoard)
 void DailyBoard::Deal()
 {
 	BookWormApp* anApp = mBoard->mApp;
-	mDate = (anApp->mDailyDate != 0) ? anApp->mDailyDate : Today();
+	mDate = (anApp->mDailyDate != 0) ? anApp->mDailyDate : LocalDate();
 	SeedMTRand2004(*gGameRand, DaySeed(mDate, anApp->mGameMode, 0));
 	SeedMTRand2004(*mBoard->mRand, DaySeed(mDate, anApp->mGameMode, 1));
 	Board::SetGlobalState(-1, -1);
@@ -109,14 +68,12 @@ void DailyBoard::GameOver()
 	BookWormApp* anApp = mBoard->mApp;
 	const char* aModeName = (anApp->mGameMode == GAMEMODE_ACTION) ? "action" : "classic";
 	int aScore = mBoard->mGameStats->mScore;
-	SexyString aPath = RecordPath(anApp->mUserManager->GetCurrentUserName());
 
 	// the player's earlier games of this mode: the day's count and best, each other day's best
 	int aDayGames = 0;
 	int aDayBest = 0;
 	std::map<int, int> anOtherDays;
-	FILE* aFile = Platform::VFS::Get().Open(aPath, "rb");
-	bool isNewFile = aFile == NULL;
+	FILE* aFile = Platform::VFS::Get().Open(PlayerFilePath(anApp, "daily-board.txt"), "rb");
 	if (aFile != NULL)
 	{
 		char aLine[256];
@@ -142,15 +99,8 @@ void DailyBoard::GameOver()
 		fclose(aFile);
 	}
 
-	aFile = Platform::VFS::Get().Open(aPath, "ab");
-	if (aFile != NULL)
-	{
-		if (isNewFile)
-			fputs("# daily board results: date, mode, score, level, words\n", aFile);
-		fprintf(aFile, "%d %s %d %d %d\n", mDate, aModeName, aScore, mBoard->mLevel + 1, mBoard->mGameStats->mWords);
-		fclose(aFile);
-		anApp->SyncUserData();  // web persistence of the user dir
-	}
+	AppendPlayerFile(anApp, "daily-board.txt", "# daily board results: date, mode, score, level, words\n",
+		StrFormat("%d %s %d %d %d\n", mDate, aModeName, aScore, mBoard->mLevel + 1, mBoard->mGameStats->mWords));
 
 	int aBestOther = -1;
 	int aBestOtherDate = 0;

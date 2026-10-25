@@ -9,7 +9,10 @@
 #include "GreedyBots.h"
 #include "WordReview.h"
 #include "DailyBoard.h"
+#include "JournalWidget.h"
+#include "WordJournal.h"
 #include "ColorizedButton.h"
+#include "DialogButton.h"
 #include "Res.h"
 #include "Compat2004.h"
 
@@ -101,6 +104,8 @@ LevelUpWidget::LevelUpWidget(BookWormApp* theApp)
 	mLexArrived = false;
 	mUnused78 = 0.03;
 	mModsBalloon = NULL;
+	mJournalButton = NULL;
+	mJournal = NULL;
 }
 
 // 0x42be40 (scalar deleting dtor 0x42beb0)
@@ -115,6 +120,10 @@ LevelUpWidget::~LevelUpWidget()
 	}
 	delete mModsBalloon;    // port(mod)
 	mModsBalloon = NULL;
+	delete mJournalButton;  // port(mod)
+	mJournalButton = NULL;
+	delete mJournal;
+	mJournal = NULL;
 }
 
 // 0x42b980
@@ -158,6 +167,10 @@ void LevelUpWidget::SetDisabled(bool isDisabled)
 {
 	Widget::SetDisabled(isDisabled);
 	mContinueButton->SetDisabled(isDisabled);
+	if (mJournalButton != NULL)
+		mJournalButton->SetDisabled(isDisabled);    // port(mod)
+	if (mJournal != NULL)
+		mJournal->SetDisabled(isDisabled);
 }
 
 // 0x42baf0. No NULL check, as SetDisabled.
@@ -167,6 +180,10 @@ void LevelUpWidget::SetVisible(bool isVisible)
 	mContinueButton->SetVisible(isVisible);
 	if (mModsBalloon != NULL)
 		mModsBalloon->SetVisible(isVisible);    // port(mod): hidden with the page (the help screen)
+	if (mJournalButton != NULL)
+		mJournalButton->SetVisible(isVisible);  // port(mod)
+	if (mJournal != NULL)
+		mJournal->SetVisible(isVisible);
 }
 
 // 0x42bb10. Creates the Continue button the first time, parked at the bottom-right corner (off the screen)
@@ -200,6 +217,10 @@ void LevelUpWidget::RemovedFromManager(WidgetManager* theWidgetManager)
 		theWidgetManager->RemoveWidget(mContinueButton);
 	if (mModsBalloon != NULL)
 		theWidgetManager->RemoveWidget(mModsBalloon);   // port(mod)
+	if (mJournalButton != NULL)
+		theWidgetManager->RemoveWidget(mJournalButton); // port(mod)
+	if (mJournal != NULL)
+		theWidgetManager->RemoveWidget(mJournal);
 
 	if ((mApp->mBoard != NULL) && (mApp->mBoard->mLex != NULL))
 	{
@@ -218,6 +239,19 @@ void LevelUpWidget::ButtonPress(int theId)
 // game over the saved game is deleted and the Hall of Fame opens.
 void LevelUpWidget::ButtonDepress(int theId)
 {
+	// port(mod): the word journal's page, over everything
+	if ((mJournalButton != NULL) && (theId == mJournalButton->mId))
+	{
+		if (mJournal == NULL)
+		{
+			mJournal = new JournalWidget(mApp);
+			mJournal->Resize(0, 0, mWidth, mHeight);
+			mWidgetManager->AddWidget(mJournal);
+			mWidgetManager->BringToFront(mJournal);
+		}
+		return;
+	}
+
 	if ((mContinueButton == NULL) || (theId != mContinueButton->mId))
 		return;
 
@@ -341,6 +375,7 @@ void LevelUpWidget::Update()
 		if (aBalloon->mVisible)
 			aBalloon->Show(0);
 		UpdateModsBalloon();    // port(mod)
+		UpdateJournal();        // port(mod)
 	}
 }
 
@@ -436,6 +471,30 @@ void LevelUpWidget::UpdateModsBalloon()
 		mModsBalloon->ClearFooter();
 	int aHeight = mModsBalloon->GetPreferredHeight(aWidth);
 	mModsBalloon->Resize(2, aLex->mY - aHeight + 30, aWidth, aHeight);
+}
+
+// port(mod): at game over, once the page has slid in, the word journal's button (mod "word-journal") in the left
+// column under Lex, where the board's LEAVE GAME is in play; a closed journal page is taken away
+void LevelUpWidget::UpdateJournal()
+{
+	if ((mJournal != NULL) && (mJournal->mClosed))
+	{
+		mWidgetManager->RemoveWidget(mJournal);
+		mApp->SafeDeleteWidget(mJournal);
+		mJournal = NULL;
+	}
+	if ((mJournalButton != NULL) || (mApp->mBoard->mState != BOARD_GAMEOVER) || (mWidgetManager == NULL) ||
+		(!WordJournal::Enabled()))
+		return;
+
+	mJournalButton = new DialogButton(mApp->mImages[IMAGE_DIALOGBUTTON], LEVELUP_ID_JOURNAL, this);
+	mJournalButton->Resize(6, 446, 211, 30);
+	mJournalButton->mDoFinger = true;
+	mJournalButton->mLabel = "WORD JOURNAL";
+	mJournalButton->SetFont(mApp->mFonts[FONT_LOCKERGNOME14OUTLINE]);
+	mJournalButton->SetColors(gSubmitColorsInvalid, 2);
+	mJournalButton->SetVisible(mVisible);
+	mWidgetManager->AddWidget(mJournalButton);
 }
 
 // 0x42cdd0. The panel sits 5 px from the right edge. Falling, it is drawn rotated about its integer centre;

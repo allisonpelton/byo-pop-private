@@ -87,6 +87,7 @@ Lex::Lex(BookWormApp* theApp)
 	mSweating = false;  // port: the original's SetSweating below compares against an unset byte (no effect)
 	SetSweating(false);
 	mSweatFrame = 0;
+	mPreviewShowing = false;    // port(mod)
 	mMouseInsets.mTop = 28;
 	mMouseInsets.mBottom = 18;
 }
@@ -262,6 +263,7 @@ void Lex::Say(const SexyString& theText, Font* theFont, int theDuration)
 	WordBalloon* aBalloon = anOverlay->mBalloon;
 	if (aBalloon->mVisible)
 		return;
+	mPreviewShowing = false;    // port(mod)
 
 	// port: measured once (the original calls StringWidth up to four times for the clamp)
 	int aTextWidth = theFont->StringWidth(theText);
@@ -292,6 +294,7 @@ void Lex::Think(const SexyString& theText, Font* theFont, int theDuration)
 	WordBalloon* aBalloon = anOverlay->mBalloon;
 	if (aBalloon->mVisible)
 		return;
+	mPreviewShowing = false;    // port(mod)
 
 	aBalloon->SetPlainImage(mApp->mImages[IMAGE_BACKDROP_WB_THOUGHT], Insets(20, 25, 20, 40), true);
 	aBalloon->SetText(theText, theFont, 0);
@@ -313,6 +316,7 @@ void Lex::SayDefinition(const SexyString& theWord, Font* theWordFont, const Sexy
 	WordBalloon* aBalloon = anOverlay->mBalloon;
 	if (aBalloon->mVisible)
 		return;
+	mPreviewShowing = false;    // port(mod)
 
 	aBalloon->SetBoxImages(mApp->mImages[IMAGE_BACKDROP_WB_TEXT], mApp->mImages[IMAGE_WB_TEXT_TALK_TAIL],
 		Point((int)(0.75 * 213.0), -2));
@@ -340,6 +344,7 @@ void Lex::SayReaction(const SexyString& theWord, const SexyString& theReaction, 
 		return;
 	WordBalloon* aBalloon = anOverlay->mBalloon;
 	mHintShowing = false;
+	mPreviewShowing = false;
 
 	aBalloon->SetBoxImages(mApp->mImages[IMAGE_BACKDROP_WB_TEXT], mApp->mImages[IMAGE_WB_TEXT_TALK_TAIL],
 		Point((int)(0.75 * 213.0), -2));
@@ -354,6 +359,52 @@ void Lex::SayReaction(const SexyString& theWord, const SexyString& theReaction, 
 	aBalloon->mTextInsets = Insets(12, 0, 12, 0);
 	aBalloon->Resize(0, 0, 213, aBalloon->GetPreferredHeight(213));
 	aBalloon->Show(theDuration);
+}
+
+// port(mod): the selected word's definition (mod "select-definitions", Board::UpdateSelectDefinition) in
+// SayDefinition's box, shown until EndPreview. It replaces another preview or a balloon fading out, never a
+// message still up (a hint, a played word's definition): false then, to be tried again.
+bool Lex::PreviewDefinition(const SexyString& theWord, const SexyString& theDefinition)
+{
+	OverlayWidget* anOverlay = mApp->mBoard->mOverlay;
+	if (anOverlay == NULL)
+		return false;
+	WordBalloon* aBalloon = anOverlay->mBalloon;
+	if ((aBalloon->mVisible) && (!mPreviewShowing) && (aBalloon->mTargetAlpha > 0.0))
+		return false;
+	mHintShowing = false;
+	mPreviewShowing = true;
+
+	aBalloon->SetBoxImages(mApp->mImages[IMAGE_BACKDROP_WB_TEXT], mApp->mImages[IMAGE_WB_TEXT_TALK_TAIL],
+		Point((int)(0.75 * 213.0), -2));
+	aBalloon->SetHeader(theWord, mApp->mFonts[FONT_MYRIADWEB12BOLD], -1);
+	aBalloon->SetText(theDefinition, mApp->mFonts[FONT_MYRIADWEB10], -1);
+	aBalloon->mLookupURL = ModWordLookupURL(theWord);
+	aBalloon->mDoFinger = !aBalloon->mLookupURL.empty();
+	aBalloon->SetColors(gLexSayColors, 4);
+	aBalloon->ClearFooter();
+	aBalloon->mTextInsets = Insets(12, 0, 12, 0);
+	aBalloon->Resize(0, 0, 213, aBalloon->GetPreferredHeight(213));
+	aBalloon->Show(-1);
+	return true;
+}
+
+// port(mod): the preview goes: fading out, or at once (isAtOnce: the played word's balloon comes next)
+void Lex::EndPreview(bool isAtOnce)
+{
+	if (!mPreviewShowing)
+		return;
+	mPreviewShowing = false;
+	OverlayWidget* anOverlay = mApp->mBoard->mOverlay;
+	if (anOverlay == NULL)
+		return;
+	WordBalloon* aBalloon = anOverlay->mBalloon;
+	aBalloon->Show(0);
+	if (isAtOnce)
+	{
+		aBalloon->mAlpha = 0.0;
+		aBalloon->SetVisible(false);
+	}
 }
 
 // 0x42d9e0 slot 23

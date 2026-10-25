@@ -259,6 +259,11 @@ public:
 	// port(mod): the day's board (mod "daily-board", DailyBoard.h); NULL without it
 	DailyBoard*			mDaily;
 	bool				mTileSymbols;           // port(mod): colour-blind mode's tile symbols (TileSymbols.h)
+	// port(mod): the selected word's definition (mod "select-definitions", UpdateSelectDefinition): the word it is
+	// for ("" for none) and the updates left before it shows
+	bool				mSelectDefs;
+	SexyString			mSelectDefWord;
+	int					mSelectDefDelay;
 	bool				mBotsChecked;
 	// port(mod): the moves (words and scrambles) so far and the last word's cells (row * BOARD_COLS + col, in
 	// order; empty for a scramble), for the -autoplay bot's check of the bots' model (-autoplaymodel)
@@ -313,6 +318,7 @@ public:
 	int					GetModWordsAllTime();                           // port(mod)
 	void				AddModWordsAllTime(int theDelta);               // port(mod)
 	void				UpdateBots();                                   // port(mod)
+	void				UpdateSelectDefinition();                       // port(mod)
 	void				ReadBots(FILE* theFile);                        // port(mod)
 	void				DeleteAllPieces();                              // 0x4036e0
 	void				RemovePieces(PieceList* thePieces);             // 0x4052d0

@@ -105,6 +105,7 @@ public:
 	// +0xc6..+0xc7 pad
 	int				mSweatFrame;            // +0xc8 0; 0..7, +1 every 6 updates while sweating; OverlayWidget draws that row of IMAGE_FX_LEX_SWEAT_SEQ
 	// +0xcc..+0xcf pad; sizeof 0xd0
+	bool			mPreviewShowing;        // port(mod): the balloon shows the selected word's definition (PreviewDefinition)
 
 public:
 	Lex(BookWormApp* theApp);                                       // 0x42d560
@@ -133,6 +134,8 @@ public:
 						const SexyString& theNote = SexyString());  // port(mod): a footer (the word review's)
 	void			SayReaction(const SexyString& theWord, const SexyString& theReaction,
 						const SexyString& theDefinition, int theDuration);  // port(mod): a mod's word
+	bool			PreviewDefinition(const SexyString& theWord, const SexyString& theDefinition);  // port(mod)
+	void			EndPreview(bool isAtOnce);                                                      // port(mod)
 
 	// 0x404340 (inline, emitted in Board.cpp): an animation plays or Lex is not at his target
 	bool			IsBusy()
