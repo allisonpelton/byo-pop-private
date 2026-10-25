@@ -259,7 +259,8 @@ Board::~Board()
 	mAtomicus = NULL;
 	delete mBonus;
 	mBonus = NULL;
-	mApp->mBoard = NULL;
+	if (mApp->mBoard == this)
+		mApp->mBoard = NULL;
 }
 
 // 0x431b50: a game starts
