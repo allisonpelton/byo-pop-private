@@ -1,0 +1,11 @@
+{
+  "id": "long-words",
+  "name": "Words Over 12 Letters",
+  "version": "1.0",
+  "author": "byo-pop",
+  "description": "Lets a word list mod's words of more than 12 letters count. BookWorm's own list stops at 12 letters, and its word box shows no more; with this mod the whole word shows, in a smaller font where it must, on the board and in the level's summary, and the Word Solver and the greedy bots find the longer words too. On its own it changes nothing: the longer words come from a word list mod such as Collins Scrabble Words or Bookworm Adventures 2 Words. Games with it keep their own high scores.",
+  "affectsScores": true,
+  "features": {
+    "longWords": true
+  }
+}
