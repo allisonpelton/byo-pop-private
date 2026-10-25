@@ -50,6 +50,18 @@ the same machine. A plain run opens a window, raises it over whatever the user i
   sessions share this machine, so never stop a game exe by its name alone.
 - Never run `-script`/`-autoplay` runs on the user's desktop. `ORACLE_VISIBLE=1` exists only for the user.
 
+## Token economy (the user's rules, 2026-10-24)
+
+Usage limits ran out in 36 hours of one week; `docs/TOKEN_ECONOMY.md` has the measurements. Every call
+re-reads the whole context, so what costs is context times calls, and a cache that expires while waiting.
+- No workflows or parallel agents unless the user asks for them; mechanical work goes to one Sonnet agent.
+- A subagent never runs anything longer than about 4 minutes (the oracle, whole test suites, full builds,
+  wait loops): its 5-minute cache expires and its whole context is written again. The owning session runs
+  those, in the background, and waits for the notification instead of polling.
+- Read narrowly: grep, then the range you need; the section of a doc, not the doc. Send long output to a
+  log file and print a summary line.
+- Give an agent the files and sections it needs, so it need not read the design docs to find them.
+
 ## Sessions, ownership and git (the user's rules)
 
 The work is split across Claude sessions (the user's design, 2026-10-19):
