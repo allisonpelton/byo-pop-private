@@ -323,6 +323,8 @@ public:
 	void				UpdateBots();                                   // port(mod)
 	void				UpdateSelectDefinition();                       // port(mod)
 	void				ReadBots(FILE* theFile);                        // port(mod)
+	bool				RefillIsLevelsFirst() const;                    // port(mod): the next Refill skips the fire
+	                                                                    // meter (SolverFireRater)
 	void				DeleteAllPieces();                              // 0x4036e0
 	void				RemovePieces(PieceList* thePieces);             // 0x4052d0
 	void				GetNormalPieces(std::vector<Piece*>* thePieces); // 0x40b9e0

@@ -41,6 +41,10 @@
 // and the word's score, and "HINT MISMATCH" where the game scored the word otherwise than the solver said.
 // With the solver's setting "saveBonus" on, "SAVE MISMATCH" where a best or fire hint uses bonus tiles although
 // a path as safe goes without them (for the fire hint, one that takes the same lowest fire tile).
+// With its setting "fewerFire" on (Classic), each hint's new fire tiles as the solver predicts them against the ones
+// that came once the board rests: "FIRE MISMATCH" where fewer came than the meter's certain ones, or some came where
+// none could; the totals at the end. And "FIRE ORDER MISMATCH" where the first best hint is not one of the fewest
+// new fire tiles (SolverFireRater's cost) among the words as safe.
 // -autoplayundo=1 as well (with the mod "undo" on): every other word is undone (the Undo button and Ctrl+Z
 // in turn), the board checked against the one before the word, the same hint played again and the board
 // checked against the first play's; "UNDO MISMATCH" where one differs (letters, tile types, score, fire).
@@ -144,6 +148,16 @@ private:
 	std::string mHintWord;          // the hint submitted, "" for none
 	int mHintScore;                 // its score as the solver has it
 	int mHintMismatches;
+	// the solver's "fewerFire": the hint's new fire tiles as predicted, checked once the board rests (CheckNewFire)
+	int mFireState;                 // 0 none, 1 the hint submitted, 2 scored: waiting for the board to rest
+	double mFirePredicted;
+	int mFireSure;
+	int mFireBase;                  // the board's fire tiles less the word's: the ones that stay
+	int mFireWords;
+	double mFireExpected;
+	int mFireCame;
+	int mFireMismatches;
+	bool mFireTagShot;              // "-firetag": the hint's tag with new fire to expect, shot once
 	bool mTestUndo;
 	int mUndoPhase;                 // 0 a word to play, 1 played: undo it, 2 undone: check, replay, 3 check
 	std::string mUndoBefore;        // BoardState before the word, after it
@@ -214,6 +228,8 @@ private:
 
 	void LogChanges(Board* theBoard);
 	void CheckResult(Board* theBoard);
+	void CheckNewFire(Board* theBoard);
+	void NoteFireTotals();
 	void HandleDialogs();
 	void HandleFame();
 	void HandleSummary(Board* theBoard);

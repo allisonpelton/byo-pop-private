@@ -12,7 +12,9 @@
 // next word must take it. The setting "saveBonus" saves the bonus tiles (green, gold, sapphire, diamond): every
 // list prefers words and paths without them (the fire hint after the lowest fire tile), so they stack up on the
 // board, and a CASH IN hint after the best words is the best-scoring word that uses them (each adds to the
-// multiplier of the whole word's letters: WordScore::CalcScore).
+// multiplier of the whole word's letters: WordScore::CalcScore). The setting "fewerFire" (Classic) orders each word's
+// paths, the fire hint's and the best words by the new fire tiles they bring, the fire meter's drain counted as
+// fire to come (SolverFireRater); the tag shows the new fire tiles to expect.
 
 #include "Common.h"
 #include "Piece.h"
@@ -79,7 +81,40 @@ struct SolverWord
 	int					mFireDrops;     // the fire tiles left out that fall (tiles under them eaten)
 	int					mSafety;        // SolverSafety
 	int					mBonusTiles;    // green, gold, sapphire and diamond tiles in the path
+	double				mNewFire;       // SolverFireRater: the new fire tiles to expect from the word's refill and the
+	                                    // burns it starts
+	int					mNewFireSure;   // of them, the fire meter's: certain
+	double				mFireCost;      // mNewFire plus the fire meter's drain in fire tiles (the fewest first)
 	int					mKind;          // SolverHintKind, once it is a hint
+};
+
+// The fire tiles a word brings in Classic (Board::Submit, Refill and BurnTiles). The word's refill and the refill
+// once the tiles it sets burning have burned away each bring a fire tile by chance (gFireChanceByLevel; the first
+// hit after a bonus word is skipped) and one for sure when the fire meter has run out (the word's length moves it,
+// gFireMeterByLength; a refill of the meter goes with the fire tile); but a due fire tile lands only in a column
+// that lost exactly one tile, else it is dropped. The cost adds the meter's drain, at the level's refill
+// (gFireMeterRefill) to a fire tile: a short word brings the next fire tile closer. For the solver's setting
+// "fewerFire" and the greedy bot GREEDY_LEAST_FIRE. The burns are taken to end in one refill (they mostly do).
+class SolverFireRater
+{
+public:
+	// theTiles: the board's lettered tiles; the rest the board's (Board::mFireMeter, mSkipRandomFire, mBonusWord;
+	// isLevelsFirst: the next refill is the level's first, which skips the meter)
+	SolverFireRater(const std::vector<Piece*>& theTiles, bool isClassic, int theLevel, bool isLevelsFirst,
+		double theMeter, bool isSkipping, const SexyString& theBonusWord);
+	static SolverFireRater	ForBoard(Board* theBoard, const std::vector<Piece*>& theTiles);
+	void					Rate(SolverWord* theWord) const;    // mNewFire, mNewFireSure, mFireCost
+	static int				CostOrder(const SolverWord& theWord);   // mFireCost in hundredths, for the hint lists
+
+protected:
+	std::vector<Piece*>		mGrid;          // theTiles by [row * BOARD_COLS + col]
+	std::vector<Piece*>		mFires;
+	bool					mClassic;
+	int						mLevel;
+	bool					mLevelsFirst;
+	double					mMeter;
+	bool					mSkipping;
+	SexyString				mBonusWord;
 };
 
 class Solver

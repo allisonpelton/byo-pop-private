@@ -4138,6 +4138,12 @@ void Board::ReadBots(FILE* theFile)
 	mBotsChecked = mBots != NULL;
 }
 
+// port(mod): the next Refill is the level's first, so it leaves out the fire meter (the solver's "fewerFire")
+bool Board::RefillIsLevelsFirst() const
+{
+	return mLevel > gLastRefillLevel;
+}
+
 // port(mod): the greedy bots begin at a fresh Classic game's first board and play some moves each tick, a
 // little while the player plays and more once the game is over, where the summary shows their results
 void Board::UpdateBots()

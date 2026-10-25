@@ -3,11 +3,12 @@
 
 // port(mod): the greedy bots, mod "greedy-bots" (games/bookworm/mods/greedy-bots, feature "greedyBots"). At the
 // start of a Classic game (its first board, before the first word) the board, the game's generator and the
-// rest of the state the rules draw on are kept (BotGame::Capture). Two simple players then play their own
+// rest of the state the rules draw on are kept (BotGame::Capture). Three simple players then play their own
 // games from that start, a few moves a tick while the player plays (GreedyBots::Update): one always plays the
-// best-scoring word, the other puts out the most urgent fire first. The game-over page shows how far each got
-// (LevelUpWidget), and a saved game keeps their results and the games still going (Board's saved-game
-// trailer, GreedyBots::Write).
+// best-scoring word, one puts out the most urgent fire first, and one does that too but then brings the fewest
+// new fire tiles (the solver's "fewerFire", SolverFireRater). The game-over page shows how far each got (LevelUpWidget), and a saved
+// game keeps their results and the games still going (Board's saved-game trailer, GreedyBots::Write; a game
+// saved with two bots, before the third, reads with the third absent).
 //
 // BotGame is a headless model of Classic's rules: Board::Submit, Scramble, Refill, BurnTiles, RemovePieces,
 // AwardSpecialTile, PickBonusWord and LevelUp, drawing from its copy of gGameRand in the game's order, and of
@@ -101,6 +102,8 @@ enum GreedyBotKind
 	                                // end the game at once
 	GREEDY_FIRE_FIRST,              // the safest word, one that takes the lowest fire tile first (the
 	                                // solver's fire hint), else the best-scoring
+	GREEDY_LEAST_FIRE,              // the safest word, one that takes the lowest fire tile first, then the
+	                                // fewest new fire tiles (SolverFireRater's cost), then the best-scoring
 	NUM_GREEDY_BOTS
 };
 
@@ -109,7 +112,8 @@ enum GreedyBotEnd
 	GREEDY_PLAYING = 0,
 	GREEDY_BURNED,                  // a fire tile burned through the bottom
 	GREEDY_STUCK,                   // no word and no scramble
-	GREEDY_CAPPED                   // stopped at GREEDY_MAX_MOVES moves, still alive
+	GREEDY_CAPPED,                  // stopped at GREEDY_MAX_MOVES moves, still alive
+	GREEDY_ABSENT                   // not in the saved game (saved before this bot was added)
 };
 
 struct GreedyBotResult

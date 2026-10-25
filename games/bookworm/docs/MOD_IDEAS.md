@@ -20,6 +20,7 @@ redistributed, stay git-ignored. How to install and test the mods that exist: RE
 | 8 | The smaller ideas (4.4): missed words, par, daily board, word journal, colour-blind, LiveSplit, widescreen | done |
 | 9 | Definitions while selecting (`mods/select-definitions`, 4.7, the user's idea) | done |
 | 10 | The solver saves bonus tiles (`mods/solver` setting `saveBonus`, 4.8, the user's idea) | done |
+| 11 | The solver keeps new fire tiles away (`mods/solver` setting `fewerFire`, 4.9), and a third greedy bot that plays so (the user's idea) | done |
 
 Code mods read their switches from the mod's `"features"` (`src/ModFeatures.h`: a feature on, a live
 setting's value) and say `"affectsScores": true`, so their games get their own high scores and saved games
@@ -126,15 +127,17 @@ the same, since each mod's words are those the game's own list lacks, whatever o
 Mod `greedy-bots` (feature `"greedyBots"`, `src/GreedyBots.cpp`), Classic only, `"affectsScores": false` (the
 player's game is untouched). At a fresh game's first board (no word or scramble yet) `BotGame::Capture` copies
 the board, `gGameRand` and the rest of the state the rules draw on (RandomLetter's previous letter, Refill's
-previous level, the fire meter, the reward streak, the bonus words). Two bots then play their own games from
+previous level, the fire meter, the reward streak, the bonus words). Three bots then play their own games from
 there, about 2 ms of moves a tick while the player plays and 12 ms once the game is over, until each burns
 out, is stuck or reaches 2,500 moves:
 - **Best word**: the best-scoring word, the bonus word's points included, one that ends the game at once only
   when nothing else is there; then the longest.
 - **Fire first**: the safest word (the solver's safety); among those, one with fire tiles first, in the
   solver's fire-hint order (the lowest fire tile, then the most); else the best-scoring.
+- **Least fire** (added with 4.9): as fire first, but after the lowest fire tile the fewest new fire tiles
+  (SolverFireRater's cost) before the rest. A game saved with two bots reads with this one absent.
 
-Both use the solver's search (`FindSolverWords`), scored at the bot's own level (`WordScore::mLevel`: the
+All use the solver's search (`FindSolverWords`), scored at the bot's own level (`WordScore::mLevel`: the
 game's scoring reads the board's level), and scramble when the board spells nothing. The model (`BotGame`) is
 Submit, Scramble, Refill, BurnTiles, RemovePieces, AwardSpecialTile, the rude-words effects, PickBonusWord and
 LevelUp, drawing from its copy of the generator in the game's order, and the tile pass as far as it decides
@@ -229,6 +232,30 @@ hint after the best words is the best-scoring word that uses them. The -autoplay
 first hint every move) logs `SAVE MISMATCH` for a best or fire hint that uses bonus tiles where a path as safe
 goes without; seed 1 Classic and seed 2 Action, 30,000 updates: 436 words, none. Over the first 60 hints of
 Classic seed 1, 2 hints used bonus tiles (44 without the setting), and the board held 21 on average (2.4).
+
+### 4.9 The solver keeps new fire tiles away (done, the user's idea, 2026-10-25)
+The solver's setting `fewerFire` and the greedy bot "Least fire" (GREEDY_LEAST_FIRE). In Classic a word's refill
+(Board::Refill) brings a fire tile by chance (gFireChanceByLevel: none on levels 1 to 3, 2% on level 4, up to 32%;
+the first hit after a bonus word is skipped) and one when the hidden fire meter has run out. Submit moves the meter
+by the word's length (gFireMeterByLength, less one: 3 letters -1.5, 4 -0.65, 5 +0.45, 6 +0.85, 7 +2.0, 8 and more
++3.75; a bonus word adds its length); an empty meter is refilled by gFireMeterRefill (5.25 on level 1 down to 1.2
+from level 12) with the fire tile, except on the level's first refill. A due fire tile lands only in a column that
+lost exactly one tile, else it is dropped (the meter refilled all the same). The tiles a word sets burning
+(BurnTiles) bring a refill of their own once they have burned away, with the same chances. SolverFireRater predicts
+a path's new fire tiles from all that (the burns as one refill) and its cost: those plus the meter's drain at the
+level's refill to a fire tile. With the setting, each word's path, the fire hint after the lowest fire tile and the
+best words come in the order of the cost (in hundredths), before `saveBonus`; the longest stays the longest. The
+tag gives the new fire to expect: the meter's tile as certain, the rest as a chance. The bot takes the lowest fire
+tile first, then the lowest cost, then the points (by the cost alone it burned at level 19 on seed 1, where the
+fire-first bot reached level 44).
+
+The -autoplay bot (`-autoplayhints=1`) checks the prediction against the game: over eight Classic games (seeds 1 and
+3 to 9) to game over, 1,541 new fire tiles were expected and 1,532 came (8,500 words), none where none could come and
+never fewer than the certain ones. With the setting the hint bot got 0.16 to 0.19 new fire tiles a word, without it
+0.19 to 0.30 (every seed lower with it, about a fifth fewer). Whether the game lasts longer is another matter: the
+hint bot went further with it on three seeds, less far on four, the same on one. The greedy bots, seeds 1 and 4 to
+9: least fire reached level 43 on average (28 to 51; 6.2 million points), fire first 41 (36 to 48; 3.9 million),
+best word 14.
 
 ## What works as plain data today (no code)
 

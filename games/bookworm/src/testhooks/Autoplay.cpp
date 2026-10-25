@@ -130,6 +130,15 @@ AutoplayBot::AutoplayBot(BookWormApp* theApp, unsigned long theSeed, const std::
 	mUseHints(theUseHints),
 	mHintScore(0),
 	mHintMismatches(0),
+	mFireState(0),
+	mFirePredicted(0.0),
+	mFireSure(0),
+	mFireBase(0),
+	mFireWords(0),
+	mFireExpected(0.0),
+	mFireCame(0),
+	mFireMismatches(0),
+	mFireTagShot(false),
 	mTestUndo(theTestUndo),
 	mUndoPhase(0),
 	mUndoWordsScored(0),
@@ -356,6 +365,7 @@ void AutoplayBot::LogChanges(Board* theBoard)
 			Note("game over: a fire tile burned through the bottom");
 			if (mUseHints)
 				Note("hints: %d words scored, %d mismatches", mWordsScored, mHintMismatches);
+			NoteFireTotals();
 			if (mTestUndo)
 				Note("undo: %d checks, %d mismatches", mUndoChecks, mUndoMismatches);
 			NoteTyped();
@@ -365,11 +375,14 @@ void AutoplayBot::LogChanges(Board* theBoard)
 		{
 			GreedyBots* aBots = theBoard->mBots;
 			Note("greedy bots%s after %.0f ms: best word %d (level %d, %d words, end %d), fire first %d (level %d, "
-				"%d words, end %d)", aBots->Finished() ? "" : " (still playing)", aBots->mElapsedMs,
+				"%d words, end %d), least fire %d (level %d, %d words, end %d)", aBots->Finished() ? "" : " (still playing)",
+				aBots->mElapsedMs,
 				aBots->mResults[GREEDY_BEST_WORD].mScore, aBots->mResults[GREEDY_BEST_WORD].mLevel + 1,
 				aBots->mResults[GREEDY_BEST_WORD].mWords, aBots->mResults[GREEDY_BEST_WORD].mEnd,
 				aBots->mResults[GREEDY_FIRE_FIRST].mScore, aBots->mResults[GREEDY_FIRE_FIRST].mLevel + 1,
-				aBots->mResults[GREEDY_FIRE_FIRST].mWords, aBots->mResults[GREEDY_FIRE_FIRST].mEnd);
+				aBots->mResults[GREEDY_FIRE_FIRST].mWords, aBots->mResults[GREEDY_FIRE_FIRST].mEnd,
+				aBots->mResults[GREEDY_LEAST_FIRE].mScore, aBots->mResults[GREEDY_LEAST_FIRE].mLevel + 1,
+				aBots->mResults[GREEDY_LEAST_FIRE].mWords, aBots->mResults[GREEDY_LEAST_FIRE].mEnd);
 		}
 		mLastState = theBoard->mState;
 	}
@@ -396,6 +409,7 @@ void AutoplayBot::CheckResult(Board* theBoard)
 			(mApp->GetDialog(DIALOG_HINT) != NULL) ? "refused with a dialog" : "refused";
 		Note("scramble: %s, %d fire tiles, %d scrambles this game", aResult, theBoard->mFireTileCount,
 			theBoard->mGameStats->mScrambles);
+		mFireState = 0;
 		return;
 	}
 
@@ -415,6 +429,8 @@ void AutoplayBot::CheckResult(Board* theBoard)
 				aLevel.mWords, aLevel.mScore, aLevel.mPar, aLevel.ParPercent(), aLevel.mMissed, aGame.mWords, aGame.mScore,
 				aGame.mPar, aGame.mMissed);
 		}
+		if (mFireState == 1)
+			mFireState = 2;
 		if ((!mHintWord.empty()) && ((theBoard->mLastWord.mWord != mHintWord) || (theBoard->mLastWord.mScore != mHintScore)))
 		{
 			mHintMismatches++;
@@ -426,6 +442,7 @@ void AutoplayBot::CheckResult(Board* theBoard)
 	else
 	{
 		Note("%s not taken (%s)", mPlanWord.c_str(), theBoard->mSelection.empty() ? "no selection" : "the selection stays");
+		mFireState = 0;
 		if (!mHintWord.empty())
 		{
 			mHintMismatches++;
@@ -433,6 +450,31 @@ void AutoplayBot::CheckResult(Board* theBoard)
 		}
 	}
 	mHintWord = "";
+}
+
+// The solver's "fewerFire": once the board rests after the hint's word, the new fire tiles against the prediction
+void AutoplayBot::CheckNewFire(Board* theBoard)
+{
+	if ((mFireState != 2) || (theBoard == NULL) || (!Solver::BoardAtRest(theBoard)))
+		return;
+	mFireState = 0;
+	int aCame = theBoard->mFireTileCount - mFireBase;
+	mFireWords++;
+	mFireExpected += mFirePredicted;
+	mFireCame += aCame;
+	Note("fire: %d new fire tiles came (%.2f expected)", aCame, mFirePredicted);
+	if ((aCame < mFireSure) || ((mFirePredicted == 0.0) && (aCame > 0)))
+	{
+		mFireMismatches++;
+		Note("FIRE MISMATCH: %d new fire tiles came, %.2f expected (%d certain)", aCame, mFirePredicted, mFireSure);
+	}
+}
+
+void AutoplayBot::NoteFireTotals()
+{
+	if (mFireWords > 0)
+		Note("fire prediction: %d words, %.1f new fire tiles expected, %d came, %d mismatches", mFireWords,
+			mFireExpected, mFireCame, mFireMismatches);
 }
 
 // The first dialog (lowest id) in front: the new-user dialog gets a name, hint, message and can't-scramble
@@ -1327,6 +1369,51 @@ int AutoplayBot::RunStep(Board* theBoard, const Step& theStep)
 					}
 				}
 			}
+			// the solver's "fewerFire": the new fire tiles to check once the board rests; the first best hint has the
+			// fewest (by cost) of the words as safe, the earlier hints' words left out (while the list is the board's: a
+			// bonus word whose banner came back after the hints were made makes them stale)
+			if ((ModFeatureBool("solver", "fewerFire", false)) && (mApp->mGameMode == GAMEMODE_CLASSIC))
+			{
+				mFireState = 1;
+				mFirePredicted = aHint->mNewFire;
+				mFireSure = aHint->mNewFireSure;
+				mFireBase = theBoard->mFireTileCount - aHint->mFireTiles;
+				Note("fire: %.2f new fire tiles to expect (%d certain), cost %.2f, meter %.2f", aHint->mNewFire,
+					aHint->mNewFireSure, aHint->mFireCost, theBoard->mFireMeter);
+				if ((!mFireTagShot) && (aHint->mNewFire > 0.0))
+				{
+					mFireTagShot = true;
+					Shot(std::string(ModeName(mApp->mGameMode)) + "-firetag");
+				}
+				const std::vector<SolverWord>& aHints = theBoard->mSolver->mHints;
+				int anIdx = theBoard->mSolver->mHintIdx;
+				bool isFirstBest = aHint->mKind == SOLVER_HINT_BEST;
+				for (int i = 0; (i < anIdx) && (isFirstBest); i++)
+					isFirstBest = aHints[i].mKind != SOLVER_HINT_BEST;
+				if ((isFirstBest) && (theBoard->mSolver->IsCurrent()))
+				{
+					std::vector<SolverWord> anAll;
+					FindSolverWords(aTiles, mApp, &anAll);
+					SolverFireRater aRater = SolverFireRater::ForBoard(theBoard, aTiles);
+					for (SolverWord& aWord : anAll)
+					{
+						bool isListed = false;
+						for (int i = 0; i < anIdx; i++)
+							isListed = isListed || (aHints[i].mWord == aWord.mWord);
+						if (isListed)
+							continue;
+						aRater.Rate(&aWord);
+						if ((aWord.mSafety < aHint->mSafety) || ((aWord.mSafety == aHint->mSafety) &&
+							(SolverFireRater::CostOrder(aWord) < SolverFireRater::CostOrder(*aHint))))
+						{
+							Note("FIRE ORDER MISMATCH: the hint %s costs %.2f, %s %.2f", aHint->mWord.c_str(),
+								aHint->mFireCost, aWord.mWord.c_str(), aWord.mFireCost);
+							mFireMismatches++;
+							break;
+						}
+					}
+				}
+			}
 		}
 		if ((mTypeWords) && (Random(2) == 0))
 		{
@@ -1502,6 +1589,7 @@ void AutoplayBot::Update()
 
 	Board* aBoard = mApp->mBoard;
 	CheckResult(aBoard);
+	CheckNewFire(aBoard);
 	LogChanges(aBoard);
 
 	int aNext = mApp->mUpdateCount + 1;
@@ -1510,6 +1598,7 @@ void AutoplayBot::Update()
 		Note("update cap");
 		if (mUseHints)
 			Note("hints: %d words scored, %d mismatches", mWordsScored, mHintMismatches);
+		NoteFireTotals();
 		if (mTestUndo)
 			Note("undo: %d checks, %d mismatches", mUndoChecks, mUndoMismatches);
 		Quit();

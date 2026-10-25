@@ -387,11 +387,13 @@ static SexyString BotLine(const char* theName, const GreedyBotResult& theResult)
 		return aLine + StrFormat("level %d, playing...", theResult.mLevel + 1);
 	if (theResult.mEnd == GREEDY_CAPPED)
 		return aLine + StrFormat("level %d, still going", theResult.mLevel + 1);
+	if (theResult.mEnd == GREEDY_ABSENT)
+		return StrFormat("%s: not in this saved game", theName);
 	return aLine + StrFormat("%s at level %d", (theResult.mEnd == GREEDY_STUCK) ? "stuck" : "burned", theResult.mLevel + 1);
 }
 
 // port(mod): at game over, once the page has slid in, a balloon above Lex, in the left column, with the mods'
-// results: the scores of the greedy bots (mod "greedy-bots") from the game's first board, followed until both
+// results: the scores of the greedy bots (mod "greedy-bots") from the game's first board, followed until their
 // games have ended, then which of them the player beat; and the daily board's (mod "daily-board"): this game,
 // the day's best and the player's best day. A click hides it.
 void LevelUpWidget::UpdateModsBalloon()
@@ -407,23 +409,36 @@ void LevelUpWidget::UpdateModsBalloon()
 	GreedyBots* aBots = aBoard->mBots;
 	if ((aBots != NULL) && (aBots->mHasResults))
 	{
-		const GreedyBotResult& aBest = aBots->mResults[GREEDY_BEST_WORD];
-		const GreedyBotResult& aFire = aBots->mResults[GREEDY_FIRE_FIRST];
+		static const char* const BOT_NAMES[NUM_GREEDY_BOTS] = { "Best word", "Fire first", "Least fire" };
+		static const char* const BOT_BEATEN[NUM_GREEDY_BOTS] = { "best-word", "fire-first", "least-fire" };
 		aHeader = "Greedy bots";
-		aText = BotLine("Best word", aBest) + "\n\n" + BotLine("Fire first", aFire);
+		int aScore = aBoard->mGameStats->mScore;
+		std::vector<int> aBeaten;
+		int aPlayed = 0;
+		for (int i = 0; i < NUM_GREEDY_BOTS; i++)
+		{
+			const GreedyBotResult& aResult = aBots->mResults[i];
+			aText += ((i == 0) ? "" : "\n\n") + BotLine(BOT_NAMES[i], aResult);
+			if (aResult.mEnd == GREEDY_ABSENT)
+				continue;
+			aPlayed++;
+			if (aScore > aResult.mScore)
+				aBeaten.push_back(i);
+		}
 		if (aBots->Finished())
 		{
-			int aScore = aBoard->mGameStats->mScore;
-			bool beatBest = aScore > aBest.mScore;
-			bool beatFire = aScore > aFire.mScore;
-			if ((beatBest) && (beatFire))
-				aFooter = "You beat both bots!";
-			else if (beatBest)
-				aFooter = "You beat the best-word bot!";
-			else if (beatFire)
-				aFooter = "You beat the fire-first bot!";
-			else
+			if ((int)aBeaten.size() == aPlayed)
+				aFooter = (aPlayed == 3) ? "You beat all three bots!" : "You beat both bots!";
+			else if (aBeaten.size() == 0)
 				aFooter = "The bots win this time.";
+			else
+			{
+				// "the best-word bot", "the best-word and least-fire bots"
+				aFooter = "You beat the ";
+				for (size_t i = 0; i < aBeaten.size(); i++)
+					aFooter += StrFormat("%s%s", (i == 0) ? "" : " and ", BOT_BEATEN[aBeaten[i]]);
+				aFooter += (aBeaten.size() == 1) ? " bot!" : " bots!";
+			}
 		}
 	}
 	DailyBoard* aDaily = aBoard->mDaily;
