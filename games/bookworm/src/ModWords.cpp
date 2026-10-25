@@ -10,15 +10,17 @@ using namespace Sexy;
 namespace
 {
 
-// The words one mod added, sorted, for its note
-struct NoteList
+// The words one mod adds that the game's own list lacks, sorted, for its note and its fire tiles
+struct ModWordList
 {
 	std::string				mModId;
 	SexyString				mNote;
+	bool					mHasFire;
+	int						mFire;          // "fire", the mod's setting "fire" taking its place
 	std::vector<SexyString>	mWords;
 };
 
-std::vector<NoteList> gNoteLists;
+std::vector<ModWordList> gModWordLists;
 
 // A file name or a list of them
 std::vector<std::string> FileNames(const Platform::JsonValue& theValue)
@@ -38,31 +40,43 @@ std::vector<std::string> FileNames(const Platform::JsonValue& theValue)
 
 void Sexy::LoadModWords(BookWormApp* theApp, std::set<SexyString>* theDictionary)
 {
-	gNoteLists.clear();
+	gModWordLists.clear();
+	// every mod's words against the game's list alone (a word two mods add is each one's), then merged
+	std::vector<std::vector<SexyString> > aMerged;
 	for (const Platform::ModInfo* aMod : Platform::ModManager::Get().GetEnabledMods())
 	{
 		if ((!aMod->mFeaturesJson.IsObject()) || (!aMod->mFeaturesJson.Has("words")))
 			continue;
 		const Platform::JsonValue& aFeature = aMod->mFeaturesJson["words"];
-		NoteList aList;
+		ModWordList aList;
 		aList.mModId = aMod->mId;
 		aList.mNote = aFeature["note"].AsString("");
+		aList.mHasFire = aFeature["fire"].IsNumber();
+		aList.mFire = aFeature["fire"].AsInt(0);
 		for (const std::string& aName : FileNames(aFeature["add"]))
 		{
 			std::vector<SexyString> aWords;
 			theApp->LoadWordList(aName, NULL, &aWords);
 			for (const SexyString& aWord : aWords)
 			{
-				if (theDictionary->insert(aWord).second)
+				if (theDictionary->find(aWord) == theDictionary->end())
 					aList.mWords.push_back(aWord);
 			}
 		}
-		if ((!aList.mNote.empty()) && (!aList.mWords.empty()))
+		std::sort(aList.mWords.begin(), aList.mWords.end());
+		aList.mWords.erase(std::unique(aList.mWords.begin(), aList.mWords.end()), aList.mWords.end());
+		if ((aList.mNote.empty()) && (!aList.mHasFire))
 		{
-			std::sort(aList.mWords.begin(), aList.mWords.end());
-			gNoteLists.push_back(aList);
+			aMerged.push_back(std::vector<SexyString>());
+			aMerged.back().swap(aList.mWords);
 		}
+		else if (!aList.mWords.empty())
+			gModWordLists.push_back(aList);
 	}
+	for (const std::vector<SexyString>& aWords : aMerged)
+		theDictionary->insert(aWords.begin(), aWords.end());
+	for (const ModWordList& aList : gModWordLists)
+		theDictionary->insert(aList.mWords.begin(), aList.mWords.end());
 }
 
 void Sexy::LoadModDefinitions(Definitionator* theDefinitionator)
@@ -108,11 +122,24 @@ std::string Sexy::ModWordLookupURL(const SexyString& theWord)
 	return std::string();
 }
 
+int Sexy::ModWordFire(const SexyString& theWord)
+{
+	for (const ModWordList& aList : gModWordLists)
+	{
+		if ((!aList.mHasFire) || (!std::binary_search(aList.mWords.begin(), aList.mWords.end(), theWord)))
+			continue;
+		Platform::JsonValue aSetting = Platform::ModManager::Get().GetLiveValue(aList.mModId, "fire");
+		int aFire = aSetting.IsNumber() ? aSetting.AsInt(aList.mFire) : aList.mFire;
+		return (aFire < 0) ? 0 : ((aFire > 9) ? 9 : aFire);
+	}
+	return 0;
+}
+
 SexyString Sexy::ModWordNote(const SexyString& theWord)
 {
-	for (const NoteList& aList : gNoteLists)
+	for (const ModWordList& aList : gModWordLists)
 	{
-		if (!std::binary_search(aList.mWords.begin(), aList.mWords.end(), theWord))
+		if ((aList.mNote.empty()) || (!std::binary_search(aList.mWords.begin(), aList.mWords.end(), theWord)))
 			continue;
 		Platform::JsonValue aSetting = Platform::ModManager::Get().GetLiveValue(aList.mModId, "note");
 		return ((!aSetting.IsBool()) || (aSetting.AsBool(true))) ? aList.mNote : SexyString();

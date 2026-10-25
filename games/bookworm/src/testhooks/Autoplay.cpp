@@ -951,7 +951,7 @@ int AutoplayBot::RunStep(Board* theBoard, const Step& theStep)
 			if (aHint == NULL)
 				return RUN_DROP;
 			static const char* const KIND_NAMES[] = { "fire", "bonus", "best", "longest" };
-			static const char* const SAFETY_NAMES[] = { "safe", "fire to the bottom", "ends the game" };
+			static const char* const SAFETY_NAMES[] = { "safe", "sets fire", "fire to the bottom", "ends the game" };
 			if ((mTestUndo) && (mUndoPhase == 1))
 				mUndoBefore = BoardState(theBoard);     // the board the undo must put back
 			mPlanWord = aHint->mWord;

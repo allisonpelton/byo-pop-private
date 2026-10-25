@@ -1,0 +1,17 @@
+{
+  "id": "rude-words",
+  "name": "Rude Words",
+  "version": "1.0",
+  "author": "byo-pop",
+  "description": "Adds about 300 swear words, crude slang and internet slang that BookWorm's dictionary leaves out (no slurs). They score as usual, but each one sets fire to some of the new tiles that drop in. Works with Collins Scrabble Words too. Games with it keep their own high scores.",
+  "affectsScores": true,
+  "features": {
+    "words": { "add": ["rude-words.txt"], "note": "Such language!", "fire": 2 }
+  },
+  "settings": [
+    { "id": "fire", "label": "Fire tiles per rude word", "type": "int", "default": 2, "min": 0, "max": 5,
+      "help": "How many of the tiles that replace a rude word come in burning." },
+    { "id": "note", "label": "Lex minds his language", "type": "bool", "default": true,
+      "help": "Lex's balloon says \"Such language!\" for a rude word without a definition." }
+  ]
+}

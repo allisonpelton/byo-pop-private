@@ -13,7 +13,8 @@ redistributed, stay git-ignored. How to install and test the mods that exist: RE
 | 1 | Word solver (`mods/solver`) | done |
 | 2 | Undo (`mods/undo`) | done |
 | 3 | Bigger dictionary, with Collins (`mods/collins`) | done |
-| 4 | Rude words that set fires; the greedy-bot comparison; HD art; the smaller ideas | planned |
+| 4 | Rude words that set fires (`mods/rude-words`) | done |
+| 5 | The greedy-bot comparison; HD art; the smaller ideas | next |
 
 Code mods read their switches from the mod's `"features"` (`src/ModFeatures.h`: a feature on, a live
 setting's value) and say `"affectsScores": true`, so their games get their own high scores and saved games
@@ -83,11 +84,21 @@ note in the balloon. The rude-words mod can add its words the same way.
 
 ## 4. The rest (planned)
 
-### 4.1 Rude words set fires (the user's idea)
-Slang, profanity and rude words the original list leaves out become playable, and playing one spawns extra
-fire tiles (setting: how many). The words come from a word list file with a licence that allows it (for
-example LDNOOBW, CC BY 4.0), downloaded only with the user's OK; by default it leaves out slurs aimed at groups
-of people. The mod adds them to the dictionary at start-up and marks them, so Submit can tell.
+### 4.1 Rude words set fires (done)
+Mod `rude-words`, the feature `"words"` (section 3) with `"fire"`: 312 swear words, crude slang and internet
+slang (with their inflected forms) that the game's list lacks, in `mods/rude-words/rude-words.txt`. The list
+is our own, written for the mod, so it is committed; it leaves out slurs aimed at groups of people (racial,
+ethnic, homophobic, transphobic, ableist). 230 of them are in Collins too: with both mods on they burn all
+the same, since each mod's words are those the game's own list lacks, whatever other mods add.
+- **Fire**: Submit sets `Board::mModFireDue` from `ModWordFire`, and Refill sets that many of the tiles it
+  drops in on fire (setting 0..5, default 2): normal ones, never on the bottom row, picked with `gGameRand`,
+  so an undo and the same word again bring the same fire. None when the word ends the level.
+- **Lex** says "Such language!" for a rude word without a definition (setting); the solver ranks a word that
+  sets fire after the safe ones and tags it "SETS FIRE".
+- Tested with a copy of the Collins mod given `"fire": 2`, so that the bot plays such words: the plain bot's
+  fire count rises by 2 after each of them (the level-ending one excepted) and it burns out on level 2 (level
+  8 without); an undo and the same clicks again set the same two tiles on fire; the mod's own setting at 0
+  sets none; the solver bot with undo, Classic 109 checks and Action 56, no mismatch.
 
 ### 4.2 Against greedy bots, on the game-over screen (the user's idea)
 At game over the stats screen also shows what two simple players would have scored from the same start: one
@@ -112,8 +123,8 @@ JPEG backdrops with a denoising model; tile letters redrawn from a free vector f
 - **Widescreen layout**: a side panel for the solver's list and the word history.
 
 ### 4.5 Earlier proposals, still open
-- **Definitions** for more words: `popdefs.txt` has 2,249; a `make_popdefs.py` from WordNet (free with its
-  notice) in the original's one-line `(pos.) definition` style.
+- **Definitions** for more words without Collins: `popdefs.txt` has 2,249; WordNet (free with its notice)
+  through the `"words"` feature's `"definitions"`, in the original's one-line `(pos.) definition` style.
 - **Other languages** need engine hooks (tunables, original values by default): the alphabet and its tile
   cels, letter weights (26 summing to 95,500) and values, the "Qu" rule, the minimum length. A language pack is
   then a word list, bonus words, definitions, `texts.xml` and tile art.

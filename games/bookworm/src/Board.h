@@ -236,6 +236,9 @@ public:
 	// the right part.
 	UndoStack*			mUndo;
 	DialogButton*		mUndoButton;
+	// port(mod): fire tiles the next Refill sets among its new tiles (a mod's word: ModWordFire, mod
+	// "rude-words"); set by Submit, 0 otherwise
+	int					mModFireDue;
 
 public:
 	Board(BookWormApp* theApp);                                         // 0x40ae90
@@ -280,6 +283,7 @@ public:
 	// board contents
 	void				NewBoard();                                     // 0x404150
 	void				Refill();                                       // 0x40b540
+	void				SetModFire(const std::vector<Piece*>& theNewTiles, int theCount); // port(mod)
 	void				DeleteAllPieces();                              // 0x4036e0
 	void				RemovePieces(PieceList* thePieces);             // 0x4052d0
 	void				GetNormalPieces(std::vector<Piece*>* thePieces); // 0x40b9e0

@@ -606,6 +606,7 @@ Board::Board(BookWormApp* theApp)
 	// port(mod): undo's UNDO takes the right part of OPTIONS' plank
 	mUndo = NULL;
 	mUndoButton = NULL;
+	mModFireDue = 0;
 	if (ModFeatureEnabled("undo"))
 	{
 		mUndo = new UndoStack(this);
@@ -1072,6 +1073,7 @@ void Board::Refill()
 	bool aMoved = false;
 	int aFireDue = 0;
 	gLastRefillLevel = mLevel;
+	std::vector<Piece*> aNewTiles;  // port(mod): for mModFireDue
 
 	// classic: a random fire tile (skipped once after a bonus word)
 	int aChance = gFireChanceByLevel[((unsigned int)mLevel > 11) ? 12 : mLevel];
@@ -1160,6 +1162,8 @@ void Board::Refill()
 
 			mBoard[aRow][aCol] = aPiece;
 			aY += -57 - (int)(mRand->Next() % 80);
+			if (mModFireDue > 0)
+				aNewTiles.push_back(aPiece);
 		}
 
 		// fire tiles: the tile below gets its countdown; one at the bottom schedules the fire alert hint
@@ -1182,6 +1186,12 @@ void Board::Refill()
 				mApp->mFireAlertHintShown = true;
 			}
 		}
+	}
+
+	if (mModFireDue > 0)
+	{
+		SetModFire(aNewTiles, mModFireDue);
+		mModFireDue = 0;
 	}
 
 	// tiles moved: keep the selection up to the first tile that is no longer selected or adjacent. The
@@ -1813,6 +1823,8 @@ void Board::Submit(int x, int y)
 				mLevelUpPending = true;
 			}
 
+			// port(mod): a mod's word may set fire to some of the tiles that replace it (not as the level ends)
+			mModFireDue = (mState == BOARD_PLAYING) ? ModWordFire(mWord.mWord) : 0;
 			Refill();
 			AwardSpecialTile(mWord);
 			AddScorePopup(mWord.mScore, x, y);
@@ -1829,6 +1841,44 @@ void Board::Submit(int x, int y)
 
 	mFlameSoundPlayed = false;
 	MarkDirty();
+}
+
+// port(mod): theCount of the normal new tiles catch fire, none on the bottom row (a fire tile there would
+// have to be taken by the next word), picked with the game's generator, so an undo and the same word again
+// bring the same fire
+void Board::SetModFire(const std::vector<Piece*>& theNewTiles, int theCount)
+{
+	std::vector<Piece*> aCandidates;
+	for (Piece* aPiece : theNewTiles)
+	{
+		if ((aPiece->mType == TILE_NORMAL) && (aPiece->mRow < 7))
+			aCandidates.push_back(aPiece);
+	}
+	bool aLit = false;
+	for (int i = 0; (i < theCount) && (!aCandidates.empty()); i++)
+	{
+		unsigned int anIndex = gGameRand->Next() % (unsigned int)aCandidates.size();
+		Piece* aPiece = aCandidates[anIndex];
+		aCandidates.erase(aCandidates.begin() + anIndex);
+		aPiece->SetType(TILE_FIRE, true);
+		mFireTileCount++;
+		Piece* aBelow = PieceBelow(aPiece);
+		if ((aBelow != NULL) && (aBelow->mBurnCountdown < 1))
+			aBelow->ResetBurnCountdown();
+		aLit = true;
+	}
+	if (!aLit)
+		return;
+	if (mSelection.size() != 0)
+	{
+		mWord.Build(&mSelection);
+		mWord.CheckValid(&mApp->mDictionary);
+	}
+	if (!mFlameSoundPlayed)
+	{
+		mFlameSoundPlayed = true;
+		mApp->PlaySample(SOUND_FLAMETILE);
+	}
 }
 
 // 0x40abd0: bonus word message and stats, the next bonus word is picked and the banner slides away

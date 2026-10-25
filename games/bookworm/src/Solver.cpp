@@ -2,6 +2,7 @@
 #include "Board.h"
 #include "BookWormApp.h"
 #include "ModFeatures.h"
+#include "ModWords.h"
 #include "Res.h"
 #include "Graphics.h"
 #include "ImageFont.h"
@@ -238,6 +239,8 @@ void Solver::Solve()
 		}
 		if ((aWord.mSafety == SOLVER_SAFE) && (aWord.mFireLeftRow >= BOARD_ROWS - 1))
 			aWord.mSafety = SOLVER_DANGER;
+		if ((aWord.mSafety == SOLVER_SAFE) && (ModWordFire(theWord) > 0))
+			aWord.mSafety = SOLVER_SETS_FIRE;
 		aWord.mKind = SOLVER_HINT_BEST;
 		aWords.push_back(aWord);
 	});
@@ -383,6 +386,8 @@ void Solver::Draw(Graphics* g)
 		aText += "  ENDS THE GAME";
 	else if (aHint.mSafety == SOLVER_DANGER)
 		aText += "  FIRE TO THE BOTTOM";
+	else if (aHint.mSafety == SOLVER_SETS_FIRE)
+		aText += "  SETS FIRE";
 
 	Font* aFont = mBoard->mApp->mFonts[FONT_VERDANA10BOLD];
 	int aWidth = aFont->StringWidth(aText) + 12;
