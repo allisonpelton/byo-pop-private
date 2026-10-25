@@ -66,13 +66,16 @@ enum HintId
 
 // Coin colours (Piece::mColor) as r, g, b. In the original these are Color[5] built by the dynamic
 // initialisers 0x4f3220 / 0x4f32a0 (alpha 255).
-inline constexpr int gCoinColors[Piece::NUM_COIN_COLORS][3] =      // @0x52d8c8, dollar-bomb tint
+// port(mods): 5..7 are the extra colours (Piece::MAX_COIN_COLORS), whose coins are also tinted with gCoinColors.
+inline constexpr int gCoinColors[Piece::MAX_COIN_COLORS][3] =      // @0x52d8c8, dollar-bomb tint
 {
-	{255, 0, 0}, {0, 148, 255}, {255, 255, 0}, {0, 255, 0}, {255, 0, 255}
+	{255, 0, 0}, {0, 148, 255}, {255, 255, 0}, {0, 255, 0}, {255, 0, 255},
+	{255, 140, 0}, {0, 230, 230}, {215, 215, 225}
 };
-inline constexpr int gCoinLightColors[Piece::NUM_COIN_COLORS][3] = // @0x52d878, selection glow tint
+inline constexpr int gCoinLightColors[Piece::MAX_COIN_COLORS][3] = // @0x52d878, selection glow tint
 {
-	{255, 128, 128}, {128, 128, 255}, {240, 240, 64}, {87, 255, 87}, {240, 64, 240}
+	{255, 128, 128}, {128, 128, 255}, {240, 240, 64}, {87, 255, 87}, {240, 64, 240},
+	{255, 190, 110}, {128, 255, 255}, {245, 245, 250}
 };
 
 // Rank thresholds (@0x4f53c0): rank = highest i with gRankThresholds[i] <= score (names gRankNames)

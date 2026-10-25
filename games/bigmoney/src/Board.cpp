@@ -3998,8 +3998,8 @@ void Board::LoadTunables()
 	mPuzzleBagsPerLevel = ModTunable("bags.puzzlePerLevel", mPuzzleBagsPerLevel, 0.0, 100.0);
 
 	BoardTunables& t = mTunables;
-	t.mColors = ModTunableInt("coins.colors", t.mColors, 1, 5);
-	t.mPuzzleColors = ModTunableInt("coins.puzzleColors", t.mPuzzleColors, 1, 5);
+	t.mColors = ModTunableInt("coins.colors", t.mColors, 1, Piece::MAX_COIN_COLORS); // port(mods): up to 8
+	t.mPuzzleColors = ModTunableInt("coins.puzzleColors", t.mPuzzleColors, 1, Piece::MAX_COIN_COLORS);
 	t.mFewerColorsFirstLevel = ModTunableBool("coins.fewerOnFirstLevel", t.mFewerColorsFirstLevel);
 	t.mMinGroup = ModTunableInt("groups.minSize", t.mMinGroup, 2, 15);
 	t.mPuzzleMinGroup = ModTunableInt("groups.puzzleMinSize", t.mPuzzleMinGroup, 2, 15);

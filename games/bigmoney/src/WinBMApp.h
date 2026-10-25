@@ -54,6 +54,11 @@ public:
 	HelpWidget*		mHelpWidget;                // +0x6e0 ShowHelp / RemoveHelp
 	Image**			mImages;                    // +0x6e4 new Image*[NUM_IMAGES] (DDImages from GetImage)
 	MemoryImage*	mBrightCoinsImage;          // +0x6e8 IMAGE_COINS with c' = min(255, c*280/255 + 48); never deleted
+	// port(mods): the coins of the extra colours 5..7 (Piece::MAX_COIN_COLORS), one row each, from IMAGE_COINS,
+	// IMAGE_HORZCOINS and mBrightCoinsImage (MakeExtraCoins)
+	MemoryImage*	mExtraCoinsImage;
+	MemoryImage*	mExtraHorzCoinsImage;
+	MemoryImage*	mExtraBrightCoinsImage;
 	ImageFont*		mFont1;                     // +0x6ec bigmoneyfont1
 	ImageFont*		mFont1NoShadow;             // +0x6f0 copy + "noshadow"
 	ImageFont*		mFont1OutlineNoShadow;      // +0x6f4 copy + "outline" + "noshadow"

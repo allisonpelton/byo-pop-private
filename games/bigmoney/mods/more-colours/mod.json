@@ -1,0 +1,20 @@
+{
+  "id": "more-colours",
+  "name": "More Colours",
+  "version": "1.0",
+  "author": "byo-pop examples",
+  "description": "Up to three new coin colours: orange, cyan and silver. Six colours in every mode by default (the first level on Easy has one fewer, as in the game). More colours make big groups rarer, so the game gets harder. Keeps its own high scores.",
+  "settings": [
+    { "type": "section", "label": "Coin colours" },
+    { "id": "colors", "label": "Action and Strategy", "type": "int", "default": 6, "min": 2, "max": 8,
+      "help": "The game has 4. Past 5 come orange, cyan and silver." },
+    { "id": "puzzleColors", "label": "Puzzle", "type": "int", "default": 6, "min": 2, "max": 8,
+      "help": "The game has 5. Past 5 come orange, cyan and silver." }
+  ],
+  "tunables": {
+    "coins": {
+      "colors": { "$setting": "colors" },
+      "puzzleColors": { "$setting": "puzzleColors" }
+    }
+  }
+}

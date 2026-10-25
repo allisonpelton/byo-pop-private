@@ -7,10 +7,19 @@
 using namespace Sexy;
 
 // Zobrist keys from a fixed generator (splitmix64), so hashes are the same on every machine and the game's
-// own random numbers are not touched
+// own random numbers are not touched. Per cell: colours 0..4 and the bag; then the released count; then the
+// extra colours 5..7 per cell, added after the others so the first keys stay as they were.
+enum
+{
+	ZOBRIST_CELL = 6,
+	ZOBRIST_RELEASED = PuzzleModel::ROWS * PuzzleModel::COLS * ZOBRIST_CELL,
+	ZOBRIST_EXTRA = ZOBRIST_RELEASED + 64,
+	ZOBRIST_EXTRA_CELL = PuzzleModel::COLORS - 5
+};
+
 static const uint64_t* ZobristKeys()
 {
-	static uint64_t sKeys[PuzzleModel::ROWS * PuzzleModel::COLS * 6 + 64];
+	static uint64_t sKeys[ZOBRIST_EXTRA + PuzzleModel::ROWS * PuzzleModel::COLS * ZOBRIST_EXTRA_CELL];
 	static bool sReady = false;
 	if (!sReady)
 	{
@@ -265,26 +274,30 @@ void PuzzleModel::Compact(int* theFall)
 uint64_t PuzzleModel::Hash() const
 {
 	const uint64_t* aKeys = ZobristKeys();
-	uint64_t aHash = aKeys[ROWS * COLS * 6 + (mReleased & 63)];
+	uint64_t aHash = aKeys[ZOBRIST_RELEASED + (mReleased & 63)];
 	for (int i = 0; i < ROWS * COLS; i++)
 	{
 		int8_t v = mCell[i / COLS][i % COLS];
-		if (v != EMPTY)
-			aHash ^= aKeys[i * 6 + (v == BAG ? 5 : v)];
+		if (v == BAG)
+			aHash ^= aKeys[i * ZOBRIST_CELL + 5];
+		else if ((v >= 5) && (v < COLORS))
+			aHash ^= aKeys[ZOBRIST_EXTRA + i * ZOBRIST_EXTRA_CELL + (v - 5)];
+		else if (v != EMPTY)
+			aHash ^= aKeys[i * ZOBRIST_CELL + v];
 	}
 	return (aHash == 0) ? 1 : aHash;
 }
 
 bool PuzzleModel::Rate(int* theScore) const
 {
-	int aCount[5] = {};
+	int aCount[COLORS] = {};
 	int aCoins = 0;
 	for (int r = 0; r < ROWS; r++)
 	{
 		for (int c = 0; c < COLS; c++)
 		{
 			int8_t v = mCell[r][c];
-			if ((v >= 0) && (v < 5))
+			if ((v >= 0) && (v < COLORS))
 			{
 				aCount[v]++;
 				aCoins++;
@@ -307,7 +320,7 @@ bool PuzzleModel::Rate(int* theScore) const
 		for (int b = r + 1; (b < ROWS) && (canLeave); b++)
 		{
 			int8_t v = mCell[b][c];
-			canLeave = (v >= 0) && (v < 5) && (aCount[v] >= 2);
+			canLeave = (v >= 0) && (v < COLORS) && (aCount[v] >= 2);
 		}
 		if (canLeave)
 			aUnder[aBags++] = ROWS - 1 - r;

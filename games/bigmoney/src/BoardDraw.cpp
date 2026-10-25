@@ -21,7 +21,7 @@
 
 using namespace Sexy;
 
-static Color CoinColor(const int theTable[5][3], int theColor)
+static Color CoinColor(const int theTable[Piece::MAX_COIN_COLORS][3], int theColor)
 {
 	return Color(theTable[theColor][0], theTable[theColor][1], theTable[theColor][2]);
 }
@@ -588,6 +588,18 @@ void Board::DrawPiece(Graphics* g, Piece* thePiece, int theYOffset)
 		aCoins = mApp->mBrightCoinsImage;
 	else if ((IsSolverHintPiece(thePiece)) && ((mUpdateCnt / 25) % 2 == 0)) // port(mods): the solver's hint blinks
 		aCoins = mApp->mBrightCoinsImage;
+	// port(mods): the extra colours' coins (Piece::MAX_COIN_COLORS) have images of their own
+	int aColorRow = thePiece->mColor;
+	if (aColorRow >= Piece::NUM_COIN_COLORS)
+	{
+		aColorRow -= Piece::NUM_COIN_COLORS;
+		if (aCoins == mApp->mImages[IMAGE_HORZCOINS])
+			aCoins = mApp->mExtraHorzCoinsImage;
+		else if (aCoins == mApp->mBrightCoinsImage)
+			aCoins = mApp->mExtraBrightCoinsImage;
+		else
+			aCoins = mApp->mExtraCoinsImage;
+	}
 
 	int aY = (int)(thePiece->mShakeY + thePiece->mY + theYOffset);
 	int aX = (int)(thePiece->mShakeX + thePiece->mX);
@@ -597,7 +609,7 @@ void Board::DrawPiece(Graphics* g, Piece* thePiece, int theYOffset)
 		g->SetColorizeImages(true);
 		g->SetColor(((mUpdateCnt / 15) % 2 == 0) ? Color(255, 60, 60) : Color(110, 20, 20));
 	}
-	g->DrawImage(aCoins, aX, aY, Rect(thePiece->mFrame*29, thePiece->mColor*29, 29, 29));
+	g->DrawImage(aCoins, aX, aY, Rect(thePiece->mFrame*29, aColorRow*29, 29, 29));
 	if (isLosing)
 		g->SetColorizeImages(false);
 }
