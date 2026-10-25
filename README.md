@@ -97,6 +97,9 @@ Edit the paths at the top of `tools/build.sh` (or set `SDL2_DIR`, `EMSDK_ROOT`, 
 match your installation. A web build packs Bejeweled's staged files into the fwtest (and smoke) test
 pages, so it leaves those out until `assets/bejeweled/` exists; configure again after staging.
 
+[docs/BUILDS.md](docs/BUILDS.md) lists every folder under `build/` and what it is for; [docs/WEB_PLAYER.md](docs/WEB_PLAYER.md)
+explains how the browser version works.
+
 To try a web build locally, serve `build/web` over HTTP, e.g.
 `python -m http.server 18765 --directory build/web`, and open the game's page (`bejeweled.html`).
 Automated tests open it with `?silent=1`, which plays no sound.
