@@ -81,7 +81,9 @@ The work is split across Claude sessions (the user's design, 2026-10-19):
   the coordinator does not direct or check on them. A game session messages the coordinator when it needs it:
   a shared change, a milestone ready to merge, or its mods finished (the push waits for that). The coordinator
   looks at a session's work only when the user asks, or when it breaks something for other sessions (shared
-  code, the trunk, the machine's test rules).
+  code, the trunk, the machine's test rules). It does message the sessions when the way they are instructed
+  changes (a new rule like this one), since a running session reads CLAUDE.md again only at its next start
+  or compaction.
 - **A new worktree** lacks the git-ignored game files, baselines, oracle cache and generated mods: run
   `tools/setup_worktree.sh` in it once (copies from the main checkout, no junctions).
 - **Trunk:** `main` (named `code-mods` until 2026-10-19, after Bejeweled's code-mods stages 4 and 5). Game branches
