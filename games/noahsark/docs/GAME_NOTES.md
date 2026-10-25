@@ -24,7 +24,14 @@ garamondfontsmall, garamondfonttiny, scorefont, registerfont.
 
 ## 3. Application (NoahApp, vtable 0x4888ec, 54 slots)
 
-(to be filled in as the translation goes)
+The app (`NoahApp.h/.cpp`) owns the images (83) and fonts (9), the board and the screens (title, intro menu, level-up
+panel, high-score screen), and the game's counters: level, difficulty (0 easy, 4 medium, 8 hard), game mode, bonus round,
+score and shown score, animals saved, combo count and best combo, the hint and tutorial settings. The sidebar's Options
+button is at (5,390) and Quit at (5,431). Dialog buttons arrive at `ButtonDepress` with the dialog's id plus 2000 (see
+FRAMEWORK_2002.md): difficulty (ids 0x3c, 0x3d, 0x3e for easy, medium, hard), options, the tutorial, the high-score
+list and the score-entry dialog. Ranks: 24 thresholds up to 999,999,999 and 23 rank names, shown on the level-up panel
+("Your Rank", "Next Rank at"). The music is the menu loop, then the game's intro and its loop, then the game-over piece;
+`NoahApp::UpdateFrames` starts the loop when the intro ends.
 
 ## 4. Board (WinNoah.exe 0x401000-0x410bf0; object 0x1108 bytes, vtable 0x488368, ButtonListener at +0x4c)
 
@@ -42,6 +49,15 @@ Work notes while the translation is written (see Board.h for the final field nam
 - Pairing rule: two pieces of the same type can be removed when a path of at most N straight segments joins them
   through empty cells (FUN_004036f0, depth-first with a cost bound; FUN_00403370 keeps the cheapest path in +0xe08).
   FUN_004026d0 / FUN_00402a70 are plain breadth-first reachability on the real / cloned grid (4-neighbour).
-- State (+0x310): 0 start (Get Ready!), 1 playing, 2/4 level won / bonus, 3 game over, 5/6 no more moves, 7/8 puzzle
-  swap, 9 hint.
+- State (+0x310): 0 get ready, 1 playing, 2 won (Noah climbs aboard), 3 lost, 4 level done (the ark leaves), 5 no more
+  moves, 6 pair abandoned, 7/8 puzzle swap and swap back, 9 settle (puzzle refill).
 - App game mode (+0x444): 1 action, 3 strategy, 4 puzzle, 5 stampede bonus.
+- A pair is removed by a path of empty cells (`Reachable`, breadth-first; `SearchPath`, depth-first with a cost bound,
+  gives the trail that is drawn). The pieces walk along the trail toward each other and are taken in within 5 pixels;
+  removed pieces then fly to the ark (speed 5.3). Combos lower the water. Strategy mode has gravity and pushes a new row
+  in (`PushRow`); puzzle mode is match-3 (`MarkRuns`, `RefillPuzzle`); the stampede bonus removes groups of three or
+  more while the columns close in on the middle.
+- Drawing Noah (`Board::Draw`): two flags choose his picture, the board's `mNoahWorried` (+0x35c) and `mArkLeaving`
+  (+0xe15). Normal play uses his idle sprites (first image 62 plus a frame); once worried, his climbing frames
+  (images 48 to 57); after a win or while the ark leaves, only the last climbing frame, and only until the ark's ramp stage
+  moves on.
