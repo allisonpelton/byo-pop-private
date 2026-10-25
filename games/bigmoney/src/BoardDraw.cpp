@@ -42,6 +42,23 @@ void Board::Draw(Graphics* g)
 		g->DrawImage(mApp->mImages[IMAGE_BOTTOMLINE], 156, 432);
 		g->SetColorizeImages(false);
 
+		// port(mods): a smaller board ("boardSize"): the vault around it is dimmed
+		if ((mCols < BOARD_COLS) || (mRows < BOARD_ROWS))
+		{
+			int aLeft = ColX(0);
+			int aRight = ColX(mCols);
+			int aTop = RowY(0);
+			g->SetColor(Color(0, 0, 0, 150));
+			if (aLeft > 178)
+			{
+				g->FillRect(178, 4, aLeft - 178, 428);
+				g->FillRect(aRight, 4, 584 - aRight, 428);
+			}
+			if (aTop > 4)
+				g->FillRect(aLeft, 4, aRight - aLeft, aTop - 4);
+			g->SetColor(mMovesColor);
+		}
+
 		// Glows under the highlighted group, row-major, unclipped. Neither mBlinkHidden nor mIsSpecial
 		// is tested here.
 		for (int aRow = 0; aRow < mRows; aRow++)

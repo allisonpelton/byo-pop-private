@@ -344,7 +344,7 @@ void AutoplayBot::Update()
 		if (aSolver->mStatus == PuzzleSolver::STATUS_WINNABLE)
 		{
 			const PuzzleSolver::Move& aMove = aSolver->mPlan[0];
-			Click(Board::ColX(aMove.mCol) + 14, Board::RowY(aMove.mRow) + 14, "solver's click");
+			Click(Board::ColX(aMove.mCol) + 14, Board::RowY(aMove.mRow - aBoard->SolverRowOffset()) + 14, "solver's click");
 			mNextAction = aNow + 20;
 			return;
 		}
@@ -354,8 +354,8 @@ void AutoplayBot::Update()
 	if ((mRand() % 25 == 0) || (!PickGroup(aBoard, &aX, &aY, &aSize)))
 	{
 		// A random cell: often an invalid click (single coin, a bag, an empty cell)
-		aX = Board::ColX(mRand() % Board::BOARD_COLS) + 14;
-		aY = Board::RowY(mRand() % Board::BOARD_ROWS) + 14;
+		aX = Board::ColX(mRand() % aBoard->mCols) + 14;
+		aY = Board::RowY(mRand() % aBoard->mRows) + 14;
 		Click(aX, aY, "random cell");
 	}
 	else
@@ -439,7 +439,7 @@ int AutoplayBot::HoverVerdict(Board* theBoard)
 			Piece* aPiece = theBoard->mGrid[aRow][aCol];
 			if ((aPiece == NULL) || (!aPiece->mHighlighted))
 				continue;
-			int aKey = theBoard->SolverGroupKey(aCol, aRow);
+			int aKey = theBoard->SolverGroupKey(aCol, aRow + theBoard->SolverRowOffset());
 			if ((aKey < 0) || (theBoard->mSolverVerdict[aKey] == PuzzleClickCheck::VERDICT_NONE))
 				return -1;
 			return theBoard->mSolverVerdict[aKey];

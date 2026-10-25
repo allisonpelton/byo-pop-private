@@ -11,8 +11,6 @@ namespace
 
 const int COLS = PuzzleModel::COLS;
 const int ROWS = PuzzleModel::ROWS;
-const int MIN_HEIGHT = 9;       // every column reaches row 6, as the original's
-const int MAX_HEIGHT = 13;      // row 2 stays empty, as the original's
 const int MAX_TRIES = 100000;   // groups tried (a board needs a few dozen; it never gets near this)
 
 struct Cell
@@ -31,8 +29,11 @@ int Height(const PuzzleModel& theBoard, int theCol)
 
 }
 
-void PuzzleBuilder::Build(MTRand& theRand, int theColors, PuzzleModel* theBoard, std::vector<PuzzleSolver::Move>* thePlan)
+void PuzzleBuilder::Build(MTRand& theRand, int theColors, int theCols, int theRows, PuzzleModel* theBoard,
+	std::vector<PuzzleSolver::Move>* thePlan)
 {
+	const int aMinHeight = (3 * theRows + 4) / 5;   // as the original's: 9 of 15 (row 6)
+	const int aMaxHeight = theRows - 2;             // two rows stay empty, as the original's
 	static const int aDirs[4][2] = { {0, 0}, {-1, 0}, {1, 0}, {0, 1} }; // the original's, which never goes up
 
 	*theBoard = PuzzleModel();
@@ -45,9 +46,9 @@ void PuzzleBuilder::Build(MTRand& theRand, int theColors, PuzzleModel* theBoard,
 	{
 		// A column short of row 6, among the started ones or next to them (the original's choice)
 		std::vector<int> aCandidates;
-		for (int c = 0; c < COLS; c++)
+		for (int c = 0; c < theCols; c++)
 		{
-			if ((Height(*theBoard, c) < MIN_HEIGHT) && ((aRight < 0) || ((c >= aLeft - 1) && (c <= aRight + 1))))
+			if ((Height(*theBoard, c) < aMinHeight) && ((aRight < 0) || ((c >= aLeft - 1) && (c <= aRight + 1))))
 				aCandidates.push_back(c);
 		}
 		if (aCandidates.empty())
@@ -89,11 +90,11 @@ void PuzzleBuilder::Build(MTRand& theRand, int theColors, PuzzleModel* theBoard,
 			// On the floor or a coin, in a column with room; a new column only next to the started ones, and
 			// one at most per group. (A click that empties two columns at once can leave a bag landing in
 			// the outer one, and the game closes the gap between it and the board before it leaves.)
-			if ((aX < 0) || (aX >= COLS) || (aY < 0) || (aY >= ROWS))
+			if ((aX < 0) || (aX >= theCols) || (aY < 0) || (aY >= ROWS))
 				continue;
 			if ((aY < ROWS - 1) && (theBoard->mCell[aY + 1][aX] == PuzzleModel::EMPTY))
 				continue;
-			if (Height(*theBoard, aX) >= MAX_HEIGHT)
+			if (Height(*theBoard, aX) >= aMaxHeight)
 				continue;
 			bool isNewColumn = (aRight < 0) || (aX < aLeft) || (aX > aRight);
 			if ((aRight >= 0) && ((aX < aLeft - 1) || (aX > aRight + 1)))
