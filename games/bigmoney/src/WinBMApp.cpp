@@ -65,9 +65,14 @@ static uint32_t TintCoinPixel(uint32_t thePixel, const int theTint[3])
 	return anOut;
 }
 
-// port(mods): the row of IMAGE_COINS each extra colour is made from, for its symbol: orange the pound, cyan
-// the dollar, silver the yen (each unlike the colour it shares the symbol with)
-static const int gExtraCoinRows[Piece::MAX_COIN_COLORS - Piece::NUM_COIN_COLORS] = { 1, 0, 3 };
+// port(mods): the row of IMAGE_COINS each extra colour is made from, for its symbol (0 dollar, 1 pound, 2 cent,
+// 3 yen, 4 euro): colours that look alike have different ones
+static const int gExtraCoinRows[Piece::MAX_COIN_COLORS - Piece::NUM_COIN_COLORS] =
+{
+	1, 0, 3,    // orange, cyan, silver
+	0, 4, 3, 0, // purple, brown, pink, charcoal
+	4, 1, 2, 2  // lime, teal, navy, maroon
+};
 
 // port(mods): theSource's rows for the extra colours, tinted with gCoinColors (and brightened for the
 // highlighted coins), with a mod's HD coins done the same way (HDPixels.h)

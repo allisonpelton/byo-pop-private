@@ -49,12 +49,12 @@ public:
 		COLS = 14,
 		ROWS = 15,
 		EMPTY = -1,
-		COLORS = 8,             // coin colours 0..7 (Piece::MAX_COIN_COLORS; 5..7 only with mods)
-		BAG = 8,
+		COLORS = 16,            // coin colours 0..15 (Piece::MAX_COIN_COLORS; 5..15 only with mods)
+		BAG = 16,
 		MAX_ORDERED_BAGS = 3    // more bags landing together than this: only "all in the same tick"
 	};
 
-	int8_t		mCell[ROWS][COLS];      // [row][col], row 0 = top: EMPTY, a coin colour 0..7 or BAG
+	int8_t		mCell[ROWS][COLS];      // [row][col], row 0 = top: EMPTY, a coin colour 0..15 or BAG
 	int			mReleased;              // bags that have left the board
 	int			mNeeded;                // bags that must leave to win the level
 	bool		mDiagonal;              // coins touching at a corner are a group too (Board::mDiagonal)

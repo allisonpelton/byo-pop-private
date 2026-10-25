@@ -54,7 +54,7 @@ public:
 	HelpWidget*		mHelpWidget;                // +0x6e0 ShowHelp / RemoveHelp
 	Image**			mImages;                    // +0x6e4 new Image*[NUM_IMAGES] (DDImages from GetImage)
 	MemoryImage*	mBrightCoinsImage;          // +0x6e8 IMAGE_COINS with c' = min(255, c*280/255 + 48); never deleted
-	// port(mods): the coins of the extra colours 5..7 (Piece::MAX_COIN_COLORS), one row each, from IMAGE_COINS,
+	// port(mods): the coins of the extra colours 5..15 (Piece::MAX_COIN_COLORS), one row each, from IMAGE_COINS,
 	// IMAGE_HORZCOINS and mBrightCoinsImage (MakeExtraCoins)
 	MemoryImage*	mExtraCoinsImage;
 	MemoryImage*	mExtraHorzCoinsImage;

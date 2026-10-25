@@ -306,19 +306,26 @@ Big Money uses the shared mod system (`platform/ModManager.h`).
     - The solver on the original generator at 6 x 15: no wrong answer.
     - 20 replays verified; a saved game on a small board resumed.
 - **More coin colours** (the `more-colours` mod; the tunables `coins.colors` and `coins.puzzleColors` now go
-  up to 8). Three colours after the game's five: orange, cyan and silver. Six in every mode by default,
-  with a setting for Action and Strategy and one for Puzzle (2 to 8).
+  up to 16). Eleven colours after the game's five: orange, cyan, silver, purple, brown, pink, charcoal,
+  lime, teal, navy and maroon, in that order. Six in every mode by default, with a setting for Action and
+  Strategy and one for Puzzle (2 to 16). Many colours make Diagonal Groups' Puzzle hard again.
   - **The coins** are made when the game starts, from the game's coins or a mod's (HD too): each new colour
-    takes another colour's coins with their brightness and its own hue, so the shine stays white. Orange
-    has the pound sign, cyan the dollar, silver the yen, each unlike the colour it shares the sign with.
+    takes another colour's coins with their brightness and its own hue, so the shine stays white. Each
+    keeps that colour's sign, chosen so colours that look alike have different ones (navy the cent, blue
+    the pound; maroon the cent, red the dollar; charcoal the dollar, silver the yen).
     The highlighted coins, both flip-frame sets, the selection glow and the dollar bomb's tint have them.
   - **Rules** are the game's: as with five colours, the first level on Easy has one fewer.
-  - **Puzzle.** The solver and Winnable Puzzles take up to 8 colours. The solver's position hashes for the
-    game's five colours are unchanged.
+  - **Puzzle.** The solver and Winnable Puzzles take up to 16 colours (the solver's bag marker moved from 8
+    to 16). The solver's position hashes for the game's five colours are unchanged; only equal hashes
+    count, so the others changing changed no answer.
   - **Scores.** A mod with tunables affects scores (its own high-score tables, the mods sign).
-  - **Tested** (bot games under rundesk, 6, 7 and 8 colours, every mode): with Winnable Puzzles and the
-    solver the bot reached level 74 on Hard with 8 colours without losing one; the solver gave no wrong
-    answer with 7 on the original generator; 19 replays verified, and older solver replays still verify.
+  - **Tested** (bot games under rundesk, 6 to 16 colours, every mode, with and without Diagonal Groups):
+    - With Winnable Puzzles and the solver the bot won every level to 74 on Hard with 8 colours, and to 75
+      (Hard) and 79 (Easy) with 16 and diagonal groups.
+    - The solver gave no wrong answer with 7, 12 and 16 colours on the original generator.
+    - With 16 colours and diagonal groups the bot's Easy Puzzle games ended at levels 6 to 8 (17 to 30
+      with the game's colours).
+    - 37 replays verified; replays recorded before the 16-colour change still verify.
 - **Diagonal groups** (the `diagonal-groups` mod, `features.diagonalGroups`). Every mode: coins of a colour
   that touch at a corner are one group, so groups are bigger and easier to find.
   - **How.** The game's group flood (Board::FloodFill) also goes across corners: the hover, the click, the
@@ -354,7 +361,7 @@ Example mods (`games/bigmoney/mods/`):
 - **`winnable-puzzles/`: "Winnable Puzzles".** Puzzle only: builds boards that can always be won.
 - **`pickpocket/`: "Pickpocket".** A powerup that lifts a group too small to click (right click, or P).
 - **`small-board/`: "Small Board".** Plays on a smaller board (10 x 12 by default, settings for both).
-- **`more-colours/`: "More Colours".** Orange, cyan and silver coins: six colours by default, up to eight.
+- **`more-colours/`: "More Colours".** Eleven new coin colours: six colours by default, up to sixteen.
 - **`diagonal-groups/`: "Diagonal Groups".** Coins that touch at a corner are one group.
 - **`replays/`: "Replays".** Turns on replays and nothing else: no change in play, the normal high-score
   tables, and no mods sign.

@@ -66,16 +66,19 @@ enum HintId
 
 // Coin colours (Piece::mColor) as r, g, b. In the original these are Color[5] built by the dynamic
 // initialisers 0x4f3220 / 0x4f32a0 (alpha 255).
-// port(mods): 5..7 are the extra colours (Piece::MAX_COIN_COLORS), whose coins are also tinted with gCoinColors.
+// port(mods): 5..15 are the extra colours (Piece::MAX_COIN_COLORS), whose coins are also tinted with gCoinColors:
+// orange, cyan, silver, purple, brown, pink, charcoal, lime, teal, navy, maroon.
 inline constexpr int gCoinColors[Piece::MAX_COIN_COLORS][3] =      // @0x52d8c8, dollar-bomb tint
 {
 	{255, 0, 0}, {0, 148, 255}, {255, 255, 0}, {0, 255, 0}, {255, 0, 255},
-	{255, 140, 0}, {0, 230, 230}, {215, 215, 225}
+	{255, 140, 0}, {0, 230, 230}, {215, 215, 225}, {150, 60, 255}, {165, 95, 40}, {255, 130, 190},
+	{95, 95, 105}, {175, 255, 40}, {0, 145, 120}, {25, 45, 160}, {150, 20, 45}
 };
 inline constexpr int gCoinLightColors[Piece::MAX_COIN_COLORS][3] = // @0x52d878, selection glow tint
 {
 	{255, 128, 128}, {128, 128, 255}, {240, 240, 64}, {87, 255, 87}, {240, 64, 240},
-	{255, 190, 110}, {128, 255, 255}, {245, 245, 250}
+	{255, 190, 110}, {128, 255, 255}, {245, 245, 250}, {200, 160, 255}, {220, 170, 120}, {255, 190, 220},
+	{170, 170, 180}, {215, 255, 140}, {100, 220, 200}, {130, 145, 235}, {225, 110, 130}
 };
 
 // Rank thresholds (@0x4f53c0): rank = highest i with gRankThresholds[i] <= score (names gRankNames)
