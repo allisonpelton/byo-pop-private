@@ -16,15 +16,14 @@ looks inside the launcher only to find them.
 Passages of text files that describe the unwrapping (offsets, commands, how a launcher checks its copy) are wrapped
 in marker lines:
 
-```
-<!-- private: The line the published copy shows instead. -->
+    <!-- private: The line the published copy shows instead. -->
 
-...the private passage...
+    ...the private passage...
 
-<!-- /private -->
-```
+    <!-- /private -->
 
-Each marker is a line of its own, and blocks do not nest. The published copy has the replacement line in place of
+Each marker is a line of its own that starts in the first column (indented, as here, it is only text), and blocks
+do not nest. The published copy has the replacement line in place of
 the whole block, or nothing when the opening marker is a plain `<!-- private -->`. Markdown shows the markers as
 nothing, so the docs read as before here. A marker line ends a Markdown list or table, so put the markers around
 whole items, and write the replacement as a whole item too (`<!-- private: - The item. -->`). In a code block the

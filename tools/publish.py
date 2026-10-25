@@ -11,7 +11,7 @@ so this repository's history never leaves the machine.
         [--remote <name>]              default origin
         [-m <message>]                 the commit's first line (default "byo-pop snapshot, <date>")
 
-A private block is a run of lines between two marker lines:
+A private block is a run of lines between two marker lines, each starting at its line's first column:
 
     <!-- private: The line the published copy shows instead. -->
     ...
@@ -22,9 +22,9 @@ The opening marker may be a plain <!-- private --> (the block is dropped). Block
 import argparse, datetime, fnmatch, os, re, subprocess, sys, tempfile
 
 NEXT, LAST = "refs/publish/next", "refs/publish/main"
-START = re.compile(r"^[ \t]*<!-- private(?:: (.*?))? -->[ \t]*\r?$")
-END = re.compile(r"^[ \t]*<!-- /private -->[ \t]*\r?$")
-MARKER = "<!-- (/)?private"
+START = re.compile(r"^<!-- private(?:: (.*?))? -->[ \t]*\r?$")
+END = re.compile(r"^<!-- /private -->[ \t]*\r?$")
+MARKER = r"^<!-- (/private|private(: .*)?) -->[[:space:]]*$"  # the same lines, for git grep -E
 FORBIDDEN = ("assets/", "re/", "build/")  # staged game files, Ghidra exports, builds (all git-ignored)
 TRAILER = "Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 
