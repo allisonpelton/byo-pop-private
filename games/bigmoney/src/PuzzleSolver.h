@@ -107,6 +107,9 @@ public:
 	// A settled board: the next position of the plan (the player clicked the hint) keeps the plan;
 	// anything else starts a new search
 	void		SetBoard(const PuzzleModel& theBoard);
+	// A board whose winning clicks are known (PuzzleBuilder): they become the plan if playing them wins
+	// (as far as the win; false, and nothing changed, if they don't)
+	bool		SetPlan(const PuzzleModel& theBoard, const std::vector<Move>& thePlan);
 	// Looks at up to about theBudget more positions
 	void		Step(int theBudget);
 	// The board of the last SetBoard, and its Hash

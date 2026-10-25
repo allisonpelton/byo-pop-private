@@ -18,6 +18,7 @@
 #include "ModRules.h"
 #include "Piece.h"
 #include "Res.h"
+#include "PuzzleSolver.h"
 #include <list>
 #include <string>
 #include <vector>
@@ -36,9 +37,6 @@ class WidgetManager;
 class Buffer;
 class ReplayRecorder;
 class ReplayPlayer;
-class PuzzleSolver;
-class PuzzleClickCheck;
-class PuzzleModel;
 
 // Board::mState (+0xa0)
 enum BoardState
@@ -378,6 +376,10 @@ public:
 	bool			mSolverWarning;         // mSolverWarnCell has a group
 	int				mSolverExpect;          // a test: the verdict of the last click's group (VERDICT_NONE: none)
 	uint64_t		mSolverExpectBoard;     // the board it was clicked on
+	// port(mods): Puzzle boards built to be winnable (PuzzleBuilder.h; the "winnablePuzzles" feature)
+	bool			mWinnablePuzzles;
+	std::vector<PuzzleSolver::Move> mBuildPlan; // the clicks that win this level's board as built (until the solver has them)
+	uint64_t		mBuildPlanBoard;        // that board, bags and all (PuzzleModel::Hash)
 
 public:
 	Board(WinBMApp* theApp);                                        // 0x40e760
@@ -485,6 +487,8 @@ public:
 	void			SaveSolverUndo();
 	void			RequestSolverUndo();
 	bool			GetSolverStatusRect(Rect* theRect, std::vector<SolverLine>* theLines);
+	void			BuildWinnablePuzzle();
+	void			CheckWinnablePuzzle();
 	void			DrawSolverStatus(Graphics* g);
 	static std::string GetSaveGameFileName();                       // port: "userdata\\savegame.dat"
 

@@ -383,6 +383,34 @@ void PuzzleSolver::Play(PuzzleModel* theBoard, const Move& theMove)
 		*theBoard = mOutcomes[theMove.mOutcome];
 }
 
+bool PuzzleSolver::SetPlan(const PuzzleModel& theBoard, const std::vector<Move>& thePlan)
+{
+	PuzzleModel aBoard = theBoard;
+	std::vector<Move> aPlan;
+	std::vector<uint64_t> aHashes;
+	std::vector<int> aGroup;
+	for (const Move& aMove : thePlan)
+	{
+		if (aBoard.IsWon())
+			break;
+		aBoard.GetGroup(aMove.mCol, aMove.mRow, &aGroup);
+		if (aGroup.size() < 2)
+			return false;
+		Play(&aBoard, aMove);
+		aPlan.push_back(aMove);
+		aHashes.push_back(aBoard.Hash());
+	}
+	if (!aBoard.IsWon())
+		return false;
+	mBoard = theBoard;
+	mBoardHash = theBoard.Hash();
+	mPositions = 0;
+	mPlan = aPlan;
+	mPlanHashes = aHashes;
+	Finish(STATUS_WINNABLE);
+	return true;
+}
+
 void PuzzleSolver::SetBoard(const PuzzleModel& theBoard)
 {
 	uint64_t aHash = theBoard.Hash();

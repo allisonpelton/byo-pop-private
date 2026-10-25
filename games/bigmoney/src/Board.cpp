@@ -2,6 +2,7 @@
 #include "ModRules.h"
 #include "Replay.h"
 #include "PuzzleSolver.h"
+#include "PuzzleBuilder.h"
 #include <set>
 #include "WinBMApp.h"
 #include "MrMoney.h"
@@ -2072,6 +2073,9 @@ void Board::GenerateBoard()
 		// The constructive generator: grow random same-colour groups until every column reaches row 6
 		static const int aDirs[5][2] = { {0, 0}, {-1, 0}, {1, 0}, {0, 1}, {0, -1} };
 
+		if (mWinnablePuzzles) // port(mods): a board whose build order, reversed, wins (PuzzleBuilder.h)
+			BuildWinnablePuzzle();
+		else
 		for (;;)
 		{
 			std::vector<int> aCandidates;
@@ -2275,6 +2279,8 @@ void Board::GenerateBoard()
 				aY += (int)(((double)(mRand.Next() % 10) * 0.3333333333333333 + 1.2) * -29.0);
 			}
 		}
+		if (mWinnablePuzzles) // port(mods)
+			CheckWinnablePuzzle();
 	}
 	else
 	{
@@ -3818,6 +3824,9 @@ Board::Board(WinBMApp* theApp)
 	mPerClickBase = 0.24501;
 	mPerClickPerLevel = 0.011;
 	LoadTunables(); // port(mods)
+	// port(mods): Puzzle boards built to be winnable (PuzzleBuilder.h)
+	mWinnablePuzzles = (mApp->mGameType == GAMETYPE_PUZZLE) && (ModFeatureEnabled("winnablePuzzles"));
+	mBuildPlanBoard = 0;
 	mBombColor = 0;
 	mBombIdle = 0;
 	mHoverBag = false;
@@ -4013,6 +4022,14 @@ void Board::UpdateSolver()
 
 	PuzzleModel aModel;
 	GetSolverModel(&aModel);
+	// A winnable board's build order is a known win (PuzzleBuilder.h)
+	if ((!mBuildPlan.empty()) && (aModel.Hash() == mBuildPlanBoard))
+	{
+		if (mSolver->SetPlan(aModel, mBuildPlan))
+			SDL_Log("solver: level %d: winnable in %d clicks, as built (tick %d)", mLevel + 1, (int) mSolver->mPlan.size(),
+				mUpdateCnt);
+		mBuildPlan.clear();
+	}
 	mSolver->SetBoard(aModel);
 	if ((mSolverHintBoard != 0) && (mSolverHintBoard != mSolver->GetBoardHash()))
 		ClearSolverHint();
@@ -4515,4 +4532,40 @@ bool Board::GetSolverStatusRect(Rect* theRect, std::vector<SolverLine>* theLines
 		return false;
 	*theRect = Rect(BOARD_X, BOARD_Y, BOARD_COLS * COIN_SIZE, 6 + (int) theLines->size() * 19);
 	return true;
+}
+
+// port(mods): the coins of a Puzzle board that the reverse of its build order wins (PuzzleBuilder.h), from
+// the board's own random numbers. The bags go on as the original's.
+void Board::BuildWinnablePuzzle()
+{
+	PuzzleModel aBoard;
+	PuzzleBuilder::Build(mRand, mNumColors, &aBoard, &mBuildPlan);
+	for (int aRow = 0; aRow < BOARD_ROWS; aRow++)
+	{
+		for (int aCol = 0; aCol < BOARD_COLS; aCol++)
+		{
+			if (aBoard.mCell[aRow][aCol] == PuzzleModel::EMPTY)
+				continue;
+			Piece* aPiece = new Piece();
+			aPiece->mCol = aCol;
+			aPiece->mRow = aRow;
+			aPiece->mX = (double) ColX(aCol);
+			aPiece->mColor = aBoard.mCell[aRow][aCol];
+			mGrid[aRow][aCol] = aPiece;
+		}
+	}
+}
+
+// port(mods): a test of the winnable board, bags and all: the build order's clicks, played on the solver's
+// model of the board, win the level. The solver (if on) gets them as its first plan (UpdateSolver).
+void Board::CheckWinnablePuzzle()
+{
+	PuzzleModel aBoard;
+	GetSolverModel(&aBoard);
+	aBoard.mReleased = 0;
+	mBuildPlanBoard = aBoard.Hash();
+	PuzzleSolver aSolver;
+	bool isWon = aSolver.SetPlan(aBoard, mBuildPlan);
+	SDL_Log("winnable: level %d: %d groups built; %s", mLevel + 1, (int) mBuildPlan.size(),
+		isWon ? "clicking them in reverse wins" : "WRONG: clicking them in reverse does not win");
 }

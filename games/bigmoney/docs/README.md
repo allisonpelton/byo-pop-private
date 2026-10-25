@@ -240,6 +240,29 @@ Big Money uses the shared mod system (`platform/ModManager.h`).
     - Refused clicks: 78 refusals in two games with "Show and refuse".
     - All 12 replays of these games verified, with their undos, free hints and refused clicks.
     - The web build compiles it; it has not been played in a browser yet.
+- **Winnable Puzzle boards** (the `winnable-puzzles` mod, `features.winnablePuzzles`;
+  `src/PuzzleBuilder.h`). Puzzle mode only: every board can be won.
+  - **Why the original's can't always be.** It builds a board backwards, pushing small groups of one
+    colour into the columns as if clicks were taken back. But a group can come out split (another coin
+    ends up between its coins) or touching coins of its own colour, and then clicking the groups in the
+    reverse order is not a legal win.
+  - **What the mod does.** It grows its groups the same way, from the same random numbers, but keeps a
+    coin only if the group stays exactly what a click on it would take: connected, and touching no other
+    coin of its colour. A new column starts only next to the columns already there, one per group at
+    most, so the columns empty one at a time from the outside in. (When a click emptied two columns at
+    once, a bag could land in the outer one, and the game closed the gap before the bag left.) The bags
+    go on as in the original.
+  - **The winning line.** Clicking the groups in the reverse of the order they were built clears the
+    board and drops every bag. When a board is made, the game plays that line on the solver's model
+    and logs "winnable: level N: … clicking them in reverse wins" (or "WRONG"). With the Puzzle Solver
+    on, that line is its first answer, so it says "can still be won" at once and its hints follow it.
+  - **Scores.** The mod says it affects scores (its own high-score tables, the mods sign).
+  - **Tested** (bot games under rundesk):
+    - 251 boards at Easy, Normal and Hard: the reverse order won every one. (Before the one-new-column
+      rule, about 4% failed.)
+    - Following the solver, the bot reached levels 77, 75 and 73 (Easy, Normal, Hard) without losing a
+      level, and the solver needed no search of its own on any of them.
+    - Six replays (random play, with and without the solver) verified.
 
 Example mods (`games/bigmoney/mods/`):
 - **`fake-money/`: "Fake Money! Deluxe".**
@@ -256,6 +279,7 @@ Example mods (`games/bigmoney/mods/`):
   big groups.
 - **`puzzle-solver/`: "Puzzle Solver".** Puzzle only: tells whether the level can still be won, sells
   hints and undos, warns about losing clicks, and can end the game when the level can't be won.
+- **`winnable-puzzles/`: "Winnable Puzzles".** Puzzle only: builds boards that can always be won.
 - **`replays/`: "Replays".** Turns on replays and nothing else: no change in play, the normal high-score
   tables, and no mods sign.
 - **`livesplit/`: "LiveSplit".** Turns on the LiveSplit block, with a copy of the script, seven split
