@@ -30,9 +30,13 @@ void Ease(int& v, int theStep, int theSnap)
 
 }
 
-// Pieces that swap their contents when the board rises or the columns close in (the original swaps the
-// fields of two pieces; the cell's position fields stay)
-void Board::ExchangeContents(Piece* a, Piece* b, int theOffsetXForA, int theOffsetYForA)
+// Two cells swap their contents when the columns close in on the middle (0x403d60): the animal, its state flags, its
+// fall, its offset from the cell and its pixel position (an animal on its way to the ark flies on from where it was).
+// A takes B's contents, B takes A's. The offset in x the contents arrive with is B's own plus theOffsetXForA (A) and
+// A's own plus theOffsetXForB (B), so the animal stays where it is drawn. The original's two loops differ in y: the
+// left column takes B's offset (theSwapOffsetY), the right one keeps its own. The pixel position B receives is A's old
+// one cut to whole pixels.
+void Board::ExchangeContents(Piece* a, Piece* b, int theOffsetXForA, int theOffsetXForB, bool theSwapOffsetY)
 {
 	std::swap(a->mType, b->mType);
 	std::swap(a->mRemoved, b->mRemoved);
@@ -42,10 +46,17 @@ void Board::ExchangeContents(Piece* a, Piece* b, int theOffsetXForA, int theOffs
 	std::swap(a->mFallSpeed, b->mFallSpeed);
 	int aOffsetX = a->mOffsetX;
 	int aOffsetY = a->mOffsetY;
+	float aPixelX = (float) (int) a->mPixelX;
+	float aPixelY = (float) (int) a->mPixelY;
 	a->mOffsetX = b->mOffsetX + theOffsetXForA;
-	a->mOffsetY = b->mOffsetY + theOffsetYForA;
-	b->mOffsetX = aOffsetX - theOffsetXForA;
-	b->mOffsetY = aOffsetY - theOffsetYForA;
+	if (theSwapOffsetY)
+		a->mOffsetY = b->mOffsetY;
+	a->mPixelX = b->mPixelX;
+	a->mPixelY = b->mPixelY;
+	b->mOffsetX = aOffsetX + theOffsetXForB;
+	b->mOffsetY = aOffsetY;
+	b->mPixelX = aPixelX;
+	b->mPixelY = aPixelY;
 }
 
 // 0x403d60
@@ -369,7 +380,7 @@ void Board::Update()
 			if (!ColumnEmpty(x) && ColumnEmpty(x - 1))
 			{
 				for (int y = 0; y < 9; y++)
-					ExchangeContents(mGrid[x - 1][y], mGrid[x][y], 0x32, 0);
+					ExchangeContents(mGrid[x - 1][y], mGrid[x][y], 0x32, -0x32, false);
 			}
 		}
 		for (int x = 3; x >= 0; x--)
@@ -377,7 +388,7 @@ void Board::Update()
 			if (!ColumnEmpty(x) && ColumnEmpty(x + 1))
 			{
 				for (int y = 0; y < 9; y++)
-					ExchangeContents(mGrid[x + 1][y], mGrid[x][y], -0x32, 0);
+					ExchangeContents(mGrid[x + 1][y], mGrid[x][y], -0x32, -0x32, true);
 			}
 		}
 	}
