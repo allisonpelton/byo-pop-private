@@ -130,6 +130,8 @@ public:
 	void			Think(const SexyString& theText, Font* theFont, int theDuration);   // 0x42d800 thought image
 	void			SayDefinition(const SexyString& theWord, Font* theWordFont, const SexyString& theDefinition,
 						Font* theDefFont, int theDuration);         // 0x42d8d0 213 wide, word as header
+	void			SayReaction(const SexyString& theWord, const SexyString& theReaction,
+						const SexyString& theDefinition, int theDuration);  // port(mod): a mod's word
 
 	// 0x404340 (inline, emitted in Board.cpp): an animation plays or Lex is not at his target
 	bool			IsBusy()

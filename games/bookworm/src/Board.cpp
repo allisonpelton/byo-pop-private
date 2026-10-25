@@ -12,8 +12,10 @@
 #include "Definitionator.h"
 #include "GameText.h"
 #include "ModFeatures.h"
+#include "ModWords.h"
 #include "Solver.h"
 #include "Undo.h"
+#include "GreedyBots.h"
 
 #include "WidgetManager.h"
 #include "DialogButton.h"
@@ -605,6 +607,12 @@ Board::Board(BookWormApp* theApp)
 	// port(mod): undo's UNDO takes the right part of OPTIONS' plank
 	mUndo = NULL;
 	mUndoButton = NULL;
+	mModFireDue = 0;
+	mModDangerPending = false;
+	mModWordsPlayed = 0;
+	mBots = NULL;
+	mBotsChecked = false;
+	mModMoves = 0;
 	if (ModFeatureEnabled("undo"))
 	{
 		mUndo = new UndoStack(this);
@@ -687,6 +695,8 @@ Board::~Board()
 	mSolver = NULL;
 	delete mUndo;       // port(mod)
 	mUndo = NULL;
+	delete mBots;       // port(mod)
+	mBots = NULL;
 
 	if (mRand != NULL)
 	{
@@ -1071,6 +1081,7 @@ void Board::Refill()
 	bool aMoved = false;
 	int aFireDue = 0;
 	gLastRefillLevel = mLevel;
+	std::vector<Piece*> aNewTiles;  // port(mod): for mModFireDue
 
 	// classic: a random fire tile (skipped once after a bonus word)
 	int aChance = gFireChanceByLevel[((unsigned int)mLevel > 11) ? 12 : mLevel];
@@ -1159,6 +1170,8 @@ void Board::Refill()
 
 			mBoard[aRow][aCol] = aPiece;
 			aY += -57 - (int)(mRand->Next() % 80);
+			if (mModFireDue > 0)
+				aNewTiles.push_back(aPiece);
 		}
 
 		// fire tiles: the tile below gets its countdown; one at the bottom schedules the fire alert hint
@@ -1181,6 +1194,12 @@ void Board::Refill()
 				mApp->mFireAlertHintShown = true;
 			}
 		}
+	}
+
+	if (mModFireDue > 0)
+	{
+		SetModFire(aNewTiles, mModFireDue);
+		mModFireDue = 0;
 	}
 
 	// tiles moved: keep the selection up to the first tile that is no longer selected or adjacent. The
@@ -1419,6 +1438,8 @@ void Board::Scramble()
 
 	if (mUndo != NULL)
 		mUndo->Push();  // port(mod): the board before the scramble
+	mModMoves++;        // port(mod): the move, for the -autoplay bot's model check
+	mModLastMove.clear();
 
 	// play counting: never in the retail build (MaxTime 60, NAMES.md D49 / L6)
 	if ((!mPlayCounted) && (mApp->mMaxTime == 0) && (mApp->mMaxPlays == 0))
@@ -1721,12 +1742,38 @@ void Board::Submit(int x, int y)
 		{
 			if (mUndo != NULL)
 				mUndo->Push();  // port(mod): the board before the word
-			if ((mApp->mShowDefs) && (mApp->mDefinitionator != NULL))
+			// port(mod): a mod's word with effects (rude-words): Lex comments on it, with its definition
+			ModWordEffects aModEffects;
+			bool isModWord = ModWordGetEffects(mWord.mWord, &aModEffects);
+			SexyString aReaction = isModWord ? ModWordReaction(mWord.mWord, mModWordsPlayed) : SexyString();
+			if (aReaction.size() != 0)
+			{
+				SexyString aDefinition;
+				if ((mApp->mShowDefs) && (mApp->mDefinitionator != NULL))
+					aDefinition = mApp->mDefinitionator->GetDefinition(mWord.mWord);
+				mLex->SayReaction(mWord.mWord, aReaction, aDefinition,
+					(int)(aReaction.size() + aDefinition.size()) * 3 + 400);
+			}
+			else if ((mApp->mShowDefs) && (mApp->mDefinitionator != NULL))
 			{
 				SexyString aDefinition = mApp->mDefinitionator->GetDefinition(mWord.mWord);
+				if (aDefinition.size() == 0)
+					aDefinition = ModWordNote(mWord.mWord);  // port(mod): which mod's list has it
 				if (aDefinition.size() != 0)
 					mLex->SayDefinition(mWord.mWord, mApp->mFonts[FONT_MYRIADWEB12BOLD], aDefinition,
 						mApp->mFonts[FONT_MYRIADWEB10], (int)aDefinition.size() * 3 + 400);
+			}
+			if (isModWord)
+			{
+				mModDangerPending = aModEffects.mComment;
+				// a points multiplier below 0 takes no more than the level's points so far
+				if ((mWord.mScore < 0) && (mWord.mScore < -mLevelStats->mScore))
+					mWord.mScore = -mLevelStats->mScore;
+				if (ModWordCounted(mWord.mWord))
+				{
+					mModWordsPlayed++;
+					AddModWordsAllTime(1);
+				}
 			}
 
 			if (mSubmitBlinkWords > 0)
@@ -1793,6 +1840,12 @@ void Board::Submit(int x, int y)
 			else
 				mApp->PlaySample(SOUND_REDTILECLEARED);
 
+			// port(mod): the move, for the -autoplay bot's model check
+			mModMoves++;
+			mModLastMove.clear();
+			for (PieceList::iterator anItr = mSelection.begin(); anItr != mSelection.end(); ++anItr)
+				mModLastMove.push_back((*anItr)->mRow * BOARD_COLS + (*anItr)->mCol);
+
 			// the tiles leave the grid and fly to Lex (the FlyingPieceList owns them now)
 			RemovePieces(&mSelection);
 			FlyingPieceList* aFlyingPieces = new FlyingPieceList(mOverlay->mEffectMgr, &mSelection);
@@ -1810,8 +1863,15 @@ void Board::Submit(int x, int y)
 				mLevelUpPending = true;
 			}
 
+			// port(mod): a mod's word may set fire to some of the tiles that replace it (not as the level ends)
+			mModFireDue = 0;
+			if ((isModWord) && (mState == BOARD_PLAYING))
+				mModFireDue = aModEffects.mEveryTile ? BOARD_ROWS * BOARD_COLS : aModEffects.mFire;
 			Refill();
-			AwardSpecialTile(mWord);
+			if ((!isModWord) || (aModEffects.mBonus == MODWORD_BONUS_KEEP))
+				AwardSpecialTile(mWord);
+			else if (aModEffects.mBonus == MODWORD_BONUS_REMOVE)
+				RemoveBonusTiles();
 			AddScorePopup(mWord.mScore, x, y);
 			ClearWord();
 			CheckBottomFire();
@@ -1826,6 +1886,89 @@ void Board::Submit(int x, int y)
 
 	mFlameSoundPlayed = false;
 	MarkDirty();
+}
+
+// port(mod): theCount of the normal new tiles catch fire, none on the bottom row (a fire tile there would
+// have to be taken by the next word), picked with the game's generator, so an undo and the same word again
+// bring the same fire
+void Board::SetModFire(const std::vector<Piece*>& theNewTiles, int theCount)
+{
+	std::vector<Piece*> aCandidates;
+	for (Piece* aPiece : theNewTiles)
+	{
+		if ((aPiece->mType == TILE_NORMAL) && (aPiece->mRow < 7))
+			aCandidates.push_back(aPiece);
+	}
+	bool aLit = false;
+	for (int i = 0; (i < theCount) && (!aCandidates.empty()); i++)
+	{
+		unsigned int anIndex = gGameRand->Next() % (unsigned int)aCandidates.size();
+		Piece* aPiece = aCandidates[anIndex];
+		aCandidates.erase(aCandidates.begin() + anIndex);
+		aPiece->SetType(TILE_FIRE, true);
+		mFireTileCount++;
+		Piece* aBelow = PieceBelow(aPiece);
+		if ((aBelow != NULL) && (aBelow->mBurnCountdown < 1))
+			aBelow->ResetBurnCountdown();
+		aLit = true;
+	}
+	if (!aLit)
+		return;
+	if (mSelection.size() != 0)
+	{
+		mWord.Build(&mSelection);
+		mWord.CheckValid(&mApp->mDictionary);
+	}
+	if (!mFlameSoundPlayed)
+	{
+		mFlameSoundPlayed = true;
+		mApp->PlaySample(SOUND_FLAMETILE);
+	}
+}
+
+// port(mod): every special tile on the board (green, gold, sapphire, diamond) turns plain; one under a fire
+// tile burns as soon as a plain one would
+void Board::RemoveBonusTiles()
+{
+	bool aRemoved = false;
+	for (int aCol = 0; aCol < BOARD_COLS; aCol++)
+	{
+		for (int aRow = TopRow(aCol); aRow < BOARD_ROWS; aRow++)
+		{
+			Piece* aPiece = mBoard[aRow][aCol];
+			if ((aPiece == NULL) || (aPiece->mType == TILE_NORMAL) || (aPiece->mType == TILE_FIRE))
+				continue;
+			aPiece->SetType(TILE_NORMAL, false);
+			if (aPiece->mBurnCountdown > 1)
+				aPiece->mBurnCountdown = 1;
+			aRemoved = true;
+		}
+	}
+	if ((aRemoved) && (mSelection.size() != 0))
+	{
+		mWord.Build(&mSelection);
+		mWord.CheckValid(&mApp->mDictionary);
+	}
+}
+
+// port(mod): the current player's all-time count of the stats' mod words
+int Board::GetModWordsAllTime()
+{
+	SexyString aName = mApp->mUserManager->GetCurrentUserName();
+	SexyString aValueName = ModWordStatsValueName();
+	int aValue = 0;
+	if ((aName.length() != 0) && (aValueName.length() != 0))
+		mApp->mUserManager->ReadUserInt(aName, aValueName, &aValue);
+	return aValue;
+}
+
+void Board::AddModWordsAllTime(int theDelta)
+{
+	SexyString aName = mApp->mUserManager->GetCurrentUserName();
+	SexyString aValueName = ModWordStatsValueName();
+	if ((theDelta == 0) || (aName.length() == 0) || (aValueName.length() == 0))
+		return;
+	mApp->mUserManager->WriteUserInt(aName, aValueName, std::max(0, GetModWordsAllTime() + theDelta));
 }
 
 // 0x40abd0: bonus word message and stats, the next bonus word is picked and the banner slides away
@@ -1885,8 +2028,12 @@ void Board::AddScorePopup(int theScore, int x, int y)
 	else if (aLife < 150)
 		aLife = 150;
 
-	Points* aPopup = new Points(mApp, mApp->mFonts[FONT_GOLDSCORE], StrFormat("+%d", aShownScore), mX + x, mY + y,
-		aLife, Points::JUSTIFY_CENTER);
+	// port(mod): a mod's word may score 0 or less (rude-words' multiplier); the score font has no minus
+	Points* aPopup = (aShownScore >= 0) ?
+		new Points(mApp, mApp->mFonts[FONT_GOLDSCORE], StrFormat("+%d", aShownScore), mX + x, mY + y,
+			aLife, Points::JUSTIFY_CENTER) :
+		new Points(mApp, mApp->mFonts[FONT_LOCKERGNOME24], StrFormat("%d", aShownScore), mX + x, mY + y,
+			aLife, Points::JUSTIFY_CENTER);
 	mPopups.push_back(aPopup);
 	mWidgetManager->AddWidget(aPopup);
 
@@ -2332,6 +2479,7 @@ void Board::Update()
 		mSolver->Update();  // port(mod): a hint asked for while the tiles moved
 	if (mUndo != NULL)
 		mUndo->Update();    // port(mod): an undo asked for while the tiles moved
+	UpdateBots();           // port(mod)
 	mApp->mPlayTicks++;
 
 	PieceList aDeadPieces;  // tiles burned away this tick, deleted at the end
@@ -3279,6 +3427,17 @@ void Board::Update()
 		}
 	}
 
+	// port(mod): Lex's danger clip for a mod's word, once he has eaten its tiles (before any praise)
+	if ((mModDangerPending) && (!isFlying) && (LexIdle(mLex)))
+	{
+		mModDangerPending = false;
+		if (mState == BOARD_PLAYING)
+		{
+			mLex->PlayAnim(LEXANIM_DANGER, false);
+			mApp->PlaySample(SOUND_LEX_DANGER);
+		}
+	}
+
 	// 27. Lex praises a special tile (the draw is spent for other types)
 	if ((mLexPraisePending) && (!isFlying) && (LexIdle(mLex)) &&
 		((mState == BOARD_PLAYING) || (mState == BOARD_LEVEL_COMPLETE) || (mState == BOARD_GAMEOVER_PENDING)))
@@ -3611,6 +3770,13 @@ void Board::WriteSavedGame(FILE* theFile, int theMode, bool isHelpOpen)
 	// 30-31
 	FileWriteString(theFile, mGameLog.ToWebString());
 	FileWriteBool(theFile, isHelpOpen);
+
+	// port(mod): the game's count of the stats' mod words, after the original record
+	if (ModWordStatsLabel().length() != 0)
+		FileWriteInt(theFile, mModWordsPlayed);
+	// port(mod): then the greedy bots' results and games (read by LoadGame: an undo leaves the bots as they are)
+	if (ModFeatureEnabled("greedyBots"))
+		GreedyBots::Write(theFile, mBots);
 }
 
 // 0x408ab0 (the app's 2005, after StartGame made a fresh board): reads the record into this board. Versions
@@ -3629,6 +3795,8 @@ bool Board::LoadGame(int theMode)
 
 	bool isHelpOpen = false;
 	bool isRead = ReadSavedGame(aFile, &isHelpOpen);
+	if ((isRead) && (ModFeatureEnabled("greedyBots")))
+		ReadBots(aFile);    // port(mod)
 	fclose(aFile);
 	if (!isRead)
 		return false;
@@ -3881,7 +4049,46 @@ bool Board::ReadSavedGame(FILE* theFile, bool* isHelpOpen)
 	*isHelpOpen = false;
 	if (aVersion > 3)
 		FileReadBool(theFile, isHelpOpen);
+
+	// port(mod): the count of the stats' mod words, when the record has it
+	mModWordsPlayed = 0;
+	mModDangerPending = false;
+	int aModWords = 0;
+	if ((ModWordStatsLabel().length() != 0) && (fread(&aModWords, 1, 4, theFile) == 4) && (aModWords >= 0))
+		mModWordsPlayed = aModWords;
 	return true;
+}
+
+// port(mod): the greedy bots of a saved game, after its record; none there (a game saved without the mod), and
+// the bots begin only if the game has not: a fresh game's first board
+void Board::ReadBots(FILE* theFile)
+{
+	delete mBots;
+	mBots = new GreedyBots();
+	if (!mBots->Read(theFile, mApp))
+	{
+		delete mBots;
+		mBots = NULL;
+	}
+	mBotsChecked = mBots != NULL;
+}
+
+// port(mod): the greedy bots begin at a fresh Classic game's first board and play some moves each tick, a
+// little while the player plays and more once the game is over, where the summary shows their results
+void Board::UpdateBots()
+{
+	if ((!mBotsChecked) && (mState == BOARD_PLAYING))
+	{
+		mBotsChecked = true;
+		if ((mBots == NULL) && (mApp->mGameMode == GAMEMODE_CLASSIC) && (ModFeatureEnabled("greedyBots")) &&
+			(mGameStats->mWords == 0) && (mGameStats->mScrambles == 0))
+		{
+			mBots = new GreedyBots();
+			mBots->Start(this);
+		}
+	}
+	if (mBots != NULL)
+		mBots->Update(((mState == BOARD_GAMEOVER) || (mState == BOARD_GAMEOVER_MUSIC)) ? 12.0 : 2.0);
 }
 
 void Board::GetGlobalState(int* theLastLetterIdx, int* theLastRefillLevel)

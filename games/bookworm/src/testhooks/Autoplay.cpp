@@ -14,6 +14,7 @@
 #include "Res.h"
 #include "Solver.h"
 #include "Undo.h"
+#include "GreedyBots.h"
 
 #include "WidgetManager.h"
 #include "ButtonWidget.h"
@@ -111,7 +112,7 @@ bool SameWordIgnoringCase(const std::string& theWord1, const std::string& theWor
 
 AutoplayBot::AutoplayBot(BookWormApp* theApp, unsigned long theSeed, const std::string& theMode, int theUpdateCap,
 	const std::string& theLogFileName, const std::string& theShotPrefix, int theShotWords, bool theUseHints,
-	bool theTestUndo) :
+	bool theTestUndo, bool theCheckModel) :
 	mApp(theApp),
 	mRand((std::mt19937::result_type) theSeed),
 	mSeed(theSeed),
@@ -128,6 +129,12 @@ AutoplayBot::AutoplayBot(BookWormApp* theApp, unsigned long theSeed, const std::
 	mUndoWordsScored(0),
 	mUndoChecks(0),
 	mUndoMismatches(0),
+	mCheckModel(theCheckModel),
+	mModel(NULL),
+	mModelBoard(NULL),
+	mModelMoves(0),
+	mModelChecks(0),
+	mModelMismatches(0),
 	mDone(false),
 	mQuitAt(-1),
 	mTitleClicked(false),
@@ -136,6 +143,8 @@ AutoplayBot::AutoplayBot(BookWormApp* theApp, unsigned long theSeed, const std::
 	mWaitKey(NULL),
 	mWaitUntil(0),
 	mSummaryNoted(false),
+	mSummaryNotedAt(0),
+	mBotsShot(false),
 	mFameNoted(false),
 	mLevelUps(0),
 	mPlanPos(0),
@@ -176,13 +185,19 @@ AutoplayBot::AutoplayBot(BookWormApp* theApp, unsigned long theSeed, const std::
 		mModes.push_back(GAMEMODE_CLASSIC);
 	}
 
-	Note("-autoplay=%lu -seed=%lu -autoplaymode=%s -autoplaycap=%d%s%s: the bot's input as a -script file", mSeed,
+	Note("-autoplay=%lu -seed=%lu -autoplaymode=%s -autoplaycap=%d%s%s%s: the bot's input as a -script file", mSeed,
 		(unsigned long) mApp->mRandSeed, mModeName.c_str(), mUpdateCap, mUseHints ? " -autoplayhints=1" : "",
-		mTestUndo ? " -autoplayundo=1" : "");
+		mTestUndo ? " -autoplayundo=1" : "", mCheckModel ? " -autoplaymodel=1" : "");
+	if ((mCheckModel) && (mTestUndo))
+	{
+		Note("-autoplaymodel: the model cannot undo; no model check with -autoplayundo");
+		mCheckModel = false;
+	}
 }
 
 AutoplayBot::~AutoplayBot()
 {
+	delete mModel;
 	if (mLog != NULL)
 		fclose(mLog);
 }
@@ -304,6 +319,17 @@ void AutoplayBot::LogChanges(Board* theBoard)
 				Note("hints: %d words scored, %d mismatches", mWordsScored, mHintMismatches);
 			if (mTestUndo)
 				Note("undo: %d checks, %d mismatches", mUndoChecks, mUndoMismatches);
+			CheckModelEnd(theBoard);
+		}
+		if ((theBoard->mState == BOARD_GAMEOVER) && (theBoard->mBots != NULL))
+		{
+			GreedyBots* aBots = theBoard->mBots;
+			Note("greedy bots%s after %.0f ms: best word %d (level %d, %d words, end %d), fire first %d (level %d, "
+				"%d words, end %d)", aBots->Finished() ? "" : " (still playing)", aBots->mElapsedMs,
+				aBots->mResults[GREEDY_BEST_WORD].mScore, aBots->mResults[GREEDY_BEST_WORD].mLevel + 1,
+				aBots->mResults[GREEDY_BEST_WORD].mWords, aBots->mResults[GREEDY_BEST_WORD].mEnd,
+				aBots->mResults[GREEDY_FIRE_FIRST].mScore, aBots->mResults[GREEDY_FIRE_FIRST].mLevel + 1,
+				aBots->mResults[GREEDY_FIRE_FIRST].mWords, aBots->mResults[GREEDY_FIRE_FIRST].mEnd);
 		}
 		mLastState = theBoard->mState;
 	}
@@ -361,7 +387,7 @@ void AutoplayBot::CheckResult(Board* theBoard)
 }
 
 // The first dialog (lowest id) in front: the new-user dialog gets a name, hint, message and can't-scramble
-// dialogs their OK, the continue-game question a no. Anything else is unexpected (the bot opens no
+// dialogs their OK, the continue-game question a no (-autoplaycontinue: a yes). Anything else is unexpected (the bot opens no
 // Options, Leave or Quit dialog, and must click no link): the run ends.
 void AutoplayBot::HandleDialogs()
 {
@@ -395,7 +421,9 @@ void AutoplayBot::HandleDialogs()
 		return;
 
 	case DIALOG_CONTINUE:
-		if (Due(aDialog, 25, 70))
+		if ((Due(aDialog, 25, 70)) && (mApp->mAutoplayContinue))
+			ClickWidget(aDialog->mYesButton, "yes: the saved game goes on");
+		else if (mWaitKey == NULL)
 			ClickWidget(aDialog->mNoButton, "no: a new game, not the saved one");
 		return;
 
@@ -445,6 +473,7 @@ void AutoplayBot::HandleSummary(Board* theBoard)
 	if (!mSummaryNoted)
 	{
 		mSummaryNoted = true;
+		mSummaryNotedAt = mApp->mUpdateCount;
 		StatKeeper* aStats = theBoard->mGameStats;
 		std::string aMode = ModeName(mApp->mGameMode);
 		if (isGameOver)
@@ -465,6 +494,12 @@ void AutoplayBot::HandleSummary(Board* theBoard)
 		return;
 	}
 
+	// the greedy bots' balloon fades in after the slide; the continue comes 31 updates after the note at the earliest
+	if ((isGameOver) && (!mBotsShot) && (aSummary->mBotsBalloon != NULL) && (mApp->mUpdateCount >= mSummaryNotedAt + 25))
+	{
+		mBotsShot = true;
+		Shot(std::string(ModeName(mApp->mGameMode)) + "-gameover-bots");
+	}
 	if (Due(aSummary, 30, 80))
 		ClickWidget(aSummary->mContinueButton, isGameOver ? "the game-over summary's continue" : "the level summary's continue");
 }
@@ -635,6 +670,101 @@ bool AutoplayBot::PlanUndoTest(Board* theBoard)
 	return false;
 }
 
+// -autoplaymodel: the game's last move made in the model (false: its tiles are not the model's)
+bool AutoplayBot::ModelTakesMove(Board* theBoard)
+{
+	mModelMoves++;
+	const std::vector<int>& aMove = theBoard->mModLastMove;
+	if (aMove.empty())
+		return mModel->Scramble();
+
+	std::vector<Piece*> aPath;
+	for (size_t i = 0; i < aMove.size(); i++)
+	{
+		Piece* aPiece = mModel->At(aMove[i] / BOARD_COLS, aMove[i] % BOARD_COLS);
+		if (aPiece == NULL)
+			return false;
+		aPath.push_back(aPiece);
+	}
+	return mModel->Submit(aPath);
+}
+
+// -autoplaymodel: at each rest, the move the game took since the last one, made in the model; the two boards
+// compared
+void AutoplayBot::CheckModel(Board* theBoard)
+{
+	if ((!mCheckModel) || (mApp->mGameMode != GAMEMODE_CLASSIC))
+		return;
+	if (mModelBoard != theBoard)
+	{
+		delete mModel;
+		mModel = NULL;
+		mModelBoard = theBoard;
+		if (theBoard->mModMoves != 0)
+		{
+			Note("model: the game had %d moves when the check began; no model check", theBoard->mModMoves);
+			return;
+		}
+		mModel = new BotGame();
+		mModel->Capture(theBoard);
+		mModelMoves = 0;
+		Note("model: from the game's first board");
+		return;
+	}
+	if ((mModel == NULL) || (theBoard->mModMoves == mModelMoves))
+		return;
+
+	std::string aWhy;
+	if (theBoard->mModMoves != mModelMoves + 1)
+		aWhy = StrFormat("%d moves since the last rest", theBoard->mModMoves - mModelMoves);
+	else if (!ModelTakesMove(theBoard))
+		aWhy = "the model did not take the move";
+	mModelChecks++;
+	// after a bonus word the banner takes up the next one once it has slid away and back, which can be later
+	// than the tiles rest; the model has it at once (BoardState ends with the bonus word)
+	std::string aGame = BoardState(theBoard);
+	bool isBannerLate = (theBoard->mBonusWord.empty()) && (!mModel->mBonusWord.empty()) &&
+		(mModel->mBonusWord == mApp->mBonusWord);
+	if (isBannerLate)
+		aGame += mModel->mBonusWord;
+	aGame += StrFormat(" level %d", theBoard->mLevel + 1);
+	std::string aModel = mModel->State() + StrFormat(" level %d", mModel->mLevel + 1);
+	if ((aWhy.empty()) && (aGame == aModel))
+	{
+		Note("model: as the game after move %d%s", mModelMoves, isBannerLate ? " (its bonus banner still on its way)" : "");
+		return;
+	}
+
+	mModelMismatches++;
+	Note("MODEL MISMATCH after move %d%s%s: the game %s, the model %s", theBoard->mModMoves, aWhy.empty() ? "" : ": ",
+		aWhy.c_str(), aGame.c_str(), aModel.c_str());
+	mModel->Capture(theBoard);
+	mModelMoves = theBoard->mModMoves;
+}
+
+// -autoplaymodel: the move that ended the game ends the model's, with the same score
+void AutoplayBot::CheckModelEnd(Board* theBoard)
+{
+	if ((!mCheckModel) || (mModel == NULL) || (mModelBoard != theBoard))
+		return;
+	if (theBoard->mModMoves == mModelMoves + 1)
+	{
+		bool isTaken = ModelTakesMove(theBoard);
+		mModelChecks++;
+		if ((isTaken) && (mModel->IsOver()) && (mModel->mScore == theBoard->mGameStats->mScore))
+			Note("model: over as the game after move %d, score %d", mModelMoves, mModel->mScore);
+		else
+		{
+			mModelMismatches++;
+			Note("MODEL MISMATCH at game over after move %d: the game's score %d, the model's %d (%s)", theBoard->mModMoves,
+				theBoard->mGameStats->mScore, mModel->mScore, mModel->IsOver() ? "over" : "not over");
+		}
+	}
+	Note("model: %d checks, %d mismatches", mModelChecks, mModelMismatches);
+	delete mModel;
+	mModel = NULL;
+}
+
 std::string AutoplayBot::PathWord(Board* theBoard, const std::vector<int>& thePath)
 {
 	std::string aWord;
@@ -720,6 +850,7 @@ void AutoplayBot::PlanNext(Board* theBoard)
 	}
 	if ((mTestUndo) && (PlanUndoTest(theBoard)))
 		return;
+	CheckModel(theBoard);
 	if ((mUseHints) && (!aWords.empty()))
 	{
 		mPlanKind = PLAN_HINT;
@@ -951,7 +1082,7 @@ int AutoplayBot::RunStep(Board* theBoard, const Step& theStep)
 			if (aHint == NULL)
 				return RUN_DROP;
 			static const char* const KIND_NAMES[] = { "fire", "bonus", "best", "longest" };
-			static const char* const SAFETY_NAMES[] = { "safe", "fire to the bottom", "ends the game" };
+			static const char* const SAFETY_NAMES[] = { "safe", "sets fire", "fire to the bottom", "ends the game" };
 			if ((mTestUndo) && (mUndoPhase == 1))
 				mUndoBefore = BoardState(theBoard);     // the board the undo must put back
 			mPlanWord = aHint->mWord;
@@ -1128,7 +1259,10 @@ void AutoplayBot::Update()
 	LevelUpWidget* aSummary = (aBoard != NULL) ? aBoard->mLevelUpWidget : NULL;
 	bool hasSummary = (aSummary != NULL) && (aSummary->mVisible) && (!aSummary->mDisabled) && (aBoard->mSummaryShown);
 	if (!hasSummary)
+	{
 		mSummaryNoted = false;
+		mBotsShot = false;
+	}
 
 	if (!mApp->mDialogMap.empty())
 		HandleDialogs();

@@ -12,8 +12,10 @@ redistributed, stay git-ignored. How to install and test the mods that exist: RE
 |---|---|---|
 | 1 | Word solver (`mods/solver`) | done |
 | 2 | Undo (`mods/undo`) | done |
-| 3 | Bigger dictionary, with Collins | next |
-| 4 | Rude words that set fires; the greedy-bot comparison; HD art; the smaller ideas | planned |
+| 3 | Bigger dictionary, with Collins (`mods/collins`) | done |
+| 4 | Rude words that set fires (`mods/rude-words`) | done |
+| 5 | Greedy bots on the game-over page (`mods/greedy-bots`) | done |
+| 6 | HD art; the smaller ideas; typing a word to play it (4.6, the user's idea) | next |
 
 Code mods read their switches from the mod's `"features"` (`src/ModFeatures.h`: a feature on, a live
 setting's value) and say `"affectsScores": true`, so their games get their own high scores and saved games
@@ -60,36 +62,93 @@ the board after each undo and after the same word played again.
 Possible later: undo after the move that ended a Classic game (the game-over sequence would have to be
 stopped).
 
-## 3. Bigger dictionary, with Collins (planned)
+## 3. Bigger dictionary, with Collins (done)
 
-The original list has about 150,000 words. The mod merges word lists into the player's own `wordlist.txt` at
-start-up, on the player's machine: nothing of the game's is committed or redistributed.
-- **Collins Scrabble Words** (the user's choice: "a reasonable balanced expansion"). Collins is HarperCollins'
-  copyrighted list and not freely downloadable, so the mod reads a Collins file the player supplies (one word
-  per line), kept git-ignored and never shipped.
-- **Free lists** as further options, each downloaded only with the user's OK (name, source, exact size):
-  ENABLE2K (public domain), SCOWL (permissive), WordNet (definitions for the new words in Lex's balloon).
-- A tool `games/bookworm/tools/make_wordlist.py`: plain list to the game's prefix-compressed format and back
-  (uppercase A-Z, sorted, 3-12 letters), with a report of what was added or dropped. A remove list keeps slurs
-  out of any merged list.
-- The solver uses whatever list is active. An online API was ruled out: too slow for the per-tile check and the
-  solver's search, against the no-online rule, and it would send every word tried to a third party.
+`src/ModWords.cpp`, mod `collins`, a general feature `"words"`: every enabled mod with it adds the words of its
+files to the dictionary at start-up (after `wordlist.txt`, in its format), and its definitions to Lex's (before
+`popdefs.txt`, which wins where both define a word). A word only a mod has and no definition gets the mod's
+note in the balloon. The rude-words mod can add its words the same way.
+- **The list** is the player's own Collins Scrabble Words, never committed: `tools/make_collins_mod.py` writes
+  `mods/collins/collins-words.txt` (git-ignored by the mod folder's own `.gitignore`) from a NASPA Zyzzyva
+  install, whose word graph (`data/words/CSW24/*.dwg`) is plain, unencrypted data. CSW24 has 280,887 words:
+  280,652 kept (no Q without a U, which the Qu tile can't spell; 3 letters or more), 129,593 of them new to
+  the game's 151,381. Zyzzyva's own definitions are encrypted and are not read.
+- **Definitions** come from a text list the user supplied (Collins Scrabble Words 2019 with definitions): the
+  tool writes `collins-defs.txt` in popdefs.txt's style ("(n., French) Gloss.", "(v.) Form of BASE: gloss.",
+  the senses one after another). 278,842 of the words have one; the rest (new in 2024) get the note.
+- **A click on a definition balloon** opens the word in an online dictionary in the player's browser (setting:
+  Collins Dictionary, which also covers the Scrabble words and sends inflected forms to their entry,
+  Wiktionary, or nothing). Only Lex's definitions are links; his other speech and thoughts are not. This is a
+  link, not an online feature: the game sends nothing anywhere until the player clicks. An online API for
+  the checks themselves stays ruled out (too slow for the solver, and every word tried would go to a third
+  party).
 
 ## 4. The rest (planned)
 
-### 4.1 Rude words set fires (the user's idea)
-Slang, profanity and rude words the original list leaves out become playable, and playing one spawns extra
-fire tiles (setting: how many). The words come from a word list file with a licence that allows it (for
-example LDNOOBW, CC BY 4.0), downloaded only with the user's OK; by default it leaves out slurs aimed at groups
-of people. The mod adds them to the dictionary at start-up and marks them, so Submit can tell.
+### 4.1 Rude words set fires (done)
+Mod `rude-words`, the feature `"words"` (section 3) with `"fire"`: 312 swear words, crude slang and internet
+slang (with their inflected forms) that the game's list lacks, in `mods/rude-words/rude-words.txt`. The list
+is our own, written for the mod, so it is committed; it leaves out slurs aimed at groups of people (racial,
+ethnic, homophobic, transphobic, ableist). 230 of them are in Collins too: with both mods on they burn all
+the same, since each mod's words are those the game's own list lacks, whatever other mods add.
+- **Settings** (`ModWordGetEffects`, read live): a points multiplier (-5..5 in halves, default 1: 0 scores
+  nothing, below 0 takes points away, never more than the level has so far; `ModWordScore` in
+  `WordScore::Build`, in tens like every score; a negative popup is in LockerGnome, the score font has no
+  minus); every new tile burns, or a number of them, fixed (0..9, default 2) or one per so many letters (1..6,
+  at least one); bonus tiles as usual, none for a rude word, or a rude word turns every special tile on the
+  board plain (`Board::RemoveBonusTiles`; one under a fire tile then burns like a plain one).
+- **Fire**: Submit sets `Board::mModFireDue` from the effects (every tile: all of them), and Refill sets that
+  many of the tiles it drops in on fire: normal ones, never on the bottom row, picked with `gGameRand`, so an
+  undo and the same word again bring the same fire. None when the word ends the level.
+- **Lex** (setting "Lex comments", on by default): his balloon (`Lex::SayReaction`) has the word, one of 65
+  comments of ours (`rude-reactions.txt`, the feature's `"reactions"`; picked from the word and the game's
+  count, so an undo and the word again get the same one) and, with definitions on, the word's definition
+  under it (the balloon's third block, `WordBalloon::SetFooter`); once he has eaten the word he plays his
+  danger clip (`LEXANIM_DANGER` and its sound). The note "Such language!" stays for a mod without reactions.
+  The solver ranks a word that sets fire after the safe ones and tags it "SETS FIRE".
+- **Stats** (the feature's `"stats"` label): the game's count (`Board::mModWordsPlayed`, an int after the
+  saved game's record while the mod is on) and the player's all-time total (a profile int,
+  `ModWords-rude-words`) on the level and game-over page, under the times: "Rude words: 4, all time 4". An
+  undo takes the undone word off both.
+- Tested with a copy of the mod whose list is Collins (so the bot plays such words), hidden under rundesk: the
+  default fires 2 tiles and the balloon reads word, comment, definition, and Lex's danger pose follows the
+  eating where a plain word leaves him idle; -1 with fire by length (3 letters a tile) scores a 7-letter word
+  -1400 with 2 fire tiles and turns the board's green tile plain; 0.5 with every tile burning scores it 700
+  with 6 fire tiles; the solver bot with undo, points 2 and no fire (so its words are safe), 30 words with 9
+  undone, leaves an all-time total of 21. Earlier: the plain bot burns out on level 2 (level 8 without), and
+  the solver bot with undo, Classic 109 checks and Action 56, found no mismatch.
 
-### 4.2 Against greedy bots, on the game-over screen (the user's idea)
-At game over the stats screen also shows what two simple players would have scored from the same start: one
-that always plays the best-scoring word, one that always puts out the most urgent fire first. At the start of a
-game the board and the generators' state are kept; at game over a headless model of the Classic rules (Submit,
-burning, refill, the fire meter, special tiles, level thresholds and bonus words, drawing from the generators
-in the game's order) plays both bots from that start with the solver's search. The model is checked against
-the real game with the `-autoplay` bot (same moves, same boards and scores).
+### 4.2 Against greedy bots, on the game-over screen (done, the user's idea)
+Mod `greedy-bots` (feature `"greedyBots"`, `src/GreedyBots.cpp`), Classic only, `"affectsScores": false` (the
+player's game is untouched). At a fresh game's first board (no word or scramble yet) `BotGame::Capture` copies
+the board, `gGameRand` and the rest of the state the rules draw on (RandomLetter's previous letter, Refill's
+previous level, the fire meter, the reward streak, the bonus words). Two bots then play their own games from
+there, about 2 ms of moves a tick while the player plays and 12 ms once the game is over, until each burns
+out, is stuck or reaches 2,500 moves:
+- **Best word**: the best-scoring word, the bonus word's points included, one that ends the game at once only
+  when nothing else is there; then the longest.
+- **Fire first**: the safest word (the solver's safety); among those, one with fire tiles first, in the
+  solver's fire-hint order (the lowest fire tile, then the most); else the best-scoring.
+
+Both use the solver's search (`FindSolverWords`), scored at the bot's own level (`WordScore::mLevel`: the
+game's scoring reads the board's level), and scramble when the board spells nothing. The model (`BotGame`) is
+Submit, Scramble, Refill, BurnTiles, RemovePieces, AwardSpecialTile, the rude-words effects, PickBonusWord and
+LevelUp, drawing from its copy of the generator in the game's order, and the tile pass as far as it decides
+when burning tiles are gone (each tick in which tiles burn away refills once, so the ticks count). Not
+modelled: a gold, sapphire or diamond tile shaking under a fire tile (the jitter comes from the board's visual
+generator) may burn a few ticks later in the game; and the bonus banner's slide (the model has the next bonus
+word at once).
+
+At game over, once the page has slid in, a balloon above Lex gives both scores and how each game ended
+("burned at level 14", "level 53, still going") and which bots the player beat; while they still play it
+follows them. A saved game keeps their results and the games still going (after the record; `LoadGame` reads
+them, an undo leaves the bots as they are).
+- Tested hidden with `-autoplaymodel=1` (README.md): seed 1 with the plain bot (level 8, 57 moves) and the
+  hint bot (level 42, 1,006 moves), seed 2 (25 moves): 1,088 checks, no mismatch; the games' own play as
+  before. The bots took 0.8 to 2.2 s in all, natively (about 0.6 ms a move). From seed 1's start the best-word
+  bot burned out at level 13 with 126,410, the fire-first bot at level 44 with 4,969,150; seed 2: level 14,
+  and level 53 at the cap. A game quit while the bots played and continued by a second run
+  (`-autoplaycontinue=1`) ended them exactly as the uninterrupted game.
 
 ### 4.3 HD art
 A generator like Bejeweled's (Real-ESRGAN in `E:\retools`) that upscales the player's own images into a
@@ -106,12 +165,21 @@ JPEG backdrops with a denoising model; tile letters redrawn from a free vector f
 - **Widescreen layout**: a side panel for the solver's list and the word history.
 
 ### 4.5 Earlier proposals, still open
-- **Definitions** for more words: `popdefs.txt` has 2,249; a `make_popdefs.py` from WordNet (free with its
-  notice) in the original's one-line `(pos.) definition` style.
+- **Definitions** for more words without Collins: `popdefs.txt` has 2,249; WordNet (free with its notice)
+  through the `"words"` feature's `"definitions"`, in the original's one-line `(pos.) definition` style.
 - **Other languages** need engine hooks (tunables, original values by default): the alphabet and its tile
   cels, letter weights (26 summing to 95,500) and values, the "Qu" rule, the minimum length. A language pack is
   then a word list, bonus words, definitions, `texts.xml` and tile art.
 - **Gameplay variants**: board size, fire-tile rate, a timed sprint, a relaxed no-fire mode, set seeds.
+
+### 4.6 Type a word (the user's idea, 2026-10-24)
+Type a word on the keyboard and press Enter to play it: the game finds it on the board. Where the board
+spells it more than once, the path taken is the one with the most fire tiles; among equals, one that drops no
+fire tile (the solver's safety: a path that eats the tiles under a fire tile drops it, one that leaves a bottom
+fire tile out ends a Classic game); otherwise any. The search is the solver's (`FindSolverWords`: every path,
+scored and rated by Submit's own rules). To settle when it is built: the typed letters shown as a selection
+(the best path for the letters so far), Backspace and Esc, Q typed as the Qu tile, a buzz when the board does
+not spell the word, and keys the game already uses (Tab for a hint, Ctrl+Z for undo).
 
 ## What works as plain data today (no code)
 

@@ -178,6 +178,8 @@ public:
 	int						mAutoplayShotWords;
 	bool					mAutoplayHints;
 	bool					mAutoplayUndo;
+	bool					mAutoplayModel;         // -autoplaymodel=1: the greedy bots' model checked (Autoplay.h)
+	bool					mAutoplayContinue;      // -autoplaycontinue=1: the saved game goes on (Autoplay.h)
 	AutoplayBot*			mAutoplayBot;
 
 public:

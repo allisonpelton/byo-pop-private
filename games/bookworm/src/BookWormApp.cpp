@@ -16,6 +16,7 @@
 #include "HintDialog.h"
 #include "GameText.h"
 #include "ModFeatures.h"
+#include "ModWords.h"
 #include "testhooks/Autoplay.h"
 
 #include "WidgetManager.h"
@@ -334,6 +335,8 @@ BookWormApp::BookWormApp()
 	mAutoplayShotWords = 25;
 	mAutoplayHints = false;
 	mAutoplayUndo = false;
+	mAutoplayModel = false;
+	mAutoplayContinue = false;
 	mAutoplayBot = NULL;
 }
 
@@ -599,7 +602,7 @@ void BookWormApp::UpdateFrames()
 	// port: the -autoplay test hook (see BookWormApp.h): the bot looks at the game after each update
 	if ((mAutoplay) && (mAutoplayBot == NULL))
 		mAutoplayBot = new AutoplayBot(this, mAutoplaySeed, mAutoplayMode, mAutoplayCap, mAutoplayLogFileName,
-			mAutoplayShotPrefix, mAutoplayShotWords, mAutoplayHints, mAutoplayUndo);
+			mAutoplayShotPrefix, mAutoplayShotWords, mAutoplayHints, mAutoplayUndo, mAutoplayModel);
 	if (mAutoplayBot != NULL)
 		mAutoplayBot->Update();
 }
@@ -628,6 +631,10 @@ void BookWormApp::HandleCmdLineParam(const std::string& theParamName, const std:
 		mAutoplayHints = atoi(theParamValue.c_str()) != 0;
 	else if (theParamName == "-autoplayundo")
 		mAutoplayUndo = atoi(theParamValue.c_str()) != 0;
+	else if (theParamName == "-autoplaymodel")
+		mAutoplayModel = atoi(theParamValue.c_str()) != 0;
+	else if (theParamName == "-autoplaycontinue")
+		mAutoplayContinue = atoi(theParamValue.c_str()) != 0;
 	else
 		SexyApp::HandleCmdLineParam(theParamName, theParamValue);
 }
@@ -827,12 +834,14 @@ void BookWormApp::LoadingThreadProc()
 		mLoadingFailed = true;
 		return;
 	}
+	LoadModWords(this, &mDictionary);  // port(mod): the mods' word lists
 	mCompletedLoadingThreadTasks++;
 
 	LoadBonusWords("bonus_word_dictionary.txt", &mBonusWords);
 	mCompletedLoadingThreadTasks++;
 
 	mDefinitionator = new Definitionator(this);
+	LoadModDefinitions(mDefinitionator);  // port(mod): the mods' definitions, the game's replacing them
 	mDefinitionator->Load("popdefs.txt");
 	mCompletedLoadingThreadTasks++;
 
