@@ -343,7 +343,7 @@ ConfirmDialog::ConfirmDialog(AtomicaApp* theApp) :
 // 0x4220b0
 ConfirmDialog::~ConfirmDialog()
 {
-	mApp->mHelpDialog = NULL;
+	mApp->mConfirmDialog = NULL;
 }
 
 // 0x422100

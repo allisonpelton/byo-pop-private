@@ -72,11 +72,12 @@ public:
 	int				mPauseCount;			// +0x4068 >0: the game is paused
 	int				mI440;					// +0x440 a counter of the base app that the grid raises
 	bool			mShowSymbols;			// the atoms show their chemical symbols
-	bool			mShowTips;				// the tutorial boxes
+	bool			mShowTips;				// the tutorial boxes (the option 'disable hints' turns them off)
+	bool			mHintsShown[0xff];		// +0x406c the hints that were shown in earlier games
 	Widget*			mLevelUpDialog;			// +0x3e98
-	Widget*			mOptionsDialog;			// +0x3e8c
-	Widget*			mHelpDialog;			// +0x3e94
-	Widget*			mMenuDialog;			// +0x3e90
+	Widget*			mQuitDialog;			// +0x3e8c the quit box
+	Widget*			mConfirmDialog;			// +0x3e94
+	Widget*			mOptionsDialog;			// +0x3e90 the game options
 
 	GameRand		mRand;					// +0x3da4 the game's random numbers
 	float			mPi;					// +0x3da0 (the original sets it from the C library: 3.14159...)
@@ -259,9 +260,11 @@ public:
 	void				SaveGame();							// 0x405fc0
 	void				ResumeGame();						// 0x406060
 	void				DeleteSavedGame();
-	void				ShowOptions();						// 0x405bd0
+	void				ShowQuit();							// 0x405bd0
+	void				ShowOptions();						// 0x405d00
+	void				ResetHints();
+	void				ShowHighScores();					// 0x422d40
 	void				ShowConfirm();						// 0x405c40
-	void				ShowMenuDialog();					// 0x405d00
 	void				ShowMainMenu(bool theGameOver);		// 0x405d70
 	void				ShowGameOver();						// 0x406200
 	void				ShowLevelUp();						// 0x432240

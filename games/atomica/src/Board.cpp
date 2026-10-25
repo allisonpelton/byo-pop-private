@@ -600,13 +600,13 @@ void Board::ButtonDepress(int theId)
 	switch (theId)
 	{
 	case 0:
-		mApp->ShowOptions();
+		mApp->ShowQuit();
 		break;
 	case 1:
 		CheckBomb();
 		break;
 	case 2:
-		mApp->ShowMenuDialog();
+		mApp->ShowOptions();
 		break;
 	case 3:
 		mApp->ShowConfirm();

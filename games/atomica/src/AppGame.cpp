@@ -26,33 +26,54 @@ void AtomicaApp::StartGame()
 	mB3ea0 = false;
 }
 
-// 0x405bd0: the options box
-// port: the dialogs are not ported yet
-void AtomicaApp::ShowOptions()
-{
-	puts("options dialog (not ported)");
-}
-
-// 0x405c40: "confirm new game"
-void AtomicaApp::ShowConfirm()
-{
-	if (mHelpDialog == NULL)
-	{
-		ConfirmDialog* aDialog = new ConfirmDialog(this);
-		mHelpDialog = aDialog;
-		mWidgetManager->AddWidget(aDialog);
-	}
-}
-
-// 0x405d00: the menu box (quit, quit and save)
-// port: the box is not ported; the menu button saves the game of the strategy mode and shows the main menu
-void AtomicaApp::ShowMenuDialog()
+// 0x405bd0: the quit box
+// port: the box is not ported yet; the quit button saves the game of the strategy mode and shows the main menu
+void AtomicaApp::ShowQuit()
 {
 	if ((mBoard != NULL) && (mBoard->mGrid != NULL) && !mBoard->mGrid->mLevelOver && !mBoard->mMeter.mFull)
 	{
 		SaveGame();
 		ShowMainMenu(false);
 	}
+}
+
+// 0x405c40: "confirm new game"
+void AtomicaApp::ShowConfirm()
+{
+	if (mConfirmDialog == NULL)
+	{
+		ConfirmDialog* aDialog = new ConfirmDialog(this);
+		mConfirmDialog = aDialog;
+		mWidgetManager->AddWidget(aDialog);
+	}
+}
+
+// 0x405d00: the game options
+void AtomicaApp::ShowOptions()
+{
+	if (mOptionsDialog == NULL)
+	{
+		OptionsDialog* aDialog = new OptionsDialog(this);
+		mOptionsDialog = aDialog;
+		mWidgetManager->AddWidget(aDialog);
+	}
+}
+
+// the hints that were shown (the original keeps them in app+0x406c) are shown again
+void AtomicaApp::ResetHints()
+{
+	if ((mBoard != NULL) && (mBoard->mGrid != NULL))
+		for (int i = 0; i < 0xff; i++)
+			mBoard->mGrid->mHintShown[i] = false;
+	for (int i = 0; i < 0xff; i++)
+		mHintsShown[i] = false;
+}
+
+// the high scores box (0x41ea40)
+// port: not ported yet
+void AtomicaApp::ShowHighScores()
+{
+	puts("high scores box (not ported)");
 }
 
 // a game of the given mode starts (from the menu)

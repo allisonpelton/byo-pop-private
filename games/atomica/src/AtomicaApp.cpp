@@ -58,10 +58,12 @@ AtomicaApp::AtomicaApp()
 	mI440 = 0;
 	mShowSymbols = false;
 	mShowTips = true;
+	for (int i = 0; i < 0xff; i++)
+		mHintsShown[i] = false;
 	mLevelUpDialog = NULL;
+	mQuitDialog = NULL;
+	mConfirmDialog = NULL;
 	mOptionsDialog = NULL;
-	mHelpDialog = NULL;
-	mMenuDialog = NULL;
 	mSprites = new SpriteMgr(this);
 }
 

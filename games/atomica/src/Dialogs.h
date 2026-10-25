@@ -10,6 +10,8 @@
 #include "ButtonListener.h"
 #include "ButtonWidget.h"
 #include "Support.h"
+#include "Slider.h"
+#include "SliderListener.h"
 #include <string>
 
 namespace Sexy
@@ -78,6 +80,36 @@ public:
 	virtual void	Resize(int theX, int theY, int theWidth, int theHeight) override;	// 0x422100
 	virtual void	Draw(Graphics* g) override;			// 0x4221d0
 	virtual void	ButtonDepress(int theId) override;	// 0x422170
+};
+
+// 0x422f10: the game options (volumes, full screen, the colour-blind symbols, hints) and the credits
+class OptionsDialog : public GameDialog, public SliderListener
+{
+public:
+	ButtonWidget*	mDone;				// +0xb0 id 0 (BACK on the credits page)
+	ButtonWidget*	mHighScores;		// +0xb8 id 3
+	ButtonWidget*	mCredits;			// +0xc0 id 5
+	ButtonWidget*	mResetHints;		// +0xc4 id 9
+	ButtonWidget*	mBoxFullscreen;		// +0xc8 id 6
+	ButtonWidget*	mBoxCursors;		// +0xcc id 7
+	ButtonWidget*	mBoxSymbols;		// +0xd0 id 8
+	ButtonWidget*	mBoxHints;			// +0xd4 id 10
+	Slider*			mMusic;				// +0xd8 id 1
+	Slider*			mSfx;				// +0xdc id 0
+	bool			mFullscreen;		// +0xe0
+	bool			mCursors;			// +0xe1
+	bool			mSymbols;			// +0xe2 the colour-blind fix
+	bool			mNoHints;			// +0xe3
+	bool			mCreditsPage;		// +0xe8
+	bool			mFirstUpdate;		// +0xe9
+
+	OptionsDialog(AtomicaApp* theApp);					// 0x422f10
+	virtual ~OptionsDialog();							// 0x4229d0
+	virtual void	Resize(int theX, int theY, int theWidth, int theHeight) override;	// 0x422ac0
+	virtual void	Update() override;					// 0x4234a0
+	virtual void	Draw(Graphics* g) override;			// 0x4234f0
+	virtual void	ButtonDepress(int theId) override;	// 0x424430 and 0x422c70
+	virtual void	SliderVal(int theId, double theVal) override;	// 0x422d00
 };
 
 // the rank names' addresses in the exe and the scores that give each rank (0x4cb0a0, 0x4cb100)
