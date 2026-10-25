@@ -1,0 +1,15 @@
+{
+  "id": "colour-blind",
+  "name": "Colour-Blind Mode",
+  "version": "1.0",
+  "author": "byo-pop",
+  "description": "Special tiles carry a symbol in their top-left corner, so they differ by shape as well as colour: a circle on green tiles, a square on gold, a rhombus on sapphire, a star on diamond and a triangle on fire tiles. Play is unchanged, so games keep the usual high scores.",
+  "affectsScores": false,
+  "features": {
+    "tileSymbols": true
+  },
+  "settings": [
+    { "id": "large", "label": "Large symbols", "type": "bool", "default": false,
+      "help": "Bigger symbols, on a dark square." }
+  ]
+}

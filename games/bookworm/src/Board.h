@@ -44,6 +44,8 @@ class Solver;
 class UndoStack;
 class GreedyBots;
 class TypedWord;
+class WordReview;
+class DailyBoard;
 
 // Board::mState (+0x194)
 enum BoardState
@@ -251,6 +253,12 @@ public:
 	GreedyBots*			mBots;
 	// port(mod): typing a word to play it (mod "type-word", TypedWord.h); NULL without it
 	TypedWord*			mTypedWord;
+	// port(mod): the words played against the board's best (mods "missed-words", "par"; WordReview.h); NULL
+	// without them
+	WordReview*			mWordReview;
+	// port(mod): the day's board (mod "daily-board", DailyBoard.h); NULL without it
+	DailyBoard*			mDaily;
+	bool				mTileSymbols;           // port(mod): colour-blind mode's tile symbols (TileSymbols.h)
 	bool				mBotsChecked;
 	// port(mod): the moves (words and scrambles) so far and the last word's cells (row * BOARD_COLS + col, in
 	// order; empty for a scramble), for the -autoplay bot's check of the bots' model (-autoplaymodel)

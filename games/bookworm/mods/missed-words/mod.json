@@ -1,0 +1,11 @@
+{
+  "id": "missed-words",
+  "name": "Missed Words",
+  "version": "1.0",
+  "author": "byo-pop",
+  "description": "After each word, a note of the best-scoring word the board had, when yours was not it. The level and game-over pages give the points you missed. The note can show a word still on the board, so games with it keep their own high scores.",
+  "affectsScores": true,
+  "features": {
+    "missedWords": true
+  }
+}

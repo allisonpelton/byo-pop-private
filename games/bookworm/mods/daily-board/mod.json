@@ -1,0 +1,11 @@
+{
+  "id": "daily-board",
+  "name": "Daily Board",
+  "version": "1.0",
+  "author": "byo-pop",
+  "description": "One board a day, the same for everyone: each day's games start from the same tiles and the same first bonus word, and your words make the rest your own. Lex names the day at the start, your results go into daily-board.txt in your player folder, and the game-over page shows your best game of the day and your best day. Scores go to their own high-score table.",
+  "affectsScores": true,
+  "features": {
+    "dailyBoard": true
+  }
+}

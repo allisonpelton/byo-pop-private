@@ -305,7 +305,7 @@ void Lex::Think(const SexyString& theText, Font* theFont, int theDuration)
 // 0x42d8d0
 // A played word's definition: 213-wide speech box, the word as the header, both left-aligned.
 void Lex::SayDefinition(const SexyString& theWord, Font* theWordFont, const SexyString& theDefinition,
-	Font* theDefFont, int theDuration)
+	Font* theDefFont, int theDuration, const SexyString& theNote)
 {
 	OverlayWidget* anOverlay = mApp->mBoard->mOverlay;
 	if (anOverlay == NULL)
@@ -322,6 +322,8 @@ void Lex::SayDefinition(const SexyString& theWord, Font* theWordFont, const Sexy
 	aBalloon->mDoFinger = !aBalloon->mLookupURL.empty();
 	aBalloon->SetColors(gLexSayColors, 4);
 	aBalloon->ClearFooter();
+	if (theNote.size() != 0)
+		aBalloon->SetFooter(theNote, theDefFont, -1);   // port(mod): the word review's note (WordReview.h)
 	aBalloon->mTextInsets = Insets(12, 0, 12, 0);
 	aBalloon->Resize(0, 0, 213, aBalloon->GetPreferredHeight(213));
 	aBalloon->Show(theDuration);

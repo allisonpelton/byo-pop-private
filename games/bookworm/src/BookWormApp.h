@@ -169,6 +169,7 @@ public:
 	//                            every -autoplayshotwords=<n> words (default 25, 0: none), -word<n>.png;
 	//   -autoplayhints=1         plays the word solver's first hint every move (the mod "solver" on);
 	//   -autoplayundo=1          with it, undoes every other word and checks the board (the mod "undo" on)
+	//   -dailydate=<yyyymmdd>    the mod "daily-board" deals that day's board instead of today's
 	bool					mAutoplay;
 	unsigned long			mAutoplaySeed;
 	std::string				mAutoplayMode;
@@ -182,6 +183,7 @@ public:
 	bool					mAutoplayContinue;      // -autoplaycontinue=1: the saved game goes on (Autoplay.h)
 	bool					mAutoplayType;          // -autoplaytype=1: words typed (the mod "type-word"; Autoplay.h)
 	AutoplayBot*			mAutoplayBot;
+	int						mDailyDate;             // -dailydate=<yyyymmdd>: the mod "daily-board"'s day (0: today; DailyBoard.h)
 
 public:
 	BookWormApp();                                              // 0x41a0f0

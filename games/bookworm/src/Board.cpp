@@ -17,6 +17,8 @@
 #include "Undo.h"
 #include "GreedyBots.h"
 #include "TypedWord.h"
+#include "WordReview.h"
+#include "DailyBoard.h"
 
 #include "WidgetManager.h"
 #include "DialogButton.h"
@@ -615,6 +617,8 @@ Board::Board(BookWormApp* theApp)
 	mBotsChecked = false;
 	mModMoves = 0;
 	mTypedWord = ModFeatureEnabled("typeWord") ? new TypedWord(this) : NULL;
+	mWordReview = WordReview::Create(this);
+	mTileSymbols = ModFeatureEnabled("tileSymbols");
 	if (ModFeatureEnabled("undo"))
 	{
 		mUndo = new UndoStack(this);
@@ -631,6 +635,10 @@ Board::Board(BookWormApp* theApp)
 	mLevelStartTick = mStartTick;
 	mEffectMgr = new EffectMgr(theApp);
 	mEmberMgr = new EmberListMgr(theApp, 1000);
+	// port(mod): the daily board deals the day's game (a continued game's generators are read by LoadGame)
+	mDaily = DailyBoard::Create(this);
+	if (mDaily != NULL)
+		mDaily->Deal();
 
 	mLevelSeconds = 0;
 	mTotalSeconds = 0;
@@ -701,6 +709,10 @@ Board::~Board()
 	mBots = NULL;
 	delete mTypedWord;  // port(mod)
 	mTypedWord = NULL;
+	delete mWordReview; // port(mod)
+	mWordReview = NULL;
+	delete mDaily;      // port(mod)
+	mDaily = NULL;
 
 	if (mRand != NULL)
 	{
@@ -1752,6 +1764,10 @@ void Board::Submit(int x, int y)
 		{
 			if (mUndo != NULL)
 				mUndo->Push();  // port(mod): the board before the word
+			// port(mod): the word against the board's best, its tiles still there; the note goes in Lex's balloon
+			SexyString aReviewNote;
+			if (mWordReview != NULL)
+				aReviewNote = mWordReview->WordPlayed(mWord);
 			// port(mod): a mod's word with effects (rude-words): Lex comments on it, with its definition
 			ModWordEffects aModEffects;
 			bool isModWord = ModWordGetEffects(mWord.mWord, &aModEffects);
@@ -1761,17 +1777,27 @@ void Board::Submit(int x, int y)
 				SexyString aDefinition;
 				if ((mApp->mShowDefs) && (mApp->mDefinitionator != NULL))
 					aDefinition = mApp->mDefinitionator->GetDefinition(mWord.mWord);
+				if (aReviewNote.size() != 0)
+					aDefinition = (aDefinition.size() != 0) ? aDefinition + "\n" + aReviewNote : aReviewNote;
 				mLex->SayReaction(mWord.mWord, aReaction, aDefinition,
 					(int)(aReaction.size() + aDefinition.size()) * 3 + 400);
 			}
-			else if ((mApp->mShowDefs) && (mApp->mDefinitionator != NULL))
+			else if (((mApp->mShowDefs) && (mApp->mDefinitionator != NULL)) || (aReviewNote.size() != 0))
 			{
-				SexyString aDefinition = mApp->mDefinitionator->GetDefinition(mWord.mWord);
+				SexyString aDefinition;
+				if ((mApp->mShowDefs) && (mApp->mDefinitionator != NULL))
+				{
+					aDefinition = mApp->mDefinitionator->GetDefinition(mWord.mWord);
+					if (aDefinition.size() == 0)
+						aDefinition = ModWordNote(mWord.mWord);  // port(mod): which mod's list has it
+				}
+				// port(mod): the review's note under the definition, or alone
+				SexyString aNote = aReviewNote;
 				if (aDefinition.size() == 0)
-					aDefinition = ModWordNote(mWord.mWord);  // port(mod): which mod's list has it
+					aDefinition.swap(aNote);
 				if (aDefinition.size() != 0)
 					mLex->SayDefinition(mWord.mWord, mApp->mFonts[FONT_MYRIADWEB12BOLD], aDefinition,
-						mApp->mFonts[FONT_MYRIADWEB10], (int)aDefinition.size() * 3 + 400);
+						mApp->mFonts[FONT_MYRIADWEB10], (int)(aDefinition.size() + aNote.size()) * 3 + 400, aNote);
 			}
 			if (isModWord)
 			{
@@ -2577,6 +2603,9 @@ void Board::Update()
 				mLex->PlayAnim(LEXANIM_LETSGO, false);
 				mApp->PlaySample(SOUND_LEX_LETSGO);
 			}
+			// port(mod): the daily board's day, at the game's start
+			if ((mDaily != NULL) && (mLevel == 0) && (mGameStats->mWords == 0) && (mDaily->Greeting().length() != 0))
+				mLex->Say(mDaily->Greeting(), mApp->mFonts[FONT_MYRIADWEB12BOLD], 300);
 		}
 	}
 
@@ -3020,6 +3049,8 @@ void Board::Update()
 		{
 			mApp->KillDialog(DIALOG_HINT);
 			mApp->SubmitHighScores(mGameStats);
+			if (mDaily != NULL)
+				mDaily->GameOver();     // port(mod)
 			ShowSummary();
 		}
 		mState = BOARD_GAMEOVER;
@@ -3784,9 +3815,15 @@ void Board::WriteSavedGame(FILE* theFile, int theMode, bool isHelpOpen)
 	// port(mod): the game's count of the stats' mod words, after the original record
 	if (ModWordStatsLabel().length() != 0)
 		FileWriteInt(theFile, mModWordsPlayed);
+	// port(mod): the word review's totals (an undo takes a word's review back with the rest)
+	if (mWordReview != NULL)
+		mWordReview->Write(theFile);
 	// port(mod): then the greedy bots' results and games (read by LoadGame: an undo leaves the bots as they are)
 	if (ModFeatureEnabled("greedyBots"))
 		GreedyBots::Write(theFile, mBots);
+	// port(mod): then the daily board's day and generators (read by LoadGame)
+	if (mDaily != NULL)
+		mDaily->Write(theFile);
 }
 
 // 0x408ab0 (the app's 2005, after StartGame made a fresh board): reads the record into this board. Versions
@@ -3807,6 +3844,8 @@ bool Board::LoadGame(int theMode)
 	bool isRead = ReadSavedGame(aFile, &isHelpOpen);
 	if ((isRead) && (ModFeatureEnabled("greedyBots")))
 		ReadBots(aFile);    // port(mod)
+	if ((isRead) && (mDaily != NULL))
+		mDaily->Read(aFile);    // port(mod)
 	fclose(aFile);
 	if (!isRead)
 		return false;
@@ -4066,6 +4105,8 @@ bool Board::ReadSavedGame(FILE* theFile, bool* isHelpOpen)
 	int aModWords = 0;
 	if ((ModWordStatsLabel().length() != 0) && (fread(&aModWords, 1, 4, theFile) == 4) && (aModWords >= 0))
 		mModWordsPlayed = aModWords;
+	if (mWordReview != NULL)
+		mWordReview->Read(theFile);
 	return true;
 }
 

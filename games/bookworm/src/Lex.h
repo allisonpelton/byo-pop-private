@@ -129,7 +129,8 @@ public:
 	void			Say(const SexyString& theText, Font* theFont, int theDuration);     // 0x42d6c0 speech box, 106..213 wide
 	void			Think(const SexyString& theText, Font* theFont, int theDuration);   // 0x42d800 thought image
 	void			SayDefinition(const SexyString& theWord, Font* theWordFont, const SexyString& theDefinition,
-						Font* theDefFont, int theDuration);         // 0x42d8d0 213 wide, word as header
+						Font* theDefFont, int theDuration,          // 0x42d8d0 213 wide, word as header
+						const SexyString& theNote = SexyString());  // port(mod): a footer (the word review's)
 	void			SayReaction(const SexyString& theWord, const SexyString& theReaction,
 						const SexyString& theDefinition, int theDuration);  // port(mod): a mod's word
 

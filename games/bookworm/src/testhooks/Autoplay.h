@@ -27,10 +27,10 @@
 // updates later (or plays the next mode first). It never opens the Options dialog and never clicks a link
 // other than the title's play link; an unexpected dialog makes it quit.
 // -autoplaycap=<n> quits at update n (default 200000). -autoplayshots=<prefix> saves
-// <prefix><mode>-levelup<n>.png, <prefix><mode>-gameover.png (with the mod "greedy-bots" also
-// <prefix><mode>-gameover-bots.png, once their balloon is up), <prefix><mode>-fame.png and, every
+// <prefix><mode>-levelup<n>.png, <prefix><mode>-gameover.png (with the mods "greedy-bots" or "daily-board" also
+// <prefix><mode>-gameover-mods.png, once their balloon is up), <prefix><mode>-fame.png and, every
 // -autoplayshotwords=<n> words (default 25, 0: none), <prefix><mode>-word<n>.png (script lines, so a
-// replay of the log takes them too).
+// replay of the log takes them too). Under -renderscale=<n> the shots are at the full size (screenshotfull).
 // -autoplayhints=1 (with the mod "solver" on): every move is the word solver's first hint, asked for with Tab
 // and submitted with the Submit button (a scramble when the board spells no word). The log notes each hint
 // and the word's score, and "HINT MISMATCH" where the game scored the word otherwise than the solver said.
@@ -167,7 +167,7 @@ private:
 	const void* mNameDialog;        // the new-user dialog a name was typed into
 	bool mSummaryNoted;             // the summary on screen was logged (and shot)
 	int mSummaryNotedAt;            // the update it was
-	bool mBotsShot;                 // the game-over summary shot again with the greedy bots' balloon
+	bool mModsShot;                 // the game-over summary shot again with the mods' balloon
 	bool mFameNoted;
 	int mLevelUps;
 

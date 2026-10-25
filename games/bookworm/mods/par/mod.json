@@ -1,0 +1,11 @@
+{
+  "id": "par",
+  "name": "Par",
+  "version": "1.0",
+  "author": "byo-pop",
+  "description": "Each board's par is the points of the best word it has. After each word you see its points as a percentage of par, and the level and game-over pages give your percentage for the level and the game. Play is unchanged, so games keep the usual high scores.",
+  "affectsScores": false,
+  "features": {
+    "par": true
+  }
+}

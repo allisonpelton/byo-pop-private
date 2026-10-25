@@ -339,6 +339,7 @@ BookWormApp::BookWormApp()
 	mAutoplayContinue = false;
 	mAutoplayType = false;
 	mAutoplayBot = NULL;
+	mDailyDate = 0;
 }
 
 // 0x4187b0. The widgets were removed and deleted by ShutdownWidgets (the help widget is not: original).
@@ -638,6 +639,8 @@ void BookWormApp::HandleCmdLineParam(const std::string& theParamName, const std:
 		mAutoplayContinue = atoi(theParamValue.c_str()) != 0;
 	else if (theParamName == "-autoplaytype")
 		mAutoplayType = atoi(theParamValue.c_str()) != 0;
+	else if (theParamName == "-dailydate")
+		mDailyDate = atoi(theParamValue.c_str());
 	else
 		SexyApp::HandleCmdLineParam(theParamName, theParamValue);
 }

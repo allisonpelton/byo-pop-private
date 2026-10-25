@@ -17,6 +17,7 @@
 #include "GreedyBots.h"
 #include "ModFeatures.h"
 #include "TypedWord.h"
+#include "WordReview.h"
 
 #include "WidgetManager.h"
 #include "ButtonWidget.h"
@@ -149,7 +150,7 @@ AutoplayBot::AutoplayBot(BookWormApp* theApp, unsigned long theSeed, const std::
 	mWaitUntil(0),
 	mSummaryNoted(false),
 	mSummaryNotedAt(0),
-	mBotsShot(false),
+	mModsShot(false),
 	mFameNoted(false),
 	mLevelUps(0),
 	mPlanPos(0),
@@ -241,11 +242,12 @@ void AutoplayBot::QueueAt(const std::string& theCommand, int theX, int theY)
 	Queue(theCommand, std::to_string(theX) + " " + std::to_string(theY));
 }
 
-// -autoplayshots: a screenshot at the start of the next update
+// -autoplayshots: a screenshot at the start of the next update (at the full size under -renderscale, so HD
+// art can be checked)
 void AutoplayBot::Shot(const std::string& theEvent)
 {
 	if (!mShotPrefix.empty())
-		Queue("screenshot", mShotPrefix + theEvent + ".png");
+		Queue((mApp->mForcedRenderScale > 1) ? "screenshotfull" : "screenshot", mShotPrefix + theEvent + ".png");
 }
 
 void AutoplayBot::Quit()
@@ -373,6 +375,15 @@ void AutoplayBot::CheckResult(Board* theBoard)
 		Note("word %d: %s scored %d (the word %d), total %d, level %d, %d fire tiles", mWordsScored,
 			theBoard->mLastWord.mWord.c_str(), aScore - mScoreBefore, theBoard->mLastWord.mScore, aScore, theBoard->mLevel + 1,
 			theBoard->mFireTileCount);
+		if (theBoard->mWordReview != NULL)
+		{
+			// the mods "missed-words" and "par": the word against the board's best
+			const ReviewTotals& aLevel = theBoard->mWordReview->LevelTotals();
+			const ReviewTotals& aGame = theBoard->mWordReview->mGameTotals;
+			Note("review: level %d words, %d points of par %d (%d%%), %d missed; game %d words, %d of par %d, %d missed",
+				aLevel.mWords, aLevel.mScore, aLevel.mPar, aLevel.ParPercent(), aLevel.mMissed, aGame.mWords, aGame.mScore,
+				aGame.mPar, aGame.mMissed);
+		}
 		if ((!mHintWord.empty()) && ((theBoard->mLastWord.mWord != mHintWord) || (theBoard->mLastWord.mScore != mHintScore)))
 		{
 			mHintMismatches++;
@@ -501,11 +512,11 @@ void AutoplayBot::HandleSummary(Board* theBoard)
 		return;
 	}
 
-	// the greedy bots' balloon fades in after the slide; the continue comes 31 updates after the note at the earliest
-	if ((isGameOver) && (!mBotsShot) && (aSummary->mBotsBalloon != NULL) && (mApp->mUpdateCount >= mSummaryNotedAt + 25))
+	// the mods' balloon fades in after the slide; the continue comes 31 updates after the note at the earliest
+	if ((isGameOver) && (!mModsShot) && (aSummary->mModsBalloon != NULL) && (mApp->mUpdateCount >= mSummaryNotedAt + 25))
 	{
-		mBotsShot = true;
-		Shot(std::string(ModeName(mApp->mGameMode)) + "-gameover-bots");
+		mModsShot = true;
+		Shot(std::string(ModeName(mApp->mGameMode)) + "-gameover-mods");
 	}
 	if (Due(aSummary, 30, 80))
 		ClickWidget(aSummary->mContinueButton, isGameOver ? "the game-over summary's continue" : "the level summary's continue");
@@ -1418,7 +1429,7 @@ void AutoplayBot::Update()
 	if (!hasSummary)
 	{
 		mSummaryNoted = false;
-		mBotsShot = false;
+		mModsShot = false;
 	}
 
 	if (!mApp->mDialogMap.empty())

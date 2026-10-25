@@ -7,6 +7,8 @@
 #include "OverlayWidget.h"
 #include "WordBalloon.h"
 #include "GreedyBots.h"
+#include "WordReview.h"
+#include "DailyBoard.h"
 #include "ColorizedButton.h"
 #include "Res.h"
 #include "Compat2004.h"
@@ -98,7 +100,7 @@ LevelUpWidget::LevelUpWidget(BookWormApp* theApp)
 	mFooterY = 0;
 	mLexArrived = false;
 	mUnused78 = 0.03;
-	mBotsBalloon = NULL;
+	mModsBalloon = NULL;
 }
 
 // 0x42be40 (scalar deleting dtor 0x42beb0)
@@ -111,8 +113,8 @@ LevelUpWidget::~LevelUpWidget()
 		delete mContinueButton;
 		mContinueButton = NULL;
 	}
-	delete mBotsBalloon;    // port(mod)
-	mBotsBalloon = NULL;
+	delete mModsBalloon;    // port(mod)
+	mModsBalloon = NULL;
 }
 
 // 0x42b980
@@ -163,8 +165,8 @@ void LevelUpWidget::SetVisible(bool isVisible)
 {
 	Widget::SetVisible(isVisible);
 	mContinueButton->SetVisible(isVisible);
-	if (mBotsBalloon != NULL)
-		mBotsBalloon->SetVisible(isVisible);    // port(mod): hidden with the page (the help screen)
+	if (mModsBalloon != NULL)
+		mModsBalloon->SetVisible(isVisible);    // port(mod): hidden with the page (the help screen)
 }
 
 // 0x42bb10. Creates the Continue button the first time, parked at the bottom-right corner (off the screen)
@@ -196,8 +198,8 @@ void LevelUpWidget::RemovedFromManager(WidgetManager* theWidgetManager)
 
 	if (mContinueButton != NULL)
 		theWidgetManager->RemoveWidget(mContinueButton);
-	if (mBotsBalloon != NULL)
-		theWidgetManager->RemoveWidget(mBotsBalloon);   // port(mod)
+	if (mModsBalloon != NULL)
+		theWidgetManager->RemoveWidget(mModsBalloon);   // port(mod)
 
 	if ((mApp->mBoard != NULL) && (mApp->mBoard->mLex != NULL))
 	{
@@ -338,7 +340,7 @@ void LevelUpWidget::Update()
 		WordBalloon* aBalloon = mApp->mBoard->mOverlay->mBalloon;
 		if (aBalloon->mVisible)
 			aBalloon->Show(0);
-		UpdateBotsBalloon();    // port(mod)
+		UpdateModsBalloon();    // port(mod)
 	}
 }
 
@@ -353,65 +355,87 @@ static SexyString BotLine(const char* theName, const GreedyBotResult& theResult)
 	return aLine + StrFormat("%s at level %d", (theResult.mEnd == GREEDY_STUCK) ? "stuck" : "burned", theResult.mLevel + 1);
 }
 
-// port(mod): at game over, once the page has slid in, the scores of the greedy bots (mod "greedy-bots") from
-// the game's first board in a balloon above Lex, in the left column; it follows their games until both have
-// ended, then says which of them the player beat. A click hides it.
-void LevelUpWidget::UpdateBotsBalloon()
+// port(mod): at game over, once the page has slid in, a balloon above Lex, in the left column, with the mods'
+// results: the scores of the greedy bots (mod "greedy-bots") from the game's first board, followed until both
+// games have ended, then which of them the player beat; and the daily board's (mod "daily-board"): this game,
+// the day's best and the player's best day. A click hides it.
+void LevelUpWidget::UpdateModsBalloon()
 {
 	static int aColors[4][4] = { {255, 255, 255, 255}, {0, 0, 0, 255}, {0, 0, 0, 255}, {0, 0, 0, 255} };   // Lex::Say's
 	Board* aBoard = mApp->mBoard;
-	GreedyBots* aBots = aBoard->mBots;
-	if ((aBots == NULL) || (!aBots->mHasResults) || (aBoard->mState != BOARD_GAMEOVER) || (mWidgetManager == NULL))
+	if ((aBoard->mState != BOARD_GAMEOVER) || (mWidgetManager == NULL))
 		return;
 
-	const GreedyBotResult& aBest = aBots->mResults[GREEDY_BEST_WORD];
-	const GreedyBotResult& aFire = aBots->mResults[GREEDY_FIRE_FIRST];
-	SexyString aText = BotLine("Best word", aBest) + "\n\n" + BotLine("Fire first", aFire);
+	SexyString aHeader;
+	SexyString aText;
 	SexyString aFooter;
-	if (aBots->Finished())
+	GreedyBots* aBots = aBoard->mBots;
+	if ((aBots != NULL) && (aBots->mHasResults))
 	{
-		int aScore = aBoard->mGameStats->mScore;
-		bool beatBest = aScore > aBest.mScore;
-		bool beatFire = aScore > aFire.mScore;
-		if ((beatBest) && (beatFire))
-			aFooter = "You beat both bots!";
-		else if (beatBest)
-			aFooter = "You beat the best-word bot!";
-		else if (beatFire)
-			aFooter = "You beat the fire-first bot!";
-		else
-			aFooter = "The bots win this time.";
+		const GreedyBotResult& aBest = aBots->mResults[GREEDY_BEST_WORD];
+		const GreedyBotResult& aFire = aBots->mResults[GREEDY_FIRE_FIRST];
+		aHeader = "Greedy bots";
+		aText = BotLine("Best word", aBest) + "\n\n" + BotLine("Fire first", aFire);
+		if (aBots->Finished())
+		{
+			int aScore = aBoard->mGameStats->mScore;
+			bool beatBest = aScore > aBest.mScore;
+			bool beatFire = aScore > aFire.mScore;
+			if ((beatBest) && (beatFire))
+				aFooter = "You beat both bots!";
+			else if (beatBest)
+				aFooter = "You beat the best-word bot!";
+			else if (beatFire)
+				aFooter = "You beat the fire-first bot!";
+			else
+				aFooter = "The bots win this time.";
+		}
 	}
+	DailyBoard* aDaily = aBoard->mDaily;
+	if ((aDaily != NULL) && (aDaily->mSummary.length() != 0))
+	{
+		if (aHeader.length() == 0)
+		{
+			aHeader = aDaily->mTitle;
+			aText = aDaily->mSummary;
+		}
+		else
+			aText += "\n\n" + aDaily->mTitle + "\n" + aDaily->mSummary;
+		if (aDaily->mPraise.length() != 0)
+			aFooter += ((aFooter.length() != 0) ? "\n" : "") + aDaily->mPraise;
+	}
+	if (aHeader.length() == 0)
+		return;
 
 	Lex* aLex = aBoard->mLex;
-	if (mBotsBalloon == NULL)
+	if (mModsBalloon == NULL)
 	{
-		mBotsBalloon = new WordBalloon(mApp, mApp->mImages[IMAGE_BACKDROP_WB_TEXT], mApp->mImages[IMAGE_WB_TEXT_TALK_TAIL],
+		mModsBalloon = new WordBalloon(mApp, mApp->mImages[IMAGE_BACKDROP_WB_TEXT], mApp->mImages[IMAGE_WB_TEXT_TALK_TAIL],
 			Point(0, -2));
-		mBotsBalloon->SetColors(aColors, 4);
-		mBotsBalloon->mTextInsets = Insets(10, 0, 10, 0);
-		mWidgetManager->AddWidget(mBotsBalloon);
-		mBotsBalloon->Show(-1);
+		mModsBalloon->SetColors(aColors, 4);
+		mModsBalloon->mTextInsets = Insets(10, 0, 10, 0);
+		mWidgetManager->AddWidget(mModsBalloon);
+		mModsBalloon->Show(-1);
 	}
-	else if (aText + aFooter == mBotsText)
+	else if (aHeader + aText + aFooter == mModsText)
 	{
-		mBotsBalloon->Move(mBotsBalloon->mX, aLex->mY - mBotsBalloon->mHeight + 30);
+		mModsBalloon->Move(mModsBalloon->mX, aLex->mY - mModsBalloon->mHeight + 30);
 		return;
 	}
-	mBotsText = aText + aFooter;
+	mModsText = aHeader + aText + aFooter;
 
 	// as wide as the column left of the page; the tail over Lex's head
 	int aWidth = (mWidth - mPanelImage->GetWidth() - 5) - 4;
-	mBotsBalloon->SetBoxImages(mApp->mImages[IMAGE_BACKDROP_WB_TEXT], mApp->mImages[IMAGE_WB_TEXT_TALK_TAIL],
+	mModsBalloon->SetBoxImages(mApp->mImages[IMAGE_BACKDROP_WB_TEXT], mApp->mImages[IMAGE_WB_TEXT_TALK_TAIL],
 		Point((int)(aWidth * 0.6), -2));
-	mBotsBalloon->SetHeader("Greedy bots", mApp->mFonts[FONT_MYRIADWEB12BOLD], 0);
-	mBotsBalloon->SetText(aText, mApp->mFonts[FONT_MYRIADWEB10], -1);
+	mModsBalloon->SetHeader(aHeader, mApp->mFonts[FONT_MYRIADWEB12BOLD], 0);
+	mModsBalloon->SetText(aText, mApp->mFonts[FONT_MYRIADWEB10], -1);
 	if (aFooter.length() != 0)
-		mBotsBalloon->SetFooter(aFooter, mApp->mFonts[FONT_MYRIADWEB12BOLD], 0);
+		mModsBalloon->SetFooter(aFooter, mApp->mFonts[FONT_MYRIADWEB12BOLD], 0);
 	else
-		mBotsBalloon->ClearFooter();
-	int aHeight = mBotsBalloon->GetPreferredHeight(aWidth);
-	mBotsBalloon->Resize(2, aLex->mY - aHeight + 30, aWidth, aHeight);
+		mModsBalloon->ClearFooter();
+	int aHeight = mModsBalloon->GetPreferredHeight(aWidth);
+	mModsBalloon->Resize(2, aLex->mY - aHeight + 30, aWidth, aHeight);
 }
 
 // 0x42cdd0. The panel sits 5 px from the right edge. Falling, it is drawn rotated about its integer centre;
@@ -513,20 +537,27 @@ void LevelUpWidget::DrawPanel(Graphics* g)
 	WriteString2004(g, aLongestLetters, 34, aY, 206, 0, true, 0, -1);
 
 	g->SetFont(mApp->mFonts[FONT_SCRIPPSCOLLEGEOS15BOLD]);
-	aY += g->GetFont()->GetHeight() * 2;
+	// port(mod): with two mod lines under the times (rude-words' and the word review's), no blank line above
+	// them, so the second clears the ribbon
+	SexyString aModLabel = ModWordStatsLabel();
+	bool hasTwoModLines = (aModLabel.length() != 0) && (aBoard->mWordReview != NULL);
+	aY += g->GetFont()->GetHeight() * (hasTwoModLines ? 1 : 2);
 	g->DrawString(aTimeText, 74, aY);
 	g->SetFont(mApp->mFonts[FONT_SCRIPPSCOLLEGEOS15BOLD]);
 	g->DrawString(aTotalText, 74, aY + g->GetFont()->GetHeight());
 
 	// port(mod): the game's and the player's all-time count of a mod's words (rude-words' "stats")
-	SexyString aModLabel = ModWordStatsLabel();
+	int aModY = aY + g->GetFont()->GetHeight() * 2;
+	g->SetFont(mApp->mFonts[FONT_SCRIPPSCOLLEGEOS13BOLD]);
 	if (aModLabel.length() != 0)
 	{
-		int aModY = aY + g->GetFont()->GetHeight() * 2;
-		g->SetFont(mApp->mFonts[FONT_SCRIPPSCOLLEGEOS13BOLD]);
 		g->DrawString(StrFormat("%s: %d, all time %d", aModLabel.c_str(), aBoard->mModWordsPlayed,
 			aBoard->GetModWordsAllTime()), 74, aModY);
+		aModY += g->GetFont()->GetHeight();
 	}
+	// port(mod): the word review's line, the level's or the game's (missed-words, par)
+	if (aBoard->mWordReview != NULL)
+		g->DrawString(aBoard->mWordReview->PageLine(isLevelSummary), 74, aModY);
 
 	// The rank: the level reached (the next level after a level, the current one at game over)
 	unsigned int aRank = isLevelSummary ? aBoard->mLevel + 1 : aBoard->mLevel;

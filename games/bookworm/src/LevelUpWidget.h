@@ -65,10 +65,10 @@ public:
 	Graphics*		mPanelGraphics;         // +0xd4 Graphics on mPanelImage (owned)
 	bool			mPanelDirty;            // +0xd8 repaint the panel at the next Draw (CreatePanel)
 	bool			mLexArrived;            // +0xd9 Lex was idle in BOARD_LEVEL_COMPLETE
-	// port(mod): the greedy bots' results at game over (mod "greedy-bots"), in a balloon above Lex; owned,
-	// NULL until shown. mBotsText: its text blocks as last laid out
-	WordBalloon*	mBotsBalloon;
-	SexyString		mBotsText;
+	// port(mod): the mods' results at game over (the greedy bots', the daily board's), in a balloon above Lex;
+	// owned, NULL until shown. mModsText: its text blocks as last laid out
+	WordBalloon*	mModsBalloon;
+	SexyString		mModsText;
 	// +0xda..+0xdf padding; sizeof 0xe0
 
 public:
@@ -90,7 +90,7 @@ public:
 	void			DeletePanel();                                          // 0x42b980
 	void			CreatePanel();                                          // 0x42b9c0
 	void			DrawPanel(Graphics* g);                                 // 0x42c210
-	void			UpdateBotsBalloon();                                    // port(mod)
+	void			UpdateModsBalloon();                                    // port(mod)
 
 	using Widget::Resize;
 	using ButtonListener::ButtonPress;
