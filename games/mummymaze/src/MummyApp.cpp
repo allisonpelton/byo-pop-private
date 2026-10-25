@@ -68,6 +68,16 @@ MummyApp::MummyApp()
 	mTipDark = true;
 	mTipAnkh = true;
 	mMusicSlot = 0;
+	mScore = 0;
+	mQuitLink = false;
+	mAdvChamber = mAdvPyramid = 0;
+	mClassicPyramid = mClassicChamber = 0;
+	mRestoring = false;
+	mRestoreFile = mRestoreMaze = 0;
+	mFixedFile = false;
+	mFixedFileNumber = mFixedMaze = 0;
+	mElapsedBase = 0;
+	mTotalTime = 0.0;
 	mIsRegistered = true;
 	memset(mLightMask, 0, sizeof(mLightMask));
 

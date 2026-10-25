@@ -102,6 +102,20 @@ public:
 	bool					mTipDark;           // +0x10e91 DarkNag
 	bool					mTipAnkh;           // +0x10e92 AnkhNag
 	SexyString				mLastScoreName;     // +0x104b0 registry LastScoreName
+	int						mScore;             // +0x10404 the classic game's score
+	bool					mQuitLink;          // +0x10438 the title's link quits (the demo is used up): never set
+	int						mAdvPyramid;        // +0x10410 the adventure: the pyramid (0 .. 14)
+	int						mAdvChamber;        // +0x1040c the adventure: the chamber (0 .. 14) of the pyramid
+	int						mClassicPyramid;    // +0x10428 the classic game: the pyramid, 0 .. 14 (14 is the last, a dark one)
+	int						mClassicChamber;    // +0x10424 the classic game: the chamber, 0 .. 14 (14 holds the treasure)
+	bool					mRestoring;         // +0x104a4 loading a saved game: LoadMaze takes the file and maze from the save
+	int						mRestoreFile;       // +0x104a0
+	int						mRestoreMaze;       // +0x1049c
+	bool					mFixedFile;         // +0x10498 LoadMaze takes mFixedFileNumber / mFixedMaze (the tutorial)
+	int						mFixedFileNumber;   // +0x10494
+	int						mFixedMaze;         // +0x10490
+	double					mTotalTime;         // +0x10418 the adventure's time played, in seconds
+	DWORD					mElapsedBase;       // +0x104a8 the time already played, from a saved game
 	int						mMusicSlot;         // +0x10430 which of the two music slots is playing
 	uint8_t					mLightMask[256][256]; // +0x380
 
@@ -134,12 +148,30 @@ public:
 	// Helpers (WinMM.exe addresses in MummyApp.cpp)
 	bool					LoadImage(int theImageId);
 	void					SetMusicOrder(int theOrder, bool theFade);
-	void					TitleDone();
-	void					ShowMainMenu(int theEntry, bool theFade);
-	void					ShowQuitToMainDialog();
-	void					ShowTutorialDialog();
-	void					ShowQuitDialog();
-	void					ShowResetTipsDialog();
+	void					TitleDone();                            // 0x41e970
+	void					ShowMainMenu(int theEntry, bool theFade);   // 0x41b160
+	void					RemoveBoard();                          // 0x41c340
+	void					RemoveGamePanel();                      // 0x41b4b0
+	void					RemoveLevelComplete();                  // 0x41b7b0
+	void					RemoveWorldMap();                       // 0x41c300
+	void					StartBoardScreen();                     // 0x41e6a0
+	void					ShowGamePanel();                        // 0x41b2f0
+	void					OnLevelComplete();                      // 0x41b4f0
+	void					OnContinueLink();                       // 0x4112b0 case 3
+	void					StartClassicOrContinue();               // 0x41c410
+	void					StartTutorial();                        // 0x41c3c0
+	void					ShowQuitDialog();                       // 0x41cc30
+	void					ShowQuitToMainDialog();                 // 0x41cfb0
+	void					ShowOptions();                          // 0x41eab0
+	void					ShowTip(int theWhich);                  // 0x41b5b0
+	void					ShowAdventureSlots();                   // 0x41b800
+	void					LoadAdventure(int theSlot, bool theFlag);   // 0x41bcc0
+	void					OnAdventureDeath();
+	void					OnWorldMapButton();
+	void					ShowVictory();                          // 0x41e890
+	bool					LoadClassic();                          // 0x41c600
+	bool					ClassicSaveExists();
+	void					DoMessage(int theId, const SexyString& theHeader, const SexyString& theLines, int theMode, int theX, int theY, int theW);
 };
 
 extern MummyApp* gApp;
