@@ -52,7 +52,7 @@ Board::Board(WinDMApp* theApp, bool timedMode)
 	// port: the original leaves these uninitialised; the cells must be NULL before the first FillBoard
 	memset(mBoard, 0, sizeof(mBoard));
 	mSaveGameFileName = ScopedSaveGameFileName(); // port(mods): the board's own save name
-	InitVariant(); // port(variant): rules snapshot, layout and variant flags (BoardVariant.cpp)
+	InitVariant(theApp); // port(variant): rules snapshot, layout and variant flags (BoardVariant.cpp)
 	mState = STATE_FALLING;
 	mSwapAngle = 0;
 	mSwapCenterX = 0;
@@ -767,6 +767,7 @@ void Board::UpdateFalling()
 	int aLandedXSum = 0;
 	bool aSettled = true;
 	// The board is always full in this state
+	if (mVariant.mFall) FallPiecesVariant(&aLandedCount, &aLandedXSum, &aSettled); else // port(variant): the gravity direction, fallAccel (BoardShape.cpp)
 	for (int aRow = 0; aRow < mRows; aRow++) // port(variant): was BOARD_ROWS
 	{
 		double aRestY = GetRowY(aRow);
@@ -822,6 +823,7 @@ void Board::UpdateFalling()
 				ShowText(mApp->GetString("NO_MOVES"), 400);
 				GameOver(200);
 			}
+			if (mVariant.mGravity) OnGravitySettle(); // port(variant): "alternate" flips at a settle that reaches PLAYING (BoardShape.cpp)
 		}
 	}
 

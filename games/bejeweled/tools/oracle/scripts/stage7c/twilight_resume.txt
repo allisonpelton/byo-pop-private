@@ -1,0 +1,13 @@
+# Stage 7c, in a copy of twilight_quit's user dir with mods/stage7c/twilight: Yes resumes the v2 save in the middle
+# of B's rise (GRAV: 2 flips); the board loads at rest, and its settle flips the gravity (3: down). Options, Help:
+# the Twilight paragraph in place of the one about gems dropping in.
+300 click 320 398
+340 click 330 201
+450 screenshot shots/r01_loaded.png
+900 screenshot shots/r02_settled.png
+920 click 95 260
+950 screenshot shots/r03_options.png
+# Help (not the link below it): its first paragraph is the Twilight one
+960 click 330 231
+990 screenshot shots/r04_help.png
+1030 quit

@@ -73,8 +73,8 @@ inline constexpr int gMatchBaseScores[9] = {10, 20, 30, 40, 60, 80, 110, 160, 21
 // (UpdateSwap keeps a swap that made no match) and mNoMoves (UpdateFalling's no-moves branch); since stage 6
 // mUndo (the undo snapshots, keys and orb); since stage 7 mShape (the fill, the refill, the checkerboard and
 // the level shapes, BoardShape.cpp), mScaled (input in logical space), mDraw (DrawVariant,
-// BoardDrawVariant.cpp) and mNoTutorial (a fill with a move instead of the tutorial loop); the other variant
-// paths arrive in later stages.
+// BoardDrawVariant.cpp) and mNoTutorial (a fill with a move instead of the tutorial loop); since stage 7c (4.16)
+// mGravity, mFall and mChecker; the other variant paths arrive in later stages.
 struct VariantFlags
 {
 	bool mAny = false;          // any rule differs from default: v2 save, variant trace lines
@@ -91,6 +91,9 @@ struct VariantFlags
 	bool mSpecials = false;
 	bool mGold = false;
 	bool mUndo = false;
+	bool mGravity = false;      // board.gravity.direction not "down": the flip, the GetPieceAt guard (with GravityUp)
+	bool mFall = false;         // mShape || mGravity || fallAccel != 180: FallPiecesVariant, RefillMasked, FillBoardVariant, the end falls
+	bool mChecker = false;      // mShape || look.backdrop "twilight": DrawVariantChecker for SetupLevel's tiles
 };
 
 class Board : public Widget
@@ -261,6 +264,10 @@ public:
 	// Undo (stage 6, games/bejeweled/docs/CODE_MODS_DESIGN.md 4.12, 6.7): StateCodec's UNDO encodings of the board
 	// before each move, newest last, at most undo.depth of them; not saved, so a resumed game has none
 	std::vector<std::string> mUndoStack;
+	// Gravity (stage 7c, games/bejeweled/docs/CODE_MODS_DESIGN.md 4.16): saved (GRAV), hashed and traced only when
+	// the rules set a gravity rule (GameRules::HasGravityRule)
+	int				mGravityFlips;          // settles that flipped board.gravity.direction "alternate" (OnGravitySettle)
+	bool			mGravityNoFlip;         // a kept invalid move: its settle does not flip
 
 public:
 	int				GetColX(int theCol);                            // 0x4c9b25 theCol*51 + 203 (thiscall in the binary, this unused; port(variant): a member, + mLayout.mOriginX)
@@ -315,13 +322,15 @@ public:
 	virtual void	Update();                                       // 0x4cdabc Widget slot 22
 
 	// port(variant): code mods (BoardVariant.cpp)
-	void			InitVariant();                                  // first in the ctor: rules, layout, flags, RNG
+	void			InitVariant(WinDMApp* theApp);                  // first in the ctor (before mApp is set): rules, layout, flags, RNG, sound pitch
 	static VariantFlags ComputeVariantFlags(const GameRules& theRules, const GameFeatures& theFeatures);
 	void			UsePendingSeed();                               // a matching swap or a game over of a board that holds the pending seed
 	void			OnMoveMade();                                   // a move stood (UpdateSwap's match, a kept invalid move): it counts, the pending seed is used up
 	void			KeepInvalidMove();                              // UpdateSwap: a swap that made no match stays (moves.allowInvalid, 4.1)
 	void			OnNoMovesVariant();                             // UpdateFalling: settled without a move, the noMoves rule decides (4.1)
 	bool			NoHintVariant();                                // a board playing without a move (noMoves "continue"): no hint, no hint glow
+	SexyString		InstructionsText();                             // ShowInstructionsDialog's text: the rules' own (2.6; gravity, 4.16)
+	SexyString		FullInstructionsText(const SexyString& theText); // ShowFullInstructionsDialog: Help's text under the rules (gravity, 4.16)
 	// Undo (stage 6, games/bejeweled/docs/CODE_MODS_DESIGN.md 4.12, 6.7; BoardVariant.cpp)
 	void			TakeUndoSnapshot();                             // StartSwap: the board before the move (in STATE_PLAYING)
 	void			PopUndoSnapshot();                              // UpdateSwap: the swap went back, so does its snapshot
@@ -334,9 +343,9 @@ public:
 	// The v2 save of a variant board (games/bejeweled/docs/CODE_MODS_DESIGN.md 7.2; BoardSave.cpp)
 	void			GetVariantSave(Replay::VariantSave* theSave);  // the header and chunk values of the board as it is
 	void			WriteVariantHeader(Buffer* theBuffer);          // WriteSaveGame, after the version: rules, shape, mask
-	void			WriteVariantChunks(Buffer* theBuffer);          // WriteSaveGame, after the v1 fields: RNGS, MOVE, END
+	void			WriteVariantChunks(Buffer* theBuffer);          // WriteSaveGame, after the v1 fields: RNGS, MOVE, GRAV (gravity rules), END
 	bool			ReadVariantHeader(const Buffer& theBuffer, int theVersion); // LoadGame, after the version: the whole save checked first
-	void			ReadVariantChunks(const Buffer& theBuffer);    // GameLoadedVariant: the RNG and the MOVE counts the save holds
+	void			ReadVariantChunks(const Buffer& theBuffer);    // GameLoadedVariant: the RNG, the MOVE counts and the GRAV state the save holds
 	void			GameLoadedVariant(const Buffer& theSave);       // the end of a LoadGame that succeeded: the RNG from the sidecar, the LOAD event
 	bool			ReadSaveFile(Buffer* theBuffer);               // LoadGame's read: the save file, or in playback mPlaybackLoad
 	bool			WriteSaveFile(const Buffer& theBuffer);        // SaveGame's write: SAVE, the sidecar and the save file, or in playback mPlaybackSave
@@ -359,6 +368,12 @@ public:
 	void			SetLoadedLayout(const BoardLayout& theLayout, int theLevelShape); // ReadVariantHeader: the save's shape
 	void			RebuildLoadedBackground();                      // GameLoadedVariant: the background of the loaded level and shape
 	void			DrawVariant(Graphics* g);                       // Draw for mDraw boards (BoardDrawVariant.cpp)
+	// Gravity (stage 7c, games/bejeweled/docs/CODE_MODS_DESIGN.md 4.16; BoardShape.cpp)
+	bool			GravityUp() const;                              // gems rise now: "up", or "alternate" after an even number of flips
+	void			FallPiecesVariant(int* theLandedCount, int* theLandedXSum, bool* isSettled); // UpdateFalling's loop: direction, fallAccel
+	void			OnGravitySettle();                              // UpdateFalling: a settle without a match; "alternate" flips if it reached PLAYING
+	void			UpdateFallOutVariant();                         // UpdateFallOut's fall in the gravity direction
+	bool			GameOverFallVariant();                          // UpdateGameOver's fall in the gravity direction: true when every gem is gone
 	void			RollScoreFast();                                // Update, before the score roll: a large gap closes fast (mFastScoreRoll)
 
 	// port(variant): every draw of the translated code. Class scope finds it before Sexy::Rand, so the 9

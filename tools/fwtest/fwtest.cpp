@@ -23,6 +23,7 @@
 #include "DDInterface.h"
 #include "ImageFont.h"
 #include "SoundManager.h"
+#include "SDLSoundManager.h"
 #include "MusicInterface.h"
 #include "ModMenu.h"
 #include "platform/ModManager.h"
@@ -30,6 +31,7 @@
 
 #include <SDL.h>
 #include <stb_image_write.h>
+#include <cmath>
 #include <cstring>
 #include <vector>
 
@@ -341,6 +343,24 @@ public:
 		SendKey(SDL_KEYUP, SDLK_a, KMOD_NONE, 0);
 		SendKey(SDL_KEYUP, SDLK_SPACE, KMOD_NONE, 0);
 		ProcessSafeDeleteList();
+
+		// Not the hotkey, but run here with it: SoundManager::SetDefaultPitch reaches every instance GetSoundInstance
+		// hands out (Bejeweled's look.soundPitch), and 0 leaves them alone
+		Check("the select sound is loaded for the pitch check", mSelectSound >= 0);
+		if (mSelectSound >= 0)
+		{
+			mSoundManager->SetDefaultPitch(-2.0);
+			SDLSoundInstance* aShifted = static_cast<SDLSoundInstance*>(mSoundManager->GetSoundInstance(mSelectSound));
+			mSoundManager->SetDefaultPitch(0.0);
+			SDLSoundInstance* aPlain = static_cast<SDLSoundInstance*>(mSoundManager->GetSoundInstance(mSelectSound));
+			Check("a default pitch of -2 shifts a new instance 2 semitones down",
+				(aShifted != NULL) && (std::fabs(aShifted->GetPitch() - std::pow(2.0, -2.0 / 12.0)) < 1e-12));
+			Check("a default pitch of 0 leaves it unshifted", (aPlain != NULL) && (aPlain->GetPitch() == 1.0));
+			if (aShifted != NULL)
+				aShifted->Release();
+			if (aPlain != NULL)
+				aPlain->Release();
+		}
 
 		SDL_Log("hotkey: %d failed", gHotkeyFailures);
 	}

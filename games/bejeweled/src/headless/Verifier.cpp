@@ -16,6 +16,7 @@
 
 #include <cstdio>
 #include <cstring>
+#include <random>
 #include <utility>
 #include <vector>
 
@@ -357,6 +358,327 @@ int Verifier::Difftest(uint32_t theFirst, uint32_t theLast, int theTicks, int th
 			(aTotals.mGames > 0) ? aTotals.mScores / aTotals.mGames : 0LL);
 		*theReport += aText;
 	}
+	return aDiffering;
+}
+
+namespace
+{
+
+// The mirrortest's boards (stage 7c): direction down or up, Twilight's fallAccel (both boards then have the gravity
+// rows, so one's snapshot decodes into the other), on the full 8x8 or on gMirrorMask (and up on its mirror)
+const char* const gMirrorMask[8] = {"########", "###..###", "########", "#.######", "########", "######.#", "########", "##....##"};
+const int MIRROR_FALL_ACCEL = 75;
+
+struct MirrorSide
+{
+	HeadlessApp*	mApp;
+	Board*			mBoard;
+
+	MirrorSide(uint32_t theSeed, bool isUp, bool isMasked)
+	{
+		mApp = new HeadlessApp();
+		mApp->mTimedMode = false;
+		ResetConfig(false);
+		GameRules& aRules = gGameConfig.mRules;
+		aRules.mBoard.mGravity = isUp ? GameRules::GRAVITY_UP : GameRules::GRAVITY_DOWN;
+		aRules.mBoard.mFallAccel = MIRROR_FALL_ACCEL;
+		if (isMasked)
+		{
+			for (int r = 0; r < 8; r++)
+				aRules.mBoard.mMask.push_back(gMirrorMask[isUp ? 7 - r : r]);
+		}
+		gGameConfig.mNextBoardSeed = theSeed;
+		gGameConfig.mNextBoardUserSeeded = false;
+		mBoard = new Board(mApp, false);
+		mBoard->Resize(0, 0, 640, 480);
+		mApp->mBoard = mBoard;
+		ResetConfig(false);
+		// No tutorial: its move and arrows are in rows 4..6, which the mirror moves
+		mApp->mShowInstructions = false;
+		mBoard->mTutorialCol = -1;
+	}
+
+	~MirrorSide()
+	{
+		delete mApp;
+	}
+};
+
+int MirrorLine(Board* theBoard)
+{
+	return theBoard->GetRowY(0) + theBoard->GetRowY(theBoard->mRows - 1);
+}
+
+// theUp takes theDown's state (StateCodec's SNAPSHOT, the RNG included) with the grid and every gem's y mirrored
+bool RestoreMirrored(Board* theDown, Board* theUp, std::string* theError)
+{
+	if (!StateCodec::Decode(theUp, StateCodec::Encode(theDown, StateCodec::PROFILE_SNAPSHOT), theError))
+		return false;
+	int aRows = theUp->mRows;
+	for (int r = 0; r < aRows / 2; r++)
+	{
+		for (int c = 0; c < theUp->mCols; c++)
+			std::swap(theUp->mBoard[r][c], theUp->mBoard[aRows - 1 - r][c]);
+	}
+	int aMirror = MirrorLine(theUp);
+	for (int r = 0; r < aRows; r++)
+	{
+		for (int c = 0; c < theUp->mCols; c++)
+		{
+			Piece* aPiece = theUp->mBoard[r][c];
+			if (aPiece == NULL)
+				continue;
+			aPiece->mRow = r;
+			aPiece->mY = aMirror - aPiece->mY;
+		}
+	}
+	return true;
+}
+
+bool SameRngState(Board* a, Board* b)
+{
+	Replay::RngState x;
+	Replay::RngState y;
+	a->GetRngState(&x);
+	b->GetRngState(&y);
+	return (x.mMti == y.mMti) && (memcmp(x.mMt, y.mMt, sizeof(x.mMt)) == 0) && (a->mBoardDraws == b->mBoardDraws);
+}
+
+// "" when theUp is theDown mirrored: every cell's colour, the gems' rows, and (withPositions) every gem's y
+std::string MirrorDifference(Board* theDown, Board* theUp, bool withPositions)
+{
+	int aRows = theDown->mRows;
+	int aMirror = MirrorLine(theDown);
+	for (int r = 0; r < aRows; r++)
+	{
+		for (int c = 0; c < theDown->mCols; c++)
+		{
+			Piece* a = theDown->mBoard[r][c];
+			Piece* b = theUp->mBoard[aRows - 1 - r][c];
+			std::string aCell = "cell (" + std::to_string(c) + "," + std::to_string(r) + ")";
+			if ((a == NULL) != (b == NULL))
+				return aCell + ": a gem on one side only";
+			if (a == NULL)
+				continue;
+			if (a->mColor != b->mColor)
+				return aCell + ": colours " + std::to_string(a->mColor) + " and " + std::to_string(b->mColor);
+			if (b->mRow != aRows - 1 - r)
+				return aCell + ": the up gem's row is " + std::to_string(b->mRow);
+			if (withPositions && (aMirror - a->mY != b->mY))
+				return aCell + ": y " + std::to_string(a->mY) + " and " + std::to_string(b->mY);
+		}
+	}
+	return "";
+}
+
+// Unit checks on the masked pair from one RNG state: the upward fill and refill are the mirrors of the downward ones,
+// in colours, rows, start positions and draws
+std::string MirrorFillRefill(uint32_t theSeed)
+{
+	MirrorSide aDown(theSeed, false, true);
+	MirrorSide anUp(theSeed, true, true);
+	Board* a = aDown.mBoard;
+	Board* b = anUp.mBoard;
+	std::string anError;
+	if (!RestoreMirrored(a, b, &anError))
+		return "restore: " + anError;
+	a->FillBoardVariant();
+	b->FillBoardVariant();
+	std::string aWhy = MirrorDifference(a, b, true);
+	if (!aWhy.empty())
+		return "the fill: " + aWhy;
+	if (!SameRngState(a, b))
+		return "the fill: the draws differ";
+	// The same cells emptied on both sides (mirrored), then one refill
+	std::mt19937 aRand(theSeed);
+	for (int i = 0; i < 12; i++)
+	{
+		int c = (int) (aRand() % 8);
+		int r = (int) (aRand() % 8);
+		if ((a->mBoard[r][c] == NULL) || (a->mBoard[r][c] == a->mSelectedPiece))
+			continue;
+		delete a->mBoard[r][c];
+		a->mBoard[r][c] = NULL;
+		delete b->mBoard[7 - r][c];
+		b->mBoard[7 - r][c] = NULL;
+	}
+	a->RefillMasked();
+	b->RefillMasked();
+	aWhy = MirrorDifference(a, b, true);
+	if (!aWhy.empty())
+		return "the refill: " + aWhy;
+	if (!SameRngState(a, b))
+		return "the refill: the draws differ";
+	return "";
+}
+
+struct MirrorTotals
+{
+	int				mGames = 0;
+	int				mDiffering = 0;
+	int				mSettles = 0;
+	int				mMoves = 0;
+	int				mTickWarnings = 0;
+	int				mLevelUps = 0;
+	int				mGameOvers = 0;
+	int				mCapped = 0;
+};
+
+// Updates theBoard to its next settle (STATE_PLAYING reached), or to a state the comparison ends at: the level-up
+// (its draws depend on tick alignment) or a game over. The ticks taken, -1 at the cap.
+int RunToSettle(Board* theBoard, int theCap)
+{
+	for (int aTick = 1; aTick <= theCap; aTick++)
+	{
+		theBoard->Update();
+		int aState = theBoard->mState;
+		if ((aState == STATE_PLAYING) || (aState >= STATE_GAME_OVER))
+			return aTick;
+	}
+	return -1;
+}
+
+// One seed: the down board and its mirror played with mirrored moves; "" when every settle matched
+std::string MirrorGame(uint32_t theSeed, bool isMasked, int theMoves, MirrorTotals* theTotals, std::string* theLine)
+{
+	MirrorSide aDown(theSeed, false, isMasked);
+	MirrorSide anUp(theSeed, true, isMasked);
+	Board* a = aDown.mBoard;
+	Board* b = anUp.mBoard;
+	std::mt19937 aRand(theSeed);
+	std::string aWhy;
+	std::string anError;
+	int aMoves = 0;
+	int aWarnings = 0;
+	const char* anEnd = "the move cap";
+	if (!RestoreMirrored(a, b, &anError))
+		aWhy = "restore: " + anError;
+	while (aWhy.empty())
+	{
+		int aTicksA = RunToSettle(a, 20000);
+		int aTicksB = RunToSettle(b, 20000);
+		if ((aTicksA < 0) || (aTicksB < 0))
+		{
+			aWhy = "no settle in 20000 ticks";
+			break;
+		}
+		if (a->mState != b->mState)
+		{
+			aWhy = "states " + std::to_string(a->mState) + " and " + std::to_string(b->mState);
+			break;
+		}
+		if (aTicksA != aTicksB)
+			aWarnings++;
+		if (a->mState != STATE_PLAYING)
+		{
+			anEnd = (a->mState == STATE_BLACK_HOLE) ? "a level-up" : "a game over";
+			if (a->mState == STATE_BLACK_HOLE)
+				theTotals->mLevelUps++;
+			else
+				theTotals->mGameOvers++;
+			break;
+		}
+		theTotals->mSettles++;
+		aWhy = MirrorDifference(a, b, true);
+		if (aWhy.empty() && ((a->mScore != b->mScore) || (a->mGemsCleared != b->mGemsCleared) || (a->mLongestCascade != b->mLongestCascade) ||
+			(a->mBestMoveScore != b->mBestMoveScore) || (a->mMoveCount != b->mMoveCount)))
+			aWhy = "score or stats: score " + std::to_string(a->mScore) + "/" + std::to_string(b->mScore) + ", gems " + std::to_string(a->mGemsCleared) +
+				"/" + std::to_string(b->mGemsCleared);
+		if (aWhy.empty() && !SameRngState(a, b))
+			aWhy = "the draws differ";
+		if (!aWhy.empty() || (aMoves >= theMoves))
+		{
+			if (aWhy.empty())
+				theTotals->mCapped++;
+			break;
+		}
+		// A move from the down board's list, mirrored for the up board
+		std::vector<std::vector<int> > aList;
+		int aMove[4];
+		for (int i = 0; a->FindMove(aMove, i, true, true); i++)
+			aList.push_back(std::vector<int>(aMove, aMove + 4));
+		if (aList.empty())
+		{
+			aWhy = "a settle in PLAYING with no move";
+			break;
+		}
+		const std::vector<int>& m = aList[aRand() % aList.size()];
+		int aRows = a->mRows;
+		a->StartSwap(a->mBoard[m[1]][m[0]], a->mBoard[m[3]][m[2]]);
+		b->StartSwap(b->mBoard[aRows - 1 - m[1]][m[0]], b->mBoard[aRows - 1 - m[3]][m[2]]);
+		aMoves++;
+	}
+	theTotals->mGames++;
+	theTotals->mMoves += aMoves;
+	theTotals->mTickWarnings += aWarnings;
+	*theLine = std::string(isMasked ? "masked" : "8x8") + " seed " + std::to_string(theSeed) + ": " + std::to_string(aMoves) + " moves, score " +
+		std::to_string(a->mScore) + ", ended at " + anEnd + (aWarnings ? ", " + std::to_string(aWarnings) + " settles on other ticks" : "") +
+		(aWhy.empty() ? ": mirrored" : ": DIFFERS after move " + std::to_string(aMoves) + ": " + aWhy);
+	return aWhy;
+}
+
+}
+
+int Verifier::Mirrortest(uint32_t theFirst, uint32_t theLast, int theMoves, bool isVerbose, std::string* theReport)
+{
+	const char* aWrong = (theFirst == 0) ? "seed 0 (seeds are 1..4294967295)" :
+		(theLast < theFirst) ? "the last seed is below the first" :
+		(theLast - theFirst >= (uint32_t) MAX_DIFFTEST_SEEDS) ? "more seeds than one call plays (100000)" :
+		((theMoves < 1) || (theMoves > 100000)) ? "moves outside 1..100000" : NULL;
+	if (aWrong != NULL)
+	{
+		*theReport += std::string("mirrortest: ") + aWrong + "\n";
+		return -1;
+	}
+#ifdef BEJ_NO_VARIANTS
+	// The board never leaves the original paths here, so gravity has no up to mirror (run_tests.sh reads this line)
+	*theReport += "mirrortest skipped: a BEJ_NO_VARIANTS build has no gravity\n";
+	(void) isVerbose;
+	return 0;
+#endif
+	int aDiffering = 0;
+	int aFillDiffering = 0;
+	int aFillChecks = 0;
+	for (uint32_t aSeed = theFirst; ; aSeed++)
+	{
+		std::string aWhy = MirrorFillRefill(aSeed);
+		aFillChecks++;
+		if (!aWhy.empty())
+		{
+			aFillDiffering++;
+			*theReport += "mirrortest fill seed " + std::to_string(aSeed) + ": DIFFERS: " + aWhy + "\n";
+		}
+		if (aSeed == theLast)
+			break;
+	}
+	aDiffering += aFillDiffering;
+	for (int aMasked = 0; aMasked < 2; aMasked++)
+	{
+		MirrorTotals aTotals;
+		for (uint32_t aSeed = theFirst; ; aSeed++)
+		{
+			std::string aLine;
+			std::string aWhy = MirrorGame(aSeed, aMasked != 0, theMoves, &aTotals, &aLine);
+			if (!aWhy.empty())
+			{
+				aTotals.mDiffering++;
+				aDiffering++;
+			}
+			if (isVerbose || !aWhy.empty())
+				*theReport += "mirrortest " + aLine + "\n";
+			if (aSeed == theLast)
+				break;
+		}
+		char aText[512];
+		snprintf(aText, sizeof(aText), "mirrortest %s: seeds %u..%u: %d games, %d differ; %d settles, %d moves; ends: %d level-up, %d game over, "
+			"%d at the cap of %d moves; %d settles on other ticks (warnings)\n", aMasked ? "masked" : "8x8", (unsigned) theFirst, (unsigned) theLast,
+			aTotals.mGames, aTotals.mDiffering, aTotals.mSettles, aTotals.mMoves, aTotals.mLevelUps, aTotals.mGameOvers, aTotals.mCapped, theMoves,
+			aTotals.mTickWarnings);
+		*theReport += aText;
+	}
+	char aText[160];
+	snprintf(aText, sizeof(aText), "mirrortest fill and refill (masked): %d seeds, %d differ\n", aFillChecks, aFillDiffering);
+	*theReport += aText;
 	return aDiffering;
 }
 

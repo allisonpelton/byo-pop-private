@@ -1,0 +1,7 @@
+{
+  "id": "s7c-slow",
+  "name": "Stage 7c: slow falls",
+  "version": "1.0",
+  "description": "Oracle fixture: board.gravity.fallAccel 90 alone: the gems fall down at half the acceleration.",
+  "rules": { "board": { "gravity": { "fallAccel": 90 } } }
+}

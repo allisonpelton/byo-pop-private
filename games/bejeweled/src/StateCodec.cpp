@@ -125,6 +125,10 @@ public:
 	void DerivedInt(const char* theName, int theValue, int theFlags) { if (Want(theFlags, theName)) PutInt(theValue); }
 	// A variant board's own field: in its encodings only (a board of the original rules encodes as before)
 	void VariantInt(const char* theName, int& theValue, int theFlags) { if (mBoard->mVariant.mAny) Int(theName, theValue, theFlags); }
+	// A gravity rule set's field (stage 7c): read from the rules, not from the flags -forcevariant sets, so a board of
+	// default rules encodes as before
+	void GravityInt(const char* theName, int& theValue, int theFlags) { if (mBoard->mRules.HasGravityRule()) Int(theName, theValue, theFlags); }
+	void GravityBool(const char* theName, bool& theValue, int theFlags) { if (mBoard->mRules.HasGravityRule()) Bool(theName, theValue, theFlags); }
 
 	void Layout(int theFlags)
 	{
@@ -365,6 +369,8 @@ public:
 	void DerivedInt(const char*, int, int) {}
 	// The target board's flags say whether the snapshot has the row (RoundTrip gives it the source's)
 	void VariantInt(const char* theName, int& theValue, int theFlags) { if (mBoard->mVariant.mAny) Int(theName, theValue, theFlags); }
+	void GravityInt(const char* theName, int& theValue, int theFlags) { if (mBoard->mRules.HasGravityRule()) Int(theName, theValue, theFlags); }
+	void GravityBool(const char* theName, bool& theValue, int theFlags) { if (mBoard->mRules.HasGravityRule()) Bool(theName, theValue, theFlags); }
 
 	void Layout(int theFlags)
 	{
@@ -597,6 +603,10 @@ template<class V> void VisitBoard(V& v, Board* b)
 	// ticks); not LOGIC, which has mLevel and the layout's size (so the replays' hashes of stage 6 still hold), nor
 	// UNDO, since an undo never crosses a level
 	v.VariantInt("mLevelShape", b->mLevelShape, SNAP | V2);
+	// Stage 7c, gravity (the v2 save's GRAV chunk), only when the rules set a gravity rule: FULL too, since no such
+	// rule set plays as the original; UNDO, since an undo restores the direction "alternate" points in
+	v.GravityInt("mGravityFlips", b->mGravityFlips, FULL | LOGIC | SNAP | V2 | UNDO);
+	v.GravityBool("mGravityNoFlip", b->mGravityNoFlip, FULL | LOGIC | SNAP | V2 | UNDO);
 }
 
 }

@@ -589,6 +589,84 @@ static void TestFillMinimum()
 		"fill minimum: L3 in all orientations 7");
 }
 
+// Stage 7c (4.16): board.gravity is an atomic group, look.* are leaves that make no variant board, the canonical
+// bytes of fields 7, 8, 144 and 145, and the fill minimum taken over every fill order the direction uses
+static void TestGravity()
+{
+	const char* aTwilight = "{\"rules\": {\"board\": {\"gravity\": {\"direction\": \"alternate\", \"fallAccel\": 75}}, "
+		"\"look\": {\"backdrop\": \"twilight\", \"soundPitch\": -2}}}";
+	Result r = Merge({{"twilight", aTwilight}});
+	Check(Clean(r) && r.mRules.mBoard.mGravity == GameRules::GRAVITY_ALTERNATE && r.mRules.mBoard.mFallAccel == 75 &&
+		r.mRules.mLook.mBackdrop == GameRules::BACKDROP_TWILIGHT && r.mRules.mLook.mSoundPitch == -2, "the twilight preset" + Messages(r));
+	Check(r.mRules.HasGravityRule() && r.mRules.HasVariantRules(), "twilight: a gravity rule, a variant board");
+	Check(r.mRules.VariantKeys() == std::vector<std::string>({"board.gravity.direction", "board.gravity.fallAccel"}), "twilight: the variant keys");
+	Check(r.mRules.LookKeys() == std::vector<std::string>({"look.backdrop", "look.soundPitch"}), "twilight: the look keys");
+	Check(Hex(r.mRules.Canonical().substr(0, 2 + 3 + 2 + 9 + 3 + 4 + 3 + 2 + 8 + 3 + 4 + 2)) ==
+		"0100" "070004" "0900" "616c7465726e617465" "080001" "4b000000" "900004" "0800" "7477696c69676874" "910001" "feffffff" "0000",
+		"canonical bytes of fields 7, 8, 144 and 145");
+
+	// look alone: in the RulesId (its own tables), not a variant board
+	r = Merge({{"dusk", "{\"rules\": {\"look\": {\"backdrop\": \"twilight\"}}}"}});
+	Check(Clean(r) && !r.mRules.HasVariantRules() && !r.mRules.HasGravityRule() && r.mRules.PlaysAlikeInEveryEngine(), "look alone: no variant board" + Messages(r));
+	Check(r.mRules.RulesIdHex() != Merge({}).mRules.RulesIdHex(), "look alone: its own RulesId");
+	r = Merge({{"low", "{\"rules\": {\"look\": {\"soundPitch\": -3}}}"}, {"dusk", "{\"rules\": {\"look\": {\"backdrop\": \"twilight\"}}}"}});
+	Check(Clean(r) && r.mRules.mLook.mSoundPitch == -3 && r.mRules.mLook.mBackdrop == GameRules::BACKDROP_TWILIGHT, "look.* are leaves: they combine" + Messages(r));
+	// fallAccel alone: a gravity rule (falls only), the direction stays down
+	r = Merge({{"slow", "{\"rules\": {\"board\": {\"gravity\": {\"fallAccel\": 90}}}}"}});
+	Check(Clean(r) && r.mRules.HasGravityRule() && r.mRules.HasVariantRules() && r.mRules.mBoard.mGravity == GameRules::GRAVITY_DOWN, "fallAccel alone" + Messages(r));
+	Check(Merge({{"d", "{\"rules\": {\"board\": {\"gravity\": {\"direction\": \"down\", \"fallAccel\": 180}}, \"look\": {\"backdrop\": \"normal\", "
+		"\"soundPitch\": 0}}}"}}).mRules.Canonical() == Merge({}).mRules.Canonical(), "the defaults said out loud are the original rules");
+
+	// The group: the higher mod supplies all of it; null resets it
+	r = Merge({{"twilight", aTwilight}, {"rising", "{\"rules\": {\"board\": {\"gravity\": {\"direction\": \"up\"}}}}"}});
+	Check(r.mRules.mBoard.mGravity == GameRules::GRAVITY_UP && r.mRules.mBoard.mFallAccel == GameRules::DEFAULT_FALL_ACCEL &&
+		r.mRules.mLook.mSoundPitch == -2, "gravity group: up comes whole, without the lower fallAccel; look stays");
+	Check(HasMessage(r.mStatus.mWarnings, "rising", "board.gravity.direction overrides twilight"), "gravity group warning" + Messages(r));
+	r = Merge({{"twilight", aTwilight}, {"flat", "{\"rules\": {\"board\": {\"gravity\": null}}}"}});
+	Check(!r.mRules.HasGravityRule() && r.mRules.mLook.mBackdrop == GameRules::BACKDROP_TWILIGHT, "\"board\": {\"gravity\": null} resets the group only");
+	r = Merge({{"twilight", aTwilight}, {"plain", "{\"rules\": {\"look\": null}}"}});
+	Check(r.mRules.LookKeys().empty() && r.mRules.HasGravityRule(), "\"look\": null resets look.*");
+
+	// Validation: names rejected, ranges clamped
+	r = Merge({{"side", "{\"rules\": {\"board\": {\"gravity\": {\"direction\": \"sideways\"}}}}"}});
+	Check(!r.mStatus.mErrors.empty() && !r.mRules.HasGravityRule(), "an unknown direction is an error" + Messages(r));
+	r = Merge({{"c", "{\"rules\": {\"board\": {\"gravity\": {\"fallAccel\": 20}}, \"look\": {\"soundPitch\": 30}}}"}});
+	Check(r.mRules.mBoard.mFallAccel == 50 && HasMessage(r.mStatus.mWarnings, "c", "fallAccel 20 clamped to 50"), "fallAccel clamps to 50..1000" + Messages(r));
+	Check(r.mRules.mLook.mSoundPitch == 12 && HasMessage(r.mStatus.mWarnings, "c", "soundPitch 30 clamped to 12"), "soundPitch clamps to -12..12" + Messages(r));
+	r = Merge({{"c", "{\"rules\": {\"board\": {\"gravity\": {\"fallAccel\": 2000}}, \"look\": {\"soundPitch\": -13}}}"}});
+	Check(r.mRules.mBoard.mFallAccel == 1000 && r.mRules.mLook.mSoundPitch == -12 && r.mStatus.mErrors.empty(), "... from above and below" + Messages(r));
+	r = Merge({{"c", "{\"rules\": {\"look\": {\"soundPitch\": -1, \"backdrop\": \"dark\"}}}"}});
+	Check(r.mRules.LookKeys().empty() && HasMessage(r.mStatus.mErrors, "c", "look.backdrop"), "an unknown backdrop is an error, the mod's rules rejected" + Messages(r));
+
+	// The fill minimum per fill order (3.6): a corner pattern of one orientation on a 3x3 board. Filled bottom-up
+	// its three instances (row, column, corner) can end on one cell, top-down at most two; the vertical mirror the
+	// other way round. Alternate fills both ways and takes the larger.
+	const char* aBoard3 = "\"board\": {\"cols\": 3, \"rows\": 3";
+	std::string aCorner = std::string("{\"rules\": {") + aBoard3 + "}, \"match\": {\"shapes\": {\"corner\": {\"cells\": [[0,0],[1,0],[0,1]]}}}}}";
+	std::string aMirrored = std::string("{\"rules\": {") + aBoard3 + "}, \"match\": {\"shapes\": {\"corner\": {\"cells\": [[0,0],[0,1],[1,1]]}}}}}";
+	const char* aDirections[3] = {"down", "up", "alternate"};
+	int aCornerMinimum[3] = {4, 3, 4};
+	int aMirroredMinimum[3] = {3, 4, 4};
+	for (int i = 0; i < 3; i++)
+	{
+		std::string aGravity = std::string("{\"rules\": {\"board\": {\"gravity\": {\"direction\": \"") + aDirections[i] + "\"}}}}";
+		Check(Merge({{"g", aGravity.c_str()}, {"corner", aCorner.c_str()}}).mRules.FillMinimum() == aCornerMinimum[i],
+			std::string("fill minimum of the corner, ") + aDirections[i]);
+		Check(Merge({{"g", aGravity.c_str()}, {"corner", aMirrored.c_str()}}).mRules.FillMinimum() == aMirroredMinimum[i],
+			std::string("fill minimum of the mirrored corner, ") + aDirections[i]);
+	}
+	// gemColors 3 with the mirrored corner passes falling down; rising, gravity is a cause and its mod goes
+	std::string aMirrored3 = std::string("{\"rules\": {") + aBoard3 + ", \"gemColors\": 3}, \"match\": {\"shapes\": {\"corner\": {\"cells\": [[0,0],[0,1],[1,1]]}}}}}";
+	std::string aCorner3 = std::string("{\"rules\": {") + aBoard3 + ", \"gemColors\": 3}, \"match\": {\"shapes\": {\"corner\": {\"cells\": [[0,0],[1,0],[0,1]]}}}}}";
+	r = Merge({{"corner", aMirrored3.c_str()}});
+	Check(Clean(r), "the mirrored corner in 3 colours falls down" + Messages(r));
+	r = Merge({{"twilight", aTwilight}, {"corner", aMirrored3.c_str()}});
+	Check(Dropped(r) == "twilight" && HasMessage(r.mStatus.mDropped, "twilight", "below 4"), "the rising fill needs 4: twilight, the lower cause, goes" + Messages(r));
+	// the corner in 3 colours fails falling down already: gravity is no cause, so the corner mod goes
+	r = Merge({{"twilight", aTwilight}, {"corner", aCorner3.c_str()}});
+	Check(Dropped(r) == "corner" && r.mRules.HasGravityRule(), "a fill that fails falling down: gravity is no cause" + Messages(r));
+}
+
 static void TestDesignExamples()
 {
 	for (size_t i = 0; i < sizeof(gDesignExamples) / sizeof(gDesignExamples[0]); i++)
@@ -1820,11 +1898,38 @@ static void TestReplayVariantSave()
 	aWhy.clear();
 	Check(!Replay::ReadVariantSave(V2Save(aHoled), &aRead, &aWhy) && !aWhy.empty(), "v2: refused: a gem in a hole (" + aWhy + ")");
 
+	struct Bad { const char* mWhat; std::string mBytes; };
+	// GRAV (stage 7c): written when the rules set a gravity rule, absent otherwise (read as 0)
+	Check((aRead.mGravityFlips == 0) && !aRead.mGravityNoFlip && !aRead.mHasGravity, "v2: no GRAV chunk reads as 0");
+	Replay::VariantSave aGravity = aSave;
+	aGravity.mHasGravity = true;
+	aGravity.mGravityFlips = 3;
+	aGravity.mGravityNoFlip = true;
+	std::string aGravityBytes = V2Save(aGravity);
+	Check(Hex(Replay::VariantSaveChunks(aGravity).substr(2514 + 20)) == "47524156" "05000000" "03000000" "01" "454e442000000000",
+		"v2: golden GRAV chunk after MOVE");
+	Check(Replay::ReadVariantSave(aGravityBytes, &aRead, &aWhy) && aRead.mHasGravity && (aRead.mGravityFlips == 3) && aRead.mGravityNoFlip &&
+		(aRead.mMoves == 2), "v2: GRAV reads back (" + aWhy + ")");
+	std::string aGrav = aGravityBytes.substr(aGravityBytes.size() - 8 - 13, 13);
+	std::string aGravNoEnd = aGravityBytes.substr(0, aGravityBytes.size() - 8);
+	std::string anEnd = aBytes.substr(aBytes.size() - 8);
+	const Bad aGravityBads[] =
+	{
+		{"GRAV twice", aGravNoEnd + aGrav + anEnd},
+		{"GRAV of 4 bytes", aBytes.substr(0, aBytes.size() - 8) + "GRAV" + std::string("\x04\0\0\0", 4) + aGrav.substr(8, 4) + anEnd},
+		{"GRAV noFlip 2", aGravNoEnd.substr(0, aGravNoEnd.size() - 1) + "\x02" + anEnd},
+		{"GRAV flips below 0", aGravNoEnd.substr(0, aGravNoEnd.size() - 5) + std::string("\xff\xff\xff\xff\0", 5) + anEnd},
+	};
+	for (size_t i = 0; i < sizeof(aGravityBads) / sizeof(aGravityBads[0]); i++)
+	{
+		aWhy.clear();
+		Check(!Replay::ReadVariantSave(aGravityBads[i].mBytes, &aRead, &aWhy) && !aWhy.empty(), std::string("v2: refused: ") + aGravityBads[i].mWhat + " (" + aWhy + ")");
+	}
+
 	// An unknown chunk before END is skipped
 	std::string anExtra = aBytes.substr(0, aBytes.size() - 8) + "GOLD" + std::string("\x02\0\0\0", 4) + "ab" + aBytes.substr(aBytes.size() - 8);
 	Check(Replay::ReadVariantSave(anExtra, &aRead, &aWhy) && (aRead.mMoves == 2), "v2: an unknown chunk is skipped (" + aWhy + ")");
 
-	struct Bad { const char* mWhat; std::string mBytes; };
 	std::string aNoEnd = aBytes.substr(0, aBytes.size() - 8);
 	std::string aMove = aBytes.substr(aBytes.size() - 28, 20);
 	std::string aRngs = aBytes.substr(aBytes.size() - aChunks, 8 + 2506);
@@ -1966,6 +2071,7 @@ int main(int argc, char** argv)
 	TestDropLowest();
 	TestValidation();
 	TestFillMinimum();
+	TestGravity();
 	TestDesignExamples();
 	TestFeatures();
 	TestJson();

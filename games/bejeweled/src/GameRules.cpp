@@ -47,6 +47,7 @@ enum FieldGroup
 	GROUP_MOVES,
 	GROUP_GOLD,
 	GROUP_UNDO,
+	GROUP_GRAVITY,
 	NUM_GROUPS
 };
 
@@ -54,7 +55,8 @@ enum FieldFlags
 {
 	FLAG_TUNABLE = 1,       // a legacy tunable: read leniently under "tunables", not a variant rule
 	FLAG_CLAMP = 2,         // out of range: clamped with a warning instead of rejected
-	FLAG_BOOL = 4           // KIND_ENUM with two names, stored as a bool (index 1 = true)
+	FLAG_BOOL = 4,          // KIND_ENUM with two names, stored as a bool (index 1 = true)
+	FLAG_LOOK = 8           // presentation (look.*): in the RulesId, not a variant rule
 };
 
 struct FieldDef
@@ -77,6 +79,8 @@ const char* const gCrossingNames[] = {"separate", "merge"};
 const char* const gCreateInNames[] = {"any", "move"};
 const char* const gGildNames[] = {"matches", "matchesAndBlasts"};
 const char* const gMoveTypeNames[] = {"swap", "twist", "slide"};
+const char* const gGravityNames[] = {"down", "up", "alternate"};
+const char* const gBackdropNames[] = {"normal", "twilight"};
 
 #define RULE_FIELD(theMember) [](GameRules* r) -> void* { return &r->theMember; }
 #define RULE_NAMES(theNames) theNames, (int) (sizeof(theNames) / sizeof(theNames[0]))
@@ -90,6 +94,8 @@ const FieldDef gFields[] =
 	{4, "board.levels", KIND_LEVELS, GROUP_SHAPE, 0, 0, 0, NULL, 0, RULE_FIELD(mBoard.mLevels)},
 	{5, "board.gemColors", KIND_INT, GROUP_NONE, FLAG_TUNABLE, GameRules::MIN_GEM_COLORS, GameRules::MAX_GEM_COLORS, NULL, 0, RULE_FIELD(mBoard.mGemColors)},
 	{6, "board.dirtPoints", KIND_INT, GROUP_NONE, 0, 0, 1000000, NULL, 0, RULE_FIELD(mBoard.mDirtPoints)},
+	{7, "board.gravity.direction", KIND_ENUM, GROUP_GRAVITY, 0, 0, 0, RULE_NAMES(gGravityNames), RULE_FIELD(mBoard.mGravity)},
+	{8, "board.gravity.fallAccel", KIND_INT, GROUP_GRAVITY, FLAG_CLAMP, 50, 1000, NULL, 0, RULE_FIELD(mBoard.mFallAccel)},
 	{16, "moves.type", KIND_MOVE_TYPES, GROUP_MOVES, 0, 0, 0, NULL, 0, RULE_FIELD(mMoves.mTypes)},
 	{17, "moves.twist.direction", KIND_ENUM, GROUP_MOVES, FLAG_BOOL, 0, 0, RULE_NAMES(gTwistNames), RULE_FIELD(mMoves.mTwistBoth)},
 	{18, "moves.slide.snapTicks", KIND_INT, GROUP_MOVES, FLAG_CLAMP, 4, 60, NULL, 0, RULE_FIELD(mMoves.mSlideSnapTicks)},
@@ -128,7 +134,9 @@ const FieldDef gFields[] =
 	{116, "scoring.hintPenalty", KIND_DOUBLE, GROUP_NONE, FLAG_TUNABLE, 0, 0, NULL, 0, RULE_FIELD(mTunables.mHintPenalty)},
 	{128, "timing.startDrainDelay", KIND_INT, GROUP_NONE, FLAG_TUNABLE, INT_MIN, INT_MAX, NULL, 0, RULE_FIELD(mTunables.mStartDrainDelay)},
 	{129, "timing.levelDrainDelay", KIND_INT, GROUP_NONE, FLAG_TUNABLE, INT_MIN, INT_MAX, NULL, 0, RULE_FIELD(mTunables.mLevelDrainDelay)},
-	{130, "timing.warningFraction", KIND_DOUBLE, GROUP_NONE, FLAG_TUNABLE, 0, 0, NULL, 0, RULE_FIELD(mTunables.mWarningFraction)}
+	{130, "timing.warningFraction", KIND_DOUBLE, GROUP_NONE, FLAG_TUNABLE, 0, 0, NULL, 0, RULE_FIELD(mTunables.mWarningFraction)},
+	{144, "look.backdrop", KIND_ENUM, GROUP_NONE, FLAG_LOOK, 0, 0, RULE_NAMES(gBackdropNames), RULE_FIELD(mLook.mBackdrop)},
+	{145, "look.soundPitch", KIND_INT, GROUP_NONE, FLAG_LOOK | FLAG_CLAMP, -12, 12, NULL, 0, RULE_FIELD(mLook.mSoundPitch)}
 };
 
 const int NUM_FIELDS = (int) (sizeof(gFields) / sizeof(gFields[0]));
@@ -136,8 +144,8 @@ const int NUM_FIELDS = (int) (sizeof(gFields) / sizeof(gFields[0]));
 // Objects in the key tree that are not fields themselves
 const char* const gNamespaces[] =
 {
-	"board", "moves", "moves.twist", "moves.slide", "noMoves", "match", "specials", "gold", "gold.timeLimit",
-	"undo", "scoring", "timing"
+	"board", "board.gravity", "moves", "moves.twist", "moves.slide", "noMoves", "match", "specials", "gold",
+	"gold.timeLimit", "undo", "scoring", "timing", "look"
 };
 
 const char* const ADD_TYPES_KEY = "moves.addTypes";
@@ -2164,7 +2172,19 @@ std::vector<std::string> GameRules::VariantKeys() const
 	std::vector<std::string> aKeys;
 	for (int f = 0; f < NUM_FIELDS; f++)
 	{
-		if (!(gFields[f].mFlags & FLAG_TUNABLE) && (EncodeField(gFields[f], *this) != EncodeField(gFields[f], aDefaults)))
+		if (!(gFields[f].mFlags & (FLAG_TUNABLE | FLAG_LOOK)) && (EncodeField(gFields[f], *this) != EncodeField(gFields[f], aDefaults)))
+			aKeys.push_back(gFields[f].mKey);
+	}
+	return aKeys;
+}
+
+std::vector<std::string> GameRules::LookKeys() const
+{
+	GameRules aDefaults = DefaultsFor(*this);
+	std::vector<std::string> aKeys;
+	for (int f = 0; f < NUM_FIELDS; f++)
+	{
+		if ((gFields[f].mFlags & FLAG_LOOK) && (EncodeField(gFields[f], *this) != EncodeField(gFields[f], aDefaults)))
 			aKeys.push_back(gFields[f].mKey);
 	}
 	return aKeys;
@@ -2251,11 +2271,16 @@ int GameRules::FillMinimum() const
 	}
 	std::vector<CellList> aPatterns(aPatternSet.begin(), aPatternSet.end());
 
+	// The fill orders in use (FillBoardVariant): down fills bottom-up, up top-down, alternate both ways
+	bool anOrders[2] = {mBoard.mGravity != GRAVITY_UP, mBoard.mGravity != GRAVITY_DOWN};
 	int aMost = 0;
-	for (int aLevel = 0; aLevel < ShapeCount(); aLevel++)
+	for (int aPass = 0; aPass < ShapeCount() * 2; aPass++)
 	{
-		BoardLayout aLayout = LayoutForLevel(aLevel);
-		// Fill order: rows bottom-up, columns left to right, gem cells only
+		bool isTopDown = (aPass % 2) != 0;
+		if (!anOrders[aPass % 2])
+			continue;
+		BoardLayout aLayout = LayoutForLevel(aPass / 2);
+		// Fill order: rows from the entry side's far end, columns left to right, gem cells only
 		int anOrder[BoardLayout::MAX_ROWS][BoardLayout::MAX_COLS];
 		int aNext = 0;
 		for (int r = BoardLayout::MAX_ROWS - 1; r >= 0; r--)
@@ -2263,8 +2288,9 @@ int GameRules::FillMinimum() const
 			for (int c = 0; c < BoardLayout::MAX_COLS; c++)
 				anOrder[r][c] = aLayout.IsPlayable(c, r) ? 0 : -1;
 		}
-		for (int r = aLayout.mRows - 1; r >= 0; r--)
+		for (int i = 0; i < aLayout.mRows; i++)
 		{
+			int r = isTopDown ? i : aLayout.mRows - 1 - i;
 			for (int c = 0; c < aLayout.mCols; c++)
 			{
 				if (anOrder[r][c] >= 0)
@@ -2402,6 +2428,11 @@ bool GameRules::Validate(std::string* theMessage, std::vector<std::string>* theK
 			aCause.Field("match.shapes");
 			if (OnOriginalBoard(*this).FillMinimum() <= mBoard.mGemColors)
 				aCause.Shape();
+			// The upward fill order, where the downward one alone would pass
+			GameRules aFallingDown = *this;
+			aFallingDown.mBoard.mGravity = GRAVITY_DOWN;
+			if (aFallingDown.FillMinimum() <= mBoard.mGemColors)
+				aCause.Field("board.gravity.direction");
 		}
 	}
 
