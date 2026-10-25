@@ -65,6 +65,26 @@ private:
 	void			FillButton(Graphics* g, int theId);
 };
 
+// 0x41ea40: the high score tables of both kinds of game, shown from the options box (the doors are open at once)
+class HighScoresBox : public Widget, public ButtonListener
+{
+public:
+	AtomicaApp*		mApp;				// +0x5c
+	Sprite*			mDoorLeft;
+	Sprite*			mDoorRight;
+	Sprite*			mPanel;
+	ButtonWidget*	mReturn;			// +0x60 id 0
+	int				mAlpha;				// +0x6c
+
+	HighScoresBox(AtomicaApp* theApp);					// 0x41ea40
+	virtual ~HighScoresBox();
+	virtual void	AddedToManager(WidgetManager* theWidgetManager) override;
+	virtual void	RemovedFromManager(WidgetManager* theWidgetManager) override;
+	virtual void	Update() override;
+	virtual void	Draw(Graphics* g) override;			// 0x41ec90
+	virtual void	ButtonDepress(int theId) override;
+};
+
 }
 
 #endif

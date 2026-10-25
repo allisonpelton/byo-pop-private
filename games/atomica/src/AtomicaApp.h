@@ -77,6 +77,7 @@ public:
 	bool			mHintsShown[0xff];		// +0x406c the hints that were shown in earlier games
 	Widget*			mLevelUpDialog;			// +0x3e98
 	Widget*			mScoreDialog;			// the high score entry
+	Widget*			mHighScoresBox;			// the tables of both games (from the options)
 	ScoreTable		mScoreTables[2];		// +0x3eb0 the strategy mode's and +0x3f8c the action mode's high scores
 	Widget*			mQuitDialog;			// +0x3e8c the quit box
 	Widget*			mConfirmDialog;			// +0x3e94

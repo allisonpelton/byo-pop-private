@@ -69,11 +69,18 @@ void AtomicaApp::ResetHints()
 		mHintsShown[i] = false;
 }
 
-// the high scores box (0x41ea40)
-// port: not ported yet
+// 0x422d40: the high scores box
 void AtomicaApp::ShowHighScores()
 {
-	puts("high scores box (not ported)");
+	if (mHighScoresBox == NULL)
+	{
+		HighScoresBox* aBox = new HighScoresBox(this);
+		mHighScoresBox = aBox;
+		aBox->Resize(0, 0, mWidth, mHeight);
+		mWidgetManager->AddWidget(aBox);
+		mWidgetManager->BringToFront(aBox);
+		mWidgetManager->BringToFront(aBox->mReturn);
+	}
 }
 
 // 0x41e440: a score that earns a place or the best of the day gets the entry box

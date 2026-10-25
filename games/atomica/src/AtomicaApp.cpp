@@ -62,6 +62,7 @@ AtomicaApp::AtomicaApp()
 		mHintsShown[i] = false;
 	mLevelUpDialog = NULL;
 	mScoreDialog = NULL;
+	mHighScoresBox = NULL;
 	mQuitDialog = NULL;
 	mConfirmDialog = NULL;
 	mOptionsDialog = NULL;

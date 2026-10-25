@@ -398,3 +398,113 @@ void MainMenu::ButtonDepress(int theId)
 		break;
 	}
 }
+
+// ---------------------------------------------------------------------------------------------------------
+// HighScoresBox
+
+// 0x41ea40
+HighScoresBox::HighScoresBox(AtomicaApp* theApp) :
+	mApp(theApp),
+	mAlpha(0)
+{
+	mPanel = mApp->mSprites->Load("menupanel");
+	mReturn = new ButtonWidget(0, this);
+	mReturn->mBtnNoDraw = true;
+	mReturn->mDoFinger = true;
+	mReturn->Resize(0xd9, 0x178, 0xce, 0x25);
+}
+
+HighScoresBox::~HighScoresBox()
+{
+	mApp->mHighScoresBox = NULL;
+	mApp->SafeDeleteWidget(mReturn);
+}
+
+void HighScoresBox::AddedToManager(WidgetManager* theWidgetManager)
+{
+	Widget::AddedToManager(theWidgetManager);
+	theWidgetManager->AddWidget(mReturn);
+	theWidgetManager->AddBaseModal(this);
+}
+
+void HighScoresBox::RemovedFromManager(WidgetManager* theWidgetManager)
+{
+	Widget::RemovedFromManager(theWidgetManager);
+	theWidgetManager->RemoveBaseModal(this);
+	theWidgetManager->RemoveWidget(mReturn);
+}
+
+void HighScoresBox::Update()
+{
+	Widget::Update();
+	if (mAlpha < 255)
+		mAlpha = (mAlpha + 8 > 255) ? 255 : mAlpha + 8;
+	MarkDirty();
+}
+
+// 0x41ec90: both tables side by side (strategy left, action right), each with the best of the day
+void HighScoresBox::Draw(Graphics* g)
+{
+	g->SetColor(Color(0, 0, 0, 255));
+	g->FillRect(0, 0, mWidth, mHeight);
+	mPanel->Draw(g, 0x140 - mPanel->mWidth / 2, 10);
+	// the button
+	g->SetFont(mApp->mAtomicFont);
+	g->SetColor(Color(mReturn->mIsOver ? 0x80 : 0, 0x80, 0, mAlpha / 2));
+	g->FillRect(mReturn->mX, mReturn->mY, mReturn->mWidth, mReturn->mHeight);
+	g->SetColor(Color(mReturn->mIsOver ? 255 : 0, 255, 0, mAlpha));
+	const std::string& aReturn = GT(0x4b03b4);
+	g->DrawString(aReturn, mReturn->mX + mReturn->mWidth / 2 - mApp->mAtomicFont->StringWidth(aReturn) / 2,
+		mReturn->mY + mReturn->mHeight - 0xc);
+	// the title
+	g->SetFont(mApp->mAnnounceFont);
+	g->SetColor(Color(0, 255, 0, 200));
+	std::string aAtomic = "ATOMIC";
+	g->DrawString(aAtomic, 0x140 - mApp->mAnnounceFont->StringWidth(aAtomic) / 2, 0x50);
+	const std::string& aTitle = GT(0x4afe88);
+	g->DrawString(aTitle, 0x140 - mApp->mAnnounceFont->StringWidth(aTitle) / 2, 0x82);
+	// the tables
+	Font* aMedium = mApp->mMonitorFontMedium;
+	for (int aKind = 0; aKind < 2; aKind++)
+	{
+		ScoreTable& aTable = mApp->mScoreTables[aKind];
+		int aNameX = (aKind == 0) ? 0x69 : 0x14a;
+		int aScoreX = (aKind == 0) ? 300 : 0x20d;
+		int aCenter = (aKind == 0) ? 0xca : 0x1ab;
+		g->SetFont(mApp->mMonitorFont);
+		g->SetColor(Color(0xaf, 255, 0x3c, 255));
+		const std::string& aHeading = GT(aKind == 0 ? 0x4b038c : 0x4b039c);
+		g->DrawString(aHeading, aCenter - mApp->mMonitorFont->StringWidth(aHeading) / 2, 0xb4);
+		const std::string& aToday = GT(0x4b037c);
+		g->DrawString(aToday, aCenter - mApp->mMonitorFont->StringWidth(aToday) / 2, 0x140);
+		g->SetFont(aMedium);
+		g->SetColor(Color(0, 255, 0, mAlpha));
+		for (int i = 0; i < ScoreTable::NUM_SCORES; i++)
+		{
+			g->DrawString(aTable.mNames[i], aNameX, 0xd2 + 0x12 * i);
+			std::string aScore = Format(GT(0x4aff20), aTable.mScores[i]);
+			g->DrawString(aScore, aScoreX - aMedium->StringWidth(aScore), 0xd2 + 0x12 * i);
+		}
+		if ((aTable.mDate == ScoreTable::DateCode()) && (aTable.mBestToday != -1))
+		{
+			g->DrawString(aTable.mBestName, aNameX, 0x159);
+			std::string aScore = Format(GT(0x4aff20), aTable.mBestToday);
+			g->DrawString(aScore, aScoreX - aMedium->StringWidth(aScore), 0x159);
+		}
+		else
+		{
+			const std::string& aNone = GT(0x4afe5c);
+			g->DrawString(aNone, aCenter - aMedium->StringWidth(aNone) / 2, 0x159);
+		}
+	}
+}
+
+void HighScoresBox::ButtonDepress(int theId)
+{
+	if (theId == 0)
+	{
+		mApp->mSndCapClick->Play();
+		mApp->mWidgetManager->RemoveWidget(this);
+		mApp->SafeDeleteWidget(this);
+	}
+}
