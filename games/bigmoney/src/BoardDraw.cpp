@@ -445,6 +445,7 @@ void Board::Draw(Graphics* g)
 	}
 
 	DrawSolverStatus(g); // port(mods)
+	DrawPickpockets(g); // port(mods)
 }
 
 // port(mods): the Puzzle solver's status lines (Board::GetSolverStatusRect; PuzzleSolver.h)
@@ -474,6 +475,26 @@ void Board::DrawSolverStatus(Graphics* g)
 		g->DrawString(aLine.mText, aRect.mX + (aRect.mWidth - aFont->StringWidth(aLine.mText)) / 2, aY);
 		aY += 19;
 	}
+}
+
+// port(mods): the Pickpocket counter (Board::GetPickpocketRect); armed, it blinks
+void Board::DrawPickpockets(Graphics* g)
+{
+	Rect aRect;
+	SexyString aText;
+	if (!GetPickpocketRect(&aRect, &aText))
+		return;
+	Font* aFont = mApp->mFont3;
+	g->SetFont(aFont);
+	g->SetColor(Color(0, 0, 0, 160));
+	g->FillRect(aRect);
+	if (mPickpocketArmed)
+		g->SetColor(((mUpdateCnt / 20) % 2 == 0) ? Color(255, 255, 0) : Color(170, 140, 0));
+	else if (mPickpockets > 0)
+		g->SetColor(Color(0, 255, 0));
+	else
+		g->SetColor(Color(0, 120, 0));
+	g->DrawString(aText, aRect.mX + (aRect.mWidth - aFont->StringWidth(aText)) / 2, aRect.mY + 18);
 }
 
 // 0x402060

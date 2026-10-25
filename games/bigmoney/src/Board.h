@@ -342,6 +342,7 @@ public:
 		int			mSpent;                 // mSolverSpent then
 		uint64_t	mBoard;                 // the board's PuzzleModel::Hash, 0 if it was moving
 		int			mTick;
+		int			mPickpockets;
 	};
 	PuzzleSolver*	mSolver;                // a Puzzle board with the feature on, else NULL
 	int				mSolverShow;            // SOLVER_SHOW_*
@@ -380,6 +381,13 @@ public:
 	bool			mWinnablePuzzles;
 	std::vector<PuzzleSolver::Move> mBuildPlan; // the clicks that win this level's board as built (until the solver has them)
 	uint64_t		mBuildPlanBoard;        // that board, bags and all (PuzzleModel::Hash)
+	// port(mods): Pickpockets (the "pickpocket" feature): each lifts a group too small to click, for no points
+	bool			mPickpocket;            // the feature is on
+	int				mPickpockets;           // in hand (saved in the savegame's trailer)
+	int				mPickpocketsPerLevel;   // more at each new level
+	int				mPickpocketsMax;        // the most in hand
+	bool			mPickpocketArmed;       // P (or a click on the counter): the next click on a small group uses one
+	int				mPickpocketsUsed;       // in this board's game (the log)
 
 public:
 	Board(WinBMApp* theApp);                                        // 0x40e760
@@ -490,7 +498,15 @@ public:
 	void			BuildWinnablePuzzle();
 	void			CheckWinnablePuzzle();
 	void			DrawSolverStatus(Graphics* g);
-	static std::string GetSaveGameFileName();                       // port: "userdata\\savegame.dat"
+	// port(mods): Pickpockets
+	void			GetPickpocketGroup(Piece* thePiece, std::vector<Piece*>* theGroup);
+	bool			IsPickpocketTarget(Piece* thePiece);
+	bool			CanPickpocket();
+	void			ArmPickpocket(bool theArmed);
+	void			UsePickpocket(int x, int y);
+	bool			GetPickpocketRect(Rect* theRect, SexyString* theText);
+	void			DrawPickpockets(Graphics* g);
+	static std::string GetSaveGameFileName();                      // port: "userdata\\savegame.dat"
 
 	using Widget::MouseDown;
 	using ButtonListener::ButtonPress;

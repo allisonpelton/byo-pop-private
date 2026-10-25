@@ -187,6 +187,7 @@ public:
 	bool			mAutoplayHints;         // -autoplayhints: and presses H first (PuzzleSolver.h)
 	int				mAutoplayUndo;          // -autoplayundo[=N] (AutoplayBot::mPressUndo)
 	bool			mAutoplayCheck;         // -autoplaycheck (AutoplayBot::mCheckClicks)
+	int				mAutoplayPocket;        // -autoplaypocket[=N] (AutoplayBot::mUsePockets)
 	AutoplayBot*	mAutoplayBot;
 	virtual void	UpdateFrames() override;
 	virtual void	HandleCmdLineParam(const std::string& theParamName, const std::string& theParamValue) override;

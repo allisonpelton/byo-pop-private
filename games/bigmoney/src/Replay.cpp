@@ -117,6 +117,7 @@ int Replay::OpArgCount(int theOp)
 	{
 	case OP_CLICK:
 	case OP_MOVE:
+	case OP_POCKET:
 		return 2;
 	case OP_LEAVE:
 	case OP_NEXT:
@@ -514,6 +515,9 @@ void ReplayPlayer::Apply(Board* theBoard, uint32_t theTick)
 		case Replay::OP_UNDO:
 			if (theBoard->mState == STATE_PLAYING)
 				theBoard->RequestSolverUndo();
+			break;
+		case Replay::OP_POCKET:
+			theBoard->UsePickpocket(anEvent.mX, anEvent.mY);
 			break;
 		}
 	}

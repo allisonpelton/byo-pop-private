@@ -574,7 +574,8 @@ void Board::UpdateHover()
 			Piece* aCell = mGrid[aRow][aCol];
 			if (aCell == NULL)
 				continue;
-			bool aHighlighted = (aCount >= mMinGroup) && (aCell->mMark == mUpdateCnt);
+			// port(mods): an armed Pickpocket lights the small groups too
+			bool aHighlighted = ((aCount >= mMinGroup) || ((aCount > 0) && (mPickpocketArmed))) && (aCell->mMark == mUpdateCnt);
 			if (aCell->mHighlighted != aHighlighted)
 			{
 				aCell->mHighlighted = aHighlighted;
@@ -852,6 +853,14 @@ void Board::KeyChar(SexyChar theChar)
 		return;
 	}
 
+	// port(mods): P arms a Pickpocket, or puts it away
+	if (((theChar == 'p') || (theChar == 'P')) && (mPickpocket) && (mPlayer == NULL))
+	{
+		if ((mState == STATE_PLAYING) && (mPauseCount == 0))
+			ArmPickpocket(!mPickpocketArmed);
+		return;
+	}
+
 	if (theChar == ' ')
 		Pause(mPauseCount == 0);
 }
@@ -987,11 +996,18 @@ void Board::WriteSaveGame(Buffer* theBuffer)
 	WriteRaw(theBuffer, mMoveDigitFade);
 	WriteBool(theBuffer, mContinueButton != NULL);
 
-	// port(mods): a seeded game's trailer, which the original's reader ignores (ModRules.h)
+	// port(mods): trailers, which the original's reader ignores: a seeded game's seed (ModRules.h), the
+	// Pickpockets in hand
 	if (mUserSeeded)
 	{
 		theBuffer->WriteBytes((const uchar*) "BMSD", 4);
 		WriteRaw(theBuffer, mGameSeed);
+	}
+	if (mPickpocket)
+	{
+		theBuffer->WriteBytes((const uchar*) "BMPK", 4);
+		uint32_t aCount = (uint32_t) mPickpockets;
+		WriteRaw(theBuffer, aCount);
 	}
 }
 
@@ -1255,21 +1271,27 @@ bool Board::ReadSaveGame(Buffer* theBuffer, bool theTrailer)
 	if (!theTrailer)
 		return true;
 
-	// port(mods): a seeded game's trailer (WriteSaveGame); without one the game plays on unseeded
+	// port(mods): the trailers (WriteSaveGame). Without a seed the game plays on unseeded; without a
+	// Pickpocket count it keeps the count a new game starts with.
 	mGameSeed = 0;
 	mUserSeeded = false;
-	if (theBuffer->mReadBitPos / 8 + 8 <= theBuffer->GetDataLen())
+	while (theBuffer->mReadBitPos / 8 + 8 <= theBuffer->GetDataLen())
 	{
 		uchar aTag[4];
 		theBuffer->ReadBytes(aTag, 4);
-		uint32_t aSeed = 0;
-		ReadRaw(theBuffer, &aSeed);
-		if ((memcmp(aTag, "BMSD", 4) == 0) && (aSeed != 0))
+		uint32_t aValue = 0;
+		ReadRaw(theBuffer, &aValue);
+		if ((memcmp(aTag, "BMSD", 4) == 0) && (aValue != 0))
 		{
-			mGameSeed = aSeed;
+			mGameSeed = aValue;
 			mUserSeeded = true;
-			SeedMTRand12(mEffectsRand, ~aSeed);
-			SDL_Log("savegame: seed %u", (unsigned) aSeed);
+			SeedMTRand12(mEffectsRand, ~aValue);
+			SDL_Log("savegame: seed %u", (unsigned) aValue);
+		}
+		else if ((memcmp(aTag, "BMPK", 4) == 0) && (mPickpocket))
+		{
+			mPickpockets = (int) std::min(aValue, (uint32_t) mPickpocketsMax);
+			SDL_Log("savegame: %d pickpockets", mPickpockets);
 		}
 	}
 	return true;
@@ -2351,6 +2373,8 @@ void Board::NextLevel()
 	mGoTimer = 80;
 	SetupLevelParams();
 	GenerateBoard();
+	if (mPickpocket) // port(mods)
+		mPickpockets = std::min(mPickpockets + mPickpocketsPerLevel, mPickpocketsMax);
 }
 
 // 0x40aea0: a money bag (meter full) or a dollar bomb drops into a free column
@@ -2761,6 +2785,25 @@ void Board::MouseDown(int x, int y, int theClickCount)
 		return;
 	if (mState == STATE_PLAYING)
 	{
+		// port(mods): Pickpockets. A click on the counter arms one (not recorded: it changes only what is
+		// lit); a right click on a group too small to click, or any click on one while armed, uses one.
+		if (mPickpocket)
+		{
+			Rect aRect;
+			SexyString aText;
+			if ((GetPickpocketRect(&aRect, &aText)) && (aRect.Contains(x, y)))
+			{
+				ArmPickpocket(!mPickpocketArmed);
+				return;
+			}
+			Piece* aPiece = PieceAt(x, y);
+			if (((theClickCount < 0) || (mPickpocketArmed)) && (aPiece != NULL) && (IsPickpocketTarget(aPiece)))
+			{
+				RecordInput(Replay::OP_POCKET, x, y);
+				UsePickpocket(x, y);
+				return;
+			}
+		}
 		RecordInput(Replay::OP_CLICK, x, y); // port(mods)
 		ClickAt(x, y);
 	}
@@ -3555,11 +3598,18 @@ void Board::Update()
 	}
 
 	UpdateSolver(); // port(mods)
+	if ((mPickpocketArmed) && (mUpdateCnt % 20 == 0)) // port(mods): the armed Pickpocket's counter blinks
+		MarkDirty();
 
 	// Puzzle: no group left before all needed bags are out
+	// port(mods): not while a Pickpocket can still lift a coin
 	if ((mApp->mGameType == GAMETYPE_PUZZLE) && (!mHasMoves) && (!mPiecesMoving) &&
-		(mBagsReleased < mBagsNeeded) && (mState == STATE_PLAYING))
+		(mBagsReleased < mBagsNeeded) && (mState == STATE_PLAYING) && (!CanPickpocket()))
 		GameOver();
+	// port(mods): and with no click left, a Pickpocket is armed (it lights what it can lift)
+	if ((mApp->mGameType == GAMETYPE_PUZZLE) && (!mHasMoves) && (!mPiecesMoving) && (mState == STATE_PLAYING) &&
+		(!mPickpocketArmed) && (CanPickpocket()))
+		ArmPickpocket(true);
 
 	if ((mBagFlashCount > 0) || (mBagFlash != 0.0))
 	{
@@ -3827,6 +3877,15 @@ Board::Board(WinBMApp* theApp)
 	// port(mods): Puzzle boards built to be winnable (PuzzleBuilder.h)
 	mWinnablePuzzles = (mApp->mGameType == GAMETYPE_PUZZLE) && (ModFeatureEnabled("winnablePuzzles"));
 	mBuildPlanBoard = 0;
+	// port(mods): Pickpockets (Board::UsePickpocket)
+	mPickpocket = ModFeatureEnabled("pickpocket");
+	mPickpocketsMax = ModFeatureInt("pickpocket", "max", 5, 1, 1000);
+	mPickpockets = mPickpocket ? std::min(ModFeatureInt("pickpocket", "start", 3, 0, 1000), mPickpocketsMax) : 0;
+	mPickpocketsPerLevel = ModFeatureInt("pickpocket", "perLevel", 1, 0, 1000);
+	mPickpocketArmed = false;
+	mPickpocketsUsed = 0;
+	if (mPickpocket)
+		SDL_Log("pickpocket: %d to start, %d more a level, %d at most", mPickpockets, mPickpocketsPerLevel, mPickpocketsMax);
 	mBombColor = 0;
 	mBombIdle = 0;
 	mHoverBag = false;
@@ -4072,7 +4131,8 @@ void Board::UpdateSolver()
 
 	UpdateSolverCheck();
 
-	if ((mSolverEndWhenLost) && (mSolver->mStatus == PuzzleSolver::STATUS_LOST) && (mBagsReleased < mBagsNeeded))
+	if ((mSolverEndWhenLost) && (mSolver->mStatus == PuzzleSolver::STATUS_LOST) && (mBagsReleased < mBagsNeeded) &&
+		(mPickpockets == 0))
 	{
 		SDL_Log("solver: level %d can't be won: game over", mLevel + 1);
 		GameOver();
@@ -4330,6 +4390,7 @@ void Board::SaveSolverUndo()
 		anUndo.mBoard = aModel.Hash();
 	}
 	anUndo.mTick = mUpdateCnt;
+	anUndo.mPickpockets = mPickpockets;
 }
 
 // U, or a click on the undo line: the game goes back to just before the last click. The score is the one
@@ -4373,6 +4434,9 @@ void Board::RequestSolverUndo()
 	mLastGroupSize = anUndo.mLastGroupSize;
 	mPrevGroupSize = anUndo.mPrevGroupSize;
 	memcpy(mColTowerHeight, anUndo.mColTowerHeight, sizeof(mColTowerHeight));
+	mPickpockets = anUndo.mPickpockets;
+	if (mPickpockets == 0)
+		mPickpocketArmed = false;
 	if (mHintPiece != NULL) // the piece the instructor's hint followed is gone
 	{
 		HideHint();
@@ -4475,7 +4539,10 @@ bool Board::GetSolverStatusRect(Rect* theRect, std::vector<SolverLine>* theLines
 		aLine.mText = mApp->GetString("SOLVER_WINNABLE", _S("THIS LEVEL CAN STILL BE WON"));
 		break;
 	case PuzzleSolver::STATUS_LOST:
-		aLine.mText = mApp->GetString("SOLVER_LOST", _S("THIS LEVEL CAN NO LONGER BE WON"));
+		if (mPickpockets > 0) // the solver counts no Pickpockets
+			aLine.mText = mApp->GetString("SOLVER_LOST_POCKET", _S("NO WAY TO WIN WITHOUT A PICKPOCKET"));
+		else
+			aLine.mText = mApp->GetString("SOLVER_LOST", _S("THIS LEVEL CAN NO LONGER BE WON"));
 		break;
 	case PuzzleSolver::STATUS_GAVE_UP:
 		aLine.mText = mApp->GetString("SOLVER_GAVE_UP", _S("TOO MANY WAYS TO TELL IF IT CAN BE WON"));
@@ -4568,4 +4635,165 @@ void Board::CheckWinnablePuzzle()
 	bool isWon = aSolver.SetPlan(aBoard, mBuildPlan);
 	SDL_Log("winnable: level %d: %d groups built; %s", mLevel + 1, (int) mBuildPlan.size(),
 		isWon ? "clicking them in reverse wins" : "WRONG: clicking them in reverse does not win");
+}
+
+// port(mods): Pickpockets (the "pickpocket" feature, mods/pickpocket). Each lifts a group too small to click
+// (smaller than mMinGroup: a single coin, or two where three are needed) for no points and no combos. It
+// counts as a click in Strategy (the moves to the next row), and a Puzzle game goes on while one can still
+// lift a coin. The groups are found here, not with FloodFill, which leaves marks a click in the same tick
+// would stop at.
+void Board::GetPickpocketGroup(Piece* thePiece, std::vector<Piece*>* theGroup)
+{
+	theGroup->clear();
+	if ((thePiece == NULL) || (thePiece->mIsSpecial))
+		return;
+	bool aSeen[BOARD_ROWS][BOARD_COLS];
+	memset(aSeen, 0, sizeof(aSeen));
+	theGroup->push_back(thePiece);
+	aSeen[thePiece->mRow][thePiece->mCol] = true;
+	for (size_t i = 0; i < theGroup->size(); i++)
+	{
+		static const int aDirs[4][2] = { {-1, 0}, {1, 0}, {0, -1}, {0, 1} };
+		Piece* aFrom = (*theGroup)[i];
+		for (int d = 0; d < 4; d++)
+		{
+			int aCol = aFrom->mCol + aDirs[d][0];
+			int aRow = aFrom->mRow + aDirs[d][1];
+			if ((aCol < 0) || (aCol >= mCols) || (aRow < 0) || (aRow >= mRows) || (aSeen[aRow][aCol]))
+				continue;
+			Piece* aPiece = mGrid[aRow][aCol];
+			if ((aPiece == NULL) || (aPiece->mIsSpecial) || (aPiece->mColor != thePiece->mColor))
+				continue;
+			aSeen[aRow][aCol] = true;
+			theGroup->push_back(aPiece);
+		}
+	}
+}
+
+// A coin a Pickpocket in hand can lift: its group is too small to click
+bool Board::IsPickpocketTarget(Piece* thePiece)
+{
+	if ((!mPickpocket) || (mPickpockets <= 0) || (thePiece == NULL) || (thePiece->mIsSpecial))
+		return false;
+	std::vector<Piece*> aGroup;
+	GetPickpocketGroup(thePiece, &aGroup);
+	return (!aGroup.empty()) && ((int) aGroup.size() < mMinGroup);
+}
+
+// A Pickpocket in hand and a group it can lift (a Puzzle game with no clicks left goes on while there is)
+bool Board::CanPickpocket()
+{
+	if ((!mPickpocket) || (mPickpockets <= 0))
+		return false;
+	for (int aRow = 0; aRow < mRows; aRow++)
+	{
+		for (int aCol = 0; aCol < mCols; aCol++)
+		{
+			if (IsPickpocketTarget(mGrid[aRow][aCol]))
+				return true;
+		}
+	}
+	return false;
+}
+
+void Board::ArmPickpocket(bool theArmed)
+{
+	theArmed = theArmed && (mPickpocket) && (mPickpockets > 0);
+	if (theArmed == mPickpocketArmed)
+		return;
+	mPickpocketArmed = theArmed;
+	UpdateHover();
+	MarkDirty();
+}
+
+// OP_POCKET: a Pickpocket lifts the small group at x, y; the coins go in a puff, as under a bag
+void Board::UsePickpocket(int x, int y)
+{
+	Piece* aTarget = PieceAt(x, y);
+	if ((mState != STATE_PLAYING) || (!IsPickpocketTarget(aTarget)))
+		return;
+	std::vector<Piece*> aGroup;
+	GetPickpocketGroup(aTarget, &aGroup);
+	if (mSolver != NULL) // the game before it, for the solver's undo
+		SaveSolverUndo();
+	if (!mPlayStarted)
+	{
+		mApp->mTimesPlayed++;
+		mPlayStarted = true;
+		UsePendingSeed();
+	}
+
+	mPickpockets--;
+	mPickpocketsUsed++;
+	if (mPickpockets == 0)
+		mPickpocketArmed = false;
+	int aMinRow = mRows;
+	int aMaxRow = -1;
+	for (Piece* aPiece : aGroup)
+	{
+		if (aPiece == mHintPiece)
+			HideHint();
+		aMinRow = std::min(aMinRow, aPiece->mRow);
+		aMaxRow = std::max(aMaxRow, aPiece->mRow);
+		aPiece->mDanger = false;
+		aPiece->mGroupSize = 0;
+		aPiece->mHighlighted = false;
+		aPiece->mVX = 0.0;
+		aPiece->mVY = 0.0;
+		aPiece->mIsSpecial = true;
+		aPiece->mSpecialType = PIECE_POOF;
+		aPiece->mFrame = 0;
+		mLoosePieces.push_back(aPiece);
+		mGrid[aPiece->mRow][aPiece->mCol] = NULL;
+	}
+	mMintDelay = std::max(mMintDelay, (aMaxRow - aMinRow) * 8 + 24);
+	mLevelCoinsCleared += (int) aGroup.size();
+	mGameCoinsCleared += (int) aGroup.size();
+	mApp->PlaySample(SOUND_CLEARCOINS);
+	ShowBonusText(mApp->GetString("PICKPOCKETED", _S("PICKPOCKETED!")));
+	SDL_Log("pickpocket: %d coin%s at column %d, row %d; %d left (tick %d)", (int) aGroup.size(),
+		(aGroup.size() == 1) ? "" : "s", aTarget->mCol, aTarget->mRow, mPickpockets, mUpdateCnt);
+
+	Compact();
+	if (TowerToppler())
+		AddPoints(125, aTarget->mCol * COIN_SIZE + BOARD_X + 14, aTarget->mRow * COIN_SIZE + BOARD_Y + 14, true);
+
+	// Strategy: a move like a click (OnClick)
+	if (mApp->mGameType == GAMETYPE_STRATEGY)
+	{
+		mMintTarget = mMintPerClick + mMintTarget;
+		UpdateMovesLeft();
+		if ((mMovesLeft <= 3) && (mMovesLeft >= 1))
+		{
+			int aDigit = 3 - mMovesLeft;
+			mApp->mMrMoney->PlayAnim(aDigit + MRANIM_THREE);
+			mApp->PlaySample(aDigit + SOUND_THREE);
+			mMoveDigitActive = true;
+			mMoveDigit = aDigit;
+			mMoveDigitFade = 1.0;
+		}
+	}
+
+	if (mSolver != NULL) // the solver counts no Pickpockets: its tests start over
+	{
+		mSolverLostLevel = -1;
+		mSolverExpect = PuzzleClickCheck::VERDICT_NONE;
+	}
+	UpdateHover();
+	MarkDirty();
+}
+
+// The counter on the steps under Mr. Money; a click on it arms a Pickpocket
+bool Board::GetPickpocketRect(Rect* theRect, SexyString* theText)
+{
+	if ((!mPickpocket) || (mState == STATE_GAME_OVER) || (mState == STATE_GAME_OVER_SCORES))
+		return false;
+	if (mPickpocketArmed)
+		*theText = mApp->GetString("PICKPOCKET_READY", _S("PICKPOCKET READY"));
+	else if (mPickpockets == 1)
+		*theText = mApp->GetString("PICKPOCKET_ONE", _S("1 PICKPOCKET"));
+	else
+		*theText = StrFormat(_S("%d "), mPickpockets) + mApp->GetString("PICKPOCKET_MANY", _S("PICKPOCKETS"));
+	*theRect = Rect(12, 414, 152, 24);
+	return true;
 }

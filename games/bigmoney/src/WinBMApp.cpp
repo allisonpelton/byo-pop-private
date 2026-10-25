@@ -79,6 +79,7 @@ WinBMApp::WinBMApp()
 	mAutoplaySolver = 0;
 	mAutoplayHints = false;
 	mAutoplayUndo = 0;
+	mAutoplayPocket = 0;
 	mAutoplayCheck = false;
 	mAutoplayBot = NULL;
 
@@ -1260,6 +1261,7 @@ void WinBMApp::UpdateFrames()
 		mAutoplayBot->mPressHints = mAutoplayHints;
 		mAutoplayBot->mPressUndo = mAutoplayUndo;
 		mAutoplayBot->mCheckClicks = mAutoplayCheck;
+		mAutoplayBot->mUsePockets = mAutoplayPocket;
 	}
 	if (mAutoplayBot != NULL)
 		mAutoplayBot->Update();
@@ -1315,6 +1317,8 @@ void WinBMApp::HandleCmdLineParam(const std::string& theParamName, const std::st
 		mAutoplayUndo = theParamValue.empty() ? 10 : atoi(theParamValue.c_str());
 	else if (theParamName == "-autoplaycheck")
 		mAutoplayCheck = true;
+	else if (theParamName == "-autoplaypocket")
+		mAutoplayPocket = theParamValue.empty() ? 10 : atoi(theParamValue.c_str());
 	else
 		SexyApp::HandleCmdLineParam(theParamName, theParamValue);
 }

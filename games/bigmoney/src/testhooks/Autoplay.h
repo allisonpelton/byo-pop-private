@@ -47,12 +47,16 @@ public:
 	// and waits (up to 30 seconds) for the check of its click
 	int mPressUndo = 0;
 	bool mCheckClicks = false;
+	// -autoplaypocket[=N]: with Pickpockets in hand, N% of the bot's turns (and every turn with no group to
+	// click) lift a small group: by P and a click, or by a right click, in turn
+	int mUsePockets = 0;
 
 private:
 	void Queue(const std::string& theCommand, const std::string& theArgs);
 	void Click(int theX, int theY, const char* theWhat);
 	void Shot(int theGame, const char* theEvent);
 	bool PickGroup(Board* theBoard, int* theX, int* theY, int* theSize);
+	bool UsePickpocket(Board* theBoard, int theNow);
 	int HoverVerdict(Board* theBoard);
 
 	WinBMApp* mApp;
@@ -72,6 +76,7 @@ private:
 	int mQuitAt;            // update count of the quit, once decided
 	bool mDone;
 	bool mCheckPending = false; // -autoplaycheck: the mouse is on a group, the click waits for its check
+	int mPocketsUsed = 0;       // -autoplaypocket: by P and a click when odd
 	std::string mCheckArgs;
 	std::string mCheckWhat;
 	int mCheckSince = 0;

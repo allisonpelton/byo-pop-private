@@ -311,6 +311,9 @@ void AutoplayBot::Update()
 		return;
 	}
 
+	if ((!mCheckPending) && (UsePickpocket(aBoard, aNow)))
+		return;
+
 	if (mCheckPending)
 	{
 		int aVerdict = HoverVerdict(aBoard);
@@ -374,6 +377,49 @@ void AutoplayBot::Update()
 		Click(aX, aY, aWhat);
 	}
 	mNextAction = aNow + 20 + (int) (mRand() % 40);
+}
+
+// -autoplaypocket: a Pickpocket on a random small group, in mUsePockets% of the turns and whenever no group can
+// be clicked (not while a Puzzle board moves)
+bool AutoplayBot::UsePickpocket(Board* theBoard, int theNow)
+{
+	if ((mUsePockets <= 0) || (!theBoard->mPickpocket) || (theBoard->mPickpockets <= 0) ||
+		((theBoard->mPiecesMoving) && (mApp->mGameType == GAMETYPE_PUZZLE)))
+		return false;
+	int aX, aY, aSize;
+	if (((int) (mRand() % 100) >= mUsePockets) && (PickGroup(theBoard, &aX, &aY, &aSize)))
+		return false;
+	std::vector<Piece*> aTargets;
+	for (int aRow = 0; aRow < Board::BOARD_ROWS; aRow++)
+	{
+		for (int aCol = 0; aCol < Board::BOARD_COLS; aCol++)
+		{
+			if (theBoard->IsPickpocketTarget(theBoard->mGrid[aRow][aCol]))
+				aTargets.push_back(theBoard->mGrid[aRow][aCol]);
+		}
+	}
+	if (aTargets.empty())
+		return false;
+	Piece* aPiece = aTargets[mRand() % aTargets.size()];
+	aX = theBoard->mX + (int) aPiece->mX + 14;
+	aY = theBoard->mY + (int) aPiece->mY + 14;
+	char anArgs[32];
+	snprintf(anArgs, sizeof(anArgs), "%d %d", aX, aY);
+	if (mPocketsUsed++ % 2 == 1)
+	{
+		if (!theBoard->mPickpocketArmed)
+			Queue("char", "p");
+		Click(aX, aY, "pickpocket: p and a click");
+	}
+	else
+	{
+		Queue("move", anArgs);
+		Queue("rclick", anArgs);
+		if (mLog != NULL)
+			fprintf(mLog, "# pickpocket: right click\n");
+	}
+	mNextAction = theNow + 20 + (int) (mRand() % 40);
+	return true;
 }
 
 // -autoplaycheck: the solver's verdict (PuzzleClickCheck::Verdict) on the click on the hovered group, -1 while

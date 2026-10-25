@@ -263,6 +263,29 @@ Big Money uses the shared mod system (`platform/ModManager.h`).
     - Following the solver, the bot reached levels 77, 75 and 73 (Easy, Normal, Hard) without losing a
       level, and the solver needed no search of its own on any of them.
     - Six replays (random play, with and without the solver) verified.
+- **Pickpockets** (the `pickpocket` mod, `features.pickpocket`; `Board::UsePickpocket`). A powerup in every
+  mode.
+  - **What one does.** It lifts a group too small to click: a single coin, or two where three are needed.
+    The coins go in a puff, as under a bag, for no points; combos and colour streaks don't count it. In
+    Strategy it uses up a move, like a click.
+  - **How.** Right-click the group. Or press P, or click the counter on the steps under Mr. Money: it
+    blinks "pickpocket ready", small groups light up under the mouse, and the next click on one uses
+    it. P again puts it away.
+  - **How many.** Three at the start of a game, one more at each new level, five at most (all three
+    are settings). The count is kept in the savegame (a "BMPK" trailer the original's reader ignores).
+  - **Puzzle.** The game goes on while a Pickpocket can still lift a coin, and with no click left one is
+    armed by itself. The Puzzle Solver counts no Pickpockets: on a level it can't win it says "no way
+    to win without a pickpocket", "end the game when lost" waits until they are gone, and its undo
+    gives back a Pickpocket it takes back.
+  - **Replays.** A use is a new event (`OP_POCKET`, with where). Arming one is not recorded: it changes
+    only what lights up.
+  - **Scores.** The mod says it affects scores (its own high-score tables, the mods sign).
+  - **Tested** (bot games under rundesk; `-autoplaypocket[=N]` lifts a small group in N% of the bot's
+    turns and whenever nothing can be clicked, by P and a click or by a right click in turn):
+    - 100 Pickpockets in 15 games of Action, Strategy and Puzzle (two with the solver, undo and "end
+      the game when lost"); all 13 replays verified.
+    - Every Puzzle game ended with none left; a level the solver called lost played on while some were.
+    - An undo of a Pickpocket gave it back; a saved game resumed with the count it was saved with.
 
 Example mods (`games/bigmoney/mods/`):
 - **`fake-money/`: "Fake Money! Deluxe".**
@@ -280,6 +303,7 @@ Example mods (`games/bigmoney/mods/`):
 - **`puzzle-solver/`: "Puzzle Solver".** Puzzle only: tells whether the level can still be won, sells
   hints and undos, warns about losing clicks, and can end the game when the level can't be won.
 - **`winnable-puzzles/`: "Winnable Puzzles".** Puzzle only: builds boards that can always be won.
+- **`pickpocket/`: "Pickpocket".** A powerup that lifts a group too small to click (right click, or P).
 - **`replays/`: "Replays".** Turns on replays and nothing else: no change in play, the normal high-score
   tables, and no mods sign.
 - **`livesplit/`: "LiveSplit".** Turns on the LiveSplit block, with a copy of the script, seven split

@@ -68,7 +68,10 @@ enum Op
 	                // line is an OP_CLICK.
 	OP_UNDO = 6,    // U: takes back the last click (the Puzzle solver's undo; Board::KeyChar). A click on the
 	                // solver's undo line is an OP_CLICK.
-	NUM_OPS = 7
+	OP_POCKET = 7,  // x y: a Pickpocket lifts the small group there (Board::MouseDown, UsePickpocket): a right
+	                // click on it, or a click while one is armed. Arming one (P, or a click on its counter) is
+	                // not recorded.
+	NUM_OPS = 8
 };
 
 enum AppFlags
