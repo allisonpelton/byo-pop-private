@@ -407,7 +407,7 @@ bool Board::WriteSaveFile(const Buffer& theBuffer)
 }
 
 // "userdata\savegame.bjr" next to "userdata\savegame.dat", scoped like it (Board::GetSaveGameFileName)
-std::string Board::GetSidecarFileName()
+std::string Board::GetSidecarFileName() const
 {
 	std::string aName = GetSaveGameFileName();
 	size_t aDot = aName.find_last_of('.');

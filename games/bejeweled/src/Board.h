@@ -240,6 +240,8 @@ public:
 	// outside the BEJ_NO_VARIANTS parts, so that build counts GO like the others
 	uint32_t		mBoardSerial;           // 1, 2, ... per board made in this process (InitVariant)
 	bool			mResumed;               // the board resumed a saved game (GameLoadedVariant): its GO is not a run start
+	// port(mods): the save's name under the score key at the constructor (ScopedSaveGameFileName), not game state
+	std::string		mSaveGameFileName;
 	// Moves (stage 5, games/bejeweled/docs/CODE_MODS_DESIGN.md 4.1): counted on every board, saved (the v2 save's
 	// MOVE chunk), hashed (LOGIC) and traced only on a variant board
 	int				mMoveCount;             // moves that stood: swaps that made a match, kept invalid moves that count as moves (OnMoveMade)
@@ -289,7 +291,8 @@ public:
 	bool			SaveGame();                                     // 0x4ccdfe
 	void			SaveGameSnapshot(Buffer* theBuffer);            // port: what SaveGame() would write, live game untouched
 	void			WriteSaveGame(Buffer* theBuffer, int thePlaySeconds, int theState); // port: the body of 0x4ccdfe
-	static std::string GetSaveGameFileName();                       // port: "userdata\\savegame.dat", scoped for gameplay mods
+	std::string		GetSaveGameFileName() const { return mSaveGameFileName; } // port: "userdata\\savegame.dat", scoped for gameplay mods (port(mods): the board's own)
+	static std::string ScopedSaveGameFileName();                    // port(mods): that name under the current score key
 	bool			DeleteSaveGame();                               // 0x4cd130
 	virtual ~Board();                                               // 0x4cd1ba (scalar deleting dtor 0x4ce430)
 	bool			ProcessMatches();                               // 0x4cd287
@@ -315,7 +318,7 @@ public:
 	bool			ReadSaveFile(Buffer* theBuffer);               // LoadGame's read: the save file, or in playback mPlaybackLoad
 	bool			WriteSaveFile(const Buffer& theBuffer);        // SaveGame's write: SAVE, the sidecar and the save file, or in playback mPlaybackSave
 	// The sidecar of the save (games/bejeweled/docs/CODE_MODS_DESIGN.md 7.3): savegame.bjr next to savegame.dat
-	static std::string GetSidecarFileName();
+	std::string		GetSidecarFileName() const;
 	void			WriteSaveSidecar(const Buffer& theSave);       // SaveGame: the SAVE event and the sidecar, or no sidecar
 	void			DeleteSaveSidecar();                            // DeleteSaveGame: the sidecar goes with the save
 	void			KeepSidecarGame();                              // the recorded game of the sidecar there is, kept as a finished replay

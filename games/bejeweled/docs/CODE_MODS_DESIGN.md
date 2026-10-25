@@ -360,7 +360,7 @@ New states, which never occur under the original rules:
 | `WinDMApp::ButtonDepress` (0x4d6a40) | `BUTTON_UNDO = 16`. Extras ids. While watching, side-bar presses go to the watch controller. |
 | `WinDMApp::TitleScreenIsFinished` (0x4d6f28) | Creates the undo hotspot only when `undo.enabled`. With `-replay=` it enters watch mode instead of the two `NewGame` calls. |
 | `WinDMApp::GetShutdownSave` (port) | Becomes `GetShutdownSaves(std::vector<BackupFile>*)`: the save snapshot plus the sidecar ending in a `SAVE(snapshot)` marker, taken at the same tick. `SexyAppBase::UpdateUserDataBackup` stages each file. |
-| `OptionsDialog` ctor/Resize/ButtonDepress (0x4d1fda / 0x4d15ac / 0x4d1c58) | Only when a feature mod is on: a new `DialogButton` id 5, "Extras", in the register slot of the original locked-build three-button row (`bw = (mWidth-60)/3`): help at `mX+24`, extras at `mX+30+bw`, high scores at `mX+36+2bw`, all at `mY+166`. |
+| `OptionsDialog` ctor/Resize/ButtonDepress (0x4d1fda / 0x4d15ac / 0x4d1c58) | Only when a feature mod is on (not one that only turns on `features.livesplit`, which adds nothing to Extras): a new `DialogButton` id 5, "Extras", in the register slot of the original locked-build three-button row (`bw = (mWidth-60)/3`): help at `mX+24`, extras at `mX+30+bw`, high scores at `mX+36+2bw`, all at `mY+166`. Extras then gets a "Mods..." button. Without Extras, the slot holds "Mods" (id 6) while an enabled mod has settings (built in M5 of docs/MOD_MENU_DESIGN.md; GAME_NOTES 12.8). |
 | `HighScoreWidget` ctor/Draw (0x4d07cd / 0x4cf50a) | Only for owned-RNG games or with features: a "SEED n" line and the "WATCH REPLAY" / "SUBMIT SCORE" links. A user-seeded game loads the `-seeded` table. The default screen is unchanged. |
 | `main.cpp` | `-forcevariant`, `-gameseed=N`, `-replay=<file>`, `-replaydir=<dir>`, `-autoplay=<seed>`, `-tracehash=<file>`, `-dumprules`. |
 
@@ -546,9 +546,10 @@ dotted leaves. `rules` goes into the same map, with these additions:
    ```
 
    It is written only when an enabled mod has `rules` or `features`, so no-mod and legacy user
-   dirs stay byte-identical. `web/shell.html` reads it and shows the warnings "as of the last
-   start", because mods only apply after Apply and restart. `scanMods` computes the gameplay tag
-   as `affectsScores || tunables || rules` and adds a "Features" tag for `features`.
+   dirs stay byte-identical. Each enabled mod's entry also lists its settings' `values` when it has
+   settings. The same errors, dropped mods and warnings are the mod menu's messages for each mod
+   (`WinDMApp::GetModMessages`, as of the last new game), natively and on the web; the web page's
+   panel no longer reads this file (docs/MOD_MENU_DESIGN.md, As built M4).
 
 | Combination | Result |
 |---|---|

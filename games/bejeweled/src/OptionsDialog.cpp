@@ -9,6 +9,7 @@
 #include "Slider.h"
 #include "Checkbox.h"
 #include "WidgetManager.h"
+#include "platform/ModManager.h"
 
 using namespace Sexy;
 
@@ -59,6 +60,8 @@ void OptionsDialog::AddedToManager(WidgetManager* theWidgetManager)
 	theWidgetManager->AddWidget(mCheckUpdatesButton);
 	for (int i = 0; i < (int) mLinkButtons.size(); i++)
 		theWidgetManager->AddWidget(mLinkButtons[i]);
+	if (mModsButton != NULL) // port(mods)
+		theWidgetManager->AddWidget(mModsButton);
 }
 
 // 0x4d14f3
@@ -75,6 +78,8 @@ void OptionsDialog::RemovedFromManager(WidgetManager* theWidgetManager)
 	theWidgetManager->RemoveWidget(mCheckUpdatesButton);
 	for (int i = 0; i < (int) mLinkButtons.size(); i++)
 		theWidgetManager->RemoveWidget(mLinkButtons[i]);
+	if (mModsButton != NULL) // port(mods)
+		theWidgetManager->RemoveWidget(mModsButton);
 }
 
 // 0x4d15ac
@@ -87,6 +92,14 @@ void OptionsDialog::Resize(int theX, int theY, int theWidth, int theHeight)
 	int aButtonWidth = (mWidth - 54) / 2;
 	mHelpButton->Resize(mX + 24, mY + 166, aButtonWidth, 32);
 	mHighScoresButton->Resize(mX + 30 + aButtonWidth, mY + 166, aButtonWidth, 32);
+	if (mModsButton != NULL)
+	{
+		// port(mods): Mods in the register slot of the locked build's three-button row
+		aButtonWidth = (mWidth - 60) / 3;
+		mHelpButton->Resize(mX + 24, mY + 166, aButtonWidth, 32);
+		mModsButton->Resize(mX + 30 + aButtonWidth, mY + 166, aButtonWidth, 32);
+		mHighScoresButton->Resize(mX + 36 + 2 * aButtonWidth, mY + 166, aButtonWidth, 32);
+	}
 
 	// The links stack up from just above the Done button
 	for (int i = 0; i < (int) mLinkButtons.size(); i++)
@@ -114,6 +127,7 @@ OptionsDialog::~OptionsDialog()
 	delete mCustomCursorsCheckbox;
 	delete mCheckboxCheckedImage;
 	delete mCheckboxUncheckedImage;
+	delete mModsButton; // port(mods)
 }
 
 // 0x4d1a8f
@@ -147,6 +161,8 @@ void OptionsDialog::ButtonDepress(int theId)
 		mApp->ShowHighScoreDialog();
 	else if (theId == VISIT_POPCAP_BUTTON_ID)
 		mApp->OpenURL("http://www.popcap.com", false);
+	else if (theId == MODS_BUTTON_ID)
+		mApp->OpenModMenu(); // port(mods): over this dialog, which stays open
 	// port: CHECK_UPDATES_BUTTON_ID called DoUpdateCheck(); update checks are not ported (the button is never laid out)
 }
 
@@ -174,6 +190,20 @@ OptionsDialog::OptionsDialog(WinDMApp* theApp) :
 	mHighScoresButton = new DialogButton(mApp->mImages[IMAGE_BOXBUTTON], HIGH_SCORES_BUTTON_ID, this);
 	mHighScoresButton->SetFont(mApp->mMainFont);
 	mHighScoresButton->mLabel = mApp->GetString("OPTIONSDLG_HIGH_SCORES");
+
+	// port(mods): Mods while an enabled mod has settings. Not an installed one that is off, as in Big Money: the
+	// oracle's examples case has example-settings installed but off, and its Options screens stay the original.
+	mModsButton = NULL;
+	for (const Platform::ModInfo* aMod : Platform::ModManager::Get().GetEnabledMods())
+	{
+		if (aMod->HasSettings())
+		{
+			mModsButton = new DialogButton(mApp->mImages[IMAGE_BOXBUTTON], MODS_BUTTON_ID, this);
+			mModsButton->SetFont(mApp->mMainFont);
+			mModsButton->mLabel = mApp->GetString("OPTIONSDLG_MODS", _S("Mods"));
+			break;
+		}
+	}
 
 	// partner.xml: one link, "Play More Great Games!"
 	for (int i = 0; i < mApp->GetInteger("NumOptionsLinks", 1); i++)
