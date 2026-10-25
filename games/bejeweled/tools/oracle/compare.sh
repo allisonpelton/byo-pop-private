@@ -97,6 +97,9 @@
 # Stage 7 (board sizes and shapes) plays the rule mods of mods/stage7 the same way: the autoplay bot on boards
 # smaller, wider and larger than 8x8 and on a diamond, a mod whose levels change shape at each vortex (saved on
 # the second shape, resumed, recorded and played back). A BEJ_NO_VARIANTS candidate leaves them out too.
+# Stage 7c (Twilight gravity) plays the rule mods of mods/stage7c: alternating, rising and slow falls by the bot,
+# with free swaps and undo, on the diamond, a scripted game saved in the middle of a rise and resumed, recorded and
+# played back. Left out the same way.
 #
 # The frozen exes (build/baseline, build/baseline-stage0) predate the audio shutdown fix (af758b9) and can
 # crash on exit after writing all their outputs: a baseline or hooks-baseline run that exits 139 or with an
@@ -1227,8 +1230,41 @@ define_cases() {
 			"trace=rec_shape_levels_auto" "$C/rec_shape_levels_auto/user/savegame-*.bjr"
 		playback watch_shape_levels_resume "rec_shape_levels_quit.resume's sidecar: the second segment LOADs the 7x7's v2 save, then back to the holed 8x8" \
 			"trace=rec_shape_levels_quit,rec_shape_levels_quit.resume" "$C/rec_shape_levels_quit.resume/user/savegame-*.bjr"
+
+		# Stage 7c: Twilight gravity (games/bejeweled/docs/CODE_MODS_DESIGN.md 4.16). The rule mods of mods/stage7c:
+		# s7c-twilight (alternate, fallAccel 75, the twilight backdrop, pitch -2), s7c-kept (alternate with free swaps
+		# and undo), s7c-rising (up on a 6x6, to its game over), s7c-slow (fallAccel 90 alone, falling down) and
+		# s7c-diamond (alternate on stage 7's diamond). compare.py "gravity" checks the direction at every settle and
+		# the flips from one settle to the next; the scripts' screenshots show the rise, the fall and the backdrop.
+		S7C="$PT/stage7c"
+		M7C="$GAME/tools/oracle/mods/stage7c"
+		variant twilight_auto "-autoplay=1, mods/stage7c/twilight, 20000 updates: the falls alternate at every settle" \
+			"gravity=alternate;v2" 1 - modsdir="$M7C/twilight" arg=-autoplay=1 "${SHAPEBOT[@]}"
+		variant twilight_auto_timed "-autoplay=2 -autoplaytimed, mods/stage7c/twilight, 20000 updates: fall-outs up and down" \
+			"gravity=alternate" 1 - modsdir="$M7C/twilight" arg=-autoplay=2 arg=-autoplaytimed "${SHAPEBOT[@]}"
+		variant twilight_kept_auto "-autoplay=3, mods/stage7c/kept, 20000 updates: swaps kept without a match do not flip" \
+			"gravity=alternate;kept=1" 1 - modsdir="$M7C/kept" arg=-autoplay=3 "${SHAPEBOT[@]}"
+		variant rising_auto "-autoplay=1, mods/stage7c/rising: a 6x6 rising, to the game over at no moves (the gems fall off the top)" \
+			"gravity=up;shapes=6x6:0" 1 - modsdir="$M7C/rising" arg=-autoplay=1 "${SHAPEBOT[@]}"
+		variant rising_auto_timed "-autoplay=2 -autoplaytimed, mods/stage7c/rising, 20000 updates: fall-outs off the top" \
+			"gravity=up;shapes=6x6:0" 1 - modsdir="$M7C/rising" arg=-autoplay=2 arg=-autoplaytimed "${SHAPEBOT[@]}"
+		variant slow_auto_timed "-autoplay=2 -autoplaytimed, mods/stage7c/slow, 20000 updates: slow falls, down" \
+			"gravity=down" 1 - modsdir="$M7C/slow" arg=-autoplay=2 arg=-autoplaytimed "${SHAPEBOT[@]}"
+		variant twilight_diamond_auto_timed "-autoplay=2 -autoplaytimed, mods/stage7c/diamond, 20000 updates: the diamond rising and falling" \
+			"gravity=alternate;shapes=9x9:40" 1 - modsdir="$M7C/diamond" arg=-autoplay=2 arg=-autoplaytimed "${SHAPEBOT[@]}"
+		variant twilight_quit "-gameseed=$GS, mods/stage7c/twilight: the opening rise, a move falling and one rising, the backdrop; the quit: a v2 save with the flips" \
+			"gravity=alternate;v2" 1 "$S7C/twilight_quit.txt" modsdir="$M7C/twilight" arg=-gameseed=$GS
+		variant twilight_quit.resume "twilight_quit's user dir: Yes resumes B's rise from its v2 save (2 flips); the settle flips to down" 			"gravity=alternate" 1 "$S7C/twilight_resume.txt" from=twilight_quit modsdir="$M7C/twilight"
+		variant twilight_undo "-gameseed=$GS, mods/stage7c/kept: A, z takes it back with its gravity, A again; a kept swap does not flip" 			"gravity=alternate;undos=1;redo=1;kept=1" 1 "$S7C/twilight_undo.txt" modsdir="$M7C/kept" arg=-gameseed=$GS
+		# Recorded (mods/stage7c/twilight-replays: s7c-twilight and stage 3's replays feature mod) and played back: the
+		# flips and the fall-outs in a replay, and a sidecar across the save in the middle of a rise
+		recording rec_twilight_auto_timed "twilight_auto_timed recorded: fall-outs up and down in a replay" 			twilight_auto_timed 1 - modsdir="$M7C/twilight-replays" arg=-autoplay=2 arg=-autoplaytimed "${SHAPEBOT[@]}"
+		recording rec_twilight_quit "twilight_quit recorded: the sidecar next to the v2 save in the middle of B's rise" 			twilight_quit 1 "$S7C/twilight_quit.txt" modsdir="$M7C/twilight-replays" arg=-gameseed=$GS
+		recording rec_twilight_quit.resume "twilight_quit.resume in a copy of rec_twilight_quit's user dir: the sidecar goes on (a v2 LOAD with GRAV)" 			twilight_quit.resume 1 "$S7C/twilight_resume.txt" from=rec_twilight_quit modsdir="$M7C/twilight-replays"
+		playback watch_twilight_auto_timed "rec_twilight_auto_timed's sidecar (saved at the cap): the same falls, flips and fall-outs again" 			"trace=rec_twilight_auto_timed" "$C/rec_twilight_auto_timed/user/savegame-*.bjr"
+		playback watch_twilight_resume "rec_twilight_quit.resume's sidecar: the second segment LOADs the save made in the middle of the rise" 			"trace=rec_twilight_quit,rec_twilight_quit.resume" "$C/rec_twilight_quit.resume/user/savegame-*.bjr"
 	else
-		echo "$VTAG  (the candidate has no variant paths: the stage-5, 6 and 7 cases are left out)"
+		echo "$VTAG  (the candidate has no variant paths: the stage-5, 6, 7 and 7c cases are left out)"
 	fi
 
 	# Stage 4: the headless verifier and the web build under Node (games/bejeweled/tools/verify/oracle_cases.sh): the

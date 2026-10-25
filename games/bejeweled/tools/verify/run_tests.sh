@@ -31,6 +31,9 @@
 #               equal, and each game's line (its length, end state, score and last LOGIC hash) the same on
 #               both: native and wasm play the board alike; bv_difftest's own argument checks (the export takes
 #               them as they come): seed 0, a range backwards or too long, ticks and modes out of range
+#   mirrortest  stage 7c: gravity "up" is the mirror of "down" (Verifier::Mirrortest): the upward fill and refill
+#               of a masked board, and games with mirrored moves on 8x8 and on that mask, seeds 1..20n (native: the
+#               difftest above has native and wasm play the same code); a BEJ_NO_VARIANTS verifier skips it
 #   usage       wrong command lines: exit status 2
 # Neither verifier opens a window or plays a sound, so nothing here needs rundesk.
 set -u
@@ -295,6 +298,16 @@ else
 	bad "bv_difftest arguments: $(tr '\n' '|' < "$OUT/difftest/export.txt" | head -c 400)"
 fi
 
+# mirrortest: every seed mirrored (stage 7c)
+mkdir -p "$OUT/mirrortest"
+nat mirrortest --seeds "1..$((SEEDS * 20))" > "$OUT/mirrortest/native.txt"
+mexit=$?
+if [ "$mexit" != 0 ]; then
+	bad "mirrortest 1..$((SEEDS * 20)): exit $mexit: $(grep -m 3 'DIFFERS\|mirrortest:' "$OUT/mirrortest/native.txt" | tr '\n' ' ')"
+else
+	ok "mirrortest 1..$((SEEDS * 20)): $(sed 's/^mirrortest //;s/: seeds [0-9.]*:/:/;s/;.*//' "$OUT/mirrortest/native.txt" | tr '\n' ';' | sed 's/;$//;s/;/; /g')"
+fi
+
 # usage
 usage_case() {
 	"$NATIVE" "$@" > /dev/null 2>&1
@@ -306,6 +319,9 @@ usage_case
 usage_case difftest
 usage_case difftest --seeds 5..1
 usage_case difftest --seeds 0..3
+usage_case mirrortest
+usage_case mirrortest --seeds 5..1
+usage_case mirrortest --seeds 1..2 --moves 0
 usage_case "$OUT/no-such-file.bjr"
 usage_case "$OUT/unplayable-empty/replay.bjr" -nosuchswitch
 

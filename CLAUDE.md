@@ -84,7 +84,7 @@ The work is split across Claude sessions (the user's design, 2026-10-19):
   sessions do not edit another game's folder.
 - **Directing sessions (the user, 2026-10-24):** the user tells the game sessions about game-specific changes;
   the coordinator does not direct or check on them. A game session messages the coordinator when it needs it:
-  a shared change, a milestone ready to merge, or its mods finished (the push waits for that). The coordinator
+  a shared change, a milestone ready to merge, or its mods finished (the push waits for BookWorm's). The coordinator
   looks at a session's work only when the user asks, or when it breaks something for other sessions (shared
   code, the trunk, the machine's test rules). It does message the sessions when the way they are instructed
   changes (a new rule like this one), since a running session reads CLAUDE.md again only at its next start
@@ -101,14 +101,15 @@ The work is split across Claude sessions (the user's design, 2026-10-19):
 Git and publishing:
 - Game sessions may commit on their own branch at verified milestones without asking the user each time.
   Only the coordinator commits on the trunk. Nobody merges into `master`.
-- Never push. The user decided when the repository is first pushed (2026-10-24): when the Bejeweled, Big Money
-  and BookWorm sessions have finished their mods, before any new decompilation starts. The coordinator does
-  that, after auditing the whole history for game files.
-- **Order of work (the user, 2026-10-24):** those three sessions finish their mods; then the push; then one
-  session alone decompiles the simplest remaining game, and its performance is measured against the earlier
-  games; only if that shows an improvement do up to three sessions run at once again. New game sessions list
-  the mods worth making but make none without the user's approval, and no further game gets mods until every
-  PopCap game works in the browser.
+- Never push. The repository is first pushed when the BookWorm session has finished its mods (the user,
+  2026-10-25: Big Money's are done, and Bejeweled has many more to make, so its mods go on after the push),
+  before any new decompilation starts. The coordinator does that, after auditing the whole history for game files.
+- **Order of work (the user, 2026-10-24; the push moved up 2026-10-25):** BookWorm's session finishes its mods;
+  then the push; right after it, one session decompiles the simplest remaining game, the only decompilation
+  running (Bejeweled's session goes on with its mods alongside, the user said on 2026-10-25), and its tokens and
+  time are measured per session against the earlier games; only if that shows an improvement do up to three
+  sessions run at once again. New game sessions list the mods worth making but make none without the user's
+  approval, and no further game gets mods until every PopCap game works in the browser.
 - **Sonnet trial (the user, 2026-10-25):** that next game's session runs on Sonnet. Once its port works, it
   brainstorms mods for the game and makes the interesting ones: the user approved mods for this one game, the one
   exception to the rule above. The coordinator measures it against the earlier games (`docs/TOKEN_ECONOMY.md`):

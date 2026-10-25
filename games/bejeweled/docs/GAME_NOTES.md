@@ -2116,6 +2116,29 @@ original. Dirt cells (`d`, `2`..`9`) play as holes until stage 7b.
   times the multiplier now closes by an eighth a tick (`RollScoreFast`), and the original roll does the rest.
   Engine 3 refuses earlier engines' replays of such rules (`GameRules::PlaysAlikeInEveryEngine`).
 
+### 12.11 Twilight gravity (code mods, stage 7c)
+
+games/bejeweled/docs/CODE_MODS_DESIGN.md 4.16, as built (`BoardShape.cpp`, `BoardVariant.cpp`). The rules
+`board.gravity.direction` (`down`, `up`, `alternate`: Bejeweled 2's Twilight) and `board.gravity.fallAccel`, and the
+look keys `look.backdrop` and `look.soundPitch`, which change no play and make no variant board.
+
+- **Flags.** `mGravity` when the direction is not down, `mFall` for a shape, a direction or a `fallAccel` off 180
+  (the fall loop goes to `FallPiecesVariant`), `mChecker` for a shape or the twilight backdrop (`DrawVariantChecker`
+  draws the level's tiles mirrored, at half brightness). `-forcevariant` sets all three with the rules at down.
+- **The flip.** `GravityUp()` is up, or alternate at an even count of flips. `OnGravitySettle`, at the end of
+  `UpdateFalling`'s no-match branch, counts a flip when the board is now playing, except after a kept invalid move.
+  So the opening board rises and its settle turns the gravity down; a swap that goes back never reaches it.
+- **Up.** Refill and fill run from the bottom; the fall-out and the game-over fall leave through the top, at the
+  mirror of the original limits about the board's middle row line (`GetRowY(0) + GetRowY(rows - 1)`). The gem
+  layer is clipped to the board's own rectangle, (194,12)-(428,416) on 8x8 as before, and `GetPieceAt` ignores
+  a rising gem still under the clip's bottom edge.
+- **State.** `mGravityFlips` and `mGravityNoFlip` are in StateCodec (FULL, LOGIC, SNAP, V2 and UNDO) and in a v2
+  save's `GRAV` chunk, only when a gravity field is off its default (`HasGravityRule`); `-trace` adds
+  `gravity up|down flips N` to the variant line then. An undo brings the flips back with the board.
+- **Help and sounds.** The tutorial text and Help's first paragraph have Twilight and gravity-up versions
+  (English defaults, mod strings override them). `look.soundPitch` sets `SoundManager::SetDefaultPitch`, which
+  every new sound instance takes; music is apart.
+
 ---
 
 ## 13. Naming reconciliation (analyst names → chosen names)

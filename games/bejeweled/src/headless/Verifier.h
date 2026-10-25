@@ -48,6 +48,16 @@ enum
 };
 int				Difftest(uint32_t theFirst, uint32_t theLast, int theTicks, int theModes, bool isVerbose, std::string* theReport);
 
+// Mirrortest (stage 7c, games/bejeweled/docs/CODE_MODS_DESIGN.md 4.16): board.gravity "up" is the vertical mirror of
+// "down". Per seed, on a vertically asymmetric mask and its mirror, the upward fill and refill from one RNG state are
+// the mirrors of the downward ones (colours, rows, positions, draws); then, on the full 8x8 and on that mask, a down
+// board and an up board restored from its mirrored state play mirrored moves (at most theMoves, normal mode), and at
+// every settle the grids are mirrored and the score, stats and RNG states equal, until the first level-up or game
+// over (whose draws depend on tick alignment). Settles on different ticks are warnings (float rounding at another
+// magnitude). Both boards fall with fallAccel 75. Returns the number of seeds that differ (-1 and the reason in
+// theReport for arguments it does not take); theReport gets a summary per board and a line per difference.
+int				Mirrortest(uint32_t theFirst, uint32_t theLast, int theMoves, bool isVerbose, std::string* theReport);
+
 // The RulesId of a mod.json's "tunables" and "rules" merged over the default rules with the original
 // data\diff.txt values (games/bejeweled/docs/CODE_MODS_DESIGN.md 3.7), as JSON:
 //   {"rulesId":<64 hex>, "variant":b, "errors":[...], "warnings":[...]}  or  {"error":<why>}

@@ -10,6 +10,11 @@
 // layout in mPendingLayout and draws its checkerboard; the deletion loop runs with the old bounds, then
 // ApplyPendingLayout switches. A loaded save brings its level's shape (BoardSave.cpp, SetLoadedLayout), and the
 // background is rebuilt for its level and shape (RebuildLoadedBackground; the original keeps level 0's, 5.3).
+//
+// Gravity (stage 7c, 4.16): the falls (VariantFlags::mFall: UpdateFalling's loop, the refill, the fill, the
+// fall-out and the game-over fall) run here in the direction GravityUp() gives, mirrored about the board's middle
+// row under up; down is the original algorithm line for line, and -forcevariant runs it at default rules.
+// "alternate" (Bejeweled 2's Twilight) starts up and flips at each settle that ends a move (OnGravitySettle).
 
 #include "Board.h"
 #include "WinDMApp.h"
@@ -32,7 +37,9 @@ static const int MAX_FILL_REROLLS = 1000;
 
 // FillBoard (0x4cb182) on a shape board (5.5): the old pieces parked as FillBoard parks them, then rows bottom-up
 // and columns left to right over the cells only, each gem 65..304 px above the nearest cell below it (already
-// filled) and its colour rolled until the board has no match
+// filled) and its colour rolled until the board has no match. Under up (4.16) the mirror: rows top-down, each gem
+// 65..304 px below the nearest cell above it, or below the mirror line M = GetRowY(0) + GetRowY(rows - 1) (the
+// mirror of y 0), so for one RNG state the fill is the vertical mirror of the downward one, draw for draw
 void Board::FillBoardVariant()
 {
 	mState = STATE_FALLING;
@@ -46,12 +53,15 @@ void Board::FillBoardVariant()
 	}
 	memset(mBoard, 0, sizeof(mBoard));
 
+	bool isUp = GravityUp();
+	int aMirrorY = GetRowY(0) + GetRowY(mRows - 1);
 	for (;;)
 	{
 		int aRerolls = 0;
 		bool isCapped = false;
-		for (int aRow = mRows - 1; (aRow >= 0) && !isCapped; aRow--)
+		for (int i = 0; (i < mRows) && !isCapped; i++)
 		{
+			int aRow = isUp ? i : mRows - 1 - i;
 			for (int aCol = 0; (aCol < mCols) && !isCapped; aCol++)
 			{
 				if (!mLayout.IsPlayable(aCol, aRow))
@@ -61,16 +71,32 @@ void Board::FillBoardVariant()
 				aPiece->mRow = aRow;
 				aPiece->mCol = aCol;
 				aPiece->mX = GetColX(aCol);
-				int aBelowY = 0;
-				for (int aBelow = aRow + 1; aBelow < mRows; aBelow++)
+				if (isUp)
 				{
-					if (mLayout.IsPlayable(aCol, aBelow))
+					int anAboveY = aMirrorY;
+					for (int anAbove = aRow - 1; anAbove >= 0; anAbove--)
 					{
-						aBelowY = (int)mBoard[aBelow][aCol]->mY;
-						break;
+						if (mLayout.IsPlayable(aCol, anAbove))
+						{
+							anAboveY = (int)mBoard[anAbove][aCol]->mY;
+							break;
+						}
 					}
+					aPiece->mY = anAboveY + Rand() % 240 + 65;
 				}
-				aPiece->mY = aBelowY - Rand() % 240 - 65;
+				else
+				{
+					int aBelowY = 0;
+					for (int aBelow = aRow + 1; aBelow < mRows; aBelow++)
+					{
+						if (mLayout.IsPlayable(aCol, aBelow))
+						{
+							aBelowY = (int)mBoard[aBelow][aCol]->mY;
+							break;
+						}
+					}
+					aPiece->mY = aBelowY - Rand() % 240 - 65;
+				}
 				mBoard[aRow][aCol] = aPiece;
 				for (;;)
 				{
@@ -99,9 +125,12 @@ void Board::FillBoardVariant()
 
 // UpdateClearing's refill (0x4ca9ed) over each column's cells V, top to bottom (5.4): every gem above the column's
 // lowest gap moves one cell down, through holes, and one new gem spawns over the column's top cell, 69 px above its
-// highest gem; passes repeat until no column has a gap. On a full column V is 0..rows-1, the original pass.
+// highest gem; passes repeat until no column has a gap. On a full column V is 0..rows-1, the original pass. Under
+// up (4.16) V runs bottom to top, gems move one cell up and the spawn goes 69 px below the column's lowest gem: the
+// same draws as the downward refill of the vertically mirrored grid.
 void Board::RefillMasked()
 {
+	bool isUp = GravityUp();
 	int aCells[MAX_ROWS];
 	bool aChanged;
 	do
@@ -112,8 +141,11 @@ void Board::RefillMasked()
 			int aCount = mLayout.PlayableRows(aCol, aCells);
 			if (aCount == 0)
 				continue;
+			if (isUp)
+				std::reverse(aCells, aCells + aCount);
 
-			int aMinY = GetRowY(aCells[0]);
+			// The entry side's edge: the highest gem (down), the lowest (up)
+			int anEdgeY = GetRowY(aCells[0]);
 			bool aGap = false;
 			for (int k = aCount - 1; k >= 0; k--)
 			{
@@ -126,8 +158,8 @@ void Board::RefillMasked()
 				}
 				else
 				{
-					if (aPiece->mY < aMinY)
-						aMinY = (int)aPiece->mY;
+					if (isUp ? (aPiece->mY > anEdgeY) : (aPiece->mY < anEdgeY))
+						anEdgeY = (int)aPiece->mY;
 					if (aGap)
 					{
 						aPiece->mRow = aCells[k + 1];
@@ -145,7 +177,7 @@ void Board::RefillMasked()
 				aPiece->mRow = aCells[0];
 				aPiece->mCol = aCol;
 				aPiece->mX = GetColX(aCol);
-				aPiece->mY = aMinY - 69;
+				aPiece->mY = isUp ? anEdgeY + 69 : anEdgeY - 69;
 				aPiece->mColor = Rand() % gGameConfig.mGemColors;
 				mBoard[aCells[0]][aCol] = aPiece;
 			}
@@ -186,8 +218,29 @@ static Image* ModVoidTile(WinDMApp* theApp)
 // window and no void tile is drawn: the original loop's draws exactly (the textures are not all opaque, so a void tile
 // under them would show through where the original shows the last level's background). A scaled board's tiles are
 // stretched between rounded screen edges, so that neighbours leave no seams.
+//
+// look.backdrop "twilight" (4.16, VariantFlags::mChecker): Bejeweled 2's Twilight backdrop, each pixel row mirrored
+// left to right and each colour channel halved. BJ1 has no backdrop picture, so the checker layer takes it: every
+// tile is drawn mirrored, colorized with 128 (half), at the cell mirrored about the board's middle (x 406 on 8x8,
+// where the layer's x 151..661 maps onto itself), and the void tiles about the window's x 406. The frame and HUD
+// (IMAGE_ALPHABACK) follow unmirrored.
 void Board::DrawVariantChecker(Graphics* g, Image* theTileA, Image* theTileB)
 {
+	bool isTwilight = (mRules.mLook.mBackdrop == GameRules::BACKDROP_TWILIGHT);
+	if (isTwilight)
+	{
+		g->SetColorizeImages(true);
+		g->SetColor(Color(128, 128, 128));
+	}
+	// A tile at x theX: as drawn, or under twilight mirrored about theMirrorX / 2
+	auto aDraw = [&](Image* theTile, int theX, int theY, const Rect& theSrc, int theMirrorX)
+	{
+		if (isTwilight)
+			g->DrawImageMirror(theTile, theMirrorX - theX - theSrc.mWidth, theY, theSrc);
+		else
+			g->DrawImage(theTile, theX, theY, theSrc);
+	};
+
 	mPendingLayout = mRules.LayoutForLevel(mLevel);
 	const BoardLayout& aLayout = mPendingLayout;
 
@@ -209,11 +262,13 @@ void Board::DrawVariantChecker(Graphics* g, Image* theTileA, Image* theTileB)
 		for (int aY = -35; aY < 425; aY += CELL_SIZE)
 		{
 			for (int aX = 151; aX < 611; aX += CELL_SIZE)
-				g->DrawImage(aVoidTile, aX, aY, aVoidRect);
+				aDraw(aVoidTile, aX, aY, aVoidRect, 2 * 406);
 		}
 	}
 
 	bool isScaled = (aLayout.mScale != 1.0);
+	// Twice the board's middle x: the left edge of column -1's tile plus the right edge of column cols' tile
+	int aMirrorX = 2 * (aLayout.mOriginX - 1) + aLayout.mCols * CELL_SIZE;
 	for (int aRow = -1; aRow <= aLayout.mRows; aRow++)
 	{
 		for (int aCol = -1; aCol <= aLayout.mCols; aCol++)
@@ -224,21 +279,31 @@ void Board::DrawVariantChecker(Graphics* g, Image* theTileA, Image* theTileB)
 			int aY = aRow * CELL_SIZE + aLayout.mOriginY;
 			if (!isScaled)
 			{
-				// As the original draws them: tile B whole (102 px, its right half empty)
+				// As the original draws them: tile B whole (102 px, its right half empty); mirrored, its drawn half
 				if (isHole)
-					g->DrawImage(aTile, aX, aY, aVoidRect);
+					aDraw(aTile, aX, aY, aVoidRect, aMirrorX);
+				else if (isTwilight)
+					aDraw(aTile, aX, aY, Rect(0, 0, CELL_SIZE, CELL_SIZE), aMirrorX);
 				else
 					g->DrawImage(aTile, aX, aY);
 				continue;
 			}
-			int aLeft = (int)floor(aLayout.ToScreenX(aX) + 0.5);
-			int aRight = (int)floor(aLayout.ToScreenX(aX + CELL_SIZE) + 0.5);
+			int aMirroredX = isTwilight ? aMirrorX - aX - CELL_SIZE : aX;
+			int aLeft = (int)floor(aLayout.ToScreenX(aMirroredX) + 0.5);
+			int aRight = (int)floor(aLayout.ToScreenX(aMirroredX + CELL_SIZE) + 0.5);
 			int aTop = (int)floor(aLayout.ToScreenY(aY) + 0.5);
 			int aBottom = (int)floor(aLayout.ToScreenY(aY + CELL_SIZE) + 0.5);
-			g->DrawImage(aTile, Rect(aLeft, aTop, aRight - aLeft, aBottom - aTop), isHole ? aVoidRect : Rect(0, 0, CELL_SIZE, CELL_SIZE));
+			Rect aDest(aLeft, aTop, aRight - aLeft, aBottom - aTop);
+			Rect aSrc = isHole ? aVoidRect : Rect(0, 0, CELL_SIZE, CELL_SIZE);
+			if (isTwilight)
+				g->DrawImageMirror(aTile, aDest, aSrc);
+			else
+				g->DrawImage(aTile, aDest, aSrc);
 		}
 	}
 
+	if (isTwilight)
+		g->SetColorizeImages(false);
 	delete aDarkTile;
 }
 
@@ -296,4 +361,142 @@ void Board::RebuildLoadedBackground()
 
 	Graphics g(mBackgroundImage);
 	g.DrawImage(mNextBackgroundImage, 0, 0);
+}
+
+// ---------------------------------------------------------------------------------------------------
+// Gravity (stage 7c, games/bejeweled/docs/CODE_MODS_DESIGN.md 4.16)
+
+// "up", or "alternate" after an even number of flips (Twilight starts up). False on every board whose rules say
+// "down", -forcevariant included, so the flip, the guard and the upward branches stay off there.
+bool Board::GravityUp() const
+{
+	if (!mVariant.mGravity)
+		return false;
+	int aDirection = mRules.mBoard.mGravity;
+	return (aDirection == GameRules::GRAVITY_UP) || ((aDirection == GameRules::GRAVITY_ALTERNATE) && ((mGravityFlips & 1) == 0));
+}
+
+// UpdateFalling's loop (0x4cd687) with board.gravity: the fall acceleration fallAccel / 1000.0 (180 is the original's
+// 0.18, the same double), and under up every moving gem rises (the speeds stay positive) and lands at or above its
+// rest y. Down is the original loop line for line.
+void Board::FallPiecesVariant(int* theLandedCount, int* theLandedXSum, bool* isSettled)
+{
+	bool isUp = GravityUp();
+	double anAccel = mRules.mBoard.mFallAccel / 1000.0;
+	for (int aRow = 0; aRow < mRows; aRow++)
+	{
+		double aRestY = GetRowY(aRow);
+		for (int aCol = 0; aCol < mCols; aCol++)
+		{
+			Piece* aPiece = mBoard[aRow][aCol];
+			if (aPiece == NULL) continue;
+			if (aPiece->mY == aRestY)
+				aPiece->mVelY = 0.0;
+			else
+			{
+				*isSettled = false;
+				if (isUp)
+					aPiece->mY -= aPiece->mVelY;
+				else
+					aPiece->mY += aPiece->mVelY;
+				if (isUp ? (aPiece->mY <= aRestY) : (aPiece->mY >= aRestY))
+				{
+					(*theLandedCount)++;
+					*theLandedXSum = (int)(aPiece->mX + 24.0 + *theLandedXSum);
+					aPiece->mY = aRestY;
+				}
+				// A gem that just landed keeps this velocity for one tick
+				aPiece->mVelY += anAccel;
+			}
+		}
+	}
+}
+
+// The end of UpdateFalling's no-match branch: a settle. As in Bejeweled 2's UpdateFalling, "alternate" flips when the
+// settle reaches STATE_PLAYING, so a move's cascades share one direction, every fill (opening, level, fall-out) flips
+// once at its settle, and a settle without a move left does not flip; a kept invalid move's settle does not either
+// (mGravityNoFlip, KeepInvalidMove). A swap that goes back reaches PLAYING from UpdateSwap, with no settle.
+void Board::OnGravitySettle()
+{
+	if ((mRules.mBoard.mGravity == GameRules::GRAVITY_ALTERNATE) && (mState == STATE_PLAYING) && !mGravityNoFlip)
+		mGravityFlips++;
+	mGravityNoFlip = false;
+}
+
+// UpdateFallOut (0x4cb3bf) with board.gravity: one Rand() % 15 per column per tick as there; under up the scan starts
+// at the top, so the column's highest resting gem is released, gems rise, and a gem is gone once it passes the
+// mirror of the screen bottom (M - (mScreenBottom + 32), -123 on 8x8). Then the next board's fill, as there.
+void Board::UpdateFallOutVariant()
+{
+	bool isUp = GravityUp();
+	int aGoneY = GetRowY(0) + GetRowY(mRows - 1) - (mLayout.mScreenBottom + 32);
+	bool allGone = true;
+	MarkDirty();
+
+	for (int aCol = 0; aCol < mCols; aCol++)
+	{
+		bool aRelease = Rand() % 15 == 0;
+		for (int i = 0; i < mRows; i++)
+		{
+			int aRow = isUp ? i : mRows - 1 - i;
+			Piece* aPiece = mBoard[aRow][aCol];
+			if (aPiece == NULL)
+				continue;
+
+			if (aPiece->mVelY == 0.0)
+			{
+				if (aRelease)
+				{
+					aPiece->mVelY = 1.0;
+					aRelease = false;
+				}
+			}
+			else
+			{
+				if (isUp)
+					aPiece->mY -= aPiece->mVelY;
+				else
+					aPiece->mY += aPiece->mVelY;
+				aPiece->mVelY += 0.18;
+			}
+
+			if (isUp ? (aPiece->mY > aGoneY) : (aPiece->mY < mLayout.mScreenBottom + 32))
+				allGone = false;
+		}
+	}
+
+	if (allGone)
+	{
+		mTimeDrainDelay = gGameConfig.mLevelDrainDelay;
+		FillBoard();
+	}
+}
+
+// UpdateGameOver's fall (0x4cab82) with board.gravity: the shake and the explosion velocities stay in UpdateGameOver;
+// under up each gem moves by -mVelY, so its kick points down and it falls upwards, and it is gone once it passes the
+// mirror of the screen bottom (M - (mScreenBottom + 49), -140 on 8x8). True when every gem is gone.
+bool Board::GameOverFallVariant()
+{
+	bool isUp = GravityUp();
+	int aGoneY = GetRowY(0) + GetRowY(mRows - 1) - (mLayout.mScreenBottom + GEM_SIZE);
+	bool allGone = true;
+	for (int aRow = 0; aRow < mRows; aRow++)
+	{
+		for (int aCol = 0; aCol < mCols; aCol++)
+		{
+			Piece* aPiece = mBoard[aRow][aCol];
+			if (aPiece == NULL)
+				continue;
+
+			aPiece->mX += aPiece->mVelX;
+			if (isUp)
+				aPiece->mY -= aPiece->mVelY;
+			else
+				aPiece->mY += aPiece->mVelY;
+			aPiece->mVelY += 0.15;
+			if (isUp ? (aPiece->mY > aGoneY) : (aPiece->mY < mLayout.mScreenBottom + GEM_SIZE))
+				allGone = false;
+		}
+	}
+	return allGone;
 }

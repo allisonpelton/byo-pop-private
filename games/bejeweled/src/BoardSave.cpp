@@ -45,6 +45,10 @@ void Board::GetVariantSave(Replay::VariantSave* theSave)
 	s.mMoves = mMoveCount;
 	s.mInvalidMoves = mInvalidMoves;
 	s.mUndosUsed = mUndosUsed;
+	// GRAV (stage 7c) when the rules set a gravity rule, as in StateCodec
+	s.mHasGravity = mRules.HasGravityRule();
+	s.mGravityFlips = mGravityFlips;
+	s.mGravityNoFlip = mGravityNoFlip;
 }
 
 void Board::WriteVariantHeader(Buffer* theBuffer)
@@ -128,7 +132,7 @@ bool Board::ReadVariantHeader(const Buffer& theBuffer, int theVersion)
 }
 
 // GameLoadedVariant, at the end of a LoadGame that ReadVariantHeader let through: the RNG the game goes on with
-// (seed 0: the global stream, as a v1 save without a sidecar) and the MOVE counts
+// (seed 0: the global stream, as a v1 save without a sidecar), the MOVE counts and the GRAV state
 void Board::ReadVariantChunks(const Buffer& theBuffer)
 {
 	Replay::VariantSave aSave;
@@ -154,4 +158,6 @@ void Board::ReadVariantChunks(const Buffer& theBuffer)
 	mMoveCount = aSave.mMoves;
 	mInvalidMoves = aSave.mInvalidMoves;
 	mUndosUsed = aSave.mUndosUsed;
+	mGravityFlips = aSave.mGravityFlips;
+	mGravityNoFlip = aSave.mGravityNoFlip;
 }

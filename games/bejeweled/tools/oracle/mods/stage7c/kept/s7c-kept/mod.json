@@ -1,0 +1,11 @@
+{
+  "id": "s7c-kept",
+  "name": "Stage 7c: Twilight with free swaps and undo",
+  "version": "1.0",
+  "description": "Oracle fixture: Twilight (alternate, fallAccel 75) with moves.allowInvalid, so a swap that makes no match stays and does not flip the gravity, and undo (depth 3), which brings the gravity back with the board.",
+  "rules": {
+    "board": { "gravity": { "direction": "alternate", "fallAccel": 75 } },
+    "moves": { "allowInvalid": true },
+    "undo": { "enabled": true, "depth": 3, "max": 4 }
+  }
+}

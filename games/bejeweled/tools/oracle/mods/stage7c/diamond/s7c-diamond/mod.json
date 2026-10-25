@@ -1,0 +1,23 @@
+{
+  "id": "s7c-diamond",
+  "name": "Stage 7c: a Twilight diamond",
+  "version": "1.0",
+  "description": "Oracle fixture: Twilight (alternate, fallAccel 75) on stage 7's 9x9 diamond of 41 cells: gems rise through the holes below the shorter columns, then fall through those above.",
+  "rules": {
+    "board": {
+      "gravity": { "direction": "alternate", "fallAccel": 75 },
+      "mask": [
+        "....#....",
+        "...###...",
+        "..#####..",
+        ".#######.",
+        "#########",
+        ".#######.",
+        "..#####..",
+        "...###...",
+        "....#...."
+      ]
+    },
+    "look": { "backdrop": "twilight" }
+  }
+}

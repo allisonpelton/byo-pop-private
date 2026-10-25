@@ -1,0 +1,17 @@
+# Stage 7c, run with -gameseed=4242 and mods/stage7c/twilight (alternate, fallAccel 75, the twilight backdrop): the
+# opening board rises from below, over the backdrop mirrored at half brightness; its settle flips the gravity (1:
+# down). A falls down; its settle flips it back (2: up). B rises, and the quit during the rise saves a v2 save with
+# its GRAV chunk (games/bejeweled/docs/CODE_MODS_DESIGN.md 4.16).
+300 click 320 398
+330 screenshot shots/t01_rising.png
+360 screenshot shots/t02_rising.png
+520 screenshot shots/t03_settled.png
+# A (5,3)->(6,3): the first move falls down
+560 click 482 193
+561 click 533 193
+680 screenshot shots/t04_falling.png
+# B (3,2)->(3,3): the second move rises; the quit before it settles (update 1025)
+930 click 380 142
+931 click 380 193
+1014 screenshot shots/t05_rising.png
+1016 quit

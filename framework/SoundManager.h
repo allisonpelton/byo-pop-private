@@ -18,6 +18,11 @@ public:
 	SoundManager() {}
 	virtual ~SoundManager() {}
 
+	// port: a pitch shift in semitones that GetSoundInstance gives every instance it hands out (AdjustPitch);
+	// 0, the default, leaves them alone. Games set it for a mode (Bejeweled's look.soundPitch). Music is apart.
+	void					SetDefaultPitch(double theNumSteps) { mDefaultPitch = theNumSteps; }
+	double					GetDefaultPitch() const { return mDefaultPitch; }
+
 	virtual bool			Initialized() = 0;
 
 	virtual bool			LoadSound(unsigned int theSfxID, const std::string& theFilename) = 0;
@@ -42,6 +47,8 @@ public:
 	virtual int				GetFreeSoundId() = 0;
 	virtual int				GetNumSounds() = 0;
 
+protected:
+	double					mDefaultPitch = 0.0;
 };
 
 

@@ -34,6 +34,8 @@ const size_t END_SIZE = 1 + 4 + 4 + 4 + 4 + 8 + 4;
 // The v2 save's chunks (Replay.h); RNGS is the replay's tag
 const uint32_t TAG_MOVE = Replay::Tag("MOVE");
 const size_t MOVE_SIZE = 3 * 4;
+const uint32_t TAG_GRAV = Replay::Tag("GRAV");
+const size_t GRAV_SIZE = 4 + 1;
 const size_t SAVE_HEADER_FIXED = 4 + Replay::RULES_ID_SIZE + 2 + 2 + 4; // the version up to the mask
 
 void PutU8(std::string* theOut, int theValue)
@@ -389,6 +391,13 @@ std::string Replay::VariantSaveChunks(const VariantSave& theSave)
 	PutU32(&aMoves, (uint32_t) theSave.mInvalidMoves);
 	PutU32(&aMoves, (uint32_t) theSave.mUndosUsed);
 	PutRecord(&aChunks, TAG_MOVE, aMoves);
+	if (theSave.mHasGravity)
+	{
+		std::string aGravity;
+		PutU32(&aGravity, (uint32_t) theSave.mGravityFlips);
+		PutU8(&aGravity, theSave.mGravityNoFlip ? 1 : 0);
+		PutRecord(&aChunks, TAG_GRAV, aGravity);
+	}
 	PutRecord(&aChunks, TAG_END, "");
 	return aChunks;
 }
@@ -473,6 +482,7 @@ bool Replay::ReadVariantSave(const std::string& theSave, VariantSave* theOut, st
 	// The chunks, up to END
 	bool hasRng = false;
 	bool hasMoves = false;
+	bool hasGravity = false;
 	for (;;)
 	{
 		if (theSave.size() - aPos < 8)
@@ -520,6 +530,24 @@ bool Replay::ReadVariantSave(const std::string& theSave, VariantSave* theOut, st
 			s.mInvalidMoves = (int32_t) aReader.U32();
 			s.mUndosUsed = (int32_t) aReader.U32();
 			hasMoves = true;
+		}
+		else if (aTag == TAG_GRAV)
+		{
+			if (hasGravity || (aLen != GRAV_SIZE))
+			{
+				anErr = hasGravity ? std::string("GRAV twice") : "GRAV: " + std::to_string(aLen) + " bytes, not " + std::to_string(GRAV_SIZE);
+				return false;
+			}
+			s.mGravityFlips = (int32_t) aReader.U32();
+			uint32_t aNoFlip = aReader.U8();
+			if ((s.mGravityFlips < 0) || (aNoFlip > 1))
+			{
+				anErr = "GRAV: flips " + std::to_string(s.mGravityFlips) + ", noFlip " + std::to_string(aNoFlip);
+				return false;
+			}
+			s.mGravityNoFlip = (aNoFlip != 0);
+			s.mHasGravity = true;
+			hasGravity = true;
 		}
 		// any other chunk: a later stage's, skipped
 	}

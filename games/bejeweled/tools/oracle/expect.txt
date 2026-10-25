@@ -2270,6 +2270,198 @@ watch_shape_levels_resume seeds 435:4242/user 1202:4242/user
 watch_shape_levels_resume codec codeccheck: 1813 updates checked, 6 settles, 0 failures
 watch_shape_levels_resume watch REPLAY end: ok, 6 CHECKs, END saved tick 910 score 12500 level 3 gems 6 draws 264
 
+twilight_auto exit 0
+twilight_auto mods Stage 7c: Twilight
+twilight_auto user mods-status.json registry.ini savegame-ba1255c3.dat
+twilight_auto settles 129
+twilight_auto last-settle 19974 normal level 3 score 2295 board tick 19971
+twilight_auto states 5536:vortex 5789:level_wipe 14278:vortex 14531:level_wipe
+twilight_auto save savegame-ba1255c3.dat v2 normal level 2 (shown 3), 64 gems, state 1 (playing), score 2295, play seconds 199, 10476 bytes; rules 43f97c611a52cfa6, 8x8, level shape 0, 0 holes; RNGS seed 2135392491, MOVE moves 88 invalid 0 undos 0, GRAV flips 91, END
+twilight_auto status rulesId 43f97c611a52cfa6, scoreKey ba1255c3, features none, 0 warnings, errors -, dropped -
+twilight_auto variant last moves 88 invalid 0 gravity down flips 91, 0 of 129 settles without a move
+twilight_auto seeds 227:2135392491/pergame
+twilight_auto end update 19999: update cap
+twilight_auto codec codeccheck: 19996 updates checked, 129 settles, 0 failures
+
+twilight_auto_timed exit 0
+twilight_auto_timed mods Stage 7c: Twilight
+twilight_auto_timed user mods-status.json registry.ini savegame-ba1255c3.dat
+twilight_auto_timed settles 118
+twilight_auto_timed last-settle 19963 timed level 5 score 5770 board tick 19959
+twilight_auto_timed states 2957:vortex 3210:level_wipe 6602:vortex 6855:level_wipe 10529:vortex 10782:level_wipe 16632:vortex 16885:level_wipe 19964:vortex
+twilight_auto_timed save savegame-ba1255c3.dat v2 timed level 4 (shown 5), 64 gems, state 7 (vortex), score 5770, play seconds 199, 10476 bytes; rules 43f97c611a52cfa6, 8x8, level shape 0, 0 holes; RNGS seed 946286476, MOVE moves 81 invalid 0 undos 0, GRAV flips 86, END
+twilight_auto_timed status rulesId 43f97c611a52cfa6, scoreKey ba1255c3, features none, 0 warnings, errors -, dropped -
+twilight_auto_timed variant last moves 81 invalid 0 gravity up flips 86, 0 of 118 settles without a move
+twilight_auto_timed seeds 208:946286476/pergame
+twilight_auto_timed end update 19999: update cap
+twilight_auto_timed codec codeccheck: 19996 updates checked, 118 settles, 0 failures
+
+twilight_kept_auto exit 0
+twilight_kept_auto mods Stage 7c: Twilight with free swaps and undo
+twilight_kept_auto user mods-status.json registry.ini savegame-0e4923af.dat
+twilight_kept_auto settles 138
+twilight_kept_auto last-settle 19895 normal level 3 score 2360 board tick 19892
+twilight_kept_auto states 4900:vortex 5153:level_wipe 14890:vortex 15143:level_wipe
+twilight_kept_auto save savegame-0e4923af.dat v2 normal level 2 (shown 3), 64 gems, state 1 (playing), score 2260, play seconds 199, 10476 bytes; rules 31e6074ed5d02394, 8x8, level shape 0, 0 holes; RNGS seed 2135392491, MOVE moves 135 invalid 38 undos 0, GRAV flips 100, END
+twilight_kept_auto status rulesId 31e6074ed5d02394, scoreKey 0e4923af, features none, 0 warnings, errors -, dropped -
+twilight_kept_auto variant last moves 135 invalid 38 gravity up flips 100, 0 of 138 settles without a move
+twilight_kept_auto seeds 227:2135392491/pergame
+twilight_kept_auto end update 19999: update cap
+twilight_kept_auto codec codeccheck: 19996 updates checked, 138 settles, 0 failures
+
+rising_auto exit 0
+rising_auto mods Stage 7c: rising on a 6x6
+rising_auto user hiscores-aea048c1.dat mods-status.json registry.ini
+rising_auto settles 23
+rising_auto last-settle 2942 normal level 1 score 330 board tick 2939
+rising_auto states 3085:game_over 3405:game_over_done
+rising_auto save none
+rising_auto status rulesId 46ad61478392f48b, scoreKey aea048c1, features none, 0 warnings, errors -, dropped -
+rising_auto variant last moves 14 invalid 0 gravity up flips 0, 0 of 23 settles without a move
+rising_auto seeds 127:2135392491/pergame
+rising_auto end update 3405: game over -> game over done, level 1, score 360, board tick 3402, Rand() draws 3
+rising_auto codec codeccheck: 3503 updates checked, 23 settles, 0 failures
+
+rising_auto_timed exit 0
+rising_auto_timed mods Stage 7c: rising on a 6x6
+rising_auto_timed user mods-status.json registry.ini savegame-aea048c1.dat
+rising_auto_timed settles 133
+rising_auto_timed last-settle 19945 timed level 4 score 4875 board tick 19941
+rising_auto_timed states 2691:vortex 2872:level_wipe 4343:fall_out 5383:vortex 5564:level_wipe 8334:fall_out 10515:fall_out 10829:vortex 11010:level_wipe 12230:fall_out 13751:fall_out
+rising_auto_timed save savegame-aea048c1.dat v2 timed level 3 (shown 4), 36 gems, state 1 (playing), score 4875, play seconds 199, 7085 bytes; rules 46ad61478392f48b, 6x6, level shape 0, 0 holes; RNGS seed 946286476, MOVE moves 97 invalid 0 undos 0, GRAV flips 0, END
+rising_auto_timed status rulesId 46ad61478392f48b, scoreKey aea048c1, features none, 0 warnings, errors -, dropped -
+rising_auto_timed variant last moves 97 invalid 0 gravity up flips 0, 0 of 133 settles without a move
+rising_auto_timed seeds 129:946286476/pergame
+rising_auto_timed end update 19999: update cap
+rising_auto_timed codec codeccheck: 19996 updates checked, 133 settles, 0 failures
+
+slow_auto_timed exit 0
+slow_auto_timed mods Stage 7c: slow falls
+slow_auto_timed user mods-status.json registry.ini savegame-c6871c00.dat
+slow_auto_timed settles 130
+slow_auto_timed last-settle 19885 timed level 4 score 3440 board tick 19881
+slow_auto_timed states 3572:vortex 3825:level_wipe 9016:vortex 9269:level_wipe 15665:vortex 15918:level_wipe
+slow_auto_timed save savegame-c6871c00.dat v2 timed level 3 (shown 4), 61 gems, state 4 (clearing), score 3475, play seconds 199, 10116 bytes; rules 3e8f8e7aae464ce5, 8x8, level shape 0, 0 holes; RNGS seed 946286476, MOVE moves 92 invalid 0 undos 0, GRAV flips 0, END
+slow_auto_timed status rulesId 3e8f8e7aae464ce5, scoreKey c6871c00, features none, 0 warnings, errors -, dropped -
+slow_auto_timed variant last moves 91 invalid 0 gravity down flips 0, 0 of 130 settles without a move
+slow_auto_timed seeds 209:946286476/pergame
+slow_auto_timed end update 19999: update cap
+slow_auto_timed codec codeccheck: 19996 updates checked, 130 settles, 0 failures
+
+twilight_diamond_auto_timed exit 0
+twilight_diamond_auto_timed mods Stage 7c: a Twilight diamond
+twilight_diamond_auto_timed user mods-status.json registry.ini savegame-d11967d1.dat
+twilight_diamond_auto_timed settles 114
+twilight_diamond_auto_timed last-settle 19896 timed level 4 score 3195 board tick 19892
+twilight_diamond_auto_timed states 3120:vortex 3324:level_wipe 5068:fall_out 7148:vortex 7352:level_wipe 7710:fall_out 11891:fall_out 18645:vortex 18849:level_wipe
+twilight_diamond_auto_timed save savegame-d11967d1.dat v2 timed level 3 (shown 4), 41 gems, state 0 (falling), score 3230, play seconds 199, 7736 bytes; rules e7d6560d774a0bad, 9x9, level shape 0, 40 holes; RNGS seed 946286476, MOVE moves 86 invalid 0 undos 0, GRAV flips 89, END
+twilight_diamond_auto_timed status rulesId e7d6560d774a0bad, scoreKey d11967d1, features none, 0 warnings, errors -, dropped -
+twilight_diamond_auto_timed variant last moves 85 invalid 0 gravity down flips 89, 0 of 114 settles without a move
+twilight_diamond_auto_timed seeds 215:946286476/pergame
+twilight_diamond_auto_timed end update 19999: update cap
+twilight_diamond_auto_timed codec codeccheck: 19996 updates checked, 114 settles, 0 failures
+
+twilight_quit exit 0
+twilight_quit mods Stage 7c: Twilight
+twilight_quit user mods-status.json registry.ini savegame-ba1255c3.dat
+twilight_quit settle 525 normal level 1 score 0 board tick 226
+twilight_quit settle 915 normal level 1 score 240 board tick 616
+twilight_quit states none
+twilight_quit save savegame-ba1255c3.dat v2 normal level 0 (shown 1), 64 gems, state 0 (falling), score 250, play seconds 7, 10476 bytes; rules 43f97c611a52cfa6, 8x8, level shape 0, 0 holes; RNGS seed 4242 user, MOVE moves 2 invalid 0 undos 0, GRAV flips 2, END
+twilight_quit status rulesId 43f97c611a52cfa6, scoreKey ba1255c3, features none, 0 warnings, errors -, dropped -
+twilight_quit variant last moves 1 invalid 0 gravity up flips 2, 0 of 2 settles without a move
+twilight_quit seeds 525:4242/user
+twilight_quit codec codeccheck: 716 updates checked, 2 settles, 0 failures
+
+twilight_quit.resume exit 0
+twilight_quit.resume mods Stage 7c: Twilight
+twilight_quit.resume user mods-status.json registry.ini savegame-ba1255c3.dat
+twilight_quit.resume settle 340 normal level 1 score 250 board tick 1
+twilight_quit.resume states none
+twilight_quit.resume save savegame-ba1255c3.dat v2 normal level 0 (shown 1), 64 gems, state 1 (playing), score 250, play seconds 12, 10476 bytes; rules 43f97c611a52cfa6, 8x8, level shape 0, 0 holes; RNGS seed 4242 user, MOVE moves 2 invalid 0 undos 0, GRAV flips 3, END
+twilight_quit.resume status rulesId 43f97c611a52cfa6, scoreKey ba1255c3, features none, 0 warnings, errors -, dropped -
+twilight_quit.resume variant last moves 2 invalid 0 gravity down flips 3, 0 of 1 settles without a move
+twilight_quit.resume seeds 340:4242/user
+twilight_quit.resume codec codeccheck: 730 updates checked, 1 settles, 0 failures
+
+twilight_undo exit 0
+twilight_undo mods Stage 7c: Twilight with free swaps and undo
+twilight_undo user mods-status.json registry.ini savegame-0e4923af.dat
+twilight_undo settle 525 normal level 1 score 0 board tick 226
+twilight_undo settle 915 normal level 1 score 240 board tick 616
+twilight_undo settle 950 normal level 1 score 0 board tick 651
+twilight_undo settle 1365 normal level 1 score 240 board tick 1066
+twilight_undo settle 1437 normal level 1 score 240 board tick 1138
+twilight_undo states none
+twilight_undo save savegame-0e4923af.dat v2 normal level 0 (shown 1), 64 gems, state 1 (playing), score 240, play seconds 12, 10476 bytes; rules 31e6074ed5d02394, 8x8, level shape 0, 0 holes; RNGS seed 4242 user, MOVE moves 2 invalid 1 undos 1, GRAV flips 2, END
+twilight_undo status rulesId 31e6074ed5d02394, scoreKey 0e4923af, features none, 0 warnings, errors -, dropped -
+twilight_undo variant last moves 2 invalid 1 gravity up flips 2, 0 of 5 settles without a move
+twilight_undo seeds 525:4242/user
+twilight_undo codec codeccheck: 1250 updates checked, 5 settles, 0 failures
+
+rec_twilight_auto_timed exit 0
+rec_twilight_auto_timed mods Stage 3: replays, Stage 7c: Twilight
+rec_twilight_auto_timed user mods-status.json registry.ini savegame-ba1255c3.bjr savegame-ba1255c3.dat
+rec_twilight_auto_timed settles 118
+rec_twilight_auto_timed last-settle 19963 timed level 5 score 5770 board tick 19959
+rec_twilight_auto_timed states 2957:vortex 3210:level_wipe 6602:vortex 6855:level_wipe 10529:vortex 10782:level_wipe 16632:vortex 16885:level_wipe 19964:vortex
+rec_twilight_auto_timed save savegame-ba1255c3.dat v2 timed level 4 (shown 5), 64 gems, state 7 (vortex), score 5770, play seconds 199, 10476 bytes; rules 43f97c611a52cfa6, 8x8, level shape 0, 0 holes; RNGS seed 946286476, MOVE moves 81 invalid 0 undos 0, GRAV flips 86, END
+rec_twilight_auto_timed sidecar savegame-ba1255c3.bjr end saved tick 19995 score 5770 level 5 gems 374 draws 1957; seg0 timed seed 946286476 CHECK118,HINT1,HOVER217,SAVE2,SELECT114,TARGET113; rng seed 946286476; flags hover; goes with the save
+rec_twilight_auto_timed status rulesId 43f97c611a52cfa6, scoreKey ba1255c3, features seeds(entry), replays(keep 3, hover), 1 warnings, errors -, dropped -
+rec_twilight_auto_timed variant last moves 81 invalid 0 gravity up flips 86, 0 of 118 settles without a move
+rec_twilight_auto_timed seeds 208:946286476/pergame
+rec_twilight_auto_timed end update 19999: update cap
+rec_twilight_auto_timed codec codeccheck: 19996 updates checked, 118 settles, 0 failures
+
+rec_twilight_quit exit 0
+rec_twilight_quit mods Stage 3: replays, Stage 7c: Twilight
+rec_twilight_quit user mods-status.json registry.ini savegame-ba1255c3.bjr savegame-ba1255c3.dat
+rec_twilight_quit settle 525 normal level 1 score 0 board tick 226
+rec_twilight_quit settle 915 normal level 1 score 240 board tick 616
+rec_twilight_quit states none
+rec_twilight_quit save savegame-ba1255c3.dat v2 normal level 0 (shown 1), 64 gems, state 0 (falling), score 250, play seconds 7, 10476 bytes; rules 43f97c611a52cfa6, 8x8, level shape 0, 0 holes; RNGS seed 4242 user, MOVE moves 2 invalid 0 undos 0, GRAV flips 2, END
+rec_twilight_quit sidecar savegame-ba1255c3.bjr end saved tick 716 score 250 level 1 gems 21 draws 412; seg0 normal seed 4242 user CHECK2,HOVER6,SAVE2,SELECT2,TARGET2; rng seed 4242 user; flags hover; goes with the save
+rec_twilight_quit status rulesId 43f97c611a52cfa6, scoreKey ba1255c3, features seeds(entry), replays(keep 3, hover), 1 warnings, errors -, dropped -
+rec_twilight_quit variant last moves 1 invalid 0 gravity up flips 2, 0 of 2 settles without a move
+rec_twilight_quit seeds 525:4242/user
+rec_twilight_quit codec codeccheck: 716 updates checked, 2 settles, 0 failures
+
+rec_twilight_quit.resume exit 0
+rec_twilight_quit.resume mods Stage 3: replays, Stage 7c: Twilight
+rec_twilight_quit.resume user mods-status.json registry.ini savegame-ba1255c3.bjr savegame-ba1255c3.dat
+rec_twilight_quit.resume settle 340 normal level 1 score 250 board tick 1
+rec_twilight_quit.resume states none
+rec_twilight_quit.resume save savegame-ba1255c3.dat v2 normal level 0 (shown 1), 64 gems, state 1 (playing), score 250, play seconds 12, 10476 bytes; rules 43f97c611a52cfa6, 8x8, level shape 0, 0 holes; RNGS seed 4242 user, MOVE moves 2 invalid 0 undos 0, GRAV flips 3, END
+rec_twilight_quit.resume sidecar savegame-ba1255c3.bjr end saved tick 580 score 250 level 1 gems 21 draws 132; seg0 normal seed 4242 user CHECK2,HOVER6,SAVE2,SELECT2,TARGET2; seg1 normal seed 2135392491 load(seed 4242 user) CHECK1,HOVER3,LOAD1,PAUSE3,SAVE2,UNPAUSE1; rng seed 4242 user; flags hover+multi; goes with the save
+rec_twilight_quit.resume status rulesId 43f97c611a52cfa6, scoreKey ba1255c3, features seeds(entry), replays(keep 3, hover), 1 warnings, errors -, dropped -
+rec_twilight_quit.resume variant last moves 2 invalid 0 gravity down flips 3, 0 of 1 settles without a move
+rec_twilight_quit.resume seeds 340:4242/user
+rec_twilight_quit.resume codec codeccheck: 730 updates checked, 1 settles, 0 failures
+
+watch_twilight_auto_timed exit 0
+watch_twilight_auto_timed mods none
+watch_twilight_auto_timed user registry.ini
+watch_twilight_auto_timed settles 118
+watch_twilight_auto_timed last-settle 20259 timed level 5 score 5770 board tick 19959
+watch_twilight_auto_timed states 3253:vortex 3506:level_wipe 6898:vortex 7151:level_wipe 10825:vortex 11078:level_wipe 16928:vortex 17181:level_wipe 20260:vortex
+watch_twilight_auto_timed save none
+watch_twilight_auto_timed variant last moves 81 invalid 0 gravity up flips 86, 0 of 118 settles without a move
+watch_twilight_auto_timed seeds 504:946286476/pergame
+watch_twilight_auto_timed codec codeccheck: 19997 updates checked, 118 settles, 0 failures
+watch_twilight_auto_timed watch REPLAY end: ok, 118 CHECKs, END saved tick 19995 score 5770 level 5 gems 374 draws 1957
+
+watch_twilight_resume exit 0
+watch_twilight_resume mods none
+watch_twilight_resume user registry.ini
+watch_twilight_resume settles 3
+watch_twilight_resume last-settle 1018 normal level 1 score 250 board tick 1
+watch_twilight_resume states none
+watch_twilight_resume save none
+watch_twilight_resume variant last moves 2 invalid 0 gravity down flips 3, 0 of 3 settles without a move
+watch_twilight_resume seeds 526:4242/user 1018:4242/user
+watch_twilight_resume codec codeccheck: 1299 updates checked, 3 settles, 0 failures
+watch_twilight_resume watch REPLAY end: ok, 3 CHECKs, END saved tick 580 score 250 level 1 gems 21 draws 132
+
 overflow exit 0
 overflow mods Stage 4: scores past the int range
 overflow user hiscores-2e51efc7.dat registry.ini
