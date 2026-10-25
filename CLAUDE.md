@@ -104,6 +104,12 @@ Git and publishing:
   games; only if that shows an improvement do up to three sessions run at once again. New game sessions list
   the mods worth making but make none without the user's approval, and no further game gets mods until every
   PopCap game works in the browser.
+- **Sonnet trial (the user, 2026-10-25):** that next game's session runs on Sonnet. Once its port works, it
+  brainstorms mods for the game and makes the interesting ones: the user approved mods for this one game, the one
+  exception to the rule above. The coordinator measures it against the earlier games (`docs/TOKEN_ECONOMY.md`):
+  tokens, time, and where Sonnet struggled. If Sonnet does well in most of it (fewer tokens, not absurdly long), it
+  is the default for games that can largely copy another game's port, with Opus for the kinds of work where it
+  showed deficits. Complex games (Zuma's Revenge, Bejeweled 3) stay on Opus.
 - Never commit or redistribute game files or anything derived from them (staged assets, Ghidra exports,
   word lists and other game data, mods built from another game's files, close recreations of another
   game's art): keep them git-ignored. Docs and code comments refer to a game's texts by id and paraphrase;
