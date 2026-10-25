@@ -50,6 +50,7 @@ public:
 	virtual bool IsPlaying();
 	virtual bool IsReleased();
 	virtual double GetVolume();
+	double GetPitch() const { return mPitch; }   // port: the playback rate AdjustPitch set (1.0 unshifted)
 };
 
 class SDLSoundManager : public SoundManager

@@ -249,6 +249,8 @@ SoundInstance* SDLSoundManager::GetSoundInstance(unsigned int theSfxID)
 	if (ch < 0)
 		return nullptr;
 	mInstances[ch] = new SDLSoundInstance(this, mSounds[theSfxID], mBaseVolumes[theSfxID], mBasePans[theSfxID]);
+	if (mDefaultPitch != 0.0)
+		mInstances[ch]->AdjustPitch(mDefaultPitch);
 	return mInstances[ch];
 }
 
