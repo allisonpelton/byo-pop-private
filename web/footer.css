@@ -1,0 +1,9 @@
+/* The shared footer (web/footer.html), put into every game's page by byopop_web_shell() in cmake/ByopopWeb.cmake.
+   It uses the page's own colour tokens, with fallbacks for a page that has none. */
+.byopop-footer {
+  padding-block: 4px 6px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  color: var(--muted, #5d5872); font-size: 12px; line-height: 1.5; text-align: right;
+}
+.byopop-footer a { color: inherit; }
+.byopop-footer a:focus-visible { outline: 2px solid var(--accent, currentColor); outline-offset: 2px; }

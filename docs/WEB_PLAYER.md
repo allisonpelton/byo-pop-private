@@ -97,6 +97,27 @@ The shell holds:
 - its script, which boots in the order described above: storage, the instance lock, import, start, the
   `?seed=` and `?silent=` address options, and the exit card;
 - the panels' containers, which `web/modpanel.js` fills.
+- a `<!-- byopop:footer -->` line, where the build puts the shared footer.
+
+**The footer** is the same on every game's page: one link, which opens the game's copyright page
+(`<game>-copyright.html`, next to the game) in a new tab. The markup is `web/footer.html` and its style
+`web/footer.css`.
+
+**The copyright page** is made from `web/copyright.html`. It has the game's copyright notice, a statement that
+the player is unofficial, non-commercial and comes with none of the game's files, and the license of every
+library the page is built from, each in a collapsed section. The PopCap Games Framework's is first, with the
+acknowledgment its license asks for. The license texts are `web/licenses/<name>.txt`: a title line, a blank
+line, then the text.
+
+At configure time `byopop_web_shell()` in `cmake/ByopopWeb.cmake` writes both files:
+- `build/.../<game>-shell.html` is the game's shell with the footer at that line and the style before
+  `</head>`. That generated file is what `emcc` gets as `--shell-file`.
+- `build/web/<game>-copyright.html` is the copyright page.
+
+Each game sets its own name, its notice (the copyright and trademark lines of its readme) and any libraries of
+its own: `byopop_web_game(... TITLE "..." COPYRIGHT "..." [LICENSES <name>...])` in its `CMakeLists.txt`.
+BookWorm passes them to `byopop_web_shell()` directly, with `LICENSES libopenmpt`. A web host serves the
+copyright page with the game's page.
 
 ## Memory use
 

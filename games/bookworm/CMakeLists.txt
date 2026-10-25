@@ -18,9 +18,11 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/src/BookWormApp.cpp)
   endif()
   if(EMSCRIPTEN)
     set_target_properties(bookworm PROPERTIES SUFFIX ".html")
-    set_property(TARGET bookworm APPEND PROPERTY LINK_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/web/shell.html)
+    byopop_web_shell(page bookworm ${CMAKE_CURRENT_SOURCE_DIR}/web/shell.html TITLE "BookWorm Deluxe"
+      COPYRIGHT "BookWorm Deluxe © 2002, 2003 PopCap Games, Inc. All rights reserved." LICENSES libopenmpt)
+    set_property(TARGET bookworm APPEND PROPERTY LINK_DEPENDS ${page})
     target_link_options(bookworm PRIVATE
-      "--shell-file=${CMAKE_CURRENT_SOURCE_DIR}/web/shell.html"
+      "--shell-file=${page}"
       "-sALLOW_MEMORY_GROWTH=1" "-sFORCE_FILESYSTEM=1" "-sINVOKE_RUN=0"
       "-sEXPORTED_RUNTIME_METHODS=['FS','callMain']" "-lidbfs.js")
   else()
