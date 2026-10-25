@@ -635,6 +635,7 @@ Events from the game to the page:
 |     ! rules: match.minRun 2 needs 5 gem colours                  |
 | [ ] Fake Money! Deluxe 1.0   RESTART                  [^][v]     |
 |     ...                                                     (#)  |
+| ! the game's messages (the message slot, two lines)              |
 |------------------------------------------------------------------|
 | Restart to apply: HD Gems turned off.     [Restart game] [Close] |
 +------------------------------------------------------------------+
@@ -652,10 +653,16 @@ Events from the game to the page:
   - ▲ / ▼, disabled across a priority boundary;
   - "Settings", only when the mod has settings.
 
-  Seven rows are visible at once, with a scrollbar 12 px wide.
+  Six rows are visible at once, with a scrollbar 12 px wide.
 - **Banner rows** at the top:
   - "Mods are off for this run (-nomods)";
   - "mod-settings.json could not be read".
+- **The message slot**, under the content on every page (34 px, two lines, reserved even when empty). It holds the
+  page's messages: on the list, the game's messages about every mod (`GetModMessages` with no mod, such as the
+  placeholder banner); on a mod's page, the mod's errors and then its warnings, the shared ones and the game's.
+  One message may take both lines. With several, the first two get a line each, and the second ends with
+  "+N more". The rows therefore sit at the same place in every game, scrolled or not, whatever a game has to say,
+  so the menu's test scripts are shared (`tools/modmenutest`).
 - **Empty state:**
   - Native: "No mods installed. Mods are folders in <mods dir>."
   - Web: "Add mods in the Mods panel."
@@ -665,7 +672,6 @@ Events from the game to the page:
 ```
 | < Back    SETTINGS DEMO 1.0                              by ...  |
 | Description, wrapped, at most 3 lines                            |
-| ! errors and warnings                                            |
 | PLAY                                                             |
 | Shortest match       SCORES  [-]  2  [+]  ===o====   NEXT GAME   |
 | Undo                 SCORES  [x] On                              |
@@ -673,6 +679,7 @@ Events from the game to the page:
 | Board                SCORES  [<] Diamond [>]                     |
 | LOOK                                                             |
 | Praise text                  [SUPER!__________]      RESTART     |
+| ! errors and warnings (the message slot)                         |
 |------------------------------------------------------------------|
 | Gems in a line needed for a match.          (help of focused row)|
 | [Reset to defaults]                  [Restart game] [Back]       |
@@ -1046,6 +1053,18 @@ A shared `web/modpanel.js` is a step towards the survey's shell template (G6, `d
     Resolve the placeholders at their defaults first (`ModSettings::Parse`, `Analyze`, `Resolve`; add
     `platform/ModSettings.cpp` and `platform/Text.cpp` to the verifier's sources) and report setting errors in
     its `errors`.
+- **As built (M5, 4facce2, merged at e679312):**
+  - Options has the MODS button in the register slot (`mX+30+bw`, `mY+166`) while an enabled mod has settings. Extras
+    (stage 13) is not built yet, so the EXTRAS case waits for it.
+  - The next-game filter is `GameConfig::IsNextGamePath` (`GameConfigMods.cpp`). It covers every path under `rules`,
+    `tunables` and `features` except `features.livesplit`, because the LiveSplit observer's state outlives a board.
+    Those values commit at `NewGame`, and an untouched board is made again with them (modmenutest's Bejeweled
+    nextgame scripts).
+  - A mod's settings page shows the game's `GetModMessages`: the rules errors, dropped mods and warnings. That
+    closes the first known gap above.
+  - `bejeweled_verify` resolves `$setting` placeholders at their defaults (`ModSettings` `Analyze` and `Resolve` in
+    `Verifier.cpp`) and links `platform/ModSettings.cpp` and `platform/Text.cpp`. That closes the second.
+  - The four hooks say `override`: `HasGameInProgress`, `CanRestartNow`, `GetRestartArgs` and `GetModMessages`.
 
 ### 8.3 Big Money (Big Money session; built in M6, d4fe95b)
 

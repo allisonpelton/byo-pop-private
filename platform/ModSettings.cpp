@@ -992,7 +992,7 @@ static bool HasPathOutside(const JsonValue& theValue)
 		return false;
 	if (theValue.IsString())
 	{
-		std::string aPath = VFS::Normalize(theValue.AsString());
+		std::string aPath = NormalizePath(theValue.AsString());
 		return (aPath == "..") || (aPath.compare(0, 3, "../") == 0);
 	}
 	for (const auto& kv : theValue.Members())
@@ -1055,9 +1055,9 @@ struct Analyzer
 
 	bool IsGameplayFile(const std::string& theKey) const
 	{
-		std::string aKey = Lower(VFS::Normalize(theKey));
+		std::string aKey = Lower(NormalizePath(theKey));
 		for (const std::string& aFile : *mGameplayFiles)
-			if (Lower(VFS::Normalize(aFile)) == aKey)
+			if (Lower(NormalizePath(aFile)) == aKey)
 				return true;
 		return false;
 	}

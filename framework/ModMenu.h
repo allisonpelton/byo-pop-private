@@ -177,9 +177,11 @@ private:
 	SettingView*			PageSetting(int theItem);
 	std::string				FooterHelp();
 	std::string				PendingText() const;
+	std::vector<std::pair<std::string, int> > PageMessages();  // the page's messages and their TEXT_ colours (the slot)
 
 	void					DrawButton(Graphics* g, const Rect& theRect, const std::string& theLabel, int theKind, int theItem, bool isDisabled);
 	void					DrawBadge(Graphics* g, int x, int y, const std::string& theText, const Color& theColor, int* theWidth);
+	void					DrawMessages(Graphics* g);
 	void					DrawListRow(Graphics* g, const Item& theItem);
 	void					DrawSettingRow(Graphics* g, const Item& theItem);
 
