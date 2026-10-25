@@ -164,6 +164,10 @@ input[type=file] { display: none; }
   <header><h2>Game files</h2><button type="button" data-close>Close</button></header>
   <div class="body">
     <p id="files-summary" class="note"></p>
+    <div id="files-missing" hidden>
+      <p class="note" id="files-missing-summary"></p>
+      <ul class="note" id="files-missing-list"></ul>
+    </div>
     <div class="row">
       <button type="button" id="btn-reimport">Import again</button>
       <button type="button" id="btn-forget">Forget game files</button>
@@ -191,7 +195,17 @@ input[type=file] { display: none; }
   var GAME_DIRS = ["images", "data", "sounds", "music", "properties"];
   var $ = function (id) { return document.getElementById(id); };
   var statusEl = $("status");
-  function setStatus(t) { statusEl.textContent = t; }
+  var statusText = "";
+  // ?placeholders=1 (-placeholders, platform/Placeholders.h): stand-ins for missing game files, for testing copies
+  // of the game from other sources; the game passes each missing file to Module.onMissingFile
+  var missingFiles = [];
+  function pagePlaceholders() { return new URLSearchParams(location.search).get("placeholders") === "1"; }
+  // the missing files' count goes after " · placeholders", so a status line ends in "silent" when that is on (CLAUDE.md)
+  function setStatus(t) {
+    statusText = t;
+    statusEl.textContent = missingFiles.length ? t.replace(" · placeholders", " · placeholders, " + missingFiles.length +
+      " missing file" + (missingFiles.length > 1 ? "s" : "")) : t;
+  }
 
   // web/modpanel.js, linked into the game's script: the Mods panel, restarts and the file helpers. It is there
   // once the game's script has loaded, before onRuntimeInitialized.
@@ -210,6 +224,8 @@ input[type=file] { display: none; }
     onAbort: function (what) { showStopped(what); },
     // The game has loaded: no mod stopped this start
     onGameLoaded: function () { if (session) session.markFinished(); },
+    // -placeholders: a game file the game did not find got a stand-in (listed in the Game files panel)
+    onMissingFile: function (path) { missingFiles.push(path); setStatus(statusText); showMissingFiles(); },
     // Called by the game after it quits (the tab can't close itself): silence it, wait for the save
     // to reach browser storage, then offer a restart. info.restart: the game's mod menu asked to restart, so the
     // page reloads and starts the game again by itself (Session.restartPage).
@@ -296,10 +312,14 @@ input[type=file] { display: none; }
     });
   }
   function hasGameFiles() {
+    // with placeholders any of the game's folders will do: the game stands in for the rest
+    if (pagePlaceholders())
+      return GAME_DIRS.some(function (d) { return web().fs.listDir(GAME + "/" + d).length > 0; });
     return web().fs.listDir(GAME + "/images").some(function (n) { return /^gemsheet6\./i.test(n); });
   }
 
-  // Finds the folder inside an upload that holds images/gemsheet6.* (the game root).
+  // Finds the folder inside an upload that holds images/gemsheet6.* (the game root); with placeholders, failing
+  // that, the shallowest folder that holds one of the game's folders.
   function findGameRoot(entries) {
     for (var i = 0; i < entries.length; i++) {
       var m = /^(.*?)(?:^|\/)?images\/gemsheet6\.[a-z]+$/i.exec(entries[i].path);
@@ -308,7 +328,19 @@ input[type=file] { display: none; }
         return p.substring(0, idx);
       }
     }
-    return null;
+    if (!pagePlaceholders()) return null;
+    var best = null;
+    entries.forEach(function (e) {
+      var parts = e.path.split("/");
+      for (var j = 0; j < parts.length - 1; j++) {
+        if (GAME_DIRS.indexOf(parts[j].toLowerCase()) >= 0) {
+          var root = parts.slice(0, j).join("/") + (j > 0 ? "/" : "");
+          if ((best === null) || (root.length < best.length)) best = root;
+          break;
+        }
+      }
+    });
+    return best;
   }
 
   function importGame(entries) {
@@ -366,11 +398,13 @@ input[type=file] { display: none; }
     var seedText = (seed > 0) ? " · seed " + seed : (seed < 0) ? " · seed ignored: it must be 1 to 4294967295" : "";
     var modsText = noMods ? "Mods off for this run" : enabled ? enabled + " mod" + (enabled > 1 ? "s" : "") + " active" : "No mods active";
     Module.silentAudio = pageSilent();
-    setStatus(modsText + seedText + (Module.silentAudio ? " · silent" : (isAutostart === true ? " · sound after a click or key" : "")));
+    setStatus(modsText + seedText + (pagePlaceholders() ? " · placeholders" : "") +
+      (Module.silentAudio ? " · silent" : (isAutostart === true ? " · sound after a click or key" : "")));
     // Only a start with mods can be one a mod stops: without any, nothing is noted (no write)
     if (!noMods && enabled > 0) session.markStarting();
     Module.callMain(["-gamedir=" + GAME, "-userdir=" + USER, "-modsdir=" + MODS, "-replaydir=" + REPLAYS]
-      .concat((seed > 0) ? ["-gameseed=" + seed] : []).concat(noMods ? ["-nomods"] : []));
+      .concat((seed > 0) ? ["-gameseed=" + seed] : []).concat(noMods ? ["-nomods"] : [])
+      .concat(pagePlaceholders() ? ["-placeholders"] : []));
     $("canvas").focus();
   }
   function boot() {
@@ -490,8 +524,17 @@ input[type=file] { display: none; }
     var n = 0;
     GAME_DIRS.forEach(function (d) { n += web().fs.listDir(GAME + "/" + d).length; });
     $("files-summary").textContent = hasGameFiles() ? n + " game files are stored in this browser." : "No game files are stored yet.";
+    showMissingFiles();
     openPanel("panel-files");
   });
+  function showMissingFiles() {
+    $("files-missing").hidden = !missingFiles.length;
+    $("files-missing-summary").textContent = missingFiles.length + " game file" + (missingFiles.length > 1 ? "s were" : " was") +
+      " missing; placeholders stand in for them:";
+    var list = $("files-missing-list");
+    list.textContent = "";
+    missingFiles.forEach(function (f) { var li = document.createElement("li"); li.textContent = f; list.appendChild(li); });
+  }
   $("btn-reimport").addEventListener("click", function () { openPanel(null); $("import-overlay").hidden = false; });
   $("btn-forget").addEventListener("click", function () { $("forget-confirm").hidden = false; });
   $("btn-forget-yes").addEventListener("click", function () { web().fs.rmTree(GAME); web().sync().then(function () { location.reload(); }); });

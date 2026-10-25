@@ -9,7 +9,7 @@
 #   build-web    tools/build.sh web
 #   build-nov    tools/build.sh novariants (Bejeweled without its variant code, for the oracle)
 #   unit         rulestest, modsettingstest and fwtest -hotkeytest, native (under a minute); fwtest is skipped
-#                without assets/bejeweled
+#                without assets/bejeweled; then fwtest -hotkeytest -placeholders with no game files at all
 #   unit-web     rulestest and modsettingstest under Node (needs build-web)
 #   verify       Bejeweled's headless verifier tests (games/bejeweled/tools/verify/run_tests.sh)
 #   modmenu      the mod menu's scripted runs, all games (tools/modmenutest/run_tests.sh all)
@@ -82,7 +82,7 @@ suite_build-web() { build_suite web "$1"; }
 suite_build-nov() { build_suite novariants "$1"; }
 
 suite_unit() {
-	local st=0 a b c
+	local st=0 a b c d
 	(cd build/native && timeout 120 ./rulestest.exe) > "$1" 2>&1 || st=1
 	a="$(lastof "$1" 'checks')"
 	(cd build/native && timeout 120 ./modsettingstest.exe) > "$1.mst" 2>&1 || st=1
@@ -95,8 +95,13 @@ suite_unit() {
 		echo "fwtest -hotkeytest skipped: no assets/bejeweled (tools/setup_worktree.sh)" > "$1.fw"
 		c="fwtest skipped (no assets/bejeweled)"
 	fi
-	cat "$1.mst" "$1.fw" >> "$1"; rm -f "$1.mst" "$1.fw"
-	SUMMARY="$a; $b; $c"
+	# -placeholders with no game files at all: every image, font, sound and song a stand-in (platform/Placeholders.h)
+	mkdir -p "$OUT/no-game-files"
+	timeout 120 "build/native/fwtest.exe" -hotkeytest -placeholders -gamedir="$OUT/no-game-files" > "$1.ph" 2>&1 || st=1
+	d="placeholders: $(lastof "$1.ph" 'placeholders: [0-9]+ game files? missing' | sed 's/^placeholders: //'), $(lastof "$1.ph" 'hotkey: [0-9]+ failed')"
+	grep -q -E 'placeholders: [1-9][0-9]* game files? missing' "$1.ph" || st=1
+	cat "$1.mst" "$1.fw" "$1.ph" >> "$1"; rm -f "$1.mst" "$1.fw" "$1.ph"
+	SUMMARY="$a; $b; $c; $d"
 	return $st
 }
 

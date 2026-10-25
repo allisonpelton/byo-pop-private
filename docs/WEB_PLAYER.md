@@ -32,7 +32,8 @@ Big Money (`bigmoney.*`) and BookWorm (`bookworm.*`) have the same three files.
    own `DecompressionStream` unpacks a .zip.
 6. **Play.** Browsers allow sound only after you click or press a key, so the page waits for "Play". Then
    it calls the game's `main()` with folder arguments (`-gamedir=/persist/game -userdir=... -modsdir=...`),
-   plus `-gameseed=N` for a `?seed=N` in the address and `-nomods` for "Play without mods". From then on,
+   plus `-gameseed=N` for a `?seed=N` in the address, `-placeholders` for `?placeholders=1` and `-nomods` for
+   "Play without mods". From then on,
    the game runs one frame per browser animation frame, as SDL drives it.
 7. **Leaving.** Quitting from the game's menu shows the exit card. Closing the tab works too: the game's
    saves are written to IndexedDB as they happen, and a small backup goes to localStorage, because a
@@ -95,7 +96,7 @@ planned, so the page code exists once.
 The shell holds:
 - the bar, the canvas and the cards (import, start, already open, exit) as HTML and CSS;
 - its script, which boots in the order described above: storage, the instance lock, import, start, the
-  `?seed=` and `?silent=` address options, and the exit card;
+  `?seed=`, `?silent=` and `?placeholders=` address options, and the exit card;
 - the panels' containers, which `web/modpanel.js` fills.
 - a `<!-- byopop:footer -->` line, where the build puts the shared footer.
 
@@ -118,6 +119,15 @@ Each game sets its own name, its notice (the copyright and trademark lines of it
 its own: `byopop_web_game(... TITLE "..." COPYRIGHT "..." [LICENSES <name>...])` in its `CMakeLists.txt`.
 BookWorm passes them to `byopop_web_shell()` directly, with `LICENSES libopenmpt`. A web host serves the
 copyright page with the game's page.
+
+## Testing other copies of a game: `?placeholders=1`
+
+For testing a game's files from another source, `?placeholders=1` (`-placeholders` natively) lets the game start
+when some of its files are missing: a missing image becomes a magenta and black checkerboard, a sound is silent, a
+font without its descriptor uses the framework's built-in letters (`platform/Placeholders.h`). The import then
+accepts any folder that holds one of the game's folders. The status line counts the missing files and the Game
+files panel lists them. Scores made with the switch on are kept apart. Each game's own start check and its data
+files that cannot be stood in for (a word list, a difficulty table) are the game's to handle.
 
 ## Memory use
 

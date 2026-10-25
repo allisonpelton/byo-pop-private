@@ -5,7 +5,11 @@
 #include "MemoryImage.h"
 #include "DDImage.h"
 #include "AutoCrit.h"
+#include "BuiltinFont.h"
+#include "PakInterface.h"
 #include "../platform/VFS.h"
+#include "../platform/Placeholders.h"
+#include <algorithm>
 
 using namespace Sexy;
 
@@ -798,6 +802,23 @@ bool FontData::HandleCommand(const ListDataElement& theParams)
 				{
 					if ((Image*) aLayer->mImage != NULL)
 					{
+						// port: a placeholder for a missing font image (-placeholders) grows to hold every glyph
+						if (((Image*) aLayer->mImage)->mPlaceholder)
+						{
+							int aNeededWidth = 0;
+							int aNeededHeight = 0;
+							for (ulong i = 0; i < aRectList.mElementVector.size(); i++)
+							{
+								IntVector aRectElement;
+								if ((DataToIntVector(aRectList.mElementVector[i], &aRectElement)) && (aRectElement.size() == 4))
+								{
+									aNeededWidth = std::max(aNeededWidth, aRectElement[0] + aRectElement[2]);
+									aNeededHeight = std::max(aNeededHeight, aRectElement[1] + aRectElement[3]);
+								}
+							}
+							SexyAppBase::GrowPlaceholder(aLayer->mImage, aNeededWidth, aNeededHeight);
+						}
+
 						int anImageWidth = aLayer->mImage->GetWidth();
 						int anImageHeight = aLayer->mImage->GetHeight();
 
@@ -1020,9 +1041,91 @@ bool FontData::Load(SexyAppBase* theSexyApp, const std::string& theFontDescFileN
 	
 	mSourceFile = theFontDescFileName;	
 
+	// port: -placeholders (platform/Placeholders.h): a missing descriptor gets the built-in letters
+	if (Platform::Placeholders())
+	{
+		PFILE* aFile = p_fopen(theFontDescFileName.c_str(), "r");
+		if (aFile == NULL)
+		{
+			Platform::NoteMissing(theFontDescFileName);
+			mInitialized = LoadBuiltinFallback();
+			return mInitialized;
+		}
+		p_fclose(aFile);
+	}
+
 	mInitialized = LoadDescriptor(theFontDescFileName);	;
 
 	return !hasErrors;
+}
+
+bool FontData::LoadBuiltinFallback()
+{
+	// port: one layer of the framework's built-in letters (BuiltinFont.h), white, tinted by the text colour; the
+	// glyph strip is made once and shared by every such font
+	const int aFirstChar = 32;
+	bool isNew = false;
+	SharedImageRef aStrip = mApp->GetSharedImage("!byopop-placeholder-font", "", &isNew);
+	MemoryImage* aStripImage = (MemoryImage*) aStrip;
+	if (aStripImage == NULL)
+		return false;
+
+	BuiltinFont aBuiltinFont;
+	std::vector<std::string> aRows(256);
+	int aStripWidth = 0;
+	int aCellHeight = 0;
+	for (int c = aFirstChar; c < 256; c++)
+	{
+		aRows[c] = BuiltinFont::GlyphRows((unsigned char) c);
+		size_t anEnd = aRows[c].find('\n');
+		aStripWidth += ((anEnd == std::string::npos) ? 0 : (int) anEnd) + 1;
+		aCellHeight = (int) std::count(aRows[c].begin(), aRows[c].end(), '\n');
+	}
+	if (isNew)
+	{
+		aStripImage->Create(aStripWidth, aCellHeight);
+		ulong* aBits = aStripImage->GetBits();
+		for (int i = 0; i < aStripWidth * aCellHeight; i++)
+			aBits[i] = 0x00FFFFFF;
+	}
+
+	mFontLayerList.push_back(FontLayer(this));
+	FontLayer* aLayer = &mFontLayerList.back();
+	mFontLayerMap.insert(FontLayerMap::value_type("MAIN", aLayer));
+	aLayer->mImage = aStrip;
+	aLayer->mAscent = aBuiltinFont.GetAscent();
+	aLayer->mDefaultHeight = aCellHeight;
+	aLayer->mLineSpacingOffset = aBuiltinFont.GetLineSpacingOffset();
+
+	int aX = 0;
+	for (int c = aFirstChar; c < 256; c++)
+	{
+		const std::string& aGlyph = aRows[c];
+		size_t anEnd = aGlyph.find('\n');
+		int aWidth = (anEnd == std::string::npos) ? 0 : (int) anEnd;
+		if (isNew)
+		{
+			ulong* aBits = aStripImage->GetBits();
+			for (int y = 0; y < aCellHeight; y++)
+			{
+				for (int x = 0; x < aWidth; x++)
+				{
+					if (aGlyph[y * (aWidth + 1) + x] == '#')
+						aBits[y * aStripWidth + aX + x] = 0xFFFFFFFF;
+				}
+			}
+		}
+		aLayer->mCharData[c].mImageRect = Rect(aX, 0, aWidth, aCellHeight);
+		aLayer->mCharData[c].mWidth = aBuiltinFont.CharWidth((SexyChar) c);
+		aX += aWidth + 1;
+	}
+	if (isNew)
+	{
+		aStripImage->mHasTrans = true;
+		aStripImage->mHasAlpha = true;
+		aStripImage->BitsChanged();
+	}
+	return true;
 }
 
 bool FontData::LoadLegacy(Image* theFontImage, const std::string& theFontDescFileName)
@@ -1043,6 +1146,27 @@ bool FontData::LoadLegacy(Image* theFontImage, const std::string& theFontDescFil
 
 	int aCharPos = 0;
 	FILE *aStream = Platform::VFS::Get().Open(theFontDescFileName, "r"); // port: was fopen()
+
+	if ((aStream == NULL) && (Platform::Placeholders()))
+	{
+		// port: -placeholders (platform/Placeholders.h): without its descriptor every printable character gets an
+		// equal cel; a placeholder image grows to hold them, a real image is shared out between them
+		Platform::NoteMissing(theFontDescFileName);
+		int aHeight = aFontLayer->mImage->GetHeight();
+		int aCharWidth = aFontLayer->mImage->mPlaceholder ? std::max(1, aHeight / 2) :
+			std::max(1, aFontLayer->mImage->GetWidth() / ('~' - '!' + 1));
+		if (aFontLayer->mImage->mPlaceholder)
+			SexyAppBase::GrowPlaceholder(aFontLayer->mImage, aCharWidth * ('~' - '!' + 1), aHeight);
+		for (int c = '!'; c <= '~'; c++)
+		{
+			aFontLayer->mCharData[c].mImageRect = Rect(aCharPos, 0, aCharWidth, aHeight);
+			aFontLayer->mCharData[c].mWidth = aCharWidth;
+			aCharPos += aCharWidth;
+		}
+		aFontLayer->mCharData[' '].mWidth = aCharWidth;
+		mInitialized = true;
+		return true;
+	}
 
 	if (aStream==NULL)
  		return false;
@@ -1070,6 +1194,9 @@ bool FontData::LoadLegacy(Image* theFontImage, const std::string& theFontDescFil
 
 		aCharPos += aWidth;
 	}
+
+	// port: a placeholder for the missing font image (-placeholders) grows to hold the glyphs
+	SexyAppBase::GrowPlaceholder(aFontLayer->mImage, aCharPos, aFontLayer->mImage->GetHeight());
 
 	char c;
 	
