@@ -49,11 +49,11 @@ enum
 	// the v2 save and the variant boards' MOVE fields in the LOGIC hash. 3: stage 7, the board shape rules (sizes,
 	// masks, level shapes), which earlier engines played on the original 8x8, and the displayed score's fast roll
 	// with a mod's scoring tunables (Board::RollScoreFast). 4: stage 7b, dirt cells (board.mask "d"), which earlier
-	// engines played as holes, and their diagonal slides. The original rules are frozen, so a replay of them (no
-	// variant rule, no scoring tunable changed: GameRules::PlaysAlikeInEveryEngine) from an earlier engine still
-	// plays (CheckPlayable). games/bejeweled/tools/bjr.py repeats both
+	// engines played as holes, and their diagonal slides. 5: stage 8, board.gemColors 8..12, which earlier engines
+	// played as 7. The original rules are frozen, so a replay of them (no variant rule, no scoring tunable changed,
+	// at most 7 gem colours: GameRules::PlaysAlikeInEveryEngine) from an earlier engine still plays (CheckPlayable). games/bejeweled/tools/bjr.py repeats both
 	// values (the verifier's tests check that they agree)
-	ENGINE_ABI = 4,
+	ENGINE_ABI = 5,
 	FIRST_ENGINE_ABI = 1,
 	MT_WORDS = 624,
 	RULES_ID_SIZE = 32,
@@ -245,14 +245,15 @@ enum
 	MAX_SAVES_PER_SEGMENT = 4       // the game makes 3 at most: Shutdown's, ~Board's, a snapshot sidecar's
 };
 // Stage 7: theCols x theRows bound the cells events name (the largest of the rules' shapes), and theShapes, the
-// rules' level shapes, are what an LDSV's v2 save is checked against (CheckSave).
+// rules' level shapes, are what an LDSV's v2 save is checked against (CheckSave). Stage 8: so are theGemColors, the
+// colours the rules play (GameConfig::mGemColors).
 bool				CheckPlayable(const File& theFile, int theCols, int theRows, std::string* theError = NULL,
-						bool isOriginalRules = false, const std::vector<BoardLayout>* theShapes = NULL);
+						bool isOriginalRules = false, const std::vector<BoardLayout>* theShapes = NULL, int theGemColors = 7);
 
 // Whether theSave is a save the original rules' LoadGame (Board.cpp, 0x4cca98) can take from an LDSV record
 // without trusting it: version 1, exactly the length its present cells make on a theCols x theRows board,
 // and every value inside what a game in progress can have, where the board draws, indexes or loops with it
-// (piece colour 0..6 and the cell it is in, the animation frames, bools 0 or 1, finite doubles, the state,
+// (piece colour 0..theGemColors - 1 and the cell it is in, the animation frames, bools 0 or 1, finite doubles, the state,
 // level, bar, vortex and wipe values). LoadGame takes any savegame.dat as the original does; a replay's
 // bytes come from someone else. With theRulesId (the replay's RLID) a v2 save of those rules passes too
 // (stage 5, below): its header names them and the board's shape (a full theCols x theRows board, level shape
@@ -262,7 +263,7 @@ bool				CheckPlayable(const File& theFile, int theCols, int theRows, std::string
 // may be of any of them: its level shape one of theShapes, its size and mask that shape's, its level one of that
 // shape (mLevel % the count), its cells read over that size.
 bool				CheckSave(const std::string& theSave, int theCols, int theRows, std::string* theError = NULL,
-						const uint8_t* theRulesId = NULL, const std::vector<BoardLayout>* theShapes = NULL);
+						const uint8_t* theRulesId = NULL, const std::vector<BoardLayout>* theShapes = NULL, int theGemColors = 7);
 
 // The v2 save of a variant board (games/bejeweled/docs/CODE_MODS_DESIGN.md 7.2; Board::WriteSaveGame and
 // Board::LoadGame, the board's part in BoardSave.cpp), little-endian:

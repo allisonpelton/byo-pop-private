@@ -200,6 +200,15 @@ left out for a candidate built without variant paths, BEJ_NO_VARIANTS; flags "k=
               alternate: up at an even count of flips, down at an odd one; on one board a move or a refill flips
               once, a swap that went back or a kept invalid move not at all, and an undo brings back the count of
               the settle it returns to.
+More gem colours (stage 8, games/bejeweled/docs/CODE_MODS_DESIGN.md 4.2; candidate runs with the mods of
+mods/stage8, every build: board.gemColors is a tunable; flags "k=v;k=v"):
+  colors      "colors=N": every gem in the TRACE rows a colour 0..N-1, all N of them with "all"; above 7 colours the
+              game logs the gem sheet grown to at least N rows. "sheet=R": the dump of the script command gemsheet
+              (shots/gemsheet.png) is 780 x R*104, every row after the first 7 drawn; with "ref=<case>" the first
+              rows are those of that case's dump and the rows after them are the generated ones (a mod's HD art
+              makes the 1x rows a scaled copy of its own, so that case has no ref); "glyphs=a-b": those rows carry
+              the corner glyph (white at (41, 39) of the first frame); "hd=S": the HD pixels dumped too
+              (shots/gemsheet@Sx.png), S times the size
 Finished replays are named after the wall clock: compared and listed with replays/<yyyymmdd>-<hhmmss>- masked
 as replays/*- (normal_path), their contents without META's date (compare_bjr).
 Auto LiveSplit (stage 2b, games/bejeweled/docs/CODE_MODS_DESIGN.md 4.15; candidate runs):
@@ -269,7 +278,7 @@ WALL_CLOCK = [(re.compile(r"Seconds = [0-9.e+-]+"), "Seconds = *"),
               (re.compile(r"(Update Count = -?[0-9]+, Draw Count = )[0-9]+"), r"\1*")]  # DRAWS: compare_log
 DRAW_LINE = re.compile(r"Seconds = ([0-9.e+-]+), Sleep Count = -?[0-9]+, Update Count = -?[0-9]+, Draw Count = ([0-9]+)")
 EXPECT_KINDS = ("script", "load", "quitcut", "inert", "autoplay", "seeded", "recording", "samestream", "reference",
-                "playback", "variant")
+                "playback", "variant", "colors")
 AUTO_KEYS = ("exit", "mods", "user", "settle", "settles", "last-settle", "states", "snap", "save", "sidecar", "replay",
              "status", "seeds", "end", "codec", "watch", "variant")
 NOVARIANTS = "@novariants"  # expect.txt: "<case>@novariants" facts, a BEJ_NO_VARIANTS candidate's own (expect-update)
@@ -1911,6 +1920,76 @@ def swapped_cells(a, b):
     return cells
 
 
+GEM_ROW = 104       # the gem sheet's rows per colour (GemSheet.h)
+GEM_GLYPH = (41, 39)  # the generated rows' glyph centre in the first frame
+
+
+def png_size(path):
+    """(width, height) from a PNG's IHDR"""
+    with open(path, "rb") as f:
+        head = f.read(24)
+    if head[:8] != b"\x89PNG\r\n\x1a\n":
+        raise ValueError("not a PNG")
+    return struct.unpack(">II", head[16:24])
+
+
+def colors_check(r, cand, run, flags, label):
+    """A run with more gem colours (stage 8, module comment "colors")"""
+    f = parse_flags(flags)
+    n = int(f.get("colors", "7"))
+    seen = set()
+    for line in run_stdout(run):
+        if line.startswith("TRACE   row "):
+            seen.update(int(t) for t in line.split(":", 1)[1].split() if t.isdigit())
+    if not seen:
+        r.fail("%s: no TRACE rows" % label)
+        return False
+    if max(seen) >= n:
+        r.fail("%s: colours %s on the board, colors=%d" % (label, sorted(c for c in seen if c >= n), n))
+    if "all" in f and len(seen) != n:
+        r.fail("%s: %d of the %d colours on the board (%s)" % (label, len(seen), n, sorted(seen)))
+    logged = [m.group(1) for m in (re.search(r"Gem sheet: (\d+) colour rows", line)
+                                   for line in read_lines(os.path.join(run, "stderr.txt"))) if m]
+    if n > 7 and (not logged or int(logged[-1]) < n):
+        r.fail("%s: the gem sheet grown to %s rows for %d colours" % (label, logged[-1] if logged else "no", n))
+    if "sheet" in f:
+        rows = int(f["sheet"])
+        path = os.path.join(run, "shots", "gemsheet.png")
+        if not os.path.exists(path):
+            r.fail("%s: no gem sheet dump (shots/gemsheet.png)" % label)
+            return False
+        w, h, px = png_pixels(path)
+        if (w, h) != (780, rows * GEM_ROW):
+            r.fail("%s: the gem sheet is %dx%d, expected 780x%d" % (label, w, h, rows * GEM_ROW))
+            return False
+        first = 7
+        if "ref" in f:
+            _, _, ref = png_pixels(os.path.join(cand, f["ref"], "shots", "gemsheet.png"))
+            if px[:len(ref)] != ref:
+                r.fail("%s: the gem sheet's first rows differ from %s's" % (label, f["ref"]))
+            first = len(ref) // (w * 4 * GEM_ROW)
+        stride = w * 4
+        for row in range(first, rows):
+            alpha = px[row * GEM_ROW * stride + 3:(row + 1) * GEM_ROW * stride:4]
+            if sum(1 for a in alpha if a) < w * GEM_ROW // 4:
+                r.fail("%s: generated row %d is nearly empty" % (label, row))
+        if "glyphs" in f:
+            lo, _, hi = f["glyphs"].partition("-")
+            for row in range(int(lo), int(hi or lo) + 1):
+                x, y = GEM_GLYPH
+                at = (row * GEM_ROW + y) * stride + x * 4
+                if min(px[at:at + 4]) < 250:
+                    r.fail("%s: row %d has no glyph (%s at (%d, %d))" % (label, row, tuple(px[at:at + 4]), x, y))
+        r.out("    gem sheet: %d rows, %d generated" % (rows, rows - first))
+        if "hd" in f:
+            scale = int(f["hd"])
+            hd = os.path.join(run, "shots", "gemsheet@%dx.png" % scale)
+            if not os.path.exists(hd) or png_size(hd) != (780 * scale, rows * GEM_ROW * scale):
+                r.fail("%s: the HD dump %s is %s, expected %dx%d" % (label, os.path.basename(hd),
+                       "%dx%d" % png_size(hd) if os.path.exists(hd) else "missing", 780 * scale, rows * GEM_ROW * scale))
+    return True
+
+
 def variant_check(r, cand, run, flags, label):
     """A run with stage-5 rules (module comment, "variant")"""
     before = r.failures
@@ -2460,6 +2539,8 @@ def compare(oracle, expect_path=None):
             seed_check(r, cand, run, flags, "seeds")
         elif kind == "variant":
             variant_check(r, cand, run, flags, "variant")
+        elif kind == "colors":
+            colors_check(r, cand, run, flags, "colors")
         elif kind == "recording":
             recording_check(r, os.path.join(cand, f.get("ref", "")), run, "cross " + f.get("ref", ""))
             if "boards" in f:
@@ -2545,7 +2626,7 @@ def compare(oracle, expect_path=None):
                 check_expect(r, run, kind, expect[name + NOVARIANTS], flags)
             else:
                 check_expect(r, run, kind, expect.get(name, []), flags)
-        if kind in ("script", "load", "inert", "autoplay", "seeded", "recording", "samestream", "reference", "variant"):
+        if kind in ("script", "load", "inert", "autoplay", "seeded", "recording", "samestream", "reference", "variant", "colors"):
             for s in list_tree(os.path.join(run, "snaps"), lambda p: p.endswith(".dat")):
                 r.out("    snapshot %s: %s" % (s, save_state(os.path.join(run, "snaps", s))))
             for s in savegames(run):

@@ -2205,7 +2205,7 @@ bool GameRules::ScoringTunablesChanged() const
 
 bool GameRules::PlaysAlikeInEveryEngine() const
 {
-	return !HasVariantRules() && !ScoringTunablesChanged();
+	return !HasVariantRules() && !ScoringTunablesChanged() && (mBoard.mGemColors <= ORIGINAL_GEM_COLORS);
 }
 
 bool GameRules::HasDirtRule() const

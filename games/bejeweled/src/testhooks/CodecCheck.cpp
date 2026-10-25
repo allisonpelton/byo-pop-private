@@ -75,7 +75,8 @@ void CodecCheck::AfterUpdate()
 		std::vector<BoardLayout> aShapes;
 		for (int i = 0; i < aBoard->mRules.ShapeCount(); i++)
 			aShapes.push_back(aBoard->mRules.LayoutForLevel(i));
-		if (!Replay::CheckSave(aBytes, aBoard->mCols, aBoard->mRows, &aWhy, aBoard->mVariant.mAny ? anId : NULL, aBoard->mVariant.mAny ? &aShapes : NULL))
+		if (!Replay::CheckSave(aBytes, aBoard->mCols, aBoard->mRows, &aWhy, aBoard->mVariant.mAny ? anId : NULL, aBoard->mVariant.mAny ? &aShapes : NULL,
+			GameConfig::GemColors(aBoard->mRules)))
 			aDiff = "the save: " + aWhy;
 		else if (aBoard->mVariant.mAny)
 		{

@@ -102,7 +102,8 @@ public:
 	Board*			mBoard;                     // +0x788 current board widget (NewGame); kept while the HighScoreWidget shows
 	TitleScreen*	mTitleScreen;               // +0x78c title screen until TitleScreenIsFinished
 	Image**			mImages;                    // +0x790 new Image*[NUM_IMAGES] indexed by ImageId (DDImages from GetImage)
-	MemoryImage***	mGemShrinkImages;           // +0x794 [7 colors][6 frames] 49x49 shrinking-gem images (new [7] of new [6])
+	MemoryImage***	mGemShrinkImages;           // +0x794 [7 colors][6 frames] 49x49 shrinking-gem images (new [7] of new [6]);
+	                                            // port(variant): [Board::MAX_GEM_COLORS], mGemShrinkColors of them made
 	HighScoreWidget* mHighScoreWidget;          // +0x798 game-over screen (ShowHighScoreWidget), removed by NewGame
 	SexyString		mLastScoreName;             // +0x79c registry LastScoreName; prefills RecordScoreDialog
 	std::list<ButtonWidget*> mButtonList;       // +0x7b8 side-bar buttons made by MakeButton (pad, _Myhead +0x7bc, _Mysize +0x7c0)
@@ -135,6 +136,8 @@ public:
 	//   script command "save <file>": writes the save a shutdown would write now (GetShutdownSaves) to
 	//                        <file> without touching the game, and its sidecar (when it has one) next to it
 	//                        under the sidecar's extension; it logs only when it cannot
+	//   script command "gemsheet <file.png>": port(variant): the gem sheet as grown for more colours (stage 8,
+	//                        GemSheet.h) to <file.png>, its HD pixels (a mod's @2x art) to <file>@<n>x.png
 	//   -codeccheck=<file>   port(variant): after every update, StateCodec's round trip (6.6) on the board:
 	//                        a line per settle and per failure, a summary at the end
 	//                        (games/bejeweled/src/testhooks/CodecCheck.h)
@@ -159,6 +162,7 @@ public:
 	WatchController* mWatch;                    // port(variant): -replay (NULL without)
 	bool			mReplayQuit;                // port(variant): -replayquit
 	uint32_t		mNextValuesBoard;           // port(mods): the board ApplyNextGameValues last tried (Board::mBoardSerial)
+	int				mGemShrinkColors;           // port(variant): the colours mGemShrinkImages has images for
 
 public:
 	WinDMApp();                                                     // 0x4d4d82
@@ -213,6 +217,11 @@ public:
 	// port(variant): set seed (games/bejeweled/docs/CODE_MODS_DESIGN.md 6.2): NewGame's choice of the new
 	// board's RNG
 	void			ChooseBoardRng();
+
+	// port(variant): more gem colours (games/bejeweled/docs/CODE_MODS_DESIGN.md 4.2, GemSheet.h): before a board of
+	// theColors colours, the gem sheet gets the rows it lacks and the shrink images their colours
+	void			EnsureGemColors(int theColors);
+	void			MakeGemShrinkImages(int theColor);
 
 	// port(mods): the mod menu's "Restart game" and messages (docs/MOD_MENU_DESIGN.md 6, 8.2): a game in progress
 	// (Restart asks first); no restart while the high-score name is being entered; a restart keeps the replay

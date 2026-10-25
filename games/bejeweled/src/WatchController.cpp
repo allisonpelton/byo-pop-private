@@ -136,7 +136,7 @@ bool WatchController::Load(std::string* theError)
 		aMaxCols = std::max(aMaxCols, aShapes.back().mCols);
 		aMaxRows = std::max(aMaxRows, aShapes.back().mRows);
 	}
-	if (!Replay::CheckPlayable(mFile, aMaxCols, aMaxRows, &anError, mRules.PlaysAlikeInEveryEngine(), &aShapes))
+	if (!Replay::CheckPlayable(mFile, aMaxCols, aMaxRows, &anError, mRules.PlaysAlikeInEveryEngine(), &aShapes, GameConfig::GemColors(mRules)))
 	{
 		*theError = anError;
 		return false;
@@ -278,6 +278,7 @@ void WatchController::CreateBoard()
 	gGameConfig.mNextBoardSeed = 0;
 	gGameConfig.mNextBoardUserSeeded = false;
 	gGameConfig.mNextBoardPlayback = &aSegment;
+	anApp->EnsureGemColors(gGameConfig.mGemColors);   // the replay's rules may want more colours than loaded
 	mBoard = new Board(anApp, isTimed);
 	anApp->mBoard = mBoard;
 	// Only the player updates it (Step), once per frame like the game

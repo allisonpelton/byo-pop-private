@@ -103,6 +103,9 @@
 # Stage 7b (dirt) plays the rule mods of mods/stage7b: dirt cleared by the bot and gems sliding diagonally under it,
 # in timed mode, under Twilight's gravity, on two level shapes, a scripted game saved in the middle of a cascade with
 # its DIRT chunk, resumed, undone, recorded and played back (compare.py "variant" with "dirt"). Left out the same way.
+# Stage 8 (more gem colours) plays the mods of mods/stage8 in every build (board.gemColors is a tunable): the gem
+# sheet grown to 9 and 12 rows (the default looks, a mod's imageOps, a mod's HD art) and dumped, the bot on 12
+# colours, recorded and watched without the mod (compare.py "colors").
 #
 # The frozen exes (build/baseline, build/baseline-stage0) predate the audio shutdown fix (af758b9) and can
 # crash on exit after writing all their outputs: a baseline or hooks-baseline run that exits 139 or with an
@@ -1013,15 +1016,17 @@ define_cases() {
 	# original rules that engine 1 recorded and saved is resumed as before: ReplayRecorder::OnLoad continues its sidecar,
 	# as Replay::CheckPlayable plays it. A sidecar the resume cannot continue (here one a later engine wrote) is kept as
 	# a finished replay first, END saved (Board::DeleteSaveSidecar), so its moves are not lost; the new replay holds the
-	# loaded save (LDSV). rec_main's sidecar with its engine ABI changed (compare.py corrupt-replay engine<n>) stands in.
-	for n in 1 5; do
+	# loaded save (LDSV). rec_main's sidecar with its engine ABI changed (compare.py corrupt-replay engine<n>) stands in:
+	# engine 1's, and the engine after this build's (bjr.py ENGINE_ABI + 1), which no build has written yet
+	NEXT_ENGINE=$(( $(sed -n 's/^ENGINE_ABI = \([0-9]*\).*/\1/p' "$GAME/tools/bjr.py") + 1 ))
+	for n in 1 "$NEXT_ENGINE"; do
 		dep_id candidate/rec_main
 		enqueue "gen/engine${n}_sidecar.bjr" engine_job "$n"
 	done
 	recording rec_load_engine1 "playtest_load.txt in a copy of rec_main's user dir whose sidecar engine 1 wrote: the original rules' replay goes on, two segments as in rec_load" \
 		load 1 "$PT/playtest_load.txt" from=rec_main savegame="$OUT/gen/engine1_sidecar.bjr" saveas=savegame.bjr
-	recording rec_load_engine5 "the same with a sidecar of engine 5, which this build cannot continue: a fresh replay of the loaded save (LDSV); the sidecar's game is kept in replays/ (END saved)" \
-		load 1 "$PT/playtest_load.txt" from=rec_main savegame="$OUT/gen/engine5_sidecar.bjr" saveas=savegame.bjr
+	recording rec_load_engine_next "the same with a sidecar of engine $NEXT_ENGINE, the one after this build's, which it cannot continue: a fresh replay of the loaded save (LDSV); the sidecar's game is kept in replays/ (END saved)" \
+		load 1 "$PT/playtest_load.txt" from=rec_main savegame="$OUT/gen/engine${NEXT_ENGINE}_sidecar.bjr" saveas=savegame.bjr
 	playback watch_main_engine1 "rec_main's sidecar as engine 1 wrote it: an original-rules replay of engine 1 plays" "trace=rec_main" \
 		"$OUT/gen/engine1_sidecar.bjr"
 	playback watch_load_engine1 "rec_load_engine1's sidecar: engine 1's segment and this engine's in one replay" "trace=rec_main,rec_load_engine1" \
@@ -1308,6 +1313,37 @@ define_cases() {
 	else
 		echo "$VTAG  (the candidate has no variant paths: the stage-5, 6, 7, 7c and 7b cases are left out)"
 	fi
+
+	# Stage 8: more gem colours (games/bejeweled/docs/CODE_MODS_DESIGN.md 4.2), a tunable every build plays. sheet.txt
+	# dumps the gem sheet (the script command gemsheet): the original's 7 rows, then 12 with the default looks, 9 with
+	# a mod's imageOps (and its mistakes warned), 12 on the crystal gems' @2x art. The bot on 12 colours, to the game
+	# over and in timed mode, recorded and watched without the mod: the replay's rules grow the sheet then.
+	S8="$PT/stage8"
+	M8="$GAME/tools/oracle/mods/stage8"
+	# colors <case> <description> <flags> <seed> <script or -> [options]
+	colors() {
+		local name=$1 desc=$2 flags=$3
+		shift 3
+		printf '%s\t%s\t%s\t%s\n' "$name" colors "$desc" "$flags" >> "$OUT/cases.txt"
+		run candidate "$name" "$@"
+	}
+	COLORBOT=(arg=-autoplaycap=20000 arg=-autoplaylog=autoplay.txt)
+	colors colors_seven "stage8/sheet.txt without mods: the original 7 rows, the dump the others start with" \
+		"colors=7;sheet=7" 1 "$S8/sheet.txt"
+	colors colors_twelve "stage8/sheet.txt, mods/stage8/twelve: 5 rows generated with the default looks and their glyphs" \
+		"colors=12;sheet=12;ref=colors_seven;glyphs=7-11" 1 "$S8/sheet.txt" modsdir="$M8/twelve"
+	colors colors_nine "stage8/sheet.txt, mods/stage8/nine: its imageOps' two rows, the second without a glyph; 3 warnings" \
+		"colors=9;sheet=9;ref=colors_seven;glyphs=7" 1 "$S8/sheet.txt" modsdir="$M8/nine"
+	colors colors_crystal "stage8/sheet.txt, mods/stage8/crystal: 12 rows on the 1x and the @2x pixels" \
+		"colors=12;sheet=12;glyphs=7-11;hd=2" 1 "$S8/sheet.txt" modsdir="$M8/crystal"
+	colors colors_auto "-autoplay=1, mods/stage8/twelve: 12 colours to the game over" \
+		"colors=12" 1 - modsdir="$M8/twelve" arg=-autoplay=1 "${COLORBOT[@]}"
+	colors colors_auto_timed "-autoplay=2 -autoplaytimed, mods/stage8/twelve, 20000 updates: every colour matched" \
+		"colors=12;all" 1 - modsdir="$M8/twelve" arg=-autoplay=2 arg=-autoplaytimed "${COLORBOT[@]}"
+	recording rec_colors_auto_timed "colors_auto_timed recorded (mods/stage8/twelve-replays)" \
+		colors_auto_timed 1 - modsdir="$M8/twelve-replays" arg=-autoplay=2 arg=-autoplaytimed "${COLORBOT[@]}"
+	playback watch_colors_auto_timed "rec_colors_auto_timed's sidecar watched without the mod: its rules grow the sheet to 12" \
+		"trace=rec_colors_auto_timed" "$C/rec_colors_auto_timed/user/savegame-*.bjr"
 
 	# Stage 4: the headless verifier and the web build under Node (games/bejeweled/tools/verify/oracle_cases.sh): the
 	# drift guard on every replay above, the verifier's tests and difftest, LOGIC hashes of the web build

@@ -251,9 +251,13 @@ static void TestTunables()
 	Check(!aTiming.mRules.ScoringTunablesChanged() && aTiming.mRules.PlaysAlikeInEveryEngine(), "a timing tunable: alike in every engine");
 	Result aVariant = Merge({{"undo", "{\"rules\": {\"undo\": {\"enabled\": true}}}"}});
 	Check(!aVariant.mRules.ScoringTunablesChanged() && !aVariant.mRules.PlaysAlikeInEveryEngine(), "a variant rule: not alike in every engine");
+	// Stage 8: engines before 5 played board.gemColors above 7 as 7
+	Check(Merge({{"six", "{\"tunables\": {\"board\": {\"gemColors\": 6}}}"}}).mRules.PlaysAlikeInEveryEngine(), "gemColors 6: alike in every engine");
+	Check(Merge({{"seven", "{\"rules\": {\"board\": {\"gemColors\": 7}}}"}}).mRules.PlaysAlikeInEveryEngine(), "gemColors 7: alike in every engine");
+	Check(!Merge({{"eight", "{\"rules\": {\"board\": {\"gemColors\": 8}}}"}}).mRules.PlaysAlikeInEveryEngine(), "gemColors 8: not alike in every engine");
 
 	// The old lenient reading: wrong types give the default, numbers are truncated, empty arrays are
-	// ignored, gemColors is clamped (to 3..12 here; GameConfig plays at most 7 until stage 8), unknown keys
+	// ignored, gemColors is clamped (to 3..12, as GameConfig plays it), unknown keys
 	// are ignored silently
 	r = Merge({{"lenient", "{\"tunables\": {\"scoring\": {\"hintPenalty\": \"x\", \"excellentFactor\": true, \"lengthBonus\": 12.7, "
 		"\"longLengthBonus\": null, \"setValues\": []}, \"board\": {\"gemColors\": 20}, \"timing\": {\"startDrainDelay\": -5.9}, "
@@ -1364,7 +1368,7 @@ static void TestReplayFormat()
 	// A golden vector: the smallest file (header and END) and a one-segment file, byte for byte, the same on
 	// native and wasm (engine ABI 4 since stage 7b)
 	Replay::File anEmpty;
-	Check(Hex(Replay::Write(anEmpty)) == "424a5250010000000400000045" "4e4420" "1d000000" "00" "00000000" "00000000" "00000000"
+	Check(Hex(Replay::Write(anEmpty)) == "424a5250010000000500000045" "4e4420" "1d000000" "00" "00000000" "00000000" "00000000"
 		"00000000" "0000000000000000" "00000000", "replay: golden bytes of a file with only END");
 	Replay::File aSmall;
 	Replay::Segment aSegment;
@@ -1375,7 +1379,7 @@ static void TestReplayFormat()
 	aSmall.mEnd.mReason = Replay::END_NO_MOVES;
 	aSmall.mEnd.mScore = 90;
 	std::string aSmallHex = Hex(Replay::Write(aSmall));
-	Check(aSmallHex == "424a52500100000004000000" "5345474d" "1d000000" "00" "00" "92100000" "00" "00" "00000000" "00000000"
+	Check(aSmallHex == "424a52500100000005000000" "5345474d" "1d000000" "00" "00" "92100000" "00" "00" "00000000" "00000000"
 		"02000000" "a001" "01" "0a" "0a" "01" "03" "01" "01"
 		"454e4420" "1d000000" "01" "00000000" "5a000000" "00000000" "00000000" "0000000000000000" "00000000",
 		"replay: golden bytes of a one-segment file (got " + aSmallHex + ")");
@@ -1877,16 +1881,16 @@ static void TestReplayPlayable()
 	Check(!Replay::CheckPlayable(anOld, 8, 8, &aWhy, true), "playable: refused: a later engine, even for the original rules");
 	anOld.mEngineAbi = 0;
 	Check(!Replay::CheckPlayable(anOld, 8, 8, &aWhy, true), "playable: refused: engine 0");
-	// Stage 7: engine 3 (the board shape rules); stage 7b: engine 4 (dirt). An earlier engine's replays of variant rules
-	// no longer play, its replays of the original rules do
-	for (uint32_t anAbi = 2; anAbi <= 3; anAbi++)
+	// Stage 7: engine 3 (the board shape rules); stage 7b: engine 4 (dirt); stage 8: engine 5 (more gem colours). An
+	// earlier engine's replays of variant rules no longer play, its replays of the original rules do
+	for (uint32_t anAbi = 2; anAbi < (uint32_t) Replay::ENGINE_ABI; anAbi++)
 	{
 		anOld.mEngineAbi = anAbi;
 		aWhy.clear();
 		Check(Replay::CheckPlayable(anOld, 8, 8, &aWhy, true), "playable: the original rules recorded by engine " + std::to_string(anAbi) + " (" + aWhy + ")");
 		Check(!Replay::CheckPlayable(anOld, 8, 8, &aWhy, false), "playable: refused: variant rules recorded by engine " + std::to_string(anAbi));
 	}
-	Check(Replay::ENGINE_ABI == 4, "playable: this is engine 4 (stage 7b)");
+	Check(Replay::ENGINE_ABI == 5, "playable: this is engine 5 (stage 8)");
 }
 
 // A v2 save (Replay.h, games/bejeweled/docs/CODE_MODS_DESIGN.md 7.2) around the v1 test save's fields: the rules
@@ -2071,6 +2075,13 @@ static void TestReplayVariantSave()
 	memcpy(&aBadColour[aHeader - 4 + SavePieceAt(2, 3, offsetof(Piece, mColor))], &aSeven, 4);
 	aWhy.clear();
 	Check(!Replay::CheckSave(aBadColour, 8, 8, &aWhy, anId) && !aWhy.empty(), "v2 check: refused: colour 7 in a cell (" + aWhy + ")");
+	aWhy.clear();
+	// Stage 8: the rules' colours bound it
+	Check(Replay::CheckSave(aBadColour, 8, 8, &aWhy, anId, NULL, 8), "v2 check: colour 7 of 8 colours passes (" + aWhy + ")");
+	int32_t aTwelve = 12;
+	memcpy(&aBadColour[aHeader - 4 + SavePieceAt(2, 3, offsetof(Piece, mColor))], &aTwelve, 4);
+	aWhy.clear();
+	Check(!Replay::CheckSave(aBadColour, 8, 8, &aWhy, anId, NULL, 12) && !aWhy.empty(), "v2 check: refused: colour 12 of 12 colours (" + aWhy + ")");
 	aWhy.clear();
 	Check(Replay::CheckSave(V1Save(), 8, 8, &aWhy, anId), "v2 check: a v1 save still passes (LoadGame says which a board takes) (" + aWhy + ")");
 

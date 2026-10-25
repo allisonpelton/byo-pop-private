@@ -2169,6 +2169,33 @@ games/bejeweled/docs/CODE_MODS_DESIGN.md 4.14, as built (`BoardShape.cpp`, `Boar
   gems). A cleared cell sends a puff of dust (`DrawDirtDust`, over the gems; cosmetic, not saved). A mod's
   `images/dirttile` replaces the tile.
 
+### 12.13 More gem colours (code mods, stage 8)
+
+games/bejeweled/docs/CODE_MODS_DESIGN.md 4.2, as built (`GemSheet.cpp`, `WinDMApp::EnsureGemColors`).
+`board.gemColors` plays 3..12 (`GameConfig::GemColors`); the original paths already draw `Rand() % mGemColors`, so
+it stays a tunable that every build plays, `BEJ_NO_VARIANTS` included.
+
+- **The sheet.** `images/gemsheet6` gives each colour 104 px: 15 spin frames in a 52 px row, then the glow frames.
+  Before a board is made (`NewGame`, and `WatchController::CreateBoard` with the replay's rules), `EnsureGemColors`
+  grows the sheet to the rules' colours: a mod's taller sheet needs nothing, the rows it lacks are recoloured
+  copies of another row, on the 1x pixels and on a mod's HD pixels alike (`GemSheet::Extend`, then `SetBits` and
+  `SetHDBits`, so the texture follows). A watched replay of more colours than loaded grows it then.
+- **Looks.** The enabled mods' `imageOps` (`extendRows` on `images/gemsheet6`, 104 px rows) give the generated rows
+  their looks in order; the others get the default looks: the white gem tinted rose, teal, violet, onyx, lime. A
+  tint keeps the base row's shading as lightness (luminance to the power 1.6, so the white gem's bright body takes
+  the colour) under the tint's hue and saturation; `hue`, `saturation` and `lightness` then rotate, scale and shift.
+  What an op gets wrong is a warning in mods-status.json (`GemSheet::ModLooks`).
+- **Glyphs.** Each generated row has a white glyph with a dark outline in the bottom right of every frame (circle,
+  square, triangle, diamond, star for rows 7..11; `"glyph": false` leaves it out), so the extra colours differ by
+  more than colour.
+- **Shrink images.** `mGemShrinkImages` has room for 12 colours. `Init` makes the original 7, so the loading bar
+  counts as before; `EnsureGemColors` makes the others (`mGemShrinkColors`).
+- **Replays.** A save's piece colour is checked against the rules' colours (`Replay::CheckSave`,
+  `CheckPlayable`'s `theGemColors`). Engine ABI 5: engines before it played more than 7 colours as 7, so their
+  replays of such rules no longer play (`GameRules::PlaysAlikeInEveryEngine` wants at most 7).
+- **Test hook.** The script command `gemsheet <file.png>` writes the sheet as grown, and its HD pixels next to it.
+- **Not built.** `gGemTints` (the design's per-colour average) waits for the first effect that tints by gem.
+
 ---
 
 ## 13. Naming reconciliation (analyst names → chosen names)

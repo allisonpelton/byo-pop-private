@@ -1,9 +1,8 @@
 {
   "id": "s1-nine",
-  "name": "Stage 1: nine colours",
+  "name": "Stage 1: nine colour rows",
   "version": "1.0",
-  "description": "Oracle fixture: board.gemColors 9 (played as 7 until stage 8) and imageOps (kept, not applied in stage 1), one of them with an unknown op.",
-  "rules": { "board": { "gemColors": 9 } },
+  "description": "Oracle fixture: imageOps for a ninth gem colour, one of them with an unknown op. Until stage 8 it also set board.gemColors 9, played as 7; stage 8 plays 9, so the rule left (mods/stage8 has it). With 7 colours no row is generated.",
   "imageOps": [
     { "target": "images/gemsheet6", "op": "extendRows", "rowHeight": 104, "rows": 9, "generate": [ { "from": 1, "hue": 35 } ] },
     { "target": "images/gemsheet6", "op": "extendRow" }

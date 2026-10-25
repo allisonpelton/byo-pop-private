@@ -1,0 +1,7 @@
+# Stage 8 (more gem colours): the title, a new game's settled first board, the gem sheet it is drawn from (the
+# script command gemsheet: the 1x pixels, and a mod's HD pixels next to them), the quit.
+20 screenshot shots/01_title.png
+300 click 320 398
+445 screenshot shots/02_board.png
+446 gemsheet shots/gemsheet.png
+450 quit

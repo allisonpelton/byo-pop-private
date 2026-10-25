@@ -3,6 +3,7 @@
 
 #include "GameConfig.h"
 #include "LiveSplitObserver.h"
+#include "GemSheet.h"
 #include "platform/ModManager.h"
 #include "platform/VFS.h"
 #include "PakInterface.h"
@@ -194,29 +195,8 @@ static void AddBuildWarnings(const GameRules& theRules, const GameFeatures& theF
 		theStatus->mWarnings.push_back({theFeatures.mLiveSplitMod, "features.livesplit: desktop only, ignored"});
 #endif
 
-	if (theRules.mBoard.mGemColors > 7)
-	{
-		char aText[128];
-		snprintf(aText, sizeof(aText), "board.gemColors %d: this build has art for 7 gem colours and plays with 7", theRules.mBoard.mGemColors);
-		std::vector<std::string> aMods = ProvenanceFor(*theStatus, "board.gemColors");
-		theStatus->mWarnings.push_back({aMods.empty() ? std::string() : aMods[0], aText});
-	}
-
-	std::vector<std::string> aWarned;
-	const std::vector<Platform::ModImageOp>& anOps = Platform::ModManager::Get().GetImageOps();
-	for (size_t i = 0; i < anOps.size(); i++)
-	{
-		const JsonValue& anOp = anOps[i].mOp;
-		if (!anOp.IsObject() || !anOp["target"].IsString() || !anOp["op"].IsString())
-			theStatus->mWarnings.push_back({anOps[i].mModId, "imageOps: each entry needs \"target\" and \"op\" strings"});
-		else if (anOp["op"].AsString() != "extendRows")
-			theStatus->mWarnings.push_back({anOps[i].mModId, "imageOps: unknown op \"" + anOp["op"].AsString() + "\" (did you mean extendRows?)"});
-		if (std::find(aWarned.begin(), aWarned.end(), anOps[i].mModId) == aWarned.end())
-		{
-			aWarned.push_back(anOps[i].mModId);
-			theStatus->mWarnings.push_back({anOps[i].mModId, "imageOps are not applied by this build yet"});
-		}
-	}
+	// The gem sheet's generated rows (stage 8): what the imageOps get wrong
+	GemSheet::ModLooks(Platform::ModManager::Get().GetImageOps(), &theStatus->mWarnings);
 }
 
 static JsonValue MessagesJson(const std::vector<RulesMessage>& theMessages)

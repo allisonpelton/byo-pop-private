@@ -115,6 +115,7 @@ public:
 		RULES_VERSION = 1,
 		MIN_GEM_COLORS = 3,
 		MAX_GEM_COLORS = 12,
+		ORIGINAL_GEM_COLORS = 7,   // the original gem sheet's; engines before 5 played at most these
 		MAX_LEVELS = 64,        // board.levels
 		MAX_SHAPES = 32         // match.shapes: Validate's fill minimum grows with shapes x levels
 	};
@@ -264,8 +265,9 @@ public:
 	// A scoring tunable (setValues, lengthBonus, longLengthBonus, excellentFactor, hintPenalty) differs from the
 	// original's: the board's displayed score then closes large gaps fast (Board::RollScoreFast, stage 7)
 	bool							ScoringTunablesChanged() const;
-	// Replays of these rules play alike in every engine from Replay::FIRST_ENGINE_ABI on: no variant rule and no
-	// scoring tunable changed (engine 3 changed how their displayed score rolls)
+	// Replays of these rules play alike in every engine from Replay::FIRST_ENGINE_ABI on: no variant rule, no
+	// scoring tunable changed (engine 3 changed how their displayed score rolls) and at most 7 gem colours (engines
+	// before 5 played 7 when the rules asked for more)
 	bool							PlaysAlikeInEveryEngine() const;
 	std::vector<std::string>		VariantKeys() const;   // those keys, in schema order
 	std::vector<std::string>		LookKeys() const;      // the look.* keys that differ from their defaults
