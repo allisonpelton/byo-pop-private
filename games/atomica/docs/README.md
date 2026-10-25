@@ -52,6 +52,8 @@ four atoms of one colour that lacks one and sends it an atom, otherwise it makes
 the game over of level 1 in the strategy mode) but it runs everything a player runs: selecting, paths, molecules, the
 meter, new atoms, the end of a game, the menu.
 
+An AddressSanitizer build (2026-10-25): `cmake -S . -B build/native-asan -G Ninja -DCMAKE_BUILD_TYPE=Debug -DCMAKE_TOOLCHAIN_FILE=cmake/llvm-mingw-i686.cmake -DSDL2_DIR=... "-DCMAKE_CXX_FLAGS=-fsanitize=address -fno-omit-frame-pointer -O1" "-DCMAKE_C_FLAGS=<the same>"`, then `cmake --build build/native-asan --target atomica` and copy `libclang_rt.asan_dynamic-i386.dll` (llvm-mingw's `i686-w64-mingw32/bin`) next to the exe. The bot's strategy and action games (with and without `-autoplayfinish`, which takes it through 23 levels), and a script that saves a game and continues it, ran with no report.
+
 ## Mods
 
 None yet (the user's rule: no mods before every PopCap game works in the browser). `MOD_IDEAS.md` lists the ones worth making.
