@@ -60,6 +60,7 @@ re-reads the whole context, so what costs is context times calls, and a cache th
   those, in the background, and waits for the notification instead of polling.
 - Read narrowly: grep, then the range you need; the section of a doc, not the doc. Send long output to a
   log file and print a summary line.
+- Test with `tools/check.sh <suite>...` (`--help` lists them): one line per suite, logs in files.
 - Give an agent the files and sections it needs, so it need not read the design docs to find them.
 
 ## Sessions, ownership and git (the user's rules)

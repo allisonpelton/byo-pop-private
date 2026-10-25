@@ -65,7 +65,9 @@ The weekly limit of a 20x plan ran out in about 36 hours (2026-10-18 and 19, UTC
   full builds, wait loops. The session that owns the work runs those itself, in the background.
 - Read narrowly: grep for the place, then read that range. Do not `cat` or Read whole large files, and
   read the section of a document that matters, not the document.
-- Tests and builds print one summary line each and write their logs to files.
+- Test with `tools/check.sh`: one summary line per suite, logs in `build/logs/check/`. Open a log only
+  when its suite fails. `tools/check.sh quick` (the native build and unit tests) takes seconds; the oracle
+  and the game bots belong to the session that owns the work, in the background.
 - Do not poll. Start a long command in the background and wait for its notification.
 - Prefer page text to screenshots; when an image is needed, use a small scale or a zoomed region.
 - Brief an agent with the files and sections it needs, so it does not read the design documents to
