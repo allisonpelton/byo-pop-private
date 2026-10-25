@@ -490,16 +490,16 @@ void HighScoreWidget::Resize(int theX, int theY, int theWidth, int theHeight)
 	mMenuLink->Resize(mWidth / 2 - 0xd7 + mX, 0x1a2, 0x1ae, 0x22);
 }
 
-// 0x411ea0: hiscores.dat is five times [u16 length][name][i32 score][i32 check]; a check that does not match
-// ends the load
+// 0x411ea0: hiscores.dat is five times [u16 length][name][i32 score][i32 check]. Each record is stored as it is
+// read: the name up to its first NUL, and the score, or when the check does not match the score's remainder
+// mod 256 (C's %, so a negative score stays negative); the next record is read all the same. A file that ends early
+// (the original's fread just fails there) keeps the records read so far and leaves the later ones as they were.
 void HighScoreWidget::Load()
 {
 	std::string aData;
 	if (!Platform::ReadHostFile(Platform::VFS::Get().GetUserDir() + "/hiscores" + ScoreKeySuffix() + ".dat", &aData))
 		return;
 	size_t aPos = 0;
-	std::string aNames[5];
-	int aScores[5];
 	for (int i = 0; i < 5; i++)
 	{
 		if (aPos + 2 > aData.size())
@@ -509,7 +509,7 @@ void HighScoreWidget::Load()
 		aPos += 2;
 		if (aPos + aLen + 8 > aData.size())
 			return;
-		aNames[i].assign(aData.data() + aPos, aLen);
+		std::string aName(aData.data() + aPos, aLen);
 		aPos += aLen;
 		int aScore, aCheck;
 		memcpy(&aScore, aData.data() + aPos, 4);
@@ -517,15 +517,9 @@ void HighScoreWidget::Load()
 		aPos += 8;
 		unsigned int aWant = (unsigned int) aScore ^ 0x42beef;
 		for (int j = 0; j < (int) aLen; j++)
-			aWant ^= (unsigned int) (aNames[i][j] * 0x11);
-		if ((unsigned int) aCheck != aWant)
-			return;
-		aScores[i] = aScore;
-	}
-	for (int i = 0; i < 5; i++)
-	{
-		mNames[i] = aNames[i];
-		mScores[i] = aScores[i];
+			aWant ^= (unsigned int) (aName[j] * 0x11);
+		mNames[i] = aName.c_str();
+		mScores[i] = ((unsigned int) aCheck == aWant) ? aScore : aScore % 256;
 	}
 }
 

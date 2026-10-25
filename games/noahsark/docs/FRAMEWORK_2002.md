@@ -53,3 +53,67 @@ The original's save format is "version 2" (the board, the pieces, the app's coun
 `savegame.dat` in the user folder with the same field order, and `hiscores.dat` in the original layout with the
 original's checksum. The registry values (options, the registered flag, the name of the last score) go to
 `registry.ini`, as in the other ports.
+
+The high-score file is five records of `[u16 length][name][i32 score][i32 check]`, the check being the score xor
+0x42beef xor each name byte (a signed char) times 0x11. The loader (0x411ea0) keeps a record whose check does not match
+but stores its score as `score % 256`, and reads on; a mod set that changes play gets the file name's score key
+(`hiscores-<key>.dat`, `savegame-<key>.dat`).
+
+## Dialogs
+
+`Dialog` (0x428360 to 0x4290e0) is the 2002 class that the port's `Dialog2004` stands in for: a header, a block of
+word-wrapped lines, then either yes/no buttons or one footer button (button mode 3), inside content insets. Its preferred
+height (`GetPreferredHeight`, slot 47, 0x428580) is the two insets, plus the header font's height, plus the wrapped
+lines' height when there are lines (10 below the header), plus a row of yes/no buttons unless the mode is the footer
+one, plus the footer button's font height with 8 above and 8 below. The dialogs with a fixed size do not use it:
+
+The dialogs that have a fixed size override slot 47 with a function that only returns a constant, and Ghidra does not
+make functions of those (two instructions, `mov eax, N; ret 4`), so they are missing from the decompilation: found by
+reading the vtables (find a dialog class's vtable from the address of one of its functions, then slot 47 at offset
+0xbc). The sizes, and the calls that place the dialogs (the app's `Show...` functions, each ending in a virtual
+`Resize(x, y, w, h)` with y centred as `(480 - h) / 2` where the table says so):
+
+| Dialog | Slot 47 | Height | Placed by |
+|---|---|---|---|
+| Options | 0x4209f0 | 0x1b6 (438) | 0x418c40: Resize(0xd5, centred, 0x17c, h) |
+| Tutorial | 0x4209f0 (the same) | 0x1b6 | 0x418d70: Resize(0xd5, centred, 0x17c, h) |
+| Difficulty | 0x411130 | 0x140 (320) | |
+| High scores | 0x411730 | 0x12c (300) | 0x41ae80: Resize(0xf5, 0x5a, 0x12c, h) |
+| Record a score | 0x411730 (the same) | 0x12c | 0x41add0: Resize(0x96, centred, 0x154, h) |
+| Register | 0x41e570 | 0x160 (352) | |
+
+The dialogs the app makes with its plain `DoDialog` (the base `Dialog` class) never ask for a height: their creators call
+`Resize(x, y, w, h)` with literals, which were checked against the disassembly of each creator and match the port:
+quit to the menu or leave the game (0x416e80) 0xbb, 0x57, 0x1a0, 300; new game with a saved game (0x41a0b0) 0x6e, 0x73,
+0x1a4, 0xfa for the action game and 0x6e, 0x64, 0x1a4, 0x118 for strategy and puzzle (one shared tail); how to play
+(0x419650) 0x5a, 0x37, 0x1cc, 0x186 for action and strategy, 0x78, 0x5a, 0x1a4, 300 for the puzzle and its bonus,
+0x5f, 0x5a, 0x1c2, 300 for the Stampede; registered (0x418f70, the branch after the Register dialog's creator) 0x78,
+0x78, 0x190, 0xf0; credits 0x78, 0x41, 0x190, 0x15e; the difficulty dialog (0x418ea0) 0x78, centred, 0x190, 0x140.
+
+The decompiler hides what happens between two calls of one slot: `h = GetPreferredHeight(w)` is followed by a second
+call of the same slot with the width as its argument, to centre the dialog, and the width of the dialog is pushed for the
+`Resize` before that call, so the width it passes to `Resize` can differ from the one it passes to the height
+function (the record-score dialog asks for the height with 0x13c and is 0x154 wide). Disassemble the creator
+(`llvm-objdump -d --x86-asm-syntax=intel --start-address=...` on the exe reads PE files directly) when a decompiled
+`Resize` call has lost its arguments.
+
+## Reading this compiler's output
+
+The decompiler shows Visual C++ 6.0 code with idioms that are easy to translate wrongly (the review of the port
+against the decompilation found the first three as bugs):
+
+A loop that starts its counter at -1 and tests `limit < i` before incrementing runs one iteration more than the `for`
+loop with the same bound: the abandon penalty's partner search (0x4067e0) covers cells 0 to 80, not 0 to 79.
+
+`x & 0x800000ff` followed by `(v - 1 | 0xffffff00) + 1` for negative v is C's signed `x % 256`, not `x & 0xff`.
+
+Moving a piece or an animal between two cells swaps *every* field the original copies, including the pixel position
+(`mPixelX`/`mPixelY`, +0x10/+0x14); the cell that is vacated gets the other cell's old position cut to whole pixels
+(`(float)(int)`, the two `__ftol` calls). An animal that is flying to the ark keeps flying when the board rises or the
+columns close in only because its pixel position moves with it.
+
+`(end - begin) & 0xfffffffc == 0` on a vector of 4-byte elements means "empty": a guard that reads "fewer than 2" in a
+translation is wrong. Strings and vectors are MSVC 6's, shown as inline copies; `decread.py` collapses them.
+
+A comment about what the original does is a claim: check it against the decompilation before writing it (the port had a
+comment that said five rows where the loop fills four, and one that said a bad high-score check ends the load).
