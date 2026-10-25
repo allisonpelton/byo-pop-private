@@ -15,6 +15,7 @@
 #include "ModWords.h"
 #include "Solver.h"
 #include "Undo.h"
+#include "GreedyBots.h"
 
 #include "WidgetManager.h"
 #include "DialogButton.h"
@@ -609,6 +610,9 @@ Board::Board(BookWormApp* theApp)
 	mModFireDue = 0;
 	mModDangerPending = false;
 	mModWordsPlayed = 0;
+	mBots = NULL;
+	mBotsChecked = false;
+	mModMoves = 0;
 	if (ModFeatureEnabled("undo"))
 	{
 		mUndo = new UndoStack(this);
@@ -691,6 +695,8 @@ Board::~Board()
 	mSolver = NULL;
 	delete mUndo;       // port(mod)
 	mUndo = NULL;
+	delete mBots;       // port(mod)
+	mBots = NULL;
 
 	if (mRand != NULL)
 	{
@@ -1432,6 +1438,8 @@ void Board::Scramble()
 
 	if (mUndo != NULL)
 		mUndo->Push();  // port(mod): the board before the scramble
+	mModMoves++;        // port(mod): the move, for the -autoplay bot's model check
+	mModLastMove.clear();
 
 	// play counting: never in the retail build (MaxTime 60, NAMES.md D49 / L6)
 	if ((!mPlayCounted) && (mApp->mMaxTime == 0) && (mApp->mMaxPlays == 0))
@@ -1831,6 +1839,12 @@ void Board::Submit(int x, int y)
 				mApp->PlaySample(SOUND_WORDCOMPLETE);
 			else
 				mApp->PlaySample(SOUND_REDTILECLEARED);
+
+			// port(mod): the move, for the -autoplay bot's model check
+			mModMoves++;
+			mModLastMove.clear();
+			for (PieceList::iterator anItr = mSelection.begin(); anItr != mSelection.end(); ++anItr)
+				mModLastMove.push_back((*anItr)->mRow * BOARD_COLS + (*anItr)->mCol);
 
 			// the tiles leave the grid and fly to Lex (the FlyingPieceList owns them now)
 			RemovePieces(&mSelection);
@@ -2465,6 +2479,7 @@ void Board::Update()
 		mSolver->Update();  // port(mod): a hint asked for while the tiles moved
 	if (mUndo != NULL)
 		mUndo->Update();    // port(mod): an undo asked for while the tiles moved
+	UpdateBots();           // port(mod)
 	mApp->mPlayTicks++;
 
 	PieceList aDeadPieces;  // tiles burned away this tick, deleted at the end
@@ -3759,6 +3774,9 @@ void Board::WriteSavedGame(FILE* theFile, int theMode, bool isHelpOpen)
 	// port(mod): the game's count of the stats' mod words, after the original record
 	if (ModWordStatsLabel().length() != 0)
 		FileWriteInt(theFile, mModWordsPlayed);
+	// port(mod): then the greedy bots' results and games (read by LoadGame: an undo leaves the bots as they are)
+	if (ModFeatureEnabled("greedyBots"))
+		GreedyBots::Write(theFile, mBots);
 }
 
 // 0x408ab0 (the app's 2005, after StartGame made a fresh board): reads the record into this board. Versions
@@ -3777,6 +3795,8 @@ bool Board::LoadGame(int theMode)
 
 	bool isHelpOpen = false;
 	bool isRead = ReadSavedGame(aFile, &isHelpOpen);
+	if ((isRead) && (ModFeatureEnabled("greedyBots")))
+		ReadBots(aFile);    // port(mod)
 	fclose(aFile);
 	if (!isRead)
 		return false;
@@ -4037,6 +4057,38 @@ bool Board::ReadSavedGame(FILE* theFile, bool* isHelpOpen)
 	if ((ModWordStatsLabel().length() != 0) && (fread(&aModWords, 1, 4, theFile) == 4) && (aModWords >= 0))
 		mModWordsPlayed = aModWords;
 	return true;
+}
+
+// port(mod): the greedy bots of a saved game, after its record; none there (a game saved without the mod), and
+// the bots begin only if the game has not: a fresh game's first board
+void Board::ReadBots(FILE* theFile)
+{
+	delete mBots;
+	mBots = new GreedyBots();
+	if (!mBots->Read(theFile, mApp))
+	{
+		delete mBots;
+		mBots = NULL;
+	}
+	mBotsChecked = mBots != NULL;
+}
+
+// port(mod): the greedy bots begin at a fresh Classic game's first board and play some moves each tick, a
+// little while the player plays and more once the game is over, where the summary shows their results
+void Board::UpdateBots()
+{
+	if ((!mBotsChecked) && (mState == BOARD_PLAYING))
+	{
+		mBotsChecked = true;
+		if ((mBots == NULL) && (mApp->mGameMode == GAMEMODE_CLASSIC) && (ModFeatureEnabled("greedyBots")) &&
+			(mGameStats->mWords == 0) && (mGameStats->mScrambles == 0))
+		{
+			mBots = new GreedyBots();
+			mBots->Start(this);
+		}
+	}
+	if (mBots != NULL)
+		mBots->Update(((mState == BOARD_GAMEOVER) || (mState == BOARD_GAMEOVER_MUSIC)) ? 12.0 : 2.0);
 }
 
 void Board::GetGlobalState(int* theLastLetterIdx, int* theLastRefillLevel)

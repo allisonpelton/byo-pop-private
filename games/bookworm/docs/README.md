@@ -87,6 +87,7 @@ original's.
 | `undo` (Undo) | An UNDO button beside OPTIONS, and Ctrl+Z: takes back the last word or scramble (up to 10, setting 1..100), within a level and while in play. The board, score, fire meter, Lex and bonus word come back as they were, and the same word played again brings the same new tiles (the generators come back too). The clocks run on. |
 | `collins` (Collins Scrabble Words) | Adds Collins Scrabble Words (CSW24, 280,652 playable words; the game has 151,381) to the dictionary, with their definitions in Lex's balloon, in the game's style; a word without one gets the note "A word from Collins Scrabble Words." A click on a definition balloon opens the word on collinsdictionary.com (setting: Wiktionary, or nothing). The list is the player's own and git-ignored: `python games/bookworm/tools/make_collins_mod.py <NASPA Zyzzyva folder> [--definitions <words with definitions.txt>]` writes `collins-words.txt` and `collins-defs.txt` into the mod folder. Start-up takes about 1.4 s longer natively. |
 | `rude-words` (Rude Words) | Adds 312 swear words, crude slang and internet slang the game's list leaves out (no slurs), from our own list. Each one played sets fire to some of the tiles that drop in to replace it, never on the bottom row: 2 (0..9), one per so many letters, or all of them. Settings for its points (a multiplier, 0 or negative too) and bonus tiles (as usual, none, or a rude word removes them all). Lex comments in his balloon (65 comments, the definition under it) and cries danger; the level and game-over page counts the game's rude words and the player's all-time total. The solver ranks such words after the safe ones ("SETS FIRE"). |
+| `greedy-bots` (Greedy Bots) | In Classic, two simple players play their own games from the board you began with, while you play: one always plays the best-scoring word, the other the word that takes the most urgent fire first (else the best). On the game-over page a balloon above Lex gives their scores, how far each got and which of them you beat. A model of the Classic rules plays them, checked against the game move by move; a saved game keeps them. Your own game is unchanged, with the usual high scores. |
 
 The tests use the `-autoplay` bot. With `-autoplayhints=1` it plays the solver's first hint every move (Tab,
 then Submit) and logs `HINT MISMATCH` wherever the game scores a word otherwise than the solver said; on seed 1
@@ -94,7 +95,13 @@ it plays Classic to level 24 in 30,000 updates (193 words, fire, bonus and best 
 `-autoplayundo=1` as well it undoes every other word (the button and Ctrl+Z in turn), checks the board against
 the one before the word, plays the same hint again and checks the board against the first play's (Classic
 only: in Action the timed fire tiles depend on when the word comes); `UNDO MISMATCH` where one differs. Seed
-1, 30,000 updates: Classic 109 checks, Action 56, no mismatch.
+1, 30,000 updates: Classic 109 checks, Action 56, no mismatch. With `-autoplaymodel=1` (Classic, without
+undo) the greedy bots' model takes every move the game takes, from the game's first board, and must come to
+the same board, score, fire meter, bonus word and level at each rest, and to the same end; `MODEL MISMATCH`
+where it does not (MOD_IDEAS.md 4.2). With the mod `greedy-bots` the game-over note gives the bots' results,
+and `-autoplayshots` also shoots the game-over page with their balloon. `-autoplaycontinue=1` answers the
+continue-game question yes, so a second run in the same user dir goes on with the game the first one's quit
+saved.
 
 ```bash
 mkdir -p <dir>/mods && cp -r games/bookworm/mods/solver games/bookworm/mods/undo <dir>/mods/

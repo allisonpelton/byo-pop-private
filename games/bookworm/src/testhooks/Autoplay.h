@@ -27,7 +27,8 @@
 // updates later (or plays the next mode first). It never opens the Options dialog and never clicks a link
 // other than the title's play link; an unexpected dialog makes it quit.
 // -autoplaycap=<n> quits at update n (default 200000). -autoplayshots=<prefix> saves
-// <prefix><mode>-levelup<n>.png, <prefix><mode>-gameover.png, <prefix><mode>-fame.png and, every
+// <prefix><mode>-levelup<n>.png, <prefix><mode>-gameover.png (with the mod "greedy-bots" also
+// <prefix><mode>-gameover-bots.png, once their balloon is up), <prefix><mode>-fame.png and, every
 // -autoplayshotwords=<n> words (default 25, 0: none), <prefix><mode>-word<n>.png (script lines, so a
 // replay of the log takes them too).
 // -autoplayhints=1 (with the mod "solver" on): every move is the word solver's first hint, asked for with Tab
@@ -37,6 +38,12 @@
 // in turn), the board checked against the one before the word, the same hint played again and the board
 // checked against the first play's; "UNDO MISMATCH" where one differs (letters, tile types, score, fire).
 // In Action the replay is not checked: the timed fire tiles depend on when the word comes.
+// -autoplaymodel=1 (Classic, without -autoplayundo): the greedy bots' model of the rules (GreedyBots.h) starts
+// from the game's first board and takes every move the game takes (Board::mModLastMove); at each rest after
+// a move the model's board, score, fire meter, bonus word and level must be the game's, and at game over the
+// model's game must be over with the same score. "MODEL MISMATCH" where one differs (the model then starts
+// again from the game's board). With the mod "greedy-bots" on, the game-over note gives the bots' results.
+// -autoplaycontinue=1: the continue-game question gets a yes, so a game saved by an earlier run's quit goes on.
 
 #include <cstdio>
 #include <random>
@@ -48,6 +55,7 @@ namespace Sexy
 
 class BookWormApp;
 class Board;
+class BotGame;
 class Widget;
 
 class AutoplayBot
@@ -55,7 +63,7 @@ class AutoplayBot
 public:
 	AutoplayBot(BookWormApp* theApp, unsigned long theSeed, const std::string& theMode, int theUpdateCap,
 		const std::string& theLogFileName, const std::string& theShotPrefix, int theShotWords, bool theUseHints,
-		bool theTestUndo);
+		bool theTestUndo, bool theCheckModel);
 	~AutoplayBot();
 
 	// After each update (BookWormApp::UpdateFrames): looks at the game, queues input for the next update
@@ -126,6 +134,12 @@ private:
 	int mUndoWordsScored;           // mWordsScored when the word was planned
 	int mUndoChecks;
 	int mUndoMismatches;
+	bool mCheckModel;
+	BotGame* mModel;                // the model's game, from mModelBoard's first board
+	Board* mModelBoard;
+	int mModelMoves;                // the moves it took (the game's mModMoves when it agrees)
+	int mModelChecks;
+	int mModelMismatches;
 	bool mDone;
 	int mQuitAt;                    // update of the quit once the last game is done, -1 before
 
@@ -137,6 +151,8 @@ private:
 	int mWaitUntil;
 	const void* mNameDialog;        // the new-user dialog a name was typed into
 	bool mSummaryNoted;             // the summary on screen was logged (and shot)
+	int mSummaryNotedAt;            // the update it was
+	bool mBotsShot;                 // the game-over summary shot again with the greedy bots' balloon
 	bool mFameNoted;
 	int mLevelUps;
 
@@ -187,6 +203,9 @@ private:
 	static std::string BoardState(Board* theBoard);
 	void CheckUndo(Board* theBoard, const std::string& theExpected, const char* theWhat);
 	bool PlanUndoTest(Board* theBoard);
+	bool ModelTakesMove(Board* theBoard);
+	void CheckModel(Board* theBoard);
+	void CheckModelEnd(Board* theBoard);
 	int RunStep(Board* theBoard, const Step& theStep);
 	void EndDrag(const char* theWhy);
 	void DropPlan(const char* theWhy);

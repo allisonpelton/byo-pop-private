@@ -14,7 +14,8 @@ redistributed, stay git-ignored. How to install and test the mods that exist: RE
 | 2 | Undo (`mods/undo`) | done |
 | 3 | Bigger dictionary, with Collins (`mods/collins`) | done |
 | 4 | Rude words that set fires (`mods/rude-words`) | done |
-| 5 | The greedy-bot comparison; HD art; the smaller ideas | next |
+| 5 | Greedy bots on the game-over page (`mods/greedy-bots`) | done |
+| 6 | HD art; the smaller ideas; typing a word to play it (4.6, the user's idea) | next |
 
 Code mods read their switches from the mod's `"features"` (`src/ModFeatures.h`: a feature on, a live
 setting's value) and say `"affectsScores": true`, so their games get their own high scores and saved games
@@ -117,13 +118,37 @@ the same, since each mod's words are those the game's own list lacks, whatever o
   undone, leaves an all-time total of 21. Earlier: the plain bot burns out on level 2 (level 8 without), and
   the solver bot with undo, Classic 109 checks and Action 56, found no mismatch.
 
-### 4.2 Against greedy bots, on the game-over screen (the user's idea)
-At game over the stats screen also shows what two simple players would have scored from the same start: one
-that always plays the best-scoring word, one that always puts out the most urgent fire first. At the start of a
-game the board and the generators' state are kept; at game over a headless model of the Classic rules (Submit,
-burning, refill, the fire meter, special tiles, level thresholds and bonus words, drawing from the generators
-in the game's order) plays both bots from that start with the solver's search. The model is checked against
-the real game with the `-autoplay` bot (same moves, same boards and scores).
+### 4.2 Against greedy bots, on the game-over screen (done, the user's idea)
+Mod `greedy-bots` (feature `"greedyBots"`, `src/GreedyBots.cpp`), Classic only, `"affectsScores": false` (the
+player's game is untouched). At a fresh game's first board (no word or scramble yet) `BotGame::Capture` copies
+the board, `gGameRand` and the rest of the state the rules draw on (RandomLetter's previous letter, Refill's
+previous level, the fire meter, the reward streak, the bonus words). Two bots then play their own games from
+there, about 2 ms of moves a tick while the player plays and 12 ms once the game is over, until each burns
+out, is stuck or reaches 2,500 moves:
+- **Best word**: the best-scoring word, the bonus word's points included, one that ends the game at once only
+  when nothing else is there; then the longest.
+- **Fire first**: the safest word (the solver's safety); among those, one with fire tiles first, in the
+  solver's fire-hint order (the lowest fire tile, then the most); else the best-scoring.
+
+Both use the solver's search (`FindSolverWords`), scored at the bot's own level (`WordScore::mLevel`: the
+game's scoring reads the board's level), and scramble when the board spells nothing. The model (`BotGame`) is
+Submit, Scramble, Refill, BurnTiles, RemovePieces, AwardSpecialTile, the rude-words effects, PickBonusWord and
+LevelUp, drawing from its copy of the generator in the game's order, and the tile pass as far as it decides
+when burning tiles are gone (each tick in which tiles burn away refills once, so the ticks count). Not
+modelled: a gold, sapphire or diamond tile shaking under a fire tile (the jitter comes from the board's visual
+generator) may burn a few ticks later in the game; and the bonus banner's slide (the model has the next bonus
+word at once).
+
+At game over, once the page has slid in, a balloon above Lex gives both scores and how each game ended
+("burned at level 14", "level 53, still going") and which bots the player beat; while they still play it
+follows them. A saved game keeps their results and the games still going (after the record; `LoadGame` reads
+them, an undo leaves the bots as they are).
+- Tested hidden with `-autoplaymodel=1` (README.md): seed 1 with the plain bot (level 8, 57 moves) and the
+  hint bot (level 42, 1,006 moves), seed 2 (25 moves): 1,088 checks, no mismatch; the games' own play as
+  before. The bots took 0.8 to 2.2 s in all, natively (about 0.6 ms a move). From seed 1's start the best-word
+  bot burned out at level 13 with 126,410, the fire-first bot at level 44 with 4,969,150; seed 2: level 14,
+  and level 53 at the cap. A game quit while the bots played and continued by a second run
+  (`-autoplaycontinue=1`) ended them exactly as the uninterrupted game.
 
 ### 4.3 HD art
 A generator like Bejeweled's (Real-ESRGAN in `E:\retools`) that upscales the player's own images into a
@@ -146,6 +171,15 @@ JPEG backdrops with a denoising model; tile letters redrawn from a free vector f
   cels, letter weights (26 summing to 95,500) and values, the "Qu" rule, the minimum length. A language pack is
   then a word list, bonus words, definitions, `texts.xml` and tile art.
 - **Gameplay variants**: board size, fire-tile rate, a timed sprint, a relaxed no-fire mode, set seeds.
+
+### 4.6 Type a word (the user's idea, 2026-10-24)
+Type a word on the keyboard and press Enter to play it: the game finds it on the board. Where the board
+spells it more than once, the path taken is the one with the most fire tiles; among equals, one that drops no
+fire tile (the solver's safety: a path that eats the tiles under a fire tile drops it, one that leaves a bottom
+fire tile out ends a Classic game); otherwise any. The search is the solver's (`FindSolverWords`: every path,
+scored and rated by Submit's own rules). To settle when it is built: the typed letters shown as a selection
+(the best path for the letters so far), Backspace and Esc, Q typed as the Qu tile, a buzz when the board does
+not spell the word, and keys the game already uses (Tab for a hint, Ctrl+Z for undo).
 
 ## What works as plain data today (no code)
 

@@ -47,6 +47,20 @@ enum SolverSafety
 	SOLVER_FATAL                // classic: a fire tile on the bottom row is left out: the game ends
 };
 
+struct SolverWord;
+class BookWormApp;
+
+// Every path over theTiles (the board's lettered tiles, in the order to search them) that spells a word, with
+// Submit's points and what it does to the fire (the solver's candidates; the greedy bots' too)
+void FindSolverWords(const std::vector<Piece*>& theTiles, BookWormApp* theApp, std::vector<SolverWord>* theWords,
+	int theLevel = -1);
+
+// The solver's orders (true: a comes first): safer first, then for the fire hint the lowest fire tile taken,
+// the most fire tiles, the remaining fire left highest and the points; by score the points, the remaining
+// fire left highest and the length
+bool SolverBetterForFire(const SolverWord& a, const SolverWord& b);
+bool SolverBetterByScore(const SolverWord& a, const SolverWord& b);
+
 struct SolverWord
 {
 	SexyString			mWord;

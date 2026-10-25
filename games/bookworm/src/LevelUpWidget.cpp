@@ -6,6 +6,7 @@
 #include "ModWords.h"
 #include "OverlayWidget.h"
 #include "WordBalloon.h"
+#include "GreedyBots.h"
 #include "ColorizedButton.h"
 #include "Res.h"
 #include "Compat2004.h"
@@ -97,6 +98,7 @@ LevelUpWidget::LevelUpWidget(BookWormApp* theApp)
 	mFooterY = 0;
 	mLexArrived = false;
 	mUnused78 = 0.03;
+	mBotsBalloon = NULL;
 }
 
 // 0x42be40 (scalar deleting dtor 0x42beb0)
@@ -109,6 +111,8 @@ LevelUpWidget::~LevelUpWidget()
 		delete mContinueButton;
 		mContinueButton = NULL;
 	}
+	delete mBotsBalloon;    // port(mod)
+	mBotsBalloon = NULL;
 }
 
 // 0x42b980
@@ -159,6 +163,8 @@ void LevelUpWidget::SetVisible(bool isVisible)
 {
 	Widget::SetVisible(isVisible);
 	mContinueButton->SetVisible(isVisible);
+	if (mBotsBalloon != NULL)
+		mBotsBalloon->SetVisible(isVisible);    // port(mod): hidden with the page (the help screen)
 }
 
 // 0x42bb10. Creates the Continue button the first time, parked at the bottom-right corner (off the screen)
@@ -190,6 +196,8 @@ void LevelUpWidget::RemovedFromManager(WidgetManager* theWidgetManager)
 
 	if (mContinueButton != NULL)
 		theWidgetManager->RemoveWidget(mContinueButton);
+	if (mBotsBalloon != NULL)
+		theWidgetManager->RemoveWidget(mBotsBalloon);   // port(mod)
 
 	if ((mApp->mBoard != NULL) && (mApp->mBoard->mLex != NULL))
 	{
@@ -330,7 +338,80 @@ void LevelUpWidget::Update()
 		WordBalloon* aBalloon = mApp->mBoard->mOverlay->mBalloon;
 		if (aBalloon->mVisible)
 			aBalloon->Show(0);
+		UpdateBotsBalloon();    // port(mod)
 	}
+}
+
+// port(mod): a greedy bot's line in the balloon: its score, then how its game went
+static SexyString BotLine(const char* theName, const GreedyBotResult& theResult)
+{
+	SexyString aLine = StrFormat("%s: %s\n", theName, CommaSeperate(theResult.mScore).c_str());
+	if (theResult.mEnd == GREEDY_PLAYING)
+		return aLine + StrFormat("level %d, playing...", theResult.mLevel + 1);
+	if (theResult.mEnd == GREEDY_CAPPED)
+		return aLine + StrFormat("level %d, still going", theResult.mLevel + 1);
+	return aLine + StrFormat("%s at level %d", (theResult.mEnd == GREEDY_STUCK) ? "stuck" : "burned", theResult.mLevel + 1);
+}
+
+// port(mod): at game over, once the page has slid in, the scores of the greedy bots (mod "greedy-bots") from
+// the game's first board in a balloon above Lex, in the left column; it follows their games until both have
+// ended, then says which of them the player beat. A click hides it.
+void LevelUpWidget::UpdateBotsBalloon()
+{
+	static int aColors[4][4] = { {255, 255, 255, 255}, {0, 0, 0, 255}, {0, 0, 0, 255}, {0, 0, 0, 255} };   // Lex::Say's
+	Board* aBoard = mApp->mBoard;
+	GreedyBots* aBots = aBoard->mBots;
+	if ((aBots == NULL) || (!aBots->mHasResults) || (aBoard->mState != BOARD_GAMEOVER) || (mWidgetManager == NULL))
+		return;
+
+	const GreedyBotResult& aBest = aBots->mResults[GREEDY_BEST_WORD];
+	const GreedyBotResult& aFire = aBots->mResults[GREEDY_FIRE_FIRST];
+	SexyString aText = BotLine("Best word", aBest) + "\n\n" + BotLine("Fire first", aFire);
+	SexyString aFooter;
+	if (aBots->Finished())
+	{
+		int aScore = aBoard->mGameStats->mScore;
+		bool beatBest = aScore > aBest.mScore;
+		bool beatFire = aScore > aFire.mScore;
+		if ((beatBest) && (beatFire))
+			aFooter = "You beat both bots!";
+		else if (beatBest)
+			aFooter = "You beat the best-word bot!";
+		else if (beatFire)
+			aFooter = "You beat the fire-first bot!";
+		else
+			aFooter = "The bots win this time.";
+	}
+
+	Lex* aLex = aBoard->mLex;
+	if (mBotsBalloon == NULL)
+	{
+		mBotsBalloon = new WordBalloon(mApp, mApp->mImages[IMAGE_BACKDROP_WB_TEXT], mApp->mImages[IMAGE_WB_TEXT_TALK_TAIL],
+			Point(0, -2));
+		mBotsBalloon->SetColors(aColors, 4);
+		mBotsBalloon->mTextInsets = Insets(10, 0, 10, 0);
+		mWidgetManager->AddWidget(mBotsBalloon);
+		mBotsBalloon->Show(-1);
+	}
+	else if (aText + aFooter == mBotsText)
+	{
+		mBotsBalloon->Move(mBotsBalloon->mX, aLex->mY - mBotsBalloon->mHeight + 30);
+		return;
+	}
+	mBotsText = aText + aFooter;
+
+	// as wide as the column left of the page; the tail over Lex's head
+	int aWidth = (mWidth - mPanelImage->GetWidth() - 5) - 4;
+	mBotsBalloon->SetBoxImages(mApp->mImages[IMAGE_BACKDROP_WB_TEXT], mApp->mImages[IMAGE_WB_TEXT_TALK_TAIL],
+		Point((int)(aWidth * 0.6), -2));
+	mBotsBalloon->SetHeader("Greedy bots", mApp->mFonts[FONT_MYRIADWEB12BOLD], 0);
+	mBotsBalloon->SetText(aText, mApp->mFonts[FONT_MYRIADWEB10], -1);
+	if (aFooter.length() != 0)
+		mBotsBalloon->SetFooter(aFooter, mApp->mFonts[FONT_MYRIADWEB12BOLD], 0);
+	else
+		mBotsBalloon->ClearFooter();
+	int aHeight = mBotsBalloon->GetPreferredHeight(aWidth);
+	mBotsBalloon->Resize(2, aLex->mY - aHeight + 30, aWidth, aHeight);
 }
 
 // 0x42cdd0. The panel sits 5 px from the right edge. Falling, it is drawn rotated about its integer centre;

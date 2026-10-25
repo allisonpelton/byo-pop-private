@@ -24,6 +24,7 @@ class Graphics;
 class MemoryImage;
 class ColorizedButton;
 class WidgetManager;
+class WordBalloon;
 
 // 0x52f368 rank names shown in the summary, indexed by min(rank, NUM_RANK_NAMES - 1)
 enum
@@ -64,6 +65,10 @@ public:
 	Graphics*		mPanelGraphics;         // +0xd4 Graphics on mPanelImage (owned)
 	bool			mPanelDirty;            // +0xd8 repaint the panel at the next Draw (CreatePanel)
 	bool			mLexArrived;            // +0xd9 Lex was idle in BOARD_LEVEL_COMPLETE
+	// port(mod): the greedy bots' results at game over (mod "greedy-bots"), in a balloon above Lex; owned,
+	// NULL until shown. mBotsText: its text blocks as last laid out
+	WordBalloon*	mBotsBalloon;
+	SexyString		mBotsText;
 	// +0xda..+0xdf padding; sizeof 0xe0
 
 public:
@@ -85,6 +90,7 @@ public:
 	void			DeletePanel();                                          // 0x42b980
 	void			CreatePanel();                                          // 0x42b9c0
 	void			DrawPanel(Graphics* g);                                 // 0x42c210
+	void			UpdateBotsBalloon();                                    // port(mod)
 
 	using Widget::Resize;
 	using ButtonListener::ButtonPress;

@@ -42,6 +42,7 @@ class Points;
 class WidgetManager;
 class Solver;
 class UndoStack;
+class GreedyBots;
 
 // Board::mState (+0x194)
 enum BoardState
@@ -243,6 +244,15 @@ public:
 	int					mModFireDue;
 	bool				mModDangerPending;
 	int					mModWordsPlayed;
+	// port(mod): the greedy bots (mod "greedy-bots", GreedyBots.h): two players' games from this game's start,
+	// a few moves each tick; NULL without the mod, in Action, and for a game begun without them.
+	// mBotsChecked: the start was looked at (the bots begin only at a fresh game's)
+	GreedyBots*			mBots;
+	bool				mBotsChecked;
+	// port(mod): the moves (words and scrambles) so far and the last word's cells (row * BOARD_COLS + col, in
+	// order; empty for a scramble), for the -autoplay bot's check of the bots' model (-autoplaymodel)
+	int					mModMoves;
+	std::vector<int>	mModLastMove;
 
 public:
 	Board(BookWormApp* theApp);                                         // 0x40ae90
@@ -291,6 +301,8 @@ public:
 	void				RemoveBonusTiles();                             // port(mod)
 	int					GetModWordsAllTime();                           // port(mod)
 	void				AddModWordsAllTime(int theDelta);               // port(mod)
+	void				UpdateBots();                                   // port(mod)
+	void				ReadBots(FILE* theFile);                        // port(mod)
 	void				DeleteAllPieces();                              // 0x4036e0
 	void				RemovePieces(PieceList* thePieces);             // 0x4052d0
 	void				GetNormalPieces(std::vector<Piece*>* thePieces); // 0x40b9e0

@@ -140,7 +140,7 @@ static bool SaferThan(const SolverWord& a, const SolverWord& b)
 
 // The hint for the fire: takes the lowest fire tile, then the most fire tiles, then leaves the remaining
 // fire highest, then the points
-static bool BetterForFire(const SolverWord& a, const SolverWord& b)
+bool Sexy::SolverBetterForFire(const SolverWord& a, const SolverWord& b)
 {
 	if (a.mSafety != b.mSafety)
 		return SaferThan(a, b);
@@ -153,7 +153,7 @@ static bool BetterForFire(const SolverWord& a, const SolverWord& b)
 	return a.mScore > b.mScore;
 }
 
-static bool BetterByScore(const SolverWord& a, const SolverWord& b)
+bool Sexy::SolverBetterByScore(const SolverWord& a, const SolverWord& b)
 {
 	if (a.mSafety != b.mSafety)
 		return SaferThan(a, b);
@@ -173,36 +173,22 @@ static bool BetterByLength(const SolverWord& a, const SolverWord& b)
 	return a.mScore > b.mScore;
 }
 
-void Solver::Solve()
+void Sexy::FindSolverWords(const std::vector<Piece*>& theTiles, BookWormApp* theApp, std::vector<SolverWord>* theWords,
+	int theLevel)
 {
-	mHints.clear();
-	mHintIdx = -1;
-	mBoardSig = BoardSignature();
-
-	BookWormApp* anApp = mBoard->mApp;
-	bool isClassic = (anApp->mGameMode == 0);
-
-	std::vector<Piece*> aTiles;
+	bool isClassic = (theApp->mGameMode == 0);
 	std::vector<Piece*> aFires;
-	for (int aRow = 0; aRow < BOARD_ROWS; aRow++)
+	for (size_t i = 0; i < theTiles.size(); i++)
 	{
-		for (int aCol = 0; aCol < BOARD_COLS; aCol++)
-		{
-			Piece* aPiece = mBoard->mBoard[aRow][aCol];
-			if ((aPiece == NULL) || (aPiece->mLetter < 'A') || (aPiece->mLetter > 'Z'))
-				continue;
-			aTiles.push_back(aPiece);
-			if (aPiece->mType == TILE_FIRE)
-				aFires.push_back(aPiece);
-		}
+		if (theTiles[i]->mType == TILE_FIRE)
+			aFires.push_back(theTiles[i]);
 	}
 
-	// Every path, with its points and what it does to the fire
-	std::vector<SolverWord> aWords;
 	WordScore aScore;
-	aScore.mApp = anApp;
+	aScore.mApp = theApp;
+	aScore.mLevel = theLevel;
 	PieceList aList;
-	FindBoardWords(aTiles, anApp->mDictionary, [&](const std::vector<Piece*>& thePath, const SexyString& theWord)
+	FindBoardWords(theTiles, theApp->mDictionary, [&](const std::vector<Piece*>& thePath, const SexyString& theWord)
 	{
 		SolverWord aWord;
 		aWord.mWord = theWord;
@@ -244,8 +230,34 @@ void Solver::Solve()
 			((anEffects.mEveryTile) || (anEffects.mFire > 0)))
 			aWord.mSafety = SOLVER_SETS_FIRE;
 		aWord.mKind = SOLVER_HINT_BEST;
-		aWords.push_back(aWord);
+		theWords->push_back(aWord);
 	});
+}
+
+void Solver::Solve()
+{
+	mHints.clear();
+	mHintIdx = -1;
+	mBoardSig = BoardSignature();
+
+	std::vector<Piece*> aTiles;
+	bool hasFire = false;
+	for (int aRow = 0; aRow < BOARD_ROWS; aRow++)
+	{
+		for (int aCol = 0; aCol < BOARD_COLS; aCol++)
+		{
+			Piece* aPiece = mBoard->mBoard[aRow][aCol];
+			if ((aPiece == NULL) || (aPiece->mLetter < 'A') || (aPiece->mLetter > 'Z'))
+				continue;
+			aTiles.push_back(aPiece);
+			if (aPiece->mType == TILE_FIRE)
+				hasFire = true;
+		}
+	}
+
+	// Every path, with its points and what it does to the fire
+	std::vector<SolverWord> aWords;
+	FindSolverWords(aTiles, mBoard->mApp, &aWords);
 	if (aWords.empty())
 		return;
 
@@ -256,7 +268,7 @@ void Solver::Solve()
 		std::map<SexyString, size_t>::iterator anItr = aBestPath.find(aWords[i].mWord);
 		if (anItr == aBestPath.end())
 			aBestPath[aWords[i].mWord] = i;
-		else if (BetterByScore(aWords[i], aWords[anItr->second]))
+		else if (SolverBetterByScore(aWords[i], aWords[anItr->second]))
 			anItr->second = i;
 	}
 	std::vector<SolverWord> aDistinct;
@@ -264,12 +276,12 @@ void Solver::Solve()
 		aDistinct.push_back(aWords[anItr->second]);
 
 	std::set<SexyString> aListed;
-	if ((FireFirst()) && (!aFires.empty()))
+	if ((FireFirst()) && (hasFire))
 	{
 		const SolverWord* aBest = NULL;
 		for (size_t i = 0; i < aWords.size(); i++)
 		{
-			if ((aWords[i].mFireTiles > 0) && ((aBest == NULL) || (BetterForFire(aWords[i], *aBest))))
+			if ((aWords[i].mFireTiles > 0) && ((aBest == NULL) || (SolverBetterForFire(aWords[i], *aBest))))
 				aBest = &aWords[i];
 		}
 		if (aBest != NULL)
@@ -293,7 +305,7 @@ void Solver::Solve()
 		}
 	}
 
-	std::stable_sort(aDistinct.begin(), aDistinct.end(), BetterByScore);
+	std::stable_sort(aDistinct.begin(), aDistinct.end(), SolverBetterByScore);
 	int aBestLeft = BestCount();
 	for (size_t i = 0; (i < aDistinct.size()) && (aBestLeft > 0); i++)
 	{
