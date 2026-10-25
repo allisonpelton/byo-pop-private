@@ -2040,6 +2040,35 @@ neither.
 - **`override`.** WinDMApp.h marks every framework virtual it overrides; the headless shim `SexyApp.h` declares
   them so the verifier still compiles that header.
 
+### 12.9 Undo (code mods, stage 6)
+
+games/bejeweled/docs/CODE_MODS_DESIGN.md 4.12 and 6.7, as built. Nothing here runs unless the rules enable undo:
+every hook tests `mVariant.mUndo`, a compile-time false in a BEJ_NO_VARIANTS build, and the orb draws nothing and
+takes no mouse on any other board.
+
+- **Snapshots.** `StartSwap` (0x4c9ff8), after its adjacency check, pushes StateCodec's UNDO encoding of the board
+  (`TakeUndoSnapshot`, only in `STATE_PLAYING`, where every gem rests in its cell). At most `undo.depth` are kept,
+  the oldest dropped. The swap back's last step in `UpdateSwap` (0x4cd84f) pops the snapshot again, since the board
+  is as it was; a kept invalid move keeps it. `StartBlackHole` (0x4ca58d) empties the stack, so no undo crosses a
+  level, and so does a loaded game (`GameLoadedVariant`): saves hold no snapshots.
+- **The undo** (`Undo`). The grid comes back as new gems at rest. Score, display score, stats, move score, idle
+  ticks, `mIsNewGame`, the move counts and the RNG come back too; the timed drain only with `undo.restoreTime`.
+  With `undo.restoreRng` false the RNG goes on. It keeps the board tick, the pauses, the play time and the undos
+  taken, and whether the board still holds a chosen seed. It clears the selection, swap pieces, popups, the "+N"
+  move score and the hint glow. It takes `undo.penalty` times the multiplier (floored at 0, as a hint), counts the
+  undo and shows the `UNDO` banner for 150 ticks (75 in, 75 out). Repeating the undone move with the RNG restored
+  refills exactly as before.
+- **When** (`CanUndo`): `STATE_PLAYING`, no pause, a snapshot, `undo.max` not reached, and in timed mode only with
+  `undo.inTimed`.
+- **Input.** `KeyChar` (0x4ca9d3): z, u and Backspace call `RequestUndo` instead of pausing, unless a user pause is
+  on (then they unpause, as any key) or the board is timed without `inTimed` (then they pause, as any key). A
+  refused undo plays bad2. The red orb left of the timer bar is `UndoOrb` (`BUTTON_UNDO` 16), made with the side-bar
+  buttons. It lights its ball while an undo is possible, brighter under the mouse, and draws the undos left in the
+  header font, like the level number in the right-hand orb, when `undo.max` is set.
+- **Replays and traces.** `RequestUndo` records `UNDO`, and playback applies it after the same gate. The `-trace`
+  variant line ends in `undos <n>` on a board with undo. An undo is a settle of its own in `-trace` and
+  `-codeccheck`, and `-codeccheck` also round-trips the UNDO encoding in every update of play.
+
 ---
 
 ## 13. Naming reconciliation (analyst names → chosen names)

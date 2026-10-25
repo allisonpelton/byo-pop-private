@@ -1,0 +1,37 @@
+# Stage 6, run with -gameseed=4242 and mods/stage6/undo (undo: depth 3, max 4, penalty 5): three moves, then every
+# way to undo (z, u, Backspace, a click on the red orb left of the timer bar) and the same move again after an undo,
+# which refills the same way (restoreRng, games/bejeweled/docs/CODE_MODS_DESIGN.md 4.12). After the fourth undo the
+# orb shows 0 and z is refused (bad2); the quit saves a v2 save whose MOVE chunk counts the 4 undos.
+300 click 320 398
+# A (2,2)->(3,2): score 10
+470 click 329 142
+471 click 380 142
+# B (5,4)->(5,5): score 20
+700 click 482 244
+701 click 482 295
+# C (4,3)->(5,3)
+950 click 431 193
+951 click 482 193
+1200 screenshot shots/u01_three_moves.png
+1210 move 209 456
+1220 screenshot shots/u02_orb_hover.png
+1230 move 320 300
+# z takes C back (score 20 - 5); C again: the same refill
+1240 char z
+1280 screenshot shots/u03_undone.png
+1300 click 431 193
+1301 click 482 193
+# u takes C back again, Backspace B: the board after A (score 5)
+1550 char u
+1600 key 8
+1650 screenshot shots/u04_one_left.png
+# the orb takes A back: the fourth undo, the starting board; the orb shows 0 and z is refused
+1660 click 209 456
+1670 move 320 300
+1700 screenshot shots/u05_none_left.png
+1710 char z
+# A again: the same refill; z is still refused (undo.max)
+1750 click 329 142
+1751 click 380 142
+2000 char z
+2050 quit

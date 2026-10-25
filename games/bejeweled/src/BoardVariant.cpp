@@ -13,12 +13,15 @@
 // board that settles without a move does what its mode's noMoves rule says (OnNoMovesVariant), and the moves
 // that stood are counted. A variant board saves the v2 save (BoardSave.cpp), whose RNGS chunk keeps its RNG, so
 // it leaves no RNG sidecar.
+// Stage 6: undo (4.12, 6.7): a stack of StateCodec UNDO snapshots taken before each move, and the undo that
+// restores the newest one (TakeUndoSnapshot ... Undo).
 
 #include "Board.h"
 #include "GameConfig.h"
 #include "WinDMApp.h"
 #include "ReplayRecorder.h"
 #include "StateCodec.h"
+#include "MTRand.h"
 #include "Common.h"
 
 #include <SDL.h>
@@ -345,6 +348,7 @@ void Board::GameLoadedVariant(const Buffer& theSave)
 	// The LiveSplit observer counts no GO on this board (in every build, BEJ_NO_VARIANTS too)
 	mResumed = true;
 	mTakesPendingSeed = false;
+	mUndoStack.clear(); // a save holds no undo snapshots (4.12)
 	if (mVariant.mAny)
 		ReadVariantChunks(theSave);
 	// A replay's LOAD (stage 3b): no file of the user dir is read; the player gives the board the RNG the
@@ -546,6 +550,146 @@ void Board::DeleteSaveSidecar()
 	if ((mRecorder != NULL) && (!mRecorder->Loaded() || !mRecorder->ContinuedSidecar()))
 		KeepSidecarGame();
 	mApp->EraseFile(GetSidecarFileName());
+}
+
+// Undo (games/bejeweled/docs/CODE_MODS_DESIGN.md 4.12, 6.7; stage 6). A board whose rules enable undo keeps
+// StateCodec's UNDO encoding of itself from before each move, newest last, at most undo.depth of them: StartSwap
+// (0x4c9ff8) takes one after its adjacency check, in STATE_PLAYING, where every gem is at rest; a swap that goes
+// back takes its own back (UpdateSwap, 0x4cd84f), a kept invalid move keeps it; the vortex empties the stack
+// (StartBlackHole, 0x4ca58d), so an undo never crosses a level; a save holds none, so a resumed game starts
+// without (GameLoadedVariant).
+void Board::TakeUndoSnapshot()
+{
+	if (mState != STATE_PLAYING)
+		return;
+	bool isAtRest = true;
+	for (int aRow = 0; aRow < mRows; aRow++)
+	{
+		for (int aCol = 0; aCol < mCols; aCol++)
+		{
+			Piece* aPiece = mBoard[aRow][aCol];
+			if ((aPiece != NULL) && (aPiece->mDying || (aPiece->mVelY != 0.0) || (aPiece->mX != GetColX(aCol)) || (aPiece->mY != GetRowY(aRow))))
+				isAtRest = false;
+		}
+	}
+	// Cannot happen in STATE_PLAYING; the oracle's variant check fails on this line
+	if (!isAtRest)
+		SDL_Log("undo: snapshot of a board not at rest (board tick %d)", mUpdateCnt);
+	mUndoStack.push_back(StateCodec::Encode(this, StateCodec::PROFILE_UNDO));
+	if ((int) mUndoStack.size() > mRules.mUndo.mDepth)
+		mUndoStack.erase(mUndoStack.begin());
+}
+
+void Board::PopUndoSnapshot()
+{
+	if (!mUndoStack.empty())
+		mUndoStack.pop_back();
+}
+
+// In play, unpaused, a move to take back, undo.max not reached, and in timed mode only with undo.inTimed
+bool Board::CanUndo() const
+{
+	if (!mVariant.mUndo || (mState != STATE_PLAYING) || (mPauseCount != 0) || mUndoStack.empty())
+		return false;
+	if (mTimedMode && !mRules.mUndo.mInTimed)
+		return false;
+	return UndosLeft() != 0;
+}
+
+int Board::UndosLeft() const
+{
+	if (mRules.mUndo.mMax < 0)
+		return -1;
+	return std::max(0, mRules.mUndo.mMax - mUndosUsed);
+}
+
+// KeyChar (0x4ca9d3): z, u (either case) and Backspace undo instead of pausing, on a board whose rules have undo in
+// its mode; on every other board they pause as any key does
+bool Board::IsUndoKey(SexyChar theChar)
+{
+	return (theChar == 'z') || (theChar == 'Z') || (theChar == 'u') || (theChar == 'U') || (theChar == '\b');
+}
+
+bool Board::UndoKeysActive() const
+{
+	return mVariant.mUndo && (!mTimedMode || mRules.mUndo.mInTimed);
+}
+
+// The keys and the red orb (WinDMApp::ButtonDepress, BUTTON_UNDO). A refused undo plays bad2, as a swap of gems that
+// are no neighbours does. Recorded as UNDO, which playback applies with Undo after the same gate (WatchController)
+bool Board::RequestUndo()
+{
+	if (mPlaybackOnly)
+		return false;
+	if (!CanUndo())
+	{
+		mApp->PlaySample(SOUND_BAD);
+		return false;
+	}
+	if (mRecorder != NULL)
+		mRecorder->OnUndo();
+	Undo();
+	return true;
+}
+
+// The newest snapshot back: the grid (fresh gems at rest), the score and the stats, the counts of moves and kept
+// invalid moves, the time only with undo.restoreTime, and the RNG unless undo.restoreRng is false (with it the same
+// move again refills the same way: an undo is no reroll). Kept: the board tick, the pauses, the play time, the undos
+// taken and whether the board still holds the seed the player chose (a match used it up). Then undo.penalty times
+// the multiplier comes off the score, as DoHint takes the hint penalty; the selection, the popups, the move score
+// and the hint glow go; the banner says UNDO.
+void Board::Undo()
+{
+	std::string aSnapshot = mUndoStack.back();
+	mUndoStack.pop_back();
+	double aTimeDrain = mTimeDrain;
+	double aTimeDrainRate = mTimeDrainRate;
+	int aTimeDrainDelay = mTimeDrainDelay;
+	bool takesPendingSeed = mTakesPendingSeed;
+	uint32_t aBoardDraws = mBoardDraws;
+	uint32_t aMt[MTRAND_N];
+	int anMti = 0;
+	bool hadOwnRng = (mOwnRng != NULL);
+	if (hadOwnRng)
+		mOwnRng->GetState(aMt, &anMti);
+
+	// The restore replaces every gem: nothing may point at the old ones
+	mSelectedPiece = NULL;
+	mSwapPiece1 = NULL;
+	mSwapPiece2 = NULL;
+	std::string anError;
+	if (!StateCodec::Decode(this, aSnapshot, &anError, StateCodec::PROFILE_UNDO))
+		SDL_Log("undo: snapshot not restored: %s", anError.c_str()); // the board's own bytes: cannot happen
+
+	if (!mRules.mUndo.mRestoreTime)
+	{
+		mTimeDrain = aTimeDrain;
+		mTimeDrainRate = aTimeDrainRate;
+		mTimeDrainDelay = aTimeDrainDelay;
+	}
+	if (!mRules.mUndo.mRestoreRng)
+	{
+		if (hadOwnRng && (mOwnRng != NULL))
+			mOwnRng->SetState(aMt, anMti);
+		mBoardDraws = aBoardDraws;
+	}
+	mTakesPendingSeed = takesPendingSeed;
+
+	mScorePopups.clear();
+	mMoveScoreTimer = 0;
+	mMoveScoreAlpha = 0.0;
+	mHintGlowTimer = 0;
+	mHintGlowAlpha = 0.0;
+	mIdleTicks = 0;
+	if (mRules.mUndo.mPenalty != 0)
+	{
+		mScore = (int)((double)mScore - mPointMultiplier * mRules.mUndo.mPenalty);
+		if (mScore < 0)
+			mScore = 0;
+	}
+	mUndosUsed++;
+	ShowText(mApp->GetString("UNDO", _S("UNDO")), 150); // 75 ticks in, 75 out (ColorizeText)
+	MarkDirty();
 }
 
 VariantFlags Board::ComputeVariantFlags(const GameRules& theRules, const GameFeatures& theFeatures)

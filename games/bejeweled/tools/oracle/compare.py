@@ -180,6 +180,12 @@ left out for a candidate built without variant paths, BEJ_NO_VARIANTS; flags "k=
               (mods-status.json; with "last", its MOVE counts those of the last settle). "timesplayed=N": the
               user dir's registry.ini has TimesPlayed N (game overs counted). "warn=<text>": a warning in
               mods-status.json contains it. "boards=": the seed checks.
+              Stage 6 (undo, mods/stage6): a settle whose line says "undos U" one more than the last is an undo:
+              the board (grid, moves, invalid) of the settle the newest move not taken back was made from, its
+              score at most that one's; a vortex leaves nothing to take back. A swap that went back is a settle
+              with nothing changed. "undos=N": exactly N undos (else none); "redo=N" / "rerolled=N": at least N
+              moves right after an undo whose settle has the grid of the settle the undo took back / another
+              grid (undo.restoreRng; the scripts make the same move again). No stderr line "undo: snapshot ...".
 Finished replays are named after the wall clock: compared and listed with replays/<yyyymmdd>-<hhmmss>- masked
 as replays/*- (normal_path), their contents without META's date (compare_bjr).
 Auto LiveSplit (stage 2b, games/bejeweled/docs/CODE_MODS_DESIGN.md 4.15; candidate runs):
@@ -1708,22 +1714,23 @@ def recording_check(r, ref, run, label):
 
 
 def variant_settles(stdout):
-    """The settles of a -trace run with what stage 5 checks: update, mode, score, board tick, grid, seed, the
-    variant line's counts (None without one) and the number of move lines"""
+    """The settles of a -trace run with what stages 5 and 6 check: update, mode, score, board tick, grid, seed, the
+    variant line's counts (None without one; undos 0 when the line has none) and the number of move lines"""
     settles = []
     for line in stdout:
         m = re.match(r"TRACE update (\d+): (\w+) level \d+ score (-?\d+) board tick (\d+)$", line)
         if m:
             settles.append({"update": int(m.group(1)), "mode": m.group(2), "score": int(m.group(3)), "tick": int(m.group(4)),
-                            "grid": [], "seed": None, "moves": None, "invalid": None, "found": 0})
+                            "grid": [], "seed": None, "moves": None, "invalid": None, "undos": 0, "found": 0})
         elif settles and line.startswith("TRACE   row "):
             settles[-1]["grid"].append([int(v) for v in line.split(":", 1)[1].split()])
         elif settles and line.startswith("TRACE   seed "):
             settles[-1]["seed"] = line[len("TRACE   seed "):]
         elif settles and line.startswith(VARIANT_LINE):
-            m = re.match(r"TRACE   variant moves (-?\d+) invalid (-?\d+)$", line)
+            m = re.match(r"TRACE   variant moves (-?\d+) invalid (-?\d+)(?: undos (\d+))?$", line)
             if m:
                 settles[-1]["moves"], settles[-1]["invalid"] = int(m.group(1)), int(m.group(2))
+                settles[-1]["undos"] = int(m.group(3) or 0)
         elif settles and line.startswith("TRACE   move "):
             settles[-1]["found"] += 1
     return settles
@@ -1778,17 +1785,50 @@ def variant_check(r, cand, run, flags, label):
             states.append((int(parts[0]), int(parts[1])))
     counts_as_move = f.get("countsasmove", "1") == "1"
     kept = 0
+    # stage 6: the settles moves were made from, newest last (an undo goes back to the last one; a vortex empties
+    # it, as StartBlackHole empties the undo stack), the settle the last undo took back (the next move again: the
+    # same refill, "redo", or another one, "rerolled") and the undo steps seen
+    history, undone, undo_steps, redo, rerolled = [], None, 0, 0, 0
     for s0, s1 in zip(settles, settles[1:]):
         same_board = s1["tick"] > s0["tick"] and s1["mode"] == s0["mode"] and s1["seed"] == s0["seed"]
         if not same_board or s0["moves"] is None or s1["moves"] is None:
+            history, undone = [], None
             continue
         refilled = any(s0["update"] < u <= s1["update"] and st in (7, 8, 9) for u, st in states)
-        dm, di = s1["moves"] - s0["moves"], s1["invalid"] - s0["invalid"]
+        vortex = any(s0["update"] < u <= s1["update"] and st == 7 for u, st in states)
+        dm, di, du = s1["moves"] - s0["moves"], s1["invalid"] - s0["invalid"], s1["undos"] - s0["undos"]
+        if du != 0:
+            # an undo, the only step that changes the count: the board of the settle the move was made from again
+            # (grid and counts), its score at most that settle's (undo.penalty)
+            back = history.pop() if (du == 1 and history and not refilled) else None
+            if back is None:
+                r.fail("%s: from the settle of update %d to update %d the undos went %+d with %s to take back" %
+                       (label, s0["update"], s1["update"], du, "no move" if not history else "a refill"))
+                break
+            if s1["grid"] != back["grid"] or (s1["moves"], s1["invalid"]) != (back["moves"], back["invalid"]) or s1["score"] > back["score"]:
+                r.fail("%s: the undo at update %d is not the board of the settle of update %d (grid %s, moves %d/%d invalid %d/%d, score %d/%d)" %
+                       (label, s1["update"], back["update"], "same" if s1["grid"] == back["grid"] else "differs", s1["moves"], back["moves"],
+                        s1["invalid"], back["invalid"], s1["score"], back["score"]))
+                break
+            undone, undo_steps = s0, undo_steps + 1
+            continue
+        if (dm, di) == (0, 0) and not refilled and s1["grid"] == s0["grid"] and s1["score"] == s0["score"]:
+            continue  # a swap that went back (no moves.allowInvalid): nothing changed
         allowed = [(1, 0), (1, 1) if counts_as_move else (0, 1)] + ([(0, 0)] if refilled else [])
         if (dm, di) not in allowed:
             r.fail("%s: from the settle of update %d to update %d the counts went %+d moves %+d invalid: not one move" %
                    (label, s0["update"], s1["update"], dm, di))
             break
+        if vortex:
+            history, undone = [], None
+        elif (dm, di) != (0, 0):
+            history.append(s0)
+            if undone is not None:
+                if s1["grid"] == undone["grid"]:
+                    redo += 1
+                else:
+                    rerolled += 1
+            undone = None
         if di == 1 and not refilled:
             # a kept invalid move: one swap of neighbours, nothing else changed (no match, no refill)
             cells = swapped_cells(s0["grid"], s1["grid"])
@@ -1804,6 +1844,19 @@ def variant_check(r, cand, run, flags, label):
             r.fail("%s: %d kept invalid moves seen as swaps, expected at least %s" % (label, kept, f["kept"]))
         else:
             notes.append("%d kept invalid moves, each one swap of neighbours" % kept)
+    if "undos" in f:
+        if undo_steps != int(f["undos"]):
+            r.fail("%s: %d undos seen, expected %s" % (label, undo_steps, f["undos"]))
+        else:
+            notes.append("%d undos, each the board a move was made from" % undo_steps)
+    elif undo_steps:
+        r.fail("%s: %d undos seen, and this case expects none" % (label, undo_steps))
+    for key, count, what in (("redo", redo, "the same refill"), ("rerolled", rerolled, "another refill")):
+        if key in f:
+            if count < int(f[key]):
+                r.fail("%s: %d moves after an undo with %s, expected at least %s" % (label, count, what, f[key]))
+            else:
+                notes.append("%d moves after an undo with %s" % (count, what))
     nomove = [i for i, s in enumerate(settles) if s["found"] == 0]
     if "continue" in f:
         went_on = [i for i in nomove if i + 1 < len(settles) and settles[i + 1]["tick"] > settles[i]["tick"] and
@@ -1822,6 +1875,8 @@ def variant_check(r, cand, run, flags, label):
             notes.append("logged \"%s\"" % f["log"])
     elif any("not loaded:" in line for line in stderr):
         r.fail("%s: a save was refused: %s" % (label, [line for line in stderr if "not loaded:" in line][0]))
+    if any("undo: snapshot" in line for line in stderr):
+        r.fail("%s: %s" % (label, [line for line in stderr if "undo: snapshot" in line][0]))
     saves = savegames(run)
     if "nosave" in f and saves:
         r.fail("%s: %s left, expected no save" % (label, saves))
@@ -1843,7 +1898,7 @@ def variant_check(r, cand, run, flags, label):
         status = mods_status(run) or {}
         rules = str(status.get("rulesId", "?"))[:16]
         last = settles[-1]
-        want = "MOVE moves %d invalid %d undos 0" % (last["moves"] or 0, last["invalid"] or 0)
+        want = "MOVE moves %d invalid %d undos %d" % (last["moves"] or 0, last["invalid"] or 0, last["undos"])
         for s in saves:
             text = save_state(os.path.join(run, "user", s))
             if not text.startswith("v2 ") or ("rules %s," % rules) not in text or (f["v2"] == "last" and want not in text):

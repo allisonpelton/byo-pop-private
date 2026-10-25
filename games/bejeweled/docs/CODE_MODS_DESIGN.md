@@ -1013,6 +1013,33 @@ Format, recording and playback are in section 6.
   available, created in `TitleScreenIsFinished`. To be checked on a screenshot.
 - **Save:** the stack is not saved; it is empty after a load.
 
+**As built (stage 6, `Board::TakeUndoSnapshot` ... `Board::Undo` in `BoardVariant.cpp`, `UndoOrb.h`):**
+- **Stack.** `mUndoStack`, StateCodec UNDO encodings (6.7), newest last, at most `depth`. `StartSwap` pushes after
+  its adjacency check (only in `STATE_PLAYING`); the end of a swap back pops; a kept invalid move keeps its
+  snapshot, so it can be undone; `StartBlackHole` and `GameLoadedVariant` empty it. Twist and slide take theirs when
+  they exist (stage 8).
+- **Gate** (`CanUndo`, which playback checks again): undo on, `STATE_PLAYING`, `mPauseCount == 0`, a snapshot, `max`
+  not reached, and in timed mode `inTimed`.
+- **Undo.** Decodes the newest snapshot into the board: the grid as fresh gems at rest (cosmetic fields zero), the
+  UNDO rows (level, score and display score, the stats, `mMoveScore`, `mIdleTicks`, `mIsNewGame`, the drain fields,
+  the RNG, the move counts). Then it puts back what it keeps: the drain fields unless `restoreTime`, the RNG state
+  and `mBoardDraws` when `restoreRng` is false, always `mTakesPendingSeed` (a match used the seed up). It clears the
+  selection, the swap pieces, the popups, the move score and the hint glow; sets `mIdleTicks` 0; takes
+  `penalty × multiplier` (floored at 0, as `DoHint`); counts `mUndosUsed`; shows the `UNDO` string as a 150-tick
+  banner. An undo of the first move makes the game new again (`mIsNewGame`): a quit then saves nothing.
+- **Keys.** `KeyChar`: z, u (either case) and Backspace call `RequestUndo` instead of pausing when undo is on in the
+  board's mode (`UndoKeysActive`) and no user pause is on. In timed mode without `inTimed` they pause as any key. A
+  refused undo plays bad2.
+- **Orb.** `UndoOrb`, a `ButtonWidget` (`BUTTON_UNDO` 16) over the orb at (193, 440, 34 × 33), made with the side-bar
+  buttons in every variant build. On a board without undo it draws nothing and takes no mouse; with undo it takes
+  the mouse, shows the hand cursor while an undo is possible, lights the red ball with a soft additive disc (radius
+  13 around (209, 456); brighter under the mouse) and draws the undos left in the header font like the level number
+  in the right-hand orb when `max >= 0`. Checked on screenshots (the oracle's `undo_main`).
+- **Replays.** `RequestUndo` records `UNDO`; the player applies it with `Undo` after `CanUndo` (else the replay is
+  corrupt). `Replay::CheckPlayable` takes `UNDO`. The trace's variant line adds `undos <n>` on a board with undo, and
+  an undo is a settle of its own (`BoardTracer`, `CodecCheck`).
+- **Warnings.** The `undo.*` keys left the "not played in this build yet" warning.
+
 ### 4.13 Online leaderboards
 
 The Worker side is in 6.10.
@@ -2183,6 +2210,14 @@ state. That is at most 1.5 KB at 16x16, so depth 100 costs at most 150 KB.
 
 - **Restore** creates fresh pieces at their rest positions. Cosmetic fields start at zero.
 - **Determinism:** undo is an event, so replays with undo reproduce exactly.
+
+**As built (stage 6, `StateCodec::PROFILE_UNDO`):** the layout (now flagged UNDO too), per cell a present byte and
+then colour and kind as two ints, the UNDO rows of the table (4.12 lists them), and the RNG as the SNAPSHOT profile
+writes it (presence, seed, flags, draws, MT state). An 8x8 board's snapshot is about 3 KB, mostly the MT state, so
+depth 100 costs about 300 KB. `TakeUndoSnapshot` logs `undo: snapshot of a board not at rest` if a gem is dying,
+moving or off its cell; the oracle's variant check fails on that line. `Decode(..., PROFILE_UNDO)` uses the same
+reader as SNAPSHOT. `StateCodec::UndoRoundTrip`, run by `-codeccheck` in every update of play on a board with undo,
+restores the encoding into the scratch copy and requires the same bytes again.
 
 ### 6.8 Playback driver
 

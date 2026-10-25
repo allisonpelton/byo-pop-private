@@ -131,9 +131,14 @@ HD art (`name@2x.png` .. `name@4x.png`) also reaches images the game builds at r
 board background, the banner text, the shrinking gems and (at render scales above 1x) the hovered gem. Software drawing repeats each draw on the HD
 pixels whenever HD art is involved (`MemoryImage::BeginHDMirror`).
 
-Planned gameplay mods (board shapes, other move types, special gems, undo, replays, ...) are listed in
+Planned gameplay mods (board shapes, other move types, special gems, replays, ...) are listed in
 [docs/MOD_ROADMAP.md](../../docs/MOD_ROADMAP.md); their design and the staged plan are in
-[docs/CODE_MODS_DESIGN.md](docs/CODE_MODS_DESIGN.md).
+[docs/CODE_MODS_DESIGN.md](docs/CODE_MODS_DESIGN.md). Some already play: swaps that make no match can stay
+(`"moves": {"allowInvalid": true}`, with the `noMoves` rule), and undo (`"undo": {"enabled": true}`, with `depth`,
+`max`, `penalty`, `inTimed`, `restoreTime` and `restoreRng`). With undo, **z**, **u** or **Backspace**, or a click on
+the red orb left of the timer bar, takes the last move back. The orb lights up while an undo is possible and shows
+how many are left when `max` limits them. Repeating the move refills the board the same way, so undo cannot reroll
+the new gems.
 
 ## Tests
 

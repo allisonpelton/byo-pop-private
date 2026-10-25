@@ -222,6 +222,12 @@ void ReplayRecorder::OnHint()
 		Add(Replay::OP_HINT);
 }
 
+void ReplayRecorder::OnUndo()
+{
+	if (!mEnded)
+		Add(Replay::OP_UNDO);
+}
+
 void ReplayRecorder::OnPause(bool theUserPause)
 {
 	if (!mEnded && !mSaving)
