@@ -1,0 +1,27 @@
+<!-- byo-pop's logo, for light backgrounds (docs/WEB_PLAYER.md, "The site's logo and icons"). Colours: a sky-blue tile, a chrome head and a red handle and cap. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 276 64">
+  <title>byo-pop</title>
+  <defs>
+    <linearGradient id="bp-tile" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4AAEF0"/><stop offset="1" stop-color="#1A6CCB"/></linearGradient>
+    <linearGradient id="bp-chrome" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#C9D1D9"/><stop offset="0.35" stop-color="#FFFFFF"/><stop offset="1" stop-color="#9AA5B1"/></linearGradient>
+    <linearGradient id="bp-enamel" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#FF4A50"/><stop offset="0.5" stop-color="#ED1C24"/><stop offset="1" stop-color="#A50A1D"/></linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="12" fill="url(#bp-tile)"/>
+  <g stroke-linejoin="round">
+    <g fill="#12304A" stroke="#12304A" stroke-width="3.2"><path d="M 22 8 H 42 Q 48 8 48 14 V 18 Q 48 25 40 28 H 24 Q 16 25 16 18 V 14 Q 16 8 22 8 Z"/><path d="M 28 26 H 36 V 32 H 28 Z"/><path d="M 32 30 A 8 8 0 0 1 40 38 V 52 A 8 8 0 0 1 24 52 V 38 A 8 8 0 0 1 32 30 Z"/></g>
+    <path d="M 28 26 H 36 V 32 H 28 Z" fill="#8C97A3"/>
+    <path d="M 22 8 H 42 Q 48 8 48 14 V 18 Q 48 25 40 28 H 24 Q 16 25 16 18 V 14 Q 16 8 22 8 Z" fill="url(#bp-chrome)"/>
+    <path d="M 32 30 A 8 8 0 0 1 40 38 V 52 A 8 8 0 0 1 24 52 V 38 A 8 8 0 0 1 32 30 Z" fill="url(#bp-enamel)"/>
+    <path d="M 23 12 H 28.5 V 15.5 H 35.5 V 12 H 41 Q 44 12 44 15 V 17 Q 44 20 41 20 H 23 Q 20 20 20 17 V 15 Q 20 12 23 12 Z M 30 50 H 34 A 2 2 0 0 1 34 54 H 30 A 2 2 0 0 1 30 50 Z" fill="#12304A"/>
+    <path d="M 27 38 V 46" stroke="#FFFFFF" stroke-opacity="0.55" stroke-width="2" stroke-linecap="round"/>
+  </g>
+  <g transform="translate(0 3)">
+    <g fill="none" stroke-width="7" stroke-linecap="round" stroke-linejoin="round">
+      <g stroke="#12304A"><path d="M 81.5 5.5 V 38.5"/><circle cx="91" cy="29" r="9.5"/><path d="M 111.5 19.5 V 29 A 9.5 9.5 0 0 0 130.5 29 V 19.5"/><path d="M 130.5 29 V 47 A 9 9 0 0 1 121.5 56 H 116"/><circle cx="151" cy="29" r="9.5"/><path d="M 171.5 29 H 180.5"/></g>
+      <g stroke="#ED1C24"><path d="M 191.5 19.5 V 52.5"/><circle cx="201" cy="29" r="9.5"/><path d="M 251.5 19.5 V 52.5"/><circle cx="261" cy="29" r="9.5"/></g>
+    </g>
+    <path d="M 244.00 29.00 L 242.44 30.72 L 243.42 32.83 L 241.42 34.02 L 241.74 36.32 L 239.48 36.87 L 239.11 39.16 L 236.78 39.02 L 235.75 41.10 L 233.57 40.28 L 231.97 41.96 L 230.14 40.54 L 228.11 41.67 L 226.77 39.77 L 224.50 40.26 L 223.79 38.05 L 221.47 37.84 L 221.44 35.52 L 219.29 34.64 L 219.94 32.41 L 218.15 30.94 L 219.43 29.00 L 218.15 27.06 L 219.94 25.59 L 219.29 23.36 L 221.44 22.48 L 221.47 20.16 L 223.79 19.95 L 224.50 17.74 L 226.77 18.23 L 228.11 16.33 L 230.14 17.46 L 231.97 16.04 L 233.57 17.72 L 235.75 16.90 L 236.78 18.98 L 239.11 18.84 L 239.48 21.13 L 241.74 21.68 L 241.42 23.98 L 243.42 25.17 L 242.44 27.28 Z" fill="#ED1C24" stroke="#ED1C24" stroke-width="1.2" stroke-linejoin="round"/>
+    <circle cx="231" cy="29" r="8.58" fill="#C8101A"/>
+    <path d="M 225.54 26.66 A 5.98 5.98 0 0 1 232.56 23.15" fill="none" stroke="#FFFFFF" stroke-opacity="0.75" stroke-width="2.08" stroke-linecap="round"/>
+  </g>
+</svg>

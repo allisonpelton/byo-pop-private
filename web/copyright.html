@@ -4,6 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>@BYOPOP_TITLE@: copyright and licenses</title>
+<link rel="icon" href="favicon.ico" sizes="16x16 32x32 48x48">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
 <!-- The game's copyright page, linked from its page's footer. byopop_web_shell() in cmake/ByopopWeb.cmake writes it
      as <game>-copyright.html from this template, the game's notice and the license texts in web/licenses/. -->
 <style>
@@ -21,6 +24,7 @@ body {
   padding-block: 24px 48px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
 }
 main { max-width: 72ch; margin: 0 auto; display: grid; gap: 8px; }
+.site img { display: block; height: 32px; width: auto; }
 h1 { font-size: 1.6rem; line-height: 1.25; margin: 0 0 8px; text-wrap: balance; }
 h2 { font-size: 1.1rem; margin: 20px 0 0; }
 p, ul { margin: 0; }
@@ -39,6 +43,7 @@ details pre {
 </head>
 <body>
 <main>
+  <picture class="site"><source srcset="logo-dark.svg" media="(prefers-color-scheme: dark)"><img src="logo.svg" alt="byo-pop" width="140" height="32"></picture>
   <p class="back"><a href="@BYOPOP_GAME_PAGE@">Back to @BYOPOP_TITLE@</a></p>
   <h1>@BYOPOP_TITLE@: copyright and licenses</h1>
 

@@ -4,6 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>@BYOPOP_TITLE@ Web Port</title>
+<link rel="icon" href="favicon.ico" sizes="16x16 32x32 48x48">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
 <style>
 /* Every game's page (docs/WEB_PLAYER.md). Layout: a single stage that fills the viewport (4:3, or the shape the game
    gives: Module.onGameScreen), with a slim tool bar and slide-over panels (mods, game files and any of the game's
@@ -53,6 +56,17 @@ body {
   border-bottom: 1px solid var(--line); background: var(--panel);
 }
 .brand { font-weight: 700; letter-spacing: 0.02em; display: flex; align-items: center; gap: 8px; }
+/* the site's logo (web/brand: one file per theme), then the game's mark and name */
+.brand .site { display: flex; padding-right: 12px; border-right: 1px solid var(--line); }
+.brand .site img { height: 22px; width: auto; }
+.brand .logo-light { display: block; }
+.brand .logo-dark { display: none; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .brand .logo-light { display: none; }
+  :root:not([data-theme="light"]) .brand .logo-dark { display: block; }
+}
+:root[data-theme="dark"] .brand .logo-light { display: none; }
+:root[data-theme="dark"] .brand .logo-dark { display: block; }
 /* the game's mark before its name: page.css draws its own */
 .brand .mark { width: 12px; height: 12px; background: var(--accent); border-radius: 2px; }
 .bar .status { color: var(--muted); font-size: 13px; flex: 1 1 200px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -103,7 +117,7 @@ input[type=file] { display: none; }
 </head>
 <body>
 <div class="bar">
-  <span class="brand"><span class="mark" aria-hidden="true"></span><span id="brand-name">@BYOPOP_TITLE@</span></span>
+  <span class="brand"><span class="site"><img class="logo-light" src="logo.svg" alt="byo-pop" width="96" height="22"><img class="logo-dark" src="logo-dark.svg" alt="" width="96" height="22"></span><span class="mark" aria-hidden="true"></span><span id="brand-name">@BYOPOP_TITLE@</span></span>
   <span class="status" id="status">Starting…</span>
   <button id="btn-mods" type="button">Mods</button>
   <button id="btn-files" type="button">Game files</button>
