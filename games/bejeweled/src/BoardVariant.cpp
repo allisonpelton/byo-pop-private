@@ -65,7 +65,8 @@ void Board::InitVariant(WinDMApp* theApp)
 		// tutorial stay original (mAny, mOwnRng and mNoTutorial are left alone). The noMoves rule's path too
 		// (stage 5): its default "gameOver" and "fallOut" are the original branches. Not mInvalid: keeping a
 		// swap is no default rule. The gravity paths too (stage 7c): the rules still say "down", so GravityUp()
-		// is false and the flip and the GetPieceAt guard stay off.
+		// is false and the flip and the GetPieceAt guard stay off. The dirt paths too (stage 7b): without dirt
+		// cells RefillDiagonal is RefillMasked's passes, draw for draw, and no slide or layer applies.
 		mVariant.mShape = true;
 		mVariant.mMatch = true;
 		mVariant.mSearch = true;
@@ -74,6 +75,7 @@ void Board::InitVariant(WinDMApp* theApp)
 		mVariant.mGravity = true;
 		mVariant.mFall = true;
 		mVariant.mChecker = true;
+		mVariant.mDirt = true;
 	}
 	// look.soundPitch (4.16): every sound the app plays while this board is the game's; the next board sets its own
 	if (theApp->mSoundManager != NULL)
@@ -84,6 +86,15 @@ void Board::InitVariant(WinDMApp* theApp)
 	mUndosUsed = 0;
 	mGravityFlips = 0;
 	mGravityNoFlip = false;
+#ifndef BEJ_NO_VARIANTS
+	mDirtRules = mRules.HasDirtRule();
+#else
+	mDirtRules = false;
+#endif
+	mDiagonalLeftFirst = true;
+	mDirtTiles[0] = NULL;
+	mDirtTiles[1] = NULL;
+	mDirtTilesLevel = -1;
 
 	// The RNG source WinDMApp::NewGame chose (WinDMApp::ChooseBoardRng), taken once: a board made any other
 	// way draws from the global stream
@@ -798,6 +809,8 @@ VariantFlags Board::ComputeVariantFlags(const GameRules& theRules, const GameFea
 	aFlags.mGravity = theRules.mBoard.mGravity != GameRules::GRAVITY_DOWN;
 	aFlags.mFall = aFlags.mShape || aFlags.mGravity || (theRules.mBoard.mFallAccel != GameRules::DEFAULT_FALL_ACCEL);
 	aFlags.mChecker = aFlags.mShape || (theRules.mLook.mBackdrop == GameRules::BACKDROP_TWILIGHT);
+	// Dirt (4.14): a mask with dirt is a shape, so mShape, mFall and mDraw are set already
+	aFlags.mDirt = theRules.HasDirtRule();
 	return aFlags;
 }
 

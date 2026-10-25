@@ -251,9 +251,13 @@ static void TestTunables()
 	Check(!aTiming.mRules.ScoringTunablesChanged() && aTiming.mRules.PlaysAlikeInEveryEngine(), "a timing tunable: alike in every engine");
 	Result aVariant = Merge({{"undo", "{\"rules\": {\"undo\": {\"enabled\": true}}}"}});
 	Check(!aVariant.mRules.ScoringTunablesChanged() && !aVariant.mRules.PlaysAlikeInEveryEngine(), "a variant rule: not alike in every engine");
+	// Stage 8: engines before 5 played board.gemColors above 7 as 7
+	Check(Merge({{"six", "{\"tunables\": {\"board\": {\"gemColors\": 6}}}"}}).mRules.PlaysAlikeInEveryEngine(), "gemColors 6: alike in every engine");
+	Check(Merge({{"seven", "{\"rules\": {\"board\": {\"gemColors\": 7}}}"}}).mRules.PlaysAlikeInEveryEngine(), "gemColors 7: alike in every engine");
+	Check(!Merge({{"eight", "{\"rules\": {\"board\": {\"gemColors\": 8}}}"}}).mRules.PlaysAlikeInEveryEngine(), "gemColors 8: not alike in every engine");
 
 	// The old lenient reading: wrong types give the default, numbers are truncated, empty arrays are
-	// ignored, gemColors is clamped (to 3..12 here; GameConfig plays at most 7 until stage 8), unknown keys
+	// ignored, gemColors is clamped (to 3..12, as GameConfig plays it), unknown keys
 	// are ignored silently
 	r = Merge({{"lenient", "{\"tunables\": {\"scoring\": {\"hintPenalty\": \"x\", \"excellentFactor\": true, \"lengthBonus\": 12.7, "
 		"\"longLengthBonus\": null, \"setValues\": []}, \"board\": {\"gemColors\": 20}, \"timing\": {\"startDrainDelay\": -5.9}, "
@@ -587,6 +591,58 @@ static void TestFillMinimum()
 	// A cell pattern counts every orientation placed through the cell with its other cells filled
 	Check(Merge({{"m", "{\"rules\": {\"board\": {\"gemColors\": 12}, \"match\": {\"shapes\": {\"l\": {\"preset\": \"L3\"}}}}}"}}).mRules.FillMinimum() == 7,
 		"fill minimum: L3 in all orientations 7");
+}
+
+// Stage 7b (4.14): which rules have dirt (GameRules::HasDirtRule), a layer cleared (BoardLayout::ClearDirtLayer) and
+// the v2 save's mask and DIRT layers a level's mask takes (BoardLayout::FitsSaveMask)
+static void TestDirt()
+{
+	const char* aDirtMask = "{\"rules\": {\"board\": {\"mask\": [\"#d##\", \"#29#\", \"####\", \"#..#\"], \"dirtPoints\": 7}}}";
+	Result r = Merge({{"dirt", aDirtMask}});
+	Check(Clean(r) && r.mRules.HasDirtRule() && (r.mRules.mBoard.mDirtPoints == 7), "a mask with dirt: a dirt rule" + Messages(r));
+	Check(!Merge({{"holes", "{\"rules\": {\"board\": {\"mask\": [\"####\", \"#..#\", \"####\", \"####\"]}}}"}}).mRules.HasDirtRule() &&
+		!Merge({}).mRules.HasDirtRule(), "holes alone, or the original board: no dirt rule");
+	Check(Merge({{"levels", "{\"rules\": {\"board\": {\"levels\": [{\"cols\": 7, \"rows\": 7}, {\"cols\": 4, \"rows\": 4, \"mask\": "
+		"[\"####\", \"#3##\", \"####\", \"####\"]}]}}}"}}).mRules.HasDirtRule(), "dirt on the second level shape only: a dirt rule");
+
+	BoardLayout aLayout = r.mRules.LayoutForLevel(0);
+	Check(aLayout.IsDirt(1, 0) && (aLayout.mDirt[0][1] == 1) && (aLayout.mDirt[1][1] == 2) && (aLayout.mDirt[1][2] == 9) && !aLayout.IsPlayable(1, 0),
+		"the mask's dirt cells and layers");
+	BoardLayout aCleared = aLayout;
+	Check(aCleared.ClearDirtLayer(1, 1) && aCleared.IsDirt(1, 1) && (aCleared.mDirt[1][1] == 1), "a layer off: 1 left, still dirt");
+	Check(aCleared.ClearDirtLayer(1, 1) && !aCleared.IsDirt(1, 1) && aCleared.IsPlayable(1, 1), "the last layer off: a gem cell");
+	Check(!aCleared.ClearDirtLayer(1, 1) && !aCleared.ClearDirtLayer(1, 3), "no layer off a gem cell or a hole");
+
+	// The save's mask from the cleared layout, its layers row-major
+	std::vector<bool> aPlayable;
+	std::vector<uint8_t> aLayers;
+	for (int aRow = 0; aRow < 4; aRow++)
+	{
+		for (int aCol = 0; aCol < 4; aCol++)
+		{
+			aPlayable.push_back(aCleared.IsPlayable(aCol, aRow));
+			aLayers.push_back(aCleared.IsDirt(aCol, aRow) ? aCleared.mDirt[aRow][aCol] : 0);
+		}
+	}
+	Check(aLayout.FitsSaveMask(4, 4, aPlayable, &aLayers) && aLayout.FitsSaveMask(4, 4, aPlayable), "a cleared dirt cell fits the level's mask");
+	Check(!aLayout.FitsSaveMask(4, 5, aPlayable) && !aLayout.FitsSaveMask(5, 4, aPlayable), "another size does not fit");
+	std::vector<bool> aHoleFilled = aPlayable;
+	aHoleFilled[13] = true;
+	Check(!aLayout.FitsSaveMask(4, 4, aHoleFilled), "a gem cell where the mask has a hole does not fit");
+	struct BadLayers { const char* mWhat; int mCell; int mLayers; };
+	const BadLayers aBads[] =
+	{
+		{"layers on the cleared cell, a gem cell in the mask", 5, 1},
+		{"more layers than the mask's", 1, 2},
+		{"layers on a gem cell of the level's mask", 0, 1},
+		{"no layers on a dirt cell the save's mask says is no gem cell", 6, 0},
+	};
+	for (size_t i = 0; i < sizeof(aBads) / sizeof(aBads[0]); i++)
+	{
+		std::vector<uint8_t> aBad = aLayers;
+		aBad[aBads[i].mCell] = (uint8_t) aBads[i].mLayers;
+		Check(!aLayout.FitsSaveMask(4, 4, aPlayable, &aBad), std::string("does not fit: ") + aBads[i].mWhat);
+	}
 }
 
 // Stage 7c (4.16): board.gravity is an atomic group, look.* are leaves that make no variant board, the canonical
@@ -1310,9 +1366,9 @@ static void TestReplayFormat()
 		"replay: every op 1..15 has a name and an argument count, 0 and 16 none");
 
 	// A golden vector: the smallest file (header and END) and a one-segment file, byte for byte, the same on
-	// native and wasm (engine ABI 3 since stage 7)
+	// native and wasm (engine ABI 4 since stage 7b)
 	Replay::File anEmpty;
-	Check(Hex(Replay::Write(anEmpty)) == "424a5250010000000300000045" "4e4420" "1d000000" "00" "00000000" "00000000" "00000000"
+	Check(Hex(Replay::Write(anEmpty)) == "424a5250010000000500000045" "4e4420" "1d000000" "00" "00000000" "00000000" "00000000"
 		"00000000" "0000000000000000" "00000000", "replay: golden bytes of a file with only END");
 	Replay::File aSmall;
 	Replay::Segment aSegment;
@@ -1323,7 +1379,7 @@ static void TestReplayFormat()
 	aSmall.mEnd.mReason = Replay::END_NO_MOVES;
 	aSmall.mEnd.mScore = 90;
 	std::string aSmallHex = Hex(Replay::Write(aSmall));
-	Check(aSmallHex == "424a52500100000003000000" "5345474d" "1d000000" "00" "00" "92100000" "00" "00" "00000000" "00000000"
+	Check(aSmallHex == "424a52500100000005000000" "5345474d" "1d000000" "00" "00" "92100000" "00" "00" "00000000" "00000000"
 		"02000000" "a001" "01" "0a" "0a" "01" "03" "01" "01"
 		"454e4420" "1d000000" "01" "00000000" "5a000000" "00000000" "00000000" "0000000000000000" "00000000",
 		"replay: golden bytes of a one-segment file (got " + aSmallHex + ")");
@@ -1825,13 +1881,16 @@ static void TestReplayPlayable()
 	Check(!Replay::CheckPlayable(anOld, 8, 8, &aWhy, true), "playable: refused: a later engine, even for the original rules");
 	anOld.mEngineAbi = 0;
 	Check(!Replay::CheckPlayable(anOld, 8, 8, &aWhy, true), "playable: refused: engine 0");
-	// Stage 7: engine 3 (the board shape rules); engine 2's replays of variant rules no longer play, its replays of
-	// the original rules do
-	anOld.mEngineAbi = 2;
-	aWhy.clear();
-	Check(Replay::CheckPlayable(anOld, 8, 8, &aWhy, true), "playable: the original rules recorded by engine 2 (" + aWhy + ")");
-	Check(!Replay::CheckPlayable(anOld, 8, 8, &aWhy, false), "playable: refused: variant rules recorded by engine 2");
-	Check(Replay::ENGINE_ABI == 3, "playable: this is engine 3 (stage 7)");
+	// Stage 7: engine 3 (the board shape rules); stage 7b: engine 4 (dirt); stage 8: engine 5 (more gem colours). An
+	// earlier engine's replays of variant rules no longer play, its replays of the original rules do
+	for (uint32_t anAbi = 2; anAbi < (uint32_t) Replay::ENGINE_ABI; anAbi++)
+	{
+		anOld.mEngineAbi = anAbi;
+		aWhy.clear();
+		Check(Replay::CheckPlayable(anOld, 8, 8, &aWhy, true), "playable: the original rules recorded by engine " + std::to_string(anAbi) + " (" + aWhy + ")");
+		Check(!Replay::CheckPlayable(anOld, 8, 8, &aWhy, false), "playable: refused: variant rules recorded by engine " + std::to_string(anAbi));
+	}
+	Check(Replay::ENGINE_ABI == 5, "playable: this is engine 5 (stage 8)");
 }
 
 // A v2 save (Replay.h, games/bejeweled/docs/CODE_MODS_DESIGN.md 7.2) around the v1 test save's fields: the rules
@@ -1926,6 +1985,36 @@ static void TestReplayVariantSave()
 		Check(!Replay::ReadVariantSave(aGravityBads[i].mBytes, &aRead, &aWhy) && !aWhy.empty(), std::string("v2: refused: ") + aGravityBads[i].mWhat + " (" + aWhy + ")");
 	}
 
+	// DIRT (stage 7b): the toggle, then a cell's layers left, written when the rules have dirt
+	Check(!aRead.mHasDirt && aRead.mDirtLayers.empty() && aRead.mDiagonalLeftFirst, "v2: no DIRT chunk");
+	Replay::VariantSave aDirt = aHoled;
+	aDirt.mHasDirt = true;
+	aDirt.mDiagonalLeftFirst = false;
+	aDirt.mDirtLayers.assign(64, 0);
+	aDirt.mDirtLayers[9] = 3;
+	std::string aDirtBytes = V2Save(aDirt, aV1Hole);
+	std::string aDirtChunk = Replay::VariantSaveChunks(aDirt).substr(2514 + 20);
+	Check(Hex(aDirtChunk.substr(0, 8 + 1 + 10)) == "44495254" "41000000" "00" "00000000000000000003", "v2: golden DIRT chunk after MOVE");
+	Check(Replay::ReadVariantSave(aDirtBytes, &aRead, &aWhy) && aRead.mHasDirt && !aRead.mDiagonalLeftFirst && (aRead.mDirtLayers == aDirt.mDirtLayers),
+		"v2: DIRT reads back (" + aWhy + ")");
+	std::string aDirtNoEnd = aDirtBytes.substr(0, aDirtBytes.size() - 8);
+	std::string aDirtAlone = aDirtNoEnd.substr(aDirtNoEnd.size() - (8 + 65));
+	size_t aDirtCells = aDirtNoEnd.size() - 64;
+	auto aWithLayer = [&](size_t theCell, char theLayers) { std::string aCopy = aDirtNoEnd; aCopy[aDirtCells + theCell] = theLayers; return aCopy + anEnd; };
+	const Bad aDirtBads[] =
+	{
+		{"DIRT twice", aDirtNoEnd + aDirtAlone + anEnd},
+		{"DIRT of 64 bytes", aDirtNoEnd.substr(0, aDirtNoEnd.size() - (8 + 65)) + "DIRT" + std::string("\x40\0\0\0", 4) + std::string(64, '\0') + anEnd},
+		{"DIRT leftFirst 2", aDirtNoEnd.substr(0, aDirtCells - 1) + "\x02" + aDirtNoEnd.substr(aDirtCells) + anEnd},
+		{"DIRT 10 layers", aWithLayer(9, 10)},
+		{"DIRT layers on a gem cell", aWithLayer(8, 1)},
+	};
+	for (size_t i = 0; i < sizeof(aDirtBads) / sizeof(aDirtBads[0]); i++)
+	{
+		aWhy.clear();
+		Check(!Replay::ReadVariantSave(aDirtBads[i].mBytes, &aRead, &aWhy) && !aWhy.empty(), std::string("v2: refused: ") + aDirtBads[i].mWhat + " (" + aWhy + ")");
+	}
+
 	// An unknown chunk before END is skipped
 	std::string anExtra = aBytes.substr(0, aBytes.size() - 8) + "GOLD" + std::string("\x02\0\0\0", 4) + "ab" + aBytes.substr(aBytes.size() - 8);
 	Check(Replay::ReadVariantSave(anExtra, &aRead, &aWhy) && (aRead.mMoves == 2), "v2: an unknown chunk is skipped (" + aWhy + ")");
@@ -1986,6 +2075,13 @@ static void TestReplayVariantSave()
 	memcpy(&aBadColour[aHeader - 4 + SavePieceAt(2, 3, offsetof(Piece, mColor))], &aSeven, 4);
 	aWhy.clear();
 	Check(!Replay::CheckSave(aBadColour, 8, 8, &aWhy, anId) && !aWhy.empty(), "v2 check: refused: colour 7 in a cell (" + aWhy + ")");
+	aWhy.clear();
+	// Stage 8: the rules' colours bound it
+	Check(Replay::CheckSave(aBadColour, 8, 8, &aWhy, anId, NULL, 8), "v2 check: colour 7 of 8 colours passes (" + aWhy + ")");
+	int32_t aTwelve = 12;
+	memcpy(&aBadColour[aHeader - 4 + SavePieceAt(2, 3, offsetof(Piece, mColor))], &aTwelve, 4);
+	aWhy.clear();
+	Check(!Replay::CheckSave(aBadColour, 8, 8, &aWhy, anId, NULL, 12) && !aWhy.empty(), "v2 check: refused: colour 12 of 12 colours (" + aWhy + ")");
 	aWhy.clear();
 	Check(Replay::CheckSave(V1Save(), 8, 8, &aWhy, anId), "v2 check: a v1 save still passes (LoadGame says which a board takes) (" + aWhy + ")");
 
@@ -2072,6 +2168,7 @@ int main(int argc, char** argv)
 	TestValidation();
 	TestFillMinimum();
 	TestGravity();
+	TestDirt();
 	TestDesignExamples();
 	TestFeatures();
 	TestJson();

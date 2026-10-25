@@ -8,6 +8,8 @@
 // window's centre (406, 219) whatever the board's logical centre. The tutorial arrows only with a tutorial move
 // (mTutorialCol >= 0). Unscaled boards take no scale branch, so on the original 8x8 this draws Draw's pixels
 // (-forcevariant's screenshots check it).
+//
+// Stage 7b (4.14): the dirt cells under the gems (DrawDirt) and the dust of a cleared one over them (DrawDirtDust).
 
 #include "Board.h"
 #include "WinDMApp.h"
@@ -15,6 +17,7 @@
 #include "Res.h"
 #include "Graphics.h"
 #include "DDImage.h"
+#include "MemoryImage.h"
 #include "ImageFont.h"
 
 #include <algorithm>
@@ -53,6 +56,8 @@ void Board::DrawVariant(Graphics* g)
 			aScaledG.SetScale((float) mLayout.mScale, (float) mLayout.mScale, (float) BoardLayout::VIEW_X, (float) BoardLayout::VIEW_Y);
 		Graphics aBoardG(aScaledG);
 		aBoardG.ClipRect(mLayout.mClipX, mLayout.mClipY, mLayout.mClipWidth, mLayout.mClipHeight); // the board's own rectangle (4.16): (194, 12, 428, 416) on 8x8
+		if (mVariant.mDirt)
+			DrawDirt(&aBoardG);
 
 		for (int aRow = 0; aRow < mRows; aRow++)
 		{
@@ -107,6 +112,9 @@ void Board::DrawVariant(Graphics* g)
 				}
 			}
 		}
+
+		if (mVariant.mDirt)
+			DrawDirtDust(&aScaledG);
 
 		Piece* aCursorPieces[3] = {mSelectedPiece, mSwapPiece1, mSwapPiece2};
 		for (int i = 0; i < 3; i++)
@@ -198,4 +206,171 @@ void Board::DrawVariant(Graphics* g)
 		g->DrawImage(mApp->mImages[IMAGE_OVER_HINT], 64, 303);
 		g->SetColorizeImages(false);
 	}
+}
+
+// ---------------------------------------------------------------------------------------------------
+// Dirt (stage 7b, games/bejeweled/docs/CODE_MODS_DESIGN.md 4.14)
+
+// The crack lines of the dirt art, in a cell's 51 x 51 px: a cell with n layers shows the first n
+static const int kCrackPoints = 4;
+static const int kCracks[BoardLayout::MAX_DIRT_LAYERS][kCrackPoints][2] =
+{
+	{{8, 10}, {18, 20}, {16, 30}, {24, 40}},
+	{{42, 8}, {34, 18}, {38, 26}, {35, 31}},
+	{{10, 44}, {20, 36}, {30, 40}, {33, 45}},
+	{{44, 40}, {36, 32}, {40, 22}, {45, 18}},
+	{{25, 6}, {27, 16}, {22, 24}, {25, 28}},
+	{{6, 26}, {14, 28}, {18, 34}, {14, 38}},
+	{{30, 46}, {32, 38}, {28, 30}, {31, 26}},
+	{{46, 28}, {40, 30}, {36, 40}, {39, 45}},
+	{{16, 14}, {24, 12}, {30, 20}, {29, 24}}
+};
+
+static void PutCrackPixel(ulong* theBits, int theX, int theY, ulong theColor)
+{
+	if ((theX >= 0) && (theX < Board::CELL_SIZE) && (theY >= 0) && (theY < Board::CELL_SIZE))
+		theBits[theY * Board::CELL_SIZE + theX] = theColor;
+}
+
+// The cracks of a dirt cell with theLayers layers (1..9): dark lines with a light edge below them, on a clear cell;
+// the same for every level and board, made once
+static Image* DirtCracks(WinDMApp* theApp, int theLayers)
+{
+	static MemoryImage* sCracks[BoardLayout::MAX_DIRT_LAYERS] = {};
+	MemoryImage*& anImage = sCracks[theLayers - 1];
+	if (anImage == NULL)
+	{
+		anImage = new MemoryImage(theApp);
+		anImage->Create(Board::CELL_SIZE, Board::CELL_SIZE);
+		ulong* aBits = anImage->GetBits();
+		std::fill(aBits, aBits + Board::CELL_SIZE * Board::CELL_SIZE, (ulong) 0);
+		for (int aPass = 0; aPass < 2; aPass++)
+		{
+			for (int aCrack = 0; aCrack < theLayers; aCrack++)
+			{
+				for (int i = 0; i + 1 < kCrackPoints; i++)
+				{
+					int aX0 = kCracks[aCrack][i][0], aY0 = kCracks[aCrack][i][1];
+					int aX1 = kCracks[aCrack][i + 1][0], aY1 = kCracks[aCrack][i + 1][1];
+					int aSteps = std::max(std::abs(aX1 - aX0), std::abs(aY1 - aY0));
+					for (int k = 0; k <= aSteps; k++)
+					{
+						int aX = aX0 + (aX1 - aX0) * k / std::max(aSteps, 1);
+						int aY = aY0 + (aY1 - aY0) * k / std::max(aSteps, 1);
+						// the light edge first, the dark line over it
+						if (aPass == 0)
+							PutCrackPixel(aBits, aX + 1, aY + 1, 0x90D8B888);
+						else
+							PutCrackPixel(aBits, aX, aY, 0xFF2A1A10);
+					}
+				}
+			}
+		}
+		anImage->BitsChanged();
+	}
+	return anImage;
+}
+
+// A mod's dirt tile (images/dirttile), looked up once; NULL without one
+static Image* ModDirtTile(WinDMApp* theApp)
+{
+	static bool isLookedUp = false;
+	static Image* aDirtTile = NULL;
+	if (!isLookedUp)
+	{
+		isLookedUp = true;
+		aDirtTile = theApp->GetImage("images\\dirttile", true);
+	}
+	return aDirtTile;
+}
+
+// The dirt cells, under the gems: the level's checker tile A or B tinted brown (a mod's images/dirttile in its
+// place, when there is one), and a crack for each layer left. The tiles are made once per level
+void Board::DrawDirt(Graphics* g)
+{
+	if (!mLayout.HasDirt())
+		return;
+	Image* aModTile = ModDirtTile(mApp);
+	if ((aModTile == NULL) && (mDirtTilesLevel != mLevel))
+	{
+		for (int i = 0; i < 2; i++)
+		{
+			delete mDirtTiles[i];
+			MemoryImage aTexture(mApp);
+			aTexture.Create(CELL_SIZE, CELL_SIZE);
+			Graphics aTextureG(&aTexture);
+			aTextureG.DrawImage(mApp->mImages[IMAGE_CHECKERTEXTURES], 0, 0, Rect((mLevel % 5) * 102 + i * CELL_SIZE, 0, CELL_SIZE, CELL_SIZE));
+			mDirtTiles[i] = mApp->CreateColorizedImage(&aTexture, Color(150, 100, 60));
+		}
+		mDirtTilesLevel = mLevel;
+	}
+	for (int aRow = 0; aRow < mRows; aRow++)
+	{
+		for (int aCol = 0; aCol < mCols; aCol++)
+		{
+			if (!mLayout.IsDirt(aCol, aRow))
+				continue;
+			int aX = GetColX(aCol) - 1;
+			int aY = GetRowY(aRow);
+			Image* aTile = (aModTile != NULL) ? aModTile : mDirtTiles[(aRow + aCol) % 2];
+			g->DrawImage(aTile, aX, aY, Rect(0, 0, std::min((int) CELL_SIZE, aTile->GetWidth()), std::min((int) CELL_SIZE, aTile->GetHeight())));
+			g->DrawImage(DirtCracks(mApp, mLayout.mDirt[aRow][aCol]), aX, aY);
+		}
+	}
+}
+
+// How long a cleared dirt cell's dust shows
+static const int DIRT_DUST_TICKS = 40;
+
+// A grain of dust: a light tan disc with a brown rim, 8 x 8 px, made once
+static Image* DirtGrain(WinDMApp* theApp)
+{
+	static MemoryImage* sGrain = NULL;
+	if (sGrain == NULL)
+	{
+		sGrain = new MemoryImage(theApp);
+		sGrain->Create(8, 8);
+		ulong* aBits = sGrain->GetBits();
+		for (int y = 0; y < 8; y++)
+		{
+			for (int x = 0; x < 8; x++)
+			{
+				int aDist = (2 * x - 7) * (2 * x - 7) + (2 * y - 7) * (2 * y - 7); // 4 x the squared distance from the centre
+				aBits[y * 8 + x] = (aDist <= 26) ? 0xFFE8CFA0 : (aDist <= 50) ? 0xFF8A6038 : 0;
+			}
+		}
+		sGrain->BitsChanged();
+	}
+	return sGrain;
+}
+
+// The dust of the dirt cells cleared lately, over the gems: twelve grains fly out from the cell's centre, sink a little,
+// shrink and fade (Graphics::FillRect would ignore the board's scale, so they are images)
+void Board::DrawDirtDust(Graphics* g)
+{
+	while (!mDirtDust.empty() && (mUpdateCnt - mDirtDust.front().mStartTick >= DIRT_DUST_TICKS))
+		mDirtDust.erase(mDirtDust.begin());
+	if (mDirtDust.empty())
+		return;
+	static const int kDirs[12][2] = {{0, -10}, {5, -9}, {9, -5}, {10, 0}, {9, 5}, {5, 9}, {0, 10}, {-5, 9}, {-9, 5}, {-10, 0}, {-9, -5}, {-5, -9}};
+	Image* aGrain = DirtGrain(mApp);
+	g->SetColorizeImages(true);
+	for (size_t i = 0; i < mDirtDust.size(); i++)
+	{
+		const DirtDust& aDust = mDirtDust[i];
+		int anAge = mUpdateCnt - aDust.mStartTick;
+		g->SetColor(Color(255, 255, 255, 255 - anAge * 255 / DIRT_DUST_TICKS));
+		int aCenterX = GetColX(aDust.mCol) + 25;
+		int aCenterY = GetRowY(aDust.mRow) + 25;
+		int aSize = 10 - anAge / 8;
+		for (int k = 0; k < 12; k++)
+		{
+			// grains alternate between two speeds, so the puff is no ring
+			int aReach = 6 + anAge * ((k % 2 == 0) ? 7 : 5) / 4;
+			int aX = aCenterX + kDirs[k][0] * aReach / 10 - aSize / 2;
+			int aY = aCenterY + kDirs[k][1] * aReach / 10 - aSize / 2 + anAge * anAge / 80;
+			g->DrawImage(aGrain, Rect(aX, aY, aSize, aSize), Rect(0, 0, 8, 8));
+		}
+	}
+	g->SetColorizeImages(false);
 }

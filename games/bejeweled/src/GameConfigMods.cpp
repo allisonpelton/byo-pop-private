@@ -3,6 +3,7 @@
 
 #include "GameConfig.h"
 #include "LiveSplitObserver.h"
+#include "GemSheet.h"
 #include "platform/ModManager.h"
 #include "platform/VFS.h"
 #include "PakInterface.h"
@@ -116,10 +117,12 @@ static void AddBuildWarnings(const GameRules& theRules, const GameFeatures& theF
 	std::vector<std::string> aKeys = theRules.VariantKeys();
 #ifndef BEJ_NO_VARIANTS
 	// Played since stage 5 (4.1): kept invalid moves and the noMoves rule; since stage 6 (4.12) undo; since stage 7
-	// (4.3) the board's shape; since stage 7c (4.16) gravity. A BEJ_NO_VARIANTS build plays no rule, nor shows look.*.
+	// (4.3) the board's shape; since stage 7c (4.16) gravity; since stage 7b (4.14) dirt. A BEJ_NO_VARIANTS build plays no
+	// rule, nor shows look.*.
 	static const char* const aPlayed[] = {"moves.allowInvalid", "moves.invalidPenalty", "moves.invalidCountsAsMove", "noMoves.normal",
 		"noMoves.timed", "undo.enabled", "undo.depth", "undo.max", "undo.penalty", "undo.inTimed", "undo.restoreTime", "undo.restoreRng",
-		"board.cols", "board.rows", "board.mask", "board.levels", "board.gravity.direction", "board.gravity.fallAccel"};
+		"board.cols", "board.rows", "board.mask", "board.levels", "board.gravity.direction", "board.gravity.fallAccel",
+		"board.dirtPoints"};
 	for (size_t i = 0; i < sizeof(aPlayed) / sizeof(aPlayed[0]); i++)
 		aKeys.erase(std::remove(aKeys.begin(), aKeys.end(), std::string(aPlayed[i])), aKeys.end());
 #else
@@ -192,29 +195,8 @@ static void AddBuildWarnings(const GameRules& theRules, const GameFeatures& theF
 		theStatus->mWarnings.push_back({theFeatures.mLiveSplitMod, "features.livesplit: desktop only, ignored"});
 #endif
 
-	if (theRules.mBoard.mGemColors > 7)
-	{
-		char aText[128];
-		snprintf(aText, sizeof(aText), "board.gemColors %d: this build has art for 7 gem colours and plays with 7", theRules.mBoard.mGemColors);
-		std::vector<std::string> aMods = ProvenanceFor(*theStatus, "board.gemColors");
-		theStatus->mWarnings.push_back({aMods.empty() ? std::string() : aMods[0], aText});
-	}
-
-	std::vector<std::string> aWarned;
-	const std::vector<Platform::ModImageOp>& anOps = Platform::ModManager::Get().GetImageOps();
-	for (size_t i = 0; i < anOps.size(); i++)
-	{
-		const JsonValue& anOp = anOps[i].mOp;
-		if (!anOp.IsObject() || !anOp["target"].IsString() || !anOp["op"].IsString())
-			theStatus->mWarnings.push_back({anOps[i].mModId, "imageOps: each entry needs \"target\" and \"op\" strings"});
-		else if (anOp["op"].AsString() != "extendRows")
-			theStatus->mWarnings.push_back({anOps[i].mModId, "imageOps: unknown op \"" + anOp["op"].AsString() + "\" (did you mean extendRows?)"});
-		if (std::find(aWarned.begin(), aWarned.end(), anOps[i].mModId) == aWarned.end())
-		{
-			aWarned.push_back(anOps[i].mModId);
-			theStatus->mWarnings.push_back({anOps[i].mModId, "imageOps are not applied by this build yet"});
-		}
-	}
+	// The gem sheet's generated rows (stage 8): what the imageOps get wrong
+	GemSheet::ModLooks(Platform::ModManager::Get().GetImageOps(), &theStatus->mWarnings);
 }
 
 static JsonValue MessagesJson(const std::vector<RulesMessage>& theMessages)

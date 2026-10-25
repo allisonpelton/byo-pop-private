@@ -637,6 +637,7 @@ void Board::UpdateClearing()
 	// Each pass moves every gem above a column's lowest gap down one row and spawns one new gem on
 	// top of that column, 69 px above its highest gem; passes repeat until no column has a gap.
 	// Colors are not re-rolled, so the refill can cascade.
+	if (mVariant.mDirt) RefillDiagonal(); else // port(variant): dirt floors and diagonal slides (BoardShape.cpp)
 	if (mVariant.mFall) RefillMasked(); // port(variant): over each column's cells, through holes, in the gravity direction (BoardShape.cpp)
 	else
 	{

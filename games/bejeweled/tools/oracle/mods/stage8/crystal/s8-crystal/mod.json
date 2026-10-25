@@ -1,0 +1,7 @@
+{
+  "id": "s8-crystal",
+  "name": "Stage 8: crystal gems, twelve colours",
+  "version": "1.0",
+  "description": "Oracle fixture: board.gemColors 12 with the HD gem sheet of the example-crystal-gems mod (games/bejeweled/mods, the same file): the generated rows on the @2x pixels too.",
+  "rules": { "board": { "gemColors": 12 } }
+}

@@ -1,0 +1,26 @@
+{
+  "id": "s7b-undo",
+  "name": "Stage 7b: dirt with undo",
+  "version": "1.0",
+  "description": "Oracle fixture: s7b-dirt with undo (depth 3), which brings the dirt layers back with the board.",
+  "rules": {
+    "board": {
+      "mask": [
+        "#d######",
+        "########",
+        "#####3##",
+        "########",
+        "##2#####",
+        "########",
+        "######d#",
+        "########"
+      ],
+      "dirtPoints": 25
+    },
+    "undo": {
+      "enabled": true,
+      "depth": 3,
+      "max": 4
+    }
+  }
+}

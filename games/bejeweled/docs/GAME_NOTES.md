@@ -2139,6 +2139,63 @@ look keys `look.backdrop` and `look.soundPitch`, which change no play and make n
   (English defaults, mod strings override them). `look.soundPitch` sets `SoundManager::SetDefaultPitch`, which
   every new sound instance takes; music is apart.
 
+### 12.12 Dirt and diagonal falling (code mods, stage 7b)
+
+games/bejeweled/docs/CODE_MODS_DESIGN.md 4.14, as built (`BoardShape.cpp`, `BoardDrawVariant.cpp`). A mask cell `d`
+(one layer) or `2`..`9` is dirt: `CELL_DIRT` in the board's own copy of the layout, with its layers in `mDirt`.
+`board.dirtPoints` is what a layer scores, times the multiplier.
+
+- **Flags.** `mDirt` when any level's mask has dirt (`GameRules::HasDirtRule`, `mDirtRules` on the board), and
+  under `-forcevariant`. A mask with dirt is a shape, so `mShape`, `mFall` and `mDraw` are on already.
+- **Clearing.** After each run `ProcessMatches` scores, `ClearDirtNextToRun` takes one layer off each dirt cell
+  orthogonally next to the run, once per run. When the last layer goes, the cell is a gem cell for the rest of
+  the level. A new level's layout comes whole from the rules.
+- **Refill.** `UpdateClearing` calls `RefillDiagonal` in place of `RefillMasked`. It alternates two steps:
+  - segment passes: a column splits at its dirt cells, only the segment on the entry side spawns, and the
+    other segments' gaps gather under their dirt;
+  - one diagonal slide (`SlideDiagonal`): an empty cell under dirt takes a gem from a neighbouring column one
+    row nearer the entry side. When both sides have one, `mDiagonalLeftFirst` picks, and it flips after every
+    slide.
+
+  Without dirt the passes are `RefillMasked`'s, draw for draw. Under up gravity the steps mirror vertically.
+  `FallPiecesVariant` moves a slid gem over to its column once it is no further from its row than from its
+  column, so it falls straight and then glides in at 45 degrees.
+- **State.** The layers and `mDiagonalLeftFirst` are StateCodec rows (FULL, LOGIC, SNAP, V2 and UNDO) and a v2
+  save's `DIRT` chunk, only when the rules have dirt. The save's mask is the current layout, so a cleared cell
+  is a gem cell there (`BoardLayout::FitsSaveMask`). `-trace` prints a dirt cell as `-1 - layers` and adds
+  `dirt <layers> left|right` to the variant line. Engine ABI 4: an earlier engine's replays of variant rules no
+  longer play.
+- **Art.** The level's checker tile is colorized brown, with a crack line per layer left (`DrawDirt`, under the
+  gems). A cleared cell sends a puff of dust (`DrawDirtDust`, over the gems; cosmetic, not saved). A mod's
+  `images/dirttile` replaces the tile.
+
+### 12.13 More gem colours (code mods, stage 8)
+
+games/bejeweled/docs/CODE_MODS_DESIGN.md 4.2, as built (`GemSheet.cpp`, `WinDMApp::EnsureGemColors`).
+`board.gemColors` plays 3..12 (`GameConfig::GemColors`); the original paths already draw `Rand() % mGemColors`, so
+it stays a tunable that every build plays, `BEJ_NO_VARIANTS` included.
+
+- **The sheet.** `images/gemsheet6` gives each colour 104 px: 15 spin frames in a 52 px row, then the glow frames.
+  Before a board is made (`NewGame`, and `WatchController::CreateBoard` with the replay's rules), `EnsureGemColors`
+  grows the sheet to the rules' colours: a mod's taller sheet needs nothing, the rows it lacks are recoloured
+  copies of another row, on the 1x pixels and on a mod's HD pixels alike (`GemSheet::Extend`, then `SetBits` and
+  `SetHDBits`, so the texture follows). A watched replay of more colours than loaded grows it then.
+- **Looks.** The enabled mods' `imageOps` (`extendRows` on `images/gemsheet6`, 104 px rows) give the generated rows
+  their looks in order; the others get the default looks: the white gem tinted rose, teal, violet, onyx, lime. A
+  tint keeps the base row's shading as lightness (luminance to the power 1.6, so the white gem's bright body takes
+  the colour) under the tint's hue and saturation; `hue`, `saturation` and `lightness` then rotate, scale and shift.
+  What an op gets wrong is a warning in mods-status.json (`GemSheet::ModLooks`).
+- **Glyphs.** Each generated row has a white glyph with a dark outline in the bottom right of every frame (circle,
+  square, triangle, diamond, star for rows 7..11; `"glyph": false` leaves it out), so the extra colours differ by
+  more than colour.
+- **Shrink images.** `mGemShrinkImages` has room for 12 colours. `Init` makes the original 7, so the loading bar
+  counts as before; `EnsureGemColors` makes the others (`mGemShrinkColors`).
+- **Replays.** A save's piece colour is checked against the rules' colours (`Replay::CheckSave`,
+  `CheckPlayable`'s `theGemColors`). Engine ABI 5: engines before it played more than 7 colours as 7, so their
+  replays of such rules no longer play (`GameRules::PlaysAlikeInEveryEngine` wants at most 7).
+- **Test hook.** The script command `gemsheet <file.png>` writes the sheet as grown, and its HD pixels next to it.
+- **Not built.** `gGemTints` (the design's per-colour average) waits for the first effect that tints by gem.
+
 ---
 
 ## 13. Naming reconciliation (analyst names → chosen names)

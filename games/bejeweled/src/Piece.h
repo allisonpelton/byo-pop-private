@@ -15,7 +15,7 @@ namespace Sexy
 // reads exactly the record (games/bejeweled/docs/CODE_MODS_DESIGN.md 2.4).
 struct Piece
 {
-	int		mColor;          // +0x00 gem color 0..6 (Rand()%7); gemsheet row = mColor*104
+	int		mColor;          // +0x00 gem color 0..6 (Rand()%7); gemsheet row = mColor*104. port(variant): 0..11 (board.gemColors)
 	int		mPad04;          // +0x04 (padding before the double; raw garbage in original saves)
 	double	mX;              // +0x08 screen x of the top-left corner; resting value GetColX(mCol)
 	double	mY;              // +0x10 screen y of the top-left corner; resting value GetRowY(mRow)

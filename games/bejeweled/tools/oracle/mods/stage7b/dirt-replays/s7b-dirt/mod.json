@@ -1,0 +1,21 @@
+{
+  "id": "s7b-dirt",
+  "name": "Stage 7b: dirt",
+  "version": "1.0",
+  "description": "Oracle fixture: an 8x8 with four dirt cells (a layer at (1,0) in the top row and at (6,6), 3 at (5,2), 2 at (2,4)), 25 points a layer. A run next to a dirt cell takes a layer off it; gems slide diagonally into the cells under dirt.",
+  "rules": {
+    "board": {
+      "mask": [
+        "#d######",
+        "########",
+        "#####3##",
+        "########",
+        "##2#####",
+        "########",
+        "######d#",
+        "########"
+      ],
+      "dirtPoints": 25
+    }
+  }
+}

@@ -15,6 +15,10 @@
 // fall-out and the game-over fall) run here in the direction GravityUp() gives, mirrored about the board's middle
 // row under up; down is the original algorithm line for line, and -forcevariant runs it at default rules.
 // "alternate" (Bejeweled 2's Twilight) starts up and flips at each settle that ends a move (OnGravitySettle).
+//
+// Dirt (stage 7b, 4.14): a dirt cell holds no gem and is a floor. UpdateClearing's refill becomes RefillDiagonal
+// (column segments between dirt cells, then diagonal slides into the cells under dirt), a scored run takes a layer
+// off each dirt cell next to it (ClearDirtNextToRun), and a cell whose last layer goes is a gem cell from then on.
 
 #include "Board.h"
 #include "WinDMApp.h"
@@ -310,7 +314,8 @@ void Board::DrawVariantChecker(Graphics* g, Image* theTileA, Image* theTileB)
 // UpdateBlackHole's done-block (0x4cb931), after its deletion loop: the level SetupLevel set up takes its shape
 void Board::ApplyPendingLayout()
 {
-	mLayout = mPendingLayout;
+	mLayout = mPendingLayout; // dirt cells come back with all their layers (4.14)
+	mDirtDust.clear();
 	mCols = mLayout.mCols;
 	mRows = mLayout.mRows;
 	int aShapes = mRules.ShapeCount();
@@ -335,6 +340,7 @@ void Board::SetLoadedLayout(const BoardLayout& theLayout, int theLevelShape)
 	}
 	mLayout = theLayout;
 	mPendingLayout = theLayout;
+	mDirtDust.clear();
 	mCols = mLayout.mCols;
 	mRows = mLayout.mRows;
 	mLevelShape = theLevelShape;
@@ -390,20 +396,32 @@ void Board::FallPiecesVariant(int* theLandedCount, int* theLandedXSum, bool* isS
 		{
 			Piece* aPiece = mBoard[aRow][aCol];
 			if (aPiece == NULL) continue;
-			if (aPiece->mY == aRestY)
+			// A gem that slid diagonally (RefillDiagonal, 4.14) also moves over, at its fall speed, once it is no
+			// further from its row than from its column: it falls straight, then glides in at 45 degrees, under the dirt
+			// and not across it. Every other gem is over its column already, so this is the original loop for them
+			double aRestX = GetColX(aCol);
+			if ((aPiece->mY == aRestY) && (aPiece->mX == aRestX))
 				aPiece->mVelY = 0.0;
 			else
 			{
 				*isSettled = false;
-				if (isUp)
-					aPiece->mY -= aPiece->mVelY;
-				else
-					aPiece->mY += aPiece->mVelY;
-				if (isUp ? (aPiece->mY <= aRestY) : (aPiece->mY >= aRestY))
+				if ((aPiece->mX != aRestX) && (std::abs(aRestY - aPiece->mY) <= std::abs(aRestX - aPiece->mX)))
 				{
-					(*theLandedCount)++;
-					*theLandedXSum = (int)(aPiece->mX + 24.0 + *theLandedXSum);
-					aPiece->mY = aRestY;
+					double aStep = std::max(aPiece->mVelY, 1.0);
+					aPiece->mX = (aPiece->mX < aRestX) ? std::min(aPiece->mX + aStep, aRestX) : std::max(aPiece->mX - aStep, aRestX);
+				}
+				if (aPiece->mY != aRestY)
+				{
+					if (isUp)
+						aPiece->mY -= aPiece->mVelY;
+					else
+						aPiece->mY += aPiece->mVelY;
+					if (isUp ? (aPiece->mY <= aRestY) : (aPiece->mY >= aRestY))
+					{
+						(*theLandedCount)++;
+						*theLandedXSum = (int)(aPiece->mX + 24.0 + *theLandedXSum);
+						aPiece->mY = aRestY;
+					}
 				}
 				// A gem that just landed keeps this velocity for one tick
 				aPiece->mVelY += anAccel;
@@ -499,4 +517,238 @@ bool Board::GameOverFallVariant()
 		}
 	}
 	return allGone;
+}
+
+// ---------------------------------------------------------------------------------------------------
+// Dirt (stage 7b, games/bejeweled/docs/CODE_MODS_DESIGN.md 4.14)
+
+// UpdateClearing's refill on a board with dirt: passes over the column segments (RefillSegmentsPass) until nothing
+// moves, then one gem slides diagonally into a cell no vertical fall reaches (SlideDiagonal), which opens a cell on
+// its own column, and the passes go on; until no gem can slide. Without dirt every column is one segment that spawns,
+// so the passes are RefillMasked's, draw for draw, and no cell is left for a slide (-forcevariant runs it so).
+void Board::RefillDiagonal()
+{
+	do
+	{
+		while (RefillSegmentsPass())
+			;
+	}
+	while (SlideDiagonal());
+}
+
+// One of RefillMasked's passes over every column, split at its dirt cells into segments, each from the entry side (the
+// top; the bottom under up). In a segment every gem on the entry side of its farthest gap moves one cell on. The
+// entry segment, with no dirt between it and the column's entry edge, then gets a new gem over its first cell, 69 px
+// beyond its edge gem, as RefillMasked's column does; a segment beyond dirt gets none, so its gaps gather under the
+// dirt for SlideDiagonal. True if a gem moved or spawned.
+bool Board::RefillSegmentsPass()
+{
+	bool isUp = GravityUp();
+	bool aChanged = false;
+	for (int aCol = 0; aCol < mCols; aCol++)
+	{
+		int aCells[BoardLayout::MAX_ROWS];
+		int aCount = 0;
+		bool isEntry = true;
+		for (int i = 0; i <= mRows; i++)
+		{
+			int aRow = isUp ? mRows - 1 - i : i;
+			bool isEnd = (i == mRows) || mLayout.IsDirt(aCol, aRow);
+			if (!isEnd)
+			{
+				if (mLayout.IsPlayable(aCol, aRow))
+					aCells[aCount++] = aRow;
+				continue;
+			}
+			if (aCount > 0)
+			{
+				// The entry side's edge: the highest gem (down), the lowest (up)
+				int anEdgeY = GetRowY(aCells[0]);
+				bool aGap = false;
+				bool aMoved = false;
+				for (int k = aCount - 1; k >= 0; k--)
+				{
+					Piece* aPiece = mBoard[aCells[k]][aCol];
+					if (aPiece == NULL)
+					{
+						if (aGap)
+							mBoard[aCells[k + 1]][aCol] = NULL;
+						aGap = true;
+					}
+					else
+					{
+						if (isUp ? (aPiece->mY > anEdgeY) : (aPiece->mY < anEdgeY))
+							anEdgeY = (int)aPiece->mY;
+						if (aGap)
+						{
+							aPiece->mRow = aCells[k + 1];
+							aPiece->mVelY = 1.0;
+							mBoard[aCells[k + 1]][aCol] = aPiece;
+							aMoved = true;
+						}
+					}
+				}
+				if (aGap && isEntry)
+				{
+					aChanged = true;
+					Piece* aPiece = new Piece();
+					aPiece->mVelY = 0.3;
+					aPiece->mRow = aCells[0];
+					aPiece->mCol = aCol;
+					aPiece->mX = GetColX(aCol);
+					aPiece->mY = isUp ? anEdgeY + 69 : anEdgeY - 69;
+					aPiece->mColor = Rand() % gGameConfig.mGemColors;
+					mBoard[aCells[0]][aCol] = aPiece;
+				}
+				else if (aGap)
+				{
+					// The first cell's gem moved on (or it was empty already)
+					mBoard[aCells[0]][aCol] = NULL;
+					aChanged = aChanged || aMoved;
+				}
+			}
+			aCount = 0;
+			isEntry = false;
+		}
+	}
+	return aChanged;
+}
+
+// No vertical fall reaches (theCol, theRow): the nearest cell on its entry side that is not a hole is dirt
+static bool IsUnderDirt(const BoardLayout& theLayout, int theCol, int theRow, bool isUp)
+{
+	int aStep = isUp ? 1 : -1;
+	for (int aRow = theRow + aStep; (aRow >= 0) && (aRow < theLayout.mRows); aRow += aStep)
+	{
+		if (theLayout.IsDirt(theCol, aRow))
+			return true;
+		if (theLayout.IsPlayable(theCol, aRow))
+			return false;
+	}
+	return false;
+}
+
+// RefillDiagonal's slide: rows from the far side back (down: bottom to top), columns left to right, the first empty gem
+// cell under dirt (where the passes gathered a segment's gaps) with a gem in a neighbouring column one row nearer the
+// entry side. With a gem on both sides mDiagonalLeftFirst picks, and it flips after every slide. The gem takes the
+// cell (FallPiecesVariant moves it over and on); false when no cell can take one. The columns keep their order under
+// up, so the slides mirror vertically, as the passes do.
+bool Board::SlideDiagonal()
+{
+	bool isUp = GravityUp();
+	for (int i = 0; i < mRows; i++)
+	{
+		int aRow = isUp ? i : mRows - 1 - i;
+		int aFromRow = isUp ? aRow + 1 : aRow - 1;
+		for (int aCol = 0; aCol < mCols; aCol++)
+		{
+			if (!mLayout.IsPlayable(aCol, aRow) || (mBoard[aRow][aCol] != NULL) || !IsUnderDirt(mLayout, aCol, aRow, isUp))
+				continue;
+			Piece* aLeft = mLayout.IsPlayable(aCol - 1, aFromRow) ? mBoard[aFromRow][aCol - 1] : NULL;
+			Piece* aRight = mLayout.IsPlayable(aCol + 1, aFromRow) ? mBoard[aFromRow][aCol + 1] : NULL;
+			if ((aLeft == NULL) && (aRight == NULL))
+				continue;
+			bool isLeft = (aLeft != NULL) && ((aRight == NULL) || mDiagonalLeftFirst);
+			Piece* aPiece = isLeft ? aLeft : aRight;
+			mBoard[aFromRow][isLeft ? aCol - 1 : aCol + 1] = NULL;
+			mBoard[aRow][aCol] = aPiece;
+			aPiece->mRow = aRow;
+			aPiece->mCol = aCol;
+			aPiece->mVelY = 1.0;
+			mDiagonalLeftFirst = !mDiagonalLeftFirst;
+			return true;
+		}
+	}
+	return false;
+}
+
+// ProcessMatches, after each scored run (theColor's gems in the rectangle, as it marks them): every dirt cell next to
+// one of the run's gems (up, down, left, right) loses one layer, once for the run, so a cell next to two runs of one
+// resolution loses two. board.dirtPoints times the multiplier for each layer. A cell whose last layer goes is a gem
+// cell that the refill fills, under a puff of dust (DrawDirtDust).
+void Board::ClearDirtNextToRun(int theStartCol, int theStartRow, int theEndCol, int theEndRow, int theColor)
+{
+	static const int kNeighbours[4][2] = {{0, -1}, {-1, 0}, {1, 0}, {0, 1}};
+	bool aNext[BoardLayout::MAX_ROWS][BoardLayout::MAX_COLS] = {};
+	bool isAny = false;
+	for (int aRow = theStartRow; aRow <= theEndRow; aRow++)
+	{
+		for (int aCol = theStartCol; aCol <= theEndCol; aCol++)
+		{
+			Piece* aPiece = mBoard[aRow][aCol];
+			if ((aPiece == NULL) || (aPiece->mColor != theColor))
+				continue;
+			for (int i = 0; i < 4; i++)
+			{
+				int aDirtCol = aCol + kNeighbours[i][0];
+				int aDirtRow = aRow + kNeighbours[i][1];
+				if (mLayout.IsDirt(aDirtCol, aDirtRow))
+				{
+					aNext[aDirtRow][aDirtCol] = true;
+					isAny = true;
+				}
+			}
+		}
+	}
+	if (!isAny)
+		return;
+
+	for (int aRow = 0; aRow < mRows; aRow++)
+	{
+		for (int aCol = 0; aCol < mCols; aCol++)
+		{
+			if (!aNext[aRow][aCol])
+				continue;
+			mLayout.ClearDirtLayer(aCol, aRow);
+			int aPoints = (int)(mRules.mBoard.mDirtPoints * mPointMultiplier);
+			if (aPoints > 0)
+			{
+				mScore += aPoints;
+				ScorePopup aPopup = {GetColX(aCol) + 24, GetRowY(aRow) + 16, 110, -1, aPoints};
+				mScorePopups.push_back(aPopup);
+			}
+			if (!mLayout.IsDirt(aCol, aRow))
+			{
+				DirtDust aDust = {aCol, aRow, mUpdateCnt};
+				mDirtDust.push_back(aDust);
+			}
+		}
+	}
+	MarkDirty();
+}
+
+// A save's DIRT chunk or a snapshot's row (row-major, mCols x mRows): the layers left on the dirt cells of the level's
+// mask, 0 for one cleared; any other cell must say 0. Applied to mLayout only when every cell fits
+bool Board::ApplyDirtLayers(const std::vector<uint8_t>& theLayers, std::string* theWhy)
+{
+	BoardLayout aMask = mRules.LayoutForLevel(mLevelShape);
+	if ((aMask.mCols != mCols) || (aMask.mRows != mRows) || (theLayers.size() != (size_t)(mCols * mRows)))
+	{
+		*theWhy = "dirt layers for " + std::to_string(theLayers.size()) + " cells on a " + std::to_string(mCols) + "x" +
+			std::to_string(mRows) + " board";
+		return false;
+	}
+	for (int aRow = 0; aRow < mRows; aRow++)
+	{
+		for (int aCol = 0; aCol < mCols; aCol++)
+		{
+			int aLayers = theLayers[aRow * mCols + aCol];
+			int aMost = aMask.IsDirt(aCol, aRow) ? aMask.mDirt[aRow][aCol] : 0;
+			if (aLayers > aMost)
+			{
+				*theWhy = std::to_string(aLayers) + " dirt layers at cell (" + std::to_string(aCol) + "," + std::to_string(aRow) +
+					"), where the mask has " + std::to_string(aMost);
+				return false;
+			}
+		}
+	}
+	for (int aRow = 0; aRow < mRows; aRow++)
+	{
+		for (int aCol = 0; aCol < mCols; aCol++)
+		{
+			if (aMask.IsDirt(aCol, aRow))
+				mLayout.SetDirtLayers(aCol, aRow, theLayers[aRow * mCols + aCol]);
+		}
+	}
+	return true;
 }

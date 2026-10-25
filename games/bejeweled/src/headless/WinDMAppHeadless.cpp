@@ -22,6 +22,7 @@ WinDMApp::WinDMApp()
 	for (int i = 0; i < NUM_IMAGES; i++)
 		mImages[i] = NULL;
 	mGemShrinkImages = NULL;
+	mGemShrinkColors = 0;
 	mTitleScreen = NULL;
 	mBoard = NULL;
 	mNoPopLink = false;
@@ -136,6 +137,11 @@ void WinDMApp::ShowHighScoreWidget()
 	HeadlessApp* anApp = dynamic_cast<HeadlessApp*>(this);
 	if (anApp != NULL)
 		anApp->mHighScoresCalled = true;
+}
+
+// No images
+void WinDMApp::EnsureGemColors(int /*theColors*/)
+{
 }
 
 void WinDMApp::SetTimedMode(bool isTimed, bool startNewGame)

@@ -199,7 +199,7 @@ struct VariantFlags
 | `framework/SexyAppBase.*` | small addition | `virtual bool HandleScriptCommand(name, args)`, so the game can add `save` and `autoplay` script commands. `GetShutdownSave` becomes `GetShutdownSaves(std::vector<BackupFile>*)`. |
 | `framework/SoundManager.h`, `SDLSoundManager.*` | small addition | `SetDefaultPitch(steps)`: `GetSoundInstance` applies `AdjustPitch(steps)` to every instance it hands out (4.16). |
 | `platform/ModManager.*` | changed | Reads `rules`, `features` and `imageOps`. Merges with provenance, atomic groups, keyed objects, `null` resets and a union operator. Marks rule mods and `diff.txt` overriders as score-affecting. Writes `mods-status.json`. |
-| `platform/ImagePatch.cpp` | addition | `imageOps` `extendRows`: copies or recolours a base row on both `mBits` and `mHDBits` of a `LoadedImage`. |
+| `platform/ImagePatch.cpp` | addition | `imageOps` `extendRows`: copies or recolours a base row on both `mBits` and `mHDBits` of a `LoadedImage`. As built (stage 8) game-side instead: `GemSheet.cpp` on the loaded sheet. |
 | `games/bejeweled/src/headless/` | new | Header shims, `WinDMAppHeadless.cpp`, `verify_main.cpp`, `sha256.c`. Target `bejeweled_verify`. |
 | `server/leaderboard/` | new | Worker (TypeScript), `schema.sql`, `wrangler.toml`. |
 | `web/shell.html` | changed | `?seed=`, `?replay=`, `-replaydir`, gameplay/feature tags, rules status, Replays and Leaderboard panels. |
@@ -700,6 +700,22 @@ deterministic.
     `EnsureGemColors(n)` lazily.
 - **Save, UI:** no change. The colour is already in the Piece record.
 
+**As built (stage 8, `GemSheet.cpp`, `WinDMApp::EnsureGemColors`; GAME_NOTES 12.13):**
+- The ops are applied game-side, not in `platform/ImagePatch.cpp`: `EnsureGemColors` grows the loaded sheet's
+  `mBits` and `mHDBits` before each board (and for a replay's rules). `"rows"` is read only for its range: the sheet
+  gets as many rows as `board.gemColors` asks for.
+- A `generate` entry: `from` (the base row, default 1, the white gem), `tint` (`[r, g, b]`: the base's shading under
+  that colour's hue, saturation and lightness, 0.5 keeping it), then `hue` (a rotation in degrees), `saturation` (a
+  factor), `lightness` (a shift, -1..1) and `glyph`. An entry without `tint` recolours the base's own colours, so
+  `{"from": 1, "hue": 35}` on the white gem changes nothing but the glyph. The default looks are tints of the white
+  gem: rose, teal, violet, onyx, lime.
+- `gGemTints` is not built yet: no effect tints by gem so far.
+- Engine ABI 5: earlier engines played gemColors above 7 as 7 (`PlaysAlikeInEveryEngine` wants at most 7). A save's
+  piece colour is checked against the rules' colours (`CheckSave`).
+- Oracle (every build): `colors_*` cases dump the sheet with the script command `gemsheet` (7, 12, a mod's 9 with
+  three faulty ops warned, 12 on the crystal gems' @2x art), and the bot plays 12 colours, recorded and watched
+  without the mod.
+
 ### 4.3 Board size and shapes
 
 Section 5 has the details.
@@ -1119,6 +1135,58 @@ Added from the user's answer to Q6 (2026-10-18): gems fall through holes, and bo
 - **Tests:** fixture boards with dirt mid-column (the diagonal fill alternates left and right),
   dirt in the top row, multi-layer dirt, two groups next to one dirt cell, dirt + holes + gold, a
   save mid-cascade, and replay verification.
+
+**As built (stage 7b, engine ABI 4).** Where it differs from the plan above:
+
+- **Layers left live in `mLayout`.** A dirt cell is `CELL_DIRT` with `mDirt` layers; when the last one
+  goes, the cell becomes `CELL_GEM` for the rest of the level (`BoardLayout::ClearDirtLayer`). A new
+  level takes a fresh layout from the rules, so its dirt is whole again. A timed board's fall-out
+  refills the same level, so the dirt left stays.
+- **A group is a scored run.** `ClearDirtNextToRun` runs after each run `ProcessMatches` scores. BJ1
+  scores an L or a T as two runs, so a dirt cell next to both of them loses two layers. Special-gem
+  blasts take layers once specials exist (stages 9 and 10). Gold (4.9) comes with its own stage.
+- **Diagonal pass (`SlideDiagonal`).** The rows are scanned from the far side back (bottom to top
+  under down), columns left to right. The first empty gem cell under dirt takes a gem from the
+  neighbouring column one row nearer the entry side. Any gem there counts: the segment passes before
+  have already brought the gems to rest. `mDiagonalLeftFirst` picks the side when both have a gem and
+  flips after every slide. One slide, then the segment passes again, until no slide is possible. A
+  cell under dirt with no gem beside it stays empty; the oracle's fixtures leave none.
+- **No `mVelX`.** `FallPiecesVariant` also settles x toward the gem's column, at its fall speed. It
+  does so only while the gem is no further from its row than from its column. So a slid gem first
+  falls straight, then glides in at 45 degrees under the dirt instead of across it. A gem already
+  over its column moves exactly as before.
+- **Gravity.** Under up (4.16), everything mirrors vertically and the columns keep their order. The
+  verifier's mirrortest has a dirt board (fill, refill and whole games).
+- **Without dirt**, `RefillDiagonal` equals `RefillMasked` draw for draw. `-forcevariant` runs it on
+  every board.
+- **Save.** `DIRT` is a chunk: `u8 leftFirst`, then `u8 layers` for each cell, row-major. The v2
+  header's mask is the current layout, so a cleared dirt cell is a gem cell there.
+  `BoardLayout::FitsSaveMask` checks a save against the level's mask: a dirt cell may go either way,
+  and it has layers exactly where the save's mask has no gem cell. If the chunk is absent, layers
+  follow the save's mask (all of the cell's or none). `ApplyDirtLayers` puts them on the board before
+  `LoadGame` reads the cells.
+- **StateCodec.** The rows `mDirt` (the layers) and `mDiagonalLeftFirst` are in FULL, LOGIC, SNAP, V2
+  and UNDO, only when the rules have dirt (`mDirtRules`, like the gravity rows). So an undo brings the
+  dirt back.
+- **Trace.** A dirt cell prints as `-1 - layers` (-2..-10); holes and empty cells stay -1. The
+  variant line adds `dirt <layers left> left|right`. compare.py's `dirt=<cells>:<layers>,...`
+  (`dirt_check`) checks every settle:
+  - at most the shape's dirt, and on its cells only;
+  - the variant line's total;
+  - all of it after a level change;
+  - no layer gained between two settles of a level, except by an undo.
+- **Art.** The level's checker tile A or B is colorized brown (150, 100, 60), once per level. One
+  crack polyline is drawn per layer left. A cleared cell sends twelve tan grains outward for 40
+  ticks; this dust is cosmetic and not saved. A mod's `images/dirttile` replaces the tile.
+- **Oracle** (`mods/stage7b`, the cases `dirt_*`):
+  - the bot to game over and in timed mode;
+  - under Twilight's gravity;
+  - on two level shapes;
+  - a scripted game (`-gameseed=4242`): A clears (6,6) and slides a gem under (5,2). It is saved in
+    its cascade, resumed (B takes a layer off (2,4)) and undone;
+  - recordings and their playbacks.
+
+  Stage 7's `shape_dirt_diamond_auto_timed` now plays its two dirt cells.
 
 ### 4.15 Auto LiveSplit (`features.livesplit`)
 
@@ -2540,6 +2608,36 @@ for (;;) {
     and `bv_difftest`'s argument checks; `oracle_cases.sh` two more broken copies (a zero and a NaN `diff.txt`
     value) and two games recorded natively and by the web build, each recording watched and verified on both:
     the overflowing tunables mod (`mods/stage4`) and the level-10000 vortex save.
+
+**`cascadehunt` (native only, `src/headless/CascadeHunt.cpp`, Verifier.h).** A bot for the original rules, built
+on the player's own code paths. Each board is made as `WatchController::CreateBoard` makes a seeded segment's
+(normal mode, `-gameseed`, ENV without instructions, points ascent 32). Moves are played as `Apply` plays SELECT
+and TARGET, with a CHECK at every settle into play. At each settle, every move (each pair once) is tried on a
+second board restored from the first's SNAPSHOT, up to the move's first settle. That gives its rounds of matches
+(`mCascadeCount - 1`), its runs (`mMoveMatchCount`), its points (`mMoveScore`), whether the level is beaten
+(score at `mLevelTargetScore`: the vortex starts only once the score shown has counted up to it), and the moves
+it leaves. The bot plays the best-scoring move that leaves at least 3. It makes no move while a beaten level's
+vortex is pending: if the vortex started between SELECT and TARGET, the swap would start in the vortex, which the
+game never does (an early version crashed that way). It counts every played move whose outcome differs from its
+trial (none so far).
+- `first` tries every first move of each opening board: the share of boards that beat level 1 in one move, and
+  the best ones.
+- `play` runs games to the game over and prints the move records as they are found.
+- `replay` plays a game again to a given move and writes two replays: the whole game, and a fresh replay that
+  holds the save made just before the move (LDSV + RNGS + LOAD, as `ReplayRecorder::OnLoad` writes one). It
+  verifies both with `VerifyReplay`. `--pause` holds the board that long before the move. With `--after`, the
+  bot plays on in the whole game: that many moves, or `all` to the game over. The short replay still stops after
+  the move: from a load the draws differ, and a level-up's board with them.
+
+It runs at about 20,000 tried moves a second. Its replays carry the default rules with the original `diff.txt`
+values: the same RulesId as a recording of the game with no mods.
+
+**Videos of a replay.** The native game watches the replay under rundesk with `-fast`. A `-script` takes a
+screenshot every 2 updates, which gives 50 frames a second. `-audiocapture=<file.wav>` (`testhooks/AudioCapture.h`)
+writes the sound alongside. It mixes 1/100 s per update, so the sound keeps time with the screenshots however
+fast the game runs. It holds the mixer's lock the whole time, so the dummy device's callback never mixes. ffmpeg
+then joins the frames and the WAV. The frames and the video show the game's art and music, so they stay out of
+the repository.
 
 ### 6.10 Leaderboard service (Cloudflare Worker + D1)
 

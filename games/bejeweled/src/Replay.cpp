@@ -36,6 +36,7 @@ const uint32_t TAG_MOVE = Replay::Tag("MOVE");
 const size_t MOVE_SIZE = 3 * 4;
 const uint32_t TAG_GRAV = Replay::Tag("GRAV");
 const size_t GRAV_SIZE = 4 + 1;
+const uint32_t TAG_DIRT = Replay::Tag("DIRT"); // u8 leftFirst, then a byte a cell
 const size_t SAVE_HEADER_FIXED = 4 + Replay::RULES_ID_SIZE + 2 + 2 + 4; // the version up to the mask
 
 void PutU8(std::string* theOut, int theValue)
@@ -398,6 +399,14 @@ std::string Replay::VariantSaveChunks(const VariantSave& theSave)
 		PutU8(&aGravity, theSave.mGravityNoFlip ? 1 : 0);
 		PutRecord(&aChunks, TAG_GRAV, aGravity);
 	}
+	if (theSave.mHasDirt)
+	{
+		std::string aDirt;
+		PutU8(&aDirt, theSave.mDiagonalLeftFirst ? 1 : 0);
+		for (size_t i = 0; i < theSave.mDirtLayers.size(); i++)
+			PutU8(&aDirt, theSave.mDirtLayers[i]);
+		PutRecord(&aChunks, TAG_DIRT, aDirt);
+	}
 	PutRecord(&aChunks, TAG_END, "");
 	return aChunks;
 }
@@ -549,6 +558,34 @@ bool Replay::ReadVariantSave(const std::string& theSave, VariantSave* theOut, st
 			s.mHasGravity = true;
 			hasGravity = true;
 		}
+		else if (aTag == TAG_DIRT)
+		{
+			size_t aCells = s.mPlayable.size();
+			if (s.mHasDirt || (aLen != 1 + aCells))
+			{
+				anErr = s.mHasDirt ? std::string("DIRT twice") : "DIRT: " + std::to_string(aLen) + " bytes, not " + std::to_string(1 + aCells);
+				return false;
+			}
+			uint32_t aLeftFirst = aReader.U8();
+			if (aLeftFirst > 1)
+			{
+				anErr = "DIRT: leftFirst " + std::to_string(aLeftFirst);
+				return false;
+			}
+			s.mDiagonalLeftFirst = (aLeftFirst != 0);
+			for (size_t i = 0; i < aCells; i++)
+			{
+				uint8_t aLayers = (uint8_t) aReader.U8();
+				if ((aLayers > BoardLayout::MAX_DIRT_LAYERS) || ((aLayers > 0) && s.mPlayable[i]))
+				{
+					anErr = "DIRT: " + std::to_string(aLayers) + " layers at cell (" + std::to_string(i % s.mCols) + "," +
+						std::to_string(i / s.mCols) + ")" + (s.mPlayable[i] ? ", a gem cell" : "");
+					return false;
+				}
+				s.mDirtLayers.push_back(aLayers);
+			}
+			s.mHasDirt = true;
+		}
 		// any other chunk: a later stage's, skipped
 	}
 	if (aPos != theSave.size())
@@ -650,7 +687,7 @@ public:
 
 // One present cell's 0x78 Piece bytes (Piece.h): what Draw and the Update functions index or loop with must be
 // in range; the position (mX, mY) is not checked: LoadGame puts the piece at its cell
-void CheckPiece(SaveCheck& theCheck, int theCol, int theRow)
+void CheckPiece(SaveCheck& theCheck, int theCol, int theRow, int theGemColors)
 {
 	std::string aCell = "cell (" + std::to_string(theCol) + "," + std::to_string(theRow) + ")'s ";
 	size_t aBase = theCheck.mPos;
@@ -662,7 +699,7 @@ void CheckPiece(SaveCheck& theCheck, int theCol, int theRow)
 			c.Skip(aBase + theOffset - c.mPos, aCell + theName);
 		return aCell + theName;
 	};
-	c.Int(At(offsetof(Piece, mColor), "mColor"), 0, 6);              // a gem sheet row, mGemShrinkImages[mColor]
+	c.Int(At(offsetof(Piece, mColor), "mColor"), 0, theGemColors - 1); // a gem sheet row, mGemShrinkImages[mColor]
 	c.Int(At(offsetof(Piece, mCol), "mCol"), theCol, theCol);        // the cell it is in: the grid writes go there
 	c.Int(At(offsetof(Piece, mRow), "mRow"), theRow, theRow);
 	c.Real(At(offsetof(Piece, mVelY), "mVelY"), -1000.0, 1000.0);
@@ -683,7 +720,7 @@ void CheckPiece(SaveCheck& theCheck, int theCol, int theRow)
 }
 
 bool Replay::CheckSave(const std::string& theSave, int theCols, int theRows, std::string* theError, const uint8_t* theRulesId,
-	const std::vector<BoardLayout>* theShapes)
+	const std::vector<BoardLayout>* theShapes, int theGemColors)
 {
 	std::string aDummy;
 	std::string& anErr = (theError != NULL) ? *theError : aDummy;
@@ -713,14 +750,9 @@ bool Replay::CheckSave(const std::string& theSave, int theCols, int theRows, std
 					std::to_string(theShapes->size());
 			else
 			{
+				// a dirt cell may have lost its last layer (stage 7b)
 				const BoardLayout& aLayout = (*theShapes)[aVariant.mLevelShape];
-				std::vector<bool> aPlayable;
-				for (int aRow = 0; aRow < aLayout.mRows; aRow++)
-				{
-					for (int aCol = 0; aCol < aLayout.mCols; aCol++)
-						aPlayable.push_back(aLayout.IsPlayable(aCol, aRow));
-				}
-				if ((aVariant.mCols != aLayout.mCols) || (aVariant.mRows != aLayout.mRows) || (aVariant.mPlayable != aPlayable))
+				if (!aLayout.FitsSaveMask(aVariant.mCols, aVariant.mRows, aVariant.mPlayable, aVariant.mHasDirt ? &aVariant.mDirtLayers : NULL))
 					c.mError = "a v2 save of a " + std::to_string(aVariant.mCols) + "x" + std::to_string(aVariant.mRows) +
 						" board that is not its level shape " + std::to_string(aVariant.mLevelShape);
 				aCols = aLayout.mCols;
@@ -748,7 +780,7 @@ bool Replay::CheckSave(const std::string& theSave, int theCols, int theRows, std
 		for (int aCol = 0; aCol < aCols; aCol++)
 		{
 			if (c.Bool("cell (" + std::to_string(aCol) + "," + std::to_string(aRow) + ")'s present byte"))
-				CheckPiece(c, aCol, aRow);
+				CheckPiece(c, aCol, aRow, theGemColors);
 		}
 	}
 	int32_t aState = c.Int("mState", 0, 9);
@@ -795,7 +827,7 @@ bool Replay::CheckSave(const std::string& theSave, int theCols, int theRows, std
 
 // The checks a replay passes before a board is made for it (Replay.h). Each message names where it fails.
 bool Replay::CheckPlayable(const File& theFile, int theCols, int theRows, std::string* theError, bool isOriginalRules,
-	const std::vector<BoardLayout>* theShapes)
+	const std::vector<BoardLayout>* theShapes, int theGemColors)
 {
 	std::string aDummy;
 	std::string& anErr = (theError != NULL) ? *theError : aDummy;
@@ -845,7 +877,8 @@ bool Replay::CheckPlayable(const File& theFile, int theCols, int theRows, std::s
 			return false;
 		}
 		// The bytes an LDSV gives the original LoadGame, which trusts a save (Replay.h, CheckSave)
-		if (aSegment.mHasLoadSave && !CheckSave(aSegment.mLoadSave, theCols, theRows, &anErr, theFile.mHasRulesId ? theFile.mRulesId : NULL, theShapes))
+		if (aSegment.mHasLoadSave && !CheckSave(aSegment.mLoadSave, theCols, theRows, &anErr, theFile.mHasRulesId ? theFile.mRulesId : NULL, theShapes,
+			theGemColors))
 		{
 			anErr = aWhere + "LDSV: " + anErr;
 			return false;
