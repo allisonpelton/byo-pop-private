@@ -1,0 +1,17 @@
+{
+  "id": "undo",
+  "name": "Undo",
+  "version": "1.0",
+  "author": "byo-pop",
+  "description": "Ctrl+Z or U takes back your last move: the pair you joined (or the puzzle swap), with the animals, the score and the combo as they were. The flood does not go back with it, so a take-back costs time. Only within a level. Games with it keep their own high scores and saved game.",
+  "affectsScores": true,
+  "features": {
+    "undo": true
+  },
+  "settings": [
+    { "id": "depth", "label": "Moves that can be undone", "type": "int", "default": 10, "min": 1, "max": 100,
+      "help": "How many of the level's last moves can be taken back, one after another." },
+    { "id": "restoreWater", "label": "The water goes back too", "type": "bool", "default": false,
+      "help": "Off: the flood keeps its level when you undo, so undoing costs time. On: the water level of that moment comes back as well." }
+  ]
+}
