@@ -83,8 +83,10 @@ Taken from the design's recommendations:
   they type) are dropped in `HandleEvent`; its release goes on. The menu closes in `KillDialog`'s order and takes
   the focus back if the game moves it (review A16).
 - **Focus model.** Tab steps through every focusable control. On a mod page each row has one keyboard control;
-  its −/+ buttons, slider, arrows and text field are mouse targets. A click on a setting's label focuses the
-  row, and switches a bool.
+  its −/+ buttons, slider, arrows, text field and a bool's checkbox are mouse targets. Only a click on the
+  checkbox switches a bool, or a mod on the list: a click on a setting's label or a mod's row only focuses
+  it, and the footer shows its help or description (the user, 2026-10-25: label and row clicks switched too
+  easily).
 - **Restart timing.** The menu's Restart takes effect at its next Update, outside its no-random scope.
 - **rundesk** runs its child in a job object and returns when the whole job has ended. It kills nothing
   (review A15).
@@ -643,7 +645,8 @@ Events from the game to the page:
 ```
 
 - **Each row** (44 px tall) has:
-  - a checkbox;
+  - a checkbox, the only part a click switches (the box and 4 px around it); a click elsewhere on the row
+    focuses it, and the footer shows its description;
   - the name and version;
   - badges:
     - SCORES: separate high scores;
@@ -802,7 +805,8 @@ public:
   - drag a slider's thumb;
   - press on a list and move more than 6 px vertically to scroll instead of clicking.
 
-  Hovering highlights controls, and the framework's hand cursor shows over them.
+  Hovering highlights controls, and the framework's hand cursor shows over what a click changes (not over a
+  mod's row or a setting's label, which a click only focuses).
 - **Touch (web):**
   - SDL turns touches into mouse events, so all of the above works.
   - Hit targets are at least 24 px.

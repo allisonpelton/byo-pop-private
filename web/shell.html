@@ -137,6 +137,7 @@ input[type=file] { display: none; }
           <input type="file" id="pick-game-folder" webkitdirectory multiple>
           <label class="button" for="pick-game-zip">Choose .zip</label>
           <input type="file" id="pick-game-zip" accept=".zip,application/zip">
+          <button type="button" id="btn-import-cancel" hidden>Cancel</button>
         </div>
         <div class="progress" aria-hidden="true"><div id="import-progress"></div></div>
         <p class="note" id="import-msg">Files stay in this browser's storage. Nothing is uploaded.</p>
@@ -193,8 +194,8 @@ input[type=file] { display: none; }
       <button type="button" id="btn-reimport">Import again</button>
       <button type="button" id="btn-forget">Forget game files</button>
     </div>
-    <p class="note" id="forget-confirm" hidden>This removes the copied game files from this browser. Saves and mods stay.
-      <button type="button" id="btn-forget-yes">Remove files</button></p>
+    <p class="note" id="files-ask" hidden><span id="files-ask-text"></span>
+      <button type="button" id="btn-files-yes"></button></p>
     <p class="note">Saves (high scores, the game in progress and settings) are kept in this browser's storage.</p>
   </div>
 </aside>
@@ -263,7 +264,9 @@ input[type=file] { display: none; }
   function web() { return Module.byopop; }
   var session = null;  // web().Session
   var panel = null;    // web().ModPanel
-  var started = false;
+  var started = false; // the game runs once in a page: after it closes, only a reload starts it again
+  var exited = false;  // it has closed or stopped
+  var afterExit = null;  // closeGameThen's next step, which onGameExit takes once the save is written
 
   var Module = window.Module = {
     canvas: $("canvas"),
@@ -288,30 +291,40 @@ input[type=file] { display: none; }
     onMissingFile: function (path) { missingFiles.push(path); setStatus(statusText); showMissingFiles(); },
     // Called by the game after it quits (the tab can't close itself): silence it, wait for the save
     // to reach browser storage, then offer a restart. info.restart: the game's mod menu asked to restart, so the
-    // page reloads and starts the game again by itself (Session.restartPage).
+    // page reloads and starts the game again by itself (Session.restartPage), or the Game files panel closed the
+    // game (closeGameThen), which goes on from here.
     onGameExit: function (info) {
+      exited = true;
       try { if (Module.SDL2 && Module.SDL2.audioContext) Module.SDL2.audioContext.suspend(); } catch (e) {}
       if (session) session.markFinished();
-      var restart = !!(info && info.restart);
-      setStatus(restart ? "Restarting…" : "Game closed");
-      if (restart) {
+      var restart = !!(info && info.restart), then = afterExit;
+      afterExit = null;
+      setStatus(then ? "Closing the game…" : restart ? "Restarting…" : "Game closed");
+      if (then) {
+        $("exit-title").textContent = "Closing the game";
+        $("exit-msg").textContent = "Saving…";
+      } else if (restart) {
         $("exit-title").textContent = "Restarting";
         $("exit-msg").textContent = "Saving, then starting again…";
       }
       closePanels();
       $("exit-overlay").hidden = false;
-      var waitForSave = function () {
-        if (Module.sexySyncBusy || Module.sexySyncPending) { setTimeout(waitForSave, 100); return; }
+      whenSaved(function () {
+        if (then) { then(info); return; }
         if (restart) { session.restartPage(info); return; }
         $("exit-msg").textContent = hasSave()
           ? "The game has closed. Your game in progress was saved, and you can continue it when you play again."
           : "The game has closed. Your settings and high scores are saved.";
         $("btn-play-again").disabled = false;
         $("btn-play-again").focus();
-      };
-      waitForSave();
+      });
     }
   };
+  // Once the game's saves have reached browser storage (platform/WebPersist.cpp)
+  function whenSaved(fn) {
+    if (Module.sexySyncBusy || Module.sexySyncPending) { setTimeout(function () { whenSaved(fn); }, 100); return; }
+    fn();
+  }
   // Bejeweled and Big Money write savegame.dat (Bejeweled: savegame-<key>.dat with gameplay mods) only for a game
   // in progress
   function hasSave() {
@@ -322,6 +335,8 @@ input[type=file] { display: none; }
   // The game stopped with an error (a crash, out of memory): nothing more runs in this page. A mod may be the
   // cause, so the next start can leave them out.
   function showStopped(what) {
+    exited = true;
+    afterExit = null;
     try { if (Module.SDL2 && Module.SDL2.audioContext) Module.SDL2.audioContext.suspend(); } catch (e) {}
     if (panel) panel.dead = true;
     var hasMods = !!(panel && panel.enabledCount() > 0);
@@ -506,22 +521,47 @@ input[type=file] { display: none; }
     panel.boot();
     if (!hasGameFiles()) {
       setStatus("Game files needed");
-      $("import-overlay").hidden = false;
+      showImport();
       return;
     }
     // After the game's own restart: straight back in, unless the start before did not finish (a mod may stop it)
     var autostart = session.takeAutostart(), noMods = session.takeNoMods();
     var failed = session.lastStartFailed() && panel.enabledCount() > 0;
     if (autostart && (noMods || !failed)) { startGame(true, noMods); return; }
+    // The Game files panel's "Import again" closed the game for this
+    if (session.takeImport()) { showImport(); return; }
+    showReady();
+  }
+  function showReady() {
+    var failed = session.lastStartFailed() && panel.enabledCount() > 0;
     setStatus(failed ? "The last start did not finish" : "Ready");
     $("start-rescue").hidden = $("btn-start-nomods").hidden = !failed;
     $("start-overlay").hidden = false;
   }
+  // The import card, over the Ready card; with game files stored it can go back to that (Cancel). Only before the
+  // game starts: once it has, "Import again" closes it and shows this in a new page.
+  function showImport() {
+    $("start-overlay").hidden = true;
+    $("btn-import-cancel").hidden = !hasGameFiles();
+    $("import-overlay").hidden = false;
+    if (hasGameFiles()) setStatus("Import the game files again");
+  }
 
+  var importing = false;
+  var IMPORT_NOTE = $("import-msg").textContent;
   function onGamePicked(promise) {
+    if (importing) return;
+    importing = true;
+    $("btn-import-cancel").disabled = true;
     promise.then(importGame).then(function (ok) {
       if (ok) { $("import-overlay").hidden = true; boot(); }
-    }).catch(function (e) { $("import-msg").innerHTML = '<span class="error"></span>'; $("import-msg").firstChild.textContent = e.message; });
+    }).catch(function (e) { $("import-msg").innerHTML = '<span class="error"></span>'; $("import-msg").firstChild.textContent = e.message; })
+      .then(function () {
+        importing = false;
+        // a failed copy may have left too few files to go back to
+        $("btn-import-cancel").disabled = false;
+        $("btn-import-cancel").hidden = !hasGameFiles();
+      });
   }
   $("pick-game-folder").addEventListener("change", function (ev) {
     var files = web().zip.fromInput(ev.target.files);
@@ -532,6 +572,13 @@ input[type=file] { display: none; }
     var file = ev.target.files[0];
     ev.target.value = "";
     if (file) onGamePicked(web().zip.fromFile(file));
+  });
+  $("btn-import-cancel").addEventListener("click", function () {
+    if (importing || !hasGameFiles()) return;
+    $("import-overlay").hidden = true;
+    $("import-msg").textContent = IMPORT_NOTE;
+    $("import-progress").style.width = "0";
+    showReady();
   });
   $("btn-start").addEventListener("click", function () { startGame(false, false); });
   $("btn-start-nomods").addEventListener("click", function () { startGame(false, true); });
@@ -617,6 +664,7 @@ input[type=file] { display: none; }
     GAME_DIRS.forEach(function (d) { n += fs.listDir(GAME + "/" + d).length; });
     n += fs.listDir(GAME).filter(function (f) { return GAME_FILES.indexOf(f.toLowerCase()) >= 0; }).length;
     $("files-summary").textContent = hasGameFiles() ? n + " game files are stored in this browser." : "No game files are stored yet.";
+    $("files-ask").hidden = true;
     showMissingFiles();
     openPanel("panel-files");
   });
@@ -628,9 +676,53 @@ input[type=file] { display: none; }
     list.textContent = "";
     missingFiles.forEach(function (f) { var li = document.createElement("li"); li.textContent = f; list.appendChild(li); });
   }
-  $("btn-reimport").addEventListener("click", function () { openPanel(null); $("import-overlay").hidden = false; });
-  $("btn-forget").addEventListener("click", function () { $("forget-confirm").hidden = false; });
-  $("btn-forget-yes").addEventListener("click", function () { web().fs.rmTree(GAME); web().sync().then(function () { location.reload(); }); });
+  // The game runs once in a page, and the files it reads must not change under it. So once it has started, the
+  // panel's actions close it first, as the mod menu's Restart does (byopop_restart: the game in progress and the
+  // settings are saved), and go on in a new page. then(info) runs once the save has reached browser storage; info
+  // is Module.onGameExit's, or null when the game was not running.
+  function gameRunning() { return started && !exited; }
+  function closeGameThen(then) {
+    if (gameRunning()) {
+      var r = {};
+      try { r = JSON.parse((panel && panel.call("byopop_restart", "string", ["number"], [1])) || "{}"); } catch (e) {}
+      if (r.result === "started") { afterExit = then; return; }
+      if (r.result === "blocked") { ask(r.message || "The game cannot close now. Try again in a moment.", null, null); return; }
+      // "none": it has not finished loading, so there is nothing to save yet
+    }
+    whenSaved(function () { then(null); });
+  }
+  // A question under the panel's buttons, with the button that answers it (none: just the text)
+  var askAction = null;
+  function ask(text, label, action) {
+    askAction = action;
+    $("files-ask-text").textContent = text;
+    $("btn-files-yes").textContent = label || "";
+    $("btn-files-yes").hidden = !action;
+    $("files-ask").hidden = false;
+    if (action) $("btn-files-yes").focus();
+  }
+  $("btn-files-yes").addEventListener("click", function () {
+    var action = askAction;
+    $("files-ask").hidden = true;
+    askAction = null;
+    if (action) action();
+  });
+  var CLOSES_FIRST = " The game closes first; a game in progress is saved.";
+  function importAgain() {
+    if (!started) { openPanel(null); showImport(); return; }
+    closeGameThen(function (info) { session.reloadToImport(info); });
+  }
+  function forgetFiles() {
+    closeGameThen(function (info) { web().fs.rmTree(GAME); web().sync().then(function () { session.reload(info); }); });
+  }
+  $("btn-reimport").addEventListener("click", function () {
+    if (gameRunning()) ask("Import the game files again?" + CLOSES_FIRST, "Close the game", importAgain);
+    else importAgain();
+  });
+  $("btn-forget").addEventListener("click", function () {
+    ask("This removes the copied game files from this browser. Saves and mods stay." + (gameRunning() ? CLOSES_FIRST : ""),
+      "Remove files", forgetFiles);
+  });
   $("btn-full").addEventListener("click", function () {
     var el = $("stage");
     if (el.requestFullscreen) el.requestFullscreen().catch(function () {});

@@ -70,6 +70,16 @@ SUMMARY=""
 # the last line of a file that matches a pattern, or the file's last line
 lastof() { local l; l="$(grep -E "$2" "$1" 2>/dev/null | tail -n 1)"; [ -n "$l" ] || l="$(tail -n 1 "$1" 2>/dev/null)"; echo "${l#INFO: }"; }
 
+# need_assets <game>...: a suite that plays a game fails at once when the game's files are not staged (a worktree
+# before tools/setup_worktree.sh); without them every run sits on the game's missing-files dialog until its timeout
+need_assets() {
+	local g missing=""
+	for g in "$@"; do [ -d "assets/$g" ] || missing="$missing assets/$g"; done
+	[ -z "$missing" ] && return 0
+	SUMMARY="missing$missing: run tools/setup_worktree.sh"
+	return 1
+}
+
 build_suite() {  # <kind> <log>
 	tools/build.sh "$1" > "$2" 2>&1
 	local st=$?
@@ -133,6 +143,8 @@ suite_modmenu() {
 
 suite_livesplit() {
 	local st=0 a b c="bookworm: no tests yet"
+	need_assets bejeweled bigmoney || return 1
+	[ -f games/bookworm/tools/livesplit/run_tests.sh ] && { need_assets bookworm || return 1; }
 	# fresh folders: a game's user folder left by an earlier run (its play count, high scores) changes the games
 	rm -rf "$OUT/livesplit-bejeweled" "$OUT/livesplit-bigmoney" "$OUT/livesplit-bookworm"
 	games/bejeweled/tools/livesplit/run_tests.sh --out "$OUT/livesplit-bejeweled" > "$1" 2>&1 || st=1
@@ -159,6 +171,7 @@ bookworm_game() {  # <name> <mode>: a bot game; prints its last "game over" line
 
 suite_bookworm() {
 	local st=0 c a r
+	need_assets bookworm || return 1
 	c="$(bookworm_game classic classic)"; a="$(bookworm_game action action)"; r="$(bookworm_game classic2 classic)"
 	{ echo "classic: $c"; echo "action: $a"; echo "classic rerun: $r"; } > "$1"
 	case "$c" in *"$BW_CLASSIC"*) ;; *) st=1 ;; esac
@@ -171,6 +184,7 @@ suite_bookworm() {
 
 suite_bigmoney() {
 	local d="$OUT/bigmoney" g
+	need_assets bigmoney || return 1
 	rm -rf "$d"; mkdir -p "$d"
 	timeout 600 "$W/build/native/bigmoney.exe" -userdir="$d/user" -fast -seed=1 -autoplay=1 -autoplaymode=0 \
 		-autoplayskill=3 -autoplaylog="$d/input.txt" > "$1" 2>&1
@@ -183,6 +197,7 @@ suite_bigmoney() {
 
 suite_oracle() {
 	local others
+	need_assets bejeweled || return 1
 	others="$(powershell.exe -NoProfile -Command "@(Get-CimInstance Win32_Process | Where-Object { \$_.CommandLine -match 'compare\.sh' }).Count" 2>/dev/null | tr -d '\r')"
 	if [ "${others:-0}" != 0 ]; then SUMMARY="another oracle is running; not started"; return 1; fi
 	games/bejeweled/tools/oracle/compare.sh --variants default,forcevariant,novariants > "$1" 2>&1

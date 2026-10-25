@@ -1,7 +1,8 @@
 // The web pages' shared code (docs/MOD_MENU_DESIGN.md 4.4-4.5): cmake/ByopopWeb.cmake appends this file to every
 // game's JS with --post-js, so it runs as the game's script loads and leaves Module.byopop:
 //   fs, zip, sync   the page's file helpers (the browser's IndexedDB copy of /persist, game files and mods)
-//   Session(game)   restart and autostart, the start that a mod broke, starting once without mods
+//   Session(game)   restart and autostart, the start that a mod broke, starting once without mods, the import
+//                   card after the game closed
 //   ModPanel(opts)  the Mods panel: it adds and removes mods, and offers the rescue when a mod stops the game
 //                   from starting. Turning mods on and off, their order and their settings are in the game's own
 //                   mod menu (F2, framework/ModMenu.h), which the panel opens over and closes back to.
@@ -138,6 +139,7 @@ Module["byopop"] = (function () {
   function Session(game) {
     this.autostartKey = "byopop-autostart:" + game;  // sessionStorage: start at once after this reload
     this.noModsKey = "byopop-nomods:" + game;        // sessionStorage: ... and without mods (-nomods)
+    this.importKey = "byopop-import:" + game;        // sessionStorage: show the import card after this reload
     this.startingKey = "byopop-starting:" + game;    // localStorage: a start that has not finished loading
   }
   // The game's own restart (Module.onGameExit({restart, dropped})): the page reloads, since the game cannot run
@@ -148,6 +150,16 @@ Module["byopop"] = (function () {
   var DROPPED_PARAMS = { "-gameseed": "seed", "-replay": "replay" };
   Session.prototype.restartPage = function (info) {
     setItem("sessionStorage", this.autostartKey, "1");
+    this.reload(info);
+  };
+  // The Game files panel's "Import again" once the game has closed (it runs once in a page): the new page shows
+  // the import card
+  Session.prototype.reloadToImport = function (info) {
+    setItem("sessionStorage", this.importKey, "1");
+    this.reload(info);
+  };
+  // A reload after the game closed; info: Module.onGameExit's, whose dropped arguments take their page parameters
+  Session.prototype.reload = function (info) {
     var dropped = (info && info.dropped) || [];
     var url = new URL(location.href), changed = false;
     Object.keys(DROPPED_PARAMS).forEach(function (arg) {
@@ -173,6 +185,11 @@ Module["byopop"] = (function () {
   Session.prototype.takeNoMods = function () {
     var on = !!getItem("sessionStorage", this.noModsKey);
     setItem("sessionStorage", this.noModsKey, null);
+    return on;
+  };
+  Session.prototype.takeImport = function () {
+    var on = !!getItem("sessionStorage", this.importKey);
+    setItem("sessionStorage", this.importKey, null);
     return on;
   };
   // Set as callMain starts the game, cleared when it has loaded (Module.onGameLoaded) or quit: one still set at

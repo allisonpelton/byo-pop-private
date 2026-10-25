@@ -73,7 +73,7 @@ public:
 	enum
 	{
 		T_NONE,
-		T_ROW,        // list: a mod's row (its switch and name)
+		T_ROW,        // list: a mod's row; a click focuses it, which shows its description in the footer
 		T_UP,
 		T_DOWN,
 		T_OPEN,       // list: "Settings", or "About" for a mod without settings
@@ -90,7 +90,8 @@ public:
 		T_PREV,
 		T_NEXT,
 		T_FIELD,
-		T_LABEL,      // a setting's label: a click focuses it (and switches a bool, as a label does its checkbox)
+		T_LABEL,      // a setting's label: a click focuses it, which shows its help in the footer
+		T_SWITCH,     // a checkbox, a mod's on the list or a bool's on its page: only a click on it switches (mouse only)
 		T_SCROLL,     // the scroll bar (mouse only)
 		T_FILES       // web: "Add or remove mods", the page's Mods panel (Module.onModPanel)
 	};
@@ -175,6 +176,7 @@ private:
 	Platform::JsonValue		SliderValue(int theItem, int x) const;
 	ModView*				PageModView();
 	SettingView*			PageSetting(int theItem);
+	bool					ClickChangesValue(int theItem);
 	std::string				OpenLabel(int theMod) const;
 	std::string				FooterHelp();
 	std::string				PendingText() const;

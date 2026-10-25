@@ -2,9 +2,10 @@
 # coordinates are the menu's layout at 640x480 (the same in every game). run_tests.sh compares the files with
 # expect/clicks-*.json.
 250 modmenu open
-# plain-demo's row switches it off (a click on a row works like one on its label), its Down button moves it
-# below settings-demo
+# plain-demo: a click on its name only focuses the row; one on its checkbox switches it off; its Down button moves
+# it below settings-demo
 260 click 200 80
+265 click 64 73
 270 click 492 80
 280 screenshot shots/c01_list.png
 # settings-demo is first now: its Settings button
@@ -19,8 +20,10 @@
 341 move 300 251
 342 move 499 251
 343 up 499 251
-# Record replays on (a click on a switch's label works too); Undo depth (enabled by Undo) + and +: 3
+# Record replays: a click on its label only focuses it; one on its checkbox switches it on. Undo depth (enabled by
+# Undo) + and +: 3
 350 click 100 281
+355 click 294 281
 360 click 386 191
 361 click 386 191
 # Praise text: a click on the field edits it, a click outside it (on the description) commits it
