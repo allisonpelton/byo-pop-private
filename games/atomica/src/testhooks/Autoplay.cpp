@@ -1,0 +1,303 @@
+// Test hooks: the autoplay bot (-autoplay=<seed>). It plays whole games by calling the field's mouse handlers, so
+// everything the game does for a player runs: atoms are selected and sent along a path, molecules are made and
+// scored, the meter fills, levels come and go, the game ends. The bot looks for a block of four atoms of one colour
+// that lacks one, and sends it an atom of that colour from elsewhere; if there is none, it makes a random move.
+// It has its own random numbers (the game's use the C library generator, seeded by -seed), so the same -seed and
+// -autoplay always make the same game. It writes a log of what happened (-autoplaylog=<file>) that tests compare.
+//
+//   -autoplay=<seed>      play with the bot (its own seed)
+//   -autoplaymode=strategy|action   the game type (default strategy)
+//   -autoplaygames=N      play N games, then quit
+//   -autoplaycap=N        quit after N updates in any case
+//   -autoplaylog=<file>   the log
+//   -autoplayshots=<prefix>  screenshots at each level done and game over
+
+#include "AtomicaApp.h"
+#include "Board.h"
+#include "Grid.h"
+#include "Menu.h"
+#include "PathFinder.h"
+#include "Screens.h"
+#include "Graphics.h"
+#include "WidgetManager.h"
+
+#include <cstdarg>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <vector>
+
+using namespace Sexy;
+
+namespace Sexy
+{
+
+struct AutoplayState
+{
+	unsigned int	mSeed;
+	int				mTick;
+	int				mGames;				// games started
+	int				mWait;				// updates to wait before the next action
+	int				mShots;
+	int				mMoves;				// moves made in this game
+	int				mLastLevel;
+	bool			mOverLogged;
+	bool			mLevelLogged;
+	bool			mMenuSeen;
+	FILE*			mLog;
+
+	AutoplayState(unsigned int theSeed) : mSeed(theSeed), mTick(0), mGames(0), mWait(0), mShots(0), mMoves(0),
+		mLastLevel(0), mOverLogged(false), mLevelLogged(false), mMenuSeen(false), mLog(NULL) {}
+
+	int Rand(int theRange)
+	{
+		mSeed = mSeed * 1103515245u + 12345u;
+		return (int) ((mSeed >> 16) % (unsigned int) theRange);
+	}
+};
+
+AutoplayState* NewAutoplayState(unsigned int theSeed)
+{
+	return new AutoplayState(theSeed);
+}
+
+}
+
+namespace
+{
+
+void Log(AutoplayState* s, const char* theFormat, ...)
+{
+	if (s->mLog == NULL)
+		return;
+	va_list args;
+	va_start(args, theFormat);
+	vfprintf(s->mLog, theFormat, args);
+	va_end(args);
+	fputc('\n', s->mLog);
+	fflush(s->mLog);
+}
+
+// the atom of a cell if it can be moved: placed, and not a pre-atom
+Atom* Movable(Grid* g, int theCol, int theRow)
+{
+	if ((theCol < 0) || (theCol >= Grid::COLS) || (theRow < 0) || (theRow >= Grid::ROWS))
+		return NULL;
+	Atom* anAtom = g->mCells[theCol][theRow];
+	if ((anAtom == NULL) || anAtom->mPre || !anAtom->mPlaced || anAtom->mFollowing || anAtom->mDead || (g->mCellState[theCol][theRow] < 0x96))
+		return NULL;
+	return anAtom;
+}
+
+bool Empty(Grid* g, int theCol, int theRow)
+{
+	if ((theCol < 0) || (theCol >= Grid::COLS) || (theRow < 0) || (theRow >= Grid::ROWS))
+		return false;
+	// a free cell, or one a pre-atom waits in (an atom may be sent there)
+	Atom* anAtom = g->mCells[theCol][theRow];
+	return (anAtom == NULL) || (anAtom->mPre && !anAtom->mPreStarted);
+}
+
+// all the atoms are still: nothing flies, follows a path or waits to be revealed
+bool Quiet(Grid* g)
+{
+	g->mAtoms.Reset();
+	Atom* anAtom = g->mAtoms.Next();
+	while (anAtom != NULL)
+	{
+		if (!anAtom->mPlaced || anAtom->mFollowing || anAtom->mDead)
+			return false;
+		anAtom = g->mAtoms.Next();
+	}
+	return g->mGroups.Size() == 0;
+}
+
+// the click of a player: move, press, release (the grid's coordinates)
+void Press(Grid* g, int theCol, int theRow)
+{
+	int aX = theCol * Grid::CELL + Grid::CELL / 2;
+	int aY = theRow * Grid::CELL + Grid::CELL / 2;
+	g->mIsOver = true;		// the mouse is over the field, as it is for a player
+	g->MouseMove(aX, aY);
+	g->MouseDown(aX, aY, 0, 1);
+	g->MouseUp(aX, aY, 0);
+}
+
+// a move: select the atom, then the empty cell (the path is shown by the mouse move)
+bool Move(Grid* g, Atom* theAtom, int theToCol, int theToRow)
+{
+	if (!g->mPathFinder->Find(theAtom->mCol, theAtom->mRow, theToCol, theToRow))
+		return false;
+	g->mPathFinder->mPath.Clear();
+	Press(g, theAtom->mCol, theAtom->mRow);
+	if (g->mSelected != theAtom)
+		return false;
+	Press(g, theToCol, theToRow);
+	return true;
+}
+
+}
+
+void AtomicaApp::AutoplayUpdate()
+{
+	AutoplayState* s = mAutoplayState;
+	s->mTick++;
+	if ((s->mLog == NULL) && !mAutoplayLog.empty())
+	{
+		s->mLog = fopen(mAutoplayLog.c_str(), "w");
+		Log(s, "autoplay seed %u mode %s games %d", s->mSeed, mAutoplayMode == 1 ? "action" : "strategy", mAutoplayGames);
+	}
+	if ((s->mTick % 2000 == 0) && (mBoard != NULL) && (mBoard->mGrid != NULL))
+		Log(s, "update %d: score %d level %d moves %d atoms %d (f8c %g i16c %d b33c %d quiet %d sel %d pause %d)", s->mTick,
+			mBoard->mScore, mBoard->mMeter.mLevel, s->mMoves, mBoard->mGrid->CountAtoms(false), mBoard->mF8c, mBoard->mI16c,
+			(int) mBoard->mGrid->mB33c, (int) Quiet(mBoard->mGrid), mBoard->mGrid->mSelected != NULL, mPauseCount);
+	if (s->mTick > mAutoplayCap)
+	{
+		Log(s, "cap reached at update %d: games %d", s->mTick, s->mGames);
+		if (!mAutoplayShots.empty())
+			SaveScreenshot(StrFormat("%s-cap.png", mAutoplayShots.c_str()));
+		if (s->mLog != NULL)
+			fclose(s->mLog);
+		Shutdown();
+		return;
+	}
+	if (mTitleScreen != NULL)
+	{
+		if (mLoaded && (s->mTick > 60))
+			TitleScreenDone();
+		return;
+	}
+	if (s->mWait > 0)
+	{
+		s->mWait--;
+		return;
+	}
+
+	if (mMenu != NULL)
+	{
+		MainMenu* aMenu = (MainMenu*) mMenu;
+		if (!aMenu->mPanelShown)
+			return;
+		if (s->mGames >= mAutoplayGames)
+		{
+			Log(s, "done after %d games at update %d", s->mGames, s->mTick);
+			if (s->mLog != NULL)
+				fclose(s->mLog);
+			Shutdown();
+			return;
+		}
+		s->mGames++;
+		s->mOverLogged = false;
+		s->mLevelLogged = false;
+		s->mMoves = 0;
+		s->mLastLevel = 0;
+		aMenu->ButtonDepress(mAutoplayMode == 1 ? 2 : 0);
+		Log(s, "game %d starts at update %d", s->mGames, s->mTick);
+		s->mWait = 20;
+		return;
+	}
+	if ((mBoard == NULL) || (mBoard->mGrid == NULL))
+		return;
+
+	Board* aBoard = mBoard;
+	Grid* aGrid = mBoard->mGrid;
+	if (aGrid->mLevelOver)
+	{
+		if (!s->mOverLogged)
+		{
+			s->mOverLogged = true;
+			Log(s, "game %d over at update %d: score %d level %d moves %d", s->mGames, s->mTick, aBoard->mScore,
+				aBoard->mMeter.mLevel, s->mMoves);
+			if (!mAutoplayShots.empty())
+				SaveScreenshot(StrFormat("%s-over%d.png", mAutoplayShots.c_str(), s->mGames));
+		}
+		return;
+	}
+	if (aBoard->mMeter.mFull)
+	{
+		if (!s->mLevelLogged)
+		{
+			s->mLevelLogged = true;
+			Log(s, "level %d done at update %d: score %d moves %d", aBoard->mMeter.mLevel, s->mTick, aBoard->mScore, s->mMoves);
+			if (!mAutoplayShots.empty())
+				SaveScreenshot(StrFormat("%s-level%d-%d.png", mAutoplayShots.c_str(), s->mGames, aBoard->mMeter.mLevel));
+		}
+		return;
+	}
+	s->mLevelLogged = false;
+	if ((aBoard->mF8c > 0.0f) || (aBoard->mI16c > 4) || !aGrid->mB33c || !Quiet(aGrid) || (aGrid->mSelected != NULL) ||
+		(aBoard->mBombOn) || (aGrid->mCombo > 0 && aGrid->mB358 == false && s->mTick % 4 != 0))
+		return;
+	if (mPauseCount > 0)
+		return;
+
+	// the best move: a block of four that lacks one atom of its colour
+	for (int aCol = 0; aCol < Grid::COLS - 1; aCol++)
+	{
+		for (int aRow = 0; aRow < Grid::ROWS - 1; aRow++)
+		{
+			for (int aType = 0; aType < aGrid->mNumColors; aType++)
+			{
+				int aHave = 0;
+				int aGapCol = -1;
+				int aGapRow = -1;
+				int aGaps = 0;
+				for (int aDC = 0; aDC < 2; aDC++)
+					for (int aDR = 0; aDR < 2; aDR++)
+					{
+						Atom* anAtom = Movable(aGrid, aCol + aDC, aRow + aDR);
+						if ((anAtom != NULL) && ((anAtom->mType == aType) || (anAtom->mKind == KIND_CHROMIUM)))
+							aHave++;
+						else if (Empty(aGrid, aCol + aDC, aRow + aDR))
+						{
+							aGaps++;
+							aGapCol = aCol + aDC;
+							aGapRow = aRow + aDR;
+						}
+					}
+				if ((aHave != 3) || (aGaps != 1))
+					continue;
+				for (int aC = 0; aC < Grid::COLS; aC++)
+					for (int aR = 0; aR < Grid::ROWS; aR++)
+					{
+						if ((aC >= aCol) && (aC <= aCol + 1) && (aR >= aRow) && (aR <= aRow + 1))
+							continue;
+						Atom* aSource = Movable(aGrid, aC, aR);
+						if ((aSource != NULL) && (aSource->mType == aType) && (aSource->mKind == KIND_PLAIN))
+						{
+							if (Move(aGrid, aSource, aGapCol, aGapRow))
+							{
+								s->mMoves++;
+								s->mWait = 2;
+								return;
+							}
+						}
+					}
+			}
+		}
+	}
+
+	// a random move: an atom to an empty cell it can reach
+	std::vector<Atom*> aAtoms;
+	for (int aCol = 0; aCol < Grid::COLS; aCol++)
+		for (int aRow = 0; aRow < Grid::ROWS; aRow++)
+		{
+			Atom* anAtom = Movable(aGrid, aCol, aRow);
+			if (anAtom != NULL)
+				aAtoms.push_back(anAtom);
+		}
+	for (int aTry = 0; (aTry < 30) && !aAtoms.empty(); aTry++)
+	{
+		Atom* anAtom = aAtoms[s->Rand((int) aAtoms.size())];
+		int aToCol = s->Rand(Grid::COLS);
+		int aToRow = s->Rand(Grid::ROWS);
+		if (!Empty(aGrid, aToCol, aToRow))
+			continue;
+		if (Move(aGrid, anAtom, aToCol, aToRow))
+		{
+			s->mMoves++;
+			s->mWait = 2;
+			return;
+		}
+	}
+}

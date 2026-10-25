@@ -2,9 +2,12 @@
 
 #include "AtomicaApp.h"
 #include <cstdio>
+#include <vector>
 #include "Board.h"
 #include "Grid.h"
 #include "Screens.h"
+#include "Menu.h"
+#include "Buffer.h"
 #include "WidgetManager.h"
 
 using namespace Sexy;
@@ -22,22 +25,101 @@ void AtomicaApp::StartGame()
 	mB3ea0 = false;
 }
 
-// 0x405bd0 / 0x405c40 / 0x405d00: the options, the help and the menu boxes
+// 0x405bd0 / 0x405c40: the options and the help boxes
 // port: the dialogs are not ported yet
 void AtomicaApp::ShowOptions()
 {
-	printf("options dialog (not ported)");
+	puts("options dialog (not ported)");
 }
 
 void AtomicaApp::ShowHelp()
 {
-	printf("help dialog (not ported)");
+	puts("help dialog (not ported)");
 }
 
+// 0x405d00: the menu box (quit, quit and save)
+// port: the box is not ported; the menu button saves the game of the strategy mode and shows the main menu
 void AtomicaApp::ShowMenuDialog()
 {
-	// port: until the menu box is ported the button gives up the game
-	EndGame();
+	if ((mBoard != NULL) && (mBoard->mGrid != NULL) && !mBoard->mGrid->mLevelOver && !mBoard->mMeter.mFull)
+	{
+		SaveGame();
+		ShowMainMenu(false);
+	}
+}
+
+// a game of the given mode starts (from the menu)
+void AtomicaApp::StartNewGame(int theMode, int theExpert)
+{
+	CloseMenu();
+	mMode = theMode;
+	mExpertMode = theExpert;
+	mPauseCount = 0;
+	StartGame();
+}
+
+// port: the saved game is a file in the user's folder
+bool AtomicaApp::HasSavedGame()
+{
+	Buffer aBuffer;
+	return ReadBufferFromFile("SAVEGAME.DAT", &aBuffer) && (aBuffer.GetDataLen() > 8);
+}
+
+// 0x405fc0
+void AtomicaApp::SaveGame()
+{
+	if (mBoard == NULL)
+		return;
+	FILE* aFile = tmpfile();
+	if (aFile == NULL)
+		return;
+	fwrite(&mMode, 4, 1, aFile);
+	fwrite(&mExpertMode, 4, 1, aFile);
+	mBoard->Save(aFile);
+	long aSize = ftell(aFile);
+	rewind(aFile);
+	std::vector<unsigned char> aData((size_t) aSize);
+	if (aSize > 0)
+		fread(&aData[0], 1, (size_t) aSize, aFile);
+	fclose(aFile);
+	Buffer aBuffer;
+	if (aSize > 0)
+		aBuffer.WriteBytes(&aData[0], (int) aSize);
+	WriteBufferToFile("SAVEGAME.DAT", &aBuffer);
+}
+
+void AtomicaApp::DeleteSavedGame()
+{
+	Buffer aBuffer;
+	WriteBufferToFile("SAVEGAME.DAT", &aBuffer);
+}
+
+// 0x406060: the saved game goes on
+void AtomicaApp::ResumeGame()
+{
+	Buffer aBuffer;
+	if (!ReadBufferFromFile("SAVEGAME.DAT", &aBuffer) || (aBuffer.GetDataLen() <= 8))
+		return;
+	CloseMenu();
+	FILE* aFile = tmpfile();
+	if (aFile == NULL)
+		return;
+	fwrite(aBuffer.GetDataPtr(), 1, (size_t) aBuffer.GetDataLen(), aFile);
+	rewind(aFile);
+	fread(&mMode, 4, 1, aFile);
+	fread(&mExpertMode, 4, 1, aFile);
+	mPauseCount = 0;
+	if (mBoard == NULL)
+	{
+		mBoard = new Board(this);
+		mBoard->Resize(0, 0, mWidth, mHeight);
+		mWidgetManager->AddWidget(mBoard);
+		mBoard->Start();
+		mBoard->Load(aFile);
+	}
+	fclose(aFile);
+	mB3ea0 = false;
+	DeleteSavedGame();
 }
 
 // 0x405cb0: the player gives up
@@ -54,20 +136,24 @@ void AtomicaApp::EndGame()
 // 0x405d70: the main menu (theGameOver: after a game)
 void AtomicaApp::ShowMainMenu(bool theGameOver)
 {
-	(void) theGameOver;
-	// port: until the menu is ported, a new game starts at once
 	if (mBoard != NULL)
 	{
 		mWidgetManager->RemoveWidget(mBoard);
 		SafeDeleteWidget(mBoard);
 		mBoard = NULL;
 	}
-	StartGame();
+	CloseMenu();
+	MainMenu* aMenu = new MainMenu(this, theGameOver);
+	aMenu->Resize(0, 0, mWidth, mHeight);
+	mMenu = aMenu;
+	mWidgetManager->AddWidget(aMenu);
+	mWidgetManager->BringToFront(aMenu);
 }
 
 // 0x406200
 void AtomicaApp::ShowGameOver()
 {
+	DeleteSavedGame();
 	if (mB3ea0)
 		ShowMainMenu(false);
 	else

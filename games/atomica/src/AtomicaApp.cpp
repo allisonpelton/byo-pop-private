@@ -2,6 +2,7 @@
 // docs/GAME_NOTES.md section 3.
 
 #include "AtomicaApp.h"
+#include <cstdlib>
 #include "Screens.h"
 #include "GameText.h"
 #include "Compat2004.h"
@@ -43,6 +44,11 @@ AtomicaApp::AtomicaApp()
 	mBoard = NULL;
 	mMenu = NULL;
 	mTitleScreen = NULL;
+	mAutoplay = false;
+	mAutoplayMode = 0;
+	mAutoplayGames = 1;
+	mAutoplayCap = 100000;
+	mAutoplayState = NULL;
 	mMode = 0;
 	mB3ea0 = false;
 	mExpertMode = 0;
@@ -107,7 +113,7 @@ void AtomicaApp::TitleScreenDone()
 		SafeDeleteWidget(mTitleScreen);
 		mTitleScreen = NULL;
 	}
-	StartGame();
+	ShowMainMenu(false);
 }
 
 // port: the loading runs in the main thread (the framework runs LoadingThreadProc once the first frame is up), so the
@@ -138,7 +144,33 @@ void AtomicaApp::ReadFromRegistry()
 	SexyApp::ReadFromRegistry();
 }
 
+// the command line: -autoplay=<seed> -autoplaymode=strategy|action -autoplaygames=N -autoplaycap=N -autoplaylog=<file>
+// -autoplayshots=<prefix>
 void AtomicaApp::HandleCmdLineParam(const std::string& theParamName, const std::string& theParamValue)
 {
-	SexyApp::HandleCmdLineParam(theParamName, theParamValue);
+	if (theParamName == "-autoplay")
+	{
+		mAutoplay = true;
+		mAutoplayState = NewAutoplayState((unsigned int) atoi(theParamValue.c_str()));
+		mScriptedInput = true;   // the bot's input only, as in a -script run
+	}
+	else if (theParamName == "-autoplaymode")
+		mAutoplayMode = (theParamValue == "action") ? 1 : 0;
+	else if (theParamName == "-autoplaygames")
+		mAutoplayGames = atoi(theParamValue.c_str());
+	else if (theParamName == "-autoplaycap")
+		mAutoplayCap = atoi(theParamValue.c_str());
+	else if (theParamName == "-autoplaylog")
+		mAutoplayLog = theParamValue;
+	else if (theParamName == "-autoplayshots")
+		mAutoplayShots = theParamValue;
+	else
+		SexyApp::HandleCmdLineParam(theParamName, theParamValue);
+}
+
+void AtomicaApp::UpdateFrames()
+{
+	SexyApp::UpdateFrames();
+	if (mAutoplay)
+		AutoplayUpdate();
 }

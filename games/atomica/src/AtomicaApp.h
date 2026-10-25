@@ -239,9 +239,25 @@ public:
 	virtual void		WriteToRegistry() override;
 	virtual void		ReadFromRegistry() override;
 	virtual void		HandleCmdLineParam(const std::string& theParamName, const std::string& theParamValue) override;
+	virtual void		UpdateFrames() override;
+
+	// Test hooks (testhooks/Autoplay.cpp): -autoplay=<seed> plays games by itself with a bot that has its own random numbers
+	bool				mAutoplay;
+	int					mAutoplayMode;
+	int					mAutoplayGames;
+	int					mAutoplayCap;
+	std::string			mAutoplayLog;
+	std::string			mAutoplayShots;
+	struct AutoplayState*	mAutoplayState;
+	void				AutoplayUpdate();
 
 	void				TitleScreenDone();					// the title screen's play link was clicked
 	void				StartGame();						// 0x405b10
+	void				StartNewGame(int theMode, int theExpert);
+	bool				HasSavedGame();
+	void				SaveGame();							// 0x405fc0
+	void				ResumeGame();						// 0x406060
+	void				DeleteSavedGame();
 	void				ShowOptions();						// 0x405bd0
 	void				ShowHelp();							// 0x405c40
 	void				ShowMenuDialog();					// 0x405d00
@@ -261,6 +277,9 @@ private:
 };
 
 extern AtomicaApp* gApp;
+
+// the autoplay bot's state (testhooks/Autoplay.cpp)
+struct AutoplayState* NewAutoplayState(unsigned int theSeed);
 
 }
 
