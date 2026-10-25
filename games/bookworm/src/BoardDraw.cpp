@@ -19,6 +19,7 @@
 #include "Image.h"
 #include "MemoryImage.h"
 #include "ModFeatures.h"
+#include "ModWords.h"
 #include "TileSymbols.h"
 #include "Font.h"
 #include "ImageFont.h"
@@ -27,6 +28,9 @@
 #include <list>
 
 using namespace Sexy;
+
+// port(mod): long-words (ModWords.h): the widest word the box under the score takes, centred on x 112
+static const int LONG_WORD_WIDTH = 200;
 
 // 0x40a980
 // Background, Lex's shadow, level text, progress bar, score, last word, Lex's burp smoke, the tiles, then
@@ -235,7 +239,18 @@ void Board::DrawWord(Graphics* g)
 		Font* aFont = mApp->mFonts[FONT_VERDANA18BOLD];
 		if (aWord.size() > 10)
 			aFont = mApp->mFonts[FONT_VERDANA14BOLD];
-		if (aWord.size() > 12)
+		if ((aWord.size() > 12) && (ModLongWords()))
+		{
+			// port(mod): long-words (ModWords.h): the whole word, in the largest of the Verdanas that fits
+			const int aFonts[] = { FONT_VERDANA14BOLD, FONT_VERDANA12BOLD, FONT_VERDANA10BOLD };
+			for (int i = 0; i < 3; i++)
+			{
+				aFont = mApp->mFonts[aFonts[i]];
+				if (aFont->StringWidth(aWord) <= LONG_WORD_WIDTH)
+					break;
+			}
+		}
+		else if (aWord.size() > 12)
 		{
 			aWord.resize(12);
 			if (aWord[11] == 'Q')
@@ -581,6 +596,7 @@ void Board::DrawPieceBlank(Graphics* g, Piece* thePiece)
 void Board::DrawSelection(Graphics* g)
 {
 	int aLetterCount = 0;
+	int aLimit = ModWordMaxLength();    // port(mod): 12, or the longest word with long-words (ModWords.h)
 
 	for (PieceList::iterator anItr = mSelection.begin(); anItr != mSelection.end(); ++anItr)
 	{
@@ -592,8 +608,8 @@ void Board::DrawSelection(Graphics* g)
 
 		PieceList::iterator aNextItr = anItr;
 		++aNextItr;
-		if ((aNextItr != mSelection.end()) && (aLetterCount < 12) && (*aNextItr != NULL) &&
-			(((*aNextItr)->mLetter != 'Q') || (aLetterCount < 11)))
+		if ((aNextItr != mSelection.end()) && (aLetterCount < aLimit) && (*aNextItr != NULL) &&
+			(((*aNextItr)->mLetter != 'Q') || (aLetterCount < aLimit - 1)))
 		{
 			Piece* aNextPiece = *aNextItr;
 			Image* anArrowsImage = mApp->mImages[IMAGE_ARROWS];
@@ -621,7 +637,7 @@ void Board::DrawSelection(Graphics* g)
 
 		// port: the registered build's limit (12 letters) is taken; the trial build's 8 (app
 		// mIsRegistered false) is not ported.
-		if (aLetterCount > 12)
+		if (aLetterCount > aLimit)
 			g->DrawImage(mApp->mImages[IMAGE_TILE_X], (int)aPiece->mX, (int)aPiece->mY);
 	}
 }

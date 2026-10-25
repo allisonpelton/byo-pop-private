@@ -1,0 +1,14 @@
+{
+  "id": "s8-nine",
+  "name": "Stage 8: nine colours",
+  "version": "1.0",
+  "description": "Oracle fixture: board.gemColors 9 and imageOps for the two new rows: the blue gem turned red (a hue rotation), the green one tinted pink without its glyph. Three entries with mistakes, each warned: a target other than the gem sheet, a rowHeight of 52, a tint that is no colour.",
+  "rules": { "board": { "gemColors": 9 } },
+  "imageOps": [
+    { "target": "images/gemsheet6", "op": "extendRows", "rowHeight": 104, "rows": 9,
+      "generate": [ { "from": 2, "hue": 150 }, { "from": 6, "tint": [255, 120, 200], "glyph": false, "lightness": -0.1 } ] },
+    { "target": "images/timerbar", "op": "extendRows", "rowHeight": 25 },
+    { "target": "images/gemsheet6", "op": "extendRows", "rowHeight": 52 },
+    { "target": "images/gemsheet6", "op": "extendRows", "generate": [ { "tint": "pink" } ] }
+  ]
+}

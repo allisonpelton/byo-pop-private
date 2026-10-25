@@ -1,0 +1,25 @@
+{
+  "id": "s7b-rising",
+  "name": "Stage 7b: Twilight dirt",
+  "version": "1.0",
+  "description": "Oracle fixture: s7b-dirt's mask under Twilight's gravity (alternate, fallAccel 75): gems slide diagonally under the dirt from below as well as from above.",
+  "rules": {
+    "board": {
+      "mask": [
+        "#d######",
+        "########",
+        "#####3##",
+        "########",
+        "##2#####",
+        "########",
+        "######d#",
+        "########"
+      ],
+      "dirtPoints": 25,
+      "gravity": {
+        "direction": "alternate",
+        "fallAccel": 75
+      }
+    }
+  }
+}

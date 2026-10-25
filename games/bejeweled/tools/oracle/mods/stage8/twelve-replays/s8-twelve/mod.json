@@ -1,0 +1,7 @@
+{
+  "id": "s8-twelve",
+  "name": "Stage 8: twelve colours",
+  "version": "1.0",
+  "description": "Oracle fixture: board.gemColors 12. The gem sheet's 7 rows grow to 12 with the default looks (rose, teal, violet, onyx, lime) and their glyphs.",
+  "rules": { "board": { "gemColors": 12 } }
+}

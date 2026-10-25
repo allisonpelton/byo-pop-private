@@ -26,6 +26,11 @@ if [ "$MAIN" = "$TARGET" ]; then
 	echo "setup_worktree.sh: $TARGET is the main checkout itself; nothing to do"
 	exit 0
 fi
+# A worktree cut from origin/main has a publish snapshot under it, with no history in common with main
+if ! (cd "$TARGET" && git merge-base HEAD main > /dev/null 2>&1); then
+	echo "setup_worktree.sh: WARNING: this branch shares no history with main (cut from a publish snapshot?)." \
+		"It cannot be merged: git rebase --onto main <the snapshot commit> (CLAUDE.md, \"A new worktree\")" >&2
+fi
 
 copied=()
 copy_dir() {  # copy_dir <relative path>: only when the source has it and the target does not

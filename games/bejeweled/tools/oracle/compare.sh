@@ -100,6 +100,12 @@
 # Stage 7c (Twilight gravity) plays the rule mods of mods/stage7c: alternating, rising and slow falls by the bot,
 # with free swaps and undo, on the diamond, a scripted game saved in the middle of a rise and resumed, recorded and
 # played back. Left out the same way.
+# Stage 7b (dirt) plays the rule mods of mods/stage7b: dirt cleared by the bot and gems sliding diagonally under it,
+# in timed mode, under Twilight's gravity, on two level shapes, a scripted game saved in the middle of a cascade with
+# its DIRT chunk, resumed, undone, recorded and played back (compare.py "variant" with "dirt"). Left out the same way.
+# Stage 8 (more gem colours) plays the mods of mods/stage8 in every build (board.gemColors is a tunable): the gem
+# sheet grown to 9 and 12 rows (the default looks, a mod's imageOps, a mod's HD art) and dumped, the bot on 12
+# colours, recorded and watched without the mod (compare.py "colors").
 #
 # The frozen exes (build/baseline, build/baseline-stage0) predate the audio shutdown fix (af758b9) and can
 # crash on exit after writing all their outputs: a baseline or hooks-baseline run that exits 139 or with an
@@ -1006,19 +1012,21 @@ define_cases() {
 	playback watch_seed_quit_highscores "rec_seed_quit's sidecar (seed $GS, user) with Options -> High Scores mid-watch: the player's hiscores.dat, no -seeded table" \
 		"trace=rec_seed_quit;user=hiscores.dat,registry.ini" "$C/rec_seed_quit/user/savegame.bjr" script="$S3/watch_highscores.txt"
 
-	# Stage 5 raised the engine ABI to 2, stage 7 to 3 (a replay of the original rules from engine 1 still plays). A game of the
+	# Stage 5 raised the engine ABI to 2, stage 7 to 3, stage 7b to 4 (a replay of the original rules from engine 1 still plays). A game of the
 	# original rules that engine 1 recorded and saved is resumed as before: ReplayRecorder::OnLoad continues its sidecar,
 	# as Replay::CheckPlayable plays it. A sidecar the resume cannot continue (here one a later engine wrote) is kept as
 	# a finished replay first, END saved (Board::DeleteSaveSidecar), so its moves are not lost; the new replay holds the
-	# loaded save (LDSV). rec_main's sidecar with its engine ABI changed (compare.py corrupt-replay engine<n>) stands in.
-	for n in 1 4; do
+	# loaded save (LDSV). rec_main's sidecar with its engine ABI changed (compare.py corrupt-replay engine<n>) stands in:
+	# engine 1's, and the engine after this build's (bjr.py ENGINE_ABI + 1), which no build has written yet
+	NEXT_ENGINE=$(( $(sed -n 's/^ENGINE_ABI = \([0-9]*\).*/\1/p' "$GAME/tools/bjr.py") + 1 ))
+	for n in 1 "$NEXT_ENGINE"; do
 		dep_id candidate/rec_main
 		enqueue "gen/engine${n}_sidecar.bjr" engine_job "$n"
 	done
 	recording rec_load_engine1 "playtest_load.txt in a copy of rec_main's user dir whose sidecar engine 1 wrote: the original rules' replay goes on, two segments as in rec_load" \
 		load 1 "$PT/playtest_load.txt" from=rec_main savegame="$OUT/gen/engine1_sidecar.bjr" saveas=savegame.bjr
-	recording rec_load_engine4 "the same with a sidecar of engine 4, which this build cannot continue: a fresh replay of the loaded save (LDSV); the sidecar's game is kept in replays/ (END saved)" \
-		load 1 "$PT/playtest_load.txt" from=rec_main savegame="$OUT/gen/engine4_sidecar.bjr" saveas=savegame.bjr
+	recording rec_load_engine_next "the same with a sidecar of engine $NEXT_ENGINE, the one after this build's, which it cannot continue: a fresh replay of the loaded save (LDSV); the sidecar's game is kept in replays/ (END saved)" \
+		load 1 "$PT/playtest_load.txt" from=rec_main savegame="$OUT/gen/engine${NEXT_ENGINE}_sidecar.bjr" saveas=savegame.bjr
 	playback watch_main_engine1 "rec_main's sidecar as engine 1 wrote it: an original-rules replay of engine 1 plays" "trace=rec_main" \
 		"$OUT/gen/engine1_sidecar.bjr"
 	playback watch_load_engine1 "rec_load_engine1's sidecar: engine 1's segment and this engine's in one replay" "trace=rec_main,rec_load_engine1" \
@@ -1209,8 +1217,8 @@ define_cases() {
 			"shapes=9x9:40" 1 - modsdir="$M7/diamond" arg=-autoplay=1 "${SHAPEBOT[@]}"
 		variant shape_diamond_auto_timed "-autoplay=2 -autoplaytimed, mods/stage7/diamond, 20000 updates: fall-outs refill the diamond" \
 			"shapes=9x9:40" 1 - modsdir="$M7/diamond" arg=-autoplay=2 arg=-autoplaytimed "${SHAPEBOT[@]}"
-		variant shape_dirt_diamond_auto_timed "-autoplay=2 -autoplaytimed, mods/stage7/dirt-diamond (stage 1's s1-diamond): a hole inside the diamond, dirt cells played as holes until stage 7b" \
-			"shapes=9x9:27" 1 - modsdir="$M7/dirt-diamond" arg=-autoplay=2 arg=-autoplaytimed "${SHAPEBOT[@]}"
+		variant shape_dirt_diamond_auto_timed "-autoplay=2 -autoplaytimed, mods/stage7/dirt-diamond (stage 1's s1-diamond): a hole inside the diamond, two dirt cells (played since stage 7b)" \
+			"shapes=9x9:25;dirt=2:3" 1 - modsdir="$M7/dirt-diamond" arg=-autoplay=2 arg=-autoplaytimed "${SHAPEBOT[@]}"
 		variant shape_levels_auto "-autoplay=1, mods/stage7/levels, 20000 updates: the holed 8x8 and the 7x7 by turns, a vortex at every level, 5000 points a match (the fast score roll)" \
 			"shapes=8x8:10,7x7:0;v2" 1 - modsdir="$M7/levels" arg=-autoplay=1 "${SHAPEBOT[@]}"
 		variant shape_levels_auto_timed "-autoplay=2 -autoplaytimed, mods/stage7/levels: the shapes by turns in timed mode" \
@@ -1254,18 +1262,88 @@ define_cases() {
 			"gravity=alternate;shapes=9x9:40" 1 - modsdir="$M7C/diamond" arg=-autoplay=2 arg=-autoplaytimed "${SHAPEBOT[@]}"
 		variant twilight_quit "-gameseed=$GS, mods/stage7c/twilight: the opening rise, a move falling and one rising, the backdrop; the quit: a v2 save with the flips" \
 			"gravity=alternate;v2" 1 "$S7C/twilight_quit.txt" modsdir="$M7C/twilight" arg=-gameseed=$GS
-		variant twilight_quit.resume "twilight_quit's user dir: Yes resumes B's rise from its v2 save (2 flips); the settle flips to down" 			"gravity=alternate" 1 "$S7C/twilight_resume.txt" from=twilight_quit modsdir="$M7C/twilight"
-		variant twilight_undo "-gameseed=$GS, mods/stage7c/kept: A, z takes it back with its gravity, A again; a kept swap does not flip" 			"gravity=alternate;undos=1;redo=1;kept=1" 1 "$S7C/twilight_undo.txt" modsdir="$M7C/kept" arg=-gameseed=$GS
+		variant twilight_quit.resume "twilight_quit's user dir: Yes resumes B's rise from its v2 save (2 flips); the settle flips to down" \
+			"gravity=alternate" 1 "$S7C/twilight_resume.txt" from=twilight_quit modsdir="$M7C/twilight"
+		variant twilight_undo "-gameseed=$GS, mods/stage7c/kept: A, z takes it back with its gravity, A again; a kept swap does not flip" \
+			"gravity=alternate;undos=1;redo=1;kept=1" 1 "$S7C/twilight_undo.txt" modsdir="$M7C/kept" arg=-gameseed=$GS
 		# Recorded (mods/stage7c/twilight-replays: s7c-twilight and stage 3's replays feature mod) and played back: the
 		# flips and the fall-outs in a replay, and a sidecar across the save in the middle of a rise
-		recording rec_twilight_auto_timed "twilight_auto_timed recorded: fall-outs up and down in a replay" 			twilight_auto_timed 1 - modsdir="$M7C/twilight-replays" arg=-autoplay=2 arg=-autoplaytimed "${SHAPEBOT[@]}"
-		recording rec_twilight_quit "twilight_quit recorded: the sidecar next to the v2 save in the middle of B's rise" 			twilight_quit 1 "$S7C/twilight_quit.txt" modsdir="$M7C/twilight-replays" arg=-gameseed=$GS
-		recording rec_twilight_quit.resume "twilight_quit.resume in a copy of rec_twilight_quit's user dir: the sidecar goes on (a v2 LOAD with GRAV)" 			twilight_quit.resume 1 "$S7C/twilight_resume.txt" from=rec_twilight_quit modsdir="$M7C/twilight-replays"
-		playback watch_twilight_auto_timed "rec_twilight_auto_timed's sidecar (saved at the cap): the same falls, flips and fall-outs again" 			"trace=rec_twilight_auto_timed" "$C/rec_twilight_auto_timed/user/savegame-*.bjr"
-		playback watch_twilight_resume "rec_twilight_quit.resume's sidecar: the second segment LOADs the save made in the middle of the rise" 			"trace=rec_twilight_quit,rec_twilight_quit.resume" "$C/rec_twilight_quit.resume/user/savegame-*.bjr"
+		recording rec_twilight_auto_timed "twilight_auto_timed recorded: fall-outs up and down in a replay" \
+			twilight_auto_timed 1 - modsdir="$M7C/twilight-replays" arg=-autoplay=2 arg=-autoplaytimed "${SHAPEBOT[@]}"
+		recording rec_twilight_quit "twilight_quit recorded: the sidecar next to the v2 save in the middle of B's rise" \
+			twilight_quit 1 "$S7C/twilight_quit.txt" modsdir="$M7C/twilight-replays" arg=-gameseed=$GS
+		recording rec_twilight_quit.resume "twilight_quit.resume in a copy of rec_twilight_quit's user dir: the sidecar goes on (a v2 LOAD with GRAV)" \
+			twilight_quit.resume 1 "$S7C/twilight_resume.txt" from=rec_twilight_quit modsdir="$M7C/twilight-replays"
+		playback watch_twilight_auto_timed "rec_twilight_auto_timed's sidecar (saved at the cap): the same falls, flips and fall-outs again" \
+			"trace=rec_twilight_auto_timed" "$C/rec_twilight_auto_timed/user/savegame-*.bjr"
+		playback watch_twilight_resume "rec_twilight_quit.resume's sidecar: the second segment LOADs the save made in the middle of the rise" \
+			"trace=rec_twilight_quit,rec_twilight_quit.resume" "$C/rec_twilight_quit.resume/user/savegame-*.bjr"
+		# Stage 7b: dirt (games/bejeweled/docs/CODE_MODS_DESIGN.md 4.14). The rule mods of mods/stage7b: s7b-dirt (dirt
+		# at (1,0) and (6,6) with a layer, (5,2) with 3, (2,4) with 2) by the bot to game over and in timed mode, under
+		# Twilight's gravity, on two level shapes (the dirt back whole at every level); a scripted game (-gameseed) whose
+		# first move clears (6,6) and slides a gem under (5,2), saved in its cascade (the DIRT chunk) and resumed, and
+		# undone with the dirt. dirt= checks the layers at every settle against the trace's total (compare.py dirt_check)
+		S7B="$PT/stage7b"
+		M7B="$GAME/tools/oracle/mods/stage7b"
+		variant dirt_auto "-autoplay=1, mods/stage7b/dirt: dirt cleared next to runs, gems sliding under it, to game over" \
+			"shapes=8x8:0;dirt=4:7" 1 - modsdir="$M7B/dirt" arg=-autoplay=1 "${SHAPEBOT[@]}"
+		variant dirt_auto_timed "-autoplay=2 -autoplaytimed, mods/stage7b/dirt, 20000 updates: fall-outs keep the dirt left, a level brings it back" \
+			"shapes=8x8:0;dirt=4:7;v2" 1 - modsdir="$M7B/dirt" arg=-autoplay=2 arg=-autoplaytimed "${SHAPEBOT[@]}"
+		variant dirt_rising_auto_timed "-autoplay=2 -autoplaytimed, mods/stage7b/rising, 20000 updates: dirt under Twilight's gravity, slides from below and above" \
+			"gravity=alternate;shapes=8x8:0;dirt=4:7" 1 - modsdir="$M7B/rising" arg=-autoplay=2 arg=-autoplaytimed "${SHAPEBOT[@]}"
+		variant dirt_levels_auto "-autoplay=1, mods/stage7b/levels, 20000 updates: dirt on the 8x8 and the 7x7 by turns, whole again at every level" \
+			"shapes=8x8:0,7x7:0;dirt=4:7,2:3;v2" 1 - modsdir="$M7B/levels" arg=-autoplay=1 "${SHAPEBOT[@]}"
+		variant dirt_quit "-gameseed=$GS, mods/stage7b/dirt: A clears (6,6) and slides a gem under (5,2); the quit in the cascade: a v2 save with its DIRT chunk" \
+			"dirt=4:7;v2" 1 "$S7B/dirt_quit.txt" modsdir="$M7B/dirt" arg=-gameseed=$GS
+		variant dirt_quit.resume "dirt_quit's user dir: Yes resumes with the save's dirt and slide side; B takes a layer off (2,4), a gem slides under it" \
+			"dirt=4:7" 1 "$S7B/dirt_resume.txt" from=dirt_quit modsdir="$M7B/dirt"
+		variant dirt_undo "-gameseed=$GS, mods/stage7b/undo: A, z brings the dirt back with the board, A again the same way" \
+			"dirt=4:7;undos=1;redo=1" 1 "$S7B/dirt_undo.txt" modsdir="$M7B/undo" arg=-gameseed=$GS
+		# Recorded (mods/stage7b/dirt-replays: s7b-dirt and stage 3's replays feature mod) and played back
+		recording rec_dirt_auto_timed "dirt_auto_timed recorded: dirt, slides and fall-outs in a replay" \
+			dirt_auto_timed 1 - modsdir="$M7B/dirt-replays" arg=-autoplay=2 arg=-autoplaytimed "${SHAPEBOT[@]}"
+		recording rec_dirt_quit "dirt_quit recorded: the sidecar next to the v2 save in the cascade" \
+			dirt_quit 1 "$S7B/dirt_quit.txt" modsdir="$M7B/dirt-replays" arg=-gameseed=$GS
+		recording rec_dirt_quit.resume "dirt_quit.resume in a copy of rec_dirt_quit's user dir: the sidecar goes on (a v2 LOAD with DIRT)" \
+			dirt_quit.resume 1 "$S7B/dirt_resume.txt" from=rec_dirt_quit modsdir="$M7B/dirt-replays"
+		playback watch_dirt_auto_timed "rec_dirt_auto_timed's sidecar (saved at the cap): the same dirt, slides and fall-outs again" \
+			"trace=rec_dirt_auto_timed" "$C/rec_dirt_auto_timed/user/savegame-*.bjr"
+		playback watch_dirt_resume "rec_dirt_quit.resume's sidecar: the second segment LOADs the save made in the cascade" \
+			"trace=rec_dirt_quit,rec_dirt_quit.resume" "$C/rec_dirt_quit.resume/user/savegame-*.bjr"
 	else
-		echo "$VTAG  (the candidate has no variant paths: the stage-5, 6, 7 and 7c cases are left out)"
+		echo "$VTAG  (the candidate has no variant paths: the stage-5, 6, 7, 7c and 7b cases are left out)"
 	fi
+
+	# Stage 8: more gem colours (games/bejeweled/docs/CODE_MODS_DESIGN.md 4.2), a tunable every build plays. sheet.txt
+	# dumps the gem sheet (the script command gemsheet): the original's 7 rows, then 12 with the default looks, 9 with
+	# a mod's imageOps (and its mistakes warned), 12 on the crystal gems' @2x art. The bot on 12 colours, to the game
+	# over and in timed mode, recorded and watched without the mod: the replay's rules grow the sheet then.
+	S8="$PT/stage8"
+	M8="$GAME/tools/oracle/mods/stage8"
+	# colors <case> <description> <flags> <seed> <script or -> [options]
+	colors() {
+		local name=$1 desc=$2 flags=$3
+		shift 3
+		printf '%s\t%s\t%s\t%s\n' "$name" colors "$desc" "$flags" >> "$OUT/cases.txt"
+		run candidate "$name" "$@"
+	}
+	COLORBOT=(arg=-autoplaycap=20000 arg=-autoplaylog=autoplay.txt)
+	colors colors_seven "stage8/sheet.txt without mods: the original 7 rows, the dump the others start with" \
+		"colors=7;sheet=7" 1 "$S8/sheet.txt"
+	colors colors_twelve "stage8/sheet.txt, mods/stage8/twelve: 5 rows generated with the default looks and their glyphs" \
+		"colors=12;sheet=12;ref=colors_seven;glyphs=7-11" 1 "$S8/sheet.txt" modsdir="$M8/twelve"
+	colors colors_nine "stage8/sheet.txt, mods/stage8/nine: its imageOps' two rows, the second without a glyph; 3 warnings" \
+		"colors=9;sheet=9;ref=colors_seven;glyphs=7" 1 "$S8/sheet.txt" modsdir="$M8/nine"
+	colors colors_crystal "stage8/sheet.txt, mods/stage8/crystal: 12 rows on the 1x and the @2x pixels" \
+		"colors=12;sheet=12;glyphs=7-11;hd=2" 1 "$S8/sheet.txt" modsdir="$M8/crystal"
+	colors colors_auto "-autoplay=1, mods/stage8/twelve: 12 colours to the game over" \
+		"colors=12" 1 - modsdir="$M8/twelve" arg=-autoplay=1 "${COLORBOT[@]}"
+	colors colors_auto_timed "-autoplay=2 -autoplaytimed, mods/stage8/twelve, 20000 updates: every colour matched" \
+		"colors=12;all" 1 - modsdir="$M8/twelve" arg=-autoplay=2 arg=-autoplaytimed "${COLORBOT[@]}"
+	recording rec_colors_auto_timed "colors_auto_timed recorded (mods/stage8/twelve-replays)" \
+		colors_auto_timed 1 - modsdir="$M8/twelve-replays" arg=-autoplay=2 arg=-autoplaytimed "${COLORBOT[@]}"
+	playback watch_colors_auto_timed "rec_colors_auto_timed's sidecar watched without the mod: its rules grow the sheet to 12" \
+		"trace=rec_colors_auto_timed" "$C/rec_colors_auto_timed/user/savegame-*.bjr"
 
 	# Stage 4: the headless verifier and the web build under Node (games/bejeweled/tools/verify/oracle_cases.sh): the
 	# drift guard on every replay above, the verifier's tests and difftest, LOGIC hashes of the web build

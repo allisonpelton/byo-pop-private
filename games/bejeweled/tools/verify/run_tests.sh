@@ -208,7 +208,7 @@ for name in $SYNTH; do
 		limits-save-early) want="a SAVE before the segment's last tick" ;;
 		limits-saves) want="SAVEs in one segment" ;;
 		limits-*) want="cannot play: " ;;
-		engine1-variant|engine1-scoring) want="recorded by engine 1, this build plays engine $ENGINE_ABI" ;;
+		engine1-variant|engine1-scoring|engine1-colors) want="recorded by engine 1, this build plays engine $ENGINE_ABI" ;;
 		*) continue ;;
 	esac
 	mkdir -p "$OUT/unplayable-$name"

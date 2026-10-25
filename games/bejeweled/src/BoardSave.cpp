@@ -49,6 +49,17 @@ void Board::GetVariantSave(Replay::VariantSave* theSave)
 	s.mHasGravity = mRules.HasGravityRule();
 	s.mGravityFlips = mGravityFlips;
 	s.mGravityNoFlip = mGravityNoFlip;
+	// DIRT (stage 7b) when the rules have dirt, as in StateCodec
+	s.mHasDirt = mDirtRules;
+	s.mDiagonalLeftFirst = mDiagonalLeftFirst;
+	if (s.mHasDirt)
+	{
+		for (int aRow = 0; aRow < mRows; aRow++)
+		{
+			for (int aCol = 0; aCol < mCols; aCol++)
+				s.mDirtLayers.push_back(mLayout.IsDirt(aCol, aRow) ? mLayout.mDirt[aRow][aCol] : 0);
+		}
+	}
 }
 
 void Board::WriteVariantHeader(Buffer* theBuffer)
@@ -96,17 +107,12 @@ bool Board::ReadVariantHeader(const Buffer& theBuffer, int theVersion)
 		else
 		{
 			aLayout = mRules.LayoutForLevel(aSave.mLevelShape);
-			std::vector<bool> aPlayable;
-			for (int aRow = 0; aRow < aLayout.mRows; aRow++)
-			{
-				for (int aCol = 0; aCol < aLayout.mCols; aCol++)
-					aPlayable.push_back(aLayout.IsPlayable(aCol, aRow));
-			}
 			// The v1 fields begin with mTimedMode (1 byte), then mLevel
 			int32_t aLevel = 0;
 			if (aSave.mBodyStart + 5 <= aBytes.size())
 				memcpy(&aLevel, aBytes.data() + aSave.mBodyStart + 1, 4);
-			if ((aSave.mCols != aLayout.mCols) || (aSave.mRows != aLayout.mRows) || (aSave.mPlayable != aPlayable))
+			// a dirt cell may have lost its last layer (stage 7b)
+			if (!aLayout.FitsSaveMask(aSave.mCols, aSave.mRows, aSave.mPlayable, aSave.mHasDirt ? &aSave.mDirtLayers : NULL))
 				aWhy = "a save of another board shape (" + std::to_string(aSave.mCols) + "x" + std::to_string(aSave.mRows) + ", level shape " +
 					std::to_string(aSave.mLevelShape) + ")";
 			else if ((aLevel < 0) || (aLevel % aShapes != aSave.mLevelShape))
@@ -123,6 +129,21 @@ bool Board::ReadVariantHeader(const Buffer& theBuffer, int theVersion)
 
 	// The board takes the shape of the save's level (stage 7); LoadGame then reads the cells within it
 	SetLoadedLayout(aLayout, aSave.mLevelShape);
+	if (aLayout.HasDirt())
+	{
+		// and the save's dirt layers (stage 7b); without a DIRT chunk, as its mask says: all of a cell's or none
+		std::vector<uint8_t> aLayers = aSave.mDirtLayers;
+		if (!aSave.mHasDirt)
+		{
+			for (int aRow = 0; aRow < aLayout.mRows; aRow++)
+			{
+				for (int aCol = 0; aCol < aLayout.mCols; aCol++)
+					aLayers.push_back((aLayout.IsDirt(aCol, aRow) && !aSave.mPlayable[aRow * aLayout.mCols + aCol]) ? aLayout.mDirt[aRow][aCol] : 0);
+			}
+		}
+		std::string aDirtWhy;
+		ApplyDirtLayers(aLayers, &aDirtWhy); // FitsSaveMask let them through
+	}
 
 	// The buffer reads on at the v1 fields
 	theBuffer.SeekFront();
@@ -132,7 +153,7 @@ bool Board::ReadVariantHeader(const Buffer& theBuffer, int theVersion)
 }
 
 // GameLoadedVariant, at the end of a LoadGame that ReadVariantHeader let through: the RNG the game goes on with
-// (seed 0: the global stream, as a v1 save without a sidecar), the MOVE counts and the GRAV state
+// (seed 0: the global stream, as a v1 save without a sidecar), the MOVE counts, the GRAV state and DIRT's toggle
 void Board::ReadVariantChunks(const Buffer& theBuffer)
 {
 	Replay::VariantSave aSave;
@@ -160,4 +181,5 @@ void Board::ReadVariantChunks(const Buffer& theBuffer)
 	mUndosUsed = aSave.mUndosUsed;
 	mGravityFlips = aSave.mGravityFlips;
 	mGravityNoFlip = aSave.mGravityNoFlip;
+	mDiagonalLeftFirst = aSave.mDiagonalLeftFirst;
 }

@@ -98,6 +98,7 @@ struct GameConfig
 
 	// port(variant): the tunables of theRules into the members above
 	void LoadFromRules(const GameRules& theRules);
+	static int GemColors(const GameRules& theRules);   // the colours a board of theRules plays (mGemColors)
 
 	// port(variant): merges the enabled mods' rules and features and reads the data\diff.txt values, without
 	// writing anything (Load, -dumprules)

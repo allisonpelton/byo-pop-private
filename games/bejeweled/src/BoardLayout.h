@@ -19,6 +19,7 @@
 // (GameRules) and its tests can use it.
 
 #include <cmath>
+#include <cstdint>
 #include <string>
 #include <vector>
 
@@ -213,6 +214,51 @@ public:
 			}
 		}
 		return false;
+	}
+
+	// Stage 7b (4.14): one layer off a dirt cell, which becomes a gem cell when its last layer goes. False when the
+	// cell is no dirt
+	bool ClearDirtLayer(int theCol, int theRow)
+	{
+		if (!IsDirt(theCol, theRow))
+			return false;
+		if (--mDirt[theRow][theCol] == 0)
+			mCell[theRow][theCol] = CELL_GEM;
+		return true;
+	}
+
+	// A dirt cell of the mask with theLayers left (a save, a snapshot): 0 makes it a gem cell
+	void SetDirtLayers(int theCol, int theRow, int theLayers)
+	{
+		mDirt[theRow][theCol] = (unsigned char) theLayers;
+		mCell[theRow][theCol] = (theLayers > 0) ? CELL_DIRT : CELL_GEM;
+	}
+
+	// A v2 save's cell mask (gem cells, row-major) fits this layout of the level's mask: the same gem cells and holes,
+	// and a dirt cell either way, since its last layer may be gone (4.14). With theLayers (its DIRT chunk's, row-major)
+	// a dirt cell has at most the mask's layers, and some exactly where it is no gem cell; any other cell none
+	bool FitsSaveMask(int theCols, int theRows, const std::vector<bool>& thePlayable, const std::vector<uint8_t>* theLayers = NULL) const
+	{
+		if ((theCols != mCols) || (theRows != mRows) || (thePlayable.size() != (size_t)(mCols * mRows)))
+			return false;
+		if ((theLayers != NULL) && (theLayers->size() != thePlayable.size()))
+			return false;
+		for (int aRow = 0; aRow < mRows; aRow++)
+		{
+			for (int aCol = 0; aCol < mCols; aCol++)
+			{
+				int i = aRow * mCols + aCol;
+				bool isDirt = (mCell[aRow][aCol] == CELL_DIRT);
+				if (!isDirt && (thePlayable[i] != (mCell[aRow][aCol] == CELL_GEM)))
+					return false;
+				if (theLayers == NULL)
+					continue;
+				int aLayers = (*theLayers)[i];
+				if (!isDirt ? (aLayers != 0) : ((aLayers > mDirt[aRow][aCol]) || ((aLayers > 0) == thePlayable[i])))
+					return false;
+			}
+		}
+		return true;
 	}
 
 	// Every cell of mCols x mRows is a gem cell

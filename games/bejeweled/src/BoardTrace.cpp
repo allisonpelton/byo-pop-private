@@ -33,7 +33,13 @@ void Sexy::PrintBoardTrace(Board* theBoard, int theUpdate)
 	{
 		printf("TRACE   row %d:", aRow);
 		for (int aCol = 0; aCol < aBoard->mCols; aCol++)
-			printf(" %d", (aBoard->mBoard[aRow][aCol] != NULL) ? aBoard->mBoard[aRow][aCol]->mColor : -1);
+		{
+			// port(variant): a dirt cell (stage 7b) prints as -1 - its layers left (-2..-10), a hole and an empty cell as -1
+			if (aBoard->mLayout.IsDirt(aCol, aRow))
+				printf(" %d", -1 - (int) aBoard->mLayout.mDirt[aRow][aCol]);
+			else
+				printf(" %d", (aBoard->mBoard[aRow][aCol] != NULL) ? aBoard->mBoard[aRow][aCol]->mColor : -1);
+		}
 		printf("\n");
 	}
 	// port(variant): "user" for a seed the player chose; after the rows, which keep their place under the header
@@ -41,7 +47,8 @@ void Sexy::PrintBoardTrace(Board* theBoard, int theUpdate)
 		printf("TRACE   seed %u %s\n", (unsigned) aBoard->mGameSeed, aBoard->mUserSeeded ? "user" : "pergame");
 	// port(variant): a variant board's own state (stage 5: the moves that stood, the kept invalid moves; stage 6:
 	// the undos taken, on a board with undo; stage 7c: the direction the next fall takes and the flips so far, when
-	// the rules set a gravity rule)
+	// the rules set a gravity rule; stage 7b: the dirt layers left in all and the side the next diagonal slide tries
+	// first, when the rules have dirt)
 	if (aBoard->mVariant.mAny)
 	{
 		printf("TRACE   variant moves %d invalid %d", aBoard->mMoveCount, aBoard->mInvalidMoves);
@@ -49,6 +56,16 @@ void Sexy::PrintBoardTrace(Board* theBoard, int theUpdate)
 			printf(" undos %d", aBoard->mUndosUsed);
 		if (aBoard->mRules.HasGravityRule())
 			printf(" gravity %s flips %d", aBoard->GravityUp() ? "up" : "down", aBoard->mGravityFlips);
+		if (aBoard->mDirtRules)
+		{
+			int aLayers = 0;
+			for (int aRow = 0; aRow < aBoard->mRows; aRow++)
+			{
+				for (int aCol = 0; aCol < aBoard->mCols; aCol++)
+					aLayers += aBoard->mLayout.IsDirt(aCol, aRow) ? aBoard->mLayout.mDirt[aRow][aCol] : 0;
+			}
+			printf(" dirt %d %s", aLayers, aBoard->mDiagonalLeftFirst ? "left" : "right");
+		}
 		printf("\n");
 	}
 	// The clicks are screen positions: on a scaled board (stage 7) the cell centres scaled into the window

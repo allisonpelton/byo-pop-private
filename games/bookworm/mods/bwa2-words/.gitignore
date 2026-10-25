@@ -1,0 +1,5 @@
+# The word list is made from the player's own Bookworm Adventures Volume 2 (games/bookworm/tools/make_bwa2_mod.py)
+# and is not ours to commit: only these two files are tracked
+/*
+!/.gitignore
+!/mod.json

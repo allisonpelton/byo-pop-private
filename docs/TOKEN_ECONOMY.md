@@ -88,3 +88,27 @@ python -I tools/token_report.py 2026-10-17T00:00 2026-10-25T00:00 ~/.claude/proj
 prints the full report: totals by model and day, the transcripts that cost the most, the context
 charged to each kind of tool result, the cache rewrites and their causes, and the weighting at API
 prices.
+
+## The Sonnet trial: Noah's Ark Deluxe (2026-10-25)
+
+The first game after the push ran on Sonnet 5.5 in one session, with no subagents or workflows (CLAUDE.md, "Sonnet
+trial"). Up to the same milestone for each game, playing natively and in the browser, `tools/token_report.py` over
+each game's own project folders gives the numbers below. The ends are the commits that reached it: Big Money's
+0205e69 and BookWorm's 6ce3e42, both from before the token rules, and Noah's Ark's message of 13:50 UTC. The cost
+column weighs every model at Opus 5.5's API prices, as the report does, so it overstates Sonnet's share.
+
+| Port phase | Model | Effort (survey) | Time | Calls | Cache reads | Cache writes | Output | At Opus prices |
+|---|---|---|---|---|---|---|---|---|
+| Big Money Deluxe | Opus, 5 subagents | ~2x | 1 h 52 | 1,201 | 534M | 6.1M | 0.3M | $145 |
+| BookWorm Deluxe | Opus, subagents | ~3-3.5x | 3 h 54 | 3,107 | 1.08B | 14.9M | 0.5M | $304 |
+| Noah's Ark Deluxe | Sonnet, none | ~1-1.5x | 1 h 23 | 330 | 134M | 1.1M | 0.5M | $45 |
+
+Per unit of the survey's effort estimate, Noah's Ark used about 107M cache reads, against 267M for Big Money and about
+330M for BookWorm: two and a half to three times fewer, before Sonnet's lower prices. Part of that is the game, which
+is the smallest and reused BookWorm's pipeline, and part is the single session, whose calls carried a large context
+(409K on average, 967K at most, one compaction) but made a tenth as many calls. Output was a larger share (21% of the
+weighted cost, against 3-4%), so Sonnet wrote and thought more per call. Its own account of where it struggled
+(`games/noahsark/docs/README.md`, "Where the work was hard"): a misread goto tree in a Draw function gave an
+out-of-range sprite index that looked like heap corruption, and it audited the game logic for a long time before an
+AddressSanitizer build found the fault in one run. The mods phase and how faithful the port is are still to be
+measured.

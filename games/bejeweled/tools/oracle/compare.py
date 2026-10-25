@@ -200,6 +200,15 @@ left out for a candidate built without variant paths, BEJ_NO_VARIANTS; flags "k=
               alternate: up at an even count of flips, down at an odd one; on one board a move or a refill flips
               once, a swap that went back or a kept invalid move not at all, and an undo brings back the count of
               the settle it returns to.
+More gem colours (stage 8, games/bejeweled/docs/CODE_MODS_DESIGN.md 4.2; candidate runs with the mods of
+mods/stage8, every build: board.gemColors is a tunable; flags "k=v;k=v"):
+  colors      "colors=N": every gem in the TRACE rows a colour 0..N-1, all N of them with "all"; above 7 colours the
+              game logs the gem sheet grown to at least N rows. "sheet=R": the dump of the script command gemsheet
+              (shots/gemsheet.png) is 780 x R*104, every row after the first 7 drawn; with "ref=<case>" the first
+              rows are those of that case's dump and the rows after them are the generated ones (a mod's HD art
+              makes the 1x rows a scaled copy of its own, so that case has no ref); "glyphs=a-b": those rows carry
+              the corner glyph (white at (41, 39) of the first frame); "hd=S": the HD pixels dumped too
+              (shots/gemsheet@Sx.png), S times the size
 Finished replays are named after the wall clock: compared and listed with replays/<yyyymmdd>-<hhmmss>- masked
 as replays/*- (normal_path), their contents without META's date (compare_bjr).
 Auto LiveSplit (stage 2b, games/bejeweled/docs/CODE_MODS_DESIGN.md 4.15; candidate runs):
@@ -269,7 +278,7 @@ WALL_CLOCK = [(re.compile(r"Seconds = [0-9.e+-]+"), "Seconds = *"),
               (re.compile(r"(Update Count = -?[0-9]+, Draw Count = )[0-9]+"), r"\1*")]  # DRAWS: compare_log
 DRAW_LINE = re.compile(r"Seconds = ([0-9.e+-]+), Sleep Count = -?[0-9]+, Update Count = -?[0-9]+, Draw Count = ([0-9]+)")
 EXPECT_KINDS = ("script", "load", "quitcut", "inert", "autoplay", "seeded", "recording", "samestream", "reference",
-                "playback", "variant")
+                "playback", "variant", "colors")
 AUTO_KEYS = ("exit", "mods", "user", "settle", "settles", "last-settle", "states", "snap", "save", "sidecar", "replay",
              "status", "seeds", "end", "codec", "watch", "variant")
 NOVARIANTS = "@novariants"  # expect.txt: "<case>@novariants" facts, a BEJ_NO_VARIANTS candidate's own (expect-update)
@@ -377,6 +386,9 @@ def save_state(path):
                 elif tag == b"GRAV":
                     flips, no_flip = struct.unpack_from("<iB", payload, 0)
                     chunks.append("GRAV flips %d%s" % (flips, ", no flip" if no_flip else ""))
+                elif tag == b"DIRT":
+                    layers = payload[1:]
+                    chunks.append("DIRT %d layers on %d cells, next %s" % (sum(layers), sum(1 for v in layers if v), "left" if payload[0] else "right"))
                 else:
                     chunks.append(tag.decode("latin-1").strip())
                 if tag == b"END ":
@@ -1775,18 +1787,19 @@ def variant_settles(stdout):
             settles.append({"update": int(m.group(1)), "mode": m.group(2), "level": int(m.group(3)), "score": int(m.group(4)),
                             "tick": int(m.group(5)),
                             "grid": [], "seed": None, "moves": None, "invalid": None, "undos": 0, "gravity": None,
-                            "flips": 0, "found": 0})
+                            "flips": 0, "dirt": None, "side": None, "found": 0})
         elif settles and line.startswith("TRACE   row "):
             settles[-1]["grid"].append([int(v) for v in line.split(":", 1)[1].split()])
         elif settles and line.startswith("TRACE   seed "):
             settles[-1]["seed"] = line[len("TRACE   seed "):]
         elif settles and line.startswith(VARIANT_LINE):
-            m = re.match(r"TRACE   variant moves (-?\d+) invalid (-?\d+)(?: undos (\d+))?(?: gravity (up|down) flips (\d+))?$",
-                         line)
+            m = re.match(r"TRACE   variant moves (-?\d+) invalid (-?\d+)(?: undos (\d+))?(?: gravity (up|down) flips (\d+))?"
+                         r"(?: dirt (\d+) (left|right))?$", line)
             if m:
                 settles[-1]["moves"], settles[-1]["invalid"] = int(m.group(1)), int(m.group(2))
                 settles[-1]["undos"] = int(m.group(3) or 0)
                 settles[-1]["gravity"], settles[-1]["flips"] = m.group(4), int(m.group(5) or 0)
+                settles[-1]["dirt"], settles[-1]["side"] = (int(m.group(6)), m.group(7)) if m.group(6) else (None, None)
         elif settles and line.startswith("TRACE   move "):
             settles[-1]["found"] += 1
     return settles
@@ -1795,7 +1808,8 @@ def variant_settles(stdout):
 def shapes_check(r, settles, spec, label, notes):
     """Stage 7, "shapes=<cols>x<rows>:<holes>,...": the shapes of board.levels in order (one for a board of one
     shape). Every settle's grid has the size of its level's shape ((HUD level - 1) % shapes) and that many holes
-    (-1 cells: a settled board has a gem in every playable cell), the same cells at every settle of that shape"""
+    (-1 cells: a settled board has a gem in every playable cell; a dirt cell, stage 7b, is -1 - its layers), the same
+    cells at every settle of that shape"""
     shapes = []
     for part in spec.split(","):
         m = re.match(r"(\d+)x(\d+):(\d+)$", part)
@@ -1812,7 +1826,7 @@ def shapes_check(r, settles, spec, label, notes):
             r.fail("%s: the settle of update %d (level %d) is %dx%d, its shape %d is %dx%d" %
                    (label, s["update"], s["level"], len(grid[0]) if grid else 0, len(grid), i, cols, rows))
             return
-        holes = frozenset((c, y) for y in range(rows) for c in range(cols) if grid[y][c] < 0)
+        holes = frozenset((c, y) for y in range(rows) for c in range(cols) if grid[y][c] == -1)
         if len(holes) != count:
             r.fail("%s: the settle of update %d (level %d) has %d holes, its shape %d %d" % (label, s["update"], s["level"], len(holes), i, count))
             return
@@ -1824,6 +1838,59 @@ def shapes_check(r, settles, spec, label, notes):
     notes.append("shapes " + ", ".join("%dx%d with %d holes: %d settles" % (shapes[i] + (seen.get(i, 0),)) for i in range(len(shapes))))
 
 
+def dirt_layers(grid):
+    """The dirt layers of a settle's grid (stage 7b: a dirt cell prints as -1 - its layers), {(col, row): layers}"""
+    return {(c, y): -1 - v for y, row in enumerate(grid) for c, v in enumerate(row) if v < -1}
+
+
+def dirt_check(r, settles, spec, label, notes):
+    """Stage 7b, "dirt=<cells>:<layers>,...": the dirt of board.levels' shapes in order (one for a board of one shape),
+    its cells and layers in all. Every settle has at most that, on cells its shape's first settle had, and the
+    variant line's total; a settle after a level change (the board's first, unless a resumed game's) has all of it;
+    from one settle to the next on a level, no cell gains a layer but by an undo (whose board variant_check compares)"""
+    shapes = []
+    for part in spec.split(","):
+        m = re.match(r"(\d+):(\d+)$", part)
+        if not m:
+            r.fail("%s: dirt=%s: not <cells>:<layers>,..." % (label, spec))
+            return
+        shapes.append((int(m.group(1)), int(m.group(2))))
+    cells_of, cleared, cells_cleared, sides = {}, 0, 0, {"left": 0, "right": 0}
+    prev = None
+    for s in settles:
+        i = (s["level"] - 1) % len(shapes)
+        want_cells, want_layers = shapes[i]
+        layers = dirt_layers(s["grid"])
+        total = sum(layers.values())
+        if s["dirt"] != total:
+            r.fail("%s: the settle of update %d says dirt %s, its grid has %d layers" % (label, s["update"], s["dirt"], total))
+            return
+        sides[s["side"]] += 1
+        if len(layers) > want_cells or total > want_layers:
+            r.fail("%s: the settle of update %d has %d dirt cells with %d layers, its shape %d %d with %d" %
+                   (label, s["update"], len(layers), total, i, want_cells, want_layers))
+            return
+        start = cells_of.setdefault(i, set(layers))
+        if not set(layers) <= start:
+            r.fail("%s: the settle of update %d has dirt on cells shape %d had none: %s" % (label, s["update"], i, sorted(set(layers) - start)[:6]))
+            return
+        same_level = prev is not None and s["tick"] > prev["tick"] and s["mode"] == prev["mode"] and s["level"] == prev["level"]
+        if prev is not None and not same_level and (len(layers), total) != (want_cells, want_layers):
+            r.fail("%s: the settle of update %d starts level %d with %d dirt cells, %d layers; its shape %d has %d, %d" %
+                   (label, s["update"], s["level"], len(layers), total, i, want_cells, want_layers))
+            return
+        if same_level and s["undos"] == prev["undos"]:
+            before = dirt_layers(prev["grid"])
+            gained = [cell for cell, n in layers.items() if n > before.get(cell, 0)]
+            if gained:
+                r.fail("%s: from the settle of update %d to update %d dirt gained layers at %s" % (label, prev["update"], s["update"], gained[:6]))
+                return
+            cleared += sum(before.values()) - total
+            cells_cleared += len(before) - len(layers)
+        prev = s
+    notes.append("dirt: %d layers cleared, %d cells; next slide left %d, right %d" % (cleared, cells_cleared, sides["left"], sides["right"]))
+
+
 def variant_fact(stdout):
     """The "variant" fact (stage 5), None for a run without variant lines: the last variant line's counts (with
     its gravity, stage 7c) and how many settles had no move (a noMoves "continue" board)"""
@@ -1832,8 +1899,9 @@ def variant_fact(stdout):
     if not last:
         return None
     gravity = (" gravity %s flips %d" % (last[-1]["gravity"], last[-1]["flips"])) if last[-1]["gravity"] else ""
-    return "last moves %d invalid %d%s, %d of %d settles without a move" % (
-        last[-1]["moves"], last[-1]["invalid"], gravity, sum(1 for s in settles if s["found"] == 0), len(settles))
+    dirt = (" dirt %d %s" % (last[-1]["dirt"], last[-1]["side"])) if last[-1]["dirt"] is not None else ""
+    return "last moves %d invalid %d%s%s, %d of %d settles without a move" % (
+        last[-1]["moves"], last[-1]["invalid"], gravity, dirt, sum(1 for s in settles if s["found"] == 0), len(settles))
 
 
 def swapped_cells(a, b):
@@ -1850,6 +1918,76 @@ def swapped_cells(a, b):
     if abs(c0 - c1) + abs(r0 - r1) != 1 or a[r0][c0] != b[r1][c1] or a[r1][c1] != b[r0][c0]:
         return None
     return cells
+
+
+GEM_ROW = 104       # the gem sheet's rows per colour (GemSheet.h)
+GEM_GLYPH = (41, 39)  # the generated rows' glyph centre in the first frame
+
+
+def png_size(path):
+    """(width, height) from a PNG's IHDR"""
+    with open(path, "rb") as f:
+        head = f.read(24)
+    if head[:8] != b"\x89PNG\r\n\x1a\n":
+        raise ValueError("not a PNG")
+    return struct.unpack(">II", head[16:24])
+
+
+def colors_check(r, cand, run, flags, label):
+    """A run with more gem colours (stage 8, module comment "colors")"""
+    f = parse_flags(flags)
+    n = int(f.get("colors", "7"))
+    seen = set()
+    for line in run_stdout(run):
+        if line.startswith("TRACE   row "):
+            seen.update(int(t) for t in line.split(":", 1)[1].split() if t.isdigit())
+    if not seen:
+        r.fail("%s: no TRACE rows" % label)
+        return False
+    if max(seen) >= n:
+        r.fail("%s: colours %s on the board, colors=%d" % (label, sorted(c for c in seen if c >= n), n))
+    if "all" in f and len(seen) != n:
+        r.fail("%s: %d of the %d colours on the board (%s)" % (label, len(seen), n, sorted(seen)))
+    logged = [m.group(1) for m in (re.search(r"Gem sheet: (\d+) colour rows", line)
+                                   for line in read_lines(os.path.join(run, "stderr.txt"))) if m]
+    if n > 7 and (not logged or int(logged[-1]) < n):
+        r.fail("%s: the gem sheet grown to %s rows for %d colours" % (label, logged[-1] if logged else "no", n))
+    if "sheet" in f:
+        rows = int(f["sheet"])
+        path = os.path.join(run, "shots", "gemsheet.png")
+        if not os.path.exists(path):
+            r.fail("%s: no gem sheet dump (shots/gemsheet.png)" % label)
+            return False
+        w, h, px = png_pixels(path)
+        if (w, h) != (780, rows * GEM_ROW):
+            r.fail("%s: the gem sheet is %dx%d, expected 780x%d" % (label, w, h, rows * GEM_ROW))
+            return False
+        first = 7
+        if "ref" in f:
+            _, _, ref = png_pixels(os.path.join(cand, f["ref"], "shots", "gemsheet.png"))
+            if px[:len(ref)] != ref:
+                r.fail("%s: the gem sheet's first rows differ from %s's" % (label, f["ref"]))
+            first = len(ref) // (w * 4 * GEM_ROW)
+        stride = w * 4
+        for row in range(first, rows):
+            alpha = px[row * GEM_ROW * stride + 3:(row + 1) * GEM_ROW * stride:4]
+            if sum(1 for a in alpha if a) < w * GEM_ROW // 4:
+                r.fail("%s: generated row %d is nearly empty" % (label, row))
+        if "glyphs" in f:
+            lo, _, hi = f["glyphs"].partition("-")
+            for row in range(int(lo), int(hi or lo) + 1):
+                x, y = GEM_GLYPH
+                at = (row * GEM_ROW + y) * stride + x * 4
+                if min(px[at:at + 4]) < 250:
+                    r.fail("%s: row %d has no glyph (%s at (%d, %d))" % (label, row, tuple(px[at:at + 4]), x, y))
+        r.out("    gem sheet: %d rows, %d generated" % (rows, rows - first))
+        if "hd" in f:
+            scale = int(f["hd"])
+            hd = os.path.join(run, "shots", "gemsheet@%dx.png" % scale)
+            if not os.path.exists(hd) or png_size(hd) != (780 * scale, rows * GEM_ROW * scale):
+                r.fail("%s: the HD dump %s is %s, expected %dx%d" % (label, os.path.basename(hd),
+                       "%dx%d" % png_size(hd) if os.path.exists(hd) else "missing", 780 * scale, rows * GEM_ROW * scale))
+    return True
 
 
 def variant_check(r, cand, run, flags, label):
@@ -2050,6 +2188,8 @@ def variant_check(r, cand, run, flags, label):
             notes.append("v2 saves of rules %s: %s" % (rules, ", ".join(saves)))
     if "shapes" in f:
         shapes_check(r, settles, f["shapes"], label, notes)
+    if "dirt" in f:
+        dirt_check(r, settles, f["dirt"], label, notes)
     if "boards" in f:
         seed_check(r, cand, run, flags, "seeds")
     if r.failures == before:
@@ -2399,6 +2539,8 @@ def compare(oracle, expect_path=None):
             seed_check(r, cand, run, flags, "seeds")
         elif kind == "variant":
             variant_check(r, cand, run, flags, "variant")
+        elif kind == "colors":
+            colors_check(r, cand, run, flags, "colors")
         elif kind == "recording":
             recording_check(r, os.path.join(cand, f.get("ref", "")), run, "cross " + f.get("ref", ""))
             if "boards" in f:
@@ -2484,7 +2626,7 @@ def compare(oracle, expect_path=None):
                 check_expect(r, run, kind, expect[name + NOVARIANTS], flags)
             else:
                 check_expect(r, run, kind, expect.get(name, []), flags)
-        if kind in ("script", "load", "inert", "autoplay", "seeded", "recording", "samestream", "reference", "variant"):
+        if kind in ("script", "load", "inert", "autoplay", "seeded", "recording", "samestream", "reference", "variant", "colors"):
             for s in list_tree(os.path.join(run, "snaps"), lambda p: p.endswith(".dat")):
                 r.out("    snapshot %s: %s" % (s, save_state(os.path.join(run, "snaps", s))))
             for s in savegames(run):

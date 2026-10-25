@@ -33,6 +33,8 @@
 namespace Sexy
 {
 
+struct DiffValues;
+
 namespace Verifier
 {
 
@@ -67,6 +69,25 @@ enum
 	MAX_MOD_JSON = 1024 * 1024
 };
 std::string		RulesIdJson(const std::string& theModJson);
+
+// The original data\diff.txt values (the RulesId's, and every rule set's with no mod)
+DiffValues		OriginalDiffValues();
+
+// Cascadehunt (native only, CascadeHunt.cpp): the original rules from seeds, normal mode, as -gameseed games. At every
+// settle every move is tried on a second board restored from the first's SNAPSHOT, to the move's first settle: its
+// rounds of matches, runs and points, and whether it beats the level. argv: "cascadehunt", then
+//   first --seeds <a>..<b> [--wait <n>] [--top <n>] [-v]: every first move of each opening board; the share of boards
+//       with a first move that beats level 1, and the boards whose first move scores most
+//   play --seeds <a>..<b> [--policy greedy|random] [--wait <n>] [--moves <n>] [--levels <n>] [-v]: games to the game
+//       over or a cap, the bot playing the policy's move; the moves with the most rounds and points as they are found
+//   replay --seed <s> --at <n> --move <c,r,c,r> [--policy ...] [--wait <n>] [--lead <k>] [--pause <n>] [--tail <n>]
+//       [--after <m>|all] [--out <prefix>]: that game again to its move n, then the move given (--pause updates after its
+//       settle), then m more of the bot's (or all to the game over); <prefix>-full.bjr (the whole game) and
+//       <prefix>-short.bjr (a fresh replay holding the save made k moves before, LDSV, to the move given), each verified
+//       (VerifyReplay)
+// --wait: the updates between a settle and the move (the tick a level-up starts on changes its draws). Exit status 0
+// when every move played as it was tried and the replays verify, 2 for a usage error.
+int				CascadeHunt(int argc, char** argv);
 
 }
 

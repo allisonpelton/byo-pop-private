@@ -1,0 +1,12 @@
+# Stage 7b, run with -gameseed=4242 and mods/stage7b/dirt (s7b-dirt: dirt at (1,0), (6,6) with a layer, (5,2) with 3,
+# (2,4) with 2; 25 points a layer): the dirt art over the level's checker texture
+300 click 320 398
+520 screenshot shots/d01_dirt.png
+# A (4,5)->(3,5): a run of 5s over (6,6), whose last layer goes (its dust); the gem under (5,2) is taken, and a gem
+# slides from (4,2) into the gap under the dirt; the cascade takes a layer off (5,2)
+560 click 431 295
+561 click 380 295
+600 screenshot shots/d02_dust.png
+630 screenshot shots/d03_slide.png
+# the quit while the cascade falls (it settles at update 712): a v2 save with its DIRT chunk
+690 quit

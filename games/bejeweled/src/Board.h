@@ -74,7 +74,7 @@ inline constexpr int gMatchBaseScores[9] = {10, 20, 30, 40, 60, 80, 110, 160, 21
 // mUndo (the undo snapshots, keys and orb); since stage 7 mShape (the fill, the refill, the checkerboard and
 // the level shapes, BoardShape.cpp), mScaled (input in logical space), mDraw (DrawVariant,
 // BoardDrawVariant.cpp) and mNoTutorial (a fill with a move instead of the tutorial loop); since stage 7c (4.16)
-// mGravity, mFall and mChecker; the other variant paths arrive in later stages.
+// mGravity, mFall and mChecker; since stage 7b (4.14) mDirt; the other variant paths arrive in later stages.
 struct VariantFlags
 {
 	bool mAny = false;          // any rule differs from default: v2 save, variant trace lines
@@ -94,6 +94,7 @@ struct VariantFlags
 	bool mGravity = false;      // board.gravity.direction not "down": the flip, the GetPieceAt guard (with GravityUp)
 	bool mFall = false;         // mShape || mGravity || fallAccel != 180: FallPiecesVariant, RefillMasked, FillBoardVariant, the end falls
 	bool mChecker = false;      // mShape || look.backdrop "twilight": DrawVariantChecker for SetupLevel's tiles
+	bool mDirt = false;         // a level's mask has dirt (4.14): RefillDiagonal, layers off next to scored runs, the dirt art
 };
 
 class Board : public Widget
@@ -268,6 +269,19 @@ public:
 	// the rules set a gravity rule (GameRules::HasGravityRule)
 	int				mGravityFlips;          // settles that flipped board.gravity.direction "alternate" (OnGravitySettle)
 	bool			mGravityNoFlip;         // a kept invalid move: its settle does not flip
+	// Dirt (stage 7b, games/bejeweled/docs/CODE_MODS_DESIGN.md 4.14): the layers are mLayout's (a dirt cell becomes a
+	// gem cell when its last layer goes); saved (DIRT), hashed and traced only when the rules have dirt (mDirtRules)
+	bool			mDirtRules;             // GameRules::HasDirtRule (false in a BEJ_NO_VARIANTS build, which plays 8x8)
+	bool			mDiagonalLeftFirst;     // RefillDiagonal: the side a slide takes when both have a gem; flips at each slide
+	struct DirtDust
+	{
+		int			mCol;
+		int			mRow;
+		int			mStartTick;             // mUpdateCnt when the cell's last layer went
+	};
+	std::vector<DirtDust> mDirtDust;        // cosmetic, not saved: the dust of the cells cleared lately
+	Image*			mDirtTiles[2];          // the level's checker tiles A and B darkened and tinted brown (DrawDirt)
+	int				mDirtTilesLevel;        // the level mDirtTiles were made for, -1 for none
 
 public:
 	int				GetColX(int theCol);                            // 0x4c9b25 theCol*51 + 203 (thiscall in the binary, this unused; port(variant): a member, + mLayout.mOriginX)
@@ -374,6 +388,14 @@ public:
 	void			OnGravitySettle();                              // UpdateFalling: a settle without a match; "alternate" flips if it reached PLAYING
 	void			UpdateFallOutVariant();                         // UpdateFallOut's fall in the gravity direction
 	bool			GameOverFallVariant();                          // UpdateGameOver's fall in the gravity direction: true when every gem is gone
+	// Dirt (stage 7b, games/bejeweled/docs/CODE_MODS_DESIGN.md 4.14; BoardShape.cpp, BoardDrawVariant.cpp)
+	void			RefillDiagonal();                               // UpdateClearing's refill with dirt: segments, then diagonal slides
+	bool			RefillSegmentsPass();                           // RefillDiagonal: one pass over every column's segments; true if a gem moved or spawned
+	bool			SlideDiagonal();                                // RefillDiagonal: one gem into an unreachable cell; false when none can go
+	void			ClearDirtNextToRun(int theStartCol, int theStartRow, int theEndCol, int theEndRow, int theColor); // ProcessMatches: one layer off each dirt cell next to the run
+	bool			ApplyDirtLayers(const std::vector<uint8_t>& theLayers, std::string* theWhy); // a save's or snapshot's layers onto the level's mask
+	void			DrawDirt(Graphics* g);                          // DrawVariant: the dirt cells, under the gems
+	void			DrawDirtDust(Graphics* g);                      // DrawVariant: the dust of cleared cells, over the gems
 	void			RollScoreFast();                                // Update, before the score roll: a large gap closes fast (mFastScoreRoll)
 
 	// port(variant): every draw of the translated code. Class scope finds it before Sexy::Rand, so the 9

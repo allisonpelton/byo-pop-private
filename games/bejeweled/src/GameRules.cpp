@@ -2205,7 +2205,17 @@ bool GameRules::ScoringTunablesChanged() const
 
 bool GameRules::PlaysAlikeInEveryEngine() const
 {
-	return !HasVariantRules() && !ScoringTunablesChanged();
+	return !HasVariantRules() && !ScoringTunablesChanged() && (mBoard.mGemColors <= ORIGINAL_GEM_COLORS);
+}
+
+bool GameRules::HasDirtRule() const
+{
+	for (int aLevel = 0; aLevel < ShapeCount(); aLevel++)
+	{
+		if (LayoutForLevel(aLevel).HasDirt())
+			return true;
+	}
+	return false;
 }
 
 int GameRules::ShapeCount() const

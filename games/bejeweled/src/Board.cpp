@@ -636,6 +636,8 @@ Board::~Board()
 	for (size_t i = 0; i < mOrphanedPieces.size(); i++)
 		delete mOrphanedPieces[i];
 	delete mOwnRng; // port(variant): the board's own RNG
+	delete mDirtTiles[0]; // port(variant): the dirt art (BoardDrawVariant.cpp)
+	delete mDirtTiles[1];
 	delete mRecorder; // port(variant)
 }
 
@@ -706,6 +708,7 @@ bool Board::ProcessMatches()
 					mScorePopups.push_back(aPopup);
 					mGemsCleared += aCount;
 					mScore += aPoints;
+					if (mVariant.mDirt) ClearDirtNextToRun(aStartCol, aStartRow, aCol, aRow, aColor); // port(variant): dirt next to the run loses a layer (BoardShape.cpp)
 					if (mMoveMatchCount == 1)
 					{
 						mHintGlowAlpha = 0.0;

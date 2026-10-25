@@ -15,6 +15,9 @@
 //       gravity up against the mirrored down board (Verifier::Mirrortest): a summary per board (-v: a line per
 //       game). Exit status 0 when every seed mirrored. Native only; a BEJ_NO_VARIANTS build prints
 //       "mirrortest skipped: ..." and exits 0.
+//   bejeweled_verify cascadehunt first|play|replay ...
+//       the bot that hunts the original rules' biggest cascades and writes replays of them (Verifier::CascadeHunt).
+//       Native only.
 // Exit status 2 for a usage error or a file that cannot be read.
 //
 // Wasm (bejeweled_verify.wasm: -sSTANDALONE_WASM --no-entry, no JS glue; its WASI imports are stubbed by the
@@ -103,7 +106,8 @@ int Usage()
 		"usage: bejeweled_verify <replay.bjr> [-trace] [-forcevariant]\n"
 		"       bejeweled_verify difftest --seeds <a>..<b> [--ticks <n>] [--mode normal|timed|both] [-v]\n"
 		"       bejeweled_verify rulesid <mod.json>\n"
-		"       bejeweled_verify mirrortest --seeds <a>..<b> [--moves <n>] [-v]\n");
+		"       bejeweled_verify mirrortest --seeds <a>..<b> [--moves <n>] [-v]\n"
+		"       bejeweled_verify cascadehunt first|play|replay ... (Verifier.h)\n");
 	return 2;
 }
 
@@ -231,6 +235,11 @@ int main(int argc, char** argv)
 		return Difftest(argc, argv);
 	if (aCommand == "mirrortest")
 		return Mirrortest(argc, argv);
+	if (aCommand == "cascadehunt")
+	{
+		int aStatus = Verifier::CascadeHunt(argc, argv);
+		return (aStatus == 2) ? Usage() : aStatus;
+	}
 	if (aCommand == "rulesid")
 	{
 		std::string aText;
