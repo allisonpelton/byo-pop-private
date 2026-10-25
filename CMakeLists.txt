@@ -134,3 +134,8 @@ option(BUILD_NOAHSARK "Build the Noah's Ark Deluxe port" ON)
 if(BUILD_NOAHSARK AND EXISTS ${PROJECT_SOURCE_DIR}/games/noahsark/CMakeLists.txt)
   add_subdirectory(games/noahsark)
 endif()
+# Atomica Deluxe: optional while it is new; the build skips it if its folder is missing
+option(BUILD_ATOMICA "Build the Atomica Deluxe port" ON)
+if(BUILD_ATOMICA AND EXISTS ${PROJECT_SOURCE_DIR}/games/atomica/CMakeLists.txt)
+  add_subdirectory(games/atomica)
+endif()
