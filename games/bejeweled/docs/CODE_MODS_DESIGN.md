@@ -2625,10 +2625,19 @@ trial (none so far).
 - `play` runs games to the game over and prints the move records as they are found.
 - `replay` plays a game again to a given move and writes two replays: the whole game, and a fresh replay that
   holds the save made just before the move (LDSV + RNGS + LOAD, as `ReplayRecorder::OnLoad` writes one). It
-  verifies both with `VerifyReplay`.
+  verifies both with `VerifyReplay`. `--pause` holds the board that long before the move. With `--after`, the
+  bot plays on in the whole game: that many moves, or `all` to the game over. The short replay still stops after
+  the move: from a load the draws differ, and a level-up's board with them.
 
 It runs at about 20,000 tried moves a second. Its replays carry the default rules with the original `diff.txt`
 values: the same RulesId as a recording of the game with no mods.
+
+**Videos of a replay.** The native game watches the replay under rundesk with `-fast`. A `-script` takes a
+screenshot every 2 updates, which gives 50 frames a second. `-audiocapture=<file.wav>` (`testhooks/AudioCapture.h`)
+writes the sound alongside. It mixes 1/100 s per update, so the sound keeps time with the screenshots however
+fast the game runs. It holds the mixer's lock the whole time, so the dummy device's callback never mixes. ffmpeg
+then joins the frames and the WAV. The frames and the video show the game's art and music, so they stay out of
+the repository.
 
 ### 6.10 Leaderboard service (Cloudflare Worker + D1)
 

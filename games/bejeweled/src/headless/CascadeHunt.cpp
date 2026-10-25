@@ -674,10 +674,11 @@ std::string Finish(Driver* theDriver, int theTail)
 	return theDriver->File(isPlaying ? Replay::END_ABANDONED : Replay::END_NO_MOVES);
 }
 
-// replay: the game of theSeed again to its theAt-th move, then theMove; the whole game and the last theLead + 1 moves
-// from a save (LDSV), each verified
+// replay: the game of theSeed again to its theAt-th move, then theMove (thePause updates after its settle), then theAfter
+// moves of the bot (all of them to the game over when it is below 0); the whole game and the moves from theLead before
+// the big one on from a save (LDSV), each verified
 int MakeReplays(uint32_t theSeed, Policy thePolicy, int theWait, int theAt, const Move& theMove, int theLead, int thePause, int theTail,
-	const std::string& theOut)
+	int theAfter, const std::string& theOut)
 {
 	Game aGame(theSeed, thePolicy, theWait, true);
 	std::string anError;
@@ -689,6 +690,7 @@ int MakeReplays(uint32_t theSeed, Policy thePolicy, int theWait, int theAt, cons
 	int aStartLevel = 0, aStartScore = 0;
 	for (;;)
 	{
+		aGame.mWait = (aGame.mMoves == theAt) ? thePause : theWait;
 		if (!aGame.Settle(&anError))
 		{
 			printf("replay: the game is over after %d moves%s%s\n", aGame.mMoves, anError.empty() ? "" : ": ", anError.c_str());
@@ -714,12 +716,34 @@ int MakeReplays(uint32_t theSeed, Policy thePolicy, int theWait, int theAt, cons
 		if (isLast)
 			break;
 	}
-	const Outcome& aBig = anOutcomes.back();
+	const Outcome aBig = anOutcomes.back();
 	printf("replay: seed %u, move %d (%s) on level %d: %s\n", (unsigned) theSeed, theAt, MoveText(theMove).c_str(), aBig.mLevel,
 		OutcomeText(aBig).c_str());
+	size_t aBigIndex = aPlayed.size() - 1;
+	aGame.mWait = theWait;
+	for (int i = 0; (theAfter < 0) || (i < theAfter); i++)
+	{
+		if (!aGame.Settle(&anError))
+		{
+			if (!anError.empty())
+			{
+				printf("replay: after the big move: %s\n", anError.c_str());
+				return 1;
+			}
+			break;
+		}
+		aPlayed.push_back(aGame.mHere[aGame.Choose()].mMove);
+		anOutcomes.push_back(aGame.Play(aPlayed.back()));
+	}
+	int anAfterPlayed = (int) (aPlayed.size() - aBigIndex - 1);
+	if (anAfterPlayed > 0)
+		printf("replay: the bot played %d moves after it, to level %d, score %d%s; %d trials the move played differed from\n",
+			anAfterPlayed, aGame.mMain.mBoard->mDisplayLevel, aGame.mMain.mBoard->mScore,
+			((theAfter < 0) || (anAfterPlayed < theAfter)) ? " (the game over)" : "", aGame.mMismatches);
 	std::string aFull = Finish(&aGame.mMain, theTail);
 
-	// The short one: a fresh replay that holds the save it starts from (ReplayRecorder::OnLoad), the moves after it
+	// The short one: a fresh replay that holds the save it starts from (ReplayRecorder::OnLoad), the moves after it to the
+	// big one (not the bot's after it: from a load the draws differ, and with them a level-up's board)
 	Replay::Segment aSegment = SeedSegment(theSeed);
 	aSegment.mHasLoadSave = true;
 	aSegment.mLoadSave = aSave;
@@ -732,10 +756,9 @@ int MakeReplays(uint32_t theSeed, Policy thePolicy, int theWait, int theAt, cons
 		return 1;
 	}
 	int aDiffering = 0;
-	for (size_t i = 0; i < aPlayed.size(); i++)
+	for (size_t i = 0; i <= aBigIndex; i++)
 	{
-		bool isLast = (i + 1 == aPlayed.size());
-		if (!aShort.ReadyToMove(isLast ? thePause : theWait))
+		if (!aShort.ReadyToMove((i == aBigIndex) ? thePause : theWait))
 		{
 			printf("replay: the short one is over before its move %d\n", (int) i);
 			return 1;
@@ -763,7 +786,9 @@ int MakeReplays(uint32_t theSeed, Policy thePolicy, int theWait, int theAt, cons
 			aBad++;
 	}
 	printf("the short one starts on level %d with score %d, %d moves before the big one\n", aStartLevel, aStartScore,
-		(int) aPlayed.size() - 1);
+		(int) aBigIndex);
+	if (aGame.mMismatches > 0)
+		aBad++;
 	return (aBad == 0) ? 0 : 1;
 }
 
@@ -776,7 +801,7 @@ int Verifier::CascadeHunt(int argc, char** argv)
 	std::string aCommand = argv[2];
 	uint32_t aFirst = 1, aLast = 1, aSeed = 0;
 	Policy aPolicy = POLICY_GREEDY;
-	int aWait = 50, aMaxMoves = 1000000, aLevelCap = 1000000, aTop = 10, anAt = -1, aLead = 0, aPause = 200, aTail = 400;
+	int aWait = 50, aMaxMoves = 1000000, aLevelCap = 1000000, aTop = 10, anAt = -1, aLead = 0, aPause = 200, aTail = 400, anAfter = 0;
 	bool isVerbose = false;
 	Move aMove;
 	bool hasMove = false;
@@ -817,6 +842,11 @@ int Verifier::CascadeHunt(int argc, char** argv)
 			aPause = atoi(argv[++i]);
 		else if ((anArg == "--tail") && hasValue)
 			aTail = atoi(argv[++i]);
+		else if ((anArg == "--after") && hasValue)
+		{
+			std::string aValue = argv[++i];
+			anAfter = (aValue == "all") ? -1 : atoi(aValue.c_str());
+		}
 		else if ((anArg == "--out") && hasValue)
 			anOut = argv[++i];
 		else if (anArg == "-v")
@@ -833,6 +863,6 @@ int Verifier::CascadeHunt(int argc, char** argv)
 	if (aCommand == "play")
 		return Play(aFirst, aLast, aPolicy, aWait, aMaxMoves, aLevelCap, isVerbose);
 	if ((aCommand == "replay") && (aSeed != 0) && (anAt >= 0) && hasMove)
-		return MakeReplays(aSeed, aPolicy, aWait, anAt, aMove, aLead, aPause, aTail, anOut);
+		return MakeReplays(aSeed, aPolicy, aWait, anAt, aMove, aLead, aPause, aTail, anAfter, anOut);
 	return 2;
 }

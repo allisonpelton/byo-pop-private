@@ -28,6 +28,7 @@
 #include "testhooks/StateHash.h"
 #include "testhooks/Autoplay.h"
 #include "testhooks/CodecCheck.h"
+#include "testhooks/AudioCapture.h"
 #include "WatchController.h"
 #include "platform/ModManager.h"
 
@@ -98,6 +99,7 @@ WinDMApp::WinDMApp()
 	mAutoplayCap = 200000;
 	mAutoplayBot = NULL;
 	mCodecCheck = NULL;
+	mAudioCapture = NULL;
 	mWatch = NULL; // port(variant): watching a replay (-replay, WatchController.h)
 	mNextValuesBoard = 0; // port(mods)
 	mReplayQuit = false; // port(variant)
@@ -168,6 +170,7 @@ WinDMApp::~WinDMApp()
 	if (mTraceHashFile != NULL)
 		fclose(mTraceHashFile);
 	delete mCodecCheck;
+	delete mAudioCapture;
 	delete mWatch; // port(variant)
 	LiveSplitObserver::AppDestroyed(this); // port(variant): the LiveSplit block's last write: not active, no board
 }
@@ -175,6 +178,8 @@ WinDMApp::~WinDMApp()
 // 0x4d43f9
 void WinDMApp::Shutdown()
 {
+	if (mAudioCapture != NULL)
+		mAudioCapture->Finish(); // port: test hook (releases the mixer's lock before the audio device closes)
 	if (!mShutdown)
 	{
 		// The deferred delete of the board saves the game a second time and counts it as played
@@ -506,6 +511,10 @@ void WinDMApp::UpdateFrames()
 		mCodecCheck = new CodecCheck(this, mCodecCheckFileName);
 	if (mCodecCheck != NULL)
 		mCodecCheck->AfterUpdate();
+	if ((!mAudioCaptureFileName.empty()) && (mAudioCapture == NULL))
+		mAudioCapture = new AudioCapture(mAudioCaptureFileName);
+	if (mAudioCapture != NULL)
+		mAudioCapture->Update();
 	if (LiveSplitObserver::Wanted()) LiveSplitObserver::AfterUpdate(this); // port(variant): fills the LiveSplit block (features.livesplit, desktop)
 	ApplyNextGameValues(); // port(mods)
 }
@@ -612,6 +621,8 @@ void WinDMApp::HandleCmdLineParam(const std::string& theParamName, const std::st
 		mAutoplayLogFileName = theParamValue;
 	else if (theParamName == "-autoplayshot")
 		mAutoplayShotFileName = theParamValue;
+	else if (theParamName == "-audiocapture")
+		mAudioCaptureFileName = theParamValue;
 	else if (theParamName == "-codeccheck")
 		mCodecCheckFileName = theParamValue;
 	else if ((theParamName == "-replay") && (mWatch == NULL)) // port(variant): watch a replay (WatchController.h)

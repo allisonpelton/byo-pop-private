@@ -81,8 +81,10 @@ DiffValues		OriginalDiffValues();
 //   play --seeds <a>..<b> [--policy greedy|random] [--wait <n>] [--moves <n>] [--levels <n>] [-v]: games to the game
 //       over or a cap, the bot playing the policy's move; the moves with the most rounds and points as they are found
 //   replay --seed <s> --at <n> --move <c,r,c,r> [--policy ...] [--wait <n>] [--lead <k>] [--pause <n>] [--tail <n>]
-//       [--out <prefix>]: that game again to its move n, then the move given; <prefix>-full.bjr (the whole game) and
-//       <prefix>-short.bjr (a fresh replay holding the save made k moves before, LDSV), each verified (VerifyReplay)
+//       [--after <m>|all] [--out <prefix>]: that game again to its move n, then the move given (--pause updates after its
+//       settle), then m more of the bot's (or all to the game over); <prefix>-full.bjr (the whole game) and
+//       <prefix>-short.bjr (a fresh replay holding the save made k moves before, LDSV, to the move given), each verified
+//       (VerifyReplay)
 // --wait: the updates between a settle and the move (the tick a level-up starts on changes its draws). Exit status 0
 // when every move played as it was tried and the replays verify, 2 for a usage error.
 int				CascadeHunt(int argc, char** argv);

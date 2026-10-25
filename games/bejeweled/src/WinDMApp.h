@@ -31,6 +31,7 @@ class Dialog;
 class MusicInterface;
 class AutoplayBot;
 class CodecCheck;
+class AudioCapture;
 class WatchController;
 
 // Dialog ids (SexyAppBase dialog map). YES/OK/footer presses arrive in ButtonDepress as 2000+id,
@@ -145,6 +146,8 @@ public:
 	//                        6.8) instead of the game the title screen starts; "REPLAY" lines on stdout say
 	//                        how it went (games/bejeweled/src/WatchController.h). -replayquit: quit when it
 	//                        ends (else its last board stays until New Game or a mode button)
+	//   -audiocapture=<file.wav> the game's sound and music as a WAV, 1/100 s per update, so it keeps time with
+	//                        a -script's screenshots under -fast (games/bejeweled/src/testhooks/AudioCapture.h)
 	//   -livesplitlog=<file> port(variant): while features.livesplit is on (desktop builds), appends one line
 	//                        per LiveSplit block write: "u=<update>" and the block's fields, with the
 	//                        address and the clock masked (LiveSplitObserver.h, LiveSplitBlock.h)
@@ -159,6 +162,8 @@ public:
 	AutoplayBot*	mAutoplayBot;
 	std::string		mCodecCheckFileName;
 	CodecCheck*		mCodecCheck;
+	std::string		mAudioCaptureFileName;
+	AudioCapture*	mAudioCapture;
 	WatchController* mWatch;                    // port(variant): -replay (NULL without)
 	bool			mReplayQuit;                // port(variant): -replayquit
 	uint32_t		mNextValuesBoard;           // port(mods): the board ApplyNextGameValues last tried (Board::mBoardSerial)
