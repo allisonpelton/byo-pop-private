@@ -1,0 +1,10 @@
+{
+  "id": "s9-four",
+  "name": "Stage 9: runs of four",
+  "version": "1.0",
+  "description": "Oracle fixture: only runs of 4 or more match, on 5 gem colours so that moves stay common.",
+  "rules": {
+    "board": { "gemColors": 5 },
+    "match": { "minRun": 4 }
+  }
+}

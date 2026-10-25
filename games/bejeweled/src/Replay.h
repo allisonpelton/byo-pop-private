@@ -50,10 +50,10 @@ enum
 	// masks, level shapes), which earlier engines played on the original 8x8, and the displayed score's fast roll
 	// with a mod's scoring tunables (Board::RollScoreFast). 4: stage 7b, dirt cells (board.mask "d"), which earlier
 	// engines played as holes, and their diagonal slides. 5: stage 8, board.gemColors 8..12, which earlier engines
-	// played as 7. The original rules are frozen, so a replay of them (no variant rule, no scoring tunable changed,
+	// played as 7. 6: stage 9, the match rules (match.*), which earlier engines played as runs of 3. The original rules are frozen, so a replay of them (no variant rule, no scoring tunable changed,
 	// at most 7 gem colours: GameRules::PlaysAlikeInEveryEngine) from an earlier engine still plays (CheckPlayable). games/bejeweled/tools/bjr.py repeats both
 	// values (the verifier's tests check that they agree)
-	ENGINE_ABI = 5,
+	ENGINE_ABI = 6,
 	FIRST_ENGINE_ABI = 1,
 	MT_WORDS = 624,
 	RULES_ID_SIZE = 32,
@@ -240,7 +240,8 @@ int					CountMoves(const Segment& theSegment);
 enum
 {
 	MAX_XRAND = 1000000,            // outside draws, in one XRAND and in the whole file (real games: a few)
-	MAX_TICKS = 8640000,            // 24 hours of board ticks in all segments (the leaderboard's cap is 6 hours, 6.10)
+	MAX_TICKS = 200000000,          // board ticks in all segments: 23 days, for a bot's longest games (the file size binds
+	                                // first, near 800,000 moves), a minute of the verifier's; the leaderboard's cap is 6 hours (6.10)
 	MAX_EVENTS_PER_TICK = 10000,    // events stamped with one tick (a paused board's tick holds them all)
 	MAX_SAVES_PER_SEGMENT = 4       // the game makes 3 at most: Shutdown's, ~Board's, a snapshot sidecar's
 };

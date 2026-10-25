@@ -2245,6 +2245,15 @@ BoardLayout GameRules::LayoutForLevel(int theLevel) const
 	return aLayout;
 }
 
+std::vector<std::vector<std::pair<int, int> > > GameRules::ShapeOrientations(const ShapePattern& theShape)
+{
+	bool aRotations;
+	bool aMirror;
+	CellList aCells = ShapeCells(theShape, &aRotations, &aMirror);
+	std::set<CellList> anOrientations = OrientationSet(aCells, aRotations, aMirror);
+	return std::vector<CellList>(anOrientations.begin(), anOrientations.end());
+}
+
 int GameRules::FillMinimum() const
 {
 	// Every pattern the reroll-until-no-match fill must avoid, as normalised cell offsets. A set: two patterns

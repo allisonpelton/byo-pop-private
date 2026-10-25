@@ -48,7 +48,7 @@ void Sexy::PrintBoardTrace(Board* theBoard, int theUpdate)
 	// port(variant): a variant board's own state (stage 5: the moves that stood, the kept invalid moves; stage 6:
 	// the undos taken, on a board with undo; stage 7c: the direction the next fall takes and the flips so far, when
 	// the rules set a gravity rule; stage 7b: the dirt layers left in all and the side the next diagonal slide tries
-	// first, when the rules have dirt)
+	// first, when the rules have dirt; stage 9: the groups of each kind the board scored but runs, with match rules)
 	if (aBoard->mVariant.mAny)
 	{
 		printf("TRACE   variant moves %d invalid %d", aBoard->mMoveCount, aBoard->mInvalidMoves);
@@ -65,6 +65,13 @@ void Sexy::PrintBoardTrace(Board* theBoard, int theUpdate)
 					aLayers += aBoard->mLayout.IsDirt(aCol, aRow) ? aBoard->mLayout.mDirt[aRow][aCol] : 0;
 			}
 			printf(" dirt %d %s", aLayers, aBoard->mDiagonalLeftFirst ? "left" : "right");
+		}
+		if (!aBoard->mMatchSpec.IsDefault())
+		{
+			const int* aCounts = aBoard->mGroupCounts;
+			printf(" groups L %d T %d plus %d diagonal %d shapes %d", aCounts[MatchFinder::GROUP_L], aCounts[MatchFinder::GROUP_T],
+				aCounts[MatchFinder::GROUP_PLUS], aCounts[MatchFinder::GROUP_DIAGONAL_DOWN] + aCounts[MatchFinder::GROUP_DIAGONAL_UP],
+				aCounts[MatchFinder::GROUP_SHAPE]);
 		}
 		printf("\n");
 	}

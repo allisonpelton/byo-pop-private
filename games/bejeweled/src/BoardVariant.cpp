@@ -56,6 +56,7 @@ void Board::InitVariant(WinDMApp* theApp)
 	mCols = mLayout.mCols;
 	mRows = mLayout.mRows;
 	mFastScoreRoll = mRules.ScoringTunablesChanged();
+	mMatchSpec = MatchFinder::Spec::FromRules(mRules);
 
 #ifndef BEJ_NO_VARIANTS
 	mVariant = ComputeVariantFlags(mRules, gGameConfig.mFeatures);
@@ -784,17 +785,17 @@ VariantFlags Board::ComputeVariantFlags(const GameRules& theRules, const GameFea
 	for (int aLevel = 0; aLevel < theRules.ShapeCount(); aLevel++)
 		aFlags.mScaled = aFlags.mScaled || (theRules.LayoutForLevel(aLevel).mExtent > BoardLayout::VIEW_SIZE);
 
-	// The tutorial looks for a horizontal 3-run swap to the right in rows 4..6, columns 1..6. Only the shape is
-	// played so far: the board swaps and matches runs of 3 whatever moves.type, match.minRun and match.diagonal say
-	// (AddBuildWarnings), so those join this test in the stages that play them (8 and 9), not before; a stage 1
-	// mod set with twists kept the tutorial (oracle case rules_inert)
+	// The tutorial looks for a horizontal 3-run swap to the right in rows 4..6, columns 1..6, and its text is about
+	// rows of three: it is off on a board without such cells, with runs of another length or with diagonals (stage 9).
+	// The board swaps whatever moves.type says (AddBuildWarnings), so that joins this test in the stage that plays it
+	// (10), not before; a stage 1 mod set with twists kept the tutorial (oracle case rules_inert)
 	bool canTutorial = (aFirst.mCols >= 8) && (aFirst.mRows >= 7);
 	for (int aRow = 4; (aRow <= 6) && canTutorial; aRow++)
 	{
 		for (int aCol = 0; aCol < 8; aCol++)
 			canTutorial = canTutorial && aFirst.IsPlayable(aCol, aRow);
 	}
-	aFlags.mNoTutorial = !canTutorial;
+	aFlags.mNoTutorial = !canTutorial || (aMatch.mMinRun != 3) || aMatch.mDiagonal;
 
 	aFlags.mSpecials = hasSpecials;
 	aFlags.mGold = theRules.mGold.mEnabled;

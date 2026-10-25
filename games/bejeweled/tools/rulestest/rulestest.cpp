@@ -18,6 +18,7 @@
 // (E:/retools/emsdk/node/<version>/bin/node.exe build/web/rulestest.js).
 
 #include "GameRules.h"
+#include "MatchFinder.h"
 #include "Sha256.h"
 #include "MTRand.h"
 #include "Replay.h"
@@ -1366,9 +1367,9 @@ static void TestReplayFormat()
 		"replay: every op 1..15 has a name and an argument count, 0 and 16 none");
 
 	// A golden vector: the smallest file (header and END) and a one-segment file, byte for byte, the same on
-	// native and wasm (engine ABI 4 since stage 7b)
+	// native and wasm (engine ABI 6 since stage 9)
 	Replay::File anEmpty;
-	Check(Hex(Replay::Write(anEmpty)) == "424a5250010000000500000045" "4e4420" "1d000000" "00" "00000000" "00000000" "00000000"
+	Check(Hex(Replay::Write(anEmpty)) == "424a5250010000000600000045" "4e4420" "1d000000" "00" "00000000" "00000000" "00000000"
 		"00000000" "0000000000000000" "00000000", "replay: golden bytes of a file with only END");
 	Replay::File aSmall;
 	Replay::Segment aSegment;
@@ -1379,7 +1380,7 @@ static void TestReplayFormat()
 	aSmall.mEnd.mReason = Replay::END_NO_MOVES;
 	aSmall.mEnd.mScore = 90;
 	std::string aSmallHex = Hex(Replay::Write(aSmall));
-	Check(aSmallHex == "424a52500100000005000000" "5345474d" "1d000000" "00" "00" "92100000" "00" "00" "00000000" "00000000"
+	Check(aSmallHex == "424a52500100000006000000" "5345474d" "1d000000" "00" "00" "92100000" "00" "00" "00000000" "00000000"
 		"02000000" "a001" "01" "0a" "0a" "01" "03" "01" "01"
 		"454e4420" "1d000000" "01" "00000000" "5a000000" "00000000" "00000000" "0000000000000000" "00000000",
 		"replay: golden bytes of a one-segment file (got " + aSmallHex + ")");
@@ -1881,8 +1882,9 @@ static void TestReplayPlayable()
 	Check(!Replay::CheckPlayable(anOld, 8, 8, &aWhy, true), "playable: refused: a later engine, even for the original rules");
 	anOld.mEngineAbi = 0;
 	Check(!Replay::CheckPlayable(anOld, 8, 8, &aWhy, true), "playable: refused: engine 0");
-	// Stage 7: engine 3 (the board shape rules); stage 7b: engine 4 (dirt); stage 8: engine 5 (more gem colours). An
-	// earlier engine's replays of variant rules no longer play, its replays of the original rules do
+	// Stage 7: engine 3 (the board shape rules); stage 7b: engine 4 (dirt); stage 8: engine 5 (more gem colours); stage 9:
+	// engine 6 (the match rules). An earlier engine's replays of variant rules no longer play, its replays of the
+	// original rules do
 	for (uint32_t anAbi = 2; anAbi < (uint32_t) Replay::ENGINE_ABI; anAbi++)
 	{
 		anOld.mEngineAbi = anAbi;
@@ -1890,7 +1892,7 @@ static void TestReplayPlayable()
 		Check(Replay::CheckPlayable(anOld, 8, 8, &aWhy, true), "playable: the original rules recorded by engine " + std::to_string(anAbi) + " (" + aWhy + ")");
 		Check(!Replay::CheckPlayable(anOld, 8, 8, &aWhy, false), "playable: refused: variant rules recorded by engine " + std::to_string(anAbi));
 	}
-	Check(Replay::ENGINE_ABI == 5, "playable: this is engine 5 (stage 8)");
+	Check(Replay::ENGINE_ABI == 6, "playable: this is engine 6 (stage 9)");
 }
 
 // A v2 save (Replay.h, games/bejeweled/docs/CODE_MODS_DESIGN.md 7.2) around the v1 test save's fields: the rules
@@ -2148,6 +2150,189 @@ static void TestReplayVariantSave()
 	Check(!Replay::SaveIsTimed("BJRP", &isTimed) && !Replay::SaveIsTimed(std::string("\x01\x01\0\0", 4), &isTimed), "save mode: no save, no mode");
 }
 
+// Stage 9 (4.6, 4.7): MatchFinder's groups, their order and kinds, the subset skip, and its fill and search tests
+// (AnyGroup, InGroup) against the groups on random grids; at default rules InGroup is the original FindMove's test
+static MatchFinder::ColorGrid Grid(const std::vector<std::string>& theRows)
+{
+	// A letter is a colour (a = 0), "." no gem
+	MatchFinder::ColorGrid aGrid;
+	aGrid.mRows = (int) theRows.size();
+	aGrid.mCols = (int) theRows[0].size();
+	for (int r = 0; r < aGrid.mRows; r++)
+	{
+		for (int c = 0; c < aGrid.mCols; c++)
+			aGrid.mColor[r][c] = (theRows[r][c] == '.') ? (int) MatchFinder::NO_GEM : (theRows[r][c] - 'a');
+	}
+	return aGrid;
+}
+
+static MatchFinder::Spec MatchSpec(const std::string& theMatch)
+{
+	std::string aJson = "{\"rules\": {\"board\": {\"gemColors\": 12}, \"match\": " + theMatch + "}}";
+	Result aResult = Merge({{"m", aJson.c_str()}});
+	Check(Clean(aResult), "match finder: the rules " + theMatch + Messages(aResult));
+	return MatchFinder::Spec::FromRules(aResult.mRules);
+}
+
+static std::string GroupsText(const std::vector<MatchFinder::Group>& theGroups)
+{
+	// "kind:cells" per group, kind V H \ / L T + S, cells as col,row
+	static const char* const kKinds = "VH\\/LT+S";
+	std::string aText;
+	for (const MatchFinder::Group& g : theGroups)
+	{
+		if (!aText.empty())
+			aText += " ";
+		aText += kKinds[g.mKind];
+		aText += ":";
+		for (size_t i = 0; i < g.mCells.size(); i++)
+			aText += (i ? ";" : "") + std::to_string(g.mCells[i].first) + "," + std::to_string(g.mCells[i].second);
+	}
+	return aText;
+}
+
+static void CheckGroups(const std::vector<std::string>& theRows, const MatchFinder::Spec& theSpec, const std::string& theExpected, const std::string& theWhat)
+{
+	std::vector<MatchFinder::Group> aGroups;
+	MatchFinder::ColorGrid aGrid = Grid(theRows);
+	MatchFinder::FindGroups(aGrid, theSpec, &aGroups);
+	std::string aText = GroupsText(aGroups);
+	Check(aText == theExpected, "match finder: " + theWhat + " (got " + aText + ")");
+	Check(MatchFinder::AnyGroup(aGrid, theSpec) == !aGroups.empty(), "match finder: " + theWhat + ": AnyGroup");
+}
+
+static void TestMatchFinder()
+{
+	MatchFinder::Spec aDefault = MatchFinder::Spec::FromRules(GameRules());
+	Check(aDefault.IsDefault(), "match finder: the default rules are the original's");
+	// The original order: vertical runs first, then horizontal; a crossing scores in both
+	CheckGroups({"bab.", "baaa", "bab."}, aDefault, "V:0,0;0,1;0,2 V:1,0;1,1;1,2 H:1,1;2,1;3,1", "default: columns, then rows");
+	CheckGroups({"aab", "bba", "aab"}, aDefault, "", "default: no run of 3");
+	CheckGroups({"a.aa", "aaa."}, aDefault, "H:0,1;1,1;2,1", "default: a hole breaks a run");
+
+	MatchFinder::Spec aMerge = MatchSpec("{\"crossings\": \"merge\"}");
+	CheckGroups({"a..", "a..", "aaa"}, aMerge, "L:0,0;0,1;0,2;1,2;2,2", "merge: an L");
+	CheckGroups({"aaa", ".a.", ".a."}, aMerge, "T:1,0;1,1;1,2;0,0;2,0", "merge: a T at the vertical run's place");
+	CheckGroups({".a.", "aaa", ".a."}, aMerge, "+:1,0;1,1;1,2;0,1;2,1", "merge: a plus");
+	CheckGroups({"a.b", "a.b", "aab"}, aMerge, "V:0,0;0,1;0,2 V:2,0;2,1;2,2", "merge: runs that do not cross stay runs");
+	Check(MatchFinder::BonusKey(MatchFinder::Group(), aMerge) == NULL, "match finder: a run has no bonus key");
+
+	MatchFinder::Spec aTwo = MatchSpec("{\"minRun\": 2}");
+	CheckGroups({"ab", "cb"}, aTwo, "V:1,0;1,1", "minRun 2: a run of two");
+	MatchFinder::Spec aFour = MatchSpec("{\"minRun\": 4}");
+	CheckGroups({"aaab", "bbbb"}, aFour, "H:0,1;1,1;2,1;3,1", "minRun 4: a run of 3 is none");
+
+	MatchFinder::Spec aDiagonal = MatchSpec("{\"diagonal\": true}");
+	CheckGroups({"abcb", "cabd", "dbad"}, aDiagonal, "\\:0,0;1,1;2,2 /:3,0;2,1;1,2", "diagonal: \\ then /");
+	MatchFinder::Spec aLongDiagonal = MatchSpec("{\"diagonal\": true, \"diagonalMinRun\": 4}");
+	CheckGroups({"abcb", "cabd", "dbad"}, aLongDiagonal, "", "diagonalMinRun 4: diagonals of 3 are none");
+
+	MatchFinder::Spec aSquare = MatchSpec("{\"shapes\": {\"sq\": {\"preset\": \"square\"}}}");
+	CheckGroups({"aab", "aac"}, aSquare, "S:0,0;0,1;1,0;1,1", "square: one instance");
+	CheckGroups({"aaa", "aaa"}, aSquare, "H:0,0;1,0;2,0 H:0,1;1,1;2,1 S:0,0;0,1;1,0;1,1 S:1,0;1,1;2,0;2,1", "square: two overlapping instances after the runs");
+	// A shape whose instance repeats a run is skipped
+	MatchFinder::Spec aLine = MatchSpec("{\"shapes\": {\"line\": {\"cells\": [[0,0],[1,0],[2,0]]}}}");
+	CheckGroups({"aaa", "bcb"}, aLine, "H:0,0;1,0;2,0", "subset skip: an instance inside a run");
+	MatchFinder::Spec anL3 = MatchSpec("{\"shapes\": {\"l\": {\"preset\": \"L3\"}}}");
+	std::vector<MatchFinder::Group> aGroups;
+	MatchFinder::FindGroups(Grid({".a", "aa"}), anL3, &aGroups);
+	Check((aGroups.size() == 1) && (aGroups[0].mKind == MatchFinder::GROUP_SHAPE) && (std::string(MatchFinder::BonusKey(aGroups[0], anL3)) == "l"),
+		"match finder: an L3 whose box corner is a hole (got " + GroupsText(aGroups) + ")");
+	Check(MatchFinder::AnyGroup(Grid({".a", "aa"}), anL3), "match finder: AnyGroup finds an L3 anchored on a hole");
+	MatchFinder::FindGroups(Grid({"abc", "bab", "cba"}), aDiagonal, &aGroups);
+	Check((aGroups.size() == 1) && (std::string(MatchFinder::BonusKey(aGroups[0], aDiagonal)) == "diagonal"), "match finder: a diagonal's bonus key");
+
+	// Random grids, each spec: AnyGroup is "some group", InGroup(both) "some group holds the cell", InGroup(one
+	// direction) "a run of that direction holds it"; at default rules InGroup after a swap is the original FindMove's test
+	std::vector<MatchFinder::Spec> aSpecs = {aDefault, aMerge, aTwo, aFour, aDiagonal, aSquare, anL3,
+		MatchSpec("{\"minRun\": 2, \"diagonal\": true, \"crossings\": \"merge\", \"shapes\": {\"t\": {\"preset\": \"T4\"}, \"sq\": {\"preset\": \"square\"}}}")};
+	MTRand aRand(9009);
+	int aMismatches = 0;
+	int aMoveMismatches = 0;
+	int aGroupCount = 0;
+	for (int aTrial = 0; aTrial < 400; aTrial++)
+	{
+		MatchFinder::ColorGrid aGrid;
+		aGrid.mCols = 3 + (int) aRand.Next(6UL);
+		aGrid.mRows = 3 + (int) aRand.Next(6UL);
+		int aColors = 3 + (int) aRand.Next(4UL);
+		for (int r = 0; r < aGrid.mRows; r++)
+		{
+			for (int c = 0; c < aGrid.mCols; c++)
+				aGrid.mColor[r][c] = (aRand.Next(10UL) == 0) ? (int) MatchFinder::NO_GEM : (int) aRand.Next((unsigned long) aColors);
+		}
+		for (const MatchFinder::Spec& aSpec : aSpecs)
+		{
+			MatchFinder::FindGroups(aGrid, aSpec, &aGroups);
+			aGroupCount += (int) aGroups.size();
+			if (MatchFinder::AnyGroup(aGrid, aSpec) != !aGroups.empty())
+				aMismatches++;
+			MatchFinder::Spec aRunsOnly = aSpec;
+			aRunsOnly.mMerge = false;
+			std::vector<MatchFinder::Group> aRuns;
+			MatchFinder::FindGroups(aGrid, aRunsOnly, &aRuns);
+			for (int r = 0; r < aGrid.mRows; r++)
+			{
+				for (int c = 0; c < aGrid.mCols; c++)
+				{
+					bool isInAny = false;
+					for (const MatchFinder::Group& g : aGroups)
+						isInAny = isInAny || g.Contains(c, r);
+					bool isInH = false;
+					bool isInV = false;
+					for (const MatchFinder::Group& g : aRuns)
+					{
+						isInH = isInH || ((g.mKind == MatchFinder::GROUP_HORIZONTAL) && g.Contains(c, r));
+						isInV = isInV || ((g.mKind == MatchFinder::GROUP_VERTICAL) && g.Contains(c, r));
+					}
+					if ((MatchFinder::InGroup(aGrid, aSpec, c, r, true, true) != isInAny) ||
+						(MatchFinder::InGroup(aGrid, aSpec, c, r, true, false) != isInH) ||
+						(MatchFinder::InGroup(aGrid, aSpec, c, r, false, true) != isInV))
+						aMismatches++;
+				}
+			}
+		}
+		// The original's test (BoardRules.cpp FindMove) for each swap, from each of its cells, each flag pair
+		for (int r = 0; r < aGrid.mRows; r++)
+		{
+			for (int c = 0; c < aGrid.mCols; c++)
+			{
+				for (int d = 0; d < 2; d++)
+				{
+					int c2 = c + (d == 0);
+					int r2 = r + (d == 1);
+					if ((c2 >= aGrid.mCols) || (r2 >= aGrid.mRows) || (aGrid.mColor[r][c] == MatchFinder::NO_GEM) || (aGrid.mColor[r2][c2] == MatchFinder::NO_GEM))
+						continue;
+					std::swap(aGrid.mColor[r][c], aGrid.mColor[r2][c2]);
+					for (int anEnd = 0; anEnd < 2; anEnd++)
+					{
+						int x = anEnd ? c2 : c;
+						int y = anEnd ? r2 : r;
+						int aColor = aGrid.mColor[y][x];
+						int aLeft = x, aRight = x, anUp = y, aDown = y;
+						while (aGrid.At(aLeft - 1, y) == aColor) aLeft--;
+						while (aGrid.At(aRight + 1, y) == aColor) aRight++;
+						while (aGrid.At(x, anUp - 1) == aColor) anUp--;
+						while (aGrid.At(x, aDown + 1) == aColor) aDown++;
+						for (int f = 1; f < 4; f++)
+						{
+							bool h = (f & 1) != 0;
+							bool v = (f & 2) != 0;
+							bool isOriginal = ((aRight - aLeft >= 2) && h) || ((aDown - anUp >= 2) && v);
+							if (MatchFinder::InGroup(aGrid, aDefault, x, y, h, v) != isOriginal)
+								aMoveMismatches++;
+						}
+					}
+					std::swap(aGrid.mColor[r][c], aGrid.mColor[r2][c2]);
+				}
+			}
+		}
+	}
+	Check(aGroupCount > 1000, "match finder: the random grids have groups (" + std::to_string(aGroupCount) + ")");
+	Check(aMismatches == 0, "match finder: AnyGroup and InGroup agree with FindGroups on random grids (" + std::to_string(aMismatches) + " differ)");
+	Check(aMoveMismatches == 0, "match finder: InGroup at default rules is the original FindMove's test (" + std::to_string(aMoveMismatches) + " differ)");
+}
+
 int main(int argc, char** argv)
 {
 	for (int i = 1; i < argc; i++)
@@ -2167,6 +2352,7 @@ int main(int argc, char** argv)
 	TestDropLowest();
 	TestValidation();
 	TestFillMinimum();
+	TestMatchFinder();
 	TestGravity();
 	TestDirt();
 	TestDesignExamples();

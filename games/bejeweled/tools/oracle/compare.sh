@@ -106,6 +106,8 @@
 # Stage 8 (more gem colours) plays the mods of mods/stage8 in every build (board.gemColors is a tunable): the gem
 # sheet grown to 9 and 12 rows (the default looks, a mod's imageOps, a mod's HD art) and dumped, the bot on 12
 # colours, recorded and watched without the mod (compare.py "colors").
+# Stage 9 (match rules) plays the rule mods of mods/stage9: merged crossings and squares, diagonals, runs of 2 and
+# of 4 by the bot, recorded and played back (compare.py "variant" with "match" and "kinds"). Left out the same way.
 #
 # The frozen exes (build/baseline, build/baseline-stage0) predate the audio shutdown fix (af758b9) and can
 # crash on exit after writing all their outputs: a baseline or hooks-baseline run that exits 139 or with an
@@ -1310,8 +1312,29 @@ define_cases() {
 			"trace=rec_dirt_auto_timed" "$C/rec_dirt_auto_timed/user/savegame-*.bjr"
 		playback watch_dirt_resume "rec_dirt_quit.resume's sidecar: the second segment LOADs the save made in the cascade" \
 			"trace=rec_dirt_quit,rec_dirt_quit.resume" "$C/rec_dirt_quit.resume/user/savegame-*.bjr"
+
+		# Stage 9: match rules (games/bejeweled/docs/CODE_MODS_DESIGN.md 4.6, 4.7). The rule mods of mods/stage9: s9-shapes
+		# (crossing runs merged into L, T and plus groups, 2x2 squares, a bonus for each, on 5 colours), s9-diagonal (diagonal runs of
+		# 3), s9-two (runs of 2) and s9-four (runs of 4 on 5 colours). The bot plays each one; compare.py "variant" with
+		# match= finds no group in any settled grid and the move lines the brute force's, and kinds= the groups scored.
+		# s9-shapes is recorded and played back (engine 6).
+		M9="$GAME/tools/oracle/mods/stage9"
+		variant match_shapes_auto "-autoplay=1, mods/stage9/shapes: merged crossings and squares to the game over" \
+			"match=stage9/shapes;kinds=L,T,shapes" 1 - modsdir="$M9/shapes" arg=-autoplay=1 "${SHAPEBOT[@]}"
+		variant match_shapes_auto_timed "-autoplay=2 -autoplaytimed, mods/stage9/shapes, 20000 updates" \
+			"match=stage9/shapes;kinds=L,T,shapes" 1 - modsdir="$M9/shapes" arg=-autoplay=2 arg=-autoplaytimed "${SHAPEBOT[@]}"
+		variant match_diagonal_auto "-autoplay=1, mods/stage9/diagonal: diagonal runs to the game over" \
+			"match=stage9/diagonal;kinds=diagonal" 1 - modsdir="$M9/diagonal" arg=-autoplay=1 "${SHAPEBOT[@]}"
+		variant match_two_auto "-autoplay=1, mods/stage9/two, 20000 updates: runs of 2" \
+			"match=stage9/two" 1 - modsdir="$M9/two" arg=-autoplay=1 "${SHAPEBOT[@]}"
+		variant match_four_auto "-autoplay=1, mods/stage9/four: runs of 4 on 5 colours to the game over" \
+			"match=stage9/four" 1 - modsdir="$M9/four" arg=-autoplay=1 "${SHAPEBOT[@]}"
+		recording rec_match_shapes_auto_timed "match_shapes_auto_timed recorded (mods/stage9/shapes-replays)" \
+			match_shapes_auto_timed 1 - modsdir="$M9/shapes-replays" arg=-autoplay=2 arg=-autoplaytimed "${SHAPEBOT[@]}"
+		playback watch_match_shapes_auto_timed "rec_match_shapes_auto_timed's sidecar (saved at the cap): the same groups again" \
+			"trace=rec_match_shapes_auto_timed" "$C/rec_match_shapes_auto_timed/user/savegame-*.bjr"
 	else
-		echo "$VTAG  (the candidate has no variant paths: the stage-5, 6, 7, 7c and 7b cases are left out)"
+		echo "$VTAG  (the candidate has no variant paths: the stage-5, 6, 7, 7c, 7b and 9 cases are left out)"
 	fi
 
 	# Stage 8: more gem colours (games/bejeweled/docs/CODE_MODS_DESIGN.md 4.2), a tunable every build plays. sheet.txt

@@ -1,0 +1,9 @@
+{
+  "id": "s9-two",
+  "name": "Stage 9: runs of two",
+  "version": "1.0",
+  "description": "Oracle fixture: a run of 2 is a match (the length bonus still counts from 3).",
+  "rules": {
+    "match": { "minRun": 2 }
+  }
+}

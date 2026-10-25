@@ -200,6 +200,11 @@ left out for a candidate built without variant paths, BEJ_NO_VARIANTS; flags "k=
               alternate: up at an even count of flips, down at an odd one; on one board a move or a refill flips
               once, a swap that went back or a kept invalid move not at all, and an undo brings back the count of
               the settle it returns to.
+              Stage 9 (match rules, mods/stage9): "match=<dir>", the match.* rules of the mod in mods/<dir> that has
+              them: no settled grid holds a group of them (the game found and cleared every one), and every
+              settle's move lines are, in order, the swaps that put a gem into a group (FindMoveVariant), found
+              here by brute force on the grid. "kinds=<kind>,...": the variant line's counts (the groups the board
+              scored: L, T, plus, diagonal, shapes) of each of those kinds above 0 at some settle.
 More gem colours (stage 8, games/bejeweled/docs/CODE_MODS_DESIGN.md 4.2; candidate runs with the mods of
 mods/stage8, every build: board.gemColors is a tunable; flags "k=v;k=v"):
   colors      "colors=N": every gem in the TRACE rows a colour 0..N-1, all N of them with "all"; above 7 colours the
@@ -1787,22 +1792,143 @@ def variant_settles(stdout):
             settles.append({"update": int(m.group(1)), "mode": m.group(2), "level": int(m.group(3)), "score": int(m.group(4)),
                             "tick": int(m.group(5)),
                             "grid": [], "seed": None, "moves": None, "invalid": None, "undos": 0, "gravity": None,
-                            "flips": 0, "dirt": None, "side": None, "found": 0})
+                            "flips": 0, "dirt": None, "side": None, "found": 0, "movelist": [], "groups": None})
         elif settles and line.startswith("TRACE   row "):
             settles[-1]["grid"].append([int(v) for v in line.split(":", 1)[1].split()])
         elif settles and line.startswith("TRACE   seed "):
             settles[-1]["seed"] = line[len("TRACE   seed "):]
         elif settles and line.startswith(VARIANT_LINE):
             m = re.match(r"TRACE   variant moves (-?\d+) invalid (-?\d+)(?: undos (\d+))?(?: gravity (up|down) flips (\d+))?"
-                         r"(?: dirt (\d+) (left|right))?$", line)
+                         r"(?: dirt (\d+) (left|right))?(?: groups L (\d+) T (\d+) plus (\d+) diagonal (\d+) shapes (\d+))?$", line)
             if m:
                 settles[-1]["moves"], settles[-1]["invalid"] = int(m.group(1)), int(m.group(2))
                 settles[-1]["undos"] = int(m.group(3) or 0)
                 settles[-1]["gravity"], settles[-1]["flips"] = m.group(4), int(m.group(5) or 0)
                 settles[-1]["dirt"], settles[-1]["side"] = (int(m.group(6)), m.group(7)) if m.group(6) else (None, None)
+                if m.group(8):
+                    settles[-1]["groups"] = dict(zip(MATCH_KINDS, (int(v) for v in m.group(8, 9, 10, 11, 12))))
         elif settles and line.startswith("TRACE   move "):
             settles[-1]["found"] += 1
+            m = re.match(r"TRACE   move \d+: \((-?\d+),(-?\d+)\)->\((-?\d+),(-?\d+)\)", line)
+            if m:
+                settles[-1]["movelist"].append(tuple(int(v) for v in m.groups()))
     return settles
+
+
+# Stage 9: the group kinds the variant line counts, and match.shapes presets (GameRules.cpp PresetCells): cells (x, y), rotations, mirror
+MATCH_KINDS = ("L", "T", "plus", "diagonal", "shapes")
+MATCH_PRESETS = {"square": ([(0, 0), (1, 0), (0, 1), (1, 1)], False, False),
+                 "L3": ([(0, 0), (0, 1), (1, 1)], True, True),
+                 "T4": ([(0, 0), (1, 0), (2, 0), (1, 1)], True, True)}
+
+
+def match_rules(spec):
+    """Stage 9: the match rules of the mod in mods/<spec> that has rules.match, as MatchFinder reads them: (minRun,
+    diagonal minRun or None, a list of each shape's orientations, each a list of (x, y))"""
+    root = os.path.join(os.path.dirname(os.path.abspath(__file__)), "mods", spec)
+    match = None
+    for mod in sorted(os.listdir(root)):
+        path = os.path.join(root, mod, "mod.json")
+        if os.path.exists(path):
+            with open(path, encoding="utf-8") as fh:
+                match = json.load(fh).get("rules", {}).get("match", match)
+    if match is None:
+        return None
+    min_run = match.get("minRun", 3)
+    diagonal = match.get("diagonalMinRun", min_run) if match.get("diagonal", False) else None
+    shapes = []
+    for sid in sorted(match.get("shapes", {})):
+        shape = match["shapes"][sid]
+        if "preset" in shape:
+            cells, rotations, mirror = MATCH_PRESETS[shape["preset"]]
+        else:
+            cells, rotations, mirror = [tuple(c) for c in shape["cells"]], shape.get("rotations", False), shape.get("mirror", False)
+        seen = set()
+        for flip in (range(2) if mirror else range(1)):
+            turned = [(-x, y) for x, y in cells] if flip else list(cells)
+            for _ in range(4 if rotations else 1):
+                lx, ly = min(x for x, _ in turned), min(y for _, y in turned)
+                seen.add(tuple(sorted((x - lx, y - ly) for x, y in turned)))
+                turned = [(-y, x) for x, y in turned]
+        shapes.append(sorted(seen))
+    return min_run, diagonal, shapes
+
+
+def match_in_group(grid, rules, col, row):
+    """Stage 9: whether some group of the rules holds the cell (MatchFinder::InGroup with both directions)"""
+    min_run, diagonal, shapes = rules
+    rows, cols = len(grid), len(grid[0])
+
+    def at(c, r):
+        return grid[r][c] if 0 <= c < cols and 0 <= r < rows and grid[r][c] >= 0 else -1
+
+    color = at(col, row)
+    if color < 0:
+        return False
+    lines = [((1, 0), min_run), ((0, 1), min_run)]
+    if diagonal is not None:
+        lines += [((1, 1), diagonal), ((-1, 1), diagonal)]
+    for (dc, dr), need in lines:
+        count = 1
+        for sign in (1, -1):
+            i = 1
+            while at(col + sign * i * dc, row + sign * i * dr) == color:
+                count += 1
+                i += 1
+        if count >= need:
+            return True
+    for orientations in shapes:
+        for cells in orientations:
+            for dx, dy in cells:
+                if all(at(col - dx + x, row - dy + y) == color for x, y in cells):
+                    return True
+    return False
+
+
+def match_check(r, settles, spec, kinds, label, notes):
+    """Stage 9, "match=<dir>" and "kinds=<kind>,..." (module comment): no group in a settled grid; the move lines are
+    the brute force's; the board scored groups of those kinds"""
+    rules = match_rules(spec)
+    if rules is None:
+        r.fail("%s: match=%s: no mod there has rules.match" % (label, spec))
+        return
+    moves = 0
+    for s in settles:
+        grid = s["grid"]
+        if not grid:
+            continue
+        rows, cols = len(grid), len(grid[0])
+        found = [(c, w) for w in range(rows) for c in range(cols) if match_in_group(grid, rules, c, w)]
+        if found:
+            r.fail("%s: the settled grid of update %d holds a group at %s" % (label, s["update"], found[:4]))
+            return
+        expected = []
+        for w in range(rows):
+            for c in range(cols):
+                if grid[w][c] < 0:
+                    continue
+                for dc, dr in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+                    c2, w2 = c + dc, w + dr
+                    if not (0 <= c2 < cols and 0 <= w2 < rows) or grid[w2][c2] < 0:
+                        continue
+                    grid[w][c], grid[w2][c2] = grid[w2][c2], grid[w][c]
+                    if match_in_group(grid, rules, c, w):
+                        expected.append((c, w, c2, w2))
+                    grid[w][c], grid[w2][c2] = grid[w2][c2], grid[w][c]
+        if s["movelist"] != expected:
+            r.fail("%s: the moves of update %d are %s, the brute force's %s" % (label, s["update"], s["movelist"][:6], expected[:6]))
+            return
+        moves += len(expected)
+    most = {k: max([s["groups"][k] for s in settles if s["groups"]] or [0]) for k in MATCH_KINDS}
+    for kind in [k for k in kinds.split(",") if k]:
+        if kind not in most:
+            r.fail("%s: kinds=%s: %s is none of %s" % (label, kinds, kind, ", ".join(MATCH_KINDS)))
+            return
+        if most[kind] == 0:
+            r.fail("%s: no settle's variant line counts a group of kind %s" % (label, kind))
+            return
+    notes.append("match=%s: no group left in %d settled grids, their %d moves the brute force's; groups scored (most on a board) %s"
+                 % (spec, len(settles), moves, " ".join("%s %d" % (k, most[k]) for k in MATCH_KINDS)))
 
 
 def shapes_check(r, settles, spec, label, notes):
@@ -2190,6 +2316,8 @@ def variant_check(r, cand, run, flags, label):
         shapes_check(r, settles, f["shapes"], label, notes)
     if "dirt" in f:
         dirt_check(r, settles, f["dirt"], label, notes)
+    if "match" in f:
+        match_check(r, settles, f["match"], f.get("kinds", ""), label, notes)
     if "boards" in f:
         seed_check(r, cand, run, flags, "seeds")
     if r.failures == before:

@@ -668,25 +668,35 @@ bool Board::SlideDiagonal()
 // cell that the refill fills, under a puff of dust (DrawDirtDust).
 void Board::ClearDirtNextToRun(int theStartCol, int theStartRow, int theEndCol, int theEndRow, int theColor)
 {
-	static const int kNeighbours[4][2] = {{0, -1}, {-1, 0}, {1, 0}, {0, 1}};
-	bool aNext[BoardLayout::MAX_ROWS][BoardLayout::MAX_COLS] = {};
-	bool isAny = false;
+	std::vector<std::pair<int, int> > aCells;
 	for (int aRow = theStartRow; aRow <= theEndRow; aRow++)
 	{
 		for (int aCol = theStartCol; aCol <= theEndCol; aCol++)
 		{
 			Piece* aPiece = mBoard[aRow][aCol];
-			if ((aPiece == NULL) || (aPiece->mColor != theColor))
-				continue;
-			for (int i = 0; i < 4; i++)
+			if ((aPiece != NULL) && (aPiece->mColor == theColor))
+				aCells.push_back(std::make_pair(aCol, aRow));
+		}
+	}
+	ClearDirtNextToCells(aCells);
+}
+
+// ClearDirtNextToRun for any group of cells (col, row): ProcessMatchesVariant's groups, a pattern once for its group
+void Board::ClearDirtNextToCells(const std::vector<std::pair<int, int> >& theCells)
+{
+	static const int kNeighbours[4][2] = {{0, -1}, {-1, 0}, {1, 0}, {0, 1}};
+	bool aNext[BoardLayout::MAX_ROWS][BoardLayout::MAX_COLS] = {};
+	bool isAny = false;
+	for (const std::pair<int, int>& aCell : theCells)
+	{
+		for (int i = 0; i < 4; i++)
+		{
+			int aDirtCol = aCell.first + kNeighbours[i][0];
+			int aDirtRow = aCell.second + kNeighbours[i][1];
+			if (mLayout.IsDirt(aDirtCol, aDirtRow))
 			{
-				int aDirtCol = aCol + kNeighbours[i][0];
-				int aDirtRow = aRow + kNeighbours[i][1];
-				if (mLayout.IsDirt(aDirtCol, aDirtRow))
-				{
-					aNext[aDirtRow][aDirtCol] = true;
-					isAny = true;
-				}
+				aNext[aDirtRow][aDirtCol] = true;
+				isAny = true;
 			}
 		}
 	}

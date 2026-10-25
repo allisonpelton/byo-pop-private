@@ -1,0 +1,14 @@
+{
+  "id": "s9-shapes",
+  "name": "Stage 9: shapes and crossings",
+  "version": "1.0",
+  "description": "Oracle fixture: crossing runs merge into L, T and plus groups, and a 2x2 square of one colour is a match too, each with a bonus before the multiplier (L 50, T 100, plus 150, square 30). Five gem colours, so that crossings come up in a short game.",
+  "rules": {
+    "board": { "gemColors": 5 },
+    "match": {
+      "crossings": "merge",
+      "shapes": { "sq": { "preset": "square" } },
+      "bonus": { "L": 50, "T": 100, "plus": 150, "sq": 30 }
+    }
+  }
+}

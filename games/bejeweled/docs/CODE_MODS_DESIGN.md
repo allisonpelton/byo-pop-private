@@ -857,6 +857,15 @@ The search order is fixed: swaps (original order), then twists, then slides (4.7
   - `TraceBoard` (variant move lines with click/drag coordinates, for writing `-script`
     playtests).
 
+**As built (stage 9, `MatchFinder.cpp`, `BoardMatch.cpp`; GAME_NOTES 12.14):**
+- There is no `DoHintVariant` yet: for swaps `DoHint` already sparkles the gem that moves into the cell the search
+  measured, so it comes with twists and slides (stage 10). The same for the move type in `FindMove`'s contract.
+- `crossings: "merge"` joins diagonal runs too. The length bonuses go to straight runs only, diagonals included; a
+  merged group or a shape instance scores the set value and its `match.bonus`.
+- The banners `PATTERN_<name>` are not built. Special creations (4.8) come in stage 11.
+- The fill cap is stage 7's `MAX_FILL_REROLLS`, and Validate already checks the colour minimum
+  (`GameRules::FillMinimum`); the fill now asks `AnyGroup`.
+
 ### 4.8 Flame and lightning gems
 
 - **Data:** `Piece::mKind` and `mKindFrame` (2.4).
@@ -2473,9 +2482,9 @@ for (;;) {
     a state that is no game over, the level, bar, wipe and vortex values, a level target over its
     start). `-codeccheck` checks the save of every board state the oracle reaches against it.
     `savegame.dat` itself is read as the original reads it.
-  - Bounds on the work a file can ask for: at most 24 hours of board ticks in all segments, each up
-    to its last event and the last up to `END` (`MAX_TICKS`, 8.64M; the leaderboard's cap is 6 hours,
-    6.10), at most 10,000 events at one tick of a segment, at most 1,000,000 outside draws in the file.
+  - Bounds on the work a file can ask for: at most 200M board ticks (23 days) in all segments, each up
+    to its last event and the last up to `END` (`MAX_TICKS`; 8.64M, 24 hours, until the bots' longest
+    games of stage 9 needed more; the leaderboard's cap is 6 hours, 6.10), at most 10,000 events at one tick of a segment, at most 1,000,000 outside draws in the file.
     The player reads at most `MAX_FILE_SIZE` + 1 bytes. Since the stage 4 review: `SAVE`s only at their
     segment's last tick, at most 4 in a segment (`MAX_SAVES_PER_SEGMENT`): the game saves only as a board
     goes away (`Shutdown`, `~Board`, then a snapshot sidecar's), and each `SAVE` makes a save (40 us; 4M of
@@ -2631,6 +2640,35 @@ trial (none so far).
 
 It runs at about 20,000 tried moves a second. Its replays carry the default rules with the original `diff.txt`
 values: the same RulesId as a recording of the game with no mods.
+
+`play` has four policies. `greedy` is the one above, and `random` takes any of the moves that leave 3. Both
+know the next refill, because the trial board draws from the same seeded stream as the game. `survive` uses
+that knowledge further ahead. It takes the best-scoring move after which a line of `--depth` more moves (4 by
+default) keeps 3 moves on every board, then 2. On a narrow board, where neither exists, it takes the move with
+the longest line that never runs out, searching to three times the depth on a budget of 20,000 trials. A line
+goes on through a beaten level's vortex onto the next level's board, which can be a trap as well. On seeds 1 to
+20, capped at 20,000 moves, greedy ends every game, at 119,101 points on average. Survive at depth 4 reached the
+cap in 18 of them, with a mean of 21.9 million; level-up traps caused most of the remaining deaths until the
+search went through the vortex. Uncapped, it played seeds 2 and 3 to 500,000 moves and level 486. Near move
+408,000 (level 439) the score passes the 32-bit `int` limit and wraps negative. The game plays on unchanged,
+because each level's target is its points plus the score at its start, which wraps in the same way.
+
+`fair` knows only the board in play. It reads the moves from the trials but never their outcomes. Instead it
+tries each move on `--samples` boards (16 by default) whose RNG it reseeds with its own draws, the same draws
+for every move of one choice. A sample's risk is 1 at a game over, 0 for a beaten level (a fresh board), and
+otherwise 2 to the power of minus the moves it leaves. The bot plays the move with the least mean risk, and the
+best-scoring one among moves within `--tolerance` of it (0 by default). When even the least risk is above 1/8,
+it looks one move further: a two-move expectimax, with the next move's refills guessed afresh on 4 more boards.
+An earlier version asked, as survive does, for a line of moves on every sample. That trusted each sample to
+find its own way out, a future the bot never sees, and it died after about 500 moves. Uncapped, the risk-only
+version ended all 20 games, at a median of 5,686 moves, level 34 and 1,135,900 points. The best two passed level
+64 and 7 million points, the best human score we know of: seed 1 reached level 72 with 9,980,475 points in
+24,221 moves, and seed 11 level 66 with 7,771,740. A tolerance of 0.002 scores faster but dies sooner (median
+level 24, best 2.4 million), so safety alone is the default.
+
+`--progress <n>` prints the score every n moves. `--record <prefix>` records each game as
+`<prefix>-seed<s>.bjr` and verifies it. A 500,000-move game makes a 10 MB replay of 127 million ticks, which
+verifies in 54 s; `Replay::MAX_TICKS` was raised for those games.
 
 **Videos of a replay.** The native game watches the replay under rundesk with `-fast`. A `-script` takes a
 screenshot every 2 updates, which gives 50 frames a second. `-audiocapture=<file.wav>` (`testhooks/AudioCapture.h`)

@@ -1,0 +1,9 @@
+{
+  "id": "s9-diagonal",
+  "name": "Stage 9: diagonals",
+  "version": "1.0",
+  "description": "Oracle fixture: diagonal runs of 3 match too, 20 points more each; the fill needs 5 colours of the 7.",
+  "rules": {
+    "match": { "diagonal": true, "bonus": { "diagonal": 20 } }
+  }
+}

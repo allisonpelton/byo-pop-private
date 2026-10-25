@@ -78,8 +78,13 @@ DiffValues		OriginalDiffValues();
 // rounds of matches, runs and points, and whether it beats the level. argv: "cascadehunt", then
 //   first --seeds <a>..<b> [--wait <n>] [--top <n>] [-v]: every first move of each opening board; the share of boards
 //       with a first move that beats level 1, and the boards whose first move scores most
-//   play --seeds <a>..<b> [--policy greedy|random] [--wait <n>] [--moves <n>] [--levels <n>] [-v]: games to the game
-//       over or a cap, the bot playing the policy's move; the moves with the most rounds and points as they are found
+//   play --seeds <a>..<b> [--policy greedy|random|survive|fair] [--depth <d>] [--samples <k>] [--tolerance <r>]
+//       [--wait <n>] [--moves <n>] [--levels <n>] [--progress <n>] [--record <prefix>] [-v]: games to the game over or a
+//       cap, the bot playing the policy's move; the moves with the most rounds and points as they are found. survive: the
+//       move that scores most of those after which the board has a line of d more moves (default 4) that never runs out
+//       of moves, the refills known from the board's RNG. fair: from the board in play alone, the move least likely to
+//       end the game, the refills guessed on k boards (default 16); of those within risk r of it (default 0), the one
+//       that scores most. --progress: the score every n moves; --record: each game as <prefix>-seed<s>.bjr, verified
 //   replay --seed <s> --at <n> --move <c,r,c,r> [--policy ...] [--wait <n>] [--lead <k>] [--pause <n>] [--tail <n>]
 //       [--after <m>|all] [--out <prefix>]: that game again to its move n, then the move given (--pause updates after its
 //       settle), then m more of the bot's (or all to the game over); <prefix>-full.bjr (the whole game) and
