@@ -104,7 +104,7 @@ column weighs every model at Opus 5.5's API prices, as the report does, so it ov
 | Noah's Ark Deluxe | Sonnet, none | ~1-1.5x | 1 h 23 | 330 | 134M | 1.1M | 0.5M | $45 |
 
 Per unit of the survey's effort estimate, Noah's Ark used about 107M cache reads, against 267M for Big Money and about
-330M for BookWorm: two and a half to three times fewer, before Sonnet's lower prices. Part of that is the game, which
+330M for BookWorm: between a third and two fifths as many, before Sonnet's lower prices. Part of that is the game, which
 is the smallest and reused BookWorm's pipeline, and part is the single session, whose calls carried a large context
 (409K on average, 967K at most, one compaction) but made a tenth as many calls. Output was a larger share (21% of the
 weighted cost, against 3-4%), so Sonnet wrote and thought more per call. Its own account of where it struggled
