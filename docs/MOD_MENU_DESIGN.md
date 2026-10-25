@@ -630,11 +630,11 @@ Events from the game to the page:
 ```
 +------------------------------------------------------------------+
 | MODS                                           F2 or Esc: close  |
-| [x] HD Gems 1.0                                       [^][v]     |
+| [x] HD Gems 1.0                                [^][v] [About]    |
 |     by you · Sharper gem sprites                                 |
 | [x] Settings Demo 1.0    SCORES  FEATURES      [^][v] [Settings] |
 |     ! rules: match.minRun 2 needs 5 gem colours                  |
-| [ ] Fake Money! Deluxe 1.0   RESTART                  [^][v]     |
+| [ ] Fake Money! Deluxe 1.0   RESTART           [^][v] [About]    |
 |     ...                                                     (#)  |
 | ! the game's messages (the message slot, two lines)              |
 |------------------------------------------------------------------|
@@ -652,7 +652,7 @@ Events from the game to the page:
     - RESTART or NEXT GAME, while the row has a pending change.
   - a second line: author · description, or the first message;
   - ▲ / ▼, disabled across a priority boundary;
-  - "Settings", only when the mod has settings.
+  - "Settings", or "About" for a mod without settings; both open the mod's page, as Enter does.
 
   Six rows are visible at once, with a scrollbar 12 px wide.
 - **Banner rows** at the top:
@@ -668,11 +668,12 @@ Events from the game to the page:
   - Native: "No mods installed. Mods are folders in <mods dir>."
   - Web: "Add mods in the Mods panel."
 
-**Mod page.** Each mod with settings has one.
+**Mod page.** Every mod has one, with its whole description (the page scrolls); a mod without settings says
+"This mod has no settings." under it.
 
 ```
 | < Back    SETTINGS DEMO 1.0                              by ...  |
-| Description, wrapped, at most 3 lines                            |
+| Description, wrapped, all of it                                  |
 | PLAY                                                             |
 | Shortest match       SCORES  [-]  2  [+]  ===o====   NEXT GAME   |
 | Undo                 SCORES  [x] On                              |
@@ -689,6 +690,8 @@ Events from the game to the page:
 - Setting rows are 30 px tall; nine are visible. The label column is 230 px and the control column 270 px.
 - A SCORES marker shows on every score-affecting setting.
 - The pending badge shows until the value is applied.
+- **The footer's help** is the focused row's: a setting's help, or on the list a mod's description or first
+  message. It takes both lines while nothing is pending, and one line above the pending text otherwise.
 
 **No Apply or Cancel button.**
 - Every change is saved at once, as Options applies its volume sliders live (`OptionsDialog.cpp:16-22`).

@@ -159,7 +159,8 @@ std::string Fit(Font* theFont, const std::string& theText, int theWidth)
 	return aText + "...";
 }
 
-// theText in lines of at most theWidth, at most theMaxLines of them (the last cut with "..." if it goes on)
+// theText in lines of at most theWidth, at most theMaxLines of them (the last cut with "..." if it goes on);
+// theMaxLines 0 for no limit
 std::vector<std::string> Wrap(Font* theFont, const std::string& theText, int theWidth, int theMaxLines)
 {
 	std::vector<std::string> aLines;
@@ -185,7 +186,7 @@ std::vector<std::string> Wrap(Font* theFont, const std::string& theText, int the
 		aLines.push_back(aLine);
 	for (std::string& aText : aLines)
 		aText = Fit(theFont, aText, theWidth);
-	if ((int) aLines.size() > theMaxLines)
+	if ((theMaxLines > 0) && ((int) aLines.size() > theMaxLines))
 	{
 		std::string aRest;
 		for (size_t j = (size_t) theMaxLines - 1; j < aLines.size(); j++)
@@ -613,7 +614,7 @@ void ModMenu::Layout()
 		else if (ModView* aView = PageModView())
 		{
 			if (!aView->mDescription.empty())
-				addText(ITEM_TEXT, -1, aView->mDescription, TEXT_DIM, 3);
+				addText(ITEM_TEXT, -1, aView->mDescription, TEXT_DIM, 0);
 			if (isReadOnly)
 				addText(ITEM_TEXT, -1, Str(mApp, "MODMENU_SETTINGS_NEWER", "mod-settings.json was made by a newer version of the game: values cannot be changed here."), TEXT_WARN, 2);
 			bool hasValues = false;
@@ -657,8 +658,7 @@ void ModMenu::Layout()
 			AddTarget(T_ROW, anItem.mIndex, Rect(aRow.mX, aRow.mY, anUpX - 8 - aRow.mX, aRow.mHeight), aView.mDuplicate, true);
 			AddTarget(T_UP, anItem.mIndex, Rect(anUpX, aButtonY, 24, BUTTON_HEIGHT), !aView.mCanUp, true);
 			AddTarget(T_DOWN, anItem.mIndex, Rect(aDownX, aButtonY, 24, BUTTON_HEIGHT), !aView.mCanDown, true);
-			if (aView.mHasSettings)
-				AddTarget(T_OPEN, anItem.mIndex, Rect(anOpenX, aButtonY, 72, BUTTON_HEIGHT), aView.mDuplicate, true);
+			AddTarget(T_OPEN, anItem.mIndex, Rect(anOpenX, aButtonY, 72, BUTTON_HEIGHT), aView.mDuplicate, true);
 		}
 		else if (anItem.mKind == ITEM_SETTING)
 		{
@@ -939,7 +939,7 @@ void ModMenu::AnnounceFocus()
 		{
 		case T_UP: aText = Str(mApp, "MODMENU_MOVE_UP", "Move up"); break;
 		case T_DOWN: aText = Str(mApp, "MODMENU_MOVE_DOWN", "Move down"); break;
-		case T_OPEN: aText = Str(mApp, "MODMENU_SETTINGS", "Settings"); break;
+		case T_OPEN: aText = OpenLabel(aTarget->mItem); break;
 		case T_BACK: aText = Str(mApp, "MODMENU_BACK_BUTTON", "Back"); break;
 		case T_RESTART: aText = Str(mApp, "MODMENU_RESTART", "Restart game"); break;
 		case T_CLOSE: aText = Str(mApp, "MODMENU_CLOSE", "Close"); break;
@@ -1081,8 +1081,8 @@ void ModMenu::Activate(int theKind, int theItem, bool isSpace)
 		if ((theItem >= 0) && (theItem < (int) mMods.size()) && !mMods[(size_t) theItem].mDuplicate)
 		{
 			const ModView& aView = mMods[(size_t) theItem];
-			if (!isSpace && aView.mHasSettings)
-				ShowMod(aView.mId);
+			if (!isSpace)
+				ShowMod(aView.mId);  // every mod has a page, if only for its whole description
 			else
 			{
 				std::string anId = aView.mId;
@@ -1655,6 +1655,13 @@ void ModMenu::DrawMessages(Graphics* g)
 		Text(g, mFont, aLines[i].first, aContent.mX + 8, aTop + 13 + (int) i * LINE, TextColor(aLines[i].second));
 }
 
+// A mod row's page button: its settings, or only its description and messages
+std::string ModMenu::OpenLabel(int theMod) const
+{
+	bool hasSettings = (theMod >= 0) && (theMod < (int) mMods.size()) && mMods[(size_t) theMod].mHasSettings;
+	return hasSettings ? Str(mApp, "MODMENU_SETTINGS", "Settings") : Str(mApp, "MODMENU_ABOUT", "About");
+}
+
 std::string ModMenu::FooterHelp()
 {
 	if ((mFocusKind == T_VALUE) && !mPageMod.empty())
@@ -1724,7 +1731,7 @@ void ModMenu::DrawListRow(Graphics* g, const Item& theItem)
 	bool isFocused = (mFocusItem == theItem.mIndex) && ((mFocusKind == T_ROW) || (mFocusKind == T_UP) || (mFocusKind == T_DOWN) || (mFocusKind == T_OPEN));
 	if (isFocused || ((mHoverKind == T_ROW) && (mHoverItem == theItem.mIndex)))
 	{
-		const Target* aLast = FindTarget(aView.mHasSettings ? T_OPEN : T_DOWN, theItem.mIndex);
+		const Target* aLast = FindTarget(T_OPEN, theItem.mIndex);
 		int aRight = (aLast != NULL) ? aLast->mRect.mX + aLast->mRect.mWidth + 4 : aRow.mX + aRow.mWidth;
 		Fill(g, Rect(aRow.mX, aRow.mY + 1, aRight - aRow.mX, aRow.mHeight - 2), kRowFocus);
 	}
@@ -1995,7 +2002,7 @@ void ModMenu::Draw(Graphics* g)
 		if ((aTarget.mKind == T_UP) || (aTarget.mKind == T_DOWN))
 			DrawButton(g, aTarget.mRect, "", aTarget.mKind, aTarget.mItem, aTarget.mDisabled);
 		else if (aTarget.mKind == T_OPEN)
-			DrawButton(g, aTarget.mRect, Str(mApp, "MODMENU_SETTINGS", "Settings"), T_OPEN, aTarget.mItem, aTarget.mDisabled);
+			DrawButton(g, aTarget.mRect, OpenLabel(aTarget.mItem), T_OPEN, aTarget.mItem, aTarget.mDisabled);
 	}
 	g->PopState();
 
@@ -2019,10 +2026,15 @@ void ModMenu::Draw(Graphics* g)
 	}
 	else
 	{
-		aLines.push_back(Fit(mFont, FooterHelp(), aTextWidth));
-		aColors.push_back(&kDim);
-		aLines.push_back(Fit(mFont, PendingText(), aTextWidth));
-		aColors.push_back(&kFocus);
+		// The help takes both lines while nothing is pending (a long description or setting help)
+		std::string aPending = PendingText();
+		aLines = Wrap(mFont, FooterHelp(), aTextWidth, aPending.empty() ? 2 : 1);
+		aColors.assign(aLines.size(), &kDim);
+		if (!aPending.empty())
+		{
+			aLines.push_back(Fit(mFont, aPending, aTextWidth));
+			aColors.push_back(&kFocus);
+		}
 	}
 	for (size_t i = 0; i < aLines.size(); i++)
 		Text(g, mFont, aLines[i], mPanel.mX + 12, aSeparatorY + 18 + (int) i * LINE, *aColors[i]);

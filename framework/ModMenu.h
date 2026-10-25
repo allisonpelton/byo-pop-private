@@ -76,7 +76,7 @@ public:
 		T_ROW,        // list: a mod's row (its switch and name)
 		T_UP,
 		T_DOWN,
-		T_OPEN,       // list: "Settings"
+		T_OPEN,       // list: "Settings", or "About" for a mod without settings
 		T_BACK,
 		T_RESTART,
 		T_CLOSE,
@@ -175,6 +175,7 @@ private:
 	Platform::JsonValue		SliderValue(int theItem, int x) const;
 	ModView*				PageModView();
 	SettingView*			PageSetting(int theItem);
+	std::string				OpenLabel(int theMod) const;
 	std::string				FooterHelp();
 	std::string				PendingText() const;
 	std::vector<std::pair<std::string, int> > PageMessages();  // the page's messages and their TEXT_ colours (the slot)
