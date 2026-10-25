@@ -412,7 +412,7 @@ void Grid::SpawnBonds(int theCol, int theRow)
 	}
 }
 
-// 0x40f5d0: an atom bursts (the bomb of the timed levels)
+// 0x40f5d0: an atom bursts (the atomic bomb's, in every mode: StepBomb is the only caller)
 void Grid::Burst(Atom* theAtom)
 {
 	theAtom->RemoveFromCell();

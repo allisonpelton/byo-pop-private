@@ -242,8 +242,8 @@ void Grid::KeyDown(KeyCode theKey)
 	}
 }
 
-// 0x40c6a0: how many atoms are on the field
-int Grid::CountAtoms(bool theOnlyFlying)
+// 0x40c6a0: how many atoms are on the field (theNoElements: the element atoms are left out)
+int Grid::CountAtoms(bool theNoElements)
 {
 	int aCount = 0;
 	for (int aCol = 0; aCol < COLS; aCol++)
@@ -253,7 +253,7 @@ int Grid::CountAtoms(bool theOnlyFlying)
 			Atom* anAtom = mCells[aCol][aRow];
 			if ((anAtom != NULL) && !anAtom->mPre)
 			{
-				if (!theOnlyFlying)
+				if (!theNoElements)
 					aCount++;
 				else if (!anAtom->IsElement())
 					aCount++;
@@ -469,7 +469,7 @@ void Grid::Update()
 		mI520--;
 		if (mI520 < 1)
 		{
-			mB525 = mB524 ? false : true;
+			mB524 = !mB524;
 			mI520 = 100;
 		}
 	}

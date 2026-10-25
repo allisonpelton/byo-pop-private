@@ -18,7 +18,7 @@ void Board::Update()
 {
 	if (mApp->mB3eac)
 		mApp->CloseMenu();
-	Widget::Update();
+	MarkDirty();	// the original calls the widget's vtable slot 42 here, not Widget::Update
 	if (!mApp->mHasFocus || mApp->mMinimized || (mApp->mPauseCount > 0))
 		return;
 
@@ -247,6 +247,8 @@ void Board::Update()
 	}
 
 	mMeter.Update();
+	if (mApp->mRand.Get(0x32, false) == 5)	// 0x41ffd0
+		mFlicker = (mFlicker == 0xff) ? 0xdc : 0xff;
 	mAtomicus->Update();
 
 	// the level is made: the signs, the fly-away of the atoms, the level-up box, the next level's field

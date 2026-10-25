@@ -104,7 +104,7 @@ void Meter::Hit(int theAmount)
 		mValue = 0;
 }
 
-// 0x4058f0: molecules fill the meter (and in the action mode, where it is frozen at the top, they empty it)
+// 0x4058f0: molecules fill the meter (in the action mode the meter fills by itself every update and the molecules take it down)
 void Meter::Add(int theAmount, int theCombo)
 {
 	if (mFrozen)
@@ -223,6 +223,7 @@ Board::Board(AtomicaApp* theApp) :
 	mButtonBomb->mDoFinger = true;
 	mButtonBomb->Resize(0x164, 0x1ab, 0x44, 0x2e);
 
+	mFlicker = 0xff;
 	mAtomicus = new Atomicus(mApp);
 	mI184 = 0;
 	mI180 = 0;
@@ -285,6 +286,7 @@ void Board::Start()
 		mApp->SafeDeleteWidget(mGrid);
 	}
 	mScore = 0;
+	mFlicker = 0xff;
 	mGrid = new Grid(mApp);
 	mGrid->Start();
 	mApp->mWidgetManager->AddWidget(mGrid);

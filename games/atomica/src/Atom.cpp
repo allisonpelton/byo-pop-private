@@ -716,11 +716,10 @@ void Atom::Infect()
 			aSpawn->mKind = KIND_BIOHAZARD;
 			aSpawn->mKindArg = 5;
 			aSpawn->PlaceAt(aCell[0], aCell[1], true);
-			aSpawn->mFlag_ac = true;
+			aSpawn->mPreStarted = true;
 			aSpawn->mSpawn = 0.0f;
-			int aPixel[2];
-			Grid::CellToPixel(mCol, mRow, aPixel);
-			mApp->mBoard->mEffects.Add(new Bolt(mApp, mGrid, mCol, mRow, aCell[0], aCell[1], Color(0, 0xff, 0, 0x20), true));
+			mApp->mBoard->mEffects.Add(new InfectBolt(mApp, mX + mGrid->mX, mY + mGrid->mY, aSpawn->mX + mGrid->mX,
+				aSpawn->mY + mGrid->mY));
 		}
 		aFree.Reset();
 		int* anItem = aFree.Next();

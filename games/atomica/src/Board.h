@@ -74,6 +74,8 @@ public:
 	bool			mNeedleBlink;		// +0xbc
 	int				mDetail;			// +0xc0 1: every row of a swirl is drawn (the original's detail setting)
 	Meter			mMeter;				// +0xc4
+	int				mFlicker;			// +0xf0 an object of the original's (0x41ffa0, constructed here and by Start) whose +0xc is 0xff or 0xdc;
+										// nothing reads it, but its update (0x41ffd0) draws a random number every update
 	Atomicus*		mAtomicus;			// +0xf4
 	PtrList<Effect>	mEffects;			// +0xf8
 	PtrList<Swirl>	mSwirls;			// +0x110 the rings of the background, the oldest first, and the copies the flown atoms circle in

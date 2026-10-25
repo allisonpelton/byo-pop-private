@@ -50,7 +50,7 @@ void ScoreTable::Write(Buffer* theBuffer) const
 int ScoreTable::DateCode()
 {
 	time_t aNow = time(NULL);
-	struct tm* aTime = localtime(&aNow);
+	struct tm* aTime = gmtime(&aNow);	// the original's GetSystemTime: UTC
 	if (aTime == NULL)
 		return 0;
 	return ((aTime->tm_mon + 1) + (aTime->tm_year + 1900) * 12) * 31 + aTime->tm_mday;

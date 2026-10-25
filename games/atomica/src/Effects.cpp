@@ -373,6 +373,67 @@ void Bolt::Draw(Graphics* g)
 	DrawPixels(g, aX1, aY1, aX2, aY2);
 }
 
+// 0x4255e0: a line of dots (Bresenham, every other point a dot), of the spark picture or the mini spark's
+static void DrawDots(Graphics* g, AtomicaApp* theApp, int x1, int y1, int x2, int y2, bool theMini)
+{
+	Sprite* aDot = theMini ? theApp->mMiniSpark : theApp->mSpark;
+	int aDX = x2 - x1;
+	int aDY = y2 - y1;
+	int aStepX = 1;
+	int aStepY = 1;
+	if (aDX < 0)
+	{
+		aDX = -aDX;
+		aStepX = -1;
+	}
+	if (aDY < 0)
+	{
+		aDY = -aDY;
+		aStepY = -1;
+	}
+	int aMajorX, aMajorY, aMinor, aMajor;
+	if (aDX < aDY)
+	{
+		aMajorX = 0;
+		aMajorY = aStepY;
+		aMinor = aDX;
+		aMajor = aDY;
+	}
+	else
+	{
+		aMajorX = aStepX;
+		aMajorY = 0;
+		aMinor = aDY;
+		aMajor = aDX;
+	}
+	int aError = aMinor * 2 - aMajor;
+	bool aDraw = true;
+	aDot->Draw(g, x1 - (aDot->mWidth >> 1), y1 - (aDot->mHeight >> 1));
+	for (int i = aMajor; i > 0; i--)
+	{
+		int aSX, aSY;
+		int aDelta;
+		if (aError < 0)
+		{
+			aDelta = aMinor * 2;
+			aSX = aMajorX;
+			aSY = aMajorY;
+		}
+		else
+		{
+			aDelta = (aMinor - aMajor) * 2;
+			aSX = aStepX;
+			aSY = aStepY;
+		}
+		aError += aDelta;
+		x1 += aSX;
+		y1 += aSY;
+		if (aDraw)
+			aDot->Draw(g, x1 - (aDot->mWidth >> 1), y1 - (aDot->mHeight >> 1));
+		aDraw = !aDraw;
+	}
+}
+
 // the drawing of 0x4173f0 between two places on the screen (Grid::DrawBond draws the bonds of a molecule with it)
 void Bolt::DrawPixels(Graphics* g, int aX1, int aY1, int aX2, int aY2)
 {
@@ -400,82 +461,157 @@ void Bolt::DrawPixels(Graphics* g, int aX1, int aY1, int aX2, int aY2)
 	float aJX2 = (float) mApp->mRand.Get(8, true) + (aEndX + aMidX) * 0.5f;
 	float aJY2 = (float) mApp->mRand.Get(8, true) + (aEndY + aMidY) * 0.5f;
 
-	// DrawLine of the dots of 0x4255e0 (Bresenham, every other dot), faint for the first set and bright for the second
-	struct Local
-	{
-		static void Dots(Graphics* g, AtomicaApp* theApp, int x1, int y1, int x2, int y2, bool theMini)
-		{
-			Sprite* aDot = theMini ? theApp->mMiniSpark : theApp->mSpark;
-			int aDX = x2 - x1;
-			int aDY = y2 - y1;
-			int aStepX = 1;
-			int aStepY = 1;
-			if (aDX < 0)
-			{
-				aDX = -aDX;
-				aStepX = -1;
-			}
-			if (aDY < 0)
-			{
-				aDY = -aDY;
-				aStepY = -1;
-			}
-			int aMajorX, aMajorY, aMinor, aMajor;
-			if (aDX < aDY)
-			{
-				aMajorX = 0;
-				aMajorY = aStepY;
-				aMinor = aDX;
-				aMajor = aDY;
-			}
-			else
-			{
-				aMajorX = aStepX;
-				aMajorY = 0;
-				aMinor = aDY;
-				aMajor = aDX;
-			}
-			int aError = aMinor * 2 - aMajor;
-			bool aDraw = true;
-			aDot->Draw(g, x1 - (aDot->mWidth >> 1), y1 - (aDot->mHeight >> 1));
-			for (int i = aMajor; i > 0; i--)
-			{
-				int aSX, aSY;
-				int aDelta;
-				if (aError < 0)
-				{
-					aDelta = aMinor * 2;
-					aSX = aMajorX;
-					aSY = aMajorY;
-				}
-				else
-				{
-					aDelta = (aMinor - aMajor) * 2;
-					aSX = aStepX;
-					aSY = aStepY;
-				}
-				aError += aDelta;
-				x1 += aSX;
-				y1 += aSY;
-				if (aDraw)
-					aDot->Draw(g, x1 - (aDot->mWidth >> 1), y1 - (aDot->mHeight >> 1));
-				aDraw = !aDraw;
-			}
-		}
-	};
-
 	mColor.mAlpha = 0x20;
 	g->SetColor(mColor);
-	Local::Dots(g, mApp, (int) aStartX, (int) aStartY, (int) aJX1, (int) aJY1, false);
-	Local::Dots(g, mApp, (int) aJX1, (int) aJY1, (int) aJX2, (int) aJY2, false);
+	DrawDots(g, mApp, (int) aStartX, (int) aStartY, (int) aJX1, (int) aJY1, false);
+	DrawDots(g, mApp, (int) aJX1, (int) aJY1, (int) aJX2, (int) aJY2, false);
 	mColor.mAlpha = 0x80;
 	g->SetColor(mColor);
-	Local::Dots(g, mApp, (int) aJX2, (int) aJY2, (int) aEndX, (int) aEndY, false);
+	DrawDots(g, mApp, (int) aJX2, (int) aJY2, (int) aEndX, (int) aEndY, false);
 	g->SetColor(Color(0xff, 0xff, 0xff, 0x20));
-	Local::Dots(g, mApp, (int) aStartX, (int) aStartY, (int) aJX1, (int) aJY1, true);
-	Local::Dots(g, mApp, (int) aJX2, (int) aJY2, (int) aEndX, (int) aEndY, true);
+	DrawDots(g, mApp, (int) aStartX, (int) aStartY, (int) aJX1, (int) aJY1, true);
+	DrawDots(g, mApp, (int) aJX2, (int) aJY2, (int) aEndX, (int) aEndY, true);
 	g->SetColor(Color(0xff, 0xff, 0xff, 0x80));
-	Local::Dots(g, mApp, (int) aJX1, (int) aJY1, (int) aJX2, (int) aJY2, true);
+	DrawDots(g, mApp, (int) aJX1, (int) aJY1, (int) aJX2, (int) aJY2, true);
+	g->SetColorizeImages(false);
+}
+
+// ---------------------------------------------------------------------------------------------------------
+// InfectBolt
+
+static int Wrap360(int theAngle)
+{
+	if (theAngle > 0x167)
+		theAngle -= 0x168;
+	if (theAngle < 0)
+		theAngle += 0x168;
+	return theAngle;
+}
+
+// 0x425120: the three electric sounds at once
+InfectBolt::InfectBolt(AtomicaApp* theApp, int theStartX, int theStartY, int theTargetX, int theTargetY) :
+	Effect(theApp),
+	mX1(0),
+	mY1(0),
+	mStartX(0),
+	mStartY(0),
+	mEndX(0),
+	mEndY(0),
+	mTargetX(0),
+	mTargetY(0),
+	mTimer(0x5a),
+	mAlpha(0x168),
+	mAngle(0),
+	mRadius(0),
+	mMoving(false),
+	mSoundTimer(0)
+{
+	mApp->mSndElectric[0]->Play();
+	mApp->mSndElectric[1]->Play();
+	mApp->mSndElectric[2]->Play();
+	mSoundTimer = 10;
+	mAngle = mApp->mRand.Get(0x168, false);
+	mStartX = theStartX;
+	mTargetY = theTargetY;
+	mTargetX = theTargetX;
+	mStartY = theStartY;
+	mMoving = true;
+}
+
+// 0x425230: the end of the line circles the target, wider and wider; two sparks fly off (one from each end); after 90 updates
+// 150 sparks burst from a point 25 pixels from the target
+bool InfectBolt::Update()
+{
+	mSoundTimer--;
+	if (mSoundTimer < 1)
+	{
+		mApp->mSndElectric[mApp->mRand.Get(3, false)]->Play();
+		mSoundTimer = 10;
+	}
+	if (mMoving)
+	{
+		mAngle = Wrap360(mAngle + 8);
+		mEndX = (int) (SinDeg(mAngle) * mRadius + (float) mTargetX);
+		mEndY = (int) (NegCosDeg(mAngle) * mRadius + (float) mTargetY);
+		mRadius = mRadius + 0.28f;
+		int anAngle = CompassAngle(mStartX, mStartY, mEndX, mEndY);
+		mX1 = (int) (SinDeg(anAngle) * 24.0f + (float) mStartX);
+		mY1 = (int) (NegCosDeg(anAngle) * 24.0f + (float) mStartY);
+		int aDirection = Wrap360(mApp->mRand.Get(0x3c, true) + anAngle);
+		Particle* aSpark = new Particle(mApp, mApp->mMiniSpark);
+		aSpark->mX = (float) mX1;
+		aSpark->mY = (float) mY1;
+		float aSpeed = (float) (mApp->mRand.Get(10, false) + 1) * 0.02f;
+		aSpark->mVX = aSpeed * SinDeg(aDirection);
+		aSpark->mVY = aSpeed * NegCosDeg(aDirection);
+		mApp->mBoard->mEffects.Add(aSpark);
+		int aDirection2 = mApp->mRand.Get(0x168, false);
+		aSpark = new Particle(mApp, mApp->mMiniSpark);
+		aSpark->mX = (float) mEndX;
+		aSpark->mY = (float) mEndY;
+		aSpeed = (float) (mApp->mRand.Get(10, false) + 1) * 0.02f;
+		aSpark->mVX = aSpeed * SinDeg(aDirection2);
+		aSpark->mVY = aSpeed * NegCosDeg(aDirection2);
+		mApp->mBoard->mEffects.Add(aSpark);
+	}
+	else
+	{
+		mX1 = mStartX;
+		mY1 = mStartY;
+		mEndX = mTargetX;
+		mEndY = mTargetY;
+	}
+	mAlpha -= 3;
+	if (mAlpha < 0)
+		mAlpha = 0;
+	mTimer--;
+	if (mTimer > 0)
+		return true;
+	if (mMoving)
+	{
+		for (int i = 0; i < 0x96; i++)
+		{
+			Particle* aSpark = new Particle(mApp, mApp->mMiniSpark);
+			aSpark->mX = (float) mTargetX;
+			aSpark->mY = (float) mTargetY;
+			int aDirection = mApp->mRand.Get(0x168, false);
+			aSpark->mVX = SinDeg(aDirection);
+			aSpark->mVY = NegCosDeg(aDirection);
+			aSpark->mX = aSpark->mVX * 25.0f + aSpark->mX;
+			aSpark->mY = aSpark->mVY * 25.0f + aSpark->mY;
+			float aSpeed = (float) (mApp->mRand.Get(10, false) + 1) * 0.033333335f;
+			aSpark->mVX = aSpeed * aSpark->mVX;
+			aSpark->mVY = aSpeed * aSpark->mVY;
+			mApp->mBoard->mEffects.Add(aSpark);
+		}
+	}
+	return false;
+}
+
+// 0x425730: a jagged line of dots from the start through three points, each moved at random, to the end
+void InfectBolt::Draw(Graphics* g)
+{
+	int aAngle1 = CompassAngle(mX1, mY1, mEndX, mEndY);
+	int aAngle2 = CompassAngle(mEndX, mEndY, mX1, mY1);
+	int aAngle3 = CompassAngle(mEndX, mEndY, mX1, mY1);
+	int aDX = mEndX - mX1;
+	int aDY = mEndY - mY1;
+	float aLength = sqrtf((float) (aDY * aDY + aDX * aDX)) * 0.25f;
+	int aJitter1 = Wrap360(mApp->mRand.Get(0x37, true) + aAngle1);
+	int aJitter2 = Wrap360(mApp->mRand.Get(0x37, true) + aAngle2);
+	int aJitter3 = Wrap360(mApp->mRand.Get(0x37, true) + aAngle3);
+	float aAX = aLength * SinDeg(aJitter1) + (float) mX1;
+	float aAY = aLength * NegCosDeg(aJitter1) + (float) mY1;
+	float aBX = aLength * SinDeg(aJitter2) + (float) mEndX;
+	float aBY = aLength * NegCosDeg(aJitter2) + (float) mEndY;
+	float aCX = (aLength + aLength) * SinDeg(aJitter3) + (float) mEndX;
+	float aCY = (aLength + aLength) * NegCosDeg(aJitter3) + (float) mEndY;
+	g->SetColorizeImages(true);
+	g->SetColor(Color(0xff, 0xff, 0xff, mAlpha > 0xfe ? 0xff : mAlpha));
+	DrawDots(g, mApp, mX1, mY1, (int) aAX, (int) aAY, false);
+	DrawDots(g, mApp, (int) aAX, (int) aAY, (int) aCX, (int) aCY, false);
+	DrawDots(g, mApp, (int) aCX, (int) aCY, (int) aBX, (int) aBY, false);
+	DrawDots(g, mApp, (int) aBX, (int) aBY, mEndX, mEndY, false);
 	g->SetColorizeImages(false);
 }
 

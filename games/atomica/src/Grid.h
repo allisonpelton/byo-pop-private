@@ -114,7 +114,7 @@ public:
 	static void		CellToPixel(int theCol, int theRow, int* thePixel);	// 0x40c4c0: the middle of a cell
 	static void		PixelToCell(int theX, int theY, int* theCell);		// 0x40c4f0
 	void			FlyAwayAll();									// 0x40c540
-	int				CountAtoms(bool theOnlyFlying);					// 0x40c6a0
+	int				CountAtoms(bool theNoElements);						// 0x40c6a0
 	int				TypesInRect(int theCol1, int theRow1, int theCol2, int theRow2);	// 0x40c700
 	bool			HasType(int theType);							// 0x40c830
 	void			FlushStats();									// 0x40c8c0

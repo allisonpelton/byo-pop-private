@@ -306,6 +306,7 @@ void Grid::Save(FILE* f)
 	fwrite(&mArrowX, 4, 1, f);
 	fwrite(&mArrowY, 4, 1, f);
 	fwrite(&mI4d0, 4, 1, f);
+	fwrite(&mRadiation[0][0], 4, 1, f);	// the original writes 8 bytes from +0x4d0, so these four go twice
 	fwrite(mRadiation, 0x48, 1, f);
 	fputc(mRadiationRound ? 1 : 0, f);
 	fwrite(&mI520, 4, 1, f);
@@ -376,6 +377,7 @@ void Grid::Load(FILE* f)
 	fread(&mArrowX, 4, 1, f);
 	fread(&mArrowY, 4, 1, f);
 	fread(&mI4d0, 4, 1, f);
+	fread(&mRadiation[0][0], 4, 1, f);	// (overwritten by the next read)
 	fread(mRadiation, 0x48, 1, f);
 	mRadiationRound = fgetc(f) != 0;
 	fread(&mI520, 4, 1, f);

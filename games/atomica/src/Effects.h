@@ -212,6 +212,26 @@ public:
 };
 
 
+// 0x425120: the infection of a biohazard on its way to a free cell: a spark that wanders round the target in a growing circle,
+// a jagged line of dots from the biohazard to it, and at the end a burst of 150 sparks at the target
+class InfectBolt : public Effect
+{
+public:
+	int			mX1, mY1;		// +0x18 +0x1c the point on the line 24 pixels from the start
+	int			mStartX, mStartY;	// +0x20 +0x24 the biohazard
+	int			mEndX, mEndY;	// +0x28 +0x2c the wandering end of the line
+	int			mTargetX, mTargetY;	// +0x30 +0x34 the cell it infects
+	int			mTimer;			// +0x48 updates to the burst (90)
+	int			mAlpha;			// +0x4c 360, 3 less each update
+	int			mAngle;			// +0x50 where the end is on its circle
+	float		mRadius;		// +0x54 of that circle, 0.28 more each update
+	bool		mMoving;		// +0x58
+	int			mSoundTimer;	// +0x5c
+	InfectBolt(AtomicaApp* theApp, int theStartX, int theStartY, int theTargetX, int theTargetY);
+	virtual bool Update();		// 0x425230
+	virtual void Draw(Graphics* g);	// 0x425730
+};
+
 // 0x41c5f0: a spark that runs along the edge of the field while it is revealed, with a trail of 20 points
 class Sparkle : public Effect
 {
