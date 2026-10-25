@@ -4,6 +4,7 @@
 #include "WinBMApp.h"
 #include "Board.h"
 #include "Piece.h"
+#include "PuzzleSolver.h"
 #include "TitleScreen.h"
 #include "GameSelector.h"
 #include "HelpWidget.h"
@@ -287,7 +288,69 @@ void AutoplayBot::Update()
 	if (aBoard->mState != STATE_PLAYING)
 		return;
 
+	// Columns still sliding sideways do not count as moving, and a click finds its coin by where it is drawn
+	// (Board::PieceAt): the solver's tests wait until every coin rests in its cell
+	bool isAtRest = !aBoard->mPiecesMoving;
+	for (int aRow = 0; aRow < Board::BOARD_ROWS; aRow++)
+	{
+		for (int aCol = 0; aCol < Board::BOARD_COLS; aCol++)
+		{
+			Piece* aPiece = aBoard->mGrid[aRow][aCol];
+			if ((aPiece != NULL) && ((aPiece->mX != (double) Board::ColX(aCol)) || (aPiece->mY != (double) Board::RowY(aRow))))
+				isAtRest = false;
+		}
+	}
+
+	if ((mPressUndo > 0) && (aBoard->mSolver != NULL) && (aBoard->mSolverUndo) && (!aBoard->mSolverUndos.empty()) &&
+		((int) (mRand() % 100) < mPressUndo))
+	{
+		Queue("char", "u");
+		if (mLog != NULL)
+			fprintf(mLog, "# undo\n");
+		mNextAction = aNow + 20 + (int) (mRand() % 40);
+		return;
+	}
+
+	if ((!mCheckPending) && (UsePickpocket(aBoard, aNow)))
+		return;
+
+	if (mCheckPending)
+	{
+		int aVerdict = HoverVerdict(aBoard);
+		if ((aVerdict < 0) && (aNow - mCheckSince < 3000))
+			return;
+		Queue("click", mCheckArgs);
+		if (mLog != NULL)
+			fprintf(mLog, "# %s, checked: %d\n", mCheckWhat.c_str(), aVerdict);
+		mCheckPending = false;
+		mNextAction = aNow + 20 + (int) (mRand() % 40);
+		return;
+	}
+
 	int aX, aY, aSize;
+	if ((mFollowSolver > 0) && (aBoard->mSolver != NULL) && ((mFollowSolver >= 100) || ((int) (mRand() % 100) < mFollowSolver)))
+	{
+		PuzzleSolver* aSolver = aBoard->mSolver;
+		if ((!isAtRest) || (aSolver->mStatus == PuzzleSolver::STATUS_THINKING) ||
+			((aSolver->mStatus == PuzzleSolver::STATUS_WINNABLE) && (aSolver->mPlan.empty())))
+			return; // wait for the board to settle and the solver to answer
+		if ((aSolver->mStatus == PuzzleSolver::STATUS_WINNABLE) && (mPressHints) && (aBoard->mSolverHintBoard == 0) &&
+			(aBoard->mSolverHints) && (!aBoard->mSolverHintWanted) && (aBoard->mSolverMessageTicks == 0))
+		{
+			Queue("char", "h");
+			mNextAction = aNow + 5;
+			return;
+		}
+		if (aSolver->mStatus == PuzzleSolver::STATUS_WINNABLE)
+		{
+			const PuzzleSolver::Move& aMove = aSolver->mPlan[0];
+			Click(Board::ColX(aMove.mCol) + 14, Board::RowY(aMove.mRow) + 14, "solver's click");
+			mNextAction = aNow + 20;
+			return;
+		}
+	}
+	if ((mCheckClicks) && (aBoard->mSolverCheck != NULL) && (!isAtRest))
+		return;
 	if ((mRand() % 25 == 0) || (!PickGroup(aBoard, &aX, &aY, &aSize)))
 	{
 		// A random cell: often an invalid click (single coin, a bag, an empty cell)
@@ -299,7 +362,88 @@ void AutoplayBot::Update()
 	{
 		char aWhat[32];
 		snprintf(aWhat, sizeof(aWhat), "group of %d", aSize);
+		if ((mCheckClicks) && (aBoard->mSolverCheck != NULL))
+		{
+			char anArgs[32];
+			snprintf(anArgs, sizeof(anArgs), "%d %d", aX, aY);
+			Queue("move", anArgs);
+			mCheckPending = true;
+			mCheckArgs = anArgs;
+			mCheckWhat = aWhat;
+			mCheckSince = aNow;
+			mNextAction = aNow + 2;
+			return;
+		}
 		Click(aX, aY, aWhat);
 	}
 	mNextAction = aNow + 20 + (int) (mRand() % 40);
+}
+
+// -autoplaypocket: a Pickpocket on a random small group, in mUsePockets% of the turns and whenever no group can
+// be clicked (not while a Puzzle board moves)
+bool AutoplayBot::UsePickpocket(Board* theBoard, int theNow)
+{
+	if ((mUsePockets <= 0) || (!theBoard->mPickpocket) || (theBoard->mPickpockets <= 0) ||
+		((theBoard->mPiecesMoving) && (mApp->mGameType == GAMETYPE_PUZZLE)))
+		return false;
+	int aX, aY, aSize;
+	if (((int) (mRand() % 100) >= mUsePockets) && (PickGroup(theBoard, &aX, &aY, &aSize)))
+		return false;
+	std::vector<Piece*> aTargets;
+	for (int aRow = 0; aRow < Board::BOARD_ROWS; aRow++)
+	{
+		for (int aCol = 0; aCol < Board::BOARD_COLS; aCol++)
+		{
+			if (theBoard->IsPickpocketTarget(theBoard->mGrid[aRow][aCol]))
+				aTargets.push_back(theBoard->mGrid[aRow][aCol]);
+		}
+	}
+	if (aTargets.empty())
+		return false;
+	Piece* aPiece = aTargets[mRand() % aTargets.size()];
+	aX = theBoard->mX + (int) aPiece->mX + 14;
+	aY = theBoard->mY + (int) aPiece->mY + 14;
+	char anArgs[32];
+	snprintf(anArgs, sizeof(anArgs), "%d %d", aX, aY);
+	if (mPocketsUsed++ % 2 == 1)
+	{
+		if (!theBoard->mPickpocketArmed)
+			Queue("char", "p");
+		Click(aX, aY, "pickpocket: p and a click");
+	}
+	else
+	{
+		Queue("move", anArgs);
+		Queue("rclick", anArgs);
+		if (mLog != NULL)
+			fprintf(mLog, "# pickpocket: right click\n");
+	}
+	mNextAction = theNow + 20 + (int) (mRand() % 40);
+	return true;
+}
+
+// -autoplaycheck: the solver's verdict (PuzzleClickCheck::Verdict) on the click on the hovered group, -1 while
+// it has none; VERDICT_NONE when no check comes (a lost level)
+int AutoplayBot::HoverVerdict(Board* theBoard)
+{
+	PuzzleSolver* aSolver = theBoard->mSolver;
+	if ((theBoard->mSolverCheck == NULL) || (aSolver->mStatus == PuzzleSolver::STATUS_LOST))
+		return PuzzleClickCheck::VERDICT_NONE;
+	if ((theBoard->mPiecesMoving) || (aSolver->mStatus == PuzzleSolver::STATUS_THINKING) ||
+		(theBoard->mSolverVerdictBoard != aSolver->GetBoardHash()))
+		return -1;
+	for (int aRow = 0; aRow < Board::BOARD_ROWS; aRow++)
+	{
+		for (int aCol = 0; aCol < Board::BOARD_COLS; aCol++)
+		{
+			Piece* aPiece = theBoard->mGrid[aRow][aCol];
+			if ((aPiece == NULL) || (!aPiece->mHighlighted))
+				continue;
+			int aKey = theBoard->SolverGroupKey(aCol, aRow);
+			if ((aKey < 0) || (theBoard->mSolverVerdict[aKey] == PuzzleClickCheck::VERDICT_NONE))
+				return -1;
+			return theBoard->mSolverVerdict[aKey];
+		}
+	}
+	return -1;
 }

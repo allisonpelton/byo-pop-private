@@ -1,0 +1,21 @@
+{
+  "id": "pickpocket",
+  "name": "Pickpocket",
+  "version": "1.0",
+  "author": "byo-pop examples",
+  "description": "A powerup for every mode. A Pickpocket lifts a group too small to click (a single coin, or two where three are needed), for no points. Right-click the group, or press P (or click the counter under Mr. Money) and then click it. You start with a few and get more each level. A Puzzle game goes on while a Pickpocket can still lift a coin. Keeps its own high scores.",
+  "affectsScores": true,
+  "settings": [
+    { "type": "section", "label": "Pickpockets" },
+    { "id": "start", "label": "At the start of a game", "type": "int", "default": 3, "min": 0, "max": 20 },
+    { "id": "perLevel", "label": "More at each new level", "type": "int", "default": 1, "min": 0, "max": 10 },
+    { "id": "max", "label": "The most you can hold", "type": "int", "default": 5, "min": 1, "max": 20 }
+  ],
+  "features": {
+    "pickpocket": {
+      "start": { "$setting": "start" },
+      "perLevel": { "$setting": "perLevel" },
+      "max": { "$setting": "max" }
+    }
+  }
+}
