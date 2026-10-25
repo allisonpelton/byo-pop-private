@@ -840,6 +840,16 @@ void Board::KeyChar(SexyChar theChar)
 		}
 		return;
 	}
+	// port(mods): U takes back the last click (the solver's undo); a replay undoes itself (OP_UNDO)
+	if (((theChar == 'u') || (theChar == 'U')) && (mSolver != NULL) && (mPlayer == NULL))
+	{
+		if ((mState == STATE_PLAYING) && (mPauseCount == 0))
+		{
+			RecordInput(Replay::OP_UNDO);
+			RequestSolverUndo();
+		}
+		return;
+	}
 
 	if (theChar == ' ')
 		Pause(mPauseCount == 0);
@@ -1040,6 +1050,7 @@ Board::~Board()
 	delete mRecorder; // port(mods)
 	delete mPlayer;
 	delete mSolver;
+	delete mSolverCheck;
 
 	// port: the original leaks every piece. Each piece is owned by exactly one of mGrid, mNextRow and
 	// mLoosePieces, but UpdatePhysics clears mGrid by the piece's own mRow/mCol (as the original does), so
@@ -1068,169 +1079,8 @@ bool Board::LoadGame()
 	if (!mApp->ReadBufferFromFile(GetSaveGameFileName(), &aBuffer, false))
 		return false;
 
-	int aVersion = -1;
-	ReadRaw(&aBuffer, &aVersion);
-	if (aVersion != SAVEGAME_VERSION)
+	if (!ReadSaveGame(&aBuffer, true))
 		return false;
-
-	ReadRaw(&aBuffer, &mApp->mGameType);
-	ReadRaw(&aBuffer, &mApp->mSkillLevel);
-	ReadRaw(&aBuffer, &mState);
-	unsigned int aRandLen = 0;
-	ReadRaw(&aBuffer, &aRandLen);
-	std::string aRandState;
-	aRandState.resize(aRandLen);
-	if (aRandLen > 0)
-		aBuffer.ReadBytes((uchar*) &aRandState[0], (int) aRandLen);
-	// 1.2's SRand_state: the 624 words (mti kept), or the 4357 seed for any other length
-	if (aRandState.length() == MTRAND_N * 4)
-		mRand.SRand(aRandState);
-	else
-		SeedMTRand12(mRand, 4357);
-
-	// The constructor's grid and next-row pieces are deleted as each cell is read, as the original does
-	// (0x40774b, 0x4077a2)
-	for (int aRow = 0; aRow < BOARD_ROWS; aRow++)
-	{
-		for (int aCol = 0; aCol < BOARD_COLS; aCol++)
-		{
-			Piece* aPiece = NULL;
-			bool aPresent = false;
-			ReadBool(&aBuffer, &aPresent);
-			if (aPresent)
-			{
-				aPiece = new Piece();
-				ReadPiece(&aBuffer, aPiece);
-			}
-			delete mGrid[aRow][aCol];
-			mGrid[aRow][aCol] = aPiece;
-		}
-	}
-	for (int aCol = 0; aCol < BOARD_COLS; aCol++)
-	{
-		Piece* aPiece = new Piece();
-		ReadPiece(&aBuffer, aPiece);
-		delete mNextRow[aCol];
-		mNextRow[aCol] = aPiece;
-	}
-
-	ReadRaw(&aBuffer, &mMinGroup);
-	ReadRaw(&aBuffer, &mRiseOffset);
-	ReadBool(&aBuffer, &mHasMoves);
-	ReadRaw(&aBuffer, &mCols);
-	ReadRaw(&aBuffer, &mRows);
-	ReadRaw(&aBuffer, &mMintPixels);
-	ReadRaw(&aBuffer, &mMint);
-	ReadRaw(&aBuffer, &mMintTarget);
-	ReadRaw(&aBuffer, &mMintSpeed);
-	ReadRaw(&aBuffer, &mMintAccel);
-	ReadRaw(&aBuffer, &mMintPerClick);
-	ReadColor(&aBuffer, &mMovesColor);
-	ReadRaw(&aBuffer, &mScore);
-	ReadRaw(&aBuffer, &mDisplayScore);
-	ReadRaw(&aBuffer, &mPointsMult);
-	ReadRaw(&aBuffer, &mMeterFlash);
-	ReadRaw(&aBuffer, &mMeterJustFull);
-	ReadRaw(&aBuffer, &mMeterFraction);
-	ReadRaw(&aBuffer, &mMeterTarget);
-	ReadRaw(&aBuffer, &mMeterCoins);
-	ReadRaw(&aBuffer, &mMeterDrained);
-	ReadRaw(&aBuffer, &mMeterPending);
-	ReadRaw(&aBuffer, &mMeterLaunchTimer);
-	ReadRaw(&aBuffer, &mMeterEmptying);
-	ReadRaw(&aBuffer, &mMeterCapacity);
-	ReadRaw(&aBuffer, &mMeterDrainRate);
-
-	// The old loose pieces are only unlinked, as the original (port: also deleted)
-	for (std::list<Piece*>::iterator anItr = mLoosePieces.begin(); anItr != mLoosePieces.end(); ++anItr)
-		delete *anItr;
-	mLoosePieces.clear();
-	int aCount = 0;
-	ReadRaw(&aBuffer, &aCount);
-	for (int i = 0; i < aCount; i++)
-	{
-		Piece* aPiece = new Piece();
-		ReadPiece(&aBuffer, aPiece);
-		mLoosePieces.push_back(aPiece);
-	}
-
-	mTubeCoins.clear();
-	aCount = 0;
-	ReadRaw(&aBuffer, &aCount);
-	for (int i = 0; i < aCount; i++)
-	{
-		TubeCoin aCoin;
-		ReadRaw(&aBuffer, &aCoin.mY);
-		ReadRaw(&aBuffer, &aCoin.mDist);
-		ReadRaw(&aBuffer, &aCoin.mFrame);
-		mTubeCoins.push_back(aCoin);
-	}
-
-	ReadRaw(&aBuffer, &mBillsToSpawn);
-	ReadRaw(&aBuffer, &mBagsReleased);
-	ReadRaw(&aBuffer, &mBagsBanked);
-	ReadRaw(&aBuffer, &mMeterFlashFrame);
-	ReadRaw(&aBuffer, &mMeterFlashTimer);
-	ReadRaw(&aBuffer, &mBagsNeeded);
-	ReadBool(&aBuffer, &mLevelUpActive);
-	ReadRaw(&aBuffer, &mLevelUpY);
-	ReadRaw(&aBuffer, &mLevelUpAngle);
-	ReadRaw(&aBuffer, &mLevelUpUnused);
-	ReadRaw(&aBuffer, &mLevelUpStretch);
-	ReadBool(&aBuffer, &mLevelUpBouncing);
-	ReadRaw(&aBuffer, &mLevelUpLeftY);
-	ReadRaw(&aBuffer, &mLevelUpLeftVY);
-	ReadRaw(&aBuffer, &mLevelUpRightY);
-	ReadRaw(&aBuffer, &mLevelUpRightVY);
-	ReadRaw(&aBuffer, &mMintDelay);
-	ReadBool(&aBuffer, &mPiecesMoving);
-	ReadRaw(&aBuffer, &mLevel);
-	ReadRaw(&aBuffer, &mLevelEndDelay);
-	ReadRaw(&aBuffer, &mPauseCount);
-	ReadRaw(&aBuffer, &mPauseFade);
-	ReadRaw(&aBuffer, &mPauseAnim);
-	ReadBool(&aBuffer, &mPauseClickable);
-	ReadRaw(&aBuffer, &mGoTimer);
-	ReadBool(&aBuffer, &mBannerVisible);
-	ReadRaw(&aBuffer, &mBannerTimer);
-	ReadRaw(&aBuffer, &mOverflowTicks);
-	ReadRaw(&aBuffer, &mFlingDelay);
-	ReadBool(&aBuffer, &mCountdownActive);
-	ReadRaw(&aBuffer, &mCountdownValue);
-	ReadRaw(&aBuffer, &mGameOverRiseDelay);
-	ReadRaw(&aBuffer, &mLevelCoinsCleared);
-	ReadRaw(&aBuffer, &mGameCoinsCleared);
-	ReadRaw(&aBuffer, &mLevelBiggestBonus);
-	ReadRaw(&aBuffer, &mGameBiggestBonus);
-	ReadRaw(&aBuffer, &mLevelBiggestCombo);
-	ReadRaw(&aBuffer, &mGameBiggestCombo);
-	ReadRaw(&aBuffer, &mBombColor);
-	ReadRaw(&aBuffer, &mBombIdle);
-	ReadBool(&aBuffer, &mMoveDigitActive);
-	ReadRaw(&aBuffer, &mMoveDigit);
-	ReadRaw(&aBuffer, &mMoveDigitFade);
-	bool aHasButton = false;
-	ReadBool(&aBuffer, &aHasButton);
-	if (aHasButton)
-		ShowContinueButton();
-
-	// port(mods): a seeded game's trailer (WriteSaveGame); without one the game plays on unseeded
-	mGameSeed = 0;
-	mUserSeeded = false;
-	if (aBuffer.mReadBitPos / 8 + 8 <= aBuffer.GetDataLen())
-	{
-		uchar aTag[4];
-		aBuffer.ReadBytes(aTag, 4);
-		uint32_t aSeed = 0;
-		ReadRaw(&aBuffer, &aSeed);
-		if ((memcmp(aTag, "BMSD", 4) == 0) && (aSeed != 0))
-		{
-			mGameSeed = aSeed;
-			mUserSeeded = true;
-			SeedMTRand12(mEffectsRand, ~aSeed);
-			SDL_Log("savegame: seed %u", (unsigned) aSeed);
-		}
-	}
 
 	// port(mods): a resumed game is not recorded (Replay.h), and never starts a LiveSplit run
 	delete mRecorder;
@@ -1248,6 +1098,179 @@ bool Board::LoadGame()
 	mMintDelay = 200;
 	UpdateMovesLeft();
 	FindGroups();
+	return true;
+}
+
+// port: the body of 0x4075d0, from the version on (LoadGame). port(mods): also the solver's undo
+// (SolverUndo), which keeps the seed (theTrailer false).
+bool Board::ReadSaveGame(Buffer* theBuffer, bool theTrailer)
+{
+	int aVersion = -1;
+	ReadRaw(theBuffer, &aVersion);
+	if (aVersion != SAVEGAME_VERSION)
+		return false;
+
+	ReadRaw(theBuffer, &mApp->mGameType);
+	ReadRaw(theBuffer, &mApp->mSkillLevel);
+	ReadRaw(theBuffer, &mState);
+	unsigned int aRandLen = 0;
+	ReadRaw(theBuffer, &aRandLen);
+	std::string aRandState;
+	aRandState.resize(aRandLen);
+	if (aRandLen > 0)
+		theBuffer->ReadBytes((uchar*) &aRandState[0], (int) aRandLen);
+	// 1.2's SRand_state: the 624 words (mti kept), or the 4357 seed for any other length
+	if (aRandState.length() == MTRAND_N * 4)
+		mRand.SRand(aRandState);
+	else
+		SeedMTRand12(mRand, 4357);
+
+	// The constructor's grid and next-row pieces are deleted as each cell is read, as the original does
+	// (0x40774b, 0x4077a2)
+	for (int aRow = 0; aRow < BOARD_ROWS; aRow++)
+	{
+		for (int aCol = 0; aCol < BOARD_COLS; aCol++)
+		{
+			Piece* aPiece = NULL;
+			bool aPresent = false;
+			ReadBool(theBuffer, &aPresent);
+			if (aPresent)
+			{
+				aPiece = new Piece();
+				ReadPiece(theBuffer, aPiece);
+			}
+			delete mGrid[aRow][aCol];
+			mGrid[aRow][aCol] = aPiece;
+		}
+	}
+	for (int aCol = 0; aCol < BOARD_COLS; aCol++)
+	{
+		Piece* aPiece = new Piece();
+		ReadPiece(theBuffer, aPiece);
+		delete mNextRow[aCol];
+		mNextRow[aCol] = aPiece;
+	}
+
+	ReadRaw(theBuffer, &mMinGroup);
+	ReadRaw(theBuffer, &mRiseOffset);
+	ReadBool(theBuffer, &mHasMoves);
+	ReadRaw(theBuffer, &mCols);
+	ReadRaw(theBuffer, &mRows);
+	ReadRaw(theBuffer, &mMintPixels);
+	ReadRaw(theBuffer, &mMint);
+	ReadRaw(theBuffer, &mMintTarget);
+	ReadRaw(theBuffer, &mMintSpeed);
+	ReadRaw(theBuffer, &mMintAccel);
+	ReadRaw(theBuffer, &mMintPerClick);
+	ReadColor(theBuffer, &mMovesColor);
+	ReadRaw(theBuffer, &mScore);
+	ReadRaw(theBuffer, &mDisplayScore);
+	ReadRaw(theBuffer, &mPointsMult);
+	ReadRaw(theBuffer, &mMeterFlash);
+	ReadRaw(theBuffer, &mMeterJustFull);
+	ReadRaw(theBuffer, &mMeterFraction);
+	ReadRaw(theBuffer, &mMeterTarget);
+	ReadRaw(theBuffer, &mMeterCoins);
+	ReadRaw(theBuffer, &mMeterDrained);
+	ReadRaw(theBuffer, &mMeterPending);
+	ReadRaw(theBuffer, &mMeterLaunchTimer);
+	ReadRaw(theBuffer, &mMeterEmptying);
+	ReadRaw(theBuffer, &mMeterCapacity);
+	ReadRaw(theBuffer, &mMeterDrainRate);
+
+	// The old loose pieces are only unlinked, as the original (port: also deleted)
+	for (std::list<Piece*>::iterator anItr = mLoosePieces.begin(); anItr != mLoosePieces.end(); ++anItr)
+		delete *anItr;
+	mLoosePieces.clear();
+	int aCount = 0;
+	ReadRaw(theBuffer, &aCount);
+	for (int i = 0; i < aCount; i++)
+	{
+		Piece* aPiece = new Piece();
+		ReadPiece(theBuffer, aPiece);
+		mLoosePieces.push_back(aPiece);
+	}
+
+	mTubeCoins.clear();
+	aCount = 0;
+	ReadRaw(theBuffer, &aCount);
+	for (int i = 0; i < aCount; i++)
+	{
+		TubeCoin aCoin;
+		ReadRaw(theBuffer, &aCoin.mY);
+		ReadRaw(theBuffer, &aCoin.mDist);
+		ReadRaw(theBuffer, &aCoin.mFrame);
+		mTubeCoins.push_back(aCoin);
+	}
+
+	ReadRaw(theBuffer, &mBillsToSpawn);
+	ReadRaw(theBuffer, &mBagsReleased);
+	ReadRaw(theBuffer, &mBagsBanked);
+	ReadRaw(theBuffer, &mMeterFlashFrame);
+	ReadRaw(theBuffer, &mMeterFlashTimer);
+	ReadRaw(theBuffer, &mBagsNeeded);
+	ReadBool(theBuffer, &mLevelUpActive);
+	ReadRaw(theBuffer, &mLevelUpY);
+	ReadRaw(theBuffer, &mLevelUpAngle);
+	ReadRaw(theBuffer, &mLevelUpUnused);
+	ReadRaw(theBuffer, &mLevelUpStretch);
+	ReadBool(theBuffer, &mLevelUpBouncing);
+	ReadRaw(theBuffer, &mLevelUpLeftY);
+	ReadRaw(theBuffer, &mLevelUpLeftVY);
+	ReadRaw(theBuffer, &mLevelUpRightY);
+	ReadRaw(theBuffer, &mLevelUpRightVY);
+	ReadRaw(theBuffer, &mMintDelay);
+	ReadBool(theBuffer, &mPiecesMoving);
+	ReadRaw(theBuffer, &mLevel);
+	ReadRaw(theBuffer, &mLevelEndDelay);
+	ReadRaw(theBuffer, &mPauseCount);
+	ReadRaw(theBuffer, &mPauseFade);
+	ReadRaw(theBuffer, &mPauseAnim);
+	ReadBool(theBuffer, &mPauseClickable);
+	ReadRaw(theBuffer, &mGoTimer);
+	ReadBool(theBuffer, &mBannerVisible);
+	ReadRaw(theBuffer, &mBannerTimer);
+	ReadRaw(theBuffer, &mOverflowTicks);
+	ReadRaw(theBuffer, &mFlingDelay);
+	ReadBool(theBuffer, &mCountdownActive);
+	ReadRaw(theBuffer, &mCountdownValue);
+	ReadRaw(theBuffer, &mGameOverRiseDelay);
+	ReadRaw(theBuffer, &mLevelCoinsCleared);
+	ReadRaw(theBuffer, &mGameCoinsCleared);
+	ReadRaw(theBuffer, &mLevelBiggestBonus);
+	ReadRaw(theBuffer, &mGameBiggestBonus);
+	ReadRaw(theBuffer, &mLevelBiggestCombo);
+	ReadRaw(theBuffer, &mGameBiggestCombo);
+	ReadRaw(theBuffer, &mBombColor);
+	ReadRaw(theBuffer, &mBombIdle);
+	ReadBool(theBuffer, &mMoveDigitActive);
+	ReadRaw(theBuffer, &mMoveDigit);
+	ReadRaw(theBuffer, &mMoveDigitFade);
+	bool aHasButton = false;
+	ReadBool(theBuffer, &aHasButton);
+	if (aHasButton)
+		ShowContinueButton();
+
+	if (!theTrailer)
+		return true;
+
+	// port(mods): a seeded game's trailer (WriteSaveGame); without one the game plays on unseeded
+	mGameSeed = 0;
+	mUserSeeded = false;
+	if (theBuffer->mReadBitPos / 8 + 8 <= theBuffer->GetDataLen())
+	{
+		uchar aTag[4];
+		theBuffer->ReadBytes(aTag, 4);
+		uint32_t aSeed = 0;
+		ReadRaw(theBuffer, &aSeed);
+		if ((memcmp(aTag, "BMSD", 4) == 0) && (aSeed != 0))
+		{
+			mGameSeed = aSeed;
+			mUserSeeded = true;
+			SeedMTRand12(mEffectsRand, ~aSeed);
+			SDL_Log("savegame: seed %u", (unsigned) aSeed);
+		}
+	}
 	return true;
 }
 
@@ -2390,6 +2413,8 @@ void Board::OnClick(Piece* thePiece)
 		MarkDirty();
 		return;
 	}
+	if (mSolver != NULL) // port(mods): the game before this click, for the solver's undo
+		SaveSolverUndo();
 
 	if (!mPlayStarted)
 	{
@@ -2695,16 +2720,26 @@ void Board::OnClick(Piece* thePiece)
 void Board::ClickAt(int x, int y)
 {
 	Piece* aPiece = PieceAt(x, y);
-	// port(mods): a click on the solver's status line (not on a coin) asks for a hint (PuzzleSolver.h)
+	// port(mods): a click on the solver's status lines (not on a coin) asks for a hint, on its undo line
+	// takes back the last click (PuzzleSolver.h)
 	Rect aStatusRect;
-	if ((aPiece == NULL) && (mSolver != NULL) && (mSolverHints) && (GetSolverStatusRect(&aStatusRect, NULL, NULL)) &&
+	std::vector<SolverLine> aLines;
+	if ((aPiece == NULL) && (mSolver != NULL) && (GetSolverStatusRect(&aStatusRect, &aLines)) &&
 		(aStatusRect.Contains(x, y)))
 	{
-		RequestSolverHint();
+		size_t aLine = std::min((size_t) std::max(y - aStatusRect.mY - 3, 0) / 19, aLines.size() - 1);
+		if (aLines[aLine].mKind == SOLVER_LINE_UNDO)
+			RequestSolverUndo();
+		else
+			RequestSolverHint();
 		return;
 	}
 	if ((aPiece != NULL) && (!aPiece->mIsSpecial))
+	{
+		if ((mSolver != NULL) && (!CheckSolverClick(aPiece))) // port(mods)
+			return;
 		OnClick(aPiece);
+	}
 }
 
 // 0x40c5f0 slot 38: any mouse button
@@ -3641,6 +3676,24 @@ Board::Board(WinBMApp* theApp)
 	mSolverLogged = -1;
 	mSolverLostLevel = -1;
 	mSolverMessageTicks = 0;
+	mSolverFreeHints = 0;
+	mSolverUndo = false;
+	mSolverUndoPrice = SOLVER_PRICE_FREE;
+	mSolverUndoValue = 0;
+	mSolverUndoLimit = 0;
+	mSolverWarn = SOLVER_WARN_OFF;
+	mSolverLevel = -1;
+	mSolverHintsTaken = 0;
+	mSolverUndosTaken = 0;
+	mSolverSpent = 0;
+	mSolverCheck = NULL;
+	mSolverVerdictBoard = 0;
+	memset(mSolverVerdict, 0, sizeof(mSolverVerdict));
+	mSolverCheckGroup = -1;
+	memset(mSolverWarnCell, 0, sizeof(mSolverWarnCell));
+	mSolverWarning = false;
+	mSolverExpect = PuzzleClickCheck::VERDICT_NONE;
+	mSolverExpectBoard = 0;
 	if ((mApp->mGameType == GAMETYPE_PUZZLE) && (ModFeatureEnabled("puzzleSolver")))
 	{
 		mSolver = new PuzzleSolver();
@@ -3654,9 +3707,25 @@ Board::Board(WinBMApp* theApp)
 			mSolverHintValue = ModFeatureInt("puzzleSolver", "hintAmount", 500, 0, 1000000);
 		else
 			mSolverHintValue = ModFeatureInt("puzzleSolver", "hintPercent", 10, 0, 100);
+		mSolverFreeHints = ModFeatureInt("puzzleSolver", "freeHints", 0, 0, 1000);
+		mSolverUndo = ModFeatureBool("puzzleSolver", "undo", false);
+		std::string anUndoPrice = ModFeatureString("puzzleSolver", "undoPrice", "amount");
+		mSolverUndoPrice = (anUndoPrice == "free") ? SOLVER_PRICE_FREE : (anUndoPrice == "percent") ? SOLVER_PRICE_PERCENT :
+			SOLVER_PRICE_AMOUNT;
+		if (mSolverUndoPrice == SOLVER_PRICE_PERCENT)
+			mSolverUndoValue = ModFeatureInt("puzzleSolver", "undoPercent", 10, 0, 100);
+		else
+			mSolverUndoValue = ModFeatureInt("puzzleSolver", "undoAmount", 500, 0, 1000000);
+		mSolverUndoLimit = ModFeatureInt("puzzleSolver", "undoLimit", 3, 1, 1000);
+		std::string aWarn = ModFeatureString("puzzleSolver", "warn", "off");
+		mSolverWarn = (aWarn == "show") ? SOLVER_WARN_SHOW : (aWarn == "block") ? SOLVER_WARN_BLOCK : SOLVER_WARN_OFF;
+		if (mSolverWarn != SOLVER_WARN_OFF)
+			mSolverCheck = new PuzzleClickCheck();
 		mSolverBudget = ModFeatureInt("puzzleSolver", "positionsPerTick", 300, 1, 1000000);
-		SDL_Log("solver: show %s, end when lost %s, hints %s (%s %d), %d positions a tick", aShow.c_str(),
-			mSolverEndWhenLost ? "on" : "off", mSolverHints ? "on" : "off", aPrice.c_str(), mSolverHintValue, mSolverBudget);
+		SDL_Log("solver: show %s, end when lost %s, hints %s (%s %d, %d free), undo %s (%s %d, %d a level), warn %s, "
+			"%d positions a tick", aShow.c_str(), mSolverEndWhenLost ? "on" : "off", mSolverHints ? "on" : "off",
+			aPrice.c_str(), mSolverHintValue, mSolverFreeHints, mSolverUndo ? "on" : "off", anUndoPrice.c_str(),
+			mSolverUndoValue, mSolverUndoLimit, aWarn.c_str(), mSolverBudget);
 	}
 	mCreateTick = GetTickCount();
 	mTimerTick = mCreateTick;
@@ -3920,6 +3989,8 @@ void Board::UpdateSolver()
 		return;
 	if (mSolverMessageTicks > 0)
 		mSolverMessageTicks--;
+	if (mSolverLevel != mLevel)
+		StartSolverLevel();
 
 	// A test of the solver: a level it found lost must never be won
 	if ((mSolverLostLevel == mLevel) && (mBagsReleased >= mBagsNeeded))
@@ -3931,25 +4002,17 @@ void Board::UpdateSolver()
 	if ((mState != STATE_PLAYING) || (mPiecesMoving))
 	{
 		ClearSolverHint();
+		if (mSolverWarning)
+		{
+			mSolverWarning = false;
+			memset(mSolverWarnCell, 0, sizeof(mSolverWarnCell));
+			MarkDirty();
+		}
 		return;
 	}
 
 	PuzzleModel aModel;
-	for (int aRow = 0; aRow < BOARD_ROWS; aRow++)
-	{
-		for (int aCol = 0; aCol < BOARD_COLS; aCol++)
-		{
-			Piece* aPiece = mGrid[aRow][aCol];
-			if (aPiece == NULL)
-				aModel.mCell[aRow][aCol] = PuzzleModel::EMPTY;
-			else if (aPiece->mIsSpecial)
-				aModel.mCell[aRow][aCol] = PuzzleModel::BAG; // only bags rest in a Puzzle grid
-			else
-				aModel.mCell[aRow][aCol] = (int8_t) aPiece->mColor;
-		}
-	}
-	aModel.mReleased = mBagsReleased;
-	aModel.mNeeded = mBagsNeeded;
+	GetSolverModel(&aModel);
 	mSolver->SetBoard(aModel);
 	if ((mSolverHintBoard != 0) && (mSolverHintBoard != mSolver->GetBoardHash()))
 		ClearSolverHint();
@@ -3976,14 +4039,175 @@ void Board::UpdateSolver()
 		}
 	}
 
+	// A test of the warnings: what the last click's check found, against what the solver finds after it
+	if ((mSolverExpect != PuzzleClickCheck::VERDICT_NONE) && (mSolver->GetBoardHash() != mSolverExpectBoard) &&
+		(mSolver->mStatus != PuzzleSolver::STATUS_THINKING))
+	{
+		if ((mSolverExpect == PuzzleClickCheck::VERDICT_LOSES) && (mSolver->mStatus == PuzzleSolver::STATUS_WINNABLE))
+			SDL_Log("solver: WRONG: a click found to lose left the level winnable (tick %d)", mUpdateCnt);
+		else if ((mSolverExpect == PuzzleClickCheck::VERDICT_WINS) && (mSolver->mStatus == PuzzleSolver::STATUS_LOST))
+			SDL_Log("solver: a click found to win left the level lost (the bags landed another way? tick %d)", mUpdateCnt);
+		mSolverExpect = PuzzleClickCheck::VERDICT_NONE;
+	}
+
 	if ((mSolverHintWanted) && (mSolver->mStatus != PuzzleSolver::STATUS_THINKING))
 		GiveSolverHint();
+
+	UpdateSolverCheck();
 
 	if ((mSolverEndWhenLost) && (mSolver->mStatus == PuzzleSolver::STATUS_LOST) && (mBagsReleased < mBagsNeeded))
 	{
 		SDL_Log("solver: level %d can't be won: game over", mLevel + 1);
 		GameOver();
 	}
+}
+
+// A new level: its own free hints and undos
+void Board::StartSolverLevel()
+{
+	mSolverLevel = mLevel;
+	mSolverHintsTaken = 0;
+	mSolverUndosTaken = 0;
+	mSolverUndos.clear();
+}
+
+// The grid as the solver sees it
+void Board::GetSolverModel(PuzzleModel* theModel)
+{
+	for (int aRow = 0; aRow < BOARD_ROWS; aRow++)
+	{
+		for (int aCol = 0; aCol < BOARD_COLS; aCol++)
+		{
+			Piece* aPiece = mGrid[aRow][aCol];
+			if (aPiece == NULL)
+				theModel->mCell[aRow][aCol] = PuzzleModel::EMPTY;
+			else if (aPiece->mIsSpecial)
+				theModel->mCell[aRow][aCol] = PuzzleModel::BAG; // only bags rest in a Puzzle grid
+			else
+				theModel->mCell[aRow][aCol] = (int8_t) aPiece->mColor;
+		}
+	}
+	theModel->mReleased = mBagsReleased;
+	theModel->mNeeded = mBagsNeeded;
+}
+
+// A group of the solver's board by its first cell (row * BOARD_COLS + col); -1 if it is no group of 2
+int Board::SolverGroupKey(int theCol, int theRow) const
+{
+	std::vector<int> aCells;
+	mSolver->GetBoard().GetGroup(theCol, theRow, &aCells);
+	if (aCells.size() < 2)
+		return -1;
+	return *std::min_element(aCells.begin(), aCells.end());
+}
+
+// The warnings (mSolverWarn): the click on the hovered group is checked once the board is still and the
+// solver has its answer (the plan's next click needs no check), with the solver's budget per tick. Each
+// group's verdict holds until the board changes. A lost level gets no warnings: every click loses, and
+// the status line says so.
+void Board::UpdateSolverCheck()
+{
+	if (mSolverCheck == NULL)
+		return;
+	if (mSolverVerdictBoard != mSolver->GetBoardHash())
+	{
+		mSolverVerdictBoard = mSolver->GetBoardHash();
+		memset(mSolverVerdict, PuzzleClickCheck::VERDICT_NONE, sizeof(mSolverVerdict));
+		mSolverCheckGroup = -1;
+	}
+
+	// The hovered group: the highlighted coins (UpdateHover)
+	int aHover = -1;
+	for (int aRow = 0; (aRow < BOARD_ROWS) && (aHover < 0); aRow++)
+	{
+		for (int aCol = 0; (aCol < BOARD_COLS) && (aHover < 0); aCol++)
+		{
+			if ((mGrid[aRow][aCol] != NULL) && (mGrid[aRow][aCol]->mHighlighted))
+				aHover = SolverGroupKey(aCol, aRow);
+		}
+	}
+
+	if ((mSolver->mStatus == PuzzleSolver::STATUS_WINNABLE) || (mSolver->mStatus == PuzzleSolver::STATUS_GAVE_UP))
+	{
+		if ((aHover >= 0) && (mSolverVerdict[aHover] == PuzzleClickCheck::VERDICT_NONE) && (aHover != mSolverCheckGroup))
+		{
+			if ((mSolver->mStatus == PuzzleSolver::STATUS_WINNABLE) && (!mSolver->mPlan.empty()) &&
+				(SolverGroupKey(mSolver->mPlan[0].mCol, mSolver->mPlan[0].mRow) == aHover))
+				mSolverVerdict[aHover] = PuzzleClickCheck::VERDICT_WINS;
+			else
+			{
+				mSolverCheckGroup = aHover;
+				mSolverCheck->Start(mSolver->GetBoard(), aHover % BOARD_COLS, aHover / BOARD_COLS);
+			}
+		}
+		if (mSolverCheckGroup >= 0)
+		{
+			int aVerdict = mSolverCheck->Step(mSolverBudget);
+			if (aVerdict != PuzzleClickCheck::VERDICT_NONE)
+			{
+				mSolverVerdict[mSolverCheckGroup] = (int8_t) aVerdict;
+				SDL_Log("solver: check: the click at column %d, row %d %s (%d positions, tick %d)",
+					mSolverCheckGroup % BOARD_COLS, mSolverCheckGroup / BOARD_COLS,
+					(aVerdict == PuzzleClickCheck::VERDICT_WINS) ? "can win" :
+					(aVerdict == PuzzleClickCheck::VERDICT_LOSES) ? "loses" : "is too big to tell",
+					mSolverCheck->mPositions, mUpdateCnt);
+				mSolverCheckGroup = -1;
+			}
+		}
+	}
+
+	// The hovered group is red when its click loses
+	bool aWarnCell[BOARD_ROWS][BOARD_COLS];
+	memset(aWarnCell, 0, sizeof(aWarnCell));
+	bool isWarning = (aHover >= 0) && (mSolverVerdict[aHover] == PuzzleClickCheck::VERDICT_LOSES);
+	if (isWarning)
+	{
+		std::vector<int> aCells;
+		mSolver->GetBoard().GetGroup(aHover % BOARD_COLS, aHover / BOARD_COLS, &aCells);
+		for (int aCell : aCells)
+			aWarnCell[aCell / BOARD_COLS][aCell % BOARD_COLS] = true;
+	}
+	if ((isWarning != mSolverWarning) || (memcmp(aWarnCell, mSolverWarnCell, sizeof(aWarnCell)) != 0))
+	{
+		mSolverWarning = isWarning;
+		memcpy(mSolverWarnCell, aWarnCell, sizeof(aWarnCell));
+		MarkDirty();
+	}
+}
+
+// A click on a coin (ClickAt) with the solver on: false when the warnings refuse it (SOLVER_WARN_BLOCK: its
+// check found it loses, and the solver has a click that wins). It also keeps the click's verdict for the
+// test in UpdateSolver.
+bool Board::CheckSolverClick(Piece* thePiece)
+{
+	if ((mSolverCheck == NULL) || (mPiecesMoving) || (thePiece->mRow < 0) || (thePiece->mRow >= BOARD_ROWS) ||
+		(thePiece->mCol < 0) || (thePiece->mCol >= BOARD_COLS))
+		return true;
+	// The verdicts are for this board (not one an earlier click of this tick changed)
+	PuzzleModel aModel;
+	GetSolverModel(&aModel);
+	if ((aModel.Hash() != mSolverVerdictBoard) || (mSolver->GetBoardHash() != mSolverVerdictBoard))
+		return true;
+	int aKey = SolverGroupKey(thePiece->mCol, thePiece->mRow);
+	if (aKey < 0)
+		return true;
+	int aVerdict = mSolverVerdict[aKey];
+	if ((aVerdict == PuzzleClickCheck::VERDICT_LOSES) && (mSolverWarn == SOLVER_WARN_BLOCK) &&
+		(mSolver->mStatus == PuzzleSolver::STATUS_WINNABLE))
+	{
+		mSolverMessage = mApp->GetString("SOLVER_REFUSED", _S("THAT CLICK WOULD LOSE THE LEVEL"));
+		mSolverMessageTicks = SOLVER_MESSAGE_TICKS;
+		SDL_Log("solver: the click at column %d, row %d is refused: it loses (tick %d)", thePiece->mCol, thePiece->mRow,
+			mUpdateCnt);
+		MarkDirty();
+		return false;
+	}
+	if ((aVerdict == PuzzleClickCheck::VERDICT_WINS) || (aVerdict == PuzzleClickCheck::VERDICT_LOSES))
+	{
+		mSolverExpect = aVerdict;
+		mSolverExpectBoard = mSolverVerdictBoard;
+	}
+	return true;
 }
 
 // H, or a click on the status line: the hint comes when the board is still and solved (UpdateSolver), once
@@ -4037,6 +4261,8 @@ void Board::GiveSolverHint()
 		mSolverHint[aCell / BOARD_COLS][aCell % BOARD_COLS] = true;
 	mSolverHintBoard = mSolver->GetBoardHash();
 	mScore -= aCost;
+	mSolverSpent += aCost;
+	mSolverHintsTaken++;
 	if (aCost > 0)
 		mSolverMessage = mApp->GetString("SOLVER_HINT_PAID", _S("HINT, PAID")) + StrFormat(_S(" %d "), aCost) +
 			mApp->GetString("SOLVER_DOLLARS", _S("DOLLARS"));
@@ -4056,16 +4282,140 @@ void Board::ClearSolverHint()
 	MarkDirty();
 }
 
-int Board::SolverHintCost() const
+// The game as it is before a click (OnClick, once the click takes a group), for the undo. A level keeps
+// as many as it has undos.
+void Board::SaveSolverUndo()
 {
-	switch (mSolverHintPrice)
+	if (!mSolverUndo)
+		return;
+	if (mSolverLevel != mLevel)
+		StartSolverLevel();
+	if ((int) mSolverUndos.size() >= mSolverUndoLimit)
+		mSolverUndos.erase(mSolverUndos.begin());
+	mSolverUndos.push_back(SolverUndo());
+	SolverUndo& anUndo = mSolverUndos.back();
+	Buffer aBuffer;
+	WriteSaveGame(&aBuffer);
+	anUndo.mSave = aBuffer.mData;
+	anUndo.mRand = mRand;
+	anUndo.mLastColor = mLastColor;
+	anUndo.mColorStreak = mColorStreak;
+	anUndo.mLastGroupSize = mLastGroupSize;
+	anUndo.mPrevGroupSize = mPrevGroupSize;
+	memcpy(anUndo.mColTowerHeight, mColTowerHeight, sizeof(mColTowerHeight));
+	anUndo.mScore = mScore;
+	anUndo.mSpent = mSolverSpent;
+	anUndo.mBoard = 0;
+	if (!mPiecesMoving)
+	{
+		PuzzleModel aModel;
+		GetSolverModel(&aModel);
+		anUndo.mBoard = aModel.Hash();
+	}
+	anUndo.mTick = mUpdateCnt;
+}
+
+// U, or a click on the undo line: the game goes back to just before the last click. The score is the one
+// it had then, less what hints and undos have cost since, less the undo's price.
+void Board::RequestSolverUndo()
+{
+	if ((mSolver == NULL) || (!mSolverUndo) || (mState != STATE_PLAYING) || (mBagsReleased >= mBagsNeeded))
+		return;
+	if (mSolverLevel != mLevel)
+		StartSolverLevel();
+	mSolverMessageTicks = SOLVER_MESSAGE_TICKS;
+	MarkDirty();
+	if (mSolverUndosTaken >= mSolverUndoLimit)
+	{
+		mSolverMessage = mApp->GetString("SOLVER_UNDO_USED", _S("NO UNDOS LEFT IN THIS LEVEL"));
+		return;
+	}
+	if (mSolverUndos.empty())
+	{
+		mSolverMessage = mApp->GetString("SOLVER_UNDO_NONE", _S("NOTHING TO UNDO"));
+		return;
+	}
+	SolverUndo anUndo = mSolverUndos.back();
+	int aScore = anUndo.mScore - (mSolverSpent - anUndo.mSpent);
+	int aCost = SolverUndoCost();
+	if (aCost > aScore)
+	{
+		mSolverMessage = mApp->GetString("SOLVER_UNDO_TOO_DEAR", _S("AN UNDO COSTS")) + StrFormat(_S(" %d "), aCost) +
+			mApp->GetString("SOLVER_UNDO_HAD", _S("DOLLARS, YOU HAD")) + StrFormat(_S(" %d"), std::max(aScore, 0));
+		return;
+	}
+	mSolverUndos.pop_back();
+
+	Buffer aBuffer;
+	if (!anUndo.mSave.empty())
+		aBuffer.WriteBytes(&anUndo.mSave[0], (int) anUndo.mSave.size());
+	ReadSaveGame(&aBuffer, false);
+	mRand = anUndo.mRand;
+	mLastColor = anUndo.mLastColor;
+	mColorStreak = anUndo.mColorStreak;
+	mLastGroupSize = anUndo.mLastGroupSize;
+	mPrevGroupSize = anUndo.mPrevGroupSize;
+	memcpy(mColTowerHeight, anUndo.mColTowerHeight, sizeof(mColTowerHeight));
+	if (mHintPiece != NULL) // the piece the instructor's hint followed is gone
+	{
+		HideHint();
+		mHintPiece = NULL;
+	}
+	mScore = aScore - aCost;
+	mSolverSpent += aCost;
+	mSolverUndosTaken++;
+	mSolverLostLevel = -1; // the level may be winnable again
+	mSolverExpect = PuzzleClickCheck::VERDICT_NONE;
+	mSolverHintWanted = false;
+	ClearSolverHint();
+	UpdateMovesLeft();
+	FindGroups();
+	UpdateHover();
+	if (aCost > 0)
+		mSolverMessage = mApp->GetString("SOLVER_UNDO_PAID", _S("UNDONE, PAID")) + StrFormat(_S(" %d "), aCost) +
+			mApp->GetString("SOLVER_DOLLARS", _S("DOLLARS"));
+	else
+		mSolverMessageTicks = 0;
+	SDL_Log("solver: undo: back to before the click of tick %d, for %d (score %d, %d undos left, tick %d)", anUndo.mTick,
+		aCost, mScore, mSolverUndoLimit - mSolverUndosTaken, mUpdateCnt);
+
+	// A test of the undo: the board is the one clicked
+	if (anUndo.mBoard != 0)
+	{
+		PuzzleModel aModel;
+		GetSolverModel(&aModel);
+		if (aModel.Hash() != anUndo.mBoard)
+			SDL_Log("solver: WRONG: the undo left another board than the one clicked");
+	}
+}
+
+// A price: thePrice SOLVER_PRICE_*, theValue percent of theScore (rounded up) or dollars
+int Board::SolverPrice(int thePrice, int theValue, int theScore) const
+{
+	switch (thePrice)
 	{
 	case SOLVER_PRICE_PERCENT:
-		return (int)(((int64_t) std::max(mScore, 0) * mSolverHintValue + 99) / 100);
+		return (int)(((int64_t) std::max(theScore, 0) * theValue + 99) / 100);
 	case SOLVER_PRICE_AMOUNT:
-		return mSolverHintValue;
+		return theValue;
 	}
 	return 0;
+}
+
+int Board::SolverHintCost() const
+{
+	if (mSolverHintsTaken < mSolverFreeHints)
+		return 0;
+	return SolverPrice(mSolverHintPrice, mSolverHintValue, mScore);
+}
+
+// Of the score the undo goes back to
+int Board::SolverUndoCost() const
+{
+	int aScore = mScore;
+	if (!mSolverUndos.empty())
+		aScore = mSolverUndos.back().mScore - (mSolverSpent - mSolverUndos.back().mSpent);
+	return SolverPrice(mSolverUndoPrice, mSolverUndoValue, aScore);
 }
 
 bool Board::IsSolverHintPiece(Piece* thePiece) const
@@ -4076,56 +4426,93 @@ bool Board::IsSolverHintPiece(Piece* thePiece) const
 	return (mSolverHint[thePiece->mRow][thePiece->mCol]) && (mGrid[thePiece->mRow][thePiece->mCol] == thePiece);
 }
 
-// The status line over the top rows: what the solver found, and how to get a hint and its price. False
-// when it has nothing to say. The rect is where a click asks for a hint, the same in a replay (where it is
-// drawn lower, under the replay's lines) as in the game recorded.
-bool Board::GetSolverStatusRect(Rect* theRect, SexyString* theStatus, SexyString* theHint)
+bool Board::IsSolverWarnPiece(Piece* thePiece) const
 {
+	if ((!mSolverWarning) || (thePiece->mRow < 0) || (thePiece->mRow >= BOARD_ROWS) || (thePiece->mCol < 0) ||
+		(thePiece->mCol >= BOARD_COLS))
+		return false;
+	return (mSolverWarnCell[thePiece->mRow][thePiece->mCol]) && (mGrid[thePiece->mRow][thePiece->mCol] == thePiece);
+}
+
+// The status lines over the top rows: what the solver found (or that the hovered click loses), how to get a
+// hint and its price (or the answer to the last hint or undo asked for), how to undo. False when there is
+// nothing to say. The rect is where a click asks for a hint (or, on the undo line, undoes), the same in a
+// replay (where it is drawn lower, under the replay's lines) as in the game recorded.
+bool Board::GetSolverStatusRect(Rect* theRect, std::vector<SolverLine>* theLines)
+{
+	theLines->clear();
 	if ((mSolver == NULL) || (mState != STATE_PLAYING))
 		return false;
 
-	SexyString aStatus;
+	SolverLine aLine;
+	aLine.mKind = SOLVER_LINE_STATUS;
 	int aShown = mSolver->mStatus;
 	if ((mSolverShow == SOLVER_SHOW_NEVER) || ((mSolverShow == SOLVER_SHOW_LOST) && (aShown != PuzzleSolver::STATUS_LOST)))
 		aShown = PuzzleSolver::STATUS_NONE;
 	switch (aShown)
 	{
 	case PuzzleSolver::STATUS_THINKING:
-		aStatus = mApp->GetString("SOLVER_THINKING", _S("SOLVER THINKING..."));
+		aLine.mText = mApp->GetString("SOLVER_THINKING", _S("SOLVER THINKING..."));
 		break;
 	case PuzzleSolver::STATUS_WINNABLE:
-		aStatus = mApp->GetString("SOLVER_WINNABLE", _S("THIS LEVEL CAN STILL BE WON"));
+		aLine.mText = mApp->GetString("SOLVER_WINNABLE", _S("THIS LEVEL CAN STILL BE WON"));
 		break;
 	case PuzzleSolver::STATUS_LOST:
-		aStatus = mApp->GetString("SOLVER_LOST", _S("THIS LEVEL CAN NO LONGER BE WON"));
+		aLine.mText = mApp->GetString("SOLVER_LOST", _S("THIS LEVEL CAN NO LONGER BE WON"));
 		break;
 	case PuzzleSolver::STATUS_GAVE_UP:
-		aStatus = mApp->GetString("SOLVER_GAVE_UP", _S("TOO MANY WAYS TO TELL IF IT CAN BE WON"));
+		aLine.mText = mApp->GetString("SOLVER_GAVE_UP", _S("TOO MANY WAYS TO TELL IF IT CAN BE WON"));
 		break;
 	}
+	if (mSolverWarning)
+	{
+		aLine.mText = mApp->GetString("SOLVER_WARNING", _S("THIS CLICK LOSES THE LEVEL"));
+		aLine.mKind = SOLVER_LINE_WARNING;
+	}
+	if (!aLine.mText.empty())
+		theLines->push_back(aLine);
 
-	SexyString aHint;
+	aLine.mText.clear();
+	aLine.mKind = SOLVER_LINE_HINT;
 	if (mSolverMessageTicks > 0)
-		aHint = mSolverMessage;
+		aLine.mText = mSolverMessage;
 	else if (mSolverHintWanted)
-		aHint = mApp->GetString("SOLVER_HINT_WAIT", _S("FINDING A HINT..."));
+		aLine.mText = mApp->GetString("SOLVER_HINT_WAIT", _S("FINDING A HINT..."));
 	else if ((mSolverHints) && (mSolverHintBoard == 0))
 	{
 		int aCost = SolverHintCost();
-		aHint = mApp->GetString("SOLVER_HINT_KEYS", _S("H OR CLICK HERE FOR A HINT,"));
-		if (aCost > 0)
-			aHint += StrFormat(_S(" %d "), aCost) + mApp->GetString("SOLVER_DOLLARS", _S("DOLLARS"));
+		if ((aCost == 0) && (mSolverHintsTaken < mSolverFreeHints) &&
+			(SolverPrice(mSolverHintPrice, mSolverHintValue, mScore) > 0))
+			aLine.mText = mApp->GetString("SOLVER_HINT_FREE_KEYS", _S("H OR CLICK HERE FOR A FREE HINT,")) +
+				StrFormat(_S(" %d "), mSolverFreeHints - mSolverHintsTaken) + mApp->GetString("SOLVER_LEFT", _S("LEFT"));
 		else
-			aHint += _S(" ") + mApp->GetString("SOLVER_FREE", _S("FREE"));
+		{
+			aLine.mText = mApp->GetString("SOLVER_HINT_KEYS", _S("H OR CLICK HERE FOR A HINT,"));
+			if (aCost > 0)
+				aLine.mText += StrFormat(_S(" %d "), aCost) + mApp->GetString("SOLVER_DOLLARS", _S("DOLLARS"));
+			else
+				aLine.mText += _S(" ") + mApp->GetString("SOLVER_FREE", _S("FREE"));
+		}
+	}
+	if (!aLine.mText.empty())
+		theLines->push_back(aLine);
+
+	if ((mSolverUndo) && (!mSolverUndos.empty()) && (mSolverLevel == mLevel) && (mSolverUndosTaken < mSolverUndoLimit) &&
+		(mBagsReleased < mBagsNeeded))
+	{
+		int aCost = SolverUndoCost();
+		aLine.mText = mApp->GetString("SOLVER_UNDO_KEYS", _S("U OR CLICK HERE TO UNDO,"));
+		if (aCost > 0)
+			aLine.mText += StrFormat(_S(" %d "), aCost) + mApp->GetString("SOLVER_DOLLARS", _S("DOLLARS"));
+		else
+			aLine.mText += _S(" ") + mApp->GetString("SOLVER_FREE", _S("FREE"));
+		aLine.mText += StrFormat(_S(", %d "), mSolverUndoLimit - mSolverUndosTaken) + mApp->GetString("SOLVER_LEFT", _S("LEFT"));
+		aLine.mKind = SOLVER_LINE_UNDO;
+		theLines->push_back(aLine);
 	}
 
-	if (aStatus.empty() && aHint.empty())
+	if (theLines->empty())
 		return false;
-	int aLines = (aStatus.empty() || aHint.empty()) ? 1 : 2;
-	*theRect = Rect(BOARD_X, BOARD_Y, BOARD_COLS * COIN_SIZE, 6 + aLines * 19);
-	if (theStatus != NULL)
-		*theStatus = aStatus;
-	if (theHint != NULL)
-		*theHint = aHint;
+	*theRect = Rect(BOARD_X, BOARD_Y, BOARD_COLS * COIN_SIZE, 6 + (int) theLines->size() * 19);
 	return true;
 }

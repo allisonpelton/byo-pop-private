@@ -1,9 +1,9 @@
 {
   "id": "puzzle-solver",
   "name": "Puzzle Solver",
-  "version": "1.0",
+  "version": "1.1",
   "author": "byo-pop examples",
-  "description": "Puzzle mode only. Works out whether the level can still be won and, for a price, shows a winning click (H, or click the status line). It can also end the game as soon as the level can't be won. Keeps its own high scores.",
+  "description": "Puzzle mode only. Works out whether the level can still be won and, for a price, shows a winning click (H, or click the status line). It can also warn about clicks that lose the level, take back clicks (U), and end the game as soon as the level can't be won. Keeps its own high scores.",
   "affectsScores": true,
   "settings": [
     { "type": "section", "label": "Solver" },
@@ -29,7 +29,34 @@
     { "id": "hintPercent", "label": "Part of the score", "type": "int", "default": 10, "min": 1, "max": 100,
       "unit": "%", "enabledIf": { "setting": "hintPrice", "equals": "percent" } },
     { "id": "hintAmount", "label": "Fixed amount", "type": "int", "default": 500, "min": 50, "max": 10000,
-      "step": 50, "enabledIf": { "setting": "hintPrice", "equals": "amount" } }
+      "step": 50, "enabledIf": { "setting": "hintPrice", "equals": "amount" } },
+    { "id": "freeHints", "label": "Free hints each level", "type": "int", "default": 1, "min": 0, "max": 10,
+      "help": "The first hints in each level cost nothing.",
+      "enabledIf": { "setting": "hints", "equals": true } },
+    { "type": "section", "label": "Undo" },
+    { "id": "undo", "label": "Undo", "type": "bool", "default": true,
+      "help": "U or a click on the undo line takes back the last click, coins and score." },
+    { "id": "undoPrice", "label": "Price", "type": "choice", "default": "amount",
+      "choices": [
+        { "value": "free", "label": "Free" },
+        { "value": "percent", "label": "Part of the score" },
+        { "value": "amount", "label": "Fixed amount" }
+      ],
+      "enabledIf": { "setting": "undo", "equals": true } },
+    { "id": "undoPercent", "label": "Part of the score", "type": "int", "default": 10, "min": 1, "max": 100,
+      "unit": "%", "enabledIf": { "setting": "undoPrice", "equals": "percent" } },
+    { "id": "undoAmount", "label": "Fixed amount", "type": "int", "default": 250, "min": 50, "max": 10000,
+      "step": 50, "enabledIf": { "setting": "undoPrice", "equals": "amount" } },
+    { "id": "undoLimit", "label": "Undos each level", "type": "int", "default": 3, "min": 1, "max": 20,
+      "enabledIf": { "setting": "undo", "equals": true } },
+    { "type": "section", "label": "Warnings" },
+    { "id": "warn", "label": "Losing clicks", "type": "choice", "default": "show",
+      "choices": [
+        { "value": "off", "label": "Don't check" },
+        { "value": "show", "label": "Show in red" },
+        { "value": "block", "label": "Show and refuse" }
+      ],
+      "help": "The group under the mouse turns red when clicking it would leave a level that can't be won." }
   ],
   "features": {
     "puzzleSolver": {
@@ -38,7 +65,14 @@
       "hints": { "$setting": "hints" },
       "hintPrice": { "$setting": "hintPrice" },
       "hintPercent": { "$setting": "hintPercent" },
-      "hintAmount": { "$setting": "hintAmount" }
+      "hintAmount": { "$setting": "hintAmount" },
+      "freeHints": { "$setting": "freeHints" },
+      "undo": { "$setting": "undo" },
+      "undoPrice": { "$setting": "undoPrice" },
+      "undoPercent": { "$setting": "undoPercent" },
+      "undoAmount": { "$setting": "undoAmount" },
+      "undoLimit": { "$setting": "undoLimit" },
+      "warn": { "$setting": "warn" }
     }
   }
 }

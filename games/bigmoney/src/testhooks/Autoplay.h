@@ -42,12 +42,18 @@ public:
 	// (a test of hint prices in replays)
 	int mFollowSolver = 0;
 	bool mPressHints = false;
+	// -autoplayundo[=N]: N% of the bot's turns in a Puzzle game with undos press U, whether or not the coins
+	// rest; -autoplaycheck: with the solver's warnings on, a click on a group first moves the mouse there
+	// and waits (up to 30 seconds) for the check of its click
+	int mPressUndo = 0;
+	bool mCheckClicks = false;
 
 private:
 	void Queue(const std::string& theCommand, const std::string& theArgs);
 	void Click(int theX, int theY, const char* theWhat);
 	void Shot(int theGame, const char* theEvent);
 	bool PickGroup(Board* theBoard, int* theX, int* theY, int* theSize);
+	int HoverVerdict(Board* theBoard);
 
 	WinBMApp* mApp;
 	std::mt19937 mRand;
@@ -65,6 +71,10 @@ private:
 	Board* mLastBoard;
 	int mQuitAt;            // update count of the quit, once decided
 	bool mDone;
+	bool mCheckPending = false; // -autoplaycheck: the mouse is on a group, the click waits for its check
+	std::string mCheckArgs;
+	std::string mCheckWhat;
+	int mCheckSince = 0;
 };
 
 }

@@ -447,13 +447,12 @@ void Board::Draw(Graphics* g)
 	DrawSolverStatus(g); // port(mods)
 }
 
-// port(mods): the Puzzle solver's status line (Board::GetSolverStatusRect; PuzzleSolver.h)
+// port(mods): the Puzzle solver's status lines (Board::GetSolverStatusRect; PuzzleSolver.h)
 void Board::DrawSolverStatus(Graphics* g)
 {
 	Rect aRect;
-	SexyString aStatus;
-	SexyString aHint;
-	if (!GetSolverStatusRect(&aRect, &aStatus, &aHint))
+	std::vector<SolverLine> aLines;
+	if (!GetSolverStatusRect(&aRect, &aLines))
 		return;
 	if (mPlayer != NULL)
 		aRect.mY += 44; // under the replay's lines
@@ -462,17 +461,18 @@ void Board::DrawSolverStatus(Graphics* g)
 	g->SetColor(Color(0, 0, 0, 160));
 	g->FillRect(aRect);
 	int aY = aRect.mY + 18;
-	if (!aStatus.empty())
+	for (const SolverLine& aLine : aLines)
 	{
-		bool isLost = (mSolver->mStatus == PuzzleSolver::STATUS_LOST);
-		g->SetColor(isLost ? Color(255, 64, 64) : Color(0, 255, 0));
-		g->DrawString(aStatus, aRect.mX + (aRect.mWidth - aFont->StringWidth(aStatus)) / 2, aY);
+		bool isRed = (aLine.mKind == SOLVER_LINE_WARNING) ||
+			((aLine.mKind == SOLVER_LINE_STATUS) && (mSolver->mStatus == PuzzleSolver::STATUS_LOST));
+		if (isRed)
+			g->SetColor(Color(255, 64, 64));
+		else if (aLine.mKind == SOLVER_LINE_STATUS)
+			g->SetColor(Color(0, 255, 0));
+		else
+			g->SetColor(Color(0, 170, 0));
+		g->DrawString(aLine.mText, aRect.mX + (aRect.mWidth - aFont->StringWidth(aLine.mText)) / 2, aY);
 		aY += 19;
-	}
-	if (!aHint.empty())
-	{
-		g->SetColor(Color(0, 170, 0));
-		g->DrawString(aHint, aRect.mX + (aRect.mWidth - aFont->StringWidth(aHint)) / 2, aY);
 	}
 }
 
@@ -541,17 +541,27 @@ void Board::DrawPiece(Graphics* g, Piece* thePiece, int theYOffset)
 		return;
 	}
 
+	// port(mods): the hovered group throbs red when the solver found its click loses the level
+	bool isLosing = IsSolverWarnPiece(thePiece);
 	Image* aCoins = mApp->mImages[IMAGE_COINS];
 	if (thePiece->mImageSet == 1)
 		aCoins = mApp->mImages[IMAGE_HORZCOINS];
-	else if (thePiece->mHighlighted || thePiece->mDanger)
+	else if ((thePiece->mHighlighted || thePiece->mDanger) && (!isLosing))
 		aCoins = mApp->mBrightCoinsImage;
 	else if ((IsSolverHintPiece(thePiece)) && ((mUpdateCnt / 25) % 2 == 0)) // port(mods): the solver's hint blinks
 		aCoins = mApp->mBrightCoinsImage;
 
 	int aY = (int)(thePiece->mShakeY + thePiece->mY + theYOffset);
 	int aX = (int)(thePiece->mShakeX + thePiece->mX);
+	if (isLosing)
+	{
+		// Throbs between red and dark red, so even red coins show it
+		g->SetColorizeImages(true);
+		g->SetColor(((mUpdateCnt / 15) % 2 == 0) ? Color(255, 60, 60) : Color(110, 20, 20));
+	}
 	g->DrawImage(aCoins, aX, aY, Rect(thePiece->mFrame*29, thePiece->mColor*29, 29, 29));
+	if (isLosing)
+		g->SetColorizeImages(false);
 }
 
 // 0x401e30

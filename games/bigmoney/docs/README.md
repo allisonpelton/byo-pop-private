@@ -188,18 +188,40 @@ Big Money uses the shared mod system (`platform/ModManager.h`).
     whenever the board stops moving. A line above the coins shows what it found: thinking, "can still be
     won", "can no longer be won" (in red), or "too many ways to tell" when it reaches its limit first.
   - **Hints.** H, or a click on that line, makes the next group of a winning line blink. A hint costs a
-    share of the score (10% by default, rounded up), a fixed amount, or nothing. It is refused when the
-    score can't pay, and there is one hint per board position.
+    share of the score (10% by default, rounded up), a fixed amount, or nothing. The first hints of each
+    level are free (one by default). A hint is refused when the score can't pay, and there is one hint
+    per board position.
+  - **Undo.** U, or a click on the undo line, takes back the last click: coins, bags, score and streaks
+    go back to just before it.
+    - **Price.** A fixed amount (250 by default), a share of the score it goes back to, or nothing.
+      Hints and undos bought since that click stay paid. Each level has three undos by default.
+    - **How.** Each click first keeps a snapshot: the savegame's bytes, plus what the savegame leaves
+      out (the colour and combo streaks, the whole random generator). An undo reads that snapshot back,
+      so the game goes on exactly as if the click had never been made. A level keeps as many snapshots
+      as it has undos, and a new level starts with none.
+    - **Limits.** There is no undo after the game is over, so with "End the game when lost" on, a losing
+      click can't be taken back.
+  - **Warnings.** "Losing clicks" can be set to "Show in red": the group under the mouse turns dark red,
+    and the status line says so, when clicking it would leave a level that no clicks can win. "Show and
+    refuse" also refuses that click, as long as the solver has a winning one.
+    - **How.** A second search checks the hovered group once the board is still and the solver has its
+      answer, with the same budget per tick. A group "loses" only when no way the bags can land is
+      winnable.
+    - **Limits.** The answer for a group stays until the board changes. There are no warnings in a level
+      that is already lost.
   - **Ending the game.** With "End the game when lost" on, the game is over as soon as no clicks can win
     the level, instead of when no group is left.
-  - **Settings** (mod menu, F2; all apply at a restart): what to show (always, only when lost, never),
-    ending the game when lost, hints on or off, and the price.
+  - **Settings** (mod menu, F2; all apply at a restart):
+    - what to show (always, only when lost, never), and ending the game when lost;
+    - hints on or off, their price and the free ones;
+    - undo on or off, its price and how many per level;
+    - losing clicks: not checked, shown in red, or shown and refused.
   - **How it works.** A model of the board copies the game's rules for falling coins, departing bags and
     closing gaps, quirks included. The search tries beams of the best positions first, then every
     position, and proves "can no longer be won" only when no clicks win in any order the bags could
     leave in. It looks at 300 positions per board tick, so the same board gets the same answer at the
-    same tick everywhere. Replays record H (a new event) and play hints, prices and early game overs
-    back the same.
+    same tick everywhere. Replays record H and U (new events) and play hints, undos, prices, refused
+    clicks and early game overs back the same.
   - **Scores.** The mod says it affects scores, so its games keep their own high-score tables, and the
     mods sign shows.
   - **Tested** (bot games under rundesk; `-autoplaysolver[=N]` makes the bot click the solver's plan N% of
@@ -210,6 +232,13 @@ Big Money uses the shared mod system (`platform/ModManager.h`).
       verified").
     - An answer took a median of about 9,000 positions at Easy and 33,000 at Hard (0.3 s and 1.1 s of
       play); at Hard about one search in 20 reached the limit.
+    - Undo and free hints (`-autoplayundo[=N]` presses U in N% of the bot's turns): 45 undos, at rest
+      and mid-fall. After each, the board was the one clicked (the game logs "solver: WRONG" if not).
+    - Warnings (`-autoplaycheck` moves the mouse to a group and waits for its check before clicking):
+      about 1,600 checked clicks in 36 games. All 27 clicks on groups found to lose left a lost level;
+      no click found to win did. A check took a median of 1,800 positions (6 ticks).
+    - Refused clicks: 78 refusals in two games with "Show and refuse".
+    - All 12 replays of these games verified, with their undos, free hints and refused clicks.
     - The web build compiles it; it has not been played in a browser yet.
 
 Example mods (`games/bigmoney/mods/`):
@@ -226,7 +255,7 @@ Example mods (`games/bigmoney/mods/`):
   faster minting, a bigger meter, at least two bags a level, a doubled multiplier and more points for
   big groups.
 - **`puzzle-solver/`: "Puzzle Solver".** Puzzle only: tells whether the level can still be won, sells
-  hints, and can end the game when it can't.
+  hints and undos, warns about losing clicks, and can end the game when the level can't be won.
 - **`replays/`: "Replays".** Turns on replays and nothing else: no change in play, the normal high-score
   tables, and no mods sign.
 - **`livesplit/`: "LiveSplit".** Turns on the LiveSplit block, with a copy of the script, seven split

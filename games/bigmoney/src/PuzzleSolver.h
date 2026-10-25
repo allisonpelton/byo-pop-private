@@ -175,6 +175,37 @@ private:
 	void		Finish(Status theStatus);
 };
 
+// Whether a click leaves a level that can still be won (the solver's warnings): each board the click can
+// settle to is searched in turn, and the first that can be won answers yes. "Loses" holds whichever way the
+// bags land, as "can't be won" does.
+class PuzzleClickCheck
+{
+public:
+	enum Verdict
+	{
+		VERDICT_NONE,           // not known (still searching)
+		VERDICT_WINS,
+		VERDICT_LOSES,
+		VERDICT_UNKNOWN         // no board it settles to can be won, and one was too big to tell
+	};
+
+	PuzzleClickCheck();
+
+	// The click on the group at the cell (a group of 2) of a settled board
+	void		Start(const PuzzleModel& theBoard, int theCol, int theRow);
+	// Looks at up to about theBudget more positions; VERDICT_NONE while it has no answer
+	int			Step(int theBudget);
+	int			mPositions;             // positions this check has looked at
+
+private:
+	PuzzleSolver mSolver;
+	std::vector<PuzzleModel> mOutcomes;
+	size_t		mNext;                  // the outcome being searched (or to search)
+	bool		mSearching;             // mSolver has mOutcomes[mNext]
+	bool		mGaveUp;
+	int			mVerdict;
+};
+
 }
 
 #endif

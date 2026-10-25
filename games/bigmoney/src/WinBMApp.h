@@ -185,6 +185,8 @@ public:
 	std::string		mAutoplayShotPrefix;
 	int				mAutoplaySolver;        // -autoplaysolver[=N]: the bot clicks the Puzzle solver's plan N% of the time (100)
 	bool			mAutoplayHints;         // -autoplayhints: and presses H first (PuzzleSolver.h)
+	int				mAutoplayUndo;          // -autoplayundo[=N] (AutoplayBot::mPressUndo)
+	bool			mAutoplayCheck;         // -autoplaycheck (AutoplayBot::mCheckClicks)
 	AutoplayBot*	mAutoplayBot;
 	virtual void	UpdateFrames() override;
 	virtual void	HandleCmdLineParam(const std::string& theParamName, const std::string& theParamValue) override;

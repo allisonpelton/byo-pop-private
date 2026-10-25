@@ -78,6 +78,8 @@ WinBMApp::WinBMApp()
 	mAutoplayCap = 200000;
 	mAutoplaySolver = 0;
 	mAutoplayHints = false;
+	mAutoplayUndo = 0;
+	mAutoplayCheck = false;
 	mAutoplayBot = NULL;
 
 	mFont1 = NULL;
@@ -1256,6 +1258,8 @@ void WinBMApp::UpdateFrames()
 	{
 		mAutoplayBot->mFollowSolver = mAutoplaySolver;
 		mAutoplayBot->mPressHints = mAutoplayHints;
+		mAutoplayBot->mPressUndo = mAutoplayUndo;
+		mAutoplayBot->mCheckClicks = mAutoplayCheck;
 	}
 	if (mAutoplayBot != NULL)
 		mAutoplayBot->Update();
@@ -1307,6 +1311,10 @@ void WinBMApp::HandleCmdLineParam(const std::string& theParamName, const std::st
 		mAutoplaySolver = theParamValue.empty() ? 100 : atoi(theParamValue.c_str());
 	else if (theParamName == "-autoplayhints")
 		mAutoplayHints = true;
+	else if (theParamName == "-autoplayundo")
+		mAutoplayUndo = theParamValue.empty() ? 10 : atoi(theParamValue.c_str());
+	else if (theParamName == "-autoplaycheck")
+		mAutoplayCheck = true;
 	else
 		SexyApp::HandleCmdLineParam(theParamName, theParamValue);
 }

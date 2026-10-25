@@ -643,3 +643,75 @@ void PuzzleSolver::Finish(Status theStatus)
 	mCandidates.clear();
 	mLayers.clear();
 }
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+PuzzleClickCheck::PuzzleClickCheck()
+{
+	mPositions = 0;
+	mNext = 0;
+	mSearching = false;
+	mGaveUp = false;
+	mVerdict = VERDICT_NONE;
+}
+
+void PuzzleClickCheck::Start(const PuzzleModel& theBoard, int theCol, int theRow)
+{
+	mOutcomes.clear();
+	theBoard.ClickOutcomes(theCol, theRow, &mOutcomes);
+	mPositions = 0;
+	mNext = 0;
+	mSearching = false;
+	mGaveUp = false;
+	mVerdict = mOutcomes.empty() ? VERDICT_UNKNOWN : VERDICT_NONE;
+}
+
+int PuzzleClickCheck::Step(int theBudget)
+{
+	int aSpent = 0;
+	while (mVerdict == VERDICT_NONE)
+	{
+		if (mSearching)
+		{
+			int aBefore = mSolver.mPositions;
+			mSolver.Step(theBudget - aSpent);
+			aSpent += mSolver.mPositions - aBefore;
+			mPositions += mSolver.mPositions - aBefore;
+			if (mSolver.mStatus == PuzzleSolver::STATUS_THINKING)
+				break;
+			mSearching = false;
+			if (mSolver.mStatus == PuzzleSolver::STATUS_WINNABLE)
+			{
+				mVerdict = VERDICT_WINS;
+				break;
+			}
+			if (mSolver.mStatus == PuzzleSolver::STATUS_GAVE_UP)
+				mGaveUp = true;
+			mNext++;
+			continue;
+		}
+
+		if (mNext >= mOutcomes.size())
+		{
+			mVerdict = mGaveUp ? VERDICT_UNKNOWN : VERDICT_LOSES;
+			break;
+		}
+		const PuzzleModel& anOutcome = mOutcomes[mNext];
+		int aScore;
+		if (anOutcome.IsWon())
+		{
+			mVerdict = VERDICT_WINS;
+			break;
+		}
+		if (!anOutcome.Rate(&aScore))
+		{
+			mNext++;
+			continue;
+		}
+		if (aSpent >= theBudget)
+			break;
+		mSolver.SetBoard(anOutcome); // the same board as the last check's keeps its search (or answer)
+		mSearching = true;
+	}
+	return mVerdict;
+}

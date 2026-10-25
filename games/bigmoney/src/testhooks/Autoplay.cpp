@@ -288,23 +288,47 @@ void AutoplayBot::Update()
 	if (aBoard->mState != STATE_PLAYING)
 		return;
 
+	// Columns still sliding sideways do not count as moving, and a click finds its coin by where it is drawn
+	// (Board::PieceAt): the solver's tests wait until every coin rests in its cell
+	bool isAtRest = !aBoard->mPiecesMoving;
+	for (int aRow = 0; aRow < Board::BOARD_ROWS; aRow++)
+	{
+		for (int aCol = 0; aCol < Board::BOARD_COLS; aCol++)
+		{
+			Piece* aPiece = aBoard->mGrid[aRow][aCol];
+			if ((aPiece != NULL) && ((aPiece->mX != (double) Board::ColX(aCol)) || (aPiece->mY != (double) Board::RowY(aRow))))
+				isAtRest = false;
+		}
+	}
+
+	if ((mPressUndo > 0) && (aBoard->mSolver != NULL) && (aBoard->mSolverUndo) && (!aBoard->mSolverUndos.empty()) &&
+		((int) (mRand() % 100) < mPressUndo))
+	{
+		Queue("char", "u");
+		if (mLog != NULL)
+			fprintf(mLog, "# undo\n");
+		mNextAction = aNow + 20 + (int) (mRand() % 40);
+		return;
+	}
+
+	if (mCheckPending)
+	{
+		int aVerdict = HoverVerdict(aBoard);
+		if ((aVerdict < 0) && (aNow - mCheckSince < 3000))
+			return;
+		Queue("click", mCheckArgs);
+		if (mLog != NULL)
+			fprintf(mLog, "# %s, checked: %d\n", mCheckWhat.c_str(), aVerdict);
+		mCheckPending = false;
+		mNextAction = aNow + 20 + (int) (mRand() % 40);
+		return;
+	}
+
 	int aX, aY, aSize;
 	if ((mFollowSolver > 0) && (aBoard->mSolver != NULL) && ((mFollowSolver >= 100) || ((int) (mRand() % 100) < mFollowSolver)))
 	{
 		PuzzleSolver* aSolver = aBoard->mSolver;
-		// Columns still sliding sideways do not count as moving, and a click finds its coin by where it is
-		// drawn (Board::PieceAt): wait until every coin rests in its cell
-		bool isAtRest = true;
-		for (int aRow = 0; aRow < Board::BOARD_ROWS; aRow++)
-		{
-			for (int aCol = 0; aCol < Board::BOARD_COLS; aCol++)
-			{
-				Piece* aPiece = aBoard->mGrid[aRow][aCol];
-				if ((aPiece != NULL) && ((aPiece->mX != (double) Board::ColX(aCol)) || (aPiece->mY != (double) Board::RowY(aRow))))
-					isAtRest = false;
-			}
-		}
-		if ((!isAtRest) || (aBoard->mPiecesMoving) || (aSolver->mStatus == PuzzleSolver::STATUS_THINKING) ||
+		if ((!isAtRest) || (aSolver->mStatus == PuzzleSolver::STATUS_THINKING) ||
 			((aSolver->mStatus == PuzzleSolver::STATUS_WINNABLE) && (aSolver->mPlan.empty())))
 			return; // wait for the board to settle and the solver to answer
 		if ((aSolver->mStatus == PuzzleSolver::STATUS_WINNABLE) && (mPressHints) && (aBoard->mSolverHintBoard == 0) &&
@@ -322,6 +346,8 @@ void AutoplayBot::Update()
 			return;
 		}
 	}
+	if ((mCheckClicks) && (aBoard->mSolverCheck != NULL) && (!isAtRest))
+		return;
 	if ((mRand() % 25 == 0) || (!PickGroup(aBoard, &aX, &aY, &aSize)))
 	{
 		// A random cell: often an invalid click (single coin, a bag, an empty cell)
@@ -333,7 +359,45 @@ void AutoplayBot::Update()
 	{
 		char aWhat[32];
 		snprintf(aWhat, sizeof(aWhat), "group of %d", aSize);
+		if ((mCheckClicks) && (aBoard->mSolverCheck != NULL))
+		{
+			char anArgs[32];
+			snprintf(anArgs, sizeof(anArgs), "%d %d", aX, aY);
+			Queue("move", anArgs);
+			mCheckPending = true;
+			mCheckArgs = anArgs;
+			mCheckWhat = aWhat;
+			mCheckSince = aNow;
+			mNextAction = aNow + 2;
+			return;
+		}
 		Click(aX, aY, aWhat);
 	}
 	mNextAction = aNow + 20 + (int) (mRand() % 40);
+}
+
+// -autoplaycheck: the solver's verdict (PuzzleClickCheck::Verdict) on the click on the hovered group, -1 while
+// it has none; VERDICT_NONE when no check comes (a lost level)
+int AutoplayBot::HoverVerdict(Board* theBoard)
+{
+	PuzzleSolver* aSolver = theBoard->mSolver;
+	if ((theBoard->mSolverCheck == NULL) || (aSolver->mStatus == PuzzleSolver::STATUS_LOST))
+		return PuzzleClickCheck::VERDICT_NONE;
+	if ((theBoard->mPiecesMoving) || (aSolver->mStatus == PuzzleSolver::STATUS_THINKING) ||
+		(theBoard->mSolverVerdictBoard != aSolver->GetBoardHash()))
+		return -1;
+	for (int aRow = 0; aRow < Board::BOARD_ROWS; aRow++)
+	{
+		for (int aCol = 0; aCol < Board::BOARD_COLS; aCol++)
+		{
+			Piece* aPiece = theBoard->mGrid[aRow][aCol];
+			if ((aPiece == NULL) || (!aPiece->mHighlighted))
+				continue;
+			int aKey = theBoard->SolverGroupKey(aCol, aRow);
+			if ((aKey < 0) || (theBoard->mSolverVerdict[aKey] == PuzzleClickCheck::VERDICT_NONE))
+				return -1;
+			return theBoard->mSolverVerdict[aKey];
+		}
+	}
+	return -1;
 }

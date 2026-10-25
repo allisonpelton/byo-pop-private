@@ -66,7 +66,9 @@ enum Op
 	OP_NEXT = 4,    // the "play next level" button (Board::ButtonDepress)
 	OP_HINT = 5,    // H: a Puzzle solver hint (Board::KeyChar; PuzzleSolver.h). A click on the solver's status
 	                // line is an OP_CLICK.
-	NUM_OPS = 6
+	OP_UNDO = 6,    // U: takes back the last click (the Puzzle solver's undo; Board::KeyChar). A click on the
+	                // solver's undo line is an OP_CLICK.
+	NUM_OPS = 7
 };
 
 enum AppFlags
