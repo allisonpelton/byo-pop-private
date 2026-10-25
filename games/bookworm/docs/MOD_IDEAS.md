@@ -15,7 +15,8 @@ redistributed, stay git-ignored. How to install and test the mods that exist: RE
 | 3 | Bigger dictionary, with Collins (`mods/collins`) | done |
 | 4 | Rude words that set fires (`mods/rude-words`) | done |
 | 5 | Greedy bots on the game-over page (`mods/greedy-bots`) | done |
-| 6 | HD art; the smaller ideas; typing a word to play it (4.6, the user's idea) | next |
+| 6 | Type a word to play it (`mods/type-word`, 4.6, the user's idea) | done |
+| 7 | HD art; the smaller ideas | next |
 
 Code mods read their switches from the mod's `"features"` (`src/ModFeatures.h`: a feature on, a live
 setting's value) and say `"affectsScores": true`, so their games get their own high scores and saved games
@@ -172,14 +173,27 @@ JPEG backdrops with a denoising model; tile letters redrawn from a free vector f
   then a word list, bonus words, definitions, `texts.xml` and tile art.
 - **Gameplay variants**: board size, fire-tile rate, a timed sprint, a relaxed no-fire mode, set seeds.
 
-### 4.6 Type a word (the user's idea, 2026-10-24)
-Type a word on the keyboard and press Enter to play it: the game finds it on the board. Where the board
-spells it more than once, the path taken is the one with the most fire tiles; among equals, one that drops no
-fire tile (the solver's safety: a path that eats the tiles under a fire tile drops it, one that leaves a bottom
-fire tile out ends a Classic game); otherwise any. The search is the solver's (`FindSolverWords`: every path,
-scored and rated by Submit's own rules). To settle when it is built: the typed letters shown as a selection
-(the best path for the letters so far), Backspace and Esc, Q typed as the Qu tile, a buzz when the board does
-not spell the word, and keys the game already uses (Tab for a hint, Ctrl+Z for undo).
+### 4.6 Type a word (done, the user's idea, 2026-10-24)
+`mods/type-word` (feature `typeWord`, `src/TypedWord.cpp`). Each letter typed selects the best path for the
+letters so far, so the selection can move as the word grows; a letter no path can add is refused with a buzz.
+Enter submits the selection as SUBMIT does (a clicked one or a hint too). Backspace takes back a letter and
+selects the best path for the rest; Esc clears. A click, a hint, a word played, or a selection the game clears
+(in Action, a fire tile burning the tile under a selected one) starts the next typed word afresh. Q is the Qu
+tile (typed Q, U; after Q alone the Qu tile is selected). Space still pauses, Tab still hints, Ctrl+Z still
+undoes, and Ctrl with a letter types nothing.
+
+The ranking (`TypedWord::Better`), each step breaking the ties of the one before:
+1. A path that does not end the game (a bottom-row fire tile left out, in Classic). This comes ahead of the
+   user's "most fire tiles", since a path that ends the game is never the one wanted.
+2. The most fire tiles.
+3. The fewest fire tiles dropped (a fire tile left out above a tile of the path falls).
+4. No fire tile dropped to the bottom row.
+5. The best score, for the user's "any instance".
+
+Each path is rated by the solver's own rules (`RateSolverWord`, the rating `FindSolverWords` gives every
+path), over the lettered tiles that are not burning away. The typed letters have a search of their own, a DFS
+over neighbours that keeps at most 5,000 paths. `"affectsScores": false`: every typed word could be clicked,
+and the path it takes is one the player can see. Tested with `-autoplaytype=1` (README.md).
 
 ## What works as plain data today (no code)
 

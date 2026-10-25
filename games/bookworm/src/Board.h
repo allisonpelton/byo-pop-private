@@ -43,6 +43,7 @@ class WidgetManager;
 class Solver;
 class UndoStack;
 class GreedyBots;
+class TypedWord;
 
 // Board::mState (+0x194)
 enum BoardState
@@ -248,6 +249,8 @@ public:
 	// a few moves each tick; NULL without the mod, in Action, and for a game begun without them.
 	// mBotsChecked: the start was looked at (the bots begin only at a fresh game's)
 	GreedyBots*			mBots;
+	// port(mod): typing a word to play it (mod "type-word", TypedWord.h); NULL without it
+	TypedWord*			mTypedWord;
 	bool				mBotsChecked;
 	// port(mod): the moves (words and scrambles) so far and the last word's cells (row * BOARD_COLS + col, in
 	// order; empty for a scramble), for the -autoplay bot's check of the bots' model (-autoplaymodel)

@@ -6,6 +6,7 @@
 #include "OverlayWidget.h"
 #include "Res.h"
 #include "Solver.h"
+#include "TypedWord.h"
 #include "WordBalloon.h"
 
 using namespace Sexy;
@@ -115,6 +116,8 @@ void UndoStack::Restore()
 	mBoard->ClearPopups();  // the undone word's "+points"
 	if (mBoard->mSolver != NULL)
 		mBoard->mSolver->Reset();
+	if (mBoard->mTypedWord != NULL)
+		mBoard->mTypedWord->Reset();
 	mBoard->mApp->PlaySample(SOUND_APPEAR2);
 	mBoard->MarkDirty();
 }

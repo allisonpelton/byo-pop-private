@@ -337,6 +337,7 @@ BookWormApp::BookWormApp()
 	mAutoplayUndo = false;
 	mAutoplayModel = false;
 	mAutoplayContinue = false;
+	mAutoplayType = false;
 	mAutoplayBot = NULL;
 }
 
@@ -602,7 +603,7 @@ void BookWormApp::UpdateFrames()
 	// port: the -autoplay test hook (see BookWormApp.h): the bot looks at the game after each update
 	if ((mAutoplay) && (mAutoplayBot == NULL))
 		mAutoplayBot = new AutoplayBot(this, mAutoplaySeed, mAutoplayMode, mAutoplayCap, mAutoplayLogFileName,
-			mAutoplayShotPrefix, mAutoplayShotWords, mAutoplayHints, mAutoplayUndo, mAutoplayModel);
+			mAutoplayShotPrefix, mAutoplayShotWords, mAutoplayHints, mAutoplayUndo, mAutoplayModel, mAutoplayType);
 	if (mAutoplayBot != NULL)
 		mAutoplayBot->Update();
 }
@@ -635,6 +636,8 @@ void BookWormApp::HandleCmdLineParam(const std::string& theParamName, const std:
 		mAutoplayModel = atoi(theParamValue.c_str()) != 0;
 	else if (theParamName == "-autoplaycontinue")
 		mAutoplayContinue = atoi(theParamValue.c_str()) != 0;
+	else if (theParamName == "-autoplaytype")
+		mAutoplayType = atoi(theParamValue.c_str()) != 0;
 	else
 		SexyApp::HandleCmdLineParam(theParamName, theParamValue);
 }

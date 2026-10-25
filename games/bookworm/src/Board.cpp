@@ -16,6 +16,7 @@
 #include "Solver.h"
 #include "Undo.h"
 #include "GreedyBots.h"
+#include "TypedWord.h"
 
 #include "WidgetManager.h"
 #include "DialogButton.h"
@@ -613,6 +614,7 @@ Board::Board(BookWormApp* theApp)
 	mBots = NULL;
 	mBotsChecked = false;
 	mModMoves = 0;
+	mTypedWord = ModFeatureEnabled("typeWord") ? new TypedWord(this) : NULL;
 	if (ModFeatureEnabled("undo"))
 	{
 		mUndo = new UndoStack(this);
@@ -697,6 +699,8 @@ Board::~Board()
 	mUndo = NULL;
 	delete mBots;       // port(mod)
 	mBots = NULL;
+	delete mTypedWord;  // port(mod)
+	mTypedWord = NULL;
 
 	if (mRand != NULL)
 	{
@@ -947,6 +951,9 @@ void Board::MouseMove(int x, int y)
 // 0x405d60 slot 20: space toggles the pause (and the music)
 void Board::KeyChar(SexyChar theChar)
 {
+	if ((mTypedWord != NULL) && (mTypedWord->KeyChar(theChar)))
+		return;     // port(mod): a letter of a typed word
+
 	if (theChar == ' ')
 	{
 		mApp->PauseAllMusic(mPauseCount == 0);
@@ -962,6 +969,9 @@ void Board::KeyDown(KeyCode theKey)
 	if (theKey == KEYCODE_CONTROL)
 		mCtrlDown = true;
 
+	// port(mod): Enter submits, Backspace and Esc edit a typed word
+	if ((mTypedWord != NULL) && (mTypedWord->KeyDown(theKey)))
+		return;
 	// port(mod): Tab asks the word solver for its next hint
 	if ((theKey == KEYCODE_TAB) && (mSolver != NULL) && (mState == BOARD_PLAYING))
 		mSolver->RequestHint();

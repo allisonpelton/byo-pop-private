@@ -173,16 +173,68 @@ static bool BetterByLength(const SolverWord& a, const SolverWord& b)
 	return a.mScore > b.mScore;
 }
 
+// The points and the fire of thePath, as Submit will have them (theFires: the board's fire tiles)
+static void RatePath(SolverWord* theWord, const std::vector<Piece*>& theFires, bool isClassic, WordScore* theScore,
+	PieceList* theList)
+{
+	const std::vector<Piece*>& thePath = theWord->mPath;
+	theList->assign(thePath.begin(), thePath.end());
+	theScore->Build(theList);
+	theWord->mScore = theScore->mScore;
+	theWord->mFireTiles = 0;
+	theWord->mFireRow = -1;
+	for (size_t i = 0; i < thePath.size(); i++)
+	{
+		if (thePath[i]->mType == TILE_FIRE)
+		{
+			theWord->mFireTiles++;
+			theWord->mFireRow = std::max(theWord->mFireRow, thePath[i]->mRow);
+		}
+	}
+	theWord->mFireLeftRow = -1;
+	theWord->mFireDrops = 0;
+	theWord->mSafety = SOLVER_SAFE;
+	for (size_t f = 0; f < theFires.size(); f++)
+	{
+		Piece* aFire = theFires[f];
+		if (std::find(thePath.begin(), thePath.end(), aFire) != thePath.end())
+			continue;
+		if ((isClassic) && (aFire->mRow >= BOARD_ROWS - 1))
+			theWord->mSafety = SOLVER_FATAL;
+		int aFall = 0;
+		for (size_t i = 0; i < thePath.size(); i++)
+		{
+			if ((thePath[i]->mCol == aFire->mCol) && (thePath[i]->mRow > aFire->mRow))
+				aFall++;
+		}
+		if (aFall > 0)
+			theWord->mFireDrops++;
+		theWord->mFireLeftRow = std::max(theWord->mFireLeftRow, aFire->mRow + aFall);
+	}
+	if ((theWord->mSafety == SOLVER_SAFE) && (theWord->mFireLeftRow >= BOARD_ROWS - 1))
+		theWord->mSafety = SOLVER_DANGER;
+	ModWordEffects anEffects;
+	if ((theWord->mSafety == SOLVER_SAFE) && (ModWordGetEffects(theWord->mWord, &anEffects)) &&
+		((anEffects.mEveryTile) || (anEffects.mFire > 0)))
+		theWord->mSafety = SOLVER_SETS_FIRE;
+	theWord->mKind = SOLVER_HINT_BEST;
+}
+
+static void GetFires(const std::vector<Piece*>& theTiles, std::vector<Piece*>* theFires)
+{
+	for (size_t i = 0; i < theTiles.size(); i++)
+	{
+		if (theTiles[i]->mType == TILE_FIRE)
+			theFires->push_back(theTiles[i]);
+	}
+}
+
 void Sexy::FindSolverWords(const std::vector<Piece*>& theTiles, BookWormApp* theApp, std::vector<SolverWord>* theWords,
 	int theLevel)
 {
 	bool isClassic = (theApp->mGameMode == 0);
 	std::vector<Piece*> aFires;
-	for (size_t i = 0; i < theTiles.size(); i++)
-	{
-		if (theTiles[i]->mType == TILE_FIRE)
-			aFires.push_back(theTiles[i]);
-	}
+	GetFires(theTiles, &aFires);
 
 	WordScore aScore;
 	aScore.mApp = theApp;
@@ -193,45 +245,21 @@ void Sexy::FindSolverWords(const std::vector<Piece*>& theTiles, BookWormApp* the
 		SolverWord aWord;
 		aWord.mWord = theWord;
 		aWord.mPath = thePath;
-		aList.assign(thePath.begin(), thePath.end());
-		aScore.Build(&aList);
-		aWord.mScore = aScore.mScore;
-		aWord.mFireTiles = 0;
-		aWord.mFireRow = -1;
-		for (size_t i = 0; i < thePath.size(); i++)
-		{
-			if (thePath[i]->mType == TILE_FIRE)
-			{
-				aWord.mFireTiles++;
-				aWord.mFireRow = std::max(aWord.mFireRow, thePath[i]->mRow);
-			}
-		}
-		aWord.mFireLeftRow = -1;
-		aWord.mSafety = SOLVER_SAFE;
-		for (size_t f = 0; f < aFires.size(); f++)
-		{
-			Piece* aFire = aFires[f];
-			if (std::find(thePath.begin(), thePath.end(), aFire) != thePath.end())
-				continue;
-			if ((isClassic) && (aFire->mRow >= BOARD_ROWS - 1))
-				aWord.mSafety = SOLVER_FATAL;
-			int aFall = 0;
-			for (size_t i = 0; i < thePath.size(); i++)
-			{
-				if ((thePath[i]->mCol == aFire->mCol) && (thePath[i]->mRow > aFire->mRow))
-					aFall++;
-			}
-			aWord.mFireLeftRow = std::max(aWord.mFireLeftRow, aFire->mRow + aFall);
-		}
-		if ((aWord.mSafety == SOLVER_SAFE) && (aWord.mFireLeftRow >= BOARD_ROWS - 1))
-			aWord.mSafety = SOLVER_DANGER;
-		ModWordEffects anEffects;
-		if ((aWord.mSafety == SOLVER_SAFE) && (ModWordGetEffects(theWord, &anEffects)) &&
-			((anEffects.mEveryTile) || (anEffects.mFire > 0)))
-			aWord.mSafety = SOLVER_SETS_FIRE;
-		aWord.mKind = SOLVER_HINT_BEST;
+		RatePath(&aWord, aFires, isClassic, &aScore, &aList);
 		theWords->push_back(aWord);
 	});
+}
+
+void Sexy::RateSolverWord(SolverWord* theWord, const std::vector<Piece*>& theTiles, BookWormApp* theApp, int theLevel)
+{
+	std::vector<Piece*> aFires;
+	GetFires(theTiles, &aFires);
+	WordScore aScore;
+	aScore.mApp = theApp;
+	aScore.mLevel = theLevel;
+	PieceList aList;
+	RatePath(theWord, aFires, theApp->mGameMode == 0, &aScore, &aList);
+	theWord->mWord = aScore.mWord;
 }
 
 void Solver::Solve()

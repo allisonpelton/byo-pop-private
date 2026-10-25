@@ -15,6 +15,8 @@
 #include "Solver.h"
 #include "Undo.h"
 #include "GreedyBots.h"
+#include "ModFeatures.h"
+#include "TypedWord.h"
 
 #include "WidgetManager.h"
 #include "ButtonWidget.h"
@@ -112,7 +114,7 @@ bool SameWordIgnoringCase(const std::string& theWord1, const std::string& theWor
 
 AutoplayBot::AutoplayBot(BookWormApp* theApp, unsigned long theSeed, const std::string& theMode, int theUpdateCap,
 	const std::string& theLogFileName, const std::string& theShotPrefix, int theShotWords, bool theUseHints,
-	bool theTestUndo, bool theCheckModel) :
+	bool theTestUndo, bool theCheckModel, bool theTypeWords) :
 	mApp(theApp),
 	mRand((std::mt19937::result_type) theSeed),
 	mSeed(theSeed),
@@ -130,6 +132,9 @@ AutoplayBot::AutoplayBot(BookWormApp* theApp, unsigned long theSeed, const std::
 	mUndoChecks(0),
 	mUndoMismatches(0),
 	mCheckModel(theCheckModel),
+	mTypeWords(theTypeWords),
+	mTypeChecks(0),
+	mTypeMismatches(0),
 	mModel(NULL),
 	mModelBoard(NULL),
 	mModelMoves(0),
@@ -185,9 +190,9 @@ AutoplayBot::AutoplayBot(BookWormApp* theApp, unsigned long theSeed, const std::
 		mModes.push_back(GAMEMODE_CLASSIC);
 	}
 
-	Note("-autoplay=%lu -seed=%lu -autoplaymode=%s -autoplaycap=%d%s%s%s: the bot's input as a -script file", mSeed,
+	Note("-autoplay=%lu -seed=%lu -autoplaymode=%s -autoplaycap=%d%s%s%s%s: the bot's input as a -script file", mSeed,
 		(unsigned long) mApp->mRandSeed, mModeName.c_str(), mUpdateCap, mUseHints ? " -autoplayhints=1" : "",
-		mTestUndo ? " -autoplayundo=1" : "", mCheckModel ? " -autoplaymodel=1" : "");
+		mTestUndo ? " -autoplayundo=1" : "", mCheckModel ? " -autoplaymodel=1" : "", mTypeWords ? " -autoplaytype=1" : "");
 	if ((mCheckModel) && (mTestUndo))
 	{
 		Note("-autoplaymodel: the model cannot undo; no model check with -autoplayundo");
@@ -247,6 +252,7 @@ void AutoplayBot::Quit()
 {
 	if (mDragging)
 		EndDrag("quit");
+	NoteTyped();
 	Queue("quit", "");
 	mDone = true;
 	if (mLog != NULL)
@@ -319,6 +325,7 @@ void AutoplayBot::LogChanges(Board* theBoard)
 				Note("hints: %d words scored, %d mismatches", mWordsScored, mHintMismatches);
 			if (mTestUndo)
 				Note("undo: %d checks, %d mismatches", mUndoChecks, mUndoMismatches);
+			NoteTyped();
 			CheckModelEnd(theBoard);
 		}
 		if ((theBoard->mState == BOARD_GAMEOVER) && (theBoard->mBots != NULL))
@@ -848,6 +855,12 @@ void AutoplayBot::PlanNext(Board* theBoard)
 		Note("-autoplayundo: needs -autoplayhints=1 and the mod \"undo\"; no undo test");
 		mTestUndo = false;
 	}
+	if ((mTypeWords) && (!ModFeatureEnabled("typeWord")))
+	{
+		Note("-autoplaytype: the mod \"type-word\" is off; no typing");
+		mTypeWords = false;
+	}
+	mTyped.clear();
 	if ((mTestUndo) && (PlanUndoTest(theBoard)))
 		return;
 	CheckModel(theBoard);
@@ -980,9 +993,115 @@ void AutoplayBot::PlanNext(Board* theBoard)
 	int aMethod = Random(3);
 	mPlanKind = PLAN_WORD;
 	mPlanWord = aChoice->mWord;
+	if (mTypeWords)
+	{
+		Note("plan %d: %s (%s of %u words, %d fire tiles in it) typed", mPlanNum, aChoice->mWord.c_str(), aWhy,
+			(unsigned) aWords.size(), aChoice->mFireTiles);
+		PlanTyping(theBoard, aChoice->mWord);
+		return;
+	}
 	Note("plan %d: %s (%s of %u words, %d fire tiles in it) by %s", mPlanNum, aChoice->mWord.c_str(), aWhy,
 		(unsigned) aWords.size(), aChoice->mFireTiles, MethodName(aMethod));
 	PlanSelection(theBoard, aChoice->mPath, aMethod, false);
+}
+
+// -autoplaytype: theWord typed and submitted with Enter; one time in eight a letter is taken back and typed
+// again, one in eight the word is begun, cleared with Esc and typed afresh. Letters are mostly lower case, as
+// a keyboard types them.
+void AutoplayBot::PlanTyping(Board* theBoard, const std::string& theWord)
+{
+	mTypeCells = BoardState(theBoard).substr(0, BOARD_ROWS * BOARD_COLS * 2);
+	int aVariant = Random(8);
+	std::string aLetters = theWord;
+	for (size_t i = 0; i < aLetters.size(); i++)
+	{
+		if (Random(4) != 0)
+			aLetters[i] = (char) tolower((unsigned char) aLetters[i]);
+	}
+	if ((aVariant == 0) && (aLetters.size() > 2))
+	{
+		AddStep(STEP_TYPE_CHAR, -1, theBoard, 15 + Random(50)).mLetter = aLetters[0];
+		AddStep(STEP_TYPE_CHAR, -1, theBoard, 3 + Random(10)).mLetter = aLetters[1];
+		AddStep(STEP_KEY_ESCAPE, -1, theBoard, 10 + Random(20));
+	}
+	for (size_t i = 0; i < aLetters.size(); i++)
+		AddStep(STEP_TYPE_CHAR, -1, theBoard, (i == 0) ? 15 + Random(50) : 3 + Random(10)).mLetter = aLetters[i];
+	if (aVariant == 1)
+	{
+		AddStep(STEP_KEY_BACK, -1, theBoard, 5 + Random(15));
+		AddStep(STEP_TYPE_CHAR, -1, theBoard, 3 + Random(10)).mLetter = aLetters[aLetters.size() - 1];
+	}
+	AddStep(STEP_KEY_RETURN, -1, theBoard, 8 + Random(20)).mSubmit = true;
+}
+
+// -autoplaytype: the selection spells the letters typed so far (after a Q: the Qu tile's QU); isWord, before
+// Enter: it is the best of the paths the word solver finds for the plan's word
+void AutoplayBot::CheckTyped(Board* theBoard, bool isWord)
+{
+	std::vector<int> aSelected;
+	for (PieceList::iterator anItr = theBoard->mSelection.begin(); anItr != theBoard->mSelection.end(); ++anItr)
+		aSelected.push_back((*anItr)->mRow * BOARD_COLS + (*anItr)->mCol);
+	std::string aSpelled = PathWord(theBoard, aSelected);
+	std::string aTyped = mTyped;
+	if ((!aTyped.empty()) && (aTyped[aTyped.size() - 1] == 'Q'))
+		aTyped += 'U';
+	mTypeChecks++;
+	if (aSpelled != aTyped)
+	{
+		mTypeMismatches++;
+		Note("TYPE MISMATCH: typed \"%s\", the selection spells \"%s\"", mTyped.c_str(), aSpelled.c_str());
+		return;
+	}
+	if (!isWord)
+		return;
+
+	std::vector<Piece*> aTiles;
+	for (int aCell = 0; aCell < BOARD_ROWS * BOARD_COLS; aCell++)
+	{
+		Piece* aPiece = CellPiece(theBoard, aCell);
+		if ((aPiece != NULL) && (aPiece->mLetter >= 'A') && (aPiece->mLetter <= 'Z') && (!aPiece->mBurning))
+			aTiles.push_back(aPiece);
+	}
+	std::vector<SolverWord> aWords;
+	FindSolverWords(aTiles, mApp, &aWords);
+	const SolverWord* aBest = NULL;
+	int aPaths = 0;
+	for (size_t i = 0; i < aWords.size(); i++)
+	{
+		if (!SameWordIgnoringCase(aWords[i].mWord, mPlanWord))
+			continue;
+		aPaths++;
+		if ((aBest == NULL) || (TypedWord::Better(aWords[i], *aBest)))
+			aBest = &aWords[i];
+	}
+
+	SolverWord aChosen;
+	aChosen.mPath.assign(theBoard->mSelection.begin(), theBoard->mSelection.end());
+	RateSolverWord(&aChosen, aTiles, mApp);
+	static const char* const SAFETY_NAMES[] = { "safe", "sets fire", "fire to the bottom", "ends the game" };
+	if (aBest == NULL)
+	{
+		mTypeMismatches++;
+		Note("TYPE MISMATCH: the solver finds no path for %s", mPlanWord.c_str());
+	}
+	else if (TypedWord::Better(*aBest, aChosen))
+	{
+		mTypeMismatches++;
+		Note("TYPE MISMATCH: %s typed takes %d fire tiles, drops %d, %s, %d points; a path takes %d, drops %d, %s, %d points",
+			mPlanWord.c_str(), aChosen.mFireTiles, aChosen.mFireDrops, SAFETY_NAMES[aChosen.mSafety], aChosen.mScore,
+			aBest->mFireTiles, aBest->mFireDrops, SAFETY_NAMES[aBest->mSafety], aBest->mScore);
+	}
+	else
+		Note("typed %s, the best of %d paths: %d fire tiles, %d dropped, %s, %d points", mPlanWord.c_str(), aPaths,
+			aChosen.mFireTiles, aChosen.mFireDrops, SAFETY_NAMES[aChosen.mSafety], aChosen.mScore);
+}
+
+// -autoplaytype: the checks so far (at each game over and the quit; a game Action's clock ends goes from play
+// to game over without the note)
+void AutoplayBot::NoteTyped()
+{
+	if (mTypeWords)
+		Note("typed: %d checks, %d mismatches", mTypeChecks, mTypeMismatches);
 }
 
 // Queues the input of a due step (RUN_DONE / RUN_SKIP), or says to wait (RUN_WAIT) or that the plan is
@@ -1095,7 +1214,44 @@ int AutoplayBot::RunStep(Board* theBoard, const Step& theStep)
 				(unsigned) theBoard->mSolver->mHints.size(), aHint->mWord.c_str(), KIND_NAMES[aHint->mKind],
 				aHint->mScore, aHint->mFireTiles, SAFETY_NAMES[aHint->mSafety], aCells.c_str());
 		}
+		if ((mTypeWords) && (Random(2) == 0))
+		{
+			Note("Enter");
+			Queue("key", "RETURN");
+			return RUN_DONE;
+		}
 		return ClickWidget(theBoard->mSubmitButton, "the Submit button") ? RUN_DONE : RUN_WAIT;
+
+	case STEP_TYPE_CHAR:
+	case STEP_KEY_BACK:
+	case STEP_KEY_ESCAPE:
+	case STEP_KEY_RETURN:
+		// in Action the board changes by itself (a fire tile burns the tile under it, which clears the
+		// selection): the word may be gone
+		if (BoardState(theBoard).compare(0, mTypeCells.size(), mTypeCells) != 0)
+			return RUN_DROP;
+		CheckTyped(theBoard, theStep.mKind == STEP_KEY_RETURN);
+		switch (theStep.mKind)
+		{
+		case STEP_TYPE_CHAR:
+			mTyped += (char) toupper((unsigned char) theStep.mLetter);
+			Queue("char", std::string(1, theStep.mLetter));
+			break;
+		case STEP_KEY_BACK:
+			if (!mTyped.empty())
+				mTyped.erase(mTyped.size() - 1);
+			Queue("key", "BACK");
+			break;
+		case STEP_KEY_ESCAPE:
+			mTyped.clear();
+			Queue("key", "ESCAPE");
+			break;
+		case STEP_KEY_RETURN:
+			mTyped.clear();
+			Queue("key", "RETURN");
+			break;
+		}
+		return RUN_DONE;
 
 	case STEP_KEY_HINT:
 		Queue("key", "TAB");
@@ -1139,6 +1295,7 @@ void AutoplayBot::DropPlan(const char* theWhy)
 	Note("plan %d dropped (%s)", mPlanNum, theWhy);
 	if (mDragging)
 		EndDrag(theWhy);
+	mTyped.clear();
 	mPlan.clear();
 	mPlanPos = 0;
 	mWaitedSince = -1;

@@ -44,6 +44,12 @@
 // model's game must be over with the same score. "MODEL MISMATCH" where one differs (the model then starts
 // again from the game's board). With the mod "greedy-bots" on, the game-over note gives the bots' results.
 // -autoplaycontinue=1: the continue-game question gets a yes, so a game saved by an earlier run's quit goes on.
+// -autoplaytype=1 (with the mod "type-word" on): the bot's words are typed, letter by letter (mostly lower
+// case), and Enter submits them; now and then a letter is taken back with Backspace and typed again, or the
+// word begun, cleared with Esc and typed afresh. Before each key the selection must spell the letters typed
+// so far, and before Enter it must be the best of the word's paths (TypedWord::Better, over every path the
+// word solver finds for it); "TYPE MISMATCH" where not. Hints and Submit-button words are sent with Enter
+// half the time.
 
 #include <cstdio>
 #include <random>
@@ -63,7 +69,7 @@ class AutoplayBot
 public:
 	AutoplayBot(BookWormApp* theApp, unsigned long theSeed, const std::string& theMode, int theUpdateCap,
 		const std::string& theLogFileName, const std::string& theShotPrefix, int theShotWords, bool theUseHints,
-		bool theTestUndo, bool theCheckModel);
+		bool theTestUndo, bool theCheckModel, bool theTypeWords);
 	~AutoplayBot();
 
 	// After each update (BookWormApp::UpdateFrames): looks at the game, queues input for the next update
@@ -81,7 +87,11 @@ private:
 		STEP_CLICK_SUBMIT,  // the Submit button
 		STEP_CLICK_LEX,     // Lex: scramble
 		STEP_KEY_HINT,      // Tab: the word solver's next hint (-autoplayhints)
-		STEP_UNDO           // the Undo button (mCell -1) or Ctrl+Z (mCell -2) (-autoplayundo)
+		STEP_UNDO,          // the Undo button (mCell -1) or Ctrl+Z (mCell -2) (-autoplayundo)
+		STEP_TYPE_CHAR,     // types mLetter (-autoplaytype)
+		STEP_KEY_BACK,      // Backspace: the last letter typed taken back
+		STEP_KEY_ESCAPE,    // Esc: the typed word cleared
+		STEP_KEY_RETURN     // Enter: the typed word submitted
 	};
 
 	struct Step
@@ -135,6 +145,11 @@ private:
 	int mUndoChecks;
 	int mUndoMismatches;
 	bool mCheckModel;
+	bool mTypeWords;
+	std::string mTyped;             // the letters typed so far (upper case)
+	std::string mTypeCells;         // the cells' letters and tile types when the typing was planned
+	int mTypeChecks;
+	int mTypeMismatches;
 	BotGame* mModel;                // the model's game, from mModelBoard's first board
 	Board* mModelBoard;
 	int mModelMoves;                // the moves it took (the game's mModMoves when it agrees)
@@ -206,6 +221,9 @@ private:
 	bool ModelTakesMove(Board* theBoard);
 	void CheckModel(Board* theBoard);
 	void CheckModelEnd(Board* theBoard);
+	void PlanTyping(Board* theBoard, const std::string& theWord);
+	void CheckTyped(Board* theBoard, bool isWord);
+	void NoteTyped();
 	int RunStep(Board* theBoard, const Step& theStep);
 	void EndDrag(const char* theWhy);
 	void DropPlan(const char* theWhy);

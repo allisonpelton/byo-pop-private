@@ -54,6 +54,8 @@ class BookWormApp;
 // Submit's points and what it does to the fire (the solver's candidates; the greedy bots' too)
 void FindSolverWords(const std::vector<Piece*>& theTiles, BookWormApp* theApp, std::vector<SolverWord>* theWords,
 	int theLevel = -1);
+// The same rating of one path, theWord's mPath (any letters: the typed word's search); sets its mWord too
+void RateSolverWord(SolverWord* theWord, const std::vector<Piece*>& theTiles, BookWormApp* theApp, int theLevel = -1);
 
 // The solver's orders (true: a comes first): safer first, then for the fire hint the lowest fire tile taken,
 // the most fire tiles, the remaining fire left highest and the points; by score the points, the remaining
@@ -70,6 +72,7 @@ struct SolverWord
 	int					mFireRow;       // the lowest of them (rows 0..7, top to bottom), -1 for none
 	int					mFireLeftRow;   // the lowest row a fire tile left out lands on once the word's tiles
 	                                    // are gone (the tiles under it eaten), -1 for none
+	int					mFireDrops;     // the fire tiles left out that fall (tiles under them eaten)
 	int					mSafety;        // SolverSafety
 	int					mKind;          // SolverHintKind, once it is a hint
 };

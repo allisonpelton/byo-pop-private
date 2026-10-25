@@ -180,6 +180,7 @@ public:
 	bool					mAutoplayUndo;
 	bool					mAutoplayModel;         // -autoplaymodel=1: the greedy bots' model checked (Autoplay.h)
 	bool					mAutoplayContinue;      // -autoplaycontinue=1: the saved game goes on (Autoplay.h)
+	bool					mAutoplayType;          // -autoplaytype=1: words typed (the mod "type-word"; Autoplay.h)
 	AutoplayBot*			mAutoplayBot;
 
 public:

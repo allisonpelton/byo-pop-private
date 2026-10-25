@@ -87,6 +87,7 @@ original's.
 | `undo` (Undo) | An UNDO button beside OPTIONS, and Ctrl+Z: takes back the last word or scramble (up to 10, setting 1..100), within a level and while in play. The board, score, fire meter, Lex and bonus word come back as they were, and the same word played again brings the same new tiles (the generators come back too). The clocks run on. |
 | `collins` (Collins Scrabble Words) | Adds Collins Scrabble Words (CSW24, 280,652 playable words; the game has 151,381) to the dictionary, with their definitions in Lex's balloon, in the game's style; a word without one gets the note "A word from Collins Scrabble Words." A click on a definition balloon opens the word on collinsdictionary.com (setting: Wiktionary, or nothing). The list is the player's own and git-ignored: `python games/bookworm/tools/make_collins_mod.py <NASPA Zyzzyva folder> [--definitions <words with definitions.txt>]` writes `collins-words.txt` and `collins-defs.txt` into the mod folder. Start-up takes about 1.4 s longer natively. |
 | `rude-words` (Rude Words) | Adds 312 swear words, crude slang and internet slang the game's list leaves out (no slurs), from our own list. Each one played sets fire to some of the tiles that drop in to replace it, never on the bottom row: 2 (0..9), one per so many letters, or all of them. Settings for its points (a multiplier, 0 or negative too) and bonus tiles (as usual, none, or a rude word removes them all). Lex comments in his balloon (65 comments, the definition under it) and cries danger; the level and game-over page counts the game's rude words and the player's all-time total. The solver ranks such words after the safe ones ("SETS FIRE"). |
+| `type-word` (Type a Word) | Type a word to select it on the board, and press Enter to play it (Enter plays a clicked selection or a hint too). Each letter selects the best path for the letters so far, so the selection can move as the word grows; a letter the board cannot add is refused with a buzz. Of the paths that spell the word: one that does not end the game, then the most fire tiles, the fewest fire tiles dropped, none dropped to the bottom row, the best score (MOD_IDEAS.md 4.6). Backspace takes back a letter, Esc clears; Q types the Qu tile. Space, Tab and Ctrl+Z keep their jobs. The usual high scores: every typed word could be clicked. |
 | `greedy-bots` (Greedy Bots) | In Classic, two simple players play their own games from the board you began with, while you play: one always plays the best-scoring word, the other the word that takes the most urgent fire first (else the best). On the game-over page a balloon above Lex gives their scores, how far each got and which of them you beat. A model of the Classic rules plays them, checked against the game move by move; a saved game keeps them. Your own game is unchanged, with the usual high scores. |
 
 The tests use the `-autoplay` bot. With `-autoplayhints=1` it plays the solver's first hint every move (Tab,
@@ -101,7 +102,12 @@ the same board, score, fire meter, bonus word and level at each rest, and to the
 where it does not (MOD_IDEAS.md 4.2). With the mod `greedy-bots` the game-over note gives the bots' results,
 and `-autoplayshots` also shoots the game-over page with their balloon. `-autoplaycontinue=1` answers the
 continue-game question yes, so a second run in the same user dir goes on with the game the first one's quit
-saved.
+saved. With `-autoplaytype=1` (the mod `type-word` on) the bot types its words, mostly in lower case, and
+presses Enter; now and then it takes a letter back with Backspace or clears with Esc and types again. Before
+each key the selection must spell the letters typed so far, and before Enter it must be the best of the word's
+paths as the solver finds them; `TYPE MISMATCH` where not. Hints and Submit-button words go by Enter half the
+time. Seeds 1 to 6, Classic and Action: 297 typed words (79 with more than one path, 3 with the Qu tile),
+1,931 checks, no mismatch; 143 hints sent with Enter.
 
 ```bash
 mkdir -p <dir>/mods && cp -r games/bookworm/mods/solver games/bookworm/mods/undo <dir>/mods/
