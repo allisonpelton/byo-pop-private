@@ -6,7 +6,8 @@
 // rest of the state the rules draw on are kept (BotGame::Capture). Three simple players then play their own
 // games from that start, a few moves a tick while the player plays (GreedyBots::Update): one always plays the
 // best-scoring word, one puts out the most urgent fire first, and one does that too but then brings the fewest
-// new fire tiles (the solver's "fewerFire", SolverFireRater). The game-over page shows how far each got (LevelUpWidget), and a saved
+// new fire tiles (the solver's "fewerFire", SolverFireRater). Each plays the bonus word first when the board
+// spells it, unless it would end the game. The game-over page shows how far each got (LevelUpWidget), and a saved
 // game keeps their results and the games still going (Board's saved-game trailer, GreedyBots::Write; a game
 // saved with two bots, before the third, reads with the third absent).
 //

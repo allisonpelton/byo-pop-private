@@ -1,10 +1,14 @@
 #include "SidePanel.h"
 #include "Board.h"
 #include "BookWormApp.h"
+#include "Definitionator.h"
+#include "Lex.h"
 #include "ModFeatures.h"
+#include "ModWords.h"
 #include "Piece.h"
 #include "Res.h"
 #include "Solver.h"
+#include "Undo.h"
 #include "Buffer.h"
 #include "Font.h"
 #include "ImageFont.h"
@@ -46,6 +50,10 @@ SidePanel::SidePanel(BookWormApp* theApp)
 	mLogBoard = NULL;
 	mLogBits = -1;
 	mHoverHint = -1;
+	mMouseX = -1;
+	mMouseY = -1;
+	mHoverDelay = 0;
+	mDefBoard = 0;
 	mMouseVisible = true;
 	mHasAlpha = true;
 }
@@ -167,7 +175,70 @@ void SidePanel::Update()
 	}
 	if ((mHoverHint >= 0) && (!HintsLive(aBoard)))
 		mHoverHint = -1;
+	UpdateHoverDefinition(aBoard);
 	MarkDirty();
+}
+
+SexyString SidePanel::WordAt(int x, int y) const
+{
+	int anIdx = HintAt(x, y);
+	if (anIdx >= 0)
+		return CurrentBoard()->mSolver->mHints[anIdx].mWord;
+	int aWord = WordIndexAt(x, y);
+	return (aWord >= 0) ? mWords[aWord].mWord : SexyString();
+}
+
+int SidePanel::WordIndexAt(int x, int y) const
+{
+	for (const std::pair<Rect, int>& aRow : mWordRows)
+	{
+		if ((aRow.first.Contains(x, y)) && (aRow.second < (int)mWords.size()))
+			return aRow.second;
+	}
+	return -1;
+}
+
+// The word under the mouse, in play: after a moment its definition (or a mod's note on it) in Lex's balloon,
+// tried again while another message is up
+void SidePanel::UpdateHoverDefinition(Board* theBoard)
+{
+	SexyString aWord;
+	if ((mMouseX >= 0) && (theBoard != NULL) && (theBoard->mLex != NULL) && (theBoard->mState == BOARD_PLAYING) &&
+		(theBoard->mPauseCount <= 0) && (!theBoard->mSummaryShown) && (mApp->mDefinitionator != NULL) &&
+		(mApp->GetDialogCount() == 0))
+		aWord = WordAt(mMouseX, mMouseY);
+	if (aWord != mHoverWord)
+	{
+		EndHoverDefinition(theBoard);
+		mHoverWord = aWord;
+		mHoverDelay = 15;
+		return;
+	}
+	if ((aWord.empty()) || (mDefBoard != 0) || (mHoverDelay <= 0) || (--mHoverDelay > 0))
+		return;
+
+	SexyString aDefinition = mApp->mDefinitionator->GetDefinition(aWord);
+	if (aDefinition.empty())
+		aDefinition = ModWordNote(aWord);
+	if (aDefinition.empty())
+		return;
+	if (theBoard->mLex->PreviewDefinition(aWord, aDefinition))
+		mDefBoard = theBoard->mBoardSerial;
+	else
+		mHoverDelay = 10;
+}
+
+// The hovered word's definition goes; the selection's own (Definitions While Selecting) comes back after its delay
+void SidePanel::EndHoverDefinition(Board* theBoard)
+{
+	if (mDefBoard == 0)
+		return;
+	if ((theBoard != NULL) && (theBoard->mBoardSerial == mDefBoard) && (theBoard->mLex != NULL))
+	{
+		theBoard->mLex->EndPreview(false);
+		theBoard->mSelectDefWord.clear();
+	}
+	mDefBoard = 0;
 }
 
 static Color TileColor(int theType)
@@ -270,6 +341,11 @@ int SidePanel::DrawHints(Graphics* g, Board* theBoard, int theY)
 			aKindColor = Color(120, 225, 110);
 		}
 		g->SetFont(aLabelFont);
+		if ((i < 10) && (SolverHotkeys()))
+		{
+			g->SetColor(Color(150, 140, 120));   // the number key that plays it
+			g->DrawString(StrFormat(_S("%d"), (i + 1) % 10), 5, theY + (ROW_H + aLabelFont->GetAscent()) / 2 - 1);
+		}
 		g->SetColor(aKindColor);
 		g->DrawString(aKind, CONTENT_X, theY + (ROW_H + aLabelFont->GetAscent()) / 2 - 1);
 
@@ -325,6 +401,13 @@ void SidePanel::DrawWords(Graphics* g, int theY)
 		}
 		if (theY + ROW_H > CONTENT_BOTTOM)
 			break;
+		Rect aRect(CONTENT_X - 4, theY, CONTENT_RIGHT - CONTENT_X + 8, ROW_H);
+		mWordRows.push_back(std::make_pair(aRect, i));
+		if ((mMouseX >= 0) && (aRect.Contains(mMouseX, mMouseY)))
+		{
+			g->SetColor(Color(255, 255, 255, 40));
+			g->FillRect(aRect);
+		}
 		SexyString aPoints = (aWord.mBonus > 0) ? StrFormat(_S("%d +%d"), aWord.mScore, aWord.mBonus) :
 			StrFormat(_S("%d"), aWord.mScore);
 		DrawRow(g, aFont, aWord.mWord, aPoints, TileColor(aWord.mTileType), Color(255, 214, 110), theY, 0);
@@ -346,6 +429,7 @@ void SidePanel::Draw(Graphics* g)
 		g->FillRect(0, 0, mWidth, mHeight);
 	}
 
+	mWordRows.clear();
 	Board* aBoard = CurrentBoard();
 	if (aBoard == NULL)
 		return;
@@ -358,17 +442,37 @@ void SidePanel::Draw(Graphics* g)
 void SidePanel::MouseMove(int x, int y)
 {
 	mHoverHint = HintAt(x, y);
+	mMouseX = x;
+	mMouseY = y;
 }
 
 void SidePanel::MouseLeave()
 {
 	mHoverHint = -1;
+	mMouseX = -1;
+	mMouseY = -1;
 }
 
-// A click on a word of the solver's list selects it, as its hint would (Tab then goes on from it)
+// A click on a word of the solver's list selects it, as its hint would (Tab then goes on from it); a click on the
+// one selected plays it, as SUBMIT does
 void SidePanel::MouseDown(int x, int y, int theClickCount)
 {
+	Board* aBoard = CurrentBoard();
+	if ((aBoard == NULL) || (aBoard->IsWatched()))
+		return;     // a watched replay plays only its recording (Replay.h)
+	// a double click on a word played: back to just after it, the later moves undone (mod "undo")
+	int aWord = (theClickCount == 2) ? WordIndexAt(x, y) : -1;
+	if ((aWord >= 0) && (aBoard->mUndo != NULL))
+	{
+		aBoard->mUndo->RequestUndoTo(aWord + 1);
+		return;
+	}
 	int anIdx = (theClickCount > 0) ? HintAt(x, y) : -1;
-	if (anIdx >= 0)
-		CurrentBoard()->mSolver->SelectListed(anIdx);
+	if (anIdx < 0)
+		return;
+	Solver* aSolver = aBoard->mSolver;
+	if (aSolver->ShownHint() == &aSolver->mHints[anIdx])
+		aBoard->ButtonDepress(BOARD_BUTTON_SUBMIT);
+	else
+		aSolver->SelectListed(anIdx);
 }

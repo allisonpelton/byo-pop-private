@@ -816,15 +816,28 @@ bool GreedyBots::PlayMove(BotGame* theGame, int theKind)
 			aRater.Rate(&aWord);
 	}
 
+	// Every bot: a word that ends the game at once last, then the bonus word (the user's choice), then its own order
 	const SolverWord* aBest = NULL;
+	bool isBestBonus = false;
 	for (size_t i = 0; i < aWords.size(); i++)
 	{
-		aWords[i].mScore += BonusPoints(theGame, aWords[i]);
+		int aBonus = BonusPoints(theGame, aWords[i]);
+		aWords[i].mScore += aBonus;
 		const SolverWord& aRival = *(aBest ? aBest : &aWords[i]);
-		bool isBetter = (theKind == GREEDY_BEST_WORD) ? BestWordFirst(aWords[i], aRival) :
-			(theKind == GREEDY_FIRE_FIRST) ? FireFirst(aWords[i], aRival) : LeastFireFirst(aWords[i], aRival);
+		bool isFatal = (aWords[i].mSafety == SOLVER_FATAL);
+		bool isBetter;
+		if (isFatal != (aRival.mSafety == SOLVER_FATAL))
+			isBetter = !isFatal;
+		else if ((aBonus > 0) != isBestBonus)
+			isBetter = (aBonus > 0);
+		else
+			isBetter = (theKind == GREEDY_BEST_WORD) ? BestWordFirst(aWords[i], aRival) :
+				(theKind == GREEDY_FIRE_FIRST) ? FireFirst(aWords[i], aRival) : LeastFireFirst(aWords[i], aRival);
 		if ((aBest == NULL) || (isBetter))
+		{
 			aBest = &aWords[i];
+			isBestBonus = (aBonus > 0);
+		}
 	}
 
 	if (aBest != NULL)

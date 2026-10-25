@@ -14,7 +14,8 @@
 // board, and a CASH IN hint after the best words is the best-scoring word that uses them (each adds to the
 // multiplier of the whole word's letters: WordScore::CalcScore). The setting "fewerFire" (Classic) orders each word's
 // paths, the fire hint's and the best words by the new fire tiles they bring, the fire meter's drain counted as
-// fire to come (SolverFireRater); the tag shows the new fire tiles to expect.
+// fire to come (SolverFireRater); the tag shows the new fire tiles to expect. The setting "hotkeys": the keys
+// 1..9 and 0 play the list's first ten words at once (the side panel of the mod "widescreen" numbers them).
 
 #include "Common.h"
 #include "Piece.h"
@@ -117,6 +118,9 @@ protected:
 	SexyString				mBonusWord;
 };
 
+// The setting "hotkeys": 1..9 and 0 play the first ten words of the list (Board::KeyChar, SidePanel)
+bool SolverHotkeys();
+
 class Solver
 {
 public:
@@ -140,6 +144,8 @@ public:
 	bool					IsCurrent() const;      // mHints were made for the board as it is
 	void					Refresh();
 	void					SelectListed(int theIdx);
+	// The number keys (setting "hotkeys"): mHints[theIdx] played at once, the list made first if it is not current
+	void					PlayListed(int theIdx);
 
 protected:
 	void					Solve();

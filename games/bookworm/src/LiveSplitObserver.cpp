@@ -302,9 +302,11 @@ void LiveSplitObserver::AfterUpdate(BookWormApp* theApp)
 			// The baseline: a board seen over or left has had its game over, and its state is the previous one
 			sGameOver = isOverState || isLeft;
 			sPrevState = aState;
-			sGoPossible = (!isActivation) && (!aBoard->mResumed);
+			sGoPossible = (!isActivation) && (!aBoard->mResumed) && (aBoard->mPlayer == NULL);
 			if ((!isActivation) && (aBoard->mResumed))
 				SDL_Log("livesplit: board %u resumed a saved game: GO not counted", (unsigned) aSerial);
+			if ((!isActivation) && (aBoard->mPlayer != NULL))
+				SDL_Log("livesplit: board %u plays a replay: GO not counted", (unsigned) aSerial);
 		}
 
 		if (sGoPossible)
@@ -371,6 +373,8 @@ void LiveSplitObserver::AfterUpdate(BookWormApp* theApp)
 		uint32_t aFlags = 0;
 		if (aBoard->mResumed)
 			aFlags |= LIVESPLIT_FLAG_RESUMED;
+		if (aBoard->mPlayer != NULL)
+			aFlags |= LIVESPLIT_FLAG_REPLAY;    // port(mod): a watched replay (Replay.h)
 		if (Platform::ModManager::Get().GetScoreKey().empty())
 			aFlags |= LIVESPLIT_FLAG_VANILLA;
 		if (sGameOver)

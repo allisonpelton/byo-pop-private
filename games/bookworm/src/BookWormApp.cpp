@@ -1,6 +1,8 @@
 #include "BookWormApp.h"
 #include "Compat2004.h"
 #include "Board.h"
+#include "Replay.h"
+#include "platform/ModManager.h"
 #include "StatKeeper.h"
 #include "TitleScreen.h"
 #include "BWGameSelector.h"
@@ -343,12 +345,22 @@ BookWormApp::BookWormApp()
 	mAutoplayBot = NULL;
 	mDailyDate = 0;
 	mSidePanel = NULL;
+	mReplayDir = "replays";
+	mWatchFile = NULL;
+	mWatchSpeed = 1;
+	mWatchQuit = false;
+	mWatchSavedMode = GAMEMODE_CLASSIC;
+	for (int i = 0; i < 5; i++)
+		mWatchSavedFlags[i] = false;
+	mWatchSavedLetterIdx = -1;
+	mWatchSavedRefillLevel = -1;
 }
 
 // 0x4187b0. The widgets were removed and deleted by ShutdownWidgets (the help widget is not: original).
 BookWormApp::~BookWormApp()
 {
 	delete mAutoplayBot; // port: the -autoplay test hook
+	delete mWatchFile;   // port(mod)
 	LiveSplitObserver::AppDestroyed(this); // port(mod): the LiveSplit block's last write
 
 	if (mUserManager != NULL)
@@ -603,6 +615,15 @@ void BookWormApp::ButtonDepress(int theId)
 void BookWormApp::UpdateFrames()
 {
 	SexyApp::UpdateFrames();
+	// port(mod): replays (Replay.h): a -replay watch starts once the title has loaded, as if its play link were
+	// clicked; a faster watch runs whole updates, so Lex and the overlay keep step with the board; -replayquit ends
+	// the run at the watch's end
+	if ((!mWatchPath.empty()) && (mTitleScreen != NULL) && (mTitleScreen->mLoadDone) && (!mShutdown))
+		TitleScreenDone();
+	for (int i = 1; (i < mWatchSpeed) && (mBoard != NULL) && (mBoard->mPlayer != NULL) && (!mShutdown); i++)
+		SexyApp::UpdateFrames();
+	if ((mWatchQuit) && (mBoard != NULL) && (mBoard->mPlayer != NULL) && (mBoard->mPlayer->mEnded) && (!mShutdown))
+		Shutdown();
 	mMusicInterface->Update();
 
 	// port: the -autoplay test hook (see BookWormApp.h): the bot looks at the game after each update
@@ -648,6 +669,17 @@ void BookWormApp::HandleCmdLineParam(const std::string& theParamName, const std:
 		mAutoplayType = atoi(theParamValue.c_str()) != 0;
 	else if (theParamName == "-dailydate")
 		mDailyDate = atoi(theParamValue.c_str());
+	else if (theParamName == "-replay")
+		mWatchPath = theParamValue;     // port(mod): replays (Replay.h)
+	else if (theParamName == "-replaydir")
+		mReplayDir = theParamValue;
+	else if (theParamName == "-replayspeed")
+	{
+		int aSpeed = atoi(theParamValue.c_str());
+		mWatchSpeed = (aSpeed >= 8) ? 8 : (aSpeed >= 4) ? 4 : (aSpeed >= 2) ? 2 : 1;
+	}
+	else if (theParamName == "-replayquit")
+		mWatchQuit = atoi(theParamValue.c_str()) != 0;
 	else if (theParamName == "-livesplitlog")
 		LiveSplitObserver::SetLogFile(theParamValue); // port(mod): test hook, one line per block write
 	else
@@ -1099,6 +1131,14 @@ void BookWormApp::TitleScreenDone()
 	if (aName.length() != 0)
 		LoadUserSettings();
 	ShowGameSelector();
+
+	// port(mod): -replay=<file>: watched at once, as if a game were started from the menu (Replay.h)
+	if (!mWatchPath.empty())
+	{
+		std::string aPath = mWatchPath;
+		mWatchPath.clear();
+		StartWatch(aPath);
+	}
 }
 
 // port: the 2004 SexyApp creates a BassMusicInterface (BASS 2.0), which sets the module music's global
@@ -1119,8 +1159,8 @@ MusicInterface* BookWormApp::CreateMusicInterface()
 // players/<name>/<mode>.dat), taken without changing the board (see SexyAppBase::UpdateUserDataBackup)
 void BookWormApp::GetShutdownSaves(std::vector<ShutdownSave>* theSaves)
 {
-	if ((mShutdown) || (mBoard == NULL) || (!mBoard->IsInProgress()) || (mUserManager == NULL))
-		return;
+	if ((mShutdown) || (mBoard == NULL) || (!mBoard->IsInProgress()) || (mUserManager == NULL) || (mBoard->mPlayer != NULL))
+		return;     // port(mod): a watched replay is not the player's game (Replay.h)
 
 	SexyString aFileName = GetSaveGamePath(mUserManager->GetCurrentUserName(), mGameMode);
 	if (aFileName.empty())
@@ -1159,6 +1199,7 @@ void BookWormApp::WriteShutdownRegistry()
 void BookWormApp::ShutdownWidgets()
 {
 	KillDialog(DIALOG_HINT);
+	EndWatch();     // port(mod): the app's own state back (Replay.h)
 
 	if (mSidePanel != NULL)
 	{
@@ -1329,6 +1370,84 @@ void BookWormApp::StartGame()
 	mLevelReached = false;
 }
 
+// port(mod): replays (Replay.h): watches the replay thePath, a new board in its mode with the one-time hints as
+// they were; EndWatch gives back everything it changes in the app
+bool BookWormApp::StartWatch(const std::string& thePath)
+{
+	Replay::File aFile;
+	std::string anError;
+	bool isOk = Replay::LoadFile(thePath, &aFile, &anError);
+	if ((isOk) && (aFile.mScoreKey != Platform::ModManager::Get().GetScoreKey()))
+	{
+		isOk = false;
+		anError = "it was recorded with other gameplay mods";
+	}
+	if (!isOk)
+	{
+		SDL_Log("replay: cannot watch %s: %s", thePath.c_str(), anError.c_str());
+		Dialog* aDialog = DoDialog(DIALOG_HINT, true, _S("Replay"), _S("This replay cannot be played: ") + anError + ".",
+			GameText(GT_DIALOG_OK), Dialog::BUTTONS_FOOTER);
+		aDialog->Move(((GAME_SCREEN_WIDTH - aDialog->mWidth) + 233) / 2, (mHeight - aDialog->mHeight) / 2);
+		return false;
+	}
+	SDL_Log("replay: watching %s", thePath.c_str());
+
+	if (mWatchFile == NULL)
+	{
+		mWatchSavedMode = mGameMode;
+		mWatchSavedFlags[0] = mWatchOutHintShown;
+		mWatchSavedFlags[1] = mFireAlertHintShown;
+		mWatchSavedFlags[2] = mGreenTileHintShown;
+		mWatchSavedFlags[3] = mScrambleHintShown;
+		mWatchSavedFlags[4] = mLevelReached;
+		mWatchSavedBonusWord = mBonusWord;
+		mWatchSavedRand = *gGameRand;
+		Board::GetGlobalState(&mWatchSavedLetterIdx, &mWatchSavedRefillLevel);
+	}
+	delete mWatchFile;
+	mWatchFile = new Replay::File(aFile);
+	mGameMode = aFile.mMode;
+	mWatchOutHintShown = (aFile.mAppFlags & Replay::APP_WATCH_OUT_HINT) != 0;
+	mFireAlertHintShown = (aFile.mAppFlags & Replay::APP_FIRE_ALERT_HINT) != 0;
+	mGreenTileHintShown = (aFile.mAppFlags & Replay::APP_GREEN_TILE_HINT) != 0;
+	mScrambleHintShown = (aFile.mAppFlags & Replay::APP_SCRAMBLE_HINT) != 0;
+	StartGame();    // the board's constructor takes mWatchFile
+	return true;
+}
+
+void BookWormApp::EndWatch()
+{
+	if (mWatchFile == NULL)
+		return;
+	delete mWatchFile;
+	mWatchFile = NULL;
+	mWatchSpeed = 1;
+	mGameMode = mWatchSavedMode;
+	mWatchOutHintShown = mWatchSavedFlags[0];
+	mFireAlertHintShown = mWatchSavedFlags[1];
+	mGreenTileHintShown = mWatchSavedFlags[2];
+	mScrambleHintShown = mWatchSavedFlags[3];
+	mLevelReached = mWatchSavedFlags[4];
+	mBonusWord = mWatchSavedBonusWord;
+	*gGameRand = mWatchSavedRand;
+	Board::SetGlobalState(mWatchSavedLetterIdx, mWatchSavedRefillLevel);
+}
+
+// The watch is over (its game-over page's Continue, MENU or Escape): the main menu slides in over the watched
+// board, which the next game removes
+void BookWormApp::StopWatch()
+{
+	EndWatch();
+	ShowGameSelector();
+}
+
+void BookWormApp::WatchLastReplay()
+{
+	if ((mBoard != NULL) && (mBoard->mState == BOARD_GAMEOVER) && (mBoard->mPlayer == NULL))
+		mBoard->DeleteSavedGame(mGameMode);     // as the game-over page's Continue does
+	StartWatch(mLastReplayPath);
+}
+
 // 0x410f00: the main menu; a board in play is suspended under it (not deleted) and the selector slides
 // in over a snapshot of it
 void BookWormApp::ShowGameSelector()
@@ -1440,7 +1559,7 @@ void BookWormApp::ShowSelectUserDialog()
 void BookWormApp::ShowHint(int theHintId, const SexyString& theHeader, const SexyString& theLines,
 	const SexyString& theFooter, int theButtonMode)
 {
-	if ((!HintDialog::WasHintShown(theHintId)) && (mShowHints))
+	if ((!HintDialog::WasHintShown(theHintId)) && (mShowHints) && ((mBoard == NULL) || (mBoard->mPlayer == NULL)))
 	{
 		KillDialog(DIALOG_HINT);
 		HintDialog* aDialog = new HintDialog(this, theHintId, theHeader, theLines, theFooter, theButtonMode);

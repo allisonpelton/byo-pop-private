@@ -1,4 +1,5 @@
 #include "Lex.h"
+#include "Replay.h"
 #include "ModWords.h"
 #include "WordBalloon.h"
 #include "BookWormApp.h"
@@ -205,6 +206,10 @@ void Lex::MouseDown(int x, int y, int theClickCount)
 	if ((mApp->mBoard != NULL) && (mApp->mBoard->mPauseCount > 0))
 		return;
 
+	if (mApp->mBoard->IsWatched())
+		return;     // port(mod): a watched replay has the recording's presses (Replay.h)
+	if (mApp->mBoard->mRecorder != NULL)
+		mApp->mBoard->mRecorder->AddOp(Replay::OP_LEX, { 2 });  // port(mod): Replay.h
 	Widget::MouseDown(x, y, theClickCount);
 	mGlow = 0.0;
 	mApp->PlaySample(SOUND_BUTTONCLICK);
@@ -563,7 +568,9 @@ void Lex::Update()
 
 	// Mouse-over glow, 0.075 per update, idle face. While it rises or fades, the animation does not
 	// advance and no random animation starts (a playing one resumes afterwards).
-	if (!mIsOver)
+	// port(mod): a watched replay has the recording's mouse (Replay.h)
+	bool isOver = ((mApp->mBoard != NULL) && (mApp->mBoard->mPlayer != NULL)) ? mApp->mBoard->mPlayer->mLexOver : mIsOver;
+	if (!isOver)
 	{
 		if (mGlow > 0.0)
 		{
@@ -618,6 +625,7 @@ void Lex::Update()
 
 	// Random idle animations from the C library's rand(): 2 draws per update, a third one when the
 	// second hits and Lex is free on an unburnt board.
+	gLexCrtUpdates++;   // port(mod): replays (Replay.h)
 	if ((CrtRand() % 500 == 0) && (!IsBusy()))
 		PlayAnim(((mApp->mBoard != NULL) && mApp->mBoard->mBurnedDown) ? LEXANIM_BURNT_BLINK : LEXANIM_BLINK, false);
 

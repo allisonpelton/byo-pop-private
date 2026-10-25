@@ -31,11 +31,13 @@ public:
 		int			mLastRefillLevel;
 		SexyString	mNextBonusWord; // BookWormApp::mBonusWord
 		int			mLevel;
+		int			mWords;         // the game's words before the move (RequestUndoTo)
 	};
 
 	Board*					mBoard;
 	std::vector<Snapshot>	mSnapshots;     // the oldest first
 	bool					mPending;       // asked for while the tiles moved
+	int						mPendingTo;     // RequestUndoTo's words, asked for while the tiles moved; -1 for none
 
 public:
 	UndoStack(Board* theBoard);
@@ -44,10 +46,15 @@ public:
 	void					RequestUndo();      // UNDO / Ctrl+Z: now, or once the tiles rest
 	void					Update();           // a waiting request
 	int						Count();            // the moves this level that can be undone
+	// The mod "widescreen"'s side panel, a double click on a word played: every move made since the game had
+	// theWords words is taken back, now or once the tiles rest, when they can all be (within the level and the
+	// depth); MovesAfter gives how many there are (0 for none, -1 when not all can be undone)
+	int						MovesAfter(int theWords);
+	void					RequestUndoTo(int theWords);
+	void					Restore();          // the last one back now (a watched replay's undo: Replay.h)
 
 protected:
 	bool					BoardReady();
-	void					Restore();
 };
 
 }

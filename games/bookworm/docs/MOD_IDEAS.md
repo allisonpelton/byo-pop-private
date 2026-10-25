@@ -21,6 +21,8 @@ redistributed, stay git-ignored. How to install and test the mods that exist: RE
 | 9 | Definitions while selecting (`mods/select-definitions`, 4.7, the user's idea) | done |
 | 10 | The solver saves bonus tiles (`mods/solver` setting `saveBonus`, 4.8, the user's idea) | done |
 | 11 | The solver keeps new fire tiles away (`mods/solver` setting `fewerFire`, 4.9), and a third greedy bot that plays so (the user's idea) | done |
+| 12 | Replays (`mods/replays`, 4.10, the user's idea, after Big Money's) | done |
+| 13 | The user's requests from the browser tests (4.11): definitions from the side panel, a second click plays a solver word, number keys play them, a double click on a word played undoes back to it, right click closes Lex's balloon (`mods/close-balloons`), Enter continues a level, the greedy bots play the bonus word first | done |
 
 Code mods read their switches from the mod's `"features"` (`src/ModFeatures.h`: a feature on, a live
 setting's value) and say `"affectsScores": true`, so their games get their own high scores and saved games
@@ -256,6 +258,33 @@ never fewer than the certain ones. With the setting the hint bot got 0.16 to 0.1
 hint bot went further with it on three seeds, less far on four, the same on one. The greedy bots, seeds 1 and 4 to
 9: least fire reached level 43 on average (28 to 51; 6.2 million points), fire first 41 (36 to 48; 3.9 million),
 best word 14.
+
+### 4.10 Replays (done, the user's idea, 2026-10-25)
+The mod `replays`, as Big Money's: `src/Replay.h` has the file and why it is enough. A board is deterministic in
+its ticks from its start, given gGameRand, its own mRand, the overlay's effect generator (the embers of the tiles in
+flight decide when the game-over page comes), the letter generator's program-wide memory, the app's next bonus word
+and the C library's rand() (Lex's idle animations only). The recording keeps those at the start, then the player's
+moves at their times (twice the tick, one more for input after it: an undo or a hint asked for while the tiles
+moved happens inside a tick), rand() seeded again wherever Lex did not update exactly once between two ticks, and
+the mouse coming onto Lex or leaving him (while it rests on him his animation and rand() stand still). The seeds
+come from the clock: a first version drew them from the board's generator, which the watch did not, and its Classic
+game-over page came 4 ticks early (Lex's danger talk, drawn from that generator, had picked another line).
+
+Checked with the -autoplay bot, each game recorded and watched with another -seed at 1x and 8x: Classic (8 levels, 57
+words) and Action (14 levels, 118 words) without other mods; with `solver` hints and `undo` every other word,
+Classic to level 18 (95 words; the solver's fire-first off so the bot burns at last); typed words with `widescreen`,
+`select-definitions`, `greedy-bots` and `close-balloons`, Classic and Action. Every watch ended verified: the same
+tick, score, level and words. (The hint and undo bot's own check logs 2 undo mismatches near 2.75 million points on
+seed 1 with or without the mod: not a replay matter.)
+
+### 4.11 The browser tests' requests (done, the user's, 2026-10-25)
+The widescreen panel shows a word's definition while the mouse rests on it in either list, a click on the solver
+word already selected plays it, and with `undo` a double click on a word played takes back every later move, when
+the level and the depth still hold them all (UndoStack::RequestUndoTo; each snapshot knows the game's word count).
+The solver's setting `hotkeys` (on by default): 1 to 9 and 0 play its first ten words at once, numbered in the
+panel. With `type-word`, Enter on a level's summary is its Continue once the button has slid in. The new mod
+`close-balloons`: a right click on the board closes Lex's balloon. The greedy bots play the bonus word first when the
+board spells it, unless it ends the game.
 
 ## What works as plain data today (no code)
 

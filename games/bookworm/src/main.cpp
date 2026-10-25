@@ -7,6 +7,8 @@
 //   -userdir=<dir>   writable folder for the players' profiles and saves, registry.ini and mods.json
 //   -modsdir=<dir>   folder containing data mods (one sub-folder per mod)
 //   -nomods          start without any mods
+//   -replay=<file>   watch a replay (mod "replays", Replay.h) once the title is done
+//   -replaydir=<dir> where recorded games go (default <user dir>/replays; web /bwpersist/replays)
 // Remaining "-key=value" arguments are passed to the app (SexyAppBase::HandleCmdLineParam), e.g. the
 // framework's test hooks -seed=N, -script=<file>, -fast and -trace (see SexyAppBase.h).
 
@@ -149,6 +151,12 @@ int main(int argc, char** argv)
 
 	// The original keeps the app as a global object and calls Init, Start and Shutdown on it.
 	static BookWormApp* anApp = new BookWormApp();
+#ifdef __EMSCRIPTEN__
+	// port(mod): replays (Replay.h), beside the user dir, so the user dir's localStorage backup does not carry them
+	anApp->mReplayDir = "/bwpersist/replays";
+#else
+	anApp->mReplayDir = userDir + "/replays";
+#endif
 	anApp->SetCmdLine(argc, argv);
 	anApp->Init();
 	anApp->Start();

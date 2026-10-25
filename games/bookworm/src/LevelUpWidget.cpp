@@ -11,6 +11,7 @@
 #include "DailyBoard.h"
 #include "JournalWidget.h"
 #include "WordJournal.h"
+#include "Replay.h"
 #include "ColorizedButton.h"
 #include "DialogButton.h"
 #include "Res.h"
@@ -255,6 +256,18 @@ void LevelUpWidget::ButtonDepress(int theId)
 	if ((mContinueButton == NULL) || (theId != mContinueButton->mId))
 		return;
 
+	// port(mod): replays (Replay.h): while watching, Continue on the game-over page ends the watch; the level's
+	// is the recording's
+	Board* aWatched = mApp->mBoard;
+	if ((aWatched != NULL) && (aWatched->IsWatched()))
+	{
+		if (aWatched->mState == BOARD_GAMEOVER)
+			mApp->StopWatch();
+		return;
+	}
+	if ((aWatched != NULL) && (aWatched->mRecorder != NULL) && (aWatched->mState != BOARD_GAMEOVER))
+		aWatched->mRecorder->AddOp(Replay::OP_NEXT, { 1 });
+
 	SetVisible(false);
 	SetDisabled(true);
 	mWidgetManager->SetFocus(mApp->mBoard);
@@ -270,6 +283,34 @@ void LevelUpWidget::ButtonDepress(int theId)
 	}
 
 	aBoard->mState = BOARD_NEXT_LEVEL;
+}
+
+// port(mod): the summary has the focus when it comes up; Board::KeyDown passes Enter on when the board has it
+void LevelUpWidget::KeyDown(KeyCode theKey)
+{
+	if ((mApp->mBoard != NULL) && (mApp->mBoard->ReplayKeyDown(theKey)))
+		return;     // port(mod): Replay.h
+	KeyContinue(theKey);
+}
+
+// port(mod): the replay keys (Replay.h): the speed while watching, R on the game-over page
+void LevelUpWidget::KeyChar(SexyChar theChar)
+{
+	if (mApp->mBoard != NULL)
+		mApp->mBoard->ReplayKeyChar(theChar);
+}
+
+bool LevelUpWidget::KeyContinue(KeyCode theKey)
+{
+	Board* aBoard = mApp->mBoard;
+	if ((theKey != KEYCODE_RETURN) || (aBoard == NULL) || (aBoard->mTypedWord == NULL) || (!aBoard->mSummaryShown) ||
+		(aBoard->IsWatched()) ||
+		(aBoard->mState == BOARD_GAMEOVER) || (mContinueButton == NULL) || (mDisabled) || (!mVisible) || (mSlide != 1.0) ||
+		(mJournal != NULL))
+		return false;
+	mApp->PlaySample(SOUND_BUTTONCLICK);
+	ButtonDepress(mContinueButton->mId);
+	return true;
 }
 
 // 0x42bee0 (100 updates a second). Nothing happens while disabled (the help screen is up).
@@ -454,6 +495,19 @@ void LevelUpWidget::UpdateModsBalloon()
 		if (aDaily->mPraise.length() != 0)
 			aFooter += ((aFooter.length() != 0) ? "\n" : "") + aDaily->mPraise;
 	}
+	// port(mod): replays (Replay.h): R watches this game again; a watch says whether it ended as the game did
+	SexyString aReplay;
+	if (aBoard->mPlayer != NULL)
+		aReplay = aBoard->mPlayer->mVerified ? "The replay ended as the game did." : "The replay went another way than the game.";
+	else if (!mApp->mLastReplayPath.empty())
+		aReplay = "Press R to watch this game again.";
+	if ((aReplay.length() != 0) && (aHeader.length() == 0))
+	{
+		aHeader = "Replay";
+		aText = aReplay;
+	}
+	else if (aReplay.length() != 0)
+		aFooter += ((aFooter.length() != 0) ? "\n" : "") + aReplay;
 	if (aHeader.length() == 0)
 		return;
 

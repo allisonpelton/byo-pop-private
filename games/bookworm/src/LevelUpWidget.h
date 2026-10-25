@@ -89,6 +89,8 @@ public:
 	virtual void	Resize(int theX, int theY, int theWidth, int theHeight) override;// 0x42baa0 slot 13
 	virtual void	Draw(Graphics* g) override;                             // 0x42cdd0 slot 16
 	virtual void	Update() override;                                      // 0x42bee0 slot 17
+	virtual void	KeyDown(KeyCode theKey) override;                       // port(mod): KeyContinue, Replay.h
+	virtual void	KeyChar(SexyChar theChar) override;                     // port(mod): Replay.h
 
 	// ButtonListener (+0x58)
 	virtual void	ButtonPress(int theId) override;                        // 0x42bc80 (+0x58) slot 3
@@ -98,6 +100,8 @@ public:
 	void			CreatePanel();                                          // 0x42b9c0
 	void			DrawPanel(Graphics* g);                                 // 0x42c210
 	void			UpdateModsBalloon();                                    // port(mod)
+	// port(mod): Enter is Continue on a level's summary once the footer is in (mod "type-word"); false: not taken
+	bool			KeyContinue(KeyCode theKey);
 	void			UpdateJournal();                                        // port(mod)
 
 	using Widget::Resize;

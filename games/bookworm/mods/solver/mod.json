@@ -3,7 +3,7 @@
   "name": "Word Solver",
   "version": "1.0",
   "author": "byo-pop",
-  "description": "HINT (beside SUBMIT) or Tab selects a word the board spells: first one that puts out the lowest fire tile, then the bonus word, the best-scoring words and the longest. Press again for the next. Settings save the bonus tiles for one big word, or keep new fire tiles away. Games with it keep their own high scores.",
+  "description": "HINT (beside SUBMIT) or Tab selects a word the board spells: first one that puts out the lowest fire tile, then the bonus word, the best-scoring words and the longest. Press again for the next, or press 1 to 9 and 0 to play one of the first ten at once. Settings save the bonus tiles for one big word, or keep new fire tiles away. Games with it keep their own high scores.",
   "affectsScores": true,
   "features": {
     "solver": true
@@ -16,8 +16,10 @@
     { "id": "tag", "label": "Show what a hint is", "type": "bool", "default": true,
       "help": "A tag above the hint's first tile: best, fire, bonus or longest, its place in the cycle, and a warning for an unsafe word." },
     { "id": "saveBonus", "label": "Save bonus tiles", "type": "bool", "default": false,
-      "help": "Hints avoid the green, gold, sapphire and diamond tiles where they can, so they stack up on the board. Each one adds to the multiplier of a whole word, so several in one long word score far more. A CASH IN hint, after the best words, is the best word that uses them." },
+      "help": "Hints avoid the green, gold, sapphire and diamond tiles where they can, so they stack up for one long word that uses several. After the best words, a CASH IN hint is the best word that uses them." },
     { "id": "fewerFire", "label": "Fewer new fire tiles", "type": "bool", "default": false,
-      "help": "Classic: hints bring as few new fire tiles as they can. Short words run down a hidden fire meter, and an empty meter brings a fire tile; long words fill it. Fire tiles also come by chance, more often at higher levels. A new fire tile lands only in a column the word took exactly one tile from, so a word that takes two or more from every column it touches keeps it out. The tag shows the new fire to expect." }
+      "help": "Classic: hints bring as few new fire tiles as they can. Long words hold fire back, and a new fire tile lands only in a column the word took exactly one tile from. The tag shows the new fire to expect." },
+    { "id": "hotkeys", "label": "Number keys play words", "type": "bool", "default": true,
+      "help": "The keys 1 to 9 and 0 play the solver's first ten words at once, in the order of its list (the widescreen side panel numbers them)." }
   ]
 }

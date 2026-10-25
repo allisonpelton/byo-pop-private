@@ -15,6 +15,7 @@
 #include "ModWords.h"
 #include "Solver.h"
 #include "Undo.h"
+#include "Replay.h"
 #include "GreedyBots.h"
 #include "TypedWord.h"
 #include "WordReview.h"
@@ -622,9 +623,12 @@ Board::Board(BookWormApp* theApp)
 	mResumed = false;
 	mTypedWord = ModFeatureEnabled("typeWord") ? new TypedWord(this) : NULL;
 	mWordReview = WordReview::Create(this);
+	mRecorder = NULL;
+	mPlayer = NULL;
 	mTileSymbols = ModFeatureEnabled("tileSymbols");
 	mSelectDefs = ModFeatureEnabled("selectDefinitions");
 	mSelectDefDelay = 0;
+	mCloseBalloons = ModFeatureEnabled("closeBalloons");
 	if (ModFeatureEnabled("undo"))
 	{
 		mUndo = new UndoStack(this);
@@ -695,6 +699,22 @@ Board::Board(BookWormApp* theApp)
 	mGameLog.WriteNumBits(0xe, 4);
 	mGameLog.WriteShort((short)mLevel);
 
+	// port(mod): replays (Replay.h): a watch starts from its recording's start, a new game with the mod is recorded
+	if (mApp->mWatchFile != NULL)
+	{
+		mPlayer = new ReplayPlayer(this, *mApp->mWatchFile);
+		mPlayer->Start();
+	}
+	else
+	{
+		mApp->mLastReplayPath.clear();  // R on this game's game-over page watches its own replay or none
+		if (ModFeatureEnabled("replays"))
+		{
+			mRecorder = new ReplayRecorder(this);
+			mRecorder->Start();
+		}
+	}
+
 	NewBoard();
 	mUnused3d8 = 0;
 	if (mApp->mGameMode == GAMEMODE_ACTION)
@@ -719,6 +739,10 @@ Board::~Board()
 	mWordReview = NULL;
 	delete mDaily;      // port(mod)
 	mDaily = NULL;
+	delete mRecorder;   // port(mod)
+	mRecorder = NULL;
+	delete mPlayer;     // port(mod)
+	mPlayer = NULL;
 
 	if (mRand != NULL)
 	{
@@ -969,8 +993,17 @@ void Board::MouseMove(int x, int y)
 // 0x405d60 slot 20: space toggles the pause (and the music)
 void Board::KeyChar(SexyChar theChar)
 {
+	// port(mod): replays (Replay.h): while watching, the viewer has the replay keys and space
+	if ((ReplayKeyChar(theChar)) || ((IsWatched()) && (theChar != ' ')))
+		return;
 	if ((mTypedWord != NULL) && (mTypedWord->KeyChar(theChar)))
 		return;     // port(mod): a letter of a typed word
+	// port(mod): 1..9 and 0 play the word solver's first ten words (mod "solver", setting "hotkeys")
+	if ((theChar >= '0') && (theChar <= '9') && (mSolver != NULL) && (SolverHotkeys()))
+	{
+		mSolver->PlayListed((theChar == '0') ? 9 : theChar - '1');
+		return;
+	}
 
 	if (theChar == ' ')
 	{
@@ -987,6 +1020,12 @@ void Board::KeyDown(KeyCode theKey)
 	if (theKey == KEYCODE_CONTROL)
 		mCtrlDown = true;
 
+	// port(mod): replays (Replay.h): while watching, the viewer has only the replay keys
+	if ((ReplayKeyDown(theKey)) || (IsWatched()))
+		return;
+	// port(mod): Enter on a level's summary is its Continue (mod "type-word")
+	if ((mLevelUpWidget != NULL) && (mLevelUpWidget->KeyContinue(theKey)))
+		return;
 	// port(mod): Enter submits, Backspace and Esc edit a typed word
 	if ((mTypedWord != NULL) && (mTypedWord->KeyDown(theKey)))
 		return;
@@ -1024,6 +1063,36 @@ void Board::KeyUp(KeyCode theKey)
 			MarkDirty();
 		}
 	}
+}
+
+// port(mod): replays (Replay.h)
+bool Board::IsWatched() const
+{
+	return (mPlayer != NULL) && (!mPlayer->mApplying);
+}
+
+bool Board::ReplayKeyChar(SexyChar theChar)
+{
+	if (mPlayer != NULL)
+	{
+		if ((theChar < '1') || (theChar > '4'))
+			return false;
+		mApp->mWatchSpeed = 1 << (theChar - '1');
+		return true;
+	}
+	if (((theChar != 'r') && (theChar != 'R')) || (mState != BOARD_GAMEOVER) || (!mSummaryShown) ||
+		(mApp->mLastReplayPath.empty()))
+		return false;
+	mApp->WatchLastReplay();
+	return true;
+}
+
+bool Board::ReplayKeyDown(KeyCode theKey)
+{
+	if ((mPlayer == NULL) || (theKey != KEYCODE_ESCAPE))
+		return false;
+	mApp->StopWatch();
+	return true;
 }
 
 // --------------------------------------------------------------------------------------------------------
@@ -1415,8 +1484,8 @@ void Board::StartGameOverMusic()
 // tiles or no normal top tile, and silently (classic) while a fire tile is at the bottom or a tile burns
 void Board::Scramble()
 {
-	if (mState != BOARD_PLAYING)
-		return;
+	if ((mState != BOARD_PLAYING) || (IsWatched()))
+		return;     // port(mod): while watching a replay, only the recording's (Replay.h)
 
 	if (mFireTileCount > 9)
 	{
@@ -1464,6 +1533,8 @@ void Board::Scramble()
 		}
 	}
 
+	if (mRecorder != NULL)
+		mRecorder->AddOp(Replay::OP_SCRAMBLE);  // port(mod): a scramble that goes ahead (Replay.h)
 	if (mUndo != NULL)
 		mUndo->Push();  // port(mod): the board before the scramble
 	mModMoves++;        // port(mod): the move, for the -autoplay bot's model check
@@ -1758,6 +1829,12 @@ void Board::ClearWord()
 // was requested
 void Board::Submit(int x, int y)
 {
+	// port(mod): replays (Replay.h): recorded, and while watching one only the recording's
+	if (IsWatched())
+		return;
+	if (mRecorder != NULL)
+		mRecorder->AddOp(Replay::OP_SUBMIT, { x, y, mSelectMode });
+
 	if (((int)mWord.mWord.size() < 9) || (mApp->mIsRegistered))
 	{
 		if (!mWord.mValid)
@@ -1779,7 +1856,8 @@ void Board::Submit(int x, int y)
 			SexyString aReviewNote;
 			if (mWordReview != NULL)
 				aReviewNote = mWordReview->WordPlayed(mWord);
-			WordJournal::WordPlayed(this, mWord);   // port(mod): into the player's word journal (word-journal)
+			if (mPlayer == NULL)
+				WordJournal::WordPlayed(this, mWord);   // port(mod): into the player's word journal (word-journal)
 			// port(mod): a mod's word with effects (rude-words): Lex comments on it, with its definition
 			ModWordEffects aModEffects;
 			bool isModWord = ModWordGetEffects(mWord.mWord, &aModEffects);
@@ -2014,7 +2092,7 @@ void Board::AddModWordsAllTime(int theDelta)
 {
 	SexyString aName = mApp->mUserManager->GetCurrentUserName();
 	SexyString aValueName = ModWordStatsValueName();
-	if ((theDelta == 0) || (aName.length() == 0) || (aValueName.length() == 0))
+	if ((theDelta == 0) || (aName.length() == 0) || (aValueName.length() == 0) || (mPlayer != NULL))
 		return;
 	mApp->mUserManager->WriteUserInt(aName, aValueName, std::max(0, GetModWordsAllTime() + theDelta));
 }
@@ -2129,6 +2207,11 @@ void Board::MouseDown(int x, int y, int theClickCount)
 {
 	Widget::MouseDown(x, y, theClickCount);
 
+	// port(mod): a right click closes Lex's balloon, as a click on it does (mod "close-balloons"), and goes on to
+	// clear the selection as usual
+	if ((theClickCount < 0) && (mCloseBalloons) && (mOverlay != NULL) && (mOverlay->mBalloon->mVisible))
+		mOverlay->mBalloon->Close();
+
 	if (mPauseCount >= 1)
 	{
 		Pause(false);
@@ -2140,8 +2223,8 @@ void Board::MouseDown(int x, int y, int theClickCount)
 		return;
 	}
 
-	if ((mApp->mUpdateCount - mApp->mResumeUpdateCnt <= 14) || (mState != BOARD_PLAYING))
-		return;
+	if ((mApp->mUpdateCount - mApp->mResumeUpdateCnt <= 14) || (mState != BOARD_PLAYING) || (IsWatched()))
+		return;     // port(mod): IsWatched
 
 	if (theClickCount < 0)
 	{
@@ -2236,7 +2319,7 @@ void Board::MouseDrag(int x, int y)
 	Widget::MouseDrag(x, y);
 
 	if ((mPauseCount < 1) && (mApp->mUpdateCount - mApp->mResumeUpdateCnt > 14) && (mState == BOARD_PLAYING) &&
-		(mSelection.size() != 0))
+		(mSelection.size() != 0) && (!IsWatched()))     // port(mod): IsWatched
 	{
 		Piece* aPiece = PieceAt(x, y);
 		Piece* aLast = mSelection.back();
@@ -2254,8 +2337,8 @@ void Board::MouseDrag(int x, int y)
 void Board::MouseUp(int x, int y, int theClickCount)
 {
 	Widget::MouseUp(x, y, theClickCount);
-	if (mPauseCount > 0)
-		return;
+	if ((mPauseCount > 0) || (IsWatched()))
+		return;     // port(mod): IsWatched
 
 	if (mApp->mUpdateCount - mApp->mResumeUpdateCnt <= 14)
 		return;
@@ -2310,8 +2393,20 @@ void Board::ButtonPress(int theId, int theClickCount)
 // 0x40fdc0 listener slot 4: while the level summary is up any button goes on to the next level
 void Board::ButtonDepress(int theId)
 {
+	// port(mod): while watching a replay the viewer has OPTIONS and MENU (which ends the watch) (Replay.h)
+	if (IsWatched())
+	{
+		if (theId == BOARD_BUTTON_OPTIONS)
+			mApp->ShowOptions();
+		else if (theId == BOARD_BUTTON_LEAVE)
+			mApp->StopWatch();
+		return;
+	}
+
 	if ((mState != BOARD_GAMEOVER) && (mSummaryShown))
 	{
+		if (mRecorder != NULL)
+			mRecorder->AddOp(Replay::OP_NEXT, { 0 });   // port(mod): Replay.h
 		mState = BOARD_NEXT_LEVEL;
 		return;
 	}
@@ -2519,17 +2614,28 @@ void Board::Update()
 	if (mPauseCount > 0)
 		return;
 
+	// port(mod): replays (Replay.h): the moves made since the last tick
+	if (mRecorder != NULL)
+		mRecorder->BeforeTick();
+	if (mPlayer != NULL)
+		mPlayer->Apply(false);
+
 	// 2.
 	mWidgetManager->BringToBack(this);
 	mPiecesFlying = false;
 	Widget::Update();
+	if (mRecorder != NULL)
+		mRecorder->InTick();    // port(mod): the moves from here on are this tick's
+	if (mPlayer != NULL)
+		mPlayer->Apply(true);
 	if (mSolver != NULL)
 		mSolver->Update();  // port(mod): a hint asked for while the tiles moved
 	if (mUndo != NULL)
 		mUndo->Update();    // port(mod): an undo asked for while the tiles moved
 	UpdateBots();           // port(mod)
 	UpdateSelectDefinition();   // port(mod)
-	mApp->mPlayTicks++;
+	if (mPlayer == NULL)
+		mApp->mPlayTicks++;     // port(mod): not while watching a replay
 
 	PieceList aDeadPieces;  // tiles burned away this tick, deleted at the end
 
@@ -3061,9 +3167,21 @@ void Board::Update()
 		if ((!mSummaryShown) && (!isFlying) && (LexCalm(mLex)))
 		{
 			mApp->KillDialog(DIALOG_HINT);
-			mApp->SubmitHighScores(mGameStats);
-			if (mDaily != NULL)
-				mDaily->GameOver();     // port(mod)
+			if (mPlayer != NULL)
+				mPlayer->CheckEnd();    // port(mod): a watched replay enters no high score (Replay.h)
+			else
+			{
+				mApp->SubmitHighScores(mGameStats);
+				if (mDaily != NULL)
+					mDaily->GameOver();     // port(mod)
+				if (mRecorder != NULL)
+				{
+					// port(mod): the game's replay is written (Replay.h)
+					mApp->mLastReplayPath = mRecorder->Finish(mNewHighScore);
+					delete mRecorder;
+					mRecorder = NULL;
+				}
+			}
 			ShowSummary();
 		}
 		mState = BOARD_GAMEOVER;
@@ -3547,6 +3665,9 @@ void Board::Update()
 		if (anAnim != LEXANIM_NONE)
 			mLex->PlayAnim(anAnim, false);
 	}
+
+	if (mRecorder != NULL)
+		mRecorder->AfterTick(); // port(mod): the selection as the tick left it (Replay.h)
 }
 
 // --------------------------------------------------------------------------------------------------------
@@ -3556,6 +3677,8 @@ void Board::Update()
 // closes the help screen and banks the level clock; then the record of board_logic.md 6.1
 bool Board::SaveGame(int theMode)
 {
+	if (mPlayer != NULL)
+		return false;   // port(mod): a watched replay is never saved (Replay.h)
 	if (mEffectMgr != NULL)
 		mEffectMgr->Clear();
 	if (mEmberMgr != NULL)
@@ -3864,6 +3987,8 @@ bool Board::LoadGame(int theMode)
 		return false;
 
 	mResumed = true;    // port(mod): a resumed game never starts a LiveSplit run
+	delete mRecorder;   // port(mod): nor is it recorded (Replay.h)
+	mRecorder = NULL;
 	mPlayCounted = false;
 
 	// the danger theme when Lex was sweating
@@ -4223,6 +4348,8 @@ bool Board::ReadSavedGame(const Buffer& theRecord)
 // 0x4078b0 (the app's 2005 / 3005, LevelUpWidget): the saved game is single-use
 bool Board::DeleteSavedGame(int theMode)
 {
+	if (mPlayer != NULL)
+		return false;   // port(mod): the player's own saved game stays while a replay is watched (Replay.h)
 	SexyString aPath = BookWormApp::GetSaveGamePath(mApp->mUserManager->GetCurrentUserName(), theMode);
 	if (aPath.size() == 0)
 		return false;

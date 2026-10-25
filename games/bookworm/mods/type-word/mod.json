@@ -3,7 +3,7 @@
   "name": "Type a Word",
   "version": "1.0",
   "author": "byo-pop",
-  "description": "Type a word on the keyboard to select it on the board, and press Enter to play it. Where the board spells it more than one way, the letters take the way that uses the most fire tiles, then the one that lets the fewest fire tiles fall, then the best score. Backspace takes back a letter and Esc clears; Q types the Qu tile. Every word could be played with the mouse too, so games keep the usual high scores.",
+  "description": "Type a word on the keyboard to select it on the board, and press Enter to play it. Where the board spells it more than one way, the letters take the way that uses the most fire tiles, then the one that lets the fewest fire tiles fall, then the best score. Backspace takes back a letter and Esc clears; Q types the Qu tile. On a level's summary, Enter continues to the next level once the Continue button is in. Every word could be played with the mouse too, so games keep the usual high scores.",
   "affectsScores": false,
   "features": {
     "typeWord": true

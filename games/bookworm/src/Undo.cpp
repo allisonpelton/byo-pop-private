@@ -1,4 +1,5 @@
 #include "Undo.h"
+#include "Replay.h"
 #include "Board.h"
 #include "BookWormApp.h"
 #include "Effect.h"
@@ -15,7 +16,8 @@ using namespace Sexy;
 
 UndoStack::UndoStack(Board* theBoard) :
 	mBoard(theBoard),
-	mPending(false)
+	mPending(false),
+	mPendingTo(-1)
 {
 }
 
@@ -37,6 +39,7 @@ void UndoStack::Push()
 	Board::GetGlobalState(&aSnapshot.mLastLetterIdx, &aSnapshot.mLastRefillLevel);
 	aSnapshot.mNextBonusWord = mBoard->mApp->mBonusWord;
 	aSnapshot.mLevel = mBoard->mLevel;
+	aSnapshot.mWords = mBoard->mGameStats->mWords;
 
 	Count();
 	mSnapshots.push_back(aSnapshot);
@@ -61,12 +64,51 @@ void UndoStack::RequestUndo()
 		mBoard->mApp->PlaySample(SOUND_BUZZER);
 		return;
 	}
+	mPendingTo = -1;
 	mPending = true;
+	Update();
+}
+
+int UndoStack::MovesAfter(int theWords)
+{
+	int aCount = Count();
+	int aMoves = 0;
+	while ((aMoves < aCount) && (mSnapshots[aCount - 1 - aMoves].mWords >= theWords))
+		aMoves++;
+	// the move right after the word must be one of them, else it was left behind
+	return ((aMoves > 0) && (mSnapshots[aCount - aMoves].mWords != theWords)) ? -1 : aMoves;
+}
+
+void UndoStack::RequestUndoTo(int theWords)
+{
+	mPending = false;
+	if ((mBoard->mState != BOARD_PLAYING) || (mBoard->mPauseCount > 0) || (MovesAfter(theWords) <= 0))
+	{
+		mPendingTo = -1;
+		mBoard->mApp->PlaySample(SOUND_BUZZER);
+		return;
+	}
+	mPendingTo = theWords;
 	Update();
 }
 
 void UndoStack::Update()
 {
+	if (mPendingTo >= 0)
+	{
+		if ((mBoard->mState != BOARD_PLAYING) || (MovesAfter(mPendingTo) <= 0))
+		{
+			mPendingTo = -1;
+			return;
+		}
+		if (!BoardReady())
+			return;
+		int aWords = mPendingTo;
+		mPendingTo = -1;
+		while ((Count() > 0) && (mSnapshots.back().mWords >= aWords))
+			Restore();
+		return;
+	}
 	if (!mPending)
 		return;
 	if ((mBoard->mState != BOARD_PLAYING) || (Count() == 0))
@@ -82,6 +124,10 @@ void UndoStack::Update()
 
 void UndoStack::Restore()
 {
+	if (mSnapshots.empty())
+		return;
+	if (mBoard->mRecorder != NULL)
+		mBoard->mRecorder->AddOp(Replay::OP_UNDO);  // port(mod): replays (Replay.h)
 	Snapshot aSnapshot = mSnapshots.back();
 	mSnapshots.pop_back();
 
@@ -109,7 +155,7 @@ void UndoStack::Restore()
 	mBoard->mPauseCount = aPauseCount;
 	mBoard->mCtrlDown = aCtrlDown;
 	mBoard->AddModWordsAllTime(mBoard->mModWordsPlayed - aModWordsPlayed);  // the undone word's count too
-	if (mBoard->mGameStats->mWords < aWords)
+	if ((mBoard->mGameStats->mWords < aWords) && (mBoard->mPlayer == NULL))
 		WordJournal::WordUndone(mBoard);    // and the word journal's word (an undone scramble has none)
 
 	// the record was made in Submit, with the word selected; Lex is a new one, so nothing would count down

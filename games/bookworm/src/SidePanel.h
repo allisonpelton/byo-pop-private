@@ -5,8 +5,10 @@
 // 640 x 480 (BookWormApp::PreDisplayHook; every screen of the game keeps its 640 x 480 at the left) and this
 // panel fills the strip on the right, in a frame cut from the board's backdrop. Top, with the mod "solver": the
 // solver's list for the board (the hints Tab cycles through, with their points; a click on one selects it, as
-// its hint would). Below: the words played this game, newest first, read from the board's game log (so an undo
-// or a continued game shows them as they stand), each in the colour of its best special tile.
+// its hint would, and a click on the one selected plays it). Below: the words played this game, newest first,
+// read from the board's game log (so an undo or a continued game shows them as they stand), each in the colour
+// of its best special tile. The mouse resting on a word of either list shows its definition in Lex's balloon, as
+// Definitions While Selecting shows the selection's (Lex::PreviewDefinition), until it leaves the word.
 
 #include "Widget.h"
 #include "Common.h"
@@ -41,6 +43,16 @@ public:
 	int						mLogBits;
 	std::vector<PlayedWord>	mWords;
 	int						mHoverHint;     // the row under the mouse, -1 for none
+	// the definition of the word under the mouse: the played words' rows as last drawn (with their index in
+	// mWords; a double click on one goes back to it, mod "undo"), the mouse (-1 off the panel), the word under it
+	// ("" for none), the updates left before its definition shows, and the serial of the board whose Lex shows it
+	// (0 for none)
+	std::vector<std::pair<Rect, int> > mWordRows;
+	int						mMouseX;
+	int						mMouseY;
+	SexyString				mHoverWord;
+	int						mHoverDelay;
+	unsigned int			mDefBoard;
 
 public:
 	SidePanel(BookWormApp* theApp);
@@ -62,6 +74,10 @@ private:
 	Board*					CurrentBoard() const;
 	bool					HintsLive(Board* theBoard) const;
 	void					ReadLog(Board* theBoard);
+	SexyString				WordAt(int x, int y) const;     // a listed word there, "" for none
+	int						WordIndexAt(int x, int y) const;    // a played word's row there: its index in mWords, -1 for none
+	void					UpdateHoverDefinition(Board* theBoard);
+	void					EndHoverDefinition(Board* theBoard);
 	int						DrawHints(Graphics* g, Board* theBoard, int theY);
 	void					DrawWords(Graphics* g, int theY);
 };

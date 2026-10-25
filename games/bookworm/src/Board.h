@@ -39,6 +39,8 @@ class Lex;
 class EffectMgr;
 class EmberListMgr;
 class Points;
+class ReplayRecorder;
+class ReplayPlayer;
 class WidgetManager;
 class Solver;
 class UndoStack;
@@ -264,6 +266,7 @@ public:
 	bool				mSelectDefs;
 	SexyString			mSelectDefWord;
 	int					mSelectDefDelay;
+	bool				mCloseBalloons;         // port(mod): a right click closes Lex's balloon (mod "close-balloons")
 	bool				mBotsChecked;
 	// port(mod): the moves (words and scrambles) so far and the last word's cells (row * BOARD_COLS + col, in
 	// order; empty for a scramble), for the -autoplay bot's check of the bots' model (-autoplaymodel)
@@ -272,6 +275,15 @@ public:
 	// port(mod): LiveSplit (LiveSplitObserver.h)
 	unsigned int		mBoardSerial;           // 1, 2, ... for each board the app makes
 	bool				mResumed;               // LoadGame restored a saved game into this board
+	// port(mod): replays (Replay.h): the game being recorded (a new game with the mod "replays", until its game
+	// over), or the replay this board plays (a watch: BookWormApp::mWatchFile)
+	ReplayRecorder*		mRecorder;
+	ReplayPlayer*		mPlayer;
+	bool				IsWatched() const;      // a watch, and the input is the viewer's, not the recording's
+	// The replay keys, from the board or the summary: while watching 1..4 for 1x, 2x, 4x, 8x and Esc to stop; on a
+	// game-over summary R watches the game just played. True: the key was taken.
+	bool				ReplayKeyChar(SexyChar theChar);
+	bool				ReplayKeyDown(KeyCode theKey);
 
 public:
 	Board(BookWormApp* theApp);                                         // 0x40ae90

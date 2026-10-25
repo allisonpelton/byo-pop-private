@@ -43,6 +43,11 @@ static bool FewerFire()
 	return ModFeatureBool("solver", "fewerFire", false);
 }
 
+bool Sexy::SolverHotkeys()
+{
+	return ModFeatureBool("solver", "hotkeys", true);
+}
+
 void Sexy::FindBoardWords(const std::vector<Piece*>& theTiles, const std::set<SexyString>& theDictionary,
 	const BoardWordVisitor& theVisitor)
 {
@@ -592,6 +597,21 @@ void Solver::SelectListed(int theIdx)
 		return;
 	mPending = false;
 	SelectHint(theIdx);
+}
+
+void Solver::PlayListed(int theIdx)
+{
+	if ((mBoard->mState != BOARD_PLAYING) || (mBoard->mPauseCount > 0) || (!BoardAtRest(mBoard)))
+		return;
+	Refresh();
+	if ((theIdx < 0) || (theIdx >= (int)mHints.size()))
+	{
+		mBoard->mApp->PlaySample(SOUND_BUZZER);
+		return;
+	}
+	mPending = false;
+	SelectHint(theIdx);
+	mBoard->ButtonDepress(BOARD_BUTTON_SUBMIT);
 }
 
 void Solver::RequestHint()

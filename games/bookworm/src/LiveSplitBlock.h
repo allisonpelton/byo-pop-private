@@ -65,7 +65,7 @@ enum : uint32_t
 	LIVESPLIT_FLAG_RESUMED = 0x02,      // the board resumed a saved game (its GO is not counted)
 	LIVESPLIT_FLAG_VANILLA = 0x04,      // no score key (no gameplay mod)
 	LIVESPLIT_FLAG_CHOSEN_SEED = 0x08,  // (the other games' chosen seed: never set here)
-	LIVESPLIT_FLAG_REPLAY = 0x20,       // (the other games' replay: never set here)
+	LIVESPLIT_FLAG_REPLAY = 0x20,       // a replay is watched (mod "replays", Replay.h; its GO is not counted)
 	LIVESPLIT_FLAG_GAME_OVER = 0x40,    // the board had its game over (latched per board)
 	LIVESPLIT_FLAG_PAUSED = 0x80        // the board is paused (the help screen, a dialog, the window out of focus)
 };

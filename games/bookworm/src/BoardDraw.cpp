@@ -87,6 +87,20 @@ void Board::Draw(Graphics* g)
 	mEmberMgr->Draw(g);
 	if (mSolver != NULL)
 		mSolver->Draw(g);   // port(mod): the hint's tag
+
+	// port(mod): a watched replay says so above the tiles, with its speed and keys (Replay.h)
+	if (mPlayer != NULL)
+	{
+		Font* aFont = mApp->mFonts[FONT_MYRIADWEB10];
+		SexyString aText = StrFormat(_S("REPLAY %dX   1-4: speed, space: pause, Esc: stop"), mApp->mWatchSpeed);
+		int aWidth = aFont->StringWidth(aText) + 16;
+		int aX = 233 + (640 - 233 - aWidth) / 2;   // over the tiles (x 233..640)
+		g->SetColor(Color(0, 0, 0, 160));
+		g->FillRect(aX, 0, aWidth, 17);
+		g->SetFont(aFont);
+		g->SetColor(Color(255, 214, 110));
+		g->DrawString(aText, aX + 8, 13);
+	}
 }
 
 // port(mod): a groove across a left-panel plank (30 px high from theY), dark with a light edge, where a

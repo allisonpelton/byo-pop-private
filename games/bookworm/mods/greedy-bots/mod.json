@@ -3,7 +3,7 @@
   "name": "Greedy Bots",
   "version": "1.0",
   "author": "byo-pop",
-  "description": "In Classic, three simple players play their own games from the board you began with, while you play: one always plays the best-scoring word, one puts out the most urgent fire first, and one plays the word that brings the fewest new fire tiles. The game-over page shows how far each got. Your own game is unchanged, so it keeps the usual high scores.",
+  "description": "In Classic, three simple players play their own games from the board you began with, while you play: one always plays the best-scoring word, one puts out the most urgent fire first, and one plays the word that brings the fewest new fire tiles. Each plays the bonus word first when the board spells it. The game-over page shows how far each got. Your own game is unchanged, so it keeps the usual high scores.",
   "affectsScores": false,
   "features": {
     "greedyBots": true
