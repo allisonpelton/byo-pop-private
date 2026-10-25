@@ -95,6 +95,11 @@ public:
 	void					Draw(Graphics* g);      // the tag of the hint the selection shows
 	const SolverWord*		ShownHint() const;      // that hint, null when the selection is none
 	static bool				BoardAtRest(Board* theBoard);
+	// The mod "widescreen"'s side panel lists mHints: made again once the board rests after a change, and a
+	// click on one selects it (Tab then goes on from it)
+	bool					IsCurrent() const;      // mHints were made for the board as it is
+	void					Refresh();
+	void					SelectListed(int theIdx);
 
 protected:
 	void					Solve();

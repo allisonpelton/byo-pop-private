@@ -40,6 +40,7 @@ class Color;
 class MusicInterface;
 class BookWormApp;
 class AutoplayBot;
+class SidePanel;
 
 extern BookWormApp* gApp;   // 0x5347d4 (only WinMain used it; port: set by the ctor)
 extern MTRand* gGameRand;   // 0x5347d0 the Board's letter / fire / special / bonus-word generator
@@ -170,6 +171,7 @@ public:
 	//   -autoplayhints=1         plays the word solver's first hint every move (the mod "solver" on);
 	//   -autoplayundo=1          with it, undoes every other word and checks the board (the mod "undo" on)
 	//   -dailydate=<yyyymmdd>    the mod "daily-board" deals that day's board instead of today's
+	//   -livesplitlog=<file>     the mod "livesplit" appends one line per write of its block (LiveSplitObserver.h)
 	bool					mAutoplay;
 	unsigned long			mAutoplaySeed;
 	std::string				mAutoplayMode;
@@ -184,6 +186,7 @@ public:
 	bool					mAutoplayType;          // -autoplaytype=1: words typed (the mod "type-word"; Autoplay.h)
 	AutoplayBot*			mAutoplayBot;
 	int						mDailyDate;             // -dailydate=<yyyymmdd>: the mod "daily-board"'s day (0: today; DailyBoard.h)
+	SidePanel*				mSidePanel;             // port(mod): the mod "widescreen"'s panel, NULL without it (SidePanel.h)
 
 public:
 	BookWormApp();                                              // 0x41a0f0
@@ -225,6 +228,8 @@ public:
 	// port: the game's texts are read from the player's Bookworm.exe (GameText.h) right after the partner
 	// properties, before ReadFromRegistry (the default high scores) and anything that shows text
 	virtual void	InitPropertiesHook() override;
+	// port(mod): the mod "widescreen" makes the screen wider than the game's 640 x 480 (SidePanel.h)
+	virtual void	PreDisplayHook() override;
 
 	// port (web): the page can be closed or crash without Shutdown, which is where the original saves a
 	// game in progress (see SexyAppBase::UpdateUserDataBackup)

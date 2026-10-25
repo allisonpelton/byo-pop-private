@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>BookWorm Deluxe Web Port</title>
 <style>
-/* Layout: a single 4:3 stage that fills the viewport, with a slim tool bar and two slide-over panels
+/* Layout: a single 4:3 stage (16:9 with the mod "widescreen": Module.onGameScreen) that fills the viewport, with a slim tool bar and two slide-over panels
    (game files, mods). Same shell as Bejeweled's (web/shell.html) and Big Money's; palette: bookworm green and old paper. */
 :root {
   --bg: #eceaf2;
@@ -62,8 +62,8 @@ button.primary { background: var(--accent); color: var(--accent-fg); border-colo
 button[disabled] { opacity: 0.5; cursor: default; }
 .stage-wrap { flex: 1; min-height: 0; display: grid; place-items: center; padding: 12px; }
 .stage {
-  position: relative; background: var(--stage); aspect-ratio: 4 / 3; max-width: 100%;
-  width: min(100%, calc((100vh - 90px) * 4 / 3)); box-shadow: 0 10px 40px rgba(0, 0, 0, 0.35); border-radius: 4px; overflow: hidden;
+  position: relative; background: var(--stage); aspect-ratio: var(--aspect, 4 / 3); max-width: 100%;
+  width: min(100%, calc((100vh - 90px) * var(--aspect-w, 1.3333))); box-shadow: 0 10px 40px rgba(0, 0, 0, 0.35); border-radius: 4px; overflow: hidden;
 }
 canvas#canvas { display: block; width: 100%; height: 100%; outline: none; image-rendering: auto; }
 .overlay {
@@ -583,6 +583,14 @@ input[type=file] { display: none; }
     var el = $("stage");
     if (el.requestFullscreen) el.requestFullscreen().catch(function () {});
   });
+  // The stage takes the game screen's shape, which the game gives before it makes its window: 4:3, or 16:9 with
+  // the mod "widescreen" (854 x 480; SidePanel::TellPage). SDL sizes the canvas to the stage.
+  Module.onGameScreen = function (w, h) {
+    var s = $("stage");
+    if (!(w > 0 && h > 0)) return;
+    s.style.setProperty("--aspect", w + " / " + h);
+    s.style.setProperty("--aspect-w", String(w / h));
+  };
 })();
 </script>
 {{{ SCRIPT }}}

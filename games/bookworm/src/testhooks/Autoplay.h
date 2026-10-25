@@ -31,6 +31,11 @@
 // <prefix><mode>-gameover-mods.png, once their balloon is up), <prefix><mode>-fame.png and, every
 // -autoplayshotwords=<n> words (default 25, 0: none), <prefix><mode>-word<n>.png (script lines, so a
 // replay of the log takes them too). Under -renderscale=<n> the shots are at the full size (screenshotfull).
+// With the mod "word-journal" the bot opens the journal at game over, saves <prefix><mode>-journal.png and
+// closes it; with "select-definitions" it waits for the first definition shown for a selection and saves
+// <prefix><mode>-preview.png, and the log notes each one shown. With "widescreen" it saves <prefix><mode>-panel.png
+// once, after 8 words, with the tiles at rest, and (-autoplayhints) takes every other hint by a click on the side
+// panel's first row instead of Tab.
 // -autoplayhints=1 (with the mod "solver" on): every move is the word solver's first hint, asked for with Tab
 // and submitted with the Submit button (a scramble when the board spells no word). The log notes each hint
 // and the word's score, and "HINT MISMATCH" where the game scored the word otherwise than the solver said.
@@ -172,6 +177,7 @@ private:
 	int mJournalStepAt;             // the update of the last step
 	bool mPreviewNoted;             // the selected word's definition was showing at the last update
 	int mPreviewShots;              // its showings so far, +1 once the first is shot
+	bool mPanelShot;                // the widescreen side panel was shot
 	bool mFameNoted;
 	int mLevelUps;
 

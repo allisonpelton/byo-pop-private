@@ -381,6 +381,25 @@ void Solver::Reset()
 	mPending = false;
 }
 
+bool Solver::IsCurrent() const
+{
+	return (!mBoardSig.empty()) && (BoardSignature() == mBoardSig);
+}
+
+void Solver::Refresh()
+{
+	if ((BoardAtRest(mBoard)) && (!IsCurrent()))
+		Solve();
+}
+
+void Solver::SelectListed(int theIdx)
+{
+	if ((theIdx < 0) || (theIdx >= (int)mHints.size()) || (!BoardAtRest(mBoard)) || (!IsCurrent()))
+		return;
+	mPending = false;
+	SelectHint(theIdx);
+}
+
 void Solver::RequestHint()
 {
 	mPending = true;

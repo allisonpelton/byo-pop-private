@@ -16,7 +16,9 @@ redistributed, stay git-ignored. How to install and test the mods that exist: RE
 | 4 | Rude words that set fires (`mods/rude-words`) | done |
 | 5 | Greedy bots on the game-over page (`mods/greedy-bots`) | done |
 | 6 | Type a word to play it (`mods/type-word`, 4.6, the user's idea) | done |
-| 7 | HD art; the smaller ideas | next |
+| 7 | HD art (`tools/make_hd4x_mod.py`, 4.3) | done |
+| 8 | The smaller ideas (4.4): missed words, par, daily board, word journal, colour-blind, LiveSplit, widescreen | done |
+| 9 | Definitions while selecting (`mods/select-definitions`, 4.7, the user's idea) | done |
 
 Code mods read their switches from the mod's `"features"` (`src/ModFeatures.h`: a feature on, a live
 setting's value) and say `"affectsScores": true`, so their games get their own high scores and saved games
@@ -151,19 +153,33 @@ them, an undo leaves the bots as they are).
   and level 53 at the cap. A game quit while the bots played and continued by a second run
   (`-autoplaycontinue=1`) ended them exactly as the uninterrupted game.
 
-### 4.3 HD art
-A generator like Bejeweled's (Real-ESRGAN in `E:\retools`) that upscales the player's own images into a
-git-ignored `@2x` mod: images and their alpha masks upscaled together; sprite strips cel by cel with padding;
-JPEG backdrops with a denoising model; tile letters redrawn from a free vector font if upscaled ones look soft.
+### 4.3 HD art (done)
+`tools/make_hd4x_mod.py`, adapted from Big Money's: Real-ESRGAN (`E:\retools`) upscales the player's own
+images and font strips 4x into the git-ignored `mods/hd4x-textures` (`<stem>@4x.png` beside the 1x files, so
+code that reads pixels sees the originals). Transparent pixels are filled from their opaque neighbours before
+the upscale, so edges keep no junk colour.
 
 ### 4.4 Smaller ideas
-- **Missed-word review**: after each word or at game over, the best word that was there and the points missed.
-- **Par mode**: each board's par is the solver's best word; the score is a percentage of par.
-- **Daily board**: seeded from the date, with a local history (no online leaderboard).
-- **Word journal**: every word played, the best per level, a letter heatmap, stored locally.
-- **Colour-blind mode**: a symbol on green, gold, sapphire, diamond and fire tiles; a high-contrast tile skin.
-- **LiveSplit**: levels as splits, as in Bejeweled and Big Money.
-- **Widescreen layout**: a side panel for the solver's list and the word history.
+- **Missed-word review** (done, `mods/missed-words`, `src/WordReview.cpp`): after each word that was not the
+  board's best, that word in Lex's balloon; the points missed on the level and game-over pages. Affects scores
+  (the note can name a word still on the board).
+- **Par mode** (done, `mods/par`, same file): each board's par is its best word's points; each word's share of
+  par in the balloon, the level's and the game's on the pages.
+- **Daily board** (done, `mods/daily-board`, `src/DailyBoard.cpp`): each day's games start from one board,
+  seeded by the date and mode; a local history in the player's `daily-board.txt` (no online leaderboard).
+- **Word journal** (done, `mods/word-journal`, `src/WordJournal.cpp`, `src/JournalWidget.cpp`): every word
+  played in the player's `word-journal.txt`; at game over a book with the totals, best and longest words, a
+  heatmap of the letters played against how often each is dealt, and the best word of each level.
+- **Colour-blind mode** (done, `mods/colour-blind`, `src/TileSymbols.cpp`): a symbol on green, gold, sapphire,
+  diamond and fire tiles, drawn as shapes; "large" puts it on a dark plate. No high-contrast skin (yet).
+- **LiveSplit** (done, `mods/livesplit`, `src/LiveSplitObserver.cpp`, `tools/livesplit/`): Big Money's block and
+  tests, ported: the run starts with a new game, splits at level clears or score marks, resets at a game over (a
+  fire tile through the bottom in Classic, in Action the countdown of a fire tile on the bottom row) or when the
+  game is left.
+- **Widescreen layout** (done, `mods/widescreen`, `src/SidePanel.cpp`): `BookWormApp::PreDisplayHook` makes the
+  screen 854 x 480 and every screen keeps its 640 x 480 at the left (`GAME_SCREEN_WIDTH`); the panel beside the
+  board lists the solver's hints (a click selects one) and the words played this game, read from the board's game
+  log (Board::Submit's codes), so undo and Continue need nothing of their own.
 
 ### 4.5 Earlier proposals, still open
 - **Definitions** for more words without Collins: `popdefs.txt` has 2,249; WordNet (free with its notice)
@@ -194,6 +210,13 @@ Each path is rated by the solver's own rules (`RateSolverWord`, the rating `Find
 path), over the lettered tiles that are not burning away. The typed letters have a search of their own, a DFS
 over neighbours that keeps at most 5,000 paths. `"affectsScores": false`: every typed word could be clicked,
 and the path it takes is one the player can see. Tested with `-autoplaytype=1` (README.md).
+
+### 4.7 Definitions while selecting (done, the user's idea, 2026-10-25)
+`mods/select-definitions` (feature `selectDefinitions`, `Board::UpdateSelectDefinition`, `Lex::PreviewDefinition`).
+Once the selection has spelled a word for 0.15 s (15 updates), Lex's balloon gives its definition (the
+game's, Collins', or the mod note); a changed selection fades it out. It never pushes out a comment
+Lex is making: it waits for the balloon to be free. A word played ends the preview, and the usual definition
+follows. Play is unchanged (`"affectsScores": false`): the selection already says whether it is a word.
 
 ## What works as plain data today (no code)
 

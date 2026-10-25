@@ -269,6 +269,9 @@ public:
 	// order; empty for a scramble), for the -autoplay bot's check of the bots' model (-autoplaymodel)
 	int					mModMoves;
 	std::vector<int>	mModLastMove;
+	// port(mod): LiveSplit (LiveSplitObserver.h)
+	unsigned int		mBoardSerial;           // 1, 2, ... for each board the app makes
+	bool				mResumed;               // LoadGame restored a saved game into this board
 
 public:
 	Board(BookWormApp* theApp);                                         // 0x40ae90

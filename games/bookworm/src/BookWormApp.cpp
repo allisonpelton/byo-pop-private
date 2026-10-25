@@ -17,6 +17,8 @@
 #include "GameText.h"
 #include "ModFeatures.h"
 #include "ModWords.h"
+#include "LiveSplitObserver.h"
+#include "SidePanel.h"
 #include "testhooks/Autoplay.h"
 
 #include "WidgetManager.h"
@@ -340,12 +342,14 @@ BookWormApp::BookWormApp()
 	mAutoplayType = false;
 	mAutoplayBot = NULL;
 	mDailyDate = 0;
+	mSidePanel = NULL;
 }
 
 // 0x4187b0. The widgets were removed and deleted by ShutdownWidgets (the help widget is not: original).
 BookWormApp::~BookWormApp()
 {
 	delete mAutoplayBot; // port: the -autoplay test hook
+	LiveSplitObserver::AppDestroyed(this); // port(mod): the LiveSplit block's last write
 
 	if (mUserManager != NULL)
 	{
@@ -607,6 +611,9 @@ void BookWormApp::UpdateFrames()
 			mAutoplayShotPrefix, mAutoplayShotWords, mAutoplayHints, mAutoplayUndo, mAutoplayModel, mAutoplayType);
 	if (mAutoplayBot != NULL)
 		mAutoplayBot->Update();
+
+	// port(mod): the LiveSplit block, after the update (LiveSplitObserver.h)
+	LiveSplitObserver::AfterUpdate(this);
 }
 
 // port: the game's command-line test hooks (see BookWormApp.h); everything else goes to the framework
@@ -641,6 +648,8 @@ void BookWormApp::HandleCmdLineParam(const std::string& theParamName, const std:
 		mAutoplayType = atoi(theParamValue.c_str()) != 0;
 	else if (theParamName == "-dailydate")
 		mDailyDate = atoi(theParamValue.c_str());
+	else if (theParamName == "-livesplitlog")
+		LiveSplitObserver::SetLogFile(theParamValue); // port(mod): test hook, one line per block write
 	else
 		SexyApp::HandleCmdLineParam(theParamName, theParamValue);
 }
@@ -662,6 +671,19 @@ void BookWormApp::InitPropertiesHook()
 	LoadProperties("properties/texts.xml", false, false);
 	if (!LoadGameTexts())
 		SDL_Log("BookWorm: no game texts read from Bookworm.exe (texts without an override stay empty)");
+}
+
+// port(mod): with the mod "widescreen" the screen is 854 x 480: every screen of the game keeps its 640 x 480 at
+// the left (GAME_SCREEN_WIDTH) and Init adds the side panel to the right of it. SexyAppBase::Init resizes the
+// widget manager and makes the window after this.
+void BookWormApp::PreDisplayHook()
+{
+	SexyApp::PreDisplayHook();
+	if (SidePanel::Enabled())
+	{
+		mWidth = GAME_SCREEN_WIDTH + SIDE_PANEL_WIDTH;
+		SidePanel::TellPage(mWidth, mHeight);
+	}
 }
 
 // 0x414a10 slot 16
@@ -727,8 +749,14 @@ void BookWormApp::Init()
 	mInitDone = true;
 
 	mTitleScreen = new TitleScreen(this);
-	mTitleScreen->Resize(0, 0, mWidth, mHeight);
+	mTitleScreen->Resize(0, 0, GAME_SCREEN_WIDTH, mHeight);
 	mWidgetManager->AddWidget(mTitleScreen);
+	if (mWidth > GAME_SCREEN_WIDTH)
+	{
+		mSidePanel = new SidePanel(this);    // port(mod): the mod "widescreen"
+		mSidePanel->Resize(GAME_SCREEN_WIDTH, 0, mWidth - GAME_SCREEN_WIDTH, mHeight);
+		mWidgetManager->AddWidget(mSidePanel);
+	}
 
 	// WinMain (0x40fe80): the game generator gets one draw of the framework's generator, right after Init
 	// (port: here, NAMES.md D17), seeded the 2004 way
@@ -1132,6 +1160,13 @@ void BookWormApp::ShutdownWidgets()
 {
 	KillDialog(DIALOG_HINT);
 
+	if (mSidePanel != NULL)
+	{
+		mWidgetManager->RemoveWidget(mSidePanel);    // port(mod)
+		SafeDeleteWidget(mSidePanel);
+		mSidePanel = NULL;
+	}
+
 	if (mTitleScreen != NULL)
 	{
 		mWidgetManager->RemoveWidget(mTitleScreen);
@@ -1189,9 +1224,9 @@ void BookWormApp::ShowHelp()
 	if (mHelpWidget == NULL)
 	{
 		mHelpWidget = new HelpWidget(this);
-		mHelpWidget->Resize(mWidth, mHeight, mWidth, mHeight);
+		mHelpWidget->Resize(GAME_SCREEN_WIDTH, mHeight, GAME_SCREEN_WIDTH, mHeight);
 		mWidgetManager->AddWidget(mHelpWidget);
-		mHelpWidget->Resize(0, 0, mWidth, mHeight);
+		mHelpWidget->Resize(0, 0, GAME_SCREEN_WIDTH, mHeight);
 		if (mBoard != NULL)
 		{
 			mBoard->Pause(true);
@@ -1281,7 +1316,7 @@ void BookWormApp::StartGame()
 
 	RemoveBoard();
 	mBoard = new Board(this);
-	mBoard->Resize(0, 0, mWidth, mHeight);
+	mBoard->Resize(0, 0, GAME_SCREEN_WIDTH, mHeight);
 	mWidgetManager->AddWidget(mBoard);
 	mWidgetManager->BringToBack(mBoard);
 	mWidgetManager->SetFocus(mBoard);
@@ -1307,7 +1342,7 @@ void BookWormApp::ShowGameSelector()
 
 	RemoveGameSelector();
 	mGameSelector = new BWGameSelector(this);
-	mGameSelector->Resize(0, 0, mWidth, mHeight);
+	mGameSelector->Resize(0, 0, GAME_SCREEN_WIDTH, mHeight);
 	mWidgetManager->AddWidget(mGameSelector);
 	if (mBoard != NULL)
 	{
@@ -1325,7 +1360,7 @@ void BookWormApp::ShowHallOfFame()
 {
 	RemoveFameWidget();
 	mFameWidget = new FameWidget(this);
-	mFameWidget->Resize(0, 0, mWidth, mHeight);
+	mFameWidget->Resize(0, 0, GAME_SCREEN_WIDTH, mHeight);
 	mWidgetManager->AddWidget(mFameWidget);
 }
 
@@ -1354,7 +1389,7 @@ void BookWormApp::SelectGameMode(int theMode)
 		aDialog->mNoButton->mLabel = GameText(GT_CONTINUE_NO);
 		int aHeight = aDialog->GetPreferredHeight(aDialog->mWidth);
 		int aWidth = aDialog->mWidth;
-		aDialog->Resize(((mWidth - aWidth) + 233) / 2, (mHeight - aHeight) / 2, aWidth,
+		aDialog->Resize(((GAME_SCREEN_WIDTH - aWidth) + 233) / 2, (mHeight - aHeight) / 2, aWidth,
 			aDialog->GetPreferredHeight(aWidth));
 		return;
 	}
@@ -1384,7 +1419,7 @@ void BookWormApp::GoToMainMenu()
 		aDialog->mNoButton->mLabel = GameText(GT_LEAVE_GAME_NO);
 		int aHeight = aDialog->GetPreferredHeight(aDialog->mWidth);
 		int aWidth = aDialog->mWidth;
-		aDialog->Resize(((mWidth - aWidth) + 233) / 2, (mHeight - aHeight) / 2, aWidth,
+		aDialog->Resize(((GAME_SCREEN_WIDTH - aWidth) + 233) / 2, (mHeight - aHeight) / 2, aWidth,
 			aDialog->GetPreferredHeight(aWidth));
 		return;
 	}
@@ -1409,7 +1444,7 @@ void BookWormApp::ShowHint(int theHintId, const SexyString& theHeader, const Sex
 	{
 		KillDialog(DIALOG_HINT);
 		HintDialog* aDialog = new HintDialog(this, theHintId, theHeader, theLines, theFooter, theButtonMode);
-		aDialog->Resize(0, 0, mWidth, mHeight);
+		aDialog->Resize(0, 0, GAME_SCREEN_WIDTH, mHeight);
 		aDialog->Resize(233, 110, 400, aDialog->GetPreferredHeight(400));
 		AddDialog(DIALOG_HINT, aDialog);
 	}
@@ -1423,7 +1458,7 @@ void BookWormApp::ShowCredits()
 	aDialog->SetColor(Dialog::COLOR_LINES, Color(255, 255, 255));
 	aDialog->SetColor(Dialog::COLOR_BUTTON_TEXT, Color(0, 0, 0));
 	aDialog->Resize(0, 47, 388, aDialog->GetPreferredHeight(388));
-	aDialog->Move(((mWidth - aDialog->mWidth) + 233) / 2, aDialog->mY);
+	aDialog->Move(((GAME_SCREEN_WIDTH - aDialog->mWidth) + 233) / 2, aDialog->mY);
 	AddDialog(DIALOG_CREDITS, aDialog);
 }
 
@@ -1435,7 +1470,7 @@ void BookWormApp::ShowOptions()
 	aDialog->SetColor(Dialog::COLOR_LINES, Color(255, 255, 255));
 	aDialog->SetColor(Dialog::COLOR_BUTTON_TEXT, Color(0, 0, 0));
 	int aHeight = aDialog->GetPreferredHeight(388);
-	aDialog->Resize(mWidth, (mHeight - aHeight) / 2, 388, aHeight);
+	aDialog->Resize(mWidth, (mHeight - aHeight) / 2, 388, aHeight);   // port(mod): off the screen, also a wide one
 	aDialog->mSlideOffset = 240;
 	AddDialog(DIALOG_OPTIONS, aDialog);
 }

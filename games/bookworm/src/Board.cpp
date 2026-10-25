@@ -617,6 +617,9 @@ Board::Board(BookWormApp* theApp)
 	mBots = NULL;
 	mBotsChecked = false;
 	mModMoves = 0;
+	static unsigned int sBoardSerials = 0; // port(mod): LiveSplit (LiveSplitObserver.h)
+	mBoardSerial = ++sBoardSerials;
+	mResumed = false;
 	mTypedWord = ModFeatureEnabled("typeWord") ? new TypedWord(this) : NULL;
 	mWordReview = WordReview::Create(this);
 	mTileSymbols = ModFeatureEnabled("tileSymbols");
@@ -3860,6 +3863,7 @@ bool Board::LoadGame(int theMode)
 	if (!isRead)
 		return false;
 
+	mResumed = true;    // port(mod): a resumed game never starts a LiveSplit run
 	mPlayCounted = false;
 
 	// the danger theme when Lex was sweating

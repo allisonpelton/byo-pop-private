@@ -20,6 +20,7 @@
 #include "ModFeatures.h"
 #include "TypedWord.h"
 #include "WordReview.h"
+#include "SidePanel.h"
 
 #include "WidgetManager.h"
 #include "ButtonWidget.h"
@@ -157,6 +158,7 @@ AutoplayBot::AutoplayBot(BookWormApp* theApp, unsigned long theSeed, const std::
 	mJournalStepAt(0),
 	mPreviewNoted(false),
 	mPreviewShots(0),
+	mPanelShot(false),
 	mFameNoted(false),
 	mLevelUps(0),
 	mPlanPos(0),
@@ -335,6 +337,14 @@ void AutoplayBot::LogChanges(Board* theBoard)
 	{
 		mPreviewShots++;
 		Shot(std::string(ModeName(mApp->mGameMode)) + "-preview");
+	}
+
+	// the side panel (mod "widescreen"): shot once, after 8 words, with the tiles at rest (the solver's list up)
+	if ((!mPanelShot) && (mApp->mSidePanel != NULL) && (mWordsScored >= 8) && (Solver::BoardAtRest(theBoard)) &&
+		((theBoard->mSolver == NULL) || (theBoard->mSolver->IsCurrent())))
+	{
+		mPanelShot = true;
+		Shot(std::string(ModeName(mApp->mGameMode)) + "-panel");
 	}
 
 	if (theBoard->mState != mLastState)
@@ -1324,6 +1334,19 @@ int AutoplayBot::RunStep(Board* theBoard, const Step& theStep)
 		return RUN_DONE;
 
 	case STEP_KEY_HINT:
+		// With the mod "widescreen", every other hint is the side panel's first row, clicked (no random draw, so
+		// the game goes as with Tab)
+		if ((mApp->mSidePanel != NULL) && (mPlanNum % 2 == 0))
+		{
+			Rect aRow = SidePanel::HintRect(0);
+			int x = mApp->mSidePanel->mX + aRow.mX + aRow.mWidth / 2;
+			int y = mApp->mSidePanel->mY + aRow.mY + aRow.mHeight / 2;
+			if (mApp->mSidePanel->HintAt(x - mApp->mSidePanel->mX, y - mApp->mSidePanel->mY) != 0)
+				return RUN_WAIT;
+			Note("click the side panel's first hint");
+			QueueAt("click", x, y);
+			return RUN_DONE;
+		}
 		Queue("key", "TAB");
 		return RUN_DONE;
 
