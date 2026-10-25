@@ -387,6 +387,45 @@ Example mods (`games/bigmoney/mods/`):
   the player's own game files with Real-ESRGAN on the GPU. It contains the game's art, so it is
   git-ignored: never commit or share it.
 
+### Balanced combinations (bot benchmarks, 2026-10-25)
+
+Which mods and settings keep a mode about as hard as the original, measured with bots that score like a
+player who gets about 30,000 in Action, 60,000 in Puzzle and is weakest in Strategy:
+- Action: `-autoplaypace=55` (slower clicks).
+- Strategy: `-autoplaylook=10,150 -autoplaybest=100` (looks one click ahead, keeps columns low).
+- Puzzle: the Puzzle Solver with `-autoplaysolver=98` (its plan 98% of the time).
+- With Pickpockets, `-autoplaypocketbags`.
+
+Each line is 12 games on Normal (the same seeds for every line): the median score and levels cleared.
+The spread is wide (a game can score a tenth or ten times the median), so a factor of two is noise and
+only the large gaps count.
+
+| Mods (D: Diagonal Groups; C, P: More Colours' Action/Strategy and Puzzle colours; K: Pickpocket 2.0; B: Small Board 10 x 12; W: Winnable Puzzles) | Action | Strategy | Puzzle |
+|---|---|---|---|
+| none | 43k, 7 | 5.3k, 1 | 68k, 10 |
+| K | 24k, 5 | 4.1k, 1 | 57k, 9 |
+| D | no end | 54k, 8 | 1.5M, 41 |
+| D + C6 | 74k, 8 | 9.9k, 2.5 | |
+| D + C6 + K | 70k, 8 | 11k, 3 | |
+| D + C7 | 4.9k, 1 | 1.9k, 0 | |
+| D + P8 / P10 / P12 / P14 / P16 | | | 156k, 13.5 / 80k, 9.5 / 87k, 10.5 / 52k, 7 / 74k, 9.5 |
+| D + P12 + K | | | 60k, 7.5 |
+| W / W + D + P12 / W + D + P16 | | | 177k, 14 / 202k, 15 / 199k, 15.5 |
+| B | 1.9k, 0 | 5.3k, 2 | 11k, 2.5 |
+| B + D (+ C5 / C6, P8 / P10) | no end (162k, 11 / 4.3k, 1) | 371k, 25 (54k, 10.5 / 2.8k, 1) | 515k, 29 (108k, 14.5 / 49k, 8.5) |
+
+- **Balanced:**
+  - Action: D + C6, with or without K. Seven colours with diagonals is a hard mode.
+  - Strategy: D + C6, with or without K; a little easier than the original.
+  - Puzzle: D with 10 to 16 colours (the same from 10 up), D + P12 + K, or B + D + P10.
+- **Easy and Hard.** In Strategy, D + C6 matches the original on Easy and on Hard. In Action it is two
+  or three levels easier on both. D + P12 is a little harder than the original Puzzle on Easy and on
+  Hard.
+- **Cliffs.** With diagonals, one colour more or less is the difference between endless and
+  hopeless, more so on the small board: tune colours one at a time.
+- **Pickpocket 2.0** is about even in every mode. Version 1.0's runs (one free each level) are left
+  out: the bot then used them at random.
+
 ## Status (2026-10-18)
 
 - **Analysis**: complete. GAME_NOTES.md has the overview plus five parts; every game function is in the
