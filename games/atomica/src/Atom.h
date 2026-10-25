@@ -95,8 +95,8 @@ public:
 	virtual void	DrawAimLine(Graphics* g);			// 0x401c60
 	bool			PlaceAt(int theCol, int theRow, bool theAddToList); // 0x401dc0
 	bool			PlaceRandom();						// 0x401e60
-	virtual bool	Update();							// 0x401f90
-	void			FlyAway(Atom* theTarget);			// 0x4027a0
+	virtual void	Update();							// 0x401f90
+	void			FlyAway(void* theTarget);			// 0x4027a0
 	virtual void	DrawOverlay(Graphics* g, int theFrame, int theX, int theY); // 0x4028c0
 	void			Infect();							// 0x402c60
 	virtual void	Draw(Graphics* g);					// 0x4037f0
@@ -119,7 +119,7 @@ public:
 
 	ElementAtom(Grid* theGrid, int theType);			// 0x4043d0
 	virtual ~ElementAtom();								// 0x404630
-	virtual bool	Update();							// 0x404640
+	virtual void	Update();							// 0x404640
 	virtual void	Draw(Graphics* g);					// 0x404b00
 	virtual bool	IsElement() { return true; }
 	virtual void	OnPlaced();							// 0x4055b0: the element's effect

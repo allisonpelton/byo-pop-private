@@ -43,6 +43,18 @@ AtomicaApp::AtomicaApp()
 	mBoard = NULL;
 	mMenu = NULL;
 	mTitleScreen = NULL;
+	mMode = 0;
+	mB3ea0 = false;
+	mExpertMode = 0;
+	mB3eac = false;
+	mPauseCount = 0;
+	mI440 = 0;
+	mShowSymbols = false;
+	mShowTips = true;
+	mLevelUpDialog = NULL;
+	mOptionsDialog = NULL;
+	mHelpDialog = NULL;
+	mMenuDialog = NULL;
 	mSprites = new SpriteMgr(this);
 }
 
@@ -85,10 +97,17 @@ void AtomicaApp::Init()
 	mWidgetManager->AddWidget(mTitleScreen);
 }
 
-// the title screen's play link was clicked (the menu is not ported yet)
+// the title screen's play link was clicked (the menu is not ported yet: the game starts)
 void AtomicaApp::TitleScreenDone()
 {
 	SDL_Log("title screen done");
+	if (mTitleScreen != NULL)
+	{
+		mWidgetManager->RemoveWidget(mTitleScreen);
+		SafeDeleteWidget(mTitleScreen);
+		mTitleScreen = NULL;
+	}
+	StartGame();
 }
 
 // port: the loading runs in the main thread (the framework runs LoadingThreadProc once the first frame is up), so the

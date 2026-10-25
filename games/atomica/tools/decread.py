@@ -76,12 +76,32 @@ FIELD2 = re.compile(r"\*\(([A-Za-z_][\w ]*?(?: \*+)?) ?\)\(([A-Za-z_]\w*(?:(?:\.
 FIELD3 = re.compile(r"\*\(([A-Za-z_][\w ]*?(?: \*+)?) ?\)\(\(int\)(\w+(?:(?:\.|->)[a-z]\w*)*) \+ (0x[0-9a-f]+|\d+)\)")
 
 
+PTRSIZE = {'pi': 4, 'pu': 4, 'pf': 4, 'ps': 2, 'pw': 2, 'pc': 1, 'pb': 1}
+
+
+def ptr_sizes(t):
+    # a variable declared as a pointer type scales its offsets in `(p + n)`: 4 for int *, undefined4 *, float *
+    sizes = {}
+    for m in re.finditer(r'\b(int|uint|undefined4|float|char|byte|undefined1|short|ushort|undefined2|void|[A-Za-z_]+) (\*+)(\w+)', t):
+        ty, stars, name = m.group(1), m.group(2), m.group(3)
+        sizes[name] = 1 if ty in ('char', 'byte', 'undefined1', 'void') and len(stars) == 1 else (2 if ty in ('short', 'ushort', 'undefined2') and len(stars) == 1 else 4)
+    return sizes
+
+
 def fields(t):
+    sizes = ptr_sizes(t)
+
+    def f2(m):
+        base = m.group(2)
+        head = base.split('.')[0].split('->')[0]
+        scale = sizes.get(head, 1) if ('.' not in base and '->' not in base) else 1
+        v = int(m.group(3), 16) if m.group(3).startswith('0x') else int(m.group(3))
+        return '%s->%s%x' % (base, tcode(m.group(1)), v * scale)
     for _ in range(6):
         t0 = t
         t = FIELD1.sub(lambda m: '%s.%s%s' % (m.group(2), tcode(m.group(1)), offs(m.group(3))), t)
         t = FIELD3.sub(lambda m: '%s->%s%s' % (m.group(2), tcode(m.group(1)), offs(m.group(3))), t)
-        t = FIELD2.sub(lambda m: '%s->%s%s' % (m.group(2), tcode(m.group(1)), offs(m.group(3))), t)
+        t = FIELD2.sub(f2, t)
         if t == t0:
             break
     return t
@@ -132,6 +152,7 @@ for a in args:
                 continue
             if decl.match(ln):
                 continue
+            ln = re.sub(r'(?:ExceptionList = &local_10|local_8 = [^,;()]+|puStack_c = [^,;()]+|local_10 = ExceptionList),\s*', '', ln)
             if re.search(r'(pvStack_\w+|puStack_\w+|ExceptionList)\s*(=|;)', ln):
                 continue
             if re.match(r'\s*(local_4|uStack_4)\b[^\n]*= ', ln):
