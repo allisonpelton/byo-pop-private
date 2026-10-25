@@ -1,0 +1,44 @@
+{
+  "id": "puzzle-solver",
+  "name": "Puzzle Solver",
+  "version": "1.0",
+  "author": "byo-pop examples",
+  "description": "Puzzle mode only. Works out whether the level can still be won and, for a price, shows a winning click (H, or click the status line). It can also end the game as soon as the level can't be won. Keeps its own high scores.",
+  "affectsScores": true,
+  "settings": [
+    { "type": "section", "label": "Solver" },
+    { "id": "show", "label": "Show what it found", "type": "choice", "default": "always",
+      "choices": [
+        { "value": "always", "label": "Always" },
+        { "value": "lost", "label": "Only when lost" },
+        { "value": "never", "label": "Never" }
+      ],
+      "help": "Above the coins: whether the level can still be won." },
+    { "id": "endWhenLost", "label": "End the game when lost", "type": "bool", "default": false,
+      "help": "Game over as soon as no clicks can win the level, without playing it out." },
+    { "type": "section", "label": "Hints" },
+    { "id": "hints", "label": "Hints", "type": "bool", "default": true,
+      "help": "H or a click on the status line flashes a group to click next on a way to win." },
+    { "id": "hintPrice", "label": "Price", "type": "choice", "default": "percent",
+      "choices": [
+        { "value": "free", "label": "Free" },
+        { "value": "percent", "label": "Part of the score" },
+        { "value": "amount", "label": "Fixed amount" }
+      ],
+      "enabledIf": { "setting": "hints", "equals": true } },
+    { "id": "hintPercent", "label": "Part of the score", "type": "int", "default": 10, "min": 1, "max": 100,
+      "unit": "%", "enabledIf": { "setting": "hintPrice", "equals": "percent" } },
+    { "id": "hintAmount", "label": "Fixed amount", "type": "int", "default": 500, "min": 50, "max": 10000,
+      "step": 50, "enabledIf": { "setting": "hintPrice", "equals": "amount" } }
+  ],
+  "features": {
+    "puzzleSolver": {
+      "show": { "$setting": "show" },
+      "endWhenLost": { "$setting": "endWhenLost" },
+      "hints": { "$setting": "hints" },
+      "hintPrice": { "$setting": "hintPrice" },
+      "hintPercent": { "$setting": "hintPercent" },
+      "hintAmount": { "$setting": "hintAmount" }
+    }
+  }
+}

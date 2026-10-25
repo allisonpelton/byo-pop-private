@@ -3,6 +3,7 @@
 // re/bigmoney/analysis/board_draw.md section 2.
 
 #include "Board.h"
+#include "PuzzleSolver.h"
 #include "HDPixels.h"
 #include <algorithm>
 #include "Piece.h"
@@ -442,6 +443,37 @@ void Board::Draw(Graphics* g)
 		g->SetColor(Color(0, 170, 0));
 		g->DrawString(aKeys, BOARD_X + (BOARD_COLS * COIN_SIZE - aFont->StringWidth(aKeys)) / 2, BOARD_Y + 37);
 	}
+
+	DrawSolverStatus(g); // port(mods)
+}
+
+// port(mods): the Puzzle solver's status line (Board::GetSolverStatusRect; PuzzleSolver.h)
+void Board::DrawSolverStatus(Graphics* g)
+{
+	Rect aRect;
+	SexyString aStatus;
+	SexyString aHint;
+	if (!GetSolverStatusRect(&aRect, &aStatus, &aHint))
+		return;
+	if (mPlayer != NULL)
+		aRect.mY += 44; // under the replay's lines
+	Font* aFont = mApp->mFont3;
+	g->SetFont(aFont);
+	g->SetColor(Color(0, 0, 0, 160));
+	g->FillRect(aRect);
+	int aY = aRect.mY + 18;
+	if (!aStatus.empty())
+	{
+		bool isLost = (mSolver->mStatus == PuzzleSolver::STATUS_LOST);
+		g->SetColor(isLost ? Color(255, 64, 64) : Color(0, 255, 0));
+		g->DrawString(aStatus, aRect.mX + (aRect.mWidth - aFont->StringWidth(aStatus)) / 2, aY);
+		aY += 19;
+	}
+	if (!aHint.empty())
+	{
+		g->SetColor(Color(0, 170, 0));
+		g->DrawString(aHint, aRect.mX + (aRect.mWidth - aFont->StringWidth(aHint)) / 2, aY);
+	}
 }
 
 // 0x402060
@@ -513,6 +545,8 @@ void Board::DrawPiece(Graphics* g, Piece* thePiece, int theYOffset)
 	if (thePiece->mImageSet == 1)
 		aCoins = mApp->mImages[IMAGE_HORZCOINS];
 	else if (thePiece->mHighlighted || thePiece->mDanger)
+		aCoins = mApp->mBrightCoinsImage;
+	else if ((IsSolverHintPiece(thePiece)) && ((mUpdateCnt / 25) % 2 == 0)) // port(mods): the solver's hint blinks
 		aCoins = mApp->mBrightCoinsImage;
 
 	int aY = (int)(thePiece->mShakeY + thePiece->mY + theYOffset);

@@ -120,6 +120,7 @@ int Replay::OpArgCount(int theOp)
 		return 2;
 	case OP_LEAVE:
 	case OP_NEXT:
+	case OP_HINT:
 		return 0;
 	}
 	return -1;
@@ -504,6 +505,10 @@ void ReplayPlayer::Apply(Board* theBoard, uint32_t theTick)
 		case Replay::OP_NEXT:
 			if (theBoard->mState == STATE_LEVEL_DONE)
 				theBoard->StartNextLevel();
+			break;
+		case Replay::OP_HINT:
+			if (theBoard->mState == STATE_PLAYING)
+				theBoard->RequestSolverHint();
 			break;
 		}
 	}

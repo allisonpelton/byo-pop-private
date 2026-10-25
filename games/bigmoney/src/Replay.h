@@ -64,7 +64,9 @@ enum Op
 	OP_MOVE = 2,    // x y: Board::MouseMove
 	OP_LEAVE = 3,   // Board::MouseLeave
 	OP_NEXT = 4,    // the "play next level" button (Board::ButtonDepress)
-	NUM_OPS = 5
+	OP_HINT = 5,    // H: a Puzzle solver hint (Board::KeyChar; PuzzleSolver.h). A click on the solver's status
+	                // line is an OP_CLICK.
+	NUM_OPS = 6
 };
 
 enum AppFlags

@@ -82,6 +82,22 @@ int Sexy::ModFeatureInt(const char* theName, const char* theKey, int theDefault,
 	return (int) std::min(std::max(aNumber, (double) theMin), (double) theMax);
 }
 
+bool Sexy::ModFeatureBool(const char* theName, const char* theKey, bool theDefault)
+{
+	const Platform::JsonValue* aValue = FindFeature(theName);
+	if ((aValue == NULL) || (!aValue->IsObject()) || (!aValue->Has(theKey)))
+		return theDefault;
+	return (*aValue)[theKey].AsBool(theDefault);
+}
+
+std::string Sexy::ModFeatureString(const char* theName, const char* theKey, const std::string& theDefault)
+{
+	const Platform::JsonValue* aValue = FindFeature(theName);
+	if ((aValue == NULL) || (!aValue->IsObject()) || (!aValue->Has(theKey)) || (!(*aValue)[theKey].IsString()))
+		return theDefault;
+	return (*aValue)[theKey].AsString();
+}
+
 bool Sexy::AnyContentModEnabled()
 {
 	// "settings" declares values, which count only where the effective manifest uses them
@@ -90,6 +106,8 @@ bool Sexy::AnyContentModEnabled()
 	static const char* kDataDirs[] = { "images", "sounds", "music", "data", "properties" };
 	for (const Platform::ModInfo* aMod : Platform::ModManager::Get().GetEnabledMods())
 	{
+		if (aMod->mAffectsScores)
+			return true;
 		// The effective manifest: the settings' values put in, so a value that leaves a key out ($omit) counts
 		if (aMod->mEffective.IsObject())
 		{

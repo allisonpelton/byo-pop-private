@@ -1,6 +1,7 @@
 #include "Board.h"
 #include "ModRules.h"
 #include "Replay.h"
+#include "PuzzleSolver.h"
 #include <set>
 #include "WinBMApp.h"
 #include "MrMoney.h"
@@ -829,6 +830,17 @@ void Board::KeyChar(SexyChar theChar)
 		return;
 	}
 
+	// port(mods): H asks the Puzzle solver for a hint (PuzzleSolver.h); a replay asks itself (OP_HINT)
+	if (((theChar == 'h') || (theChar == 'H')) && (mSolver != NULL) && (mPlayer == NULL))
+	{
+		if (mState == STATE_PLAYING)
+		{
+			RecordInput(Replay::OP_HINT);
+			RequestSolverHint();
+		}
+		return;
+	}
+
 	if (theChar == ' ')
 		Pause(mPauseCount == 0);
 }
@@ -1027,6 +1039,7 @@ Board::~Board()
 	delete mLevelUpImage;
 	delete mRecorder; // port(mods)
 	delete mPlayer;
+	delete mSolver;
 
 	// port: the original leaks every piece. Each piece is owned by exactly one of mGrid, mNextRow and
 	// mLoosePieces, but UpdatePhysics clears mGrid by the piece's own mRow/mCol (as the original does), so
@@ -2682,6 +2695,14 @@ void Board::OnClick(Piece* thePiece)
 void Board::ClickAt(int x, int y)
 {
 	Piece* aPiece = PieceAt(x, y);
+	// port(mods): a click on the solver's status line (not on a coin) asks for a hint (PuzzleSolver.h)
+	Rect aStatusRect;
+	if ((aPiece == NULL) && (mSolver != NULL) && (mSolverHints) && (GetSolverStatusRect(&aStatusRect, NULL, NULL)) &&
+		(aStatusRect.Contains(x, y)))
+	{
+		RequestSolverHint();
+		return;
+	}
 	if ((aPiece != NULL) && (!aPiece->mIsSpecial))
 		OnClick(aPiece);
 }
@@ -3492,6 +3513,8 @@ void Board::Update()
 		MarkDirty();
 	}
 
+	UpdateSolver(); // port(mods)
+
 	// Puzzle: no group left before all needed bags are out
 	if ((mApp->mGameType == GAMETYPE_PUZZLE) && (!mHasMoves) && (!mPiecesMoving) &&
 		(mBagsReleased < mBagsNeeded) && (mState == STATE_PLAYING))
@@ -3609,6 +3632,32 @@ Board::Board(WinBMApp* theApp)
 	}
 	if ((mPlayer == NULL) && (ModFeatureEnabled("replays")))
 		mRecorder = new ReplayRecorder(mApp, mRngSeed, mUserSeeded, mGameSeed);
+	// port(mods): the Puzzle solver (PuzzleSolver.h). A playback board has it too: the recording had it
+	// (the same gameplay mods), and its hints and game over play out at the same ticks.
+	mSolver = NULL;
+	mSolverHintWanted = false;
+	mSolverHintBoard = 0;
+	memset(mSolverHint, 0, sizeof(mSolverHint));
+	mSolverLogged = -1;
+	mSolverLostLevel = -1;
+	mSolverMessageTicks = 0;
+	if ((mApp->mGameType == GAMETYPE_PUZZLE) && (ModFeatureEnabled("puzzleSolver")))
+	{
+		mSolver = new PuzzleSolver();
+		std::string aShow = ModFeatureString("puzzleSolver", "show", "always");
+		mSolverShow = (aShow == "lost") ? SOLVER_SHOW_LOST : (aShow == "never") ? SOLVER_SHOW_NEVER : SOLVER_SHOW_ALWAYS;
+		mSolverEndWhenLost = ModFeatureBool("puzzleSolver", "endWhenLost", false);
+		mSolverHints = ModFeatureBool("puzzleSolver", "hints", true);
+		std::string aPrice = ModFeatureString("puzzleSolver", "hintPrice", "percent");
+		mSolverHintPrice = (aPrice == "free") ? SOLVER_PRICE_FREE : (aPrice == "amount") ? SOLVER_PRICE_AMOUNT : SOLVER_PRICE_PERCENT;
+		if (mSolverHintPrice == SOLVER_PRICE_AMOUNT)
+			mSolverHintValue = ModFeatureInt("puzzleSolver", "hintAmount", 500, 0, 1000000);
+		else
+			mSolverHintValue = ModFeatureInt("puzzleSolver", "hintPercent", 10, 0, 100);
+		mSolverBudget = ModFeatureInt("puzzleSolver", "positionsPerTick", 300, 1, 1000000);
+		SDL_Log("solver: show %s, end when lost %s, hints %s (%s %d), %d positions a tick", aShow.c_str(),
+			mSolverEndWhenLost ? "on" : "off", mSolverHints ? "on" : "off", aPrice.c_str(), mSolverHintValue, mSolverBudget);
+	}
 	mCreateTick = GetTickCount();
 	mTimerTick = mCreateTick;
 
@@ -3861,4 +3910,222 @@ void Board::UsePendingSeed()
 		mApp->mPendingSeed = 0;
 		SDL_Log("seed %u used", (unsigned) mGameSeed);
 	}
+}
+
+// port(mods): the Puzzle solver (PuzzleSolver.h), once per board tick. It looks at the board only while
+// nothing moves, so it sees what Compact and UpdatePhysics left, and a hint waits for it.
+void Board::UpdateSolver()
+{
+	if (mSolver == NULL)
+		return;
+	if (mSolverMessageTicks > 0)
+		mSolverMessageTicks--;
+
+	// A test of the solver: a level it found lost must never be won
+	if ((mSolverLostLevel == mLevel) && (mBagsReleased >= mBagsNeeded))
+	{
+		SDL_Log("solver: WRONG: level %d was found lost and is won", mLevel + 1);
+		mSolverLostLevel = -1;
+	}
+
+	if ((mState != STATE_PLAYING) || (mPiecesMoving))
+	{
+		ClearSolverHint();
+		return;
+	}
+
+	PuzzleModel aModel;
+	for (int aRow = 0; aRow < BOARD_ROWS; aRow++)
+	{
+		for (int aCol = 0; aCol < BOARD_COLS; aCol++)
+		{
+			Piece* aPiece = mGrid[aRow][aCol];
+			if (aPiece == NULL)
+				aModel.mCell[aRow][aCol] = PuzzleModel::EMPTY;
+			else if (aPiece->mIsSpecial)
+				aModel.mCell[aRow][aCol] = PuzzleModel::BAG; // only bags rest in a Puzzle grid
+			else
+				aModel.mCell[aRow][aCol] = (int8_t) aPiece->mColor;
+		}
+	}
+	aModel.mReleased = mBagsReleased;
+	aModel.mNeeded = mBagsNeeded;
+	mSolver->SetBoard(aModel);
+	if ((mSolverHintBoard != 0) && (mSolverHintBoard != mSolver->GetBoardHash()))
+		ClearSolverHint();
+	mSolver->Step(mSolverBudget);
+
+	if (mSolver->mStatus != mSolverLogged)
+	{
+		mSolverLogged = mSolver->mStatus;
+		switch (mSolver->mStatus)
+		{
+		case PuzzleSolver::STATUS_WINNABLE:
+			SDL_Log("solver: level %d: winnable in %d clicks (%d positions, tick %d)", mLevel + 1, (int) mSolver->mPlan.size(),
+				mSolver->mPositions, mUpdateCnt);
+			break;
+		case PuzzleSolver::STATUS_LOST:
+			SDL_Log("solver: level %d: lost (%d positions, tick %d)", mLevel + 1, mSolver->mPositions, mUpdateCnt);
+			mSolverLostLevel = mLevel;
+			break;
+		case PuzzleSolver::STATUS_GAVE_UP:
+			SDL_Log("solver: level %d: gave up (%d positions, tick %d)", mLevel + 1, mSolver->mPositions, mUpdateCnt);
+			break;
+		default:
+			break;
+		}
+	}
+
+	if ((mSolverHintWanted) && (mSolver->mStatus != PuzzleSolver::STATUS_THINKING))
+		GiveSolverHint();
+
+	if ((mSolverEndWhenLost) && (mSolver->mStatus == PuzzleSolver::STATUS_LOST) && (mBagsReleased < mBagsNeeded))
+	{
+		SDL_Log("solver: level %d can't be won: game over", mLevel + 1);
+		GameOver();
+	}
+}
+
+// H, or a click on the status line: the hint comes when the board is still and solved (UpdateSolver), once
+// per board position
+void Board::RequestSolverHint()
+{
+	if ((mSolver == NULL) || (!mSolverHints) || (mSolverHintBoard != 0))
+		return;
+	SDL_Log("solver: hint asked (tick %d, status %d)", mUpdateCnt, (int) mSolver->mStatus);
+	mSolverHintWanted = true;
+	MarkDirty();
+}
+
+void Board::GiveSolverHint()
+{
+	mSolverHintWanted = false;
+	mSolverMessageTicks = SOLVER_MESSAGE_TICKS;
+	switch (mSolver->mStatus)
+	{
+	case PuzzleSolver::STATUS_LOST:
+		mSolverMessage = mApp->GetString("SOLVER_HINT_LOST", _S("NO HINT, NO CLICKS WIN THIS LEVEL NOW"));
+		return;
+	case PuzzleSolver::STATUS_GAVE_UP:
+		mSolverMessage = mApp->GetString("SOLVER_HINT_GAVE_UP", _S("NO HINT, TOO MANY WAYS TO TRY"));
+		return;
+	case PuzzleSolver::STATUS_WINNABLE:
+		break;
+	default:
+		mSolverMessageTicks = 0;
+		return;
+	}
+	if (mSolver->mPlan.empty())
+	{
+		mSolverMessageTicks = 0;
+		return;
+	}
+
+	int aCost = SolverHintCost();
+	if (aCost > mScore)
+	{
+		mSolverMessage = mApp->GetString("SOLVER_HINT_TOO_DEAR", _S("A HINT COSTS")) + StrFormat(_S(" %d "), aCost) +
+			mApp->GetString("SOLVER_DOLLARS", _S("DOLLARS"));
+		return;
+	}
+
+	const PuzzleSolver::Move& aMove = mSolver->mPlan[0];
+	std::vector<int> aCells;
+	mSolver->GetBoard().GetGroup(aMove.mCol, aMove.mRow, &aCells);
+	memset(mSolverHint, 0, sizeof(mSolverHint));
+	for (int aCell : aCells)
+		mSolverHint[aCell / BOARD_COLS][aCell % BOARD_COLS] = true;
+	mSolverHintBoard = mSolver->GetBoardHash();
+	mScore -= aCost;
+	if (aCost > 0)
+		mSolverMessage = mApp->GetString("SOLVER_HINT_PAID", _S("HINT, PAID")) + StrFormat(_S(" %d "), aCost) +
+			mApp->GetString("SOLVER_DOLLARS", _S("DOLLARS"));
+	else
+		mSolverMessageTicks = 0;
+	SDL_Log("solver: hint: the %d coins at column %d, row %d, for %d (score %d, tick %d)", (int) aCells.size(), aMove.mCol,
+		aMove.mRow, aCost, mScore, mUpdateCnt);
+	MarkDirty();
+}
+
+void Board::ClearSolverHint()
+{
+	if (mSolverHintBoard == 0)
+		return;
+	mSolverHintBoard = 0;
+	memset(mSolverHint, 0, sizeof(mSolverHint));
+	MarkDirty();
+}
+
+int Board::SolverHintCost() const
+{
+	switch (mSolverHintPrice)
+	{
+	case SOLVER_PRICE_PERCENT:
+		return (int)(((int64_t) std::max(mScore, 0) * mSolverHintValue + 99) / 100);
+	case SOLVER_PRICE_AMOUNT:
+		return mSolverHintValue;
+	}
+	return 0;
+}
+
+bool Board::IsSolverHintPiece(Piece* thePiece) const
+{
+	if ((mSolverHintBoard == 0) || (thePiece->mRow < 0) || (thePiece->mRow >= BOARD_ROWS) || (thePiece->mCol < 0) ||
+		(thePiece->mCol >= BOARD_COLS))
+		return false;
+	return (mSolverHint[thePiece->mRow][thePiece->mCol]) && (mGrid[thePiece->mRow][thePiece->mCol] == thePiece);
+}
+
+// The status line over the top rows: what the solver found, and how to get a hint and its price. False
+// when it has nothing to say. The rect is where a click asks for a hint, the same in a replay (where it is
+// drawn lower, under the replay's lines) as in the game recorded.
+bool Board::GetSolverStatusRect(Rect* theRect, SexyString* theStatus, SexyString* theHint)
+{
+	if ((mSolver == NULL) || (mState != STATE_PLAYING))
+		return false;
+
+	SexyString aStatus;
+	int aShown = mSolver->mStatus;
+	if ((mSolverShow == SOLVER_SHOW_NEVER) || ((mSolverShow == SOLVER_SHOW_LOST) && (aShown != PuzzleSolver::STATUS_LOST)))
+		aShown = PuzzleSolver::STATUS_NONE;
+	switch (aShown)
+	{
+	case PuzzleSolver::STATUS_THINKING:
+		aStatus = mApp->GetString("SOLVER_THINKING", _S("SOLVER THINKING..."));
+		break;
+	case PuzzleSolver::STATUS_WINNABLE:
+		aStatus = mApp->GetString("SOLVER_WINNABLE", _S("THIS LEVEL CAN STILL BE WON"));
+		break;
+	case PuzzleSolver::STATUS_LOST:
+		aStatus = mApp->GetString("SOLVER_LOST", _S("THIS LEVEL CAN NO LONGER BE WON"));
+		break;
+	case PuzzleSolver::STATUS_GAVE_UP:
+		aStatus = mApp->GetString("SOLVER_GAVE_UP", _S("TOO MANY WAYS TO TELL IF IT CAN BE WON"));
+		break;
+	}
+
+	SexyString aHint;
+	if (mSolverMessageTicks > 0)
+		aHint = mSolverMessage;
+	else if (mSolverHintWanted)
+		aHint = mApp->GetString("SOLVER_HINT_WAIT", _S("FINDING A HINT..."));
+	else if ((mSolverHints) && (mSolverHintBoard == 0))
+	{
+		int aCost = SolverHintCost();
+		aHint = mApp->GetString("SOLVER_HINT_KEYS", _S("H OR CLICK HERE FOR A HINT,"));
+		if (aCost > 0)
+			aHint += StrFormat(_S(" %d "), aCost) + mApp->GetString("SOLVER_DOLLARS", _S("DOLLARS"));
+		else
+			aHint += _S(" ") + mApp->GetString("SOLVER_FREE", _S("FREE"));
+	}
+
+	if (aStatus.empty() && aHint.empty())
+		return false;
+	int aLines = (aStatus.empty() || aHint.empty()) ? 1 : 2;
+	*theRect = Rect(BOARD_X, BOARD_Y, BOARD_COLS * COIN_SIZE, 6 + aLines * 19);
+	if (theStatus != NULL)
+		*theStatus = aStatus;
+	if (theHint != NULL)
+		*theHint = aHint;
+	return true;
 }

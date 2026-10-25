@@ -4,6 +4,7 @@
 #include "WinBMApp.h"
 #include "Board.h"
 #include "Piece.h"
+#include "PuzzleSolver.h"
 #include "TitleScreen.h"
 #include "GameSelector.h"
 #include "HelpWidget.h"
@@ -288,6 +289,39 @@ void AutoplayBot::Update()
 		return;
 
 	int aX, aY, aSize;
+	if ((mFollowSolver > 0) && (aBoard->mSolver != NULL) && ((mFollowSolver >= 100) || ((int) (mRand() % 100) < mFollowSolver)))
+	{
+		PuzzleSolver* aSolver = aBoard->mSolver;
+		// Columns still sliding sideways do not count as moving, and a click finds its coin by where it is
+		// drawn (Board::PieceAt): wait until every coin rests in its cell
+		bool isAtRest = true;
+		for (int aRow = 0; aRow < Board::BOARD_ROWS; aRow++)
+		{
+			for (int aCol = 0; aCol < Board::BOARD_COLS; aCol++)
+			{
+				Piece* aPiece = aBoard->mGrid[aRow][aCol];
+				if ((aPiece != NULL) && ((aPiece->mX != (double) Board::ColX(aCol)) || (aPiece->mY != (double) Board::RowY(aRow))))
+					isAtRest = false;
+			}
+		}
+		if ((!isAtRest) || (aBoard->mPiecesMoving) || (aSolver->mStatus == PuzzleSolver::STATUS_THINKING) ||
+			((aSolver->mStatus == PuzzleSolver::STATUS_WINNABLE) && (aSolver->mPlan.empty())))
+			return; // wait for the board to settle and the solver to answer
+		if ((aSolver->mStatus == PuzzleSolver::STATUS_WINNABLE) && (mPressHints) && (aBoard->mSolverHintBoard == 0) &&
+			(aBoard->mSolverHints) && (!aBoard->mSolverHintWanted) && (aBoard->mSolverMessageTicks == 0))
+		{
+			Queue("char", "h");
+			mNextAction = aNow + 5;
+			return;
+		}
+		if (aSolver->mStatus == PuzzleSolver::STATUS_WINNABLE)
+		{
+			const PuzzleSolver::Move& aMove = aSolver->mPlan[0];
+			Click(Board::ColX(aMove.mCol) + 14, Board::RowY(aMove.mRow) + 14, "solver's click");
+			mNextAction = aNow + 20;
+			return;
+		}
+	}
 	if ((mRand() % 25 == 0) || (!PickGroup(aBoard, &aX, &aY, &aSize)))
 	{
 		// A random cell: often an invalid click (single coin, a bag, an empty cell)

@@ -183,6 +183,8 @@ public:
 	int				mAutoplayCap;
 	std::string		mAutoplayLogFileName;
 	std::string		mAutoplayShotPrefix;
+	int				mAutoplaySolver;        // -autoplaysolver[=N]: the bot clicks the Puzzle solver's plan N% of the time (100)
+	bool			mAutoplayHints;         // -autoplayhints: and presses H first (PuzzleSolver.h)
 	AutoplayBot*	mAutoplayBot;
 	virtual void	UpdateFrames() override;
 	virtual void	HandleCmdLineParam(const std::string& theParamName, const std::string& theParamValue) override;

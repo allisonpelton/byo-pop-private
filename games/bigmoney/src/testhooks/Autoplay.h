@@ -37,6 +37,12 @@ public:
 	// After each update (WinBMApp::UpdateFrames): looks at the game, queues input for the next update
 	void Update();
 
+	// -autoplaysolver[=N]: in Puzzle with the solver on, N% of the clicks are its plan's next group (waiting
+	// while it thinks), so a test can see each plan win in the game; -autoplayhints presses H before each
+	// (a test of hint prices in replays)
+	int mFollowSolver = 0;
+	bool mPressHints = false;
+
 private:
 	void Queue(const std::string& theCommand, const std::string& theArgs);
 	void Click(int theX, int theY, const char* theWhat);

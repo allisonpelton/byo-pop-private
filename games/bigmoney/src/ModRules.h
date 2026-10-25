@@ -78,17 +78,22 @@ double	ModTunable(const char* theKey, double theDefault, double theMin, double t
 int		ModTunableInt(const char* theKey, int theDefault, int theMin, int theMax);
 bool	ModTunableBool(const char* theKey, bool theDefault);
 
-// Port features (mod.json "features"; they change nothing in play): theName is on when an enabled mod sets
-// it to true or to an object of settings. The highest-priority mod that names it decides.
+// Port features (mod.json "features"): theName is on when an enabled mod sets it to true or to an object of
+// settings. The highest-priority mod that names it decides.
 //   "features": { "replays": { "keep": 50 } }     record finished games (Replay.h); keep the newest 50
 //   "features": { "livesplit": true }              fill the LiveSplit block (LiveSplitObserver.h; Windows)
+//   "features": { "puzzleSolver": { ... } }        the Puzzle solver (PuzzleSolver.h; mods/puzzle-solver).
+//                                                  It changes play, so its mod says "affectsScores": true.
 bool	ModFeatureEnabled(const char* theName);
 // A number in the feature's object ({"keep": 50}), clamped; theDefault when the feature is just true
 int		ModFeatureInt(const char* theName, const char* theKey, int theDefault, int theMin, int theMax);
+// A true/false or a string in the feature's object; theDefault when it has none
+bool	ModFeatureBool(const char* theName, const char* theKey, bool theDefault);
+std::string ModFeatureString(const char* theName, const char* theKey, const std::string& theDefault);
 
 // An enabled mod changes something the player sees or plays: anything besides "features" in its mod.json,
-// or game files (images, sounds, music, data, properties). The "mods are on" sign (ModIndicators.h) shows
-// for these, not for a mod that only turns on replays or LiveSplit.
+// "affectsScores": true, or game files (images, sounds, music, data, properties). The "mods are on" sign
+// (ModIndicators.h) shows for these, not for a mod that only turns on replays or LiveSplit.
 bool	AnyContentModEnabled();
 
 // "userdata\\savegame.dat" -> "userdata\\savegame-1a2b3c4d.dat" when the enabled mods change gameplay

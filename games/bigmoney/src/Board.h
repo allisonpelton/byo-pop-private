@@ -36,6 +36,7 @@ class WidgetManager;
 class Buffer;
 class ReplayRecorder;
 class ReplayPlayer;
+class PuzzleSolver;
 
 // Board::mState (+0xa0)
 enum BoardState
@@ -304,6 +305,31 @@ public:
 	// port(mods): LiveSplit (LiveSplitObserver.h)
 	uint32_t		mBoardSerial;           // 1, 2, ... for each board the app makes
 	bool			mResumed;               // LoadGame restored a saved game into this board
+	// port(mods): the Puzzle solver (PuzzleSolver.h; the "puzzleSolver" feature)
+	enum
+	{
+		SOLVER_SHOW_ALWAYS = 0,         // the status line says what the solver found
+		SOLVER_SHOW_LOST = 1,           // only that the level can't be won
+		SOLVER_SHOW_NEVER = 2,
+		SOLVER_PRICE_FREE = 0,
+		SOLVER_PRICE_PERCENT = 1,       // mSolverHintValue percent of the score, rounded up
+		SOLVER_PRICE_AMOUNT = 2,        // mSolverHintValue dollars
+		SOLVER_MESSAGE_TICKS = 300
+	};
+	PuzzleSolver*	mSolver;                // a Puzzle board with the feature on, else NULL
+	int				mSolverShow;            // SOLVER_SHOW_*
+	bool			mSolverEndWhenLost;     // the game is over as soon as the level can't be won
+	bool			mSolverHints;           // H (or a click on the status line) shows a winning click
+	int				mSolverHintPrice;       // SOLVER_PRICE_*
+	int				mSolverHintValue;
+	int				mSolverBudget;          // positions the solver looks at per board tick
+	bool			mSolverHintWanted;      // a hint was asked for; given once the board is still and solved
+	uint64_t		mSolverHintBoard;       // the board (PuzzleModel::Hash) the hint shown is for, 0 for none
+	bool			mSolverHint[BOARD_ROWS][BOARD_COLS]; // the hinted group
+	int				mSolverLogged;          // the status last logged
+	int				mSolverLostLevel;       // the level the solver found lost (a test: it must not be won)
+	SexyString		mSolverMessage;         // an answer to a hint request on the status line
+	int				mSolverMessageTicks;
 
 public:
 	Board(WinBMApp* theApp);                                        // 0x40e760
@@ -392,6 +418,15 @@ public:
 	// port(mods): replays (Replay.h): input to record, and the game-over screen
 	void			RecordInput(int theOp, int theX = 0, int theY = 0);
 	void			ReplayGameOver();
+	// port(mods): the Puzzle solver (PuzzleSolver.h)
+	void			UpdateSolver();
+	void			RequestSolverHint();
+	void			GiveSolverHint();
+	void			ClearSolverHint();
+	int				SolverHintCost() const;
+	bool			IsSolverHintPiece(Piece* thePiece) const;
+	bool			GetSolverStatusRect(Rect* theRect, SexyString* theStatus, SexyString* theHint);
+	void			DrawSolverStatus(Graphics* g);
 	static std::string GetSaveGameFileName();                       // port: "userdata\\savegame.dat"
 
 	using Widget::MouseDown;

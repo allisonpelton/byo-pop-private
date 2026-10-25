@@ -182,6 +182,35 @@ Big Money uses the shared mod system (`platform/ModManager.h`).
       games, replays, the mod off). Each one's events match the expected ones and the real script's
       decisions, through `asltest`.
   - **Not done.** A manual test with LiveSplit itself would need it downloaded first (the user's call).
+- **Puzzle solver** (the `puzzle-solver` mod, `features.puzzleSolver`; `src/PuzzleSolver.h`). Puzzle
+  mode only.
+  - **What it works out.** Whether some clicks still drop the bags the level needs. It looks again
+    whenever the board stops moving. A line above the coins shows what it found: thinking, "can still be
+    won", "can no longer be won" (in red), or "too many ways to tell" when it reaches its limit first.
+  - **Hints.** H, or a click on that line, makes the next group of a winning line blink. A hint costs a
+    share of the score (10% by default, rounded up), a fixed amount, or nothing. It is refused when the
+    score can't pay, and there is one hint per board position.
+  - **Ending the game.** With "End the game when lost" on, the game is over as soon as no clicks can win
+    the level, instead of when no group is left.
+  - **Settings** (mod menu, F2; all apply at a restart): what to show (always, only when lost, never),
+    ending the game when lost, hints on or off, and the price.
+  - **How it works.** A model of the board copies the game's rules for falling coins, departing bags and
+    closing gaps, quirks included. The search tries beams of the best positions first, then every
+    position, and proves "can no longer be won" only when no clicks win in any order the bags could
+    leave in. It looks at 300 positions per board tick, so the same board gets the same answer at the
+    same tick everywhere. Replays record H (a new event) and play hints, prices and early game overs
+    back the same.
+  - **Scores.** The mod says it affects scores, so its games keep their own high-score tables, and the
+    mods sign shows.
+  - **Tested** (bot games under rundesk; `-autoplaysolver[=N]` makes the bot click the solver's plan N% of
+    the time, `-autoplayhints` press H first):
+    - Following the plans, the bot played to level 200 at Easy and 180 at Hard without losing a level.
+    - No level the solver called lost was ever won (the game logs "solver: WRONG" if one is).
+    - Nine games with H presses, prices and "end the game when lost" each replayed exactly ("replay:
+      verified").
+    - An answer took a median of about 9,000 positions at Easy and 33,000 at Hard (0.3 s and 1.1 s of
+      play); at Hard about one search in 20 reached the limit.
+    - The web build compiles it; it has not been played in a browser yet.
 
 Example mods (`games/bigmoney/mods/`):
 - **`fake-money/`: "Fake Money! Deluxe".**
@@ -196,6 +225,8 @@ Example mods (`games/bigmoney/mods/`):
 - **`high-roller/`: "High Roller", a harder game for bigger scores.** Five colours from the start,
   faster minting, a bigger meter, at least two bags a level, a doubled multiplier and more points for
   big groups.
+- **`puzzle-solver/`: "Puzzle Solver".** Puzzle only: tells whether the level can still be won, sells
+  hints, and can end the game when it can't.
 - **`replays/`: "Replays".** Turns on replays and nothing else: no change in play, the normal high-score
   tables, and no mods sign.
 - **`livesplit/`: "LiveSplit".** Turns on the LiveSplit block, with a copy of the script, seven split

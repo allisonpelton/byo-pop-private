@@ -76,6 +76,8 @@ WinBMApp::WinBMApp()
 	mAutoplaySkill = 1;
 	mAutoplayGames = 1;
 	mAutoplayCap = 200000;
+	mAutoplaySolver = 0;
+	mAutoplayHints = false;
 	mAutoplayBot = NULL;
 
 	mFont1 = NULL;
@@ -1251,6 +1253,11 @@ void WinBMApp::UpdateFrames()
 		mAutoplayBot = new AutoplayBot(this, mAutoplaySeed, mAutoplayMode, mAutoplaySkill, mAutoplayGames, mAutoplayCap,
 			mAutoplayLogFileName, mAutoplayShotPrefix);
 	if (mAutoplayBot != NULL)
+	{
+		mAutoplayBot->mFollowSolver = mAutoplaySolver;
+		mAutoplayBot->mPressHints = mAutoplayHints;
+	}
+	if (mAutoplayBot != NULL)
 		mAutoplayBot->Update();
 
 	// port(mods): the LiveSplit block, after the update (LiveSplitObserver.h)
@@ -1296,6 +1303,10 @@ void WinBMApp::HandleCmdLineParam(const std::string& theParamName, const std::st
 		mAutoplayLogFileName = theParamValue;
 	else if (theParamName == "-autoplayshot")
 		mAutoplayShotPrefix = theParamValue;
+	else if (theParamName == "-autoplaysolver")
+		mAutoplaySolver = theParamValue.empty() ? 100 : atoi(theParamValue.c_str());
+	else if (theParamName == "-autoplayhints")
+		mAutoplayHints = true;
 	else
 		SexyApp::HandleCmdLineParam(theParamName, theParamValue);
 }
