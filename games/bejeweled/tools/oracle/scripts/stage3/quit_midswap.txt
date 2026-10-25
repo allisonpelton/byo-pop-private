@@ -1,0 +1,10 @@
+# Seed 1: the tutorial move (score 30), then the player quits in the middle of the next swap. Shutdown's SaveGame
+# saves the swap with its state and drops the live board to STATE_PLAYING without an update; the deferred ~Board
+# saves again. Recorded, the sidecar ends in those two SAVEs; watched, the board that stays on screen after the
+# replay's end must not show that drop as a settle (-trace, -codeccheck).
+300 click 320 398
+460 click 482 295
+461 click 533 295
+600 click 380 193
+601 click 380 142
+610 quit

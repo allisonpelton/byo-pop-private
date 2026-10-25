@@ -1,0 +1,26 @@
+{
+  "id": "example-settings",
+  "name": "Settings Example",
+  "version": "1.0",
+  "author": "byo-pop examples",
+  "description": "Values you set in the mod menu (F2): the hint cost, when the Timed bar starts to flash, replays and the big-move message. While it is on it uses its own high-score table, and each changed play value gets a table of its own.",
+  "settings": [
+    { "type": "section", "label": "Play" },
+    { "id": "hintPenalty", "label": "Hint cost", "type": "int", "default": 50, "min": 0, "max": 100, "step": 5,
+      "help": "Points a hint costs, times the level's point multiplier." },
+    { "id": "timeWarning", "label": "Timed: warn below", "type": "float", "default": 0.15, "min": 0.05, "max": 0.5,
+      "step": 0.05, "help": "The time bar flashes once it is below this fraction." },
+    { "type": "section", "label": "Extras" },
+    { "id": "replays", "label": "Record replays", "type": "bool", "default": false,
+      "help": "Saves every game to the replay folder." },
+    { "type": "section", "label": "Look" },
+    { "id": "excellent", "label": "Big move message", "type": "text", "default": "EXCELLENT!", "maxLength": 16,
+      "charset": "upper", "help": "Shown for a big cascade. The game's header font has capitals only." }
+  ],
+  "tunables": {
+    "scoring": { "hintPenalty": { "$setting": "hintPenalty" } },
+    "timing": { "warningFraction": { "$setting": "timeWarning" } }
+  },
+  "features": { "$setting": "replays", "map": { "true": { "replays": true }, "false": { "$omit": true } } },
+  "strings": { "EXCELLENT": { "$setting": "excellent" } }
+}

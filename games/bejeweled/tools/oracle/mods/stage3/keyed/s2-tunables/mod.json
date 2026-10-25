@@ -1,0 +1,7 @@
+{
+  "id": "s2-tunables",
+  "name": "Stage 2: tunables only",
+  "version": "1.0",
+  "description": "Oracle fixture: a tunable only, so the original rules and RNG with a score key; with -gameseed the seeded table is hiscores-<key>-seeded.dat.",
+  "tunables": { "scoring": { "hintPenalty": 25 } }
+}

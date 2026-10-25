@@ -1,0 +1,7 @@
+{
+  "id": "s2b-livesplit-off",
+  "name": "Stage 2b: LiveSplit off",
+  "version": "1.0",
+  "description": "Oracle fixture: features.livesplit false, the inert twin of s2b-livesplit",
+  "features": { "livesplit": false }
+}

@@ -1,0 +1,11 @@
+# Seed 1: a launch with savegame.dat in the user dir (a copy of another run's user dir, or a "save"
+# snapshot copied in as savegame.dat): Yes in the load dialog, then the loaded game runs on by itself
+# (a loaded vortex or level wipe finishes and fills the next level). The quit saves it again.
+300 click 320 398
+330 screenshot shots/r01_confirm_load.png
+340 click 330 201
+345 screenshot shots/r02_loaded.png
+450 screenshot shots/r03_loaded_100.png
+700 screenshot shots/r04_loaded_350.png
+1000 screenshot shots/r05_loaded_650.png
+1300 quit

@@ -1,0 +1,5 @@
+# The word list and definitions are made from the player's own Collins Scrabble Words
+# (games/bookworm/tools/make_collins_mod.py) and are not ours to commit: only these two files are tracked
+/*
+!/.gitignore
+!/mod.json

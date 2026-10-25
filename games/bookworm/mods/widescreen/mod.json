@@ -1,0 +1,11 @@
+{
+  "id": "widescreen",
+  "name": "Widescreen",
+  "version": "1.0",
+  "author": "byo-pop",
+  "description": "A 16:9 screen: the game as usual on the left and a panel beside the board on the right, with the words you have played this game (newest first, in the colour of their best special tile) and, with the Word Solver mod, the solver's list for the board: click a word to select it, and click it again to play it. Rest the mouse on a word in either list to see its definition. With the Undo mod, double-click a word you played to go back to just after it. Play is unchanged, so games keep the usual high scores.",
+  "affectsScores": false,
+  "features": {
+    "widescreen": true
+  }
+}

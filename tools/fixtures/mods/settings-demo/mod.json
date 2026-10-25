@@ -1,0 +1,40 @@
+{
+  "id": "settings-demo",
+  "name": "Settings Demo",
+  "version": "1.0",
+  "author": "byo-pop tests",
+  "description": "Every kind of setting and placeholder, for tools/modsettingstest (docs/MOD_MENU_DESIGN.md 3.1). JSON only: the files it names do not exist.",
+  "settings": [
+    { "type": "section", "label": "Play" },
+    { "id": "minRun", "label": "Shortest match", "type": "int", "default": 3, "min": 2, "max": 5,
+      "help": "Gems in a line needed for a match." },
+    { "id": "undo", "label": "Undo", "type": "bool", "default": false },
+    { "id": "undoDepth", "label": "Undo depth", "type": "int", "default": 1, "min": 1, "max": 10,
+      "enabledIf": { "setting": "undo", "equals": true } },
+    { "id": "shape", "label": "Board", "type": "choice", "default": "full",
+      "choices": [ { "value": "full", "label": "8 x 8" }, { "value": "diamond", "label": "Diamond" } ] },
+    { "id": "speed", "label": "Speed", "type": "float", "default": 1, "min": 0.5, "max": 2, "step": 0.1, "unit": "x" },
+    { "id": "replays", "label": "Record replays", "type": "bool", "default": false },
+    { "type": "section", "label": "Look" },
+    { "id": "praise", "label": "Praise text", "type": "text", "default": "EXCELLENT!", "maxLength": 16,
+      "charset": "upper" },
+    { "id": "music", "label": "Music", "type": "choice", "default": "original",
+      "choices": [ { "value": "original", "label": "Original" }, { "value": "remix", "label": "Remix" } ] },
+    { "id": "tint", "label": "Tint", "type": "color", "default": "#ff8800" },
+    { "id": "volume", "label": "Volume", "type": "int", "default": 100, "min": 0, "max": 100, "step": 10, "unit": "%",
+      "help": "Read by game code (ModManager::GetLiveValue): applies at once." }
+  ],
+  "rules": {
+    "match": { "minRun": { "$setting": "minRun" } },
+    "undo": { "$setting": "undo",
+              "map": { "true": { "enabled": true, "depth": { "$setting": "undoDepth" } }, "false": { "$omit": true } } },
+    "board": { "$setting": "shape",
+               "map": { "full": { "$omit": true },
+                        "diamond": { "mask": [ "...##...", "..####..", ".######.", "########",
+                                               "########", ".######.", "..####..", "...##..." ] } } }
+  },
+  "tunables": { "timing": { "speed": { "$setting": "speed" } } },
+  "features": { "replays": { "$setting": "replays" }, "tint": { "$setting": "tint", "as": "rgb" } },
+  "strings": { "EXCELLENT": { "$setting": "praise" } },
+  "files": { "music/1984-network.s3m": { "$setting": "music", "map": { "original": null, "remix": "extra/remix.ogg" } } }
+}

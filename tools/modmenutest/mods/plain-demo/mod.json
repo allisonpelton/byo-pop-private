@@ -1,0 +1,7 @@
+{
+  "id": "plain-demo",
+  "name": "Plain Demo",
+  "version": "2.1",
+  "author": "byo-pop tests",
+  "description": "A mod without data or settings, for tools/modmenutest: something to switch off and move."
+}

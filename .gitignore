@@ -1,0 +1,22 @@
+# Ghidra exports / decompiler output derived from the original binaries (re/<game>/, regenerate locally)
+/re/
+# Game files copied from the user's own installs (assets/<game>/) - never commit or redistribute
+/assets/
+/build*/
+/dist/
+*.pyc
+__pycache__/
+
+# Bejeweled mods generated from the user's other games (contain their copyrighted assets)
+/games/bejeweled/mods/bejeweled2-audio/
+# Close recreation of Bejeweled 2's gem art (procedural; regenerate with tools/make_bej2_gems_mod.py)
+/games/bejeweled/mods/bejeweled2-gems/
+# Third-party picture used by the TRUE joke mod (downloaded locally, not ours to commit)
+/games/bejeweled/mods/true-gem/source/true.*
+/games/bejeweled/mods/true-gem/patches/
+/games/bejeweled/mods/true-gem/images/
+/games/bejeweled/mods/true-gem/data/
+/games/bejeweled/mods/hd4x-textures/
+# Pre-byo-pop location of the mods above (now games/<game>/mods/). Nothing tracked lives here any more:
+# ignore all of it so a checkout that still holds the old local mods never stages them
+/mods/

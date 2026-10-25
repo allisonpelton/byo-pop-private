@@ -1,0 +1,22 @@
+# Seed 1: a mode switch saves the game in progress. Timed mode on a new game switches at once; after a
+# scoring move the Normal button asks first: No keeps playing (the modal pauses the timed board), Yes
+# starts a normal game and the deleted timed board saves itself (savegame.dat, loaded by
+# mode_switch_load = load_resume.txt in a copy of this user dir).
+300 click 320 398
+# Timed Trial on a new game: no confirmation
+320 click 135 200
+340 screenshot shots/m01_timed_new_game.png
+# (2,5)->(3,5) -> 617, score 60
+470 click 329 295
+471 click 380 295
+650 click 57 200
+660 screenshot shots/m02_confirm_normal_mode.png
+# No
+680 click 476 169
+690 screenshot shots/m03_kept_playing.png
+750 click 57 200
+# Yes: the timed game is saved, a normal game starts
+770 click 338 169
+790 screenshot shots/m04_normal_new_game.png
+# the new game has no move yet, so the quit saves nothing
+1000 quit

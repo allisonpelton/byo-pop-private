@@ -1,0 +1,18 @@
+{
+  "id": "fake-money",
+  "name": "Fake Money! Deluxe",
+  "version": "1.0",
+  "author": "byo-pop examples",
+  "description": "Crypto coins, a \"Fake money!\" logo and crypto rank titles. Original art, drawn by games/bigmoney/tools/make_example_mods.py.",
+  "imagePatches": [
+    {
+      "target": "images/coins",
+      "image": "patches/coinfaces@2x.png",
+      "x": 0,
+      "y": 0
+    }
+  ],
+  "strings": [
+    "properties/fakemoney.xml"
+  ]
+}

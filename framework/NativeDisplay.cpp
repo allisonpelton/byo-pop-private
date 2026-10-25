@@ -1,0 +1,30 @@
+#include "NativeDisplay.h"
+
+using namespace Sexy;
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+NativeDisplay::NativeDisplay()
+{
+	// port: the display format is always 32-bit ARGB (it used to be filled in from the DirectDraw
+	// surface format)
+	mRGBBits = 32;
+
+	mRedMask = 0xFF0000;
+	mGreenMask = 0x00FF00;
+	mBlueMask = 0x0000FF;
+
+	mRedBits = 8;
+	mGreenBits = 8;
+	mBlueBits = 8;
+
+	mRedShift = 16;
+	mGreenShift = 8;
+	mBlueShift = 0;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+NativeDisplay::~NativeDisplay()
+{
+}

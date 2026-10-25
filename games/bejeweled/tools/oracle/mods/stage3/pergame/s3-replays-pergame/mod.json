@@ -1,0 +1,7 @@
+{
+  "id": "s3-replays-pergame",
+  "name": "Stage 3: replays with a seed for every game",
+  "version": "1.0",
+  "description": "Oracle fixture: features.replays (with the hover channel) and features.seeds {perGame}: every game gets a seed drawn from the global stream in NewGame and is recorded from it, so its replay starts from a seed, not from the global stream's state.",
+  "features": { "replays": { "keep": 3, "hover": true }, "seeds": { "perGame": true } }
+}

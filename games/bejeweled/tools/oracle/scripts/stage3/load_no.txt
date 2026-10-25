@@ -1,0 +1,6 @@
+# Stage 3, in a copy of a user dir with a recorded save (features.replays): No in the load dialog deletes the
+# save and its sidecar; the recorded game in the sidecar, which ended by being saved, is kept as a finished
+# replay (END "saved") first. Then a new game is started and left untouched (no save at the quit).
+300 click 320 398
+340 click 485 201
+600 quit

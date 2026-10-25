@@ -1,0 +1,7 @@
+{
+  "id": "s3-replays",
+  "name": "Stage 3: replays",
+  "version": "1.0",
+  "description": "Oracle fixture: features.replays (with the hover channel) and features.seeds {entry} only. perGame stays off, so every game is recorded in session mode on the global stream: recording must change nothing in play.",
+  "features": { "replays": { "keep": 3, "hover": true }, "seeds": { "entry": true } }
+}

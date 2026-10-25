@@ -1,0 +1,16 @@
+{
+  "v": 1,
+  "mods": {
+    "settings-demo": {
+      "minRun": 4,
+      "undo": true,
+      "undoDepth": 9,
+      "shape": "diamond",
+      "speed": 0.5,
+      "praise": "OHI!",
+      "music": "remix",
+      "tint": "#00ff80",
+      "volume": 90
+    }
+  }
+}

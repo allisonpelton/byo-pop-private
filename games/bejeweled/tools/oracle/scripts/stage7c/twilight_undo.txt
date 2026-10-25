@@ -1,0 +1,17 @@
+# Stage 7c, run with -gameseed=4242 and mods/stage7c/kept (Twilight with free swaps and undo): A falls down and its
+# settle flips the gravity (2: up); z takes A back with the gravity of the board before it (1: down), and A again
+# refills the same way (2: up). A swap of (0,7) and (1,7) makes no match and stays: its settle does not flip.
+300 click 320 398
+# A (5,3)->(6,3)
+560 click 482 193
+561 click 533 193
+950 char z
+1000 screenshot shots/u01_undone.png
+# A again
+1010 click 482 193
+1011 click 533 193
+# the kept swap (0,7)->(1,7)
+1400 click 227 397
+1401 click 278 397
+1500 screenshot shots/u02_kept.png
+1550 quit

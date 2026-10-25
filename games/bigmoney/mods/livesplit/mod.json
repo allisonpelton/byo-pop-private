@@ -1,0 +1,10 @@
+{
+  "id": "livesplit",
+  "name": "LiveSplit",
+  "version": "1.0",
+  "author": "byo-pop",
+  "description": "Auto splitter support (Windows): fills the block BigMoneyDeluxe-byopop.asl reads. Changes nothing in play or on screen. Split templates in livesplit/.",
+  "features": {
+    "livesplit": true
+  }
+}

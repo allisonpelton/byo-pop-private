@@ -1,0 +1,7 @@
+# Bejeweled, started again by bejeweled-restart.txt: Play offers to continue the saved game; the state shows the
+# changed value applied.
+250 screenshot shots/r01_title.png
+300 click 320 398
+330 screenshot shots/r02_continue.png
+340 modmenu dump relaunched-state.json
+400 quit

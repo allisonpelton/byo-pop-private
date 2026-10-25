@@ -1,0 +1,8 @@
+{
+  "id": "s1-strict",
+  "name": "Stage 1: no invalid moves",
+  "version": "1.0",
+  "description": "Oracle fixture (highest priority): turns allowInvalid off, so s1-free-swaps' noMoves \"continue\" fails the merged check and s1-free-swaps is dropped.",
+  "priority": 5,
+  "rules": { "moves": { "allowInvalid": false } }
+}

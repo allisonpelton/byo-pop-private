@@ -1,0 +1,7 @@
+{
+  "id": "s5-free0",
+  "name": "Stage 5: free swaps, no penalty",
+  "version": "1.0",
+  "description": "Oracle fixture: moves.allowInvalid without a penalty and noMoves \"continue\" in both modes, so the score a match made stays through kept swaps: a hint on a board without a move must not take the hint penalty from it.",
+  "rules": { "moves": { "allowInvalid": true }, "noMoves": { "normal": "continue", "timed": "continue" } }
+}

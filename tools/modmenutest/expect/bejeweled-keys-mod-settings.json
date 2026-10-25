@@ -1,0 +1,20 @@
+{
+  "v": 1,
+  "next": {
+    "settings-demo": {
+      "minRun": 4,
+      "undo": true,
+      "undoDepth": 9,
+      "shape": "diamond",
+      "speed": 0.5,
+      "tint": "#00ff80"
+    }
+  },
+  "mods": {
+    "settings-demo": {
+      "praise": "OHI!",
+      "music": "remix",
+      "volume": 90
+    }
+  }
+}

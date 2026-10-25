@@ -1,0 +1,62 @@
+# The menu by mouse alone (the text is typed), on the title screen of any game, from an empty user dir. The
+# coordinates are the menu's layout at 640x480 (the same in every game). run_tests.sh compares the files with
+# expect/clicks-*.json.
+250 modmenu open
+# plain-demo: a click on its name only focuses the row; one on its checkbox switches it off; its Down button moves
+# it below settings-demo
+260 click 200 80
+265 click 64 73
+270 click 492 80
+280 screenshot shots/c01_list.png
+# settings-demo is first now: its Settings button
+290 click 548 80
+300 screenshot shots/c02_page.png
+# Shortest match +: 4; Undo on; Board >: Diamond
+310 click 386 131
+320 click 300 161
+330 click 480 221
+# Speed: the slider's thumb dragged to the left end and on to the right end: 2.0 (written when it is let go)
+340 down 436 251
+341 move 300 251
+342 move 499 251
+343 up 499 251
+# Record replays: a click on its label only focuses it; one on its checkbox switches it on. Undo depth (enabled by
+# Undo) + and +: 3
+350 click 100 281
+355 click 294 281
+360 click 386 191
+361 click 386 191
+# Praise text: a click on the field edits it, a click outside it (on the description) commits it
+370 click 380 335
+371 key BACK
+372 key BACK
+373 key BACK
+374 key BACK
+375 key BACK
+376 key BACK
+377 key BACK
+378 key BACK
+379 key BACK
+380 key BACK
+381 char W
+382 char O
+383 char W
+384 click 200 70
+# A press on the list that moves more than 6 pixels scrolls it (to its end) instead of clicking
+385 down 150 300
+386 move 150 150
+387 up 150 150
+388 screenshot shots/c03_scrolled.png
+# Tint >: the palette colour nearest #ff8800 (#ff8000); Volume -: 90
+390 click 442 297
+391 click 294 327
+# Reset to defaults asks first: Cancel
+400 click 100 436
+410 screenshot shots/c04_reset_question.png
+411 click 556 436
+# Back (in the header) to the list, then Close
+420 click 80 41
+430 screenshot shots/c05_list.png
+440 click 556 436
+450 modmenu dump clicks-state.json
+460 quit

@@ -1,0 +1,7 @@
+# Stage 2, run with -gameseed=N: both boards of the title screen's double NewGame get the pending seed (the
+# first is replaced untouched), so the first board after the title screen is MTRand(N)'s (compare.py checks
+# the TRACE rows against its model of FillBoard). No move is made, so the seed is still pending (a match or
+# a game over would use it up); the quit saves nothing.
+300 click 320 398
+445 screenshot shots/m01_seeded_board.png
+600 quit

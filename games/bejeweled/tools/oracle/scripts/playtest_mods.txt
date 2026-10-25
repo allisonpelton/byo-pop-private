@@ -1,0 +1,12 @@
+# Example mods (TRUE first in the load order), seed 3: the first move is a 6-run cascade worth 240 points.
+20 screenshot shots/m01_title.png
+300 click 320 398
+445 screenshot shots/m02_board_mod_gems.png
+460 click 329 142
+461 click 380 142
+480 screenshot shots/m03_swap.png
+640 screenshot shots/m04_true_banner.png
+700 click 90 340
+760 screenshot shots/m05_relaxed_hint.png
+900 screenshot shots/m06_score_after_hint.png
+1000 quit

@@ -1,0 +1,20 @@
+{
+  "v": 1,
+  "next": {
+    "settings-demo": {
+      "minRun": 4,
+      "undo": true,
+      "shape": "diamond",
+      "speed": 2,
+      "replays": true,
+      "undoDepth": 3,
+      "tint": "#ff8000"
+    }
+  },
+  "mods": {
+    "settings-demo": {
+      "praise": "WOW",
+      "volume": 90
+    }
+  }
+}

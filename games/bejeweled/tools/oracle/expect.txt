@@ -1,0 +1,2499 @@
+# Oracle expectations (games/bejeweled/tools/oracle/compare.py, "Expectations"): facts each case's
+# candidate run must show, whatever the baselines do. "<case> <key> <value>" per line. Derived facts are
+# rewritten by "compare.py expect-update build/oracle games/bejeweled/tools/oracle/expect.txt" (only
+# after checking that the change is intended); "row <settle update> <row> <colours>" lines are
+# hand-written and kept. Game state only: update numbers, scores, gem colour indices, decoded save
+# headers; no asset data.
+
+main exit 0
+main mods none
+main user hiscores.dat registry.ini savegame.dat
+main settle 438 normal level 1 score 0 board tick 139
+main settle 586 normal level 1 score 30 board tick 287
+main settle 747 normal level 1 score 100 board tick 448
+main settle 861 normal level 1 score 130 board tick 562
+main settle 952 normal level 1 score 130 board tick 653
+main settle 1132 normal level 1 score 90 board tick 833
+main settle 1403 timed level 1 score 0 board tick 144
+main settle 1546 timed level 1 score 80 board tick 287
+main settle 18544 timed level 1 score 0 board tick 145
+main states 17736:game_over 18068:game_over_done
+main save savegame.dat v1 normal level 0 (shown 1), 64 gems, state 1 (playing), score 90, play seconds 8, 7873 bytes
+
+load exit 0
+load mods none
+load user hiscores.dat registry.ini savegame.dat
+load settle 340 normal level 1 score 90 board tick 1
+load states none
+load save savegame.dat v1 normal level 0 (shown 1), 64 gems, state 1 (playing), score 90, play seconds 10, 7873 bytes
+
+level exit 0
+level mods none
+level user registry.ini savegame.dat
+level settle 439 normal level 1 score 0 board tick 140
+level settle 667 normal level 1 score 240 board tick 368
+level settle 886 normal level 1 score 340 board tick 587
+level settle 1027 normal level 1 score 380 board tick 728
+level settle 1390 normal level 1 score 630 board tick 1091
+level settle 1943 normal level 2 score 630 board tick 1644
+level states 1391:vortex 1644:level_wipe
+level save savegame.dat v1 normal level 1 (shown 2), 64 gems, state 1 (playing), score 630, play seconds 17, 7873 bytes
+
+mods exit 0
+mods mods TRUE, Mines Trilliant, New Messages, Relaxed Hints, Crystal Gems HD, Bejeweled 2 Audio
+mods user mods.json registry.ini savegame-58ebd9d7.dat
+mods settle 439 normal level 1 score 0 board tick 140
+mods settle 673 normal level 1 score 240 board tick 374
+mods states none
+mods save savegame-58ebd9d7.dat v1 normal level 0 (shown 1), 64 gems, state 1 (playing), score 230, play seconds 7, 7873 bytes
+
+drag_swaps exit 0
+drag_swaps mods none
+drag_swaps user registry.ini savegame.dat
+drag_swaps settle 438 normal level 1 score 0 board tick 139
+drag_swaps settle 589 normal level 1 score 30 board tick 290
+drag_swaps settle 747 normal level 1 score 60 board tick 448
+drag_swaps settle 864 normal level 1 score 70 board tick 565
+drag_swaps settle 964 normal level 1 score 80 board tick 665
+drag_swaps settle 1215 normal level 1 score 110 board tick 916
+drag_swaps settle 1312 normal level 1 score 120 board tick 1013
+drag_swaps settle 1459 normal level 1 score 150 board tick 1160
+drag_swaps settle 1543 normal level 1 score 150 board tick 1244
+drag_swaps settle 1662 normal level 1 score 160 board tick 1363
+drag_swaps states none
+drag_swaps save savegame.dat v1 normal level 0 (shown 1), 64 gems, state 1 (playing), score 160, play seconds 15, 7873 bytes
+
+input_edges exit 0
+input_edges mods none
+input_edges user registry.ini savegame.dat
+input_edges settle 438 normal level 1 score 0 board tick 139
+input_edges settle 610 normal level 1 score 30 board tick 311
+input_edges settle 724 normal level 1 score 40 board tick 425
+input_edges settle 900 normal level 1 score 70 board tick 601
+input_edges settle 1090 normal level 1 score 100 board tick 791
+input_edges settle 1213 normal level 1 score 110 board tick 914
+input_edges states none
+input_edges save savegame.dat v1 normal level 0 (shown 1), 64 gems, state 1 (playing), score 110, play seconds 11, 7873 bytes
+
+rclick exit 0
+rclick mods none
+rclick user registry.ini savegame.dat
+rclick settle 438 normal level 1 score 0 board tick 139
+rclick settle 610 normal level 1 score 30 board tick 311
+rclick settle 783 normal level 1 score 40 board tick 464
+rclick states none
+rclick save savegame.dat v1 normal level 0 (shown 1), 64 gems, state 1 (playing), score 40, play seconds 5, 7873 bytes
+
+falling_select exit 0
+falling_select mods none
+falling_select user registry.ini savegame.dat
+falling_select settle 438 normal level 1 score 0 board tick 139
+falling_select settle 586 normal level 1 score 30 board tick 287
+falling_select settle 671 normal level 1 score 30 board tick 372
+falling_select settle 838 normal level 1 score 70 board tick 539
+falling_select settle 1026 normal level 1 score 100 board tick 727
+falling_select states none
+falling_select save savegame.dat v1 normal level 0 (shown 1), 64 gems, state 1 (playing), score 100, play seconds 9, 7873 bytes
+
+options_highscores exit 0
+options_highscores mods none
+options_highscores user hiscores.dat registry.ini savegame.dat
+options_highscores settle 438 normal level 1 score 0 board tick 139
+options_highscores settle 586 normal level 1 score 30 board tick 287
+options_highscores settle 862 normal level 1 score 40 board tick 463
+options_highscores states none
+options_highscores save savegame.dat v1 normal level 0 (shown 1), 64 gems, state 1 (playing), score 40, play seconds 7, 7873 bytes
+
+pause exit 0
+pause mods none
+pause user registry.ini savegame.dat
+pause settle 438 normal level 1 score 0 board tick 139
+pause settle 826 normal level 1 score 30 board tick 287
+pause states none
+pause save savegame.dat v1 normal level 0 (shown 1), 64 gems, state 1 (playing), score 30, play seconds 8, 7873 bytes
+
+nomoves_normal exit 0
+nomoves_normal mods none
+nomoves_normal user hiscores.dat registry.ini
+nomoves_normal settle 142 normal level 1 score 0 board tick 139
+nomoves_normal settle 249 normal level 1 score 0 board tick 246
+nomoves_normal settle 350 normal level 1 score 10 board tick 347
+nomoves_normal settle 476 normal level 1 score 20 board tick 473
+nomoves_normal settle 670 normal level 1 score 50 board tick 667
+nomoves_normal settle 1501 normal level 1 score 0 board tick 142
+nomoves_normal states 808:game_over 1141:game_over_done
+nomoves_normal save none
+
+timed_fallout exit 0
+timed_fallout mods none
+timed_fallout user registry.ini savegame.dat
+timed_fallout settle 142 timed level 1 score 0 board tick 138
+timed_fallout settle 231 timed level 1 score 0 board tick 227
+timed_fallout settle 356 timed level 1 score 20 board tick 352
+timed_fallout settle 437 timed level 1 score 20 board tick 433
+timed_fallout settle 659 timed level 1 score 140 board tick 655
+timed_fallout settle 737 timed level 1 score 140 board tick 733
+timed_fallout settle 884 timed level 1 score 160 board tick 880
+timed_fallout settle 978 timed level 1 score 180 board tick 974
+timed_fallout settle 1063 timed level 1 score 180 board tick 1059
+timed_fallout settle 1184 timed level 1 score 200 board tick 1180
+timed_fallout settle 1305 timed level 1 score 220 board tick 1301
+timed_fallout settle 1439 timed level 1 score 280 board tick 1435
+timed_fallout settle 1530 timed level 1 score 280 board tick 1526
+timed_fallout settle 1635 timed level 1 score 300 board tick 1631
+timed_fallout settle 1714 timed level 1 score 300 board tick 1710
+timed_fallout settle 1899 timed level 1 score 360 board tick 1895
+timed_fallout settle 1998 timed level 1 score 380 board tick 1994
+timed_fallout settle 2109 timed level 1 score 400 board tick 2105
+timed_fallout settle 2214 timed level 1 score 420 board tick 2210
+timed_fallout settle 2310 timed level 1 score 440 board tick 2306
+timed_fallout settle 2429 timed level 1 score 460 board tick 2425
+timed_fallout settle 2523 timed level 1 score 460 board tick 2519
+timed_fallout settle 3103 timed level 1 score 480 board tick 3099
+timed_fallout settle 3182 timed level 1 score 480 board tick 3178
+timed_fallout settle 3281 timed level 1 score 480 board tick 3277
+timed_fallout settle 3413 timed level 1 score 480 board tick 3409
+timed_fallout settle 3548 timed level 1 score 500 board tick 3544
+timed_fallout settle 3635 timed level 1 score 500 board tick 3631
+timed_fallout settle 3799 timed level 1 score 580 board tick 3795
+timed_fallout settle 4355 timed level 2 score 580 board tick 4351
+timed_fallout settle 4502 timed level 2 score 605 board tick 4498
+timed_fallout settle 4622 timed level 2 score 630 board tick 4618
+timed_fallout states 2672:fall_out 3800:vortex 4053:level_wipe
+timed_fallout save savegame.dat v1 timed level 1 (shown 2), 64 gems, state 1 (playing), score 630, play seconds 46, 7873 bytes
+timed_fallout row 3103 0 6 1 6 6 4 0 4 1
+timed_fallout row 3182 0 6 1 6 6 4 0 5 1
+
+timed_fallout_load exit 0
+timed_fallout_load mods none
+timed_fallout_load user registry.ini savegame.dat
+timed_fallout_load settle 340 timed level 2 score 630 board tick 1
+timed_fallout_load states none
+timed_fallout_load save savegame.dat v1 timed level 1 (shown 2), 64 gems, state 1 (playing), score 630, play seconds 55, 7873 bytes
+
+mode_switch exit 0
+mode_switch mods none
+mode_switch user registry.ini savegame.dat
+mode_switch settle 457 timed level 1 score 0 board tick 138
+mode_switch settle 617 timed level 1 score 60 board tick 298
+mode_switch settle 908 normal level 1 score 0 board tick 139
+mode_switch states none
+mode_switch save savegame.dat v1 timed level 0 (shown 1), 64 gems, state 1 (playing), score 60, play seconds 3, 7873 bytes
+
+mode_switch_load exit 0
+mode_switch_load mods none
+mode_switch_load user registry.ini savegame.dat
+mode_switch_load settle 340 timed level 1 score 60 board tick 1
+mode_switch_load states none
+mode_switch_load save savegame.dat v1 timed level 0 (shown 1), 64 gems, state 1 (playing), score 60, play seconds 12, 7873 bytes
+
+save_states exit 0
+save_states mods none
+save_states user registry.ini savegame.dat
+save_states settle 439 normal level 1 score 0 board tick 140
+save_states settle 667 normal level 1 score 240 board tick 368
+save_states settle 742 normal level 1 score 240 board tick 443
+save_states settle 964 normal level 1 score 340 board tick 665
+save_states settle 1105 normal level 1 score 380 board tick 806
+save_states settle 1468 normal level 1 score 630 board tick 1169
+save_states settle 2022 normal level 2 score 630 board tick 1723
+save_states states 1469:vortex 1722:level_wipe
+save_states snap s1_clearing.dat v1 normal level 0 (shown 1), 64 gems, state 4 (clearing), score 60, play seconds 1, 7873 bytes
+save_states snap s2_falling.dat v1 normal level 0 (shown 1), 64 gems, state 0 (falling), score 60, play seconds 2, 7873 bytes
+save_states snap s3_swapping.dat v1 normal level 0 (shown 1), 64 gems, state 1 (playing), score 240, play seconds 3, 7873 bytes
+save_states snap s4_swapping_back.dat v1 normal level 0 (shown 1), 64 gems, state 1 (playing), score 240, play seconds 4, 7873 bytes
+save_states snap s5_vortex.dat v1 normal level 0 (shown 1), 64 gems, state 7 (vortex), score 630, play seconds 12, 7873 bytes
+save_states snap s6_wipe.dat v1 normal level 1 (shown 1), 0 gems, state 8 (level wipe), score 630, play seconds 14, 193 bytes
+save_states save savegame.dat v1 normal level 1 (shown 2), 64 gems, state 1 (playing), score 630, play seconds 18, 7873 bytes
+
+save_states.quit.s1_clearing exit 0
+save_states.quit.s1_clearing mods none
+save_states.quit.s1_clearing user registry.ini savegame.dat
+save_states.quit.s1_clearing settle 439 normal level 1 score 0 board tick 140
+save_states.quit.s1_clearing states none
+save_states.quit.s1_clearing save savegame.dat v1 normal level 0 (shown 1), 64 gems, state 4 (clearing), score 60, play seconds 1, 7873 bytes
+
+save_states.quit.s2_falling exit 0
+save_states.quit.s2_falling mods none
+save_states.quit.s2_falling user registry.ini savegame.dat
+save_states.quit.s2_falling settle 439 normal level 1 score 0 board tick 140
+save_states.quit.s2_falling states none
+save_states.quit.s2_falling save savegame.dat v1 normal level 0 (shown 1), 64 gems, state 0 (falling), score 60, play seconds 2, 7873 bytes
+
+save_states.quit.s3_swapping exit 0
+save_states.quit.s3_swapping mods none
+save_states.quit.s3_swapping user registry.ini savegame.dat
+save_states.quit.s3_swapping settle 439 normal level 1 score 0 board tick 140
+save_states.quit.s3_swapping settle 667 normal level 1 score 240 board tick 368
+save_states.quit.s3_swapping states none
+save_states.quit.s3_swapping save savegame.dat v1 normal level 0 (shown 1), 64 gems, state 1 (playing), score 240, play seconds 3, 7873 bytes
+
+save_states.quit.s4_swapping_back exit 0
+save_states.quit.s4_swapping_back mods none
+save_states.quit.s4_swapping_back user registry.ini savegame.dat
+save_states.quit.s4_swapping_back settle 439 normal level 1 score 0 board tick 140
+save_states.quit.s4_swapping_back settle 667 normal level 1 score 240 board tick 368
+save_states.quit.s4_swapping_back states none
+save_states.quit.s4_swapping_back save savegame.dat v1 normal level 0 (shown 1), 64 gems, state 1 (playing), score 240, play seconds 4, 7873 bytes
+
+save_states.quit.s5_vortex exit 0
+save_states.quit.s5_vortex mods none
+save_states.quit.s5_vortex user registry.ini savegame.dat
+save_states.quit.s5_vortex settle 439 normal level 1 score 0 board tick 140
+save_states.quit.s5_vortex settle 667 normal level 1 score 240 board tick 368
+save_states.quit.s5_vortex settle 742 normal level 1 score 240 board tick 443
+save_states.quit.s5_vortex settle 964 normal level 1 score 340 board tick 665
+save_states.quit.s5_vortex settle 1105 normal level 1 score 380 board tick 806
+save_states.quit.s5_vortex settle 1468 normal level 1 score 630 board tick 1169
+save_states.quit.s5_vortex states 1469:vortex
+save_states.quit.s5_vortex save savegame.dat v1 normal level 0 (shown 1), 64 gems, state 7 (vortex), score 630, play seconds 12, 7873 bytes
+
+save_states.quit.s6_wipe exit 0
+save_states.quit.s6_wipe mods none
+save_states.quit.s6_wipe user registry.ini savegame.dat
+save_states.quit.s6_wipe settle 439 normal level 1 score 0 board tick 140
+save_states.quit.s6_wipe settle 667 normal level 1 score 240 board tick 368
+save_states.quit.s6_wipe settle 742 normal level 1 score 240 board tick 443
+save_states.quit.s6_wipe settle 964 normal level 1 score 340 board tick 665
+save_states.quit.s6_wipe settle 1105 normal level 1 score 380 board tick 806
+save_states.quit.s6_wipe settle 1468 normal level 1 score 630 board tick 1169
+save_states.quit.s6_wipe states 1469:vortex 1722:level_wipe
+save_states.quit.s6_wipe save savegame.dat v1 normal level 1 (shown 1), 0 gems, state 8 (level wipe), score 630, play seconds 14, 193 bytes
+
+save_states.load.s1_clearing exit 0
+save_states.load.s1_clearing mods none
+save_states.load.s1_clearing user registry.ini savegame.dat
+save_states.load.s1_clearing settle 466 normal level 1 score 100 board tick 127
+save_states.load.s1_clearing states none
+save_states.load.s1_clearing save savegame.dat v1 normal level 0 (shown 1), 64 gems, state 1 (playing), score 100, play seconds 10, 7873 bytes
+
+save_states.load.s2_falling exit 0
+save_states.load.s2_falling mods none
+save_states.load.s2_falling user registry.ini savegame.dat
+save_states.load.s2_falling settle 452 normal level 1 score 240 board tick 113
+save_states.load.s2_falling states none
+save_states.load.s2_falling save savegame.dat v1 normal level 0 (shown 1), 64 gems, state 1 (playing), score 240, play seconds 11, 7873 bytes
+
+save_states.load.s3_swapping exit 0
+save_states.load.s3_swapping mods none
+save_states.load.s3_swapping user registry.ini savegame.dat
+save_states.load.s3_swapping settle 340 normal level 1 score 240 board tick 1
+save_states.load.s3_swapping states none
+save_states.load.s3_swapping save savegame.dat v1 normal level 0 (shown 1), 64 gems, state 1 (playing), score 240, play seconds 12, 7873 bytes
+
+save_states.load.s4_swapping_back exit 0
+save_states.load.s4_swapping_back mods none
+save_states.load.s4_swapping_back user registry.ini savegame.dat
+save_states.load.s4_swapping_back settle 340 normal level 1 score 240 board tick 1
+save_states.load.s4_swapping_back states none
+save_states.load.s4_swapping_back save savegame.dat v1 normal level 0 (shown 1), 64 gems, state 1 (playing), score 240, play seconds 13, 7873 bytes
+
+save_states.load.s5_vortex exit 0
+save_states.load.s5_vortex mods none
+save_states.load.s5_vortex user registry.ini savegame.dat
+save_states.load.s5_vortex settle 806 normal level 2 score 630 board tick 467
+save_states.load.s5_vortex states 340:vortex 502:level_wipe
+save_states.load.s5_vortex save savegame.dat v1 normal level 1 (shown 2), 64 gems, state 1 (playing), score 630, play seconds 21, 7873 bytes
+
+save_states.load.s6_wipe exit 0
+save_states.load.s6_wipe mods none
+save_states.load.s6_wipe user registry.ini savegame.dat
+save_states.load.s6_wipe settle 607 normal level 2 score 630 board tick 268
+save_states.load.s6_wipe states 340:level_wipe
+save_states.load.s6_wipe save savegame.dat v1 normal level 1 (shown 2), 64 gems, state 1 (playing), score 630, play seconds 23, 7873 bytes
+
+pergame exit 0
+pergame mods Stage 2: a seed for every game
+pergame user hiscores.dat mods-status.json registry.ini savegame.bjr savegame.dat
+pergame settle 439 normal level 1 score 0 board tick 140
+pergame settle 532 normal level 1 score 0 board tick 233
+pergame settle 702 normal level 1 score 10 board tick 403
+pergame settle 832 normal level 1 score 10 board tick 533
+pergame settle 1027 normal level 1 score 40 board tick 728
+pergame settle 1123 normal level 1 score 40 board tick 824
+pergame settle 1405 timed level 1 score 0 board tick 146
+pergame settle 1492 timed level 1 score 0 board tick 233
+pergame settle 18544 timed level 1 score 0 board tick 145
+pergame states 16154:game_over 16486:game_over_done
+pergame save savegame.dat v1 normal level 0 (shown 1), 64 gems, state 1 (playing), score 40, play seconds 8, 7873 bytes
+pergame sidecar savegame.bjr end saved tick 880 score 40 level 1 gems 9 draws 529; rng seed 2135392491; goes with the save
+pergame status rulesId 0e0943ce3dc5f173, scoreKey -, features seeds(perGame), 0 warnings, errors -, dropped -
+pergame seeds 439:2135392491/pergame@2 1405:946286476/pergame@3 18544:491263/pergame@5
+
+rules_inert exit 0
+rules_inert mods Stage 1: no invalid moves, Stage 1: twist, Stage 1: slides, Stage 1: free swaps, Stage 1: out of range, Stage 1: features, Stage 1: nine colours, Stage 1: undo
+rules_inert user hiscores-58f3ff9a.dat mods-status.json registry.ini replays/ replays/*-timed-0.bjr savegame-58f3ff9a.bjr savegame-58f3ff9a.dat
+rules_inert settle 439 normal level 1 score 0 board tick 140
+rules_inert settle 532 normal level 1 score 0 board tick 233
+rules_inert settle 702 normal level 1 score 10 board tick 403
+rules_inert settle 832 normal level 1 score 10 board tick 533
+rules_inert settle 1027 normal level 1 score 40 board tick 728
+rules_inert settle 1123 normal level 1 score 40 board tick 824
+rules_inert settle 1405 timed level 1 score 0 board tick 146
+rules_inert settle 1492 timed level 1 score 0 board tick 233
+rules_inert settle 18544 timed level 1 score 0 board tick 145
+rules_inert states 16154:game_over 16486:game_over_done
+rules_inert save savegame-58f3ff9a.dat v2 normal level 0 (shown 1), 64 gems, state 1 (playing), score 40, play seconds 8, 10463 bytes; rules c0a0bede4fee2f7b, 8x8, level shape 0, 0 holes; RNGS seed 2135392491, MOVE moves 2 invalid 0 undos 0, END
+rules_inert sidecar savegame-58f3ff9a.bjr end saved tick 880 score 40 level 1 gems 9 draws 529; seg0 normal seed 2135392491 CHECK6,PAUSE2,SAVE1,SELECT5,TARGET5,UNPAUSE2; rng seed 2135392491; goes with the save
+rules_inert replay replays/*-timed-0.bjr end time up tick 15127 score 0 level 1 gems 0 draws 4611; seg0 timed seed 946286476 CHECK2,PAUSE1,SELECT1,TARGET1,UNPAUSE1
+rules_inert status rulesId c0a0bede4fee2f7b, scoreKey 58f3ff9a, features seeds(entry, perGame), replays(keep 5), 9 warnings, errors s1-bad, dropped s1-free-swaps
+rules_inert variant last moves 0 invalid 0, 0 of 9 settles without a move
+rules_inert seeds 439:2135392491/pergame@2 1405:946286476/pergame@3 18544:491263/pergame@5
+rules_inert@novariants exit 0
+rules_inert@novariants mods Stage 1: no invalid moves, Stage 1: twist, Stage 1: slides, Stage 1: free swaps, Stage 1: out of range, Stage 1: features, Stage 1: nine colours, Stage 1: undo
+rules_inert@novariants user hiscores-58f3ff9a.dat mods-status.json registry.ini replays/ replays/*-timed-0.bjr savegame-58f3ff9a.bjr savegame-58f3ff9a.dat
+rules_inert@novariants settle 439 normal level 1 score 0 board tick 140
+rules_inert@novariants settle 532 normal level 1 score 0 board tick 233
+rules_inert@novariants settle 702 normal level 1 score 10 board tick 403
+rules_inert@novariants settle 832 normal level 1 score 10 board tick 533
+rules_inert@novariants settle 1027 normal level 1 score 40 board tick 728
+rules_inert@novariants settle 1123 normal level 1 score 40 board tick 824
+rules_inert@novariants settle 1405 timed level 1 score 0 board tick 146
+rules_inert@novariants settle 1492 timed level 1 score 0 board tick 233
+rules_inert@novariants settle 18544 timed level 1 score 0 board tick 145
+rules_inert@novariants states 16154:game_over 16486:game_over_done
+rules_inert@novariants save savegame-58f3ff9a.dat v1 normal level 0 (shown 1), 64 gems, state 1 (playing), score 40, play seconds 8, 7873 bytes
+rules_inert@novariants sidecar savegame-58f3ff9a.bjr end saved tick 880 score 40 level 1 gems 9 draws 529; seg0 normal seed 2135392491 CHECK6,PAUSE2,SAVE1,SELECT5,TARGET5,UNPAUSE2; rng seed 2135392491; goes with the save
+rules_inert@novariants replay replays/*-timed-0.bjr end time up tick 15127 score 0 level 1 gems 0 draws 4611; seg0 timed seed 946286476 CHECK2,PAUSE1,SELECT1,TARGET1,UNPAUSE1
+rules_inert@novariants status rulesId c0a0bede4fee2f7b, scoreKey 58f3ff9a, features seeds(entry, perGame), replays(keep 5), 10 warnings, errors s1-bad, dropped s1-free-swaps
+rules_inert@novariants seeds 439:2135392491/pergame@2 1405:946286476/pergame@3 18544:491263/pergame@5
+
+rules_only exit 0
+rules_only mods Stage 2: one rule
+rules_only user hiscores-3467f5b4.dat mods-status.json registry.ini savegame-3467f5b4.dat
+rules_only settle 439 normal level 1 score 0 board tick 140
+rules_only settle 532 normal level 1 score 0 board tick 233
+rules_only settle 702 normal level 1 score 10 board tick 403
+rules_only settle 832 normal level 1 score 10 board tick 533
+rules_only settle 1027 normal level 1 score 40 board tick 728
+rules_only settle 1123 normal level 1 score 40 board tick 824
+rules_only settle 1405 timed level 1 score 0 board tick 146
+rules_only settle 1492 timed level 1 score 0 board tick 233
+rules_only settle 18544 timed level 1 score 0 board tick 145
+rules_only states 16154:game_over 16486:game_over_done
+rules_only save savegame-3467f5b4.dat v2 normal level 0 (shown 1), 64 gems, state 1 (playing), score 40, play seconds 8, 10463 bytes; rules bb62a5598f159348, 8x8, level shape 0, 0 holes; RNGS seed 2135392491, MOVE moves 2 invalid 0 undos 0, END
+rules_only status rulesId bb62a5598f159348, scoreKey 3467f5b4, features none, 0 warnings, errors -, dropped -
+rules_only variant last moves 0 invalid 0, 0 of 9 settles without a move
+rules_only seeds 439:2135392491/pergame@2 1405:946286476/pergame@3 18544:491263/pergame@5
+rules_only@novariants exit 0
+rules_only@novariants mods Stage 2: one rule
+rules_only@novariants user hiscores-3467f5b4.dat mods-status.json registry.ini savegame-3467f5b4.bjr savegame-3467f5b4.dat
+rules_only@novariants settle 439 normal level 1 score 0 board tick 140
+rules_only@novariants settle 532 normal level 1 score 0 board tick 233
+rules_only@novariants settle 702 normal level 1 score 10 board tick 403
+rules_only@novariants settle 832 normal level 1 score 10 board tick 533
+rules_only@novariants settle 1027 normal level 1 score 40 board tick 728
+rules_only@novariants settle 1123 normal level 1 score 40 board tick 824
+rules_only@novariants settle 1405 timed level 1 score 0 board tick 146
+rules_only@novariants settle 1492 timed level 1 score 0 board tick 233
+rules_only@novariants settle 18544 timed level 1 score 0 board tick 145
+rules_only@novariants states 16154:game_over 16486:game_over_done
+rules_only@novariants save savegame-3467f5b4.dat v1 normal level 0 (shown 1), 64 gems, state 1 (playing), score 40, play seconds 8, 7873 bytes
+rules_only@novariants sidecar savegame-3467f5b4.bjr end saved tick 880 score 40 level 1 gems 9 draws 529; rng seed 2135392491; goes with the save
+rules_only@novariants status rulesId bb62a5598f159348, scoreKey 3467f5b4, features none, 1 warnings, errors -, dropped -
+rules_only@novariants seeds 439:2135392491/pergame@2 1405:946286476/pergame@3 18544:491263/pergame@5
+
+seeds_entry exit 0
+seeds_entry mods Stage 2: seed field only
+seeds_entry user hiscores.dat mods-status.json registry.ini savegame.dat
+seeds_entry settle 438 normal level 1 score 0 board tick 139
+seeds_entry settle 586 normal level 1 score 30 board tick 287
+seeds_entry settle 747 normal level 1 score 100 board tick 448
+seeds_entry settle 861 normal level 1 score 130 board tick 562
+seeds_entry settle 952 normal level 1 score 130 board tick 653
+seeds_entry settle 1132 normal level 1 score 90 board tick 833
+seeds_entry settle 1403 timed level 1 score 0 board tick 144
+seeds_entry settle 1546 timed level 1 score 80 board tick 287
+seeds_entry settle 18544 timed level 1 score 0 board tick 145
+seeds_entry states 17736:game_over 18068:game_over_done
+seeds_entry save savegame.dat v1 normal level 0 (shown 1), 64 gems, state 1 (playing), score 90, play seconds 8, 7873 bytes
+seeds_entry status rulesId 0e0943ce3dc5f173, scoreKey -, features seeds(entry), 1 warnings, errors -, dropped -
+
+seed_normal exit 0
+seed_normal mods none
+seed_normal user hiscores-seeded.dat registry.ini
+seed_normal settles 183
+seed_normal last-settle 24974 normal level 4 score 3450 board tick 24971
+seed_normal states 6281:vortex 6534:level_wipe 14061:vortex 14314:level_wipe 22521:vortex 22774:level_wipe 25106:game_over 25439:game_over_done
+seed_normal save none
+seed_normal seeds 153:4242/user
+seed_normal end update 25439: game over -> game over done, level 4, score 3475, board tick 25436, Rand() draws 1
+
+seed_max exit 0
+seed_max mods none
+seed_max user registry.ini
+seed_max settle 443 normal level 1 score 0 board tick 144
+seed_max states none
+seed_max save none
+seed_max seeds 443:4294967295/user
+
+seed_resume exit 0
+seed_resume mods none
+seed_resume user hiscores-seeded.dat hiscores.dat registry.ini savegame.dat
+seed_resume settle 340 normal level 1 score 90 board tick 1
+seed_resume settle 596 timed level 1 score 0 board tick 147
+seed_resume states 15244:game_over 15572:game_over_done
+seed_resume save savegame.dat v1 normal level 0 (shown 1), 64 gems, state 1 (playing), score 90, play seconds 8, 7873 bytes
+seed_resume seeds 340:- 596:31337/user
+
+seed_keyed exit 0
+seed_keyed mods Stage 2: tunables only
+seed_keyed user hiscores-26c65d57-seeded.dat registry.ini
+seed_keyed settle 449 normal level 1 score 0 board tick 150
+seed_keyed states none
+seed_keyed save none
+seed_keyed seeds 449:4242/user
+
+seed_highscores exit 0
+seed_highscores mods none
+seed_highscores user hiscores-seeded.dat registry.ini savegame.bjr savegame.dat
+seed_highscores settle 449 normal level 1 score 0 board tick 150
+seed_highscores settle 553 normal level 1 score 10 board tick 254
+seed_highscores settle 842 normal level 1 score 20 board tick 443
+seed_highscores settle 1063 normal level 1 score 30 board tick 664
+seed_highscores states none
+seed_highscores save savegame.dat v1 normal level 0 (shown 1), 64 gems, state 1 (playing), score 30, play seconds 7, 7873 bytes
+seed_highscores sidecar savegame.bjr end saved tick 800 score 30 level 1 gems 9 draws 1708; rng seed 4242 user; goes with the save
+seed_highscores seeds 449:4242/user
+
+seed_timed exit 0
+seed_timed mods none
+seed_timed user hiscores-seeded.dat registry.ini
+seed_timed settle 449 normal level 1 score 0 board tick 150
+seed_timed settle 609 timed level 1 score 0 board tick 150
+seed_timed settle 15876 timed level 1 score 0 board tick 141
+seed_timed states 15254:game_over 15586:game_over_done
+seed_timed save none
+seed_timed seeds 449:4242/user 609:4242/user 15876:-
+
+seed_match_timed exit 0
+seed_match_timed mods none
+seed_match_timed user registry.ini savegame.bjr savegame.dat
+seed_match_timed settle 449 normal level 1 score 0 board tick 150
+seed_match_timed settle 553 normal level 1 score 10 board tick 254
+seed_match_timed settle 764 timed level 1 score 0 board tick 145
+seed_match_timed settle 938 normal level 1 score 0 board tick 139
+seed_match_timed states none
+seed_match_timed save savegame.dat v1 normal level 0 (shown 1), 64 gems, state 1 (playing), score 10, play seconds 3, 7873 bytes
+seed_match_timed sidecar savegame.bjr end saved tick 300 score 10 level 1 gems 3 draws 1702; rng seed 4242 user; goes with the save
+seed_match_timed seeds 449:4242/user 764:- 938:-
+
+seed_nomatch_timed exit 0
+seed_nomatch_timed mods none
+seed_nomatch_timed user registry.ini savegame.bjr savegame.dat
+seed_nomatch_timed settle 449 normal level 1 score 0 board tick 150
+seed_nomatch_timed settle 532 normal level 1 score 0 board tick 233
+seed_nomatch_timed settle 709 timed level 1 score 0 board tick 150
+seed_nomatch_timed settle 843 timed level 1 score 20 board tick 284
+seed_nomatch_timed settle 1064 normal level 1 score 0 board tick 145
+seed_nomatch_timed states none
+seed_nomatch_timed save savegame.dat v1 timed level 0 (shown 1), 64 gems, state 1 (playing), score 20, play seconds 3, 7873 bytes
+seed_nomatch_timed sidecar savegame.bjr end saved tick 340 score 20 level 1 gems 3 draws 1702; rng seed 4242 user; goes with the save
+seed_nomatch_timed seeds 449:4242/user 709:4242/user 1064:-
+
+seed_newgame exit 0
+seed_newgame mods none
+seed_newgame user registry.ini
+seed_newgame settle 449 normal level 1 score 0 board tick 150
+seed_newgame settle 804 normal level 1 score 0 board tick 150
+seed_newgame settle 932 normal level 1 score 10 board tick 278
+seed_newgame settle 1343 normal level 1 score 0 board tick 145
+seed_newgame states 480:game_over 1020:game_over
+seed_newgame save none
+seed_newgame seeds 449:4242/user 804:4242/user 1343:-
+
+autoplay_normal exit 0
+autoplay_normal mods none
+autoplay_normal user hiscores.dat registry.ini
+autoplay_normal settles 76
+autoplay_normal last-settle 10376 normal level 2 score 1400 board tick 10373
+autoplay_normal states 5109:vortex 5362:level_wipe 10496:game_over 10825:game_over_done
+autoplay_normal save none
+autoplay_normal end update 10825: game over -> game over done, level 2, score 1415, board tick 10822, Rand() draws 5787
+
+autoplay_timed exit 0
+autoplay_timed mods none
+autoplay_timed user hiscores.dat registry.ini
+autoplay_timed settles 760
+autoplay_timed last-settle 105159 timed level 10 score 49500 board tick 105155
+autoplay_timed states 2672:fall_out 3800:vortex 4053:level_wipe 5127:fall_out 7810:vortex 8063:level_wipe 9894:fall_out 12405:fall_out 13234:vortex 13487:level_wipe 19041:fall_out 21764:fall_out 25603:vortex 25856:level_wipe 29233:vortex 29486:level_wipe 36097:vortex 36350:level_wipe 51627:vortex 51880:level_wipe 68817:vortex 69070:level_wipe 83046:fall_out 87444:vortex 87697:level_wipe 91025:fall_out 95075:fall_out 105170:game_over 105502:game_over_done
+autoplay_timed save none
+autoplay_timed end update 105502: game over -> game over done, level 10, score 49500, board tick 105498, Rand() draws 29193
+
+autoplay_cap exit 0
+autoplay_cap mods none
+autoplay_cap user registry.ini savegame.dat
+autoplay_cap settles 47
+autoplay_cap last-settle 5959 normal level 1 score 380 board tick 5956
+autoplay_cap states none
+autoplay_cap save savegame.dat v1 normal level 0 (shown 1), 64 gems, state 1 (playing), score 380, play seconds 59, 7873 bytes
+autoplay_cap end update 5999: update cap
+
+rec_main exit 0
+rec_main mods Stage 3: replays
+rec_main user hiscores.dat mods-status.json registry.ini replays/ replays/*-timed-80-keep.bjr savegame.bjr savegame.dat
+rec_main settle 438 normal level 1 score 0 board tick 139
+rec_main settle 586 normal level 1 score 30 board tick 287
+rec_main settle 747 normal level 1 score 100 board tick 448
+rec_main settle 861 normal level 1 score 130 board tick 562
+rec_main settle 952 normal level 1 score 130 board tick 653
+rec_main settle 1132 normal level 1 score 90 board tick 833
+rec_main settle 1403 timed level 1 score 0 board tick 144
+rec_main settle 1546 timed level 1 score 80 board tick 287
+rec_main settle 18544 timed level 1 score 0 board tick 145
+rec_main states 17736:game_over 18068:game_over_done
+rec_main save savegame.dat v1 normal level 0 (shown 1), 64 gems, state 1 (playing), score 90, play seconds 8, 7873 bytes
+rec_main sidecar savegame.bjr end saved tick 880 score 90 level 1 gems 25 draws 285; seg0 normal global stream state CHECK6,HINT1,HOVER14,PAUSE2,SAVE1,SELECT5,TARGET5,UNPAUSE2; flags hover; goes with the save
+rec_main replay replays/*-timed-80-keep.bjr end time up tick 16709 score 80 level 1 gems 7 draws 5143; seg0 timed global stream state CHECK2,HOVER5,PAUSE1,SELECT1,TARGET1,UNPAUSE1; flags hover
+rec_main status rulesId 0e0943ce3dc5f173, scoreKey -, features seeds(entry), replays(keep 3, hover), 1 warnings, errors -, dropped -
+rec_main codec codeccheck: 18431 updates checked, 9 settles, 0 failures
+
+rec_load exit 0
+rec_load mods Stage 3: replays
+rec_load user hiscores.dat mods-status.json registry.ini replays/ replays/*-timed-80-keep.bjr savegame.bjr savegame.dat
+rec_load settle 340 normal level 1 score 90 board tick 1
+rec_load states none
+rec_load save savegame.dat v1 normal level 0 (shown 1), 64 gems, state 1 (playing), score 90, play seconds 10, 7873 bytes
+rec_load sidecar savegame.bjr end saved tick 260 score 90 level 1 gems 25 draws 260; seg0 normal global stream state CHECK6,HINT1,HOVER14,PAUSE2,SAVE1,SELECT5,TARGET5,UNPAUSE2; seg1 normal global stream state load(global stream) CHECK1,HOVER3,LOAD1,PAUSE1,SAVE2,UNPAUSE1; flags hover+multi; goes with the save
+rec_load replay replays/*-timed-80-keep.bjr end time up tick 16709 score 80 level 1 gems 7 draws 5143; seg0 timed global stream state CHECK2,HOVER5,PAUSE1,SELECT1,TARGET1,UNPAUSE1; flags hover
+rec_load status rulesId 0e0943ce3dc5f173, scoreKey -, features seeds(entry), replays(keep 3, hover), 1 warnings, errors -, dropped -
+rec_load codec codeccheck: 300 updates checked, 1 settles, 0 failures
+
+rec_level exit 0
+rec_level mods Stage 3: replays
+rec_level user mods-status.json registry.ini savegame.bjr savegame.dat
+rec_level settle 439 normal level 1 score 0 board tick 140
+rec_level settle 667 normal level 1 score 240 board tick 368
+rec_level settle 886 normal level 1 score 340 board tick 587
+rec_level settle 1027 normal level 1 score 380 board tick 728
+rec_level settle 1390 normal level 1 score 630 board tick 1091
+rec_level settle 1943 normal level 2 score 630 board tick 1644
+rec_level states 1391:vortex 1644:level_wipe
+rec_level save savegame.dat v1 normal level 1 (shown 2), 64 gems, state 1 (playing), score 630, play seconds 17, 7873 bytes
+rec_level sidecar savegame.bjr end saved tick 1700 score 630 level 2 gems 56 draws 1004; seg0 normal global stream state CHECK6,HOVER10,SAVE2,SELECT4,TARGET4; flags hover; goes with the save
+rec_level status rulesId 0e0943ce3dc5f173, scoreKey -, features seeds(entry), replays(keep 3, hover), 1 warnings, errors -, dropped -
+rec_level codec codeccheck: 1700 updates checked, 6 settles, 0 failures
+
+rec_drag_swaps exit 0
+rec_drag_swaps mods Stage 3: replays
+rec_drag_swaps user mods-status.json registry.ini savegame.bjr savegame.dat
+rec_drag_swaps settle 438 normal level 1 score 0 board tick 139
+rec_drag_swaps settle 589 normal level 1 score 30 board tick 290
+rec_drag_swaps settle 747 normal level 1 score 60 board tick 448
+rec_drag_swaps settle 864 normal level 1 score 70 board tick 565
+rec_drag_swaps settle 964 normal level 1 score 80 board tick 665
+rec_drag_swaps settle 1215 normal level 1 score 110 board tick 916
+rec_drag_swaps settle 1312 normal level 1 score 120 board tick 1013
+rec_drag_swaps settle 1459 normal level 1 score 150 board tick 1160
+rec_drag_swaps settle 1543 normal level 1 score 150 board tick 1244
+rec_drag_swaps settle 1662 normal level 1 score 160 board tick 1363
+rec_drag_swaps states none
+rec_drag_swaps save savegame.dat v1 normal level 0 (shown 1), 64 gems, state 1 (playing), score 160, play seconds 15, 7873 bytes
+rec_drag_swaps sidecar savegame.bjr end saved tick 1500 score 160 level 1 gems 36 draws 296; seg0 normal global stream state CHECK10,HOVER16,SAVE2,SELECT13,TARGET13; flags hover; goes with the save
+rec_drag_swaps status rulesId 0e0943ce3dc5f173, scoreKey -, features seeds(entry), replays(keep 3, hover), 1 warnings, errors -, dropped -
+rec_drag_swaps codec codeccheck: 1500 updates checked, 10 settles, 0 failures
+
+rec_falling_select exit 0
+rec_falling_select mods Stage 3: replays
+rec_falling_select user mods-status.json registry.ini savegame.bjr savegame.dat
+rec_falling_select settle 438 normal level 1 score 0 board tick 139
+rec_falling_select settle 586 normal level 1 score 30 board tick 287
+rec_falling_select settle 671 normal level 1 score 30 board tick 372
+rec_falling_select settle 838 normal level 1 score 70 board tick 539
+rec_falling_select settle 1026 normal level 1 score 100 board tick 727
+rec_falling_select states none
+rec_falling_select save savegame.dat v1 normal level 0 (shown 1), 64 gems, state 1 (playing), score 100, play seconds 9, 7873 bytes
+rec_falling_select sidecar savegame.bjr end saved tick 900 score 100 level 1 gems 19 draws 279; seg0 normal global stream state CHECK5,HOVER11,SAVE2,SELECT5,TARGET4; flags hover; goes with the save
+rec_falling_select status rulesId 0e0943ce3dc5f173, scoreKey -, features seeds(entry), replays(keep 3, hover), 1 warnings, errors -, dropped -
+rec_falling_select codec codeccheck: 900 updates checked, 5 settles, 0 failures
+
+rec_options_highscores exit 0
+rec_options_highscores mods Stage 3: replays
+rec_options_highscores user hiscores.dat mods-status.json registry.ini savegame.bjr savegame.dat
+rec_options_highscores settle 438 normal level 1 score 0 board tick 139
+rec_options_highscores settle 586 normal level 1 score 30 board tick 287
+rec_options_highscores settle 862 normal level 1 score 40 board tick 463
+rec_options_highscores states none
+rec_options_highscores save savegame.dat v1 normal level 0 (shown 1), 64 gems, state 1 (playing), score 40, play seconds 7, 7873 bytes
+rec_options_highscores sidecar savegame.bjr end saved tick 800 score 40 level 1 gems 9 draws 269; seg0 normal global stream state CHECK3,HOVER8,PAUSE2,SAVE2,SELECT2,TARGET2,UNPAUSE2,XRAND1; flags hover; goes with the save
+rec_options_highscores status rulesId 0e0943ce3dc5f173, scoreKey -, features seeds(entry), replays(keep 3, hover), 1 warnings, errors -, dropped -
+rec_options_highscores codec codeccheck: 900 updates checked, 3 settles, 0 failures
+
+rec_pause exit 0
+rec_pause mods Stage 3: replays
+rec_pause user mods-status.json registry.ini savegame.bjr savegame.dat
+rec_pause settle 438 normal level 1 score 0 board tick 139
+rec_pause settle 826 normal level 1 score 30 board tick 287
+rec_pause states none
+rec_pause save savegame.dat v1 normal level 0 (shown 1), 64 gems, state 1 (playing), score 30, play seconds 8, 7873 bytes
+rec_pause sidecar savegame.bjr end saved tick 960 score 30 level 1 gems 6 draws 266; seg0 normal global stream state CHECK2,HOVER6,PAUSE3,SAVE2,SELECT1,TARGET1,UNPAUSE3; flags hover; goes with the save
+rec_pause status rulesId 0e0943ce3dc5f173, scoreKey -, features seeds(entry), replays(keep 3, hover), 1 warnings, errors -, dropped -
+rec_pause codec codeccheck: 1200 updates checked, 2 settles, 0 failures
+
+rec_nomoves_normal exit 0
+rec_nomoves_normal mods Stage 3: replays
+rec_nomoves_normal user hiscores.dat mods-status.json registry.ini replays/ replays/*-normal-60-keep.bjr
+rec_nomoves_normal settle 142 normal level 1 score 0 board tick 139
+rec_nomoves_normal settle 249 normal level 1 score 0 board tick 246
+rec_nomoves_normal settle 350 normal level 1 score 10 board tick 347
+rec_nomoves_normal settle 476 normal level 1 score 20 board tick 473
+rec_nomoves_normal settle 670 normal level 1 score 50 board tick 667
+rec_nomoves_normal settle 1501 normal level 1 score 0 board tick 142
+rec_nomoves_normal states 808:game_over 1141:game_over_done
+rec_nomoves_normal save none
+rec_nomoves_normal replay replays/*-normal-60-keep.bjr end no moves tick 1138 score 60 level 1 gems 15 draws 4755; seg0 normal global stream state CHECK5,HOVER12,SELECT5,TARGET5; flags hover
+rec_nomoves_normal status rulesId 0e0943ce3dc5f173, scoreKey -, features seeds(entry), replays(keep 3, hover), 1 warnings, errors -, dropped -
+rec_nomoves_normal codec codeccheck: 1597 updates checked, 6 settles, 0 failures
+
+rec_timed_fallout exit 0
+rec_timed_fallout mods Stage 3: replays
+rec_timed_fallout user mods-status.json registry.ini savegame.bjr savegame.dat
+rec_timed_fallout settle 142 timed level 1 score 0 board tick 138
+rec_timed_fallout settle 231 timed level 1 score 0 board tick 227
+rec_timed_fallout settle 356 timed level 1 score 20 board tick 352
+rec_timed_fallout settle 437 timed level 1 score 20 board tick 433
+rec_timed_fallout settle 659 timed level 1 score 140 board tick 655
+rec_timed_fallout settle 737 timed level 1 score 140 board tick 733
+rec_timed_fallout settle 884 timed level 1 score 160 board tick 880
+rec_timed_fallout settle 978 timed level 1 score 180 board tick 974
+rec_timed_fallout settle 1063 timed level 1 score 180 board tick 1059
+rec_timed_fallout settle 1184 timed level 1 score 200 board tick 1180
+rec_timed_fallout settle 1305 timed level 1 score 220 board tick 1301
+rec_timed_fallout settle 1439 timed level 1 score 280 board tick 1435
+rec_timed_fallout settle 1530 timed level 1 score 280 board tick 1526
+rec_timed_fallout settle 1635 timed level 1 score 300 board tick 1631
+rec_timed_fallout settle 1714 timed level 1 score 300 board tick 1710
+rec_timed_fallout settle 1899 timed level 1 score 360 board tick 1895
+rec_timed_fallout settle 1998 timed level 1 score 380 board tick 1994
+rec_timed_fallout settle 2109 timed level 1 score 400 board tick 2105
+rec_timed_fallout settle 2214 timed level 1 score 420 board tick 2210
+rec_timed_fallout settle 2310 timed level 1 score 440 board tick 2306
+rec_timed_fallout settle 2429 timed level 1 score 460 board tick 2425
+rec_timed_fallout settle 2523 timed level 1 score 460 board tick 2519
+rec_timed_fallout settle 3103 timed level 1 score 480 board tick 3099
+rec_timed_fallout settle 3182 timed level 1 score 480 board tick 3178
+rec_timed_fallout settle 3281 timed level 1 score 480 board tick 3277
+rec_timed_fallout settle 3413 timed level 1 score 480 board tick 3409
+rec_timed_fallout settle 3548 timed level 1 score 500 board tick 3544
+rec_timed_fallout settle 3635 timed level 1 score 500 board tick 3631
+rec_timed_fallout settle 3799 timed level 1 score 580 board tick 3795
+rec_timed_fallout settle 4355 timed level 2 score 580 board tick 4351
+rec_timed_fallout settle 4502 timed level 2 score 605 board tick 4498
+rec_timed_fallout settle 4622 timed level 2 score 630 board tick 4618
+rec_timed_fallout states 2672:fall_out 3800:vortex 4053:level_wipe
+rec_timed_fallout save savegame.dat v1 timed level 1 (shown 2), 64 gems, state 1 (playing), score 630, play seconds 46, 7873 bytes
+rec_timed_fallout sidecar savegame.bjr end saved tick 4695 score 630 level 2 gems 73 draws 3036; seg0 timed global stream state CHECK32,HOVER55,SAVE2,SELECT31,TARGET30; flags hover; goes with the save
+rec_timed_fallout status rulesId 0e0943ce3dc5f173, scoreKey -, features seeds(entry), replays(keep 3, hover), 1 warnings, errors -, dropped -
+rec_timed_fallout codec codeccheck: 4696 updates checked, 32 settles, 0 failures
+
+rec_timed_fallout_load exit 0
+rec_timed_fallout_load mods Stage 3: replays
+rec_timed_fallout_load user mods-status.json registry.ini savegame.bjr savegame.dat
+rec_timed_fallout_load settle 340 timed level 2 score 630 board tick 1
+rec_timed_fallout_load states none
+rec_timed_fallout_load save savegame.dat v1 timed level 1 (shown 2), 64 gems, state 1 (playing), score 630, play seconds 55, 7873 bytes
+rec_timed_fallout_load sidecar savegame.bjr end saved tick 960 score 630 level 2 gems 73 draws 260; seg0 timed global stream state CHECK32,HOVER55,SAVE2,SELECT31,TARGET30; seg1 normal global stream state load(global stream) CHECK1,HOVER3,LOAD1,PAUSE1,SAVE2,UNPAUSE1; flags hover+multi; goes with the save
+rec_timed_fallout_load status rulesId 0e0943ce3dc5f173, scoreKey -, features seeds(entry), replays(keep 3, hover), 1 warnings, errors -, dropped -
+rec_timed_fallout_load codec codeccheck: 1000 updates checked, 1 settles, 0 failures
+
+rec_mode_switch exit 0
+rec_mode_switch mods Stage 3: replays
+rec_mode_switch user mods-status.json registry.ini savegame.bjr savegame.dat
+rec_mode_switch settle 457 timed level 1 score 0 board tick 138
+rec_mode_switch settle 617 timed level 1 score 60 board tick 298
+rec_mode_switch settle 908 normal level 1 score 0 board tick 139
+rec_mode_switch states none
+rec_mode_switch save savegame.dat v1 timed level 0 (shown 1), 64 gems, state 1 (playing), score 60, play seconds 3, 7873 bytes
+rec_mode_switch sidecar savegame.bjr end saved tick 400 score 60 level 1 gems 6 draws 395; seg0 timed global stream state CHECK2,HOVER6,PAUSE2,SAVE1,SELECT1,TARGET1,UNPAUSE2; flags hover; goes with the save
+rec_mode_switch status rulesId 0e0943ce3dc5f173, scoreKey -, features seeds(entry), replays(keep 3, hover), 1 warnings, errors -, dropped -
+rec_mode_switch codec codeccheck: 701 updates checked, 3 settles, 0 failures
+
+rec_mode_switch_load exit 0
+rec_mode_switch_load mods Stage 3: replays
+rec_mode_switch_load user mods-status.json registry.ini savegame.bjr savegame.dat
+rec_mode_switch_load settle 340 timed level 1 score 60 board tick 1
+rec_mode_switch_load states none
+rec_mode_switch_load save savegame.dat v1 timed level 0 (shown 1), 64 gems, state 1 (playing), score 60, play seconds 12, 7873 bytes
+rec_mode_switch_load sidecar savegame.bjr end saved tick 960 score 60 level 1 gems 6 draws 260; seg0 timed global stream state CHECK2,HOVER6,PAUSE2,SAVE1,SELECT1,TARGET1,UNPAUSE2; seg1 normal global stream state load(global stream) CHECK1,HOVER3,LOAD1,PAUSE1,SAVE2,UNPAUSE1; flags hover+multi; goes with the save
+rec_mode_switch_load status rulesId 0e0943ce3dc5f173, scoreKey -, features seeds(entry), replays(keep 3, hover), 1 warnings, errors -, dropped -
+rec_mode_switch_load codec codeccheck: 1000 updates checked, 1 settles, 0 failures
+
+rec_save_states exit 0
+rec_save_states mods Stage 3: replays
+rec_save_states user mods-status.json registry.ini savegame.bjr savegame.dat
+rec_save_states settle 439 normal level 1 score 0 board tick 140
+rec_save_states settle 667 normal level 1 score 240 board tick 368
+rec_save_states settle 742 normal level 1 score 240 board tick 443
+rec_save_states settle 964 normal level 1 score 340 board tick 665
+rec_save_states settle 1105 normal level 1 score 380 board tick 806
+rec_save_states settle 1468 normal level 1 score 630 board tick 1169
+rec_save_states settle 2022 normal level 2 score 630 board tick 1723
+rec_save_states states 1469:vortex 1722:level_wipe
+rec_save_states snap s1_clearing.bjr end saved tick 195 score 60 level 1 gems 9 draws 780; seg0 normal global stream state CHECK1,HOVER3,SAVE1,SELECT1,TARGET1; flags hover; goes with the save
+rec_save_states snap s1_clearing.dat v1 normal level 0 (shown 1), 64 gems, state 4 (clearing), score 60, play seconds 1, 7873 bytes
+rec_save_states snap s2_falling.bjr end saved tick 220 score 60 level 1 gems 9 draws 788; seg0 normal global stream state CHECK1,HOVER3,SAVE1,SELECT1,TARGET1; flags hover; goes with the save
+rec_save_states snap s2_falling.dat v1 normal level 0 (shown 1), 64 gems, state 0 (falling), score 60, play seconds 2, 7873 bytes
+rec_save_states snap s3_swapping.bjr end saved tick 390 score 240 level 1 gems 18 draws 797; seg0 normal global stream state CHECK2,HOVER5,SAVE1,SELECT2,TARGET2; flags hover; goes with the save
+rec_save_states snap s3_swapping.dat v1 normal level 0 (shown 1), 64 gems, state 1 (playing), score 240, play seconds 3, 7873 bytes
+rec_save_states snap s4_swapping_back.bjr end saved tick 420 score 240 level 1 gems 18 draws 797; seg0 normal global stream state CHECK2,HOVER5,SAVE1,SELECT2,TARGET2; flags hover; goes with the save
+rec_save_states snap s4_swapping_back.dat v1 normal level 0 (shown 1), 64 gems, state 1 (playing), score 240, play seconds 4, 7873 bytes
+rec_save_states snap s5_vortex.bjr end saved tick 1260 score 630 level 1 gems 56 draws 835; seg0 normal global stream state CHECK6,HOVER11,SAVE1,SELECT5,TARGET5; flags hover; goes with the save
+rec_save_states snap s5_vortex.dat v1 normal level 0 (shown 1), 64 gems, state 7 (vortex), score 630, play seconds 12, 7873 bytes
+rec_save_states snap s6_wipe.bjr end saved tick 1460 score 630 level 1 gems 56 draws 845; seg0 normal global stream state CHECK6,HOVER11,SAVE1,SELECT5,TARGET5; flags hover; goes with the save
+rec_save_states snap s6_wipe.dat v1 normal level 1 (shown 1), 0 gems, state 8 (level wipe), score 630, play seconds 14, 193 bytes
+rec_save_states save savegame.dat v1 normal level 1 (shown 2), 64 gems, state 1 (playing), score 630, play seconds 18, 7873 bytes
+rec_save_states sidecar savegame.bjr end saved tick 1800 score 630 level 2 gems 56 draws 1006; seg0 normal global stream state CHECK7,HOVER12,SAVE2,SELECT5,TARGET5; flags hover; goes with the save
+rec_save_states status rulesId 0e0943ce3dc5f173, scoreKey -, features seeds(entry), replays(keep 3, hover), 1 warnings, errors -, dropped -
+rec_save_states codec codeccheck: 1800 updates checked, 7 settles, 0 failures
+
+rec_autoplay_normal exit 0
+rec_autoplay_normal mods Stage 3: replays
+rec_autoplay_normal user hiscores.dat mods-status.json registry.ini replays/ replays/*-normal-1415-keep.bjr
+rec_autoplay_normal settles 76
+rec_autoplay_normal last-settle 10376 normal level 2 score 1400 board tick 10373
+rec_autoplay_normal states 5109:vortex 5362:level_wipe 10496:game_over 10825:game_over_done
+rec_autoplay_normal save none
+rec_autoplay_normal replay replays/*-normal-1415-keep.bjr end no moves tick 10822 score 1415 level 2 gems 227 draws 5266; seg0 normal global stream state CHECK76,HINT1,HOVER146,SELECT78,TARGET75; flags hover
+rec_autoplay_normal status rulesId 0e0943ce3dc5f173, scoreKey -, features seeds(entry), replays(keep 3, hover), 1 warnings, errors -, dropped -
+rec_autoplay_normal end update 10825: game over -> game over done, level 2, score 1415, board tick 10822, Rand() draws 5787
+rec_autoplay_normal codec codeccheck: 10923 updates checked, 76 settles, 0 failures
+
+rec_autoplay_timed exit 0
+rec_autoplay_timed mods Stage 3: replays
+rec_autoplay_timed user hiscores.dat mods-status.json registry.ini replays/ replays/*-timed-49500-keep.bjr
+rec_autoplay_timed settles 760
+rec_autoplay_timed last-settle 105159 timed level 10 score 49500 board tick 105155
+rec_autoplay_timed states 2672:fall_out 3800:vortex 4053:level_wipe 5127:fall_out 7810:vortex 8063:level_wipe 9894:fall_out 12405:fall_out 13234:vortex 13487:level_wipe 19041:fall_out 21764:fall_out 25603:vortex 25856:level_wipe 29233:vortex 29486:level_wipe 36097:vortex 36350:level_wipe 51627:vortex 51880:level_wipe 68817:vortex 69070:level_wipe 83046:fall_out 87444:vortex 87697:level_wipe 91025:fall_out 95075:fall_out 105170:game_over 105502:game_over_done
+rec_autoplay_timed save none
+rec_autoplay_timed replay replays/*-timed-49500-keep.bjr end time up tick 105498 score 49500 level 10 gems 2269 draws 28412; seg0 timed global stream state CHECK760,HINT12,HOVER1398,SELECT758,TARGET750; flags hover
+rec_autoplay_timed status rulesId 0e0943ce3dc5f173, scoreKey -, features seeds(entry), replays(keep 3, hover), 1 warnings, errors -, dropped -
+rec_autoplay_timed end update 105502: game over -> game over done, level 10, score 49500, board tick 105498, Rand() draws 29193
+rec_autoplay_timed codec codeccheck: 105600 updates checked, 760 settles, 0 failures
+
+decline exit 0
+decline mods none
+decline user hiscores.dat registry.ini
+decline settle 478 normal level 1 score 0 board tick 139
+decline states none
+decline save none
+
+rec_decline exit 0
+rec_decline mods Stage 3: replays
+rec_decline user hiscores.dat mods-status.json registry.ini replays/ replays/*-normal-90.bjr replays/*-timed-80-keep.bjr
+rec_decline settle 478 normal level 1 score 0 board tick 139
+rec_decline states none
+rec_decline save none
+rec_decline replay replays/*-timed-80-keep.bjr end time up tick 16709 score 80 level 1 gems 7 draws 5143; seg0 timed global stream state CHECK2,HOVER5,PAUSE1,SELECT1,TARGET1,UNPAUSE1; flags hover
+rec_decline replay replays/*-normal-90.bjr end saved tick 880 score 90 level 1 gems 25 draws 285; seg0 normal global stream state CHECK6,HINT1,HOVER14,PAUSE2,SAVE1,SELECT5,TARGET5,UNPAUSE2; flags hover
+rec_decline status rulesId 0e0943ce3dc5f173, scoreKey -, features seeds(entry), replays(keep 3, hover), 1 warnings, errors -, dropped -
+rec_decline codec codeccheck: 301 updates checked, 1 settles, 0 failures
+
+rec_prune exit 0
+rec_prune mods Stage 3: replays
+rec_prune user hiscores.dat mods-status.json registry.ini replays/ replays/*-normal-1-keep.bjr replays/*-normal-5-2.bjr replays/*-normal-6.bjr replays/*-normal-60-keep.bjr replays/*-normal-7.bjr
+rec_prune settle 142 normal level 1 score 0 board tick 139
+rec_prune settle 249 normal level 1 score 0 board tick 246
+rec_prune settle 350 normal level 1 score 10 board tick 347
+rec_prune settle 476 normal level 1 score 20 board tick 473
+rec_prune settle 670 normal level 1 score 50 board tick 667
+rec_prune settle 1501 normal level 1 score 0 board tick 142
+rec_prune states 808:game_over 1141:game_over_done
+rec_prune save none
+rec_prune replay replays/*-normal-1-keep.bjr end no moves tick 1000 score 1 level 1 gems 3 draws 0
+rec_prune replay replays/*-normal-5-2.bjr end no moves tick 1000 score 5 level 1 gems 3 draws 0
+rec_prune replay replays/*-normal-6.bjr end no moves tick 1000 score 6 level 1 gems 3 draws 0
+rec_prune replay replays/*-normal-7.bjr end no moves tick 1000 score 7 level 1 gems 3 draws 0
+rec_prune replay replays/*-normal-60-keep.bjr end no moves tick 1138 score 60 level 1 gems 15 draws 4755; seg0 normal global stream state CHECK5,HOVER12,SELECT5,TARGET5; flags hover
+rec_prune status rulesId 0e0943ce3dc5f173, scoreKey -, features seeds(entry), replays(keep 3, hover), 1 warnings, errors -, dropped -
+rec_prune codec codeccheck: 1597 updates checked, 6 settles, 0 failures
+
+seed_quit exit 0
+seed_quit mods none
+seed_quit user registry.ini savegame.bjr savegame.dat
+seed_quit settle 449 normal level 1 score 0 board tick 150
+seed_quit settle 553 normal level 1 score 10 board tick 254
+seed_quit states none
+seed_quit save savegame.dat v1 normal level 0 (shown 1), 64 gems, state 1 (playing), score 10, play seconds 4, 7873 bytes
+seed_quit sidecar savegame.bjr end saved tick 400 score 10 level 1 gems 3 draws 1702; rng seed 4242 user; goes with the save
+seed_quit seeds 449:4242/user
+seed_quit codec codeccheck: 400 updates checked, 2 settles, 0 failures
+
+seed_quit.resume exit 0
+seed_quit.resume mods none
+seed_quit.resume user registry.ini savegame.bjr savegame.dat
+seed_quit.resume settle 340 normal level 1 score 10 board tick 1
+seed_quit.resume settle 581 normal level 1 score 20 board tick 242
+seed_quit.resume settle 802 normal level 1 score 30 board tick 463
+seed_quit.resume states none
+seed_quit.resume save savegame.dat v1 normal level 0 (shown 1), 64 gems, state 1 (playing), score 30, play seconds 9, 7873 bytes
+seed_quit.resume sidecar savegame.bjr end saved tick 560 score 30 level 1 gems 9 draws 266; rng seed 4242 user; goes with the save
+seed_quit.resume seeds 340:4242/user
+seed_quit.resume codec codeccheck: 600 updates checked, 3 settles, 0 failures
+
+seed_quit.bot exit 0
+seed_quit.bot mods none
+seed_quit.bot user hiscores-seeded.dat registry.ini
+seed_quit.bot settles 38
+seed_quit.bot last-settle 4865 normal level 1 score 430 board tick 4526
+seed_quit.bot states 5005:game_over 5338:game_over_done
+seed_quit.bot save none
+seed_quit.bot seeds 340:4242/user
+seed_quit.bot end update 5338: game over -> game over done, level 1, score 440, board tick 4999, Rand() draws 781
+
+rec_seed_quit_resume exit 0
+rec_seed_quit_resume mods Stage 3: replays
+rec_seed_quit_resume user mods-status.json registry.ini savegame.bjr savegame.dat
+rec_seed_quit_resume settle 340 normal level 1 score 10 board tick 1
+rec_seed_quit_resume settle 581 normal level 1 score 20 board tick 242
+rec_seed_quit_resume settle 802 normal level 1 score 30 board tick 463
+rec_seed_quit_resume states none
+rec_seed_quit_resume save savegame.dat v1 normal level 0 (shown 1), 64 gems, state 1 (playing), score 30, play seconds 9, 7873 bytes
+rec_seed_quit_resume sidecar savegame.bjr end saved tick 560 score 30 level 1 gems 9 draws 266; seg0 normal global stream state +save load(seed 4242 user) CHECK3,HOVER7,LOAD1,PAUSE1,SAVE2,SELECT2,TARGET2,UNPAUSE1; rng seed 4242 user; flags hover; goes with the save
+rec_seed_quit_resume status rulesId 0e0943ce3dc5f173, scoreKey -, features seeds(entry), replays(keep 3, hover), 1 warnings, errors -, dropped -
+rec_seed_quit_resume seeds 340:4242/user
+rec_seed_quit_resume codec codeccheck: 600 updates checked, 3 settles, 0 failures
+
+rec_pergame exit 0
+rec_pergame mods Stage 3: replays with a seed for every game
+rec_pergame user hiscores.dat mods-status.json registry.ini replays/ replays/*-timed-0.bjr savegame.bjr savegame.dat
+rec_pergame settle 439 normal level 1 score 0 board tick 140
+rec_pergame settle 532 normal level 1 score 0 board tick 233
+rec_pergame settle 702 normal level 1 score 10 board tick 403
+rec_pergame settle 832 normal level 1 score 10 board tick 533
+rec_pergame settle 1027 normal level 1 score 40 board tick 728
+rec_pergame settle 1123 normal level 1 score 40 board tick 824
+rec_pergame settle 1405 timed level 1 score 0 board tick 146
+rec_pergame settle 1492 timed level 1 score 0 board tick 233
+rec_pergame settle 18544 timed level 1 score 0 board tick 145
+rec_pergame states 16154:game_over 16486:game_over_done
+rec_pergame save savegame.dat v1 normal level 0 (shown 1), 64 gems, state 1 (playing), score 40, play seconds 8, 7873 bytes
+rec_pergame sidecar savegame.bjr end saved tick 880 score 40 level 1 gems 9 draws 529; seg0 normal seed 2135392491 CHECK6,HOVER14,PAUSE2,SAVE1,SELECT5,TARGET5,UNPAUSE2; rng seed 2135392491; flags hover; goes with the save
+rec_pergame replay replays/*-timed-0.bjr end time up tick 15127 score 0 level 1 gems 0 draws 4611; seg0 timed seed 946286476 CHECK2,HOVER5,PAUSE1,SELECT1,TARGET1,UNPAUSE1; flags hover
+rec_pergame status rulesId 0e0943ce3dc5f173, scoreKey -, features seeds(perGame), replays(keep 3, hover), 1 warnings, errors -, dropped -
+rec_pergame seeds 439:2135392491/pergame 1405:946286476/pergame 18544:491263/pergame
+rec_pergame codec codeccheck: 18431 updates checked, 9 settles, 0 failures
+
+rec_seed_normal exit 0
+rec_seed_normal mods Stage 3: replays
+rec_seed_normal user hiscores-seeded.dat mods-status.json registry.ini replays/ replays/*-normal-3475-keep.bjr
+rec_seed_normal settles 183
+rec_seed_normal last-settle 24974 normal level 4 score 3450 board tick 24971
+rec_seed_normal states 6281:vortex 6534:level_wipe 14061:vortex 14314:level_wipe 22521:vortex 22774:level_wipe 25106:game_over 25439:game_over_done
+rec_seed_normal save none
+rec_seed_normal replay replays/*-normal-3475-keep.bjr end no moves tick 25436 score 3475 level 4 gems 518 draws 7343; seg0 normal seed 4242 user CHECK183,HINT4,HOVER344,SELECT180,TARGET180; flags hover
+rec_seed_normal status rulesId 0e0943ce3dc5f173, scoreKey -, features seeds(entry), replays(keep 3, hover), 1 warnings, errors -, dropped -
+rec_seed_normal seeds 153:4242/user
+rec_seed_normal end update 25439: game over -> game over done, level 4, score 3475, board tick 25436, Rand() draws 1
+rec_seed_normal codec codeccheck: 25537 updates checked, 183 settles, 0 failures
+
+rec_seed_nomatch_timed exit 0
+rec_seed_nomatch_timed mods Stage 3: replays
+rec_seed_nomatch_timed user mods-status.json registry.ini replays/ replays/*-normal-0.bjr savegame.bjr savegame.dat
+rec_seed_nomatch_timed settle 449 normal level 1 score 0 board tick 150
+rec_seed_nomatch_timed settle 532 normal level 1 score 0 board tick 233
+rec_seed_nomatch_timed settle 709 timed level 1 score 0 board tick 150
+rec_seed_nomatch_timed settle 843 timed level 1 score 20 board tick 284
+rec_seed_nomatch_timed settle 1064 normal level 1 score 0 board tick 145
+rec_seed_nomatch_timed states none
+rec_seed_nomatch_timed save savegame.dat v1 timed level 0 (shown 1), 64 gems, state 1 (playing), score 20, play seconds 3, 7873 bytes
+rec_seed_nomatch_timed sidecar savegame.bjr end saved tick 340 score 20 level 1 gems 3 draws 1702; seg0 timed seed 4242 user CHECK2,HOVER4,PAUSE1,SAVE1,SELECT1,TARGET1,UNPAUSE1; rng seed 4242 user; flags hover; goes with the save
+rec_seed_nomatch_timed replay replays/*-normal-0.bjr end abandoned tick 260 score 0 level 1 gems 0 draws 1699; seg0 normal seed 4242 user CHECK2,HOVER4,SELECT1,TARGET1; flags hover
+rec_seed_nomatch_timed status rulesId 0e0943ce3dc5f173, scoreKey -, features seeds(entry), replays(keep 3, hover), 1 warnings, errors -, dropped -
+rec_seed_nomatch_timed seeds 449:4242/user 709:4242/user 1064:-
+rec_seed_nomatch_timed codec codeccheck: 801 updates checked, 5 settles, 0 failures
+
+rec_seed_highscores exit 0
+rec_seed_highscores mods Stage 3: replays
+rec_seed_highscores user hiscores-seeded.dat mods-status.json registry.ini savegame.bjr savegame.dat
+rec_seed_highscores settle 449 normal level 1 score 0 board tick 150
+rec_seed_highscores settle 553 normal level 1 score 10 board tick 254
+rec_seed_highscores settle 842 normal level 1 score 20 board tick 443
+rec_seed_highscores settle 1063 normal level 1 score 30 board tick 664
+rec_seed_highscores states none
+rec_seed_highscores save savegame.dat v1 normal level 0 (shown 1), 64 gems, state 1 (playing), score 30, play seconds 7, 7873 bytes
+rec_seed_highscores sidecar savegame.bjr end saved tick 800 score 30 level 1 gems 9 draws 1708; seg0 normal seed 4242 user CHECK4,HOVER10,PAUSE2,SAVE2,SELECT3,TARGET3,UNPAUSE2; rng seed 4242 user; flags hover; goes with the save
+rec_seed_highscores status rulesId 0e0943ce3dc5f173, scoreKey -, features seeds(entry), replays(keep 3, hover), 1 warnings, errors -, dropped -
+rec_seed_highscores seeds 449:4242/user
+rec_seed_highscores codec codeccheck: 900 updates checked, 4 settles, 0 failures
+
+rec_seed_quit exit 0
+rec_seed_quit mods Stage 3: replays
+rec_seed_quit user mods-status.json registry.ini savegame.bjr savegame.dat
+rec_seed_quit settle 449 normal level 1 score 0 board tick 150
+rec_seed_quit settle 553 normal level 1 score 10 board tick 254
+rec_seed_quit states none
+rec_seed_quit save savegame.dat v1 normal level 0 (shown 1), 64 gems, state 1 (playing), score 10, play seconds 4, 7873 bytes
+rec_seed_quit sidecar savegame.bjr end saved tick 400 score 10 level 1 gems 3 draws 1702; seg0 normal seed 4242 user CHECK2,HOVER4,SAVE2,SELECT1,TARGET1; rng seed 4242 user; flags hover; goes with the save
+rec_seed_quit status rulesId 0e0943ce3dc5f173, scoreKey -, features seeds(entry), replays(keep 3, hover), 1 warnings, errors -, dropped -
+rec_seed_quit seeds 449:4242/user
+rec_seed_quit codec codeccheck: 400 updates checked, 2 settles, 0 failures
+
+rec_seed_quit.bot exit 0
+rec_seed_quit.bot mods Stage 3: replays
+rec_seed_quit.bot user hiscores-seeded.dat mods-status.json registry.ini replays/ replays/*-normal-440-keep.bjr
+rec_seed_quit.bot settles 38
+rec_seed_quit.bot last-settle 4865 normal level 1 score 430 board tick 4526
+rec_seed_quit.bot states 5005:game_over 5338:game_over_done
+rec_seed_quit.bot save none
+rec_seed_quit.bot replay replays/*-normal-440-keep.bjr end no moves tick 4999 score 440 level 1 gems 105 draws 4842; seg0 normal seed 4242 user CHECK2,HOVER4,SAVE2,SELECT1,TARGET1; seg1 normal global stream state load(seed 4242 user) CHECK38,HOVER73,LOAD1,PAUSE1,SELECT40,TARGET38,UNPAUSE1; flags hover+multi
+rec_seed_quit.bot status rulesId 0e0943ce3dc5f173, scoreKey -, features seeds(entry), replays(keep 3, hover), 1 warnings, errors -, dropped -
+rec_seed_quit.bot seeds 340:4242/user
+rec_seed_quit.bot end update 5338: game over -> game over done, level 1, score 440, board tick 4999, Rand() draws 781
+rec_seed_quit.bot codec codeccheck: 5436 updates checked, 38 settles, 0 failures
+
+keyed_hint exit 0
+keyed_hint mods Stage 2: tunables only
+keyed_hint user registry.ini savegame-26c65d57.dat
+keyed_hint settle 438 normal level 1 score 0 board tick 139
+keyed_hint settle 586 normal level 1 score 30 board tick 287
+keyed_hint states none
+keyed_hint save savegame-26c65d57.dat v1 normal level 0 (shown 1), 64 gems, state 1 (playing), score 5, play seconds 6, 7873 bytes
+
+rec_keyed_hint exit 0
+rec_keyed_hint mods Stage 2: tunables only, Stage 3: replays
+rec_keyed_hint user mods-status.json registry.ini savegame-26c65d57.bjr savegame-26c65d57.dat
+rec_keyed_hint settle 438 normal level 1 score 0 board tick 139
+rec_keyed_hint settle 586 normal level 1 score 30 board tick 287
+rec_keyed_hint states none
+rec_keyed_hint save savegame-26c65d57.dat v1 normal level 0 (shown 1), 64 gems, state 1 (playing), score 5, play seconds 6, 7873 bytes
+rec_keyed_hint sidecar savegame-26c65d57.bjr end saved tick 600 score 5 level 1 gems 6 draws 266; seg0 normal global stream state CHECK2,HINT1,HOVER4,SAVE2,SELECT1,TARGET1; flags hover; goes with the save
+rec_keyed_hint status rulesId 456779146ae9a977, scoreKey 26c65d57, features seeds(entry), replays(keep 3, hover), 1 warnings, errors -, dropped -
+rec_keyed_hint codec codeccheck: 600 updates checked, 2 settles, 0 failures
+
+watch_main_timed exit 0
+watch_main_timed mods none
+watch_main_timed user registry.ini
+watch_main_timed settles 2
+watch_main_timed last-settle 587 timed level 1 score 80 board tick 287
+watch_main_timed states 16677:game_over 17009:game_over_done
+watch_main_timed save none
+watch_main_timed codec codeccheck: 16711 updates checked, 2 settles, 0 failures
+watch_main_timed watch REPLAY end: ok, 2 CHECKs, END time up tick 16709 score 80 level 1 gems 7 draws 5143
+
+watch_main_sidecar exit 0
+watch_main_sidecar mods none
+watch_main_sidecar user registry.ini
+watch_main_sidecar settles 6
+watch_main_sidecar last-settle 1133 normal level 1 score 90 board tick 833
+watch_main_sidecar states none
+watch_main_sidecar save none
+watch_main_sidecar codec codeccheck: 882 updates checked, 6 settles, 0 failures
+watch_main_sidecar watch REPLAY end: ok, 6 CHECKs, END saved tick 880 score 90 level 1 gems 25 draws 285
+
+watch_load exit 0
+watch_load mods none
+watch_load user registry.ini
+watch_load settles 7
+watch_load last-settle 1182 normal level 1 score 90 board tick 1
+watch_load states none
+watch_load save none
+watch_load codec codeccheck: 1143 updates checked, 7 settles, 0 failures
+watch_load watch REPLAY end: ok, 7 CHECKs, END saved tick 260 score 90 level 1 gems 25 draws 260
+
+watch_level exit 0
+watch_level mods none
+watch_level user registry.ini
+watch_level settles 6
+watch_level last-settle 1944 normal level 2 score 630 board tick 1644
+watch_level states 1392:vortex 1645:level_wipe
+watch_level save none
+watch_level codec codeccheck: 1702 updates checked, 6 settles, 0 failures
+watch_level watch REPLAY end: ok, 6 CHECKs, END saved tick 1700 score 630 level 2 gems 56 draws 1004
+
+watch_drag_swaps exit 0
+watch_drag_swaps mods none
+watch_drag_swaps user registry.ini
+watch_drag_swaps settles 10
+watch_drag_swaps last-settle 1663 normal level 1 score 160 board tick 1363
+watch_drag_swaps states none
+watch_drag_swaps save none
+watch_drag_swaps codec codeccheck: 1502 updates checked, 10 settles, 0 failures
+watch_drag_swaps watch REPLAY end: ok, 10 CHECKs, END saved tick 1500 score 160 level 1 gems 36 draws 296
+
+watch_falling_select exit 0
+watch_falling_select mods none
+watch_falling_select user registry.ini
+watch_falling_select settles 5
+watch_falling_select last-settle 1027 normal level 1 score 100 board tick 727
+watch_falling_select states none
+watch_falling_select save none
+watch_falling_select codec codeccheck: 902 updates checked, 5 settles, 0 failures
+watch_falling_select watch REPLAY end: ok, 5 CHECKs, END saved tick 900 score 100 level 1 gems 19 draws 279
+
+watch_options_highscores exit 0
+watch_options_highscores mods none
+watch_options_highscores user registry.ini
+watch_options_highscores settles 3
+watch_options_highscores last-settle 763 normal level 1 score 40 board tick 463
+watch_options_highscores states none
+watch_options_highscores save none
+watch_options_highscores codec codeccheck: 802 updates checked, 3 settles, 0 failures
+watch_options_highscores watch REPLAY end: ok, 3 CHECKs, END saved tick 800 score 40 level 1 gems 9 draws 269
+
+watch_pause exit 0
+watch_pause mods none
+watch_pause user registry.ini
+watch_pause settles 2
+watch_pause last-settle 587 normal level 1 score 30 board tick 287
+watch_pause states none
+watch_pause save none
+watch_pause codec codeccheck: 962 updates checked, 2 settles, 0 failures
+watch_pause watch REPLAY end: ok, 2 CHECKs, END saved tick 960 score 30 level 1 gems 6 draws 266
+
+watch_nomoves_normal exit 0
+watch_nomoves_normal mods none
+watch_nomoves_normal user registry.ini
+watch_nomoves_normal settles 5
+watch_nomoves_normal last-settle 967 normal level 1 score 50 board tick 667
+watch_nomoves_normal states 1105:game_over 1438:game_over_done
+watch_nomoves_normal save none
+watch_nomoves_normal codec codeccheck: 1140 updates checked, 5 settles, 0 failures
+watch_nomoves_normal watch REPLAY end: ok, 5 CHECKs, END no moves tick 1138 score 60 level 1 gems 15 draws 4755
+
+watch_timed_fallout exit 0
+watch_timed_fallout mods none
+watch_timed_fallout user registry.ini
+watch_timed_fallout settles 32
+watch_timed_fallout last-settle 4918 timed level 2 score 630 board tick 4618
+watch_timed_fallout states 2968:fall_out 4096:vortex 4349:level_wipe
+watch_timed_fallout save none
+watch_timed_fallout codec codeccheck: 4697 updates checked, 32 settles, 0 failures
+watch_timed_fallout watch REPLAY end: ok, 32 CHECKs, END saved tick 4695 score 630 level 2 gems 73 draws 3036
+
+watch_timed_fallout_load exit 0
+watch_timed_fallout_load mods none
+watch_timed_fallout_load user registry.ini
+watch_timed_fallout_load settles 33
+watch_timed_fallout_load last-settle 4997 timed level 2 score 630 board tick 1
+watch_timed_fallout_load states 2968:fall_out 4096:vortex 4349:level_wipe
+watch_timed_fallout_load save none
+watch_timed_fallout_load codec codeccheck: 5658 updates checked, 33 settles, 0 failures
+watch_timed_fallout_load watch REPLAY end: ok, 33 CHECKs, END saved tick 960 score 630 level 2 gems 73 draws 260
+
+watch_mode_switch exit 0
+watch_mode_switch mods none
+watch_mode_switch user registry.ini
+watch_mode_switch settles 2
+watch_mode_switch last-settle 598 timed level 1 score 60 board tick 298
+watch_mode_switch states none
+watch_mode_switch save none
+watch_mode_switch codec codeccheck: 402 updates checked, 2 settles, 0 failures
+watch_mode_switch watch REPLAY end: ok, 2 CHECKs, END saved tick 400 score 60 level 1 gems 6 draws 395
+
+watch_mode_switch_load exit 0
+watch_mode_switch_load mods none
+watch_mode_switch_load user registry.ini
+watch_mode_switch_load settles 3
+watch_mode_switch_load last-settle 702 timed level 1 score 60 board tick 1
+watch_mode_switch_load states none
+watch_mode_switch_load save none
+watch_mode_switch_load codec codeccheck: 1363 updates checked, 3 settles, 0 failures
+watch_mode_switch_load watch REPLAY end: ok, 3 CHECKs, END saved tick 960 score 60 level 1 gems 6 draws 260
+
+watch_save_states exit 0
+watch_save_states mods none
+watch_save_states user registry.ini
+watch_save_states settles 7
+watch_save_states last-settle 2023 normal level 2 score 630 board tick 1723
+watch_save_states states 1470:vortex 1723:level_wipe
+watch_save_states save none
+watch_save_states codec codeccheck: 1802 updates checked, 7 settles, 0 failures
+watch_save_states watch REPLAY end: ok, 7 CHECKs, END saved tick 1800 score 630 level 2 gems 56 draws 1006
+
+watch_save_states.s1_clearing exit 0
+watch_save_states.s1_clearing mods none
+watch_save_states.s1_clearing user registry.ini
+watch_save_states.s1_clearing settles 1
+watch_save_states.s1_clearing last-settle 440 normal level 1 score 0 board tick 140
+watch_save_states.s1_clearing states none
+watch_save_states.s1_clearing save none
+watch_save_states.s1_clearing codec codeccheck: 197 updates checked, 1 settles, 0 failures
+watch_save_states.s1_clearing watch REPLAY end: ok, 1 CHECKs, END saved tick 195 score 60 level 1 gems 9 draws 780
+
+watch_save_states.s2_falling exit 0
+watch_save_states.s2_falling mods none
+watch_save_states.s2_falling user registry.ini
+watch_save_states.s2_falling settles 1
+watch_save_states.s2_falling last-settle 440 normal level 1 score 0 board tick 140
+watch_save_states.s2_falling states none
+watch_save_states.s2_falling save none
+watch_save_states.s2_falling codec codeccheck: 222 updates checked, 1 settles, 0 failures
+watch_save_states.s2_falling watch REPLAY end: ok, 1 CHECKs, END saved tick 220 score 60 level 1 gems 9 draws 788
+
+watch_save_states.s3_swapping exit 0
+watch_save_states.s3_swapping mods none
+watch_save_states.s3_swapping user registry.ini
+watch_save_states.s3_swapping settles 2
+watch_save_states.s3_swapping last-settle 668 normal level 1 score 240 board tick 368
+watch_save_states.s3_swapping states none
+watch_save_states.s3_swapping save none
+watch_save_states.s3_swapping codec codeccheck: 392 updates checked, 2 settles, 0 failures
+watch_save_states.s3_swapping watch REPLAY end: ok, 2 CHECKs, END saved tick 390 score 240 level 1 gems 18 draws 797
+
+watch_save_states.s4_swapping_back exit 0
+watch_save_states.s4_swapping_back mods none
+watch_save_states.s4_swapping_back user registry.ini
+watch_save_states.s4_swapping_back settles 2
+watch_save_states.s4_swapping_back last-settle 668 normal level 1 score 240 board tick 368
+watch_save_states.s4_swapping_back states none
+watch_save_states.s4_swapping_back save none
+watch_save_states.s4_swapping_back codec codeccheck: 422 updates checked, 2 settles, 0 failures
+watch_save_states.s4_swapping_back watch REPLAY end: ok, 2 CHECKs, END saved tick 420 score 240 level 1 gems 18 draws 797
+
+watch_save_states.s5_vortex exit 0
+watch_save_states.s5_vortex mods none
+watch_save_states.s5_vortex user registry.ini
+watch_save_states.s5_vortex settles 6
+watch_save_states.s5_vortex last-settle 1469 normal level 1 score 630 board tick 1169
+watch_save_states.s5_vortex states 1470:vortex
+watch_save_states.s5_vortex save none
+watch_save_states.s5_vortex codec codeccheck: 1262 updates checked, 6 settles, 0 failures
+watch_save_states.s5_vortex watch REPLAY end: ok, 6 CHECKs, END saved tick 1260 score 630 level 1 gems 56 draws 835
+
+watch_save_states.s6_wipe exit 0
+watch_save_states.s6_wipe mods none
+watch_save_states.s6_wipe user registry.ini
+watch_save_states.s6_wipe settles 6
+watch_save_states.s6_wipe last-settle 1469 normal level 1 score 630 board tick 1169
+watch_save_states.s6_wipe states 1470:vortex 1723:level_wipe
+watch_save_states.s6_wipe save none
+watch_save_states.s6_wipe codec codeccheck: 1462 updates checked, 6 settles, 0 failures
+watch_save_states.s6_wipe watch REPLAY end: ok, 6 CHECKs, END saved tick 1460 score 630 level 1 gems 56 draws 845
+
+watch_autoplay_normal exit 0
+watch_autoplay_normal mods none
+watch_autoplay_normal user registry.ini
+watch_autoplay_normal settles 76
+watch_autoplay_normal last-settle 10673 normal level 2 score 1400 board tick 10373
+watch_autoplay_normal states 5406:vortex 5659:level_wipe 10793:game_over 11122:game_over_done
+watch_autoplay_normal save none
+watch_autoplay_normal codec codeccheck: 10824 updates checked, 76 settles, 0 failures
+watch_autoplay_normal watch REPLAY end: ok, 76 CHECKs, END no moves tick 10822 score 1415 level 2 gems 227 draws 5266
+
+watch_autoplay_timed exit 0
+watch_autoplay_timed mods none
+watch_autoplay_timed user registry.ini
+watch_autoplay_timed settles 760
+watch_autoplay_timed last-settle 105455 timed level 10 score 49500 board tick 105155
+watch_autoplay_timed states 2968:fall_out 4096:vortex 4349:level_wipe 5423:fall_out 8106:vortex 8359:level_wipe 10190:fall_out 12701:fall_out 13530:vortex 13783:level_wipe 19337:fall_out 22060:fall_out 25899:vortex 26152:level_wipe 29529:vortex 29782:level_wipe 36393:vortex 36646:level_wipe 51923:vortex 52176:level_wipe 69113:vortex 69366:level_wipe 83342:fall_out 87740:vortex 87993:level_wipe 91321:fall_out 95371:fall_out 105466:game_over 105798:game_over_done
+watch_autoplay_timed save none
+watch_autoplay_timed codec codeccheck: 105500 updates checked, 760 settles, 0 failures
+watch_autoplay_timed watch REPLAY end: ok, 760 CHECKs, END time up tick 105498 score 49500 level 10 gems 2269 draws 28412
+
+watch_decline exit 0
+watch_decline mods none
+watch_decline user registry.ini
+watch_decline settles 6
+watch_decline last-settle 1133 normal level 1 score 90 board tick 833
+watch_decline states none
+watch_decline save none
+watch_decline codec codeccheck: 882 updates checked, 6 settles, 0 failures
+watch_decline watch REPLAY end: ok, 6 CHECKs, END saved tick 880 score 90 level 1 gems 25 draws 285
+
+watch_seed_quit_resume exit 0
+watch_seed_quit_resume mods none
+watch_seed_quit_resume user registry.ini
+watch_seed_quit_resume settles 3
+watch_seed_quit_resume last-settle 763 normal level 1 score 30 board tick 463
+watch_seed_quit_resume states none
+watch_seed_quit_resume save none
+watch_seed_quit_resume seeds 301:4242/user
+watch_seed_quit_resume codec codeccheck: 562 updates checked, 3 settles, 0 failures
+watch_seed_quit_resume watch REPLAY end: ok, 3 CHECKs, END saved tick 560 score 30 level 1 gems 9 draws 266
+
+watch_pergame_timed exit 0
+watch_pergame_timed mods none
+watch_pergame_timed user registry.ini
+watch_pergame_timed settles 2
+watch_pergame_timed last-settle 533 timed level 1 score 0 board tick 233
+watch_pergame_timed states 15095:game_over 15427:game_over_done
+watch_pergame_timed save none
+watch_pergame_timed seeds 446:946286476/pergame
+watch_pergame_timed codec codeccheck: 15129 updates checked, 2 settles, 0 failures
+watch_pergame_timed watch REPLAY end: ok, 2 CHECKs, END time up tick 15127 score 0 level 1 gems 0 draws 4611
+
+watch_pergame_sidecar exit 0
+watch_pergame_sidecar mods none
+watch_pergame_sidecar user registry.ini
+watch_pergame_sidecar settles 6
+watch_pergame_sidecar last-settle 1124 normal level 1 score 40 board tick 824
+watch_pergame_sidecar states none
+watch_pergame_sidecar save none
+watch_pergame_sidecar seeds 440:2135392491/pergame
+watch_pergame_sidecar codec codeccheck: 882 updates checked, 6 settles, 0 failures
+watch_pergame_sidecar watch REPLAY end: ok, 6 CHECKs, END saved tick 880 score 40 level 1 gems 9 draws 529
+
+watch_seed_normal exit 0
+watch_seed_normal mods none
+watch_seed_normal user registry.ini
+watch_seed_normal settles 183
+watch_seed_normal last-settle 25271 normal level 4 score 3450 board tick 24971
+watch_seed_normal states 6578:vortex 6831:level_wipe 14358:vortex 14611:level_wipe 22818:vortex 23071:level_wipe 25403:game_over 25736:game_over_done
+watch_seed_normal save none
+watch_seed_normal seeds 450:4242/user
+watch_seed_normal codec codeccheck: 25438 updates checked, 183 settles, 0 failures
+watch_seed_normal watch REPLAY end: ok, 183 CHECKs, END no moves tick 25436 score 3475 level 4 gems 518 draws 7343
+
+watch_seed_abandoned exit 0
+watch_seed_abandoned mods none
+watch_seed_abandoned user registry.ini
+watch_seed_abandoned settles 2
+watch_seed_abandoned last-settle 533 normal level 1 score 0 board tick 233
+watch_seed_abandoned states none
+watch_seed_abandoned save none
+watch_seed_abandoned seeds 450:4242/user
+watch_seed_abandoned codec codeccheck: 262 updates checked, 2 settles, 0 failures
+watch_seed_abandoned watch REPLAY end: ok, 2 CHECKs, END abandoned tick 260 score 0 level 1 gems 0 draws 1699
+
+watch_seed_timed exit 0
+watch_seed_timed mods none
+watch_seed_timed user registry.ini
+watch_seed_timed settles 2
+watch_seed_timed last-settle 584 timed level 1 score 20 board tick 284
+watch_seed_timed states none
+watch_seed_timed save none
+watch_seed_timed seeds 450:4242/user
+watch_seed_timed codec codeccheck: 342 updates checked, 2 settles, 0 failures
+watch_seed_timed watch REPLAY end: ok, 2 CHECKs, END saved tick 340 score 20 level 1 gems 3 draws 1702
+
+watch_seed_highscores exit 0
+watch_seed_highscores mods none
+watch_seed_highscores user registry.ini
+watch_seed_highscores settles 4
+watch_seed_highscores last-settle 964 normal level 1 score 30 board tick 664
+watch_seed_highscores states none
+watch_seed_highscores save none
+watch_seed_highscores seeds 450:4242/user
+watch_seed_highscores codec codeccheck: 802 updates checked, 4 settles, 0 failures
+watch_seed_highscores watch REPLAY end: ok, 4 CHECKs, END saved tick 800 score 30 level 1 gems 9 draws 1708
+
+watch_seed_quit exit 0
+watch_seed_quit mods none
+watch_seed_quit user registry.ini
+watch_seed_quit settles 2
+watch_seed_quit last-settle 554 normal level 1 score 10 board tick 254
+watch_seed_quit states none
+watch_seed_quit save none
+watch_seed_quit seeds 450:4242/user
+watch_seed_quit codec codeccheck: 402 updates checked, 2 settles, 0 failures
+watch_seed_quit watch REPLAY end: ok, 2 CHECKs, END saved tick 400 score 10 level 1 gems 3 draws 1702
+
+watch_seed_quit_bot exit 0
+watch_seed_quit_bot mods none
+watch_seed_quit_bot user registry.ini
+watch_seed_quit_bot settles 40
+watch_seed_quit_bot last-settle 5227 normal level 1 score 430 board tick 4526
+watch_seed_quit_bot states 5367:game_over 5700:game_over_done
+watch_seed_quit_bot save none
+watch_seed_quit_bot seeds 450:4242/user 702:4242/user
+watch_seed_quit_bot codec codeccheck: 5402 updates checked, 40 settles, 0 failures
+watch_seed_quit_bot watch REPLAY end: ok, 40 CHECKs, END no moves tick 4999 score 440 level 1 gems 105 draws 4842
+
+watch_keyed_hint exit 0
+watch_keyed_hint mods none
+watch_keyed_hint user registry.ini
+watch_keyed_hint settles 2
+watch_keyed_hint last-settle 587 normal level 1 score 30 board tick 287
+watch_keyed_hint states none
+watch_keyed_hint save none
+watch_keyed_hint codec codeccheck: 602 updates checked, 2 settles, 0 failures
+watch_keyed_hint watch REPLAY end: ok, 2 CHECKs, END saved tick 600 score 5 level 1 gems 6 draws 266
+
+watch_corrupt_check exit 0
+watch_corrupt_check mods none
+watch_corrupt_check user registry.ini
+watch_corrupt_check settles 1
+watch_corrupt_check last-settle 439 normal level 1 score 0 board tick 139
+watch_corrupt_check states none
+watch_corrupt_check save none
+watch_corrupt_check codec codeccheck: 141 updates checked, 1 settles, 0 failures
+watch_corrupt_check watch REPLAY end: CORRUPT at segment 0 tick 139 event 1 CHECK 812275216139379168: LOGIC hash 0b45c80165d761e1, the replay's 0b45c80165d761e0
+
+watch_corrupt_select exit 0
+watch_corrupt_select mods none
+watch_corrupt_select user registry.ini
+watch_corrupt_select settles 1
+watch_corrupt_select last-settle 439 normal level 1 score 0 board tick 139
+watch_corrupt_select states none
+watch_corrupt_select save none
+watch_corrupt_select codec codeccheck: 162 updates checked, 1 settles, 0 failures
+watch_corrupt_select watch REPLAY end: CORRUPT at segment 0 tick 160 event 7 SELECT 5 5: a selection MouseDown would not make
+
+watch_corrupt_unpause exit 0
+watch_corrupt_unpause mods none
+watch_corrupt_unpause user registry.ini
+watch_corrupt_unpause settles 1
+watch_corrupt_unpause last-settle 439 normal level 1 score 0 board tick 139
+watch_corrupt_unpause states none
+watch_corrupt_unpause save none
+watch_corrupt_unpause codec codeccheck: 262 updates checked, 1 settles, 0 failures
+watch_corrupt_unpause watch REPLAY end: CORRUPT at segment 0 tick 260: the board is paused at tick 260, and no event unpauses it
+
+watch_corrupt_end exit 0
+watch_corrupt_end mods none
+watch_corrupt_end user registry.ini
+watch_corrupt_end settles 2
+watch_corrupt_end last-settle 587 normal level 1 score 30 board tick 287
+watch_corrupt_end states none
+watch_corrupt_end save none
+watch_corrupt_end codec codeccheck: 962 updates checked, 2 settles, 0 failures
+watch_corrupt_end watch REPLAY end: CORRUPT at segment 0 tick 960: END differs: tick 960 score 30 level 1 gems 6 draws 266 hash 6fdd57e4b3b15d1e, the replay's tick 960 score 31 level 1 gems 6 draws 266 hash 6fdd57e4b3b15d1e
+
+rec_main_nohover exit 0
+rec_main_nohover mods Stage 3: replays without the hover channel
+rec_main_nohover user hiscores.dat mods-status.json registry.ini replays/ replays/*-timed-80-keep.bjr savegame.bjr savegame.dat
+rec_main_nohover settle 438 normal level 1 score 0 board tick 139
+rec_main_nohover settle 586 normal level 1 score 30 board tick 287
+rec_main_nohover settle 747 normal level 1 score 100 board tick 448
+rec_main_nohover settle 861 normal level 1 score 130 board tick 562
+rec_main_nohover settle 952 normal level 1 score 130 board tick 653
+rec_main_nohover settle 1132 normal level 1 score 90 board tick 833
+rec_main_nohover settle 1403 timed level 1 score 0 board tick 144
+rec_main_nohover settle 1546 timed level 1 score 80 board tick 287
+rec_main_nohover settle 18544 timed level 1 score 0 board tick 145
+rec_main_nohover states 17736:game_over 18068:game_over_done
+rec_main_nohover save savegame.dat v1 normal level 0 (shown 1), 64 gems, state 1 (playing), score 90, play seconds 8, 7873 bytes
+rec_main_nohover sidecar savegame.bjr end saved tick 880 score 90 level 1 gems 25 draws 285; seg0 normal global stream state CHECK6,HINT1,PAUSE2,SAVE1,SELECT5,TARGET5,UNPAUSE2; goes with the save
+rec_main_nohover replay replays/*-timed-80-keep.bjr end time up tick 16709 score 80 level 1 gems 7 draws 5143; seg0 timed global stream state CHECK2,PAUSE1,SELECT1,TARGET1,UNPAUSE1
+rec_main_nohover status rulesId 0e0943ce3dc5f173, scoreKey -, features seeds(entry), replays(keep 3), 1 warnings, errors -, dropped -
+rec_main_nohover codec codeccheck: 18431 updates checked, 9 settles, 0 failures
+
+rec_load_hover_on exit 0
+rec_load_hover_on mods Stage 3: replays
+rec_load_hover_on user hiscores.dat mods-status.json registry.ini replays/ replays/*-timed-80-keep.bjr savegame.bjr savegame.dat
+rec_load_hover_on settle 340 normal level 1 score 90 board tick 1
+rec_load_hover_on states none
+rec_load_hover_on save savegame.dat v1 normal level 0 (shown 1), 64 gems, state 1 (playing), score 90, play seconds 10, 7873 bytes
+rec_load_hover_on sidecar savegame.bjr end saved tick 260 score 90 level 1 gems 25 draws 260; seg0 normal global stream state CHECK6,HINT1,PAUSE2,SAVE1,SELECT5,TARGET5,UNPAUSE2; seg1 normal global stream state load(global stream) CHECK1,HOVER3,LOAD1,PAUSE1,SAVE2,UNPAUSE1; flags multi; goes with the save
+rec_load_hover_on replay replays/*-timed-80-keep.bjr end time up tick 16709 score 80 level 1 gems 7 draws 5143; seg0 timed global stream state CHECK2,PAUSE1,SELECT1,TARGET1,UNPAUSE1
+rec_load_hover_on status rulesId 0e0943ce3dc5f173, scoreKey -, features seeds(entry), replays(keep 3, hover), 1 warnings, errors -, dropped -
+rec_load_hover_on codec codeccheck: 300 updates checked, 1 settles, 0 failures
+
+rec_load_hover_off exit 0
+rec_load_hover_off mods Stage 3: replays without the hover channel
+rec_load_hover_off user hiscores.dat mods-status.json registry.ini replays/ replays/*-timed-80-keep.bjr savegame.bjr savegame.dat
+rec_load_hover_off settle 340 normal level 1 score 90 board tick 1
+rec_load_hover_off states none
+rec_load_hover_off save savegame.dat v1 normal level 0 (shown 1), 64 gems, state 1 (playing), score 90, play seconds 10, 7873 bytes
+rec_load_hover_off sidecar savegame.bjr end saved tick 260 score 90 level 1 gems 25 draws 260; seg0 normal global stream state CHECK6,HINT1,HOVER14,PAUSE2,SAVE1,SELECT5,TARGET5,UNPAUSE2; seg1 normal global stream state load(global stream) CHECK1,LOAD1,PAUSE1,SAVE2,UNPAUSE1; flags multi; goes with the save
+rec_load_hover_off replay replays/*-timed-80-keep.bjr end time up tick 16709 score 80 level 1 gems 7 draws 5143; seg0 timed global stream state CHECK2,HOVER5,PAUSE1,SELECT1,TARGET1,UNPAUSE1; flags hover
+rec_load_hover_off status rulesId 0e0943ce3dc5f173, scoreKey -, features seeds(entry), replays(keep 3), 1 warnings, errors -, dropped -
+rec_load_hover_off codec codeccheck: 300 updates checked, 1 settles, 0 failures
+
+quit_midswap exit 0
+quit_midswap mods none
+quit_midswap user registry.ini savegame.dat
+quit_midswap settle 438 normal level 1 score 0 board tick 139
+quit_midswap settle 586 normal level 1 score 30 board tick 287
+quit_midswap states none
+quit_midswap save savegame.dat v1 normal level 0 (shown 1), 64 gems, state 1 (playing), score 30, play seconds 3, 7873 bytes
+
+rec_quit_midswap exit 0
+rec_quit_midswap mods Stage 3: replays
+rec_quit_midswap user mods-status.json registry.ini savegame.bjr savegame.dat
+rec_quit_midswap settle 438 normal level 1 score 0 board tick 139
+rec_quit_midswap settle 586 normal level 1 score 30 board tick 287
+rec_quit_midswap states none
+rec_quit_midswap save savegame.dat v1 normal level 0 (shown 1), 64 gems, state 1 (playing), score 30, play seconds 3, 7873 bytes
+rec_quit_midswap sidecar savegame.bjr end saved tick 310 score 30 level 1 gems 6 draws 266; seg0 normal global stream state CHECK2,HOVER6,SAVE2,SELECT2,TARGET2; flags hover; goes with the save
+rec_quit_midswap status rulesId 0e0943ce3dc5f173, scoreKey -, features seeds(entry), replays(keep 3, hover), 1 warnings, errors -, dropped -
+rec_quit_midswap codec codeccheck: 310 updates checked, 2 settles, 0 failures
+
+mode_switch_match exit 0
+mode_switch_match mods none
+mode_switch_match user registry.ini savegame.dat
+mode_switch_match settle 457 timed level 1 score 0 board tick 138
+mode_switch_match settle 617 timed level 1 score 60 board tick 298
+mode_switch_match settle 908 normal level 1 score 0 board tick 139
+mode_switch_match settle 1023 normal level 1 score 10 board tick 254
+mode_switch_match states none
+mode_switch_match save savegame.dat v1 normal level 0 (shown 1), 64 gems, state 1 (playing), score 10, play seconds 4, 7873 bytes
+
+rec_mode_switch_match exit 0
+rec_mode_switch_match mods Stage 3: replays
+rec_mode_switch_match user mods-status.json registry.ini replays/ replays/*-timed-60.bjr savegame.bjr savegame.dat
+rec_mode_switch_match settle 457 timed level 1 score 0 board tick 138
+rec_mode_switch_match settle 617 timed level 1 score 60 board tick 298
+rec_mode_switch_match settle 908 normal level 1 score 0 board tick 139
+rec_mode_switch_match settle 1023 normal level 1 score 10 board tick 254
+rec_mode_switch_match states none
+rec_mode_switch_match save savegame.dat v1 normal level 0 (shown 1), 64 gems, state 1 (playing), score 10, play seconds 4, 7873 bytes
+rec_mode_switch_match sidecar savegame.bjr end saved tick 430 score 10 level 1 gems 3 draws 266; seg0 normal global stream state CHECK2,HOVER4,SAVE2,SELECT1,TARGET1; flags hover; goes with the save
+rec_mode_switch_match replay replays/*-timed-60.bjr end saved tick 400 score 60 level 1 gems 6 draws 395; seg0 timed global stream state CHECK2,HOVER6,PAUSE2,SAVE1,SELECT1,TARGET1,UNPAUSE2; flags hover
+rec_mode_switch_match status rulesId 0e0943ce3dc5f173, scoreKey -, features seeds(entry), replays(keep 3, hover), 1 warnings, errors -, dropped -
+rec_mode_switch_match codec codeccheck: 900 updates checked, 4 settles, 0 failures
+
+watch_main_nohover exit 0
+watch_main_nohover mods none
+watch_main_nohover user registry.ini
+watch_main_nohover settles 6
+watch_main_nohover last-settle 1133 normal level 1 score 90 board tick 833
+watch_main_nohover states none
+watch_main_nohover save none
+watch_main_nohover codec codeccheck: 882 updates checked, 6 settles, 0 failures
+watch_main_nohover watch REPLAY end: ok, 6 CHECKs, END saved tick 880 score 90 level 1 gems 25 draws 285
+
+watch_load_hover_on exit 0
+watch_load_hover_on mods none
+watch_load_hover_on user registry.ini
+watch_load_hover_on settles 7
+watch_load_hover_on last-settle 1182 normal level 1 score 90 board tick 1
+watch_load_hover_on states none
+watch_load_hover_on save none
+watch_load_hover_on codec codeccheck: 1143 updates checked, 7 settles, 0 failures
+watch_load_hover_on watch REPLAY end: ok, 7 CHECKs, END saved tick 260 score 90 level 1 gems 25 draws 260
+
+watch_load_hover_off exit 0
+watch_load_hover_off mods none
+watch_load_hover_off user registry.ini
+watch_load_hover_off settles 7
+watch_load_hover_off last-settle 1182 normal level 1 score 90 board tick 1
+watch_load_hover_off states none
+watch_load_hover_off save none
+watch_load_hover_off codec codeccheck: 1143 updates checked, 7 settles, 0 failures
+watch_load_hover_off watch REPLAY end: ok, 7 CHECKs, END saved tick 260 score 90 level 1 gems 25 draws 260
+
+watch_quit_midswap exit 0
+watch_quit_midswap mods none
+watch_quit_midswap user registry.ini
+watch_quit_midswap settles 2
+watch_quit_midswap last-settle 587 normal level 1 score 30 board tick 287
+watch_quit_midswap states none
+watch_quit_midswap save none
+watch_quit_midswap codec codeccheck: 312 updates checked, 2 settles, 0 failures
+watch_quit_midswap watch REPLAY end: ok, 2 CHECKs, END saved tick 310 score 30 level 1 gems 6 draws 266
+
+watch_mode_switch_kept exit 0
+watch_mode_switch_kept mods none
+watch_mode_switch_kept user registry.ini
+watch_mode_switch_kept settles 2
+watch_mode_switch_kept last-settle 598 timed level 1 score 60 board tick 298
+watch_mode_switch_kept states none
+watch_mode_switch_kept save none
+watch_mode_switch_kept codec codeccheck: 402 updates checked, 2 settles, 0 failures
+watch_mode_switch_kept watch REPLAY end: ok, 2 CHECKs, END saved tick 400 score 60 level 1 gems 6 draws 395
+
+watch_mode_switch_match exit 0
+watch_mode_switch_match mods none
+watch_mode_switch_match user registry.ini
+watch_mode_switch_match settles 2
+watch_mode_switch_match last-settle 554 normal level 1 score 10 board tick 254
+watch_mode_switch_match states none
+watch_mode_switch_match save none
+watch_mode_switch_match codec codeccheck: 432 updates checked, 2 settles, 0 failures
+watch_mode_switch_match watch REPLAY end: ok, 2 CHECKs, END saved tick 430 score 10 level 1 gems 3 draws 266
+
+watch_seed_quit_highscores exit 0
+watch_seed_quit_highscores mods none
+watch_seed_quit_highscores user hiscores.dat registry.ini
+watch_seed_quit_highscores settles 2
+watch_seed_quit_highscores last-settle 614 normal level 1 score 10 board tick 254
+watch_seed_quit_highscores states none
+watch_seed_quit_highscores save none
+watch_seed_quit_highscores seeds 510:4242/user
+watch_seed_quit_highscores codec codeccheck: 462 updates checked, 2 settles, 0 failures
+watch_seed_quit_highscores watch REPLAY end: ok, 2 CHECKs, END saved tick 400 score 10 level 1 gems 3 draws 1702
+
+rec_load_engine1 exit 0
+rec_load_engine1 mods Stage 3: replays
+rec_load_engine1 user hiscores.dat mods-status.json registry.ini replays/ replays/*-timed-80-keep.bjr savegame.bjr savegame.dat
+rec_load_engine1 settle 340 normal level 1 score 90 board tick 1
+rec_load_engine1 states none
+rec_load_engine1 save savegame.dat v1 normal level 0 (shown 1), 64 gems, state 1 (playing), score 90, play seconds 10, 7873 bytes
+rec_load_engine1 sidecar savegame.bjr end saved tick 260 score 90 level 1 gems 25 draws 260; seg0 normal global stream state CHECK6,HINT1,HOVER14,PAUSE2,SAVE1,SELECT5,TARGET5,UNPAUSE2; seg1 normal global stream state load(global stream) CHECK1,HOVER3,LOAD1,PAUSE1,SAVE2,UNPAUSE1; flags hover+multi; goes with the save
+rec_load_engine1 replay replays/*-timed-80-keep.bjr end time up tick 16709 score 80 level 1 gems 7 draws 5143; seg0 timed global stream state CHECK2,HOVER5,PAUSE1,SELECT1,TARGET1,UNPAUSE1; flags hover
+rec_load_engine1 status rulesId 0e0943ce3dc5f173, scoreKey -, features seeds(entry), replays(keep 3, hover), 1 warnings, errors -, dropped -
+rec_load_engine1 codec codeccheck: 300 updates checked, 1 settles, 0 failures
+
+rec_load_engine4 exit 0
+rec_load_engine4 mods Stage 3: replays
+rec_load_engine4 user hiscores.dat mods-status.json registry.ini replays/ replays/*-normal-90.bjr replays/*-timed-80-keep.bjr savegame.bjr savegame.dat
+rec_load_engine4 settle 340 normal level 1 score 90 board tick 1
+rec_load_engine4 states none
+rec_load_engine4 save savegame.dat v1 normal level 0 (shown 1), 64 gems, state 1 (playing), score 90, play seconds 10, 7873 bytes
+rec_load_engine4 sidecar savegame.bjr end saved tick 260 score 90 level 1 gems 25 draws 260; seg0 normal global stream state +save load(global stream) CHECK1,HOVER3,LOAD1,PAUSE1,SAVE2,UNPAUSE1; flags hover; goes with the save
+rec_load_engine4 replay replays/*-timed-80-keep.bjr end time up tick 16709 score 80 level 1 gems 7 draws 5143; seg0 timed global stream state CHECK2,HOVER5,PAUSE1,SELECT1,TARGET1,UNPAUSE1; flags hover
+rec_load_engine4 replay replays/*-normal-90.bjr end saved tick 880 score 90 level 1 gems 25 draws 285; seg0 normal global stream state CHECK6,HINT1,HOVER14,PAUSE2,SAVE1,SELECT5,TARGET5,UNPAUSE2; flags hover
+rec_load_engine4 status rulesId 0e0943ce3dc5f173, scoreKey -, features seeds(entry), replays(keep 3, hover), 1 warnings, errors -, dropped -
+rec_load_engine4 codec codeccheck: 300 updates checked, 1 settles, 0 failures
+
+watch_main_engine1 exit 0
+watch_main_engine1 mods none
+watch_main_engine1 user registry.ini
+watch_main_engine1 settles 6
+watch_main_engine1 last-settle 1133 normal level 1 score 90 board tick 833
+watch_main_engine1 states none
+watch_main_engine1 save none
+watch_main_engine1 codec codeccheck: 882 updates checked, 6 settles, 0 failures
+watch_main_engine1 watch REPLAY end: ok, 6 CHECKs, END saved tick 880 score 90 level 1 gems 25 draws 285
+
+watch_load_engine1 exit 0
+watch_load_engine1 mods none
+watch_load_engine1 user registry.ini
+watch_load_engine1 settles 7
+watch_load_engine1 last-settle 1182 normal level 1 score 90 board tick 1
+watch_load_engine1 states none
+watch_load_engine1 save none
+watch_load_engine1 codec codeccheck: 1143 updates checked, 7 settles, 0 failures
+watch_load_engine1 watch REPLAY end: ok, 7 CHECKs, END saved tick 260 score 90 level 1 gems 25 draws 260
+
+free_quit exit 0
+free_quit mods Stage 5: free swaps
+free_quit user mods-status.json registry.ini savegame-899ba83c.dat
+free_quit settle 449 normal level 1 score 0 board tick 150
+free_quit settle 553 normal level 1 score 10 board tick 254
+free_quit settle 737 normal level 1 score 0 board tick 438
+free_quit states none
+free_quit save savegame-899ba83c.dat v2 normal level 0 (shown 1), 64 gems, state 1 (playing), score 0, play seconds 5, 10463 bytes; rules 16b23c126831f73f, 8x8, level shape 0, 0 holes; RNGS seed 4242 user, MOVE moves 2 invalid 1 undos 0, END
+free_quit status rulesId 16b23c126831f73f, scoreKey 899ba83c, features none, 0 warnings, errors -, dropped -
+free_quit variant last moves 2 invalid 1, 0 of 3 settles without a move
+free_quit seeds 449:4242/user
+free_quit codec codeccheck: 500 updates checked, 3 settles, 0 failures
+free_quit row 553 7 4 1 3 0 0 1 2 5
+free_quit row 737 7 1 4 3 0 0 1 2 5
+
+free_through exit 0
+free_through mods Stage 5: free swaps
+free_through user mods-status.json registry.ini savegame-899ba83c.dat
+free_through settle 449 normal level 1 score 0 board tick 150
+free_through settle 553 normal level 1 score 10 board tick 254
+free_through settle 737 normal level 1 score 0 board tick 438
+free_through settle 1002 normal level 1 score 10 board tick 703
+free_through settle 1137 normal level 1 score 0 board tick 838
+free_through settle 1381 normal level 1 score 10 board tick 1082
+free_through states none
+free_through save savegame-899ba83c.dat v2 normal level 0 (shown 1), 64 gems, state 1 (playing), score 10, play seconds 12, 10463 bytes; rules 16b23c126831f73f, 8x8, level shape 0, 0 holes; RNGS seed 4242 user, MOVE moves 5 invalid 2 undos 0, END
+free_through status rulesId 16b23c126831f73f, scoreKey 899ba83c, features none, 0 warnings, errors -, dropped -
+free_through variant last moves 5 invalid 2, 0 of 6 settles without a move
+free_through seeds 449:4242/user
+free_through codec codeccheck: 1200 updates checked, 6 settles, 0 failures
+
+free_quit.resume exit 0
+free_quit.resume mods Stage 5: free swaps
+free_quit.resume user mods-status.json registry.ini savegame-899ba83c.dat
+free_quit.resume settle 340 normal level 1 score 0 board tick 1
+free_quit.resume settle 601 normal level 1 score 10 board tick 262
+free_quit.resume settle 737 normal level 1 score 0 board tick 398
+free_quit.resume settle 983 normal level 1 score 10 board tick 644
+free_quit.resume states none
+free_quit.resume save savegame-899ba83c.dat v2 normal level 0 (shown 1), 64 gems, state 1 (playing), score 10, play seconds 12, 10463 bytes; rules 16b23c126831f73f, 8x8, level shape 0, 0 holes; RNGS seed 4242 user, MOVE moves 5 invalid 2 undos 0, END
+free_quit.resume status rulesId 16b23c126831f73f, scoreKey 899ba83c, features none, 0 warnings, errors -, dropped -
+free_quit.resume variant last moves 5 invalid 2, 0 of 4 settles without a move
+free_quit.resume seeds 340:4242/user
+free_quit.resume codec codeccheck: 800 updates checked, 4 settles, 0 failures
+
+free_quit.edited exit 0
+free_quit.edited mods Stage 5: free swaps, edited
+free_quit.edited user mods-status.json registry.ini
+free_quit.edited settle 479 normal level 1 score 0 board tick 140
+free_quit.edited states none
+free_quit.edited save none
+free_quit.edited status rulesId 8d0b61680607a718, scoreKey 899ba83c, features none, 0 warnings, errors -, dropped -
+free_quit.edited variant last moves 0 invalid 0, 0 of 1 settles without a move
+free_quit.edited seeds 479:2135392491/pergame
+free_quit.edited codec codeccheck: 1001 updates checked, 1 settles, 0 failures
+
+v1_refused exit 0
+v1_refused mods Stage 5: free swaps
+v1_refused user mods-status.json registry.ini
+v1_refused settle 479 normal level 1 score 0 board tick 140
+v1_refused states none
+v1_refused save none
+v1_refused status rulesId 16b23c126831f73f, scoreKey 899ba83c, features none, 0 warnings, errors -, dropped -
+v1_refused variant last moves 0 invalid 0, 0 of 1 settles without a move
+v1_refused seeds 479:2135392491/pergame
+v1_refused codec codeccheck: 1001 updates checked, 1 settles, 0 failures
+
+v2_refused exit 0
+v2_refused mods none
+v2_refused user registry.ini
+v2_refused settle 478 normal level 1 score 0 board tick 139
+v2_refused states none
+v2_refused save none
+
+kept_timed exit 0
+kept_timed mods Stage 5: free swaps
+kept_timed user mods-status.json registry.ini savegame-899ba83c.dat
+kept_timed settle 449 normal level 1 score 0 board tick 150
+kept_timed settle 497 normal level 1 score 0 board tick 198
+kept_timed settle 728 timed level 1 score 0 board tick 149
+kept_timed settle 797 timed level 1 score 0 board tick 218
+kept_timed settle 952 timed level 1 score 20 board tick 373
+kept_timed states none
+kept_timed save savegame-899ba83c.dat v2 timed level 0 (shown 1), 64 gems, state 1 (playing), score 20, play seconds 5, 10463 bytes; rules 16b23c126831f73f, 8x8, level shape 0, 0 holes; RNGS seed 1791095845, MOVE moves 2 invalid 1 undos 0, END
+kept_timed status rulesId 16b23c126831f73f, scoreKey 899ba83c, features none, 0 warnings, errors -, dropped -
+kept_timed variant last moves 2 invalid 1, 0 of 5 settles without a move
+kept_timed seeds 449:4242/user 728:1791095845/pergame@1
+kept_timed codec codeccheck: 800 updates checked, 5 settles, 0 failures
+
+strict_timed exit 0
+strict_timed mods Stage 5: kept swaps that are no moves
+strict_timed user mods-status.json registry.ini
+strict_timed settle 449 normal level 1 score 0 board tick 150
+strict_timed settle 497 normal level 1 score 0 board tick 198
+strict_timed settle 709 timed level 1 score 0 board tick 150
+strict_timed settle 797 timed level 1 score 0 board tick 238
+strict_timed states none
+strict_timed save none
+strict_timed status rulesId 452ccce7fee3f64f, scoreKey 3674dc95, features none, 0 warnings, errors -, dropped -
+strict_timed variant last moves 0 invalid 1, 0 of 4 settles without a move
+strict_timed seeds 449:4242/user 709:4242/user
+strict_timed codec codeccheck: 601 updates checked, 4 settles, 0 failures
+strict_timed row 449 6 4 0 2 2 5 2 0 3
+strict_timed row 497 6 0 4 2 2 5 2 0 3
+
+strict_last exit 0
+strict_last mods Stage 5: kept swaps that are no moves
+strict_last user hiscores-3674dc95-seeded.dat mods-status.json registry.ini
+strict_last settle 449 normal level 1 score 0 board tick 150
+strict_last settle 497 normal level 1 score 0 board tick 198
+strict_last settle 577 normal level 1 score 0 board tick 278
+strict_last settle 637 normal level 1 score 0 board tick 338
+strict_last settle 1116 normal level 1 score 0 board tick 817
+strict_last settle 1399 timed level 1 score 0 board tick 150
+strict_last settle 1447 timed level 1 score 0 board tick 198
+strict_last settle 1507 timed level 1 score 0 board tick 258
+strict_last settle 1567 timed level 1 score 0 board tick 318
+strict_last settle 2399 timed level 1 score 0 board tick 140
+strict_last states 697:fall_out 1627:game_over 1960:game_over_done
+strict_last save none
+strict_last status rulesId 452ccce7fee3f64f, scoreKey 3674dc95, features none, 0 warnings, errors -, dropped -
+strict_last variant last moves 0 invalid 0, 0 of 10 settles without a move
+strict_last seeds 449:4242/user 1399:4242/user 2399:2135392491/pergame@2
+strict_last codec codeccheck: 2251 updates checked, 10 settles, 0 failures
+
+free_hint exit 0
+free_hint mods Stage 5: free swaps, no penalty
+free_hint user mods-status.json registry.ini savegame-0771a418.dat
+free_hint settle 449 normal level 1 score 0 board tick 150
+free_hint settle 553 normal level 1 score 10 board tick 254
+free_hint settle 597 normal level 1 score 10 board tick 298
+free_hint settle 657 normal level 1 score 10 board tick 358
+free_hint settle 717 normal level 1 score 10 board tick 418
+free_hint settle 777 normal level 1 score 10 board tick 478
+free_hint settle 837 normal level 1 score 10 board tick 538
+free_hint settle 2237 normal level 1 score 10 board tick 1938
+free_hint states none
+free_hint snap h02_after_hint.dat v2 normal level 0 (shown 1), 64 gems, state 1 (playing), score 10, play seconds 6, 10463 bytes; rules 103cd135e6beb30c, 8x8, level shape 0, 0 holes; RNGS seed 4242 user, MOVE moves 6 invalid 5 undos 0, END
+free_hint save savegame-0771a418.dat v2 normal level 0 (shown 1), 64 gems, state 1 (playing), score 10, play seconds 21, 10463 bytes; rules 103cd135e6beb30c, 8x8, level shape 0, 0 holes; RNGS seed 4242 user, MOVE moves 7 invalid 6 undos 0, END
+free_hint status rulesId 103cd135e6beb30c, scoreKey 0771a418, features none, 0 warnings, errors -, dropped -
+free_hint variant last moves 7 invalid 6, 1 of 8 settles without a move
+free_hint seeds 449:4242/user
+free_hint codec codeccheck: 2100 updates checked, 8 settles, 0 failures
+
+gold_status exit 0
+gold_status mods Stage 5: gold only
+gold_status user mods-status.json registry.ini
+gold_status settle 439 normal level 1 score 0 board tick 140
+gold_status states none
+gold_status save none
+gold_status status rulesId 49d1b2d37d12509f, scoreKey 44b26d34, features none, 2 warnings, errors -, dropped -
+gold_status variant last moves 0 invalid 0, 0 of 1 settles without a move
+gold_status seeds 439:2135392491/pergame
+gold_status codec codeccheck: 301 updates checked, 1 settles, 0 failures
+
+free_auto exit 0
+free_auto mods Stage 5: free swaps
+free_auto user mods-status.json registry.ini savegame-899ba83c.dat
+free_auto settles 162
+free_auto last-settle 19932 normal level 3 score 1970 board tick 19929
+free_auto states 5336:vortex 5589:level_wipe 13628:vortex 13881:level_wipe
+free_auto save savegame-899ba83c.dat v2 normal level 2 (shown 3), 64 gems, state 1 (playing), score 1970, play seconds 199, 10463 bytes; rules 16b23c126831f73f, 8x8, level shape 0, 0 holes; RNGS seed 2135392491, MOVE moves 159 invalid 48 undos 0, END
+free_auto status rulesId 16b23c126831f73f, scoreKey 899ba83c, features none, 0 warnings, errors -, dropped -
+free_auto variant last moves 159 invalid 48, 8 of 162 settles without a move
+free_auto seeds 143:2135392491/pergame
+free_auto end update 19999: update cap
+free_auto codec codeccheck: 19996 updates checked, 162 settles, 0 failures
+
+free_auto_timed exit 0
+free_auto_timed mods Stage 5: free swaps
+free_auto_timed user mods-status.json registry.ini savegame-899ba83c.dat
+free_auto_timed settles 155
+free_auto_timed last-settle 19890 timed level 4 score 3630 board tick 19886
+free_auto_timed states 3216:vortex 3469:level_wipe 10813:vortex 11066:level_wipe 14924:vortex 15177:level_wipe
+free_auto_timed save savegame-899ba83c.dat v2 timed level 3 (shown 4), 64 gems, state 0 (falling), score 3665, play seconds 199, 10463 bytes; rules 16b23c126831f73f, 8x8, level shape 0, 0 holes; RNGS seed 946286476, MOVE moves 152 invalid 47 undos 0, END
+free_auto_timed status rulesId 16b23c126831f73f, scoreKey 899ba83c, features none, 0 warnings, errors -, dropped -
+free_auto_timed variant last moves 151 invalid 47, 13 of 155 settles without a move
+free_auto_timed seeds 150:946286476/pergame
+free_auto_timed end update 19999: update cap
+free_auto_timed codec codeccheck: 19996 updates checked, 155 settles, 0 failures
+
+strict_auto exit 0
+strict_auto mods Stage 5: kept swaps that are no moves
+strict_auto user mods-status.json registry.ini savegame-3674dc95.dat
+strict_auto settles 157
+strict_auto last-settle 19973 normal level 3 score 2955 board tick 19970
+strict_auto states 4679:vortex 4932:level_wipe 11544:vortex 11797:level_wipe 15380:fall_out
+strict_auto save savegame-3674dc95.dat v2 normal level 2 (shown 3), 64 gems, state 1 (playing), score 2955, play seconds 199, 10463 bytes; rules 452ccce7fee3f64f, 8x8, level shape 0, 0 holes; RNGS seed 2135392491, MOVE moves 117 invalid 37 undos 0, END
+strict_auto status rulesId 452ccce7fee3f64f, scoreKey 3674dc95, features none, 0 warnings, errors -, dropped -
+strict_auto variant last moves 117 invalid 37, 0 of 157 settles without a move
+strict_auto seeds 143:2135392491/pergame
+strict_auto end update 19999: update cap
+strict_auto codec codeccheck: 19996 updates checked, 157 settles, 0 failures
+
+strict_auto_timed exit 0
+strict_auto_timed mods Stage 5: kept swaps that are no moves
+strict_auto_timed user hiscores-3674dc95.dat mods-status.json registry.ini
+strict_auto_timed settles 23
+strict_auto_timed last-settle 2520 timed level 1 score 420 board tick 2516
+strict_auto_timed states 2654:game_over 2979:game_over_done
+strict_auto_timed save none
+strict_auto_timed status rulesId 452ccce7fee3f64f, scoreKey 3674dc95, features none, 0 warnings, errors -, dropped -
+strict_auto_timed variant last moves 15 invalid 7, 0 of 23 settles without a move
+strict_auto_timed seeds 150:946286476/pergame
+strict_auto_timed end update 2979: game over -> game over done, level 1, score 440, board tick 2975, Rand() draws 4
+strict_auto_timed codec codeccheck: 3077 updates checked, 23 settles, 0 failures
+
+rec_free_quit exit 0
+rec_free_quit mods Stage 3: replays, Stage 5: free swaps
+rec_free_quit user mods-status.json registry.ini savegame-899ba83c.bjr savegame-899ba83c.dat
+rec_free_quit settle 449 normal level 1 score 0 board tick 150
+rec_free_quit settle 553 normal level 1 score 10 board tick 254
+rec_free_quit settle 737 normal level 1 score 0 board tick 438
+rec_free_quit states none
+rec_free_quit save savegame-899ba83c.dat v2 normal level 0 (shown 1), 64 gems, state 1 (playing), score 0, play seconds 5, 10463 bytes; rules 16b23c126831f73f, 8x8, level shape 0, 0 holes; RNGS seed 4242 user, MOVE moves 2 invalid 1 undos 0, END
+rec_free_quit sidecar savegame-899ba83c.bjr end saved tick 500 score 0 level 1 gems 3 draws 1702; seg0 normal seed 4242 user CHECK3,HOVER6,SAVE2,SELECT2,TARGET2; rng seed 4242 user; flags hover; goes with the save
+rec_free_quit status rulesId 16b23c126831f73f, scoreKey 899ba83c, features seeds(entry), replays(keep 3, hover), 1 warnings, errors -, dropped -
+rec_free_quit variant last moves 2 invalid 1, 0 of 3 settles without a move
+rec_free_quit seeds 449:4242/user
+rec_free_quit codec codeccheck: 500 updates checked, 3 settles, 0 failures
+
+rec_free_quit.resume exit 0
+rec_free_quit.resume mods Stage 3: replays, Stage 5: free swaps
+rec_free_quit.resume user mods-status.json registry.ini savegame-899ba83c.bjr savegame-899ba83c.dat
+rec_free_quit.resume settle 340 normal level 1 score 0 board tick 1
+rec_free_quit.resume settle 601 normal level 1 score 10 board tick 262
+rec_free_quit.resume settle 737 normal level 1 score 0 board tick 398
+rec_free_quit.resume settle 983 normal level 1 score 10 board tick 644
+rec_free_quit.resume states none
+rec_free_quit.resume save savegame-899ba83c.dat v2 normal level 0 (shown 1), 64 gems, state 1 (playing), score 10, play seconds 12, 10463 bytes; rules 16b23c126831f73f, 8x8, level shape 0, 0 holes; RNGS seed 4242 user, MOVE moves 5 invalid 2 undos 0, END
+rec_free_quit.resume sidecar savegame-899ba83c.bjr end saved tick 760 score 10 level 1 gems 9 draws 526; seg0 normal seed 4242 user CHECK3,HOVER6,SAVE2,SELECT2,TARGET2; seg1 normal seed 2135392491 load(seed 4242 user) CHECK4,HOVER9,LOAD1,PAUSE1,SAVE2,SELECT3,TARGET3,UNPAUSE1; rng seed 4242 user; flags hover+multi; goes with the save
+rec_free_quit.resume status rulesId 16b23c126831f73f, scoreKey 899ba83c, features seeds(entry), replays(keep 3, hover), 1 warnings, errors -, dropped -
+rec_free_quit.resume variant last moves 5 invalid 2, 0 of 4 settles without a move
+rec_free_quit.resume seeds 340:4242/user
+rec_free_quit.resume codec codeccheck: 800 updates checked, 4 settles, 0 failures
+
+rec_free_ldsv exit 0
+rec_free_ldsv mods Stage 3: replays, Stage 5: free swaps
+rec_free_ldsv user mods-status.json registry.ini savegame-899ba83c.bjr savegame-899ba83c.dat
+rec_free_ldsv settle 340 normal level 1 score 0 board tick 1
+rec_free_ldsv settle 601 normal level 1 score 10 board tick 262
+rec_free_ldsv settle 737 normal level 1 score 0 board tick 398
+rec_free_ldsv settle 983 normal level 1 score 10 board tick 644
+rec_free_ldsv states none
+rec_free_ldsv save savegame-899ba83c.dat v2 normal level 0 (shown 1), 64 gems, state 1 (playing), score 10, play seconds 12, 10463 bytes; rules 16b23c126831f73f, 8x8, level shape 0, 0 holes; RNGS seed 4242 user, MOVE moves 5 invalid 2 undos 0, END
+rec_free_ldsv sidecar savegame-899ba83c.bjr end saved tick 760 score 10 level 1 gems 9 draws 526; seg0 normal seed 2135392491 +save load(seed 4242 user) CHECK4,HOVER9,LOAD1,PAUSE1,SAVE2,SELECT3,TARGET3,UNPAUSE1; rng seed 4242 user; flags hover; goes with the save
+rec_free_ldsv status rulesId 16b23c126831f73f, scoreKey 899ba83c, features seeds(entry), replays(keep 3, hover), 1 warnings, errors -, dropped -
+rec_free_ldsv variant last moves 5 invalid 2, 0 of 4 settles without a move
+rec_free_ldsv seeds 340:4242/user
+rec_free_ldsv codec codeccheck: 800 updates checked, 4 settles, 0 failures
+
+rec_strict_last exit 0
+rec_strict_last mods Stage 3: replays, Stage 5: kept swaps that are no moves
+rec_strict_last user hiscores-3674dc95-seeded.dat mods-status.json registry.ini replays/ replays/*-normal-0.bjr replays/*-timed-0.bjr
+rec_strict_last settle 449 normal level 1 score 0 board tick 150
+rec_strict_last settle 497 normal level 1 score 0 board tick 198
+rec_strict_last settle 577 normal level 1 score 0 board tick 278
+rec_strict_last settle 637 normal level 1 score 0 board tick 338
+rec_strict_last settle 1116 normal level 1 score 0 board tick 817
+rec_strict_last settle 1399 timed level 1 score 0 board tick 150
+rec_strict_last settle 1447 timed level 1 score 0 board tick 198
+rec_strict_last settle 1507 timed level 1 score 0 board tick 258
+rec_strict_last settle 1567 timed level 1 score 0 board tick 318
+rec_strict_last settle 2399 timed level 1 score 0 board tick 140
+rec_strict_last states 697:fall_out 1627:game_over 1960:game_over_done
+rec_strict_last save none
+rec_strict_last replay replays/*-normal-0.bjr end abandoned tick 950 score 0 level 1 gems 0 draws 4004; seg0 normal seed 4242 user CHECK5,HOVER10,SELECT4,TARGET4; flags hover
+rec_strict_last replay replays/*-timed-0.bjr end no moves tick 711 score 0 level 1 gems 0 draws 6179; seg0 timed seed 4242 user CHECK4,HOVER10,SELECT4,TARGET4; flags hover
+rec_strict_last status rulesId 452ccce7fee3f64f, scoreKey 3674dc95, features seeds(entry), replays(keep 3, hover), 1 warnings, errors -, dropped -
+rec_strict_last variant last moves 0 invalid 0, 0 of 10 settles without a move
+rec_strict_last seeds 449:4242/user 1399:4242/user 2399:2135392491/pergame
+rec_strict_last codec codeccheck: 2251 updates checked, 10 settles, 0 failures
+
+rec_free_hint exit 0
+rec_free_hint mods Stage 3: replays, Stage 5: free swaps, no penalty
+rec_free_hint user mods-status.json registry.ini savegame-0771a418.bjr savegame-0771a418.dat
+rec_free_hint settle 449 normal level 1 score 0 board tick 150
+rec_free_hint settle 553 normal level 1 score 10 board tick 254
+rec_free_hint settle 597 normal level 1 score 10 board tick 298
+rec_free_hint settle 657 normal level 1 score 10 board tick 358
+rec_free_hint settle 717 normal level 1 score 10 board tick 418
+rec_free_hint settle 777 normal level 1 score 10 board tick 478
+rec_free_hint settle 837 normal level 1 score 10 board tick 538
+rec_free_hint settle 2237 normal level 1 score 10 board tick 1938
+rec_free_hint states none
+rec_free_hint snap h02_after_hint.bjr end saved tick 640 score 10 level 1 gems 3 draws 1702; seg0 normal seed 4242 user CHECK7,HOVER14,SAVE1,SELECT6,TARGET6; rng seed 4242 user; flags hover; goes with the save
+rec_free_hint snap h02_after_hint.dat v2 normal level 0 (shown 1), 64 gems, state 1 (playing), score 10, play seconds 6, 10463 bytes; rules 103cd135e6beb30c, 8x8, level shape 0, 0 holes; RNGS seed 4242 user, MOVE moves 6 invalid 5 undos 0, END
+rec_free_hint save savegame-0771a418.dat v2 normal level 0 (shown 1), 64 gems, state 1 (playing), score 10, play seconds 21, 10463 bytes; rules 103cd135e6beb30c, 8x8, level shape 0, 0 holes; RNGS seed 4242 user, MOVE moves 7 invalid 6 undos 0, END
+rec_free_hint sidecar savegame-0771a418.bjr end saved tick 2100 score 10 level 1 gems 3 draws 1702; seg0 normal seed 4242 user CHECK8,HOVER18,SAVE2,SELECT7,TARGET7; rng seed 4242 user; flags hover; goes with the save
+rec_free_hint status rulesId 103cd135e6beb30c, scoreKey 0771a418, features seeds(entry), replays(keep 3, hover), 1 warnings, errors -, dropped -
+rec_free_hint variant last moves 7 invalid 6, 1 of 8 settles without a move
+rec_free_hint seeds 449:4242/user
+rec_free_hint codec codeccheck: 2100 updates checked, 8 settles, 0 failures
+
+rec_free_auto exit 0
+rec_free_auto mods Stage 3: replays, Stage 5: free swaps
+rec_free_auto user mods-status.json registry.ini savegame-899ba83c.bjr savegame-899ba83c.dat
+rec_free_auto settles 162
+rec_free_auto last-settle 19932 normal level 3 score 1970 board tick 19929
+rec_free_auto states 5336:vortex 5589:level_wipe 13628:vortex 13881:level_wipe
+rec_free_auto save savegame-899ba83c.dat v2 normal level 2 (shown 3), 64 gems, state 1 (playing), score 1970, play seconds 199, 10463 bytes; rules 16b23c126831f73f, 8x8, level shape 0, 0 holes; RNGS seed 2135392491, MOVE moves 159 invalid 48 undos 0, END
+rec_free_auto sidecar savegame-899ba83c.bjr end saved tick 19996 score 1970 level 3 gems 448 draws 1309; seg0 normal seed 2135392491 CHECK162,HINT2,HOVER304,SAVE2,SELECT161,TARGET160; rng seed 2135392491; flags hover; goes with the save
+rec_free_auto status rulesId 16b23c126831f73f, scoreKey 899ba83c, features seeds(entry), replays(keep 3, hover), 1 warnings, errors -, dropped -
+rec_free_auto variant last moves 159 invalid 48, 8 of 162 settles without a move
+rec_free_auto seeds 143:2135392491/pergame
+rec_free_auto end update 19999: update cap
+rec_free_auto codec codeccheck: 19996 updates checked, 162 settles, 0 failures
+
+rec_strict_auto_timed exit 0
+rec_strict_auto_timed mods Stage 3: replays, Stage 5: kept swaps that are no moves
+rec_strict_auto_timed user hiscores-3674dc95.dat mods-status.json registry.ini replays/ replays/*-timed-440-keep.bjr
+rec_strict_auto_timed settles 23
+rec_strict_auto_timed last-settle 2520 timed level 1 score 420 board tick 2516
+rec_strict_auto_timed states 2654:game_over 2979:game_over_done
+rec_strict_auto_timed save none
+rec_strict_auto_timed replay replays/*-timed-440-keep.bjr end no moves tick 2975 score 440 level 1 gems 57 draws 4668; seg0 timed seed 946286476 CHECK23,HOVER45,SELECT24,TARGET23; flags hover
+rec_strict_auto_timed status rulesId 452ccce7fee3f64f, scoreKey 3674dc95, features seeds(entry), replays(keep 3, hover), 1 warnings, errors -, dropped -
+rec_strict_auto_timed variant last moves 15 invalid 7, 0 of 23 settles without a move
+rec_strict_auto_timed seeds 150:946286476/pergame
+rec_strict_auto_timed end update 2979: game over -> game over done, level 1, score 440, board tick 2975, Rand() draws 4
+rec_strict_auto_timed codec codeccheck: 3077 updates checked, 23 settles, 0 failures
+
+watch_free_quit exit 0
+watch_free_quit mods none
+watch_free_quit user registry.ini
+watch_free_quit settles 3
+watch_free_quit last-settle 738 normal level 1 score 0 board tick 438
+watch_free_quit states none
+watch_free_quit save none
+watch_free_quit variant last moves 2 invalid 1, 0 of 3 settles without a move
+watch_free_quit seeds 450:4242/user
+watch_free_quit codec codeccheck: 502 updates checked, 3 settles, 0 failures
+watch_free_quit watch REPLAY end: ok, 3 CHECKs, END saved tick 500 score 0 level 1 gems 3 draws 1702
+
+watch_free_resume exit 0
+watch_free_resume mods none
+watch_free_resume user registry.ini
+watch_free_resume settles 7
+watch_free_resume last-settle 1445 normal level 1 score 10 board tick 644
+watch_free_resume states none
+watch_free_resume save none
+watch_free_resume variant last moves 5 invalid 2, 0 of 7 settles without a move
+watch_free_resume seeds 450:4242/user 802:4242/user
+watch_free_resume codec codeccheck: 1263 updates checked, 7 settles, 0 failures
+watch_free_resume watch REPLAY end: ok, 7 CHECKs, END saved tick 760 score 10 level 1 gems 9 draws 526
+
+watch_free_ldsv exit 0
+watch_free_ldsv mods none
+watch_free_ldsv user registry.ini
+watch_free_ldsv settles 4
+watch_free_ldsv last-settle 944 normal level 1 score 10 board tick 644
+watch_free_ldsv states none
+watch_free_ldsv save none
+watch_free_ldsv variant last moves 5 invalid 2, 0 of 4 settles without a move
+watch_free_ldsv seeds 301:4242/user
+watch_free_ldsv codec codeccheck: 762 updates checked, 4 settles, 0 failures
+watch_free_ldsv watch REPLAY end: ok, 4 CHECKs, END saved tick 760 score 10 level 1 gems 9 draws 526
+
+watch_strict_last_normal exit 0
+watch_strict_last_normal mods none
+watch_strict_last_normal user registry.ini
+watch_strict_last_normal settles 5
+watch_strict_last_normal last-settle 1117 normal level 1 score 0 board tick 817
+watch_strict_last_normal states 698:fall_out
+watch_strict_last_normal save none
+watch_strict_last_normal variant last moves 0 invalid 4, 0 of 5 settles without a move
+watch_strict_last_normal seeds 450:4242/user
+watch_strict_last_normal codec codeccheck: 952 updates checked, 5 settles, 0 failures
+watch_strict_last_normal watch REPLAY end: ok, 5 CHECKs, END abandoned tick 950 score 0 level 1 gems 0 draws 4004
+
+watch_strict_last_timed exit 0
+watch_strict_last_timed mods none
+watch_strict_last_timed user registry.ini
+watch_strict_last_timed settles 4
+watch_strict_last_timed last-settle 618 timed level 1 score 0 board tick 318
+watch_strict_last_timed states 678:game_over 1011:game_over_done
+watch_strict_last_timed save none
+watch_strict_last_timed variant last moves 0 invalid 3, 0 of 4 settles without a move
+watch_strict_last_timed seeds 450:4242/user
+watch_strict_last_timed codec codeccheck: 713 updates checked, 4 settles, 0 failures
+watch_strict_last_timed watch REPLAY end: ok, 4 CHECKs, END no moves tick 711 score 0 level 1 gems 0 draws 6179
+
+watch_free_hint exit 0
+watch_free_hint mods none
+watch_free_hint user registry.ini
+watch_free_hint settles 8
+watch_free_hint last-settle 2238 normal level 1 score 10 board tick 1938
+watch_free_hint states none
+watch_free_hint save none
+watch_free_hint variant last moves 7 invalid 6, 1 of 8 settles without a move
+watch_free_hint seeds 450:4242/user
+watch_free_hint codec codeccheck: 2102 updates checked, 8 settles, 0 failures
+watch_free_hint watch REPLAY end: ok, 8 CHECKs, END saved tick 2100 score 10 level 1 gems 3 draws 1702
+
+watch_free_auto exit 0
+watch_free_auto mods none
+watch_free_auto user registry.ini
+watch_free_auto settles 162
+watch_free_auto last-settle 20229 normal level 3 score 1970 board tick 19929
+watch_free_auto states 5633:vortex 5886:level_wipe 13925:vortex 14178:level_wipe
+watch_free_auto save none
+watch_free_auto variant last moves 159 invalid 48, 8 of 162 settles without a move
+watch_free_auto seeds 440:2135392491/pergame
+watch_free_auto codec codeccheck: 19998 updates checked, 162 settles, 0 failures
+watch_free_auto watch REPLAY end: ok, 162 CHECKs, END saved tick 19996 score 1970 level 3 gems 448 draws 1309
+
+watch_strict_auto_timed exit 0
+watch_strict_auto_timed mods none
+watch_strict_auto_timed user registry.ini
+watch_strict_auto_timed settles 23
+watch_strict_auto_timed last-settle 2816 timed level 1 score 420 board tick 2516
+watch_strict_auto_timed states 2950:game_over 3275:game_over_done
+watch_strict_auto_timed save none
+watch_strict_auto_timed variant last moves 15 invalid 7, 0 of 23 settles without a move
+watch_strict_auto_timed seeds 446:946286476/pergame
+watch_strict_auto_timed codec codeccheck: 2977 updates checked, 23 settles, 0 failures
+watch_strict_auto_timed watch REPLAY end: ok, 23 CHECKs, END no moves tick 2975 score 440 level 1 gems 57 draws 4668
+
+undo_main exit 0
+undo_main mods Stage 6: undo
+undo_main user mods-status.json registry.ini savegame-a109fd65.dat
+undo_main settle 449 normal level 1 score 0 board tick 150
+undo_main settle 553 normal level 1 score 10 board tick 254
+undo_main settle 781 normal level 1 score 20 board tick 482
+undo_main settle 1119 normal level 1 score 90 board tick 820
+undo_main settle 1240 normal level 1 score 15 board tick 941
+undo_main settle 1467 normal level 1 score 85 board tick 1168
+undo_main settle 1550 normal level 1 score 10 board tick 1251
+undo_main settle 1600 normal level 1 score 5 board tick 1301
+undo_main settle 1660 normal level 1 score 0 board tick 1361
+undo_main settle 1831 normal level 1 score 10 board tick 1532
+undo_main states none
+undo_main save savegame-a109fd65.dat v2 normal level 0 (shown 1), 64 gems, state 1 (playing), score 10, play seconds 17, 10463 bytes; rules 966e373dfa86db8f, 8x8, level shape 0, 0 holes; RNGS seed 4242 user, MOVE moves 1 invalid 0 undos 4, END
+undo_main status rulesId 966e373dfa86db8f, scoreKey a109fd65, features none, 0 warnings, errors -, dropped -
+undo_main variant last moves 1 invalid 0, 0 of 10 settles without a move
+undo_main seeds 449:4242/user
+undo_main codec codeccheck: 1750 updates checked, 10 settles, 0 failures
+
+undo_reroll exit 0
+undo_reroll mods Stage 6: undo without the RNG
+undo_reroll user mods-status.json registry.ini savegame-64a2db45.dat
+undo_reroll settle 449 normal level 1 score 0 board tick 150
+undo_reroll settle 553 normal level 1 score 10 board tick 254
+undo_reroll settle 700 normal level 1 score 0 board tick 401
+undo_reroll settle 841 normal level 1 score 10 board tick 542
+undo_reroll states none
+undo_reroll save savegame-64a2db45.dat v2 normal level 0 (shown 1), 64 gems, state 1 (playing), score 10, play seconds 7, 10463 bytes; rules a4434bca0986052e, 8x8, level shape 0, 0 holes; RNGS seed 4242 user, MOVE moves 1 invalid 0 undos 1, END
+undo_reroll status rulesId a4434bca0986052e, scoreKey 64a2db45, features none, 0 warnings, errors -, dropped -
+undo_reroll variant last moves 1 invalid 0, 0 of 4 settles without a move
+undo_reroll seeds 449:4242/user
+undo_reroll codec codeccheck: 700 updates checked, 4 settles, 0 failures
+
+undo_reroll.resume exit 0
+undo_reroll.resume mods Stage 6: undo without the RNG
+undo_reroll.resume user mods-status.json registry.ini savegame-64a2db45.dat
+undo_reroll.resume settle 340 normal level 1 score 10 board tick 1
+undo_reroll.resume states none
+undo_reroll.resume save savegame-64a2db45.dat v2 normal level 0 (shown 1), 64 gems, state 1 (playing), score 10, play seconds 9, 10463 bytes; rules a4434bca0986052e, 8x8, level shape 0, 0 holes; RNGS seed 4242 user, MOVE moves 1 invalid 0 undos 1, END
+undo_reroll.resume status rulesId a4434bca0986052e, scoreKey 64a2db45, features none, 0 warnings, errors -, dropped -
+undo_reroll.resume variant last moves 1 invalid 0, 0 of 1 settles without a move
+undo_reroll.resume seeds 340:4242/user
+undo_reroll.resume codec codeccheck: 300 updates checked, 1 settles, 0 failures
+
+undo_timed exit 0
+undo_timed mods Stage 6: undo in timed mode
+undo_timed user mods-status.json registry.ini savegame-bc0fc9b0.dat
+undo_timed settle 449 normal level 1 score 0 board tick 150
+undo_timed settle 609 timed level 1 score 0 board tick 150
+undo_timed settle 722 timed level 1 score 20 board tick 263
+undo_timed settle 880 timed level 1 score 0 board tick 421
+undo_timed settle 1022 timed level 1 score 20 board tick 563
+undo_timed states none
+undo_timed save savegame-bc0fc9b0.dat v2 timed level 0 (shown 1), 64 gems, state 1 (playing), score 20, play seconds 7, 10463 bytes; rules 6c55f7640c11da17, 8x8, level shape 0, 0 holes; RNGS seed 4242 user, MOVE moves 1 invalid 0 undos 1, END
+undo_timed status rulesId 6c55f7640c11da17, scoreKey bc0fc9b0, features none, 0 warnings, errors -, dropped -
+undo_timed variant last moves 1 invalid 0, 0 of 5 settles without a move
+undo_timed seeds 449:4242/user 609:4242/user
+undo_timed codec codeccheck: 900 updates checked, 5 settles, 0 failures
+
+undo_timed_off exit 0
+undo_timed_off mods Stage 6: undo
+undo_timed_off user mods-status.json registry.ini savegame-a109fd65.dat
+undo_timed_off settle 449 normal level 1 score 0 board tick 150
+undo_timed_off settle 609 timed level 1 score 0 board tick 150
+undo_timed_off settle 722 timed level 1 score 20 board tick 263
+undo_timed_off states none
+undo_timed_off save savegame-a109fd65.dat v2 timed level 0 (shown 1), 64 gems, state 1 (playing), score 20, play seconds 5, 10463 bytes; rules 966e373dfa86db8f, 8x8, level shape 0, 0 holes; RNGS seed 4242 user, MOVE moves 1 invalid 0 undos 0, END
+undo_timed_off status rulesId 966e373dfa86db8f, scoreKey a109fd65, features none, 0 warnings, errors -, dropped -
+undo_timed_off variant last moves 1 invalid 0, 0 of 3 settles without a move
+undo_timed_off seeds 449:4242/user 609:4242/user
+undo_timed_off codec codeccheck: 800 updates checked, 3 settles, 0 failures
+
+rec_undo_main exit 0
+rec_undo_main mods Stage 3: replays, Stage 6: undo
+rec_undo_main user mods-status.json registry.ini savegame-a109fd65.bjr savegame-a109fd65.dat
+rec_undo_main settle 449 normal level 1 score 0 board tick 150
+rec_undo_main settle 553 normal level 1 score 10 board tick 254
+rec_undo_main settle 781 normal level 1 score 20 board tick 482
+rec_undo_main settle 1119 normal level 1 score 90 board tick 820
+rec_undo_main settle 1240 normal level 1 score 15 board tick 941
+rec_undo_main settle 1467 normal level 1 score 85 board tick 1168
+rec_undo_main settle 1550 normal level 1 score 10 board tick 1251
+rec_undo_main settle 1600 normal level 1 score 5 board tick 1301
+rec_undo_main settle 1660 normal level 1 score 0 board tick 1361
+rec_undo_main settle 1831 normal level 1 score 10 board tick 1532
+rec_undo_main states none
+rec_undo_main save savegame-a109fd65.dat v2 normal level 0 (shown 1), 64 gems, state 1 (playing), score 10, play seconds 17, 10463 bytes; rules 966e373dfa86db8f, 8x8, level shape 0, 0 holes; RNGS seed 4242 user, MOVE moves 1 invalid 0 undos 4, END
+rec_undo_main sidecar savegame-a109fd65.bjr end saved tick 1750 score 10 level 1 gems 3 draws 1702; seg0 normal seed 4242 user CHECK6,HOVER16,SAVE2,SELECT5,TARGET5,UNDO4; rng seed 4242 user; flags hover; goes with the save
+rec_undo_main status rulesId 966e373dfa86db8f, scoreKey a109fd65, features seeds(entry), replays(keep 3, hover), 1 warnings, errors -, dropped -
+rec_undo_main variant last moves 1 invalid 0, 0 of 10 settles without a move
+rec_undo_main seeds 449:4242/user
+rec_undo_main codec codeccheck: 1750 updates checked, 10 settles, 0 failures
+
+watch_undo_main exit 0
+watch_undo_main mods none
+watch_undo_main user registry.ini
+watch_undo_main settles 10
+watch_undo_main last-settle 1832 normal level 1 score 10 board tick 1532
+watch_undo_main states none
+watch_undo_main save none
+watch_undo_main variant last moves 1 invalid 0, 0 of 10 settles without a move
+watch_undo_main seeds 450:4242/user
+watch_undo_main codec codeccheck: 1752 updates checked, 10 settles, 0 failures
+watch_undo_main watch REPLAY end: ok, 6 CHECKs, END saved tick 1750 score 10 level 1 gems 3 draws 1702
+
+shape_6x6_auto exit 0
+shape_6x6_auto mods Stage 7: a 6x6 board
+shape_6x6_auto user hiscores-4b6b4c20.dat mods-status.json registry.ini
+shape_6x6_auto settles 14
+shape_6x6_auto last-settle 1778 normal level 1 score 130 board tick 1775
+shape_6x6_auto states 1918:game_over 2247:game_over_done
+shape_6x6_auto save none
+shape_6x6_auto status rulesId 730df54f0486e2d1, scoreKey 4b6b4c20, features none, 0 warnings, errors -, dropped -
+shape_6x6_auto variant last moves 9 invalid 0, 0 of 14 settles without a move
+shape_6x6_auto seeds 127:2135392491/pergame
+shape_6x6_auto end update 2247: game over -> game over done, level 1, score 140, board tick 2244, Rand() draws 3
+shape_6x6_auto codec codeccheck: 2345 updates checked, 14 settles, 0 failures
+
+shape_6x6_auto_timed exit 0
+shape_6x6_auto_timed mods Stage 7: a 6x6 board
+shape_6x6_auto_timed user mods-status.json registry.ini savegame-4b6b4c20.dat
+shape_6x6_auto_timed settles 133
+shape_6x6_auto_timed last-settle 19944 timed level 5 score 4480 board tick 19940
+shape_6x6_auto_timed states 3018:fall_out 3529:vortex 3710:level_wipe 6731:fall_out 7887:vortex 8068:level_wipe 12180:fall_out 13091:fall_out 14766:vortex 14947:level_wipe 15759:fall_out 19118:vortex 19299:level_wipe
+shape_6x6_auto_timed save savegame-4b6b4c20.dat v2 timed level 4 (shown 5), 36 gems, state 1 (playing), score 4480, play seconds 199, 7072 bytes; rules 730df54f0486e2d1, 6x6, level shape 0, 0 holes; RNGS seed 946286476, MOVE moves 97 invalid 0 undos 0, END
+shape_6x6_auto_timed status rulesId 730df54f0486e2d1, scoreKey 4b6b4c20, features none, 0 warnings, errors -, dropped -
+shape_6x6_auto_timed variant last moves 97 invalid 0, 0 of 133 settles without a move
+shape_6x6_auto_timed seeds 129:946286476/pergame
+shape_6x6_auto_timed end update 19999: update cap
+shape_6x6_auto_timed codec codeccheck: 19996 updates checked, 133 settles, 0 failures
+
+shape_10x7_auto exit 0
+shape_10x7_auto mods Stage 7: a 10x7 board
+shape_10x7_auto user mods-status.json registry.ini savegame-b8ea67fc.dat
+shape_10x7_auto settles 139
+shape_10x7_auto last-settle 19942 normal level 4 score 3200 board tick 19939
+shape_10x7_auto states 4619:vortex 4895:level_wipe 12125:vortex 12401:level_wipe 18495:vortex 18771:level_wipe
+shape_10x7_auto save savegame-b8ea67fc.dat v2 normal level 3 (shown 4), 70 gems, state 4 (clearing), score 3225, play seconds 199, 11190 bytes; rules ed18d0ae5e9439c2, 10x7, level shape 0, 0 holes; RNGS seed 2135392491, MOVE moves 101 invalid 0 undos 0, END
+shape_10x7_auto status rulesId ed18d0ae5e9439c2, scoreKey b8ea67fc, features none, 0 warnings, errors -, dropped -
+shape_10x7_auto variant last moves 100 invalid 0, 0 of 139 settles without a move
+shape_10x7_auto seeds 140:2135392491/pergame
+shape_10x7_auto end update 19999: update cap
+shape_10x7_auto codec codeccheck: 19996 updates checked, 139 settles, 0 failures
+
+shape_16x16_auto exit 0
+shape_16x16_auto mods Stage 7: a 16x16 board
+shape_16x16_auto user mods-status.json registry.ini savegame-b6099f2a.dat
+shape_16x16_auto settles 114
+shape_16x16_auto last-settle 19720 normal level 5 score 10065 board tick 19717
+shape_16x16_auto states 3479:vortex 4020:level_wipe 7434:vortex 7975:level_wipe 11319:vortex 11860:level_wipe 16913:vortex 17454:level_wipe
+shape_16x16_auto save savegame-b6099f2a.dat v2 normal level 4 (shown 5), 256 gems, state 4 (clearing), score 10545, play seconds 199, 33719 bytes; rules 3354900afadf3b8d, 16x16, level shape 0, 0 holes; RNGS seed 2135392491, MOVE moves 79 invalid 0 undos 0, END
+shape_16x16_auto status rulesId 3354900afadf3b8d, scoreKey b6099f2a, features none, 0 warnings, errors -, dropped -
+shape_16x16_auto variant last moves 78 invalid 0, 0 of 114 settles without a move
+shape_16x16_auto seeds 204:2135392491/pergame
+shape_16x16_auto end update 19999: update cap
+shape_16x16_auto codec codeccheck: 19996 updates checked, 114 settles, 0 failures
+
+shape_diamond_auto exit 0
+shape_diamond_auto mods Stage 7: a diamond
+shape_diamond_auto user hiscores-5f36f8bc.dat mods-status.json registry.ini
+shape_diamond_auto settles 5
+shape_diamond_auto last-settle 661 normal level 1 score 50 board tick 658
+shape_diamond_auto states 796:game_over 1126:game_over_done
+shape_diamond_auto save none
+shape_diamond_auto status rulesId 0a85efc7bd42a6a9, scoreKey 5f36f8bc, features none, 0 warnings, errors -, dropped -
+shape_diamond_auto variant last moves 3 invalid 0, 0 of 5 settles without a move
+shape_diamond_auto seeds 147:2135392491/pergame
+shape_diamond_auto end update 1126: game over -> game over done, level 1, score 60, board tick 1123, Rand() draws 3
+shape_diamond_auto codec codeccheck: 1224 updates checked, 5 settles, 0 failures
+
+shape_diamond_auto_timed exit 0
+shape_diamond_auto_timed mods Stage 7: a diamond
+shape_diamond_auto_timed user mods-status.json registry.ini savegame-5f36f8bc.dat
+shape_diamond_auto_timed settles 137
+shape_diamond_auto_timed last-settle 19926 timed level 3 score 2935 board tick 19922
+shape_diamond_auto_timed states 1890:fall_out 2652:vortex 2856:level_wipe 4791:fall_out 6995:fall_out 9161:fall_out 9687:vortex 9891:level_wipe 16548:fall_out 18479:fall_out
+shape_diamond_auto_timed save savegame-5f36f8bc.dat v2 timed level 2 (shown 3), 41 gems, state 1 (playing), score 2785, play seconds 199, 7723 bytes; rules 0a85efc7bd42a6a9, 9x9, level shape 0, 40 holes; RNGS seed 946286476, MOVE moves 101 invalid 0 undos 0, END
+shape_diamond_auto_timed status rulesId 0a85efc7bd42a6a9, scoreKey 5f36f8bc, features none, 0 warnings, errors -, dropped -
+shape_diamond_auto_timed variant last moves 101 invalid 0, 0 of 137 settles without a move
+shape_diamond_auto_timed seeds 141:946286476/pergame
+shape_diamond_auto_timed end update 19999: update cap
+shape_diamond_auto_timed codec codeccheck: 19996 updates checked, 137 settles, 0 failures
+
+shape_dirt_diamond_auto_timed exit 0
+shape_dirt_diamond_auto_timed mods Stage 1: diamond with dirt
+shape_dirt_diamond_auto_timed user mods-status.json registry.ini savegame-ca6ae1f2.dat
+shape_dirt_diamond_auto_timed settles 127
+shape_dirt_diamond_auto_timed last-settle 19503 timed level 4 score 3055 board tick 19499
+shape_dirt_diamond_auto_timed states 4321:vortex 4531:level_wipe 6948:fall_out 9197:fall_out 10149:fall_out 10509:vortex 10719:level_wipe 12134:fall_out 17943:vortex 18153:level_wipe 18954:fall_out 19655:fall_out
+shape_dirt_diamond_auto_timed save savegame-ca6ae1f2.dat v2 timed level 3 (shown 4), 54 gems, state 0 (falling), score 3090, play seconds 199, 9283 bytes; rules 8e73af2834415ce8, 9x9, level shape 0, 27 holes; RNGS seed 946286476, MOVE moves 92 invalid 0 undos 0, END
+shape_dirt_diamond_auto_timed status rulesId 8e73af2834415ce8, scoreKey ca6ae1f2, features none, 1 warnings, errors -, dropped -
+shape_dirt_diamond_auto_timed variant last moves 91 invalid 0, 0 of 127 settles without a move
+shape_dirt_diamond_auto_timed seeds 152:946286476/pergame
+shape_dirt_diamond_auto_timed end update 19999: update cap
+shape_dirt_diamond_auto_timed codec codeccheck: 19996 updates checked, 127 settles, 0 failures
+
+shape_levels_auto exit 0
+shape_levels_auto mods Stage 7: two level shapes
+shape_levels_auto user mods-status.json registry.ini savegame-ceccb9dd.dat
+shape_levels_auto settles 64
+shape_levels_auto last-settle 19795 normal level 28 score 1947280 board tick 19792
+shape_levels_auto states 258:vortex 510:level_wipe 959:vortex 1175:level_wipe 1617:vortex 1869:level_wipe 2291:vortex 2507:level_wipe 3017:vortex 3269:level_wipe 3709:vortex 3925:level_wipe 4367:vortex 4619:level_wipe 5190:vortex 5406:level_wipe 5916:vortex 6168:level_wipe 6740:vortex 6956:level_wipe 7397:vortex 7649:level_wipe 8058:vortex 8274:level_wipe 8841:vortex 9093:level_wipe 9671:vortex 9887:level_wipe 10338:vortex 10590:level_wipe 11094:vortex 11310:level_wipe 11718:vortex 11970:level_wipe 12491:vortex 12707:level_wipe 13221:vortex 13473:level_wipe 13931:vortex 14147:level_wipe 14577:vortex 14829:level_wipe 15269:vortex 15485:level_wipe 16088:vortex 16340:level_wipe 16790:vortex 17006:level_wipe 17555:vortex 17807:level_wipe 18258:vortex 18474:level_wipe 18906:vortex 19158:level_wipe 19796:vortex
+shape_levels_auto save savegame-ceccb9dd.dat v2 normal level 27 (shown 28), 49 gems, state 7 (vortex), score 1947280, play seconds 199, 8647 bytes; rules c86ef6d4027c074d, 7x7, level shape 1, 0 holes; RNGS seed 2135392491, MOVE moves 28 invalid 0 undos 0, END
+shape_levels_auto status rulesId c86ef6d4027c074d, scoreKey ceccb9dd, features none, 0 warnings, errors -, dropped -
+shape_levels_auto variant last moves 28 invalid 0, 0 of 64 settles without a move
+shape_levels_auto seeds 147:2135392491/pergame
+shape_levels_auto end update 19999: update cap
+shape_levels_auto codec codeccheck: 19996 updates checked, 64 settles, 0 failures
+
+shape_levels_auto_timed exit 0
+shape_levels_auto_timed mods Stage 7: two level shapes
+shape_levels_auto_timed user mods-status.json registry.ini savegame-ceccb9dd.dat
+shape_levels_auto_timed settles 66
+shape_levels_auto_timed last-settle 19664 timed level 28 score 2062985 board tick 19660
+shape_levels_auto_timed states 331:vortex 583:level_wipe 1147:vortex 1363:level_wipe 1966:vortex 2218:level_wipe 2642:vortex 2858:level_wipe 3312:vortex 3564:level_wipe 3967:vortex 4183:level_wipe 4579:vortex 4831:level_wipe 5250:vortex 5466:level_wipe 5892:vortex 6144:level_wipe 6544:vortex 6760:level_wipe 7261:vortex 7513:level_wipe 8011:vortex 8227:level_wipe 8868:vortex 9120:level_wipe 9748:vortex 9964:level_wipe 10408:vortex 10660:level_wipe 11056:vortex 11272:level_wipe 11730:vortex 11982:level_wipe 12603:vortex 12819:level_wipe 13279:vortex 13531:level_wipe 14005:vortex 14221:level_wipe 14614:vortex 14866:level_wipe 15464:vortex 15680:level_wipe 16078:vortex 16330:level_wipe 16747:vortex 16963:level_wipe 17482:vortex 17734:level_wipe 18268:vortex 18484:level_wipe 18974:vortex 19226:level_wipe 19665:vortex 19881:level_wipe
+shape_levels_auto_timed save savegame-ceccb9dd.dat v2 timed level 28 (shown 28), 0 gems, state 8 (level wipe), score 2062985, play seconds 199, 2783 bytes; rules c86ef6d4027c074d, 8x8, level shape 0, 10 holes; RNGS seed 946286476, MOVE moves 28 invalid 0 undos 0, END
+shape_levels_auto_timed status rulesId c86ef6d4027c074d, scoreKey ceccb9dd, features none, 0 warnings, errors -, dropped -
+shape_levels_auto_timed variant last moves 28 invalid 0, 0 of 66 settles without a move
+shape_levels_auto_timed seeds 138:946286476/pergame
+shape_levels_auto_timed end update 19999: update cap
+shape_levels_auto_timed codec codeccheck: 19996 updates checked, 66 settles, 0 failures
+
+shape_levels_quit exit 0
+shape_levels_quit mods Stage 7: two level shapes
+shape_levels_quit user mods-status.json registry.ini savegame-ceccb9dd.dat
+shape_levels_quit settle 434 normal level 1 score 0 board tick 135
+shape_levels_quit settle 553 normal level 1 score 5000 board tick 254
+shape_levels_quit settle 1098 normal level 2 score 5000 board tick 799
+shape_levels_quit states 554:vortex 806:level_wipe
+shape_levels_quit save savegame-ceccb9dd.dat v2 normal level 1 (shown 2), 49 gems, state 1 (playing), score 5000, play seconds 9, 8647 bytes; rules c86ef6d4027c074d, 7x7, level shape 1, 0 holes; RNGS seed 4242 user, MOVE moves 1 invalid 0 undos 0, END
+shape_levels_quit status rulesId c86ef6d4027c074d, scoreKey ceccb9dd, features none, 0 warnings, errors -, dropped -
+shape_levels_quit variant last moves 1 invalid 0, 0 of 3 settles without a move
+shape_levels_quit seeds 434:4242/user
+shape_levels_quit codec codeccheck: 900 updates checked, 3 settles, 0 failures
+
+shape_levels_quit.resume exit 0
+shape_levels_quit.resume mods Stage 7: two level shapes
+shape_levels_quit.resume user mods-status.json registry.ini savegame-ceccb9dd.dat
+shape_levels_quit.resume settle 340 normal level 2 score 5000 board tick 1
+shape_levels_quit.resume settle 581 normal level 2 score 12500 board tick 242
+shape_levels_quit.resume settle 1103 normal level 3 score 12500 board tick 764
+shape_levels_quit.resume states 582:vortex 798:level_wipe
+shape_levels_quit.resume save savegame-ceccb9dd.dat v2 normal level 2 (shown 3), 54 gems, state 1 (playing), score 12500, play seconds 18, 9263 bytes; rules c86ef6d4027c074d, 8x8, level shape 0, 10 holes; RNGS seed 4242 user, MOVE moves 2 invalid 0 undos 0, END
+shape_levels_quit.resume status rulesId c86ef6d4027c074d, scoreKey ceccb9dd, features none, 0 warnings, errors -, dropped -
+shape_levels_quit.resume variant last moves 2 invalid 0, 0 of 3 settles without a move
+shape_levels_quit.resume seeds 340:4242/user
+shape_levels_quit.resume codec codeccheck: 950 updates checked, 3 settles, 0 failures
+
+rec_shape_levels_auto exit 0
+rec_shape_levels_auto mods Stage 3: replays, Stage 7: two level shapes
+rec_shape_levels_auto user mods-status.json registry.ini savegame-ceccb9dd.bjr savegame-ceccb9dd.dat
+rec_shape_levels_auto settles 64
+rec_shape_levels_auto last-settle 19795 normal level 28 score 1947280 board tick 19792
+rec_shape_levels_auto states 258:vortex 510:level_wipe 959:vortex 1175:level_wipe 1617:vortex 1869:level_wipe 2291:vortex 2507:level_wipe 3017:vortex 3269:level_wipe 3709:vortex 3925:level_wipe 4367:vortex 4619:level_wipe 5190:vortex 5406:level_wipe 5916:vortex 6168:level_wipe 6740:vortex 6956:level_wipe 7397:vortex 7649:level_wipe 8058:vortex 8274:level_wipe 8841:vortex 9093:level_wipe 9671:vortex 9887:level_wipe 10338:vortex 10590:level_wipe 11094:vortex 11310:level_wipe 11718:vortex 11970:level_wipe 12491:vortex 12707:level_wipe 13221:vortex 13473:level_wipe 13931:vortex 14147:level_wipe 14577:vortex 14829:level_wipe 15269:vortex 15485:level_wipe 16088:vortex 16340:level_wipe 16790:vortex 17006:level_wipe 17555:vortex 17807:level_wipe 18258:vortex 18474:level_wipe 18906:vortex 19158:level_wipe 19796:vortex
+rec_shape_levels_auto save savegame-ceccb9dd.dat v2 normal level 27 (shown 28), 49 gems, state 7 (vortex), score 1947280, play seconds 199, 8647 bytes; rules c86ef6d4027c074d, 7x7, level shape 1, 0 holes; RNGS seed 2135392491, MOVE moves 28 invalid 0 undos 0, END
+rec_shape_levels_auto sidecar savegame-ceccb9dd.bjr end saved tick 19996 score 1947280 level 28 gems 143 draws 4161; seg0 normal seed 2135392491 CHECK64,HINT1,HOVER80,SAVE2,SELECT49,TARGET36; rng seed 2135392491; flags hover; goes with the save
+rec_shape_levels_auto status rulesId c86ef6d4027c074d, scoreKey ceccb9dd, features seeds(entry), replays(keep 3, hover), 1 warnings, errors -, dropped -
+rec_shape_levels_auto variant last moves 28 invalid 0, 0 of 64 settles without a move
+rec_shape_levels_auto seeds 147:2135392491/pergame
+rec_shape_levels_auto end update 19999: update cap
+rec_shape_levels_auto codec codeccheck: 19996 updates checked, 64 settles, 0 failures
+
+rec_shape_levels_quit exit 0
+rec_shape_levels_quit mods Stage 3: replays, Stage 7: two level shapes
+rec_shape_levels_quit user mods-status.json registry.ini savegame-ceccb9dd.bjr savegame-ceccb9dd.dat
+rec_shape_levels_quit settle 434 normal level 1 score 0 board tick 135
+rec_shape_levels_quit settle 553 normal level 1 score 5000 board tick 254
+rec_shape_levels_quit settle 1098 normal level 2 score 5000 board tick 799
+rec_shape_levels_quit states 554:vortex 806:level_wipe
+rec_shape_levels_quit save savegame-ceccb9dd.dat v2 normal level 1 (shown 2), 49 gems, state 1 (playing), score 5000, play seconds 9, 8647 bytes; rules c86ef6d4027c074d, 7x7, level shape 1, 0 holes; RNGS seed 4242 user, MOVE moves 1 invalid 0 undos 0, END
+rec_shape_levels_quit sidecar savegame-ceccb9dd.bjr end saved tick 900 score 5000 level 2 gems 3 draws 693; seg0 normal seed 4242 user CHECK3,HOVER4,SAVE2,SELECT1,TARGET1; rng seed 4242 user; flags hover; goes with the save
+rec_shape_levels_quit status rulesId c86ef6d4027c074d, scoreKey ceccb9dd, features seeds(entry), replays(keep 3, hover), 1 warnings, errors -, dropped -
+rec_shape_levels_quit variant last moves 1 invalid 0, 0 of 3 settles without a move
+rec_shape_levels_quit seeds 434:4242/user
+rec_shape_levels_quit codec codeccheck: 900 updates checked, 3 settles, 0 failures
+
+rec_shape_levels_quit.resume exit 0
+rec_shape_levels_quit.resume mods Stage 3: replays, Stage 7: two level shapes
+rec_shape_levels_quit.resume user mods-status.json registry.ini savegame-ceccb9dd.bjr savegame-ceccb9dd.dat
+rec_shape_levels_quit.resume settle 340 normal level 2 score 5000 board tick 1
+rec_shape_levels_quit.resume settle 581 normal level 2 score 12500 board tick 242
+rec_shape_levels_quit.resume settle 1103 normal level 3 score 12500 board tick 764
+rec_shape_levels_quit.resume states 582:vortex 798:level_wipe
+rec_shape_levels_quit.resume save savegame-ceccb9dd.dat v2 normal level 2 (shown 3), 54 gems, state 1 (playing), score 12500, play seconds 18, 9263 bytes; rules c86ef6d4027c074d, 8x8, level shape 0, 10 holes; RNGS seed 4242 user, MOVE moves 2 invalid 0 undos 0, END
+rec_shape_levels_quit.resume sidecar savegame-ceccb9dd.bjr end saved tick 910 score 12500 level 3 gems 6 draws 264; seg0 normal seed 4242 user CHECK3,HOVER4,SAVE2,SELECT1,TARGET1; seg1 normal seed 2135392491 load(seed 4242 user) CHECK3,HOVER5,LOAD1,PAUSE1,SAVE2,SELECT1,TARGET1,UNPAUSE1; rng seed 4242 user; flags hover+multi; goes with the save
+rec_shape_levels_quit.resume status rulesId c86ef6d4027c074d, scoreKey ceccb9dd, features seeds(entry), replays(keep 3, hover), 1 warnings, errors -, dropped -
+rec_shape_levels_quit.resume variant last moves 2 invalid 0, 0 of 3 settles without a move
+rec_shape_levels_quit.resume seeds 340:4242/user
+rec_shape_levels_quit.resume codec codeccheck: 950 updates checked, 3 settles, 0 failures
+
+watch_shape_levels_auto exit 0
+watch_shape_levels_auto mods none
+watch_shape_levels_auto user registry.ini
+watch_shape_levels_auto settles 64
+watch_shape_levels_auto last-settle 20092 normal level 28 score 1947280 board tick 19792
+watch_shape_levels_auto states 555:vortex 807:level_wipe 1256:vortex 1472:level_wipe 1914:vortex 2166:level_wipe 2588:vortex 2804:level_wipe 3314:vortex 3566:level_wipe 4006:vortex 4222:level_wipe 4664:vortex 4916:level_wipe 5487:vortex 5703:level_wipe 6213:vortex 6465:level_wipe 7037:vortex 7253:level_wipe 7694:vortex 7946:level_wipe 8355:vortex 8571:level_wipe 9138:vortex 9390:level_wipe 9968:vortex 10184:level_wipe 10635:vortex 10887:level_wipe 11391:vortex 11607:level_wipe 12015:vortex 12267:level_wipe 12788:vortex 13004:level_wipe 13518:vortex 13770:level_wipe 14228:vortex 14444:level_wipe 14874:vortex 15126:level_wipe 15566:vortex 15782:level_wipe 16385:vortex 16637:level_wipe 17087:vortex 17303:level_wipe 17852:vortex 18104:level_wipe 18555:vortex 18771:level_wipe 19203:vortex 19455:level_wipe 20093:vortex
+watch_shape_levels_auto save none
+watch_shape_levels_auto variant last moves 28 invalid 0, 0 of 64 settles without a move
+watch_shape_levels_auto seeds 444:2135392491/pergame
+watch_shape_levels_auto codec codeccheck: 19998 updates checked, 64 settles, 0 failures
+watch_shape_levels_auto watch REPLAY end: ok, 64 CHECKs, END saved tick 19996 score 1947280 level 28 gems 143 draws 4161
+
+watch_shape_levels_resume exit 0
+watch_shape_levels_resume mods none
+watch_shape_levels_resume user registry.ini
+watch_shape_levels_resume settles 6
+watch_shape_levels_resume last-settle 1965 normal level 3 score 12500 board tick 764
+watch_shape_levels_resume states 555:vortex 807:level_wipe 1444:vortex 1660:level_wipe
+watch_shape_levels_resume save none
+watch_shape_levels_resume variant last moves 2 invalid 0, 0 of 6 settles without a move
+watch_shape_levels_resume seeds 435:4242/user 1202:4242/user
+watch_shape_levels_resume codec codeccheck: 1813 updates checked, 6 settles, 0 failures
+watch_shape_levels_resume watch REPLAY end: ok, 6 CHECKs, END saved tick 910 score 12500 level 3 gems 6 draws 264
+
+twilight_auto exit 0
+twilight_auto mods Stage 7c: Twilight
+twilight_auto user mods-status.json registry.ini savegame-ba1255c3.dat
+twilight_auto settles 129
+twilight_auto last-settle 19974 normal level 3 score 2295 board tick 19971
+twilight_auto states 5536:vortex 5789:level_wipe 14278:vortex 14531:level_wipe
+twilight_auto save savegame-ba1255c3.dat v2 normal level 2 (shown 3), 64 gems, state 1 (playing), score 2295, play seconds 199, 10476 bytes; rules 43f97c611a52cfa6, 8x8, level shape 0, 0 holes; RNGS seed 2135392491, MOVE moves 88 invalid 0 undos 0, GRAV flips 91, END
+twilight_auto status rulesId 43f97c611a52cfa6, scoreKey ba1255c3, features none, 0 warnings, errors -, dropped -
+twilight_auto variant last moves 88 invalid 0 gravity down flips 91, 0 of 129 settles without a move
+twilight_auto seeds 227:2135392491/pergame
+twilight_auto end update 19999: update cap
+twilight_auto codec codeccheck: 19996 updates checked, 129 settles, 0 failures
+
+twilight_auto_timed exit 0
+twilight_auto_timed mods Stage 7c: Twilight
+twilight_auto_timed user mods-status.json registry.ini savegame-ba1255c3.dat
+twilight_auto_timed settles 118
+twilight_auto_timed last-settle 19963 timed level 5 score 5770 board tick 19959
+twilight_auto_timed states 2957:vortex 3210:level_wipe 6602:vortex 6855:level_wipe 10529:vortex 10782:level_wipe 16632:vortex 16885:level_wipe 19964:vortex
+twilight_auto_timed save savegame-ba1255c3.dat v2 timed level 4 (shown 5), 64 gems, state 7 (vortex), score 5770, play seconds 199, 10476 bytes; rules 43f97c611a52cfa6, 8x8, level shape 0, 0 holes; RNGS seed 946286476, MOVE moves 81 invalid 0 undos 0, GRAV flips 86, END
+twilight_auto_timed status rulesId 43f97c611a52cfa6, scoreKey ba1255c3, features none, 0 warnings, errors -, dropped -
+twilight_auto_timed variant last moves 81 invalid 0 gravity up flips 86, 0 of 118 settles without a move
+twilight_auto_timed seeds 208:946286476/pergame
+twilight_auto_timed end update 19999: update cap
+twilight_auto_timed codec codeccheck: 19996 updates checked, 118 settles, 0 failures
+
+twilight_kept_auto exit 0
+twilight_kept_auto mods Stage 7c: Twilight with free swaps and undo
+twilight_kept_auto user mods-status.json registry.ini savegame-0e4923af.dat
+twilight_kept_auto settles 138
+twilight_kept_auto last-settle 19895 normal level 3 score 2360 board tick 19892
+twilight_kept_auto states 4900:vortex 5153:level_wipe 14890:vortex 15143:level_wipe
+twilight_kept_auto save savegame-0e4923af.dat v2 normal level 2 (shown 3), 64 gems, state 1 (playing), score 2260, play seconds 199, 10476 bytes; rules 31e6074ed5d02394, 8x8, level shape 0, 0 holes; RNGS seed 2135392491, MOVE moves 135 invalid 38 undos 0, GRAV flips 100, END
+twilight_kept_auto status rulesId 31e6074ed5d02394, scoreKey 0e4923af, features none, 0 warnings, errors -, dropped -
+twilight_kept_auto variant last moves 135 invalid 38 gravity up flips 100, 0 of 138 settles without a move
+twilight_kept_auto seeds 227:2135392491/pergame
+twilight_kept_auto end update 19999: update cap
+twilight_kept_auto codec codeccheck: 19996 updates checked, 138 settles, 0 failures
+
+rising_auto exit 0
+rising_auto mods Stage 7c: rising on a 6x6
+rising_auto user hiscores-aea048c1.dat mods-status.json registry.ini
+rising_auto settles 23
+rising_auto last-settle 2942 normal level 1 score 330 board tick 2939
+rising_auto states 3085:game_over 3405:game_over_done
+rising_auto save none
+rising_auto status rulesId 46ad61478392f48b, scoreKey aea048c1, features none, 0 warnings, errors -, dropped -
+rising_auto variant last moves 14 invalid 0 gravity up flips 0, 0 of 23 settles without a move
+rising_auto seeds 127:2135392491/pergame
+rising_auto end update 3405: game over -> game over done, level 1, score 360, board tick 3402, Rand() draws 3
+rising_auto codec codeccheck: 3503 updates checked, 23 settles, 0 failures
+
+rising_auto_timed exit 0
+rising_auto_timed mods Stage 7c: rising on a 6x6
+rising_auto_timed user mods-status.json registry.ini savegame-aea048c1.dat
+rising_auto_timed settles 133
+rising_auto_timed last-settle 19945 timed level 4 score 4875 board tick 19941
+rising_auto_timed states 2691:vortex 2872:level_wipe 4343:fall_out 5383:vortex 5564:level_wipe 8334:fall_out 10515:fall_out 10829:vortex 11010:level_wipe 12230:fall_out 13751:fall_out
+rising_auto_timed save savegame-aea048c1.dat v2 timed level 3 (shown 4), 36 gems, state 1 (playing), score 4875, play seconds 199, 7085 bytes; rules 46ad61478392f48b, 6x6, level shape 0, 0 holes; RNGS seed 946286476, MOVE moves 97 invalid 0 undos 0, GRAV flips 0, END
+rising_auto_timed status rulesId 46ad61478392f48b, scoreKey aea048c1, features none, 0 warnings, errors -, dropped -
+rising_auto_timed variant last moves 97 invalid 0 gravity up flips 0, 0 of 133 settles without a move
+rising_auto_timed seeds 129:946286476/pergame
+rising_auto_timed end update 19999: update cap
+rising_auto_timed codec codeccheck: 19996 updates checked, 133 settles, 0 failures
+
+slow_auto_timed exit 0
+slow_auto_timed mods Stage 7c: slow falls
+slow_auto_timed user mods-status.json registry.ini savegame-c6871c00.dat
+slow_auto_timed settles 130
+slow_auto_timed last-settle 19885 timed level 4 score 3440 board tick 19881
+slow_auto_timed states 3572:vortex 3825:level_wipe 9016:vortex 9269:level_wipe 15665:vortex 15918:level_wipe
+slow_auto_timed save savegame-c6871c00.dat v2 timed level 3 (shown 4), 61 gems, state 4 (clearing), score 3475, play seconds 199, 10116 bytes; rules 3e8f8e7aae464ce5, 8x8, level shape 0, 0 holes; RNGS seed 946286476, MOVE moves 92 invalid 0 undos 0, GRAV flips 0, END
+slow_auto_timed status rulesId 3e8f8e7aae464ce5, scoreKey c6871c00, features none, 0 warnings, errors -, dropped -
+slow_auto_timed variant last moves 91 invalid 0 gravity down flips 0, 0 of 130 settles without a move
+slow_auto_timed seeds 209:946286476/pergame
+slow_auto_timed end update 19999: update cap
+slow_auto_timed codec codeccheck: 19996 updates checked, 130 settles, 0 failures
+
+twilight_diamond_auto_timed exit 0
+twilight_diamond_auto_timed mods Stage 7c: a Twilight diamond
+twilight_diamond_auto_timed user mods-status.json registry.ini savegame-d11967d1.dat
+twilight_diamond_auto_timed settles 114
+twilight_diamond_auto_timed last-settle 19896 timed level 4 score 3195 board tick 19892
+twilight_diamond_auto_timed states 3120:vortex 3324:level_wipe 5068:fall_out 7148:vortex 7352:level_wipe 7710:fall_out 11891:fall_out 18645:vortex 18849:level_wipe
+twilight_diamond_auto_timed save savegame-d11967d1.dat v2 timed level 3 (shown 4), 41 gems, state 0 (falling), score 3230, play seconds 199, 7736 bytes; rules e7d6560d774a0bad, 9x9, level shape 0, 40 holes; RNGS seed 946286476, MOVE moves 86 invalid 0 undos 0, GRAV flips 89, END
+twilight_diamond_auto_timed status rulesId e7d6560d774a0bad, scoreKey d11967d1, features none, 0 warnings, errors -, dropped -
+twilight_diamond_auto_timed variant last moves 85 invalid 0 gravity down flips 89, 0 of 114 settles without a move
+twilight_diamond_auto_timed seeds 215:946286476/pergame
+twilight_diamond_auto_timed end update 19999: update cap
+twilight_diamond_auto_timed codec codeccheck: 19996 updates checked, 114 settles, 0 failures
+
+twilight_quit exit 0
+twilight_quit mods Stage 7c: Twilight
+twilight_quit user mods-status.json registry.ini savegame-ba1255c3.dat
+twilight_quit settle 525 normal level 1 score 0 board tick 226
+twilight_quit settle 915 normal level 1 score 240 board tick 616
+twilight_quit states none
+twilight_quit save savegame-ba1255c3.dat v2 normal level 0 (shown 1), 64 gems, state 0 (falling), score 250, play seconds 7, 10476 bytes; rules 43f97c611a52cfa6, 8x8, level shape 0, 0 holes; RNGS seed 4242 user, MOVE moves 2 invalid 0 undos 0, GRAV flips 2, END
+twilight_quit status rulesId 43f97c611a52cfa6, scoreKey ba1255c3, features none, 0 warnings, errors -, dropped -
+twilight_quit variant last moves 1 invalid 0 gravity up flips 2, 0 of 2 settles without a move
+twilight_quit seeds 525:4242/user
+twilight_quit codec codeccheck: 716 updates checked, 2 settles, 0 failures
+
+twilight_quit.resume exit 0
+twilight_quit.resume mods Stage 7c: Twilight
+twilight_quit.resume user mods-status.json registry.ini savegame-ba1255c3.dat
+twilight_quit.resume settle 340 normal level 1 score 250 board tick 1
+twilight_quit.resume states none
+twilight_quit.resume save savegame-ba1255c3.dat v2 normal level 0 (shown 1), 64 gems, state 1 (playing), score 250, play seconds 12, 10476 bytes; rules 43f97c611a52cfa6, 8x8, level shape 0, 0 holes; RNGS seed 4242 user, MOVE moves 2 invalid 0 undos 0, GRAV flips 3, END
+twilight_quit.resume status rulesId 43f97c611a52cfa6, scoreKey ba1255c3, features none, 0 warnings, errors -, dropped -
+twilight_quit.resume variant last moves 2 invalid 0 gravity down flips 3, 0 of 1 settles without a move
+twilight_quit.resume seeds 340:4242/user
+twilight_quit.resume codec codeccheck: 730 updates checked, 1 settles, 0 failures
+
+twilight_undo exit 0
+twilight_undo mods Stage 7c: Twilight with free swaps and undo
+twilight_undo user mods-status.json registry.ini savegame-0e4923af.dat
+twilight_undo settle 525 normal level 1 score 0 board tick 226
+twilight_undo settle 915 normal level 1 score 240 board tick 616
+twilight_undo settle 950 normal level 1 score 0 board tick 651
+twilight_undo settle 1365 normal level 1 score 240 board tick 1066
+twilight_undo settle 1437 normal level 1 score 240 board tick 1138
+twilight_undo states none
+twilight_undo save savegame-0e4923af.dat v2 normal level 0 (shown 1), 64 gems, state 1 (playing), score 240, play seconds 12, 10476 bytes; rules 31e6074ed5d02394, 8x8, level shape 0, 0 holes; RNGS seed 4242 user, MOVE moves 2 invalid 1 undos 1, GRAV flips 2, END
+twilight_undo status rulesId 31e6074ed5d02394, scoreKey 0e4923af, features none, 0 warnings, errors -, dropped -
+twilight_undo variant last moves 2 invalid 1 gravity up flips 2, 0 of 5 settles without a move
+twilight_undo seeds 525:4242/user
+twilight_undo codec codeccheck: 1250 updates checked, 5 settles, 0 failures
+
+rec_twilight_auto_timed exit 0
+rec_twilight_auto_timed mods Stage 3: replays, Stage 7c: Twilight
+rec_twilight_auto_timed user mods-status.json registry.ini savegame-ba1255c3.bjr savegame-ba1255c3.dat
+rec_twilight_auto_timed settles 118
+rec_twilight_auto_timed last-settle 19963 timed level 5 score 5770 board tick 19959
+rec_twilight_auto_timed states 2957:vortex 3210:level_wipe 6602:vortex 6855:level_wipe 10529:vortex 10782:level_wipe 16632:vortex 16885:level_wipe 19964:vortex
+rec_twilight_auto_timed save savegame-ba1255c3.dat v2 timed level 4 (shown 5), 64 gems, state 7 (vortex), score 5770, play seconds 199, 10476 bytes; rules 43f97c611a52cfa6, 8x8, level shape 0, 0 holes; RNGS seed 946286476, MOVE moves 81 invalid 0 undos 0, GRAV flips 86, END
+rec_twilight_auto_timed sidecar savegame-ba1255c3.bjr end saved tick 19995 score 5770 level 5 gems 374 draws 1957; seg0 timed seed 946286476 CHECK118,HINT1,HOVER217,SAVE2,SELECT114,TARGET113; rng seed 946286476; flags hover; goes with the save
+rec_twilight_auto_timed status rulesId 43f97c611a52cfa6, scoreKey ba1255c3, features seeds(entry), replays(keep 3, hover), 1 warnings, errors -, dropped -
+rec_twilight_auto_timed variant last moves 81 invalid 0 gravity up flips 86, 0 of 118 settles without a move
+rec_twilight_auto_timed seeds 208:946286476/pergame
+rec_twilight_auto_timed end update 19999: update cap
+rec_twilight_auto_timed codec codeccheck: 19996 updates checked, 118 settles, 0 failures
+
+rec_twilight_quit exit 0
+rec_twilight_quit mods Stage 3: replays, Stage 7c: Twilight
+rec_twilight_quit user mods-status.json registry.ini savegame-ba1255c3.bjr savegame-ba1255c3.dat
+rec_twilight_quit settle 525 normal level 1 score 0 board tick 226
+rec_twilight_quit settle 915 normal level 1 score 240 board tick 616
+rec_twilight_quit states none
+rec_twilight_quit save savegame-ba1255c3.dat v2 normal level 0 (shown 1), 64 gems, state 0 (falling), score 250, play seconds 7, 10476 bytes; rules 43f97c611a52cfa6, 8x8, level shape 0, 0 holes; RNGS seed 4242 user, MOVE moves 2 invalid 0 undos 0, GRAV flips 2, END
+rec_twilight_quit sidecar savegame-ba1255c3.bjr end saved tick 716 score 250 level 1 gems 21 draws 412; seg0 normal seed 4242 user CHECK2,HOVER6,SAVE2,SELECT2,TARGET2; rng seed 4242 user; flags hover; goes with the save
+rec_twilight_quit status rulesId 43f97c611a52cfa6, scoreKey ba1255c3, features seeds(entry), replays(keep 3, hover), 1 warnings, errors -, dropped -
+rec_twilight_quit variant last moves 1 invalid 0 gravity up flips 2, 0 of 2 settles without a move
+rec_twilight_quit seeds 525:4242/user
+rec_twilight_quit codec codeccheck: 716 updates checked, 2 settles, 0 failures
+
+rec_twilight_quit.resume exit 0
+rec_twilight_quit.resume mods Stage 3: replays, Stage 7c: Twilight
+rec_twilight_quit.resume user mods-status.json registry.ini savegame-ba1255c3.bjr savegame-ba1255c3.dat
+rec_twilight_quit.resume settle 340 normal level 1 score 250 board tick 1
+rec_twilight_quit.resume states none
+rec_twilight_quit.resume save savegame-ba1255c3.dat v2 normal level 0 (shown 1), 64 gems, state 1 (playing), score 250, play seconds 12, 10476 bytes; rules 43f97c611a52cfa6, 8x8, level shape 0, 0 holes; RNGS seed 4242 user, MOVE moves 2 invalid 0 undos 0, GRAV flips 3, END
+rec_twilight_quit.resume sidecar savegame-ba1255c3.bjr end saved tick 580 score 250 level 1 gems 21 draws 132; seg0 normal seed 4242 user CHECK2,HOVER6,SAVE2,SELECT2,TARGET2; seg1 normal seed 2135392491 load(seed 4242 user) CHECK1,HOVER3,LOAD1,PAUSE3,SAVE2,UNPAUSE1; rng seed 4242 user; flags hover+multi; goes with the save
+rec_twilight_quit.resume status rulesId 43f97c611a52cfa6, scoreKey ba1255c3, features seeds(entry), replays(keep 3, hover), 1 warnings, errors -, dropped -
+rec_twilight_quit.resume variant last moves 2 invalid 0 gravity down flips 3, 0 of 1 settles without a move
+rec_twilight_quit.resume seeds 340:4242/user
+rec_twilight_quit.resume codec codeccheck: 730 updates checked, 1 settles, 0 failures
+
+watch_twilight_auto_timed exit 0
+watch_twilight_auto_timed mods none
+watch_twilight_auto_timed user registry.ini
+watch_twilight_auto_timed settles 118
+watch_twilight_auto_timed last-settle 20259 timed level 5 score 5770 board tick 19959
+watch_twilight_auto_timed states 3253:vortex 3506:level_wipe 6898:vortex 7151:level_wipe 10825:vortex 11078:level_wipe 16928:vortex 17181:level_wipe 20260:vortex
+watch_twilight_auto_timed save none
+watch_twilight_auto_timed variant last moves 81 invalid 0 gravity up flips 86, 0 of 118 settles without a move
+watch_twilight_auto_timed seeds 504:946286476/pergame
+watch_twilight_auto_timed codec codeccheck: 19997 updates checked, 118 settles, 0 failures
+watch_twilight_auto_timed watch REPLAY end: ok, 118 CHECKs, END saved tick 19995 score 5770 level 5 gems 374 draws 1957
+
+watch_twilight_resume exit 0
+watch_twilight_resume mods none
+watch_twilight_resume user registry.ini
+watch_twilight_resume settles 3
+watch_twilight_resume last-settle 1018 normal level 1 score 250 board tick 1
+watch_twilight_resume states none
+watch_twilight_resume save none
+watch_twilight_resume variant last moves 2 invalid 0 gravity down flips 3, 0 of 3 settles without a move
+watch_twilight_resume seeds 526:4242/user 1018:4242/user
+watch_twilight_resume codec codeccheck: 1299 updates checked, 3 settles, 0 failures
+watch_twilight_resume watch REPLAY end: ok, 3 CHECKs, END saved tick 580 score 250 level 1 gems 21 draws 132
+
+overflow exit 0
+overflow mods Stage 4: scores past the int range
+overflow user hiscores-2e51efc7.dat registry.ini
+overflow settles 3
+overflow last-settle 356 timed level 1 score -2147483648 board tick 352
+overflow states 357:game_over 689:game_over_done
+overflow save none
+overflow end update 689: game over -> game over done, level 1, score -2147483648, board tick 685, Rand() draws 5653
+
+rec_overflow exit 0
+rec_overflow mods Stage 3: replays, Stage 4: scores past the int range
+rec_overflow user hiscores-2e51efc7.dat mods-status.json registry.ini replays/ replays/*-timed--2147483648.bjr
+rec_overflow settles 3
+rec_overflow last-settle 356 timed level 1 score -2147483648 board tick 352
+rec_overflow states 357:game_over 689:game_over_done
+rec_overflow save none
+rec_overflow replay replays/*-timed--2147483648.bjr end time up tick 685 score -2147483648 level 1 gems 3 draws 4872; seg0 timed global stream state CHECK3,HOVER7,SELECT3,TARGET2; flags hover
+rec_overflow status rulesId 72ab294017c5cf30, scoreKey 2e51efc7, features seeds(entry), replays(keep 3, hover), 1 warnings, errors -, dropped -
+rec_overflow end update 689: game over -> game over done, level 1, score -2147483648, board tick 685, Rand() draws 5653
+
+highlevel_load exit 0
+highlevel_load mods none
+highlevel_load user registry.ini savegame.dat
+highlevel_load settle 806 normal level 10002 score 630 board tick 467
+highlevel_load states 340:vortex 502:level_wipe 807:vortex 1060:level_wipe
+highlevel_load save savegame.dat v1 normal level 10002 (shown 10003), 64 gems, state 0 (falling), score 630, play seconds 21, 7873 bytes
+
+rec_highlevel exit 0
+rec_highlevel mods Stage 3: replays
+rec_highlevel user mods-status.json registry.ini savegame.bjr savegame.dat
+rec_highlevel settle 806 normal level 10002 score 630 board tick 467
+rec_highlevel states 340:vortex 502:level_wipe 807:vortex 1060:level_wipe
+rec_highlevel save savegame.dat v1 normal level 10002 (shown 10003), 64 gems, state 0 (falling), score 630, play seconds 21, 7873 bytes
+rec_highlevel sidecar savegame.bjr end saved tick 960 score 630 level 10003 gems 56 draws 605; seg0 normal global stream state +save load(global stream) CHECK1,HOVER3,LOAD1,PAUSE1,SAVE2,UNPAUSE1; flags hover; goes with the save
+rec_highlevel status rulesId 0e0943ce3dc5f173, scoreKey -, features seeds(entry), replays(keep 3, hover), 1 warnings, errors -, dropped -

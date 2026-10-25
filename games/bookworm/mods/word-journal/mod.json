@@ -1,0 +1,11 @@
+{
+  "id": "word-journal",
+  "name": "Word Journal",
+  "version": "1.0",
+  "author": "byo-pop",
+  "description": "Every word you play goes into a journal in your player folder (word-journal.txt). At game over, the WORD JOURNAL button opens it: your words, games and points so far, your best and longest words, the best word of each level, and a heatmap of the tiles you play against how often each letter is dealt.",
+  "affectsScores": false,
+  "features": {
+    "wordJournal": true
+  }
+}

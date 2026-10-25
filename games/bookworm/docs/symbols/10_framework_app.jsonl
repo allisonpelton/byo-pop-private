@@ -1,0 +1,1163 @@
+{"addr": "00401360", "name": "std::char_traits<char>::assign", "comment": "static void char_traits<char>::assign(char& dst, const char& src)"}
+{"addr": "00401540", "name": "operator_delete_thunk", "comment": "void operator delete(void*) local wrapper -> free"}
+{"addr": "00401560", "name": "Sexy::ButtonListener::ButtonPress_idcc", "sig": "void __thiscall ButtonPress_idcc(int theId, int theClickCount)", "comment": "ButtonListener slot 2: calls slot 3 ButtonPress(theId)"}
+{"addr": "00401570", "name": "empty_stub_ret4", "sig": "void __thiscall empty_stub_ret4(int theId)", "comment": "shared empty one-arg stub: ButtonListener slots 0,1,3,4,5 of SexyApp and most listeners; also MusicInterface slots 3-5"}
+{"addr": "00401580", "name": "std::string::compare_cstr", "sig": "int __thiscall compare_cstr(unsigned int pos, unsigned int n, char * p, unsigned int len)", "comment": "int compare(size_type pos, size_type n, const char* p, size_type len) const"}
+{"addr": "00401750", "name": "std::string::find_first_not_of_ptr", "sig": "unsigned int __thiscall find_first_not_of_ptr(char * set, unsigned int pos, unsigned int setlen)", "comment": "size_type find_first_not_of(const char* set, size_type pos, size_type setlen) const"}
+{"addr": "004017e0", "name": "std::string::_Eos", "sig": "void __thiscall _Eos(unsigned int n)", "comment": "void _Eos(size_type n)  // size = n, buf[n] = 0"}
+{"addr": "00401810", "name": "std::string::_Tidy", "sig": "void __thiscall _Tidy(bool built)", "comment": "void _Tidy(bool built)  // free heap buffer if built && cap>15, then empty (cap 15)"}
+{"addr": "00401850", "name": "std::string::max_size", "comment": "size_type max_size() const  // 0xfffffffe"}
+{"addr": "00401860", "name": "std::string::compare_cstr0", "sig": "int __thiscall compare_cstr0(char * p)", "comment": "int compare(const char* p) const"}
+{"addr": "00401890", "name": "std::string::_Tidy0", "comment": "_Tidy(false)  // reset to empty without freeing (cap=15,size=0,buf[0]=0)"}
+{"addr": "004018b0", "name": "std::string::find_first_not_of_cstr", "sig": "unsigned int __thiscall find_first_not_of_cstr(char * set, unsigned int pos)", "comment": "size_type find_first_not_of(const char* set, size_type pos = 0) const"}
+{"addr": "004018e0", "name": "std::string::_Grow_alloc", "comment": "_Copy(size_type newsize) part 1: new buffer of (newsize|15)+1 bytes"}
+{"addr": "0040195e", "name": "std::string::_Grow_copy", "comment": "_Copy(size_type) part 2: copy old chars, free old heap buffer, install new"}
+{"addr": "00401a00", "name": "std_string_equals_cstr", "sig": "bool __cdecl std_string_equals_cstr(void * s, char * p)", "comment": "bool operator==(const string& s, const char* p)"}
+{"addr": "00401a40", "name": "std::string::_Grow", "sig": "bool __thiscall _Grow(unsigned int n, bool trim)", "comment": "bool _Grow(size_type n, bool trim)"}
+{"addr": "00401b10", "name": "std_string_append_substr", "sig": "void * __thiscall std_string_append_substr(void * s, unsigned int pos, unsigned int n)", "comment": "string& append(const string& s, size_type pos, size_type n)  // += s with (s,0,npos)"}
+{"addr": "00401c10", "name": "std::string::erase", "sig": "void * __thiscall erase(unsigned int pos, unsigned int n)", "comment": "string& erase(size_type pos = 0, size_type n = npos)"}
+{"addr": "00401cf0", "name": "std::string::append_n_chars", "sig": "void * __thiscall append_n_chars(unsigned int n, char c)", "comment": "string& append(size_type n, char c)"}
+{"addr": "00401dd0", "name": "std::string::assign_substr", "sig": "void * __thiscall assign_substr(void * s, unsigned int pos, unsigned int n)", "comment": "string& assign(const string& s, size_type pos, size_type n)"}
+{"addr": "00401e90", "name": "std::string::assign_ptr_len", "sig": "void * __thiscall assign_ptr_len(char * p, unsigned int n)", "comment": "string& assign(const char* p, size_type n)"}
+{"addr": "00401f40", "name": "std_string_append_chars", "sig": "void * __thiscall std_string_append_chars(char * p, unsigned int n)", "comment": "string& append(const char* p, size_type n)"}
+{"addr": "00402060", "name": "std::string::string_copy", "sig": "void * __thiscall string_copy(void * s)", "comment": "string(const string& s)"}
+{"addr": "004020d0", "name": "std::string::string_cstr", "sig": "void * __thiscall string_cstr(char * p)", "comment": "string(const char* p)"}
+{"addr": "00402110", "name": "std::string::assign_str", "sig": "void __thiscall assign_str(void * s)", "comment": "string& operator=(const string& s)  // assign(s,0,npos)"}
+{"addr": "00402130", "name": "std::string::assign_cstr", "sig": "void __thiscall assign_cstr(char * p)", "comment": "string& operator=(const char* p)"}
+{"addr": "00402160", "name": "std::string::append_cstr", "sig": "void __thiscall append_cstr(char * p)", "comment": "string& operator+=(const char* p)  // append(p, strlen(p))"}
+{"addr": "004029a0", "name": "std::string_plus_cstr", "sig": "void * __cdecl string_plus_cstr(void * result, void * a, char * b)", "comment": "string operator+(const string& a, const char* b)"}
+{"addr": "004036d0", "name": "empty_stub_ret0", "sig": "void __thiscall empty_stub_ret0(void)", "comment": "empty no-arg stub; SexyApp slots 13 LoadingThreadCompleted, 17 LoadingThreadProc, 37 PreDisplayHook, 38 PreDDInterfaceInitHook, 60-63 ModalOpen/ModalClose/GotFocus/LostFocus"}
+{"addr": "00403ee0", "name": "std::vector<std_string>::size", "comment": "size_type size() const  // (last-first)/28; C++: std::vector<std::string>::size"}
+{"addr": "00404c50", "name": "std::string::operator_index", "sig": "char * __thiscall operator_index(unsigned int pos)", "comment": "char& operator[](size_type pos)  // &_Myptr()[pos], unchecked"}
+{"addr": "00404c70", "name": "std::string::_Myptr", "comment": "const char* c_str() / data() / _Myptr()"}
+{"addr": "00404c80", "name": "std::set<std_string>::_Lrotate", "sig": "void __thiscall _Lrotate(void * where)", "comment": "void _Lrotate(_Nodeptr where); C++: std::set<std::string>::_Lrotate"}
+{"addr": "00404ce0", "name": "std::set<std_string>::_Rrotate", "sig": "void __thiscall _Rrotate(void * where)", "comment": "void _Rrotate(_Nodeptr where); C++: std::set<std::string>::_Rrotate"}
+{"addr": "00404d40", "name": "std::set<std_string>::iterator::_Dec", "comment": "void const_iterator::_Dec()  // operator--; C++: std::set<std::string>::iterator::_Dec"}
+{"addr": "00404da0", "name": "std::for_each_list_ptr", "sig": "void * __cdecl for_each_list_ptr(void * first, void * last, void * fn)", "comment": "Fn for_each(list<T*>::iterator first, list<T*>::iterator last, Fn f)  // f is a plain function pointer"}
+{"addr": "00404dd0", "name": "std::string::compare_str", "sig": "int __thiscall compare_str(void * s)", "comment": "int compare(const string& s) const"}
+{"addr": "00405090", "name": "std::list<T*>::begin", "sig": "void * __thiscall begin(void * result)", "comment": "iterator begin()  // head->_Next (null-safe), via hidden pointer"}
+{"addr": "004050c0", "name": "std::list<T*>::front", "comment": "T& front()  // &head->_Next->_Myval"}
+{"addr": "004050e0", "name": "std::list<T*>::_Buynode", "sig": "void * __thiscall _Buynode(void * next, void * prev, void * val)", "comment": "_Nodeptr _Buynode(_Nodeptr next, _Nodeptr prev, const T& val)  // new node(0xc)"}
+{"addr": "00405110", "name": "std::copy_backward_ptr", "comment": "T* copy_backward(T* first, T* last, T* destEnd)  // 4-byte T"}
+{"addr": "00405200", "name": "std::logic_error::what", "comment": "virtual const char* what() const"}
+{"addr": "00405210", "name": "std::logic_error::scalar_deleting_dtor", "comment": "vtable slot 0"}
+{"addr": "00405da0", "name": "std::list<T*>::~list", "comment": "~list()  // erase(begin,end) + free head"}
+{"addr": "00405e70", "name": "std::string::resize", "sig": "void __thiscall resize(unsigned int n)", "comment": "void resize(size_type n)  // pads with '\\0'"}
+{"addr": "00405f10", "name": "std::string_plus_string", "sig": "void * __cdecl string_plus_string(void * result, void * a, void * b)", "comment": "string operator+(const string& a, const string& b)"}
+{"addr": "00406240", "name": "std::logic_error::logic_error", "comment": "logic_error(const string& what)  // exception() + string copy at +0xc"}
+{"addr": "004062a0", "name": "std::logic_error::~logic_error", "comment": "~logic_error()"}
+{"addr": "004065c0", "name": "std::set<std_string>::_Buynode", "sig": "void * __thiscall _Buynode(void * left, void * parent, void * right, void * val, char color)", "comment": "_Nodeptr _Buynode(_Nodeptr left, _Nodeptr parent, _Nodeptr right, const string& val, char color)  // node 0x2c; C++: std::set<std::string>::_Buynode"}
+{"addr": "00406670", "name": "std::logic_error::logic_error_copy", "comment": "logic_error(const logic_error&)"}
+{"addr": "004066e0", "name": "std::list<T*>::_Incsize", "sig": "void __thiscall _Incsize(unsigned int n)", "comment": "void _Incsize(size_type n)  // throw length_error(\"list<T> too long\") if > max_size (0x3fffffff), else size += n"}
+{"addr": "00406780", "name": "std::vector<T>::_Xlen", "comment": "[[noreturn]] void _Xlen()  // throw length_error(\"vector<T> too long\")"}
+{"addr": "00406800", "name": "std_string_concat_cstr_str", "sig": "void * __cdecl std_string_concat_cstr_str(void * result, char * a, void * b)", "comment": "string operator+(const char* a, const string& b)"}
+{"addr": "00407b70", "name": "std::length_error::length_error_copy", "comment": "length_error(const length_error&)"}
+{"addr": "00408230", "name": "std::set<std_string>::_Insert", "sig": "void * __thiscall _Insert(void * result, bool addleft, void * where, void * val)", "comment": "iterator _Insert(bool addleft, _Nodeptr where, const string& val)  // + red-black rebalance; C++: std::set<std::string>::_Insert"}
+{"addr": "004083f0", "name": "std::vector<T*>::_Insert_n", "sig": "void __thiscall _Insert_n(void * where, unsigned int n, void * val)", "comment": "void _Insert_n(iterator where, size_type n, const T& val)  // grows to max(cap + cap/2, size + n)"}
+{"addr": "00408920", "name": "std::set<std_string>::insert", "sig": "void * __thiscall insert(void * result, void * val)", "comment": "pair<iterator,bool> insert(const string& val)  // unique: no-op if present; C++: std::set<std::string>::insert"}
+{"addr": "00408a70", "name": "std::list<T*>::push_back", "sig": "void __thiscall push_back(void * val)", "comment": "void push_back(const T& val)"}
+{"addr": "0040ae20", "name": "std::vector<T*>::push_back", "sig": "void __thiscall push_back(void * val)", "comment": "void push_back(const T& val)"}
+{"addr": "00410b40", "name": "std::multiset<HighScoreEntry>::_Max", "comment": "static _Nodeptr _Max(_Nodeptr)"}
+{"addr": "00410b60", "name": "std::multiset<HighScoreEntry>::_Min", "comment": "static _Nodeptr _Min(_Nodeptr)"}
+{"addr": "00410b80", "name": "std::multiset<HighScoreEntry>::_Rrotate", "sig": "void __thiscall _Rrotate(void * where)", "comment": "void _Rrotate(_Nodeptr)"}
+{"addr": "00410be0", "name": "std::multiset<HighScoreEntry>::iterator::_Inc", "comment": "void iterator::_Inc()  // operator++"}
+{"addr": "00410c40", "name": "std::set<std_string>::iterator::_Inc", "comment": "void const_iterator::_Inc()  // operator++; C++: std::set<std::string>::iterator::_Inc"}
+{"addr": "00411100", "name": "std::string::find_last_not_of_ptr", "sig": "unsigned int __thiscall find_last_not_of_ptr(char * set, unsigned int pos, unsigned int setlen)", "comment": "size_type find_last_not_of(const char* set, size_type pos, size_type setlen) const"}
+{"addr": "00411190", "name": "std::multiset<HighScoreEntry>::_Lrotate", "sig": "void __thiscall _Lrotate(void * where)", "comment": "void _Lrotate(_Nodeptr)"}
+{"addr": "004111f0", "name": "std::_Uninit_copy_ptr", "comment": "T* uninitialized_copy(T* first, T* last, T* dest)  // 4-byte T"}
+{"addr": "00411350", "name": "std::basic_ostream<char>::flush", "comment": "ostream& flush()  // badbit if pubsync()==-1"}
+{"addr": "004113b0", "name": "std::basic_ostream<char>::sentry::sentry", "comment": "sentry(ostream& os)  // lock + flush tie()"}
+{"addr": "00411440", "name": "std::list<std_string>::_Buyhead", "comment": "_Nodeptr _Buyhead()  // node 0x24; C++: std::list<std::string>::_Buyhead"}
+{"addr": "00411460", "name": "std::multiset<HighScoreEntry>::_Buyhead", "comment": "_Nodeptr _Buyhead()  // node 0x50"}
+{"addr": "004114a0", "name": "std::fill_ptr", "comment": "void fill(T* first, T* last, const T& val)  // 4-byte T"}
+{"addr": "004114c0", "name": "std::list<std_string>::_Destroyval", "comment": "node->_Myval.~string()  // string at node+8; C++: std::list<std::string>::_Destroyval"}
+{"addr": "004114f0", "name": "std::set<std_string>::_Destroyval", "comment": "node->_Myval.~string()  // string at node+0xc; C++: std::set<std::string>::_Destroyval"}
+{"addr": "00411520", "name": "std::pair<const_std_string,std_string>::~pair", "comment": "~pair()  // destroy strings at +0 and +0x1c; C++: std::pair<const_std::string,std::string>::~pair"}
+{"addr": "00411670", "name": "std::basic_ostream<char>::sentry::~sentry", "comment": "~sentry()  // if (!uncaught_exception()) _Osfx(); unlock"}
+{"addr": "004116e0", "name": "std::operator<<_cstr", "comment": "ostream& operator<<(ostream& os, const char* s)  // with width padding"}
+{"addr": "004118ad", "name": "std::operator<<_cstr_tail", "comment": "chunk of 004116e0"}
+{"addr": "00411970", "name": "std::operator<<_char", "comment": "ostream& operator<<(ostream& os, char c)"}
+{"addr": "00411c00", "name": "std::uninitialized_copy_ptr", "comment": "wrapper of 004111f0 (vector::_Ucopy)"}
+{"addr": "00411c30", "name": "std::uninitialized_fill_n_ptr", "comment": "T* _Ufill(T* dest, size_type n, const T& val)  // returns dest+n"}
+{"addr": "00411c60", "name": "std::string::_Tidy_free", "comment": "~string() body as used in EH unwind funclets (free heap buffer only)"}
+{"addr": "00411c90", "name": "std::_Destroy_strings", "comment": "void _Destroy_range(string* first, string* last)  // ~string each"}
+{"addr": "00412080", "name": "HighScoreEntry::HighScoreEntry_copy", "sig": "void * __thiscall HighScoreEntry_copy(void * src)", "comment": "HighScoreEntry(const HighScoreEntry&)  // implicit copy-ctor: 2 strings + int + bool"}
+{"addr": "00412360", "name": "std_string_substr", "sig": "void * __thiscall std_string_substr(void * result, unsigned int pos, unsigned int n)", "comment": "string substr(size_type pos = 0, size_type n = npos) const"}
+{"addr": "004123a0", "name": "std::vector<T>::_Xlen_2", "comment": "[[noreturn]] void _Xlen()"}
+{"addr": "00412420", "name": "std::list<std_string>::_Buynode", "sig": "void * __thiscall _Buynode(void * next, void * prev, void * val)", "comment": "_Nodeptr _Buynode(_Nodeptr next, _Nodeptr prev, const string& val)  // node 0x24 = next,prev,string; C++: std::list<std::string>::_Buynode"}
+{"addr": "004124c0", "name": "std::list<std_string>::_Incsize", "sig": "void __thiscall _Incsize(unsigned int n)", "comment": "void _Incsize(size_type n)  // max_size 0x9249249; C++: std::list<std::string>::_Incsize"}
+{"addr": "00412560", "name": "std::multiset<HighScoreEntry,ByScore>::_Lbound", "sig": "void * __thiscall _Lbound(void * key)", "comment": "_Nodeptr _Lbound(const HighScoreEntry& key)  // lower_bound"}
+{"addr": "00412600", "name": "std::multiset<HighScoreEntry,ByWordLength>::_Lbound", "sig": "void * __thiscall _Lbound(void * key)", "comment": "_Nodeptr _Lbound(const HighScoreEntry& key)"}
+{"addr": "00412780", "name": "std::list<T*>::_Incsize_2", "sig": "void __thiscall _Incsize_2(unsigned int n)", "comment": "void _Incsize(size_type n)  // list of 4-byte values"}
+{"addr": "00412820", "name": "std::list<std_string>::erase", "sig": "void * __thiscall erase(void * result, void * where)", "comment": "iterator erase(iterator where); C++: std::list<std::string>::erase"}
+{"addr": "00412870", "name": "std::set<std_string>::erase", "sig": "void * __thiscall erase(void * result, void * where)", "comment": "iterator erase(iterator where)  // throws out_of_range(\"invalid map/set<T> iterator\") on end(); C++: std::set<std::string>::erase"}
+{"addr": "00412b80", "name": "std::out_of_range::out_of_range_copy", "comment": "out_of_range(const out_of_range&)"}
+{"addr": "00412ba0", "name": "std::multiset<HighScoreEntry,ByScore>::_Erase", "sig": "void __thiscall _Erase(void * root)", "comment": "void _Erase(_Nodeptr root)"}
+{"addr": "00412bf0", "name": "std::multiset<HighScoreEntry,ByWordLength>::_Erase", "sig": "void __thiscall _Erase(void * root)", "comment": "void _Erase(_Nodeptr root)"}
+{"addr": "00412c40", "name": "std::set<std_string>::_Erase", "sig": "void __thiscall _Erase(void * root)", "comment": "void _Erase(_Nodeptr root)  // recursive subtree delete; C++: std::set<std::string>::_Erase"}
+{"addr": "00412c90", "name": "std::fill_strings", "comment": "void fill(string* first, string* last, const string& val)"}
+{"addr": "00412cc0", "name": "std::_Copy_backward_strings", "comment": "string* copy_backward(string* first, string* last, string* destEnd)"}
+{"addr": "00412d00", "name": "std::_Uninit_copy_strings", "comment": "string* uninitialized_copy(const string* first, const string* last, string* dest)"}
+{"addr": "00416180", "name": "std::multiset<HighScoreEntry>::erase", "sig": "void * __thiscall erase(void * result, void * where)", "comment": "iterator erase(iterator where)"}
+{"addr": "004164d0", "name": "std::vector<int>::_Buy", "comment": "bool _Buy(size_type n)  // operator new(n*4), throws _Xlen if n > 0x3fffffff"}
+{"addr": "00416530", "name": "std::vector<std_string>::_Buy", "comment": "bool _Buy(size_type n)  // operator new(n*28), max 0x9249249; C++: std::vector<std::string>::_Buy"}
+{"addr": "00416590", "name": "std::vector<int>::_Insert_n_2", "sig": "void __thiscall _Insert_n_2(void * where, unsigned int n, void * val)", "comment": "void _Insert_n(iterator where, size_type n, const T& val)"}
+{"addr": "00416830", "name": "std::_Destroy_strings_wrap", "comment": "wrapper of 00411c90"}
+{"addr": "00416850", "name": "std::multiset<HighScoreEntry>::_Buynode", "sig": "void * __thiscall _Buynode(void * left, void * parent, void * right, void * val, char color)", "comment": "_Nodeptr _Buynode(left, parent, right, const HighScoreEntry& val, char color)  // node 0x50, isnil +0x4d"}
+{"addr": "004168f0", "name": "std::copy_backward_strings", "comment": "wrapper of 00412cc0 returning the iterator"}
+{"addr": "00416930", "name": "std::_Uninit_fill_n_strings", "comment": "void uninitialized_fill_n(string* dest, size_type n, const string& val)"}
+{"addr": "00416a90", "name": "std::list<std_string>::push_back", "sig": "void __thiscall push_back(void * val)", "comment": "void push_back(const string& val); C++: std::list<std::string>::push_back"}
+{"addr": "00416ad0", "name": "std::multiset<HighScoreEntry,ByScore>::find", "sig": "void * __thiscall find(void * result, void * key)", "comment": "iterator find(const HighScoreEntry& key)"}
+{"addr": "00416b60", "name": "std::multiset<HighScoreEntry,ByWordLength>::find", "sig": "void * __thiscall find(void * result, void * key)", "comment": "iterator find(const HighScoreEntry& key)"}
+{"addr": "00416bf0", "name": "std::list<T*>::push_back_2", "sig": "void __thiscall push_back_2(void * val)", "comment": "void push_back(const T& val)"}
+{"addr": "00416c30", "name": "std::multiset<HighScoreEntry,ByScore>::erase_range", "sig": "void * __thiscall erase_range(void * result, void * first, void * last)", "comment": "iterator erase(iterator first, iterator last)"}
+{"addr": "00416cf0", "name": "std::multiset<HighScoreEntry>::_Insert", "sig": "void * __thiscall _Insert(void * result, bool addleft, void * where, void * val)", "comment": "iterator _Insert(bool addleft, _Nodeptr where, const HighScoreEntry& val)"}
+{"addr": "00416eb0", "name": "std::multiset<HighScoreEntry,ByWordLength>::erase_range", "sig": "void * __thiscall erase_range(void * result, void * first, void * last)", "comment": "iterator erase(iterator first, iterator last)"}
+{"addr": "00416f70", "name": "std::set<std_string>::erase_range", "sig": "void * __thiscall erase_range(void * result, void * first, void * last)", "comment": "iterator erase(iterator first, iterator last)  // (begin,end) -> _Erase(root); C++: std::set<std::string>::erase_range"}
+{"addr": "00417030", "name": "std::_Uninit_copy_strings_wrap", "comment": "wrapper of 00412d00 (vector<string>::_Ucopy)"}
+{"addr": "00417050", "name": "std::_Uninit_copy_strings_wrap_2", "comment": "wrapper of 00412d00"}
+{"addr": "00417d50", "name": "std::vector<int>::push_back_2", "sig": "void __thiscall push_back_2(void * val)", "comment": "void push_back(const int& val)"}
+{"addr": "00417dc0", "name": "std::vector<std_string>::vector_copy", "sig": "void * __thiscall vector_copy(void * right)", "comment": "vector(const vector& right); C++: std::vector<std::string>::vector_copy"}
+{"addr": "00417e70", "name": "std::vector<std_string>::_Tidy", "comment": "void _Tidy()  // destroy all + free  (== ~vector, clear+shrink); C++: std::vector<std::string>::_Tidy"}
+{"addr": "00417ec0", "name": "std::_Ufill_strings", "comment": "string* _Ufill(string* dest, size_type n, const string& val)  // returns dest+n"}
+{"addr": "00417ef0", "name": "std::multiset<HighScoreEntry,ByScore>::insert", "sig": "void * __thiscall insert(void * result, void * val)", "comment": "iterator insert(const HighScoreEntry& val)  // multiset: always inserts (upper position)"}
+{"addr": "00417fb0", "name": "std::multiset<HighScoreEntry,ByWordLength>::insert", "sig": "void * __thiscall insert(void * result, void * val)", "comment": "iterator insert(const HighScoreEntry& val)"}
+{"addr": "00418160", "name": "std::vector<std_string>::_Insert_n", "comment": "void _Insert_n(iterator where, size_type n, const string& val); C++: std::vector<std::string>::_Insert_n"}
+{"addr": "00418680", "name": "std::vector<std_string>::insert", "sig": "void * __thiscall insert(void * result, void * where, void * val)", "comment": "iterator insert(iterator where, const string& val); C++: std::vector<std::string>::insert"}
+{"addr": "004186f0", "name": "std::multiset<HighScoreEntry,ByScore>::~multiset", "comment": "~multiset()"}
+{"addr": "00418730", "name": "std::multiset<HighScoreEntry,ByWordLength>::~multiset", "comment": "~multiset()"}
+{"addr": "00418770", "name": "std::set<std_string>::~set", "comment": "~set()  // erase(begin,end) + free head; C++: std::set<std::string>::~set"}
+{"addr": "0041a020", "name": "std::vector<std_string>::push_back", "sig": "void __thiscall push_back(void * val)", "comment": "void push_back(const string& val); C++: std::vector<std::string>::push_back"}
+{"addr": "0041a0b0", "name": "std::multiset<HighScoreEntry>::multiset", "comment": "multiset()  // _Buyhead + size 0"}
+{"addr": "0041b480", "name": "std::_Copy_backward_Color", "comment": "Color* copy_backward(Color* first, Color* last, Color* destEnd)"}
+{"addr": "0041b4d0", "name": "std::copy_backward_Color", "comment": "wrapper of 0041b480"}
+{"addr": "0041b570", "name": "std::uninitialized_copy_Color", "comment": "wrapper of 004990f0"}
+{"addr": "0041b5a0", "name": "std::_Ufill_Color", "comment": "Color* _Ufill(Color* dest, size_type n, const Color& val)  // returns dest+n"}
+{"addr": "0041b5d0", "name": "std::vector<T>::_Xlen_4", "comment": "[[noreturn]] void _Xlen()"}
+{"addr": "0041ba50", "name": "std::vector<Sexy_Color>::_Buy", "comment": "bool _Buy(size_type n)  // n*16, max 0xfffffff; C++: std::vector<Sexy::Color>::_Buy"}
+{"addr": "0041bab0", "name": "std::vector<Sexy_Color>::_Insert_n", "sig": "void __thiscall _Insert_n(void * where, unsigned int n, void * val)", "comment": "void _Insert_n(iterator where, size_type n, const Color& val); C++: std::vector<Sexy::Color>::_Insert_n"}
+{"addr": "0041bd90", "name": "std::vector<Sexy_Color>::insert", "sig": "void * __thiscall insert(void * result, void * where, void * val)", "comment": "iterator insert(iterator where, const Color& val); C++: std::vector<Sexy::Color>::insert"}
+{"addr": "0041bde0", "name": "std::vector<Sexy_Color>::push_back", "sig": "void __thiscall push_back(void * val)", "comment": "void push_back(const Color& val); C++: std::vector<Sexy::Color>::push_back"}
+{"addr": "0041c9c0", "name": "ifstream::vbase_dtor", "comment": "`vbase destructor' of old ifstream (~ifstream + ~ios)"}
+{"addr": "0041c9e0", "name": "std::map<std_string,std_string>::_Lrotate", "sig": "void __thiscall _Lrotate(void * where)", "comment": "void _Lrotate(_Nodeptr); C++: std::map<std::string,std::string>::_Lrotate"}
+{"addr": "0041ca40", "name": "std::map<std_string,std_string>::_Rrotate", "sig": "void __thiscall _Rrotate(void * where)", "comment": "void _Rrotate(_Nodeptr); C++: std::map<std::string,std::string>::_Rrotate"}
+{"addr": "0041caa0", "name": "std::map<std_string,std_string>::_Max", "comment": "static _Nodeptr _Max(_Nodeptr); C++: std::map<std::string,std::string>::_Max"}
+{"addr": "0041cac0", "name": "std::map<std_string,std_string>::_Min", "comment": "static _Nodeptr _Min(_Nodeptr); C++: std::map<std::string,std::string>::_Min"}
+{"addr": "0041cae0", "name": "std::map<std_string,std_string>::iterator::_Inc", "comment": "void iterator::_Inc()  // operator++; C++: std::map<std::string,std::string>::iterator::_Inc"}
+{"addr": "0041cb40", "name": "ios::lock", "comment": "inline void ios::lock()  // if (LockFlg < 0) _mtlock(&x_lock)"}
+{"addr": "0041cb60", "name": "ios::unlock", "comment": "inline void ios::unlock()"}
+{"addr": "0041cb80", "name": "std::string::find_first_of_ptr", "sig": "unsigned int __thiscall find_first_of_ptr(char * set, unsigned int pos, unsigned int setlen)", "comment": "size_type find_first_of(const char* set, size_type pos, size_type setlen) const"}
+{"addr": "0041cc10", "name": "std::map<std_string,std_string>::iterator::_Dec", "comment": "void iterator::_Dec()  // operator--; C++: std::map<std::string,std::string>::iterator::_Dec"}
+{"addr": "0041cc70", "name": "std::map<std_string,std_string>::_Buyhead", "comment": "_Nodeptr _Buyhead()  // node 0x48; C++: std::map<std::string,std::string>::_Buyhead"}
+{"addr": "0041ccb0", "name": "std::map<std_string,std_string>::_Destroyval", "comment": "node->_Myval.~pair()  // strings at node+0xc and node+0x28; C++: std::map<std::string,std::string>::_Destroyval"}
+{"addr": "0041cd00", "name": "std::map<std_string,std_string>::_Lbound", "sig": "void * __thiscall _Lbound(void * key)", "comment": "_Nodeptr _Lbound(const string& key)  // lower_bound; C++: std::map<std::string,std::string>::_Lbound"}
+{"addr": "0041cdc0", "name": "std::map<std_string,std_string>::find", "sig": "void * __thiscall find(void * result, void * key)", "comment": "iterator find(const string& key); C++: std::map<std::string,std::string>::find"}
+{"addr": "0041ce30", "name": "std::pair<const_std_string,std_string>::pair", "sig": "void * __thiscall pair(void * key, void * value)", "comment": "pair(const string& key, const string& value); C++: std::pair<const_std::string,std::string>::pair"}
+{"addr": "0041cea0", "name": "std::pair<const_std_string,std_string>::pair_copy", "sig": "void * __thiscall pair_copy(void * src)", "comment": "pair(const pair&)  // value_type copy; C++: std::pair<const_std::string,std::string>::pair_copy"}
+{"addr": "0041cf10", "name": "std::map<std_string,std_string>::erase", "sig": "void * __thiscall erase(void * result, void * where)", "comment": "iterator erase(iterator where); C++: std::map<std::string,std::string>::erase"}
+{"addr": "0041d260", "name": "std::map<std_string,std_string>::_Erase", "sig": "void __thiscall _Erase(void * root)", "comment": "void _Erase(_Nodeptr root); C++: std::map<std::string,std::string>::_Erase"}
+{"addr": "0041d350", "name": "std::map<std_string,std_string>::_Buynode", "sig": "void * __thiscall _Buynode(void * left, void * parent, void * right, void * val, char color)", "comment": "_Nodeptr _Buynode(left, parent, right, const value_type& val, char color); C++: std::map<std::string,std::string>::_Buynode"}
+{"addr": "0041d3f0", "name": "std::map<std_string,std_string>::erase_range", "sig": "void * __thiscall erase_range(void * result, void * first, void * last)", "comment": "iterator erase(iterator first, iterator last); C++: std::map<std::string,std::string>::erase_range"}
+{"addr": "0041d4b0", "name": "std::map<std_string,std_string>::_Insert", "sig": "void * __thiscall _Insert(void * result, bool addleft, void * where, void * val)", "comment": "iterator _Insert(bool addleft, _Nodeptr where, const value_type& val); C++: std::map<std::string,std::string>::_Insert"}
+{"addr": "0041d670", "name": "std::map<std_string,std_string>::insert", "sig": "void * __thiscall insert(void * result, void * val)", "comment": "pair<iterator,bool> insert(const value_type& val); C++: std::map<std::string,std::string>::insert"}
+{"addr": "0041d7c0", "name": "std::map<std_string,std_string>::operator_index", "sig": "void * __thiscall operator_index(void * key)", "comment": "string& operator[](const string& key)  // insert(value_type(key, string())).first->second; C++: std::map<std::string,std::string>::operator_index"}
+{"addr": "0041d890", "name": "std::map<std_string,std_string>::~map", "comment": "~map(); C++: std::map<std::string,std::string>::~map"}
+{"addr": "0041dfe0", "name": "std::copy_strings", "comment": "string* copy(string* first, string* last, string* dest)"}
+{"addr": "0041e310", "name": "std::vector<std_string>::erase", "sig": "void * __thiscall erase(void * result, void * where)", "comment": "iterator erase(iterator where)  // copy down, destroy last; C++: std::vector<std::string>::erase"}
+{"addr": "0041f900", "name": "std::_Uninit_fill_n_ptr", "comment": "void uninitialized_fill_n(T* dest, size_type n, const T& val)  // 4-byte T"}
+{"addr": "00420400", "name": "std::list<T*>::_Incsize_3", "sig": "void __thiscall _Incsize_3(unsigned int n)", "comment": "void _Incsize(size_type n)  // list of 4-byte values"}
+{"addr": "004204a0", "name": "std::vector<T>::_Xlen_3", "comment": "[[noreturn]] void _Xlen()"}
+{"addr": "00420550", "name": "std::vector<T*>::_Insert_n_3", "sig": "void __thiscall _Insert_n_3(void * where, unsigned int n, void * val)", "comment": "void _Insert_n(iterator where, size_type n, const T& val)"}
+{"addr": "00420b00", "name": "std::vector<T*>::push_back_3", "sig": "void __thiscall push_back_3(void * val)", "comment": "void push_back(const T& val)"}
+{"addr": "00421710", "name": "std::_Locinfo::_Getctype", "comment": "_Ctypevec _Getctype() const"}
+{"addr": "00421750", "name": "std::locale::id::operator_unsigned_int", "comment": "locale::id::operator size_t()  // lazily numbers facet ids"}
+{"addr": "00421790", "name": "std::locale::facet::_Incref", "comment": "void _Incref()  // under _Lockit"}
+{"addr": "004217c0", "name": "std::locale::facet::_Decref", "comment": "facet* _Decref()  // returns this when the count hits 0"}
+{"addr": "00421800", "name": "std::locale::~locale", "comment": "~locale()  // delete _Ptr->_Decref()"}
+{"addr": "00421820", "name": "std::locale::facet::vf00", "comment": "facet scalar deleting dtor"}
+{"addr": "00421c70", "name": "std::_Locinfo::_Getctype_2", "comment": "(inferred) second copy of _Getctype (result discarded)"}
+{"addr": "00421e90", "name": "std::ios_base::getloc", "comment": "locale getloc() const"}
+{"addr": "00421ed0", "name": "std::ios_base::vf00", "comment": "ios_base scalar deleting dtor"}
+{"addr": "004220d0", "name": "std::basic_ios<char>::~basic_ios", "comment": "~basic_ios() -> ios_base::~ios_base()"}
+{"addr": "004220e0", "name": "std::basic_ostream<char>::~basic_ostream", "comment": "(inferred) dtor body (only resets the vftable at the virtual base)"}
+{"addr": "00422100", "name": "std::basic_iostream<char>::dtor_adjust", "comment": "(inferred) this-adjusting dtor helper"}
+{"addr": "00422140", "name": "std::basic_ios<char>::scalar_deleting_dtor", "comment": "vtable slot 0"}
+{"addr": "00422170", "name": "std::basic_streambuf<char,std_char_traits<char>_>::setg", "comment": "void setg(char* first, char* next, char* last); C++: std::basic_streambuf<char,std::char_traits<char>_>::setg"}
+{"addr": "004221a0", "name": "std::basic_streambuf<char>::getloc", "comment": "locale getloc() const"}
+{"addr": "004221e0", "name": "std::ctype<char>::ctype", "comment": "(inferred) ctype(const _Locinfo&, size_t refs)  // copies the CRT ctype table"}
+{"addr": "004222a0", "name": "std::ctype<char>::do_tolower", "comment": "virtual char do_tolower(char)"}
+{"addr": "004222c0", "name": "std::ctype<char>::do_tolower_range", "comment": "virtual const char* do_tolower(char*, const char*)"}
+{"addr": "004222f0", "name": "std::ctype<char>::do_toupper", "comment": "virtual char do_toupper(char)"}
+{"addr": "00422310", "name": "std::ctype<char>::do_toupper_range", "comment": "virtual const char* do_toupper(char*, const char*)"}
+{"addr": "00422340", "name": "std::ctype<char>::do_widen", "comment": "virtual char do_widen(char)"}
+{"addr": "00422350", "name": "std::ctype<char>::do_widen_range", "comment": "virtual const char* do_widen(const char*, const char*, char*)"}
+{"addr": "00422380", "name": "std::ctype<char>::do_narrow", "comment": "virtual char do_narrow(char, char)"}
+{"addr": "00422390", "name": "std::ctype<char>::do_narrow_range", "comment": "virtual const char* do_narrow(const char*, const char*, char, char*)"}
+{"addr": "004223c0", "name": "std::ctype<char>::_Getcat", "comment": "static size_t _Getcat(const facet** pp)  // new ctype<char>(_Locinfo())"}
+{"addr": "00422430", "name": "std::ctype<char>::scalar_deleting_dtor", "comment": "vtable slot 0"}
+{"addr": "00422460", "name": "std::ctype<char>::~ctype", "comment": "~ctype()  // free table if owned"}
+{"addr": "004224a0", "name": "std::string::begin", "sig": "void * __thiscall begin(void * result)", "comment": "iterator begin()  // returned via hidden pointer"}
+{"addr": "004224c0", "name": "std::string::end", "sig": "void * __thiscall end(void * result)", "comment": "iterator end()"}
+{"addr": "004224f0", "name": "std::basic_istream<char>::_Sentry_base::~_Sentry_base", "comment": "~_Sentry_base()  // rdbuf()->_Unlock()"}
+{"addr": "00422510", "name": "std::basic_streambuf<char>::~basic_streambuf", "comment": "~basic_streambuf()  // delete _Plocale, ~_Mutex"}
+{"addr": "004225a0", "name": "std::basic_streambuf<char>::uflow", "comment": "virtual int_type uflow()  // default"}
+{"addr": "004225d0", "name": "std::basic_streambuf<char>::xsgetn", "comment": "virtual streamsize xsgetn(char*, streamsize)"}
+{"addr": "00422670", "name": "std::basic_streambuf<char>::xsputn", "comment": "virtual streamsize xsputn(const char*, streamsize)"}
+{"addr": "00422720", "name": "std::basic_streambuf<char>::seekoff", "comment": "virtual pos_type seekoff(...)  // returns -1"}
+{"addr": "00422750", "name": "std::basic_streambuf<char>::seekpos", "comment": "virtual pos_type seekpos(...)  // returns -1"}
+{"addr": "00422780", "name": "std::basic_istream<char>::scalar_deleting_dtor", "comment": "(inferred) vtable slot 0 (vbase-adjusted)"}
+{"addr": "004227c0", "name": "std::basic_ostream<char>::scalar_deleting_dtor", "comment": "(inferred) vtable slot 0 (vbase-adjusted)"}
+{"addr": "00422800", "name": "std::basic_streambuf<char>::scalar_deleting_dtor", "comment": "vtable slot 0"}
+{"addr": "00422830", "name": "std::basic_iostream<char>::scalar_deleting_dtor", "comment": "(inferred) vtable slot 0"}
+{"addr": "00422860", "name": "std::basic_streambuf<char>::_Init", "comment": "void _Init()  // point get/put pointers at the internal slots, all null"}
+{"addr": "004228c0", "name": "std::use_facet<std_ctype<char>>", "comment": "const ctype<char>& use_facet<ctype<char>>(const locale&)  // throws bad_cast; C++: std::use_facet<std::ctype<char>>"}
+{"addr": "004229b0", "name": "std::codecvt<char,char,int>::codecvt", "comment": "(inferred) codecvt(const _Locinfo&, size_t refs)"}
+{"addr": "00422a20", "name": "std::codecvt<char,char,int>::do_in_out", "comment": "(inferred) virtual result do_in/do_out(...)  // returns noconv (3)"}
+{"addr": "00422a50", "name": "std::codecvt<char,char,int>::do_length", "comment": "(inferred) virtual int do_length(state&, const char* f, const char* l, size_t max)"}
+{"addr": "00422a70", "name": "std::basic_streambuf<char>::snextc", "comment": "int_type snextc()"}
+{"addr": "00422ad0", "name": "std::basic_istream<char>::_Ipfx", "comment": "bool _Ipfx(bool noskip)  // flush tie(), skip whitespace via ctype<char>"}
+{"addr": "00422c38", "name": "std::basic_istream<char>::_Ipfx_tail", "comment": "chunk of 00422ad0"}
+{"addr": "00422c90", "name": "std::list<Item12>::_Buyhead", "comment": "_Nodeptr _Buyhead()  // node 0x14: list of a 12-byte struct"}
+{"addr": "00422cb0", "name": "std::basic_istream<char>::basic_istream", "comment": "basic_istream(streambuf* sb, bool isstd)"}
+{"addr": "00422d60", "name": "std::basic_streambuf<char>::basic_streambuf", "comment": "basic_streambuf()  // new _Mutex, new locale, _Init()"}
+{"addr": "00422dd0", "name": "std::list<Item12>::_Buynode", "sig": "void * __thiscall _Buynode(void * next, void * prev, void * val)", "comment": "_Nodeptr _Buynode(next, prev, const Item12& val)  // copies 3 dwords"}
+{"addr": "00422e10", "name": "std::transform_chars", "comment": "char* transform(const char* first, const char* last, char* dest, int (*f)(int))"}
+{"addr": "00422e50", "name": "std::codecvt<char,char,int>::_Getcat", "comment": "static size_t _Getcat(const facet**)"}
+{"addr": "00422eb0", "name": "std::basic_istream<char>::sentry::sentry", "comment": "sentry(istream& in, bool noskip)  // lock rdbuf + _Ipfx"}
+{"addr": "00422f80", "name": "std::basic_iostream<char>::basic_iostream", "comment": "basic_iostream(streambuf* sb)  // basic_ios::init: fill=\" \", badbit if sb==0"}
+{"addr": "00423050", "name": "std::basic_filebuf<char>::basic_filebuf", "comment": "basic_filebuf(FILE* f = 0)"}
+{"addr": "004230c0", "name": "std::basic_filebuf<char>::setbuf", "comment": "(inferred) virtual streambuf* setbuf(char*, streamsize)  // setvbuf"}
+{"addr": "00423110", "name": "std::basic_filebuf<char>::sync", "comment": "(inferred) virtual int sync()  // fflush"}
+{"addr": "00423140", "name": "std::basic_filebuf<char>::pbackfail", "comment": "(inferred) virtual int_type pbackfail(int_type)"}
+{"addr": "004231d0", "name": "std::basic_streambuf<char>::gptr", "comment": "char* gptr() const"}
+{"addr": "004231e0", "name": "std::basic_filebuf<char>::underflow", "comment": "(inferred) virtual int_type underflow()  // uflow + pbackfail"}
+{"addr": "00423220", "name": "std::string::assign_n_chars", "sig": "void * __thiscall assign_n_chars(unsigned int n, char c)", "comment": "string& assign(size_type n, char c)"}
+{"addr": "004232a0", "name": "std::use_facet<std_codecvt<char,char,int>>", "comment": "const codecvt<char,char,int>& use_facet<...>(const locale&); C++: std::use_facet<std::codecvt<char,char,int>>"}
+{"addr": "00423390", "name": "std::string::string_n_chars", "sig": "void * __thiscall string_n_chars(unsigned int n, char c)", "comment": "string(size_type n, char c)"}
+{"addr": "004233c0", "name": "std::string::erase_range", "sig": "void * __thiscall erase_range(void * result, char * first, char * last)", "comment": "iterator erase(iterator first, iterator last)"}
+{"addr": "00423420", "name": "std::basic_filebuf<char>::_Endwrite", "comment": "bool _Endwrite()  // flush + codecvt unshift + fwrite"}
+{"addr": "00423550", "name": "std::string::erase_all", "comment": "s.erase(s.begin(), s.end())  // == clear()"}
+{"addr": "00423590", "name": "std::basic_filebuf<char>::overflow", "comment": "(inferred) virtual int_type overflow(int_type)"}
+{"addr": "004237d0", "name": "std::basic_filebuf<char>::uflow", "comment": "(inferred) virtual int_type uflow()  // getc"}
+{"addr": "00423900", "name": "std::basic_filebuf<char>::seekoff", "comment": "(inferred) virtual pos_type seekoff(off_type, seekdir, openmode)"}
+{"addr": "00423a10", "name": "std::basic_filebuf<char>::seekpos", "comment": "(inferred) virtual pos_type seekpos(pos_type, openmode)"}
+{"addr": "00423b00", "name": "std::basic_filebuf<char>::close", "comment": "basic_filebuf* close()  // _Endwrite + fclose"}
+{"addr": "00423b60", "name": "std::getline_string", "comment": "istream& getline(istream& in, string& s, char delim)  // Dinkumware: clears s, stops at delim (extracted) or EOF, failbit if nothing read"}
+{"addr": "00423c8e", "name": "std::getline_string_tail", "comment": "chunk of 00423b60 (setstate + sentry dtor)"}
+{"addr": "00423d00", "name": "std::basic_fstream<char>::close", "comment": "void close()  // setstate(failbit) if rdbuf()->close() fails"}
+{"addr": "00423d40", "name": "std::basic_filebuf<char>::~basic_filebuf", "comment": "~basic_filebuf()  // close() if owned, delete _Str, ~streambuf"}
+{"addr": "00423e20", "name": "std::basic_filebuf<char>::scalar_deleting_dtor", "comment": "vtable slot 0"}
+{"addr": "00423e50", "name": "std::list<Item12>::_Incsize", "sig": "void __thiscall _Incsize(unsigned int n)", "comment": "void _Incsize(size_type n)  // max_size 0x15555555"}
+{"addr": "00423ef0", "name": "std::locale::locale_facet", "comment": "locale(const locale& loc, const Facet* fac)  // copy _Locimp + _Addfac"}
+{"addr": "00426760", "name": "std::basic_fstream<char>::~basic_fstream", "comment": "~basic_fstream()  // this = ios_base subobject; destroys filebuf"}
+{"addr": "004267f0", "name": "std::basic_filebuf<char>::_Initcvt", "comment": "void _Initcvt(codecvt* cvt)"}
+{"addr": "00426920", "name": "std::basic_fstream<char>::vbase_dtor", "comment": "`vbase destructor' (~basic_fstream + ~basic_ios)"}
+{"addr": "00426940", "name": "std::basic_filebuf<char>::imbue", "comment": "virtual void imbue(const locale&)"}
+{"addr": "00426960", "name": "std::basic_fstream<char>::scalar_deleting_dtor", "comment": "vtable slot 0"}
+{"addr": "00426990", "name": "std::basic_filebuf<char>::open", "comment": "basic_filebuf* open(const char* name, ios_base::openmode mode)  // _Fiopen + _Init + _Initcvt"}
+{"addr": "00426b10", "name": "std::basic_fstream<char>::basic_fstream", "comment": "basic_fstream(const char* name, ios_base::openmode mode, [vbase flag])"}
+{"addr": "0042a9c0", "name": "std::map<int,bool>::_Buyhead", "comment": "_Nodeptr _Buyhead()  // node 0x18"}
+{"addr": "0042aa00", "name": "std::map<int,bool>::_Erase", "sig": "void __thiscall _Erase(void * root)", "comment": "void _Erase(_Nodeptr root)"}
+{"addr": "0042aa40", "name": "std::map<int,bool>::find", "sig": "void * __thiscall find(void * result, void * key)", "comment": "iterator find(const int& key)"}
+{"addr": "0042aab0", "name": "std::map<int,bool>::_Insert", "sig": "void * __thiscall _Insert(void * result, bool addleft, void * where, void * val)", "comment": "iterator _Insert(bool addleft, _Nodeptr where, const value_type& val)"}
+{"addr": "0042ac70", "name": "std::map<int,bool>::erase", "sig": "void * __thiscall erase(void * result, void * where)", "comment": "iterator erase(iterator where)"}
+{"addr": "0042b260", "name": "std::map<int,bool>::insert", "sig": "void * __thiscall insert(void * result, void * val)", "comment": "pair<iterator,bool> insert(const value_type& val)"}
+{"addr": "0042b320", "name": "std::map<int,bool>::erase_range", "sig": "void * __thiscall erase_range(void * result, void * first, void * last)", "comment": "iterator erase(iterator first, iterator last)"}
+{"addr": "0042b440", "name": "std::map<int,bool>::~map", "comment": "~map()  // registered with atexit"}
+{"addr": "0042b480", "name": "std::map<int,bool>::map", "comment": "map()  // static-init of DAT_00534c38"}
+{"addr": "0042ee00", "name": "std::list<T*>::_Buyhead", "comment": "_Nodeptr _Buyhead()  // new node(0xc), next = prev = self"}
+{"addr": "0042f3b0", "name": "std::list<T*>::_Incsize_4", "sig": "void __thiscall _Incsize_4(unsigned int n)", "comment": "void _Incsize(size_type n)  // list of 4-byte values"}
+{"addr": "00432330", "name": "std::map<std_string,std_string>::_Copy_node", "sig": "void * __thiscall _Copy_node(void * src, void * parent)", "comment": "_Nodeptr _Copy(_Nodeptr src, _Nodeptr parent)  // recursive; C++: std::map<std::string,std::string>::_Copy_node"}
+{"addr": "004323e0", "name": "std::map<std_string,std_string>::_Copy", "sig": "void __thiscall _Copy(void * right)", "comment": "void _Copy(const _Tree& right)  // root copy + leftmost/rightmost fix-up; C++: std::map<std::string,std::string>::_Copy"}
+{"addr": "00432470", "name": "std::map<std_string,std_string>::map_copy", "sig": "void * __thiscall map_copy(void * right)", "comment": "map(const map& right)  // DefinesMap copy-ctor; C++: std::map<std::string,std::string>::map_copy"}
+{"addr": "004347b0", "name": "std::list<T*>::erase_range", "sig": "void * __thiscall erase_range(void * result, void * first, void * last)", "comment": "iterator erase(iterator first, iterator last)  // (begin,end) == clear()"}
+{"addr": "00440010", "name": "Sexy::DDInterface::GetScreenImage", "sig": "void * __thiscall GetScreenImage(void)", "comment": "returns mScreenImage +0xc94"}
+{"addr": "00440020", "name": "Sexy::DDInterface::CreateSurface"}
+{"addr": "0044aee0", "name": "Sexy::DDInterface::RestoreOldCursorAreaFrom", "comment": "inferred"}
+{"addr": "0044ec30", "name": "Sexy::DDInterface::DrawCursorTo", "comment": "inferred"}
+{"addr": "0044efc0", "name": "Sexy::DDInterface::MoveCursorTo", "comment": "inferred"}
+{"addr": "0044f530", "name": "Sexy::DDInterface::SetCursorImage", "sig": "bool __thiscall SetCursorImage(void *theImage)", "comment": "+0xcbc; from SexyApp vf10"}
+{"addr": "0044f5b0", "name": "Sexy::DDInterface::SetCursorPos", "sig": "void __thiscall SetCursorPos(int x, int y)", "comment": "+0xcb4/+0xcb8"}
+{"addr": "00450140", "name": "Sexy::D3DTester::D3DTester", "comment": "sizeof 0x84; mFailureReason +0x40, mWarning +0x5c, mCheckRegistry +0x80=1, mResultsChanged +0x82"}
+{"addr": "004501a0", "name": "Sexy::D3DTester::~D3DTester", "comment": "dtor body"}
+{"addr": "00450840", "name": "Sexy::D3DTester::scalar_deleting_dtor", "comment": "slot 0"}
+{"addr": "004536a0", "name": "Sexy::DDInterface::ResultToString", "comment": "static"}
+{"addr": "004537b0", "name": "Sexy::DDInterface::GotDXError", "comment": "'%s: %s' into mErrorString"}
+{"addr": "004538f0", "name": "Sexy::DDInterface::Redraw", "sig": "bool __thiscall Redraw(void *theClipRect)", "comment": "from SexyApp vf66"}
+{"addr": "00453c60", "name": "Sexy::D3DInterface::InitD3D", "comment": "CreateDevice IID_IDirect3DHALDevice; inferred name"}
+{"addr": "00456cf0", "name": "Sexy::D3DInterface::Cleanup", "comment": "inferred"}
+{"addr": "00458bf0", "name": "Sexy::DDInterface::Do3DTest", "comment": "new D3DTester (0x84)"}
+{"addr": "00458cc0", "name": "Sexy::DDInterface::Cleanup"}
+{"addr": "00458e30", "name": "Sexy::D3DInterface::~D3DInterface", "comment": "dtor body"}
+{"addr": "00458ef0", "name": "Sexy::D3DInterface::RemoveImage", "comment": "inferred"}
+{"addr": "00459ef0", "name": "Sexy::DDInterface::~DDInterface", "sig": "void __thiscall ~DDInterface(void)", "comment": "dtor body"}
+{"addr": "00459ff0", "name": "Sexy::DDInterface::Remove3DData", "sig": "void __thiscall Remove3DData(void *theImage)", "comment": "-> mD3DInterface->RemoveImage"}
+{"addr": "0045a000", "name": "Sexy::D3DInterface::D3DInterface", "comment": "sizeof 0x4c; default 640x480 at +8/+0xc"}
+{"addr": "0045a090", "name": "Sexy::D3DInterface::scalar_deleting_dtor", "comment": "slot 0"}
+{"addr": "004615a0", "name": "Sexy::DDInterface::DDInterface", "sig": "void * __thiscall DDInterface(void *theApp)", "comment": "sizeof 0xcf0; new D3DInterface; GetProcAddress DirectDrawCreate/Ex"}
+{"addr": "00461710", "name": "Sexy::DDInterface::scalar_deleting_dtor", "comment": "slot 0"}
+{"addr": "00461740", "name": "Sexy::DDInterface::SetVideoOnlyDraw", "sig": "void __thiscall SetVideoOnlyDraw(bool videoOnly)", "comment": "recreates mScreenImage on the secondary/draw surface; from SexyApp vf54"}
+{"addr": "004619f0", "name": "Sexy::DDInterface::Init", "sig": "int __thiscall Init(void *theWindow, bool isWindowed)", "comment": "takes mWidth/mHeight/mFullscreenBits from app+0x60/0x64/0x68; returns RESULT_*"}
+{"addr": "00465f30", "name": "Sexy::XMLParser::HasFailed", "sig": "bool __thiscall HasFailed(void)", "comment": "returns +0x44"}
+{"addr": "00465f40", "name": "Sexy::XMLParser::GetCurrentLineNum", "sig": "int __thiscall GetCurrentLineNum(void)", "comment": "returns +0x3c"}
+{"addr": "00465f50", "name": "Sexy::SexyMatrix3::LoadIdentity", "sig": "void __thiscall LoadIdentity(void)", "comment": "BM 0045a760 exact"}
+{"addr": "00465f80", "name": "Sexy::SexyMatrix3::operator_mul_mat", "comment": "SexyMatrix3 operator*(const SexyMatrix3&) const; BM exact"}
+{"addr": "00465ff0", "name": "Sexy::SexyMatrix3::operator_mul_vec", "comment": "operator*(const SexyVector3&) const (3 floats out); BM exact"}
+{"addr": "00466050", "name": "Sexy::SexyMatrix3::SexyMatrix3", "comment": "ctor = LoadIdentity; BM exact"}
+{"addr": "00466060", "name": "Sexy::SexyMatrix3::operator_assign", "comment": "copies 9 floats; BM exact"}
+{"addr": "00466080", "name": "Sexy::SexyTransform2D::Translate", "sig": "void __thiscall Translate(float tx, float ty)", "comment": "BM exact"}
+{"addr": "004660c0", "name": "Sexy::SexyTransform2D::RotateRad", "sig": "void __thiscall RotateRad(float rot)", "comment": "fsin/fcos; inferred"}
+{"addr": "00466110", "name": "Sexy::SexyTransform2D::Scale", "sig": "void __thiscall Scale(float sx, float sy)", "comment": "BM exact"}
+{"addr": "00466160", "name": "Sexy::SEHCatcher::LoadImageHelp", "sig": "bool LoadImageHelp(void)", "comment": "dbghelp/imagehlp GetProcAddress (StackWalk, SymGetSymFromAddr...); BM exact; droppable"}
+{"addr": "00466300", "name": "Sexy::SEHCatcher::UnloadImageHelp", "sig": "void UnloadImageHelp(void)", "comment": "FreeLibrary; droppable"}
+{"addr": "00466320", "name": "Sexy::SEHCatcher::GetLogicalAddress", "comment": "VirtualQuery + PE section walk; droppable"}
+{"addr": "004663d0", "name": "Sexy::PerfTimer::CalcCPUSpeed", "comment": "QueryPerformanceCounter + rdtsc timing; inferred; droppable"}
+{"addr": "004664c0", "name": "Sexy::PerfTimer::CalcDuration", "sig": "void __thiscall CalcDuration(void)", "comment": "BM exact"}
+{"addr": "00466510", "name": "Sexy::PerfTimer::Start", "sig": "void __thiscall Start(void)", "comment": "BM exact"}
+{"addr": "00466520", "name": "Sexy::PerfTimer::Stop", "sig": "void __thiscall Stop(void)", "comment": "BM exact"}
+{"addr": "00466540", "name": "Sexy::PerfTimer::GetDuration", "sig": "double __thiscall GetDuration(void)", "comment": "ms; BM exact"}
+{"addr": "00466560", "name": "Sexy::PerfTimer::GetCPUSpeed", "comment": "static __int64, cached in 0056ad80; BM exact"}
+{"addr": "004665b0", "name": "Sexy::SexyPerf::IsPerfOn", "sig": "bool IsPerfOn(void)", "comment": "returns gPerfOn 0056ad88"}
+{"addr": "004665c0", "name": "Sexy::MTRand::SetRandAllowed", "sig": "void SetRandAllowed(bool allowed)", "comment": "static; gRandAllowed 0056ada0; BM exact"}
+{"addr": "004665f0", "name": "Sexy::MTRand::SRand", "sig": "void __thiscall SRand(unsigned long seed)", "comment": "SAF 1.2 seeding: mt[i]=mt[i-1]*69069, seed 0 -> 4357, mti=624; port uses 1812433253 (1.3)"}
+{"addr": "00466640", "name": "Sexy::MTRand::NextNoAssert", "sig": "unsigned long __thiscall NextNoAssert(void)", "comment": "MT19937, standard tempering, result & 0x7fffffff"}
+{"addr": "00466740", "name": "Sexy::HTTPTransfer::Fail", "sig": "void __thiscall Fail(int theResult)", "comment": "mResult=theResult; mExiting=true"}
+{"addr": "00466760", "name": "Sexy::HTTPTransfer::SocketWait", "sig": "bool __thiscall SocketWait(bool checkRead, bool checkWrite)", "comment": "select() loop on mSocket"}
+{"addr": "00466870", "name": "Sexy::HTTPTransfer::Abort", "sig": "void __thiscall Abort(void)", "comment": "mAborted(+0xf3)=mExiting(+0xf2)=true"}
+{"addr": "00466880", "name": "Sexy::CritSect::CritSect", "sig": "void * __thiscall CritSect(void)", "comment": "InitializeCriticalSection; AutoCrit is inlined (Enter/LeaveCriticalSection)"}
+{"addr": "00466890", "name": "Sexy::CritSect::~CritSect", "sig": "void __thiscall ~CritSect(void)", "comment": "DeleteCriticalSection"}
+{"addr": "004668a0", "name": "Sexy::SRand", "sig": "void SRand(unsigned long theSeed)", "comment": "gMTRand.SRand(seed)"}
+{"addr": "004668c0", "name": "Sexy::StrFindNoCase", "sig": "int StrFindNoCase(char *theStr, char *theFind)", "comment": "1.2 identical"}
+{"addr": "00466960", "name": "Sexy::Buffer::SeekFront", "sig": "void __thiscall SeekFront(void)", "comment": "mReadBitPos=0"}
+{"addr": "00466970", "name": "Sexy::Buffer::GetDataLen", "sig": "int __thiscall GetDataLen(void)", "comment": "(mDataBitSize+7)/8; game: FameWidget ctor 00428520 on Board+0x160"}
+{"addr": "00466980", "name": "Sexy::Buffer::AtEnd", "sig": "bool __thiscall AtEnd(void)", "comment": "mReadBitPos >= mDataBitSize"}
+{"addr": "004669a0", "name": "Sexy::BetaSupport::CenterWindow", "comment": "static helper; droppable"}
+{"addr": "00466a20", "name": "Sexy::BetaSupport::ModalLoop", "comment": "GetMessage/IsDialogMessage loop; droppable"}
+{"addr": "00466a90", "name": "Sexy::BetaSupport::LoginWindowProc", "comment": "beta login wndproc; droppable"}
+{"addr": "00466c60", "name": "std::auto_ptr_delete", "comment": "if(*p) delete *p (slot 0 with 1); unwind helper"}
+{"addr": "00466c70", "name": "std::_Tree_v36::_Max", "comment": "node isnil +0x31 (SEH map<pair<ulong,ulong>,string>)"}
+{"addr": "00466c90", "name": "std::_Tree_v40::_Max", "comment": "isnil +0x35"}
+{"addr": "00466cb0", "name": "std::_Tree_v44::_Min", "comment": "isnil +0x39 (set<PerfInfo>, map<string,vector<string>>)"}
+{"addr": "00466cd0", "name": "std::_Tree_v60::_Min", "comment": "isnil +0x49 (map<string,Buffer>)"}
+{"addr": "00466cf0", "name": "std::_Tree_v32::_Min", "comment": "isnil +0x2d (map<string,int/ptr>)"}
+{"addr": "00466d10", "name": "std::_Tree_v36::_Lrotate"}
+{"addr": "00466d70", "name": "std::_Tree_v36::_Rrotate"}
+{"addr": "00466dd0", "name": "std::_Tree_v40::_Lrotate"}
+{"addr": "00466e30", "name": "std::_Tree_v40::_Rrotate"}
+{"addr": "00466e90", "name": "std::_Tree_v44::_Max"}
+{"addr": "00466eb0", "name": "std::set<std_string>::_Max", "comment": "static _Nodeptr _Max(_Nodeptr)  // rightmost; C++: std::set<std::string>::_Max"}
+{"addr": "00466ed0", "name": "std::_Tree_v60::_Max"}
+{"addr": "00466ef0", "name": "std::_Tree_v32::_Max"}
+{"addr": "00466f10", "name": "std::_Tree_v36::_Min"}
+{"addr": "00466f30", "name": "std::_Tree_v40::_Min"}
+{"addr": "00466f50", "name": "std::set<std_string>::_Min", "comment": "static _Nodeptr _Min(_Nodeptr)  // leftmost; C++: std::set<std::string>::_Min"}
+{"addr": "00466f70", "name": "std::_Tree_v36::iterator_inc"}
+{"addr": "00466fd0", "name": "std::_Tree_v40::iterator_inc"}
+{"addr": "00467030", "name": "Sexy::MTRand::MTRand_seed", "sig": "void * __thiscall MTRand_seed(unsigned long seed)", "comment": "ctor: SRand(seed), returns this; game: new MTRand(Rand())"}
+{"addr": "00467050", "name": "Sexy::MTRand::MTRand", "sig": "void * __thiscall MTRand(void)", "comment": "default ctor SRand(4357); not a Ghidra function (only reached from gMTRand initializer 004f8300)"}
+{"addr": "00467060", "name": "Sexy::MTRand::Next", "sig": "unsigned long __thiscall Next(void)", "comment": "jmp NextNoAssert (assert compiled out); 8 game callers"}
+{"addr": "00467070", "name": "Sexy::Rand", "sig": "int Rand(void)", "comment": "gMTRand.Next(); only Rand overload in this build"}
+{"addr": "00467080", "name": "std::_Tree_v36::iterator_dec"}
+{"addr": "004670e0", "name": "std::_Tree_v40::iterator_dec"}
+{"addr": "00467140", "name": "std::_Tree_v44::iterator_inc"}
+{"addr": "004671a0", "name": "std::_Tree_v60::iterator_inc"}
+{"addr": "00467200", "name": "std::set_PerfInfo::lower_bound", "comment": "stricmp on name"}
+{"addr": "00467250", "name": "std::_Tree_v60::_Lrotate"}
+{"addr": "004672b0", "name": "std::_Tree_v60::_Rrotate"}
+{"addr": "00467310", "name": "std::fill_uchar"}
+{"addr": "00467330", "name": "std::uninitialized_copy_uchar"}
+{"addr": "00467360", "name": "Sexy::SEHCatcher::StrToLongHex", "comment": "static hex string -> DWORD helper for map-file parsing; inferred"}
+{"addr": "004673d0", "name": "Sexy::MTRand::SRand_state", "sig": "void __thiscall SRand_state(void *theSerialData)", "comment": "SRand(const std::string&): copies 624 words if size==0x9c0 else SRand(4357); mti untouched"}
+{"addr": "00467420", "name": "Sexy::GetFileDate", "comment": "time_t GetFileDate(const std::string&) (FindFirstFile ftLastWriteTime -> unix)"}
+{"addr": "004674c0", "name": "Sexy::BetaSupport::SaveLogin", "comment": "HKCU Software\\\\PopCap\\\\Beta Name/Password; droppable"}
+{"addr": "00467580", "name": "std::basic_ios_char::widen", "comment": "locale ctype facet call; inferred"}
+{"addr": "00467620", "name": "std::map_SEHsym::lower_bound", "comment": "key pair<ulong,ulong>"}
+{"addr": "00467660", "name": "std::map_SEHline::lower_bound", "comment": "key pair<ulong,ulong>"}
+{"addr": "004676a0", "name": "std::_Tree_v44::_Erase", "comment": "recursive"}
+{"addr": "004676e0", "name": "std::list_Buynode_head_0x5c", "comment": "list head node (0x5c) for InternetManager ad lists"}
+{"addr": "00467700", "name": "std::wstring::_Tidy"}
+{"addr": "00467740", "name": "std::map_string_nocase::lower_bound", "comment": "stricmp keys (0x29 tree)"}
+{"addr": "004677b0", "name": "std::wstring::_Copy"}
+{"addr": "00467807", "name": "Catch@00467807", "comment": "wstring::_Copy"}
+{"addr": "00467830", "name": "std::wstring::_Copy_tail", "comment": "continuation of _Copy"}
+{"addr": "004678a4", "name": "Catch@004678a4", "comment": "wstring::_Copy"}
+{"addr": "004678e0", "name": "std::_Tree_v36::_Buynode_head", "comment": "0x34 node"}
+{"addr": "00467920", "name": "std::_Tree_v40::_Buynode_head", "comment": "0x38 node"}
+{"addr": "00467960", "name": "std::_Tree_v44::_Buynode_head", "comment": "0x40 node"}
+{"addr": "004679a0", "name": "std::_Tree_v28::_Buynode_head", "comment": "0x2c node, set<std::string>-shaped; game: BookWormApp ctor 0041a0f0 (two set members)"}
+{"addr": "004679e0", "name": "std::_Tree_v60::_Buynode_head", "comment": "0x4c node (map<string,Buffer>)"}
+{"addr": "00467a20", "name": "std::_Tree_v32::_Buynode_head", "comment": "0x30 node (map<string,ptr>)"}
+{"addr": "00467a60", "name": "std::find_list_string", "comment": "find in list<std::string>"}
+{"addr": "00467ab0", "name": "std::copy_backward_uchar"}
+{"addr": "00467ae0", "name": "std::uninitialized_fill_n_uchar"}
+{"addr": "00467b10", "name": "std::copy_uchar"}
+{"addr": "00467b40", "name": "Sexy::PropertiesParser::PropertiesParser", "sig": "void * __thiscall PropertiesParser(void *theApp)", "comment": "sizeof 0x2c"}
+{"addr": "00467b70", "name": "Sexy::PropertiesParser::~PropertiesParser", "sig": "void __thiscall ~PropertiesParser(void)"}
+{"addr": "00467ba0", "name": "Sexy::InternetManager::FindAd", "comment": "inferred; droppable"}
+{"addr": "00467c30", "name": "Sexy::InternetManager::AdInfo_CheckFiles", "comment": "inferred; droppable"}
+{"addr": "00467c80", "name": "Sexy::InternetManager::UpdateAdStatus", "comment": "iterates ad list +0x518; inferred"}
+{"addr": "00467cc0", "name": "Sexy::InternetManager::HasAd", "comment": "inferred; from SexyApp vf36"}
+{"addr": "00467d20", "name": "Sexy::InternetManager::ShowAd", "comment": "random ad (Rand()), 'file://'; from SexyApp vf36; inferred"}
+{"addr": "00467fc0", "name": "Sexy::HTTPTransfer::HTTPTransfer", "sig": "void * __thiscall HTTPTransfer(void)", "comment": "sizeof 0xfc; mTransferId=gCurTransferId++; mResult=RESULT_NOT_STARTED"}
+{"addr": "00468070", "name": "Sexy::HTTPTransfer::~HTTPTransfer", "sig": "void __thiscall ~HTTPTransfer(void)", "comment": "Abort(); while(mThreadRunning) Sleep(20); frees 8 strings"}
+{"addr": "004681c0", "name": "Sexy::StringToInt", "sig": "bool StringToInt(void * theString, int *theIntVal)", "comment": "string by value; decimal, leading '-', '0x' prefix (x at index 1) for hex; 1.2 identical"}
+{"addr": "00468300", "name": "Sexy::StringToDouble", "sig": "bool StringToDouble(void * theString, double *theDoubleVal)", "comment": "1.2 identical"}
+{"addr": "00468420", "name": "Sexy::Buffer::ReadByte", "sig": "unsigned char __thiscall ReadByte(void)"}
+{"addr": "004684b0", "name": "Sexy::Buffer::ReadNumBits", "sig": "int __thiscall ReadNumBits(int theBits, bool isSigned)"}
+{"addr": "00468580", "name": "Sexy::Buffer::ReadBoolean", "sig": "bool __thiscall ReadBoolean(void)"}
+{"addr": "00468590", "name": "Sexy::Buffer::ReadShort", "sig": "short __thiscall ReadShort(void)"}
+{"addr": "004685b0", "name": "Sexy::Buffer::ReadLong", "sig": "long __thiscall ReadLong(void)"}
+{"addr": "004685f0", "name": "Sexy::Buffer::ReadBytes", "sig": "void __thiscall ReadBytes(unsigned char *theData, int theLen)"}
+{"addr": "00468630", "name": "std::set_PerfInfo::find"}
+{"addr": "00468690", "name": "std::wstring::~wstring"}
+{"addr": "004686c0", "name": "std::basic_istream_char::getline", "comment": "getline(char*, n, delim); inferred"}
+{"addr": "004687b6", "name": "Catch@004687b6", "comment": "istream getline"}
+{"addr": "004687e5", "name": "std::basic_istream_char::getline_tail"}
+{"addr": "00468860", "name": "std::wstring::_Grow"}
+{"addr": "00468930", "name": "std::string::insert_substr", "comment": "insert(pos, str, off, n); inferred"}
+{"addr": "00468ac0", "name": "std::vector_char::erase_range"}
+{"addr": "00468b00", "name": "std::wstring::erase"}
+{"addr": "00468bf0", "name": "std::_Ucopy_uchar", "comment": "thunk to 00467330"}
+{"addr": "00468c20", "name": "std::_Tree_v36::node_value_dtor", "comment": "string at node+0x14 (also used by v40 _Erase)"}
+{"addr": "00468c50", "name": "std::string::replace_range", "comment": "inferred"}
+{"addr": "00468fe0", "name": "std::string::assign_range_helper", "comment": "inferred"}
+{"addr": "00469040", "name": "Sexy::PropertiesParser::scalar_deleting_dtor", "comment": "slot 0"}
+{"addr": "00469070", "name": "Sexy::SexyPerf::BeginPerf", "comment": "clears PerfInfoSet; from SexyApp vf64"}
+{"addr": "004690e0", "name": "Sexy::HTTPTransfer::scalar_deleting_dtor", "comment": "slot 0"}
+{"addr": "00469110", "name": "std::basic_ofstream_char::ctor", "comment": "inferred (crash.txt, html templates)"}
+{"addr": "004691ad", "name": "Catch@004691ad"}
+{"addr": "004691dc", "name": "std::basic_ofstream_char::ctor_tail"}
+{"addr": "00469230", "name": "std::string::insert_str", "comment": "inferred"}
+{"addr": "004693a0", "name": "std::string::insert_n_chars", "comment": "insert(pos, n, ch)"}
+{"addr": "004694d0", "name": "std::_Ufill_uchar"}
+{"addr": "00469500", "name": "std::wstring::assign_n_chars", "comment": "inferred"}
+{"addr": "004695e0", "name": "std::wstring::assign_substr", "comment": "inferred"}
+{"addr": "004696c0", "name": "std::string::string_range", "comment": "string(first,last)"}
+{"addr": "00469715", "name": "Catch@00469715"}
+{"addr": "00469760", "name": "Sexy::XMLParser::~XMLParser", "sig": "void __thiscall ~XMLParser(void)", "comment": "fclose(mFile)"}
+{"addr": "00469800", "name": "std::string::insert_iter_char", "comment": "insert(iterator, ch)"}
+{"addr": "00469850", "name": "std::operator_plus_char_string", "comment": "std::string operator+(char, const std::string&)"}
+{"addr": "004698f0", "name": "Sexy::XMLParser::scalar_deleting_dtor", "comment": "slot 0"}
+{"addr": "00469920", "name": "Sexy::XMLParser::GetErrorText", "sig": "void * __thiscall GetErrorText(void *ret)", "comment": "+0x20"}
+{"addr": "00469960", "name": "Sexy::XMLParser::GetFileName", "sig": "void * __thiscall GetFileName(void *ret)", "comment": "+0x4"}
+{"addr": "004699a0", "name": "Sexy::PropertiesParser::GetErrorText", "sig": "void * __thiscall GetErrorText(void *ret)", "comment": "mError +0xc"}
+{"addr": "004699e0", "name": "Sexy::SexyPerf::GetResults"}
+{"addr": "00469b50", "name": "Sexy::MTRand::Serialize", "sig": "void * __thiscall Serialize(void *ret)", "comment": "std::string of the 624 words (0x9c0 bytes); mti not included"}
+{"addr": "00469c10", "name": "Sexy::URLEncode", "comment": "' '->'+', ?&%+\\r\\n\\t -> %XX"}
+{"addr": "00469e90", "name": "Sexy::StringToUpper", "comment": "loop toupper"}
+{"addr": "00469f70", "name": "Sexy::StringToLower", "comment": "loop tolower"}
+{"addr": "0046a050", "name": "Sexy::Deltree", "comment": "recursive FindFirstFile delete; droppable"}
+{"addr": "0046a2e0", "name": "Sexy::Upper", "sig": "void * Upper(void *ret, void *theData)", "comment": "std::transform toupper; game 0042b160, 00431080; PropertiesParser Boolean"}
+{"addr": "0046a3d0", "name": "Sexy::Buffer::~Buffer", "sig": "void __thiscall ~Buffer(void)", "comment": "dtor body (frees mData); game: Board dtor 004062e0"}
+{"addr": "0046a400", "name": "Sexy::Buffer::ToWebString", "sig": "void * __thiscall ToWebString(void *ret)", "comment": "%08X of mWriteBitPos + 6-bit chars from gWebEncodeMap; game 00406c40, 004241d0"}
+{"addr": "0046a520", "name": "Sexy::Buffer::Clear", "sig": "void __thiscall Clear(void)", "comment": "game 00408ab0"}
+{"addr": "0046a550", "name": "Sexy::Buffer::ReadString", "sig": "void * __thiscall ReadString(void *ret)", "comment": "ReadShort length + bytes"}
+{"addr": "0046a610", "name": "Sexy::Buffer::ReadLine", "sig": "void * __thiscall ReadLine(void *ret)"}
+{"addr": "0046a6e0", "name": "Sexy::ResourceManager::GetRefFont", "comment": "font map lookup for '!ref:' fonts; inferred; unused"}
+{"addr": "0046a720", "name": "std::_Tree_v44::_Insert", "comment": "map/set too long; 0x2c-byte value tree"}
+{"addr": "0046a8e0", "name": "std::list::_Incsize_a", "comment": "list<T> too long"}
+{"addr": "0046a980", "name": "std::vector::_Xlen", "comment": "vector<T> too long"}
+{"addr": "0046aa00", "name": "std::list::_Incsize_b", "comment": "list<T> too long"}
+{"addr": "0046aaa0", "name": "std::_Tree_v32::_Buynode"}
+{"addr": "0046ab2b", "name": "Catch@0046ab2b"}
+{"addr": "0046ab50", "name": "std::_Tree_v36::erase", "comment": "invalid map/set<T> iterator"}
+{"addr": "0046ae70", "name": "std::_Tree_v44::erase"}
+{"addr": "0046b150", "name": "std::_Tree_v28::erase"}
+{"addr": "0046b460", "name": "std::_Tree_v32::erase"}
+{"addr": "0046b780", "name": "std::_Tree_v36::_Erase"}
+{"addr": "0046b7d0", "name": "std::_Tree_v36::node_value_ctor"}
+{"addr": "0046b830", "name": "std::_Tree_v40::node_value_ctor"}
+{"addr": "0046b8a0", "name": "std::_Tree_v28::_Erase"}
+{"addr": "0046b8f0", "name": "std::pair_string_Buffer::~pair", "comment": "map<string,Buffer> value dtor"}
+{"addr": "0046b920", "name": "std::vector_uchar::insert_range", "comment": "Buffer::SetData"}
+{"addr": "0046ba92", "name": "Catch@0046ba92"}
+{"addr": "0046ba9e", "name": "Catch@0046ba9e"}
+{"addr": "0046bb90", "name": "std::string::insert_iter_range", "comment": "insert(it, first, last); folded instance"}
+{"addr": "0046bc50", "name": "std::string::insert_iter_range_2", "comment": "second instance"}
+{"addr": "0046bd20", "name": "Sexy::XMLParser::Fail", "sig": "void __thiscall Fail(void *theErrorText)", "comment": "mHasFailed=1; mErrorText=..."}
+{"addr": "0046bd40", "name": "Sexy::XMLParser::Init", "sig": "void __thiscall Init(void)", "comment": "mSection=\"\"; mLineNum=1; mHasFailed=0; mErrorText=\"\""}
+{"addr": "0046bda0", "name": "Sexy::SEHCatcher::GetFilename"}
+{"addr": "0046be40", "name": "Sexy::SEHCatcher::GetSysInfo", "comment": "DSound/DDraw versions"}
+{"addr": "0046c2f0", "name": "Sexy::PropertiesParser::Fail", "sig": "void __thiscall Fail(void *theErrorText)", "comment": "appends ' on Line N' and \" in File '...'\""}
+{"addr": "0046c500", "name": "Sexy::HTTPTransfer::GetAbsURL", "comment": "static GetAbsURL(base, rel)"}
+{"addr": "0046c7f0", "name": "Sexy::GetDirectXErrorString", "comment": "DDERR_/DSERR_ names; DirectXErrorString.cpp"}
+{"addr": "0046d820", "name": "Sexy::Trim", "comment": "isspace both ends"}
+{"addr": "0046d8a0", "name": "Sexy::CommaSeperate", "comment": "1.2 identical (0 -> \"0\", negative -> \"\")"}
+{"addr": "0046da40", "name": "Sexy::GetCurDir", "comment": "_getcwd 256"}
+{"addr": "0046dac0", "name": "Sexy::GetPathFrom", "comment": "GetPathFrom(rel, dir)"}
+{"addr": "0046e230", "name": "Sexy::MkDir", "comment": "splits on '\\\\' only"}
+{"addr": "0046e340", "name": "Sexy::GetFileDir", "comment": "2004 form: GetFileDir(path) without withSlash = port GetFileDir(path,false)"}
+{"addr": "0046e400", "name": "Sexy::RemoveTrailingSlash"}
+{"addr": "0046e480", "name": "Sexy::vformat", "comment": "160-byte stack try, then heap doubling up to 1,000,000"}
+{"addr": "0046e5d0", "name": "Sexy::StrFormat", "sig": "void * StrFormat(void *ret, char *fmt, ...)", "comment": "20 game callers"}
+{"addr": "0046e670", "name": "Sexy::XMLDecodeString", "comment": "lt amp gt quot apos nbsp cr; 1.2 identical"}
+{"addr": "0046e8c0", "name": "Sexy::Buffer::scalar_deleting_dtor", "comment": "slot 0"}
+{"addr": "0046e8f0", "name": "Sexy::BetaSupport::LoadLogin", "comment": "droppable"}
+{"addr": "0046ea00", "name": "Sexy::BetaSupport::ShowLoginDialog", "comment": "'PopCap Beta Login'; droppable"}
+{"addr": "0046ed40", "name": "Sexy::ResourceManager::Fail", "comment": "unused"}
+{"addr": "0046ef40", "name": "Sexy::ResourceManager::LoadAlphaGridImage", "comment": "unused (GridAlphaImage size mismatch)"}
+{"addr": "0046f160", "name": "Sexy::ResourceManager::LoadAlphaImage", "comment": "unused"}
+{"addr": "0046f2e0", "name": "Sexy::ResourceManager::DoLoadFont", "comment": "slot 1; unreachable"}
+{"addr": "0046f620", "name": "std::set_PerfInfo::insert"}
+{"addr": "0046f700", "name": "std::_Tree_v32::_Insert", "comment": "map/set too long"}
+{"addr": "0046f8c0", "name": "std::_Tree_v32::_Erase"}
+{"addr": "0046f910", "name": "std::vector_uchar::_Insert_n", "comment": "Buffer WriteByte/WriteNumBits growth"}
+{"addr": "0046fa9c", "name": "Catch@0046fa9c"}
+{"addr": "0046faa8", "name": "Catch@0046faa8"}
+{"addr": "0046fba0", "name": "std::set_PerfInfo::erase_range", "comment": "clear"}
+{"addr": "0046fc60", "name": "std::_Tree_v36::_Buynode"}
+{"addr": "0046fcd2", "name": "Catch@0046fcd2"}
+{"addr": "0046fcf0", "name": "std::_Tree_v40::erase"}
+{"addr": "00470000", "name": "std::_Tree_v40::_Buynode"}
+{"addr": "00470072", "name": "Catch@00470072"}
+{"addr": "00470090", "name": "std::_Tree_v40::_Erase"}
+{"addr": "004700e0", "name": "std::list_string::insert_range"}
+{"addr": "00470145", "name": "Catch@00470145"}
+{"addr": "00470190", "name": "Sexy::SEHCatcher::IntelWalk"}
+{"addr": "00470390", "name": "Sexy::SEHCatcher::ImageHelpWalk", "comment": "StackWalk"}
+{"addr": "00470750", "name": "Sexy::SexyPerf::InsertPerfRecord", "comment": "inlined static; inferred"}
+{"addr": "004707f0", "name": "Sexy::SexyPerf::CollatePerfRecords", "comment": "inferred"}
+{"addr": "00470890", "name": "Sexy::SexyPerf::EndPerf"}
+{"addr": "00470940", "name": "Sexy::InternetManager::AdInfo::~AdInfo", "comment": "inferred"}
+{"addr": "004709c0", "name": "Sexy::InternetManager::SaveAdList", "comment": "'more %s %s |', 'popup %d %d |' -> adlist.txt; inferred"}
+{"addr": "00470b80", "name": "Sexy::GetFullPath", "comment": "GetPathFrom(rel, GetCurDir())"}
+{"addr": "00470bf0", "name": "Sexy::Buffer::SetData_ptr", "sig": "void __thiscall SetData_ptr(unsigned char *thePtr, int theCount)"}
+{"addr": "00470c70", "name": "std::map_string_nocase::insert", "comment": "InternetManager"}
+{"addr": "00470d90", "name": "std::vector_char::resize", "comment": "XMLParser::SetStringSource"}
+{"addr": "00470e00", "name": "std::_Tree_v36::erase_range"}
+{"addr": "00470ec0", "name": "std::_Tree_v36::_Insert"}
+{"addr": "00471080", "name": "std::_Tree_v40::_Insert"}
+{"addr": "00471240", "name": "std::_Tree_v28::erase_range"}
+{"addr": "00471300", "name": "std::_Tree_v32::erase_range"}
+{"addr": "004713c0", "name": "Sexy::InternetManager::AdInfo_destroy", "comment": "list node value destroy; inferred"}
+{"addr": "004713d0", "name": "Sexy::XMLParser::XMLParser", "sig": "void * __thiscall XMLParser(void)", "comment": "sizeof 0x74"}
+{"addr": "00471440", "name": "std::pair_string_StringVector::~pair"}
+{"addr": "004714a0", "name": "Sexy::Buffer::Buffer", "sig": "void * __thiscall Buffer(void)", "comment": "sizeof 0x20; game: Board ctor 0040ae90 (Board+0x160)"}
+{"addr": "004714c0", "name": "Sexy::ResourceManager::ResMap_destroy", "comment": "map<string,BaseRes*> clear + free head; inferred"}
+{"addr": "00471520", "name": "std::vector_uchar::push_back", "comment": "Buffer::WriteByte"}
+{"addr": "00471580", "name": "std::_Tree_v36::insert"}
+{"addr": "00471640", "name": "std::_Tree_v40::insert"}
+{"addr": "00471700", "name": "std::_Tree_v40::erase_range"}
+{"addr": "004717c0", "name": "std::pair_string_StringVector::pair_copy"}
+{"addr": "00471830", "name": "std::list_string::list_copy"}
+{"addr": "004718a5", "name": "Catch@004718a5"}
+{"addr": "004718c0", "name": "Sexy::XMLParser::AddAttribute", "comment": "map insert + iterator list push_back"}
+{"addr": "004719f0", "name": "Sexy::XMLParser::SetStringSource", "sig": "void __thiscall SetStringSource(void *theString)", "comment": "reversed into mBufferedText"}
+{"addr": "00471a50", "name": "Sexy::SEHCatcher::WriteToFile", "comment": "crash.txt"}
+{"addr": "00471af0", "name": "std::set_PerfInfo::~set", "comment": "static dtor"}
+{"addr": "00471b30", "name": "Sexy::HTTPTransfer::GetThreadProc", "sig": "void __thiscall GetThreadProc(void)", "comment": "winsock connect/send/recv, chunked decoding"}
+{"addr": "00472390", "name": "Sexy::HTTPTransfer::GetThreadProcStub", "sig": "void GetThreadProcStub(void *theArg)", "comment": "_beginthread entry"}
+{"addr": "004723a0", "name": "Sexy::HTTPTransfer::StartTransfer", "sig": "void __thiscall StartTransfer(void)", "comment": "mTransferPending=1; starts thread unless gSexyAppBase->mPlayingDemoBuffer (+0x541)"}
+{"addr": "004723e0", "name": "Sexy::Evaluate", "comment": "%NAME% substitution from DefinesMap (OpenHTMLTemplate)"}
+{"addr": "00472660", "name": "Sexy::Buffer::WriteByte", "sig": "void __thiscall WriteByte(unsigned char theByte)", "comment": "game 0040ae90"}
+{"addr": "004726e0", "name": "Sexy::Buffer::WriteNumBits", "sig": "void __thiscall WriteNumBits(int theNum, int theBits)", "comment": "game 004038c0 00407a50 0040ae90 0040f5b0 004241d0"}
+{"addr": "004727d0", "name": "Sexy::Buffer::WriteBoolean", "sig": "void __thiscall WriteBoolean(bool theBool)"}
+{"addr": "004727f0", "name": "Sexy::Buffer::WriteShort", "sig": "void __thiscall WriteShort(short theShort)", "comment": "game 00407a50 0040ae90"}
+{"addr": "00472820", "name": "Sexy::Buffer::WriteLong", "sig": "void __thiscall WriteLong(long theLong)", "comment": "game 004038c0 0040ae90 0040f5b0"}
+{"addr": "00472860", "name": "Sexy::Buffer::WriteString", "sig": "void __thiscall WriteString(void *theString)", "comment": "WriteShort(len)+bytes; game 004241d0"}
+{"addr": "004728b0", "name": "Sexy::Buffer::WriteBytes", "sig": "void __thiscall WriteBytes(unsigned char *theByte, int theCount)"}
+{"addr": "004728e0", "name": "Sexy::ResourceManager::DoLoadImage", "comment": "slot 0; unreachable (nothing calls the ResourceManager)"}
+{"addr": "00472b30", "name": "std::pair_string_StringVector::pair", "comment": "PropertiesParser StringArray value_type"}
+{"addr": "00472ba0", "name": "std::map_SEHsym::operator_index", "comment": "inferred"}
+{"addr": "00472c60", "name": "std::map_SEHline::operator_index", "comment": "inferred"}
+{"addr": "00472d20", "name": "std::_Tree_v44::_Tree_ctor", "comment": "static initializer helper"}
+{"addr": "00472d60", "name": "std::_Tree_v60::erase"}
+{"addr": "00473090", "name": "Sexy::InternetManager::AdInfo::AdInfo_copy", "comment": "inferred"}
+{"addr": "00473140", "name": "std::_Tree_v60::_Erase", "comment": "map<string,Buffer>"}
+{"addr": "00473190", "name": "Sexy::XMLParser::NextElement", "sig": "bool __thiscall NextElement(void *theElement)", "comment": "1.2 algorithm (narrow chars)"}
+{"addr": "004743b0", "name": "std::map_SEH::~map_a", "comment": "static dtor"}
+{"addr": "004743f0", "name": "Sexy::XMLElement::XMLElement", "comment": "sizeof 0x70"}
+{"addr": "00474490", "name": "Sexy::XMLElement::~XMLElement"}
+{"addr": "00474590", "name": "std::set_v28::~set", "comment": "static dtor"}
+{"addr": "004745d0", "name": "Sexy::HTTPTransfer::UpdateStatus", "sig": "void __thiscall UpdateStatus(void)", "comment": "demo record/playback of results via app mDemoBuffer"}
+{"addr": "004747d0", "name": "Sexy::HTTPTransfer::WaitFor", "sig": "void __thiscall WaitFor(void)", "comment": "while(mTransferPending){UpdateStatus();Sleep(20);}"}
+{"addr": "00474800", "name": "Sexy::HTTPTransfer::GetResultCode", "sig": "int __thiscall GetResultCode(void)", "comment": "UpdateStatus(); return mResult (+0xf4); game: FameWidget::Update 00427f30"}
+{"addr": "00474810", "name": "Sexy::HTTPTransfer::GetContent", "sig": "void * __thiscall GetContent(void *ret)", "comment": "\"\" while RESULT_NOT_COMPLETED(2), else mContent (+0xd4); game: 00427f30"}
+{"addr": "004748a0", "name": "Sexy::Buffer::FromWebString", "sig": "void __thiscall FromWebString(void *theString)", "comment": "keeps 1.2 lowercase-hex bug (c-'f'+10); game 00408ab0"}
+{"addr": "00474a70", "name": "Sexy::Buffer::WriteLine", "sig": "void __thiscall WriteLine(void *theString)", "comment": "string+\"\\r\\n\""}
+{"addr": "00474af0", "name": "Sexy::BetaSupport::WaitWindowProc", "comment": "'Please Wait'; inferred; droppable"}
+{"addr": "00474c70", "name": "std::map_v32::~map_unwind"}
+{"addr": "00474cb0", "name": "Sexy::ResourceManager::~ResourceManager", "comment": "dtor body"}
+{"addr": "00474e40", "name": "std::_Tree_v44::_Buynode"}
+{"addr": "00474ebe", "name": "Catch@00474ebe"}
+{"addr": "00474ee0", "name": "std::map_SEH::~map_b", "comment": "static dtor"}
+{"addr": "00474f20", "name": "Sexy::PropertiesParser::ParseSingleElement", "comment": "Unexpected Section"}
+{"addr": "004750c0", "name": "Sexy::PropertiesParser::ParseStringArray"}
+{"addr": "004753e0", "name": "Sexy::InternetManager::GetUpdateCheckState", "comment": "GetResultCode of +8 transfer; used by UpdateCheckDialog 0043b730; inferred"}
+{"addr": "00475410", "name": "Sexy::HTTPTransfer::Reset", "sig": "void __thiscall Reset(void)", "comment": "Abort+WaitFor if running, clears state"}
+{"addr": "00475490", "name": "Sexy::ResourceManager::ResourceManager", "sig": "void * __thiscall ResourceManager(void *theApp)", "comment": "sizeof 0xb4; only from SexyApp ctor (app+0x60c)"}
+{"addr": "004755c0", "name": "Sexy::ResourceManager::scalar_deleting_dtor", "comment": "slot 2"}
+{"addr": "004755f0", "name": "std::list_AdInfo::destroy_unwind"}
+{"addr": "00475640", "name": "std::_Tree_v44::_Insert_00475640"}
+{"addr": "00475800", "name": "std::list_AdInfo::erase_range", "comment": "inferred"}
+{"addr": "00475860", "name": "std::list_AdInfo::_Buynode", "comment": "0x5c node"}
+{"addr": "004758ce", "name": "Catch@004758ce"}
+{"addr": "004758f0", "name": "std::map_string_Buffer::clear", "comment": "BetaSupport dtor"}
+{"addr": "004759b0", "name": "Sexy::SEHCatcher::GetSymbolsFromMapFile", "comment": "*.map"}
+{"addr": "004763d0", "name": "Sexy::HTTPTransfer::PrepareTransfer", "comment": "PrepareTransfer(const std::string& theURL): parses proto/host/port/path"}
+{"addr": "00476670", "name": "Sexy::HTTPTransfer::GetHelper", "comment": "builds 'GET <path> HTTP/1.0 ... User-Agent: Mozilla/4.0 (compatible; popcap)'"}
+{"addr": "004767d0", "name": "Sexy::HTTPTransfer::PostHelper", "comment": "POST, Content-Type: application/x-www-form-urlencoded"}
+{"addr": "00476ac0", "name": "Sexy::HTTPTransfer::Get_url", "sig": "void __thiscall Get_url(void *theURL)", "comment": "Get(const std::string& theURL); game: FameWidget 004241d0 (GetScoresURL)"}
+{"addr": "00476b10", "name": "Sexy::HTTPTransfer::Post_url", "sig": "void __thiscall Post_url(void *theURL, void *theParams)", "comment": "Post(const std::string& theURL, const std::string& theParams); game: 004241d0, 00426c10 (SubmitScoreURL)"}
+{"addr": "00476b60", "name": "Sexy::HTTPTransfer::Get_base_rel", "comment": "Get(base, rel) via GetAbsURL"}
+{"addr": "00476bf0", "name": "Sexy::HTTPTransfer::SendRequestString", "comment": "SendRequestString(host, sendString)"}
+{"addr": "00476c40", "name": "Sexy::BetaSupport::CheckLogin", "comment": "posts username/pass/version, parses :ERROR/:COMMENTURL; droppable"}
+{"addr": "00477930", "name": "Sexy::BetaSupport::Login", "comment": "only when app+0xe0 (beta build flag); droppable"}
+{"addr": "00477990", "name": "std::map_string_StringVector::insert", "comment": "SexyApp mStringVectorProperties"}
+{"addr": "00477ae0", "name": "std::list_AdInfo::~list"}
+{"addr": "00477b20", "name": "std::list_AdInfo::insert_range"}
+{"addr": "00477b85", "name": "Catch@00477b85"}
+{"addr": "00477bd0", "name": "Sexy::SEHCatcher::SubmitReportThread", "comment": "multipart POST to www.popcap.com"}
+{"addr": "00478e90", "name": "Sexy::PropertiesParser::ParseProperties", "comment": "String, StringArray, Boolean (1/YES/ON/TRUE, 0/NO/OFF/FALSE via Upper), Integer (StringToInt), Double"}
+{"addr": "004799d0", "name": "Sexy::PropertiesParser::DoParseProperties", "comment": "root <Properties>"}
+{"addr": "00479c30", "name": "Sexy::PropertiesParser::ParsePropertiesBuffer", "sig": "bool __thiscall ParsePropertiesBuffer(void * theBuffer)", "comment": "new XMLParser (0x74) over the buffer, then parse (inferred)"}
+{"addr": "00479df0", "name": "Sexy::InternetManager::DoUpdateCheck", "sig": "void __thiscall DoUpdateCheck(void *theURL)", "comment": "BM 00473120 exact; +0x4f4=0; mUpdateTransfer(+8).Get(url); game: 00415de0"}
+{"addr": "00479e10", "name": "Sexy::InternetManager::Update", "sig": "void __thiscall Update(void)", "comment": "per update from SexyApp::UpdateFrames; ad files; drop"}
+{"addr": "0047a210", "name": "std::list<InternetManager_AdInfo>::push_back", "sig": "void __thiscall push_back(void * theVal)", "comment": "inferred; C++: std::list<InternetManager::AdInfo>::push_back"}
+{"addr": "0047a250", "name": "Sexy::SEHCatcher::ProgressWndProc", "sig": "int __stdcall ProgressWndProc(void * hWnd, unsigned int uMsg, unsigned int wParam, int lParam)", "comment": "drop"}
+{"addr": "0047a400", "name": "Sexy::SEHCatcher::ShowSubmitProgress", "sig": "void __cdecl ShowSubmitProgress(void)", "comment": "SEHProgressWindow; drop"}
+{"addr": "0047a570", "name": "Sexy::SEHCatcher::ReportWndProc", "sig": "int __stdcall ReportWndProc(void * hWnd, unsigned int uMsg, unsigned int wParam, int lParam)", "comment": "drop"}
+{"addr": "0047a680", "name": "Sexy::SEHCatcher::ShowReportDetails", "sig": "void __cdecl ShowReportDetails(void)", "comment": "drop"}
+{"addr": "0047a930", "name": "Sexy::InternetManager::ShowAdPopup", "sig": "void __cdecl ShowAdPopup(void * theAd, bool theFlag)", "comment": "popup (inferred); drop"}
+{"addr": "0047aed0", "name": "Sexy::InternetManager::ReadAdList", "sig": "void __thiscall ReadAdList(void)", "comment": "inferred; drop"}
+{"addr": "0047b290", "name": "Sexy::InternetManager::LoadAdList", "sig": "bool __thiscall LoadAdList(void)", "comment": "adlist.txt; called from SexyApp::Init via thunk 0x47bc30"}
+{"addr": "0047b3d0", "name": "Sexy::InternetManager::SaveAdList_0047b3d0", "sig": "bool __thiscall SaveAdList_0047b3d0(void)", "comment": "adlist.txt (inferred)"}
+{"addr": "0047b670", "name": "Sexy::SEHCatcher::CrashWndProc", "sig": "int __stdcall CrashWndProc(void * hWnd, unsigned int uMsg, unsigned int wParam, int lParam)", "comment": "drop"}
+{"addr": "0047b6f0", "name": "Sexy::SEHCatcher::ShowErrorDialog", "sig": "void __cdecl ShowErrorDialog(void * theErrorTitle, void * theErrorText)", "comment": "drop"}
+{"addr": "0047bc30", "name": "Sexy::InternetManager::LoadAdList_thunk", "sig": "bool __thiscall LoadAdList_thunk(void)"}
+{"addr": "0047bdf0", "name": "Sexy::SEHCatcher::DoHandleDebugEvent", "sig": "void __cdecl DoHandleDebugEvent(void * theExceptionPointers)", "comment": "drop"}
+{"addr": "0047c470", "name": "std::list<std_string>::operator_assign", "sig": "void * __thiscall operator_assign(void * theList)", "comment": "inferred; C++: std::list<std::string>::operator="}
+{"addr": "0047c4d0", "name": "Sexy::SEHCatcher::UnhandledExceptionFilter", "sig": "int __stdcall UnhandledExceptionFilter(void * theExceptionPointers)", "comment": "calls app slot 31 SEHOccured; drop"}
+{"addr": "0047c500", "name": "Sexy::InternetManager::CheckUpdateResult", "sig": "bool __thiscall CheckUpdateResult(void)", "comment": "polls the update HTTPTransfer at +8 (inferred)"}
+{"addr": "0047c780", "name": "Sexy::InternetManager::IsUpToDate", "sig": "bool __thiscall IsUpToDate(void)", "comment": "UpdateCheckDialog 0x43b730 (inferred)"}
+{"addr": "0047c7a0", "name": "Sexy::InternetManager::GetUpdateURL", "sig": "void * __thiscall GetUpdateURL(void * theResult)", "comment": "game 0x417080; drop"}
+{"addr": "0047c810", "name": "Sexy::InternetManager::ProcessUpdateResult", "sig": "void __thiscall ProcessUpdateResult(void)", "comment": "UpdateCheckDialog 0x43b730 (inferred)"}
+{"addr": "0047c960", "name": "Sexy::SEHCatcher::SEHCatcher", "sig": "void * __thiscall SEHCatcher(void)", "comment": "installs SetUnhandledExceptionFilter (static init)"}
+{"addr": "0047c980", "name": "Sexy::SexyApp::ClearUpdateBacklog", "sig": "void __thiscall ClearUpdateBacklog(bool relaxForASecond)"}
+{"addr": "0047c9b0", "name": "FileCloser::FileCloser", "sig": "void __thiscall FileCloser(void * theFile)", "comment": "RAII FILE holder used by ReadDemoBuffer (inferred)"}
+{"addr": "0047c9c0", "name": "FileCloser::~FileCloser", "sig": "void __thiscall ~FileCloser(void)", "comment": "fclose"}
+{"addr": "0047c9d0", "name": "Sexy::SexyApp::NewDialog", "sig": "void * __thiscall NewDialog(int theDialogId, bool isModal, void * theHeader, void * theLines, void * theFooter, int theButtonMode)", "comment": "slot 20; base returns NULL"}
+{"addr": "0047c9e0", "name": "Sexy::SexyApp::DoDialog", "sig": "void * __thiscall DoDialog(int theDialogId, bool isModal, void * theHeader, void * theLines, void * theFooter, int theButtonMode)", "comment": "slot 55"}
+{"addr": "0047ca30", "name": "Sexy::SexyApp::URLOpenFailed", "sig": "void __thiscall URLOpenFailed(void * theURL)", "comment": "slot 24"}
+{"addr": "0047ca40", "name": "Sexy::SexyApp::URLOpenSucceeded", "sig": "void __thiscall URLOpenSucceeded(void * theURL)", "comment": "slot 25"}
+{"addr": "0047ca70", "name": "Sexy::SexyApp::WaitForLoadingThread", "sig": "void __thiscall WaitForLoadingThread(void)"}
+{"addr": "0047caa0", "name": "Sexy::SexyApp::SetCursorImage", "sig": "void __thiscall SetCursorImage(int theCursorNum, void * theImage)", "comment": "ids 0..5"}
+{"addr": "0047cad0", "name": "Sexy::SexyApp::ShouldCheckForUpdate", "sig": "bool __thiscall ShouldCheckForUpdate(void)", "comment": "non-virtual in 2004"}
+{"addr": "0047cb30", "name": "Sexy::SexyApp::UpdateCheckQueried", "sig": "void __thiscall UpdateCheckQueried(void)", "comment": "non-virtual in 2004"}
+{"addr": "0047cb60", "name": "Sexy::SexyApp::GetLoadingThreadProgress", "sig": "double __thiscall GetLoadingThreadProgress(void)", "comment": "slot 51"}
+{"addr": "0047cbc0", "name": "Sexy::SexyApp::SEHOccured", "sig": "void __thiscall SEHOccured(void)", "comment": "slot 31"}
+{"addr": "0047cbf0", "name": "Sexy::SexyApp::Shutdown", "sig": "void __thiscall Shutdown(void)", "comment": "slot 33"}
+{"addr": "0047cce0", "name": "Sexy::SexyApp::UpdateFrames", "sig": "void __thiscall UpdateFrames(void)", "comment": "slot 7"}
+{"addr": "0047cd30", "name": "Sexy::SexyApp::Unwind_SetRandAllowed", "sig": "void __cdecl Unwind_SetRandAllowed(void)", "comment": "EH unwind helper: MTRand::SetRandAllowed(true)"}
+{"addr": "0047cd40", "name": "Sexy::SexyApp::CheckScreenSaverIdle", "sig": "void __cdecl CheckScreenSaverIdle(void)", "comment": "no 1.2 name; sets gScreenSaverActive from the system screen-saver timeout and GetLastInputInfo; drop"}
+{"addr": "0047ce60", "name": "AlignDword", "sig": "unsigned int __cdecl AlignDword(void)", "comment": "dialog-template helper (value in EAX)"}
+{"addr": "0047ce70", "name": "Sexy::SexyApp::DemoToggleMute", "sig": "void __cdecl DemoToggleMute(void)", "comment": "demo playback S key"}
+{"addr": "0047cf40", "name": "Sexy::SexyApp::IsAltKeyUsed", "sig": "bool __cdecl IsAltKeyUsed(int theKey)", "comment": "WM_SYSCHAR 'r' (key in EAX)"}
+{"addr": "0047cf50", "name": "Sexy::SexyApp::RehupFocus", "sig": "void __thiscall RehupFocus(void)", "comment": "mutes on focus loss"}
+{"addr": "0047cfc0", "name": "Sexy::SexyApp::WriteDemoTimingBlock", "sig": "void __thiscall WriteDemoTimingBlock(void)"}
+{"addr": "0047d060", "name": "Sexy::SexyApp::PrepareDemoCommand", "sig": "bool __thiscall PrepareDemoCommand(void)"}
+{"addr": "0047d100", "name": "Sexy::SexyApp::ProcessDemo", "sig": "void __thiscall ProcessDemo(void)"}
+{"addr": "0047d4f0", "name": "Sexy::SexyApp::LoadingThreadProcStub", "sig": "void __cdecl LoadingThreadProcStub(void * theArg)"}
+{"addr": "0047d570", "name": "Sexy::SexyApp::StartLoadingThread", "sig": "void __thiscall StartLoadingThread(void)"}
+{"addr": "0047d5b0", "name": "Sexy::SexyApp::CursorThreadProc", "sig": "void __thiscall CursorThreadProc(void)"}
+{"addr": "0047d660", "name": "Sexy::SexyApp::CursorThreadProcStub", "sig": "void __cdecl CursorThreadProcStub(void * theArg)"}
+{"addr": "0047d680", "name": "Sexy::SexyApp::StartCursorThread", "sig": "void __thiscall StartCursorThread(void)"}
+{"addr": "0047d6c0", "name": "Sexy::SexyApp::SetAlphaDisabled", "sig": "void __thiscall SetAlphaDisabled(bool isDisabled)", "comment": "slot 54"}
+{"addr": "0047d710", "name": "Sexy::SexyApp::EnforceCursor", "sig": "void __thiscall EnforceCursor(void)", "comment": "slot 10; 6 cursor ids"}
+{"addr": "0047d7f0", "name": "Sexy::SexyApp::ChangeDirHook", "sig": "bool __thiscall ChangeDirHook(char * theIntendedPath)", "comment": "slot 39; returns false (also MusicInterface slot 11 stub)"}
+{"addr": "0047d800", "name": "Sexy::SexyApp::CreateMusicInterface", "sig": "void * __thiscall CreateMusicInterface(void * theHWnd)", "comment": "slot 15; Bass unless mNoSoundNeeded/mWantFMod"}
+{"addr": "0047d8f0", "name": "Sexy::SexyApp::SetCursor", "sig": "void __thiscall SetCursor(int theCursorNum)"}
+{"addr": "0047d910", "name": "Sexy::SexyApp::EnableCustomCursors", "sig": "void __thiscall EnableCustomCursors(bool enabled)"}
+{"addr": "0047db50", "name": "Sexy::SexyApp::PlaySample", "sig": "void __thiscall PlaySample(int theSoundNum)", "comment": "slot 41"}
+{"addr": "0047db80", "name": "Sexy::SexyApp::PlaySample_pan", "sig": "void __thiscall PlaySample_pan(int theSoundNum, int thePan)", "comment": "slot 40"}
+{"addr": "0047dbc0", "name": "Sexy::SexyApp::IsMuted", "sig": "bool __thiscall IsMuted(void)", "comment": "slot 45"}
+{"addr": "0047dbd0", "name": "Sexy::SexyApp::Mute", "sig": "void __thiscall Mute(bool autoMute)", "comment": "slot 49"}
+{"addr": "0047dc20", "name": "Sexy::SexyApp::Unmute", "sig": "void __thiscall Unmute(bool autoMute)", "comment": "slot 50"}
+{"addr": "0047dc70", "name": "Sexy::SexyApp::GetMusicVolume", "sig": "double __thiscall GetMusicVolume(void)", "comment": "slot 43"}
+{"addr": "0047dc80", "name": "Sexy::SexyApp::SetMusicVolume", "sig": "void __thiscall SetMusicVolume(double theVolume)", "comment": "slot 47"}
+{"addr": "0047dce0", "name": "Sexy::SexyApp::GetSfxVolume", "sig": "double __thiscall GetSfxVolume(void)", "comment": "slot 44"}
+{"addr": "0047dcf0", "name": "Sexy::SexyApp::SetSfxVolume", "sig": "void __thiscall SetSfxVolume(double theVolume)", "comment": "slot 48"}
+{"addr": "0047dd50", "name": "Sexy::SexyApp::GetMasterVolume", "sig": "double __thiscall GetMasterVolume(void)", "comment": "slot 42"}
+{"addr": "0047dd60", "name": "Sexy::SexyApp::SetMasterVolume", "sig": "void __thiscall SetMasterVolume(double theVolume)", "comment": "slot 46; writes mSfxVolume"}
+{"addr": "0047dd90", "name": "Sexy::SexyApp::Remove3DData", "sig": "void __thiscall Remove3DData(void * theMemoryImage)"}
+{"addr": "0047ddb0", "name": "Sexy::SexyApp::Is3DAccelerated", "sig": "bool __thiscall Is3DAccelerated(void)"}
+{"addr": "0047ddc0", "name": "std::map<int,Sexy_Dialog*>::_Rrotate", "sig": "void __thiscall _Rrotate(void * where)", "comment": "void _Rrotate(_Nodeptr); C++: std::map<int,Sexy::Dialog*>::_Rrotate"}
+{"addr": "0047de20", "name": "std::map<int,Sexy_Dialog*>::_Max", "comment": "static _Nodeptr _Max(_Nodeptr); C++: std::map<int,Sexy::Dialog*>::_Max"}
+{"addr": "0047de40", "name": "std::map<int,Sexy_Dialog*>::_Min", "comment": "static _Nodeptr _Min(_Nodeptr); C++: std::map<int,Sexy::Dialog*>::_Min"}
+{"addr": "0047de60", "name": "std::map<int,Sexy_Dialog*>::iterator::_Dec", "comment": "void iterator::_Dec(); C++: std::map<int,Sexy::Dialog*>::iterator::_Dec"}
+{"addr": "0047dec0", "name": "std::map<int,Sexy_Dialog*>::iterator::_Inc", "comment": "void iterator::_Inc(); C++: std::map<int,Sexy::Dialog*>::iterator::_Inc"}
+{"addr": "0047df20", "name": "std::_Tree<set<T*>>::_Max", "sig": "void * __cdecl _Max(void * theNode)", "comment": "node isnil +0x11 (set<ptr>, e.g. mMemoryImageSet)"}
+{"addr": "0047df40", "name": "std::_Tree<map<K,12-byte_V>>::_Lrotate", "sig": "void __thiscall _Lrotate(void * theNode)", "comment": "node isnil +0x19 (ShowMemoryUsage map); C++: std::_Tree<map<K,12-byte V>>::_Lrotate"}
+{"addr": "0047dfa0", "name": "std::_Tree<map<K,12-byte_V>>::_Rrotate", "sig": "void __thiscall _Rrotate(void * theNode)", "comment": "isnil +0x19; C++: std::_Tree<map<K,12-byte V>>::_Rrotate"}
+{"addr": "0047e000", "name": "std::_Tree<map<K,12-byte_V>>::_Max", "sig": "void * __cdecl _Max(void * theNode)", "comment": "isnil +0x19; C++: std::_Tree<map<K,12-byte V>>::_Max"}
+{"addr": "0047e020", "name": "std::_Tree<map<K,12-byte_V>>::_Min", "sig": "void * __cdecl _Min(void * theNode)", "comment": "isnil +0x19; C++: std::_Tree<map<K,12-byte V>>::_Min"}
+{"addr": "0047e040", "name": "std::_Tree<set<T*>>::_Min", "sig": "void * __cdecl _Min(void * theNode)", "comment": "isnil +0x11"}
+{"addr": "0047e060", "name": "std::_Tree<map<K,12-byte_V>>::const_iterator::_Inc", "sig": "void __thiscall _Inc(void)", "comment": "isnil +0x19; C++: std::_Tree<map<K,12-byte V>>::const_iterator::_Inc"}
+{"addr": "0047e0c0", "name": "Sexy::SexyApp::DemoSyncBuffer", "sig": "void __thiscall DemoSyncBuffer(void * theBuffer)"}
+{"addr": "0047e190", "name": "Sexy::SexyApp::DemoSyncBool", "sig": "void __thiscall DemoSyncBool(bool * theBool)"}
+{"addr": "0047e210", "name": "Sexy::SexyApp::GetDialogCount", "sig": "int __thiscall GetDialogCount(void)", "comment": "slot 59"}
+{"addr": "0047e220", "name": "Sexy::SexyApp::DoUpdateFrames", "sig": "void __thiscall DoUpdateFrames(void)", "comment": "slot 8"}
+{"addr": "0047e310", "name": "Sexy::SexyApp::SwitchScreenMode", "sig": "void __thiscall SwitchScreenMode(bool wantWindowed)", "comment": "slot 53"}
+{"addr": "0047e380", "name": "Sexy::SexyApp::Is3DAccelerationSupported", "sig": "bool __thiscall Is3DAccelerationSupported(void)"}
+{"addr": "0047e3a0", "name": "Sexy::SexyApp::Is3DAccelerationRecommended", "sig": "bool __thiscall Is3DAccelerationRecommended(void)"}
+{"addr": "0047e3d0", "name": "std::map<int,Sexy_Dialog*>::_Lrotate", "sig": "void __thiscall _Lrotate(void * where)", "comment": "void _Lrotate(_Nodeptr); C++: std::map<int,Sexy::Dialog*>::_Lrotate"}
+{"addr": "0047e430", "name": "std::_Tree<map<K,12-byte_V>>::const_iterator::_Dec", "sig": "void __thiscall _Dec(void)", "comment": "isnil +0x19; C++: std::_Tree<map<K,12-byte V>>::const_iterator::_Dec"}
+{"addr": "0047e490", "name": "std::_Tree<map<int,T*>>::_Erase", "sig": "void __cdecl _Erase(void * theNode)", "comment": "recursive free (map<HANDLE,int> mHandleToIntMap)"}
+{"addr": "0047e4d0", "name": "std::num_put<char>::num_put", "sig": "void * __thiscall num_put(unsigned int theRefs)", "comment": "iostream (DumpProgramInfo)"}
+{"addr": "0047e550", "name": "Sexy::SexyApp::ReadBufferFromFile", "sig": "bool __thiscall ReadBufferFromFile(void * theFileName, void * theBuffer, bool dontWriteToDemo)"}
+{"addr": "0047e700", "name": "Sexy::SexyApp::FileExists", "sig": "bool __thiscall FileExists(void * theFileName)"}
+{"addr": "0047e7d0", "name": "Sexy::SexyApp::Popup", "sig": "void __thiscall Popup(void * theString)", "comment": "slot 21; MessageBox FATAL ERROR"}
+{"addr": "0047e810", "name": "Sexy::SexyApp::CopyToClipboard", "sig": "void __thiscall CopyToClipboard(void * theString)"}
+{"addr": "0047e910", "name": "std::_Tree<map<int,T*>>::_Erase_2", "sig": "void __cdecl _Erase_2(void * theNode)", "comment": "recursive free (mDialogMap)"}
+{"addr": "0047e950", "name": "std::list<T>::_Buyheadnode", "sig": "void * __cdecl _Buyheadnode(void)", "comment": "(currently named std::list<Bill>::_Buyhead from Big Money)"}
+{"addr": "0047e970", "name": "std::list<DeferredMessage>::_Buynode", "sig": "void * __cdecl _Buynode(void * theNext, void * thePrev, void * theVal)", "comment": "0x24-byte node"}
+{"addr": "0047e9b0", "name": "std::map<std_string,std_vector<std_string>>::_Buyheadnode", "sig": "void * __cdecl _Buyheadnode(void)", "comment": "C++: std::map<std::string,std::vector<std::string>>::_Buyheadnode"}
+{"addr": "0047e9f0", "name": "std::map<int,Sexy_Dialog*>::_Buynode", "sig": "void * __thiscall _Buynode(void * left, void * parent, void * right, void * val, char color)", "comment": "_Nodeptr _Buynode(left, parent, right, const value_type& val, char color)  // node 0x18, copies 8 bytes; C++: std::map<int,Sexy::Dialog*>::_Buynode"}
+{"addr": "0047ea30", "name": "std::_Tree<map<K,12-byte_V>>::_Buyheadnode", "sig": "void * __cdecl _Buyheadnode(void)", "comment": "C++: std::_Tree<map<K,12-byte V>>::_Buyheadnode"}
+{"addr": "0047ea70", "name": "std::_Tree<map<K,12-byte_V>>::_Buynode", "sig": "void * __cdecl _Buynode(void * theLeft, void * theParent, void * theRight, void * theVal, char theColor)", "comment": "C++: std::_Tree<map<K,12-byte V>>::_Buynode"}
+{"addr": "0047eac0", "name": "std::_Tree<map<int,T*>>::_Erase_3", "sig": "void __cdecl _Erase_3(void * theNode)", "comment": "isnil +0x15"}
+{"addr": "0047eb00", "name": "std::_Tree<map<K,12-byte_V>>::_Erase", "sig": "void __cdecl _Erase(void * theNode)", "comment": "C++: std::_Tree<map<K,12-byte V>>::_Erase"}
+{"addr": "0047eb40", "name": "std::_Tree<set<T*>>::_Erase", "sig": "void __cdecl _Erase(void * theNode)", "comment": "isnil +0x11"}
+{"addr": "0047eb80", "name": "std::num_put<char>::_Getcat", "sig": "unsigned int __cdecl _Getcat(void * theFacet)"}
+{"addr": "0047ebe0", "name": "Sexy::SexyApp::WriteDemoBuffer", "sig": "void __thiscall WriteDemoBuffer(void)"}
+{"addr": "0047edb0", "name": "Sexy::SexyApp::WriteBytesToFile", "sig": "bool __thiscall WriteBytesToFile(void * theFileName, void * theData, unsigned int theDataLen)"}
+{"addr": "0047ef50", "name": "Sexy::SexyApp::WriteBufferToFile", "sig": "bool __thiscall WriteBufferToFile(void * theFileName, void * theBuffer)"}
+{"addr": "0047ef80", "name": "Sexy::SexyApp::MarkerListDialogProc", "sig": "int __stdcall MarkerListDialogProc(void * hWnd, unsigned int uMsg, unsigned int wParam, int lParam)", "comment": "demo"}
+{"addr": "0047f210", "name": "Sexy::SexyApp::ShowMarkerListDialog", "sig": "int __cdecl ShowMarkerListDialog(void)", "comment": "demo"}
+{"addr": "0047f229", "name": "Sexy::SexyApp::ShowMarkerListDialog_body", "sig": "int __cdecl ShowMarkerListDialog_body(void)", "comment": "demo; tail of 0x47f210"}
+{"addr": "0047f340", "name": "Sexy::SexyApp::ReInitImages", "sig": "void __thiscall ReInitImages(void)", "comment": "slot 11 (name inferred); MemoryImage slot 18 on every image"}
+{"addr": "0047f3b0", "name": "Sexy::SexyApp::DeleteExtraImageData", "sig": "void __thiscall DeleteExtraImageData(void)", "comment": "slot 12"}
+{"addr": "0047f470", "name": "std_string_Tidy", "sig": "void __thiscall std_string_Tidy(void)", "comment": "~string() == _Tidy(true): free heap buffer if cap>15, then cap=15,size=0,buf[0]=0"}
+{"addr": "0047f4a0", "name": "std::operator<<_std_ostream__const_std_string", "sig": "void * __cdecl operator___std_ostream__const_std_string(void * theStream, void * theString)", "comment": "C++: std::operator<<(std::ostream&,const std::string&)"}
+{"addr": "0047f6a4", "name": "std::operator<<_string_unwind", "sig": "void __cdecl operator___string_unwind(void)", "comment": "EH tail of 0x47f4a0"}
+{"addr": "0047f770", "name": "std::use_facet<std_num_put<char>>", "sig": "void * __cdecl use_facet_std_num_put_char__(void * theLocale)", "comment": "C++: std::use_facet<std::num_put<char>>"}
+{"addr": "0047f860", "name": "std::pair<const_std_string,double>::~pair", "sig": "void __thiscall ~pair(void)", "comment": "destroys the key string of a map<string,double> node (inferred); C++: std::pair<const std::string,double>::~pair"}
+{"addr": "0047f890", "name": "Sexy::SexyApp::GetDialog", "sig": "void * __thiscall GetDialog(int theDialogId)", "comment": "slot 56"}
+{"addr": "0047f8d0", "name": "std::ostream::operator<<_int", "sig": "void * __thiscall operator___int(int theValue)", "comment": "C++: std::ostream::operator<<(int)"}
+{"addr": "0047f9e6", "name": "std::ostream::operator<<_int_unwind", "sig": "void __cdecl operator___int_unwind(void)", "comment": "EH tail of 0x47f8d0"}
+{"addr": "0047fa40", "name": "Sexy::SexyApp::ProcessDeferredMessages", "sig": "bool __thiscall ProcessDeferredMessages(void)", "comment": "input dispatch"}
+{"addr": "00480660", "name": "Sexy::SexyApp::ProcessSafeDeleteList", "sig": "void __thiscall ProcessSafeDeleteList(void)"}
+{"addr": "00480700", "name": "Sexy::SexyApp::Process", "sig": "void __thiscall Process(void)", "comment": "slot 6; 2004: no allowSleep arg, returns nothing; 10 ms tick, 1000 ms backlog clamp"}
+{"addr": "00480950", "name": "Sexy::SexyApp::Start", "sig": "void __thiscall Start(void)", "comment": "slot 36; main loop"}
+{"addr": "00480c50", "name": "std::num_put<char>::do_put_bool", "sig": "void * __thiscall do_put_bool(void * theResult, void * theDest, void * theIos, char theFill, bool theVal)"}
+{"addr": "00480e90", "name": "std::ostreambuf_iterator<char>::operator_assign", "sig": "void * __thiscall operator_assign(char theChar)"}
+{"addr": "00480ef0", "name": "Sexy::SexyApp::GetBoolean", "sig": "bool __thiscall GetBoolean(void * theId, bool theDefault)"}
+{"addr": "00480f30", "name": "Sexy::SexyApp::GetInteger", "sig": "int __thiscall GetInteger(void * theId, int theDefault)"}
+{"addr": "00480f70", "name": "Sexy::SexyApp::GetString_default", "sig": "void * __thiscall GetString_default(void * theResult, void * theId, void * theDefault)"}
+{"addr": "00480fe0", "name": "std::_Tree<set<T*>>::_Insert", "sig": "void * __thiscall _Insert(void * theResult, bool addLeft, void * theNode, void * theVal)", "comment": "isnil +0x11"}
+{"addr": "004811a0", "name": "std::num_put<char>::do_put_long", "sig": "void * __cdecl do_put_long(void * theResult, void * theDest, void * theIos, char theFill, long theVal)"}
+{"addr": "00481210", "name": "std::num_put<char>::_Ifmt", "sig": "char * __cdecl _Ifmt(char * theFmt, char * theSpec, int theFlags)"}
+{"addr": "004812a0", "name": "std::num_put<char>::_Iput", "sig": "void * __cdecl _Iput(void * theResult, void * theDest, void * theIos, char theFill, char * theBuf, unsigned int theCount)"}
+{"addr": "004815f0", "name": "std::num_put<char>::do_put_ulong", "sig": "void * __cdecl do_put_ulong(void * theResult, void * theDest, void * theIos, char theFill, unsigned long theVal)"}
+{"addr": "00481660", "name": "std::num_put<char>::do_put_int64", "sig": "void * __cdecl do_put_int64(void * theResult, void * theDest, void * theIos, char theFill, long long theVal)"}
+{"addr": "004816d0", "name": "std::num_put<char>::do_put_uint64", "sig": "void * __cdecl do_put_uint64(void * theResult, void * theDest, void * theIos, char theFill, unsigned long long theVal)"}
+{"addr": "00481740", "name": "std::num_put<char>::do_put_double", "sig": "void * __cdecl do_put_double(void * theResult, void * theDest, void * theIos, char theFill, double theVal)"}
+{"addr": "004818a0", "name": "std::num_put<char>::_Ffmt", "sig": "char * __cdecl _Ffmt(char * theFmt, char theSpec, int theFlags)"}
+{"addr": "00481910", "name": "std::num_put<char>::_Fput", "sig": "void * __cdecl _Fput(void * theResult, void * theDest, void * theIos, char theFill, char * theBuf, int a, int b, int c, unsigned int theCount)"}
+{"addr": "00481ca0", "name": "std::num_put<char>::do_put_longdouble", "sig": "void * __cdecl do_put_longdouble(void * theResult, void * theDest, void * theIos, char theFill, double theVal)"}
+{"addr": "00481e40", "name": "std::num_put<char>::do_put_ptr", "sig": "void * __cdecl do_put_ptr(void * theResult, void * theDest, void * theIos, char theFill, void * theVal)"}
+{"addr": "00481ea0", "name": "std::_Tree<map<int,T*>>::erase_range", "sig": "void * __thiscall erase_range(void * theResult, void * theFirst, void * theLast)", "comment": "mDialogMap"}
+{"addr": "00481f60", "name": "std::list<Sexy_Dialog*>::_Incsize", "sig": "void __thiscall _Incsize(unsigned int theCount)", "comment": "list<T> too long; C++: std::list<Sexy::Dialog*>::_Incsize"}
+{"addr": "00482000", "name": "std::list<DeferredMessage>::_Incsize", "sig": "void __thiscall _Incsize(unsigned int theCount)"}
+{"addr": "004820a0", "name": "std::_Tree<map<int,T*>>::erase_range_2", "sig": "void * __thiscall erase_range_2(void * theResult, void * theFirst, void * theLast)", "comment": "mHandleToIntMap"}
+{"addr": "00482160", "name": "std::list<std_string>::_Incsize_00482160", "sig": "void __thiscall _Incsize_00482160(unsigned int theCount)", "comment": "C++: std::list<std::string>::_Incsize"}
+{"addr": "00482200", "name": "std::_Tree<map<int,T*>>::_Insert", "sig": "void * __thiscall _Insert(void * theResult, bool addLeft, void * theNode, void * theVal)", "comment": "map/set<T> too long"}
+{"addr": "004823c0", "name": "std::_Tree<map<K,12-byte_V>>::_Insert", "sig": "void * __thiscall _Insert(void * theResult, bool addLeft, void * theNode, void * theVal)", "comment": "C++: std::_Tree<map<K,12-byte V>>::_Insert"}
+{"addr": "00482580", "name": "std::map<std_string,bool>::_Node::_Node", "sig": "void * __thiscall _Node(void * theLeft, void * theParent, void * theRight, void * theVal, char theColor)", "comment": "inferred; C++: std::map<std::string,bool>::_Node::_Node"}
+{"addr": "004825e0", "name": "std::map<std_string,double>::_Node::_Node", "sig": "void * __thiscall _Node(void * theLeft, void * theParent, void * theRight, void * theVal, char theColor)", "comment": "inferred; C++: std::map<std::string,double>::_Node::_Node"}
+{"addr": "00482640", "name": "std::_Tree<map<int,T*>>::erase", "sig": "void * __thiscall erase(void * theResult, void * theWhere)", "comment": "invalid map/set<T> iterator; KillDialog"}
+{"addr": "00482920", "name": "std::_Tree<map<K,12-byte_V>>::erase", "sig": "void * __thiscall erase(void * theResult, void * theWhere)", "comment": "C++: std::_Tree<map<K,12-byte V>>::erase"}
+{"addr": "00482c00", "name": "std::_Tree<set<T*>>::erase", "sig": "void * __thiscall erase(void * theResult, void * theWhere)", "comment": "isnil +0x11"}
+{"addr": "00482ee0", "name": "Sexy::SexyApp::DemoSyncString", "sig": "void __thiscall DemoSyncString(void * theString)"}
+{"addr": "00482f90", "name": "Sexy::SexyApp::KillDialog", "sig": "bool __thiscall KillDialog(int theDialogId)", "comment": "slot 58; deferred delete via SafeDeleteWidget"}
+{"addr": "004830b0", "name": "Sexy::SexyApp::Validate", "sig": "bool __thiscall Validate(void * theUserName, void * theRegCode)", "comment": "slot 23 (virtual in 2004); BigInt reg code check; drop"}
+{"addr": "00483410", "name": "Sexy::SexyApp::OpenURL", "sig": "bool __thiscall OpenURL(void * theURL, bool shutdownOnOpen)", "comment": "slot 26"}
+{"addr": "004834c0", "name": "Sexy::SexyApp::GetProductVersion", "sig": "void * __thiscall GetProductVersion(void * theResult, void * thePath)", "comment": "slot 30"}
+{"addr": "00483650", "name": "Sexy::SexyApp::RegistryWrite", "sig": "bool __thiscall RegistryWrite(void * theValueName, unsigned int theType, void * theValue, unsigned int theLength)", "comment": "HKLM\\SOFTWARE\\<mRegKey>"}
+{"addr": "00483980", "name": "Sexy::SexyApp::RegistryWriteString", "sig": "bool __thiscall RegistryWriteString(void * theValueName, void * theString)"}
+{"addr": "004839c0", "name": "Sexy::SexyApp::RegistryWriteInteger", "sig": "bool __thiscall RegistryWriteInteger(void * theValueName, int theValue)"}
+{"addr": "004839e0", "name": "Sexy::SexyApp::RegistryWriteBoolean", "sig": "bool __thiscall RegistryWriteBoolean(void * theValueName, bool theValue)"}
+{"addr": "00483a10", "name": "Sexy::SexyApp::WriteToRegistry", "sig": "void __thiscall WriteToRegistry(void)", "comment": "slot 18; also %WINDIR%\\popcinfo.dat"}
+{"addr": "004841c0", "name": "Sexy::SexyApp::RegistryEraseValue", "sig": "void __thiscall RegistryEraseValue(void * theValueName)"}
+{"addr": "004843b0", "name": "Sexy::SexyApp::RegistryRead", "sig": "bool __thiscall RegistryRead(void * theValueName, unsigned int * theType, void * theValue, unsigned int * theLength)"}
+{"addr": "004846f0", "name": "Sexy::SexyApp::RegistryReadString", "sig": "bool __thiscall RegistryReadString(void * theValueName, void * theString)", "comment": "max 255 bytes"}
+{"addr": "00484780", "name": "Sexy::SexyApp::RegistryReadInteger", "sig": "bool __thiscall RegistryReadInteger(void * theValueName, int * theValue)"}
+{"addr": "004847d0", "name": "Sexy::SexyApp::RegistryReadBoolean", "sig": "bool __thiscall RegistryReadBoolean(void * theValueName, bool * theValue)"}
+{"addr": "00484800", "name": "Sexy::SexyApp::ReadFromRegistry", "sig": "void __thiscall ReadFromRegistry(void)", "comment": "slot 19"}
+{"addr": "00485430", "name": "Sexy::SexyApp::GetGameSEHInfo", "sig": "void * __thiscall GetGameSEHInfo(void * theResult)", "comment": "slot 32"}
+{"addr": "00485d20", "name": "Sexy::SexyApp::CalculateFPS", "sig": "void __cdecl CalculateFPS(void)", "comment": "debug"}
+{"addr": "00485ff0", "name": "Sexy::SexyApp::FPSDrawCoords", "sig": "void __cdecl FPSDrawCoords(void)", "comment": "debug"}
+{"addr": "00486230", "name": "Sexy::SexyApp::CalculateDemoTimeLeft", "sig": "void __cdecl CalculateDemoTimeLeft(void)", "comment": "debug"}
+{"addr": "00486510", "name": "Sexy::SexyApp::DrawDirtyStuff", "sig": "bool __thiscall DrawDirtyStuff(void)", "comment": "slot 65"}
+{"addr": "004867d0", "name": "Sexy::SexyApp::JumpToTimeDialogProc", "sig": "int __stdcall JumpToTimeDialogProc(void * hWnd, unsigned int uMsg, unsigned int wParam, int lParam)", "comment": "demo; registry DemoJumpTime"}
+{"addr": "00486aa0", "name": "Sexy::SexyApp::ShowJumpToTimeDialog", "sig": "int __cdecl ShowJumpToTimeDialog(void)", "comment": "demo"}
+{"addr": "00486ab9", "name": "Sexy::SexyApp::ShowJumpToTimeDialog_body", "sig": "int __cdecl ShowJumpToTimeDialog_body(void)", "comment": "demo"}
+{"addr": "00486c90", "name": "Sexy::SexyApp::CheckSignature", "sig": "bool __cdecl CheckSignature(void * theBuffer, void * theFileName)", "comment": "<file>.sig, BigInt RSA; drop"}
+{"addr": "00486fe0", "name": "Sexy::SexyApp::LoadProperties", "sig": "bool __thiscall LoadProperties(void * theFileName, bool required, bool checkSig)"}
+{"addr": "004871a0", "name": "Sexy::SexyApp::GetString", "sig": "void * __thiscall GetString(void * theResult, void * theId)", "comment": "empty string when missing"}
+{"addr": "00487220", "name": "Sexy::SexyApp::ParseCmdLine", "sig": "void __thiscall ParseCmdLine(void * theCmdLine)", "comment": "slot 34"}
+{"addr": "004873c0", "name": "Sexy::SexyApp::GetClipboard", "sig": "void * __thiscall GetClipboard(void * theResult)"}
+{"addr": "004874a0", "name": "Sexy::SexyApp::RemoveMemoryImage", "sig": "void __thiscall RemoveMemoryImage(void * theMemoryImage)"}
+{"addr": "00487530", "name": "Sexy::SexyApp::Set3DAccelerated", "sig": "void __thiscall Set3DAccelerated(bool is3D, bool reinit)"}
+{"addr": "00487690", "name": "std::map<int,Sexy_Dialog*>::insert", "sig": "void * __thiscall insert(void * theResult, void * theVal)", "comment": "AddDialog; C++: std::map<int,Sexy::Dialog*>::insert"}
+{"addr": "00487750", "name": "std::set<int>::insert", "sig": "void * __thiscall insert(void * theResult, void * theVal)", "comment": "FindDemoFileNum (inferred)"}
+{"addr": "00487810", "name": "std::map<int,int>::insert", "sig": "void * __thiscall insert(void * theResult, void * theVal)", "comment": "DumpProgramInfo (inferred)"}
+{"addr": "00487870", "name": "std::_Tree<map<K,12-byte_V>>::insert", "sig": "void * __thiscall insert(void * theResult, void * theVal)", "comment": "C++: std::_Tree<map<K,12-byte V>>::insert"}
+{"addr": "00487930", "name": "std::list<std_string>::_Buynode_00487930", "sig": "void * __cdecl _Buynode_00487930(void * theNext, void * thePrev, void * theVal)", "comment": "C++: std::list<std::string>::_Buynode"}
+{"addr": "004879d0", "name": "std::map<std_string,bool>::_Buynode", "sig": "void * __cdecl _Buynode(void * theLeft, void * theParent, void * theRight, void * theVal, char theColor)", "comment": "C++: std::map<std::string,bool>::_Buynode"}
+{"addr": "00487a60", "name": "std::map<std_string,int>::_Buynode", "sig": "void * __cdecl _Buynode(void * theLeft, void * theParent, void * theRight, void * theVal, char theColor)", "comment": "C++: std::map<std::string,int>::_Buynode"}
+{"addr": "00487af0", "name": "std::map<std_string,double>::_Buynode", "sig": "void * __cdecl _Buynode(void * theLeft, void * theParent, void * theRight, void * theVal, char theColor)", "comment": "C++: std::map<std::string,double>::_Buynode"}
+{"addr": "00487b80", "name": "std::_Tree<map<int,T*>>::erase_range_3", "sig": "void * __thiscall erase_range_3(void * theResult, void * theFirst, void * theLast)", "comment": "isnil +0x15 (DumpProgramInfo map)"}
+{"addr": "00487c40", "name": "std::_Tree<map<K,12-byte_V>>::erase_range", "sig": "void * __thiscall erase_range(void * theResult, void * theFirst, void * theLast)", "comment": "C++: std::_Tree<map<K,12-byte V>>::erase_range"}
+{"addr": "00487d00", "name": "std::_Tree<set<T*>>::erase_range", "sig": "void * __thiscall erase_range(void * theResult, void * theFirst, void * theLast)", "comment": "isnil +0x11"}
+{"addr": "00487dc0", "name": "std::map<std_string,int>::erase", "sig": "void * __thiscall erase(void * theResult, void * theWhere)", "comment": "node isnil +0x2d; shared with map<string,bool>; C++: std::map<std::string,int>::erase"}
+{"addr": "004880e0", "name": "std::map<std_string,double>::erase", "sig": "void * __thiscall erase(void * theResult, void * theWhere)", "comment": "isnil +0x39; C++: std::map<std::string,double>::erase"}
+{"addr": "00488400", "name": "std::map<std_string,bool>::_Erase", "sig": "void __cdecl _Erase(void * theNode)", "comment": "C++: std::map<std::string,bool>::_Erase"}
+{"addr": "00488450", "name": "std::map<std_string,int>::_Erase", "sig": "void __cdecl _Erase(void * theNode)", "comment": "C++: std::map<std::string,int>::_Erase"}
+{"addr": "004884a0", "name": "std::map<std_string,double>::_Erase", "sig": "void __cdecl _Erase(void * theNode)", "comment": "C++: std::map<std::string,double>::_Erase"}
+{"addr": "004884f0", "name": "Sexy::SexyApp::Redraw", "sig": "void __thiscall Redraw(void * theClipRect)", "comment": "slot 66"}
+{"addr": "00488640", "name": "Sexy::SexyApp::MakeWindow", "sig": "void __thiscall MakeWindow(void)", "comment": "slot 9"}
+{"addr": "00488a80", "name": "Sexy::SexyApp::SwitchScreenMode_w3d", "sig": "void __thiscall SwitchScreenMode_w3d(bool wantWindowed, bool is3d)", "comment": "slot 52"}
+{"addr": "00488b50", "name": "Sexy::SexyApp::AddMemoryImage", "sig": "void __thiscall AddMemoryImage(void * theMemoryImage)"}
+{"addr": "00488bc0", "name": "std::list<DeferredMessage>::push_back", "sig": "void __thiscall push_back(void * theMsg)", "comment": "mDeferredMessages"}
+{"addr": "00488c00", "name": "std::map<std_string,bool>::_Insert", "sig": "void * __thiscall _Insert(void * theResult, bool addLeft, void * theNode, void * theVal)", "comment": "mBoolProperties; C++: std::map<std::string,bool>::_Insert"}
+{"addr": "00488dc0", "name": "std::map<std_string,int>::_Insert", "sig": "void * __thiscall _Insert(void * theResult, bool addLeft, void * theNode, void * theVal)", "comment": "mIntProperties; C++: std::map<std::string,int>::_Insert"}
+{"addr": "00488f80", "name": "std::map<std_string,double>::_Insert", "sig": "void * __thiscall _Insert(void * theResult, bool addLeft, void * theNode, void * theVal)", "comment": "mDoubleProperties; C++: std::map<std::string,double>::_Insert"}
+{"addr": "00489140", "name": "std::list<std_string>::erase_range", "sig": "void * __thiscall erase_range(void * theResult, void * theFirst, void * theLast)", "comment": "game 0x419080; C++: std::list<std::string>::erase_range"}
+{"addr": "004891a0", "name": "std::map<int,Sexy_Dialog*>::~map", "sig": "void __thiscall ~map(void)", "comment": "C++: std::map<int,Sexy::Dialog*>::~map"}
+{"addr": "004891e0", "name": "std::map<HANDLE,int>::~map", "sig": "void __thiscall ~map(void)"}
+{"addr": "00489220", "name": "Sexy::SexyApp::AddDialog", "sig": "void __thiscall AddDialog(int theDialogId, void * theDialog)", "comment": "slot 57"}
+{"addr": "004892d0", "name": "Sexy::SexyApp::SafeDeleteWidget", "sig": "void __thiscall SafeDeleteWidget(void * theWidget)", "comment": "slot 22"}
+{"addr": "00489310", "name": "Sexy::SexyApp::WindowProc", "sig": "int __stdcall WindowProc(void * hWnd, unsigned int uMsg, unsigned int wParam, int lParam)"}
+{"addr": "00489810", "name": "std::list<std_string>::push_back_00489810", "sig": "void __thiscall push_back_00489810(void * theVal)", "comment": "ReadDemoBuffer (markers); C++: std::list<std::string>::push_back"}
+{"addr": "00489850", "name": "std::map<std_string,bool>::insert", "sig": "void * __thiscall insert(void * theResult, void * theVal)", "comment": "SetBoolean; C++: std::map<std::string,bool>::insert"}
+{"addr": "004899a0", "name": "std::map<std_string,int>::insert", "sig": "void * __thiscall insert(void * theResult, void * theVal)", "comment": "SetInteger; C++: std::map<std::string,int>::insert"}
+{"addr": "00489af0", "name": "std::map<std_string,double>::insert", "sig": "void * __thiscall insert(void * theResult, void * theVal)", "comment": "SetDouble; C++: std::map<std::string,double>::insert"}
+{"addr": "00489c40", "name": "std::map<std_string,bool>::erase_range", "sig": "void * __thiscall erase_range(void * theResult, void * theFirst, void * theLast)", "comment": "C++: std::map<std::string,bool>::erase_range"}
+{"addr": "00489d00", "name": "std::map<std_string,int>::erase_range", "sig": "void * __thiscall erase_range(void * theResult, void * theFirst, void * theLast)", "comment": "C++: std::map<std::string,int>::erase_range"}
+{"addr": "00489dc0", "name": "std::map<std_string,double>::erase_range", "sig": "void * __thiscall erase_range(void * theResult, void * theFirst, void * theLast)", "comment": "C++: std::map<std::string,double>::erase_range"}
+{"addr": "00489e80", "name": "std::pair<const_std_string,std_vector<std_string>>::~pair", "sig": "void __thiscall ~pair(void)", "comment": "vector<string> dtor at +0xc; C++: std::pair<const std::string,std::vector<std::string>>::~pair"}
+{"addr": "00489e90", "name": "Sexy::SexyApp::ReadDemoBuffer", "sig": "bool __thiscall ReadDemoBuffer(void * theError)"}
+{"addr": "0048a330", "name": "Sexy::SexyApp::OpenHTMLTemplate", "sig": "bool __thiscall OpenHTMLTemplate(void * theTemplateFile, void * theDefinesMap)", "comment": "slot 27; drop"}
+{"addr": "0048a790", "name": "std::_Tree<map<int,T*>>::~map_3", "sig": "void __thiscall ~map_3(void)", "comment": "EH unwind"}
+{"addr": "0048a7d0", "name": "std::_Tree<map<K,12-byte_V>>::~map", "sig": "void __thiscall ~map(void)", "comment": "C++: std::_Tree<map<K,12-byte V>>::~map"}
+{"addr": "0048a810", "name": "Sexy::SexyApp::SetString", "sig": "void __thiscall SetString(void * theId, void * theValue)"}
+{"addr": "0048a8d0", "name": "Sexy::SexyApp::SetBoolean", "sig": "void __thiscall SetBoolean(void * theId, bool theValue)"}
+{"addr": "0048a970", "name": "Sexy::SexyApp::SetInteger", "sig": "void __thiscall SetInteger(void * theId, int theValue)"}
+{"addr": "0048aa10", "name": "Sexy::SexyApp::SetDouble", "sig": "void __thiscall SetDouble(void * theId, double theValue)"}
+{"addr": "0048aab0", "name": "std::_Tree<set<T*>>::~set", "sig": "void __thiscall ~set(void)", "comment": "EH unwind"}
+{"addr": "0048aaf0", "name": "Sexy::SexyApp::Init", "sig": "void __thiscall Init(void)", "comment": "slot 16"}
+{"addr": "0048b330", "name": "std::list<std_string>::~list", "comment": "~list(); C++: std::list<std::string>::~list"}
+{"addr": "0048b370", "name": "Sexy::SexyApp::DumpProgramInfo", "sig": "void __thiscall DumpProgramInfo(void)", "comment": "F11 debug, HTML dump"}
+{"addr": "0048cfd0", "name": "Sexy::SexyApp::ShowMemoryUsage", "sig": "void __thiscall ShowMemoryUsage(void)", "comment": "F9 debug"}
+{"addr": "0048d670", "name": "Sexy::SexyApp::DebugKeyDown", "sig": "bool __thiscall DebugKeyDown(int theKey)", "comment": "slot 64"}
+{"addr": "0048d910", "name": "Sexy::SexyApp::FindDemoFileNum", "sig": "int __cdecl FindDemoFileNum(int theNum, bool forRecord)", "comment": "popcap*.dmo numbering (inferred)"}
+{"addr": "0048dab0", "name": "Sexy::SexyApp::HandleCmdLineParam", "sig": "void __thiscall HandleCmdLineParam(void * theParamName, void * theParamValue)", "comment": "slot 35; unknown param -> Popup + exit(0)"}
+{"addr": "0048deb0", "name": "std::map<std_string,bool>::~map", "sig": "void __thiscall ~map(void)", "comment": "C++: std::map<std::string,bool>::~map"}
+{"addr": "0048def0", "name": "std::map<std_string,int>::~map", "sig": "void __thiscall ~map(void)", "comment": "C++: std::map<std::string,int>::~map"}
+{"addr": "0048df30", "name": "std::map<std_string,double>::~map", "sig": "void __thiscall ~map(void)", "comment": "C++: std::map<std::string,double>::~map"}
+{"addr": "0048df70", "name": "Sexy::SexyApp::OpenRegisterPage_defines", "sig": "bool __thiscall OpenRegisterPage_defines(void * theDefinesMap)", "comment": "slot 29; drop"}
+{"addr": "0048eb20", "name": "Sexy::SexyApp::OpenRegisterPage", "sig": "bool __thiscall OpenRegisterPage(void)", "comment": "slot 28; drop"}
+{"addr": "0048ebc0", "name": "std::map<std_string,std_vector<std_string>>::erase", "sig": "void * __thiscall erase(void * theResult, void * theWhere)", "comment": "isnil +0x39; C++: std::map<std::string,std::vector<std::string>>::erase"}
+{"addr": "0048eeb0", "name": "std::map<std_string,std_vector<std_string>>::_Erase", "sig": "void __cdecl _Erase(void * theNode)", "comment": "C++: std::map<std::string,std::vector<std::string>>::_Erase"}
+{"addr": "0048ef00", "name": "std::map<std_string,std_vector<std_string>>::erase_range", "sig": "void * __thiscall erase_range(void * theResult, void * theFirst, void * theLast)", "comment": "C++: std::map<std::string,std::vector<std::string>>::erase_range"}
+{"addr": "0048efc0", "name": "std::map<std_string,std_vector<std_string>>::~map", "sig": "void __thiscall ~map(void)", "comment": "C++: std::map<std::string,std::vector<std::string>>::~map"}
+{"addr": "0048f000", "name": "Sexy::SexyApp::~SexyApp", "sig": "void __thiscall ~SexyApp(void)", "comment": "dtor body (Shutdown, 3D prompt, delete dialogs/WM/DD/music/sound)"}
+{"addr": "0048f810", "name": "Sexy::SexyApp::SexyApp", "sig": "void * __thiscall SexyApp(void)", "comment": "ctor; sizeof 0x618"}
+{"addr": "004905c0", "name": "Sexy::SexyApp::scalar_deleting_dtor", "sig": "void * __thiscall scalar_deleting_dtor(unsigned int flags)", "comment": "slot 14"}
+{"addr": "00491d10", "name": "Sexy::SoundManager::~SoundManager_body", "sig": "void __thiscall ~SoundManager_body(void)", "comment": "non-deleting dtor body (sets vftable 005069f4); reached from EH unwind 004f5ce0"}
+{"addr": "00491d20", "name": "Sexy::SoundManager::~SoundManager", "sig": "void * __thiscall ~SoundManager(unsigned int flags)", "comment": "slot 0, scalar deleting dtor"}
+{"addr": "00491d50", "name": "Sexy::SoundInstance::~SoundInstance_body", "sig": "void __thiscall ~SoundInstance_body(void)", "comment": "non-deleting dtor body (sets vftable 00506a30); reached from EH unwind 004f5d00"}
+{"addr": "00491d60", "name": "Sexy::SoundInstance::~SoundInstance", "sig": "void * __thiscall ~SoundInstance(unsigned int flags)", "comment": "slot 0, scalar deleting dtor"}
+{"addr": "00491d90", "name": "Sexy::DSoundManager::Initialized", "sig": "bool __thiscall Initialized(void)", "comment": "slot 1 (1.2 slot 1): mDirectSound != NULL"}
+{"addr": "00491da0", "name": "Sexy::DSoundManager::VolumeToDB", "sig": "int __thiscall VolumeToDB(double theVolume)", "comment": "(log10(1+9v)-1)*2333 centi-dB, below -2000 gives -10000"}
+{"addr": "00491de0", "name": "Sexy::DSoundManager::SetBaseVolume", "sig": "bool __thiscall SetBaseVolume(unsigned int theSfxID, double theBaseVolume)", "comment": "slot 3 (1.2 slot 6)"}
+{"addr": "00491e10", "name": "Sexy::DSoundManager::SetBasePan", "sig": "bool __thiscall SetBasePan(unsigned int theSfxID, int theBasePan)", "comment": "slot 4 (1.2 slot 7)"}
+{"addr": "00491e40", "name": "Sexy::DSoundManager::ReleaseSounds", "sig": "void __thiscall ReleaseSounds(void)", "comment": "slot 7 (1.2 slot 9)"}
+{"addr": "00491e70", "name": "Sexy::DSoundManager::ReleaseChannels", "sig": "void __thiscall ReleaseChannels(void)", "comment": "slot 8 (1.2 slot 10)"}
+{"addr": "00491ea0", "name": "Sexy::DSoundManager::ReleaseFreeChannels", "sig": "void __thiscall ReleaseFreeChannels(void)", "comment": "deletes released channels"}
+{"addr": "00491ee0", "name": "Sexy::DSoundManager::StopAllSounds", "sig": "void __thiscall StopAllSounds(void)", "comment": "slot 13 (1.2 slot 15)"}
+{"addr": "00491f10", "name": "Sexy::DSoundManager::GetMasterVolume", "sig": "double __thiscall GetMasterVolume(void)", "comment": "slot 9 (1.2 slot 11): Windows wave-out mixer volume / 65535"}
+{"addr": "00492010", "name": "Sexy::DSoundManager::SetMasterVolume", "sig": "void __thiscall SetMasterVolume(double theVolume)", "comment": "slot 10 (1.2 slot 12): sets the Windows wave-out mixer volume"}
+{"addr": "00492110", "name": "Sexy::DSoundManager::SetCooperativeWindow", "sig": "void __thiscall SetCooperativeWindow(void * theHWnd, bool isWindowed)", "comment": "slot 12 (1.2 slot 14): DSSCL_NORMAL"}
+{"addr": "00492130", "name": "Sexy::DSoundInstance::~DSoundInstance_body", "sig": "void __thiscall ~DSoundInstance_body(void)", "comment": "releases mSoundBuffer"}
+{"addr": "00492180", "name": "Sexy::DSoundInstance::RehupVolume", "sig": "void __thiscall RehupVolume(void)", "comment": "SetVolume(VolumeToDB(mBaseVolume*mVolume*mgr->mMasterVolume))"}
+{"addr": "004921b0", "name": "Sexy::DSoundInstance::RehupPan", "sig": "void __thiscall RehupPan(void)", "comment": "SetPan(mBasePan+mPan)"}
+{"addr": "004921d0", "name": "Sexy::DSoundInstance::Release", "sig": "void __thiscall Release(void)", "comment": "slot 1"}
+{"addr": "004921e0", "name": "Sexy::DSoundInstance::SetVolume", "sig": "void __thiscall SetVolume(double theVolume)", "comment": "slot 5"}
+{"addr": "00492200", "name": "Sexy::DSoundInstance::SetPan", "sig": "void __thiscall SetPan(int thePosition)", "comment": "slot 6"}
+{"addr": "00492220", "name": "Sexy::DSoundInstance::SetBaseVolume", "sig": "void __thiscall SetBaseVolume(double theBaseVolume)", "comment": "slot 2"}
+{"addr": "00492240", "name": "Sexy::DSoundInstance::SetBasePan", "sig": "void __thiscall SetBasePan(int theBasePan)", "comment": "slot 3"}
+{"addr": "00492260", "name": "Sexy::DSoundInstance::Play", "sig": "bool __thiscall Play(bool looping, bool autoRelease)", "comment": "slot 7"}
+{"addr": "004922c0", "name": "Sexy::DSoundInstance::Stop", "sig": "void __thiscall Stop(void)", "comment": "slot 8"}
+{"addr": "004922f0", "name": "Sexy::DSoundInstance::AdjustPitch", "sig": "void __thiscall AdjustPitch(double theNumSteps)", "comment": "slot 4: freq*2^(n/12) clamped 100..100000 Hz"}
+{"addr": "00492370", "name": "Sexy::DSoundInstance::IsPlaying", "sig": "bool __thiscall IsPlaying(void)", "comment": "slot 9"}
+{"addr": "004923a0", "name": "Sexy::DSoundInstance::IsReleased", "sig": "bool __thiscall IsReleased(void)", "comment": "slot 10"}
+{"addr": "004923d0", "name": "Sexy::DSoundInstance::GetVolume", "sig": "double __thiscall GetVolume(void)", "comment": "slot 11: returns mVolume"}
+{"addr": "004923e0", "name": "Sexy::CheckBassFunction", "sig": "void __cdecl CheckBassFunction(unsigned int theFunc, char * theName)", "comment": "static; '%s function not found in bass.dll' then exit"}
+{"addr": "00492440", "name": "Sexy::BASS_INSTANCE::BASS_INSTANCE", "sig": "void * __thiscall BASS_INSTANCE(char * dllName)", "comment": "ctor; 20 imports, no BASS_ChannelSetPosition (+0x40 never filled), no BASS_MusicFree"}
+{"addr": "004926b0", "name": "Sexy::BASS_INSTANCE::~BASS_INSTANCE_body", "sig": "void __thiscall ~BASS_INSTANCE_body(void)", "comment": "FreeLibrary"}
+{"addr": "004926d0", "name": "Sexy::LoadBassDLL", "sig": "void __cdecl LoadBassDLL(void)", "comment": "refcounted gBass = new BASS_INSTANCE(bass.dll)"}
+{"addr": "00492730", "name": "Sexy::FreeBassDLL", "sig": "void __cdecl FreeBassDLL(void)"}
+{"addr": "00492770", "name": "Sexy::BassMusicInfo::BassMusicInfo", "sig": "void __thiscall BassMusicInfo(void)", "comment": "ctor; sizeof 0x20, no mVolumeCap"}
+{"addr": "00492790", "name": "Sexy::BassMusicInterface::SetVolume", "sig": "void __thiscall SetVolume(double theVolume)", "comment": "slot 12 (1.2 slot 17): BASS 2 SetConfig(GVOL_MUSIC, v*100) only"}
+{"addr": "004927d0", "name": "Sexy::CheckFModFunction", "sig": "void __cdecl CheckFModFunction(unsigned int theFunc, char * theName)", "comment": "static; '%s function not found in fmod.dll' then exit"}
+{"addr": "00492830", "name": "Sexy::FMOD_INSTANCE::FMOD_INSTANCE", "sig": "void * __thiscall FMOD_INSTANCE(char * dllName)", "comment": "ctor; same 27 imports as 1.2"}
+{"addr": "00492bb0", "name": "Sexy::FMOD_INSTANCE::~FMOD_INSTANCE_body", "sig": "void __thiscall ~FMOD_INSTANCE_body(void)", "comment": "FreeLibrary"}
+{"addr": "00492bd0", "name": "Sexy::LoadFModDLL", "sig": "void __cdecl LoadFModDLL(void)", "comment": "refcounted gFMod; never reached in BookWorm"}
+{"addr": "00492c30", "name": "Sexy::FreeFModDLL", "sig": "void __cdecl FreeFModDLL(void)"}
+{"addr": "00492c70", "name": "Sexy::FModMusicInfo::FModMusicInfo", "sig": "void __thiscall FModMusicInfo(void)", "comment": "ctor; sizeof 0x20, no mVolumeCap"}
+{"addr": "00492c90", "name": "Sexy::MusicInterface::MusicInterface", "sig": "void __thiscall MusicInterface(void)", "comment": "ctor (sets vftable 005072d4)"}
+{"addr": "00492ca0", "name": "Sexy::MusicInterface::~MusicInterface_body", "sig": "void __thiscall ~MusicInterface_body(void)"}
+{"addr": "00492cb0", "name": "Sexy::MusicInterface::LoadMusic", "sig": "bool __thiscall LoadMusic(int theSongId, void * theFileName)", "comment": "slot 1, base stub returns false"}
+{"addr": "00492cc0", "name": "Sexy::MusicInterface::FadeIn", "sig": "void __thiscall FadeIn(int theSongId, int theOffset, double theSpeed, bool noLoop)", "comment": "slot 7, empty base stub (ret 0x14)"}
+{"addr": "00492cd0", "name": "empty_stub_ret16", "sig": "void __thiscall empty_stub_ret16(int theSongId, bool stopSong, double theSpeed)", "comment": "slot 8, empty base stub (ret 0x10); not yet a Ghidra function"}
+{"addr": "00492ce0", "name": "Sexy::DSoundManager::DSoundManager", "sig": "void * __thiscall DSoundManager(void * theHWnd, bool haveFMod)", "comment": "ctor; sizeof 0x14a0"}
+{"addr": "00492e00", "name": "Sexy::DSoundManager::~DSoundManager_body", "sig": "void __thiscall ~DSoundManager_body(void)"}
+{"addr": "00492e90", "name": "Sexy::DSoundManager::FindFreeChannel", "sig": "int __thiscall FindFreeChannel(void)", "comment": "1000 ms sweep, -1 if all 32 busy"}
+{"addr": "00492f10", "name": "Sexy::DSoundManager::SetVolume", "sig": "void __thiscall SetVolume(double theVolume)", "comment": "slot 5 (1.2 slot 5): sfx volume, stored in mMasterVolume +0x1488"}
+{"addr": "00492f50", "name": "Sexy::DSoundInstance::DSoundInstance", "sig": "void * __thiscall DSoundInstance(void * theSoundManager, void * theSourceSound)", "comment": "ctor; sizeof 0x38"}
+{"addr": "00493070", "name": "Sexy::DSoundInstance::~DSoundInstance", "sig": "void * __thiscall ~DSoundInstance(unsigned int flags)", "comment": "slot 0, scalar deleting dtor"}
+{"addr": "004930a0", "name": "Sexy::BASS_INSTANCE::~BASS_INSTANCE", "sig": "void * __thiscall ~BASS_INSTANCE(unsigned int flags)", "comment": "slot 0, scalar deleting dtor"}
+{"addr": "004930d0", "name": "Sexy::FMOD_INSTANCE::~FMOD_INSTANCE", "sig": "void * __thiscall ~FMOD_INSTANCE(unsigned int flags)", "comment": "slot 0, scalar deleting dtor"}
+{"addr": "00493100", "name": "Sexy::MusicInterface::~MusicInterface", "sig": "void * __thiscall ~MusicInterface(unsigned int flags)", "comment": "slot 0, scalar deleting dtor"}
+{"addr": "00493130", "name": "std::_Tree::_Lrotate", "sig": "void __thiscall _Lrotate(void * theNode)", "comment": "tree with 0x40-byte nodes (color +0x38, isnil +0x39); folded, shared by several maps (inferred instantiation)"}
+{"addr": "00493190", "name": "std::_Tree::_Rrotate", "sig": "void __thiscall _Rrotate(void * theNode)", "comment": "shared, see 00493130"}
+{"addr": "004931f0", "name": "std::_Tree::const_iterator::_Dec", "sig": "void __thiscall _Dec(void)", "comment": "iterator operator--; shared"}
+{"addr": "00493250", "name": "Sexy::DSoundManager::~DSoundManager", "sig": "void * __thiscall ~DSoundManager(unsigned int flags)", "comment": "slot 0, scalar deleting dtor"}
+{"addr": "00493280", "name": "Sexy::DSoundManager::LoadFModSound", "sig": "bool __thiscall LoadFModSound(unsigned int theSfxID, void * theFilename)", "comment": "only with mHaveFMod (never)"}
+{"addr": "00493470", "name": "Sexy::DSoundManager::LoadOGGSound", "sig": "bool __thiscall LoadOGGSound(unsigned int theSfxID, void * theFilename)", "comment": "Tremor ov_* decode to 16-bit"}
+{"addr": "00493630", "name": "Sexy::DSoundManager::LoadAUSound", "sig": "bool __thiscall LoadAUSound(unsigned int theSfxID, void * theFilename)", "comment": ".snd: mu-law (1) or 8-bit linear (2)"}
+{"addr": "00493a50", "name": "Sexy::DSoundManager::GetTheFileTime", "sig": "bool __thiscall GetTheFileTime(void * theDepFile, void * theFileTime)", "comment": "last-write FILETIME; tests CreateFile against NULL (bug)"}
+{"addr": "00493ac0", "name": "Sexy::DSoundManager::WriteWAV", "sig": "bool __thiscall WriteWAV(unsigned int theSfxID, void * theFilename, void * theDepFile)", "comment": "writes cached_<name>.wav with a 'dep ' chunk"}
+{"addr": "00493d90", "name": "Sexy::DSoundManager::GetSoundInstance", "sig": "void * __thiscall GetSoundInstance(unsigned int theSfxID)", "comment": "slot 6 (1.2 slot 8)"}
+{"addr": "00493e90", "name": "std::_Tree::_Buynode", "sig": "void * __thiscall _Buynode(void * theLeft, void * theParent, void * theRight, void * theValue, char theColor)", "comment": "0x40-byte node, 40-byte value (map<int,BassMusicInfo> / map<int,FModMusicInfo>; also used by 0046a720)"}
+{"addr": "00493ee0", "name": "std::map<int,Sexy_BassMusicInfo>::_Erase", "sig": "void __thiscall _Erase(void * theRoot)", "comment": "recursive subtree free (map identified from caller 00495dd0); C++: std::map<int,Sexy::BassMusicInfo>::_Erase"}
+{"addr": "00493f20", "name": "std::map<int,Sexy_FModMusicInfo>::_Erase", "sig": "void __thiscall _Erase(void * theRoot)", "comment": "recursive subtree free (caller 00495e90); C++: std::map<int,Sexy::FModMusicInfo>::_Erase"}
+{"addr": "00493f60", "name": "Sexy::BassMusicInterface::StopAllMusic", "sig": "void __thiscall StopAllMusic(void)", "comment": "slot 6"}
+{"addr": "00493fd0", "name": "Sexy::BassMusicInterface::FadeOutAll", "sig": "void __thiscall FadeOutAll(bool stopSong, double theSpeed)", "comment": "slot 9 (1.2 slot 13)"}
+{"addr": "00494040", "name": "Sexy::BassMusicInterface::Update", "sig": "void __thiscall Update(void)", "comment": "slot 14 (1.2 slot 19): clamps at 1.0"}
+{"addr": "00494150", "name": "Sexy::FModMusicInterface::StopAllMusic", "sig": "void __thiscall StopAllMusic(void)", "comment": "slot 6"}
+{"addr": "004941d0", "name": "Sexy::FModMusicInterface::FadeOutAll", "sig": "void __thiscall FadeOutAll(bool stopSong, double theSpeed)", "comment": "slot 9; only the first song (1.2 bug)"}
+{"addr": "004941f0", "name": "Sexy::FModMusicInterface::SetVolume", "sig": "void __thiscall SetVolume(double theVolume)", "comment": "slot 12"}
+{"addr": "004942b0", "name": "Sexy::FModMusicInterface::Update", "sig": "void __thiscall Update(void)", "comment": "slot 14"}
+{"addr": "004943e0", "name": "std::map<int,Sexy_BassMusicInfo>::find", "sig": "void * __thiscall find(void * theResult, int * theKey)", "comment": "folded; also used by FModMusicInterface (same node layout); C++: std::map<int,Sexy::BassMusicInfo>::find"}
+{"addr": "00494450", "name": "Sexy::BassMusicInterface::PlayMusic", "sig": "void __thiscall PlayMusic(int theSongId, int theOffset, bool noLoop)", "comment": "slot 2: BASS_MusicPlayEx(h, offset = MAKELONG(order,row), LOOP|RAMP, TRUE)"}
+{"addr": "00494540", "name": "Sexy::BassMusicInterface::StopMusic", "sig": "void __thiscall StopMusic(int theSongId)", "comment": "slot 3"}
+{"addr": "004945a0", "name": "Sexy::BassMusicInterface::PauseMusic", "sig": "void __thiscall PauseMusic(int theSongId)", "comment": "slot 4"}
+{"addr": "004945e0", "name": "Sexy::BassMusicInterface::ResumeMusic", "sig": "void __thiscall ResumeMusic(int theSongId)", "comment": "slot 5"}
+{"addr": "00494620", "name": "Sexy::BassMusicInterface::FadeIn", "sig": "void __thiscall FadeIn(int theSongId, int theOffset, double theSpeed, bool noLoop)", "comment": "slot 7 (1.2 slot 11): offset -1 gives BASS_MusicPlay; no RAMP flag"}
+{"addr": "00494710", "name": "Sexy::BassMusicInterface::FadeOut", "sig": "void __thiscall FadeOut(int theSongId, bool stopSong, double theSpeed)", "comment": "slot 8 (1.2 slot 12)"}
+{"addr": "00494760", "name": "Sexy::BassMusicInterface::SetSongVolume", "sig": "void __thiscall SetSongVolume(int theSongId, double theVolume)", "comment": "slot 10 (1.2 slot 14)"}
+{"addr": "004947c0", "name": "Sexy::BassMusicInterface::IsPlaying", "sig": "bool __thiscall IsPlaying(int theSongId)", "comment": "slot 11 (1.2 slot 16)"}
+{"addr": "00494810", "name": "Sexy::BassMusicInterface::SetMusicAmplify", "sig": "void __thiscall SetMusicAmplify(int theSongId, double theAmp)", "comment": "slot 13 (1.2 slot 18)"}
+{"addr": "00494860", "name": "Sexy::FModMusicInterface::PlayMusic", "sig": "void __thiscall PlayMusic(int theSongId, int theOffset, bool noLoop)", "comment": "slot 2: FMUSIC_SetOrder(offset)"}
+{"addr": "00494950", "name": "Sexy::FModMusicInterface::PauseMusic", "sig": "void __thiscall PauseMusic(int theSongId)", "comment": "slot 4"}
+{"addr": "004949a0", "name": "Sexy::FModMusicInterface::ResumeMusic", "sig": "void __thiscall ResumeMusic(int theSongId)", "comment": "slot 5"}
+{"addr": "004949f0", "name": "Sexy::FModMusicInterface::StopMusic", "sig": "void __thiscall StopMusic(int theSongId)", "comment": "slot 3"}
+{"addr": "00494a50", "name": "Sexy::FModMusicInterface::FadeIn", "sig": "void __thiscall FadeIn(int theSongId, int theOffset, double theSpeed, bool noLoop)", "comment": "slot 7"}
+{"addr": "00494b60", "name": "Sexy::FModMusicInterface::FadeOut", "sig": "void __thiscall FadeOut(int theSongId, bool stopSong, double theSpeed)", "comment": "slot 8"}
+{"addr": "00494ba0", "name": "Sexy::FModMusicInterface::SetSongVolume", "sig": "void __thiscall SetSongVolume(int theSongId, double theVolume)", "comment": "slot 10"}
+{"addr": "00494c20", "name": "Sexy::FModMusicInterface::IsPlaying", "sig": "bool __thiscall IsPlaying(int theSongId)", "comment": "slot 11"}
+{"addr": "00494c70", "name": "std::map<int,Sexy_BassMusicInfo>::_Insert", "sig": "void * __thiscall _Insert(void * theResult, bool theAddLeft, void * theWhere, void * theValue)", "comment": "'map/set<T> too long'; folded, shared with the FMod map; C++: std::map<int,Sexy::BassMusicInfo>::_Insert"}
+{"addr": "00494e30", "name": "std::map<int,Sexy_BassMusicInfo>::erase_it", "sig": "void * __thiscall erase_it(void * theResult, void * theWhere)", "comment": "erase(iterator); 'invalid map/set<T> iterator'; shared with the FMod map; C++: std::map<int,Sexy::BassMusicInfo>::erase_it"}
+{"addr": "00495110", "name": "Sexy::DSoundManager::LoadWAVSound", "sig": "bool __thiscall LoadWAVSound(unsigned int theSfxID, void * theFilename)", "comment": "PCM only; 'dep ' chunk timestamp check"}
+{"addr": "004954f0", "name": "Sexy::DSoundManager::LoadSound", "sig": "bool __thiscall LoadSound(unsigned int theSfxID, void * theFilename)", "comment": "slot 2 (1.2 slot 3): cached_<name>.wav, .wav, (.mp3 FMod), .ogg, .au; writes the cache"}
+{"addr": "004958a0", "name": "Sexy::FModMusicInterface::LoadFMODSample", "sig": "void * __thiscall LoadFMODSample(void * theFileName)", "comment": "cached_<name>.wav else <name>.ogg (and writes the cache)"}
+{"addr": "00495d10", "name": "std::map<int,Sexy_BassMusicInfo>::insert", "sig": "void * __thiscall insert(void * theResult, void * theValue)", "comment": "returns pair<iterator,bool>; folded, also used by FModMusicInterface; C++: std::map<int,Sexy::BassMusicInfo>::insert"}
+{"addr": "00495dd0", "name": "std::map<int,Sexy_BassMusicInfo>::erase_range", "sig": "void * __thiscall erase_range(void * theResult, void * theFirst, void * theLast)", "comment": "erase(first,last); C++: std::map<int,Sexy::BassMusicInfo>::erase_range"}
+{"addr": "00495e90", "name": "std::map<int,Sexy_FModMusicInfo>::erase_range", "sig": "void * __thiscall erase_range(void * theResult, void * theFirst, void * theLast)", "comment": "erase(first,last); C++: std::map<int,Sexy::FModMusicInfo>::erase_range"}
+{"addr": "00495f50", "name": "Sexy::BassMusicInterface::LoadMusic", "sig": "bool __thiscall LoadMusic(int theSongId, void * theFileName)", "comment": "slot 1: wav/ogg/mp3 stream, else BASS_MusicLoad flags 0x204"}
+{"addr": "004961b0", "name": "Sexy::FModMusicInterface::LoadSample", "sig": "bool __thiscall LoadSample(int theSongId, void * theFileName, bool repeat)", "comment": "slot 16 (1.2 slot 21)"}
+{"addr": "004962b0", "name": "Sexy::FModMusicInterface::LoadSample_introRepeat", "sig": "bool __thiscall LoadSample_introRepeat(int theSongId, void * theIntroFileName, void * theRepeatFileName, bool repeat)", "comment": "slot 15 (1.2 slot 20)"}
+{"addr": "00496610", "name": "Sexy::FModMusicInterface::LoadMusic", "sig": "bool __thiscall LoadMusic(int theSongId, void * theFileName)", "comment": "slot 1: FMUSIC_LoadSong"}
+{"addr": "00496680", "name": "std::map<int,Sexy_BassMusicInfo>::~map", "sig": "void __thiscall ~map(void)", "comment": "EH unwind cleanup of mMusicMap; C++: std::map<int,Sexy::BassMusicInfo>::~map"}
+{"addr": "004966c0", "name": "Sexy::BassMusicInterface::~BassMusicInterface_body", "sig": "void __thiscall ~BassMusicInterface_body(void)", "comment": "BASS_Stop, BASS_Free, FreeBassDLL, clear map"}
+{"addr": "00496750", "name": "std::map<int,Sexy_FModMusicInfo>::~map", "sig": "void __thiscall ~map(void)", "comment": "EH unwind cleanup of mMusicMap; C++: std::map<int,Sexy::FModMusicInfo>::~map"}
+{"addr": "00496790", "name": "Sexy::FModMusicInterface::~FModMusicInterface_body", "sig": "void __thiscall ~FModMusicInterface_body(void)", "comment": "FreeFModDLL, clear map"}
+{"addr": "00496810", "name": "Sexy::BassMusicInterface::BassMusicInterface", "sig": "void * __thiscall BassMusicInterface(void * theHWnd)", "comment": "ctor; sizeof 0x14; mMaxMusicVolume 40"}
+{"addr": "004969d0", "name": "Sexy::BassMusicInterface::~BassMusicInterface", "sig": "void * __thiscall ~BassMusicInterface(unsigned int flags)", "comment": "slot 0, scalar deleting dtor"}
+{"addr": "00496a00", "name": "Sexy::FModMusicInterface::FModMusicInterface", "sig": "void * __thiscall FModMusicInterface(void * theHWnd)", "comment": "ctor; sizeof 0x20; never created by BookWorm"}
+{"addr": "00496aa0", "name": "Sexy::FModMusicInterface::~FModMusicInterface", "sig": "void * __thiscall ~FModMusicInterface(unsigned int flags)", "comment": "slot 0, scalar deleting dtor"}
+{"addr": "00496ad0", "name": "BigInt::BigInt", "comment": "NumberlikeArray<ushort>: vptr 00507558, +4 sign byte, +8 blk, +0xc len, +0x10 cap; registration only; droppable"}
+{"addr": "00496af0", "name": "BigInt::~BigInt", "comment": "frees blk"}
+{"addr": "00496b10", "name": "BigInt::allocate", "comment": "inferred"}
+{"addr": "00496b70", "name": "BigInt::grow", "comment": "inferred"}
+{"addr": "00496b90", "name": "BigInt::zapLeadingZeros", "comment": "inferred"}
+{"addr": "00496bc0", "name": "BigInt::setZero", "comment": "inferred"}
+{"addr": "00496bd0", "name": "BigInt::isOdd", "comment": "inferred"}
+{"addr": "00496bf0", "name": "get_byte_04", "comment": "folded 'return (byte)this+4' (BigInt sign)"}
+{"addr": "00496c10", "name": "BigInt::getLastBlock", "comment": "inferred"}
+{"addr": "00496c30", "name": "BigInt::getBlock", "comment": "inferred"}
+{"addr": "00496c50", "name": "BigInt::setBlock", "comment": "inferred"}
+{"addr": "00496cd0", "name": "BigInt::op_00496cd0", "comment": "BigInt arithmetic internal (inferred); registration code only; droppable"}
+{"addr": "00496dd0", "name": "BigInt::op_00496dd0", "comment": "BigInt arithmetic internal (inferred); registration code only; droppable"}
+{"addr": "00496e90", "name": "BigInt::op_00496e90", "comment": "BigInt arithmetic internal (inferred); registration code only; droppable"}
+{"addr": "00496ee0", "name": "BigInt::op_00496ee0", "comment": "BigInt arithmetic internal (inferred); registration code only; droppable"}
+{"addr": "00496f90", "name": "BigInt::op_00496f90", "comment": "BigInt arithmetic internal (inferred); registration code only; droppable"}
+{"addr": "00496fd0", "name": "BigInt::op_00496fd0", "comment": "BigInt arithmetic internal (inferred); registration code only; droppable"}
+{"addr": "00496ff0", "name": "BigInt::op_00496ff0", "comment": "BigInt arithmetic internal (inferred); registration code only; droppable"}
+{"addr": "00497050", "name": "BigInt::op_00497050", "comment": "BigInt arithmetic internal (inferred); registration code only; droppable"}
+{"addr": "00497080", "name": "BigInt::op_00497080", "comment": "BigInt arithmetic internal (inferred); registration code only; droppable"}
+{"addr": "004978e0", "name": "BigInt::scalar_deleting_dtor", "comment": "slot 0"}
+{"addr": "00497910", "name": "BigInt::BigInt_copy", "comment": "inferred"}
+{"addr": "00497970", "name": "BigInt::BigInt_int", "comment": "inferred"}
+{"addr": "004979a0", "name": "BigInt::op_004979a0", "comment": "BigInt arithmetic internal (inferred); registration code only; droppable"}
+{"addr": "004979d0", "name": "BigInt::op_004979d0", "comment": "BigInt arithmetic internal (inferred); registration code only; droppable"}
+{"addr": "00497c20", "name": "BigInt::op_00497c20", "comment": "BigInt arithmetic internal (inferred); registration code only; droppable"}
+{"addr": "00497c90", "name": "BigInt::op_00497c90", "comment": "BigInt arithmetic internal (inferred); registration code only; droppable"}
+{"addr": "00497e10", "name": "BigInt::op_00497e10", "comment": "BigInt arithmetic internal (inferred); registration code only; droppable"}
+{"addr": "00497e90", "name": "BigInt::op_00497e90", "comment": "BigInt arithmetic internal (inferred); registration code only; droppable"}
+{"addr": "00497f00", "name": "BigInt::op_00497f00", "comment": "BigInt arithmetic internal (inferred); registration code only; droppable"}
+{"addr": "00497f70", "name": "BigInt::op_00497f70", "comment": "BigInt arithmetic internal (inferred); registration code only; droppable"}
+{"addr": "00498030", "name": "BigInt::op_00498030", "comment": "BigInt arithmetic internal (inferred); registration code only; droppable"}
+{"addr": "00498120", "name": "BigInt::op_00498120", "comment": "BigInt arithmetic internal (inferred); registration code only; droppable"}
+{"addr": "004981c0", "name": "BigInt::op_004981c0", "comment": "BigInt arithmetic internal (inferred); registration code only; droppable"}
+{"addr": "00498220", "name": "BigInt::op_00498220", "comment": "BigInt arithmetic internal (inferred); registration code only; droppable"}
+{"addr": "00498280", "name": "BigInt::op_00498280", "comment": "BigInt arithmetic internal (inferred); registration code only; droppable"}
+{"addr": "004982e0", "name": "BigInt::op_004982e0", "comment": "BigInt arithmetic internal (inferred); registration code only; droppable"}
+{"addr": "00498430", "name": "BigInt::BigInt_string", "comment": "inferred; from SexyApp::Validate 004830b0 and 00486c90"}
+{"addr": "00498510", "name": "BigInt::op_00498510", "comment": "BigInt arithmetic internal (inferred); registration code only; droppable"}
+{"addr": "00498570", "name": "BigInt::op_00498570", "comment": "BigInt arithmetic internal (inferred); registration code only; droppable"}
+{"addr": "004986a0", "name": "BigInt::op_004986a0", "comment": "BigInt arithmetic internal (inferred); registration code only; droppable"}
+{"addr": "00498830", "name": "BigInt::op_00498830", "comment": "BigInt arithmetic internal (inferred); registration code only; droppable"}
+{"addr": "00498980", "name": "BigInt::op_00498980", "comment": "BigInt arithmetic internal (inferred); registration code only; droppable"}
+{"addr": "004989c0", "name": "BigInt::op_004989c0", "comment": "BigInt arithmetic internal (inferred); registration code only; droppable"}
+{"addr": "00498a20", "name": "BigInt::ToRegCodeString", "comment": "base-28 alphabet 234679ACDEFGHJKLMNPQRTUVWXYZ; inferred"}
+{"addr": "00498c70", "name": "Sexy::ModVal::ParseInt", "comment": "ModVal.cpp (SexyApp vf64 debug reparse); inferred"}
+{"addr": "00498d50", "name": "Sexy::ModVal::ParseDouble", "comment": "inferred"}
+{"addr": "00498e20", "name": "std::_Tree_v196::_Min", "comment": "ModVal storage map (isnil +0xd1)"}
+{"addr": "00498e50", "name": "std::_Tree_v196::_Max"}
+{"addr": "00498e80", "name": "std::_Tree_v196::iterator_inc"}
+{"addr": "00498ee0", "name": "std::_Tree_v196::_Lrotate"}
+{"addr": "00498f40", "name": "std::_Tree_v196::_Rrotate"}
+{"addr": "00498fb0", "name": "std::_Tree_v196::iterator_dec"}
+{"addr": "00499030", "name": "std::fill_Color", "comment": "void fill(Color* first, Color* last, const Color& val)"}
+{"addr": "00499070", "name": "std::_Tree_v196::_Buynode_head", "comment": "0xd4 node"}
+{"addr": "004990b0", "name": "std::_Uninit_fill_n_Color", "comment": "void uninitialized_fill_n(Color* dest, size_type n, const Color& val)"}
+{"addr": "004990f0", "name": "std::_Uninit_copy_Color", "comment": "Color* uninitialized_copy(const Color* first, const Color* last, Color* dest)"}
+{"addr": "00499130", "name": "std::_Tree_v196::lower_bound"}
+{"addr": "004991f0", "name": "std::_Tree_v196::find"}
+{"addr": "00499260", "name": "std::vector_16byte::_Xlen", "comment": "vector<T> too long"}
+{"addr": "004992e0", "name": "std::vector_16byte::_Buy"}
+{"addr": "004a38e0", "name": "tremor::ov_clear", "sig": "int __cdecl ov_clear(void * theVF)", "comment": "inferred from LoadOGGSound"}
+{"addr": "004a39e0", "name": "tremor::ov_pcm_total", "sig": "long long __cdecl ov_pcm_total(void * theVF, int theLink)", "comment": "inferred from LoadOGGSound (recursive for link -1)"}
+{"addr": "004a3db0", "name": "tremor::ov_info", "sig": "void * __cdecl ov_info(void * theVF, int theLink)", "comment": "inferred from LoadOGGSound"}
+{"addr": "004a3df0", "name": "tremor::ov_read", "sig": "int __cdecl ov_read(void * theVF, char * theBuffer, int theLength, int * theBitstream)", "comment": "inferred from LoadOGGSound"}
+{"addr": "004a4200", "name": "tremor::ov_open", "sig": "int __cdecl ov_open(void * theFile, void * theVF, char * theInitial, int theBytes)", "comment": "inferred from LoadOGGSound; wraps ov_open_callbacks 004a41b0"}
+{"addr": "004cab10", "name": "operator_new", "sig": "void * __cdecl operator_new(unsigned int size)", "comment": "void* operator new(size_t)  // malloc loop + new_handler, throws via _Nomemory"}
+{"addr": "004cab34", "name": "std::_String_base::_Xran", "comment": "[[noreturn]] void _Xran()  // throw out_of_range(\"invalid string position\")"}
+{"addr": "004cab74", "name": "std::_String_base::_Xlen", "comment": "[[noreturn]] void _Xlen()  // throw length_error(\"string too long\")"}
+{"addr": "004cabd6", "name": "std::ios_base::_Addstd", "comment": "void _Addstd()  // register a standard stream (_Lockit 2)"}
+{"addr": "004cac6d", "name": "std::ios_base::~ios_base", "comment": "~ios_base()  // _Tidy + ~locale"}
+{"addr": "004cad55", "name": "std::ios_base::clear", "sig": "void __thiscall clear(int state, bool reraise)", "comment": "void clear(iostate state, bool reraise)  // throws failure if state & exceptions()"}
+{"addr": "004cae94", "name": "std::ios_base::_Init", "comment": "void _Init()"}
+{"addr": "004caeda", "name": "std::_Mutex::_Mutex", "comment": "_Mutex()  // new CRITICAL_SECTION + InitializeCriticalSection"}
+{"addr": "004caef2", "name": "std::_Mutex::~_Mutex", "comment": "~_Mutex()"}
+{"addr": "004caf07", "name": "std::_Mutex::_Lock", "comment": "void _Lock()  // EnterCriticalSection"}
+{"addr": "004caf10", "name": "std::_Mutex::_Unlock", "comment": "void _Unlock()  // LeaveCriticalSection"}
+{"addr": "004caf19", "name": "std::uncaught_exception", "comment": "bool uncaught_exception()  // jmp 004dea4c"}
+{"addr": "004caf1e", "name": "operator_new_array", "sig": "void * __cdecl operator_new_array(unsigned int size)", "comment": "void* operator new[](size_t)  // jmp operator new"}
+{"addr": "004cb067", "name": "std::_Getctype", "comment": "_Ctypevec _Getctype()  // CRT: copy of the 256-entry ctype table"}
+{"addr": "004cb119", "name": "std::_Tolower", "comment": "int _Tolower(int c, const _Ctypevec*)"}
+{"addr": "004cb21b", "name": "std::_Getcvt", "comment": "_Cvtvec _Getcvt()"}
+{"addr": "004cb387", "name": "std::_Lockit::_Lockit", "comment": "_Lockit(int kind)  // EnterCriticalSection(lock[kind&3])"}
+{"addr": "004cb3aa", "name": "std::_Lockit::~_Lockit", "comment": "~_Lockit()"}
+{"addr": "004cb437", "name": "std::locale::_Getfacet", "comment": "const facet* _Getfacet(size_t id) const"}
+{"addr": "004cb4af", "name": "std::locale::facet::_Register", "comment": "void _Register()"}
+{"addr": "004cb56e", "name": "std::_Locinfo::~_Locinfo", "comment": "~_Locinfo()  // restore setlocale"}
+{"addr": "004cb62b", "name": "std::_Locinfo::_Locinfo", "comment": "_Locinfo(const char* name = \"C\")"}
+{"addr": "004cb75b", "name": "std::locale::locale", "comment": "locale()  // global locale copy"}
+{"addr": "004cb85c", "name": "std::_Toupper", "comment": "int _Toupper(int c, const _Ctypevec*)"}
+{"addr": "004cb8e6", "name": "std::locale::_Locimp::_Addfac", "comment": "void _Addfac(facet*, size_t id)"}
+{"addr": "004cbc61", "name": "std::locale::_Locimp::_Locimp_copy", "comment": "(inferred) _Locimp(const _Locimp&)"}
+{"addr": "004cbd52", "name": "std::_Fiopen", "comment": "FILE* _Fiopen(const char* name, ios_base::openmode mode)  // mode table -> fopen; ate -> fseek end"}
+{"addr": "004da392", "name": "operator_delete", "sig": "void __cdecl operator_delete(void * p)", "comment": "void operator delete(void*)  // jmp free"}
+{"addr": "004da3a0", "name": "_memchr", "comment": "void* memchr(const void*, int, size_t)"}
+{"addr": "004da450", "name": "_memmove", "comment": "void* memmove(void*, const void*, size_t)"}
+{"addr": "004da7dd", "name": "__CxxThrowException@8", "comment": "throw expr  // _CxxThrowException(obj, ThrowInfo*)"}
+{"addr": "004da818", "name": "_ftol", "comment": "int64 _ftol(long double st0)  // truncate toward zero; operand on the x87 stack, result EDX:EAX (game uses EAX)"}
+{"addr": "004da96d", "name": "_atexit", "comment": "int atexit(void (*)(void))"}
+{"addr": "004daa86", "name": "_fwrite", "comment": "size_t fwrite(const void*, size_t, size_t, FILE*)"}
+{"addr": "004dabbb", "name": "_fread", "comment": "size_t fread(void*, size_t, size_t, FILE*)"}
+{"addr": "004dac07", "name": "_isalpha", "comment": "int isalpha(int)  // CRT locale table, mask 0x103"}
+{"addr": "004dad33", "name": "_isspace", "comment": "int isspace(int)"}
+{"addr": "004dad6d", "name": "exception::exception", "comment": "exception()"}
+{"addr": "004dadbb", "name": "exception::exception_copy", "comment": "exception(const exception&)  // strdup of what()"}
+{"addr": "004dae05", "name": "exception::~exception", "comment": "~exception()"}
+{"addr": "004dae28", "name": "bad_cast::bad_cast", "comment": "bad_cast(const char* what = \"bad cast\")"}
+{"addr": "004daf70", "name": "_fclose", "comment": "int fclose(FILE*)"}
+{"addr": "004db01d", "name": "fopen", "comment": "FILE* fopen(const char*, const char*)"}
+{"addr": "004db030", "name": "_errno", "comment": "int* _errno()  // &_getptd()->_terrno"}
+{"addr": "004db0b5", "name": "sprintf", "comment": "int sprintf(char*, const char*, ...)"}
+{"addr": "004db10d", "name": "_time", "comment": "time_t time(time_t*)  // 32-bit"}
+{"addr": "004db3fe", "name": "__RTDynamicCast", "comment": "dynamic_cast<T*>(p)"}
+{"addr": "004db5a7", "name": "_toupper", "comment": "int toupper(int)  // CRT locale (\"C\" unless setlocale)"}
+{"addr": "004db5c9", "name": "_free", "comment": "void free(void*)  // the real CRT free"}
+{"addr": "004db6e1", "name": "_malloc", "comment": "void* malloc(size_t)"}
+{"addr": "004db6f3", "name": "operator_delete_array", "sig": "void __cdecl operator_delete_array(void * p)", "comment": "void operator delete[](void*)  // jmp operator delete"}
+{"addr": "004db6f8", "name": "_atol", "comment": "long atol(const char*)"}
+{"addr": "004db780", "name": "_atoi", "comment": "int atoi(const char*)  // jmp atol"}
+{"addr": "004db8ff", "name": "exit", "comment": "void exit(int)  // doexit(code, 0, 0)"}
+{"addr": "004db93f", "name": "FID_conflict:_getc", "comment": "int getc(FILE*)  // == fgetc"}
+{"addr": "004db990", "name": "__chkstk", "comment": "_alloca_probe / __chkstk  // stack probe for frames > 4 KB"}
+{"addr": "004dba95", "name": "_tolower", "comment": "int tolower(int)"}
+{"addr": "004dbab7", "name": "_setvbuf", "comment": "int setvbuf(FILE*, char*, int, size_t)"}
+{"addr": "004dbcf3", "name": "_fflush", "comment": "int fflush(FILE*)"}
+{"addr": "004dbdb8", "name": "_ungetc", "comment": "int ungetc(int, FILE*)"}
+{"addr": "004dbdfd", "name": "FID_conflict:_fputc", "comment": "int fputc(int, FILE*)"}
+{"addr": "004dbe55", "name": "_fgetpos", "comment": "int fgetpos(FILE*, fpos_t*)"}
+{"addr": "004dbf06", "name": "_fseek", "comment": "int fseek(FILE*, long, int)"}
+{"addr": "004dbf4f", "name": "_fsetpos", "comment": "int fsetpos(FILE*, const fpos_t*)"}
+{"addr": "004dbfc5", "name": "eh_vector_destructor_iterator", "comment": "delete[]/array member destruction helper"}
+{"addr": "004dc025", "name": "eh_vector_constructor_iterator", "comment": "array member construction helper"}
+{"addr": "004dc087", "name": "_srand", "comment": "void srand(unsigned seed)"}
+{"addr": "004dc094", "name": "_rand", "comment": "int rand()  // holdrand = holdrand*214013 + 2531011; return (holdrand>>16) & 0x7fff"}
+{"addr": "004ed116", "name": "__stricmp", "comment": "int _stricmp(const char*, const char*)  // ASCII fold to LOWER case in the \"C\" locale"}
+{"addr": "004ee070", "name": "ios::ios", "comment": "ios::ios()  // old iostream"}
+{"addr": "004ee0ce", "name": "ios::~ios", "comment": "ios::~ios()  // old iostream"}
+{"addr": "004ee163", "name": "ifstream::ifstream", "comment": "ifstream::ifstream(const char* name, int mode = ios::in, int prot = filebuf::openprot)  // old iostream"}
+{"addr": "004ee218", "name": "ifstream::~ifstream", "comment": "ifstream::~ifstream()  // old iostream"}
+{"addr": "004ee22b", "name": "ios::clear", "comment": "void ios::clear(int state = 0)  // old iostream (lock/unlock around it)"}
+{"addr": "004ee247", "name": "ifstream::close", "comment": "void ifstream::close()  // old iostream; failbit if filebuf::close fails"}
+{"addr": "004ee2a6", "name": "_mtlockinit", "comment": "void _mtlockinit(CRITICAL_SECTION*)"}
+{"addr": "004ee2b1", "name": "_mtlockterm", "comment": "void _mtlockterm(CRITICAL_SECTION*)"}
+{"addr": "004ee2bc", "name": "_mtlock", "comment": "void _mtlock(CRITICAL_SECTION*)  // EnterCriticalSection"}
+{"addr": "004ee2c7", "name": "_mtunlock", "comment": "void _mtunlock(CRITICAL_SECTION*)"}
+{"addr": "004ee2d2", "name": "istream::unlockbuf", "comment": "(inferred) void unlockbuf()  // old iostream"}
+{"addr": "004ee2ea", "name": "istream::isfx", "comment": "(inferred) void isfx()  // unlockbuf(); unlock()"}
+{"addr": "004ee30b", "name": "istream::get_str", "comment": "istream& istream::get(char* buf, int len, char delim)  // with _fGline set by inline getline(): extracts the delimiter"}
+{"addr": "004eef12", "name": "_mkdir", "comment": "int _mkdir(const char*)  // CreateDirectoryA, errno via __dosmaperr"}
+{"addr": "004f8300", "label": "dyn_init_gMTRand", "comment": "static initializer: gMTRand.MTRand()"}
+{"addr": "00506714", "label": "vftable_Sexy_SexyApp", "comment": "67 slots"}
+{"addr": "0052e668", "label": "gSoundNames", "comment": "game-side: char*[47] sound file names, index = sound id"}
+{"addr": "005304d8", "label": "gCurTransferId", "comment": "HTTPTransfer id counter"}
+{"addr": "005304e0", "label": "gWebEncodeMap", "comment": "char* '.-0123456789ABC...xyz' (Buffer web strings)"}
+{"addr": "005304e8", "label": "gWebDecodeMap", "comment": "int[256]"}
+{"addr": "0053093c", "label": "MTRand_mag01", "comment": "{0, 0x9908b0df}"}
+{"addr": "00530a30", "label": "gBuildInfoString", "comment": "points to 00000190Thu Apr 15 14:52:08 2004"}
+{"addr": "00530a34", "label": "gProductIdString", "comment": "signature check"}
+{"addr": "00530a40", "label": "gFingerCursorData"}
+{"addr": "00530b40", "label": "gDraggingCursorData"}
+{"addr": "00534868", "label": "gSoundPath", "comment": "game-side: static std::string = GetString(SoundPath, sounds\\) in BookWormApp::Init"}
+{"addr": "005358a0", "label": "gDirectDrawCreateFunc", "comment": "GetProcAddress in DDInterface ctor"}
+{"addr": "005358a4", "label": "gDirectDrawCreateExFunc"}
+{"addr": "0056a918", "label": "gHInstance"}
+{"addr": "0056ad30", "label": "gSexyApp"}
+{"addr": "0056ad80", "label": "gCPUSpeed", "comment": "PerfTimer::GetCPUSpeed cache (__int64)"}
+{"addr": "0056ad88", "label": "gPerfOn", "comment": "SexyPerf"}
+{"addr": "0056ada0", "label": "gRandAllowed", "comment": "MTRand::SetRandAllowed counter"}
+{"addr": "0056add8", "label": "gMTRand", "comment": "Sexy's static MTRand behind Rand()/SRand(); dynamic init 004f8300 -> 00467050"}
+{"addr": "0056b8a8", "label": "gSexyAppBase"}
+{"addr": "0056b8ac", "label": "gDDrawDLL"}
+{"addr": "0056b8b0", "label": "gDSoundDLL"}
+{"addr": "0056b8b4", "label": "gVersionDLL"}
+{"addr": "0056b8b8", "label": "gGetLastInputInfoFunc"}
+{"addr": "0056b8bc", "label": "gScreenSaverActive"}
+{"addr": "0056b8bd", "label": "gIsFailing"}
+{"addr": "0056b8c0", "label": "gFPSImage"}
+{"addr": "0056b8c8", "label": "gDemoTimeLeftImage"}
+{"addr": "0056b97c", "label": "gBass", "comment": "BASS_INSTANCE* (LoadBassDLL)"}
+{"addr": "0056b980", "label": "gBassLoadCount", "comment": "long refcount"}
+{"addr": "0056b984", "label": "gFMod", "comment": "FMOD_INSTANCE* (LoadFModDLL)"}
+{"addr": "0056b988", "label": "gFModLoadCount", "comment": "long refcount"}

@@ -1,0 +1,7 @@
+{
+  "id": "s7c-rising",
+  "name": "Stage 7c: rising on a 6x6",
+  "version": "1.0",
+  "description": "Oracle fixture: gravity up on a 6x6 board (which soon runs out of moves): every fill, refill, fall-out and the game-over fall rise.",
+  "rules": { "board": { "cols": 6, "rows": 6, "gravity": { "direction": "up" } } }
+}

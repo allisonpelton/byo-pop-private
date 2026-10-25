@@ -1,0 +1,6 @@
+# Second launch in the same user dir: continue the normal game that the mode switch saved.
+300 click 320 398
+330 screenshot shots/29_confirm_load.png
+340 click 330 201
+400 screenshot shots/30_loaded_game.png
+600 quit

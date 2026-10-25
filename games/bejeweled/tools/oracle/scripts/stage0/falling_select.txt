@@ -1,0 +1,31 @@
+# Seed 1, normal mode: a gem can be selected in every state but 5..8 (GAME_NOTES 3.10). Selections made
+# while the board falls, clears and swaps back, kept until the next click in STATE_PLAYING, and a
+# selected gem that dies (the selection goes with it). The stale selection (a gem dropped by a
+# fall-out's FillBoard and swapped back into the grid) is in timed_fallout.txt.
+300 click 320 398
+# (5,5) selected while the first board still falls (settles at 438)
+425 click 482 295
+427 screenshot shots/f01_selected_while_falling.png
+# ... and swapped with (6,5) once playing -> settles at 586, score 30
+460 click 533 295
+480 screenshot shots/f02_swap.png
+# (1,7) selected while the matched gems shrink
+500 click 278 397
+502 screenshot shots/f03_selected_while_clearing.png
+# ... kept: the click on (1,6) swaps them (illegal, swaps back -> 671, score 30)
+600 click 278 346
+610 screenshot shots/f04_swap_from_old_selection.png
+# (4,3) selected while (1,7)/(1,6) swap back ...
+650 click 431 193
+652 screenshot shots/f05_selected_while_swapping_back.png
+# ... swapped with (4,4): (4,1)..(4,3) match
+690 click 431 244
+# (4,2), one of the dying gems, selected: the selection goes when the gem is deleted -> 838, score 70
+730 click 431 142
+735 screenshot shots/f06_dying_gem_selected.png
+760 screenshot shots/f07_selection_gone_with_gem.png
+# so the next click selects again: (2,2)->(3,2)
+850 click 329 142
+860 click 380 142
+1000 screenshot shots/f08_after_last_move.png
+1200 quit

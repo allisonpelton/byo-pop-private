@@ -1,0 +1,7 @@
+{
+  "id": "s2-pergame",
+  "name": "Stage 2: a seed for every game",
+  "version": "1.0",
+  "description": "Oracle fixture: features.seeds.perGame only (the object form turns on only the members it sets). Every game gets a seed drawn from the global stream in NewGame, shown on the game-over screen; no rules, so the normal high-score table.",
+  "features": { "seeds": { "perGame": true } }
+}

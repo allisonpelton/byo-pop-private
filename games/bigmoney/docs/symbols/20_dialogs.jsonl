@@ -1,0 +1,55 @@
+{"addr":"00412280","name":"Sexy::HighScoreDialog::~HighScoreDialog","sig":"void __thiscall ~HighScoreDialog(void)"}
+{"addr":"004122f0","name":"Sexy::HighScoreDialog::scalar_deleting_dtor","sig":"void * __thiscall scalar_deleting_dtor(unsigned int flags)"}
+{"addr":"00412310","name":"Sexy::HighScoreDialog::HighScoreDialog","sig":"void * __thiscall HighScoreDialog(void * theApp)"}
+{"addr":"004125c0","name":"Sexy::HighScoreDialog::Draw","sig":"void __thiscall Draw(void * g)"}
+{"addr":"00412b80","name":"Sexy::HighScoreWidget::GetDayNumber","sig":"int __cdecl GetDayNumber(void)"}
+{"addr":"00412bb0","name":"Sexy::HighScoreWidget::GetRank","sig":"int __thiscall GetRank(int theMode, int theScore)"}
+{"addr":"00412bf0","name":"Sexy::HighScoreWidget::AddedToManager","sig":"void __thiscall AddedToManager(void * theWidgetManager)"}
+{"addr":"00412c20","name":"Sexy::HighScoreWidget::RemovedFromManager","sig":"void __thiscall RemovedFromManager(void * theWidgetManager)"}
+{"addr":"00412c50","name":"Sexy::HighScoreWidget::Resize","sig":"void __thiscall Resize(int theX, int theY, int theWidth, int theHeight)"}
+{"addr":"00412c60","name":"Sexy::HighScoreWidget::InternetSubmitDone","sig":"void __thiscall InternetSubmitDone(void)"}
+{"addr":"00412cb0","name":"std_string_append_substr","sig":"void * __thiscall std_string_append_substr(void * theStr, unsigned int thePos, unsigned int theCount)"}
+{"addr":"00412da0","name":"std_string_append_chars","sig":"void * __thiscall std_string_append_chars(char * theChars, unsigned int theCount)"}
+{"addr":"00412eb0","name":"Sexy::HighScoreWidget::LoadHighScores","sig":"void __thiscall LoadHighScores(void)"}
+{"addr":"00413100","name":"Sexy::HighScoreWidget::SaveHighScores","sig":"void __thiscall SaveHighScores(void)"}
+{"addr":"004133b0","name":"Sexy::HighScoreWidget::DoCheckForHighScore","sig":"void __thiscall DoCheckForHighScore(void)"}
+{"addr":"00413b10","name":"Sexy::HighScoreWidget::Draw","sig":"void __thiscall Draw(void * g)"}
+{"addr":"004144e0","name":"Sexy::HighScoreWidget::Update","sig":"void __thiscall Update(void)"}
+{"addr":"00414520","name":"Sexy::HighScoreWidget::CheckForHighScore","sig":"void __thiscall CheckForHighScore(void)"}
+{"addr":"00414530","name":"Sexy::HighScoreWidget::AddHighScore","sig":"void __thiscall AddHighScore(void * theName)"}
+{"addr":"00414640","name":"Sexy::HighScoreWidget::HighScoreWidget","sig":"void * __thiscall HighScoreWidget(void * theApp)"}
+{"addr":"00414c50","name":"Sexy::HighScoreWidget::~HighScoreWidget","sig":"void __thiscall ~HighScoreWidget(void)"}
+{"addr":"00414d60","name":"Sexy::HighScoreWidget::scalar_deleting_dtor","sig":"void * __thiscall scalar_deleting_dtor(unsigned int flags)"}
+{"addr":"00415560","name":"Sexy::OptionsDialog::SetColor","sig":"void __thiscall SetColor(int theIdx, void * theColor)"}
+{"addr":"004155e0","name":"Sexy::OptionsDialog::SliderVal","sig":"void __thiscall SliderVal(int theId, double theVal)"}
+{"addr":"00415620","name":"Sexy::OptionsDialog::CheckboxChecked","sig":"void __thiscall CheckboxChecked(int theId, bool checked)"}
+{"addr":"00415660","name":"Sexy::OptionsDialog::ButtonPress","sig":"void __thiscall ButtonPress(int theId)"}
+{"addr":"004156b0","name":"Sexy::OptionsDialog::GetPreferredHeight","sig":"int __thiscall GetPreferredHeight(int theWidth)"}
+{"addr":"004156e0","name":"std_uninitialized_copy_ptr","sig":"void * __cdecl std_uninitialized_copy_ptr(void * theFirst, void * theLast, void * theDest)"}
+{"addr":"00415710","name":"std_copy_backward_ptr","sig":"void __cdecl std_copy_backward_ptr(void * theResult, void * theFirst, void * theLast, void * theDestEnd)"}
+{"addr":"00415740","name":"std_uninitialized_fill_n_ptr","sig":"void __cdecl std_uninitialized_fill_n_ptr(void * theFirst, unsigned int theCount, void * theValue)"}
+{"addr":"00415770","name":"Sexy::OptionsDialog::AddedToManager","sig":"void __thiscall AddedToManager(void * theWidgetManager)"}
+{"addr":"00415830","name":"Sexy::OptionsDialog::RemovedFromManager","sig":"void __thiscall RemovedFromManager(void * theWidgetManager)"}
+{"addr":"004158f0","name":"std_vector_Xlen","sig":"void __cdecl std_vector_Xlen(void)"}
+{"addr":"00415970","name":"Sexy::OptionsDialog::~OptionsDialog","sig":"void __thiscall ~OptionsDialog(void)"}
+{"addr":"00415ad0","name":"Sexy::OptionsDialog::Resize","sig":"void __thiscall Resize(int theX, int theY, int theWidth, int theHeight)"}
+{"addr":"00415eb0","name":"Sexy::OptionsDialog::Draw","sig":"void __thiscall Draw(void * g)"}
+{"addr":"00416210","name":"Sexy::OptionsDialog::ButtonDepress","sig":"void __thiscall ButtonDepress(int theId)"}
+{"addr":"00416460","name":"std_vector_ptr_Insert_n","sig":"void __thiscall std_vector_ptr_Insert_n(void * theWhere, unsigned int theCount, void * theValue)"}
+{"addr":"00416700","name":"Sexy::OptionsDialog::scalar_deleting_dtor","sig":"void * __thiscall scalar_deleting_dtor(unsigned int flags)"}
+{"addr":"00416720","name":"Sexy::OptionsDialog::OptionsDialog","sig":"void * __thiscall OptionsDialog(void * theApp)"}
+{"addr":"00417730","name":"Sexy::RecordScoreDialog::~RecordScoreDialog","sig":"void __thiscall ~RecordScoreDialog(void)"}
+{"addr":"004177a0","name":"Sexy::RecordScoreDialog::GetPreferredHeight","sig":"int __thiscall GetPreferredHeight(int theWidth)"}
+{"addr":"004177b0","name":"Sexy::RecordScoreDialog::AddedToManager","sig":"void __thiscall AddedToManager(void * theWidgetManager)"}
+{"addr":"004177e0","name":"Sexy::RecordScoreDialog::RemovedFromManager","sig":"void __thiscall RemovedFromManager(void * theWidgetManager)"}
+{"addr":"00417810","name":"Sexy::RecordScoreDialog::Resize","sig":"void __thiscall Resize(int theX, int theY, int theWidth, int theHeight)"}
+{"addr":"00417860","name":"Sexy::RecordScoreDialog::EditWidgetText","sig":"void __thiscall EditWidgetText(int theId, void * theString)"}
+{"addr":"00417890","name":"Sexy::RecordScoreDialog::scalar_deleting_dtor","sig":"void * __thiscall scalar_deleting_dtor(unsigned int flags)"}
+{"addr":"004178b0","name":"Sexy::RecordScoreDialog::DrawEditBox","sig":"void __thiscall DrawEditBox(void * g, int * theRect)"}
+{"addr":"00417a30","name":"Sexy::RecordScoreDialog::RecordScoreDialog","sig":"void * __thiscall RecordScoreDialog(void * theApp, void * theLines)"}
+{"addr":"00417d00","name":"Sexy::RecordScoreDialog::Draw","sig":"void __thiscall Draw(void * g)"}
+{"addr":"0041ba00","name":"Sexy::WinBMApp::ShowHighScoreDialog","sig":"void __thiscall ShowHighScoreDialog(void)"}
+{"addr":"0041bbe0","name":"Sexy::WinBMApp::ShowOptionsDialog","sig":"void __thiscall ShowOptionsDialog(void)"}
+{"addr":"0041bd00","name":"Sexy::WinBMApp::ShowRecordScoreDialog","sig":"void __thiscall ShowRecordScoreDialog(void * theLines)"}
+{"addr":"0041d6a0","name":"Sexy::WinBMApp::ShowRegisterToRecordScoreDialog","sig":"void __thiscall ShowRegisterToRecordScoreDialog(void * theLines)"}
+{"addr":"00528448","label":"gRecordScoreEditColors"}

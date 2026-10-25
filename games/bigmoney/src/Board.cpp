@@ -1,0 +1,4888 @@
+#include "Board.h"
+#include "ModRules.h"
+#include "Replay.h"
+#include "PuzzleSolver.h"
+#include "PuzzleBuilder.h"
+#include <set>
+#include "WinBMApp.h"
+#include "MrMoney.h"
+#include "Points.h"
+#include "HighScoreWidget.h"
+#include "Compat12.h"
+
+#include "WidgetManager.h"
+#include "DialogButton.h"
+#include "MemoryImage.h"
+#include "Image.h"
+#include "ImageFont.h"
+#include "SoundManager.h"
+#include "SoundInstance.h"
+#include "MusicInterface.h"
+#include "Buffer.h"
+#include "Common.h"
+
+#include <cmath>
+#include <cstdlib>
+#include <cstdint>
+#include <cstring>
+#include <algorithm>
+#include <SDL.h>
+#include "platform/ModManager.h"
+
+using namespace Sexy;
+
+// Board.cpp, the game rules half. Spec: re/bigmoney/analysis/board_logic.md (section numbers below).
+// Every `mRand.Next()` is the board's own MTRand (the original's Board+0x88, saved in savegame.dat);
+// every CrtRand() stands for the original's MSVC rand() (0x4d9372). Board never calls Sexy::Rand().
+
+std::vector<std::string> Sexy::gRankNames;
+
+// port(mods): a smaller board's offsets from the full board's place (Board::ColX, RowY; the "boardSize"
+// feature): centred, on the same floor. Each board sets them; they are 0 without the feature.
+static int gBoardOffsetX = 0;
+static int gBoardOffsetY = 0;
+
+// The SexyAppFramework 1.2 MTRand seeding (0x45ae40): Knuth's 69069 generator, seed 0 -> 4357, the
+// next draw starts a new block (mti = 624). The port's MTRand(seed) / SRand(seed) are 1.3's
+// (1812433253 initialiser) and would give another stream.
+static void SeedMTRand12(MTRand& theRand, unsigned long theSeed)
+{
+	if (theSeed == 0)
+		theSeed = 4357;
+
+	uint32_t aState[MTRAND_N];
+	aState[0] = (uint32_t) theSeed;
+	for (int i = 1; i < MTRAND_N; i++)
+		aState[i] = aState[i - 1] * 69069u;
+	theRand.SetState(aState, MTRAND_N);
+}
+
+// Music cues (section 8): main / pause / level-up song of each game type
+static void FadeToPauseMusic(WinBMApp* theApp)
+{
+	MusicInterface* aMusic = theApp->mMusicInterface;
+	switch (theApp->mGameType)
+	{
+	case GAMETYPE_ACTION:
+		aMusic->FadeOut(SONG_ACTION, false, 0.008);
+		aMusic->FadeIn(SONG_ACTION_PAUSE, ORDER_ACTION_PAUSE, 0.008, false);
+		break;
+	case GAMETYPE_STRATEGY:
+		aMusic->FadeOut(SONG_STRATEGY, false, 0.008);
+		aMusic->FadeIn(SONG_STRATEGY_PAUSE, ORDER_STRATEGY_PAUSE, 0.008, false);
+		break;
+	case GAMETYPE_PUZZLE:
+		aMusic->FadeOut(SONG_PUZZLE, false, 0.008);
+		aMusic->FadeIn(SONG_PUZZLE_PAUSE, ORDER_PUZZLE_PAUSE, 0.008, false);
+		break;
+	}
+}
+
+static void FadeFromPauseMusic(WinBMApp* theApp)
+{
+	MusicInterface* aMusic = theApp->mMusicInterface;
+	switch (theApp->mGameType)
+	{
+	case GAMETYPE_ACTION:
+		aMusic->FadeOut(SONG_ACTION_PAUSE, true, 0.008);
+		aMusic->FadeIn(SONG_ACTION, -1, 0.008, false);
+		break;
+	case GAMETYPE_STRATEGY:
+		aMusic->FadeOut(SONG_STRATEGY_PAUSE, true, 0.008);
+		aMusic->FadeIn(SONG_STRATEGY, -1, 0.008, false);
+		break;
+	case GAMETYPE_PUZZLE:
+		aMusic->FadeOut(SONG_PUZZLE_PAUSE, true, 0.008);
+		aMusic->FadeIn(SONG_PUZZLE, -1, 0.008, false);
+		break;
+	}
+}
+
+static Particle MakeParticle(int theFrameDelay, double theX, double theY, double theVX, double theVY, double theGravity, bool bright)
+{
+	Particle aParticle;
+	aParticle.mFrameDelay = theFrameDelay;
+	aParticle.mX = theX;
+	aParticle.mY = theY;
+	aParticle.mVX = theVX;
+	aParticle.mVY = theVY;
+	aParticle.mGravity = theGravity;
+	aParticle.mFrame = 0;
+	aParticle.mBright = bright;
+	return aParticle;
+}
+
+// savegame.dat helpers: raw little-endian fields, packed
+template <typename T> static void WriteRaw(Buffer* theBuffer, const T& theValue)
+{
+	theBuffer->WriteBytes((const uchar*) &theValue, (int) sizeof(T));
+}
+
+// As the original's fread: a field savegame.dat does not hold (a damaged file) keeps its value
+template <typename T> static void ReadRaw(Buffer* theBuffer, T* theValue)
+{
+	if (theBuffer->mReadBitPos / 8 + (int) sizeof(T) > theBuffer->GetDataLen())
+		return;
+	theBuffer->ReadBytes((uchar*) theValue, (int) sizeof(T));
+}
+
+static void WriteBool(Buffer* theBuffer, bool theValue)
+{
+	uchar aByte = theValue ? 1 : 0;
+	theBuffer->WriteBytes(&aByte, 1);
+}
+
+static void ReadBool(Buffer* theBuffer, bool* theValue)
+{
+	if (theBuffer->mReadBitPos / 8 + 1 > theBuffer->GetDataLen())
+		return;
+	uchar aByte = 0;
+	theBuffer->ReadBytes(&aByte, 1);
+	*theValue = (aByte != 0);
+}
+
+// 0x4012b0: the 108-byte record
+static void WritePiece(Buffer* theBuffer, const Piece* thePiece)
+{
+	WriteRaw(theBuffer, thePiece->mX);
+	WriteRaw(theBuffer, thePiece->mY);
+	WriteRaw(theBuffer, thePiece->mVX);
+	WriteRaw(theBuffer, thePiece->mVY);
+	WriteRaw(theBuffer, thePiece->mShakeX);
+	WriteRaw(theBuffer, thePiece->mShakeY);
+	WriteRaw(theBuffer, thePiece->mCol);
+	WriteRaw(theBuffer, thePiece->mRow);
+	WriteRaw(theBuffer, thePiece->mColor);
+	WriteBool(theBuffer, thePiece->mIsSpecial);
+	WriteBool(theBuffer, thePiece->mFallThrough);
+	WriteRaw(theBuffer, thePiece->mSpecialType);
+	WriteRaw(theBuffer, thePiece->mImageSet);
+	WriteRaw(theBuffer, thePiece->mFrame);
+	WriteBool(theBuffer, thePiece->mFlying);
+	WriteRaw(theBuffer, thePiece->mFlyT);
+	WriteRaw(theBuffer, thePiece->mFlySpeed);
+	WriteRaw(theBuffer, thePiece->mStartX);
+	WriteRaw(theBuffer, thePiece->mStartY);
+	WriteRaw(theBuffer, thePiece->mTargetX);
+	WriteRaw(theBuffer, thePiece->mTargetY);
+	WriteBool(theBuffer, thePiece->mDying);
+	WriteRaw(theBuffer, thePiece->mLifeTimer);
+	WriteRaw(theBuffer, thePiece->mUnusedA0);
+}
+
+// 0x401120
+static void ReadPiece(Buffer* theBuffer, Piece* thePiece)
+{
+	ReadRaw(theBuffer, &thePiece->mX);
+	ReadRaw(theBuffer, &thePiece->mY);
+	ReadRaw(theBuffer, &thePiece->mVX);
+	ReadRaw(theBuffer, &thePiece->mVY);
+	ReadRaw(theBuffer, &thePiece->mShakeX);
+	ReadRaw(theBuffer, &thePiece->mShakeY);
+	ReadRaw(theBuffer, &thePiece->mCol);
+	ReadRaw(theBuffer, &thePiece->mRow);
+	ReadRaw(theBuffer, &thePiece->mColor);
+	ReadBool(theBuffer, &thePiece->mIsSpecial);
+	ReadBool(theBuffer, &thePiece->mFallThrough);
+	ReadRaw(theBuffer, &thePiece->mSpecialType);
+	ReadRaw(theBuffer, &thePiece->mImageSet);
+	ReadRaw(theBuffer, &thePiece->mFrame);
+	ReadBool(theBuffer, &thePiece->mFlying);
+	ReadRaw(theBuffer, &thePiece->mFlyT);
+	ReadRaw(theBuffer, &thePiece->mFlySpeed);
+	ReadRaw(theBuffer, &thePiece->mStartX);
+	ReadRaw(theBuffer, &thePiece->mStartY);
+	ReadRaw(theBuffer, &thePiece->mTargetX);
+	ReadRaw(theBuffer, &thePiece->mTargetY);
+	ReadBool(theBuffer, &thePiece->mDying);
+	ReadRaw(theBuffer, &thePiece->mLifeTimer);
+	ReadRaw(theBuffer, &thePiece->mUnusedA0);
+}
+
+static void WriteColor(Buffer* theBuffer, const Color& theColor)
+{
+	for (int i = 0; i < 4; i++)
+		WriteRaw(theBuffer, theColor[i]);
+}
+
+static void ReadColor(Buffer* theBuffer, Color* theColor)
+{
+	for (int i = 0; i < 4; i++)
+	{
+		int aValue = 0;
+		ReadRaw(theBuffer, &aValue);
+		(*theColor)[i] = aValue;
+	}
+}
+
+// port: the original reads and writes "savegame.dat" in the game folder. The framework maps
+// "userdata\\" to the user dir; without the prefix a read falls back to the (read-only) game folder,
+// whose copy DeleteSaveGame could never erase, so the "continue?" prompt would return every run.
+std::string Board::GetSaveGameFileName()
+{
+	return ScopedUserFileName("userdata\\savegame.dat"); // port(mods): one per gameplay mod set (ModRules.h)
+}
+
+// 0x4010f0
+bool Sexy::SaveGameExists()
+{
+	return gSexyAppBase->FileExists(Board::GetSaveGameFileName());
+}
+
+// 0x401440
+void Sexy::DeleteSaveGame()
+{
+	gSexyAppBase->EraseFile(Board::GetSaveGameFileName());
+}
+
+// 0x4010d0
+bool Board::CanSaveGame()
+{
+	return mPlayStarted && (mState != STATE_GAME_OVER_SCORES) && (mPlayer == NULL); // port(mods): a replay is never saved
+}
+
+// 0x401460
+void Board::OrderInManagerChanged()
+{
+	if (mHighScoreWidget != NULL)
+		mWidgetManager->PutInfront((Widget*) mHighScoreWidget, this);
+	if (mContinueButton != NULL)
+		mWidgetManager->PutInfront((Widget*) mContinueButton, this);
+}
+
+// 0x401490: level parameters, L = mLevel + 0/4/7 for skill 1/2/3 (section 1)
+void Board::SetupLevelParams()
+{
+	int aLevel = mLevel;
+	int aSkill = mApp->mSkillLevel;
+	if (aSkill != 1)
+		aLevel += (aSkill == 2) ? mTunables.mNormalLevels : mTunables.mHardLevels; // port(mods): 4 and 7 (ModRules.h)
+
+	double aL = (double) aLevel;
+	int aBags;
+	if (mApp->mGameType == GAMETYPE_PUZZLE)
+	{
+		mNumColors = mTunables.mPuzzleColors; // port(mods): 5 (ModRules.h)
+		aBags = (int)(aL * mPuzzleBagsPerLevel + mPuzzleBagsBase);
+	}
+	else
+	{
+		mNumColors = mTunables.mColors; // port(mods): 4
+		aBags = (int)(aL * mBagsPerLevel + mBagsBase);
+	}
+
+	// port(mods): 8 and 1 unless a mod changes them
+	if (aBags >= mTunables.mBagsMax)
+		aBags = mTunables.mBagsMax;
+	else if (aBags <= mTunables.mBagsMin)
+		aBags = mTunables.mBagsMin;
+	// port(mods): a smaller Puzzle board needs no more bags than it has columns for (GenerateBoard puts bags on
+	// mBagsNeeded - skill + 4 columns)
+	if ((mApp->mGameType == GAMETYPE_PUZZLE) && (mCols < BOARD_COLS) && (aBags > mCols - 1))
+		aBags = mCols - 1;
+	mBagsNeeded = aBags;
+
+	if ((aLevel < 1) && (mTunables.mFewerColorsFirstLevel) && (mNumColors > 1)) // port(mods): always true without mods
+		mNumColors--;
+
+	mMintSpeed = aL * mMintSpeedPerLevel + mMintSpeedBase;
+	mMintAccel = aL * mMintAccelPerLevel + mMintAccelBase;
+	mMeterDrainRate = aL * mDrainPerLevel + mDrainBase;
+	mMeterCapacity = aL * mMeterCapPerLevel + mMeterCapBase;
+	double aMult = aL * mPointsMultPerLevel + mPointsMultBase;
+	mPointsMult = aMult;
+	mMintPerClick = aL * mPerClickPerLevel + mPerClickBase;
+	if (mApp->mGameType == GAMETYPE_PUZZLE)
+		mPointsMult = aMult * mTunables.mPuzzleMult; // port(mods): 3.0
+}
+
+// 0x4015e0. port(mods): plus a smaller board's offset
+int Board::ColX(int theCol)
+{
+	return theCol * COIN_SIZE + BOARD_X + gBoardOffsetX;
+}
+
+// 0x4015f0. port(mods): plus a smaller board's offset
+int Board::RowY(int theRow)
+{
+	return theRow * COIN_SIZE + BOARD_Y + gBoardOffsetY;
+}
+
+// 0x401600
+void Board::ResetMarks()
+{
+	for (int aRow = 0; aRow < mRows; aRow++)
+	{
+		for (int aCol = 0; aCol < mCols; aCol++)
+		{
+			if (mGrid[aRow][aCol] != NULL)
+				mGrid[aRow][aCol]->mMark = 0;
+		}
+	}
+}
+
+// 0x401660: flags the pieces of the columns whose top reaches row 0 or 1, and sets the per-column
+// warning arrow frame
+void Board::SetDangerFlash(bool on)
+{
+	for (int aCol = 0; aCol < mCols; aCol++)
+	{
+		int aTop = mRows;
+		bool aFlag = on;
+		for (int aRow = 0; aRow < mRows; aRow++)
+		{
+			Piece* aPiece = mGrid[aRow][aCol];
+			if (aPiece == NULL)
+			{
+				if (aRow >= 1)
+					aFlag = false;
+			}
+			else
+			{
+				if (aRow < aTop)
+					aTop = aRow;
+				aPiece->mDanger = aFlag;
+			}
+		}
+
+		if (aTop == 0)
+			mColWarning[aCol] = on ? 2 : 3;
+		else if (aTop == 1)
+			mColWarning[aCol] = on ? 0 : 1;
+		else
+			mColWarning[aCol] = -1;
+	}
+}
+
+// 0x401720: marks and counts the coins connected to (theCol, theRow); the start cell's own mark is
+// not checked. theSum (optional) accumulates the pixel positions as truncated ints.
+void Board::FloodFill(int theCol, int theRow, int theMark, bool sameColor, int* theCount, int* theSum)
+{
+	Piece* aPiece = mGrid[theRow][theCol];
+	if (aPiece->mIsSpecial)
+		return;
+
+	if (theSum != NULL)
+	{
+		theSum[0] = (int)((double) theSum[0] + aPiece->mX);
+		theSum[1] = (int)((double) theSum[1] + aPiece->mY);
+	}
+	(*theCount)++;
+	aPiece->mMark = theMark;
+
+	// port(mods): with diagonal groups a group also spreads across corners; the floods of Compact
+	// (sameColor false) do not
+	int aNumDirs = sameColor ? GroupDirs() : 4;
+	for (int i = 0; i < aNumDirs; i++)
+	{
+		int aCol = theCol + gGroupDirs[i][0];
+		int aRow = theRow + gGroupDirs[i][1];
+		if ((aCol < 0) || (aCol >= mCols) || (aRow < 0) || (aRow >= mRows))
+			continue;
+		Piece* aNext = mGrid[aRow][aCol];
+		if ((aNext == NULL) || (aNext->mIsSpecial))
+			continue;
+		if ((aPiece->mColor != aNext->mColor) && sameColor)
+			continue;
+		if (aNext->mMark != theMark)
+			FloodFill(aCol, aRow, theMark, sameColor, theCount, theSum);
+	}
+}
+
+// 0x401840: group sizes and mHasMoves. The marks are left equal to the group sizes (kept: a later
+// flood marked with mUpdateCnt can stop at them, section 4).
+void Board::FindGroups()
+{
+	ResetMarks();
+	mHasMoves = false;
+	for (int aRow = 0; aRow < mRows; aRow++)
+	{
+		for (int aCol = 0; aCol < mCols; aCol++)
+		{
+			Piece* aPiece = mGrid[aRow][aCol];
+			if ((aPiece != NULL) && (aPiece->mMark == 0))
+			{
+				int aCount = 0;
+				FloodFill(aCol, aRow, -1, true, &aCount, NULL);
+				int aSize = 0;
+				FloodFill(aCol, aRow, aCount, true, &aSize, NULL);
+				if (mMinGroup <= aSize)
+					mHasMoves = true;
+			}
+		}
+	}
+
+	for (int aRow = 0; aRow < mRows; aRow++)
+	{
+		for (int aCol = 0; aCol < mCols; aCol++)
+		{
+			Piece* aPiece = mGrid[aRow][aCol];
+			if (aPiece != NULL)
+				aPiece->mGroupSize = aPiece->mMark;
+		}
+	}
+}
+
+// 0x401960
+Piece* Board::PieceAt(int x, int y)
+{
+	for (int aRow = 0; aRow < mRows; aRow++)
+	{
+		for (int aCol = 0; aCol < mCols; aCol++)
+		{
+			Piece* aPiece = mGrid[aRow][aCol];
+			if ((aPiece != NULL) && (aPiece->mX <= (double) x) && (aPiece->mY <= (double) y) &&
+				((double) x < aPiece->mX + 29.0) && ((double) y < aPiece->mY + 29.0))
+				return aPiece;
+		}
+	}
+	return NULL;
+}
+
+// 0x401a20: instructor hint at a fixed point, only at skill 1
+void Board::ShowHintAt(int theId, const Point& thePos, int theDuration)
+{
+	if (mApp->mSkillLevel != 1)
+		return;
+
+	mHintVisible = true;
+	mHintAlt = false;
+	mHintX = thePos.mX;
+	mHintY = thePos.mY;
+	mHintId = theId;
+	mHintTimer = theDuration;
+	mHintPiece = NULL;
+	mHintFollowMeter = false;
+}
+
+// 0x401a80
+void Board::HideHint()
+{
+	mHintVisible = false;
+	MarkDirty();
+}
+
+// 0x401a90
+int Board::CountCoinColumns()
+{
+	int aCount = 0;
+	for (int aCol = 0; aCol < mCols; aCol++)
+	{
+		for (int aRow = 0; aRow < mRows; aRow++)
+		{
+			Piece* aPiece = mGrid[aRow][aCol];
+			if ((aPiece != NULL) && (!aPiece->mIsSpecial))
+			{
+				aCount++;
+				break;
+			}
+		}
+	}
+	return aCount;
+}
+
+// 0x401af0
+int Board::GetTopCoinRow()
+{
+	for (int aRow = 0; aRow < mRows; aRow++)
+	{
+		for (int aCol = 0; aCol < mCols; aCol++)
+		{
+			Piece* aPiece = mGrid[aRow][aCol];
+			if ((aPiece != NULL) && (!aPiece->mIsSpecial))
+				return aRow;
+		}
+	}
+	return mRows;
+}
+
+// 0x401b40
+double Board::GetAverageCoinRow()
+{
+	int aSum = 0;
+	int aCount = 0;
+	for (int aRow = 0; aRow < mRows; aRow++)
+	{
+		for (int aCol = 0; aCol < mCols; aCol++)
+		{
+			Piece* aPiece = mGrid[aRow][aCol];
+			if ((aPiece != NULL) && (!aPiece->mIsSpecial))
+			{
+				aSum += aRow;
+				aCount++;
+			}
+		}
+	}
+
+	if (aCount != 0)
+		return (double) aSum / (double) aCount;
+	return (double) mRows;
+}
+
+// 0x401bd0: Strategy clicks left before the next row enters
+void Board::UpdateMovesLeft()
+{
+	if (mApp->mGameType != GAMETYPE_STRATEGY)
+		return;
+
+	double aMint = mMintTarget;
+	int aRows = GetTopCoinRow();
+	while (aMint >= 1.0)
+	{
+		aMint -= 0.75;
+		aRows--;
+	}
+	mMovesLeft = (int) ceil(((double) aRows * 0.75 + (1.0 - aMint)) / mMintPerClick);
+}
+
+// 0x401c70 ButtonListener slot 1 (shared with HighScoreWidget)
+void Board::ButtonPress(int theId)
+{
+	mApp->PlaySample(SOUND_BUTTONCLICK);
+}
+
+// 0x401d30
+void Board::GameOver()
+{
+	MusicInterface* aMusic = mApp->mMusicInterface;
+	aMusic->FadeOut(SONG_ACTION, true, 0.02);
+	aMusic->FadeOut(SONG_STRATEGY, true, 0.02);
+	aMusic->FadeOut(SONG_PUZZLE, true, 0.02);
+	aMusic->PlayMusic(SONG_GAMEOVER, ORDER_GAMEOVER, false);
+	mApp->PlaySample(SOUND_GAMEOVERTONE);
+	SetDangerFlash(false);
+	mCountdownActive = false;
+	mMeterFraction = 0.0;
+	mStatsFade = 0.0;
+	mState = STATE_GAME_OVER;
+	mGameOverRiseDelay = 100;
+	UsePendingSeed(); // port(mods)
+	mStatsDirty = true;
+	mFlingDelay = (mApp->mGameType == GAMETYPE_PUZZLE) ? 200 : 1;
+	HideHint();
+}
+
+// 0x401e90: highlights the hovered group (when it is clickable)
+void Board::UpdateHover()
+{
+	Piece* aPiece = PieceAt(mMouseX, mMouseY);
+	bool aHoverBag = (aPiece != NULL) && (aPiece->mIsSpecial) && (aPiece->mSpecialType == PIECE_MONEYBAG);
+	if (aHoverBag != mHoverBag)
+	{
+		mHoverBag = aHoverBag;
+		MarkDirty();
+	}
+
+	int aCount = 0;
+	if ((aPiece != NULL) && (!aPiece->mIsSpecial) && (mState == STATE_PLAYING))
+		FloodFill(aPiece->mCol, aPiece->mRow, mUpdateCnt, true, &aCount, NULL);
+
+	for (int aRow = 0; aRow < mRows; aRow++)
+	{
+		for (int aCol = 0; aCol < mCols; aCol++)
+		{
+			Piece* aCell = mGrid[aRow][aCol];
+			if (aCell == NULL)
+				continue;
+			// port(mods): an armed Pickpocket lights the small groups too
+			bool aHighlighted = ((aCount >= mMinGroup) || ((aCount > 0) && (mPickpocketArmed))) && (aCell->mMark == mUpdateCnt);
+			if (aCell->mHighlighted != aHighlighted)
+			{
+				aCell->mHighlighted = aHighlighted;
+				MarkDirty();
+			}
+			aCell->mMark = 0;
+		}
+	}
+}
+
+// 0x401fa0 slot 35
+void Board::MouseLeave()
+{
+	Widget::MouseLeave();
+	if (mPlayer != NULL) // port(mods): a replay moves its own mouse
+		return;
+	RecordInput(Replay::OP_LEAVE);
+	UpdateHover();
+}
+
+// 0x401fb0 slot 36
+void Board::MouseMove(int x, int y)
+{
+	Widget::MouseMove(x, y);
+	if (mPlayer != NULL) // port(mods): a replay moves its own mouse
+		return;
+	RecordInput(Replay::OP_MOVE, x, y);
+	mMouseX = x;
+	mMouseY = y;
+	UpdateHover();
+}
+
+// 0x401fe0: instructor hint on a piece, only when the help screen was shown before this game
+void Board::ShowHint(int theId, Piece* thePiece, int theDuration)
+{
+	if (!mApp->mShowInstructor)
+		return;
+
+	mHintVisible = true;
+	mHintAlt = false;
+	mHintX = (int)(thePiece->mX + 14.0);
+	mHintY = (int)(thePiece->mY + 14.0);
+	mHintPiece = thePiece;
+	mHintId = theId;
+	mHintTimer = theDuration;
+	mHintFollowMeter = false;
+}
+
+// 0x402930: nested pause, only while playing (section 6.7)
+void Board::Pause(bool pause)
+{
+	if (mState != STATE_PLAYING)
+		return;
+
+	int anOldCount = mPauseCount;
+	mPauseCount = pause ? anOldCount + 1 : anOldCount - 1;
+	if (mPauseCount < 0)
+		mPauseCount = 0;
+
+	for (std::list<Points*>::iterator anItr = mPointsWidgets.begin(); anItr != mPointsWidgets.end(); ++anItr)
+		(*anItr)->SetVisible(mPauseCount == 0);
+
+	if (mPauseCount < 1)
+	{
+		if (anOldCount >= 1)
+		{
+			mTimerTick = GetTickCount();
+			FadeFromPauseMusic(mApp);
+		}
+	}
+	else if ((anOldCount <= 0) && (mApp->mHasFocus))
+	{
+		mPlaySeconds = (int)((unsigned long) mPlaySeconds + ((unsigned long) GetTickCount() - mTimerTick) / 1000);
+		FadeToPauseMusic(mApp);
+	}
+
+	MarkDirty();
+}
+
+// 0x402b70: gravity per column, then closing empty bottom columns (section 6.1)
+void Board::Compact()
+{
+	int aColMap[BOARD_COLS];
+	for (int aCol = 0; aCol < mCols; aCol++)
+		aColMap[aCol] = aCol;
+
+	bool isPuzzle = (mApp->mGameType == GAMETYPE_PUZZLE);
+	for (int aCol = 0; aCol < mCols; aCol++)
+	{
+		int aDest = mRows - 1;
+		bool aGapBelow = false;
+		for (int aSrc = mRows - 1; aSrc >= 0; aSrc--)
+		{
+			Piece* aPiece = mGrid[aSrc][aCol];
+			if (aPiece == NULL)
+			{
+				aGapBelow = true;
+				continue;
+			}
+
+			if (aSrc != aDest)
+			{
+				mGrid[aDest][aCol] = aPiece;
+				aPiece->mRow = aDest;
+				// A special leaves the board when the coin directly under it was removed (Puzzle: when it
+				// reaches the bottom row)
+				if (isPuzzle)
+					aPiece->mFallThrough = (aPiece->mIsSpecial) && (aDest == mRows - 1);
+				else
+					aPiece->mFallThrough |= (aPiece->mIsSpecial) && (aGapBelow);
+				if ((aPiece->mFallThrough) && (aPiece->mSpecialType == PIECE_MONEYBAG))
+					mRepaintTimer = 0;
+			}
+			aDest--;
+			aGapBelow = false;
+		}
+
+		for (int aRow = aDest; aRow >= 0; aRow--)
+			mGrid[aRow][aCol] = NULL;
+	}
+
+	bool aShifted = false;
+	int aBottom = mRows - 1;
+	for (int aCol = 0; aCol < mCols; aCol++)
+	{
+		if (mGrid[aBottom][aCol] != NULL)
+			continue;
+
+		int aMoveRight = 0;
+		int aMoveLeft = 0;
+
+		int aLeft;
+		int aLeftSize = 0;
+		for (aLeft = aCol; aLeft >= 0; aLeft--)
+		{
+			if (mGrid[aBottom][aLeft] != NULL)
+			{
+				int aCount = 0;
+				FloodFill(aLeft, aBottom, mUpdateCnt, false, &aCount, NULL);
+				aLeftSize = aCount;
+				break;
+			}
+		}
+
+		int aRightSize = 0;
+		int aRight = aCol;
+		while ((aRight < mCols) && (mGrid[aBottom][aRight] == NULL))
+			aRight++;
+		if (aRight < mCols)
+			FloodFill(aRight, aBottom, mUpdateCnt, false, &aRightSize, NULL);
+
+		if ((aLeft >= 0) && (aRight < mCols))
+		{
+			int aGap = aRight - aLeft - 1;
+			aMoveRight = aGap / 2;
+			aMoveLeft = aGap / 2;
+			if (aGap % 2 != 0)
+			{
+				// The smaller blob moves the extra step
+				if (aLeftSize < aRightSize)
+					aMoveRight++;
+				else
+					aMoveLeft++;
+			}
+		}
+
+		ResetMarks();
+
+		int aPos = aCol;
+		for (int aStep = 0; aStep < aMoveRight; aStep++)
+		{
+			aShifted = true;
+			// Everything left of aPos moves one column right
+			for (int k = aPos; k >= 1; k--)
+			{
+				aColMap[k] = aColMap[k - 1];
+				aColMap[k - 1] = -1;
+				mColTowerHeight[k] = mColTowerHeight[k - 1];
+				mColTowerHeight[k - 1] = 0.0;
+				for (int aRow = 0; aRow < mRows; aRow++)
+				{
+					Piece* aPiece = mGrid[aRow][k - 1];
+					mGrid[aRow][k - 1] = NULL;
+					mGrid[aRow][k] = aPiece;
+					if (aPiece != NULL)
+						aPiece->mCol++;
+				}
+			}
+			aPos++;
+		}
+
+		for (int aStep = 0; aStep < aMoveLeft; aStep++)
+		{
+			aShifted = true;
+			// Everything right of aPos moves one column left
+			for (int k = aPos; k < mCols - 1; k++)
+			{
+				aColMap[k] = aColMap[k + 1];
+				aColMap[k + 1] = -1;
+				mColTowerHeight[k] = mColTowerHeight[k + 1];
+				mColTowerHeight[k + 1] = 0.0;
+				for (int aRow = 0; aRow < mRows; aRow++)
+				{
+					Piece* aPiece = mGrid[aRow][k + 1];
+					mGrid[aRow][k + 1] = NULL;
+					mGrid[aRow][k] = aPiece;
+					if (aPiece != NULL)
+						aPiece->mCol--;
+				}
+			}
+		}
+	}
+
+	if (aShifted)
+	{
+		// Loose pieces (falling-through bags...) follow their column
+		int anInverse[BOARD_COLS];
+		for (int i = 0; i < mCols; i++)
+			anInverse[i] = -1;
+		for (int i = 0; i < mCols; i++)
+		{
+			if (aColMap[i] != -1)
+				anInverse[aColMap[i]] = i;
+		}
+		for (std::list<Piece*>::iterator anItr = mLoosePieces.begin(); anItr != mLoosePieces.end(); ++anItr)
+		{
+			Piece* aPiece = *anItr;
+			if (anInverse[aPiece->mCol] != -1)
+				aPiece->mCol = anInverse[aPiece->mCol];
+		}
+	}
+
+	FindGroups();
+}
+
+// 0x403050 slot 31
+void Board::KeyChar(SexyChar theChar)
+{
+	// port(mods): replays (Replay.h). While watching, 1 to 4 set the speed (1x, 2x, 4x, 8x) and Escape stops;
+	// on the game-over screen of a recorded game, R watches it.
+	if (mPlayer != NULL)
+	{
+		if ((theChar >= '1') && (theChar <= '4'))
+			mApp->mWatchSpeed = 1 << (theChar - '1');
+		else if (theChar == 27)
+		{
+			mApp->EndWatch(); // removes this board
+			return;
+		}
+	}
+	else if (((theChar == 'r') || (theChar == 'R')) && (mState == STATE_GAME_OVER_SCORES) && (!mReplayPath.empty()))
+	{
+		mApp->StartWatch(mReplayPath); // deletes this board
+		return;
+	}
+
+	// port(mods): H asks the Puzzle solver for a hint (PuzzleSolver.h); a replay asks itself (OP_HINT)
+	if (((theChar == 'h') || (theChar == 'H')) && (mSolver != NULL) && (mPlayer == NULL))
+	{
+		if (mState == STATE_PLAYING)
+		{
+			RecordInput(Replay::OP_HINT);
+			RequestSolverHint();
+		}
+		return;
+	}
+	// port(mods): U takes back the last click (the solver's undo); a replay undoes itself (OP_UNDO)
+	if (((theChar == 'u') || (theChar == 'U')) && (mSolver != NULL) && (mPlayer == NULL))
+	{
+		if ((mState == STATE_PLAYING) && (mPauseCount == 0))
+		{
+			RecordInput(Replay::OP_UNDO);
+			RequestSolverUndo();
+		}
+		return;
+	}
+
+	// port(mods): P arms a Pickpocket, or puts it away
+	if (((theChar == 'p') || (theChar == 'P')) && (mPickpocket) && (mPlayer == NULL))
+	{
+		if ((mState == STATE_PLAYING) && (mPauseCount == 0))
+			ArmPickpocket(!mPickpocketArmed);
+		return;
+	}
+
+	if (theChar == ' ')
+		Pause(mPauseCount == 0);
+}
+
+// 0x403300: savegame.dat. Called by ~WinBMApp when CanSaveGame(). The pause / unpause banks the game
+// seconds (which are not saved) and changes nothing that is.
+bool Board::SaveGame()
+{
+	Pause(true);
+	Pause(false);
+
+	Buffer aBuffer;
+	WriteSaveGame(&aBuffer);
+	return mApp->WriteBufferToFile(GetSaveGameFileName(), &aBuffer);
+}
+
+// port (web persistence, WinBMApp::GetShutdownSaves): the bytes SaveGame would write now. Its
+// Pause(true) / Pause(false) affects only unsaved values (and the music), so it is skipped here.
+void Board::SaveGameSnapshot(Buffer* theBuffer)
+{
+	WriteSaveGame(theBuffer);
+}
+
+// The body of 0x403300 (section 9)
+void Board::WriteSaveGame(Buffer* theBuffer)
+{
+	int aVersion = SAVEGAME_VERSION;
+	WriteRaw(theBuffer, aVersion);
+	WriteRaw(theBuffer, mApp->mGameType);
+	WriteRaw(theBuffer, mApp->mSkillLevel);
+	WriteRaw(theBuffer, mState);
+	std::string aRandState = mRand.Serialize();
+	int aRandLen = (int) aRandState.length();
+	WriteRaw(theBuffer, aRandLen);
+	theBuffer->WriteBytes((const uchar*) aRandState.c_str(), aRandLen);
+
+	for (int aRow = 0; aRow < BOARD_ROWS; aRow++)
+	{
+		for (int aCol = 0; aCol < BOARD_COLS; aCol++)
+		{
+			Piece* aPiece = mGrid[aRow][aCol];
+			WriteBool(theBuffer, aPiece != NULL);
+			if (aPiece != NULL)
+				WritePiece(theBuffer, aPiece);
+		}
+	}
+	// port(mods): a smaller board ("boardSize") has no next coin past mCols: a blank one is written there
+	static const Piece aBlank;
+	for (int aCol = 0; aCol < BOARD_COLS; aCol++)
+		WritePiece(theBuffer, (mNextRow[aCol] != NULL) ? mNextRow[aCol] : &aBlank);
+
+	WriteRaw(theBuffer, mMinGroup);
+	WriteRaw(theBuffer, mRiseOffset);
+	WriteBool(theBuffer, mHasMoves);
+	WriteRaw(theBuffer, mCols);
+	WriteRaw(theBuffer, mRows);
+	WriteRaw(theBuffer, mMintPixels);
+	WriteRaw(theBuffer, mMint);
+	WriteRaw(theBuffer, mMintTarget);
+	WriteRaw(theBuffer, mMintSpeed);
+	WriteRaw(theBuffer, mMintAccel);
+	WriteRaw(theBuffer, mMintPerClick);
+	WriteColor(theBuffer, mMovesColor);
+	WriteRaw(theBuffer, mScore);
+	WriteRaw(theBuffer, mDisplayScore);
+	WriteRaw(theBuffer, mPointsMult);
+	WriteRaw(theBuffer, mMeterFlash);
+	WriteRaw(theBuffer, mMeterJustFull);
+	WriteRaw(theBuffer, mMeterFraction);
+	WriteRaw(theBuffer, mMeterTarget);
+	WriteRaw(theBuffer, mMeterCoins);
+	WriteRaw(theBuffer, mMeterDrained);
+	WriteRaw(theBuffer, mMeterPending);
+	WriteRaw(theBuffer, mMeterLaunchTimer);
+	WriteRaw(theBuffer, mMeterEmptying);
+	WriteRaw(theBuffer, mMeterCapacity);
+	WriteRaw(theBuffer, mMeterDrainRate);
+
+	int aCount = (int) mLoosePieces.size();
+	WriteRaw(theBuffer, aCount);
+	for (std::list<Piece*>::iterator anItr = mLoosePieces.begin(); anItr != mLoosePieces.end(); ++anItr)
+		WritePiece(theBuffer, *anItr);
+
+	aCount = (int) mTubeCoins.size();
+	WriteRaw(theBuffer, aCount);
+	for (std::list<TubeCoin>::iterator anItr = mTubeCoins.begin(); anItr != mTubeCoins.end(); ++anItr)
+	{
+		WriteRaw(theBuffer, anItr->mY);
+		WriteRaw(theBuffer, anItr->mDist);
+		WriteRaw(theBuffer, anItr->mFrame);
+	}
+
+	WriteRaw(theBuffer, mBillsToSpawn);
+	WriteRaw(theBuffer, mBagsReleased);
+	WriteRaw(theBuffer, mBagsBanked);
+	WriteRaw(theBuffer, mMeterFlashFrame);
+	WriteRaw(theBuffer, mMeterFlashTimer);
+	WriteRaw(theBuffer, mBagsNeeded);
+	WriteBool(theBuffer, mLevelUpActive);
+	WriteRaw(theBuffer, mLevelUpY);
+	WriteRaw(theBuffer, mLevelUpAngle);
+	WriteRaw(theBuffer, mLevelUpUnused);
+	WriteRaw(theBuffer, mLevelUpStretch);
+	WriteBool(theBuffer, mLevelUpBouncing);
+	WriteRaw(theBuffer, mLevelUpLeftY);
+	WriteRaw(theBuffer, mLevelUpLeftVY);
+	WriteRaw(theBuffer, mLevelUpRightY);
+	WriteRaw(theBuffer, mLevelUpRightVY);
+	WriteRaw(theBuffer, mMintDelay);
+	WriteBool(theBuffer, mPiecesMoving);
+	WriteRaw(theBuffer, mLevel);
+	WriteRaw(theBuffer, mLevelEndDelay);
+	WriteRaw(theBuffer, mPauseCount);
+	WriteRaw(theBuffer, mPauseFade);
+	WriteRaw(theBuffer, mPauseAnim);
+	WriteBool(theBuffer, mPauseClickable);
+	WriteRaw(theBuffer, mGoTimer);
+	WriteBool(theBuffer, mBannerVisible);
+	WriteRaw(theBuffer, mBannerTimer);
+	WriteRaw(theBuffer, mOverflowTicks);
+	WriteRaw(theBuffer, mFlingDelay);
+	WriteBool(theBuffer, mCountdownActive);
+	WriteRaw(theBuffer, mCountdownValue);
+	WriteRaw(theBuffer, mGameOverRiseDelay);
+	WriteRaw(theBuffer, mLevelCoinsCleared);
+	WriteRaw(theBuffer, mGameCoinsCleared);
+	WriteRaw(theBuffer, mLevelBiggestBonus);
+	WriteRaw(theBuffer, mGameBiggestBonus);
+	WriteRaw(theBuffer, mLevelBiggestCombo);
+	WriteRaw(theBuffer, mGameBiggestCombo);
+	WriteRaw(theBuffer, mBombColor);
+	WriteRaw(theBuffer, mBombIdle);
+	WriteBool(theBuffer, mMoveDigitActive);
+	WriteRaw(theBuffer, mMoveDigit);
+	WriteRaw(theBuffer, mMoveDigitFade);
+	WriteBool(theBuffer, mContinueButton != NULL);
+
+	// port(mods): trailers, which the original's reader ignores: a seeded game's seed (ModRules.h), the
+	// Pickpockets in hand
+	if (mUserSeeded)
+	{
+		theBuffer->WriteBytes((const uchar*) "BMSD", 4);
+		WriteRaw(theBuffer, mGameSeed);
+	}
+	if (mPickpocket)
+	{
+		theBuffer->WriteBytes((const uchar*) "BMPK", 4);
+		uint32_t aCount = (uint32_t) mPickpockets;
+		WriteRaw(theBuffer, aCount);
+	}
+}
+
+// 0x403a20
+void Board::RemovePointsWidgets()
+{
+	for (std::list<Points*>::iterator anItr = mPointsWidgets.begin(); anItr != mPointsWidgets.end(); ++anItr)
+	{
+		mWidgetManager->RemoveWidget(*anItr);
+		mApp->SafeDeleteWidget(*anItr);
+	}
+	mPointsWidgets.clear();
+}
+
+// 0x403aa0 slot 8
+void Board::RemovedFromManager(WidgetManager* theWidgetManager)
+{
+	Widget::RemovedFromManager(theWidgetManager);
+
+	if (mContinueButton != NULL)
+	{
+		theWidgetManager->RemoveWidget((Widget*) mContinueButton);
+		mApp->SafeDeleteWidget((Widget*) mContinueButton);
+		mContinueButton = NULL;
+	}
+
+	if (mHighScoreWidget != NULL)
+	{
+		theWidgetManager->RemoveWidget((Widget*) mHighScoreWidget);
+		delete mHighScoreWidget;
+		mHighScoreWidget = NULL;
+	}
+
+	for (std::list<Points*>::iterator anItr = mPointsWidgets.begin(); anItr != mPointsWidgets.end(); ++anItr)
+	{
+		theWidgetManager->RemoveWidget(*anItr);
+		mApp->SafeDeleteWidget(*anItr);
+	}
+	mPointsWidgets.clear();
+}
+
+// 0x403b80: the GameSelector covers a running game
+void Board::Freeze()
+{
+	RemovePointsWidgets();
+	mState = STATE_FROZEN;
+}
+
+// 0x403f10
+Board::~Board()
+{
+	if (mExplodeSound != NULL)
+		mExplodeSound->Release();
+	delete mStatsImage;
+	delete mStatsFadeImage;
+	delete mLevelUpImage;
+	delete mRecorder; // port(mods)
+	delete mPlayer;
+	delete mSolver;
+	delete mSolverCheck;
+
+	// port: the original leaks every piece. Each piece is owned by exactly one of mGrid, mNextRow and
+	// mLoosePieces, but UpdatePhysics clears mGrid by the piece's own mRow/mCol (as the original does), so
+	// collect them first and delete each once in case two places ever held the same piece.
+	std::set<Piece*> aPieces;
+	for (int aRow = 0; aRow < BOARD_ROWS; aRow++)
+	{
+		for (int aCol = 0; aCol < BOARD_COLS; aCol++)
+			aPieces.insert(mGrid[aRow][aCol]);
+	}
+	for (int aCol = 0; aCol < BOARD_COLS; aCol++)
+		aPieces.insert(mNextRow[aCol]);
+	aPieces.insert(mLoosePieces.begin(), mLoosePieces.end());
+	aPieces.erase(NULL);
+	for (std::set<Piece*>::iterator anItr = aPieces.begin(); anItr != aPieces.end(); ++anItr)
+		delete *anItr;
+}
+
+// 0x4075d0 (section 9). The constructor already made a board for the app's game type and skill; the
+// header replaces them. Reading the 624 MT words keeps the constructor's draw index (the original's
+// SRand_state does not touch mti): faithful, so a resumed game draws from that index of the saved
+// block. mNumColors is not saved and keeps the constructor's (level 0) value.
+bool Board::LoadGame()
+{
+	Buffer aBuffer;
+	if (!mApp->ReadBufferFromFile(GetSaveGameFileName(), &aBuffer, false))
+		return false;
+
+	if (!ReadSaveGame(&aBuffer, true))
+		return false;
+
+	// port(mods): a resumed game is not recorded (Replay.h), and never starts a LiveSplit run
+	delete mRecorder;
+	mRecorder = NULL;
+	mResumed = true;
+
+	mPlayStarted = true;
+	delete mStatsImage;
+	mStatsImage = NULL;
+	delete mStatsFadeImage;
+	mStatsFadeImage = NULL;
+	delete mLevelUpImage;
+	mLevelUpImage = NULL;
+	mHintVisible = false;
+	mMintDelay = 200;
+	UpdateMovesLeft();
+	FindGroups();
+	return true;
+}
+
+// port: the body of 0x4075d0, from the version on (LoadGame). port(mods): also the solver's undo
+// (SolverUndo), which keeps the seed (theTrailer false).
+bool Board::ReadSaveGame(Buffer* theBuffer, bool theTrailer)
+{
+	int aVersion = -1;
+	ReadRaw(theBuffer, &aVersion);
+	if (aVersion != SAVEGAME_VERSION)
+		return false;
+
+	ReadRaw(theBuffer, &mApp->mGameType);
+	ReadRaw(theBuffer, &mApp->mSkillLevel);
+	ReadRaw(theBuffer, &mState);
+	unsigned int aRandLen = 0;
+	ReadRaw(theBuffer, &aRandLen);
+	std::string aRandState;
+	aRandState.resize(aRandLen);
+	if (aRandLen > 0)
+		theBuffer->ReadBytes((uchar*) &aRandState[0], (int) aRandLen);
+	// 1.2's SRand_state: the 624 words (mti kept), or the 4357 seed for any other length
+	if (aRandState.length() == MTRAND_N * 4)
+		mRand.SRand(aRandState);
+	else
+		SeedMTRand12(mRand, 4357);
+
+	// The constructor's grid and next-row pieces are deleted as each cell is read, as the original does
+	// (0x40774b, 0x4077a2)
+	for (int aRow = 0; aRow < BOARD_ROWS; aRow++)
+	{
+		for (int aCol = 0; aCol < BOARD_COLS; aCol++)
+		{
+			Piece* aPiece = NULL;
+			bool aPresent = false;
+			ReadBool(theBuffer, &aPresent);
+			if (aPresent)
+			{
+				aPiece = new Piece();
+				ReadPiece(theBuffer, aPiece);
+			}
+			delete mGrid[aRow][aCol];
+			mGrid[aRow][aCol] = aPiece;
+		}
+	}
+	for (int aCol = 0; aCol < BOARD_COLS; aCol++)
+	{
+		Piece* aPiece = new Piece();
+		ReadPiece(theBuffer, aPiece);
+		delete mNextRow[aCol];
+		mNextRow[aCol] = aPiece;
+		if (aCol >= mCols) // port(mods): past a smaller board's columns
+		{
+			delete aPiece;
+			mNextRow[aCol] = NULL;
+		}
+	}
+
+	ReadRaw(theBuffer, &mMinGroup);
+	ReadRaw(theBuffer, &mRiseOffset);
+	ReadBool(theBuffer, &mHasMoves);
+	ReadRaw(theBuffer, &mCols);
+	ReadRaw(theBuffer, &mRows);
+	ReadRaw(theBuffer, &mMintPixels);
+	ReadRaw(theBuffer, &mMint);
+	ReadRaw(theBuffer, &mMintTarget);
+	ReadRaw(theBuffer, &mMintSpeed);
+	ReadRaw(theBuffer, &mMintAccel);
+	ReadRaw(theBuffer, &mMintPerClick);
+	ReadColor(theBuffer, &mMovesColor);
+	ReadRaw(theBuffer, &mScore);
+	ReadRaw(theBuffer, &mDisplayScore);
+	ReadRaw(theBuffer, &mPointsMult);
+	ReadRaw(theBuffer, &mMeterFlash);
+	ReadRaw(theBuffer, &mMeterJustFull);
+	ReadRaw(theBuffer, &mMeterFraction);
+	ReadRaw(theBuffer, &mMeterTarget);
+	ReadRaw(theBuffer, &mMeterCoins);
+	ReadRaw(theBuffer, &mMeterDrained);
+	ReadRaw(theBuffer, &mMeterPending);
+	ReadRaw(theBuffer, &mMeterLaunchTimer);
+	ReadRaw(theBuffer, &mMeterEmptying);
+	ReadRaw(theBuffer, &mMeterCapacity);
+	ReadRaw(theBuffer, &mMeterDrainRate);
+
+	// The old loose pieces are only unlinked, as the original (port: also deleted)
+	for (std::list<Piece*>::iterator anItr = mLoosePieces.begin(); anItr != mLoosePieces.end(); ++anItr)
+		delete *anItr;
+	mLoosePieces.clear();
+	int aCount = 0;
+	ReadRaw(theBuffer, &aCount);
+	for (int i = 0; i < aCount; i++)
+	{
+		Piece* aPiece = new Piece();
+		ReadPiece(theBuffer, aPiece);
+		mLoosePieces.push_back(aPiece);
+	}
+
+	mTubeCoins.clear();
+	aCount = 0;
+	ReadRaw(theBuffer, &aCount);
+	for (int i = 0; i < aCount; i++)
+	{
+		TubeCoin aCoin;
+		ReadRaw(theBuffer, &aCoin.mY);
+		ReadRaw(theBuffer, &aCoin.mDist);
+		ReadRaw(theBuffer, &aCoin.mFrame);
+		mTubeCoins.push_back(aCoin);
+	}
+
+	ReadRaw(theBuffer, &mBillsToSpawn);
+	ReadRaw(theBuffer, &mBagsReleased);
+	ReadRaw(theBuffer, &mBagsBanked);
+	ReadRaw(theBuffer, &mMeterFlashFrame);
+	ReadRaw(theBuffer, &mMeterFlashTimer);
+	ReadRaw(theBuffer, &mBagsNeeded);
+	ReadBool(theBuffer, &mLevelUpActive);
+	ReadRaw(theBuffer, &mLevelUpY);
+	ReadRaw(theBuffer, &mLevelUpAngle);
+	ReadRaw(theBuffer, &mLevelUpUnused);
+	ReadRaw(theBuffer, &mLevelUpStretch);
+	ReadBool(theBuffer, &mLevelUpBouncing);
+	ReadRaw(theBuffer, &mLevelUpLeftY);
+	ReadRaw(theBuffer, &mLevelUpLeftVY);
+	ReadRaw(theBuffer, &mLevelUpRightY);
+	ReadRaw(theBuffer, &mLevelUpRightVY);
+	ReadRaw(theBuffer, &mMintDelay);
+	ReadBool(theBuffer, &mPiecesMoving);
+	ReadRaw(theBuffer, &mLevel);
+	ReadRaw(theBuffer, &mLevelEndDelay);
+	ReadRaw(theBuffer, &mPauseCount);
+	ReadRaw(theBuffer, &mPauseFade);
+	ReadRaw(theBuffer, &mPauseAnim);
+	ReadBool(theBuffer, &mPauseClickable);
+	ReadRaw(theBuffer, &mGoTimer);
+	ReadBool(theBuffer, &mBannerVisible);
+	ReadRaw(theBuffer, &mBannerTimer);
+	ReadRaw(theBuffer, &mOverflowTicks);
+	ReadRaw(theBuffer, &mFlingDelay);
+	ReadBool(theBuffer, &mCountdownActive);
+	ReadRaw(theBuffer, &mCountdownValue);
+	ReadRaw(theBuffer, &mGameOverRiseDelay);
+	ReadRaw(theBuffer, &mLevelCoinsCleared);
+	ReadRaw(theBuffer, &mGameCoinsCleared);
+	ReadRaw(theBuffer, &mLevelBiggestBonus);
+	ReadRaw(theBuffer, &mGameBiggestBonus);
+	ReadRaw(theBuffer, &mLevelBiggestCombo);
+	ReadRaw(theBuffer, &mGameBiggestCombo);
+	ReadRaw(theBuffer, &mBombColor);
+	ReadRaw(theBuffer, &mBombIdle);
+	ReadBool(theBuffer, &mMoveDigitActive);
+	ReadRaw(theBuffer, &mMoveDigit);
+	ReadRaw(theBuffer, &mMoveDigitFade);
+	bool aHasButton = false;
+	ReadBool(theBuffer, &aHasButton);
+	if (aHasButton)
+		ShowContinueButton();
+
+	if (!theTrailer)
+		return true;
+
+	// port(mods): the trailers (WriteSaveGame). Without a seed the game plays on unseeded; without a
+	// Pickpocket count it keeps the count a new game starts with.
+	mGameSeed = 0;
+	mUserSeeded = false;
+	while (theBuffer->mReadBitPos / 8 + 8 <= theBuffer->GetDataLen())
+	{
+		uchar aTag[4];
+		theBuffer->ReadBytes(aTag, 4);
+		uint32_t aValue = 0;
+		ReadRaw(theBuffer, &aValue);
+		if ((memcmp(aTag, "BMSD", 4) == 0) && (aValue != 0))
+		{
+			mGameSeed = aValue;
+			mUserSeeded = true;
+			SeedMTRand12(mEffectsRand, ~aValue);
+			SDL_Log("savegame: seed %u", (unsigned) aValue);
+		}
+		else if ((memcmp(aTag, "BMPK", 4) == 0) && (mPickpocket))
+		{
+			mPickpockets = (int) std::min(aValue, (uint32_t) mPickpocketsMax);
+			SDL_Log("savegame: %d pickpockets", mPickpockets);
+		}
+	}
+	return true;
+}
+
+// 0x407ea0: a "+N" popup (centred at x, y), the score, and (not Puzzle) the money meter.
+// thePoints is the raw value; the score and the popup are thePoints * mPointsMult.
+void Board::AddPoints(int thePoints, int x, int y, bool toMeter)
+{
+	double aPoints = (double) thePoints;
+	int aScore = (int)(aPoints * mPointsMult);
+	int aLife = (int)(aPoints * 0.6666666666666666);
+	if (aLife > 600)
+		aLife = 600;
+	else if (aLife < 100)
+		aLife = 100;
+
+	SexyString aText = StrFormat("+%d", aScore);
+	Points* aPointsWidget = new Points(mApp, mApp->mFloatFont, aText, mX + x, mY + y, aLife, 0);
+	mPointsWidgets.push_back(aPointsWidget);
+	mWidgetManager->AddWidget(aPointsWidget);
+
+	if (mLevelBiggestBonus < aScore)
+		mLevelBiggestBonus = aScore;
+	if (mGameBiggestBonus < aScore)
+		mGameBiggestBonus = aScore;
+	mScore += aScore;
+
+	if ((mApp->mGameType != GAMETYPE_PUZZLE) && (toMeter))
+	{
+		int anOldUnits = (int) mMeterTarget;
+		double aFill = aPoints / mMeterCapacity;
+		mMeterTarget = aFill * 64.0 + mMeterTarget;
+		int aNewUnits = (int) mMeterTarget;
+		mMeterFraction = aFill + mMeterFraction;
+		mMeterPending += aNewUnits - anOldUnits;
+		mMeterFlash = 16;
+		MarkDirty();
+	}
+}
+
+// 0x408110: a bonus message, stacked under the previous one while that is alive
+void Board::ShowBonusText(const SexyString& theText)
+{
+	int aY = (mBannerTimer > 0) ? 148 : 180;
+	if ((mLastBonusText != NULL) && (mLastBonusText->mLife > 0))
+	{
+		int aBelow = mLastBonusText->mY + 36;
+		if (aBelow > aY)
+			aY = aBelow;
+	}
+
+	Points* aText = new Points(mApp, mApp->mFont1, theText, 212, mY + aY, 200, -1);
+	mPointsWidgets.push_back(aText);
+	mWidgetManager->AddWidget(aText);
+	mLastBonusText = aText;
+}
+
+// 0x408220: game over, every grid piece is flung (section 6.6)
+void Board::FlingAllCoins()
+{
+	for (int aRow = 0; aRow < mRows; aRow++)
+	{
+		for (int aCol = 0; aCol < mCols; aCol++)
+		{
+			Piece* aPiece = mGrid[aRow][aCol];
+			if (aPiece == NULL)
+				continue;
+
+			mGrid[aRow][aCol] = NULL;
+			aPiece->mVX = (double)(EffectsRand() % 300) * 0.01 - 1.5;
+			aPiece->mImageSet = 1;
+			aPiece->mSpin = 0.0;
+			aPiece->mSpinSpeed = (double)(CrtRand() % 1000) * 4e-05;
+			double aHeightFactor = (double) aRow / (double) mRows + 0.1;
+			aPiece->mVY = (double)(-(int)(EffectsRand() % 500)) * aHeightFactor * 0.01;
+			if (aPiece->mVX > 0.0)
+				aPiece->mVX += 0.5;
+			else
+				aPiece->mVX -= 0.5;
+			if (aPiece->mIsSpecial)
+			{
+				aPiece->mSpecialType = PIECE_POOF;
+				aPiece->mFrame = 0;
+			}
+			mLoosePieces.push_back(aPiece);
+		}
+	}
+}
+
+// 0x4083d0: all needed bags banked
+void Board::LevelComplete()
+{
+	MusicInterface* aMusic = mApp->mMusicInterface;
+	switch (mApp->mGameType)
+	{
+	case GAMETYPE_ACTION:
+		aMusic->FadeOut(SONG_ACTION, false, 0.02);
+		aMusic->PlayMusic(SONG_ACTION_LEVELUP, ORDER_ACTION_LEVELUP, false);
+		break;
+	case GAMETYPE_STRATEGY:
+		aMusic->FadeOut(SONG_STRATEGY, false, 0.02);
+		aMusic->PlayMusic(SONG_STRATEGY_LEVELUP, ORDER_STRATEGY_LEVELUP, false);
+		break;
+	case GAMETYPE_PUZZLE:
+		aMusic->FadeOut(SONG_PUZZLE, false, 0.02);
+		aMusic->PlayMusic(SONG_PUZZLE_LEVELUP, ORDER_PUZZLE_LEVELUP, false);
+		break;
+	}
+	mApp->PlaySample(SOUND_LEVELUP);
+	mApp->mMrMoney->PlayAnim(MRANIM_LEVELUP);
+
+	// 60 bills
+	for (int i = 0; i * 5 < 300; i++)
+	{
+		Bill aBill;
+		aBill.mX = (double)(CrtRand() % 500 + 80);
+		int aSpeed = CrtRand() % 1000;
+		aBill.mVY = ((double) aSpeed * 0.001 * 0.4 + (double) i * 0.02) + 1.6;
+		int aHeight = CrtRand() % 92;
+		aBill.mY = (double)(-50 - aHeight);
+		aBill.mFrame = CrtRand() % 16;
+		aBill.mType = 4 - (i * 5) / 60;
+		mBills.push_back(aBill);
+	}
+
+	mLevelUpY = -150.0;
+	mLevelUpAngle = 0.0;
+	mLevelUpUnused = 0.03;
+	mLevelUpBouncing = true;
+	mLevelUpLeftY = -150.0;
+	mLevelUpLeftVY = 0.0;
+	mLevelUpRightY = -174.0;
+	mLevelUpRightVY = 0.0;
+	mLevelUpStretch = 189.0;
+	mStatsFade = 0.0;
+	mStatsDirty = true;
+	mLevelUpActive = true;
+	mState = STATE_LEVEL_COMPLETE;
+	mLevelEndDelay = 160;
+	mMeterFraction = 0.0;
+	MarkDirty();
+}
+
+// 0x408650: end of state 2, the board falls away; Excess Baggage for the bags left on it
+void Board::ClearBoardForLevelEnd()
+{
+	mMeterFraction = 0.0;
+	HideHint();
+
+	int aBags = 0;
+	for (int aRow = 0; aRow < mRows; aRow++)
+	{
+		for (int aCol = 0; aCol < mCols; aCol++)
+		{
+			Piece* aPiece = mGrid[aRow][aCol];
+			if (aPiece == NULL)
+				continue;
+
+			aPiece->mRow = mRows + 2;
+			aPiece->mVY = (double)(EffectsRand() % 200) * 0.01;
+			if ((mApp->mGameType != GAMETYPE_PUZZLE) && (aPiece->mIsSpecial) && (aPiece->mSpecialType == PIECE_MONEYBAG))
+			{
+				aBags++;
+				if (aBags > 1)
+					AddPoints((int)(mPointsMult * 500.0), (int)(aPiece->mX + 14.0), (int)(aPiece->mY + 14.0), false);
+			}
+		}
+	}
+
+	if (aBags >= 3)
+	{
+		ShowBonusText(mApp->GetString("EXCESS_BAGGAGE_BONUS"));
+		mApp->mMrMoney->PlayAnim(MRANIM_BONUS);
+		mApp->PlaySample(SOUND_BONUS);
+	}
+	if ((mPickpocket) && (mApp->mGameType != GAMETYPE_PUZZLE)) // port(mods): and Pickpockets for them
+		EarnPickpockets(aBags);
+	mState = STATE_LEVEL_CLEAR_FALL;
+}
+
+// 0x4088a0: a minted row enters from the bottom; the pieces move up one grid row but keep their pixel
+// y, and the bottom floor (RowY(14) + mRiseOffset) rises back 1 px per tick, so they rise smoothly
+void Board::PushRow()
+{
+	mApp->PlaySample(SOUND_MOVEUP);
+	mMintPixels = 0;
+
+	for (int aCol = 0; aCol < mCols; aCol++)
+	{
+		Piece* aTop = mGrid[0][aCol];
+		if ((aTop != NULL) && (aTop->mIsSpecial))
+		{
+			// A special pushed off the top disappears
+			aTop->mIsSpecial = true;
+			aTop->mSpecialType = PIECE_POOF;
+			mLoosePieces.push_back(aTop);
+		}
+
+		for (int aRow = 0; aRow < mRows - 1; aRow++)
+		{
+			Piece* aPiece = mGrid[aRow + 1][aCol];
+			mGrid[aRow][aCol] = aPiece;
+			if (aPiece != NULL)
+				aPiece->mRow--;
+		}
+
+		Piece* aNext = mNextRow[aCol];
+		mGrid[mRows - 1][aCol] = aNext;
+		aNext->mRow = mRows - 1;
+
+		Piece* aPiece = new Piece();
+		aPiece->mCol = aCol;
+		aPiece->mRow = mRows - 1;
+		aPiece->mX = (double) ColX(aCol);
+		aPiece->mY = (double)(RowY(mRows) + 6);
+		aPiece->mColor = (int)(mRand.Next() % (unsigned long) mNumColors);
+		mNextRow[aCol] = aPiece;
+	}
+
+	mMintPixels = 29;
+	mMintTarget -= 0.75;
+	mRiseOffset += 29;
+	mMint = 0.0;
+	FindGroups();
+}
+
+// 0x408a60 (section 5.4)
+void Board::UpdatePhysics()
+{
+	bool aRemoved = false;
+	bool aBagSeen = false;
+	mPiecesMoving = false;
+
+	// 1. Life timers (unused) and special animations
+	for (int aRow = mRows - 1; aRow >= 0; aRow--)
+	{
+		for (int aCol = 0; aCol < mCols; aCol++)
+		{
+			Piece* aPiece = mGrid[aRow][aCol];
+			if (aPiece == NULL)
+				continue;
+
+			if (aPiece->mLifeTimer > 0)
+			{
+				aPiece->mLifeTimer--;
+				if (aPiece->mLifeTimer == 0)
+				{
+					delete aPiece;
+					mGrid[aRow][aCol] = NULL;
+					aRemoved = true;
+					continue;
+				}
+				if (aPiece->mLifeTimer < 200)
+				{
+					bool aHidden = (aPiece->mLifeTimer / 4) % 2 == 0;
+					if (aHidden != aPiece->mBlinkHidden)
+					{
+						aPiece->mBlinkHidden = aHidden;
+						MarkDirty();
+					}
+				}
+			}
+
+			if (!aPiece->mIsSpecial)
+				continue;
+
+			if (aPiece->mSpecialType == PIECE_MONEYBAG)
+			{
+				aBagSeen = true;
+				if (aPiece->mFrame < 3)
+				{
+					aPiece->mFrame++;
+					MarkDirty();
+				}
+				if ((mApp->mGameType != GAMETYPE_PUZZLE) && (CrtRand() % 10 == 0))
+				{
+					int anOffset = CrtRand() % 28;
+					mParticles.push_back(MakeParticle(5, (double) anOffset + aPiece->mX, aPiece->mY + 20.0, 0.0, 0.0, 0.035, false));
+				}
+			}
+
+			if ((aPiece->mSpecialType == PIECE_DOLLAR_BOMB) && (mUpdateCnt % 3 == 0))
+			{
+				aPiece->mFrame = (aPiece->mFrame + 1) % 32;
+				MarkDirty();
+			}
+		}
+	}
+
+	if (aBagSeen)
+	{
+		mBagGlow = mBagGlow + 0.02;
+		if (mBagGlow > 1.0)
+			mBagGlow = mBagGlow - 1.0;
+		MarkDirty();
+	}
+
+	double aBottom = (double)(RowY(mRows - 1) + mRiseOffset);
+	if (mState != STATE_BOMB)
+	{
+		// 2a. Gravity
+		for (int aRow = mRows - 1; aRow >= 0; aRow--)
+		{
+			for (int aCol = 0; aCol < mCols; aCol++)
+			{
+				Piece* aPiece = mGrid[aRow][aCol];
+				if (aPiece == NULL)
+					continue;
+
+				double anOldY = aPiece->mY;
+				aPiece->mVY = aPiece->mVY + 0.14;
+				aPiece->mY = aPiece->mVY + aPiece->mY;
+
+				if (mState == STATE_LEVEL_CLEAR_FALL)
+				{
+					if (aPiece->mY < (double) mHeight)
+						mPiecesMoving = true;
+					else
+					{
+						delete aPiece;
+						mGrid[aRow][aCol] = NULL;
+					}
+					continue;
+				}
+
+				double aFloor = aBottom;
+				Piece* aBelow = NULL;
+				if (aRow < mRows - 1)
+				{
+					aBelow = mGrid[aRow + 1][aCol];
+					if (aBelow != NULL)
+						aFloor = aBelow->mY - 29.0;
+				}
+
+				if (aPiece->mY <= aFloor)
+				{
+					mPiecesMoving = true;
+					continue;
+				}
+
+				if (aPiece->mFallThrough)
+				{
+					// A special leaves the board
+					if (aPiece == mHintPiece)
+						HideHint();
+
+					if (aPiece->mSpecialType == PIECE_MONEYBAG)
+					{
+						mApp->PlaySample(SOUND_GOTBAG);
+						mGrid[aPiece->mRow][aPiece->mCol] = NULL;
+						int aPoints = 100;
+						if (mUpdateCnt - mLastBagTick < 500)
+						{
+							ShowBonusText(mApp->GetString("SPEED_BAGGER_BONUS"));
+							mApp->mMrMoney->PlayAnim(MRANIM_BONUS);
+							mApp->PlaySample(SOUND_BONUS);
+							aPoints = 150;
+						}
+						AddPoints(aPoints, (int)(aPiece->mX + 14.0), (int)(aPiece->mY + 14.0), false);
+
+						Point aSlot;
+						GetBagSlotPos(&aSlot, mBagsReleased);
+						// port(mods): a Puzzle bag past the needed ones earns Pickpockets, and flies to their counter
+						if ((mPickpocketsPerBag > 0) && (mPickpocket) && (mApp->mGameType == GAMETYPE_PUZZLE) &&
+							(mBagsReleased >= mBagsNeeded))
+						{
+							EarnPickpockets(1);
+							aSlot = Point(74, 412);
+						}
+						mApp->mBagCollectedOnce = true;
+						mBagsReleased++;
+						aPiece->mFlying = true;
+						aPiece->mTargetX = aSlot.mX;
+						aPiece->mTargetY = aSlot.mY;
+						aPiece->mStartX = (int) aPiece->mX;
+						aPiece->mStartY = (int) aPiece->mY;
+						int aDX = aPiece->mTargetX - aPiece->mStartX;
+						int aDY = aPiece->mTargetY - aPiece->mStartY;
+						double aSpeed = 15.0 / sqrt((double)(aDY * aDY + aDX * aDX));
+						if (aSpeed >= 0.4)
+							aSpeed = 0.4;
+						aPiece->mFlySpeed = aSpeed;
+						aPiece->mFlyT = 0.0;
+						mLoosePieces.push_back(aPiece);
+						mLastBagTick = mUpdateCnt;
+					}
+					else if (aPiece->mSpecialType == PIECE_DOLLAR_BOMB)
+					{
+						mApp->mBombSeenOnce = true;
+						aPiece->mSpecialType = PIECE_EXPLODING;
+						aPiece->mFrame = 0;
+						mGrid[aPiece->mRow][aPiece->mCol] = NULL;
+						mLoosePieces.push_back(aPiece);
+						if ((mHintVisible) && (mHintId == HINT_BOMB))
+							HideHint();
+						if (mState == STATE_PLAYING)
+							mState = STATE_BOMB;
+						mBombColor = aPiece->mColor;
+					}
+					aRemoved = true;
+					continue;
+				}
+
+				// Landing
+				if ((aPiece->mVY > 4.0) && (mUpdateCnt - mLastPieceHitTick >= 8))
+				{
+					mApp->PlaySample(SOUND_PIECEHIT);
+					mLastPieceHitTick = mUpdateCnt;
+				}
+
+				if (aBelow == NULL)
+				{
+					aPiece->mY = aFloor;
+					aPiece->mVY = aPiece->mVY * -0.15;
+				}
+				else if (aBelow->mVY > 0.0)
+				{
+					aPiece->mY = aFloor;
+					aPiece->mVY = aPiece->mVY * 0.85;
+				}
+				else if (anOldY <= aFloor)
+				{
+					aPiece->mY = aFloor;
+					aPiece->mVY = aPiece->mVY * -0.15;
+					aBelow->mVY = aBelow->mVY * -0.15;
+				}
+				else
+				{
+					// Already overlapping (the floor rose): ease out of it
+					double anOverlap = anOldY - aFloor;
+					if (anOverlap >= 0.05)
+						aPiece->mY = anOldY - anOverlap * 0.6;
+					else
+						aPiece->mY = aFloor;
+					aPiece->mVY = 0.0;
+				}
+			}
+		}
+
+		// 2b. Columns slide sideways after Compact closed a gap
+		for (int aCol = 0; aCol < mCols; aCol++)
+		{
+			double aTargetX = (double) ColX(aCol);
+			bool aLeader = true;
+			for (int aRow = mRows - 1; aRow >= 0; aRow--)
+			{
+				Piece* aPiece = mGrid[aRow][aCol];
+				if (aPiece == NULL)
+					continue;
+
+				if (aLeader)
+				{
+					double aDiff = aTargetX - aPiece->mX;
+					if (aDiff > 0.0)
+					{
+						if (aDiff >= 16.0)
+							aDiff = 16.0;
+					}
+					else if (aDiff <= -16.0)
+						aDiff = -16.0;
+					aPiece->mVX = aDiff * 0.004 + aPiece->mVX;
+
+					double aNextX = aPiece->mX + aPiece->mVX;
+					if (((aTargetX <= aPiece->mX) && (aNextX <= aTargetX)) || ((aTargetX >= aPiece->mX) && (aNextX >= aTargetX)))
+					{
+						aPiece->mX = aTargetX;
+						aPiece->mVX = 0.0;
+					}
+					else
+						aLeader = false;
+				}
+				else
+				{
+					// Followers spring toward the piece below (and above). mGrid[aRow + 1] is used twice
+					// where the original probably meant aRow + 2 (kept: 0.5*x + 0.5*x is x).
+					Piece* aBelow = mGrid[aRow + 1][aCol];
+					if (aBelow != NULL)
+					{
+						double aTarget = aBelow->mX;
+						if (aRow < mRows - 2)
+							aTarget = aTarget * 0.5 + aBelow->mX * 0.5;
+						if (aRow > 0)
+						{
+							Piece* anAbove = mGrid[aRow - 1][aCol];
+							if (anAbove != NULL)
+								aTarget = aTarget * 0.67 + anAbove->mX * 0.33;
+						}
+
+						aPiece->mVX = aPiece->mVX * 0.7 + (aTarget - aPiece->mX) * 0.45499999999999996;
+						if (abs((int) aPiece->mVX) > abs((int)(aTarget - aPiece->mX)))
+							aPiece->mVX = aTarget - aPiece->mX;
+						if (((double) abs((int)(aPiece->mX - aTarget)) < 0.005) &&
+							((double) abs((int)(aTargetX - aTarget)) < 0.005) &&
+							(aPiece->mVX < 0.005))
+						{
+							aPiece->mX = aTargetX;
+							aPiece->mVX = 0.0;
+						}
+					}
+				}
+
+				aPiece->mX = aPiece->mVX + aPiece->mX;
+			}
+		}
+	}
+
+	MarkDirty();
+	if (aRemoved)
+		Compact();
+}
+
+// 0x409520: pieces outside the grid (section 5.2)
+void Board::UpdateLoosePieces()
+{
+	if (mLoosePieces.empty())
+	{
+		if ((mFlingDelay == 0) && (mState == STATE_GAME_OVER))
+		{
+			mApp->PlaySample(SOUND_GAMEOVER);
+			mApp->mMrMoney->PlayAnim(MRANIM_GAMEOVER);
+			mState = STATE_GAME_OVER_SCORES;
+			mHighScoreDelay = 180;
+			// port(mods): seeded games keep their own tables; a replay's is only shown (ModRules.h, Replay.h)
+			mHighScoreWidget = new HighScoreWidget(mApp, mUserSeeded, mPlayer != NULL);
+			mWidgetManager->AddWidget((Widget*) mHighScoreWidget);
+			ReplayGameOver();
+			ShowContinueButton();
+			// Placed by Update state 6 once the high scores slide in
+			((Widget*) mContinueButton)->Resize(0, 0, 0, 0);
+		}
+		return;
+	}
+
+	int aCoinFrames = mApp->mImages[IMAGE_COINS]->GetWidth() / 29;
+	int aHorzFrames = mApp->mImages[IMAGE_HORZCOINS]->GetWidth() / 29;
+
+	std::list<Piece*>::iterator anItr = mLoosePieces.begin();
+	while (anItr != mLoosePieces.end())
+	{
+		Piece* aPiece = *anItr;
+		bool anErase = false;
+		bool aDelete = false;
+
+		if (aPiece->mFlying)
+		{
+			aPiece->mFlyT = aPiece->mFlySpeed + aPiece->mFlyT;
+			if (aPiece->mFlyT >= 1.0)
+			{
+				if (aPiece->mIsSpecial)
+				{
+					// A bag arrives in the holder
+					bool isBanked = false; // port(mods)
+					if (mBagsBanked < mBagsNeeded)
+					{
+						mBagsBanked++;
+						mBagFlashCount = 3;
+						isBanked = true;
+					}
+					if ((mBagsBanked == mBagsNeeded) && (mState == STATE_PLAYING) && (!PuzzlePlaysOn()))
+					{
+						HideHint();
+						if (mApp->mGameType == GAMETYPE_PUZZLE)
+							mState = STATE_PUZZLE_SWEEP;
+						else
+							LevelComplete();
+					}
+					else if ((isBanked) && (mBagsBanked == mBagsNeeded) && (PuzzlePlaysOn()))
+					{
+						// port(mods): the level is won and goes on while a group can be clicked (Board::PuzzlePlaysOn)
+						HideHint();
+						ShowBonusText(mApp->GetString("PICKPOCKET_PLAY_ON", _S("EXTRA BAGS EARN PICKPOCKETS")));
+						SDL_Log("pickpocket: level %d won, play on (tick %d)", mLevel + 1, mUpdateCnt);
+					}
+				}
+				anErase = true;
+				aDelete = true;
+			}
+
+			if (!aPiece->mIsSpecial)
+			{
+				// A combo coin flying to the meter
+				double aT4 = aPiece->mFlyT * 4.0;
+				if (aT4 >= 3.0)
+					aPiece->mImageSet = 0;
+				aPiece->mFrame = (int)((aT4 - (double)(int) aT4) * (double) aHorzFrames);
+			}
+
+			double aRest = 1.0 - aPiece->mFlyT;
+			aPiece->mX = (double)(int)((double) aPiece->mStartX * aRest + (double) aPiece->mTargetX * aPiece->mFlyT);
+			aPiece->mY = (double)(int)((double) aPiece->mStartY * aRest + (double) aPiece->mTargetY * aPiece->mFlyT);
+
+			bool isBag = (aPiece->mIsSpecial) && (aPiece->mSpecialType == PIECE_MONEYBAG);
+			if ((isBag) || (CrtRand() % 15 == 0))
+			{
+				int anOffsetX = CrtRand() % 8;
+				double aX = (((double) anOffsetX + aPiece->mX) + 14.0) - 4.0;
+				int anOffsetY = CrtRand() % 8;
+				double aY = (((double) anOffsetY + aPiece->mY) + 14.0) - 4.0;
+				int aVX = CrtRand() % 1000;
+				mParticles.push_back(MakeParticle(3, aX, aY, (double)(aVX - 500) * 0.002, -2.0, 0.1, true));
+			}
+		}
+		else if (mState != STATE_BOMB)
+		{
+			if (aPiece->mIsSpecial)
+			{
+				if (aPiece->mSpecialType != PIECE_POOF)
+				{
+					// A bag or bomb dropping in (or an exploding coin outside state 7)
+					aPiece->mVY = aPiece->mVY + 0.14;
+					double aNewX = aPiece->mVX + aPiece->mX;
+					aPiece->mX = aNewX;
+					aPiece->mY = aPiece->mVY + aPiece->mY;
+
+					int aFloorY = RowY(mRows);
+					int aFloorRow = mRows;
+					for (int aRow = 0; aRow < mRows; aRow++)
+					{
+						Piece* aCoin = mGrid[aRow][aPiece->mCol];
+						if ((aCoin != NULL) && (!aCoin->mIsSpecial))
+						{
+							aFloorRow = aCoin->mRow;
+							aFloorY = (int) aCoin->mY;
+							break;
+						}
+					}
+
+					double aTargetX = (double) ColX(aPiece->mCol);
+					if (aNewX < aTargetX)
+						aPiece->mX = aNewX + 1.0;
+					else if (aNewX > aTargetX)
+						aPiece->mX = aNewX - 1.0;
+
+					if (mState == STATE_PLAYING)
+					{
+						if (aPiece->mY >= (double)(aFloorY - 29))
+						{
+							anErase = true;
+							if (aFloorRow <= 0)
+								aDelete = true; // no room
+							else
+							{
+								mApp->PlaySample(SOUND_BAGHIT);
+								aPiece->mRow = aFloorRow - 1;
+								aPiece->mVY = 0.0;
+								aPiece->mY = (double) RowY(aPiece->mRow);
+								mGrid[aPiece->mRow][aPiece->mCol] = aPiece;
+								if ((!mApp->mBagCollectedOnce) && (aPiece->mSpecialType == PIECE_MONEYBAG) && (aPiece->mRow < mRows - 1))
+								{
+									ShowHint(HINT_BAG, mGrid[aPiece->mRow + 1][aPiece->mCol], 0);
+									mHintAlt = true;
+								}
+								if ((!mApp->mBombSeenOnce) && (aPiece->mSpecialType == PIECE_DOLLAR_BOMB))
+									ShowHint(HINT_BOMB, aPiece, 1000);
+							}
+						}
+					}
+					else if (aPiece->mY > (double) mHeight)
+					{
+						anErase = true;
+						aDelete = true;
+					}
+
+					if (CrtRand() % 2 == 0)
+					{
+						int anOffset = CrtRand() % 28;
+						mParticles.push_back(MakeParticle(2, (double) anOffset + aPiece->mX, aPiece->mY + 20.0, 0.0, 0.0, 0.035, false));
+					}
+				}
+			}
+			else
+			{
+				// A removed coin vanishing, or a flung coin
+				if (!aPiece->mDying)
+				{
+					aPiece->mVY = aPiece->mVY + 0.14;
+					aPiece->mY = aPiece->mVY + aPiece->mY;
+					aPiece->mX = aPiece->mVX + aPiece->mX;
+				}
+				if ((aPiece->mX < 84.0) || ((double) mWidth < aPiece->mX))
+				{
+					anErase = true;
+					aDelete = true;
+				}
+				if (aPiece->mSpinSpeed > 0.0)
+				{
+					aPiece->mSpin = aPiece->mSpinSpeed + aPiece->mSpin;
+					aPiece->mFrame = (int)((aPiece->mSpin - (double)(int) aPiece->mSpin) * (double) aHorzFrames);
+				}
+				if ((double) RowY(mRows - 1) <= aPiece->mY)
+				{
+					aPiece->mVY = aPiece->mVY * -0.8;
+					if (aPiece->mVY > -4.0)
+						aPiece->mVY = -4.0 - (double)(EffectsRand() % 100) * 0.01;
+					aPiece->mY = (double) RowY(mRows - 1);
+					if (aPiece->mVX < 0.0)
+						aPiece->mVX -= 0.5;
+					if (aPiece->mVX > 0.0)
+						aPiece->mVX += 0.5;
+				}
+			}
+		}
+
+		if ((aPiece->mDying) && (!aPiece->mFlying))
+		{
+			aPiece->mFrame++;
+			if (aPiece->mFrame >= aCoinFrames)
+			{
+				anErase = true;
+				aDelete = true;
+			}
+		}
+
+		int aType = aPiece->mSpecialType;
+		if ((aType == PIECE_POOF) && (mUpdateCnt % 2 == 0))
+		{
+			aPiece->mFrame++;
+			if (aPiece->mFrame >= 14)
+			{
+				anErase = true;
+				aDelete = true;
+			}
+		}
+		if ((aType == PIECE_EXPLODING) && (mUpdateCnt % 3 == 0))
+		{
+			aPiece->mFrame++;
+			if (aPiece->mFrame >= 14)
+			{
+				anErase = true;
+				aDelete = true;
+			}
+		}
+		if ((aType == PIECE_DOLLAR_BOMB) && (mUpdateCnt % 3 == 0))
+			aPiece->mFrame = (aPiece->mFrame + 1) % 32;
+
+		if (aDelete)
+			delete aPiece;
+		if (anErase)
+			anItr = mLoosePieces.erase(anItr);
+		else
+			++anItr;
+	}
+
+	MarkDirty();
+}
+
+// 0x409e00: a column that stood above both neighbours lost more than 4.2 rows at once. Run every
+// playing tick (result ignored) and by OnClick (+125).
+bool Board::TowerToppler()
+{
+	if (mApp->mGameType == GAMETYPE_PUZZLE)
+		return false;
+
+	int aTop[BOARD_COLS];
+	for (int aCol = 0; aCol < mCols; aCol++)
+	{
+		aTop[aCol] = mRows;
+		for (int aRow = 0; aRow < mRows; aRow++)
+		{
+			Piece* aPiece = mGrid[aRow][aCol];
+			if ((aPiece != NULL) && (!aPiece->mIsSpecial))
+			{
+				aTop[aCol] = aRow;
+				break;
+			}
+		}
+	}
+
+	bool aBonus = false;
+	for (int aCol = 0; aCol < mCols; aCol++)
+	{
+		int aLeft = (aCol == 0) ? mRows : aTop[aCol - 1];
+		int aRight = (aCol == mCols - 1) ? mRows : aTop[aCol + 1];
+		int aLeftDiff = aLeft - aTop[aCol];
+		if (aLeftDiff < 1)
+			aLeftDiff = 0;
+		int aRightDiff = aRight - aTop[aCol];
+		if (aRightDiff < 1)
+			aRightDiff = 0;
+		int aHeight = (aRightDiff <= aLeftDiff) ? aRightDiff : aLeftDiff;
+
+		double aNewHeight = (double) aHeight;
+		double aSmoothed = mColTowerHeight[aCol];
+		if ((aSmoothed <= 0.0) || (aSmoothed - aNewHeight < 4.2))
+			aNewHeight = aNewHeight * 0.0035 + aSmoothed * 0.9965;
+		else
+		{
+			mApp->mMrMoney->PlayAnim(MRANIM_BONUS);
+			mApp->PlaySample(SOUND_BONUS);
+			ShowBonusText(mApp->GetString("TOWER_TOPPLER_BONUS"));
+			aBonus = true;
+		}
+		mColTowerHeight[aCol] = aNewHeight;
+	}
+	return aBonus;
+}
+
+// 0x40a110 (section 6.5)
+void Board::GenerateBoard()
+{
+	mMeterCoins = 0;
+	mMeterDrained = 0.0;
+	mMeterTarget = 0.0;
+	mMeterPending = 0;
+	mMeterLaunchTimer = 0.0;
+	mMeterEmptying = 0.0;
+
+	// The pieces are not deleted (the original's grid is always empty here, or uninitialised in the ctor)
+	for (int aRow = 0; aRow < mRows; aRow++)
+	{
+		for (int aCol = 0; aCol < mCols; aCol++)
+			mGrid[aRow][aCol] = NULL;
+	}
+	int aNextRowIndex = mRows; // the loop counter the original reuses as the next row's mRow
+
+	if (mApp->mGameType == GAMETYPE_PUZZLE)
+	{
+		// The constructive generator: grow random same-colour groups until every column reaches row 6.
+		// port(mods): a smaller board (mCols x mRows, "boardSize") fills each column to 3/5 of its height
+		// (row 6 of 15), keeps two empty rows on top as the original, and uses its own columns and floor
+		// where the original has 14 and 15.
+		static const int aDirs[5][2] = { {0, 0}, {-1, 0}, {1, 0}, {0, 1}, {0, -1} };
+		int aFillRow = mRows - (3 * mRows + 4) / 5;
+
+		if (mWinnablePuzzles) // port(mods): a board whose build order, reversed, wins (PuzzleBuilder.h)
+			BuildWinnablePuzzle();
+		else
+		for (;;)
+		{
+			std::vector<int> aCandidates;
+			bool allFull = true;
+			for (int aCol = 0; aCol < mCols; aCol++)
+			{
+				Piece* aRow6 = mGrid[aFillRow][aCol];
+				if ((aRow6 != NULL) && (!aRow6->mIsSpecial))
+					continue;
+
+				bool aNearStack = false;
+				for (int k = aCol - 1; k <= aCol + 1; k++)
+				{
+					if ((k >= 0) && (k < mCols) && (mGrid[mRows - 1][k] != NULL))
+						aNearStack = true;
+				}
+				if (aNearStack)
+					aCandidates.push_back(aCol);
+				allFull = false;
+			}
+			if (allFull)
+				break;
+
+			int aCol;
+			if (aCandidates.empty())
+				aCol = (int)(mRand.Next() % (unsigned long) mCols);
+			else
+				aCol = aCandidates[mRand.Next() % (unsigned long) aCandidates.size()];
+
+			int anEmpty = 0;
+			while ((anEmpty < mRows) && (mGrid[anEmpty][aCol] == NULL))
+				anEmpty++;
+			if (anEmpty <= 1)
+				continue;
+
+			unsigned long aRand = mRand.Next() % 100000;
+			int aStartRow = (int) ceil((double)(mRows - 1) - (double)(mRows - anEmpty) * pow((double) aRand * 5e-06, 2.0) * 4.0);
+			int aColor = (int)(mRand.Next() % (unsigned long) mNumColors); // overwritten before use
+			ResetMarks();
+			Piece* aFirst = NULL;
+			int aPlaced = 0;
+			aRand = mRand.Next() % 100000;
+			int aTargetSize = (int)(pow((double) aRand * 5e-06, 4.0) * 16.0 * 15.0);
+
+			for (int anAttempt = 0; ; anAttempt++)
+			{
+				if ((anAttempt >= aTargetSize) && (aPlaced >= 2))
+					break;
+
+				// port: the first coin can only go into aCol and needs mGrid[2][aCol] empty; when that row is
+				// taken (a column of 13 picked by Next() % 14 with no candidate column left) the original
+				// loops forever. Leaving the group changes no run that does not hang.
+				if ((aFirst == NULL) && (mGrid[2][aCol] != NULL))
+					break;
+
+				int aX;
+				int aY;
+				if (aFirst == NULL)
+				{
+					if ((anAttempt > 4) && (aStartRow < mRows - 1))
+						aStartRow++;
+					aX = aCol;
+					aY = aStartRow;
+					aColor = (int)(mRand.Next() % (unsigned long) mNumColors);
+				}
+				else
+				{
+					// Grow from a random member of the group
+					std::vector<Point> aMembers;
+					for (int aRow = 0; aRow < 15; aRow++)
+					{
+						for (int aMemberCol = 0; aMemberCol < 14; aMemberCol++)
+						{
+							Piece* aPiece = mGrid[aRow][aMemberCol];
+							if ((aPiece != NULL) && (aPiece->mMark == 1))
+								aMembers.push_back(Point(aMemberCol, aRow));
+						}
+					}
+					unsigned long anIndex = mRand.Next() % (unsigned long) aMembers.size();
+					unsigned long aDir = mRand.Next() & 3; // dir 4 (0,-1) is never drawn
+					aX = aMembers[anIndex].mX + aDirs[aDir][0];
+					aY = aMembers[anIndex].mY + aDirs[aDir][1];
+				}
+
+				if ((aX >= 0) && (aX < mCols) && (aY >= 0) && (aY < mRows) && ((aY == mRows - 1) || (mGrid[aY + 1][aX] != NULL)))
+				{
+					// No contact with another coin of the same colour (also next to the pieces this
+					// insertion pushes up)
+					bool isOk = true;
+					Piece* aCheck = mGrid[aY][aX];
+					if ((aCheck != NULL) && (aCheck->mColor == aColor) && (aCheck->mMark != 1))
+						isOk = false;
+					if ((aX - 1 >= 0) && (aX - 1 < mCols) && ((aCheck = mGrid[aY][aX - 1]) != NULL) && (aCheck->mColor == aColor) && (aCheck->mMark != 1))
+						isOk = false;
+					if ((aX + 1 >= 0) && (aX + 1 < mCols) && ((aCheck = mGrid[aY][aX + 1]) != NULL) && (aCheck->mColor == aColor) && (aCheck->mMark != 1))
+						isOk = false;
+					if ((aY + 1 >= 0) && (aY + 1 < mRows) && ((aCheck = mGrid[aY + 1][aX]) != NULL) && (aCheck->mColor == aColor) && (aCheck->mMark != 1))
+						isOk = false;
+					for (int aRow = aY - 1; aRow >= 0; aRow--)
+					{
+						Piece* aMember = mGrid[aRow + 1][aX];
+						if ((aMember == NULL) || (aMember->mMark != 1))
+							break;
+						for (int aNeighbourCol = aX - 1; aNeighbourCol <= aX + 1; aNeighbourCol++)
+						{
+							// The original does not bounds-check this column: aX - 1 = -1 reads mGrid[aRow - 1][13]
+							// and aX + 1 = 14 reads mGrid[aRow + 1][0] (row-major wrap); kept, through a flat index.
+							// aRow >= 1 here (rows 0 and 1 stay empty while the generator runs), so it stays in mGrid.
+							int aCell = aRow * BOARD_COLS + aNeighbourCol;
+							aCheck = mGrid[aCell / BOARD_COLS][aCell % BOARD_COLS];
+							if ((aCheck != NULL) && (aCheck->mColor == aColor) && (aCheck->mMark != 1))
+								isOk = false;
+						}
+					}
+
+					if ((mGrid[2][aX] == NULL) && (isOk))
+					{
+						// Rows 1..aY of the column move up one to make room
+						for (int aRow = 1; aRow <= aY; aRow++)
+						{
+							Piece* aPiece = mGrid[aRow][aX];
+							if (aPiece != NULL)
+							{
+								aPiece->mRow--;
+								mGrid[aRow - 1][aX] = aPiece;
+								mGrid[aRow][aX] = NULL;
+							}
+						}
+
+						Piece* aPiece = new Piece();
+						aPiece->mCol = aX;
+						aPiece->mRow = aY;
+						aPiece->mX = (double) ColX(aX);
+						aPiece->mColor = aColor;
+						aPiece->mMark = 1;
+						mGrid[aY][aX] = aPiece;
+						if (aFirst == NULL)
+							aFirst = aPiece;
+						aPlaced++;
+					}
+				}
+
+				if ((aPlaced == 1) && (anAttempt > 8))
+				{
+					// A lone coin is no group: take it back and repack its column
+					delete aFirst;
+					mGrid[aStartRow][aCol] = NULL;
+					int aDest = mRows - 1;
+					for (int aRow = mRows - 1; aRow >= 0; aRow--)
+					{
+						Piece* aPiece = mGrid[aRow][aCol];
+						if (aPiece != NULL)
+						{
+							mGrid[aDest][aCol] = aPiece;
+							aPiece->mRow = aDest;
+							aDest--;
+						}
+					}
+					for (int aRow = aDest; aRow >= 0; aRow--)
+						mGrid[aRow][aCol] = NULL;
+					break;
+				}
+			}
+		}
+
+		// Money bags on top of (mBagsNeeded - skill + 4) random columns (CRT rand)
+		std::vector<int> aColumns;
+		for (int aCol = 0; aCol < mCols; aCol++)
+			aColumns.push_back(aCol);
+		int aBagColumns = (mBagsNeeded - mApp->mSkillLevel) + 4;
+		for (int i = 0; i < mCols - aBagColumns; i++)
+		{
+			unsigned int anIndex = (unsigned int) BagColumnRand() % (unsigned int) aColumns.size();
+			aColumns.erase(aColumns.begin() + anIndex);
+		}
+		for (size_t i = 0; i < aColumns.size(); i++)
+		{
+			Piece* aBag = new Piece();
+			int aCol = aColumns[i];
+			aBag->mCol = aCol;
+			int aRow = mRows - 1;
+			while (mGrid[aRow][aCol] != NULL)
+				aRow--;
+			aBag->mRow = aRow;
+			aBag->mIsSpecial = true;
+			aBag->mSpecialType = PIECE_MONEYBAG;
+			aBag->mX = (double) ColX(aCol);
+			mGrid[aRow][aCol] = aBag;
+		}
+
+		// The columns drop in from above the screen
+		for (int aCol = 0; aCol < mCols; aCol++)
+		{
+			int aY = -58 - (int)(((double)(mRand.Next() % 10) * 0.3333333333333333 + 1.2) * 29.0);
+			for (int aRow = mRows - 1; aRow >= 0; aRow--)
+			{
+				Piece* aPiece = mGrid[aRow][aCol];
+				if (aPiece == NULL)
+					break;
+				aPiece->mY = (double) aY;
+				aY += (int)(((double)(mRand.Next() % 10) * 0.3333333333333333 + 1.2) * -29.0);
+			}
+		}
+		if (mWinnablePuzzles) // port(mods)
+			CheckWinnablePuzzle();
+	}
+	else
+	{
+		// Action / Strategy: 6 rows of random coins dropping in from above
+		for (int aCol = 0; aCol < mCols; aCol++)
+		{
+			int aY = -58;
+			double aX = (double) ColX(aCol);
+			for (int aRow = mRows - 1; aRow >= mRows - (6 * mRows + 7) / 15; aRow--) // port(mods): 6 of 15 rows
+			{
+				aY += (int)(((double)(mRand.Next() % 10) * 0.3333333333333333 + 1.2) * -29.0);
+				Piece* aPiece = new Piece();
+				aPiece->mY = (double) aY;
+				aPiece->mCol = aCol;
+				aPiece->mRow = aRow;
+				aPiece->mX = aX;
+				aPiece->mColor = (int)(mRand.Next() % (unsigned long) mNumColors);
+				mGrid[aRow][aCol] = aPiece;
+			}
+		}
+	}
+
+	// The next row
+	double aNextY = (double)(RowY(mRows) + 6);
+	for (int aCol = 0; aCol < mCols; aCol++)
+	{
+		mColTowerHeight[aCol] = 0.0;
+		mColWarning[aCol] = -1;
+		Piece* aPiece = new Piece();
+		aPiece->mCol = aCol;
+		aPiece->mRow = aNextRowIndex;
+		aPiece->mY = aNextY;
+		aPiece->mX = (double) ColX(aCol);
+		aPiece->mColor = (int)(mRand.Next() % (unsigned long) mNumColors);
+		delete mNextRow[aCol]; // port: the original leaks the previous level's next row
+		mNextRow[aCol] = aPiece;
+	}
+
+	mMintDelay = 160;
+	FindGroups();
+	mMint = 0.0;
+	mMintTarget = 0.25;
+	mMintPixels = 29;
+	mLastGroupSize = 0;
+	mPrevGroupSize = 0;
+	mLastColor = 0;
+	mColorStreak = 0;
+	mSweepTone = 0;
+	UpdateMovesLeft();
+}
+
+// 0x40ae20
+void Board::NextLevel()
+{
+	mLevel++;
+	mState = STATE_PLAYING;
+	if (mContinueButton != NULL)
+	{
+		mWidgetManager->RemoveWidget((Widget*) mContinueButton);
+		mApp->SafeDeleteWidget((Widget*) mContinueButton);
+		mContinueButton = NULL;
+	}
+	mLevelCoinsCleared = 0;
+	mLevelBiggestBonus = 0;
+	mLevelBiggestCombo = 0;
+	mBagsReleased = 0;
+	mBagsBanked = 0;
+	mGoTimer = 80;
+	SetupLevelParams();
+	GenerateBoard();
+	if (mPickpocket) // port(mods)
+		mPickpockets = std::min(mPickpockets + mPickpocketsPerLevel, mPickpocketsMax);
+}
+
+// 0x40aea0: a money bag (meter full) or a dollar bomb drops into a free column
+void Board::DropSpecial(int theType)
+{
+	std::vector<int> aCandidates;
+	for (int aCol = 0; aCol < mCols; aCol++)
+	{
+		bool isFree = true;
+		for (int aRow = 0; aRow < mRows; aRow++)
+		{
+			Piece* aPiece = mGrid[aRow][aCol];
+			if ((aPiece != NULL) && ((aRow == 0) || (aPiece->mIsSpecial)))
+				isFree = false;
+		}
+		for (std::list<Piece*>::iterator anItr = mLoosePieces.begin(); anItr != mLoosePieces.end(); ++anItr)
+		{
+			if (((*anItr)->mCol == aCol) && ((*anItr)->mIsSpecial))
+				isFree = false;
+		}
+		if (isFree)
+			aCandidates.push_back(aCol);
+	}
+
+	// The very first bag of the session never drops into the last column
+	if ((theType == PIECE_MONEYBAG) && (!mApp->mBagCollectedOnce) && (mApp->mGameType != GAMETYPE_PUZZLE))
+	{
+		for (std::vector<int>::iterator anItr = aCandidates.begin(); anItr != aCandidates.end(); ++anItr)
+		{
+			if (*anItr == mCols - 1)
+			{
+				aCandidates.erase(anItr);
+				break;
+			}
+		}
+	}
+
+	if (aCandidates.empty())
+		return;
+
+	int aCol = aCandidates[mRand.Next() % (unsigned long) aCandidates.size()];
+	Piece* aPiece = new Piece();
+	aPiece->mY = -29.0;
+	aPiece->mVX = 0.5;
+	aPiece->mCol = aCol;
+	aPiece->mX = (double) ColX(aCol);
+	aPiece->mIsSpecial = true;
+	aPiece->mSpecialType = theType;
+	if (theType == PIECE_DOLLAR_BOMB)
+		aPiece->mColor = (int)(mRand.Next() % (unsigned long) mNumColors);
+	mLoosePieces.push_back(aPiece);
+}
+
+// 0x40b120: a clicked group (section 6.8)
+void Board::OnClick(Piece* thePiece)
+{
+	bool aVoiced = (mState != STATE_PLAYING);
+	if (thePiece->mIsSpecial)
+		return;
+
+	int aCount = 0;
+	int aSum[2] = { 0, 0 };
+	FloodFill(thePiece->mCol, thePiece->mRow, mUpdateCnt, true, &aCount, aSum);
+	if (aCount < mMinGroup)
+	{
+		MarkDirty();
+		return;
+	}
+	if (mSolver != NULL) // port(mods): the game before this click, for the solver's undo
+		SaveSolverUndo();
+
+	if (!mPlayStarted)
+	{
+		mApp->mTimesPlayed++;
+		mPlayStarted = true;
+		UsePendingSeed(); // port(mods)
+	}
+	mApp->mHasClickedGroup = true;
+
+	if ((mHintVisible) && ((mHintId == HINT_CLICK_GROUP) || (mHintId == HINT_CLICK_GROUP_PUZZLE)))
+	{
+		HideHint();
+		if (mApp->mGameType == GAMETYPE_PUZZLE)
+		{
+			for (int aRow = 0; aRow < 15; aRow++)
+			{
+				for (int aCol = 0; aCol < 14; aCol++)
+				{
+					Piece* aPiece = mGrid[aRow][aCol];
+					if ((!mHintVisible) && (aPiece != NULL) && (aPiece->mIsSpecial) && (aPiece->mSpecialType == PIECE_MONEYBAG))
+						ShowHint(HINT_PUZZLE_BAG, aPiece, 1000);
+				}
+			}
+		}
+		else
+		{
+			ShowHintAt(HINT_METER, Point(610, 0), 1000);
+			mHintFollowMeter = true;
+		}
+	}
+
+	// Specials directly above the group
+	int aBagsAbove = 0;
+	for (int aRow = 1; aRow < mRows; aRow++)
+	{
+		for (int aCol = 0; aCol < mCols; aCol++)
+		{
+			Piece* aPiece = mGrid[aRow][aCol];
+			Piece* anAbove = mGrid[aRow - 1][aCol];
+			if ((aPiece != NULL) && (aPiece->mMark == mUpdateCnt) && (anAbove != NULL) && (anAbove->mIsSpecial))
+				aBagsAbove++;
+		}
+	}
+
+	// gGroupBaseScores[aCount - 2], or (aCount - 2) * 25 - 145 past its end. port(mods): a mod can change
+	// both (BoardTunables::GroupPoints)
+	int aScore = mTunables.GroupPoints(aCount);
+	if (aBagsAbove > 0)
+		aScore *= 2;
+
+	// Combos over the last three clicks
+	int aPrev1 = mLastGroupSize;
+	int aPrev2 = mPrevGroupSize;
+	const char* aComboId = NULL;
+	int aComboAnim = 0;
+	int aComboSound = 0;
+	int aComboBonus = 0;
+	if ((aCount >= 13) && (aPrev1 >= 13) && (aPrev2 >= 13))
+	{
+		aComboId = "TRIPLE_HYPER_COMBO"; aComboAnim = MRANIM_AWESOME; aComboSound = SOUND_AWESOME; aComboBonus = 450;
+	}
+	else if (aCount > 19)
+	{
+		aComboId = "AWESOME_COMBO"; aComboAnim = MRANIM_AWESOME; aComboSound = SOUND_AWESOME; aComboBonus = 400;
+	}
+	else if ((aCount > 9) && (aPrev1 > 9) && (aPrev2 > 9))
+	{
+		aComboId = "TRIPLE_MEGA_COMBO"; aComboAnim = MRANIM_UNBELIEVABLE; aComboSound = SOUND_UNBELIEVABLE; aComboBonus = 350;
+	}
+	else if ((aCount > 12) && (aPrev1 > 12))
+	{
+		aComboId = "DOUBLE_HYPER_COMBO"; aComboAnim = MRANIM_UNBELIEVABLE; aComboSound = SOUND_UNBELIEVABLE; aComboBonus = 350;
+	}
+	else if ((aCount > 9) && (aPrev1 > 9))
+	{
+		aComboId = "DOUBLE_MEGA_COMBO"; aComboAnim = MRANIM_INCREDIBLE; aComboSound = SOUND_INCREDIBLE; aComboBonus = 250;
+	}
+	else if (aCount > 14)
+	{
+		aComboId = "BIG_MONEY_COMBO"; aComboAnim = MRANIM_BIGMONEY; aComboSound = SOUND_BIGMONEY; aComboBonus = 200;
+	}
+	else if ((aCount > 6) && (aPrev1 > 6) && (aPrev2 > 6))
+	{
+		aComboId = "TRIPLE_COMBO"; aComboAnim = MRANIM_AWESOME; aComboSound = SOUND_AWESOME; aComboBonus = 100;
+	}
+	else if ((aCount > 6) && (aPrev1 > 6))
+	{
+		aComboId = "DOUBLE_COMBO"; aComboAnim = MRANIM_GOODJOB; aComboSound = SOUND_GOODJOB; aComboBonus = 75;
+	}
+	else if (aCount > 9)
+	{
+		aComboId = "EXCELLENT_COMBO"; aComboAnim = MRANIM_EXCELLENT; aComboSound = SOUND_EXCELLENT; aComboBonus = 25;
+	}
+
+	if (aComboId != NULL)
+	{
+		if (!aVoiced)
+		{
+			mApp->mMrMoney->PlayAnim(aComboAnim);
+			mApp->PlaySample(aComboSound);
+		}
+		ShowBonusText(mApp->GetString(aComboId));
+		aScore += aComboBonus;
+		aVoiced = true;
+	}
+
+	// Colour combo
+	if (thePiece->mColor == mLastColor)
+	{
+		mColorStreak++;
+		if (mColorStreak == 4)
+		{
+			if (!aVoiced)
+			{
+				mApp->mMrMoney->PlayAnim(MRANIM_BONUS);
+				mApp->PlaySample(SOUND_BONUS);
+				aVoiced = true;
+			}
+			ShowBonusText(mApp->GetString("COLOR_COMBO_BONUS"));
+			aScore += 20;
+		}
+		else if (mColorStreak == 6)
+		{
+			if (!aVoiced)
+			{
+				mApp->mMrMoney->PlayAnim(MRANIM_SUPERBONUS);
+				mApp->PlaySample(SOUND_SUPERBONUS);
+				aVoiced = true;
+			}
+			ShowBonusText(mApp->GetString("SUPER_COLOR_COMBO_BONUS"));
+			aScore += 50;
+		}
+	}
+	else
+	{
+		mLastColor = thePiece->mColor;
+		mColorStreak = 1;
+	}
+
+	// Speed bonus (Action)
+	if (mApp->mGameType == GAMETYPE_ACTION)
+	{
+		mSpeedBonus = mSpeedBonus + 0.16;
+		if (mSpeedBonus >= 1.0)
+		{
+			mSpeedBonus = 0.0;
+			if (!aVoiced)
+			{
+				mApp->mMrMoney->PlayAnim(MRANIM_SPEEDBONUS);
+				mApp->PlaySample(SOUND_SPEEDBONUS);
+				aVoiced = true;
+			}
+			ShowBonusText(mApp->GetString("SPEED_BONUS"));
+			aScore += 40;
+		}
+	}
+
+	mLevelCoinsCleared += aCount;
+	mGameCoinsCleared += aCount;
+	if (mLevelBiggestCombo < aCount)
+		mLevelBiggestCombo = aCount;
+	if (mGameBiggestCombo < aCount)
+		mGameBiggestCombo = aCount;
+
+	if (aCount <= 4)
+		mApp->PlaySample(SOUND_CLEARCOINS);
+	else if (aCount <= 9)
+		mApp->PlaySample(SOUND_CLEARCOINS2);
+	else
+		mApp->PlaySample(SOUND_CLEARCOINS3);
+	if (mApp->mGameType == GAMETYPE_PUZZLE)
+		mApp->PlaySample(SOUND_TONEPUZZLE);
+	else
+	{
+		double aTone = mMeterFraction * 9.0;
+		if (8.0 < aTone)
+			aTone = 8.0;
+		mApp->PlaySample((int) aTone + SOUND_TONE1);
+	}
+
+	int aColumnsBefore = CountCoinColumns();
+
+	// Remove the group
+	int aMinRow = mRows;
+	int aMaxRow = -1;
+	for (int aRow = 0; aRow < mRows; aRow++)
+	{
+		for (int aCol = 0; aCol < mCols; aCol++)
+		{
+			Piece* aPiece = mGrid[aRow][aCol];
+			if ((aPiece == NULL) || (aPiece->mMark != mUpdateCnt))
+				continue;
+
+			if (aPiece == mHintPiece)
+				HideHint();
+			if (aRow < aMinRow)
+				aMinRow = aRow;
+			if (aMaxRow < aRow)
+				aMaxRow = aRow;
+			aPiece->mDanger = false;
+			aPiece->mGroupSize = 0;
+			aPiece->mHighlighted = false;
+			aPiece->mVX = 0.0;
+			aPiece->mVY = 0.0;
+
+			if (aBagsAbove >= 1)
+			{
+				aPiece->mIsSpecial = true;
+				aPiece->mSpecialType = PIECE_POOF;
+				aPiece->mFrame = 0;
+			}
+			else if (aCount >= 7)
+			{
+				// Big groups fly to the meter
+				aPiece->mFlying = true;
+				aPiece->mTargetX = METER_TARGET_X;
+				aPiece->mTargetY = METER_TARGET_Y;
+				aPiece->mStartX = (int) aPiece->mX;
+				aPiece->mStartY = (int) aPiece->mY;
+				int aDX = aPiece->mTargetX - aPiece->mStartX;
+				int aDY = aPiece->mTargetY - aPiece->mStartY;
+				double aSpeed = 9.0 / sqrt((double)(aDY * aDY + aDX * aDX));
+				if (aSpeed >= 0.2)
+					aSpeed = 0.2;
+				aPiece->mFlySpeed = aSpeed;
+				aPiece->mFlyT = 0.0;
+				aPiece->mImageSet = CrtRand() % 2 + 1;
+				aPiece->mDying = true;
+			}
+			else
+			{
+				if (aCount >= 5)
+				{
+					for (int k = -1; k < 2; k++)
+						mParticles.push_back(MakeParticle(2, aPiece->mX + 14.0, aPiece->mY + 14.0, (double) k * 1.5, -3.0, 0.2, true));
+				}
+				aPiece->mDying = true;
+				aPiece->mFrame = 0;
+			}
+
+			mLoosePieces.push_back(aPiece);
+			mGrid[aRow][aCol] = NULL;
+		}
+	}
+
+	if (aMinRow <= aMaxRow)
+	{
+		int aDelay = (aMaxRow - aMinRow) * 8 + 24;
+		if (aDelay <= mMintDelay)
+			aDelay = mMintDelay;
+		mMintDelay = aDelay;
+	}
+
+	Compact();
+	if (TowerToppler())
+		aScore += 125;
+
+	int aColumnsCleared = aColumnsBefore - CountCoinColumns();
+	if (aColumnsCleared >= 6)
+	{
+		if (!aVoiced)
+		{
+			mApp->mMrMoney->PlayAnim(MRANIM_SUPERBONUS);
+			mApp->PlaySample(SOUND_SUPERBONUS);
+		}
+		ShowBonusText(mApp->GetString("SUPER_COLUMN_CLEARING_BONUS"));
+		aScore += 200;
+	}
+	else if (aColumnsCleared >= 3)
+	{
+		if (!aVoiced)
+		{
+			mApp->mMrMoney->PlayAnim(MRANIM_BONUS);
+			mApp->PlaySample(SOUND_BONUS);
+		}
+		ShowBonusText(mApp->GetString("COLUMN_CLEARING_BONUS"));
+		aScore += 50;
+	}
+
+	AddPoints(aScore, aSum[0] / aCount + 14, aSum[1] / aCount + 14, true);
+
+	if ((mApp->mGameType == GAMETYPE_STRATEGY) && (aBagsAbove == 0))
+	{
+		mMintTarget = mMintPerClick + mMintTarget;
+		UpdateMovesLeft();
+		if ((mMovesLeft <= 3) && (mMovesLeft >= 1))
+		{
+			int aDigit = 3 - mMovesLeft;
+			mApp->mMrMoney->PlayAnim(aDigit + MRANIM_THREE);
+			mApp->PlaySample(aDigit + SOUND_THREE);
+			mMoveDigitActive = true;
+			mMoveDigit = aDigit;
+			mMoveDigitFade = 1.0;
+		}
+	}
+
+	mPrevGroupSize = mLastGroupSize;
+	mLastGroupSize = aCount;
+	MarkDirty();
+}
+
+// 0x40c5c0
+void Board::ClickAt(int x, int y)
+{
+	Piece* aPiece = PieceAt(x, y);
+	// port(mods): a click on the solver's status lines (not on a coin) asks for a hint, on its undo line
+	// takes back the last click (PuzzleSolver.h)
+	Rect aStatusRect;
+	std::vector<SolverLine> aLines;
+	if ((aPiece == NULL) && (mSolver != NULL) && (GetSolverStatusRect(&aStatusRect, &aLines)) &&
+		(aStatusRect.Contains(x, y)))
+	{
+		size_t aLine = std::min((size_t) std::max(y - aStatusRect.mY - 3, 0) / 19, aLines.size() - 1);
+		if (aLines[aLine].mKind == SOLVER_LINE_UNDO)
+			RequestSolverUndo();
+		else
+			RequestSolverHint();
+		return;
+	}
+	if ((aPiece != NULL) && (!aPiece->mIsSpecial))
+	{
+		if ((mSolver != NULL) && (!CheckSolverClick(aPiece))) // port(mods)
+			return;
+		OnClick(aPiece);
+	}
+}
+
+// 0x40c5f0 slot 38: any mouse button
+void Board::MouseDown(int x, int y, int theClickCount)
+{
+	Widget::MouseDown(x, y, theClickCount);
+	if (mPauseCount > 0)
+	{
+		Pause(false);
+		return;
+	}
+	if (mPlayer != NULL) // port(mods): a replay plays its own clicks
+		return;
+	if (mState == STATE_PLAYING)
+	{
+		// port(mods): Pickpockets. A click on the counter arms one (not recorded: it changes only what is
+		// lit); a right click on a group too small to click, or any click on one while armed, uses one.
+		if (mPickpocket)
+		{
+			Rect aRect;
+			SexyString aText;
+			if ((GetPickpocketRect(&aRect, &aText)) && (aRect.Contains(x, y)))
+			{
+				ArmPickpocket(!mPickpocketArmed);
+				return;
+			}
+			Piece* aPiece = PieceAt(x, y);
+			if (((theClickCount < 0) || (mPickpocketArmed)) && (aPiece != NULL) && (IsPickpocketTarget(aPiece)))
+			{
+				RecordInput(Replay::OP_POCKET, x, y);
+				UsePickpocket(x, y);
+				return;
+			}
+		}
+		RecordInput(Replay::OP_CLICK, x, y); // port(mods)
+		ClickAt(x, y);
+	}
+}
+
+// 0x40c640: the money meter (section 5.3)
+void Board::UpdateMeter()
+{
+	if ((mMeterLaunchTimer <= 0.0) && (mMeterPending > 0))
+	{
+		unsigned int aStacked = (unsigned int)((int) mTubeCoins.size() + mMeterCoins);
+		int aTop = (int)(440.0 - ((((double) aStacked) - mMeterDrained) + 3.0) * 6.0);
+		TubeCoin aCoin;
+		aCoin.mDist = (double)(aTop - 32);
+		aCoin.mY = (double) aTop - aCoin.mDist;
+		aCoin.mFrame = 0;
+		mTubeCoins.push_back(aCoin);
+		mMeterPending--;
+		mMeterLaunchTimer = mMeterLaunchTimer + 1.0;
+	}
+
+	if (mMeterLaunchTimer > 0.0)
+		mMeterLaunchTimer = mMeterLaunchTimer - (double) mMeterPending * 0.125;
+
+	std::list<TubeCoin>::iterator anItr = mTubeCoins.begin();
+	while (anItr != mTubeCoins.end())
+	{
+		anItr->mDist = anItr->mDist - 15.0;
+		anItr->mY = anItr->mY + 15.0;
+		anItr->mFrame = (int)(9.0 * anItr->mDist * 0.0022222222222222222);
+		if (anItr->mDist < 0.0)
+		{
+			anItr = mTubeCoins.erase(anItr);
+			mMeterCoins++;
+			mApp->PlaySample(SOUND_COINTUBE);
+		}
+		else
+			++anItr;
+		MarkDirty();
+	}
+
+	double aFill = ((double) mMeterCoins - mMeterDrained) * 0.015625;
+	if (aFill > 1.0)
+	{
+		if (mMeterFlashTimer != 0)
+			return;
+
+		if (mMeterEmptying == 0.0)
+		{
+			// Full: a money bag drops and the meter empties by one full meter
+			mMeterEmptying = mMeterEmptying + 64.0;
+			mMeterPending = 0;
+			mMeterFlashFrame = 0;
+			mMeterFlashTimer = 160;
+			mMeterJustFull = 1.0;
+			mMeterFraction = 0.0;
+			if (mState == STATE_PLAYING)
+			{
+				mApp->PlaySample(SOUND_BONUSDROP);
+				DropSpecial(PIECE_MONEYBAG);
+			}
+		}
+	}
+
+	if (mMeterFlashTimer != 0)
+		return;
+
+	if (mMeterEmptying > 0.0)
+	{
+		if (mMeterEmptying >= 0.5)
+		{
+			mMeterDrained = mMeterDrained + 0.5;
+			mMeterEmptying = mMeterEmptying - 0.5;
+		}
+		else
+		{
+			mMeterDrained = mMeterEmptying + mMeterDrained;
+			mMeterEmptying = 0.0;
+		}
+	}
+
+	if ((aFill > 0.0) && (mState == STATE_PLAYING) && (mApp->mGameType == GAMETYPE_ACTION))
+	{
+		// Action: the meter drains over time
+		if (mUpdateCnt % 2 == 0)
+			mMeterDrained = mMeterDrainRate * 64.0 + mMeterDrained;
+		if (mMeterDrained <= 0.0)
+			mMeterDrained = 0.0;
+
+		double aLevel = aFill * 6.0;
+		if (5.0 < aLevel)
+			aLevel = 5.0;
+		int aMeterLevel = (int) aLevel;
+		if (aMeterLevel != mMeterLevel)
+			mMeterLevel = aMeterLevel;
+		MarkDirty();
+	}
+}
+
+// 0x40c9f0 slot 9: the per-tick order of section 5
+void Board::Update()
+{
+	if (mState == STATE_FROZEN)
+		return;
+
+	if (mPauseCount > 0)
+	{
+		mPauseClickable = (mApp->GetDialogCount() == 0);
+		if (mPauseFade < 1.0)
+		{
+			mPauseFade = mPauseFade + 0.05;
+			if (mPauseFade > 1.0)
+				mPauseFade = 1.0;
+			MarkDirty();
+		}
+	}
+	else if (mPauseFade > 0.0)
+	{
+		mPauseFade = mPauseFade - 0.05;
+		if (mPauseFade < 0.0)
+			mPauseFade = 0.0;
+		MarkDirty();
+	}
+
+	if (mPauseFade > 0.0)
+	{
+		mPauseAnim++;
+		if (mPauseAnim % 8 == 0)
+			MarkDirty();
+	}
+
+	if (mPauseCount > 0)
+	{
+		mApp->mMrMoney->mTargetX = 0;
+		mApp->mMrMoney->mTargetY = 290;
+		return;
+	}
+
+	// port(mods): a replay's input of this tick, before the tick as the player's came (Replay.h)
+	if (mPlayer != NULL)
+		mPlayer->Apply(this, (uint32_t) mUpdateCnt);
+
+	Widget::Update();
+
+	// 0x41d2e0: at update 100 an unregistered Puzzle game shows the "one level only" dialog; not ported
+	// (the build is registered)
+
+	if (mUpdateCnt == 300)
+	{
+		mApp->mMrMoney->mTargetX = 0;
+		mApp->mMrMoney->mTargetY = 290;
+	}
+
+	if ((mUpdateCnt == 600) && (!mApp->mHasClickedGroup))
+	{
+		// The instructor points at a clickable group: an exact-size one first, then any
+		int aHintId = (mApp->mGameType == GAMETYPE_PUZZLE) ? HINT_CLICK_GROUP_PUZZLE : HINT_CLICK_GROUP;
+		for (int aPass = 0; aPass < 2; aPass++)
+		{
+			for (int aRow = 10; aRow < mRows; aRow++)
+			{
+				for (int aCol = 3; aCol < mCols - 3; aCol++)
+				{
+					Piece* aPiece = mGrid[aRow][aCol];
+					if (aPiece == NULL)
+						continue;
+					bool aMatch = (aPass == 0) ? (aPiece->mGroupSize == mMinGroup) : (mMinGroup <= aPiece->mGroupSize);
+					if ((aMatch) && (!mHintVisible))
+						ShowHint(aHintId, aPiece, 0);
+				}
+			}
+		}
+	}
+
+	if (mBillsToSpawn > 0)
+	{
+		Bill aBill;
+		aBill.mX = (double)(CrtRand() % 500 + 80);
+		int aSpeed = CrtRand() % 1000;
+		aBill.mY = -50.0;
+		aBill.mVY = (double) aSpeed * 0.001 * 1.2 + 1.6;
+		aBill.mFrame = CrtRand() % 16;
+		aBill.mType = CrtRand() % 5;
+		mBills.push_back(aBill);
+		mBillsToSpawn--;
+	}
+
+	if (mFlingDelay > 0)
+	{
+		mFlingDelay--;
+		if (mFlingDelay == 0)
+			FlingAllCoins();
+	}
+
+	// The glint (written only: Board::Draw never reads it)
+	if (!mGlintActive)
+	{
+		if (CrtRand() % 2000 == 0)
+		{
+			mGlintActive = true;
+			mGlintTick = 0;
+			mGlintFrame = 0;
+			MarkDirty();
+		}
+	}
+	else
+	{
+		if (mUpdateCnt % 10 == 0)
+		{
+			mGlintFrame++;
+			if (mGlintFrame > 14)
+				mGlintActive = false;
+			MarkDirty();
+		}
+		if (mUpdateCnt % 4 == 0)
+		{
+			mGlintTick++;
+			MarkDirty();
+		}
+	}
+
+	if (mRepaintTimer > 0)
+	{
+		mRepaintTimer--;
+		if (mRepaintTimer == 0)
+			MarkDirty();
+	}
+
+	if (mSpeedBonus > 0.0)
+	{
+		mSpeedBonus = mSpeedBonus - 0.0025;
+		if (mSpeedBonus < 0.0)
+			mSpeedBonus = 0.0;
+	}
+
+	if ((mState == STATE_BOMB) && (mUpdateCnt % 8 == 0))
+	{
+		// The next coin of the bomb's colour explodes
+		bool aFound = false;
+		for (int aRow = 0; (aRow < mRows) && (!aFound); aRow++)
+		{
+			for (int aCol = 0; aCol < mCols; aCol++)
+			{
+				Piece* aPiece = mGrid[aRow][aCol];
+				if ((aPiece == NULL) || (aPiece->mIsSpecial) || (aPiece->mColor != mBombColor))
+					continue;
+
+				if (mExplodeSound != NULL)
+					mExplodeSound->Play(false, false);
+				if ((mHintVisible) && (aPiece == mHintPiece))
+					HideHint();
+				aPiece->mIsSpecial = true;
+				aPiece->mSpecialType = PIECE_EXPLODING;
+				mGrid[aRow][aCol] = NULL;
+				mLoosePieces.push_back(aPiece);
+				aFound = true;
+				break;
+			}
+		}
+		Compact();
+		if (aFound)
+			mBombIdle = 8;
+		else
+		{
+			mBombIdle--;
+			if (mBombIdle < 1)
+				mState = STATE_PLAYING;
+		}
+	}
+
+	if (mState == STATE_PLAYING)
+		TowerToppler();
+
+	if (mUpdateCnt == 1)
+	{
+		mApp->mMrMoney->mTargetX = 350;
+		mApp->mMrMoney->mTargetY = 24;
+		mApp->PlaySample(SOUND_GETREADY);
+		mApp->mMrMoney->PlayAnim(MRANIM_GETREADY);
+	}
+
+	if (mGoTimer > 0)
+	{
+		mGoTimer--;
+		if (mGoTimer == 0)
+		{
+			mApp->PlaySample(SOUND_GO);
+			mApp->mMrMoney->PlayAnim(MRANIM_GO);
+			mBannerTimer = (mLevel != 0) ? 384 : 480;
+		}
+	}
+
+	if (mBannerTimer > 0)
+	{
+		mBannerTimer--;
+		bool aVisible = ((mBannerTimer / 12) % 4) != 0;
+		if (aVisible != mBannerVisible)
+		{
+			mBannerVisible = aVisible;
+			MarkDirty();
+		}
+	}
+
+	if (mMeterFlashTimer > 0)
+	{
+		mMeterFlashTimer--;
+		int aFrame = 3 - abs(3 - ((mMeterFlashTimer / 2) % 6));
+		if (aFrame != mMeterFlashFrame)
+		{
+			mMeterFlashFrame = aFrame;
+			MarkDirty();
+		}
+	}
+
+	UpdateLoosePieces();
+	UpdateMeter();
+	UpdatePhysics();
+
+	if (mState == STATE_PLAYING)
+	{
+		if ((mApp->mGameType == GAMETYPE_ACTION) && (mRand.Next() % 15000 == 0) && (mLevel > 0))
+			DropSpecial(PIECE_DOLLAR_BOMB);
+
+		int aTop = GetTopCoinRow();
+		if ((aTop < 4) && (!mApp->mDangerHintShown) && (mApp->mGameType != GAMETYPE_PUZZLE))
+		{
+			mApp->mDangerHintShown = true;
+			ShowHintAt(HINT_DANGER, Point(380, 8), 1000);
+		}
+
+		// Danger flashes and warning beeps
+		bool aDanger;
+		int aWarningInterval = 0;
+		if (mApp->mGameType == GAMETYPE_ACTION)
+		{
+			aDanger = (aTop < 2);
+			if (aDanger)
+			{
+				if (mUpdateCnt % 12 == 0)
+				{
+					mDangerFlash = !mDangerFlash;
+					SetDangerFlash(mDangerFlash);
+					MarkDirty();
+				}
+				aWarningInterval = (int)(200.0 - (((2.0 - (double) aTop) - (double) mMintPixels * 0.034482758620689655) * 0.5 * 160.0));
+			}
+		}
+		else
+		{
+			aDanger = (aTop == 0);
+			if (aDanger)
+			{
+				if (mUpdateCnt % 24 == 0)
+				{
+					mDangerFlash = !mDangerFlash;
+					SetDangerFlash(mDangerFlash);
+					MarkDirty();
+				}
+				aWarningInterval = 150;
+			}
+		}
+		if (aDanger)
+		{
+			if (mUpdateCnt - mLastWarningTick >= aWarningInterval)
+			{
+				mApp->PlaySample(SOUND_WARNING);
+				mLastWarningTick = mUpdateCnt;
+			}
+		}
+		else if (mDangerFlash)
+		{
+			SetDangerFlash(false);
+			mDangerFlash = false;
+		}
+
+		// Mint speed factor: faster while the coins are low
+		double anAverage = GetAverageCoinRow();
+		double aBlend = (0.6 - (double) aTop / (double) mRows);
+		aBlend = aBlend + aBlend;
+		if (aBlend < 0.0)
+			aBlend = 0.0;
+		else if (aBlend > 1.0)
+			aBlend = 1.0;
+		double aSpeedFactor = (((1.0 - aBlend) * anAverage + (double) aTop * aBlend) / (double) mRows - 0.5) + 1.0;
+
+		if (mApp->mGameType == GAMETYPE_ACTION)
+		{
+			if (mMintDelay > 0)
+				mMintDelay--;
+			if ((mMintDelay == 0) && (mUpdateCnt % 2 == 0))
+			{
+				mMint = aSpeedFactor * mMintSpeed + mMint;
+				mMintSpeed = mMintAccel + mMintSpeed;
+			}
+		}
+
+		if (mMint < mMintTarget)
+		{
+			mMint = mMint + 0.015;
+			if (mMint > mMintTarget)
+				mMint = mMintTarget;
+		}
+
+		if ((mApp->mGameType == GAMETYPE_STRATEGY) && ((!mHasMoves) || (mMint >= 1.0)))
+			mMint = mMint + 0.015;
+
+		int aHidden = (int)((1.0 - mMint) * 29.0);
+		if (mMintPixels == aHidden)
+		{
+			mOverflowTicks = 0;
+			mCountdownActive = false;
+		}
+		else if (aHidden >= 0)
+		{
+			mMintPixels = aHidden;
+			MarkDirty();
+		}
+		else if (aTop != 0)
+		{
+			PushRow();
+			MarkDirty();
+		}
+		else if (mApp->mGameType != GAMETYPE_ACTION)
+		{
+			GameOver();
+			MarkDirty();
+		}
+		else
+		{
+			// Action overflow: "three, two, one", the board shakes, then game over
+			mOverflowTicks++;
+			double aCountdown = (double) mOverflowTicks * 0.01;
+			if (aCountdown >= 2.99)
+				aCountdown = 2.99;
+
+			bool aChanged = true;
+			bool aSay = true;
+			if (mCountdownActive)
+			{
+				if (aCountdown == mCountdownValue)
+					aChanged = false;
+				else if ((int) mCountdownValue == (int) aCountdown)
+					aSay = false;
+			}
+			if (aChanged)
+			{
+				if (aSay)
+				{
+					mApp->mMrMoney->PlayAnim((int)(aCountdown + 4.0));
+					mApp->PlaySample((int)(aCountdown + 32.0));
+				}
+				mCountdownValue = aCountdown;
+				mCountdownActive = true;
+				MarkDirty();
+			}
+
+			if (mOverflowTicks % 4 == 0)
+			{
+				int aShakeRows = (mRows * mOverflowTicks) / 300;
+				// port: the original sets only the 1.0 entries and reads the others uninitialised (stale
+				// stack doubles); 0.0 is the evident intent (the 0.6 rule tests for it)
+				double aWeight[BOARD_COLS];
+				for (int aCol = 0; aCol < mCols; aCol++)
+				{
+					aWeight[aCol] = 0.0;
+					Piece* aPiece = mGrid[0][aCol];
+					if ((aPiece != NULL) && (!aPiece->mIsSpecial))
+						aWeight[aCol] = 1.0;
+				}
+				for (int aCol = 0; aCol < mCols; aCol++)
+				{
+					if ((aWeight[aCol] == 0.0) &&
+						(((aCol > 0) && (aWeight[aCol - 1] == 1.0)) || ((aCol < mCols - 1) && (aWeight[aCol + 1] == 1.0))))
+						aWeight[aCol] = 0.6;
+				}
+				for (int aCol = 0; aCol < mCols; aCol++)
+				{
+					for (int aRow = 0; aRow < aShakeRows; aRow++)
+					{
+						Piece* aPiece = mGrid[aRow][aCol];
+						if (aPiece == NULL)
+							continue;
+						double anAmplitude = ((double) mOverflowTicks * 0.0033333333333333335 * 0.5 + 0.6) * aWeight[aCol];
+						aPiece->mShakeX = (int)(((double)(EffectsRand() % 100) * 0.01 - 0.5) * anAmplitude * 5.0);
+						double aShakeY = ((double)(EffectsRand() % 100) * 0.01 - 0.5) * anAmplitude;
+						aPiece->mShakeY = (int)(aShakeY + aShakeY);
+					}
+				}
+				MarkDirty();
+			}
+
+			if (mOverflowTicks == 300)
+				GameOver();
+			MarkDirty();
+		}
+	}
+	else if (mState == STATE_LEVEL_COMPLETE)
+	{
+		if (mUpdateCnt % 2 == 0)
+			mMintPixels++;
+		MarkDirty();
+		if (mLevelEndDelay > 0)
+			mLevelEndDelay--;
+		else
+			ClearBoardForLevelEnd();
+	}
+	else if (mState == STATE_LEVEL_CLEAR_FALL)
+	{
+		if ((!mPiecesMoving) && (!mLevelUpBouncing))
+		{
+			if (mLevelUpY > 16.0)
+			{
+				mLevelUpY = mLevelUpY - 1.0;
+				MarkDirty();
+			}
+			if (mLevelUpStretch > 150.0)
+			{
+				mLevelUpStretch = mLevelUpStretch - 0.75;
+				MarkDirty();
+			}
+			if (mLevelUpY == 16.0)
+			{
+				mState = STATE_LEVEL_DONE;
+				ShowContinueButton();
+				mPlaySeconds = (int)((unsigned long) mPlaySeconds + ((unsigned long) GetTickCount() - mTimerTick) / 1000);
+			}
+		}
+	}
+	else if (mState == STATE_PUZZLE_SWEEP)
+	{
+		if (mUpdateCnt % 16 == 0)
+		{
+			// One row per 16 ticks, top first
+			bool aFound = false;
+			for (int aRow = 0; aRow < 15; aRow++)
+			{
+				if (aFound)
+					continue;
+				int aPoints = 0;
+				for (int aCol = 0; aCol < 14; aCol++)
+				{
+					Piece* aPiece = mGrid[aRow][aCol];
+					if (aPiece == NULL)
+						continue;
+					aFound = true;
+					mGrid[aRow][aCol] = NULL;
+					for (int k = -1; k < 2; k++)
+						mParticles.push_back(MakeParticle(2, aPiece->mX + 14.0, aPiece->mY + 14.0, (double) k * 1.5, -3.0, 0.2, true));
+					if (!aPiece->mIsSpecial)
+					{
+						aPiece->mDying = true;
+						aPiece->mFrame = 0;
+						mLoosePieces.push_back(aPiece);
+						aPoints += 3;
+					}
+					else
+						delete aPiece;
+				}
+				if (aPoints > 0)
+				{
+					AddPoints(aPoints, 308, RowY(aRow) + 14, false);
+					int aTone = mSweepTone;
+					if (aTone >= 8)
+						aTone = 8;
+					mApp->PlaySample(aTone + SOUND_TONE1);
+					mSweepTone++;
+				}
+			}
+			if (!aFound)
+				LevelComplete();
+		}
+	}
+	else if (mState == STATE_LEVEL_DONE)
+	{
+		if (mStatsFade < 1.0)
+		{
+			mStatsDirty = true;
+			mStatsFade = mStatsFade + 0.015;
+			if (mStatsFade > 1.0)
+				mStatsFade = 1.0;
+			MarkDirty();
+		}
+	}
+	else if (mState == STATE_GAME_OVER_SCORES)
+	{
+		if (mNoMovesY < 500)
+		{
+			mNoMovesY += 5;
+			MarkDirty();
+		}
+		if (mHighScoreDelay > 0)
+			mHighScoreDelay--;
+		else
+		{
+			if (mHighScoreSlide > -146)
+				mHighScoreSlide -= 2;
+			((Widget*) mHighScoreWidget)->Resize(mX + 182, mHighScoreSlide * 3 + 664 + mY, 396, 236);
+			((Widget*) mContinueButton)->Resize(212, ((Widget*) mHighScoreWidget)->mY + 200, 336, 29);
+			MarkDirty();
+		}
+	}
+
+	// The meter display drains at the level end
+	if (((mState == STATE_LEVEL_CLEAR_FALL) || (mState == STATE_LEVEL_DONE)) && (mMeterDrained < mMeterTarget))
+	{
+		mMeterDrained = mMeterDrained + 0.5;
+		MarkDirty();
+	}
+
+	// The "level up" sign falls and bounces on its two ends
+	if ((mLevelUpActive) && (mLevelUpBouncing))
+	{
+		double aVY = mLevelUpLeftVY + 0.15;
+		mLevelUpLeftVY = aVY;
+		mLevelUpLeftY = aVY + mLevelUpLeftY;
+		if (mLevelUpLeftY > 80.0)
+		{
+			mLevelUpLeftY = 80.0;
+			mLevelUpLeftVY = aVY * -0.6;
+			if (mLevelUpLeftVY > -0.5)
+				mLevelUpLeftVY = 0.0;
+		}
+
+		aVY = mLevelUpRightVY + 0.15;
+		mLevelUpRightVY = aVY;
+		mLevelUpRightY = aVY + mLevelUpRightY;
+		if (mLevelUpRightY > 80.0)
+		{
+			mLevelUpRightY = 80.0;
+			mLevelUpRightVY = aVY * -0.6;
+			if (mLevelUpRightVY > -0.5)
+				mLevelUpRightVY = 0.0;
+		}
+
+		mLevelUpY = (mLevelUpRightY + mLevelUpLeftY) * 0.5;
+		mLevelUpAngle = atan2(mLevelUpRightY - mLevelUpLeftY, (double) mApp->mImages[IMAGE_LEVELUP]->GetWidth());
+		if ((mLevelUpLeftVY == 0.0) && (mLevelUpRightVY == 0.0))
+		{
+			mLevelUpBouncing = false;
+			mLevelUpAngle = 0.0;
+		}
+		MarkDirty();
+	}
+
+	// Strategy: the moves-left lamp eases to red (0), yellow (1) or green
+	if (mApp->mGameType == GAMETYPE_STRATEGY)
+	{
+		int aMoves = (int)((1.0 - mMintTarget) / mMintPerClick);
+		Color aTarget = (aMoves == 0) ? Color(255, 0, 0) : Color((aMoves == 1) ? 255 : 0, 255, 0);
+		for (int i = 0; i < 4; i++)
+		{
+			int& aChannel = mMovesColor[i];
+			int aGoal = aTarget[i];
+			if (aGoal < aChannel)
+			{
+				aChannel += (aGoal - aChannel) / 8 - 1;
+				if (aChannel < aGoal)
+					aChannel = aGoal;
+				MarkDirty();
+			}
+			else if (aGoal > aChannel)
+			{
+				aChannel += (aGoal - aChannel) / 8 + 1;
+				if (aChannel > aGoal)
+					aChannel = aGoal;
+				MarkDirty();
+			}
+		}
+	}
+
+	if ((mState == STATE_GAME_OVER) || (mState == STATE_GAME_OVER_SCORES))
+	{
+		if (mStatsFade < 1.0)
+		{
+			mStatsDirty = true;
+			mStatsFade = mStatsFade + 0.015;
+			if (mStatsFade > 1.0)
+				mStatsFade = 1.0;
+			MarkDirty();
+		}
+		if (mGameOverRiseDelay > 0)
+			mGameOverRiseDelay--;
+		if ((mUpdateCnt % 3 == 0) && (mGameOverRiseDelay == 0))
+			mMintPixels++;
+	}
+
+	if (mRiseOffset > 0)
+	{
+		UpdateHover();
+		mRiseOffset--;
+		MarkDirty();
+	}
+
+	// Floating texts rise every other tick and expire
+	std::list<Points*>::iterator aPointsItr = mPointsWidgets.begin();
+	while (aPointsItr != mPointsWidgets.end())
+	{
+		Points* aPoints = *aPointsItr;
+		aPoints->MarkDirty();
+		aPoints->mHue = (aPoints->mHue + 7) % 255;
+		if ((mUpdateCnt % 2 == 0) && (aPoints->mY > 0))
+			aPoints->Move(aPoints->mX, aPoints->mY - 1);
+		aPoints->mLife--;
+		if (aPoints->mLife < 1)
+		{
+			if (aPoints == mLastBonusText)
+				mLastBonusText = NULL;
+			aPointsItr = mPointsWidgets.erase(aPointsItr);
+			mWidgetManager->RemoveWidget(aPoints);
+			mApp->SafeDeleteWidget(aPoints);
+		}
+		else
+			++aPointsItr;
+	}
+
+	if (mDisplayScore != mScore)
+	{
+		MarkDirty();
+		if (mDisplayScore < mScore)
+			mDisplayScore = (int)(((double)(mScore - mDisplayScore) / mPointsMult * 0.02 + 2.0) * mPointsMult) + mDisplayScore;
+		if (mDisplayScore > mScore)
+			mDisplayScore = mScore;
+	}
+
+	std::list<Particle>::iterator aParticleItr = mParticles.begin();
+	while (aParticleItr != mParticles.end())
+	{
+		if (mUpdateCnt % aParticleItr->mFrameDelay == 0)
+		{
+			MarkDirtyFull();
+			aParticleItr->mFrame++;
+			if (aParticleItr->mFrame >= 14)
+			{
+				aParticleItr = mParticles.erase(aParticleItr);
+				continue;
+			}
+		}
+		aParticleItr->mVY = aParticleItr->mGravity + aParticleItr->mVY;
+		aParticleItr->mX = aParticleItr->mVX + aParticleItr->mX;
+		aParticleItr->mY = aParticleItr->mVY + aParticleItr->mY;
+		MarkDirty();
+		++aParticleItr;
+	}
+
+	std::list<Bill>::iterator aBillItr = mBills.begin();
+	while (aBillItr != mBills.end())
+	{
+		if (mUpdateCnt % 4 == 0)
+			aBillItr->mFrame = (aBillItr->mFrame + 1) % 16;
+		aBillItr->mY = aBillItr->mVY + aBillItr->mY;
+		if (aBillItr->mY > (double) mHeight)
+			aBillItr = mBills.erase(aBillItr);
+		else
+			++aBillItr;
+		MarkDirty();
+	}
+
+	if (mHintVisible)
+	{
+		mHintTimer--;
+		if (mHintTimer == 0)
+			HideHint();
+		if (mHintPiece != NULL)
+		{
+			mHintX = (int)(mHintPiece->mX + 14.0);
+			mHintY = (int)(mHintPiece->mY + 14.0);
+		}
+		if (mHintFollowMeter)
+		{
+			int aMeterTop = (int)(440.0 - ((double) mMeterCoins - mMeterDrained) * 6.0);
+			if (mHintY > 160)
+				mHintY = (mHintY - (mHintY - aMeterTop) / 3) - 1;
+			if (mHintY < aMeterTop)
+				mHintY = aMeterTop;
+		}
+	}
+
+	if (mContinueButton != NULL)
+	{
+		mButtonBlink = (mButtonBlink + 1) % 300;
+		Color aColor = (mButtonBlink <= 275) ? Color(0, 255, 0) : Color(255, 255, 255);
+		if (((Widget*) mContinueButton)->GetColor(0) != aColor)
+			((Widget*) mContinueButton)->SetColor(0, aColor);
+	}
+
+	if (mMoveDigitActive)
+	{
+		mMoveDigitFade = mMoveDigitFade - 0.01;
+		if (mMoveDigitFade < 0.0)
+			mMoveDigitActive = false;
+		MarkDirty();
+	}
+
+	UpdateSolver(); // port(mods)
+	if ((mPickpocketArmed) && (mUpdateCnt % 20 == 0)) // port(mods): the armed Pickpocket's counter blinks
+		MarkDirty();
+
+	// port(mods): a won Puzzle level that played on is swept when no group is left (Pickpockets are kept)
+	if ((PuzzlePlaysOn()) && (!mHasMoves) && (!mPiecesMoving))
+	{
+		HideHint();
+		ArmPickpocket(false);
+		mState = STATE_PUZZLE_SWEEP;
+	}
+
+	// Puzzle: no group left before all needed bags are out
+	// port(mods): not while a Pickpocket can still lift a coin
+	if ((mApp->mGameType == GAMETYPE_PUZZLE) && (!mHasMoves) && (!mPiecesMoving) &&
+		(mBagsReleased < mBagsNeeded) && (mState == STATE_PLAYING) && (!CanPickpocket()))
+		GameOver();
+	// port(mods): and with no click left, a Pickpocket is armed (it lights what it can lift)
+	if ((mApp->mGameType == GAMETYPE_PUZZLE) && (!mHasMoves) && (!mPiecesMoving) && (mState == STATE_PLAYING) &&
+		(!mPickpocketArmed) && (CanPickpocket()))
+		ArmPickpocket(true);
+
+	if ((mBagFlashCount > 0) || (mBagFlash != 0.0))
+	{
+		mBagFlash = mBagFlash + 0.02;
+		if (mBagFlash > 1.0)
+		{
+			mBagFlash = 0.0;
+			mBagFlashCount--;
+		}
+	}
+}
+
+// 0x40e4b0: the continue button after a level
+void Board::StartNextLevel()
+{
+	MusicInterface* aMusic = mApp->mMusicInterface;
+	switch (mApp->mGameType)
+	{
+	case GAMETYPE_ACTION:
+		aMusic->FadeOut(SONG_ACTION_LEVELUP, true, 0.02);
+		aMusic->FadeIn(SONG_ACTION, -1, 0.004, false);
+		break;
+	case GAMETYPE_STRATEGY:
+		aMusic->FadeOut(SONG_STRATEGY_LEVELUP, true, 0.02);
+		aMusic->FadeIn(SONG_STRATEGY, -1, 0.004, false);
+		break;
+	case GAMETYPE_PUZZLE:
+		aMusic->FadeOut(SONG_PUZZLE_LEVELUP, true, 0.02);
+		aMusic->FadeIn(SONG_PUZZLE, -1, 0.004, false);
+		break;
+	}
+	mLevelUpActive = false;
+	mTimerTick = GetTickCount();
+	NextLevel();
+}
+
+// 0x40e580 ButtonListener slot 2: mContinueButton
+void Board::ButtonDepress(int theId)
+{
+	if (mState == STATE_GAME_OVER_SCORES)
+	{
+		if (mPlayer != NULL) // port(mods): the end of a replay
+		{
+			mApp->EndWatch(); // removes this board
+			return;
+		}
+		mApp->NewGame(); // deletes this board
+		return;
+	}
+
+	if (mPlayer != NULL) // port(mods): a replay presses the button itself
+		return;
+	RecordInput(Replay::OP_NEXT); // port(mods)
+
+	// 0x41d4c0: an unregistered Puzzle game asks to register before the next level; not ported (the
+	// build is registered)
+	StartNextLevel();
+}
+
+// 0x40e760
+Board::Board(WinBMApp* theApp)
+{
+	mApp = theApp;
+	mHintX = 0;
+	mHintY = 0;
+	mHintPiece = NULL;
+	gRankNames = mApp->GetStringVector("gRankNames");
+	mCols = BOARD_COLS;
+	mRows = BOARD_ROWS;
+	// port(mods): a smaller board (the "boardSize" feature): the grid's top-left mCols x mRows, drawn centred
+	// on the full board's floor. The solver's model keeps 14 x 15 with the board on its floor
+	// (SolverRowOffset).
+	if (ModFeatureEnabled("boardSize"))
+	{
+		mCols = ModFeatureInt("boardSize", "columns", BOARD_COLS, 4, BOARD_COLS);
+		mRows = ModFeatureInt("boardSize", "rows", BOARD_ROWS, 6, BOARD_ROWS);
+		SDL_Log("board: %d columns, %d rows", mCols, mRows);
+	}
+	gBoardOffsetX = (BOARD_COLS - mCols) * COIN_SIZE / 2;
+	gBoardOffsetY = (BOARD_ROWS - mRows) * COIN_SIZE;
+	// port(mods): coins that touch at a corner are a group too (the "diagonalGroups" feature)
+	mDiagonal = ModFeatureEnabled("diagonalGroups");
+
+	// port: the original leaves the grid to GenerateBoard (it only nulls it); zeroed here so the port
+	// can delete the next row's pieces it replaces
+	for (int aRow = 0; aRow < BOARD_ROWS; aRow++)
+	{
+		for (int aCol = 0; aCol < BOARD_COLS; aCol++)
+			mGrid[aRow][aCol] = NULL;
+	}
+	for (int aCol = 0; aCol < BOARD_COLS; aCol++)
+		mNextRow[aCol] = NULL;
+
+	int aSeed = CrtRand();
+	SeedMTRand12(mRand, (unsigned long)(aSeed * 0xffff));
+	// port(mods): a seed the player chose replaces it, and the effects get a generator of their own
+	// (ModRules.h)
+	mRngSeed = (uint32_t)(unsigned long)(aSeed * 0xffff);
+	mGameSeed = mApp->mPendingSeed;
+	mUserSeeded = (mGameSeed != 0);
+	// port(mods): a playback board starts from its replay instead (Replay.h)
+	mRecorder = NULL;
+	mPlayer = NULL;
+	static uint32_t sBoardSerials = 0; // port(mods): LiveSplit (LiveSplitObserver.h)
+	mBoardSerial = ++sBoardSerials;
+	mResumed = false;
+	if (mApp->mWatchFile != NULL)
+	{
+		mPlayer = new ReplayPlayer(*mApp->mWatchFile);
+		mRngSeed = mPlayer->mFile.mRngSeed;
+		SeedMTRand12(mRand, mRngSeed);
+		mUserSeeded = mPlayer->mFile.mUserSeeded;
+		mGameSeed = mUserSeeded ? mPlayer->mFile.mGameSeed : 0;
+	}
+	if (mUserSeeded)
+	{
+		if (mPlayer == NULL)
+		{
+			SeedMTRand12(mRand, mGameSeed);
+			mRngSeed = mGameSeed;
+		}
+		SeedMTRand12(mEffectsRand, ~mGameSeed);
+		SDL_Log("board: seed %u", (unsigned) mGameSeed);
+	}
+	if ((mPlayer == NULL) && (ModFeatureEnabled("replays")))
+		mRecorder = new ReplayRecorder(mApp, mRngSeed, mUserSeeded, mGameSeed);
+	// port(mods): the Puzzle solver (PuzzleSolver.h). A playback board has it too: the recording had it
+	// (the same gameplay mods), and its hints and game over play out at the same ticks.
+	mSolver = NULL;
+	mSolverHintWanted = false;
+	mSolverHintBoard = 0;
+	memset(mSolverHint, 0, sizeof(mSolverHint));
+	mSolverLogged = -1;
+	mSolverLostLevel = -1;
+	mSolverMessageTicks = 0;
+	mSolverFreeHints = 0;
+	mSolverUndo = false;
+	mSolverUndoPrice = SOLVER_PRICE_FREE;
+	mSolverUndoValue = 0;
+	mSolverUndoLimit = 0;
+	mSolverWarn = SOLVER_WARN_OFF;
+	mSolverLevel = -1;
+	mSolverHintsTaken = 0;
+	mSolverUndosTaken = 0;
+	mSolverSpent = 0;
+	mSolverCheck = NULL;
+	mSolverVerdictBoard = 0;
+	memset(mSolverVerdict, 0, sizeof(mSolverVerdict));
+	mSolverCheckGroup = -1;
+	memset(mSolverWarnCell, 0, sizeof(mSolverWarnCell));
+	mSolverWarning = false;
+	mSolverExpect = PuzzleClickCheck::VERDICT_NONE;
+	mSolverExpectBoard = 0;
+	if ((mApp->mGameType == GAMETYPE_PUZZLE) && (ModFeatureEnabled("puzzleSolver")))
+	{
+		mSolver = new PuzzleSolver();
+		std::string aShow = ModFeatureString("puzzleSolver", "show", "always");
+		mSolverShow = (aShow == "lost") ? SOLVER_SHOW_LOST : (aShow == "never") ? SOLVER_SHOW_NEVER : SOLVER_SHOW_ALWAYS;
+		mSolverEndWhenLost = ModFeatureBool("puzzleSolver", "endWhenLost", false);
+		mSolverHints = ModFeatureBool("puzzleSolver", "hints", true);
+		std::string aPrice = ModFeatureString("puzzleSolver", "hintPrice", "percent");
+		mSolverHintPrice = (aPrice == "free") ? SOLVER_PRICE_FREE : (aPrice == "amount") ? SOLVER_PRICE_AMOUNT : SOLVER_PRICE_PERCENT;
+		if (mSolverHintPrice == SOLVER_PRICE_AMOUNT)
+			mSolverHintValue = ModFeatureInt("puzzleSolver", "hintAmount", 500, 0, 1000000);
+		else
+			mSolverHintValue = ModFeatureInt("puzzleSolver", "hintPercent", 10, 0, 100);
+		mSolverFreeHints = ModFeatureInt("puzzleSolver", "freeHints", 0, 0, 1000);
+		mSolverUndo = ModFeatureBool("puzzleSolver", "undo", false);
+		std::string anUndoPrice = ModFeatureString("puzzleSolver", "undoPrice", "amount");
+		mSolverUndoPrice = (anUndoPrice == "free") ? SOLVER_PRICE_FREE : (anUndoPrice == "percent") ? SOLVER_PRICE_PERCENT :
+			SOLVER_PRICE_AMOUNT;
+		if (mSolverUndoPrice == SOLVER_PRICE_PERCENT)
+			mSolverUndoValue = ModFeatureInt("puzzleSolver", "undoPercent", 10, 0, 100);
+		else
+			mSolverUndoValue = ModFeatureInt("puzzleSolver", "undoAmount", 500, 0, 1000000);
+		mSolverUndoLimit = ModFeatureInt("puzzleSolver", "undoLimit", 3, 1, 1000);
+		std::string aWarn = ModFeatureString("puzzleSolver", "warn", "off");
+		mSolverWarn = (aWarn == "show") ? SOLVER_WARN_SHOW : (aWarn == "block") ? SOLVER_WARN_BLOCK : SOLVER_WARN_OFF;
+		if (mSolverWarn != SOLVER_WARN_OFF)
+			mSolverCheck = new PuzzleClickCheck();
+		mSolverBudget = ModFeatureInt("puzzleSolver", "positionsPerTick", 300, 1, 1000000);
+		SDL_Log("solver: show %s, end when lost %s, hints %s (%s %d, %d free), undo %s (%s %d, %d a level), warn %s, "
+			"%d positions a tick", aShow.c_str(), mSolverEndWhenLost ? "on" : "off", mSolverHints ? "on" : "off",
+			aPrice.c_str(), mSolverHintValue, mSolverFreeHints, mSolverUndo ? "on" : "off", anUndoPrice.c_str(),
+			mSolverUndoValue, mSolverUndoLimit, aWarn.c_str(), mSolverBudget);
+	}
+	mCreateTick = GetTickCount();
+	mTimerTick = mCreateTick;
+
+	mStatsSeconds = 0;
+	mPlaySeconds = 0;
+	mState = STATE_PLAYING;
+	mPlayStarted = false;
+	mRiseOffset = 0;
+	mHasMoves = false;
+	mMintPixels = 0;
+	mMintTarget = 0.0;
+	mMint = 0.0;
+	mMintSpeed = 0.0;
+	mMintAccel = 0.0;
+	mMintPerClick = 0.0;
+	mLastPieceHitTick = 0;
+	mScore = 0;
+	mDisplayScore = 0;
+	mPointsMult = 1.0;
+	mMouseX = 0;
+	mMouseY = 0;
+	mLastWarningTick = 0;
+	mMeterFlash = 0;
+	mMeterJustFull = 0.0;
+	mMeterFraction = 0.0;
+	mMeterCapacity = 0.0;
+	mMeterDrainRate = 0.0;
+	mDangerFlash = false;
+	mMeterLevel = 0;
+	mBagsReleased = 0;
+	mBagsBanked = 0;
+	mMeterFlashFrame = 0;
+	mMeterFlashTimer = 0;
+	mBagsNeeded = 1;
+	mLevelUpActive = false;
+	mLevelUpAngle = 0.0;
+	mLevelUpUnused = 0.03;
+	mLevelUpY = 0.0;
+	// port: the original leaves the remaining level-up fields to LevelComplete
+	mLevelUpStretch = 0.0;
+	mLevelUpBouncing = false;
+	mLevelUpLeftY = 0.0;
+	mLevelUpLeftVY = 0.0;
+	mLevelUpRightY = 0.0;
+	mLevelUpRightVY = 0.0;
+	mPiecesMoving = false;
+	mLevel = 0;
+	mLevelEndDelay = 0;
+	mPauseCount = 0;
+	mPauseFade = 0.0;
+	mPauseClickable = false;
+	mGoTimer = 0;
+	mBannerVisible = false;
+	mBannerTimer = 0;
+	mFlingDelay = 0;
+	mOverflowTicks = 0;
+	mCountdownActive = false;
+	mCountdownValue = 0.0;
+	mGameOverRiseDelay = 0;
+	mMintDelay = 0;
+	mContinueButton = NULL;
+	mButtonBlink = 0; // port: set by ShowContinueButton in the original
+	mLevelCoinsCleared = 0;
+	mGameCoinsCleared = 0;
+	mLevelBiggestBonus = 0;
+	mGameBiggestBonus = 0;
+	mLevelBiggestCombo = 0;
+	mGameBiggestCombo = 0;
+	for (int aCol = 0; aCol < BOARD_COLS; aCol++)
+	{
+		mColTowerHeight[aCol] = 0.0;
+		mColWarning[aCol] = -1; // port: set by GenerateBoard in the original
+	}
+	mSpeedBonus = 0.0;
+	mMintSpeedBase = 0.0025;
+	mMintSpeedPerLevel = 0.001;
+	mMintAccelBase = 1e-06;
+	mMintAccelPerLevel = 5e-08;
+	mMeterCapBase = 300.0;
+	mMeterCapPerLevel = 20.0;
+	mDrainBase = 0.0;
+	mDrainPerLevel = 7e-05;
+	mPointsMultBase = 0.5;
+	mPointsMultPerLevel = 0.1;
+	mBagsBase = 2.6;
+	mBagsPerLevel = 0.26;
+	mPuzzleBagsBase = 2.6;
+	mPuzzleBagsPerLevel = 0.26;
+	mPerClickBase = 0.24501;
+	mPerClickPerLevel = 0.011;
+	LoadTunables(); // port(mods)
+	// port(mods): Puzzle boards built to be winnable (PuzzleBuilder.h)
+	mWinnablePuzzles = (mApp->mGameType == GAMETYPE_PUZZLE) && (ModFeatureEnabled("winnablePuzzles"));
+	mBuildPlanBoard = 0;
+	// port(mods): Pickpockets (Board::UsePickpocket)
+	mPickpocket = ModFeatureEnabled("pickpocket");
+	mPickpocketsMax = ModFeatureInt("pickpocket", "max", 5, 1, 1000);
+	mPickpockets = mPickpocket ? std::min(ModFeatureInt("pickpocket", "start", 3, 0, 1000), mPickpocketsMax) : 0;
+	mPickpocketsPerLevel = ModFeatureInt("pickpocket", "perLevel", 0, 0, 1000);
+	mPickpocketsPerBag = ModFeatureInt("pickpocket", "perBag", 1, 0, 1000);
+	mPickpocketArmed = false;
+	mPickpocketsUsed = 0;
+	if (mPickpocket)
+		SDL_Log("pickpocket: %d to start, %d more a level, %d a spare bag, %d at most", mPickpockets, mPickpocketsPerLevel,
+			mPickpocketsPerBag, mPickpocketsMax);
+	mBombColor = 0;
+	mBombIdle = 0;
+	mHoverBag = false;
+	mRepaintTimer = 0;
+	mNumColors = 0;
+	mMovesLeft = 0;      // port: the remaining fields up to the hints are uninitialised in the original
+	mMoveDigit = 0;
+	mMoveDigitFade = 0.0;
+	mGlintFrame = 0;
+	mGlintTick = 0;
+	mSweepTone = 0;
+	mHighScoreDelay = 0;
+	mHintAlt = false;
+	mHintTimer = 0;
+	mHintId = 0;
+	mHintFollowMeter = false;
+	mGoTimer = 140;
+	mLastBonusText = NULL;
+	mMinGroup = (mApp->mGameType != GAMETYPE_PUZZLE) ? mTunables.mMinGroup : mTunables.mPuzzleMinGroup; // port(mods): 3 : 2
+	// port: the original assumes a sound manager
+	mExplodeSound = (mApp->mSoundManager != NULL) ? mApp->mSoundManager->GetSoundInstance(SOUND_EXPLODE) : NULL;
+	mGlintActive = false;
+
+	// Draw caches: made by Draw, deleted only by ShowContinueButton, LoadGame and the destructor
+	mStatsImage = NULL;
+	mStatsFadeImage = NULL;
+	mLevelUpImage = NULL;
+	mHighScoreWidget = NULL;
+
+	SetupLevelParams();
+	GenerateBoard();
+
+	mStatsFade = 0.0;
+	mMeterCoins = 0;
+	mMeterDrained = 0.0;
+	mMeterTarget = 0.0;
+	mMeterPending = 0;
+	mMeterLaunchTimer = 0.0;
+	mMeterEmptying = 0.0;
+	mBillsToSpawn = 0;
+	mMoveDigitActive = false;
+	mStatsDirty = false;
+	mHighScoreSlide = 0;
+	mBagGlow = 0.0;
+	mPauseAnim = 0;
+	mHintVisible = false;
+	mMovesColor = Color(0x80, 0x80, 0x80);
+	mClipExtra = 0;
+	mUnused7a4 = 0;
+	mNoMovesY = 0;
+	mLastGroupSize = 0;
+	mPrevGroupSize = 0;
+	mLastBagTick = 0;
+	mLastColor = 0;
+	mColorStreak = 0;
+	mBagFlashCount = 0;
+	mBagFlash = 0.0;
+}
+
+// port(mods): the enabled mods' tunables (ModRules.h) over the constructor's values. Without tunables
+// nothing changes.
+void Board::LoadTunables()
+{
+	mMintSpeedBase = ModTunable("minting.speedBase", mMintSpeedBase, 0.0, 1.0);
+	mMintSpeedPerLevel = ModTunable("minting.speedPerLevel", mMintSpeedPerLevel, 0.0, 1.0);
+	mMintAccelBase = ModTunable("minting.accelBase", mMintAccelBase, 0.0, 1.0);
+	mMintAccelPerLevel = ModTunable("minting.accelPerLevel", mMintAccelPerLevel, 0.0, 1.0);
+	mPerClickBase = ModTunable("minting.perClickBase", mPerClickBase, 0.001, 15.0);
+	mPerClickPerLevel = ModTunable("minting.perClickPerLevel", mPerClickPerLevel, 0.0, 15.0);
+	mMeterCapBase = ModTunable("meter.capacityBase", mMeterCapBase, 1.0, 1e9);
+	mMeterCapPerLevel = ModTunable("meter.capacityPerLevel", mMeterCapPerLevel, 0.0, 1e9);
+	mDrainBase = ModTunable("meter.drainBase", mDrainBase, 0.0, 1.0);
+	mDrainPerLevel = ModTunable("meter.drainPerLevel", mDrainPerLevel, 0.0, 1.0);
+	mPointsMultBase = ModTunable("scoring.multBase", mPointsMultBase, 0.0, 1e6);
+	mPointsMultPerLevel = ModTunable("scoring.multPerLevel", mPointsMultPerLevel, 0.0, 1e6);
+	mBagsBase = ModTunable("bags.base", mBagsBase, 0.0, 100.0);
+	mBagsPerLevel = ModTunable("bags.perLevel", mBagsPerLevel, 0.0, 100.0);
+	mPuzzleBagsBase = ModTunable("bags.puzzleBase", mPuzzleBagsBase, 0.0, 100.0);
+	mPuzzleBagsPerLevel = ModTunable("bags.puzzlePerLevel", mPuzzleBagsPerLevel, 0.0, 100.0);
+
+	BoardTunables& t = mTunables;
+	t.mColors = ModTunableInt("coins.colors", t.mColors, 1, Piece::MAX_COIN_COLORS); // port(mods): up to 16
+	t.mPuzzleColors = ModTunableInt("coins.puzzleColors", t.mPuzzleColors, 1, Piece::MAX_COIN_COLORS);
+	t.mFewerColorsFirstLevel = ModTunableBool("coins.fewerOnFirstLevel", t.mFewerColorsFirstLevel);
+	t.mMinGroup = ModTunableInt("groups.minSize", t.mMinGroup, 2, 15);
+	t.mPuzzleMinGroup = ModTunableInt("groups.puzzleMinSize", t.mPuzzleMinGroup, 2, 15);
+	t.mBagsMin = ModTunableInt("bags.min", t.mBagsMin, 1, 8);
+	t.mBagsMax = ModTunableInt("bags.max", t.mBagsMax, t.mBagsMin, 8);
+	t.mPuzzleMult = ModTunable("scoring.puzzleMult", t.mPuzzleMult, 0.0, 1e6);
+	t.mGroupPointsStep = ModTunableInt("scoring.groupPointsStep", t.mGroupPointsStep, -1000000, 1000000);
+	t.mNormalLevels = ModTunableInt("skill.normalLevels", t.mNormalLevels, 0, 50);
+	t.mHardLevels = ModTunableInt("skill.hardLevels", t.mHardLevels, 0, 50);
+	Platform::ModManager& aMods = Platform::ModManager::Get();
+	if (aMods.HasTunable("scoring.groupPoints"))
+	{
+		std::vector<double> aPoints = aMods.GetTunableArray("scoring.groupPoints", std::vector<double>());
+		if (!aPoints.empty())
+		{
+			t.mGroupPoints.clear();
+			for (double aValue : aPoints)
+				t.mGroupPoints.push_back((int) std::min(std::max(aValue, -1e6), 1e6));
+			SDL_Log("tunable scoring.groupPoints = %d values", (int) t.mGroupPoints.size());
+		}
+	}
+}
+
+// port(mods): the draws of effects (flung and falling coins, shakes): the board's generator, as in the
+// original, or in a seeded game a generator of their own, so they do not shift the board's choices
+unsigned long Board::EffectsRand()
+{
+	return mUserSeeded ? mEffectsRand.Next() : mRand.Next();
+}
+
+// port(mods): the bag columns of a level (GenerateBoard): CRT rand as in the original, or in a seeded game
+// the board's generator, whose draws only the game makes
+int Board::BagColumnRand()
+{
+	if (mUserSeeded)
+		return (int)(mRand.Next() & 0x7fff);
+	// port(mods): a replay has the draws (Replay.h)
+	if (mPlayer != NULL)
+		return mPlayer->NextBagColumn((uint32_t) mUpdateCnt);
+	int aValue = CrtRand();
+	if (mRecorder != NULL)
+		mRecorder->AddBagColumn(aValue);
+	return aValue;
+}
+
+// port(mods): input to record (Replay.h)
+void Board::RecordInput(int theOp, int theX, int theY)
+{
+	if (mRecorder != NULL)
+		mRecorder->AddEvent((uint32_t) mUpdateCnt, theOp, theX, theY);
+}
+
+// port(mods): the game-over screen (UpdateLoosePieces, right after mHighScoreWidget): a recorded game is
+// written (kept for good when its score made a local table: today's best or a place), and a replay ends
+// and is checked (Replay.h)
+void Board::ReplayGameOver()
+{
+	if (mPlayer != NULL)
+		mPlayer->CheckEnd(this, (uint32_t) mUpdateCnt);
+	if (mRecorder != NULL)
+	{
+		bool isPinned = (mHighScoreWidget != NULL) && ((mHighScoreWidget->GetRank(mApp->mGameType, mScore) > 0) ||
+			(mScore > mHighScoreWidget->mTodayScores[mApp->mGameType]));
+		mReplayPath = mRecorder->Finish(this, isPinned);
+		delete mRecorder;
+		mRecorder = NULL;
+	}
+}
+
+// port(mods): a game on the pending seed has been played (its first valid click or its game over), so
+// the next new game is unseeded (ModRules.h)
+void Board::UsePendingSeed()
+{
+	if ((mUserSeeded) && (mApp->mPendingSeed == mGameSeed) && (mPlayer == NULL))
+	{
+		mApp->mPendingSeed = 0;
+		SDL_Log("seed %u used", (unsigned) mGameSeed);
+	}
+}
+
+// port(mods): the Puzzle solver (PuzzleSolver.h), once per board tick. It looks at the board only while
+// nothing moves, so it sees what Compact and UpdatePhysics left, and a hint waits for it.
+void Board::UpdateSolver()
+{
+	if (mSolver == NULL)
+		return;
+	if (mSolverMessageTicks > 0)
+		mSolverMessageTicks--;
+	if (mSolverLevel != mLevel)
+		StartSolverLevel();
+
+	// A test of the solver: a level it found lost must never be won
+	if ((mSolverLostLevel == mLevel) && (mBagsReleased >= mBagsNeeded))
+	{
+		SDL_Log("solver: WRONG: level %d was found lost and is won", mLevel + 1);
+		mSolverLostLevel = -1;
+	}
+
+	if ((mState != STATE_PLAYING) || (mPiecesMoving) || (PuzzlePlaysOn())) // port(mods): won, playing on
+	{
+		ClearSolverHint();
+		if (mSolverWarning)
+		{
+			mSolverWarning = false;
+			memset(mSolverWarnCell, 0, sizeof(mSolverWarnCell));
+			MarkDirty();
+		}
+		return;
+	}
+
+	PuzzleModel aModel;
+	GetSolverModel(&aModel);
+	// A winnable board's build order is a known win (PuzzleBuilder.h)
+	if ((!mBuildPlan.empty()) && (aModel.Hash() == mBuildPlanBoard))
+	{
+		if (mSolver->SetPlan(aModel, mBuildPlan))
+			SDL_Log("solver: level %d: winnable in %d clicks, as built (tick %d)", mLevel + 1, (int) mSolver->mPlan.size(),
+				mUpdateCnt);
+		mBuildPlan.clear();
+	}
+	mSolver->SetBoard(aModel);
+	if ((mSolverHintBoard != 0) && (mSolverHintBoard != mSolver->GetBoardHash()))
+		ClearSolverHint();
+	mSolver->Step(mSolverBudget);
+
+	if (mSolver->mStatus != mSolverLogged)
+	{
+		mSolverLogged = mSolver->mStatus;
+		switch (mSolver->mStatus)
+		{
+		case PuzzleSolver::STATUS_WINNABLE:
+			SDL_Log("solver: level %d: winnable in %d clicks (%d positions, tick %d)", mLevel + 1, (int) mSolver->mPlan.size(),
+				mSolver->mPositions, mUpdateCnt);
+			break;
+		case PuzzleSolver::STATUS_LOST:
+			SDL_Log("solver: level %d: lost (%d positions, tick %d)", mLevel + 1, mSolver->mPositions, mUpdateCnt);
+			mSolverLostLevel = mLevel;
+			break;
+		case PuzzleSolver::STATUS_GAVE_UP:
+			SDL_Log("solver: level %d: gave up (%d positions, tick %d)", mLevel + 1, mSolver->mPositions, mUpdateCnt);
+			break;
+		default:
+			break;
+		}
+	}
+
+	// A test of the warnings: what the last click's check found, against what the solver finds after it
+	if ((mSolverExpect != PuzzleClickCheck::VERDICT_NONE) && (mSolver->GetBoardHash() != mSolverExpectBoard) &&
+		(mSolver->mStatus != PuzzleSolver::STATUS_THINKING))
+	{
+		if ((mSolverExpect == PuzzleClickCheck::VERDICT_LOSES) && (mSolver->mStatus == PuzzleSolver::STATUS_WINNABLE))
+			SDL_Log("solver: WRONG: a click found to lose left the level winnable (tick %d)", mUpdateCnt);
+		else if ((mSolverExpect == PuzzleClickCheck::VERDICT_WINS) && (mSolver->mStatus == PuzzleSolver::STATUS_LOST))
+			SDL_Log("solver: a click found to win left the level lost (the bags landed another way? tick %d)", mUpdateCnt);
+		mSolverExpect = PuzzleClickCheck::VERDICT_NONE;
+	}
+
+	if ((mSolverHintWanted) && (mSolver->mStatus != PuzzleSolver::STATUS_THINKING))
+		GiveSolverHint();
+
+	UpdateSolverCheck();
+
+	if ((mSolverEndWhenLost) && (mSolver->mStatus == PuzzleSolver::STATUS_LOST) && (mBagsReleased < mBagsNeeded) &&
+		(mPickpockets == 0))
+	{
+		SDL_Log("solver: level %d can't be won: game over", mLevel + 1);
+		GameOver();
+	}
+}
+
+// A new level: its own free hints and undos
+void Board::StartSolverLevel()
+{
+	mSolverLevel = mLevel;
+	mSolverHintsTaken = 0;
+	mSolverUndosTaken = 0;
+	mSolverUndos.clear();
+}
+
+// The grid as the solver sees it: a smaller board ("boardSize") on the floor of its 14 x 15 model, columns
+// past mCols empty (Compact closes no gap that reaches the side, so the model plays the same)
+void Board::GetSolverModel(PuzzleModel* theModel)
+{
+	for (int aRow = 0; aRow < BOARD_ROWS; aRow++)
+	{
+		for (int aCol = 0; aCol < BOARD_COLS; aCol++)
+		{
+			int aBoardRow = aRow - SolverRowOffset();
+			Piece* aPiece = (aBoardRow >= 0) ? mGrid[aBoardRow][aCol] : NULL;
+			if (aPiece == NULL)
+				theModel->mCell[aRow][aCol] = PuzzleModel::EMPTY;
+			else if (aPiece->mIsSpecial)
+				theModel->mCell[aRow][aCol] = PuzzleModel::BAG; // only bags rest in a Puzzle grid
+			else
+				theModel->mCell[aRow][aCol] = (int8_t) aPiece->mColor;
+		}
+	}
+	theModel->mReleased = mBagsReleased;
+	theModel->mNeeded = mBagsNeeded;
+	theModel->mDiagonal = mDiagonal;
+}
+
+// A group of the solver's board by its first cell (row * BOARD_COLS + col, in the model's rows); -1 if it is
+// no group of 2
+int Board::SolverGroupKey(int theCol, int theRow) const
+{
+	std::vector<int> aCells;
+	mSolver->GetBoard().GetGroup(theCol, theRow, &aCells);
+	if (aCells.size() < 2)
+		return -1;
+	return *std::min_element(aCells.begin(), aCells.end());
+}
+
+// The warnings (mSolverWarn): the click on the hovered group is checked once the board is still and the
+// solver has its answer (the plan's next click needs no check), with the solver's budget per tick. Each
+// group's verdict holds until the board changes. A lost level gets no warnings: every click loses, and
+// the status line says so.
+void Board::UpdateSolverCheck()
+{
+	if (mSolverCheck == NULL)
+		return;
+	if (mSolverVerdictBoard != mSolver->GetBoardHash())
+	{
+		mSolverVerdictBoard = mSolver->GetBoardHash();
+		memset(mSolverVerdict, PuzzleClickCheck::VERDICT_NONE, sizeof(mSolverVerdict));
+		mSolverCheckGroup = -1;
+	}
+
+	// The hovered group: the highlighted coins (UpdateHover)
+	int aHover = -1;
+	for (int aRow = 0; (aRow < BOARD_ROWS) && (aHover < 0); aRow++)
+	{
+		for (int aCol = 0; (aCol < BOARD_COLS) && (aHover < 0); aCol++)
+		{
+			if ((mGrid[aRow][aCol] != NULL) && (mGrid[aRow][aCol]->mHighlighted))
+				aHover = SolverGroupKey(aCol, aRow + SolverRowOffset());
+		}
+	}
+
+	if ((mSolver->mStatus == PuzzleSolver::STATUS_WINNABLE) || (mSolver->mStatus == PuzzleSolver::STATUS_GAVE_UP))
+	{
+		if ((aHover >= 0) && (mSolverVerdict[aHover] == PuzzleClickCheck::VERDICT_NONE) && (aHover != mSolverCheckGroup))
+		{
+			if ((mSolver->mStatus == PuzzleSolver::STATUS_WINNABLE) && (!mSolver->mPlan.empty()) &&
+				(SolverGroupKey(mSolver->mPlan[0].mCol, mSolver->mPlan[0].mRow) == aHover))
+				mSolverVerdict[aHover] = PuzzleClickCheck::VERDICT_WINS;
+			else
+			{
+				mSolverCheckGroup = aHover;
+				mSolverCheck->Start(mSolver->GetBoard(), aHover % BOARD_COLS, aHover / BOARD_COLS);
+			}
+		}
+		if (mSolverCheckGroup >= 0)
+		{
+			int aVerdict = mSolverCheck->Step(mSolverBudget);
+			if (aVerdict != PuzzleClickCheck::VERDICT_NONE)
+			{
+				mSolverVerdict[mSolverCheckGroup] = (int8_t) aVerdict;
+				SDL_Log("solver: check: the click at column %d, row %d %s (%d positions, tick %d)",
+					mSolverCheckGroup % BOARD_COLS, mSolverCheckGroup / BOARD_COLS,
+					(aVerdict == PuzzleClickCheck::VERDICT_WINS) ? "can win" :
+					(aVerdict == PuzzleClickCheck::VERDICT_LOSES) ? "loses" : "is too big to tell",
+					mSolverCheck->mPositions, mUpdateCnt);
+				mSolverCheckGroup = -1;
+			}
+		}
+	}
+
+	// The hovered group is red when its click loses
+	bool aWarnCell[BOARD_ROWS][BOARD_COLS];
+	memset(aWarnCell, 0, sizeof(aWarnCell));
+	bool isWarning = (aHover >= 0) && (mSolverVerdict[aHover] == PuzzleClickCheck::VERDICT_LOSES);
+	if (isWarning)
+	{
+		std::vector<int> aCells;
+		mSolver->GetBoard().GetGroup(aHover % BOARD_COLS, aHover / BOARD_COLS, &aCells);
+		for (int aCell : aCells)
+			aWarnCell[aCell / BOARD_COLS - SolverRowOffset()][aCell % BOARD_COLS] = true;
+	}
+	if ((isWarning != mSolverWarning) || (memcmp(aWarnCell, mSolverWarnCell, sizeof(aWarnCell)) != 0))
+	{
+		mSolverWarning = isWarning;
+		memcpy(mSolverWarnCell, aWarnCell, sizeof(aWarnCell));
+		MarkDirty();
+	}
+}
+
+// A click on a coin (ClickAt) with the solver on: false when the warnings refuse it (SOLVER_WARN_BLOCK: its
+// check found it loses, and the solver has a click that wins). It also keeps the click's verdict for the
+// test in UpdateSolver.
+bool Board::CheckSolverClick(Piece* thePiece)
+{
+	if ((mSolverCheck == NULL) || (mPiecesMoving) || (thePiece->mRow < 0) || (thePiece->mRow >= BOARD_ROWS) ||
+		(thePiece->mCol < 0) || (thePiece->mCol >= BOARD_COLS))
+		return true;
+	// The verdicts are for this board (not one an earlier click of this tick changed)
+	PuzzleModel aModel;
+	GetSolverModel(&aModel);
+	if ((aModel.Hash() != mSolverVerdictBoard) || (mSolver->GetBoardHash() != mSolverVerdictBoard))
+		return true;
+	int aKey = SolverGroupKey(thePiece->mCol, thePiece->mRow + SolverRowOffset());
+	if (aKey < 0)
+		return true;
+	int aVerdict = mSolverVerdict[aKey];
+	if ((aVerdict == PuzzleClickCheck::VERDICT_LOSES) && (mSolverWarn == SOLVER_WARN_BLOCK) &&
+		(mSolver->mStatus == PuzzleSolver::STATUS_WINNABLE))
+	{
+		mSolverMessage = mApp->GetString("SOLVER_REFUSED", _S("THAT CLICK WOULD LOSE THE LEVEL"));
+		mSolverMessageTicks = SOLVER_MESSAGE_TICKS;
+		SDL_Log("solver: the click at column %d, row %d is refused: it loses (tick %d)", thePiece->mCol, thePiece->mRow,
+			mUpdateCnt);
+		MarkDirty();
+		return false;
+	}
+	if ((aVerdict == PuzzleClickCheck::VERDICT_WINS) || (aVerdict == PuzzleClickCheck::VERDICT_LOSES))
+	{
+		mSolverExpect = aVerdict;
+		mSolverExpectBoard = mSolverVerdictBoard;
+	}
+	return true;
+}
+
+// H, or a click on the status line: the hint comes when the board is still and solved (UpdateSolver), once
+// per board position
+void Board::RequestSolverHint()
+{
+	if ((mSolver == NULL) || (!mSolverHints) || (mSolverHintBoard != 0))
+		return;
+	SDL_Log("solver: hint asked (tick %d, status %d)", mUpdateCnt, (int) mSolver->mStatus);
+	mSolverHintWanted = true;
+	MarkDirty();
+}
+
+void Board::GiveSolverHint()
+{
+	mSolverHintWanted = false;
+	mSolverMessageTicks = SOLVER_MESSAGE_TICKS;
+	switch (mSolver->mStatus)
+	{
+	case PuzzleSolver::STATUS_LOST:
+		mSolverMessage = mApp->GetString("SOLVER_HINT_LOST", _S("NO HINT, NO CLICKS WIN THIS LEVEL NOW"));
+		return;
+	case PuzzleSolver::STATUS_GAVE_UP:
+		mSolverMessage = mApp->GetString("SOLVER_HINT_GAVE_UP", _S("NO HINT, TOO MANY WAYS TO TRY"));
+		return;
+	case PuzzleSolver::STATUS_WINNABLE:
+		break;
+	default:
+		mSolverMessageTicks = 0;
+		return;
+	}
+	if (mSolver->mPlan.empty())
+	{
+		mSolverMessageTicks = 0;
+		return;
+	}
+
+	int aCost = SolverHintCost();
+	if (aCost > mScore)
+	{
+		mSolverMessage = mApp->GetString("SOLVER_HINT_TOO_DEAR", _S("A HINT COSTS")) + StrFormat(_S(" %d "), aCost) +
+			mApp->GetString("SOLVER_DOLLARS", _S("DOLLARS"));
+		return;
+	}
+
+	const PuzzleSolver::Move& aMove = mSolver->mPlan[0];
+	std::vector<int> aCells;
+	mSolver->GetBoard().GetGroup(aMove.mCol, aMove.mRow, &aCells);
+	memset(mSolverHint, 0, sizeof(mSolverHint));
+	for (int aCell : aCells)
+		mSolverHint[aCell / BOARD_COLS - SolverRowOffset()][aCell % BOARD_COLS] = true;
+	mSolverHintBoard = mSolver->GetBoardHash();
+	mScore -= aCost;
+	mSolverSpent += aCost;
+	mSolverHintsTaken++;
+	if (aCost > 0)
+		mSolverMessage = mApp->GetString("SOLVER_HINT_PAID", _S("HINT, PAID")) + StrFormat(_S(" %d "), aCost) +
+			mApp->GetString("SOLVER_DOLLARS", _S("DOLLARS"));
+	else
+		mSolverMessageTicks = 0;
+	SDL_Log("solver: hint: the %d coins at column %d, row %d, for %d (score %d, tick %d)", (int) aCells.size(), aMove.mCol,
+		aMove.mRow, aCost, mScore, mUpdateCnt);
+	MarkDirty();
+}
+
+void Board::ClearSolverHint()
+{
+	if (mSolverHintBoard == 0)
+		return;
+	mSolverHintBoard = 0;
+	memset(mSolverHint, 0, sizeof(mSolverHint));
+	MarkDirty();
+}
+
+// The game as it is before a click (OnClick, once the click takes a group), for the undo. A level keeps
+// as many as it has undos.
+void Board::SaveSolverUndo()
+{
+	if (!mSolverUndo)
+		return;
+	if (mSolverLevel != mLevel)
+		StartSolverLevel();
+	if ((int) mSolverUndos.size() >= mSolverUndoLimit)
+		mSolverUndos.erase(mSolverUndos.begin());
+	mSolverUndos.push_back(SolverUndo());
+	SolverUndo& anUndo = mSolverUndos.back();
+	Buffer aBuffer;
+	WriteSaveGame(&aBuffer);
+	anUndo.mSave = aBuffer.mData;
+	anUndo.mRand = mRand;
+	anUndo.mLastColor = mLastColor;
+	anUndo.mColorStreak = mColorStreak;
+	anUndo.mLastGroupSize = mLastGroupSize;
+	anUndo.mPrevGroupSize = mPrevGroupSize;
+	memcpy(anUndo.mColTowerHeight, mColTowerHeight, sizeof(mColTowerHeight));
+	anUndo.mScore = mScore;
+	anUndo.mSpent = mSolverSpent;
+	anUndo.mBoard = 0;
+	if (!mPiecesMoving)
+	{
+		PuzzleModel aModel;
+		GetSolverModel(&aModel);
+		anUndo.mBoard = aModel.Hash();
+	}
+	anUndo.mTick = mUpdateCnt;
+	anUndo.mPickpockets = mPickpockets;
+}
+
+// U, or a click on the undo line: the game goes back to just before the last click. The score is the one
+// it had then, less what hints and undos have cost since, less the undo's price.
+void Board::RequestSolverUndo()
+{
+	if ((mSolver == NULL) || (!mSolverUndo) || (mState != STATE_PLAYING) || (mBagsReleased >= mBagsNeeded))
+		return;
+	if (mSolverLevel != mLevel)
+		StartSolverLevel();
+	mSolverMessageTicks = SOLVER_MESSAGE_TICKS;
+	MarkDirty();
+	if (mSolverUndosTaken >= mSolverUndoLimit)
+	{
+		mSolverMessage = mApp->GetString("SOLVER_UNDO_USED", _S("NO UNDOS LEFT IN THIS LEVEL"));
+		return;
+	}
+	if (mSolverUndos.empty())
+	{
+		mSolverMessage = mApp->GetString("SOLVER_UNDO_NONE", _S("NOTHING TO UNDO"));
+		return;
+	}
+	SolverUndo anUndo = mSolverUndos.back();
+	int aScore = anUndo.mScore - (mSolverSpent - anUndo.mSpent);
+	int aCost = SolverUndoCost();
+	if (aCost > aScore)
+	{
+		mSolverMessage = mApp->GetString("SOLVER_UNDO_TOO_DEAR", _S("AN UNDO COSTS")) + StrFormat(_S(" %d "), aCost) +
+			mApp->GetString("SOLVER_UNDO_HAD", _S("DOLLARS, YOU HAD")) + StrFormat(_S(" %d"), std::max(aScore, 0));
+		return;
+	}
+	mSolverUndos.pop_back();
+
+	Buffer aBuffer;
+	if (!anUndo.mSave.empty())
+		aBuffer.WriteBytes(&anUndo.mSave[0], (int) anUndo.mSave.size());
+	ReadSaveGame(&aBuffer, false);
+	mRand = anUndo.mRand;
+	mLastColor = anUndo.mLastColor;
+	mColorStreak = anUndo.mColorStreak;
+	mLastGroupSize = anUndo.mLastGroupSize;
+	mPrevGroupSize = anUndo.mPrevGroupSize;
+	memcpy(mColTowerHeight, anUndo.mColTowerHeight, sizeof(mColTowerHeight));
+	mPickpockets = anUndo.mPickpockets;
+	if (mPickpockets == 0)
+		mPickpocketArmed = false;
+	if (mHintPiece != NULL) // the piece the instructor's hint followed is gone
+	{
+		HideHint();
+		mHintPiece = NULL;
+	}
+	mScore = aScore - aCost;
+	mSolverSpent += aCost;
+	mSolverUndosTaken++;
+	mSolverLostLevel = -1; // the level may be winnable again
+	mSolverExpect = PuzzleClickCheck::VERDICT_NONE;
+	mSolverHintWanted = false;
+	ClearSolverHint();
+	UpdateMovesLeft();
+	FindGroups();
+	UpdateHover();
+	if (aCost > 0)
+		mSolverMessage = mApp->GetString("SOLVER_UNDO_PAID", _S("UNDONE, PAID")) + StrFormat(_S(" %d "), aCost) +
+			mApp->GetString("SOLVER_DOLLARS", _S("DOLLARS"));
+	else
+		mSolverMessageTicks = 0;
+	SDL_Log("solver: undo: back to before the click of tick %d, for %d (score %d, %d undos left, tick %d)", anUndo.mTick,
+		aCost, mScore, mSolverUndoLimit - mSolverUndosTaken, mUpdateCnt);
+
+	// A test of the undo: the board is the one clicked
+	if (anUndo.mBoard != 0)
+	{
+		PuzzleModel aModel;
+		GetSolverModel(&aModel);
+		if (aModel.Hash() != anUndo.mBoard)
+			SDL_Log("solver: WRONG: the undo left another board than the one clicked");
+	}
+}
+
+// A price: thePrice SOLVER_PRICE_*, theValue percent of theScore (rounded up) or dollars
+int Board::SolverPrice(int thePrice, int theValue, int theScore) const
+{
+	switch (thePrice)
+	{
+	case SOLVER_PRICE_PERCENT:
+		return (int)(((int64_t) std::max(theScore, 0) * theValue + 99) / 100);
+	case SOLVER_PRICE_AMOUNT:
+		return theValue;
+	}
+	return 0;
+}
+
+int Board::SolverHintCost() const
+{
+	if (mSolverHintsTaken < mSolverFreeHints)
+		return 0;
+	return SolverPrice(mSolverHintPrice, mSolverHintValue, mScore);
+}
+
+// Of the score the undo goes back to
+int Board::SolverUndoCost() const
+{
+	int aScore = mScore;
+	if (!mSolverUndos.empty())
+		aScore = mSolverUndos.back().mScore - (mSolverSpent - mSolverUndos.back().mSpent);
+	return SolverPrice(mSolverUndoPrice, mSolverUndoValue, aScore);
+}
+
+bool Board::IsSolverHintPiece(Piece* thePiece) const
+{
+	if ((mSolverHintBoard == 0) || (thePiece->mRow < 0) || (thePiece->mRow >= BOARD_ROWS) || (thePiece->mCol < 0) ||
+		(thePiece->mCol >= BOARD_COLS))
+		return false;
+	return (mSolverHint[thePiece->mRow][thePiece->mCol]) && (mGrid[thePiece->mRow][thePiece->mCol] == thePiece);
+}
+
+bool Board::IsSolverWarnPiece(Piece* thePiece) const
+{
+	if ((!mSolverWarning) || (thePiece->mRow < 0) || (thePiece->mRow >= BOARD_ROWS) || (thePiece->mCol < 0) ||
+		(thePiece->mCol >= BOARD_COLS))
+		return false;
+	return (mSolverWarnCell[thePiece->mRow][thePiece->mCol]) && (mGrid[thePiece->mRow][thePiece->mCol] == thePiece);
+}
+
+// The status lines over the top rows: what the solver found (or that the hovered click loses), how to get a
+// hint and its price (or the answer to the last hint or undo asked for), how to undo. False when there is
+// nothing to say. The rect is where a click asks for a hint (or, on the undo line, undoes), the same in a
+// replay (where it is drawn lower, under the replay's lines) as in the game recorded.
+bool Board::GetSolverStatusRect(Rect* theRect, std::vector<SolverLine>* theLines)
+{
+	theLines->clear();
+	if ((mSolver == NULL) || (mState != STATE_PLAYING) || (PuzzlePlaysOn())) // port(mods): won, playing on
+		return false;
+
+	SolverLine aLine;
+	aLine.mKind = SOLVER_LINE_STATUS;
+	int aShown = mSolver->mStatus;
+	if ((mSolverShow == SOLVER_SHOW_NEVER) || ((mSolverShow == SOLVER_SHOW_LOST) && (aShown != PuzzleSolver::STATUS_LOST)))
+		aShown = PuzzleSolver::STATUS_NONE;
+	switch (aShown)
+	{
+	case PuzzleSolver::STATUS_THINKING:
+		aLine.mText = mApp->GetString("SOLVER_THINKING", _S("SOLVER THINKING..."));
+		break;
+	case PuzzleSolver::STATUS_WINNABLE:
+		aLine.mText = mApp->GetString("SOLVER_WINNABLE", _S("THIS LEVEL CAN STILL BE WON"));
+		break;
+	case PuzzleSolver::STATUS_LOST:
+		if (mPickpockets > 0) // the solver counts no Pickpockets
+			aLine.mText = mApp->GetString("SOLVER_LOST_POCKET", _S("NO WAY TO WIN WITHOUT A PICKPOCKET"));
+		else
+			aLine.mText = mApp->GetString("SOLVER_LOST", _S("THIS LEVEL CAN NO LONGER BE WON"));
+		break;
+	case PuzzleSolver::STATUS_GAVE_UP:
+		aLine.mText = mApp->GetString("SOLVER_GAVE_UP", _S("TOO MANY WAYS TO TELL IF IT CAN BE WON"));
+		break;
+	}
+	if (mSolverWarning)
+	{
+		aLine.mText = mApp->GetString("SOLVER_WARNING", _S("THIS CLICK LOSES THE LEVEL"));
+		aLine.mKind = SOLVER_LINE_WARNING;
+	}
+	if (!aLine.mText.empty())
+		theLines->push_back(aLine);
+
+	aLine.mText.clear();
+	aLine.mKind = SOLVER_LINE_HINT;
+	if (mSolverMessageTicks > 0)
+		aLine.mText = mSolverMessage;
+	else if (mSolverHintWanted)
+		aLine.mText = mApp->GetString("SOLVER_HINT_WAIT", _S("FINDING A HINT..."));
+	else if ((mSolverHints) && (mSolverHintBoard == 0))
+	{
+		int aCost = SolverHintCost();
+		if ((aCost == 0) && (mSolverHintsTaken < mSolverFreeHints) &&
+			(SolverPrice(mSolverHintPrice, mSolverHintValue, mScore) > 0))
+			aLine.mText = mApp->GetString("SOLVER_HINT_FREE_KEYS", _S("H OR CLICK HERE FOR A FREE HINT,")) +
+				StrFormat(_S(" %d "), mSolverFreeHints - mSolverHintsTaken) + mApp->GetString("SOLVER_LEFT", _S("LEFT"));
+		else
+		{
+			aLine.mText = mApp->GetString("SOLVER_HINT_KEYS", _S("H OR CLICK HERE FOR A HINT,"));
+			if (aCost > 0)
+				aLine.mText += StrFormat(_S(" %d "), aCost) + mApp->GetString("SOLVER_DOLLARS", _S("DOLLARS"));
+			else
+				aLine.mText += _S(" ") + mApp->GetString("SOLVER_FREE", _S("FREE"));
+		}
+	}
+	if (!aLine.mText.empty())
+		theLines->push_back(aLine);
+
+	if ((mSolverUndo) && (!mSolverUndos.empty()) && (mSolverLevel == mLevel) && (mSolverUndosTaken < mSolverUndoLimit) &&
+		(mBagsReleased < mBagsNeeded))
+	{
+		int aCost = SolverUndoCost();
+		aLine.mText = mApp->GetString("SOLVER_UNDO_KEYS", _S("U OR CLICK HERE TO UNDO,"));
+		if (aCost > 0)
+			aLine.mText += StrFormat(_S(" %d "), aCost) + mApp->GetString("SOLVER_DOLLARS", _S("DOLLARS"));
+		else
+			aLine.mText += _S(" ") + mApp->GetString("SOLVER_FREE", _S("FREE"));
+		aLine.mText += StrFormat(_S(", %d "), mSolverUndoLimit - mSolverUndosTaken) + mApp->GetString("SOLVER_LEFT", _S("LEFT"));
+		aLine.mKind = SOLVER_LINE_UNDO;
+		theLines->push_back(aLine);
+	}
+
+	if (theLines->empty())
+		return false;
+	*theRect = Rect(BOARD_X, BOARD_Y, BOARD_COLS * COIN_SIZE, 6 + (int) theLines->size() * 19);
+	return true;
+}
+
+// port(mods): the coins of a Puzzle board that the reverse of its build order wins (PuzzleBuilder.h), from
+// the board's own random numbers. The bags go on as the original's.
+void Board::BuildWinnablePuzzle()
+{
+	PuzzleModel aBoard;
+	PuzzleBuilder::Build(mRand, mNumColors, mCols, mRows, mDiagonal, &aBoard, &mBuildPlan);
+	for (int aRow = 0; aRow < mRows; aRow++)
+	{
+		for (int aCol = 0; aCol < mCols; aCol++)
+		{
+			int8_t aCell = aBoard.mCell[aRow + SolverRowOffset()][aCol];
+			if (aCell == PuzzleModel::EMPTY)
+				continue;
+			Piece* aPiece = new Piece();
+			aPiece->mCol = aCol;
+			aPiece->mRow = aRow;
+			aPiece->mX = (double) ColX(aCol);
+			aPiece->mColor = aCell;
+			mGrid[aRow][aCol] = aPiece;
+		}
+	}
+}
+
+// port(mods): a test of the winnable board, bags and all: the build order's clicks, played on the solver's
+// model of the board, win the level. The solver (if on) gets them as its first plan (UpdateSolver).
+void Board::CheckWinnablePuzzle()
+{
+	PuzzleModel aBoard;
+	GetSolverModel(&aBoard);
+	aBoard.mReleased = 0;
+	mBuildPlanBoard = aBoard.Hash();
+	PuzzleSolver aSolver;
+	bool isWon = aSolver.SetPlan(aBoard, mBuildPlan);
+	SDL_Log("winnable: level %d: %d groups built; %s", mLevel + 1, (int) mBuildPlan.size(),
+		isWon ? "clicking them in reverse wins" : "WRONG: clicking them in reverse does not win");
+}
+
+// port(mods): Pickpockets (the "pickpocket" feature, mods/pickpocket). Each lifts a group too small to click
+// (smaller than mMinGroup: a single coin, or two where three are needed) for no points and no combos. It
+// counts as a click in Strategy (the moves to the next row), and a Puzzle game goes on while one can still
+// lift a coin. The groups are found here, not with FloodFill, which leaves marks a click in the same tick
+// would stop at.
+void Board::GetPickpocketGroup(Piece* thePiece, std::vector<Piece*>* theGroup)
+{
+	theGroup->clear();
+	if ((thePiece == NULL) || (thePiece->mIsSpecial))
+		return;
+	bool aSeen[BOARD_ROWS][BOARD_COLS];
+	memset(aSeen, 0, sizeof(aSeen));
+	theGroup->push_back(thePiece);
+	aSeen[thePiece->mRow][thePiece->mCol] = true;
+	for (size_t i = 0; i < theGroup->size(); i++)
+	{
+		Piece* aFrom = (*theGroup)[i];
+		for (int d = 0; d < GroupDirs(); d++)
+		{
+			int aCol = aFrom->mCol + gGroupDirs[d][0];
+			int aRow = aFrom->mRow + gGroupDirs[d][1];
+			if ((aCol < 0) || (aCol >= mCols) || (aRow < 0) || (aRow >= mRows) || (aSeen[aRow][aCol]))
+				continue;
+			Piece* aPiece = mGrid[aRow][aCol];
+			if ((aPiece == NULL) || (aPiece->mIsSpecial) || (aPiece->mColor != thePiece->mColor))
+				continue;
+			aSeen[aRow][aCol] = true;
+			theGroup->push_back(aPiece);
+		}
+	}
+}
+
+// A coin a Pickpocket in hand can lift: its group is too small to click
+bool Board::IsPickpocketTarget(Piece* thePiece)
+{
+	if ((!mPickpocket) || (mPickpockets <= 0) || (thePiece == NULL) || (thePiece->mIsSpecial))
+		return false;
+	std::vector<Piece*> aGroup;
+	GetPickpocketGroup(thePiece, &aGroup);
+	return (!aGroup.empty()) && ((int) aGroup.size() < mMinGroup);
+}
+
+// A Pickpocket in hand and a group it can lift (a Puzzle game with no clicks left goes on while there is)
+bool Board::CanPickpocket()
+{
+	if ((!mPickpocket) || (mPickpockets <= 0))
+		return false;
+	for (int aRow = 0; aRow < mRows; aRow++)
+	{
+		for (int aCol = 0; aCol < mCols; aCol++)
+		{
+			if (IsPickpocketTarget(mGrid[aRow][aCol]))
+				return true;
+		}
+	}
+	return false;
+}
+
+// Pickpockets for bags not needed: left on the board at the end of an Action or Strategy level
+// (ClearBoardForLevelEnd), or dropped past the needed ones in Puzzle (UpdatePhysics), up to the most in hand
+void Board::EarnPickpockets(int theBags)
+{
+	int aGot = std::min(mPickpockets + theBags * mPickpocketsPerBag, mPickpocketsMax) - mPickpockets;
+	if ((!mPickpocket) || (aGot <= 0))
+		return;
+	mPickpockets += aGot;
+	SDL_Log("pickpocket: %d earned for %d spare bags, %d in hand (tick %d)", aGot, theBags, mPickpockets, mUpdateCnt);
+	if (aGot == 1)
+		ShowBonusText(mApp->GetString("PICKPOCKET_EARNED_ONE", _S("+1 PICKPOCKET")));
+	else
+		ShowBonusText(StrFormat(_S("+%d "), aGot) + mApp->GetString("PICKPOCKET_MANY", _S("PICKPOCKETS")));
+	MarkDirty();
+}
+
+// A won Puzzle level plays on while a group can be clicked, for extra bags, when they earn Pickpockets
+bool Board::PuzzlePlaysOn()
+{
+	return (mPickpocket) && (mPickpocketsPerBag > 0) && (mApp->mGameType == GAMETYPE_PUZZLE) &&
+		(mState == STATE_PLAYING) && (mBagsBanked >= mBagsNeeded);
+}
+
+void Board::ArmPickpocket(bool theArmed)
+{
+	theArmed = theArmed && (mPickpocket) && (mPickpockets > 0);
+	if (theArmed == mPickpocketArmed)
+		return;
+	mPickpocketArmed = theArmed;
+	UpdateHover();
+	MarkDirty();
+}
+
+// OP_POCKET: a Pickpocket lifts the small group at x, y; the coins go in a puff, as under a bag
+void Board::UsePickpocket(int x, int y)
+{
+	Piece* aTarget = PieceAt(x, y);
+	if ((mState != STATE_PLAYING) || (!IsPickpocketTarget(aTarget)))
+		return;
+	std::vector<Piece*> aGroup;
+	GetPickpocketGroup(aTarget, &aGroup);
+	if (mSolver != NULL) // the game before it, for the solver's undo
+		SaveSolverUndo();
+	if (!mPlayStarted)
+	{
+		mApp->mTimesPlayed++;
+		mPlayStarted = true;
+		UsePendingSeed();
+	}
+
+	mPickpockets--;
+	mPickpocketsUsed++;
+	if (mPickpockets == 0)
+		mPickpocketArmed = false;
+	int aMinRow = mRows;
+	int aMaxRow = -1;
+	for (Piece* aPiece : aGroup)
+	{
+		if (aPiece == mHintPiece)
+			HideHint();
+		aMinRow = std::min(aMinRow, aPiece->mRow);
+		aMaxRow = std::max(aMaxRow, aPiece->mRow);
+		aPiece->mDanger = false;
+		aPiece->mGroupSize = 0;
+		aPiece->mHighlighted = false;
+		aPiece->mVX = 0.0;
+		aPiece->mVY = 0.0;
+		aPiece->mIsSpecial = true;
+		aPiece->mSpecialType = PIECE_POOF;
+		aPiece->mFrame = 0;
+		mLoosePieces.push_back(aPiece);
+		mGrid[aPiece->mRow][aPiece->mCol] = NULL;
+	}
+	mMintDelay = std::max(mMintDelay, (aMaxRow - aMinRow) * 8 + 24);
+	mLevelCoinsCleared += (int) aGroup.size();
+	mGameCoinsCleared += (int) aGroup.size();
+	mApp->PlaySample(SOUND_CLEARCOINS);
+	ShowBonusText(mApp->GetString("PICKPOCKETED", _S("PICKPOCKETED!")));
+	SDL_Log("pickpocket: %d coin%s at column %d, row %d; %d left (tick %d)", (int) aGroup.size(),
+		(aGroup.size() == 1) ? "" : "s", aTarget->mCol, aTarget->mRow, mPickpockets, mUpdateCnt);
+
+	Compact();
+	if (TowerToppler())
+		AddPoints(125, ColX(aTarget->mCol) + 14, RowY(aTarget->mRow) + 14, true);
+
+	// Strategy: a move like a click (OnClick)
+	if (mApp->mGameType == GAMETYPE_STRATEGY)
+	{
+		mMintTarget = mMintPerClick + mMintTarget;
+		UpdateMovesLeft();
+		if ((mMovesLeft <= 3) && (mMovesLeft >= 1))
+		{
+			int aDigit = 3 - mMovesLeft;
+			mApp->mMrMoney->PlayAnim(aDigit + MRANIM_THREE);
+			mApp->PlaySample(aDigit + SOUND_THREE);
+			mMoveDigitActive = true;
+			mMoveDigit = aDigit;
+			mMoveDigitFade = 1.0;
+		}
+	}
+
+	if (mSolver != NULL) // the solver counts no Pickpockets: its tests start over
+	{
+		mSolverLostLevel = -1;
+		mSolverExpect = PuzzleClickCheck::VERDICT_NONE;
+	}
+	UpdateHover();
+	MarkDirty();
+}
+
+// The counter on the steps under Mr. Money; a click on it arms a Pickpocket
+bool Board::GetPickpocketRect(Rect* theRect, SexyString* theText)
+{
+	if ((!mPickpocket) || (mState == STATE_GAME_OVER) || (mState == STATE_GAME_OVER_SCORES))
+		return false;
+	if (mPickpocketArmed)
+		*theText = mApp->GetString("PICKPOCKET_READY", _S("PICKPOCKET READY"));
+	else if (mPickpockets == 1)
+		*theText = mApp->GetString("PICKPOCKET_ONE", _S("1 PICKPOCKET"));
+	else
+		*theText = StrFormat(_S("%d "), mPickpockets) + mApp->GetString("PICKPOCKET_MANY", _S("PICKPOCKETS"));
+	*theRect = Rect(12, 414, 152, 24);
+	return true;
+}

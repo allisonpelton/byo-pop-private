@@ -1,0 +1,29 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "web",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-m", "http.server", "18765", "--bind", "127.0.0.1", "--directory", "build/web"],
+      "port": 18765
+    },
+    {
+      "name": "web-test",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-m", "http.server", "18766", "--bind", "127.0.0.1", "--directory", "build/web-test"],
+      "port": 18766
+    },
+    {
+      "name": "bigmoney-web",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-m", "http.server", "18767", "--bind", "127.0.0.1", "--directory", "build/web"],
+      "port": 18767
+    },
+    {
+      "name": "bookworm-web",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-m", "http.server", "18768", "--bind", "127.0.0.1", "--directory", "build/web"],
+      "port": 18768
+    }
+  ]
+}

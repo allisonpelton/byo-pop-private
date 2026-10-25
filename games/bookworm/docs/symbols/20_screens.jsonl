@@ -1,0 +1,118 @@
+{"addr": "004330c0", "name": "Sexy::ShadowFont::~ShadowFont", "sig": "void __thiscall ~ShadowFont(void)"}
+{"addr": "004330d0", "name": "Sexy::ShadowFont::StringWidth", "sig": "int __thiscall StringWidth(void * theString)"}
+{"addr": "00433160", "name": "Sexy::ShadowFont::DrawString", "sig": "void __thiscall DrawString(void * g, int theX, int theY, void * theString, void * theColor, void * theClipRect)"}
+{"addr": "004331d0", "name": "Sexy::ShadowFont::scalar_deleting_dtor", "sig": "void * __thiscall scalar_deleting_dtor(unsigned int flags)"}
+{"addr": "00433200", "name": "Sexy::ShadowFont::ShadowFont_copy", "sig": "void * __thiscall ShadowFont_copy(void * theFont)"}
+{"addr": "00433250", "name": "Sexy::ShadowFont::ShadowFont", "sig": "void * __thiscall ShadowFont(void * theImageFont, void * theShadowColor, void * theOffset)"}
+{"addr": "004332a0", "name": "Sexy::ShadowFont::Duplicate", "sig": "void * __thiscall Duplicate(void)"}
+{"addr": "00433300", "name": "Sexy::TitleScreen::~TitleScreen", "sig": "void __thiscall ~TitleScreen(void)"}
+{"addr": "00433470", "name": "Sexy::TitleScreen::AddedToManager", "sig": "void __thiscall AddedToManager(void * theWidgetManager)"}
+{"addr": "004334b0", "name": "Sexy::TitleScreen::RemovedFromManager", "sig": "void __thiscall RemovedFromManager(void * theWidgetManager)"}
+{"addr": "004334f0", "name": "Sexy::TitleScreen::Resize", "sig": "void __thiscall Resize(int theX, int theY, int theWidth, int theHeight)"}
+{"addr": "00433500", "name": "Sexy::TitleScreen::ButtonDepress", "sig": "void __thiscall ButtonDepress(int theId)"}
+{"addr": "00433540", "name": "Sexy::TitleScreen::scalar_deleting_dtor", "sig": "void * __thiscall scalar_deleting_dtor(unsigned int flags)"}
+{"addr": "00433570", "name": "Sexy::TitleScreen::DrawLoadingBar", "sig": "void __thiscall DrawLoadingBar(void * g)"}
+{"addr": "004336f0", "name": "Sexy::TitleScreen::ShowTrialExpiredDialog", "sig": "void __thiscall ShowTrialExpiredDialog(void)"}
+{"addr": "00433900", "name": "Sexy::TitleScreen::Draw", "sig": "void __thiscall Draw(void * g)"}
+{"addr": "00433e80", "name": "Sexy::TitleScreen::Update", "sig": "void __thiscall Update(void)"}
+{"addr": "00434380", "name": "Sexy::TitleScreen::TitleScreen", "sig": "void * __thiscall TitleScreen(void * theApp)"}
+{"addr": "00402090", "name": "Sexy::UserManager::GetCurrentUserName", "sig": "void * __thiscall GetCurrentUserName(void * theResult)"}
+{"addr": "00434800", "name": "Sexy::UserManager::FindUser", "sig": "void * __thiscall FindUser(void * theName)"}
+{"addr": "00434880", "name": "Sexy::UserManager::~UserManager", "sig": "void __thiscall ~UserManager(void)"}
+{"addr": "00434960", "name": "Sexy::User::User", "sig": "void * __thiscall User(void * theName)"}
+{"addr": "004349e0", "name": "Sexy::UserManager::ReadUserInt", "sig": "bool __thiscall ReadUserInt(void * theName, void * theValueName, int * theValue)"}
+{"addr": "00434b70", "name": "Sexy::UserManager::WriteUserString", "sig": "bool __thiscall WriteUserString(void * theName, void * theValueName, void * theValue)"}
+{"addr": "00434d10", "name": "Sexy::UserManager::WriteUserInt", "sig": "bool __thiscall WriteUserInt(void * theName, void * theValueName, int theValue)"}
+{"addr": "00434e90", "name": "Sexy::UserManager::SaveUser", "sig": "void __thiscall SaveUser(void * theUser)"}
+{"addr": "004352e0", "name": "Sexy::UserManager::DeleteUser", "sig": "void __thiscall DeleteUser(void * theName)"}
+{"addr": "00435470", "name": "Sexy::UserManager::LoadUser", "sig": "void * __thiscall LoadUser(void * theKeyName)"}
+{"addr": "004356d0", "name": "Sexy::UserManager::SetCurrentUser", "sig": "bool __thiscall SetCurrentUser(void * theName)"}
+{"addr": "00435880", "name": "Sexy::UserManager::SetCurrentAlias", "sig": "bool __thiscall SetCurrentAlias(void * theAlias)"}
+{"addr": "00435910", "name": "Sexy::UserManager::GetCurrentAlias", "sig": "void * __thiscall GetCurrentAlias(void * theResult)"}
+{"addr": "004359b0", "name": "Sexy::UserManager::GetLastUser", "sig": "void * __thiscall GetLastUser(void * theResult)"}
+{"addr": "00435b50", "name": "Sexy::UserManager::UserManager", "sig": "void * __thiscall UserManager(void * theApp)"}
+{"addr": "00401000", "name": "Sexy::BWGameSelector::~BWGameSelector", "sig": "void __thiscall ~BWGameSelector(void)"}
+{"addr": "004010c0", "name": "Sexy::BWGameSelector::StartOpenTransition", "sig": "void __thiscall StartOpenTransition(void)"}
+{"addr": "004011f0", "name": "Sexy::BWGameSelector::StartCloseTransition", "sig": "void __thiscall StartCloseTransition(void)"}
+{"addr": "00401340", "name": "Sexy::BWGameSelector::SetGameMode", "sig": "void __thiscall SetGameMode(int theMode)"}
+{"addr": "00401350", "name": "Sexy::BWGameSelector::SetGameOption", "sig": "void __thiscall SetGameOption(int theOption)"}
+{"addr": "00401370", "name": "Sexy::BWGameSelector::RemovedFromManager", "sig": "void __thiscall RemovedFromManager(void * theWidgetManager)"}
+{"addr": "004013f0", "name": "Sexy::BWGameSelector::SetDisabled", "sig": "void __thiscall SetDisabled(bool isDisabled)"}
+{"addr": "00401450", "name": "Sexy::BWGameSelector::ButtonPress", "sig": "void __thiscall ButtonPress(int theId, int theClickCount)"}
+{"addr": "00401460", "name": "Sexy::BWGameSelector::StartGame", "sig": "void __thiscall StartGame(void)"}
+{"addr": "004014c0", "name": "Sexy::BWGameSelector::ButtonDepress", "sig": "void __thiscall ButtonDepress(int theId)"}
+{"addr": "00401600", "name": "Sexy::BWGameSelector::BWGameSelector", "sig": "void * __thiscall BWGameSelector(void * theApp)"}
+{"addr": "00401720", "name": "Sexy::BWGameSelector::scalar_deleting_dtor", "sig": "void * __thiscall scalar_deleting_dtor(unsigned int flags)"}
+{"addr": "00402190", "name": "Sexy::BWGameSelector::Update", "sig": "void __thiscall Update(void)"}
+{"addr": "00402430", "name": "Sexy::BWGameSelector::AddedToManager", "sig": "void __thiscall AddedToManager(void * theWidgetManager)"}
+{"addr": "00402a50", "name": "Sexy::BWGameSelector::DrawBubble", "sig": "void __thiscall DrawBubble(void * g)"}
+{"addr": "00402cb0", "name": "Sexy::BWGameSelector::Draw", "sig": "void __thiscall Draw(void * g)"}
+{"addr": "004297e0", "name": "Sexy::HelpWidget::~HelpWidget", "sig": "void __thiscall ~HelpWidget(void)"}
+{"addr": "004298d0", "name": "Sexy::HelpWidget::RemovedFromManager", "sig": "void __thiscall RemovedFromManager(void * theWidgetManager)"}
+{"addr": "00429940", "name": "Sexy::HelpWidget::OrderInManagerChanged", "sig": "void __thiscall OrderInManagerChanged(void)"}
+{"addr": "00429990", "name": "Sexy::HelpWidget::Resize", "sig": "void __thiscall Resize(int theX, int theY, int theWidth, int theHeight)"}
+{"addr": "00429a50", "name": "Sexy::HelpWidget::Update", "sig": "void __thiscall Update(void)"}
+{"addr": "00429c70", "name": "Sexy::HelpWidget::ButtonDepress", "sig": "void __thiscall ButtonDepress(int theId)"}
+{"addr": "00429cd0", "name": "Sexy::HelpWidget::HelpWidget", "sig": "void * __thiscall HelpWidget(void * theApp)"}
+{"addr": "00429d60", "name": "Sexy::HelpWidget::scalar_deleting_dtor", "sig": "void * __thiscall scalar_deleting_dtor(unsigned int flags)"}
+{"addr": "00429d90", "name": "Sexy::HelpWidget::AddedToManager", "sig": "void __thiscall AddedToManager(void * theWidgetManager)"}
+{"addr": "0042a170", "name": "Sexy::HelpWidget::DrawTopicText", "sig": "void __thiscall DrawTopicText(void * g)"}
+{"addr": "0042a420", "name": "Sexy::HelpWidget::Draw", "sig": "void __thiscall Draw(void * g)"}
+{"addr": "0042a740", "name": "Sexy::HelpWidget::CheckboxChecked", "sig": "void __thiscall CheckboxChecked(int theId, bool checked)"}
+{"addr": "004f7710", "name": "Sexy::HelpWidget::InitHelpTopicText", "sig": "void __cdecl InitHelpTopicText(void)"}
+{"addr": "0041bfc0", "name": "Sexy::CreditsDialog::~CreditsDialog", "sig": "void __thiscall ~CreditsDialog(void)"}
+{"addr": "0041bfe0", "name": "Sexy::CreditsDialog::GetPreferredHeight", "sig": "int __thiscall GetPreferredHeight(int theWidth)"}
+{"addr": "0041bff0", "name": "Sexy::CreditsDialog::Update", "sig": "void __thiscall Update(void)"}
+{"addr": "0041c080", "name": "Sexy::CreditsDialog::scalar_deleting_dtor", "sig": "void * __thiscall scalar_deleting_dtor(unsigned int flags)"}
+{"addr": "0041c0b0", "name": "Sexy::CreditsDialog::CreditsDialog", "sig": "void * __thiscall CreditsDialog(void * theApp)"}
+{"addr": "0041c2a0", "name": "Sexy::CreditsDialog::Draw", "sig": "void __thiscall Draw(void * g)"}
+{"addr": "0041d2b0", "name": "Sexy::Definitionator::GetDefinition", "sig": "void * __thiscall GetDefinition(void * theResult, void * theWord)"}
+{"addr": "00430970", "name": "Sexy::OverlayWidget::~OverlayWidget", "sig": "void __thiscall ~OverlayWidget(void)"}
+{"addr": "00430a00", "name": "Sexy::OverlayWidget::IsBannerMoving", "sig": "bool __thiscall IsBannerMoving(void)"}
+{"addr": "00430a20", "name": "Sexy::OverlayWidget::AddEffect", "sig": "void __thiscall AddEffect(void * theEffect)"}
+{"addr": "00430a70", "name": "Sexy::OverlayWidget::GetEffects", "sig": "void * __thiscall GetEffects(int theType)"}
+{"addr": "00430a90", "name": "Sexy::OverlayWidget::HasEffects", "sig": "bool __thiscall HasEffects(int theType)"}
+{"addr": "00430ab0", "name": "Sexy::OverlayWidget::SaveState", "sig": "void __thiscall SaveState(void * theFile)"}
+{"addr": "00430b20", "name": "Sexy::OverlayWidget::LoadState", "sig": "void __thiscall LoadState(void * theFile)"}
+{"addr": "00430b90", "name": "Sexy::OverlayWidget::OrderInManagerChanged", "sig": "void __thiscall OrderInManagerChanged(void)"}
+{"addr": "00430bb0", "name": "Sexy::OverlayWidget::RemovedFromManager", "sig": "void __thiscall RemovedFromManager(void * theWidgetManager)"}
+{"addr": "00430be0", "name": "Sexy::Rect::Contains", "sig": "bool __thiscall Contains(void * thePoint)"}
+{"addr": "00430c20", "name": "Sexy::OverlayWidget::OverlayWidget", "sig": "void * __thiscall OverlayWidget(void * theApp)"}
+{"addr": "00430ce0", "name": "Sexy::OverlayWidget::scalar_deleting_dtor", "sig": "void * __thiscall scalar_deleting_dtor(unsigned int flags)"}
+{"addr": "00430d10", "name": "Sexy::OverlayWidget::AddedToManager", "sig": "void __thiscall AddedToManager(void * theWidgetManager)"}
+{"addr": "00430e20", "name": "Sexy::OverlayWidget::Update", "sig": "void __thiscall Update(void)"}
+{"addr": "00431080", "name": "Sexy::OverlayWidget::Draw", "sig": "void __thiscall Draw(void * g)"}
+{"addr": "0041b3e0", "name": "Sexy::ColorizedButton::MouseEnter", "sig": "void __thiscall MouseEnter(void)"}
+{"addr": "0041b400", "name": "Sexy::ColorizedButton::MouseLeave", "sig": "void __thiscall MouseLeave(void)"}
+{"addr": "0041b420", "name": "Sexy::ColorizedButton::MouseUp", "sig": "void __thiscall MouseUp(int x, int y)"}
+{"addr": "0041b450", "name": "Sexy::ColorizedButton::MouseDown", "sig": "void __thiscall MouseDown(int x, int y, int theClickCount)"}
+{"addr": "0041b510", "name": "Sexy::ColorizedButton::SetImageColor", "sig": "void __thiscall SetImageColor(int theIdx, void * theColor)"}
+{"addr": "0041b550", "name": "Sexy::ColorizedButton::GetImageColor", "sig": "void * __thiscall GetImageColor(int theIdx)"}
+{"addr": "0041b650", "name": "Sexy::ColorizedButton::~ColorizedButton", "sig": "void __thiscall ~ColorizedButton(void)"}
+{"addr": "0041b6a0", "name": "Sexy::ColorizedButton::Draw", "sig": "void __thiscall Draw(void * g)"}
+{"addr": "0041bd60", "name": "Sexy::ColorizedButton::scalar_deleting_dtor", "sig": "void * __thiscall scalar_deleting_dtor(unsigned int flags)"}
+{"addr": "0041be50", "name": "Sexy::ColorizedButton::SetImageColors_3", "sig": "void __thiscall SetImageColors_3(int * theColors, int theNumColors)"}
+{"addr": "0041bed0", "name": "Sexy::ColorizedButton::SetImageColors_4", "sig": "void __thiscall SetImageColors_4(int * theColors, int theNumColors)"}
+{"addr": "0041bf50", "name": "Sexy::ColorizedButton::ColorizedButton", "sig": "void * __thiscall ColorizedButton(int theId, void * theListener)"}
+{"addr": "0042b4c0", "name": "Sexy::ImagelessButton::~ImagelessButton", "sig": "void __thiscall ~ImagelessButton(void)"}
+{"addr": "0042b4d0", "name": "Sexy::ImagelessButton::scalar_deleting_dtor", "sig": "void * __thiscall scalar_deleting_dtor(unsigned int flags)"}
+{"addr": "0042b500", "name": "Sexy::ImagelessButton::ImagelessButton", "sig": "void * __thiscall ImagelessButton(void * theLabel, int theId, void * theListener, void * theFont)"}
+{"addr": "0042b590", "name": "Sexy::ImagelessButton::Draw", "sig": "void __thiscall Draw(void * g)"}
+{"addr": "00435e20", "name": "Sexy::WaitDialog::~WaitDialog", "sig": "void __thiscall ~WaitDialog(void)"}
+{"addr": "00435e40", "name": "Sexy::WaitDialog::AddedToManager", "sig": "void __thiscall AddedToManager(void * theWidgetManager)"}
+{"addr": "00435e50", "name": "Sexy::WaitDialog::RemovedFromManager", "sig": "void __thiscall RemovedFromManager(void * theWidgetManager)"}
+{"addr": "00435e60", "name": "Sexy::WaitDialog::Resize", "sig": "void __thiscall Resize(int theX, int theY, int theWidth, int theHeight)"}
+{"addr": "00435f30", "name": "Sexy::WaitDialog::GetPreferredHeight", "sig": "int __thiscall GetPreferredHeight(int theWidth)"}
+{"addr": "00435f60", "name": "Sexy::WaitDialog::Update", "sig": "void __thiscall Update(void)"}
+{"addr": "00435fb0", "name": "Sexy::WaitDialog::scalar_deleting_dtor", "sig": "void * __thiscall scalar_deleting_dtor(unsigned int flags)"}
+{"addr": "00435fe0", "name": "Sexy::WaitDialog::Draw", "sig": "void __thiscall Draw(void * g)"}
+{"addr": "00436110", "name": "Sexy::WaitDialog::WaitDialog", "sig": "void * __thiscall WaitDialog(void * theApp, int theId, void * theComponentImage, void * theButtonComponentImage, void * theBarImage, void * theHeader, void * theLines)"}
+{"addr": "00436260", "name": "Sexy::WordBalloon::Init", "sig": "void __thiscall Init(void * theApp)"}
+{"addr": "0052e8e0", "label": "gColorizedButtonColors"}
+{"addr": "0052f128", "label": "gHelpTopicNames"}
+{"addr": "0052f13c", "label": "gHelpTopicColors"}
+{"addr": "0052f154", "label": "gHelpTopicAttentionColors"}
+{"addr": "0052f1d0", "label": "gHelpTopicText"}
+{"addr": "0052f2d0", "label": "gImagelessButtonColors"}
+{"addr": "0052f640", "label": "gBonusBalloonColors"}
+{"addr": "0052f8f0", "label": "gWordBalloonColors"}

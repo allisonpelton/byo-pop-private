@@ -1,0 +1,36 @@
+# Stage 5, run with -gameseed=4242 and mods/stage5/strict (moves.allowInvalid, invalidCountsAsMove false, noMoves
+# "fallOut" in normal and "gameOver" in timed mode): kept swaps take the board's last move, in both modes
+# (games/bejeweled/docs/CODE_MODS_DESIGN.md 4.1). MTRand(4242)'s first board has six moves; four kept swaps leave none.
+300 click 320 398
+# The first game's tutorial shows (4,6)->(5,6). The kept swap (3,5)<->(3,6) makes that swap no match: the arrows and
+# the instructions go (Board::KeepInvalidMove); five moves are left
+460 click 380 295
+461 click 380 346
+520 screenshot shots/l01_tutorial_gone.png
+# (6,3)<->(6,4), (3,2)<->(4,2), (5,2)<->(6,2): kept; the last leaves no move: noMoves "fallOut", the board falls
+# out and refills. Kept swaps are no moves here and a fall-out is none, so the game is still new
+540 click 533 193
+541 click 533 244
+600 click 380 142
+601 click 431 142
+660 click 482 142
+661 click 533 142
+705 screenshot shots/l02_fall_out.png
+1200 screenshot shots/l03_refilled.png
+# Timed asks nothing (the game has not started) and the timed board is MTRand(4242)'s again: the seed is still pending.
+# The same four kept swaps (the tutorial goes at the first again): no move, noMoves "gameOver": NO MOVES!, the game
+# over uses the seed up and counts a game played (TimesPlayed 1). Score 0: no name is asked for
+1250 click 135 200
+1410 click 380 295
+1411 click 380 346
+1470 click 533 193
+1471 click 533 244
+1530 click 380 142
+1531 click 431 142
+1590 click 482 142
+1591 click 533 142
+1640 screenshot shots/l04_no_moves.png
+# Play again: an unseeded timed game (a per-game seed); the quit saves nothing (it has not started)
+2250 screenshot shots/l05_game_over.png
+2260 click 408 400
+2550 quit

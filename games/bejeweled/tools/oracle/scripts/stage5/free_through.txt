@@ -1,0 +1,16 @@
+# Stage 5, run with -gameseed=4242 and mods/stage5/free: free_quit.txt's moves and free_quit_resume.txt's in one
+# game, without the quit and the resume between them (the reference of compare.py "samestream").
+300 click 320 398
+# (2,2)->(3,2), a match; (0,7)->(1,7), kept
+470 click 329 142
+471 click 380 142
+700 click 227 397
+701 click 278 397
+# (2,1)->(3,1), a match; (7,7)->(7,6), kept; (0,2)->(0,3), a match
+900 click 329 91
+901 click 380 91
+1100 click 584 397
+1101 click 584 346
+1300 click 227 142
+1301 click 227 193
+1500 quit

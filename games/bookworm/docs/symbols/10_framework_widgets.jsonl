@@ -1,0 +1,225 @@
+{"addr": "00401560", "name": "Sexy::ButtonListener::ButtonPress_idcc", "sig": "void __thiscall ButtonPress_idcc(int theId, int theClickCount)", "comment": "ButtonListener slot 2: calls slot 3 ButtonPress(theId)"}
+{"addr": "00401570", "name": "empty_stub_ret4", "sig": "void __thiscall empty_stub_ret4(int a)", "comment": "folded empty virtual; Widget slots 16 Draw, 20 KeyChar, 22 KeyUp, 32 MouseWheel; ButtonListener slots 0,1,3,4,5"}
+{"addr": "004036d0", "name": "empty_stub_ret0", "sig": "void __thiscall empty_stub_ret0(void)", "comment": "folded empty virtual; Widget slot 3 OrderInManagerChanged and others"}
+{"addr": "0041dfa0", "name": "empty_stub_ret12", "sig": "void __thiscall empty_stub_ret12(int a, int b, int c)", "comment": "folded empty virtual; ListListener::ListClicked, SliderListener::SliderVal, ScrollListener::ScrollPosition"}
+{"addr": "00421850", "name": "stub_return_true", "sig": "bool __thiscall stub_return_true(void)", "comment": "folded; EditWidget::WantsFocus (slot 15), Slider::HasTransparencies (slot 48)"}
+{"addr": "004220f0", "name": "empty_stub_ret8", "sig": "void __thiscall empty_stub_ret8(int a, int b)", "comment": "folded empty virtual; Widget slots 25 MouseMove, 31 MouseDrag; CheckboxListener::CheckboxChecked; EditListener::EditWidgetText"}
+{"addr": "004292c0", "name": "stub_return_true_2args", "sig": "bool __thiscall stub_return_true_2args(int a, int b)", "comment": "folded; Widget slot 33 IsPointVisible; EditListener AllowKey/AllowChar/AllowText"}
+{"addr": "0042b870", "name": "Sexy::EditWidget::MarkDirty", "sig": "void __thiscall MarkDirty(void)", "comment": "slot 46 (linked into the game range); MarkDirtyFull if bkg alpha != 255"}
+{"addr": "00437540", "name": "Sexy::WidgetManager::FreeResources", "sig": "void __thiscall FreeResources(void)", "comment": "deletes mTransientImage (+0x14); called by ~WidgetManager"}
+{"addr": "00437560", "name": "Sexy::WidgetManager::DoMouseUps", "sig": "void __thiscall DoMouseUps(void * theWidget, uint theDownCode)", "comment": "2004 bug: passes button index 0/1/2 as click count (1.2: 1/-1/3)"}
+{"addr": "004375b0", "name": "Sexy::WidgetManager::Resize", "sig": "void __thiscall Resize(int theWidth, int theHeight)", "comment": "sets mWidth/mHeight (+0x1c/+0x20), drops mTransientImage"}
+{"addr": "004375f0", "name": "Sexy::WidgetManager::DisableWidget", "sig": "void __thiscall DisableWidget(void * theWidget)", "comment": "clears over / lastdown (+DoMouseUps) / focus / basemodal"}
+{"addr": "00437650", "name": "Sexy::WidgetManager::GotFocus", "sig": "void __thiscall GotFocus(void)"}
+{"addr": "00437670", "name": "Sexy::Graphics::operator_assign", "sig": "void * __thiscall operator_assign(void * theGraphics)", "comment": "0x58-byte Graphics state copy (graphics group)"}
+{"addr": "00437710", "name": "Sexy::WidgetManager::MouseExit", "sig": "bool __thiscall MouseExit(int x, int y)"}
+{"addr": "00437730", "name": "Sexy::WidgetManager::MouseWheel", "sig": "void __thiscall MouseWheel(int theDelta)", "comment": "forwards to mFocusWidget slot 32"}
+{"addr": "00437750", "name": "Sexy::WidgetManager::KeyChar", "sig": "bool __thiscall KeyChar(char theChar)", "comment": "ctrl+TAB -> mDefaultTab->KeyChar"}
+{"addr": "00437790", "name": "Sexy::WidgetManager::KeyDown", "sig": "bool __thiscall KeyDown(int theKey)"}
+{"addr": "004377c0", "name": "Sexy::WidgetManager::KeyUp", "sig": "bool __thiscall KeyUp(int theKey)"}
+{"addr": "00437800", "name": "Sexy::Widget::AddedToManager", "sig": "void __thiscall AddedToManager(void * theWidgetManager)", "comment": "slot 1"}
+{"addr": "00437810", "name": "Sexy::Widget::RemovedFromManager", "sig": "void __thiscall RemovedFromManager(void * theWidgetManager)", "comment": "slot 2"}
+{"addr": "00437820", "name": "Sexy::Widget::Resize_rect", "sig": "void __thiscall Resize_rect(void * theRect)", "comment": "slot 12"}
+{"addr": "00437840", "name": "Sexy::Widget::Move", "sig": "void __thiscall Move(int theNewX, int theNewY)", "comment": "slot 14"}
+{"addr": "00437860", "name": "Sexy::Widget::SetTransient", "sig": "void __thiscall SetTransient(bool isTransient)", "comment": "slot 9; name inferred; +0x1c flag, not in 1.2/1.3"}
+{"addr": "004378a0", "name": "Sexy::Widget::WantsFocus", "sig": "bool __thiscall WantsFocus(void)", "comment": "slot 15; always false (no mWantsFocus)"}
+{"addr": "004378b0", "name": "Sexy::Widget::GotFocus", "sig": "void __thiscall GotFocus(void)", "comment": "slot 18"}
+{"addr": "004378c0", "name": "Sexy::Widget::LostFocus", "sig": "void __thiscall LostFocus(void)", "comment": "slot 19"}
+{"addr": "004378d0", "name": "Sexy::Widget::Update", "sig": "void __thiscall Update(void)", "comment": "slot 17; mUpdateCnt++"}
+{"addr": "004378e0", "name": "Sexy::Widget::ShowFinger", "sig": "void __thiscall ShowFinger(bool on)", "comment": "slot 11"}
+{"addr": "00437910", "name": "Sexy::Widget::MouseEnter", "sig": "void __thiscall MouseEnter(void)", "comment": "slot 23; sets mIsOver, finger cursor if mDoFinger"}
+{"addr": "00437930", "name": "Sexy::Widget::MouseLeave", "sig": "void __thiscall MouseLeave(void)", "comment": "slot 24"}
+{"addr": "00437950", "name": "Sexy::Widget::MouseDown_xyc", "sig": "void __thiscall MouseDown_xyc(int x, int y, int theClickCount)", "comment": "slot 27; sets mIsDown then dispatches to slot 26"}
+{"addr": "004379a0", "name": "Sexy::Widget::MouseUp_xy", "sig": "void __thiscall MouseUp_xy(int x, int y)", "comment": "slot 30; clears mIsDown"}
+{"addr": "004379b0", "name": "Sexy::Widget::MouseUp_xyc", "sig": "void __thiscall MouseUp_xyc(int x, int y, int theClickCount)", "comment": "slot 29; calls slot 30 then slot 28"}
+{"addr": "00437a10", "name": "Sexy::Widget::GetNumDigits", "sig": "int __thiscall GetNumDigits(int theNumber)", "comment": "slot 39"}
+{"addr": "00437a40", "name": "Sexy::Widget::WriteNumberFromStrip", "sig": "void __thiscall WriteNumberFromStrip(void * g, int theNumber, int theX, int theY, void * theNumberStrip, int aSpacing)", "comment": "slot 40"}
+{"addr": "00437b40", "name": "Sexy::Widget::Contains", "sig": "bool __thiscall Contains(int theX, int theY)", "comment": "slot 41"}
+{"addr": "00437b80", "name": "Sexy::Slider::SetValue", "sig": "void __thiscall SetValue(double theValue)", "comment": "slot 47; no clamping in 2004"}
+{"addr": "00437ba0", "name": "Sexy::Slider::MouseDown_xyc", "sig": "void __thiscall MouseDown_xyc(int x, int y, int theClickCount)", "comment": "slot 27; thumb only, no jump-to-click"}
+{"addr": "00437c00", "name": "Sexy::Slider::MouseMove", "sig": "void __thiscall MouseMove(int x, int y)", "comment": "slot 25"}
+{"addr": "00437c70", "name": "Sexy::Slider::MouseDrag", "sig": "void __thiscall MouseDrag(int x, int y)", "comment": "slot 31"}
+{"addr": "00437d30", "name": "Sexy::Slider::MouseUp_xy", "sig": "void __thiscall MouseUp_xy(int x, int y)", "comment": "slot 30"}
+{"addr": "00437d60", "name": "Sexy::Slider::MouseLeave", "sig": "void __thiscall MouseLeave(void)", "comment": "slot 24"}
+{"addr": "00437d80", "name": "Sexy::ListWidget::ScrollPosition", "sig": "void __thiscall ScrollPosition(int theId, double thePosition)", "comment": "ScrollListener vtable at +0x58, slot 0; this=list+0x58"}
+{"addr": "00437dc0", "name": "Sexy::ListWidget::MouseDown_xyc", "sig": "void __thiscall MouseDown_xyc(int x, int y, int theClickCount)", "comment": "slot 27; ListClicked"}
+{"addr": "00437df0", "name": "Sexy::ListWidget::MouseLeave", "sig": "void __thiscall MouseLeave(void)", "comment": "slot 24"}
+{"addr": "00437e40", "name": "Sexy::ListWidget::SetSelect", "sig": "void __thiscall SetSelect(int theSelectIdx)", "comment": "slot 59"}
+{"addr": "00437e80", "name": "Sexy::Insets::Insets", "sig": "void __thiscall Insets(void)", "comment": "zero-init of 4 ints; COMDAT-folded with Rect::Rect()"}
+{"addr": "00437e90", "name": "Sexy::Color::Color_rgba", "sig": "void * __thiscall Color_rgba(int r, int g, int b, int a)", "comment": "COMDAT-folded: also Insets::Insets(l,t,r,b) (game sets Dialog::mContentInsets with it)"}
+{"addr": "00437eb0", "name": "Sexy::Insets::Insets_copy", "sig": "void __thiscall Insets_copy(void * theInsets)", "comment": "16-byte copy; COMDAT-folded with the Rect / Color copy constructors"}
+{"addr": "00437ee0", "name": "Sexy::EditWidget::SetFont", "sig": "void __thiscall SetFont(void * theFont, void * theWidthCheckFont)", "comment": "slot 48"}
+{"addr": "00437f40", "name": "Sexy::EditWidget::GotFocus", "sig": "void __thiscall GotFocus(void)", "comment": "slot 18"}
+{"addr": "00437f60", "name": "Sexy::EditWidget::LostFocus", "sig": "void __thiscall LostFocus(void)", "comment": "slot 19"}
+{"addr": "00437f80", "name": "Sexy::EditWidget::Update", "sig": "void __thiscall Update(void)", "comment": "slot 17; cursor blink"}
+{"addr": "00437fd0", "name": "Sexy::EditWidget::IsPartOfWord", "sig": "bool __thiscall IsPartOfWord(char theChar)", "comment": "slot 50"}
+{"addr": "00438010", "name": "Sexy::EditWidget::KeyChar", "sig": "void __thiscall KeyChar(char theChar)", "comment": "slot 20"}
+{"addr": "00438050", "name": "Sexy::EditWidget::MouseUp_xyc", "sig": "void __thiscall MouseUp_xyc(int x, int y, int theClickCount)", "comment": "slot 29"}
+{"addr": "00438090", "name": "Sexy::EditWidget::MouseDrag", "sig": "void __thiscall MouseDrag(int x, int y)", "comment": "slot 31"}
+{"addr": "004380e0", "name": "Sexy::EditWidget::MouseEnter", "sig": "void __thiscall MouseEnter(void)", "comment": "slot 23; CURSOR_TEXT"}
+{"addr": "00438100", "name": "Sexy::EditWidget::MouseLeave", "sig": "void __thiscall MouseLeave(void)", "comment": "slot 24"}
+{"addr": "00438120", "name": "Sexy::CursorWidget::Draw", "sig": "void __thiscall Draw(void * g)", "comment": "slot 16"}
+{"addr": "00438140", "name": "Sexy::Checkbox::SetChecked", "sig": "void __thiscall SetChecked(bool checked, bool tellListener)", "comment": "slot 47"}
+{"addr": "00438180", "name": "Sexy::Checkbox::IsChecked", "sig": "bool __thiscall IsChecked(void)", "comment": "slot 48"}
+{"addr": "00438190", "name": "Sexy::Checkbox::Draw", "sig": "void __thiscall Draw(void * g)", "comment": "slot 16"}
+{"addr": "004381f0", "name": "Sexy::Checkbox::MouseDown_xyc", "sig": "void __thiscall MouseDown_xyc(int x, int y, int theClickCount)", "comment": "slot 27; toggles, CheckboxChecked"}
+{"addr": "00438240", "name": "Sexy::ButtonWidget::SetFont", "sig": "void __thiscall SetFont(void * theFont)", "comment": "slot 47"}
+{"addr": "00438270", "name": "Sexy::ButtonWidget::IsButtonDown", "sig": "bool __thiscall IsButtonDown(void)", "comment": "slot 48"}
+{"addr": "00438290", "name": "Sexy::ButtonWidget::HaveButtonImage", "sig": "bool __cdecl HaveButtonImage(void * theImage, void * theRect)", "comment": "non-virtual"}
+{"addr": "004382c0", "name": "Sexy::ButtonWidget::DrawButtonImage", "sig": "void __thiscall DrawButtonImage(void * g, void * theImage, void * theRect, int x, int y)", "comment": "non-virtual in 2004 (virtual slot 54 in 1.2)"}
+{"addr": "00438300", "name": "Sexy::ButtonWidget::MouseDown_xyc", "sig": "void __thiscall MouseDown_xyc(int x, int y, int theClickCount)", "comment": "slot 27"}
+{"addr": "00438350", "name": "Sexy::ButtonWidget::MouseUp_xy", "sig": "void __thiscall MouseUp_xy(int x, int y)", "comment": "slot 30; ButtonDepress if mIsOver && !mDisabled"}
+{"addr": "004383a0", "name": "Sexy::ButtonWidget::Update", "sig": "void __thiscall Update(void)", "comment": "slot 17"}
+{"addr": "004384a0", "name": "Sexy::Dialog::SetButtonFont", "sig": "void __thiscall SetButtonFont(void * theFont)", "comment": "slot 47"}
+{"addr": "004384d0", "name": "Sexy::Dialog::SetHeaderFont", "sig": "void __thiscall SetHeaderFont(void * theFont)", "comment": "slot 48"}
+{"addr": "00438500", "name": "Sexy::Dialog::SetLinesFont", "sig": "void __thiscall SetLinesFont(void * theFont)", "comment": "slot 49"}
+{"addr": "00438530", "name": "Sexy::Dialog::MouseDown_xyc", "sig": "void __thiscall MouseDown_xyc(int x, int y, int theClickCount)", "comment": "slot 27; drag starts on clickCount==1 only"}
+{"addr": "00438570", "name": "Sexy::Dialog::MouseDrag", "sig": "void __thiscall MouseDrag(int x, int y)", "comment": "slot 31"}
+{"addr": "00438690", "name": "Sexy::Dialog::MouseUp_xy", "sig": "void __thiscall MouseUp_xy(int x, int y)", "comment": "slot 30"}
+{"addr": "004386c0", "name": "Sexy::Dialog::Update", "sig": "void __thiscall Update(void)", "comment": "slot 17; jmp Widget::Update"}
+{"addr": "004386d0", "name": "Sexy::Dialog::IsModal", "sig": "bool __thiscall IsModal(void)", "comment": "slot 51"}
+{"addr": "004386e0", "name": "Sexy::Dialog::ButtonPress", "sig": "void __thiscall ButtonPress(int theId)", "comment": "ButtonListener vtable at +0x58, slot 3, this=dialog+0x58; ids mId+2000/3000 go to mWidgetManager->mApp->ButtonPress"}
+{"addr": "00438720", "name": "Sexy::Dialog::ButtonDepress", "sig": "void __thiscall ButtonDepress(int theId)", "comment": "ButtonListener +0x58 slot 4; forwards to app ButtonDepress(id); no mResult, no DialogListener"}
+{"addr": "00438760", "name": "Sexy::Dialog::ButtonDownTick", "sig": "void __thiscall ButtonDownTick(int theId)", "comment": "ButtonListener +0x58 slot 5; forwards to app ButtonDownTick(id)"}
+{"addr": "004387a0", "name": "Sexy::Rect::Intersection", "sig": "void * __thiscall Intersection(void * retRect, void * theRect)", "comment": "TRect<int>::Intersection; also used by Graphics"}
+{"addr": "00438830", "name": "Sexy::WidgetManager::LostFocus", "sig": "void __thiscall LostFocus(void)"}
+{"addr": "00438870", "name": "Sexy::Widget::WriteCenteredLine", "sig": "void * __thiscall WriteCenteredLine(void * retRect, void * g, int anOffset, void * theLine)", "comment": "slot 35"}
+{"addr": "004388e0", "name": "Sexy::Widget::WriteCenteredLine_shadow", "comment": "slot 34: Rect WriteCenteredLine(Graphics*, int anOffset, const string&, Color c1, Color c2, const Point& theShadowOffset)"}
+{"addr": "004389f0", "name": "Sexy::Widget::GetWordWrappedHeight", "sig": "int __thiscall GetWordWrappedHeight(void * g, int theWidth, void * theLine, int aLineSpacing)", "comment": "slot 38"}
+{"addr": "00438a80", "name": "Sexy::Widget::GetInsetRect", "sig": "void * __thiscall GetInsetRect(void * retRect)", "comment": "slot 42"}
+{"addr": "00438ac0", "name": "Sexy::Widget::GetRect", "sig": "void * __thiscall GetRect(void * retRect)", "comment": "slot 43"}
+{"addr": "00438af0", "name": "Sexy::Widget::Intersects", "sig": "bool __thiscall Intersects(void * theWidget)", "comment": "slot 44"}
+{"addr": "00438b70", "name": "Sexy::Slider::Draw", "sig": "void __thiscall Draw(void * g)", "comment": "slot 16"}
+{"addr": "00438d10", "name": "Sexy::ListWidget::GetLineCount", "sig": "int __thiscall GetLineCount(void)", "comment": "slot 52"}
+{"addr": "00438d40", "name": "Sexy::ListWidget::GetOptimalHeight", "sig": "int __thiscall GetOptimalHeight(void)", "comment": "slot 58"}
+{"addr": "00438d90", "name": "Sexy::ListWidget::MouseMove", "sig": "void __thiscall MouseMove(int x, int y)", "comment": "slot 25"}
+{"addr": "00438e70", "name": "Sexy::CursorWidget::GetHotspot", "sig": "void * __thiscall GetHotspot(void * retPoint)", "comment": "non-virtual; centre of mImage"}
+{"addr": "00438ec0", "name": "Sexy::Dialog::GetPreferredHeight", "sig": "int __thiscall GetPreferredHeight(int theWidth)", "comment": "slot 50"}
+{"addr": "00439040", "name": "std::string::find_ptr", "sig": "uint __thiscall find_ptr(char * s, uint pos, uint n)", "comment": "STL, not widget code (app group)"}
+{"addr": "00439110", "name": "std::string::rfind_ptr", "sig": "uint __thiscall rfind_ptr(char * s, uint pos, uint n)", "comment": "STL, not widget code (app group)"}
+{"addr": "004391b0", "name": "Sexy::WidgetManager::IsBelow", "sig": "bool __thiscall IsBelow(void * theWidget1, void * theWidget2)"}
+{"addr": "00439200", "name": "Sexy::WidgetManager::SetBaseModal", "sig": "void __thiscall SetBaseModal(void * theWidget)", "comment": "2004: single mBaseModalWidget (+0x4c), no flags or stack; called by SexyApp AddDialog/KillDialog"}
+{"addr": "00439280", "name": "Sexy::WidgetManager::HasWidget", "sig": "bool __thiscall HasWidget(void * theWidget)"}
+{"addr": "004392c0", "name": "Sexy::WidgetManager::SetFocus", "sig": "void __thiscall SetFocus(void * theWidget)", "comment": "no early-out for the same widget (LostFocus+GotFocus again)"}
+{"addr": "00439310", "name": "Sexy::WidgetManager::MarkDirty_widget", "sig": "void __thiscall MarkDirty_widget(void * theWidget)", "comment": "= WidgetContainer::MarkDirty(WidgetContainer*) of 1.2/1.3"}
+{"addr": "004393b0", "name": "Sexy::WidgetManager::MarkAllDirty", "sig": "void __thiscall MarkAllDirty(void)"}
+{"addr": "004393d0", "name": "Sexy::WidgetManager::DrawWidgetsTo", "sig": "void __thiscall DrawWidgetsTo(void * g)", "comment": "draws every visible widget into g (clip if mClip); used by BWGameSelector"}
+{"addr": "004394a0", "name": "Sexy::WidgetManager::DrawScreen", "sig": "bool __thiscall DrawScreen(void)", "comment": "dirty-widget redraw with a transient-widget buffer (mTransientImage)"}
+{"addr": "00439820", "name": "Sexy::WidgetManager::UpdateFrame", "sig": "bool __thiscall UpdateFrame(void)", "comment": "mUpdateCnt++, Update() on every widget once, returns mDirty (+0x170)"}
+{"addr": "00439880", "name": "Sexy::Widget::KeyDown", "sig": "void __thiscall KeyDown(int theKey)", "comment": "slot 21; TAB / shift-TAB -> mTabNext / mTabPrev"}
+{"addr": "004398b0", "name": "Sexy::Widget::MarkDirty", "sig": "void __thiscall MarkDirty(void)", "comment": "slot 46"}
+{"addr": "004398d0", "name": "Sexy::UpdateCheckDialog::GetPreferredHeight", "sig": "int __thiscall GetPreferredHeight(int theWidth)", "comment": "slot 50; Dialog + 32"}
+{"addr": "004398f0", "name": "Sexy::EditWidget::KeyDown", "sig": "void __thiscall KeyDown(int theKey)", "comment": "slot 21"}
+{"addr": "00439940", "name": "std::copy_Color", "sig": "void * __cdecl copy_Color(void * first, void * last, void * dest)", "comment": "16-byte elements"}
+{"addr": "00439980", "name": "Sexy::WidgetManager::MarkDirtyFull_widget", "sig": "void __thiscall MarkDirtyFull_widget(void * theWidget)"}
+{"addr": "00439b00", "name": "Sexy::WidgetManager::GetWidgetAt", "sig": "void * __thiscall GetWidgetAt(int x, int y)", "comment": "top-down; ignores widgets below mBaseModalWidget; disabled hit -> NULL"}
+{"addr": "00439bd0", "name": "Sexy::WidgetManager::MousePosition", "sig": "void __thiscall MousePosition(int x, int y)"}
+{"addr": "00439cb0", "name": "Sexy::WidgetManager::RehupMouse", "sig": "void __thiscall RehupMouse(void)"}
+{"addr": "00439d00", "name": "Sexy::WidgetManager::MouseUp", "sig": "bool __thiscall MouseUp(int x, int y, int theClickCount)"}
+{"addr": "00439d70", "name": "Sexy::WidgetManager::MouseMove", "sig": "bool __thiscall MouseMove(int x, int y)"}
+{"addr": "00439d90", "name": "Sexy::WidgetManager::MouseDrag", "sig": "bool __thiscall MouseDrag(int x, int y)"}
+{"addr": "00439e50", "name": "Sexy::Widget::SetVisible", "sig": "void __thiscall SetVisible(bool isVisible)", "comment": "slot 4"}
+{"addr": "00439e90", "name": "Sexy::Widget::Resize", "sig": "void __thiscall Resize(int theX, int theY, int theWidth, int theHeight)", "comment": "slot 13"}
+{"addr": "00439f00", "name": "Sexy::Widget::SetDisabled", "sig": "void __thiscall SetDisabled(bool isDisabled)", "comment": "slot 10"}
+{"addr": "00439f70", "name": "Sexy::Widget::WriteWordWrapped", "sig": "int __thiscall WriteWordWrapped(void * g, void * theRect, void * theLine, int theLineSpacing, int theJustification)", "comment": "slot 37"}
+{"addr": "0043a1f0", "name": "Sexy::Widget::MarkDirtyFull", "sig": "void __thiscall MarkDirtyFull(void)", "comment": "slot 45"}
+{"addr": "0043a210", "name": "Sexy::ListWidget::Resize", "sig": "void __thiscall Resize(int theX, int theY, int theWidth, int theHeight)", "comment": "slot 13"}
+{"addr": "0043a2a0", "name": "Sexy::ListWidget::GetLineIdx", "sig": "int __thiscall GetLineIdx(void * theLine)", "comment": "slot 53"}
+{"addr": "0043a360", "name": "Sexy::ListWidget::SetColor_line", "sig": "void __thiscall SetColor_line(void * theLine, void * theColor)", "comment": "slot 54"}
+{"addr": "0043a3e0", "name": "Sexy::ListWidget::GetOptimalWidth", "sig": "int __thiscall GetOptimalWidth(void)", "comment": "slot 57"}
+{"addr": "0043a450", "name": "Sexy::EditWidget::Resize", "sig": "void __thiscall Resize(int theX, int theY, int theWidth, int theHeight)", "comment": "slot 13"}
+{"addr": "0043a480", "name": "Sexy::ButtonWidget::SetDisabled", "sig": "void __thiscall SetDisabled(bool isDisabled)", "comment": "slot 10"}
+{"addr": "0043a4b0", "name": "Sexy::ButtonWidget::MouseEnter", "sig": "void __thiscall MouseEnter(void)", "comment": "slot 23"}
+{"addr": "0043a550", "name": "Sexy::ButtonWidget::MouseLeave", "sig": "void __thiscall MouseLeave(void)", "comment": "slot 24"}
+{"addr": "0043a620", "name": "Sexy::Dialog::Resize", "sig": "void __thiscall Resize(int theX, int theY, int theWidth, int theHeight)", "comment": "slot 13; button height = mYesButton->mComponentImage->GetHeight()"}
+{"addr": "0043a760", "name": "std::copy_Color_thunk", "sig": "void * __cdecl copy_Color_thunk(void * first, void * last, void * dest)"}
+{"addr": "0043a780", "name": "std::uninitialized_copy_Color_thunk", "sig": "void * __cdecl uninitialized_copy_Color_thunk(void * first, void * last, void * dest)", "comment": "-> 004990f0"}
+{"addr": "0043a7a0", "name": "Sexy::WidgetManager::RemoveWidget", "sig": "void __thiscall RemoveWidget(void * theWidget)"}
+{"addr": "0043a830", "name": "Sexy::WidgetManager::RemovePopupCommandWidget", "sig": "void __thiscall RemovePopupCommandWidget(void)"}
+{"addr": "0043a850", "name": "Sexy::WidgetManager::MouseDown", "sig": "bool __thiscall MouseDown(int x, int y, int theClickCount)", "comment": "stores GetTickCount() in +0x168 (read by game 0042dd20)"}
+{"addr": "0043a940", "name": "Sexy::HyperlinkWidget::MouseEnter", "sig": "void __thiscall MouseEnter(void)", "comment": "slot 23"}
+{"addr": "0043a960", "name": "Sexy::HyperlinkWidget::MouseLeave", "sig": "void __thiscall MouseLeave(void)", "comment": "slot 24"}
+{"addr": "0043a980", "name": "Sexy::Dialog::RemovedFromManager", "sig": "void __thiscall RemovedFromManager(void * theWidgetManager)", "comment": "slot 2"}
+{"addr": "0043a9c0", "name": "Sexy::WidgetManager::dtor_body", "sig": "void __thiscall dtor_body(void)", "comment": "~WidgetManager body: deletes mCursorWidget, FreeResources, frees the list"}
+{"addr": "0043aa50", "name": "std::operator_plus_string_char", "sig": "void * __cdecl operator_plus_string_char(void * retString, void * theString, char theChar)"}
+{"addr": "0043aae0", "name": "Sexy::WidgetManager::~WidgetManager", "sig": "void * __thiscall ~WidgetManager(uint flags)", "comment": "slot 0"}
+{"addr": "0043ab10", "name": "Sexy::Widget::dtor_body", "sig": "void __thiscall dtor_body(void)", "comment": "~Widget body (frees mColors)"}
+{"addr": "0043ab50", "name": "Sexy::ListWidget::GetStringAt", "sig": "void * __thiscall GetStringAt(void * retString, int theIdx)", "comment": "slot 49"}
+{"addr": "0043ab90", "name": "Sexy::ListWidget::Draw", "sig": "void __thiscall Draw(void * g)", "comment": "slot 16"}
+{"addr": "0043aef0", "name": "Sexy::EditWidget::dtor_body", "sig": "void __thiscall dtor_body(void)"}
+{"addr": "0043afd0", "name": "Sexy::EditWidget::GetDisplayString", "sig": "void * __thiscall GetDisplayString(void)", "comment": "non-virtual; password masking"}
+{"addr": "0043b050", "name": "Sexy::EditWidget::MouseDown_xyc", "sig": "void __thiscall MouseDown_xyc(int x, int y, int theClickCount)", "comment": "slot 27; double click selects a word"}
+{"addr": "0043b170", "name": "Sexy::ButtonWidget::dtor_body", "sig": "void __thiscall dtor_body(void)", "comment": "~ButtonWidget body (deletes mFont, frees mLabel)"}
+{"addr": "0043b1f0", "name": "Sexy::Dialog::dtor_body", "sig": "void __thiscall dtor_body(void)", "comment": "~Dialog body: deletes buttons and fonts"}
+{"addr": "0043b310", "name": "std::list::_Incsize", "sig": "void __thiscall _Incsize(uint n)", "comment": "throws length_error list<T> too long; used by the WidgetManager list"}
+{"addr": "0043b3b0", "name": "std::copy_string", "sig": "void * __cdecl copy_string(void * first, void * last, void * dest)", "comment": "28-byte std::string elements"}
+{"addr": "0043b3f0", "name": "Sexy::Widget::~Widget", "sig": "void * __thiscall ~Widget(uint flags)", "comment": "slot 0"}
+{"addr": "0043b420", "name": "Sexy::Widget::WriteString", "sig": "int __thiscall WriteString(void * g, void * theString, int theX, int theY, int theWidth, int theJustification, bool drawString, int theOffset, int theLength)", "comment": "slot 36; ^RRGGBB colour codes, uses Widget::mWriteColoredString"}
+{"addr": "0043b710", "name": "Sexy::UpdateCheckDialog::dtor_body", "sig": "void __thiscall dtor_body(void)"}
+{"addr": "0043b730", "name": "Sexy::UpdateCheckDialog::Update", "sig": "void __thiscall Update(void)", "comment": "slot 17; polls the HTTP transfer"}
+{"addr": "0043bb20", "name": "Sexy::ListWidget::GetSortKey", "sig": "void * __thiscall GetSortKey(void * retString, int theIdx)", "comment": "slot 47"}
+{"addr": "0043bce0", "name": "Sexy::ListWidget::SetLine", "sig": "void __thiscall SetLine(int theIdx, void * theString)", "comment": "slot 51"}
+{"addr": "0043bd10", "name": "Sexy::HyperlinkWidget::Draw", "sig": "void __thiscall Draw(void * g)", "comment": "slot 16"}
+{"addr": "0043beb0", "name": "Sexy::EditWidget::~EditWidget", "sig": "void * __thiscall ~EditWidget(uint flags)", "comment": "slot 0"}
+{"addr": "0043bee0", "name": "Sexy::EditWidget::SetText", "sig": "void __thiscall SetText(void * theText)", "comment": "slot 49; one argument in 2004"}
+{"addr": "0043bf20", "name": "Sexy::EditWidget::Draw", "sig": "void __thiscall Draw(void * g)", "comment": "slot 16"}
+{"addr": "0043c3a0", "name": "Sexy::EditWidget::ProcessKey", "sig": "void __thiscall ProcessKey(int theKey, char theChar)", "comment": "slot 47"}
+{"addr": "0043d050", "name": "Sexy::EditWidget::GetCharAt", "sig": "int __thiscall GetCharAt(int x, int y)", "comment": "slot 51"}
+{"addr": "0043d1a0", "name": "Sexy::EditWidget::FocusCursor", "sig": "void __thiscall FocusCursor(bool bigJump)", "comment": "slot 52"}
+{"addr": "0043d350", "name": "Sexy::ButtonWidget::~ButtonWidget", "sig": "void * __thiscall ~ButtonWidget(uint flags)", "comment": "slot 0"}
+{"addr": "0043d380", "name": "Sexy::ButtonWidget::Draw", "sig": "void __thiscall Draw(void * g)", "comment": "slot 16"}
+{"addr": "0043d920", "name": "Sexy::Dialog::~Dialog", "sig": "void * __thiscall ~Dialog(uint flags)", "comment": "slot 0"}
+{"addr": "0043d950", "name": "Sexy::Dialog::Draw", "sig": "void __thiscall Draw(void * g)", "comment": "slot 16"}
+{"addr": "0043dc90", "name": "Sexy::DialogButton::Draw", "sig": "void __thiscall Draw(void * g)", "comment": "slot 16"}
+{"addr": "0043df30", "name": "std::copy_string_thunk", "sig": "void * __cdecl copy_string_thunk(void * first, void * last, void * dest)"}
+{"addr": "0043df50", "name": "Sexy::UpdateCheckDialog::~UpdateCheckDialog", "sig": "void * __thiscall ~UpdateCheckDialog(uint flags)", "comment": "slot 0"}
+{"addr": "0043df80", "name": "Sexy::UpdateCheckDialog::Draw", "sig": "void __thiscall Draw(void * g)", "comment": "slot 16"}
+{"addr": "0043e0c0", "name": "std::vector<Sexy::Color>::operator_assign", "sig": "void * __thiscall operator_assign(void * theVector)"}
+{"addr": "0043e210", "name": "std::vector<Sexy::Color>::resize", "sig": "void __thiscall resize(uint n)", "comment": "used by Widget::SetColor/GetColor"}
+{"addr": "0043e2a0", "name": "Sexy::WidgetManager::BringToFront", "sig": "void __thiscall BringToFront(void * theWidget)", "comment": "re-raises the cursor widget if +0x2c; calls OrderInManagerChanged"}
+{"addr": "0043e360", "name": "Sexy::WidgetManager::BringToBack", "sig": "void __thiscall BringToBack(void * theWidget)"}
+{"addr": "0043e410", "name": "Sexy::WidgetManager::PutInfront", "sig": "void __thiscall PutInfront(void * theWidget, void * theRefWidget)"}
+{"addr": "0043e4e0", "name": "Sexy::Widget::Widget", "sig": "void * __thiscall Widget(void)", "comment": "ctor; sizeof 0x58"}
+{"addr": "0043e550", "name": "Sexy::Slider::Slider", "sig": "void * __thiscall Slider(void * theTrackImage, void * theThumbImage, int theId, void * theListener)", "comment": "ctor; sizeof 0x80"}
+{"addr": "0043e590", "name": "Sexy::ListWidget::dtor_body", "sig": "void __thiscall dtor_body(void)"}
+{"addr": "0043e610", "name": "Sexy::ListWidget::RemoveLine", "sig": "void __thiscall RemoveLine(int theIdx)", "comment": "slot 55"}
+{"addr": "0043e760", "name": "Sexy::ListWidget::RemoveAll", "sig": "void __thiscall RemoveAll(void)", "comment": "slot 56"}
+{"addr": "0043e800", "name": "Sexy::ListWidget::OrderInManagerChanged", "sig": "void __thiscall OrderInManagerChanged(void)", "comment": "slot 3; uses gSexyAppBase->mWidgetManager"}
+{"addr": "0043e840", "name": "Sexy::CursorWidget::CursorWidget", "sig": "void * __thiscall CursorWidget(void)", "comment": "ctor; sizeof 0x5c; mMouseVisible=false, SetTransient(true)"}
+{"addr": "0043e890", "name": "Sexy::Checkbox::Checkbox", "sig": "void * __thiscall Checkbox(void * theUncheckedImage, void * theCheckedImage, int theId, void * theCheckboxListener)", "comment": "ctor; sizeof 0x8c"}
+{"addr": "0043e8f0", "name": "Sexy::Widget::scalar_deleting_dtor_shared", "sig": "void * __thiscall scalar_deleting_dtor_shared(uint flags)", "comment": "slot 0 of Checkbox, Slider and CursorWidget (no own destructor)"}
+{"addr": "0043e920", "name": "Sexy::Widget::dtor_body_thunk", "sig": "void __thiscall dtor_body_thunk(void)", "comment": "jmp 0043ab10"}
+{"addr": "0043e930", "name": "Sexy::Dialog::OrderInManagerChanged", "sig": "void __thiscall OrderInManagerChanged(void)", "comment": "slot 3"}
+{"addr": "0043e960", "name": "std::vector<std::string>::operator_assign", "sig": "void * __thiscall operator_assign(void * theVector)"}
+{"addr": "0043eb10", "name": "Sexy::WidgetManager::WidgetManager", "sig": "void * __thiscall WidgetManager(void * theApp)", "comment": "ctor; sizeof 0x174; creates the CursorWidget at +0x28"}
+{"addr": "0043ebe0", "name": "Sexy::WidgetManager::AddWidget", "sig": "void __thiscall AddWidget(void * theWidget)", "comment": "push_back, AddedToManager, MarkDirty, RehupMouse"}
+{"addr": "0043ec70", "name": "Sexy::Widget::SetColors_3", "sig": "void __thiscall SetColors_3(int * theColors3, int theNumColors)", "comment": "slot 6, int[][3] RGB"}
+{"addr": "0043ecf0", "name": "Sexy::Widget::SetColors_4", "sig": "void __thiscall SetColors_4(int * theColors4, int theNumColors)", "comment": "slot 5, int[][4] RGBA"}
+{"addr": "0043ed70", "name": "Sexy::Widget::SetColor", "sig": "void __thiscall SetColor(int theIdx, void * theColor)", "comment": "slot 7"}
+{"addr": "0043ee00", "name": "Sexy::Widget::GetColor", "sig": "void * __thiscall GetColor(int theIdx)", "comment": "slot 8; returns const Color&, grows mColors when out of range"}
+{"addr": "0043ee70", "name": "Sexy::ListWidget::ListWidget", "sig": "void * __thiscall ListWidget(int theId, void * theFont, void * theListListener)", "comment": "ctor; sizeof 0xc0"}
+{"addr": "0043ef60", "name": "Sexy::ListWidget::~ListWidget", "sig": "void * __thiscall ~ListWidget(uint flags)", "comment": "slot 0"}
+{"addr": "0043ef90", "name": "Sexy::EditWidget::EditWidget", "sig": "void * __thiscall EditWidget(int theId, void * theEditListener)", "comment": "ctor; sizeof 0xec"}
+{"addr": "0043f080", "name": "Sexy::ButtonWidget::ButtonWidget", "sig": "void * __thiscall ButtonWidget(int theId, void * theButtonListener)", "comment": "ctor; sizeof 0xe0"}
+{"addr": "0043f190", "name": "Sexy::Dialog::SetColor", "sig": "void __thiscall SetColor(int theIdx, void * theColor)", "comment": "slot 7"}
+{"addr": "0043f200", "name": "Sexy::Dialog::AddedToManager", "sig": "void __thiscall AddedToManager(void * theWidgetManager)", "comment": "slot 1"}
+{"addr": "0043f240", "name": "Sexy::DialogButton::DialogButton", "sig": "void * __thiscall DialogButton(void * theComponentImage, int theId, void * theListener)", "comment": "ctor; sizeof 0xf8"}
+{"addr": "0043f2d0", "name": "Sexy::ButtonWidget::scalar_deleting_dtor_shared", "sig": "void * __thiscall scalar_deleting_dtor_shared(uint flags)", "comment": "slot 0 of DialogButton and HyperlinkWidget"}
+{"addr": "0043f300", "name": "Sexy::HyperlinkWidget::HyperlinkWidget", "sig": "void * __thiscall HyperlinkWidget(int theId, void * theButtonListener)", "comment": "ctor; sizeof 0x108"}
+{"addr": "0043f3a0", "name": "Sexy::ButtonWidget::dtor_body_thunk", "sig": "void __thiscall dtor_body_thunk(void)", "comment": "jmp 0043b170"}
+{"addr": "0043f3b0", "name": "Sexy::Dialog::Dialog", "sig": "void * __thiscall Dialog(void * theComponentImage, void * theButtonComponentImage, int theId, bool isModal, void * theDialogHeader, void * theDialogLines, void * theDialogFooter, int theButtonMode)", "comment": "ctor; sizeof 0x110; buttons get ids mId+2000 / mId+3000"}
+{"addr": "0043f650", "name": "Sexy::UpdateCheckDialog::UpdateCheckDialog", "comment": "framework update-check dialog (sizeof 0x120, dialog id 8, built by BookWormApp 00415de0); drop in the port"}
+{"addr": "0043f890", "name": "Sexy::ListWidget::Sort", "sig": "void __thiscall Sort(bool ascending)", "comment": "slot 48"}
+{"addr": "0043fcb0", "name": "Sexy::ListWidget::AddLine", "sig": "int __thiscall AddLine(void * theLine, bool alphabetical)", "comment": "slot 50"}
+{"addr": "00492cd0", "name": "empty_stub_ret16", "sig": "void __thiscall empty_stub_ret16(int a, int b, int c, int d)", "comment": "folded empty virtual; Widget slots 26 MouseDown(x,y,btn,cc), 28 MouseUp(x,y,btn,cc)"}
+{"addr": "0052f96c", "label": "Sexy::Widget::mWriteColoredString", "comment": "static bool = true"}
+{"addr": "0052f970", "label": "gInitialListWidgetColors", "comment": "int[5][3]: white, white, black, (0,192,0), (0,0,128)"}
+{"addr": "0052f9ac", "label": "gEditWidgetColors", "comment": "int[5][3]: white, black, black, black, white"}
+{"addr": "0052f9e8", "label": "gDialogColors", "comment": "int[5][3]: white, yellow, white, white, white"}
+{"addr": "0052fa18", "label": "gDialogButtonColors", "comment": "int[2][3]: white, white"}
+{"addr": "0052fa30", "label": "Sexy::DIALOG_YES_STRING", "comment": "std::string YES"}
+{"addr": "0052fa4c", "label": "Sexy::DIALOG_NO_STRING", "comment": "std::string NO"}
+{"addr": "0052fa68", "label": "Sexy::DIALOG_OK_STRING", "comment": "std::string OK"}
+{"addr": "0052fa84", "label": "Sexy::DIALOG_CANCEL_STRING", "comment": "std::string CANCEL"}
+{"addr": "0052ff68", "label": "Sexy::aKeyCodeArray", "comment": "KeyNameEntry[87] {char name[12]; int code}, identical to 1.2; lookup functions not linked"}
+{"addr": "00535068", "label": "gButtonWidgetColors", "comment": "int[2][3] all zero (.bss)"}

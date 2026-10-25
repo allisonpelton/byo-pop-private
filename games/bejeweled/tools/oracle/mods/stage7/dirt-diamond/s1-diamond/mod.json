@@ -1,0 +1,22 @@
+{
+  "id": "s1-diamond",
+  "name": "Stage 1: diamond with dirt",
+  "version": "1.0",
+  "description": "Oracle fixture: a 9x9 diamond mask with dirt tiles (d, 2) and a hole; parsed and hashed in stage 1, played since stage 7 (moved out of stage 1's inert set), its dirt cells as holes until stage 7b.",
+  "rules": {
+    "board": {
+      "mask": [
+        "...###...",
+        "..#####..",
+        ".##d####.",
+        "#########",
+        "####.####",
+        "#########",
+        ".####2##.",
+        "..#####..",
+        "...###..."
+      ],
+      "dirtPoints": 5
+    }
+  }
+}

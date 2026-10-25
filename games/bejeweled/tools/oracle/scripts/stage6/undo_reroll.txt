@@ -1,0 +1,12 @@
+# Stage 6, run with -gameseed=4242 and mods/stage6/reroll (undo with restoreRng false): a move, z takes it back, and
+# the same move again refills another way, since the RNG went on (games/bejeweled/docs/CODE_MODS_DESIGN.md 4.12). The
+# quit saves a v2 save with 1 undo; the stack of snapshots is not in it.
+300 click 320 398
+# A (2,2)->(3,2)
+470 click 329 142
+471 click 380 142
+700 char z
+# A again
+760 click 329 142
+761 click 380 142
+1000 quit

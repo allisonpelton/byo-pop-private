@@ -1,0 +1,8 @@
+{
+  "id": "s1-twist",
+  "name": "Stage 1: twist",
+  "version": "1.0",
+  "description": "Oracle fixture: supplies the moves group over s1-slides (the design's warning \"s1-twist: moves.type overrides s1-slides\").",
+  "priority": 4,
+  "rules": { "moves": { "type": "twist", "twist": { "direction": "both" } } }
+}

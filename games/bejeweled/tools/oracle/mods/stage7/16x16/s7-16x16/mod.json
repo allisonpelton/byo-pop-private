@@ -1,0 +1,7 @@
+{
+  "id": "s7-16x16",
+  "name": "Stage 7: a 16x16 board",
+  "version": "1.0",
+  "description": "Oracle fixture: the largest board, 16x16, scaled to half size (0.499).",
+  "rules": { "board": { "cols": 16, "rows": 16 } }
+}

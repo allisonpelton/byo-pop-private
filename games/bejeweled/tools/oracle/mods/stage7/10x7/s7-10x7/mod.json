@@ -1,0 +1,7 @@
+{
+  "id": "s7-10x7",
+  "name": "Stage 7: a 10x7 board",
+  "version": "1.0",
+  "description": "Oracle fixture: a full board 10 columns wide and 7 rows high, scaled to fit the window's width (0.799) and centred vertically.",
+  "rules": { "board": { "cols": 10, "rows": 7 } }
+}

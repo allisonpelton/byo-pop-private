@@ -1,0 +1,12 @@
+# Stage 2, run with -gameseed=4242: seed_highscores.txt without the Options -> High Scores dialog (its lines
+# 620..720 left out), the reference for its refills (compare.py "samegrids").
+300 click 320 398
+# (2,2)->(3,2) -> score 10
+470 click 329 142
+471 click 380 142
+# (3,3)->(3,2) -> score 20, then (4,3)->(5,3)
+760 click 380 193
+761 click 380 142
+960 click 431 193
+961 click 482 193
+1200 quit
