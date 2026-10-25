@@ -1,0 +1,5 @@
+/* Noah's Ark's look on the shared page (web/shell.html): flood blue and plank brown, a little ark for the brand mark */
+:root { --accent: #2f6fb0; --gem-ruby: #c9302c; --plank: #9a6a3a; }  /* flood blue */
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --accent: #7db4e8; } }
+:root[data-theme="dark"] { --accent: #7db4e8; }
+.brand .mark { width: 16px; height: 9px; background: var(--plank); border-radius: 1px 1px 8px 8px; }
