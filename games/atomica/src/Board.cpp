@@ -512,6 +512,36 @@ void Board::CountDown()
 		mI198 = 0;
 }
 
+// 0x4326e0: an update with the air element on: the counter of the glow goes down to 0x7f and, every third update, a cloud
+// drifts in from the left and one from the right at a random height
+void Board::StepAir()
+{
+	static int sCounter = 0;	// the original's global at 0x4d40e8
+	mI194--;
+	if (mI194 < 0x7f)
+		mI194 = 0x7f;
+	if (sCounter == 0)
+	{
+		Sprite* aCloud = mApp->mCloud[mApp->mRand.Get(6, false)];
+		Particle* aLeft = new Particle(mApp, aCloud);
+		aLeft->mX = -50.0f;
+		aLeft->mY = (float) mApp->mRand.Get(0x1e0, false);
+		aLeft->mVX = (float) (mApp->mRand.Get(5, false) + 1);
+		aLeft->mAlpha = 0x96;
+		mEffects.Add(aLeft);
+		aCloud = mApp->mCloud[mApp->mRand.Get(6, false)];
+		Particle* aRight = new Particle(mApp, aCloud);
+		aRight->mX = 690.0f;
+		aRight->mY = (float) mApp->mRand.Get(0x1e0, false);
+		aRight->mVX = (float) (-1 - mApp->mRand.Get(5, false));
+		aRight->mAlpha = 0x96;
+		mEffects.Add(aRight);
+	}
+	sCounter++;
+	if (2 < sCounter)
+		sCounter = 0;
+}
+
 // 0x4326c0: the air element: for some moves the atoms are no obstacle
 void Board::StartGhost(int theMoves)
 {

@@ -366,9 +366,7 @@ void Board::Update()
 	}
 	else
 	{
-		mI194--;
-		if (mI194 < 0x7f)
-			mI194 = 0x7f;
+		StepAir();
 		mBombTint.mBlue -= 4;
 		mBombTint.mRed -= 4;
 		mBombTint.mGreen += 2;

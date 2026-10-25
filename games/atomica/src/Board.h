@@ -141,6 +141,7 @@ public:
 	void	StartFreeze(int theMoves);		// 0x4325c0
 	void	StepFreeze();					// 0x432610
 	void	CountDown();					// 0x432690
+	void	StepAir();						// 0x4326e0: every update the air element is on
 	void	StartGhost(int theMoves);		// 0x4326c0
 	void	SetTint(int theR, int theG, int theB);	// 0x4328a0
 	void	NextLevel();					// 0x432b80

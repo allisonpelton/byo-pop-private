@@ -60,29 +60,24 @@ None yet (the user's rule: no mods before every PopCap game works in the browser
 
 ## Status (2026-10-25)
 
-Ported, each function with a `// 0x<addr>` comment:
+Everything the original's player sees is in, each function with a `// 0x<addr>` comment: the loading (pictures, the 25
+shrunk copies and rotating masks of each atom, sounds), the title screen, the Grid (input, update, drawing, the molecule search,
+the move that follows each of the player's, the magnet, all 41 set-ups of the strategy mode, the bonus levels, the action
+mode's set-up and drain, the radiation rounds, the saved game), the Atom (placing, paths, pre-atoms, the biohazard, chromium),
+the path finder, the effects, the Board (HUD, meter, atomic bomb, freeze and air counters, signs, floating scores, the help
+popups a click opens), Atomicus' voices, the bonus molecules (30 shapes in three tiers) and the five element atoms with their
+effects, the tutorial boxes (`HintBox`, 28 hints; their lines are generated from the decompilation by `tools/genhints.py`, numbers only)
+and `Grid::CheckHints`, the swirls (the tunnel behind the field and the atoms that circle in it, `Swirl.cpp`), the main menu
+(ranks, high scores, the saved game), the high score entry and tables, the options, quit, new-game and level-up boxes, the
+registry values (hints shown, hints off, colour-blind symbols, music and sound volumes), a bot and its suite.
 
-- the loading (pictures, the 25 shrunk copies and the rotating masks of each atom, sounds), the title screen (without the logo's shimmer);
-- the Grid: input, update and drawing, the molecule search, the move that follows each of the player's, the magnet, all
-  the levels of the strategy mode (41 set-ups), the bonus levels, the action mode's set-up and drain, the radiation
-  rounds, the saved game;
-- the Atom (placing, paths, pre-atoms, the biohazard's spread, chromium), the path finder (0x4246a0-0x425110, a translation
-  of its recursion and the arrows it draws), the effects, the Board (HUD, meter, the atomic bomb, the freeze and air counters,
-  signs, floating scores) and Atomicus' voices (without the lip-sync data);
-- a simplified main menu (strategy, action, the expert switches, the saved game, exit), the saved game (menu button), a bot and its suite.
+Where the port is not the original's exact picture (each marked in the code):
 
-Not ported yet (each is a follow-up):
-
-- the main menu's rank, high score lists and the high score entry (0x41a010, 0x419760), and the options, help, level-up and
-  quit dialogs (0x417b90, 0x421f90, 0x422f10, 0x420040): the level-up box is skipped, the Options and Help buttons do nothing;
-- the hint boxes (`Grid::CheckHints` 0x40d450) and the board's help popups (0x42a310);
-- the bonus molecules (0x414830-0x415d20): shapes of coloured atoms that give a bonus, and with them the five elements'
-  atoms (0x4043d0-0x405700: fire, water, earth, air, ether; their effects, pictures and the freeze and ghost counters they use
-  are in place, but nothing creates an element atom);
-- the swirl objects (0x428100: the atoms that leave the field spiral into a vortex drawn by a small software rasteriser; the
-  port flies each atom away by itself), the background clouds, the Atomicus monitor's scan lines and the geiger needle's exact
-  geometry (the port draws the needle from the dial's middle at the angle the original computes);
-- the registry values (options) and `HS.CFG`.
+- `Grid::DrawBond` and the geiger needle's geometry (the needle goes from the dial's middle at the angle the original computes),
+  the lip-sync of Atomicus (the voices' mouth data), the shimmer of the title screen's logo and the Atomicus monitor's scan lines;
+- the swirls' triangles go through `Image::FillScanLines` instead of the original's raw writes into the display buffer (the same
+  spans, the same colours; the original's rounding of a colour to the display's bit depth is not repeated);
+- the "More games" and "Register" buttons and every link to a web page are left out (the port has no online features).
 
 ## Where the work was hard
 
