@@ -48,6 +48,7 @@ AtomicaApp::AtomicaApp()
 	mAutoplayMode = 0;
 	mAutoplayGames = 1;
 	mAutoplayCap = 100000;
+	mAutoplayFinish = 0;
 	mAutoplayState = NULL;
 	mMode = 0;
 	mB3ea0 = false;
@@ -160,6 +161,8 @@ void AtomicaApp::HandleCmdLineParam(const std::string& theParamName, const std::
 		mAutoplayGames = atoi(theParamValue.c_str());
 	else if (theParamName == "-autoplaycap")
 		mAutoplayCap = atoi(theParamValue.c_str());
+	else if (theParamName == "-autoplayfinish")
+		mAutoplayFinish = atoi(theParamValue.c_str());
 	else if (theParamName == "-autoplaylog")
 		mAutoplayLog = theParamValue;
 	else if (theParamName == "-autoplayshots")

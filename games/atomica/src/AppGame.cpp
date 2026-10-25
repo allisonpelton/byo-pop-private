@@ -147,7 +147,6 @@ void AtomicaApp::ShowMainMenu(bool theGameOver)
 	aMenu->Resize(0, 0, mWidth, mHeight);
 	mMenu = aMenu;
 	mWidgetManager->AddWidget(aMenu);
-	mWidgetManager->BringToFront(aMenu);
 }
 
 // 0x406200

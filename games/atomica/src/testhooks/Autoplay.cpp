@@ -9,6 +9,7 @@
 //   -autoplaymode=strategy|action   the game type (default strategy)
 //   -autoplaygames=N      play N games, then quit
 //   -autoplaycap=N        quit after N updates in any case
+//   -autoplayfinish=N     every N moves the level's meter is filled (a test of the level changes)
 //   -autoplaylog=<file>   the log
 //   -autoplayshots=<prefix>  screenshots at each level done and game over
 
@@ -268,6 +269,8 @@ void AtomicaApp::AutoplayUpdate()
 							if (Move(aGrid, aSource, aGapCol, aGapRow))
 							{
 								s->mMoves++;
+								if ((mAutoplayFinish > 0) && (s->mMoves % mAutoplayFinish == 0))
+									aBoard->mMeter.Add(1000, 0);
 								s->mWait = 2;
 								return;
 							}
@@ -296,6 +299,8 @@ void AtomicaApp::AutoplayUpdate()
 		if (Move(aGrid, anAtom, aToCol, aToRow))
 		{
 			s->mMoves++;
+			if ((mAutoplayFinish > 0) && (s->mMoves % mAutoplayFinish == 0))
+				aBoard->mMeter.Add(1000, 0);
 			s->mWait = 2;
 			return;
 		}

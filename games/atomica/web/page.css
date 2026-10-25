@@ -1,5 +1,5 @@
-/* Noah's Ark's look on the shared page (web/shell.html): flood blue and plank brown, a little ark for the brand mark */
-:root { --accent: #2f6fb0; --gem-ruby: #c9302c; --plank: #9a6a3a; }  /* flood blue */
-@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --accent: #7db4e8; } }
-:root[data-theme="dark"] { --accent: #7db4e8; }
-.brand .mark { width: 16px; height: 9px; background: var(--plank); border-radius: 1px 1px 8px 8px; }
+/* Atomica's look on the shared page (web/shell.html): the machine's green, a little atom for the brand mark */
+:root { --accent: #3f8f4a; --gem-ruby: #c9302c; --atom: #e0a030; }  /* radiation green */
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --accent: #7fd08a; } }
+:root[data-theme="dark"] { --accent: #7fd08a; }
+.brand .mark { width: 12px; height: 12px; background: var(--atom); border-radius: 50%; box-shadow: 0 0 0 2px var(--accent); }
