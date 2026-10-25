@@ -5,6 +5,7 @@
 #include "Board.h"
 #include "BonusMolecules.h"
 #include "Effects.h"
+#include "HintBox.h"
 
 #include <cstdio>
 
@@ -136,10 +137,115 @@ void Grid::SetupBonusLevel(int theLevel)
 	mB4c0 = true;
 }
 
-// 0x40d450: the hint boxes of the first levels and of each new kind of atom
-// port: the hint boxes are not ported yet
+namespace
+{
+	// how many atoms of the list are still pre-atoms (thePre) or already formed
+	int CountPre(PtrList<Atom>& theAtoms, bool thePre)
+	{
+		int aCount = 0;
+		theAtoms.Reset();
+		Atom* anAtom = theAtoms.Next();
+		while (anAtom != NULL)
+		{
+			if (anAtom->mPre == thePre)
+				aCount++;
+			anAtom = theAtoms.Next();
+		}
+		return aCount;
+	}
+}
+
+// 0x40d450: the hint boxes of the first levels and of each new kind of atom, each shown once in a game (the action mode has
+// none). A box is not shown if its hint was shown, or ticked away, in an earlier game.
 void Grid::CheckHints()
 {
+	if (mApp->mMode == 1)
+		return;
+	Board* aBoard = mApp->mBoard;
+	switch (aBoard->mMeter.mLevel)
+	{
+	case 1:
+		if (!mHintShown[0] && (mAtoms.Size() != 0) && (CountPre(mAtoms, true) == 0))
+			new HintBox(mApp, this, 0);
+		if (!mHintShown[1] && (aBoard->mMeter.mValue == 1.0f) && (mGroups.Size() == 0))
+			new HintBox(mApp, this, 1);
+		break;
+	case 2:
+		if (!mHintShown[2] && (CountPre(mAtoms, false) == 0xd))
+			new HintBox(mApp, this, 2);
+		if (!mHintShown[3] && (mCombo == 2) && (mGroups.Size() == 0))
+			new HintBox(mApp, this, 3);
+		if (!mHintShown[4] && (mCombo == 3) && (mGroups.Size() == 0))
+			new HintBox(mApp, this, 4);
+		break;
+	case 3:
+		if (!mHintShown[0xd])
+		{
+			int aCount = 0;
+			mAtoms.Reset();
+			Atom* anAtom = mAtoms.Next();
+			while (anAtom != NULL)
+			{
+				if ((anAtom->mKind == KIND_BIOHAZARD) && (anAtom->mFade == 0xff))
+					aCount++;
+				anAtom = mAtoms.Next();
+			}
+			if (aCount != 0)
+				new HintBox(mApp, this, 0xd);
+		}
+		break;
+	case 4:
+		if (!mHintShown[0xe] && (CountPre(mAtoms, false) == 10))
+			new HintBox(mApp, this, 0xe);
+		break;
+	case 5:
+		if (!mHintShown[0x17] && (CountPre(mAtoms, true) == 0) && (0 < mAtoms.Size()))
+			new HintBox(mApp, this, 0x17);
+		break;
+	case 6:
+		if (!mHintShown[0x10] && (CountPre(mAtoms, false) == 5))
+			new HintBox(mApp, this, 0x10);
+		break;
+	case 8:
+		if (!mHintShown[0x18] && (CountPre(mAtoms, true) == 3))
+			new HintBox(mApp, this, 0x18);
+		break;
+	case 0xc:
+		if (!mHintShown[0x19] && (CountPre(mAtoms, true) == 3))
+			new HintBox(mApp, this, 0x19);
+		break;
+	case 0xe:
+		if (!mHintShown[0x1a] && (CountPre(mAtoms, true) == 3))
+			new HintBox(mApp, this, 0x1a);
+		break;
+	case 0x13:
+		if (!mHintShown[0x1b] && (CountPre(mAtoms, true) == 3))
+			new HintBox(mApp, this, 0x1b);
+		break;
+	}
+	// the bomb is ready
+	if (!mHintShown[5] && !aBoard->mButtonBomb->mDisabled && (aBoard->mBombFrame >= 24.0f))
+		new HintBox(mApp, this, 5);
+	// the bonus molecule's sign is up
+	if (!mHintShown[6] && (aBoard->mBonus->mX >= 0))
+		new HintBox(mApp, this, 6);
+	bool aShownElementHint = false;
+	if (!mHintShown[7] && mB4b3)
+	{
+		new HintBox(mApp, this, 7);
+		aShownElementHint = true;
+	}
+	// an element atom wants to act: the box for its element
+	if ((mB4b4 != 0) && !aShownElementHint)
+	{
+		int anIndex = mB4b4 - 1;
+		if ((anIndex >= 0) && (anIndex < 5) && !mHintShown[8 + anIndex])
+			new HintBox(mApp, this, 8 + anIndex);
+		mB4b4 = 0;
+	}
+	// the field is filling up (not on a bonus level)
+	if (!mHintShown[0xf] && (0x24 < CountAtoms(false)) && ((aBoard->mMeter.mLevel == 0) || (aBoard->mMeter.mLevel % 5 != 0)))
+		new HintBox(mApp, this, 0xf);
 }
 
 // 0x40c9a0

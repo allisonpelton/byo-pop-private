@@ -140,15 +140,32 @@ void AtomicaApp::LoadingThreadCompleted()
 	SexyApp::LoadingThreadCompleted();
 }
 
-// 0x406ec0 / 0x406dc0: the registry values of the game
+// 0x406ec0 / 0x406dc0: the registry values of the game: the hints shown (255 words), the colour-blind symbols, and the
+// hints being switched off (named ShowTips, it holds one when the hints are off)
 void AtomicaApp::WriteToRegistry()
 {
 	SexyApp::WriteToRegistry();
+	int aHints[0xff];
+	for (int i = 0; i < 0xff; i++)
+		aHints[i] = mHintsShown[i] ? 1 : 0;
+	RegistryWriteData("GameHints", (const uchar*) aHints, sizeof(aHints));
+	RegistryWriteInteger("ShowSymbols", mShowSymbols ? 1 : 0);
+	RegistryWriteInteger("ShowTips", mShowTips ? 0 : 1);
 }
 
 void AtomicaApp::ReadFromRegistry()
 {
 	SexyApp::ReadFromRegistry();
+	int aHints[0xff];
+	ulong aLength = sizeof(aHints);
+	if (RegistryReadData("GameHints", (uchar*) aHints, &aLength))
+		for (int i = 0; (i < 0xff) && ((ulong) (i * 4 + 4) <= aLength); i++)
+			mHintsShown[i] = aHints[i] == 1;
+	int aValue = 0;
+	if (RegistryReadInteger("ShowSymbols", &aValue))
+		mShowSymbols = aValue == 1;
+	if (RegistryReadInteger("ShowTips", &aValue))
+		mShowTips = aValue != 1;
 }
 
 // the command line: -autoplay=<seed> -autoplaymode=strategy|action -autoplaygames=N -autoplaycap=N -autoplaylog=<file>

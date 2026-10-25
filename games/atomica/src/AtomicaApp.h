@@ -14,10 +14,13 @@
 #include "Support.h"
 #include "HighScores.h"
 
+#include <vector>
+
 namespace Sexy
 {
 
 class Board;
+class HintBox;
 class TitleScreen;
 class ImageFont;
 class SoundInstance;
@@ -76,6 +79,7 @@ public:
 	bool			mShowTips;				// the tutorial boxes (the option 'disable hints' turns them off)
 	bool			mHintsShown[0xff];		// +0x406c the hints that were shown in earlier games
 	Widget*			mLevelUpDialog;			// +0x3e98
+	std::vector<HintBox*>	mHintBoxes;		// port: the tutorial boxes that are up (the test bot closes them)
 	Widget*			mScoreDialog;			// the high score entry
 	Widget*			mHighScoresBox;			// the tables of both games (from the options)
 	ScoreTable		mScoreTables[2];		// +0x3eb0 the strategy mode's and +0x3f8c the action mode's high scores

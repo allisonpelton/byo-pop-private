@@ -267,10 +267,7 @@ void BonusMolecules::PickPattern()
 	Grid* aGrid = mApp->mBoard->mGrid;
 	if (!aGrid->mHintShown[7] && !mApp->mHintsShown[7] && (mApp->mMode == 0))
 	{
-		// the first bonus ever: the first shape (the original's hint box 7 explains it; until the hints are ported the
-		// port marks the hint as shown here)
-		aGrid->mHintShown[7] = true;
-		mApp->mHintsShown[7] = true;
+		// until the box that explains the bonus molecules (hint 7) has been shown, the first shape is asked for
 		mPattern = mLists[0][0];
 		for (int aCol = 0; aCol < 5; aCol++)
 			for (int aRow = 0; aRow < 5; aRow++)

@@ -5,6 +5,7 @@
 #include "Atomicus.h"
 #include "BonusMolecules.h"
 #include "Grid.h"
+#include "HintBox.h"
 #include "GameText.h"
 #include "Graphics.h"
 #include "ImageFont.h"
@@ -351,13 +352,24 @@ void Board::MouseMove(int x, int y)
 		snprintf(mTooltip, sizeof(mTooltip), GTC(0x4b2fa4), (int) mMeter.mValue, (int) mMeter.mMax);
 }
 
-// 0x432000: a click on the board opens the help box of what is under it (port: not ported; the boxes only explain)
+// 0x432000: a click on the board opens the help box of what is under it: Dr. Atomicus, the bomb gauges (ready or not), the
+// geiger counter at the top, the molecule meter. Any button, any click count.
 void Board::MouseDown(int x, int y, int theBtnNum, int theClickCount)
 {
-	(void) x;
-	(void) y;
 	(void) theBtnNum;
 	(void) theClickCount;
+	if ((0x19 < x) && (x < 0x86) && (0x130 < y) && (y < 0x1b5))
+		new HintBox(mApp, mGrid, 0x11);
+	if (((0xd3 < x) && (0x1b7 < y) && (x < 0x158) && (y < 0x1cc)) || ((0x1b4 < x) && (0x1b7 < y) && (x < 0x239) && (y < 0x1cc)))
+		new HintBox(mApp, mGrid, mButtonBomb->mDisabled ? 0x12 : 0x13);
+	if ((x >= 0x166) && (y >= 0xb) && (x <= 0x1a2) && (y <= 0x37))
+	{
+		new HintBox(mApp, mGrid, 0x14);
+		return;
+	}
+	if ((x < 0xd8) || (y < 0x10) || (x > 0x23b) || (y > 0x22))
+		return;
+	new HintBox(mApp, mGrid, (mApp->mMode == 0) ? 0x15 : 0x16);
 }
 
 // 0x432210

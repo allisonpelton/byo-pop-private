@@ -84,6 +84,7 @@ void Board::Update()
 	if ((mProgress < 6.0f) || ((mApp->mMode == 0) && (mMeter.mLevel % 5 == 0)))
 	{
 		mBombPhase = 0;
+		mButtonBomb->SetDisabled(true);
 		if ((0.0f < mBombFrame) && ((mBombFrame -= 0.25f) < 0.0f))
 			mBombFrame = 0;
 	}
@@ -93,6 +94,7 @@ void Board::Update()
 			mBombPhase = 11.0f;
 		else
 			mBombPhase = mBombPhase + 0.2f;
+		mButtonBomb->SetDisabled(false);
 		if (mBombFrame == 15.0f)
 		{
 			mApp->mSndCapClick->Play();
@@ -101,6 +103,8 @@ void Board::Update()
 		if (mBombFrame < 24.0f)
 			mBombFrame = mBombFrame + 0.25f;
 	}
+	if (mBombOn)
+		mButtonBomb->SetDisabled(true);
 
 	mEffects.Reset();
 	Effect* anEffect = mEffects.Next();

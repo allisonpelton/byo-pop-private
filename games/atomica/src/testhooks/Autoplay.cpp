@@ -18,6 +18,7 @@
 #include "Board.h"
 #include "Grid.h"
 #include "Dialogs.h"
+#include "HintBox.h"
 #include "BonusMolecules.h"
 #include "Menu.h"
 #include "PathFinder.h"
@@ -240,6 +241,25 @@ void AtomicaApp::AutoplayUpdate()
 				aBoard->mMeter.mLevel, s->mMoves);
 			if (!mAutoplayShots.empty())
 				SaveScreenshot(StrFormat("%s-over%d.png", mAutoplayShots.c_str(), s->mGames));
+		}
+		return;
+	}
+	if (!mHintBoxes.empty())
+	{
+		// a tutorial box: wait until it has faded in, look at it, tick the check box of every other one, press Continue
+		HintBox* aBox = mHintBoxes[0];
+		if (aBox->mAlpha >= 0xff)
+		{
+			if (!mAutoplayShots.empty() && (s->mShots < 40))
+			{
+				s->mShots++;
+				SaveScreenshot(StrFormat("%s-hint%d.png", mAutoplayShots.c_str(), aBox->mHint));
+			}
+			Log(s, "hint %d at update %d", aBox->mHint, s->mTick);
+			if ((aBox->mHint & 1) && aBox->mHasCheck)
+				aBox->ButtonPress(1);
+			aBox->ButtonDepress(0);
+			s->mWait = 5;
 		}
 		return;
 	}
