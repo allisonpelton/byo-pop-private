@@ -31,8 +31,14 @@ expect.txt.
                                             candidate.variants=no) it writes only "<case>@novariants" facts:
                                             those of the cases whose facts differ from the default build's
                                             (the rule-mod cases that build plays as before stage 5); the
-                                            check takes them instead of <case>'s for such a candidate
-  compare.py cache-key <run dir>            for compare.sh's run cache: the sha256 of the key text on
+                                            check takes them instead of <case>'s for such a candidate.
+                                            Refuses a partial oracle (compare.sh --cases)
+  compare.py select-cases <cases.txt> <glob>,...
+                                            for compare.sh --cases: keeps in <cases.txt> the cases a glob
+                                            matches and, again and again, the cases those are compared with
+                                            (a case named in their flags, the case their name extends: x for
+                                            x.plain), and prints their names
+  compare.py cache-key <run dir>           for compare.sh's run cache: the sha256 of the key text on
                                             stdin and the prepared run directory (paths and contents, the
                                             day fields of hiscores*.dat masked)
   compare.py tree-hash <dir>                the sha256 of a directory tree (paths and contents)
@@ -234,6 +240,7 @@ and hand-written ones, kept by expect-update:
 """
 
 import difflib
+import fnmatch
 import hashlib
 import json
 import os
@@ -1485,6 +1492,39 @@ def read_cases(oracle):
     return cases
 
 
+def select_cases(path, globs):
+    """compare.sh --cases: <path> (a cases.txt) keeps the cases a glob matches and the cases those are compared
+    with, in its order; returns their names"""
+    with open(path, encoding="latin-1") as f:
+        lines = [line for line in f if line.strip()]
+    flags = {}
+    for line in lines:
+        parts = line.rstrip("\n").split("\t")
+        flags[parts[0]] = parts[3] if len(parts) > 3 else ""
+    patterns = [g for g in globs.split(",") if g]
+    todo = [name for name in flags if any(fnmatch.fnmatchcase(name, g) for g in patterns)]
+    picked = set()
+    while todo:
+        name = todo.pop()
+        if name in picked:
+            continue
+        picked.add(name)
+        # a case its flags name ("ref=x", "trace=x,y", "watch=x"), and the case its name extends (x.plain -> x)
+        todo.extend(t for t in re.split(r"[;,=\s]+", flags[name]) if t in flags)
+        parts = name.split(".")
+        todo.extend(p for p in (".".join(parts[:i]) for i in range(1, len(parts))) if p in flags)
+    kept = [line for line in lines if line.split("\t")[0] in picked]
+    with open(path, "w", encoding="latin-1", newline="\n") as f:
+        f.writelines(kept)
+    return [line.split("\t")[0] for line in kept]
+
+
+def partial_of(oracle):
+    """The --cases globs of a partial oracle (compare.sh writes partial.txt), or None"""
+    path = os.path.join(oracle, "partial.txt")
+    return read_lines(path)[0] if os.path.exists(path) else None
+
+
 # ---------------------------------------------------------------------------------------------------
 # Expectations
 
@@ -2277,6 +2317,9 @@ def compare(oracle, expect_path=None):
         r.note("no baseline has the stage-0 hooks: hash.txt, snaps/ and autoplay.txt are compared with nothing")
     if expect_path and not os.path.exists(expect_path):
         r.fail("expect file %s missing (compare.py expect-update)" % expect_path)
+    partial = partial_of(oracle)
+    if partial is not None:
+        r.out("%-15s a partial oracle (compare.sh --cases %s): only %d cases" % ("", partial, len(cases)))
 
     for name, kind, desc, flags in cases:
         r.out("")
@@ -2405,8 +2448,9 @@ def compare(oracle, expect_path=None):
         r.out("    -> %s" % ("identical" if r.failures == before else "DIFFERENT"))
 
     r.out("")
-    r.out("%d cases, %d differences, %d notes: %s" % (len(cases), r.failures, r.notes,
-                                                      "ALL IDENTICAL" if r.failures == 0 else "DIFFERENCES FOUND"))
+    r.out("%d cases, %d differences, %d notes: %s%s" % (len(cases), r.failures, r.notes,
+                                                        "ALL IDENTICAL" if r.failures == 0 else "DIFFERENCES FOUND",
+                                                        "" if partial is None else " (partial: --cases %s)" % partial))
     with open(os.path.join(oracle, "report.txt"), "w", encoding="latin-1", newline="\n") as f:
         f.write("\n".join(r.lines) + "\n")
     # DRAWS: the baseline runs of every draw count difference, whose cache entries compare.sh drops
@@ -2428,6 +2472,10 @@ DEFAULT_EXPECT_HEADER = [
 
 
 def expect_update(oracle, path):
+    if partial_of(oracle) is not None:
+        sys.stderr.write("compare.py: %s is a partial oracle (compare.sh --cases %s): the expect file needs the whole one\n"
+                         % (oracle, partial_of(oracle)))
+        return 2
     old, header = read_expect(path)
     lines = list(header or DEFAULT_EXPECT_HEADER)
     if read_kv(os.path.join(oracle, "exes.txt")).get("candidate.variants") == "no":
@@ -2501,6 +2549,10 @@ def main(argv):
         return compare(argv[2], argv[3] if len(argv) == 4 else None)
     if len(argv) == 4 and argv[1] == "expect-update":
         return expect_update(argv[2], argv[3])
+    if len(argv) == 4 and argv[1] == "select-cases":
+        for name in select_cases(argv[2], argv[3]):
+            print(name)
+        return 0
     if len(argv) == 3 and argv[1] == "cache-key":
         print(tree_digest(argv[2], sys.stdin.buffer.read(), mask_days=True))
         return 0

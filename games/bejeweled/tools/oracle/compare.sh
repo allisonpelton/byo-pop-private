@@ -5,7 +5,7 @@
 #
 #   games/bejeweled/tools/oracle/compare.sh [--baseline <exe>] [--hooks-baseline <exe> | --no-hooks-baseline]
 #       [--candidate <exe>] [--candidate-args "<switches>"] [--out <dir>] [--compare-only]
-#       [--jobs <n>] [--no-cache] [--cache <dir>] [--variants <variant>,...]
+#       [--jobs <n>] [--no-cache] [--cache <dir>] [--variants <variant>,...] [--cases <glob>,...]
 #
 # --candidate-args adds switches to every candidate run, e.g. "-forcevariant" (CODE_MODS_DESIGN.md 9.1: the
 # generalised paths at default rules must match the baselines too). Every run reads the game files in
@@ -17,6 +17,13 @@
 # "novariants" (build/native-novariants/bejeweled.exe from tools/build.sh novariants, into
 # build/oracle-novariants). "--variants default,forcevariant,novariants" runs all three oracles. Not with
 # --candidate, --candidate-args or --out. The exit status is 0 only if every variant matches.
+#
+# --cases runs a part of the oracle, for working on a few cases: the cases a glob matches ("shape_*,rules_inert",
+# matched against the whole name), the cases those compare.py compares them with (a case their flags name, the
+# case their name extends: x for x.plain, x.repeat, x.ls), and the runs and jobs any of them read (a from= user
+# dir, a script, savegame or replay that another run writes). Only the cases picked so are compared; report.txt
+# says the oracle was partial, and expect-update refuses it (the expect file needs every case). Not with
+# --compare-only. Before a commit, run the whole oracle.
 #
 # Speed: --jobs <n> (1 to 3, default 3: CLAUDE.md allows 3 game processes at a time) runs up to n games at a
 # time, the variants' in one pool (n + 2 jobs, so that preparing runs and taking them from the cache overlap
@@ -109,6 +116,7 @@ JOBS=3
 USE_CACHE=1
 CACHE="$ROOT/build/oracle-cache"
 VARIANTS=""
+CASES=""
 SINGLE_ARGS=0  # --candidate, --candidate-args or --out given
 usage() { awk 'NR > 1 { if (!/^#/) exit; sub(/^# ?/, ""); print }' "$0"; }
 ARGS=("$@")  # for the re-run under rundesk below: the loop consumes them
@@ -125,6 +133,7 @@ while [ $# -gt 0 ]; do
 		--no-cache) USE_CACHE=0; shift ;;
 		--cache) CACHE="$2"; shift 2 ;;
 		--variants) VARIANTS="$2"; shift 2 ;;
+		--cases) CASES="$2"; shift 2 ;;
 		-h|--help) usage; exit 0 ;;
 		*) usage; exit 2 ;;
 	esac
@@ -137,6 +146,11 @@ if [ -n "$VARIANTS" ] && [ $SINGLE_ARGS -eq 1 ]; then
 	echo "compare.sh: --variants names the candidates and output folders: no --candidate, --candidate-args or --out with it" >&2
 	exit 2
 fi
+if [ -n "$CASES" ] && [ $COMPARE_ONLY -eq 1 ]; then
+	echo "compare.sh: --compare-only compares the cases the last run made: no --cases with it" >&2
+	exit 2
+fi
+IFS=, read -r -a CASE_GLOBS <<< "$CASES"
 if [ "${BASH_VERSINFO[0]}" -lt 5 ] || { [ "${BASH_VERSINFO[0]}" -eq 5 ] && [ "${BASH_VERSINFO[1]}" -lt 1 ]; }; then
 	JOBS=1  # wait -n -p needs bash 5.1
 fi
@@ -155,6 +169,16 @@ if [ -z "${BEJ_TEST_DESKTOP:-}" ] && [ -z "${ORACLE_VISIBLE:-}" ]; then
 fi
 
 winpath() { if command -v cygpath > /dev/null 2>&1; then cygpath -m "$1"; else echo "$1"; fi; }
+# case_wanted <case>: no --cases, or one of its globs matches the case (for the cases that start work while they
+# are defined: the verifier's difftest and tests; compare.py select-cases picks the rest)
+case_wanted() {
+	local g
+	[ -n "$CASES" ] || return 0
+	for g in "${CASE_GLOBS[@]}"; do
+		[ -n "$g" ] && [[ $1 == $g ]] && return 0
+	done
+	return 1
+}
 PY="${PYTHON:-python}"
 COMPARE_PY="$(winpath "$GAME/tools/oracle/compare.py")"
 EXPECT="$(winpath "$GAME/tools/oracle/expect.txt")"
@@ -1244,7 +1268,7 @@ fi
 NRUNS=0
 for ((v = 0; v < NV; v++)); do
 	set_variant $v
-	rm -rf "$OUT/baseline" "$OUT/hooks-baseline" "$OUT/candidate" "$OUT/gen" "$OUT/emptymods"
+	rm -rf "$OUT/baseline" "$OUT/hooks-baseline" "$OUT/candidate" "$OUT/gen" "$OUT/emptymods" "$OUT/partial.txt"
 	mkdir -p "$OUT/gen"
 	for side in "${SIDES[@]}"; do mkdir -p "$OUT/$side"; done
 	{
@@ -1264,6 +1288,41 @@ for ((v = 0; v < NV; v++)); do
 	done
 done
 
+# --cases: each variant's cases.txt keeps the cases picked (compare.py select-cases), and the jobs of those cases
+# and every job they wait for stay queued; the other jobs count as done. A job waits only for jobs queued before it,
+# so one pass from the last job back finds them all.
+NSEL=0
+if [ -n "$CASES" ]; then
+	declare -A SEL
+	declare -a KEEP
+	for ((v = 0; v < NV; v++)); do
+		set_variant $v
+		while read -r name; do
+			[ -n "$name" ] || continue
+			SEL["$v|$name"]=1
+			NSEL=$((NSEL + 1))
+		done < <("$PY" "$COMPARE_PY" select-cases "$(winpath "$OUT/cases.txt")" "$CASES" | tr -d '\r')
+		printf '%s\n' "$CASES" > "$OUT/partial.txt"
+	done
+	if [ $NSEL -eq 0 ]; then
+		echo "compare.sh: --cases $CASES matches no case" >&2
+		kill $(jobs -p) 2> /dev/null
+		exit 2
+	fi
+	NRUNS=0
+	for ((k = NJOBS - 1; k >= 0; k--)); do
+		id=${J_ID[k]}
+		[ "${id%%/*}" = gen ] || [ -z "${SEL["${J_V[k]}|${id#*/}"]:-}" ] || KEEP[k]=1
+		if [ -n "${KEEP[k]:-}" ]; then
+			for d in ${J_DEPS[k]}; do KEEP[d]=1; done
+			case "${J_CMD[k]}" in do_run\ *) NRUNS=$((NRUNS + 1)) ;; esac
+		else
+			J_STATE[k]=2
+		fi
+	done
+	echo "compare.sh: --cases $CASES: $NSEL cases, $NRUNS runs"
+fi
+
 # schedule: the queued jobs, each once the jobs it depends on are done, the lowest job number first (so --jobs 1
 # runs them in the order of the definitions); with --jobs n > 1, n + 2 jobs at a time and n game slots
 declare -A PIDJOB
@@ -1275,6 +1334,7 @@ rm -rf "$SLOTS"
 mkdir -p "$SLOTS"
 schedule() {
 	local running=0 finished=0 low=0 i k d ready pid status
+	for ((k = 0; k < NJOBS; k++)); do [ "${J_STATE[k]}" != 2 ] || finished=$((finished + 1)); done  # left out by --cases
 	while [ $finished -lt $NJOBS ]; do
 		while [ $running -lt $INFLIGHT ]; do
 			i=-1
@@ -1374,6 +1434,7 @@ if [ $USE_CACHE -eq 1 ]; then
 else
 	echo "compare.sh: $NRUNS runs (no cache) in $RUNTIME s with --jobs $JOBS"
 fi
+[ -z "$CASES" ] || echo "compare.sh: a partial oracle (--cases $CASES, $NSEL cases): run the whole one before a commit"
 if [ ${#FAILED[@]} -gt 0 ] || [ $SCHEDULED -ne 0 ]; then
 	printf 'compare.sh: a job could not run: %s\n' "${FAILED[@]}"
 	exit 2
