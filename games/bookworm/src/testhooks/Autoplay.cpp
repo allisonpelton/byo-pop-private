@@ -12,6 +12,7 @@
 #include "NewUserDialog.h"
 #include "ColorizedButton.h"
 #include "Res.h"
+#include "Solver.h"
 
 #include "WidgetManager.h"
 #include "ButtonWidget.h"
@@ -50,7 +51,6 @@ enum
 	METHOD_DRAG_OFF     // drag over the tiles, release off them (a cancel: the release clears)
 };
 
-const int MAX_WORD_LENGTH = 12;     // the DFS stops there (a whole word, "QU" counting 2)
 const int OFF_TILE_X = 260;         // in the board, above column 0 (whose row 0 is empty): no tile there
 const int OFF_TILE_Y = 12;
 const char* const BOT_PLAYER_NAME = "Autoplay Bot";
@@ -109,7 +109,7 @@ bool SameWordIgnoringCase(const std::string& theWord1, const std::string& theWor
 }
 
 AutoplayBot::AutoplayBot(BookWormApp* theApp, unsigned long theSeed, const std::string& theMode, int theUpdateCap,
-	const std::string& theLogFileName, const std::string& theShotPrefix, int theShotWords) :
+	const std::string& theLogFileName, const std::string& theShotPrefix, int theShotWords, bool theUseHints) :
 	mApp(theApp),
 	mRand((std::mt19937::result_type) theSeed),
 	mSeed(theSeed),
@@ -118,6 +118,9 @@ AutoplayBot::AutoplayBot(BookWormApp* theApp, unsigned long theSeed, const std::
 	mLog(NULL),
 	mShotPrefix(theShotPrefix),
 	mShotWords(theShotWords),
+	mUseHints(theUseHints),
+	mHintScore(0),
+	mHintMismatches(0),
 	mDone(false),
 	mQuitAt(-1),
 	mTitleClicked(false),
@@ -166,8 +169,8 @@ AutoplayBot::AutoplayBot(BookWormApp* theApp, unsigned long theSeed, const std::
 		mModes.push_back(GAMEMODE_CLASSIC);
 	}
 
-	Note("-autoplay=%lu -seed=%lu -autoplaymode=%s -autoplaycap=%d: the bot's input as a -script file", mSeed,
-		(unsigned long) mApp->mRandSeed, mModeName.c_str(), mUpdateCap);
+	Note("-autoplay=%lu -seed=%lu -autoplaymode=%s -autoplaycap=%d%s: the bot's input as a -script file", mSeed,
+		(unsigned long) mApp->mRandSeed, mModeName.c_str(), mUpdateCap, mUseHints ? " -autoplayhints=1" : "");
 }
 
 AutoplayBot::~AutoplayBot()
@@ -287,7 +290,11 @@ void AutoplayBot::LogChanges(Board* theBoard)
 		Note("board: %s -> %s, level %d, score %d, %d fire tiles", StateName(mLastState), StateName(theBoard->mState),
 			theBoard->mLevel + 1, theBoard->mGameStats->mScore, theBoard->mFireTileCount);
 		if (theBoard->mState == BOARD_GAMEOVER_PENDING)
+		{
 			Note("game over: a fire tile burned through the bottom");
+			if (mUseHints)
+				Note("hints: %d words scored, %d mismatches", mWordsScored, mHintMismatches);
+		}
 		mLastState = theBoard->mState;
 	}
 	if (theBoard->mLevel != mLastLevel)
@@ -323,11 +330,24 @@ void AutoplayBot::CheckResult(Board* theBoard)
 		Note("word %d: %s scored %d (the word %d), total %d, level %d, %d fire tiles", mWordsScored,
 			theBoard->mLastWord.mWord.c_str(), aScore - mScoreBefore, theBoard->mLastWord.mScore, aScore, theBoard->mLevel + 1,
 			theBoard->mFireTileCount);
+		if ((!mHintWord.empty()) && ((theBoard->mLastWord.mWord != mHintWord) || (theBoard->mLastWord.mScore != mHintScore)))
+		{
+			mHintMismatches++;
+			Note("HINT MISMATCH: the solver had %s for %d", mHintWord.c_str(), mHintScore);
+		}
 		if ((mShotWords > 0) && (mWordsScored % mShotWords == 0))
 			Shot(std::string(ModeName(mApp->mGameMode)) + "-word" + std::to_string(mWordsScored));
 	}
 	else
+	{
 		Note("%s not taken (%s)", mPlanWord.c_str(), theBoard->mSelection.empty() ? "no selection" : "the selection stays");
+		if (!mHintWord.empty())
+		{
+			mHintMismatches++;
+			Note("HINT MISMATCH: the solver's %s was no word", mHintWord.c_str());
+		}
+	}
+	mHintWord = "";
 }
 
 // The first dialog (lowest id) in front: the new-user dialog gets a name, hint, message and can't-scramble
@@ -500,91 +520,38 @@ bool AutoplayBot::TileClickable(Board* theBoard, int theCell, int theX, int theY
 		(mApp->mWidgetManager->GetWidgetAt(theX, theY, NULL, NULL) == theBoard);
 }
 
-// Every word on the board (one path each): a DFS from every tile over the neighbours not yet in the path,
-// cut where no dictionary word starts with the letters so far
+// Every word on the board (one path each, the first the search finds): the solver's search
+// (FindBoardWords: a DFS from every tile over the neighbours not yet in the path, cut where no dictionary
+// word starts with the letters so far) over the tiles a click reaches, in cell order
 void AutoplayBot::FindWords(Board* theBoard, std::vector<FoundWord>* theWords)
 {
 	enum { NUM_CELLS = BOARD_ROWS * BOARD_COLS };
 
-	struct Search
-	{
-		const std::set<SexyString>* mDict;
-		Board* mBoard;
-		std::vector<int> mNeighbours[NUM_CELLS];
-		bool mInPath[NUM_CELLS];
-		std::vector<int> mPath;
-		std::string mWord;
-		std::set<std::string> mFound;
-		std::vector<FoundWord>* mWords;
-
-		void From(int theCell)
-		{
-			Piece* aPiece = CellPiece(mBoard, theCell);
-			size_t aLength = mWord.size();
-			mWord += aPiece->mLetter;
-			if (aPiece->mLetter == 'Q')
-				mWord += 'U';
-
-			std::set<SexyString>::const_iterator anItr = mDict->lower_bound(mWord);
-			if ((anItr != mDict->end()) && (anItr->compare(0, mWord.size(), mWord) == 0))
-			{
-				mInPath[theCell] = true;
-				mPath.push_back(theCell);
-				if ((mWord.size() >= 3) && (*anItr == mWord) && (mFound.insert(mWord).second))
-				{
-					FoundWord aWord;
-					aWord.mWord = mWord;
-					aWord.mPath = mPath;
-					aWord.mFireTiles = 0;
-					for (size_t i = 0; i < mPath.size(); i++)
-					{
-						if (CellPiece(mBoard, mPath[i])->mType == TILE_FIRE)
-							aWord.mFireTiles++;
-					}
-					mWords->push_back(aWord);
-				}
-				if ((int) mWord.size() < MAX_WORD_LENGTH)
-				{
-					for (size_t i = 0; i < mNeighbours[theCell].size(); i++)
-					{
-						if (!mInPath[mNeighbours[theCell][i]])
-							From(mNeighbours[theCell][i]);
-					}
-				}
-				mPath.pop_back();
-				mInPath[theCell] = false;
-			}
-			mWord.resize(aLength);
-		}
-	};
-
-	Search aSearch;
-	aSearch.mDict = &mApp->mDictionary;
-	aSearch.mBoard = theBoard;
-	aSearch.mWords = theWords;
-
-	std::vector<int> aCells;
+	std::vector<Piece*> aTiles;
 	for (int aCell = 0; aCell < NUM_CELLS; aCell++)
 	{
-		aSearch.mInPath[aCell] = false;
 		Piece* aPiece = CellPiece(theBoard, aCell);
 		if ((aPiece != NULL) && (aPiece->mLetter >= 'A') && (aPiece->mLetter <= 'Z') &&
 			(TileClickable(theBoard, aCell, theBoard->ColX(CellCol(aCell)) + 28, theBoard->RowY(CellCol(aCell), CellRow(aCell)) + 28)))
-			aCells.push_back(aCell);
-	}
-	for (size_t i = 0; i < aCells.size(); i++)
-	{
-		for (size_t j = 0; j < aCells.size(); j++)
-		{
-			if ((i != j) && (Board::IsAdjacent(CellPiece(theBoard, aCells[i]), CellPiece(theBoard, aCells[j]))))
-				aSearch.mNeighbours[aCells[i]].push_back(aCells[j]);
-		}
+			aTiles.push_back(aPiece);
 	}
 
-	if (aSearch.mDict->empty())
-		return;
-	for (size_t i = 0; i < aCells.size(); i++)
-		aSearch.From(aCells[i]);
+	std::set<std::string> aFound;
+	FindBoardWords(aTiles, mApp->mDictionary, [&](const std::vector<Piece*>& thePath, const SexyString& theWord)
+	{
+		if (!aFound.insert(theWord).second)
+			return;
+		FoundWord aWord;
+		aWord.mWord = theWord;
+		aWord.mFireTiles = 0;
+		for (size_t i = 0; i < thePath.size(); i++)
+		{
+			aWord.mPath.push_back(thePath[i]->mRow * BOARD_COLS + thePath[i]->mCol);
+			if (thePath[i]->mType == TILE_FIRE)
+				aWord.mFireTiles++;
+		}
+		theWords->push_back(aWord);
+	});
 }
 
 std::string AutoplayBot::PathWord(Board* theBoard, const std::vector<int>& thePath)
@@ -658,6 +625,23 @@ void AutoplayBot::PlanNext(Board* theBoard)
 
 	mPlanNum++;
 	int aKind = Random(100);
+
+	// -autoplayhints: the solver's first hint, asked for with Tab, submitted with the Submit button
+	if ((mUseHints) && (theBoard->mSolver == NULL))
+	{
+		Note("-autoplayhints: the mod \"solver\" is off, so the bot picks its own words");
+		mUseHints = false;
+	}
+	if ((mUseHints) && (!aWords.empty()))
+	{
+		mPlanKind = PLAN_HINT;
+		mPlanWord = "";
+		Note("plan %d: the first hint (%u words on the board, %d fire tiles)", mPlanNum, (unsigned) aWords.size(),
+			theBoard->mFireTileCount);
+		AddStep(STEP_KEY_HINT, -1, theBoard, 15 + Random(50));
+		AddStep(STEP_CLICK_SUBMIT, -1, theBoard, 8 + Random(20)).mSubmit = true;
+		return;
+	}
 
 	// A scramble (3%; 30% with 5 or more fire tiles on the board: each scramble of a game adds one more fire
 	// tile than the last, so this soon gets the can't-scramble dialog; always when there is no word)
@@ -873,7 +857,25 @@ int AutoplayBot::RunStep(Board* theBoard, const Step& theStep)
 		return RUN_DONE;
 
 	case STEP_CLICK_SUBMIT:
+		if (mPlanKind == PLAN_HINT)
+		{
+			const SolverWord* aHint = theBoard->mSolver->ShownHint();
+			if (aHint == NULL)
+				return RUN_DROP;
+			static const char* const KIND_NAMES[] = { "fire", "bonus", "best", "longest" };
+			static const char* const SAFETY_NAMES[] = { "safe", "fire to the bottom", "ends the game" };
+			mPlanWord = aHint->mWord;
+			mHintWord = aHint->mWord;
+			mHintScore = aHint->mScore;
+			Note("hint %d/%u: %s (%s, %d points, %d fire tiles, %s)", theBoard->mSolver->mHintIdx + 1,
+				(unsigned) theBoard->mSolver->mHints.size(), aHint->mWord.c_str(), KIND_NAMES[aHint->mKind],
+				aHint->mScore, aHint->mFireTiles, SAFETY_NAMES[aHint->mSafety]);
+		}
 		return ClickWidget(theBoard->mSubmitButton, "the Submit button") ? RUN_DONE : RUN_WAIT;
+
+	case STEP_KEY_HINT:
+		Queue("key", "TAB");
+		return RUN_DONE;
 
 	case STEP_CLICK_LEX:
 		{

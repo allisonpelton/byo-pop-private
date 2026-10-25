@@ -40,6 +40,7 @@ class EffectMgr;
 class EmberListMgr;
 class Points;
 class WidgetManager;
+class Solver;
 
 // Board::mState (+0x194)
 enum BoardState
@@ -68,7 +69,8 @@ enum BoardButtonId
 {
 	BOARD_BUTTON_SUBMIT = 16,
 	BOARD_BUTTON_OPTIONS = 17,
-	BOARD_BUTTON_LEAVE = 18
+	BOARD_BUTTON_LEAVE = 18,
+	BOARD_BUTTON_HINT = 19          // port(mod): the solver's HINT, beside SUBMIT (Solver.h)
 };
 
 // Board::mHintId (+0x34c), passed to BookWormApp::ShowHint; only 1, 2, 4 and 10 are ever scheduled
@@ -224,6 +226,11 @@ public:
 	int					mUnused3e8;             // +0x3e8 zeroed by LevelUp, saved only
 	int					mUnused3ec;             // +0x3ec saved only
 
+	// port(mod): the word solver (mod "solver"); NULL while no enabled mod turns it on. Then SUBMIT takes the
+	// left part of its plank and HINT the right part.
+	Solver*				mSolver;
+	DialogButton*		mHintButton;
+
 public:
 	Board(BookWormApp* theApp);                                         // 0x40ae90
 	virtual ~Board();                                                   // 0x4062e0 body, 0x406c10 slot 0
@@ -278,6 +285,8 @@ public:
 	// selection and words
 	void				AddLetter(Piece* thePiece);                     // 0x409c60
 	void				TruncateAfter(Piece* thePiece);                 // 0x405cf0
+	// port(mod): selects thePath as clicks on its tiles would (the solver's hints)
+	void				SelectTiles(const std::vector<Piece*>& thePath);
 	void				ClearWord();                                    // 0x407bf0
 	void				Submit(int x, int y);                           // 0x40f5b0
 	void				BonusWordScored(int thePoints, int x, int y);   // 0x40abd0
@@ -322,6 +331,8 @@ public:
 	void				DrawProgressBar(Graphics* g);                   // 0x403c00
 	void				DrawScore(Graphics* g);                         // 0x405580
 	void				DrawWord(Graphics* g);                          // 0x407c60 (writes mLastWordColor)
+	// port(mod): a groove across a left-panel plank at theX, where a mod's button splits it
+	void				DrawPlankDivider(Graphics* g, int theX, int theY);
 };
 
 }

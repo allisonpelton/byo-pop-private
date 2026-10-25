@@ -30,6 +30,9 @@
 // <prefix><mode>-levelup<n>.png, <prefix><mode>-gameover.png, <prefix><mode>-fame.png and, every
 // -autoplayshotwords=<n> words (default 25, 0: none), <prefix><mode>-word<n>.png (script lines, so a
 // replay of the log takes them too).
+// -autoplayhints=1 (with the mod "solver" on): every move is the word solver's first hint, asked for with Tab
+// and submitted with the Submit button (a scramble when the board spells no word). The log notes each hint
+// and the word's score, and "HINT MISMATCH" where the game scored the word otherwise than the solver said.
 
 #include <cstdio>
 #include <random>
@@ -47,7 +50,7 @@ class AutoplayBot
 {
 public:
 	AutoplayBot(BookWormApp* theApp, unsigned long theSeed, const std::string& theMode, int theUpdateCap,
-		const std::string& theLogFileName, const std::string& theShotPrefix, int theShotWords);
+		const std::string& theLogFileName, const std::string& theShotPrefix, int theShotWords, bool theUseHints);
 	~AutoplayBot();
 
 	// After each update (BookWormApp::UpdateFrames): looks at the game, queues input for the next update
@@ -63,7 +66,8 @@ private:
 		STEP_UP_OFF,        // button up off the tiles (a drag released there clears the selection)
 		STEP_RCLICK_TILE,   // right click on the tile (or any tile at rest): clears the selection
 		STEP_CLICK_SUBMIT,  // the Submit button
-		STEP_CLICK_LEX      // Lex: scramble
+		STEP_CLICK_LEX,     // Lex: scramble
+		STEP_KEY_HINT       // Tab: the word solver's next hint (-autoplayhints)
 	};
 
 	struct Step
@@ -84,7 +88,8 @@ private:
 		PLAN_JUNK,          // a random path, submitted (usually not a word), then cleared
 		PLAN_CANCEL,        // a selection cleared before it is submitted
 		PLAN_SCRAMBLE,      // a click on Lex
-		PLAN_CLEAR          // a right click on a left-over selection
+		PLAN_CLEAR,         // a right click on a left-over selection
+		PLAN_HINT           // the word solver's first hint, submitted (-autoplayhints)
 	};
 
 	struct FoundWord
@@ -103,6 +108,10 @@ private:
 	FILE* mLog;
 	std::string mShotPrefix;
 	int mShotWords;
+	bool mUseHints;
+	std::string mHintWord;          // the hint submitted, "" for none
+	int mHintScore;                 // its score as the solver has it
+	int mHintMismatches;
 	bool mDone;
 	int mQuitAt;                    // update of the quit once the last game is done, -1 before
 

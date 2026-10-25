@@ -11,6 +11,8 @@
 #include "LevelUpWidget.h"
 #include "Definitionator.h"
 #include "GameText.h"
+#include "ModFeatures.h"
+#include "Solver.h"
 
 #include "WidgetManager.h"
 #include "DialogButton.h"
@@ -589,6 +591,16 @@ Board::Board(BookWormApp* theApp)
 	MakeButton(BOARD_BUTTON_OPTIONS, Rect(6, 181, 211, 30), NULL, NULL, NULL, GameText(GT_OPTIONS));
 	MakeButton(BOARD_BUTTON_LEAVE, Rect(6, 446, 211, 30), NULL, NULL, NULL, GameText(GT_BOARD_LEAVE_GAME));
 
+	// port(mod): the word solver's HINT takes the right part of SUBMIT's plank
+	mSolver = NULL;
+	mHintButton = NULL;
+	if (ModFeatureEnabled("solver"))
+	{
+		mSolver = new Solver(this);
+		mSubmitButton->Resize(6, 100, 130, 30);
+		mHintButton = MakeButton(BOARD_BUTTON_HINT, Rect(136, 100, 81, 30), NULL, NULL, NULL, "HINT");
+	}
+
 	// new MTRand(Sexy::Rand()) with the 2004 seeding; the EffectMgr and EmberListMgr ctors draw the next two
 	// Sexy::Rand() seeds (NAMES.md 2.11)
 	unsigned long aSeed = (unsigned long)Rand();
@@ -659,6 +671,9 @@ Board::Board(BookWormApp* theApp)
 Board::~Board()
 {
 	RemoveLevelUpWidget();
+
+	delete mSolver;     // port(mod)
+	mSolver = NULL;
 
 	if (mRand != NULL)
 	{
@@ -923,6 +938,10 @@ void Board::KeyDown(KeyCode theKey)
 {
 	if (theKey == KEYCODE_CONTROL)
 		mCtrlDown = true;
+
+	// port(mod): Tab asks the word solver for its next hint
+	if ((theKey == KEYCODE_TAB) && (mSolver != NULL) && (mState == BOARD_PLAYING))
+		mSolver->RequestHint();
 
 	if ((mApp->mIsRegistered) && (mState == BOARD_PLAYING))
 	{
@@ -1619,6 +1638,30 @@ void Board::AddLetter(Piece* thePiece)
 	MarkDirty();
 }
 
+// port(mod): the selection becomes thePath, as clicks on its tiles one after another make it (MouseDown's
+// AddLetter, without its sound per tile): the old selection is dropped, the word built and checked, SUBMIT
+// lit for a word, and a click on the last tile submits it (SELECT_CLICKED)
+void Board::SelectTiles(const std::vector<Piece*>& thePath)
+{
+	std::for_each(mSelection.begin(), mSelection.end(), Piece::Deselect);
+	mSelection.clear();
+	for (size_t i = 0; i < thePath.size(); i++)
+	{
+		thePath[i]->mSelected = true;
+		mSelection.push_back(thePath[i]);
+	}
+	mWord.Build(&mSelection);
+	mWord.CheckValid(&mApp->mDictionary);
+	mSubmitButton->SetColors(mWord.mValid ? gSubmitColorsValid : gSubmitColorsInvalid, 2);
+	// ClearWord, after the last word, marks the button not under the mouse even where it still is; a
+	// button takes a click only under the mouse, so a hint asked for by key and then Submit clicked without
+	// leaving the button would do nothing
+	mSubmitButton->mIsOver = (mWidgetManager != NULL) && (mWidgetManager->mOverWidget == mSubmitButton);
+	mSelectMode = SELECT_CLICKED;
+	mApp->PlaySample(SOUND_NEXTSELECT);
+	MarkDirty();
+}
+
 // 0x405cf0: deselects and drops every tile after thePiece
 void Board::TruncateAfter(Piece* thePiece)
 {
@@ -2071,6 +2114,8 @@ void Board::ButtonDepress(int theId)
 	}
 	else if (theId == BOARD_BUTTON_OPTIONS)
 		mApp->ShowOptions();
+	else if ((theId == BOARD_BUTTON_HINT) && (mSolver != NULL))
+		mSolver->RequestHint();     // port(mod)
 	else if ((theId == BOARD_BUTTON_LEAVE) && (IsInProgress()))
 		mApp->GoToMainMenu();
 }
@@ -2260,6 +2305,8 @@ void Board::Update()
 	mWidgetManager->BringToBack(this);
 	mPiecesFlying = false;
 	Widget::Update();
+	if (mSolver != NULL)
+		mSolver->Update();  // port(mod): a hint asked for while the tiles moved
 	mApp->mPlayTicks++;
 
 	PieceList aDeadPieces;  // tiles burned away this tick, deleted at the end

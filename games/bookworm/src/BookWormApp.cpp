@@ -15,6 +15,7 @@
 #include "DeleteUserDialog.h"
 #include "HintDialog.h"
 #include "GameText.h"
+#include "ModFeatures.h"
 #include "testhooks/Autoplay.h"
 
 #include "WidgetManager.h"
@@ -331,6 +332,7 @@ BookWormApp::BookWormApp()
 	mAutoplayMode = "classic";
 	mAutoplayCap = 200000;
 	mAutoplayShotWords = 25;
+	mAutoplayHints = false;
 	mAutoplayBot = NULL;
 }
 
@@ -596,7 +598,7 @@ void BookWormApp::UpdateFrames()
 	// port: the -autoplay test hook (see BookWormApp.h): the bot looks at the game after each update
 	if ((mAutoplay) && (mAutoplayBot == NULL))
 		mAutoplayBot = new AutoplayBot(this, mAutoplaySeed, mAutoplayMode, mAutoplayCap, mAutoplayLogFileName,
-			mAutoplayShotPrefix, mAutoplayShotWords);
+			mAutoplayShotPrefix, mAutoplayShotWords, mAutoplayHints);
 	if (mAutoplayBot != NULL)
 		mAutoplayBot->Update();
 }
@@ -621,6 +623,8 @@ void BookWormApp::HandleCmdLineParam(const std::string& theParamName, const std:
 		mAutoplayShotPrefix = theParamValue;
 	else if (theParamName == "-autoplayshotwords")
 		mAutoplayShotWords = atoi(theParamValue.c_str());
+	else if (theParamName == "-autoplayhints")
+		mAutoplayHints = atoi(theParamValue.c_str()) != 0;
 	else
 		SexyApp::HandleCmdLineParam(theParamName, theParamValue);
 }
@@ -1656,20 +1660,21 @@ bool BookWormApp::HasSavedGame(const SexyString& theUserName, int theMode)
 // port: the path HasSavedGame (0x412190) and Board's SaveGame / LoadGame / DeleteSavedGame build:
 // "players" + "\" + name, + "\" only for a name, + "classic.dat" / "action.dat"; other modes have no file.
 // The original's is relative to the exe folder; the framework's file helpers put it in the user dir.
+// port(mods): a set of mods that changes play saves apart, in "classic-<score key>.dat"
 SexyString BookWormApp::GetSaveGamePath(const SexyString& theUserName, int theMode)
 {
 	const char* aFileName;
 	if (theMode == GAMEMODE_CLASSIC)
-		aFileName = "classic.dat";
+		aFileName = "classic";
 	else if (theMode == GAMEMODE_ACTION)
-		aFileName = "action.dat";
+		aFileName = "action";
 	else
 		return "";
 
 	SexyString aPath = SexyString(gPlayersDir) + "/" + theUserName;
 	if (theUserName.length() != 0)
 		aPath += "/";
-	return aPath + aFileName;
+	return aPath + aFileName + ScoreKeySuffix() + ".dat";
 }
 
 // The strings of a REG_MULTI_SZ value up to the first empty one. port: the emulated registry has no
@@ -1700,6 +1705,13 @@ static bool ReadMultiString(SexyAppBase* theApp, const std::string& theValueName
 }
 
 // Writes a REG_MULTI_SZ value: every string NUL-terminated, then one more NUL; nothing for no strings
+// port(mods): the registry value of high-score table theTable ("Classic"): under the key Scores, or with a set
+// of mods that changes play under "Scores-<score key>", so those games have tables of their own
+static std::string ScoresValueName(const char* theTable)
+{
+	return "Scores" + ScoreKeySuffix() + "\\" + theTable;
+}
+
 static void WriteMultiString(SexyAppBase* theApp, const std::string& theValueName, const std::vector<SexyString>& theStrings)
 {
 	std::string aData;
@@ -1723,7 +1735,7 @@ void BookWormApp::LoadHighScores()
 	// a value with an odd string count (not a multiple of 3 for Best) loops for ever; these stop at the end
 	std::vector<SexyString> aStrings;
 
-	if (ReadMultiString(this, "Scores\\Classic", &aStrings))
+	if (ReadMultiString(this, ScoresValueName("Classic"), &aStrings))
 	{
 		for (size_t i = 0; i < aStrings.size(); )
 		{
@@ -1737,7 +1749,7 @@ void BookWormApp::LoadHighScores()
 		}
 	}
 
-	if (ReadMultiString(this, "Scores\\Action", &aStrings))
+	if (ReadMultiString(this, ScoresValueName("Action"), &aStrings))
 	{
 		for (size_t i = 0; i < aStrings.size(); )
 		{
@@ -1751,7 +1763,7 @@ void BookWormApp::LoadHighScores()
 		}
 	}
 
-	if (ReadMultiString(this, "Scores\\Best", &aStrings))
+	if (ReadMultiString(this, ScoresValueName("Best"), &aStrings))
 	{
 		for (size_t i = 0; i < aStrings.size(); )
 		{
@@ -1767,7 +1779,7 @@ void BookWormApp::LoadHighScores()
 		}
 	}
 
-	if (ReadMultiString(this, "Scores\\Longest", &aStrings))
+	if (ReadMultiString(this, ScoresValueName("Longest"), &aStrings))
 	{
 		for (size_t i = 0; i < aStrings.size(); )
 		{
@@ -1845,7 +1857,7 @@ void BookWormApp::SaveHighScores()
 		aStrings.push_back(anItr->mName);
 		aStrings.push_back(StrFormat("%d", anItr->mScore));
 	}
-	WriteMultiString(this, "Scores\\Classic", aStrings);
+	WriteMultiString(this, ScoresValueName("Classic"), aStrings);
 
 	aStrings.clear();
 	for (HighScoreByScoreSet::const_iterator anItr = mActionScores.begin(); anItr != mActionScores.end(); ++anItr)
@@ -1853,7 +1865,7 @@ void BookWormApp::SaveHighScores()
 		aStrings.push_back(anItr->mName);
 		aStrings.push_back(StrFormat("%d", anItr->mScore));
 	}
-	WriteMultiString(this, "Scores\\Action", aStrings);
+	WriteMultiString(this, ScoresValueName("Action"), aStrings);
 
 	aStrings.clear();
 	for (HighScoreByScoreSet::const_iterator anItr = mBestWords.begin(); anItr != mBestWords.end(); ++anItr)
@@ -1862,7 +1874,7 @@ void BookWormApp::SaveHighScores()
 		aStrings.push_back(anItr->mWord);
 		aStrings.push_back(StrFormat("%d", anItr->mScore));
 	}
-	WriteMultiString(this, "Scores\\Best", aStrings);
+	WriteMultiString(this, ScoresValueName("Best"), aStrings);
 
 	aStrings.clear();
 	for (HighScoreByLengthSet::const_iterator anItr = mLongestWords.begin(); anItr != mLongestWords.end(); ++anItr)
@@ -1870,7 +1882,7 @@ void BookWormApp::SaveHighScores()
 		aStrings.push_back(anItr->mName);
 		aStrings.push_back(anItr->mWord);
 	}
-	WriteMultiString(this, "Scores\\Longest", aStrings);
+	WriteMultiString(this, ScoresValueName("Longest"), aStrings);
 }
 
 // Keeps the first theCount entries of a table (in order)

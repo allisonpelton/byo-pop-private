@@ -7,6 +7,7 @@
 // next (none reads state it did not set), colorize and the draw mode are always put back to off / normal.
 
 #include "Board.h"
+#include "Solver.h"
 #include "BookWormApp.h"
 #include "Res.h"
 #include "Piece.h"
@@ -62,6 +63,8 @@ void Board::Draw(Graphics* g)
 	DrawProgressBar(g);
 	DrawScore(g);
 	DrawWord(g);
+	if (mHintButton != NULL)
+		DrawPlankDivider(g, 136, 100);  // port(mod)
 
 	if (mBurping)
 	{
@@ -78,6 +81,18 @@ void Board::Draw(Graphics* g)
 	DrawPieces(g);
 	mEffectMgr->Draw(g);
 	mEmberMgr->Draw(g);
+	if (mSolver != NULL)
+		mSolver->Draw(g);   // port(mod): the hint's tag
+}
+
+// port(mod): a groove across a left-panel plank (30 px high from theY), dark with a light edge, where a
+// mod's button takes the plank's right part
+void Board::DrawPlankDivider(Graphics* g, int theX, int theY)
+{
+	g->SetColor(Color(40, 20, 6, 210));
+	g->FillRect(theX - 1, theY + 4, 2, 22);
+	g->SetColor(Color(235, 190, 120, 110));
+	g->FillRect(theX + 1, theY + 4, 1, 22);
 }
 
 // 0x4056e0
