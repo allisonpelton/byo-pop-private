@@ -152,3 +152,23 @@ no port has yet run on Opus. Opus covers Sonnet's deficits by review: the coordi
 translated functions against the decompilation before merging it, as above. Each later game is measured the same way
 (tokens and time per unit of the survey's estimate, and the review's findings), so the rule can move a kind of game
 back to Opus if Sonnet does badly on it.
+
+## The next Sonnet port: Seven Seas Deluxe (2026-10-25)
+
+Seven Seas was the first game ported on Sonnet under that rule: a 2003 game of the same estimated size as Noah's Ark
+(~1-1.5x), copying Noah's Ark's port of the 2002 framework. Its one session, from its start to the tip with the
+review's fixes (20:27 to 22:15 UTC, 1 h 48), made 431 calls: 184.6M cache reads, 1.3M cache writes and 0.6M output,
+about $59 at Opus prices. That covers the port, a second pass on the dialogs (it first guessed their sizes, then read
+them from the vtables and the creators' disassembly) and the review's fixes, but no mods, so it cost somewhat more
+than Noah's Ark's whole session with its mods (394 calls, 1 h 36, about $50). Per unit of the estimate that is about
+148M cache reads, against 107M for Noah's Ark's port and 267M for Big Money's.
+
+An Opus review agent compared about 25 of its functions with the decompilation and the disassembly. The game logic
+is a very faithful translation: the board, the enemies, the shots, the level generation, the order of the `rand()`
+calls and the original's quirks all match. It found six differences. One desynchronises the random stream: undo
+restored each ship with one `rand()` draw, where the original's inlined constructor makes a second. Three are rare
+behaviour differences: a continued game's side panel counted its score up from 0; the high-score file ignored the
+day and dropped a record's name on a bad check, the same mistake Noah's Ark's port had made; and the game-over talk
+ended one update early (`< 300` for the original's `<= 300`, another bound turned around). Two change nothing but a
+sound's pan or a field that held the same value. Three comments were wrong too. The session fixed all of it in one
+turn, and the `<= 300` fix moved its bot's pinned results by one update.
