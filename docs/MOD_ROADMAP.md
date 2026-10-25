@@ -26,6 +26,7 @@ reads these parameters from mod tunables instead of hard-coding them.
 | Detailed game-over stats | A page of the game's numbers at game over (runs, moves, swaps back, hints, undos, levels), from an observer with hooks in the board, and a sidecar chunk of its own. Bejeweled's stage 17, `features.gameStats` (CODE_MODS_DESIGN.md 4.19). |
 | Game modes from mod combinations | After all the mods: combinations of mods and settings that make fun, balanced modes, each tuned with the autoplay bot and measured "fun" numbers over many seeded games (choice, cascades, tension, pace, balance, frustration). Bejeweled's CODE_MODS_DESIGN.md 9.2, after the stages table. |
 | Arrow gems | Some gems are arrows pointing up, down, left or right. After every settled move each one steps a cell that way, trading places with the gem there; an arrow that would step off the board ends the game, so it has to be matched first. A four-way take on Bejeweled 3's Butterflies (none of that mode's art or texts), asked for by the user on 2026-10-25. Bejeweled's stage 18, after stage 17 (CODE_MODS_DESIGN.md 4.20). |
+| Sweet Tooth look (maybe) | Bejeweled restyled to look like Sweet Tooth To Go, PopCap's candy match-three made for Pogo, which the user decided on 2026-10-25 not to port, though they may want this look instead. Images only. Like the Steven Universe gems, its art comes from a local generator and stays git-ignored, since it would recreate another game's look. No engine change. Not yet planned. |
 
 ## Nintendo 3DS port (after Bejeweled works fully with mods)
 
@@ -52,13 +53,12 @@ Once Bejeweled Deluxe and all of the mods above are done and working:
       layout groundwork (survey G6).
    2. Typer Shark! Deluxe, which uses the same 2004 framework.
    3. Bookworm Adventures Deluxe + Volume 2.
-   4. The Sprout-engine line: Feeding Frenzy 2 + Talismania, then Iggle Pop. The public Pizza Frenzy
+   4. The Sprout-engine line: Feeding Frenzy 2 + Talismania, then Iggle Pop and Feeding Frenzy Deluxe (added 2026-10-25). The public Pizza Frenzy
       decompilation serves as an engine reference only.
    5. Bejeweled 2 Deluxe.
    6. The Peggle family. Thunderball is a partial decompilation (about 39%), so Peggle stays in the order.
    7. The remaining classic titles: Rocket Mania, Hammer Heads, Heavy Weapon, Dynomite, AstroPop.
    8. The newer frameworks: Bejeweled 3, Bejeweled Twist, Zuma's Revenge.
-   9. Chuzzle Deluxe.
 
    **Skipped for now:** games that others have already decompiled. Revisit them after every other
    game is done:
@@ -66,6 +66,8 @@ Once Bejeweled Deluxe and all of the mods above are done and working:
    - Zuma Deluxe ([alula/CircleShootApp](https://github.com/alula/CircleShootApp))
    - Plants vs. Zombies ([wszqkzqk/PvZ-Portable](https://github.com/wszqkzqk/PvZ-Portable))
    - Pizza Frenzy ([PopCap-Decompilations/PizzaFrenzy-Decompilation](https://github.com/PopCap-Decompilations/PizzaFrenzy-Decompilation))
+   - Chuzzle Deluxe and its Christmas Edition (the user, 2026-10-25: someone else has reportedly decompiled it, and the
+     Christmas Edition is mostly new textures)
 
 ## Very far out: the Build-a-Lot series
 

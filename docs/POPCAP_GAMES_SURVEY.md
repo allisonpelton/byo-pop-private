@@ -675,6 +675,12 @@ None of these is a blocker: the image is not packed and has full RTTI. It is jus
 > Volume 2 waits for its engine, and Twist for PopAnim, which Bookworm Adventures builds first, so the other two
 > places go to the cheapest games: Seven Seas Deluxe and Atomica Deluxe (Appendix B), on Sonnet, which reuse
 > Noah's Ark's 2002 framework.
+>
+> **Decision (2026-10-25, later), after Appendix C:** Chuzzle Deluxe is skipped (someone else has reportedly
+> decompiled it), and so is its Christmas Edition. Alchemy Deluxe, Mummy Maze Deluxe, Banana Bugs, Gyromancer and
+> Feeding Frenzy Deluxe are added. Gyromancer comes after Twist, whose battles it uses, and Feeding Frenzy joins the
+> Sprout line. Every game PopCap released after EA bought it in
+> 2011 is out. Appendix C has the rest.
 
 Bejeweled Deluxe and then Big Money Deluxe are already planned ([MOD_ROADMAP.md](MOD_ROADMAP.md)). Big Money is DIRECT at about 2x. It builds the SAF 1.2 vtable map that Hammer Heads reuses, and its `.it` music already plays with libxmp-lite.
 
@@ -1096,3 +1102,56 @@ Notes:
 - "DRM wrapper" means `tools/extract_game_exe.py` carves the inner game image, as for BookWorm.
 - The effort figures are first estimates from the triage alone (code size, framework, data formats), not
   from a Ghidra export.
+
+## Appendix C: PopCap PC games missing from this survey (2026-10-25)
+
+The user asked which PopCap games are still missing from the lists above, and ruled out hidden-object games for
+ports, since they have almost no replay value. One research pass, mostly web search, compared the lists above with
+Wikipedia's list of PopCap games, Backloggd, Steam and search results from MobyGames, PCGamingWiki and Giant Bomb.
+It searched GitHub for decompilations or source releases of each title and found none. Those three sites refused
+direct requests, and the Wayback Machine's copies of popcap.com's download catalogue could not be read, so the list
+may still have gaps. None of these games is among the user's installers or installs found so far, so each needs
+the user's own copy first. The effort column is a guess from the year, the studio and the games already surveyed,
+not from a triage of the exe.
+
+| Game | PC release | Developer | Kind of game | Likely effort | Notes |
+|---|---|---|---|---|---|
+| Alchemy Deluxe | 2001 or 2002 | PopCap | tile placement, Ishido-like | small: early SAF, as Noah's Ark | |
+| Mummy Maze Deluxe | 2002 | PopCap | maze puzzle | small: early SAF | |
+| Feeding Frenzy Deluxe | 2004; PopCap's Deluxe 2005 | Sprout | eat-or-be-eaten arcade | after the Sprout engine | Feeding Frenzy 2 is in section 2 |
+| Cosmic Bugs | 2004 or 2005 | Retro64 | Qix-style area capture | unknown engine | PopCap published it from about 2006 |
+| Water Bugs | 2005 | Retro64 | the same, a sequel | after Cosmic Bugs | |
+| Mahjong Escape: Ancient Japan | 2006 | SpinTop | mahjong solitaire with a story | unknown engine | |
+| Mahjong Escape: Ancient China | 2006 | SpinTop | a re-skin of Ancient Japan | small after Ancient Japan | |
+| Chuzzle: Christmas Edition | 2008 | Raptisoft | a holiday re-skin of Chuzzle | small after Chuzzle | not certain PopCap sold it |
+| The Wizard's Pen | 2008 | PopCap | uncover a picture and guess it | late SAF | sometimes called "reverse hidden object": the user's call |
+| Gyromancer | 2009 | PopCap with Square Enix | puzzle RPG on Bejeweled Twist's battles | after Twist | Square Enix published it |
+| Banana Bugs | 2010 | PopCap | arcade, a monkey ropes off bugs | late SAF | |
+| Sweet Tooth To Go | 2003 | PopCap, for Pogo | candy match-three | small | not certain it was a PopCap download |
+
+Out of scope, unless the user decides otherwise:
+- The Hasbro board games of 2012-2013 (Monopoly, Risk, Battleship, The Game of Life). Other studios made them on
+  their own engines (Battleship is Unity) under licence, and Wikipedia's PopCap list leaves them out.
+- The Plants vs. Zombies Garden Warfare games (2014, 2016, 2019). These are online 3D shooters on EA's engine, not
+  casual games.
+- Plants vs. Zombies: Replanted (2025). This is a remaster that is still on sale, and the original is already
+  covered by its existing decompilation.
+
+Skipped as hidden-object games: the Mystery P.I. series (eight games), the Amazing Adventures series (five), the
+Escape games (Rosecliff Island, the Emerald Star, Whisper Valley), Vacation Quest (the Hawaiian Islands,
+Australia) and Hidden Identity: Chicago Blackout.
+
+The research left out web-only, Facebook-only and mobile games (Diamond Mine, Bejeweled Blitz, Zuma Blitz and the
+like), Bejeweled Live (Windows Phone and Windows 8), Peggle 2 (consoles only) and the compilations. Mystery
+Solitaire: Secret Island appears on one list of SpinTop's games, but Mumbo Jumbo seems to have published it.
+
+The user's decisions on this list (2026-10-25):
+- **To port:** Alchemy Deluxe, Mummy Maze Deluxe, Banana Bugs, Gyromancer (after Twist) and Feeding Frenzy Deluxe
+  (in the Sprout line; its 2004-2005 build may share the first-generation engine with Pizza Frenzy and Iggle Pop,
+  not yet checked). Each needs the user's own copy first.
+- **Waiting on the user's research:** Cosmic Bugs, Water Bugs and the two Mahjong Escape games.
+- **Skipped:** Chuzzle: Christmas Edition, along with Chuzzle Deluxe, which someone else has reportedly decompiled.
+  Sweet Tooth To Go is skipped too, though a Bejeweled mod with its look may come later (MOD_ROADMAP.md).
+  The Wizard's Pen counts as a hidden-object game, so it is skipped.
+- **Out:** every game PopCap released after EA bought it in July 2011, which covers the Hasbro games, the Garden
+  Warfare games and Replanted. Bejeweled 3 (December 2010) predates the purchase and stays on the list.

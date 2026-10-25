@@ -32,7 +32,7 @@ set_default() { sed -i "s/\"default\": $3/\"default\": $4/" "$1/$2/mod.json"; }
 START='301 click 320 456
 360 click 198 188
 381 click 320 195
-420 click 400 376
+420 click 400 405
 700 click 400 240'
 
 # ---- undo + helper
@@ -81,6 +81,6 @@ for v in 0 400; do
 		-autoplaycap=20000 -autoplaylog="$OUT/tide$v.txt" > "$OUT/tide$v.log" 2>&1
 done
 grep -q "^game 1 over at update 2612: score 250 level 1 moves 22" "$OUT/tide400.txt"; check "tide 400: the flood ends the first game at update 2612" $?
-grep -q "^level 4 done at update 15933: score 5673 mode stampede" "$OUT/tide0.txt"; check "tide 0: no flood, level 4 done at update 15933" $?
+grep -q "^level 4 done at update 17251: score 7223 mode stampede" "$OUT/tide0.txt"; check "tide 0: no flood, level 4 done at update 17251" $?
 
 exit $FAILED

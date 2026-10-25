@@ -355,7 +355,8 @@ void Board::UpdateSparkles()
 // water), and let both walk towards each other along their paths
 void Board::ConnectPair()
 {
-	if (mLink.size() < 2)
+	// the original returns only for an empty link (a vector of 0 bytes), not for a single animal
+	if (mLink.empty())
 		return;
 
 	mLastMoveTick = mUpdateCnt;
@@ -463,8 +464,6 @@ void Board::AbandonPair()
 		if (mAbandonIndex > 0x4f)
 			goto finished;
 		mAbandonIndex++;
-		a = mGrid[mAbandonIndex / 9][mAbandonIndex % 9];
-		(void) a;
 		// the original walks the cells in column-major order of a transposed index: x = i % 9, y = i / 9
 		a = mGrid[mAbandonIndex % 9][mAbandonIndex / 9];
 		if ((a->mType <= 0xc) && !a->mFading && !a->mRemoved)
@@ -491,7 +490,8 @@ void Board::AbandonPair()
 				mWaterY = mArkLevelY;
 		}
 
-		for (int i = 0; i <= 0x4f; i++)
+		// the original counts from -1 and tests "0x4f < i" before it increments: cells 0 to 80, the last one included
+		for (int i = 0; i <= 0x50; i++)
 		{
 			Piece* b = mGrid[i % 9][i / 9];
 			if ((b->mType == a->mType) && !b->mFading && !b->mRemoved)
@@ -771,20 +771,27 @@ void Board::PushRow()
 			{
 				Piece* aUpper = mGrid[x][y];
 				Piece* aLower = mGrid[x][y + 1];
-				// the upper cell takes over the lower piece's contents, 50 pixels below where they belong, and
-				// the lower cell becomes empty (the original swaps the fields of two pieces)
-				std::swap(aUpper->mType, aLower->mType);
+				// the upper cell takes over the lower piece's contents, with its pixel position, 50 pixels below where
+				// they belong, and the lower cell gets the upper piece's old state and becomes empty (the original
+				// swaps the fields of two pieces; the lower cell's pixel position is the upper's old one cut to
+				// whole pixels, and its offset in y is overwritten by the next row or the new one)
+				int aUpperOffsetY = aUpper->mOffsetY;
+				float aUpperPixelX = (float) (int) aUpper->mPixelX;
+				float aUpperPixelY = (float) (int) aUpper->mPixelY;
 				std::swap(aUpper->mRemoved, aLower->mRemoved);
 				std::swap(aUpper->mMoving, aLower->mMoving);
 				std::swap(aUpper->mFading, aLower->mFading);
 				std::swap(aUpper->mOffsetX, aLower->mOffsetX);
 				std::swap(aUpper->mAlpha, aLower->mAlpha);
 				std::swap(aUpper->mFallSpeed, aLower->mFallSpeed);
+				aUpper->mType = aLower->mType;
 				aUpper->mOffsetY = aLower->mOffsetY + 0x32;
-				aUpper->mPixelX = (float) CellLeft(x);
-				aUpper->mPixelY = (float) CellTop(y);
+				aUpper->mPixelX = aLower->mPixelX;
+				aUpper->mPixelY = aLower->mPixelY;
 				aLower->mType = PIECE_EMPTY;
-				aLower->mOffsetY = aUpper->mOffsetY - 0x32 - 0x32 + 0x32 - 0x32;
+				aLower->mOffsetY = aUpperOffsetY - 0x32;
+				aLower->mPixelX = aUpperPixelX;
+				aLower->mPixelY = aUpperPixelY;
 			}
 		}
 		for (int x = 0; x < 9; x++)

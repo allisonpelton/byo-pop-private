@@ -601,7 +601,7 @@ void NoahApp::ShowRecordScore(const SexyString& thePlace)
 	SexyString aText = std::string(GT(0x00494798)) + thePlace + GT(0x00494734);
 	RecordScoreDialog* aDialog = new RecordScoreDialog(this, aText);
 	int aHeight = aDialog->GetPreferredHeight(0x13c);
-	aDialog->Resize(0x96, (mHeight - aHeight) / 2, 0x13c, aHeight);
+	aDialog->Resize(0x96, (mHeight - aHeight) / 2, 0x154, aHeight);
 	AddDialog(DIALOG_RECORD_SCORE, aDialog);
 }
 
