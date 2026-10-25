@@ -63,10 +63,10 @@ tools/build.sh web                                     # build/web/bookworm.html
   install. `-gamedir=` overrides that. Saves go to `%APPDATA%\wasm-bejeweled\BookWorm Deluxe\`: the players'
   saved games (`players/<name>/classic.dat`, `action.dat`; with mods that change play, see Mods) and `registry.ini` for the original's
   `HKLM\SOFTWARE\PopCap\BookWorm` values (player profiles, high scores, options).
-- **Web.** `bookworm.html` (`games/bookworm/web/shell.html`) imports the player's game folder (or a .zip of
-  it) into its own IndexedDB-backed folder `/bwpersist`, separate from the other games'. It saves the same
-  way as Bejeweled's shell: IDBFS syncs, a localStorage backup of the user files, and one running copy per
-  browser.
+- **Web.** `bookworm.html`, every game's page (`web/shell.html`) with BookWorm's settings (`games/bookworm/web/page.js`),
+  imports the player's game folder (or a .zip of it) into its own IndexedDB-backed folder `/bwpersist`, separate
+  from the other games'. It saves as every game's page does: IDBFS syncs, a localStorage backup of the user files,
+  and one running copy per browser. Its Mods panel is the shared one (`web/modpanel.js`).
 - **Music** is the original MO3 module played by order position through libopenmpt
   (`platform/openmpt`), like BASS did.
 - Test runs follow `CLAUDE.md`: native runs only under `build/native/rundesk.exe`, and web pages only with

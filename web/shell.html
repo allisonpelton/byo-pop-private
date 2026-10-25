@@ -3,10 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Bejeweled Deluxe Web Port</title>
+<title>@BYOPOP_TITLE@ Web Port</title>
 <style>
-/* Layout: a single 4:3 stage that fills the viewport, with a slim tool bar and two slide-over panels
-   (game files, mods). Palette: polished gem colours on a dark velvet tray; light theme is a pale tray. */
+/* Every game's page (docs/WEB_PLAYER.md). Layout: a single 4:3 stage that fills the viewport, with a slim tool
+   bar and slide-over panels (mods, game files and any of the game's own). The game's parts come from its
+   games/<game>/web folder: page.js (its settings, below), page.css (its colours and brand mark) and page.html (its
+   own panels), put in at the byopop:game-js, byopop:game-css and byopop:game-panels markers by byopop_web_game()
+   (cmake/ByopopWeb.cmake). The base palette: an amethyst accent on a dark velvet tray; the light theme is a pale tray. */
 :root {
   --bg: #eceaf2;
   --panel: #ffffff;
@@ -49,7 +52,8 @@ body {
   border-bottom: 1px solid var(--line); background: var(--panel);
 }
 .brand { font-weight: 700; letter-spacing: 0.02em; display: flex; align-items: center; gap: 8px; }
-.brand .gem { width: 12px; height: 12px; transform: rotate(45deg); background: var(--gem-ruby); border-radius: 2px; }
+/* the game's mark before its name: page.css draws its own */
+.brand .mark { width: 12px; height: 12px; background: var(--accent); border-radius: 2px; }
 .bar .status { color: var(--muted); font-size: 13px; flex: 1 1 200px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 button, .button {
   font: inherit; border: 1px solid var(--line); background: var(--panel-2); color: var(--fg);
@@ -93,11 +97,12 @@ input[type=file] { display: none; }
 .panel:focus { outline: none; }
 /* The Mods panel's insides are web/modpanel.js's (shared by every game) */
 @media (prefers-reduced-motion: reduce) { .progress > div { transition: none; } }
+/* byopop:game-css */
 </style>
 </head>
 <body>
 <div class="bar">
-  <span class="brand"><span class="gem" aria-hidden="true"></span>Bejeweled Deluxe</span>
+  <span class="brand"><span class="mark" aria-hidden="true"></span><span id="brand-name">@BYOPOP_TITLE@</span></span>
   <span class="status" id="status">Starting…</span>
   <button id="btn-mods" type="button">Mods</button>
   <button id="btn-files" type="button">Game files</button>
@@ -110,9 +115,8 @@ input[type=file] { display: none; }
 
     <div class="overlay" id="import-overlay" hidden>
       <div class="card">
-        <h2>Load your Bejeweled Deluxe files</h2>
-        <p>Choose the game's install folder (for Steam: <span class="mono">steamapps/common/Bejeweled Deluxe</span>) or a .zip of it.
-          Only the <span class="mono">images, data, sounds, music</span> and <span class="mono">properties</span> folders are copied.</p>
+        <h2>Load your @BYOPOP_TITLE@ files</h2>
+        <p id="import-about"></p>
         <div class="row">
           <label class="button primary" for="pick-game-folder">Choose folder</label>
           <input type="file" id="pick-game-folder" webkitdirectory multiple>
@@ -138,8 +142,8 @@ input[type=file] { display: none; }
     <div class="overlay" id="busy-overlay" hidden>
       <div class="card">
         <h2>Already open</h2>
-        <p>Bejeweled is already running in another tab or window. Its saves live in this browser, so only one copy can run at a time.
-          This page starts by itself once the other one is closed.</p>
+        <p><span id="busy-name"></span> is already running in another tab or window. Its saves live in this browser, so only one
+          copy can run at a time. This page starts by itself once the other one is closed.</p>
       </div>
     </div>
 
@@ -159,6 +163,8 @@ input[type=file] { display: none; }
   <header><h2>Mods</h2><button type="button" data-close>Close</button></header>
   <div class="body" id="mods-body"></div>
 </aside>
+
+<!-- byopop:game-panels -->
 
 <aside class="panel" id="panel-files" hidden aria-label="Game files" tabindex="-1">
   <header><h2>Game files</h2><button type="button" data-close>Close</button></header>
@@ -183,17 +189,45 @@ input[type=file] { display: none; }
 <script>
 (function () {
   "use strict";
-  var PERSIST = "/persist";
+  // ---------- the game's part (games/<game>/web/page.js) ----------
+  // It sets PAGE, the game's settings, and may add functions of its own; it runs first, in this script's scope, so
+  // its functions can use the page's (web(), $(), setStatus(), openPanel()) and its folders (USER, REPLAYS...).
+  //   id          the game's name for web/modpanel.js ("bejeweled"): the localStorage keys of its restarts, its
+  //               rescue and its removals
+  //   shortName   as in "<shortName> is already running in another tab or window"
+  //   persist     the browser storage folder (IDBFS names its IndexedDB database after it): the game's files, saves
+  //               and mods. Never changed once players have saves there: they would be left behind.
+  //   lock        the Web Lock that lets one page at a time run the game; never changed either
+  //   gameDirs    the folders of the install that are copied (and that make a folder of files a mod)
+  //   gameFiles   files at the top of the install that are copied too, in lower case (BookWorm: its word lists)
+  //   markers     the files that make a folder the game's install, relative to it, in any case ("name.*": with any
+  //               extension); the import looks for them, and the page asks for an import while one is missing
+  //   markerText  the markers as the import's error names them ("images/gemsheet6 file")
+  //   skip        patterns (relative paths) of install files that are not copied, beside the .sig files
+  //   importHtml  the import card's text (HTML)
+  //   modsIntro   the Mods panel's first paragraph
+  //   seeds       ?seed=N is the game's -gameseed=N
+  //   replays     the game keeps replays, in REPLAYS (-replaydir=)
+  //   hasSave()   whether the game that closed saved a game in progress (the exit card); without it, a
+  //               savegame*.dat in the user dir
+  //   start(run)  as the game starts: may add to run.args (its arguments) and run.status (the status line)
+  //   shown(id)   a panel was opened (the game's own: page.html's <aside class="panel" data-button="...">)
+  //   init()      once, after the page's controls are set up
+  // gameFiles, skip and the functions may be left out.
+/* byopop:game-js */
+
+  var PERSIST = PAGE.persist;
   var GAME = PERSIST + "/game";
   var USER = PERSIST + "/userdata";
   var MODS = PERSIST + "/mods";
   // A mod added while the game runs over a mod it uses waits here for the next start (web/modpanel.js)
   var MODS_INCOMING = PERSIST + "/mods-incoming";
-  // Finished replays (features.replays): a sibling of the user dir, so IDBFS keeps them but the user dir's
-  // localStorage backup (one item) does not carry them
+  // Replays (PAGE.replays): a sibling of the user dir, so IDBFS keeps them but the user dir's localStorage backup
+  // (one item) does not carry them
   var REPLAYS = PERSIST + "/replays";
-  var GAME_DIRS = ["images", "data", "sounds", "music", "properties"];
-  var $ = function (id) { return document.getElementById(id); };
+  var GAME_DIRS = PAGE.gameDirs;
+  var GAME_FILES = PAGE.gameFiles || [];
+  function $(id) { return document.getElementById(id); }
   var statusEl = $("status");
   var statusText = "";
   // ?placeholders=1 (-placeholders, platform/Placeholders.h): stand-ins for missing game files, for testing copies
@@ -206,6 +240,8 @@ input[type=file] { display: none; }
     statusEl.textContent = missingFiles.length ? t.replace(" · placeholders", " · placeholders, " + missingFiles.length +
       " missing file" + (missingFiles.length > 1 ? "s" : "")) : t;
   }
+  $("import-about").innerHTML = PAGE.importHtml;
+  $("busy-name").textContent = PAGE.shortName;
 
   // web/modpanel.js, linked into the game's script: the Mods panel, restarts and the file helpers. It is there
   // once the game's script has loaded, before onRuntimeInitialized.
@@ -243,9 +279,7 @@ input[type=file] { display: none; }
       var waitForSave = function () {
         if (Module.sexySyncBusy || Module.sexySyncPending) { setTimeout(waitForSave, 100); return; }
         if (restart) { session.restartPage(info); return; }
-        // The game writes savegame.dat (savegame-<key>.dat with gameplay mods) only for a game in progress
-        var hasSave = web().fs.listDir(USER).some(function (n) { return /^savegame.*\.dat$/i.test(n); });
-        $("exit-msg").textContent = hasSave
+        $("exit-msg").textContent = hasSave()
           ? "The game has closed. Your game in progress was saved, and you can continue it when you play again."
           : "The game has closed. Your settings and high scores are saved.";
         $("btn-play-again").disabled = false;
@@ -254,6 +288,12 @@ input[type=file] { display: none; }
       waitForSave();
     }
   };
+  // Bejeweled and Big Money write savegame.dat (Bejeweled: savegame-<key>.dat with gameplay mods) only for a game
+  // in progress
+  function hasSave() {
+    if (PAGE.hasSave) return PAGE.hasSave();
+    return web().fs.listDir(USER).some(function (n) { return /^savegame.*\.dat$/i.test(n); });
+  }
 
   // The game stopped with an error (a crash, out of memory): nothing more runs in this page. A mod may be the
   // cause, so the next start can leave them out.
@@ -278,7 +318,6 @@ input[type=file] { display: none; }
   // IndexedDB and to the localStorage backup, overwriting the other's. The lock is held until the page
   // goes away; a second page waits for it before it reads browser storage. Without the Web Locks API
   // (older browsers, plain http on another host) there is no check.
-  var INSTANCE_LOCK = "bejeweled-deluxe-instance";
   function acquireInstanceLock() {
     if (!(navigator.locks && navigator.locks.request)) return Promise.resolve();
     return new Promise(function (resolve) {
@@ -287,11 +326,11 @@ input[type=file] { display: none; }
         resolve();
         return new Promise(function () {});
       };
-      navigator.locks.request(INSTANCE_LOCK, { ifAvailable: true }, function (lock) {
+      navigator.locks.request(PAGE.lock, { ifAvailable: true }, function (lock) {
         if (lock) return hold();
         setStatus("Already open");
         $("busy-overlay").hidden = false;
-        navigator.locks.request(INSTANCE_LOCK, hold);
+        navigator.locks.request(PAGE.lock, hold);
       }).catch(function () { resolve(); });
     });
   }
@@ -304,29 +343,40 @@ input[type=file] { display: none; }
     return new Promise(function (resolve, reject) {
       fs.syncfs(true, function (err) { err ? reject(err) : resolve(); });
     }).then(function () {
-      [GAME, USER, MODS].forEach(function (d) { try { fs.mkdirTree(d); } catch (e) {} });
+      [GAME, USER, MODS].concat(PAGE.replays ? [REPLAYS] : []).forEach(function (d) { try { fs.mkdirTree(d); } catch (e) {} });
       // Files written as the page was closed may only have reached the game's localStorage backup: bring them
       // back before this page reads the user dir (main() restores it again, which then changes nothing)
       try { Module.ccall("byopop_userdata_restore", null, ["string"], [USER]); }
       catch (e) { console.warn("restoring the user data backup failed", e); }
     });
   }
+
+  // A marker ("images/gemsheet6.*") as a pattern for a path relative to the game folder, in any case
+  function markerPattern(marker) {
+    return marker.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/\\\.\\\*$/, "\\.[a-z0-9]+");
+  }
   function hasGameFiles() {
     // with placeholders any of the game's folders will do: the game stands in for the rest
     if (pagePlaceholders())
       return GAME_DIRS.some(function (d) { return web().fs.listDir(GAME + "/" + d).length > 0; });
-    return web().fs.listDir(GAME + "/images").some(function (n) { return /^gemsheet6\./i.test(n); });
+    return PAGE.markers.every(function (m) {
+      var i = m.lastIndexOf("/"), name = new RegExp("^" + markerPattern(m.substring(i + 1)) + "$", "i");
+      return web().fs.listDir(GAME + (i < 0 ? "" : "/" + m.substring(0, i))).some(function (n) { return name.test(n); });
+    });
   }
 
-  // Finds the folder inside an upload that holds images/gemsheet6.* (the game root); with placeholders, failing
-  // that, the shallowest folder that holds one of the game's folders.
+  // Finds the folder inside an upload that holds every marker (the game root); with placeholders, failing that,
+  // the shallowest folder that holds one of the game's folders.
   function findGameRoot(entries) {
+    var first = new RegExp("^(.*/)?" + markerPattern(PAGE.markers[0]) + "$", "i");
+    var others = PAGE.markers.slice(1).map(function (m) { return new RegExp("^" + markerPattern(m) + "$", "i"); });
     for (var i = 0; i < entries.length; i++) {
-      var m = /^(.*?)(?:^|\/)?images\/gemsheet6\.[a-z]+$/i.exec(entries[i].path);
-      if (m) {
-        var p = entries[i].path, idx = p.toLowerCase().lastIndexOf("images/gemsheet6");
-        return p.substring(0, idx);
-      }
+      var m = first.exec(entries[i].path);
+      if (!m) continue;
+      var root = m[1] || "";
+      var inRoot = entries.filter(function (e) { return e.path.substring(0, root.length) === root; });
+      if (others.every(function (re) { return inRoot.some(function (e) { return re.test(e.path.substring(root.length)); }); }))
+        return root;
     }
     if (!pagePlaceholders()) return null;
     var best = null;
@@ -347,14 +397,19 @@ input[type=file] { display: none; }
     var W = web(), root = findGameRoot(entries);
     var msg = $("import-msg");
     if (root === null) {
-      msg.innerHTML = '<span class="error">That folder doesn\'t contain the game\'s images/gemsheet6 file. Pick the Bejeweled Deluxe install folder itself.</span>';
+      msg.innerHTML = '<span class="error"></span>';
+      msg.firstChild.textContent = "That folder doesn't contain the game's " + PAGE.markerText + ". Pick the " +
+        $("brand-name").textContent + " install folder itself.";
       return Promise.resolve(false);
     }
+    var skip = PAGE.skip || [];
     var wanted = [];
     entries.forEach(function (e) {
       if (e.path.substring(0, root.length) !== root) return;
       var rel = W.fs.safeRel(e.path.substring(root.length));
-      if (rel && GAME_DIRS.indexOf(rel.split("/")[0].toLowerCase()) >= 0 && !/\.sig$/i.test(rel)) wanted.push({ rel: rel, read: e.read });
+      if (!rel || /\.sig$/i.test(rel) || skip.some(function (re) { return re.test(rel); })) return;
+      if (GAME_DIRS.indexOf(rel.split("/")[0].toLowerCase()) >= 0 || GAME_FILES.indexOf(rel.toLowerCase()) >= 0)
+        wanted.push({ rel: rel, read: e.read });
     });
     var done = 0, bar = $("import-progress");
     msg.textContent = "Copying " + wanted.length + " files…";
@@ -373,13 +428,12 @@ input[type=file] { display: none; }
   }
 
   // ---------- boot ----------
-  // ?seed=N: passed on as -gameseed=N, the seed of every new game until one is played on it (its first
-  // match or its game over; games/bejeweled/docs/CODE_MODS_DESIGN.md 4.10). Digits only, 1..4294967295
-  // (leading zeros allowed, as on native). 0 without the parameter; -1 for any other value: the game starts
-  // without a seed, and the status line says so.
+  // ?seed=N (PAGE.seeds): passed on as -gameseed=N, the seed of every new game until one is played on it. Digits
+  // only, 1..4294967295 (leading zeros allowed, as on native). 0 without the parameter; -1 for any other value: the
+  // game starts without a seed, and the status line says so.
   function pageSeed() {
     var params = new URLSearchParams(location.search);
-    if (!params.has("seed")) return 0;
+    if (!PAGE.seeds || !params.has("seed")) return 0;
     var digits = (params.get("seed") || "").replace(/^0+(?=[0-9])/, "");
     var seed = /^[0-9]{1,10}$/.test(digits) ? Number(digits) : 0;
     return (seed >= 1 && seed <= 4294967295) ? seed : -1;
@@ -397,24 +451,27 @@ input[type=file] { display: none; }
     var seed = pageSeed();
     var seedText = (seed > 0) ? " · seed " + seed : (seed < 0) ? " · seed ignored: it must be 1 to 4294967295" : "";
     var modsText = noMods ? "Mods off for this run" : enabled ? enabled + " mod" + (enabled > 1 ? "s" : "") + " active" : "No mods active";
+    var run = {
+      args: ["-gamedir=" + GAME, "-userdir=" + USER, "-modsdir=" + MODS].concat(PAGE.replays ? ["-replaydir=" + REPLAYS] : [])
+        .concat((seed > 0) ? ["-gameseed=" + seed] : []),
+      status: ""
+    };
+    if (PAGE.start) PAGE.start(run);
     Module.silentAudio = pageSilent();
-    setStatus(modsText + seedText + (pagePlaceholders() ? " · placeholders" : "") +
+    setStatus(modsText + seedText + run.status + (pagePlaceholders() ? " · placeholders" : "") +
       (Module.silentAudio ? " · silent" : (isAutostart === true ? " · sound after a click or key" : "")));
     // Only a start with mods can be one a mod stops: without any, nothing is noted (no write)
     if (!noMods && enabled > 0) session.markStarting();
-    Module.callMain(["-gamedir=" + GAME, "-userdir=" + USER, "-modsdir=" + MODS, "-replaydir=" + REPLAYS]
-      .concat((seed > 0) ? ["-gameseed=" + seed] : []).concat(noMods ? ["-nomods"] : [])
-      .concat(pagePlaceholders() ? ["-placeholders"] : []));
+    Module.callMain(run.args.concat(noMods ? ["-nomods"] : []).concat(pagePlaceholders() ? ["-placeholders"] : []));
     $("canvas").focus();
   }
   function boot() {
     var W = web();
-    if (!session) session = new W.Session("bejeweled");
+    if (!session) session = new W.Session(PAGE.id);
     if (!panel) {
       panel = new W.ModPanel({
-        game: "bejeweled", body: $("mods-body"), userDir: USER, modsDir: MODS, stagingDir: MODS_INCOMING, gameDirs: GAME_DIRS,
-        intro: "Mods replace game files: images, sounds, music or data in the same folders the game uses (for example " +
-          "images/gemsheet6.png, or images/gemsheet6@2x.png for an HD version), plus an optional mod.json.",
+        game: PAGE.id, body: $("mods-body"), userDir: USER, modsDir: MODS, stagingDir: MODS_INCOMING,
+        gameDirs: GAME_DIRS, gameFiles: GAME_FILES, intro: PAGE.modsIntro,
         isOpen: function () { return !$("panel-mods").hidden; },
         show: function () { openPanel("panel-mods"); },
         canPlay: function () { return !started && hasGameFiles(); },
@@ -458,24 +515,35 @@ input[type=file] { display: none; }
   $("btn-exit-nomods").addEventListener("click", function () { session.reloadWithoutMods(); });
 
   // ---------- panels ----------
+  var PANELS = Array.prototype.map.call(document.querySelectorAll("aside.panel"), function (p) { return p.id; });
+  // The game's own panels (page.html) get a button on the bar, before "Game files"
+  document.querySelectorAll("aside.panel[data-button]").forEach(function (p) {
+    var b = document.createElement("button");
+    b.type = "button";
+    b.id = p.id.replace(/^panel-/, "btn-");
+    b.textContent = p.getAttribute("data-button");
+    b.addEventListener("click", function () { openPanel(p.id); });
+    $("btn-files").parentNode.insertBefore(b, $("btn-files"));
+  });
   function openPanel(id) {
     // The panels are outside the stage: in fullscreen (the game's own "Add or remove mods") they could not be
     // seen, yet would take the keys and the next click
     if (id && document.fullscreenElement && document.exitFullscreen) document.exitFullscreen().catch(function () {});
-    ["panel-mods", "panel-files"].forEach(function (p) { $(p).hidden = p !== id; });
+    if (id && PAGE.shown) PAGE.shown(id);
+    PANELS.forEach(function (p) { $(p).hidden = p !== id; });
     if ((id === "panel-mods") && panel) panel.shown();
     if (id) $(id).focus();
   }
-  function anyPanelOpen() { return !$("panel-mods").hidden || !$("panel-files").hidden; }
+  function anyPanelOpen() { return PANELS.some(function (p) { return !$(p).hidden; }); }
   function closePanels() {
     var wasOpen = anyPanelOpen();
     openPanel(null);
     if (wasOpen) $("canvas").focus();
   }
   // Keys typed in a panel or on the tool bar stay there: SDL listens to the whole window and would also give them
-  // to the game (Bejeweled pauses on any character, and the open mod menu would act on them) and keep Backspace,
-  // Tab and the arrows from the page's controls. Esc and F2 close a panel; on the tool bar F2 still reaches the
-  // game (its mod menu).
+  // to the game (Bejeweled pauses on any character, a name being typed would get them, and the open mod menu would
+  // act on them) and keep Backspace, Tab and the arrows from the page's controls. Esc and F2 close a panel; on the
+  // tool bar F2 still reaches the game (its mod menu).
   document.querySelectorAll(".panel, .bar").forEach(function (p) {
     var isPanel = p.classList.contains("panel");
     ["keydown", "keyup", "keypress"].forEach(function (t) {
@@ -521,8 +589,9 @@ input[type=file] { display: none; }
     openPanel("panel-mods");
   });
   $("btn-files").addEventListener("click", function () {
-    var n = 0;
-    GAME_DIRS.forEach(function (d) { n += web().fs.listDir(GAME + "/" + d).length; });
+    var fs = web().fs, n = 0;
+    GAME_DIRS.forEach(function (d) { n += fs.listDir(GAME + "/" + d).length; });
+    n += fs.listDir(GAME).filter(function (f) { return GAME_FILES.indexOf(f.toLowerCase()) >= 0; }).length;
     $("files-summary").textContent = hasGameFiles() ? n + " game files are stored in this browser." : "No game files are stored yet.";
     showMissingFiles();
     openPanel("panel-files");
@@ -544,6 +613,7 @@ input[type=file] { display: none; }
     // The keys go to the game again (the tool bar keeps the keys typed on it)
     $("canvas").focus();
   });
+  if (PAGE.init) PAGE.init();
 })();
 </script>
 {{{ SCRIPT }}}

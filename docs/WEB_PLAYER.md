@@ -8,7 +8,7 @@ the outer layer differs.
 
 | File | Made by | What it is |
 |---|---|---|
-| `bejeweled.html` | Emscripten, from `web/shell.html` | The page itself: the top bar, the game's canvas, the start, import and exit cards, and the side panels. |
+| `bejeweled.html` | Emscripten, from `web/shell.html` and the game's `web/page.*` | The page itself: the top bar, the game's canvas, the start, import and exit cards, and the side panels. |
 | `bejeweled.js` | Emscripten (`emcc`) at link time | The loader and runtime that the page's script calls `Module`. It fetches and starts the game, provides a file system, and connects SDL2 to the browser. `web/modpanel.js` is appended to its end. |
 | `bejeweled.wasm` | the compiler, from the C++ code | The game: the translated game code, the SexyAppFramework port (`framework/`), the platform layer (`platform/`) and SDL2, compiled to WebAssembly. |
 | Your game files | you, through the import card | The original game's images, sounds, music and data, copied from your install folder or a .zip into this browser's storage. They are never uploaded and never part of the build. |
@@ -61,7 +61,7 @@ The panels:
   (`docs/MOD_MENU.md`). The panel also offers "Play without mods" when a mod stopped the last start.
 - **Game files** imports the game again, or forgets the copied files. Saves and mods stay.
 - **Fullscreen** puts the canvas in fullscreen.
-- Big Money's page also has **Replays**, for watching and importing recorded games.
+- A game can add panels of its own: Big Money's page also has **Replays**, for watching and importing recorded games.
 
 ## Why `bejeweled.js` is minified, and what is Bejeweled-specific about it
 
@@ -85,15 +85,32 @@ Very little of it is Bejeweled's own:
 - whatever `EM_JS` code its C++ contains.
 
 `bigmoney.js` is nearly the same file. Everything that makes the game Bejeweled is in `bejeweled.wasm` (the
-code) and `bejeweled.html` (the page's texts and its import rules).
+code) and `bejeweled.html` (the page's texts and its import rules, from `games/bejeweled/web/page.js`).
 
 ## The HTML shell
 
-`web/shell.html` is Bejeweled's page template. `emcc` copies it to `bejeweled.html` and puts the
-`<script>` that loads `bejeweled.js` at its `{{{ SCRIPT }}}` marker. Big Money has its own copy,
-`games/bigmoney/web/shell.html`, with its texts, its storage name (`/bmpersist`) and a Replays panel.
-BookWorm has one in `games/bookworm/web/`. A shared template with a small per-game configuration is
-planned, so the page code exists once.
+`web/shell.html` is every game's page template. The page code exists once; what differs between the games
+comes from the game's `web/` folder:
+
+| File | What it holds |
+|---|---|
+| `games/<game>/web/page.js` | Required. `PAGE`, the game's settings: its name for `modpanel.js`, its storage folder and lock (never changed once players have saves there), the folders and files copied from its install, the marker files that make a folder its install, the import card's and Mods panel's texts, whether it takes `?seed=` and keeps replays, and optional functions: how to tell that a game in progress was saved, extra start arguments, a panel being opened. The full list is at the top of the shell's script. It runs first, in the shell script's scope, so its functions can use the page's (`web()`, `$()`, `openPanel()`) and its folders (`USER`, `REPLAYS`). |
+| `games/<game>/web/page.css` | Optional. The game's accent colour (light and dark) and its brand mark (`.brand .mark`), and the style of its own panels. |
+| `games/<game>/web/page.html` | Optional. The game's own panels: each `<aside class="panel" data-button="Name">` gets a button on the bar. Big Money's Replays panel is one. |
+
+| Game | Storage folder | Lock |
+|---|---|---|
+| Bejeweled | `/persist` | `bejeweled-deluxe-instance` |
+| Big Money | `/bmpersist` | `big-money-deluxe-instance` |
+| BookWorm | `/bwpersist` | `bookworm-deluxe-instance` |
+
+IDBFS names a game's IndexedDB database after its storage folder, so these names are where the players' saves
+are: they stay as they are. A new game takes a folder and lock of its own.
+
+At configure time `byopop_web_game()` (`cmake/ByopopWeb.cmake`) puts the game's parts into the shell at its
+`byopop:game-js`, `byopop:game-css` and `byopop:game-panels` markers and its name at `@BYOPOP_TITLE@`. `emcc`
+then copies the result to `bejeweled.html` and puts the `<script>` that loads `bejeweled.js` at its
+`{{{ SCRIPT }}}` marker.
 
 The shell holds:
 - the bar, the canvas and the cards (import, start, already open, exit) as HTML and CSS;
@@ -118,9 +135,8 @@ At configure time `byopop_web_shell()` in `cmake/ByopopWeb.cmake` writes both fi
 - `build/web/<game>-copyright.html` is the copyright page.
 
 Each game sets its own name, its notice (the copyright and trademark lines of its readme) and any libraries of
-its own: `byopop_web_game(... TITLE "..." COPYRIGHT "..." [LICENSES <name>...])` in its `CMakeLists.txt`.
-BookWorm passes them to `byopop_web_shell()` directly, with `LICENSES libopenmpt`. A web host serves the
-copyright page with the game's page.
+its own: `byopop_web_game(<target> TITLE "..." COPYRIGHT "..." [LICENSES <name>...])` in its `CMakeLists.txt`
+(BookWorm: `LICENSES libopenmpt`). A web host serves the copyright page with the game's page.
 
 ## Testing other copies of a game: `?placeholders=1`
 
@@ -135,8 +151,8 @@ A game's part, for its session when the user asks for it (not yet done in Bejewe
 main() calls `Platform::InitPlaceholders(argc, argv)` before its game-folder check and, with the switch on, lets
 `-gamedir` through with marker files missing; it overrides `SexyAppBase::GetPlaceholderSize` with its images' real
 sizes (64x64 otherwise); an image the game may lack on purpose loads with `GetOptionalImage`; an override of
-`GetModMessages` calls the base, which adds the missing-files banner; a game with its own web shell (Big Money,
-BookWorm) takes over `web/shell.html`'s placeholder parts. What wrong sizes did in testing:
+`GetModMessages` calls the base, which adds the missing-files banner. The page's parts are in the shared shell, so
+every game has them. What wrong sizes did in testing:
 
 - Bejeweled: the gem sheet is 780x728 (15 frames of 52 px, 104 px a colour); at 64x64 a gem crossfade drew NULL
   (the framework now grows both images first). `data/diff.txt` has no stand-in; the headless verifier's built-in

@@ -219,6 +219,8 @@ Module["byopop"] = (function () {
   //   body         the element the panel fills (inside the page's slide-over)
   //   userDir, modsDir, stagingDir   the game's -userdir and -modsdir, and where mods added over a mod in use wait
   //   gameDirs     the game's data folders ("images", ...): a .zip of them is a mod without a folder of its own
+  //   gameFiles    the files at the top of the game's folder that a mod may replace, in lower case (BookWorm's word
+  //                lists): a folder holding one is a mod too; optional
   //   intro        the first paragraph (what a mod is for this game)
   //   isOpen()     whether the slide-over is showing
   //   show()       show it (the in-game menu's "Add or remove mods")
@@ -546,22 +548,24 @@ Module["byopop"] = (function () {
     });
   };
 
-  // The mods in an upload (a folder's files or a .zip's entries): every folder that holds a mod.json or one of the
-  // game's folders (images, sounds...: a mod of files alone), the outer one where one holds another, so a folder of
-  // mods adds each of them. With neither anywhere, the one top folder is the mod, or everything is. Each mod's
-  // folder is named after its root. Resolves to [{dir, inUse, update}], and a {note} naming what was left out:
+  // The mods in an upload (a folder's files or a .zip's entries): every folder that holds a mod.json, one of the
+  // game's folders (images, sounds...: a mod of files alone) or one of its gameFiles, the outer one where one holds
+  // another, so a folder of mods adds each of them. With none anywhere, the one top folder is the mod, or everything
+  // is. Each mod's folder is named after its root. Resolves to [{dir, inUse, update}], and a {note} naming what was left out:
   // files outside every mod's folder.
   ModPanel.prototype.importMods = function (entries, fallbackName) {
     var self = this, o = this.o;
     if (!entries.length) return Promise.resolve([]);
     var gameDirs = (o.gameDirs || []).map(function (d) { return d.toLowerCase(); });
+    var gameFiles = o.gameFiles || [];
     var roots = [];
     entries.forEach(function (e) {
       var parts = e.path.split("/");
       for (var i = 0; i < parts.length; i++) {
         var isManifest = (i === parts.length - 1) && /^mod\.json$/i.test(parts[i]);
         var isGameDir = (i < parts.length - 1) && (gameDirs.indexOf(parts[i].toLowerCase()) >= 0);
-        if (isManifest || isGameDir) {
+        var isGameFile = (i === parts.length - 1) && (gameFiles.indexOf(parts[i].toLowerCase()) >= 0);
+        if (isManifest || isGameDir || isGameFile) {
           var root = parts.slice(0, i).join("/") + (i ? "/" : "");
           if (roots.indexOf(root) < 0) roots.push(root);
           break;
@@ -603,7 +607,8 @@ Module["byopop"] = (function () {
         left[rel.split("/")[0]] = 1;
       });
       var names = Object.keys(left);
-      if (names.length) notes.push({ note: "Left out, not a mod (no mod.json and none of the game's folders): " + names.join(", ") + "." });
+      if (names.length) notes.push({ note: "Left out, not a mod (no mod.json and none of the game's " +
+        (gameFiles.length ? "folders or files" : "folders") + "): " + names.join(", ") + "." });
     }
     return mods.reduce(function (p, m) {
       return p.then(function (done) {
