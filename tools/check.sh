@@ -18,9 +18,10 @@
 #   bigmoney     Big Money's bot: one game
 #   noahsark     Noah's Ark's bot: action, strategy and puzzle games, an action rerun with the same screenshots, and
 #                the mods' tests (games/noahsark/tools/run_mod_tests.sh)
+#   atomica      Atomica's bot: a strategy game, an action game, and a strategy rerun with the same screenshots
 #   oracle       Bejeweled's oracle three ways (compare.sh --variants default,forcevariant,novariants); over
 #                ten minutes, so never in a subagent; refuses to start while another oracle runs
-# Sets: quick = build unit; games = bookworm bigmoney noahsark; all = every suite, builds first.
+# Sets: quick = build unit; games = bookworm bigmoney noahsark atomica; all = every suite, builds first.
 #
 # Prints "PASS <suite> (<seconds>s): <summary>" or "FAIL <suite> (<seconds>s): <summary> -> <log>" for each,
 # then "check: N passed, M failed". Exits 0 only when all passed. Logs: build/logs/check/<suite>.txt (and
@@ -35,6 +36,8 @@ BM_GAME1="score 66646"
 NA_ACTION="level 4 done at update 17379: score 7197 mode stampede"
 NA_STRATEGY="level 4 done at update 15469: score 4430 mode strategy"
 NA_PUZZLE="game 1 over at update 17550: score 4830 level 1 moves 117"
+AT_STRATEGY="game 1 over at update 2429: score 400 level 1 moves 36"
+AT_ACTION="update 20000: score 3600 level 1 moves 579 atoms 51"
 
 set -u
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -47,9 +50,9 @@ while [ $# -gt 0 ]; do
 		--out=*) OUT="${1#--out=}"; shift ;;
 		-h|--help) sed -n '2,/^BW_CLASSIC/p' "$0" | sed '$d' | sed 's/^# \{0,1\}//'; exit 0 ;;
 		quick) SUITES+=(build unit); shift ;;
-		games) SUITES+=(bookworm bigmoney noahsark); shift ;;
-		all) SUITES+=(build build-web build-nov unit unit-web verify modmenu livesplit bookworm bigmoney noahsark oracle); shift ;;
-		build|build-web|build-nov|unit|unit-web|verify|modmenu|livesplit|bookworm|bigmoney|noahsark|oracle) SUITES+=("$1"); shift ;;
+		games) SUITES+=(bookworm bigmoney noahsark atomica); shift ;;
+		all) SUITES+=(build build-web build-nov unit unit-web verify modmenu livesplit bookworm bigmoney noahsark atomica oracle); shift ;;
+		build|build-web|build-nov|unit|unit-web|verify|modmenu|livesplit|bookworm|bigmoney|noahsark|atomica|oracle) SUITES+=("$1"); shift ;;
 		*) echo "check.sh: unknown suite '$1' (tools/check.sh --help)" >&2; exit 2 ;;
 	esac
 done
@@ -223,6 +226,26 @@ suite_noahsark() {
 	cat "$OUT/noahsark/mods.txt" >> "$1"
 	SUMMARY="action ${a#level }; strategy ${s#level }; puzzle ${p#game }; $r; $m"
 	[ $st -eq 0 ] || SUMMARY="$SUMMARY (expected action '$NA_ACTION', strategy '$NA_STRATEGY', puzzle '$NA_PUZZLE')"
+	return $st
+}
+
+atomica_game() {  # <name> <mode> <cap>: a bot game; prints its last "game over" or progress line
+	local d="$OUT/atomica/$1"
+	rm -rf "$d"; mkdir -p "$d/shots"
+	timeout 600 "$W/build/native/atomica.exe" -userdir="$d/user" -fast -seed=1 -autoplay=1 -autoplaymode="$2" 		-autoplaycap="$3" -autoplaylog="$d/log.txt" -autoplayshots="$d/shots/s" > "$d/stdout.txt" 2> "$d/stderr.txt"
+	grep -E '^(level [0-9]+ done|game [0-9]+ over|update [0-9]+:)' "$d/log.txt" 2>/dev/null | tail -n 1 | sed 's/ (f8c.*//'
+}
+
+suite_atomica() {
+	local st=0 s a r
+	need_assets atomica || return 1
+	s="$(atomica_game strategy strategy 20000)"; a="$(atomica_game action action 20000)"; r="$(atomica_game strategy2 strategy 20000)"
+	{ echo "strategy: $s"; echo "action: $a"; echo "strategy rerun: $r"; } > "$1"
+	[ "$s" = "$AT_STRATEGY" ] || st=1
+	[ "$a" = "$AT_ACTION" ] || st=1
+	if diff -rq "$OUT/atomica/strategy/shots" "$OUT/atomica/strategy2/shots" >> "$1" 2>&1 && [ "$s" = "$r" ]; then r="rerun identical"; else r="RERUN DIFFERS"; st=1; fi
+	SUMMARY="strategy ${s#game }; action ${a#update }; $r"
+	[ $st -eq 0 ] || SUMMARY="$SUMMARY (expected strategy '$AT_STRATEGY', action '$AT_ACTION')"
 	return $st
 }
 
