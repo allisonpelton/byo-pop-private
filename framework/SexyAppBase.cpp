@@ -1526,6 +1526,15 @@ int SexyAppBase::MsgBox(const std::string& theText, const std::string& theTitle,
 
 	BeginPopup();
 
+	// port: in a test run nobody can answer a message box (under rundesk it opens on the invisible desktop), so
+	// it would wait forever: the log line is the whole message, and the answer is No, Cancel or OK.
+	if (IsTestRun())
+	{
+		SDL_Log("%s: %s (a test run: not shown)", theTitle.c_str(), theText.c_str());
+		EndPopup();
+		return (aButtons == MB_YESNO) ? IDNO : (aButtons == MB_OKCANCEL) ? IDCANCEL : IDOK;
+	}
+
 #ifdef __EMSCRIPTEN__
 	SDL_Log("%s: %s", theTitle.c_str(), theText.c_str());
 
@@ -1590,14 +1599,18 @@ void SexyAppBase::Popup(const std::string& theString)
 	if (!mShutdown)
 	{
 		std::string aTitle = SexyStringToString(GetString("FATAL_ERROR", _S("FATAL ERROR")));
-		SDL_Log("%s: %s", aTitle.c_str(), theString.c_str());
+		// port: a test run shows no box (see MsgBox), only this line
+		SDL_Log("%s: %s%s", aTitle.c_str(), theString.c_str(), IsTestRun() ? " (a test run: not shown)" : "");
 
+		if (!IsTestRun())
+		{
 #ifdef __EMSCRIPTEN__
-		sexyapp_alert(Latin1ToUTF8(aTitle + "\n\n" + theString).c_str());
+			sexyapp_alert(Latin1ToUTF8(aTitle + "\n\n" + theString).c_str());
 #else
-		SDL_Window* aParent = ((mHWnd != NULL) && (SDL_GetWindowFlags(mHWnd) & SDL_WINDOW_SHOWN)) ? mHWnd : NULL;
-		SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, Latin1ToUTF8(aTitle).c_str(), Latin1ToUTF8(theString).c_str(), aParent);
+			SDL_Window* aParent = ((mHWnd != NULL) && (SDL_GetWindowFlags(mHWnd) & SDL_WINDOW_SHOWN)) ? mHWnd : NULL;
+			SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, Latin1ToUTF8(aTitle).c_str(), Latin1ToUTF8(theString).c_str(), aParent);
 #endif
+		}
 	}
 	EndPopup();
 }

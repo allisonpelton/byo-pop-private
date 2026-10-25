@@ -659,7 +659,7 @@ public:
 	virtual void GetRestartArgs(std::vector<std::string>* theArgs);
 	virtual void GetModMessages(std::vector<ModMessage>* theMessages);
 	// True in a test run (rundesk, the oracle, a -script run or a test bot): a restart does not start the game
-	// again (TakeRelaunch)
+	// again (TakeRelaunch), and MsgBox and Popup only log their message, since nobody could answer them
 	bool IsTestRun();
 };
 

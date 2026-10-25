@@ -8,7 +8,8 @@
 #   build        tools/build.sh native, incremental (seconds to minutes)
 #   build-web    tools/build.sh web
 #   build-nov    tools/build.sh novariants (Bejeweled without its variant code, for the oracle)
-#   unit         rulestest, modsettingstest and fwtest -hotkeytest, native (under a minute)
+#   unit         rulestest, modsettingstest and fwtest -hotkeytest, native (under a minute); fwtest is skipped
+#                without assets/bejeweled
 #   unit-web     rulestest and modsettingstest under Node (needs build-web)
 #   verify       Bejeweled's headless verifier tests (games/bejeweled/tools/verify/run_tests.sh)
 #   modmenu      the mod menu's scripted runs, all games (tools/modmenutest/run_tests.sh all)
@@ -82,12 +83,18 @@ suite_build-nov() { build_suite novariants "$1"; }
 
 suite_unit() {
 	local st=0 a b c
-	(cd build/native && ./rulestest.exe) > "$1" 2>&1 || st=1
+	(cd build/native && timeout 120 ./rulestest.exe) > "$1" 2>&1 || st=1
 	a="$(lastof "$1" 'checks')"
-	(cd build/native && ./modsettingstest.exe) > "$1.mst" 2>&1 || st=1
+	(cd build/native && timeout 120 ./modsettingstest.exe) > "$1.mst" 2>&1 || st=1
 	b="$(lastof "$1.mst" 'checks')"
-	"build/native/fwtest.exe" -hotkeytest > "$1.fw" 2>&1 || st=1
-	c="fwtest $(lastof "$1.fw" 'hotkey: [0-9]+ failed')"
+	# fwtest draws with Bejeweled's files: without them (a worktree before tools/setup_worktree.sh) it is skipped
+	if [ -d assets/bejeweled ]; then
+		timeout 120 "build/native/fwtest.exe" -hotkeytest > "$1.fw" 2>&1 || st=1
+		c="fwtest $(lastof "$1.fw" 'hotkey: [0-9]+ failed')"
+	else
+		echo "fwtest -hotkeytest skipped: no assets/bejeweled (tools/setup_worktree.sh)" > "$1.fw"
+		c="fwtest skipped (no assets/bejeweled)"
+	fi
 	cat "$1.mst" "$1.fw" >> "$1"; rm -f "$1.mst" "$1.fw"
 	SUMMARY="$a; $b; $c"
 	return $st
