@@ -13,7 +13,7 @@
 #   unit-web     rulestest and modsettingstest under Node (needs build-web)
 #   verify       Bejeweled's headless verifier tests (games/bejeweled/tools/verify/run_tests.sh)
 #   modmenu      the mod menu's scripted runs, all games (tools/modmenutest/run_tests.sh all)
-#   livesplit    Bejeweled's and Big Money's LiveSplit tests
+#   livesplit    Bejeweled's, Big Money's and BookWorm's LiveSplit tests (BookWorm's once its branch is merged)
 #   bookworm     BookWorm's bot: classic and action games, and a classic rerun with the same screenshots
 #   bigmoney     Big Money's bot: one game
 #   oracle       Bejeweled's oracle three ways (compare.sh --variants default,forcevariant,novariants); over
@@ -132,15 +132,20 @@ suite_modmenu() {
 }
 
 suite_livesplit() {
-	local st=0 a b
+	local st=0 a b c="bookworm: no tests yet"
 	# fresh folders: a game's user folder left by an earlier run (its play count, high scores) changes the games
-	rm -rf "$OUT/livesplit-bejeweled" "$OUT/livesplit-bigmoney"
+	rm -rf "$OUT/livesplit-bejeweled" "$OUT/livesplit-bigmoney" "$OUT/livesplit-bookworm"
 	games/bejeweled/tools/livesplit/run_tests.sh --out "$OUT/livesplit-bejeweled" > "$1" 2>&1 || st=1
 	a="bejeweled: $(lastof "$1" 'PASSED|FAILED|failed')"
 	bash games/bigmoney/tools/livesplit/run_tests.sh "$OUT/livesplit-bigmoney" > "$1.bm" 2>&1
 	if [ $? -eq 0 ]; then b="bigmoney: passed"; else b="bigmoney: FAILED"; st=1; fi
 	cat "$1.bm" >> "$1"; rm -f "$1.bm"
-	SUMMARY="$a; $b"
+	if [ -f games/bookworm/tools/livesplit/run_tests.sh ]; then  # about 4 minutes
+		bash games/bookworm/tools/livesplit/run_tests.sh "$OUT/livesplit-bookworm" > "$1.bw" 2>&1
+		if [ $? -eq 0 ]; then c="bookworm: passed"; else c="bookworm: FAILED"; st=1; fi
+		cat "$1.bw" >> "$1"; rm -f "$1.bw"
+	fi
+	SUMMARY="$a; $b; $c"
 	return $st
 }
 
