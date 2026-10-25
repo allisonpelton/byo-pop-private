@@ -206,7 +206,7 @@ void ScrollScreen::Draw(Graphics* g)
 	Graphics gc(*g);
 	gc.ClipRect(0x11e, mHeight - 0x173 + mOffset, 0x3a, 0x3a);
 	static const int kFrames[17] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 7, 6, 5, 4, 3, 2, 1, 0};
-	gc.DrawImage(mApp->mImages[IMAGE_FLAME + 0], 0x11e, mHeight + kFrames[mTorchFrame] * -0x3a - 0x173 + mOffset);
+	gc.DrawImage(mApp->mImages[IMAGE_EYESTRIP], 0x11e, mHeight + kFrames[mTorchFrame] * -0x3a - 0x173 + mOffset);
 }
 
 // 0x42b580
