@@ -77,6 +77,11 @@ The work is split across Claude sessions (the user's design, 2026-10-19):
   above) with a precise spec: what, why, which files, how to test. A tiny shared fix it cannot wait for
   goes in its own commit titled `shared: ...`, so the coordinator can review it and carry it over. Game
   sessions do not edit another game's folder.
+- **Directing sessions (the user, 2026-10-24):** the user tells the game sessions about game-specific changes;
+  the coordinator does not direct or check on them. A game session messages the coordinator when it needs it:
+  a shared change, a milestone ready to merge, or its mods finished (the push waits for that). The coordinator
+  looks at a session's work only when the user asks, or when it breaks something for other sessions (shared
+  code, the trunk, the machine's test rules).
 - **A new worktree** lacks the git-ignored game files, baselines, oracle cache and generated mods: run
   `tools/setup_worktree.sh` in it once (copies from the main checkout, no junctions).
 - **Trunk:** `main` (named `code-mods` until 2026-10-19, after Bejeweled's code-mods stages 4 and 5). Game branches

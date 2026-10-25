@@ -129,6 +129,22 @@ accepts any folder that holds one of the game's folders. The status line counts 
 files panel lists them. Scores made with the switch on are kept apart. Each game's own start check and its data
 files that cannot be stood in for (a word list, a difficulty table) are the game's to handle.
 
+A game's part, for its session when the user asks for it (not yet done in Bejeweled, Big Money or BookWorm): its
+main() calls `Platform::InitPlaceholders(argc, argv)` before its game-folder check and, with the switch on, lets
+`-gamedir` through with marker files missing; it overrides `SexyAppBase::GetPlaceholderSize` with its images' real
+sizes (64x64 otherwise); an image the game may lack on purpose loads with `GetOptionalImage`; an override of
+`GetModMessages` calls the base, which adds the missing-files banner; a game with its own web shell (Big Money,
+BookWorm) takes over `web/shell.html`'s placeholder parts. What wrong sizes did in testing:
+
+- Bejeweled: the gem sheet is 780x728 (15 frames of 52 px, 104 px a colour); at 64x64 a gem crossfade drew NULL
+  (the framework now grows both images first). `data/diff.txt` has no stand-in; the headless verifier's built-in
+  values could serve.
+- Big Money: a stack image under 6 px tall hangs the game. The coins' width / 29 sets how long a dying coin lasts,
+  so the bot's game changes (score 56708 instead of 66646 with 55 files missing). The mouth frames come from
+  mrmoneybags' height, the bill cels and title heights from their images; the cobrand image is optional.
+- BookWorm: `tile_fire_fx1` must be at least 57 px tall and the ember and spark images square (else a modulo by
+  zero). `wordlist.txt` has no stand-in, and without `bookworm.exe` the game's texts are empty (GameText).
+
 ## Memory use
 
 The same game takes more memory in a browser than natively. The extra comes from:
