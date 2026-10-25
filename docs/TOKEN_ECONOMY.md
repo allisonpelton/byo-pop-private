@@ -110,5 +110,15 @@ is the smallest and reused BookWorm's pipeline, and part is the single session, 
 weighted cost, against 3-4%), so Sonnet wrote and thought more per call. Its own account of where it struggled
 (`games/noahsark/docs/README.md`, "Where the work was hard"): a misread goto tree in a Draw function gave an
 out-of-range sprite index that looked like heap corruption, and it audited the game logic for a long time before an
-AddressSanitizer build found the fault in one run. The mods phase and how faithful the port is are still to be
-measured.
+AddressSanitizer build found the fault in one run.
+
+The mods came next, in the same session: four of them (undo, a move helper, tide speed, a daily board), each with a
+test in the game's check suite, in about 10 minutes and 64 calls (19.7M cache reads, 0.1M output, about $6 at Opus
+prices). The session as a whole, to the rebase that made its branch mergeable, took 1 h 36 and 394 calls, about $50
+at Opus prices, and every suite passed on the merged trunk (18bb77e). Its mods are fewer and smaller than Big Money's
+and BookWorm's, so that phase does not compare one to one. One stumble was the app's, not the model's: the worktree
+was cut from the publish snapshot instead of `main`, and the branch had to be rebased before it could merge.
+
+Not yet measured: how faithful the port is. Its tests are its own bot games, which show that it plays and is
+deterministic, not that it plays like the original; no one has yet compared its translated functions with the
+decompiled originals.

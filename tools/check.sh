@@ -13,7 +13,7 @@
 #   unit-web     rulestest and modsettingstest under Node (needs build-web)
 #   verify       Bejeweled's headless verifier tests (games/bejeweled/tools/verify/run_tests.sh)
 #   modmenu      the mod menu's scripted runs, all games (tools/modmenutest/run_tests.sh all)
-#   livesplit    Bejeweled's, Big Money's and BookWorm's LiveSplit tests (BookWorm's once its branch is merged)
+#   livesplit    Bejeweled's, Big Money's and BookWorm's LiveSplit tests
 #   bookworm     BookWorm's bot: classic and action games, and a classic rerun with the same screenshots
 #   bigmoney     Big Money's bot: one game
 #   noahsark     Noah's Ark's bot: action, strategy and puzzle games, an action rerun with the same screenshots, and
@@ -203,7 +203,8 @@ suite_bigmoney() {
 noahsark_game() {  # <name> <mode> <cap>: a bot game; prints the last "level done" or "game over" line
 	local d="$OUT/noahsark/$1"
 	rm -rf "$d"; mkdir -p "$d/shots"
-	timeout 600 "$W/build/native/noahsark.exe" -userdir="$d/user" -fast -seed=1 -autoplay=1 -autoplaymode="$2" 		-autoplaycap="$3" -autoplaylog="$d/log.txt" -autoplayshots="$d/shots/s" > "$d/stdout.txt" 2> "$d/stderr.txt"
+	timeout 600 "$W/build/native/noahsark.exe" -userdir="$d/user" -fast -seed=1 -autoplay=1 -autoplaymode="$2" \
+		-autoplaycap="$3" -autoplaylog="$d/log.txt" -autoplayshots="$d/shots/s" > "$d/stdout.txt" 2> "$d/stderr.txt"
 	grep -E '^(level [0-9]+ done|game [0-9]+ over)' "$d/log.txt" 2>/dev/null | tail -n 1
 }
 
