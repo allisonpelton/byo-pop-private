@@ -80,6 +80,8 @@ SevenSeasApp::SevenSeasApp()
 	mIsRegistered = true;
 	mMenuDifficultySaved = false;
 	mAutoplay = false;
+	mAutoplayLevel = 0;
+	mAutoplayDiff = 0;
 	mAutoplayGames = 1;
 	mAutoplayCap = 200000;
 	mAutoplayState = NULL;
@@ -803,7 +805,7 @@ void SevenSeasApp::ShowHighScoreWidget()
 		mHighScoreWidget = new HighScoreWidget(this);
 		mHighScoreWidget->Resize(0xad, 0, 0x1d3, 0x1e0);
 		mWidgetManager->AddWidget(mHighScoreWidget);
-		mWidgetManager->BringToFront(mTalkWidget);
+		mTalkWidget->mMode = -1;
 		SetMusicOrder(0x1c, true);
 	}
 }
@@ -1042,20 +1044,4 @@ void SevenSeasApp::ButtonDepress(int theId)
 		ShowQuitDialog();
 		break;
 	}
-}
-
-void SevenSeasApp::HandleCmdLineParam(const std::string& theParamName, const std::string& theParamValue)
-{
-	if (theParamName == "-autoplay")
-		mAutoplay = true;
-	else if (theParamName == "-autoplaygames")
-		mAutoplayGames = atoi(theParamValue.c_str());
-	else if (theParamName == "-autoplaycap")
-		mAutoplayCap = atoi(theParamValue.c_str());
-	else if (theParamName == "-autoplaylog")
-		mAutoplayLog = theParamValue;
-	else if (theParamName == "-autoplayshots")
-		mAutoplayShots = theParamValue;
-	else
-		SexyApp::HandleCmdLineParam(theParamName, theParamValue);
 }

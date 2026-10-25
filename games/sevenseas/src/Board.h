@@ -116,7 +116,7 @@ public:
 	int					mSavedLevels;       // +0x94 set to 1 by a new game
 	int					mKills;             // +0x98 ships sunk on this level
 	int					mKillsTotal;        // +0x9c
-	int					mUnused_a0;         // +0xa0
+	int					mTreasures;         // +0xa0 treasures found on the bonus screens
 	int					mScoreCheck;        // +0x60 / +0x64 / +0x68: the internet score check's fields (not ported)
 	int					mScoreCheck2;
 	int					mLevelStartCnt;     // +0x5a8 update count when the level began
@@ -173,6 +173,7 @@ public:
 	int					mUnused_95008;      // +0x95008
 	bool				mTutorialShown;     // +0x9500c
 	int					mHintTimer;         // +0x68 counts down after "Cannot Undo" (the text that shows)
+	int					mHintReason;        // +0x64 why: the reason of the last ClearUndo (0 level start, 1 whirlpool, 2 life, 3 whirls)
 
 	std::list<int>		mUndo;              // +0x5b4 the undo list
 

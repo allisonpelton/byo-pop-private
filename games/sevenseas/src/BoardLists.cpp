@@ -430,7 +430,7 @@ bool Board::Undo()
 		mUndo.pop_back();
 		return true;
 	}
-	mScoreCheck = 600;
-	mScoreCheck2 = mScoreCheck;
+	mHintTimer = 600;
+	mHintReason = mScoreCheck;
 	return false;
 }

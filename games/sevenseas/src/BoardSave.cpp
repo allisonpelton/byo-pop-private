@@ -118,7 +118,7 @@ bool Board::SaveGame()
 	w.Int(mSavedLevels);
 	w.Int(mLives);
 	w.Int(mKillsTotal);
-	w.Int(mUnused_a0);
+	w.Int(mTreasures);
 	w.Byte(mApp->mTutorial);
 	return Platform::WriteUserFileAtomic(SavePath(), w.mData);
 }
@@ -194,7 +194,7 @@ void Board::LoadGame()
 	mSavedLevels = r.Int();
 	mLives = r.Int();
 	mKillsTotal = r.Int();
-	mUnused_a0 = r.Int();
+	mTreasures = r.Int();
 	mApp->mTutorial = r.Byte();
 	DeleteSave();
 	mTutorialShown = false;

@@ -783,11 +783,13 @@ void HighScoreWidget::Update()
 		MarkDirty();
 }
 
-// 0x411260
+// 0x411260: the frame, the totals of the game and the rank, and under them the list of the five best scores on its
+// panel (port: the positions of the lines are estimated from the picture; the original's are in a long
+// function whose arithmetic was not recovered)
 void HighScoreWidget::Draw(Graphics* g)
 {
 	Image** anImages = mApp->mImages;
-	g->DrawImage(anImages[IMAGE_HIGHSCOREPANEL], 0x24, 0x14);
+	g->DrawImageBox(Rect(0x14, 0x14, mWidth - 0x28, mHeight - 0x28), anImages[IMAGE_DIALOG]);
 	g->SetFont(mApp->mFonts[FONT_MEDIUM]);
 	Board* aBoard = mApp->mBoard;
 	int aScore = aBoard != NULL ? aBoard->mScore : 0;
@@ -798,42 +800,43 @@ void HighScoreWidget::Draw(Graphics* g)
 	for (int i = 0; i < 4; i++)
 	{
 		g->SetColor(i == 3 ? Color(0xff, 0xff, 0) : Color(0xff, 0xff, 0xff));
-		g->DrawString(GT(kLabels[i]), 0x41, 0x4c + i * 0x16);
+		g->DrawString(GT(kLabels[i]), 0x41, 0x58 + i * 0x16);
 		switch (i)
 		{
 		case 0:
-			sprintf(aBuf, "%2d:%02d", aTime / 60, aTime % 60);
+			sprintf(aBuf, GT(0x004a39ac).c_str(), aTime / 60, aTime % 60);
 			break;
 		case 1:
 			sprintf(aBuf, "%d", aKills);
 			break;
 		case 2:
-			sprintf(aBuf, "%d", aBoard != NULL ? aBoard->mSavedLevels : 0);
+			sprintf(aBuf, "%d", aBoard != NULL ? aBoard->mTreasures : 0);
 			break;
 		default:
 			sprintf(aBuf, "%d", aScore);
 		}
-		g->DrawString(aBuf, 0x104 - g->GetFont()->StringWidth(aBuf), 0x4c + i * 0x16);
+		g->DrawString(aBuf, 0x104 - g->GetFont()->StringWidth(aBuf), 0x58 + i * 0x16);
 	}
 	g->SetColor(Color(0xcf, 0xb8, 0));
 	sprintf(aBuf, GT(0x004a39a0).c_str(), RankName(aScore));
 	g->DrawString(aBuf, (mWidth - g->GetFont()->StringWidth(aBuf)) / 2, 0xb2);
 
-	// the five best scores
+	// the five best scores on their panel
+	g->DrawImage(anImages[IMAGE_HIGHSCOREPANEL], 0x24, 0xb9);
 	for (int i = 0; i < 5; i++)
 	{
 		bool aMine = (mMyPlace == i + 1);
 		g->SetColor(aMine ? Color(0xff, 0xff, 0) : Color(0xff, 0xff, 0xff));
-		g->DrawString(mNames[i], 0x41, 0xd0 + i * 0x16);
+		g->DrawString(mNames[i], 0x41, 0xf9 + i * 0x16);
 		sprintf(aBuf, "%d", mScores[i]);
-		g->DrawString(aBuf, 0x104 - g->GetFont()->StringWidth(aBuf), 0xd0 + i * 0x16);
+		g->DrawString(aBuf, 0x104 - g->GetFont()->StringWidth(aBuf), 0xf9 + i * 0x16);
 	}
 	g->SetColor(Color(0xff, 0xff, 0xff));
 	SexyString aTop = GT(0x004a397c);
-	g->DrawString(aTop, 0x159 - g->GetFont()->StringWidth(aTop) / 2, 0xb2);
-	g->DrawString(mTodayName, 0x159 - g->GetFont()->StringWidth(mTodayName) / 2, 0xc8);
+	g->DrawString(aTop, 0x159 - g->GetFont()->StringWidth(aTop) / 2, 0xf9);
+	g->DrawString(mTodayName, 0x159 - g->GetFont()->StringWidth(mTodayName) / 2, 0x10f);
 	sprintf(aBuf, "%d", mTodayScore);
-	g->DrawString(aBuf, 0x159 - g->GetFont()->StringWidth(aBuf) / 2, 0xde);
+	g->DrawString(aBuf, 0x159 - g->GetFont()->StringWidth(aBuf) / 2, 0x125);
 }
 
 void HighScoreWidget::ButtonDepress(int theId)

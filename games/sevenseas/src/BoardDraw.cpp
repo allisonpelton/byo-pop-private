@@ -701,14 +701,16 @@ void Board::Draw(Graphics* g)
 	// the message after an undo that cannot be done
 	if (0 < mHintTimer)
 	{
-		g->SetFont(mApp->mFonts[FONT_MT11]);
+		g->SetFont(mApp->mFonts[FONT_MEDIUM]);
 		int anAlpha = mHintTimer;
 		if (0xff < anAlpha)
 			anAlpha = 0xff;
-		g->SetColorizeImages(true);
 		g->SetColor(Color(0xff, 0xff, 0, anAlpha));
-		WriteCenteredLine(g, mHeight - 0x2d - 0x14, GT(0x004a2ed4));
-		g->SetColorizeImages(false);
+		// "Cannot Undo:" and what stops it (the list of the last move was cleared by that)
+		static const unsigned int kReasons[4] = {0x004a2ec0, 0x004a2eac, 0x004a2ea0, 0x004a2e8c};
+		WriteCenteredLine(g, mHeight - 0x41, GT(0x004a2ed4));
+		if ((mHintReason >= 0) && (mHintReason < 4))
+			WriteCenteredLine(g, mHeight - 0x2d, GT(kReasons[mHintReason]));
 	}
 
 	g->Translate(0, -0xc);

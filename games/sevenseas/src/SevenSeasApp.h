@@ -144,6 +144,8 @@ public:
 
 	// Test hooks (testhooks/Autoplay.cpp)
 	bool					mAutoplay;
+	int						mAutoplayLevel;
+	int						mAutoplayDiff;
 	int						mAutoplayGames;
 	int						mAutoplayCap;
 	std::string				mAutoplayLog;

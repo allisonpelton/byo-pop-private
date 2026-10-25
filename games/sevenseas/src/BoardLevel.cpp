@@ -44,12 +44,38 @@ static void InitShip(Ship* theShip, int theType, int theX, int theY)
 Board::Board(SevenSeasApp* theApp, bool theLoad) :
 	mApp(theApp)
 {
+	// the water's scroll and its speeds (+0x588 .. +0x5a4)
+	mWaveA = 0.0;
+	mWaveB = 0.0;
+	mWaveSpeedA = 0.3;
+	mWaveSpeedB = 0.3;
+	// fields that the original leaves to its allocator (port: all start as zero)
+	mTimer = 0;
+	mBlinkCount = 0;
+	mDestX = 0;
+	mDestY = 0;
+	mMouseX = 0;
+	mMouseY = 0;
+	mBonusTick = 0;
+	mBonusTick2 = 0;
+	mTreasureX = 0;
+	mTreasureY = 0;
+	mScoreCheck = 0;
+	mScoreCheck2 = 0;
+	mLevelStartCnt = 0;
+	mGameStartCnt = 0;
+	mSeconds = 0;
+	mStartTick = 0;
+	for (int i = 0; i < GRID * GRID; i++)
+		(&mDist[0][0])[i] = 0;
 	mHeading = 8;
 	mWantHeading = 8;
 	mMoveProgress = 0;
 	mShipAnim = CrtRand() % 8;
 	mBlink = false;
 	mStartLink = NULL;
+	mHintTimer = 0;
+	mHintReason = 0;
 	mScore = 0;
 	mSavedLevels = 0;
 	mLifeFlash = 0;
@@ -105,7 +131,7 @@ void Board::NewGame(bool theLoad)
 	mStartTick = GameTickCount();
 	mKills = 0;
 	mKillsTotal = 0;
-	mUnused_a0 = 0;
+	mTreasures = 0;
 	mGameStartCnt = 0;
 	NewLevel();
 	if (theLoad)

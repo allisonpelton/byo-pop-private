@@ -83,8 +83,8 @@ void Board::Update()
 				SpawnSparkle(CellToPixel(mTreasureX + 1), CellToPixel(mTreasureY + 1));
 			if (mUpdateCnt - mBonusTick == 0x32)
 			{
-				mKillsTotal++;
-				AddPoints(mKillsTotal * 200, mTreasureX + 1, mTreasureY + 1);
+				mTreasures++;
+				AddPoints(mTreasures * 200, mTreasureX + 1, mTreasureY + 1);
 				SetScoreCheck(8);
 				mDirty = true;
 			}
