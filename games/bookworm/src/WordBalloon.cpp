@@ -103,6 +103,8 @@ void WordBalloon::MouseDown(int x, int y, int theClickCount)
 {
 	mTimer = 1;
 	mClicked = true;
+	if (!mLookupURL.empty())
+		mApp->OpenURL(mLookupURL);  // port(mod): the word in an online dictionary
 }
 
 // 0x436440
@@ -332,4 +334,7 @@ void WordBalloon::SetText(const SexyString& theText, Font* theFont, int theJusti
 	mText = theText;
 	mTextFont = theFont;
 	mTextJustify = theJustify;
+	// port(mod): every message sets its text; only a definition is a link (Lex::SayDefinition sets it after)
+	mLookupURL.clear();
+	mDoFinger = false;
 }

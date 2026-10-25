@@ -1,4 +1,5 @@
 #include "Lex.h"
+#include "ModWords.h"
 #include "WordBalloon.h"
 #include "BookWormApp.h"
 #include "UserManager.h"
@@ -317,6 +318,8 @@ void Lex::SayDefinition(const SexyString& theWord, Font* theWordFont, const Sexy
 		Point((int)(0.75 * 213.0), -2));
 	aBalloon->SetHeader(theWord, theWordFont, -1);
 	aBalloon->SetText(theDefinition, theDefFont, -1);
+	aBalloon->mLookupURL = ModWordLookupURL(theWord);  // port(mod): a link to the word's definition
+	aBalloon->mDoFinger = !aBalloon->mLookupURL.empty();
 	aBalloon->SetColors(gLexSayColors, 4);
 	aBalloon->ClearFooter();
 	aBalloon->mTextInsets = Insets(12, 0, 12, 0);

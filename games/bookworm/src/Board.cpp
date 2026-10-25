@@ -12,6 +12,7 @@
 #include "Definitionator.h"
 #include "GameText.h"
 #include "ModFeatures.h"
+#include "ModWords.h"
 #include "Solver.h"
 #include "Undo.h"
 
@@ -1724,6 +1725,8 @@ void Board::Submit(int x, int y)
 			if ((mApp->mShowDefs) && (mApp->mDefinitionator != NULL))
 			{
 				SexyString aDefinition = mApp->mDefinitionator->GetDefinition(mWord.mWord);
+				if (aDefinition.size() == 0)
+					aDefinition = ModWordNote(mWord.mWord);  // port(mod): which mod's list has it
 				if (aDefinition.size() != 0)
 					mLex->SayDefinition(mWord.mWord, mApp->mFonts[FONT_MYRIADWEB12BOLD], aDefinition,
 						mApp->mFonts[FONT_MYRIADWEB10], (int)aDefinition.size() * 3 + 400);

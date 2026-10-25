@@ -16,6 +16,7 @@
 #include "HintDialog.h"
 #include "GameText.h"
 #include "ModFeatures.h"
+#include "ModWords.h"
 #include "testhooks/Autoplay.h"
 
 #include "WidgetManager.h"
@@ -827,12 +828,14 @@ void BookWormApp::LoadingThreadProc()
 		mLoadingFailed = true;
 		return;
 	}
+	LoadModWords(this, &mDictionary);  // port(mod): the mods' word lists
 	mCompletedLoadingThreadTasks++;
 
 	LoadBonusWords("bonus_word_dictionary.txt", &mBonusWords);
 	mCompletedLoadingThreadTasks++;
 
 	mDefinitionator = new Definitionator(this);
+	LoadModDefinitions(mDefinitionator);  // port(mod): the mods' definitions, the game's replacing them
 	mDefinitionator->Load("popdefs.txt");
 	mCompletedLoadingThreadTasks++;
 

@@ -12,7 +12,7 @@ redistributed, stay git-ignored. How to install and test the mods that exist: RE
 |---|---|---|
 | 1 | Word solver (`mods/solver`) | done |
 | 2 | Undo (`mods/undo`) | done |
-| 3 | Bigger dictionary, with Collins | next |
+| 3 | Bigger dictionary, with Collins (`mods/collins`) | done |
 | 4 | Rude words that set fires; the greedy-bot comparison; HD art; the smaller ideas | planned |
 
 Code mods read their switches from the mod's `"features"` (`src/ModFeatures.h`: a feature on, a live
@@ -60,20 +60,26 @@ the board after each undo and after the same word played again.
 Possible later: undo after the move that ended a Classic game (the game-over sequence would have to be
 stopped).
 
-## 3. Bigger dictionary, with Collins (planned)
+## 3. Bigger dictionary, with Collins (done)
 
-The original list has about 150,000 words. The mod merges word lists into the player's own `wordlist.txt` at
-start-up, on the player's machine: nothing of the game's is committed or redistributed.
-- **Collins Scrabble Words** (the user's choice: "a reasonable balanced expansion"). Collins is HarperCollins'
-  copyrighted list and not freely downloadable, so the mod reads a Collins file the player supplies (one word
-  per line), kept git-ignored and never shipped.
-- **Free lists** as further options, each downloaded only with the user's OK (name, source, exact size):
-  ENABLE2K (public domain), SCOWL (permissive), WordNet (definitions for the new words in Lex's balloon).
-- A tool `games/bookworm/tools/make_wordlist.py`: plain list to the game's prefix-compressed format and back
-  (uppercase A-Z, sorted, 3-12 letters), with a report of what was added or dropped. A remove list keeps slurs
-  out of any merged list.
-- The solver uses whatever list is active. An online API was ruled out: too slow for the per-tile check and the
-  solver's search, against the no-online rule, and it would send every word tried to a third party.
+`src/ModWords.cpp`, mod `collins`, a general feature `"words"`: every enabled mod with it adds the words of its
+files to the dictionary at start-up (after `wordlist.txt`, in its format), and its definitions to Lex's (before
+`popdefs.txt`, which wins where both define a word). A word only a mod has and no definition gets the mod's
+note in the balloon. The rude-words mod can add its words the same way.
+- **The list** is the player's own Collins Scrabble Words, never committed: `tools/make_collins_mod.py` writes
+  `mods/collins/collins-words.txt` (git-ignored by the mod folder's own `.gitignore`) from a NASPA Zyzzyva
+  install, whose word graph (`data/words/CSW24/*.dwg`) is plain, unencrypted data. CSW24 has 280,887 words:
+  280,652 kept (no Q without a U, which the Qu tile can't spell; 3 letters or more), 129,593 of them new to
+  the game's 151,381. Zyzzyva's own definitions are encrypted and are not read.
+- **Definitions** come from a text list the user supplied (Collins Scrabble Words 2019 with definitions): the
+  tool writes `collins-defs.txt` in popdefs.txt's style ("(n., French) Gloss.", "(v.) Form of BASE: gloss.",
+  the senses one after another). 278,842 of the words have one; the rest (new in 2024) get the note.
+- **A click on a definition balloon** opens the word in an online dictionary in the player's browser (setting:
+  Collins Dictionary, which also covers the Scrabble words and sends inflected forms to their entry,
+  Wiktionary, or nothing). Only Lex's definitions are links; his other speech and thoughts are not. This is a
+  link, not an online feature: the game sends nothing anywhere until the player clicks. An online API for
+  the checks themselves stays ruled out (too slow for the solver, and every word tried would go to a third
+  party).
 
 ## 4. The rest (planned)
 
