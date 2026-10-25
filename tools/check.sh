@@ -51,11 +51,13 @@ done
 
 RUNDESK="$ROOT/build/native/rundesk.exe"
 if [ -z "${BYOPOP_TEST_RUN:-}" ]; then
-	# a build first may make rundesk; the rest needs it
-	if [ ! -x "$RUNDESK" ]; then
-		if [ "${SUITES[0]}" = build ]; then tools/build.sh native > /dev/null 2>&1; fi
-		[ -x "$RUNDESK" ] || { echo "check.sh: $RUNDESK is missing (cmake --build build/native --target rundesk)" >&2; exit 2; }
+	# The native build would have to relink rundesk.exe while this script runs under it, which fails, so a run
+	# with the build suite brings rundesk up to date first (and makes it in a fresh checkout).
+	if [[ " ${SUITES[*]} " == *" build "* ]]; then
+		mkdir -p "$OUT"
+		tools/build.sh rundesk > "$OUT/rundesk.txt" 2>&1 || echo "check.sh: building rundesk failed -> $OUT/rundesk.txt" >&2
 	fi
+	[ -x "$RUNDESK" ] || { echo "check.sh: $RUNDESK is missing (tools/build.sh rundesk)" >&2; exit 2; }
 	exec "$RUNDESK" bash "$ROOT/tools/check.sh" --out "$OUT" "${SUITES[@]}"
 fi
 
