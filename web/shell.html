@@ -5,7 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>@BYOPOP_TITLE@ Web Port</title>
 <style>
-/* Every game's page (docs/WEB_PLAYER.md). Layout: a single 4:3 stage that fills the viewport, with a slim tool
+/* Every game's page (docs/WEB_PLAYER.md). Layout: a single stage that fills the viewport (4:3, or the shape
+   the game gives: Module.onGameScreen), with a slim tool
    bar and slide-over panels (mods, game files and any of the game's own). The game's parts come from its
    games/<game>/web folder: page.js (its settings, below), page.css (its colours and brand mark) and page.html (its
    own panels), put in at the byopop:game-js, byopop:game-css and byopop:game-panels markers by byopop_web_game()
@@ -65,8 +66,8 @@ button.primary { background: var(--accent); color: var(--accent-fg); border-colo
 button[disabled] { opacity: 0.5; cursor: default; }
 .stage-wrap { flex: 1; min-height: 0; display: grid; place-items: center; padding: 12px; }
 .stage {
-  position: relative; background: var(--stage); aspect-ratio: 4 / 3; max-width: 100%;
-  width: min(100%, calc((100vh - 90px) * 4 / 3)); box-shadow: 0 10px 40px rgba(0, 0, 0, 0.35); border-radius: 4px; overflow: hidden;
+  position: relative; background: var(--stage); aspect-ratio: var(--aspect, 4 / 3); max-width: 100%;
+  width: min(100%, calc((100vh - 90px) * var(--aspect-w, 1.3333))); box-shadow: 0 10px 40px rgba(0, 0, 0, 0.35); border-radius: 4px; overflow: hidden;
 }
 canvas#canvas { display: block; width: 100%; height: 100%; outline: none; image-rendering: auto; }
 .overlay {
@@ -260,6 +261,15 @@ input[type=file] { display: none; }
     onAbort: function (what) { showStopped(what); },
     // The game has loaded: no mod stopped this start
     onGameLoaded: function () { if (session) session.markFinished(); },
+    // The game screen's size, which a game gives before it makes its window when it is not 640 x 480 (BookWorm's
+    // mod "widescreen": 854 x 480, SidePanel::TellPage): the stage takes its shape and SDL sizes the canvas to the
+    // stage. The logical size, not the canvas's, so leaving fullscreen keeps it. Other games stay 4:3.
+    onGameScreen: function (w, h) {
+      if (!(w > 0 && h > 0)) return;
+      var s = $("stage");
+      s.style.setProperty("--aspect", w + " / " + h);
+      s.style.setProperty("--aspect-w", String(w / h));
+    },
     // -placeholders: a game file the game did not find got a stand-in (listed in the Game files panel)
     onMissingFile: function (path) { missingFiles.push(path); setStatus(statusText); showMissingFiles(); },
     // Called by the game after it quits (the tab can't close itself): silence it, wait for the save
