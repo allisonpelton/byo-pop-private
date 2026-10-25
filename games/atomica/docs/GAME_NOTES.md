@@ -79,3 +79,34 @@ The board draws the machine around the field and owns the meter, the atomic bomb
 `StepBomb` 0x432360: it bursts atoms until its charge is used up), Atomicus, the effects list and the floating scores.
 The level sign counts down from 0x163 (`mI16c`); the field is revealed by sparks (`Sparkle`, 0x41c5f0) that set the cells'
 state from -100000 to 0x40 and the grid's update brings it to 255.
+
+## 6. The tutorial boxes
+
+`HintBox` (0x42a310; draw 0x42a810) is a widget over the whole screen that is also a base modal: the game is paused
+(`mPauseCount`) while one is up. It is a box of its own size by hint (the constructor's switch), a green frame that fades in by 8 an
+update, a title bar, a Continue button (id 0) and, for a tutorial box, a check box (id 1) whose picture is the app's `mCancelTip`;
+the box of a popup (hints 0x11 to 0x16) has no check box. Ticking it writes the hint into the app's `mHintsShown` when the box
+goes; a box whose hint is there already, or with the hints switched off in the options, goes at its first update. `Grid::mHintShown`
+(+0x3b4, one byte per hint) is set by the constructor and is what `CheckHints` (0x40d450) tests, once per game. The registry
+value `GameHints` holds the app's table (255 words), `ShowTips` is one when the hints are *off*.
+The draw is a switch of 28 cases of "colour, text at a height, lit word": the lines are generated from the decompilation
+(`tools/genhints.py` reads the draw and the disassembly and writes `src/HintData.inc`, numbers only; a text is the exe's, read by
+address). The decompiler loses the height of a lit word (the line before it has it) and the arrows' places (read from the
+disassembly: a black copy four pixels down and right, then the coloured one).
+The board opens the popups on a click (0x432000): Dr. Atomicus 0x11, the bomb gauges 0x12 (not ready) or 0x13, the geiger 0x14, the
+meter 0x15 (strategy) or 0x16. The bomb button is disabled (`SetDisabled`, vtable +0x28) while the bomb cannot be used.
+
+## 7. The swirls
+
+The tunnel behind the field. `Swirl` (0x1834 bytes; one virtual, the destructor) is a ring of twenty points at 18-degree steps
+round a centre that drifts to a target; the board's list `mSwirls` (+0x110, the oldest first) is updated every update (`Update`
+0x427c70) and a new one is made every 95. Each shrinks from radius 650 to its own minimum (30 to 60) and goes. `Draw` (0x428940)
+fills each as the band between its ring and the ring of the non-clone before it (the first as a disc to the middle) with flat
+triangles (0x4283a0, spans handed to `Image::FillScanLines`); its colour follows its size and the board's flash colour (atoms that
+are absorbed flash it). An atom that leaves the field (`Atom::FlyAway`, 0x4027a0) gets a *clone* of the newest swirl (0x428870,
+drawn without a ring) and circles in it by polar coordinates (`mFlyX` the angle, `mFlySize` the part of the radius); when the clone
+goes, the atoms in it go with a flash and a sound. The constants that go on from one swirl to the next (the radius and angle of the
+next target, the next minimum radius) are globals of the program, not of the game. A new game starts with `mB98`, which repeats the
+swirl update until the first swirl has gone, so that the background is full from the first picture. Everything here uses the game's
+random numbers (the ring's jitter, the flicker of an atom's brightness), so the bot's results depend on it.
+The freeze (water element) walks `mGlowSwirl` along the list every ten steps; that swirl glows brighter.
