@@ -36,8 +36,8 @@ BM_GAME1="score 66646"
 NA_ACTION="level 4 done at update 17083: score 7622 mode stampede"
 NA_STRATEGY="level 4 done at update 15469: score 4430 mode strategy"
 NA_PUZZLE="game 1 over at update 17550: score 4830 level 1 moves 117"
-AT_STRATEGY="update 8000: score 1760 level 2 moves 83 atoms 0"
-AT_ACTION="update 20000: score 3040 level 2 moves 626 atoms 62"
+AT_STRATEGY="game 1 over at update 6204: score 1440 level 2 moves 85"
+AT_ACTION="update 20000: score 2880 level 2 moves 611 atoms 61"
 
 set -u
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
