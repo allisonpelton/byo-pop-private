@@ -101,10 +101,16 @@ void WordBalloon::Draw(Graphics* g)
 // A click ends the message: one more update, then the fade-out (no Widget::MouseDown call).
 void WordBalloon::MouseDown(int x, int y, int theClickCount)
 {
+	Close();
+	if ((!mLookupURL.empty()) && (theClickCount > 0))
+		mApp->OpenURL(mLookupURL);  // port(mod): the word in an online dictionary (a left click; a right one only closes)
+}
+
+// port(mod): ends the message as a click on it does (the click's body; mod "close-balloons", Board::MouseDown)
+void WordBalloon::Close()
+{
 	mTimer = 1;
 	mClicked = true;
-	if (!mLookupURL.empty())
-		mApp->OpenURL(mLookupURL);  // port(mod): the word in an online dictionary
 }
 
 // 0x436440

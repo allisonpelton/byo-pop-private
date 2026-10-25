@@ -27,13 +27,24 @@
 // updates later (or plays the next mode first). It never opens the Options dialog and never clicks a link
 // other than the title's play link; an unexpected dialog makes it quit.
 // -autoplaycap=<n> quits at update n (default 200000). -autoplayshots=<prefix> saves
-// <prefix><mode>-levelup<n>.png, <prefix><mode>-gameover.png (with the mod "greedy-bots" also
-// <prefix><mode>-gameover-bots.png, once their balloon is up), <prefix><mode>-fame.png and, every
+// <prefix><mode>-levelup<n>.png, <prefix><mode>-gameover.png (with the mods "greedy-bots" or "daily-board" also
+// <prefix><mode>-gameover-mods.png, once their balloon is up), <prefix><mode>-fame.png and, every
 // -autoplayshotwords=<n> words (default 25, 0: none), <prefix><mode>-word<n>.png (script lines, so a
-// replay of the log takes them too).
+// replay of the log takes them too). Under -renderscale=<n> the shots are at the full size (screenshotfull).
+// With the mod "word-journal" the bot opens the journal at game over, saves <prefix><mode>-journal.png and
+// closes it; with "select-definitions" it waits for the first definition shown for a selection and saves
+// <prefix><mode>-preview.png, and the log notes each one shown. With "widescreen" it saves <prefix><mode>-panel.png
+// once, after 8 words, with the tiles at rest, and (-autoplayhints) takes every other hint by a click on the side
+// panel's first row instead of Tab.
 // -autoplayhints=1 (with the mod "solver" on): every move is the word solver's first hint, asked for with Tab
 // and submitted with the Submit button (a scramble when the board spells no word). The log notes each hint
 // and the word's score, and "HINT MISMATCH" where the game scored the word otherwise than the solver said.
+// With the solver's setting "saveBonus" on, "SAVE MISMATCH" where a best or fire hint uses bonus tiles although
+// a path as safe goes without them (for the fire hint, one that takes the same lowest fire tile).
+// With its setting "fewerFire" on (Classic), each hint's new fire tiles as the solver predicts them against the ones
+// that came once the board rests: "FIRE MISMATCH" where fewer came than the meter's certain ones, or some came where
+// none could; the totals at the end. And "FIRE ORDER MISMATCH" where the first best hint is not one of the fewest
+// new fire tiles (SolverFireRater's cost) among the words as safe.
 // -autoplayundo=1 as well (with the mod "undo" on): every other word is undone (the Undo button and Ctrl+Z
 // in turn), the board checked against the one before the word, the same hint played again and the board
 // checked against the first play's; "UNDO MISMATCH" where one differs (letters, tile types, score, fire).
@@ -44,6 +55,12 @@
 // model's game must be over with the same score. "MODEL MISMATCH" where one differs (the model then starts
 // again from the game's board). With the mod "greedy-bots" on, the game-over note gives the bots' results.
 // -autoplaycontinue=1: the continue-game question gets a yes, so a game saved by an earlier run's quit goes on.
+// -autoplaytype=1 (with the mod "type-word" on): the bot's words are typed, letter by letter (mostly lower
+// case), and Enter submits them; now and then a letter is taken back with Backspace and typed again, or the
+// word begun, cleared with Esc and typed afresh. Before each key the selection must spell the letters typed
+// so far, and before Enter it must be the best of the word's paths (TypedWord::Better, over every path the
+// word solver finds for it); "TYPE MISMATCH" where not. Hints and Submit-button words are sent with Enter
+// half the time.
 
 #include <cstdio>
 #include <random>
@@ -63,7 +80,7 @@ class AutoplayBot
 public:
 	AutoplayBot(BookWormApp* theApp, unsigned long theSeed, const std::string& theMode, int theUpdateCap,
 		const std::string& theLogFileName, const std::string& theShotPrefix, int theShotWords, bool theUseHints,
-		bool theTestUndo, bool theCheckModel);
+		bool theTestUndo, bool theCheckModel, bool theTypeWords);
 	~AutoplayBot();
 
 	// After each update (BookWormApp::UpdateFrames): looks at the game, queues input for the next update
@@ -81,7 +98,11 @@ private:
 		STEP_CLICK_SUBMIT,  // the Submit button
 		STEP_CLICK_LEX,     // Lex: scramble
 		STEP_KEY_HINT,      // Tab: the word solver's next hint (-autoplayhints)
-		STEP_UNDO           // the Undo button (mCell -1) or Ctrl+Z (mCell -2) (-autoplayundo)
+		STEP_UNDO,          // the Undo button (mCell -1) or Ctrl+Z (mCell -2) (-autoplayundo)
+		STEP_TYPE_CHAR,     // types mLetter (-autoplaytype)
+		STEP_KEY_BACK,      // Backspace: the last letter typed taken back
+		STEP_KEY_ESCAPE,    // Esc: the typed word cleared
+		STEP_KEY_RETURN     // Enter: the typed word submitted
 	};
 
 	struct Step
@@ -127,6 +148,16 @@ private:
 	std::string mHintWord;          // the hint submitted, "" for none
 	int mHintScore;                 // its score as the solver has it
 	int mHintMismatches;
+	// the solver's "fewerFire": the hint's new fire tiles as predicted, checked once the board rests (CheckNewFire)
+	int mFireState;                 // 0 none, 1 the hint submitted, 2 scored: waiting for the board to rest
+	double mFirePredicted;
+	int mFireSure;
+	int mFireBase;                  // the board's fire tiles less the word's: the ones that stay
+	int mFireWords;
+	double mFireExpected;
+	int mFireCame;
+	int mFireMismatches;
+	bool mFireTagShot;              // "-firetag": the hint's tag with new fire to expect, shot once
 	bool mTestUndo;
 	int mUndoPhase;                 // 0 a word to play, 1 played: undo it, 2 undone: check, replay, 3 check
 	std::string mUndoBefore;        // BoardState before the word, after it
@@ -135,6 +166,11 @@ private:
 	int mUndoChecks;
 	int mUndoMismatches;
 	bool mCheckModel;
+	bool mTypeWords;
+	std::string mTyped;             // the letters typed so far (upper case)
+	std::string mTypeCells;         // the cells' letters and tile types when the typing was planned
+	int mTypeChecks;
+	int mTypeMismatches;
 	BotGame* mModel;                // the model's game, from mModelBoard's first board
 	Board* mModelBoard;
 	int mModelMoves;                // the moves it took (the game's mModMoves when it agrees)
@@ -152,7 +188,12 @@ private:
 	const void* mNameDialog;        // the new-user dialog a name was typed into
 	bool mSummaryNoted;             // the summary on screen was logged (and shot)
 	int mSummaryNotedAt;            // the update it was
-	bool mBotsShot;                 // the game-over summary shot again with the greedy bots' balloon
+	bool mModsShot;                 // the game-over summary shot again with the mods' balloon
+	int mJournalStep;               // the word journal at game over: 0 to open, 1 opening, 2 shot, 3 closing, 4 done
+	int mJournalStepAt;             // the update of the last step
+	bool mPreviewNoted;             // the selected word's definition was showing at the last update
+	int mPreviewShots;              // its showings so far, +1 once the first is shot
+	bool mPanelShot;                // the widescreen side panel was shot
 	bool mFameNoted;
 	int mLevelUps;
 
@@ -187,6 +228,8 @@ private:
 
 	void LogChanges(Board* theBoard);
 	void CheckResult(Board* theBoard);
+	void CheckNewFire(Board* theBoard);
+	void NoteFireTotals();
 	void HandleDialogs();
 	void HandleFame();
 	void HandleSummary(Board* theBoard);
@@ -206,6 +249,9 @@ private:
 	bool ModelTakesMove(Board* theBoard);
 	void CheckModel(Board* theBoard);
 	void CheckModelEnd(Board* theBoard);
+	void PlanTyping(Board* theBoard, const std::string& theWord);
+	void CheckTyped(Board* theBoard, bool isWord);
+	void NoteTyped();
 	int RunStep(Board* theBoard, const Step& theStep);
 	void EndDrag(const char* theWhy);
 	void DropPlan(const char* theWhy);

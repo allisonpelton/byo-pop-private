@@ -33,6 +33,21 @@ static bool ShowTag()
 	return ModFeatureBool("solver", "tag", true);
 }
 
+static bool SaveBonus()
+{
+	return ModFeatureBool("solver", "saveBonus", false);
+}
+
+static bool FewerFire()
+{
+	return ModFeatureBool("solver", "fewerFire", false);
+}
+
+bool Sexy::SolverHotkeys()
+{
+	return ModFeatureBool("solver", "hotkeys", true);
+}
+
 void Sexy::FindBoardWords(const std::vector<Piece*>& theTiles, const std::set<SexyString>& theDictionary,
 	const BoardWordVisitor& theVisitor)
 {
@@ -116,7 +131,8 @@ bool Solver::BoardAtRest(Board* theBoard)
 	return true;
 }
 
-// Letters, tile types, the level (the points depend on it) and the bonus word
+// Letters, tile types, the level (the points depend on it), the settings and the bonus word; for "fewerFire" the
+// fire meter and the skip
 std::string Solver::BoardSignature() const
 {
 	std::string aSig;
@@ -129,7 +145,10 @@ std::string Solver::BoardSignature() const
 			aSig += (aPiece != NULL) ? (char)('0' + aPiece->mType) : '.';
 		}
 	}
-	return aSig + StrFormat("|%d|", mBoard->mLevel) + mBoard->mBonusWord;
+	aSig += StrFormat("|%d|%d%d%d%d|", mBoard->mLevel, (int)FireFirst(), BestCount(), (int)SaveBonus(), (int)FewerFire());
+	if (FewerFire())
+		aSig += StrFormat("%.4f %d %d|", mBoard->mFireMeter, (int)mBoard->mSkipRandomFire, (int)mBoard->RefillIsLevelsFirst());
+	return aSig + mBoard->mBonusWord;
 }
 
 // Safer first, then the given order
@@ -173,16 +192,80 @@ static bool BetterByLength(const SolverWord& a, const SolverWord& b)
 	return a.mScore > b.mScore;
 }
 
+// The points and the fire of thePath, as Submit will have them (theFires: the board's fire tiles)
+static bool IsBonusTile(const Piece* thePiece)
+{
+	return (thePiece->mType == TILE_GREEN) || (thePiece->mType == TILE_GOLD) || (thePiece->mType == TILE_SAPPHIRE) ||
+		(thePiece->mType == TILE_DIAMOND);
+}
+
+static void RatePath(SolverWord* theWord, const std::vector<Piece*>& theFires, bool isClassic, WordScore* theScore,
+	PieceList* theList)
+{
+	const std::vector<Piece*>& thePath = theWord->mPath;
+	theList->assign(thePath.begin(), thePath.end());
+	theScore->Build(theList);
+	theWord->mScore = theScore->mScore;
+	theWord->mFireTiles = 0;
+	theWord->mFireRow = -1;
+	theWord->mBonusTiles = 0;
+	theWord->mNewFire = 0.0;
+	theWord->mNewFireSure = 0;
+	theWord->mFireCost = 0.0;
+	for (size_t i = 0; i < thePath.size(); i++)
+	{
+		if (IsBonusTile(thePath[i]))
+			theWord->mBonusTiles++;
+		if (thePath[i]->mType == TILE_FIRE)
+		{
+			theWord->mFireTiles++;
+			theWord->mFireRow = std::max(theWord->mFireRow, thePath[i]->mRow);
+		}
+	}
+	theWord->mFireLeftRow = -1;
+	theWord->mFireDrops = 0;
+	theWord->mSafety = SOLVER_SAFE;
+	for (size_t f = 0; f < theFires.size(); f++)
+	{
+		Piece* aFire = theFires[f];
+		if (std::find(thePath.begin(), thePath.end(), aFire) != thePath.end())
+			continue;
+		if ((isClassic) && (aFire->mRow >= BOARD_ROWS - 1))
+			theWord->mSafety = SOLVER_FATAL;
+		int aFall = 0;
+		for (size_t i = 0; i < thePath.size(); i++)
+		{
+			if ((thePath[i]->mCol == aFire->mCol) && (thePath[i]->mRow > aFire->mRow))
+				aFall++;
+		}
+		if (aFall > 0)
+			theWord->mFireDrops++;
+		theWord->mFireLeftRow = std::max(theWord->mFireLeftRow, aFire->mRow + aFall);
+	}
+	if ((theWord->mSafety == SOLVER_SAFE) && (theWord->mFireLeftRow >= BOARD_ROWS - 1))
+		theWord->mSafety = SOLVER_DANGER;
+	ModWordEffects anEffects;
+	if ((theWord->mSafety == SOLVER_SAFE) && (ModWordGetEffects(theWord->mWord, &anEffects)) &&
+		((anEffects.mEveryTile) || (anEffects.mFire > 0)))
+		theWord->mSafety = SOLVER_SETS_FIRE;
+	theWord->mKind = SOLVER_HINT_BEST;
+}
+
+static void GetFires(const std::vector<Piece*>& theTiles, std::vector<Piece*>* theFires)
+{
+	for (size_t i = 0; i < theTiles.size(); i++)
+	{
+		if (theTiles[i]->mType == TILE_FIRE)
+			theFires->push_back(theTiles[i]);
+	}
+}
+
 void Sexy::FindSolverWords(const std::vector<Piece*>& theTiles, BookWormApp* theApp, std::vector<SolverWord>* theWords,
 	int theLevel)
 {
 	bool isClassic = (theApp->mGameMode == 0);
 	std::vector<Piece*> aFires;
-	for (size_t i = 0; i < theTiles.size(); i++)
-	{
-		if (theTiles[i]->mType == TILE_FIRE)
-			aFires.push_back(theTiles[i]);
-	}
+	GetFires(theTiles, &aFires);
 
 	WordScore aScore;
 	aScore.mApp = theApp;
@@ -193,45 +276,128 @@ void Sexy::FindSolverWords(const std::vector<Piece*>& theTiles, BookWormApp* the
 		SolverWord aWord;
 		aWord.mWord = theWord;
 		aWord.mPath = thePath;
-		aList.assign(thePath.begin(), thePath.end());
-		aScore.Build(&aList);
-		aWord.mScore = aScore.mScore;
-		aWord.mFireTiles = 0;
-		aWord.mFireRow = -1;
-		for (size_t i = 0; i < thePath.size(); i++)
-		{
-			if (thePath[i]->mType == TILE_FIRE)
-			{
-				aWord.mFireTiles++;
-				aWord.mFireRow = std::max(aWord.mFireRow, thePath[i]->mRow);
-			}
-		}
-		aWord.mFireLeftRow = -1;
-		aWord.mSafety = SOLVER_SAFE;
-		for (size_t f = 0; f < aFires.size(); f++)
-		{
-			Piece* aFire = aFires[f];
-			if (std::find(thePath.begin(), thePath.end(), aFire) != thePath.end())
-				continue;
-			if ((isClassic) && (aFire->mRow >= BOARD_ROWS - 1))
-				aWord.mSafety = SOLVER_FATAL;
-			int aFall = 0;
-			for (size_t i = 0; i < thePath.size(); i++)
-			{
-				if ((thePath[i]->mCol == aFire->mCol) && (thePath[i]->mRow > aFire->mRow))
-					aFall++;
-			}
-			aWord.mFireLeftRow = std::max(aWord.mFireLeftRow, aFire->mRow + aFall);
-		}
-		if ((aWord.mSafety == SOLVER_SAFE) && (aWord.mFireLeftRow >= BOARD_ROWS - 1))
-			aWord.mSafety = SOLVER_DANGER;
-		ModWordEffects anEffects;
-		if ((aWord.mSafety == SOLVER_SAFE) && (ModWordGetEffects(theWord, &anEffects)) &&
-			((anEffects.mEveryTile) || (anEffects.mFire > 0)))
-			aWord.mSafety = SOLVER_SETS_FIRE;
-		aWord.mKind = SOLVER_HINT_BEST;
+		RatePath(&aWord, aFires, isClassic, &aScore, &aList);
 		theWords->push_back(aWord);
 	});
+}
+
+void Sexy::RateSolverWord(SolverWord* theWord, const std::vector<Piece*>& theTiles, BookWormApp* theApp, int theLevel)
+{
+	std::vector<Piece*> aFires;
+	GetFires(theTiles, &aFires);
+	WordScore aScore;
+	aScore.mApp = theApp;
+	aScore.mLevel = theLevel;
+	PieceList aList;
+	RatePath(theWord, aFires, theApp->mGameMode == 0, &aScore, &aList);
+	theWord->mWord = aScore.mWord;
+}
+
+SolverFireRater::SolverFireRater(const std::vector<Piece*>& theTiles, bool isClassic, int theLevel, bool isLevelsFirst,
+	double theMeter, bool isSkipping, const SexyString& theBonusWord) :
+	mGrid(BOARD_ROWS * BOARD_COLS, NULL), mClassic(isClassic), mLevel(theLevel), mLevelsFirst(isLevelsFirst),
+	mMeter(theMeter), mSkipping(isSkipping), mBonusWord(theBonusWord)
+{
+	for (Piece* aPiece : theTiles)
+	{
+		mGrid[aPiece->mRow * BOARD_COLS + aPiece->mCol] = aPiece;
+		if (aPiece->mType == TILE_FIRE)
+			mFires.push_back(aPiece);
+	}
+}
+
+SolverFireRater SolverFireRater::ForBoard(Board* theBoard, const std::vector<Piece*>& theTiles)
+{
+	return SolverFireRater(theTiles, theBoard->mApp->mGameMode == GAMEMODE_CLASSIC, theBoard->mLevel,
+		theBoard->RefillIsLevelsFirst(), theBoard->mFireMeter, theBoard->mSkipRandomFire, theBoard->mBonusWord);
+}
+
+int SolverFireRater::CostOrder(const SolverWord& theWord)
+{
+	return (int)std::lround(theWord.mFireCost * 100.0);
+}
+
+// The new fire tiles to expect from a refill: theHit the chance of the chance fire tile, isMeterDue the meter's;
+// theOpen columns lost exactly one tile, each takes one due fire tile
+static double PlacedFire(double theHit, bool isMeterDue, int theOpen)
+{
+	if (theOpen == 0)
+		return 0.0;
+	if (theOpen == 1)
+		return isMeterDue ? 1.0 : theHit;
+	return (isMeterDue ? 1.0 : 0.0) + theHit;
+}
+
+void SolverFireRater::Rate(SolverWord* theWord) const
+{
+	theWord->mNewFire = 0.0;
+	theWord->mNewFireSure = 0;
+	theWord->mFireCost = 0.0;
+	if (!mClassic)
+		return;
+
+	const std::vector<Piece*>& aPath = theWord->mPath;
+	double aChance = gFireChanceByLevel[((unsigned int)mLevel > 11) ? 12 : mLevel] / 100.0;
+	double aRefill = gFireMeterRefill[((unsigned int)mLevel > 10) ? 11 : mLevel];
+
+	// Submit's fire meter
+	int aLength = (int)theWord->mWord.size();
+	unsigned int aLengthIndex = (unsigned int)(aLength - 3);
+	double aByLength = gFireMeterByLength[(aLengthIndex > 4) ? 5 : aLengthIndex];
+	double aMeter = mMeter;
+	if ((theWord->mFireTiles == 0) || (aByLength > 0.0))
+		aMeter += aByLength;
+	bool isSkipping = mSkipping;
+	if ((mBonusWord.size() != 0) && (_stricmp(theWord->mWord.c_str(), mBonusWord.c_str()) == 0))
+	{
+		isSkipping = true;
+		aMeter += aLength;
+	}
+	aMeter -= 1.0;
+
+	// The word's refill: the chance roll, then the meter (not on the level's first refill); open columns are the
+	// ones the word takes exactly one tile from
+	int aTaken[BOARD_COLS] = {};
+	for (Piece* aPiece : aPath)
+		aTaken[aPiece->mCol]++;
+	bool isMeterDue = (!mLevelsFirst) && (aMeter <= 0.0);
+	int anOpen = (int)std::count(aTaken, aTaken + BOARD_COLS, 1);
+	double aNewFire = PlacedFire(isSkipping ? 0.0 : aChance, isMeterDue, anOpen);
+	int aSure = ((isMeterDue) && (anOpen > 0)) ? 1 : 0;
+	if (isMeterDue)
+		aMeter += aRefill;
+
+	// BurnTiles: a fire tile the word leaves out burns the tile under it when that one's countdown runs out
+	// (neither in the word); once they have burned away, a refill with their columns open
+	int aBurned[BOARD_COLS] = {};
+	bool hasBurns = false;
+	for (Piece* aFire : mFires)
+	{
+		if ((aFire->mRow >= BOARD_ROWS - 1) || (std::find(aPath.begin(), aPath.end(), aFire) != aPath.end()))
+			continue;
+		Piece* aBelow = mGrid[(aFire->mRow + 1) * BOARD_COLS + aFire->mCol];
+		if ((aBelow != NULL) && (aBelow->mBurnCountdown == 1) && (std::find(aPath.begin(), aPath.end(), aBelow) == aPath.end()))
+		{
+			aBurned[aFire->mCol]++;
+			hasBurns = true;
+		}
+	}
+	if (hasBurns)
+	{
+		// a skip the word's roll left is used up by this one
+		bool isBurnMeterDue = aMeter <= 0.0;
+		int aBurnOpen = (int)std::count(aBurned, aBurned + BOARD_COLS, 1);
+		aNewFire += PlacedFire(isSkipping ? aChance * aChance : aChance, isBurnMeterDue, aBurnOpen);
+		if ((isBurnMeterDue) && (aBurnOpen > 0))
+			aSure++;
+		if (isBurnMeterDue)
+			aMeter += aRefill;
+	}
+
+	theWord->mNewFire = aNewFire;
+	theWord->mNewFireSure = aSure;
+	// the meter's drain counts as fire to come: each refill of it goes with a fire tile, landed or dropped
+	theWord->mFireCost = aNewFire + (mMeter - aMeter) / aRefill;
 }
 
 void Solver::Solve()
@@ -255,11 +421,55 @@ void Solver::Solve()
 		}
 	}
 
+	// "saveBonus": after safety (and for the fire hint the lowest fire tile), a path without bonus tiles first
+	bool isSaving = SaveBonus();
+	auto aSavesFirst = [isSaving](const SolverWord& a, const SolverWord& b, bool* theResult)
+	{
+		if ((!isSaving) || (a.mSafety != b.mSafety) || ((a.mBonusTiles == 0) == (b.mBonusTiles == 0)))
+			return false;
+		*theResult = (a.mBonusTiles == 0);
+		return true;
+	};
+	// "fewerFire": before that, the fewest new fire tiles (SolverFireRater's cost); not for the longest word
+	bool isFewer = FewerFire();
+	auto aFewerFirst = [isFewer](const SolverWord& a, const SolverWord& b, bool* theResult)
+	{
+		if ((!isFewer) || (a.mSafety != b.mSafety) || (SolverFireRater::CostOrder(a) == SolverFireRater::CostOrder(b)))
+			return false;
+		*theResult = SolverFireRater::CostOrder(a) < SolverFireRater::CostOrder(b);
+		return true;
+	};
+	auto aBetterByScore = [&](const SolverWord& a, const SolverWord& b)
+	{
+		bool aResult;
+		if ((aFewerFirst(a, b, &aResult)) || (aSavesFirst(a, b, &aResult)))
+			return aResult;
+		return SolverBetterByScore(a, b);
+	};
+	auto aBetterForFire = [&](const SolverWord& a, const SolverWord& b)
+	{
+		bool aResult;
+		if ((a.mFireRow == b.mFireRow) && ((aFewerFirst(a, b, &aResult)) || (aSavesFirst(a, b, &aResult))))
+			return aResult;
+		return SolverBetterForFire(a, b);
+	};
+	auto aBetterByLength = [&](const SolverWord& a, const SolverWord& b)
+	{
+		bool aResult;
+		return aSavesFirst(a, b, &aResult) ? aResult : BetterByLength(a, b);
+	};
+
 	// Every path, with its points and what it does to the fire
 	std::vector<SolverWord> aWords;
 	FindSolverWords(aTiles, mBoard->mApp, &aWords);
 	if (aWords.empty())
 		return;
+	if (isFewer)
+	{
+		SolverFireRater aRater = SolverFireRater::ForBoard(mBoard, aTiles);
+		for (SolverWord& aWord : aWords)
+			aRater.Rate(&aWord);
+	}
 
 	// One path per word for the lists by points and length: its best by points
 	std::map<SexyString, size_t> aBestPath;
@@ -268,7 +478,7 @@ void Solver::Solve()
 		std::map<SexyString, size_t>::iterator anItr = aBestPath.find(aWords[i].mWord);
 		if (anItr == aBestPath.end())
 			aBestPath[aWords[i].mWord] = i;
-		else if (SolverBetterByScore(aWords[i], aWords[anItr->second]))
+		else if (aBetterByScore(aWords[i], aWords[anItr->second]))
 			anItr->second = i;
 	}
 	std::vector<SolverWord> aDistinct;
@@ -281,7 +491,7 @@ void Solver::Solve()
 		const SolverWord* aBest = NULL;
 		for (size_t i = 0; i < aWords.size(); i++)
 		{
-			if ((aWords[i].mFireTiles > 0) && ((aBest == NULL) || (SolverBetterForFire(aWords[i], *aBest))))
+			if ((aWords[i].mFireTiles > 0) && ((aBest == NULL) || (aBetterForFire(aWords[i], *aBest))))
 				aBest = &aWords[i];
 		}
 		if (aBest != NULL)
@@ -305,7 +515,7 @@ void Solver::Solve()
 		}
 	}
 
-	std::stable_sort(aDistinct.begin(), aDistinct.end(), SolverBetterByScore);
+	std::stable_sort(aDistinct.begin(), aDistinct.end(), aBetterByScore);
 	int aBestLeft = BestCount();
 	for (size_t i = 0; (i < aDistinct.size()) && (aBestLeft > 0); i++)
 	{
@@ -316,7 +526,24 @@ void Solver::Solve()
 		aBestLeft--;
 	}
 
-	std::stable_sort(aDistinct.begin(), aDistinct.end(), BetterByLength);
+	// "saveBonus": the best word that spends the saved bonus tiles (any of its paths that uses them)
+	if (isSaving)
+	{
+		const SolverWord* aCashIn = NULL;
+		for (size_t i = 0; i < aWords.size(); i++)
+		{
+			if ((aWords[i].mBonusTiles > 0) && ((aCashIn == NULL) || (SolverBetterByScore(aWords[i], *aCashIn))))
+				aCashIn = &aWords[i];
+		}
+		if (aCashIn != NULL)
+		{
+			mHints.push_back(*aCashIn);
+			mHints.back().mKind = SOLVER_HINT_CASHIN;
+			aListed.insert(aCashIn->mWord);
+		}
+	}
+
+	std::stable_sort(aDistinct.begin(), aDistinct.end(), aBetterByLength);
 	if (aListed.insert(aDistinct[0].mWord).second)
 	{
 		mHints.push_back(aDistinct[0]);
@@ -351,6 +578,40 @@ void Solver::Reset()
 	mHintIdx = -1;
 	mBoardSig.clear();
 	mPending = false;
+}
+
+bool Solver::IsCurrent() const
+{
+	return (!mBoardSig.empty()) && (BoardSignature() == mBoardSig);
+}
+
+void Solver::Refresh()
+{
+	if ((BoardAtRest(mBoard)) && (!IsCurrent()))
+		Solve();
+}
+
+void Solver::SelectListed(int theIdx)
+{
+	if ((theIdx < 0) || (theIdx >= (int)mHints.size()) || (!BoardAtRest(mBoard)) || (!IsCurrent()))
+		return;
+	mPending = false;
+	SelectHint(theIdx);
+}
+
+void Solver::PlayListed(int theIdx)
+{
+	if ((mBoard->mState != BOARD_PLAYING) || (mBoard->mPauseCount > 0) || (!BoardAtRest(mBoard)))
+		return;
+	Refresh();
+	if ((theIdx < 0) || (theIdx >= (int)mHints.size()))
+	{
+		mBoard->mApp->PlaySample(SOUND_BUZZER);
+		return;
+	}
+	mPending = false;
+	SelectHint(theIdx);
+	mBoard->ButtonDepress(BOARD_BUTTON_SUBMIT);
 }
 
 void Solver::RequestHint()
@@ -395,7 +656,24 @@ void Solver::Draw(Graphics* g)
 		aKind = "BONUS WORD";
 	else if (aHint.mKind == SOLVER_HINT_LONGEST)
 		aKind = "LONGEST";
+	else if (aHint.mKind == SOLVER_HINT_CASHIN)
+		aKind = "CASH IN";
 	SexyString aText = StrFormat("%s  %d/%d", aKind, mHintIdx + 1, (int)mHints.size());
+	if ((SaveBonus()) && (aHint.mBonusTiles > 0))
+		aText += StrFormat("  %d BONUS TILE%s", aHint.mBonusTiles, (aHint.mBonusTiles == 1) ? "" : "S");
+	if ((FewerFire()) && (mBoard->mApp->mGameMode == GAMEMODE_CLASSIC))
+	{
+		// the meter's fire tiles are certain, the rest a chance
+		int aChance = (int)std::lround((aHint.mNewFire - aHint.mNewFireSure) * 100.0);
+		if ((aHint.mNewFireSure == 0) && (aChance == 0))
+			aText += "  NO NEW FIRE";
+		else if (aHint.mNewFireSure == 0)
+			aText += StrFormat("  NEW FIRE %d%%", aChance);
+		else if (aChance == 0)
+			aText += StrFormat("  NEW FIRE %d", aHint.mNewFireSure);
+		else
+			aText += StrFormat("  NEW FIRE %d + %d%%", aHint.mNewFireSure, aChance);
+	}
 	if (aHint.mSafety == SOLVER_FATAL)
 		aText += "  ENDS THE GAME";
 	else if (aHint.mSafety == SOLVER_DANGER)

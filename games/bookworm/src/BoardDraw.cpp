@@ -18,6 +18,8 @@
 #include "Graphics.h"
 #include "Image.h"
 #include "MemoryImage.h"
+#include "ModFeatures.h"
+#include "TileSymbols.h"
 #include "Font.h"
 #include "ImageFont.h"
 #include <cmath>
@@ -85,6 +87,20 @@ void Board::Draw(Graphics* g)
 	mEmberMgr->Draw(g);
 	if (mSolver != NULL)
 		mSolver->Draw(g);   // port(mod): the hint's tag
+
+	// port(mod): a watched replay says so above the tiles, with its speed and keys (Replay.h)
+	if (mPlayer != NULL)
+	{
+		Font* aFont = mApp->mFonts[FONT_MYRIADWEB10];
+		SexyString aText = StrFormat(_S("REPLAY %dX   1-4: speed, space: pause, Esc: stop"), mApp->mWatchSpeed);
+		int aWidth = aFont->StringWidth(aText) + 16;
+		int aX = 233 + (640 - 233 - aWidth) / 2;   // over the tiles (x 233..640)
+		g->SetColor(Color(0, 0, 0, 160));
+		g->FillRect(aX, 0, aWidth, 17);
+		g->SetFont(aFont);
+		g->SetColor(Color(255, 214, 110));
+		g->DrawString(aText, aX + 8, 13);
+	}
 }
 
 // port(mod): a groove across a left-panel plank (30 px high from theY), dark with a light edge, where a
@@ -398,6 +414,14 @@ void Board::DrawPieces(Graphics* g)
 // image, the letter glyph, the value digit and an additive highlight. A tile is lit when selected or when
 // its letter is the held key (mHighlightKey). Letter flips (a tile's own, or the whole board in
 // BOARD_SCRAMBLING) run as a diagonal wave: frames 1..7 show tile_spin_fx, then the new letter.
+// port(mod): colour-blind mode's symbol over a special tile (not on the charred board)
+static void DrawModSymbol(Board* theBoard, Graphics* g, Piece* thePiece)
+{
+	if ((theBoard->mTileSymbols) && (!theBoard->mBurnedDown))
+		DrawTileSymbol(g, theBoard->mApp, (int)thePiece->mX, (int)thePiece->mY, thePiece->mType,
+			ModFeatureBool("tileSymbols", "large", false));
+}
+
 void Board::DrawPiece(Graphics* g, Piece* thePiece)
 {
 	int aLetter = thePiece->mLetter;
@@ -493,6 +517,7 @@ void Board::DrawPiece(Graphics* g, Piece* thePiece)
 				g->SetDrawMode(Graphics::DRAWMODE_ADDITIVE);
 				g->DrawImage(mApp->mImages[IMAGE_TILE_GEMHILITE], (int)thePiece->mX, (int)thePiece->mY);
 				g->SetDrawMode(Graphics::DRAWMODE_NORMAL);
+				DrawModSymbol(this, g, thePiece);
 				return;
 			}
 			default:
@@ -503,6 +528,7 @@ void Board::DrawPiece(Graphics* g, Piece* thePiece)
 	}
 
 	g->DrawImage(aTileSet, (int)thePiece->mX, (int)thePiece->mY, Rect((aLetter - 'A') * 57, 0, 57, 57));
+	DrawModSymbol(this, g, thePiece);
 }
 
 // 0x404380

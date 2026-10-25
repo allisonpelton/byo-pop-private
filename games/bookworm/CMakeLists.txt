@@ -4,8 +4,9 @@
 # old framework behaviours.
 # Native: bookworm.exe [-gamedir=<dir>] [-userdir=<dir>] [-modsdir=<dir>] (see src/main.cpp); it finds
 # assets/bookworm/ (games/bookworm/tools/stage_bookworm_assets.py) or the retail install by itself.
-# Web: bookworm.html/.js/.wasm; its page (web/shell.html with web/page.js and page.css here) imports the user's game
-# files into /bwpersist (IDBFS) and starts the game with callMain(). The music is an MO3 module: libopenmpt via sexyopenmpt.
+# Web: bookworm.html/.js/.wasm; its page (web/shell.html with web/page.js, page.css and page.html here: the Replays
+# panel) imports the user's game files into /bwpersist (IDBFS) and starts the game with callMain(). The music is an
+# MO3 module: libopenmpt via sexyopenmpt.
 file(GLOB BOOKWORM_SOURCES CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp)
 # Test hooks (-autoplay): test code kept out of the game code (the autoplay bot has its own RNG)
 file(GLOB BOOKWORM_TESTHOOK_SOURCES CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/src/testhooks/*.cpp)

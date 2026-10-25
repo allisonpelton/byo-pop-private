@@ -1,0 +1,11 @@
+{
+  "id": "close-balloons",
+  "name": "Right-Click Closes Balloons",
+  "version": "1.0",
+  "author": "byo-pop",
+  "description": "A right click anywhere on the board closes Lex's balloon (a hint, a definition, a remark) without waiting for it, as a click on the balloon does, and still clears the selection as usual. Play is unchanged, so games keep the usual high scores.",
+  "affectsScores": false,
+  "features": {
+    "closeBalloons": true
+  }
+}

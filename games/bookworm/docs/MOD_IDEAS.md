@@ -15,7 +15,14 @@ redistributed, stay git-ignored. How to install and test the mods that exist: RE
 | 3 | Bigger dictionary, with Collins (`mods/collins`) | done |
 | 4 | Rude words that set fires (`mods/rude-words`) | done |
 | 5 | Greedy bots on the game-over page (`mods/greedy-bots`) | done |
-| 6 | HD art; the smaller ideas; typing a word to play it (4.6, the user's idea) | next |
+| 6 | Type a word to play it (`mods/type-word`, 4.6, the user's idea) | done |
+| 7 | HD art (`tools/make_hd4x_mod.py`, 4.3) | done |
+| 8 | The smaller ideas (4.4): missed words, par, daily board, word journal, colour-blind, LiveSplit, widescreen | done |
+| 9 | Definitions while selecting (`mods/select-definitions`, 4.7, the user's idea) | done |
+| 10 | The solver saves bonus tiles (`mods/solver` setting `saveBonus`, 4.8, the user's idea) | done |
+| 11 | The solver keeps new fire tiles away (`mods/solver` setting `fewerFire`, 4.9), and a third greedy bot that plays so (the user's idea) | done |
+| 12 | Replays (`mods/replays`, 4.10, the user's idea, after Big Money's) | done |
+| 13 | The user's requests from the browser tests (4.11): definitions from the side panel, a second click plays a solver word, number keys play them, a double click on a word played undoes back to it, right click closes Lex's balloon (`mods/close-balloons`), Enter continues a level, the greedy bots play the bonus word first | done |
 
 Code mods read their switches from the mod's `"features"` (`src/ModFeatures.h`: a feature on, a live
 setting's value) and say `"affectsScores": true`, so their games get their own high scores and saved games
@@ -122,15 +129,17 @@ the same, since each mod's words are those the game's own list lacks, whatever o
 Mod `greedy-bots` (feature `"greedyBots"`, `src/GreedyBots.cpp`), Classic only, `"affectsScores": false` (the
 player's game is untouched). At a fresh game's first board (no word or scramble yet) `BotGame::Capture` copies
 the board, `gGameRand` and the rest of the state the rules draw on (RandomLetter's previous letter, Refill's
-previous level, the fire meter, the reward streak, the bonus words). Two bots then play their own games from
+previous level, the fire meter, the reward streak, the bonus words). Three bots then play their own games from
 there, about 2 ms of moves a tick while the player plays and 12 ms once the game is over, until each burns
 out, is stuck or reaches 2,500 moves:
 - **Best word**: the best-scoring word, the bonus word's points included, one that ends the game at once only
   when nothing else is there; then the longest.
 - **Fire first**: the safest word (the solver's safety); among those, one with fire tiles first, in the
   solver's fire-hint order (the lowest fire tile, then the most); else the best-scoring.
+- **Least fire** (added with 4.9): as fire first, but after the lowest fire tile the fewest new fire tiles
+  (SolverFireRater's cost) before the rest. A game saved with two bots reads with this one absent.
 
-Both use the solver's search (`FindSolverWords`), scored at the bot's own level (`WordScore::mLevel`: the
+All use the solver's search (`FindSolverWords`), scored at the bot's own level (`WordScore::mLevel`: the
 game's scoring reads the board's level), and scramble when the board spells nothing. The model (`BotGame`) is
 Submit, Scramble, Refill, BurnTiles, RemovePieces, AwardSpecialTile, the rude-words effects, PickBonusWord and
 LevelUp, drawing from its copy of the generator in the game's order, and the tile pass as far as it decides
@@ -150,19 +159,33 @@ them, an undo leaves the bots as they are).
   and level 53 at the cap. A game quit while the bots played and continued by a second run
   (`-autoplaycontinue=1`) ended them exactly as the uninterrupted game.
 
-### 4.3 HD art
-A generator like Bejeweled's (Real-ESRGAN in `E:\retools`) that upscales the player's own images into a
-git-ignored `@2x` mod: images and their alpha masks upscaled together; sprite strips cel by cel with padding;
-JPEG backdrops with a denoising model; tile letters redrawn from a free vector font if upscaled ones look soft.
+### 4.3 HD art (done)
+`tools/make_hd4x_mod.py`, adapted from Big Money's: Real-ESRGAN (`E:\retools`) upscales the player's own
+images and font strips 4x into the git-ignored `mods/hd4x-textures` (`<stem>@4x.png` beside the 1x files, so
+code that reads pixels sees the originals). Transparent pixels are filled from their opaque neighbours before
+the upscale, so edges keep no junk colour.
 
 ### 4.4 Smaller ideas
-- **Missed-word review**: after each word or at game over, the best word that was there and the points missed.
-- **Par mode**: each board's par is the solver's best word; the score is a percentage of par.
-- **Daily board**: seeded from the date, with a local history (no online leaderboard).
-- **Word journal**: every word played, the best per level, a letter heatmap, stored locally.
-- **Colour-blind mode**: a symbol on green, gold, sapphire, diamond and fire tiles; a high-contrast tile skin.
-- **LiveSplit**: levels as splits, as in Bejeweled and Big Money.
-- **Widescreen layout**: a side panel for the solver's list and the word history.
+- **Missed-word review** (done, `mods/missed-words`, `src/WordReview.cpp`): after each word that was not the
+  board's best, that word in Lex's balloon; the points missed on the level and game-over pages. Affects scores
+  (the note can name a word still on the board).
+- **Par mode** (done, `mods/par`, same file): each board's par is its best word's points; each word's share of
+  par in the balloon, the level's and the game's on the pages.
+- **Daily board** (done, `mods/daily-board`, `src/DailyBoard.cpp`): each day's games start from one board,
+  seeded by the date and mode; a local history in the player's `daily-board.txt` (no online leaderboard).
+- **Word journal** (done, `mods/word-journal`, `src/WordJournal.cpp`, `src/JournalWidget.cpp`): every word
+  played in the player's `word-journal.txt`; at game over a book with the totals, best and longest words, a
+  heatmap of the letters played against how often each is dealt, and the best word of each level.
+- **Colour-blind mode** (done, `mods/colour-blind`, `src/TileSymbols.cpp`): a symbol on green, gold, sapphire,
+  diamond and fire tiles, drawn as shapes; "large" puts it on a dark plate. No high-contrast skin (yet).
+- **LiveSplit** (done, `mods/livesplit`, `src/LiveSplitObserver.cpp`, `tools/livesplit/`): Big Money's block and
+  tests, ported: the run starts with a new game, splits at level clears or score marks, resets at a game over (a
+  fire tile through the bottom in Classic, in Action the countdown of a fire tile on the bottom row) or when the
+  game is left.
+- **Widescreen layout** (done, `mods/widescreen`, `src/SidePanel.cpp`): `BookWormApp::PreDisplayHook` makes the
+  screen 854 x 480 and every screen keeps its 640 x 480 at the left (`GAME_SCREEN_WIDTH`); the panel beside the
+  board lists the solver's hints (a click selects one) and the words played this game, read from the board's game
+  log (Board::Submit's codes), so undo and Continue need nothing of their own.
 
 ### 4.5 Earlier proposals, still open
 - **Definitions** for more words without Collins: `popdefs.txt` has 2,249; WordNet (free with its notice)
@@ -172,14 +195,96 @@ JPEG backdrops with a denoising model; tile letters redrawn from a free vector f
   then a word list, bonus words, definitions, `texts.xml` and tile art.
 - **Gameplay variants**: board size, fire-tile rate, a timed sprint, a relaxed no-fire mode, set seeds.
 
-### 4.6 Type a word (the user's idea, 2026-10-24)
-Type a word on the keyboard and press Enter to play it: the game finds it on the board. Where the board
-spells it more than once, the path taken is the one with the most fire tiles; among equals, one that drops no
-fire tile (the solver's safety: a path that eats the tiles under a fire tile drops it, one that leaves a bottom
-fire tile out ends a Classic game); otherwise any. The search is the solver's (`FindSolverWords`: every path,
-scored and rated by Submit's own rules). To settle when it is built: the typed letters shown as a selection
-(the best path for the letters so far), Backspace and Esc, Q typed as the Qu tile, a buzz when the board does
-not spell the word, and keys the game already uses (Tab for a hint, Ctrl+Z for undo).
+### 4.6 Type a word (done, the user's idea, 2026-10-24)
+`mods/type-word` (feature `typeWord`, `src/TypedWord.cpp`). Each letter typed selects the best path for the
+letters so far, so the selection can move as the word grows; a letter no path can add is refused with a buzz.
+Enter submits the selection as SUBMIT does (a clicked one or a hint too). Backspace takes back a letter and
+selects the best path for the rest; Esc clears. A click, a hint, a word played, or a selection the game clears
+(in Action, a fire tile burning the tile under a selected one) starts the next typed word afresh. Q is the Qu
+tile (typed Q, U; after Q alone the Qu tile is selected). Space still pauses, Tab still hints, Ctrl+Z still
+undoes, and Ctrl with a letter types nothing.
+
+The ranking (`TypedWord::Better`), each step breaking the ties of the one before:
+1. A path that does not end the game (a bottom-row fire tile left out, in Classic). This comes ahead of the
+   user's "most fire tiles", since a path that ends the game is never the one wanted.
+2. The most fire tiles.
+3. The fewest fire tiles dropped (a fire tile left out above a tile of the path falls).
+4. No fire tile dropped to the bottom row.
+5. The best score, for the user's "any instance".
+
+Each path is rated by the solver's own rules (`RateSolverWord`, the rating `FindSolverWords` gives every
+path), over the lettered tiles that are not burning away. The typed letters have a search of their own, a DFS
+over neighbours that keeps at most 5,000 paths. `"affectsScores": false`: every typed word could be clicked,
+and the path it takes is one the player can see. Tested with `-autoplaytype=1` (README.md).
+
+### 4.7 Definitions while selecting (done, the user's idea, 2026-10-25)
+`mods/select-definitions` (feature `selectDefinitions`, `Board::UpdateSelectDefinition`, `Lex::PreviewDefinition`).
+Once the selection has spelled a word for 0.15 s (15 updates), Lex's balloon gives its definition (the
+game's, Collins', or the mod note); a changed selection fades it out. It never pushes out a comment
+Lex is making: it waits for the balloon to be free. A word played ends the preview, and the usual definition
+follows. Play is unchanged (`"affectsScores": false`): the selection already says whether it is a word.
+
+### 4.8 The solver saves bonus tiles (done, the user's idea, 2026-10-25)
+The solver's setting `saveBonus` (Solver::Solve). A bonus tile adds to the multiplier of the whole word (2 per
+green, 4 gold, 7 sapphire, 10 diamond, on top of the length; WordScore::CalcScore), so several in one long word
+of valuable letters score far more than each in a short word. With the setting, every list orders a path without
+bonus tiles before one with them, right after safety: each word's path, the best words, the longest, and the fire
+hint once it takes the lowest fire tile. The bonus word stays (spelled without them where it can be). A CASH IN
+hint after the best words is the best-scoring word that uses them. The -autoplay bot (`-autoplayhints=1`, the
+first hint every move) logs `SAVE MISMATCH` for a best or fire hint that uses bonus tiles where a path as safe
+goes without; seed 1 Classic and seed 2 Action, 30,000 updates: 436 words, none. Over the first 60 hints of
+Classic seed 1, 2 hints used bonus tiles (44 without the setting), and the board held 21 on average (2.4).
+
+### 4.9 The solver keeps new fire tiles away (done, the user's idea, 2026-10-25)
+The solver's setting `fewerFire` and the greedy bot "Least fire" (GREEDY_LEAST_FIRE). In Classic a word's refill
+(Board::Refill) brings a fire tile by chance (gFireChanceByLevel: none on levels 1 to 3, 2% on level 4, up to 32%;
+the first hit after a bonus word is skipped) and one when the hidden fire meter has run out. Submit moves the meter
+by the word's length (gFireMeterByLength, less one: 3 letters -1.5, 4 -0.65, 5 +0.45, 6 +0.85, 7 +2.0, 8 and more
++3.75; a bonus word adds its length); an empty meter is refilled by gFireMeterRefill (5.25 on level 1 down to 1.2
+from level 12) with the fire tile, except on the level's first refill. A due fire tile lands only in a column that
+lost exactly one tile, else it is dropped (the meter refilled all the same). The tiles a word sets burning
+(BurnTiles) bring a refill of their own once they have burned away, with the same chances. SolverFireRater predicts
+a path's new fire tiles from all that (the burns as one refill) and its cost: those plus the meter's drain at the
+level's refill to a fire tile. With the setting, each word's path, the fire hint after the lowest fire tile and the
+best words come in the order of the cost (in hundredths), before `saveBonus`; the longest stays the longest. The
+tag gives the new fire to expect: the meter's tile as certain, the rest as a chance. The bot takes the lowest fire
+tile first, then the lowest cost, then the points (by the cost alone it burned at level 19 on seed 1, where the
+fire-first bot reached level 44).
+
+The -autoplay bot (`-autoplayhints=1`) checks the prediction against the game: over eight Classic games (seeds 1 and
+3 to 9) to game over, 1,541 new fire tiles were expected and 1,532 came (8,500 words), none where none could come and
+never fewer than the certain ones. With the setting the hint bot got 0.16 to 0.19 new fire tiles a word, without it
+0.19 to 0.30 (every seed lower with it, about a fifth fewer). Whether the game lasts longer is another matter: the
+hint bot went further with it on three seeds, less far on four, the same on one. The greedy bots, seeds 1 and 4 to
+9: least fire reached level 43 on average (28 to 51; 6.2 million points), fire first 41 (36 to 48; 3.9 million),
+best word 14.
+
+### 4.10 Replays (done, the user's idea, 2026-10-25)
+The mod `replays`, as Big Money's: `src/Replay.h` has the file and why it is enough. A board is deterministic in
+its ticks from its start, given gGameRand, its own mRand, the overlay's effect generator (the embers of the tiles in
+flight decide when the game-over page comes), the letter generator's program-wide memory, the app's next bonus word
+and the C library's rand() (Lex's idle animations only). The recording keeps those at the start, then the player's
+moves at their times (twice the tick, one more for input after it: an undo or a hint asked for while the tiles
+moved happens inside a tick), rand() seeded again wherever Lex did not update exactly once between two ticks, and
+the mouse coming onto Lex or leaving him (while it rests on him his animation and rand() stand still). The seeds
+come from the clock: a first version drew them from the board's generator, which the watch did not, and its Classic
+game-over page came 4 ticks early (Lex's danger talk, drawn from that generator, had picked another line).
+
+Checked with the -autoplay bot, each game recorded and watched with another -seed at 1x and 8x: Classic (8 levels, 57
+words) and Action (14 levels, 118 words) without other mods; with `solver` hints and `undo` every other word,
+Classic to level 18 (95 words; the solver's fire-first off so the bot burns at last); typed words with `widescreen`,
+`select-definitions`, `greedy-bots` and `close-balloons`, Classic and Action. Every watch ended verified: the same
+tick, score, level and words. (The hint and undo bot's own check logs 2 undo mismatches near 2.75 million points on
+seed 1 with or without the mod: not a replay matter.)
+
+### 4.11 The browser tests' requests (done, the user's, 2026-10-25)
+The widescreen panel shows a word's definition while the mouse rests on it in either list, a click on the solver
+word already selected plays it, and with `undo` a double click on a word played takes back every later move, when
+the level and the depth still hold them all (UndoStack::RequestUndoTo; each snapshot knows the game's word count).
+The solver's setting `hotkeys` (on by default): 1 to 9 and 0 play its first ten words at once, numbered in the
+panel. With `type-word`, Enter on a level's summary is its Continue once the button has slid in. The new mod
+`close-balloons`: a right click on the board closes Lex's balloon. The greedy bots play the bonus word first when the
+board spells it, unless it ends the game.
 
 ## What works as plain data today (no code)
 

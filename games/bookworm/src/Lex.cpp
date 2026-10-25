@@ -1,4 +1,5 @@
 #include "Lex.h"
+#include "Replay.h"
 #include "ModWords.h"
 #include "WordBalloon.h"
 #include "BookWormApp.h"
@@ -87,6 +88,7 @@ Lex::Lex(BookWormApp* theApp)
 	mSweating = false;  // port: the original's SetSweating below compares against an unset byte (no effect)
 	SetSweating(false);
 	mSweatFrame = 0;
+	mPreviewShowing = false;    // port(mod)
 	mMouseInsets.mTop = 28;
 	mMouseInsets.mBottom = 18;
 }
@@ -204,6 +206,10 @@ void Lex::MouseDown(int x, int y, int theClickCount)
 	if ((mApp->mBoard != NULL) && (mApp->mBoard->mPauseCount > 0))
 		return;
 
+	if (mApp->mBoard->IsWatched())
+		return;     // port(mod): a watched replay has the recording's presses (Replay.h)
+	if (mApp->mBoard->mRecorder != NULL)
+		mApp->mBoard->mRecorder->AddOp(Replay::OP_LEX, { 2 });  // port(mod): Replay.h
 	Widget::MouseDown(x, y, theClickCount);
 	mGlow = 0.0;
 	mApp->PlaySample(SOUND_BUTTONCLICK);
@@ -262,6 +268,7 @@ void Lex::Say(const SexyString& theText, Font* theFont, int theDuration)
 	WordBalloon* aBalloon = anOverlay->mBalloon;
 	if (aBalloon->mVisible)
 		return;
+	mPreviewShowing = false;    // port(mod)
 
 	// port: measured once (the original calls StringWidth up to four times for the clamp)
 	int aTextWidth = theFont->StringWidth(theText);
@@ -292,6 +299,7 @@ void Lex::Think(const SexyString& theText, Font* theFont, int theDuration)
 	WordBalloon* aBalloon = anOverlay->mBalloon;
 	if (aBalloon->mVisible)
 		return;
+	mPreviewShowing = false;    // port(mod)
 
 	aBalloon->SetPlainImage(mApp->mImages[IMAGE_BACKDROP_WB_THOUGHT], Insets(20, 25, 20, 40), true);
 	aBalloon->SetText(theText, theFont, 0);
@@ -305,7 +313,7 @@ void Lex::Think(const SexyString& theText, Font* theFont, int theDuration)
 // 0x42d8d0
 // A played word's definition: 213-wide speech box, the word as the header, both left-aligned.
 void Lex::SayDefinition(const SexyString& theWord, Font* theWordFont, const SexyString& theDefinition,
-	Font* theDefFont, int theDuration)
+	Font* theDefFont, int theDuration, const SexyString& theNote)
 {
 	OverlayWidget* anOverlay = mApp->mBoard->mOverlay;
 	if (anOverlay == NULL)
@@ -313,6 +321,7 @@ void Lex::SayDefinition(const SexyString& theWord, Font* theWordFont, const Sexy
 	WordBalloon* aBalloon = anOverlay->mBalloon;
 	if (aBalloon->mVisible)
 		return;
+	mPreviewShowing = false;    // port(mod)
 
 	aBalloon->SetBoxImages(mApp->mImages[IMAGE_BACKDROP_WB_TEXT], mApp->mImages[IMAGE_WB_TEXT_TALK_TAIL],
 		Point((int)(0.75 * 213.0), -2));
@@ -322,6 +331,8 @@ void Lex::SayDefinition(const SexyString& theWord, Font* theWordFont, const Sexy
 	aBalloon->mDoFinger = !aBalloon->mLookupURL.empty();
 	aBalloon->SetColors(gLexSayColors, 4);
 	aBalloon->ClearFooter();
+	if (theNote.size() != 0)
+		aBalloon->SetFooter(theNote, theDefFont, -1);   // port(mod): the word review's note (WordReview.h)
 	aBalloon->mTextInsets = Insets(12, 0, 12, 0);
 	aBalloon->Resize(0, 0, 213, aBalloon->GetPreferredHeight(213));
 	aBalloon->Show(theDuration);
@@ -338,6 +349,7 @@ void Lex::SayReaction(const SexyString& theWord, const SexyString& theReaction, 
 		return;
 	WordBalloon* aBalloon = anOverlay->mBalloon;
 	mHintShowing = false;
+	mPreviewShowing = false;
 
 	aBalloon->SetBoxImages(mApp->mImages[IMAGE_BACKDROP_WB_TEXT], mApp->mImages[IMAGE_WB_TEXT_TALK_TAIL],
 		Point((int)(0.75 * 213.0), -2));
@@ -352,6 +364,52 @@ void Lex::SayReaction(const SexyString& theWord, const SexyString& theReaction, 
 	aBalloon->mTextInsets = Insets(12, 0, 12, 0);
 	aBalloon->Resize(0, 0, 213, aBalloon->GetPreferredHeight(213));
 	aBalloon->Show(theDuration);
+}
+
+// port(mod): the selected word's definition (mod "select-definitions", Board::UpdateSelectDefinition) in
+// SayDefinition's box, shown until EndPreview. It replaces another preview or a balloon fading out, never a
+// message still up (a hint, a played word's definition): false then, to be tried again.
+bool Lex::PreviewDefinition(const SexyString& theWord, const SexyString& theDefinition)
+{
+	OverlayWidget* anOverlay = mApp->mBoard->mOverlay;
+	if (anOverlay == NULL)
+		return false;
+	WordBalloon* aBalloon = anOverlay->mBalloon;
+	if ((aBalloon->mVisible) && (!mPreviewShowing) && (aBalloon->mTargetAlpha > 0.0))
+		return false;
+	mHintShowing = false;
+	mPreviewShowing = true;
+
+	aBalloon->SetBoxImages(mApp->mImages[IMAGE_BACKDROP_WB_TEXT], mApp->mImages[IMAGE_WB_TEXT_TALK_TAIL],
+		Point((int)(0.75 * 213.0), -2));
+	aBalloon->SetHeader(theWord, mApp->mFonts[FONT_MYRIADWEB12BOLD], -1);
+	aBalloon->SetText(theDefinition, mApp->mFonts[FONT_MYRIADWEB10], -1);
+	aBalloon->mLookupURL = ModWordLookupURL(theWord);
+	aBalloon->mDoFinger = !aBalloon->mLookupURL.empty();
+	aBalloon->SetColors(gLexSayColors, 4);
+	aBalloon->ClearFooter();
+	aBalloon->mTextInsets = Insets(12, 0, 12, 0);
+	aBalloon->Resize(0, 0, 213, aBalloon->GetPreferredHeight(213));
+	aBalloon->Show(-1);
+	return true;
+}
+
+// port(mod): the preview goes: fading out, or at once (isAtOnce: the played word's balloon comes next)
+void Lex::EndPreview(bool isAtOnce)
+{
+	if (!mPreviewShowing)
+		return;
+	mPreviewShowing = false;
+	OverlayWidget* anOverlay = mApp->mBoard->mOverlay;
+	if (anOverlay == NULL)
+		return;
+	WordBalloon* aBalloon = anOverlay->mBalloon;
+	aBalloon->Show(0);
+	if (isAtOnce)
+	{
+		aBalloon->mAlpha = 0.0;
+		aBalloon->SetVisible(false);
+	}
 }
 
 // 0x42d9e0 slot 23
@@ -510,7 +568,9 @@ void Lex::Update()
 
 	// Mouse-over glow, 0.075 per update, idle face. While it rises or fades, the animation does not
 	// advance and no random animation starts (a playing one resumes afterwards).
-	if (!mIsOver)
+	// port(mod): a watched replay has the recording's mouse (Replay.h)
+	bool isOver = ((mApp->mBoard != NULL) && (mApp->mBoard->mPlayer != NULL)) ? mApp->mBoard->mPlayer->mLexOver : mIsOver;
+	if (!isOver)
 	{
 		if (mGlow > 0.0)
 		{
@@ -565,6 +625,7 @@ void Lex::Update()
 
 	// Random idle animations from the C library's rand(): 2 draws per update, a third one when the
 	// second hits and Lex is free on an unburnt board.
+	gLexCrtUpdates++;   // port(mod): replays (Replay.h)
 	if ((CrtRand() % 500 == 0) && (!IsBusy()))
 		PlayAnim(((mApp->mBoard != NULL) && mApp->mBoard->mBurnedDown) ? LEXANIM_BURNT_BLINK : LEXANIM_BLINK, false);
 
