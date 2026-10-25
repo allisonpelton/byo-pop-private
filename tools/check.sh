@@ -128,6 +128,8 @@ suite_modmenu() {
 
 suite_livesplit() {
 	local st=0 a b
+	# fresh folders: a game's user folder left by an earlier run (its play count, high scores) changes the games
+	rm -rf "$OUT/livesplit-bejeweled" "$OUT/livesplit-bigmoney"
 	games/bejeweled/tools/livesplit/run_tests.sh --out "$OUT/livesplit-bejeweled" > "$1" 2>&1 || st=1
 	a="bejeweled: $(lastof "$1" 'PASSED|FAILED|failed')"
 	bash games/bigmoney/tools/livesplit/run_tests.sh "$OUT/livesplit-bigmoney" > "$1.bm" 2>&1
