@@ -293,11 +293,14 @@ struct VariantSave
 	int32_t			mMoves = 0;                 // MOVE
 	int32_t			mInvalidMoves = 0;
 	int32_t			mUndosUsed = 0;
+	bool			mHasGravity = false;        // GRAV (stage 7c): written when the rules set a gravity rule; absent reads as 0
+	int32_t			mGravityFlips = 0;
+	bool			mGravityNoFlip = false;
 	size_t			mBodyStart = 0;             // ReadVariantSave: where the v1 field sequence starts (mTimedMode)
 	size_t			mBodyEnd = 0;               // and where the chunks start
 };
 
-// The bytes after the version up to the v1 field sequence, and the chunks after it (RNGS, MOVE, END)
+// The bytes after the version up to the v1 field sequence, and the chunks after it (RNGS, MOVE, GRAV when mHasGravity, END)
 std::string			VariantSaveHeader(const VariantSave& theSave);
 std::string			VariantSaveChunks(const VariantSave& theSave);
 

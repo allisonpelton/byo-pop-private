@@ -16,6 +16,7 @@ class SoundManager
 public:
 	virtual ~SoundManager() {}
 	virtual SoundInstance* GetSoundInstance(unsigned int theSfxID) { return NULL; }
+	void SetDefaultPitch(double theNumSteps) {}
 };
 
 }

@@ -11,6 +11,10 @@
 //       per game). Exit status 0 when every game played alike.
 //   bejeweled_verify rulesid <mod.json>
 //       the RulesId of the mod's rules (Verifier::RulesIdJson) as JSON.
+//   bejeweled_verify mirrortest --seeds <a>..<b> [--moves <n>] [-v]
+//       gravity up against the mirrored down board (Verifier::Mirrortest): a summary per board (-v: a line per
+//       game). Exit status 0 when every seed mirrored. Native only; a BEJ_NO_VARIANTS build prints
+//       "mirrortest skipped: ..." and exits 0.
 // Exit status 2 for a usage error or a file that cannot be read.
 //
 // Wasm (bejeweled_verify.wasm: -sSTANDALONE_WASM --no-entry, no JS glue; its WASI imports are stubbed by the
@@ -98,7 +102,8 @@ int Usage()
 	fprintf(stderr,
 		"usage: bejeweled_verify <replay.bjr> [-trace] [-forcevariant]\n"
 		"       bejeweled_verify difftest --seeds <a>..<b> [--ticks <n>] [--mode normal|timed|both] [-v]\n"
-		"       bejeweled_verify rulesid <mod.json>\n");
+		"       bejeweled_verify rulesid <mod.json>\n"
+		"       bejeweled_verify mirrortest --seeds <a>..<b> [--moves <n>] [-v]\n");
 	return 2;
 }
 
@@ -120,6 +125,47 @@ std::string BaseName(const std::string& thePath)
 {
 	size_t aSlash = thePath.find_last_of("/\\");
 	return (aSlash == std::string::npos) ? thePath : thePath.substr(aSlash + 1);
+}
+
+int Mirrortest(int argc, char** argv)
+{
+	unsigned long aFirst = 1;
+	unsigned long aLast = 1;
+	int aMoves = 200;
+	bool isVerbose = false;
+	bool hasSeeds = false;
+	for (int i = 2; i < argc; i++)
+	{
+		std::string anArg = argv[i];
+		if ((anArg == "--seeds") && (i + 1 < argc))
+		{
+			std::string aRange = argv[++i];
+			size_t aDots = aRange.find("..");
+			aFirst = strtoul(aRange.c_str(), NULL, 10);
+			aLast = (aDots != std::string::npos) ? strtoul(aRange.c_str() + aDots + 2, NULL, 10) : aFirst;
+			if ((aRange.empty() || !isdigit((unsigned char) aRange[0])) || (aLast > 0xFFFFFFFFul))
+				return Usage();
+			hasSeeds = true;
+		}
+		else if ((anArg == "--moves") && (i + 1 < argc))
+			aMoves = atoi(argv[++i]);
+		else if (anArg == "-v")
+			isVerbose = true;
+		else
+			return Usage();
+	}
+	if (!hasSeeds)
+		return Usage();
+	std::string aReport;
+	int aDiffering = Verifier::Mirrortest((uint32_t) aFirst, (uint32_t) aLast, aMoves, isVerbose, &aReport);
+	if (aDiffering < 0)
+	{
+		fputs(aReport.c_str(), stderr);
+		return Usage();
+	}
+	fputs(aReport.c_str(), stdout);
+	fflush(stdout);
+	return (aDiffering == 0) ? 0 : 1;
 }
 
 int Difftest(int argc, char** argv)
@@ -183,6 +229,8 @@ int main(int argc, char** argv)
 	std::string aCommand = argv[1];
 	if (aCommand == "difftest")
 		return Difftest(argc, argv);
+	if (aCommand == "mirrortest")
+		return Mirrortest(argc, argv);
 	if (aCommand == "rulesid")
 	{
 		std::string aText;

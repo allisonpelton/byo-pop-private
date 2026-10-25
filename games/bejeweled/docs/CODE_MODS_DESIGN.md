@@ -35,7 +35,8 @@ panel:
 12. online leaderboards
 
 Added later: dirt tiles (4.14), auto LiveSplit support (4.15), Twilight gravity (4.16), Steven
-Universe gems (4.17) and code-drawn art with no image files (4.18).
+Universe gems (4.17), code-drawn art with no image files (4.18), detailed game-over stats (4.19) and
+arrow gems (4.20).
 
 Where it makes sense the features combine. For example, a diamond board with Twist moves, flame
 gems, a gold layer and undo is a single valid set of rules, built from four mods or from one.
@@ -1674,6 +1675,26 @@ refill and fill ~90, fall-out and game over ~70, clip and guard ~30, chunk, Stat
 It needs stages 3 (StateCodec), 5 (v2 chunks), 6 (the undo row) and 7 (`RefillMasked`, `FillBoardVariant`,
 `DrawVariant`), and coming before 7b lets 7b write its diagonal pass and x settling direction-aware once.
 
+**As built (stage 7c, `BoardShape.cpp`, `BoardVariant.cpp`, `BoardLayout.h`):**
+- A fall's direction is `GravityUp()` when the fall runs, for every gem of the board alike, not the side of
+  each gem's cell. `GravityUp()` already includes `mVariant.mGravity`, so the `GetPieceAt` guard is
+  `if (GravityUp() && theY >= mLayout.mClipBottom) return NULL;`.
+- `HasGravityRule()` is any gravity field off its default (`fallAccel` alone too). It gates the `GRAV` chunk,
+  the StateCodec rows (FULL, LOGIC, SNAP, V2 and UNDO, so an undo brings the flips back) and the trace's
+  `gravity up|down flips N` field, so the saves, hashes and traces of stages 5 to 7 hold.
+- `Board::InitVariant(theApp)` takes the app, because the constructor sets `mApp` after it; it sets the
+  default pitch from `look.soundPitch` (not in a `BEJ_NO_VARIANTS` build, which keeps the look keys only in
+  its played list).
+- Help replaces only the first paragraph of `FULL_INSTRUCTIONS2` (up to its first blank line, the one about
+  gems dropping in) with `FULL_INSTRUCTIONS_TWILIGHT` or `_GRAVITY_UP`; the rest of the text stays.
+- The clip is computed in `ComputeGeometry`: `ToScreen(origin) - (9, 4)` to `ToScreen(origin + extent) +
+  (13, 6)`, rounded like the gems, which is the original (194, 12)-(428, 416) on 8x8.
+- Tests: `mirrortest` runs in `tools/verify/run_tests.sh` (seeds 1..20 per seed of the suite, 8x8 and a holed
+  board, `fallAccel` 75, 200 moves); compare.py's `gravity=` flag checks every settle's direction and flips;
+  the oracle cases of `mods/stage7c` (bot runs for alternate, up, slow, free swaps and the diamond; a scripted
+  game saved in the middle of a rise and resumed, with the Help page; an undo and a kept swap; recordings played
+  back in the game and by both verifiers). A `BEJ_NO_VARIANTS` verifier skips `mirrortest`.
+
 **Sources:**
 - The installed Bejeweled 2 Deluxe (Steam): the game embedded in `WinBej2.exe`, disassembled statically.
 - [wiki.gg: Twilight](https://bejeweled.wiki.gg/wiki/Twilight),
@@ -1829,6 +1850,54 @@ It needs stages 3 (StateCodec), 5 (v2 chunks), 6 (the undo row) and 7 (`RefillMa
   through; screenshots of the page for normal and timed games, at 640x480 and @4x; oracle three ways
   without the mod.
 - **Size:** ~900 lines: observer and hooks ~250, sidecar chunk ~100, page and charts ~400, tests ~150.
+
+### 4.20 Arrow gems (`arrows`, after Bejeweled 3's Butterflies)
+
+- **What:** some gems are cut as arrows, each pointing up, down, left or right. After every move, once the
+  board has settled, each arrow steps one cell the way it points and trades places with the gem there. An
+  arrow that has to step off the board ends the game, so it must be matched before it gets there. The idea
+  is Bejeweled 3's Butterflies mode (butterflies climb a row a move toward a spider at the top), turned four
+  ways. Nothing of that mode's art or texts is used. Asked for by the user on 2026-10-25.
+- **The cut** [Q44]: the bullet cut, a long stone with a flat back and a sharp point, used in jewellery as an
+  accent stone. At gem size it reads as an arrow. The kite cut (four sides, one long point) is the
+  alternative. Each colour's arrow is a facet model in that colour's tones, drawn by stage 16's `art/GemArt`
+  at load time into four rotated rows of a gem sheet (1x and @4x). So the arrows need no image files and
+  recreate no game's art. An arrow matches the gems of its colour like any gem.
+- **Rules** (`arrows.*`, an atomic group):
+  - `arrows.directions`: the directions arrows take, any of `up`, `down`, `left`, `right` [Q39: all four;
+    `["up"]` plays like Butterflies].
+  - `arrows.every`, `arrows.everyMin`: a new arrow after that many moves at level 1, one move fewer each
+    level, down to the minimum [Q40: 6 and 3].
+  - `arrows.bonus`: the points for clearing an arrow, times the number of arrows cleared so far this game
+    [Q41: 100].
+- **Where an arrow appears:** a gem on the edge opposite its direction turns into an arrow (an up arrow on
+  the bottom row, a left arrow in the right column), so every arrow has the whole board to cross. The
+  direction and the cell come from the board's owned RNG (stage 2), drawn at the settle after the move, so
+  games with the default rules draw nothing new.
+- **Stepping:** at the settle that ends a move (the no-match branch of `UpdateFalling`, like 4.16's flip),
+  arrows step in order of their distance to their edge, the closest first.
+  - An arrow whose next cell holds another arrow waits a move [Q43].
+  - A hole in a shaped board is jumped to the next playable cell in that line; past the last one is the
+    edge.
+  - The traded gem slides the other way. A step that makes a match is matched and cascades as usual, and
+    the arrows do not step again until the next move.
+  - A swap that goes back is no move; a kept invalid move (4.1) is one.
+- **Warning:** an arrow on its edge cell, one step from the end, pulses, and the board's edge beyond it glows
+  in the arrow's colour.
+- **The end:** the arrow flies off the edge, then the game-over fall as usual. Running out of moves still
+  ends a game too. In timed mode [Q42] arrows also step per move, and the timer still ends the levels.
+- **Combinations:** Twilight (4.16) and every move type (swap, twist, slide; 4.4, 4.5). An arrow destroyed by
+  a special gem's blast (4.8) counts as cleared.
+- **Saved state:** the arrow cells, their directions and the move counter, in an `ARRW` chunk and StateCodec
+  rows, written only when the rules have arrows. Replays verify headless as usual.
+- **The bot:** the autoplay bot prefers a move that clears the arrow closest to its edge, so that the game
+  modes' measures (section 9, "After the mods") see the mode played with some sense.
+- **Tests:** fixture boards (the step order, a wait, a hole jumped, a step into a match, the game over at
+  the edge); the `-forcevariant` oracle three ways without the mod; scripts with screenshots (an arrow
+  appearing, stepping, the warning, cleared for its bonus, the game over); a save with arrows; undo; replay
+  verify; autoplay runs in normal and timed mode.
+- **Size:** ~1,150 lines: rules and appearing ~200, stepping and the end ~250, art ~300, warning and effects
+  ~150, save and codec ~100, tests ~150.
 
 ---
 
@@ -2700,16 +2769,18 @@ tests. Sizes are new or changed lines.
 | 15 | Steven Universe gems (4.17) | `make_su_gems_mod.py`; `gemsheet.py` split out of the Bejeweled 2 generator; gem models (seven, plus four for stage 8), cel shader, Pearl's smooth gem; spin and glow rows; title gems | Bejeweled 2 output byte-identical after the split; `--preview` sheet; frames inside their cells; screenshots at 640x480 and @4x (title, board, spin, glow); oracle untouched (images only) | ~650 (Python) |
 | 16 | Code-drawn art (4.18) | Shared loader hook (`RegisterImageGenerator`, generated font metrics); `features.codeArt` and its menu settings; `art/Raster`, `art/VectorFont` and the font styles, `art/GemArt` (the facet models in C++); one generator per image; optional user-dir cache | No image files: the oracle scripts run to the end with LOGIC hashes equal to the default run's; sizes equal the originals'; screenshots of every screen at 1x and @4x; web build without images under Node and in the Browser pane; mod images and patches over generated art; oracle three ways without the mod | ~3,800 (≈150 shared) |
 | 17 | Detailed game-over stats (4.19) | `features.gameStats`; `GameStats` observer and its hooks (runs, moves, swaps back, hints, undos, levels, game over); undo entries; sidecar chunk; the Stats button and page with its two charts | Counts against the `-trace` settles of the scripts and autoplay runs; LOGIC equal on and off; undo, resume and watched replay give the same page; screenshots normal and timed, 1x and @4x; oracle three ways without the mod | ~900 |
+| 18 | Arrow gems (4.20) | `arrows.*` (group, validation); arrows appearing from the owned RNG; stepping at the settle (order, waits, holes, the edge); the game over; the warning; the bullet-cut facet model in `art/GemArt`, four rotations; `ARRW` chunk and StateCodec rows; the bot's preference | Fixture boards; `-forcevariant` oracle three ways without the mod; scripts and screenshots (appearing, stepping, warning, bonus, game over); save and undo; replay verify; autoplay normal and timed | ~1,150 |
 
-The total is about 22k lines (16.6k for stages 0–14). Stage 6 comes early on purpose: its round-trip test guards every later
+The total is about 23k lines (16.6k for stages 0–14). Stage 6 comes early on purpose: its round-trip test guards every later
 change to a chunk. Stages 7–12 can be reordered after stage 6. Stage 2b needs only stage 1. Stage 7c
 needs stages 3, 5, 6 and 7 and comes before 7b, so 7b writes its diagonal pass direction-aware once.
 Stage 14 needs stages 3, 4 and 2's owned RNG.
 Stage 15 is images only and needs no other stage. Stage 16 needs stage 1's `features`, the shared
 loader hook and M5's mod menu (for its settings). It comes last so that its gem renderer can take
 stage 15's models and draw stage 8's extra colours. Stage 17 needs stage 1's `features` and stage 3's
-sidecar, and can come any time after stage 6; it is listed last because it was asked for last. Each later
-stage adds its own rows to its page.
+sidecar, and can come any time after stage 6. Each later stage adds its own rows to its page. Stage 18
+needs stage 2's owned RNG, stage 6 and stage 16's `art/GemArt` (for the cut); it was asked for last
+(2026-10-25), and adds its arrow counts to stage 17's page.
 
 **After the mods: game modes (the user, 2026-10-25).** Once every stage above is done, combinations of mods and
 settings that make fun, balanced game modes for the user to play, each tested with the autoplay bot, with ways to
@@ -2864,6 +2935,18 @@ Recommendations are in brackets.
     score over time), or the counts alone? [counts and both charts]
 38. **Game-over stats: across a save.** Keep the counts in the save's sidecar, so a resumed game shows its
     whole history, or count from the resume only? [keep them in the sidecar]
+39. **Arrow gems: directions.** All four directions, or up only, as in Butterflies? Either way a mod can
+    choose with `arrows.directions`. [all four]
+40. **Arrow gems: how often.** A new arrow every 6 moves at level 1, one move fewer each level, down to
+    every 3? [yes, tuned later with the game modes]
+41. **Arrow gems: the bonus.** 100 points for each arrow cleared, times the number cleared so far this game?
+    [yes]
+42. **Arrow gems: timed mode.** Arrows step per move in timed mode too, or also on a clock (every few
+    seconds without a move), or no arrows in timed mode? [per move]
+43. **Arrow gems: in each other's way.** An arrow whose next cell holds another arrow waits a move, or the
+    two trade places? [it waits]
+44. **Arrow gems: the cut.** The bullet cut (long, a flat back, a sharp point) or the kite cut (four sides,
+    one long point)? [bullet]
 
 ---
 

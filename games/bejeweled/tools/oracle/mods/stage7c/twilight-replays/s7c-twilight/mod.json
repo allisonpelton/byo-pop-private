@@ -1,0 +1,10 @@
+{
+  "id": "s7c-twilight",
+  "name": "Stage 7c: Twilight",
+  "version": "1.0",
+  "description": "Oracle fixture: Bejeweled 2's Twilight. The opening board rises, then the falls alternate down and up at every settle, at fallAccel 75; the backdrop mirrored at half brightness, sounds two semitones lower.",
+  "rules": {
+    "board": { "gravity": { "direction": "alternate", "fallAccel": 75 } },
+    "look": { "backdrop": "twilight", "soundPitch": -2 }
+  }
+}

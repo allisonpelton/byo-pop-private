@@ -52,7 +52,7 @@ void Board::DrawVariant(Graphics* g)
 		if (mLayout.mScale != 1.0)
 			aScaledG.SetScale((float) mLayout.mScale, (float) mLayout.mScale, (float) BoardLayout::VIEW_X, (float) BoardLayout::VIEW_Y);
 		Graphics aBoardG(aScaledG);
-		aBoardG.ClipRect(194, 12, 428, 416);
+		aBoardG.ClipRect(mLayout.mClipX, mLayout.mClipY, mLayout.mClipWidth, mLayout.mClipHeight); // the board's own rectangle (4.16): (194, 12, 428, 416) on 8x8
 
 		for (int aRow = 0; aRow < mRows; aRow++)
 		{

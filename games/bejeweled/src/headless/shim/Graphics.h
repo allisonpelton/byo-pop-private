@@ -39,6 +39,8 @@ public:
 	void				DrawImage(Image* theImage, int theX, int theY) {}
 	void				DrawImage(Image* theImage, int theX, int theY, const Rect& theSrcRect) {}
 	void				DrawImage(Image* theImage, const Rect& theDestRect, const Rect& theSrcRect) {}
+	void				DrawImageMirror(Image* theImage, int theX, int theY, const Rect& theSrcRect, bool mirror = true) {}
+	void				DrawImageMirror(Image* theImage, const Rect& theDestRect, const Rect& theSrcRect, bool mirror = true) {}
 	void				SetScale(float theScaleX, float theScaleY, float theOrigX, float theOrigY) {}
 };
 

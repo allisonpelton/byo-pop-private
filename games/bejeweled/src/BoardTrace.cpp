@@ -40,11 +40,17 @@ void Sexy::PrintBoardTrace(Board* theBoard, int theUpdate)
 	if (aBoard->mGameSeed != 0)
 		printf("TRACE   seed %u %s\n", (unsigned) aBoard->mGameSeed, aBoard->mUserSeeded ? "user" : "pergame");
 	// port(variant): a variant board's own state (stage 5: the moves that stood, the kept invalid moves; stage 6:
-	// the undos taken, on a board with undo)
-	if (aBoard->mVariant.mAny && aBoard->mVariant.mUndo)
-		printf("TRACE   variant moves %d invalid %d undos %d\n", aBoard->mMoveCount, aBoard->mInvalidMoves, aBoard->mUndosUsed);
-	else if (aBoard->mVariant.mAny)
-		printf("TRACE   variant moves %d invalid %d\n", aBoard->mMoveCount, aBoard->mInvalidMoves);
+	// the undos taken, on a board with undo; stage 7c: the direction the next fall takes and the flips so far, when
+	// the rules set a gravity rule)
+	if (aBoard->mVariant.mAny)
+	{
+		printf("TRACE   variant moves %d invalid %d", aBoard->mMoveCount, aBoard->mInvalidMoves);
+		if (aBoard->mVariant.mUndo)
+			printf(" undos %d", aBoard->mUndosUsed);
+		if (aBoard->mRules.HasGravityRule())
+			printf(" gravity %s flips %d", aBoard->GravityUp() ? "up" : "down", aBoard->mGravityFlips);
+		printf("\n");
+	}
 	// The clicks are screen positions: on a scaled board (stage 7) the cell centres scaled into the window
 	const BoardLayout& aLayout = aBoard->mLayout;
 	int aMove[4];

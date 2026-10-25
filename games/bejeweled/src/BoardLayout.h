@@ -11,11 +11,14 @@
 //   ToScreen(lx, ly) = (203 + (lx - 203)*s, 16 + (ly - 16)*s)
 //   ToLogical(sx, sy) = (203 + floordiv((sx - 203)*D, 406), 16 + floordiv((sy - 16)*D, 406))
 //   mScreenBottom = 16 + (480 - 16)*D/406                             480 when D == 406
+//   clip (screen) = ToScreen(origin) - (9, 4) .. ToScreen(origin + (w, h)) + (13, 6)
+//                                                                     8x8: (194, 12)..(622, 428), the original's
 //
 // The default layout is exactly the original constants: 8x8, every cell playable, origin (203, 16),
 // D 406, scale 1, screen bottom 480. Header only and free of framework headers, so the rules code
 // (GameRules) and its tests can use it.
 
+#include <cmath>
 #include <string>
 #include <vector>
 
@@ -60,6 +63,13 @@ public:
 	int				mExtent;                    // D
 	double			mScale;                     // view scale 406.0 / D
 	int				mScreenBottom;              // fall limit (Board::mHeight in the original)
+	// The gem layer's clip in screen space (stage 7c, 4.16): the board's own rectangle, the original
+	// ClipRect(194, 12, 428, 416) on 8x8; and its bottom edge in logical space (GetPieceAt's guard)
+	int				mClipX;
+	int				mClipY;
+	int				mClipWidth;
+	int				mClipHeight;
+	int				mClipBottom;
 
 	BoardLayout()
 	{
@@ -152,6 +162,13 @@ public:
 		mOriginY = VIEW_Y + (mExtent - aHeight) / 2;
 		mScale = (double) VIEW_SIZE / mExtent;
 		mScreenBottom = VIEW_Y + (VIEW_BOTTOM - VIEW_Y) * mExtent / VIEW_SIZE;
+		mClipX = (int) std::floor(ToScreenX(mOriginX) + 0.5) - 9;
+		mClipY = (int) std::floor(ToScreenY(mOriginY) + 0.5) - 4;
+		mClipWidth = (int) std::floor(ToScreenX(mOriginX + aWidth) + 0.5) + 13 - mClipX;
+		mClipHeight = (int) std::floor(ToScreenY(mOriginY + aHeight) + 0.5) + 6 - mClipY;
+		int aClipX = mClipX;
+		mClipBottom = mClipY + mClipHeight;
+		ToLogical(&aClipX, &mClipBottom);
 	}
 
 	bool InBounds(int theCol, int theRow) const

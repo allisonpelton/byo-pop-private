@@ -195,6 +195,11 @@ left out for a candidate built without variant paths, BEJ_NO_VARIANTS; flags "k=
               Stage 7 (board sizes and shapes, mods/stage7): "shapes=<cols>x<rows>:<holes>,...", the shapes of
               board.levels in order: every settle's grid has its level's size and that many holes (-1 cells), the
               same cells at every settle of that shape (holes stay holes, a refill fills every playable cell).
+              Stage 7c (Twilight gravity, mods/stage7c): "gravity=up|down|alternate": every settle's variant line
+              names the direction it now falls. up and down: that direction and no flips at every settle.
+              alternate: up at an even count of flips, down at an odd one; on one board a move or a refill flips
+              once, a swap that went back or a kept invalid move not at all, and an undo brings back the count of
+              the settle it returns to.
 Finished replays are named after the wall clock: compared and listed with replays/<yyyymmdd>-<hhmmss>- masked
 as replays/*- (normal_path), their contents without META's date (compare_bjr).
 Auto LiveSplit (stage 2b, games/bejeweled/docs/CODE_MODS_DESIGN.md 4.15; candidate runs):
@@ -369,6 +374,9 @@ def save_state(path):
                     chunks.append("RNGS seed %d%s" % (seed, " user" if user else ""))
                 elif tag == b"MOVE":
                     chunks.append("MOVE moves %d invalid %d undos %d" % struct.unpack_from("<iii", payload, 0))
+                elif tag == b"GRAV":
+                    flips, no_flip = struct.unpack_from("<iB", payload, 0)
+                    chunks.append("GRAV flips %d%s" % (flips, ", no flip" if no_flip else ""))
                 else:
                     chunks.append(tag.decode("latin-1").strip())
                 if tag == b"END ":
@@ -1766,16 +1774,19 @@ def variant_settles(stdout):
         if m:
             settles.append({"update": int(m.group(1)), "mode": m.group(2), "level": int(m.group(3)), "score": int(m.group(4)),
                             "tick": int(m.group(5)),
-                            "grid": [], "seed": None, "moves": None, "invalid": None, "undos": 0, "found": 0})
+                            "grid": [], "seed": None, "moves": None, "invalid": None, "undos": 0, "gravity": None,
+                            "flips": 0, "found": 0})
         elif settles and line.startswith("TRACE   row "):
             settles[-1]["grid"].append([int(v) for v in line.split(":", 1)[1].split()])
         elif settles and line.startswith("TRACE   seed "):
             settles[-1]["seed"] = line[len("TRACE   seed "):]
         elif settles and line.startswith(VARIANT_LINE):
-            m = re.match(r"TRACE   variant moves (-?\d+) invalid (-?\d+)(?: undos (\d+))?$", line)
+            m = re.match(r"TRACE   variant moves (-?\d+) invalid (-?\d+)(?: undos (\d+))?(?: gravity (up|down) flips (\d+))?$",
+                         line)
             if m:
                 settles[-1]["moves"], settles[-1]["invalid"] = int(m.group(1)), int(m.group(2))
                 settles[-1]["undos"] = int(m.group(3) or 0)
+                settles[-1]["gravity"], settles[-1]["flips"] = m.group(4), int(m.group(5) or 0)
         elif settles and line.startswith("TRACE   move "):
             settles[-1]["found"] += 1
     return settles
@@ -1814,14 +1825,15 @@ def shapes_check(r, settles, spec, label, notes):
 
 
 def variant_fact(stdout):
-    """The "variant" fact (stage 5), None for a run without variant lines: the last variant line's counts and
-    how many settles had no move (a noMoves "continue" board)"""
+    """The "variant" fact (stage 5), None for a run without variant lines: the last variant line's counts (with
+    its gravity, stage 7c) and how many settles had no move (a noMoves "continue" board)"""
     settles = variant_settles(stdout)
     last = [s for s in settles if s["moves"] is not None]
     if not last:
         return None
-    return "last moves %d invalid %d, %d of %d settles without a move" % (
-        last[-1]["moves"], last[-1]["invalid"], sum(1 for s in settles if s["found"] == 0), len(settles))
+    gravity = (" gravity %s flips %d" % (last[-1]["gravity"], last[-1]["flips"])) if last[-1]["gravity"] else ""
+    return "last moves %d invalid %d%s, %d of %d settles without a move" % (
+        last[-1]["moves"], last[-1]["invalid"], gravity, sum(1 for s in settles if s["found"] == 0), len(settles))
 
 
 def swapped_cells(a, b):
@@ -1862,6 +1874,30 @@ def variant_check(r, cand, run, flags, label):
             states.append((int(parts[0]), int(parts[1])))
     counts_as_move = f.get("countsasmove", "1") == "1"
     kept = 0
+    # stage 7c: the direction each settle names, and the flips from one settle to the next (gravity_step)
+    gravity = f.get("gravity")
+    if gravity is not None:
+        if gravity not in ("up", "down", "alternate"):
+            r.fail("%s: gravity=%s: not up, down or alternate" % (label, gravity))
+            return False
+        for s in settles:
+            want = gravity if gravity != "alternate" else ("up" if s["flips"] % 2 == 0 else "down")
+            if s["gravity"] != want or (gravity != "alternate" and s["flips"] != 0):
+                r.fail("%s: the settle of update %d says gravity %s flips %d, expected %s" % (label, s["update"], s["gravity"], s["flips"], want))
+                return False
+    flipped = [0, 0]  # settles that flipped, settles that did not
+
+    def gravity_step(s0, s1, want, what):
+        """The flips from settle s0 to s1 are s0's + want (stage 7c); False after a failure"""
+        if gravity is None:
+            return True
+        want = (want if gravity == "alternate" else 0) + s0["flips"]
+        if s1["flips"] != want:
+            r.fail("%s: %s from the settle of update %d to update %d: flips %d -> %d, expected %d" %
+                   (label, what, s0["update"], s1["update"], s0["flips"], s1["flips"], want))
+            return False
+        flipped[0 if s1["flips"] != s0["flips"] else 1] += 1
+        return True
     # the autoplay bot's targets for a stale selection (a gem selected before a fall-out, no longer in the grid):
     # the swap goes back and leaves that gem in its old cell, over the gem there (the original game's quirk)
     stale, stale_backs = [], 0
@@ -1895,20 +1931,30 @@ def variant_check(r, cand, run, flags, label):
                        (label, s1["update"], back["update"], "same" if s1["grid"] == back["grid"] else "differs", s1["moves"], back["moves"],
                         s1["invalid"], back["invalid"], s1["score"], back["score"]))
                 break
+            if not gravity_step(back, s1, 0, "an undo"):
+                break
             undone, undo_steps = s0, undo_steps + 1
             continue
         if (dm, di) == (0, 0) and not refilled and s1["grid"] == s0["grid"] and s1["score"] <= s0["score"]:
-            continue  # a swap that went back (no moves.allowInvalid): nothing changed but hints taken (their penalty)
+            # a swap that went back (no moves.allowInvalid): nothing changed but hints taken (their penalty)
+            if not gravity_step(s0, s1, 0, "a swap that went back"):
+                break
+            continue
         if (dm, di) == (0, 0) and not refilled and s1["score"] <= s0["score"] and len(s1["grid"]) == len(s0["grid"]):
             cells = [(c, y) for y in range(len(s0["grid"])) for c in range(len(s0["grid"][y]))
                      if c < len(s1["grid"][y]) and s0["grid"][y][c] != s1["grid"][y][c]]
             if len(cells) == 1 and any(s0["update"] <= u < s1["update"] and (c, y) == cells[0] for u, c, y in stale):
                 stale_backs += 1
+                if not gravity_step(s0, s1, 0, "a stale selection's swap that went back"):
+                    break
                 continue  # a stale selection's swap that went back
         allowed = [(1, 0), (1, 1) if counts_as_move else (0, 1)] + ([(0, 0)] if refilled else [])
         if (dm, di) not in allowed:
             r.fail("%s: from the settle of update %d to update %d the counts went %+d moves %+d invalid: not one move" %
                    (label, s0["update"], s1["update"], dm, di))
+            break
+        # a kept invalid move (no refill between) does not flip "alternate"; a move or a refill flips once
+        if not gravity_step(s0, s1, 0 if (di == 1 and not refilled) else 1, "a kept invalid move" if (di == 1 and not refilled) else "a move or refill"):
             break
         if vortex:
             history, undone = [], None
@@ -1930,6 +1976,8 @@ def variant_check(r, cand, run, flags, label):
                 r.fail("%s: the kept move between updates %d and %d scored" % (label, s0["update"], s1["update"]))
                 break
             kept += 1
+    if gravity is not None:
+        notes.append("gravity %s: %d steps flipped, %d did not" % (gravity, flipped[0], flipped[1]))
     if stale_backs:
         notes.append("%d swaps of a stale selection that went back, its old gem in its cell" % stale_backs)
     if "kept" in f:

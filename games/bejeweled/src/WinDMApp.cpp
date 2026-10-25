@@ -748,7 +748,8 @@ void WinDMApp::ConfirmQuit()
 // 0x4d59cc
 void WinDMApp::ShowInstructionsDialog()
 {
-	Dialog* aDialog = NewDialog(DIALOG_INSTRUCTIONS, false, "", GetString("INSTRUCTIONDIALOG"), "", Dialog::BUTTONS_NONE);
+	SexyString aText = (mBoard != NULL) ? mBoard->InstructionsText() : GetString("INSTRUCTIONDIALOG"); // port(variant): the rules' own text (BoardVariant.cpp)
+	Dialog* aDialog = NewDialog(DIALOG_INSTRUCTIONS, false, "", aText, "", Dialog::BUTTONS_NONE);
 	aDialog->mContentInsets = Insets(16, 24, 16, 24);
 	aDialog->Resize(201, 38, 418, aDialog->GetPreferredHeight(418));
 	AddDialog(DIALOG_INSTRUCTIONS, aDialog);
@@ -757,7 +758,9 @@ void WinDMApp::ShowInstructionsDialog()
 // 0x4d5ac1
 void WinDMApp::ShowFullInstructionsDialog()
 {
-	Dialog* aDialog = NewDialog(DIALOG_FULL_INSTRUCTIONS, true, GetString("FULL_INSTRUCTIONS1"), GetString("FULL_INSTRUCTIONS2"), GetString("DONE"), Dialog::BUTTONS_FOOTER);
+	SexyString aText = GetString("FULL_INSTRUCTIONS2");
+	if (mBoard != NULL) aText = mBoard->FullInstructionsText(aText); // port(variant): the rules' own first paragraph (BoardVariant.cpp)
+	Dialog* aDialog = NewDialog(DIALOG_FULL_INSTRUCTIONS, true, GetString("FULL_INSTRUCTIONS1"), aText, GetString("DONE"), Dialog::BUTTONS_FOOTER);
 	aDialog->mTextAlign = -1;
 	aDialog->Resize(32, 8, mWidth - 64, aDialog->GetPreferredHeight(mWidth - 64));
 	AddDialog(DIALOG_FULL_INSTRUCTIONS, aDialog);

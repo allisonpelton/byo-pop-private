@@ -129,6 +129,7 @@ void Board::Unpause(bool theUserPause)
 // 0x4c9c7c
 Piece* Board::GetPieceAt(int theX, int theY)
 {
+	if (GravityUp() && (theY >= mLayout.mClipBottom)) return NULL; // port(variant): no rising gem under the board's clip (4.16)
 	for (int aRow = 0; aRow < mRows; aRow++) // port(variant): was BOARD_ROWS
 	{
 		for (int aCol = 0; aCol < mCols; aCol++) // port(variant): was BOARD_COLS
@@ -636,7 +637,7 @@ void Board::UpdateClearing()
 	// Each pass moves every gem above a column's lowest gap down one row and spawns one new gem on
 	// top of that column, 69 px above its highest gem; passes repeat until no column has a gap.
 	// Colors are not re-rolled, so the refill can cascade.
-	if (mVariant.mShape) RefillMasked(); // port(variant): over each column's cells, through holes (BoardShape.cpp)
+	if (mVariant.mFall) RefillMasked(); // port(variant): over each column's cells, through holes, in the gravity direction (BoardShape.cpp)
 	else
 	{
 		int aTopY = GetRowY(0);
@@ -727,6 +728,7 @@ void Board::UpdateGameOver()
 	else
 	{
 		bool allGone = true;
+		if (mVariant.mFall) allGone = GameOverFallVariant(); else // port(variant): the fall in the gravity direction (BoardShape.cpp)
 		for (int aRow = 0; aRow < mRows; aRow++) // port(variant): was BOARD_ROWS
 		{
 			for (int aCol = 0; aCol < mCols; aCol++) // port(variant): was BOARD_COLS
@@ -804,7 +806,7 @@ void Board::SetupLevel()
 	DDImage* anImageB = mApp->CreateColorizedImage(&aTileB, Color(aColorB[0], aColorB[1], aColorB[2]));
 
 	// 10x10 cells aligned with the board grid, starting one cell above and left of it
-	if (mVariant.mShape) DrawVariantChecker(&g, anImageA, anImageB); // port(variant): the level's shape, holes and all (BoardShape.cpp)
+	if (mVariant.mChecker) DrawVariantChecker(&g, anImageA, anImageB); // port(variant): the level's shape, holes and all; the twilight backdrop (BoardShape.cpp)
 	else
 	for (int aRow = -1, aY = -35; aY < 425; aY += 51, aRow++)
 		for (int aCol = -1, aX = 151; aX < 611; aX += 51, aCol++)
@@ -837,7 +839,7 @@ void Board::SetupLevel()
 // 0x4cb182
 void Board::FillBoard()
 {
-	if (mVariant.mShape) { FillBoardVariant(); return; } // port(variant): holes skipped (BoardShape.cpp)
+	if (mVariant.mFall) { FillBoardVariant(); return; } // port(variant): holes skipped, the gravity direction (BoardShape.cpp)
 	mState = STATE_FALLING;
 	mIdleTicks = 0;
 
@@ -915,6 +917,7 @@ void Board::UpdateLevelWipe()
 // 0x4cb3bf
 void Board::UpdateFallOut()
 {
+	if (mVariant.mFall) { UpdateFallOutVariant(); return; } // port(variant): the gravity direction (BoardShape.cpp)
 	bool allGone = true;
 	MarkDirty();
 

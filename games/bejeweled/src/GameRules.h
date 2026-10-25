@@ -133,6 +133,24 @@ public:
 		NOMOVES_CONTINUE = 2
 	};
 
+	enum GravityDirection
+	{
+		GRAVITY_DOWN = 0,
+		GRAVITY_UP = 1,
+		GRAVITY_ALTERNATE = 2   // Bejeweled 2's Twilight (4.16): starts up, flips at each settle that ends a move
+	};
+
+	enum Backdrop
+	{
+		BACKDROP_NORMAL = 0,
+		BACKDROP_TWILIGHT = 1   // the checker tiles mirrored left to right, each colour channel halved
+	};
+
+	enum
+	{
+		DEFAULT_FALL_ACCEL = 180    // board.gravity.fallAccel: 180 / 1000.0 is the original's 0.18
+	};
+
 	struct BoardRules
 	{
 		int							mCols = 8;              // board.cols 3..16 (shape)
@@ -141,6 +159,8 @@ public:
 		std::vector<LevelShape>		mLevels;                // board.levels (shape); level L uses [L % n]
 		int							mGemColors = 7;         // board.gemColors 3..12 (also a tunable)
 		int							mDirtPoints = 0;        // board.dirtPoints: points per dirt layer removed
+		int							mGravity = GRAVITY_DOWN; // board.gravity.direction (gravity)
+		int							mFallAccel = DEFAULT_FALL_ACCEL; // board.gravity.fallAccel 50..1000 (gravity)
 	};
 
 	struct MoveRules
@@ -198,6 +218,13 @@ public:
 		bool						mRestoreRng = true;     // undo.restoreRng
 	};
 
+	// Presentation (4.16): in the RulesId and the score key, never a variant board
+	struct LookRules
+	{
+		int							mBackdrop = BACKDROP_NORMAL; // look.backdrop
+		int							mSoundPitch = 0;        // look.soundPitch -12..12 semitones
+	};
+
 	// The legacy tunables (GameConfig.h)
 	struct TunableRules
 	{
@@ -218,6 +245,7 @@ public:
 	SpecialRules					mSpecials;
 	GoldRules						mGold;
 	UndoRules						mUndo;
+	LookRules						mLook;
 	TunableRules					mTunables;
 	DiffValues						mDiff;          // always part of the canonical form
 
@@ -240,6 +268,10 @@ public:
 	// scoring tunable changed (engine 3 changed how their displayed score rolls)
 	bool							PlaysAlikeInEveryEngine() const;
 	std::vector<std::string>		VariantKeys() const;   // those keys, in schema order
+	std::vector<std::string>		LookKeys() const;      // the look.* keys that differ from their defaults
+	// A board.gravity rule differs from its default: the board then keeps its gravity state in saves, hashes and
+	// traces (4.16; default rules, -forcevariant included, keep the frozen forms)
+	bool							HasGravityRule() const { return (mBoard.mGravity != GRAVITY_DOWN) || (mBoard.mFallAccel != DEFAULT_FALL_ACCEL); }
 
 	// The checks of 3.6 (all of them, for the merged set). False with a message and the causes of the
 	// failure: the fields the failing check reads whose values differ from their defaults (the board shape
@@ -259,7 +291,8 @@ public:
 	bool							CheckRecorded(std::string* theError) const;
 
 	// The fewest gem colours the fill can always complete with (3.6): 1 + the most pattern instances a
-	// cell can complete in fill order, over every level's layout
+	// cell can complete in fill order, over every level's layout and every fill order gravity uses (bottom-up
+	// for down, top-down for up)
 	int								FillMinimum() const;
 
 	// Board shapes: level 0 is board.cols/rows/mask, or board.levels[L % n]

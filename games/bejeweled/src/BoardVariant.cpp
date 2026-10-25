@@ -25,6 +25,7 @@
 #include "ReplayRecorder.h"
 #include "StateCodec.h"
 #include "MTRand.h"
+#include "SoundManager.h"
 #include "Common.h"
 
 #include <SDL.h>
@@ -37,7 +38,7 @@ using namespace Sexy;
 static uint32_t sBoardSerial = 0;
 
 // Called first in the constructor (0x4cb5bc), before SetupLevel and FillBoard use the layout and the RNG
-void Board::InitVariant()
+void Board::InitVariant(WinDMApp* theApp)
 {
 	mRules = gGameConfig.mRules;
 	// The LiveSplit observer's bookkeeping, in every build (BEJ_NO_VARIANTS too)
@@ -63,17 +64,26 @@ void Board::InitVariant()
 		// -forcevariant: every generalised path at default rules; the RNG source, the save format and the
 		// tutorial stay original (mAny, mOwnRng and mNoTutorial are left alone). The noMoves rule's path too
 		// (stage 5): its default "gameOver" and "fallOut" are the original branches. Not mInvalid: keeping a
-		// swap is no default rule.
+		// swap is no default rule. The gravity paths too (stage 7c): the rules still say "down", so GravityUp()
+		// is false and the flip and the GetPieceAt guard stay off.
 		mVariant.mShape = true;
 		mVariant.mMatch = true;
 		mVariant.mSearch = true;
 		mVariant.mDraw = true;
 		mVariant.mNoMoves = true;
+		mVariant.mGravity = true;
+		mVariant.mFall = true;
+		mVariant.mChecker = true;
 	}
+	// look.soundPitch (4.16): every sound the app plays while this board is the game's; the next board sets its own
+	if (theApp->mSoundManager != NULL)
+		theApp->mSoundManager->SetDefaultPitch(mRules.mLook.mSoundPitch);
 #endif
 	mMoveCount = 0;
 	mInvalidMoves = 0;
 	mUndosUsed = 0;
+	mGravityFlips = 0;
+	mGravityNoFlip = false;
 
 	// The RNG source WinDMApp::NewGame chose (WinDMApp::ChooseBoardRng), taken once: a board made any other
 	// way draws from the global stream
@@ -309,6 +319,7 @@ void Board::KeepInvalidMove()
 	}
 	mApp->PlaySample(SOUND_BAD);
 	mState = STATE_FALLING;
+	mGravityNoFlip = true; // its settle does not flip "alternate" (4.16)
 }
 
 // UpdateFalling (0x4cd687): the board settled with no match and no move left (4.1). The mode's noMoves rule:
@@ -344,6 +355,41 @@ void Board::OnNoMovesVariant()
 bool Board::NoHintVariant()
 {
 	return mVariant.mInvalid && (mState == STATE_PLAYING) && !FindMove(NULL, 0, true, true);
+}
+
+// The quick instructions (WinDMApp::ShowInstructionsDialog, 2.6): INSTRUCTIONDIALOG, or with a gravity rule
+// (4.16) INSTRUCTIONDIALOG_TWILIGHT ("alternate") or _GRAVITY_UP. The engine's English defaults; a mod's strings
+// override them.
+SexyString Board::InstructionsText()
+{
+	int aDirection = mVariant.mGravity ? mRules.mBoard.mGravity : GameRules::GRAVITY_DOWN;
+	if (aDirection == GameRules::GRAVITY_ALTERNATE)
+		return mApp->GetString("INSTRUCTIONDIALOG_TWILIGHT", _S("Line up 3 or more gems by swapping neighbours. Gravity turns over after every move!"));
+	if (aDirection == GameRules::GRAVITY_UP)
+		return mApp->GetString("INSTRUCTIONDIALOG_GRAVITY_UP", _S("Line up 3 or more gems by swapping neighbours. New gems rise from below!"));
+	return mApp->GetString("INSTRUCTIONDIALOG");
+}
+
+// Help (WinDMApp::ShowFullInstructionsDialog) with a gravity rule (4.16): the first paragraph of theText (the
+// game's FULL_INSTRUCTIONS2, whose first paragraph has new gems drop in from above) gives way to
+// FULL_INSTRUCTIONS_TWILIGHT or _GRAVITY_UP, of about its length, so the dialog keeps its size; the other
+// paragraphs stay. English defaults; a mod's strings override them.
+SexyString Board::FullInstructionsText(const SexyString& theText)
+{
+	int aDirection = mVariant.mGravity ? mRules.mBoard.mGravity : GameRules::GRAVITY_DOWN;
+	SexyString aFirst;
+	if (aDirection == GameRules::GRAVITY_ALTERNATE)
+		aFirst = mApp->GetString("FULL_INSTRUCTIONS_TWILIGHT", _S("TWILIGHT - Swap neighbouring gems to line up 3 or more of a kind: ")
+			_S("they vanish and score. Gravity turns over after every move, so one move's new gems fall in from above ")
+			_S("and the next move's rise from below. Fill the Bonus Bar to reach the next level, where matches score more."));
+	else if (aDirection == GameRules::GRAVITY_UP)
+		aFirst = mApp->GetString("FULL_INSTRUCTIONS_GRAVITY_UP", _S("GRAVITY UP - Swap neighbouring gems to line up 3 or more of a ")
+			_S("kind: they vanish and score, and new gems rise in from below. Fill the Bonus Bar to reach the next level, ")
+			_S("where matches score more."));
+	else
+		return theText;
+	size_t aBreak = theText.find(_S("\n\n"));
+	return (aBreak == SexyString::npos) ? aFirst : aFirst + theText.substr(aBreak);
 }
 
 // The end of a LoadGame (0x4cca98) that succeeded. The resumed game is not the one the board's seed would
@@ -748,6 +794,10 @@ VariantFlags Board::ComputeVariantFlags(const GameRules& theRules, const GameFea
 	aFlags.mInvalid = theRules.mMoves.mAllowInvalid;
 	aFlags.mNoMoves = (theRules.mNoMoves.mNormal != GameRules::NOMOVES_GAME_OVER) || (theRules.mNoMoves.mTimed != GameRules::NOMOVES_FALL_OUT);
 	aFlags.mDraw = aFlags.mShape || hasSpecials || aFlags.mGold || hasNonSwapMoves || aFlags.mNoTutorial;
+	// Gravity (4.16): look.backdrop is no variant rule (mAny), but its tiles take the checker path
+	aFlags.mGravity = theRules.mBoard.mGravity != GameRules::GRAVITY_DOWN;
+	aFlags.mFall = aFlags.mShape || aFlags.mGravity || (theRules.mBoard.mFallAccel != GameRules::DEFAULT_FALL_ACCEL);
+	aFlags.mChecker = aFlags.mShape || (theRules.mLook.mBackdrop == GameRules::BACKDROP_TWILIGHT);
 	return aFlags;
 }
 
