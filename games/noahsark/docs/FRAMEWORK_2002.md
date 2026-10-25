@@ -82,6 +82,14 @@ reading the vtables (find a dialog class's vtable from the address of one of its
 | Record a score | 0x411730 (the same) | 0x12c | 0x41add0: Resize(0x96, centred, 0x154, h) |
 | Register | 0x41e570 | 0x160 (352) | |
 
+The dialogs the app makes with its plain `DoDialog` (the base `Dialog` class) never ask for a height: their creators call
+`Resize(x, y, w, h)` with literals, which were checked against the disassembly of each creator and match the port:
+quit to the menu or leave the game (0x416e80) 0xbb, 0x57, 0x1a0, 300; new game with a saved game (0x41a0b0) 0x6e, 0x73,
+0x1a4, 0xfa for the action game and 0x6e, 0x64, 0x1a4, 0x118 for strategy and puzzle (one shared tail); how to play
+(0x419650) 0x5a, 0x37, 0x1cc, 0x186 for action and strategy, 0x78, 0x5a, 0x1a4, 300 for the puzzle and its bonus,
+0x5f, 0x5a, 0x1c2, 300 for the Stampede; registered (0x418f70, the branch after the Register dialog's creator) 0x78,
+0x78, 0x190, 0xf0; credits 0x78, 0x41, 0x190, 0x15e; the difficulty dialog (0x418ea0) 0x78, centred, 0x190, 0x140.
+
 The decompiler hides what happens between two calls of one slot: `h = GetPreferredHeight(w)` is followed by a second
 call of the same slot with the width as its argument, to centre the dialog, and the width of the dialog is pushed for the
 `Resize` before that call, so the width it passes to `Resize` can differ from the one it passes to the height
