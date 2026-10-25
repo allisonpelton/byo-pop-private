@@ -1,0 +1,7 @@
+# Paths tools/publish.py leaves out of the published snapshot (docs/PUBLISHING.md). One path per line; a folder
+# takes everything under it, and * and ? match as in a shell.
+
+# The tools that copy a game's program out of PopCap's DRM wrapper or CD launcher: the decompilation needs them,
+# but the public repository does not show how to take the protection apart.
+tools/extract_game_exe.py
+tools/triage_popcap.py

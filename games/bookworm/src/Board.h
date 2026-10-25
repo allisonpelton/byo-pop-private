@@ -39,10 +39,15 @@ class Lex;
 class EffectMgr;
 class EmberListMgr;
 class Points;
+class ReplayRecorder;
+class ReplayPlayer;
 class WidgetManager;
 class Solver;
 class UndoStack;
 class GreedyBots;
+class TypedWord;
+class WordReview;
+class DailyBoard;
 
 // Board::mState (+0x194)
 enum BoardState
@@ -248,11 +253,37 @@ public:
 	// a few moves each tick; NULL without the mod, in Action, and for a game begun without them.
 	// mBotsChecked: the start was looked at (the bots begin only at a fresh game's)
 	GreedyBots*			mBots;
+	// port(mod): typing a word to play it (mod "type-word", TypedWord.h); NULL without it
+	TypedWord*			mTypedWord;
+	// port(mod): the words played against the board's best (mods "missed-words", "par"; WordReview.h); NULL
+	// without them
+	WordReview*			mWordReview;
+	// port(mod): the day's board (mod "daily-board", DailyBoard.h); NULL without it
+	DailyBoard*			mDaily;
+	bool				mTileSymbols;           // port(mod): colour-blind mode's tile symbols (TileSymbols.h)
+	// port(mod): the selected word's definition (mod "select-definitions", UpdateSelectDefinition): the word it is
+	// for ("" for none) and the updates left before it shows
+	bool				mSelectDefs;
+	SexyString			mSelectDefWord;
+	int					mSelectDefDelay;
+	bool				mCloseBalloons;         // port(mod): a right click closes Lex's balloon (mod "close-balloons")
 	bool				mBotsChecked;
 	// port(mod): the moves (words and scrambles) so far and the last word's cells (row * BOARD_COLS + col, in
 	// order; empty for a scramble), for the -autoplay bot's check of the bots' model (-autoplaymodel)
 	int					mModMoves;
 	std::vector<int>	mModLastMove;
+	// port(mod): LiveSplit (LiveSplitObserver.h)
+	unsigned int		mBoardSerial;           // 1, 2, ... for each board the app makes
+	bool				mResumed;               // LoadGame restored a saved game into this board
+	// port(mod): replays (Replay.h): the game being recorded (a new game with the mod "replays", until its game
+	// over), or the replay this board plays (a watch: BookWormApp::mWatchFile)
+	ReplayRecorder*		mRecorder;
+	ReplayPlayer*		mPlayer;
+	bool				IsWatched() const;      // a watch, and the input is the viewer's, not the recording's
+	// The replay keys, from the board or the summary: while watching 1..4 for 1x, 2x, 4x, 8x and Esc to stop; on a
+	// game-over summary R watches the game just played. True: the key was taken.
+	bool				ReplayKeyChar(SexyChar theChar);
+	bool				ReplayKeyDown(KeyCode theKey);
 
 public:
 	Board(BookWormApp* theApp);                                         // 0x40ae90
@@ -302,7 +333,10 @@ public:
 	int					GetModWordsAllTime();                           // port(mod)
 	void				AddModWordsAllTime(int theDelta);               // port(mod)
 	void				UpdateBots();                                   // port(mod)
+	void				UpdateSelectDefinition();                       // port(mod)
 	void				ReadBots(FILE* theFile);                        // port(mod)
+	bool				RefillIsLevelsFirst() const;                    // port(mod): the next Refill skips the fire
+	                                                                    // meter (SolverFireRater)
 	void				DeleteAllPieces();                              // 0x4036e0
 	void				RemovePieces(PieceList* thePieces);             // 0x4052d0
 	void				GetNormalPieces(std::vector<Piece*>* thePieces); // 0x40b9e0

@@ -25,6 +25,8 @@ class MemoryImage;
 class ColorizedButton;
 class WidgetManager;
 class WordBalloon;
+class DialogButton;
+class JournalWidget;
 
 // 0x52f368 rank names shown in the summary, indexed by min(rank, NUM_RANK_NAMES - 1)
 enum
@@ -38,7 +40,8 @@ class LevelUpWidget : public Widget, public ButtonListener
 public:
 	enum
 	{
-		LEVELUP_ID_CONTINUE = 6             // mContinueButton
+		LEVELUP_ID_CONTINUE = 6,            // mContinueButton
+		LEVELUP_ID_JOURNAL = 7              // port(mod): mJournalButton
 	};
 
 	// +0x58 ButtonListener vptr
@@ -65,10 +68,14 @@ public:
 	Graphics*		mPanelGraphics;         // +0xd4 Graphics on mPanelImage (owned)
 	bool			mPanelDirty;            // +0xd8 repaint the panel at the next Draw (CreatePanel)
 	bool			mLexArrived;            // +0xd9 Lex was idle in BOARD_LEVEL_COMPLETE
-	// port(mod): the greedy bots' results at game over (mod "greedy-bots"), in a balloon above Lex; owned,
-	// NULL until shown. mBotsText: its text blocks as last laid out
-	WordBalloon*	mBotsBalloon;
-	SexyString		mBotsText;
+	// port(mod): the mods' results at game over (the greedy bots', the daily board's), in a balloon above Lex;
+	// owned, NULL until shown. mModsText: its text blocks as last laid out
+	WordBalloon*	mModsBalloon;
+	SexyString		mModsText;
+	// port(mod): the word journal's button at game over, in the left column under Lex, and its page while open
+	// (mod "word-journal"; JournalWidget.h); owned, NULL until made
+	DialogButton*	mJournalButton;
+	JournalWidget*	mJournal;
 	// +0xda..+0xdf padding; sizeof 0xe0
 
 public:
@@ -82,6 +89,8 @@ public:
 	virtual void	Resize(int theX, int theY, int theWidth, int theHeight) override;// 0x42baa0 slot 13
 	virtual void	Draw(Graphics* g) override;                             // 0x42cdd0 slot 16
 	virtual void	Update() override;                                      // 0x42bee0 slot 17
+	virtual void	KeyDown(KeyCode theKey) override;                       // port(mod): KeyContinue, Replay.h
+	virtual void	KeyChar(SexyChar theChar) override;                     // port(mod): Replay.h
 
 	// ButtonListener (+0x58)
 	virtual void	ButtonPress(int theId) override;                        // 0x42bc80 (+0x58) slot 3
@@ -90,7 +99,10 @@ public:
 	void			DeletePanel();                                          // 0x42b980
 	void			CreatePanel();                                          // 0x42b9c0
 	void			DrawPanel(Graphics* g);                                 // 0x42c210
-	void			UpdateBotsBalloon();                                    // port(mod)
+	void			UpdateModsBalloon();                                    // port(mod)
+	// port(mod): Enter is Continue on a level's summary once the footer is in (mod "type-word"); false: not taken
+	bool			KeyContinue(KeyCode theKey);
+	void			UpdateJournal();                                        // port(mod)
 
 	using Widget::Resize;
 	using ButtonListener::ButtonPress;

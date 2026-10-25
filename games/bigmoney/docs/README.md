@@ -15,9 +15,11 @@ data is copied from the user's own install. Nothing from the game itself is in t
 
 ## The binary
 
+<!-- private: - The Steam install (`steamapps/common/Big Money Deluxe`) has two executables. `WinBM.exe` is PopCap's 2006 DRM wrapper (VC7.1, Flash trial UI) with the game inside it, which a private tool (not published) copies out. -->
 - The Steam install (`steamapps/common/Big Money Deluxe`) has two executables. `WinBM.exe` is PopCap's
   2006 DRM wrapper (VC7.1, Flash trial UI) with the unencrypted game PE appended after the
   `!popcapdrmprotect!` marker: 1,245,184 bytes at file offset 0x531a2.
+<!-- /private -->
 - `BigMoney.exe` is iWin's AutoWrap build of the same 2005-11-14 link, behind an Armadillo-style
   protector. It is not used.
 - The game PE was linked 2005-11-14 with Visual Studio .NET 2002 (MSVC 7.0, no LTCG). It has full RTTI
@@ -32,8 +34,15 @@ Ghidra 12.1.4 + JDK 21 (`E:\retools`), Python 3, and a public SexyAppFramework 1
 and field names ([sandboxmo-de/SexyAppFramework-v1.2](https://github.com/sandboxmo-de/SexyAppFramework-v1.2),
 reference only, not part of this repository).
 
+<!-- private: First the game image is copied out of `WinBM.exe` to `re/bigmoney/bin/BigMoneyGame.exe` with a private tool (not published). -->
+
 ```bash
 python tools/extract_game_exe.py "A:/SteamLibrary/steamapps/common/Big Money Deluxe/WinBM.exe" -o re/bigmoney/bin/BigMoneyGame.exe
+```
+
+<!-- /private -->
+
+```bash
 python tools/rtti_msvc70.py re/bigmoney/bin/BigMoneyGame.exe re/bigmoney/rtti
 MSVC70=1 SYMBOLS=re/bigmoney/rtti.jsonl build/native/rundesk.exe bash tools/ghidra_import.sh re/bigmoney/bin/BigMoneyGame.exe bigmoney_game re/bigmoney/ghidra
 python tools/rtti_msvc70.py re/bigmoney/bin/BigMoneyGame.exe re/bigmoney/rtti --functions re/bigmoney/ghidra/functions.jsonl

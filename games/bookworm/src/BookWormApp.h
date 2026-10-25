@@ -39,7 +39,9 @@ class Graphics;
 class Color;
 class MusicInterface;
 class BookWormApp;
+namespace Replay { struct File; }
 class AutoplayBot;
+class SidePanel;
 
 extern BookWormApp* gApp;   // 0x5347d4 (only WinMain used it; port: set by the ctor)
 extern MTRand* gGameRand;   // 0x5347d0 the Board's letter / fire / special / bonus-word generator
@@ -169,6 +171,8 @@ public:
 	//                            every -autoplayshotwords=<n> words (default 25, 0: none), -word<n>.png;
 	//   -autoplayhints=1         plays the word solver's first hint every move (the mod "solver" on);
 	//   -autoplayundo=1          with it, undoes every other word and checks the board (the mod "undo" on)
+	//   -dailydate=<yyyymmdd>    the mod "daily-board" deals that day's board instead of today's
+	//   -livesplitlog=<file>     the mod "livesplit" appends one line per write of its block (LiveSplitObserver.h)
 	bool					mAutoplay;
 	unsigned long			mAutoplaySeed;
 	std::string				mAutoplayMode;
@@ -180,7 +184,24 @@ public:
 	bool					mAutoplayUndo;
 	bool					mAutoplayModel;         // -autoplaymodel=1: the greedy bots' model checked (Autoplay.h)
 	bool					mAutoplayContinue;      // -autoplaycontinue=1: the saved game goes on (Autoplay.h)
+	bool					mAutoplayType;          // -autoplaytype=1: words typed (the mod "type-word"; Autoplay.h)
 	AutoplayBot*			mAutoplayBot;
+	int						mDailyDate;             // -dailydate=<yyyymmdd>: the mod "daily-board"'s day (0: today; DailyBoard.h)
+	SidePanel*				mSidePanel;             // port(mod): the mod "widescreen"'s panel, NULL without it (SidePanel.h)
+	// port(mod): replays (Replay.h). -replay=<file> watches one once the title is done, -replaydir=<dir> is where
+	// they go, -replayspeed=<1|2|4|8> the watch's speed at first, -replayquit=1 (test hook) quits at its end
+	std::string				mReplayDir;             // main.cpp sets the default
+	std::string				mLastReplayPath;        // the replay of the game just played to its end, "" for none
+	std::string				mWatchPath;             // -replay=
+	Replay::File*			mWatchFile;             // the replay a new board plays (StartWatch .. EndWatch), else NULL
+	int						mWatchSpeed;            // app updates per frame while watching: 1, 2, 4 or 8
+	bool					mWatchQuit;
+	int						mWatchSavedMode;        // the app's state before the watch, given back by EndWatch
+	bool					mWatchSavedFlags[5];    // the four one-time hints, mLevelReached
+	SexyString				mWatchSavedBonusWord;
+	MTRand					mWatchSavedRand;        // gGameRand
+	int						mWatchSavedLetterIdx;   // Board::GetGlobalState
+	int						mWatchSavedRefillLevel;
 
 public:
 	BookWormApp();                                              // 0x41a0f0
@@ -222,6 +243,8 @@ public:
 	// port: the game's texts are read from the player's Bookworm.exe (GameText.h) right after the partner
 	// properties, before ReadFromRegistry (the default high scores) and anything that shows text
 	virtual void	InitPropertiesHook() override;
+	// port(mod): the mod "widescreen" makes the screen wider than the game's 640 x 480 (SidePanel.h)
+	virtual void	PreDisplayHook() override;
 
 	// port (web): the page can be closed or crash without Shutdown, which is where the original saves a
 	// game in progress (see SexyAppBase::UpdateUserDataBackup)
@@ -241,6 +264,11 @@ public:
 	void			StartGame();                                // 0x410d10 new Board for mGameMode
 	void			ShowGameSelector();                         // 0x410f00
 	void			ShowHallOfFame();                           // 0x411020
+	// port(mod): replays (Replay.h)
+	bool			StartWatch(const std::string& thePath);     // false (and a message) when it cannot be played
+	void			EndWatch();                                 // the app's state back; the board stays
+	void			StopWatch();                                // EndWatch, then the main menu
+	void			WatchLastReplay();                          // R on the game-over page
 	void			StartGameForUser();                         // 0x413c80 LoadUserSettings + StartGame (+ help)
 	void			SelectGameMode(int theMode);                // 0x4153c0 the continue-game dialog or start
 	void			GoToMainMenu();                             // 0x4157e0 the Board's menu button

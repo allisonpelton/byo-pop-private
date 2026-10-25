@@ -784,19 +784,60 @@ static bool FireFirst(const SolverWord& a, const SolverWord& b)
 	return aFire ? SolverBetterForFire(a, b) : SolverBetterByScore(a, b);
 }
 
+// GREEDY_LEAST_FIRE, the solver's first hint with "fewerFire" on: safer first; then a word with fire tiles, the
+// lowest fire tile taken first; then the fewest new fire tiles, the fire meter's drain counted (mFireCost); then the
+// solver's fire hint order or the points. The fewest new fire alone leaves the fire on the board to burn down: on
+// Classic seed 1 that bot burned at level 19, where the fire-first bot reached level 44.
+static bool LeastFireFirst(const SolverWord& a, const SolverWord& b)
+{
+	if (a.mSafety != b.mSafety)
+		return a.mSafety < b.mSafety;
+	bool aFire = a.mFireTiles > 0;
+	bool bFire = b.mFireTiles > 0;
+	if (aFire != bFire)
+		return aFire;
+	if ((aFire) && (a.mFireRow != b.mFireRow))
+		return a.mFireRow > b.mFireRow;
+	if (a.mFireCost != b.mFireCost)
+		return a.mFireCost < b.mFireCost;
+	return aFire ? SolverBetterForFire(a, b) : SolverBetterByScore(a, b);
+}
+
 bool GreedyBots::PlayMove(BotGame* theGame, int theKind)
 {
+	std::vector<Piece*> aTiles = theGame->Tiles();
 	std::vector<SolverWord> aWords;
-	FindSolverWords(theGame->Tiles(), theGame->mApp, &aWords, theGame->mLevel);
+	FindSolverWords(aTiles, theGame->mApp, &aWords, theGame->mLevel);
+	if (theKind == GREEDY_LEAST_FIRE)
+	{
+		SolverFireRater aRater(aTiles, true, theGame->mLevel, theGame->mLevel > theGame->mLastRefillLevel,
+			theGame->mFireMeter, theGame->mSkipRandomFire, theGame->mBonusWord);
+		for (SolverWord& aWord : aWords)
+			aRater.Rate(&aWord);
+	}
 
+	// Every bot: a word that ends the game at once last, then the bonus word (the user's choice), then its own order
 	const SolverWord* aBest = NULL;
+	bool isBestBonus = false;
 	for (size_t i = 0; i < aWords.size(); i++)
 	{
-		aWords[i].mScore += BonusPoints(theGame, aWords[i]);
-		bool isBetter = (theKind == GREEDY_BEST_WORD) ? BestWordFirst(aWords[i], *(aBest ? aBest : &aWords[i])) :
-			FireFirst(aWords[i], *(aBest ? aBest : &aWords[i]));
+		int aBonus = BonusPoints(theGame, aWords[i]);
+		aWords[i].mScore += aBonus;
+		const SolverWord& aRival = *(aBest ? aBest : &aWords[i]);
+		bool isFatal = (aWords[i].mSafety == SOLVER_FATAL);
+		bool isBetter;
+		if (isFatal != (aRival.mSafety == SOLVER_FATAL))
+			isBetter = !isFatal;
+		else if ((aBonus > 0) != isBestBonus)
+			isBetter = (aBonus > 0);
+		else
+			isBetter = (theKind == GREEDY_BEST_WORD) ? BestWordFirst(aWords[i], aRival) :
+				(theKind == GREEDY_FIRE_FIRST) ? FireFirst(aWords[i], aRival) : LeastFireFirst(aWords[i], aRival);
 		if ((aBest == NULL) || (isBetter))
+		{
 			aBest = &aWords[i];
+			isBestBonus = (aBonus > 0);
+		}
 	}
 
 	if (aBest != NULL)
@@ -852,9 +893,9 @@ bool GreedyBots::Update(double theBudgetMs)
 }
 
 // --------------------------------------------------------------------------------------------------------
-// The saved game's record of the bots (after Board's): "BOTS", its version and the number of bots (0: none);
-// per bot its result and whether its game goes on, then that game: its counters, the fire meter, the bonus
-// words, gGameRand's whole state and every cell's letter, type and countdown
+// The saved game's record of the bots (after Board's): "BOTS", its version and the number of bots (0: none; 2
+// before GREEDY_LEAST_FIRE); per bot its result and whether its game goes on, then that game: its counters, the
+// fire meter, the bonus words, gGameRand's whole state and every cell's letter, type and countdown
 
 static void WriteInt(FILE* theFile, int theValue)
 {
@@ -1015,13 +1056,17 @@ bool GreedyBots::Read(FILE* theFile, BookWormApp* theApp)
 		if (!ReadInt(theFile, &aValue))
 			return false;
 	}
-	if ((aHeader[0] != GREEDY_RECORD_TAG) || (aHeader[1] != GREEDY_RECORD_VERSION) || (aHeader[2] != NUM_GREEDY_BOTS))
+	if ((aHeader[0] != GREEDY_RECORD_TAG) || (aHeader[1] != GREEDY_RECORD_VERSION) || (aHeader[2] < GREEDY_LEAST_FIRE) ||
+		(aHeader[2] > NUM_GREEDY_BOTS))
 		return false;
 
-	GreedyBotResult aResults[NUM_GREEDY_BOTS];
+	// the bots the record has not: absent
+	GreedyBotResult aResults[NUM_GREEDY_BOTS] = {};
 	BotGame* aGames[NUM_GREEDY_BOTS] = {};
+	for (int i = aHeader[2]; i < NUM_GREEDY_BOTS; i++)
+		aResults[i].mEnd = GREEDY_ABSENT;
 	bool isGood = true;
-	for (int i = 0; (i < NUM_GREEDY_BOTS) && (isGood); i++)
+	for (int i = 0; (i < aHeader[2]) && (isGood); i++)
 	{
 		int aValues[5];
 		for (int& aValue : aValues)
@@ -1029,7 +1074,7 @@ bool GreedyBots::Read(FILE* theFile, BookWormApp* theApp)
 			if (!ReadInt(theFile, &aValue))
 				isGood = false;
 		}
-		if ((!isGood) || (aValues[0] < GREEDY_PLAYING) || (aValues[0] > GREEDY_CAPPED) ||
+		if ((!isGood) || (aValues[0] < GREEDY_PLAYING) || (aValues[0] > GREEDY_ABSENT) ||
 			((aValues[0] == GREEDY_PLAYING) != (aValues[4] == 1)))
 		{
 			isGood = false;

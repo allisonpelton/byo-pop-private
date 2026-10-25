@@ -180,8 +180,10 @@ turn. Gems fall through holes, and boards wider or taller than 8 cells are scale
 
 See [docs/RE_NOTES.md](docs/RE_NOTES.md). In short:
 
+<!-- private: 1. `WinBej.exe` is PopCap's DRM wrapper with the real game inside it; a private tool (not published) copies the game out to `re/bejeweled/bin/BejeweledGame.exe`. -->
 1. `WinBej.exe` is PopCap's DRM wrapper; the real game is an unencrypted PE appended to it.
    `python tools/extract_game_exe.py` carves it out to `re/bejeweled/bin/BejeweledGame.exe`.
+<!-- /private -->
 2. Ghidra 12 analyses it headlessly, recovers the C++ classes from RTTI and exports every decompiled
    function (`tools/ghidra_scripts/ExportAll.java`, run by `tools/ghidra_headless.sh`).
 3. The framework functions the game calls were identified against the public SexyAppFramework source

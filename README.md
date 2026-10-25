@@ -69,8 +69,8 @@ platform/          VFS, audio mixer, mod manager and mod settings, image loader,
 third_party/       stb, libxmp-lite
 cmake/             the shared CMake toolchain file (llvm-mingw, i686) and the web link options
 web/               the HTML shell the web builds use, and modpanel.js, every page's Mods panel (shared)
-tools/             shared pipeline: build.sh, DRM-wrapper carving, Ghidra scripts, symbol merging,
-                   .pak reader, game triage, rundesk (invisible test runs), fwtest, smoke
+tools/             shared pipeline: build.sh, Ghidra scripts, symbol merging, .pak reader, rundesk
+                   (invisible test runs), fwtest, smoke, publish.py (docs/PUBLISHING.md)
 docs/              notes shared by every game: framework identification, games survey, mod roadmap,
                    mod settings and the mod menu, research
 games/<game>/      one game: src/ (the translated game code), docs/, mods/, tools/, CMakeLists.txt,

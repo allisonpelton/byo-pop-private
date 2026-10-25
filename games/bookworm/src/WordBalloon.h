@@ -70,6 +70,7 @@ public:
 	virtual int		GetTextHeight(int theWidth, const SexyString& theText, Font* theFont, int theJustify,
 						int theLineSpacing = -1);                   // 0x4365d0 slot 50
 	virtual int		GetPreferredHeight(int theWidth);               // 0x436680 slot 51
+	void			Close();                                        // port(mod): as a click on it
 
 	using Widget::MouseDown;
 

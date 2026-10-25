@@ -4,6 +4,8 @@
 #include "BookWormApp.h"
 #include "Board.h"
 #include "Lex.h"
+#include "OverlayWidget.h"
+#include "WordBalloon.h"
 #include "TitleScreen.h"
 #include "BWGameSelector.h"
 #include "HelpWidget.h"
@@ -15,6 +17,10 @@
 #include "Solver.h"
 #include "Undo.h"
 #include "GreedyBots.h"
+#include "ModFeatures.h"
+#include "TypedWord.h"
+#include "WordReview.h"
+#include "SidePanel.h"
 
 #include "WidgetManager.h"
 #include "ButtonWidget.h"
@@ -112,7 +118,7 @@ bool SameWordIgnoringCase(const std::string& theWord1, const std::string& theWor
 
 AutoplayBot::AutoplayBot(BookWormApp* theApp, unsigned long theSeed, const std::string& theMode, int theUpdateCap,
 	const std::string& theLogFileName, const std::string& theShotPrefix, int theShotWords, bool theUseHints,
-	bool theTestUndo, bool theCheckModel) :
+	bool theTestUndo, bool theCheckModel, bool theTypeWords) :
 	mApp(theApp),
 	mRand((std::mt19937::result_type) theSeed),
 	mSeed(theSeed),
@@ -124,12 +130,24 @@ AutoplayBot::AutoplayBot(BookWormApp* theApp, unsigned long theSeed, const std::
 	mUseHints(theUseHints),
 	mHintScore(0),
 	mHintMismatches(0),
+	mFireState(0),
+	mFirePredicted(0.0),
+	mFireSure(0),
+	mFireBase(0),
+	mFireWords(0),
+	mFireExpected(0.0),
+	mFireCame(0),
+	mFireMismatches(0),
+	mFireTagShot(false),
 	mTestUndo(theTestUndo),
 	mUndoPhase(0),
 	mUndoWordsScored(0),
 	mUndoChecks(0),
 	mUndoMismatches(0),
 	mCheckModel(theCheckModel),
+	mTypeWords(theTypeWords),
+	mTypeChecks(0),
+	mTypeMismatches(0),
 	mModel(NULL),
 	mModelBoard(NULL),
 	mModelMoves(0),
@@ -144,7 +162,12 @@ AutoplayBot::AutoplayBot(BookWormApp* theApp, unsigned long theSeed, const std::
 	mWaitUntil(0),
 	mSummaryNoted(false),
 	mSummaryNotedAt(0),
-	mBotsShot(false),
+	mModsShot(false),
+	mJournalStep(0),
+	mJournalStepAt(0),
+	mPreviewNoted(false),
+	mPreviewShots(0),
+	mPanelShot(false),
 	mFameNoted(false),
 	mLevelUps(0),
 	mPlanPos(0),
@@ -185,9 +208,9 @@ AutoplayBot::AutoplayBot(BookWormApp* theApp, unsigned long theSeed, const std::
 		mModes.push_back(GAMEMODE_CLASSIC);
 	}
 
-	Note("-autoplay=%lu -seed=%lu -autoplaymode=%s -autoplaycap=%d%s%s%s: the bot's input as a -script file", mSeed,
+	Note("-autoplay=%lu -seed=%lu -autoplaymode=%s -autoplaycap=%d%s%s%s%s: the bot's input as a -script file", mSeed,
 		(unsigned long) mApp->mRandSeed, mModeName.c_str(), mUpdateCap, mUseHints ? " -autoplayhints=1" : "",
-		mTestUndo ? " -autoplayundo=1" : "", mCheckModel ? " -autoplaymodel=1" : "");
+		mTestUndo ? " -autoplayundo=1" : "", mCheckModel ? " -autoplaymodel=1" : "", mTypeWords ? " -autoplaytype=1" : "");
 	if ((mCheckModel) && (mTestUndo))
 	{
 		Note("-autoplaymodel: the model cannot undo; no model check with -autoplayundo");
@@ -236,17 +259,19 @@ void AutoplayBot::QueueAt(const std::string& theCommand, int theX, int theY)
 	Queue(theCommand, std::to_string(theX) + " " + std::to_string(theY));
 }
 
-// -autoplayshots: a screenshot at the start of the next update
+// -autoplayshots: a screenshot at the start of the next update (at the full size under -renderscale, so HD
+// art can be checked)
 void AutoplayBot::Shot(const std::string& theEvent)
 {
 	if (!mShotPrefix.empty())
-		Queue("screenshot", mShotPrefix + theEvent + ".png");
+		Queue((mApp->mForcedRenderScale > 1) ? "screenshotfull" : "screenshot", mShotPrefix + theEvent + ".png");
 }
 
 void AutoplayBot::Quit()
 {
 	if (mDragging)
 		EndDrag("quit");
+	NoteTyped();
 	Queue("quit", "");
 	mDone = true;
 	if (mLog != NULL)
@@ -308,6 +333,29 @@ void AutoplayBot::LogChanges(Board* theBoard)
 	if (theBoard == NULL)
 		return;
 
+	// the selected word's definition (mod "select-definitions"): noted each time it shows, the first one shot
+	// once its balloon has faded in
+	bool isPreview = (theBoard->mLex != NULL) && (theBoard->mLex->mPreviewShowing);
+	if ((isPreview) && (!mPreviewNoted))
+	{
+		Note("definition shown for the selection %s", theBoard->mSelectDefWord.c_str());
+		mPreviewShots++;
+	}
+	mPreviewNoted = isPreview;
+	if ((isPreview) && (mPreviewShots == 1) && (theBoard->mOverlay != NULL) && (theBoard->mOverlay->mBalloon->mAlpha >= 1.0))
+	{
+		mPreviewShots++;
+		Shot(std::string(ModeName(mApp->mGameMode)) + "-preview");
+	}
+
+	// the side panel (mod "widescreen"): shot once, after 8 words, with the tiles at rest (the solver's list up)
+	if ((!mPanelShot) && (mApp->mSidePanel != NULL) && (mWordsScored >= 8) && (Solver::BoardAtRest(theBoard)) &&
+		((theBoard->mSolver == NULL) || (theBoard->mSolver->IsCurrent())))
+	{
+		mPanelShot = true;
+		Shot(std::string(ModeName(mApp->mGameMode)) + "-panel");
+	}
+
 	if (theBoard->mState != mLastState)
 	{
 		Note("board: %s -> %s, level %d, score %d, %d fire tiles", StateName(mLastState), StateName(theBoard->mState),
@@ -317,19 +365,24 @@ void AutoplayBot::LogChanges(Board* theBoard)
 			Note("game over: a fire tile burned through the bottom");
 			if (mUseHints)
 				Note("hints: %d words scored, %d mismatches", mWordsScored, mHintMismatches);
+			NoteFireTotals();
 			if (mTestUndo)
 				Note("undo: %d checks, %d mismatches", mUndoChecks, mUndoMismatches);
+			NoteTyped();
 			CheckModelEnd(theBoard);
 		}
 		if ((theBoard->mState == BOARD_GAMEOVER) && (theBoard->mBots != NULL))
 		{
 			GreedyBots* aBots = theBoard->mBots;
 			Note("greedy bots%s after %.0f ms: best word %d (level %d, %d words, end %d), fire first %d (level %d, "
-				"%d words, end %d)", aBots->Finished() ? "" : " (still playing)", aBots->mElapsedMs,
+				"%d words, end %d), least fire %d (level %d, %d words, end %d)", aBots->Finished() ? "" : " (still playing)",
+				aBots->mElapsedMs,
 				aBots->mResults[GREEDY_BEST_WORD].mScore, aBots->mResults[GREEDY_BEST_WORD].mLevel + 1,
 				aBots->mResults[GREEDY_BEST_WORD].mWords, aBots->mResults[GREEDY_BEST_WORD].mEnd,
 				aBots->mResults[GREEDY_FIRE_FIRST].mScore, aBots->mResults[GREEDY_FIRE_FIRST].mLevel + 1,
-				aBots->mResults[GREEDY_FIRE_FIRST].mWords, aBots->mResults[GREEDY_FIRE_FIRST].mEnd);
+				aBots->mResults[GREEDY_FIRE_FIRST].mWords, aBots->mResults[GREEDY_FIRE_FIRST].mEnd,
+				aBots->mResults[GREEDY_LEAST_FIRE].mScore, aBots->mResults[GREEDY_LEAST_FIRE].mLevel + 1,
+				aBots->mResults[GREEDY_LEAST_FIRE].mWords, aBots->mResults[GREEDY_LEAST_FIRE].mEnd);
 		}
 		mLastState = theBoard->mState;
 	}
@@ -356,6 +409,7 @@ void AutoplayBot::CheckResult(Board* theBoard)
 			(mApp->GetDialog(DIALOG_HINT) != NULL) ? "refused with a dialog" : "refused";
 		Note("scramble: %s, %d fire tiles, %d scrambles this game", aResult, theBoard->mFireTileCount,
 			theBoard->mGameStats->mScrambles);
+		mFireState = 0;
 		return;
 	}
 
@@ -366,6 +420,17 @@ void AutoplayBot::CheckResult(Board* theBoard)
 		Note("word %d: %s scored %d (the word %d), total %d, level %d, %d fire tiles", mWordsScored,
 			theBoard->mLastWord.mWord.c_str(), aScore - mScoreBefore, theBoard->mLastWord.mScore, aScore, theBoard->mLevel + 1,
 			theBoard->mFireTileCount);
+		if (theBoard->mWordReview != NULL)
+		{
+			// the mods "missed-words" and "par": the word against the board's best
+			const ReviewTotals& aLevel = theBoard->mWordReview->LevelTotals();
+			const ReviewTotals& aGame = theBoard->mWordReview->mGameTotals;
+			Note("review: level %d words, %d points of par %d (%d%%), %d missed; game %d words, %d of par %d, %d missed",
+				aLevel.mWords, aLevel.mScore, aLevel.mPar, aLevel.ParPercent(), aLevel.mMissed, aGame.mWords, aGame.mScore,
+				aGame.mPar, aGame.mMissed);
+		}
+		if (mFireState == 1)
+			mFireState = 2;
 		if ((!mHintWord.empty()) && ((theBoard->mLastWord.mWord != mHintWord) || (theBoard->mLastWord.mScore != mHintScore)))
 		{
 			mHintMismatches++;
@@ -377,6 +442,7 @@ void AutoplayBot::CheckResult(Board* theBoard)
 	else
 	{
 		Note("%s not taken (%s)", mPlanWord.c_str(), theBoard->mSelection.empty() ? "no selection" : "the selection stays");
+		mFireState = 0;
 		if (!mHintWord.empty())
 		{
 			mHintMismatches++;
@@ -384,6 +450,31 @@ void AutoplayBot::CheckResult(Board* theBoard)
 		}
 	}
 	mHintWord = "";
+}
+
+// The solver's "fewerFire": once the board rests after the hint's word, the new fire tiles against the prediction
+void AutoplayBot::CheckNewFire(Board* theBoard)
+{
+	if ((mFireState != 2) || (theBoard == NULL) || (!Solver::BoardAtRest(theBoard)))
+		return;
+	mFireState = 0;
+	int aCame = theBoard->mFireTileCount - mFireBase;
+	mFireWords++;
+	mFireExpected += mFirePredicted;
+	mFireCame += aCame;
+	Note("fire: %d new fire tiles came (%.2f expected)", aCame, mFirePredicted);
+	if ((aCame < mFireSure) || ((mFirePredicted == 0.0) && (aCame > 0)))
+	{
+		mFireMismatches++;
+		Note("FIRE MISMATCH: %d new fire tiles came, %.2f expected (%d certain)", aCame, mFirePredicted, mFireSure);
+	}
+}
+
+void AutoplayBot::NoteFireTotals()
+{
+	if (mFireWords > 0)
+		Note("fire prediction: %d words, %.1f new fire tiles expected, %d came, %d mismatches", mFireWords,
+			mFireExpected, mFireCame, mFireMismatches);
 }
 
 // The first dialog (lowest id) in front: the new-user dialog gets a name, hint, message and can't-scramble
@@ -494,11 +585,46 @@ void AutoplayBot::HandleSummary(Board* theBoard)
 		return;
 	}
 
-	// the greedy bots' balloon fades in after the slide; the continue comes 31 updates after the note at the earliest
-	if ((isGameOver) && (!mBotsShot) && (aSummary->mBotsBalloon != NULL) && (mApp->mUpdateCount >= mSummaryNotedAt + 25))
+	// the mods' balloon fades in after the slide; the continue comes 31 updates after the note at the earliest
+	if ((isGameOver) && (!mModsShot) && (aSummary->mModsBalloon != NULL) && (mApp->mUpdateCount >= mSummaryNotedAt + 25))
 	{
-		mBotsShot = true;
-		Shot(std::string(ModeName(mApp->mGameMode)) + "-gameover-bots");
+		mModsShot = true;
+		Shot(std::string(ModeName(mApp->mGameMode)) + "-gameover-mods");
+	}
+	// the word journal (mod "word-journal"): at game over its page is opened once, shot and closed with a click
+	// outside the book, before the continue
+	if ((isGameOver) && (aSummary->mJournalButton != NULL) && (mJournalStep < 4))
+	{
+		int aSince = mApp->mUpdateCount - mJournalStepAt;
+		if (mJournalStep == 0)
+		{
+			if ((mApp->mUpdateCount >= mSummaryNotedAt + 30) && (ClickWidget(aSummary->mJournalButton, "the word journal's button")))
+			{
+				mJournalStep = 1;
+				mJournalStepAt = mApp->mUpdateCount;
+			}
+		}
+		else if ((mJournalStep == 1) && (aSummary->mJournal != NULL) && (aSince >= 15))
+		{
+			Shot(std::string(ModeName(mApp->mGameMode)) + "-journal");
+			mJournalStep = 2;
+			mJournalStepAt = mApp->mUpdateCount;
+		}
+		else if ((mJournalStep == 2) && (aSince >= 10))
+		{
+			Note("click the word journal's page, outside the book");
+			QueueAt("click", 30, 30);
+			mJournalStep = 3;
+			mJournalStepAt = mApp->mUpdateCount;
+		}
+		else if ((mJournalStep == 3) && (aSummary->mJournal == NULL))
+			mJournalStep = 4;
+		else if ((mJournalStep != 0) && (aSince >= 200))
+		{
+			Note("the word journal did not %s", (mJournalStep == 1) ? "open" : "close");
+			mJournalStep = 4;
+		}
+		return;
 	}
 	if (Due(aSummary, 30, 80))
 		ClickWidget(aSummary->mContinueButton, isGameOver ? "the game-over summary's continue" : "the level summary's continue");
@@ -848,6 +974,12 @@ void AutoplayBot::PlanNext(Board* theBoard)
 		Note("-autoplayundo: needs -autoplayhints=1 and the mod \"undo\"; no undo test");
 		mTestUndo = false;
 	}
+	if ((mTypeWords) && (!ModFeatureEnabled("typeWord")))
+	{
+		Note("-autoplaytype: the mod \"type-word\" is off; no typing");
+		mTypeWords = false;
+	}
+	mTyped.clear();
 	if ((mTestUndo) && (PlanUndoTest(theBoard)))
 		return;
 	CheckModel(theBoard);
@@ -980,9 +1112,115 @@ void AutoplayBot::PlanNext(Board* theBoard)
 	int aMethod = Random(3);
 	mPlanKind = PLAN_WORD;
 	mPlanWord = aChoice->mWord;
+	if (mTypeWords)
+	{
+		Note("plan %d: %s (%s of %u words, %d fire tiles in it) typed", mPlanNum, aChoice->mWord.c_str(), aWhy,
+			(unsigned) aWords.size(), aChoice->mFireTiles);
+		PlanTyping(theBoard, aChoice->mWord);
+		return;
+	}
 	Note("plan %d: %s (%s of %u words, %d fire tiles in it) by %s", mPlanNum, aChoice->mWord.c_str(), aWhy,
 		(unsigned) aWords.size(), aChoice->mFireTiles, MethodName(aMethod));
 	PlanSelection(theBoard, aChoice->mPath, aMethod, false);
+}
+
+// -autoplaytype: theWord typed and submitted with Enter; one time in eight a letter is taken back and typed
+// again, one in eight the word is begun, cleared with Esc and typed afresh. Letters are mostly lower case, as
+// a keyboard types them.
+void AutoplayBot::PlanTyping(Board* theBoard, const std::string& theWord)
+{
+	mTypeCells = BoardState(theBoard).substr(0, BOARD_ROWS * BOARD_COLS * 2);
+	int aVariant = Random(8);
+	std::string aLetters = theWord;
+	for (size_t i = 0; i < aLetters.size(); i++)
+	{
+		if (Random(4) != 0)
+			aLetters[i] = (char) tolower((unsigned char) aLetters[i]);
+	}
+	if ((aVariant == 0) && (aLetters.size() > 2))
+	{
+		AddStep(STEP_TYPE_CHAR, -1, theBoard, 15 + Random(50)).mLetter = aLetters[0];
+		AddStep(STEP_TYPE_CHAR, -1, theBoard, 3 + Random(10)).mLetter = aLetters[1];
+		AddStep(STEP_KEY_ESCAPE, -1, theBoard, 10 + Random(20));
+	}
+	for (size_t i = 0; i < aLetters.size(); i++)
+		AddStep(STEP_TYPE_CHAR, -1, theBoard, (i == 0) ? 15 + Random(50) : 3 + Random(10)).mLetter = aLetters[i];
+	if (aVariant == 1)
+	{
+		AddStep(STEP_KEY_BACK, -1, theBoard, 5 + Random(15));
+		AddStep(STEP_TYPE_CHAR, -1, theBoard, 3 + Random(10)).mLetter = aLetters[aLetters.size() - 1];
+	}
+	AddStep(STEP_KEY_RETURN, -1, theBoard, 8 + Random(20)).mSubmit = true;
+}
+
+// -autoplaytype: the selection spells the letters typed so far (after a Q: the Qu tile's QU); isWord, before
+// Enter: it is the best of the paths the word solver finds for the plan's word
+void AutoplayBot::CheckTyped(Board* theBoard, bool isWord)
+{
+	std::vector<int> aSelected;
+	for (PieceList::iterator anItr = theBoard->mSelection.begin(); anItr != theBoard->mSelection.end(); ++anItr)
+		aSelected.push_back((*anItr)->mRow * BOARD_COLS + (*anItr)->mCol);
+	std::string aSpelled = PathWord(theBoard, aSelected);
+	std::string aTyped = mTyped;
+	if ((!aTyped.empty()) && (aTyped[aTyped.size() - 1] == 'Q'))
+		aTyped += 'U';
+	mTypeChecks++;
+	if (aSpelled != aTyped)
+	{
+		mTypeMismatches++;
+		Note("TYPE MISMATCH: typed \"%s\", the selection spells \"%s\"", mTyped.c_str(), aSpelled.c_str());
+		return;
+	}
+	if (!isWord)
+		return;
+
+	std::vector<Piece*> aTiles;
+	for (int aCell = 0; aCell < BOARD_ROWS * BOARD_COLS; aCell++)
+	{
+		Piece* aPiece = CellPiece(theBoard, aCell);
+		if ((aPiece != NULL) && (aPiece->mLetter >= 'A') && (aPiece->mLetter <= 'Z') && (!aPiece->mBurning))
+			aTiles.push_back(aPiece);
+	}
+	std::vector<SolverWord> aWords;
+	FindSolverWords(aTiles, mApp, &aWords);
+	const SolverWord* aBest = NULL;
+	int aPaths = 0;
+	for (size_t i = 0; i < aWords.size(); i++)
+	{
+		if (!SameWordIgnoringCase(aWords[i].mWord, mPlanWord))
+			continue;
+		aPaths++;
+		if ((aBest == NULL) || (TypedWord::Better(aWords[i], *aBest)))
+			aBest = &aWords[i];
+	}
+
+	SolverWord aChosen;
+	aChosen.mPath.assign(theBoard->mSelection.begin(), theBoard->mSelection.end());
+	RateSolverWord(&aChosen, aTiles, mApp);
+	static const char* const SAFETY_NAMES[] = { "safe", "sets fire", "fire to the bottom", "ends the game" };
+	if (aBest == NULL)
+	{
+		mTypeMismatches++;
+		Note("TYPE MISMATCH: the solver finds no path for %s", mPlanWord.c_str());
+	}
+	else if (TypedWord::Better(*aBest, aChosen))
+	{
+		mTypeMismatches++;
+		Note("TYPE MISMATCH: %s typed takes %d fire tiles, drops %d, %s, %d points; a path takes %d, drops %d, %s, %d points",
+			mPlanWord.c_str(), aChosen.mFireTiles, aChosen.mFireDrops, SAFETY_NAMES[aChosen.mSafety], aChosen.mScore,
+			aBest->mFireTiles, aBest->mFireDrops, SAFETY_NAMES[aBest->mSafety], aBest->mScore);
+	}
+	else
+		Note("typed %s, the best of %d paths: %d fire tiles, %d dropped, %s, %d points", mPlanWord.c_str(), aPaths,
+			aChosen.mFireTiles, aChosen.mFireDrops, SAFETY_NAMES[aChosen.mSafety], aChosen.mScore);
+}
+
+// -autoplaytype: the checks so far (at each game over and the quit; a game Action's clock ends goes from play
+// to game over without the note)
+void AutoplayBot::NoteTyped()
+{
+	if (mTypeWords)
+		Note("typed: %d checks, %d mismatches", mTypeChecks, mTypeMismatches);
 }
 
 // Queues the input of a due step (RUN_DONE / RUN_SKIP), or says to wait (RUN_WAIT) or that the plan is
@@ -991,6 +1229,9 @@ int AutoplayBot::RunStep(Board* theBoard, const Step& theStep)
 {
 	if (!BoardTakesInput(theBoard))
 		return mDragging ? RUN_DROP : RUN_WAIT;
+	// the first definition shown for a selection (mod "select-definitions") stays until it is shot
+	if ((mPreviewShots == 1) && (theBoard->mLex != NULL) && (theBoard->mLex->mPreviewShowing))
+		return RUN_WAIT;
 
 	switch (theStep.mKind)
 	{
@@ -1081,7 +1322,7 @@ int AutoplayBot::RunStep(Board* theBoard, const Step& theStep)
 			const SolverWord* aHint = theBoard->mSolver->ShownHint();
 			if (aHint == NULL)
 				return RUN_DROP;
-			static const char* const KIND_NAMES[] = { "fire", "bonus", "best", "longest" };
+			static const char* const KIND_NAMES[] = { "fire", "bonus", "best", "longest", "cash in" };
 			static const char* const SAFETY_NAMES[] = { "safe", "sets fire", "fire to the bottom", "ends the game" };
 			if ((mTestUndo) && (mUndoPhase == 1))
 				mUndoBefore = BoardState(theBoard);     // the board the undo must put back
@@ -1091,13 +1332,142 @@ int AutoplayBot::RunStep(Board* theBoard, const Step& theStep)
 			std::string aCells;
 			for (size_t i = 0; i < aHint->mPath.size(); i++)
 				aCells += StrFormat("%s%d", (i == 0) ? "" : " ", aHint->mPath[i]->mRow * BOARD_COLS + aHint->mPath[i]->mCol);
-			Note("hint %d/%u: %s (%s, %d points, %d fire tiles, %s; cells %s)", theBoard->mSolver->mHintIdx + 1,
-				(unsigned) theBoard->mSolver->mHints.size(), aHint->mWord.c_str(), KIND_NAMES[aHint->mKind],
-				aHint->mScore, aHint->mFireTiles, SAFETY_NAMES[aHint->mSafety], aCells.c_str());
+			std::vector<Piece*> aTiles;
+			int aBonusOnBoard = 0;
+			for (int aRow = 0; aRow < BOARD_ROWS; aRow++)
+			{
+				for (int aCol = 0; aCol < BOARD_COLS; aCol++)
+				{
+					Piece* aPiece = theBoard->mBoard[aRow][aCol];
+					if ((aPiece == NULL) || (aPiece->mLetter < 'A') || (aPiece->mLetter > 'Z'))
+						continue;
+					aTiles.push_back(aPiece);
+					if ((aPiece->mType == TILE_GREEN) || (aPiece->mType == TILE_GOLD) || (aPiece->mType == TILE_SAPPHIRE) ||
+						(aPiece->mType == TILE_DIAMOND))
+						aBonusOnBoard++;
+				}
+			}
+			Note("hint %d/%u: %s (%s, %d points, %d fire tiles, %s, %d bonus tiles, %d on the board; cells %s)",
+				theBoard->mSolver->mHintIdx + 1, (unsigned) theBoard->mSolver->mHints.size(), aHint->mWord.c_str(),
+				KIND_NAMES[aHint->mKind], aHint->mScore, aHint->mFireTiles, SAFETY_NAMES[aHint->mSafety],
+				aHint->mBonusTiles, aBonusOnBoard, aCells.c_str());
+			// the solver's "saveBonus": a best or fire hint uses bonus tiles only where no path as safe (for the fire
+			// hint, one that takes the same lowest fire tile) goes without them
+			if ((ModFeatureBool("solver", "saveBonus", false)) && (aHint->mBonusTiles > 0) &&
+				((aHint->mKind == SOLVER_HINT_BEST) || (aHint->mKind == SOLVER_HINT_FIRE)))
+			{
+				std::vector<SolverWord> anAll;
+				FindSolverWords(aTiles, mApp, &anAll);
+				for (const SolverWord& aWord : anAll)
+				{
+					if ((aWord.mBonusTiles == 0) && (aWord.mSafety <= aHint->mSafety) &&
+						((aHint->mKind == SOLVER_HINT_BEST) || ((aWord.mFireTiles > 0) && (aWord.mFireRow == aHint->mFireRow))))
+					{
+						Note("SAVE MISMATCH: the hint %s uses %d bonus tiles, %s needs none", aHint->mWord.c_str(),
+							aHint->mBonusTiles, aWord.mWord.c_str());
+						break;
+					}
+				}
+			}
+			// the solver's "fewerFire": the new fire tiles to check once the board rests; the first best hint has the
+			// fewest (by cost) of the words as safe, the earlier hints' words left out (while the list is the board's: a
+			// bonus word whose banner came back after the hints were made makes them stale)
+			if ((ModFeatureBool("solver", "fewerFire", false)) && (mApp->mGameMode == GAMEMODE_CLASSIC))
+			{
+				mFireState = 1;
+				mFirePredicted = aHint->mNewFire;
+				mFireSure = aHint->mNewFireSure;
+				mFireBase = theBoard->mFireTileCount - aHint->mFireTiles;
+				Note("fire: %.2f new fire tiles to expect (%d certain), cost %.2f, meter %.2f", aHint->mNewFire,
+					aHint->mNewFireSure, aHint->mFireCost, theBoard->mFireMeter);
+				if ((!mFireTagShot) && (aHint->mNewFire > 0.0))
+				{
+					mFireTagShot = true;
+					Shot(std::string(ModeName(mApp->mGameMode)) + "-firetag");
+				}
+				const std::vector<SolverWord>& aHints = theBoard->mSolver->mHints;
+				int anIdx = theBoard->mSolver->mHintIdx;
+				bool isFirstBest = aHint->mKind == SOLVER_HINT_BEST;
+				for (int i = 0; (i < anIdx) && (isFirstBest); i++)
+					isFirstBest = aHints[i].mKind != SOLVER_HINT_BEST;
+				if ((isFirstBest) && (theBoard->mSolver->IsCurrent()))
+				{
+					std::vector<SolverWord> anAll;
+					FindSolverWords(aTiles, mApp, &anAll);
+					SolverFireRater aRater = SolverFireRater::ForBoard(theBoard, aTiles);
+					for (SolverWord& aWord : anAll)
+					{
+						bool isListed = false;
+						for (int i = 0; i < anIdx; i++)
+							isListed = isListed || (aHints[i].mWord == aWord.mWord);
+						if (isListed)
+							continue;
+						aRater.Rate(&aWord);
+						if ((aWord.mSafety < aHint->mSafety) || ((aWord.mSafety == aHint->mSafety) &&
+							(SolverFireRater::CostOrder(aWord) < SolverFireRater::CostOrder(*aHint))))
+						{
+							Note("FIRE ORDER MISMATCH: the hint %s costs %.2f, %s %.2f", aHint->mWord.c_str(),
+								aHint->mFireCost, aWord.mWord.c_str(), aWord.mFireCost);
+							mFireMismatches++;
+							break;
+						}
+					}
+				}
+			}
+		}
+		if ((mTypeWords) && (Random(2) == 0))
+		{
+			Note("Enter");
+			Queue("key", "RETURN");
+			return RUN_DONE;
 		}
 		return ClickWidget(theBoard->mSubmitButton, "the Submit button") ? RUN_DONE : RUN_WAIT;
 
+	case STEP_TYPE_CHAR:
+	case STEP_KEY_BACK:
+	case STEP_KEY_ESCAPE:
+	case STEP_KEY_RETURN:
+		// in Action the board changes by itself (a fire tile burns the tile under it, which clears the
+		// selection): the word may be gone
+		if (BoardState(theBoard).compare(0, mTypeCells.size(), mTypeCells) != 0)
+			return RUN_DROP;
+		CheckTyped(theBoard, theStep.mKind == STEP_KEY_RETURN);
+		switch (theStep.mKind)
+		{
+		case STEP_TYPE_CHAR:
+			mTyped += (char) toupper((unsigned char) theStep.mLetter);
+			Queue("char", std::string(1, theStep.mLetter));
+			break;
+		case STEP_KEY_BACK:
+			if (!mTyped.empty())
+				mTyped.erase(mTyped.size() - 1);
+			Queue("key", "BACK");
+			break;
+		case STEP_KEY_ESCAPE:
+			mTyped.clear();
+			Queue("key", "ESCAPE");
+			break;
+		case STEP_KEY_RETURN:
+			mTyped.clear();
+			Queue("key", "RETURN");
+			break;
+		}
+		return RUN_DONE;
+
 	case STEP_KEY_HINT:
+		// With the mod "widescreen", every other hint is the side panel's first row, clicked (no random draw, so
+		// the game goes as with Tab)
+		if ((mApp->mSidePanel != NULL) && (mPlanNum % 2 == 0))
+		{
+			Rect aRow = SidePanel::HintRect(0);
+			int x = mApp->mSidePanel->mX + aRow.mX + aRow.mWidth / 2;
+			int y = mApp->mSidePanel->mY + aRow.mY + aRow.mHeight / 2;
+			if (mApp->mSidePanel->HintAt(x - mApp->mSidePanel->mX, y - mApp->mSidePanel->mY) != 0)
+				return RUN_WAIT;
+			Note("click the side panel's first hint");
+			QueueAt("click", x, y);
+			return RUN_DONE;
+		}
 		Queue("key", "TAB");
 		return RUN_DONE;
 
@@ -1139,6 +1509,7 @@ void AutoplayBot::DropPlan(const char* theWhy)
 	Note("plan %d dropped (%s)", mPlanNum, theWhy);
 	if (mDragging)
 		EndDrag(theWhy);
+	mTyped.clear();
 	mPlan.clear();
 	mPlanPos = 0;
 	mWaitedSince = -1;
@@ -1218,6 +1589,7 @@ void AutoplayBot::Update()
 
 	Board* aBoard = mApp->mBoard;
 	CheckResult(aBoard);
+	CheckNewFire(aBoard);
 	LogChanges(aBoard);
 
 	int aNext = mApp->mUpdateCount + 1;
@@ -1226,6 +1598,7 @@ void AutoplayBot::Update()
 		Note("update cap");
 		if (mUseHints)
 			Note("hints: %d words scored, %d mismatches", mWordsScored, mHintMismatches);
+		NoteFireTotals();
 		if (mTestUndo)
 			Note("undo: %d checks, %d mismatches", mUndoChecks, mUndoMismatches);
 		Quit();
@@ -1261,7 +1634,8 @@ void AutoplayBot::Update()
 	if (!hasSummary)
 	{
 		mSummaryNoted = false;
-		mBotsShot = false;
+		mModsShot = false;
+		mJournalStep = 0;
 	}
 
 	if (!mApp->mDialogMap.empty())

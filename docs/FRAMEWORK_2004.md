@@ -53,8 +53,15 @@ No source of this framework generation is public. The map combines four sources:
 
 Reproducing it (all outputs go to the git-ignored `re/bookworm/`):
 
+<!-- private: First the game image is copied out of `Bookworm.exe` to `re/bookworm/bin/BookwormGame.exe` with a private tool (not published). -->
+
 ```bash
 python tools/extract_game_exe.py "C:/Program Files/PopCap Games/BookWorm Deluxe/Bookworm.exe" -o re/bookworm/bin/BookwormGame.exe
+```
+
+<!-- /private -->
+
+```bash
 python tools/rtti_msvc70.py re/bookworm/bin/BookwormGame.exe re/bookworm/rtti
 MSVC70=1 SYMBOLS=re/bookworm/rtti.jsonl build/native/rundesk.exe bash tools/ghidra_import.sh re/bookworm/bin/BookwormGame.exe bookworm_game re/bookworm/gh
 python tools/rtti_msvc70.py re/bookworm/bin/BookwormGame.exe re/bookworm/rtti --functions re/bookworm/gh/functions.jsonl

@@ -25,7 +25,7 @@ Contents:
 
 See [RE_NOTES.md](../games/bejeweled/docs/RE_NOTES.md) and the Bejeweled README section "[How it was reverse engineered](../games/bejeweled/README.md#how-it-was-reverse-engineered)". The four steps are:
 
-1. **Carve.** The Steam exe is PopCap's DRM wrapper with the real game PE appended after `!popcapdrmprotect!`. `tools/extract_game_exe.py` carves it out.
+1. **Carve.** The Steam exe is PopCap's DRM wrapper with the real game PE inside it. `tools/extract_game_exe.py` copies it out. It and `tools/triage_popcap.py` are private tools: they are not published.
 2. **Analyse.** Ghidra 12 runs headless, recovers C++ classes from RTTI and exports every decompiled function (`tools/ghidra_import.sh`).
 3. **Identify the framework.** Framework functions are matched against the public SexyAppFramework (SAF) trees (1.2, 1.3, 1.34). For Bejeweled, only about 60 KB of the 1 MB `.text` was game code; the rest was framework, libraries and CRT.
 4. **Translate.** The game classes are translated function by function onto our portable SAF 1.3 (`framework/`, SDL2 + Emscripten), with every function annotated with its original address.
@@ -56,6 +56,8 @@ Effort is given relative to Bejeweled Deluxe = 1x. Bejeweled's game code is abou
 
 ### 1.4 Findings that apply to many games
 
+<!-- private: **Protection.** No game needs real unpacking. Most builds carry the unencrypted game inside one of four PopCap wrappers or launchers, which the private tool copies it out of; Bookworm Adventures Deluxe, Bookworm Adventures Vol. 2, Peggle WoW and Bejeweled 3 have no wrapper. -->
+
 **Protection.** No game needs real unpacking. There are four wrapper variants, plus a few games with no wrapper:
 
 | Wrapper | Games | How to get the image |
@@ -65,6 +67,8 @@ Effort is given relative to Bejeweled Deluxe = 1x. Bejeweled's game code is abou
 | 2008-10-08 wrapper | Bejeweled Twist (Steam), Peggle Nights, Plants vs. Zombies, Zuma's Revenge | unchanged |
 | PopCap "CDProtect" launcher, marker `!popcapcdprotect!` | BookWorm Deluxe 1.03 (retail); Bejeweled Twist (retail, ends at `!popcapcdprotend!`) | the extractor must accept the second marker (one-line change, not yet made) |
 | no wrapper | Bookworm Adventures Deluxe, Bookworm Adventures Vol. 2, Peggle WoW, Bejeweled 3 | load the exe directly |
+
+<!-- /private -->
 
 Two other notes on protection:
 - Big Money's `BigMoney.exe` is iWin's AutoWrap 2.12d build of the same 2005-11-14 link, under an Armadillo/SoftwarePassport-style protector. It is redundant and should be ignored.
@@ -166,8 +170,10 @@ No game was found to be impossible.
 
 **Install and image.**
 - The install is `C:\Program Files\PopCap Games\BookWorm Deluxe`: version 1.03, a retail/partner "CD-protect" edition with `partner.xml NoReg=True`.
+<!-- private: - `Bookworm.exe` is not the game but PopCap's CDProtect launcher ("CDProtectRun") with the game inside it. -->
 - `Bookworm.exe` (1,425,425 bytes) is not the game. It is a 106,496-byte launcher, "CDProtectRun". The game PE follows the 17-byte marker `!popcapcdprotect!` at 0x1a000; the game starts at 0x1a011 and runs to EOF (1,318,912 bytes).
 - At runtime the launcher checks a hardware fingerprint (`hw.dat`, built from the MAC address and volume serial) or the original CD (`\cdinstall.dat`). It then copies the game bytes unchanged to a hidden `game.exe`, runs it and deletes it. So a static carve gives exactly the bytes the launcher runs.
+<!-- /private -->
 - The carve is done (`bookworm/bin/BookwormGame.exe`). The triage JSON's 33 KB `.text` figure measured the launcher, not the game.
 
 **Build and framework.**
@@ -414,7 +420,9 @@ No game was found to be impossible.
 
 **Install and image.**
 - The install is `A:\SteamLibrary\steamapps\common\Insaniquarium Deluxe`.
+<!-- private: - `InsaniquariumDeluxe.exe` and `Insaniquarium.exe` are byte-identical 2007-08-10 DRM wrappers, and the unwrapping tool works on them unchanged. -->
 - `InsaniquariumDeluxe.exe` and `Insaniquarium.exe` are byte-identical 2007-08-10 DRM wrappers. The `!popcapdrmprotect!` marker sits at 0x188000, exactly at the outer image end, and `extract_game_exe.py` works unchanged.
+<!-- /private -->
 - The game is `WinFish.exe` (2,170,880 bytes, FileVersion 1.1.0.0, ProductVersion "1.1 D"). It is already carved to `insaniquarium/bin/WinFishGame.exe`.
 - `WinFish_Scr.exe` is the screensaver build of the same code, linked 3 minutes earlier with about 5 KB of different `.text` and no wrapper. `Insaniquarium.scr` is a 274 KB launcher stub. Neither is needed.
 
@@ -484,7 +492,9 @@ Two more projects reimplement the game rather than use WinFish's code: [AmeerMH/
 
 **Install and image.**
 - The install is `A:\SteamLibrary\steamapps\common\Talismania Deluxe`.
+<!-- private: - `Talismania.exe` is the 2006-08-22 DRM wrapper. The game PE is already carved. -->
 - `Talismania.exe` (4,678,050 bytes) is the 2006-08-22 DRM wrapper. The game PE is at 0x591a2 (4,313,088 bytes) and is already carved.
+<!-- /private -->
 - The game PE was linked 2006-07-28 with VS2005 RTM and LTCG (`/GL`, 392 LTCG objects). Its internal name is "Atlantis" (`AtlantisGameMgr.cpp`).
 - The game talks to the wrapper over registered-message IPC (`PopCapDRM_*`). Saves go to the registry plus a hashed blob. Both need stubbing or replacing.
 
@@ -568,7 +578,9 @@ None of these is a blocker: the image is not packed and has full RTTI. It is jus
 
 **Install and image.**
 - The install is `A:\SteamLibrary\steamapps\common\Typer Shark Deluxe`.
+<!-- private: - `WinTS.exe` is the 2006-08-22 DRM wrapper, with Flash trial screens and the Steam2 API, and the unwrapping tool works on it unchanged. -->
 - `WinTS.exe` (1,860,002 bytes) is the 2006-08-22 DRM wrapper, with Flash trial screens and the Steam2 API. The game PE runs from 0x591a2 to EOF (1,495,040 bytes), and `extract_game_exe.py` carves it unchanged.
+<!-- /private -->
 - The inner PE has InternalName WinTS, development name "WordShark", and ProductVersion 1.02, which TCRF lists as the last build. It was linked 2004-04-20 with VS.NET 2002 (7.0, build 9466).
 - The old shareware code is still inside: RegisterDialog, KeyDialog, the BigInt key check, trial limits, BetaSupport, UpdateCheck and HTTP crash reports. `properties/partner.xml` (NoReg, DontUpdate, SteamId 3450) disables it, and a port drops it.
 
@@ -791,7 +803,7 @@ Groundwork (libopenmpt, AU, extractor marker, Ghidra VC7 fixes, JP2 staging, mul
 The key facts for the 20 non-priority games, in the order of the table in section 2. Each heading gives the verdict and the effort.
 
 ### Dynomite Deluxe: EXTRA WORK, ~4.5x
-- **Image:** `Dynomite.exe` is the 2006-08-21 wrapper; the game is at 0x591a2 (1,277,952 bytes). The game was linked 2003-07-08 with VS2002. Developer: Raptisoft (John Raptis), working title "Fossilized".
+- **Image:** `Dynomite.exe` is the 2006-08-21 wrapper; the game inside it is 1,277,952 bytes. The game was linked 2003-07-08 with VS2002. Developer: Raptisoft (John Raptis), working title "Fossilized".
 - **Framework:** the oldest layout in the batch: Widget 43 slots, Dialog 48, SexyApp 61, no WidgetContainer and no SexyAppBase.
 - **RTTI:** framework only. Game classes have none; there are about 42 game vtables without COLs. Source file names come from `default.xml` comments (FossilizedApp.cpp, Museum.cpp, Tutor.cpp...).
 - **Game code:** ~262 KB / ~445 functions. The largest function is the ~24 KB tutorial script.
@@ -799,7 +811,7 @@ The key facts for the 20 non-priority games, in the order of the table in sectio
 - **Existing:** [iCTzzz/Dynomite-Deluxe-Level-Editor](https://github.com/iCTzzz/Dynomite-Deluxe-Level-Editor), a possible `.EGG` format reference.
 
 ### Rocket Mania Deluxe: EXTRA WORK, ~3.5x
-- **Image:** the 2006-08-22 wrapper; the game is at 0x541a2 (1,019,904 bytes). The game was linked 2003-09-08 with MSVC 6.0 (the only VC6 build in the batch). App class `WinTubeTricksApp`. Developer: Nuclide (Belgium).
+- **Image:** the 2006-08-22 wrapper; the game inside it is 1,019,904 bytes. The game was linked 2003-09-08 with MSVC 6.0 (the only VC6 build in the batch). App class `WinTubeTricksApp`. Developer: Nuclide (Belgium).
 - **Framework:** pre-public 2003 (Widget 44, Dialog 49, SexyApp 62, no SexyAppBase).
 - **RTTI:** 23 game classes.
 - **Game code:** ~195 KB / ~560 functions.
@@ -807,7 +819,7 @@ The key facts for the 20 non-priority games, in the order of the table in sectio
 - **Existing:** clones only ([nemoraca/rocket-mania-clone](https://github.com/nemoraca/rocket-mania-clone), [ikanyu/Modified-Rocket-Mania](https://github.com/ikanyu/Modified-Rocket-Mania)).
 
 ### AstroPop Deluxe: EXTRA WORK, ~7-8x
-- **Image:** `WinAP.exe` is the 2006-08-21 wrapper; the game is at 0x591a2 (1,748,992 bytes). Internal name WinGD. The game was linked 2004-04-06 with VS2002.
+- **Image:** `WinAP.exe` is the 2006-08-21 wrapper; the game inside it is 1,748,992 bytes. Internal name WinGD. The game was linked 2004-04-06 with VS2002.
 - **Framework:** the same April 2004 snapshot as Typer Shark (Widget 47, Dialog 52), plus MoreGames ad classes.
 - **RTTI:** framework only; there are about 39 game vtables without COLs.
 - **Game code:** ~556 KB / ~1,030 functions, of which ~67 KB is generated resource-ID code (691 IDs) and should be regenerated, not translated. The largest classic title: story mode, 4 pilots, SUPA weapons, survival, demo playback.
@@ -819,7 +831,7 @@ The key facts for the 20 non-priority games, in the order of the table in sectio
 - **Existing:** none.
 
 ### Heavy Weapon Deluxe: EXTRA WORK, ~5x
-- **Image:** the 2006-08-21 wrapper; the game is at 0x591a2 (1,519,616 bytes). The game was linked 2005-02-16 with VS2002. Programmer: Josh Langley.
+- **Image:** the 2006-08-21 wrapper; the game inside it is 1,519,616 bytes. The game was linked 2005-02-16 with VS2002. Programmer: Josh Langley.
 - **Framework:** pre-1.2 early 2005 (Widget 48, Dialog 54, SexyAppBase split out at 80 slots, NativeDisplay, FlashWidget).
 - **RTTI:** framework only; there are about 75 game vtables without COLs, many of them 9-slot enemy and projectile classes. Names come from strings and the data XML. Source files appear to be linked alphabetically (the bosses Helicopter, Rainer, Robot, Worm and Wrecker sit at the end).
 - **Game code:** ~300 KB / ~690 functions.
@@ -831,7 +843,7 @@ The key facts for the 20 non-priority games, in the order of the table in sectio
 - **Existing:** [Chillaxhson/heavy-weapon-deluxe-vita](https://github.com/Chillaxhson/heavy-weapon-deluxe-vita), a reimplementation (not a decompilation) with v1.1.0 claiming all 19 missions. Its in-mission music is silent because it cannot read MO3, and there is no license. Useful as a behaviour reference.
 
 ### Big Money Deluxe: DIRECT, ~2x (already planned)
-- **Image:** `WinBM.exe` is the 2006-08-21 wrapper; the game is at 0x531a2 (1,245,184 bytes). The game was linked 2005-11-14 with VS2002 (no LTCG, so easier to read than Bejeweled).
+- **Image:** `WinBM.exe` is the 2006-08-21 wrapper; the game inside it is 1,245,184 bytes. The game was linked 2005-11-14 with VS2002 (no LTCG, so easier to read than Bejeweled).
 - **The other exe:** `BigMoney.exe` is iWin's AutoWrap 2.12d build of the same link, under an Armadillo-style protector (`glcfg.date` decodes to `gameVendor=IW`). Ignore it.
 - **Framework:** the public 1.2 layout (WidgetContainer 15, Widget 54, Dialog 60, ButtonWidget 57), with DescParser and NativeDisplay, and no PakInterface or FlashWidget.
 - **RTTI:** 21 game classes (WinBMApp, Board, Piece, MrMoney, Points, GameSelector, dialogs).
@@ -840,7 +852,7 @@ The key facts for the 20 non-priority games, in the order of the table in sectio
 - **Existing:** none.
 
 ### Hammer Heads Deluxe: EXTRA WORK, ~6x
-- **Image:** the 2006-08-22 wrapper; the game is at 0x5a1a2 (1,703,936 bytes). The game was linked 2006-05-17 with VS2003. Developer: Nuclide, working title "Cubby Catch". The game has a DRM IPC client that must be stubbed.
+- **Image:** the 2006-08-22 wrapper; the game inside it is 1,703,936 bytes. The game was linked 2006-05-17 with VS2003. Developer: Nuclide, working title "Cubby Catch". The game has a DRM IPC client that must be stubbed.
 - **Framework:** 1.2 layout (as Big Money) plus FlashWidget and ListWidget.
 - **RTTI:** 120 game classes, including about 25 Gnome* classes, plus a full in-game level editor and property system (Property*, PropertyWidget*, Tool*, WidgetStyle...).
 - **Game code:** ~418 KB / ~1,890 functions, of which ~80 KB of editor and property UI can be dropped and ~26 KB is generated resource code.
@@ -854,7 +866,7 @@ The key facts for the 20 non-priority games, in the order of the table in sectio
 - **Existing:** none.
 
 ### Zuma Deluxe: ALREADY DONE, ~0.5-1x
-- **Image:** `Zuma.exe` is the 2007-08-10 wrapper; the game is at 0x1c51a2 (2,023,424 bytes). The game was linked 2007-04-04 with VS2005. This is a 2007 rebuild, **not** the 2003 MSVC 7.0 1.0.0 exe that CircleShootApp targets, so addresses do not line up. Gameplay and data are the same.
+- **Image:** `Zuma.exe` is the 2007-08-10 wrapper; the game inside it is 2,023,424 bytes. The game was linked 2007-04-04 with VS2005. This is a 2007 rebuild, **not** the 2003 MSVC 7.0 1.0.0 exe that CircleShootApp targets, so addresses do not line up. Gameplay and data are the same.
 - **Framework:** SAF ~1.3 with PakInterface.
 - **RTTI:** full; the game classes match CircleShootApp's. Steam-only additions: AdScreen, EyeBlaster ad classes, MoreGames, LevelLockScreen and others.
 - **Game code:** ~360 KB.
@@ -870,7 +882,7 @@ The key facts for the 20 non-priority games, in the order of the table in sectio
 - **Plan:** vendor CircleShootApp's game folder, build it against our framework, add the mod layer and case-insensitive lookup, and credit upstream.
 
 ### Bejeweled 2 Deluxe: DIRECT, ~6x
-- **Image:** `WinBej2.exe` is the 2007-08-10 wrapper; the game is at 0x1841a2 (2,715,648 bytes). The game was linked 2007-04-11 with VS2005 LTCG, the same toolchain as Bejeweled. The app class is again `WinDMApp`.
+- **Image:** `WinBej2.exe` is the 2007-08-10 wrapper; the game inside it is 2,715,648 bytes. The game was linked 2007-04-11 with VS2005 LTCG, the same toolchain as Bejeweled. The app class is again `WinDMApp`.
 - **Framework:** identical vtables to Bejeweled in every class measured, so FRAMEWORK_NOTES applies as it is.
 - **RTTI:** 40 game classes (Board, MainMenu, GalaxyMap, Hyperspace, StarField, puzzle-mode classes, dialogs, WorkerThread, CustomResourceManager...).
 - **Game code:** ~325-343 KB / ~1,450 functions; Board alone is ~100 KB.
@@ -890,7 +902,7 @@ The key facts for the 20 non-priority games, in the order of the table in sectio
   - [bognarit80/Bej2Widescreen](https://github.com/bognarit80/Bej2Widescreen) is a widescreen mod.
 
 ### Peggle Deluxe: DIRECT on Thunderball, ~5x (~12x from scratch)
-- **Image:** `Peggle.exe` is the 2007-08-10 wrapper; the game is at 0x1c51a2 (2,842,624 bytes, v1.01). The game was linked 2007-07-16 with VS2005.
+- **Image:** `Peggle.exe` is the 2007-08-10 wrapper; the game inside it is 2,842,624 bytes (v1.01). The game was linked 2007-07-16 with VS2005.
 - **Framework:** SAF ~1.3, with ModVal tunable strings left in.
 - **RTTI:** about 70 game classes (ThunderballApp, Board, Ball, Gun, LogicMgr, PhysObj, CharacterMgr, LevelEditor, Replay...).
 - **Game code:** ~750 KB.
@@ -902,13 +914,13 @@ The key facts for the 20 non-priority games, in the order of the table in sectio
 - **Plan:** use Thunderball's layouts and implemented functions, fill the gaps from our own Ghidra export (ideally upstreaming them), then build its game folder against our framework.
 
 ### Peggle Extreme: DIRECT, ~1x after Deluxe
-- **Image:** `PeggleExtreme.exe` and `testapp.exe` are identical 2007-08-10 wrappers; the game is at 0x1c51a2 (2,859,008 bytes). The game was linked 2007-08-22 with VS2005 and no LTCG (PDB path `ThunderballExtreme`).
+- **Image:** `PeggleExtreme.exe` and `testapp.exe` are identical 2007-08-10 wrappers; the game inside it is 2,859,008 bytes. The game was linked 2007-08-22 with VS2005 and no LTCG (PDB path `ThunderballExtreme`).
 - **Game code:** exactly the same 70-class set as Deluxe. After masking addresses, 84% of functions (50% of bytes) are identical to Deluxe. It is a light themed fork with Orange Box assets (headcrabs, walkers).
 - **Data:** `main.pak` (10 MB) with 132 `.jp2`, 18 levels, `characters.cfg` and `stages.cfg`; `music/PeggleBeats.mo3`.
 - **Plan:** build it as a variant of Deluxe, diffing strings, levels and characters against Deluxe.
 
 ### Peggle Nights: DIRECT, ~4-5x after Deluxe
-- **Image:** `PeggleNights.exe` is the 2008-10-08 wrapper; the game is at 0x1d61a2 (3,342,336 bytes). The game was linked 2008-09-26 with VS2005 LTCG.
+- **Image:** `PeggleNights.exe` is the 2008-10-08 wrapper; the game inside it is 3,342,336 bytes. The game was linked 2008-09-26 with VS2005 LTCG.
 - **Framework:** SAF ~1.3 plus EncodingParser, and OLE drag-and-drop for level-pack import, which needs a file-picker replacement.
 - **Game code:** 81 game classes: the Deluxe set plus CreditsScreen, IntroScreen, InstituteLounge, LevelFileDialog, MyLevelEdit, ProgressScreen and others. ~700-950 KB. Only about 6% of bytes are identical to Deluxe, but that reflects the LTCG rebuild; the class structure and names carry over.
 - **Data:** `main.pak` (17.9 MB) with 273 `.jp2` and 70 levels; 16 MO3; `levelpacks/*.pak`.
@@ -922,7 +934,7 @@ The key facts for the 20 non-priority games, in the order of the table in sectio
 - **Data:** `main.pak` (11 MB) with 130 `.jp2` and 12 levels; 3 MO3 plus 4 OGG.
 
 ### Plants vs. Zombies GOTY: ALREADY DONE, ~0.3-0.5x
-- **Image:** the 2008-10-08 wrapper; the game is at 0x1a71a2 (3,552,256 bytes, v1.2.0.1096). The game was linked 2010-12-10 with VS2008 and uses `steam_api` for achievements.
+- **Image:** the 2008-10-08 wrapper; the game inside it is 3,552,256 bytes (v1.2.0.1096). The game was linked 2010-12-10 with VS2008 and uses `steam_api` for achievements.
 - **RTTI:** framework only; the game classes have none.
 - **Libraries:** an internal SAF (~2009-10) plus TodLib (Reanimator, TodParticle, TodFoley), both reconstructed in the decompilations.
 - **Data:** `main.pak` (45 MB) with 146 `.reanim` files, particle XML, 251 regenerable `.compiled` caches, PNG/JPG, 167 OGG and 2 MO3.
@@ -937,7 +949,9 @@ The key facts for the 20 non-priority games, in the order of the table in sectio
 ### Bejeweled Twist: EXTRA WORK, ~25x
 - **Image:** two builds.
   - The Steam `BejeweledTwist.exe` is the 2008-10-08 wrapper.
+<!-- private:   - The retail `BejeweledTwist.exe` (`C:\Program Files (x86)\PopCap Games\Bejeweled Twist`) uses the CDProtect wrapper, and the unwrapping tool needs G3. -->
   - The retail `BejeweledTwist.exe` (`C:\Program Files (x86)\PopCap Games\Bejeweled Twist`) uses the CDProtect wrapper. The game sits at 0x611a1 and ends at `!popcapcdprotend!`, and the extractor needs G3.
+<!-- /private -->
   - Both inner images are v1.0.3.7482, linked 2008-10-17. The Steam one is locally patched (section 5, item 7). Use the retail inner image.
 - **Compiler:** VS2005 with partial LTCG. Codename "Zongo".
 - **Framework:** an internal mid-2008 generation with D3D7/8/9 interfaces, DXSurface7/8/9, a P3D mesh renderer, 20 embedded ps_2_0/vs_2_0 shader blobs, GraphicsRecorder, WorkerThread, PopAnim, FEAST (only for `compat.cfg`, so droppable) and FlashWidget. It predates the RenderDevice abstraction.
@@ -948,7 +962,7 @@ The key facts for the 20 non-priority games, in the order of the table in sectio
 - **Plan:** do it after Bejeweled 3. Start with the D3D7/no-shader paths, rewrite the shaders in GLSL, and port the visualizers last or drop them.
 
 ### Zuma's Revenge!: HARD, ~35x (~15-20x with references)
-- **Image:** `ZumasRevenge.exe` is the 2008-10-08 wrapper; the game is at 0x1d61a2 (6,651,904 bytes). The game was linked 2009-08-14 with VS2005 LTCG (internal name Zuma2). It imports `steam_api` (achievements) and WinInet.
+- **Image:** `ZumasRevenge.exe` is the 2008-10-08 wrapper; the game inside it is 6,651,904 bytes. The game was linked 2009-08-14 with VS2005 LTCG (internal name Zuma2). It imports `steam_api` (achievements) and WinInet.
 - **Size:** `.text` is 5.3 MB, the largest of all 26.
 - **Framework:** an internal 2009 generation with RenderDevice/RenderDevice3D, D3D8/9, DXSurface, `.fx` effects through a dynamically loaded d3dx9, D3D meshes, PopAnim, PIEffect, CfgCompiler + FEAST, and MoreGamesAd/Flash.
 - **Libraries:** JeffLib (13 classes), PIL (21 classes), AELib (`.pax` After Effects compositions). None has official source.
@@ -982,7 +996,7 @@ The key facts for the 20 non-priority games, in the order of the table in sectio
 - **Plan:** build the shared prime-compat layer here, translate the game classes with the C# for names and logic, and verify against a Ghidra export of the PC binary.
 
 ### Chuzzle Deluxe: HARD, ~8-12x
-- **Image:** `Chuzzle.exe` is the 2006-08-21 wrapper; the game is at 0x591a2 (1,105,920 bytes). The game was linked 2005-05-10 with VS2002 (PDB path `c:\GameSrc\cpp\Raptisoft\Chuzzle`).
+- **Image:** `Chuzzle.exe` is the 2006-08-21 wrapper; the game inside it is 1,105,920 bytes. The game was linked 2005-05-10 with VS2002 (PDB path `c:\GameSrc\cpp\Raptisoft\Chuzzle`).
 - **RTTI:** effectively none (`/GR-`): only 7 exception type names and about 129 vtables without COLs. Names come from 27 surviving `__FILE__` strings, config keys (`ClassicChuzzle::`, `SpeedChuzzle::`) and dialog names.
 - **Engine:** **not SAF**. It is Raptisoft's own engine: App, Graphics (DirectDraw7/Direct3D7 with a software fallback), Sprite, TextureMosaic/TextureSplatter, Sound, Music (BASS/MO3), Font (it reads SAF ImageFont `.txt` descriptors), GadgetManager, ProfileManager and others. Its source is not public. Raptisoft's later "Robot Wants" engine is semi-public ([rwkcommunity/rwkgame](https://github.com/rwkcommunity/rwkgame), [PeerInfinity/kittyengine](https://github.com/PeerInfinity/kittyengine)), but how it relates to this engine is unverified.
 - **Code:** game ~300 KB plus engine ~320 KB.
@@ -993,7 +1007,7 @@ The key facts for the 20 non-priority games, in the order of the table in sectio
 - **Plan:** write a small Raptisoft-API shim (Sprite, Font, Sound, Music, Gadget) over our SDL backend rather than decompiling the D3D7 internals.
 
 ### Pizza Frenzy: ALREADY DONE, ~1-1.5x
-- **Image:** the 2006-08-22 wrapper; the game is at 0x561a2 (1,268,224 bytes, v5.8.30.1, Sprout Games). The game was linked 2006-02-21 with VS2003.
+- **Image:** the 2006-08-22 wrapper; the game inside it is 1,268,224 bytes (v5.8.30.1, Sprout Games). The game was linked 2006-02-21 with VS2003.
 - **Engine:** Sprout first generation. No RTTI: 10 exception type names and about 322 vtables without names.
 - **Code:** game ~455 KB, engine ~265 KB.
 - **Data:** `PizzaFrenzy.saf` (6.0 MB, FFAS format, 1,081 entries: JPG, PNG, 147 XML, 73 OGG) and loose `splash/`.
@@ -1005,7 +1019,7 @@ The key facts for the 20 non-priority games, in the order of the table in sectio
 - **Plan:** build it, then port the engine backend to SDL2/WASM and add per-file `.saf` overrides for mods. This is the entry point to all the Sprout titles.
 
 ### Iggle Pop Deluxe: EXTRA WORK, ~6x after Pizza Frenzy
-- **Image:** the 2006-08-22 wrapper; the game is at 0x551a2 (1,359,872 bytes, v6.2.17.1, internal name FuzzleFrenzy). The game was linked 2006-02-21 with VS2003, on the same day as Pizza Frenzy.
+- **Image:** the 2006-08-22 wrapper; the game inside it is 1,359,872 bytes (v6.2.17.1, internal name FuzzleFrenzy). The game was linked 2006-02-21 with VS2003, on the same day as Pizza Frenzy.
 - **Engine:** the same Sprout engine build as Pizza Frenzy. After masking relocations, 651 of 900 engine-region functions (72%) are byte-identical, as are 85% of the DirectDraw functions and 87% of the CRT.
 - **RTTI:** none: 10 exception type names and about 386 unnamed vtables. Names come from the XML class and aiClass names (ChainCounter, WarpHole, FreezePickup, GuardZoog...).
 - **Game code:** ~480 KB / ~1,200 functions.
@@ -1014,7 +1028,7 @@ The key facts for the 20 non-priority games, in the order of the table in sectio
 - **Plan:** link the ported Pizza Frenzy engine, auto-label the shared engine functions by masked-hash matching (`funcsim.py`), and translate only the game code.
 
 ### Feeding Frenzy 2 Deluxe: EXTRA WORK, ~10x after Pizza Frenzy
-- **Image:** `FeedingFrenzyTwo.exe` is the 2007-08-10 wrapper; the game is at 0x18b1a2 (1,917,952 bytes). The game was linked 2006-02-24 with VS2005 (PDB name `FeedingFrenzyTwo-saf-instrument`).
+- **Image:** `FeedingFrenzyTwo.exe` is the 2007-08-10 wrapper; the game inside it is 1,917,952 bytes. The game was linked 2006-02-24 with VS2005 (PDB name `FeedingFrenzyTwo-saf-instrument`).
 - **RTTI:** full: 597 type names and 581 classes, about 430 of them game classes (Fish, AIFish, PlayerFish, dozens of `*AI` and `*State` classes, Stage, GameHud...).
 - **Engine:** Sprout second generation, almost identical to Talismania's: Java-style `engine` (Object, Reader, Runnable, Thread, Scene, ScreenLayout, ArchiveLoader/ArchiveToc, ParticleSystem, Splat, QDParser), `dxdriver`, `simplesound`, `shape` (collision) and sigslot. It shares 48 engine class names with the Pizza Frenzy decompilation.
 - **Code:** game ~470 KB, engine ~570 KB.

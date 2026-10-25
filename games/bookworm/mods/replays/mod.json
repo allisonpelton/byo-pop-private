@@ -1,0 +1,13 @@
+{
+  "id": "replays",
+  "name": "Replays",
+  "version": "1.0",
+  "author": "byo-pop",
+  "description": "Records every game played from its start to its end (the newest 50, and every one that made a high-score table). Watch one with R on the game-over page, -replay=<file>, or the web page's Replays panel: 1 to 4 set the speed, space pauses, Esc stops. Play is unchanged, so games keep the usual high scores.",
+  "affectsScores": false,
+  "features": {
+    "replays": {
+      "keep": 50
+    }
+  }
+}

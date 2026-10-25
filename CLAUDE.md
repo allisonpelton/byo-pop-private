@@ -84,7 +84,7 @@ The work is split across Claude sessions (the user's design, 2026-10-19):
   sessions do not edit another game's folder.
 - **Directing sessions (the user, 2026-10-24):** the user tells the game sessions about game-specific changes;
   the coordinator does not direct or check on them. A game session messages the coordinator when it needs it:
-  a shared change, a milestone ready to merge, or its mods finished (the push waits for BookWorm's). The coordinator
+  a shared change, a milestone ready to merge, or its mods finished. The coordinator
   looks at a session's work only when the user asks, or when it breaks something for other sessions (shared
   code, the trunk, the machine's test rules). It does message the sessions when the way they are instructed
   changes (a new rule like this one), since a running session reads CLAUDE.md again only at its next start
@@ -101,10 +101,13 @@ The work is split across Claude sessions (the user's design, 2026-10-19):
 Git and publishing:
 - Game sessions may commit on their own branch at verified milestones without asking the user each time.
   Only the coordinator commits on the trunk. Nobody merges into `master`.
-- Never push. The repository is first pushed when the BookWorm session has finished its mods (the user,
-  2026-10-25: Big Money's are done, and Bejeweled has many more to make, so its mods go on after the push),
-  before any new decompilation starts. The coordinator does that, after auditing the whole history for game files.
-- **Order of work (the user, 2026-10-24; the push moved up 2026-10-25):** BookWorm's session finishes its mods;
+- Never push. Only the coordinator publishes, and only as snapshots (the user, 2026-10-25):
+  `python tools/publish.py --push` pushes one commit holding the trunk's tree without the paths in
+  `.publishignore` and the `<!-- private -->` blocks of text files, and the history stays on this machine
+  (`docs/PUBLISHING.md`). Before each publish the coordinator checks the trunk for game files and game text.
+  How to take a game's protection apart (offsets in a wrapper, unwrapping commands, how a launcher checks its
+  copy) goes only inside private blocks, and tools that do it go into `.publishignore`.
+- **Order of work (the user, 2026-10-24; the first push was 2026-10-25):** BookWorm's session finished its mods;
   then the push; right after it, one session decompiles the simplest remaining game, the only decompilation
   running (Bejeweled's session goes on with its mods alongside, the user said on 2026-10-25), and its tokens and
   time are measured per session against the earlier games; only if that shows an improvement do up to three
