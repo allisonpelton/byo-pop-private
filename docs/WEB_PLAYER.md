@@ -62,7 +62,10 @@ The panels:
   `sounds`...) is added as its own mod, and the panel names what it left out. Turning mods on and off,
   their order and their settings live in the game's own F2 menu, as decided for the mod menu
   (`docs/MOD_MENU.md`). The panel also offers "Play without mods" when a mod stopped the last start.
-- **Game files** imports the game again, or forgets the copied files. Saves and mods stay.
+- **Game files** imports the game again, or forgets the copied files. Saves and mods stay. The game runs only
+  once in a page and must not have its files changed under it, so once it has started, both close it first
+  (as the mod menu's Restart does, saving the game in progress) and go on in a reloaded page: the import
+  card, which can go back to the Ready card.
 - **Fullscreen** puts the canvas in fullscreen.
 - A game can add panels of its own: Big Money's page also has **Replays**, for watching and importing recorded games.
 
