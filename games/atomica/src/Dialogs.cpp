@@ -379,7 +379,7 @@ void ConfirmDialog::Draw(Graphics* g)
 	g->DrawString(aLine1, (mWidth / 2 - mApp->mMonitorFont->StringWidth(aLine1) / 2) - 10, 0xf0);
 	const std::string& aLine2 = GT(0x4b064c);
 	g->DrawString(aLine2, (mWidth / 2 - mApp->mMonitorFont->StringWidth(aLine2) / 2) - 10,
-		mApp->mMonitorFont->GetAscent() + 0xed);
+		mApp->mMonitorFont->GetHeight() + 0xed);
 	ButtonWidget* aButtons[2] = {mYes, mNo};
 	const std::string* aTexts[2] = {&GT(0x4b0648), NULL};
 	std::string aNo = "NO";

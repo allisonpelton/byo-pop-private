@@ -82,6 +82,23 @@ public:
 	virtual void	ButtonDepress(int theId) override;	// 0x422170
 };
 
+// 0x417b90: "confirm quit": quit the game in progress, saving it or not
+class QuitDialog : public GameDialog
+{
+public:
+	ButtonWidget*	mSaveQuit;			// +0xac id 0
+	ButtonWidget*	mQuit;				// +0xb0 id 1
+	ButtonWidget*	mCancel;			// +0xb4 id 2
+	bool			mQuitAfter;			// +0xb8 the game ends when the box goes
+
+	QuitDialog(AtomicaApp* theApp);						// 0x417b90
+	virtual ~QuitDialog();								// 0x417d30
+	virtual void	Resize(int theX, int theY, int theWidth, int theHeight) override;	// 0x417db0
+	virtual void	Draw(Graphics* g) override;			// 0x417ef0
+	virtual void	ButtonDepress(int theId) override;	// 0x417e40
+	virtual void	ButtonPress(int theId) override;	// 0x417e90
+};
+
 // 0x422f10: the game options (volumes, full screen, the colour-blind symbols, hints) and the credits
 class OptionsDialog : public GameDialog, public SliderListener
 {

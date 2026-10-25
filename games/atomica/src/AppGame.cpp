@@ -27,13 +27,13 @@ void AtomicaApp::StartGame()
 }
 
 // 0x405bd0: the quit box
-// port: the box is not ported yet; the quit button saves the game of the strategy mode and shows the main menu
 void AtomicaApp::ShowQuit()
 {
-	if ((mBoard != NULL) && (mBoard->mGrid != NULL) && !mBoard->mGrid->mLevelOver && !mBoard->mMeter.mFull)
+	if (mQuitDialog == NULL)
 	{
-		SaveGame();
-		ShowMainMenu(false);
+		QuitDialog* aDialog = new QuitDialog(this);
+		mQuitDialog = aDialog;
+		mWidgetManager->AddWidget(aDialog);
 	}
 }
 
