@@ -503,6 +503,9 @@ SexyAppBase::SexyAppBase()
 	mKeyInHandling = KEYCODE_UNKNOWN;
 	mLastKeyPressed = KEYCODE_UNKNOWN;
 	mRestartRequested = false;
+	mActivationClickPending = false;
+	mActivatedTime = 0;
+	mActivationButtons = 0;
 
 	int i;
 
@@ -1743,11 +1746,40 @@ void SexyAppBase::HandleEvent(const SDL_Event& theEvent)
 #ifdef __EMSCRIPTEN__
 	// A press or key in the page means the page has focus, even when the browser sent no focus
 	// event (see EmscriptenFocusCallback). Windows activates a window before passing on the click.
-	if ((!mActive) && (!mSEHOccured) && (!mShutdown) &&
-		((theEvent.type == SDL_MOUSEBUTTONDOWN) || (theEvent.type == SDL_KEYDOWN) || (theEvent.type == SDL_FINGERDOWN)))
+	// The press that activates the page is not passed on, nor its release: natively SDL drops a click
+	// that activates the window (SDL_HINT_MOUSE_FOCUS_CLICKTHROUGH), and a game that pauses in the
+	// background (Big Money) took the click that resumed it as a move. The browser can send its focus
+	// event just before that press, so a press soon after the app became active counts too. A touch
+	// arms it the same way, for the mouse press SDL makes of it.
+	if ((!mActive) && (!mSEHOccured) && (!mShutdown))
 	{
-		mActive = true;
-		RehupFocus();
+		bool isPress = (theEvent.type == SDL_MOUSEBUTTONDOWN) || (theEvent.type == SDL_FINGERDOWN);
+		if ((isPress) || ((theEvent.type == SDL_WINDOWEVENT) && (theEvent.window.event == SDL_WINDOWEVENT_FOCUS_GAINED)))
+		{
+			mActivationClickPending = true;
+			mActivatedTime = theEvent.common.timestamp;
+		}
+
+		if ((isPress) || (theEvent.type == SDL_KEYDOWN))
+		{
+			mActive = true;
+			RehupFocus();
+		}
+	}
+
+	if ((theEvent.type == SDL_MOUSEBUTTONDOWN) && (mActivationClickPending))
+	{
+		mActivationClickPending = false;
+		if ((DWORD) (theEvent.button.timestamp - mActivatedTime) <= 150)
+		{
+			mActivationButtons |= SDL_BUTTON(theEvent.button.button);
+			return;
+		}
+	}
+	else if ((theEvent.type == SDL_MOUSEBUTTONUP) && ((mActivationButtons & SDL_BUTTON(theEvent.button.button)) != 0))
+	{
+		mActivationButtons &= ~SDL_BUTTON(theEvent.button.button);
+		return;
 	}
 #endif
 

@@ -374,6 +374,12 @@ public:
 	int mLastKeyPressed;        // the last real key pressed: the key behind the text input that follows it
 	bool mRestartRequested;     // RequestRestart: the app shuts down to start again (main(): TakeRelaunch)
 
+	// port (web): the click that brings the page back from the background reaches neither the game nor its
+	// widgets (HandleEvent)
+	bool mActivationClickPending; // the app just became active: a press until mActivatedTime + 150 ms activated it
+	DWORD mActivatedTime;       // SDL's timestamp of that event
+	DWORD mActivationButtons;   // SDL_BUTTON masks of the presses dropped that way: their releases are dropped too
+
 protected:
 	void RehupFocus();
 	void ClearKeysDown();
