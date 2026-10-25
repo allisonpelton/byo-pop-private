@@ -6859,7 +6859,8 @@ does not set it, so mUserTimesPlayed and mTimesPlayed never grow in play. Transl
    ShowAliasDialog) or translate them for completeness (self-contained, nothing else depends on them).
 2. **Options "more games" link**: partner.xml has NumOptionsLinks = 1, so the original shows a `GT_OPTIONS_MORE_GAMES` button and a 351-pixel dialog; Part 7 proposes dropping it (NumOptionsLinks = 0, 315 pixels).
    Keep the button (faithful look; the framework never opens a URL in test runs; random input must avoid it) or
-   drop it? Affects OptionsDialog (dialogs) and the app's OpenURL/dialogs 11/12.
+   drop it? Affects OptionsDialog (dialogs) and the app's OpenURL/dialogs 11/12. Decided by the user on
+   2026-10-24: dropped (L2).
 3. **gGameRand**: D17 puts its creation at the end of `BookWormApp::Init`; confirm `main.cpp` does not create it too.
 4. **Saved-game paths**: app `HasSavedGame` and Board `SaveGame/LoadGame/DeleteSavedGame` must agree. Proposed: both
    build the original relative path `players\<name>\classic.dat` / `action.dat` and go through the framework (VFS
@@ -6882,9 +6883,12 @@ does not set it, so mUserTimesPlayed and mTimesPlayed never grow in play. Transl
 L1. **GetStringDialog and LabelWidget are not ported** (internet alias only), like RegisterDialog,
     UpdateCheckDialog, WaitDialog and ImagelessButton. The callers keep a one-line `// 0xADDR not ported`
     note (ShowAliasDialog and its internet callers are not ported either).
-L2. **The Options links stay, data-driven as in the original**: OptionsDialog builds `NumOptionsLinks`
-    buttons from `properties/partner.xml` (one in the retail file: `GT_OPTIONS_MORE_GAMES`, dialog 351 px
-    high). The framework never opens a URL in test runs (rundesk / the oracle), and tests never click it.
+L2. **The Options links are not ported** (the user's decision, 2026-10-24; first decided the other way):
+    OptionsDialog builds no buttons from `NumOptionsLinks` / `OptionsLinkText%d` / `OptionsLinkURL%d` and
+    never opens a URL. The dialog is `OptionsDialogHeight` high (315 px with the retail partner.xml, where
+    the original's one link made it 351); every other widget keeps its place from the top, as the help /
+    credits row stays 36 px above the footer button. Nothing in the port calls OpenURL any more; the app's
+    OpenURL and dialogs 11/12 stay translated.
 L3. `gGameRand` is created at the end of `BookWormApp::Init` (`new MTRand` seeded with `SeedMTRand2004(...,
     Sexy::Rand())`); `main.cpp` does not create it.
 L4. Saved-game paths: `players/<name>/classic.dat` / `action.dat` relative to the user dir, built the same
