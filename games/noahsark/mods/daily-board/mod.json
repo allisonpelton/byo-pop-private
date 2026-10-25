@@ -1,0 +1,15 @@
+{
+  "id": "daily-board",
+  "name": "Daily Board",
+  "version": "1.0",
+  "author": "byo-pop",
+  "description": "Every level starts from the same animals for everyone on the same day: the board is dealt from the date, the mode, the difficulty and the level number. The date is named under the ark. Pieces that arrive later (strategy rows, puzzle refills) still come as they do. Games with it keep their own high scores and saved game.",
+  "affectsScores": true,
+  "features": {
+    "daily": true
+  },
+  "settings": [
+    { "id": "date", "label": "Day (yyyy-mm-dd, empty for today)", "type": "text", "default": "",
+      "help": "Play the boards of another day, for instance one a friend played." }
+  ]
+}

@@ -14,8 +14,8 @@
 
 using namespace Sexy;
 
-// wordlist.txt keeps words of 3..12 letters (GAME_NOTES section 1), so no longer path can spell one
-static const int SOLVER_MAX_WORD_LENGTH = 12;
+// No path longer than the dictionary's longest word can spell one: 12 letters for wordlist.txt (GAME_NOTES
+// section 1), more with the mod "long-words" and a word list that has longer words (ModWords.h)
 
 // The mod's settings (games/bookworm/mods/solver/mod.json), read live
 static bool FireFirst()
@@ -68,6 +68,7 @@ void Sexy::FindBoardWords(const std::vector<Piece*>& theTiles, const std::set<Se
 	std::vector<bool> anInPath(aCount, false);
 	std::vector<Piece*> aPath;
 	SexyString aWord;
+	int aMaxLength = ModWordMaxLength();
 	std::function<void(size_t)> aFrom = [&](size_t theIdx)
 	{
 		Piece* aPiece = theTiles[theIdx];
@@ -84,7 +85,7 @@ void Sexy::FindBoardWords(const std::vector<Piece*>& theTiles, const std::set<Se
 			aPath.push_back(aPiece);
 			if ((aWord.size() >= 3) && (*anItr == aWord))
 				theVisitor(aPath, aWord);
-			if ((int)aWord.size() < SOLVER_MAX_WORD_LENGTH)
+			if ((int)aWord.size() < aMaxLength)
 			{
 				for (size_t i = 0; i < aNeighbours[theIdx].size(); i++)
 				{

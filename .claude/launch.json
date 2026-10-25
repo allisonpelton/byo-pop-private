@@ -24,6 +24,12 @@
       "runtimeExecutable": "python",
       "runtimeArgs": ["-m", "http.server", "18768", "--bind", "127.0.0.1", "--directory", "build/web"],
       "port": 18768
+    },
+    {
+      "name": "noahsark-web",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-m", "http.server", "18769", "--bind", "127.0.0.1", "--directory", "build/web"],
+      "port": 18769
     }
   ]
 }

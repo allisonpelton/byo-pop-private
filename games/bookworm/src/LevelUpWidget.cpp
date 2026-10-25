@@ -612,6 +612,21 @@ void LevelUpWidget::Draw(Graphics* g)
 	Widget::Draw(g);
 }
 
+// port(mod): long-words (ModWords.h): a word of more than 12 letters in the largest of the column's Scripps
+// fonts that fits theWidth
+static void FitLongWord(Graphics* g, BookWormApp* theApp, const SexyString& theWord, int theWidth)
+{
+	if ((theWord.size() <= 12) || (!ModLongWords()))
+		return;
+	const int aFonts[] = { FONT_SCRIPPSCOLLEGEOS18BOLD, FONT_SCRIPPSCOLLEGEOS15BOLD, FONT_SCRIPPSCOLLEGEOS13BOLD };
+	for (int i = 0; i < 3; i++)
+	{
+		g->SetFont(theApp->mFonts[aFonts[i]]);
+		if (g->GetFont()->StringWidth(theWord) <= theWidth)
+			break;
+	}
+}
+
 // 0x42c210. Paints the 490x390 panel once (panel coordinates; y are baselines; the WriteString2004 calls
 // centre their text in [x, x + w]). Left column: the best and the longest word of the level (of the game
 // at game over), the level time and the total time; right column: the rank name, its picture in a frame
@@ -643,6 +658,7 @@ void LevelUpWidget::DrawPanel(Graphics* g)
 	g->SetFont(mApp->mFonts[FONT_SCRIPPSCOLLEGEOS18BOLD]);
 	aY += g->GetFont()->GetHeight();
 	g->SetColor(Color(0, 0, 255));
+	FitLongWord(g, mApp, aBestWord, 206);
 	WriteString2004(g, aBestWord, 34, aY, 206, 0, true, 0, -1);
 	g->SetColor(Color(0, 0, 0));
 
@@ -657,6 +673,7 @@ void LevelUpWidget::DrawPanel(Graphics* g)
 	g->SetFont(mApp->mFonts[FONT_SCRIPPSCOLLEGEOS18BOLD]);
 	aY += g->GetFont()->GetHeight();
 	g->SetColor(Color(0, 0, 255));
+	FitLongWord(g, mApp, aLongestWord, 206);
 	WriteString2004(g, aLongestWord, 34, aY, 206, 0, true, 0, -1);
 	g->SetColor(Color(0, 0, 0));
 

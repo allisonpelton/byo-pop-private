@@ -18,6 +18,8 @@
 // "lookup" (optional) makes a definition balloon a link: a click on it opens the URL, "{word}" standing for
 // the word in lower case. Either one URL, or an object of them keyed by the value of the mod's choice
 // setting "lookup" (a value without a URL, such as "off", is no link).
+// A mod's words of more than 12 letters (the longest the game's own list has, and the most its word box shows)
+// count only with the mod "long-words" (feature "longWords"), which makes them fit wherever a word is drawn.
 
 #include "Common.h"
 #include <set>
@@ -53,6 +55,8 @@ bool			ModWordCounted(const SexyString& theWord);   // a word the stats count
 SexyString		ModWordStatsLabel();                         // "" without such a mod
 SexyString		ModWordStatsValueName();                     // the player's all-time total, by mod
 std::string		ModWordLookupURL(const SexyString& theWord); // "" without a link
+int				ModWordMaxLength();                          // the dictionary's longest word: 12, or more
+bool			ModLongWords();                              // the mod "long-words" is on
 
 }
 

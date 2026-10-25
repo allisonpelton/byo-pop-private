@@ -1,6 +1,7 @@
 #include "ModWords.h"
 #include "BookWormApp.h"
 #include "Definitionator.h"
+#include "ModFeatures.h"
 #include "PakInterface.h"
 #include "platform/ModManager.h"
 #include <algorithm>
@@ -25,6 +26,7 @@ struct ModWordList
 };
 
 std::vector<ModWordList> gModWordLists;
+int gMaxWordLength = 12;   // wordlist.txt keeps words of 3..12 letters (GAME_NOTES section 1)
 
 // The mod's live setting, or theDefault without it
 Platform::JsonValue Setting(const ModWordList& theList, const char* theSetting)
@@ -101,6 +103,8 @@ std::vector<std::string> FileNames(const Platform::JsonValue& theValue)
 void Sexy::LoadModWords(BookWormApp* theApp, std::set<SexyString>* theDictionary)
 {
 	gModWordLists.clear();
+	gMaxWordLength = 12;
+	bool isLong = ModLongWords();
 	// every mod's words against the game's list alone (a word two mods add is each one's), then merged
 	std::vector<std::vector<SexyString> > aMerged;
 	for (const Platform::ModInfo* aMod : Platform::ModManager::Get().GetEnabledMods())
@@ -122,8 +126,13 @@ void Sexy::LoadModWords(BookWormApp* theApp, std::set<SexyString>* theDictionary
 			theApp->LoadWordList(aName, NULL, &aWords);
 			for (const SexyString& aWord : aWords)
 			{
+				if ((aWord.size() > 12) && (!isLong))
+					continue;
 				if (theDictionary->find(aWord) == theDictionary->end())
+				{
 					aList.mWords.push_back(aWord);
+					gMaxWordLength = std::max(gMaxWordLength, (int)aWord.size());
+				}
 			}
 		}
 		std::sort(aList.mWords.begin(), aList.mWords.end());
@@ -140,6 +149,16 @@ void Sexy::LoadModWords(BookWormApp* theApp, std::set<SexyString>* theDictionary
 		theDictionary->insert(aWords.begin(), aWords.end());
 	for (const ModWordList& aList : gModWordLists)
 		theDictionary->insert(aList.mWords.begin(), aList.mWords.end());
+}
+
+int Sexy::ModWordMaxLength()
+{
+	return gMaxWordLength;
+}
+
+bool Sexy::ModLongWords()
+{
+	return ModFeatureEnabled("longWords");
 }
 
 void Sexy::LoadModDefinitions(Definitionator* theDefinitionator)

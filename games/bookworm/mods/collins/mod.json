@@ -3,7 +3,7 @@
   "name": "Collins Scrabble Words",
   "version": "1.0",
   "author": "byo-pop",
-  "description": "Adds Collins Scrabble Words, the international tournament list (about 280,000 words), to BookWorm's dictionary, with its definitions in Lex's balloon; a click on the balloon looks the word up online. The list comes from your own copy: make collins-words.txt (and collins-defs.txt) in this folder with games/bookworm/tools/make_collins_mod.py; without them the mod adds nothing. Games with it keep their own high scores.",
+  "description": "Adds Collins Scrabble Words, the international tournament list (about 280,000 words), to BookWorm's dictionary, with its definitions in Lex's balloon; a click on the balloon looks the word up online. The list comes from your own copy: make collins-words.txt (and collins-defs.txt) in this folder with games/bookworm/tools/make_collins_mod.py; without them the mod adds nothing. Its words of more than 12 letters count only with the mod Words Over 12 Letters. Games with it keep their own high scores.",
   "affectsScores": true,
   "features": {
     "words": {

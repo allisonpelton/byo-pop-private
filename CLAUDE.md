@@ -90,7 +90,9 @@ The work is split across Claude sessions (the user's design, 2026-10-19):
   changes (a new rule like this one), since a running session reads CLAUDE.md again only at its next start
   or compaction.
 - **A new worktree** lacks the git-ignored game files, baselines, oracle cache and generated mods: run
-  `tools/setup_worktree.sh` in it once (copies from the main checkout, no junctions).
+  `tools/setup_worktree.sh` in it once (copies from the main checkout, no junctions). Cut it from the local
+  `main`, never from `origin/main`: that holds only the publish snapshots, which share no history with `main`, so a
+  branch made from one cannot merge (`git rebase --onto main <snapshot>` fixes one).
 - **Trunk:** `main` (named `code-mods` until 2026-10-19, after Bejeweled's code-mods stages 4 and 5). Game branches
   merge the trunk in regularly.
 - **Mark overrides.** Port-side game code that overrides a framework virtual (hooks such as
