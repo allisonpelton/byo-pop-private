@@ -609,7 +609,7 @@ void Board::ButtonDepress(int theId)
 		mApp->ShowMenuDialog();
 		break;
 	case 3:
-		mApp->ShowHelp();
+		mApp->ShowConfirm();
 		break;
 	}
 }

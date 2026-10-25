@@ -260,7 +260,7 @@ public:
 	void				ResumeGame();						// 0x406060
 	void				DeleteSavedGame();
 	void				ShowOptions();						// 0x405bd0
-	void				ShowHelp();							// 0x405c40
+	void				ShowConfirm();						// 0x405c40
 	void				ShowMenuDialog();					// 0x405d00
 	void				ShowMainMenu(bool theGameOver);		// 0x405d70
 	void				ShowGameOver();						// 0x406200

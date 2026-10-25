@@ -16,6 +16,7 @@
 #include "AtomicaApp.h"
 #include "Board.h"
 #include "Grid.h"
+#include "Dialogs.h"
 #include "Menu.h"
 #include "PathFinder.h"
 #include "Screens.h"
@@ -211,6 +212,22 @@ void AtomicaApp::AutoplayUpdate()
 				aBoard->mMeter.mLevel, s->mMoves);
 			if (!mAutoplayShots.empty())
 				SaveScreenshot(StrFormat("%s-over%d.png", mAutoplayShots.c_str(), s->mGames));
+		}
+		return;
+	}
+	if (mLevelUpDialog != NULL)
+	{
+		// the level-up box: wait until it has slid down, look at it, press its button
+		LevelUpDialog* aDialog = (LevelUpDialog*) mLevelUpDialog;
+		if (aDialog->mBoxY >= 0)
+		{
+			if (!mAutoplayShots.empty() && (s->mShots < 3))
+			{
+				s->mShots++;
+				SaveScreenshot(StrFormat("%s-levelup%d.png", mAutoplayShots.c_str(), s->mShots));
+			}
+			aDialog->ButtonDepress(0);
+			s->mWait = 5;
 		}
 		return;
 	}

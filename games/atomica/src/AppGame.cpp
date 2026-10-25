@@ -7,6 +7,7 @@
 #include "Grid.h"
 #include "Screens.h"
 #include "Menu.h"
+#include "Dialogs.h"
 #include "Buffer.h"
 #include "WidgetManager.h"
 
@@ -25,16 +26,22 @@ void AtomicaApp::StartGame()
 	mB3ea0 = false;
 }
 
-// 0x405bd0 / 0x405c40: the options and the help boxes
+// 0x405bd0: the options box
 // port: the dialogs are not ported yet
 void AtomicaApp::ShowOptions()
 {
 	puts("options dialog (not ported)");
 }
 
-void AtomicaApp::ShowHelp()
+// 0x405c40: "confirm new game"
+void AtomicaApp::ShowConfirm()
 {
-	puts("help dialog (not ported)");
+	if (mHelpDialog == NULL)
+	{
+		ConfirmDialog* aDialog = new ConfirmDialog(this);
+		mHelpDialog = aDialog;
+		mWidgetManager->AddWidget(aDialog);
+	}
 }
 
 // 0x405d00: the menu box (quit, quit and save)
@@ -159,12 +166,15 @@ void AtomicaApp::ShowGameOver()
 		ShowMainMenu(true);
 }
 
-// 0x432240: the level-up box
-// port: not ported yet; the next level comes at once
+// 0x432240: the level-up box (the next level begins when its button is pressed)
 void AtomicaApp::ShowLevelUp()
 {
-	if (mBoard != NULL)
-		mBoard->NextLevel();
+	if ((mBoard != NULL) && (mLevelUpDialog == NULL))
+	{
+		LevelUpDialog* aDialog = new LevelUpDialog(this, mBoard);
+		mLevelUpDialog = aDialog;
+		mWidgetManager->AddWidget(aDialog);
+	}
 }
 
 // 0x405e90
