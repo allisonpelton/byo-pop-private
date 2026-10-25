@@ -80,6 +80,13 @@ NoahApp::NoahApp()
 	mQuitButton = NULL;
 	mOptionsButton = NULL;
 	mMainSongStarted = false;
+	mMainSongLooping = false;
+	mAutoplay = false;
+	mAutoplayMode = GAMEMODE_ACTION;
+	mAutoplayDiff = 0;
+	mAutoplayGames = 1;
+	mAutoplayCap = 200000;
+	mAutoplayState = NULL;
 }
 
 NoahApp::~NoahApp()
@@ -222,6 +229,8 @@ void NoahApp::ButtonPress(int theId)
 void NoahApp::UpdateFrames()
 {
 	SexyApp::UpdateFrames();
+	if (mAutoplay)
+		AutoplayUpdate();
 	if (mMainSongStarted && !mMusicInterface->IsPlaying(SONG_GAME_INTRO) && !mMusicInterface->IsPlaying(SONG_GAME) &&
 		mMainSongLooping == false && !mMusicInterface->IsPlaying(SONG_MENU) && !mMusicInterface->IsPlaying(SONG_GAMEOVER))
 	{

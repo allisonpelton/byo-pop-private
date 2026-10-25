@@ -151,6 +151,20 @@ public:
 								const SexyString& theDialogLines, const SexyString& theDialogFooter, int theButtonMode) override;
 	virtual void			Init() override;
 	virtual void			LostFocus() override;
+	virtual void			HandleCmdLineParam(const std::string& theParamName, const std::string& theParamValue) override;
+
+	// Test hooks (testhooks/Autoplay.cpp): -autoplay=1 plays games by itself with a bot that has its own random
+	// numbers; -autoplaymode=action|strategy|puzzle, -autoplaydiff=0|4|8, -autoplaygames=N, -autoplaycap=<updates>,
+	// -autoplaylog=<file>, -autoplayshots=<prefix>
+	bool					mAutoplay;
+	int						mAutoplayMode;
+	int						mAutoplayDiff;
+	int						mAutoplayGames;
+	int						mAutoplayCap;
+	std::string				mAutoplayLog;
+	std::string				mAutoplayShots;
+	struct AutoplayState*	mAutoplayState;
+	void					AutoplayUpdate();
 
 	// Helpers of the module (WinNoah.exe addresses in NoahApp.cpp)
 	bool					LoadImage(int theImageId);

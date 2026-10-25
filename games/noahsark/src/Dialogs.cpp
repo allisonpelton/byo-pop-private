@@ -246,13 +246,13 @@ OptionsDialog::OptionsDialog(NoahApp* theApp) :
 	aUnchecked->Create(0x24, 0x25);
 	{
 		Graphics g(aUnchecked);
-		g.DrawImage(mApp->mImages[IMAGE_CHECKED], -0x24, 0);
+		g.DrawImage(mApp->mImages[IMAGE_CHECKED], 0, 0);
 	}
 	MemoryImage* aChecked = new MemoryImage(mApp);
 	aChecked->Create(0x24, 0x25);
 	{
 		Graphics g(aChecked);
-		g.DrawImage(mApp->mImages[IMAGE_CHECKED], 0, 0);
+		g.DrawImage(mApp->mImages[IMAGE_CHECKED], -0x24, 0);
 	}
 	mFullscreenCheckbox = new Checkbox(aUnchecked, aChecked, 0, this);
 	mFullscreenCheckbox->SetChecked(!mApp->mIsWindowed, false);
@@ -397,13 +397,13 @@ TutorialDialog::TutorialDialog(NoahApp* theApp) :
 	aUnchecked->Create(0x24, 0x25);
 	{
 		Graphics g(aUnchecked);
-		g.DrawImage(mApp->mImages[IMAGE_CHECKED], -0x24, 0);
+		g.DrawImage(mApp->mImages[IMAGE_CHECKED], 0, 0);
 	}
 	MemoryImage* aChecked = new MemoryImage(mApp);
 	aChecked->Create(0x24, 0x25);
 	{
 		Graphics g(aChecked);
-		g.DrawImage(mApp->mImages[IMAGE_CHECKED], 0, 0);
+		g.DrawImage(mApp->mImages[IMAGE_CHECKED], -0x24, 0);
 	}
 	mAgainCheckbox = new Checkbox(aUnchecked, aChecked, 0, this);
 	mAgainCheckbox->SetChecked(false, false);
@@ -430,13 +430,13 @@ void TutorialDialog::RemovedFromManager(WidgetManager* theWidgetManager)
 void TutorialDialog::Resize(int theX, int theY, int theWidth, int theHeight)
 {
 	Dialog2004::Resize(theX, theY, theWidth, theHeight);
-	mAgainCheckbox->Resize(mX + 0x30, mY + mHeight - 0x3c, 0x24, 0x25);
+	mAgainCheckbox->Resize(mX + 0x30, mY + mHeight - 0x70, 0x24, 0x25);
 }
 
 int TutorialDialog::GetPreferredHeight(int theWidth)
 {
 	(void) theWidth;
-	return 0x154;
+	return 0x17c;
 }
 
 // 0x420ab0: the picture's little animation (a cursor goes to an animal, clicks, goes to the match)

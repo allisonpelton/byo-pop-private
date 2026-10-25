@@ -15,12 +15,12 @@
 #include "Widget.h"
 #include "MTRand.h"
 #include "Piece.h"
+#include <SDL.h>
 #include <string>
 #include <vector>
 
 namespace Sexy
 {
-
 class NoahApp;
 class Graphics;
 

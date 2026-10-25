@@ -52,7 +52,8 @@ void Board::ClearHint()
 {
 	for (int x = 0; x < 9; x++)
 		for (int y = 0; y < 9; y++)
-			mGrid[x][y]->mFlash = false;
+			if (mGrid[x][y] != NULL)
+				mGrid[x][y]->mFlash = false;
 	mLastMoveTick = mUpdateCnt;
 }
 

@@ -330,7 +330,7 @@ void Board::NewLevel()
 // 0x401a50: nine columns of nine empty cells, and the row waiting to rise
 void Board::InitGrid()
 {
-	ClearHint();
+	ClearLinkList();
 	for (int x = 0; x < 9; x++)
 	{
 		for (int y = 0; y < 9; y++)

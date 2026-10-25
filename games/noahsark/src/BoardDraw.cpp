@@ -428,7 +428,9 @@ void Board::Draw(Graphics* g)
 		}
 		else
 		{
-			if (mArkLeaving)
+			// worried Noah climbs the ramp; once the level is won or the ark is leaving, only the last climbing frame
+			// shows, and only while the ark has not started to rise
+			if (mArkLeaving || (mState == BOARD_WON))
 			{
 				if (mArkStage == 0)
 				{
@@ -436,12 +438,6 @@ void Board::Draw(Graphics* g)
 					aNX = mArkX + 9;
 					aNY = mArkY + 0x4e;
 				}
-			}
-			else if (mState == BOARD_WON)
-			{
-				aNoah = mNoahSprite + mNoahFrame;
-				aNX = mArkX - 1;
-				aNY = mArkY + 0x65;
 			}
 			else
 			{
