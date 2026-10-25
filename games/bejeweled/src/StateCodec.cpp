@@ -592,6 +592,11 @@ template<class V> void VisitBoard(V& v, Board* b)
 	v.VariantInt("mMoveCount", b->mMoveCount, LOGIC | SNAP | V2 | UNDO);
 	v.VariantInt("mInvalidMoves", b->mInvalidMoves, LOGIC | SNAP | V2 | UNDO);
 	v.VariantInt("mUndosUsed", b->mUndosUsed, LOGIC | SNAP | V2);
+	// Stage 7, the level's shape (index into board.levels; the v2 save's header holds it). The layout itself follows
+	// from the rules and this index (not in the table, like mLayout and mPendingLayout, which equals mLayout between
+	// ticks); not LOGIC, which has mLevel and the layout's size (so the replays' hashes of stage 6 still hold), nor
+	// UNDO, since an undo never crosses a level
+	v.VariantInt("mLevelShape", b->mLevelShape, SNAP | V2);
 }
 
 }
@@ -653,6 +658,7 @@ std::string StateCodec::RoundTrip(Board* theBoard, Board* theScratch)
 	theScratch->mVariant = theBoard->mVariant;
 #endif
 	theScratch->mLayout = theBoard->mLayout;
+	theScratch->mPendingLayout = theBoard->mPendingLayout;
 	theScratch->mCols = theBoard->mCols;
 	theScratch->mRows = theBoard->mRows;
 	// The pieces outside the grid the last restore made (Decode replaces the grid's itself)

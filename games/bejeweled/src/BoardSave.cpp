@@ -15,8 +15,9 @@
 // GameLoadedVariant then gives the board the chunks' RNG and counts (ReadVariantChunks). As with v1, a resume
 // does not restore mUpdateCnt, mTimeDrainDelay, the timers or the popups (6.5): it is a new segment.
 //
-// Stage 5 boards all have the original 8x8 layout (the shape rules arrive in stage 7, which applies the save's
-// shape here instead of requiring the board's).
+// Stage 7: the save's level shape is one of the rules' (board.levels, or the one board.cols/rows/mask give), the
+// one of its level (mLevel % their count), and its size and mask are that shape's; ReadVariantHeader then gives the
+// board that layout (SetLoadedLayout, BoardShape.cpp) before LoadGame reads the cells.
 
 #include "Board.h"
 #include "MTRand.h"
@@ -34,7 +35,7 @@ void Board::GetVariantSave(Replay::VariantSave* theSave)
 	mRules.RulesId(s.mRulesId);
 	s.mCols = mCols;
 	s.mRows = mRows;
-	s.mLevelShape = 0;
+	s.mLevelShape = mLevelShape;
 	for (int aRow = 0; aRow < mRows; aRow++)
 	{
 		for (int aCol = 0; aCol < mCols; aCol++)
@@ -74,6 +75,7 @@ bool Board::ReadVariantHeader(const Buffer& theBuffer, int theVersion)
 {
 	std::string aBytes = BufferText(theBuffer);
 	Replay::VariantSave aSave;
+	BoardLayout aLayout;
 	std::string aWhy;
 	if (theVersion != SAVEGAME_VERSION_VARIANT)
 		aWhy = "a v" + std::to_string(theVersion) + " save, and a variant board takes only the v2 save";
@@ -82,20 +84,41 @@ bool Board::ReadVariantHeader(const Buffer& theBuffer, int theVersion)
 		Replay::VariantSave aBoard;
 		GetVariantSave(&aBoard);
 		MTRand aCheck(4357);
+		int aShapes = mRules.ShapeCount();
 		if (memcmp(aSave.mRulesId, aBoard.mRulesId, sizeof(aSave.mRulesId)) != 0)
 			aWhy = "a save of other rules (a mod changed without a new version?)";
-		else if ((aSave.mCols != aBoard.mCols) || (aSave.mRows != aBoard.mRows) || (aSave.mLevelShape != aBoard.mLevelShape) ||
-			(aSave.mPlayable != aBoard.mPlayable))
-			aWhy = "a save of another board shape (" + std::to_string(aSave.mCols) + "x" + std::to_string(aSave.mRows) + ", level shape " +
-				std::to_string(aSave.mLevelShape) + ")";
-		else if ((aSave.mRng.mSeed != 0) && !aCheck.SetState(aSave.mRng.mMt, aSave.mRng.mMti))
-			aWhy = "an RNG state MTRand refuses";
+		else if ((aSave.mLevelShape < 0) || (aSave.mLevelShape >= aShapes))
+			aWhy = "a save of level shape " + std::to_string(aSave.mLevelShape) + ", and the rules have " + std::to_string(aShapes);
+		else
+		{
+			aLayout = mRules.LayoutForLevel(aSave.mLevelShape);
+			std::vector<bool> aPlayable;
+			for (int aRow = 0; aRow < aLayout.mRows; aRow++)
+			{
+				for (int aCol = 0; aCol < aLayout.mCols; aCol++)
+					aPlayable.push_back(aLayout.IsPlayable(aCol, aRow));
+			}
+			// The v1 fields begin with mTimedMode (1 byte), then mLevel
+			int32_t aLevel = 0;
+			if (aSave.mBodyStart + 5 <= aBytes.size())
+				memcpy(&aLevel, aBytes.data() + aSave.mBodyStart + 1, 4);
+			if ((aSave.mCols != aLayout.mCols) || (aSave.mRows != aLayout.mRows) || (aSave.mPlayable != aPlayable))
+				aWhy = "a save of another board shape (" + std::to_string(aSave.mCols) + "x" + std::to_string(aSave.mRows) + ", level shape " +
+					std::to_string(aSave.mLevelShape) + ")";
+			else if ((aLevel < 0) || (aLevel % aShapes != aSave.mLevelShape))
+				aWhy = "a save of level " + std::to_string(aLevel) + " in level shape " + std::to_string(aSave.mLevelShape) + ", which is not that level's";
+			else if ((aSave.mRng.mSeed != 0) && !aCheck.SetState(aSave.mRng.mMt, aSave.mRng.mMti))
+				aWhy = "an RNG state MTRand refuses";
+		}
 	}
 	if (!aWhy.empty())
 	{
 		SDL_Log("savegame: %s not loaded: %s", mPlaybackOnly ? "the replay's save" : GetSaveGameFileName().c_str(), aWhy.c_str());
 		return false;
 	}
+
+	// The board takes the shape of the save's level (stage 7); LoadGame then reads the cells within it
+	SetLoadedLayout(aLayout, aSave.mLevelShape);
 
 	// The buffer reads on at the v1 fields
 	theBuffer.SeekFront();

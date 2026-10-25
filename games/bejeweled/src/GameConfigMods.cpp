@@ -100,7 +100,8 @@ static std::vector<std::string> ProvenanceFor(const RulesStatus& theStatus, cons
 // one per mod, naming every key of its own that is not played; for rule keys it says what they do change,
 // the RNG. Stage 3 records replays and plays them back from the command line only (-replay=<file>); the replay
 // browser comes with stage 13. Stage 5 plays moves.allowInvalid (with its penalty and invalidCountsAsMove) and
-// the noMoves rule, stage 6 the undo group
+// the noMoves rule, stage 6 the undo group, stage 7 the board shape group (sizes, masks, level shapes; dirt cells
+// stay holes until stage 7b)
 static void AddBuildWarnings(const GameRules& theRules, const GameFeatures& theFeatures, RulesStatus* theStatus)
 {
 	// per mod: its rule keys, its feature keys (features.replays apart)
@@ -114,10 +115,11 @@ static void AddBuildWarnings(const GameRules& theRules, const GameFeatures& theF
 	std::vector<ModKeys> aByMod;
 	std::vector<std::string> aKeys = theRules.VariantKeys();
 #ifndef BEJ_NO_VARIANTS
-	// Played since stage 5 (4.1): kept invalid moves and the noMoves rule; since stage 6 (4.12) undo. A BEJ_NO_VARIANTS
-	// build plays no rule.
+	// Played since stage 5 (4.1): kept invalid moves and the noMoves rule; since stage 6 (4.12) undo; since stage 7
+	// (4.3) the board's shape. A BEJ_NO_VARIANTS build plays no rule.
 	static const char* const aPlayed[] = {"moves.allowInvalid", "moves.invalidPenalty", "moves.invalidCountsAsMove", "noMoves.normal",
-		"noMoves.timed", "undo.enabled", "undo.depth", "undo.max", "undo.penalty", "undo.inTimed", "undo.restoreTime", "undo.restoreRng"};
+		"noMoves.timed", "undo.enabled", "undo.depth", "undo.max", "undo.penalty", "undo.inTimed", "undo.restoreTime", "undo.restoreRng",
+		"board.cols", "board.rows", "board.mask", "board.levels"};
 	for (size_t i = 0; i < sizeof(aPlayed) / sizeof(aPlayed[0]); i++)
 		aKeys.erase(std::remove(aKeys.begin(), aKeys.end(), std::string(aPlayed[i])), aKeys.end());
 #endif

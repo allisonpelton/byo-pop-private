@@ -4,6 +4,7 @@
 #include "BoardTrace.h"
 #include "Board.h"
 
+#include <cmath>
 #include <cstdio>
 
 using namespace Sexy;
@@ -44,9 +45,22 @@ void Sexy::PrintBoardTrace(Board* theBoard, int theUpdate)
 		printf("TRACE   variant moves %d invalid %d undos %d\n", aBoard->mMoveCount, aBoard->mInvalidMoves, aBoard->mUndosUsed);
 	else if (aBoard->mVariant.mAny)
 		printf("TRACE   variant moves %d invalid %d\n", aBoard->mMoveCount, aBoard->mInvalidMoves);
+	// The clicks are screen positions: on a scaled board (stage 7) the cell centres scaled into the window
+	const BoardLayout& aLayout = aBoard->mLayout;
 	int aMove[4];
 	for (int i = 0; aBoard->FindMove(aMove, i, true, true); i++)
+	{
+		int aClick[4] = {aBoard->GetColX(aMove[0]) + 24, aBoard->GetRowY(aMove[1]) + 24, aBoard->GetColX(aMove[2]) + 24, aBoard->GetRowY(aMove[3]) + 24};
+		if (aBoard->mVariant.mScaled)
+		{
+			for (int j = 0; j < 4; j += 2)
+			{
+				aClick[j] = (int)floor(aLayout.ToScreenX(aClick[j]) + 0.5);
+				aClick[j + 1] = (int)floor(aLayout.ToScreenY(aClick[j + 1]) + 0.5);
+			}
+		}
 		printf("TRACE   move %d: (%d,%d)->(%d,%d) click %d %d then %d %d\n", i, aMove[0], aMove[1], aMove[2], aMove[3],
-			aBoard->GetColX(aMove[0]) + 24, aBoard->GetRowY(aMove[1]) + 24, aBoard->GetColX(aMove[2]) + 24, aBoard->GetRowY(aMove[3]) + 24);
+			aClick[0], aClick[1], aClick[2], aClick[3]);
+	}
 	fflush(stdout);
 }

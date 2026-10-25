@@ -124,6 +124,7 @@ public:
 	SexyString			GetString(const std::string& theId) { return StringToSexyStringFast(theId); }
 	SexyString			GetString(const std::string& theId, const SexyString& theDefault) { return theDefault; }
 
+	DDImage*			GetImage(const std::string& theFileName, bool commitBits = true) { return NULL; } // no files: a mod's image is never there
 	DDImage*			CreateColorizedImage(Image* theImage, const Color& theColor);
 	DDImage*			CreateCrossfadeImage(Image* theImage1, const Rect& theRect1, Image* theImage2, const Rect& theRect2, double theFadeFactor);
 	ulong				HSLToRGB(int h, int s, int l) { return 0; }

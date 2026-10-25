@@ -654,7 +654,8 @@ void CheckPiece(SaveCheck& theCheck, int theCol, int theRow)
 
 }
 
-bool Replay::CheckSave(const std::string& theSave, int theCols, int theRows, std::string* theError, const uint8_t* theRulesId)
+bool Replay::CheckSave(const std::string& theSave, int theCols, int theRows, std::string* theError, const uint8_t* theRulesId,
+	const std::vector<BoardLayout>* theShapes)
 {
 	std::string aDummy;
 	std::string& anErr = (theError != NULL) ? *theError : aDummy;
@@ -664,6 +665,8 @@ bool Replay::CheckSave(const std::string& theSave, int theCols, int theRows, std
 	// A v2 save (stage 5): of the replay's rules and the board's shape, its chunks well-formed; the same fields
 	// follow its header as a v1 save's version
 	VariantSave aVariant;
+	int aCols = theCols;
+	int aRows = theRows;
 	bool isVariant = (theSave.size() >= 4) && (theSave.compare(0, 4, std::string("\x01\x01\0\0", 4)) == 0);
 	if (isVariant)
 	{
@@ -674,23 +677,47 @@ bool Replay::CheckSave(const std::string& theSave, int theCols, int theRows, std
 			c.mError = "a v2 save that does not read: " + aWhy;
 		else if (memcmp(aVariant.mRulesId, theRulesId, RULES_ID_SIZE) != 0)
 			c.mError = "a v2 save of other rules than the replay's";
+		else if (theShapes != NULL)
+		{
+			// Stage 7: one of the rules' shapes, in its size and mask; its cells are read over that size
+			if ((aVariant.mLevelShape < 0) || (aVariant.mLevelShape >= (int32_t) theShapes->size()))
+				c.mError = "a v2 save of level shape " + std::to_string(aVariant.mLevelShape) + ", and the rules have " +
+					std::to_string(theShapes->size());
+			else
+			{
+				const BoardLayout& aLayout = (*theShapes)[aVariant.mLevelShape];
+				std::vector<bool> aPlayable;
+				for (int aRow = 0; aRow < aLayout.mRows; aRow++)
+				{
+					for (int aCol = 0; aCol < aLayout.mCols; aCol++)
+						aPlayable.push_back(aLayout.IsPlayable(aCol, aRow));
+				}
+				if ((aVariant.mCols != aLayout.mCols) || (aVariant.mRows != aLayout.mRows) || (aVariant.mPlayable != aPlayable))
+					c.mError = "a v2 save of a " + std::to_string(aVariant.mCols) + "x" + std::to_string(aVariant.mRows) +
+						" board that is not its level shape " + std::to_string(aVariant.mLevelShape);
+				aCols = aLayout.mCols;
+				aRows = aLayout.mRows;
+			}
+		}
 		else if ((aVariant.mCols != theCols) || (aVariant.mRows != theRows) || (aVariant.mLevelShape != 0))
 			c.mError = "a v2 save of a " + std::to_string(aVariant.mCols) + "x" + std::to_string(aVariant.mRows) + " board, level shape " +
 				std::to_string(aVariant.mLevelShape);
 		else if (std::find(aVariant.mPlayable.begin(), aVariant.mPlayable.end(), false) != aVariant.mPlayable.end())
 			c.mError = "a v2 save with holes in its mask";
-		else if ((aVariant.mMoves < 0) || (aVariant.mInvalidMoves < 0) || (aVariant.mUndosUsed < 0))
+		if (c.Ok() && ((aVariant.mMoves < 0) || (aVariant.mInvalidMoves < 0) || (aVariant.mUndosUsed < 0)))
 			c.mError = "a v2 save whose MOVE counts go below 0";
 		c.mPos = aVariant.mBodyStart;
 	}
 	else
 		c.Int("the version", 1, 1);
 	int isTimed = c.Bool("mTimedMode");
-	c.Int("mLevel", 0, LEVEL_MAX);        // level % 4 and % 5 index SetupLevel's tables
+	int32_t aLevel = c.Int("mLevel", 0, LEVEL_MAX);        // level % 4 and % 5 index SetupLevel's tables
+	if (c.Ok() && isVariant && (theShapes != NULL) && (aLevel % (int32_t) theShapes->size() != aVariant.mLevelShape))
+		c.mError = "a v2 save of level " + std::to_string(aLevel) + " in level shape " + std::to_string(aVariant.mLevelShape) + ", not that level's";
 	c.Int("mDisplayLevel", 1, LEVEL_MAX + 1);
-	for (int aRow = 0; aRow < theRows; aRow++)
+	for (int aRow = 0; aRow < aRows; aRow++)
 	{
-		for (int aCol = 0; aCol < theCols; aCol++)
+		for (int aCol = 0; aCol < aCols; aCol++)
 		{
 			if (c.Bool("cell (" + std::to_string(aCol) + "," + std::to_string(aRow) + ")'s present byte"))
 				CheckPiece(c, aCol, aRow);
@@ -739,7 +766,8 @@ bool Replay::CheckSave(const std::string& theSave, int theCols, int theRows, std
 }
 
 // The checks a replay passes before a board is made for it (Replay.h). Each message names where it fails.
-bool Replay::CheckPlayable(const File& theFile, int theCols, int theRows, std::string* theError, bool isOriginalRules)
+bool Replay::CheckPlayable(const File& theFile, int theCols, int theRows, std::string* theError, bool isOriginalRules,
+	const std::vector<BoardLayout>* theShapes)
 {
 	std::string aDummy;
 	std::string& anErr = (theError != NULL) ? *theError : aDummy;
@@ -789,7 +817,7 @@ bool Replay::CheckPlayable(const File& theFile, int theCols, int theRows, std::s
 			return false;
 		}
 		// The bytes an LDSV gives the original LoadGame, which trusts a save (Replay.h, CheckSave)
-		if (aSegment.mHasLoadSave && !CheckSave(aSegment.mLoadSave, theCols, theRows, &anErr, theFile.mHasRulesId ? theFile.mRulesId : NULL))
+		if (aSegment.mHasLoadSave && !CheckSave(aSegment.mLoadSave, theCols, theRows, &anErr, theFile.mHasRulesId ? theFile.mRulesId : NULL, theShapes))
 		{
 			anErr = aWhere + "LDSV: " + anErr;
 			return false;

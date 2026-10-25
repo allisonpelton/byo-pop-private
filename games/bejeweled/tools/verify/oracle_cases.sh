@@ -84,15 +84,21 @@ v4_wait_job() {  # v4_wait_job <case>: until <case>/exit.txt is there
 	done
 	echo "$VTAG  candidate $name: exit $(tr -d '\r\n' < "$C/$name/exit.txt")"
 }
-printf '%s\t%s\t%s\t\n' difftest difftest "bejeweled_verify difftest --seeds 1..${ORACLE_DIFFTEST_SEEDS:-500}: the plain and the -forcevariant board in lockstep, both modes, LOGIC every update" >> "$OUT/cases.txt"
-printf '%s\t%s\t%s\t\n' verify_tests lint "games/bejeweled/tools/verify/run_tests.sh: RulesId vectors, unplayable files, RULE fuzz and difftest native = wasm, bv_difftest's arguments, command lines" >> "$OUT/cases.txt"
+# (both start now, so a partial oracle starts only those its --cases name: case_wanted, compare.sh)
 rm -rf "$C/difftest" "$C/verify_tests" "$OUT/gen/verify-tests"
-mkdir -p "$C/difftest" "$C/verify_tests"
-(cd "$C/difftest" && "$V4_NATIVE" difftest --seeds "1..${ORACLE_DIFFTEST_SEEDS:-500}" > report.txt 2> stderr.txt; echo $? > exit.txt) &
-(bash "$V4/run_tests.sh" --native "$V4_NATIVE" --wasm "$V4_WASM_W" --node "$V4_NODE" --out "$OUT/gen/verify-tests" > "$C/verify_tests/check.txt" 2>&1
- echo $? > "$C/verify_tests/exit.txt") &
-enqueue candidate/difftest v4_wait_job difftest
-enqueue candidate/verify_tests v4_wait_job verify_tests
+if case_wanted difftest; then
+	printf '%s\t%s\t%s\t\n' difftest difftest "bejeweled_verify difftest --seeds 1..${ORACLE_DIFFTEST_SEEDS:-500}: the plain and the -forcevariant board in lockstep, both modes, LOGIC every update" >> "$OUT/cases.txt"
+	mkdir -p "$C/difftest"
+	(cd "$C/difftest" && "$V4_NATIVE" difftest --seeds "1..${ORACLE_DIFFTEST_SEEDS:-500}" > report.txt 2> stderr.txt; echo $? > exit.txt) &
+	enqueue candidate/difftest v4_wait_job difftest
+fi
+if case_wanted verify_tests; then
+	printf '%s\t%s\t%s\t\n' verify_tests lint "games/bejeweled/tools/verify/run_tests.sh: RulesId vectors, unplayable files, RULE fuzz and difftest native = wasm, bv_difftest's arguments, command lines" >> "$OUT/cases.txt"
+	mkdir -p "$C/verify_tests"
+	(bash "$V4/run_tests.sh" --native "$V4_NATIVE" --wasm "$V4_WASM_W" --node "$V4_NODE" --out "$OUT/gen/verify-tests" > "$C/verify_tests/check.txt" 2>&1
+	 echo $? > "$C/verify_tests/exit.txt") &
+	enqueue candidate/verify_tests v4_wait_job verify_tests
+fi
 
 # v4_verify <case> <watch case> <flags>: both verifiers on that case's replay.bjr, once the watch has run
 v4_verify_job() {

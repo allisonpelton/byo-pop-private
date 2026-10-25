@@ -5,7 +5,7 @@
 #
 #   games/bejeweled/tools/oracle/compare.sh [--baseline <exe>] [--hooks-baseline <exe> | --no-hooks-baseline]
 #       [--candidate <exe>] [--candidate-args "<switches>"] [--out <dir>] [--compare-only]
-#       [--jobs <n>] [--no-cache] [--cache <dir>] [--variants <variant>,...]
+#       [--jobs <n>] [--no-cache] [--cache <dir>] [--variants <variant>,...] [--cases <glob>,...]
 #
 # --candidate-args adds switches to every candidate run, e.g. "-forcevariant" (CODE_MODS_DESIGN.md 9.1: the
 # generalised paths at default rules must match the baselines too). Every run reads the game files in
@@ -17,6 +17,13 @@
 # "novariants" (build/native-novariants/bejeweled.exe from tools/build.sh novariants, into
 # build/oracle-novariants). "--variants default,forcevariant,novariants" runs all three oracles. Not with
 # --candidate, --candidate-args or --out. The exit status is 0 only if every variant matches.
+#
+# --cases runs a part of the oracle, for working on a few cases: the cases a glob matches ("shape_*,rules_inert",
+# matched against the whole name), the cases those compare.py compares them with (a case their flags name, the
+# case their name extends: x for x.plain, x.repeat, x.ls), and the runs and jobs any of them read (a from= user
+# dir, a script, savegame or replay that another run writes). Only the cases picked so are compared; report.txt
+# says the oracle was partial, and expect-update refuses it (the expect file needs every case). Not with
+# --compare-only. Before a commit, run the whole oracle.
 #
 # Speed: --jobs <n> (1 to 3, default 3: CLAUDE.md allows 3 game processes at a time) runs up to n games at a
 # time, the variants' in one pool (n + 2 jobs, so that preparing runs and taking them from the cache overlap
@@ -87,6 +94,9 @@
 # Stage 6 (undo) plays the rule mods of mods/stage6 the same way (compare.py "variant" with "undos", "redo" and
 # "rerolled"): every way to undo, the limit, restoreRng off, timed mode with and without inTimed, a resume (no
 # snapshots in a save), a recording and its playback. A BEJ_NO_VARIANTS candidate leaves them out too.
+# Stage 7 (board sizes and shapes) plays the rule mods of mods/stage7 the same way: the autoplay bot on boards
+# smaller, wider and larger than 8x8 and on a diamond, a mod whose levels change shape at each vortex (saved on
+# the second shape, resumed, recorded and played back). A BEJ_NO_VARIANTS candidate leaves them out too.
 #
 # The frozen exes (build/baseline, build/baseline-stage0) predate the audio shutdown fix (af758b9) and can
 # crash on exit after writing all their outputs: a baseline or hooks-baseline run that exits 139 or with an
@@ -106,6 +116,7 @@ JOBS=3
 USE_CACHE=1
 CACHE="$ROOT/build/oracle-cache"
 VARIANTS=""
+CASES=""
 SINGLE_ARGS=0  # --candidate, --candidate-args or --out given
 usage() { awk 'NR > 1 { if (!/^#/) exit; sub(/^# ?/, ""); print }' "$0"; }
 ARGS=("$@")  # for the re-run under rundesk below: the loop consumes them
@@ -122,6 +133,7 @@ while [ $# -gt 0 ]; do
 		--no-cache) USE_CACHE=0; shift ;;
 		--cache) CACHE="$2"; shift 2 ;;
 		--variants) VARIANTS="$2"; shift 2 ;;
+		--cases) CASES="$2"; shift 2 ;;
 		-h|--help) usage; exit 0 ;;
 		*) usage; exit 2 ;;
 	esac
@@ -134,6 +146,11 @@ if [ -n "$VARIANTS" ] && [ $SINGLE_ARGS -eq 1 ]; then
 	echo "compare.sh: --variants names the candidates and output folders: no --candidate, --candidate-args or --out with it" >&2
 	exit 2
 fi
+if [ -n "$CASES" ] && [ $COMPARE_ONLY -eq 1 ]; then
+	echo "compare.sh: --compare-only compares the cases the last run made: no --cases with it" >&2
+	exit 2
+fi
+IFS=, read -r -a CASE_GLOBS <<< "$CASES"
 if [ "${BASH_VERSINFO[0]}" -lt 5 ] || { [ "${BASH_VERSINFO[0]}" -eq 5 ] && [ "${BASH_VERSINFO[1]}" -lt 1 ]; }; then
 	JOBS=1  # wait -n -p needs bash 5.1
 fi
@@ -152,6 +169,16 @@ if [ -z "${BEJ_TEST_DESKTOP:-}" ] && [ -z "${ORACLE_VISIBLE:-}" ]; then
 fi
 
 winpath() { if command -v cygpath > /dev/null 2>&1; then cygpath -m "$1"; else echo "$1"; fi; }
+# case_wanted <case>: no --cases, or one of its globs matches the case (for the cases that start work while they
+# are defined: the verifier's difftest and tests; compare.py select-cases picks the rest)
+case_wanted() {
+	local g
+	[ -n "$CASES" ] || return 0
+	for g in "${CASE_GLOBS[@]}"; do
+		[ -n "$g" ] && [[ $1 == $g ]] && return 0
+	done
+	return 1
+}
 PY="${PYTHON:-python}"
 COMPARE_PY="$(winpath "$GAME/tools/oracle/compare.py")"
 EXPECT="$(winpath "$GAME/tools/oracle/expect.txt")"
@@ -727,7 +754,8 @@ define_cases() {
 	# Stage 1's rule mods: read, merged, checked and reported (mods-status.json, -dumprules), still not played;
 	# since stage 2 any rule gives the board its own RNG, so they play exactly like the per-game-seed reference.
 	# Since stage 5 their boards are variant boards (a variant line in each settle, the v2 save, no RNG sidecar); a
-	# BEJ_NO_VARIANTS candidate plays them as before (v1 and the sidecar): its own facts, expect.txt's <case>@novariants
+	# BEJ_NO_VARIANTS candidate plays them as before (v1 and the sidecar): its own facts, expect.txt's <case>@novariants.
+	# A fixture leaves the set when its stage makes it play: s1-diamond went to mods/stage7/dirt-diamond in stage 7
 	inert rules_inert "playtest.txt with the rule, feature and imageOps mods of games/bejeweled/tools/oracle/mods/stage1: plays exactly like pergame" \
 		"ref=pergame;boards=pergame,pergame,pergame;rngseed=1" 1 "$PT/playtest.txt" modsdir="$GAME/tools/oracle/mods/stage1" dumprules
 	cross rules_inert.repeat repeat "rules_inert again: the same game under the same -seed" "" \
@@ -975,19 +1003,19 @@ define_cases() {
 	playback watch_seed_quit_highscores "rec_seed_quit's sidecar (seed $GS, user) with Options -> High Scores mid-watch: the player's hiscores.dat, no -seeded table" \
 		"trace=rec_seed_quit;user=hiscores.dat,registry.ini" "$C/rec_seed_quit/user/savegame.bjr" script="$S3/watch_highscores.txt"
 
-	# Stage 5 raised the engine ABI to 2 (a replay of the original rules from engine 1 still plays). A game of the
+	# Stage 5 raised the engine ABI to 2, stage 7 to 3 (a replay of the original rules from engine 1 still plays). A game of the
 	# original rules that engine 1 recorded and saved is resumed as before: ReplayRecorder::OnLoad continues its sidecar,
 	# as Replay::CheckPlayable plays it. A sidecar the resume cannot continue (here one a later engine wrote) is kept as
 	# a finished replay first, END saved (Board::DeleteSaveSidecar), so its moves are not lost; the new replay holds the
 	# loaded save (LDSV). rec_main's sidecar with its engine ABI changed (compare.py corrupt-replay engine<n>) stands in.
-	for n in 1 3; do
+	for n in 1 4; do
 		dep_id candidate/rec_main
 		enqueue "gen/engine${n}_sidecar.bjr" engine_job "$n"
 	done
 	recording rec_load_engine1 "playtest_load.txt in a copy of rec_main's user dir whose sidecar engine 1 wrote: the original rules' replay goes on, two segments as in rec_load" \
 		load 1 "$PT/playtest_load.txt" from=rec_main savegame="$OUT/gen/engine1_sidecar.bjr" saveas=savegame.bjr
-	recording rec_load_engine3 "the same with a sidecar of engine 3, which this build cannot continue: a fresh replay of the loaded save (LDSV); the sidecar's game is kept in replays/ (END saved)" \
-		load 1 "$PT/playtest_load.txt" from=rec_main savegame="$OUT/gen/engine3_sidecar.bjr" saveas=savegame.bjr
+	recording rec_load_engine4 "the same with a sidecar of engine 4, which this build cannot continue: a fresh replay of the loaded save (LDSV); the sidecar's game is kept in replays/ (END saved)" \
+		load 1 "$PT/playtest_load.txt" from=rec_main savegame="$OUT/gen/engine4_sidecar.bjr" saveas=savegame.bjr
 	playback watch_main_engine1 "rec_main's sidecar as engine 1 wrote it: an original-rules replay of engine 1 plays" "trace=rec_main" \
 		"$OUT/gen/engine1_sidecar.bjr"
 	playback watch_load_engine1 "rec_load_engine1's sidecar: engine 1's segment and this engine's in one replay" "trace=rec_main,rec_load_engine1" \
@@ -1156,8 +1184,51 @@ define_cases() {
 			undo_main 1 "$S6/undo_main.txt" modsdir="$M6/undo-replays" arg=-gameseed=$GS
 		playback watch_undo_main "rec_undo_main's sidecar: four UNDOs played back, each undo's board and the same refills" \
 			"trace=rec_undo_main" "$C/rec_undo_main/user/savegame-*.bjr"
+
+		# Stage 7: board sizes and shapes (games/bejeweled/docs/CODE_MODS_DESIGN.md 4.3, 5). The rule mods of mods/stage7:
+		# s7-6x6 and s7-10x7 (smaller, wider: unscaled and scaled), s7-16x16 (the largest, scale 406/816), s7-diamond (a
+		# 9x9 mask of 41 cells) and s7-levels (a holed 8x8 and a 7x7 by turns, 5000 points a match: a level a match).
+		# The autoplay bot plays each one (its clicks scaled like the trace's); compare.py "variant" checks every
+		# settle step, and -codeccheck the snapshot round trip in every update. s7-levels changes shape at each vortex,
+		# is saved on the 7x7 and resumed there (the background rebuilt for the loaded level), recorded and played back.
+		S7="$PT/stage7"
+		M7="$GAME/tools/oracle/mods/stage7"
+		SHAPEBOT=(arg=-autoplaycap=20000 arg=-autoplaylog=autoplay.txt)
+		variant shape_6x6_auto "-autoplay=1, mods/stage7/6x6: a 6x6 board, unscaled and centred, to game over at no moves" \
+			"shapes=6x6:0" 1 - modsdir="$M7/6x6" arg=-autoplay=1 "${SHAPEBOT[@]}"
+		variant shape_6x6_auto_timed "-autoplay=2 -autoplaytimed, mods/stage7/6x6, 20000 updates: fall-outs and refills, stale selections" \
+			"shapes=6x6:0" 1 - modsdir="$M7/6x6" arg=-autoplay=2 arg=-autoplaytimed "${SHAPEBOT[@]}"
+		variant shape_10x7_auto "-autoplay=1, mods/stage7/10x7, 20000 updates: a 10x7 board, scaled to the window's width" \
+			"shapes=10x7:0;v2" 1 - modsdir="$M7/10x7" arg=-autoplay=1 "${SHAPEBOT[@]}"
+		variant shape_16x16_auto "-autoplay=1, mods/stage7/16x16, 20000 updates: the largest board, at half size" \
+			"shapes=16x16:0;v2" 1 - modsdir="$M7/16x16" arg=-autoplay=1 "${SHAPEBOT[@]}"
+		variant shape_diamond_auto "-autoplay=1, mods/stage7/diamond: a diamond of 41 cells, gems falling through the holes, to game over" \
+			"shapes=9x9:40" 1 - modsdir="$M7/diamond" arg=-autoplay=1 "${SHAPEBOT[@]}"
+		variant shape_diamond_auto_timed "-autoplay=2 -autoplaytimed, mods/stage7/diamond, 20000 updates: fall-outs refill the diamond" \
+			"shapes=9x9:40" 1 - modsdir="$M7/diamond" arg=-autoplay=2 arg=-autoplaytimed "${SHAPEBOT[@]}"
+		variant shape_dirt_diamond_auto_timed "-autoplay=2 -autoplaytimed, mods/stage7/dirt-diamond (stage 1's s1-diamond): a hole inside the diamond, dirt cells played as holes until stage 7b" \
+			"shapes=9x9:27" 1 - modsdir="$M7/dirt-diamond" arg=-autoplay=2 arg=-autoplaytimed "${SHAPEBOT[@]}"
+		variant shape_levels_auto "-autoplay=1, mods/stage7/levels, 20000 updates: the holed 8x8 and the 7x7 by turns, a vortex at every level, 5000 points a match (the fast score roll)" \
+			"shapes=8x8:10,7x7:0;v2" 1 - modsdir="$M7/levels" arg=-autoplay=1 "${SHAPEBOT[@]}"
+		variant shape_levels_auto_timed "-autoplay=2 -autoplaytimed, mods/stage7/levels: the shapes by turns in timed mode" \
+			"shapes=8x8:10,7x7:0" 1 - modsdir="$M7/levels" arg=-autoplay=2 arg=-autoplaytimed "${SHAPEBOT[@]}"
+		variant shape_levels_quit "-gameseed=$GS, mods/stage7/levels: a match ends level 1 on the holed 8x8; the vortex, the wipe to the 7x7; the quit: a v2 save of level 2's shape" \
+			"shapes=8x8:10,7x7:0;v2=last" 1 "$S7/shape_levels_quit.txt" modsdir="$M7/levels" arg=-gameseed=$GS
+		variant shape_levels_quit.resume "shape_levels_quit's user dir: Yes resumes on the 7x7 (its background rebuilt); a match, the vortex back to the holed 8x8" \
+			"shapes=8x8:10,7x7:0;v2=last" 1 "$S7/shape_levels_resume.txt" from=shape_levels_quit modsdir="$M7/levels"
+		# Recorded (mods/stage7/levels-replays: s7-levels and stage 3's replays feature mod) and played back
+		recording rec_shape_levels_auto "shape_levels_auto recorded: the shape changes in a replay, saved at the cap" \
+			shape_levels_auto 1 - modsdir="$M7/levels-replays" arg=-autoplay=1 "${SHAPEBOT[@]}"
+		recording rec_shape_levels_quit "shape_levels_quit recorded: the sidecar next to the v2 save of the 7x7" \
+			shape_levels_quit 1 "$S7/shape_levels_quit.txt" modsdir="$M7/levels-replays" arg=-gameseed=$GS
+		recording rec_shape_levels_quit.resume "shape_levels_quit.resume in a copy of rec_shape_levels_quit's user dir: the sidecar goes on (a v2 LOAD of the 7x7)" \
+			shape_levels_quit.resume 1 "$S7/shape_levels_resume.txt" from=rec_shape_levels_quit modsdir="$M7/levels-replays"
+		playback watch_shape_levels_auto "rec_shape_levels_auto's sidecar: every level's shape and refills again" \
+			"trace=rec_shape_levels_auto" "$C/rec_shape_levels_auto/user/savegame-*.bjr"
+		playback watch_shape_levels_resume "rec_shape_levels_quit.resume's sidecar: the second segment LOADs the 7x7's v2 save, then back to the holed 8x8" \
+			"trace=rec_shape_levels_quit,rec_shape_levels_quit.resume" "$C/rec_shape_levels_quit.resume/user/savegame-*.bjr"
 	else
-		echo "$VTAG  (the candidate has no variant paths: the stage-5 and stage-6 cases are left out)"
+		echo "$VTAG  (the candidate has no variant paths: the stage-5, 6 and 7 cases are left out)"
 	fi
 
 	# Stage 4: the headless verifier and the web build under Node (games/bejeweled/tools/verify/oracle_cases.sh): the
@@ -1197,7 +1268,7 @@ fi
 NRUNS=0
 for ((v = 0; v < NV; v++)); do
 	set_variant $v
-	rm -rf "$OUT/baseline" "$OUT/hooks-baseline" "$OUT/candidate" "$OUT/gen" "$OUT/emptymods"
+	rm -rf "$OUT/baseline" "$OUT/hooks-baseline" "$OUT/candidate" "$OUT/gen" "$OUT/emptymods" "$OUT/partial.txt"
 	mkdir -p "$OUT/gen"
 	for side in "${SIDES[@]}"; do mkdir -p "$OUT/$side"; done
 	{
@@ -1217,6 +1288,41 @@ for ((v = 0; v < NV; v++)); do
 	done
 done
 
+# --cases: each variant's cases.txt keeps the cases picked (compare.py select-cases), and the jobs of those cases
+# and every job they wait for stay queued; the other jobs count as done. A job waits only for jobs queued before it,
+# so one pass from the last job back finds them all.
+NSEL=0
+if [ -n "$CASES" ]; then
+	declare -A SEL
+	declare -a KEEP
+	for ((v = 0; v < NV; v++)); do
+		set_variant $v
+		while read -r name; do
+			[ -n "$name" ] || continue
+			SEL["$v|$name"]=1
+			NSEL=$((NSEL + 1))
+		done < <("$PY" "$COMPARE_PY" select-cases "$(winpath "$OUT/cases.txt")" "$CASES" | tr -d '\r')
+		printf '%s\n' "$CASES" > "$OUT/partial.txt"
+	done
+	if [ $NSEL -eq 0 ]; then
+		echo "compare.sh: --cases $CASES matches no case" >&2
+		kill $(jobs -p) 2> /dev/null
+		exit 2
+	fi
+	NRUNS=0
+	for ((k = NJOBS - 1; k >= 0; k--)); do
+		id=${J_ID[k]}
+		[ "${id%%/*}" = gen ] || [ -z "${SEL["${J_V[k]}|${id#*/}"]:-}" ] || KEEP[k]=1
+		if [ -n "${KEEP[k]:-}" ]; then
+			for d in ${J_DEPS[k]}; do KEEP[d]=1; done
+			case "${J_CMD[k]}" in do_run\ *) NRUNS=$((NRUNS + 1)) ;; esac
+		else
+			J_STATE[k]=2
+		fi
+	done
+	echo "compare.sh: --cases $CASES: $NSEL cases, $NRUNS runs"
+fi
+
 # schedule: the queued jobs, each once the jobs it depends on are done, the lowest job number first (so --jobs 1
 # runs them in the order of the definitions); with --jobs n > 1, n + 2 jobs at a time and n game slots
 declare -A PIDJOB
@@ -1228,6 +1334,7 @@ rm -rf "$SLOTS"
 mkdir -p "$SLOTS"
 schedule() {
 	local running=0 finished=0 low=0 i k d ready pid status
+	for ((k = 0; k < NJOBS; k++)); do [ "${J_STATE[k]}" != 2 ] || finished=$((finished + 1)); done  # left out by --cases
 	while [ $finished -lt $NJOBS ]; do
 		while [ $running -lt $INFLIGHT ]; do
 			i=-1
@@ -1327,6 +1434,7 @@ if [ $USE_CACHE -eq 1 ]; then
 else
 	echo "compare.sh: $NRUNS runs (no cache) in $RUNTIME s with --jobs $JOBS"
 fi
+[ -z "$CASES" ] || echo "compare.sh: a partial oracle (--cases $CASES, $NSEL cases): run the whole one before a commit"
 if [ ${#FAILED[@]} -gt 0 ] || [ $SCHEDULED -ne 0 ]; then
 	printf 'compare.sh: a job could not run: %s\n' "${FAILED[@]}"
 	exit 2

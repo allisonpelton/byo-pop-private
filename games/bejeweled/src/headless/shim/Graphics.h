@@ -38,6 +38,8 @@ public:
 	void				DrawString(const SexyString& theString, int theX, int theY) {}
 	void				DrawImage(Image* theImage, int theX, int theY) {}
 	void				DrawImage(Image* theImage, int theX, int theY, const Rect& theSrcRect) {}
+	void				DrawImage(Image* theImage, const Rect& theDestRect, const Rect& theSrcRect) {}
+	void				SetScale(float theScaleX, float theScaleY, float theOrigX, float theOrigY) {}
 };
 
 }

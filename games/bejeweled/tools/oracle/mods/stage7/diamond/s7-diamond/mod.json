@@ -1,0 +1,17 @@
+{
+  "id": "s7-diamond",
+  "name": "Stage 7: a diamond",
+  "version": "1.0",
+  "description": "Oracle fixture: a 9x9 diamond of 41 cells (scaled 0.888); gems fall through the holes above the shorter columns.",
+  "rules": { "board": { "mask": [
+    "....#....",
+    "...###...",
+    "..#####..",
+    ".#######.",
+    "#########",
+    ".#######.",
+    "..#####..",
+    "...###...",
+    "....#...."
+  ] } }
+}
