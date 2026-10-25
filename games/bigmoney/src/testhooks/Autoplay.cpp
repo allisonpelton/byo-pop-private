@@ -15,10 +15,118 @@
 #include "Dialog.h"
 
 #include <SDL.h>
+#include <algorithm>
+#include <climits>
 #include <cstring>
 #include <vector>
 
 using namespace Sexy;
+
+// -autoplaylook: the board as the bot's one-click lookahead sees it (EMPTY, SPECIAL or a coin colour)
+namespace
+{
+enum { LOOK_EMPTY = -1, LOOK_SPECIAL = -2 };
+
+struct LookGrid
+{
+	int8_t mCell[Board::BOARD_ROWS][Board::BOARD_COLS];
+	int mCols;
+	int mRows;
+	int mDirs;
+};
+
+void FillLookGrid(Board* theBoard, LookGrid* theGrid)
+{
+	memset(theGrid->mCell, LOOK_EMPTY, sizeof(theGrid->mCell));
+	theGrid->mCols = theBoard->mCols;
+	theGrid->mRows = theBoard->mRows;
+	theGrid->mDirs = theBoard->GroupDirs();
+	for (int r = 0; r < theBoard->mRows; r++)
+	{
+		for (int c = 0; c < theBoard->mCols; c++)
+		{
+			Piece* aPiece = theBoard->mGrid[r][c];
+			if (aPiece != NULL)
+				theGrid->mCell[r][c] = aPiece->mIsSpecial ? LOOK_SPECIAL : (int8_t) aPiece->mColor;
+		}
+	}
+}
+
+// The cells (r * BOARD_COLS + c) of the coin group at (r, c), marking them in theSeen
+void LookGroup(const LookGrid& theGrid, int theRow, int theCol, bool* theSeen, std::vector<int>* theCells)
+{
+	theCells->clear();
+	int8_t aColor = theGrid.mCell[theRow][theCol];
+	theCells->push_back(theRow * Board::BOARD_COLS + theCol);
+	theSeen[theRow * Board::BOARD_COLS + theCol] = true;
+	for (size_t i = 0; i < theCells->size(); i++)
+	{
+		int r0 = (*theCells)[i] / Board::BOARD_COLS;
+		int c0 = (*theCells)[i] % Board::BOARD_COLS;
+		for (int d = 0; d < theGrid.mDirs; d++)
+		{
+			int r = r0 + gGroupDirs[d][1];
+			int c = c0 + gGroupDirs[d][0];
+			if ((r < 0) || (r >= theGrid.mRows) || (c < 0) || (c >= theGrid.mCols) || (theSeen[r * Board::BOARD_COLS + c]) ||
+				(theGrid.mCell[r][c] != aColor))
+				continue;
+			theSeen[r * Board::BOARD_COLS + c] = true;
+			theCells->push_back(r * Board::BOARD_COLS + c);
+		}
+	}
+}
+
+// After a click: the group's coins go, so do bags right above them (banked or on their way out), and the
+// pieces above fall (the sideways closing of empty bottom cells is left out)
+void LookRemove(LookGrid* theGrid, const std::vector<int>& theCells)
+{
+	for (int aCell : theCells)
+	{
+		int r = aCell / Board::BOARD_COLS;
+		int c = aCell % Board::BOARD_COLS;
+		theGrid->mCell[r][c] = LOOK_EMPTY;
+		if ((r > 0) && (theGrid->mCell[r - 1][c] == LOOK_SPECIAL))
+			theGrid->mCell[r - 1][c] = LOOK_EMPTY;
+	}
+	for (int c = 0; c < theGrid->mCols; c++)
+	{
+		int aDest = theGrid->mRows - 1;
+		for (int r = theGrid->mRows - 1; r >= 0; r--)
+		{
+			int8_t v = theGrid->mCell[r][c];
+			if (v == LOOK_EMPTY)
+				continue;
+			theGrid->mCell[r][c] = LOOK_EMPTY;
+			theGrid->mCell[aDest--][c] = v;
+		}
+	}
+}
+
+// What the board offers next: (size - 1)^2 summed over its coin groups of two or more, less theHeightCost
+// per row of its tallest column
+int LookPotential(const LookGrid& theGrid, int theHeightCost)
+{
+	bool aSeen[Board::BOARD_ROWS * Board::BOARD_COLS] = {};
+	std::vector<int> aCells;
+	int aSum = 0;
+	int aTop = theGrid.mRows;
+	for (int r = 0; r < theGrid.mRows; r++)
+	{
+		for (int c = 0; c < theGrid.mCols; c++)
+		{
+			int8_t v = theGrid.mCell[r][c];
+			if (v != LOOK_EMPTY)
+				aTop = std::min(aTop, r);
+			if ((v < 0) || (aSeen[r * Board::BOARD_COLS + c]))
+				continue;
+			LookGroup(theGrid, r, c, aSeen, &aCells);
+			int n = (int) aCells.size() - 1;
+			aSum += n * n;
+		}
+	}
+	return aSum - theHeightCost * (theGrid.mRows - aTop);
+}
+}
 
 AutoplayBot::AutoplayBot(WinBMApp* theApp, unsigned long theSeed, int theMode, int theSkill, int theGames,
 	int theUpdateCap, const std::string& theLogFileName, const std::string& theShotPrefix) :
@@ -84,14 +192,16 @@ void AutoplayBot::Shot(int theGame, const char* theEvent)
 	Queue("screenshot", mShotPrefix + aName);
 }
 
-// A clickable group (same colour, 4-connected, not special, at least mMinGroup coins), chosen by the bot's
-// own flood fill over the grid (the game's FindGroups marks are not touched): mostly the largest, sometimes
-// a random one. Returns the screen point of one of its coins.
+// A clickable group (same colour, connected as the board's groups are, not special, at least mMinGroup
+// coins), chosen by the bot's own flood fill over the grid (the game's FindGroups marks are not touched):
+// mostly the largest, sometimes a random one. With mBags the best pick is the largest group with a bag right
+// above one of its coins (double points, a bag on its way, and no move used in Strategy), if there is one.
+// Returns the screen point of one of its coins.
 bool AutoplayBot::PickGroup(Board* theBoard, int* theX, int* theY, int* theSize)
 {
 	int aMark[Board::BOARD_ROWS][Board::BOARD_COLS];
 	memset(aMark, 0, sizeof(aMark));
-	struct Group { int mRow, mCol, mSize; };
+	struct Group { int mRow, mCol, mSize; bool mUnderBag; };
 	std::vector<Group> aGroups;
 	int aNextMark = 1;
 	for (int aRow = 0; aRow < Board::BOARD_ROWS; aRow++)
@@ -102,6 +212,7 @@ bool AutoplayBot::PickGroup(Board* theBoard, int* theX, int* theY, int* theSize)
 			if ((aPiece == NULL) || (aPiece->mIsSpecial) || (aMark[aRow][aCol] != 0))
 				continue;
 			int aSize = 0;
+			bool isUnderBag = false;
 			std::vector<std::pair<int, int>> aStack(1, std::make_pair(aRow, aCol));
 			aMark[aRow][aCol] = aNextMark;
 			while (!aStack.empty())
@@ -109,6 +220,8 @@ bool AutoplayBot::PickGroup(Board* theBoard, int* theX, int* theY, int* theSize)
 				std::pair<int, int> aCell = aStack.back();
 				aStack.pop_back();
 				aSize++;
+				Piece* anAbove = (aCell.first > 0) ? theBoard->mGrid[aCell.first - 1][aCell.second] : NULL;
+				isUnderBag |= (anAbove != NULL) && (anAbove->mIsSpecial);
 				for (int d = 0; d < theBoard->GroupDirs(); d++)
 				{
 					int r = aCell.first + gGroupDirs[d][1];
@@ -124,19 +237,46 @@ bool AutoplayBot::PickGroup(Board* theBoard, int* theX, int* theY, int* theSize)
 			}
 			aNextMark++;
 			if (aSize >= theBoard->mMinGroup)
-				aGroups.push_back({aRow, aCol, aSize});
+				aGroups.push_back({aRow, aCol, aSize, isUnderBag});
 		}
 	}
 	if (aGroups.empty())
 		return false;
 	size_t aPick = 0;
-	if (mRand() % 4 == 0)
+	bool isRandom = (mBest < 0) ? (mRand() % 4 == 0) : ((int) (mRand() % 100) >= mBest);
+	if (isRandom)
 		aPick = mRand() % aGroups.size();
+	else if (mLook)
+	{
+		// One click ahead: its points (doubled under a bag, as the game does), a bag freed (in Strategy no
+		// move used), and what the board offers after it
+		LookGrid aGrid;
+		FillLookGrid(theBoard, &aGrid);
+		int aBest = INT_MIN;
+		for (size_t i = 0; i < aGroups.size(); i++)
+		{
+			bool aSeen[Board::BOARD_ROWS * Board::BOARD_COLS] = {};
+			std::vector<int> aCells;
+			LookGroup(aGrid, aGroups[i].mRow, aGroups[i].mCol, aSeen, &aCells);
+			LookGrid anAfter = aGrid;
+			LookRemove(&anAfter, aCells);
+			int aScore = theBoard->mTunables.GroupPoints(aGroups[i].mSize) * (aGroups[i].mUnderBag ? 2 : 1) +
+				(aGroups[i].mUnderBag ? mLookBag : 0) + LookPotential(anAfter, mLookHeight);
+			if (aScore > aBest)
+			{
+				aBest = aScore;
+				aPick = i;
+			}
+		}
+	}
 	else
 	{
 		for (size_t i = 1; i < aGroups.size(); i++)
-			if (aGroups[i].mSize > aGroups[aPick].mSize)
+		{
+			bool isBetterBag = (mBags) && (aGroups[i].mUnderBag != aGroups[aPick].mUnderBag);
+			if (isBetterBag ? aGroups[i].mUnderBag : (aGroups[i].mSize > aGroups[aPick].mSize))
 				aPick = i;
+		}
 	}
 	Piece* aPiece = theBoard->mGrid[aGroups[aPick].mRow][aGroups[aPick].mCol];
 	*theX = theBoard->mX + (int) aPiece->mX + 14;
@@ -305,7 +445,7 @@ void AutoplayBot::Update()
 		Queue("char", "u");
 		if (mLog != NULL)
 			fprintf(mLog, "# undo\n");
-		mNextAction = aNow + 20 + (int) (mRand() % 40);
+		mNextAction = aNow + ClickDelay();
 		return;
 	}
 
@@ -321,12 +461,14 @@ void AutoplayBot::Update()
 		if (mLog != NULL)
 			fprintf(mLog, "# %s, checked: %d\n", mCheckWhat.c_str(), aVerdict);
 		mCheckPending = false;
-		mNextAction = aNow + 20 + (int) (mRand() % 40);
+		mNextAction = aNow + ClickDelay();
 		return;
 	}
 
 	int aX, aY, aSize;
-	if ((mFollowSolver > 0) && (aBoard->mSolver != NULL) && ((mFollowSolver >= 100) || ((int) (mRand() % 100) < mFollowSolver)))
+	// (not while a won Puzzle level plays on for extra bags: the solver is done with it)
+	if ((mFollowSolver > 0) && (aBoard->mSolver != NULL) && (!aBoard->PuzzlePlaysOn()) &&
+		((mFollowSolver >= 100) || ((int) (mRand() % 100) < mFollowSolver)))
 	{
 		PuzzleSolver* aSolver = aBoard->mSolver;
 		if ((!isAtRest) || (aSolver->mStatus == PuzzleSolver::STATUS_THINKING) ||
@@ -374,26 +516,52 @@ void AutoplayBot::Update()
 		}
 		Click(aX, aY, aWhat);
 	}
-	mNextAction = aNow + 20 + (int) (mRand() % 40);
+	mNextAction = aNow + ClickDelay();
+}
+
+// The updates until the bot's next click (mPace)
+int AutoplayBot::ClickDelay()
+{
+	if (mPace <= 0)
+		return 20 + (int) (mRand() % 40);
+	return mPace / 2 + (int) (mRand() % (unsigned long) mPace);
 }
 
 // -autoplaypocket: a Pickpocket on a random small group, in mUsePockets% of the turns and whenever no group can
 // be clicked (not while a Puzzle board moves)
 bool AutoplayBot::UsePickpocket(Board* theBoard, int theNow)
 {
-	if ((mUsePockets <= 0) || (!theBoard->mPickpocket) || (theBoard->mPickpockets <= 0) ||
+	if (((mUsePockets <= 0) && (!mPocketBags)) || (!theBoard->mPickpocket) || (theBoard->mPickpockets <= 0) ||
 		((theBoard->mPiecesMoving) && (mApp->mGameType == GAMETYPE_PUZZLE)))
 		return false;
 	int aX, aY, aSize;
-	if (((int) (mRand() % 100) >= mUsePockets) && (PickGroup(theBoard, &aX, &aY, &aSize)))
-		return false;
 	std::vector<Piece*> aTargets;
-	for (int aRow = 0; aRow < Board::BOARD_ROWS; aRow++)
+	if (mPocketBags)
 	{
-		for (int aCol = 0; aCol < Board::BOARD_COLS; aCol++)
+		// A small group with a bag right above it; any small group only when nothing can be clicked
+		for (int aRow = 1; aRow < Board::BOARD_ROWS; aRow++)
 		{
-			if (theBoard->IsPickpocketTarget(theBoard->mGrid[aRow][aCol]))
-				aTargets.push_back(theBoard->mGrid[aRow][aCol]);
+			for (int aCol = 0; aCol < Board::BOARD_COLS; aCol++)
+			{
+				Piece* anAbove = theBoard->mGrid[aRow - 1][aCol];
+				if ((anAbove != NULL) && (anAbove->mIsSpecial) && (theBoard->IsPickpocketTarget(theBoard->mGrid[aRow][aCol])))
+					aTargets.push_back(theBoard->mGrid[aRow][aCol]);
+			}
+		}
+		if ((aTargets.empty()) && (PickGroup(theBoard, &aX, &aY, &aSize)))
+			return false;
+	}
+	else if (((int) (mRand() % 100) >= mUsePockets) && (PickGroup(theBoard, &aX, &aY, &aSize)))
+		return false;
+	if (aTargets.empty())
+	{
+		for (int aRow = 0; aRow < Board::BOARD_ROWS; aRow++)
+		{
+			for (int aCol = 0; aCol < Board::BOARD_COLS; aCol++)
+			{
+				if (theBoard->IsPickpocketTarget(theBoard->mGrid[aRow][aCol]))
+					aTargets.push_back(theBoard->mGrid[aRow][aCol]);
+			}
 		}
 	}
 	if (aTargets.empty())
@@ -416,7 +584,7 @@ bool AutoplayBot::UsePickpocket(Board* theBoard, int theNow)
 		if (mLog != NULL)
 			fprintf(mLog, "# pickpocket: right click\n");
 	}
-	mNextAction = theNow + 20 + (int) (mRand() % 40);
+	mNextAction = theNow + ClickDelay();
 	return true;
 }
 

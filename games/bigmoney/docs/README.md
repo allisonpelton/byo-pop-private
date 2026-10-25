@@ -271,8 +271,23 @@ Big Money uses the shared mod system (`platform/ModManager.h`).
   - **How.** Right-click the group. Or press P, or click the counter on the steps under Mr. Money: it
     blinks "pickpocket ready", small groups light up under the mouse, and the next click on one uses
     it. P again puts it away.
-  - **How many.** Three at the start of a game, one more at each new level, five at most (all three
-    are settings). The count is kept in the savegame (a "BMPK" trailer the original's reader ignores).
+  - **How many.** Three at the start of a game, five at most, and more are earned with spare bags
+    (below); a free one at each new level is a setting, off by default (version 1.0 gave one). The
+    count is kept in the savegame (a "BMPK" trailer the original's reader ignores).
+  - **Spare bags** (`perBag`, one by default; `Board::EarnPickpockets`). So that Pickpockets don't just
+    make the game easier, they are earned with bags the level didn't need:
+    - Action and Strategy: one for each bag still on the board when the level ends (the bags the
+      original counts for its Excess Baggage bonus, `ClearBoardForLevelEnd`).
+    - Puzzle: a won level goes on while a group can be clicked ("extra bags earn pickpockets";
+      `Board::PuzzlePlaysOn`), then it is swept as before. Each bag dropped past the needed ones, on
+      the winning click or after it, earns one and flies to the counter. The solver rests while the
+      level plays on, and its undo is gone, as after any win.
+    - "+1 pickpocket" pops up for each one earned; none past the most in hand.
+    - Tested (version 2.0, bot games under rundesk; `-autoplaypocketbags` lifts the coin under a bag):
+      36 games in every mode, 52 Pickpockets earned, 159 used, 85 Puzzle levels played on and every
+      one of them ended; all 12 replays verified; a game saved while a won level played on resumed in
+      it. The bots earned about one every five levels in Action, one every three in Strategy and one
+      every two in Puzzle (where they don't aim for bags).
   - **Puzzle.** The game goes on while a Pickpocket can still lift a coin, and with no click left one is
     armed by itself. The Puzzle Solver counts no Pickpockets: on a level it can't win it says "no way
     to win without a pickpocket", "end the game when lost" waits until they are gone, and its undo
@@ -359,7 +374,8 @@ Example mods (`games/bigmoney/mods/`):
 - **`puzzle-solver/`: "Puzzle Solver".** Puzzle only: tells whether the level can still be won, sells
   hints and undos, warns about losing clicks, and can end the game when the level can't be won.
 - **`winnable-puzzles/`: "Winnable Puzzles".** Puzzle only: builds boards that can always be won.
-- **`pickpocket/`: "Pickpocket".** A powerup that lifts a group too small to click (right click, or P).
+- **`pickpocket/`: "Pickpocket".** A powerup that lifts a group too small to click (right click, or P),
+  earned with spare bags.
 - **`small-board/`: "Small Board".** Plays on a smaller board (10 x 12 by default, settings for both).
 - **`more-colours/`: "More Colours".** Eleven new coin colours: six colours by default, up to sixteen.
 - **`diagonal-groups/`: "Diagonal Groups".** Coins that touch at a corner are one group.

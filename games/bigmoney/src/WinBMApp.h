@@ -193,6 +193,13 @@ public:
 	int				mAutoplayUndo;          // -autoplayundo[=N] (AutoplayBot::mPressUndo)
 	bool			mAutoplayCheck;         // -autoplaycheck (AutoplayBot::mCheckClicks)
 	int				mAutoplayPocket;        // -autoplaypocket[=N] (AutoplayBot::mUsePockets)
+	int				mAutoplayBest;          // -autoplaybest=N (AutoplayBot::mBest)
+	int				mAutoplayPace;          // -autoplaypace=N (AutoplayBot::mPace)
+	bool			mAutoplayBags;          // -autoplaybags (AutoplayBot::mBags)
+	bool			mAutoplayPocketBags;    // -autoplaypocketbags (AutoplayBot::mPocketBags)
+	bool			mAutoplayLook;          // -autoplaylook[=H,B] (AutoplayBot::mLook, mLookHeight, mLookBag)
+	int				mAutoplayLookHeight;
+	int				mAutoplayLookBag;
 	AutoplayBot*	mAutoplayBot;
 	virtual void	UpdateFrames() override;
 	virtual void	HandleCmdLineParam(const std::string& theParamName, const std::string& theParamValue) override;

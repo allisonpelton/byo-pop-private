@@ -392,6 +392,7 @@ public:
 	bool			mPickpocket;            // the feature is on
 	int				mPickpockets;           // in hand (saved in the savegame's trailer)
 	int				mPickpocketsPerLevel;   // more at each new level
+	int				mPickpocketsPerBag;     // more for each bag left over (Action, Strategy) or dropped extra (Puzzle)
 	int				mPickpocketsMax;        // the most in hand
 	bool			mPickpocketArmed;       // P (or a click on the counter): the next click on a small group uses one
 	int				mPickpocketsUsed;       // in this board's game (the log)
@@ -513,6 +514,8 @@ public:
 	bool			CanPickpocket();
 	void			ArmPickpocket(bool theArmed);
 	void			UsePickpocket(int x, int y);
+	void			EarnPickpockets(int theBags);
+	bool			PuzzlePlaysOn();
 	bool			GetPickpocketRect(Rect* theRect, SexyString* theText);
 	void			DrawPickpockets(Graphics* g);
 	static std::string GetSaveGameFileName();                      // port: "userdata\\savegame.dat"

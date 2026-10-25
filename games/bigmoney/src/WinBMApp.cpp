@@ -159,6 +159,13 @@ WinBMApp::WinBMApp()
 	mAutoplayHints = false;
 	mAutoplayUndo = 0;
 	mAutoplayPocket = 0;
+	mAutoplayBest = -1;
+	mAutoplayPace = 0;
+	mAutoplayBags = false;
+	mAutoplayPocketBags = false;
+	mAutoplayLook = false;
+	mAutoplayLookHeight = 10;
+	mAutoplayLookBag = 30;
 	mAutoplayCheck = false;
 	mAutoplayBot = NULL;
 
@@ -1351,6 +1358,13 @@ void WinBMApp::UpdateFrames()
 		mAutoplayBot->mPressUndo = mAutoplayUndo;
 		mAutoplayBot->mCheckClicks = mAutoplayCheck;
 		mAutoplayBot->mUsePockets = mAutoplayPocket;
+		mAutoplayBot->mBest = mAutoplayBest;
+		mAutoplayBot->mPace = mAutoplayPace;
+		mAutoplayBot->mBags = mAutoplayBags;
+		mAutoplayBot->mPocketBags = mAutoplayPocketBags;
+		mAutoplayBot->mLook = mAutoplayLook;
+		mAutoplayBot->mLookHeight = mAutoplayLookHeight;
+		mAutoplayBot->mLookBag = mAutoplayLookBag;
 	}
 	if (mAutoplayBot != NULL)
 		mAutoplayBot->Update();
@@ -1408,6 +1422,19 @@ void WinBMApp::HandleCmdLineParam(const std::string& theParamName, const std::st
 		mAutoplayCheck = true;
 	else if (theParamName == "-autoplaypocket")
 		mAutoplayPocket = theParamValue.empty() ? 10 : atoi(theParamValue.c_str());
+	else if (theParamName == "-autoplaybest")
+		mAutoplayBest = atoi(theParamValue.c_str());
+	else if (theParamName == "-autoplaypace")
+		mAutoplayPace = atoi(theParamValue.c_str());
+	else if (theParamName == "-autoplaybags")
+		mAutoplayBags = true;
+	else if (theParamName == "-autoplaypocketbags")
+		mAutoplayPocketBags = true;
+	else if (theParamName == "-autoplaylook")
+	{
+		mAutoplayLook = true;
+		sscanf(theParamValue.c_str(), "%d,%d", &mAutoplayLookHeight, &mAutoplayLookBag);
+	}
 	else
 		SexyApp::HandleCmdLineParam(theParamName, theParamValue);
 }

@@ -1485,6 +1485,8 @@ void Board::ClearBoardForLevelEnd()
 		mApp->mMrMoney->PlayAnim(MRANIM_BONUS);
 		mApp->PlaySample(SOUND_BONUS);
 	}
+	if ((mPickpocket) && (mApp->mGameType != GAMETYPE_PUZZLE)) // port(mods): and Pickpockets for them
+		EarnPickpockets(aBags);
 	mState = STATE_LEVEL_CLEAR_FALL;
 }
 
@@ -1670,6 +1672,13 @@ void Board::UpdatePhysics()
 
 						Point aSlot;
 						GetBagSlotPos(&aSlot, mBagsReleased);
+						// port(mods): a Puzzle bag past the needed ones earns Pickpockets, and flies to their counter
+						if ((mPickpocketsPerBag > 0) && (mPickpocket) && (mApp->mGameType == GAMETYPE_PUZZLE) &&
+							(mBagsReleased >= mBagsNeeded))
+						{
+							EarnPickpockets(1);
+							aSlot = Point(74, 412);
+						}
 						mApp->mBagCollectedOnce = true;
 						mBagsReleased++;
 						aPiece->mFlying = true;
@@ -1852,18 +1861,27 @@ void Board::UpdateLoosePieces()
 				if (aPiece->mIsSpecial)
 				{
 					// A bag arrives in the holder
+					bool isBanked = false; // port(mods)
 					if (mBagsBanked < mBagsNeeded)
 					{
 						mBagsBanked++;
 						mBagFlashCount = 3;
+						isBanked = true;
 					}
-					if ((mBagsBanked == mBagsNeeded) && (mState == STATE_PLAYING))
+					if ((mBagsBanked == mBagsNeeded) && (mState == STATE_PLAYING) && (!PuzzlePlaysOn()))
 					{
 						HideHint();
 						if (mApp->mGameType == GAMETYPE_PUZZLE)
 							mState = STATE_PUZZLE_SWEEP;
 						else
 							LevelComplete();
+					}
+					else if ((isBanked) && (mBagsBanked == mBagsNeeded) && (PuzzlePlaysOn()))
+					{
+						// port(mods): the level is won and goes on while a group can be clicked (Board::PuzzlePlaysOn)
+						HideHint();
+						ShowBonusText(mApp->GetString("PICKPOCKET_PLAY_ON", _S("EXTRA BAGS EARN PICKPOCKETS")));
+						SDL_Log("pickpocket: level %d won, play on (tick %d)", mLevel + 1, mUpdateCnt);
 					}
 				}
 				anErase = true;
@@ -3622,6 +3640,14 @@ void Board::Update()
 	if ((mPickpocketArmed) && (mUpdateCnt % 20 == 0)) // port(mods): the armed Pickpocket's counter blinks
 		MarkDirty();
 
+	// port(mods): a won Puzzle level that played on is swept when no group is left (Pickpockets are kept)
+	if ((PuzzlePlaysOn()) && (!mHasMoves) && (!mPiecesMoving))
+	{
+		HideHint();
+		ArmPickpocket(false);
+		mState = STATE_PUZZLE_SWEEP;
+	}
+
 	// Puzzle: no group left before all needed bags are out
 	// port(mods): not while a Pickpocket can still lift a coin
 	if ((mApp->mGameType == GAMETYPE_PUZZLE) && (!mHasMoves) && (!mPiecesMoving) &&
@@ -3915,11 +3941,13 @@ Board::Board(WinBMApp* theApp)
 	mPickpocket = ModFeatureEnabled("pickpocket");
 	mPickpocketsMax = ModFeatureInt("pickpocket", "max", 5, 1, 1000);
 	mPickpockets = mPickpocket ? std::min(ModFeatureInt("pickpocket", "start", 3, 0, 1000), mPickpocketsMax) : 0;
-	mPickpocketsPerLevel = ModFeatureInt("pickpocket", "perLevel", 1, 0, 1000);
+	mPickpocketsPerLevel = ModFeatureInt("pickpocket", "perLevel", 0, 0, 1000);
+	mPickpocketsPerBag = ModFeatureInt("pickpocket", "perBag", 1, 0, 1000);
 	mPickpocketArmed = false;
 	mPickpocketsUsed = 0;
 	if (mPickpocket)
-		SDL_Log("pickpocket: %d to start, %d more a level, %d at most", mPickpockets, mPickpocketsPerLevel, mPickpocketsMax);
+		SDL_Log("pickpocket: %d to start, %d more a level, %d a spare bag, %d at most", mPickpockets, mPickpocketsPerLevel,
+			mPickpocketsPerBag, mPickpocketsMax);
 	mBombColor = 0;
 	mBombIdle = 0;
 	mHoverBag = false;
@@ -4101,7 +4129,7 @@ void Board::UpdateSolver()
 		mSolverLostLevel = -1;
 	}
 
-	if ((mState != STATE_PLAYING) || (mPiecesMoving))
+	if ((mState != STATE_PLAYING) || (mPiecesMoving) || (PuzzlePlaysOn())) // port(mods): won, playing on
 	{
 		ClearSolverHint();
 		if (mSolverWarning)
@@ -4560,7 +4588,7 @@ bool Board::IsSolverWarnPiece(Piece* thePiece) const
 bool Board::GetSolverStatusRect(Rect* theRect, std::vector<SolverLine>* theLines)
 {
 	theLines->clear();
-	if ((mSolver == NULL) || (mState != STATE_PLAYING))
+	if ((mSolver == NULL) || (mState != STATE_PLAYING) || (PuzzlePlaysOn())) // port(mods): won, playing on
 		return false;
 
 	SolverLine aLine;
@@ -4732,6 +4760,29 @@ bool Board::CanPickpocket()
 		}
 	}
 	return false;
+}
+
+// Pickpockets for bags not needed: left on the board at the end of an Action or Strategy level
+// (ClearBoardForLevelEnd), or dropped past the needed ones in Puzzle (UpdatePhysics), up to the most in hand
+void Board::EarnPickpockets(int theBags)
+{
+	int aGot = std::min(mPickpockets + theBags * mPickpocketsPerBag, mPickpocketsMax) - mPickpockets;
+	if ((!mPickpocket) || (aGot <= 0))
+		return;
+	mPickpockets += aGot;
+	SDL_Log("pickpocket: %d earned for %d spare bags, %d in hand (tick %d)", aGot, theBags, mPickpockets, mUpdateCnt);
+	if (aGot == 1)
+		ShowBonusText(mApp->GetString("PICKPOCKET_EARNED_ONE", _S("+1 PICKPOCKET")));
+	else
+		ShowBonusText(StrFormat(_S("+%d "), aGot) + mApp->GetString("PICKPOCKET_MANY", _S("PICKPOCKETS")));
+	MarkDirty();
+}
+
+// A won Puzzle level plays on while a group can be clicked, for extra bags, when they earn Pickpockets
+bool Board::PuzzlePlaysOn()
+{
+	return (mPickpocket) && (mPickpocketsPerBag > 0) && (mApp->mGameType == GAMETYPE_PUZZLE) &&
+		(mState == STATE_PLAYING) && (mBagsBanked >= mBagsNeeded);
 }
 
 void Board::ArmPickpocket(bool theArmed)
