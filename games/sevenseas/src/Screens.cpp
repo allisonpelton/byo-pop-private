@@ -1,0 +1,974 @@
+// The full-screen widgets of Seven Seas Deluxe (see Screens.h).
+
+#include "Screens.h"
+#include "SevenSeasApp.h"
+#include "Board.h"
+#include "GameText.h"
+#include "Compat2004.h"
+#include "Graphics.h"
+#include "ImageFont.h"
+#include "MemoryImage.h"
+#include "MusicInterface.h"
+#include "SexyAppBase.h"
+#include "WidgetManager.h"
+#include "platform/UserFiles.h"
+#include "platform/VFS.h"
+
+#include <algorithm>
+#include <cmath>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+
+using namespace Sexy;
+
+// ---------------------------------------------------------------------------------------------------------
+// TitleScreen
+
+// 0x4256f0
+TitleScreen::TitleScreen(SevenSeasApp* theApp) :
+	mApp(theApp),
+	mProgress(0.0),
+	mDelayProgress(0.0),
+	mPlayShown(false),
+	mRegisterClicked(false)
+{
+	// port: the shareware branches (plays remaining, the register link, the delay) are not ported; the screen
+	// takes the registered path (docs/GAME_NOTES.md section 2)
+	int aGames = mApp->mGamesPlayed;
+	if (aGames < 0xb)
+		mDivisor = 10;
+	else if (aGames < 0x15)
+		mDivisor = aGames;
+	else if (aGames < 0x33)
+		mDivisor = aGames * 2 - 0x14;
+	else
+		mDivisor = 0x50;
+	if (aGames < 2)
+		mPlaysLeft = 0;
+	else if (aGames < 10)
+		mPlaysLeft = aGames;
+	else
+		mPlaysLeft = 2;
+	mDelay = !((aGames < 0xf) || mApp->mIsRegistered);
+
+	mRegisterLink = new HyperlinkWidget(0, this);
+	mRegisterLink->SetFont(mApp->mFonts[FONT_MT11]);
+	mRegisterLink->mColor = Color(0xff, 0xff, 0);
+	mRegisterLink->SetVisible(!mApp->mIsRegistered);
+	mRegisterLink->mLabel = mDelay ? GT(0x004a6670) : GT(0x004a6694);
+
+	mPlayLink = new HyperlinkWidget(1, this);
+	mPlayLink->SetFont(mApp->mFonts[FONT_FONT1]);
+	mPlayLink->SetVisible(false);
+	mPlayLink->mColor = Color(0xff, 0xff, 0);
+	mPlayLink->mLabel = GT(0x004a665c);
+
+	for (int i = 0; i < 25; i++)
+	{
+		mSparkles[i][0] = abs(CrtRand() % 0x253) + 0x13;
+		mSparkles[i][1] = abs(CrtRand() % 0x61) + 7;
+		mSparkles[i][2] = abs(i % 0xe);
+	}
+}
+
+// 0x425b80
+TitleScreen::~TitleScreen()
+{
+	delete mRegisterLink;
+	delete mPlayLink;
+}
+
+// 0x426180 / 0x4261b0
+void TitleScreen::AddedToManager(WidgetManager* theWidgetManager)
+{
+	Widget::AddedToManager(theWidgetManager);
+	theWidgetManager->AddWidget(mRegisterLink);
+	theWidgetManager->AddWidget(mPlayLink);
+}
+
+void TitleScreen::RemovedFromManager(WidgetManager* theWidgetManager)
+{
+	Widget::RemovedFromManager(theWidgetManager);
+	theWidgetManager->RemoveWidget(mRegisterLink);
+	theWidgetManager->RemoveWidget(mPlayLink);
+}
+
+// 0x4261e0
+void TitleScreen::Resize(int theX, int theY, int theWidth, int theHeight)
+{
+	Widget::Resize(theX, theY, theWidth, theHeight);
+	int aWidth = mRegisterLink->mFont->StringWidth(mRegisterLink->mLabel);
+	mRegisterLink->Resize((mWidth - aWidth) / 2, 0x1c0, aWidth, 0x10);
+	aWidth = mPlayLink->mFont->StringWidth(mPlayLink->mLabel);
+	mPlayLink->Resize((mWidth - aWidth) / 2, 0x177, aWidth, 0x18);
+}
+
+// 0x425fb0
+void TitleScreen::Update()
+{
+	Widget::Update();
+	if (!mDelay)
+	{
+		if ((mUpdateCnt % 4 == 0) && !mPlayShown)
+		{
+			mProgress = mApp->GetLoadingThreadProgress();
+			if ((mProgress == 1.0) && mApp->mLoaded)
+			{
+				mPlayLink->SetVisible(true);
+				mProgress = 0.0;
+				mPlayShown = true;
+				mProgress = 1.0;
+			}
+			MarkDirty();
+		}
+	}
+	mRegisterLink->SetVisible(!mApp->mIsRegistered);
+	if (mUpdateCnt % 8 == 0)
+	{
+		for (int i = 0; i < 25; i++)
+		{
+			mSparkles[i][2] = mSparkles[i][2] + 1;
+			if (mSparkles[i][2] == 0xe)
+			{
+				mSparkles[i][2] = 0;
+				mSparkles[i][0] = abs(CrtRand() % 0x253) + 0x13;
+				mSparkles[i][1] = abs(CrtRand() % 0x61) + 7;
+			}
+		}
+		MarkDirty();
+	}
+}
+
+// 0x425c00
+void TitleScreen::Draw(Graphics* g)
+{
+	Image** anImages = mApp->mImages;
+	g->DrawImage(anImages[IMAGE_TITLE], 0, 0);
+	g->DrawImage(anImages[IMAGE_ANCHOR], 10, 0x15f);
+	int aBarWidth = mPlayShown ? 0x141 : (int) (mProgress * 321.0);
+	g->DrawImage(anImages[IMAGE_GOLDBAR], 0x99, 0x197, Rect(0, 0, aBarWidth, 0x18));
+	g->SetFont(mApp->mFonts[FONT_MT11]);
+	g->DrawImage(anImages[IMAGE_POPCAPURL], 0x206, 0x1cb);
+	g->DrawImage(anImages[IMAGE_POPCAPLOGO], 0x206, 0x16a);
+	g->SetColor(Color(0xff, 0xff, 0));
+	SexyString aLine = GT(0x004a66bc);
+	WriteCenteredLine(g, 0x16f, aLine);
+	g->SetColor(Color(0xff, 0xff, 0xff));
+	SexyString aVersion = GT(0x004a66b0) + mApp->mProductVersion;
+	g->DrawString(aVersion, 0x219 - g->GetFont()->StringWidth(aVersion) / 2, 0xdd);
+	g->SetDrawMode(Graphics::DRAWMODE_ADDITIVE);
+	for (int i = 0; i < 25; i++)
+		g->DrawImage(anImages[IMAGE_SMSPARKLE], mSparkles[i][0], mSparkles[i][1], Rect(mSparkles[i][2] * 0x14, 0, 0x14, 0x14));
+	g->SetDrawMode(Graphics::DRAWMODE_NORMAL);
+}
+
+// 0x426270: the play link starts the game's menus
+void TitleScreen::ButtonDepress(int theId)
+{
+	if (theId == 0)
+		mRegisterClicked = true;
+	else
+		mApp->TitleScreenDone();
+}
+
+// ---------------------------------------------------------------------------------------------------------
+// IntroWidget
+
+// 0x416900
+IntroWidget::IntroWidget(SevenSeasApp* theApp) :
+	mApp(theApp),
+	mStarting(false)
+{
+	Image** anImages = mApp->mImages;
+	static const int kIds[5] = {0, 1, 0xb, 0xc, 0xd};
+	static const Rect kRects[5] = {Rect(0, 0x37, 0xb6, 0x37), Rect(0, 0, 0xb6, 0x37), Rect(0, 0, 0x76, 0x73), Rect(0x76, 0, 0x77, 0x73), Rect(0xed, 0, 0x76, 0x73)};
+	ButtonWidget* aButtons[5];
+	for (int i = 0; i < 5; i++)
+	{
+		aButtons[i] = new ButtonWidget(kIds[i], this);
+		aButtons[i]->mDoFinger = true;
+		Image* aSource = (i < 2) ? anImages[IMAGE_INTROBUTTONS] : anImages[IMAGE_INTROWHEELS];
+		aButtons[i]->mDownImage = mApp->CopyImage(aSource, kRects[i]);
+		aButtons[i]->mOverImage = mApp->CopyImage(aSource, kRects[i]);
+		aButtons[i]->mMouseInsets = Insets(-1, -1, -1, -1);
+	}
+	mPlayButton = aButtons[0];
+	mTutorialButton = aButtons[1];
+	for (int i = 0; i < 3; i++)
+		mWheels[i] = aButtons[2 + i];
+	SetDifficulty(mApp->mDifficulty);
+	mStarting = false;
+}
+
+IntroWidget::~IntroWidget()
+{
+	delete mPlayButton;
+	delete mTutorialButton;
+	for (int i = 0; i < 3; i++)
+		delete mWheels[i];
+}
+
+// 0x4171c0: the wheel of the difficulty shows lit
+void IntroWidget::SetDifficulty(int theDifficulty)
+{
+	mDifficulty = theDifficulty;
+	for (int i = 0; i < 3; i++)
+	{
+		mWheels[i]->mButtonImage = (i == theDifficulty - 1) ? mWheels[i]->mDownImage : NULL;
+		mWheels[i]->MarkDirty();
+	}
+}
+
+// 0x417290 / 0x4172e0
+void IntroWidget::AddedToManager(WidgetManager* theWidgetManager)
+{
+	Widget::AddedToManager(theWidgetManager);
+	theWidgetManager->AddWidget(mPlayButton);
+	theWidgetManager->AddWidget(mTutorialButton);
+	for (int i = 0; i < 3; i++)
+		theWidgetManager->AddWidget(mWheels[i]);
+}
+
+void IntroWidget::RemovedFromManager(WidgetManager* theWidgetManager)
+{
+	Widget::RemovedFromManager(theWidgetManager);
+	theWidgetManager->RemoveWidget(mPlayButton);
+	theWidgetManager->RemoveWidget(mTutorialButton);
+	for (int i = 0; i < 3; i++)
+		theWidgetManager->RemoveWidget(mWheels[i]);
+}
+
+// 0x417330
+void IntroWidget::Resize(int theX, int theY, int theWidth, int theHeight)
+{
+	Widget::Resize(theX, theY, theWidth, theHeight);
+	mPlayButton->Resize(mX + 0xee, 0x173, 0xb6, 0x37);
+	mTutorialButton->Resize(mX + 0x2e, 0x173, 0xb6, 0x37);
+	mWheels[0]->Resize(mX + 0x37, 0xf9, 0x76, 0x73);
+	mWheels[1]->Resize(mX + 0xad, 0xf9, 0x77, 0x73);
+	mWheels[2]->Resize(mX + 0x124, 0xf9, 0x76, 0x73);
+}
+
+// 0x417200: after the pirate has talked the game begins
+void IntroWidget::Update()
+{
+	Widget::Update();
+	if (mApp->mAutoplay && (mUpdateCnt == 0x3c))
+	{
+		// the bot plays the beginner game without the tutorial
+	}
+	if ((mUpdateCnt > 0x3c) && !mApp->mTalkWidget->mTalkingNow)
+	{
+		if (mStarting)
+		{
+			mStarting = false;
+			mApp->EndTutorial();
+			return;
+		}
+		mPlayButton->SetDisabled(false);
+		mTutorialButton->SetDisabled(false);
+		return;
+	}
+	mPlayButton->SetDisabled(true);
+	mTutorialButton->SetDisabled(true);
+}
+
+// 0x416df0
+void IntroWidget::Draw(Graphics* g)
+{
+	Image** anImages = mApp->mImages;
+	g->DrawImage(anImages[IMAGE_INTROSCREEN], 0, 0);
+	g->SetFont(mApp->mFonts[FONT_MT22]);
+	g->SetColor(Color(0xff, 0xff, 0xff));
+	if (!mApp->mFlag4c4)
+	{
+		SexyString aText = GT(0x004a3c58);
+		g->DrawString(aText, 0x12a - g->GetFont()->StringWidth(aText) / 2, 0x32);
+	}
+	else
+	{
+		SexyString aText = GT(0x004a3284);
+		g->DrawString(aText, 0x12a - g->GetFont()->StringWidth(aText) / 2, 0x27);
+		aText = GT(0x004a3c64);
+		g->DrawString(aText, 0x12a - g->GetFont()->StringWidth(aText) / 2, 0x43);
+	}
+	g->SetFont(mApp->mFonts[FONT_MT11]);
+	g->SetColor(Color(0xff, 0xff, 0));
+	if (!mTutorialButton->mIsOver)
+	{
+		SexyString aText = GT(0x004a3bf8);
+		g->DrawString(aText, 0x12a - g->GetFont()->StringWidth(aText) / 2, 0x71);
+	}
+	else
+	{
+		SexyString aText = GT(0x004a3c38);
+		g->DrawString(aText, 0x12a - g->GetFont()->StringWidth(aText) / 2, 0x61);
+		aText = GT(0x004a3c18);
+		g->DrawString(aText, 0x12a - g->GetFont()->StringWidth(aText) / 2, 0x71);
+	}
+}
+
+// 0x4173e0: Play starts the game at the chosen difficulty, Tutorial the tutorial, the wheels set the difficulty
+void IntroWidget::ButtonDepress(int theId)
+{
+	switch (theId)
+	{
+	case 0:
+	case 1:
+	{
+		int aTalk = CrtRand() % 3;
+		if (aTalk == 0)
+		{
+			mApp->mTalkWidget->SetMouth(5);
+			mApp->PlaySample(0x13);
+		}
+		else if (aTalk == 1)
+		{
+			mApp->mTalkWidget->SetMouth(6);
+			mApp->PlaySample(0x14);
+		}
+		else if (aTalk == 2)
+		{
+			mApp->mTalkWidget->SetMouth(7);
+			mApp->PlaySample(0x15);
+		}
+		if (theId == 0)
+		{
+			mApp->mTutorial = false;
+			mApp->OnPlay(mDifficulty);
+		}
+		else
+			mApp->mTutorial = true;
+		mStarting = true;
+		mApp->mMusicInterface->FadeOut(0, true, 0.004);
+		mApp->mMusicInterface->FadeOut(1, true, 0.004);
+		break;
+	}
+	case 0xb:
+	case 0xc:
+	case 0xd:
+		SetDifficulty(theId - 10);
+		break;
+	}
+}
+
+// ---------------------------------------------------------------------------------------------------------
+// MapWidget
+
+// the route of the voyage: the dots of the path, the places marked (WinSS.exe 0x4a3c70, 0x4a3da4) and how many
+// dots are lit in each chapter (0x4a3d84)
+static const int kMapDots[35][2] =
+{
+	{254, 87}, {266, 102}, {280, 115}, {293, 129}, {304, 147}, {316, 164}, {324, 181}, {327, 196}, {296, 218},
+	{277, 220}, {257, 218}, {237, 211}, {217, 202}, {200, 198}, {182, 195}, {165, 192}, {150, 191}, {122, 207},
+	{126, 222}, {132, 237}, {138, 251}, {146, 266}, {182, 296}, {197, 300}, {212, 305}, {228, 309}, {240, 315},
+	{285, 314}, {301, 312}, {319, 312}, {339, 314}, {352, 317}, {373, 335}, {363, 344}, {363, 359}
+};
+static const int kMapMarks[7][2] = {{222, 59}, {309, 202}, {108, 172}, {141, 275}, {246, 303}, {362, 302}, {352, 363}};
+static const int kMapChapterDots[8] = {359, 0, 8, 17, 22, 27, 32, 35};
+
+// 0x4175d0
+MapWidget::MapWidget(SevenSeasApp* theApp) :
+	mApp(theApp)
+{
+	mNextButton = new DialogButton(mApp->mImages[IMAGE_MAPBUTTONLIT], 100, this);
+	mNextButton->mOverImage = mApp->CopyImage(mApp->mImages[IMAGE_MAPBUTTONLIT]);
+	mNextButton->mButtonImage = mApp->CopyImage(mApp->mImages[IMAGE_MAPBUTTONUNLIT]);
+	mNextButton->mDoFinger = true;
+	mNextButton->mMouseInsets = Insets(-1, -1, -1, -1);
+	mApp->mWidgetManager->AddWidget(mNextButton);
+	mChapter = mApp->mBoard->mLevel / 10;
+	if (mChapter < 1)
+		mDots = 0;
+	else
+		mDots = kMapChapterDots[mChapter];
+	mApp->SetCursor(0);
+}
+
+MapWidget::~MapWidget()
+{
+}
+
+void MapWidget::AddedToManager(WidgetManager* theWidgetManager)
+{
+	Widget::AddedToManager(theWidgetManager);
+}
+
+void MapWidget::RemovedFromManager(WidgetManager* theWidgetManager)
+{
+	Widget::RemovedFromManager(theWidgetManager);
+}
+
+// 0x417980
+void MapWidget::Resize(int theX, int theY, int theWidth, int theHeight)
+{
+	Widget::Resize(theX, theY, theWidth, theHeight);
+	Image* anImage = mApp->mImages[IMAGE_MAPBUTTONLIT];
+	int aW = anImage->GetWidth();
+	int aH = anImage->GetHeight();
+	mNextButton->Resize((mWidth - aW) / 2 + 10 + mX, mHeight - aH, aW, aH);
+}
+
+// 0x4177d0
+void MapWidget::Draw(Graphics* g)
+{
+	Image** anImages = mApp->mImages;
+	g->DrawImage(anImages[IMAGE_PIRATEMAP], 0, 0);
+	g->DrawImage(anImages[IMAGE_BACKDROP], 0, 0, Rect(0xad, 0, 0x1d3, 0x1e0));
+	if (mChapter < 7)
+	{
+		for (int i = 0; i < mDots; i++)
+		{
+			if (i < kMapChapterDots[mChapter + 1])
+				g->DrawImage(anImages[IMAGE_MAPDOT], kMapDots[i][0], kMapDots[i][1]);
+		}
+		for (int i = 0; i < mChapter; i++)
+			g->DrawImage(anImages[IMAGE_MAPX], kMapMarks[i][0], kMapMarks[i][1]);
+		if (kMapChapterDots[mChapter + 1] < mDots)
+			g->DrawImage(anImages[IMAGE_MAPX], kMapMarks[mChapter][0], kMapMarks[mChapter][1]);
+	}
+	else
+	{
+		for (int i = 0; i < 35; i++)
+			g->DrawImage(anImages[IMAGE_MAPDOT], kMapDots[i][0], kMapDots[i][1]);
+		for (int i = 0; i < 7; i++)
+			g->DrawImage(anImages[IMAGE_MAPX], kMapMarks[i][0], kMapMarks[i][1]);
+	}
+}
+
+// 0x4179e0: the button closes the map
+void MapWidget::ButtonDepress(int theId)
+{
+	if (theId == 100)
+	{
+		mApp->mWidgetManager->RemoveWidget(mNextButton);
+		mApp->SafeDeleteWidget(mNextButton);
+		mNextButton = NULL;
+		mApp->mMapWidget = NULL;
+		mApp->mWidgetManager->RemoveWidget(this);
+		mApp->mWidgetManager->BringToFront(mApp->mBoard);
+		mApp->mWidgetManager->SetFocus(mApp->mBoard);
+		mApp->SafeDeleteWidget(this);
+	}
+}
+
+// ---------------------------------------------------------------------------------------------------------
+// SidePanel
+
+// 0x41b560
+SidePanel::SidePanel(SevenSeasApp* theApp) :
+	mApp(theApp),
+	mShownScore(0),
+	mPupilX(0x15),
+	mPupilY(0x33),
+	mTargetX(0x15),
+	mTargetY(0x33)
+{
+}
+
+// 0x41ba60: the shown score runs after the board's, the pupils after the mouse
+void SidePanel::Update()
+{
+	Widget::Update();
+	Board* aBoard = mApp->mBoard;
+	if (aBoard != NULL)
+	{
+		int aStep = aBoard->mSavedLevels;
+		int aGap = aBoard->mScore - mShownScore;
+		if (aGap < aStep * 0x96)
+		{
+			if (aStep * 100 <= aGap)
+			{
+				mShownScore = mShownScore + aStep * 2;
+				MarkDirty();
+			}
+			else if (aStep * 0x32 <= aGap)
+			{
+				mShownScore = mShownScore + aStep;
+				MarkDirty();
+			}
+			else if (mShownScore < aBoard->mScore)
+			{
+				if (mUpdateCnt % 2 == 0)
+				{
+					mShownScore = mShownScore + aStep;
+					MarkDirty();
+				}
+			}
+		}
+		else
+		{
+			mShownScore = mShownScore + aStep * 3;
+			MarkDirty();
+		}
+		if (aBoard->mScore < mShownScore)
+		{
+			mShownScore = aBoard->mScore;
+			MarkDirty();
+		}
+	}
+	// port: the original takes the pupils' target from the mouse with two floating-point expressions (not
+	// recovered); the pupils move a little toward the mouse
+	int aDX = (mWidgetManager != NULL ? mWidgetManager->mLastMouseX : 0x55) - 0x55;
+	int aDY = (mWidgetManager != NULL ? mWidgetManager->mLastMouseY : 0x158) - 0x158;
+	mTargetX = 0x15 + std::max(-6, std::min(6, aDX / 40));
+	mTargetY = 0x33 + std::max(-5, std::min(5, aDY / 40));
+	if (mPupilX > mTargetX)
+		mPupilX = mPupilX - 1;
+	if (mPupilX < mTargetX)
+		mPupilX = mPupilX + 1;
+	if (mPupilY > mTargetY)
+		mPupilY = mPupilY - 1;
+	if (mPupilY < mTargetY)
+		mPupilY = mPupilY + 1;
+}
+
+// 0x41b5a0
+void SidePanel::Draw(Graphics* g)
+{
+	Image** anImages = mApp->mImages;
+	g->DrawImage(anImages[IMAGE_BACKDROP], 0, 0, Rect(0, 0, 0xad, 0x1e0));
+	g->DrawImage(anImages[IMAGE_SKULLBOTTOMLAYER], 0x26, 0x136);
+	g->DrawImage(anImages[IMAGE_PUPIL], mPupilX + 0x26, mPupilY + 0x136);
+	g->DrawImage(anImages[IMAGE_SKULLTOPLAYER], 0x26, 0x136);
+	Board* aBoard = mApp->mBoard;
+	char aBuf[64];
+	if (aBoard != NULL)
+	{
+		// the lives in reserve, from the right
+		int aLives = aBoard->mLives;
+		int aX = 0x80;
+		for (int aNum = 1; aNum < aLives; aNum++)
+		{
+			if (aX < -0xb)
+				break;
+			if (!((aNum == aLives - 1) && (0 < aBoard->mLifeFlash) && (aBoard->mLifeFlash / 10 % 2 == 0)))
+				g->DrawImage(anImages[IMAGE_EXTRALIFE], aX, 0x6b);
+			aX = aX - 0x23;
+		}
+		if (0 < aBoard->mLevel)
+		{
+			g->SetFont(mApp->mFonts[FONT_FONT1]);
+			g->SetColor(Color(0xff, 0, 0));
+			sprintf(aBuf, "%d", aBoard->mLevel);
+			g->DrawString(aBuf, 0x59 - g->GetFont()->StringWidth(aBuf) / 2, 0x158);
+		}
+	}
+	// the difficulty on the plate
+	Graphics g2(*g);
+	g2.ClipRect(0x35, 0xc6, 0x41, 0xd);
+	g2.DrawImage(anImages[IMAGE_DIFFLEVEL], 0x36, mApp->mDifficulty * -0xd + 0xd3);
+	g->SetFont(mApp->mFonts[FONT_SCORE]);
+	g->SetColor(Color(0xff, 0xff, 0xff));
+	sprintf(aBuf, "%d", mShownScore);
+	g->DrawString(aBuf, 0x55 - g->GetFont()->StringWidth(aBuf) / 2, 0x61);
+}
+
+// ---------------------------------------------------------------------------------------------------------
+// TalkWidget
+
+// 0x4199f0
+TalkWidget::TalkWidget(SevenSeasApp* theApp) :
+	mApp(theApp),
+	mProgress(0.0),
+	mMode(1),
+	mBobX(0.0),
+	mBobY(0.0),
+	mTalkingNow(false),
+	mSet(0),
+	mStep(0),
+	mStepTime(0),
+	mBlink(false)
+{
+	mHasTransparencies = true;
+	mBlinkTick = mUpdateCnt;
+}
+
+// 0x419a70: the pirate says a line (the samples 0xe-0x15 are the lines); the mouth moves while it plays
+void TalkWidget::SetMouth(int theSet)
+{
+	mTalkingNow = true;
+	mSet = theSet;
+	mStep = 0;
+	mStepTime = 8 + (theSet % 3);
+}
+
+// 0x419ce0
+void TalkWidget::Update()
+{
+	Widget::Update();
+	if (mTalkingNow)
+	{
+		mStepTime--;
+		if (mStepTime < 1)
+		{
+			mStep++;
+			// port: the original has the mouth's frames and their times in tables, one per line; the port moves the
+			// mouth through the same five frames for the time a line lasts
+			mStepTime = 6 + (CrtRand() % 10);
+			if (mStep > 40)
+				mTalkingNow = false;
+			MarkDirty();
+		}
+	}
+	if (mUpdateCnt % 6 == 0)
+	{
+		mBobX = mBobX + 0.08;
+		mBobY = mBobY + 0.2;
+		while (6.28318 < mBobX)
+			mBobX = mBobX - 6.28318;
+		while (6.28318 < mBobY)
+			mBobY = mBobY - 6.28318;
+		MarkDirty();
+	}
+	if ((mMode > 0) && (mProgress < 1.0))
+	{
+		mProgress = mProgress + 0.01;
+		if (1.0 <= mProgress)
+			mProgress = 1.0;
+		MarkDirty();
+	}
+	else if ((mMode < 0) && (0.0 < mProgress))
+	{
+		mProgress = mProgress - 0.01;
+		if (mProgress <= 0.0)
+			mProgress = 0.0;
+		MarkDirty();
+	}
+	int aSince = mUpdateCnt - mBlinkTick;
+	if ((aSince > 0x118) && !mBlink)
+	{
+		if (CrtRand() % 10 == 0)
+		{
+			mBlink = true;
+			mBlinkTick = mUpdateCnt;
+			MarkDirty();
+		}
+	}
+	else if ((aSince >= 0x33) && mBlink)
+	{
+		if (CrtRand() % 10 == 0)
+		{
+			mBlink = false;
+			mBlinkTick = mUpdateCnt;
+			MarkDirty();
+		}
+	}
+}
+
+// 0x419ac0
+void TalkWidget::Draw(Graphics* g)
+{
+	if ((0.001 <= mProgress) && (mApp->mMapWidget == NULL))
+	{
+		if (mProgress < 1.0)
+		{
+			g->SetColorizeImages(true);
+			g->SetColor(Color(0xff, 0xff, 0xff, (int) (mProgress * 255.0)));
+		}
+		int aX = -(int) (sin(mBobX) * 2.0) + 4;
+		int aY = -(int) (sin(mBobY) * 2.0);
+		Image** anImages = mApp->mImages;
+		g->DrawImage(anImages[IMAGE_PIRATEHEAD], aX, aY + 8);
+		if (mTalkingNow)
+		{
+			// the mouth, one of the four pictures
+			int aMouth = 1 + (mStep % 4);
+			Image* aMouthImage = anImages[IMAGE_PIRATEEYE + aMouth];
+			Image* aHead = anImages[IMAGE_PIRATEHEAD];
+			g->DrawImage(aMouthImage, aX + aHead->GetWidth() - aMouthImage->GetWidth(),
+				aY + 8 + aHead->GetHeight() - aMouthImage->GetHeight());
+		}
+		if (mBlink && (mProgress >= 1.0))
+			g->DrawImage(anImages[IMAGE_PIRATEEYE], aX + 0x5f, aY + 0x58);
+		g->SetColorizeImages(false);
+	}
+}
+
+// 0x419ed0: the cursor of the game follows the mouse over every widget
+void TalkWidget::MouseMove(int x, int y)
+{
+	Widget::MouseMove(x, y);
+}
+
+// ---------------------------------------------------------------------------------------------------------
+// HighScoreWidget
+
+static const int kRankThresholds[18] = {100, 200, 500, 1000, 2000, 4000, 6000, 8000, 10000, 12500, 15000, 20000, 22000, 25000, 30000, 40000, 50000, 75000};
+
+// 0x4a3608..: Wharf Rat ... Grand Admiral: the rank names are read from the exe by their addresses
+static const unsigned int kRankNameAddr[9] = {0x4a3708, 0x4a36f4, 0x4a36e0, 0x4a36cc, 0x4a36b8, 0x4a36a4, 0x4a3684, 0x4a3668, 0x4a3650};
+
+const char* HighScoreWidget::RankName(int theScore)
+{
+	int aIdx = 0;
+	if (kRankThresholds[0] < theScore)
+	{
+		do
+		{
+			aIdx++;
+		}
+		while ((aIdx < 17) && (kRankThresholds[aIdx] < theScore));
+	}
+	int aRank = aIdx / 2;
+	if (aRank > 8)
+		aRank = 8;
+	return GT(kRankNameAddr[aRank]).c_str();
+}
+
+// 0x40ff70
+HighScoreWidget::HighScoreWidget(SevenSeasApp* theApp) :
+	mApp(theApp),
+	mTodayScore(0),
+	mMyPlace(0),
+	mTime(0)
+{
+	mNewGameButton = new DialogButton(mApp->mImages[IMAGE_DBUTTONWOOD], 1, this);
+	mNewGameButton->SetFont(mApp->mFonts[FONT_MT11]);
+	mNewGameButton->mLabel = GT(0x004a3744);
+	mNewGameButton->SetColor(DialogButton::COLOR_LABEL, Color(0xff, 0xe2, 0x3c));
+	static const unsigned int kDefaultNames[5] = {0x004a373c, 0x004a3734, 0x004a372c, 0x004a3724, 0x004a3720};
+	for (int i = 0; i < 5; i++)
+	{
+		mNames[i] = GT(kDefaultNames[i]);
+		mScores[i] = 1000 - i * 100;
+	}
+	LoadScores();
+	// the place this game's score takes
+	int aMyScore = mApp->mBoard != NULL ? mApp->mBoard->mScore : 0;
+	if (aMyScore > mScores[4])
+	{
+		mMyPlace = 5;
+		for (int i = 0; i < 5; i++)
+			if (aMyScore > mScores[i])
+			{
+				mMyPlace = i + 1;
+				break;
+			}
+		char aBuf[64];
+		sprintf(aBuf, "%d", mMyPlace);
+		mApp->ShowRecordScore(aBuf);
+	}
+}
+
+HighScoreWidget::~HighScoreWidget()
+{
+	delete mNewGameButton;
+}
+
+void HighScoreWidget::AddedToManager(WidgetManager* theWidgetManager)
+{
+	Widget::AddedToManager(theWidgetManager);
+	theWidgetManager->AddWidget(mNewGameButton);
+}
+
+void HighScoreWidget::RemovedFromManager(WidgetManager* theWidgetManager)
+{
+	Widget::RemovedFromManager(theWidgetManager);
+	theWidgetManager->RemoveWidget(mNewGameButton);
+}
+
+void HighScoreWidget::Resize(int theX, int theY, int theWidth, int theHeight)
+{
+	Widget::Resize(theX, theY, theWidth, theHeight);
+	mNewGameButton->Resize(mX + 0x70, 0x1b0, 0x120, 0x28);
+}
+
+void HighScoreWidget::Update()
+{
+	Widget::Update();
+	mTime++;
+	if (mTime % 3 == 0)
+		MarkDirty();
+}
+
+// 0x411260
+void HighScoreWidget::Draw(Graphics* g)
+{
+	Image** anImages = mApp->mImages;
+	g->DrawImage(anImages[IMAGE_HIGHSCOREPANEL], 0x24, 0x14);
+	g->SetFont(mApp->mFonts[FONT_MEDIUM]);
+	Board* aBoard = mApp->mBoard;
+	int aScore = aBoard != NULL ? aBoard->mScore : 0;
+	int aKills = aBoard != NULL ? aBoard->mKillsTotal : 0;
+	int aTime = aBoard != NULL ? aBoard->mSeconds : 0;
+	const unsigned int kLabels[4] = {0x004a39e4, 0x004a39d4, 0x004a39c4, 0x004a39b8};
+	char aBuf[64];
+	for (int i = 0; i < 4; i++)
+	{
+		g->SetColor(i == 3 ? Color(0xff, 0xff, 0) : Color(0xff, 0xff, 0xff));
+		g->DrawString(GT(kLabels[i]), 0x41, 0x4c + i * 0x16);
+		switch (i)
+		{
+		case 0:
+			sprintf(aBuf, "%2d:%02d", aTime / 60, aTime % 60);
+			break;
+		case 1:
+			sprintf(aBuf, "%d", aKills);
+			break;
+		case 2:
+			sprintf(aBuf, "%d", aBoard != NULL ? aBoard->mSavedLevels : 0);
+			break;
+		default:
+			sprintf(aBuf, "%d", aScore);
+		}
+		g->DrawString(aBuf, 0x104 - g->GetFont()->StringWidth(aBuf), 0x4c + i * 0x16);
+	}
+	g->SetColor(Color(0xcf, 0xb8, 0));
+	sprintf(aBuf, GT(0x004a39a0).c_str(), RankName(aScore));
+	g->DrawString(aBuf, (mWidth - g->GetFont()->StringWidth(aBuf)) / 2, 0xb2);
+
+	// the five best scores
+	for (int i = 0; i < 5; i++)
+	{
+		bool aMine = (mMyPlace == i + 1);
+		g->SetColor(aMine ? Color(0xff, 0xff, 0) : Color(0xff, 0xff, 0xff));
+		g->DrawString(mNames[i], 0x41, 0xd0 + i * 0x16);
+		sprintf(aBuf, "%d", mScores[i]);
+		g->DrawString(aBuf, 0x104 - g->GetFont()->StringWidth(aBuf), 0xd0 + i * 0x16);
+	}
+	g->SetColor(Color(0xff, 0xff, 0xff));
+	SexyString aTop = GT(0x004a397c);
+	g->DrawString(aTop, 0x159 - g->GetFont()->StringWidth(aTop) / 2, 0xb2);
+	g->DrawString(mTodayName, 0x159 - g->GetFont()->StringWidth(mTodayName) / 2, 0xc8);
+	sprintf(aBuf, "%d", mTodayScore);
+	g->DrawString(aBuf, 0x159 - g->GetFont()->StringWidth(aBuf) / 2, 0xde);
+}
+
+void HighScoreWidget::ButtonDepress(int theId)
+{
+	if (theId == 1)
+		mApp->ShowIntro();
+}
+
+// 0x410550: hiscores.dat: the best of the day, then the five best; each is a name (a length and bytes), a score and
+// a check value
+void HighScoreWidget::LoadScores()
+{
+	std::string aData;
+	if (!Platform::ReadHostFile(Platform::VFS::Get().GetUserDir() + "/hiscores.dat", &aData))
+		return;
+	size_t aPos = 0;
+	bool aOk = true;
+	struct Local
+	{
+		static int Int(const std::string& d, size_t& p, bool& ok)
+		{
+			int v = 0;
+			if (p + 4 > d.size())
+				ok = false;
+			else
+			{
+				memcpy(&v, d.data() + p, 4);
+				p += 4;
+			}
+			return v;
+		}
+		static std::string Name(const std::string& d, size_t& p, bool& ok)
+		{
+			if (p + 2 > d.size())
+			{
+				ok = false;
+				return "";
+			}
+			unsigned short aLen;
+			memcpy(&aLen, d.data() + p, 2);
+			p += 2;
+			if (p + aLen > d.size())
+			{
+				ok = false;
+				return "";
+			}
+			std::string s = d.substr(p, aLen);
+			p += aLen;
+			return s;
+		}
+		static unsigned int Check(const std::string& name, int score)
+		{
+			unsigned int aCheck = (unsigned int) score ^ 0x42beef;
+			for (size_t i = 0; i < name.size(); i++)
+				aCheck = aCheck ^ (unsigned int) ((signed char) name[i] * 0x11);
+			return aCheck;
+		}
+	};
+	Local::Int(aData, aPos, aOk);      // the day of the best-of-the-day record
+	std::string aTodayName = Local::Name(aData, aPos, aOk);
+	int aTodayScore = Local::Int(aData, aPos, aOk);
+	unsigned int aTodayCheck = (unsigned int) Local::Int(aData, aPos, aOk);
+	if (aOk && (aTodayCheck == Local::Check(aTodayName, aTodayScore)))
+	{
+		mTodayName = aTodayName;
+		mTodayScore = aTodayScore;
+	}
+	for (int i = 0; i < 5; i++)
+	{
+		std::string aName = Local::Name(aData, aPos, aOk);
+		int aScore = Local::Int(aData, aPos, aOk);
+		unsigned int aCheck = (unsigned int) Local::Int(aData, aPos, aOk);
+		if (!aOk)
+			return;
+		if (aCheck == Local::Check(aName, aScore))
+		{
+			mNames[i] = aName;
+			mScores[i] = aScore;
+		}
+	}
+}
+
+// 0x410870
+void HighScoreWidget::SaveScores()
+{
+	std::string aData;
+	struct Local
+	{
+		static void Int(std::string& d, int v) { d.append((const char*) &v, 4); }
+		static void Name(std::string& d, const std::string& n)
+		{
+			unsigned short aLen = (unsigned short) n.size();
+			d.append((const char*) &aLen, 2);
+			d.append(n);
+		}
+		static int Check(const std::string& name, int score)
+		{
+			unsigned int aCheck = (unsigned int) score ^ 0x42beef;
+			for (size_t i = 0; i < name.size(); i++)
+				aCheck = aCheck ^ (unsigned int) ((signed char) name[i] * 0x11);
+			return (int) aCheck;
+		}
+	};
+	Local::Int(aData, 0);
+	Local::Name(aData, mTodayName);
+	Local::Int(aData, mTodayScore);
+	Local::Int(aData, Local::Check(mTodayName, mTodayScore));
+	for (int i = 0; i < 5; i++)
+	{
+		Local::Name(aData, mNames[i]);
+		Local::Int(aData, mScores[i]);
+		Local::Int(aData, Local::Check(mNames[i], mScores[i]));
+	}
+	Platform::WriteUserFileAtomic("hiscores.dat", aData);
+}
+
+// 0x410ae0: the score of this game goes into the list under the name the player gave
+void HighScoreWidget::AddScore(const SexyString& theName)
+{
+	int aScore = mApp->mBoard != NULL ? mApp->mBoard->mScore : 0;
+	int aPlace = mMyPlace - 1;
+	if ((aPlace >= 0) && (aPlace < 5))
+	{
+		for (int i = 4; i > aPlace; i--)
+		{
+			mNames[i] = mNames[i - 1];
+			mScores[i] = mScores[i - 1];
+		}
+		mNames[aPlace] = theName;
+		mScores[aPlace] = aScore;
+	}
+	if (aScore > mTodayScore)
+	{
+		mTodayName = theName;
+		mTodayScore = aScore;
+	}
+	SaveScores();
+}
