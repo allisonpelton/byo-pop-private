@@ -30,6 +30,13 @@
 // <prefix><mode>-levelup<n>.png, <prefix><mode>-gameover.png, <prefix><mode>-fame.png and, every
 // -autoplayshotwords=<n> words (default 25, 0: none), <prefix><mode>-word<n>.png (script lines, so a
 // replay of the log takes them too).
+// -autoplayhints=1 (with the mod "solver" on): every move is the word solver's first hint, asked for with Tab
+// and submitted with the Submit button (a scramble when the board spells no word). The log notes each hint
+// and the word's score, and "HINT MISMATCH" where the game scored the word otherwise than the solver said.
+// -autoplayundo=1 as well (with the mod "undo" on): every other word is undone (the Undo button and Ctrl+Z
+// in turn), the board checked against the one before the word, the same hint played again and the board
+// checked against the first play's; "UNDO MISMATCH" where one differs (letters, tile types, score, fire).
+// In Action the replay is not checked: the timed fire tiles depend on when the word comes.
 
 #include <cstdio>
 #include <random>
@@ -47,7 +54,8 @@ class AutoplayBot
 {
 public:
 	AutoplayBot(BookWormApp* theApp, unsigned long theSeed, const std::string& theMode, int theUpdateCap,
-		const std::string& theLogFileName, const std::string& theShotPrefix, int theShotWords);
+		const std::string& theLogFileName, const std::string& theShotPrefix, int theShotWords, bool theUseHints,
+		bool theTestUndo);
 	~AutoplayBot();
 
 	// After each update (BookWormApp::UpdateFrames): looks at the game, queues input for the next update
@@ -63,7 +71,9 @@ private:
 		STEP_UP_OFF,        // button up off the tiles (a drag released there clears the selection)
 		STEP_RCLICK_TILE,   // right click on the tile (or any tile at rest): clears the selection
 		STEP_CLICK_SUBMIT,  // the Submit button
-		STEP_CLICK_LEX      // Lex: scramble
+		STEP_CLICK_LEX,     // Lex: scramble
+		STEP_KEY_HINT,      // Tab: the word solver's next hint (-autoplayhints)
+		STEP_UNDO           // the Undo button (mCell -1) or Ctrl+Z (mCell -2) (-autoplayundo)
 	};
 
 	struct Step
@@ -84,7 +94,9 @@ private:
 		PLAN_JUNK,          // a random path, submitted (usually not a word), then cleared
 		PLAN_CANCEL,        // a selection cleared before it is submitted
 		PLAN_SCRAMBLE,      // a click on Lex
-		PLAN_CLEAR          // a right click on a left-over selection
+		PLAN_CLEAR,         // a right click on a left-over selection
+		PLAN_HINT,          // the word solver's first hint, submitted (-autoplayhints)
+		PLAN_UNDO           // the last word undone (-autoplayundo)
 	};
 
 	struct FoundWord
@@ -103,6 +115,17 @@ private:
 	FILE* mLog;
 	std::string mShotPrefix;
 	int mShotWords;
+	bool mUseHints;
+	std::string mHintWord;          // the hint submitted, "" for none
+	int mHintScore;                 // its score as the solver has it
+	int mHintMismatches;
+	bool mTestUndo;
+	int mUndoPhase;                 // 0 a word to play, 1 played: undo it, 2 undone: check, replay, 3 check
+	std::string mUndoBefore;        // BoardState before the word, after it
+	std::string mUndoAfter;
+	int mUndoWordsScored;           // mWordsScored when the word was planned
+	int mUndoChecks;
+	int mUndoMismatches;
 	bool mDone;
 	int mQuitAt;                    // update of the quit once the last game is done, -1 before
 
@@ -161,6 +184,9 @@ private:
 	void PlanSelection(Board* theBoard, const std::vector<int>& thePath, int theMethod, bool clearAfter);
 	Step& AddStep(int theKind, int theCell, Board* theBoard, int theDelay);
 	std::string PathWord(Board* theBoard, const std::vector<int>& thePath);
+	static std::string BoardState(Board* theBoard);
+	void CheckUndo(Board* theBoard, const std::string& theExpected, const char* theWhat);
+	bool PlanUndoTest(Board* theBoard);
 	int RunStep(Board* theBoard, const Step& theStep);
 	void EndDrag(const char* theWhy);
 	void DropPlan(const char* theWhy);

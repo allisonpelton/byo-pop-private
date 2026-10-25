@@ -40,6 +40,8 @@ class EffectMgr;
 class EmberListMgr;
 class Points;
 class WidgetManager;
+class Solver;
+class UndoStack;
 
 // Board::mState (+0x194)
 enum BoardState
@@ -68,7 +70,9 @@ enum BoardButtonId
 {
 	BOARD_BUTTON_SUBMIT = 16,
 	BOARD_BUTTON_OPTIONS = 17,
-	BOARD_BUTTON_LEAVE = 18
+	BOARD_BUTTON_LEAVE = 18,
+	BOARD_BUTTON_HINT = 19,         // port(mod): the solver's HINT, beside SUBMIT (Solver.h)
+	BOARD_BUTTON_UNDO = 20          // port(mod): UNDO, beside OPTIONS (Undo.h)
 };
 
 // Board::mHintId (+0x34c), passed to BookWormApp::ShowHint; only 1, 2, 4 and 10 are ever scheduled
@@ -224,6 +228,15 @@ public:
 	int					mUnused3e8;             // +0x3e8 zeroed by LevelUp, saved only
 	int					mUnused3ec;             // +0x3ec saved only
 
+	// port(mod): the word solver (mod "solver"); NULL while no enabled mod turns it on. Then SUBMIT takes the
+	// left part of its plank and HINT the right part.
+	Solver*				mSolver;
+	DialogButton*		mHintButton;
+	// port(mod): undo (mod "undo"); NULL without it. Then OPTIONS takes the left part of its plank and UNDO
+	// the right part.
+	UndoStack*			mUndo;
+	DialogButton*		mUndoButton;
+
 public:
 	Board(BookWormApp* theApp);                                         // 0x40ae90
 	virtual ~Board();                                                   // 0x4062e0 body, 0x406c10 slot 0
@@ -278,6 +291,8 @@ public:
 	// selection and words
 	void				AddLetter(Piece* thePiece);                     // 0x409c60
 	void				TruncateAfter(Piece* thePiece);                 // 0x405cf0
+	// port(mod): selects thePath as clicks on its tiles would (the solver's hints)
+	void				SelectTiles(const std::vector<Piece*>& thePath);
 	void				ClearWord();                                    // 0x407bf0
 	void				Submit(int x, int y);                           // 0x40f5b0
 	void				BonusWordScored(int thePoints, int x, int y);   // 0x40abd0
@@ -307,6 +322,15 @@ public:
 	// saved games (players/<user>/classic.dat, action.dat)
 	bool				SaveGame(int theMode);                          // 0x406c40
 	bool				LoadGame(int theMode);                          // 0x408ab0
+	// port: LoadGame's reading of the record; false for a version before 2. The undo mod's restore reads
+	// a record made by SaveGameSnapshot.
+	bool				ReadSavedGame(FILE* theFile, bool* isHelpOpen);
+	bool				ReadSavedGame(const Buffer& theRecord);
+	// port(mod): the program-wide state the record leaves out, for the undo mod: RandomLetter's previous
+	// letter (never drawn twice running; each rejected letter costs a gGameRand draw) and Refill's
+	// previous level
+	static void			GetGlobalState(int* theLastLetterIdx, int* theLastRefillLevel);
+	static void			SetGlobalState(int theLastLetterIdx, int theLastRefillLevel);
 	bool				DeleteSavedGame(int theMode);                   // 0x4078b0
 	void				WriteSavedGame(FILE* theFile, int theMode, bool isHelpOpen); // 0x406c40 (the record, SaveGame's second half)
 	// port (BookWormApp::GetShutdownSaves, web persistence): the bytes SaveGame(theMode) would write now,
@@ -322,6 +346,8 @@ public:
 	void				DrawProgressBar(Graphics* g);                   // 0x403c00
 	void				DrawScore(Graphics* g);                         // 0x405580
 	void				DrawWord(Graphics* g);                          // 0x407c60 (writes mLastWordColor)
+	// port(mod): a groove across a left-panel plank at theX, where a mod's button splits it
+	void				DrawPlankDivider(Graphics* g, int theX, int theY);
 };
 
 }

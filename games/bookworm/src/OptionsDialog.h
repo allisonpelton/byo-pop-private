@@ -2,9 +2,10 @@
 #define __BOOKWORM_OPTIONSDIALOG_H__
 
 // OptionsDialog.cpp: dialog 1 (DIALOG_OPTIONS). Slides in from the right edge (x 640 -> 240), music and
-// sound sliders, five checkboxes, help / (register) / credits buttons, the partner links (properties
-// NumOptionsLinks, OptionsLinkText%d, OptionsLinkURL%d) and the footer button (2001 -> the app ->
-// ApplyAndClose, which slides it out again).
+// sound sliders, five checkboxes, help / (register) / credits buttons and the footer button (2001 -> the
+// app -> ApplyAndClose, which slides it out again). port: the original's partner links (properties
+// NumOptionsLinks, OptionsLinkText%d, OptionsLinkURL%d: one "more games" button in the retail partner.xml)
+// are not ported, the user's decision (2026-10-24); the dialog is 36 px shorter for it.
 // Original: class Sexy::OptionsDialog : public MoneyDialog, public SliderListener, public CheckboxListener,
 // sizeof 0x188 (new in BookWormApp::ShowOptions 0x4107c0). Vtables: primary 0x500b4c (53 slots),
 // ButtonListener 0x500b2c (+0x58), SliderListener 0x500b24 (+0x120), CheckboxListener 0x500b1c (+0x124).
@@ -14,8 +15,6 @@
 #include "MoneyDialog.h"
 #include "SliderListener.h"
 #include "CheckboxListener.h"
-#include <list>
-#include <vector>
 #include <string>
 
 namespace Sexy
@@ -36,7 +35,7 @@ public:
 		HELP_BUTTON_ID = 33,
 		REGISTER_BUTTON_ID = 34,        // only added when !mBuildUnlocked (never in the registered build)
 		CREDITS_BUTTON_ID = 35,
-		LINK_BUTTON_ID = 1036,          // every link button; ButtonDepress opens mLinkURLs[id % 1000 - 36]
+		// 1036: every partner link button (not ported)
 		FULLSCREEN_CHECKBOX_ID = 37,
 		CUSTOM_CURSORS_CHECKBOX_ID = 38,
 		SHOW_HINTS_CHECKBOX_ID = 39,
@@ -49,8 +48,7 @@ public:
 		SLIDE_START_OFFSET = 240,       // written by the creator (app ShowOptions)
 		SLIDE_CLOSE_OFFSET = -240,      // written by ApplyAndClose (only its sign matters)
 		ROW_PITCH = 36,
-		DEFAULT_DIALOG_HEIGHT = 330,    // OptionsDialogHeight default (partner.xml: 315)
-		MAX_LINKS = 3
+		DEFAULT_DIALOG_HEIGHT = 330     // OptionsDialogHeight default (partner.xml: 315)
 	};
 
 	// +0x120 SliderListener vfptr, +0x124 CheckboxListener vfptr
@@ -65,8 +63,8 @@ public:
 	DialogButton*	mRegisterButton;        // +0x148 id 34, label GetString("RegisterLabel", GT_OPTIONS_REGISTER)
 	DialogButton*	mHelpButton;            // +0x14c id 33 GT_OPTIONS_HELP
 	DialogButton*	mCreditsButton;         // +0x150 id 35 GT_OPTIONS_CREDITS
-	std::list<DialogButton*> mLinkButtons;  // +0x154 (head +0x158, size +0x15c) labels OptionsLinkText%d
-	std::vector<std::string> mLinkURLs;     // +0x160 (first +0x164, last +0x168, end +0x16c) OptionsLinkURL%d
+	// +0x154 std::list<DialogButton*> mLinkButtons, +0x160 std::vector<std::string> mLinkURLs: the partner
+	// links, not ported
 	int				mSlideOffset;           // +0x170 0; > 0 sliding in, < 0 sliding out, 0 at rest
 	// +0x174 pad
 	double			mSlidePhase;            // +0x178 += 0.055 per update while sliding
