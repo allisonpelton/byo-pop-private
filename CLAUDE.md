@@ -109,18 +109,25 @@ Git and publishing:
   (`docs/PUBLISHING.md`). Before each publish the coordinator checks the trunk for game files and game text.
   How to take a game's protection apart (offsets in a wrapper, unwrapping commands, how a launcher checks its
   copy) goes only inside private blocks, and tools that do it go into `.publishignore`.
-- **Order of work (the user, 2026-10-24; the first push was 2026-10-25):** BookWorm's session finished its mods;
-  then the push; right after it, one session decompiles the simplest remaining game, the only decompilation
-  running (Bejeweled's session goes on with its mods alongside, the user said on 2026-10-25), and its tokens and
-  time are measured per session against the earlier games; only if that shows an improvement do up to three
-  sessions run at once again. New game sessions list the mods worth making but make none without the user's
-  approval, and no further game gets mods until every PopCap game works in the browser.
-- **Sonnet trial (the user, 2026-10-25):** that next game's session runs on Sonnet. Once its port works, it
-  brainstorms mods for the game and makes the interesting ones: the user approved mods for this one game, the one
-  exception to the rule above. The coordinator measures it against the earlier games (`docs/TOKEN_ECONOMY.md`):
-  tokens, time, and where Sonnet struggled. If Sonnet does well in most of it (fewer tokens, not absurdly long), it
-  is the default for games that can largely copy another game's port, with Opus for the kinds of work where it
-  showed deficits. Complex games (Zuma's Revenge, Bejeweled 3) stay on Opus.
+- **Order of work (the user, 2026-10-24; updated 2026-10-25):** the measured one-session experiment (Noah's Ark,
+  `docs/TOKEN_ECONOMY.md`) showed an improvement, so up to three decompilation sessions run at once, besides
+  Bejeweled's mods session. The order of games is the survey's decision of 2026-10-24
+  (`docs/POPCAP_GAMES_SURVEY.md` section 4): the BookWorm series, then Bejeweled Twist, then the least predicted
+  effort first. A slot that the next game in that order cannot use yet, because it waits on another game's
+  engine, goes to the cheapest remaining game. New game sessions list the mods worth making but make none without
+  the user's approval, and no further game gets mods until every PopCap game works in the browser (Noah's Ark's
+  mods were the one exception, part of the Sonnet trial).
+- **Model selection (the user's rule, decided after the Sonnet trial on 2026-10-25):** a game whose port can
+  largely copy another game's (the same framework generation and engine: Noah's Ark's for Seven Seas and Atomica,
+  BookWorm's for Pixelus and Typer Shark, Big Money's for Hammer Heads, Bejeweled's for Bejeweled 2, a sequel after
+  its first game) runs on Sonnet. A game that needs an engine or framework layer no port has yet (Bookworm
+  Adventures' PopLua and PopAnim, the Sprout engines, the non-SAF engines, Chuzzle, Twist, Bejeweled 3, Zuma's
+  Revenge) runs on Opus. Opus checks Sonnet where it showed deficits: before merging a Sonnet port, the coordinator
+  compares about ten translated functions with the decompilation, weighted to the largest and the most
+  loop-heavy, and sends the fixes back. A Sonnet session translates loops in their original shape (a
+  test-then-increment loop does not become a for loop), checks what a comment claims about the original before
+  writing it, and builds with AddressSanitizer at the first sign of a crash or memory corruption. If a Sonnet
+  game's review finds many faults, or its port runs far over its estimate, games of its kind move to Opus.
 - Never commit or redistribute game files or anything derived from them (staged assets, Ghidra exports,
   word lists and other game data, mods built from another game's files, close recreations of another
   game's art): keep them git-ignored. Docs and code comments refer to a game's texts by id and paraphrase;

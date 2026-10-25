@@ -669,6 +669,12 @@ None of these is a blocker: the image is not packed and has full RTTI. It is jus
 > recompilation or decompilation is skipped (Zuma, Plants vs. Zombies, Insaniquarium, Pizza Frenzy).
 > First, one small game from Appendix B is ported by a single agent as a measured experiment: its token
 > use is compared with Big Money's and BookWorm's before several games run at once.
+>
+> **Decision (2026-10-25):** the experiment (Noah's Ark Deluxe) showed an improvement, so up to three games
+> run at once. Bookworm Adventures Deluxe starts the BookWorm series, on Opus (CLAUDE.md, "Model selection").
+> Volume 2 waits for its engine, and Twist for PopAnim, which Bookworm Adventures builds first, so the other two
+> places go to the cheapest games: Seven Seas Deluxe and Atomica Deluxe (Appendix B), on Sonnet, which reuse
+> Noah's Ark's 2002 framework.
 
 Bejeweled Deluxe and then Big Money Deluxe are already planned ([MOD_ROADMAP.md](MOD_ROADMAP.md)). Big Money is DIRECT at about 2x. It builds the SAF 1.2 vtable map that Hammer Heads reuses, and its `.it` music already plays with libxmp-lite.
 
