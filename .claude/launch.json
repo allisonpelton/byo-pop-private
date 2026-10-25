@@ -34,8 +34,8 @@
     {
       "name": "atomica-web",
       "runtimeExecutable": "python",
-      "runtimeArgs": ["-m", "http.server", "18771", "--bind", "127.0.0.1", "--directory", "build/web"],
-      "port": 18771
+      "runtimeArgs": ["-m", "http.server", "18772", "--bind", "127.0.0.1", "--directory", "build/web"],
+      "port": 18772
     }
   ]
 }
