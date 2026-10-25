@@ -183,9 +183,12 @@ left out for a candidate built without variant paths, BEJ_NO_VARIANTS; flags "k=
               Stage 6 (undo, mods/stage6): a settle whose line says "undos U" one more than the last is an undo:
               the board (grid, moves, invalid) of the settle the newest move not taken back was made from, its
               score at most that one's; a vortex leaves nothing to take back. A swap that went back is a settle
-              with nothing changed. "undos=N": exactly N undos (else none); "redo=N" / "rerolled=N": at least N
+              with nothing changed but the score, lower by the hints taken before it. "undos=N": exactly N undos (else none); "redo=N" / "rerolled=N": at least N
               moves right after an undo whose settle has the grid of the settle the undo took back / another
               grid (undo.restoreRng; the scripts make the same move again). No stderr line "undo: snapshot ...".
+              Stage 7 (board sizes and shapes, mods/stage7): "shapes=<cols>x<rows>:<holes>,...", the shapes of
+              board.levels in order: every settle's grid has its level's size and that many holes (-1 cells), the
+              same cells at every settle of that shape (holes stay holes, a refill fills every playable cell).
 Finished replays are named after the wall clock: compared and listed with replays/<yyyymmdd>-<hhmmss>- masked
 as replays/*- (normal_path), their contents without META's date (compare_bjr).
 Auto LiveSplit (stage 2b, games/bejeweled/docs/CODE_MODS_DESIGN.md 4.15; candidate runs):
@@ -1714,13 +1717,15 @@ def recording_check(r, ref, run, label):
 
 
 def variant_settles(stdout):
-    """The settles of a -trace run with what stages 5 and 6 check: update, mode, score, board tick, grid, seed, the
-    variant line's counts (None without one; undos 0 when the line has none) and the number of move lines"""
+    """The settles of a -trace run with what stages 5 to 7 check: update, mode, level (the HUD's), score, board tick,
+    grid, seed, the variant line's counts (None without one; undos 0 when the line has none) and the number of move
+    lines"""
     settles = []
     for line in stdout:
-        m = re.match(r"TRACE update (\d+): (\w+) level \d+ score (-?\d+) board tick (\d+)$", line)
+        m = re.match(r"TRACE update (\d+): (\w+) level (\d+) score (-?\d+) board tick (\d+)$", line)
         if m:
-            settles.append({"update": int(m.group(1)), "mode": m.group(2), "score": int(m.group(3)), "tick": int(m.group(4)),
+            settles.append({"update": int(m.group(1)), "mode": m.group(2), "level": int(m.group(3)), "score": int(m.group(4)),
+                            "tick": int(m.group(5)),
                             "grid": [], "seed": None, "moves": None, "invalid": None, "undos": 0, "found": 0})
         elif settles and line.startswith("TRACE   row "):
             settles[-1]["grid"].append([int(v) for v in line.split(":", 1)[1].split()])
@@ -1734,6 +1739,38 @@ def variant_settles(stdout):
         elif settles and line.startswith("TRACE   move "):
             settles[-1]["found"] += 1
     return settles
+
+
+def shapes_check(r, settles, spec, label, notes):
+    """Stage 7, "shapes=<cols>x<rows>:<holes>,...": the shapes of board.levels in order (one for a board of one
+    shape). Every settle's grid has the size of its level's shape ((HUD level - 1) % shapes) and that many holes
+    (-1 cells: a settled board has a gem in every playable cell), the same cells at every settle of that shape"""
+    shapes = []
+    for part in spec.split(","):
+        m = re.match(r"(\d+)x(\d+):(\d+)$", part)
+        if not m:
+            r.fail("%s: shapes=%s: not <cols>x<rows>:<holes>,..." % (label, spec))
+            return
+        shapes.append((int(m.group(1)), int(m.group(2)), int(m.group(3))))
+    holes_of, seen = {}, {}
+    for s in settles:
+        i = (s["level"] - 1) % len(shapes)
+        cols, rows, count = shapes[i]
+        grid = s["grid"]
+        if len(grid) != rows or any(len(row) != cols for row in grid):
+            r.fail("%s: the settle of update %d (level %d) is %dx%d, its shape %d is %dx%d" %
+                   (label, s["update"], s["level"], len(grid[0]) if grid else 0, len(grid), i, cols, rows))
+            return
+        holes = frozenset((c, y) for y in range(rows) for c in range(cols) if grid[y][c] < 0)
+        if len(holes) != count:
+            r.fail("%s: the settle of update %d (level %d) has %d holes, its shape %d %d" % (label, s["update"], s["level"], len(holes), i, count))
+            return
+        if holes_of.setdefault(i, holes) != holes:
+            r.fail("%s: the settle of update %d (level %d) has other holes than shape %d's before: %s" %
+                   (label, s["update"], s["level"], i, sorted(holes ^ holes_of[i])[:6]))
+            return
+        seen[i] = seen.get(i, 0) + 1
+    notes.append("shapes " + ", ".join("%dx%d with %d holes: %d settles" % (shapes[i] + (seen.get(i, 0),)) for i in range(len(shapes))))
 
 
 def variant_fact(stdout):
@@ -1785,6 +1822,14 @@ def variant_check(r, cand, run, flags, label):
             states.append((int(parts[0]), int(parts[1])))
     counts_as_move = f.get("countsasmove", "1") == "1"
     kept = 0
+    # the autoplay bot's targets for a stale selection (a gem selected before a fall-out, no longer in the grid):
+    # the swap goes back and leaves that gem in its old cell, over the gem there (the original game's quirk)
+    stale, stale_backs = [], 0
+    autoplay_path = os.path.join(run, "autoplay.txt")
+    for line in (read_lines(autoplay_path) if os.path.exists(autoplay_path) else []):
+        m = re.match(r"# update (\d+): move \d+: selected \((\d+),(\d+)\) \(stale\)", line)
+        if m:
+            stale.append((int(m.group(1)), int(m.group(2)), int(m.group(3))))
     # stage 6: the settles moves were made from, newest last (an undo goes back to the last one; a vortex empties
     # it, as StartBlackHole empties the undo stack), the settle the last undo took back (the next move again: the
     # same refill, "redo", or another one, "rerolled") and the undo steps seen
@@ -1812,8 +1857,14 @@ def variant_check(r, cand, run, flags, label):
                 break
             undone, undo_steps = s0, undo_steps + 1
             continue
-        if (dm, di) == (0, 0) and not refilled and s1["grid"] == s0["grid"] and s1["score"] == s0["score"]:
-            continue  # a swap that went back (no moves.allowInvalid): nothing changed
+        if (dm, di) == (0, 0) and not refilled and s1["grid"] == s0["grid"] and s1["score"] <= s0["score"]:
+            continue  # a swap that went back (no moves.allowInvalid): nothing changed but hints taken (their penalty)
+        if (dm, di) == (0, 0) and not refilled and s1["score"] <= s0["score"] and len(s1["grid"]) == len(s0["grid"]):
+            cells = [(c, y) for y in range(len(s0["grid"])) for c in range(len(s0["grid"][y]))
+                     if c < len(s1["grid"][y]) and s0["grid"][y][c] != s1["grid"][y][c]]
+            if len(cells) == 1 and any(s0["update"] <= u < s1["update"] and (c, y) == cells[0] for u, c, y in stale):
+                stale_backs += 1
+                continue  # a stale selection's swap that went back
         allowed = [(1, 0), (1, 1) if counts_as_move else (0, 1)] + ([(0, 0)] if refilled else [])
         if (dm, di) not in allowed:
             r.fail("%s: from the settle of update %d to update %d the counts went %+d moves %+d invalid: not one move" %
@@ -1839,6 +1890,8 @@ def variant_check(r, cand, run, flags, label):
                 r.fail("%s: the kept move between updates %d and %d scored" % (label, s0["update"], s1["update"]))
                 break
             kept += 1
+    if stale_backs:
+        notes.append("%d swaps of a stale selection that went back, its old gem in its cell" % stale_backs)
     if "kept" in f:
         if kept < int(f["kept"]):
             r.fail("%s: %d kept invalid moves seen as swaps, expected at least %s" % (label, kept, f["kept"]))
@@ -1907,6 +1960,8 @@ def variant_check(r, cand, run, flags, label):
             r.fail("%s: no save" % label)
         else:
             notes.append("v2 saves of rules %s: %s" % (rules, ", ".join(saves)))
+    if "shapes" in f:
+        shapes_check(r, settles, f["shapes"], label, notes)
     if "boards" in f:
         seed_check(r, cand, run, flags, "seeds")
     if r.failures == before:

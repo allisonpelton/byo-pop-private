@@ -222,6 +222,8 @@ bool Board::FindMove(int* theMove, int theMoveNum, bool horizontal, bool vertica
 				int aRow2 = aRow + aDirs[aDir][1];
 				if (aCol2 < 0 || aCol2 >= mCols || aRow2 < 0 || aRow2 >= mRows) // port(variant): was BOARD_COLS, BOARD_ROWS
 					continue;
+				if (mBoard[aRow2][aCol2] == NULL) // port(variant): a hole is no swap target
+					continue;
 
 				// Only the gem swapped into (aCol, aRow) is measured, so each swap can be found from
 				// both of its cells.
@@ -271,6 +273,7 @@ bool Board::FindMove(int* theMove, int theMoveNum, bool horizontal, bool vertica
 void Board::MouseMove(int x, int y)
 {
 	if (mPlaybackOnly) return; // port(variant): a replay's board takes its input from the replay only
+	if (mVariant.mScaled) mLayout.ToLogical(&x, &y); // port(variant): a scaled board's input in logical space (5.2)
 	mMouseX = x;
 	mMouseY = y;
 	if (mRecorder != NULL) mRecorder->OnHover(x, y); // port(variant): HOVER (the optional hover channel)
@@ -476,6 +479,7 @@ void Board::StartBlackHole()
 void Board::MouseDown(int x, int y, int theClickCount)
 {
 	if (mPlaybackOnly) return; // port(variant)
+	if (mVariant.mScaled) mLayout.ToLogical(&x, &y); // port(variant)
 	if (mUserPauseCount != 0)
 	{
 		Unpause(true);
@@ -555,6 +559,7 @@ void Board::MouseUp(int x, int y, int theClickCount)
 void Board::MouseDrag(int x, int y)
 {
 	if (mPlaybackOnly) return; // port(variant)
+	if (mVariant.mScaled) mLayout.ToLogical(&x, &y); // port(variant)
 	if (!mMouseDown || mSelectedPiece == NULL || mState != STATE_PLAYING)
 		return;
 
@@ -568,16 +573,16 @@ void Board::MouseDrag(int x, int y)
 	int aRow = mSelectedPiece->mRow;
 	if (abs(aDeltaX) > abs(aDeltaY))
 	{
-		if (aDeltaX > 0 && aCol < mCols - 1) // port(variant): was BOARD_COLS
+		if (aDeltaX > 0 && aCol < mCols - 1 && mBoard[aRow][aCol + 1] != NULL) // port(variant): was BOARD_COLS; a hole is no neighbour
 			StartSwap(mSelectedPiece, mBoard[aRow][aCol + 1]);
-		else if (aDeltaX < 0 && aCol > 0)
+		else if (aDeltaX < 0 && aCol > 0 && mBoard[aRow][aCol - 1] != NULL) // port(variant)
 			StartSwap(mSelectedPiece, mBoard[aRow][aCol - 1]);
 	}
 	else
 	{
-		if (aDeltaY > 0 && aRow < mRows - 1) // port(variant): was BOARD_ROWS
+		if (aDeltaY > 0 && aRow < mRows - 1 && mBoard[aRow + 1][aCol] != NULL) // port(variant): was BOARD_ROWS
 			StartSwap(mSelectedPiece, mBoard[aRow + 1][aCol]);
-		else if (aDeltaY < 0 && aRow > 0)
+		else if (aDeltaY < 0 && aRow > 0 && mBoard[aRow - 1][aCol] != NULL) // port(variant)
 			StartSwap(mSelectedPiece, mBoard[aRow - 1][aCol]);
 	}
 
@@ -631,52 +636,56 @@ void Board::UpdateClearing()
 	// Each pass moves every gem above a column's lowest gap down one row and spawns one new gem on
 	// top of that column, 69 px above its highest gem; passes repeat until no column has a gap.
 	// Colors are not re-rolled, so the refill can cascade.
-	int aTopY = GetRowY(0);
-	bool aChanged;
-	do
+	if (mVariant.mShape) RefillMasked(); // port(variant): over each column's cells, through holes (BoardShape.cpp)
+	else
 	{
-		aChanged = false;
-		for (int aCol = 0; aCol < BOARD_COLS; aCol++)
+		int aTopY = GetRowY(0);
+		bool aChanged;
+		do
 		{
-			int aMinY = aTopY;
-			bool aGap = false;
-			for (int aRow = BOARD_ROWS - 1; aRow >= 0; aRow--)
+			aChanged = false;
+			for (int aCol = 0; aCol < BOARD_COLS; aCol++)
 			{
-				Piece* aPiece = mBoard[aRow][aCol];
-				if (aPiece == NULL)
+				int aMinY = aTopY;
+				bool aGap = false;
+				for (int aRow = BOARD_ROWS - 1; aRow >= 0; aRow--)
 				{
-					if (aGap)
-						mBoard[aRow + 1][aCol] = NULL;
-					aGap = true;
-				}
-				else
-				{
-					if (aPiece->mY < aMinY)
-						aMinY = (int)aPiece->mY;
-					if (aGap)
+					Piece* aPiece = mBoard[aRow][aCol];
+					if (aPiece == NULL)
 					{
-						aPiece->mRow++;
-						aPiece->mVelY = 1.0;
-						mBoard[aRow + 1][aCol] = aPiece;
+						if (aGap)
+							mBoard[aRow + 1][aCol] = NULL;
+						aGap = true;
+					}
+					else
+					{
+						if (aPiece->mY < aMinY)
+							aMinY = (int)aPiece->mY;
+						if (aGap)
+						{
+							aPiece->mRow++;
+							aPiece->mVelY = 1.0;
+							mBoard[aRow + 1][aCol] = aPiece;
+						}
 					}
 				}
-			}
 
-			if (aGap)
-			{
-				aChanged = true;
-				Piece* aPiece = new Piece();
-				aPiece->mVelY = 0.3;
-				aPiece->mRow = 0;
-				aPiece->mCol = aCol;
-				aPiece->mX = GetColX(aCol);
-				aPiece->mY = aMinY - 69;
-				aPiece->mColor = Rand() % gGameConfig.mGemColors;
-				mBoard[0][aCol] = aPiece;
+				if (aGap)
+				{
+					aChanged = true;
+					Piece* aPiece = new Piece();
+					aPiece->mVelY = 0.3;
+					aPiece->mRow = 0;
+					aPiece->mCol = aCol;
+					aPiece->mX = GetColX(aCol);
+					aPiece->mY = aMinY - 69;
+					aPiece->mColor = Rand() % gGameConfig.mGemColors;
+					mBoard[0][aCol] = aPiece;
+				}
 			}
 		}
+		while (aChanged);
 	}
-	while (aChanged);
 
 	MarkDirty();
 	mState = STATE_FALLING;
@@ -795,6 +804,8 @@ void Board::SetupLevel()
 	DDImage* anImageB = mApp->CreateColorizedImage(&aTileB, Color(aColorB[0], aColorB[1], aColorB[2]));
 
 	// 10x10 cells aligned with the board grid, starting one cell above and left of it
+	if (mVariant.mShape) DrawVariantChecker(&g, anImageA, anImageB); // port(variant): the level's shape, holes and all (BoardShape.cpp)
+	else
 	for (int aRow = -1, aY = -35; aY < 425; aY += 51, aRow++)
 		for (int aCol = -1, aX = 151; aX < 611; aX += 51, aCol++)
 			g.DrawImage(((aRow + aCol) % 2 == 0) ? anImageA : anImageB, aX, aY);
@@ -826,6 +837,7 @@ void Board::SetupLevel()
 // 0x4cb182
 void Board::FillBoard()
 {
+	if (mVariant.mShape) { FillBoardVariant(); return; } // port(variant): holes skipped (BoardShape.cpp)
 	mState = STATE_FALLING;
 	mIdleTicks = 0;
 

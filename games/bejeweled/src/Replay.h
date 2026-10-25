@@ -30,6 +30,8 @@
 // after the last SEGM is the sidecar's (File::mTrailingRng). Flag bit0 (hover): every segment has the hover
 // channel (a game resumed under the other features.replays.hover setting has it off).
 
+#include "BoardLayout.h"
+
 #include <cstdint>
 #include <string>
 #include <vector>
@@ -44,10 +46,13 @@ enum
 {
 	FORMAT = 1,
 	// Bumped whenever variant simulation output changes (6.4). 2: stage 5, kept invalid moves, the noMoves rule,
-	// the v2 save and the variant boards' MOVE fields in the LOGIC hash. The original rules are frozen, so a
-	// replay of them from an earlier engine still plays (CheckPlayable). games/bejeweled/tools/bjr.py repeats both
+	// the v2 save and the variant boards' MOVE fields in the LOGIC hash. 3: stage 7, the board shape rules (sizes,
+	// masks, level shapes), which earlier engines played on the original 8x8, and the displayed score's fast roll
+	// with a mod's scoring tunables (Board::RollScoreFast). The original rules are frozen, so a replay of them (no
+	// variant rule, no scoring tunable changed: GameRules::PlaysAlikeInEveryEngine) from an earlier engine still
+	// plays (CheckPlayable). games/bejeweled/tools/bjr.py repeats both
 	// values (the verifier's tests check that they agree)
-	ENGINE_ABI = 2,
+	ENGINE_ABI = 3,
 	FIRST_ENGINE_ABI = 1,
 	MT_WORDS = 624,
 	RULES_ID_SIZE = 32,
@@ -238,8 +243,10 @@ enum
 	MAX_EVENTS_PER_TICK = 10000,    // events stamped with one tick (a paused board's tick holds them all)
 	MAX_SAVES_PER_SEGMENT = 4       // the game makes 3 at most: Shutdown's, ~Board's, a snapshot sidecar's
 };
+// Stage 7: theCols x theRows bound the cells events name (the largest of the rules' shapes), and theShapes, the
+// rules' level shapes, are what an LDSV's v2 save is checked against (CheckSave).
 bool				CheckPlayable(const File& theFile, int theCols, int theRows, std::string* theError = NULL,
-						bool isOriginalRules = false);
+						bool isOriginalRules = false, const std::vector<BoardLayout>* theShapes = NULL);
 
 // Whether theSave is a save the original rules' LoadGame (Board.cpp, 0x4cca98) can take from an LDSV record
 // without trusting it: version 1, exactly the length its present cells make on a theCols x theRows board,
@@ -250,8 +257,11 @@ bool				CheckPlayable(const File& theFile, int theCols, int theRows, std::string
 // (stage 5, below): its header names them and the board's shape (a full theCols x theRows board, level shape
 // 0), the same fields follow, then its chunks (ReadVariantSave; the MOVE counts not below 0). Which of the two
 // a board takes is LoadGame's to say: a variant board only v2, any other only v1. False with theError set.
+// Stage 7: with theShapes (the rules' level shapes, GameRules::LayoutForLevel of 0..ShapeCount() - 1) a v2 save
+// may be of any of them: its level shape one of theShapes, its size and mask that shape's, its level one of that
+// shape (mLevel % the count), its cells read over that size.
 bool				CheckSave(const std::string& theSave, int theCols, int theRows, std::string* theError = NULL,
-						const uint8_t* theRulesId = NULL);
+						const uint8_t* theRulesId = NULL, const std::vector<BoardLayout>* theShapes = NULL);
 
 // The v2 save of a variant board (games/bejeweled/docs/CODE_MODS_DESIGN.md 7.2; Board::WriteSaveGame and
 // Board::LoadGame, the board's part in BoardSave.cpp), little-endian:

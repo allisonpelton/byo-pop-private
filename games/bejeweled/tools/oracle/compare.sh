@@ -87,6 +87,9 @@
 # Stage 6 (undo) plays the rule mods of mods/stage6 the same way (compare.py "variant" with "undos", "redo" and
 # "rerolled"): every way to undo, the limit, restoreRng off, timed mode with and without inTimed, a resume (no
 # snapshots in a save), a recording and its playback. A BEJ_NO_VARIANTS candidate leaves them out too.
+# Stage 7 (board sizes and shapes) plays the rule mods of mods/stage7 the same way: the autoplay bot on boards
+# smaller, wider and larger than 8x8 and on a diamond, a mod whose levels change shape at each vortex (saved on
+# the second shape, resumed, recorded and played back). A BEJ_NO_VARIANTS candidate leaves them out too.
 #
 # The frozen exes (build/baseline, build/baseline-stage0) predate the audio shutdown fix (af758b9) and can
 # crash on exit after writing all their outputs: a baseline or hooks-baseline run that exits 139 or with an
@@ -727,7 +730,8 @@ define_cases() {
 	# Stage 1's rule mods: read, merged, checked and reported (mods-status.json, -dumprules), still not played;
 	# since stage 2 any rule gives the board its own RNG, so they play exactly like the per-game-seed reference.
 	# Since stage 5 their boards are variant boards (a variant line in each settle, the v2 save, no RNG sidecar); a
-	# BEJ_NO_VARIANTS candidate plays them as before (v1 and the sidecar): its own facts, expect.txt's <case>@novariants
+	# BEJ_NO_VARIANTS candidate plays them as before (v1 and the sidecar): its own facts, expect.txt's <case>@novariants.
+	# A fixture leaves the set when its stage makes it play: s1-diamond went to mods/stage7/dirt-diamond in stage 7
 	inert rules_inert "playtest.txt with the rule, feature and imageOps mods of games/bejeweled/tools/oracle/mods/stage1: plays exactly like pergame" \
 		"ref=pergame;boards=pergame,pergame,pergame;rngseed=1" 1 "$PT/playtest.txt" modsdir="$GAME/tools/oracle/mods/stage1" dumprules
 	cross rules_inert.repeat repeat "rules_inert again: the same game under the same -seed" "" \
@@ -975,19 +979,19 @@ define_cases() {
 	playback watch_seed_quit_highscores "rec_seed_quit's sidecar (seed $GS, user) with Options -> High Scores mid-watch: the player's hiscores.dat, no -seeded table" \
 		"trace=rec_seed_quit;user=hiscores.dat,registry.ini" "$C/rec_seed_quit/user/savegame.bjr" script="$S3/watch_highscores.txt"
 
-	# Stage 5 raised the engine ABI to 2 (a replay of the original rules from engine 1 still plays). A game of the
+	# Stage 5 raised the engine ABI to 2, stage 7 to 3 (a replay of the original rules from engine 1 still plays). A game of the
 	# original rules that engine 1 recorded and saved is resumed as before: ReplayRecorder::OnLoad continues its sidecar,
 	# as Replay::CheckPlayable plays it. A sidecar the resume cannot continue (here one a later engine wrote) is kept as
 	# a finished replay first, END saved (Board::DeleteSaveSidecar), so its moves are not lost; the new replay holds the
 	# loaded save (LDSV). rec_main's sidecar with its engine ABI changed (compare.py corrupt-replay engine<n>) stands in.
-	for n in 1 3; do
+	for n in 1 4; do
 		dep_id candidate/rec_main
 		enqueue "gen/engine${n}_sidecar.bjr" engine_job "$n"
 	done
 	recording rec_load_engine1 "playtest_load.txt in a copy of rec_main's user dir whose sidecar engine 1 wrote: the original rules' replay goes on, two segments as in rec_load" \
 		load 1 "$PT/playtest_load.txt" from=rec_main savegame="$OUT/gen/engine1_sidecar.bjr" saveas=savegame.bjr
-	recording rec_load_engine3 "the same with a sidecar of engine 3, which this build cannot continue: a fresh replay of the loaded save (LDSV); the sidecar's game is kept in replays/ (END saved)" \
-		load 1 "$PT/playtest_load.txt" from=rec_main savegame="$OUT/gen/engine3_sidecar.bjr" saveas=savegame.bjr
+	recording rec_load_engine4 "the same with a sidecar of engine 4, which this build cannot continue: a fresh replay of the loaded save (LDSV); the sidecar's game is kept in replays/ (END saved)" \
+		load 1 "$PT/playtest_load.txt" from=rec_main savegame="$OUT/gen/engine4_sidecar.bjr" saveas=savegame.bjr
 	playback watch_main_engine1 "rec_main's sidecar as engine 1 wrote it: an original-rules replay of engine 1 plays" "trace=rec_main" \
 		"$OUT/gen/engine1_sidecar.bjr"
 	playback watch_load_engine1 "rec_load_engine1's sidecar: engine 1's segment and this engine's in one replay" "trace=rec_main,rec_load_engine1" \
@@ -1156,8 +1160,51 @@ define_cases() {
 			undo_main 1 "$S6/undo_main.txt" modsdir="$M6/undo-replays" arg=-gameseed=$GS
 		playback watch_undo_main "rec_undo_main's sidecar: four UNDOs played back, each undo's board and the same refills" \
 			"trace=rec_undo_main" "$C/rec_undo_main/user/savegame-*.bjr"
+
+		# Stage 7: board sizes and shapes (games/bejeweled/docs/CODE_MODS_DESIGN.md 4.3, 5). The rule mods of mods/stage7:
+		# s7-6x6 and s7-10x7 (smaller, wider: unscaled and scaled), s7-16x16 (the largest, scale 406/816), s7-diamond (a
+		# 9x9 mask of 41 cells) and s7-levels (a holed 8x8 and a 7x7 by turns, 5000 points a match: a level a match).
+		# The autoplay bot plays each one (its clicks scaled like the trace's); compare.py "variant" checks every
+		# settle step, and -codeccheck the snapshot round trip in every update. s7-levels changes shape at each vortex,
+		# is saved on the 7x7 and resumed there (the background rebuilt for the loaded level), recorded and played back.
+		S7="$PT/stage7"
+		M7="$GAME/tools/oracle/mods/stage7"
+		SHAPEBOT=(arg=-autoplaycap=20000 arg=-autoplaylog=autoplay.txt)
+		variant shape_6x6_auto "-autoplay=1, mods/stage7/6x6: a 6x6 board, unscaled and centred, to game over at no moves" \
+			"shapes=6x6:0" 1 - modsdir="$M7/6x6" arg=-autoplay=1 "${SHAPEBOT[@]}"
+		variant shape_6x6_auto_timed "-autoplay=2 -autoplaytimed, mods/stage7/6x6, 20000 updates: fall-outs and refills, stale selections" \
+			"shapes=6x6:0" 1 - modsdir="$M7/6x6" arg=-autoplay=2 arg=-autoplaytimed "${SHAPEBOT[@]}"
+		variant shape_10x7_auto "-autoplay=1, mods/stage7/10x7, 20000 updates: a 10x7 board, scaled to the window's width" \
+			"shapes=10x7:0;v2" 1 - modsdir="$M7/10x7" arg=-autoplay=1 "${SHAPEBOT[@]}"
+		variant shape_16x16_auto "-autoplay=1, mods/stage7/16x16, 20000 updates: the largest board, at half size" \
+			"shapes=16x16:0;v2" 1 - modsdir="$M7/16x16" arg=-autoplay=1 "${SHAPEBOT[@]}"
+		variant shape_diamond_auto "-autoplay=1, mods/stage7/diamond: a diamond of 41 cells, gems falling through the holes, to game over" \
+			"shapes=9x9:40" 1 - modsdir="$M7/diamond" arg=-autoplay=1 "${SHAPEBOT[@]}"
+		variant shape_diamond_auto_timed "-autoplay=2 -autoplaytimed, mods/stage7/diamond, 20000 updates: fall-outs refill the diamond" \
+			"shapes=9x9:40" 1 - modsdir="$M7/diamond" arg=-autoplay=2 arg=-autoplaytimed "${SHAPEBOT[@]}"
+		variant shape_dirt_diamond_auto_timed "-autoplay=2 -autoplaytimed, mods/stage7/dirt-diamond (stage 1's s1-diamond): a hole inside the diamond, dirt cells played as holes until stage 7b" \
+			"shapes=9x9:27" 1 - modsdir="$M7/dirt-diamond" arg=-autoplay=2 arg=-autoplaytimed "${SHAPEBOT[@]}"
+		variant shape_levels_auto "-autoplay=1, mods/stage7/levels, 20000 updates: the holed 8x8 and the 7x7 by turns, a vortex at every level, 5000 points a match (the fast score roll)" \
+			"shapes=8x8:10,7x7:0;v2" 1 - modsdir="$M7/levels" arg=-autoplay=1 "${SHAPEBOT[@]}"
+		variant shape_levels_auto_timed "-autoplay=2 -autoplaytimed, mods/stage7/levels: the shapes by turns in timed mode" \
+			"shapes=8x8:10,7x7:0" 1 - modsdir="$M7/levels" arg=-autoplay=2 arg=-autoplaytimed "${SHAPEBOT[@]}"
+		variant shape_levels_quit "-gameseed=$GS, mods/stage7/levels: a match ends level 1 on the holed 8x8; the vortex, the wipe to the 7x7; the quit: a v2 save of level 2's shape" \
+			"shapes=8x8:10,7x7:0;v2=last" 1 "$S7/shape_levels_quit.txt" modsdir="$M7/levels" arg=-gameseed=$GS
+		variant shape_levels_quit.resume "shape_levels_quit's user dir: Yes resumes on the 7x7 (its background rebuilt); a match, the vortex back to the holed 8x8" \
+			"shapes=8x8:10,7x7:0;v2=last" 1 "$S7/shape_levels_resume.txt" from=shape_levels_quit modsdir="$M7/levels"
+		# Recorded (mods/stage7/levels-replays: s7-levels and stage 3's replays feature mod) and played back
+		recording rec_shape_levels_auto "shape_levels_auto recorded: the shape changes in a replay, saved at the cap" \
+			shape_levels_auto 1 - modsdir="$M7/levels-replays" arg=-autoplay=1 "${SHAPEBOT[@]}"
+		recording rec_shape_levels_quit "shape_levels_quit recorded: the sidecar next to the v2 save of the 7x7" \
+			shape_levels_quit 1 "$S7/shape_levels_quit.txt" modsdir="$M7/levels-replays" arg=-gameseed=$GS
+		recording rec_shape_levels_quit.resume "shape_levels_quit.resume in a copy of rec_shape_levels_quit's user dir: the sidecar goes on (a v2 LOAD of the 7x7)" \
+			shape_levels_quit.resume 1 "$S7/shape_levels_resume.txt" from=rec_shape_levels_quit modsdir="$M7/levels-replays"
+		playback watch_shape_levels_auto "rec_shape_levels_auto's sidecar: every level's shape and refills again" \
+			"trace=rec_shape_levels_auto" "$C/rec_shape_levels_auto/user/savegame-*.bjr"
+		playback watch_shape_levels_resume "rec_shape_levels_quit.resume's sidecar: the second segment LOADs the 7x7's v2 save, then back to the holed 8x8" \
+			"trace=rec_shape_levels_quit,rec_shape_levels_quit.resume" "$C/rec_shape_levels_quit.resume/user/savegame-*.bjr"
 	else
-		echo "$VTAG  (the candidate has no variant paths: the stage-5 and stage-6 cases are left out)"
+		echo "$VTAG  (the candidate has no variant paths: the stage-5, 6 and 7 cases are left out)"
 	fi
 
 	# Stage 4: the headless verifier and the web build under Node (games/bejeweled/tools/verify/oracle_cases.sh): the

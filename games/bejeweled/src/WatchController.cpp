@@ -11,6 +11,7 @@
 #include "MusicInterface.h"
 #include "MTRand.h"
 
+#include <algorithm>
 #include <cstdio>
 #include <cstring>
 #include <utility>
@@ -125,7 +126,17 @@ bool WatchController::Load(std::string* theError)
 		*theError = mFile.mHasRules ? "RULE: " + anError : std::string("no RULE record");
 		return false;
 	}
-	if (!Replay::CheckPlayable(mFile, Board::BOARD_COLS, Board::BOARD_ROWS, &anError, !mRules.HasVariantRules()))
+	// Stage 7: the rules' level shapes; events name cells of the largest
+	std::vector<BoardLayout> aShapes;
+	int aMaxCols = 0;
+	int aMaxRows = 0;
+	for (int i = 0; i < mRules.ShapeCount(); i++)
+	{
+		aShapes.push_back(mRules.LayoutForLevel(i));
+		aMaxCols = std::max(aMaxCols, aShapes.back().mCols);
+		aMaxRows = std::max(aMaxRows, aShapes.back().mRows);
+	}
+	if (!Replay::CheckPlayable(mFile, aMaxCols, aMaxRows, &anError, mRules.PlaysAlikeInEveryEngine(), &aShapes))
 	{
 		*theError = anError;
 		return false;

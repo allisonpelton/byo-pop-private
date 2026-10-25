@@ -2175,6 +2175,19 @@ bool GameRules::HasVariantRules() const
 	return !VariantKeys().empty();
 }
 
+bool GameRules::ScoringTunablesChanged() const
+{
+	TunableRules anOriginal;
+	return (mTunables.mSetValues != anOriginal.mSetValues) || (mTunables.mLengthBonus != anOriginal.mLengthBonus) ||
+		(mTunables.mLongLengthBonus != anOriginal.mLongLengthBonus) || (mTunables.mExcellentFactor != anOriginal.mExcellentFactor) ||
+		(mTunables.mHintPenalty != anOriginal.mHintPenalty);
+}
+
+bool GameRules::PlaysAlikeInEveryEngine() const
+{
+	return !HasVariantRules() && !ScoringTunablesChanged();
+}
+
 int GameRules::ShapeCount() const
 {
 	return mBoard.mLevels.empty() ? 1 : (int) mBoard.mLevels.size();

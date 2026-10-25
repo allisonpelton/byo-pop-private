@@ -9,6 +9,7 @@
 #include "HyperlinkWidget.h"
 
 #include <SDL.h>
+#include <cmath>
 #include <cstdarg>
 
 using namespace Sexy;
@@ -143,10 +144,24 @@ bool AutoplayBot::InputBlocked()
 	return false;
 }
 
-// A click there reaches the board (not a dialog or a button over it)
+// A board position (Board::GetColX, Piece::mX) in the window: on a scaled board (stage 7) scaled about the board
+// window's corner, as BoardTrace prints its clicks; else itself
+int AutoplayBot::ScreenX(int theX)
+{
+	Board* aBoard = mApp->mBoard;
+	return aBoard->mVariant.mScaled ? (int) floor(aBoard->mLayout.ToScreenX(theX) + 0.5) : theX;
+}
+
+int AutoplayBot::ScreenY(int theY)
+{
+	Board* aBoard = mApp->mBoard;
+	return aBoard->mVariant.mScaled ? (int) floor(aBoard->mLayout.ToScreenY(theY) + 0.5) : theY;
+}
+
+// A click at that board position reaches the board (not a dialog or a button over it)
 bool AutoplayBot::OnBoard(int theX, int theY)
 {
-	return mApp->mWidgetManager->GetWidgetAt(theX, theY, NULL, NULL) == mApp->mBoard;
+	return mApp->mWidgetManager->GetWidgetAt(ScreenX(theX), ScreenY(theY), NULL, NULL) == mApp->mBoard;
 }
 
 void AutoplayBot::AddTargetSteps(int theCol, int theRow, int theCol2, int theRow2, int theStyle, int theDelay)
@@ -200,22 +215,24 @@ void AutoplayBot::PlanMove()
 		return;
 	}
 
-	// Only moves whose two gems take a click (the first game's instructions cover the top rows)
+	// Only moves whose two gems take a click (the first game's instructions cover the top rows). A move is packed
+	// 4 bits a coordinate; the board's own size and its playable cells (stage 7: on the original 8x8 the same list)
 	std::vector<int> aMoves;
 	const char* aKindName;
 	if (aKind < 12)
 	{
 		static const int aDirs[4][2] = {{1, 0}, {-1, 0}, {0, 1}, {0, -1}};
-		for (int aCol = 0; aCol < Board::BOARD_COLS; aCol++)
+		for (int aCol = 0; aCol < aBoard->mCols; aCol++)
 		{
-			for (int aRow = 0; aRow < Board::BOARD_ROWS; aRow++)
+			for (int aRow = 0; aRow < aBoard->mRows; aRow++)
 			{
 				for (int aDir = 0; aDir < 4; aDir++)
 				{
 					int aCol2 = aCol + aDirs[aDir][0];
 					int aRow2 = aRow + aDirs[aDir][1];
-					if ((aCol2 >= 0) && (aCol2 < Board::BOARD_COLS) && (aRow2 >= 0) && (aRow2 < Board::BOARD_ROWS))
-						aMoves.push_back(((aCol * 8 + aRow) * 8 + aCol2) * 8 + aRow2);
+					if ((aCol2 >= 0) && (aCol2 < aBoard->mCols) && (aRow2 >= 0) && (aRow2 < aBoard->mRows) &&
+						aBoard->mLayout.IsPlayable(aCol, aRow) && aBoard->mLayout.IsPlayable(aCol2, aRow2))
+						aMoves.push_back(((aCol * 16 + aRow) * 16 + aCol2) * 16 + aRow2);
 				}
 			}
 		}
@@ -225,15 +242,15 @@ void AutoplayBot::PlanMove()
 	{
 		int aMove[4];
 		for (int i = 0; aBoard->FindMove(aMove, i, true, true); i++)
-			aMoves.push_back(((aMove[0] * 8 + aMove[1]) * 8 + aMove[2]) * 8 + aMove[3]);
+			aMoves.push_back(((aMove[0] * 16 + aMove[1]) * 16 + aMove[2]) * 16 + aMove[3]);
 		aKindName = "valid";
 	}
 
 	for (size_t i = 0; i < aMoves.size(); )
 	{
 		int aMove = aMoves[i];
-		if ((OnBoard(aBoard->GetColX(aMove >> 9) + 24, aBoard->GetRowY((aMove >> 6) & 7) + 24)) &&
-			(OnBoard(aBoard->GetColX((aMove >> 3) & 7) + 24, aBoard->GetRowY(aMove & 7) + 24)))
+		if ((OnBoard(aBoard->GetColX(aMove >> 12) + 24, aBoard->GetRowY((aMove >> 8) & 15) + 24)) &&
+			(OnBoard(aBoard->GetColX((aMove >> 4) & 15) + 24, aBoard->GetRowY(aMove & 15) + 24)))
 			i++;
 		else
 			aMoves.erase(aMoves.begin() + i);
@@ -242,7 +259,7 @@ void AutoplayBot::PlanMove()
 		return;
 
 	int aPacked = aMoves[Random((int) aMoves.size())];
-	int aMove[4] = {aPacked >> 9, (aPacked >> 6) & 7, (aPacked >> 3) & 7, aPacked & 7};
+	int aMove[4] = {aPacked >> 12, (aPacked >> 8) & 15, (aPacked >> 4) & 15, aPacked & 15};
 
 	int aStyle = Random(10);
 	Note("move %d: (%d,%d)->(%d,%d) %s, %s", ++mMoveNum, aMove[0], aMove[1], aMove[2], aMove[3], aKindName,
@@ -255,20 +272,20 @@ void AutoplayBot::PlanFallingSelect()
 {
 	Board* aBoard = mApp->mBoard;
 	std::vector<int> aCells;
-	for (int aRow = 0; aRow < Board::BOARD_ROWS; aRow++)
+	for (int aRow = 0; aRow < aBoard->mRows; aRow++)
 	{
-		for (int aCol = 0; aCol < Board::BOARD_COLS; aCol++)
+		for (int aCol = 0; aCol < aBoard->mCols; aCol++)
 		{
 			if (aBoard->mBoard[aRow][aCol] != NULL)
-				aCells.push_back(aRow * Board::BOARD_COLS + aCol);
+				aCells.push_back(aRow * Board::MAX_COLS + aCol);
 		}
 	}
 	if (aCells.empty())
 		return;
 
 	int aCell = aCells[Random((int) aCells.size())];
-	Note("select (%d,%d) while %s", aCell % Board::BOARD_COLS, aCell / Board::BOARD_COLS, StateName(aBoard->mState));
-	Step aSelect = {STEP_CLICK_CELL, ROLE_SELECT_ANY, aCell % Board::BOARD_COLS, aCell / Board::BOARD_COLS, 0, 0, 1};
+	Note("select (%d,%d) while %s", aCell % Board::MAX_COLS, aCell / Board::MAX_COLS, StateName(aBoard->mState));
+	Step aSelect = {STEP_CLICK_CELL, ROLE_SELECT_ANY, aCell % Board::MAX_COLS, aCell / Board::MAX_COLS, 0, 0, 1};
 	mPlan.push_back(aSelect);
 }
 
@@ -291,7 +308,7 @@ void AutoplayBot::PlanTarget(Piece* theSelected)
 		for (int i = 0; aBoard->FindMove(aMove, i, true, true); i++)
 		{
 			if ((aMove[0] == aCol) && (aMove[1] == aRow))
-				aTargets.push_back(aMove[3] * Board::BOARD_COLS + aMove[2]);
+				aTargets.push_back(aMove[3] * Board::MAX_COLS + aMove[2]);
 		}
 	}
 	if (aTargets.empty())
@@ -301,15 +318,15 @@ void AutoplayBot::PlanTarget(Piece* theSelected)
 		{
 			int aCol2 = aCol + aDirs[aDir][0];
 			int aRow2 = aRow + aDirs[aDir][1];
-			if ((aCol2 >= 0) && (aCol2 < Board::BOARD_COLS) && (aRow2 >= 0) && (aRow2 < Board::BOARD_ROWS))
-				aTargets.push_back(aRow2 * Board::BOARD_COLS + aCol2);
+			if ((aCol2 >= 0) && (aCol2 < aBoard->mCols) && (aRow2 >= 0) && (aRow2 < aBoard->mRows) && aBoard->mLayout.IsPlayable(aCol2, aRow2))
+				aTargets.push_back(aRow2 * Board::MAX_COLS + aCol2);
 		}
 	}
 
 	for (size_t i = 0; i < aTargets.size(); )
 	{
 		int aCell = aTargets[i];
-		if (OnBoard(aBoard->GetColX(aCell % Board::BOARD_COLS) + 24, aBoard->GetRowY(aCell / Board::BOARD_COLS) + 24))
+		if (OnBoard(aBoard->GetColX(aCell % Board::MAX_COLS) + 24, aBoard->GetRowY(aCell / Board::MAX_COLS) + 24))
 			i++;
 		else
 			aTargets.erase(aTargets.begin() + i);
@@ -319,8 +336,8 @@ void AutoplayBot::PlanTarget(Piece* theSelected)
 	if (!aTargets.empty())
 	{
 		int aCell = aTargets[Random((int) aTargets.size())];
-		aTarget[0] = aCell % Board::BOARD_COLS;
-		aTarget[1] = aCell / Board::BOARD_COLS;
+		aTarget[0] = aCell % Board::MAX_COLS;
+		aTarget[1] = aCell / Board::MAX_COLS;
 	}
 	else if (isStale)
 		return;
@@ -373,10 +390,10 @@ bool AutoplayBot::RunStep(const Step& theStep)
 			{
 				mDragX = x;
 				mDragY = y;
-				Queue("down", x, y);
+				Queue("down", ScreenX(x), ScreenY(y));
 			}
 			else
-				Queue("click", x, y);
+				Queue("click", ScreenX(x), ScreenY(y));
 		}
 		return true;
 
@@ -387,18 +404,18 @@ bool AutoplayBot::RunStep(const Step& theStep)
 			int y = (int) aSelected->mY + 24 + theStep.mDY;
 			if (!OnBoard(x, y))
 				return false;
-			Queue("click", x, y);
+			Queue("click", ScreenX(x), ScreenY(y));
 		}
 		return true;
 
 	case STEP_DRAG_MOVE:
 		mDragX += theStep.mDX;
 		mDragY += theStep.mDY;
-		Queue("move", mDragX, mDragY);
+		Queue("move", ScreenX(mDragX), ScreenY(mDragY));
 		return true;
 
 	case STEP_DRAG_UP:
-		Queue("up", mDragX, mDragY);
+		Queue("up", ScreenX(mDragX), ScreenY(mDragY));
 		return true;
 
 	case STEP_CLICK_HINT:
