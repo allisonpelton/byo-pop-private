@@ -29,7 +29,7 @@ int Height(const PuzzleModel& theBoard, int theCol)
 
 }
 
-void PuzzleBuilder::Build(MTRand& theRand, int theColors, int theCols, int theRows, PuzzleModel* theBoard,
+void PuzzleBuilder::Build(MTRand& theRand, int theColors, int theCols, int theRows, bool isDiagonal, PuzzleModel* theBoard,
 	std::vector<PuzzleSolver::Move>* thePlan)
 {
 	const int aMinHeight = (3 * theRows + 4) / 5;   // as the original's: 9 of 15 (row 6)
@@ -37,6 +37,7 @@ void PuzzleBuilder::Build(MTRand& theRand, int theColors, int theCols, int theRo
 	static const int aDirs[4][2] = { {0, 0}, {-1, 0}, {1, 0}, {0, 1} }; // the original's, which never goes up
 
 	*theBoard = PuzzleModel();
+	theBoard->mDiagonal = isDiagonal; // a group touching its colour at a corner is not kept either
 	thePlan->clear();
 	std::vector<PuzzleSolver::Move> aBuilt; // a coin of each group, in the order built
 	int aLeft = COLS;                       // the columns started: aLeft..aRight

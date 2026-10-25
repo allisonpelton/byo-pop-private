@@ -157,6 +157,7 @@ public:
 	bool			mHasMoves;              // +0x42c a group >= mMinGroup exists (FindGroups)
 	int				mCols;                  // +0x430 14
 	int				mRows;                  // +0x434 15
+	bool			mDiagonal;              // port(mods): coins touching at a corner group too ("diagonalGroups")
 	int				mMintPixels;            // +0x438 (int)((1-mMint)*29): px of the next row still hidden
 	double			mMint;                  // +0x440 next-row progress; > 1 pushes a row
 	double			mMintTarget;            // +0x448 mMint eases up to it at 0.015/tick; 0.25 at level start
@@ -493,6 +494,7 @@ public:
 	void			StartSolverLevel();
 	void			GetSolverModel(PuzzleModel* theModel);
 	int				SolverRowOffset() const { return BOARD_ROWS - mRows; } // the board's row 0 in the solver's model
+	int				GroupDirs() const { return mDiagonal ? 8 : 4; } // port(mods): the gGroupDirs a group spreads through
 	int				SolverGroupKey(int theCol, int theRow) const;
 	void			UpdateSolverCheck();
 	bool			CheckSolverClick(Piece* thePiece);

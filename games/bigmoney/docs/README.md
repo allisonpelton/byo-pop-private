@@ -319,6 +319,22 @@ Big Money uses the shared mod system (`platform/ModManager.h`).
   - **Tested** (bot games under rundesk, 6, 7 and 8 colours, every mode): with Winnable Puzzles and the
     solver the bot reached level 74 on Hard with 8 colours without losing one; the solver gave no wrong
     answer with 7 on the original generator; 19 replays verified, and older solver replays still verify.
+- **Diagonal groups** (the `diagonal-groups` mod, `features.diagonalGroups`). Every mode: coins of a colour
+  that touch at a corner are one group, so groups are bigger and easier to find.
+  - **How.** The game's group flood (Board::FloodFill) also goes across corners: the hover, the click, the
+    group sizes for "no moves left" and the hints. The flood Compact uses to close gaps does not (it
+    measures the pile, not a colour).
+  - **Puzzle.** The solver's groups follow the rule. Winnable Puzzles keeps a built group only if nothing
+    of its colour touches it at a corner either. The original generator is unchanged, so its boards get
+    easier.
+  - **Pickpockets** lift groups by the same rule.
+  - **Scores.** The mod says it affects scores (its own high-score tables, the mods sign).
+  - **Tested** (bot games under rundesk, every mode, alone and with More Colours, Pickpocket, Small Board
+    and the Puzzle Solver together):
+    - With Winnable Puzzles and the solver the bot reached levels 73 (Hard) and 77 (Easy) without losing
+      one; the solver gave no wrong answer on the original generator or with the other mods.
+    - Much easier: Strategy reached level 24 (440,489) and Easy Puzzle level 30.
+    - 15 replays verified; 44 Pickpockets used with diagonal groups.
 
 Example mods (`games/bigmoney/mods/`):
 - **`fake-money/`: "Fake Money! Deluxe".**
@@ -339,6 +355,7 @@ Example mods (`games/bigmoney/mods/`):
 - **`pickpocket/`: "Pickpocket".** A powerup that lifts a group too small to click (right click, or P).
 - **`small-board/`: "Small Board".** Plays on a smaller board (10 x 12 by default, settings for both).
 - **`more-colours/`: "More Colours".** Orange, cyan and silver coins: six colours by default, up to eight.
+- **`diagonal-groups/`: "Diagonal Groups".** Coins that touch at a corner are one group.
 - **`replays/`: "Replays".** Turns on replays and nothing else: no change in play, the normal high-score
   tables, and no mods sign.
 - **`livesplit/`: "LiveSplit".** Turns on the LiveSplit block, with a copy of the script, seven split

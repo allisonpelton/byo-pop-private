@@ -37,6 +37,10 @@
 namespace Sexy
 {
 
+// port(mods): the directions a group of coins spreads through (Board::FloodFill's order), then the corners
+// with diagonal groups (the "diagonalGroups" feature)
+inline constexpr int gGroupDirs[8][2] = { {-1, 0}, {1, 0}, {0, -1}, {0, 1}, {-1, -1}, {1, -1}, {-1, 1}, {1, 1} };
+
 class PuzzleModel
 {
 public:
@@ -53,6 +57,7 @@ public:
 	int8_t		mCell[ROWS][COLS];      // [row][col], row 0 = top: EMPTY, a coin colour 0..7 or BAG
 	int			mReleased;              // bags that have left the board
 	int			mNeeded;                // bags that must leave to win the level
+	bool		mDiagonal;              // coins touching at a corner are a group too (Board::mDiagonal)
 
 	PuzzleModel();
 

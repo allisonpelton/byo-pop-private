@@ -109,12 +109,10 @@ bool AutoplayBot::PickGroup(Board* theBoard, int* theX, int* theY, int* theSize)
 				std::pair<int, int> aCell = aStack.back();
 				aStack.pop_back();
 				aSize++;
-				static const int kDR[4] = {0, 0, -1, 1};
-				static const int kDC[4] = {-1, 1, 0, 0};
-				for (int d = 0; d < 4; d++)
+				for (int d = 0; d < theBoard->GroupDirs(); d++)
 				{
-					int r = aCell.first + kDR[d];
-					int c = aCell.second + kDC[d];
+					int r = aCell.first + gGroupDirs[d][1];
+					int c = aCell.second + gGroupDirs[d][0];
 					if ((r < 0) || (r >= Board::BOARD_ROWS) || (c < 0) || (c >= Board::BOARD_COLS) || (aMark[r][c] != 0))
 						continue;
 					Piece* aNeighbour = theBoard->mGrid[r][c];

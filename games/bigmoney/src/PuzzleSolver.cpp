@@ -43,6 +43,7 @@ PuzzleModel::PuzzleModel()
 	memset(mCell, EMPTY, sizeof(mCell));
 	mReleased = 0;
 	mNeeded = 0;
+	mDiagonal = false;
 }
 
 void PuzzleModel::GetGroup(int theCol, int theRow, std::vector<int>* theCells) const
@@ -57,14 +58,15 @@ void PuzzleModel::GetGroup(int theCol, int theRow, std::vector<int>* theCells) c
 	bool aSeen[ROWS * COLS] = {};
 	theCells->push_back(theRow * COLS + theCol);
 	aSeen[theRow * COLS + theCol] = true;
+	int aNumDirs = mDiagonal ? 8 : 4;
 	for (size_t i = 0; i < theCells->size(); i++)
 	{
 		int aRow = (*theCells)[i] / COLS;
 		int aCol = (*theCells)[i] % COLS;
-		for (const auto& aDir : gDirs)
+		for (int d = 0; d < aNumDirs; d++)
 		{
-			int c = aCol + aDir[0];
-			int r = aRow + aDir[1];
+			int c = aCol + gGroupDirs[d][0];
+			int r = aRow + gGroupDirs[d][1];
 			if ((c < 0) || (c >= COLS) || (r < 0) || (r >= ROWS) || (aSeen[r * COLS + c]) || (mCell[r][c] != aColor))
 				continue;
 			aSeen[r * COLS + c] = true;
