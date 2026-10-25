@@ -19,6 +19,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <ctime>
 
 using namespace Sexy;
 
@@ -972,8 +973,17 @@ void HighScoreWidget::ButtonDepress(int theId)
 		mApp->ShowIntro();
 }
 
-// 0x410550: hiscores.dat: the best of the day, then the five best; each is a name (a length and bytes), a score and
-// a check value
+// 0x410520: the day, as the file keeps it
+static int TodayNumber()
+{
+	time_t aNow = time(NULL);
+	struct tm* aTime = localtime(&aNow);
+	return aTime->tm_yday + aTime->tm_year * 0x16e;
+}
+
+// 0x410550: hiscores.dat: the day, the best of the day, then the five best; each is a name (a length and bytes), a
+// score and a check value. The best of the day is taken only when the day is today's and its check is good. The five
+// keep their names always, and their scores when the check is good, else the score modulo 256 (C's signed %).
 void HighScoreWidget::LoadScores()
 {
 	std::string aData;
@@ -1022,11 +1032,11 @@ void HighScoreWidget::LoadScores()
 			return aCheck;
 		}
 	};
-	Local::Int(aData, aPos, aOk);      // the day of the best-of-the-day record
+	int aDay = Local::Int(aData, aPos, aOk);
 	std::string aTodayName = Local::Name(aData, aPos, aOk);
 	int aTodayScore = Local::Int(aData, aPos, aOk);
 	unsigned int aTodayCheck = (unsigned int) Local::Int(aData, aPos, aOk);
-	if (aOk && (aTodayCheck == Local::Check(aTodayName, aTodayScore)))
+	if (aOk && (aDay == TodayNumber()) && (aTodayCheck == Local::Check(aTodayName, aTodayScore)))
 	{
 		mTodayName = aTodayName;
 		mTodayScore = aTodayScore;
@@ -1038,11 +1048,11 @@ void HighScoreWidget::LoadScores()
 		unsigned int aCheck = (unsigned int) Local::Int(aData, aPos, aOk);
 		if (!aOk)
 			return;
+		mNames[i] = aName;
 		if (aCheck == Local::Check(aName, aScore))
-		{
-			mNames[i] = aName;
 			mScores[i] = aScore;
-		}
+		else
+			mScores[i] = aScore % 256;
 	}
 }
 
@@ -1067,7 +1077,7 @@ void HighScoreWidget::SaveScores()
 			return (int) aCheck;
 		}
 	};
-	Local::Int(aData, 0);
+	Local::Int(aData, TodayNumber());
 	Local::Name(aData, mTodayName);
 	Local::Int(aData, mTodayScore);
 	Local::Int(aData, Local::Check(mTodayName, mTodayScore));

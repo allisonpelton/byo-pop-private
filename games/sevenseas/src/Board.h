@@ -61,13 +61,13 @@ struct Ship
 	int					mType;          // +0 0 pirate, 1 red pirate, 2 sea monster, 3 blue pirate, 4 ghost ship
 	int					mX;             // +4 the cell
 	int					mY;             // +8
-	int					mHeading;       // +0xc 0..15 (0 down, 4 left, 8 up, 12 right)
+	int					mHeading;       // +0xc 0..15 (0 up, 4 right, 8 down, 12 left)
 	int					mWantHeading;   // +0x10
 	int					mNextX;         // +0x14 the cell it sails to
 	int					mNextY;         // +0x18
 	int					mMoveProgress;  // +0x1c 0..0x2a while sailing
 	int					mAnim;          // +0x20 frame counter (starts with rand() % 8)
-	int					mTrail[9];      // +0x24 3 x 3 cell timers (the wake), -1 = off
+	int					mTrail[9];      // +0x24 3 x 3 cell timers (a blue pirate's gun smoke around it), -1 = off
 };
 
 // 0x20 bytes (list at +0xf8, count +0xfc): a cannonball

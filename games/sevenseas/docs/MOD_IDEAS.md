@@ -25,7 +25,7 @@ generator draws from `rand()` only).
 **Whirlpools.** The corner whirlpools could be a setting: how many, and whether they open and close
 (`Board::ToggleWhirls`).
 
-**The treasure hunt.** The bonus screen (a 9 x 9 dig on every tenth level) buries one treasure and some rocks after the
+**The treasure hunt.** The bonus screen (a 9 x 9 dig on every tenth level) buries one treasure and some pirate graves after the
 first click (`Board::SetupBonus`, 0x402540); a mod could bury two treasures, give a limited number of digs, or
 show the distance as a hint.
 

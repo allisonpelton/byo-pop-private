@@ -40,15 +40,15 @@ int Board::Pan(int theCell)
 	return (int) ((double) (aCenter - aX) / (double) (aSum * 2) * 800.0);
 }
 
-// 0x402540: the first click on the bonus screen buries the treasure and the rocks (the clicked square stays empty)
+// 0x402540: the first click on the bonus screen buries the treasure and the ghost cells (the pirate graves; the clicked square stays empty)
 void Board::SetupBonus(int theX, int theY)
 {
 	mState = STATE_IDLE;
 	for (int i = 0; i < 81; i++)
 		(&mBonusGrid[0][0])[i] = -1;
-	int aRocks = mLevel / 10 + 0xd;
+	int aGhostCells = mLevel / 10 + 0xd;
 	int aPlaced = 0;
-	if (0 < aRocks)
+	if (0 < aGhostCells)
 	{
 		for (;;)
 		{
@@ -68,7 +68,7 @@ void Board::SetupBonus(int theX, int theY)
 			while ((&mBonusGrid[0][0])[anIdx] != -1);
 			aPlaced++;
 			(&mBonusGrid[0][0])[anIdx] = -3;
-			if (aPlaced >= aRocks)
+			if (aPlaced >= aGhostCells)
 				break;
 		}
 	}
@@ -410,6 +410,7 @@ bool Board::Undo()
 			int aX = mUndo.back();
 			mUndo.pop_back();
 			Ship* aShip = new Ship();
+			aShip->mAnim = CrtRand() % 8;   // the inlined constructor's draw (as in NewShip); the caller's follows
 			aShip->mWantHeading = aHeading;
 			aShip->mHeading = aHeading;
 			aShip->mNextX = aX;

@@ -7,6 +7,7 @@
 
 #include "Board.h"
 #include "SevenSeasApp.h"
+#include "Screens.h"
 #include "Compat2004.h"
 #include "platform/UserFiles.h"
 #include "platform/VFS.h"
@@ -145,6 +146,8 @@ void Board::LoadGame()
 	if (!r.mOk || (aNumShips < 0) || (aNumShips > GRID * GRID))
 		return;
 	mScore = aScore;
+	if (mApp->mSidePanel != NULL)
+		mApp->mSidePanel->mShownScore = mScore;   // the panel does not count up from 0
 	mKills = aKills;
 	ClearShips();
 	for (int i = 0; i < aNumShips; i++)

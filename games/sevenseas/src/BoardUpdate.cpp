@@ -50,7 +50,7 @@ void Board::Update()
 	UpdateCellFlash();
 	if (mState == STATE_LEVEL_END)
 	{
-		if (mUpdateCnt - mGameStartCnt < 300)
+		if (mUpdateCnt - mGameStartCnt <= 300)
 		{
 			mWidgetManager->BringToFront(mApp->mTalkWidget);
 			mApp->mTalking = true;
@@ -253,7 +253,7 @@ void Board::UpdateMove()
 					mDestY = aDY + mPlayerY;
 					mState = STATE_TURN_MOVE;
 					mDirty = true;
-					mApp->PlaySample(SOUND_MOVEGOOD, Pan(mPlayerX));
+					mApp->PlaySample(SOUND_MOVEGOOD, Pan(mDestX));
 					return;
 				}
 			}
@@ -745,7 +745,7 @@ void Board::EnemyShots()
 // 0x404890: a blue pirate's broadside (the same as the player's, with the ship's own flash timers)
 void Board::EnemyFire(Ship* theShip)
 {
-	int aHeading = theShip->mWantHeading;
+	int aHeading = theShip->mHeading;
 	int aAX = 0;
 	int aAY = 0;
 	int aBX = 0;
