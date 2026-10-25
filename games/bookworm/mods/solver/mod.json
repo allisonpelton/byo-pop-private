@@ -3,7 +3,7 @@
   "name": "Word Solver",
   "version": "1.0",
   "author": "byo-pop",
-  "description": "HINT (beside SUBMIT) or Tab selects a word the board spells: first one that puts out the lowest fire tile, then the bonus word, the best-scoring words and the longest. Press again for the next. Games with it keep their own high scores.",
+  "description": "HINT (beside SUBMIT) or Tab selects a word the board spells: first one that puts out the lowest fire tile, then the bonus word, the best-scoring words and the longest. Press again for the next. A setting saves the bonus tiles for one big word. Games with it keep their own high scores.",
   "affectsScores": true,
   "features": {
     "solver": true
@@ -14,6 +14,8 @@
     { "id": "best", "label": "Best words in the cycle", "type": "int", "default": 10, "min": 1, "max": 30,
       "help": "How many of the best-scoring words HINT goes through before the longest word and the start again." },
     { "id": "tag", "label": "Show what a hint is", "type": "bool", "default": true,
-      "help": "A tag above the hint's first tile: best, fire, bonus or longest, its place in the cycle, and a warning for an unsafe word." }
+      "help": "A tag above the hint's first tile: best, fire, bonus or longest, its place in the cycle, and a warning for an unsafe word." },
+    { "id": "saveBonus", "label": "Save bonus tiles", "type": "bool", "default": false,
+      "help": "Hints avoid the green, gold, sapphire and diamond tiles where they can, so they stack up on the board. Each one adds to the multiplier of a whole word, so several in one long word score far more. A CASH IN hint, after the best words, is the best word that uses them." }
   ]
 }

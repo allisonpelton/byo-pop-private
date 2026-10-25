@@ -1280,7 +1280,7 @@ int AutoplayBot::RunStep(Board* theBoard, const Step& theStep)
 			const SolverWord* aHint = theBoard->mSolver->ShownHint();
 			if (aHint == NULL)
 				return RUN_DROP;
-			static const char* const KIND_NAMES[] = { "fire", "bonus", "best", "longest" };
+			static const char* const KIND_NAMES[] = { "fire", "bonus", "best", "longest", "cash in" };
 			static const char* const SAFETY_NAMES[] = { "safe", "sets fire", "fire to the bottom", "ends the game" };
 			if ((mTestUndo) && (mUndoPhase == 1))
 				mUndoBefore = BoardState(theBoard);     // the board the undo must put back
@@ -1290,9 +1290,43 @@ int AutoplayBot::RunStep(Board* theBoard, const Step& theStep)
 			std::string aCells;
 			for (size_t i = 0; i < aHint->mPath.size(); i++)
 				aCells += StrFormat("%s%d", (i == 0) ? "" : " ", aHint->mPath[i]->mRow * BOARD_COLS + aHint->mPath[i]->mCol);
-			Note("hint %d/%u: %s (%s, %d points, %d fire tiles, %s; cells %s)", theBoard->mSolver->mHintIdx + 1,
-				(unsigned) theBoard->mSolver->mHints.size(), aHint->mWord.c_str(), KIND_NAMES[aHint->mKind],
-				aHint->mScore, aHint->mFireTiles, SAFETY_NAMES[aHint->mSafety], aCells.c_str());
+			std::vector<Piece*> aTiles;
+			int aBonusOnBoard = 0;
+			for (int aRow = 0; aRow < BOARD_ROWS; aRow++)
+			{
+				for (int aCol = 0; aCol < BOARD_COLS; aCol++)
+				{
+					Piece* aPiece = theBoard->mBoard[aRow][aCol];
+					if ((aPiece == NULL) || (aPiece->mLetter < 'A') || (aPiece->mLetter > 'Z'))
+						continue;
+					aTiles.push_back(aPiece);
+					if ((aPiece->mType == TILE_GREEN) || (aPiece->mType == TILE_GOLD) || (aPiece->mType == TILE_SAPPHIRE) ||
+						(aPiece->mType == TILE_DIAMOND))
+						aBonusOnBoard++;
+				}
+			}
+			Note("hint %d/%u: %s (%s, %d points, %d fire tiles, %s, %d bonus tiles, %d on the board; cells %s)",
+				theBoard->mSolver->mHintIdx + 1, (unsigned) theBoard->mSolver->mHints.size(), aHint->mWord.c_str(),
+				KIND_NAMES[aHint->mKind], aHint->mScore, aHint->mFireTiles, SAFETY_NAMES[aHint->mSafety],
+				aHint->mBonusTiles, aBonusOnBoard, aCells.c_str());
+			// the solver's "saveBonus": a best or fire hint uses bonus tiles only where no path as safe (for the fire
+			// hint, one that takes the same lowest fire tile) goes without them
+			if ((ModFeatureBool("solver", "saveBonus", false)) && (aHint->mBonusTiles > 0) &&
+				((aHint->mKind == SOLVER_HINT_BEST) || (aHint->mKind == SOLVER_HINT_FIRE)))
+			{
+				std::vector<SolverWord> anAll;
+				FindSolverWords(aTiles, mApp, &anAll);
+				for (const SolverWord& aWord : anAll)
+				{
+					if ((aWord.mBonusTiles == 0) && (aWord.mSafety <= aHint->mSafety) &&
+						((aHint->mKind == SOLVER_HINT_BEST) || ((aWord.mFireTiles > 0) && (aWord.mFireRow == aHint->mFireRow))))
+					{
+						Note("SAVE MISMATCH: the hint %s uses %d bonus tiles, %s needs none", aHint->mWord.c_str(),
+							aHint->mBonusTiles, aWord.mWord.c_str());
+						break;
+					}
+				}
+			}
 		}
 		if ((mTypeWords) && (Random(2) == 0))
 		{

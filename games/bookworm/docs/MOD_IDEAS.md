@@ -19,6 +19,7 @@ redistributed, stay git-ignored. How to install and test the mods that exist: RE
 | 7 | HD art (`tools/make_hd4x_mod.py`, 4.3) | done |
 | 8 | The smaller ideas (4.4): missed words, par, daily board, word journal, colour-blind, LiveSplit, widescreen | done |
 | 9 | Definitions while selecting (`mods/select-definitions`, 4.7, the user's idea) | done |
+| 10 | The solver saves bonus tiles (`mods/solver` setting `saveBonus`, 4.8, the user's idea) | done |
 
 Code mods read their switches from the mod's `"features"` (`src/ModFeatures.h`: a feature on, a live
 setting's value) and say `"affectsScores": true`, so their games get their own high scores and saved games
@@ -217,6 +218,17 @@ Once the selection has spelled a word for 0.15 s (15 updates), Lex's balloon giv
 game's, Collins', or the mod note); a changed selection fades it out. It never pushes out a comment
 Lex is making: it waits for the balloon to be free. A word played ends the preview, and the usual definition
 follows. Play is unchanged (`"affectsScores": false`): the selection already says whether it is a word.
+
+### 4.8 The solver saves bonus tiles (done, the user's idea, 2026-10-25)
+The solver's setting `saveBonus` (Solver::Solve). A bonus tile adds to the multiplier of the whole word (2 per
+green, 4 gold, 7 sapphire, 10 diamond, on top of the length; WordScore::CalcScore), so several in one long word
+of valuable letters score far more than each in a short word. With the setting, every list orders a path without
+bonus tiles before one with them, right after safety: each word's path, the best words, the longest, and the fire
+hint once it takes the lowest fire tile. The bonus word stays (spelled without them where it can be). A CASH IN
+hint after the best words is the best-scoring word that uses them. The -autoplay bot (`-autoplayhints=1`, the
+first hint every move) logs `SAVE MISMATCH` for a best or fire hint that uses bonus tiles where a path as safe
+goes without; seed 1 Classic and seed 2 Action, 30,000 updates: 436 words, none. Over the first 60 hints of
+Classic seed 1, 2 hints used bonus tiles (44 without the setting), and the board held 21 on average (2.4).
 
 ## What works as plain data today (no code)
 

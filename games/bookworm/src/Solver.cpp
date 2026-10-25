@@ -33,6 +33,11 @@ static bool ShowTag()
 	return ModFeatureBool("solver", "tag", true);
 }
 
+static bool SaveBonus()
+{
+	return ModFeatureBool("solver", "saveBonus", false);
+}
+
 void Sexy::FindBoardWords(const std::vector<Piece*>& theTiles, const std::set<SexyString>& theDictionary,
 	const BoardWordVisitor& theVisitor)
 {
@@ -116,7 +121,7 @@ bool Solver::BoardAtRest(Board* theBoard)
 	return true;
 }
 
-// Letters, tile types, the level (the points depend on it) and the bonus word
+// Letters, tile types, the level (the points depend on it), the settings and the bonus word
 std::string Solver::BoardSignature() const
 {
 	std::string aSig;
@@ -129,7 +134,8 @@ std::string Solver::BoardSignature() const
 			aSig += (aPiece != NULL) ? (char)('0' + aPiece->mType) : '.';
 		}
 	}
-	return aSig + StrFormat("|%d|", mBoard->mLevel) + mBoard->mBonusWord;
+	return aSig + StrFormat("|%d|%d%d%d|", mBoard->mLevel, (int)FireFirst(), BestCount(), (int)SaveBonus()) +
+		mBoard->mBonusWord;
 }
 
 // Safer first, then the given order
@@ -174,6 +180,12 @@ static bool BetterByLength(const SolverWord& a, const SolverWord& b)
 }
 
 // The points and the fire of thePath, as Submit will have them (theFires: the board's fire tiles)
+static bool IsBonusTile(const Piece* thePiece)
+{
+	return (thePiece->mType == TILE_GREEN) || (thePiece->mType == TILE_GOLD) || (thePiece->mType == TILE_SAPPHIRE) ||
+		(thePiece->mType == TILE_DIAMOND);
+}
+
 static void RatePath(SolverWord* theWord, const std::vector<Piece*>& theFires, bool isClassic, WordScore* theScore,
 	PieceList* theList)
 {
@@ -183,8 +195,11 @@ static void RatePath(SolverWord* theWord, const std::vector<Piece*>& theFires, b
 	theWord->mScore = theScore->mScore;
 	theWord->mFireTiles = 0;
 	theWord->mFireRow = -1;
+	theWord->mBonusTiles = 0;
 	for (size_t i = 0; i < thePath.size(); i++)
 	{
+		if (IsBonusTile(thePath[i]))
+			theWord->mBonusTiles++;
 		if (thePath[i]->mType == TILE_FIRE)
 		{
 			theWord->mFireTiles++;
@@ -283,6 +298,31 @@ void Solver::Solve()
 		}
 	}
 
+	// "saveBonus": after safety (and for the fire hint the lowest fire tile), a path without bonus tiles first
+	bool isSaving = SaveBonus();
+	auto aSavesFirst = [isSaving](const SolverWord& a, const SolverWord& b, bool* theResult)
+	{
+		if ((!isSaving) || (a.mSafety != b.mSafety) || ((a.mBonusTiles == 0) == (b.mBonusTiles == 0)))
+			return false;
+		*theResult = (a.mBonusTiles == 0);
+		return true;
+	};
+	auto aBetterByScore = [&](const SolverWord& a, const SolverWord& b)
+	{
+		bool aResult;
+		return aSavesFirst(a, b, &aResult) ? aResult : SolverBetterByScore(a, b);
+	};
+	auto aBetterForFire = [&](const SolverWord& a, const SolverWord& b)
+	{
+		bool aResult;
+		return ((a.mFireRow == b.mFireRow) && (aSavesFirst(a, b, &aResult))) ? aResult : SolverBetterForFire(a, b);
+	};
+	auto aBetterByLength = [&](const SolverWord& a, const SolverWord& b)
+	{
+		bool aResult;
+		return aSavesFirst(a, b, &aResult) ? aResult : BetterByLength(a, b);
+	};
+
 	// Every path, with its points and what it does to the fire
 	std::vector<SolverWord> aWords;
 	FindSolverWords(aTiles, mBoard->mApp, &aWords);
@@ -296,7 +336,7 @@ void Solver::Solve()
 		std::map<SexyString, size_t>::iterator anItr = aBestPath.find(aWords[i].mWord);
 		if (anItr == aBestPath.end())
 			aBestPath[aWords[i].mWord] = i;
-		else if (SolverBetterByScore(aWords[i], aWords[anItr->second]))
+		else if (aBetterByScore(aWords[i], aWords[anItr->second]))
 			anItr->second = i;
 	}
 	std::vector<SolverWord> aDistinct;
@@ -309,7 +349,7 @@ void Solver::Solve()
 		const SolverWord* aBest = NULL;
 		for (size_t i = 0; i < aWords.size(); i++)
 		{
-			if ((aWords[i].mFireTiles > 0) && ((aBest == NULL) || (SolverBetterForFire(aWords[i], *aBest))))
+			if ((aWords[i].mFireTiles > 0) && ((aBest == NULL) || (aBetterForFire(aWords[i], *aBest))))
 				aBest = &aWords[i];
 		}
 		if (aBest != NULL)
@@ -333,7 +373,7 @@ void Solver::Solve()
 		}
 	}
 
-	std::stable_sort(aDistinct.begin(), aDistinct.end(), SolverBetterByScore);
+	std::stable_sort(aDistinct.begin(), aDistinct.end(), aBetterByScore);
 	int aBestLeft = BestCount();
 	for (size_t i = 0; (i < aDistinct.size()) && (aBestLeft > 0); i++)
 	{
@@ -344,7 +384,24 @@ void Solver::Solve()
 		aBestLeft--;
 	}
 
-	std::stable_sort(aDistinct.begin(), aDistinct.end(), BetterByLength);
+	// "saveBonus": the best word that spends the saved bonus tiles (any of its paths that uses them)
+	if (isSaving)
+	{
+		const SolverWord* aCashIn = NULL;
+		for (size_t i = 0; i < aWords.size(); i++)
+		{
+			if ((aWords[i].mBonusTiles > 0) && ((aCashIn == NULL) || (SolverBetterByScore(aWords[i], *aCashIn))))
+				aCashIn = &aWords[i];
+		}
+		if (aCashIn != NULL)
+		{
+			mHints.push_back(*aCashIn);
+			mHints.back().mKind = SOLVER_HINT_CASHIN;
+			aListed.insert(aCashIn->mWord);
+		}
+	}
+
+	std::stable_sort(aDistinct.begin(), aDistinct.end(), aBetterByLength);
 	if (aListed.insert(aDistinct[0].mWord).second)
 	{
 		mHints.push_back(aDistinct[0]);
@@ -442,7 +499,11 @@ void Solver::Draw(Graphics* g)
 		aKind = "BONUS WORD";
 	else if (aHint.mKind == SOLVER_HINT_LONGEST)
 		aKind = "LONGEST";
+	else if (aHint.mKind == SOLVER_HINT_CASHIN)
+		aKind = "CASH IN";
 	SexyString aText = StrFormat("%s  %d/%d", aKind, mHintIdx + 1, (int)mHints.size());
+	if ((SaveBonus()) && (aHint.mBonusTiles > 0))
+		aText += StrFormat("  %d BONUS TILE%s", aHint.mBonusTiles, (aHint.mBonusTiles == 1) ? "" : "S");
 	if (aHint.mSafety == SOLVER_FATAL)
 		aText += "  ENDS THE GAME";
 	else if (aHint.mSafety == SOLVER_DANGER)

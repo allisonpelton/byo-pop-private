@@ -39,6 +39,8 @@
 // -autoplayhints=1 (with the mod "solver" on): every move is the word solver's first hint, asked for with Tab
 // and submitted with the Submit button (a scramble when the board spells no word). The log notes each hint
 // and the word's score, and "HINT MISMATCH" where the game scored the word otherwise than the solver said.
+// With the solver's setting "saveBonus" on, "SAVE MISMATCH" where a best or fire hint uses bonus tiles although
+// a path as safe goes without them (for the fire hint, one that takes the same lowest fire tile).
 // -autoplayundo=1 as well (with the mod "undo" on): every other word is undone (the Undo button and Ctrl+Z
 // in turn), the board checked against the one before the word, the same hint played again and the board
 // checked against the first play's; "UNDO MISMATCH" where one differs (letters, tile types, score, fire).

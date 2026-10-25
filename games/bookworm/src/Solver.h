@@ -9,7 +9,10 @@
 // when the board spells it; the best-scoring words; the longest word. Safe words come first: in Classic a
 // word that leaves out a fire tile on the bottom row ends the game (Submit burns before it removes the
 // tiles), and a word that eats the tiles under a fire tile drops it, onto the bottom row at worst, where the
-// next word must take it.
+// next word must take it. The setting "saveBonus" saves the bonus tiles (green, gold, sapphire, diamond): every
+// list prefers words and paths without them (the fire hint after the lowest fire tile), so they stack up on the
+// board, and a CASH IN hint after the best words is the best-scoring word that uses them (each adds to the
+// multiplier of the whole word's letters: WordScore::CalcScore).
 
 #include "Common.h"
 #include "Piece.h"
@@ -36,7 +39,8 @@ enum SolverHintKind
 	SOLVER_HINT_FIRE = 0,       // takes the most urgent fire tile
 	SOLVER_HINT_BONUS,          // the level's bonus word
 	SOLVER_HINT_BEST,           // by points
-	SOLVER_HINT_LONGEST         // the most letters (the better special tile: 7+ mostly sapphire, 11+ diamond)
+	SOLVER_HINT_LONGEST,        // the most letters (the better special tile: 7+ mostly sapphire, 11+ diamond)
+	SOLVER_HINT_CASHIN          // "saveBonus": the best-scoring word that uses bonus tiles
 };
 
 enum SolverSafety
@@ -74,6 +78,7 @@ struct SolverWord
 	                                    // are gone (the tiles under it eaten), -1 for none
 	int					mFireDrops;     // the fire tiles left out that fall (tiles under them eaten)
 	int					mSafety;        // SolverSafety
+	int					mBonusTiles;    // green, gold, sapphire and diamond tiles in the path
 	int					mKind;          // SolverHintKind, once it is a hint
 };
 

@@ -264,15 +264,29 @@ int SidePanel::DrawHints(Graphics* g, Board* theBoard, int theY)
 			aKind = "LONG";
 			aKindColor = Color(120, 170, 255);
 		}
+		else if (aHint.mKind == SOLVER_HINT_CASHIN)
+		{
+			aKind = "CASH";
+			aKindColor = Color(120, 225, 110);
+		}
 		g->SetFont(aLabelFont);
 		g->SetColor(aKindColor);
 		g->DrawString(aKind, CONTENT_X, theY + (ROW_H + aLabelFont->GetAscent()) / 2 - 1);
 
+		// the word in the colour of its best bonus tile (orange and "!" when it is not safe)
+		static const int aRank[NUM_TILE_TYPES] = { 0, 1, 2, 0, 3, 4 };  // normal, green, gold, fire, sapphire, diamond
+		int aBestType = TILE_NORMAL;
+		for (Piece* aPiece : aHint.mPath)
+		{
+			if ((aPiece->mType < NUM_TILE_TYPES) && (aRank[aPiece->mType] > aRank[aBestType]))
+				aBestType = aPiece->mType;
+		}
 		bool isSafe = (aHint.mSafety == SOLVER_SAFE);
 		SexyString aWord = aHint.mWord;
 		if (!isSafe)
 			aWord += _S(" !");
-		DrawRow(g, aFont, aWord, StrFormat(_S("%d"), aHint.mScore), isSafe ? Color(255, 255, 255) : Color(255, 140, 100),
+		DrawRow(g, aFont, aWord, StrFormat(_S("%d"), aHint.mScore), isSafe ? ((aBestType == TILE_NORMAL) ?
+			Color(255, 255, 255) : TileColor(aBestType)) : Color(255, 140, 100),
 			Color(255, 214, 110), theY, 40);
 		theY += ROW_H;
 	}
