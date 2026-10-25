@@ -134,3 +134,8 @@ option(BUILD_NOAHSARK "Build the Noah's Ark Deluxe port" ON)
 if(BUILD_NOAHSARK AND EXISTS ${PROJECT_SOURCE_DIR}/games/noahsark/CMakeLists.txt)
   add_subdirectory(games/noahsark)
 endif()
+# Seven Seas Deluxe: optional while it is new; the build skips it if its folder is missing
+option(BUILD_SEVENSEAS "Build the Seven Seas Deluxe port" ON)
+if(BUILD_SEVENSEAS AND EXISTS ${PROJECT_SOURCE_DIR}/games/sevenseas/CMakeLists.txt)
+  add_subdirectory(games/sevenseas)
+endif()
