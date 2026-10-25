@@ -236,9 +236,13 @@ public:
 	// the right part.
 	UndoStack*			mUndo;
 	DialogButton*		mUndoButton;
-	// port(mod): fire tiles the next Refill sets among its new tiles (a mod's word: ModWordFire, mod
-	// "rude-words"); set by Submit, 0 otherwise
+	// port(mod): a mod's words with effects (ModWordEffects, mod "rude-words"): the fire tiles the next
+	// Refill sets among its new tiles (set by Submit, 0 otherwise), Lex's danger clip once he has eaten the
+	// word, and the words of the game the stats count (kept at the end of the saved game while such a mod is
+	// on; the player's all-time total is in the registry, ModWordStatsValueName)
 	int					mModFireDue;
+	bool				mModDangerPending;
+	int					mModWordsPlayed;
 
 public:
 	Board(BookWormApp* theApp);                                         // 0x40ae90
@@ -284,6 +288,9 @@ public:
 	void				NewBoard();                                     // 0x404150
 	void				Refill();                                       // 0x40b540
 	void				SetModFire(const std::vector<Piece*>& theNewTiles, int theCount); // port(mod)
+	void				RemoveBonusTiles();                             // port(mod)
+	int					GetModWordsAllTime();                           // port(mod)
+	void				AddModWordsAllTime(int theDelta);               // port(mod)
 	void				DeleteAllPieces();                              // 0x4036e0
 	void				RemovePieces(PieceList* thePieces);             // 0x4052d0
 	void				GetNormalPieces(std::vector<Piece*>* thePieces); // 0x40b9e0

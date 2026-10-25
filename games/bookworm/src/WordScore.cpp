@@ -1,6 +1,7 @@
 #include "WordScore.h"
 #include "Board.h"
 #include "BookWormApp.h"
+#include "ModWords.h"
 
 #include <cstdint>
 
@@ -121,6 +122,7 @@ void WordScore::Build(const PieceList* thePieces)
 		mScore = CalcScore();
 	else
 		mScore = 0;
+	mScore = ModWordScore(mWord, mScore);  // port(mod): a mod's points multiplier (rude-words)
 }
 
 // 0x404f60: the live formula. (letter values + level + 1) * 10 * (length + 2 per green, 4 per gold,

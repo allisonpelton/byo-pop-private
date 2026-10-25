@@ -90,15 +90,32 @@ slang (with their inflected forms) that the game's list lacks, in `mods/rude-wor
 is our own, written for the mod, so it is committed; it leaves out slurs aimed at groups of people (racial,
 ethnic, homophobic, transphobic, ableist). 230 of them are in Collins too: with both mods on they burn all
 the same, since each mod's words are those the game's own list lacks, whatever other mods add.
-- **Fire**: Submit sets `Board::mModFireDue` from `ModWordFire`, and Refill sets that many of the tiles it
-  drops in on fire (setting 0..5, default 2): normal ones, never on the bottom row, picked with `gGameRand`,
-  so an undo and the same word again bring the same fire. None when the word ends the level.
-- **Lex** says "Such language!" for a rude word without a definition (setting); the solver ranks a word that
-  sets fire after the safe ones and tags it "SETS FIRE".
-- Tested with a copy of the Collins mod given `"fire": 2`, so that the bot plays such words: the plain bot's
-  fire count rises by 2 after each of them (the level-ending one excepted) and it burns out on level 2 (level
-  8 without); an undo and the same clicks again set the same two tiles on fire; the mod's own setting at 0
-  sets none; the solver bot with undo, Classic 109 checks and Action 56, no mismatch.
+- **Settings** (`ModWordGetEffects`, read live): a points multiplier (-5..5 in halves, default 1: 0 scores
+  nothing, below 0 takes points away, never more than the level has so far; `ModWordScore` in
+  `WordScore::Build`, in tens like every score; a negative popup is in LockerGnome, the score font has no
+  minus); every new tile burns, or a number of them, fixed (0..9, default 2) or one per so many letters (1..6,
+  at least one); bonus tiles as usual, none for a rude word, or a rude word turns every special tile on the
+  board plain (`Board::RemoveBonusTiles`; one under a fire tile then burns like a plain one).
+- **Fire**: Submit sets `Board::mModFireDue` from the effects (every tile: all of them), and Refill sets that
+  many of the tiles it drops in on fire: normal ones, never on the bottom row, picked with `gGameRand`, so an
+  undo and the same word again bring the same fire. None when the word ends the level.
+- **Lex** (setting "Lex comments", on by default): his balloon (`Lex::SayReaction`) has the word, one of 65
+  comments of ours (`rude-reactions.txt`, the feature's `"reactions"`; picked from the word and the game's
+  count, so an undo and the word again get the same one) and, with definitions on, the word's definition
+  under it (the balloon's third block, `WordBalloon::SetFooter`); once he has eaten the word he plays his
+  danger clip (`LEXANIM_DANGER` and its sound). The note "Such language!" stays for a mod without reactions.
+  The solver ranks a word that sets fire after the safe ones and tags it "SETS FIRE".
+- **Stats** (the feature's `"stats"` label): the game's count (`Board::mModWordsPlayed`, an int after the
+  saved game's record while the mod is on) and the player's all-time total (a profile int,
+  `ModWords-rude-words`) on the level and game-over page, under the times: "Rude words: 4, all time 4". An
+  undo takes the undone word off both.
+- Tested with a copy of the mod whose list is Collins (so the bot plays such words), hidden under rundesk: the
+  default fires 2 tiles and the balloon reads word, comment, definition, and Lex's danger pose follows the
+  eating where a plain word leaves him idle; -1 with fire by length (3 letters a tile) scores a 7-letter word
+  -1400 with 2 fire tiles and turns the board's green tile plain; 0.5 with every tile burning scores it 700
+  with 6 fire tiles; the solver bot with undo, points 2 and no fire (so its words are safe), 30 words with 9
+  undone, leaves an all-time total of 21. Earlier: the plain bot burns out on level 2 (level 8 without), and
+  the solver bot with undo, Classic 109 checks and Action 56, found no mismatch.
 
 ### 4.2 Against greedy bots, on the game-over screen (the user's idea)
 At game over the stats screen also shows what two simple players would have scored from the same start: one

@@ -327,6 +327,33 @@ void Lex::SayDefinition(const SexyString& theWord, Font* theWordFont, const Sexy
 	aBalloon->Show(theDuration);
 }
 
+// port(mod): Lex's comment on a mod's word (rude-words, ModWordReaction) in SayDefinition's box: the word as
+// the header, the comment, and the word's definition (if any) under it. Unlike a definition it replaces
+// whatever the balloon shows, a hint included.
+void Lex::SayReaction(const SexyString& theWord, const SexyString& theReaction, const SexyString& theDefinition,
+	int theDuration)
+{
+	OverlayWidget* anOverlay = mApp->mBoard->mOverlay;
+	if (anOverlay == NULL)
+		return;
+	WordBalloon* aBalloon = anOverlay->mBalloon;
+	mHintShowing = false;
+
+	aBalloon->SetBoxImages(mApp->mImages[IMAGE_BACKDROP_WB_TEXT], mApp->mImages[IMAGE_WB_TEXT_TALK_TAIL],
+		Point((int)(0.75 * 213.0), -2));
+	aBalloon->SetHeader(theWord, mApp->mFonts[FONT_MYRIADWEB12BOLD], -1);
+	aBalloon->SetText(theReaction, mApp->mFonts[FONT_MYRIADWEB10], -1);
+	aBalloon->ClearFooter();
+	if (theDefinition.size() != 0)
+		aBalloon->SetFooter(theDefinition, mApp->mFonts[FONT_MYRIADWEB10], -1);
+	aBalloon->mLookupURL = ModWordLookupURL(theWord);
+	aBalloon->mDoFinger = !aBalloon->mLookupURL.empty();
+	aBalloon->SetColors(gLexSayColors, 4);
+	aBalloon->mTextInsets = Insets(12, 0, 12, 0);
+	aBalloon->Resize(0, 0, 213, aBalloon->GetPreferredHeight(213));
+	aBalloon->Show(theDuration);
+}
+
 // 0x42d9e0 slot 23
 // Arms the scramble hint when one of the 7 top tiles is not a fire tile, the board has fewer than 10 fire
 // tiles (Board::Scramble refuses beyond 9), Lex is not sweating and the balloon is free (or shows the

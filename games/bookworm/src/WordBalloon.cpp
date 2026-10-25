@@ -320,6 +320,14 @@ void WordBalloon::ClearFooter()
 	mFooterFont = NULL;
 }
 
+// port(mod): the original only ever clears the third block; Lex::SayReaction puts the definition there
+void WordBalloon::SetFooter(const SexyString& theText, Font* theFont, int theJustify)
+{
+	mFooter = theText;
+	mFooterFont = theFont;
+	mFooterJustify = theJustify;
+}
+
 // 0x4374e0
 void WordBalloon::SetHeader(const SexyString& theText, Font* theFont, int theJustify)
 {

@@ -239,7 +239,9 @@ void Solver::Solve()
 		}
 		if ((aWord.mSafety == SOLVER_SAFE) && (aWord.mFireLeftRow >= BOARD_ROWS - 1))
 			aWord.mSafety = SOLVER_DANGER;
-		if ((aWord.mSafety == SOLVER_SAFE) && (ModWordFire(theWord) > 0))
+		ModWordEffects anEffects;
+		if ((aWord.mSafety == SOLVER_SAFE) && (ModWordGetEffects(theWord, &anEffects)) &&
+			((anEffects.mEveryTile) || (anEffects.mFire > 0)))
 			aWord.mSafety = SOLVER_SETS_FIRE;
 		aWord.mKind = SOLVER_HINT_BEST;
 		aWords.push_back(aWord);

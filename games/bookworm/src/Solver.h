@@ -42,7 +42,7 @@ enum SolverHintKind
 enum SolverSafety
 {
 	SOLVER_SAFE = 0,
-	SOLVER_SETS_FIRE,           // a mod's word that sets fire to new tiles (ModWordFire, mod "rude-words")
+	SOLVER_SETS_FIRE,           // a mod's word that sets fire to new tiles (ModWordGetEffects, mod "rude-words")
 	SOLVER_DANGER,              // a fire tile ends on the bottom row: the next word must take it
 	SOLVER_FATAL                // classic: a fire tile on the bottom row is left out: the game ends
 };

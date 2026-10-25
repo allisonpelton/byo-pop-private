@@ -1,17 +1,37 @@
 {
   "id": "rude-words",
   "name": "Rude Words",
-  "version": "1.0",
+  "version": "1.1",
   "author": "byo-pop",
-  "description": "Adds about 300 swear words, crude slang and internet slang that BookWorm's dictionary leaves out (no slurs). They score as usual, but each one sets fire to some of the new tiles that drop in. Works with Collins Scrabble Words too. Games with it keep their own high scores.",
+  "description": "Adds about 300 swear words, crude slang and internet slang that BookWorm's dictionary leaves out (no slurs). Playing one sets new tiles on fire, and Lex has something to say about it. The settings change its points, the fire and the bonus tiles. The game-over screen counts the rude words of the game and of all time. Works with Collins Scrabble Words too. Games with it keep their own high scores.",
   "affectsScores": true,
   "features": {
-    "words": { "add": ["rude-words.txt"], "note": "Such language!", "fire": 2 }
+    "words": { "add": ["rude-words.txt"], "note": "Such language!", "reactions": ["rude-reactions.txt"], "fire": 2,
+               "stats": "Rude words" }
   },
   "settings": [
-    { "id": "fire", "label": "Fire tiles per rude word", "type": "int", "default": 2, "min": 0, "max": 5,
-      "help": "How many of the tiles that replace a rude word come in burning." },
-    { "id": "note", "label": "Lex minds his language", "type": "bool", "default": true,
-      "help": "Lex's balloon says \"Such language!\" for a rude word without a definition." }
+    { "type": "section", "label": "Points" },
+    { "id": "points", "label": "Points multiplier", "type": "float", "default": 1, "min": -5, "max": 5, "step": 0.5,
+      "decimals": 1, "help": "A rude word's points are multiplied by this: 0 scores nothing, below 0 takes points away (never below the level's start)." },
+    { "type": "section", "label": "Fire" },
+    { "id": "everyTile", "label": "Every new tile burns", "type": "bool", "default": false,
+      "help": "Every tile that drops in to replace a rude word comes in burning (but none on the bottom row)." },
+    { "id": "fireCount", "label": "Fire tiles", "type": "choice", "default": "fixed",
+      "choices": [ { "value": "fixed", "label": "A fixed number" }, { "value": "length", "label": "By the word's length" } ],
+      "enabledIf": { "setting": "everyTile", "equals": false },
+      "help": "How many of the new tiles burn: always the same number, or one for so many letters of the word." },
+    { "id": "fire", "label": "Fire tiles per rude word", "type": "int", "default": 2, "min": 0, "max": 9,
+      "enabledIf": { "setting": "fireCount", "equals": "fixed" } },
+    { "id": "letters", "label": "Letters per fire tile", "type": "int", "default": 2, "min": 1, "max": 6,
+      "enabledIf": { "setting": "fireCount", "equals": "length" },
+      "help": "One fire tile for every so many letters of the word (at least one)." },
+    { "type": "section", "label": "Bonus tiles" },
+    { "id": "bonus", "label": "Bonus tiles", "type": "choice", "default": "keep",
+      "choices": [ { "value": "keep", "label": "As usual" }, { "value": "none", "label": "None for a rude word" },
+                   { "value": "remove", "label": "A rude word removes them all" } ],
+      "help": "Whether a rude word still earns a bonus tile (gold, sapphire, diamond), and whether it turns every bonus tile on the board (green ones too) back into a plain one." },
+    { "type": "section", "label": "Lex" },
+    { "id": "note", "label": "Lex comments", "type": "bool", "default": true,
+      "help": "Lex's balloon has a comment on each rude word (and its definition, with definitions on), and he cries danger." }
   ]
 }

@@ -79,6 +79,7 @@ public:
 	void			SetBoxImages(Image* theBoxImage, Image* theTailImage, Point theTailPos); // 0x4364d0
 	void			ClearHeader();                                  // 0x437430 (text erased, font NULL)
 	void			ClearFooter();                                  // 0x437480
+	void			SetFooter(const SexyString& theText, Font* theFont, int theJustify); // port(mod)
 	void			SetHeader(const SexyString& theText, Font* theFont, int theJustify); // 0x4374e0
 	void			SetText(const SexyString& theText, Font* theFont, int theJustify);   // 0x437510
 

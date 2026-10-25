@@ -3,6 +3,7 @@
 #include "Board.h"
 #include "StatKeeper.h"
 #include "Lex.h"
+#include "ModWords.h"
 #include "OverlayWidget.h"
 #include "WordBalloon.h"
 #include "ColorizedButton.h"
@@ -435,6 +436,16 @@ void LevelUpWidget::DrawPanel(Graphics* g)
 	g->DrawString(aTimeText, 74, aY);
 	g->SetFont(mApp->mFonts[FONT_SCRIPPSCOLLEGEOS15BOLD]);
 	g->DrawString(aTotalText, 74, aY + g->GetFont()->GetHeight());
+
+	// port(mod): the game's and the player's all-time count of a mod's words (rude-words' "stats")
+	SexyString aModLabel = ModWordStatsLabel();
+	if (aModLabel.length() != 0)
+	{
+		int aModY = aY + g->GetFont()->GetHeight() * 2;
+		g->SetFont(mApp->mFonts[FONT_SCRIPPSCOLLEGEOS13BOLD]);
+		g->DrawString(StrFormat("%s: %d, all time %d", aModLabel.c_str(), aBoard->mModWordsPlayed,
+			aBoard->GetModWordsAllTime()), 74, aModY);
+	}
 
 	// The rank: the level reached (the next level after a level, the current one at game over)
 	unsigned int aRank = isLevelSummary ? aBoard->mLevel + 1 : aBoard->mLevel;

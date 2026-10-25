@@ -88,6 +88,7 @@ void UndoStack::Restore()
 	int aLevelSecondsBanked = mBoard->mLevelSecondsBanked;
 	int aPauseCount = mBoard->mPauseCount;
 	bool aCtrlDown = mBoard->mCtrlDown;
+	int aModWordsPlayed = mBoard->mModWordsPlayed;
 
 	if (!mBoard->ReadSavedGame(aSnapshot.mRecord))
 	{
@@ -103,6 +104,7 @@ void UndoStack::Restore()
 	mBoard->mLevelSecondsBanked = aLevelSecondsBanked;
 	mBoard->mPauseCount = aPauseCount;
 	mBoard->mCtrlDown = aCtrlDown;
+	mBoard->AddModWordsAllTime(mBoard->mModWordsPlayed - aModWordsPlayed);  // the undone word's count too
 
 	// the record was made in Submit, with the word selected; Lex is a new one, so nothing would count down
 	// the undone word's definition balloon (and the mouse resting on it would hold it up): it fades now

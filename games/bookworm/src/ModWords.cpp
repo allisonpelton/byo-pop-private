@@ -1,8 +1,10 @@
 #include "ModWords.h"
 #include "BookWormApp.h"
 #include "Definitionator.h"
+#include "PakInterface.h"
 #include "platform/ModManager.h"
 #include <algorithm>
+#include <cmath>
 #include <vector>
 
 using namespace Sexy;
@@ -10,17 +12,75 @@ using namespace Sexy;
 namespace
 {
 
-// The words one mod adds that the game's own list lacks, sorted, for its note and its fire tiles
+// The words one mod adds that the game's own list lacks, sorted, for its note, effects and stats
 struct ModWordList
 {
 	std::string				mModId;
 	SexyString				mNote;
-	bool					mHasFire;
-	int						mFire;          // "fire", the mod's setting "fire" taking its place
+	bool					mHasFire;       // the words have effects (ModWordEffects)
+	int						mFire;          // "fire", the default of the mod's setting "fire"
+	std::vector<SexyString>	mReactions;     // Lex's comments
+	SexyString				mStatsLabel;    // "stats"
 	std::vector<SexyString>	mWords;
 };
 
 std::vector<ModWordList> gModWordLists;
+
+// The mod's live setting, or theDefault without it
+Platform::JsonValue Setting(const ModWordList& theList, const char* theSetting)
+{
+	return Platform::ModManager::Get().GetLiveValue(theList.mModId, theSetting);
+}
+
+bool SettingBool(const ModWordList& theList, const char* theSetting, bool theDefault)
+{
+	Platform::JsonValue aValue = Setting(theList, theSetting);
+	return aValue.IsBool() ? aValue.AsBool(theDefault) : theDefault;
+}
+
+int SettingInt(const ModWordList& theList, const char* theSetting, int theDefault, int theMin, int theMax)
+{
+	Platform::JsonValue aValue = Setting(theList, theSetting);
+	int anInt = aValue.IsNumber() ? aValue.AsInt(theDefault) : theDefault;
+	return (anInt < theMin) ? theMin : ((anInt > theMax) ? theMax : anInt);
+}
+
+// The list holding theWord that has effects ("fire"), or null
+const ModWordList* EffectsList(const SexyString& theWord)
+{
+	for (const ModWordList& aList : gModWordLists)
+	{
+		if ((aList.mHasFire) && (std::binary_search(aList.mWords.begin(), aList.mWords.end(), theWord)))
+			return &aList;
+	}
+	return NULL;
+}
+
+// One comment a line (CR LF or LF), empty lines skipped
+void LoadLines(const std::string& theFileName, std::vector<SexyString>* theLines)
+{
+	PFILE* aFile = p_fopen(theFileName.c_str(), "r");
+	if (aFile == NULL)
+		return;
+	SexyString aLine;
+	for (;;)
+	{
+		int aChar = p_fgetc(aFile);
+		if ((aChar == EOF) || (aChar == '\n'))
+		{
+			while ((!aLine.empty()) && ((aLine.back() == '\r') || (aLine.back() == ' ')))
+				aLine.pop_back();
+			if (!aLine.empty())
+				theLines->push_back(aLine);
+			aLine.clear();
+			if (aChar == EOF)
+				break;
+		}
+		else
+			aLine += (char)aChar;
+	}
+	p_fclose(aFile);
+}
 
 // A file name or a list of them
 std::vector<std::string> FileNames(const Platform::JsonValue& theValue)
@@ -53,6 +113,9 @@ void Sexy::LoadModWords(BookWormApp* theApp, std::set<SexyString>* theDictionary
 		aList.mNote = aFeature["note"].AsString("");
 		aList.mHasFire = aFeature["fire"].IsNumber();
 		aList.mFire = aFeature["fire"].AsInt(0);
+		aList.mStatsLabel = aFeature["stats"].AsString("");
+		for (const std::string& aName : FileNames(aFeature["reactions"]))
+			LoadLines(aName, &aList.mReactions);
 		for (const std::string& aName : FileNames(aFeature["add"]))
 		{
 			std::vector<SexyString> aWords;
@@ -122,17 +185,76 @@ std::string Sexy::ModWordLookupURL(const SexyString& theWord)
 	return std::string();
 }
 
-int Sexy::ModWordFire(const SexyString& theWord)
+bool Sexy::ModWordGetEffects(const SexyString& theWord, ModWordEffects* theEffects)
+{
+	const ModWordList* aList = EffectsList(theWord);
+	if (aList == NULL)
+		return false;
+	Platform::JsonValue aPoints = Setting(*aList, "points");
+	theEffects->mPoints = aPoints.IsNumber() ? aPoints.AsNumber(1.0) : 1.0;
+	theEffects->mEveryTile = SettingBool(*aList, "everyTile", false);
+	if (Setting(*aList, "fireCount").AsString("fixed") == "length")
+	{
+		int aLetters = SettingInt(*aList, "letters", 2, 1, 15);
+		theEffects->mFire = std::max(1, std::min(9, (int)theWord.size() / aLetters));
+	}
+	else
+		theEffects->mFire = SettingInt(*aList, "fire", aList->mFire, 0, 9);
+	std::string aBonus = Setting(*aList, "bonus").AsString("keep");
+	theEffects->mBonus = (aBonus == "remove") ? MODWORD_BONUS_REMOVE :
+		((aBonus == "none") ? MODWORD_BONUS_NONE : MODWORD_BONUS_KEEP);
+	theEffects->mComment = SettingBool(*aList, "note", true);
+	return true;
+}
+
+int Sexy::ModWordScore(const SexyString& theWord, int theScore)
+{
+	if (gModWordLists.empty())
+		return theScore;
+	ModWordEffects anEffects;
+	if ((!ModWordGetEffects(theWord, &anEffects)) || (anEffects.mPoints == 1.0))
+		return theScore;
+	// in tens, as every score is
+	return (int)std::floor((double)theScore * anEffects.mPoints / 10.0 + 0.5) * 10;
+}
+
+SexyString Sexy::ModWordReaction(const SexyString& theWord, int theCount)
+{
+	const ModWordList* aList = EffectsList(theWord);
+	if ((aList == NULL) || (aList->mReactions.empty()) || (!SettingBool(*aList, "note", true)))
+		return SexyString();
+	// the same word and count give the same comment (an undo and the word again), the next word another
+	unsigned int aHash = 0;
+	for (char c : theWord)
+		aHash = aHash * 31 + (unsigned char)c;
+	unsigned int aSize = (unsigned int)aList->mReactions.size();
+	return aList->mReactions[(aHash + (unsigned int)theCount * 7) % aSize];
+}
+
+bool Sexy::ModWordCounted(const SexyString& theWord)
+{
+	const ModWordList* aList = EffectsList(theWord);
+	return (aList != NULL) && (!aList->mStatsLabel.empty());
+}
+
+SexyString Sexy::ModWordStatsLabel()
 {
 	for (const ModWordList& aList : gModWordLists)
 	{
-		if ((!aList.mHasFire) || (!std::binary_search(aList.mWords.begin(), aList.mWords.end(), theWord)))
-			continue;
-		Platform::JsonValue aSetting = Platform::ModManager::Get().GetLiveValue(aList.mModId, "fire");
-		int aFire = aSetting.IsNumber() ? aSetting.AsInt(aList.mFire) : aList.mFire;
-		return (aFire < 0) ? 0 : ((aFire > 9) ? 9 : aFire);
+		if ((aList.mHasFire) && (!aList.mStatsLabel.empty()))
+			return aList.mStatsLabel;
 	}
-	return 0;
+	return SexyString();
+}
+
+SexyString Sexy::ModWordStatsValueName()
+{
+	for (const ModWordList& aList : gModWordLists)
+	{
+		if ((aList.mHasFire) && (!aList.mStatsLabel.empty()))
+			return "ModWords-" + aList.mModId;
+	}
+	return SexyString();
 }
 
 SexyString Sexy::ModWordNote(const SexyString& theWord)
