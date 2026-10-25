@@ -145,3 +145,10 @@ flow (an off-by-one from turning a test-then-increment loop into a for loop, a m
 Its own tests could not catch them: its bot games compare the port only with itself, and nothing in them runs the
 original exe for comparison. Whether Opus would have made fewer such errors is not known, since Big Money's and
 BookWorm's ports have not been sampled the same way.
+
+The decision that followed (2026-10-25, CLAUDE.md "Model selection"): Sonnet did well in most of what was measured,
+so games whose port can largely copy another game's run on Sonnet, and games that need an engine or framework layer
+no port has yet run on Opus. Opus covers Sonnet's deficits by review: the coordinator samples each Sonnet port's
+translated functions against the decompilation before merging it, as above. Each later game is measured the same way
+(tokens and time per unit of the survey's estimate, and the review's findings), so the rule can move a kind of game
+back to Opus if Sonnet does badly on it.
