@@ -88,9 +88,12 @@ Not done or approximate:
   High Score List" dialogs, the trial's loading delay and the shareware counters are not ported (the port plays as the
   registered game). The internet score check's object (the +0x6c field of the board) is not either.
 - The pirate's mouth (`TalkWidget`) moves through random frames while a line plays; the original has a table of frames and
-  times per line. The skull's pupils follow the mouse with an estimated formula. The high-score screen's lines are placed by
-  estimate (its long drawing function's arithmetic was not recovered), and so are the text lines of the bonus screen's
-  messages. Nothing could be run to compare with the original, so these are the places where the port may differ on screen.
+  times per line. The skull's pupils follow the mouse with an estimated formula, and the text lines of the bonus screen's
+  messages are placed by estimate. Nothing could be run to compare with the original, so these are the places where the port
+  may differ on screen.
+- The high-score screen (0x40ff70 constructor, 0x412af0 update, 0x411260 draw, 0x412cc0 insert) follows the original's
+  positions, colours and the slide-in from the top, and says "You got ... place" in the name dialog after it (0x410ae0).
+  The original's second button, "Submit to Internet High Score List", and the timer that re-enables it are not ported.
 - The order of the tutorial's own steps, the sound and the music orders (the module's start orders 0..0x1f select the music
   for the menu, the levels and the bonus screens) were taken from the code, not heard.
 

@@ -146,13 +146,13 @@ class HighScoreWidget : public Widget, public ButtonListener
 {
 public:
 	SevenSeasApp*		mApp;                   // +0x5c
-	DialogButton*		mNewGameButton;         // +0x64 id 1
+	DialogButton*		mNewGameButton;         // +0x64 id 1 (the original's +0x68, "Submit to Internet High Score List", is not ported)
 	std::string			mTodayName;             // +0x84 the best score of the day
 	int					mTodayScore;            // +0x94
 	std::string			mNames[5];              // +0x98 the five best
 	int					mScores[5];             // +0xe8
-	int					mMyPlace;               // +0x7c the place of this game's score (0 none)
-	int					mTime;                  // +0x60 an update counter for the effects
+	int					mShimmer;               // +0x7c counts up every ten updates; moves the colours of the list
+	int					mReveal;                // +0x60 how much of the screen is shown: it grows by 6 an update
 
 public:
 	HighScoreWidget(SevenSeasApp* theApp);
@@ -168,7 +168,9 @@ public:
 
 	void				LoadScores();                       // 0x410550
 	void				SaveScores();                       // 0x410870
-	void				AddScore(const SexyString& theName);    // 0x410ae0
+	void				ShowScoreNote();                    // 0x410ae0
+	int					PlaceFor(int theScore);             // 0x411160
+	void				AddScore(const SexyString& theName);    // 0x412cc0
 	static const char*	RankName(int theScore);
 };
 

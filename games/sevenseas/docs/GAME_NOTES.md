@@ -88,6 +88,15 @@ high-score screen (0x40ff70). The sidebar's four buttons are made at run time fr
 sliders and check boxes), next level (0x417a30, "Next rank at ..."), record score (0x419f40), the bonus-screen note
 (0x40c7d0) and the warning dialog (0x4262c0), both with a "do not show again" check box that is stored in the registry.
 
-The scores: `hiscores.dat` holds the best score of the day and the five best (names, scores and check values, the
-README's Status lists what of the screen is approximate). The rank names of the next-level dialog and the high-score
-screen come from a table of thresholds embedded in `Screens.cpp`.
+The game-over screen (`HighScoreWidget`, constructor 0x40ff70, 467 x 480 at x 0xad) does nothing but load `hiscores.dat`
+(0x410550: the best score of the day and the five best, each with a name, a score and a check value) when it is made.
+Its update (0x412af0) shows it from the top down, 6 pixels an update (`+0x60`, the clip line of the draw, 0x411260); the
+button comes out of the frame as that line passes it; when the line reaches the bottom, 0x410ae0 works out the place of the
+score (0x411160: the first of the five whose score is lower) and, if the score is a place or the best of the day, opens the
+name dialog with "You got ... place of all time!" (an unregistered player is asked to register instead). The dialog's
+answer calls 0x412cc0, which puts the score into the list and into "Today's Top Score" when it beats it (an empty name
+adds nothing); the original writes the file when the widget is deleted. The draw prints each of the four totals lines
+25 times (offsets -2, -1, 1, 2 and 0 on both axes; black, then gold and yellow in the middle) for an outline, the rank,
+the list on its panel with a colour per row that moves with `+0x7c` (a counter of ten updates; hue
+`|(row + 2 + counter) * 10 % 170 - 85|`, lightness 0x60 for the name and 0x96 for the score), and the best of the day.
+The rank names come from a table of 18 thresholds (two per name) embedded in `Screens.cpp`.

@@ -38,11 +38,12 @@ struct AutoplayState
 	int				mGames;             // games started
 	int				mWait;              // updates to wait before the next action
 	bool			mGameOverLogged;
+	bool			mGameOverShot;      // the screenshot of the finished high-score screen was taken
 	int				mLastLevel;
 	int				mMoves;             // moves made in this game
 	FILE*			mLog;
 
-	AutoplayState() : mSeed(1), mTick(0), mGames(0), mWait(0), mGameOverLogged(false), mLastLevel(0), mMoves(0),
+	AutoplayState() : mSeed(1), mTick(0), mGames(0), mWait(0), mGameOverLogged(false), mGameOverShot(false), mLastLevel(0), mMoves(0),
 		mLog(NULL) {}
 
 	int Rand(int theRange)
@@ -175,6 +176,7 @@ void SevenSeasApp::AutoplayUpdate()
 			mIntroWidget->ButtonDepress(0);
 			s->mGames++;
 			s->mGameOverLogged = false;
+			s->mGameOverShot = false;
 			s->mLastLevel = 0;
 			s->mMoves = 0;
 			Log(s, "game %d started, difficulty %d", s->mGames, mIntroWidget->mDifficulty);
@@ -190,6 +192,15 @@ void SevenSeasApp::AutoplayUpdate()
 			s->mGameOverLogged = true;
 			Log(s, "game %d over at update %d: score %d level %d moves %d", s->mGames, s->mTick, mBoard != NULL ? mBoard->mScore : 0,
 				mBoard != NULL ? mBoard->mLevel : 0, s->mMoves);
+			s->mWait = 10;
+			return;
+		}
+		// the screen is shown from the top down; the name dialog (if the score earned a place) comes at the end
+		if (mHighScoreWidget->mReveal < mHighScoreWidget->mHeight)
+			return;
+		if (!s->mGameOverShot)
+		{
+			s->mGameOverShot = true;
 			if (!mAutoplayShots.empty())
 				SaveScreenshot(StrFormat("%s-over%d.png", mAutoplayShots.c_str(), s->mGames));
 			s->mWait = 10;

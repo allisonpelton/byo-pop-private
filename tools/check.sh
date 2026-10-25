@@ -37,7 +37,7 @@ BM_GAME1="score 66646"
 NA_ACTION="level 4 done at update 17083: score 7622 mode stampede"
 NA_STRATEGY="level 4 done at update 15469: score 4430 mode strategy"
 NA_PUZZLE="game 1 over at update 17550: score 4830 level 1 moves 117"
-SS_BEGINNER="game 2 over at update 5119: score 250 level 3 moves 25"
+SS_BEGINNER="game 2 over at update 4600: score 155 level 2 moves 18"
 SS_BONUS="game 1 over at update 2520: score 490 level 13 moves 16"
 SS_LATE="game 1 over at update 2721: score 420 level 22 moves 19"
 

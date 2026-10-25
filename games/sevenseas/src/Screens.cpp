@@ -510,8 +510,9 @@ void SidePanel::Update()
 	}
 	// port: the original takes the pupils' target from the mouse with two floating-point expressions (not
 	// recovered); the pupils move a little toward the mouse
-	int aDX = (mWidgetManager != NULL ? mWidgetManager->mLastMouseX : 0x55) - 0x55;
-	int aDY = (mWidgetManager != NULL ? mWidgetManager->mLastMouseY : 0x158) - 0x158;
+	// (a test run's pupils look straight ahead: a stray real mouse position must not change its screenshots)
+	int aDX = (mWidgetManager != NULL && !mApp->mScriptedInput ? mWidgetManager->mLastMouseX : 0x55) - 0x55;
+	int aDY = (mWidgetManager != NULL && !mApp->mScriptedInput ? mWidgetManager->mLastMouseY : 0x158) - 0x158;
 	mTargetX = 0x15 + std::max(-6, std::min(6, aDX / 40));
 	mTargetY = 0x33 + std::max(-5, std::min(5, aDY / 40));
 	if (mPupilX > mTargetX)
@@ -695,7 +696,7 @@ void TalkWidget::MouseMove(int x, int y)
 // ---------------------------------------------------------------------------------------------------------
 // HighScoreWidget
 
-static const int kRankThresholds[18] = {100, 200, 500, 1000, 2000, 4000, 6000, 8000, 10000, 12500, 15000, 20000, 22000, 25000, 30000, 40000, 50000, 75000};
+static const int kRankThresholds[18] = {100, 200, 500, 1000, 2000, 4000, 6000, 8000, 10000, 12500, 15000, 18000, 22000, 25000, 30000, 40000, 50000, 75000};
 
 // 0x4a3608..: Wharf Rat ... Grand Admiral: the rank names are read from the exe by their addresses
 static const unsigned int kRankNameAddr[9] = {0x4a3708, 0x4a36f4, 0x4a36e0, 0x4a36cc, 0x4a36b8, 0x4a36a4, 0x4a3684, 0x4a3668, 0x4a3650};
@@ -721,8 +722,8 @@ const char* HighScoreWidget::RankName(int theScore)
 HighScoreWidget::HighScoreWidget(SevenSeasApp* theApp) :
 	mApp(theApp),
 	mTodayScore(0),
-	mMyPlace(0),
-	mTime(0)
+	mShimmer(0),
+	mReveal(0)
 {
 	mNewGameButton = new DialogButton(mApp->mImages[IMAGE_DBUTTONWOOD], 1, this);
 	mNewGameButton->SetFont(mApp->mFonts[FONT_MT11]);
@@ -735,21 +736,6 @@ HighScoreWidget::HighScoreWidget(SevenSeasApp* theApp) :
 		mScores[i] = 1000 - i * 100;
 	}
 	LoadScores();
-	// the place this game's score takes
-	int aMyScore = mApp->mBoard != NULL ? mApp->mBoard->mScore : 0;
-	if (aMyScore > mScores[4])
-	{
-		mMyPlace = 5;
-		for (int i = 0; i < 5; i++)
-			if (aMyScore > mScores[i])
-			{
-				mMyPlace = i + 1;
-				break;
-			}
-		char aBuf[64];
-		sprintf(aBuf, "%d", mMyPlace);
-		mApp->ShowRecordScore(aBuf);
-	}
 }
 
 HighScoreWidget::~HighScoreWidget()
@@ -769,74 +755,215 @@ void HighScoreWidget::RemovedFromManager(WidgetManager* theWidgetManager)
 	theWidgetManager->RemoveWidget(mNewGameButton);
 }
 
+// 0x412c00: the original also puts "Submit to Internet High Score List" at y 0x164; that button is not ported
 void HighScoreWidget::Resize(int theX, int theY, int theWidth, int theHeight)
 {
 	Widget::Resize(theX, theY, theWidth, theHeight);
-	mNewGameButton->Resize(mX + 0x70, 0x1b0, 0x120, 0x28);
+	mNewGameButton->Resize(mWidth / 2 - 0xb9 + mX, 0x184, 0x172, 0x1e);
 }
 
+// 0x412af0: the screen is shown from the top down, 6 pixels an update; when it is all there, the game says what the
+// score earned (ShowScoreNote). The button grows out of the frame as the edge passes it. (The original's timer at
+// +0xfc, which re-enables the internet score button, is not ported.)
 void HighScoreWidget::Update()
 {
 	Widget::Update();
-	mTime++;
-	if (mTime % 3 == 0)
+	if (mReveal < mHeight)
+	{
+		mReveal += 6;
+		if (mReveal >= mHeight)
+		{
+			mReveal = mHeight;
+			ShowScoreNote();
+		}
+		int aHeight = mY - 0x1c + mReveal - mNewGameButton->mY;
+		if (aHeight < 1)
+			aHeight = 0;
+		else if (aHeight > 0x1d)
+			aHeight = 0x1e;
+		mNewGameButton->Resize(mNewGameButton->mX, mNewGameButton->mY, mNewGameButton->mWidth, aHeight);
 		MarkDirty();
+	}
+	if (mUpdateCnt % 10 == 0)
+	{
+		mShimmer++;
+		MarkDirty();
+	}
 }
 
-// 0x411260: the frame, the totals of the game and the rank, and under them the list of the five best scores on its
-// panel (port: the positions of the lines are estimated from the picture; the original's are in a long
-// function whose arithmetic was not recovered)
-void HighScoreWidget::Draw(Graphics* g)
+// 0x411160: the place a score takes in the five best (1 to 5), or 0 when it is not good enough
+int HighScoreWidget::PlaceFor(int theScore)
 {
-	Image** anImages = mApp->mImages;
-	g->DrawImageBox(Rect(0x14, 0x14, mWidth - 0x28, mHeight - 0x28), anImages[IMAGE_DIALOG]);
-	g->SetFont(mApp->mFonts[FONT_MEDIUM]);
-	Board* aBoard = mApp->mBoard;
-	int aScore = aBoard != NULL ? aBoard->mScore : 0;
-	int aKills = aBoard != NULL ? aBoard->mKillsTotal : 0;
-	int aTime = aBoard != NULL ? aBoard->mSeconds : 0;
-	const unsigned int kLabels[4] = {0x004a39e4, 0x004a39d4, 0x004a39c4, 0x004a39b8};
-	char aBuf[64];
-	for (int i = 0; i < 4; i++)
+	int aPlace = 0;
+	for (int i = 4; i >= 0; i--)
 	{
-		g->SetColor(i == 3 ? Color(0xff, 0xff, 0) : Color(0xff, 0xff, 0xff));
-		g->DrawString(GT(kLabels[i]), 0x41, 0x58 + i * 0x16);
-		switch (i)
+		if (mScores[i] < theScore)
+			aPlace = i + 1;
+	}
+	return aPlace;
+}
+
+// 0x410fb0: "1st", "2nd", "3rd", "4th" ... for the text of the note
+static SexyString Ordinal(int thePlace)
+{
+	char aBuf[16];
+	sprintf(aBuf, "%d", thePlace);
+	unsigned int aSuffix = 0x004a3974;   // th
+	if ((thePlace % 100) / 10 != 1)
+	{
+		switch (thePlace % 10)
 		{
-		case 0:
-			sprintf(aBuf, GT(0x004a39ac).c_str(), aTime / 60, aTime % 60);
-			break;
 		case 1:
-			sprintf(aBuf, "%d", aKills);
+			aSuffix = 0x004a3968;
 			break;
 		case 2:
-			sprintf(aBuf, "%d", aBoard != NULL ? aBoard->mTreasures : 0);
+			aSuffix = 0x004a396c;
 			break;
-		default:
-			sprintf(aBuf, "%d", aScore);
+		case 3:
+			aSuffix = 0x004a3970;
+			break;
 		}
-		g->DrawString(aBuf, 0x104 - g->GetFont()->StringWidth(aBuf), 0x58 + i * 0x16);
 	}
-	g->SetColor(Color(0xcf, 0xb8, 0));
-	sprintf(aBuf, GT(0x004a39a0).c_str(), RankName(aScore));
-	g->DrawString(aBuf, (mWidth - g->GetFont()->StringWidth(aBuf)) / 2, 0xb2);
+	return SexyString(aBuf) + GT(aSuffix);
+}
 
-	// the five best scores on their panel
-	g->DrawImage(anImages[IMAGE_HIGHSCOREPANEL], 0x24, 0xb9);
-	for (int i = 0; i < 5; i++)
+// 0x410ae0: what the score of this game earned, said in the name dialog (the registered game's branch: the
+// original asks an unregistered player to register instead)
+void HighScoreWidget::ShowScoreNote()
+{
+	int aScore = mApp->mBoard != NULL ? mApp->mBoard->mScore : 0;
+	bool aNotBest = aScore <= mTodayScore;
+	int aPlace = PlaceFor(aScore);
+	SexyString aMessage;
+	if (aNotBest)
 	{
-		bool aMine = (mMyPlace == i + 1);
-		g->SetColor(aMine ? Color(0xff, 0xff, 0) : Color(0xff, 0xff, 0xff));
-		g->DrawString(mNames[i], 0x41, 0xf9 + i * 0x16);
-		sprintf(aBuf, "%d", mScores[i]);
-		g->DrawString(aBuf, 0x104 - g->GetFont()->StringWidth(aBuf), 0xf9 + i * 0x16);
+		if (aPlace < 1)
+			return;
+		aMessage = GT(0x004a3880) + Ordinal(aPlace) + GT(0x004a37e0);
 	}
-	g->SetColor(Color(0xff, 0xff, 0xff));
+	else if (aPlace < 1)
+		aMessage = GT(0x004a37f4);
+	else
+		aMessage = GT(0x004a393c) + Ordinal(aPlace) + GT(0x004a381c);
+	mApp->ShowRecordScore(aMessage);
+}
+
+// 0x4111f0: a line of the totals: the label at the left and the value at the right of a 0x91, 0x44, 0x125 x 0x56
+// box, moved by theDX (the original's callers draw the labels and the values in two passes, the other part empty)
+static void DrawTotalsLine(Graphics* g, int theDX, int theY, const SexyString& theLabel, const SexyString& theValue)
+{
+	g->DrawString(theLabel, 0x91 + 0x10 + theDX, theY + 0x44);
+	g->DrawString(theValue, (0x125 - g->GetFont()->StringWidth(theValue)) + 0x91 - 0x10 + theDX, theY + 0x44);
+}
+
+// 0x411260: the frame, the totals of the game (each line is drawn 25 times, black around the gold or yellow one,
+// for an outline), the rank, the five best scores in colours that cycle, and the best of the day. Nothing shows
+// below mReveal (Update makes it grow); the bottom edge of the frame is drawn at that line while it moves.
+void HighScoreWidget::Draw(Graphics* g)
+{
+	Graphics aClipped(*g);
+	aClipped.ClipRect(0, 0, mWidth, mReveal);
+	Graphics* gc = &aClipped;
+	Image** anImages = mApp->mImages;
+	gc->DrawImageBox(Rect(0x14, 0x14, mWidth - 0x28, mHeight - 0x28), anImages[IMAGE_DIALOG]);
+	gc->DrawImageBox(Rect(0x14, 0x14, mWidth - 0x28, mHeight - 0x28), anImages[IMAGE_DIALOG]);
+
+	Board* aBoard = mApp->mBoard;
+	int aScore = aBoard != NULL ? aBoard->mScore : 0;
+	char aBuf[64];
+	SexyString aValues[4];
+	int aTime = aBoard != NULL ? aBoard->mSeconds : 0;
+	sprintf(aBuf, GT(0x004a39ac).c_str(), aTime / 60, aTime % 60);
+	aValues[0] = aBuf;
+	sprintf(aBuf, "%d", aBoard != NULL ? aBoard->mKillsTotal : 0);
+	aValues[1] = aBuf;
+	sprintf(aBuf, "%d", aBoard != NULL ? aBoard->mTreasures : 0);
+	aValues[2] = aBuf;
+	sprintf(aBuf, "%d", aScore);
+	aValues[3] = aBuf;
+	static const unsigned int kLabels[4] = {0x004a39e4, 0x004a39d4, 0x004a39c4, 0x004a39b8};
+	static const int kOffsets[5] = {-2, -1, 1, 2, 0};
+	for (int aDY = 0; aDY < 5; aDY++)
+	{
+		for (int aDX = 0; aDX < 5; aDX++)
+		{
+			bool aCenter = (aDX == 4) && (aDY == 4);
+			gc->SetFont(mApp->mFonts[FONT_MEDIUM]);
+			gc->SetColor(aCenter ? Color(0xcf, 0xb8, 0) : Color(0, 0, 0));
+			for (int i = 0; i < 4; i++)
+				DrawTotalsLine(gc, kOffsets[aDX], kOffsets[aDY] + 0xd + i * 0x16, GT(kLabels[i]), "");
+			gc->SetColor(aCenter ? Color(0xff, 0xff, 0) : Color(0, 0, 0));
+			for (int i = 0; i < 4; i++)
+				DrawTotalsLine(gc, kOffsets[aDX], kOffsets[aDY] + 0xd + i * 0x16, "", aValues[i]);
+		}
+	}
+
+	// the rank: all in gold, then the name again in yellow
+	SexyString aRankLine = StrFormat(GT(0x004a39a0).c_str(), RankName(aScore));
+	SexyString aRankLabel = GT(0x004a3994);
+	int aRankWidth = gc->GetFont()->StringWidth(aRankLine);
+	gc->SetColor(Color(0xcf, 0xb8, 0));
+	gc->DrawString(aRankLine, (mWidth - aRankWidth) / 2, 0xb2);
+	gc->SetColor(Color(0xff, 0xff, 0));
+	gc->DrawString(StrFormat(GT(0x004a399c).c_str(), RankName(aScore)),
+		gc->GetFont()->StringWidth(aRankLabel) + (mWidth - aRankWidth) / 2, 0xb2);
+
+	// the five best: the number in black, the name in a dark colour, the score in a light one, all of a hue that moves
+	gc->DrawImage(anImages[IMAGE_HIGHSCOREPANEL], 0x24, 0xb9);
+	gc->SetFont(mApp->mFonts[FONT_MEDIUM]);
+	int aY = 0xf7;
+	for (int aRow = 0; aY < 0x15b; aRow++, aY += 0x14)
+	{
+		int aHue = (aRow + 2 + mShimmer) * 10 % 0xaa - 0x55;
+		if (aHue < 0)
+			aHue = -aHue;
+		Color aLight((int) mApp->HSLToRGB(aHue, 0xff, 0x96));
+		Color aDark((int) mApp->HSLToRGB(aHue, 0xff, 0x60));
+		gc->SetColor(Color(0, 0, 0));
+		sprintf(aBuf, GT(0x004a3990).c_str(), aRow + 1);
+		gc->DrawString(aBuf, 0x41, aY);
+		gc->SetColor(aDark);
+		gc->DrawString(mNames[aRow], 0x53, aY);
+		gc->SetColor(aLight);
+		sprintf(aBuf, "%d", mScores[aRow]);
+		gc->DrawString(aBuf, 0x104 - gc->GetFont()->StringWidth(aBuf), aY);
+	}
+
+	// the best of the day, in the panel's right half
+	gc->SetFont(mApp->mFonts[FONT_MEDIUM]);
+	gc->SetColor(Color(0x6c, 0, 0));
+	SexyString aToday = GT(0x004a3988);
+	gc->DrawString(aToday, 0x159 - gc->GetFont()->StringWidth(aToday) / 2, 0xfb);
 	SexyString aTop = GT(0x004a397c);
-	g->DrawString(aTop, 0x159 - g->GetFont()->StringWidth(aTop) / 2, 0xf9);
-	g->DrawString(mTodayName, 0x159 - g->GetFont()->StringWidth(mTodayName) / 2, 0x10f);
-	sprintf(aBuf, "%d", mTodayScore);
-	g->DrawString(aBuf, 0x159 - g->GetFont()->StringWidth(aBuf) / 2, 0x125);
+	gc->DrawString(aTop, 0x159 - gc->GetFont()->StringWidth(aTop) / 2, 0x113);
+	if (mTodayScore == 0)
+		strcpy(aBuf, GT(0x004a3978).c_str());
+	else
+		sprintf(aBuf, "%d", mTodayScore);
+	gc->SetColor(Color(0xfc, 0, 0x0a));
+	gc->DrawString(aBuf, 0x159 - gc->GetFont()->StringWidth(aBuf) / 2, 0x131);
+	gc->SetColor(Color(0xfa, 0, 0));
+	gc->DrawString(mTodayName, 0x159 - gc->GetFont()->StringWidth(mTodayName) / 2, 0x14d);
+
+	// the bottom edge of the frame at the line that is being revealed
+	Image* aFrame = anImages[IMAGE_DIALOG];
+	int anEdge = mReveal - 0x13;
+	if (anEdge < 0x1b2)
+	{
+		int aPieceW = aFrame->GetWidth() / 3;
+		int aPieceH = aFrame->GetHeight() / 3;
+		int aFrameW = mWidth - 0x28;
+		Graphics anEdgeG(*g);
+		anEdgeG.ClipRect(0xd, 0x29, 0x1d0, 0x19c);
+		int aDestY = anEdge - aPieceH + 0x14;
+		anEdgeG.DrawImage(aFrame, 0x14, aDestY, Rect(0, aPieceH * 2, aPieceW, aPieceH));
+		int aRight = aFrameW - aPieceW;
+		anEdgeG.DrawImage(aFrame, aRight + 0x14, aDestY, Rect(aPieceW * 2, aPieceH * 2, aPieceW, aPieceH));
+		anEdgeG.ClipRect(aPieceW + 0x14, 0x14, aFrameW - aPieceW * 2, anEdge);
+		int aCount = (aRight - 1) / aPieceW;
+		for (int x = aPieceW + 0x14; aCount > 0; aCount--, x += aPieceW)
+			anEdgeG.DrawImage(aFrame, x, aDestY, Rect(aPieceW, aPieceH * 2, aPieceW, aPieceH));
+	}
 }
 
 void HighScoreWidget::ButtonDepress(int theId)
@@ -953,25 +1080,30 @@ void HighScoreWidget::SaveScores()
 	Platform::WriteUserFileAtomic("hiscores.dat", aData);
 }
 
-// 0x410ae0: the score of this game goes into the list under the name the player gave
+// 0x412cc0: the score of this game goes into the list under the name the player gave (an empty name adds nothing).
+// The original saves the list when the widget is deleted; the port also saves here, so that closing the page keeps it.
 void HighScoreWidget::AddScore(const SexyString& theName)
 {
+	if (theName.empty())
+		return;
 	int aScore = mApp->mBoard != NULL ? mApp->mBoard->mScore : 0;
-	int aPlace = mMyPlace - 1;
-	if ((aPlace >= 0) && (aPlace < 5))
+	int aPlace = PlaceFor(aScore);
+	if (mTodayScore < aScore)
 	{
-		for (int i = 4; i > aPlace; i--)
-		{
-			mNames[i] = mNames[i - 1];
-			mScores[i] = mScores[i - 1];
-		}
-		mNames[aPlace] = theName;
-		mScores[aPlace] = aScore;
-	}
-	if (aScore > mTodayScore)
-	{
-		mTodayName = theName;
 		mTodayScore = aScore;
+		mTodayName = theName;
 	}
+	if (aPlace == 0)
+	{
+		SaveScores();
+		return;
+	}
+	for (int i = 4; i > aPlace - 1; i--)
+	{
+		mNames[i] = mNames[i - 1];
+		mScores[i] = mScores[i - 1];
+	}
+	mNames[aPlace - 1] = theName;
+	mScores[aPlace - 1] = aScore;
 	SaveScores();
 }
