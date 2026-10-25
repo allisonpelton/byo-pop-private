@@ -39,11 +39,13 @@ struct AutoplayState
 	int				mWait;              // updates to wait before the next action
 	bool			mGameOverLogged;
 	bool			mGameOverShot;      // the screenshot of the finished high-score screen was taken
+	unsigned int	mDialogShots;       // bit per dialog id: its first screenshot was taken
+	int				mOptionsStage;      // with screenshots on: 0 not yet, 1 the options dialog is up, 2 its high scores asked for
 	int				mLastLevel;
 	int				mMoves;             // moves made in this game
 	FILE*			mLog;
 
-	AutoplayState() : mSeed(1), mTick(0), mGames(0), mWait(0), mGameOverLogged(false), mGameOverShot(false), mLastLevel(0), mMoves(0),
+	AutoplayState() : mSeed(1), mTick(0), mGames(0), mWait(0), mGameOverLogged(false), mGameOverShot(false), mDialogShots(0), mOptionsStage(0), mLastLevel(0), mMoves(0),
 		mLog(NULL) {}
 
 	int Rand(int theRange)
@@ -134,7 +136,15 @@ void SevenSeasApp::AutoplayUpdate()
 		}
 		return;
 	}
-	// the dialogs: each is answered at once
+	// the dialogs: each is answered at once (the first of each kind is photographed: their sizes are checked by eye)
+	for (int anId = 0; anId < 32; anId++)
+	{
+		if ((GetDialog(anId) != NULL) && !(s->mDialogShots & (1u << anId)) && !mAutoplayShots.empty())
+		{
+			s->mDialogShots |= 1u << anId;
+			SaveScreenshot(StrFormat("%s-dialog%d.png", mAutoplayShots.c_str(), anId));
+		}
+	}
 	if (GetDialog(DIALOG_NEXT_LEVEL) != NULL)
 	{
 		Log(s, "level %d done, score %d", mBoard->mLevel, mBoard->mScore);
@@ -151,6 +161,19 @@ void SevenSeasApp::AutoplayUpdate()
 			s->mWait = 5;
 			return;
 		}
+	}
+	if (GetDialog(DIALOG_OPTIONS) != NULL)
+	{
+		// the options dialog (photographed above), then its high scores (answered above), then it is closed
+		if (s->mOptionsStage == 1)
+		{
+			s->mOptionsStage = 2;
+			((OptionsDialog*) GetDialog(DIALOG_OPTIONS))->ButtonDepress(2);
+		}
+		else
+			ButtonDepress(2000 + DIALOG_OPTIONS);
+		s->mWait = 5;
+		return;
 	}
 	if (GetDialog(DIALOG_CONTINUE) != NULL)
 	{
@@ -172,6 +195,13 @@ void SevenSeasApp::AutoplayUpdate()
 	{
 		if (!mIntroWidget->mStarting)
 		{
+			if (!mAutoplayShots.empty() && (s->mOptionsStage == 0))
+			{
+				s->mOptionsStage = 1;
+				ShowOptions();
+				s->mWait = 3;
+				return;
+			}
 			mIntroWidget->SetDifficulty((mAutoplayDiff >= 1) && (mAutoplayDiff <= 3) ? mAutoplayDiff : 1 + s->Rand(3));
 			mIntroWidget->ButtonDepress(0);
 			s->mGames++;

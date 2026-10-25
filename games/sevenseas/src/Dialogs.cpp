@@ -16,6 +16,12 @@
 
 using namespace Sexy;
 
+// 0x428360 (Widget slot 31): a line of text centred in a widget of the given width, in the current font
+static void DrawCentered(Graphics* g, int theWidth, const SexyString& theText, int theY)
+{
+	g->DrawString(theText, (theWidth - g->GetFont()->StringWidth(theText)) / 2, theY);
+}
+
 // the common look of the larger dialogs: the framed box with the mermaids on top and the skull at the bottom
 // (the first lines of the draw functions 0x4192e0 and 0x417ca0)
 static void DrawFramed(Graphics* g, SevenSeasApp* theApp, int theWidth, int theHeight)
@@ -120,10 +126,11 @@ void OptionsDialog::Resize(int theX, int theY, int theWidth, int theHeight)
 	mCursorsCheckbox->Resize(mX + 0xb0, mY + 0xc1, 0x14, 0x14);
 }
 
+// 0x418fb0: the height is a constant (mov eax, 0x16b)
 int OptionsDialog::GetPreferredHeight(int theWidth)
 {
 	(void) theWidth;
-	return 0x1a0;
+	return 0x16b;
 }
 
 // 0x4192e0
@@ -188,10 +195,11 @@ NextLevelDialog::NextLevelDialog(SevenSeasApp* theApp) :
 	mContentInsets = Insets(0x26, 0x26, 0x26, 0x26);
 }
 
+// 0x417c90: a constant
 int NextLevelDialog::GetPreferredHeight(int theWidth)
 {
 	(void) theWidth;
-	return 0x14c;
+	return 0x140;
 }
 
 // 0x417ca0
@@ -203,7 +211,7 @@ void NextLevelDialog::Draw(Graphics* g)
 	g->SetFont(mApp->mFonts[FONT_MT22]);
 	g->SetColor(Color(0xff, 0xff, 0xff));
 	sprintf(aBuf, GT(0x004a3f18).c_str(), aBoard->mLevel);
-	g->DrawString(aBuf, (mWidth - g->GetFont()->StringWidth(aBuf)) / 2, 0x78);
+	DrawCentered(g, mWidth, aBuf, 0x73);
 
 	g->SetFont(mApp->mFonts[FONT_MEDIUM]);
 	int aBonus = aBoard->mKills * 10;
@@ -231,7 +239,11 @@ void NextLevelDialog::Draw(Graphics* g)
 	int aScore = aBoard->mScore;
 	g->SetColor(Color(0xff, 0xc2, 0));
 	sprintf(aBuf, GT(0x004a3eb4).c_str(), HighScoreWidget::RankName(aScore));
-	g->DrawString(aBuf, (mWidth - g->GetFont()->StringWidth(aBuf)) / 2, 0xc0);
+	int aRankX = (mWidth - g->GetFont()->StringWidth(aBuf)) / 2;
+	g->DrawString(aBuf, aRankX, 0xc0);
+	// the name again in yellow over the gold one
+	g->SetColor(Color(0xff, 0xff, 0));
+	g->DrawString(HighScoreWidget::RankName(aScore), aRankX + g->GetFont()->StringWidth(GT(0x004a3ea8)), 0xc0);
 	static const int kNext[12] = {100, 200, 500, 1000, 2000, 4000, 6000, 8000, 10000, 12500, 15000, 18000};
 	int aIdx = 0;
 	if (kNext[0] < aScore)
@@ -242,9 +254,9 @@ void NextLevelDialog::Draw(Graphics* g)
 		}
 		while ((aIdx < 11) && (kNext[aIdx] < aScore));
 	}
-	g->SetColor(Color(0xff, 0xff, 0));
+	g->SetColor(Color(0xd3, 0x98, 0));
 	sprintf(aBuf, GT(0x004a3e98).c_str(), kNext[aIdx]);
-	g->DrawString(aBuf, (mWidth - g->GetFont()->StringWidth(aBuf)) / 2, 0xe0);
+	DrawCentered(g, mWidth, aBuf, 0xe0);
 }
 
 // ---------------------------------------------------------------------------------------------------------
@@ -295,9 +307,10 @@ void RecordScoreDialog::Resize(int theX, int theY, int theWidth, int theHeight)
 	mNameEdit->Resize(mX + 0x30, mHeight - 0x78 + mY, mWidth - 0x60, 0x18);
 }
 
+// 0x41a260: the base dialog's height (0x437750) plus 0x38
 int RecordScoreDialog::GetPreferredHeight(int theWidth)
 {
-	return Dialog2004::GetPreferredHeight(theWidth) + 0x40;
+	return Dialog2004::GetPreferredHeight(theWidth) + 0x38;
 }
 
 // 0x41a2f0
@@ -338,6 +351,7 @@ HighScoreDialog::HighScoreDialog(SevenSeasApp* theApp) :
 	SetHeaderFont(mApp->mFonts[FONT_FONT1]);
 	SetLinesFont(mApp->mFonts[FONT_MT11]);
 	mContentInsets = Insets(0x26, 0x26, 0x26, 0x26);
+	SetColor(COLOR_BUTTON_TEXT, Color(0xe0, 0xb7, 0x28));
 }
 
 HighScoreDialog::~HighScoreDialog()
@@ -345,35 +359,41 @@ HighScoreDialog::~HighScoreDialog()
 	delete mScores;
 }
 
+// 0x40fae0: a constant (the argument the creator gives, 0x1ac, is ignored)
 int HighScoreDialog::GetPreferredHeight(int theWidth)
 {
 	(void) theWidth;
-	return 0x1ac;
+	return 0x156;
 }
 
-// 0x40faf0
+// 0x40faf0: the base dialog, the skull on top, then the best of the day and the five best, each line centred
 void HighScoreDialog::Draw(Graphics* g)
 {
-	DrawFramed(g, mApp, mWidth, mHeight);
-	g->SetFont(mApp->mFonts[FONT_FONT1]);
-	g->SetColor(Color(0xff, 0, 0));
-	SexyString aHeader = GT(0x004a3584);
-	g->DrawString(aHeader, (mWidth - g->GetFont()->StringWidth(aHeader)) / 2, 0x73);
+	Dialog2004::Draw(g);
+	g->DrawImage(mApp->mImages[IMAGE_DIALOGSKULL], mWidth / 2 - 0x14, 0);
 	g->SetFont(mApp->mFonts[FONT_MT11]);
-	int aY = 0x95;
+	g->SetColor(Color(0xff, 0xff, 0));
+	DrawCentered(g, mWidth, GT(0x004a35b8), 0x60);
+	g->FillRect(mWidth / 2 - 0x28, 99, 0x50, 1);
+	g->SetColor(Color(0xff, 0, 0));
+	char aBuf[128];
+	if (mScores->mTodayScore < 1)
+		DrawCentered(g, mWidth, GT(0x004a35a4), 0x79);
+	else
+	{
+		sprintf(aBuf, GT(0x004a35b0).c_str(), mScores->mTodayName.c_str(), mScores->mTodayScore);
+		DrawCentered(g, mWidth, aBuf, 0x79);
+	}
+	g->SetColor(Color(0xff, 0xff, 0));
+	DrawCentered(g, mWidth, GT(0x004a3598), 0x9b);
+	g->FillRect(mWidth / 2 - 0x28, 0x9e, 0x50, 1);
+	g->SetColor(Color(0xff, 0, 0));
+	int aY = 0xb4;
 	for (int i = 0; i < 5; i++)
 	{
-		g->SetColor(Color(0xff, 0xff, 0));
-		if (mScores->mScores[i] == 0)
-			g->DrawString(GT(0x004a35a4), 0x30, aY);
-		else
-		{
-			char aBuf[128];
-			g->DrawString(mScores->mNames[i], 0x30, aY);
-			sprintf(aBuf, "%d", mScores->mScores[i]);
-			g->DrawString(aBuf, mWidth - 0x30 - g->GetFont()->StringWidth(aBuf), aY);
-		}
-		aY += 0x1c;
+		sprintf(aBuf, GT(0x004a35b0).c_str(), mScores->mNames[i].c_str(), mScores->mScores[i]);
+		DrawCentered(g, mWidth, aBuf, aY);
+		aY += 0x11;
 	}
 }
 
@@ -413,40 +433,40 @@ void NagDialog::RemovedFromManager(WidgetManager* theWidgetManager)
 	theWidgetManager->RemoveWidget(mCheckbox);
 }
 
+// 0x40cb90 (the bonus screen's: the check box at 0x5f, 0x140) and 0x4266a0 (the warnings': 0x41, 200)
 void NagDialog::Resize(int theX, int theY, int theWidth, int theHeight)
 {
 	Dialog2004::Resize(theX, theY, theWidth, theHeight);
-	int aFooterY = (mYesButton != NULL) ? mYesButton->mY : mY + mHeight - 0x44;
-	mCheckbox->Resize(mX + 0x30, aFooterY - 0x2c, 0x14, 0x14);
+	if (mWhich < 0)
+		mCheckbox->Resize(mX + 0x5f, mY + 0x140, 0x14, 0x14);
+	else
+		mCheckbox->Resize(mX + 0x41, mY + 200, 0x14, 0x14);
 }
 
 int NagDialog::GetPreferredHeight(int theWidth)
 {
 	(void) theWidth;
-	return (mWhich < 0) ? 0x17c : 0x14c;
+	return (mWhich < 0) ? 0x1ae : 0x136;   // 0x40cb20 (the bonus screen's) and 0x426630 (the warnings')
 }
 
-// 0x40cbe0 / 0x4266f0
+// 0x40cbe0 / 0x4266f0: the framed box, the title in white (the warnings: BEWARE!) and the text in gold, every line
+// centred at its own height
 void NagDialog::Draw(Graphics* g)
 {
 	DrawFramed(g, mApp, mWidth, mHeight);
-	g->SetFont(mApp->mFonts[FONT_FONT1]);
-	g->SetColor(Color(0xff, 0, 0));
+	g->SetFont(mApp->mFonts[FONT_MT22]);
+	g->SetColor(Color(0xff, 0xff, 0xff));
 	if (mWhich < 0)
 	{
-		SexyString aTitle = GT(0x004a3284);
-		g->DrawString(aTitle, (mWidth - g->GetFont()->StringWidth(aTitle)) / 2, 0x73);
-		aTitle = GT(0x004a3270);
-		g->DrawString(aTitle, (mWidth - g->GetFont()->StringWidth(aTitle)) / 2, 0x93);
+		DrawCentered(g, mWidth, GT(0x004a3284), 0x69);
+		DrawCentered(g, mWidth, GT(0x004a3270), 0x87);
 	}
 	else
-	{
-		SexyString aTitle = GT(0x004a6ac4);
-		g->DrawString(aTitle, (mWidth - g->GetFont()->StringWidth(aTitle)) / 2, 0x73);
-	}
-	g->SetFont(mApp->mFonts[FONT_MT11]);
-	g->SetColor(Color(0xe0, 0xb7, 0x28));
+		DrawCentered(g, mWidth, GT(0x004a6ac4), 0x70);
+	g->SetFont(mApp->mFonts[FONT_TUT]);
+	g->SetColor(Color(0xff, 0xc2, 0));
 	static const unsigned int kBonusLines[7] = {0x004a323c, 0x004a3208, 0x004a31d4, 0x004a31a0, 0x004a316c, 0x004a3138, 0x004a3104};
+	static const int kBonusY[7] = {0xaf, 0xc3, 0xd7, 0xf5, 0x109, 0x11d, 0x131};
 	static const unsigned int kWarnLines[4][3] =
 	{
 		{0x004a6a34, 0x004a6a0c, 0x004a6a00},
@@ -454,25 +474,16 @@ void NagDialog::Draw(Graphics* g)
 		{0x004a69d8, 0x004a69b0, 0x004a6994},
 		{0x004a696c, 0x004a6940, 0x004a6918}
 	};
-	int aY = 0xb0;
 	if (mWhich < 0)
 	{
 		for (int i = 0; i < 7; i++)
-		{
-			const SexyString& aLine = GT(kBonusLines[i]);
-			g->DrawString(aLine, (mWidth - g->GetFont()->StringWidth(aLine)) / 2, aY);
-			aY += 0x14;
-		}
+			DrawCentered(g, mWidth, GT(kBonusLines[i]), kBonusY[i]);
 	}
 	else if (mWhich < 4)
 	{
-		aY = 0x93;
+		static const int kWarnY[3] = {0x91, 0xa5, 0xb9};
 		for (int i = 0; i < 3; i++)
-		{
-			const SexyString& aLine = GT(kWarnLines[mWhich][i]);
-			g->DrawString(aLine, (mWidth - g->GetFont()->StringWidth(aLine)) / 2, aY);
-			aY += 0x1c;
-		}
+			DrawCentered(g, mWidth, GT(kWarnLines[mWhich][i]), kWarnY[i]);
 	}
 	g->SetColor(Color(0xff, 0xff, 0));
 	g->DrawString(GT(0x004a30e4), (mCheckbox->mX - mX) + 0x1c, (mCheckbox->mY - mY) + 0xe);

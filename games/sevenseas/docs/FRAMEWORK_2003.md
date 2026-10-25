@@ -56,3 +56,28 @@ score check's strings are empty. Options and the nag flags (`BonusNag`, `WarnBlu
 Every text of the game is read from the player's `WinSS.exe` by address (`src/GameText.cpp`, `GT(0x4a2ec0)`), through the
 table in `src/GameTextTable.inc` that `tools/make_gametext.py` writes (addresses, lengths and hashes only, no text). The
 numeric layout tables (map dots, rank thresholds) are embedded because they are numbers, not text.
+
+## Dialogs
+
+A dialog's preferred height is a virtual function (slot 46 here, offset 0xb8: the 2003 Widget has 43 slots, one fewer
+than in Noah's Ark, so Noah's slot 47). The dialogs with a fixed size override it with two instructions,
+`mov eax, N; ret 4`, which Ghidra never makes a function of, so they are missing from the export; the creators then
+call `Resize(x, y, w, GetPreferredHeight(arg))` with an argument the function ignores. The decompiler also drops some
+call arguments (the y of a centred text). The sizes were first guessed from the decompilation and were all wrong; they
+are read from the vtables and the creators' disassembly (`llvm-objdump -d` on the exe reads it directly) now:
+
+| Dialog | Height (slot 46) | Placed by |
+|---|---|---|
+| Options | 0x16b (0x418fb0) | 0x420620: Resize(0xd7, 0x32, 0x17c, h) |
+| Next level | 0x140 (0x417c90) | 0x420770: Resize(0xc1, 0x32, 0x1a9, h) |
+| High scores | 0x156 (0x40fae0) | 0x421590: Resize(0xd3, 0x32, 0x170, h) |
+| Record a score | the base dialog's height + 0x38 (0x41a260) | 0x4212d0: Resize(0xfa, 0x20, 0x13c, h) |
+| Bonus screen's note | 0x1ae (0x40cb20) | 0x420ba0: Resize(0xbe, 0x14, 0x1af, h) |
+| Warnings | 0x136 (0x426630) | 0x4209e0: Resize(0xdc, 0x46, 0x172, h) (the shareware counter's, which is not shown, uses 0xc8, 0x46, 0x19a) |
+| Every `DoDialog` one | the base dialog's | 0x41d1f0: Resize(0xed, 0x32, 0x13c, h) |
+
+The dialogs that draw themselves (options, next level, the two notes) put their texts with the widget's slot 31
+(0x428360), which centres a string in the widget's width at a given y, in the font and colour set before. The notes'
+titles are in the second Italian font and white, their lines in the tutorial font and gold; the check box of a note
+sits at its own place (0x5f, 0x140 for the bonus screen's, 0x41, 200 for the warnings') and its label is drawn at 0x1c
+and 0xe from the box.
