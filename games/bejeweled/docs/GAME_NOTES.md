@@ -2005,6 +2005,41 @@ games/bejeweled/docs/CODE_MODS_DESIGN.md 4.1 and 7.2, as built:
   cases out; it plays stage 1's and 2's rule cases as before stage 5, against their own facts in expect.txt
   (`<case>@novariants`: the v1 save and the RNG sidecar).
 
+### 12.8 The mod menu's hooks (M5 of docs/MOD_MENU_DESIGN.md)
+
+None of these runs without an enabled mod that has settings, or a value held for the next game; the oracle has
+neither.
+
+- **Next-game values.** `main` sets `ModManager::SetNextGameFilter(GameConfig::IsNextGamePath)` before `Refresh`:
+  `rules`, `tunables` and `features`, except `features.livesplit` and the whole `features` object (the LiveSplit
+  observer outlives a board). `GameConfig::Load(canCommit)` starts with `CommitNextGameValues`.
+  `WinDMApp::CanCommitNextGameValues` decides `canCommit`: no replay is watched, the board is not in progress and no
+  save exists under the current key. `NewGame` asks it before the old board's deferred delete; `Init` asks it too,
+  so a held value applies at startup unless "Continue?" will be offered.
+- **Per-board save names.** `Board::GetSaveGameFileName()` returns `mSaveGameFileName`, which the constructor takes
+  from `ScopedSaveGameFileName()` (the name under the current score key). The deferred delete of a board in
+  progress saves it, and a commit just before can change the key. The sidecar follows the save's name;
+  `GetShutdownSaves` asks `mBoard`.
+- **The untouched board** (review A9). `WinDMApp::ApplyNextGameValues`, at the end of `UpdateFrames`, commits and
+  calls `NewGame` again when values are held and nothing would be stranded. It also needs a board nobody has moved
+  on (`mIsNewGame`, not game over), no dialog, no mod menu, no title or game-over screen. It tries once per board
+  (`mBoardSerial`), so a commit that cannot happen is not retried every frame. Its `Rand()` draws happen only then.
+- **Options.** While an enabled mod has settings, a Mods button (id 6; 5 is kept for Extras) takes the register slot
+  of the locked build's three-button row: help at `mX+24`, Mods at `mX+30+bw`, high scores at `mX+36+2bw`, with
+  `bw = (mWidth-60)/3`, all at `mY+166`. It opens the menu over the dialog. An installed mod that is off does not
+  count: the oracle's examples case keeps its Options screens.
+- **Restart.** `HasGameInProgress` is `mBoard->IsGameInProgress()` (a replay's board never is). `CanRestartNow` is
+  false while `DIALOG_RECORD_SCORE` is open. `GetRestartArgs` adds `-replaydir=` when one is set and `-gameseed=`
+  while `mPendingSeed` waits.
+- **Messages.** `GameConfig::mStatus` keeps the last merge's report. `GetModMessages` gives the menu its errors and
+  dropped mods as errors and its warnings as warnings. `mods-status.json` entries of mods with settings gain
+  `values`. `IsLiveSplitOnly` reads the effective manifest and treats `settings` as descriptive.
+- **Verifier.** `rulesid`/`bv_rules_id` resolve a mod's `$setting` placeholders at their defaults first
+  (`ModSettings::Parse`, `Analyze`, `ReadValues`, `Resolve`). Setting errors and keys left out are errors.
+  `HeadlessShims.cpp` carries a copy of `VFS::Normalize` for `ModSettings.cpp`.
+- **`override`.** WinDMApp.h marks every framework virtual it overrides; the headless shim `SexyApp.h` declares
+  them so the verifier still compiles that header.
+
 ---
 
 ## 13. Naming reconciliation (analyst names → chosen names)

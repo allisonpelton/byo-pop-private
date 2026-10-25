@@ -1,0 +1,8 @@
+# Bejeweled: a value held for the next fresh game (docs/MOD_MENU_DESIGN.md 6.2), part 1. A game in progress (seed 1,
+# the tutorial move) keeps its rules: the value waits in "next", and the quit saves the game under its own score key.
+300 click 320 398
+460 click 482 295
+461 click 533 295
+600 modmenu set settings-demo speed 2
+610 modmenu dump held-state.json
+620 quit

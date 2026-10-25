@@ -265,6 +265,14 @@ static std::string StatusText(const GameRules& theRules, const GameFeatures& the
 		anEntry.Set("features", JsonValue(aMod->mHasFeatures));
 		anEntry.Set("imageOps", JsonValue(aMod->mHasImageOps));
 		anEntry.Set("diff", JsonValue(aMod->mOverridesDiff));
+		// port(mods): a mod with settings: the values this start plays with (docs/MOD_MENU_DESIGN.md 8.2)
+		if (aMod->HasSettings())
+		{
+			JsonValue aValues = JsonValue::MakeObject();
+			for (const auto& aValue : aMod->mValues)
+				aValues.Set(aValue.first, aValue.second);
+			anEntry.Set("values", aValues);
+		}
 		aMods.Push(anEntry);
 	}
 	aStatus.Set("mods", aMods);
@@ -288,11 +296,14 @@ static bool HasFolder(const std::string& theDir, const char* theName)
 // 4.15, Q18): its mod.json has only descriptive keys and a "features" object whose one key is "livesplit",
 // and its folder has none of the game's data folders. It changes nothing on screen or in play, so it shows
 // no mod signs, which would otherwise be in every run video.
+// port(mods): read in the effective manifest (the settings' values put in, so a key a value leaves out does not
+// count), and "settings" is descriptive: a livesplit mod that gains options stays sign-free
+// (docs/MOD_MENU_DESIGN.md 6.2 item 5)
 static bool IsLiveSplitOnly(const Platform::ModInfo& theMod)
 {
-	static const char* const aInfoKeys[] = {"id", "name", "version", "author", "description", "priority"};
+	static const char* const aInfoKeys[] = {"id", "name", "version", "author", "description", "priority", "settings"};
 	static const char* const aDataFolders[] = {"images", "sounds", "music", "data", "properties"};
-	const JsonValue& aManifest = theMod.mManifest;
+	const JsonValue& aManifest = theMod.mEffective.IsObject() ? theMod.mEffective : theMod.mManifest;
 	if (!theMod.mHasManifest || !aManifest.IsObject())
 		return false;
 	bool hasLiveSplit = false;
@@ -317,9 +328,11 @@ static bool IsLiveSplitOnly(const Platform::ModInfo& theMod)
 	return hasLiveSplit;
 }
 
-void GameConfig::Load()
+void GameConfig::Load(bool theCanCommit)
 {
 	Platform::ModManager& aMods = Platform::ModManager::Get();
+	aMods.CommitNextGameValues(theCanCommit); // port(mods): returns at once when nothing is held
+	mStatus = RulesStatus();
 	RulesStatus aStatus;
 	ResolveRules(&mRules, &mFeatures, &aStatus);
 	LoadFromRules(mRules);
@@ -336,6 +349,7 @@ void GameConfig::Load()
 	}
 
 	AddBuildWarnings(mRules, mFeatures, &aStatus);
+	mStatus = aStatus;
 	std::string aText = StatusText(mRules, mFeatures, aStatus);
 	static std::string sLogged;
 	if (aText != sLogged)
@@ -351,6 +365,20 @@ void GameConfig::Load()
 			SDL_Log("mods: warning: %s: %s", aStatus.mWarnings[i].mModId.c_str(), aStatus.mWarnings[i].mText.c_str());
 	}
 	aMods.WriteStatus(aText);
+}
+
+// port(mods): NewGame's Load reads "rules", "tunables" and "features" again (ResolveRules; the legacy tunables through
+// ModManager::GetTunable*), so a value used only there applies at the next fresh game. Not features.livesplit: the
+// LiveSplit observer's run state and block outlive a board, so turning it on or off waits for a restart.
+bool GameConfig::IsNextGamePath(const std::string& thePath)
+{
+	auto isUnder = [&thePath](const char* theKey) {
+		size_t aLength = strlen(theKey);
+		return (thePath.compare(0, aLength, theKey) == 0) && ((thePath.size() == aLength) || (thePath[aLength] == '.'));
+	};
+	if (isUnder("features.livesplit") || (thePath == "features"))
+		return false;
+	return isUnder("rules") || isUnder("tunables") || isUnder("features");
 }
 
 std::string GameConfig::DumpRules()

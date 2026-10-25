@@ -67,7 +67,8 @@ if(BUILD_VERIFY)
     src/headless/HeadlessShims.cpp src/headless/WinDMAppHeadless.cpp src/headless/ReplayRecorderHeadless.cpp
     src/headless/DiffBot.cpp src/headless/Verifier.cpp src/headless/verify_main.cpp
     ${PROJECT_SOURCE_DIR}/framework/MTRand.cpp ${PROJECT_SOURCE_DIR}/framework/Buffer.cpp
-    ${PROJECT_SOURCE_DIR}/framework/Color.cpp ${PROJECT_SOURCE_DIR}/platform/Json.cpp)
+    ${PROJECT_SOURCE_DIR}/framework/Color.cpp ${PROJECT_SOURCE_DIR}/platform/Json.cpp
+    ${PROJECT_SOURCE_DIR}/platform/ModSettings.cpp ${PROJECT_SOURCE_DIR}/platform/Text.cpp)
   target_include_directories(bejeweled_verify PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src/headless/shim
     ${CMAKE_CURRENT_SOURCE_DIR}/src/headless ${CMAKE_CURRENT_SOURCE_DIR}/src ${PROJECT_SOURCE_DIR}/framework
     ${PROJECT_SOURCE_DIR})

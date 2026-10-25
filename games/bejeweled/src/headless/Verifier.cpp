@@ -12,6 +12,7 @@
 #include "Replay.h"
 #include "Buffer.h"
 #include "platform/Json.h"
+#include "platform/ModSettings.h"
 
 #include <cstdio>
 #include <cstring>
@@ -400,13 +401,38 @@ std::string Verifier::RulesIdJson(const std::string& theModJson)
 		return "{\"error\":" + JsonString("not JSON: " + anError) + "}";
 	if (!aManifest.IsObject())
 		return "{\"error\":\"not a JSON object\"}";
+	// port(mods): a mod with settings plays its rules with every value at its default unless the player changes one,
+	// so its "$setting" placeholders are resolved at the defaults first, as ModManager::Apply does
+	// (docs/MOD_MENU_DESIGN.md 8.2). Setting errors are errors; a key with a wrong placeholder is left out.
+	RulesStatus aStatus;
+	Platform::JsonValue anEffective = aManifest;
+	Platform::ModSettings aSettings;
+	aSettings.Parse(aManifest);
+	if (aSettings.mPresent)
+	{
+		aSettings.Analyze(aManifest, Platform::NextGameFilter(), std::vector<std::string>(1, "data/diff.txt"));
+		Platform::ModSettingValues aValues;
+		aSettings.ReadValues(Platform::JsonValue(), true, &aValues, NULL);
+		std::vector<Platform::ModSettingsError> aLeftOut;
+		aSettings.Resolve(aManifest, aValues, &anEffective, &aLeftOut);
+		for (const std::string& anError : aSettings.mErrors)
+			aStatus.mErrors.push_back({"mod", "settings: " + anError});
+		for (const Platform::ModSettingsError& anError : aLeftOut)
+		{
+			// Analyze reported the placeholder already (as "<key>: <text>"); a key left out for another reason is new
+			bool isReported = false;
+			for (const std::string& aSettingError : aSettings.mErrors)
+				isReported = isReported || (aSettingError == anError.mKey + ": " + anError.mText);
+			if (!isReported)
+				aStatus.mErrors.push_back({"mod", "\"" + anError.mKey + "\" left out: " + anError.mText});
+		}
+	}
 	RulesSource aSource;
 	aSource.mModId = "mod";
-	aSource.mTunables = aManifest["tunables"];
-	aSource.mRules = aManifest["rules"];
+	aSource.mTunables = anEffective["tunables"];
+	aSource.mRules = anEffective["rules"];
 	GameRules aRules;
 	aRules.mDiff = OriginalDiff();
-	RulesStatus aStatus;
 	MergeRules(std::vector<RulesSource>(1, aSource), &aRules, &aStatus);
 	std::string aJson = "{\"rulesId\":" + JsonString(aRules.RulesIdHex()) + ",\"variant\":" + (aRules.HasVariantRules() ? "true" : "false");
 	aJson += ",\"errors\":" + MessagesJson(aStatus.mErrors) + ",\"dropped\":" + MessagesJson(aStatus.mDropped) + ",\"warnings\":" +

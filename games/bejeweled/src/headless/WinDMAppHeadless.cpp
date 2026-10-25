@@ -191,6 +191,10 @@ void WinDMApp::GetShutdownSaves(std::vector<ShutdownSave>* theSaves) {}
 void WinDMApp::WriteShutdownRegistry() {}
 void WinDMApp::HandleCmdLineParam(const std::string& theParamName, const std::string& theParamValue) {}
 bool WinDMApp::HandleScriptCommand(const ScriptCommand& theCommand) { return false; }
+bool WinDMApp::HasGameInProgress() { return false; }
+bool WinDMApp::CanRestartNow(SexyString* theReason) { return false; }
+void WinDMApp::GetRestartArgs(std::vector<std::string>* theArgs) {}
+void WinDMApp::GetModMessages(std::vector<ModMessage>* theMessages) {}
 
 HeadlessApp::HeadlessApp()
 {
