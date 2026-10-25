@@ -9,6 +9,7 @@
 //   -autoplaymode=strategy|action   the game type (default strategy)
 //   -autoplaygames=N      play N games, then quit
 //   -autoplaycap=N        quit after N updates in any case
+//   -autoplaybonus=1      make the bonus molecule the sign asks for (a test of the bonus molecules and the elements)
 //   -autoplayfinish=N     every N moves the level's meter is filled (a test of the level changes)
 //   -autoplaylog=<file>   the log
 //   -autoplayshots=<prefix>  screenshots at each level done and game over
@@ -17,6 +18,7 @@
 #include "Board.h"
 #include "Grid.h"
 #include "Dialogs.h"
+#include "BonusMolecules.h"
 #include "Menu.h"
 #include "PathFinder.h"
 #include "Screens.h"
@@ -46,10 +48,11 @@ struct AutoplayState
 	bool			mOverLogged;
 	bool			mLevelLogged;
 	bool			mMenuSeen;
+	int				mBonusStage;		// 0 waiting for the sign, 1 shape made, 2 element atom seen, 3 effect set off
 	FILE*			mLog;
 
 	AutoplayState(unsigned int theSeed) : mSeed(theSeed), mTick(0), mGames(0), mWait(0), mShots(0), mMoves(0),
-		mLastLevel(0), mOverLogged(false), mLevelLogged(false), mMenuSeen(false), mLog(NULL) {}
+		mLastLevel(0), mOverLogged(false), mLevelLogged(false), mMenuSeen(false), mBonusStage(0), mLog(NULL) {}
 
 	int Rand(int theRange)
 	{
@@ -273,6 +276,74 @@ void AtomicaApp::AutoplayUpdate()
 		return;
 	if (mPauseCount > 0)
 		return;
+
+	if (mAutoplayBonus)
+	{
+		BonusMolecules* aBonus = aBoard->mBonus;
+		if ((s->mBonusStage == 0) && (aBonus->mTarget < 100) && (aBonus->mRound < aBonus->mTarget) && (s->mMoves > 2))
+			aBonus->mRound = aBonus->mTarget;
+		if ((s->mBonusStage == 0) && (aBonus->mPattern != NULL) && (aBonus->mX >= 0))
+		{
+			// the sign is out: the shape it asks for is built in the middle of the field and looked for
+			for (int aCol = 2; aCol < 7; aCol++)
+				for (int aRow = 1; aRow < 6; aRow++)
+				{
+					Atom* anOld = aGrid->mCells[aCol][aRow];
+					if (anOld != NULL)
+					{
+						anOld->RemoveFromCell();
+						aGrid->mAtoms.Remove(anOld);
+						delete anOld;
+					}
+				}
+			for (int aCol = 0; aCol < 5; aCol++)
+				for (int aRow = 0; aRow < 5; aRow++)
+				{
+					int aWanted = aBonus->mCurrent[aCol * 5 + aRow];
+					if (aWanted != 0)
+					{
+						Atom* aNew = (aWanted - 1 < 0xc) ? new Atom(aGrid, aWanted - 1, true) : new ElementAtom(aGrid, aWanted - 1, true);
+						aNew->PlaceAt(2 + aCol, 1 + aRow, true);
+						aNew->mPre = false;
+					}
+				}
+			aBonus->Check(aGrid);
+			Log(s, "bonus shape made at update %d (element %d)", s->mTick, aBonus->mElement);
+			s->mBonusStage = 1;
+			s->mWait = 400;
+			return;
+		}
+		if (s->mBonusStage == 1)
+		{
+			for (int aCol = 0; aCol < Grid::COLS; aCol++)
+				for (int aRow = 0; aRow < Grid::ROWS; aRow++)
+				{
+					Atom* anAtom = aGrid->mCells[aCol][aRow];
+					if ((anAtom != NULL) && anAtom->IsElement() && !anAtom->mPre)
+					{
+						Log(s, "element atom type %d at %d,%d at update %d", anAtom->mType, aCol, aRow, s->mTick);
+						if (!mAutoplayShots.empty())
+							SaveScreenshot(StrFormat("%s-element.png", mAutoplayShots.c_str()));
+						// a click selects it, a double click sets it off
+						Press(aGrid, aCol, aRow);
+						int aX = aCol * Grid::CELL + Grid::CELL / 2;
+						int aY = aRow * Grid::CELL + Grid::CELL / 2;
+						aGrid->mIsOver = true;
+						aGrid->MouseDown(aX, aY, 0, 1);
+						aGrid->MouseDown(aX, aY, 0, 2);
+						Log(s, "element set off at update %d", s->mTick);
+						s->mBonusStage = 3;
+						s->mWait = 100;
+						return;
+					}
+				}
+		}
+		if ((s->mBonusStage == 3) && !mAutoplayShots.empty() && (s->mShots < 100))
+		{
+			s->mShots = 100;
+			SaveScreenshot(StrFormat("%s-effect.png", mAutoplayShots.c_str()));
+		}
+	}
 
 	// the best move: a block of four that lacks one atom of its colour
 	for (int aCol = 0; aCol < Grid::COLS - 1; aCol++)

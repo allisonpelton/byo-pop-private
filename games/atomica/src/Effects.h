@@ -168,6 +168,49 @@ public:
 	virtual void Draw(Graphics* g);	// 0x421f10
 };
 
+// 0x421680: the earth element's bolt: it runs through the field a cell at a time (every fourth update), taking the atom
+// of each cell it reaches; the port draws sparks along it
+class EarthBolt : public Effect
+{
+public:
+	float		mDX, mDY;		// +0x10 +0x14 the direction (-1, 0 or 1)
+	int			mDirTimer;		// +0x18 updates to a new direction
+	int			mStepTimer;		// +0x1c updates to the next step
+	EarthBolt(AtomicaApp* theApp);	// 0x421680
+	virtual bool Update();		// 0x421770
+	virtual void Draw(Graphics* g);
+};
+
+// 0x431300: the air element's whirlwind: it wanders around the middle of the field for up to 2000 updates and takes the
+// atom it passes over; 100 particles of the electron picture spiral outward
+class Vortex : public Effect
+{
+public:
+	struct Mote
+	{
+		float	mRadius;		// +0 (grows by 0.85 percent an update)
+		float	mAge;			// +4 0 to 50
+		float	mAngle;			// +8 degrees
+		float	mSpeed;			// +0xc degrees an update
+	};
+	PtrList<Mote>	mParticles;		// +0x1c
+	int			mLife;			// +0x18 updates left
+	float		mDistance;		// +0x3c distance from the middle of the field
+	float		mDistanceTarget;// +0x40
+	float		mAngle;			// +0x44
+	float		mAngleSpeed;	// +0x48
+	float		mAngleSpeedTarget; // +0x4c
+	int			mTimer;			// +0x50 updates to new targets
+	int			mCenterX;		// +0x58
+	int			mCenterY;		// +0x5c
+	Mote*		mFirst;			// +0x34
+	bool		mMoving;		// +0x38
+	Vortex(AtomicaApp* theApp, int theX, int theY);	// 0x431300
+	virtual ~Vortex();
+	virtual bool Update();		// 0x431510
+	virtual void Draw(Graphics* g);	// 0x431850
+};
+
 // 0x417300: a flash of lightning between two cells of the field (the bond of a molecule), drawn as a jagged
 // line of dots and lines
 class Bolt : public Effect

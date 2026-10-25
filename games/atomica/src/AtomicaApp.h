@@ -252,6 +252,7 @@ public:
 	int					mAutoplayGames;
 	int					mAutoplayCap;
 	int					mAutoplayFinish;
+	bool				mAutoplayBonus;
 	std::string			mAutoplayLog;
 	std::string			mAutoplayShots;
 	struct AutoplayState*	mAutoplayState;

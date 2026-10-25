@@ -205,7 +205,7 @@ void Grid::FlyAwayAll()
 	for (int aCol = 0; aCol < COLS; aCol++)
 		for (int aRow = 0; aRow < ROWS; aRow++)
 			mCellState[aCol][aRow] = -1000000;
-	mApp->mBoard->mBonus->mAlpha = 0;
+	mApp->mBoard->mBonus->mRound = 0;
 }
 
 // 0x40c8c0: the totals of the field go to the board's

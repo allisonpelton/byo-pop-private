@@ -11,6 +11,7 @@
 
 #include "Support.h"
 #include "Color.h"
+#include <string>
 
 namespace Sexy
 {
@@ -67,6 +68,7 @@ public:
 	float		mFlySize;			// +0x98
 	float		mFlyTurn;			// +0x9c
 	float		mFlyGrow;			// +0xa0
+	float		mFlyPhase;			// +0xa4 (the bonus molecule's atoms: the frame of their shrinking)
 	int			mAlpha;				// +0xa8
 	bool		mFlag_ac;			// +0xac
 	bool		mHidden;			// +0xad hidden until the field's reveal wave reaches it
@@ -117,7 +119,7 @@ public:
 	int			mLevel;				// +0x120 0 to 2
 	int			mF124;				// +0x124
 
-	ElementAtom(Grid* theGrid, int theType);			// 0x4043d0
+	ElementAtom(Grid* theGrid, int theType, bool theLoading = false);	// 0x4043d0
 	virtual ~ElementAtom();								// 0x404630
 	virtual void	Update();							// 0x404640
 	virtual void	Draw(Graphics* g);					// 0x404b00
@@ -135,6 +137,8 @@ public:
 
 // 0x421b00: the compass angle in whole degrees from the first point to the second (0 up, 90 right)
 int			CompassAngle(int theX1, int theY1, int theX2, int theY2);
+// the chemical symbol the colour-blind option writes on an atom of a plain type (0 to 11)
+const std::string&	AtomSymbolText(int theType);
 // the table of the original (app+0x3260 and +0x3800): sine and minus cosine of a whole degree
 float		SinDeg(int theAngle);
 float		NegCosDeg(int theAngle);

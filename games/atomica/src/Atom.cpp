@@ -62,6 +62,11 @@ static const unsigned int gSymbolText[12] =
 	0x4ae3b8, 0x4ae3b4, 0x4ae3b0, 0x4ae3ac, 0x4ae3a8, 0x4ae3a4, 0x4ae3a0, 0x4ae39c, 0x4ae398, 0x4ae394, 0x4ae390, 0x4ae38c
 };
 
+const std::string& Sexy::AtomSymbolText(int theType)
+{
+	return GT(gSymbolText[theType]);
+}
+
 // ---------------------------------------------------------------------------------------------------------
 // Atom
 
@@ -92,7 +97,7 @@ Atom::Atom(Grid* theGrid, int theType, bool theNoSpecial) :
 	mWobbleStep = 2;
 	mType = theType;
 	mSpawn = 24.0f;
-	mFlyX = mFlySize = mFlyTurn = mFlyGrow = 0;
+	mFlyX = mFlySize = mFlyTurn = mFlyGrow = mFlyPhase = 0;
 	mAlpha = 0xff;
 	mFlag_ac = false;
 	mHidden = false;

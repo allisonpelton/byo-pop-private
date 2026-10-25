@@ -222,7 +222,7 @@ void Grid::Load(FILE* f)
 		if (anElement == 0)
 			anAtom = new Atom(this, 0, false);
 		else
-			anAtom = new ElementAtom(this, 0);
+			anAtom = new ElementAtom(this, 0, true);
 		anAtom->Load(f);
 	}
 	fread(mCellState, 0x120, 1, f);
