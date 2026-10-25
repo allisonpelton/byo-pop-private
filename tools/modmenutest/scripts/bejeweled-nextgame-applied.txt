@@ -1,0 +1,14 @@
+# Bejeweled: a value held for the next fresh game, part 2, started with part 1's user dir: a saved game and a held
+# value. At the title it still waits (the save waits for "Continue?"). No deletes the save, and the untouched board is
+# made again with the value (review A9). Then Options shows Mods, which opens the menu over it.
+250 modmenu dump start-state.json
+300 click 320 398
+330 screenshot shots/n01_continue.png
+340 click 484 201
+400 modmenu dump applied-state.json
+410 screenshot shots/n02_board.png
+420 click 94 260
+450 screenshot shots/n03_options_mods.png
+460 click 395 232
+480 screenshot shots/n04_menu_over_options.png
+490 quit
