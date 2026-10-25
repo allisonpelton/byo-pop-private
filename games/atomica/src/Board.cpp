@@ -6,6 +6,7 @@
 #include "BonusMolecules.h"
 #include "Grid.h"
 #include "HintBox.h"
+#include "Swirl.h"
 #include "GameText.h"
 #include "Graphics.h"
 #include "ImageFont.h"
@@ -189,6 +190,9 @@ Board::Board(AtomicaApp* theApp) :
 	mPulse = 0;
 	mPulseStep = 0.5f;
 	mI90 = 0;
+	mAngle = 0;
+	mB98 = true;
+	mDetail = 1;
 	mF8c = 50.0f;
 	mF0ac = 0;
 	mNeedle = 0;
@@ -224,7 +228,7 @@ Board::Board(AtomicaApp* theApp) :
 	mI180 = 0;
 	mI194 = 0xff;
 	mI198 = 0;
-	mI188 = 0;
+	mGlowSwirl = NULL;
 	mI18c = 0;
 	mI190 = 0;
 	mScore = 0;
@@ -248,6 +252,14 @@ Board::~Board()
 		aButton = mButtons.Next();
 	}
 	mButtons.Clear();
+	mSwirls.Reset();
+	Swirl* aSwirl = mSwirls.Next();
+	while (aSwirl != NULL)
+	{
+		delete aSwirl;
+		aSwirl = mSwirls.Next();
+	}
+	mSwirls.Clear();
 	mEffects.Reset();
 	Effect* anEffect = mEffects.Next();
 	while (anEffect != NULL)
@@ -466,7 +478,7 @@ void Board::FloatScore(int theX, int theY, int thePoints, const Color& theColor)
 // 0x4325c0: the water element: the field stays frozen for some moves
 void Board::StartFreeze(int theMoves)
 {
-	mI188 = 0;
+	mGlowSwirl = mSwirls.NextAfter(NULL, true);
 	mI184 = theMoves;
 	mI18c = 0;
 	if (mI180 < 1)
@@ -483,7 +495,10 @@ void Board::StepFreeze()
 		mI180 = 0x9b;
 	mI18c--;
 	if (mI18c < 1)
+	{
+		mGlowSwirl = mSwirls.NextAfter(mGlowSwirl, true);
 		mI18c = 10;
+	}
 }
 
 // 0x432690

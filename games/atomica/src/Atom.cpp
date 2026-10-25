@@ -5,6 +5,7 @@
 #include "ImageFont.h"
 #include "AtomicaApp.h"
 #include "Board.h"
+#include "Swirl.h"
 #include "Grid.h"
 #include "GameText.h"
 #include "Graphics.h"
@@ -51,7 +52,7 @@ static Sprite* PreAtomFrame(AtomicaApp* theApp, int theFrame)
 	return theFrame == 0 ? theApp->mPreAtom : theApp->mPreAtomShrink[theFrame - 1];
 }
 
-static Sprite* ChromiumFrame(AtomicaApp* theApp, int theFrame)
+Sprite* Sexy::ChromiumFrame(AtomicaApp* theApp, int theFrame)
 {
 	return theFrame == 0 ? theApp->mChromium : theApp->mChromiumShrink[theFrame - 1];
 }
@@ -601,16 +602,30 @@ void Atom::Update()
 	}
 }
 
-// 0x4027a0: the atom leaves the field and flies away
-void Atom::FlyAway(void* /*theTarget*/)
+// 0x4027a0: the atom leaves the field and flies away: a copy of the newest swirl is made for it and it circles in that
+void Atom::FlyAway(Swirl* theTarget)
 {
-	// port: the original hands the atom to one of the board's swirls (0x428100) that draws it spiralling in and out;
-	// here the atom becomes a FlyingAtom effect
-	int aPixel[2] = {mGrid->mX + mX, mGrid->mY + mY};
+	if (theTarget == NULL)
+	{
+		// port: the board has no swirl yet (the original does not look): the atom just goes
+		mGrid->mCellState[mCol][mRow] = -50;
+		RemoveFromCell();
+		mDead = true;
+		return;
+	}
+	Swirl* aCopy = theTarget->Clone();
+	aCopy->mClone = true;
+	mApp->mBoard->mSwirls.Add(aCopy);
 	mGrid->mCellState[mCol][mRow] = -50;
 	RemoveFromCell();
-	mApp->mBoard->mEffects.Add(new FlyingAtom(mApp, mType, aPixel[0], aPixel[1]));
-	mDead = true;
+	mX += mGrid->mX;
+	mY += mGrid->mY;
+	aCopy->Aim(mX, mY, &mFlyX, &mFlySize);
+	mFlyGrow = (float) mApp->mRand.Get(0x14, false) * 0.01f;
+	mF_b0 = (float) mApp->mRand.Get(0x32, false) * 0.01f + 1.5f;
+	mFlyTurn = (float) mApp->mRand.Get(0x14, false) * 0.01f + 0.7f;
+	mGrid->mAtoms.Remove(this);
+	aCopy->mAtoms.Add(this);
 }
 
 // 0x4028c0: what an atom shows over its picture, by kind: the chromium atom the colours of its neighbours, the

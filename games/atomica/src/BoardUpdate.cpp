@@ -6,8 +6,10 @@
 #include "BonusMolecules.h"
 #include "Grid.h"
 #include "Effects.h"
+#include "Swirl.h"
 
 #include <cmath>
+#include <vector>
 
 using namespace Sexy;
 
@@ -125,6 +127,70 @@ void Board::Update()
 		mGrid->mPulse = 100.0f;
 		mGrid->mPulseStep = -1.0f;
 	}
+
+	// the swirls of the background: the copies the flown atoms circle in aim at the next larger ring; then every swirl is
+	// brought up to date (a copy seven times) and a new one made every 95 updates; at the start of a game this goes on until
+	// one of them has gone
+	{
+		std::vector<Swirl*> aCopies = mSwirls.mItems;
+		for (size_t i = 0; i < aCopies.size(); i++)
+		{
+			Swirl* aClone = aCopies[i];
+			if (!aClone->mClone)
+				continue;
+			mSwirls.Reset();
+			Swirl* aMain = mSwirls.Next();
+			while (aMain != NULL)
+			{
+				if (aClone->mRadius < aMain->mRadius)
+				{
+					aClone->mTargetX = aMain->mX;
+					aClone->mTargetY = aMain->mY;
+					break;
+				}
+				aMain = mSwirls.Next();
+			}
+		}
+	}
+	do
+	{
+		mSwirls.Reset();
+		Swirl* aSwirl = mSwirls.Next();
+		while (aSwirl != NULL)
+		{
+			bool aGone = false;
+			if (aSwirl->mClone)
+			{
+				for (int i = 0; i < 7; i++)
+				{
+					if (!aSwirl->Update())
+					{
+						aGone = true;
+						break;
+					}
+				}
+			}
+			else if (!aSwirl->Update())
+				aGone = true;
+			if (aGone)
+			{
+				mSwirls.Remove(aSwirl);
+				delete aSwirl;
+				mB98 = false;
+			}
+			aSwirl = mSwirls.Next();
+		}
+		if ((mI184 < 1) || mB98)
+			mI90--;
+		if (mI90 < 1)
+		{
+			mSwirls.Add(new Swirl(this));
+			mI90 = 0x5f;
+		}
+	} while (mB98);
+	mAngle = mAngle + 0.1f;
+	if (360.0f <= mAngle)
+		mAngle = mAngle - 360.0f;
 
 	// the colour flash fades
 	for (int i = 0; i < 5; i++)
@@ -275,7 +341,7 @@ void Board::Update()
 		mI180--;
 		if (mI180 < 0)
 			mI180 = 0;
-		mI188 = 0;
+		mGlowSwirl = NULL;
 	}
 	else
 		StepFreeze();

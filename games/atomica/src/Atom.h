@@ -19,6 +19,7 @@ namespace Sexy
 class AtomicaApp;
 class Grid;
 class Graphics;
+class Swirl;
 
 enum AtomKind
 {
@@ -98,7 +99,7 @@ public:
 	bool			PlaceAt(int theCol, int theRow, bool theAddToList); // 0x401dc0
 	bool			PlaceRandom();						// 0x401e60
 	virtual void	Update();							// 0x401f90
-	void			FlyAway(void* theTarget);			// 0x4027a0
+	void			FlyAway(Swirl* theTarget);			// 0x4027a0
 	virtual void	DrawOverlay(Graphics* g, int theFrame, int theX, int theY); // 0x4028c0
 	void			Infect();							// 0x402c60
 	virtual void	Draw(Graphics* g);					// 0x4037f0
@@ -137,6 +138,8 @@ public:
 
 // 0x421b00: the compass angle in whole degrees from the first point to the second (0 up, 90 right)
 int			CompassAngle(int theX1, int theY1, int theX2, int theY2);
+// 0x4015.. : the frame of the chromium atom's pictures (0 the full size, then the shrunk ones)
+Sprite*		ChromiumFrame(AtomicaApp* theApp, int theFrame);
 // the chemical symbol the colour-blind option writes on an atom of a plain type (0 to 11)
 const std::string&	AtomSymbolText(int theType);
 // the table of the original (app+0x3260 and +0x3800): sine and minus cosine of a whole degree

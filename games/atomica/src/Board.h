@@ -25,6 +25,7 @@ class Grid;
 class Atomicus;
 class BonusMolecules;
 class Graphics;
+class Swirl;
 
 // 0x4056c0: the level, the molecules made, and the meter the molecules fill (the board keeps it at +0xc4, so its
 // fields are what the rest of the code reads as the board's +0xc8 to +0xec)
@@ -61,17 +62,21 @@ public:
 	ButtonWidget*	mButtonMenu;		// +0x80 id 2
 	ButtonWidget*	mButtonBomb;		// +0x88 id 1
 	PtrList<Widget>	mButtons;			// +0x5c
-	int				mI90;				// +0x90 updates to the next swirl in the background (not ported)
 	float			mF8c;				// +0x8c counts down from 50 at a game's start; at 0 the field is set up
+	int				mI90;				// +0x90 updates to the next swirl of the background
+	float			mAngle;				// +0x94 where the ring of the swirls starts (0.1 degree an update)
+	bool			mB98;				// +0x98 the swirls are brought up to date at the start of a game: the update goes on until one has gone
 	Color			mFlash;				// +0x9c fades to black by 5 an update
 	float			mF0ac;				// +0xac where the geiger needle goes (the combo times 12)
 	float			mNeedle;			// +0xb0
 	float			mNeedleSpeed;		// +0xb4
 	int				mNeedleTick;		// +0xb8
 	bool			mNeedleBlink;		// +0xbc
+	int				mDetail;			// +0xc0 1: every row of a swirl is drawn (the original's detail setting)
 	Meter			mMeter;				// +0xc4
 	Atomicus*		mAtomicus;			// +0xf4
 	PtrList<Effect>	mEffects;			// +0xf8
+	PtrList<Swirl>	mSwirls;			// +0x110 the rings of the background, the oldest first, and the copies the flown atoms circle in
 	float			mBombPhase;			// +0x128 the bomb button's lamp
 	float			mBombFrame;			// +0x12c
 	float			mProgress;			// +0x130 the bomb's charge, 0 to 48
@@ -93,7 +98,7 @@ public:
 	float			mGeigerGlowStep;	// +0x17c
 	int				mI180;				// +0x180 the freeze (water element): how far it has come
 	int				mI184;				// +0x184 the moves the field stays frozen
-	int				mI188;				// +0x188
+	Swirl*			mGlowSwirl;			// +0x188 the swirl the freeze has come to
 	int				mI18c;				// +0x18c
 	int				mI190;				// +0x190
 	int				mI194;				// +0x194
@@ -128,7 +133,7 @@ public:
 	virtual void	ButtonDepress(int theId) override;	// 0x433c40
 	using Widget::MouseDown;
 
-	void*	LastTarget() { return NULL; }	// 0x4321f0: the swirl the flown atoms go to (port: not ported)
+	Swirl*	LastTarget() { return mSwirls.Get(mSwirls.Size() - 1); }	// 0x4321f0: the newest swirl: the flown atoms go to a copy of it
 	void	AddProgress(int theAmount);		// 0x432210
 	void	CheckBomb();					// 0x4322c0: the bomb button was pressed
 	void	StepBomb();						// 0x432360

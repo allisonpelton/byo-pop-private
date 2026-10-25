@@ -129,21 +129,6 @@ public:
 	virtual void Draw(Graphics* g);	// 0x429f40
 };
 
-// port: an atom that leaves the field spirals toward the middle of the screen, smaller and fainter (the original hands it to
-// a swirl object, 0x428100, whose triangles are drawn straight into the display buffer)
-class FlyingAtom : public Effect
-{
-public:
-	int			mType;
-	int			mLife;
-	float		mAngle;
-	float		mRadius;
-	float		mStartX, mStartY;
-	FlyingAtom(AtomicaApp* theApp, int theType, int theX, int theY);
-	virtual bool Update();
-	virtual void Draw(Graphics* g);
-};
-
 // 0x422860: the white flash of a nuked atom: the picture at the atom's place, fading by 2 an update
 class NukeFlash : public Effect
 {

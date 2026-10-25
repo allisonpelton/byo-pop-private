@@ -5,6 +5,7 @@
 #include "Atomicus.h"
 #include "BonusMolecules.h"
 #include "Grid.h"
+#include "Swirl.h"
 #include "GameText.h"
 #include "Graphics.h"
 #include "ImageFont.h"
@@ -39,6 +40,21 @@ void Board::Draw(Graphics* g)
 	Graphics* aSaved = g;
 	AtomicaApp* anApp = mApp;
 	(void) aSaved;
+
+	// the background: the swirls, each as the band between its ring and the ring of the one before (the original first clears
+	// the screen when its detail setting is not 1)
+	{
+		mSwirls.Reset();
+		Swirl* aPrevious = NULL;
+		Swirl* aSwirl = mSwirls.Next();
+		while (aSwirl != NULL)
+		{
+			aSwirl->Draw(g, aPrevious);
+			if (!aSwirl->mClone)
+				aPrevious = aSwirl;
+			aSwirl = mSwirls.Next();
+		}
+	}
 
 	// the field (a copy of the graphics moved to the field's place; the bomb shakes it)
 	if (mF8c == 0.0f)

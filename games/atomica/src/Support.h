@@ -45,6 +45,24 @@ public:
 			return NULL;
 		return mItems[mCursor++];
 	}
+	// 0x425cf0: the element after thePtr; the first one for a list of one or for NULL; after the last, the first if theWrap
+	T*		NextAfter(const T* thePtr, bool theWrap) const
+	{
+		if (mItems.empty())
+			return NULL;
+		if ((mItems.size() == 1) || (thePtr == NULL))
+			return mItems[0];
+		for (size_t i = 0; i < mItems.size(); i++)
+		{
+			if (mItems[i] == thePtr)
+			{
+				if (i + 1 < mItems.size())
+					return mItems[i + 1];
+				return theWrap ? mItems[0] : NULL;
+			}
+		}
+		return NULL;
+	}
 	T*		Get(int theIndex) const						// 0x425cc0
 	{
 		if (theIndex < 0 || theIndex >= (int) mItems.size())

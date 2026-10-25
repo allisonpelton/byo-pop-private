@@ -608,42 +608,6 @@ void Sparkle::Draw(Graphics* g)
 	g->SetColorizeImages(false);
 }
 
-// ---------------------------------------------------------------------------------------------------------
-// FlyingAtom (port)
-
-FlyingAtom::FlyingAtom(AtomicaApp* theApp, int theType, int theX, int theY) :
-	Effect(theApp),
-	mType(theType),
-	mLife(60),
-	mAngle(0),
-	mRadius(0),
-	mStartX((float) theX),
-	mStartY((float) theY)
-{
-	mX = mStartX;
-	mY = mStartY;
-}
-
-bool FlyingAtom::Update()
-{
-	mLife--;
-	float aProgress = 1.0f - (float) mLife / 60.0f;
-	mX = mStartX + (320.0f - mStartX) * aProgress * aProgress;
-	mY = mStartY + (240.0f - mStartY) * aProgress * aProgress;
-	return mLife > 0;
-}
-
-void FlyingAtom::Draw(Graphics* g)
-{
-	g->SetColorizeImages(true);
-	g->SetColor(ClampedColor(0xff, 0xff, 0xff, mLife * 4));
-	int aFrame = (60 - mLife) * 24 / 60;
-	if (aFrame > 24)
-		aFrame = 24;
-	mApp->mAtomShrink[mType][aFrame]->DrawCenteredF(g, mX, mY);
-	g->SetColorizeImages(false);
-}
-
 // 0x422860
 NukeFlash::NukeFlash(AtomicaApp* theApp) :
 	Effect(theApp),
