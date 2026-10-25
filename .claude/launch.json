@@ -36,6 +36,12 @@
       "runtimeExecutable": "python",
       "runtimeArgs": ["-m", "http.server", "18771", "--bind", "127.0.0.1", "--directory", "build/web"],
       "port": 18771
+    },
+    {
+      "name": "mummymaze-web",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-m", "http.server", "18773", "--bind", "127.0.0.1", "--directory", "build/web"],
+      "port": 18773
     }
   ]
 }
