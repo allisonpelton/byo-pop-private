@@ -15,7 +15,7 @@
 //                  "perClickBase": 0.24501, "perClickPerLevel": 0.011 }, Strategy: rows per click (> 0)
 //     "meter":   { "capacityBase": 300, "capacityPerLevel": 20,          points per full meter (>= 1)
 //                  "drainBase": 0, "drainPerLevel": 7e-5 },              Action: meter drain (>= 0)
-//     "coins":   { "colors": 4, "puzzleColors": 5,                       coin colours, 1..5
+//     "coins":   { "colors": 4, "puzzleColors": 5,                       coin colours, 1..8 (6..8: extra coins)
 //                  "fewerOnFirstLevel": true },                          one colour less on the first level
 //     "groups":  { "minSize": 3, "puzzleMinSize": 2 },                   smallest clickable group, 2..15
 //     "bags":    { "base": 2.6, "perLevel": 0.26,                        money bags to collect per level

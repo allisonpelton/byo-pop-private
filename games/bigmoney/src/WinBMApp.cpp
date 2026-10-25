@@ -31,6 +31,8 @@
 #include "SoundManager.h"
 #include "SDLMusicInterface.h"
 
+#include <algorithm>
+
 using namespace Sexy;
 
 // The highlighted-coin colour (Init): every colour channel c -> min(255, c * 280 / 255 + 48), alpha kept
@@ -46,6 +48,78 @@ static ulong BrightCoinPixel(ulong thePixel)
 	if (aRed > 255)
 		aRed = 255;
 	return (thePixel & 0xff000000) | (aRed << 16) | (aGreen << 8) | aBlue;
+}
+
+// port(mods): an extra colour's coin pixel. The tint's hue and saturation, the pixel's brightness (its largest
+// channel), so the white highlights stay white: v - (v - min) * (255 - tint) / 255 per channel, alpha kept.
+static uint32_t TintCoinPixel(uint32_t thePixel, const int theTint[3])
+{
+	int aRed = (thePixel >> 16) & 0xff;
+	int aGreen = (thePixel >> 8) & 0xff;
+	int aBlue = thePixel & 0xff;
+	int aMax = std::max(aRed, std::max(aGreen, aBlue));
+	int aMin = std::min(aRed, std::min(aGreen, aBlue));
+	uint32_t anOut = thePixel & 0xff000000;
+	for (int i = 0; i < 3; i++)
+		anOut |= (uint32_t) (aMax - (aMax - aMin) * (255 - theTint[i]) / 255) << (16 - 8 * i);
+	return anOut;
+}
+
+// port(mods): the row of IMAGE_COINS each extra colour is made from, for its symbol: orange the pound, cyan
+// the dollar, silver the yen (each unlike the colour it shares the symbol with)
+static const int gExtraCoinRows[Piece::MAX_COIN_COLORS - Piece::NUM_COIN_COLORS] = { 1, 0, 3 };
+
+// port(mods): theSource's rows for the extra colours, tinted with gCoinColors (and brightened for the
+// highlighted coins), with a mod's HD coins done the same way (HDPixels.h)
+static MemoryImage* MakeExtraCoins(SexyAppBase* theApp, MemoryImage* theSource, bool isBright)
+{
+	const int aRows = Piece::MAX_COIN_COLORS - Piece::NUM_COIN_COLORS;
+	int aWidth = theSource->GetWidth();
+	MemoryImage* anImage = new MemoryImage(theApp);
+	anImage->Create(aWidth, aRows * 29);
+	const ulong* aSrcBits = theSource->GetBits();
+	ulong* aDestBits = anImage->GetBits();
+	HDPixels aSrcHD = GetHDPixels(theSource);
+	HDPixels aDestHD;
+	int s = aSrcHD.mScale;
+	if (aSrcHD.IsValid())
+	{
+		aDestHD.mWidth = aSrcHD.mWidth;
+		aDestHD.mHeight = aRows * 29 * s;
+		aDestHD.mScale = s;
+		aDestHD.mBits.assign((size_t) aDestHD.mWidth * aDestHD.mHeight, 0);
+	}
+	for (int aRow = 0; aRow < aRows; aRow++)
+	{
+		const int* aTint = gCoinColors[Piece::NUM_COIN_COLORS + aRow];
+		int aSrcY = gExtraCoinRows[aRow] * 29;
+		if (aSrcY + 29 > theSource->GetHeight())
+			continue; // a mod's coins without that row: none
+		for (int y = 0; y < 29; y++)
+		{
+			for (int x = 0; x < aWidth; x++)
+			{
+				uint32_t aPixel = TintCoinPixel((uint32_t) aSrcBits[(aSrcY + y) * aWidth + x], aTint);
+				aDestBits[(aRow * 29 + y) * aWidth + x] = isBright ? BrightCoinPixel(aPixel) : aPixel;
+			}
+		}
+		if (aSrcHD.IsValid())
+		{
+			for (int y = 0; y < 29 * s; y++)
+			{
+				const uint32_t* aSrc = aSrcHD.Row(aSrcY * s + y);
+				uint32_t* aDest = aDestHD.Row(aRow * 29 * s + y);
+				for (int x = 0; x < aDestHD.mWidth; x++)
+				{
+					uint32_t aPixel = TintCoinPixel(aSrc[x], aTint);
+					aDest[x] = isBright ? (uint32_t) BrightCoinPixel(aPixel) : aPixel;
+				}
+			}
+		}
+	}
+	anImage->BitsChanged();
+	SetHDPixels(anImage, aDestHD);
+	return anImage;
 }
 
 // The grey selector illustrations (LoadingThreadProc): (r + g + b) / 3, alpha kept
@@ -145,6 +219,9 @@ WinBMApp::WinBMApp()
 	mTitleScreen = NULL;
 	mHelpWidget = NULL;
 	mBrightCoinsImage = NULL;
+	mExtraCoinsImage = NULL; // port(mods)
+	mExtraHorzCoinsImage = NULL;
+	mExtraBrightCoinsImage = NULL;
 	mShowInstructor = false;
 }
 
@@ -227,6 +304,9 @@ WinBMApp::~WinBMApp()
 	}
 
 	delete mBrightCoinsImage; // port: the original never deletes it
+	delete mExtraCoinsImage; // port(mods)
+	delete mExtraHorzCoinsImage;
+	delete mExtraBrightCoinsImage;
 	delete mWatchFile; // port(mods)
 
 	// mBoard and mHelpWidget are not deleted (as in the original: the process ends)
@@ -626,6 +706,10 @@ void WinBMApp::Init()
 		aCoinsHD.mBits[i] = (uint32_t) BrightCoinPixel(aCoinsHD.mBits[i]);
 	mBrightCoinsImage->BitsChanged();
 	SetHDPixels(mBrightCoinsImage, aCoinsHD);
+	// port(mods): the coins of the extra colours (Piece::MAX_COIN_COLORS)
+	mExtraCoinsImage = MakeExtraCoins(this, aCoinsImage, false);
+	mExtraHorzCoinsImage = MakeExtraCoins(this, (MemoryImage*) mImages[IMAGE_HORZCOINS], false);
+	mExtraBrightCoinsImage = MakeExtraCoins(this, aCoinsImage, true);
 
 	mFont1 = new ImageFont(this, FONT_FILE_1);
 

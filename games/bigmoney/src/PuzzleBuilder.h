@@ -32,7 +32,7 @@ public:
 	// and on the floor of the model, theRows high at most: every column 3/5 full at least (9 of 15, the
 	// original's "row 6") and two rows short of the top at most; thePlan gets the clicks that clear it, in
 	// order
-	static void	Build(MTRand& theRand, int theColors, int theCols, int theRows, PuzzleModel* theBoard,
+	static void	Build(MTRand& theRand, int theColors, int theCols, int theRows, bool isDiagonal, PuzzleModel* theBoard,
 					std::vector<PuzzleSolver::Move>* thePlan);
 };
 

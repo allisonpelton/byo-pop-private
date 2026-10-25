@@ -66,13 +66,16 @@ enum HintId
 
 // Coin colours (Piece::mColor) as r, g, b. In the original these are Color[5] built by the dynamic
 // initialisers 0x4f3220 / 0x4f32a0 (alpha 255).
-inline constexpr int gCoinColors[Piece::NUM_COIN_COLORS][3] =      // @0x52d8c8, dollar-bomb tint
+// port(mods): 5..7 are the extra colours (Piece::MAX_COIN_COLORS), whose coins are also tinted with gCoinColors.
+inline constexpr int gCoinColors[Piece::MAX_COIN_COLORS][3] =      // @0x52d8c8, dollar-bomb tint
 {
-	{255, 0, 0}, {0, 148, 255}, {255, 255, 0}, {0, 255, 0}, {255, 0, 255}
+	{255, 0, 0}, {0, 148, 255}, {255, 255, 0}, {0, 255, 0}, {255, 0, 255},
+	{255, 140, 0}, {0, 230, 230}, {215, 215, 225}
 };
-inline constexpr int gCoinLightColors[Piece::NUM_COIN_COLORS][3] = // @0x52d878, selection glow tint
+inline constexpr int gCoinLightColors[Piece::MAX_COIN_COLORS][3] = // @0x52d878, selection glow tint
 {
-	{255, 128, 128}, {128, 128, 255}, {240, 240, 64}, {87, 255, 87}, {240, 64, 240}
+	{255, 128, 128}, {128, 128, 255}, {240, 240, 64}, {87, 255, 87}, {240, 64, 240},
+	{255, 190, 110}, {128, 255, 255}, {245, 245, 250}
 };
 
 // Rank thresholds (@0x4f53c0): rank = highest i with gRankThresholds[i] <= score (names gRankNames)
@@ -154,6 +157,7 @@ public:
 	bool			mHasMoves;              // +0x42c a group >= mMinGroup exists (FindGroups)
 	int				mCols;                  // +0x430 14
 	int				mRows;                  // +0x434 15
+	bool			mDiagonal;              // port(mods): coins touching at a corner group too ("diagonalGroups")
 	int				mMintPixels;            // +0x438 (int)((1-mMint)*29): px of the next row still hidden
 	double			mMint;                  // +0x440 next-row progress; > 1 pushes a row
 	double			mMintTarget;            // +0x448 mMint eases up to it at 0.015/tick; 0.25 at level start
@@ -490,6 +494,7 @@ public:
 	void			StartSolverLevel();
 	void			GetSolverModel(PuzzleModel* theModel);
 	int				SolverRowOffset() const { return BOARD_ROWS - mRows; } // the board's row 0 in the solver's model
+	int				GroupDirs() const { return mDiagonal ? 8 : 4; } // port(mods): the gGroupDirs a group spreads through
 	int				SolverGroupKey(int theCol, int theRow) const;
 	void			UpdateSolverCheck();
 	bool			CheckSolverClick(Piece* thePiece);

@@ -358,8 +358,6 @@ void Board::SetDangerFlash(bool on)
 // not checked. theSum (optional) accumulates the pixel positions as truncated ints.
 void Board::FloodFill(int theCol, int theRow, int theMark, bool sameColor, int* theCount, int* theSum)
 {
-	static const int aDirs[4][2] = { {-1, 0}, {1, 0}, {0, -1}, {0, 1} };
-
 	Piece* aPiece = mGrid[theRow][theCol];
 	if (aPiece->mIsSpecial)
 		return;
@@ -372,10 +370,13 @@ void Board::FloodFill(int theCol, int theRow, int theMark, bool sameColor, int* 
 	(*theCount)++;
 	aPiece->mMark = theMark;
 
-	for (int i = 0; i < 4; i++)
+	// port(mods): with diagonal groups a group also spreads across corners; the floods of Compact
+	// (sameColor false) do not
+	int aNumDirs = sameColor ? GroupDirs() : 4;
+	for (int i = 0; i < aNumDirs; i++)
 	{
-		int aCol = theCol + aDirs[i][0];
-		int aRow = theRow + aDirs[i][1];
+		int aCol = theCol + gGroupDirs[i][0];
+		int aRow = theRow + gGroupDirs[i][1];
 		if ((aCol < 0) || (aCol >= mCols) || (aRow < 0) || (aRow >= mRows))
 			continue;
 		Piece* aNext = mGrid[aRow][aCol];
@@ -3710,6 +3711,8 @@ Board::Board(WinBMApp* theApp)
 	}
 	gBoardOffsetX = (BOARD_COLS - mCols) * COIN_SIZE / 2;
 	gBoardOffsetY = (BOARD_ROWS - mRows) * COIN_SIZE;
+	// port(mods): coins that touch at a corner are a group too (the "diagonalGroups" feature)
+	mDiagonal = ModFeatureEnabled("diagonalGroups");
 
 	// port: the original leaves the grid to GenerateBoard (it only nulls it); zeroed here so the port
 	// can delete the next row's pieces it replaces
@@ -3998,8 +4001,8 @@ void Board::LoadTunables()
 	mPuzzleBagsPerLevel = ModTunable("bags.puzzlePerLevel", mPuzzleBagsPerLevel, 0.0, 100.0);
 
 	BoardTunables& t = mTunables;
-	t.mColors = ModTunableInt("coins.colors", t.mColors, 1, 5);
-	t.mPuzzleColors = ModTunableInt("coins.puzzleColors", t.mPuzzleColors, 1, 5);
+	t.mColors = ModTunableInt("coins.colors", t.mColors, 1, Piece::MAX_COIN_COLORS); // port(mods): up to 8
+	t.mPuzzleColors = ModTunableInt("coins.puzzleColors", t.mPuzzleColors, 1, Piece::MAX_COIN_COLORS);
 	t.mFewerColorsFirstLevel = ModTunableBool("coins.fewerOnFirstLevel", t.mFewerColorsFirstLevel);
 	t.mMinGroup = ModTunableInt("groups.minSize", t.mMinGroup, 2, 15);
 	t.mPuzzleMinGroup = ModTunableInt("groups.puzzleMinSize", t.mPuzzleMinGroup, 2, 15);
@@ -4199,6 +4202,7 @@ void Board::GetSolverModel(PuzzleModel* theModel)
 	}
 	theModel->mReleased = mBagsReleased;
 	theModel->mNeeded = mBagsNeeded;
+	theModel->mDiagonal = mDiagonal;
 }
 
 // A group of the solver's board by its first cell (row * BOARD_COLS + col, in the model's rows); -1 if it is
@@ -4640,7 +4644,7 @@ bool Board::GetSolverStatusRect(Rect* theRect, std::vector<SolverLine>* theLines
 void Board::BuildWinnablePuzzle()
 {
 	PuzzleModel aBoard;
-	PuzzleBuilder::Build(mRand, mNumColors, mCols, mRows, &aBoard, &mBuildPlan);
+	PuzzleBuilder::Build(mRand, mNumColors, mCols, mRows, mDiagonal, &aBoard, &mBuildPlan);
 	for (int aRow = 0; aRow < mRows; aRow++)
 	{
 		for (int aCol = 0; aCol < mCols; aCol++)
@@ -4688,12 +4692,11 @@ void Board::GetPickpocketGroup(Piece* thePiece, std::vector<Piece*>* theGroup)
 	aSeen[thePiece->mRow][thePiece->mCol] = true;
 	for (size_t i = 0; i < theGroup->size(); i++)
 	{
-		static const int aDirs[4][2] = { {-1, 0}, {1, 0}, {0, -1}, {0, 1} };
 		Piece* aFrom = (*theGroup)[i];
-		for (int d = 0; d < 4; d++)
+		for (int d = 0; d < GroupDirs(); d++)
 		{
-			int aCol = aFrom->mCol + aDirs[d][0];
-			int aRow = aFrom->mRow + aDirs[d][1];
+			int aCol = aFrom->mCol + gGroupDirs[d][0];
+			int aRow = aFrom->mRow + gGroupDirs[d][1];
 			if ((aCol < 0) || (aCol >= mCols) || (aRow < 0) || (aRow >= mRows) || (aSeen[aRow][aCol]))
 				continue;
 			Piece* aPiece = mGrid[aRow][aCol];
