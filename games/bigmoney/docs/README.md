@@ -152,7 +152,7 @@ Big Money uses the shared mod system (`platform/ModManager.h`).
     (`-keep` in its name). Abandoned and resumed games are not kept.
   - **Watching.** Press R on the game-over screen to watch the game just played. Native builds also take
     `-replay=<file>`, and the web page has a Replays panel to watch, download, delete or import replays.
-    While watching: 1 to 4 for 1x to 8x, space to pause, Esc to stop.
+    While watching: 1 to 4 for 1x to 8x, space to pause, Esc or New Game to stop.
   - **Limits.** A watch never saves, counts a game or enters a high score. It needs the same gameplay
     mods as the recording.
   - **How it works.** A replay holds the board's seed, the player's clicks, hover moves and next-level

@@ -11,8 +11,8 @@
 //
 // Watching (WinBMApp::StartWatch): -replay=<file> (the web page's Replays panel passes ?replay=), or R on
 // the game-over screen for the game just played. Keys while watching: 1, 2, 3, 4 for 1x, 2x, 4x, 8x, space
-// to pause, Escape to stop. A watch never saves, counts a game or enters a high score, and it needs the
-// same gameplay mods as the recording (the same ModManager::GetScoreKey).
+// to pause, Escape (or the New Game button) to stop. A watch never saves, counts a game or enters a high
+// score, and it needs the same gameplay mods as the recording (the same ModManager::GetScoreKey).
 //
 // Why this is enough to play a game again: the board is deterministic from its start. Its generator
 // (Board::mRand) is seeded once, in the constructor, and everything a board tick does follows from the

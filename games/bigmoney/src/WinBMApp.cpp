@@ -336,6 +336,14 @@ void WinBMApp::RemoveHelp()
 // 0x41b840
 void WinBMApp::ShowGameSelector()
 {
+	// port(mods): a watch ends before the selector comes (EndWatch, which comes back here): a board started
+	// from the selector while mWatchFile is set would play the replay again, in the mode just chosen
+	if (mWatchFile != NULL)
+	{
+		EndWatch();
+		return;
+	}
+
 	KillDialog(DIALOG_RECORD_SCORE);
 
 	for (int aSong = 0; aSong < NUM_SONGS; aSong++)
@@ -493,14 +501,21 @@ bool WinBMApp::KillDialog(int theDialogId)
 // 0x41c9f0
 void WinBMApp::WriteToRegistry()
 {
+	// port(mods): during a watch the app holds the replay's mode, skill and play count (StartWatch); the
+	// registry gets the player's own, which EndWatch gives back (a quit or restart mid-watch writes it too)
+	bool isWatching = (mWatchFile != NULL);
+	int aTimesPlayed = mTimesPlayed;
+	if (isWatching)
+		mTimesPlayed = mWatchSavedTimesPlayed;
 	SexyApp::WriteToRegistry();
+	mTimesPlayed = aTimesPlayed;
 
 	// port: the original opens HKEY_LOCAL_MACHINE\SOFTWARE\<mRegKey> itself (RegOpenKeyExA, never closed)
 	// and writes only if that key exists; the port uses the framework's registry, same value names
 	if (mLastScoreName.length() != 0)
 		RegistryWriteString("LastScoreName", mLastScoreName);
-	RegistryWriteInteger("SkillLevel", mSkillLevel);
-	RegistryWriteInteger("GameType", mGameType);
+	RegistryWriteInteger("SkillLevel", isWatching ? mWatchSavedSkill : mSkillLevel);
+	RegistryWriteInteger("GameType", isWatching ? mWatchSavedGameType : mGameType);
 	RegistryWriteInteger("DontShowHelp0", mDontShowHelp[0] ? 1 : 0);
 	RegistryWriteInteger("DontShowHelp1", mDontShowHelp[1] ? 1 : 0);
 	RegistryWriteInteger("DontShowHelp2", mDontShowHelp[2] ? 1 : 0);
@@ -893,6 +908,14 @@ void WinBMApp::ConfirmQuit()
 // 0x4207e0 (side button "New Game")
 void WinBMApp::ConfirmNewGame()
 {
+	// port(mods): during a replay the button ends the watch at once, as Escape does: a watch has nothing to
+	// lose, and it would go on playing behind the "are you sure" dialog
+	if (mWatchFile != NULL)
+	{
+		EndWatch();
+		return;
+	}
+
 	if (mBoard == NULL)
 	{
 		// At the selector the button starts the selected game
