@@ -282,7 +282,7 @@ for (const i of WebAssembly.Module.imports(aModule)) {
 const ex = new WebAssembly.Instance(aModule, anImports).exports;
 aMemory = ex.memory;
 ex._initialize();
-for (const [aFirst, aLast, aTicks, aModes] of [[5, 1, 0, 3], [0, 3, 0, 3], [1, 100001, 0, 3], [1, 1, -5, 3], [1, 1, 8640001, 3], [1, 1, 0, 0], [1, 1, 0, 4]]) {
+for (const [aFirst, aLast, aTicks, aModes] of [[5, 1, 0, 3], [0, 3, 0, 3], [1, 100001, 0, 3], [1, 1, -5, 3], [1, 1, 200000001, 3], [1, 1, 0, 0], [1, 1, 0, 4]]) {
 	const aPtr = ex.bv_difftest(aFirst >>> 0, aLast >>> 0, aTicks, aModes);
 	const aHeap = new Uint8Array(aMemory.buffer);
 	let anEnd = aPtr;

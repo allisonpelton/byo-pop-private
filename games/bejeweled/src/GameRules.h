@@ -305,6 +305,9 @@ public:
 
 	int								NoMovesFor(bool isTimed) const { return isTimed ? mNoMoves.mTimed : mNoMoves.mNormal; }
 	static std::string				MoveTypesText(int theTypes);   // "swap+twist"
+	// A match.shapes pattern's distinct orientations (rotations, mirror in x), each normalised to (0,0) and sorted, in
+	// sorted order: the order MatchFinder places them in (4.6)
+	static std::vector<std::vector<std::pair<int, int> > > ShapeOrientations(const ShapePattern& theShape);
 };
 
 // Port features (3.1): no gameplay effect, not part of the RulesId or the score key

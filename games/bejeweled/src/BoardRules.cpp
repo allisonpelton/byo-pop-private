@@ -148,6 +148,7 @@ Piece* Board::GetPieceAt(int theX, int theY)
 // 0x4c9cf5
 bool Board::HasMatch()
 {
+	if (mVariant.mMatch) return HasMatchVariant(); // port(variant): the match rules (BoardMatch.cpp)
 	for (int aRow = 0; aRow < mRows; aRow++) // port(variant): was BOARD_ROWS
 	{
 		int aCount = 0;
@@ -207,6 +208,7 @@ int Board::GetPanForX(int theX)
 // 0x4c9dda
 bool Board::FindMove(int* theMove, int theMoveNum, bool horizontal, bool vertical)
 {
+	if (mVariant.mSearch) return FindMoveVariant(theMove, theMoveNum, horizontal, vertical); // port(variant): the match rules (BoardMatch.cpp)
 	static const int aDirs[4][2] = {{1, 0}, {-1, 0}, {0, 1}, {0, -1}};
 
 	int aMoveCount = 0;

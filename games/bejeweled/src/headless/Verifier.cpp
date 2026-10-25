@@ -322,7 +322,7 @@ int Verifier::Difftest(uint32_t theFirst, uint32_t theLast, int theTicks, int th
 	const char* aWrong = (theFirst == 0) ? "seed 0 (seeds are 1..4294967295)" :
 		(theLast < theFirst) ? "the last seed is below the first" :
 		(theLast - theFirst >= (uint32_t) MAX_DIFFTEST_SEEDS) ? "more seeds than one call plays (100000)" :
-		((theTicks < 1) || (theTicks > (int) Replay::MAX_TICKS)) ? "ticks outside 1..8640000" :
+		((theTicks < 1) || (theTicks > (int) Replay::MAX_TICKS)) ? "ticks outside 1..200000000 (Replay::MAX_TICKS)" :
 		((theModes < 1) || (theModes > 3)) ? "modes outside 1..3 (normal, timed, both)" : NULL;
 	if (aWrong != NULL)
 	{

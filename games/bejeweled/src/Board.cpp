@@ -644,6 +644,7 @@ Board::~Board()
 // 0x4cd287
 bool Board::ProcessMatches()
 {
+	if (mVariant.mMatch) return ProcessMatchesVariant(); // port(variant): the match rules (BoardMatch.cpp)
 	int aNumMatches = 0;
 	int anAvgXSum = 0;
 	int aMaxLength = 0;

@@ -1755,7 +1755,7 @@ games/bejeweled/docs/CODE_MODS_DESIGN.md 4.11, 6.2-6.6 and 7.3, as built:
   `LoadGame` trusts a save: an `LDSV`'s bytes must pass `Replay::CheckSave` (every value `Draw` or an update
   indexes, loops or divides with in range) before they reach it; `-codeccheck` checks every board state's
   save against the same check. The reader takes at most 16 MB and 4M events, refuses records out of order
-  or repeated and an `END` reason over 5; the player refuses more than 24 hours of board ticks in all, more
+  or repeated and an `END` reason over 5; the player refuses more than 200M board ticks (23 days) in all, more
   than 10,000 events at one tick and more than 1,000,000 outside draws. `savegame.dat` is still read as the
   original reads it. After the stage 4 review (games/bejeweled/docs/CODE_MODS_DESIGN.md 6.4, 6.8): the reader
   also takes at most 1,000 segments and refuses more than 10,000 events at one tick as it reads them (a
@@ -2197,6 +2197,42 @@ it stays a tunable that every build plays, `BEJ_NO_VARIANTS` included.
 - **Not built.** `gGemTints` (the design's per-colour average) waits for the first effect that tints by gem.
 
 ---
+
+### 12.14 Match rules (code mods, stage 9)
+
+games/bejeweled/docs/CODE_MODS_DESIGN.md 4.6 and 4.7, as built (`MatchFinder.cpp`, `BoardMatch.cpp`). The `match.*`
+rules play since stage 9: `minRun`, `diagonal` and `diagonalMinRun`, `crossings: "merge"`, `shapes` and `bonus`. A
+board whose rules set any of them takes the variant paths: `ProcessMatches` and `HasMatch` dispatch at their top on
+`mVariant.mMatch`, `FindMove` on `mVariant.mSearch`, and `-forcevariant` takes them at default rules, where the
+oracle shows they play exactly as the originals.
+
+`MatchFinder` is framework-free, so tools/rulestest runs it on fixtures and random grids. `FindGroups` gives the
+vertical runs column by column and the horizontal runs row by row (the original's two passes, in its order), then
+the `\` and `/` diagonals from their top ends, then the shape instances: ids in sorted order, anchors row-major,
+orientations as `GameRules::ShapeOrientations` lists them. An instance whose cells all lie in one earlier group of
+its colour is skipped, so a shape that repeats a run adds nothing. With `"merge"`, runs of one colour that share a
+cell (diagonals too) are one group at the place of its first run: an L where two cross at an end of both, a T at an
+end of one, a plus inside both, the largest crossing naming the group.
+
+`ScoreGroup` is the original's scoring block for one group: the set value of the move's n-th group, the length
+bonuses for a straight run only (a merged group or a shape gets none), then `match.bonus` for its kind (`diagonal`,
+`L`, `T`, `plus` or the shape id) before the multiplier. A negative bonus never takes the score below 0; without one,
+a score past the `int` range wraps or turns INT_MIN as the original's does (an early clamp on any negative score
+made `-forcevariant` differ there, in the oracle's `overflow` cases). Dirt next to
+any of a group's cells loses a layer, once for the group (`ClearDirtNextToCells`, which `ClearDirtNextToRun` now
+calls). The sounds are the original's, a group's cells counting as a run's length.
+
+The search keeps `FindMove`'s contract and its order of candidates: a swap counts when the gem it moves into the
+cell lands in a group (`MatchFinder::InGroup`, a local scan around the cell), and `horizontal` or `vertical` alone
+means a run of that direction, as the tutorial asks. `DoHint` needs no variant path for swaps, since it already
+sparkles the gem that moves in. The fill rerolls while `AnyGroup` finds a group; an orientation's anchor is the
+corner of its box, which for an L can be a hole, so holes anchor instances too. The tutorial is off with runs of
+another length or with diagonals, its text being about rows of three.
+
+Engine ABI 6: earlier engines played the match rules as runs of 3. With match rules that are not the original's,
+`-trace`'s variant line ends in the groups the board scored by kind (`groups L T plus diagonal shapes`), which the
+oracle's `kinds=` reads; its `match=` recomputes every settle's moves by brute force and finds no group left in a
+settled grid.
 
 ## 13. Naming reconciliation (analyst names → chosen names)
 

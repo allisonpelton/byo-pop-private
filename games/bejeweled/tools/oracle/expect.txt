@@ -2614,6 +2614,97 @@ watch_dirt_resume seeds 441:4242/user 692:4242/user
 watch_dirt_resume codec codeccheck: 1003 updates checked, 3 settles, 0 failures
 watch_dirt_resume watch REPLAY end: ok, 3 CHECKs, END saved tick 610 score 155 level 1 gems 13 draws 123
 
+match_shapes_auto exit 0
+match_shapes_auto mods Stage 9: shapes and crossings
+match_shapes_auto user mods-status.json registry.ini savegame-eb1366b4.dat
+match_shapes_auto settles 118
+match_shapes_auto last-settle 19909 normal level 6 score 10265 board tick 19906
+match_shapes_auto states 2271:vortex 2524:level_wipe 5711:vortex 5964:level_wipe 10719:vortex 10972:level_wipe 15146:vortex 15399:level_wipe 18866:vortex 19119:level_wipe
+match_shapes_auto save savegame-eb1366b4.dat v2 normal level 5 (shown 6), 64 gems, state 0 (falling), score 10475, play seconds 199, 10463 bytes; rules d07b376570848f5f, 8x8, level shape 0, 0 holes; RNGS seed 2135392491, MOVE moves 80 invalid 0 undos 0, END
+match_shapes_auto status rulesId d07b376570848f5f, scoreKey eb1366b4, features none, 0 warnings, errors -, dropped -
+match_shapes_auto variant last moves 79 invalid 0, 0 of 118 settles without a move
+match_shapes_auto seeds 153:2135392491/pergame
+match_shapes_auto end update 19999: update cap
+match_shapes_auto codec codeccheck: 19996 updates checked, 118 settles, 0 failures
+
+match_shapes_auto_timed exit 0
+match_shapes_auto_timed mods Stage 9: shapes and crossings
+match_shapes_auto_timed user mods-status.json registry.ini savegame-eb1366b4.dat
+match_shapes_auto_timed settles 105
+match_shapes_auto_timed last-settle 19789 timed level 10 score 23045 board tick 19785
+match_shapes_auto_timed states 1579:vortex 1832:level_wipe 2586:vortex 2839:level_wipe 3399:vortex 3652:level_wipe 4318:vortex 4571:level_wipe 6253:vortex 6506:level_wipe 7722:vortex 7975:level_wipe 11969:vortex 12222:level_wipe 13579:vortex 13832:level_wipe 16494:vortex 16747:level_wipe
+match_shapes_auto_timed save savegame-eb1366b4.dat v2 timed level 9 (shown 10), 64 gems, state 0 (falling), score 24800, play seconds 199, 10463 bytes; rules d07b376570848f5f, 8x8, level shape 0, 0 holes; RNGS seed 946286476, MOVE moves 73 invalid 0 undos 0, END
+match_shapes_auto_timed status rulesId d07b376570848f5f, scoreKey eb1366b4, features none, 0 warnings, errors -, dropped -
+match_shapes_auto_timed variant last moves 72 invalid 0, 0 of 105 settles without a move
+match_shapes_auto_timed seeds 143:946286476/pergame
+match_shapes_auto_timed end update 19999: update cap
+match_shapes_auto_timed codec codeccheck: 19996 updates checked, 105 settles, 0 failures
+
+match_diagonal_auto exit 0
+match_diagonal_auto mods Stage 9: diagonals
+match_diagonal_auto user mods-status.json registry.ini savegame-46dc64df.dat
+match_diagonal_auto settles 123
+match_diagonal_auto last-settle 19934 normal level 6 score 13030 board tick 19931
+match_diagonal_auto states 1485:vortex 1738:level_wipe 3497:vortex 3750:level_wipe 6081:vortex 6334:level_wipe 11641:vortex 11894:level_wipe 16658:vortex 16911:level_wipe
+match_diagonal_auto save savegame-46dc64df.dat v2 normal level 5 (shown 6), 64 gems, state 1 (playing), score 13030, play seconds 199, 10463 bytes; rules 5c00ad6b231f61ec, 8x8, level shape 0, 0 holes; RNGS seed 2135392491, MOVE moves 85 invalid 0 undos 0, END
+match_diagonal_auto status rulesId 5c00ad6b231f61ec, scoreKey 46dc64df, features none, 0 warnings, errors -, dropped -
+match_diagonal_auto variant last moves 85 invalid 0, 0 of 123 settles without a move
+match_diagonal_auto seeds 150:2135392491/pergame
+match_diagonal_auto end update 19999: update cap
+match_diagonal_auto codec codeccheck: 19996 updates checked, 123 settles, 0 failures
+
+match_two_auto exit 0
+match_two_auto mods Stage 9: runs of two
+match_two_auto user hiscores-bef64dd4.dat mods-status.json registry.ini
+match_two_auto settles 3
+match_two_auto last-settle 2282 normal level 2 score 14160 board tick 2279
+match_two_auto states 1722:vortex 1975:level_wipe 2283:game_over 2612:game_over_done
+match_two_auto save none
+match_two_auto status rulesId 2161c74ba8f41e45, scoreKey bef64dd4, features none, 0 warnings, errors -, dropped -
+match_two_auto variant last moves 1 invalid 0, 0 of 3 settles without a move
+match_two_auto seeds 151:2135392491/pergame
+match_two_auto end update 2612: game over -> game over done, level 2, score 14160, board tick 2609, Rand() draws 3
+match_two_auto codec codeccheck: 2710 updates checked, 3 settles, 0 failures
+
+match_four_auto exit 0
+match_four_auto mods Stage 9: runs of four
+match_four_auto user hiscores-55a759a2.dat mods-status.json registry.ini
+match_four_auto settles 8
+match_four_auto last-settle 1062 normal level 1 score 100 board tick 1059
+match_four_auto states 1187:game_over 1513:game_over_done
+match_four_auto save none
+match_four_auto status rulesId 714c31cc882e359d, scoreKey 55a759a2, features none, 0 warnings, errors -, dropped -
+match_four_auto variant last moves 5 invalid 0, 0 of 8 settles without a move
+match_four_auto seeds 144:2135392491/pergame
+match_four_auto end update 1513: game over -> game over done, level 1, score 120, board tick 1510, Rand() draws 3
+match_four_auto codec codeccheck: 1611 updates checked, 8 settles, 0 failures
+
+rec_match_shapes_auto_timed exit 0
+rec_match_shapes_auto_timed mods Stage 3: replays, Stage 9: shapes and crossings
+rec_match_shapes_auto_timed user mods-status.json registry.ini savegame-eb1366b4.bjr savegame-eb1366b4.dat
+rec_match_shapes_auto_timed settles 105
+rec_match_shapes_auto_timed last-settle 19789 timed level 10 score 23045 board tick 19785
+rec_match_shapes_auto_timed states 1579:vortex 1832:level_wipe 2586:vortex 2839:level_wipe 3399:vortex 3652:level_wipe 4318:vortex 4571:level_wipe 6253:vortex 6506:level_wipe 7722:vortex 7975:level_wipe 11969:vortex 12222:level_wipe 13579:vortex 13832:level_wipe 16494:vortex 16747:level_wipe
+rec_match_shapes_auto_timed save savegame-eb1366b4.dat v2 timed level 9 (shown 10), 64 gems, state 0 (falling), score 24800, play seconds 199, 10463 bytes; rules d07b376570848f5f, 8x8, level shape 0, 0 holes; RNGS seed 946286476, MOVE moves 73 invalid 0 undos 0, END
+rec_match_shapes_auto_timed sidecar savegame-eb1366b4.bjr end saved tick 19995 score 24800 level 10 gems 539 draws 2344; seg0 timed seed 946286476 CHECK105,HINT2,HOVER185,SAVE2,SELECT105,TARGET96; rng seed 946286476; flags hover; goes with the save
+rec_match_shapes_auto_timed status rulesId d07b376570848f5f, scoreKey eb1366b4, features seeds(entry), replays(keep 3, hover), 1 warnings, errors -, dropped -
+rec_match_shapes_auto_timed variant last moves 72 invalid 0, 0 of 105 settles without a move
+rec_match_shapes_auto_timed seeds 143:946286476/pergame
+rec_match_shapes_auto_timed end update 19999: update cap
+rec_match_shapes_auto_timed codec codeccheck: 19996 updates checked, 105 settles, 0 failures
+
+watch_match_shapes_auto_timed exit 0
+watch_match_shapes_auto_timed mods none
+watch_match_shapes_auto_timed user registry.ini
+watch_match_shapes_auto_timed settles 105
+watch_match_shapes_auto_timed last-settle 20085 timed level 10 score 23045 board tick 19785
+watch_match_shapes_auto_timed states 1875:vortex 2128:level_wipe 2882:vortex 3135:level_wipe 3695:vortex 3948:level_wipe 4614:vortex 4867:level_wipe 6549:vortex 6802:level_wipe 8018:vortex 8271:level_wipe 12265:vortex 12518:level_wipe 13875:vortex 14128:level_wipe 16790:vortex 17043:level_wipe
+watch_match_shapes_auto_timed save none
+watch_match_shapes_auto_timed variant last moves 72 invalid 0, 0 of 105 settles without a move
+watch_match_shapes_auto_timed seeds 439:946286476/pergame
+watch_match_shapes_auto_timed codec codeccheck: 19997 updates checked, 105 settles, 0 failures
+watch_match_shapes_auto_timed watch REPLAY end: ok, 105 CHECKs, END saved tick 19995 score 24800 level 10 gems 539 draws 2344
+
 colors_seven exit 0
 colors_seven mods none
 colors_seven user registry.ini
