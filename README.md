@@ -25,7 +25,7 @@ installed copy (for example from Steam):
 
 | Game | Status | Details |
 |---|---|---|
-| Bejeweled Deluxe 1.87 (2001) | Playable natively and in the browser, with graphics, sound, text and tunables mods. Gameplay code mods are being added in 15 stages, through stage 8 so far (board shapes, gravity, replays, up to 12 gem colours, ...) | [games/bejeweled](games/bejeweled/README.md) |
+| Bejeweled Deluxe 1.87 (2001) | Playable natively and in the browser, with graphics, sound, text and tunables mods. Gameplay code mods are being added in 15 stages, through stage 9 so far (board shapes, gravity, replays, up to 12 gem colours, diagonal and shaped matches, ...) | [games/bejeweled](games/bejeweled/README.md) |
 | Big Money Deluxe (2005) | Playable natively and in the browser, with mods: replays, LiveSplit, a puzzle solver, board and money variants | [games/bigmoney](games/bigmoney/docs/README.md) |
 | BookWorm Deluxe 1.03 (2004) | Playable natively and in the browser, with mods: undo, a word solver, replays, a daily board, a word journal, widescreen, LiveSplit, more word lists (built from your own files) | [games/bookworm](games/bookworm/docs/README.md) |
 | Noah's Ark Deluxe (2002) | Playable natively and in the browser, with mods: undo, a move helper, tide speed, a daily board | [games/noahsark](games/noahsark/docs/README.md) |
