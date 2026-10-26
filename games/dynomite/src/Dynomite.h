@@ -13,17 +13,21 @@ namespace Sexy
 {
 
 class Effect;
+class Egg;
 class EggGrid;
+class FirePrompt;
 class FlyingEgg;
 class FossilizedApp;
 class Launcher;
 class PowerUp;
+class Steggy;
 
 class Dynomite : public Widget
 {
 public:
 	FossilizedApp*		mApp;				// +0x58
 	Launcher*			mLauncher;			// +0x5c (0x401050)
+	FirePrompt*			mFirePrompt;		// +0x60 (0x431fc0)
 	int					mField68;			// +0x68 306
 	int					mField6c;			// +0x6c 153
 	int					mField70;			// +0x70 250, the launcher's middle
@@ -31,6 +35,7 @@ public:
 	int					mDifficulty;		// +0x78 1-3 (the side bar's skill picture)
 	int					mGameType;			// +0x7c (the side bar's mode picture; 2 shows its sixth button)
 	bool				mField80;			// +0x80
+	Steggy*				mSteggy;			// +0x84 (0x437aa0)
 	EggGrid*			mGrid;				// +0x8c (0x415770)
 	bool				mFieldB0;			// +0xb0
 	bool				mInitialized;		// +0xb1 what the destructor frees
@@ -78,6 +83,9 @@ public:
 	void				SetActive(bool isActive);		// 0x4047e0
 	void				AddPowerUp(int theKind);		// 0x4060c0
 	virtual void		GetPowerUpCenter(int* x, int* y);	// 0x404f30 (slot 43; empty)
+	// 0x404a70 (slot 45): an egg of a colour in the bottom ten rows, not the one fired last (else the board's
+	// +0x160, else any colour up to the highest placed)
+	virtual Egg*		NextEgg();
 	// 0x404c30 (slot 44): thePoints times theMultiplier (when positive) plus the chain's bonus, by skill, ten
 	// times over, times the bonus bits; a popup at x, y
 	virtual void		AddPoints(int x, int y, int thePoints, int theMultiplier, bool isChain);

@@ -30,7 +30,7 @@ class Launcher
 public:
 	FossilizedApp*		mApp;				// +4
 	Dynomite*			mBoard;				// +8
-	LoadedEgg*			mLoaded;			// +0xc
+	Egg*				mLoaded;			// +0xc a LoadedEgg, or the board's next egg (slot 45) that Steggy tossed
 	FlyingEgg*			mFlying;			// +0x10 the last fired
 	int					mAngle;				// +0x14 degrees, 0 up
 	int					mField18;			// +0x18 (the hand's cell is 8 - this / 8)
@@ -55,19 +55,19 @@ public:
 	PtrList<Point>		mPathRight;			// +0xa74 the aim path's right side, first to last
 	PtrList<Point>		mPathLeft;			// +0xa8c its left side, last to first
 	bool				mFrozen;			// +0xaa4 Fire does nothing while it is set
-	LoadedEgg*			mHeld;				// +0xaa8 an egg held while frozen, loaded 56 frames on (saved like the loaded one)
+	Egg*				mHeld;				// +0xaa8 an egg held while frozen, loaded 56 frames on (saved like the loaded one)
 	int					mFieldAac;			// +0xaac
 
 	Launcher(FossilizedApp* theApp, Dynomite* theBoard);	// 0x401050
 	virtual ~Launcher();									// 0x401160
 
-	void				SetLoaded(LoadedEgg* theEgg);		// 0x4011f0: unless one is loaded
+	void				SetLoaded(Egg* theEgg);				// 0x4011f0: unless one is loaded
 	void				Load(int theColor);					// 0x401210: unless one is loaded
 	void				Fire();								// 0x4012a0
 	void				Update();							// 0x402c10
 	void				Extend(PathLine* theLine, float theDist);	// 0x4013f0: moves its end on
 	void				Retract(PathLine* theLine, float theDist);	// 0x401470: moves its start back
-	void				Freeze(LoadedEgg* theEgg);			// 0x4014f0
+	void				Freeze(Egg* theEgg);				// 0x4014f0
 	void				DrawSling(Graphics* g);				// 0x401940
 	void				DrawBand();							// 0x401a10
 	void				PlaceEgg(float& theX, float& theY);	// 0x401d30

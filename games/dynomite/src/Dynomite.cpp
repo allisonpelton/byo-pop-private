@@ -63,6 +63,8 @@ Dynomite::Dynomite()
 	mFieldB4 = 0;
 	// port: the fields the original constructor leaves to Init (slot 46)
 	mLauncher = NULL;
+	mFirePrompt = NULL;
+	mSteggy = NULL;
 	mGrid = NULL;
 	mDifficulty = 0;
 	mGameType = 0;
@@ -156,6 +158,69 @@ void Dynomite::AddPowerUp(int theKind)
 // 0x404f30
 void Dynomite::GetPowerUpCenter(int* x, int* y)
 {
+}
+
+// 0x404a70
+Egg* Dynomite::NextEgg()
+{
+	unsigned char aPresent[20];
+	memset(aPresent, 0, sizeof(aPresent));
+	EggGrid* aGrid = mGrid;
+	int aFirstRow = (int) (aGrid->mRows - 10.0f);
+	if (aFirstRow < 0)
+		aFirstRow = 0;
+	int aCol = 0;
+	int i = 0xf;
+	do
+	{
+		int aRow = aFirstRow;
+		if ((float) aFirstRow <= mGrid->mRows)
+		{
+			do
+			{
+				unsigned int aColor = mGrid->mCells[aCol][aRow].mBits & 0xff;
+				if ((aColor != 0) && (aColor < 0x12))
+					aPresent[aColor] = 1;
+				aRow++;
+			} while ((float) aRow <= mGrid->mRows);
+		}
+		aCol++;
+		i--;
+	} while (i != 0);
+	int aTries = 0;
+	int aColor = 0;
+	aPresent[0] = 0;
+	while (true)
+	{
+		if (aColor == 0)
+		{
+			do
+			{
+				aColor = mApp->mPicker.Random(0x14, false);
+				if (aPresent[aColor] == 0)
+					aColor = 0;
+				if (aColor == mField15c)
+					aColor = 0;
+				aTries++;
+			} while ((aTries <= 0x32) && (aColor == 0));
+		}
+		if (aTries <= 0x32)
+			break;
+		// past 50 tries the colour fired last is allowed once more; then the board's +0x160 or any colour
+		if (mField15c == -1)
+		{
+			aColor = mField160;
+			if (aColor == -1)
+				aColor = mApp->mPicker.Random(mGrid->mMaxColor, false) + 1;
+			break;
+		}
+		mField15c = -1;
+	}
+	while (aColor == 0)
+		aColor = mApp->mRand.NextNoAssert() % (unsigned int) mGrid->mMaxColor + 1;
+	Egg* anEgg = new Egg();
+	anEgg->Init(mApp, this, aColor);
+	return anEgg;
 }
 
 // 0x404c30

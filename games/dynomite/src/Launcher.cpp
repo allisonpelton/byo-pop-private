@@ -7,6 +7,7 @@
 #include "Graphics.h"
 #include "PortCompat.h"
 #include "Sprite.h"
+#include "Steggy.h"
 #include <cmath>
 
 using namespace Sexy;
@@ -56,7 +57,7 @@ Launcher::~Launcher()
 }
 
 // 0x4011f0
-void Launcher::SetLoaded(LoadedEgg* theEgg)
+void Launcher::SetLoaded(Egg* theEgg)
 {
 	if (mLoaded == NULL)
 		mLoaded = theEgg;
@@ -102,7 +103,7 @@ void Launcher::Fire()
 		if (mLoaded != NULL)
 			delete mLoaded;
 		mLoaded = NULL;
-		// TODO: the board's +0x84 (0x437aa0) hears of it (0x437b20)
+		mBoard->mSteggy->Toss();
 	}
 }
 
@@ -134,7 +135,7 @@ void Launcher::Retract(PathLine* theLine, float theDist)
 }
 
 // 0x4014f0
-void Launcher::Freeze(LoadedEgg* theEgg)
+void Launcher::Freeze(Egg* theEgg)
 {
 	mFrozen = true;
 	mHeld = theEgg;
