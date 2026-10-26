@@ -10,7 +10,7 @@
 #   build-nov    tools/build.sh novariants (Bejeweled without its variant code, for the oracle)
 #   unit         rulestest, modsettingstest and fwtest -hotkeytest, native (under a minute); fwtest is skipped
 #                without assets/bejeweled; then fwtest -hotkeytest -placeholders with no game files at all; then
-#                jp2test (JPEG 2000: the .jp2 images of assets/bookwormadv/images against their PNGs, the loader's
+#                jp2test (JPEG 2000: the .jp2 images of assets/bookwormadv/images against re/bookwormadv/jp2ref, the loader's
 #                rules for .jp2 files, synthetic and damaged files), skipped without assets/bookwormadv/images; and
 #                songpostest on Bejeweled's and BookWorm's modules (skipped without their assets)
 #   unit-web     rulestest and modsettingstest under Node (needs build-web); paktest (the page's pak reader), with
@@ -145,9 +145,12 @@ suite_unit() {
 	timeout 120 "build/native/fwtest.exe" -hotkeytest -placeholders -gamedir="$OUT/no-game-files" > "$1.ph" 2>&1 || st=1
 	d="placeholders: $(lastof "$1.ph" 'placeholders: [0-9]+ game files? missing' | sed 's/^placeholders: //'), $(lastof "$1.ph" 'hotkey: [0-9]+ failed')"
 	grep -q -E 'placeholders: [1-9][0-9]* game files? missing' "$1.ph" || st=1
-	# jp2test decodes Bookworm Adventures' .jp2 images against their staged PNGs: skipped without the staged folder
+	# jp2test decodes Bookworm Adventures' .jp2 images against reference PNGs: staging's in re/bookwormadv/jp2ref, or
+	# (older staging) PNGs beside them; skipped without the staged folder
 	if [ -d assets/bookwormadv/images ]; then
-		(cd build/native && timeout 120 ./jp2test.exe "$W/assets/bookwormadv/images") > "$1.jp2" 2>&1 || st=1
+		local ref=()
+		[ -d re/bookwormadv/jp2ref/images ] && ref=("-ref=$W/re/bookwormadv/jp2ref/images")
+		(cd build/native && timeout 120 ./jp2test.exe "$W/assets/bookwormadv/images" "${ref[@]}") > "$1.jp2" 2>&1 || st=1
 		e="$(lastof "$1.jp2" 'jp2: [0-9]+ files, max channel difference')"
 	else
 		echo "jp2test skipped: no assets/bookwormadv/images (tools/setup_worktree.sh)" > "$1.jp2"

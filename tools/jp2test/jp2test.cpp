@@ -1,10 +1,12 @@
 // JPEG 2000 test (platform/openjpeg, Platform::RegisterImageFormat): native only, no window, no sound.
 //
-//   jp2test <folder> [-tolerance=N]
+//   jp2test <folder> [-ref=<png folder>] [-tolerance=N]
 //
-// Decodes every .jp2 under <folder> that has a .png of the same stem beside it (a decode of the same image
-// by another program, like the staged PNGs of Bookworm Adventures) through Platform::DecodeImage, and compares
-// the pixels with the PNG's (stb_image): a file whose size differs, or whose largest channel difference is
+// Decodes every .jp2 under <folder> that has a reference .png of the same stem (a decode of the same image by
+// another program: Bookworm Adventures' staging writes them to re/bookwormadv/jp2ref/) through
+// Platform::DecodeImage, and compares
+// the pixels with the PNG's (stb_image). The reference is at the same path under -ref's folder, or beside the
+// .jp2 without -ref. A file whose size differs, or whose largest channel difference is
 // above the tolerance (default 0), prints one line and fails the run. Then the image loader's own rules with
 // those files, in a scratch folder under the current directory:
 //   * "name_.jp2" beside "name.jp2" is an alpha mask: LoadGameImage("name") takes the colour from the
@@ -381,20 +383,28 @@ static int RunDamaged(const std::vector<std::vector<uint8_t>>& theFiles, int& th
 
 int main(int argc, char** argv)
 {
-	std::string folder;
+	std::string folder, ref;
 	int tolerance = 0;
 	for (int i = 1; i < argc; i++)
 	{
 		if (strncmp(argv[i], "-tolerance=", 11) == 0)
 			tolerance = atoi(argv[i] + 11);
+		else if (strncmp(argv[i], "-ref=", 5) == 0)
+			ref = argv[i] + 5;
 		else
 			folder = argv[i];
 	}
-	if (folder.empty() || !fs::is_directory(folder))
+	if (folder.empty() || !fs::is_directory(folder) || (!ref.empty() && !fs::is_directory(ref)))
 	{
-		fprintf(stderr, "usage: jp2test <folder> [-tolerance=N]\n");
+		fprintf(stderr, "usage: jp2test <folder> [-ref=<png folder>] [-tolerance=N]\n");
 		return 2;
 	}
+	// the reference .png of a .jp2: at its path under -ref's folder, or beside it
+	auto pngFor = [&](const fs::path& jp2) {
+		fs::path png = ref.empty() ? jp2 : fs::path(ref) / fs::relative(jp2, folder);
+		png.replace_extension(".png");
+		return png;
+	};
 
 	Platform::RegisterOpenJPEGImages();
 	Platform::RegisterOpenJPEGImages();  // twice: must register once
@@ -411,8 +421,7 @@ int main(int argc, char** argv)
 	fs::path maskedPair;  // a "name.jp2" with a "name_.jp2" mask beside it, for the loader rules
 	for (const fs::path& jp2 : jp2s)
 	{
-		fs::path png = jp2;
-		png.replace_extension(".png");
+		fs::path png = pngFor(jp2);
 		if (!fs::exists(png))
 		{
 			skipped++;
@@ -463,7 +472,7 @@ int main(int argc, char** argv)
 			maskedPair = jp2;
 	}
 	if (skipped)
-		printf("jp2: %d files without a png beside them were not compared\n", skipped);
+		printf("jp2: %d files without a reference png %s were not compared\n", skipped, ref.empty() ? "beside them (see -ref)" : "under -ref");
 
 	// --- the loader's rules with jp2 files ---
 	int problems = 0;
@@ -476,8 +485,7 @@ int main(int argc, char** argv)
 		fs::create_directories(root / "withpng" / "images");
 		std::string stem = maskedPair.stem().string();
 		fs::path mask = maskedPair.parent_path() / (stem + "_.jp2");
-		fs::path png = maskedPair;
-		png.replace_extension(".png");
+		fs::path png = pngFor(maskedPair);
 		fs::copy_file(maskedPair, root / "jp2only" / "images" / (stem + ".jp2"));
 		fs::copy_file(mask, root / "jp2only" / "images" / (stem + "_.jp2"));
 		fs::copy_file(maskedPair, root / "withpng" / "images" / (stem + ".jp2"));
@@ -528,7 +536,7 @@ int main(int argc, char** argv)
 		fs::remove_all(root, ec);
 	}
 	else
-		printf("jp2: no name.jp2 with a name_.jp2 mask and a png beside them: the loader rules were not tested\n");
+		printf("jp2: no name.jp2 with a name_.jp2 mask and a reference png: the loader rules were not tested\n");
 
 	int synthCases = 0;
 	std::vector<std::vector<uint8_t>> damageable;
