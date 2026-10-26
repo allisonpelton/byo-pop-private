@@ -8,6 +8,7 @@
 #include "R64.h"
 #include "R64Bank.h"
 #include "R64Xml.h"
+#include "R64Draw.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -56,6 +57,13 @@ T* List_Append(List<T>* theList, T* theNode)
 	return theNode;
 }
 
+// How a list deletes a node (an overload for a kind that needs more)
+template <class T>
+void List_DeleteNode(T* theNode)
+{
+	delete theNode;
+}
+
 // 0x401000 and the like: deletes the current node; the one after it (else before it) becomes current. False when
 // the list is empty.
 template <class T>
@@ -73,7 +81,7 @@ bool List_RemoveCurrent(List<T>* theList)
 			aNext->prev = nullptr;
 			theList->current = aNext;
 			theList->head = aNext;
-			delete aNode;
+			List_DeleteNode(aNode);
 			return true;
 		}
 	}
@@ -82,7 +90,7 @@ bool List_RemoveCurrent(List<T>* theList)
 		aPrev->next = aNode->next;
 		aNode->next->prev = aNode->prev;
 		theList->current = aNode->next;
-		delete aNode;
+		List_DeleteNode(aNode);
 		return true;
 	}
 	if (aPrev == nullptr)
@@ -97,7 +105,7 @@ bool List_RemoveCurrent(List<T>* theList)
 		theList->current = aPrev;
 		theList->tail = aPrev;
 	}
-	delete aNode;
+	List_DeleteNode(aNode);
 	return true;
 }
 
@@ -207,6 +215,8 @@ extern List<Animation> gAnims;   // 0x46f35c
 extern Palette gGreyPalette;     // 0x460058: r = g = b = index (its packed colours stay 0)
 extern int gGreyPaletteUnset;    // 0x460860
 extern int gFlag460004;          // 0x460004: nag_logo shows panel_cosmicbugs instead
+extern Dirty gDirty;             // 0x472a7c
+extern const int kScreenClip[4]; // 0x460010: {0, 0, 799, 599}
 
 } // namespace cb
 
