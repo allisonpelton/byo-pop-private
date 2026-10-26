@@ -3,6 +3,7 @@
 
 #include "RocketApp.h"
 #include "Screens.h"
+#include "Board.h"
 #include "Dialog.h"
 #include "GameText.h"
 #include "Compat2004.h"
@@ -218,10 +219,15 @@ void RocketApp::ButtonPress(int theId)
 	PlaySample(SOUND_UI_LITTLE_BEEP_05B);
 }
 
+// testhooks/Autoplay.cpp: plays a game with random clicks
+bool RocketAutoplay(RocketApp* theApp, const ScriptCommand& theCommand);
+
 // port: the test scripts' "startgame" clicks the play link as soon as the loading screen shows it (the update at which
 // the loading ends depends on the machine); it asks again at the next update until then
 bool RocketApp::HandleScriptCommand(const ScriptCommand& theCommand)
 {
+	if (theCommand.mCommand == "autoplay")
+		return RocketAutoplay(this, theCommand);
 	if (theCommand.mCommand != "startgame")
 		return SexyApp::HandleScriptCommand(theCommand);
 	if ((mLoadingScreen != NULL) && !mShutdown)
@@ -393,9 +399,24 @@ bool RocketApp::ShowModeHint(int theHint, bool theForce)
 	return false;
 }
 
-// 0x42ea30 (not translated yet)
+// 0x42ea30: a game begins (or is continued): the board replaces the one in progress. Left out: the fade of the four
+// songs (app+0x2f4), the overlay at app+0x890 (0x42e190), the three buttons on the left of the screen (0x42d1a0, which
+// the Board's ButtonDepress answers) and the deletion of this mode's saved game when it is a new one (0x41d380).
 void RocketApp::StartBoard(bool theContinuing)
 {
-	(void) theContinuing;
-	SDL_Log("StartBoard: mode %d difficulty %d (the Board is not translated yet)", mMode, mDifficulty);
+	KillDialog(3);
+	if (mBoard != NULL)
+	{
+		mWidgetManager->RemoveWidget(mBoard);
+		SafeDeleteWidget(mBoard);
+		mBoard = NULL;
+	}
+	SDL_Log("StartBoard: mode %d difficulty %d", mMode, mDifficulty);
+	mBoard = new Board(this, theContinuing);
+	mBoard->Resize(0, 0, mWidth, mHeight);
+	mWidgetManager->AddWidget(mBoard);
+	mWidgetManager->BringToFront(mBoard);
+	mWidgetManager->SetFocus(mBoard);
+	if (!theContinuing)
+		KillDialog(1);
 }

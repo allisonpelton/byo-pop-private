@@ -55,8 +55,7 @@ Board::Board(RocketApp* theApp, bool theContinuing)
 	m80 = 3;
 	mState = 0;
 	ResetState(theContinuing);
-	SetupBoard(true, false);
-	SetupBoard(false, false);
+	SetupBoard(true, theContinuing);
 }
 
 Board::~Board()
