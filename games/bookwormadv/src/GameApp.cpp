@@ -153,9 +153,10 @@ void GameApp::Init()
 
 bool GameApp::UpdateAppStep(bool* updated)
 {
-	// The loading thread's next 20 ms of work, between the frames (StartLoading)
+	// The loading thread's next 20 ms of work, between the frames (StartLoading); with -fast all of it at once,
+	// so that a test run reaches the menu at the same update on any machine
 	if (mLoadingPhase != LOADING_IDLE && mLoadingPhase != LOADING_DONE && mDrawCount > 0) {
-		if (LoadingStep(SDL_GetTicks() + 20)) {
+		if (LoadingStep(mFastMode ? 0 : SDL_GetTicks() + 20)) {
 			mLoadingThreadRunning = false;
 			mLoadingThreadCompleted = true;  // DoUpdateFrames calls LoadingThreadCompleted
 		}
