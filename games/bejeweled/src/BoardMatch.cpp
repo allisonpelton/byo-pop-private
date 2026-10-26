@@ -172,6 +172,9 @@ bool Board::ProcessMatchesVariant()
 	// Stage 11: the specials the groups make and set off (BoardSpecials.cpp)
 	if (mVariant.mSpecials && !aGroups.empty())
 		ResolveSpecials(aGroups);
+	// Stage 18: the arrows the groups and blasts took are cleared (BoardArrows.cpp)
+	if (mVariant.mArrows && !aGroups.empty())
+		ClearMatchedArrows();
 
 	int aNumMatches = (int) aGroups.size();
 	if (aNumMatches > 0)

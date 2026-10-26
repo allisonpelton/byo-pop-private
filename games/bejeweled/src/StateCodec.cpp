@@ -144,6 +144,36 @@ public:
 				PutByte(mBoard->mGold[aRow][aCol]);
 		}
 	}
+	// An arrow rule set's rows (stage 18): each gem's arrow (0 none, else its direction + 1; 0 where no gem), the counts,
+	// and the steps of STATE_ARROW_STEPPING (their count, then each one's cells)
+	void ArrowInt(const char* theName, int& theValue, int theFlags) { if (mBoard->mVariant.mArrows) Int(theName, theValue, theFlags); }
+	void ArrowBool(const char* theName, bool& theValue, int theFlags) { if (mBoard->mVariant.mArrows) Bool(theName, theValue, theFlags); }
+	void ArrowCells(int theFlags)
+	{
+		if (!mBoard->mVariant.mArrows || !Want(theFlags, "mArrow"))
+			return;
+		for (int aRow = 0; aRow < mBoard->mRows; aRow++)
+		{
+			for (int aCol = 0; aCol < mBoard->mCols; aCol++)
+			{
+				Piece* aPiece = mBoard->mBoard[aRow][aCol];
+				PutByte((aPiece != NULL) ? (uint8_t) aPiece->mArrow : 0);
+			}
+		}
+	}
+	void ArrowSteps(int theFlags)
+	{
+		if (!mBoard->mVariant.mArrows || !Want(theFlags, "mArrowSteps"))
+			return;
+		PutInt((int) mBoard->mArrowSteps.size());
+		for (const Board::ArrowStep& s : mBoard->mArrowSteps)
+		{
+			PutInt(s.mFromCol);
+			PutInt(s.mFromRow);
+			PutInt(s.mToCol);
+			PutInt(s.mToRow);
+		}
+	}
 	void DirtBool(const char* theName, bool& theValue, int theFlags) { if (mBoard->mDirtRules) Bool(theName, theValue, theFlags); }
 	void DirtLayers(int theFlags)
 	{
@@ -413,6 +443,49 @@ public:
 			if (aGold > 1)
 				Fail("gold " + std::to_string(aGold) + " at cell (" + std::to_string(i % mBoard->mCols) + "," + std::to_string(i / mBoard->mCols) + ")");
 			mBoard->mGold[i / mBoard->mCols][i % mBoard->mCols] = aGold;
+		}
+	}
+	// After the cells: an arrow only on a gem; a step from a cell to the next one in a line, or a cell off the board
+	void ArrowInt(const char* theName, int& theValue, int theFlags) { if (mBoard->mVariant.mArrows) Int(theName, theValue, theFlags); }
+	void ArrowBool(const char* theName, bool& theValue, int theFlags) { if (mBoard->mVariant.mArrows) Bool(theName, theValue, theFlags); }
+	void ArrowCells(int theFlags)
+	{
+		if (!mBoard->mVariant.mArrows || ((theFlags & mFlag) == 0))
+			return;
+		for (int i = 0; i < mBoard->mRows * mBoard->mCols; i++)
+		{
+			if (!Has(1, "mArrow"))
+				return;
+			uint8_t anArrow = (uint8_t) mBytes[mPos++];
+			Piece* aPiece = mBoard->mBoard[i / mBoard->mCols][i % mBoard->mCols];
+			if ((anArrow > GameRules::NUM_ARROW_DIRECTIONS) || ((anArrow > 0) && (aPiece == NULL)))
+				Fail("arrow " + std::to_string(anArrow) + " at cell (" + std::to_string(i % mBoard->mCols) + "," + std::to_string(i / mBoard->mCols) + ")");
+			else if (aPiece != NULL)
+				aPiece->mArrow = anArrow;
+		}
+	}
+	void ArrowSteps(int theFlags)
+	{
+		if (!mBoard->mVariant.mArrows || ((theFlags & mFlag) == 0))
+			return;
+		mBoard->mArrowSteps.clear();
+		int aCount = GetInt("mArrowSteps");
+		if (mOk && ((aCount < 0) || (aCount > mBoard->mRows * mBoard->mCols)))
+			Fail(std::to_string(aCount) + " arrow steps");
+		for (int i = 0; mOk && (i < aCount); i++)
+		{
+			Board::ArrowStep s;
+			s.mFromCol = GetInt("mArrowSteps");
+			s.mFromRow = GetInt("mArrowSteps");
+			s.mToCol = GetInt("mArrowSteps");
+			s.mToRow = GetInt("mArrowSteps");
+			bool isFromCell = (s.mFromCol >= 0) && (s.mFromCol < mBoard->mCols) && (s.mFromRow >= 0) && (s.mFromRow < mBoard->mRows);
+			bool isToNear = (s.mToCol >= -1) && (s.mToCol <= mBoard->mCols) && (s.mToRow >= -1) && (s.mToRow <= mBoard->mRows) &&
+				((s.mToCol == s.mFromCol) != (s.mToRow == s.mFromRow));
+			if (mOk && (!isFromCell || !isToNear))
+				Fail("an arrow step from (" + std::to_string(s.mFromCol) + "," + std::to_string(s.mFromRow) + ") to (" +
+					std::to_string(s.mToCol) + "," + std::to_string(s.mToRow) + ")");
+			mBoard->mArrowSteps.push_back(s);
 		}
 	}
 	// After the cells: a cell with layers holds no gem
@@ -692,6 +765,17 @@ template<class V> void VisitBoard(V& v, Board* b)
 	v.MovesInt("mMoveTick", b->mMoveTick, FULL | LOGIC | SNAP);
 	v.MovesInt("mSlideFrom", b->mSlideFrom, FULL | LOGIC | SNAP);
 	v.MovesInt("mSlideTo", b->mSlideTo, FULL | LOGIC | SNAP);
+	// Stage 18, arrow gems (the v2 save's ARRW chunk), only when the rules have them: each gem's arrow, the moves toward
+	// the next and the arrows cleared (the bonus's factor). FULL too, since no such rule set plays as the original; UNDO,
+	// since an undo brings the arrows back. The step a move made due, and STATE_ARROW_STEPPING's steps (the grid holds
+	// them done) with their animation: not UNDO, which is taken in STATE_PLAYING; a save holds the steps done
+	// (Board::GetVariantSave)
+	v.ArrowCells(FULL | LOGIC | SNAP | V2 | UNDO);
+	v.ArrowInt("mArrowMoves", b->mArrowMoves, FULL | LOGIC | SNAP | V2 | UNDO);
+	v.ArrowInt("mArrowsCleared", b->mArrowsCleared, FULL | LOGIC | SNAP | V2 | UNDO);
+	v.ArrowBool("mArrowStepDue", b->mArrowStepDue, FULL | LOGIC | SNAP | V2);
+	v.ArrowSteps(FULL | LOGIC | SNAP);
+	v.ArrowInt("mArrowTick", b->mArrowTick, FULL | LOGIC | SNAP);
 }
 
 }

@@ -520,7 +520,7 @@ bool Board::SaveGame()
 	Unpause(false);
 
 	Buffer aBuffer;
-	WriteSaveGame(&aBuffer, mPlaySeconds, IsVariantMoveState(mState) ? (int) STATE_PLAYING : mState); // port(variant): was mState; a twist or a slide is saved as the board before it
+	WriteSaveGame(&aBuffer, mPlaySeconds, IsVariantMoveState(mState) ? (int) STATE_PLAYING : (mState == STATE_ARROW_STEPPING) ? (int) STATE_FALLING : mState); // port(variant): was mState; a twist or a slide is saved as the board before it, arrows' steps done (BoardSave.cpp)
 
 	// A swap in progress is saved with its state, then the live board drops to STATE_PLAYING (the
 	// original drops it right after writing mState; nothing written later depends on it)
@@ -545,6 +545,8 @@ void Board::SaveGameSnapshot(Buffer* theBuffer)
 	int aState = mState;
 	if ((aState == STATE_SWAPPING) || (aState == STATE_SWAPPING_BACK) || IsVariantMoveState(aState)) // port(variant): a twist or a slide too, the grid the board before it
 		aState = STATE_PLAYING;
+	else if (aState == STATE_ARROW_STEPPING) // port(variant): arrows' steps, saved done (BoardSave.cpp)
+		aState = STATE_FALLING;
 
 	WriteSaveGame(theBuffer, aPlaySeconds, aState);
 }
@@ -812,6 +814,10 @@ void Board::UpdateFalling()
 	{
 		if (ProcessMatches())
 			mState = STATE_CLEARING;
+		else if (mVariant.mArrows && ArrowSettle())
+		{
+			// port(variant): the move's arrows step first, then the board settles again (BoardArrows.cpp)
+		}
 		else
 		{
 			if (mStats != NULL) mStats->OnSettle(this); // port(variant): the move's cascades and the score line (GameStats.h)
@@ -1064,7 +1070,9 @@ void Board::Update()
 	if (mUpdateCnt == 150)
 	{
 		mApp->PlaySample(SOUND_GO);
-		if ((!mApp->mShowInstructions) || (mApp->mTimesPlayed >= 5))
+		// port(variant): not over an arrow escape that ended a resumed game already (BoardArrows.cpp; nothing else
+		// ends a game this soon)
+		if (((!mApp->mShowInstructions) || (mApp->mTimesPlayed >= 5)) && !(mVariant.mArrows && (mState == STATE_GAME_OVER)))
 			ShowText(mApp->GetString("GO"), 250);
 		if ((mApp->mShowInstructions) && (mApp->mTimesPlayed < 5))
 		{
@@ -1247,6 +1255,9 @@ void Board::Update()
 	case STATE_SLIDING:
 	case STATE_SLIDING_BACK:
 		UpdateSlide();
+		break;
+	case STATE_ARROW_STEPPING: // port(variant): arrow gems step (BoardArrows.cpp)
+		UpdateArrowSteps();
 		break;
 	}
 

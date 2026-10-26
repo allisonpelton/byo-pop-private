@@ -2427,6 +2427,16 @@ games hash the same with it. The game-over screen gets a STATS link next to the 
 dialog of a watched replay gets one too; either opens `GameStatsPage` over the board window. Undo snapshots keep
 a copy of the counts, and saves keep them in the sidecar's STAT record.
 
+### 12.22 Arrow gems (code mods, stage 18)
+
+games/bejeweled/docs/CODE_MODS_DESIGN.md 4.20, as built. With `arrows.enabled` some gems are arrows (`Piece::mArrow`)
+that step one gem the way they point after each move, at the settle that ends it, in a state of their own,
+`STATE_ARROW_STEPPING` (14), which no original save or replay holds. A new arrow, every few moves, draws its direction
+and its gem from the board's RNG, so the rules give each game their own high-score table and no oracle case without
+them changes. The arrows and their counts are game state: StateCodec rows (FULL, LOGIC, SNAPSHOT, UNDO; the steps
+not UNDO) and the v2 save's `ARRW` chunk. A save keeps `mState` within the original's 0..9: a save mid-step
+writes `STATE_FALLING`. An escape ends the game with the replays' end reason 6, `END_ARROW_ESCAPED`.
+
 ## 13. Naming reconciliation (analyst names → chosen names)
 
 **Board fields.**

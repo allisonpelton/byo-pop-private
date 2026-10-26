@@ -132,6 +132,7 @@ The mods named `example-*` that are listed as "in the repository" show one featu
 | `example-twist-slide`: twists (Bejeweled Twist) and slides (Chuzzle), alone or with swaps; the right click twists back, and the slide snap is a setting | in the repository |
 | `example-power-gems`: Bejeweled 2's flame and lightning gems: what makes each, the blast size, their points, chains, and whether cascades make them | in the repository |
 | `example-gold`: Jewel Quest's gold board: the level ends when every cell is gold. The menu sets the time limits in Normal and Timed, the points for the time left, and whether blasts gild | in the repository |
+| `example-arrows`: arrow gems step one gem the way they point after each move; match them for a growing bonus before one leaves the board and ends the game. The menu sets the ways they point, how often new ones come and the bonus | in the repository |
 | `livesplit`: LiveSplit auto splitter support (Windows): the block the auto splitter reads, 12 split templates and the script ([tools/livesplit](tools/livesplit/README.md)); changes nothing in play or on screen | same script (`--only livesplit`) |
 | `mines-trilliant`: orange gem as a trilliant cut shaped like the Colorado School of Mines triangle | `python games/bejeweled/tools/make_trilliant_mod.py` |
 | `true-gem`: every gem becomes a badly recoloured "True..." meme card, the logo reads BE TRUE LED, EXCELLENT! becomes TRUE... and NO MOVES! becomes NO TRUE... | `python games/bejeweled/tools/make_true_mod.py --image <picture>` |

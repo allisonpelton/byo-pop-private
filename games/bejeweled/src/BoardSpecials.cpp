@@ -81,6 +81,7 @@ void Board::ResolveSpecials(const std::vector<MatchFinder::Group>& theGroups)
 		Piece* aPiece = mBoard[c.mCell.second][c.mCell.first];
 		aPiece->mDying = false;
 		aPiece->mDyingFrame = 0;
+		ClearArrow(aPiece); // stage 18: an arrow that turns special is cleared (BoardArrows.cpp)
 		aPiece->mKind = c.mKind;
 		aPiece->mKindFrame = 0;
 		aGrid.mDying[c.mCell.second][c.mCell.first] = false;

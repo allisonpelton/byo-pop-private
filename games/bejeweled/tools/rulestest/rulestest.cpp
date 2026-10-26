@@ -650,6 +650,29 @@ static void TestDirt()
 
 // Stage 7c (4.16): board.gravity is an atomic group, look.* are leaves that make no variant board, the canonical
 // bytes of fields 7, 8, 144 and 145, and the fill minimum taken over every fill order the direction uses
+// Stage 18: the arrows group, its direction names and the moves between new arrows
+static void TestArrows()
+{
+	Result r = Merge({{"a", "{\"rules\": {\"arrows\": {\"enabled\": true}}}"}});
+	Check(Clean(r) && r.mRules.mArrows.mEnabled && (r.mRules.mArrows.mDirections == GameRules::ALL_ARROW_DIRECTIONS) &&
+		(r.mRules.mArrows.mEvery == 6) && (r.mRules.mArrows.mEveryMin == 3) && (r.mRules.mArrows.mBonus == 100), "arrows: the defaults" + Messages(r));
+	Check(r.mRules.HasVariantRules(), "arrows: a variant rule");
+	Check((r.mRules.ArrowInterval(0) == 6) && (r.mRules.ArrowInterval(2) == 4) && (r.mRules.ArrowInterval(3) == 3) &&
+		(r.mRules.ArrowInterval(40) == 3), "arrows: one move fewer each level, down to everyMin");
+	r = Merge({{"a", "{\"rules\": {\"arrows\": {\"enabled\": true, \"directions\": \"up\", \"every\": 2, \"everyMin\": 5}}}"}});
+	Check(Clean(r) && (r.mRules.mArrows.mDirections == (1 << GameRules::ARROW_UP)) && (r.mRules.ArrowInterval(0) == 2) &&
+		(r.mRules.ArrowInterval(9) == 2), "arrows: one direction; everyMin above every gives every" + Messages(r));
+	r = Merge({{"a", "{\"rules\": {\"arrows\": {\"enabled\": true, \"directions\": [\"left\", \"right\"]}}}"}});
+	Check(Clean(r) && (r.mRules.mArrows.mDirections == ((1 << GameRules::ARROW_LEFT) | (1 << GameRules::ARROW_RIGHT))), "arrows: a list of directions" + Messages(r));
+	r = Merge({{"a", "{\"rules\": {\"arrows\": {\"enabled\": true, \"directions\": [\"up\", \"north\"]}}}"}});
+	Check(HasMessage(r.mStatus.mErrors, "a", "arrows.directions must be \"up\", \"right\", \"down\", \"left\" or a list of them") &&
+		!r.mRules.mArrows.mEnabled, "arrows: an unknown direction rejects the group" + Messages(r));
+	r = Merge({{"a", "{\"rules\": {\"arrows\": {\"enabled\": true, \"every\": 500}}}"}});
+	Check(r.mRules.mArrows.mEvery == 100, "arrows: every clamps to 100" + Messages(r));
+	Check(Merge({{"a", "{\"rules\": {\"arrows\": {\"enabled\": true}}}"}}).mRules.Canonical() !=
+		Merge({{"a", "{\"rules\": {\"arrows\": {\"enabled\": true, \"directions\": \"up\"}}}"}}).mRules.Canonical(), "arrows: the directions are in the canonical form");
+}
+
 static void TestGravity()
 {
 	const char* aTwilight = "{\"rules\": {\"board\": {\"gravity\": {\"direction\": \"alternate\", \"fallAccel\": 75}}, "
@@ -1658,7 +1681,7 @@ static void TestReplayLimits()
 		{"two SVHA", aHeader + aSegm + aSvha + aSvha + anEnd},
 		{"an RNGS after SVHA", aHeader + aSegm + aSvha + anRngs + anEnd},
 		{"a SEGM after SVHA", aHeader + aSegm + aSvha + aSegm + anEnd},
-		{"END reason 6", aHeader + aSegm + anEnd.substr(0, 8) + std::string(1, '\6') + anEnd.substr(9)},
+		{"END reason 7", aHeader + aSegm + anEnd.substr(0, 8) + std::string(1, '\7') + anEnd.substr(9)},
 		{"END reason 255", aHeader + aSegm + anEnd.substr(0, 8) + std::string(1, '\xff') + anEnd.substr(9)},
 	};
 	for (size_t i = 0; i < sizeof(aBads) / sizeof(aBads[0]); i++)
@@ -2101,6 +2124,42 @@ static void TestReplayVariantSave()
 	{
 		aWhy.clear();
 		Check(!Replay::ReadVariantSave(aGoldBads[i].mBytes, &aRead, &aWhy) && !aWhy.empty(), std::string("v2: refused: ") + aGoldBads[i].mWhat + " (" + aWhy + ")");
+	}
+
+	// ARRW (stage 18): the counts, a step due, then a byte a cell (0 none, else the direction + 1), written when the rules
+	// have arrows
+	Check(Replay::ReadVariantSave(aGoldBytes, &aRead, &aWhy) && !aRead.mHasArrows, "v2: no ARRW chunk (" + aWhy + ")");
+	Replay::VariantSave anArrowSave = aHoled;
+	anArrowSave.mHasArrows = true;
+	anArrowSave.mArrows.assign(64, 0);
+	anArrowSave.mArrows[8] = 1;
+	anArrowSave.mArrows[63] = 4;
+	anArrowSave.mArrowMoves = 5;
+	anArrowSave.mArrowsCleared = 2;
+	anArrowSave.mArrowStepDue = true;
+	std::string anArrowBytes = V2Save(anArrowSave, aV1Hole);
+	std::string anArrowChunk = Replay::VariantSaveChunks(anArrowSave).substr(2514 + 20);
+	Check(Hex(anArrowChunk.substr(0, 8 + 9 + 10)) == "41525257" "49000000" "05000000" "02000000" "01" "00000000000000000100",
+		"v2: golden ARRW chunk after MOVE");
+	Check(Replay::ReadVariantSave(anArrowBytes, &aRead, &aWhy) && aRead.mHasArrows && (aRead.mArrows == anArrowSave.mArrows) &&
+		(aRead.mArrowMoves == 5) && (aRead.mArrowsCleared == 2) && aRead.mArrowStepDue, "v2: ARRW reads back (" + aWhy + ")");
+	std::string anArrowNoEnd = anArrowBytes.substr(0, anArrowBytes.size() - 8);
+	std::string anArrowAlone = anArrowNoEnd.substr(anArrowNoEnd.size() - (8 + 9 + 64));
+	std::string aBeforeArrows = anArrowNoEnd.substr(0, anArrowNoEnd.size() - (8 + 9 + 64));
+	auto aWithArrowByte = [&](size_t theAt, char theByte) { std::string aCopy = anArrowNoEnd; aCopy[aBeforeArrows.size() + 8 + theAt] = theByte; return aCopy + anEnd; };
+	const Bad anArrowBads[] =
+	{
+		{"ARRW twice", anArrowNoEnd + anArrowAlone + anEnd},
+		{"ARRW of 72 bytes", aBeforeArrows + "ARRW" + aLe32(72) + std::string(72, '\0') + anEnd},
+		{"ARRW arrow 5", aWithArrowByte(9 + 10, 5)},
+		{"ARRW on a hole", aWithArrowByte(9 + 9, 1)},
+		{"ARRW negative moves", aWithArrowByte(3, '\x80')},
+		{"ARRW step due 2", aWithArrowByte(8, 2)},
+	};
+	for (size_t i = 0; i < sizeof(anArrowBads) / sizeof(anArrowBads[0]); i++)
+	{
+		aWhy.clear();
+		Check(!Replay::ReadVariantSave(anArrowBads[i].mBytes, &aRead, &aWhy) && !aWhy.empty(), std::string("v2: refused: ") + anArrowBads[i].mWhat + " (" + aWhy + ")");
 	}
 
 	// An unknown chunk before END is skipped
@@ -2781,6 +2840,7 @@ int main(int argc, char** argv)
 	TestMatchFinder();
 	TestMoveSet();
 	TestSpecials();
+	TestArrows();
 	TestGravity();
 	TestDirt();
 	TestDesignExamples();

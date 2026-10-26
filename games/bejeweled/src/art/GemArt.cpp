@@ -330,11 +330,13 @@ Model Smooth(const V3& theAxes)
 	return m;
 }
 
+// The port's own colours, one per gem colour (cel and glossy, and the arrows)
+const int kColors[12][3] = {{250, 212, 28}, {232, 232, 242}, {38, 122, 250}, {232, 30, 48}, {184, 62, 226},
+	{255, 136, 24}, {46, 194, 64}, {255, 110, 188}, {22, 194, 198}, {124, 86, 255}, {86, 86, 100}, {166, 234, 38}};
+
 // The port's own cuts (cel and glossy)
 Model OwnModel(int theColor)
 {
-	static const int kColors[12][3] = {{250, 212, 28}, {232, 232, 242}, {38, 122, 250}, {232, 30, 48}, {184, 62, 226},
-		{255, 136, 24}, {46, 194, 64}, {255, 110, 188}, {22, 194, 198}, {124, 86, 255}, {86, 86, 100}, {166, 234, 38}};
 	Model m;
 	switch (theColor)
 	{
@@ -412,6 +414,23 @@ Model SuModel(int theColor)
 	default:
 		return OwnModel(theColor);
 	}
+	Finish(m);
+	return m;
+}
+
+// An arrow gem (4.20): the bullet cut, a long stone with a flat back and a sharp point, pointing theDir (0 up, 1 right,
+// 2 down, 3 left; the outline turns in the model, so the light stays at the upper left), in theColor's own tones
+Model ArrowModel(int theColor, int theDir)
+{
+	// as wide as a gem (a narrower, truer bullet reads as a pencil at 48 px), its point a third of its length
+	Poly aBullet = {{-27, -38}, {27, -38}, {27, 1}, {0, 40}, {-27, 1}};
+	for (std::pair<double, double>& p : aBullet)
+	{
+		for (int i = 0; i < theDir; i++)
+			p = std::make_pair(p.second, -p.first);
+	}
+	Model m = Faceted(aBullet, Steps{{5.0, 10.0}, {6.0, 15.0}});
+	BaseTones(m, kColors[theColor % 12][0], kColors[theColor % 12][1], kColors[theColor % 12][2]);
 	Finish(m);
 	return m;
 }
@@ -734,6 +753,69 @@ void DrawGemSheet(GemStyle theStyle, int theColors, int theScale, std::vector<ui
 	for (std::thread& aWorker : aWorkers)
 		aWorker.join();
 #endif
+}
+
+void DrawArrowSheet(int theColors, int theScale, std::vector<uint32_t>& theOut)
+{
+	theColors = std::max(1, std::min(12, theColors));
+	int aCell = CELL * theScale;
+	int aW = 4 * aCell, aH = theColors * aCell;
+	theOut.assign((size_t) aW * aH, 0);
+	int aSS = (theScale >= 3) ? 2 : 3;
+	double aUnitPx = UNIT_PX * theScale;
+	Cast aCast;
+	std::vector<float> aTile;
+	for (int c = 0; c < theColors; c++)
+	{
+		for (int d = 0; d < 4; d++)
+		{
+			Model aModel = ArrowModel(c, d);
+			double bx, by;
+			BBoxCentre(aModel, &bx, &by);
+			double ox = ANCHOR_X * theScale - bx * aUnitPx, oy = ANCHOR_Y * theScale + by * aUnitPx;
+			CastRays(aModel, RotY(0.0), aCell, aUnitPx, ox, oy, aSS, aCast);
+			ShadeTile(GEMS_CEL, aModel, aCast, aCell, aSS, false, 0.0, aTile);
+			int aTop = c * aCell, aLeft = d * aCell;
+			// a dark rim around the stone, about 1.5 px as on the game's own gems, so an arrow stands out as much as they do
+			const double aRim = 1.5 * theScale;
+			const int aReach = (int) std::ceil(aRim);
+			const float kRim[3] = {0.07f, 0.05f, 0.04f};
+			auto aStoneAt = [&](int x, int y) {
+				return ((x < 0) || (y < 0) || (x >= aCell) || (y >= aCell)) ? 0.0f : std::min(1.0f, aTile[((size_t) y * aCell + x) * 4 + 3]);
+			};
+			for (int y = 0; y < aCell; y++)
+			{
+				for (int x = 0; x < aCell; x++)
+				{
+					// as on the gem sheet, the game samples x 2..50 and y 0..48 of a cell
+					if ((x < 2 * theScale) || (x >= 51 * theScale) || (y >= 49 * theScale))
+						continue;
+					const float* p = &aTile[((size_t) y * aCell + x) * 4];
+					float aStone = std::max(0.0f, std::min(1.0f, p[3]));
+					float aNear = 0.0f;
+					if (aStone < 1.0f)
+					{
+						for (int dy = -aReach; dy <= aReach; dy++)
+						{
+							for (int dx = -aReach; dx <= aReach; dx++)
+							{
+								if (dx * dx + dy * dy <= aRim * aRim)
+									aNear = std::max(aNear, aStoneAt(x + dx, y + dy));
+							}
+						}
+					}
+					float aRimA = aNear * (1.0f - aStone);
+					float anA = aStone + aRimA;
+					if (anA <= 0.0f)
+						continue;
+					float aPremul[3];
+					for (int i = 0; i < 3; i++)
+						aPremul[i] = ((p[3] > 0.0f) ? p[i] * aStone / p[3] : 0.0f) + kRim[i] * aRimA;
+					theOut[(size_t) (aTop + y) * aW + aLeft + x] = PackArgb(aPremul[0] / anA, aPremul[1] / anA, aPremul[2] / anA, anA);
+				}
+			}
+		}
+	}
 }
 
 void DrawGem(Canvas& theCanvas, GemStyle theStyle, int theColor, double cx, double cy, double theW, double theH)

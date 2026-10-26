@@ -17,7 +17,7 @@ using namespace Sexy;
 static const char* const gStateNames[] =
 {
 	"falling", "playing", "swapping", "swapping back", "clearing", "game over", "game over done",
-	"vortex", "level wipe", "fall out", "twisting", "twisting back", "sliding", "sliding back"
+	"vortex", "level wipe", "fall out", "twisting", "twisting back", "sliding", "sliding back", "arrow stepping"
 };
 
 static const char* StateName(int theState)
@@ -200,7 +200,84 @@ void AutoplayBot::AddTargetSteps(int theCol, int theRow, int theCol2, int theRow
 	}
 }
 
-// STATE_PLAYING, nothing selected: a valid move (88%), a random swap (9%, usually illegal) or a hint (3%)
+// Arrow gems (stage 18): whether the swap of (theCol, theRow) and (theCol2, theRow2) puts the arrow at (theArrowCol,
+// theArrowRow) in a line of three of its colour
+static bool SwapMatchesArrow(Board* b, int theCol, int theRow, int theCol2, int theRow2, int theArrowCol, int theArrowRow)
+{
+	auto aColorAt = [&](int aCol, int aRow) {
+		if ((aCol == theCol) && (aRow == theRow))
+		{
+			aCol = theCol2;
+			aRow = theRow2;
+		}
+		else if ((aCol == theCol2) && (aRow == theRow2))
+		{
+			aCol = theCol;
+			aRow = theRow;
+		}
+		Piece* aPiece = b->mBoard[aRow][aCol];
+		return (aPiece != NULL) ? aPiece->mColor : -1;
+	};
+	int aCol = theArrowCol, aRow = theArrowRow;
+	if ((aCol == theCol) && (aRow == theRow))
+	{
+		aCol = theCol2;
+		aRow = theRow2;
+	}
+	else if ((aCol == theCol2) && (aRow == theRow2))
+	{
+		aCol = theCol;
+		aRow = theRow;
+	}
+	int aColor = aColorAt(aCol, aRow);
+	for (int anAxis = 0; anAxis < 2; anAxis++)
+	{
+		int dc = (anAxis == 0) ? 1 : 0, dr = 1 - dc;
+		int aRun = 1;
+		for (int c = aCol + dc, r = aRow + dr; (c < b->mCols) && (r < b->mRows) && (aColorAt(c, r) == aColor); c += dc, r += dr)
+			aRun++;
+		for (int c = aCol - dc, r = aRow - dr; (c >= 0) && (r >= 0) && (aColorAt(c, r) == aColor); c -= dc, r -= dr)
+			aRun++;
+		if (aRun >= 3)
+			return true;
+	}
+	return false;
+}
+
+// Of the valid moves (packed as PlanMove packs them), the ones that clear the arrow closest to its edge, else any arrow;
+// all of them if none does
+static void PreferArrowMoves(Board* b, std::vector<int>* theMoves)
+{
+	int aBest = -1;
+	std::vector<int> aBestMoves, anyMoves;
+	for (int aRow = 0; aRow < b->mRows; aRow++)
+	{
+		for (int aCol = 0; aCol < b->mCols; aCol++)
+		{
+			Piece* aPiece = b->mBoard[aRow][aCol];
+			if ((aPiece == NULL) || (aPiece->mArrow == 0))
+				continue;
+			int aDistance = b->ArrowDistance(aCol, aRow, aPiece->mArrow - 1);
+			std::vector<int> aClearing;
+			for (int aMove : *theMoves)
+			{
+				if (SwapMatchesArrow(b, aMove >> 12, (aMove >> 8) & 15, (aMove >> 4) & 15, aMove & 15, aCol, aRow))
+					aClearing.push_back(aMove);
+			}
+			anyMoves.insert(anyMoves.end(), aClearing.begin(), aClearing.end());
+			if (!aClearing.empty() && ((aBest < 0) || (aDistance < aBest)))
+			{
+				aBest = aDistance;
+				aBestMoves = aClearing;
+			}
+		}
+	}
+	if (!aBestMoves.empty())
+		*theMoves = aBestMoves;
+}
+
+// STATE_PLAYING, nothing selected: a valid move (88%), a random swap (9%, usually illegal) or a hint (3%). With arrow
+// gems a valid move clears the arrow closest to its edge when one can
 void AutoplayBot::PlanMove()
 {
 	Board* aBoard = mApp->mBoard;
@@ -262,6 +339,8 @@ void AutoplayBot::PlanMove()
 	}
 	if (aMoves.empty())
 		return;
+	if (aBoard->mVariant.mArrows && (aKind >= 12))
+		PreferArrowMoves(aBoard, &aMoves);
 
 	int aPacked = aMoves[Random((int) aMoves.size())];
 	int aMove[4] = {aPacked >> 12, (aPacked >> 8) & 15, (aPacked >> 4) & 15, aPacked & 15};
