@@ -133,7 +133,8 @@ Git and publishing:
 - **Which games, and where they are published (the user, 2026-10-26):** every game may be decompiled except Plants vs.
   Zombies, Insaniquarium and Zuma Deluxe, whose fan communities we leave to their work. A game with another PC decompilation in
   progress or an active modding community is built but unpublished: its folder goes into `.publishignore` and it stays
-  off the website. The "Published" column of `docs/POPCAP_GAMES_SURVEY.md` section 4 says which.
+  off the website. The "Published" column of `docs/POPCAP_GAMES_SURVEY.md` section 4 says which; "web only" (Zuma's
+  Revenge, the user 2026-10-26) keeps the folder in `.publishignore` but puts the game on the website.
 - **Mods (the user, 2026-10-26):** code that makes a game moddable makes things configurable (rules, settings and
   their ranges in `mod.json` and the mod menu); it never just overwrites the original, which plays unchanged with
   no mod on. Every mod is data: a feature's code lives in the port, and a mod's `features` or `rules` turns it on.

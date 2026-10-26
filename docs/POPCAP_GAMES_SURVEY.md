@@ -714,7 +714,7 @@ largest game left and holds its slot for weeks, so the queue after it runs in th
 takes the least predicted effort first, and a game that waits on another game's engine goes right after that game.
 The model follows CLAUDE.md's rule: Opus for the first game on an engine, Sonnet for a game that can copy one.
 "Published" says where a finished port goes: "yes" is the GitHub snapshot and the website; "no" is neither,
-its folder kept in `.publishignore`.
+its folder kept in `.publishignore`; "web only" is the website, with its folder kept in `.publishignore`.
 
 | # | Game | Model | Published | Effort | Why it stands here |
 |---|---|---|---|---|---|
@@ -743,7 +743,7 @@ its folder kept in `.publishignore`.
 | 23 | Bejeweled 3 | Opus | yes | ~30x | builds the prime-compat layer (PopAnim, PIEffect, CurvedVal) that Zuma's Revenge reuses |
 | 24 | Banana Bugs | Opus | yes | waits on the image | PopCap's 2010 framework, near Bejeweled 3's; its image must first come out of the 2010 DRM |
 | 25 | Gyromancer | Opus | yes | large | Square Enix's own engine; the Steam stub must come off first, with a tool that needs the user's OK |
-| 26 | Zuma's Revenge! | Opus | yes | ~35x | HARD; prime-compat and JeffLib |
+| 26 | Zuma's Revenge! | Opus | web only | ~35x | HARD; prime-compat and JeffLib. Its source stays out of the snapshot while the user learns more about a PC decompilation in progress (2026-10-26, Appendix E) |
 | 27 | Typer Shark! Deluxe | Sonnet | yes | ~5x | at the end by the decision of 2026-10-24; BookWorm's framework |
 | 28 | Talismania Deluxe | Sonnet | yes | ~12-16x after Feeding Frenzy 2 | at the end by the same decision; HARD, on Feeding Frenzy 2's engine |
 
@@ -1352,6 +1352,7 @@ GitHub, GameBanana and Nexus showed nothing; Reddit, ModDB and Discord servers w
 | Pizza Frenzy | one unlicensed upload of a decompilation (2026-10-03), nothing since | none found |
 | Chuzzle Deluxe | a repository whose 13 game files are empty (2026-04); an iOS recompilation | dormant (one mod, 2024) |
 | Bejeweled 3, Zuma's Revenge, Bejeweled 2 | console or phone builds being recompiled or decompiled (2026-10) | thin |
+| Zuma's Revenge (PC) | a decompilation in C++ by a developer in China, written without AI, reported to the user on 2026-10-26; a clip showed it crashing at the main menu. Until the user learns more, our port is "web only" | |
 | Bookworm Adventures 1 and 2 | none | thin: one person's mod builder (2026-07); a Spanish translation of Vol. 2 |
 | Bejeweled Twist, Dynomite, Heavy Weapon, Feeding Frenzy 2 | Heavy Weapon has a reimplementation for the Vita | thin: a fix, a recovered official level editor, an input mod, an Archipelago client |
 | Alchemy | flamel, a web remake written from scratch (2026-10) | none found |
