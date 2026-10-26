@@ -27,6 +27,7 @@ class Image;
 class ImageFont;
 class Dialog;
 class Widget;
+class ButtonWidget;
 
 // the fonts, in the order of the original's table at app+0x5b0 (slot 0, app+0x5b0, is never loaded)
 enum FontId
@@ -96,6 +97,14 @@ public:
 	// SexyApp
 	virtual void			Init() override;
 	virtual void			LoadingThreadProc() override;
+	virtual Dialog*			NewDialog(int theDialogId, bool isModal, const SexyString& theDialogHeader,
+								const SexyString& theDialogLines, const SexyString& theDialogFooter, int theButtonMode) override;  // 0x42d4e0
+	virtual bool			KillDialog(int theDialogId) override;       // 0x42d620
+	using SexyApp::KillDialog;
+	virtual void			ModalOpen() override;                       // 0x42f270 the board is paused while a modal dialog is up
+	virtual void			ModalClose() override;                      // 0x42f290
+	virtual void			GotFocus() override;                        // 0x42f290
+	virtual void			LostFocus() override;                       // 0x42f270
 	virtual void			ButtonPress(int theId) override;
 	virtual void			ButtonDepress(int theId) override;
 	virtual bool			HandleScriptCommand(const ScriptCommand& theCommand) override;
@@ -130,6 +139,11 @@ public:
 
 	// the menu's lower buttons (the dialogs are not translated yet, the quit question is)
 	void					ShowQuitDialog();       // 0x42e390
+	void					AddBoardButtons();      // 0x42d1a0 the Pause, Options and Quit buttons beside the board
+	void					RemoveBoardButtons();
+	void					ShowPauseDialog();      // 0x42d820
+	void					QuitGame();             // 0x42e530
+	std::list<ButtonWidget*>	mBoardButtons;      // app+0x87c
 	void					ShowHighScores(bool theFromMenu);   // 0x42dcc0
 	void					ShowOptions(bool theFromMenu);      // 0x42de20
 };

@@ -5,6 +5,7 @@
 #include "Screens.h"
 #include "Board.h"
 #include "Dialog.h"
+#include "ButtonWidget.h"
 #include "GameText.h"
 #include "Compat2004.h"
 #include "Graphics.h"
@@ -278,6 +279,71 @@ void RocketApp::ButtonDepress(int theId)
 	}
 	else if ((anId >= 3000) && (anId < 4000))
 		KillDialog(anId - 3000);
+	// the buttons beside the board (0x42ed10's tail): 1 options, 2 quit, 3 pause
+	if (theId == 1)
+	{
+		if (mBoard != NULL && mBoard->mState == 0)
+		{
+			// (0x42de20: the options dialog is not translated yet)
+		}
+	}
+	else if (theId == 2)
+		QuitGame();
+	else if (theId == 3)
+		ShowPauseDialog();
+}
+
+// 0x42d4e0: every dialog made with DoDialog: the picture and button of the game's own, its fonts and colours, and the
+// framework's default place (the callers move it)
+Dialog* RocketApp::NewDialog(int theDialogId, bool isModal, const SexyString& theDialogHeader,
+	const SexyString& theDialogLines, const SexyString& theDialogFooter, int theButtonMode)
+{
+	Dialog* aDialog = new Dialog2004(mImages[IMAGE_DIALOG], mImages[IMAGE_DIALOGBUTTON], theDialogId, isModal,
+		theDialogHeader, theDialogLines, theDialogFooter, theButtonMode);
+	aDialog->SetButtonFont(mFonts[FONT_VERDANA12_BOLD]);
+	aDialog->SetHeaderFont(mFonts[FONT_SHOWCARD22]);
+	aDialog->SetLinesFont(mFonts[FONT_VERDANA12_BOLD]);
+	aDialog->SetColor(0, mDialogColors[0]);
+	aDialog->SetColor(1, mDialogColors[1]);
+	aDialog->SetColor(3, mDialogColors[2]);
+	aDialog->mContentInsets = Insets(0x24, 0x24, 0x24, 0x24);
+	aDialog->Resize(0xce, 0x2a, 0x15c, aDialog->GetPreferredHeight(0x15c));
+	return aDialog;
+}
+
+// 0x42d620: when the last dialog is gone the board gets the keyboard focus again
+bool RocketApp::KillDialog(int theDialogId)
+{
+	bool aResult = SexyApp::KillDialog(theDialogId);
+	if (aResult && GetDialogCount() == 0)
+		mWidgetManager->SetFocus(mBoard);
+	return aResult;
+}
+
+// 0x42f270 and 0x42f290: a modal dialog, and the window losing the focus, pause the board; closing the dialog and getting
+// the focus back resume it
+void RocketApp::ModalOpen()
+{
+	if (mBoard != NULL)
+		mBoard->F421f30(true);
+}
+
+void RocketApp::ModalClose()
+{
+	if (mBoard != NULL)
+		mBoard->F421f30(false);
+}
+
+void RocketApp::GotFocus()
+{
+	if (mBoard != NULL)
+		mBoard->F421f30(false);
+}
+
+void RocketApp::LostFocus()
+{
+	if (mBoard != NULL)
+		mBoard->F421f30(true);
 }
 
 // 0x42e390: "Are you sure you want to quit the game?" with YES and NO, in the middle of the window
@@ -316,6 +382,7 @@ void RocketApp::LoadingScreenDone()
 void RocketApp::ShowGameSelector()
 {
 	KillDialog(3);
+	RemoveBoardButtons();
 	if (mBoard != NULL)
 	{
 		// (closing the game in progress: saving it unless it is over, the Board is not translated yet)
@@ -401,8 +468,7 @@ bool RocketApp::ShowModeHint(int theHint, bool theForce)
 }
 
 // 0x42ea30: a game begins (or is continued): the board replaces the one in progress. Left out: the fade of the four
-// songs (app+0x2f4), the three buttons on the left of the screen (0x42d1a0, which
-// the Board's ButtonDepress answers) and the deletion of this mode's saved game when it is a new one (0x41d380).
+// songs (app+0x2f4) and the deletion of this mode's saved game when it is a new one (0x41d380).
 void RocketApp::StartBoard(bool theContinuing)
 {
 	KillDialog(3);
@@ -425,6 +491,75 @@ void RocketApp::StartBoard(bool theContinuing)
 	mWidgetManager->AddWidget(mBoard);
 	mWidgetManager->BringToFront(mBoard);
 	mWidgetManager->SetFocus(mBoard);
+	AddBoardButtons();
 	if (!theContinuing)
 		KillDialog(1);
+}
+
+// 0x42d1a0: the three buttons on the left of the screen. Each shows a picture over the column's own while the pointer is on
+// it (the first image) and while it is pressed (the second); the label is part of the column's picture.
+void RocketApp::AddBoardButtons()
+{
+	static const struct { int mId; int mY; int mOver; int mDown; } sButtons[3] =
+	{
+		{ 3, 0xf5, 49, 50 },    // pause
+		{ 1, 0xd2, 40, 41 },    // options
+		{ 2, 0x1b8, 38, 39 }    // quit
+	};
+	for (int i = 0; i < 3; i++)
+	{
+		ButtonWidget* aButton = new ButtonWidget(sButtons[i].mId, this);
+		aButton->Resize(10, sButtons[i].mY, 0x6b, 0x23);
+		aButton->mOverImage = mImages[sButtons[i].mOver];
+		aButton->mDownImage = mImages[sButtons[i].mDown];
+		aButton->mDoFinger = true;
+		aButton->mMouseInsets = Insets(1, 1, 3, 3);
+		mWidgetManager->AddWidget(aButton);
+		mBoardButtons.push_back(aButton);
+	}
+}
+
+void RocketApp::RemoveBoardButtons()
+{
+	for (std::list<ButtonWidget*>::iterator anItr = mBoardButtons.begin(); anItr != mBoardButtons.end(); ++anItr)
+	{
+		mWidgetManager->RemoveWidget(*anItr);
+		SafeDeleteWidget(*anItr);
+	}
+	mBoardButtons.clear();
+}
+
+// 0x42d820: the pause button: a modal dialog with one button; the board under a modal dialog is not updated, so the game
+// stands still until the button kills the dialog (the generic path of ButtonDepress)
+void RocketApp::ShowPauseDialog()
+{
+	if (mBoard == NULL || mBoard->mState != 0)
+		return;
+	Dialog* aDialog = DoDialog(8, true, GT(0x004e50bc), GT(0x004e7bd8), GT(0x004e7c18), Dialog::BUTTONS_FOOTER);
+	if (aDialog != NULL)
+	{
+		int aHeight = aDialog->GetPreferredHeight(0x15c);
+			aDialog->Resize(0x92, 0xf0 - aHeight / 2, 0x15c, aHeight);
+	}
+}
+
+// 0x42e530: the quit button: asks, in a game in progress, whether to go back to the menu (the game is saved); in a finished
+// game goes back at once
+void RocketApp::QuitGame()
+{
+	if (mBoard == NULL)
+		return;
+	if (mBoard->mState != 2)
+	{
+		if (mBoard->mState != 0)
+			return;
+		Dialog* aDialog = DoDialog(0, true, GT(0x004e7c84), GT(0x004e7c98), "", Dialog::BUTTONS_YES_NO);
+		if (aDialog != NULL)
+		{
+			int aHeight = aDialog->GetPreferredHeight(0x15c);
+			aDialog->Resize(0x92, 0xf0 - aHeight / 2, 0x15c, aHeight);
+		}
+		return;
+	}
+	ShowGameSelector();
 }

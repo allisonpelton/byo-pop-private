@@ -123,7 +123,7 @@ and then, a check of every grid cell) and sees launches score (scores 130, 1604,
 mode end. Translated since the status above: Update 0x426f40, KeyChar/MouseMove/MouseLeave/MouseDown/MouseUp/MouseDrag,
 pause 0x421f30, the first board of the timed modes 0x428780/0x428ae0, the dealing of a new board (state 7) 0x428ef0 with
 0x428e80, game over 0x421de0, 0x4282a0, 0x428090, 0x428d10, 0x428de0, 0x41f280, 0x429050-0x429080, the app's StartBoard
-0x42ea30 (without the music fades, the three left-hand buttons 0x42d1a0 and the deletion of the mode's saved game).
+0x42ea30 (without the music fades and the deletion of the mode's saved game).
 
 ### Draw (2026-10-26, late)
 
@@ -158,15 +158,21 @@ frozen-time bar 0x41f360 of classic mode, and the head and its bubble
 The three buttons on the left (app 0x42d1a0, called by StartBoard 0x42ea30 through 0x42d090): ButtonWidgets with ids 3, 1 and 2
 (Pause at y 245, Options at 210, Quit at 440; x 10, 107 wide, 35 high, mouse insets (1, 1, 3, 3), hand cursor), whose
 over and down pictures are the image table entries 49/50, 40/41 and 38/39; the normal picture is part of the column
-picture. Each is added to the widget manager and to the app's list at app+0x87c. The Board's listener (the sub-object at
-Board+0x58, slot 1, 0x428600) only plays sample 0. Where the three ids are acted on is not found yet: the app's handler
-0x42ed10 does nothing for ids below 2000 in the decompile, and the Board's MouseDown only resumes a paused game, so the
-Pause toggle (0x421f30, whose callers are 0x41c830, 0x427a90, 0x4283e0 and 0x42f270) must be reached from another place:
-check the disassembly of 0x42ed10 and of the widget manager's button path before writing them.
+picture. Each is added to the widget manager and to the app's list at app+0x87c. The ids are acted on in the app's handler 0x42ed10
+(its tail, after the dialog switch): 1 opens the options dialog (0x42de20) when a game is in state 0, 2 is Quit (0x42e530:
+in a game in progress a yes/no dialog with id 0 whose YES goes back to the menu, in a finished game the menu at once) and 3
+is Pause (0x42d820: a one-button modal dialog with id 8 and the footer "PLAY!"). The Pause button does not pause the board
+itself: a modal dialog does, through the app's ModalOpen/ModalClose (0x42f270/0x42f290, slots 57 and 58), which call the
+board's pause counter 0x421f30 with true and false; the window's LostFocus and GotFocus (slots 60 and 59) call the same two.
+Every dialog made with DoDialog comes from the app's own NewDialog (0x42d4e0: the dialog and button pictures, the
+Verdana 12 bold and Showcard 22 fonts, the three dialog colours, insets of 36, the default place (206, 42, 348 wide)), and
+its KillDialog (0x42d620) gives the board the keyboard focus again when the last dialog is gone. The port draws the board
+dimmed and with the pause window under every modal dialog, as the original does. The options dialog is not translated yet,
+so the Options button does nothing.
 
 Still to do after Draw (above): Save/Load 0x41b430-0x41c830, the dialogs (high scores 0x4064e0, options 0x411ba0, record 0x414060,
 level-up 0x40c2c0, money 0x4118d0, buy rockets 0x401010, credits 0x403990, hint 0x408f60), the fireworks (Rocket 0x4172f0), the
-talking head (0x4161a0, 0x413aa0), the left-hand buttons 0x42d1a0 and the Board's ButtonDepress, the music fades, then the
-deliverables: the LICENSES entry, the coordinator's `BYOPOP_BUY_rocketmania` line (cmake/ByopopStores.cmake has an
+talking head (0x4161a0, 0x413aa0), the music fades, then the
+deliverables: the coordinator's `BYOPOP_BUY_rocketmania` line (cmake/ByopopStores.cmake has an
 uncommitted local placeholder that must not be committed), and an AddressSanitizer run of the autoplay (tools/build.sh has no
 asan option yet).

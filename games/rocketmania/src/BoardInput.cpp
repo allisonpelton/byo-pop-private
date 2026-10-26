@@ -153,7 +153,7 @@ void Board::F428ef0()
 // tells it the pause state.
 void Board::F421f30(bool theOn)
 {
-	if (mState != 0)
+	if (mState != 0 && mApp->mBoard->m100 == 0)
 		return;
 	int anOld = m350;
 	if (anOld == 0 && !theOn)
