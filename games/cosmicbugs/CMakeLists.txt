@@ -25,7 +25,7 @@ endif()
 
 # The game under the framework's app host
 add_executable(cosmicbugs ${CMAKE_CURRENT_SOURCE_DIR}/src/CosmicBugsApp.cpp ${CMAKE_CURRENT_SOURCE_DIR}/src/main.cpp)
-target_link_libraries(cosmicbugs PRIVATE cosmicbugsgame cosmicbugsengine sexyframework sexycompat2004 stb)
+target_link_libraries(cosmicbugs PRIVATE cosmicbugsgame cosmicbugsengine sexyframework sexycompat2004 sexyopenmpt stb)
 if(NOT MSVC)
   target_compile_options(cosmicbugs PRIVATE -Wall)
 endif()

@@ -10,6 +10,7 @@
 #include "CosmicBugsApp.h"
 #include "platform/VFS.h"
 #include "platform/WebPersist.h"
+#include "platform/openmpt/OpenMPTPlayer.h"
 
 #include <SDL.h>
 #include <cstdio>
@@ -118,6 +119,9 @@ int main(int argc, char** argv)
 	Platform::VFS::Get().SetBaseDir(gameDir);
 	Platform::VFS::Get().SetUserDir(userDir);
 	SDL_Log("game: %s | user: %s", gameDir.c_str(), userDir.c_str());
+
+	// The music is five MO3 modules (BASS in the original): libopenmpt
+	Platform::RegisterOpenMPTModules();
 
 	static CosmicBugsApp* anApp = new CosmicBugsApp();
 	anApp->SetCmdLine(argc, argv);

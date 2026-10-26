@@ -2,6 +2,7 @@
 
 #include "CosmicBugsApp.h"
 #include "CBGlobals.h"
+#include "CBLevel.h"
 #include "R64.h"
 #include "R64Sys.h"
 #include "DDInterface.h"
@@ -88,7 +89,10 @@ public:
 
 	int LoadSound(const char* thePath) override
 	{
-		return gApp->mSoundManager != nullptr ? gApp->mSoundManager->LoadSound(thePath) : -1;
+		int anId = gApp->mSoundManager != nullptr ? gApp->mSoundManager->LoadSound(thePath) : -1;
+		if (anId < 0)
+			SDL_Log("cannot load the sound %s", thePath);
+		return anId;
 	}
 
 	void PlaySound(int theSound) override
@@ -108,7 +112,10 @@ public:
 
 	bool LoadMusic(const char* thePath) override
 	{
-		return gApp->mMusicInterface != nullptr && gApp->mMusicInterface->LoadMusic(0, thePath);
+		bool ok = gApp->mMusicInterface != nullptr && gApp->mMusicInterface->LoadMusic(0, thePath);
+		if (!ok)
+			SDL_Log("cannot load the music %s", thePath);
+		return ok;
 	}
 
 	void FreeMusic() override
@@ -388,6 +395,12 @@ void CosmicBugsApp::Present()
 
 void CosmicBugsApp::SetGameScreenMode(bool theFullscreen)
 {
+#ifdef __EMSCRIPTEN__
+	// The page's Fullscreen button owns the browser's full screen: SDL's request from the game (cp.cfg's default is
+	// the full screen) comes outside a click, and the canvas stays black after it
+	(void)theFullscreen;
+	return;
+#endif
 	if (theFullscreen == !mIsWindowed)
 		return;
 	mApplyingGameMode = true;
@@ -445,8 +458,8 @@ void CosmicBugsApp::LostFocus()
 	mActive = false;
 }
 
-// Alt+Enter (and the web page's full screen button) go to the game like its F7 (0x42a7a0); it then asks for the
-// mode through SetScreenMode
+// Alt+Enter goes to the game like its F7 (0x42a7a0); it then asks for the mode through SetScreenMode. (The web
+// page's Fullscreen button works on the page and never reaches the game.)
 void CosmicBugsApp::SwitchScreenMode(bool wantWindowed, bool is3d, bool force)
 {
 	if (mApplyingGameMode || !mGameStarted || mGameEnded || force)
@@ -456,4 +469,14 @@ void CosmicBugsApp::SwitchScreenMode(bool wantWindowed, bool is3d, bool force)
 	}
 	if (wantWindowed != mIsWindowed)
 		r64::Screen_SetFullscreen(wantWindowed ? 0 : 1);
+}
+
+bool CosmicBugsApp::HandleScriptCommand(const ScriptCommand& theCommand)
+{
+	if (theCommand.mCommand != "state")
+		return SexyAppBase::HandleScriptCommand(theCommand);
+	cb::Level* aLevel = cb::gLevels.current;
+	SDL_Log("state: score %d, lives %d, board %d, filled %d of %d%%", cb::gScore, cb::gLives, cb::gLevelInSet,
+		aLevel != nullptr ? aLevel->filledCells : -1, aLevel != nullptr ? aLevel->fillQuota : -1);
+	return true;
 }

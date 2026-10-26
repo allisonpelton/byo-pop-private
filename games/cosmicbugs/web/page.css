@@ -1,0 +1,5 @@
+/* Cosmic Bugs' look on the shared page (web/shell.html): the violet of its nebula, the green of its panel's digits */
+:root { --accent: #6b3fa8; --digits: #3ed35a; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --accent: #b18ae6; } }
+:root[data-theme="dark"] { --accent: #b18ae6; }
+.brand .mark { width: 12px; height: 12px; background: var(--digits); border-radius: 50%; box-shadow: 0 0 0 2px var(--accent); }

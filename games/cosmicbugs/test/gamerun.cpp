@@ -1,6 +1,7 @@
 // Runs the whole game headless, as the host does (GameStart, then one GameFrame each 10 ms of a clock of its own),
 // with input from a script and the screen written as PNGs. Opens no window, plays no sound and opens no URL.
 //   cosmicbugs_run <gamedir> <outdir> <script>
+//   cosmicbugs_run -same <png> <png>      whether two screenshots have the same pixels (exit 0 when they do)
 // The script has one event a line, at a time in ms from the start ('#' starts a comment):
 //   <ms> move <x> <y>         the mouse to (x, y)
 //   <ms> click <x> <y>        moves there, presses the left button and lets it go 30 ms later
@@ -8,13 +9,16 @@
 //   <ms> key <vk>             a key (its virtual-key code, decimal or 0x) pressed and let go 30 ms later
 //   <ms> hold|release <vk>    a key pressed, or let go
 //   <ms> shot <name>          the screen to <outdir>/<name>.png
+//   <ms> state                prints the score, the lives, the board in its set and the board's filled cells
 //   <ms> end                  stops (the game's end runs)
 // The player's files (cp.cfg, cb.dat) are in <outdir>; a missing cp.cfg is made windowed.
 
 #include "R64.h"
 #include "R64Sys.h"
 #include "CBGlobals.h"
+#include "CBLevel.h"
 
+#include "stb_image.h"
 #include "stb_image_write.h"
 
 #include <algorithm>
@@ -96,8 +100,9 @@ public:
 		return mSounds++;
 	}
 
-	bool LoadMusic(const char*) override
+	bool LoadMusic(const char* thePath) override
 	{
+		std::printf("%u ms: music %s\n", mTime, thePath);
 		return true;
 	}
 
@@ -120,10 +125,12 @@ void WritePng(const std::string& thePath)
 	std::vector<uint8_t> aRgb(800 * 600 * 3);
 	for (int i = 0; i < 800 * 600; i++)
 	{
+		// widened as the host's widget does, so its screenshots and these compare exactly
 		uint16_t p = gHost.mScreen[i];
-		aRgb[i * 3] = (uint8_t)(((p >> 11) & 0x1f) << 3);
-		aRgb[i * 3 + 1] = (uint8_t)(((p >> 5) & 0x3f) << 2);
-		aRgb[i * 3 + 2] = (uint8_t)((p & 0x1f) << 3);
+		int aRed = (p >> 11) & 0x1f, aGreen = (p >> 5) & 0x3f, aBlue = p & 0x1f;
+		aRgb[i * 3] = (uint8_t)((aRed << 3) | (aRed >> 2));
+		aRgb[i * 3 + 1] = (uint8_t)((aGreen << 2) | (aGreen >> 4));
+		aRgb[i * 3 + 2] = (uint8_t)((aBlue << 3) | (aBlue >> 2));
 	}
 	stbi_write_png(thePath.c_str(), 800, 600, 3, aRgb.data(), 800 * 3);
 }
@@ -171,11 +178,41 @@ bool ReadScript(const char* thePath, std::vector<Event>& theEvents)
 
 } // namespace
 
+// -same: whether two screenshots have the same pixels (this runner's and the windowed exe's -script screenshot)
+static int ComparePngs(const char* theFirst, const char* theSecond)
+{
+	int w1, h1, w2, h2, n;
+	unsigned char* a = stbi_load(theFirst, &w1, &h1, &n, 3);
+	unsigned char* b = stbi_load(theSecond, &w2, &h2, &n, 3);
+	int aResult = 2;
+	if (a == nullptr || b == nullptr)
+		std::printf("cannot read %s\n", a == nullptr ? theFirst : theSecond);
+	else if (w1 != w2 || h1 != h2)
+		std::printf("sizes differ: %dx%d and %dx%d\n", w1, h1, w2, h2);
+	else
+	{
+		int aDiffer = 0;
+		for (int i = 0; i < w1 * h1; i++)
+			if (std::memcmp(a + i * 3, b + i * 3, 3) != 0)
+				aDiffer++;
+		if (aDiffer == 0)
+			std::printf("same\n");
+		else
+			std::printf("%d pixels differ\n", aDiffer);
+		aResult = aDiffer == 0 ? 0 : 1;
+	}
+	stbi_image_free(a);
+	stbi_image_free(b);
+	return aResult;
+}
+
 int main(int argc, char** argv)
 {
+	if (argc == 4 && std::strcmp(argv[1], "-same") == 0)
+		return ComparePngs(argv[2], argv[3]);
 	if (argc < 4)
 	{
-		std::fprintf(stderr, "usage: cosmicbugs_run <gamedir> <outdir> <script>\n");
+		std::fprintf(stderr, "usage: cosmicbugs_run <gamedir> <outdir> <script>\n       cosmicbugs_run -same <png> <png>\n");
 		return 2;
 	}
 	gHost.mDir = argv[1];
@@ -224,6 +261,12 @@ int main(int argc, char** argv)
 				Sys_KeyEvent(e.a, e.what == "hold" ? 1 : 0);
 			else if (e.what == "shot")
 				WritePng(gHost.mOut + "/" + e.name + ".png");
+			else if (e.what == "state")
+			{
+				cb::Level* aLevel = cb::gLevels.current;
+				std::printf("%u ms: score %d, lives %d, board %d, filled %d of %d%%\n", gHost.mTime, cb::gScore, cb::gLives,
+					cb::gLevelInSet, aLevel != nullptr ? aLevel->filledCells : -1, aLevel != nullptr ? aLevel->fillQuota : -1);
+			}
 			else if (e.what == "end")
 				aRunning = false;
 		}

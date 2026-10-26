@@ -61,6 +61,9 @@ public:
 	void LostFocus() override;
 	void SwitchScreenMode(bool wantWindowed, bool is3d, bool force = false) override;
 	using SexyAppBase::SwitchScreenMode;
+	// -script's "state": logs the score, the lives, the board in its set and the board's filled cells, as the headless
+	// runner (test/gamerun.cpp) prints them
+	bool HandleScriptCommand(const ScriptCommand& theCommand) override;
 
 	// One pass of the original's main loop
 	void RunFrame();
