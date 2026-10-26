@@ -1,11 +1,12 @@
 // The Board's widget shell: construction and the parts of the original that are not translated yet (Update 0x426f40,
-// Draw 0x41f540, the input handlers 0x4282a0-0x428780, saves 0x41b430-0x41c830). See docs/GAME_NOTES.md for the map.
+// the input handlers 0x4282a0-0x428780, saves 0x41b430-0x41c830; the drawing is in BoardDraw.cpp). See docs/GAME_NOTES.md for the map.
 // What is here makes the translated rules (BoardLogic.cpp, BoardLogic2.cpp) build and run on a Board; each stub says
 // which original function it stands for.
 
 #include "Board.h"
 #include "RocketApp.h"
 #include "Compat2004.h"
+#include "GameText.h"
 #include "Graphics.h"
 #include "Image.h"
 #include "Font.h"
@@ -133,7 +134,7 @@ void Board::Update()
 			F41f280(i);
 			if (i == 7)
 			{
-				Points* aPoints = new Points(mApp, mApp->mFonts[FONT_DOMO22_BOLD], "Time is running out!",
+				Points* aPoints = new Points(mApp, mApp->mFonts[FONT_DOMO22_BOLD], GT(0x004e66f0),
 					CellX(3) + mX, mY + 0x1e, 400, 0);
 				aPoints->mStatic = true;
 				mTexts.push_back(aPoints);
@@ -223,12 +224,6 @@ void Board::Update()
 			Bounce(mTop[aColumn]);
 		Bounce(mSpare);
 	}
-}
-
-// 0x41f540 (not translated yet)
-void Board::Draw(Graphics* g)
-{
-	(void) g;
 }
 
 // (not translated yet)

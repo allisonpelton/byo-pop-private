@@ -4,6 +4,7 @@
 #include "Board.h"
 #include "RocketApp.h"
 #include "Compat2004.h"
+#include "GameText.h"
 #include "Graphics.h"
 #include "Image.h"
 #include "Font.h"
@@ -1328,7 +1329,7 @@ void Board::UpdatePieces()
 							mD8 = m8c[aKind];
 							if (400 < 1000 - m4bc)
 							{
-								Points* aPoints = new Points(mApp, mApp->mFonts[FONT_DOMO22_BOLD], "Time Frozen!",
+								Points* aPoints = new Points(mApp, mApp->mFonts[FONT_DOMO22_BOLD], GT(0x004e66c0),
 									CellX(3) - 0x61 + mX, mY + 0x1e, 400, 0);
 								aPoints->mStatic = false;
 								mTexts.push_back(aPoints);

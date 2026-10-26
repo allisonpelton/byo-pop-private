@@ -6,6 +6,7 @@
 #include "Board.h"
 #include "RocketApp.h"
 #include "Compat2004.h"
+#include "GameText.h"
 #include "Graphics.h"
 #include "Image.h"
 #include "Font.h"
@@ -368,23 +369,23 @@ void PieceGenerator::ShowBonus()
 		mBoard->mC8 = aTotal;
 
 	Board* aBoard = mBoard;
-	static const char* const sMessages[10] = {
-		0, 0, 0, "Triple Launch!", "Quadruple Launch!", "5x Launch! 1000 points bonus!", "6x Launch! 2500 points bonus!",
-		"7x Launch! 10000 points bonus!", "8x Launch! 25000 points bonus!", "9x Launch! 100000 points bonus!"
+	// the texts' addresses in the original (GameText.h), by the number of rockets launched together
+	static const unsigned int sMessages[10] = {
+		0, 0, 0, 0x004e6a70, 0x004e6a5c, 0x004e6a34, 0x004e6a14, 0x004e69f4, 0x004e69d4, 0x004e69b4
 	};
 	static const int sGreen[10] = { 0, 0, 0, 0, 0, 0xff, 0xc0, 0x80, 0x40, 0 };
 	switch (aTotal)
 	{
 	case 3:
 	case 4:
-		aBoard->AddText(sMessages[aTotal], Board::CellX(3), 0x1e);
+		aBoard->AddText(GT(sMessages[aTotal]), Board::CellX(3), 0x1e);
 		break;
 	case 5: case 6: case 7: case 8: case 9:
 		{
 			// the title text is the string at 0x4e6a54; it is drawn on the image 0x168/4 of the app in a colour
 			Points* aPoints = aBoard->AddText("", Board::CellX(3), 0x1e);
 			aPoints->SetBack(mApp->mImages[0x168 / 4], 0xff, sGreen[aTotal], 0xff);
-			aBoard->AddText(sMessages[aTotal], 0x181 + (aTotal == 5 ? 0 : 1), 0x23);
+			aBoard->AddText(GT(sMessages[aTotal]), 0x181 + (aTotal == 5 ? 0 : 1), 0x23);
 			aBoard->AddScore(0);   // 0x4259c0 is called here; its argument is not recovered (see GAME_NOTES)
 		}
 		break;

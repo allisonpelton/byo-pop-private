@@ -276,6 +276,14 @@ public:
 	static int		CellX(int theColumn) { return theColumn * 42 + 250; }     // 0x4220e0
 	static int		CellY(int theRow) { return theRow * 42 + 78; }            // 0x422100
 
+	// ---- drawing (BoardDraw.cpp)
+	void			DrawTile(Graphics* g, Piece* thePiece, int theHint);                // 0x41e770
+	void			DrawTop(Graphics* g, Piece* thePiece);                              // 0x41e3e0
+	void			DrawSpare(Graphics* g, Piece* thePiece);                            // 0x41e530
+	void			DrawEdge(Graphics* g, Piece* thePiece, int theRow, int theColumn);  // 0x41ec20
+	void			DrawMover(Graphics* g, Piece* thePiece);                            // 0x41d420
+	void			DrawRocket(Graphics* g, int theIndex, int theX, int theY);          // 0x41d620
+
 	// 0x41b660: a piece of m504 by its id
 	Piece*			FindLoadedPiece(int theId);
 	// 0x41b690: the references of the pieces read from a save
