@@ -104,8 +104,9 @@ def main():
         alias_elem = {}
         for d in re.finditer(r'^  ([A-Za-z_][A-Za-z0-9_]*)( \*+)? ?\**(this_00|this|extraout_ECX|param_1)\s*;', p, re.M):
             pass
-        for d in re.finditer(r'(?m)^\s*([A-Za-z_][A-Za-z0-9_<>]*) (\*+)?(this_00|extraout_ECX)\b', p):
-            alias_elem[d.group(3)] = ELEM.get(d.group(1), 4) if d.group(2) else 1
+        for d in re.finditer(r'(?m)^  ([A-Za-z_][A-Za-z0-9_<>]*) (\*+)?(this_00|extraout_ECX)\s*;', p):
+            if d.group(1) != 'return':
+                alias_elem[d.group(3)] = ELEM.get(d.group(1), 4) if d.group(2) else 1
         hdr = p.split('{')[0]
         mt = re.search(r'\b([A-Za-z_][A-Za-z0-9_<>]*) (\*+)?this\b', hdr)
         if mt and 'this' not in alias_elem:

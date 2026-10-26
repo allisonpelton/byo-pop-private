@@ -9,7 +9,7 @@ parts = re.split(r'(?m)^(?=// [0-9a-f]{8}  )', t)
 out = []
 for p in parts:
     m = re.match(r'// ([0-9a-f]{8})  ', p)
-    if m and 0x401000 <= int(m.group(1), 16) < 0x414000:
+    if m and 0x401000 <= int(m.group(1), 16) < 0x415000:
         out.append(p)
 open('re/alchemy/game.c', 'w', encoding='utf-8').write(''.join(out))
 print(len(out), 'functions')
