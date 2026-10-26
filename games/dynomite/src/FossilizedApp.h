@@ -102,8 +102,7 @@ public:
 	Pic*         mPicSlingshot;                           // +0x1694
 	Pic*         mPicRubberband;                          // +0x1698
 	Pic*         mPicYolksheet;                           // +0x169c
-	Cell*        mPicYolksheet_c0;                        // +0x16a0
-	Cell*        mPicYolksheet_c1;                        // +0x16a4
+	Cell*        mYolkCells[2];                              // +0x16a0 yolksheet_c0..c1
 	Pic*         mPicEggwhite;                            // +0x16a8
 	Pic*         mPicBoomsheet;                           // +0x16ac
 	Pic*         mPicSparksheet;                          // +0x16ec

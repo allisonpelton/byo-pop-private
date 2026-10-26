@@ -164,3 +164,49 @@ void EggWhiteEffect::Draw()
 	float y = mY;
 	mPic->Draw((int) x - (mPic->mWidth >> 1), (int) y - (mPic->mHeight >> 1));
 }
+
+// 0x4424b0
+YolkEffect::YolkEffect()
+{
+	mType = 2;
+}
+
+// 0x4424d0
+YolkEffect::~YolkEffect()
+{
+}
+
+// 0x4424e0
+void YolkEffect::Init(int x, int y, bool isYolk, int theWhich, FossilizedApp* theApp)
+{
+	mApp = theApp;
+	mX = (float) x;
+	mYolk = isYolk;
+	mWhich = theWhich;
+	mVY = 0;
+	mY = (float) y;
+	mGravity = (float) y * 0.015151516f * 0.1f + 1.0f;
+}
+
+// 0x442530
+bool YolkEffect::Update()
+{
+	mY = mVY * 0.16666667f + mY;
+	mVY = mGravity + mVY;
+	if (650.0f < mY)
+		return false;
+	return true;
+}
+
+// 0x442610
+void YolkEffect::Draw()
+{
+	float x = mX;
+	float y = mY;
+	Cell* aCell;
+	if (mYolk == true)
+		aCell = mApp->mYolkCells[mWhich];
+	else
+		aCell = mApp->mDynamiteCells[mWhich];
+	aCell->Draw((int) x - (aCell->mWidth >> 1), (int) y - (aCell->mHeight >> 1));
+}

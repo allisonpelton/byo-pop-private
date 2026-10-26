@@ -315,9 +315,9 @@ void FossilizedApp::LoadGame()
 	mCompletedLoadingThreadTasks++;
 	mPicYolksheet = new Pic(this, "images\\yolksheet", true);
 	mCompletedLoadingThreadTasks++;
-	mPicYolksheet_c0 = new Cell(mPicYolksheet, 37, 60, 0);
+	mYolkCells[0] = new Cell(mPicYolksheet, 37, 60, 0);
 	mCompletedLoadingThreadTasks++;
-	mPicYolksheet_c1 = new Cell(mPicYolksheet, 37, 60, 1);
+	mYolkCells[1] = new Cell(mPicYolksheet, 37, 60, 1);
 	mCompletedLoadingThreadTasks++;
 	mPicEggwhite = new Pic(this, "images\\eggwhite", true);
 	mCompletedLoadingThreadTasks++;

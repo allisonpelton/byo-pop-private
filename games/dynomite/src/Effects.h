@@ -16,7 +16,7 @@ class Effect
 public:
 	float				mX;				// +4
 	float				mY;				// +8
-	int					mType;			// +0xc 3 egg white, 7 a baby, 9 confetti
+	int					mType;			// +0xc 2 a yolk, 3 egg white, 7 a baby, 9 confetti
 
 	Effect();								// 0x4034b0
 	virtual ~Effect();						// 0x4034c0
@@ -73,6 +73,24 @@ public:
 	virtual bool		Update() override;	// 0x4423c0
 
 	void				Init(int x, int y, int theAngle, FossilizedApp* theApp);	// 0x442350
+};
+
+// vtable 0x4ff76c, 0x24 bytes: a yolk (or a stick of dynamite) dropping off the screen
+class YolkEffect : public Effect
+{
+public:
+	FossilizedApp*		mApp;			// +0x10
+	bool				mYolk;			// +0x14 a yolk, else a stick of dynamite
+	int					mWhich;			// +0x18
+	float				mVY;			// +0x1c
+	float				mGravity;		// +0x20
+
+	YolkEffect();							// 0x4424b0
+	virtual ~YolkEffect();					// 0x4424d0
+	virtual void		Draw() override;	// 0x442610
+	virtual bool		Update() override;	// 0x442530
+
+	void				Init(int x, int y, bool isYolk, int theWhich, FossilizedApp* theApp);	// 0x4424e0
 };
 
 }
