@@ -164,6 +164,18 @@ closes. Boot shows the card, and the import, the start and "Play without mods" r
 agreement. A test in the Browser pane ticks the box once per origin (and game), as a player would; the agreement then
 stays for that origin.
 
+### Where to buy
+
+Under the terms, on the card and on the copyright page, one line says where the game can be bought digitally ("Where
+to buy Big Money Deluxe digitally, as of October 25, 2026: Steam, EA app", each store a link that opens in a new tab)
+or that it is not for sale as of a date. The stores are in `cmake/ByopopStores.cmake`, one shared file for every
+game: `set(BYOPOP_BUY_<target> <YYYY-MM-DD> [<store> <url>]...)`, the date the stores were checked and each store
+that sells the game. A game with a web page and no entry stops the configure with a message. Only stores that sell
+the game new and digitally under the publisher's license are listed, on their own trusted sites: the publisher's
+store, platforms like Steam, established game stores. Key resellers and second-hand sales are not. The file records
+which stores were checked; check them again before a launch, and change the date with the result. The line is not
+part of the terms' version, so a change of stores asks nobody to agree again.
+
 ## The site's logo and icons
 
 `web/brand` holds byo-pop's logo and icons. `byopop_web_game()` copies them next to the pages (`build/web`), and
