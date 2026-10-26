@@ -18,14 +18,17 @@
 #   bigmoney     Big Money's bot: one game
 #   noahsark     Noah's Ark's bot: action, strategy and puzzle games, an action rerun with the same screenshots, the
 #                mods' tests (games/noahsark/tools/run_mod_tests.sh) and the high-score loader's (run_hiscores_test.sh)
+#   atomica      Atomica's bot: a strategy game, an action game, and a strategy rerun with the same screenshots
 #   sevenseas    Seven Seas' bot: a beginner's game from level 1, one from the bonus screen (level 10) and one from level 21,
 #                and a rerun of the first with the same screenshots (about 15 seconds)
+#   bookwormadv  Bookworm Adventures' PopLua: the compiler's dialect checks and every compiled script of the game
+#                loaded by the port's VM (bwa_luarun, headless; seconds)
 #   mummymaze    Mummy Maze's bot: a classic game of 8 chambers (the name box, the options and their dialogs photographed) and
 #                a rerun with the same screenshots, a game from pyramid 3 (the tips), a whole classic game (225 chambers to the
 #                victory screen), a whole adventure (15 pyramids, the map, the saved game) and the tutorial (about 1 minute)
 #   oracle       Bejeweled's oracle three ways (compare.sh --variants default,forcevariant,novariants); over
 #                ten minutes, so never in a subagent; refuses to start while another oracle runs
-# Sets: quick = build unit; games = bookworm bigmoney noahsark sevenseas mummymaze; all = every suite, builds first.
+# Sets: quick = build unit; games = bookworm bigmoney noahsark atomica sevenseas bookwormadv mummymaze; all = every suite, builds first.
 #
 # Prints "PASS <suite> (<seconds>s): <summary>" or "FAIL <suite> (<seconds>s): <summary> -> <log>" for each,
 # then "check: N passed, M failed". Exits 0 only when all passed. Logs: build/logs/check/<suite>.txt (and
@@ -40,6 +43,8 @@ BM_GAME1="score 66646"
 NA_ACTION="level 4 done at update 17083: score 7622 mode stampede"
 NA_STRATEGY="level 4 done at update 15469: score 4430 mode strategy"
 NA_PUZZLE="game 1 over at update 17550: score 4830 level 1 moves 117"
+AT_STRATEGY="game 1 over at update 6087: score 1520 level 2 moves 73"
+AT_ACTION="update 20000: score 3360 level 2 moves 599 atoms 48"
 SS_BEGINNER="game 2 over at update 5308: score 165 level 2 moves 23"
 SS_BONUS="game 1 over at update 2286: score 330 level 12 moves 15"
 SS_LATE="game 1 over at update 2285: score 390 level 22 moves 13"
@@ -60,9 +65,9 @@ while [ $# -gt 0 ]; do
 		--out=*) OUT="${1#--out=}"; shift ;;
 		-h|--help) sed -n '2,/^BW_CLASSIC/p' "$0" | sed '$d' | sed 's/^# \{0,1\}//'; exit 0 ;;
 		quick) SUITES+=(build unit); shift ;;
-		games) SUITES+=(bookworm bigmoney noahsark sevenseas mummymaze); shift ;;
-		all) SUITES+=(build build-web build-nov unit unit-web verify modmenu livesplit bookworm bigmoney noahsark sevenseas mummymaze oracle); shift ;;
-		build|build-web|build-nov|unit|unit-web|verify|modmenu|livesplit|bookworm|bigmoney|noahsark|sevenseas|mummymaze|oracle) SUITES+=("$1"); shift ;;
+		games) SUITES+=(bookworm bigmoney noahsark atomica sevenseas bookwormadv mummymaze); shift ;;
+		all) SUITES+=(build build-web build-nov unit unit-web verify modmenu livesplit bookworm bigmoney noahsark atomica sevenseas bookwormadv mummymaze oracle); shift ;;
+		build|build-web|build-nov|unit|unit-web|verify|modmenu|livesplit|bookworm|bigmoney|noahsark|atomica|sevenseas|bookwormadv|mummymaze|oracle) SUITES+=("$1"); shift ;;
 		*) echo "check.sh: unknown suite '$1' (tools/check.sh --help)" >&2; exit 2 ;;
 	esac
 done
@@ -241,6 +246,26 @@ suite_noahsark() {
 	return $st
 }
 
+atomica_game() {  # <name> <mode> <cap>: a bot game; prints its last "game over" or progress line
+	local d="$OUT/atomica/$1"
+	rm -rf "$d"; mkdir -p "$d/shots"
+	timeout 600 "$W/build/native/atomica.exe" -userdir="$d/user" -fast -seed=1 -autoplay=1 -autoplaymode="$2" 		-autoplaycap="$3" -autoplaylog="$d/log.txt" -autoplayshots="$d/shots/s" > "$d/stdout.txt" 2> "$d/stderr.txt"
+	grep -E '^(level [0-9]+ done|game [0-9]+ over|update [0-9]+:)' "$d/log.txt" 2>/dev/null | tail -n 1 | sed 's/ (f8c.*//'
+}
+
+suite_atomica() {
+	local st=0 s a r
+	need_assets atomica || return 1
+	s="$(atomica_game strategy strategy 20000)"; a="$(atomica_game action action 20000)"; r="$(atomica_game strategy2 strategy 20000)"
+	{ echo "strategy: $s"; echo "action: $a"; echo "strategy rerun: $r"; } > "$1"
+	[ "$s" = "$AT_STRATEGY" ] || st=1
+	[ "$a" = "$AT_ACTION" ] || st=1
+	if diff -rq "$OUT/atomica/strategy/shots" "$OUT/atomica/strategy2/shots" >> "$1" 2>&1 && [ "$s" = "$r" ]; then r="rerun identical"; else r="RERUN DIFFERS"; st=1; fi
+	SUMMARY="strategy ${s#game }; action ${a#update }; $r"
+	[ $st -eq 0 ] || SUMMARY="$SUMMARY (expected strategy '$AT_STRATEGY', action '$AT_ACTION')"
+	return $st
+}
+
 sevenseas_game() {  # <name> <seed> <difficulty> <start level> <games>: a bot game; prints the last "game N over" line
 	local d="$OUT/sevenseas/$1"
 	rm -rf "$d"; mkdir -p "$d/shots"
@@ -291,6 +316,18 @@ suite_mummymaze() {
 	SUMMARY="classic ${a#game over: }; tips ${b#game over: }; full ${c}; adventure ${v}; ${t}; $r"
 	[ $st -eq 0 ] || SUMMARY="$SUMMARY (expected classic '$MM_CLASSIC', tips '$MM_TIPS', full '$MM_FULL', tutorial '$MM_TUTORIAL', adventure '$MM_ADVENTURE')"
 	return $st
+}
+
+suite_bookwormadv() {
+	local b="$W/build/native/bwa_luarun.exe" d l
+	need_assets bookwormadv || return 1
+	[ -x "$b" ] || { SUMMARY="no $b (build first)"; return 1; }
+	d="$("$b" -gamedir=games/bookwormadv/tests/poplua dialect.lua 2>&1 | tee -a "$1" | tail -n 1)"
+	l="$("$b" -load 2>&1 | tee -a "$1" | tail -n 1)"
+	SUMMARY="$d; $l"
+	case "$d" in "dialect: "*" checks passed") ;; *) return 1 ;; esac
+	case "$l" in "loaded "*) set -- $l; [ "$2" = "$4" ] && [ "$2" -gt 0 ] && return 0 ;; esac
+	return 1
 }
 
 suite_oracle() {

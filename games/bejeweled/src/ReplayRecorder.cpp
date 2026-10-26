@@ -216,6 +216,27 @@ void ReplayRecorder::OnTarget(Piece* thePiece)
 		AddCell(Replay::OP_TARGET, thePiece);
 }
 
+void ReplayRecorder::OnTwist(int theCol, int theRow, int theDir)
+{
+	if (mEnded)
+		return;
+	Add(Replay::OP_TWIST, theCol, theRow);
+	mSegment.mEvents.back().mArgs[2] = theDir;
+	mMoves++;
+}
+
+void ReplayRecorder::OnSlide(int theAxis, int theLine, int theStart, int theK, int theOffset)
+{
+	if (mEnded)
+		return;
+	Add(Replay::OP_SLIDE, theAxis, theLine);
+	int64_t* anArgs = mSegment.mEvents.back().mArgs;
+	anArgs[2] = theStart;
+	anArgs[3] = theK;
+	anArgs[4] = theOffset;
+	mMoves++;
+}
+
 void ReplayRecorder::OnHint()
 {
 	if (!mEnded)

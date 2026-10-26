@@ -1,0 +1,25 @@
+# Stage 10, moves_quit's user dir: Yes resumes the board before C (score 110, 2 moves), and C is made again
+300 click 320 398
+340 click 330 201
+450 screenshot shots/r01_resumed.png
+560 rclick 406 270
+# D: a click where (0,5), (1,5), (0,6) and (1,6) meet: no group either way, so the four turn back (a bad move's sound)
+660 click 253 321
+672 screenshot shots/r02_twist.png
+690 screenshot shots/r03_back.png
+# E: row 6 dragged 18 px, under half a cell: let go, it snaps back with no move
+720 down 227 346
+722 move 236 346
+724 move 245 346
+725 screenshot shots/r04_short.png
+726 up 245 346
+# F: column 3 dragged three cells up from (3,7): a slide by 5; the gem from (3,1) lands in a run at (3,6)
+760 down 380 397
+762 move 380 380
+764 move 380 340
+766 move 380 290
+768 move 380 244
+769 screenshot shots/r05_column.png
+770 up 380 244
+1000 screenshot shots/r06_settled.png
+1010 quit

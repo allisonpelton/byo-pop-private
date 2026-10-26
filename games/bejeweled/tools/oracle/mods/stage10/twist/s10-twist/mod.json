@@ -1,0 +1,7 @@
+{
+  "id": "s10-twist",
+  "name": "Stage 10: twists",
+  "version": "1.0",
+  "description": "Oracle fixture: twists only, both ways: a click where four gems meet turns them clockwise, a right click anticlockwise.",
+  "rules": { "moves": { "type": "twist", "twist": { "direction": "both" } } }
+}
