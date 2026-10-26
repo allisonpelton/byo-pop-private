@@ -65,7 +65,7 @@ browser turns taps into clicks. Text settings need a keyboard: without one they 
 
 | File | Contents | Written |
 |---|---|---|
-| `mods.json` | `{"order": [...], "disabled": [...]}`: the load order and the mods turned off. Mods not listed are appended and on. | When the player turns a mod on or off or moves it, and when the web panel removes a mod (its id leaves both lists). |
+| `mods.json` | `{"order": [...], "disabled": [...], "enabled": [...]}`: the load order, the mods turned off, and the mods turned on whose `mod.json` says `"defaultEnabled": false`. Only choices that differ from a mod's default are listed, and `"disabled"` wins if both lists name a mod. Mods not listed are appended, and on unless they say `"defaultEnabled": false`. | When the player turns a mod on or off or moves it, and when the web panel removes a mod (its id leaves all three lists). |
 | `mod-settings.json` | `{"v": 1, "mods": {"<mod id>": {"<setting id>": value}}, "next": {...}}`. Only values that differ from their defaults are stored. `"next"` holds values that wait for the next fresh game. | When the player changes a value. |
 | `mods-status.json` | What the enabled mods' rules came to (Bejeweled) | At start, when an enabled mod has `rules` or `features` |
 

@@ -4,7 +4,9 @@
 // shared image, a font handle its own copy of the font.
 #pragma once
 
+#include <algorithm>
 #include <string>
+#include <vector>
 
 #include "Font.h"
 #include "LuaBind.h"
@@ -20,6 +22,8 @@ public:
 	SharedImageRef mImage;  // +0x28
 	std::string mPath;      // the file it was loaded from, and its variant
 	std::string mVariant;
+	// +0x74: the filters this handle applied to the image (a game's, such as Bookworm Adventures' MakeSepia)
+	std::vector<void (*)(MemoryImage*)> mFilters;
 
 	LuaImage() {}
 	explicit LuaImage(const SharedImageRef& theImage) : mImage(theImage) {}
@@ -45,6 +49,14 @@ public:
 	void PutPixel(int x, int y, int theColor);
 	bool Palletize() { return Image()->Palletize(); }
 	void Clear() { Image()->Clear(); }
+	// 0x6684e0, 0x6685a0: theFilter applied to the (shared) image, unless this handle already did
+	void ApplyFilter(void (*theFilter)(MemoryImage*))
+	{
+		if (std::find(mFilters.begin(), mFilters.end(), theFilter) != mFilters.end())
+			return;
+		mFilters.push_back(theFilter);
+		theFilter(Image());
+	}
 	// A Graphics that draws into the image (Lua owns it)
 	LuaLib::LuaMultiRet GetGraphics();
 

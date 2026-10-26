@@ -12,11 +12,13 @@ PopAnimManager::~PopAnimManager()
 		delete anEntry.second.mAnim;
 }
 
-void PopAnimManager::Add(int theId, PopAnim* theAnim, const std::string& theCallback)
+void PopAnimManager::Add(int theId, PopAnim* theAnim, const std::string& theCallback, bool theClone)
 {
 	Entry& anEntry = mAnims[theId];
 	anEntry.mAnim = theAnim;
 	anEntry.mCallback = theCallback;
+	if (theClone)
+		mClones.push_back(theId);
 }
 
 PopAnim* PopAnimManager::Get(int theId) const
@@ -63,6 +65,13 @@ void PopAnimManager::Delete(int theId)
 		return;
 	delete it->second.mAnim;
 	mAnims.erase(it);
+}
+
+void PopAnimManager::DeleteClones()
+{
+	for (int anId : mClones)
+		Delete(anId);
+	mClones.clear();
 }
 
 void PopAnimManager::PopAnimStopped(int theId)

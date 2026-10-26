@@ -23,9 +23,10 @@ the same machine. A plain run opens a window, raises it over whatever the user i
   game process below.
 - Open the web builds in the Browser pane only with `?silent=1`, e.g.
   `http://127.0.0.1:18766/bejeweled.html?silent=1`: the pane may be hidden, and without it the game plays
-  its music and sounds on the user's speakers. The status line ends in "silent" when it is on. Each game page
-  first shows that game's terms with a checkbox; test sessions may tick it and press Continue in the Browser
-  pane (the user, 2026-10-25), once per origin.
+  its music and sounds on the user's speakers. The status line ends in "silent" when it is on. The terms card
+  with its checkbox is off on every game page for now (the user, 2026-10-26; `BYOPOP_WEB_TERMS_GATE` in
+  `cmake/ByopopWeb.cmake`): leave it off. Bringing it back blocks deployment: no game page goes on a public host
+  until it is on again (`docs/WEB_PLAYER.md`, "The terms").
 - Under rundesk (and the oracle) the framework never opens a URL; it logs "OpenURL in a test run". Builds or
   frozen exes from before that guard do open them: a click on a game's "more games" link (a steam:// URL)
   brings up the user's Steam client on their desktop. Random or generated input must not click link
@@ -69,6 +70,12 @@ re-reads the whole context, so what costs is context times calls, and a cache th
   log file and print a summary line.
 - Test with `tools/check.sh <suite>...` (`--help` lists them): one line per suite, logs in files.
 - Give an agent the files and sections it needs, so it need not read the design docs to find them.
+- **Weekly cap (the user, 2026-10-26):** when the account's weekly usage (all models) reaches 85%, game sessions stop.
+  Check it with `mcp__ccd_session_mgmt__get_usage` (load it with ToolSearch) before each new step and at each commit.
+  At 85% a game session commits what is verified on its branch, sends the coordinator one line on where it stands,
+  and ends its turn without starting the next step. The coordinator then sends no "Begin" and spends the rest only on
+  the local test site: `build/web` built from `main`, with every finished game importing and playable, so the user can
+  test without usage and keeps what remains for other tasks.
 
 ## Sessions, ownership and git (the user's rules)
 
@@ -119,6 +126,25 @@ Git and publishing:
   engine, goes to the cheapest remaining game. New game sessions list the mods worth making but make none without
   the user's approval, and no further game gets mods until every PopCap game works in the browser (Noah's Ark's
   mods were the one exception, part of the Sonnet trial).
+- **No references (the user, 2026-10-26):** no port reads another project's decompilation, reimplementation, mod
+  kit, class layouts or address maps (Thunderball, haggle, WinFish, CircleShootApp, PvZ-Portable, the Pizza Frenzy
+  decompilation and the like); work from our own Ghidra export. PopCap's released SexyAppFramework source, the open
+  libraries a game itself uses and descriptions of file formats are fine.
+- **Which games, and where they are published (the user, 2026-10-26):** every game may be decompiled except Plants vs.
+  Zombies and Insaniquarium, whose fan communities we leave to their work. A game with another PC decompilation in
+  progress or an active modding community is built but unpublished: its folder goes into `.publishignore` and it stays
+  off the website. The "Published" column of `docs/POPCAP_GAMES_SURVEY.md` section 4 says which.
+- **Mods (the user, 2026-10-26):** code that makes a game moddable makes things configurable (rules, settings and
+  their ranges in `mod.json` and the mod menu); it never just overwrites the original, which plays unchanged with
+  no mod on. Every mod is data: a feature's code lives in the port, and a mod's `features` or `rules` turns it on.
+  So each feature the port adds also ships a mod that turns it on. There are three kinds of mod:
+  - An **example** mod has `example` in its name (`example-flame-gems`, `example-twist`). It shows how a single
+    feature can be configured, for playing with its settings and finding which features work well together. It
+    starts off (`"defaultEnabled": false`).
+  - A **feature** mod gives the player one feature under its own name (BookWorm's `widescreen` or `undo`). Its
+    settings are in the mod menu.
+  - A **curated** mod gives the player a tuned experience, much like a fan game: features, settings and art
+    chosen to play well together.
 - **Model selection (the user's rule, decided after the Sonnet trial on 2026-10-25):** a game whose port can
   largely copy another game's (the same framework generation and engine: Noah's Ark's for Seven Seas and Atomica,
   BookWorm's for Pixelus and Typer Shark, Big Money's for Hammer Heads, Bejeweled's for Bejeweled 2, a sequel after

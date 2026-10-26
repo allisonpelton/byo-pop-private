@@ -1145,9 +1145,15 @@ bool FontData::LoadLegacy(Image* theFontImage, const std::string& theFontDescFil
 	aFontLayer->mAscent = aFontLayer->mImage->GetHeight();	
 
 	int aCharPos = 0;
-	FILE *aStream = Platform::VFS::Get().Open(theFontDescFileName, "r"); // port: was fopen()
+	// port: was fopen() and fscanf(); the whole file is read through the VFS (so a game's generated descriptor is found
+	// too, VFS::SetGeneratedFile) and scanned with sscanf in the same steps
+	std::vector<uint8_t> aData;
+	bool aFound = Platform::VFS::Get().ReadAll(theFontDescFileName, aData);
+	std::string aText(aData.begin(), aData.end());
+	const char* aPos = aText.c_str();
+	int aLength = 0;
 
-	if ((aStream == NULL) && (Platform::Placeholders()))
+	if ((!aFound) && (Platform::Placeholders()))
 	{
 		// port: -placeholders (platform/Placeholders.h): without its descriptor every printable character gets an
 		// equal cel; a placeholder image grows to hold them, a real image is shared out between them
@@ -1168,21 +1174,32 @@ bool FontData::LoadLegacy(Image* theFontImage, const std::string& theFontDescFil
 		return true;
 	}
 
-	if (aStream==NULL)
+	if (!aFound)
  		return false;
 
 	mSourceFile = theFontDescFileName;
 
 	int aSpaceWidth = 0;
-	fscanf(aStream,"%d%d",&aFontLayer->mCharData[' '].mWidth,&aFontLayer->mAscent);
+	if (sscanf(aPos, "%d%n", &aFontLayer->mCharData[' '].mWidth, &aLength) == 1)
+	{
+		aPos += aLength;
+		if (sscanf(aPos, "%d%n", &aFontLayer->mAscent, &aLength) == 1)
+			aPos += aLength;
+	}
  
-	while (!feof(aStream))
+	for (;;)
  	{
 		char aBuf[2] = { 0, 0 }; // needed because fscanf will null terminate the string it reads
  		char aChar = 0;
  		int aWidth = 0;
 
-		fscanf(aStream,"%1s%d",aBuf,&aWidth);
+		// port: the end of the text leaves aBuf empty, as fscanf did at the end of the file
+		if (sscanf(aPos, "%1s%n", aBuf, &aLength) == 1)
+		{
+			aPos += aLength;
+			if (sscanf(aPos, "%d%n", &aWidth, &aLength) == 1)
+				aPos += aLength;
+		}
 		aChar = aBuf[0];
 
 
@@ -1209,7 +1226,6 @@ bool FontData::LoadLegacy(Image* theFontImage, const std::string& theFontDescFil
 			mCharMap[c] = c - 'a' + 'A';
 
 	mInitialized = true;
-	fclose(aStream);
 
 	return true;
 }

@@ -1,6 +1,7 @@
 // The web pages' shared code (docs/MOD_MENU_DESIGN.md 4.4-4.5): cmake/ByopopWeb.cmake appends this file to every
 // game's JS with --post-js, so it runs as the game's script loads and leaves Module.byopop:
-//   fs, zip, sync   the page's file helpers (the browser's IndexedDB copy of /persist, game files and mods)
+//   fs, zip, pak, sync   the page's file helpers (the browser's IndexedDB copy of /persist, game files and mods;
+//                   a PopCap main.pak's files)
 //   Session(game)   restart and autostart, the start that a mod broke, starting once without mods, the import
 //                   card after the game closed
 //   ModPanel(opts)  the Mods panel: it adds and removes mods, and offers the rescue when a mod stops the game
@@ -122,6 +123,42 @@ Module["byopop"] = (function () {
     });
   }
   function filesFromZip(file) { return file.arrayBuffer().then(readZip); }
+
+  // ---------- PopCap paks (PakInterface's main.pak; tools/popcap_pak.py) ----------
+  // The whole file is XORed with one byte (0xF7 in the shipped games): a magic 0xBAC04AC0 and a version, then a
+  // record per file (a flags byte, the name's length and name, an int32 size and a FILETIME) until a flags byte
+  // with 0x80, then the files' data in record order. Returns the files as {path, read()}, like readZip's.
+  function readPak(bytes, key) {
+    key = (key === undefined) ? 0xf7 : key;
+    function byte(i) {
+      if (i >= bytes.length) throw new Error("The pak's directory is damaged.");
+      return bytes[i] ^ key;
+    }
+    function u32(i) { return (byte(i) | (byte(i + 1) << 8) | (byte(i + 2) << 16) | (byte(i + 3) << 24)) >>> 0; }
+    if (bytes.length < 9 || u32(0) !== 0xbac04ac0) throw new Error("This file is not a PopCap pak.");
+    var pos = 8, records = [];
+    for (;;) {
+      var flags = byte(pos++);
+      if (flags & 0x80) break;
+      var len = byte(pos), name = "";
+      for (var i = 0; i < len; i++) name += String.fromCharCode(byte(pos + 1 + i));
+      records.push({ path: name.replace(/\\/g, "/"), size: u32(pos + 1 + len) });
+      pos += 1 + len + 12;
+    }
+    return records.map(function (r) {
+      var start = pos;
+      pos += r.size;
+      if (pos > bytes.length) throw new Error("The pak is shorter than its directory says.");
+      return {
+        path: r.path,
+        read: function () {
+          var data = bytes.slice(start, start + r.size);
+          for (var j = 0; j < data.length; j++) data[j] ^= key;
+          return Promise.resolve(data);
+        }
+      };
+    });
+  }
 
   // ---------- this tab's and this browser's notes ----------
   function storage(kind) { try { return window[kind] || null; } catch (e) { return null; } }
@@ -703,6 +740,7 @@ Module["byopop"] = (function () {
   return {
     fs: { exists: exists, isDir: isDir, listDir: listDir, rmTree: rmTree, writeFile: writeFile, readText: readText, safeRel: safeRel },
     zip: { read: readZip, fromInput: filesFromInput, fromFile: filesFromZip },
+    pak: { read: readPak },
     sync: sync,
     Session: Session,
     ModPanel: ModPanel

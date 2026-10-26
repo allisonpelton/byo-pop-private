@@ -1247,6 +1247,61 @@ static void TestForget()
 	SetUserDataChangedCallback(nullptr);
 }
 
+// mod.json "defaultEnabled": false: the mod starts off, and turning it on lists it in mods.json's "enabled"
+static void TestDefaultEnabled()
+{
+	gUserDataChanges = 0;
+	SetUserDataChangedCallback(&OnUserDataChanged);
+	Sandbox aBox("default-off");
+	aBox.Mod("feature", "{ \"id\": \"feature\", \"name\": \"Feature\", \"defaultEnabled\": false }");
+	aBox.Mod("plain", "{ \"id\": \"plain\" }");
+	ModManager& m = ModManager::Get();
+	m.Refresh();
+	auto Order = [&]() {
+		std::string s;
+		for (const ModInfo& d : m.GetDesiredMods())
+			s += (s.empty() ? "" : ",") + d.mId + (d.mEnabled ? "" : "-");
+		return s;
+	};
+	CheckEq(Order(), "feature-,plain", "a mod with \"defaultEnabled\": false starts off");
+	Check(!Applied("feature")->mEnabled && Applied("plain")->mEnabled, "... in the applied state too");
+	Check(!aBox.HasUser("mods.json"), "... and nothing is written");
+
+	int aChanges = gUserDataChanges;
+	CheckEq(m.EditEnable("feature", false), "", "turning it off while it is off");
+	Check(gUserDataChanges == aChanges, "... writes nothing");
+	CheckEq(m.EditEnable("feature", true), "", "turning it on");
+	JsonValue aConfig = J(aBox.UserText("mods.json"));
+	CheckEq(aConfig["enabled"].Dump(0), "[\"feature\"]", "... lists it in \"enabled\"");
+	Check(!aConfig.Has("disabled"), "... and leaves \"disabled\" out");
+	CheckEq(Order(), "feature,plain", "... and it is on");
+	Check(Contains(m.GetPending().mRestart, "Feature turned on"), "... at the next restart");
+	m.Refresh();
+	Check(Applied("feature")->mEnabled, "it is on after a restart");
+
+	CheckEq(m.EditEnable("plain", false), "", "a mod that starts on, turned off");
+	aConfig = J(aBox.UserText("mods.json"));
+	CheckEq(aConfig["enabled"].Dump(0) + aConfig["disabled"].Dump(0), "[\"feature\"][\"plain\"]", "... goes only into \"disabled\"");
+	CheckEq(m.EditEnable("plain", true), "", "and on again");
+	CheckEq(J(aBox.UserText("mods.json"))["enabled"].Dump(0), "[\"feature\"]", "... never enters \"enabled\"");
+
+	CheckEq(m.EditEnable("feature", false), "", "turning the feature off again");
+	aConfig = J(aBox.UserText("mods.json"));
+	CheckEq(aConfig["enabled"].Dump(0) + aConfig["disabled"].Dump(0), "[][]", "... takes it out of \"enabled\", not into \"disabled\"");
+	CheckEq(Order(), "feature-,plain", "... and it is off");
+	aBox.User("mods.json", "{\"enabled\":[\"feature\"],\"disabled\":[\"feature\"]}");
+	m.ScanDesired();
+	CheckEq(Order(), "feature-,plain", "\"disabled\" wins over \"enabled\" in a hand-edited mods.json");
+
+	CheckEq(m.EditEnable("feature", true), "", "on once more");
+	RemoveTree(aBox.mMods + "/feature");
+	m.ScanDesired();
+	CheckEq(m.EditForget("feature"), "", "forgetting it once its folder is gone");
+	aConfig = J(aBox.UserText("mods.json"));
+	CheckEq(aConfig["enabled"].Dump(0) + aConfig["disabled"].Dump(0), "[][]", "... takes it out of \"enabled\" too");
+	SetUserDataChangedCallback(nullptr);
+}
+
 #ifdef __EMSCRIPTEN__
 extern "C" {
 void byopop_mods_open(const char* theUserDir, const char* theModsDir);
@@ -1323,6 +1378,7 @@ int main(int argc, char** argv)
 	TestRelaunchQuoting();
 	TestNoOpBytes();
 	TestForget();
+	TestDefaultEnabled();
 #ifdef __EMSCRIPTEN__
 	TestWebApi();
 #endif

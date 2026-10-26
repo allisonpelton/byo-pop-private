@@ -23,6 +23,7 @@
 
 #include "WinDMApp.h"
 #include "GameConfig.h"
+#include "art/CodeArt.h"
 #include "platform/ModManager.h"
 #include "platform/Relaunch.h"
 #include "platform/VFS.h"
@@ -99,13 +100,34 @@ static bool ParseGameSeed(int argc, char** argv, uint32_t* theSeed, std::string*
 	return true;
 }
 
-static bool LooksLikeGameDir(const std::string& theDir)
+// port(variant): the game's data; its images may be left to code-drawn art (features.codeArt), checked once the mods
+// are read
+static bool HasGameData(const std::string& theDir)
 {
-	return !Platform::VFS::FindCaseInsensitive(theDir, "images/gemsheet6.png").empty() &&
-		!Platform::VFS::FindCaseInsensitive(theDir, "data/diff.txt").empty();
+	return !Platform::VFS::FindCaseInsensitive(theDir, "data/diff.txt").empty();
+}
+
+static bool HasGameImages(const std::string& theDir)
+{
+	return !Platform::VFS::FindCaseInsensitive(theDir, "images/gemsheet6.png").empty();
+}
+
+static int NoGameFiles()
+{
+	std::string msg = "Could not find the Bejeweled Deluxe game files.\n\n"
+		"Run with -gamedir=\"<your Bejeweled Deluxe folder>\" or copy the images, data, sounds, music and "
+		"properties folders next to the executable.";
+	SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Bejeweled Deluxe", msg.c_str(), nullptr);
+	SDL_Log("%s", msg.c_str());
+	return 1;
 }
 
 #ifndef __EMSCRIPTEN__
+static bool LooksLikeGameDir(const std::string& theDir)
+{
+	return HasGameImages(theDir) && HasGameData(theDir);
+}
+
 static std::string ExeDir()
 {
 	char* base = SDL_GetBasePath();
@@ -207,15 +229,8 @@ int main(int argc, char** argv)
 		modsDir = ExeDir() + "/mods";
 #endif
 
-	if (gameDir.empty() || !LooksLikeGameDir(gameDir))
-	{
-		std::string msg = "Could not find the Bejeweled Deluxe game files.\n\n"
-			"Run with -gamedir=\"<your Bejeweled Deluxe folder>\" or copy the images, data, sounds, music and "
-			"properties folders next to the executable.";
-		SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Bejeweled Deluxe", msg.c_str(), nullptr);
-		SDL_Log("%s", msg.c_str());
-		return 1;
-	}
+	if (gameDir.empty() || !HasGameData(gameDir))
+		return NoGameFiles();
 
 	Platform::MakeDirs(userDir);
 	// Web: saves written as the page was closed may only have reached localStorage
@@ -243,6 +258,32 @@ int main(int argc, char** argv)
 		printf("%s", GameConfig::DumpRules().c_str());
 		fflush(stdout);
 		return 0;
+	}
+	// port(variant): without the game's images only code art can draw them; -dumpcodeart=<dir> writes what it draws as
+	// PNG files, and the fonts' descriptors (features.codeArt's settings; -codeartscale=N for another density)
+	std::string codeArtDir = ArgValue(argc, argv, "dumpcodeart");
+	if (!HasGameImages(gameDir) || !codeArtDir.empty())
+	{
+		GameRules aRules;
+		GameFeatures aFeatures;
+		RulesStatus aStatus;
+		GameConfig::ResolveRules(&aRules, &aFeatures, &aStatus);
+		if (codeArtDir.empty() && !aFeatures.mCodeArt)
+			return NoGameFiles();
+		if (!codeArtDir.empty())
+		{
+			CodeArt::Settings aSettings = CodeArt::SettingsFor(aFeatures, GameConfig::GemColors(aRules));
+			std::string aScale = ArgValue(argc, argv, "codeartscale");
+			if (!aScale.empty())
+				aSettings.mScale = atoi(aScale.c_str());
+			CodeArt::Enable(aSettings);
+			Platform::MakeDirs(codeArtDir);
+			std::string aLog;
+			bool isOk = CodeArt::Dump(codeArtDir, &aLog);
+			printf("%s", aLog.c_str());
+			fflush(stdout);
+			return isOk ? 0 : 1;
+		}
 	}
 	if (HasFlag(argc, argv, "forcevariant"))
 		gGameConfig.mForceVariant = true;

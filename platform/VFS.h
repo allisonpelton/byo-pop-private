@@ -63,7 +63,15 @@ public:
 
 	bool Exists(const std::string& theGamePath) const { return !Resolve(theGamePath).empty(); }
 	FILE* Open(const std::string& theGamePath, const char* theMode) const;
+	// Reads a whole file; a generated file (below) is read here too, where no mod has the path.
 	bool ReadAll(const std::string& theGamePath, std::vector<uint8_t>& theData) const;
+
+	// Generated files: contents a game makes at start-up (its code-drawn fonts' descriptors), read under a game path
+	// as if the game folder held them. ReadAll, and so p_fopen, serves one ahead of the base dir and behind the mods;
+	// Resolve, Open and Exists do not see it, since it has no host path. Empty contents remove the file. Set them
+	// before loading starts: the loading thread reads them without a lock.
+	void SetGeneratedFile(const std::string& theGamePath, const std::string& theContents);
+	void ClearGeneratedFiles() { mGenerated.clear(); }
 
 	// Normalizes separators to '/', strips "./" and leading slashes, collapses "a/../" (Platform::NormalizePath).
 	static std::string Normalize(const std::string& thePath);
@@ -80,6 +88,7 @@ private:
 	std::string mUserDir = "userdata";
 	std::vector<VFSRoot> mModRoots;
 	std::map<std::string, VFSRemap> mRemaps;  // key: lower-case normalized game path
+	std::map<std::string, std::string> mGenerated;  // key: lower-case normalized game path
 };
 
 // Directory helpers that work on native hosts and Emscripten's FS.

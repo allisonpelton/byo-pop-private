@@ -2,6 +2,7 @@
 # Give a fresh git worktree the git-ignored files the builds and tests need, copied from the main checkout:
 #   - assets/<game> for every game staged there (copies, never junctions: deleting a worktree then cannot
 #     reach the main checkout's files);
+#   - re/bookwormadv/jp2ref (the reference PNGs of jp2test in the unit suite);
 #   - build/baseline and build/baseline-stage0 (Bejeweled's frozen oracle exes) and build/oracle-cache;
 #   - the generated, git-ignored files under games/*/mods (e.g. Bejeweled's bejeweled2-audio, which the
 #     oracle's "mods" case expects).
@@ -44,6 +45,7 @@ copy_dir() {  # copy_dir <relative path>: only when the source has it and the ta
 for g in "$MAIN"/assets/*/; do
 	[ -d "$g" ] && copy_dir "assets/$(basename "$g")"
 done
+copy_dir re/bookwormadv/jp2ref
 copy_dir build/baseline
 copy_dir build/baseline-stage0
 [ "$CACHE" = 1 ] && copy_dir build/oracle-cache

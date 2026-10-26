@@ -53,21 +53,18 @@ Once Bejeweled Deluxe and all of the mods above are done and working:
       layout groundwork (survey G6).
    2. Typer Shark! Deluxe, which uses the same 2004 framework.
    3. Bookworm Adventures Deluxe + Volume 2.
-   4. The Sprout-engine line: Feeding Frenzy 2 + Talismania, then Iggle Pop and Feeding Frenzy Deluxe (added 2026-10-25). The public Pizza Frenzy
-      decompilation serves as an engine reference only.
+   4. The Sprout-engine line: Feeding Frenzy 2 + Talismania, then Iggle Pop and Feeding Frenzy Deluxe (added 2026-10-25). Pizza Frenzy now comes
+      first in it (no references, 2026-10-26).
    5. Bejeweled 2 Deluxe.
-   6. The Peggle family. Thunderball is a partial decompilation (about 39%), so Peggle stays in the order.
+   6. The Peggle family, decompiled without Thunderball; Deluxe and Nights stay unpublished (2026-10-26).
    7. The remaining classic titles: Rocket Mania, Hammer Heads, Heavy Weapon, Dynomite, AstroPop.
    8. The newer frameworks: Bejeweled 3, Bejeweled Twist, Zuma's Revenge.
 
-   **Skipped for now:** games that others have already decompiled. Revisit them after every other
-   game is done:
-   - Insaniquarium Deluxe ([Vindirect/WinFish](https://github.com/Vindirect/WinFish))
-   - Zuma Deluxe ([alula/CircleShootApp](https://github.com/alula/CircleShootApp))
-   - Plants vs. Zombies ([wszqkzqk/PvZ-Portable](https://github.com/wszqkzqk/PvZ-Portable))
-   - Pizza Frenzy ([PopCap-Decompilations/PizzaFrenzy-Decompilation](https://github.com/PopCap-Decompilations/PizzaFrenzy-Decompilation))
-   - Chuzzle Deluxe and its Christmas Edition (the user, 2026-10-25: someone else has reportedly decompiled it, and the
-     Christmas Edition is mostly new textures)
+   **Decided 2026-10-26 (POPCAP_GAMES_SURVEY.md section 4):** every game may be decompiled, with no other project as a
+   reference, except Plants vs. Zombies and Insaniquarium, whose fan communities are left to their own work, and
+   Chuzzle's Christmas Edition. Games with another PC decompilation in progress or an active modding community (Peggle
+   Deluxe and Nights) are built but not published. Pizza Frenzy and Chuzzle Deluxe are back in the order; Zuma Deluxe
+   waits on the user's decision.
 
 ## Very far out: the Build-a-Lot series
 

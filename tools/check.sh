@@ -9,8 +9,12 @@
 #   build-web    tools/build.sh web
 #   build-nov    tools/build.sh novariants (Bejeweled without its variant code, for the oracle)
 #   unit         rulestest, modsettingstest and fwtest -hotkeytest, native (under a minute); fwtest is skipped
-#                without assets/bejeweled; then fwtest -hotkeytest -placeholders with no game files at all
-#   unit-web     rulestest and modsettingstest under Node (needs build-web)
+#                without assets/bejeweled; then fwtest -hotkeytest -placeholders with no game files at all; then
+#                jp2test (JPEG 2000: the .jp2 images of assets/bookwormadv/images against re/bookwormadv/jp2ref, the loader's
+#                rules for .jp2 files, synthetic and damaged files), skipped without assets/bookwormadv/images; and
+#                songpostest on Bejeweled's and BookWorm's modules (skipped without their assets)
+#   unit-web     rulestest and modsettingstest under Node (needs build-web); paktest (the page's pak reader), with
+#                Bookworm Adventures' main.pak against assets/bookwormadv when both are there
 #   verify       Bejeweled's headless verifier tests (games/bejeweled/tools/verify/run_tests.sh)
 #   modmenu      the mod menu's scripted runs, all games (tools/modmenutest/run_tests.sh all)
 #   livesplit    Bejeweled's, Big Money's and BookWorm's LiveSplit tests
@@ -23,8 +27,9 @@
 #                and a rerun of the first with the same screenshots (about 15 seconds)
 #   bookwormadv  Bookworm Adventures: the PopLua compiler's dialect checks and every compiled script of the game
 #                loaded by the port's VM (bwa_luarun), every PopAnim loaded (bwa_pamtest), every cutscene played
-#                to its end (bwa_swftest), and a scripted run from the title to the main menu whose quit asks,
-#                Play! stays and Quit quits (under two minutes)
+#                to its end (bwa_swftest), a scripted run from the title to the main menu whose quit asks,
+#                Play! stays and Quit quits, and the test profile's first chapter won and saved by the port's
+#                "word attack" script command (under two minutes)
 #   pixelus      Pixelus Deluxe's grid replay test (every puzzle of the game solved by its recorded solution), a scripted tour of the
 #                options, credits and how-to-play screens, the bot's first 25 puzzles and a rerun with the same screenshots,
 #                and the bot's whole game (210 puzzles in all 12 temples, to the ending; about 2 minutes)
@@ -33,9 +38,11 @@
 #                victory screen), a whole adventure (15 pyramids, the map, the saved game) and the tutorial (about 1 minute)
 #   tiptop       TipTop's bot: two regular games, a strategy game and a speed game, and a rerun of the regular ones
 #                with the same screenshots (about two and a half minutes)
+#   ningpo       Ning Po Mahjong: a scripted game (the cheat's matches until no pair is left, the name entry, the best
+#                times) and a rerun with the same screenshots and best time (under a minute)
 #   oracle       Bejeweled's oracle three ways (compare.sh --variants default,forcevariant,novariants); over
 #                ten minutes, so never in a subagent; refuses to start while another oracle runs
-# Sets: quick = build unit; games = bookworm bigmoney noahsark atomica sevenseas pixelus bookwormadv tiptop mummymaze; all = every suite, builds first.
+# Sets: quick = build unit; games = bookworm bigmoney noahsark atomica sevenseas pixelus bookwormadv tiptop mummymaze ningpo; all = every suite, builds first.
 #
 # Prints "PASS <suite> (<seconds>s): <summary>" or "FAIL <suite> (<seconds>s): <summary> -> <log>" for each,
 # then "check: N passed, M failed". Exits 0 only when all passed. Logs: build/logs/check/<suite>.txt (and
@@ -50,8 +57,8 @@ BM_GAME1="score 66646"
 NA_ACTION="level 4 done at update 17083: score 7622 mode stampede"
 NA_STRATEGY="level 4 done at update 15469: score 4430 mode strategy"
 NA_PUZZLE="game 1 over at update 17550: score 4830 level 1 moves 117"
-AT_STRATEGY="game 1 over at update 6087: score 1520 level 2 moves 73"
-AT_ACTION="update 20000: score 3360 level 2 moves 599 atoms 48"
+AT_STRATEGY="game 1 over at update 6876: score 1600 level 2 moves 90"
+AT_ACTION="update 20000: score 2480 level 3 moves 680 atoms 66"
 SS_BEGINNER="game 2 over at update 5308: score 165 level 2 moves 23"
 SS_BONUS="game 1 over at update 2286: score 330 level 12 moves 15"
 SS_LATE="game 1 over at update 2285: score 390 level 22 moves 13"
@@ -66,6 +73,7 @@ MM_TUTORIAL="tutorial done at update 6591"
 TT_REGULAR="game 2 over at update 35544: level 7, score 37160, 352 moves"
 TT_STRATEGY="game 1 over at update 2593: level 1, score 2100, 24 moves"
 TT_SPEED="game 1 over at update 57249: level 11, score 78250, 1081 moves"
+NP_GAME="Test: 40 tiles left in 00:12"
 
 set -u
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -78,9 +86,9 @@ while [ $# -gt 0 ]; do
 		--out=*) OUT="${1#--out=}"; shift ;;
 		-h|--help) sed -n '2,/^BW_CLASSIC/p' "$0" | sed '$d' | sed 's/^# \{0,1\}//'; exit 0 ;;
 		quick) SUITES+=(build unit); shift ;;
-		games) SUITES+=(bookworm bigmoney noahsark atomica sevenseas pixelus bookwormadv tiptop mummymaze); shift ;;
-		all) SUITES+=(build build-web build-nov unit unit-web verify modmenu livesplit bookworm bigmoney noahsark atomica sevenseas pixelus bookwormadv tiptop mummymaze oracle); shift ;;
-		build|build-web|build-nov|unit|unit-web|verify|modmenu|livesplit|bookworm|bigmoney|noahsark|atomica|sevenseas|pixelus|bookwormadv|tiptop|mummymaze|oracle) SUITES+=("$1"); shift ;;
+		games) SUITES+=(bookworm bigmoney noahsark atomica sevenseas pixelus bookwormadv tiptop mummymaze ningpo); shift ;;
+		all) SUITES+=(build build-web build-nov unit unit-web verify modmenu livesplit bookworm bigmoney noahsark atomica sevenseas pixelus bookwormadv tiptop mummymaze ningpo oracle); shift ;;
+		build|build-web|build-nov|unit|unit-web|verify|modmenu|livesplit|bookworm|bigmoney|noahsark|atomica|sevenseas|pixelus|bookwormadv|tiptop|mummymaze|ningpo|oracle) SUITES+=("$1"); shift ;;
 		*) echo "check.sh: unknown suite '$1' (tools/check.sh --help)" >&2; exit 2 ;;
 	esac
 done
@@ -128,7 +136,7 @@ suite_build-web() { build_suite web "$1"; }
 suite_build-nov() { build_suite novariants "$1"; }
 
 suite_unit() {
-	local st=0 a b c d
+	local st=0 a b c d e f
 	(cd build/native && timeout 120 ./rulestest.exe) > "$1" 2>&1 || st=1
 	a="$(lastof "$1" 'checks')"
 	(cd build/native && timeout 120 ./modsettingstest.exe) > "$1.mst" 2>&1 || st=1
@@ -146,8 +154,28 @@ suite_unit() {
 	timeout 120 "build/native/fwtest.exe" -hotkeytest -placeholders -gamedir="$OUT/no-game-files" > "$1.ph" 2>&1 || st=1
 	d="placeholders: $(lastof "$1.ph" 'placeholders: [0-9]+ game files? missing' | sed 's/^placeholders: //'), $(lastof "$1.ph" 'hotkey: [0-9]+ failed')"
 	grep -q -E 'placeholders: [1-9][0-9]* game files? missing' "$1.ph" || st=1
-	cat "$1.mst" "$1.fw" "$1.ph" >> "$1"; rm -f "$1.mst" "$1.fw" "$1.ph"
-	SUMMARY="$a; $b; $c; $d"
+	# jp2test decodes Bookworm Adventures' .jp2 images against reference PNGs: staging's in re/bookwormadv/jp2ref, or
+	# (older staging) PNGs beside them; skipped without the staged folder
+	if [ -d assets/bookwormadv/images ]; then
+		local ref=()
+		[ -d re/bookwormadv/jp2ref/images ] && ref=("-ref=$W/re/bookwormadv/jp2ref/images")
+		(cd build/native && timeout 120 ./jp2test.exe "$W/assets/bookwormadv/images" "${ref[@]}") > "$1.jp2" 2>&1 || st=1
+		e="$(lastof "$1.jp2" 'jp2: [0-9]+ files, max channel difference')"
+	else
+		echo "jp2test skipped: no assets/bookwormadv/images (tools/setup_worktree.sh)" > "$1.jp2"
+		e="jp2test skipped (no assets/bookwormadv)"
+	fi
+	# Mixer::GetSongPosition on Bejeweled's modules (libxmp-lite) and BookWorm's (libopenmpt), where they are staged
+	f="songpos skipped (no assets/bejeweled or assets/bookworm)"
+	if [ -d assets/bejeweled ] && [ -d assets/bookworm ]; then
+		{ timeout 120 build/native/songpostest.exe assets/bejeweled music/1980-autonomus.s3m music/1984-network.s3m &&
+		  timeout 120 build/native/songpostest.exe assets/bookworm music/bookworm1.mo3; } > "$1.sp" 2>&1 || st=1
+		f="songpos: $(grep -c ', start at 2 ok' "$1.sp") of 3 songs ok"
+	else
+		echo "$f" > "$1.sp"
+	fi
+	cat "$1.mst" "$1.fw" "$1.ph" "$1.jp2" "$1.sp" >> "$1"; rm -f "$1.mst" "$1.fw" "$1.ph" "$1.jp2" "$1.sp"
+	SUMMARY="$a; $b; $c; $d; $e; $f"
 	return $st
 }
 
@@ -158,8 +186,19 @@ suite_unit-web() {
 	a="$(lastof "$1" 'checks')"
 	(cd build/web && "$NODE" modsettingstest.js) > "$1.mst" 2>&1 || st=1
 	b="$(lastof "$1.mst" 'checks')"
-	cat "$1.mst" >> "$1"; rm -f "$1.mst"
-	SUMMARY="$a; $b"
+	# the page's pak reader (web/modpanel.js); with Bookworm Adventures installed and staged, its main.pak against the
+	# staged files (BWA_PAK names another copy)
+	local pak="${BWA_PAK:-C:/Program Files (x86)/PopCap Games/Bookworm Adventures Deluxe/main.pak}" c
+	if [ -f "$pak" ] && [ -d assets/bookwormadv ]; then
+		"$NODE" tools/paktest/paktest.js "$pak" assets/bookwormadv > "$1.pak" 2>&1 || st=1
+		c="$(lastof "$1.pak" 'paktest: main.pak')"
+	else
+		"$NODE" tools/paktest/paktest.js > "$1.pak" 2>&1 || st=1
+		c="$(lastof "$1.pak" 'paktest: synthetic') (no BWA main.pak or assets/bookwormadv)"
+	fi
+	grep -q '^paktest: 0 failed' "$1.pak" || st=1
+	cat "$1.mst" "$1.pak" >> "$1"; rm -f "$1.mst" "$1.pak"
+	SUMMARY="$a; $b; $c"
 	return $st
 }
 
@@ -364,7 +403,7 @@ suite_mummymaze() {
 }
 
 suite_bookwormadv() {
-	local log="$1" b="$W/build/native/bwa_luarun.exe" d l p s m
+	local log="$1" b="$W/build/native/bwa_luarun.exe" d l p s m c
 	need_assets bookwormadv || return 1
 	[ -x "$b" ] || { SUMMARY="no $b (build first)"; return 1; }
 	d="$("$b" -gamedir=games/bookwormadv/tests/poplua dialect.lua 2>&1 | tee -a "$log" | tail -n 1)"
@@ -372,12 +411,14 @@ suite_bookwormadv() {
 	p="$("$W/build/native/bwa_pamtest.exe" 2>&1 | tee -a "$log" | tail -n 1 | tr -d '\r')"
 	s="$("$W/build/native/bwa_swftest.exe" 2>&1 | tee -a "$log" | grep -c '; unsupported: none')"
 	m="$(bookwormadv_menu "$log")"
-	SUMMARY="$d; $l; pam $p; swf $s of 4 to their end; menu: $m"
+	c="$(bookwormadv_chapter "$log")"
+	SUMMARY="$d; $l; pam $p; swf $s of 4 to their end; menu: $m; chapter 1: $c"
 	case "$d" in "dialect: "*" checks passed") ;; *) return 1 ;; esac
 	bookwormadv_all "$l" || return 1
 	bookwormadv_all "$p" || return 1
 	[ "$s" = 4 ] || return 1
 	[ "$m" = "quit at update 1310" ] || return 1
+	[ "$c" = "6 words, won, saved" ] || return 1
 	return 0
 }
 
@@ -402,6 +443,30 @@ bookwormadv_menu() {  # <log>: the test profile (tests/menu) from the title to t
 	echo "quit at update ${n#Update Count = }"
 }
 
+bookwormadv_chapter() {  # <log>: the test profile's first chapter, its battles won by the port's "word attack" (seed 1)
+	local d="$OUT/bookwormadv/chapter" n k t u
+	rm -rf "$d"; mkdir -p "$d"
+	cp -r games/bookwormadv/tests/menu/user "$d/user"
+	# Adventure, the map's Enter, the conversations clicked through (400 150), then the longest word and the
+	# attack every 500 updates (the command waits for an idle board), with a click after each
+	{ printf '%s\n' "900 move 230 300" "920 click 230 300" "2400 move 400 575" "2420 click 400 575" \
+		"4000 click 400 150" "4400 click 400 150" "4800 click 400 150" "5200 click 400 150"
+	  for k in $(seq 0 39); do t=$((5600 + k * 500)); printf '%s\n' "$t word attack" "$((t + 400)) click 400 150"; done
+	  printf '%s\n' "25000 screenshot $d/map.png" "25600 quit"; } > "$d/script.txt"
+	u="$d/user"; case "$u" in /*|[A-Za-z]:*) ;; *) u="$W/$u" ;; esac
+	timeout 180 "$W/build/native/bookwormadv.exe" -userdir="$u" -script="$d/script.txt" -fast -seed=1 \
+		> "$d/stdout.txt" 2>&1
+	cat "$d/stdout.txt" >> "$1"
+	grep -q "FATAL" "$d/stdout.txt" && { echo "failed: $(grep -m 1 -A 2 FATAL "$d/stdout.txt" | tail -n 1)"; return; }
+	n="$(grep -c 'script: word [A-Z]' "$d/stdout.txt")"
+	# the profile then holds the chapter as completed (its key, in the saved Lua table)
+	if grep -q "CompletedChapters" "$d/user/users/Tester.bwa" && [ -f "$d/map.png" ]; then
+		echo "$n words, won, saved"
+	else
+		echo "$n words, not won"
+	fi
+}
+
 tiptop_game() {  # <name> <mode> <games>: bot games; prints the last "game N over" line
 	local d="$OUT/tiptop/$1"
 	rm -rf "$d"; mkdir -p "$d/shots"
@@ -423,6 +488,42 @@ suite_tiptop() {
 	if diff -rq "$OUT/tiptop/regular/shots" "$OUT/tiptop/regular2/shots" >> "$1" 2>&1 && [ "$g" = "$r" ]; then r="rerun identical"; else r="RERUN DIFFERS"; st=1; fi
 	SUMMARY="regular ${g#game }; strategy ${s#game }; speed ${p#game }; $r"
 	[ $st -eq 0 ] || SUMMARY="$SUMMARY (expected regular '$TT_REGULAR', strategy '$TT_STRATEGY', speed '$TT_SPEED')"
+	return $st
+}
+
+ningpo_game() {  # <name>: a scripted game (-seed=7): the cheat's matches to the end, the name entry, the best times
+	local d="$OUT/ningpo/$1" u h n="" i
+	rm -rf "$d"; mkdir -p "$d/shots"
+	# start, the cheat (Backspace q Backspace) and its match key until no pair is left, End Game in the no-moves
+	# dialog, continue, the name "Test", the best times' OK and the title's quit
+	{
+		printf '%s\n' "150 click 320 425" "350 click 340 440" "500 key BACK" "510 char q" "520 key BACK"
+		for ((u = 550; u <= 2030; u += 20)); do echo "$u char m"; done
+		printf '%s\n' "2150 click 385 368" "2300 screenshot $d/shots/over.png" "2350 click 270 345" \
+			"2500 screenshot $d/shots/name.png" "2550 char T" "2555 char e" "2560 char s" "2565 char t" "2630 key RETURN" \
+			"2770 screenshot $d/shots/best.png" "2820 click 495 435" "2970 screenshot $d/shots/title.png" "3020 quit"
+	} > "$d/script.txt"
+	timeout 300 "$W/build/native/ningpo.exe" -gamedir=assets/ningpo -userdir="$d/user" -fast -seed=7 -script="$d/script.txt" \
+		> "$d/stdout.txt" 2> "$d/stderr.txt"
+	# the first best time of the first layout (HS:0x0, 0x30 bytes: the name at +4, the time at +0x24, the tiles left at +0x2c)
+	h="$(grep -m 1 '^HS:0x0=hex:' "$d/user/registry.ini" 2>/dev/null | tr -d '\r')"; h="${h#*hex:}"
+	[ ${#h} -eq 96 ] || { echo "no best time"; return; }
+	for ((i = 8; i < 72; i += 2)); do [ "${h:i:2}" = 00 ] && break; n="$n$(printf "\\x${h:i:2}")"; done
+	i=$(hexle "${h:72:8}")
+	printf '%s: %d tiles left in %02d:%02d\n' "$n" "$(hexle "${h:88:8}")" $((i / 60)) $((i % 60))
+}
+
+hexle() { echo $((16#${1:6:2}${1:4:2}${1:2:2}${1:0:2})); }  # <8 hex digits>: the little-endian 32-bit number
+
+suite_ningpo() {
+	local st=0 g r
+	need_assets ningpo || return 1
+	g="$(ningpo_game seed7)"; r="$(ningpo_game seed7b)"
+	{ echo "game: $g"; echo "rerun: $r"; } > "$1"
+	[ "$g" = "$NP_GAME" ] || st=1
+	if diff -rq "$OUT/ningpo/seed7/shots" "$OUT/ningpo/seed7b/shots" >> "$1" 2>&1 && [ "$g" = "$r" ]; then r="rerun identical"; else r="RERUN DIFFERS"; st=1; fi
+	SUMMARY="$g; $r"
+	[ $st -eq 0 ] || SUMMARY="$SUMMARY (expected '$NP_GAME')"
 	return $st
 }
 

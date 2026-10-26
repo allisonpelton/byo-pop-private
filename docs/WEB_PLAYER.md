@@ -28,10 +28,15 @@ Big Money (`bigmoney.*`) and BookWorm (`bookworm.*`) have the same three files.
    first one closes.
 4. **Mods.** The Mods panel finishes any removals that were waiting for this start.
 5. **Terms.** Until the player has agreed to this game's terms (below, "The terms"), the terms card comes
-   first, before any game files are imported or loaded.
+   first, before any game files are imported or loaded. The card is off for now, and the pages must not be deployed
+   until it is back.
 6. **Game files.** If there are none yet, the import card asks for the install folder or a .zip. Only the
    folders the game reads (`images`, `data`, `sounds`, `music`, `properties`) are copied. The browser's
-   own `DecompressionStream` unpacks a .zip.
+   own `DecompressionStream` unpacks a .zip. A game whose files are in a PopCap pak (Bookworm Adventures'
+   `main.pak`, XORed with 0xF7) names it in its page's `paks`: the import unpacks it into the game's folder
+   (`Module.byopop.pak.read` in `web/modpanel.js`, the format of `tools/popcap_pak.py`) and does not store the pak,
+   so the browser keeps one copy of the files, the same tree native staging gives the game.
+   `tools/paktest/paktest.js` checks the reader under Node.
 7. **Play.** Browsers allow sound only after you click or press a key, so the page waits for "Play". Then
    it calls the game's `main()` with folder arguments (`-gamedir=/persist/game -userdir=... -modsdir=...`),
    plus `-gameseed=N` for a `?seed=N` in the address, `-placeholders` for `?placeholders=1` and `-nomods` for
@@ -148,6 +153,12 @@ its own: `byopop_web_game(<target> TITLE "..." COPYRIGHT "..." [LICENSES <name>.
 
 ### The terms
 
+**Off for now; this blocks deployment.** On 2026-10-26 the user turned the terms card off on every game's page
+until further notice: `BYOPOP_WEB_TERMS_GATE` in `cmake/ByopopWeb.cmake` is `OFF`, so the page treats the terms as
+agreed and never shows the card, and every configure says so in a status line. The copyright page still shows the
+terms. Bringing the card back blocks deployment: the pages must not go on a public host, by any tool, until the
+variable is `ON` again and a page has been seen to show the card. What follows describes the card when it is on.
+
 Before a game's files are imported or loaded, its page shows the game's terms with a checkbox ("I own a licensed copy
 of ..., and I agree to these terms") and a Continue button that stays disabled until the box is ticked. The terms say
 that the player owns a licensed copy and loads the files from it (a never-bought trial is not one), keeps the files to
@@ -163,6 +174,10 @@ the wording, or to a game's name or notice, asks again. Where localStorage fails
 closes. Boot shows the card, and the import, the start and "Play without mods" refuse to go ahead without the
 agreement. A test in the Browser pane ticks the box once per origin (and game), as a player would; the agreement then
 stays for that origin.
+
+`BYOPOP_WEB_TERMS_GATE` is a plain CMake variable rather than a cache option, so changing it in the file reaches every
+build folder at its next configure; `byopop_web_shell()` writes it into the page as `TERMS_GATE` (`true` or
+`false`).
 
 ### Where to buy
 

@@ -90,6 +90,22 @@ quit to the menu or leave the game (0x416e80) 0xbb, 0x57, 0x1a0, 300; new game w
 0x5f, 0x5a, 0x1c2, 300 for the Stampede; registered (0x418f70, the branch after the Register dialog's creator) 0x78,
 0x78, 0x190, 0xf0; credits 0x78, 0x41, 0x190, 0x15e; the difficulty dialog (0x418ea0) 0x78, centred, 0x190, 0x140.
 
+What a dialog's creator passes to the `Dialog` constructor (0x427e20: images, id, modal, header, lines, footer, button
+mode) is part of how it looks, and two of the port's first guesses were wrong. The tutorial (0x4205b0) has an empty header
+and empty lines and the footer READY (button mode 3), and writes its own heading in `Draw` at y 0x30 with the large font; a
+port that passes the heading as the header puts it at the 2004 layout's header position instead. The name entry (0x41d750)
+has OK and CANCEL (mode 2, empty footer), and CANCEL goes the generic way (ids from 3000 kill the dialog by id), so a
+player can decline to record a score. Its edit widget is made with a colour table at 0x4960a4 (`Widget::vf05`, slot 5,
+takes the colours as four ints each and their number): a transparent background and outline, text 240/240/255, highlight
+white, highlighted text black and then white again, with the box picture drawn under it by the dialog's `Draw` (0x41dca0:
+the left end, the right end, and the middle piece repeated between them, 0x20 high, the whole rectangle being the widget's
+inflated by 4 on every side). The widget's field at +0x80 is a limit in pixels (0x78), not in characters (the field at
++0x7c, no limit). The tutorial's picture is a small state machine in `Update` (0x420ab0: the cursor goes to an animal,
+clicks, goes to the match, clicks, the pair is joined, then it waits 300 updates and starts over) and a `Draw` that
+shows it with two panels of the tutorial box picture underneath, one with a path and one with a red X; the port had a
+stand-in that stepped a counter every 40 updates. An image id that nothing in the port draws is the sign of such a
+stand-in: the sweep for unreachable pictures found these two by that.
+
 The decompiler hides what happens between two calls of one slot: `h = GetPreferredHeight(w)` is followed by a second
 call of the same slot with the width as its argument, to centre the dialog, and the width of the dialog is pushed for the
 `Resize` before that call, so the width it passes to `Resize` can differ from the one it passes to the height

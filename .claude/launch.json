@@ -60,6 +60,12 @@
       "runtimeExecutable": "python",
       "runtimeArgs": ["-m", "http.server", "18776", "--bind", "127.0.0.1", "--directory", "build/web"],
       "port": 18776
+    },
+    {
+      "name": "ningpo-web",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-m", "http.server", "18779", "--bind", "127.0.0.1", "--directory", "build/web"],
+      "port": 18779
     }
   ]
 }
