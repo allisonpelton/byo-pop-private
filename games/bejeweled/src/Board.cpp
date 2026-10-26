@@ -642,6 +642,7 @@ Board::~Board()
 	delete mGoldTiles[0]; // port(variant): the gold art (BoardGold.cpp)
 	delete mGoldTiles[1];
 	delete mRecorder; // port(variant)
+	delete mStats; // port(variant)
 }
 
 // 0x4cd287
@@ -712,6 +713,7 @@ bool Board::ProcessMatches()
 					mScorePopups.push_back(aPopup);
 					mGemsCleared += aCount;
 					mScore += aPoints;
+					if (mStats != NULL) mStats->OnRun(aCount, aColor, aPoints); // port(variant): the Stats page (GameStats.h)
 					if (mVariant.mDirt) ClearDirtNextToRun(aStartCol, aStartRow, aCol, aRow, aColor); // port(variant): dirt next to the run loses a layer (BoardShape.cpp)
 					if (mMoveMatchCount == 1)
 					{
@@ -812,6 +814,7 @@ void Board::UpdateFalling()
 			mState = STATE_CLEARING;
 		else
 		{
+			if (mStats != NULL) mStats->OnSettle(this); // port(variant): the move's cascades and the score line (GameStats.h)
 			if (!mStatsDisabled)
 			{
 				if (mCascadeCount > mLongestCascade)
@@ -886,6 +889,7 @@ void Board::UpdateSwap()
 		}
 		else if ((mState == STATE_SWAPPING) && !mVariant.mInvalid) // port(variant): was (mState == STATE_SWAPPING)
 		{
+			if (mStats != NULL) mStats->OnSwapBack(); // port(variant)
 			// Swap back along the same circle. The second gem mirrors the first one's offsets, which
 			// is off by 1 px when the centre was rounded.
 			aPiece1->mSwapOffX = -aPiece1->mSwapOffX;
@@ -1247,4 +1251,5 @@ void Board::Update()
 	}
 
 	if (mRecorder != NULL) mRecorder->AfterUpdate(); // port(variant): CHECK at a settle, END at the game-over screen
+	if (mStats != NULL) mStats->AfterUpdate(this); // port(variant): the play time and the level-ups (GameStats.h)
 }

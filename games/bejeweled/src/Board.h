@@ -7,6 +7,7 @@
 // bytes, so Board data starts at +0x88; Ghidra's Board_data.offset_N is absolute N+0x88).
 // Behaviour spec: games/bejeweled/docs/GAME_NOTES.md (Board section).
 
+#include "GameStats.h"
 #include "Widget.h"
 #include "MTRand.h"
 #include "Piece.h"
@@ -280,6 +281,8 @@ public:
 	bool			mTakesPendingSeed;      // seeded with GameConfig::mPendingSeed, unplayed: a matching swap or a game over uses it up (4.10)
 	// Replays (games/bejeweled/docs/CODE_MODS_DESIGN.md 6.3-6.5): observers of play, so like the RNG source
 	// they are no code path and BEJ_NO_VARIANTS keeps them
+	GameStats*		mStats;                 // port(variant): the Stats page's counts (features.gameStats, GameStats.h); owned
+	std::vector<GameStats> mStatsUndo;      // port(variant): the counts with each of mUndoStack's snapshots, newest last
 	ReplayRecorder*	mRecorder;              // records this board's game (features.replays); NULL unless recording; owned, deleted in ~Board
 	bool			mPlaybackOnly;          // driven by a replay player (WatchController) or the verifier: takes no input, never saves, counts or deletes
 	bool			mPlaybackApplying;      // the player is applying an event: only then do Pause and Unpause reach a playback board
@@ -420,6 +423,7 @@ public:
 	void			DeleteSaveSidecar();                            // DeleteSaveGame: the sidecar goes with the save
 	void			KeepSidecarGame();                              // the recorded game of the sidecar there is, kept as a finished replay
 	std::string		SidecarSnapshot(const std::string& theSave);   // the sidecar a shutdown would leave with theSave ("" for none)
+	void			AddStatsToSidecar(std::string* theSidecar, const std::string& theSave); // port(variant): the STAT record (GameStats.h)
 	bool			ReadSaveSidecar(const std::string& theSave, Replay::File* theSidecar); // the sidecar, if it goes with theSave
 	void			GetRngState(Replay::RngState* theRng);         // the RNG Board::Rand draws from, as RNGS stores it
 	bool			SetPlaybackRng(const Replay::RngState& theRng); // a playback LOAD: the RNG the recorded board went on with (RNGS)

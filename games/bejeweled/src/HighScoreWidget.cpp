@@ -12,6 +12,7 @@
 #include "DDImage.h"
 #include "HyperlinkWidget.h"
 #include "WidgetManager.h"
+#include "GameStatsPage.h"
 
 #include <cstdio>
 #include <ctime>
@@ -142,6 +143,8 @@ void HighScoreWidget::AddedToManager(WidgetManager* theWidgetManager)
 	theWidgetManager->AddWidget(mPlayAgainLink);
 	if (mWatchReplayLink != NULL) // port(variant)
 		theWidgetManager->AddWidget(mWatchReplayLink);
+	if (mStatsLink != NULL) // port(variant)
+		theWidgetManager->AddWidget(mStatsLink);
 }
 
 // 0x4cedd2
@@ -151,6 +154,10 @@ void HighScoreWidget::RemovedFromManager(WidgetManager* theWidgetManager)
 	theWidgetManager->RemoveWidget(mPlayAgainLink);
 	if (mWatchReplayLink != NULL) // port(variant)
 		theWidgetManager->RemoveWidget(mWatchReplayLink);
+	if (mStatsLink != NULL) // port(variant)
+		theWidgetManager->RemoveWidget(mStatsLink);
+	if (mStatsPage != NULL) // port(variant): a new game from the left panel while the page is open
+		theWidgetManager->RemoveWidget(mStatsPage);
 }
 
 // 0x4cedf5
@@ -172,6 +179,21 @@ void HighScoreWidget::Resize(int theX, int theY, int theWidth, int theHeight)
 // 0x4ceeb7
 void HighScoreWidget::ButtonDepress(int theId)
 {
+	if (theId == STATS_LINK_ID) // port(variant): the Stats page over the board window; a click on it closes it
+	{
+		if ((mStatsPage == NULL) && (mWidgetManager != NULL))
+		{
+			mStatsPage = new GameStatsPage(mApp, [this]() { CloseStats(); });
+			mStatsPage->Resize(GameStatsPage::PAGE_X, GameStatsPage::PAGE_Y, GameStatsPage::PAGE_WIDTH, GameStatsPage::PAGE_HEIGHT);
+			mWidgetManager->AddWidget(mStatsPage);
+			mWidgetManager->BringToFront(mStatsPage);
+			mPlayAgainLink->SetVisible(false);
+			mStatsLink->SetVisible(false);
+			if (mWatchReplayLink != NULL)
+				mWatchReplayLink->SetVisible(false);
+		}
+		return;
+	}
 	if (theId == WATCH_REPLAY_LINK_ID) // port(variant): this game's replay, if it is still there
 	{
 		std::string aPath = ReplayRecorder::FinishedReplay(mApp->mBoard);
@@ -413,6 +435,17 @@ HighScoreWidget::HighScoreWidget(WinDMApp* theApp)
 
 	// port(variant): hidden until Update finds this game's replay written (ReplayRecorder::AfterUpdate writes it an update
 	// after this widget is made: it asks the widget whether the score makes a table)
+	// port(variant): the Stats page's link, for a board that counted (features.gameStats)
+	mStatsLink = NULL;
+	mStatsPage = NULL;
+	if ((mApp->mBoard != NULL) && (mApp->mBoard->mStats != NULL))
+	{
+		mStatsLink = new HyperlinkWidget(STATS_LINK_ID, this);
+		mStatsLink->mLabel = mApp->GetString("HSWIDGET_STATS", _S("STATS"));
+		mStatsLink->SetFont(mApp->mMainFont);
+		mStatsLink->mColor = Color(255, 100, 220);
+		mStatsLink->mOverColor = Color(255, 255, 255);
+	}
 	mWatchReplayLink = NULL;
 	if (gGameConfig.mFeatures.mReplays)
 	{
@@ -466,6 +499,8 @@ HighScoreWidget::~HighScoreWidget()
 	delete mBoardImage;
 	delete mPlayAgainLink;
 	delete mWatchReplayLink; // port(variant)
+	delete mStatsLink; // port(variant)
+	delete mStatsPage; // port(variant)
 	SaveHighScores();
 }
 
@@ -499,7 +534,7 @@ void HighScoreWidget::DoCheckForHighScore()
 void HighScoreWidget::Update()
 {
 	Widget::Update();
-	if ((mWatchReplayLink != NULL) && !mWatchReplayLink->mVisible && !ReplayRecorder::FinishedReplay(mApp->mBoard).empty()) // port(variant)
+	if ((mWatchReplayLink != NULL) && !mWatchReplayLink->mVisible && (mStatsPage == NULL) && !ReplayRecorder::FinishedReplay(mApp->mBoard).empty()) // port(variant)
 		mWatchReplayLink->SetVisible(true);
 
 	if (mSlideY < 0)
@@ -518,6 +553,12 @@ void HighScoreWidget::Update()
 			int aLinkHeight = mApp->mMainFont->GetHeight() + 4;
 			mWatchReplayLink->Resize(591 - aLinkWidth, mSlideY + 121 - (aLinkHeight + mApp->mMainFont->GetAscent()) / 2, aLinkWidth, aLinkHeight);
 		}
+		if (mStatsLink != NULL) // port(variant): left-aligned at 225, on the same row
+		{
+			int aLinkWidth = mApp->mMainFont->StringWidth(mStatsLink->mLabel) + 8;
+			int aLinkHeight = mApp->mMainFont->GetHeight() + 4;
+			mStatsLink->Resize(225, mSlideY + 121 - (aLinkHeight + mApp->mMainFont->GetAscent()) / 2, aLinkWidth, aLinkHeight);
+		}
 	}
 
 	if (mUpdateCnt % 10 == 0)
@@ -525,6 +566,22 @@ void HighScoreWidget::Update()
 		mColorCycle++;
 		MarkDirty();
 	}
+}
+
+// port(variant): the Stats page closes (its own click: deleted after the mouse event); the links come back
+void HighScoreWidget::CloseStats()
+{
+	if (mStatsPage == NULL)
+		return;
+	if (mStatsPage->mWidgetManager != NULL)
+		mStatsPage->mWidgetManager->RemoveWidget(mStatsPage);
+	mApp->SafeDeleteWidget(mStatsPage);
+	mStatsPage = NULL;
+	mPlayAgainLink->SetVisible(true);
+	mStatsLink->SetVisible(true);
+	if ((mWatchReplayLink != NULL) && !ReplayRecorder::FinishedReplay(mApp->mBoard).empty())
+		mWatchReplayLink->SetVisible(true);
+	MarkDirty();
 }
 
 // 0x4d11fd

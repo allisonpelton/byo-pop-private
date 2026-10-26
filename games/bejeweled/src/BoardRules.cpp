@@ -452,7 +452,7 @@ void Board::StartBlackHole()
 	mLevelTextShown = false;
 	mBlackHoleFrame = 0;
 	mSelectedPiece = NULL;
-	if (mVariant.mUndo) mUndoStack.clear(); // port(variant): undo never crosses a level
+	if (mVariant.mUndo) { mUndoStack.clear(); mStatsUndo.clear(); } // port(variant): undo never crosses a level
 
 	// Polar coordinates of each gem's center around the board center
 	int aCenterX;
@@ -769,9 +769,11 @@ void Board::UpdateGameOver()
 void Board::DoHint()
 {
 	if (mRecorder != NULL) mRecorder->OnHint(); // port(variant): HINT (ShowHint's only call, inside its if; playback calls DoHint)
+	int aScoreBefore = mScore; // port(variant)
 	mScore = (int)((double)mScore - mPointMultiplier * gGameConfig.mHintPenalty);
 	if (mScore < 0)
 		mScore = 0;
+	if (mStats != NULL) mStats->OnHint(aScoreBefore - mScore); // port(variant): the Stats page (GameStats.h)
 
 	int aMove[4];
 	if (FindMove(aMove, 0, true, true))

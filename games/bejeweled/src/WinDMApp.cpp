@@ -33,6 +33,8 @@
 #include "testhooks/AudioCapture.h"
 #include "WatchController.h"
 #include "ReplayOverlay.h"
+#include "GameStatsPage.h"
+#include "HyperlinkWidget.h"
 #include "ExtrasDialog.h"
 #include "ReplayBrowserDialog.h"
 #include "art/CodeArt.h"
@@ -111,6 +113,8 @@ WinDMApp::WinDMApp()
 	mNextValuesBoard = 0; // port(mods)
 	mReplayQuit = false; // port(variant)
 	mReplayOverlay = NULL; // port(variant)
+	mReplayStatsLink = NULL; // port(variant)
+	mReplayStatsPage = NULL; // port(variant)
 	mPendingPlaySeed = 0; // port(variant)
 }
 
@@ -940,6 +944,20 @@ void WinDMApp::EnableCodeArt()
 void WinDMApp::ButtonDepress(int theId)
 {
 	if ((mWatch != NULL) && mWatch->ButtonDepress(theId)) return; // port(variant): New Game and the mode buttons end a watch
+	if ((theId == BUTTON_REPLAY_STATS) && (mReplayStatsPage == NULL) && (mBoard != NULL) && (mBoard->mStats != NULL)) // port(variant)
+	{
+		// The watched board's Stats page over the board window and the dialog; a click on it closes it
+		mReplayStatsPage = new GameStatsPage(this, [this]()
+		{
+			mWidgetManager->RemoveWidget(mReplayStatsPage);
+			SafeDeleteWidget(mReplayStatsPage);
+			mReplayStatsPage = NULL;
+		});
+		mReplayStatsPage->Resize(GameStatsPage::PAGE_X, GameStatsPage::PAGE_Y, GameStatsPage::PAGE_WIDTH, GameStatsPage::PAGE_HEIGHT);
+		mWidgetManager->AddWidget(mReplayStatsPage);
+		mWidgetManager->BringToFront(mReplayStatsPage);
+		return;
+	}
 	if ((theId % 10000 >= 2000) && (theId % 10000 < 3000))
 	{
 		// YES / OK / footer of dialog theId - 2000
@@ -1114,6 +1132,7 @@ void WinDMApp::WatchReplay(const std::string& thePath, bool theFromDialogs)
 void WinDMApp::StartWatch(const std::string& thePath)
 {
 	std::string aPath = thePath; // it may be the name the old controller holds
+	RemoveReplayStats();
 	KillDialog(DIALOG_REPLAY_END);
 	bool wasPlayback = (mBoard != NULL) && mBoard->mPlaybackOnly;
 	if (mWatch != NULL)
@@ -1144,6 +1163,7 @@ void WinDMApp::StartWatch(const std::string& thePath)
 // port(variant): back to the player's game, as the side-bar buttons ended a watch in stage 3b
 void WinDMApp::EndWatch()
 {
+	RemoveReplayStats();
 	KillDialog(DIALOG_REPLAY_END);
 	RemoveReplayOverlay();
 	if ((mWatch == NULL) || !mWatch->IsWatching())
@@ -1178,10 +1198,45 @@ void WinDMApp::OnWatchEnded()
 			StrFormat(_S("%d"), mBoard->mLevel + 1);
 	else
 		aLines = GetString("REPLAY_END_CORRUPT", _S("This replay no longer plays the same in this build, so it stops here."));
+	// A board that counted (features.gameStats) gets a STATS link on a line of its own above the buttons: a child of the
+	// dialog, so it moves with it and takes clicks while the dialog is modal
+	bool hasStats = mWatch->IsEndOk() && (mBoard != NULL) && (mBoard->mStats != NULL);
+	if (hasStats)
+		aLines += _S("\n ");
 	Dialog* aDialog = DoDialog(DIALOG_REPLAY_END, true, GetString("REPLAY_END", _S("REPLAY END")), aLines, "", Dialog::BUTTONS_YES_NO);
 	aDialog->mYesButton->mLabel = GetString("REPLAY_WATCH_AGAIN", _S("Watch again"));
 	aDialog->mNoButton->mLabel = GetString("REPLAY_BACK", _S("Back"));
 	aDialog->Resize(234, 50, 348, aDialog->GetPreferredHeight(348));
+	if (hasStats)
+	{
+		mReplayStatsLink = new HyperlinkWidget(BUTTON_REPLAY_STATS, this);
+		mReplayStatsLink->mLabel = GetString("REPLAY_STATS", _S("STATS"));
+		mReplayStatsLink->SetFont(aDialog->mLinesFont);
+		mReplayStatsLink->mColor = aDialog->GetColor(Dialog::COLOR_LINES);
+		mReplayStatsLink->mOverColor = Color(255, 255, 255);
+		int aWidth = aDialog->mLinesFont->StringWidth(mReplayStatsLink->mLabel) + 8;
+		int aHeight = aDialog->mLinesFont->GetHeight() + 4;
+		int aButtonsTop = aDialog->mYesButton->mY - aDialog->mY;
+		mReplayStatsLink->Resize((aDialog->mWidth - aWidth) / 2, aButtonsTop - aHeight - 6, aWidth, aHeight);
+		aDialog->AddWidget(mReplayStatsLink);
+	}
+}
+
+void WinDMApp::RemoveReplayStats()
+{
+	if (mReplayStatsPage != NULL)
+	{
+		mWidgetManager->RemoveWidget(mReplayStatsPage);
+		SafeDeleteWidget(mReplayStatsPage);
+		mReplayStatsPage = NULL;
+	}
+	if (mReplayStatsLink != NULL)
+	{
+		if (mReplayStatsLink->mParent != NULL)
+			mReplayStatsLink->mParent->RemoveWidget(mReplayStatsLink);
+		SafeDeleteWidget(mReplayStatsLink);
+		mReplayStatsLink = NULL;
+	}
 }
 
 void WinDMApp::RemoveReplayOverlay()

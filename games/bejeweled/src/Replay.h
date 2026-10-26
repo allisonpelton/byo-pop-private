@@ -22,6 +22,8 @@
 //           ENV (u8 showInstructions, i32 timesPlayed, i32 pointsAscent), u32 count + events
 //           { varint tickDelta, u8 op, zigzag-varint args (as many as the op takes) }
 //     SVHA  sidecar only: u32, the first 4 bytes (little-endian) of SHA-256 of the save it goes with
+//     STAT  sidecar only: the Stats page's counts of the saved game (features.gameStats, GameStats::Encode), right
+//           before END (AddStats); any place is read, and a reader without the feature skips it
 //     END   u8 reason (0 abandoned, 1 no moves, 2 time up, 3 new game, 4 gold time up, 5 saved), u32 endTick,
 //           i32 score, i32 level, i32 gems, u64 LOGIC hash, u32 board draws. Always the last record.
 // The records come in this order, each at most once where it stands:
@@ -196,7 +198,13 @@ struct File
 	bool			mHasSaveHash = false;       // SVHA
 	uint32_t		mSaveHash = 0;
 	EndInfo			mEnd;                       // END (always written; Read fails without it)
+	bool			mHasStats = false;          // STAT (Write leaves it out: AddStats puts it in)
+	std::string		mStats;
 };
+
+// A sidecar with theStats as its STAT record, just before its END (the last record, of a fixed size), so the rest
+// stays byte for byte as it was written. False, theFile unchanged, when it does not end in an END record.
+bool				AddStats(std::string* theFile, const std::string& theStats);
 
 // The bytes of theFile in the record order above
 std::string			Write(const File& theFile);

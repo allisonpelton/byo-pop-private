@@ -26,6 +26,7 @@ const uint32_t TAG_LDSV = Replay::Tag("LDSV");
 const uint32_t TAG_RNGS = Replay::Tag("RNGS");
 const uint32_t TAG_SEGM = Replay::Tag("SEGM");
 const uint32_t TAG_SVHA = Replay::Tag("SVHA");
+const uint32_t TAG_STAT = Replay::Tag("STAT");
 const uint32_t TAG_END = Replay::Tag("END ");
 
 const size_t RNGS_SIZE = 4 + 1 + 1 + Replay::MT_WORDS * 4 + 4;
@@ -1242,6 +1243,13 @@ bool Replay::Read(const std::string& theBytes, File* theFile, std::string* theEr
 		int aHeaderIndex = (aTag == TAG_RULE) ? 1 : (aTag == TAG_RLID) ? 2 : (aTag == TAG_META) ? 3 : (aTag == TAG_SESS) ? 4 : 0;
 		bool isKnown = (aHeaderIndex > 0) || (aTag == TAG_LDSV) || (aTag == TAG_RNGS) || (aTag == TAG_SEGM) || (aTag == TAG_SVHA) ||
 			(aTag == TAG_END);
+		if (aTag == TAG_STAT)
+		{
+			// the Stats page's counts (a sidecar's, GameStats.h): kept as they are, wherever they are
+			theFile->mStats.assign(theBytes, aStart, aLen);
+			theFile->mHasStats = true;
+			continue;
+		}
 		if (!isKnown)
 			continue; // a later format addition: skipped wherever it is
 		const char* aMisplaced = NULL;
@@ -1421,4 +1429,21 @@ bool Replay::Peek(const std::string& theBytes, Summary* theSummary)
 		aPos += aLen;
 	}
 	return hasEnd && (aPos == theBytes.size());
+}
+
+bool Replay::AddStats(std::string* theFile, const std::string& theStats)
+{
+	size_t anEndRecord = 8 + END_SIZE;
+	if (theFile->size() < 12 + anEndRecord)
+		return false;
+	size_t aPos = theFile->size() - anEndRecord;
+	const unsigned char* p = (const unsigned char*) theFile->data() + aPos;
+	uint32_t aTag = p[0] | (p[1] << 8) | (p[2] << 16) | ((uint32_t) p[3] << 24);
+	uint32_t aLen = p[4] | (p[5] << 8) | (p[6] << 16) | ((uint32_t) p[7] << 24);
+	if ((aTag != TAG_END) || (aLen != END_SIZE))
+		return false;
+	std::string aRecord;
+	PutRecord(&aRecord, TAG_STAT, theStats);
+	theFile->insert(aPos, aRecord);
+	return true;
 }

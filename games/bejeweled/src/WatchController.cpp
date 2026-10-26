@@ -78,6 +78,7 @@ WatchController::WatchController(WinDMApp* theApp, const std::string& theFileNam
 	mCheckDue = -1;
 	mBoardEnded = false;
 	mNewGameApplied = false;
+	mHasCarriedStats = false;
 	mPrevSeeded = false;
 	mLastSaveExact = false;
 	mChecks = 0;
@@ -246,6 +247,7 @@ bool WatchController::Start()
 	mOther.mConfig.mAnyModEnabled = gGameConfig.mAnyModEnabled;
 	mOther.mConfig.mForceVariant = gGameConfig.mForceVariant;
 	mOther.mConfig.mReplayDir = gGameConfig.mReplayDir;
+	mOther.mConfig.mFeatures.mGameStats = gGameConfig.mFeatures.mGameStats; // the Stats page: it counts, it plays nothing
 	mOther.mDiff = mRules.mDiff;
 	mSavedTimedMode = mApp->mTimedMode;
 	mStatus = STATUS_PLAYING;
@@ -268,6 +270,10 @@ void WatchController::CreateBoard()
 		anApp->SafeDeleteWidget(anApp->mHighScoreWidget);
 		anApp->mHighScoreWidget = NULL;
 	}
+	// The Stats page (GameStats.h): the counts of the segment before go on after this segment's LOAD
+	mHasCarriedStats = (anApp->mBoard != NULL) && (anApp->mBoard->mStats != NULL);
+	if (mHasCarriedStats)
+		mCarriedStats = *anApp->mBoard->mStats;
 	if (anApp->mBoard != NULL)
 	{
 		anApp->mWidgetManager->RemoveWidget(anApp->mBoard);
@@ -641,6 +647,19 @@ bool WatchController::Apply(const Replay::Event& theEvent)
 				aWhy = "the save does not load";
 				isOk = false;
 				break;
+			}
+			// The Stats page counts the whole game: the segment before saved it, unless the replay holds only the save
+			if (b->mStats != NULL)
+			{
+				bool isCarried = mHasCarriedStats && !aSegment.mHasLoadSave;
+				if (isCarried)
+					*b->mStats = mCarriedStats;
+				else
+				{
+					*b->mStats = GameStats();
+					b->mStats->mFromResume = true;
+				}
+				b->mStats->OnLoad(b);
 			}
 			// A game the segment before played on its own seed goes on with that RNG as it was at the save (6.5)
 			const Replay::RngState& aRng = aSegment.mLoadRng;
