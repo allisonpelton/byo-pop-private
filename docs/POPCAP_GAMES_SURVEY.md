@@ -704,7 +704,9 @@ None of these is a blocker: the image is not packed and has full RTTI. It is jus
 
 This list applies the decisions above to every game still to port, and replaces the older "Order" further down
 where they differ. Done by 2026-10-26: Bejeweled, Big Money, BookWorm, Noah's Ark, Seven Seas, Atomica, Mummy Maze,
-TipTop and Ning Po. Running: Bookworm Adventures (Opus), Pixelus and Alchemy (Sonnet).
+TipTop and Ning Po. Running: Bookworm Adventures (Opus), and Pixelus and Alchemy (Sonnet), whose first playable ports
+were merged on 2026-10-26. Both are published: Appendix E finds no other decompilation of either and no modding
+(Alchemy's flamel is a remake written from scratch).
 
 The BookWorm series and Twist come first, as decided on 2026-10-24. They waited only on Bookworm Adventures' engine,
 so Volume 2 takes the first slot that frees once Bookworm Adventures is merged, and Twist the next. Twist is the
