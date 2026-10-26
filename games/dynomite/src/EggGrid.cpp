@@ -293,9 +293,190 @@ void EggGrid::Place(int theCol, int theRow, int theColor, int theKind)
 	}
 }
 
-// 0x417bd0 (TODO)
+// 0x416800: empties a cell; its stick of dynamite explodes when the egg was matched, else drops off
+void EggGrid::Remove(int theCol, int theRow, bool isMatch)
+{
+	if (isMatch == true)
+		mLoneEgg = false;
+	GridDynamite* aDynamite = mDynamite[theCol][theRow];
+	mCells[theCol][theRow].mBits = mCells[theCol][theRow].mBits & 0xffffff00;
+	mCells[theCol][theRow].mBits = mCells[theCol][theRow].mBits & 0xfffffeff;
+	if (aDynamite != NULL)
+	{
+		GridPoint aPoint;
+		GridToScreen((int) aDynamite->mX, (int) aDynamite->mY, &aPoint);
+		Effect* anEffect;
+		if (isMatch == true)
+		{
+			BoomEffect* aBoom = new BoomEffect();
+			float aSpeeds[5];
+			aSpeeds[0] = 0.15f;
+			aSpeeds[1] = 0.25f;
+			aSpeeds[2] = 0.3f;
+			aSpeeds[3] = 0.35f;
+			aSpeeds[4] = 0.5f;
+			aBoom->Init(aPoint.mX, aPoint.mY, mApp, aSpeeds[mApp->mRand.NextNoAssert() % 5]);
+			anEffect = aBoom;
+		}
+		else
+		{
+			YolkEffect* aStick = new YolkEffect();
+			aStick->Init(aPoint.mX, aPoint.mY, false, mDynamite[theCol][theRow]->mWhich, mApp);
+			anEffect = aStick;
+		}
+		mBoard->mEffects.Add(anEffect);
+		mDynamites.Remove(mDynamite[theCol][theRow]);
+		if (mDynamite[theCol][theRow] != NULL)
+			delete mDynamite[theCol][theRow];
+		mDynamite[theCol][theRow] = NULL;
+	}
+}
+
+// 0x416b80 (TODO: what hangs from nothing falls; the count)
+int EggGrid::DropLoose()
+{
+	return 0;
+}
+
+// 0x417bd0: floods theColor's group from the cell through a copy of the grid (marking 100); three or more break,
+// score and drop what they held, fewer end the chain
 void EggGrid::Match(int theCol, int theRow, int theColor)
 {
+	unsigned int aCellColor = mCells[theCol][theRow].mBits & 0xff;
+	if ((aCellColor != (unsigned int) theColor) || ((0x11 < theColor) && (0x11 < (int) aCellColor)))
+	{
+		CountRows();
+		return;
+	}
+	PtrList<GridPoint>* aGroup = new PtrList<GridPoint>();
+	GridCell* aSrc = &mCells[0][0];
+	GridCell* aDest = &mScratch[0][0];
+	for (int i = 0x5dc; i != 0; i--)
+	{
+		*aDest = *aSrc;
+		aSrc++;
+		aDest++;
+	}
+	mScratch[theCol][theRow].mBits = (mScratch[theCol][theRow].mBits & 0xffffff00) | 100;
+	GridPoint* aPoint = new GridPoint;
+	aPoint->mX = theCol;
+	aPoint->mY = theRow;
+	aGroup->Add(aPoint);
+	bool aChanged;
+	do
+	{
+		aChanged = false;
+		int aRow = 0;
+		if (!(0.0f <= mRows))
+			break;
+		do
+		{
+			int aCol = 0;
+			do
+			{
+				if ((mScratch[aCol][aRow].mBits & 0xff) == (unsigned int) theColor)
+				{
+					bool aFound = false;
+					if ((0 < aCol) && ((char) mScratch[aCol - 1][aRow].mBits == 100))
+						aFound = true;
+					if ((aCol < 0xe) && ((char) mScratch[aCol + 1][aRow].mBits == 100))
+						aFound = true;
+					if ((aRow % 2) == 0)
+					{
+						if (0 < aRow)
+						{
+							if ((0 < aCol) && ((char) mScratch[aCol - 1][aRow - 1].mBits == 100))
+								aFound = true;
+							if ((char) mScratch[aCol][aRow - 1].mBits == 100)
+								aFound = true;
+						}
+						if (aRow <= 0x62)
+						{
+							if ((0 < aCol) && ((char) mScratch[aCol - 1][aRow + 1].mBits == 100))
+								aFound = true;
+							if ((char) mScratch[aCol][aRow + 1].mBits == 100)
+								aFound = true;
+						}
+					}
+					else
+					{
+						if (0 < aRow)
+						{
+							if ((char) mScratch[aCol][aRow - 1].mBits == 100)
+								aFound = true;
+							if ((aCol < 0xe) && ((char) mScratch[aCol + 1][aRow - 1].mBits == 100))
+								aFound = true;
+						}
+						if (aRow < 99)
+						{
+							if ((char) mScratch[aCol][aRow + 1].mBits == 100)
+								aFound = true;
+							if ((aCol < 0xe) && ((char) mScratch[aCol + 1][aRow + 1].mBits == 100))
+								aFound = true;
+						}
+					}
+					if (aFound)
+					{
+						aPoint = new GridPoint;
+						aPoint->mX = aCol;
+						aPoint->mY = aRow;
+						aGroup->Add(aPoint);
+						mScratch[aCol][aRow].mBits = (mScratch[aCol][aRow].mBits & 0xffffff00) | 100;
+						aChanged = true;
+					}
+				}
+				aCol++;
+			} while (aCol < 0xf);
+			aRow++;
+		} while ((float) aRow <= mRows);
+	} while (aChanged);
+	if (aGroup->mCount < 3)
+		mBoard->Chain(0, 0, 2 < aGroup->mCount);
+	else
+	{
+		int aBroken = 0;
+		mApp->mSndBreakegg->Play();
+		mApp->mSndExplosion->Play();
+		if ((mBoard->mBonusBits & 0xe) != 0)
+			mApp->mSndScoremultiplier->Play();
+		int aSumX = 0;
+		int aSumY = 0;
+		int aCount = 0;
+		aGroup->ResetIter();
+		aPoint = aGroup->Next();
+		while (aPoint != NULL)
+		{
+			int aRow = aPoint->mY;
+			int aCol = aPoint->mX;
+			GridPoint aPixel;
+			CellToPixel(aCol, aRow, &aPixel);
+			GridPoint aScreen;
+			GridToScreen(aPixel.mX, aPixel.mY, &aScreen);
+			aSumX = aSumX + aScreen.mX;
+			aSumY = aSumY + aScreen.mY;
+			aCount++;
+			Break(aScreen.mX, aScreen.mY, &mCells[aCol][aRow]);
+			Remove(aPoint->mX, aPoint->mY, true);
+			aBroken++;
+			aPoint = aGroup->Next();
+		}
+		int aDropped = DropLoose();
+		// TODO: the board's +0x88 (0x438400) gets aBroken (0x4384d0)
+		int x = aSumX / aCount;
+		int y = aSumY / aCount;
+		mBoard->Chain(x, y, 2 < aGroup->mCount);
+		mBoard->AddPoints(x, y, aBroken, aDropped, true);
+		CountRows();
+	}
+	aGroup->ResetIter();
+	aPoint = aGroup->Next();
+	while (aPoint != NULL)
+	{
+		delete aPoint;
+		aPoint = aGroup->Next();
+	}
+	if (aGroup != NULL)
+		delete aGroup;
 }
 
 // 0x418100 (TODO)

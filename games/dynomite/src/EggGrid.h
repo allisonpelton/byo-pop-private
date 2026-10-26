@@ -99,6 +99,8 @@ public:
 	unsigned int		Probe(int x, int y, bool theGhost);					// 0x4169c0
 	void				Break(int x, int y, GridCell* theCell);				// 0x415a20
 	void				Place(int theCol, int theRow, int theColor, int theKind);	// 0x416590
+	void				Remove(int theCol, int theRow, bool isMatch);		// 0x416800
+	int					DropLoose();										// 0x416b80 (TODO)
 	void				Match(int theCol, int theRow, int theColor);		// 0x417bd0
 	void				Blast(int theCol, int theRow);						// 0x418100 (a bomb lands)
 };

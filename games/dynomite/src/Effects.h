@@ -17,7 +17,7 @@ class Effect
 public:
 	float				mX;				// +4
 	float				mY;				// +8
-	int					mType;			// +0xc 2 a yolk, 3 egg white, 5 a shell, 6 points, 7 a baby, 8 a bonus, 9 confetti
+	int					mType;			// +0xc 2 a yolk, 3 egg white, 4 a boom, 5 a shell, 6 points, 7 a baby, 8 a bonus, 9 confetti
 
 	Effect();								// 0x4034b0
 	virtual ~Effect();						// 0x4034c0
@@ -111,6 +111,23 @@ public:
 	virtual bool		Update() override;	// 0x434bc0
 
 	void				Init(int x, int y, int theAngle, int theColor, int theQuarter, FossilizedApp* theApp);	// 0x434cc0
+};
+
+// vtable 0x4f7444, 0x20 bytes: a stick of dynamite's explosion, rising slowly through the 15 frames of the boom sheet
+class BoomEffect : public Effect
+{
+public:
+	FossilizedApp*		mApp;			// +0x10
+	float				mFrame;			// +0x14
+	float				mSpeed;			// +0x18 frames a frame
+	bool				mStretched;		// +0x1c 150 x 200 (only a saved game sets it)
+
+	BoomEffect();							// 0x403e20
+	virtual ~BoomEffect();					// 0x403e40
+	virtual void		Draw() override;	// 0x403f60
+	virtual bool		Update() override;	// 0x403e90
+
+	void				Init(int x, int y, FossilizedApp* theApp, float theSpeed);	// 0x403e50
 };
 
 // vtable 0x4f742c, 0x2c bytes: a bonus egg's prize flying to the power-ups' circle (20 frames), where it becomes

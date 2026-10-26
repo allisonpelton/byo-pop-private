@@ -81,6 +81,7 @@ public:
 	void				HideBubble();							// 0x423070
 	void				CreateBubble();							// 0x423120
 	void				Draw();									// 0x423190
+	void				SayChain(int theDelay, int theChain);	// 0x423990 (TODO)
 	void				DoAction(int theAction);				// 0x423250
 	void				Update();								// 0x423650
 	void				Combo(int theDelay, int theLevel);		// 0x423990

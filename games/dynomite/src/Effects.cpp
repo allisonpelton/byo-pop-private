@@ -507,3 +507,47 @@ void PowerUp::Draw(int theSpin)
 		anApp->mBonusViewCells[mKind - 1]->Draw((int) (anAngles->mDX[anAngle] * mRadius + x), (int) (anAngles->mDY[anAngle] * mRadius + y));
 	}
 }
+
+// 0x403e20
+BoomEffect::BoomEffect()
+{
+	mStretched = false;
+	mType = 4;
+}
+
+// 0x403e40
+BoomEffect::~BoomEffect()
+{
+}
+
+// 0x403e50
+void BoomEffect::Init(int x, int y, FossilizedApp* theApp, float theSpeed)
+{
+	mX = (float) x;
+	mApp = theApp;
+	mFrame = 0;
+	mY = (float) (y - 5);
+	mSpeed = theSpeed;
+}
+
+// 0x403e90
+bool BoomEffect::Update()
+{
+	mFrame = mSpeed + mFrame;
+	mY = (float) (mY - 0.25);
+	return mFrame < 15.0f;
+}
+
+// 0x403f60
+void BoomEffect::Draw()
+{
+	if (mStretched == false)
+	{
+		float x = mX;
+		float y = mY;
+		Cell* aCell = mApp->mBoomCells[(int) mFrame];
+		aCell->Draw((int) x - (aCell->mWidth >> 1), (int) y - (aCell->mHeight >> 1));
+		return;
+	}
+	mApp->mBoomCells[(int) mFrame]->DrawStretched((int) (mX - 75.0f), (int) (mY - 100.0f), (int) (mX + 75.0f), (int) (mY + 100.0f));
+}

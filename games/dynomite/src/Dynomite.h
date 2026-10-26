@@ -72,7 +72,7 @@ public:
 	bool				mRankChanged;		// +0x1c4
 	int					mField1c8;			// +0x1c8 (-480)
 	int					mField1cc;			// +0x1cc
-	int					mField1d0;			// +0x1d0
+	int					mLongestChain;		// +0x1d0
 	int					mBabies;			// +0x1d4 the babies hatched
 	int					mSong;				// +0x238 the music the destructor fades out
 	int					mField23c;			// +0x23c
@@ -89,6 +89,9 @@ public:
 	// 0x404c30 (slot 44): thePoints times theMultiplier (when positive) plus the chain's bonus, by skill, ten
 	// times over, times the bonus bits; a popup at x, y
 	virtual void		AddPoints(int x, int y, int thePoints, int theMultiplier, bool isChain);
+	// 0x404f40 (slot 50): a match (isMatch) adds to the chain, which Inchy calls out; a miss or a chain of eight
+	// ends it
+	virtual void		Chain(int x, int y, bool isMatch);
 	virtual void		MakeDynamite();					// 0x405010 (slot 51)
 	virtual void		EggAlone(int theColor);			// 0x4050d0 (slot 56; empty): a landed egg touches none of its colour
 	virtual void		EggLanded();					// 0x4b1930 (slot 61; empty)

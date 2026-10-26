@@ -423,3 +423,8 @@ void InchySmall::Combo(int theDelay, int theLevel)
 	}
 	mEvents.Add(anEvent);
 }
+
+// 0x423990 (TODO: the comment on a chain, in the bubble and in his voice)
+void InchySmall::SayChain(int theDelay, int theChain)
+{
+}

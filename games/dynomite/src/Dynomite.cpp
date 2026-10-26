@@ -3,6 +3,7 @@
 #include "Egg.h"
 #include "EggGrid.h"
 #include "FossilizedApp.h"
+#include "InchySmall.h"
 #include "MusicInterface.h"
 #include "PortCompat.h"
 #include "SideBar.h"
@@ -43,7 +44,7 @@ Dynomite::Dynomite()
 	mField1cc = 0;
 	// TODO: +0x1d8 = 0
 	mBabies = 0;
-	mField1d0 = 0;
+	mLongestChain = 0;
 	// TODO: +0x204 (a widget) = 0
 	mField149 = true;
 	mField158 = 0;
@@ -249,6 +250,24 @@ void Dynomite::AddPoints(int x, int y, int thePoints, int theMultiplier, bool is
 	} while (aNext < 0x14);
 	if (mRank != anOldRank)
 		mRankChanged = true;
+}
+
+// 0x404f40
+void Dynomite::Chain(int x, int y, bool isMatch)
+{
+	if (isMatch != false)
+	{
+		if (mField148 == false)
+			return;
+		mApp->mSideBar->mInchy->SayChain(0x32, mChain);
+		int aChain = mChain + 1;
+		mChain = aChain;
+		if (mLongestChain < aChain)
+			mLongestChain = aChain;
+		if (aChain < 8)
+			return;
+	}
+	mChain = -1;
 }
 
 // 0x405010 (TODO: the 0x1c-byte dynamite, 0x407e00, at +0x154)
