@@ -7,8 +7,7 @@
     persist: "/pxpersist",
     lock: "pixelus-deluxe-instance",
     gameDirs: ["images", "data", "levels", "sounds", "music", "properties", "ncframework"],
-    // Pixelus.exe (PopCap's wrapper with the game inside; the game's texts are read from it, it is never run) sits
-    // at the top of the game folder
+    // Pixelus.exe (the game's texts are read from it; it is never run) sits at the top of the game folder
     gameFiles: ["pixelus.exe"],
     markers: ["levels/levels.txt", "images/playfield.jpg", "pixelus.exe"],
     markerText: "levels/levels.txt, images/playfield.jpg and Pixelus.exe",
