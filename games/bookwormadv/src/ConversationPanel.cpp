@@ -5,6 +5,7 @@
 #include <cstdlib>
 
 #include "Animator.h"
+#include "BattleEngine.h"
 #include "Board.h"
 #include "Font.h"
 #include "GameApp.h"
@@ -631,7 +632,9 @@ void ConversationPanel::Update()
 callbacks:
 	if (mState != STATE_OFF && !mUpdateCallback.empty() && CallForBool(mUpdateCallback))
 		MarkDirty();
-	// port: then the battle engine's (0x825930) GenericConvPanelUpdateCallback; the battle engine is not ported yet
+	// then the battle engine's (0x825930)
+	if (gBattleEngine != nullptr)
+		gBattleEngine->CallLinkedMethod("GenericConvPanelUpdateCallback", 0);
 }
 
 void ConversationPanel::CallDrawCallback(Graphics* g)
