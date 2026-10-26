@@ -62,7 +62,9 @@ endif()
 
 # bookwormadv: the game (src/: its C++ classes, which the scripts drive; jefflib/: the PopCap Lua games' helper
 # library, kept free of game code). Native: bookwormadv.exe [-gamedir=<dir>] [-userdir=<dir>] (src/main.cpp);
-# it finds assets/bookwormadv/ by itself.
+# it finds assets/bookwormadv/ by itself. Web: bookwormadv.html/.js/.wasm; its page (web/shell.html with web/page.js
+# here) imports the player's install into /bwapersist (IDBFS), main.pak unpacked. The music is an MO3 module
+# (libopenmpt via sexyopenmpt), and 42 of the pictures are JPEG 2000 (OpenJPEG via sexyopenjpeg).
 file(GLOB BWA_SOURCES CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp)
 file(GLOB JEFFLIB_SOURCES CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/jefflib/*.cpp)
 add_library(bwa_jefflib STATIC ${JEFFLIB_SOURCES})
@@ -70,12 +72,15 @@ target_include_directories(bwa_jefflib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/jeffli
 target_link_libraries(bwa_jefflib PUBLIC sexyframework)
 add_executable(bookwormadv ${BWA_SOURCES})
 target_include_directories(bookwormadv PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
-target_link_libraries(bookwormadv PRIVATE bwa_luaapp bwa_popanim bwa_swf bwa_jefflib sexyframework)
+target_link_libraries(bookwormadv PRIVATE bwa_luaapp bwa_popanim bwa_swf bwa_jefflib sexyframework sexyopenmpt sexyopenjpeg)
 if(NOT MSVC)
   target_compile_options(bwa_jefflib PRIVATE -Wall)
   target_compile_options(bookwormadv PRIVATE -Wall -Wno-overloaded-virtual)
 endif()
-if(NOT EMSCRIPTEN)
+if(EMSCRIPTEN)
+  byopop_web_game(bookwormadv TITLE "Bookworm Adventures Deluxe"
+    COPYRIGHT "Bookworm Adventures Deluxe © 2006 PopCap Games, Inc. All rights reserved." LICENSES libopenmpt lua openjpeg)
+else()
   add_custom_command(TARGET bookwormadv POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:SDL2::SDL2> ${PORT_RUNTIME_DLLS} $<TARGET_FILE_DIR:bookwormadv>
     VERBATIM)
