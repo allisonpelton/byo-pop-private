@@ -166,6 +166,22 @@ kinds 1 to 10 set a time (+0x14: 6000, 3000, 3000, 3000, 400, 33, 33, 150, 300, 
 - 1)); its update (0x4038d0) counts down, blinks for the last +0x18 frames (500, or 20 for kinds 8-10), and the bits
 0x380 end in 40 confetti and board slot 44 with 5, 10 or 15.
 
+The board's slot 43 (0x404f30, empty in the base) gives the centre of the power-ups' circle, where a bonus item
+(type 8) flies in 20 frames before 0x4060c0 makes it a power-up 20 degrees on from the last (+0x124). Slot 44
+(0x404c30) adds points: times the multiplier when positive, plus 3, 4, 6, 8, 10 or 15 for a chain (+0x14c) of 2 to
+7, a fifth (at least 1) on skill 1 and double on skill 3, then ten times over and doubled, tripled or quadrupled by
+the bonus bits 2, 4 and 8 of +0x12c (the popup's text "+N" gets "x2", "x3", "x4"); it adds to the side bar's score
+(+0x68), makes a score popup (0x4346a0, type 6, on the list +0xe8) and moves +0x1c0 to the highest of the 20
+thresholds at +0x170 the score has passed, setting +0x1c4 when it moved. The tutorial (app +0x1094) scores nothing.
+The constructor (0x404030) gives the lists: +0xb8 the flying eggs, +0xd0 the effects, +0xe8 the popups, +0x10c the
+power-ups; +0x164 is a BinFile; +0x240 the tick count at construction. The destructor fades out the music +0x238
+and song 4, stops the rumble, grind and tick-tock sounds, and deletes the lists' items, the grid and the objects at
++0x5c (the launcher), +0x60, +0x84, +0x88, +0x144, +0x154, +0x1d8 and the widget +0x204 (those not translated yet
+are TODO in Dynomite.cpp). The board's Draw (0x4044a0) draws the jungle back (or white while the dynamite's +0x10 is
+set), the grid (0x417760), the rope from +0x70 - +0x6c to +0x6c + +0x70 at +0x74 + 33, the launcher (0x4033a0), the
+flying eggs that have not crossed the middle, the launcher's 0x401940, the others, its 0x401a10, slots 47, 49 and
+48, the +0x60 object (0x432090), slot 54 when +0x132 is set, and +0x144's slot 1.
+
 Next, in this order: `StartGame` (0x418810: mode +0x108c makes DynomiteStomped
 0x40ea50 (0x62c bytes), DynomitePanic 0x40ca40 (0x274), DynomiteFossil 0x408e40 (0x328) or DynomiteTimeTrial
 0x411ff0 (0x254), resized to (150, 0, 490, 480), slot 46 `Init(app, level)` with +0x1084, or +0x1088 for the fossil
