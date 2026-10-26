@@ -61,8 +61,8 @@ build/native/rundesk.exe build/native/tiptop.exe -userdir=<dir>     # a game, in
 `tools/build.sh web` builds every game for the browser, `tiptop.html` among them; to build only TipTop, configure
 `build/web` with `emcmake cmake` as `build.sh` does and run `cmake --build build/web --target tiptop`. Serve `build/web`
 (`.claude/launch.json` has `tiptop-web` on port 18774) and open `tiptop.html`; in the Browser pane always with
-`?silent=1`. The page imports `TipTop.dat` and `TipTop.exe` from the player's install folder or a zip of it into its
-own IndexedDB folder (`/ttpersist`) and keeps the saves there.
+`?silent=1`. Once the player has agreed to the game's terms, the page imports `TipTop.dat` and `TipTop.exe` from their
+install folder or a zip of it into its own IndexedDB folder (`/ttpersist`) and keeps the saves there.
 
 Native options: `-gamedir=<dir>` (else `assets/tiptop` next to the exe or up to two levels up, or the retail install),
 `-userdir=<dir>` (the preferences and the saved game; the original kept them in its own folder), `-fast`, `-seed=N`
@@ -82,6 +82,13 @@ strategy game in its first level (it does not plan).
 What the bot does not reach was checked with scripts: the options, instructions, credits and high score screens, the
 end of a game through the save dialog, and the saved game's panel and continue on the new game screen (natively, and
 in the browser across a page reload).
+
+An AddressSanitizer build (2026-10-25): `cmake -S . -B build/native-asan -G Ninja -DCMAKE_BUILD_TYPE=Debug
+-DCMAKE_TOOLCHAIN_FILE=cmake/llvm-mingw-i686.cmake -DSDL2_DIR=... "-DCMAKE_CXX_FLAGS=-fsanitize=address
+-fno-omit-frame-pointer -O1" "-DCMAKE_C_FLAGS=<the same>"`, then `cmake --build build/native-asan --target tiptop` and
+copy `libclang_rt.asan_dynamic-i386.dll` (llvm-mingw's `i686-w64-mingw32/bin`) next to the exe. The bot's two regular
+games and a speed game (the same results as the normal build) and the scripts that save a game and continue it ran
+with no report.
 
 ## Mods
 
