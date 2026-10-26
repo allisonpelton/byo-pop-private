@@ -201,3 +201,8 @@ option(BUILD_NINGPO "Build the Ning Po Mahjong Deluxe port" ON)
 if(BUILD_NINGPO AND EXISTS ${PROJECT_SOURCE_DIR}/games/ningpo/CMakeLists.txt)
   add_subdirectory(games/ningpo)
 endif()
+# Cosmic Bugs: Retro64's engine (games/cosmicbugs/engine) under the framework's app host; optional while it is new
+option(BUILD_COSMICBUGS "Build the Cosmic Bugs port" ON)
+if(BUILD_COSMICBUGS AND EXISTS ${PROJECT_SOURCE_DIR}/games/cosmicbugs/CMakeLists.txt)
+  add_subdirectory(games/cosmicbugs)
+endif()
