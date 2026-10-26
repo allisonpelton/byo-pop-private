@@ -149,7 +149,7 @@ void MummyApp::StartBoardScreen()
 	mBoard = new Board(this);
 	mBoard->Resize(0x96, 0, 0x1ea, 0x1e0);
 	mWidgetManager->AddWidget(mBoard);
-	mWidgetManager->BringToFront(mBoard);
+	mWidgetManager->BringToBack(mBoard);
 	mWidgetManager->SetFocus(mBoard);
 }
 
@@ -294,10 +294,17 @@ Dialog* MummyApp::NewDialogOf(Dialog* theDialog)
 	return theDialog;
 }
 
-// 0x41b5b0: the tips (not ported yet)
+// 0x41b5b0: a tip, if it has not been switched off (the demo's reminder, number 7, is not ported: this game is registered)
 void MummyApp::ShowTip(int theWhich)
 {
-	(void) theWhich;
+	bool* aFlags[7] = {&mTipTwoMummies, &mTipGate, &mTipTrap, &mTipRed, &mTipScorpion, &mTipDark, &mTipAnkh};
+	if (theWhich < 0 || theWhich > 6 || !*aFlags[theWhich])
+		return;
+	if (mBoard != NULL)
+		mBoard->mFlagEc0 = true;
+	TipDialog* aDialog = (TipDialog*) NewDialogOf(new TipDialog(this, theWhich));
+	aDialog->Resize(0xb4, 0x46, 0x1ae, aDialog->GetPreferredHeight(0x17c));
+	AddDialog(DIALOG_TIP, aDialog);
 }
 
 void MummyApp::ShowAdventureSlots()
@@ -403,6 +410,16 @@ void MummyApp::ButtonDepress(int theId)
 		mShowClock = aDialog->mClockCheckbox->IsChecked();
 		mShowAnkh = aDialog->mAnkhCheckbox->IsChecked();
 		KillDialog(DIALOG_OPTIONS);
+		break;
+	}
+	case 2000 + DIALOG_TIP:
+	{
+		// 0x4201e0 case 0x7eb: the box says whether this tip comes again
+		TipDialog* aDialog = (TipDialog*) GetDialog(DIALOG_TIP);
+		bool* aFlags[7] = {&mTipTwoMummies, &mTipGate, &mTipTrap, &mTipRed, &mTipScorpion, &mTipDark, &mTipAnkh};
+		if (aDialog->mWhich >= 0 && aDialog->mWhich < 7)
+			*aFlags[aDialog->mWhich] = !aDialog->mCheckbox->IsChecked();
+		KillDialog(DIALOG_TIP);
 		break;
 	}
 	case 2000 + DIALOG_RESET_TIPS:

@@ -257,3 +257,98 @@ void HighScoreDialog::Draw(Graphics* g)
 		aY += 0x16;
 	}
 }
+
+// ---------------------------------------------------------------------------------------------------------
+// TipDialog
+
+// the lines of each tip (the addresses of their texts) and the first line's place: four lines from 0x5f, the tip of the
+// traps three from 0x69
+static const unsigned int kTipLines[7][4] =
+{
+	{0x00495b70, 0x00495b4c, 0x00495b24, 0x00495b00},
+	{0x00495ad8, 0x00495ab4, 0x00495a8c, 0x00495a6c},
+	{0x00495a44, 0x00495a1c, 0x004959f8, 0},
+	{0x004959d8, 0x004959b0, 0x00495988, 0x00495970},
+	{0x0049594c, 0x00495924, 0x00495900, 0x004958e8},
+	{0x004958c8, 0x004958a8, 0x0049588c, 0x0049587c},
+	{0x00495854, 0x00495828, 0x004957fc, 0x004957e0}
+};
+
+// 0x42b720
+TipDialog::TipDialog(MummyApp* theApp, int theWhich) :
+	Dialog2004(theApp->mImages[IMAGE_DIALOG], theApp->mImages[IMAGE_DBUTTON], DIALOG_TIP, true, "", "", GT(0x004955b4),
+		BUTTONS_FOOTER),
+	mApp(theApp),
+	mWhich(theWhich)
+{
+	SetButtonFont(mApp->mHeaderFont);
+	SetHeaderFont(mApp->mFont1);
+	SetLinesFont(mApp->mFont1);
+	MemoryImage* aChecked = new MemoryImage(mApp);
+	aChecked->Create(0x24, 0x25);
+	{
+		Graphics g(aChecked);
+		g.DrawImage(mApp->mImages[IMAGE_CHECKED], -0x24, 0);
+	}
+	MemoryImage* aUnchecked = new MemoryImage(mApp);
+	aUnchecked->Create(0x24, 0x25);
+	{
+		Graphics g(aUnchecked);
+		g.DrawImage(mApp->mImages[IMAGE_CHECKED], 0, 0);
+	}
+	mCheckbox = new Checkbox(aUnchecked, aChecked, 0, this);
+}
+
+TipDialog::~TipDialog()
+{
+	delete mCheckbox;
+}
+
+// 0x42bba0
+void TipDialog::AddedToManager(WidgetManager* theWidgetManager)
+{
+	Dialog2004::AddedToManager(theWidgetManager);
+	theWidgetManager->AddWidget(mCheckbox);
+}
+
+// 0x42bbd0
+void TipDialog::RemovedFromManager(WidgetManager* theWidgetManager)
+{
+	Dialog2004::RemovedFromManager(theWidgetManager);
+	theWidgetManager->RemoveWidget(mCheckbox);
+}
+
+// 0x42bc00
+void TipDialog::Resize(int theX, int theY, int theWidth, int theHeight)
+{
+	Dialog2004::Resize(theX, theY, theWidth, theHeight);
+	mCheckbox->Resize(mX + 0x41, mY + 0xa8, 0x24, 0x25);
+}
+
+// 0x42bb80
+int TipDialog::GetPreferredHeight(int theWidth)
+{
+	(void) theWidth;
+	return 0x136;
+}
+
+// 0x42bc50: the warning and its lines, and the label of the box
+void TipDialog::Draw(Graphics* g)
+{
+	Dialog2004::Draw(g);
+	g->SetFont(mApp->mHeaderFont);
+	g->SetColor(Color(0xff, 0xff, 0xff));
+	SexyString aWarning = GT(0x00495b90);
+	g->DrawString(aWarning, (mWidth - g->GetFont()->StringWidth(aWarning)) / 2, 0x3a);
+	g->SetFont(mApp->mFont1);
+	g->SetColor(Color(0x2e, 0x14, 0));
+	int aY = (mWhich == 2) ? 0x69 : 0x5f;
+	for (int i = 0; i < 4 && kTipLines[mWhich][i] != 0; i++)
+	{
+		const SexyString& aLine = GT(kTipLines[mWhich][i]);
+		g->DrawString(aLine, (mWidth - g->GetFont()->StringWidth(aLine)) / 2, aY);
+		aY += 0x14;
+	}
+	g->SetColor(Color(2, 2, 6));
+	g->DrawString(GT(0x004955bc), (mCheckbox->mX - mX) + 0x2c, (mCheckbox->mY - mY) + 0x15);
+}

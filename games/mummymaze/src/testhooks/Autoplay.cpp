@@ -53,12 +53,13 @@ struct AutoplayState
 	bool				mGivenUp;           // Abandon Hope was pressed in this game
 	int					mOptionsStage;      // with screenshots on: 0 not yet, 1 options up, 2 its high scores seen, 3 its credits seen
 	unsigned int		mDialogShots;       // a bit per dialog id: its screenshot was taken
+	unsigned int		mDialogSeen;        // a bit per dialog id: it has been up for a while
 	int					mShotWait;          // the chamber-done screenshot: 0 not yet, 1 waiting, 2 taken
 	FILE*				mLog;
 
 	AutoplayState() : mSeed(1), mTick(0), mGames(0), mWait(0), mLevels(0), mLevelsPerGame(3), mStartPyramid(0),
 		mStartChamber(0), mHeldKey(0), mPlanned(false), mUseSolver(true), mRandomMoves(0), mPathIndex(0),
-		mGameOverLogged(false), mGivenUp(false), mOptionsStage(0), mDialogShots(0), mShotWait(0), mLog(NULL) {}
+		mGameOverLogged(false), mGivenUp(false), mOptionsStage(0), mDialogShots(0), mDialogSeen(0), mShotWait(0), mLog(NULL) {}
 
 	int Rand(int theRange)
 	{
@@ -145,6 +146,15 @@ void MummyApp::AutoplayUpdate()
 				continue;
 			if (!mAutoplayShots.empty() && !(s->mDialogShots & (1u << anId)))
 			{
+				// seen: it is drawn and photographed once the next updates have passed
+				if (!(s->mDialogSeen & (1u << anId)))
+				{
+					s->mDialogSeen |= 1u << anId;
+					Log(s, "dialog %d at %d,%d size %d x %d, visible %d, board fade %.2f", anId, aDialog->mX, aDialog->mY, aDialog->mWidth,
+						aDialog->mHeight, aDialog->mVisible ? 1 : 0, mBoard != NULL ? mBoard->mFade : -1.0);
+					s->mWait = 200;
+					return;
+				}
 				s->mDialogShots |= 1u << anId;
 				SaveScreenshot(StrFormat("%s-dialog%d.png", mAutoplayShots.c_str(), anId));
 				s->mWait = 3;

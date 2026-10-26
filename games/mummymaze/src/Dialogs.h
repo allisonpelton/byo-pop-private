@@ -73,6 +73,26 @@ public:
 	using Widget::Resize;
 };
 
+// 0x42b720: a tip: the first time a new kind of danger is in a maze, with a box to not see it again
+class TipDialog : public Dialog2004, public CheckboxListener
+{
+public:
+	MummyApp*			mApp;                   // +0xc4
+	Checkbox*			mCheckbox;              // +0xc8 "do not show this screen again"
+	int					mWhich;                 // +0xcc 0 two mummies, 1 gate, 2 traps, 3 red mummy, 4 scorpion, 5 dark maze, 6 no ankh
+
+public:
+	TipDialog(MummyApp* theApp, int theWhich);
+	virtual ~TipDialog();
+
+	virtual void		AddedToManager(WidgetManager* theWidgetManager) override;           // 0x42bba0
+	virtual void		RemovedFromManager(WidgetManager* theWidgetManager) override;       // 0x42bbd0
+	virtual void		Resize(int theX, int theY, int theWidth, int theHeight) override;   // 0x42bc00
+	virtual int			GetPreferredHeight(int theWidth) override;                          // 0x42bb80
+	virtual void		Draw(Graphics* g) override;                                         // 0x42bc50
+	using Widget::Resize;
+};
+
 // 0x413c30: the high scores, as a dialog of the options
 class HighScoreDialog : public Dialog2004
 {
