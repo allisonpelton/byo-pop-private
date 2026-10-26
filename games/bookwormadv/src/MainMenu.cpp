@@ -611,7 +611,7 @@ void MainMenu::MouseUp(int x, int y, int theClickCount)
 		if (anItem->mPressed) switch (i) {
 		case ITEM_OPTIONS:
 			mFromTitle = false;
-			SDL_Log("MainMenu: the options dialog (0x4455d0) is not ported yet");
+			mApp->ShowOptionsDialog();
 			break;
 		case ITEM_QUIT:
 			AskReallyQuit();

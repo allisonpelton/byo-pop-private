@@ -532,7 +532,7 @@ static bool StepColor(Color& theColor, const Color& theTarget)
 
 void ConversationPanel::Update()
 {
-	if (mApp->GetDialog(GameApp::DIALOG_MENU) != nullptr || mState == STATE_OFF)
+	if (mApp->GetDialog(GameApp::DIALOG_NEW_USER) != nullptr || mState == STATE_OFF)
 		return;
 	mUpdateCnt++;
 	Panel* p = CurPanel();
@@ -756,7 +756,7 @@ void ConversationPanel::MouseMove(int x, int y)
 void ConversationPanel::MouseDown(int x, int y, int theClickCount)
 {
 	Widget::MouseDown(x, y, theClickCount);
-	if (mApp->GetDialog(GameApp::DIALOG_MENU) != nullptr)
+	if (mApp->GetDialog(GameApp::DIALOG_NEW_USER) != nullptr)
 		return;
 	Panel* p = CurPanel();
 	int aLast = mLastClick;
@@ -773,8 +773,8 @@ void ConversationPanel::MouseDown(int x, int y, int theClickCount)
 	if (p->mPageIndex >= p->mPages.size()) {
 		p->mTyping = false;
 		if (p->mTriggersNewUserDialog) {
-			// port: the new player's name dialog (0x444b90) is not ported yet
-			SDL_Log("ConversationPanel: the new player's name dialog (0x444b90) is not ported yet");
+			// the panels wait under the new player's name (NewUserDialogDone goes on to the next)
+			mApp->ShowNewUserDialog(Dialog::BUTTONS_FOOTER);
 			return;
 		}
 		NextPanel();

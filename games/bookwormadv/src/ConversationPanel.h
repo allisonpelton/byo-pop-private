@@ -136,6 +136,7 @@ public:
 	// vf 0x174 (0x4316c0): shows it, takes the focus, starts the beam; thePauseBoard pauses a battle's board
 	void Activate(bool thePauseBoard);
 	void TriggersNewUserDialog();         // 0x4321b0: the last panel's last page asks a new player's name
+	void NextPanel();                     // 0x432210: the next panel, or the closing (the new player's name calls it)
 	void Deactivate();                    // 0x4320b0: off at once, without the callbacks
 	void ReplaceCurrentText(const std::string& theText);  // 0x432d20 (convpanel.DebugReplaceCurrentText)
 
@@ -158,7 +159,6 @@ private:
 	Panel* LastPanel() const { return mPanels.back(); }
 	Panel* CurPanel() const { return mPanels[mCurPanel]; }
 	bool SlideToTarget(Panel* thePanel);    // 0x430da0: 10 pixels; true when there
-	void NextPanel();                       // 0x432210: the next panel, or the closing
 	void RewrapPage();                      // 0x432530: the current page again, with the player's name
 	bool NextLetter();                      // 0x4331a0: true when the page is complete
 	void LayOutPage(Panel* thePanel, TextPage* thePage, const std::string& theText);

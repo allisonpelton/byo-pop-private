@@ -325,6 +325,18 @@ void GameApp::ButtonDepress(int theId)
 			KillDialog(DIALOG_OK);
 			CallDialogCallback(true);
 			break;
+		case DIALOG_OPTIONS:  // the options' footer button, or Escape
+			CloseOptionsDialog(true);
+			if (mBoard != nullptr)
+				mWidgetManager->SetFocus(mBoard);
+			else if (mBookManager != nullptr)
+				mWidgetManager->SetFocus(mBookManager);
+			break;
+		case DIALOG_NEW_USER:  // the dialog hears its buttons itself (NewUserDialog::ButtonDepress)
+			break;
+		case DIALOG_NO_WINDOWED:  // the options' message
+			KillDialog(DIALOG_NO_WINDOWED);
+			break;
 		case DIALOG_SKIP_MOVIE:
 			if (mCutScene != nullptr)
 				mCutScene->Skip();
@@ -377,7 +389,7 @@ void GameApp::ButtonDepress(int theId)
 		case BookManager::BUTTON_OPTIONS:
 		case TreasureScreen::BUTTON_OPTIONS:
 			if (!mQueuedHydraLockout)
-				ShowGameMenu(true);
+				ShowGameMenu(theId == TreasureScreen::BUTTON_OPTIONS);
 			break;
 		case TreasureScreen::BUTTON_BACK:
 			if (mQueuedHydraLockout)
@@ -753,9 +765,9 @@ void GameApp::CurtainDone()
 		if (!aClosed) {
 			// open over the movie: it plays (after the new player's name, for the intro)
 			if (mPlayIntro) {
-				// port: the new player's name (0x444b90, a NewUserDialog) is not ported yet; the movie plays
-				SDL_Log("GameApp: the new player's name dialog (0x444b90) is not ported yet");
-				mPlayIntro = false;
+				// the movie waits for the name (NewUserDialogDone lets it play)
+				ShowNewUserDialog(Dialog::BUTTONS_FOOTER);
+				return;
 			}
 			if (!mCutScene->mEnded)
 				mCutScene->mFlash->Unpause();
@@ -1278,11 +1290,4 @@ void GameApp::StartBattle()
 	mWidgetManager->SetFocus(mBoard);
 	// port: the original then freed the images' extra buffers (0x5492a0, and the resource manager's 0x575cd0 for
 	// every group); the port's images keep none
-}
-
-void GameApp::ShowGameMenu(bool theFromBook)
-{
-	// port: MenuDialog (0x47fd00) is not ported yet. The original takes the tutorial's arrows away (0x40ba40),
-	// pauses the board without its banner, hides the tooltip, adds the menu and unmutes.
-	SDL_Log("GameApp: the menu dialog (0x4456a0, %d) is not ported yet", (int)theFromBook);
 }

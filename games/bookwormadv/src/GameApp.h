@@ -40,8 +40,11 @@ public:
 	// The game's dialog ids (those that are ported)
 	enum {
 		DIALOG_OK = 0,           // DoOkDialog's
+		DIALOG_OPTIONS = 1,      // the options (OptionsDialog)
 		DIALOG_REALLY_QUIT = 2,  // the main menu's quit
-		DIALOG_MENU = 7,         // the game's menu (not ported yet): the conversation panel waits under it
+		DIALOG_NEW_USER = 7,     // the new player's name (NewUserDialog): the conversation panel waits under it
+		DIALOG_NO_WINDOWED = 13, // the options' "no windowed mode" message
+		DIALOG_MENU = 17,        // the game's menu (MenuDialog)
 		DIALOG_CONFIRM = 18,     // DoConfirmDialog's
 		DIALOG_SKIP_MOVIE = 20,  // a click on a cut scene: skip it?
 		DIALOG_CONTINUE = 21,    // "Continue" after the game lost the focus (the board stays muted under it)
@@ -165,8 +168,25 @@ public:
 	                            ButtonListener* theListener, const std::string& theCallback);
 	// 0x44b620: the battle's board over the book, its grid and engines started
 	void StartBattle();
-	// 0x4456a0: the game's menu (dialog DIALOG_MENU) over the paused board (not ported yet: MenuDialog 0x47fd00)
-	void ShowGameMenu(bool theFromBook);
+	// 0x4456a0: the game's menu (MenuDialog, dialog DIALOG_MENU) over the paused board. theFromTreasure: it is the
+	// treasure screen's (its "Main Menu" button goes back with the transition 0x44ded0).
+	void ShowGameMenu(bool theFromTreasure);
+	// 0x4455d0: the options (OptionsDialog, dialog DIALOG_OPTIONS) over the paused board
+	void ShowOptionsDialog();
+	// 0x4457b0: the options are done: theApply takes the checkboxes' answers (screen mode, 3-D, cursors, tips);
+	// the dialog goes, and the board goes on
+	void CloseOptionsDialog(bool theApply);
+	// 0x44f7e0: whether the tiles show their letter values (the board's and the profile's EnablePips)
+	void SetShowTilePips(bool theShow);
+	// 0x444b90: asks the new player's name (NewUserDialog, dialog DIALOG_NEW_USER) with a name no one has yet.
+	// theButtonMode: BUTTONS_FOOTER for the intro's (only OK), BUTTONS_OK_CANCEL from the players' list.
+	void ShowNewUserDialog(int theButtonMode);
+	// 0x4450a0: the name is answered (OK or cancel): the profile, the conversation and the movie go on
+	void NewUserDialogDone();
+	// 0x4452d0: the old data of a player of that name goes (users/data/<name>.dat)
+	void DeleteUserData(const std::string& theName);
+	// 0x44ded0: from the treasure screen's menu back to the main menu (TRANSITION_TO_MENU - 1)
+	void StartTreasureToMenuTransition();
 	// 0x443f90: a message with an OK button (dialog 0), under a banner when there is one; OK calls the scripts'
 	// function theCallback (when not empty) with true
 	GameDialog* DoOkDialog(const SexyString& theHeader, const SexyString& theLines, const std::string& theCallback,

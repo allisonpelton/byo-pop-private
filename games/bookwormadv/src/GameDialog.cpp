@@ -20,10 +20,7 @@ GameDialog::GameDialog(int theId, const SexyString& theHeader, const SexyString&
 	mContentInsets = Insets(42, 42, 42, 42);
 
 	auto aMakeButton = [this](int theButtonId, const SexyString& theLabel) {
-		FadeButton* aButton = new FadeButton(theButtonId, this);
-		aButton->mLabel = theLabel;
-		aButton->SetupImage(IMAGE_DIALOG_BUTTON);
-		aButton->mStretch = true;
+		FadeButton* aButton = MakeButton(theButtonId, this, theLabel);
 		aButton->mFadeOnDisable = false;
 		aButton->mFadeOnEnter = false;
 		aButton->mFadeOnLeave = false;
@@ -44,6 +41,15 @@ GameDialog::GameDialog(int theId, const SexyString& theHeader, const SexyString&
 	}
 }
 
+FadeButton* GameDialog::MakeButton(int theId, ButtonListener* theListener, const SexyString& theLabel)
+{
+	FadeButton* aButton = new FadeButton(theId, theListener);
+	aButton->mLabel = theLabel;
+	aButton->mStretch = true;
+	aButton->SetupImage(IMAGE_DIALOG_BUTTON);
+	return aButton;
+}
+
 GameDialog::~GameDialog()
 {
 	delete mButton1;
@@ -57,6 +63,11 @@ void GameDialog::Layout(int theMinWidth)
 	SetLinesFont(FONT_MEDIUM);
 	SetColor(COLOR_HEADER, Color::Black);
 	SetColor(COLOR_LINES, Color::Black);
+
+	// the dialog is given a size first, in the middle of the screen (its widgets get theirs in Resize, and
+	// GetPreferredHeight counts them: the options')
+	Resize(0, 0, theMinWidth, GetPreferredHeight(theMinWidth));
+	Move((mApp->mWidth - mWidth) / 2, (mApp->mHeight - mHeight) / 2);
 
 	int aWidth = std::max(theMinWidth, mHeaderFont->StringWidth(mDialogHeader) + mContentInsets.mRight +
 	                                       mContentInsets.mLeft + mBackgroundInsets.mRight + 20 +
