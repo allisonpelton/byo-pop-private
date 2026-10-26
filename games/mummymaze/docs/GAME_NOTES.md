@@ -89,3 +89,31 @@ walks in (state 0).
 The entities are Widgets that the board draws: 0x426e70 the explorer (Update 0x426f70: idle animation), 0x421b40 a mummy (id in +0x74;
 Update 0x421bf0 blinks), 0x429120 the scorpion. Sound pan of a column x: `(int)((half - px(x)) / (2 * sum) * 800.0)`, sum = cell * (size + 1),
 half = sum / 2, px(x) = cell * x + 0x36 (py(y) = cell * y + 0x50).
+
+## The adventure (world map 0x417010, saved games, slot dialogs)
+
+The map is a Widget (object 0x22c bytes; ButtonListener at +0x4c) with the app at +0x50, the pyramid the marker stands on
+(+0xb4), the one it walks to (+0xb8) and the next one on the way (+0xbc), then fifteen ints at +0xc0, one for each pyramid: -1 shut, 0 to 14
+chambers done, 15 solved. Widgets: +0x64 ENTER (id 99), +0x68 the save-and-quit corner (id 98), +0x6c, +0x70, +0x74 the three
+corners that open the statistics, the player's name and the treasure chest (ids 50, 51, 52), +0x78 the fifteen pyramids
+(class 0x427050, ids 1 to 15). The marker (+0x100, +0x104) walks one pixel per update on each axis along the six waypoints of a
+path (`kMapWay`, path numbers 1 to 19, `kMapEdge` says which path joins two pyramids and, by its sign, whether it is walked
+backwards), with `kMapLinks` the graph and `kMapPos` the pyramids' places; the next pyramid on the way is the neighbour nearest to the target by a
+recursive count (0x418a30, 0x4189b0). A solved pyramid opens its neighbours (0x419940, the table is in the code: pyramid 0 opens 1 and
+6, 1 opens 2, 2 opens 1 and 3, and so on), and the last pyramid (14, the tomb) opens when the first fourteen are solved.
+
+Flow: the main menu's Adventure link sets the game mode to 1 and calls 0x41b800: with saved games it shows the slot dialog (id 10,
+five slots, a DELETE GAME button, Cancel), else the dialog for a new name (id 11). A slot loads through 0x41bcc0: no file means the name
+dialog; a file is read by the map's constructor (bad format: the main menu comes back with a message). A chamber that is won sets
+app+0x10408; the next map (made by LoadAdventure(slot, true)) counts it, saves, and goes straight on into the pyramid's next chamber,
+or, when the pyramid is solved, shows its treasure (game mode 2, the ending board) whose link leads back to the map. Being caught
+makes a map from the saved file (so the time and the catches are those of the file), adds one catch and saves (0x41c300 saves
+whenever it removes the map). When the last pyramid is solved the victory screen comes and the saved progress starts again from zero.
+
+Saved game (`data/saves/adv<n>.sav` in the original, `adv<n>.sav` in the user folder here): int length and the player's name, int 2 (the
+format), int length and the name again (app+0x104cc), int length and the progress as a Buffer's web string (the 15 values as bytes, 0xff for a shut
+pyramid), a byte for the pyramid the marker stands on, a double for the seconds played (app+0x10418), an int for the catches (app+0x10420).
+
+The original's search for a way out (the one behind the Ankh and ABANDON HOPE, 0x405580 and 0x411a90) does not know that a mummy that
+wins a fight with the other one flips the gate when it is on the key stone (0x407cc0 calls 0x421d00 when the fight ends); the board does,
+so a solution can be one turn wrong. The test bot searches again from where the explorer stands (`Board::FindWay`).
