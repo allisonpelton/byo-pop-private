@@ -126,9 +126,17 @@ Git and publishing:
   engine, goes to the cheapest remaining game. New game sessions list the mods worth making but make none without
   the user's approval, and no further game gets mods until every PopCap game works in the browser (Noah's Ark's
   mods were the one exception, part of the Sonnet trial).
-- **Mod names (the user, 2026-10-26):** a mod that only shows how a single feature can be configured has `example`
-  in its name (`example-flame-gems`, `example-twist`). A mod without it gives the player a curated experience,
-  much like a fan game: a combination of features, settings and art tuned to play well together.
+- **Mods (the user, 2026-10-26):** code that makes a game moddable makes things configurable (rules, settings and
+  their ranges in `mod.json` and the mod menu); it never just overwrites the original, which plays unchanged with
+  no mod on. Every mod is data: a feature's code lives in the port, and a mod's `features` or `rules` turns it on.
+  So each feature the port adds also ships a mod that turns it on. There are three kinds of mod:
+  - An **example** mod has `example` in its name (`example-flame-gems`, `example-twist`). It shows how a single
+    feature can be configured, for playing with its settings and finding which features work well together. It
+    starts off (`"defaultEnabled": false`).
+  - A **feature** mod gives the player one feature under its own name (BookWorm's `widescreen` or `undo`). Its
+    settings are in the mod menu.
+  - A **curated** mod gives the player a tuned experience, much like a fan game: features, settings and art
+    chosen to play well together.
 - **Model selection (the user's rule, decided after the Sonnet trial on 2026-10-25):** a game whose port can
   largely copy another game's (the same framework generation and engine: Noah's Ark's for Seven Seas and Atomica,
   BookWorm's for Pixelus and Typer Shark, Big Money's for Hammer Heads, Bejeweled's for Bejeweled 2, a sequel after
