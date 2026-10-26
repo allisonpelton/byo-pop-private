@@ -55,7 +55,9 @@ public:
 	void makeWords(int theCount, std::vector<std::string>& theWords);
 
 	// The fields the ball system uses
-	Dictionary mDictionary;             // +0x10
+	Dictionary mDictionary;             // +0x10: config\hintList.txt
+	WordTree mWords;                    // +0x14: config\matchList.txt
+	std::vector<std::string> mHintWords;  // +0x1c: config\hintList.txt
 	int mScore;                         // +0x2c
 	int m38;                            // +0x38: the points too (0x401260)
 	int m3C;                            // +0x3c: lowered by the found words' floating texts (0x401290)

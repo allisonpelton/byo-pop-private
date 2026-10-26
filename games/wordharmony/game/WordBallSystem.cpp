@@ -2006,7 +2006,7 @@ int WordBallSystem::scoreGroup(BallGroup* theGroup, unsigned int theMinLength)
 			}
 			else
 			{
-				bool isWord = aGame->mDictionary.checkWord(aLetters.c_str(), 0) == 0;
+				bool isWord = aGame->mWords.checkWord(aLetters.c_str(), false) == 0;
 				aWord = aLetters;
 				if (!isWord)
 					goto aShorter;
@@ -2018,7 +2018,7 @@ int WordBallSystem::scoreGroup(BallGroup* theGroup, unsigned int theMinLength)
 		}
 		else
 		{
-			if (!aGame->mDictionary.findMatches(aLetters.c_str(), &aWords))
+			if (aGame->mWords.findMatches(aLetters.c_str(), &aWords) == 0)
 				goto aShorter;
 			aWord = aWords[randomIndex(0, (int)aWords.size() - 1)];
 		}
