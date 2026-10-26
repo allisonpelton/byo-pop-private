@@ -563,7 +563,7 @@ void Board::UpdateExplorer()
 					mDeathTimer = 0;
 				if (aMode == MODE_ADVENTURE)
 				{
-					mApp->OnAdventureDeath();
+					mApp->AdventureCaught();
 					MarkDirty();
 					goto L_finish;
 				}

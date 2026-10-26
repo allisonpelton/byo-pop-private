@@ -367,7 +367,7 @@ void Board::UpdateMummies()
 			m274 = mUpdateCnt;
 			if (mApp->mGameMode != MODE_ADVENTURE)
 				return;
-			mApp->OnAdventureDeath();
+			mApp->AdventureCaught();
 			return;
 		}
 	}
@@ -468,7 +468,7 @@ void Board::UpdateScorpion()
 				mExplorer->mDir = 2;
 				if (mApp->mGameMode != MODE_ADVENTURE)
 					return;
-				mApp->OnAdventureDeath();
+				mApp->AdventureCaught();
 				return;
 			}
 			if (mState == STATE_SCORPION_LAST)

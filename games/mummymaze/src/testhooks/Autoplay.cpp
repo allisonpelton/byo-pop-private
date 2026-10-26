@@ -32,6 +32,9 @@
 
 using namespace Sexy;
 
+#define BOT_PYR ((mGameMode == MODE_ADVENTURE) ? mAdvPyramid : mClassicPyramid)
+#define BOT_CHM ((mGameMode == MODE_ADVENTURE) ? mAdvChamber : mClassicChamber)
+
 #include "Tables.inc"
 
 namespace Sexy
@@ -51,6 +54,8 @@ struct AutoplayState
 	int					mLastKey;           // the last key pressed
 	unsigned int		mTutorialShots;     // the tutorial steps that were photographed
 	bool				mTutorial;          // the tutorial is being played
+	bool				mAdventure;         // an adventure is being played
+	bool				mMapShot;           // the world map was photographed
 	bool				mDiverged;          // the board left the solver's path (logged once per plan)
 	bool				mReplan;            // plan again from where the explorer stands
 	int					mReplans;           // how often in this level
@@ -68,7 +73,7 @@ struct AutoplayState
 	FILE*				mLog;
 
 	AutoplayState() : mSeed(1), mTick(0), mLastAction(0), mGames(0), mWait(0), mLevels(0), mLevelsPerGame(3), mStartPyramid(0),
-		mStartChamber(0), mHeldKey(0), mLastKey(0), mTutorialShots(0), mTutorial(false), mDiverged(false), mReplan(false), mReplans(0), mPlanned(false), mUseSolver(true), mRandomMoves(0), mPathIndex(0),
+		mStartChamber(0), mHeldKey(0), mLastKey(0), mTutorialShots(0), mTutorial(false), mAdventure(false), mMapShot(false), mDiverged(false), mReplan(false), mReplans(0), mPlanned(false), mUseSolver(true), mRandomMoves(0), mPathIndex(0),
 		mGameOverLogged(false), mGivenUp(false), mOptionsStage(0), mDialogShots(0), mDialogSeen(0), mShotWait(0), mLog(NULL) {}
 
 	int Rand(int theRange)
@@ -209,13 +214,55 @@ void MummyApp::AutoplayUpdate()
 				((RecordScoreDialog*) aDialog)->mNameEdit->SetText(aName);
 				Log(s, "high score: name %s", aName);
 			}
-			if (anId == DIALOG_CONTINUE)
+			if (anId == DIALOG_NEW_ADVENTURE_NAME)
+				((NewAdventureDialog*) aDialog)->mNameEdit->SetText("Bot");
+			if (anId == DIALOG_ADVENTURE_NEW)
+			{
+				// the saved adventures: the first one goes on
+				Log(s, "adventure: continue slot 0");
+				((AdventureSlotsDialog*) aDialog)->ButtonDepress(0);
+			}
+			else if (anId == DIALOG_CONTINUE)
 				ButtonDepress(3000 + anId);
 			else
 				ButtonDepress(2000 + anId);
 			s->mWait = 5;
 			return;
 		}
+	}
+	// the adventure's world map: the first pyramid that is open, then into it
+	if (mWorldMap != NULL)
+	{
+		WorldMap* m = mWorldMap;
+		if (m->mStep >= 0 || m->mCurrent != m->mTarget)
+			return;
+		int aPyramid = -1;
+		for (int i = 0; i < 15 && aPyramid < 0; i++)
+			if (m->mProgress[i] >= 0 && m->mProgress[i] < 15)
+				aPyramid = i;
+		if (aPyramid < 0 || s->mLevels >= s->mLevelsPerGame)
+		{
+			int aSolved = 0;
+			for (int i = 0; i < 15; i++)
+				if (m->mProgress[i] == 15)
+					aSolved++;
+			Log(s, "adventure: %d chambers played, %d pyramids solved, time %d, caught %d", s->mLevels, aSolved, (int) mTotalTime, mDeaths);
+			if (!mAutoplayShots.empty())
+				SaveScreenshot(StrFormat("%s-map.png", mAutoplayShots.c_str()));
+			Shutdown();
+			return;
+		}
+		if (!mAutoplayShots.empty() && !s->mMapShot)
+		{
+			s->mMapShot = true;
+			s->mWait = 100;
+			return;
+		}
+		Log(s, "adventure: map, marker on pyramid %d, going to %d (progress %d)", m->mCurrent, aPyramid, m->mProgress[aPyramid]);
+		s->mPlanned = false;
+		m->ButtonDepress(aPyramid + 1);
+		s->mWait = 10;
+		return;
 	}
 	// the main menu: a classic game, or the end of the test
 	if (mMainMenu != NULL)
@@ -241,6 +288,14 @@ void MummyApp::AutoplayUpdate()
 		s->mGivenUp = false;
 		s->mGameOverLogged = false;
 		s->mPlanned = false;
+		if (mAutoplayMode == "adventure")
+		{
+			Log(s, "game %d: adventure", s->mGames);
+			s->mAdventure = true;
+			mMainMenu->ButtonDepress(1);
+			s->mWait = 5;
+			return;
+		}
 		Log(s, "game %d: classic from pyramid %d chamber %d", s->mGames, s->mStartPyramid, s->mStartChamber);
 		mMainMenu->ButtonDepress(0);
 		mClassicPyramid = s->mStartPyramid;
@@ -287,7 +342,10 @@ void MummyApp::AutoplayUpdate()
 			s->mShotWait = 2;
 			SaveScreenshot(StrFormat("%s-chamberdone%d.png", mAutoplayShots.c_str(), s->mGames));
 		}
-		Log(s, "chamber done: pyramid %d chamber %d, score %d", mClassicPyramid, mClassicChamber, mScore);
+		if (mGameMode == MODE_ADVENTURE)
+			Log(s, "chamber done: pyramid %d chamber %d", mAdvPyramid, mAdvChamber);
+		else
+			Log(s, "chamber done: pyramid %d chamber %d, score %d", BOT_PYR, BOT_CHM, mScore);
 		s->mLevels++;
 		s->mPlanned = false;
 		mLevelComplete->ButtonDepress(0);
@@ -302,12 +360,12 @@ void MummyApp::AutoplayUpdate()
 		s->mPlanned = false;
 		if (s->mGivenUp)
 		{
-			Log(s, "abandon hope at pyramid %d chamber %d", mClassicPyramid, mClassicChamber);
+			Log(s, "abandon hope at pyramid %d chamber %d", BOT_PYR, BOT_CHM);
 			mGamePanel->ButtonDepress(3);
 		}
 		else
 		{
-			Log(s, "caught at pyramid %d chamber %d", mClassicPyramid, mClassicChamber);
+			Log(s, "caught at pyramid %d chamber %d", BOT_PYR, BOT_CHM);
 			mGamePanel->ButtonDepress(1);
 		}
 		s->mWait = 5;
@@ -364,11 +422,14 @@ void MummyApp::AutoplayUpdate()
 	}
 
 	// the scene at the end of a pyramid: the explorer takes the treasure, then the link on to the next pyramid
-	if (mGameMode == MODE_CLASSIC_DONE)
+	if (mGameMode == MODE_CLASSIC_DONE || mGameMode == MODE_ADVENTURE_DONE)
 	{
 		if (mBoard->mContinueLink != NULL && mBoard->mContinueLink->mVisible)
 		{
-			Log(s, "pyramid %d done, score %d", mClassicPyramid, mScore);
+			if (mGameMode == MODE_ADVENTURE_DONE)
+				Log(s, "pyramid %d solved, treasure scene", mAdvPyramid);
+			else
+				Log(s, "pyramid %d done, score %d", mClassicPyramid, mScore);
 			if (!mAutoplayShots.empty() && mClassicPyramid == 0)
 				SaveScreenshot(StrFormat("%s-pyramid0.png", mAutoplayShots.c_str()));
 			s->mPlanned = false;
@@ -385,7 +446,7 @@ void MummyApp::AutoplayUpdate()
 	for (int i = 0; i < 2; i++)
 		if (b->mMummies[i] != NULL && b->mMummies[i]->mFighting)
 			return;
-	if (mGameMode != MODE_CLASSIC)
+	if (mGameMode != MODE_CLASSIC && mGameMode != MODE_ADVENTURE)
 		return;
 
 	// the options and the dialogs they lead to are photographed once
@@ -398,7 +459,7 @@ void MummyApp::AutoplayUpdate()
 	}
 
 	// enough levels: give up, so that the solution plays and the high scores come
-	if (s->mLevels >= s->mLevelsPerGame && !s->mGivenUp)
+	if (s->mLevels >= s->mLevelsPerGame && !s->mGivenUp && mGameMode == MODE_CLASSIC)
 	{
 		s->mGivenUp = true;
 		ShowGamePanel();
@@ -421,13 +482,13 @@ void MummyApp::AutoplayUpdate()
 			s->mPathIndex = 0;
 			b->mShowingSolution = false;
 			b->ClearSolution();
-			Log(s, "level pyramid %d chamber %d (maze %d of file %d, %d x %d): solver, %d moves", mClassicPyramid,
-				mClassicChamber, b->mMaze, b->mFile, b->mSize, b->mSize, (int) s->mPath.size());
+			Log(s, "level pyramid %d chamber %d (maze %d of file %d, %d x %d): solver, %d moves", BOT_PYR,
+				BOT_CHM, b->mMaze, b->mFile, b->mSize, b->mSize, (int) s->mPath.size());
 			s->mWait = 30;
 			return;
 		}
-		Log(s, "level pyramid %d chamber %d (maze %d of file %d, %d x %d): %d random moves", mClassicPyramid,
-			mClassicChamber, b->mMaze, b->mFile, b->mSize, b->mSize, s->mRandomMoves);
+		Log(s, "level pyramid %d chamber %d (maze %d of file %d, %d x %d): %d random moves", BOT_PYR,
+			BOT_CHM, b->mMaze, b->mFile, b->mSize, b->mSize, s->mRandomMoves);
 	}
 
 	// the next key

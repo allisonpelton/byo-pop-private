@@ -20,6 +20,10 @@ class MummyApp;
 class MemoryImage;
 class HighScoreScreen;
 
+// the colours of a name box's text, and the box itself (Dialogs.cpp)
+extern int kNameEditColors[5][4];
+void DrawNameBox(Graphics* g, Image* theBox, int theX, int theY, int theWidth);
+
 // 0x427dc0: the name for a high score
 class RecordScoreDialog : public Dialog2004, public EditListener
 {
@@ -37,6 +41,66 @@ public:
 	virtual int			GetPreferredHeight(int theWidth) override;                          // 0x428080
 	virtual void		Draw(Graphics* g) override;                                         // 0x428140
 	virtual void		EditWidgetText(int theId, const SexyString& theString) override;    // 0x428450
+	using Widget::Resize;
+};
+
+// 0x401000: the saved adventures to choose from (five slots, each a name or NEW GAME), and the way to delete one
+class AdventureSlotsDialog : public Dialog2004
+{
+public:
+	MummyApp*			mApp;                   // +0xc4
+	DialogButton*		mSlots[5];              // +0xc8 ids 0 to 4
+	DialogButton*		mDeleteButton;          // +0xdc id 5
+	bool				mHasDelete;             // +0xe0
+
+public:
+	AdventureSlotsDialog(MummyApp* theApp);
+	virtual ~AdventureSlotsDialog();
+
+	virtual void		AddedToManager(WidgetManager* theWidgetManager) override;           // 0x4016d0
+	virtual void		RemovedFromManager(WidgetManager* theWidgetManager) override;       // 0x401710
+	virtual void		Resize(int theX, int theY, int theWidth, int theHeight) override;   // 0x401750
+	virtual int			GetPreferredHeight(int theWidth) override;                          // 0x4016b0
+	virtual void		ButtonDepress(int theId) override;                                  // 0x4017f0
+	using Widget::Resize;
+};
+
+// 0x412750: the saved adventures again, to pick the one to delete
+class DeleteAdventureDialog : public Dialog2004
+{
+public:
+	MummyApp*			mApp;
+	DialogButton*		mSlots[5];              // +0xc8 ids 0 to 4
+
+public:
+	DeleteAdventureDialog(MummyApp* theApp);
+	virtual ~DeleteAdventureDialog();
+
+	virtual void		AddedToManager(WidgetManager* theWidgetManager) override;           // 0x412ca0
+	virtual void		RemovedFromManager(WidgetManager* theWidgetManager) override;       // 0x412cd0
+	virtual void		Resize(int theX, int theY, int theWidth, int theHeight) override;   // 0x412d00
+	virtual int			GetPreferredHeight(int theWidth) override;                          // 0x412c90
+	virtual void		ButtonDepress(int theId) override;                                  // 0x412da0
+	using Widget::Resize;
+};
+
+// 0x421db0: the name of a new adventure
+class NewAdventureDialog : public Dialog2004, public EditListener
+{
+public:
+	MummyApp*			mApp;                   // +0xc4
+	EditWidget*			mNameEdit;              // +0xc8
+
+public:
+	NewAdventureDialog(MummyApp* theApp);
+	virtual ~NewAdventureDialog();
+
+	virtual void		AddedToManager(WidgetManager* theWidgetManager) override;
+	virtual void		RemovedFromManager(WidgetManager* theWidgetManager) override;
+	virtual void		Resize(int theX, int theY, int theWidth, int theHeight) override;   // 0x422100
+	virtual int			GetPreferredHeight(int theWidth) override;                          // 0x428080
+	virtual void		Draw(Graphics* g) override;                                         // 0x4222d0
+	virtual void		EditWidgetText(int theId, const SexyString& theString) override;
 	using Widget::Resize;
 };
 

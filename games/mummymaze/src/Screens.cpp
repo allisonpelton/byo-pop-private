@@ -505,7 +505,7 @@ void GamePanel::ButtonDepress(int theId)
 		break;
 	case 2:
 		if (mApp->mGameMode == MODE_ADVENTURE)
-			mApp->OnAdventureDeath();
+			mApp->AdventureLeave();
 		aBoard->SaveClassic();
 		for (int i = 0; i < 4; i++)
 			mLinks[i]->SetVisible(true);
@@ -517,7 +517,7 @@ void GamePanel::ButtonDepress(int theId)
 	case 3:
 		if (mApp->mGameMode == MODE_ADVENTURE)
 		{
-			mApp->OnAdventureDeath();
+			mApp->AdventureLeave();
 			aBoard->Retry();
 			mApp->LoadAdventure(mApp->mCurrentSlot, false);
 		}
@@ -632,6 +632,14 @@ void SidePanel::Update()
 			MarkDirty();
 		}
 	}
+}
+
+// 0x42a570
+void SidePanel::MouseDown(int x, int y, int theClickCount)
+{
+	(void) theClickCount;
+	if (x > 0x5c && y > 0x140 && x < 0x8b && y < 0x177 && mApp->mBoard != NULL && mApp->mShowAnkh)
+		mApp->ShowAnkhHelp(mApp->mBoard->mSolvable);
 }
 
 // 0x42a340: the buttons' places (the creation order is undo, retry, options, world map, quit)

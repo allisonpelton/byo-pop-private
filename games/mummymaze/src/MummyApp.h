@@ -64,6 +64,12 @@ enum DialogId
 	DIALOG_TIP = 0x1b,
 	DIALOG_RECORD_SCORE = 0x15,
 	DIALOG_HIGH_SCORES = 0x17,
+	DIALOG_BAD_SAVE = 7,
+	DIALOG_NAME_INVALID = 0xc,
+	DIALOG_ANKH = 9,
+	DIALOG_MAP_MESSAGE = 0xf,
+	DIALOG_ADV_INFO = 0x11,
+	DIALOG_DELETE_ADVENTURE = 0x18,
 	DIALOG_RESET_TIPS = 0x1c
 };
 
@@ -119,6 +125,9 @@ public:
 	int						mFixedFileNumber;   // +0x10494
 	int						mFixedMaze;         // +0x10490
 	double					mTotalTime;         // +0x10418 the adventure's time played, in seconds
+	int						mDeaths;            // +0x10420 how often the explorer was caught in the adventure
+	bool					mChamberDone;       // +0x10408 a chamber of the adventure has just been won (the map takes it in)
+	SexyString				mAdvName;           // +0x104cc the adventure's player
 	DWORD					mElapsedBase;       // +0x104a8 the time already played, from a saved game
 	int						mMusicSlot;         // +0x10430 which of the two music slots is playing
 	uint8_t					mLightMask[256][256]; // +0x380
@@ -174,9 +183,17 @@ public:
 	void					ShowRecordScore(const SexyString& theLines);   // 0x41f3e0
 	void					ShowTip(int theWhich);                  // 0x41b5b0
 	void					ShowAdventureSlots();                   // 0x41b800
+	void					ShowNewAdventure();
+	void					ShowDeleteAdventure();                  // 0x41bb10
+	void					DeleteAdventure(int theSlot);           // 0x41bc80
+	void					CreateAdventure(int theSlot, const SexyString& theName);   // 0x4201e0 case 0x7db
+	bool					AdventureExists(int theSlot);
+	bool					AdventureName(int theSlot, SexyString& theName);
 	void					LoadAdventure(int theSlot, bool theFlag);   // 0x41bcc0
-	void					OnAdventureDeath();
-	void					OnWorldMapButton();
+	void					AdventureCaught();                      // 0x406f10, 0x407cc0, 0x4083e0
+	void					AdventureLeave();                       // 0x413950, 0x42a3d0
+	void					OnWorldMapButton();                     // 0x42a3d0 case 13
+	void					ShowAnkhHelp(bool theSolvable);         // 0x41fc70
 	void					ShowVictory();                          // 0x41e890
 	bool					LoadClassic();                          // 0x41c600
 	bool					ClassicSaveExists();

@@ -78,6 +78,8 @@ MummyApp::MummyApp()
 	mFixedFileNumber = mFixedMaze = 0;
 	mElapsedBase = 0;
 	mTotalTime = 0.0;
+	mDeaths = 0;
+	mChamberDone = false;
 	mIsRegistered = true;
 	memset(mLightMask, 0, sizeof(mLightMask));
 

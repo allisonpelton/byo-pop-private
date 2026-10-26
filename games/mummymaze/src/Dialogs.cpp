@@ -12,10 +12,22 @@
 using namespace Sexy;
 
 // the colours of the name box (0x49539c: background and outline are clear, the frame comes from the picture)
-static int kNameEditColors[5][4] =
+int Sexy::kNameEditColors[5][4] =
 {
 	{0, 0, 0, 0}, {0, 0, 0, 0}, {0xf0, 0xf0, 0xff, 0xff}, {0xff, 0xff, 0xff, 0xff}, {0, 0, 0, 0xff}
 };
+
+// 0x4282d0 (and 0x422150): the box of a name: the left end of the picture, a run of its middle and its right end
+void Sexy::DrawNameBox(Graphics* g, Image* theBox, int theX, int theY, int theWidth)
+{
+	g->DrawImage(theBox, theX, theY, Rect(0, 0, 0x20, 0x20));
+	g->DrawImage(theBox, theX + theWidth - 0x20, theY, Rect(0x40, 0, 0x20, 0x20));
+	Graphics gc(*g);
+	gc.ClipRect(theX + 0x20, theY, theWidth - 0x20, 0x20);
+	int aTiles = (theWidth - 0x21) / 0x20;
+	for (int i = 0; i < aTiles; i++)
+		gc.DrawImage(theBox, theX + 0x20 + i * 0x20, theY, Rect(0x20, 0, 0x20, 0x20));
+}
 
 // 0x427dc0
 RecordScoreDialog::RecordScoreDialog(MummyApp* theApp, const SexyString& theLines) :
@@ -76,17 +88,7 @@ int RecordScoreDialog::GetPreferredHeight(int theWidth)
 void RecordScoreDialog::Draw(Graphics* g)
 {
 	Dialog2004::Draw(g);
-	int aX = (mNameEdit->mX - mX) - 4;
-	int aY = (mNameEdit->mY - mY) - 4;
-	int aWidth = mNameEdit->mWidth + 8;
-	Image* aBox = mApp->mImages[IMAGE_EDITBOX];
-	g->DrawImage(aBox, aX, aY, Rect(0, 0, 0x20, 0x20));
-	g->DrawImage(aBox, aX + aWidth - 0x20, aY, Rect(0x40, 0, 0x20, 0x20));
-	Graphics gc(*g);
-	gc.ClipRect(aX + 0x20, aY, aWidth - 0x20, 0x20);
-	int aTiles = (aWidth - 0x21) / 0x20;
-	for (int i = 0; i < aTiles; i++)
-		gc.DrawImage(aBox, aX + 0x20 + i * 0x20, aY, Rect(0x20, 0, 0x20, 0x20));
+	DrawNameBox(g, mApp->mImages[IMAGE_EDITBOX], (mNameEdit->mX - mX) - 4, (mNameEdit->mY - mY) - 4, mNameEdit->mWidth + 8);
 	g->SetFont(mApp->mHeaderFont);
 	g->SetColor(Color(0xa4, 0x2c, 0));
 	g->DrawString(GT(0x004953ec), mNameEdit->mX - mX, (mNameEdit->mY - mY) - 0x13);

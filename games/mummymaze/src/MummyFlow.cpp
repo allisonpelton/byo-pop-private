@@ -110,16 +110,6 @@ void MummyApp::RemoveLevelComplete()
 		StartBoardScreen();
 }
 
-void MummyApp::RemoveWorldMap()
-{
-	if (mWorldMap != NULL)
-	{
-		mWidgetManager->RemoveWidget((Widget*) mWorldMap);
-		SafeDeleteWidget((Widget*) mWorldMap);
-		mWorldMap = NULL;
-	}
-}
-
 // 0x41e6a0: the side panel and the board of a new game
 void MummyApp::StartBoardScreen()
 {
@@ -157,6 +147,8 @@ void MummyApp::StartBoardScreen()
 void MummyApp::OnLevelComplete()
 {
 	mBoard->mState = STATE_DONE;
+	if (mGameMode == MODE_ADVENTURE)
+		mChamberDone = true;
 	mLevelComplete = new LevelCompleteScreen(this);
 	mLevelComplete->Resize(0x96, 0, 0x1ea, 0x1e0);
 	mWidgetManager->AddWidget(mLevelComplete);
@@ -307,22 +299,12 @@ void MummyApp::ShowTip(int theWhich)
 	AddDialog(DIALOG_TIP, aDialog);
 }
 
-void MummyApp::ShowAdventureSlots()
+// 0x41fc70: what the Ankh is for
+void MummyApp::ShowAnkhHelp(bool theSolvable)
 {
-}
-
-void MummyApp::LoadAdventure(int theSlot, bool theFlag)
-{
-	(void) theSlot;
-	(void) theFlag;
-}
-
-void MummyApp::OnAdventureDeath()
-{
-}
-
-void MummyApp::OnWorldMapButton()
-{
+	if (mBoard == NULL || mBoard->mSize != 6 || !mShowAnkh)
+		return;
+	DoMessage(DIALOG_ANKH, GT(0x004947a4), GT(theSolvable ? 0x004947b0 : 0x00494700), 3, 0xa2, 0x52, 0x13c);
 }
 
 // 0x41e890: the game is won
@@ -437,6 +419,41 @@ void MummyApp::ButtonDepress(int theId)
 		KillDialog(DIALOG_RESET_TIPS);
 		mTipTwoMummies = mTipGate = mTipTrap = mTipRed = mTipScorpion = mTipDark = mTipAnkh = true;
 		break;
+	case 2000 + DIALOG_NEW_ADVENTURE_NAME:
+	{
+		// 0x4201e0 case 0x7db: the name of a new adventure: letters and numbers, not one that is in use
+		NewAdventureDialog* aDialog = (NewAdventureDialog*) GetDialog(DIALOG_NEW_ADVENTURE_NAME);
+		SexyString aName = aDialog->mNameEdit->mString;
+		bool aValid = !aName.empty();
+		for (size_t i = 0; i < aName.size(); i++)
+		{
+			unsigned char c = (unsigned char) aName[i];
+			if (!((c >= '0' && c <= '9') || (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z')))
+				aValid = false;
+		}
+		if (!aValid)
+		{
+			DoMessage(DIALOG_NAME_INVALID, GT(0x004945e8), GT(0x004945f8), 3, 0xa2, 0x52, 0x13c);
+			break;
+		}
+		bool aUsed = false;
+		for (int i = 0; i < 5; i++)
+		{
+			SexyString anOther;
+			if (AdventureName(i, anOther) && stricmp(anOther.c_str(), aName.c_str()) == 0)
+				aUsed = true;
+		}
+		if (aUsed)
+		{
+			DoMessage(DIALOG_NAME_INVALID, GT(0x004945e8), GT(0x00494644), 3, 0xa2, 0x52, 0x13c);
+			break;
+		}
+		CreateAdventure(mCurrentSlot, aName);
+		LoadAdventure(mCurrentSlot, false);
+		DoMessage(DIALOG_INTRO, GT(0x00494824), GT(0x00494834), 3, 0x6e, 0x41, 0x1a4);
+		KillDialog(DIALOG_NEW_ADVENTURE_NAME);
+		break;
+	}
 	case 2000 + DIALOG_RECORD_SCORE:
 	{
 		RecordScoreDialog* aDialog = (RecordScoreDialog*) GetDialog(DIALOG_RECORD_SCORE);

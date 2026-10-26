@@ -146,8 +146,10 @@ public:
 	virtual void		Resize(int theX, int theY, int theWidth, int theHeight) override;   // 0x42a340
 	virtual void		Update() override;
 	virtual void		Draw(Graphics* g) override;
+	virtual void		MouseDown(int x, int y, int theClickCount) override;                // 0x42a570: the Ankh asks what it is
 	virtual void		ButtonDepress(int theId) override;
 	virtual void		ButtonPress(int theId) override;
+	using Widget::MouseDown;
 	using Widget::Resize;
 	using ButtonListener::ButtonPress;
 	using ButtonListener::ButtonDepress;
@@ -230,12 +232,88 @@ public:
 	virtual void		Draw(Graphics* g) override;                                 // 0x402a10
 };
 
-// 0x417010: the adventure's world map (not ported yet)
-class WorldMap : public Widget
+// 0x427050: a pyramid on the world map: a button that only works while the pyramid is open (mEnabled), and says why not
+// when it is clicked while it is shut
+class PyramidButton : public ButtonWidget
 {
 public:
-	WorldMap(MummyApp* theApp) : mApp(theApp) {}
-	MummyApp*			mApp;
+	MummyApp*			mApp;                   // +0x7c
+	bool				mHover;                 // +0xaa the mouse is over it (kept for the map's picture)
+	bool				mEnabled;               // +0xab it can be entered
+
+public:
+	PyramidButton(int theId, ButtonListener* theListener, MummyApp* theApp);
+
+	virtual void		Draw(Graphics* g) override;                         // 0x4271c0
+	virtual void		MouseEnter() override;                              // 0x427d50
+	virtual void		MouseLeave() override;                              // 0x427d70
+	virtual void		MouseDown(int x, int y, int theBtnNum, int theClickCount) override;    // 0x4276d0
+	virtual void		MouseUp(int x, int y, int theBtnNum, int theClickCount) override;      // 0x427d00
+	using ButtonWidget::MouseDown;
+	using ButtonWidget::MouseUp;
+};
+
+// a part of the map that is only there to be clicked
+class MapHotspot : public ButtonWidget
+{
+public:
+	MapHotspot(int theId, ButtonListener* theListener);
+	virtual void		Draw(Graphics* g) override;
+};
+
+// 0x417010: the adventure's world map: fifteen pyramids, the explorer's marker that walks from one to another along the
+// paths, and three corners to click (the statistics, the player's name and the treasure chest). It reads the saved
+// adventure (adv<slot>.sav in the user folder; data/saves/adv<slot>.sav in the original) when it is made and writes it when the
+// game takes it away (MummyApp::RemoveWorldMap, 0x41c300).
+class WorldMap : public Widget, public ButtonListener
+{
+public:
+	MummyApp*			mApp;                   // +0x50
+	int					mCurrent;               // +0xb4 the pyramid the marker stands on
+	int					mTarget;                // +0xb8 the pyramid it is walking to
+	int					mNext;                  // +0xbc the pyramid it is walking to next
+	int					mProgress[15];          // +0xc0 chambers done in each pyramid (15: the pyramid is solved), -1: shut
+	ButtonWidget*		mEnterButton;           // +0x64 id 99
+	ButtonWidget*		mBackButton;            // +0x68 id 98
+	ButtonWidget*		mStatsButton;           // +0x6c id 50
+	ButtonWidget*		mPlayerButton;          // +0x70 id 51
+	ButtonWidget*		mChestButton;           // +0x74 id 52
+	PyramidButton*		mPyramids[15];          // +0x78 ids 1 .. 15
+	int					mStep;                  // +0xfc how far along the path the marker is (-1: it is standing)
+	int					mMarkerX, mMarkerY;     // +0x100, +0x104
+	int					mDistance[15];          // +0x108 (the walk's search)
+	int					mHoverShown;            // +0x144 the pyramid whose name is shown
+	int					mHoverAlpha;            // +0x148 how plainly
+	bool				mHoverFading;           // +0x14c
+	int					mSparkFrame[18];        // +0x150
+	int					mSparkX[18];            // +0x198
+	int					mSparkY[18];            // +0x1e0
+	bool				mOpened;                // +0x14d the open pyramids have been made clickable
+	bool				mChamberDone;           // +0x228 a chamber has just been won
+	bool				mCheckEntry;            // +0x229 go straight on into the pyramid's next chamber
+	bool				mInvalid;               // the saved game was bad: the main menu is back
+
+public:
+	WorldMap(MummyApp* theApp, int theSlot, bool theCheckEntry);
+	virtual ~WorldMap();
+
+	virtual void		AddedToManager(WidgetManager* theWidgetManager) override;           // 0x4187d0
+	virtual void		RemovedFromManager(WidgetManager* theWidgetManager) override;       // 0x418840
+	virtual void		Resize(int theX, int theY, int theWidth, int theHeight) override;   // 0x4188b0
+	virtual void		Draw(Graphics* g) override;                                         // 0x4183c0
+	virtual void		Update() override;                                                  // 0x417c10
+	virtual void		ButtonPress(int theId) override;                                    // 0x418a90
+	virtual void		ButtonDepress(int theId) override;                                  // 0x418aa0
+	using Widget::Resize;
+	using ButtonListener::ButtonPress;
+	using ButtonListener::ButtonDepress;
+
+	void				Save();                         // 0x4195d0
+	void				Unlock();                       // 0x419940
+	void				Open(int thePyramid);           // 0x418970
+	void				Measure(int thePyramid, int theDistance);   // 0x418a30
+	int					NextHop(int theFrom, int theTo);    // 0x4189b0
+	void				EnableOpenPyramids();
 };
 
 }
