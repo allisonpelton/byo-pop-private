@@ -7,8 +7,8 @@
 
 using namespace engine;
 
-// "x,y" as the level files write a point (0x42b610)
-static std::string pointText(const Point& p)
+// 0x42b610
+std::string pointText(const Point& p)
 {
 	char aText[256];
 	snprintf(aText, sizeof(aText), "%f,%f", (double)p.x, (double)p.y);

@@ -172,7 +172,7 @@ void WordBallSystem::setupBall(Ball* theBall)
 	theBall->addChild(aSelector);
 	unsigned int aFlags = theBall->mSpecial;
 	ImageNode* aNode;
-	if ((aFlags & BALL_FLAG_1) == 0)
+	if ((aFlags & BALL_BOMB) == 0)
 	{
 		if ((aFlags & BALL_BREAKABLE) != 0)
 		{
@@ -185,7 +185,7 @@ void WordBallSystem::setupBall(Ball* theBall)
 			theBall->mFixed = true;
 			goto badges;
 		}
-		if ((aFlags & BALL_FLAG_20) != 0)
+		if ((aFlags & BALL_BLOCK) != 0)
 		{
 			Image* anImage = App::instance()->getImage("res\\cube02.png");
 			anImage->setAlphaMode(1, 0x80);
@@ -197,7 +197,7 @@ void WordBallSystem::setupBall(Ball* theBall)
 			theBall->mInverseMass = 0.01f;
 			goto badges;
 		}
-		if ((aFlags & BALL_STONE) != 0)
+		if ((aFlags & BALL_HEAVY) != 0)
 		{
 			Image* anImage = App::instance()->getImage("res\\rock.png");
 			anImage->setPivot(1);
@@ -1074,7 +1074,7 @@ bool WordBallSystem::keyDown(int theKey)
 			{
 				aBall->setLetter((char)aKey);
 				if ((aBall->mSpecial & BALL_BREAKABLE) == 0)
-					aBall->mSpecial = (int)(char)aBall->mSpecial & BALL_STONE;
+					aBall->mSpecial = (int)(char)aBall->mSpecial & BALL_HEAVY;
 				else
 					aBall->mSpecial = BALL_BREAKABLE;
 				setupBall(aBall);
@@ -1156,7 +1156,7 @@ bool WordBallSystem::keyDown(int theKey)
 		{
 			if (aName == "node")
 			{
-				aBall->mSpecial = BALL_STONE;
+				aBall->mSpecial = BALL_HEAVY;
 				setupBall(aBall);
 				aBall->setLetter(' ');
 				return true;
@@ -1812,7 +1812,7 @@ void WordBallSystem::scoreWord(const int* theIndices, int theStart, const std::s
 			int aBallIndex = *anIndex;
 			aBall = getBall(aBallIndex);
 			if (theLetters.compare(0, theLetters.size(), "BOMB", 4) == 0)
-				aBall->mSpecial |= BALL_FLAG_1;
+				aBall->mSpecial |= BALL_BOMB;
 			unsigned int aSpecial = aBall->mSpecial;
 			if ((aSpecial & BALL_X2) == 0)
 			{

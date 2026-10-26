@@ -12,6 +12,9 @@
 
 class BallArray;
 
+// 0x42b610: "x,y" as the level files and the saved game write a point
+std::string pointText(const engine::Point& p);
+
 class Obstacle : public engine::Node
 {
 public:

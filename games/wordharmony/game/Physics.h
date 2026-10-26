@@ -25,17 +25,18 @@ enum
 	BALL_STATE_4 = 4
 };
 
-// The ball's special flags (+0xac)
+// The ball's special flags (+0xac), named as a bubble's "special" attribute names them (0x41e280)
 enum
 {
-	BALL_FLAG_1 = 0x1,
-	BALL_WILDCARD = 0x2,
-	BALL_X2 = 0x4,
-	BALL_X3 = 0x8,
-	BALL_X4 = 0x10,
-	BALL_FLAG_20 = 0x20,
-	BALL_STONE = 0x40,
-	BALL_BREAKABLE = 0x100
+	BALL_BOMB = 0x1,        // "bomb" (also set on the balls of the word BOMB)
+	BALL_WILDCARD = 0x2,    // "wildcard"
+	BALL_X2 = 0x4,          // "2x"
+	BALL_X3 = 0x8,          // "3x"
+	BALL_X4 = 0x10,         // "4x"
+	BALL_BLOCK = 0x20,      // "block": cube02.png, heavy
+	BALL_HEAVY = 0x40,      // "heavy": rock.png
+	BALL_STONE = 0x80,      // "stone"
+	BALL_BREAKABLE = 0x100  // "obstacle", and the level file's breakable obstacles: cube02.png, fixed
 };
 
 // A letter ball (0xfc bytes, constructor 0x40f200, vtable 0x481bd0). The ball array holds them in one array.
