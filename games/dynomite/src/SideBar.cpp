@@ -229,7 +229,7 @@ void SideBar::ButtonDepress(int theId)
 		mApp->ConfirmExit();
 		return;
 	case 3:
-		if ((mApp->mBoard != NULL) && !mApp->mField1094)
+		if ((mApp->mBoard != NULL) && !mApp->mInTutorial)
 		{
 			SetPauseState(0);
 			return;
@@ -238,7 +238,7 @@ void SideBar::ButtonDepress(int theId)
 	case 4:
 	{
 		Dynomite* aBoard = mApp->mBoard;
-		if ((aBoard != NULL) && !mApp->mField1094)
+		if ((aBoard != NULL) && !mApp->mInTutorial)
 		{
 			if (!aBoard->mField131 && !aBoard->mField130)
 			{

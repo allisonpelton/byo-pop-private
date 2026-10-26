@@ -50,13 +50,9 @@ public:
 	Cell*        mPicWizardgraphics_r12cc;                // +0x12cc
 	Cell*        mPicWizardgraphics_r12d0;                // +0x12d0
 	Pic*         mPicInchylarge;                          // +0x12d4
-	Cell*        mPicInchylarge_c0;                       // +0x12d8
-	Cell*        mPicInchylarge_c1;                       // +0x12dc
+	Cell*        mInchyLargeCells[2];                        // +0x12d8 inchylarge_c0..c1
 	Pic*         mPicInchylargemouth;                     // +0x12e0
-	Cell*        mPicInchylargemouth_c0;                  // +0x12e4
-	Cell*        mPicInchylargemouth_c1;                  // +0x12e8
-	Cell*        mPicInchylargemouth_c2;                  // +0x12ec
-	Cell*        mPicInchylargemouth_c3;                  // +0x12f0
+	Cell*        mInchyLargeMouthCells[4];                   // +0x12e4 inchylargemouth_c0..c3
 	Pic*         mPicWelcomescreen;                       // +0x12f4
 	Cell*        mPicWelcomescreen_r12f8;                 // +0x12f8
 	Cell*        mPicWelcomescreen_r12fc;                 // +0x12fc
@@ -236,11 +232,14 @@ public:
 	PicFont*     mAnnounceFont1928;                       // +0x1928 the same font as +0x192c
 
 	MTRand       mRand;                                   // +0x5d8 seeded with the tick count
-	int          mField1084;                              // +0x1084 (1)
-	int          mField1088;                              // +0x1088 (0)
-	int          mGameMode;                               // +0x108c 1 puzzle, 2 panic, 3 fossil, 4 time trial
-	bool         mField1094;                              // +0x1094 the menu button goes straight to the main menu
+	int          mSkill;                                  // +0x1084 1 normal, 2 hard, 3 expert
+	int          mFossilKind;                             // +0x1088 the fossil challenge: 0 strategic, 1 panic
+	int          mGameMode;                               // +0x108c 1 stomped, 2 endless, 3 fossil, 4 time trial
+	int          mField1090;                              // +0x1090 the puzzle list's chosen pack
+	bool         mInTutorial;                             // +0x1094 (the menu button goes straight to the main menu)
 	Widget*      mField10bc;                              // +0x10bc a widget the main menu takes down
+	char         mPackFile[0x100];                        // +0x1118 the Stomped Puzzle pack (DEFAULT.EGG, STOMPED\...)
+	unsigned int mPuzzleSkills;                           // +0x1218 the skills the pack has (bits 1, 2, 4), -1 all
 	SideBar*     mSideBar;                                // +0x19e4
 	IntroScreen* mIntroScreen;                            // +0x19e8 the main menu
 	Dynomite*    mBoard;                                  // +0x19ec
@@ -276,6 +275,8 @@ public:
 	void			ShowOptions();								// 0x418ba0
 	void			ConfirmExit();								// 0x41e590
 	void			SaveGame();									// 0x419130
+	void			StartTutorial();							// 0x419040
+	void			LoadSavedGame(const char* theFile);			// 0x418fd0
 	void			TitleScreenDone();							// 0x419250: the play link
 	void			PumpLoading();								// port: the loading runs in the main thread
 };

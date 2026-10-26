@@ -115,15 +115,18 @@ State (2026-10-26, evening): the native build runs (`TARGET=dynomite tools/build
 Translated and checked on screen: the app's Init, the loader (`src/AppLoad.cpp`), `GetGameImage`, the dialog
 (`NewDialog` 0x418a00 on `Dialog2004`), the title screen (`src/TitleScreen.cpp`, 0x438b20), the side bar
 (`src/SideBar.cpp`, 0x435420) with its `CellButton`s (0x437520) and the small Inchy (`src/InchySmall.cpp`), and the
-game's pointer list (`src/PtrList.h`, 0x430ea0). `src/Dynomite.h/.cpp` is a stub with the board fields known so far
-(constructor 0x404030: lists at +0xb8, +0xd0, +0xe8, +0x10c, an object at +0x164 (0x414a00), the pause count +0x150,
+game's pointer list (`src/PtrList.h`, 0x430ea0). Then the main menu (`src/IntroScreen.cpp`, 0x424e90) with its
+pages (start, modes, skill, fossil kind, saved games, puzzle packs), the large Inchy (`src/MenuTalker.cpp`,
+0x422d90), the pack list (`src/PuzzleListWidget.cpp`, 0x4318f0, reading DEFAULT.EGG and STOMPED\*.EGG) and the
+binary file (`src/BinFile.cpp`, 0x414a00; reads only so far). The app's +0x1084 is the skill, +0x1088 the fossil
+challenge's kind, +0x1094 is set for the tutorial (start choice 2 calls 0x419040). `src/Dynomite.h/.cpp` is a stub with the board fields known so far
+(constructor 0x404030: lists at +0xb8, +0xd0, +0xe8, +0x10c, a `BinFile` at +0x164 (0x414a00), the pause count +0x150,
 the dynamite +0x154).
 
-Next, in this order: the main menu (`IntroScreen`, 0x424e90, 0x284 bytes; its methods 0x423d10-0x424e90 and on into
-0x425000-0x42a000), `ShowMainMenu`'s TODO (0x4186d0), `StartGame` (0x418810: mode +0x108c makes DynomiteStomped
+Next, in this order: `StartGame` (0x418810: mode +0x108c makes DynomiteStomped
 0x40ea50 (0x62c bytes), DynomitePanic 0x40ca40 (0x274), DynomiteFossil 0x408e40 (0x328) or DynomiteTimeTrial
 0x411ff0 (0x254), resized to (150, 0, 490, 480), slot 46 `Init(app, level)` with +0x1084, or +0x1088 for the fossil
 mode), then the board (0x401000-0x408e40; 0x401000-0x404030 holds other classes), the modes, the app's
-ButtonPress/ButtonDepress (0x418e90, 0x4201b0), the dialogs (options 0x42ee20, save 0x433910, high scores), the
-museum (0x42bb50 at app+0x5d4) and the tutor. App slot 51 is `DoDialog`, 53 `AddDialog`, 20 `SafeDeleteWidget`,
+ButtonPress/ButtonDepress (0x418e90, 0x4201b0), the dialogs (options 0x42ee20, save 0x433910, high scores), the saved games (0x418fd0 loads
+SLOTn.SAV), the tutorial (0x419040), the museum (0x42bb50 at app+0x5d4) and the tutor. App slot 51 is `DoDialog`, 53 `AddDialog`, 20 `SafeDeleteWidget`,
 31 `Shutdown`; WidgetManager 0x47ec90 is `BringToBack`.

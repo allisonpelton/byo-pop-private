@@ -2,6 +2,7 @@
 #include "Dynomite.h"
 #include "SideBar.h"
 #include "InchySmall.h"
+#include "IntroScreen.h"
 #include "TitleScreen.h"
 #include "compat2004/Compat2004.h"
 #include "DDImage.h"
@@ -27,13 +28,17 @@ FossilizedApp::FossilizedApp()
 	mMusicVolume = 0.5;
 	mSfxVolume = 0.85;
 	mRand.SRand(GetTickCount());
-	mField1084 = 1;
-	mField1088 = 0;
+	mSkill = 1;
+	mFossilKind = 0;
 	mGameMode = 2;
-	mField1094 = false;
+	mInTutorial = false;
 	mField10bc = NULL;
 	mSideBar = NULL;
 	mIntroScreen = NULL;
+	// port: the original leaves these to its allocation
+	mField1090 = 0;
+	mPackFile[0] = 0;
+	mPuzzleSkills = 0;
 	mBoard = NULL;
 	mTitleScreen = NULL;
 	mImgTitle = NULL;
@@ -146,8 +151,10 @@ void FossilizedApp::ShowMainMenu()
 	}
 	mSideBar->DisableGameButtons();
 	mSideBar->SetPauseState(0);
-	// TODO: the main menu (IntroScreen 0x424e90, 0x284 bytes) at +0x19e8, resized to (150, 0, 490, 480), added
-	// and put at the back
+	mIntroScreen = new IntroScreen(this);
+	mIntroScreen->Resize(0x96, 0, 0x1ea, 0x1e0);
+	mWidgetManager->AddWidget(mIntroScreen);
+	mWidgetManager->BringToBack(mIntroScreen);
 	mSideBar->mInchy->Sink(0);
 }
 
@@ -170,10 +177,10 @@ Dialog* FossilizedApp::NewDialog(int theDialogId, bool isModal, const SexyString
 // 0x41e770: the side bar's menu button; in a game it asks first (dialog 1)
 void FossilizedApp::MenuButton()
 {
-	if (mField1094 == true)
+	if (mInTutorial == true)
 	{
 		ShowMainMenu();
-		mField1094 = false;
+		mInTutorial = false;
 		return;
 	}
 	if (mBoard != NULL)
@@ -205,6 +212,24 @@ void FossilizedApp::ShowOptions()
 void FossilizedApp::SaveGame()
 {
 	// TODO: SaveGameDialog (0x433910, 0x2d0 bytes)
+}
+
+// 0x418810
+void FossilizedApp::StartGame()
+{
+	// TODO: the board of the chosen mode
+}
+
+// 0x419040
+void FossilizedApp::StartTutorial()
+{
+	// TODO: the tutorial
+}
+
+// 0x418fd0
+void FossilizedApp::LoadSavedGame(const char* theFile)
+{
+	// TODO: the saved game's board
 }
 
 // port: the loading runs in the main thread, so the loader draws the title screen now and then
