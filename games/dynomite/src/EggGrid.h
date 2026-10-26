@@ -107,7 +107,7 @@ class EggGrid
 public:
 	float				mCeiling;			// +4 the ceiling's offset (grid y = screen y - this)
 	float				mRows;				// +8 the rows in use
-	int					mField0c;			// +0xc (a baby egg's row is chosen below this many pixels)
+	int					mBottom;			// +0xc the screen y of the lowest row's top (Update; a baby egg's pick)
 	int					mMaxColor;			// +0x10 the highest colour placed (4)
 	GridCell			mCells[15][100];	// +0x14 column, row
 	GridCell			mScratch[15][100];	// +0x1784 Match's copy of mCells
@@ -115,22 +115,22 @@ public:
 	Dynomite*			mBoard;				// +0x4664
 	FossilizedApp*		mApp;				// +0x4668
 	PtrList<GridDynamite> mDynamites;		// +0x466c
-	int					mField4684;			// +0x4684
-	bool				mField4688;			// +0x4688
-	int					mField468c;			// +0x468c
+	int					mPastLineFrames;	// +0x4684 frames the eggs have been past the board's line
+	bool				mWarning;			// +0x4688 the warning's blink, on or off
+	int					mWarningBlink;		// +0x468c
 	bool				mField4690;			// +0x4690
-	bool				mField4691;			// +0x4691
+	bool				mField4691;			// +0x4691 (set when the eggs first pass the line)
 	PtrList<GridTarget>	mTargets;			// +0x4694
-	bool				mField46ac;			// +0x46ac
-	int					mField46b0;			// +0x46b0 (200)
+	bool				mBabyEggsOn;		// +0x46ac
+	int					mBabyEggChance;		// +0x46b0 one in this many frames (200)
 	int					mField46b4;			// +0x46b4 (200)
 	PtrList<BabyEgg>	mBabyEggs;			// +0x46b8
 	bool				mField46d0;			// +0x46d0
-	bool				mField46d1;			// +0x46d1
+	bool				mBreakPastLine;		// +0x46d1 Update breaks the eggs past the line
 	int					mBlastX;			// +0x46d4 Blast's sums, then the middle
 	int					mBlastY;			// +0x46d8
 	int					mBlastCount;		// +0x46dc
-	int					mField46e0;			// +0x46e0 (100)
+	int					mEggCount;			// +0x46e0 matchable eggs in the lowest ten rows (100)
 	bool				mLoneEgg;			// +0x46e4 set before a landing egg is placed; cleared when it touches its colour
 	bool				mField46e5;			// +0x46e5
 
@@ -148,6 +148,8 @@ public:
 	void				AddRow(int theRow);									// 0x416b00: random eggs across a row
 	void				Clear();											// 0x417190
 	void				PushDown();											// 0x418020: two new rows on top
+	void				BreakPastLine();									// 0x416e30
+	void				Update();											// 0x4174c0
 	unsigned int		Probe(int x, int y, bool theGhost);					// 0x4169c0
 	void				Break(int x, int y, GridCell* theCell);				// 0x415a20
 	void				Place(int theCol, int theRow, int theColor, int theKind);	// 0x416590

@@ -15,7 +15,7 @@ EggGrid::EggGrid(FossilizedApp* theApp, Dynomite* theBoard)
 	mApp = theApp;
 	mCeiling = 0;
 	mRows = 0;
-	mField4688 = false;
+	mWarning = false;
 	mLoneEgg = false; // port: not set by the original constructor
 	GridCell* aCell = &mCells[0][0];
 	for (int i = 0x5dc; i != 0; i--)
@@ -34,11 +34,11 @@ EggGrid::EggGrid(FossilizedApp* theApp, Dynomite* theBoard)
 	mField4690 = false;
 	mField4691 = false;
 	mField46d0 = true;
-	mField46ac = true;
+	mBabyEggsOn = true;
 	mField46b4 = 200;
-	mField46b0 = 200;
-	mField46d1 = false;
-	mField46e0 = 100;
+	mBabyEggChance = 200;
+	mBreakPastLine = false;
+	mEggCount = 100;
 	mField46e5 = false;
 	// port: not set by the original constructor
 	mBlastX = 0;
@@ -47,9 +47,9 @@ EggGrid::EggGrid(FossilizedApp* theApp, Dynomite* theBoard)
 	mTargets.Clear();
 	mBabyEggs.Clear();
 	// port: not set by the original constructor
-	mField0c = 0;
-	mField4684 = 0;
-	mField468c = 0;
+	mBottom = 0;
+	mPastLineFrames = 0;
+	mWarningBlink = 0;
 }
 
 // 0x417420
@@ -881,7 +881,7 @@ void EggGrid::Clear()
 		aCell->mBits = 0;
 		aCell++;
 	}
-	mField46e0 = 0;
+	mEggCount = 0;
 	mField4691 = false;
 	ClearDynamite();
 }
@@ -932,7 +932,7 @@ void EggGrid::PushDown()
 BabyEgg::BabyEgg(EggGrid* theGrid)
 {
 	mGrid = theGrid;
-	if (theGrid->mField0c < 1)
+	if (theGrid->mBottom < 1)
 	{
 		mTime = 0;
 		mRow = 0;
@@ -940,7 +940,7 @@ BabyEgg::BabyEgg(EggGrid* theGrid)
 		return;
 	}
 	unsigned int aX = theGrid->mApp->mRand.NextNoAssert() % (unsigned int) theGrid->mBoard->mField68;
-	unsigned int aY = mGrid->mApp->mRand.NextNoAssert() % (unsigned int) mGrid->mField0c;
+	unsigned int aY = mGrid->mApp->mRand.NextNoAssert() % (unsigned int) mGrid->mBottom;
 	GridPoint aCell;
 	EggGrid::PixelToCell(aX, aY, &aCell);
 	mCol = aCell.mX;
@@ -987,4 +987,158 @@ bool BabyEgg::Update()
 	if (mTime < 1)
 		return false;
 	return (char) mGrid->mCells[mCol][mRow].mBits != 0;
+}
+
+// 0x416e30: the eggs of the rows at or past the board's line (+0x74) break without points; the mode's pieces (50)
+// only show falling
+void EggGrid::BreakPastLine()
+{
+	int y = (int) mCeiling;
+	int aCols = mBoard->mField68 / 0x21 + 1;
+	int aLastRow = (int) mRows;
+	int aRow = 0;
+	bool aBroke = false;
+	if (-1 < aLastRow)
+	{
+		do
+		{
+			if ((mBoard->mField74 <= y) && (0 < aCols))
+			{
+				int aCol = 0;
+				do
+				{
+					unsigned int aColor = mCells[aCol][aRow].mBits & 0xff;
+					if (aColor != 0)
+					{
+						GridPoint aPixel;
+						CellToPixel(aCol, aRow, &aPixel);
+						GridPoint aScreen;
+						GridToScreen(aPixel.mX, aPixel.mY, &aScreen);
+						// the original keeps the stack slot's bits from 13 up
+						GridCell aCell;
+						aCell.mBits = aColor;
+						if (aColor < 0x32)
+						{
+							Break(aScreen.mX, aScreen.mY, &aCell);
+							Remove(aCol, aRow, false);
+							aBroke = true;
+						}
+						else if (aColor == 0x32)
+						{
+							FallingEggEffect* aPiece = new FallingEggEffect();
+							aPiece->Init(mApp, aScreen.mX + 0x10, aScreen.mY + 0x10, 0x32, 0);
+							mBoard->mEffects.Add(aPiece);
+						}
+					}
+					aCol++;
+				} while (aCol < aCols);
+			}
+			y = y + 0x21;
+			aRow++;
+		} while (aRow <= aLastRow);
+		if (aBroke)
+			mApp->mSndBreakegg->Play();
+	}
+}
+
+// 0x4174c0: baby eggs come and go, the sticks slide, the warning blinks while the eggs are past the line, and the
+// matchable eggs of the lowest ten rows are counted (once more after a recount of the rows if there are none)
+void EggGrid::Update()
+{
+	if ((mBabyEggsOn == true) && (mApp->mRand.NextNoAssert() % (unsigned int) mBabyEggChance == 0))
+	{
+		BabyEgg* aBabyEgg = new BabyEgg(this);
+		if (aBabyEgg->mTime < 1)
+			delete aBabyEgg;
+		else
+			mBabyEggs.Add(aBabyEgg);
+	}
+	mBabyEggs.ResetIter();
+	BabyEgg* aBabyEgg = mBabyEggs.Next();
+	while (aBabyEgg != NULL)
+	{
+		if (aBabyEgg->Update() == false)
+		{
+			mBabyEggs.Remove(aBabyEgg);
+			if (aBabyEgg != NULL)
+				delete aBabyEgg;
+		}
+		aBabyEgg = mBabyEggs.Next();
+	}
+	mDynamites.ResetIter();
+	GridDynamite* aDynamite = mDynamites.Next();
+	while (aDynamite != NULL)
+	{
+		aDynamite->Update();
+		aDynamite = mDynamites.Next();
+	}
+	mBottom = (int) (mRows * 33.0f - 16.0f);
+	GridPoint aPoint;
+	GridToScreen(0, mBottom, &aPoint);
+	mBottom = aPoint.mY;
+	if (mBoard->mField74 < mBottom)
+	{
+		if (mPastLineFrames == 0)
+		{
+			mField4691 = true;
+			mWarning = true;
+			mWarningBlink = 0;
+		}
+		mPastLineFrames++;
+	}
+	else
+		mPastLineFrames = 0;
+	if (mBoard->mField149 == true)
+	{
+		mWarningBlink++;
+		if (0x19 < mWarningBlink)
+		{
+			mWarningBlink = 0;
+			mWarning = mWarning != true;
+		}
+	}
+	else
+		mWarning = false;
+	if (mBreakPastLine == true)
+	{
+		BreakPastLine();
+		return;
+	}
+	mEggCount = 0;
+	bool aRecounted = false;
+	while (true)
+	{
+		int aCols = mBoard->mField68 / 0x21 + 1;
+		int aRow = 0;
+		if (10.0f < mRows)
+		{
+			aRow = (int) (mRows - 10.0f);
+			if (aRow < 0)
+				aRow = 0;
+		}
+		if ((float) aRow <= mRows)
+		{
+			do
+			{
+				if (0 < aCols)
+				{
+					int aCol = 0;
+					int i = aCols;
+					do
+					{
+						unsigned int aColor = mCells[aCol][aRow].mBits & 0xff;
+						if ((aColor != 0) && (aColor < 0x12))
+							mEggCount++;
+						aCol++;
+						i--;
+					} while (i != 0);
+				}
+				aRow++;
+			} while ((float) aRow <= mRows);
+		}
+		if ((mEggCount != 0) || aRecounted)
+			break;
+		aRecounted = true;
+		CountRows();
+	}
 }
