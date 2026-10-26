@@ -5,3 +5,7 @@
 # but the public repository does not show how to take the protection apart.
 tools/extract_game_exe.py
 tools/triage_popcap.py
+
+# Bejeweled's Steven Universe gems: fan art of Cartoon Network's designs, never redistributed (the user, 2026-10-25),
+# so the generator stays out of the public snapshot too.
+games/bejeweled/tools/make_su_gems_mod.py
