@@ -15,20 +15,21 @@ namespace cb
 // a cell, 0x419780 destroys one)
 struct Cell : Obj
 {
-	// kind +0x08: 0 open, 3 edge, 5 solid; state +0x0c: 6 inside the board's frame
+	// kind +0x08: 0 open, 1 and 2 a beam's, 3 edge, 4 filled, 5 solid; state +0x0c: 3 still, 5 being captured,
+	// 6 waiting for the board's wave, 7 in the wave (which builds the board at the start, and takes it down when won)
 	int row;                   // +0xb0
 	int col;                   // +0xb4
-	int unkb8;                 // +0xb8
-	int unkbc;                 // +0xbc
-	int unkc0;                 // +0xc0
-	int unkc4;                 // +0xc4
-	int unkc8;                 // +0xc8
-	int unkcc;                 // +0xcc
-	int unkd0;                 // +0xd0
-	int unkd4;                 // +0xd4  180 when made, 360 when the level is won
-	int unkd8;                 // +0xd8
-	int unkdc;                 // +0xdc
-	int unke0;                 // +0xe0
+	int step;                  // +0xb8  of the capture or the wave
+	int fromKind;              // +0xbc  a capture spreads to the neighbours of this kind
+	int toKind;                // +0xc0  and makes them this kind
+	int offX;                  // +0xc4  where it slides in from (capture) or out to (wave)
+	int offY;                  // +0xc8
+	int shadowRight;           // +0xcc  the left neighbour's shadow is drawn on it
+	int shadowBelow;           // +0xd0  the upper neighbour's
+	int steps;                 // +0xd4  180 when made, 360 when the level is won
+	int firstParticle;         // +0xd8
+	int lastParticle;          // +0xdc
+	int unmarked;              // +0xe0  0 once the last flood reached it
 };
 static_assert(sizeof(Cell) == 0xe4, "Cell");
 
@@ -50,15 +51,47 @@ struct Enemy : Obj
 };
 static_assert(sizeof(Enemy) == 0x110, "Enemy");
 
+struct Shooter;
+struct Rider;
+
+// A beam the ship fires (0x17c bytes, 0x41dad0 constructs one): its head (x, y) runs from where it was fired until
+// the cell ahead is not open
+struct Beam : Obj
+{
+	float startX;              // +0xb0
+	float startY;              // +0xb4
+	Shooter* owner;            // +0xb8
+	int hit;                   // +0xbc
+	List<Rider> riders;        // +0xc0
+	Obj unkcc;                 // +0xcc
+};
+static_assert(sizeof(Beam) == 0x17c, "Beam");
+
+// A beamrider: an enemy's shot that runs back along a beam to the ship (0xc0 bytes, 0x407d40 appends one)
+struct Rider : Obj
+{
+	Beam* beam;                // +0xb0
+	Enemy* enemy;              // +0xb4  the one that sent it
+	int firstImage;            // +0xb8  its trail's particles
+	int lastImage;             // +0xbc
+};
+static_assert(sizeof(Rider) == 0xc0, "Rider");
+
 // The player's ship (0x4c4 bytes, 0x41d540 constructs one)
 struct Shooter : Obj
 {
 	uint8_t unkb0[0x40];       // +0xb0
-	List<Obj> beams;           // +0xf0
-	uint8_t unkfc[0x38c];      // +0xfc
-	float unk488;              // +0x488
+	List<Beam> beams;          // +0xf0
+	uint8_t unkfc[0x14];       // +0xfc
+	Obj unk110[5];             // +0x110
+	int beamAcross;            // +0x480  1: the beams go left and right
+	int unk484;                // +0x484
+	float beamSpeed;           // +0x488
 	int flags;                 // +0x48c  0x10: invincible
-	uint8_t unk490[0x34];      // +0x490
+	uint8_t unk490[0x10];      // +0x490
+	int hitSound;              // +0x4a0  a beam meets a wall
+	uint8_t unk4a4[0x1c];      // +0x4a4
+	int cellPoints;            // +0x4c0  the score for each cell captured
 };
 static_assert(sizeof(Shooter) == 0x4c4, "Shooter");
 
@@ -186,20 +219,42 @@ void Level_AddKey(Level* theLevel, char theKey, int theA, int theB); // 0x410c00
 void Level_FindKey(Level* theLevel, char theKey, int* theA, int* theB); // 0x410c40
 void Level_AddPointer(Level* theLevel);                          // 0x410cc0
 void Level_UnlinkAll(Level* theLevel);                           // 0x410ad0
-void Cells_Delete(Cell* theCells);
 void Level_UpdateProgressStars();                                // 0x413990
 void Level_SetUserName(const char* theName);                     // 0x413a90
 int Pointer_Update(Obj* thePointer);                             // 0x413bf0
 void Pointer_Draw(Obj* thePointer);                              // 0x413ce0
 
+// Beams and beamriders (CBBeam.cpp)
+void Beam_Setup(Beam* theBeam, Shooter* theOwner, float theX, float theY, float theVx, float theVy); // 0x402850
+void Rider_Setup(Rider* theRider, Beam* theBeam, float theX, float theY, Enemy* theEnemy); // 0x402940
+int Rider_Update(Rider* theRider);                               // 0x402a00: 0 when it is done
+void Beam_DrawTo(Beam* theBeam, uint8_t* theDst, int theDPitch); // 0x402cd0
+void Beam_Draw(Beam* theBeam);                                   // 0x403130
+int Beam_Update(Beam* theBeam);                                  // 0x403150: 0 once it has hit
+void Beam_Destroy(Beam* theBeam);                                // 0x403410
+void List_DeleteNode(Beam* theBeam);                             // 0x4112c0's delete
+Beam* Beam_Init(Beam* theBeam);                                  // 0x41dad0
+void Rider_Append(List<Rider>* theList);                         // 0x407d40
+
 // The kinds' code the level calls (translated with each kind)
-Cell* Cells_New();                                               // new[] of 37, each 0x4034f0
-void Cell_Set(Cell* theCell, char theCode, int theCol, int theRow); // 0x404440: from a row's cells attribute
-void Cell_StartFill(Cell* theCell);                              // 0x404370
-int Cell_Touches(Cell* theCell, int theKind);                    // 0x403ee0
-void Cell_MakeEdge(Cell* theCell);                               // 0x404080
+// Cells (CBCell.cpp)
+// A column: the original's new[] of 37, each constructed by 0x4034f0 (the port adds a 38th, see Cells_New)
+Cell* Cells_New();
+void Cells_Delete(Cell* theCells);
+Cell* Cell_Init(Cell* theCell);                                  // 0x4034f0
 void Cell_Redraw(Cell* theCell);                                 // 0x403540
-int Fill_Update(Cell* theCell);                                  // 0x404cf0
+uint32_t Cell_SameNeighbours(Cell* theCell);                     // 0x403df0: bit 4 + 3 dy + dx
+uint32_t Cell_Touches(Cell* theCell, int theKind);               // 0x403ee0: the same for neighbours of a kind
+void Cell_Flood(Cell* theCell);                                  // 0x403fb0: marks the open region, counting it
+int Cell_PickImage(Cell* theCell);                               // 0x404080: by the neighbours of its kind
+void Cell_StartCapture(Cell* theCell, Image* theImage, int theFrom, int theTo); // 0x404290
+void Cell_StartFill(Cell* theCell);                              // 0x404370: the wave reaches it
+void Cell_Set(Cell* theCell, char theCode, int theCol, int theRow); // 0x404440: from a row's cells attribute
+void Cell_FillNext(Cell* theCell);                               // 0x4045e0: the wave goes on to a neighbour
+void Cell_SpreadCapture(Cell* theCell);                          // 0x404680
+int Cell_UpdateCapture(Cell* theCell);                           // 0x4047d0: 0 when done
+int Cell_UpdateFill(Cell* theCell);                              // 0x404a10: 0 when done
+int Fill_Update(Cell* theCell);                                  // 0x404cf0: 0 when done
 void Panel_Append(List<Panel>* theList);                         // 0x411ea0
 void Panel_Setup(Panel* thePanel);                               // 0x417ef0
 void Panel_FromXml(Panel* thePanel, const char* p, const XmlTag* theTag); // 0x417d40
@@ -210,7 +265,8 @@ Shooter* Shooter_Init(Shooter* theShooter);                      // 0x41d540
 void Shooter_Setup(Shooter* theShooter);                         // 0x41b0f0
 void Shooter_FromXml(Shooter* theShooter, const char* p, const XmlTag* theTag); // 0x41aec0
 void Shooter_Update(Shooter* theShooter);                        // 0x41e200
-void Beams_RemoveAll(List<Obj>* theList);                        // 0x411900
+void Shooter_Hit(Shooter* theShooter, float theVx, float theVy);  // 0x41bee0: a beamrider reached it
+void Beams_RemoveAll(List<Beam>* theList);                       // 0x411900
 void Enemy_Insert(List<Enemy>* theList);                         // 0x4106b0
 Enemy* Enemy_Init(Enemy* theEnemy);                              // 0x404fc0
 void Enemy_FromXml(Enemy* theEnemy, const char* p, const XmlTag* theTag); // 0x405040

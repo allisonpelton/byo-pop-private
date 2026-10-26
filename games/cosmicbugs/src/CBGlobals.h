@@ -16,13 +16,16 @@ struct Profile
 	char name[0x20];           // +0x00
 	int levelReached;          // +0x20
 	int unk24;                 // +0x24
-	int unk28[4];              // +0x28
-	int unk38;                 // +0x38  beam riders lost
+	int savedLevel;            // +0x28  the game in progress (0 when there is none)
+	int savedLives;            // +0x2c
+	int savedScore;            // +0x30
+	int beamsFired;            // +0x34
+	int riderHits;             // +0x38  beamriders that reached the ship
 	int unk3c[2];              // +0x3c
 };
 static_assert(sizeof(Profile) == 0x44, "Profile");
 
-// A level's records (0x30 bytes, at 0x4623e0 by level number)
+// A level's records (0x30 bytes, 1000 of them at 0x4623e0 by level number)
 struct LevelRecord
 {
 	char timeName[0x14];       // +0x00
@@ -50,7 +53,7 @@ extern int gDemo;                          // 0x46e5c8  the game plays itself
 extern List<LevelSet> gLevelSets;          // 0x4700d4
 extern int gProfile;                       // 0x46e24c
 extern Profile gProfiles[11];              // 0x46df60
-extern LevelRecord gLevelRecords[512];     // 0x4623e0
+extern LevelRecord gLevelRecords[1000];    // 0x4623e0
 extern int gRegistered;                    // 0x460004
 extern int gScore;                         // 0x46e5e8
 extern int gLowestHighScore;               // 0x46e36c
@@ -60,9 +63,14 @@ extern int gMouseX;                        // 0x46e5bc
 extern int gMouseY;                        // 0x46e5c0
 extern int gTrial;                         // 0x46e5c4
 extern int gTrialLeft;                     // 0x460044  ms
+extern int gLives;                         // 0x460040
+extern float gBeamSpeed;                   // 0x460038  the ship's beams' speed at the start
+extern int gDifficulty;                    // 0x46e5e0  -1, 0 or 1 (the options' cycle)
 extern int gUnk460028;                     // 0x460028
 extern const int kClip[4];                 // 0x460010  the screen
-extern Image gScreen;                      // 0x472ab0  the screen's image (its format and size)
+// 0x472ab0: 800x600 in the screen's format, the level's background with the cells drawn on (each frame the dirty
+// parts go to the screen under the objects)
+extern Image gBackBuffer;
 bool Sys_FileExists(const char* thePath);
 
 // The game's texts, read from the player's exe by address (CBText.cpp)

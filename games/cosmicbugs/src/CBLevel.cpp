@@ -327,7 +327,7 @@ void Level_MakeEdges(Level* theLevel)
 		for (int x = 0; x < gLevels.current->cols; x++)
 		{
 			if (theLevel->columns[x][y].kind == 3)
-				Cell_MakeEdge(&theLevel->columns[x][y]);
+				Cell_PickImage(&theLevel->columns[x][y]);
 		}
 	}
 }
@@ -415,8 +415,8 @@ void Level_RedrawCells(Level* theLevel)
 	{
 		for (int x = gLevels.current->cols + -1; -1 < x; x--)
 		{
-			theLevel->columns[x][y].unkd0 = 0;
-			theLevel->columns[x][y].unkcc = 0;
+			theLevel->columns[x][y].shadowBelow = 0;
+			theLevel->columns[x][y].shadowRight = 0;
 		}
 	}
 	for (int y = gLevels.current->rows + -1; -1 < y; y--)
@@ -435,7 +435,7 @@ static Font* ScreenFont(const char* theName)
 {
 	Font* aFont = Font_Find(theName);
 	Font_SetEscapes(aFont, 1);
-	Font_SetTarget(aFont, gScreenBits, gScreenPitch, &gScreen.fmt, gScreen.w, gScreen.h);
+	Font_SetTarget(aFont, gScreenBits, gScreenPitch, &gBackBuffer.fmt, gBackBuffer.w, gBackBuffer.h);
 	Font_SetPalette(aFont, nullptr);
 	aFont->alpha = 0xff;
 	return aFont;
@@ -868,7 +868,7 @@ static void Level_Won(Level* theLevel)
 		for (int x = 1; x < gLevels.current->cols + -1; x++)
 		{
 			theLevel->columns[x][y].state = 6;
-			theLevel->columns[x][y].unkd4 = 0x168;
+			theLevel->columns[x][y].steps = 0x168;
 		}
 	}
 	Cell_StartFill(&theLevel->columns[1][1]);
@@ -1301,7 +1301,7 @@ void Level_ShowStart(Level* theLevel)
 	}
 }
 
-void Beams_RemoveAll(List<Obj>* theList)
+void Beams_RemoveAll(List<Beam>* theList)
 {
 	while (List_RemoveCurrent(theList))
 		;
