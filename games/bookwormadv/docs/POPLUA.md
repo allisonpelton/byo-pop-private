@@ -5,6 +5,10 @@ VM are 5.0.2's; the changes below were read from the Ghidra decompile and the di
 `BookwormAdventures.exe` (addresses are the exe's). This file is the specification the port's VM
 (`games/bookwormadv/poplua/`) is checked against. Nothing here was learned by running the original.
 
+The unchanged Lua 5.0.2 sources to diff PopLua against are not in the repository (nothing builds plain Lua 5.0):
+`E:/retools/lua-5.0.2-dl/lua-5.0.2.tar.gz` from lua.org, SHA-256
+`a6c85d85f912e1c321723084389d63dee7660b81b8292452b190ea7190dd73bc`, extracted beside it in `x/lua-5.0.2/`.
+
 ## Values
 
 `TObject` keeps 5.0's layout: `int tt` at offset 0, the value at offset 8 (16 bytes with MSVC alignment).

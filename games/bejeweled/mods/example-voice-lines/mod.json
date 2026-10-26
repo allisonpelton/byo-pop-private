@@ -2,6 +2,7 @@
   "id": "example-voice-lines",
   "name": "New Messages",
   "version": "1.0",
+  "defaultEnabled": false,
   "author": "byo-pop examples",
   "description": "Changes a few on-screen messages using string overrides.",
   "strings": {

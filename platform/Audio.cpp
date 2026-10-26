@@ -60,7 +60,7 @@ struct Mixer::Song
 
 	std::vector<uint8_t> mFile;              // Ogg bytes, kept alive for the decoder
 	stb_vorbis* mVorbis = nullptr;
-	std::shared_ptr<SoundData> mPcm;         // decoded WAV track (already at the device rate)
+	std::shared_ptr<SoundData> mPcm;         // decoded WAV track (at its own rate, resampled as below)
 	int mSourceRate = 0;
 	int mSourceChannels = 0;
 	int64_t mSourceFrames = 0;               // total length in source frames (0 = unknown)
@@ -85,6 +85,17 @@ struct Mixer::Song
 	float mGain = 1.0f;
 	float mCurGain = 1.0f;  // smoothed per buffer to avoid zipper noise on fades
 
+	// The song's last frames before any gain, the two channels averaged, for GetSongFFT.
+	static const int kHistoryFrames = 4096;
+	float mHistory[kHistoryFrames] = {};
+	int mHistoryPos = 0;
+
+	void Remember(float theLeft, float theRight)
+	{
+		mHistory[mHistoryPos] = (theLeft + theRight) * 0.5f;
+		mHistoryPos = (mHistoryPos + 1) & (kHistoryFrames - 1);
+	}
+
 	bool IsStream() const { return mVorbis || mPcm; }
 
 	void SeekSource(int64_t theFrame)
@@ -106,8 +117,9 @@ struct Mixer::Song
 			{
 				if (mPcmPos < (int64_t)mPcm->mFrames)
 				{
-					theOut[0] = mPcm->mSamples[mPcmPos * 2];
-					theOut[1] = mPcm->mSamples[mPcmPos * 2 + 1];
+					const int16_t* f = &mPcm->mSamples[mPcmPos * mPcm->mChannels];
+					theOut[0] = f[0] / 32768.0f;
+					theOut[1] = (mPcm->mChannels > 1 ? f[1] : f[0]) / 32768.0f;
 					mPcmPos++;
 					return true;
 				}
@@ -217,6 +229,15 @@ bool Mixer::Init()
 	return true;
 }
 
+void Mixer::InitOffline(int theRate)
+{
+	mOffline = true;
+	mRate = theRate;
+	mVoices.clear();
+	for (int i = 0; i < kMaxVoices; i++)
+		mVoices.emplace_back(new Voice());
+}
+
 void Mixer::Shutdown()
 {
 	if (!mDevice)
@@ -251,26 +272,24 @@ void Mixer::Unlock()
 // ---------------------------------------------------------------------------------------------
 // Sound loading
 
-static void ResampleToStereo(const float* theIn, int theInFrames, int theInChannels, int theInRate, int theOutRate, SoundData& theOut)
+// Keeps a decoded sound as 16-bit samples at its own rate, with its first one or two channels. The decoders give
+// 16-bit or 8-bit values scaled by 1/32768, which this keeps exactly; only a WAV of 24 or 32 bits or floats is reduced
+// to 16 bits (and clipped at full scale). A sound with no frames or no valid rate keeps none, and plays nothing.
+static void StoreSound(const float* theIn, int theInFrames, int theInChannels, int theInRate, SoundData& theOut)
 {
-	if (theInFrames <= 0)
+	if (theInFrames <= 0 || theInChannels <= 0 || theInRate <= 0)
 		return;
-	double ratio = (double)theInRate / theOutRate;
-	size_t outFrames = (size_t)std::ceil(theInFrames / ratio);
-	theOut.mSamples.resize(outFrames * 2);
-	theOut.mFrames = outFrames;
-	for (size_t i = 0; i < outFrames; i++)
+	int channels = std::min(theInChannels, 2);
+	theOut.mChannels = channels;
+	theOut.mRate = theInRate;
+	theOut.mFrames = (size_t)theInFrames;
+	theOut.mSamples.resize((size_t)theInFrames * channels);
+	for (size_t i = 0; i < (size_t)theInFrames; i++)
 	{
-		double src = i * ratio;
-		int i0 = (int)src;
-		int i1 = std::min(i0 + 1, theInFrames - 1);
-		float t = (float)(src - i0);
-		for (int c = 0; c < 2; c++)
+		for (int c = 0; c < channels; c++)
 		{
-			int ch = std::min(c, theInChannels - 1);
-			float a = theIn[i0 * theInChannels + ch];
-			float b = theIn[i1 * theInChannels + ch];
-			theOut.mSamples[i * 2 + c] = a + (b - a) * t;
+			float v = std::round(theIn[i * theInChannels + c] * 32768.0f);
+			theOut.mSamples[i * channels + c] = (int16_t)std::max(-32768.0f, std::min(32767.0f, v));
 		}
 	}
 }
@@ -518,14 +537,23 @@ std::shared_ptr<SoundData> Mixer::LoadSoundData(const std::vector<uint8_t>& file
 			std::vector<float> f;
 			if (!DecodeOggTremor(file, f, &channels, &rate))
 				return nullptr;
-			ResampleToStereo(f.data(), (int)(f.size() / channels), channels, rate, mRate, *data);
+			StoreSound(f.data(), (int)(f.size() / channels), channels, rate, *data);
 			return data;
 		}
-		std::vector<float> f((size_t)frames * channels);
-		for (size_t i = 0; i < f.size(); i++)
-			f[i] = pcm[i] / 32768.0f;
+		// already 16-bit: keep the first one or two channels as they are
+		if (rate <= 0)
+		{
+			free(pcm);
+			return data;
+		}
+		data->mChannels = std::min(channels, 2);
+		data->mRate = rate;
+		data->mFrames = (size_t)frames;
+		data->mSamples.resize((size_t)frames * data->mChannels);
+		for (size_t i = 0; i < (size_t)frames; i++)
+			for (int c = 0; c < data->mChannels; c++)
+				data->mSamples[i * data->mChannels + c] = pcm[i * channels + c];
 		free(pcm);
-		ResampleToStereo(f.data(), frames, channels, rate, mRate, *data);
 		return data;
 	}
 	// Sun/NeXT .au (Big Money, Insaniquarium, Typer Shark, BookWorm)
@@ -538,7 +566,7 @@ std::shared_ptr<SoundData> Mixer::LoadSoundData(const std::vector<uint8_t>& file
 			SDL_Log("cannot decode sound %s (.au: only 8-bit mu-law and 8-bit linear are supported)", theName.c_str());
 			return nullptr;
 		}
-		ResampleToStereo(f.data(), (int)(f.size() / channels), channels, rate, mRate, *data);
+		StoreSound(f.data(), (int)(f.size() / channels), channels, rate, *data);
 		return data;
 	}
 	// MP3 (Mummy Maze's fight sound)
@@ -551,7 +579,7 @@ std::shared_ptr<SoundData> Mixer::LoadSoundData(const std::vector<uint8_t>& file
 			SDL_Log("cannot decode sound %s (MP3: no frames decoded)", theName.c_str());
 			return nullptr;
 		}
-		ResampleToStereo(f.data(), (int)(f.size() / channels), channels, rate, mRate, *data);
+		StoreSound(f.data(), (int)(f.size() / channels), channels, rate, *data);
 		return data;
 	}
 	// MP3 inside a WAV (Word Harmony's music)
@@ -591,7 +619,7 @@ std::shared_ptr<SoundData> Mixer::LoadSoundData(const std::vector<uint8_t>& file
 	cvt.len = (int)len;
 	SDL_ConvertAudio(&cvt);
 	int frames = cvt.len_cvt / (int)(sizeof(float) * spec.channels);
-	ResampleToStereo((const float*)conv.data(), frames, spec.channels, spec.freq, mRate, *data);
+	StoreSound((const float*)conv.data(), frames, spec.channels, spec.freq, *data);
 	return data;
 }
 
@@ -600,7 +628,7 @@ std::shared_ptr<SoundData> Mixer::LoadSoundData(const std::vector<uint8_t>& file
 
 int Mixer::StartVoice(const std::shared_ptr<SoundData>& theData, float theGainL, float theGainR, double thePitch, bool theLoop)
 {
-	if (!mDevice || !theData || theData->mFrames == 0)
+	if ((!mDevice && !mOffline) || !theData || theData->mFrames == 0)
 		return 0;
 	Lock();
 	int slot = -1;
@@ -618,7 +646,7 @@ int Mixer::StartVoice(const std::shared_ptr<SoundData>& theData, float theGainL,
 		Voice& v = *mVoices[slot];
 		v.mData = theData;
 		v.mPos = 0.0;
-		v.mStep = thePitch;
+		v.mStep = thePitch * theData->mRate / mRate;  // the sound's frames per mixed frame
 		v.mGainL = theGainL;
 		v.mGainR = theGainR;
 		v.mLoop = theLoop;
@@ -651,8 +679,8 @@ void Mixer::SetVoicePitch(int theVoice, double thePitch)
 {
 	Lock();
 	VOICE_FOR_HANDLE(theVoice);
-	if (v)
-		v->mStep = thePitch;
+	if (v && v->mData)
+		v->mStep = thePitch * v->mData->mRate / mRate;
 	Unlock();
 }
 
@@ -726,8 +754,8 @@ int Mixer::LoadSong(const std::string& theGamePath)
 		song->mPcm = LoadSoundData(file, theGamePath);
 		if (!song->mPcm)
 			return 0;
-		song->mSourceRate = mRate;
-		song->mSourceChannels = 2;
+		song->mSourceRate = song->mPcm->mRate;
+		song->mSourceChannels = song->mPcm->mChannels;
 		song->mSourceFrames = (int64_t)song->mPcm->mFrames;
 	}
 	if (song->IsStream())
@@ -844,6 +872,11 @@ void Mixer::PlaySong(int theSong, int theOrder, int theRow, bool theLoop, bool t
 		s->mPlaying = true;
 		s->mPaused = false;
 		s->mCurGain = s->mGain;
+		if (theResetPosition)
+		{
+			std::fill(s->mHistory, s->mHistory + Song::kHistoryFrames, 0.0f);
+			s->mHistoryPos = 0;
+		}
 	}
 	Unlock();
 }
@@ -906,6 +939,67 @@ bool Mixer::GetSongPosition(int theSong, int& theOrder, int& theRow)
 	return known;
 }
 
+bool Mixer::GetSongFFT(int theSong, float* theOut, int theSamples)
+{
+	const int n = theSamples;
+	if (n < 64 || n > Song::kHistoryFrames || (n & (n - 1)) != 0)
+		return false;
+	std::vector<double> re(n), im(n, 0.0);
+	bool playing = false;
+	Lock();
+	SONG_FOR_HANDLE(theSong);
+	if (s && s->mPlaying)
+	{
+		playing = true;
+		for (int i = 0; i < n; i++)
+			re[i] = s->mHistory[(s->mHistoryPos - n + i) & (Song::kHistoryFrames - 1)];
+	}
+	Unlock();
+	if (!playing)
+		return false;
+
+	// BASS's default window: a periodic Hann window (measured with BASS 2.3.0.1: a sine centred on a bin puts
+	// half its value in each neighbour)
+	const double pi = 3.14159265358979323846;
+	for (int i = 0; i < n; i++)
+		re[i] *= 0.5 - 0.5 * std::cos(2.0 * pi * i / n);
+
+	// in-place radix-2 FFT
+	for (int i = 1, j = 0; i < n; i++)
+	{
+		int bit = n >> 1;
+		for (; j & bit; bit >>= 1)
+			j ^= bit;
+		j ^= bit;
+		if (i < j)
+		{
+			std::swap(re[i], re[j]);
+			std::swap(im[i], im[j]);
+		}
+	}
+	for (int len = 2; len <= n; len <<= 1)
+	{
+		const double ang = -2.0 * pi / len;
+		for (int i = 0; i < n; i += len)
+			for (int k = 0; k < len / 2; k++)
+			{
+				const double wr = std::cos(ang * k), wi = std::sin(ang * k);
+				const int a = i + k, b = i + k + len / 2;
+				const double xr = re[b] * wr - im[b] * wi, xi = re[b] * wi + im[b] * wr;
+				re[b] = re[a] - xr;
+				im[b] = im[a] - xi;
+				re[a] += xr;
+				im[a] += xi;
+			}
+	}
+
+	// BASS's scale: twice the magnitude over the window's sum (n / 2), so that a full-scale sine reads 1.0 in its
+	// bin, with or without the window, and a constant 0.5 reads 1.0 in bin 0
+	for (int k = 0; k < n / 2; k++)
+		theOut[k] = (float)(4.0 * std::sqrt(re[k] * re[k] + im[k] * im[k]) / n);
+	return true;
+}
+
 // ---------------------------------------------------------------------------------------------
 // Mixing
 
@@ -926,7 +1020,8 @@ void Mixer::Mix(float* theOut, int theFrames)
 		Voice& v = *vp;
 		if (!v.mActive || !v.mData)
 			continue;
-		const float* src = v.mData->mSamples.data();
+		const int16_t* src = v.mData->mSamples.data();
+		const int ch = v.mData->mChannels;
 		const double len = (double)v.mData->mFrames;
 		const float gl = v.mGainL * mSfxMaster, gr = v.mGainR * mSfxMaster;
 		for (int i = 0; i < theFrames; i++)
@@ -944,8 +1039,10 @@ void Mixer::Mix(float* theOut, int theFrames)
 			int i0 = (int)v.mPos;
 			int i1 = i0 + 1 < (int)len ? i0 + 1 : (v.mLoop ? 0 : i0);
 			float t = (float)(v.mPos - i0);
-			float l = src[i0 * 2] + (src[i1 * 2] - src[i0 * 2]) * t;
-			float r = src[i0 * 2 + 1] + (src[i1 * 2 + 1] - src[i0 * 2 + 1]) * t;
+			const int16_t* a = src + i0 * ch;
+			const int16_t* b = src + i1 * ch;
+			float l = (a[0] + (b[0] - a[0]) * t) * (1.0f / 32768.0f);
+			float r = ch > 1 ? (a[1] + (b[1] - a[1]) * t) * (1.0f / 32768.0f) : l;
 			theOut[i * 2] += l * gl;
 			theOut[i * 2 + 1] += r * gr;
 			v.mPos += v.mStep;
@@ -971,8 +1068,11 @@ void Mixer::Mix(float* theOut, int theFrames)
 			{
 				float g = g0 + (g1 - g0) * ((float)i / theFrames);
 				float t = (float)s.mFrac;
-				theOut[i * 2] += (s.mFrameA[0] + (s.mFrameB[0] - s.mFrameA[0]) * t) * g;
-				theOut[i * 2 + 1] += (s.mFrameA[1] + (s.mFrameB[1] - s.mFrameA[1]) * t) * g;
+				float l = s.mFrameA[0] + (s.mFrameB[0] - s.mFrameA[0]) * t;
+				float r = s.mFrameA[1] + (s.mFrameB[1] - s.mFrameA[1]) * t;
+				s.Remember(l, r);
+				theOut[i * 2] += l * g;
+				theOut[i * 2 + 1] += r * g;
 				s.mFrac += step;
 				while (s.mFrac >= 1.0)
 				{
@@ -999,6 +1099,7 @@ void Mixer::Mix(float* theOut, int theFrames)
 			for (int i = 0; i < theFrames; i++)
 			{
 				float g = g0 + (g1 - g0) * ((float)i / theFrames);
+				s.Remember(mModuleScratch[i * 2], mModuleScratch[i * 2 + 1]);
 				theOut[i * 2] += mModuleScratch[i * 2] * g;
 				theOut[i * 2 + 1] += mModuleScratch[i * 2 + 1] * g;
 			}
@@ -1014,6 +1115,7 @@ void Mixer::Mix(float* theOut, int theFrames)
 		for (int i = 0; i < theFrames; i++)
 		{
 			float g = g0 + (g1 - g0) * ((float)i / theFrames);
+			s.Remember(mSongScratch[i * 2] / 32768.0f, mSongScratch[i * 2 + 1] / 32768.0f);
 			theOut[i * 2] += mSongScratch[i * 2] * (g / 32768.0f);
 			theOut[i * 2 + 1] += mSongScratch[i * 2 + 1] * (g / 32768.0f);
 		}

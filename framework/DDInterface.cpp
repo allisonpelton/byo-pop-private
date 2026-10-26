@@ -63,6 +63,7 @@ static const int MAX_RENDER_SCALE = 4;
 static const int CURSOR_AREA_SIZE = 64;	// 1.3 centers the cursor image in a 64x64 area
 
 static std::vector<uint32_t> gPixelBuffer;
+static const int kPixelBufferSize = 65536; // pixels a texture upload converts at a time (256 KB)
 static std::vector<uint32_t> gReadBuffer;
 static std::vector<SDL_Vertex> gVertices;
 static std::vector<int> gIndices;
@@ -609,33 +610,52 @@ SDL_Texture* DDInterface::PrepareTexture(MemoryImage* theImage, DDTextureData* t
 
 	if ((theData->mBitsChangedCount[aFilter] != theImage->mBitsChangedCount) || isScreen)
 	{
-		int aCount = theData->mWidth * theData->mHeight;
+		int aWidth = theData->mWidth;
+		int aHeight = theData->mHeight;
 		const uint32_t* aPixels = NULL;
+		bool isPalletized = false;
 		if (theData->mScale > 1)
 			aPixels = &theImage->mHDBits[0];
 		else if ((theImage->mBits == NULL) && (theImage->mColorTable != NULL) && (theImage->mColorIndices != NULL))
-		{
-			// palletized: expand without un-palletizing the image
-			gPixelBuffer.resize(aCount);
-			for (int i = 0; i < aCount; i++)
-				gPixelBuffer[i] = (uint32_t) theImage->mColorTable[theImage->mColorIndices[i]];
-			aPixels = &gPixelBuffer[0];
-		}
+			isPalletized = true; // expanded below without un-palletizing the image
 		else
-			aPixels = (const uint32_t*) theImage->GetBits();
-
-		if (aPixels == NULL)
-			return NULL;
-
-		if (mPremultiplied)
 		{
-			gPixelBuffer.resize(aCount);
-			for (int i = 0; i < aCount; i++)
-				gPixelBuffer[i] = Premultiply(aPixels[i]);
-			aPixels = &gPixelBuffer[0];
+			aPixels = (const uint32_t*) theImage->GetBits();
+			if (aPixels == NULL)
+				return NULL;
 		}
 
-		SDL_UpdateTexture(aTexture, NULL, aPixels, theData->mWidth * 4);
+		if ((!isPalletized) && (!mPremultiplied))
+			SDL_UpdateTexture(aTexture, NULL, aPixels, aWidth * 4);
+		else
+		{
+			// converted a strip of rows at a time, so the buffer stays small instead of growing to the largest image
+			int aStripRows = std::max(1, kPixelBufferSize / aWidth);
+			gPixelBuffer.resize((size_t) std::min(aStripRows, aHeight) * aWidth);
+			for (int aY = 0; aY < aHeight; aY += aStripRows)
+			{
+				int aRows = std::min(aStripRows, aHeight - aY);
+				int aCount = aRows * aWidth;
+				int aStart = aY * aWidth;
+				if (isPalletized)
+				{
+					for (int i = 0; i < aCount; i++)
+						gPixelBuffer[i] = (uint32_t) theImage->mColorTable[theImage->mColorIndices[aStart + i]];
+				}
+				else
+				{
+					for (int i = 0; i < aCount; i++)
+						gPixelBuffer[i] = aPixels[aStart + i];
+				}
+				if (mPremultiplied)
+				{
+					for (int i = 0; i < aCount; i++)
+						gPixelBuffer[i] = Premultiply(gPixelBuffer[i]);
+				}
+				SDL_Rect aRect = {0, aY, aWidth, aRows};
+				SDL_UpdateTexture(aTexture, &aRect, &gPixelBuffer[0], aWidth * 4);
+			}
+		}
 		theData->mBitsChangedCount[aFilter] = theImage->mBitsChangedCount;
 	}
 

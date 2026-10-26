@@ -702,7 +702,7 @@ bool Replay::ReadVariantSave(const std::string& theSave, VariantSave* theOut, st
 			for (size_t i = 0; i < aCells; i++)
 			{
 				uint8_t anArrow = (uint8_t) aReader.U8();
-				if ((anArrow > 4) || ((anArrow > 0) && !aPresent[i]))
+				if ((anArrow > 8) || ((anArrow > 0) && !aPresent[i])) // GameRules::NUM_ARROW_DIRECTIONS
 				{
 					anErr = "ARRW: arrow " + std::to_string(anArrow) + " at cell (" + std::to_string(i % s.mCols) + "," +
 						std::to_string(i / s.mCols) + ")" + (aPresent[i] ? "" : ", which has no gem");

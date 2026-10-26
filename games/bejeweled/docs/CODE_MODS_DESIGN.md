@@ -415,7 +415,7 @@ Defaults are the original behaviour.
 | `specials.lightning` | object or null | null | `{"createdBy": [patterns], "points": int}`: clears the row and the column. Keyed. |
 | `specials.chain`, `specials.createIn` | bool, `"any"` / `"move"` | true, `"any"` | Blasts detonate caught specials. With `"move"`, specials form only in the move's own resolve. |
 | `gold.enabled` | bool | false | Atomic group *gold*. |
-| `gold.gild` | `"matches"` / `"matchesAndBlasts"` | `"matchesAndBlasts"` | |
+| `gold.gild` | `"matches"` / `"matchesAndBlasts"` / `"blasts"` | `"matchesAndBlasts"` | `"blasts"`: only flames and lightning gild, so a match alone leaves its cells plain. |
 | `gold.timeLimit.normal`, `.timed` | null or `{base, perLevel, min}` in seconds | null / `{180, -10, 60}` | Per mode. |
 | `gold.timeBonus` | int | 10 | Points per second left, times the multiplier. |
 | `undo.enabled`, `.depth`, `.max`, `.penalty`, `.inTimed`, `.restoreTime`, `.restoreRng` | | false, 1, -1, 0, false, false, true | Atomic group *undo*. depth 1..100; max per game, -1 = unlimited. |
@@ -2129,6 +2129,11 @@ Test results:
     level, down to the minimum [Q40: 6 and 3].
   - `arrows.bonus`: the points for clearing an arrow, times the number of arrows cleared so far this game
     [Q41: 100].
+  - `arrows.turn` (false): a twist turns each arrow it carries a quarter turn its way, so it points along its new
+    place in the twist. A diagonal arrow stays diagonal.
+  - `arrows.shots` (none): the edges, any of `top`, `right`, `bottom`, `left`, by which an arrow leaving the board
+    scores the growing bonus instead of ending the game. A diagonal arrow that leaves by a corner is a shot only if
+    both of its edges are.
 - **Where an arrow appears:** a gem on the edge opposite its direction turns into an arrow (an up arrow on
   the bottom row, a left arrow in the right column), so every arrow has the whole board to cross. The
   direction and the cell come from the board's owned RNG (stage 2), drawn at the settle after the move, so
@@ -2191,7 +2196,61 @@ a save made mid-move, mid-step and mid-escape, which match the uninterrupted gam
 move whose settle stepped arrows (four games), which restores the settle before the move; the oracle three ways
 without the mod. With the default settings the bot's normal games end in 13 to 42 moves, mostly by an escape, since
 it only sees an arrow when a valid swap happens to match it; timed games go on longer, because each level's new board
-starts without arrows. These are the numbers the game modes' measures (section 9) start from.
+starts without arrows. The game modes (docs/GAME_MODES.md) measured the settings further.
+
+**Diagonals (2026-10-26).** At the user's suggestion, for a diagonal board, `arrows.directions` also takes `upRight`,
+`downRight`, `downLeft` and `upLeft` (bits 4 to 7; the default stays the straight four, so no RulesId changed). The
+steps, the escape past holes and the closest-first order work per direction as they were. A diagonal arrow starts on a
+gem with no gem behind it on its diagonal, if that gem is at least half as far from its edge as the farthest such gem:
+on a square board, not in the corners it would leave at once; on a diamond, anywhere along the edge behind it. The
+straight directions draw from the RNG as before, so stage 18's games replay the same. The art turns the bullet 45
+degrees on from the straight direction before it, longer and narrower (48 by 86 units against 54 by 78), as the cell's
+diagonal has room for; the warning lights half of each side that meets at the corner the arrow will cross. The engine
+ABI went to 10 with them, which covers stage 18's arrows too: they had missed their bump, so a build from before stage
+18, also engine 9, would have played a replay with arrows without them. Drawing them on a scaled board showed that the
+warning's bars and the dirt's dust ignored the board's scale (`Graphics::FillRect` and the stretched `DrawImage` take
+none), so both now take their rectangles through the layout (`Board::DrawStretched`). The `example-arrows` mod's
+directions gained "Diagonally" and "Every way and diagonally", and `example-board-shapes` a large diamond (10 x 10, 60
+cells): in the fun lab the 9 x 9 diamond's normal games last about a minute and the large one's as long as the
+original's. Diagonal arrows made no balanced mode on either diamond (docs/GAME_MODES.md section 3). Tested: rulestest
+(the diagonal names, the bits, an ARRW arrow of 9 refused), the example harness's arrow and shape cases with the new
+choices, screenshots of diagonal arrows on the diamond and of their warnings on a 10 x 7 board, and of a straight
+arrow's warning on the original board.
+
+**Steered arrows (2026-10-26).** The coordinator's review of the curated modes found Arrowhead too close to
+Butterflies, and suggested arrows that twists turn, with any edge but the top a shot. `arrows.turn` turns an arrow in
+`Board::CommitMove` as its twist moves it (`Board::TurnArrow`, a quarter turn the twist's way within the straight or
+the diagonal four), and `arrows.shots` makes `UpdateArrowSteps` clear an arrow that leaves by those edges, with the
+bonus and the big gem sound, where it would have ended the game. With them `gold.gild` took `"blasts"`, for a gold
+board that only power gems gild. The engine ABI went to 11. The same review found that `StateCodec`'s reader of an
+arrow's step refused a diagonal step, so a save or SNAPSHOT of a diagonal arrow mid-step did not read back; it now
+takes a step of one cell on an axis or along a diagonal. Tested: rulestest (turn and shots, an unknown edge, both in
+the RulesId, gild "blasts"); `-codeccheck` on 11 bot games of diagonal arrows on the large diamond, a gold board that
+only blasts gild and Prism with diagonal-made flames, and 12 of steered arrows, no failure.
+
+### 4.21 Less memory and processor time (`features.lean`)
+
+- **What:** the user asked for a mod that makes the game faster and leaner, after detailed profiling.
+  docs/PROFILE.md has the profile: where the memory and the processor time go, what this feature saves, and what is
+  left for the framework.
+- **Options:** `images` (true by default) and `frameRate` (0, or 10 to 100; 0 draws every frame the original draws).
+  It is no simulation state and not part of the RulesId. A replay watched keeps the player's settings
+  (`WatchController`).
+- **Images:** when loading ends (`WinDMApp::LoadingThreadCompleted`), every image except the screen goes through
+  `MemoryImage::Palletize`. That is lossless: an exact colour table of up to 256 colours, or the image unchanged. The
+  textures upload from the table (`DDInterface::PrepareTexture`), and `GetBits` gives an image its pixels back when
+  something reads it or draws into it. `TitleScreenIsFinished` deletes the title screen's picture, which nothing else
+  draws.
+- **Frame rate:** `WinDMApp::DrawDirtyStuff` sets the framework's draw throttle (`mNextDrawTick`, otherwise used while
+  loading) to the next frame's time after each frame. The 100 updates a second go on as before, so the game plays at
+  the same speed.
+- **The mod:** `lean`, with Compact images (on) and Frame rate (30 a second, also 50, 20 or as the original).
+
+As built and tested (2026-10-26): with the defaults the heap went from 28.3 to 24.1 MB (the images' pixels from 11.3
+to 7.2 MB), and processor time in a game from 4 to 6 % of a core to 1.9 %. The diagnostic script command `memreport
+<file>` (`src/testhooks/MemReport.h`) writes the report that measures it, and `tools/profile` the scripts that run
+it. Tested: rulestest (the options, a frame rate of 5 refused, an unknown key, not in the RulesId), and the profiles of
+section 4 of docs/PROFILE.md.
 
 ---
 

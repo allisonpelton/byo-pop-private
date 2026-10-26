@@ -94,6 +94,26 @@ if(NOT EMSCRIPTEN)
     VERBATIM)
 endif()
 
+# Spectrum test (tools/spectrumtest): Mixer::GetSongFFT on tones rendered offline, against what BASS 2.3's FFT gives
+# for the same tones. Native only; spectrumtest.exe (tools/check.sh unit).
+if(NOT EMSCRIPTEN)
+  add_executable(spectrumtest tools/spectrumtest/spectrumtest.cpp)
+  target_link_libraries(spectrumtest PRIVATE sexyopenmpt)
+  add_custom_command(TARGET spectrumtest POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:SDL2::SDL2> ${PORT_RUNTIME_DLLS} $<TARGET_FILE_DIR:spectrumtest>
+    VERBATIM)
+endif()
+
+# Sound test (tools/soundtest): sounds kept as 16-bit at their own rate, and voices that resample them as they mix,
+# against the old pipeline (stereo floats at the device rate). Native only; soundtest.exe (tools/check.sh unit).
+if(NOT EMSCRIPTEN)
+  add_executable(soundtest tools/soundtest/soundtest.cpp)
+  target_link_libraries(soundtest PRIVATE sexyopenmpt)
+  add_custom_command(TARGET soundtest POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:SDL2::SDL2> ${PORT_RUNTIME_DLLS} $<TARGET_FILE_DIR:soundtest>
+    VERBATIM)
+endif()
+
 # Mod settings tests (tools/modsettingstest): the settings schema, values, placeholders, levels and score key
 # entries (platform/ModSettings.*) and the mod menu's model in ModManager (mods.json and mod-settings.json
 # edits, the effective manifests, next-game commits). Native: modsettingstest.exe. Web: modsettingstest.js,

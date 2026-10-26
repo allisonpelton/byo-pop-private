@@ -2,6 +2,7 @@
   "id": "example-settings",
   "name": "Settings Example",
   "version": "1.0",
+  "defaultEnabled": false,
   "author": "byo-pop examples",
   "description": "Values you set in the mod menu (F2): the hint cost, when the Timed bar starts to flash, replays and the big-move message. While it is on it uses its own high-score table, and each changed play value gets a table of its own.",
   "settings": [

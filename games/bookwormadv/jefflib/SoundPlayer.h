@@ -44,6 +44,7 @@ public:
 	std::map<int, LoopedSample> mLooping;                // +0x34
 
 	int mUpdateCount = 0;                                // +0x40
+	int mPauseCount = 0;                                 // +0x44: the pauses of the looping samples that are on
 	Sexy::SoundInstance* mCached[MAX_SAMPLES] = {};      // +0x48: the cached samples' instances, by id
 
 	explicit SoundPlayer(Sexy::SexyAppBase* theApp) : mApp(theApp) {}
@@ -80,6 +81,10 @@ public:
 	// 0x6afd70: plays a sample shifted by thePitch semitones, unless it started within the last theMinUpdates
 	// updates (a pitch of 0 plays it as PlaySampleMinTime does)
 	void PlayPitchShiftedSample(int theId, int thePitch, int theMinUpdates);
+	// 0x6afe90: a dialog opening (thePause) and closing counts a pause of the looping samples on or off (never
+	// below none): every looping sample goes silent with each pause and returns to full volume when the last
+	// pause is off. A sample that starts looping during a pause is not silenced.
+	void PauseLooping(bool thePause);
 
 private:
 	bool PlayedWithin(int theId, int theMinUpdates) const;

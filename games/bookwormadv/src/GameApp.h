@@ -12,6 +12,7 @@
 #include "LuaApp.h"
 
 namespace JeffLib {
+class BonusText;
 class SongPlayer;
 class SoundPlayer;
 }
@@ -21,13 +22,17 @@ namespace Sexy {
 class Board;
 class BookManager;
 class ConversationPanel;
+class Credits;
 class CurtainTransition;
 class CutScene;
+class Font;
 class GameDialog;
+class Graphics;
 class Image;
 class Lex;
 class LuaInterface;
 class MainMenu;
+class MinigameMenu;
 class PopAnimManager;
 class Profile;
 class TitleScreen;
@@ -40,11 +45,18 @@ public:
 	// The game's dialog ids (those that are ported)
 	enum {
 		DIALOG_OK = 0,           // DoOkDialog's
+		DIALOG_OPTIONS = 1,      // the options (OptionsDialog)
 		DIALOG_REALLY_QUIT = 2,  // the main menu's quit
-		DIALOG_MENU = 7,         // the game's menu (not ported yet): the conversation panel waits under it
+		DIALOG_USER_SELECTION = 6,  // the players' dialog (UserSelectionDialog, MainMenu::ShowUserDialog)
+		DIALOG_NEW_USER = 7,     // the new player's name (NewUserDialog): the conversation panel waits under it
+		DIALOG_NO_WINDOWED = 13, // the options' "no windowed mode" message
+		DIALOG_MENU = 17,        // the game's menu (MenuDialog)
 		DIALOG_CONFIRM = 18,     // DoConfirmDialog's
+		DIALOG_CONTINUE_GAME = 19,  // the arena's "continue your saved game?" (MainMenu::StartArena): yes goes on with it, no begins a new run
 		DIALOG_SKIP_MOVIE = 20,  // a click on a cut scene: skip it?
-		DIALOG_CONTINUE = 21,    // "Continue" after the game lost the focus (the board stays muted under it)
+		DIALOG_ARENA_WIN = 21,   // the arena's win (ArenaWinDialog): pausing the board mutes it only without this dialog
+		DIALOG_NEW_PROFILE = 22, // the trial's end, asked in MainMenu (0x47b470): a new profile? Its yes opens the players' dialog; the port has no trial
+		DIALOG_TRIAL_COMPLETE = 23,  // the trial's end ("buy the full version?", UpdateFrames 0x44aa50): the port has no trial
 	};
 
 	// mTransitionState: what the curtain is doing (CurtainDone goes on from it)
@@ -91,16 +103,20 @@ public:
 	std::string mCutSceneCallback;                 // +0x7f0
 	std::string mCutSceneCaption;                  // +0x80c
 	CurtainTransition* mCurtain = nullptr;         // +0x828
-	Widget* mBookScreen = nullptr;                 // +0x82c: the tome's or the media player's (not ported yet)
+	Widget* mBookScreen = nullptr;                 // +0x82c: the stats book (StatsBook): the tome's or the media player's
+	MinigameMenu* mMiniGameMenu = nullptr;         // +0x834: the mini-games' menu (MinigameMenu), made by ShowMiniGameMenu
 	ButtonListener* mConfirmListener = nullptr;    // +0x838: a widget's ButtonListener part, in the original
-	Widget* mChapterLoadScreen = nullptr;          // +0x83c: a chapter's loading screen (not ported yet)
+	Widget* mChapterLoadScreen = nullptr;          // +0x83c: a chapter's loading screen (ChapterLoadScreen)
 	std::string mCurtainLuaCallback;               // +0x840: the scripts' function called when the curtain is done
 	std::string mDialogCallback;                   // +0x878: the scripts' function told the answer to dialog 0 or 18
-	Widget* mHallOfFame = nullptr;                 // +0x89c (not ported yet)
-	Widget* mCredits = nullptr;                    // +0x8a0: the credits, which take the keys (not ported yet)
+	Widget* mHallOfFame = nullptr;                 // +0x89c: the hall of fame (HallOfFame)
+	Credits* mCredits = nullptr;                   // +0x8a0: the credits (Credits), which take the mouse and stop the screens under them
+	int mCreditsCount = 0;                         // +0x8e8: credits showing (0 or 1); the focus handlers (GotFocus, LostFocus) leave the screens under them alone
 	void* mCurtainCallbackObject = nullptr;        // +0x894
 	void (*mCurtainCallback)(void*) = nullptr;     // +0x898 (a member function in the original)
 	int mTransitionState = TRANSITION_NONE;        // +0x8ec
+	int mChapterLoadCount = 0;                     // +0x8f0: the chapter's resources loaded so far
+	int mChapterLoadTotal = 0;                     // +0x8f4: and all of them (ChapterLoadScreen's bar)
 	int mTotalBooks = 0;                           // +0x8f8, from main.LoadRequiredScripts
 	int mRegTotalBooks = 0;                        // +0x8fc, the registry's TotalBooks
 	int mAppTime = 0;                              // +0x900, the registry's AppTime, counting updates
@@ -109,7 +125,8 @@ public:
 	bool mChapterInitQueued = false;               // +0x911: the player's ChapterInit once the curtain is open
 	bool mPlayIntro = false;                       // +0x912: the intro's: the new player's name once it is open
 	bool mLoadingChapter = false;                  // +0x913: loading a chapter's resources (0x44e040)
-	bool mTitleScreenDone = false;                 // +0x914
+	bool mCountsTime = false;                      // +0x914: UpdateFrames counts mAppTime and mUserUpdates (set when the title
+	                                               // screen is done and when the window gets the focus, off when it loses it)
 	bool mTitleScreenDoneQueued = false;           // +0x915
 	bool mShowTilePips = true;                     // +0x916: CanShowTilePips' answer when the profile has no EnablePips
 	bool mFullCurtain = false;                     // +0x917: a transition of the whole curtain (0x44d080)
@@ -120,9 +137,10 @@ public:
 	bool mTimedMode = false;                       // +0x96e: playing the timed mode (its TM_ profile keys)
 	bool mMiniGameFromMenu = false;                // +0x96f: a mini-game started from the main menu's list (0x4819a0)
 	bool mQuitting = false;                        // +0x91c: leaving the game (0x451c20; 0x451920 clears it)
-	int mBattleUpdates = 0;                        // +0x974: updates of battle (not of a level-up or a chapter's end)
-	int mMiniGameUpdates = 0;                      // +0x978: updates of the adventure's mini-games
+	int mBattleUpdates = 0;                        // +0x974: updates of battle (not of a level-up or a chapter's end); written only
+	int mMiniGameUpdates = 0;                      // +0x978: updates of the adventure's mini-games; written only
 	std::vector<std::string> mStartupGroups;       // +0x924 (0x38-byte entries; the group's name at +0x1c)
+	std::vector<JeffLib::BonusText*> mBonusTexts;  // +0x934: the mini-games' floating texts (AddBonusText)
 	Lex* mLex = nullptr;                           // +0x940
 	ConversationPanel* mConversationPanel = nullptr;  // +0x944
 	Board* mBoard = nullptr;                       // +0x948: the battle's or a mini-game's (gBoard)
@@ -145,6 +163,8 @@ public:
 	bool UpdateAppStep(bool* updated) override;
 	void UpdateFrames() override;           // 0x44aa50
 	void Shutdown() override;               // 0x445960
+	void GotFocus() override;               // 0x451230: the screens update again
+	void LostFocus() override;              // 0x451160: the screens stop updating
 	// port: the test scripts' "word" (TestHooks.cpp)
 	bool HandleScriptCommand(const ScriptCommand& theCommand) override;
 	// 0x44f5c0: through the sound player, not again within 5 updates
@@ -165,8 +185,50 @@ public:
 	                            ButtonListener* theListener, const std::string& theCallback);
 	// 0x44b620: the battle's board over the book, its grid and engines started
 	void StartBattle();
-	// 0x4456a0: the game's menu (dialog DIALOG_MENU) over the paused board (not ported yet: MenuDialog 0x47fd00)
-	void ShowGameMenu(bool theFromBook);
+	// The arena (GameAppArena.cpp): the scripts' DoTimedModeTSTransition (0x4513b0) closes the whole curtain and
+	// shows the treasure screen as the checkpoint; EnableBoardForTMCheckpointContinuation (0x4515a0) returns to
+	// the board
+	void DoTimedModeTSTransition();
+	void EnableBoardForTMCheckpointContinuation();
+	// 0x4519e0 (the scripts' DoArenaWinDialog(theFirstTime, theCallback)): the arena's win dialog (ArenaWinDialog,
+	// dialog DIALOG_ARENA_WIN); theFirstTime: it is the first win, which unlocks the film reel
+	void DoArenaWinDialog(bool theFirstTime, const std::string& theCallback);
+	// 0x451a80 (the scripts' SetArenaWinStats): the lines of how the run went, on the arena's win dialog
+	void SetArenaWinStats(const std::string& theTime, const std::string& thePotions, const std::string& theWords,
+	                      const std::string& theLevel, const std::string& theAverageWordLength);
+	// The mini-games (GameAppMiniGames.cpp): the scripts' StartMiniGame (0x44b780), a mini-game's board of theCols x
+	// theRows tiles at (x, y), theLetters on them when not empty; ReturnToMMFromMiniGame (0x44b9d0) frees it and
+	// shows the main menu, and UnlockedMiniGameComplete (0x44d1e0) does that behind the whole curtain
+	void StartMiniGame(std::string theName, int x, int y, int theXGap, int theYGap, int theCols, int theRows,
+	                   std::string theLetters, bool theNoTilesWhilePaused);
+	void ReturnToMMFromMiniGame();
+	void UnlockedMiniGameComplete();
+	// 0x44f9d0: the mini-games' menu (mMiniGameMenu), added over the screens and under the curtain. The main menu
+	// has its item's curtain callback for it, the hall of fame calls it after a mini-game.
+	void ShowMiniGameMenu();
+	void AddBonusText(const std::string& theText, float x, float y, float theSpeed, int theFadeDelay, Font* theFont);
+	void UpdateBonusText();           // 0x44fbd0
+	void DrawBonusText(Graphics* g);  // 0x44fb70
+	void RemoveAllBonusText();        // 0x44fd00
+	// 0x4456a0: the game's menu (MenuDialog, dialog DIALOG_MENU) over the paused board. theFromTreasure: it is the
+	// treasure screen's (its "Main Menu" button goes back with the transition 0x44ded0).
+	void ShowGameMenu(bool theFromTreasure);
+	// 0x4455d0: the options (OptionsDialog, dialog DIALOG_OPTIONS) over the paused board
+	void ShowOptionsDialog();
+	// 0x4457b0: the options are done: theApply takes the checkboxes' answers (screen mode, 3-D, cursors, tips);
+	// the dialog goes, and the board goes on
+	void CloseOptionsDialog(bool theApply);
+	// 0x44f7e0: whether the tiles show their letter values (the board's and the profile's EnablePips)
+	void SetShowTilePips(bool theShow);
+	// 0x444b90: asks the new player's name (NewUserDialog, dialog DIALOG_NEW_USER) with a name no one has yet.
+	// theButtonMode: BUTTONS_FOOTER for the intro's (only OK), BUTTONS_OK_CANCEL from the players' list.
+	void ShowNewUserDialog(int theButtonMode);
+	// 0x4450a0: the name is answered (OK or cancel): the profile, the conversation and the movie go on
+	void NewUserDialogDone();
+	// 0x4452d0: the old data of a player of that name goes (users/data/<name>.dat)
+	void DeleteUserData(const std::string& theName);
+	// 0x44ded0: from the treasure screen's menu back to the main menu (TRANSITION_TO_MENU - 1)
+	void StartTreasureToMenuTransition();
 	// 0x443f90: a message with an OK button (dialog 0), under a banner when there is one; OK calls the scripts'
 	// function theCallback (when not empty) with true
 	GameDialog* DoOkDialog(const SexyString& theHeader, const SexyString& theLines, const std::string& theCallback,
@@ -190,6 +252,12 @@ public:
 	bool SelectUser(const std::string& theName);
 	// 0x4494f0
 	void ShowMainMenu(bool theFromTitle, bool theToBack);
+	// 0x449660 (with a new main menu, and after a player is chosen): Lex tells in a conversation panel what the
+	// profile has newly unlocked (its NeedsBestiaryDialog, NeedsMiniGamesDialog, NeedsArenaDialog,
+	// NeedsExpansionBossDialog and NeedsMPDialog): one panel, for the first of those in that order, which has the
+	// later ones too for the tome and the mini-games (the arena's only the bosses). What it told is cleared in the
+	// profile, which is saved. With mNoMusic (after the end of the game) the panel is made but not shown.
+	void ShowUnlockMessages();
 	// 0x449160: a new player: a profile, the intro, then the first book
 	void StartIntro(int theMode);
 
@@ -247,6 +315,50 @@ public:
 	// 0x450d20: the curtain in front, and above an active conversation panel's priority
 	void KeepCurtainOnTop();
 
+	// The hall of fame (GameAppHallOfFame.cpp): mHallOfFame is made by one of the openers and removed by
+	// CloseHallOfFame. 0x450710: it is added as big as the app, under the curtain.
+	void ShowHallOfFame();
+	// 0x450760: from the main menu (once the curtain has closed over it)
+	void OpenHallOfFame();
+	// 0x450850: after a timed game: the board and the book go, and the arena's tab comes with "Play Again"
+	void ShowArenaHallOfFame();
+	// 0x450aa0 (the scripts' DoHighScoreScreenFromMG): after a mini-game (theName), the board goes and the mini-games'
+	// tab comes with "Play Again"
+	void DoHighScoreScreenFromMG(std::string theName);
+	// 0x450c30: after the end of the game: the adventure's tab, and "Continue" to the credits
+	void ShowEndOfGameHallOfFame();
+	// 0x450c00 (the scripts' DoEndGame): the music stops, the curtain closes to the main menu, and the hall of fame
+	// above (ShowEndOfGameHallOfFame) comes when it is closed
+	void DoEndGame();
+	// 0x450bb0: the screen goes
+	void CloseHallOfFame();
+	// 0x451090: the whole curtain closes, then the credits come (0x451130)
+	void StartEndOfGameCredits();
+
+	// The credits (GameAppCredits.cpp): mCredits is made by ShowCredits and removed by CloseCredits.
+	// 0x450fe0 (the options' Credits button): the whole curtain closes over the main menu, then ShowCredits
+	void StartCredits();
+	// 0x450d80: the options go, and the credits over every screen, which stop; the curtain stays in front
+	void ShowCredits();
+	// 0x450e90: the credits go, the screens under them go on and the song from before comes back (after the end of
+	// the game the main menu comes)
+	void CloseCredits();
+	// the curtain's callback (+0x898) that ends the credits: CloseCredits (a member function in the original)
+	static void CloseCreditsCallback(void* theApp);
+
+	// The stats book (GameAppStatsBook.cpp): the tome of knowledge, the media player, and the book of what the
+	// player saw. mBookScreen is made by one of these and removed by RemoveStatsBook.
+	// 0x444150 (the scripts' AddStatsBook(theFromGame, theBestiary, theMediaPlayer)): at once when theFromGame or
+	// when neither of the other two is asked for, else after the whole curtain has closed (the tome, or the media
+	// player when theMediaPlayer)
+	void AddStatsBook(bool theFromGame, bool theBestiary, bool theMediaPlayer);
+	// 0x444310 and 0x4443c0: the tome and the media player, once the curtain has closed over the main menu
+	void ShowTome();
+	void ShowMediaPlayer();
+	// 0x444470: the book goes: at once when it was opened from the game (or is neither the tome nor the media
+	// player), else the whole curtain closes first and the main menu comes back
+	void RemoveStatsBook();
+
 	// ---- tooltips (TooltipWidget.cpp) ----
 	std::vector<TooltipWidget*> mTooltips;        // +0x79c: every tooltip made by MakeTooltip (the app owns them)
 	std::set<TooltipWidget*> mDisabledTooltips;   // +0x7ac: those EnableTooltips(false) disabled (to enable again)
@@ -276,7 +388,14 @@ private:
 	void RemoveBoard();  // 0x4493f0
 	// 0x44eae0 (the original's loading thread, with mLoadingChapter): mChapterResources loaded; false and
 	// theError when one fails
-	bool LoadChapterResources(std::string& theError);
+	// port: the thread's work in steps, the next resources until theDeadline (SDL ticks; 0: all of them); true when
+	// it is done (mChapterLoadError says when one failed)
+	bool LoadChapterResources(unsigned int theDeadline);
+	size_t mChapterLoadIndex = 0;          // the resource loading
+	bool mChapterLoadGroupStarted = false;  // its group's loading started
+	bool mChapterLoadDone = false;
+	bool mChapterLoadFailed = false;
+	std::string mChapterLoadError;
 	// ReturnToChapterSelect's: the groups of mChapterResources deleted, its animations too
 	void FreeChapterResources();
 

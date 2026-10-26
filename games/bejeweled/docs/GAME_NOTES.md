@@ -2437,6 +2437,11 @@ them changes. The arrows and their counts are game state: StateCodec rows (FULL,
 not UNDO) and the v2 save's `ARRW` chunk. A save keeps `mState` within the original's 0..9: a save mid-step
 writes `STATE_FALLING`. An escape ends the game with the replays' end reason 6, `END_ARROW_ESCAPED`.
 
+Engine ABI 10: the arrows' rules, and with them the four diagonal directions (`upRight`, `downRight`, `downLeft`,
+`upLeft`, bits 4..7 of `arrows.directions`, so `Piece::mArrow` is 1..8). Engine 9 played a replay of arrow rules
+without arrows. A diagonal arrow starts on a gem with no gem behind it on its diagonal, at least half as far from its
+edge as the farthest such gem; the straight directions keep their draws, so the stage 18 games replay the same.
+
 ## 13. Naming reconciliation (analyst names → chosen names)
 
 **Board fields.**

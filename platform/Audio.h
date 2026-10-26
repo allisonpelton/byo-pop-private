@@ -37,10 +37,16 @@ public:
 typedef bool (*ModuleDetector)(const std::vector<uint8_t>& theFile);
 typedef std::unique_ptr<ModulePlayer> (*ModuleFactory)(const std::vector<uint8_t>& theFile, int theRate);
 
+// A decoded sound, kept as 16-bit samples at the file's own rate with its own one or two channels: a voice resamples
+// it as it mixes. (A copy at the device rate as stereo floats took four to sixteen times the memory.)
 struct SoundData
 {
-	std::vector<float> mSamples;  // interleaved stereo at Mixer::GetRate()
+	std::vector<int16_t> mSamples;  // interleaved, mChannels per frame
+	int mChannels = 1;
+	int mRate = 48000;
 	size_t mFrames = 0;
+
+	size_t Bytes() const { return mSamples.capacity() * sizeof(int16_t); }
 };
 
 class Mixer
@@ -89,6 +95,11 @@ public:
 	// The order and row a playing module has been rendered up to (libxmp's frame info, or a ModulePlayer's
 	// GetPosition). False for a song that is not playing, and for Ogg and WAV tracks.
 	bool GetSongPosition(int theSong, int& theOrder, int& theRow);
+	// The spectrum of the song's last theSamples frames (a power of two from 64 to 4096), as BASS_ChannelGetData's
+	// FFT flags give it: theSamples / 2 magnitudes of the song's own output before its gain and the music volume, the
+	// two channels averaged, with a Hann window, scaled so that a full-scale sine reads 1.0 in its bin. The bins are
+	// at the mixer's rate. False for a song that is not playing.
+	bool GetSongFFT(int theSong, float* theOut, int theSamples);
 
 	void SetMusicMasterGain(float theGain) { mMusicMaster = theGain; }
 	void SetSfxMasterGain(float theGain) { mSfxMaster = theGain; }
@@ -98,6 +109,9 @@ public:
 
 	// Mixes theFrames stereo frames into theOut without an audio device (tests and offline checks).
 	void RenderOffline(float* theOut, int theFrames) { Mix(theOut, theFrames); }
+	// For tools without an audio device: makes the voices at theRate, so that StartVoice works and RenderOffline
+	// mixes them.
+	void InitOffline(int theRate);
 
 private:
 	struct Voice;
@@ -110,6 +124,7 @@ private:
 	float mMusicMaster = 1.0f;
 	float mSfxMaster = 1.0f;
 	bool mSilent = false;  // web test runs (web/shell.html ?silent=1): mix as usual, output silence
+	bool mOffline = false; // InitOffline: voices without a device
 	std::vector<std::unique_ptr<Voice>> mVoices;
 	std::vector<std::unique_ptr<Song>> mSongs;
 	int mNextVoiceSerial = 1;

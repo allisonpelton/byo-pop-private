@@ -79,6 +79,7 @@ public:
 	int				mAlpha;				// +0xb184 how much of the grid shows (the intro fades it in)
 	int				mIntro;				// updates since the puzzle appeared
 	double			mPauseFade;			// +0x170 how far the pause screen has come in
+	bool			mPauseStarted;		// +0x1a2 the game went from running to paused (0x403010); only then does the pause screen come in
 	int				mDoneTimer;			// +0xe0 the countdown to the puzzle-completed screen, DONE_DELAY once it has started
 	bool			mCompleted;			// the puzzle-completed screen has been asked for
 	bool			mFinishSounded;		// the sting of a finished puzzle has played and the music fades

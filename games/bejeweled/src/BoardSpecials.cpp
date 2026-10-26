@@ -129,7 +129,7 @@ void Board::ScoreBlast(const Specials::Blast& theBlast)
 		AddMoveScore(aPoints);
 	}
 	// The cells of the gems it took turn gold with gold.gild "matchesAndBlasts" (4.9)
-	if (mVariant.mGold && mRules.mGold.mGildBlasts)
+	if (mVariant.mGold && (mRules.mGold.mGild != GameRules::GILD_MATCHES))
 		GildCells(theBlast.mDestroyed);
 	// Dirt in the blast's reach loses a layer (4.14), once for the blast
 	if (mVariant.mDirt)

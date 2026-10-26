@@ -176,3 +176,14 @@ void SoundPlayer::PlayPitchShiftedSample(int theId, int thePitch, int theMinUpda
 		anInstance->Release();
 	}
 }
+
+void SoundPlayer::PauseLooping(bool thePause)
+{
+	mPauseCount += (thePause ? 1 : 0) * 2 - 1;
+	if (mPauseCount < 0)
+		mPauseCount = 0;
+	if (thePause || mPauseCount == 0) {
+		for (auto anIt = mLooping.begin(); anIt != mLooping.end(); ++anIt)
+			anIt->second.mInstance->SetVolume(thePause ? 0.0 : 1.0);
+	}
+}

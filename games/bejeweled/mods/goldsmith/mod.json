@@ -1,0 +1,66 @@
+{
+  "id": "goldsmith",
+  "name": "Goldsmith",
+  "version": "1.0",
+  "defaultEnabled": false,
+  "author": "byo-pop",
+  "description": "A game mode where only power gems gild. Turn every cell of a 7 x 7 board to gold before the level's time runs out, but a match leaves its cells plain: only blasts gild them. Four gems of one colour in a 2 x 2 square, or a run of four, forge a flame gem that blows up the 5 x 5 square around it; runs that cross into an L, T or plus, or a run of five, forge a lightning gem that clears its row and column. So aim the blasts at the plain cells. Each level has 4 minutes in Normal and 3 in Timed, 10 seconds less each level, and each second left over scores points. A board with no moves refills. Uses its own high-score table. Turn on one game mode at a time.",
+  "rules": {
+    "board": {
+      "cols": 7,
+      "rows": 7
+    },
+    "match": {
+      "crossings": "merge",
+      "shapes": {
+        "square": {
+          "preset": "square"
+        }
+      },
+      "bonus": {
+        "L": 50,
+        "T": 50,
+        "plus": 100,
+        "square": 30
+      }
+    },
+    "specials": {
+      "flame": {
+        "createdBy": [
+          "square",
+          "run4"
+        ],
+        "radius": 2,
+        "points": 20
+      },
+      "lightning": {
+        "createdBy": [
+          "L",
+          "T",
+          "plus",
+          "run5"
+        ],
+        "points": 30
+      },
+      "chain": true,
+      "createIn": "any"
+    },
+    "gold": {
+      "enabled": true,
+      "gild": "blasts",
+      "timeBonus": 10,
+      "timeLimit": {
+        "normal": {
+          "base": 240,
+          "perLevel": -10,
+          "min": 90
+        },
+        "timed": {
+          "base": 180,
+          "perLevel": -10,
+          "min": 50
+        }
+      }
+    }
+  }
+}

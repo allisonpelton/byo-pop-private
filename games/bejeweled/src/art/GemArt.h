@@ -32,8 +32,10 @@ int GemModelCount(GemStyle theStyle);                     // colours with a mode
 // theScale. The su style's twelfth colour is the cel style's.
 void DrawGemSheet(GemStyle theStyle, int theColors, int theScale, std::vector<uint32_t>& theOut);
 
-// The arrow gems (4.20): theColors rows of four cells, the bullet cut pointing up, right, down and left in the cel style
-// and the colour's own tones, cells of 52 px at theScale: straight ARGB, (208 x 52 * theColors) * theScale
+// The arrow gems (4.20): theColors rows of ARROW_DIRECTIONS cells, the bullet cut pointing as GameRules::ArrowDirection
+// (up, right, down, left, up-right, down-right, down-left, up-left) in the cel style and the colour's own tones, cells
+// of 52 px at theScale: straight ARGB, (416 x 52 * theColors) * theScale
+const int ARROW_DIRECTIONS = 8;
 void DrawArrowSheet(int theColors, int theScale, std::vector<uint32_t>& theOut);
 // One gem in its rest pose, as large as fits theW x theH (logical px) centred at (cx, cy), drawn over the canvas
 void DrawGem(Canvas& theCanvas, GemStyle theStyle, int theColor, double cx, double cy, double theW, double theH);

@@ -2,7 +2,8 @@
 // DialogListener at +0x8c, PopAnimListener at +0x90): the library hall where Lex waits by his book. Each of the
 // menu's things (the adventure door, the arena, the hall of fame, the mini-games, the tome, the film reel, the
 // options and quit signs) lights up under the mouse, with a scroll that unrolls below it saying what it is, and
-// Lex says a word about it. The player's name is on the plaque; a link under it changes the player.
+// Lex says a word about it. The player's name is on the plaque; a link under it changes the player: the players'
+// dialog (JeffLib::UserSelectionDialog), where one picks, adds or deletes a player.
 #pragma once
 
 #include <map>
@@ -14,6 +15,10 @@
 #include "PopAnim.h"
 #include "Rect.h"
 #include "Widget.h"
+
+namespace JeffLib {
+class UserSelectionDialog;
+}
 
 namespace Sexy {
 
@@ -109,6 +114,7 @@ public:
 	HyperlinkWidget* mChangeUserLink;         // +0x98
 	std::string mTypedKeys;                   // +0xb8, the letters typed, for the secret words
 	std::vector<MenuItem*> mItems;            // +0xd8
+	JeffLib::UserSelectionDialog* mUserDialog = nullptr;  // +0xe4: the players' dialog while it is up
 	std::map<int, Reaction> mReactions;       // +0xe8, by item (and REACTION_WELCOME)
 	PopAnim* mLex;                            // +0xf4, images/pam/mmlex.pam
 	int mHoverUpdate[NUM_ITEMS];              // +0xf8, the update a thing was last hovered at (nothing reads it)
@@ -136,6 +142,32 @@ public:
 	void CloseTooltips();
 	// 0x47d670: whether to quit, Lex in tears behind the question (the app's DIALOG_REALLY_QUIT: its yes quits)
 	void AskReallyQuit();
+	// 0x47c290: the arena's door, once it is open: the scripts' timed mode begins, and a new run goes to its book
+	// (ResetTimedMode first) unless the profile has one in progress (TM_InGame), which the player is asked whether
+	// to go on with (dialog DIALOG_CONTINUE_GAME, answered in GameApp::ButtonDepress). The things of the menu are
+	// off meanwhile.
+	void StartArena();
+	// 0x47c170: the answer to that question. theContinue: the saved run (the book under the menu, then the curtain;
+	// the new game's curtain when the run was at its checkpoint, which that one takes to the treasure screen);
+	// else a new run (ResetTimedMode, then the new game's curtain)
+	void ContinueArena(bool theContinue);
+
+	// 0x47c770: the players' dialog over the menu (MaxProfiles of the properties, 10, at most), filled
+	// by FillUserList
+	void ShowUserDialog();
+	// 0x47ca20: the dialog's players, one for each users/*.bwa (the first MaxProfiles of them), and the player
+	// now playing first and chosen
+	void FillUserList();
+	// 0x47d200: whether theName is not any player's yet (capitals and small letters count the same); no for a
+	// blank one
+	bool IsUserNameFree(const std::string& theName);
+	// 0x47d390 (called by GameApp::NewUserDialogDone with the name asked from the dialog's NEW): false and a message
+	// when the name is taken, so the name dialog stays; else the dialog's list is made again, the players' dialog
+	// goes and a player who has not played begins the intro. A blank name (CANCEL) is nothing.
+	bool TakeNewUser(const std::string& theName);
+	// 0x47d940 (the app's LostFocus calls it): the menu is redrawn, and Lex goes idle unless he is doing one of the
+	// secret words' animations (his current label is one of the words, whatever the letters' case)
+	void AppLostFocus();
 
 	// Widget
 	void Update() override;                       // 0x47c5b0
@@ -150,6 +182,10 @@ public:
 	// ButtonListener: the link to change the player (0x47c720)
 	void ButtonDepress(int theId) override;
 
+	// DialogListener: the players' dialog (OK takes the chosen player, CANCEL none, NEW asks a name, DELETE asks
+	// whether to delete) and the confirmation of a delete (0x47cd70)
+	void DialogButtonDepress(int theDialogId, int theButtonId) override;
+
 	// PopAnimListener: Lex goes back to idling when a label is done (0x47a9e0), and plays the samples his
 	// animation asks for (0x47da10)
 	void PopAnimStopped(int theId) override;
@@ -157,6 +193,8 @@ public:
 
 private:
 	void MakeTooltips(const std::string& theTomeText);
+	// 0x47d510: a player who has not played yet starts the intro (and the menu is no longer from the title)
+	bool StartIntroIfNew();
 };
 
 }  // namespace Sexy

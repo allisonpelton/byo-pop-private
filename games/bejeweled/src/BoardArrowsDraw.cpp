@@ -29,6 +29,23 @@ const Color kArrowGlow[12] = {Color(250, 212, 28), Color(232, 232, 242), Color(3
 	Color(184, 62, 226), Color(255, 136, 24), Color(46, 194, 64), Color(255, 110, 188), Color(22, 194, 198),
 	Color(124, 86, 255), Color(150, 150, 170), Color(166, 234, 38)};
 
+// A white block, the warning's bars stretched and coloured: Graphics::FillRect would ignore a scaled board's scale
+// (Board::DrawStretched)
+Image* WhiteBlock(WinDMApp* theApp)
+{
+	static MemoryImage* sBlock = NULL;
+	if (sBlock == NULL)
+	{
+		sBlock = new MemoryImage(theApp);
+		sBlock->Create(8, 8);
+		ulong* aBits = sBlock->GetBits();
+		for (int i = 0; i < 64; i++)
+			aBits[i] = 0xFFFFFFFF;
+		sBlock->BitsChanged();
+	}
+	return sBlock;
+}
+
 // The arrows' sheet (GemArt::DrawArrowSheet), made on first use at the gem sheet's HD scale, again when a board needs
 // more colours or the scale changes
 MemoryImage* ArrowSheet(WinDMApp* theApp, int theColors)
@@ -44,17 +61,17 @@ MemoryImage* ArrowSheet(WinDMApp* theApp, int theColors)
 		return sSheet;
 	std::vector<uint32_t> aBits;
 	Art::DrawArrowSheet(theColors, aScale, aBits);
-	int aH = 52 * theColors;
+	int aW = Art::ARROW_DIRECTIONS * 52, aH = 52 * theColors;
 	if (sSheet == NULL)
 		sSheet = new MemoryImage(theApp);
 	if (aScale == 1)
-		sSheet->SetBits((ulong*) &aBits[0], 208, aH, true);
+		sSheet->SetBits((ulong*) &aBits[0], aW, aH, true);
 	else
 	{
 		std::vector<uint32_t> aLow;
-		Art::DownsampleArgb(aBits, 208 * aScale, aH * aScale, aScale, aLow);
-		sSheet->SetBits((ulong*) &aLow[0], 208, aH, true);
-		sSheet->SetHDBits(&aBits[0], 208 * aScale, aH * aScale, aScale);
+		Art::DownsampleArgb(aBits, aW * aScale, aH * aScale, aScale, aLow);
+		sSheet->SetBits((ulong*) &aLow[0], aW, aH, true);
+		sSheet->SetHDBits(&aBits[0], aW * aScale, aH * aScale, aScale);
 	}
 	sColors = theColors;
 	sScale = aScale;
@@ -87,12 +104,18 @@ bool Board::DrawArrowGem(Graphics* g, Piece* thePiece, int theX, int theY)
 }
 
 // Over the gems: beyond each arrow one step from its edge, a bar in the arrow's colour glows along that edge of its cell
+// (a diagonal's corner: half of each side that meets there)
 void Board::DrawArrowWarnings(Graphics* g)
 {
 	if (mState != STATE_PLAYING)
 		return;
 	int aPhase = mUpdateCnt % ARROW_PULSE_TICKS;
 	int anAlpha = 90 + 140 * std::min(aPhase, ARROW_PULSE_TICKS - aPhase) / (ARROW_PULSE_TICKS / 2);
+	Image* aBlock = WhiteBlock(mApp);
+	auto aBar = [&](int theX, int theY, int theWidth, int theHeight) {
+		DrawStretched(g, aBlock, Rect(theX, theY, theWidth, theHeight), Rect(0, 0, 8, 8));
+	};
+	g->SetColorizeImages(true);
 	for (int aRow = 0; aRow < mRows; aRow++)
 	{
 		for (int aCol = 0; aCol < mCols; aCol++)
@@ -110,11 +133,24 @@ void Board::DrawArrowWarnings(Graphics* g)
 			// the cell's outer side, 4 px thick, just past the gem
 			switch (aDir)
 			{
-			case GameRules::ARROW_UP: g->FillRect(aX + 4, aY - 4, CELL_SIZE - 10, 4); break;
-			case GameRules::ARROW_DOWN: g->FillRect(aX + 4, aY + GEM_SIZE + 1, CELL_SIZE - 10, 4); break;
-			case GameRules::ARROW_LEFT: g->FillRect(aX - 4, aY + 4, 4, CELL_SIZE - 10); break;
-			default: g->FillRect(aX + GEM_SIZE + 1, aY + 4, 4, CELL_SIZE - 10); break;
+			case GameRules::ARROW_UP: aBar(aX + 4, aY - 4, CELL_SIZE - 10, 4); break;
+			case GameRules::ARROW_DOWN: aBar(aX + 4, aY + GEM_SIZE + 1, CELL_SIZE - 10, 4); break;
+			case GameRules::ARROW_LEFT: aBar(aX - 4, aY + 4, 4, CELL_SIZE - 10); break;
+			case GameRules::ARROW_RIGHT: aBar(aX + GEM_SIZE + 1, aY + 4, 4, CELL_SIZE - 10); break;
+			default:
+			{
+				bool isUp = (aDir == GameRules::ARROW_UP_RIGHT) || (aDir == GameRules::ARROW_UP_LEFT);
+				bool isRight = (aDir == GameRules::ARROW_UP_RIGHT) || (aDir == GameRules::ARROW_DOWN_RIGHT);
+				const int anArm = GEM_SIZE / 2 + 5;     // from the side's middle to past the corner
+				int aBarY = isUp ? aY - 4 : aY + GEM_SIZE + 1;
+				int aBarX = isRight ? aX + GEM_SIZE + 1 : aX - 4;
+				aBar(isRight ? aX + GEM_SIZE + 5 - anArm : aX - 4, aBarY, anArm, 4);
+				// the side's arm stops at the corner the other already lit
+				aBar(aBarX, isUp ? aY : aY + GEM_SIZE + 1 - (anArm - 4), 4, anArm - 4);
+				break;
+			}
 			}
 		}
 	}
+	g->SetColorizeImages(false);
 }

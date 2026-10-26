@@ -1,6 +1,7 @@
 // port(variant): arrow gems (games/bejeweled/docs/CODE_MODS_DESIGN.md 4.20, stage 18). Not part of the original
-// game; the idea is Bejeweled 3's Butterflies, turned four ways, with none of that mode's art or texts. Some gems
-// are arrows (Piece::mArrow), each pointing up, right, down or left. A move that stands (OnMoveMade, or a kept
+// game; the idea is Bejeweled 3's Butterflies, turned four ways (eight with the diagonals), with none of that mode's
+// art or texts. Some gems are arrows (Piece::mArrow), each pointing up, right, down or left, or along a diagonal
+// (for a diamond board, whose edges are diagonal). A move that stands (OnMoveMade, or a kept
 // invalid move) makes the settle that ends it step the arrows: each, closest to its edge first, trades places with
 // the next gem the way it points (holes and dirt are jumped), and waits while that gem is an arrow too. The steps
 // animate in STATE_ARROW_STEPPING with the grid already traded, then the board settles again, so a step that makes
@@ -31,8 +32,8 @@ enum
 	ARROW_STEP_TICKS = 24       // a step's animation
 };
 
-const int kStepCol[GameRules::NUM_ARROW_DIRECTIONS] = {0, 1, 0, -1};    // GameRules::ArrowDirection
-const int kStepRow[GameRules::NUM_ARROW_DIRECTIONS] = {-1, 0, 1, 0};
+const int kStepCol[GameRules::NUM_ARROW_DIRECTIONS] = {0, 1, 0, -1, 1, 1, -1, -1};    // GameRules::ArrowDirection
+const int kStepRow[GameRules::NUM_ARROW_DIRECTIONS] = {-1, 0, 1, 0, -1, 1, 1, -1};
 
 }
 
@@ -157,7 +158,6 @@ void Board::UpdateArrowSteps()
 	mArrowTick++;
 	double t = (double) mArrowTick / ARROW_STEP_TICKS;
 	t = t * t * (3.0 - 2.0 * t);
-	bool anEscape = false;
 	for (const ArrowStep& s : mArrowSteps)
 	{
 		double aFromX = GetColX(s.mFromCol), aFromY = GetRowY(s.mFromRow);
@@ -165,7 +165,6 @@ void Board::UpdateArrowSteps()
 		bool isEscape = (s.mToCol < 0) || (s.mToCol >= mCols) || (s.mToRow < 0) || (s.mToRow >= mRows);
 		if (isEscape)
 		{
-			anEscape = true;
 			Piece* anArrow = mBoard[s.mFromRow][s.mFromCol];
 			anArrow->mX = aFromX + (aToX - aFromX) * t;
 			anArrow->mY = aFromY + (aToY - aFromY) * t;
@@ -181,6 +180,7 @@ void Board::UpdateArrowSteps()
 	if (mArrowTick < ARROW_STEP_TICKS)
 		return;
 
+	bool anEscape = false;
 	for (const ArrowStep& s : mArrowSteps)
 	{
 		bool isEscape = (s.mToCol < 0) || (s.mToCol >= mCols) || (s.mToRow < 0) || (s.mToRow >= mRows);
@@ -190,7 +190,16 @@ void Board::UpdateArrowSteps()
 			Piece* aPiece = mBoard[aRows[i]][aCols[i]];
 			if (isEscape)
 			{
-				// gone over the edge
+				// gone over the edge: a shot when every edge it crossed is one of arrows.shots, which scores the arrow's
+				// bonus and leaves a cell to refill; otherwise an escape, and the game is over
+				int anEdges = ArrowExitEdges(s);
+				if ((anEdges & ~mRules.mArrows.mShots) == 0)
+				{
+					ClearArrow(aPiece);
+					mApp->PlaySample(SOUND_GOTSETBIG, GetPanForX((int) aPiece->mX + 24));
+				}
+				else
+					anEscape = true;
 				mBoard[aRows[i]][aCols[i]] = NULL;
 				if (mSelectedPiece == aPiece)
 					mSelectedPiece = NULL;
@@ -213,6 +222,25 @@ void Board::UpdateArrowSteps()
 	mState = STATE_FALLING;
 }
 
+// A quarter turn of an arrow (Piece::mArrow, its direction + 1), clockwise for theQuarters 1 and anticlockwise for -1:
+// the straight four turn among themselves, and so do the diagonals (GameRules::ArrowDirection's order is clockwise)
+int Board::TurnArrow(int theArrow, int theQuarters)
+{
+	int aDir = theArrow - 1;
+	int aFirst = (aDir >= GameRules::FIRST_DIAGONAL_ARROW) ? GameRules::FIRST_DIAGONAL_ARROW : 0;
+	return aFirst + (((aDir - aFirst + theQuarters) % 4) + 4) % 4 + 1;
+}
+
+int Board::ArrowExitEdges(const ArrowStep& theStep) const
+{
+	int anEdges = 0;
+	if (theStep.mToRow < 0) anEdges |= 1 << GameRules::ARROW_EDGE_TOP;
+	if (theStep.mToCol >= mCols) anEdges |= 1 << GameRules::ARROW_EDGE_RIGHT;
+	if (theStep.mToRow >= mRows) anEdges |= 1 << GameRules::ARROW_EDGE_BOTTOM;
+	if (theStep.mToCol < 0) anEdges |= 1 << GameRules::ARROW_EDGE_LEFT;
+	return anEdges;
+}
+
 // An escape is the settle's only step: the arrows closest to their edges go first, and the first with none ahead escapes
 bool Board::IsArrowEscaping() const
 {
@@ -226,7 +254,9 @@ bool Board::IsArrowEscaping() const
 
 // A gem on the edge opposite the direction turns into an arrow, so it has the whole board to cross: for each column
 // (up, down) or row (left, right), the gem farthest from the edge the arrow points to, if it is no arrow or special
-// gem already. The direction, then the gem, from the board's RNG.
+// gem already. A diagonal arrow starts on a gem with no gem behind it on its diagonal, if that gem is at least half
+// as far from its edge as the farthest such gem: on a square board, not in the corners it would leave at once; on a
+// diamond, anywhere along its lower or upper edge. The direction, then the gem, from the board's RNG.
 void Board::AddNewArrow()
 {
 	int aDirs[GameRules::NUM_ARROW_DIRECTIONS];
@@ -241,21 +271,48 @@ void Board::AddNewArrow()
 	int aDir = aDirs[Rand() % aDirCount];
 
 	std::vector<Piece*> aCandidates;
-	bool isVertical = (aDir == GameRules::ARROW_UP) || (aDir == GameRules::ARROW_DOWN);
-	int aLines = isVertical ? mCols : mRows;
-	int aLength = isVertical ? mRows : mCols;
-	for (int aLine = 0; aLine < aLines; aLine++)
+	if (aDir >= GameRules::FIRST_DIAGONAL_ARROW)
 	{
-		for (int i = 0; i < aLength; i++)
+		int aBehind = GameRules::FIRST_DIAGONAL_ARROW + (aDir - GameRules::FIRST_DIAGONAL_ARROW + 2) % 4;
+		std::vector<Piece*> aFirsts;
+		std::vector<int> aDistances;
+		int aLongest = 0;
+		for (int aRow = 0; aRow < mRows; aRow++)
 		{
-			// from the edge behind the arrow
-			int aPos = ((aDir == GameRules::ARROW_UP) || (aDir == GameRules::ARROW_LEFT)) ? aLength - 1 - i : i;
-			Piece* aPiece = isVertical ? mBoard[aPos][aLine] : mBoard[aLine][aPos];
-			if (aPiece == NULL)
-				continue;
-			if ((aPiece->mArrow == 0) && (aPiece->mKind == 0))
-				aCandidates.push_back(aPiece);
-			break;
+			for (int aCol = 0; aCol < mCols; aCol++)
+			{
+				int aBehindCol, aBehindRow;
+				if ((mBoard[aRow][aCol] == NULL) || NextArrowCell(aCol, aRow, aBehind, &aBehindCol, &aBehindRow))
+					continue;
+				aFirsts.push_back(mBoard[aRow][aCol]);
+				aDistances.push_back(ArrowDistance(aCol, aRow, aDir));
+				aLongest = std::max(aLongest, aDistances.back());
+			}
+		}
+		for (size_t i = 0; i < aFirsts.size(); i++)
+		{
+			if ((aFirsts[i]->mArrow == 0) && (aFirsts[i]->mKind == 0) && (2 * aDistances[i] >= aLongest))
+				aCandidates.push_back(aFirsts[i]);
+		}
+	}
+	else
+	{
+		bool isVertical = (aDir == GameRules::ARROW_UP) || (aDir == GameRules::ARROW_DOWN);
+		int aLines = isVertical ? mCols : mRows;
+		int aLength = isVertical ? mRows : mCols;
+		for (int aLine = 0; aLine < aLines; aLine++)
+		{
+			for (int i = 0; i < aLength; i++)
+			{
+				// from the edge behind the arrow
+				int aPos = ((aDir == GameRules::ARROW_UP) || (aDir == GameRules::ARROW_LEFT)) ? aLength - 1 - i : i;
+				Piece* aPiece = isVertical ? mBoard[aPos][aLine] : mBoard[aLine][aPos];
+				if (aPiece == NULL)
+					continue;
+				if ((aPiece->mArrow == 0) && (aPiece->mKind == 0))
+					aCandidates.push_back(aPiece);
+				break;
+			}
 		}
 	}
 	if (aCandidates.empty())
