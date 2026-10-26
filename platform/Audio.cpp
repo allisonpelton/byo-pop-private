@@ -593,7 +593,7 @@ std::shared_ptr<SoundData> Mixer::LoadSoundData(const std::vector<uint8_t>& file
 			SDL_Log("cannot decode sound %s (MP3 in WAV: no frames decoded)", theName.c_str());
 			return nullptr;
 		}
-		ResampleToStereo(f.data(), (int)(f.size() / channels), channels, rate, mRate, *data);
+		StoreSound(f.data(), (int)(f.size() / channels), channels, rate, *data);
 		return data;
 	}
 	// WAV (and anything else SDL can read)
