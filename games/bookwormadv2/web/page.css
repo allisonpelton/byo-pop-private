@@ -1,0 +1,5 @@
+/* Bookworm Adventures' look on the shared page (web/shell.html): Lex's green, with a book's brown for the brand mark */
+:root { --accent: #3d7a1e; --cover: #7a4a22; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --accent: #8fd16a; } }
+:root[data-theme="dark"] { --accent: #8fd16a; }
+.brand .mark { width: 12px; height: 12px; background: var(--cover); border-radius: 2px; box-shadow: 0 0 0 2px var(--accent); }
