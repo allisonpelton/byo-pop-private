@@ -74,7 +74,7 @@ pool (+0x178, counted) holds them all: a particle whose reference count is 1 is 
 end tag is read: (int)(the longest life x the emit rate x 1.5 + 1) particles, one per image <path>0, <path>1, ...
 (.png, else .jpg) in rounds; the original loops forever when <path>0 is missing (smoke.xml, which no code names,
 would hang it), the port stops. The emit credit starts at 1, so a started stream emits at its first update. emit
-tries 25 random pool indexes (0x42bce0 truncates, so the last particle comes only on rand() 0x7fff) and draws the
+tries 25 random pool indexes (0x42bce0 never reaches its upper end, so the last particle is never picked) and draws the
 particle's values in a fixed order (acceleration, position, start and end scale, life, velocity, rotation, opacity,
 jitter rates, then the jitter amounts y before x); keep that order, the random sequence depends on it. A particle
 lives in screen coordinates: applyTransform translates by its position less the graphics' current translation (no
@@ -114,11 +114,41 @@ isLoop, 0x34 isPlaying (+0x35), 0x38 setFadeIn (+0x48), 0x3c setFadeOut (+0x4c),
 update(ms) 0x444240 (fades 0x444380, streaming 0x444270, volume 0x444730). The music (0x424160-0x426000): a layer
 (0x424810, 0x84 bytes: +0x10 its clips, +0x1c sequence (0 random, 1 random-not-last, 2 in order, 3 chosen), +0x20 the
 delay range, +0x28 the initial delay range, +0x30 fade-in, +0x34 fade-out, +0x38 volume, +0x3c the time left, +0x40
-the first clip, +0x44 the ending clip, +0x48/+0x4c clips, +0x50 the index, +0x54 how it stops (0 fade, 1 fade out
+the first clip, +0x44 the ending clip, +0x48/+0x4c clips, +0x50 the index, +0x54 how it stops (0 cut, 1 fade out over
 +0x34, 2 the ending clip), +0x58 running, +0x5c the chosen index) picks clips 0x4245f0, plays 0x424740, starts
 0x424910, stops 0x424970, updates 0x424a10, adds a clip 0x424b80 (stream-loaded, no loop, volume +0x38); the music
 system 0x4252f0 runs its layers (0x424be0 update, 0x424c10 start, 0x424c40 stop, 0x424c70 choose). Its file reader
 0x425250 (vtable 0x483178), the sound bank 0x426760 (the sounds file 0x425cf0) at controller +0x710 (0x426ac0).
+
+More sound, read and checked in the disassembly. The voice's base (0x453dd0): +4 an owner told at a stop (slot 4
+of it; nothing sets one that was seen), +8 its category; slots 0x40 setOwner, 0x44 clearOwner, 0x48 setCategory,
+0x4c getCategory, 0x50 getName (+0x24). The system's base (0x453e30): 64 category volumes at +4, all 1; slot 0x20
+0x453e50 setCategoryVolume(category 0..63, 0..1), 0x24 0x453ea0 getCategoryVolume (1 out of range). The volume a voice
+plays at (0x444730): category volume x master volume x the faded volume (DirectSound's dB from ln(gain), so linear).
+Fades (0x444380, slot 0x64, ms x 0.001 seconds; +0x54 the state, +0x50 the time left): 0 fading in (left -= dt; below
+0: left 0, state 1; volume x (in - left) / in); 1 playing (a fade-out time and no loop: once the position reaches
+slot 0x74's, the length less the fade-out, state 2 with left = fade-out); 2 and 3 fading out (left -= dt, not below
+0; volume x (1 - (out - left) / out)); then the volume is applied, and at 0 or below in state 2 the voice halts,
+tells its owner and rewinds. The window layer calls the system's slot 0x2c with 100 on a 100 ms timer (WM_TIMER 1).
+The sound bank (0x426ac0, 0x14 bytes: +4 a map name -> group, +0xc volume, +0x10 pitch): add 0x426760(name, file,
+count, vol, pitch, category) returns at once when the name is there, else loads the file under the name (system slot
+0), makes a group (0x435a10: count voices of createSound(name, 1, 0), each given the category by slot 0x48) and maps
+it; then the bank's +0xc and +0x10 become this sound's vol and pitch (the last sound's, bank-wide; the files give
+neither, so 1). play 0x425f10(name, vol, pitch): the group's slot 4 (0x4358e0) with vol x +0xc and pitch x +0x10:
+the first voice not playing gets setVolume, setPitch and play; none free, nothing. 0x435940 counts the playing
+voices, 0x435af0(make) a free voice or (make) a new one. The sounds file (0x425cf0, reader 0x42bdf0/0x42beb0, element
+"sound"): name (""), file (""), vol (1), pitch (1), count (1), category (0). The music file (reader 0x425250, vtable
+0x483178, 0x4259a0): musicSystem (nothing), musicLayer (0x425400: sequence "random-not-last" (random 0,
+random-not-last 1, sequential 2, loop 3), initialDelay (range, 0) +0x28, volume (1) +0x38, fadeInTime (0) +0x30,
+fadeOutTime (0) +0x34, stop "immediate" (immediate 0, fadeOut 1, playFinal 2) +0x54, delay (range, 0) +0x20, name
+("Layer") +0x60), clip (inside a layer: path ("INVALID_CLIP_PATH"), special (""), name (the path); special empty:
+added (0x424b80); "startOnly" registered (0x424160) as +0x40 only, "start" added and +0x40; "finalOnly"/"final" the
+same for +0x44; "bridge" registered as +0x48; special is searched with find, so it can hold several). A clip is
+registered with the system's slot 4 (streamed) and createSound(name, 0, 1); an added clip gets no loop, no fades and
+the layer's volume. The end of musicLayer adds the layer to the system (0x4251e0); the system's load (0x424ca0)
+deletes its old layers first (0x425230 -> 0x424e90). A layer's random pick uses 0x401050 (randomIndex, Random.h);
+random-not-last takes size - 1 when it draws the last index again; sequential wraps to 0; loop keeps the index
+unless one was chosen (0x4247c0 select(index, now)), and its clips loop.
 
 ## Next pieces, as read so far
 

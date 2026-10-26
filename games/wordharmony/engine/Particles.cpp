@@ -261,8 +261,8 @@ void ParticleStream::update(UpdateInfo& theInfo)
 	Container::update(theInfo);
 }
 
-// 0x432e10: up to 25 random picks from the pool for a free particle (the last particle of the pool comes up only
-// when rand() gives 0x7fff), which then draws its values from the stream's ranges in the original's order
+// 0x432e10: up to 25 random picks from the pool for a free particle (randomInt never picks the pool's last one), which
+// then draws its values from the stream's ranges in the original's order
 void ParticleStream::emit(Point thePosition)
 {
 	Particle* aParticle = nullptr;

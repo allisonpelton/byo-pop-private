@@ -15,9 +15,11 @@ void crtSrand(unsigned int theSeed);
 // 0x446749
 int crtRand();
 
-// 0x42bce0: a whole number from theLow towards theHigh, cut towards theLow; theHigh itself comes only when rand()
-// gives 0x7fff
+// 0x42bce0: a whole number from theLow towards theHigh, cut towards theLow; theHigh itself never comes (rand()'s
+// largest value times the scale is a little under 1)
 int randomInt(int theLow, int theHigh);
+// 0x401050: the same over theLow to theHigh + 1, so theHigh is the largest it gives
+int randomIndex(int theLow, int theHigh);
 // 0x42bd10: a number between a range's two ends (x and y)
 float randomFloat(const Point& theRange);
 
