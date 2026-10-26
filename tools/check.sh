@@ -750,7 +750,22 @@ suite_rocketmania() {
 	cmp -s "$d/menu.png" "$d/hover.png" && { SUMMARY="the hover changed nothing"; return 1; }
 	cmp -s "$d/hover.png" "$d/difficulty.png" && { SUMMARY="the click opened no dialog"; return 1; }
 	grep -q "StartBoard: mode 0 difficulty 1" "$1" || { SUMMARY="easy arcade did not start a game"; return 1; }
-	SUMMARY="loaded, menu, hover, difficulty dialog and a new game (4 screenshots differ)"
+	# the Board: a game of each mode played for 3000 updates by the autoplay hook (random clicks; launches are forced)
+	local m line score scores=""
+	for m in 0 1 2; do
+		sed -e "s|@MODE@|$m|" -e "s|@DIFF@|$((m + 1))|" games/rocketmania/tools/board_test.txt > "$d/board$m.txt"
+		e=0
+		timeout 300 "$W/build/native/rocketmania.exe" -userdir="$d/user" -fast -seed=1 -script="$d/board$m.txt" > "$d/board$m.out" 2>&1 || e=$?
+		cat "$d/board$m.out" >> "$1"
+		[ "$e" -eq 0 ] || { SUMMARY="mode $m: the exe exited with status $e"; return 1; }
+		line="$(grep "autoplay: done" "$d/board$m.out" | tail -n 1)"
+		[ -n "$line" ] || { SUMMARY="mode $m: the autoplay did not finish"; return 1; }
+		case "$line" in *"bad cells 0"*) ;; *) SUMMARY="mode $m: a tile stood in the wrong cell ($line)"; return 1;; esac
+		score="$(echo "$line" | sed 's/.* score \([0-9]*\) .*/\1/')"
+		[ "${score:-0}" -gt 0 ] || { SUMMARY="mode $m: no launch scored ($line)"; return 1; }
+		scores="$scores $score"
+	done
+	SUMMARY="loaded, menu, hover, difficulty dialog, and a game of each mode played (scores$scores)"
 	return $st
 }
 
