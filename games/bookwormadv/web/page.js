@@ -6,9 +6,10 @@
     // site as the other games without sharing files or saves (games/bookwormadv/src/main.cpp uses the same folder)
     persist: "/bwapersist",
     lock: "bookworm-adventures-deluxe-instance",
-    // Most of the game is packed in main.pak, which the import unpacks into the game's folder; the cutscenes are
-    // loose in images/, and BookwormAdventures.exe holds the game's texts (it is never run)
-    gameDirs: ["images", "properties"],
+    // Most of the game is packed in main.pak, which the import unpacks into the game's folder (its folders are
+    // these; the import keeps only what is in them); the cutscenes are loose in images/, and
+    // BookwormAdventures.exe holds the game's texts (it is never run)
+    gameDirs: ["data", "fonts", "images", "properties", "scripts", "sounds"],
     gameFiles: ["bookwormadventures.exe"],
     paks: ["main.pak"],
     markers: ["main.pak", "bookwormadventures.exe"],
