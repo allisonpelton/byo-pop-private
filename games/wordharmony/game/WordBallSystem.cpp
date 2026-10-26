@@ -834,7 +834,7 @@ void WordBallSystem::showHint()
 		else
 			aHint = mHints.at(randomIndex(0, (int)mHints.size() - 1));
 		anEffect->setText(aHint.c_str());
-		aGame->mHintsUsedTotal++;
+		aGame->mLevelHintsUsed++;
 		aGame->mHintsUsed++;
 		aGame->mHints--;
 	}
@@ -1578,8 +1578,8 @@ void WordBallSystem::startLevel()
 	mLayer->fade(true, 0.5f, 1.0f);
 	mWord.clear();
 	mHud->setPlaying(true);
-	aGame->m18C = 0;
-	aGame->m38 = 0;
+	aGame->mLevelTime = 0;
+	aGame->mLevelPoints = 0;
 	mBallsLeft = mCount;
 }
 

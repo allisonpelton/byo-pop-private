@@ -1,4 +1,5 @@
 #include "Settings.h"
+#include "SavedGame.h"
 #include "Button.h"
 #include "Host.h"
 #include "ScreenLayout.h"
@@ -76,6 +77,30 @@ void Settings::setHighestLevel(int theMode, int theLevel)
 {
 	if (mHighestLevels[theMode] < theLevel)
 		mHighestLevels[theMode] = theLevel;
+}
+
+// 0x409d70
+void Settings::setSavedGame(int theMode, SavedGame* theGame)
+{
+	SavedGame* anOld = mSavedGames[theMode];
+	if (anOld != nullptr)
+	{
+		delete anOld;
+		mSavedGames[theMode] = theGame;
+		return;
+	}
+	mSavedGames[theMode] = theGame;
+}
+
+// 0x409e00
+SavedGame* Settings::newSavedGame(int theMode)
+{
+	SavedGame* anOld = mSavedGames[theMode];
+	if (anOld != nullptr)
+		delete anOld;
+	SavedGame* aGame = new SavedGame(theMode);
+	mSavedGames[theMode] = aGame;
+	return aGame;
 }
 
 // 0x40a110

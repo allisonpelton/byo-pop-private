@@ -41,6 +41,8 @@ struct BallGroup
 	unsigned int mCount;  // +0x50
 };
 
+class SavedGame;
+
 class WordBallSystem : public BallArray, public engine::Container, public engine::KeyHandler
 {
 public:
@@ -79,6 +81,10 @@ public:
 	static int waterStage(float theValue);
 	// 0x411dc0: the level is over
 	void levelDone();
+	// 0x4142c0: the balls, the obstacles and the word under way into a saved game
+	void saveState(SavedGame* theGame);
+	// 0x4199d0: the same taken from a saved game, after startLevel
+	void loadState(SavedGame* theGame);
 	// 0x412080: the nearest obstacle within 23 pixels, or null
 	Obstacle* findObstacle(const engine::Point& thePoint);
 	// 0x412920: the chain's balls freed from it, and the chain deleted

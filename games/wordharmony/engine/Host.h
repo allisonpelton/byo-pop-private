@@ -12,6 +12,7 @@ namespace engine
 {
 
 class Image;
+class SoundSystem;
 
 class Host
 {
@@ -39,6 +40,10 @@ public:
 	virtual void openURL(const std::string& theURL) = 0;
 	virtual void log(const char* theText) = 0;
 	virtual void showMessage(const char* theCaption, const char* theText) = 0;
+	// The sound system of the window (DirectSound, 0x443ca0); null without sound
+	virtual SoundSystem* createSoundSystem() = 0;
+	// GetCommandLineA(): the program's name and its arguments
+	virtual std::string commandLine() { return ""; }
 };
 
 void setHost(Host* theHost);

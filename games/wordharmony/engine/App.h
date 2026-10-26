@@ -22,15 +22,17 @@ class Image;
 class SoundSystem;
 
 // The configuration the controller fills in (the application's +0x88)
+// The controller's settings for the window (filled by its configure, 0x402eb0; the run loop 0x4552b0 refuses a
+// configuration without a title or a frame rate)
 struct AppConfig
 {
-	int mUnknown88;     // +0x88
-	int mWidth;         // +0x8c
-	int mFrameRate;     // +0x90: frames per second
-	int mHeight;        // +0x94
-	int mUnknown98;     // +0x98
-	int mUnknown9C;     // +0x9c
-	bool mUseFiles;     // +0xa0: loose files instead of the archive
+	const char* mTitle;  // +0x88
+	int mIcon;           // +0x8c: the window class's icon resource (101)
+	int mFrameRate;      // +0x90: frames per second
+	int mWidth;          // +0x94
+	int mHeight;         // +0x98
+	bool mUnknown9C;     // +0x9c: false
+	bool mUseFiles;      // +0xa0: loose files instead of the archive
 };
 
 // The game's controller (the application's +0xa4; the game creates it in 0x407370)
@@ -41,6 +43,7 @@ public:
 	virtual void init() = 0;                           // slot 0x08: after the window and the display exist
 	virtual void shutdown() = 0;                       // slot 0x0c
 	virtual void update(UpdateInfo& theInfo) = 0;      // slot 0x10: once a frame, before the root window
+	virtual void activate(bool theActive) {}           // slot 0x14: the window's focus gained or lost
 };
 
 class App : public Object

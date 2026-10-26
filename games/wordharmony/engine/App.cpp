@@ -225,7 +225,7 @@ void App::start(Controller* theController)
 {
 	mController = theController;
 	mController->configure(mConfig);
-	if (mConfig.mWidth == 0 || mConfig.mFrameRate == 0)
+	if (mConfig.mTitle == nullptr || mConfig.mFrameRate == 0)
 		throw Exception("Invalid configuration.");
 	mResources->setUseFiles(mConfig.mUseFiles);
 	mRootWindow = new Window();

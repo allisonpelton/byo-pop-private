@@ -16,6 +16,9 @@ class CongratsScreen : public engine::ScreenLayout
 {
 public:
 	CongratsScreen();  // 0x409c20
+
+	// 0xf0: 0x409710, the score and the time played
+	virtual void showResults();
 };
 
 // The game's end (constructor 0x40b0d0, vtable 0x481110)
@@ -24,8 +27,8 @@ class GameOverScreen : public engine::ScreenLayout
 public:
 	GameOverScreen();  // 0x40b0d0
 
-	// 0x40aec0: the score, the hints used and the five longest words; the extra scores outside the puzzles
-	void showResults();
+	// 0xf0: 0x40aec0, the score, the hints used and the five longest words; the extra scores outside the puzzles
+	virtual void showResults();
 };
 
 class HighScores;

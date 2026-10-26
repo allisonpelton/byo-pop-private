@@ -42,8 +42,15 @@ public:
 	void setHighestLevel(int theMode, int theLevel);
 	// 0x409d70: the mode's saved game replaced (the old one deleted)
 	void setSavedGame(int theMode, SavedGame* theGame);
+	// 0x409e00: a new saved game for the mode in place of the old one (eax still holds it when the function returns)
+	SavedGame* newSavedGame(int theMode);
 	// 0x409e80
 	SavedGame* getSavedGame(int theMode) { return mSavedGames[theMode]; }
+	// The help screen shown before a game of the mode (inlined as the byte at +0x38 + mode)
+	bool getShowHelp(int theMode)
+	{
+		return theMode == 0 ? mShowPuzzleHelp : theMode == 1 ? mShowSolitaireHelp : mShowActionHelp;
+	}
 
 	bool getShowPuzzleHelp() { return mShowPuzzleHelp; }        // 0x409e90
 	bool getShowActionHelp() { return mShowActionHelp; }        // 0x409ea0

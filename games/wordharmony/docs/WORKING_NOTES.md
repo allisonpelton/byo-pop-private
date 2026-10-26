@@ -174,6 +174,18 @@ The settings (0x409d50-0x40aec0) are ported in game/Settings.cpp, all but the th
 
 Screens ported so far (game/Screens.cpp): CongratsScreen, GameOverScreen with its results (0x40aec0) and HighScoreEntryLayout (0x40b1d0-0x40b640: a key handler on the root window, printable keys 0x20-0x87 up to 16 letters, backspace, enter tells the controller "highScoreEntryDone"). Next is the score tables class at 0x40b6c0, which 0x40b660 (three fields at +0xd4-+0xdc, enabled, +0xe0 cleared) and 0x40b6a0 (+0xe0 cleared, its slot 0xf4) belong to; dumps in build/wh_sc3.txt (0x40b0d0-0x40c190). 0x40b6c0 fills config/highscore.xml's three tables (puzzle +0xd4, tsunami +0xdc, solitaire presumably +0xd8; HighScores objects) for i from +0xe0 to +0xe0+10: below the table's count (0x421080) the nodes <mode>-scoreRank<n> (text "%d."), -scoreName<n> and -score<n> are set and shown, else hidden. The nodes are numbered from 0: the sprintf calls pass i less +0xe0, and the rank text is i + 1 (checked in the disassembly at 0x40b72a and 0x40b782).
 
+The controller as ported (game/Game.h/.cpp, compiled, not yet run): every function of 0x401000-0x409c00 except the
+saved game's own code. The state machine is 0x4055f0 (states in Game.h); several callers inline parts of it (the
+splash's end, retry, newGame, the high score entry and update's state 2 and 6), and the port calls setState there,
+which differs only in the redundant root window fetch. The fades' callbacks 0x401200 and 0x401220 set +0x208 (removed
+at the next update) and +0x190 (the root's only child at the next update). Quirks kept: continueGame takes the level's
+points from the saved letters used (+0x24), not from +0x20; the end of a level shows text 4 again each frame between
+1.5 and 2 seconds only when text 3 was already shown; the score tables get their default names when any table has
+fewer than 10 entries, but each table only when it has fewer than 5. Left out: the beta's play time upload (+0x10c),
+the frame rate display (+0x300), the screen saver's install path from the registry, and the distributor's game link
+button (ShowLink and ILink); openLink still checks VisitURL. The host gained createSoundSystem and commandLine (the
+screen saver's /s, /c, /p), the controller its slot 0x14 activate (a lost focus pauses the game).
+
 ## Next pieces, as read so far
 
 The controller (vtable 0x480a14: 0 dtor 0x4073d0, 4 configure 0x402eb0, 8 init 0x406b30, 0xc shutdown 0x401750, 0x10

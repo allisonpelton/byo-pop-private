@@ -13,6 +13,14 @@ CongratsScreen::CongratsScreen()
 	setName("CongratsScreen");
 }
 
+// 0x409710
+void CongratsScreen::showResults()
+{
+	Game* aGame = Game::instance();
+	static_cast<TextItem*>(getNode("score"))->setNumber(aGame->mScore);
+	static_cast<TextItem*>(getNode("time"))->setTime(aGame->mTime);
+}
+
 // 0x40b0d0
 GameOverScreen::GameOverScreen()
 {
