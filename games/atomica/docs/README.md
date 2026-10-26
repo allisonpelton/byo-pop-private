@@ -69,7 +69,8 @@ the path finder, the effects, the Board (HUD, meter, atomic bomb, freeze and air
 popups a click opens), Atomicus' voices, the bonus molecules (30 shapes in three tiers) and the five element atoms with their
 effects, the tutorial boxes (`HintBox`, 28 hints; their lines are generated from the decompilation by `tools/genhints.py`, numbers only)
 and `Grid::CheckHints`, the swirls (the tunnel behind the field and the atoms that circle in it, `Swirl.cpp`), the main menu
-(ranks, high scores, the saved game), the high score entry and tables, the options, quit, new-game and level-up boxes, the
+(the doors that close over the title screen or the ended game, the panel, ranks, high scores, the saved game; `GAME_NOTES.md` section 8),
+the high score entry and tables, the options, quit, new-game and level-up boxes, the
 registry values (hints shown, hints off, colour-blind symbols, music and sound volumes), a bot and its suite.
 
 Where the port is not the original's exact picture (each marked in the code):

@@ -196,7 +196,7 @@ void AtomicaApp::AutoplayUpdate()
 	if (mMenu != NULL)
 	{
 		MainMenu* aMenu = (MainMenu*) mMenu;
-		if (!aMenu->mPanelShown)
+		if (!aMenu->PanelShown())
 			return;
 		if (aMenu->mGameOver && !aMenu->mEntryShown)
 			return;
@@ -222,7 +222,7 @@ void AtomicaApp::AutoplayUpdate()
 		s->mLevelLogged = false;
 		s->mMoves = 0;
 		s->mLastLevel = 0;
-		aMenu->ButtonDepress(aMenu->mGameOver ? 7 : (mAutoplayMode == 1 ? 2 : 0));
+		aMenu->ButtonPress(aMenu->mGameOver ? 7 : (mAutoplayMode == 1 ? 2 : 0));
 		Log(s, "game %d starts at update %d", s->mGames, s->mTick);
 		s->mWait = 20;
 		return;

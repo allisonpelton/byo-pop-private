@@ -110,16 +110,12 @@ void AtomicaApp::Init()
 	mWidgetManager->AddWidget(mTitleScreen);
 }
 
-// the title screen's play link was clicked (the menu is not ported yet: the game starts)
+// the title screen's play link was clicked: the menu's doors close over it (and the slam deletes it, 0x405e20)
 void AtomicaApp::TitleScreenDone()
 {
+	if (mMenu != NULL)	// port: the title screen is still there until the doors have shut; a second click does not start over
+		return;
 	SDL_Log("title screen done");
-	if (mTitleScreen != NULL)
-	{
-		mWidgetManager->RemoveWidget(mTitleScreen);
-		SafeDeleteWidget(mTitleScreen);
-		mTitleScreen = NULL;
-	}
 	ShowMainMenu(false);
 }
 
