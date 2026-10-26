@@ -196,27 +196,45 @@ void CheckSound(const char* theCase, int theChannels, int theRate, int theBits, 
 	const double pitches[] = {1.0, 1.5, 0.75};
 	for (double pitch : pitches)
 	{
-		for (int loop = 0; loop < 2; loop++)
+		char what[96];
+		std::vector<float> a, b;
+		int want = (int)(old.size() / 2 / pitch) + 64;
+		int na = OldVoice(old, pitch, false, want, a);
+		int nb = NewVoice(data, pitch, false, want, b);
+		double maxDiff = 0;
+		for (int i = 0; i < std::min(na, nb) * 2; i++)
+			maxDiff = std::max(maxDiff, (double)std::fabs(a[i] - b[i]));
+		// at pitch 1 both read the file's samples at the same places; at other pitches the old pipeline
+		// interpolated twice, which differs by its own resampling error (here at most 0.005 of full scale)
+		snprintf(what, sizeof(what), "pitch %.2f: largest difference from the old pipeline", pitch);
+		Expect(theCase, what, maxDiff, 0, pitch == 1.0 ? 2e-6 : 0.01);
+		snprintf(what, sizeof(what), "pitch %.2f: frames played", pitch);
+		Expect(theCase, what, nb, na, 2);
+
+		// Looping, over three passes and their wraps: the old copy's length was rounded up to a whole device frame,
+		// so it is no reference after the first pass. The exact one: each frame at (i * step) mod the sound's
+		// length, its last frame leading back to its first.
+		double step = pitch * data->mRate / kRate;
+		want = (int)(3 * frames / step) + 64;
+		nb = NewVoice(data, pitch, true, want, b);
+		maxDiff = 0;
+		for (int i = 0; i < nb; i++)
 		{
-			char what[96];
-			// a looping voice is compared over its first pass only: the old copy's length was rounded up to a whole
-			// device frame, so its later passes drift from the exact length by up to a frame each
-			int want = (int)(old.size() / 2 / pitch) + 64;
-			std::vector<float> a, b;
-			int na = OldVoice(old, pitch, loop != 0, want, a);
-			int nb = NewVoice(data, pitch, loop != 0, want, b);
-			// (a looping voice's last fraction of a frame leads back to the first frame, which the old copy did not)
-			int n = loop ? (int)((double)(frames - 1) * kRate / theRate / pitch) - 1 : std::min(na, nb);
-			double maxDiff = 0;
-			for (int i = 0; i < n * 2; i++)
-				maxDiff = std::max(maxDiff, (double)std::fabs(a[i] - b[i]));
-			// at pitch 1 both read the file's samples at the same places; at other pitches the old pipeline
-			// interpolated twice, which differs by its own resampling error (here at most 0.005 of full scale)
-			snprintf(what, sizeof(what), "pitch %.2f%s: largest difference", pitch, loop ? " looping" : "");
-			Expect(theCase, what, maxDiff, 0, pitch == 1.0 ? 2e-6 : 0.01);
-			snprintf(what, sizeof(what), "pitch %.2f%s: frames played", pitch, loop ? " looping" : "");
-			Expect(theCase, what, nb, loop ? want : na, loop ? 0 : 2);
+			double pos = std::fmod(i * step, (double)frames);
+			int i0 = (int)pos, i1 = (i0 + 1) % frames;
+			float t = (float)(pos - i0);
+			for (int c = 0; c < 2; c++)
+			{
+				int ch = std::min(c, theChannels - 1);
+				float s0 = data->mSamples[(size_t)i0 * theChannels + ch] / 32768.0f;
+				float s1 = data->mSamples[(size_t)i1 * theChannels + ch] / 32768.0f;
+				maxDiff = std::max(maxDiff, (double)std::fabs(s0 + (s1 - s0) * t - b[i * 2 + c]));
+			}
 		}
+		snprintf(what, sizeof(what), "pitch %.2f looping: largest difference over three passes", pitch);
+		Expect(theCase, what, maxDiff, 0, 1e-5);
+		snprintf(what, sizeof(what), "pitch %.2f looping: frames played", pitch);
+		Expect(theCase, what, nb, want, 0);
 	}
 }
 

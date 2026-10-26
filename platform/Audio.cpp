@@ -272,11 +272,12 @@ void Mixer::Unlock()
 // ---------------------------------------------------------------------------------------------
 // Sound loading
 
-// Keeps a decoded sound as 16-bit samples at its own rate, with its first one or two channels. Every decoder here
-// gives 16-bit (or 8-bit) values scaled by 1/32768, so the conversion loses nothing.
+// Keeps a decoded sound as 16-bit samples at its own rate, with its first one or two channels. The decoders give
+// 16-bit or 8-bit values scaled by 1/32768, which this keeps exactly; only a WAV of 24 or 32 bits or floats is reduced
+// to 16 bits (and clipped at full scale). A sound with no frames or no valid rate keeps none, and plays nothing.
 static void StoreSound(const float* theIn, int theInFrames, int theInChannels, int theInRate, SoundData& theOut)
 {
-	if (theInFrames <= 0 || theInChannels <= 0)
+	if (theInFrames <= 0 || theInChannels <= 0 || theInRate <= 0)
 		return;
 	int channels = std::min(theInChannels, 2);
 	theOut.mChannels = channels;
@@ -513,6 +514,11 @@ std::shared_ptr<SoundData> Mixer::LoadSoundData(const std::vector<uint8_t>& file
 			return data;
 		}
 		// already 16-bit: keep the first one or two channels as they are
+		if (rate <= 0)
+		{
+			free(pcm);
+			return data;
+		}
 		data->mChannels = std::min(channels, 2);
 		data->mRate = rate;
 		data->mFrames = (size_t)frames;
