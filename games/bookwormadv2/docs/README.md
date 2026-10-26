@@ -79,12 +79,16 @@ making.
 
 ## Status (2026-10-26)
 
-Milestone 1 of 5: PopLua runs all 462 scripts headless. The Volume 1 VM and compiler undump all of them, run each main
-chunk, and compile the shipped sources to the shipped chunks. `luaV_execute` differs in layout from Volume 1's (the
+Milestone 1 of 5 is done: PopLua runs all 462 scripts headless. Volume 1's VM and compiler undump all of them, run each
+main chunk, and compile the shipped sources to the shipped chunks. `luaV_execute` differs in layout from Volume 1's (the
 later compiler), and its handlers have not been read case by case against `POPLUA.md`; the battles of milestone 3 are
-the real test of the VM. Not yet done: the title, menus, dialogs and cut scenes (the exe's C++ is still Volume 1's;
-the cut scene player lacks bitmap fills and embedded images that Volume 2's five movies use; PopAnim loads all 304
-animations but 41 pictures in 7 of them are not found), battles, the whole game, the browser.
+the real test of the VM.
+
+Milestone 2 (the title, menus, dialogs and cut scenes) is started, not done: the game exe still runs Volume 1's `src/`
+(off by default, `-DBWA2_GAME=ON`; with Volume 2's regenerated resource globals it does not compile until the classes
+that use Volume 1's images are reworked). `PORT_PLAN.md` has what was found, the size of each class and the order
+of work. The cut scene player lacks the bitmap tags Volume 2's five movies use; PopAnim loads all 304 animations but
+41 pictures in 7 of them are not found.
 
 ## Changes outside the Bookworm Adventures Volume 2 folder
 

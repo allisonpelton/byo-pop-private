@@ -50,7 +50,7 @@ GameApp::GameApp()
 	mProductVersion = "1.0";
 	mRegKey = "PopCap\\WinBAD";
 	// port: the original's title was the properties' Title (InitPropertiesHook) and the version
-	mTitle = "Bookworm Adventures Deluxe";
+	mTitle = "Bookworm Adventures Volume 2";
 	mWidth = 800;
 	mHeight = 600;
 	mAutoStartLoadingThread = false;  // the title screen starts it once the curtain is closed
