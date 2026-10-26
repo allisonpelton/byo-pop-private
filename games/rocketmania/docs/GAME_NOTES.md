@@ -310,8 +310,16 @@ leaves. The tip's picture is the bubble (turned or flipped by region), its text 
 `tools/make_headdata.py` turns into HeadData.inc, together with the numbers for the moods and places. The test command
 "endlevel <n>" flies the head in for the end of a level.
 
-Still to do: the frozen-time bar of the classic mode (0x41f360, drawn in Board::Draw before the effects), the tilted tile
-(0x41e630) and its overlay (0x41e690), the ghost trail, the rockets over the menu, and the deliverables: the coordinator's `BYOPOP_BUY_rocketmania` line
+The classic mode's night is shown as ten lanterns on a wire (DrawNightBar, 0x41f360; the check in Board::Draw 0x42f6f0 is only
+"mode is 1"): with time frozen all show the frozen picture, otherwise the lit ones are those above the fraction of the night
+that has gone, the lantern at that fraction fades from the dim to the unlit picture over a tenth of the night, and in the last
+tenth the lit ones flicker. The first lantern to go out sets a flag the board's update turns into a puff (0x41f280). A tile
+that was hit swings (the angle in the piece's +0x80) and is drawn turned in its plain picture (0x41e630); a tile in the top two
+rows gets an additive warning picture over it (0x41e690), and a tile that was moved leaves one faded grey ghost for each cell
+it passed. The points of the launch in progress show beside its row (0x4290b0, 0x429230) in a hue that moves with the length of
+the chain, as five points for each flame times the difficulty's factor.
+
+Still to do: the rockets over the menu, and the deliverables: the coordinator's `BYOPOP_BUY_rocketmania` line
 (cmake/ByopopStores.cmake has an uncommitted local placeholder that must not be committed), and an AddressSanitizer run of the
 autoplay (tools/build.sh has no asan option yet). The trial clock (0x42f770) and the shareware dialogs (0x414790, 0x415020, 0x4153b0) are left out on purpose: the Steam copy
 is registered.

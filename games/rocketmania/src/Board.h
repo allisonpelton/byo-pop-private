@@ -253,6 +253,12 @@ public:
 
 	// ---- drawing (BoardDraw.cpp)
 	void			DrawTile(Graphics* g, Piece* thePiece, int theHint);                // 0x41e770
+	void			DrawTilted(Graphics* g, Piece* thePiece);                           // 0x41e630
+	void			DrawTileOverlay(Graphics* g, Piece* thePiece, int theHint);         // 0x41e690
+	void			DrawNightBar(Graphics* g);                                          // 0x41f360
+	void			DrawLantern(Graphics* g, int theImage, int theIndex);              // 0x41f2e0
+	void			DrawLaunchNumber(Graphics* g, int theCount, int theRow, int theAlpha);   // 0x4290b0
+	void			DrawLaunchInProgress(Graphics* g);                                  // 0x429230
 	void			DrawTop(Graphics* g, Piece* thePiece);                              // 0x41e3e0
 	void			DrawSpare(Graphics* g, Piece* thePiece);                            // 0x41e530
 	void			DrawEdge(Graphics* g, Piece* thePiece, int theRow, int theColumn);  // 0x41ec20

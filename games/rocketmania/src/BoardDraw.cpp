@@ -1,7 +1,6 @@
 // The Board's drawing (RocketManiaGame 0x41f540 and the helpers 0x41d420-0x41ec20). First part: the background, the grid's
-// tiles, the tiles that wait above the board and the pieces that fall. Not translated yet: the tilted tile 0x41e630, the
-// overlay 0x41e690, the edge pieces 0x41ec20, the specials and effects 0x41d670, the score and the bars (the rest of
-// 0x41f540, 0x41ef20, 0x41f0b0, 0x421b80). Positions are ftol(mX) and ftol(mY) of a piece (the first __ftol of a pair is y).
+// tiles, the tiles that wait above the board, the pieces that fall, the edge pieces, the specials, the classic mode's
+// lanterns and the number of a launch. Positions are ftol(mX) and ftol(mY) of a piece (the first __ftol of a pair is y).
 
 #include "Board.h"
 #include "RocketApp.h"
@@ -18,6 +17,7 @@
 
 #include <cmath>
 #include <cstdio>
+#include <cstdlib>
 #include <cstring>
 
 using namespace Sexy;
@@ -168,7 +168,7 @@ void Board::Draw(Graphics* g)
 			aX -= 0xd;
 		}
 	}
-	// (0x429230: the launch in progress is not translated yet)
+	DrawLaunchInProgress(g);    // 0x429230
 
 	if (mApp->mMode != 2)
 	{
@@ -207,7 +207,8 @@ void Board::Draw(Graphics* g)
 			g->SetDrawMode(Graphics::DRAWMODE_NORMAL);
 		}
 	}
-	// (the frozen-time bar of classic mode 0x41f360 is not translated yet; the effects of the front layer go after it)
+	if (mApp->mMode == 1)       // 0x42f6f0
+		DrawNightBar(g);
 	mEffects->Draw(g, false);
 	mTip->Draw(g);      // 0x414000
 
@@ -341,8 +342,8 @@ void Board::Draw(Graphics* g)
 // 0x41e770: a tile of the grid. The colour of its picture says how it is connected: no path the plain grey one (variant 6),
 // a path that reaches the left edge variant 1 (a fuse there) or 2, one that reaches only the right edge variant 3 (a rocket
 // there) or 4. A burning tile fades its lit picture (variant 0) in over the grey one and afterwards shows variant 0, or 5
-// once the flame has passed. Not translated: the tilted drawing (0x41e630, |m80| > 0.005), the overlay 0x41e690 and the
-// ghosts of a tile that was moved.
+// once the flame has passed. A tile that was hit (|m80| > 0.005) is drawn turned (0x41e630), a tile of the top rows gets the
+// warning overlay (0x41e690), and a tile that was moved leaves ghosts along the way it came.
 void Board::DrawTile(Graphics* g, Piece* thePiece, int theHint)
 {
 	int aJitter = 0;
@@ -355,6 +356,11 @@ void Board::DrawTile(Graphics* g, Piece* thePiece, int theHint)
 	int aY = Ftol(thePiece->mY);
 	if (thePiece->mType == 4)
 	{
+		if (0.005 < fabs(thePiece->m80))
+		{
+			DrawTilted(g, thePiece);
+			return;
+		}
 		if (m2ec < 0)
 			g->DrawImage(aVariants[thePiece->m60 ? 5 : 0], aX, aY);
 		else
@@ -365,19 +371,93 @@ void Board::DrawTile(Graphics* g, Piece* thePiece, int theHint)
 			g->DrawImage(aVariants[0], aX, aY);
 			g->SetColorizeImages(false);
 		}
+		DrawTileOverlay(g, thePiece, theHint);
 		return;
 	}
-	int aVariant = 6;
-	int aPath = thePiece->mPath;
-	if (aPath != 0)
+	if (0.005 < fabs(thePiece->m80))
+		DrawTilted(g, thePiece);
+	else
 	{
-		unsigned int aBits = (unsigned int) m384[aPath];
-		if ((aBits & 1) != 0)
-			aVariant = m3fc[aPath] ? 1 : 2;
-		else if ((aBits & 2) != 0)
-			aVariant = m41a[aPath] ? 3 : 4;
+		int aVariant = 6;
+		int aPath = thePiece->mPath;
+		if (aPath != 0)
+		{
+			unsigned int aBits = (unsigned int) m384[aPath];
+			if ((aBits & 1) != 0)
+				aVariant = m3fc[aPath] ? 1 : 2;
+			else if ((aBits & 2) != 0)
+				aVariant = m41a[aPath] ? 3 : 4;
+		}
+		g->DrawImage(aVariants[aVariant], aX, aY);
+		DrawTileOverlay(g, thePiece, theHint);
 	}
-	g->DrawImage(aVariants[aVariant], aX, aY);
+
+	// the ghosts of a tile that was moved: one grey picture for each cell it passed, fading with the shake that is left
+	if (thePiece->mac != 0)
+	{
+		int aSteps = abs(thePiece->mRow - thePiece->mb0) + abs(thePiece->mColumn - thePiece->mb4);
+		g->SetColorizeImages(true);
+		int anAge = 0;
+		for (int aStep = 0; aStep < aSteps; aStep++)
+		{
+			int anAlpha = thePiece->mac - anAge;
+			if (10 < anAlpha)
+			{
+				g->SetColor(Color(255, 255, 255, anAlpha));
+				int aGhostY, aGhostX;
+				if (aStep == aSteps - 1)
+				{
+					aGhostY = CellY(thePiece->mb0);
+					aGhostX = CellX(thePiece->mb4);
+				}
+				else
+				{
+					aGhostY = CellY(thePiece->mRow - aStep - 1);
+					aGhostX = CellX(thePiece->mColumn);
+				}
+				g->DrawImage(aVariants[6], aGhostX, aGhostY);
+			}
+			anAge += 0x14;
+		}
+		g->SetColorizeImages(false);
+	}
+}
+
+// 0x41e630: a tile that was hit and still swings (|m80| > 0.005) is drawn turned by that angle, in the plain grey picture
+void Board::DrawTilted(Graphics* g, Piece* thePiece)
+{
+	MemoryImage** aVariants = mApp->mPieces[thePiece->mKind][thePiece->mRotation];
+	int aY = Ftol(thePiece->mY);
+	int aX = Ftol(thePiece->mX);
+	g->DrawImageRotated(aVariants[6], aX, aY, thePiece->m80, NULL);
+}
+
+// 0x41e690: the warning over a tile of the top rows: the tile of the second row glows (hint 1 or 2), the one of the first row
+// (hint 2) blinks between the two pictures every 50 updates
+void Board::DrawTileOverlay(Graphics* g, Piece* thePiece, int theHint)
+{
+	Image* anImage;
+	if (thePiece->mRow == 1 && (theHint == 1 || theHint == 2))
+	{
+		g->SetDrawMode(Graphics::DRAWMODE_ADDITIVE);
+		anImage = mApp->mImages[IMAGE_HIGHLIGHTWARNING];
+	}
+	else
+	{
+		if (thePiece->mRow != 0)
+			return;
+		if (theHint != 2)
+			return;
+		g->SetDrawMode(Graphics::DRAWMODE_ADDITIVE);
+		if (mUpdateCnt % 100 < 0x32)
+			anImage = mApp->mImages[IMAGE_HIGHLIGHTDANGER];
+		else
+			anImage = mApp->mImages[IMAGE_HIGHLIGHTWARNING];
+	}
+	int aY = Ftol(thePiece->mY);
+	int aX = Ftol(thePiece->mX);
+	g->DrawImage(anImage, aX, aY);
+	g->SetDrawMode(Graphics::DRAWMODE_NORMAL);
 }
 
 // 0x41e3e0: a tile waiting above the board (arcade mode). The one over the column that is about to get the next tile
@@ -617,9 +697,8 @@ int Board::SpecialDy(Piece* thePiece)
 
 // 0x41d670: the specials (type 6 pieces), by kind: 0 and 1 a bomb (pulsing, and growing as it goes off), 2 and 3 a bonus
 // that bounces in, 4 a flame, 5 a rocket, 6 and 7 a coin that falls into the chest, 8 a picture that fades out,
-// 9 a launch's number (0x4290b0, not translated yet), 10 and 11 a torch whose frame shows its hits left, 12 and 13 the
-// clock. Some drawings move a sparkle effect (the piece's mFlash) along with the piece until it lands; the effects
-// themselves are not translated yet.
+// 9 a launch's number (0x4290b0), 10 and 11 a torch whose frame shows its hits left, 12 and 13 the
+// clock. Some drawings move a sparkle effect (the piece's mFlash) along with the piece until it lands.
 void Board::DrawSpecial(Graphics* g, Piece* thePiece)
 {
 	Image** anImages = mApp->mImages;
@@ -752,8 +831,15 @@ void Board::DrawSpecial(Graphics* g, Piece* thePiece)
 		break;
 	}
 	case 9:
-		// (the number of a launch, 0x4290b0, is not translated yet)
+	{
+		int anAlpha = thePiece->mBorn - mUpdateCnt + 0xff;
+		if (anAlpha < 0)
+			anAlpha = 0;
+		g->SetColorizeImages(true);
+		DrawLaunchNumber(g, thePiece->mIndex, thePiece->mRow, anAlpha);
+		g->SetColorizeImages(false);
 		break;
+	}
 	case 10:
 	case 11:
 	{
@@ -803,3 +889,101 @@ void Board::DrawSpecial(Graphics* g, Piece* thePiece)
 		break;
 	}
 }
+
+// 0x41f2e0: one lantern of the night's bar: lantern theIndex (0 to 9, from the left) in the picture theImage, each a little
+// higher or lower than the one before (the string of lanterns hangs in a curve)
+void Board::DrawLantern(Graphics* g, int theImage, int theIndex)
+{
+	static const int sBob[10] = { 0, 2, 4, 5, 6, 6, 5, 4, 2, 0 };
+	g->DrawImage(mApp->mImages[theImage], theIndex * 0x16 + 0x108, sBob[theIndex] + 0x28);
+}
+
+// 0x41f360: the night of the classic mode as ten lanterns on a wire (m318 of the night's m68 is left). While time is frozen
+// (m4bc) all of them show the frozen picture. Otherwise the lanterns burn out from the left as the night goes (the lit
+// picture, then the dim one that fades out over the tenth of the night that the lantern lasts, then the unlit one); the
+// first one that goes out sets m468[i] (the board's update then makes the puff, 0x41f280). In the last tenth of the night the
+// lanterns still lit flicker.
+void Board::DrawNightBar(Graphics* g)
+{
+	g->DrawImage(mApp->mImages[IMAGE_WIRE], 0x102, 0x25);
+	if (0 < m4bc)
+	{
+		for (int i = 9; -1 < i; i--)
+			DrawLantern(g, IMAGE_LANTERNFROZEN, i);
+		return;
+	}
+	double aFraction = 1.0 - m318 / m68;
+	if (0.8999999761581421 < aFraction)
+	{
+		int aLeft = -0x5a - Ftol(aFraction * -100.0);
+		int aFlicker = Ftol(aFraction * 1000.0) % 10;
+		for (int i = 9; -1 < i; i--)
+		{
+			DrawLantern(g, IMAGE_LANTERNOFF, i);
+			if (aLeft <= i && 3 < aFlicker)
+				DrawLantern(g, IMAGE_LANTERNON, i);
+		}
+		return;
+	}
+	for (int i = 9; -1 < i; i--)
+	{
+		if (aFraction <= (double) i * 0.1)
+			DrawLantern(g, IMAGE_LANTERNON, i);
+		else
+		{
+			double aScaled = aFraction * 10.0;
+			int aTenth = Ftol(aScaled);
+			if (Ftol((double) i * 0.1 * 10.0) == aTenth)
+			{
+				DrawLantern(g, IMAGE_LANTERNDIM, i);
+				g->SetColorizeImages(true);
+				g->SetColor(Color(255, 255, 255, Ftol((1.0 - ((aScaled - (double) aTenth) * 0.1) * 10.0) * 255.0)));
+				DrawLantern(g, IMAGE_LANTERNON, i);
+				g->SetColorizeImages(false);
+			}
+			else
+			{
+				DrawLantern(g, IMAGE_LANTERNOFF, i);
+				if (m464 < i)
+				{
+					m464 = i;
+					m468[i] = 1;
+				}
+			}
+		}
+	}
+}
+
+// 0x4290b0: the points of the launch that is being made, beside the row of its fuse, in a colour that turns from green to
+// white as the chain grows (five points for each flame, scaled by the difficulty); theAlpha fades it
+void Board::DrawLaunchNumber(Graphics* g, int theCount, int theRow, int theAlpha)
+{
+	if (0 < theAlpha)
+	{
+		int aPoints = theCount * 5;
+		int aHue = aPoints;
+		if (0xff < aHue)
+			aHue = 0xff;
+		unsigned long aColor = mApp->HSLToRGB(aHue, 0xff, 0x80);
+		g->SetColor(Color((int) ((aColor & 0xffffff) | ((unsigned long) theAlpha << 24))));
+		g->SetFont(mApp->mFonts[FONT_DOMO14_BOLD]);
+		double aFactor;
+		if (mApp->mDifficulty == 1)         // 0x425990
+			aFactor = 1.0;
+		else if (mApp->mDifficulty == 2)
+			aFactor = 1.5;
+		else
+			aFactor = 2.0;
+		char aBuf[64];
+		sprintf(aBuf, "%d", Ftol(aFactor * (double) aPoints));
+		g->DrawString(SexyString(aBuf), CellX(-1) - 0x1e, CellY(theRow) + 0x1c);
+	}
+}
+
+// 0x429230: the launch in progress (m49c flames counted, in the row m4a0) shows its points
+void Board::DrawLaunchInProgress(Graphics* g)
+{
+	if (m4a0 != -1 && m49c != 0)
+		DrawLaunchNumber(g, m49c, m4a0, 0xff);
+}
+
