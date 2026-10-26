@@ -147,6 +147,15 @@ pause window (m350 > 0), the frozen-time bar 0x41f360 of classic mode, the launc
 bubble (0x416d50, 0x414000). Until the specials pass is in, a rocket in flight and the bombs are not visible, although the
 rules run.
 
+The three buttons on the left (app 0x42d1a0, called by StartBoard 0x42ea30 through 0x42d090): ButtonWidgets with ids 3, 1 and 2
+(Pause at y 245, Options at 210, Quit at 440; x 10, 107 wide, 35 high, mouse insets (1, 1, 3, 3), hand cursor), whose
+over and down pictures are the image table entries 49/50, 40/41 and 38/39; the normal picture is part of the column
+picture. Each is added to the widget manager and to the app's list at app+0x87c. The Board's listener (the sub-object at
+Board+0x58, slot 1, 0x428600) only plays sample 0. Where the three ids are acted on is not found yet: the app's handler
+0x42ed10 does nothing for ids below 2000 in the decompile, and the Board's MouseDown only resumes a paused game, so the
+Pause toggle (0x421f30, whose callers are 0x41c830, 0x427a90, 0x4283e0 and 0x42f270) must be reached from another place:
+check the disassembly of 0x42ed10 and of the widget manager's button path before writing them.
+
 Still to do after Draw (above): Save/Load 0x41b430-0x41c830, the dialogs (high scores 0x4064e0, options 0x411ba0, record 0x414060,
 level-up 0x40c2c0, money 0x4118d0, buy rockets 0x401010, credits 0x403990, hint 0x408f60), the fireworks (Rocket 0x4172f0), the
 talking head (0x4161a0, 0x413aa0), the left-hand buttons 0x42d1a0 and the Board's ButtonDepress, the music fades, then the
