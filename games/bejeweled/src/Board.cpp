@@ -928,6 +928,7 @@ void Board::Update()
 		mInputDelay--;
 
 	Widget::Update();
+	if (mVariant.mSpecials) UpdateSpecials(); // port(variant): the specials' overlays and blasts (cosmetic; BoardSpecials.cpp)
 
 	if (mShowingText)
 	{

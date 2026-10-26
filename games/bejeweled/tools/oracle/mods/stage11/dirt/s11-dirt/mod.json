@@ -1,0 +1,13 @@
+{
+  "id": "s11-dirt",
+  "name": "Stage 11: specials and dirt",
+  "version": "1.0",
+  "description": "Oracle fixture: stage 7b's dirt cells with Bejeweled 2's specials; a blast takes a layer off each dirt cell in its reach, 25 points a layer.",
+  "rules": {
+    "board": {
+      "mask": [ "#d######", "########", "#####3##", "########", "##2#####", "########", "######d#", "########" ],
+      "dirtPoints": 25
+    },
+    "specials": { "flame": {}, "lightning": {} }
+  }
+}

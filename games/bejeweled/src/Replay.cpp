@@ -37,6 +37,7 @@ const size_t MOVE_SIZE = 3 * 4;
 const uint32_t TAG_GRAV = Replay::Tag("GRAV");
 const size_t GRAV_SIZE = 4 + 1;
 const uint32_t TAG_DIRT = Replay::Tag("DIRT"); // u8 leftFirst, then a byte a cell
+const uint32_t TAG_KIND = Replay::Tag("KIND"); // a byte a cell (stage 11)
 const size_t SAVE_HEADER_FIXED = 4 + Replay::RULES_ID_SIZE + 2 + 2 + 4; // the version up to the mask
 
 void PutU8(std::string* theOut, int theValue)
@@ -407,6 +408,13 @@ std::string Replay::VariantSaveChunks(const VariantSave& theSave)
 			PutU8(&aDirt, theSave.mDirtLayers[i]);
 		PutRecord(&aChunks, TAG_DIRT, aDirt);
 	}
+	if (theSave.mHasKinds)
+	{
+		std::string aKinds;
+		for (size_t i = 0; i < theSave.mKinds.size(); i++)
+			PutU8(&aKinds, theSave.mKinds[i]);
+		PutRecord(&aChunks, TAG_KIND, aKinds);
+	}
 	PutRecord(&aChunks, TAG_END, "");
 	return aChunks;
 }
@@ -458,6 +466,7 @@ bool Replay::ReadVariantSave(const std::string& theSave, VariantSave* theOut, st
 		return false;
 	}
 	aPos += SAVE_HEAD_SIZE;
+	std::vector<bool> aPresent(aCells, false);
 	for (size_t i = 0; i < aCells; i++)
 	{
 		if (aPos >= theSave.size())
@@ -468,6 +477,7 @@ bool Replay::ReadVariantSave(const std::string& theSave, VariantSave* theOut, st
 		bool isPresent = (theSave[aPos++] != 0);
 		if (!isPresent)
 			continue;
+		aPresent[i] = true;
 		if (!s.mPlayable[i])
 		{
 			anErr = "a gem in the hole at cell (" + std::to_string(i % s.mCols) + "," + std::to_string(i / s.mCols) + ")";
@@ -585,6 +595,27 @@ bool Replay::ReadVariantSave(const std::string& theSave, VariantSave* theOut, st
 				s.mDirtLayers.push_back(aLayers);
 			}
 			s.mHasDirt = true;
+		}
+		else if (aTag == TAG_KIND)
+		{
+			// stage 11: a gem's kind (Specials::Kind: 0 normal, 1 flame, 2 lightning), 0 where there is no gem
+			if (s.mHasKinds || (aLen != aCells))
+			{
+				anErr = s.mHasKinds ? std::string("KIND twice") : "KIND: " + std::to_string(aLen) + " bytes, not " + std::to_string(aCells);
+				return false;
+			}
+			for (size_t i = 0; i < aCells; i++)
+			{
+				uint8_t aKind = (uint8_t) aReader.U8();
+				if ((aKind > 2) || ((aKind > 0) && !aPresent[i]))
+				{
+					anErr = "KIND: kind " + std::to_string(aKind) + " at cell (" + std::to_string(i % s.mCols) + "," +
+						std::to_string(i / s.mCols) + ")" + (aPresent[i] ? "" : ", which has no gem");
+					return false;
+				}
+				s.mKinds.push_back(aKind);
+			}
+			s.mHasKinds = true;
 		}
 		// any other chunk: a later stage's, skipped
 	}

@@ -1,0 +1,7 @@
+{
+  "id": "s11-b2",
+  "name": "Stage 11: flame and lightning gems",
+  "version": "1.0",
+  "description": "Oracle fixture: Bejeweled 2's specials at their defaults: a run of 4 keeps a flame gem (its 3x3, 20 points a gem), a run of 5 or more a lightning gem (its row and column, 30 points a gem); blasts set off the specials they take.",
+  "rules": { "specials": { "flame": {}, "lightning": {} } }
+}

@@ -16,6 +16,7 @@
 #include "Replay.h"
 #include "MatchFinder.h"
 #include "MoveSet.h"
+#include "Specials.h"
 #include <list>
 #include <vector>
 
@@ -233,6 +234,16 @@ public:
 #endif
 	MatchFinder::Spec mMatchSpec;           // the match rules as MatchFinder reads them (InitVariant)
 	int				mGroupCounts[MatchFinder::GROUP_SHAPE + 1] = {}; // the groups this board scored, by kind (-trace's variant line)
+	int				mSpecialsMade[3] = {};  // stage 11: the flame (1) and lightning (2) gems this board made (-trace's variant line)
+	int				mBlastCount = 0;        // ... and the blasts that went off
+	struct BlastEffect
+	{
+		int			mKind;                  // Specials::KIND_FLAME or KIND_LIGHTNING
+		int			mCol;
+		int			mRow;
+		int			mTick;                  // ticks since it went off
+	};
+	std::vector<BlastEffect> mBlastEffects;  // cosmetic, not saved: the blasts of late (DrawSpecials)
 	BoardLayout		mLayout;                // current level's layout (8x8: origin 203/16, D 406, bottom 480)
 	int				mCols;                  // == mLayout.mCols; 8
 	int				mRows;                  // == mLayout.mRows; 8
@@ -419,12 +430,22 @@ public:
 	bool			SlideDiagonal();                                // RefillDiagonal: one gem into an unreachable cell; false when none can go
 	void			ClearDirtNextToRun(int theStartCol, int theStartRow, int theEndCol, int theEndRow, int theColor); // ProcessMatches: one layer off each dirt cell next to the run
 	void			ClearDirtNextToCells(const std::vector<std::pair<int, int> >& theCells); // ... next to any group's cells
+	void			ClearDirtCells(const std::vector<std::pair<int, int> >& theCells); // stage 11: ... in a blast's reach
+	void			ClearDirtLayers(const bool (*theCells)[BoardLayout::MAX_COLS]); // ... a layer off each marked cell (row-major)
 	// Match rules (stage 9, games/bejeweled/docs/CODE_MODS_DESIGN.md 4.6 and 4.7; BoardMatch.cpp)
 	void			FillColorGrid(MatchFinder::ColorGrid* theGrid) const; // each cell's colour, NO_GEM for none
 	bool			HasMatchVariant();                              // HasMatch under the match rules
 	bool			FindMoveVariant(int* theMove, int theMoveNum, bool horizontal, bool vertical); // FindMove under the match and move rules: {to col, to row, from col, from row}
 	bool			ProcessMatchesVariant();                        // ProcessMatches under the match rules
 	void			ScoreGroup(const MatchFinder::Group& theGroup, int* theAvgX); // ProcessMatchesVariant: one group's points
+	void			AddMoveScore(int thePoints);                     // ScoreGroup and ScoreBlast: the move's score, EXCELLENT, the score timer
+	// Flame and lightning gems (stage 11, games/bejeweled/docs/CODE_MODS_DESIGN.md 4.8; BoardSpecials.cpp)
+	void			ResolveSpecials(const std::vector<MatchFinder::Group>& theGroups); // ProcessMatchesVariant: the specials made, the blasts
+	void			MovedCells(std::vector<MatchFinder::Cell>* theCells); // the cells the move in its own resolve put gems into
+	void			ScoreBlast(const Specials::Blast& theBlast);     // ResolveSpecials: one blast's gems, points, dirt and effect
+	void			PlaySpecialSound(int theKind, int thePan);      // sounds/flame or sounds/lightning, else the original's explode or firecrackle
+	void			UpdateSpecials();                               // Update: the overlays' frames and the blast effects (cosmetic)
+	void			DrawSpecials(Graphics* g, bool isOver);         // DrawVariant: the specials' overlays (under), the blasts (over)
 	bool			ApplyDirtLayers(const std::vector<uint8_t>& theLayers, std::string* theWhy); // a save's or snapshot's layers onto the level's mask
 	void			DrawDirt(Graphics* g);                          // DrawVariant: the dirt cells, under the gems
 	void			DrawDirtDust(Graphics* g);                      // DrawVariant: the dust of cleared cells, over the gems

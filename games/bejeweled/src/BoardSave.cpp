@@ -60,6 +60,16 @@ void Board::GetVariantSave(Replay::VariantSave* theSave)
 				s.mDirtLayers.push_back(mLayout.IsDirt(aCol, aRow) ? mLayout.mDirt[aRow][aCol] : 0);
 		}
 	}
+	// KIND (stage 11) when the rules have specials: each gem's kind
+	s.mHasKinds = mVariant.mSpecials;
+	if (s.mHasKinds)
+	{
+		for (int aRow = 0; aRow < mRows; aRow++)
+		{
+			for (int aCol = 0; aCol < mCols; aCol++)
+				s.mKinds.push_back((mBoard[aRow][aCol] != NULL) ? (uint8_t) mBoard[aRow][aCol]->mKind : 0);
+		}
+	}
 }
 
 void Board::WriteVariantHeader(Buffer* theBuffer)
@@ -153,7 +163,8 @@ bool Board::ReadVariantHeader(const Buffer& theBuffer, int theVersion)
 }
 
 // GameLoadedVariant, at the end of a LoadGame that ReadVariantHeader let through: the RNG the game goes on with
-// (seed 0: the global stream, as a v1 save without a sidecar), the MOVE counts, the GRAV state and DIRT's toggle
+// (seed 0: the global stream, as a v1 save without a sidecar), the MOVE counts, the GRAV state, DIRT's toggle and the
+// KIND chunk's kinds
 void Board::ReadVariantChunks(const Buffer& theBuffer)
 {
 	Replay::VariantSave aSave;
@@ -182,4 +193,16 @@ void Board::ReadVariantChunks(const Buffer& theBuffer)
 	mGravityFlips = aSave.mGravityFlips;
 	mGravityNoFlip = aSave.mGravityNoFlip;
 	mDiagonalLeftFirst = aSave.mDiagonalLeftFirst;
+	// the gems' kinds (stage 11); ReadVariantSave let a kind through only where the save has a gem
+	if (aSave.mHasKinds && (aSave.mKinds.size() == (size_t)(mCols * mRows)))
+	{
+		for (int aRow = 0; aRow < mRows; aRow++)
+		{
+			for (int aCol = 0; aCol < mCols; aCol++)
+			{
+				if (mBoard[aRow][aCol] != NULL)
+					mBoard[aRow][aCol]->mKind = aSave.mKinds[aRow * mCols + aCol];
+			}
+		}
+	}
 }

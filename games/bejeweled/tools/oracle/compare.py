@@ -210,6 +210,10 @@ left out for a candidate built without variant paths, BEJ_NO_VARIANTS; flags "k=
               grid holds a group, every settle's move lines are, in order, MoveSet's moves of those types (the
               swaps, the twists, the slides of the full segments), found here by brute force with where the gem
               that makes the group lands and comes from, and each type has a move at some settle.
+              Stage 11 (flame and lightning gems, mods/stage11): "specials=F,L,B": every settle's variant line counts
+              the specials made and the blasts and its specials line lists specials on gems only, no more than were
+              made; some board made F flame gems, L lightning gems and B blasts or more. "after=<case>": the first
+              settle's grid and specials are that case's last settle's (a resume of its save's KIND chunk).
 More gem colours (stage 8, games/bejeweled/docs/CODE_MODS_DESIGN.md 4.2; candidate runs with the mods of
 mods/stage8, every build: board.gemColors is a tunable; flags "k=v;k=v"):
   colors      "colors=N": every gem in the TRACE rows a colour 0..N-1, all N of them with "all"; above 7 colours the
@@ -399,6 +403,8 @@ def save_state(path):
                 elif tag == b"DIRT":
                     layers = payload[1:]
                     chunks.append("DIRT %d layers on %d cells, next %s" % (sum(layers), sum(1 for v in layers if v), "left" if payload[0] else "right"))
+                elif tag == b"KIND":
+                    chunks.append("KIND flame %d lightning %d" % (payload.count(1), payload.count(2)))
                 else:
                     chunks.append(tag.decode("latin-1").strip())
                 if tag == b"END ":
@@ -1797,14 +1803,16 @@ def variant_settles(stdout):
             settles.append({"update": int(m.group(1)), "mode": m.group(2), "level": int(m.group(3)), "score": int(m.group(4)),
                             "tick": int(m.group(5)),
                             "grid": [], "seed": None, "moves": None, "invalid": None, "undos": 0, "gravity": None,
-                            "flips": 0, "dirt": None, "side": None, "found": 0, "movelist": [], "typed": [], "groups": None})
+                            "flips": 0, "dirt": None, "side": None, "found": 0, "movelist": [], "typed": [], "groups": None,
+                            "made": None, "specials": None})
         elif settles and line.startswith("TRACE   row "):
             settles[-1]["grid"].append([int(v) for v in line.split(":", 1)[1].split()])
         elif settles and line.startswith("TRACE   seed "):
             settles[-1]["seed"] = line[len("TRACE   seed "):]
         elif settles and line.startswith(VARIANT_LINE):
             m = re.match(r"TRACE   variant moves (-?\d+) invalid (-?\d+)(?: undos (\d+))?(?: gravity (up|down) flips (\d+))?"
-                         r"(?: dirt (\d+) (left|right))?(?: groups L (\d+) T (\d+) plus (\d+) diagonal (\d+) shapes (\d+))?$", line)
+                         r"(?: dirt (\d+) (left|right))?(?: groups L (\d+) T (\d+) plus (\d+) diagonal (\d+) shapes (\d+))?"
+                         r"(?: specials flame (\d+) lightning (\d+) blasts (\d+))?$", line)
             if m:
                 settles[-1]["moves"], settles[-1]["invalid"] = int(m.group(1)), int(m.group(2))
                 settles[-1]["undos"] = int(m.group(3) or 0)
@@ -1812,6 +1820,11 @@ def variant_settles(stdout):
                 settles[-1]["dirt"], settles[-1]["side"] = (int(m.group(6)), m.group(7)) if m.group(6) else (None, None)
                 if m.group(8):
                     settles[-1]["groups"] = dict(zip(MATCH_KINDS, (int(v) for v in m.group(8, 9, 10, 11, 12))))
+                if m.group(13):
+                    settles[-1]["made"] = tuple(int(v) for v in m.group(13, 14, 15))
+        elif settles and line.startswith("TRACE   specials:"):
+            # stage 11: the specials on the board, row-major
+            settles[-1]["specials"] = [(k, int(c), int(w)) for k, c, w in re.findall(r"(flame|lightning) \((\d+),(\d+)\)", line)]
         elif settles and line.startswith("TRACE   move "):
             settles[-1]["found"] += 1
             m = re.match(r"TRACE   move \d+: \((-?\d+),(-?\d+)\)->\((-?\d+),(-?\d+)\)", line)
@@ -2079,6 +2092,48 @@ def moves_check(r, settles, types, both, spec, label, notes):
         return
     notes.append("moves=%s%s: %d settled grids without a group, their moves MoveSet's (%s)"
                  % ("+".join(types), " both ways" if both else "", len(settles), ", ".join("%s %d" % (t, counts[t]) for t in types)))
+
+
+def specials_check(r, cand, settles, spec, after, label, notes):
+    """Stage 11, "specials=F,L,B" (module comment): every settle's variant line counts the specials made and the blasts,
+    and its specials line lists specials on gems only, no more than were made; some board made at least F flame gems
+    and L lightning gems and set off B blasts. "after=<case>": the first settle is that case's last (a resume)"""
+    try:
+        least = [int(v) for v in spec.split(",")]
+    except ValueError:
+        least = []
+    if len(least) != 3:
+        r.fail("%s: specials=%s: not F,L,B" % (label, spec))
+        return
+    most = [0, 0, 0]
+    on_board = 0
+    for s in settles:
+        if s["made"] is None or s["specials"] is None:
+            r.fail("%s: the settle of update %d has no specials counts or no specials line" % (label, s["update"]))
+            return
+        for kind, c, w in s["specials"]:
+            if not (0 <= w < len(s["grid"]) and 0 <= c < len(s["grid"][w])) or s["grid"][w][c] < 0:
+                r.fail("%s: the settle of update %d lists a %s gem at (%d,%d), where there is no gem" % (label, s["update"], kind, c, w))
+                return
+        if len(s["specials"]) > s["made"][0] + s["made"][1] and after is None:
+            r.fail("%s: the settle of update %d lists %d specials, and the board made %d" % (label, s["update"], len(s["specials"]),
+                                                                                    s["made"][0] + s["made"][1]))
+            return
+        most = [max(most[i], s["made"][i]) for i in range(3)]
+        on_board = max(on_board, len(s["specials"]))
+    for i, what in enumerate(("flame gems made", "lightning gems made", "blasts")):
+        if most[i] < least[i]:
+            r.fail("%s: at most %d %s on a board, expected at least %d" % (label, most[i], what, least[i]))
+            return
+    if after is not None:
+        before = variant_settles(run_stdout(os.path.join(cand, after)))
+        if not before or (before[-1]["grid"], before[-1]["specials"]) != (settles[0]["grid"], settles[0]["specials"]):
+            r.fail("%s: the first settle's grid and specials are not those of %s's last settle (%s / %s)" %
+                   (label, after, before[-1]["specials"] if before else "none", settles[0]["specials"]))
+            return
+        notes.append("the first settle is %s's last, with its %d specials" % (after, len(settles[0]["specials"])))
+    notes.append("specials: flame %d lightning %d blasts %d (most on a board), up to %d on the board, each on a gem" %
+                 (most[0], most[1], most[2], on_board))
 
 
 def shapes_check(r, settles, spec, label, notes):
@@ -2473,6 +2528,8 @@ def variant_check(r, cand, run, flags, label):
         match_check(r, settles, f["match"], f.get("kinds", ""), label, notes)
     if "moves" in f:
         moves_check(r, settles, f["moves"], f.get("twist") == "both", f.get("match"), label, notes)
+    if "specials" in f:
+        specials_check(r, cand, settles, f["specials"], f.get("after"), label, notes)
     if "boards" in f:
         seed_check(r, cand, run, flags, "seeds")
     if r.failures == before:

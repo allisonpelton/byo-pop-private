@@ -702,12 +702,34 @@ void Board::ClearDirtNextToCells(const std::vector<std::pair<int, int> >& theCel
 	}
 	if (!isAny)
 		return;
+	ClearDirtLayers(aNext);
+}
 
+// Stage 11: the dirt cells of theCells (a blast's reach) lose a layer each, as ClearDirtNextToCells' neighbours
+void Board::ClearDirtCells(const std::vector<std::pair<int, int> >& theCells)
+{
+	bool aCells[BoardLayout::MAX_ROWS][BoardLayout::MAX_COLS] = {};
+	bool isAny = false;
+	for (const std::pair<int, int>& aCell : theCells)
+	{
+		if (mLayout.IsDirt(aCell.first, aCell.second))
+		{
+			aCells[aCell.second][aCell.first] = true;
+			isAny = true;
+		}
+	}
+	if (isAny)
+		ClearDirtLayers(aCells);
+}
+
+// One layer off each marked dirt cell, row-major: its points (board.dirtPoints), and its dust when it was the last
+void Board::ClearDirtLayers(const bool (*theCells)[BoardLayout::MAX_COLS])
+{
 	for (int aRow = 0; aRow < mRows; aRow++)
 	{
 		for (int aCol = 0; aCol < mCols; aCol++)
 		{
-			if (!aNext[aRow][aCol])
+			if (!theCells[aRow][aCol])
 				continue;
 			mLayout.ClearDirtLayer(aCol, aRow);
 			int aPoints = (int)(mRules.mBoard.mDirtPoints * mPointMultiplier);

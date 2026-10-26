@@ -2273,6 +2273,47 @@ such boards (a click, a right click or a drag from the trace's points). `-trace`
 direction, landing cell, origin and click point, and a slide as its line, segment, k, landing cell, origin and drag;
 the oracle's `moves=` recomputes them by brute force and `kept=` checks a kept move is one move of the rules' types.
 
+### 12.16 Flame and lightning gems (code mods, stage 11)
+
+games/bejeweled/docs/CODE_MODS_DESIGN.md 4.8, as built (`Specials.cpp`, `BoardSpecials.cpp`). `specials.flame` and
+`specials.lightning` are each null (off) or an object; an empty one is Bejeweled 2's: a flame from a run of 4 or more
+(`run4`), radius 1, 20 points a gem; lightning from a run of 5 or more (`run5`), 30 points a gem. `createdBy` names
+patterns: `runN` is a straight run of N or more, `L`, `T` and `plus` are merged crossings, `diagonal` a diagonal run,
+any other name a shape's id. `Specials` is framework-free, so tools/rulestest checks it on fixtures.
+
+`ProcessMatchesVariant` scores the groups and marks their gems dying as before; `ResolveSpecials` then runs in the
+same tick. Each group whose pattern a special's `createdBy` names (lightning's checked first) keeps one gem alive as
+that special. On the move's own resolve (the first after it) that is the first moved gem in the group, in
+`MovedCells`' order (a swap's two gems, a twist's corners, a slide's cells); otherwise, and when no moved gem is in
+it, the group's middle cell (`mCells[size / 2]`: a run's middle, a merged group's runs in order, a shape's
+orientation's cells), then on round the group from there. A cell already special or taken by another group's
+creation is skipped, and keeping a gem wins over the death another group gave it. `createIn: "move"` makes specials
+only on the move's own resolve. A created special keeps its colour, falls with the board, and is set off by a later
+group that takes it.
+
+The blasts are a queue, first the specials in this pass's groups in group order (each group's cells in order). A
+flame takes the cells within its radius (a square), lightning its whole row and column; holes are never in reach,
+dirt cells are. A blast destroys the gems in reach that are not dying yet and were not made special in this pass;
+with `chain` (the default) a special it destroys joins the queue, without it that special only dies. Each blast
+scores its special's points for each gem it destroyed, times the multiplier, with a popup at the special's cell;
+the points count toward the score, the gems cleared and the move's score (EXCELLENT) but not the set value's count
+(`mMoveMatchCount`), so the next group's points are as if the blast had not been. Under dirt rules each dirt cell in
+reach loses a layer, once per blast. `UpdateClearing` shrinks the blasts' gems with the groups', so no state is new.
+The first blast of each kind in a pass plays its sound: a mod's `sounds\flame` or `sounds\lightning`, else the
+original's explode and firecrackle samples.
+
+Drawing is cosmetic and reads no RNG. A mod's `images\flamegem` and `images\lightninggem` (49 px frames across) are
+drawn additively over the gem; without them a flame glows with the sparkle sheet in fire colours, pulsing, and
+lightning shows the level wipe's electric strip clipped in the gem. Each blast shows for 36 ticks: a flame's
+sparkles over its square, lightning's strip along its row and down its column. These effects are not saved.
+
+Engine ABI 8: a piece's kind is play state (hashed and snapshotted by the codec since stage 5), and a v2 save under
+specials rules writes a `KIND` chunk, a byte a cell, row-major (0 normal, 1 flame, 2 lightning; 0 where there is no
+gem), read back on resume; a v1 save cannot hold one. An undo brings the kinds back with the board (the codec's undo
+rows). `-trace` adds the flames and lightning made and the blasts so far to the variant line, then a line naming each
+special on the board. The counts are the game's since it was started or resumed, and an undo does not take them
+back, so a resumed board can hold more specials than it made; the oracle's `specials=` and `after=` allow for that.
+
 ## 13. Naming reconciliation (analyst names → chosen names)
 
 **Board fields.**

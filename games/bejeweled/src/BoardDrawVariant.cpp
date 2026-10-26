@@ -86,6 +86,8 @@ void Board::DrawVariant(Graphics* g)
 
 		if (mVariant.mMoves)
 			DrawMovesUnder(&aBoardG);
+		if (mVariant.mSpecials)
+			DrawSpecials(&aBoardG, false); // the flame and lightning gems' overlays (stage 11, BoardSpecials.cpp)
 
 		Image* aSparkleImage = mApp->mImages[IMAGE_SPARKLE];
 		for (int aRow = 0; aRow < mRows; aRow++)
@@ -116,6 +118,8 @@ void Board::DrawVariant(Graphics* g)
 			}
 		}
 
+		if (mVariant.mSpecials)
+			DrawSpecials(&aBoardG, true); // the blasts
 		if (mVariant.mDirt)
 			DrawDirtDust(&aScaledG);
 

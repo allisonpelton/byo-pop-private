@@ -911,6 +911,16 @@ The search order is fixed: swaps (original order), then twists, then slides (4.7
   `SOUND_FIRECRACKLE`.
 - **Save:** a `KIND` chunk with one byte per present cell.
 
+**As built (stage 11, `Specials.cpp`, `BoardSpecials.cpp`; GAME_NOTES 12.16):** where it differs from the plan above:
+- The moved gem keeps the special only on the move's own resolve (`mCascadeCount` 1); otherwise the cell is the
+  group's `mCells[size / 2]` (a merged group's runs in order, a shape's orientation's cells), then on round the
+  group, skipping cells already special or taken by another group's creation.
+- A blast reaches dirt cells too, and takes a layer off each (4.14), once per blast; holes stay out of reach.
+- The blasts' effects are `Board::mBlastEffects` (36 ticks each), not `BoardEffect`s.
+- `KIND` holds a byte for every cell, row-major, 0 where there is no gem. Engine ABI 8.
+- `-trace` adds `specials flame F lightning L blasts B` to the variant line and a `specials:` line of the specials on
+  the board.
+
 ### 4.9 Jewel Quest gold board
 
 - **Data:** `mGold[r][c]` (per cell, so it does not move with gems), `mGoldLeft`,
