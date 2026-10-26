@@ -60,8 +60,10 @@ button (`mTutWaiting`), a wrong placement gets a message, the last step's button
   port's format is the original's field order with a version byte; a damaged file keeps what it could not read.
 - `userdata\hiscores.dat`: for each kind of game the best score of the day (the day, a name, a score and a check) and five
   scores (a name, a score and a check); numbers are little-endian 32-bit, a name's length 16-bit. The check is
-  `score ^ 0x42beef`, then a step for each character of the name (0x40a15a, 0x40a341). The defaults are the table's seven
-  names with 1000 down to 600.
+  `score ^ 0x42beef`, then a step for each character of the name (0x40a15a, 0x40a341). The default scores are 1000 down
+  to 600; the default names are the port's own placeholders (the original has a table of names inside the game, which the
+  port does not copy; `DEFAULT_NAME_STRATEGIC_1..5` and `DEFAULT_NAME_TIME_TRIAL_1..5` in `properties/default.xml` replace
+  them).
 - the registry (`registry.ini` in the port): `SkillLevel`, `TimeTrial`, `LastScoreName`, `LastInternetScoreName` (kept,
   never shown), `NoPopLink`, and the framework's (volumes, full screen, custom cursors, times played).
 
@@ -73,5 +75,19 @@ button (`mTutWaiting`), a wrong placement gets a message, the last step's button
 - The 2004 `Dialog` places and wraps text differently from the port's: `Dialog2004` (the compat library) is used for every
   dialog; `AllTimeDialog` returns the height 0x156 as the original's does.
 - The framework's `SexyApp` had a hook for the registration; the port acts registered (`mIsRegistered`) and shows no nag.
-- Where the decompiler drops the last arguments of a draw call (the selector's base picture, the dialogs' insets) the
-  values come from the disassembly; each such place says so in a comment.
+- Where the decompiler drops the last arguments of a draw call (the selector's base picture, the dialogs' insets, the
+  forge's back picture) the values come from the disassembly; each such place says so in a comment.
+
+## 5. What the original has and the port leaves out
+
+Two effects of `Board` are never triggered, since no code sets their flags (every access to them is the constructor's
+clearing, the update and the drawing): a sweep with a flag at +0xdb4 and a counter at +0xdb8 that grows by 8 an update up
+to 0x200 (`Update`, 0x4074ce), and a ring of eight pieces of picture 14 flying out from a centre (+0xdc4, +0xdc8) with a
+radius at +0xdcc that grows by 3 an update up to 0x48 (`Update` 0x407ce4, `Draw` 0x40505b). They are leftovers, so the port
+does not draw them. The bomb's sparks (the list at +0xddc) are the ones that do show: they leave sparkles behind them
+through the effects overlay.
+
+The unregistered game's screens and the internet scores are left out as `README.md` says. On the title screen the
+second picture (0x4106bc, the "buy" overlay at y = 0x137) and the play counter belong to a copy that is not registered,
+and the "thanks for registering" line (0x4108c6, y = 0x157) to one that is registered but not unlocked; the port is both
+registered and unlocked, so none of them is drawn.

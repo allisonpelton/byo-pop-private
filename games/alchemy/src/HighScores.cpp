@@ -116,17 +116,23 @@ HighScoreWidget::HighScoreWidget(AlchemyApp* theApp)
 	mStartButton->SetFont(mApp->mFont1);
 	mStartButton->SetColor(ButtonWidget::COLOR_LABEL, Color(0xe0, 0xb7, 0x28));
 
+	// The names a new table starts with. The original's are ten names inside the game; the port chooses its own
+	// placeholders (a port difference), which properties can replace: DEFAULT_NAME_STRATEGIC_1..5 and
+	// DEFAULT_NAME_TIME_TRIAL_1..5 in properties/default.xml. The scores are the original's, 1000 down to 600.
 	static const char* const aNames[NUM_MODES][NUM_ENTRIES] =
 	{
-		{"Ace", "John", "Chris", "Brian", "Ben"},
-		{"Bradley", "Mike", "Billy", "Jason", "Wim"}
+		{"Adept", "Brewer", "Charmer", "Distiller", "Enchanter"},
+		{"Apothecary", "Conjurer", "Herbalist", "Magus", "Oracle"}
 	};
+	static const char* const aModeIds[NUM_MODES] = {"DEFAULT_NAME_STRATEGIC_", "DEFAULT_NAME_TIME_TRIAL_"};
 	for (int aMode = 0; aMode < NUM_MODES; aMode++)
 	{
 		mTodayScore[aMode] = 0;
 		for (int i = 0; i < NUM_ENTRIES; i++)
 		{
-			mName[aMode][i] = aNames[aMode][i];
+			char anId[64];
+			sprintf(anId, "%s%d", aModeIds[aMode], i + 1);
+			mName[aMode][i] = mApp->GetString(anId, aNames[aMode][i]);
 			mScore[aMode][i] = 1000 - i * 100;
 		}
 	}

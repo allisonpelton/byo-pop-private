@@ -1,7 +1,10 @@
 # Alchemy Deluxe: working notes (analysis state, kept so a compaction loses nothing)
 
-Alchemy.exe (2007 wrapper, 2.9 MB) carries the game PE at 0x1891a2-0x2ca1a2 (1,314,816 bytes), linked 2004-08-23 with
-MSVC 7.0 (linker 7.0). Carved with `tools/extract_game_exe.py` to `re/alchemy/bin/AlchemyGame.exe`. Image base 0x400000.
+Alchemy.exe is a 2007 wrapper (2.9 MB) around the game PE, linked 2004-08-23 with MSVC 7.0 (linker 7.0). Image base 0x400000.
+<!-- private: The game's image is taken out of the wrapper by a private tool, to `re/alchemy/bin/AlchemyGame.exe`. -->
+The game PE is at 0x1891a2-0x2ca1a2 of the wrapper (1,314,816 bytes), carved with `tools/extract_game_exe.py` to
+`re/alchemy/bin/AlchemyGame.exe`.
+<!-- /private -->
 
 **The 15 `.luc` scripts are the wrapper's, not the game's** (`drm/common/scripts/` = the buy/trial screen of the 2007
 wrapper: DRMApp, LuaApp, Layout...). The game itself uses no Lua, so no PopLua link is needed.
@@ -10,6 +13,8 @@ wrapper: DRMApp, LuaApp, Layout...). The game itself uses no Lua, so no PopLua l
 
 The port is written, builds natively and for the web, and plays (README.md, status). `GAME_NOTES.md` is the behaviour spec as 
 the code has it; `tools/check.sh alchemy` is the test. The plan section below was the plan before the code existed.
+A fidelity check of every drawing function against the disassembly followed (README.md); it found one dropped position
+(the forge's back picture, now at (0x28, 0x147)) and two never-triggered effects (GAME_NOTES.md section 5).
 Lessons: the decompiler drops the trailing arguments of draw calls (check them in the disassembly: the selector's base picture 
 is at (10, 0x23)); `LoadProperties()` must be called in Init or every `GetString` is empty and all dialog text is blank; 
 `AllTimeDialog::GetPreferredHeight` is an override returning 0x156 (the base class's height for empty lines is too small).
@@ -22,7 +27,7 @@ is at (10, 0x23)); `LoadProperties()` must be called in Init or every `GetString
 - RTTI has only framework and std classes (120 classes): the game's own classes have no RTTI. Their vtables were found
   from constructor stores of `0x4e3xxx-0x4e5xxx` immediates.
 - The game's strings are string IDs looked up at run time in `properties/default.xml` (the user's file, 228 strings);
-  no GameText reader is needed. Other game text: none in the exe.
+  no GameText reader is needed. The exe holds a little more game text than ids (the default names of the score tables, which the port does not copy: see GAME_NOTES.md section 3); the port reads the strings from the player's file only.
 - Files: images/*.gif|jpg|png, sounds/*.ogg, music/*.s3m (2), data/*.txt (font descriptors + diff.txt), properties/*.xml.
   The wrapper's `drm/` folder, bass.dll, readme.html, license.txt are not used by the port.
 
@@ -58,7 +63,7 @@ Funcmatch against BookWorm: `python tools/funcmatch.py re/alchemy/bin/AlchemyGam
 0x4e3ab0 widget (ctor 40858e, Draw 4086e6, Update 40844f): small effect object. 0x4e3b6c/0x4e3b88 widget+listener (ctor 408a8a, Draw 408cd7 =
   help text "USING_FORGE_IS_LIMITED..."). 0x4e3d58 dialog (ctor 4096c8/40965a, Draw 409854 = "ALL_TIME"/high-score table dialog).
 0x4e417c/0x4e4198 widget+listener (ctor 40bad1, size 0x21c, Draw 40b0b3 = TIME_TRIAL_HIGH_SCORES..., Update/Mouse 40a957/40afa9;
-  reads/writes hiscores.dat 40a15a/40a341, defaults Jason Billy Mike Bradley Brian Chris John). 0x4e4260/70/a0: 40c092 ctor (824 B), 40bed1.
+  reads/writes hiscores.dat 40a15a/40a341, defaults: a table of names in the game). 0x4e4260/70/a0: 40c092 ctor (824 B), 40bed1.
 0x4e43a8 widget (ctor 40c817 size 0xa4, Draw 40cefe "INTROSCREEN_TIME_TRIAL"...: the game selector/intro screen), 0x4e4540 dialog (ctor 40d836 size
   0x144 = options dialog: OptionsLinkText0, CUSTOM_CURSORS, FULLSCREEN, SOUND_FX, MUSIC), 0x4e4798 (ctor 40e433 size 200: a Piece, +0x68 shape,
   +0x6c colour, +0xbd bomb?, +0xc4 skull?), 0x4e4880/0x4e48b0 (ctor 40ed00 size 0x120: name entry "ENTER_YOUR_NAME"), 0x4e49a0/d0 (40f314: register
