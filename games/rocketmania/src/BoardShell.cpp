@@ -244,62 +244,163 @@ void Board::ResolveLoadedPieces()
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// the originals' small helpers that are not read yet; each only records its call so a test can see it happen
+// the originals' small helpers (their addresses are their names; what is left out is said at each)
 
+// 0x428780 (856 bytes, not read yet): the first rows of the timed modes
 void Board::F428780()
 {
-	// 0x428780: the first drop of the timed modes (not read yet)
 }
 
+// 0x4282a0: a burning tile is moved: the burn is cancelled and its tiles are plain again
 void Board::F4282a0(int thePath)
 {
-	(void) thePath;     // 0x4282a0 (not read yet): called when a burning tile is moved
+	m4da = false;
+	for (int aRow = mRows - 1; aRow >= 0; aRow--)
+	{
+		for (int aColumn = 0; aColumn < mCols; aColumn++)
+		{
+			Piece* aPiece = mGrid[aRow][aColumn];
+			if (aPiece != NULL && aPiece->mType == 4 && aPiece->mPath == thePath)
+			{
+				aPiece->mType = 1;
+				aPiece->mPath = 0;
+				aPiece->mPathFrom = -1;
+			}
+		}
+	}
+	m2e8 = false;
+	m2f0 = -1;
 }
 
+// 0x428090: takes the first special of kind 9 (type 6) out of the moving pieces
 void Board::F428090()
 {
-	// 0x428090 (not read yet): called by ResetState
+	for (std::list<Piece*>::iterator anItr = mObjects.begin(); anItr != mObjects.end(); ++anItr)
+	{
+		Piece* aPiece = *anItr;
+		if (aPiece != NULL && aPiece->mType == 6 && aPiece->mKind == 9)
+		{
+			EraseMover(aPiece);
+			RemovePiece(aPiece, false);
+			return;
+		}
+	}
 }
 
+// 0x421de0: the game is over (theKind 0 the night ran out, 1 the top line is full, 2 strategy mode ran out of moves).
+// Left out: the music fades (the app's music object at app+0x2f4), the talking head's lines (0x416aa0, 0x416360) and the
+// buy-rockets screen (BuyRocketsWidget 0x401010, which the original adds over the board).
 void Board::F421de0(int theKind)
 {
-	// 0x421de0 (not read yet): the end of a game (theKind 0 the night ran out, 1 the top line is full)
-	(void) theKind;
-	if (mState == 0)
-		mState = 1;
+	m460 = theKind;
+	mState = 1;
+	m440 = 300;
+	mApp->PlaySample(0x24);
 }
 
+// 0x429050, 0x429060, 0x429080: the count of the flames that were lit for one launch; when the launch is done
+// MakeMarker puts that many on the board
 void Board::F429050()
 {
-	// 0x429050 (not read yet)
+	m49c++;
 }
 
 void Board::F429060(int theRow)
 {
-	(void) theRow;      // 0x429060 (not read yet)
+	m49c = 0;
+	m4a0 = theRow;
 }
 
 void Board::F429080()
 {
-	// 0x429080 (not read yet): called by ResetState and Launch
+	MakeMarker(m4a0, m49c + 1);
+	m4a0 = -1;
 }
 
+// 0x41f280: the effect of the meter i filling up
 void Board::F41f280(int theIndex)
 {
-	(void) theIndex;    // 0x41f280 (not read yet): called when a meter m468[i] reaches 1
+	Effect* anEffect = mEffects->Add(0xe, true);
+	anEffect->mLife = 1;
+	anEffect->mc0 = 0;
+	anEffect->mY = 44.0;
+	anEffect->mX = (double) (theIndex * 0x16 + 0x108);
+	mApp->PlaySample(4);
 }
 
-void Board::F428ef0()
-{
-	// 0x428ef0 (not read yet): state 7
-}
-
+// 0x428d10: the specials that the launches have earned are put on the board
+// (the original also tells the app 0x42d670(7, 0) when the strategy mode's special was attached; not translated)
 void Board::F428d10()
 {
-	// 0x428d10 (not read yet): when the m4a4 countdown ends
+	if (mState != 0)
+		return;
+	if (mApp->mMode == 2)
+	{
+		while (0 < mGen->m70)
+		{
+			AttachSpecial10();
+			mGen->m70--;
+		}
+	}
+	else
+	{
+		int aLeft = mGen->m70;
+		while (0 < aLeft)
+		{
+			int aIndex;
+			if (aLeft < 10)
+			{
+				if (4 < aLeft)
+				{
+					aLeft -= 5;
+					aIndex = 2;
+				}
+				else if (1 < aLeft)
+				{
+					aLeft -= 2;
+					aIndex = 1;
+				}
+				else
+				{
+					aLeft -= 1;
+					aIndex = 0;
+				}
+			}
+			else
+			{
+				aLeft -= 10;
+				aIndex = 3;
+			}
+			mGen->m70 = aLeft;
+			AttachBomb(aIndex);
+			aLeft = mGen->m70;
+		}
+	}
 }
 
+// 0x428de0: the rows above the height theValue (pixels, from the top of the board) flash and go
 void Board::F428de0(int theValue)
 {
-	(void) theValue;    // 0x428de0 (not read yet)
+	int aRows = (theValue - 30) / 42;
+	if (aRows < 0)
+		aRows = 0;
+	if (mRows < aRows)
+		aRows = mRows;
+	for (int aRow = 0; aRow < aRows; aRow++)
+	{
+		for (int aColumn = 0; aColumn < mCols; aColumn++)
+		{
+			Piece* aPiece = mGrid[aRow][aColumn];
+			if (aPiece != NULL)
+			{
+				AddFlash(aPiece, 2);
+				RemovePiece(aPiece, false);
+			}
+		}
+	}
+}
+
+// 0x428ef0 (350 bytes, not read yet): state 7
+void Board::F428ef0()
+{
 }
