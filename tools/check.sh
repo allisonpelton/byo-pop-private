@@ -58,9 +58,13 @@
 #                sources recompiled instruction for instruction against their shipped chunks; fails on a bad exit
 #                status, a failed load or a count that is not the whole set (milestone 1; the game's own runs
 #                join it as the port grows)
+#   waterbugs    Water Bugs: the fonts and every animation the game ships loaded
+#                (waterbugs_banktest), a scripted game played headless (waterbugs_run: a beam across the first
+#                board, two state lines) and a rerun with the same screenshots, and the windowed exe twice with the
+#                same clicks: the runner's state, the same screen (under a minute)
 #   oracle       Bejeweled's oracle three ways (compare.sh --variants default,forcevariant,novariants); over
 #                ten minutes, so never in a subagent; refuses to start while another oracle runs
-# Sets: quick = build unit; games = bookworm bigmoney noahsark atomica alchemy sevenseas pixelus bookwormadv bookwormadv2 tiptop mummymaze ningpo wordharmony cosmicbugs; all = every suite, builds first.
+# Sets: quick = build unit; games = bookworm bigmoney noahsark atomica alchemy sevenseas pixelus bookwormadv bookwormadv2 tiptop mummymaze ningpo wordharmony cosmicbugs waterbugs; all = every suite, builds first.
 #
 # Prints "PASS <suite> (<seconds>s): <summary>" or "FAIL <suite> (<seconds>s): <summary> -> <log>" for each,
 # then "check: N passed, M failed". Exits 0 only when all passed. Logs: build/logs/check/<suite>.txt (and
@@ -99,6 +103,8 @@ WH_THINK="level 2 saved, score 1600"
 WH_TSUNAMI="level 1 saved, score 0, 8 balls, 6 to come"
 CB_BANKS="82 animations, 9 missing, 0 failed; 8 fonts, 0 failed"
 CB_GAME="17000 ms: score 526, lives 6, board 0, filled 426 of 85%; 28000 ms: score 729, lives 6, board 0, filled 629 of 85%"
+WB_BANKS="77 animations, 10 missing, 0 failed; 7 fonts, 3 empty as in the game, 0 failed"
+WB_GAME="20000 ms: score 0, lives 6, board 0, filled 0 of 85%; 32000 ms: score 494, lives 6, board 0, filled 494 of 85%"
 
 set -u
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -111,9 +117,9 @@ while [ $# -gt 0 ]; do
 		--out=*) OUT="${1#--out=}"; shift ;;
 		-h|--help) sed -n '2,/^BW_CLASSIC/p' "$0" | sed '$d' | sed 's/^# \{0,1\}//'; exit 0 ;;
 		quick) SUITES+=(build unit); shift ;;
-		games) SUITES+=(bookworm bigmoney noahsark atomica alchemy sevenseas pixelus bookwormadv bookwormadv2 tiptop mummymaze ningpo wordharmony cosmicbugs); shift ;;
-		all) SUITES+=(build build-web build-nov unit unit-web verify modmenu livesplit bookworm bigmoney noahsark atomica alchemy sevenseas pixelus bookwormadv bookwormadv2 tiptop mummymaze ningpo wordharmony cosmicbugs oracle); shift ;;
-		build|build-web|build-nov|unit|unit-web|verify|modmenu|livesplit|bookworm|bigmoney|noahsark|atomica|alchemy|sevenseas|pixelus|bookwormadv|bookwormadv2|tiptop|mummymaze|ningpo|wordharmony|cosmicbugs|oracle) SUITES+=("$1"); shift ;;
+		games) SUITES+=(bookworm bigmoney noahsark atomica alchemy sevenseas pixelus bookwormadv bookwormadv2 tiptop mummymaze ningpo wordharmony cosmicbugs waterbugs); shift ;;
+		all) SUITES+=(build build-web build-nov unit unit-web verify modmenu livesplit bookworm bigmoney noahsark atomica alchemy sevenseas pixelus bookwormadv bookwormadv2 tiptop mummymaze ningpo wordharmony cosmicbugs waterbugs oracle); shift ;;
+		build|build-web|build-nov|unit|unit-web|verify|modmenu|livesplit|bookworm|bigmoney|noahsark|atomica|alchemy|sevenseas|pixelus|bookwormadv|bookwormadv2|tiptop|mummymaze|ningpo|wordharmony|cosmicbugs|waterbugs|oracle) SUITES+=("$1"); shift ;;
 		*) echo "check.sh: unknown suite '$1' (tools/check.sh --help)" >&2; exit 2 ;;
 	esac
 done
@@ -775,6 +781,58 @@ suite_cosmicbugs() {
 		[ "$w" = "$w2" ]; then w="window the same, twice"; else w="WINDOW DIFFERS ('$w')"; st=1; fi
 	SUMMARY="$b; $g; $r; $w"
 	[ $st -eq 0 ] || SUMMARY="$SUMMARY (expected '$CB_BANKS', '$CB_GAME')"
+	return $st
+}
+
+waterbugs_run() {  # <name>: the headless runner's scripted game; prints its state lines (and its exit status if not 0)
+	local d="$OUT/waterbugs/$1" e=0 l
+	rm -rf "$d"; mkdir -p "$d"
+	# Start Game, the world map's first area, the first board's start, a beam across the board (times in ms)
+	printf '%s\n' "3000 click 400 303" "8000 click 75 260" "14000 click 400 465" "20000 state" "20000 shot start" \
+		"24000 click 300 300" "32000 state" "32000 shot beam" "32010 end" > "$d/script.txt"
+	timeout 300 build/native/waterbugs_run.exe assets/waterbugs "$d" "$d/script.txt" > "$d/stdout.txt" 2> "$d/stderr.txt" || e=$?
+	l="$(grep -E '^[0-9]+ ms: score' "$d/stdout.txt" | tr -d '\r' | paste -sd ';' - | sed 's/;/; /g')"
+	[ $e -eq 0 ] || l="$l; EXIT $e"
+	echo "$l"
+}
+
+waterbugs_window() {  # <name>: the windowed exe with the runner's left clicks; prints its state after the beam
+	local d="$OUT/waterbugs/$1" e=0 l u
+	rm -rf "$d"; mkdir -p "$d/user"
+	u="$(cygpath -ma "$d")"  # the exe's paths, also inside its script: absolute Windows ones, from any --out
+	printf '<CP_CONFIG\n    fullscreen="0"\n    desktopResolution="0"\n    wave="1"\n    music="1"\n/>\n' > "$d/user/cp.cfg"
+	# an update is 10 ms, a click holds the button 3 updates (as in the Cosmic Bugs suite)
+	printf '%s\n' "300 down 400 303" "303 up 400 303" "800 down 75 260" "803 up 75 260" "1400 down 400 465" "1403 up 400 465" \
+		"2400 down 300 300" "2403 up 300 300" "3200 state" "3200 screenshot $u/beam.png" "3210 quit" > "$d/script.txt"
+	timeout 300 "$W/build/native/waterbugs.exe" -gamedir=assets/waterbugs -userdir="$u/user" -fast -script="$u/script.txt" \
+		> "$d/stdout.txt" 2> "$d/stderr.txt" || e=$?
+	l="$(cat "$d/stdout.txt" "$d/stderr.txt" | tr -d '\r' | sed -n 's/^INFO: state: //p' | head -n 1)"
+	[ $e -eq 0 ] || l="$l; EXIT $e"
+	echo "$l"
+}
+
+suite_waterbugs() {
+	local st=0 b g r w w2 c="$OUT/waterbugs" ea=0 ef=0
+	need_assets waterbugs || return 1
+	mkdir -p "$c/banks"
+	# Every animation the game file names and every font, each listing kept (the game file names ten files the game does not ship)
+	timeout 120 build/native/waterbugs_banktest.exe assets/waterbugs "$c/banks" anims > "$c/banks/anims.txt" 2>&1 || ea=$?
+	timeout 120 build/native/waterbugs_banktest.exe assets/waterbugs "$c/banks" fonts > "$c/banks/fonts.txt" 2>&1 || ef=$?
+	b="$(tail -n 1 "$c/banks/anims.txt" | tr -d '\r'); $(tail -n 1 "$c/banks/fonts.txt" | tr -d '\r')"
+	[ $ea -eq 0 ] && [ $ef -eq 0 ] || b="$b; EXIT $ea $ef"
+	g="$(waterbugs_run game)"; r="$(waterbugs_run game2)"
+	# The windowed exe's -fast clock does not step 10 ms on every update, so its animations' phases are not the
+	# runner's: its state after the beam is, and its screen is its rerun's
+	w="$(waterbugs_window window)"; w2="$(waterbugs_window window2)"
+	{ echo "banks: $b"; echo "game: $g"; echo "rerun: $r"; echo "window: $w"; echo "window rerun: $w2"; } > "$1"
+	[ "$b" = "$WB_BANKS" ] || st=1
+	[ "$g" = "$WB_GAME" ] || st=1
+	if diff -q "$c/game/start.png" "$c/game2/start.png" >> "$1" 2>&1 && diff -q "$c/game/beam.png" "$c/game2/beam.png" >> "$1" 2>&1 &&
+		[ "$g" = "$r" ]; then r="rerun identical"; else r="RERUN DIFFERS"; st=1; fi
+	if [ "$w" = "$(echo "${g##*; }" | sed 's/^[0-9]* ms: //')" ] && diff -q "$c/window/beam.png" "$c/window2/beam.png" >> "$1" 2>&1 &&
+		[ "$w" = "$w2" ]; then w="window the same, twice"; else w="WINDOW DIFFERS ('$w')"; st=1; fi
+	SUMMARY="$b; $g; $r; $w"
+	[ $st -eq 0 ] || SUMMARY="$SUMMARY (expected '$WB_BANKS', '$WB_GAME')"
 	return $st
 }
 

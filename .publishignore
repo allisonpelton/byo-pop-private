@@ -11,6 +11,10 @@ tools/triage_popcap.py
 # mods of Deluxe and Nights and stay unpublished with them (docs/POPCAP_GAMES_SURVEY.md section 4).
 games/peggle*
 
+# Zuma's Revenge (the user, 2026-10-26): "web only". Its source stays out of the snapshot while the user learns more about
+# a PC decompilation in progress; its web build may still go on the website (docs/POPCAP_GAMES_SURVEY.md Appendix E).
+games/zuma*
+
 # Bejeweled's Steven Universe gems: fan art of Cartoon Network's designs, never redistributed (the user, 2026-10-25),
 # so the generator stays out of the public snapshot too.
 games/bejeweled/tools/make_su_gems_mod.py

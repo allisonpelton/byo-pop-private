@@ -28,6 +28,70 @@ reads these parameters from mod tunables instead of hard-coding them.
 | Arrow gems | Some gems are arrows pointing up, down, left or right. After every settled move each one steps a cell that way, trading places with the gem there; an arrow that would step off the board ends the game, so it has to be matched first. A four-way take on Bejeweled 3's Butterflies (none of that mode's art or texts), asked for by the user on 2026-10-25. Bejeweled's stage 18, after stage 17 (CODE_MODS_DESIGN.md 4.20). |
 | Sweet Tooth look (maybe) | Bejeweled restyled to look like Sweet Tooth To Go, PopCap's candy match-three made for Pogo, which the user decided on 2026-10-25 not to port, though they may want this look instead. Images only. Like the Steven Universe gems, its art comes from a local generator and stays git-ignored, since it would recreate another game's look. No engine change. Not yet planned. |
 
+## Standard mods for every game
+
+The user approved this list on 2026-10-26 as the mod plan of every game. A port is first the original game, unmodified
+and working like its exe; it adds nothing for later mods, not even hooks. In the game's mod phase (which waits until every
+PopCap game works in the browser, CLAUDE.md "Order of work") its session goes through this list, makes each mod that fits
+the game, and says in the game's README why it skipped any. Games that already have mods (Bejeweled, Big Money, BookWorm,
+Noah's Ark) make none of these until the user says every decomp runs in the browser to their satisfaction (2026-10-26).
+Each is a feature mod (or an example mod for a single
+setting), under the mod rules in CLAUDE.md. Where a game already has one, it is named in brackets.
+
+The user's first six:
+
+1. LiveSplit: an autosplitter for the desktop builds, from a tagged memory block and a script LiveSplit runs (Bejeweled,
+   Big Money, BookWorm).
+2. Widescreen: 16:9, with the session deciding what goes in the extra space (BookWorm).
+3. High-res textures: an upscaled image pack generated locally from the player's own files, never committed (Bejeweled).
+4. Replays: a seed plus the input of each update, played back through the same update loop (Bejeweled, Big Money,
+   BookWorm).
+5. Seeded RNG: the seed shown at game over and settable from the options, the command line or the URL.
+6. Bot scoring: a bot that plays games without a window and scores them, for tuning curated mods, where the game suits it.
+
+Speedrunning and competition:
+
+7. Replay checker: a saved replay replayed without a window to confirm its score, so scores can be shared as files
+   without online features.
+8. Timer and input display on screen, for speedruns in the browser, where LiveSplit cannot read the game.
+9. Daily board: the same seed for everyone on a date, with its own high scores (BookWorm, Noah's Ark).
+
+Practice and help:
+
+10. Undo, in turn-based games (Bejeweled, BookWorm, Noah's Ark).
+11. Hints or a solver (BookWorm's word solver, Noah's Ark's move helper, Big Money's puzzle solver).
+12. Level select: start at any level or stage, with separate scores.
+13. Game stats: the game's numbers at game over, and lifetime totals (Bejeweled's stage 17, BookWorm's word journal).
+14. Speed control: a slower or faster game clock.
+
+Accessibility:
+
+15. Colour-blind help: symbols or other palettes for anything the game tells apart only by colour.
+16. Reduced motion: screen shake, flashes and heavy particle bursts turned off.
+17. Other controls: keyboard-only or gamepad play for mouse games, touch for phone browsers, remappable keys.
+18. Larger text and a high-contrast interface.
+
+Rules and content:
+
+19. Rule settings: timers, scoring, lives and the difficulty curve as settings in the mod menu; every curated mod builds
+    on them.
+20. A relaxed variant: no timer, or no game over.
+21. Custom levels: a documented level format, so a mod can add levels, in level-based games.
+22. Randomizer: a shuffled level order or generated levels, in level-based games.
+23. Developer leftovers: cheats, debug keys and unused content found in the exe, as an example mod.
+24. Translations: a table that replaces the game's texts by id, so a mod can carry a language. Translations of a game's
+    texts are derived from them, so they are made locally and never committed.
+25. Local achievements, for games whose versions had Steam achievements, shown and saved locally (their names read from
+    the player's exe like other game texts).
+26. Two players taking turns or competing, where the game's rules allow it.
+
+Presentation:
+
+27. Pixel-perfect scaling and an optional scanline filter, for the 640x480 games.
+28. Smooth frames on high-refresh screens: frames drawn between updates without changing the update clock, so replays
+    stay exact.
+29. Jukebox: the player chooses the music, or the game's other tracks play on other levels.
+
 ## Nintendo 3DS port (after Bejeweled works fully with mods)
 
 Attempt a native 3DS build of Bejeweled; the goal is to get it running in an emulator. First research how
