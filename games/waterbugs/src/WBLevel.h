@@ -336,7 +336,7 @@ void Level_SetBackground(Level* theLevel);                       // 0x40f340: an
 void Level_StartSong(Level* theLevel, int thePlay);              // 0x40f6b0
 void Level_MakeRandom(Level* theLevel, int theSeed);             // cb:0x40f580
 // cb:0x40fb00: a level number's enemies (walkers, rollers and two more kinds)
-void Level_EnemyCounts(Level* theLevel, int* theA, int* theB, int* theC, int* theD);
+void Level_EnemyCounts(Level* theLevel, int* theA, int* theB, int* theC, int* theD, int* theE, int* theF); // 0x40fc90
 void Level_MakeEdges(Level* theLevel);                           // 0x40ff90
 void Level_SetPatterns(Level* theLevel, const char* theH, const char* theV); // 0x410000
 void Level_LoadFillImages(Level* theLevel, const XmlTag* theTag); // 0x4100a0
@@ -475,7 +475,7 @@ void Text_Destroy(Text* theText);                                // 0x4109d0
 void List_DeleteNode(Text* theText);                             // 0x411850's delete
 void HighScore_Entered(const char* theName);                     // cb:0x40cf70: the name entry's return
 int Text_Update(Text* theText);                                  // 0x41f6b0
-int Star_Update(Obj* theStar);                                   // cb:0x41e2c0
+int Star_Update(Obj* theStar);                                   // 0x41e800
 void Level_AddStars(Level* theLevel);                            // 0x411350
 int Powerup_Update(Powerup* thePowerup);                         // 0x419bf0: 0 when it is gone
 int Weapon_Update(Weapon* theWeapon);                            // 0x41b290: 0 when it is gone
@@ -488,7 +488,7 @@ void Shooter_Draw(Shooter* theShooter);                          // 0x41d970
 void Weapon_Draw(Weapon* theWeapon);                             // 0x419c10: a time bomb's fuse too
 void Weapon_DrawTooClose(Weapon* theWeapon);                     // 0x419d00
 void Powerup_Draw(Powerup* thePowerup);                          // 0x418880
-void Star_Draw(Obj* theStar);                                    // cb:0x41e310
+void Star_Draw(Obj* theStar);                                    // 0x41e850
 void Menu_Draw(Menu* theMenu);                                   // 0x415910
 void Text_Draw(Text* theText);                                   // cb:0x41f6f0
 void Level_Draw(Level* theLevel);                                // 0x410c60

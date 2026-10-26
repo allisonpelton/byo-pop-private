@@ -1117,7 +1117,7 @@ void Menu_ShowRequester(Menu* theMenu, int theKind, const char* theText, const c
 			aList->current->texts[aList->current->textCount]->appearSound = Sound_Find("audio\\pop.wav");
 			aList->current->textCount = aList->current->textCount + 1;
 			aText = Requester_AddText(aList->current);
-			Text_Make(aText, GT(0 /* TODO cb:0x4593c8 */), Font_Find("bonus_font2"), 400, 0x14f, 0, 0, 0x986fc8, 500, 0, 0);
+			Text_Make(aText, GT(0x459564), Font_Find("bonus_font2"), 400, 0x14f, 0, 0, 0x986fc8, 500, 0, 0);
 			aList->current->textCount = aList->current->textCount + 1;
 			sprintf(aBuf, "%d", gLevels.current->bonus);
 			aText = Requester_AddText(aList->current);
@@ -1163,7 +1163,7 @@ void Menu_ShowRequester(Menu* theMenu, int theKind, const char* theText, const c
 		Button_Setup(anItem, "yes", 340.0f, 330.0f);
 		anItem->midHandle = 1;
 		anItem->kind = 0x22;
-		strcpy(anItem->name, GT(0 /* TODO cb:0x416435 */));
+		strcpy(anItem->name, GT(0x416750));
 		MenuItem_Append(&aList->current->items);
 		anItem = aList->current->items.current;
 		Button_Setup(anItem, "no", 460.0f, 330.0f);

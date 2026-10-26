@@ -206,10 +206,10 @@ void Animation_BuildTints(Animation* theAnim)
 			ColourShift(&v, f, 0, 1, 0, 0xff, 0xff, 0xff, 0, 0, 0, 0x5a);
 			theAnim->tints[1].p16[i] = (uint16_t)v;
 			v = theAnim->palette.p16[i];
-			ColourShift(&v, f, 0, 1, 0, 0x6e, 0x50, 0x50, 1, 0, 0, 0x5a);
+			ColourShift(&v, f, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0x5a);
 			theAnim->tints[2].p16[i] = (uint16_t)v;
 			v = theAnim->palette.p16[i];
-			ColourShift(&v, f, 0, 1, 0, 0x73, 0x73, 0x3c, 1, 0, 0, 0x5a);
+			ColourShift(&v, f, 0, 1, 0, 0, 0, 0, 1, 1, 0, 0x5a);
 			v = theAnim->palette.p16[i];
 			ColourShift(&v, f, 0, 1, 0, 0, 0, 0, 1, 1, 0, 0x5a);
 			theAnim->tints[4].p16[i] = (uint16_t)v;

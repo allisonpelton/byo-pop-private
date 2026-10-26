@@ -939,7 +939,7 @@ Shooter* Shooter_Init(Shooter* theShooter)
 	Obj_Init(&theShooter->sweeper);
 	Obj_Init(&theShooter->unk320);
 	Obj_Init(&theShooter->bubble);
-	theShooter->appearTime = 1400.0f;
+	theShooter->appearTime = 700.0f;
 	theShooter->beamAcross = 1;
 	theShooter->state = 4;
 	theShooter->depth = 4;
@@ -981,6 +981,7 @@ int Shooter_Update(Shooter* theShooter)
 	return aResult;
 }
 
+// 0x41e800: a bubble leaves by the right edge to come in at the left, and by the top to start again below
 int Star_Update(Obj* theStar)
 {
 	Obj_Update(theStar);
@@ -988,24 +989,14 @@ int Star_Update(Obj* theStar)
 		theStar->x = -2.0f;
 	if (theStar->y < -2.0f)
 		theStar->y = (float)((double)gBackBuffer.h + 12.0);
-	theStar->depth = -999;
+	theStar->depth = 999;
 	return 1;
 }
 
+// 0x41e850: a bubble sways sideways as it rises, within the board while it has a panel
 void Star_Draw(Obj* theStar)
 {
-	// not over the board's cells, except open and solid ones; inside the board while it has a panel
 	Level* aLevel = gLevels.current;
-	if ((int)theStar->x / 16 < 0x32)
-	{
-		int aRow = (int)theStar->y / 16;
-		if (aRow < 0x25)
-		{
-			int aKind = aLevel->columns[(int)theStar->x / 16][aRow].kind;
-			if (aKind != 5 && aKind != 0)
-				return;
-		}
-	}
 	Image* anImage = theStar->image;
 	if (anImage == nullptr)
 		return;
@@ -1014,10 +1005,12 @@ void Star_Draw(Obj* theStar)
 	aClip[0] = 0;
 	aClip[2] = aLevel->cols * 0x10 + -1;
 	aClip[3] = aLevel->rows * 0x10 + -1;
+	int aSway = (int)((double)theStar->y * 5.0);
+	float aSwayX = (float)((double)SinDeg(aSway % 0x168) * 10.0);
 	const int* aDirtyClip;
 	if (aLevel->panels.current == nullptr)
 	{
-		DrawList_Add(anImage, (uint32_t)(uintptr_t)theStar, (int)((double)theStar->x + 0.0), (int)theStar->y,
+		DrawList_Add(anImage, (uint32_t)(uintptr_t)theStar, (int)((double)theStar->x + (double)aSwayX), (int)theStar->y,
 			theStar->depth, theStar->drawKind, gScreenBits, gScreenPitch, theStar->r, theStar->g, theStar->b,
 			theStar->alpha, &theStar->anim->palette, nullptr);
 		anImage = theStar->image;
@@ -1025,13 +1018,13 @@ void Star_Draw(Obj* theStar)
 	}
 	else
 	{
-		DrawList_Add(anImage, (uint32_t)(uintptr_t)theStar, (int)((double)theStar->x + 0.0), (int)theStar->y,
+		DrawList_Add(anImage, (uint32_t)(uintptr_t)theStar, (int)((double)theStar->x + (double)aSwayX), (int)theStar->y,
 			theStar->depth, theStar->drawKind, gScreenBits, gScreenPitch, theStar->r, theStar->g, theStar->b,
 			theStar->alpha, &theStar->anim->palette, aClip);
 		anImage = theStar->image;
 		aDirtyClip = aClip;
 	}
-	Dirty_AddClippedImage(&gDirty, (int)((double)theStar->x + 0.0), (int)theStar->y, anImage, aDirtyClip);
+	Dirty_AddClippedImage(&gDirty, (int)((double)theStar->x + (double)aSwayX), (int)theStar->y, anImage, aDirtyClip);
 }
 
 } // namespace wb

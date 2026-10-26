@@ -154,7 +154,8 @@ void DrawLoadingScreen()
 }
 
 // The levels are numbered in the file's order (a skipped one shares the next one's number); random_levels makes
-// "number" of them, twelve times as many when registered. The file's buffer stays (as the original's does).
+// "number" of them. The file's buffer stays (as the original's does).
+// 0x41eeb0
 void LoadGameFile()
 {
 	XmlTag aTag;
@@ -179,8 +180,7 @@ void LoadGameFile()
 		{
 			if (Xml_GetInt(&aTag, "start_seed") != 0)
 				CrtSrand(Xml_GetInt(&aTag, "start_seed"));
-			int aRegistered = Xml_GetInt(&aTag, "number") * gRegistered;
-			int aCount = Xml_GetInt(&aTag, "number") + aRegistered * 0xb;
+			int aCount = Xml_GetInt(&aTag, "number");
 			if (0 < aCount)
 			{
 				do

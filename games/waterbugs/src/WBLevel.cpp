@@ -204,120 +204,142 @@ void Level_MakeRandom(Level* theLevel, int theSeed)
 	}
 }
 
-void Level_EnemyCounts(Level* theLevel, int* theA, int* theB, int* theC, int* theD)
+// 0x40fc90: how many of each kind of enemy a level has, by its number. theA and theB are the pairs and the singles
+// (the level file's numbers when the level is past the table), theC and theD how far the kinds reach above the first
+// kind of each (7 for the pairs, 0 for the singles), theE and theF the tint of each (0: one near the level's)
+void Level_EnemyCounts(Level* theLevel, int* theA, int* theB, int* theC, int* theD, int* theE, int* theF)
 {
 	int n = theLevel->number;
 	if (n == 1)
 	{
 		*theA = 0;
-		*theB = 1;
-		*theC = 0;
-		*theD = 0;
-		return;
+		*theB = 0;
 	}
-	if (n == 2)
+	else if (n == 2)
+	{
+		*theA = 0;
+		*theB = 1;
+	}
+	else if (n == 3)
 	{
 		*theA = 0;
 		*theB = 2;
-		*theC = 0;
-		*theD = 0;
-		return;
 	}
-	if (n == 3)
-	{
-		*theA = 4;
-		*theB = 2;
-		*theC = 0;
-		*theD = 0;
-		return;
-	}
-	if (n == 4)
+	else if (n == 4 || n == 5 || n == 6)
 	{
 		*theA = 2;
 		*theB = 2;
 		*theC = 0;
 		*theD = 1;
+		*theE = 8;
+		*theF = 5;
 		return;
 	}
-	if (n == 5)
+	else if (7 <= n && n < 10)
 	{
-		*theA = 4;
+		*theA = 3;
 		*theB = 2;
 		*theC = 1;
 		*theD = 1;
+		*theE = 8;
+		*theF = 5;
 		return;
 	}
-	if (5 < n && n < 10)
+	else if (10 <= n && n <= 0xe)
 	{
 		*theA = 4;
 		*theB = 3;
 		*theC = 1;
-		*theD = 1;
+		*theD = 2;
+		*theE = 2;
+		*theF = 7;
 		return;
 	}
-	if (9 < n && n < 0xf)
+	else if (0xf <= n && n <= 0x13)
+	{
+		*theA = 4;
+		*theB = 4;
+		*theC = 2;
+		*theD = 2;
+		*theE = 2;
+		*theF = 7;
+		return;
+	}
+	else if (0x14 <= n && n <= 0x18)
 	{
 		*theA = 6;
 		*theB = 4;
 		*theC = 2;
-		*theD = 2;
+		*theD = 3;
+		*theE = 7;
+		*theF = 6;
 		return;
 	}
-	if (n == 0x13)
+	else if (0x19 <= n && n <= 0x1d)
 	{
 		*theA = 6;
-		*theB = 3;
-		*theC = 2;
-		*theD = 2;
-		return;
-	}
-	if (0xe < n && n < 0x14)
-	{
-		*theA = 6;
-		*theB = 4;
-		*theC = 2;
-		*theD = 2;
-		return;
-	}
-	if (0x13 < n && n < 0x19)
-	{
-		*theA = 8;
 		*theB = 5;
 		*theC = 2;
 		*theD = 3;
+		*theE = 7;
+		*theF = 6;
 		return;
 	}
-	// (the second test of the original's 25..29 range can never be reached)
-	if (0x18 < n && n < 0x1e)
+	else if (0x1e <= n && n <= 0x22)
 	{
-		*theA = 6;
+		*theA = 8;
+		*theB = 5;
+		*theC = 3;
+		*theD = 3;
+		*theE = 3;
+		*theF = 1;
+		return;
+	}
+	else if (0x23 <= n && n <= 0x31)
+	{
+		*theA = 8;
 		*theB = 6;
-		*theC = 3;
+		*theC = 4;
 		*theD = 3;
+		*theE = 3;
+		*theF = 1;
 		return;
 	}
-	if (0x1d < n && n < 0x23)
-	{
-		*theA = 8;
-		*theB = 5;
-		*theC = 3;
-		*theD = 4;
-		return;
-	}
-	if (0x22 < n && n < 0x32)
+	else if (0x32 <= n && n <= 0x3c)
 	{
 		*theA = 8;
 		*theB = 6;
 		*theC = 4;
 		*theD = 4;
+		*theE = 5;
+		*theF = 9;
 		return;
 	}
-	*theC = 4;
-	*theD = 5;
-	if (*theB < 4)
-		*theB = 4;
-	if (*theA < 4)
-		*theA = 4;
+	else if (0x3c <= n && n <= 0x46)
+	{
+		*theA = 8;
+		*theB = 6;
+		*theC = 5;
+		*theD = 5;
+		*theE = 1;
+		*theF = 6;
+		return;
+	}
+	else
+	{
+		*theC = 5;
+		*theD = 6;
+		if (*theB < 4)
+			*theB = 4;
+		if (*theA < 4)
+			*theA = 4;
+		return;
+	}
+	// levels 1 to 3 end here
+	*theC = 0;
+	*theD = 0;
+	*theE = 8;
+	*theF = 5;
 }
 
 void Level_MakeEdges(Level* theLevel)
@@ -1156,7 +1178,9 @@ void Level_AddRandomEnemies(Level* theLevel, int theFirst, int theSecond)
 	int aTint = RandRange(2, 8);
 	int aFirstKinds;
 	int aSecondKinds;
-	Level_EnemyCounts(theLevel, &theFirst, &theSecond, &aFirstKinds, &aSecondKinds);
+	int aFirstTint = 0;
+	int aSecondTint = 0;
+	Level_EnemyCounts(theLevel, &theFirst, &theSecond, &aFirstKinds, &aSecondKinds, &aFirstTint, &aSecondTint);
 	int aKind = theFirst;
 	for (int i = 0; i < theFirst; i = i + 1)
 	{
@@ -1178,8 +1202,13 @@ void Level_AddRandomEnemies(Level* theLevel, int theFirst, int theSecond)
 				}
 				else
 				{
-					int r = RandRange(-1, 1);
-					anEnemies->current->tint = r + aTint;
+					int aNewTint = aFirstTint;
+					if (aFirstTint == 0)
+					{
+						int r = RandRange(-1, 1);
+						aNewTint = r + aTint;
+					}
+					anEnemies->current->tint = aNewTint;
 				}
 			}
 			else
@@ -1205,7 +1234,10 @@ void Level_AddRandomEnemies(Level* theLevel, int theFirst, int theSecond)
 					anEnemies->current->x = 800.0f - Node_Prev(anEnemies->current)->x;
 					anEnemies->current->y = 528.0f - Node_Prev(anEnemies->current)->y;
 				}
-				anEnemies->current->tint = Node_Prev(anEnemies->current)->tint;
+				if (aFirstTint == 0)
+					anEnemies->current->tint = Node_Prev(anEnemies->current)->tint;
+				else
+					anEnemies->current->tint = aFirstTint;
 			}
 			if (gEnemyDefs.current != nullptr)
 				gEnemyDefs.current = gEnemyDefs.tail;
@@ -1224,9 +1256,14 @@ void Level_AddRandomEnemies(Level* theLevel, int theFirst, int theSecond)
 				List_RemoveCurrent(anEnemies);
 			else
 			{
-				int r = RandRange(-1, 1);
-				anEnemies->current->tint = r + aTint;
-				anEnemies->current->tint = r + aTint;
+				int aNewTint = aSecondTint;
+				if (aSecondTint == 0)
+				{
+					int r = RandRange(-1, 1);
+					aNewTint = r + aTint;
+				}
+				anEnemies->current->tint = aNewTint;
+				anEnemies->current->tint = aNewTint;
 			}
 			if (gEnemyDefs.current != nullptr)
 				gEnemyDefs.current = gEnemyDefs.tail;

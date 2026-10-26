@@ -7,7 +7,7 @@
 // - LoadGameTexts() reads WaterBugs.exe from the game folder, takes each string at its address and checks length
 //   and hash. A string that does not match (another version of the exe) stays empty and is logged.
 // - Code names a string by its address in the original: GT(0x459604); a table of addresses marks each with GTA().
-//   A few are immediates in the code (GT(0 /* TODO cb:0x416435 */): a mov's four bytes).
+//   A few are immediates in the code (GT(0x416750), a "mov"'s four bytes: its address is in .text).
 
 #include "WBGlobals.h"
 #include "R64Sys.h"
@@ -117,7 +117,7 @@ bool LoadGameTexts()
 			aMismatched++;
 	}
 	if (aMismatched > 0)
-		std::fprintf(stderr, "GameText: %d of %d strings do not match this executable (Water Bugs 1.05 expected)\n",
+		std::fprintf(stderr, "GameText: %d of %d strings do not match this executable (Water Bugs 1.15 expected)\n",
 			aMismatched, kNumGameTexts);
 	return aMatched > 0;
 }

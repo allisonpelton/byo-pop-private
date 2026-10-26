@@ -143,7 +143,7 @@ int Screen_Lock();
 void LoadArt8();                                                 // 0x41e9b0
 void LoadArtAndFonts();                                          // 0x41e9d0
 void DrawLoadingScreen();                                        // 0x41ea60
-void LoadGameFile();                                             // cb:0x41e9b0
+void LoadGameFile();                                             // 0x41eeb0
 // 0x41f350, the game's main: GameStart is what comes before its loop, GameFrame one pass of the loop (0 when the
 // game quits), GameEnd what follows it
 void GameStart();
