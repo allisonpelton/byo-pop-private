@@ -45,16 +45,17 @@ public:
 	int					mAimY;				// +0xa50 (382)
 	int					mSlingX;			// +0xa54 the slingshot's middle (as the aim)
 	int					mSlingY;			// +0xa58 (432)
-	int					mFieldA5c;			// +0xa5c (50)
-	int					mFieldA60;			// +0xa60
-	int					mFieldA64;			// +0xa64
+	int					mFieldA5c;			// +0xa5c (50; counts down from 24 again and again)
+	int					mFieldA60;			// +0xa60 eases a pixel a frame toward +0xa64, never below +0xa68 unless
+										// the board's bonus bit 1 is on
+	int					mFieldA64;			// +0xa64 (-600 while the board's bonus bit 1 is on, else 0)
 	int					mFieldA68;			// +0xa68
 	int					mFieldA6c;			// +0xa6c (255) the arrow's red
 	int					mFieldA70;			// +0xa70 the arrow's green and blue
 	PtrList<Point>		mPathRight;			// +0xa74 the aim path's right side, first to last
 	PtrList<Point>		mPathLeft;			// +0xa8c its left side, last to first
 	bool				mFrozen;			// +0xaa4 Fire does nothing while it is set
-	Egg*				mHeld;				// +0xaa8 an egg held while frozen (saved like the loaded one)
+	LoadedEgg*			mHeld;				// +0xaa8 an egg held while frozen, loaded 56 frames on (saved like the loaded one)
 	int					mFieldAac;			// +0xaac
 
 	Launcher(FossilizedApp* theApp, Dynomite* theBoard);	// 0x401050
@@ -63,9 +64,10 @@ public:
 	void				SetLoaded(LoadedEgg* theEgg);		// 0x4011f0: unless one is loaded
 	void				Load(int theColor);					// 0x401210: unless one is loaded
 	void				Fire();								// 0x4012a0
+	void				Update();							// 0x402c10
 	void				Extend(PathLine* theLine, float theDist);	// 0x4013f0: moves its end on
 	void				Retract(PathLine* theLine, float theDist);	// 0x401470: moves its start back
-	void				Freeze(Egg* theEgg);				// 0x4014f0
+	void				Freeze(LoadedEgg* theEgg);			// 0x4014f0
 	void				DrawSling(Graphics* g);				// 0x401940
 	void				DrawBand();							// 0x401a10
 	void				PlaceEgg(float& theX, float& theY);	// 0x401d30

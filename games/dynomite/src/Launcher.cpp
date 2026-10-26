@@ -133,7 +133,7 @@ void Launcher::Retract(PathLine* theLine, float theDist)
 }
 
 // 0x4014f0
-void Launcher::Freeze(Egg* theEgg)
+void Launcher::Freeze(LoadedEgg* theEgg)
 {
 	mFrozen = true;
 	mHeld = theEgg;
@@ -493,4 +493,67 @@ void Launcher::AddPath(Graphics* g, PathLine* thePrev, PathLine* theLine, PathLi
 		mPathRight.Add(new Point((int) theLine->mTo[0], (int) theLine->mTo[1]));
 		mPathRight.Add(new Point((int) aHead[2], (int) aHead[3]));
 	}
+}
+
+// 0x402c10: a frozen launcher holding an egg loads it after 56 frames, else thaws as its count runs down; the
+// arrow turns white while the board's bonus bit 1 is on and red otherwise; the slingshot follows the board, and the
+// recoil dies away
+void Launcher::Update()
+{
+	if (mFrozen == true)
+	{
+		if (mHeld != NULL)
+		{
+			mFieldAac++;
+			if (mFieldAac > 0x37)
+			{
+				if (mLoaded != NULL)
+					delete mLoaded;
+				mLoaded = mHeld;
+				mHeld = NULL;
+			}
+		}
+		else
+		{
+			mFieldAac--;
+			if (mFieldAac < 1)
+				mFrozen = false;
+		}
+	}
+	Dynomite* aBoard = mBoard;
+	mFieldA64 = 0;
+	if ((aBoard->mBonusBits & 1) != 0)
+	{
+		mFieldA6c--;
+		if (mFieldA6c < 0)
+			mFieldA6c = 0;
+		mFieldA70++;
+		if (mFieldA70 > 0xff)
+			mFieldA70 = 0xff;
+		mFieldA64 = -600;
+	}
+	else
+	{
+		mFieldA70--;
+		if (mFieldA70 < 0)
+			mFieldA70 = 0;
+		mFieldA6c++;
+		if (mFieldA6c > 0xff)
+			mFieldA6c = 0xff;
+		if (mFieldA60 < mFieldA68)
+			mFieldA60 = mFieldA68;
+	}
+	if (mFieldA60 > mFieldA64)
+		mFieldA60--;
+	if (mFieldA60 < mFieldA64)
+		mFieldA60++;
+	mSlingX = aBoard->mField158 + aBoard->mField70;
+	mFieldA5c--;
+	mSlingY = 0x1b0;
+	if (mFieldA5c < 0)
+		mFieldA5c = 0x18;
+	if (mLoaded != NULL)
+		PlaceEgg(mLoaded->mX, mLoaded->mY);
+	mRecoilX = mRecoilX * 0.85f;
+	mRecoilY = mRecoilY * 0.85f;
 }
