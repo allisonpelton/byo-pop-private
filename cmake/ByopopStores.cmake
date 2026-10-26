@@ -30,3 +30,7 @@ set(BYOPOP_BUY_tiptop 2026-10-25)
 # Checked 2026-10-26: the EA app sells Alchemy (its page on ea.com); Steam's store search has no Alchemy of PopCap's.
 set(BYOPOP_BUY_alchemy 2026-10-26
   "EA app" "https://www.ea.com/games/alchemy/alchemy")
+# Checked 2026-10-26: Word Harmony (Sprout Games, 2006) is not in Steam's store search or on
+# EA's store, GameHouse has no page for it (only a support note that it does not suit Windows 10 and 11), and a search
+# of Big Fish Games, iWin and Pogo found none.
+set(BYOPOP_BUY_wordharmony 2026-10-26)
