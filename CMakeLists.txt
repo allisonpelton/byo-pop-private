@@ -201,3 +201,8 @@ option(BUILD_NINGPO "Build the Ning Po Mahjong Deluxe port" ON)
 if(BUILD_NINGPO AND EXISTS ${PROJECT_SOURCE_DIR}/games/ningpo/CMakeLists.txt)
   add_subdirectory(games/ningpo)
 endif()
+# Word Harmony: Sprout's engine (games/wordharmony/engine) under the framework's app host; optional while it is new
+option(BUILD_WORDHARMONY "Build the Word Harmony port" ON)
+if(BUILD_WORDHARMONY AND EXISTS ${PROJECT_SOURCE_DIR}/games/wordharmony/CMakeLists.txt)
+  add_subdirectory(games/wordharmony)
+endif()
