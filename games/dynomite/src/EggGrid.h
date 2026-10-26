@@ -107,6 +107,9 @@ public:
 	PtrList<void>		mList46b8;			// +0x46b8
 	bool				mField46d0;			// +0x46d0
 	bool				mField46d1;			// +0x46d1
+	int					mBlastX;			// +0x46d4 Blast's sums, then the middle
+	int					mBlastY;			// +0x46d8
+	int					mBlastCount;		// +0x46dc
 	int					mField46e0;			// +0x46e0 (100)
 	bool				mLoneEgg;			// +0x46e4 set before a landing egg is placed; cleared when it touches its colour
 	bool				mField46e5;			// +0x46e5
@@ -127,6 +130,7 @@ public:
 	int					DropLoose();										// 0x416b80
 	void				Match(int theCol, int theRow, int theColor);		// 0x417bd0
 	void				Blast(int theCol, int theRow);						// 0x418100 (a bomb lands)
+	void				BlastCell(int theCol, int theRow);					// 0x417020
 };
 
 }

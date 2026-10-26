@@ -40,6 +40,10 @@ EggGrid::EggGrid(FossilizedApp* theApp, Dynomite* theBoard)
 	mField46d1 = false;
 	mField46e0 = 100;
 	mField46e5 = false;
+	// port: not set by the original constructor
+	mBlastX = 0;
+	mBlastY = 0;
+	mBlastCount = 0;
 	mTargets.Clear();
 	mList46b8.Clear();
 }
@@ -638,9 +642,99 @@ void EggGrid::Match(int theCol, int theRow, int theColor)
 		delete aGroup;
 }
 
-// 0x418100 (TODO)
+// 0x418100: a bomb's big boom where it lands, and every egg within two cells of it blasted and scored ten times
+// over; then what hangs from nothing falls
 void EggGrid::Blast(int theCol, int theRow)
 {
+	GridPoint aPoint;
+	CellToPixel(theCol, theRow, &aPoint);
+	GridToScreen(aPoint.mX, aPoint.mY, &aPoint);
+	BoomEffect* aBoom = new BoomEffect();
+	aBoom->mStretched = true;
+	aBoom->Init(aPoint.mX + 0x10, aPoint.mY + 0x10, mApp, 0.2f);
+	mBoard->mEffects.Add(aBoom);
+	mApp->mSndExplosion->Play();
+	// TODO: the board's +0x88 (0x438400) gets 100 (0x4384d0)
+	mBlastX = 0;
+	mBlastY = 0;
+	mBlastCount = 0;
+	if ((theRow % 2) == 0)
+	{
+		BlastCell(theCol - 1, theRow - 1);
+		BlastCell(theCol, theRow - 1);
+		BlastCell(theCol - 1, theRow);
+		BlastCell(theCol + 1, theRow);
+		BlastCell(theCol - 1, theRow + 1);
+		BlastCell(theCol, theRow + 1);
+		BlastCell(theCol - 1, theRow - 2);
+		BlastCell(theCol, theRow - 2);
+		BlastCell(theCol + 1, theRow - 2);
+		BlastCell(theCol - 2, theRow - 1);
+		BlastCell(theCol + 1, theRow - 1);
+		BlastCell(theCol - 2, theRow);
+		BlastCell(theCol + 2, theRow);
+		BlastCell(theCol - 2, theRow + 1);
+		BlastCell(theCol + 1, theRow + 1);
+		BlastCell(theCol - 1, theRow + 2);
+		BlastCell(theCol, theRow + 2);
+	}
+	else
+	{
+		BlastCell(theCol, theRow - 1);
+		BlastCell(theCol + 1, theRow - 1);
+		BlastCell(theCol - 1, theRow);
+		BlastCell(theCol + 1, theRow);
+		BlastCell(theCol, theRow + 1);
+		BlastCell(theCol + 1, theRow + 1);
+		BlastCell(theCol - 1, theRow - 2);
+		BlastCell(theCol, theRow - 2);
+		BlastCell(theCol + 1, theRow - 2);
+		BlastCell(theCol - 1, theRow - 1);
+		BlastCell(theCol + 2, theRow - 1);
+		BlastCell(theCol - 2, theRow);
+		BlastCell(theCol + 2, theRow);
+		BlastCell(theCol - 1, theRow + 1);
+		BlastCell(theCol + 2, theRow + 1);
+		BlastCell(theCol - 1, theRow + 2);
+		BlastCell(theCol, theRow + 2);
+	}
+	BlastCell(theCol + 1, theRow + 2);
+	mBoard->mField13c = -0x32;
+	mBoard->Blasted();
+	int aCount = mBlastCount;
+	if (aCount != 0)
+	{
+		mBlastX = mBlastX / aCount;
+		mBlastY = mBlastY / aCount;
+		mBoard->AddPoints(mBlastX, mBlastY, aCount * 10, 0, true);
+	}
+	DropLoose();
+}
+
+// 0x417020: a boom on a cell with an egg, which breaks unless its colour is 50 or more
+void EggGrid::BlastCell(int theCol, int theRow)
+{
+	// the original allows columns to 19 (past the grid's 15, into the scratch copy that follows it) and rows to 79
+	GridCell* aCell = &mCells[0][0] + (theCol * 100 + theRow);
+	if ((-1 < theCol) && (theCol < 0x14) && (-1 < theRow) && (theRow < 0x50) && ((char) aCell->mBits != 0))
+	{
+		GridPoint aPixel;
+		CellToPixel(theCol, theRow, &aPixel);
+		GridPoint aScreen;
+		GridToScreen(aPixel.mX, aPixel.mY, &aScreen);
+		BoomEffect* aBoom = new BoomEffect();
+		aBoom->Init(aScreen.mX + 0x10, aScreen.mY + 0x10, mApp, 0.2f);
+		mBoard->mEffects.Add(aBoom);
+		mApp->mSndExplosion->Play();
+		mBlastY = mBlastY + aScreen.mY;
+		mBlastX = mBlastX + aScreen.mX;
+		mBlastCount = mBlastCount + 1;
+		if (((aCell->mBits & 0xff) != 0) && ((aCell->mBits & 0xff) < 0x32))
+		{
+			Break(aScreen.mX, aScreen.mY, aCell);
+			Remove(theCol, theRow, true);
+		}
+	}
 }
 
 // 0x438270

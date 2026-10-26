@@ -139,7 +139,7 @@ public:
 	FossilizedApp*		mApp;			// +0x10
 	float				mFrame;			// +0x14
 	float				mSpeed;			// +0x18 frames a frame
-	bool				mStretched;		// +0x1c 150 x 200 (only a saved game sets it)
+	bool				mStretched;		// +0x1c 150 x 200: a bomb's (EggGrid::Blast)
 
 	BoomEffect();							// 0x403e20
 	virtual ~BoomEffect();					// 0x403e40

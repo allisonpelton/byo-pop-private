@@ -275,6 +275,11 @@ void Dynomite::MakeDynamite()
 {
 }
 
+// 0x4b1930
+void Dynomite::Blasted()
+{
+}
+
 // 0x4050d0
 void Dynomite::EggAlone(int theColor)
 {

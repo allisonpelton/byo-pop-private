@@ -93,6 +93,7 @@ public:
 	// ends it
 	virtual void		Chain(int x, int y, bool isMatch);
 	virtual void		MakeDynamite();					// 0x405010 (slot 51)
+	virtual void		Blasted();						// 0x4b1930 (slot 52; empty): after a bomb's blast
 	virtual void		EggAlone(int theColor);			// 0x4050d0 (slot 56; empty): a landed egg touches none of its colour
 	virtual void		DrawPiece(int theColor, int x, int y);	// 0x406040 (slot 57; empty): a falling colour from 50 up
 	virtual void		PieceFell(int theColor);		// 0x4050d0 (slot 58; empty): one off the bottom
