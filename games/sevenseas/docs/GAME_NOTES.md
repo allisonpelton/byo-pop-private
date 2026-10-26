@@ -100,3 +100,9 @@ adds nothing); the original writes the file when the widget is deleted. The draw
 the list on its panel with a colour per row that moves with `+0x7c` (a counter of ten updates; hue
 `|(row + 2 + counter) * 10 % 170 - 85|`, lightness 0x60 for the name and 0x96 for the score), and the best of the day.
 The rank names come from a table of 18 thresholds (two per name) embedded in `Screens.cpp`.
+
+The name dialog's edit widget has its own colour table (0x4a5908: background and outline clear, text 240/240/255) and a
+limit of 104 pixels (`+0x8c`), not a number of characters. The dialog draws the box under it (0x41a480): the picture
+`editbox` (96 x 32) as a left cap, a right cap and the middle slice repeated under a clip, in a rectangle 4 pixels larger than
+the widget on each side. The flash after an extra life (`Board::Draw`, 0x406400) draws the large ship (image 37), while
+the side panel's lives are the small icon (image 31).

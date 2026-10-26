@@ -277,7 +277,10 @@ RecordScoreDialog::RecordScoreDialog(SevenSeasApp* theApp, const SexyString& the
 	SetColor(COLOR_BUTTON_TEXT, Color(0xe0, 0xb7, 0x28));
 	mNameEdit = new EditWidget(0, this);
 	mNameEdit->SetFont(mApp->mFonts[FONT_MT11]);
-	mNameEdit->mMaxChars = 0x10;
+	// background and outline clear (the dialog draws the box picture under it), text and selection light
+	static int sEditColors[5][4] = {{0, 0, 0, 0}, {0, 0, 0, 0}, {240, 240, 255, 255}, {255, 255, 255, 255}, {0, 0, 0, 255}};
+	mNameEdit->SetColors(sEditColors, 5);
+	mNameEdit->mMaxPixels = 0x68;
 	mNameEdit->SetText(mApp->mLastScoreName);
 }
 
@@ -313,13 +316,26 @@ int RecordScoreDialog::GetPreferredHeight(int theWidth)
 	return Dialog2004::GetPreferredHeight(theWidth) + 0x38;
 }
 
+// 0x41a480: the edit box picture (96 x 32) in three slices: the left cap, the right cap, and the middle slice
+// repeated between them under a clip
+static void DrawEditBox(SevenSeasApp* theApp, Graphics* g, int theX, int theY, int theWidth)
+{
+	Image* anImage = theApp->mImages[IMAGE_EDITBOX];
+	g->DrawImage(anImage, theX, theY, Rect(0, 0, 0x20, 0x20));
+	g->DrawImage(anImage, theX + theWidth - 0x20, theY, Rect(0x40, 0, 0x20, 0x20));
+	Graphics g2(*g);
+	g2.ClipRect(theX + 0x20, theY, theWidth - 0x20, 0x20);
+	int aCount = (theWidth - 0x21) / 32;
+	for (int i = 0; i < aCount; i++)
+		g2.DrawImage(anImage, theX + 0x20 + i * 0x20, theY, Rect(0x20, 0, 0x20, 0x20));
+}
+
 // 0x41a2f0
 void RecordScoreDialog::Draw(Graphics* g)
 {
 	Dialog2004::Draw(g);
 	// the box around the name
-	g->SetColor(Color(0xff, 0xff, 0xff));
-	g->FillRect((mNameEdit->mX - mX) - 4, (mNameEdit->mY - mY) - 4, mNameEdit->mWidth + 8, mNameEdit->mHeight + 8);
+	DrawEditBox(mApp, g, (mNameEdit->mX - mX) - 4, (mNameEdit->mY - mY) - 4, mNameEdit->mWidth + 8);
 	g->SetFont(mApp->mFonts[FONT_MT11]);
 	g->SetColor(Color(0xff, 0, 0));
 	g->DrawString(GT(0x004a5964), mNameEdit->mX - mX, (mNameEdit->mY - mY) - 0x10);
