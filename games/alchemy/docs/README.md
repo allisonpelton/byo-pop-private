@@ -31,6 +31,9 @@ python games/alchemy/tools/make_game_region.py        # the game's functions onl
 python games/alchemy/tools/fn.py 40d836               # one function of the export
 python games/alchemy/tools/norm.py re/alchemy/fields_Board.txt 4068f1   # the same with this-relative fields named
 bash re/alchemy/dis.sh 0x40cf2a 0x40cf60              # disassembly, where the decompiler drops stack arguments
+python games/alchemy/tools/ann.py 0x4086e6 0x408938   # a function's calls with the operands pushed before each, named
+python games/alchemy/tools/cmpfn.py 40e773 games/alchemy/src/Piece.cpp Piece::Draw   # constants the port lacks or adds
+python games/alchemy/tools/va.py 4e36d8:d             # a double (d), float (f), int (i) or string (s) at an address
 ```
 
 The export goes to `re/alchemy/` (git-ignored, like everything derived from the game). The decompiler drops the trailing
@@ -78,8 +81,19 @@ Not done or not checked:
 - the sounds and the music were never heard (every run is silent), only that they load;
 - `cmake/ByopopStores.cmake` has no `BYOPOP_BUY_alchemy` entry: the web build stops at configuration without it (a shared
   file, the coordinator's);
-- the original's drawing of a few effects (the explosion's sparks, the wizard's lip-sync, the sparkles) was ported from the
-  decompiler's output and has not been compared with the original running.
+- the original was never run next to the port: the drawing was compared with the disassembly instead (the next section), so
+  what is left unchecked is only what a comparison of code cannot show (timing on a real machine, the sound).
+
+## Fidelity check (2026-10-26)
+
+Every drawing function was compared with the original's disassembly, call by call (the arguments the decompiler drops, the
+constants read from the exe, the wizard's lip-sync table byte for byte): the board, the cleared-board statistics, the effects
+overlay (score popups, sparkles), the wizard's head, the selector, the title screen, the side panel, the score table and
+its picture, the all-time table, the options dialog and the piece. The help screen and the name entry were compared by
+their constants only (every number the original uses is in the port, with no extra ones). Its one finding was the forge's back
+picture, which the port drew at (0, 0) under the opaque backdrop instead of (0x28, 0x147) (the decompiler had dropped the
+position), so the tank showed black. Two effects of the original are never triggered, since nothing sets their flags
+(`GAME_NOTES.md` section 5), and are not ported. `tools/cmpfn.py`, `immcmp.py`, `ann.py` and `va.py` are the helpers.
 
 ## Changes outside the Alchemy folders
 

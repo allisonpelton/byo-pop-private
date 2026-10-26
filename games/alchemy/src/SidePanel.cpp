@@ -47,7 +47,7 @@ void SidePanel::Draw(Graphics* g)
 {
 	g->SetColor(Color(0, 0, 0));
 	g->FillRect(0x25, 0x141, 0x48, 0x5b - mFill);
-	g->DrawImage(mApp->mImages[IMAGE_FORGEBACK2], 0, 0);
+	g->DrawImage(mApp->mImages[IMAGE_FORGEBACK2], 0x28, 0x147);   // the disassembly: the decompiler had dropped the position
 
 	g->SetColor(Color(255, 0, 0));
 	if (mFill > 0)

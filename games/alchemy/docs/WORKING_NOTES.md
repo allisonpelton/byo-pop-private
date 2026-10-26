@@ -10,6 +10,8 @@ wrapper: DRMApp, LuaApp, Layout...). The game itself uses no Lua, so no PopLua l
 
 The port is written, builds natively and for the web, and plays (README.md, status). `GAME_NOTES.md` is the behaviour spec as 
 the code has it; `tools/check.sh alchemy` is the test. The plan section below was the plan before the code existed.
+A fidelity check of every drawing function against the disassembly followed (README.md); it found one dropped position
+(the forge's back picture, now at (0x28, 0x147)) and two never-triggered effects (GAME_NOTES.md section 5).
 Lessons: the decompiler drops the trailing arguments of draw calls (check them in the disassembly: the selector's base picture 
 is at (10, 0x23)); `LoadProperties()` must be called in Init or every `GetString` is empty and all dialog text is blank; 
 `AllTimeDialog::GetPreferredHeight` is an override returning 0x156 (the base class's height for empty lines is too small).
