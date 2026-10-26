@@ -70,3 +70,19 @@ pictures (`images\dialog`, `dbutton`, `waitbar`), makes the `TitleScreen` and ad
 (music ids 0, 2 and 4 are `amazonas.it`, 1 is `omniphilia.it`) and starts music 2 at order 0x16, and loads the four
 cursors (`cursor1`, `pointer2`, `overhand`, `typer`). The loading (`InitHook`, slot 15, 0x419c30) makes 394 steps
 (+0x4e4) of Pics, Cells, PicFonts, MaskedPics and Sounds into fields of the app; `tools/loadtable.py` lists them.
+
+Other app fields seen so far: +0x10b8 sound initialised (the sound manager's slot 1), +0x10d8-0x10e4 the four cursor
+Pics, +0x19d4/0x19d8/0x19dc the three white ImageFonts, +0x19e0 the TitleScreen, +0x5bc a list of every image loaded
+through `GetImage` (0x419ad0), +0x2cc the WidgetManager, +0x314 the music interface, +0x490 the sound manager.
+App slot 19 (+0x4c) is `Popup(string)`, slot 37 (+0x94) `PlaySample(id)`.
+
+## 4. How the port is being written
+
+`src/Sprite.h/.cpp` is the toolkit of section 2. The app's resource fields and the loading are drafted by
+`tools/genres.py` from the folded loader (`decread.py 419c30 | loadtable.py > re/dynomite/inithook.tbl`; then
+`genres.py re/dynomite/inithook.tbl`): one field per resource, named after its file with the original's offset in a
+comment (a translated function that reads app+0x1298 finds its field by grepping the offset), and `// RAW:` lines for
+the parts loadtable.py does not fold (arrays filled with one picture, the PicFonts, the fossils and their copies,
+the masks multiplied into the egg sheets), which are translated by hand from `decread.py 419c30`. Next: the app
+(`FossilizedApp.h/.cpp` from Init 0x41f820, InitHook, ButtonPress 0x418e90, ButtonDepress 0x4201b0), the title
+screen (0x4388d0), then the board (`Dynomite`, 0x404030) and its modes.
