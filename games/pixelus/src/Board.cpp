@@ -12,6 +12,7 @@
 #include "DialogButton.h"
 #include "WidgetManager.h"
 #include "Buffer.h"
+#include "GameDialog.h"
 #include "Compat2004.h"
 #include <math.h>
 #include <stdio.h>
@@ -21,24 +22,6 @@
 using namespace Sexy;
 
 static const double PI = 3.14159265358979323846;
-
-// the picture of a sheet of three frames as an image button (0x4044e0 with 0x431670)
-static DialogButton* MakeStripButton(PixelusApp* theApp, ButtonListener* theListener, int theId, int theImage, int theX, int theY)
-{
-	Image* anImage = theApp->mImages[theImage];
-	DialogButton* aButton = new DialogButton(anImage, theId, theListener);
-	int aWidth = anImage->GetWidth() / 3;
-	int aHeight = anImage->GetHeight();
-	aButton->mNormalRect = Rect(0, 0, aWidth, aHeight);
-	aButton->mOverRect = Rect(aWidth, 0, aWidth, aHeight);
-	aButton->mDownRect = Rect(aWidth * 2, 0, aWidth, aHeight);
-	aButton->mTranslateX = 0;
-	aButton->mTranslateY = 0;
-	aButton->mHasAlpha = true;
-	aButton->mHasTransparencies = true;
-	aButton->Resize(theX, theY, aWidth, aHeight);
-	return aButton;
-}
 
 static int ReverseSide(int theSide)		// 0x4218e0
 {

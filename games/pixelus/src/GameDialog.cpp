@@ -13,6 +13,24 @@
 
 using namespace Sexy;
 
+// the picture of a sheet of three frames as an image button (0x4044e0 and 0x40a7d0 with 0x431670)
+DialogButton* Sexy::MakeStripButton(PixelusApp* theApp, ButtonListener* theListener, int theId, int theImage, int theX, int theY)
+{
+	Image* anImage = theApp->mImages[theImage];
+	DialogButton* aButton = new DialogButton(anImage, theId, theListener);
+	int aWidth = anImage->GetWidth() / 3;
+	int aHeight = anImage->GetHeight();
+	aButton->mNormalRect = Rect(0, 0, aWidth, aHeight);
+	aButton->mOverRect = Rect(aWidth, 0, aWidth, aHeight);
+	aButton->mDownRect = Rect(aWidth * 2, 0, aWidth, aHeight);
+	aButton->mTranslateX = 0;
+	aButton->mTranslateY = 0;
+	aButton->mHasAlpha = true;
+	aButton->mHasTransparencies = true;
+	aButton->Resize(theX, theY, aWidth, aHeight);
+	return aButton;
+}
+
 // 0x41c260
 GameDialog::GameDialog(PixelusApp* theApp, Image* theComponentImage, Image* theButtonComponentImage, int theId,
 	bool isModal, const SexyString& theDialogHeader, const SexyString& theDialogLines,

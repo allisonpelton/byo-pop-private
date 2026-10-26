@@ -20,6 +20,7 @@ namespace Sexy
 
 class Widget;
 class Board;
+class MainMenu;
 class LoadingScreen;
 class MemoryImage;
 class LevelData;
@@ -42,7 +43,7 @@ public:
 	Widget*					mHelpScreen;        // +0x67c over the board (0x4328c0)
 	Widget*					mTempleScreen;      // +0x680 the puzzles of one temple, over a snapshot of the map (0x432420)
 	LoadingScreen*			mLoadingScreen;     // +0x684 (Init)
-	Widget*					mMainMenu;          // +0x688
+	MainMenu*				mMainMenu;          // +0x688
 	Widget*					mIslandMap;         // +0x68c (0x432600)
 	Widget*					mPuzzleCompleted;   // +0x690 (0x4326c0)
 	Widget*					mMoreGames;         // +0x694 (0x432780)
@@ -78,6 +79,22 @@ public:
 	void					ShowGameMenu();                                 // 0x4194d0
 	void					ShowHint();                                     // 0x433050 (0x432820)
 	void					PuzzleCompleted(Board* theBoard);               // 0x41b3c0 and what leads to it
+	void					ShowMainMenu();                                 // 0x40b1c0
+	void					PlayGame();                                     // 0x432a40: the menu's play button
+	void					ShowUserSelect();                               // 0x432e40 (dialog 0x12)
+	void					ShowNewUser();                                  // 0x432ec0 (dialog 0x13)
+	void					ShowMoreGames();                                // 0x434710
+	void					ShowOptions();                                  // 0x432a10 (0x4194d0 with 0)
+	void					ShowQuitDialog();                               // 0x4e3970
+	void					ShowIslandMap();                                // 0x432600
+	void					ShowStory(bool theFromMenu, int theChapter);    // 0x432960
+	void					ShowRenameDialog(const std::string& theName);   // 0x432fc0 (dialog 0x15)
+	void					ShowDeleteQuestion(const std::string& theName); // 0x434bc0 (dialog 0x14)
+	void					SelectUserOK(bool theOK);                       // 0x433f20: the answer of "Who are you?"
+	void					NewUserOK(bool theOK);                          // 0x434860: the answer of the new-player dialog
+	void					DeleteUserOK(bool theOK);                       // 0x434cf0
+	void					RenameUserOK(bool theOK);                       // 0x4350a0
+	void					StyleDialog(class GameDialog* theDialog);       // what 0x4331e0 does to every dialog
 };
 
 extern PixelusApp* gApp;

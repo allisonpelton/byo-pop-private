@@ -13,6 +13,7 @@ namespace Sexy
 {
 
 class DialogButton;
+class ButtonListener;
 class Dialog;
 class Widget;
 class Graphics;
@@ -48,6 +49,8 @@ public:
 void StyleButton(PixelusApp* theApp, DialogButton* theButton, int theFrames);
 // 0x4314e0: place a dialog (width, content height from the dialog itself) and style its two buttons
 void SizeDialog(PixelusApp* theApp, Dialog* theDialog, int theMinWidth);
+// an image button cut from a three-frame strip (normal, over, down) at a place (the original does it with 0x431670)
+DialogButton* MakeStripButton(PixelusApp* theApp, ButtonListener* theListener, int theId, int theImage, int theX, int theY);
 // 0x431160: the colours of the game's dialogs
 void SetDialogColors(Widget* theWidget);
 

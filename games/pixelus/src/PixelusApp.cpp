@@ -6,6 +6,8 @@
 #include "ProgressManager.h"
 #include "UserDirectory.h"
 #include "Board.h"
+#include "MainMenu.h"
+#include "UserDialogs.h"
 #include "GameText.h"
 #include "Graphics.h"
 #include "ImageFont.h"
@@ -122,17 +124,226 @@ void PixelusApp::LoadingThreadProc()
 	}
 }
 
-// 0x433b90 (slot 79): the play link of the loading screen was clicked
+// 0x433b90 (slot 79): the play link of the loading screen was clicked; the main menu takes its place, and a game
+// that has no player yet asks for a name
 void PixelusApp::PlayClicked()
 {
 	mWidgetManager->RemoveWidget(mLoadingScreen);
 	SafeDeleteWidget(mLoadingScreen);
 	mLoadingScreen = NULL;
 
-	// port, until the menus are ported: straight into the first puzzle of the tutorial
+	ShowMainMenu();
 	if (mUserDirectory->GetCurrent() == NULL)
-		mUserDirectory->AddUser("Player");
+		ShowNewUser();
+	StartMusic(this, MUSIC_PIXELUS_MAIN_MENU_LOOP_V02, false);
+}
+
+// 0x40b1c0
+void PixelusApp::ShowMainMenu()
+{
+	if (mMainMenu != NULL)
+	{
+		mWidgetManager->RemoveWidget(mMainMenu);
+		SafeDeleteWidget(mMainMenu);
+	}
+	mMainMenu = new MainMenu(this);
+	mMainMenu->Resize(0, 0, mWidth, mHeight);
+	mWidgetManager->AddWidget(mMainMenu);
+	mWidgetManager->BringToBack(mMainMenu);
+	mWidgetManager->SetFocus(mMainMenu);
+}
+
+// 0x432a40: the play button. The first time a player plays, the story comes before the island
+void PixelusApp::PlayGame()
+{
+	if (mMainMenu != NULL)
+	{
+		mWidgetManager->RemoveWidget(mMainMenu);
+		SafeDeleteWidget(mMainMenu);
+		mMainMenu = NULL;
+	}
+
+	UserProfile* aUser = mUserDirectory->GetCurrent();
+	if ((aUser != NULL) && aUser->mFlag7A)
+	{
+		ShowIslandMap();
+		return;
+	}
+	if (aUser != NULL)
+		aUser->mFlag7A = true;
+	ShowStory(false, 0);
+}
+
+// 0x432e40
+void PixelusApp::ShowUserSelect()
+{
+	KillDialog(0x12);
+	SelectUserDialog* aDialog = new SelectUserDialog(this);
+	StyleDialog(aDialog);
+	SizeDialog(this, aDialog, 0x150);
+	AddDialog(0x12, aDialog);
+}
+
+// 0x432ec0
+void PixelusApp::ShowNewUser()
+{
+	KillDialog(0x13);
+	NewUserDialog* aDialog = new NewUserDialog(this, false);
+	StyleDialog(aDialog);
+	SizeDialog(this, aDialog, 0x150);
+	AddDialog(0x13, aDialog);
+}
+
+// 0x432fc0
+void PixelusApp::ShowRenameDialog(const std::string& theName)
+{
+	KillDialog(0x15);
+	NewUserDialog* aDialog = new NewUserDialog(this, true);
+	aDialog->SetName(theName);
+	StyleDialog(aDialog);
+	SizeDialog(this, aDialog, 0x150);
+	AddDialog(0x15, aDialog);
+}
+
+// 0x434bc0
+void PixelusApp::ShowDeleteQuestion(const std::string& theName)
+{
+	KillDialog(0x14);
+	char aBuffer[256];
+	snprintf(aBuffer, sizeof(aBuffer), GTC(0x5125f8), theName.c_str());
+	DoDialog(0x14, true, GT(0x512634), aBuffer, "", Dialog::BUTTONS_YES_NO);
+}
+
+// 0x433f20: the player picked in "Who are you?" becomes the current one
+void PixelusApp::SelectUserOK(bool theOK)
+{
+	SelectUserDialog* aDialog = (SelectUserDialog*) GetDialog(0x12);
+	if (aDialog == NULL)
+		return;
+	if (theOK)
+	{
+		UserProfile* aUser = mUserDirectory->FindUserByName(aDialog->GetSelectedName());
+		if (aUser != NULL)
+		{
+			mUserDirectory->Select(aUser->mId);
+			if (mMainMenu != NULL)
+				mMainMenu->UserChanged();
+			mWidgetManager->MarkAllDirty();
+		}
+	}
+	KillDialog(0x12);
+}
+
+// 0x434860
+void PixelusApp::NewUserOK(bool theOK)
+{
+	NewUserDialog* aDialog = (NewUserDialog*) GetDialog(0x13);
+	if (aDialog == NULL)
+		return;
+
+	std::string aName = aDialog->GetName();
+	bool anExpert = aDialog->IsExpert();
+	if (theOK && !aName.empty())
+	{
+		if (mUserDirectory->FindUserByName(aName) != NULL)
+		{
+			DoDialog(0x16, true, GT(0x512528), GT(0x512538), GT(0x50b558), Dialog::BUTTONS_FOOTER);
+			return;
+		}
+		UserProfile* aUser = mUserDirectory->AddUser(aName);
+		if (anExpert)
+			aUser->mFlag38 = true;
+		mUserDirectory->Save();
+		KillDialog(0x12);
+		KillDialog(0x13);
+		if (mMainMenu != NULL)
+			mMainMenu->UserChanged();
+		mWidgetManager->MarkAllDirty();
+		return;
+	}
+
+	// cancelling is only allowed when there is a player to go back to; an empty name asks again
+	if (!theOK && (mUserDirectory->GetCurrent() != NULL))
+	{
+		KillDialog(0x13);
+		return;
+	}
+	DoDialog(0x16, true, GT(0x512588), GT(0x512598), GT(0x50b558), Dialog::BUTTONS_FOOTER);
+}
+
+// 0x434cf0: delete the player picked in "Who are you?"
+void PixelusApp::DeleteUserOK(bool theOK)
+{
+	KillDialog(0x14);
+	SelectUserDialog* aDialog = (SelectUserDialog*) GetDialog(0x12);
+	if (!theOK || (aDialog == NULL))
+		return;
+
+	UserProfile* aUser = mUserDirectory->FindUserByName(aDialog->GetSelectedName());
+	if (aUser != NULL)
+		mUserDirectory->DeleteUser(aUser->mId);
+	UserProfile* aCurrent = mUserDirectory->GetCurrent();
+	aDialog->FillList(aCurrent != NULL ? aCurrent->mName : "");
+	mUserDirectory->Save();
+	if (aCurrent == NULL)
+		ShowNewUser();
+	if (mMainMenu != NULL)
+		mMainMenu->UserChanged();
+	mWidgetManager->MarkAllDirty();
+}
+
+// 0x4350a0: the new name of the player picked in "Who are you?"
+void PixelusApp::RenameUserOK(bool theOK)
+{
+	if (!theOK)
+	{
+		KillDialog(0x15);
+		return;
+	}
+
+	SelectUserDialog* aSelect = (SelectUserDialog*) GetDialog(0x12);
+	NewUserDialog* aRename = (NewUserDialog*) GetDialog(0x15);
+	if ((aSelect == NULL) || (aRename == NULL))
+		return;
+	std::string anOldName = aSelect->GetSelectedName();
+	std::string aNewName = aRename->GetName();
+	if (aNewName.empty())
+		return;
+	if (!mUserDirectory->RenameUser(anOldName, aNewName))
+	{
+		DoDialog(0x17, true, GT(0x512528), GT(0x5126d8), GT(0x50b558), Dialog::BUTTONS_FOOTER);
+		return;
+	}
+	mUserDirectory->Save();
+	aSelect->RenameSelected(aNewName);
+	mWidgetManager->MarkAllDirty();
+	KillDialog(0x15);
+}
+
+// 0x4e3970: "Are you sure you want to quit the game?"
+void PixelusApp::ShowQuitDialog()
+{
+	Dialog* aDialog = DoDialog(4, true, GT(0x5281c0), GT(0x5281c8), "", Dialog::BUTTONS_YES_NO);
+	CenterDialog(aDialog);
+}
+
+// the screens that are not ported yet
+void PixelusApp::ShowMoreGames()
+{
+}
+
+void PixelusApp::ShowOptions()
+{
+}
+
+void PixelusApp::ShowIslandMap()
+{
 	ShowBoard("Tutorial", 0);
+}
+
+void PixelusApp::ShowStory(bool theFromMenu, int theChapter)
+{
+	ShowIslandMap();
 }
 
 // 0x432550: the puzzle screen over the whole window
@@ -199,6 +410,30 @@ void PixelusApp::ButtonDepress(int theId)
 		KillDialog(24);
 		Pause(false);
 		return;
+	case 2018:
+		SelectUserOK(true);
+		return;
+	case 3018:
+		SelectUserOK(false);
+		return;
+	case 2019:
+		NewUserOK(true);
+		return;
+	case 3019:
+		NewUserOK(false);
+		return;
+	case 2020:
+		DeleteUserOK(true);
+		return;
+	case 3020:
+		DeleteUserOK(false);
+		return;
+	case 2021:
+		RenameUserOK(true);
+		return;
+	case 3021:
+		RenameUserOK(false);
+		return;
 	}
 	NcApp::ButtonDepress(theId);
 }
@@ -208,18 +443,24 @@ void PixelusApp::HandlePaused(bool thePaused, bool theWasPaused, int theCount)
 {
 }
 
+// what the dialog factory does to every dialog it makes: the fonts, colours and margins
+void PixelusApp::StyleDialog(GameDialog* theDialog)
+{
+	theDialog->SetHeaderFont(mFonts[FONT_GARAMOND20]);
+	theDialog->SetLinesFont(mFonts[FONT_GARAMOND14]);
+	theDialog->SetColor(Dialog::COLOR_HEADER, Color(255, 255, 255, 255));
+	theDialog->SetColor(Dialog::COLOR_LINES, Color(255, 255, 255, 255));
+	theDialog->SetColor(Dialog::COLOR_BUTTON_TEXT, Color(255, 255, 255, 255));
+	theDialog->mContentInsets = Insets(0x30, 0x3c, 0x30, 0x20);
+}
+
 // 0x4331e0 slot 21: every dialog the game opens is a GameDialog, 336 wide at the top of the screen
 Dialog* PixelusApp::NewDialog(int theDialogId, bool isModal, const SexyString& theDialogHeader,
 	const SexyString& theDialogLines, const SexyString& theDialogFooter, int theButtonMode)
 {
 	GameDialog* aDialog = new GameDialog(this, mImages[IMAGE_DIALOG], mImages[IMAGE_DIALOGBUTTONCOMPONENTS],
 		theDialogId, isModal, theDialogHeader, theDialogLines, theDialogFooter, theButtonMode, NULL);
-	aDialog->SetHeaderFont(mFonts[FONT_GARAMOND20]);
-	aDialog->SetLinesFont(mFonts[FONT_GARAMOND14]);
-	aDialog->SetColor(Dialog::COLOR_HEADER, Color(255, 255, 255, 255));
-	aDialog->SetColor(Dialog::COLOR_LINES, Color(255, 255, 255, 255));
-	aDialog->SetColor(Dialog::COLOR_BUTTON_TEXT, Color(255, 255, 255, 255));
-	aDialog->mContentInsets = Insets(0x30, 0x3c, 0x30, 0x20);
+	StyleDialog(aDialog);
 	aDialog->Resize(0xce, 0x2a, 0x150, aDialog->GetPreferredHeight(0x150));
 	return aDialog;
 }

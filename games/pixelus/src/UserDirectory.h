@@ -74,6 +74,7 @@ public:
 	void			Select(int theId);				// 0x43b6a0
 	UserProfile*	AddUser(const std::string& theName);	// 0x43c7f0
 	void			DeleteUser(int theId);			// 0x43c420
+	bool			RenameUser(const std::string& theOld, const std::string& theNew);	// 0x43d650
 	void			Save();							// 0x43c2a0
 };
 

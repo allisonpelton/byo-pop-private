@@ -282,6 +282,18 @@ void UserDirectory::DeleteUser(int theId)
 		Save();
 }
 
+// 0x43d650: false when another player already has the new name
+bool UserDirectory::RenameUser(const std::string& theOld, const std::string& theNew)
+{
+	UserProfile* aUser = FindUserByName(theOld);
+	UserProfile* anOther = FindUserByName(theNew);
+	if ((anOther != NULL) && (anOther != aUser))
+		return false;
+	if (aUser != NULL)
+		aUser->mName = theNew;
+	return true;
+}
+
 // 0x43c2a0: every player's file, then the directory
 void UserDirectory::Save()
 {
