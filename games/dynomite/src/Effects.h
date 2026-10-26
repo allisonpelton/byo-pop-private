@@ -16,7 +16,7 @@ class Effect
 public:
 	float				mX;				// +4
 	float				mY;				// +8
-	int					mType;			// +0xc 2 a yolk, 3 egg white, 7 a baby, 9 confetti
+	int					mType;			// +0xc 2 a yolk, 3 egg white, 5 a shell, 7 a baby, 9 confetti
 
 	Effect();								// 0x4034b0
 	virtual ~Effect();						// 0x4034c0
@@ -91,6 +91,25 @@ public:
 	virtual bool		Update() override;	// 0x442530
 
 	void				Init(int x, int y, bool isYolk, int theWhich, FossilizedApp* theApp);	// 0x4424e0
+};
+
+// vtable 0x4fcb6c, 0x28 bytes: a quarter of a broken egg's shell
+class ShellEffect : public Effect
+{
+public:
+	FossilizedApp*		mApp;			// +0x10
+	int					mColor;			// +0x14
+	int					mQuarter;		// +0x18 0-3
+	float				mVX;			// +0x1c
+	float				mVY;			// +0x20
+	float				mGravity;		// +0x24
+
+	ShellEffect();							// 0x434b90
+	virtual ~ShellEffect();					// 0x434bb0
+	virtual void		Draw() override;	// 0x434d60
+	virtual bool		Update() override;	// 0x434bc0
+
+	void				Init(int x, int y, int theAngle, int theColor, int theQuarter, FossilizedApp* theApp);	// 0x434cc0
 };
 
 }

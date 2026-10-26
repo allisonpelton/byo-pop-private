@@ -210,3 +210,55 @@ void YolkEffect::Draw()
 		aCell = mApp->mDynamiteCells[mWhich];
 	aCell->Draw((int) x - (aCell->mWidth >> 1), (int) y - (aCell->mHeight >> 1));
 }
+
+// 0x434b90
+ShellEffect::ShellEffect()
+{
+	mType = 5;
+}
+
+// 0x434bb0
+ShellEffect::~ShellEffect()
+{
+}
+
+// 0x434cc0
+void ShellEffect::Init(int x, int y, int theAngle, int theColor, int theQuarter, FossilizedApp* theApp)
+{
+	mColor = theColor;
+	mX = (float) x;
+	mQuarter = theQuarter;
+	mY = (float) y;
+	mApp = theApp;
+	if (0x167 < theAngle)
+		theAngle = theAngle - 0x168;
+	if (theAngle < 0)
+		theAngle = theAngle + 0x168;
+	mVX = theApp->mAngles->mDX[theAngle] * 3.0f;
+	mVY = theApp->mAngles->mDY[theAngle] * 10.0f;
+	float aGravity = (float) y * 0.015151516f * 0.1f + 1.0f;
+	mGravity = aGravity;
+	if (mVY < 0.0f)
+		mGravity = aGravity * 0.9f;
+}
+
+// 0x434bc0
+bool ShellEffect::Update()
+{
+	mX = mVX + mX;
+	mY = mVY * 0.16666667f + mY;
+	mVY = mGravity + mVY;
+	mVX = mVX * 0.99f;
+	if (650.0f < mY)
+		return false;
+	return true;
+}
+
+// 0x434d60
+void ShellEffect::Draw()
+{
+	// port: the original's app +0x1424 + (mQuarter + mColor * 4) * 4 is the cracked sheets' cell for colour
+	// mColor - 1
+	Cell* aCell = mApp->mCrackedEggCells[mColor - 1][mQuarter];
+	aCell->Draw((int) mX - (aCell->mWidth >> 1), (int) mY - (aCell->mHeight >> 1));
+}
