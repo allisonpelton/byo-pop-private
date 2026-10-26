@@ -37,10 +37,16 @@ public:
 typedef bool (*ModuleDetector)(const std::vector<uint8_t>& theFile);
 typedef std::unique_ptr<ModulePlayer> (*ModuleFactory)(const std::vector<uint8_t>& theFile, int theRate);
 
+// A decoded sound, kept as 16-bit samples at the file's own rate with its own one or two channels: a voice resamples
+// it as it mixes. (A copy at the device rate as stereo floats took four to sixteen times the memory.)
 struct SoundData
 {
-	std::vector<float> mSamples;  // interleaved stereo at Mixer::GetRate()
+	std::vector<int16_t> mSamples;  // interleaved, mChannels per frame
+	int mChannels = 1;
+	int mRate = 48000;
 	size_t mFrames = 0;
+
+	size_t Bytes() const { return mSamples.capacity() * sizeof(int16_t); }
 };
 
 class Mixer
@@ -103,6 +109,9 @@ public:
 
 	// Mixes theFrames stereo frames into theOut without an audio device (tests and offline checks).
 	void RenderOffline(float* theOut, int theFrames) { Mix(theOut, theFrames); }
+	// For tools without an audio device: makes the voices at theRate, so that StartVoice works and RenderOffline
+	// mixes them.
+	void InitOffline(int theRate);
 
 private:
 	struct Voice;
@@ -115,6 +124,7 @@ private:
 	float mMusicMaster = 1.0f;
 	float mSfxMaster = 1.0f;
 	bool mSilent = false;  // web test runs (web/shell.html ?silent=1): mix as usual, output silence
+	bool mOffline = false; // InitOffline: voices without a device
 	std::vector<std::unique_ptr<Voice>> mVoices;
 	std::vector<std::unique_ptr<Song>> mSongs;
 	int mNextVoiceSerial = 1;

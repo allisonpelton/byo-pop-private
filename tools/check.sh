@@ -12,8 +12,9 @@
 #                without assets/bejeweled; then fwtest -hotkeytest -placeholders with no game files at all; then
 #                jp2test (JPEG 2000: the .jp2 images of assets/bookwormadv/images against re/bookwormadv/jp2ref, the loader's
 #                rules for .jp2 files, synthetic and damaged files), skipped without assets/bookwormadv/images;
-#                songpostest on Bejeweled's and BookWorm's modules (skipped without their assets); and spectrumtest
-#                (the music player's FFT against BASS 2.3's on the same tones)
+#                songpostest on Bejeweled's and BookWorm's modules (skipped without their assets); spectrumtest
+#                (the music player's FFT against BASS 2.3's on the same tones); and soundtest (sounds kept as 16-bit at
+#                their own rate, voices against the old stereo-float pipeline)
 #   unit-web     rulestest and modsettingstest under Node (needs build-web); paktest (the page's pak reader), with
 #                Bookworm Adventures' main.pak against assets/bookwormadv when both are there
 #   verify       Bejeweled's headless verifier tests (games/bejeweled/tools/verify/run_tests.sh)
@@ -144,7 +145,7 @@ suite_build-web() { build_suite web "$1"; }
 suite_build-nov() { build_suite novariants "$1"; }
 
 suite_unit() {
-	local st=0 a b c d e f g
+	local st=0 a b c d e f g h
 	(cd build/native && timeout 120 ./rulestest.exe) > "$1" 2>&1 || st=1
 	a="$(lastof "$1" 'checks')"
 	(cd build/native && timeout 120 ./modsettingstest.exe) > "$1.mst" 2>&1 || st=1
@@ -185,8 +186,12 @@ suite_unit() {
 	# Mixer::GetSongFFT (MusicInterface::GetMusicFFT, BASS_ChannelGetData's FFT) on tones; needs no game files
 	(cd build/native && timeout 60 ./spectrumtest.exe) > "$1.fft" 2>&1 || st=1
 	g="$(lastof "$1.fft" 'spectrum: [0-9]+ checks, [0-9]+ failed')"
-	cat "$1.mst" "$1.fw" "$1.ph" "$1.jp2" "$1.sp" "$1.fft" >> "$1"; rm -f "$1.mst" "$1.fw" "$1.ph" "$1.jp2" "$1.sp" "$1.fft"
-	SUMMARY="$a; $b; $c; $d; $e; $f; $g"
+	# Mixer's sounds: 16-bit at their own rate, resampled by the voices; needs no game files
+	(cd build/native && timeout 60 ./soundtest.exe) > "$1.snd" 2>&1 || st=1
+	h="$(lastof "$1.snd" 'sound: [0-9]+ checks, [0-9]+ failed')"
+	cat "$1.mst" "$1.fw" "$1.ph" "$1.jp2" "$1.sp" "$1.fft" "$1.snd" >> "$1"
+	rm -f "$1.mst" "$1.fw" "$1.ph" "$1.jp2" "$1.sp" "$1.fft" "$1.snd"
+	SUMMARY="$a; $b; $c; $d; $e; $f; $g; $h"
 	return $st
 }
 

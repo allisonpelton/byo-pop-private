@@ -172,7 +172,7 @@ bool SDLSoundManager::LoadSound(unsigned int theSfxID, const std::string& theFil
 	{
 		// port: -placeholders (platform/Placeholders.h): a silent frame, so the id stays taken and plays nothing
 		data = std::make_shared<Platform::SoundData>();
-		data->mSamples.assign(2, 0.0f);
+		data->mSamples.assign(1, 0);
 		data->mFrames = 1;
 		Platform::NoteMissing(theFilename);
 	}
