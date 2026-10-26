@@ -25,7 +25,7 @@ layered music, and the screen saver that the exe also is (`/s`, `/c`, `/p` on th
 
 ## The binary
 
-<!-- private: -->
+<!-- private -->
 `WordHarmony.exe` is PopCap's DRM wrapper with the game exe inside it, after the marker `!popcapdrmprotect!`.
 `tools/extract_game_exe.py <install>/WordHarmony.exe -o re/wordharmony/bin/WordHarmonyGame.exe` carves it out (671,744
 bytes). `game/GameText.cpp` finds the same exe inside the player's `WordHarmony.exe` at run time to read its texts.

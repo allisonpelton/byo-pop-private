@@ -34,7 +34,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/src/WordHarmonyApp.cpp)
   endif()
   if(EMSCRIPTEN)
     byopop_web_game(wordharmony TITLE "Word Harmony"
-      COPYRIGHT "Word Harmony © 2006 Sprout Games. All rights reserved.")
+      COPYRIGHT "Word Harmony Â© 2006 Sprout Games. All rights reserved.")
   else()
     add_custom_command(TARGET wordharmony POST_BUILD
       COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:SDL2::SDL2> ${PORT_RUNTIME_DLLS} $<TARGET_FILE_DIR:wordharmony>

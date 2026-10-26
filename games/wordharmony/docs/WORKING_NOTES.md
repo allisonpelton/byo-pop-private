@@ -4,7 +4,7 @@ The state of the work, for picking it up again (after a compaction or in a later
 
 ## Done
 
-<!-- private: -->
+<!-- private -->
 The game exe is carved out of `WordHarmony.exe` (PopCap's DRM wrapper) with `python tools/extract_game_exe.py
 <install>/WordHarmony.exe -o re/wordharmony/bin/WordHarmonyGame.exe` (671,744 bytes).
 <!-- /private -->
