@@ -138,6 +138,23 @@ fossil mode), adds it, puts it at the back, gives it the focus, keeps it at +0x1
 48 0x406d60, 49 and 52 and 61 return 0, 50 0x404f40, 51 `MakeDynamite` 0x405010, 53 0x405070, 54 0x406f70,
 55 0x406160, 56 and 58 empty, 57 0x406040, 59 0x405140, 60 0x405590.
 
+The eggs (`src/Egg.cpp`): the base (0x4155a0, 0x20 bytes) has its colour at +4 (the cell at app +0x13c0 plus
+four times it: 0 is the bomb, 1 to 20 the egg sheet), a bonus picture at +8 (app +0x1830 plus four times it), the
+bomb's spark frame at +0xc, the app, the board, and its middle at +0x18/+0x1c (floats). The launcher's egg is
+0x401000; the egg in flight (0x414d10, 0x38 bytes) adds +0x20, its velocity +0x24/+0x28, +0x2c and its cell
++0x30/+0x34. Its `Update` (0x4150b0, not in the Ghidra export) feels the grid at eight points per step, up to ten
+steps a frame; the grid's answer is a set of bits: 1 the left wall, 2 the right wall, 4 the ceiling, 8 an object
+of the list at +0x4694, 16 an egg.
+
+The grid (board +0x8c, 0x415770) is a hex grid of 33-pixel cells: two arrays of 15 x 100 four-byte cells at +0x14
+and +0x2ef4, indexed column * 100 + row, the odd rows shifted right by 16 (0x415920 cell to pixel, 0x415890 pixel
+to cell). 0x4158f0 turns screen x into grid x by adding board +0x6c minus +0x70 (153 - 250); 0x415950 is its
+inverse. +4 (float) is the ceiling's offset and +8 (float) its row count (0x4159f0 sets +4 to -((+8 + 1) * 33 +
+16)). `Probe` (0x4169c0) answers 1 left of grid x 9, 2 right of board +0x68 minus 23, 4 above row 1, then 8 for a
+rectangle of the list at +0x4694 (fields +4..+0x10, flag +5 set unless the egg is a ghost) and 16 for an
+occupied cell near the point (0x416550). +0x4664 is the board, +0x4668 the app, +0x10 starts at 4, +0x46b0 and
++0x46b4 at 200, +0x46e0 at 100.
+
 Next, in this order: `StartGame` (0x418810: mode +0x108c makes DynomiteStomped
 0x40ea50 (0x62c bytes), DynomitePanic 0x40ca40 (0x274), DynomiteFossil 0x408e40 (0x328) or DynomiteTimeTrial
 0x411ff0 (0x254), resized to (150, 0, 490, 480), slot 46 `Init(app, level)` with +0x1084, or +0x1088 for the fossil
