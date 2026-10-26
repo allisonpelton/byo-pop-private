@@ -55,12 +55,12 @@ of Fame, Quit, Options, the Tome; arena and mini games show only once the profil
 (Options at (110, 520)) and the Hall of Fame (at (655, 410), its three tabs and ten default entries) draw as well. No
 tile has been clicked yet.
 
-Open: clicking the adventure portal of that profile (quit in the prologue, so book 0, chapter 1, stage 1) ends in a script
-error, `scripts\common.lua:819: Can't find the image specified in CreateArenaAnim`, from `book0.luc:278` in
-`LoadChapterResources` called by `gBookManager:StartGame`: `GetSelectedChapter()` is not 1 there, so the arena animation
-gets no image. The port's `StartNewGameTransition` (the kind-8 transition, 0x443950) calls `SelectBookNumber(CurrentBook)`
-and the Lua side picks the chapter; whether Volume 2 shows a chapter screen first, or selects it some other way, has to be
-read in the original (0x443950 and the functions it calls, `BookManager.luc`'s `SelectBookNumber` and `SelectChapter`).
+Clicking the adventure portal of that profile (quit in the prologue, so book 0, chapter 1, stage 1) resumes the prologue
+battle (`InitSavedGame` selects the book and the chapter, `StartGame` loads the chapter's resources). It failed once with a
+script error in `CreateArenaAnim` (`book0.luc:278`): the scripts name a resource group as "Book0Chapter1" and the resources
+file as `book0Chapter1`, and the framework's `DeleteResources` and `GetNumResources` compared the names with case, so
+quitting to the menu left the chapter's images loaded (while the Lua side forgot them), and the next load skipped them and
+exported nothing. The group names are now compared without case (`shared:` commit; the group list was already).
 The Hall of Fame's default names are Volume 1's code path: compare with Volume 2's `HallOfFame` (6.1 KB) too.
 
 ## Bound methods of Volume 2's GameApp (the registrations of 0x43a850 against `GameAppLua.cpp`)
