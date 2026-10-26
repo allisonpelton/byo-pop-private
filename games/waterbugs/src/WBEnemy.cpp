@@ -1323,7 +1323,7 @@ void ScurryWalker_Move(Enemy* theEnemy)
 	}
 	else
 	{
-		float aMax = theEnemy->baseSpeed * 3.0f;
+		float aMax = theEnemy->baseSpeed * 7.0f;
 		aSpeed = theEnemy->acceleration * theEnemy->speed;
 		if (aMax < aSpeed)
 			aSpeed = aMax;

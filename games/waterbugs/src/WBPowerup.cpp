@@ -21,14 +21,6 @@ int gPanelScore = -1;              // cb:0x460a30
 int gPowerupKinds[0x96];           // 0x6e5c08  a power-up's kind by a random index
 int gRebuildKinds = 1;             // cb:0x460a48  (never cleared: each power-up builds the table again)
 
-// 0x418170: a new item at the tail, made current
-void Panel_AppendItem(List<Obj>* theList)
-{
-	Obj* anItem = (Obj*)::operator new(sizeof(Obj));
-	Obj_Init(anItem);
-	List_Append(theList, anItem);
-}
-
 // cb:0x4183b0: ten entries for each kind from 0 to 9, 0 for the indexes past 99 but six more of 10 at 110..115 (the
 // test for kinds 15 and 16 never holds)
 // 0x418810
@@ -707,6 +699,14 @@ void Weapon_Orbit(Weapon* theWeapon)
 }
 
 } // namespace
+
+// 0x418170: a new item at the tail, made current
+void Panel_AppendItem(List<Obj>* theList)
+{
+	Obj* anItem = (Obj*)::operator new(sizeof(Obj));
+	Obj_Init(anItem);
+	List_Append(theList, anItem);
+}
 
 void Panel_FromXml(Panel* thePanel, const char* p, const XmlTag* theTag)
 {

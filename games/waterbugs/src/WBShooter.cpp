@@ -41,66 +41,98 @@ void Shooter_Turn(Shooter* theShooter)
 	theShooter->beamAcross = 0;
 }
 
-// 0x41d370 (state 4): sparks close in on the middle of the screen in three spinning arms while the ship fades in,
-// and burst when it arrives
+// 0x41d370 (state 4): four sparkles circle in towards the middle of the screen while the ship comes in, and a burst
+// of sparkles marks its arrival
 void Shooter_Appear(Shooter* theShooter)
 {
+	int aDummy[2];
 	if (gDemo == 0)
 		Sys_SetMousePos(400, 300);
 	theShooter->x = 400.0f;
 	theShooter->y = 300.0f;
 	if (theShooter->age == 1.0f)
 		Level_ShowStart(gLevels.current);
-	if (theShooter->age < theShooter->appearTime)
+	aDummy[1] = 0;
+	if (theShooter->appearTime <= theShooter->age)
 	{
-		float t = theShooter->age / theShooter->appearTime;
-		t = t * t;
-		float aSpin = (float)((double)t * 360.0 + (double)t * 360.0);
-		float aRadius = (float)(160.0 - (double)t * 160.0);
-		if ((int)theShooter->age % 5 == 1)
+		if (theShooter->appearTime == theShooter->age)
 		{
-			float i = 0.0f;
+			theShooter->drawKind = 4;
+			int n = 0x78;
 			do
 			{
-				float anAngle = (float)((double)i * 120.0 + (double)aSpin);
-				float aRad = (float)((double)anAngle * 0.017453292384743690);
-				float aCos = (float)std::cos((double)aRad);
-				float aX = (float)((double)aCos * (double)aRadius + (double)theShooter->x);
-				float aSin = (float)std::sin((double)aRad);
-				float aY = (float)((double)aSin * (double)aRadius + (double)theShooter->y);
+				int anAngle = RandRange(0, 0x167);
+				int aSpeed = RandRange(0, 100);
+				float aVx = (float)((double)CosDeg(anAngle) * ((double)(float)aSpeed / 360.0));
+				float aVy = (float)((double)SinDeg(anAngle) * ((double)(float)aSpeed / 360.0));
 				ParticleSystem_New();
-				int aLast = Bank_IndexOf(&gArtBank, "exp_0");
-				int aFirst = Bank_IndexOf(&gArtBank, "exp_4");
-				ParticleSystem_Add(gLevels.current->systems.current, aX, aY, 0.0f, 0.0f, aFirst, aLast, 0, 0xff, 0xff,
-					0xff, 0x39, 0xa6, 0xe7, 0, 200, 0x32, 1.0f, 0.0f, 5);
-				aLast = Bank_IndexOf(&gArtBank, "exp_4");
-				aFirst = Bank_IndexOf(&gArtBank, "exp_0");
-				ParticleSystem_Add(gLevels.current->systems.current, aX, aY, 0.0f, 0.0f, aFirst, aLast, 0, 0xff, 0xff,
-					0xff, 0x39, 0xa6, 0xe7, 200, 0, 0x32, 1.0f, 0.0f, 5);
-				i = (float)((double)i + 1.0);
-			} while (i < 5.0f);
+				int aLifetime = RandRange(600, 0x4b0);
+				ParticleSystem_Add(gLevels.current->systems.current, theShooter->x, theShooter->y, aVx, aVy, 0, 0, 0,
+					0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0, aLifetime, 1.0f, 0.0f, 4);
+				Particle* aParticle = gLevels.current->systems.current->particles.current;
+				aParticle->anim = Animation_Find("sparkles3", &aParticle->frameCount, &aDummy[1]);
+				aParticle->tint = RandRange(0, 7);
+				n = n - 1;
+			} while (n != 0);
+			theShooter->alpha = 0xff;
+			theShooter->state = 3;
+			while (List_RemoveCurrent(&theShooter->children))
+				;
 		}
-		theShooter->drawKind = 4;
-		theShooter->alpha = 0;
-		if (0.800000011920929 < (double)t)
-			theShooter->alpha = (int)((0.800000011920929 - (1.0 - (double)t)) * 255.0);
 		return;
 	}
-	if (theShooter->appearTime == theShooter->age)
+	if (theShooter->age == 1.0f)
 	{
-		theShooter->drawKind = 4;
-		for (int i = 0; i < 0x168; i = i + 0x14)
+		List<Obj>* aChildren = &theShooter->children;
+		int n = 4;
+		do
 		{
-			float aVx = (float)((double)CosDeg(i) * 0.36000001430511475);
-			float aVy = (float)((double)SinDeg(i) * 0.36000001430511475);
-			ParticleSystem_New();
-			int aLast = Bank_IndexOf(&gArtBank, "exp_4");
-			int aFirst = Bank_IndexOf(&gArtBank, "exp_0");
-			ParticleSystem_Add(gLevels.current->systems.current, theShooter->x, theShooter->y, aVx, aVy, aFirst, aLast,
-				0, 0xff, 0xff, 0xff, 0x39, 0xa6, 0xe7, 0xf0, 10, 0x44c, 1.0f, 0.0f, 5);
+			Panel_AppendItem(aChildren);
+			aChildren->current->anim =
+				Animation_Find("sparkles1", &aChildren->current->frameCount, &aChildren->current->frameTime);
+			aChildren->current->midHandle = 1;
+			aChildren->current->dirty = 1;
+			aChildren->current->drawKind = 4;
+			n = n - 1;
+			aChildren->current->alpha = 0xff;
+		} while (n != 0);
+	}
+	float aRatio = theShooter->age / theShooter->appearTime;
+	theShooter->alpha = (int)aRatio;
+	int aSpin = (int)((double)theShooter->age / 3.0);
+	aSpin = aSpin % 0x168;
+	if (theShooter->children.current != nullptr)
+	{
+		Obj* aChild = theShooter->children.head;
+		Obj* aCurrent;
+		double aRadius = (double)(float)((1.0 - (double)aRatio * (double)aRatio) * 160.0);
+		while (true)
+		{
+			theShooter->children.current = aChild;
+			theShooter->children.current->x =
+				(float)((double)CosDeg(aSpin % 0x168) * aRadius + (double)theShooter->x);
+			theShooter->children.current->y =
+				(float)((double)SinDeg(aSpin % 0x168) * aRadius + (double)theShooter->y);
+			if (RandRange(1, 0x10) == 5)
+			{
+				ParticleSystem_New();
+				float aY = (float)RandRange(-4, 4) + theShooter->children.current->y;
+				float aX = (float)RandRange(-4, 4) + theShooter->children.current->x;
+				ParticleSystem_Add(gLevels.current->systems.current, aX, aY, 0.0f, 0.0f, 0, 0, 0, 0xff, 0xff, 0xff, 0xff,
+					0xff, 0xff, 0x21c, 10, 400, 0.999f, 0.0002f, 5);
+				Particle* aParticle = gLevels.current->systems.current->particles.current;
+				aParticle->anim = Animation_Find("sparkles3", &aParticle->frameCount, &aDummy[0]);
+			}
+			aCurrent = theShooter->children.current;
+			aSpin = aSpin + 0x5a;
+			if (aCurrent == nullptr)
+				return;
+			if (aCurrent->next == nullptr)
+				break;
+			aChild = aCurrent->next;
 		}
-		theShooter->alpha = 0xff;
-		theShooter->state = 3;
+		if (aCurrent != nullptr)
+			theShooter->children.current = theShooter->children.head;
 	}
 }
 

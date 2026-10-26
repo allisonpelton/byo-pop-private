@@ -455,29 +455,6 @@ void Level_DrawTrialTime(Level* theLevel)
 	}
 }
 
-static void DrawCentred(Font* theFont, int theY, const char* theText)
-{
-	int aRect[4];
-	Font_DrawOutlined(theFont, aRect, 400, theY, theText);
-	int aHeight = Font_StringHeight(theFont, theText) + 2;
-	int aWidth = Font_StringWidth(theFont, theText) + 2;
-	Dirty_AddClippedShown(&gDirty, 399 - Font_StringWidth(theFont, theText) / 2, theY - 1, aWidth, aHeight, kScreenClip);
-}
-
-// The original copies the lines onto the stack (the last a dword at a time)
-void DrawPaused()
-{
-	char aText[32];
-	Font* aFont = ScreenFont("main_font");
-	aFont->align = 2;
-	std::strcpy(aText, GT(0 /* TODO cb:0x458e74 */));
-	DrawCentred(aFont, 200, aText);
-	std::strcpy(aText, GT(0 /* TODO cb:0x458e58 */));
-	DrawCentred(aFont, 0xfa, aText);
-	std::strcpy(aText, GT(0 /* TODO cb:0x458e44 */));
-	DrawCentred(aFont, 300, aText);
-}
-
 int Level_IsPlaying(Level* theLevel)
 {
 	if ((theLevel->kind != 0 || (theLevel->menus.current != nullptr && theLevel->menus.current->requesters.current != nullptr) ||
@@ -1154,8 +1131,7 @@ void Level_Draw(Level* theLevel)
 	List_Each(&theLevel->pointers, [](Obj* aPointer) { Pointer_Draw(aPointer); });
 	DrawList_Flush();
 	Level_DrawTrialTime(theLevel);
-	if (theLevel->state == 2)
-		DrawPaused();
+	// (while it is paused the original calls 0x401410, which is empty: Cosmic Bugs' texts are gone)
 }
 
 // The enemies not in state 1
@@ -1285,16 +1261,7 @@ void Level_AddRandomEnemies(Level* theLevel, int theFirst, int theSecond)
 	}
 }
 
-// _strupr in the C locale
-static void StrUpper(char* theText)
-{
-	for (char* c = theText; *c != 0; c++)
-	{
-		if (*c >= 'a' && *c <= 'z')
-			*c = (char)(*c - 0x20);
-	}
-}
-
+// 0x411700: the level number and quota (Cosmic Bugs' were in capitals)
 void Level_ShowStart(Level* theLevel)
 {
 	char aText[64];
@@ -1303,11 +1270,9 @@ void Level_ShowStart(Level* theLevel)
 		std::sprintf(aText, GT(0x458ebc), (int)theLevel->title[0], (int)theLevel->title[1], theLevel->number);
 		List<Text>* aTexts = &theLevel->texts;
 		Text_Append(aTexts);
-		StrUpper(aText);
 		Text_Make(aTexts->current, aText, Font_Find("main_font"), 400, 200, 0, 200, 4000, 200, 0, 0);
-		std::sprintf(aText, GT(0 /* TODO cb:0x458ec8 */), theLevel->fillQuota, "%");
+		std::sprintf(aText, GT(0x458e98), theLevel->fillQuota, "%");
 		Text_Append(aTexts);
-		StrUpper(aText);
 		Text_Make(aTexts->current, aText, Font_Find("main_font"), 400, 0x104, 0, 200, 4000, 200, 0, 0);
 	}
 }
@@ -1322,7 +1287,7 @@ void Level_StartRandom(Level* theLevel)
 {
 	for (int i = 0; i < 50; i++)
 		theLevel->columns[i] = Cells_New();
-	Level_StartSong(theLevel, 1);
+	Level_StartSong(theLevel, 0);
 	Image* aBack = Bank_FindImage2(&gArtBank, theLevel->backImage);
 	theLevel->background = new Image;
 	Image_Copy(theLevel->background, aBack);

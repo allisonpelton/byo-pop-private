@@ -320,21 +320,22 @@ void Cell_StartCapture(Cell* theCell, Image* theImage, int theFrom, int theTo)
 	Cell_PickImage(theCell);
 }
 
+// 0x404400
 void Cell_StartFill(Cell* theCell)
 {
 	List_Append(&gLevels.current->fills, theCell);
-	RandRange(0, 0x167);
-	if (gLevels.current->filledCells != 0)
+	int anAngle = RandRange(0, 0x167);
+	if (gLevels.current->filledCells == 0)
 	{
-		// taken down: each cell drops away
-		theCell->offX = 0;
-		theCell->offY = 0x32;
-		theCell->step = 0;
-		theCell->state = 7;
-		return;
+		theCell->offX = RandRange(-40, 40);
+		theCell->offY = RandRange(-40, 40);
 	}
-	theCell->offX = RandRange(-40, 40);
-	theCell->offY = RandRange(-40, 40);
+	else
+	{
+		// (both offsets are the cosine, as in the original: the cells fly in along a diagonal)
+		theCell->offX = (int)((double)CosDeg(anAngle) * 38.0);
+		theCell->offY = (int)((double)CosDeg(anAngle) * 38.0);
+	}
 	theCell->step = 0;
 	theCell->state = 7;
 }

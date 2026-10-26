@@ -46,6 +46,7 @@ void List_DeleteNode(Text* theText)
 	::operator delete(theText);
 }
 
+// 0x41f5d0 (Cosmic Bugs' version upper-cased the text)
 void Text_Make(Text* theText, const char* theString, Font* theFont, int theX, int theY, int theDormant, int theFadeIn,
 	int theIdle, int theFadeOut, int theLoopTime, int theBlink)
 {
@@ -54,9 +55,6 @@ void Text_Make(Text* theText, const char* theString, Font* theFont, int theX, in
 	else
 	{
 		strcpy(theText->text, theString);
-		// (_strupr)
-		for (char* c = theText->text; *c != 0; c++)
-			*c = (char)toupper((unsigned char)*c);
 	}
 	theText->x = (float)theX;
 	theText->font = theFont;

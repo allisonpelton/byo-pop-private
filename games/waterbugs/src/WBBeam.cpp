@@ -17,23 +17,37 @@ void Beam_Setup(Beam* theBeam, Shooter* theOwner, float theX, float theY, float 
 	theBeam->hit = 0;
 	theBeam->vx = theVx;
 	theBeam->vy = theVy;
+	const char* aName = nullptr;
 	if (0.0f < theVx)
-	{
-		theBeam->anim = Animation_Find("shooter_beam_right", &theBeam->frameCount, &theBeam->frameTime);
-		return;
-	}
-	if (theVx < 0.0f)
-	{
-		theBeam->anim = Animation_Find("shooter_beam_left", &theBeam->frameCount, &theBeam->frameTime);
-		return;
-	}
-	if (0.0f < theVy)
-	{
-		theBeam->anim = Animation_Find("shooter_beam_down", &theBeam->frameCount, &theBeam->frameTime);
-		return;
-	}
-	if (theVy < 0.0f)
-		theBeam->anim = Animation_Find("shooter_beam_up", &theBeam->frameCount, &theBeam->frameTime);
+		aName = "shooter_beam_right";
+	else if (theVx < 0.0f)
+		aName = "shooter_beam_left";
+	else if (0.0f < theVy)
+		aName = "shooter_beam_down";
+	else if (theVy < 0.0f)
+		aName = "shooter_beam_up";
+	if (aName != nullptr)
+		theBeam->anim = Animation_Find(aName, &theBeam->frameCount, &theBeam->frameTime);
+	// Water Bugs' beam has a harpoon at its head (unkcc), going the same way
+	const char* aTip = nullptr;
+	if (0.0f < theVx)
+		aTip = "harpoon_right";
+	else if (theVx < 0.0f)
+		aTip = "harpoon_left";
+	else if (0.0f < theVy)
+		aTip = "harpoon_down";
+	else if (theVy < 0.0f)
+		aTip = "harpoon_up";
+	if (aTip != nullptr)
+		theBeam->unkcc.anim = Animation_Find(aTip, &theBeam->unkcc.frameCount, &theBeam->unkcc.frameTime);
+	theBeam->unkcc.drawKind = 1;
+	theBeam->unkcc.x = theBeam->x;
+	theBeam->unkcc.midHandle = 1;
+	theBeam->unkcc.dirty = 1;
+	theBeam->unkcc.y = theBeam->y;
+	theBeam->unkcc.depth = 7;
+	theBeam->unkcc.vx = theBeam->vx;
+	theBeam->unkcc.vy = theBeam->vy;
 }
 
 // It starts on the beam level with the enemy and runs the other way at twice the beam's speed
@@ -194,6 +208,8 @@ void Beam_DrawTo(Beam* theBeam, uint8_t* theDst, int theDPitch)
 	Dirty_AddClippedRect(&gDirty, aRect, kScreenClip);
 riders:
 	List_Each(&theBeam->riders, [](Rider* aRider) { Obj_Draw(aRider); });
+	if (theBeam->hit == 0)
+		Obj_Draw(&theBeam->unkcc);
 }
 
 void Beam_Draw(Beam* theBeam)
@@ -201,7 +217,17 @@ void Beam_Draw(Beam* theBeam)
 	Beam_DrawTo(theBeam, gScreenBits, gScreenPitch);
 }
 
-// The head moves on while the cell ahead is open; the first time it is not, the beam pops in a ring of particles
+static int Sign(float theValue)
+{
+	if (theValue == 0.0f)
+		return 0;
+	if (theValue <= 0.0f)
+		return -1;
+	return 1;
+}
+
+// 0x4031f0: the head moves on while the cell ahead is open; the first time it is not, the beam pops in a ring of
+// particles; the harpoon (unkcc) follows it, four pixels behind
 int Beam_Update(Beam* theBeam)
 {
 	int aResult = 1;
@@ -220,17 +246,9 @@ int Beam_Update(Beam* theBeam)
 	{
 		theBeam->x = aX + theBeam->vx;
 		theBeam->y = aY + theBeam->vy;
+		// (Cosmic Bugs' beam sometimes shed a sparkle here; this one only takes the number)
 		if (RandMod(0x28) == 2)
-		{
 			RandRange(-50, 50);
-			ParticleSystem_New();
-			int aLast = Bank_IndexOf(&gArtBank, "exp_4");
-			int aFirst = Bank_IndexOf(&gArtBank, "exp_1");
-			float aVy = (float)((double)RandRange(-50, 50) / 2000.0 + (double)theBeam->vy);
-			float aVx = (float)((double)RandRange(-50, 50) / 2000.0 + (double)theBeam->vx);
-			ParticleSystem_Add(gLevels.current->systems.current, theBeam->x, theBeam->y, aVx, aVy, aFirst, aLast, 0,
-				0xff, 0xff, 0xff, 0x3c, 100, 0xff, 0xff, 0, 0x2e4, 0.999f, 0.0f, 5);
-		}
 	}
 	else
 	{
@@ -255,6 +273,11 @@ int Beam_Update(Beam* theBeam)
 		if (Rider_Update(aRider) == 0)
 			List_RemoveCurrent(aRiders);
 	});
+	// the tip follows the head, four pixels behind
+	if (theBeam->hit == 0)
+		Obj_Update(&theBeam->unkcc);
+	theBeam->unkcc.x = (float)((double)theBeam->x - (double)Sign(theBeam->vx) * 4.0);
+	theBeam->unkcc.y = (float)((double)theBeam->y - (double)Sign(theBeam->vy) * 4.0);
 	return aResult;
 }
 

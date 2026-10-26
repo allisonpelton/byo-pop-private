@@ -344,7 +344,6 @@ void Level_DefaultFillImages(Level* theLevel);                   // 0x410210
 int PortalCount();                                               // cb:0x4101f0
 void Level_RedrawCells(Level* theLevel);                         // 0x4103c0
 void Level_DrawTrialTime(Level* theLevel);                       // 0x4104b0
-void DrawPaused();                                               // cb:0x410450
 int Level_IsPlaying(Level* theLevel);                            // 0x4105c0
 void Level_AddKey(Level* theLevel, char theKey, int theA, int theB); // 0x410b50
 void Level_FindKey(Level* theLevel, char theKey, int* theA, int* theB); // 0x410b90
@@ -389,6 +388,7 @@ int Cell_UpdateFill(Cell* theCell);                              // 0x404ac0: 0 
 int Fill_Update(Cell* theCell);                                  // 0x404da0: 0 when done
 void Panel_Append(List<Panel>* theList);                         // 0x412490
 void Panel_Setup(Panel* thePanel);                               // 0x4182a0
+void Panel_AppendItem(List<Obj>* theList);                       // 0x418170: a new item at the tail, made current
 void Panel_FromXml(Panel* thePanel, const char* p, const XmlTag* theTag); // 0x418050
 void Panel_Draw(Panel* thePanel, int theAll);                    // 0x4184e0
 void Panel_Update(Panel* thePanel);                              // 0x418470
@@ -492,7 +492,7 @@ void Level_Draw(Level* theLevel);                                // 0x410c60
 int Level_EnemiesLeft(Level* theLevel);                          // cb:0x4110e0
 void Star_Append(List<Obj>* theList);                            // 0x4110b0
 void Level_AddRandomEnemies(Level* theLevel, int theFirst, int theSecond); // cb:0x411500
-void Level_ShowStart(Level* theLevel);                           // cb:0x4117c0: the level number and quota
+void Level_ShowStart(Level* theLevel);                           // 0x411700: the level number and quota
 void Level_GameOver(Level* theLevel);                            // 0x412200
 
 } // namespace wb
