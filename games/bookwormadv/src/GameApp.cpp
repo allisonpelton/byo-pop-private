@@ -3,6 +3,7 @@
 #include <SDL.h>
 
 #include "CurtainTransition.h"
+#include "GameDialog.h"
 #include "GameText.h"
 #include "Lex.h"
 #include "LuaInterface.h"
@@ -173,6 +174,156 @@ void GameApp::UpdateFrames()
 		mUserUpdates++;
 	}
 	mSoundPlayer->Update();
+}
+
+void GameApp::Shutdown()
+{
+	if (mShutdown)
+		return;
+	if (mProfile != nullptr)
+		mProfile->Save();
+	// port: the original also took the battle's board away (+0x948, not ported yet) and, in the trial's marketing
+	// modes, asked its trial window whether to show the "buy" screen
+	LuaApp::Shutdown();
+}
+
+void GameApp::PlaySample(int theSoundNum)
+{
+	mSoundPlayer->PlaySampleMinTime(theSoundNum, 5);
+}
+
+Dialog* GameApp::NewDialog(int theDialogId, bool isModal, const SexyString& theDialogHeader,
+                           const SexyString& theDialogLines, const SexyString& theDialogFooter, int theButtonMode)
+{
+	GameDialog* aDialog = new GameDialog(theDialogId, theDialogHeader, theDialogLines, theDialogFooter, theButtonMode);
+	aDialog->Layout(348);
+	return aDialog;
+}
+
+Dialog* GameApp::DoDialog(int theDialogId, bool isModal, const SexyString& theDialogHeader,
+                          const SexyString& theDialogLines, const SexyString& theDialogFooter, int theButtonMode)
+{
+	Dialog* aDialog =
+		LuaApp::DoDialog(theDialogId, isModal, theDialogHeader, theDialogLines, theDialogFooter, theButtonMode);
+	if (theDialogId == 20025 || theDialogId == 10025) {
+		aDialog->SetColor(Dialog::COLOR_HEADER, Color::White);
+		aDialog->mContentInsets = Insets(42, 42, 42, 42);
+		aDialog->mSpaceAfterHeader = 25;
+		aDialog->Resize(aDialog->mX, aDialog->mY, aDialog->mWidth, aDialog->mHeight + 50);
+	}
+	return aDialog;
+}
+
+GameDialog* GameApp::DoConfirmDialog(int theId, const SexyString& theHeader, const SexyString& theLines,
+                                     ButtonListener* theListener, const std::string& theCallback)
+{
+	if (theId == -1)
+		theId = DIALOG_CONFIRM;
+	// port: the original first paused the battle's board (+0x948, not ported yet), with Unmute(true) and its
+	// sound player's pause of the looping samples (none are ported yet)
+	mDialogCallback = theCallback;
+	mConfirmListener = theListener;
+	GameDialog* aDialog = static_cast<GameDialog*>(DoDialog(theId, true, theHeader, theLines, _S(""), Dialog::BUTTONS_YES_NO));
+	Unmute(true);
+	aDialog->Resize(mWidth / 2 - aDialog->mWidth / 2, mHeight / 2 - aDialog->mHeight / 2, aDialog->mWidth,
+	                aDialog->mHeight + 50);
+	aDialog->SetHeaderFont(FONT_LARGE_OUTLINE);
+	aDialog->SetLinesFont(FONT_MEDIUM);
+	aDialog->SetColor(Dialog::COLOR_HEADER, Color::White);
+	aDialog->SetBanner(IMAGE_DIALOG_BANNER_RUSURE, 25);
+	aDialog->mDialogHeader = _S(" ");  // room for the banner
+	aDialog->mContentInsets.mTop -= 14;
+	aDialog->mSpaceAfterHeader = 25;
+	return aDialog;
+}
+
+GameDialog* GameApp::DoOkDialog(const SexyString& theHeader, const SexyString& theLines, const std::string& theCallback,
+                                Image* theBanner)
+{
+	// port: the board's pause as in DoConfirmDialog
+	mDialogCallback = theCallback;
+	GameDialog* aDialog = static_cast<GameDialog*>(
+		DoDialog(DIALOG_OK, true, theHeader, theLines, GT(0x7ac5a0), Dialog::BUTTONS_FOOTER));
+	Unmute(true);
+	aDialog->SetHeaderFont(FONT_LARGE_OUTLINE);
+	aDialog->SetLinesFont(FONT_MEDIUM);
+	aDialog->SetColor(Dialog::COLOR_HEADER, Color::White);
+	aDialog->mContentInsets.mTop -= 14;
+	aDialog->mSpaceAfterHeader = 25;
+	if (theBanner != nullptr) {
+		aDialog->mDialogHeader = _S(" ");
+		aDialog->SetBanner(theBanner, 17);
+	}
+	int aHeight = aDialog->mHeight;
+	if (aHeight > 525)
+		aHeight = 525;
+	aDialog->Resize(aDialog->mX, aDialog->mY, aDialog->mWidth, aHeight + 50);
+	mWidgetManager->SetFocus(aDialog);
+	return aDialog;
+}
+
+void GameApp::CallDialogCallback(bool theAnswer)
+{
+	if (mDialogCallback.empty())
+		return;
+	lua_State* L = mLua->L;
+	int aTop = lua_gettop(L);
+	lua_pushboolean(L, theAnswer);
+	mLua->Call(mDialogCallback, 1, 1);
+	lua_settop(L, aTop);
+	mDialogCallback.clear();
+}
+
+void GameApp::ButtonDepress(int theId)
+{
+	// nothing while the curtain moves
+	if (IsCurtainMoving())
+		return;
+	int anId = theId % 10000;
+	if (anId >= 2000 && anId < 3000) {
+		int aDialogId = theId - 2000;
+		switch (aDialogId) {
+		case DIALOG_REALLY_QUIT:  // its yes is "Quit"
+			mMainMenu->mReallyQuit = false;
+			Shutdown();
+			break;
+		case DIALOG_CONFIRM:
+			// port: the original also resumed the board (not ported yet), here and below
+			CallDialogCallback(true);
+			KillDialog(DIALOG_CONFIRM);
+			if (mConfirmListener != nullptr)
+				mConfirmListener->ButtonDepress(1018);
+			break;
+		case DIALOG_OK:
+			KillDialog(DIALOG_OK);
+			CallDialogCallback(true);
+			break;
+		default:
+			SDL_Log("GameApp: the answer %d to dialog %d is not ported yet", theId, aDialogId);
+			KillDialog(aDialogId);
+			break;
+		}
+	} else if (anId >= 3000 && anId < 4000) {
+		int aDialogId = theId - 3000;
+		if (aDialogId == DIALOG_REALLY_QUIT)
+			mMainMenu->mReallyQuit = false;
+		else if (aDialogId != DIALOG_CONFIRM && aDialogId != DIALOG_OK)
+			SDL_Log("GameApp: the answer %d to dialog %d is not ported yet", theId, aDialogId);
+		KillDialog(aDialogId);
+		if (aDialogId == DIALOG_CONFIRM) {
+			CallDialogCallback(false);
+			if (mConfirmListener != nullptr)
+				mConfirmListener->ButtonDepress(3018);
+		}
+		// port: the original then gave the focus to the board, or to +0x7bc (neither is ported yet)
+	} else {
+		// the buttons of the screens (the game's, the continue and menu buttons): not ported yet
+		SDL_Log("GameApp: button %d is not ported yet", theId);
+	}
+	if (mTitleScreenDoneQueued && GetDialogCount() == 0) {
+		mTitleScreenDoneQueued = false;
+		TitleScreenDone();
+	}
 }
 
 void GameApp::StartLoading()

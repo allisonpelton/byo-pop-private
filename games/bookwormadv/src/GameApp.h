@@ -17,6 +17,8 @@ class SoundPlayer;
 namespace Sexy {
 
 class CurtainTransition;
+class GameDialog;
+class Image;
 class Lex;
 class LuaInterface;
 class MainMenu;
@@ -27,6 +29,13 @@ class Widget;
 
 class GameApp : public LuaApp {
 public:
+	// The game's dialog ids (those that are ported)
+	enum {
+		DIALOG_OK = 0,           // DoOkDialog's
+		DIALOG_REALLY_QUIT = 2,  // the main menu's quit
+		DIALOG_CONFIRM = 18,     // DoConfirmDialog's
+	};
+
 	// mTransitionState: what the curtain is doing (CurtainDone goes on from it)
 	enum {
 		TRANSITION_NONE = 0,
@@ -49,6 +58,8 @@ public:
 	PopAnimManager* mPopAnimManager = nullptr;     // +0x7c8, the scripts' animations
 	CurtainTransition* mCurtain = nullptr;         // +0x828
 	Widget* mBookScreen = nullptr;                 // +0x82c: the tome's or the media player's (not ported yet)
+	ButtonListener* mConfirmListener = nullptr;    // +0x838: a widget's ButtonListener part, in the original
+	std::string mDialogCallback;                   // +0x878: the scripts' function told the answer to dialog 0 or 18
 	Widget* mHallOfFame = nullptr;                 // +0x89c (not ported yet)
 	void* mCurtainCallbackObject = nullptr;        // +0x894
 	void (*mCurtainCallback)(void*) = nullptr;     // +0x898 (a member function in the original)
@@ -83,6 +94,28 @@ public:
 	void LoadingThreadCompleted() override; // 0x4481a0
 	bool UpdateAppStep(bool* updated) override;
 	void UpdateFrames() override;           // 0x44aa50
+	void Shutdown() override;               // 0x445960
+	// 0x44f5c0: through the sound player, not again within 5 updates
+	void PlaySample(int theSoundNum) override;
+
+	// Dialogs. Every one is a GameDialog (NewDialog, 0x443f00), laid out at least 348 wide.
+	Dialog* NewDialog(int theDialogId, bool isModal, const SexyString& theDialogHeader,
+	                  const SexyString& theDialogLines, const SexyString& theDialogFooter, int theButtonMode) override;
+	// 0x451ec0: two of them get a white header, wider margins and room for their buttons
+	Dialog* DoDialog(int theDialogId, bool isModal, const SexyString& theDialogHeader,
+	                 const SexyString& theDialogLines, const SexyString& theDialogFooter, int theButtonMode) override;
+	// 0x444950: a yes or no question under the "are you sure" banner (dialog DIALOG_CONFIRM unless theId says
+	// otherwise), centred. For DIALOG_CONFIRM, the scripts' function theCallback (when not empty) is called with
+	// the answer, and theListener hears ButtonDepress(1018) for yes and (3018) for no.
+	GameDialog* DoConfirmDialog(int theId, const SexyString& theHeader, const SexyString& theLines,
+	                            ButtonListener* theListener, const std::string& theCallback);
+	// 0x443f90: a message with an OK button (dialog 0), under a banner when there is one; OK calls the scripts'
+	// function theCallback (when not empty) with true
+	GameDialog* DoOkDialog(const SexyString& theHeader, const SexyString& theLines, const std::string& theCallback,
+	                       Image* theBanner);
+	// 0x44ad10: the dialogs' answers (2000 + id for yes, 3000 + id for no), and the buttons of the screens
+	// that send theirs here
+	void ButtonDepress(int theId) override;
 
 	// port: SexyAppBase::StartLoadingThread (the title screen's call), loading in steps between the frames, so
 	// that the title screen goes on while the resources load, natively and in the browser (no threads)
@@ -117,6 +150,8 @@ private:
 	// One step of the loading thread's work, until theDeadline (SDL ticks; 0: all of it). True when done.
 	bool LoadingStep(unsigned int theDeadline);
 	void LoadingFailed();
+	// the scripts' function of dialog 0 or 18, told the answer (then forgotten)
+	void CallDialogCallback(bool theAnswer);
 
 	void RegisterGameAppMethods();  // the Lua class GameApp (part of Init)
 };

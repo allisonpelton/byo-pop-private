@@ -134,6 +134,8 @@ public:
 	void PlayReaction(int theItem);
 	// 0x479c80: rolls the scrolls up
 	void CloseTooltips();
+	// 0x47d670: whether to quit, Lex in tears behind the question (the app's DIALOG_REALLY_QUIT: its yes quits)
+	void AskReallyQuit();
 
 	// Widget
 	void Update() override;                       // 0x47c5b0

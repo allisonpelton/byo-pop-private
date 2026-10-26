@@ -5,6 +5,7 @@
 #include "CurtainTransition.h"
 #include "Font.h"
 #include "GameApp.h"
+#include "GameDialog.h"
 #include "GameText.h"
 #include "Graphics.h"
 #include "HyperlinkWidget.h"
@@ -612,9 +613,7 @@ void MainMenu::MouseUp(int x, int y, int theClickCount)
 			SDL_Log("MainMenu: the options dialog (0x4455d0) is not ported yet");
 			break;
 		case ITEM_QUIT:
-			// the original asked, with Lex in tears (0x47d670)
-			SDL_Log("MainMenu: the question whether to quit (0x47d670) is not ported yet: quitting");
-			mApp->Shutdown();
+			AskReallyQuit();
 			break;
 		case ITEM_ADVENTURE:
 			SDL_Log("MainMenu: the adventure (0x448ff0, 0x44de70, 0x44df60) is not ported yet");
@@ -644,6 +643,22 @@ void MainMenu::MouseUp(int x, int y, int theClickCount)
 			anItem->mDisabled = true;
 	if (!aFound && mApp->GetCursor() == CURSOR_HAND)
 		mApp->SetCursor(CURSOR_POINTER);
+}
+
+void MainMenu::AskReallyQuit()
+{
+	mApp->PlaySample(SOUND_MM_DONTLEAVE);
+	mApp->SetCursor(CURSOR_POINTER);
+	mApp->DoConfirmDialog(GameApp::DIALOG_REALLY_QUIT, _S(""), GT(0x7aee60), nullptr, "");
+	GameDialog* aDialog = static_cast<GameDialog*>(mApp->GetDialog(GameApp::DIALOG_REALLY_QUIT));
+	aDialog->SetBanner(IMAGE_MM_REALLY_QUIT_BANNER, 0);
+	aDialog->mDialogHeader = _S(" ");
+	aDialog->Resize(200, 305, aDialog->mWidth + 75, aDialog->mHeight + 20);
+	aDialog->SetButtonText(GT(0x7aeea0), GT(0x7aee98));
+	aDialog->mPriority = 10;
+	aDialog->SetAllowDrag(false);
+	MarkDirty();
+	mReallyQuit = true;
 }
 
 void MainMenu::ButtonDepress(int theId)
