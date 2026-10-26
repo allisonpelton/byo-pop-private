@@ -336,9 +336,6 @@ void SwapColours(Image* theImage, const char* theSwap);                    // 0x
 double CircleOverlap(float x1, float y1, float r1, float x2, float y2, float r2); // 0x420780
 int BoxOverlap(float x1, float y1, float w1, float h1, float x2, float y2, float w2, float h2); // 0x4207d0
 void RotateImage(Image* theImage, int theAngle);                           // 0x4208c0
-// 0x444c50: the CRT's qsort (a median-of-three quicksort, selection sort for 8 or fewer), for comparers whose
-// order of ties matters
-void CrtQsort(void* theBase, size_t theCount, size_t theWidth, int (*theCompare)(const void*, const void*));
 // 0x428d60: the original appends to log.txt
 void Log(const char* theFormat, ...);
 
