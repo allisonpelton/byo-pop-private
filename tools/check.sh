@@ -312,14 +312,15 @@ bookwormadv_all() {  # <"loaded N of M ...">: true when all of at least one load
 }
 
 bookwormadv_menu() {  # <log>: the test profile (tests/menu) from the title to the main menu, its quit asked, Play!, Quit
-	local d="$OUT/bookwormadv/menu" n
+	local d="$OUT/bookwormadv/menu" u n
 	rm -rf "$d"; mkdir -p "$d"
 	cp -r games/bookwormadv/tests/menu/user "$d/user"
 	# the quit sign, its dialog's Play! (it stays), the quit sign again and the dialog's Quit (it quits)
 	printf '%s\n' "900 move 680 520" "920 click 680 520" "1000 screenshot $d/dialog.png" "1060 click 497 476" \
 		"1150 screenshot $d/menu.png" "1200 move 680 520" "1220 click 680 520" "1310 click 325 476" "2000 quit" > "$d/script.txt"
 	# (an absolute user folder: the game reads its profiles by GetAppDataFolder() paths)
-	timeout 120 "$W/build/native/bookwormadv.exe" -userdir="$W/$d/user" -script="$d/script.txt" -fast > "$d/stdout.txt" 2>&1
+	u="$d/user"; case "$u" in /*|[A-Za-z]:*) ;; *) u="$W/$u" ;; esac
+	timeout 120 "$W/build/native/bookwormadv.exe" -userdir="$u" -script="$d/script.txt" -fast > "$d/stdout.txt" 2>&1
 	cat "$d/stdout.txt" >> "$1"
 	[ -f "$d/dialog.png" ] && [ -f "$d/menu.png" ] || { echo "no screenshots"; return; }
 	n="$(grep -o 'Update Count = [0-9]*' "$d/stdout.txt" | tail -n 1)"
