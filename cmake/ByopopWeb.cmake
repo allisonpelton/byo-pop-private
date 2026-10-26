@@ -26,6 +26,14 @@ get_filename_component(BYOPOP_WEB_FOOTER_CSS "${CMAKE_CURRENT_LIST_DIR}/../web/f
 include(${CMAKE_CURRENT_LIST_DIR}/ByopopStores.cmake)
 # the site's logo and icons (web/brand; docs/WEB_PLAYER.md), copied next to the pages, which link them
 set(BYOPOP_WEB_BRAND favicon.svg favicon.ico apple-touch-icon.png logo.svg logo-dark.svg)
+# Whether a game's page asks the player to agree to its terms (the terms card and its checkbox) before the game's
+# files are imported or loaded. OFF for now (the user, 2026-10-26), and the pages must not be deployed until it is
+# ON again (docs/WEB_PLAYER.md, "The terms"). The copyright page shows the terms either way. A plain variable, not
+# a cache option, so that changing it here reaches every build folder.
+set(BYOPOP_WEB_TERMS_GATE OFF)
+if(NOT BYOPOP_WEB_TERMS_GATE)
+  message(STATUS "byo-pop: the game pages show no terms card (BYOPOP_WEB_TERMS_GATE): do not deploy them")
+endif()
 
 # byopop_web_shell(<var> <target> <page folder> TITLE <name> COPYRIGHT <notice> [LICENSES <name>...]): the game's
 # page template: web/shell.html with the game's page.js, page.css and page.html (from <page folder>) at its
@@ -36,7 +44,7 @@ set(BYOPOP_WEB_BRAND favicon.svg favicon.ico apple-touch-icon.png logo.svg logo-
 # in web/licenses/ that the page is built from. LICENSES adds a game's own libraries (BookWorm: libopenmpt).
 # Sets <var> to the generated template in the build folder, for --shell-file. Both files are rewritten only when
 # their text changes, and CMake runs again when one of their inputs changes. byopop_web_game() calls it.
-set(BYOPOP_WEB_LICENSES popcap-framework sdl2 stb libxmp-lite tremor)
+set(BYOPOP_WEB_LICENSES popcap-framework sdl2 stb libxmp-lite tremor minimp3)
 set(BYOPOP_WEB_TOOLCHAIN_LICENSES emscripten musl)
 
 function(byopop_write_if_changed path text)
@@ -181,6 +189,11 @@ function(byopop_web_shell var target pagedir)
   byopop_web_insert(page "<!-- byopop:terms -->" "${terms}")
   byopop_web_insert(page "<!-- byopop:buy -->" "${buy_html}")
   string(REPLACE "@BYOPOP_TERMS_VERSION@" "${terms_version}" page "${page}")
+  if(BYOPOP_WEB_TERMS_GATE)
+    string(REPLACE "@BYOPOP_TERMS_GATE@" "true" page "${page}")
+  else()
+    string(REPLACE "@BYOPOP_TERMS_GATE@" "false" page "${page}")
+  endif()
   string(REPLACE "@BYOPOP_TITLE@" "${arg_TITLE}" page "${page}")
   file(READ ${BYOPOP_WEB_FOOTER} footer)
   file(READ ${BYOPOP_WEB_FOOTER_CSS} css)

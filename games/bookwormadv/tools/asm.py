@@ -95,5 +95,7 @@ else:
     a = int(args[0], 16)
     if len(args) > 1:
         disasm(a, a + 8 * int(args[1]))  # roughly that many instructions
-    else:
+    elif a in funcs:
         disasm(a, a + funcs[a]['size'])
+    else:  # code Ghidra made no function of: up to the next function
+        disasm(a, min(f for f in funcs if f > a))

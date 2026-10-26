@@ -5,6 +5,7 @@
 // that their virtual functions can be written in Lua.
 #pragma once
 
+#include <map>
 #include <string>
 
 #include "LuaSupport.h"
@@ -30,6 +31,10 @@ struct LuaClassRet {
 	const std::string& String() const;
 };
 
+// 0x6cb190: calls the function at `path' (as LuaSupport::Call) with the `nargs' values on top of the stack and
+// returns its results
+LuaClassRet CallLua(const std::string& path, int nargs);
+
 class LuaLinkedClass {
 public:
 	LuaLinkedClass();
@@ -50,9 +55,17 @@ public:
 	// Pushes the object's userdata (nil while it is not linked)
 	void PushLinkedObject();
 
+	// The class's constants (ButtonId_Back = 0, ...), set on the Lua object and on the Lua class (the global of
+	// the class's name) when the object is linked
+	std::map<std::string, int> mEnums;   // +0c
+
 protected:
 	void* mLinkedObj = nullptr;          // +04
 	const char* mLinkedName = nullptr;   // +08
+
+private:
+	// vf07 (0x6ca560)
+	void RegisterEnums();
 };
 
 }  // namespace LuaLib

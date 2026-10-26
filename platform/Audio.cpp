@@ -10,6 +10,7 @@
 
 #define STB_VORBIS_HEADER_ONLY
 #include <stb_vorbis.c>
+#include <minimp3.h>
 
 #ifdef __EMSCRIPTEN__
 #include <emscripten.h>
@@ -406,6 +407,65 @@ static bool DecodeAU(const std::vector<uint8_t>& theFile, std::vector<float>& th
 	return true;
 }
 
+// MPEG audio (Mummy Maze's one MP3 sound): an ID3v2 tag or an MPEG frame sync at the start
+static bool IsMP3(const std::vector<uint8_t>& theFile)
+{
+	if (theFile.size() >= 10 && !memcmp(theFile.data(), "ID3", 3))
+		return true;
+	return theFile.size() >= 4 && theFile[0] == 0xFF && (theFile[1] & 0xE0) == 0xE0;
+}
+
+// Decodes a whole MP3 with minimp3 (the decoder libopenmpt uses for MP3 samples). An ID3v2 tag at the start is
+// skipped by its size, and an encoder's Xing/Info frame (a silent frame that only describes the stream) gives no samples.
+static bool DecodeMP3(const std::vector<uint8_t>& theFile, std::vector<float>& theOut, int* theChannels, int* theRate)
+{
+	size_t aPos = 0;
+	if (theFile.size() >= 10 && !memcmp(theFile.data(), "ID3", 3))
+	{
+		// the tag's size is four 7-bit bytes, without the 10-byte header (and a 10-byte footer when flag 0x10 is set)
+		size_t aTagSize = ((theFile[6] & 0x7F) << 21) | ((theFile[7] & 0x7F) << 14) | ((theFile[8] & 0x7F) << 7) | (theFile[9] & 0x7F);
+		aPos = 10 + aTagSize + ((theFile[5] & 0x10) ? 10 : 0);
+	}
+
+	mp3dec_t aDecoder;
+	mp3dec_init(&aDecoder);
+	std::vector<mp3d_sample_t> aPcm(MINIMP3_MAX_SAMPLES_PER_FRAME);
+	bool aFirstFrame = true;
+	*theChannels = 0;
+	*theRate = 0;
+	while (aPos < theFile.size())
+	{
+		mp3dec_frame_info_t anInfo;
+		int aSamples = mp3dec_decode_frame(&aDecoder, theFile.data() + aPos, (int)(theFile.size() - aPos), aPcm.data(), &anInfo);
+		if (anInfo.frame_bytes <= 0)
+			break; // no further frame
+		const uint8_t* aFrame = theFile.data() + aPos + anInfo.frame_offset;
+		int aFrameSize = anInfo.frame_bytes - anInfo.frame_offset;
+		aPos += anInfo.frame_bytes;
+		if (aSamples <= 0)
+			continue; // skipped data
+		if (aFirstFrame)
+		{
+			aFirstFrame = false;
+			bool anInfoFrame = false;
+			for (int i = 0; i + 4 <= aFrameSize && i < 64 && !anInfoFrame; i++)
+				anInfoFrame = !memcmp(aFrame + i, "Xing", 4) || !memcmp(aFrame + i, "Info", 4);
+			if (anInfoFrame)
+				continue;
+		}
+		if (*theChannels == 0)
+		{
+			*theChannels = anInfo.channels;
+			*theRate = anInfo.hz;
+		}
+		if (anInfo.channels != *theChannels)
+			continue; // a stream that changes its channels mid-way keeps its first layout
+		for (int i = 0; i < aSamples * anInfo.channels; i++)
+			theOut.push_back(aPcm[i] / 32768.0f);
+	}
+	return *theChannels > 0 && *theRate > 0 && !theOut.empty();
+}
+
 std::shared_ptr<SoundData> Mixer::LoadSound(const std::string& theGamePath)
 {
 	std::vector<uint8_t> file;
@@ -454,6 +514,19 @@ std::shared_ptr<SoundData> Mixer::LoadSoundData(const std::vector<uint8_t>& file
 		ResampleToStereo(f.data(), (int)(f.size() / channels), channels, rate, mRate, *data);
 		return data;
 	}
+	// MP3 (Mummy Maze's fight sound)
+	if (IsMP3(file))
+	{
+		std::vector<float> f;
+		int channels = 0, rate = 0;
+		if (!DecodeMP3(file, f, &channels, &rate))
+		{
+			SDL_Log("cannot decode sound %s (MP3: no frames decoded)", theName.c_str());
+			return nullptr;
+		}
+		ResampleToStereo(f.data(), (int)(f.size() / channels), channels, rate, mRate, *data);
+		return data;
+	}
 	// WAV (and anything else SDL can read)
 	SDL_RWops* rw = SDL_RWFromConstMem(file.data(), (int)file.size());
 	SDL_AudioSpec spec;
@@ -461,7 +534,7 @@ std::shared_ptr<SoundData> Mixer::LoadSoundData(const std::vector<uint8_t>& file
 	Uint32 len = 0;
 	if (!SDL_LoadWAV_RW(rw, 1, &spec, &buf, &len))
 	{
-		SDL_Log("cannot decode sound %s (supported: Ogg Vorbis, WAV)", theName.c_str());
+		SDL_Log("cannot decode sound %s (supported: Ogg Vorbis, MP3, Sun .au, WAV)", theName.c_str());
 		return nullptr;
 	}
 	SDL_AudioCVT cvt;
@@ -655,6 +728,20 @@ int Mixer::LoadSong(const std::string& theGamePath)
 		xmp_start_player(song->mCtx, mRate, 0);
 		xmp_set_player(song->mCtx, XMP_PLAYER_INTERP, XMP_INTERP_SPLINE);
 	}
+	song->mLoaded = true;
+	Lock();
+	mSongs.push_back(std::move(song));
+	int handle = (int)mSongs.size();
+	Unlock();
+	return handle;
+}
+
+int Mixer::AddSong(std::unique_ptr<ModulePlayer> thePlayer)
+{
+	if (!thePlayer)
+		return 0;
+	std::unique_ptr<Song> song(new Song());
+	song->mModule = std::move(thePlayer);
 	song->mLoaded = true;
 	Lock();
 	mSongs.push_back(std::move(song));

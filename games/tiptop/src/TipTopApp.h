@@ -61,6 +61,14 @@ public:
 	virtual void LostFocus() override;
 	virtual void SwitchScreenMode(bool wantWindowed, bool is3d, bool force = false) override;
 	virtual void HandleCmdLineParam(const std::string& theParamName, const std::string& theParamValue) override;
+	// Test hooks (testhooks/Script.cpp): TipTop's -script commands, canvasshot and musicwav
+	virtual bool HandleScriptCommand(const ScriptCommand& theCommand) override;
+	// testhooks/Canvas.cpp: canvasshot <file> saves the whole screen of a -canvas run
+	void StartCanvasShot(const std::string& theFile);
+	void SaveCanvasShot();
+	std::string mCanvasShot;  // the file of a canvasshot, saved after the next frame
+	// The music's SoundFont bank (MusicSynth.h): -soundfont=<file>, else tiptop.sf2 beside the program
+	std::string mSoundFont;
 	using SexyAppBase::SwitchScreenMode;
 
 	// One pass of the original's main loop, then the screen mode it asked for

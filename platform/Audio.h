@@ -72,6 +72,10 @@ public:
 	// Returns a song handle (>0) or 0 on failure. A mod remap of theGamePath (VFS::GetRemap) can set a
 	// start order inside a multi-song module, a stream loop point and a per-track gain.
 	int LoadSong(const std::string& theGamePath);
+	// A song a game renders itself, such as a synthesizer its own sequencer plays live (TipTop's MIDI music):
+	// the mixer calls thePlayer's Render in the audio callback, so the game changes the player's state only
+	// between Lock and Unlock. Returns the song handle, played and freed like a loaded song's.
+	int AddSong(std::unique_ptr<ModulePlayer> thePlayer);
 	void UnloadSong(int theSong);
 	// theOrder/theRow: start position (BASS_MusicPlayEx offset = MAKELONG(order,row)).
 	void PlaySong(int theSong, int theOrder, int theRow, bool theLoop, bool theResetPosition = true);

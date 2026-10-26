@@ -2322,4 +2322,12 @@ uint32_t ResourceProc(uint32_t theMsg, uintptr_t theA, uintptr_t theB, Handler* 
 	return 0;
 }
 
+// port (test hooks, testhooks/Canvas.cpp): every layer in use draws all its handlers again in the next frame
+void MarkAllLayersDirty()
+{
+	for (uint16_t i = 0; i < gLayerCount; i++)
+		if (gLayers[i].mRect.w != 0)
+			gLayers[i].mDirty = 1;
+}
+
 } // namespace tiptop

@@ -500,9 +500,10 @@ input[type=file] { display: none; }
   // The game's terms (web/terms.html, with its name and notice) come before its files are imported or loaded: boot shows
   // them first, and the import and the start check them again. The agreement is kept per game, with the version of
   // its terms (a hash of their text), so each game asks on its own and changed terms ask again. Where localStorage
-  // fails (a private window, blocked site data), it lasts until the page closes.
-  var TERMS_KEY = "byopop-terms-" + PAGE.id, TERMS_VERSION = "@BYOPOP_TERMS_VERSION@";
-  var termsAgreed = false;
+  // fails (a private window, blocked site data), it lasts until the page closes. TERMS_GATE (BYOPOP_WEB_TERMS_GATE in
+  // cmake/ByopopWeb.cmake) is off for now: then the card never shows, and the pages must not be deployed.
+  var TERMS_KEY = "byopop-terms-" + PAGE.id, TERMS_VERSION = "@BYOPOP_TERMS_VERSION@", TERMS_GATE = @BYOPOP_TERMS_GATE@;
+  var termsAgreed = !TERMS_GATE;
   function hasAgreed() {
     if (!termsAgreed) {
       try { termsAgreed = localStorage.getItem(TERMS_KEY) === TERMS_VERSION; } catch (e) {}

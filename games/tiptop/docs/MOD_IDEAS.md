@@ -13,7 +13,9 @@ can change different keys.
 its high score rows are placed off the screen by the configuration, but its level list, its ramps, its starting high
 scores and its rules (a meter that empties with time, a level won when the meter reaches the goal, the game lost when
 it runs out) are all there and translated. A mod that moves the button and the high score rows on screen brings it
-back; the menus' layout leaves room for a fourth button only if the others move a little.
+back, but it needs pictures too: the archive's button for the mode is a 16x16 placeholder, and the backgrounds of the
+main menu and the high scores screen have panels and names for three modes only. The menus' layout leaves room for a
+fourth button only if the others move a little.
 
 **Rules from the configuration.** The configuration already holds almost every number of the game: the board's columns
 and rows, each mode's levels (speed, rows to clear, goals), the ramps that make the special blocks and the random
@@ -31,9 +33,11 @@ to scale, since the game draws at 640x480.
 **Texts.** The texts come from the exe at run time and a `GT_<address>` string property replaces any of them; the
 instruction and credit pages are text files of the archive. A language pack is a list of these.
 
-**Music.** The music is one General MIDI file played by the game's own sequencer, so a mod can give the game another
-tune (any type 0 or 1 MIDI file) once the port has its synth, or turn the sequencer's instruments into other General
-MIDI programs.
+**Music.** The music is one General MIDI file played by the game's own sequencer and the port's synth, so a mod can
+give the game another tune (a type 1 MIDI file of up to 16 tracks: the sequencer shows a warning for the other
+types and plays only the first 16 tracks), or turn the sequencer's
+instruments into other General MIDI programs. The port's bank holds only the presets and notes of the game's song
+(`tools/sf2trim.py`), so such a mod brings a bank cut for its own music, or the port loads the full bank for it.
 
 **Daily seed.** A fixed seed for each day and a local best score for it: the game's random numbers are one generator
 that the port can seed (`-seed=N` does it now).

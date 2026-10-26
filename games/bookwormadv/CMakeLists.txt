@@ -70,7 +70,7 @@ target_include_directories(bwa_jefflib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/jeffli
 target_link_libraries(bwa_jefflib PUBLIC sexyframework)
 add_executable(bookwormadv ${BWA_SOURCES})
 target_include_directories(bookwormadv PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
-target_link_libraries(bookwormadv PRIVATE bwa_luaapp bwa_popanim bwa_jefflib sexyframework)
+target_link_libraries(bookwormadv PRIVATE bwa_luaapp bwa_popanim bwa_swf bwa_jefflib sexyframework)
 if(NOT MSVC)
   target_compile_options(bwa_jefflib PRIVATE -Wall)
   target_compile_options(bookwormadv PRIVATE -Wall -Wno-overloaded-virtual)
