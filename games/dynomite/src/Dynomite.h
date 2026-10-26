@@ -28,6 +28,8 @@ class Dynomite : public Widget
 public:
 	FossilizedApp*		mApp;				// +0x58
 	BoardPart5c*		mBoard5c;			// +0x5c
+	int					mField68;			// +0x68 306
+	int					mField6c;			// +0x6c 153
 	int					mField70;			// +0x70 250, the launcher's middle
 	int					mDifficulty;		// +0x78 1-3 (the side bar's skill picture)
 	int					mGameType;			// +0x7c (the side bar's mode picture; 2 shows its sixth button)
