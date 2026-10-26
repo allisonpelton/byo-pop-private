@@ -50,7 +50,7 @@ LevelCompleteScreen::LevelCompleteScreen(MummyApp* theApp) :
 	if (mApp->mBoard == NULL)
 		mSeconds = 0;
 	else
-		mSeconds = (int) (mApp->mElapsedBase / 100 + (GetTickCount() - mApp->mBoard->mStartTick) / 1000);
+		mSeconds = (int) (mApp->mElapsedBase / 100 + (mApp->GameTick() - mApp->mBoard->mStartTick) / 1000);
 	mApp->mTotalTime = (double) mSeconds + mApp->mTotalTime;
 	mBase = 0;
 	mBonus = 0;

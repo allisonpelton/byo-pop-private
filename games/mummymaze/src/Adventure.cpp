@@ -937,7 +937,7 @@ void MummyApp::AdventureLeave()
 		return;
 	}
 	mWorldMap = aMap;
-	DWORD aNow = GetTickCount();
+	DWORD aNow = GameTick();
 	mTotalTime += (double) (int) (mElapsedBase / 100 + (aNow - (mBoard != NULL ? mBoard->mStartTick : aNow)) / 1000);
 	RemoveWorldMap();
 }
@@ -956,7 +956,7 @@ void MummyApp::OnWorldMapButton()
 	}
 	else if (mVictory == NULL)
 	{
-		DWORD aNow = GetTickCount();
+		DWORD aNow = GameTick();
 		DWORD aStart = mBoard->mStartTick;
 		int aBase = (int) mElapsedBase;
 		RemoveWorldMap();

@@ -220,7 +220,7 @@ void Board::StartLevel()
 	mStarted = true;
 	if (mApp->mSidePanel != NULL)
 		mApp->mSidePanel->MarkDirty();
-	mStartTick = GetTickCount();
+	mStartTick = mApp->GameTick();
 	int aMode = mApp->mGameMode;
 	if (aMode == MODE_ADVENTURE_DONE || aMode == MODE_CLASSIC_DONE)
 	{

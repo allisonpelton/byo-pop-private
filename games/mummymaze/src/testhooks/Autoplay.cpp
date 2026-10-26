@@ -246,7 +246,7 @@ void MummyApp::AutoplayUpdate()
 			for (int i = 0; i < 15; i++)
 				if (m->mProgress[i] == 15)
 					aSolved++;
-			Log(s, "adventure: %d chambers played, %d pyramids solved, time %d, caught %d", s->mLevels, aSolved, (int) mTotalTime, mDeaths);
+			Log(s, "adventure: %d chambers played, %d pyramids solved, caught %d times", s->mLevels, aSolved, mDeaths);
 			if (!mAutoplayShots.empty())
 				SaveScreenshot(StrFormat("%s-map.png", mAutoplayShots.c_str()));
 			Shutdown();
@@ -377,7 +377,7 @@ void MummyApp::AutoplayUpdate()
 		if (mVictory->mFade >= 255.0 && mVictory->mNameAsked && !s->mGameOverLogged)
 		{
 			s->mGameOverLogged = true;
-			Log(s, "victory: score %d", mScore);
+			Log(s, "victory: score %d, caught %d times", mScore, mDeaths);
 			if (!mAutoplayShots.empty())
 				SaveScreenshot(StrFormat("%s-victory.png", mAutoplayShots.c_str()));
 			mVictory->ButtonDepress(1);
