@@ -83,6 +83,14 @@ App slot 19 (+0x4c) is `Popup(string)`, slot 37 (+0x94) `PlaySample(id)`.
 `genres.py re/dynomite/inithook.tbl`): one field per resource, named after its file with the original's offset in a
 comment (a translated function that reads app+0x1298 finds its field by grepping the offset), and `// RAW:` lines for
 the parts loadtable.py does not fold (arrays filled with one picture, the PicFonts, the fossils and their copies,
-the masks multiplied into the egg sheets), which are translated by hand from `decread.py 419c30`. Next: the app
+the masks multiplied into the egg sheets), which are translated by hand from `decread.py 419c30`.
+
+State (2026-10-26): `src/AppLoad.cpp` is the whole loader translated (`FossilizedApp::LoadGame`, nothing RAW left;
+not compiled yet). `src/AppFields.draft` lists every field it uses with the original's offsets (the generated ones,
+then the arrays, fonts, fossils and fonts of Init), to become the fields of `FossilizedApp.h`; it also needs
+`mGrindInstance` +0x1a28, `mTicktockInstance` +0x1aa0, `mFootfallRumbleInstance` +0x1a90 (SoundInstance* from the
+sound manager's slot 4 `GetSoundInstance`), `mSound1a50` +0x1a50 (set NULL), and `GetGameImage(path)` (0x419ad0:
+`GetImage`, a popup and `mLoadingFailed` if missing, else `Palletize`). `src/AppLoad.draft` can go once the build
+works. Next: the app
 (`FossilizedApp.h/.cpp` from Init 0x41f820, InitHook, ButtonPress 0x418e90, ButtonDepress 0x4201b0), the title
 screen (0x4388d0), then the board (`Dynomite`, 0x404030) and its modes.
