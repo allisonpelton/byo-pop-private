@@ -14,6 +14,7 @@ class Dynomite;
 class Egg;
 class FlyingEgg;
 class FossilizedApp;
+class Graphics;
 class LoadedEgg;
 
 class Launcher
@@ -34,7 +35,7 @@ public:
 	MTRand				mRand;				// +0x88 seeded with the tick count
 	int					mFieldA4c;			// +0xa4c (the board's +0x158 + +0x70)
 	int					mFieldA50;			// +0xa50 (382)
-	int					mFieldA54;			// +0xa54 (as +0xa4c)
+	int					mFieldA54;			// +0xa54 the slingshot's middle (as +0xa4c)
 	int					mFieldA58;			// +0xa58 (432)
 	int					mFieldA5c;			// +0xa5c (50)
 	int					mFieldA60;			// +0xa60
@@ -55,6 +56,7 @@ public:
 	void				Load(int theColor);					// 0x401210: unless one is loaded
 	void				Fire();								// 0x4012a0
 	void				Freeze(Egg* theEgg);				// 0x4014f0
+	void				DrawSling(Graphics* g);				// 0x401940
 };
 
 }

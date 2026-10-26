@@ -2,8 +2,10 @@
 #include "AngleTable.h"
 #include "Dynomite.h"
 #include "Egg.h"
+#include "EggGrid.h"
 #include "FossilizedApp.h"
 #include "PortCompat.h"
+#include "Sprite.h"
 
 using namespace Sexy;
 
@@ -108,4 +110,24 @@ void Launcher::Freeze(Egg* theEgg)
 	mFrozen = true;
 	mHeld = theEgg;
 	mFieldAac = 0;
+}
+
+// 0x401940: the slingshot and its loaded egg, drawn lower by the ceiling's depth plus half the slingshot's height
+// once the ceiling comes past it
+void Launcher::DrawSling(Graphics* g)
+{
+	Point anOffset;
+	anOffset.mX = 0;
+	anOffset.mY = 0;
+	Pic* aPic = mApp->mPicSlingshot;
+	float aLimit = (float) (aPic->mHeight / 2) + mBoard->mGrid->mCeiling;
+	if ((float) mFieldA58 < aLimit)
+		anOffset.mY = (int) aLimit;
+	AddDrawOffset(anOffset);
+	aPic = mApp->mPicSlingshot;
+	aPic->Draw(mFieldA54 - (aPic->mWidth >> 1), mFieldA58 - (aPic->mHeight >> 1));
+	if (mLoaded != NULL)
+		mLoaded->Draw();
+	anOffset.mY = -anOffset.mY;
+	AddDrawOffset(anOffset);
 }
