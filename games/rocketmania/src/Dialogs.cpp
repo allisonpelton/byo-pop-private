@@ -1,6 +1,7 @@
 // The dialogs of Rocket Mania Deluxe (see Dialogs.h).
 
 #include "Dialogs.h"
+#include "Board.h"
 #include "RocketApp.h"
 #include "Screens.h"
 #include "GameText.h"
@@ -242,9 +243,16 @@ void ContinueDialog::ButtonDepress(int theId)
 	else if (theId == 1)
 	{
 		// (the original opens the register-to-load dialog here for an unregistered game)
+		// 0x403570: the saved game's mode and difficulty are the ones the game starts with
+		mApp->mGameSelector->mMode = mMode;
+		mApp->mGameSelector->mDifficulty = mSavedDifficulty;
 		mApp->KillDialog(DIALOG_CONTINUE);
 		mApp->mGameSelector->ResetHead();
 		mApp->mGameSelector->StartGame(true);
+		// the board that was just made takes the saved game, which is then deleted
+		if (mApp->mBoard != NULL)
+			mApp->mBoard->Load();
+		mApp->DeleteSavedGame(mMode);
 	}
 	else
 		Dialog2004::ButtonDepress(theId);

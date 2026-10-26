@@ -385,7 +385,9 @@ void RocketApp::ShowGameSelector()
 	RemoveBoardButtons();
 	if (mBoard != NULL)
 	{
-		// (closing the game in progress: saving it unless it is over, the Board is not translated yet)
+		// a game in progress is saved (0x41b420: unless it is finished) before the board goes
+		if (mBoard->mState != 2)
+			mBoard->Save();
 		mWidgetManager->RemoveWidget((Widget*) mBoard);
 		mBoard = NULL;
 	}
@@ -435,6 +437,20 @@ static unsigned int ReadLE32(const std::string& theData, size_t theOffset)
 		((unsigned int) (unsigned char) theData[theOffset + 2] << 16) | ((unsigned int) (unsigned char) theData[theOffset + 3] << 24);
 }
 
+// 0x41d380: the mode's saved game is deleted (a new game of the mode, or the loaded one once it is in the board)
+bool RocketApp::DeleteSavedGame(int theMode)
+{
+	return Platform::RemoveUserFile(SavePath(theMode));
+}
+
+// 0x42f730 (slot 31, Shutdown): a game in progress is saved on the way out
+void RocketApp::ShutdownHook()
+{
+	if (mBoard != NULL && mBoard->mState != 2)
+		mBoard->Save();
+	SexyApp::ShutdownHook();
+}
+
 // 0x4062b0: the file exists and starts with the save magic
 bool RocketApp::HasSavedGame(int theMode)
 {
@@ -468,7 +484,7 @@ bool RocketApp::ShowModeHint(int theHint, bool theForce)
 }
 
 // 0x42ea30: a game begins (or is continued): the board replaces the one in progress. Left out: the fade of the four
-// songs (app+0x2f4) and the deletion of this mode's saved game when it is a new one (0x41d380).
+// songs (app+0x2f4).
 void RocketApp::StartBoard(bool theContinuing)
 {
 	KillDialog(3);
@@ -493,7 +509,10 @@ void RocketApp::StartBoard(bool theContinuing)
 	mWidgetManager->SetFocus(mBoard);
 	AddBoardButtons();
 	if (!theContinuing)
+	{
 		KillDialog(1);
+		DeleteSavedGame(mMode);
+	}
 }
 
 // 0x42d1a0: the three buttons on the left of the screen. Each shows a picture over the column's own while the pointer is on

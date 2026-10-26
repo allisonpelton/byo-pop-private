@@ -131,6 +131,8 @@ public:
 	// strategy to savec)
 	static std::string		SavePath(int theMode);          // 0x42f700 (path relative to the user folder)
 	bool					HasSavedGame(int theMode);      // 0x4062b0
+	bool					DeleteSavedGame(int theMode);   // 0x41d380
+	virtual void			ShutdownHook() override;        // 0x42f730
 	bool					ReadSavedGame(int theMode, int* theDifficulty, int* theScore, int* theLevel);  // 0x4036f0
 
 	// the first-time explanation of a mode (0x42d670); true when it opened a dialog, which starts the game when closed

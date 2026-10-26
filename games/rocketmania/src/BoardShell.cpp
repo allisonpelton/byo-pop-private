@@ -1,5 +1,5 @@
 // The Board's widget shell: construction and the parts of the original that are not translated yet (Update 0x426f40,
-// the input handlers 0x4282a0-0x428780, saves 0x41b430-0x41c830; the drawing is in BoardDraw.cpp). See docs/GAME_NOTES.md for the map.
+// the input handlers 0x4282a0-0x428780, the saved games are in BoardSave.cpp, the drawing in BoardDraw.cpp). See docs/GAME_NOTES.md for the map.
 // What is here makes the translated rules (BoardLogic.cpp, BoardLogic2.cpp) build and run on a Board; each stub says
 // which original function it stands for.
 
@@ -230,11 +230,6 @@ void Board::Update()
 void Board::ButtonDepress(int theId)
 {
 	(void) theId;
-}
-
-// 0x41b690 (the saved games' loader is not translated yet)
-void Board::ResolveLoadedPieces()
-{
 }
 
 // ---------------------------------------------------------------------------------------------------------

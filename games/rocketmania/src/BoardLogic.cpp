@@ -66,7 +66,7 @@ Piece::Piece(int theBorn) :
 	m60(false), m61(false), mType(7), mKind(-1), mRotation(-1), mBorn(theBorn),
 	mPath(0), mPathFrom(-1), m7c(0), m80(0), m88(theBorn),
 	mSpecial(NULL), mHost(NULL), m94(false), m98(0), mFlash(NULL),
-	mIndex(0), mIndex2(0), ma8(3), mac(0), mb0(0), mb4(0)
+	mIndex(0), mIndex2(0), ma8(3), mac(0), mb0(0), mb4(0), mLoadedSpecial(0), mLoadedHost(0)
 {
 }
 
@@ -535,10 +535,13 @@ void Points::Draw(Graphics* g)
 // 0x41b660
 Piece* Board::FindLoadedPiece(int theId)
 {
-	for (std::list<Piece*>::iterator anItr = m504.begin(); anItr != m504.end(); ++anItr)
+	if (theId != 0)
 	{
-		if ((*anItr)->mId == theId)
-			return *anItr;
+		for (std::list<Piece*>::iterator anItr = m504.begin(); anItr != m504.end(); ++anItr)
+		{
+			if ((*anItr)->mId == theId)
+				return *anItr;
+		}
 	}
 	return NULL;
 }

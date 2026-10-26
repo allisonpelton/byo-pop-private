@@ -170,7 +170,23 @@ its KillDialog (0x42d620) gives the board the keyboard focus again when the last
 dimmed and with the pause window under every modal dialog, as the original does. The options dialog is not translated yet,
 so the Options button does nothing.
 
-Still to do after Draw (above): Save/Load 0x41b430-0x41c830, the dialogs (high scores 0x4064e0, options 0x411ba0, record 0x414060,
+Saved games (BoardSave.cpp, 2026-10-26): the writer 0x41c830 and the loader 0x41b880 share one order, so one visitor
+(Board::Fields) lists the plain fields for both. The file is the 2003 framework's Buffer: the magic 0xFADA0002, the app's mode
+and difficulty, the score, the level and the state, the random generator's state as a string (MTRand::Serialize, 2496 bytes),
+the 54 grid slots, the 6 top, the spare, the 9 left and the 9 right (a flag byte, then the piece when it is set), the board's
+plain fields, the generator's 25 counters, and the pieces that move about (a count, then the pieces). A piece is written
+with its own address as its number and its special and host as the addresses of those pieces; the loader reads a piece
+once per number (0x41b6f0, one list m504) and 0x41b690 turns the numbers into pieces. The port keeps the file layout, so
+a save of the original loads (the random state apart, which the original wrote with its own 2003 generator). The file is
+Players/savea.dat (classic), saveb.dat (arcade) and savec.dat (strategy) in the user folder. A game in progress is saved
+when the player goes back to the menu (0x42e010) and when the app shuts down (0x42f730, the port's ShutdownHook) unless
+its state is 2 (finished); a new game deletes the mode's save (0x42ea30, 0x41d380) and CONTINUE SAVED GAME (0x403380) makes
+the board, loads the save into it and deletes the file. Not translated: what a game saved in the middle of a level's end
+(mFc, m100, m104) shows again after loading (0x41b7e0 calls the buy-rockets screen 0x428620, the question 0x4286b0 and the
+next level 0x428bc0), so those flags are cleared and the game goes on from its state. Checked by saving a game, going to the
+menu and continuing it: the board, score, level and difficulty come back pixel for pixel.
+
+Still to do after Draw (above): the dialogs (high scores 0x4064e0, options 0x411ba0, record 0x414060,
 level-up 0x40c2c0, money 0x4118d0, buy rockets 0x401010, credits 0x403990, hint 0x408f60), the fireworks (Rocket 0x4172f0), the
 talking head (0x4161a0, 0x413aa0), the music fades, then the
 deliverables: the coordinator's `BYOPOP_BUY_rocketmania` line (cmake/ByopopStores.cmake has an

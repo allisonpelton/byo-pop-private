@@ -80,6 +80,7 @@ struct Piece
 	int			ma8;            // +0xa8 (3 at the start: the hits a bomb takes)
 	int			mac;            // +0xac (the shake of a tile that was moved, counts down by 2)
 	int			mb0, mb4;       // +0xb0 where a moved tile came from
+	int			mLoadedSpecial, mLoadedHost;    // (port) the numbers of mSpecial and mHost that a save holds, until 0x41b690 resolves them
 	Piece(int theBorn);
 };
 
@@ -291,10 +292,16 @@ public:
 	void			DrawWiggle(Graphics* g, const SexyString& theText, int thePhase, int theRed, int theGreen, int theBlue, int theAmplitude);  // 0x4219a0
 	void			DrawOutlined(Graphics* g, const SexyString& theText, int theLeft, int theRight, int theSideY, int theAboveY, int theBelowY);
 
-	// 0x41b660: a piece of m504 by its id
-	Piece*			FindLoadedPiece(int theId);
-	// 0x41b690: the references of the pieces read from a save
-	void			ResolveLoadedPieces();
+	// ---- saved games (BoardSave.cpp)
+	Piece*			FindLoadedPiece(int theId);                             // 0x41b660: a piece of m504 by its number
+	void			ResolveLoadedPieces();                                  // 0x41b690: the references of the pieces read from a save
+	void			WritePiece(Buffer* theBuffer, Piece* thePiece);         // 0x41c5a0
+	void			ReadPiece(const Buffer* theBuffer, Piece* thePiece);    // 0x41b430
+	Piece*			LoadPiece(const Buffer* theBuffer);                     // 0x41b6f0
+	template<class Visitor> void	Fields(Visitor& theVisitor);            // the plain fields, in the file's order
+	bool			Save();                                                 // 0x41c830
+	bool			Load();                                                 // 0x41b880
+	void			AfterLoad();                                            // 0x41b7e0
 
 	// ---- setup (BoardSetup.cpp)
 	void			ResetState(bool theContinuing);                         // 0x422120
