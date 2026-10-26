@@ -923,7 +923,7 @@ static void Level_Won(Level* theLevel)
 		while (true)
 		{
 			theLevel->shooters.current->state = 2;
-			Beams_Fn411900(&theLevel->shooters.current->beams);
+			Beams_RemoveAll(&theLevel->shooters.current->beams);
 			Enemy* anEnemy = theLevel->enemies.current;
 			if (anEnemy == nullptr)
 				break;
@@ -948,13 +948,13 @@ int Level_Update(Level* theLevel)
 	}
 	if (theLevel->kind == 5 && theLevel->age < 3.0f)
 		Fn40d040();
-	if (gLeave != 0 && theLevel->kind == 0 && theLevel->state != 2)
+	if (gEscape != 0 && theLevel->kind == 0 && theLevel->state != 2)
 	{
 		theLevel->state = 2;
-		gLeave = 0;
+		gEscape = 0;
 	}
 	if (theLevel->state == 2)
-		return Level_UpdateLeaving(theLevel);
+		return Level_UpdatePaused(theLevel);
 	if (gDemo == 0 || theLevel->kind != 0)
 	{
 		theLevel->clicked = Mouse_Pressed(1);
@@ -991,7 +991,7 @@ int Level_Update(Level* theLevel)
 		}
 	}
 	else
-		Level_UpdateRandom(theLevel);
+		Level_StartRandom(theLevel);
 	Obj_Update(theLevel);
 	List_Each(&theLevel->systems, [&](ParticleSystem* aSystem) {
 		if (ParticleSystem_Update(aSystem) == 0)
@@ -1030,7 +1030,7 @@ int Level_Update(Level* theLevel)
 	{
 		if (theLevel->state == 1)
 		{
-			List<Obj>* aFills = &theLevel->fills;
+			List<Cell>* aFills = &theLevel->fills;
 			if (aFills->current == nullptr)
 			{
 				if (theLevel->kind == 0 && theLevel->unk430.current == nullptr && theLevel->totalCells != 0 &&
@@ -1049,7 +1049,7 @@ int Level_Update(Level* theLevel)
 				if ((int)theLevel->age % 0x78 == 0 && theLevel->kind == 0 && gLevels.current->kind != 0xe &&
 					theLevel->totalCells != 0)
 					Sound_Play(theLevel->fillSound);
-				List_Each(aFills, [&](Obj* aFill) {
+				List_Each(aFills, [&](Cell* aFill) {
 					if (theLevel->totalCells != 0 && Fill_Update(aFill) == 0)
 					{
 						List_Unlink(aFills);
@@ -1065,7 +1065,7 @@ int Level_Update(Level* theLevel)
 		}
 		else if (theLevel->state == 3)
 		{
-			List<Obj>* aFills = &theLevel->fills;
+			List<Cell>* aFills = &theLevel->fills;
 			if (aFills->current == nullptr)
 			{
 				if (theLevel->texts.head == nullptr)
@@ -1073,7 +1073,7 @@ int Level_Update(Level* theLevel)
 			}
 			else
 			{
-				List_Each(aFills, [&](Obj* aFill) {
+				List_Each(aFills, [&](Cell* aFill) {
 					if (Fill_Update(aFill) == 0)
 						List_Unlink(aFills);
 				});
@@ -1112,6 +1112,275 @@ int Level_Update(Level* theLevel)
 		}
 	}
 	return aResult;
+}
+
+void Level_Draw(Level* theLevel)
+{
+	if (theLevel->seed != 0)
+		return;
+	Shooter* aShooter = theLevel->shooters.current;
+	if (aShooter != nullptr && aShooter->image != nullptr)
+		Shooter_Draw(aShooter);
+	List_Each(&theLevel->fills, [](Cell* aCell) { Cell_Redraw(aCell); });
+	List_Each(&theLevel->systems, [](ParticleSystem* aSystem) { ParticleSystem_Draw(aSystem); });
+	List_Each(&theLevel->enemies, [](Enemy* anEnemy) { Enemy_Draw(anEnemy); });
+	List_Each(&theLevel->unk46c, [](Obj* anObj) { Fn419790(anObj); });
+	List_Each(&theLevel->unk430, [](Obj* anObj) { Fn418420(anObj); });
+	List_Each(&theLevel->stars, [](Obj* aStar) { Star_Draw(aStar); });
+	if (theLevel->panels.current != nullptr)
+	{
+		theLevel->panels.current = theLevel->panels.head;
+		Panel_Draw(theLevel->panels.head, theLevel->age < 300.0f);
+	}
+	List_Each(&theLevel->menus, [](Menu* aMenu) { Menu_Draw(aMenu); });
+	DrawList_Flush();
+	// the first one leaving (state 3) is drawn again on top, and ends the walk
+	List_Each(&theLevel->unk46c, [&](Obj* anObj) {
+		if (anObj->state == 3)
+		{
+			Fn419880(anObj);
+			if (theLevel->unk46c.current != nullptr)
+				theLevel->unk46c.current = theLevel->unk46c.tail;
+		}
+	});
+	List_Each(&theLevel->texts, [](Text* aText) { Text_Draw(aText); });
+	List_Each(&theLevel->pointers, [](Obj* aPointer) { Pointer_Draw(aPointer); });
+	DrawList_Flush();
+	Level_DrawTrialTime(theLevel);
+	if (theLevel->state == 2)
+		DrawPaused();
+}
+
+// The enemies not in state 1
+int Level_EnemiesLeft(Level* theLevel)
+{
+	int aCount = 0;
+	List_Each(&theLevel->enemies, [&](Enemy* anEnemy) {
+		if (anEnemy->state != 1)
+			aCount = aCount + 1;
+	});
+	return aCount;
+}
+
+// 0x4111a0: a new star (a plain object) before the current one
+void Star_Append(List<Obj>* theList)
+{
+	Obj* aStar = (Obj*)::operator new(sizeof(Obj));
+	Obj_Init(aStar);
+	List_InsertBefore(theList, aStar);
+}
+
+void Level_AddStars(Level* theLevel)
+{
+	List<Obj>* aList = &theLevel->stars;
+	int n = 0x28;
+	do
+	{
+		Star_Append(aList);
+		aList->current->x = (float)RandRange(0, 800);
+		aList->current->y = (float)RandRange(0, 0x250);
+		aList->current->vx = (float)((double)RandRange(0x14, 0x32) / 25.0 * 0.035);
+		aList->current->drawKind = 2;
+		aList->current->midHandle = 1;
+		aList->current->dirty = 1;
+		Animation* anAnim = Animation_Find("star", &aList->current->frameCount, &aList->current->frameTime);
+		n = n + -1;
+		aList->current->anim = anAnim;
+	} while (n != 0);
+}
+
+// The first walk places mirrored pairs (kinds 7 on), the second single enemies (kinds 0 on); an enemy that finds no
+// place is removed
+void Level_AddRandomEnemies(Level* theLevel, int theFirst, int theSecond)
+{
+	int aTint = RandRange(2, 8);
+	int aFirstKinds;
+	int aSecondKinds;
+	Level_EnemyCounts(theLevel, &theFirst, &theSecond, &aFirstKinds, &aSecondKinds);
+	int aKind = theFirst;
+	for (int i = 0; i < theFirst; i = i + 1)
+	{
+		if (i % 2 == 0)
+			aKind = RandRange(7, aFirstKinds + 7);
+		List_Each(&gEnemyDefs, [&](Enemy* aDef) {
+			if (aDef->kind != aKind)
+				return;
+			List<Enemy>* anEnemies = &theLevel->enemies;
+			Enemy_Append(anEnemies);
+			Enemy_CopyDef(anEnemies->current, gEnemyDefs.current);
+			Enemy* anEnemy = anEnemies->current;
+			if (anEnemy->prev == nullptr || i % 2 == 0)
+			{
+				if (Enemy_PlaceFirst(anEnemy) == 0)
+				{
+					List_RemoveCurrent(anEnemies);
+					i = i + 1;
+				}
+				else
+				{
+					int r = RandRange(-1, 1);
+					anEnemies->current->tint = r + aTint;
+				}
+			}
+			else
+			{
+				// the second of a pair mirrors the first
+				int aSymmetry = gLevels.current->symmetry;
+				if (aSymmetry == 0)
+				{
+					int r = RandRange(0, 99);
+					anEnemies->current->x = 800.0f - Node_Prev(anEnemies->current)->x;
+					if (r < 0x33)
+						anEnemies->current->y = Node_Prev(anEnemies->current)->y;
+					else
+						anEnemies->current->y = 528.0f - Node_Prev(anEnemies->current)->y;
+				}
+				else if (aSymmetry == 1)
+				{
+					anEnemies->current->x = 800.0f - Node_Prev(anEnemies->current)->x;
+					anEnemies->current->y = Node_Prev(anEnemies->current)->y;
+				}
+				else if (aSymmetry == 2)
+				{
+					anEnemies->current->x = 800.0f - Node_Prev(anEnemies->current)->x;
+					anEnemies->current->y = 528.0f - Node_Prev(anEnemies->current)->y;
+				}
+				anEnemies->current->tint = Node_Prev(anEnemies->current)->tint;
+			}
+			if (gEnemyDefs.current != nullptr)
+				gEnemyDefs.current = gEnemyDefs.tail;
+		});
+	}
+	for (int i = 0; i < theSecond; i = i + 1)
+	{
+		int aSecondKind = RandRange(0, aSecondKinds);
+		List_Each(&gEnemyDefs, [&](Enemy* aDef) {
+			if (aDef->kind != aSecondKind)
+				return;
+			List<Enemy>* anEnemies = &theLevel->enemies;
+			Enemy_Append(anEnemies);
+			Enemy_CopyDef(anEnemies->current, gEnemyDefs.current);
+			if (Enemy_Place(anEnemies->current) == 0)
+				List_RemoveCurrent(anEnemies);
+			else
+			{
+				int r = RandRange(-1, 1);
+				anEnemies->current->tint = r + aTint;
+				anEnemies->current->tint = r + aTint;
+			}
+			if (gEnemyDefs.current != nullptr)
+				gEnemyDefs.current = gEnemyDefs.tail;
+		});
+	}
+}
+
+// _strupr in the C locale
+static void StrUpper(char* theText)
+{
+	for (char* c = theText; *c != 0; c++)
+	{
+		if (*c >= 'a' && *c <= 'z')
+			*c = (char)(*c - 0x20);
+	}
+}
+
+void Level_ShowStart(Level* theLevel)
+{
+	char aText[64];
+	if (theLevel->kind == 0)
+	{
+		std::sprintf(aText, GT(0x458ee0), (int)theLevel->title[0], (int)theLevel->title[1], theLevel->number);
+		List<Text>* aTexts = &theLevel->texts;
+		Text_Append(aTexts);
+		StrUpper(aText);
+		Text_Make(aTexts->current, aText, Font_Find("main_font"), 400, 200, 0, 200, 4000, 200, 0, 0);
+		std::sprintf(aText, GT(0x458ec8), theLevel->fillQuota, "%");
+		Text_Append(aTexts);
+		StrUpper(aText);
+		Text_Make(aTexts->current, aText, Font_Find("main_font"), 400, 0x104, 0, 200, 4000, 200, 0, 0);
+	}
+}
+
+void Beams_RemoveAll(List<Obj>* theList)
+{
+	while (List_RemoveCurrent(theList))
+		;
+}
+
+void Level_StartRandom(Level* theLevel)
+{
+	for (int i = 0; i < 50; i++)
+		theLevel->columns[i] = Cells_New();
+	Level_StartSong(theLevel, 1);
+	Image* aBack = Bank_FindImage2(&gArtBank, theLevel->backImage);
+	theLevel->background = new Image;
+	Image_Copy(theLevel->background, aBack);
+	Level_MakeRandom(theLevel, theLevel->seed);
+	Level_AddRandomEnemies(theLevel, theLevel->numWalkers, theLevel->numRollers);
+	Level_MakeEdges(theLevel);
+	Fn40d040();
+	Level_AddPointer(theLevel);
+	Dirty_AddClipped(&gDirty, 0, 0, 800, 600, kClip);
+	if (theLevel->next != nullptr && Node_Next(theLevel)->kind == 0xb)
+		gGoTo = 0xb;
+	// inside the frame the cells start as state 6 (not yet reached by the fill); the fill starts in the corner
+	for (int aRow = 1; aRow < gLevels.current->rows - 1; aRow++)
+	{
+		for (int aCol = 1; aCol < gLevels.current->cols - 1; aCol++)
+			theLevel->columns[aCol][aRow].state = 6;
+	}
+	Cell_StartFill(&theLevel->columns[gLevels.current->cols - 2][gLevels.current->rows - 2]);
+}
+
+int Level_UpdatePaused(Level* theLevel)
+{
+	while (List_RemoveCurrent(&theLevel->texts))
+		;
+	if (gEscape != 0)
+	{
+		gGoTo = 1;
+		return 0;
+	}
+	if (Key_Pressed(0xd) != 0)
+		theLevel->state = 1;
+	return 1;
+}
+
+void Level_GameOver(Level* theLevel)
+{
+	char aText[32];
+	List<Text>* aTexts = &theLevel->texts;
+	theLevel->gameOver = (int)(int64_t)theLevel->age;
+	while (List_RemoveCurrent(aTexts))
+		;
+	Text_Append(aTexts);
+	int aColour = RandRange(2, 9);
+	std::sprintf(aText, GT(0x458f08), aColour);
+	Text_Make(aTexts->current, aText, Font_Find("main_font"), 400, 0xeb, 0, 500, 999999, 200, 0, 0);
+	Text_Append(aTexts);
+	std::sprintf(aText, GT(0x458ef0), aColour);
+	Text_Make(aTexts->current, aText, Font_Find("main_font"), 400, 0x109, 100, 500, 999999, 200, 0, 0);
+	SaveProfiles();
+}
+
+void Panel_Append(List<Panel>* theList)
+{
+	Panel* aPanel = (Panel*)::operator new(sizeof(Panel));
+	Obj_Init(aPanel);
+	List_Init(&aPanel->items);
+	List_InsertBefore(theList, aPanel);
+}
+
+void Panel_Destroy(Panel* thePanel)
+{
+	List_Clear(&thePanel->items);
+	Obj_Destroy(thePanel);
+}
+
+void List_DeleteNode(Panel* thePanel)
+{
+	Panel_Destroy(thePanel);
+	::operator delete(thePanel);
 }
 
 // The select-level screen's marker (an item of kind 0x15) along the current level set, up to two levels past the

@@ -35,7 +35,12 @@ static_assert(sizeof(Cell) == 0xe4, "Cell");
 // The board's side panel (+0x40c; its members are not named yet)
 struct Panel : Obj
 {
+	uint8_t unkb0[0x30];       // +0xb0
+	List<Obj> items;           // +0xe0
 };
+static_assert(sizeof(Panel) == 0xec, "Panel");
+void Panel_Destroy(Panel* thePanel);                             // 0x411e30
+void List_DeleteNode(Panel* thePanel);                           // 0x411fd0's delete
 
 // 0x110 bytes (0x404fc0 constructs one)
 struct Enemy : Obj
@@ -94,7 +99,7 @@ struct Level : Obj
 {
 	// kind +0x08: 0 a board, 1 main_menu, 2 high_score_entry, 3 high_scores, 4 credits, 5 select_level,
 	// 6 select_level2, 7 options, 8 opening_nag, 9 closing_nag, 10 expiring_nag, 0xb mission_complete, 0xc help,
-	// 0xd help2, 0xe logo, 0x10 change_user; state +0x0c: 1 playing, 2 leaving, 3 won
+	// 0xd help2, 0xe logo, 0x10 change_user; state +0x0c: 1 playing, 2 paused, 3 won
 	Cell* columns[50];               // +0x0b0
 	char title[0x40];                // +0x178
 	int number;                      // +0x1b8
@@ -138,7 +143,7 @@ struct Level : Obj
 	int unk3e0;                      // +0x3e0
 	int musicPending;                // +0x3e4
 	List<Shooter> shooters;          // +0x3e8
-	List<Obj> fills;                 // +0x3f4
+	List<Cell> fills;                // +0x3f4  cells being filled (the columns own them)
 	List<ParticleSystem> systems;    // +0x400
 	List<Panel> panels;              // +0x40c
 	List<Enemy> enemies;             // +0x418  the current one is the one the game file's tags go to
@@ -194,7 +199,7 @@ void Cell_StartFill(Cell* theCell);                              // 0x404370
 int Cell_Touches(Cell* theCell, int theKind);                    // 0x403ee0
 void Cell_MakeEdge(Cell* theCell);                               // 0x404080
 void Cell_Redraw(Cell* theCell);                                 // 0x403540
-int Fill_Update(Obj* theFill);                                   // 0x404cf0
+int Fill_Update(Cell* theCell);                                  // 0x404cf0
 void Panel_Append(List<Panel>* theList);                         // 0x411ea0
 void Panel_Setup(Panel* thePanel);                               // 0x417ef0
 void Panel_FromXml(Panel* thePanel, const char* p, const XmlTag* theTag); // 0x417d40
@@ -205,7 +210,7 @@ Shooter* Shooter_Init(Shooter* theShooter);                      // 0x41d540
 void Shooter_Setup(Shooter* theShooter);                         // 0x41b0f0
 void Shooter_FromXml(Shooter* theShooter, const char* p, const XmlTag* theTag); // 0x41aec0
 void Shooter_Update(Shooter* theShooter);                        // 0x41e200
-void Beams_Fn411900(List<Obj>* theList);                         // 0x411900
+void Beams_RemoveAll(List<Obj>* theList);                        // 0x411900
 void Enemy_Insert(List<Enemy>* theList);                         // 0x4106b0
 Enemy* Enemy_Init(Enemy* theEnemy);                              // 0x404fc0
 void Enemy_FromXml(Enemy* theEnemy, const char* p, const XmlTag* theTag); // 0x405040
@@ -222,14 +227,30 @@ int Text_FromXml(Text* theText, const char* p, const XmlTag* theTag); // 0x41f95
 void Text_Make(Text* theText, const char* theString, Font* theFont, int theX, int theY, int theA, int theB,
 	int theC, int theD, int theE, int theF);                     // 0x41f0e0
 int Text_Update(Text* theText);                                  // 0x41f1d0
-void Star_Append(List<Obj>* theList);                            // 0x4111a0
 int Star_Update(Obj* theStar);                                   // 0x41e2c0
 void Level_AddStars(Level* theLevel);                            // 0x411440
 int Fn419770(Obj* theObj);                                       // 0x419770
 int Fn41ae10(Obj* theObj);                                       // 0x41ae10
-void Level_UpdateRandom(Level* theLevel);                        // 0x4119c0
-int Level_UpdateLeaving(Level* theLevel);                        // 0x411bc0
+void Level_StartRandom(Level* theLevel);                         // 0x4119c0: a random board, on its first update
+int Level_UpdatePaused(Level* theLevel);                         // 0x411bc0
+void Shooter_Draw(Shooter* theShooter);                          // 0x41d430
+void Enemy_Draw(Enemy* theEnemy);                                // 0x4055b0
+void Fn419790(Obj* theObj);                                      // 0x419790
+void Fn419880(Obj* theObj);                                      // 0x419880
+void Fn418420(Obj* theObj);                                      // 0x418420
+void Star_Draw(Obj* theStar);                                    // 0x41e310
+void Menu_Draw(Menu* theMenu);                                   // 0x4154d0
+void Text_Draw(Text* theText);                                   // 0x41f6f0
+void Level_Draw(Level* theLevel);                                // 0x410d10
 int Level_EnemiesLeft(Level* theLevel);                          // 0x4110e0
+void Star_Append(List<Obj>* theList);                            // 0x4111a0
+void Level_AddRandomEnemies(Level* theLevel, int theFirst, int theSecond); // 0x411500
+void Level_ShowStart(Level* theLevel);                           // 0x4117c0: the level number and quota
+void Level_GameOver(Level* theLevel);                            // 0x411c10
+void Enemy_Append(List<Enemy>* theList);                         // 0x4072b0
+void Enemy_CopyDef(Enemy* theEnemy, const Enemy* theDef);        // 0x408900
+int Enemy_Place(Enemy* theEnemy);                                // 0x407080: 0 when there is no room
+int Enemy_PlaceFirst(Enemy* theEnemy);                           // 0x407b30: 0 when there is no room
 
 } // namespace cb
 

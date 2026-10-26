@@ -45,7 +45,7 @@ struct LevelSet
 extern char gSongName[0x40];               // 0x6e5aa8  a song to start, "" for none
 extern int gLogoCount;                     // 0x6e5ae8
 extern int gGoTo;                          // 0x460034  the kind of screen to go to next
-extern int gLeave;                         // 0x46e5e4
+extern int gEscape;                        // 0x46e5e4  Esc on a board: pauses it, or leaves it when paused
 extern int gDemo;                          // 0x46e5c8  the game plays itself
 extern List<LevelSet> gLevelSets;          // 0x4700d4
 extern int gProfile;                       // 0x46e24c
