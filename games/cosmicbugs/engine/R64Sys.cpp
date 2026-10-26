@@ -149,6 +149,17 @@ int Key_Down(int theKey)
 	return gKeysDown[theKey] != 0;
 }
 
+// A key's slot is 1 from its press (Sys_KeyEvent sets it only from 0) until this reads it, then 2 until its release
+int Key_Pressed(int theKey)
+{
+	if (gKeysDown[theKey] == 1)
+	{
+		gKeysDown[theKey] = 2;
+		return 1;
+	}
+	return 0;
+}
+
 void Mouse_Update(int* x, int* y)
 {
 	if (gHost != nullptr)
