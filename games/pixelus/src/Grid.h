@@ -79,6 +79,7 @@ public:
 	int			mSide;				// +0xb058
 	bool		mDone;				// +0xb05c
 	int			mMoveCount;			// +0xb060
+	int			mTime;				// +0xb064 milliseconds spent on the puzzle (10 per update until it is done)
 
 	bool		mCanPlace;			// +0xb069 a thrown tile would stay
 	bool		mSlidesOut;			// +0xb068 a thrown tile would leave the grid

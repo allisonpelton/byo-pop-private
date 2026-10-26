@@ -549,6 +549,8 @@ void Board::Update()
 	if (mApp->IsPaused())
 		return;
 
+	if (!mGrid->mDone)
+		mGrid->mTime += 10;
 	UpdateTiles();
 	mTileMaster->Update();
 	for (int r = 0; r < Grid::MAX_SIZE; r++)

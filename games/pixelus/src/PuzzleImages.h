@@ -20,6 +20,10 @@ bool LoadPuzzlePicture(PixelusApp* theApp, Grid* theGrid);
 // they are the picture's colours.
 MemoryImage* MakeMiniImage(PixelusApp* theApp, const Grid& theGrid, bool thePicture);
 
+// the finished puzzle at 20 pixels a cell: a gray tile of the picture's colour on every cell that wanted one (what the
+// puzzle-completed screen shows in its frame; 0x4344d0 draws the grid into a new image)
+MemoryImage* MakeSolvedImage(PixelusApp* theApp, const Grid& theGrid);
+
 }
 
 #endif

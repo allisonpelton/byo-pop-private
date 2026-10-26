@@ -9,6 +9,10 @@
 #include "MainMenu.h"
 #include "IslandMap.h"
 #include "TempleScreen.h"
+#include "PuzzleCompleted.h"
+#include "StoryScreen.h"
+#include "PuzzleImages.h"
+#include "Grid.h"
 #include "Temples.h"
 #include "UserDialogs.h"
 #include "GameText.h"
@@ -51,6 +55,10 @@ PixelusApp::PixelusApp()
 	mUserDirectory = NULL;
 	mProgress = NULL;
 	mCurrentTemple = 0;
+	mAutoplay = false;
+	mAutoplayPuzzles = 3;
+	mAutoplayCap = 200000;
+	mAutoplayState = NULL;
 
 	mProdName = "Pixelus";
 	mTitle = "Pixelus " + mProductVersion;
@@ -472,9 +480,61 @@ void PixelusApp::SkipTutorialOK()
 	BackToIsland();
 }
 
-void PixelusApp::ShowStory(bool theFromMenu, int theChapter)
+// 0x432960: a conversation, named by the temple the player is in and the one that has just opened. A script that is not
+// there is no conversation
+void PixelusApp::ShowStory(bool theFromMenu, int theMode, int theTo)
 {
-	ShowIslandMap();
+	int aFrom = mCurrentTemple;
+	int aTo = theTo;
+	switch (theMode)
+	{
+	case 0:
+		aFrom = aTo = 0;
+		break;
+	case 2:
+		aTo = aFrom;
+		break;
+	case 3:
+		aFrom = NUM_TEMPLES - 1;
+		aTo = 0;
+		break;
+	}
+
+	StoryScreen* aStory = new StoryScreen(this, theFromMenu, aFrom, aTo, theMode);
+	if (!aStory->HasSpeeches())
+	{
+		delete aStory;
+		EndStory(theFromMenu);
+		return;
+	}
+	if (mStoryScreen != NULL)
+	{
+		mWidgetManager->RemoveWidget(mStoryScreen);
+		SafeDeleteWidget(mStoryScreen);
+	}
+	mStoryScreen = aStory;
+	mStoryScreen->Resize(0, 0, mWidth, mHeight);
+	mWidgetManager->AddWidget(mStoryScreen);
+	mWidgetManager->SetFocus(mStoryScreen);
+	FadeOutAllMusic(this);
+}
+
+// 0x432d40 / 0x432d80: the story is over
+void PixelusApp::EndStory(bool theToMenu)
+{
+	if (mStoryScreen != NULL)
+	{
+		mWidgetManager->RemoveWidget(mStoryScreen);
+		SafeDeleteWidget(mStoryScreen);
+		mStoryScreen = NULL;
+	}
+	if (theToMenu)
+	{
+		ShowMainMenu();
+		StartMusic(this, MUSIC_PIXELUS_MAIN_MENU_LOOP_V02, true);
+	}
+	else
+		ShowIslandMap();
 }
 
 // 0x432550: the puzzle screen over the whole window
@@ -524,8 +584,59 @@ void PixelusApp::ShowHint()
 		mBoard->ShowHint();
 }
 
+// 0x435250: the picture of the finished puzzle goes into the tablet of the puzzle-completed screen, which comes over
+// the board
 void PixelusApp::PuzzleCompleted(Board* theBoard)
 {
+	Grid* aGrid = theBoard->mGrid;
+	if (!aGrid->mHasPicture)
+		LoadPuzzlePicture(this, aGrid);
+	std::string aSolution;
+	for (size_t i = 0; i < aGrid->mHistory.size(); i++)
+		aSolution += Grid::MoveToString(aGrid->mHistory[i]);
+
+	if (mPuzzleCompleted != NULL)
+	{
+		mWidgetManager->RemoveWidget(mPuzzleCompleted);
+		SafeDeleteWidget(mPuzzleCompleted);
+	}
+	mPuzzleCompleted = new PuzzleCompletedScreen(this, MakeSolvedImage(this, *aGrid), Board::GRID_X, Board::GRID_Y,
+		aGrid->mTime, aGrid->mMoveCount, aSolution, aGrid->mTitle, theBoard->mUuid);
+	mPuzzleCompleted->Resize(0, 0, mWidth, mHeight);
+	mWidgetManager->AddWidget(mPuzzleCompleted);
+	mWidgetManager->SetFocus(mPuzzleCompleted);
+}
+
+// the tablet's button: the board goes, and the temple's puzzles or, when a temple has opened or been finished, the island
+// comes
+void PixelusApp::ContinueAfterPuzzle(int theOpenedTemple, bool theTempleDone, bool theGameDone)
+{
+	if (mPuzzleCompleted != NULL)
+	{
+		mWidgetManager->RemoveWidget(mPuzzleCompleted);
+		SafeDeleteWidget(mPuzzleCompleted);
+		mPuzzleCompleted = NULL;
+	}
+	if (mBoard != NULL)
+	{
+		mWidgetManager->RemoveWidget(mBoard);
+		SafeDeleteWidget(mBoard);
+		mBoard = NULL;
+	}
+	if (theGameDone)
+	{
+		PlaySample(SOUND_PIXELUS_GAME_COMPLETED_STING_V01);
+		ShowStory(false, 3);
+		return;
+	}
+	if (theTempleDone)
+		PlaySample(SOUND_PIXELUS_TEMPLE_COMPLETED_STING_V01);
+	if (theOpenedTemple >= 0)
+		ShowStory(false, 1, theOpenedTemple);
+	else if (theTempleDone)
+		BackToIsland();
+	else
+		ShowTemple();
 }
 
 // 0x435310: the answers of the dialogs the game opens (2000 + id: the yes or OK button, 3000 + id: the no)
@@ -583,6 +694,20 @@ void PixelusApp::ButtonDepress(int theId)
 		return;
 	}
 	NcApp::ButtonDepress(theId);
+}
+
+// 0x4e2f80: the quit question was answered yes
+void PixelusApp::UpdateFrames()
+{
+	NcApp::UpdateFrames();
+	if (mQuitRequested)
+	{
+		mQuitRequested = false;
+		Shutdown();
+		return;
+	}
+	if (mAutoplay)
+		AutoplayUpdate();
 }
 
 // 0x4333a0 (slot 84)

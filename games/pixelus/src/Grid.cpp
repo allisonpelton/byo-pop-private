@@ -44,6 +44,7 @@ void Grid::Clear()
 	mSide = SIDE_UP;
 	mDone = false;
 	mMoveCount = 0;
+	mTime = 0;
 	mCanPlace = false;
 	mSlidesOut = false;
 	mLandCol = mLandRow = 0;

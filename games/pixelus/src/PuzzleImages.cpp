@@ -53,7 +53,7 @@ bool Sexy::LoadPuzzlePicture(PixelusApp* theApp, Grid* theGrid)
 	theGrid->mHasPicture = false;
 	if (theGrid->mName.empty())
 		return false;
-	DDImage* anImage = theApp->GetImage("images\levels\\" + theGrid->mName, false);
+	DDImage* anImage = theApp->GetImage("images\\levels\\" + theGrid->mName, false);
 	if (anImage == NULL)
 		return false;
 	const unsigned int* aBits = (const unsigned int*) anImage->GetBits();
@@ -114,6 +114,27 @@ MemoryImage* Sexy::MakeMiniImage(PixelusApp* theApp, const Grid& theGrid, bool t
 				g.DrawImage(theApp->mImages[IMAGE_BOUNCYBLOCK_6X6], aX, aY);
 			if (aCell.mStart)
 				g.DrawImage(theApp->mImages[IMAGE_STICKYSPOT_6X6], aX, aY);
+		}
+	return anImage;
+}
+
+MemoryImage* Sexy::MakeSolvedImage(PixelusApp* theApp, const Grid& theGrid)
+{
+	const int S = Grid::CELL_SIZE;
+	MemoryImage* anImage = new MemoryImage(theApp);
+	anImage->Create(theGrid.mCols * S, theGrid.mRows * S);
+	anImage->SetImageMode(true, true);
+
+	Graphics g(anImage);
+	for (int r = 0; r < theGrid.mRows; r++)
+		for (int c = 0; c < theGrid.mCols; c++)
+		{
+			if (!theGrid.mCells[r][c].mWanted)
+				continue;
+			unsigned int aColor = theGrid.mHasPicture ? theGrid.mPicture[r][c] : 0xffcccccc;
+			g.SetColorizeImages(true);
+			g.SetColor(Color((aColor >> 16) & 0xff, (aColor >> 8) & 0xff, aColor & 0xff));
+			g.DrawImage(theApp->mImages[IMAGE_GRAYTILE_20X20], c * S, r * S);
 		}
 	return anImage;
 }
