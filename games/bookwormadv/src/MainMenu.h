@@ -136,6 +136,15 @@ public:
 	void CloseTooltips();
 	// 0x47d670: whether to quit, Lex in tears behind the question (the app's DIALOG_REALLY_QUIT: its yes quits)
 	void AskReallyQuit();
+	// 0x47c290: the arena's door, once it is open: the scripts' timed mode begins, and a new run goes to its book
+	// (ResetTimedMode first) unless the profile has one in progress (TM_InGame), which the player is asked whether
+	// to go on with (dialog DIALOG_CONTINUE_GAME, answered in GameApp::ButtonDepress). The things of the menu are
+	// off meanwhile.
+	void StartArena();
+	// 0x47c170: the answer to that question. theContinue: the saved run (the book under the menu, then the curtain;
+	// the new game's curtain when the run was at its checkpoint, which that one takes to the treasure screen);
+	// else a new run (ResetTimedMode, then the new game's curtain)
+	void ContinueArena(bool theContinue);
 
 	// Widget
 	void Update() override;                       // 0x47c5b0

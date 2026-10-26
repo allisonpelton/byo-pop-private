@@ -646,7 +646,15 @@ void MainMenu::MouseUp(int x, int y, int theClickCount)
 			}
 			break;
 		case ITEM_ARENA:
-			SDL_Log("MainMenu: the arena (0x47c290) is not ported yet");
+			// 0x47bc2e: only once the arena is unlocked and the player is in the second book or the first's sixth
+			// chapter
+			if (mApp->mProfile->KeyExists("UnlockedArena") && mApp->mProfile->GetBool("UnlockedArena")) {
+				if (mApp->mProfile->GetInt("CurrentBook") > 1 || mApp->mProfile->GetInt("CurrentChapter") >= 6) {
+					SetDisabled(true);
+					StartArena();
+				}
+				mApp->SetCursor(CURSOR_POINTER);
+			}
 			break;
 		case ITEM_HALL_OF_FAME:
 			// 0x47be8f: the menu goes dim, the whole curtain closes, and the hall of fame comes (GameApp::OpenHallOfFame)
@@ -701,6 +709,46 @@ void MainMenu::AskReallyQuit()
 	aDialog->SetAllowDrag(false);
 	MarkDirty();
 	mReallyQuit = true;
+}
+
+void MainMenu::StartArena()
+{
+	// 0x47c290
+	lua_pushboolean(mApp->mLua->L, 1);
+	mApp->mLua->Call("main.SetTimedMode", 1, 0);
+	mApp->mTimedMode = true;
+	mFromTitle = false;
+	if (!mApp->mProfile->GetBool("TM_InGame")) {
+		mApp->mProfile->ResetTimedMode();
+		mApp->StartNewGameTransition();
+	} else {
+		// the question without DoConfirmDialog's banner, and with its header's words
+		mApp->DoConfirmDialog(GameApp::DIALOG_CONTINUE_GAME, GT(0x7aed7c), GT(0x7aed20), nullptr, "");
+		GameDialog* aDialog = static_cast<GameDialog*>(mApp->GetDialog(GameApp::DIALOG_CONTINUE_GAME));
+		aDialog->SetBanner(nullptr, 0);
+		aDialog->mDialogHeader = GT(0x7aed7c);
+	}
+	for (int i = 0; i < (int)mItems.size(); i++)
+		mItems[i]->mDisabled = true;
+}
+
+void MainMenu::ContinueArena(bool theContinue)
+{
+	// 0x47c170
+	if (theContinue) {
+		mApp->InitGameScreen(true);
+		BookManager* aBook = mApp->mBookManager;
+		mApp->mWidgetManager->BringToFront(this);
+		if (!(mApp->mProfile->KeyExists("TM_OnCheckpoint") && mApp->mProfile->GetBool("TM_OnCheckpoint"))) {
+			lua_pushboolean(mApp->mLua->L, 1);
+			aBook->CallLinkedMethod("InitSavedGame", 1);
+			mApp->StartSavedGameTransition();
+			return;
+		}
+	} else {
+		mApp->mProfile->ResetTimedMode();
+	}
+	mApp->StartNewGameTransition();
 }
 
 void MainMenu::ButtonDepress(int theId)

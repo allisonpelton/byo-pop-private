@@ -49,8 +49,10 @@ public:
 		DIALOG_NO_WINDOWED = 13, // the options' "no windowed mode" message
 		DIALOG_MENU = 17,        // the game's menu (MenuDialog)
 		DIALOG_CONFIRM = 18,     // DoConfirmDialog's
+		DIALOG_CONTINUE_GAME = 19,  // the arena's "continue your saved game?" (MainMenu::StartArena): yes goes on with it, no begins a new run
 		DIALOG_SKIP_MOVIE = 20,  // a click on a cut scene: skip it?
-		DIALOG_CONTINUE = 21,    // "Continue" after the game lost the focus (the board stays muted under it)
+		DIALOG_ARENA_WIN = 21,   // the arena's win (ArenaWinDialog): pausing the board mutes it only without this dialog
+		DIALOG_TRIAL_COMPLETE = 23,  // the trial's end ("buy the full version?", UpdateFrames 0x44aa50): the port has no trial
 	};
 
 	// mTransitionState: what the curtain is doing (CurtainDone goes on from it)
@@ -179,6 +181,12 @@ public:
 	// the board
 	void DoTimedModeTSTransition();
 	void EnableBoardForTMCheckpointContinuation();
+	// 0x4519e0 (the scripts' DoArenaWinDialog(theFirstTime, theCallback)): the arena's win dialog (ArenaWinDialog,
+	// dialog DIALOG_ARENA_WIN); theFirstTime: it is the first win, which unlocks the film reel
+	void DoArenaWinDialog(bool theFirstTime, const std::string& theCallback);
+	// 0x451a80 (the scripts' SetArenaWinStats): the lines of how the run went, on the arena's win dialog
+	void SetArenaWinStats(const std::string& theTime, const std::string& thePotions, const std::string& theWords,
+	                      const std::string& theLevel, const std::string& theAverageWordLength);
 	// The mini-games (GameAppMiniGames.cpp): the scripts' StartMiniGame (0x44b780), a mini-game's board of theCols x
 	// theRows tiles at (x, y), theLetters on them when not empty; ReturnToMMFromMiniGame (0x44b9d0) frees it and
 	// shows the main menu, and UnlockedMiniGameComplete (0x44d1e0) does that behind the whole curtain

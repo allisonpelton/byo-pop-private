@@ -31,7 +31,6 @@ namespace {
 
 // The methods not ported yet, by name.
 const char* const kNotPorted[] = {
-	"DoArenaWinDialog", "SetArenaWinStats",
 	"LuaAntiAliasImage",
 };
 
@@ -227,6 +226,15 @@ void DoTimedModeTSTransition(GameApp* app) { app->DoTimedModeTSTransition(); }
 void DoEndGame(GameApp* app) { app->DoEndGame(); }
 void DoHighScoreScreenFromMG(GameApp* app, std::string theName) { app->DoHighScoreScreenFromMG(theName); }
 void EnableBoardForTMCheckpointContinuation(GameApp* app) { app->EnableBoardForTMCheckpointContinuation(); }
+void DoArenaWinDialog(GameApp* app, bool theFirstTime, std::string theCallback)
+{
+	app->DoArenaWinDialog(theFirstTime, theCallback);
+}
+void SetArenaWinStats(GameApp* app, std::string theTime, std::string thePotions, std::string theWords,
+                      std::string theLevel, std::string theAverageWordLength)
+{
+	app->SetArenaWinStats(theTime, thePotions, theWords, theLevel, theAverageWordLength);
+}
 void AddBonusText(GameApp* app, std::string theText, float x, float y, float theSpeed, int theFadeDelay, LuaFont* theFont)
 {
 	app->AddBonusText(theText, x, y, theSpeed, theFadeDelay, FontOf(theFont));
@@ -451,6 +459,8 @@ void GameApp::RegisterGameAppMethods()
 		.Function<&::DoEndGame>("DoEndGame")
 		.Function<&::DoHighScoreScreenFromMG>("DoHighScoreScreenFromMG")
 		.Function<&::EnableBoardForTMCheckpointContinuation>("EnableBoardForTMCheckpointContinuation")
+		.Function<&::DoArenaWinDialog>("DoArenaWinDialog")
+		.Function<&::SetArenaWinStats>("SetArenaWinStats")
 		.Function<&::AddBonusText>("AddBonusText")
 		.Function<&::UpdateBonusText>("UpdateBonusText")
 		.Function<&::RemoveAllBonusText>("RemoveAllBonusText")

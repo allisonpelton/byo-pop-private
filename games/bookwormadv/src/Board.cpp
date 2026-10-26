@@ -764,7 +764,7 @@ void Board::Pause(bool thePause, bool theNoBanner)
 			if (it != mButtons.end() && it->second != nullptr)
 				mButtons[BUTTON_MENU]->SetDisabled(false);
 		}
-		if (mApp->GetDialog(GameApp::DIALOG_CONTINUE) == nullptr) {
+		if (mApp->GetDialog(GameApp::DIALOG_ARENA_WIN) == nullptr) {
 			mApp->Unmute(true);
 			mMuteCount--;
 		}
@@ -775,7 +775,7 @@ void Board::Pause(bool thePause, bool theNoBanner)
 		mPauseCount++;
 		if (theNoBanner)
 			mPauseNoBannerCount++;
-		if (mApp->GetDialog(GameApp::DIALOG_CONTINUE) == nullptr) {
+		if (mApp->GetDialog(GameApp::DIALOG_ARENA_WIN) == nullptr) {
 			mApp->Mute(true);
 			mMuteCount++;
 		}
@@ -1569,7 +1569,7 @@ void Board::DrawOverlay(Graphics* g)
 	if (mLevelupOverlay && !mIsMiniGame)
 		DrawLua(g, "gBattleEngine:DrawLevelupOverlay");
 	if (mPauseCount > 0 && !mApp->ShowingConversationPanel() && mApp->mBookScreen == nullptr && !mFlash->mActive &&
-	    mApp->GetDialog(GameApp::DIALOG_CONTINUE) == nullptr) {
+	    mApp->GetDialog(GameApp::DIALOG_ARENA_WIN) == nullptr) {
 		g->SetColor(Color(0, 0, 0, 140));
 		g->FillRect(0, 0, mWidth, mHeight);
 		if (mPauseNoBannerCount == 0)

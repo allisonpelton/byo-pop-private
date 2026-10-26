@@ -345,10 +345,22 @@ void GameApp::ButtonDepress(int theId)
 		case DIALOG_NO_WINDOWED:  // the options' message
 			KillDialog(DIALOG_NO_WINDOWED);
 			break;
+		case DIALOG_CONTINUE_GAME:  // the arena's saved run
+			mMainMenu->ContinueArena(true);
+			KillDialog(DIALOG_CONTINUE_GAME);
+			break;
 		case DIALOG_SKIP_MOVIE:
 			if (mCutScene != nullptr)
 				mCutScene->Skip();
 			KillDialog(DIALOG_SKIP_MOVIE);
+			break;
+		case DIALOG_ARENA_WIN:  // its Continue (the original has no case of its own, but kills the dialog)
+			KillDialog(DIALOG_ARENA_WIN);
+			break;
+		case DIALOG_TRIAL_COMPLETE:  // "buy now"
+			// port: the original asked the trial's window (0x44fdb0) and went on to its buy screen (0x451c20); the
+			// port has no trial, so this dialog is never made
+			KillDialog(DIALOG_TRIAL_COMPLETE);
 			break;
 		default:
 			SDL_Log("GameApp: the answer %d to dialog %d is not ported yet", theId, aDialogId);
@@ -362,6 +374,14 @@ void GameApp::ButtonDepress(int theId)
 		else if (aDialogId == DIALOG_SKIP_MOVIE) {
 			if (mCutScene != nullptr)
 				mCutScene->mFlash->Unpause();
+		} else if (aDialogId == DIALOG_CONTINUE_GAME) {
+			// a new run (the original killed the dialog here and again below)
+			mProfile->ResetTimedMode();
+			StartNewGameTransition();
+		} else if (aDialogId == DIALOG_TRIAL_COMPLETE) {
+			// port: the original went back to the main menu unless the trial's window (0x44fdb0) said the game was
+			// bought; the port has none
+			StartToMenuTransition();
 		} else if (aDialogId != DIALOG_CONFIRM && aDialogId != DIALOG_OK)
 			SDL_Log("GameApp: the answer %d to dialog %d is not ported yet", theId, aDialogId);
 		KillDialog(aDialogId);
@@ -533,8 +553,11 @@ void GameApp::LoadingThreadCompleted()
 	mTitleScreen->mLoaded = true;
 	// the profiles that do not load are deleted, and the player is told
 	if (!CheckProfiles() && !mProfileErrors.empty()) {
-		// port: the original's dialog (0x443f90) is not ported yet
-		Popup(StrFormat(GT(0x7acdc0).c_str(), mProfileErrors.c_str()));
+		DoOkDialog(GT(0x7a9c04), StrFormat(GT(0x7acdc0).c_str(), mProfileErrors.c_str()), "", nullptr);
+		// wide enough for what failed, and put back in the middle
+		GameDialog* aDialog = static_cast<GameDialog*>(GetDialog(DIALOG_OK));
+		aDialog->mWidth = 600;
+		aDialog->Move((mWidth - 600) / 2, (mHeight - aDialog->mHeight) / 2);
 	}
 	// the last player's profile, or the first there is
 	std::string aName;
@@ -637,11 +660,12 @@ bool GameApp::SelectUser(const std::string& theName)
 		delete mProfile;
 		mProfile = nullptr;
 		RegistryEraseValue("LastUser");
-		// port: the original's dialogs (0x443f90 with an error title, the app's vf 0x78) are not ported yet
+		// a profile that is out of date says why in a message box (the app's vf 0x78, MsgBox), any other that does not
+		// load in the error dialog
 		if (aReasons.empty())
-			Popup(StrFormat(GT(0x7acec8).c_str(), ""));
+			DoOkDialog(GT(0x7a9c04), StrFormat(GT(0x7acec8).c_str(), theName.c_str()), "", nullptr);
 		else
-			Popup(StrFormat(GT(0x7acf08).c_str(), aReasons.c_str()));
+			MsgBox(StrFormat(GT(0x7acf08).c_str(), aReasons.c_str()), GT(0x7acef4), 0);
 		return false;
 	}
 	RegistryWriteString("LastUser", mProfile->mName);
@@ -841,7 +865,25 @@ void GameApp::CurtainDone()
 		mBookManager->CallLinkedMethod("SelectBookNumber", 3);
 		mBookManager->CallLinkedMethod("DoArrowHints", 0);
 		mBookManager->CallLinkedMethod("MMToCSTransitionComplete", 0);
-		// port: the timed mode's book (DoTreasureTransition and its TM_ dialogs) is not ported yet
+		if (mTimedMode) {
+			mBookManager->DoTreasureTransition();
+			if (mProfile->KeyExists("TM_OnCheckpoint") && mProfile->GetBool("TM_OnCheckpoint")) {
+				// a run saved at its checkpoint: the treasure screen as it, over the book
+				mBookManager->CallLinkedMethod("InitTimedModeCheckpoint", 0);
+				mTreasureScreen->CallLinkedMethod("InitTimedModeCheckpoint", 0);
+			} else {
+				// a new run: what the arena is, under the arena's banner
+				DoOkDialog(_S(""), GT(0x7ad7d8), "", IMAGE_TM_INTRO_TITLE);
+				GameDialog* aDialog = static_cast<GameDialog*>(GetDialog(DIALOG_OK));
+				aDialog->SetLinesFont(FONT_LARGE);
+				aDialog->mSpaceAfterHeader += 0x14;
+				aDialog->mPriority = 5;
+				int aWidth = aDialog->mWidth;
+				aDialog->SetBanner(IMAGE_TM_INTRO_TITLE, 3);
+				aWidth += 0x96;
+				aDialog->Resize((mWidth - aWidth) / 2, (mHeight - aDialog->mHeight) / 2, aWidth, aDialog->mHeight);
+			}
+		}
 		mCurtain->StartOpening();
 		mWidgetManager->BringToFront(mCurtain);
 		ClearUpdateBacklog(true);

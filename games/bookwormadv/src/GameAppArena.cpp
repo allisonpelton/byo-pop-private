@@ -1,8 +1,9 @@
 // GameApp's arena methods. The arena is the timed mode ("TM" in the scripts' names and the profile's keys,
 // GameApp::mTimedMode); its scripts (scripts/arenas, TimedMode) play it. Between its stages the treasure screen is
-// the checkpoint.
+// the checkpoint, and the arena's win dialog (ArenaWinDialog) ends a won run.
 #include "GameApp.h"
 
+#include "ArenaWinDialog.h"
 #include "Board.h"
 #include "CurtainTransition.h"
 #include "LuaLinkedClass.h"
@@ -43,4 +44,20 @@ void GameApp::EnableBoardForTMCheckpointContinuation()
 	mWidgetManager->BringToFront(mBoard);
 	mWidgetManager->BringToFront(mCurtain);
 	mWidgetManager->SetFocus(mBoard);
+}
+
+void GameApp::DoArenaWinDialog(bool theFirstTime, const std::string& theCallback)
+{
+	// 0x4519e0: no pause or muting of the board, as DoOkDialog has
+	AddDialog(new ArenaWinDialog(theFirstTime, theCallback));
+}
+
+void GameApp::SetArenaWinStats(const std::string& theTime, const std::string& thePotions, const std::string& theWords,
+                               const std::string& theLevel, const std::string& theAverageWordLength)
+{
+	// 0x451a80
+	ArenaWinDialog* aDialog = dynamic_cast<ArenaWinDialog*>(GetDialog(DIALOG_ARENA_WIN));
+	// port: the original did not check for the dialog (the scripts call DoArenaWinDialog first)
+	if (aDialog != nullptr)
+		aDialog->SetStats(theTime, thePotions, theWords, theLevel, theAverageWordLength);
 }
