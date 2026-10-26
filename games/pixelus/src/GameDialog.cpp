@@ -1,5 +1,6 @@
 #include "GameDialog.h"
 #include "PixelusApp.h"
+#include "Board.h"
 #include "Res.h"
 #include "Dialog.h"
 #include "DialogButton.h"

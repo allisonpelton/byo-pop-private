@@ -38,7 +38,7 @@ public:
 		NUM_LOADING_TASKS = 328
 	};
 
-	Widget*					mBoard;             // +0x678 the puzzle screen (0x432550)
+	Board*					mBoard;             // +0x678 the puzzle screen (0x432550)
 	Widget*					mHelpScreen;        // +0x67c over the board (0x4328c0)
 	Widget*					mTempleScreen;      // +0x680 the puzzles of one temple, over a snapshot of the map (0x432420)
 	LoadingScreen*			mLoadingScreen;     // +0x684 (Init)
@@ -69,6 +69,15 @@ public:
 	virtual Dialog*			NewDialog(int theDialogId, bool isModal, const SexyString& theDialogHeader,
 								const SexyString& theDialogLines, const SexyString& theDialogFooter,
 								int theButtonMode) override;                // 0x4331e0 slot 21
+	virtual void			ButtonDepress(int theId) override;              // 0x435310 slot 5
+
+	// the screens (each removes the one before it)
+	void					ShowBoard(const std::string& theLevel, int thePuzzle);  // 0x432550
+	void					LeaveBoard();                                   // 0x433910: back to the temple the puzzle came from
+	void					ShowResetDialog();                              // 0x434e40
+	void					ShowGameMenu();                                 // 0x4194d0
+	void					ShowHint();                                     // 0x433050 (0x432820)
+	void					PuzzleCompleted(Board* theBoard);               // 0x41b3c0 and what leads to it
 };
 
 extern PixelusApp* gApp;

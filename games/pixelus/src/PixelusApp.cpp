@@ -5,6 +5,8 @@
 #include "LevelData.h"
 #include "ProgressManager.h"
 #include "UserDirectory.h"
+#include "Board.h"
+#include "GameText.h"
 #include "Graphics.h"
 #include "ImageFont.h"
 #include "MemoryImage.h"
@@ -126,6 +128,79 @@ void PixelusApp::PlayClicked()
 	mWidgetManager->RemoveWidget(mLoadingScreen);
 	SafeDeleteWidget(mLoadingScreen);
 	mLoadingScreen = NULL;
+
+	// port, until the menus are ported: straight into the first puzzle of the tutorial
+	if (mUserDirectory->GetCurrent() == NULL)
+		mUserDirectory->AddUser("Player");
+	ShowBoard("Tutorial", 0);
+}
+
+// 0x432550: the puzzle screen over the whole window
+void PixelusApp::ShowBoard(const std::string& theLevel, int thePuzzle)
+{
+	if (mBoard != NULL)
+	{
+		mWidgetManager->RemoveWidget(mBoard);
+		SafeDeleteWidget(mBoard);
+		mBoard = NULL;
+	}
+	mBoard = new Board(this, theLevel, thePuzzle);
+	mBoard->Resize(0, 0, mWidth, mHeight);
+	mWidgetManager->AddWidget(mBoard);
+	mWidgetManager->SetFocus(mBoard);
+	PlaySample(SOUND_PIXELUS_START_OF_PUZZLE_V02);
+}
+
+// 0x433910
+void PixelusApp::LeaveBoard()
+{
+	if (mBoard == NULL)
+		return;
+	mWidgetManager->RemoveWidget(mBoard);
+	SafeDeleteWidget(mBoard);
+	mBoard = NULL;
+}
+
+// 0x434e40: the question before a puzzle is started over
+void PixelusApp::ShowResetDialog()
+{
+	KillDialog(24);
+	Dialog* aDialog = DoDialog(24, true, GT(0x512644), GT(0x512654), "", Dialog::BUTTONS_OK_CANCEL);
+	aDialog->Move(((mWidth - 173) - aDialog->mWidth) / 2 + 173, (mHeight - aDialog->mHeight) / 2);
+}
+
+void PixelusApp::ShowGameMenu()
+{
+}
+
+void PixelusApp::ShowHint()
+{
+	Pause(false);
+	if (mBoard != NULL)
+		mBoard->ShowHint();
+}
+
+void PixelusApp::PuzzleCompleted(Board* theBoard)
+{
+}
+
+// 0x435310: the answers of the dialogs the game opens (2000 + id: the yes or OK button, 3000 + id: the no)
+void PixelusApp::ButtonDepress(int theId)
+{
+	switch (theId)
+	{
+	case 2024:		// reset the puzzle
+		KillDialog(24);
+		Pause(false);
+		if (mBoard != NULL)
+			mBoard->RestartPuzzle();
+		return;
+	case 3024:
+		KillDialog(24);
+		Pause(false);
+		return;
+	}
+	NcApp::ButtonDepress(theId);
 }
 
 // 0x4333a0 (slot 84)

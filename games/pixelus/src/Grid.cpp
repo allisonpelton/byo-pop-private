@@ -103,6 +103,17 @@ GridObject* Grid::NewObject(int theRow, int theCol)
 	anObject->mRow = theRow;
 	anObject->mCol = theCol;
 	anObject->mFixed = false;
+	anObject->mX = theCol * CELL_SIZE;
+	anObject->mY = theRow * CELL_SIZE;
+	anObject->mDir = 0;
+	anObject->mVariant = 0;		// the Board picks it (CrtRand)
+	anObject->mDead = false;
+	anObject->mBounce = false;
+	anObject->mTrailLen = 0;
+	anObject->mState = 0;
+	anObject->mIdle = 100;
+	anObject->mTrail = 0;
+	anObject->mFlash = 0;
 	mObjects.push_back(anObject);
 	return anObject;
 }
@@ -182,6 +193,19 @@ bool Grid::IsBouncyAhead() const
 	Step(&aCol, &aRow, mSide, 1);
 	const Cell& aCell = mCells[aRow][aCol];
 	return aCell.mFixed && aCell.mBouncy;
+}
+
+// 0x4245c0: take a pull back, a tile on a free cell (the Board's undo)
+GridObject* Grid::PutTile(int theRow, int theCol)
+{
+	if (mDone || mSupply < 1 || !InGrid(theRow, theCol) || mCells[theRow][theCol].mObject != NULL)
+		return NULL;
+	GridObject* anObject = NewObject(theRow, theCol);
+	mCells[theRow][theCol].mObject = anObject;
+	mSupply--;
+	Recount();
+	ComputeLanding();
+	return anObject;
 }
 
 // 0x424750: throw a tile from the side at the cursor. It stays at mLand, is thrown back by a bouncy block or flies

@@ -20,18 +20,32 @@
 namespace Sexy
 {
 
-// 0x42eee0: a tile (or a fixed block) with the cell it rests in; the flying and bouncing of a tile is the Board's
+// 0x42eee0: a tile (or a fixed block) with the cell it rests in. The fields from mX on are the Board's animation of it
+// (0x42f740): plain numbers, so the rules stay free of the framework. Pixel positions are relative to the grid's top
+// left corner, a cell is 20 pixels wide.
 struct GridObject
 {
 	int		mRow;
 	int		mCol;
 	bool	mFixed;
+
+	int		mX;				// +0x8 position in pixels
+	int		mY;				// +0xc
+	int		mDir;			// +0x18 the side the tile was thrown from (0 up, 1 right, 2 down, 3 left)
+	int		mVariant;		// +0x1c which of the five pictures of its colour
+	bool	mDead;			// +0x24 gone: not drawn, not updated
+	bool	mBounce;		// +0x3c a thrown tile that hits a bouncy block flies back
+	int		mTrailLen;		// +0x40 how much of the trail picture shows
+	int		mState;			// +0x44 0 at rest, 1 returning, 2 flying to its cell
+	int		mIdle;			// +0x48 ticks at rest; the shine plays below 100
+	int		mTrail;			// +0x4c the trail's opacity, 0-200
+	int		mFlash;			// +0x20 ticks until the picture changes at random (the tiles of the first puzzle)
 };
 
 class Grid
 {
 public:
-	enum { MAX_SIZE = 32 };
+	enum { MAX_SIZE = 32, CELL_SIZE = 20 };
 	enum { SIDE_UP = 0, SIDE_RIGHT = 1, SIDE_DOWN = 2, SIDE_LEFT = 3 };
 
 	// the cell at 0x40 + (row * 32 + col) * 0x2c: +0x10 wanted, +0x11 fixed, +0x14 object, +0x18 bouncy, +0x19 start
@@ -106,6 +120,8 @@ public:
 	void			ComputeLanding();							// 0x423ee0
 	void			Recount();									// 0x422320
 	GridObject*		NewObject(int theRow, int theCol);			// 0x424390
+	GridObject*		PutTile(int theRow, int theCol);			// 0x4245c0: a tile on a free cell (taking back a pull)
+	bool			IsBouncyAhead() const;						// the cell behind the landing cell is a bouncy block
 
 	bool			PlaceTile(bool theRecord);					// 0x424750: throw a tile
 	bool			PullTile(bool theRecord, bool theForce);	// 0x424990: pull the tile in the way back
@@ -121,7 +137,6 @@ public:
 	int				FindPullSide(int theRow, int theCol, int thePreferredSide, int* theCursor) const;
 
 private:
-	bool			IsBouncyAhead() const;
 	void			Complete();									// 0x422590
 };
 
