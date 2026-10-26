@@ -94,6 +94,14 @@ void Particle_Draw(Particle* theParticle)
 	Obj_Draw(theParticle);
 }
 
+// The port clears the members past the base, which the original leaves as the allocation found them
+void Emitter_Append(List<Obj>* theList)
+{
+	Emitter* anEmitter = new Emitter();
+	Obj_Init(anEmitter);
+	List_Append(theList, (Obj*)anEmitter);
+}
+
 void Emitter_Setup(Emitter* theEmitter, Obj* theParent, int theX, int theY, float theXSpeed, float theYSpeed,
 	int theFrequency, int theRotation, const char* theAnim, int theKind, float theStartAlpha, float theEndAlpha,
 	float theTime)

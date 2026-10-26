@@ -56,8 +56,6 @@ struct Obj
 
 void Obj_Init(Obj* theObj);                                      // 0x40f060
 void Obj_Destroy(Obj* theObj);                                   // 0x40f0f0
-// 0x407430's delete: the base's destructor, then the memory
-void List_DeleteNode(Obj* theObj);
 // 0x40ee80: 0 when the object is done (its lifetime is up, or a one-shot animation reached an end)
 int Obj_Update(Obj* theObj);
 // 0x40eac0: queues the object (and its shadow) and its children on the draw list

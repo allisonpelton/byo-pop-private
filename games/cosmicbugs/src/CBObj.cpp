@@ -54,7 +54,7 @@ void Obj_Destroy(Obj* theObj)
 	List_Clear(&theObj->emitters);
 }
 
-void List_DeleteNode(Obj* theObj)
+void Obj_Delete(Obj* theObj)
 {
 	Obj_Destroy(theObj);
 	::operator delete((void*)theObj);

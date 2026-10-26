@@ -10,6 +10,8 @@
 #include "R64Xml.h"
 #include "R64Draw.h"
 
+#include <type_traits>
+
 #include <cstddef>
 #include <cstdint>
 
@@ -70,11 +72,18 @@ T* List_Append(List<T>* theList, T* theNode)
 	return theNode;
 }
 
-// How a list deletes a node (an overload for a kind that needs more)
+struct Obj;
+// 0x407430's delete: the base's destructor, then the memory (CBObj.cpp)
+void Obj_Delete(Obj* theObj);
+
+// How a list deletes a node: objects through their base, others plainly (an overload for a kind that needs more)
 template <class T>
 void List_DeleteNode(T* theNode)
 {
-	delete theNode;
+	if constexpr (std::is_base_of<Obj, T>::value)
+		Obj_Delete(theNode);
+	else
+		delete theNode;
 }
 
 // 0x401000 and the like: deletes the current node; the one after it (else before it) becomes current. False when
@@ -161,6 +170,74 @@ bool List_Unlink(List<T>* theList)
 		theList->tail = aPrev;
 	}
 	return true;
+}
+
+// 0x4106b0 and the like: a new node before the current one, made current
+template <class T>
+T* List_InsertBefore(List<T>* theList, T* theNode)
+{
+	if (theList->current == nullptr)
+	{
+		theNode->next = nullptr;
+		theNode->prev = nullptr;
+	}
+	else
+	{
+		theNode->next = theList->current;
+		theNode->prev = theList->current->prev;
+		if (theList->current->prev != nullptr)
+			theList->current->prev->next = theNode;
+		theList->current->prev = theNode;
+	}
+	theList->current = theNode;
+	if (theNode->next == nullptr)
+		theList->tail = theNode;
+	if (theNode->prev == nullptr)
+		theList->head = theNode;
+	return theNode;
+}
+
+// 0x410a60: the next node made current; at the end the head is, and the result is false
+template <class T>
+bool List_Next(List<T>* theList)
+{
+	T* aNode = theList->current;
+	if (aNode != nullptr)
+	{
+		if (aNode->next != nullptr)
+		{
+			theList->current = Node_Next(aNode);
+			return true;
+		}
+		theList->current = theList->head;
+	}
+	return false;
+}
+
+// 0x410880: the number of nodes (the walk leaves the head current)
+template <class T>
+int List_Count(List<T>* theList)
+{
+	T* aHead = theList->head;
+	int aCount = 0;
+	theList->current = aHead;
+	if (aHead != nullptr)
+	{
+		while (true)
+		{
+			T* aNode = theList->current;
+			aCount = aCount + 1;
+			if (aNode == nullptr)
+				break;
+			if (aNode->next == nullptr)
+			{
+				theList->current = aHead;
+				return aCount;
+			}
+			theList->current = Node_Next(aNode);
+		}
+	}
+	return aCount;
 }
 
 // 0x40f040 and the like

@@ -69,6 +69,7 @@ void Particle_Draw(Particle* theParticle);                       // 0x40acd0
 // update's, left in eax)
 int Particle_Follow(Particle* theParticle);
 
+void Emitter_Append(List<Obj>* theList);                         // 0x407cb0: a new one, current
 void Emitter_Setup(Emitter* theEmitter, Obj* theParent, int theX, int theY, float theXSpeed, float theYSpeed,
 	int theFrequency, int theRotation, const char* theAnim, int theKind, float theStartAlpha, float theEndAlpha,
 	float theTime);                                              // 0x40ae30
