@@ -58,6 +58,8 @@ void Board::DrawVariant(Graphics* g)
 		aBoardG.ClipRect(mLayout.mClipX, mLayout.mClipY, mLayout.mClipWidth, mLayout.mClipHeight); // the board's own rectangle (4.16): (194, 12, 428, 416) on 8x8
 		if (mVariant.mDirt)
 			DrawDirt(&aBoardG);
+		if (mVariant.mGold)
+			DrawGold(&aBoardG, false); // the gold cells (stage 12, BoardGold.cpp)
 
 		for (int aRow = 0; aRow < mRows; aRow++)
 		{
@@ -120,6 +122,8 @@ void Board::DrawVariant(Graphics* g)
 
 		if (mVariant.mSpecials)
 			DrawSpecials(&aBoardG, true); // the blasts
+		if (mVariant.mGold)
+			DrawGold(&aBoardG, true); // the cells gilded lately
 		if (mVariant.mDirt)
 			DrawDirtDust(&aScaledG);
 
@@ -194,6 +198,8 @@ void Board::DrawVariant(Graphics* g)
 	g->DrawString(aScore, 93 - mScoreFont->StringWidth(aScore) / 2, 106);
 
 	g->DrawImage(mApp->mTimerBarImages[mBarColor], 237, 444, Rect(0, 0, mBarWidth, 25));
+	if (mVariant.mGold)
+		DrawGoldHud(g);
 
 	SexyString aLevel = StrFormat("%d", mDisplayLevel);
 	g->SetFont(mApp->mHeaderFont);

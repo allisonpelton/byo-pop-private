@@ -118,14 +118,15 @@ static void AddBuildWarnings(const GameRules& theRules, const GameFeatures& theF
 #ifndef BEJ_NO_VARIANTS
 	// Played since stage 5 (4.1): kept invalid moves and the noMoves rule; since stage 6 (4.12) undo; since stage 7
 	// (4.3) the board's shape; since stage 7c (4.16) gravity; since stage 7b (4.14) dirt; since stage 9 (4.6) the match
-	// rules; since stage 10 (4.4, 4.5) the move types; since stage 11 (4.8) the specials. A BEJ_NO_VARIANTS build plays
-	// no rule, nor shows look.*.
+	// rules; since stage 10 (4.4, 4.5) the move types; since stage 11 (4.8) the specials; since stage 12 (4.9) the gold
+	// board. A BEJ_NO_VARIANTS build plays no rule, nor shows look.*.
 	static const char* const aPlayed[] = {"moves.allowInvalid", "moves.invalidPenalty", "moves.invalidCountsAsMove", "noMoves.normal",
 		"noMoves.timed", "undo.enabled", "undo.depth", "undo.max", "undo.penalty", "undo.inTimed", "undo.restoreTime", "undo.restoreRng",
 		"board.cols", "board.rows", "board.mask", "board.levels", "board.gravity.direction", "board.gravity.fallAccel",
 		"board.dirtPoints", "match.minRun", "match.diagonal", "match.diagonalMinRun", "match.crossings", "match.shapes",
 		"match.bonus", "moves.type", "moves.addTypes", "moves.twist.direction", "moves.slide.snapTicks", "specials.flame",
-		"specials.lightning", "specials.chain", "specials.createIn"};
+		"specials.lightning", "specials.chain", "specials.createIn", "gold.enabled", "gold.gild", "gold.timeLimit.normal",
+		"gold.timeLimit.timed", "gold.timeBonus", "gold.countDirt"};
 	for (size_t i = 0; i < sizeof(aPlayed) / sizeof(aPlayed[0]); i++)
 		aKeys.erase(std::remove(aKeys.begin(), aKeys.end(), std::string(aPlayed[i])), aKeys.end());
 #else
@@ -179,19 +180,6 @@ static void AddBuildWarnings(const GameRules& theRules, const GameFeatures& theF
 				aMod.mReplays;
 		theStatus->mWarnings.push_back({aMod.mModId, aText});
 	}
-#ifndef BEJ_NO_VARIANTS
-	// The gold rule is not played yet (stage 12), but the noMoves rule is, and with gold.enabled its normal-mode
-	// default is "fallOut" (GameRules::ResolveDerived): that part of gold already plays. Said for the mod that turned
-	// gold on, when no mod set noMoves.normal itself
-	if (theRules.mGold.mEnabled && (theRules.mNoMoves.mNormal == GameRules::NOMOVES_FALL_OUT) && ProvenanceFor(*theStatus, "noMoves.normal").empty())
-	{
-		std::vector<std::string> aMods = ProvenanceFor(*theStatus, "gold.enabled");
-		theStatus->mWarnings.push_back({aMods.empty() ? std::string() : aMods[0],
-			"gold.enabled: the gold rule is not played yet, but with it noMoves.normal defaults to \"fallOut\", which this build "
-			"plays: a Normal game left without a move falls out and goes on instead of ending"});
-	}
-#endif
-
 #ifndef BEJ_HAS_LIVESPLIT
 	// The LiveSplit block exists in desktop builds only (LiveSplitObserver.h)
 	if (theFeatures.mLiveSplit)

@@ -348,7 +348,7 @@ void Board::SetLoadedLayout(const BoardLayout& theLayout, int theLevelShape)
 
 // GameLoadedVariant on a shape board: the background of the loaded level and its shape, where the original keeps
 // the level-0 background it was made with (5.3). SetupLevel draws it; the level parameters it would set are the
-// save's and stay.
+// save's and stay, and so do the gold and its time (stage 12: the GOLD and GTIM chunks, ReadVariantChunks).
 void Board::RebuildLoadedBackground()
 {
 	bool aBackgroundChanged = mBackgroundChanged;
@@ -357,6 +357,10 @@ void Board::RebuildLoadedBackground()
 	int aLevelPoints = mLevelPoints;
 	double aTimeDrainRate = mTimeDrainRate;
 	double aTimeDrainAccel = mTimeDrainAccel;
+	uint8_t aGold[MAX_ROWS][MAX_COLS];
+	memcpy(aGold, mGold, sizeof(mGold));
+	int aGoldTicksLeft = mGoldTicksLeft;
+	int aGoldTickLimit = mGoldTickLimit;
 	SetupLevel();
 	mBackgroundChanged = aBackgroundChanged;
 	mTimeDrain = aTimeDrain;
@@ -364,6 +368,9 @@ void Board::RebuildLoadedBackground()
 	mLevelPoints = aLevelPoints;
 	mTimeDrainRate = aTimeDrainRate;
 	mTimeDrainAccel = aTimeDrainAccel;
+	memcpy(mGold, aGold, sizeof(mGold));
+	mGoldTicksLeft = aGoldTicksLeft;
+	mGoldTickLimit = aGoldTickLimit;
 
 	Graphics g(mBackgroundImage);
 	g.DrawImage(mNextBackgroundImage, 0, 0);

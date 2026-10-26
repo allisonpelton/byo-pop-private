@@ -1,0 +1,10 @@
+{
+  "id": "s12-dirt",
+  "name": "Stage 12: gold under dirt",
+  "version": "1.0",
+  "description": "Oracle fixture: the gold board on a 7x7 with stage 7b's dirt cells; a dirt cell counts toward the goal (gold.countDirt), and it can turn gold only once its last layer is gone and a group takes the gem that fell into it.",
+  "rules": {
+    "board": { "cols": 7, "rows": 7, "mask": [ "#######", "#d#####", "#######", "####2##", "#######", "##d####", "#######" ] },
+    "gold": { "enabled": true }
+  }
+}

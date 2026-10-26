@@ -1687,7 +1687,7 @@ gold_status user mods-status.json registry.ini
 gold_status settle 439 normal level 1 score 0 board tick 140
 gold_status states none
 gold_status save none
-gold_status status rulesId 49d1b2d37d12509f, scoreKey 44b26d34, features none, 2 warnings, errors -, dropped -
+gold_status status rulesId 49d1b2d37d12509f, scoreKey 44b26d34, features none, 0 warnings, errors -, dropped -
 gold_status variant last moves 0 invalid 0, 0 of 1 settles without a move
 gold_status seeds 439:2135392491/pergame
 gold_status codec codeccheck: 301 updates checked, 1 settles, 0 failures
@@ -3039,6 +3039,208 @@ watch_specials_resume variant last moves 7 invalid 0, 0 of 9 settles without a m
 watch_specials_resume seeds 450:4242/user 1142:4242/user
 watch_specials_resume codec codeccheck: 1503 updates checked, 9 settles, 0 failures
 watch_specials_resume watch REPLAY end: ok, 9 CHECKs, END saved tick 660 score 1490 level 1 gems 88 draws 568
+
+gold_small_auto exit 0
+gold_small_auto mods Stage 12: gold on small boards
+gold_small_auto user mods-status.json registry.ini savegame-df1599cf.dat
+gold_small_auto settles 128
+gold_small_auto last-settle 19897 normal level 2 score 1540 board tick 19894
+gold_small_auto states 719:fall_out 1976:fall_out 3014:fall_out 7562:fall_out 9806:vortex 9955:level_wipe 11545:fall_out 13459:fall_out 14626:fall_out 15592:fall_out 16670:fall_out 17597:fall_out 17923:fall_out
+gold_small_auto save savegame-df1599cf.dat v2 normal level 1 (shown 2), 25 gems, state 0 (falling), score 1555, play seconds 199, 5789 bytes; rules c9624dc2f45f951d, 5x5, level shape 1, 0 holes; RNGS seed 2135392491, MOVE moves 88 invalid 0 undos 0, GOLD 24 cells, GTIM 0/0 ticks, END
+gold_small_auto status rulesId c9624dc2f45f951d, scoreKey df1599cf, features none, 0 warnings, errors -, dropped -
+gold_small_auto variant last moves 87 invalid 0, 0 of 128 settles without a move
+gold_small_auto seeds 130:2135392491/pergame
+gold_small_auto end update 19999: update cap
+gold_small_auto codec codeccheck: 19996 updates checked, 128 settles, 0 failures
+
+gold_timeup_auto exit 0
+gold_timeup_auto mods Stage 12: gold against the clock
+gold_timeup_auto user hiscores-2688ac87.dat mods-status.json registry.ini
+gold_timeup_auto settles 19
+gold_timeup_auto last-settle 2753 normal level 1 score 190 board tick 2750
+gold_timeup_auto states 1918:fall_out 2765:game_over 3086:game_over_done
+gold_timeup_auto save none
+gold_timeup_auto status rulesId ae023ec23d596672, scoreKey 2688ac87, features none, 0 warnings, errors -, dropped -
+gold_timeup_auto variant last moves 13 invalid 0, 0 of 19 settles without a move
+gold_timeup_auto seeds 127:2135392491/pergame
+gold_timeup_auto end update 3086: game over -> game over done, level 1, score 190, board tick 3083, Rand() draws 3
+gold_timeup_auto codec codeccheck: 3184 updates checked, 19 settles, 0 failures
+
+gold_timed_auto_timed exit 0
+gold_timed_auto_timed mods Stage 12: gold against the clock
+gold_timed_auto_timed user mods-status.json registry.ini savegame-2688ac87.dat
+gold_timed_auto_timed settles 132
+gold_timed_auto_timed last-settle 19877 timed level 2 score 7975 board tick 19873
+gold_timed_auto_timed states 3018:fall_out 6924:fall_out 10322:fall_out 10917:fall_out 13227:fall_out 16370:fall_out 16745:vortex 16926:level_wipe
+gold_timed_auto_timed save savegame-2688ac87.dat v2 timed level 1 (shown 2), 36 gems, state 0 (falling), score 8025, play seconds 199, 7132 bytes; rules ae023ec23d596672, 6x6, level shape 0, 0 holes; RNGS seed 946286476, MOVE moves 100 invalid 0 undos 0, GOLD 22 cells, GTIM 5588/7000 ticks, END
+gold_timed_auto_timed status rulesId ae023ec23d596672, scoreKey 2688ac87, features none, 0 warnings, errors -, dropped -
+gold_timed_auto_timed variant last moves 99 invalid 0, 0 of 132 settles without a move
+gold_timed_auto_timed seeds 129:946286476/pergame
+gold_timed_auto_timed end update 19999: update cap
+gold_timed_auto_timed codec codeccheck: 19996 updates checked, 132 settles, 0 failures
+
+gold_dirt_auto exit 0
+gold_dirt_auto mods Stage 12: gold under dirt
+gold_dirt_auto user mods-status.json registry.ini savegame-44a63185.dat
+gold_dirt_auto settles 133
+gold_dirt_auto last-settle 19969 normal level 2 score 1875 board tick 19966
+gold_dirt_auto states 2722:fall_out 7768:fall_out 9943:fall_out 14604:vortex 14820:level_wipe 16985:fall_out 18154:fall_out
+gold_dirt_auto save savegame-44a63185.dat v2 normal level 1 (shown 2), 49 gems, state 1 (playing), score 1875, play seconds 199, 8778 bytes; rules 6f0452ef39030b57, 7x7, level shape 0, 0 holes; RNGS seed 2135392491, MOVE moves 98 invalid 0 undos 0, DIRT 0 layers on 0 cells, next right, GOLD 39 cells, GTIM 0/0 ticks, END
+gold_dirt_auto status rulesId 6f0452ef39030b57, scoreKey 44a63185, features none, 0 warnings, errors -, dropped -
+gold_dirt_auto variant last moves 98 invalid 0 dirt 0 right, 0 of 133 settles without a move
+gold_dirt_auto seeds 131:2135392491/pergame
+gold_dirt_auto end update 19999: update cap
+gold_dirt_auto codec codeccheck: 19996 updates checked, 133 settles, 0 failures
+
+gold_specials_auto exit 0
+gold_specials_auto mods Stage 12: gold and specials
+gold_specials_auto user mods-status.json registry.ini savegame-ca68a426.dat
+gold_specials_auto settles 149
+gold_specials_auto last-settle 19991 normal level 2 score 2110 board tick 19988
+gold_specials_auto states 10546:fall_out 18294:vortex 18510:level_wipe
+gold_specials_auto save savegame-ca68a426.dat v2 normal level 1 (shown 2), 49 gems, state 1 (playing), score 2110, play seconds 199, 8777 bytes; rules 747cebcc8a576ee5, 7x7, level shape 0, 0 holes; RNGS seed 2135392491, MOVE moves 106 invalid 0 undos 0, KIND flame 0 lightning 0, GOLD 18 cells, GTIM 0/0 ticks, END
+gold_specials_auto status rulesId 747cebcc8a576ee5, scoreKey ca68a426, features none, 0 warnings, errors -, dropped -
+gold_specials_auto variant last moves 106 invalid 0, 0 of 149 settles without a move
+gold_specials_auto seeds 140:2135392491/pergame
+gold_specials_auto end update 19999: update cap
+gold_specials_auto codec codeccheck: 19996 updates checked, 149 settles, 0 failures
+
+gold_quest_auto exit 0
+gold_quest_auto mods Stage 12: a twisted gold quest
+gold_quest_auto user mods-status.json registry.ini savegame-4a07533c.dat
+gold_quest_auto settles 172
+gold_quest_auto last-settle 19957 normal level 3 score 6630 board tick 19954
+gold_quest_auto states 3716:vortex 3897:level_wipe 9609:vortex 9790:level_wipe
+gold_quest_auto save savegame-4a07533c.dat v2 normal level 2 (shown 3), 36 gems, state 1 (playing), score 6630, play seconds 199, 7176 bytes; rules ad47f7aab68fcba5, 6x6, level shape 0, 0 holes; RNGS seed 2135392491, MOVE moves 158 invalid 0 undos 0, KIND flame 1 lightning 0, GOLD 35 cells, GTIM 0/0 ticks, END
+gold_quest_auto status rulesId ad47f7aab68fcba5, scoreKey 4a07533c, features none, 0 warnings, errors -, dropped -
+gold_quest_auto variant last moves 158 invalid 0, 0 of 172 settles without a move
+gold_quest_auto seeds 127:2135392491/pergame
+gold_quest_auto end update 19999: update cap
+gold_quest_auto codec codeccheck: 19996 updates checked, 172 settles, 0 failures
+
+gold_quit exit 0
+gold_quit mods Stage 12: gold for the scripted games
+gold_quit user mods-status.json registry.ini savegame-916631d3.dat
+gold_quit settle 432 normal level 1 score 0 board tick 133
+gold_quit settle 709 normal level 1 score 30 board tick 410
+gold_quit settle 909 normal level 1 score 60 board tick 610
+gold_quit settle 1203 normal level 1 score 300 board tick 904
+gold_quit settle 1240 normal level 1 score 60 board tick 941
+gold_quit settle 1563 normal level 1 score 300 board tick 1264
+gold_quit states none
+gold_quit save savegame-916631d3.dat v2 normal level 0 (shown 1), 36 gems, state 1 (playing), score 300, play seconds 13, 7132 bytes; rules 9d4b82549ed56619, 6x6, level shape 0, 0 holes; RNGS seed 4242 user, MOVE moves 3 invalid 0 undos 1, GOLD 19 cells, GTIM 8634/9000 ticks, END
+gold_quit status rulesId 9d4b82549ed56619, scoreKey 916631d3, features none, 0 warnings, errors -, dropped -
+gold_quit variant last moves 3 invalid 0, 0 of 6 settles without a move
+gold_quit seeds 432:4242/user
+gold_quit codec codeccheck: 1300 updates checked, 6 settles, 0 failures
+
+gold_quit.resume exit 0
+gold_quit.resume mods Stage 12: gold for the scripted games
+gold_quit.resume user mods-status.json registry.ini savegame-916631d3.dat
+gold_quit.resume settle 340 normal level 1 score 300 board tick 1
+gold_quit.resume settle 502 normal level 1 score 310 board tick 163
+gold_quit.resume settle 644 normal level 1 score 320 board tick 305
+gold_quit.resume states none
+gold_quit.resume save savegame-916631d3.dat v2 normal level 0 (shown 1), 36 gems, state 1 (playing), score 320, play seconds 17, 7132 bytes; rules 9d4b82549ed56619, 6x6, level shape 0, 0 holes; RNGS seed 4242 user, MOVE moves 5 invalid 0 undos 1, GOLD 22 cells, GTIM 8479/9000 ticks, END
+gold_quit.resume status rulesId 9d4b82549ed56619, scoreKey 916631d3, features none, 0 warnings, errors -, dropped -
+gold_quit.resume variant last moves 5 invalid 0, 0 of 3 settles without a move
+gold_quit.resume seeds 340:4242/user
+gold_quit.resume codec codeccheck: 500 updates checked, 3 settles, 0 failures
+
+rec_gold_small_auto exit 0
+rec_gold_small_auto mods Stage 12: gold on small boards, Stage 3: replays
+rec_gold_small_auto user mods-status.json registry.ini savegame-df1599cf.bjr savegame-df1599cf.dat
+rec_gold_small_auto settles 128
+rec_gold_small_auto last-settle 19897 normal level 2 score 1540 board tick 19894
+rec_gold_small_auto states 719:fall_out 1976:fall_out 3014:fall_out 7562:fall_out 9806:vortex 9955:level_wipe 11545:fall_out 13459:fall_out 14626:fall_out 15592:fall_out 16670:fall_out 17597:fall_out 17923:fall_out
+rec_gold_small_auto save savegame-df1599cf.dat v2 normal level 1 (shown 2), 25 gems, state 0 (falling), score 1555, play seconds 199, 5789 bytes; rules c9624dc2f45f951d, 5x5, level shape 1, 0 holes; RNGS seed 2135392491, MOVE moves 88 invalid 0 undos 0, GOLD 24 cells, GTIM 0/0 ticks, END
+rec_gold_small_auto sidecar savegame-df1599cf.bjr end saved tick 19996 score 1555 level 2 gems 334 draws 13339; seg0 normal seed 2135392491 CHECK128,HINT3,HOVER242,SAVE2,SELECT127,TARGET127; rng seed 2135392491; flags hover; goes with the save
+rec_gold_small_auto status rulesId c9624dc2f45f951d, scoreKey df1599cf, features seeds(entry), replays(keep 3, hover), 1 warnings, errors -, dropped -
+rec_gold_small_auto variant last moves 87 invalid 0, 0 of 128 settles without a move
+rec_gold_small_auto seeds 130:2135392491/pergame
+rec_gold_small_auto end update 19999: update cap
+rec_gold_small_auto codec codeccheck: 19996 updates checked, 128 settles, 0 failures
+
+rec_gold_timeup_auto exit 0
+rec_gold_timeup_auto mods Stage 12: gold against the clock, Stage 3: replays
+rec_gold_timeup_auto user hiscores-2688ac87.dat mods-status.json registry.ini replays/ replays/*-normal-190-keep.bjr
+rec_gold_timeup_auto settles 19
+rec_gold_timeup_auto last-settle 2753 normal level 1 score 190 board tick 2750
+rec_gold_timeup_auto states 1918:fall_out 2765:game_over 3086:game_over_done
+rec_gold_timeup_auto save none
+rec_gold_timeup_auto replay replays/*-normal-190-keep.bjr end gold time up tick 3083 score 190 level 1 gems 48 draws 3933; seg0 normal seed 2135392491 CHECK19,HOVER33,SELECT18,TARGET18; flags hover
+rec_gold_timeup_auto status rulesId ae023ec23d596672, scoreKey 2688ac87, features seeds(entry), replays(keep 3, hover), 1 warnings, errors -, dropped -
+rec_gold_timeup_auto variant last moves 13 invalid 0, 0 of 19 settles without a move
+rec_gold_timeup_auto seeds 127:2135392491/pergame
+rec_gold_timeup_auto end update 3086: game over -> game over done, level 1, score 190, board tick 3083, Rand() draws 3
+rec_gold_timeup_auto codec codeccheck: 3184 updates checked, 19 settles, 0 failures
+
+rec_gold_quit exit 0
+rec_gold_quit mods Stage 12: gold for the scripted games, Stage 3: replays
+rec_gold_quit user mods-status.json registry.ini savegame-916631d3.bjr savegame-916631d3.dat
+rec_gold_quit settle 432 normal level 1 score 0 board tick 133
+rec_gold_quit settle 709 normal level 1 score 30 board tick 410
+rec_gold_quit settle 909 normal level 1 score 60 board tick 610
+rec_gold_quit settle 1203 normal level 1 score 300 board tick 904
+rec_gold_quit settle 1240 normal level 1 score 60 board tick 941
+rec_gold_quit settle 1563 normal level 1 score 300 board tick 1264
+rec_gold_quit states none
+rec_gold_quit save savegame-916631d3.dat v2 normal level 0 (shown 1), 36 gems, state 1 (playing), score 300, play seconds 13, 7132 bytes; rules 9d4b82549ed56619, 6x6, level shape 0, 0 holes; RNGS seed 4242 user, MOVE moves 3 invalid 0 undos 1, GOLD 19 cells, GTIM 8634/9000 ticks, END
+rec_gold_quit sidecar savegame-916631d3.bjr end saved tick 1300 score 300 level 1 gems 30 draws 103; seg0 normal seed 4242 user CHECK5,HOVER10,SAVE2,SELECT4,TARGET4,UNDO1; rng seed 4242 user; flags hover; goes with the save
+rec_gold_quit status rulesId 9d4b82549ed56619, scoreKey 916631d3, features seeds(entry), replays(keep 3, hover), 1 warnings, errors -, dropped -
+rec_gold_quit variant last moves 3 invalid 0, 0 of 6 settles without a move
+rec_gold_quit seeds 432:4242/user
+rec_gold_quit codec codeccheck: 1300 updates checked, 6 settles, 0 failures
+
+rec_gold_quit.resume exit 0
+rec_gold_quit.resume mods Stage 12: gold for the scripted games, Stage 3: replays
+rec_gold_quit.resume user mods-status.json registry.ini savegame-916631d3.bjr savegame-916631d3.dat
+rec_gold_quit.resume settle 340 normal level 1 score 300 board tick 1
+rec_gold_quit.resume settle 502 normal level 1 score 310 board tick 163
+rec_gold_quit.resume settle 644 normal level 1 score 320 board tick 305
+rec_gold_quit.resume states none
+rec_gold_quit.resume save savegame-916631d3.dat v2 normal level 0 (shown 1), 36 gems, state 1 (playing), score 320, play seconds 17, 7132 bytes; rules 9d4b82549ed56619, 6x6, level shape 0, 0 holes; RNGS seed 4242 user, MOVE moves 5 invalid 0 undos 1, GOLD 22 cells, GTIM 8479/9000 ticks, END
+rec_gold_quit.resume sidecar savegame-916631d3.bjr end saved tick 460 score 320 level 1 gems 36 draws 79; seg0 normal seed 4242 user CHECK5,HOVER10,SAVE2,SELECT4,TARGET4,UNDO1; seg1 normal seed 2135392491 load(seed 4242 user) CHECK3,HOVER7,LOAD1,PAUSE1,SAVE2,SELECT2,TARGET2,UNPAUSE1; rng seed 4242 user; flags hover+multi; goes with the save
+rec_gold_quit.resume status rulesId 9d4b82549ed56619, scoreKey 916631d3, features seeds(entry), replays(keep 3, hover), 1 warnings, errors -, dropped -
+rec_gold_quit.resume variant last moves 5 invalid 0, 0 of 3 settles without a move
+rec_gold_quit.resume seeds 340:4242/user
+rec_gold_quit.resume codec codeccheck: 500 updates checked, 3 settles, 0 failures
+
+watch_gold_small_auto exit 0
+watch_gold_small_auto mods none
+watch_gold_small_auto user registry.ini
+watch_gold_small_auto settles 128
+watch_gold_small_auto last-settle 20194 normal level 2 score 1540 board tick 19894
+watch_gold_small_auto states 1016:fall_out 2273:fall_out 3311:fall_out 7859:fall_out 10103:vortex 10252:level_wipe 11842:fall_out 13756:fall_out 14923:fall_out 15889:fall_out 16967:fall_out 17894:fall_out 18220:fall_out
+watch_gold_small_auto save none
+watch_gold_small_auto variant last moves 87 invalid 0, 0 of 128 settles without a move
+watch_gold_small_auto seeds 427:2135392491/pergame
+watch_gold_small_auto codec codeccheck: 19998 updates checked, 128 settles, 0 failures
+watch_gold_small_auto watch REPLAY end: ok, 128 CHECKs, END saved tick 19996 score 1555 level 2 gems 334 draws 13339
+
+watch_gold_timeup_auto exit 0
+watch_gold_timeup_auto mods none
+watch_gold_timeup_auto user registry.ini
+watch_gold_timeup_auto settles 19
+watch_gold_timeup_auto last-settle 3050 normal level 1 score 190 board tick 2750
+watch_gold_timeup_auto states 2215:fall_out 3062:game_over 3383:game_over_done
+watch_gold_timeup_auto save none
+watch_gold_timeup_auto variant last moves 13 invalid 0, 0 of 19 settles without a move
+watch_gold_timeup_auto seeds 424:2135392491/pergame
+watch_gold_timeup_auto codec codeccheck: 3085 updates checked, 19 settles, 0 failures
+watch_gold_timeup_auto watch REPLAY end: ok, 19 CHECKs, END gold time up tick 3083 score 190 level 1 gems 48 draws 3933
+
+watch_gold_resume exit 0
+watch_gold_resume mods none
+watch_gold_resume user registry.ini
+watch_gold_resume settles 9
+watch_gold_resume last-settle 1906 normal level 1 score 320 board tick 305
+watch_gold_resume states none
+watch_gold_resume save none
+watch_gold_resume variant last moves 5 invalid 0, 0 of 9 settles without a move
+watch_gold_resume seeds 433:4242/user 1602:4242/user
+watch_gold_resume codec codeccheck: 1763 updates checked, 9 settles, 0 failures
+watch_gold_resume watch REPLAY end: ok, 8 CHECKs, END saved tick 460 score 320 level 1 gems 36 draws 79
 
 colors_seven exit 0
 colors_seven mods none

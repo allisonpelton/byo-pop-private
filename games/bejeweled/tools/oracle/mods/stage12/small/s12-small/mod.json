@@ -1,0 +1,13 @@
+{
+  "id": "s12-small",
+  "name": "Stage 12: gold on small boards",
+  "version": "1.0",
+  "description": "Oracle fixture: the Jewel Quest gold board, untimed in Normal mode. Levels 1, 3 ... (as the HUD counts them) play a 6x6 without its corners, levels 2, 4 ... a full 5x5; each gem cell a scored group takes turns gold, and a level ends when all of them are gold.",
+  "rules": {
+    "board": { "levels": [
+      { "cols": 6, "rows": 6, "mask": [ ".####.", "######", "######", "######", "######", ".####." ] },
+      { "cols": 5, "rows": 5 }
+    ] },
+    "gold": { "enabled": true }
+  }
+}

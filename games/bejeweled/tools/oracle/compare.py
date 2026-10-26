@@ -214,6 +214,14 @@ left out for a candidate built without variant paths, BEJ_NO_VARIANTS; flags "k=
               the specials made and the blasts and its specials line lists specials on gems only, no more than were
               made; some board made F flame gems, L lightning gems and B blasts or more. "after=<case>": the first
               settle's grid and specials are that case's last settle's (a resume of its save's KIND chunk).
+              Stage 12 (the gold board, mods/stage12): "gold=G,L": every settle's variant line counts the gold of the
+              goal (and the level's ticks left of its limit, when it has one) and its gold line agrees, with no gold
+              outside the goal; within a level the gold stays (but for an undo) and the time only runs down; a level
+              ends only on a settle whose goal is all gold, and the next level's first settle has none; some settle has
+              G gold cells or more, and the HUD reaches level L. "timeup": the bot's log (autoplay.txt) ends the game,
+              and the last settle's level has a limit and gold left (TIME UP: a gold game ends no other way). "after=<case>": the first settle's grid and gold are that case's
+              last settle's, its time left no more (a resume of its save's GOLD and GTIM chunks). "nowarn":
+              mods-status.json has no warning.
 More gem colours (stage 8, games/bejeweled/docs/CODE_MODS_DESIGN.md 4.2; candidate runs with the mods of
 mods/stage8, every build: board.gemColors is a tunable; flags "k=v;k=v"):
   colors      "colors=N": every gem in the TRACE rows a colour 0..N-1, all N of them with "all"; above 7 colours the
@@ -405,6 +413,10 @@ def save_state(path):
                     chunks.append("DIRT %d layers on %d cells, next %s" % (sum(layers), sum(1 for v in layers if v), "left" if payload[0] else "right"))
                 elif tag == b"KIND":
                     chunks.append("KIND flame %d lightning %d" % (payload.count(1), payload.count(2)))
+                elif tag == b"GOLD":
+                    chunks.append("GOLD %d cells" % payload.count(1))
+                elif tag == b"GTIM":
+                    chunks.append("GTIM %d/%d ticks" % struct.unpack_from("<II", payload, 0))
                 else:
                     chunks.append(tag.decode("latin-1").strip())
                 if tag == b"END ":
@@ -1804,7 +1816,7 @@ def variant_settles(stdout):
                             "tick": int(m.group(5)),
                             "grid": [], "seed": None, "moves": None, "invalid": None, "undos": 0, "gravity": None,
                             "flips": 0, "dirt": None, "side": None, "found": 0, "movelist": [], "typed": [], "groups": None,
-                            "made": None, "specials": None})
+                            "made": None, "specials": None, "gold": None, "time": None, "goldrows": None})
         elif settles and line.startswith("TRACE   row "):
             settles[-1]["grid"].append([int(v) for v in line.split(":", 1)[1].split()])
         elif settles and line.startswith("TRACE   seed "):
@@ -1812,7 +1824,8 @@ def variant_settles(stdout):
         elif settles and line.startswith(VARIANT_LINE):
             m = re.match(r"TRACE   variant moves (-?\d+) invalid (-?\d+)(?: undos (\d+))?(?: gravity (up|down) flips (\d+))?"
                          r"(?: dirt (\d+) (left|right))?(?: groups L (\d+) T (\d+) plus (\d+) diagonal (\d+) shapes (\d+))?"
-                         r"(?: specials flame (\d+) lightning (\d+) blasts (\d+))?$", line)
+                         r"(?: specials flame (\d+) lightning (\d+) blasts (\d+))?"
+                         r"(?: gold (\d+)/(\d+)(?: time (\d+)/(\d+))?)?$", line)
             if m:
                 settles[-1]["moves"], settles[-1]["invalid"] = int(m.group(1)), int(m.group(2))
                 settles[-1]["undos"] = int(m.group(3) or 0)
@@ -1822,9 +1835,15 @@ def variant_settles(stdout):
                     settles[-1]["groups"] = dict(zip(MATCH_KINDS, (int(v) for v in m.group(8, 9, 10, 11, 12))))
                 if m.group(13):
                     settles[-1]["made"] = tuple(int(v) for v in m.group(13, 14, 15))
+                if m.group(16):
+                    settles[-1]["gold"] = (int(m.group(16)), int(m.group(17)))
+                    settles[-1]["time"] = (int(m.group(18)), int(m.group(19))) if m.group(18) else None
         elif settles and line.startswith("TRACE   specials:"):
             # stage 11: the specials on the board, row-major
             settles[-1]["specials"] = [(k, int(c), int(w)) for k, c, w in re.findall(r"(flame|lightning) \((\d+),(\d+)\)", line)]
+        elif settles and line.startswith("TRACE   gold:"):
+            # stage 12: a word a row: 1 gold, 0 a cell of the goal not yet gold, . outside the goal, x gold outside it
+            settles[-1]["goldrows"] = line.split(":", 1)[1].split()
         elif settles and line.startswith("TRACE   move "):
             settles[-1]["found"] += 1
             m = re.match(r"TRACE   move \d+: \((-?\d+),(-?\d+)\)->\((-?\d+),(-?\d+)\)", line)
@@ -2134,6 +2153,81 @@ def specials_check(r, cand, settles, spec, after, label, notes):
         notes.append("the first settle is %s's last, with its %d specials" % (after, len(settles[0]["specials"])))
     notes.append("specials: flame %d lightning %d blasts %d (most on a board), up to %d on the board, each on a gem" %
                  (most[0], most[1], most[2], on_board))
+
+
+def gold_check(r, cand, run, settles, spec, timeup, after, label, notes):
+    """Stage 12, "gold=G,L" (module comment): every settle's gold counts agree with its gold line, no gold lies outside
+    the goal, the gold stays within a level (but for an undo) and its time runs down, a level ends on a settle with all
+    of its gold and the next one starts with none; some settle has G gold cells or more and the HUD reaches level L.
+    "timeup": the bot's game over, the last settle with a time limit and gold left. "after=<case>": the first settle is that case's last (a
+    resume), with no more time left"""
+    try:
+        least, level = [int(v) for v in spec.split(",")]
+    except ValueError:
+        r.fail("%s: gold=%s: not G,L" % (label, spec))
+        return
+    prev = None
+    levels_done = 0
+    for s in settles:
+        if s["gold"] is None or s["goldrows"] is None:
+            r.fail("%s: the settle of update %d has no gold counts or no gold line" % (label, s["update"]))
+            return
+        rows = s["goldrows"]
+        done, goal = s["gold"]
+        if len(rows) != len(s["grid"]) or any(len(w) != len(g) for w, g in zip(rows, s["grid"])):
+            r.fail("%s: the settle of update %d: the gold line %s is not the grid's shape" % (label, s["update"], " ".join(rows)))
+            return
+        text = "".join(rows)
+        if "x" in text or (text.count("1"), text.count("1") + text.count("0")) != (done, goal):
+            r.fail("%s: the settle of update %d: gold %d/%d, and its line %s" % (label, s["update"], done, goal, " ".join(rows)))
+            return
+        if s["time"] is not None and not (0 <= s["time"][0] <= s["time"][1]):
+            r.fail("%s: the settle of update %d: time %d/%d" % (label, s["update"], s["time"][0], s["time"][1]))
+            return
+        if prev is not None and s["level"] == prev["level"] and s["undos"] == prev["undos"]:
+            kept = all(b == "1" for a, b in zip("".join(prev["goldrows"]), text) if a == "1")
+            if not kept or (s["time"] is not None and prev["time"] is not None and s["time"][0] > prev["time"][0]):
+                r.fail("%s: level %d, from update %d to %d: the gold %s -> %s, the time %s -> %s" %
+                       (label, s["level"], prev["update"], s["update"], " ".join(prev["goldrows"]), " ".join(rows), prev["time"], s["time"]))
+                return
+        if prev is not None and s["level"] > prev["level"]:
+            if prev["gold"][0] != prev["gold"][1] or done != 0:
+                r.fail("%s: level %d -> %d at update %d: the last settle's gold %d/%d, the next level's first %d" %
+                       (label, prev["level"], s["level"], s["update"], prev["gold"][0], prev["gold"][1], done))
+                return
+            levels_done += 1
+        prev = s
+    if not settles:
+        r.fail("%s: no settle" % label)
+        return
+    most = max(s["gold"][0] for s in settles)
+    reached = max(s["level"] for s in settles)
+    if most < least or reached < level:
+        r.fail("%s: at most %d gold cells on a board and level %d, expected at least %d and level %d" % (label, most, reached, least, level))
+        return
+    last = settles[-1]
+    if timeup is not None:
+        log = os.path.join(run, "autoplay.txt")
+        over = os.path.exists(log) and any(": game over" in line for line in read_bytes(log).decode("latin-1").splitlines())
+        if not over or last["time"] is None or last["gold"][0] == last["gold"][1]:
+            r.fail("%s: %s; the last settle has gold %d/%d and time %s, expected TIME UP" %
+                   (label, "the bot's game over" if over else "no game over in autoplay.txt", last["gold"][0], last["gold"][1], last["time"]))
+            return
+    if after is not None:
+        before = variant_settles(run_stdout(os.path.join(cand, after)))
+        b = before[-1] if before else None
+        first = settles[0]
+        if b is None or (b["grid"], b["goldrows"]) != (first["grid"], first["goldrows"]) or \
+                ((b["time"] is None) != (first["time"] is None)) or (b["time"] is not None and first["time"][0] > b["time"][0]):
+            r.fail("%s: the first settle's grid, gold and time are not those of %s's last settle (%s %s / %s %s)" %
+                   (label, after, " ".join(b["goldrows"]) if b else "none", b["time"] if b else "", " ".join(first["goldrows"]), first["time"]))
+            return
+        notes.append("the first settle is %s's last, with its %d gold cells%s" % (after, first["gold"][0],
+                                                                                 ", %d ticks left" % first["time"][0] if first["time"] else ""))
+    timed = [s["time"] for s in settles if s["time"] is not None]
+    notes.append("gold: up to %d cells on a board, %d levels done, level %d reached%s%s" %
+                 (most, levels_done, reached, ", limits %s" % sorted(set(t[1] for t in timed)) if timed else "",
+                  ", TIME UP with %d/%d" % last["gold"] if timeup is not None else ""))
 
 
 def shapes_check(r, settles, spec, label, notes):
@@ -2501,6 +2595,12 @@ def variant_check(r, cand, run, flags, label):
                                                                         f["timesplayed"]))
         else:
             notes.append("TimesPlayed %s" % f["timesplayed"])
+    if "nowarn" in f:
+        warnings = [str(w.get("text", "")) for w in (mods_status(run) or {}).get("warnings", []) if isinstance(w, dict)]
+        if warnings:
+            r.fail("%s: mods-status.json warns %s, expected nothing" % (label, warnings))
+        else:
+            notes.append("no warning")
     if "warn" in f:
         warnings = [str(w.get("text", "")) for w in (mods_status(run) or {}).get("warnings", []) if isinstance(w, dict)]
         if not any(f["warn"] in w for w in warnings):
@@ -2530,6 +2630,8 @@ def variant_check(r, cand, run, flags, label):
         moves_check(r, settles, f["moves"], f.get("twist") == "both", f.get("match"), label, notes)
     if "specials" in f:
         specials_check(r, cand, settles, f["specials"], f.get("after"), label, notes)
+    if "gold" in f:
+        gold_check(r, cand, run, settles, f["gold"], f.get("timeup"), f.get("after"), label, notes)
     if "boards" in f:
         seed_check(r, cand, run, flags, "seeds")
     if r.failures == before:

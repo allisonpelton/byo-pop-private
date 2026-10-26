@@ -662,8 +662,8 @@ deterministic.
   no move): `ShowHint` gives none, so no hint penalty is taken and no `HINT` recorded, the idle hint glow stays off,
   and the replay player refuses a `HINT` there as one `ShowHint` would not give.
 - **Gold's default.** With `gold.enabled`, `noMoves.normal` defaults to "fallOut" (3.2). Stage 5 plays the noMoves
-  rule, so a gold mod already gets that fall-out in Normal mode before the gold rule itself (stage 12):
-  `mods-status.json` says so for the mod that turned gold on, unless a mod sets `noMoves.normal`.
+  rule, so a gold mod already got that fall-out in Normal mode before the gold rule itself (stage 12), and
+  `mods-status.json` said so for the mod that turned gold on. Since stage 12 gold plays and nothing is warned.
 - **Variant trace line.** After the rows (and the seed line) a variant board's settle prints `TRACE   variant moves
   <mMoveCount> invalid <mInvalidMoves>`.
 - **Warnings.** `mods-status.json` no longer lists `moves.allowInvalid`, `invalidPenalty`, `invalidCountsAsMove`
@@ -953,6 +953,19 @@ The search order is fixed: swaps (original order), then twists, then slides (4.7
   - HUD: `GOLD 23/64` in mainfont, centred over the bar.
 - **Save:** `GOLD` (bitmap) and `GTIM` (ticks left, limit). `LoadGame` never calls `SetupLevel`,
   so gold state comes only from these chunks.
+
+**As built (stage 12, `BoardGold.cpp`; GAME_NOTES 12.17):** where it differs from the plan above:
+- No `mGoldLeft`: `GoldLeft()` counts the cells of the goal not yet gold. The goal is the gem cells of the mask, and
+  its dirt cells with `gold.countDirt` (default true); only a gem cell turns gold, so a dirt cell does once its last
+  layer is gone and a group takes the gem there.
+- `SetupLevel` resets the gold and the time (`SetupLevelGold`), at its end; the shine is `Board::mGoldShines` (30
+  ticks a cell), not a `BoardEffect`.
+- `-forcevariant` does not turn gold on (it would change play). A gold level's time up ends a replay with END reason
+  4 (gold time up).
+- `GOLD` holds a byte for every cell, row-major (1 gold, only on a gem cell of the mask); `GTIM` two u32s. Stage 7's
+  `RebuildLoadedBackground`, which calls `SetupLevel` on a resume, keeps the loaded gold and time. Engine ABI 9.
+- An undo brings the gold back with the board; the time left comes back only with `undo.restoreTime`.
+- `-trace` adds `gold D/N` (and `time T/L` in ticks with a limit) to the variant line and a `gold:` line, a word a row.
 
 ### 4.10 Set seed
 

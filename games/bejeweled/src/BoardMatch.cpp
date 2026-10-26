@@ -159,6 +159,12 @@ bool Board::ProcessMatchesVariant()
 		anAvgXSum += anAvgX;
 		aMaxLength = std::max(aMaxLength, (int) aGroup.mCells.size());
 	}
+	// Stage 12: the groups' cells turn gold (BoardGold.cpp)
+	if (mVariant.mGold)
+	{
+		for (const MatchFinder::Group& aGroup : aGroups)
+			GildCells(aGroup.mCells);
+	}
 	// Stage 11: the specials the groups make and set off (BoardSpecials.cpp)
 	if (mVariant.mSpecials && !aGroups.empty())
 		ResolveSpecials(aGroups);

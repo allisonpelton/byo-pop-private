@@ -2314,6 +2314,42 @@ rows). `-trace` adds the flames and lightning made and the blasts so far to the 
 special on the board. The counts are the game's since it was started or resumed, and an undo does not take them
 back, so a resumed board can hold more specials than it made; the oracle's `specials=` and `after=` allow for that.
 
+### 12.17 The gold board (code mods, stage 12)
+
+games/bejeweled/docs/CODE_MODS_DESIGN.md 4.9, as built (`BoardGold.cpp`). With `gold.enabled` a level is won by
+turning every cell of the goal gold, Jewel Quest's way, and no longer by points. The goal is the board's gem cells,
+and its dirt cells too with `gold.countDirt` (the default). `ProcessMatchesVariant` gilds the cells of every group it
+scores, before the specials are resolved, and with `gold.gild` at its default (`matchesAndBlasts`) a blast gilds the
+cells of the gems it destroys; `matches` leaves a blast's cells as they were. Only a gem cell turns gold, so a dirt
+cell does once its last layer is gone and a group takes the gem that fell into it. The gold belongs to the cell: it
+stays put when the gems fall, through a fall-out (with gold, `noMoves.normal` defaults to `fallOut`) and through the
+cascades, and only the next level clears it.
+
+`Update`'s level block calls `UpdateGoldGoal` in place of the score's level end and TIME_UP, and the timed mode's score
+drain does not run. A level may have a time limit, `gold.timeLimit.normal` or `.timed` for the mode (Normal is
+untimed by default, Timed `{180, -10, 60}`): `max(min, base + perLevel × level)` seconds, the first level being
+level 0, each at least 10. Its ticks run down in the states the drain runs in (playing, swapping, twisting,
+sliding) once the GO delay is over. In the playing state with no cell of the goal left, a timed level scores
+`timeBonus` (10 by default) for each whole second left, times the multiplier, and the vortex takes the board to the
+next level as after a score level. When the time runs out first, TIME_UP shows and the game is over, which a replay
+records as END reason 4. The bar shows the time left of a level with a limit, else the gold done, and takes the timed
+colours only with a limit. Over it the HUD writes `GOLD done/goal` in the main font (string `GOLD_PROGRESS`, a format
+of the two numbers).
+
+Drawing is cosmetic and reads no RNG. Under the gems each gold cell shows a mod's `images\goldtile`, or else the
+level's checker tile tinted gold (235, 185, 45), made once a level. A cell that just turned gold shines for 30 ticks
+with the sparkle sheet in gold, additively. The shine is not saved.
+
+Engine ABI 9: the gold layer and the level's time are play state (hashed and snapshotted by the codec, the gold's
+limit outside the undo rows). A v2 save under gold rules writes a `GOLD` chunk, a byte a cell, row-major (1 gold,
+only on a gem cell of the mask), and `GTIM`, the ticks left and the limit as two u32s; without them a resume has no
+gold and the level's whole time. A resume on a shape board rebuilds its background through `SetupLevel`
+(`RebuildLoadedBackground`, stage 7), which keeps the loaded gold and time as it keeps the level's other values. An
+undo brings the gold back with the board; the time left comes back only with `undo.restoreTime`, so by default the
+clock runs on. `-forcevariant` does not turn gold on. `-trace` ends the variant line with `gold D/N`, and `time T/L`
+in ticks with a limit, then prints a gold line, a word a row: `1` gold, `0` a cell of the goal not yet gold, `.` a
+cell outside it. Since gold plays, the stage 5 warning that only its fall-out default did is gone.
+
 ## 13. Naming reconciliation (analyst names → chosen names)
 
 **Board fields.**

@@ -38,6 +38,8 @@ const uint32_t TAG_GRAV = Replay::Tag("GRAV");
 const size_t GRAV_SIZE = 4 + 1;
 const uint32_t TAG_DIRT = Replay::Tag("DIRT"); // u8 leftFirst, then a byte a cell
 const uint32_t TAG_KIND = Replay::Tag("KIND"); // a byte a cell (stage 11)
+const uint32_t TAG_GOLD = Replay::Tag("GOLD"); // a byte a cell (stage 12)
+const uint32_t TAG_GTIM = Replay::Tag("GTIM"); // the level's time (stage 12)
 const size_t SAVE_HEADER_FIXED = 4 + Replay::RULES_ID_SIZE + 2 + 2 + 4; // the version up to the mask
 
 void PutU8(std::string* theOut, int theValue)
@@ -415,6 +417,17 @@ std::string Replay::VariantSaveChunks(const VariantSave& theSave)
 			PutU8(&aKinds, theSave.mKinds[i]);
 		PutRecord(&aChunks, TAG_KIND, aKinds);
 	}
+	if (theSave.mHasGold)
+	{
+		std::string aGold;
+		for (size_t i = 0; i < theSave.mGold.size(); i++)
+			PutU8(&aGold, theSave.mGold[i]);
+		PutRecord(&aChunks, TAG_GOLD, aGold);
+		std::string aTime;
+		PutU32(&aTime, (uint32_t) theSave.mGoldTicksLeft);
+		PutU32(&aTime, (uint32_t) theSave.mGoldTickLimit);
+		PutRecord(&aChunks, TAG_GTIM, aTime);
+	}
 	PutRecord(&aChunks, TAG_END, "");
 	return aChunks;
 }
@@ -616,6 +629,44 @@ bool Replay::ReadVariantSave(const std::string& theSave, VariantSave* theOut, st
 				s.mKinds.push_back(aKind);
 			}
 			s.mHasKinds = true;
+		}
+		else if (aTag == TAG_GOLD)
+		{
+			// stage 12: 1 a gold cell, only on a gem cell of the save's mask
+			if (s.mHasGold || (aLen != aCells))
+			{
+				anErr = s.mHasGold ? std::string("GOLD twice") : "GOLD: " + std::to_string(aLen) + " bytes, not " + std::to_string(aCells);
+				return false;
+			}
+			for (size_t i = 0; i < aCells; i++)
+			{
+				uint8_t aGold = (uint8_t) aReader.U8();
+				if ((aGold > 1) || ((aGold > 0) && !s.mPlayable[i]))
+				{
+					anErr = "GOLD: " + std::to_string(aGold) + " at cell (" + std::to_string(i % s.mCols) + "," +
+						std::to_string(i / s.mCols) + ")" + (s.mPlayable[i] ? "" : ", which is no gem cell");
+					return false;
+				}
+				s.mGold.push_back(aGold);
+			}
+			s.mHasGold = true;
+		}
+		else if (aTag == TAG_GTIM)
+		{
+			// stage 12: the level's time left and its limit, in ticks (0 0: no limit)
+			if (s.mHasGoldTime || (aLen != 8))
+			{
+				anErr = s.mHasGoldTime ? std::string("GTIM twice") : "GTIM: " + std::to_string(aLen) + " bytes, not 8";
+				return false;
+			}
+			s.mGoldTicksLeft = (int32_t) aReader.U32();
+			s.mGoldTickLimit = (int32_t) aReader.U32();
+			if ((s.mGoldTickLimit < 0) || (s.mGoldTicksLeft < 0) || (s.mGoldTicksLeft > s.mGoldTickLimit))
+			{
+				anErr = "GTIM: " + std::to_string(s.mGoldTicksLeft) + " ticks left of " + std::to_string(s.mGoldTickLimit);
+				return false;
+			}
+			s.mHasGoldTime = true;
 		}
 		// any other chunk: a later stage's, skipped
 	}

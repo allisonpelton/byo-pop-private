@@ -1369,9 +1369,9 @@ static void TestReplayFormat()
 		"replay: every op 1..15 has a name and an argument count, 0 and 16 none");
 
 	// A golden vector: the smallest file (header and END) and a one-segment file, byte for byte, the same on
-	// native and wasm (engine ABI 7 since stage 10)
+	// native and wasm (engine ABI 9 since stage 12)
 	Replay::File anEmpty;
-	Check(Hex(Replay::Write(anEmpty)) == "424a5250010000000800000045" "4e4420" "1d000000" "00" "00000000" "00000000" "00000000"
+	Check(Hex(Replay::Write(anEmpty)) == "424a5250010000000900000045" "4e4420" "1d000000" "00" "00000000" "00000000" "00000000"
 		"00000000" "0000000000000000" "00000000", "replay: golden bytes of a file with only END");
 	Replay::File aSmall;
 	Replay::Segment aSegment;
@@ -1382,7 +1382,7 @@ static void TestReplayFormat()
 	aSmall.mEnd.mReason = Replay::END_NO_MOVES;
 	aSmall.mEnd.mScore = 90;
 	std::string aSmallHex = Hex(Replay::Write(aSmall));
-	Check(aSmallHex == "424a52500100000008000000" "5345474d" "1d000000" "00" "00" "92100000" "00" "00" "00000000" "00000000"
+	Check(aSmallHex == "424a52500100000009000000" "5345474d" "1d000000" "00" "00" "92100000" "00" "00" "00000000" "00000000"
 		"02000000" "a001" "01" "0a" "0a" "01" "03" "01" "01"
 		"454e4420" "1d000000" "01" "00000000" "5a000000" "00000000" "00000000" "0000000000000000" "00000000",
 		"replay: golden bytes of a one-segment file (got " + aSmallHex + ")");
@@ -1907,7 +1907,7 @@ static void TestReplayPlayable()
 		Check(Replay::CheckPlayable(anOld, 8, 8, &aWhy, true), "playable: the original rules recorded by engine " + std::to_string(anAbi) + " (" + aWhy + ")");
 		Check(!Replay::CheckPlayable(anOld, 8, 8, &aWhy, false), "playable: refused: variant rules recorded by engine " + std::to_string(anAbi));
 	}
-	Check(Replay::ENGINE_ABI == 8, "playable: this is engine 8 (stage 11)");
+	Check(Replay::ENGINE_ABI == 9, "playable: this is engine 9 (stage 12)");
 }
 
 // A v2 save (Replay.h, games/bejeweled/docs/CODE_MODS_DESIGN.md 7.2) around the v1 test save's fields: the rules
@@ -2061,8 +2061,50 @@ static void TestReplayVariantSave()
 		Check(!Replay::ReadVariantSave(aKindBads[i].mBytes, &aRead, &aWhy) && !aWhy.empty(), std::string("v2: refused: ") + aKindBads[i].mWhat + " (" + aWhy + ")");
 	}
 
+	// GOLD and GTIM (stage 12): a byte a cell (1 gold) and the level's time, written when the rules have gold
+	Check(Replay::ReadVariantSave(aKindBytes, &aRead, &aWhy) && !aRead.mHasGold && !aRead.mHasGoldTime, "v2: no GOLD or GTIM chunk (" + aWhy + ")");
+	Replay::VariantSave aGold = aHoled;
+	aGold.mHasGold = true;
+	aGold.mGold.assign(64, 0);
+	aGold.mGold[8] = 1;
+	aGold.mGold[63] = 1;
+	aGold.mHasGoldTime = true;
+	aGold.mGoldTicksLeft = 4321;
+	aGold.mGoldTickLimit = 6000;
+	std::string aGoldBytes = V2Save(aGold, aV1Hole);
+	std::string aGoldChunk = Replay::VariantSaveChunks(aGold).substr(2514 + 20);
+	Check(Hex(aGoldChunk.substr(0, 8 + 10)) == "474f4c44" "40000000" "00000000000000000100", "v2: golden GOLD chunk after MOVE");
+	Check(Hex(aGoldChunk.substr(8 + 64, 16)) == "4754494d" "08000000" "e1100000" "70170000", "v2: golden GTIM chunk after GOLD");
+	Check(Replay::ReadVariantSave(aGoldBytes, &aRead, &aWhy) && aRead.mHasGold && (aRead.mGold == aGold.mGold) && aRead.mHasGoldTime &&
+		(aRead.mGoldTicksLeft == 4321) && (aRead.mGoldTickLimit == 6000), "v2: GOLD and GTIM read back (" + aWhy + ")");
+	std::string aGoldNoEnd = aGoldBytes.substr(0, aGoldBytes.size() - 8);
+	std::string aGtim = aGoldNoEnd.substr(aGoldNoEnd.size() - 16);
+	std::string aGoldAlone = aGoldNoEnd.substr(aGoldNoEnd.size() - 16 - (8 + 64), 8 + 64);
+	std::string aBeforeGold = aGoldNoEnd.substr(0, aGoldNoEnd.size() - 16 - (8 + 64));
+	size_t aGoldCells = aBeforeGold.size() + 8;
+	auto aWithGold = [&](size_t theCell, char theGold) { std::string aCopy = aGoldNoEnd; aCopy[aGoldCells + theCell] = theGold; return aCopy + anEnd; };
+	auto aLe32 = [](uint32_t theValue) { std::string anOut; for (int i = 0; i < 4; i++) anOut += (char)((theValue >> (8 * i)) & 0xff); return anOut; };
+	auto aWithTime = [&](uint32_t theLeft, uint32_t theLimit) { return aBeforeGold + aGoldAlone + "GTIM" + aLe32(8) + aLe32(theLeft) + aLe32(theLimit) + anEnd; };
+	Check(Replay::ReadVariantSave(aWithTime(0, 0), &aRead, &aWhy) && aRead.mHasGoldTime && (aRead.mGoldTickLimit == 0), "v2: GTIM 0 0, no limit (" + aWhy + ")");
+	const Bad aGoldBads[] =
+	{
+		{"GOLD twice", aBeforeGold + aGoldAlone + aGoldAlone + aGtim + anEnd},
+		{"GOLD of 63 bytes", aBeforeGold + "GOLD" + std::string("\x3f\0\0\0", 4) + std::string(63, '\0') + aGtim + anEnd},
+		{"GOLD 2", aWithGold(10, 2)},
+		{"GOLD on a hole", aWithGold(9, 1)},
+		{"GTIM twice", aGoldNoEnd + aGtim + anEnd},
+		{"GTIM of 4 bytes", aBeforeGold + aGoldAlone + "GTIM" + aLe32(4) + aLe32(0) + anEnd},
+		{"GTIM more left than the limit", aWithTime(6001, 6000)},
+		{"GTIM a negative limit", aWithTime(0, 0xffffffffu)},
+	};
+	for (size_t i = 0; i < sizeof(aGoldBads) / sizeof(aGoldBads[0]); i++)
+	{
+		aWhy.clear();
+		Check(!Replay::ReadVariantSave(aGoldBads[i].mBytes, &aRead, &aWhy) && !aWhy.empty(), std::string("v2: refused: ") + aGoldBads[i].mWhat + " (" + aWhy + ")");
+	}
+
 	// An unknown chunk before END is skipped
-	std::string anExtra = aBytes.substr(0, aBytes.size() - 8) + "GOLD" + std::string("\x02\0\0\0", 4) + "ab" + aBytes.substr(aBytes.size() - 8);
+	std::string anExtra = aBytes.substr(0, aBytes.size() - 8) + "XTRA" + std::string("\x02\0\0\0", 4) + "ab" + aBytes.substr(aBytes.size() - 8);
 	Check(Replay::ReadVariantSave(anExtra, &aRead, &aWhy) && (aRead.mMoves == 2), "v2: an unknown chunk is skipped (" + aWhy + ")");
 
 	std::string aNoEnd = aBytes.substr(0, aBytes.size() - 8);

@@ -244,6 +244,21 @@ public:
 		int			mTick;                  // ticks since it went off
 	};
 	std::vector<BlastEffect> mBlastEffects;  // cosmetic, not saved: the blasts of late (DrawSpecials)
+	// The gold board (stage 12, games/bejeweled/docs/CODE_MODS_DESIGN.md 4.9; BoardGold.cpp), on a board with gold rules
+	// (mVariant.mGold): the layer is per cell and stays when the gems move; the level ends when every cell that counts
+	// is gold (GoldLeft), or the game when the level's time runs out. Hashed, saved (GOLD, GTIM) and undone
+	uint8_t			mGold[MAX_ROWS][MAX_COLS] = {}; // 1: the cell is gold
+	int				mGoldTicksLeft = 0;     // the level's time left (ticks), when it has a limit
+	int				mGoldTickLimit = 0;     // the level's time limit (ticks), 0 for none (gold.timeLimit of the mode)
+	struct GoldShine
+	{
+		int			mCol;
+		int			mRow;
+		int			mTick;                  // ticks since the cell turned gold
+	};
+	std::vector<GoldShine> mGoldShines;     // cosmetic, not saved: the cells gilded lately (DrawGold)
+	Image*			mGoldTiles[2] = {};     // the level's checker tiles A and B tinted gold (DrawGold)
+	int				mGoldTilesLevel = -1;   // the level mGoldTiles were made for, -1 for none
 	BoardLayout		mLayout;                // current level's layout (8x8: origin 203/16, D 406, bottom 480)
 	int				mCols;                  // == mLayout.mCols; 8
 	int				mRows;                  // == mLayout.mRows; 8
@@ -446,6 +461,19 @@ public:
 	void			PlaySpecialSound(int theKind, int thePan);      // sounds/flame or sounds/lightning, else the original's explode or firecrackle
 	void			UpdateSpecials();                               // Update: the overlays' frames and the blast effects (cosmetic)
 	void			DrawSpecials(Graphics* g, bool isOver);         // DrawVariant: the specials' overlays (under), the blasts (over)
+	// The gold board (stage 12, games/bejeweled/docs/CODE_MODS_DESIGN.md 4.9; BoardGold.cpp)
+	bool			CountsForGold(int theCol, int theRow) const;    // a cell of the goal: a gem cell, or dirt with gold.countDirt
+	int				GoldGoal() const;                               // the cells of the goal
+	int				GoldLeft() const;                               // ... not gold yet
+	void			GildCells(const std::vector<MatchFinder::Cell>& theCells); // ProcessMatchesVariant and ScoreBlast: gem cells turn gold
+	int				GoldLimitTicks() const;                         // the level's time limit for the mode (0: none)
+	void			SetupLevelGold();                               // SetupLevel: no gold, the level's time
+	void			UpdateGoldGoal();                               // Update's level block on a gold board: the time, the level's end, TIME_UP
+	int				GoldBarTarget() const;                          // Update: the bar's width, the gold so far or the time left
+	bool			GoldTimed() const { return mGoldTickLimit > 0; }
+	void			UpdateGold();                                   // Update: the shines (cosmetic)
+	void			DrawGold(Graphics* g, bool isOver);             // DrawVariant: the gold cells (under the gems), the shines (over)
+	void			DrawGoldHud(Graphics* g);                       // DrawVariant: GOLD n/m over the bar
 	bool			ApplyDirtLayers(const std::vector<uint8_t>& theLayers, std::string* theWhy); // a save's or snapshot's layers onto the level's mask
 	void			DrawDirt(Graphics* g);                          // DrawVariant: the dirt cells, under the gems
 	void			DrawDirtDust(Graphics* g);                      // DrawVariant: the dust of cleared cells, over the gems

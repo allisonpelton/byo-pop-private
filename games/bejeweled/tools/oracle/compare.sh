@@ -115,6 +115,9 @@
 # crossings that chain, from the move only, with twists and slides and with dirt by the bot, a scripted game quit with
 # specials on the board and resumed, recorded and played back (compare.py "variant" with "specials"). Left out the
 # same way.
+# Stage 12 (the gold board) plays the rule mods of mods/stage12: gold on small boards by turns, against the clock in
+# both modes, under dirt, with specials, with twists and slides by the bot, a scripted game with an undo quit with gold
+# on the board and resumed, recorded and played back (compare.py "variant" with "gold"). Left out the same way.
 #
 # The frozen exes (build/baseline, build/baseline-stage0) predate the audio shutdown fix (af758b9) and can
 # crash on exit after writing all their outputs: a baseline or hooks-baseline run that exits 139 or with an
@@ -1140,10 +1143,10 @@ define_cases() {
 		# Hint on a "continue" board without a move: no penalty, no sparkle, no idle glow (s5-free0 keeps the score)
 		variant free_hint "-gameseed=$GS, mods/stage5/free0: a match (10), kept swaps to a board without a move (\"continue\"): Hint there costs nothing, no idle glow" \
 			"kept=6;continue=1;v2=last;boards=user;gameseed=$GS" 1 "$S5/free_hint.txt" modsdir="$M5/free0" arg=-gameseed=$GS
-		# gold.enabled alone: the gold rule is not played yet, but its derived noMoves.normal "fallOut" is, and
-		# mods-status.json says so
-		variant gold_status "mods/stage5/gold (gold.enabled alone): a variant board; mods-status.json says its noMoves.normal \"fallOut\" is played" \
-			"nosave;warn=the gold rule is not played yet, but with it noMoves.normal defaults to" 1 "$PT/stage2/seed_start.txt" modsdir="$M5/gold"
+		# gold.enabled alone: until stage 12 only its derived noMoves.normal "fallOut" played, and mods-status.json said
+		# so; since then it is the gold board (no gold yet on the first board) and nothing is warned
+		variant gold_status "mods/stage5/gold (gold.enabled alone): the gold board on the full 8x8, none of it gold yet; mods-status.json warns nothing" \
+			"nosave;nowarn;gold=0,1" 1 "$PT/stage2/seed_start.txt" modsdir="$M5/gold"
 		variant free_auto "-autoplay=1, mods/stage5/free, 20000 updates: the bot's random swaps are kept, boards without a move go on (\"continue\")" \
 			"kept=20;continue=2;v2" 1 - modsdir="$M5/free" arg=-autoplay=1 "${FREEBOT[@]}"
 		variant free_auto_timed "-autoplay=2 -autoplaytimed, mods/stage5/free, 20000 updates: \"continue\" in timed mode" \
@@ -1417,8 +1420,51 @@ define_cases() {
 			"trace=rec_specials_b2_auto" "$C/rec_specials_b2_auto/user/savegame-*.bjr"
 		playback watch_specials_resume "rec_specials_quit.resume's sidecar: the second segment LOADs the save with specials on the board" \
 			"trace=rec_specials_quit,rec_specials_quit.resume" "$C/rec_specials_quit.resume/user/savegame-*.bjr"
+		# Stage 12: the Jewel Quest gold board (games/bejeweled/docs/CODE_MODS_DESIGN.md 4.9). The rule mods of
+		# mods/stage12: s12-small (untimed, a 6x6 without its corners and a 5x5 by turns), s12-timed (10 s a level in
+		# Normal mode; in Timed mode 120 s, 50 fewer each level after, 50 points a second left), s12-dirt (dirt cells count
+		# toward the goal), s12-specials (Bejeweled 2's specials, whose blasts gild), s12-quest (twists and slides, flame
+		# gems that gild only their groups, undo) and s12-script (90 s a level in Normal mode, undo). The bot plays each;
+		# compare.py "variant" with gold= checks every settle's gold counts and gold line, that the gold stays within a
+		# level, that a level ends only with all of its gold and the next starts with none ("timeup": the clock ends the
+		# game). A scripted game gilds nineteen cells, undoes a move (the gold comes back, the time runs on), makes it
+		# again and quits; its resume reads the gold and the time left back from the GOLD and GTIM chunks (after=). Since
+		# stage 12 the stage 5 case gold_status is a gold board too. Recorded and played back (engine 9).
+		M12="$GAME/tools/oracle/mods/stage12"
+		S12="$PT/stage12"
+		variant gold_small_auto "-autoplay=1, mods/stage12/small, 20000 updates: gold on the 6x6 and the 5x5 by turns, a level done" \
+			"gold=32,2" 1 - modsdir="$M12/small" arg=-autoplay=1 "${SHAPEBOT[@]}"
+		variant gold_timeup_auto "-autoplay=1, mods/stage12/timed: 10 seconds a level in Normal mode, TIME UP before the gold is done" \
+			"gold=10,1;timeup" 1 - modsdir="$M12/timed" arg=-autoplay=1 "${SHAPEBOT[@]}"
+		variant gold_timed_auto_timed "-autoplay=2 -autoplaytimed, mods/stage12/timed, 20000 updates: a level done in time (50 points a second left), then 70 seconds" \
+			"gold=36,2" 1 - modsdir="$M12/timed" arg=-autoplay=2 arg=-autoplaytimed "${SHAPEBOT[@]}"
+		variant gold_dirt_auto "-autoplay=1, mods/stage12/dirt, 20000 updates: dirt cells count toward the gold, gilded once cleared" \
+			"dirt=3:4;gold=45,1" 1 - modsdir="$M12/dirt" arg=-autoplay=1 "${SHAPEBOT[@]}"
+		variant gold_specials_auto "-autoplay=1, mods/stage12/specials, 20000 updates: blasts gild the cells of the gems they take" \
+			"moves=swap;specials=2,0,1;gold=45,1" 1 - modsdir="$M12/specials" arg=-autoplay=1 "${SHAPEBOT[@]}"
+		variant gold_quest_auto "-autoplay=1, mods/stage12/quest, 20000 updates: gold with twists and slides, flames that gild only their groups" \
+			"moves=twist+slide;twist=both;specials=5,0,5;gold=36,2" 1 - modsdir="$M12/quest" arg=-autoplay=1 "${SHAPEBOT[@]}"
+		variant gold_quit "-gameseed=$GS, mods/stage12/script: nineteen cells gilded, an undo (the gold back, the time on), the move again; the quit with gold and time" \
+			"moves=swap;undos=1;gold=19,1;v2=last" 1 "$S12/gold_quit.txt" modsdir="$M12/script" arg=-gameseed=$GS
+		variant gold_quit.resume "gold_quit's user dir: Yes resumes with the save's gold and time left (GOLD, GTIM), and gilds on" \
+			"moves=swap;gold=22,1;after=gold_quit" 1 "$S12/gold_resume.txt" from=gold_quit modsdir="$M12/script"
+		# Recorded (mods/stage12/*-replays: those with stage 3's replays feature mod) and played back
+		recording rec_gold_small_auto "gold_small_auto recorded: the gold board's levels in a replay" \
+			gold_small_auto 1 - modsdir="$M12/small-replays" arg=-autoplay=1 "${SHAPEBOT[@]}"
+		recording rec_gold_timeup_auto "gold_timeup_auto recorded: a finished replay that ends in a gold level's TIME UP" \
+			gold_timeup_auto 1 - modsdir="$M12/timed-replays" arg=-autoplay=1 "${SHAPEBOT[@]}"
+		recording rec_gold_quit "gold_quit recorded: the sidecar next to the v2 save with its GOLD and GTIM chunks" \
+			gold_quit 1 "$S12/gold_quit.txt" modsdir="$M12/script-replays" arg=-gameseed=$GS
+		recording rec_gold_quit.resume "gold_quit.resume in a copy of rec_gold_quit's user dir: the sidecar goes on" \
+			gold_quit.resume 1 "$S12/gold_resume.txt" from=rec_gold_quit modsdir="$M12/script-replays"
+		playback watch_gold_small_auto "rec_gold_small_auto's sidecar (saved at the cap): the same gold and levels again" \
+			"trace=rec_gold_small_auto" "$C/rec_gold_small_auto/user/savegame-*.bjr"
+		playback watch_gold_timeup_auto "rec_gold_timeup_auto's replay: the same game to its TIME UP (END gold time up)" \
+			"trace=rec_gold_timeup_auto" "$C/rec_gold_timeup_auto/user/replays/*.bjr"
+		playback watch_gold_resume "rec_gold_quit.resume's sidecar: the second segment LOADs the save with its gold and time" \
+			"trace=rec_gold_quit,rec_gold_quit.resume" "$C/rec_gold_quit.resume/user/savegame-*.bjr"
 	else
-		echo "$VTAG  (the candidate has no variant paths: the stage-5, 6, 7, 7c, 7b, 9, 10 and 11 cases are left out)"
+		echo "$VTAG  (the candidate has no variant paths: the stage-5, 6, 7, 7c, 7b, 9, 10, 11 and 12 cases are left out)"
 	fi
 
 	# Stage 8: more gem colours (games/bejeweled/docs/CODE_MODS_DESIGN.md 4.2), a tunable every build plays. sheet.txt

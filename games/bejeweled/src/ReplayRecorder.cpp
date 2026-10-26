@@ -295,7 +295,7 @@ void ReplayRecorder::OnGameOver()
 	if (mNewGame)
 		mEndReason = Replay::END_NEW_GAME;
 	else
-		mEndReason = (mBoard->mState == STATE_FALLING) ? Replay::END_NO_MOVES : Replay::END_TIME_UP;
+		mEndReason = (mBoard->mState == STATE_FALLING) ? Replay::END_NO_MOVES : mBoard->mVariant.mGold ? Replay::END_GOLD_TIME_UP : Replay::END_TIME_UP; // port(variant): a gold level's time (stage 12)
 }
 
 void ReplayRecorder::BeginSave()
