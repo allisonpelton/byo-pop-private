@@ -1740,3 +1740,440 @@ void HintDialog::Draw(Graphics* g)
 	g->DrawString(GT(0x004e4bf0), mLabelX, mLabelY);
 	g->DrawString(GT(0x004e4be4), mLabelX, mLabelY + 0x10);
 }
+
+// ---------------------------------------------------------------------------------------------------------
+// LevelUpDialog
+
+// 0x40c2c0
+LevelUpDialog::LevelUpDialog(RocketApp* theApp, int theKind, MTRand* theRand) :
+	Dialog2004(theApp->mImages[IMAGE_DIALOG], theApp->mImages[IMAGE_DIALOGBUTTON], DIALOG_LEVEL_UP, true, "", "", "",
+		BUTTONS_NONE),
+	mStartTick(0),
+	mGameOver(theKind == KIND_GAME),
+	mApp(theApp),
+	mAnim(0),
+	mRand(theRand),
+	mButton(NULL),
+	mKind(theKind),
+	mPhase(0),
+	mPauseAlpha(0)
+{
+	Board* aBoard = mApp->mBoard;
+	mStartTick = mUpdateCnt;
+	aBoard->mFc = 1;
+
+	// (the talking head says line 0x3d and takes mood 9 after a game, line 0x3f and mood 10 after a level: 0x416aa0 and
+	// 0x416360, the head is not ported yet)
+	aBoard->mEffects->Clear();      // 0x41aae0
+	mApp->mMusicInterface->FadeOut(SONG_GAME, true, 0.02);
+	mApp->mMusicInterface->FadeOut(SONG_GAMEOVER, true, 0.02);
+	mApp->mMusicInterface->FadeIn(SONG_LEVELUP, -1, 0.02, false);
+	mApp->PlaySample(SOUND_CROWD_APPLAUSE_02);
+
+	SetButtonFont(mApp->mFonts[FONT_DOMO14_BOLD]);
+	SetHeaderFont(mApp->mFonts[FONT_DOMO14_BOLD]);
+	SetLinesFont(mApp->mFonts[FONT_DOMO14_BOLD]);
+
+	mButton = new HyperlinkWidget(0, this);
+	mButton->SetFont(mApp->mFonts[FONT_DOMO11_BOLD]);
+	mButton->mUnderlineSize = 0;
+	mButton->SetVisible(true);
+	mButton->mColor = Color(0x6f, 0x15, 0x15);
+	mButton->mLabel = GT(mGameOver ? 0x004e4ef0 : 0x004e4f08);
+	int aLabelWidth = mButton->mFont->StringWidth(mButton->mLabel);
+	mButton->Resize(0x132 - (aLabelWidth + 8) / 2, 0x1ba, aLabelWidth + 8, 0x1e);
+
+	// the figures of the level go into the sums of the game (the largest are kept, the others added)
+	if (aBoard->mE0 < aBoard->mC4)
+		aBoard->mE0 = aBoard->mC4;
+	if (aBoard->mE4 < aBoard->mC8)
+		aBoard->mE4 = aBoard->mC8;
+	aBoard->mE8 += aBoard->mCc;
+	aBoard->mEc += aBoard->mD0;
+	aBoard->mF0 += aBoard->mD4;
+	aBoard->mF4 += aBoard->mD8;
+	aBoard->mF8 += aBoard->mDc;
+	mPauseAlpha = 0;
+}
+
+// 0x40c910
+LevelUpDialog::~LevelUpDialog()
+{
+	delete mButton;
+}
+
+// 0x40c970
+void LevelUpDialog::AddedToManager(WidgetManager* theWidgetManager)
+{
+	Dialog2004::AddedToManager(theWidgetManager);
+	theWidgetManager->AddWidget(mButton);
+}
+
+// (the original has no override: its link stays in the manager until the link is deleted with the dialog)
+void LevelUpDialog::RemovedFromManager(WidgetManager* theWidgetManager)
+{
+	Dialog2004::RemovedFromManager(theWidgetManager);
+	theWidgetManager->RemoveWidget(mButton);
+}
+
+// 0x40f5a0: the next page that applies. The page of the next rank is for the end of a level only, the bombs wait for level 5,
+// the gems for level 3, the clocks for level 7; matches are for the strategy mode (2), the coins and the level for the
+// others. After the ninth page the first comes again.
+void LevelUpDialog::Step()
+{
+	for (;;)
+	{
+		mPhase++;
+		if (mPhase == 10)
+		{
+			mPhase = 0;
+			return;
+		}
+		if (mPhase == 1)
+		{
+			if (!mGameOver)
+				return;
+		}
+		else if (mPhase == 2)
+		{
+			if (4 < mApp->mBoard->mLevel)
+				return;
+		}
+		else if (mPhase == 4)
+		{
+			if (mApp->mMode != 2)
+				return;
+		}
+		else if (mPhase == 6)
+		{
+			if (2 < mApp->mBoard->mLevel)
+				return;
+		}
+		else if (mPhase == 7)
+		{
+			if (6 < mApp->mBoard->mLevel)
+				return;
+		}
+		else if (mPhase == 8)
+		{
+			if (mApp->mMode == 2)
+				return;
+		}
+		else if (mPhase == 9)
+		{
+			if (mApp->mMode != 2)
+				return;
+		}
+		else
+			return;
+	}
+}
+
+// 0x410340
+void LevelUpDialog::Update()
+{
+	Dialog2004::Update();
+	if (!mApp->mActive)
+	{
+		// the window lost the focus: the link goes away and the pause comes down
+		if (mPauseAlpha == 0)
+			mWidgetManager->RemoveWidget(mButton);
+		if (mPauseAlpha < 200)
+			mPauseAlpha++;
+		return;
+	}
+
+	if (0 < mPauseAlpha)
+	{
+		mWidgetManager->AddWidget(mButton);
+		mWidgetManager->BringToFront(mButton);
+		mPauseAlpha = 0;
+	}
+	int aTime = mUpdateCnt - mStartTick;
+	if (aTime % 0x32 == 0)
+	{
+		if (mRand->Next() % 5 == 0)
+			mApp->mBoard->BurstSome((int) (mRand->Next() % 10), 1, -1);
+	}
+	// (at 0xfa updates the talking head is told to go on, 0x416520 with 0: the head is not ported yet)
+	if (mUpdateCnt % 10 == 0)
+	{
+		mAnim++;
+		MarkDirty();
+	}
+	if (mUpdateCnt % 0x96 == 0)
+		Step();
+}
+
+// 0x4102c0
+void LevelUpDialog::ButtonDepress(int theId)
+{
+	if (theId != 0)
+	{
+		Dialog2004::ButtonDepress(theId);
+		return;
+	}
+
+	RocketApp* anApp = mApp;
+	int aKind = mKind;
+	anApp->KillDialog(DIALOG_LEVEL_UP);
+	if (aKind == KIND_LEVEL)
+		anApp->mBoard->F4286b0();
+	else if (aKind == KIND_GAME)
+		anApp->ShowHighScores(0);
+	anApp->mBoard->mFc = 0;
+}
+
+// 0x40f660
+void LevelUpDialog::Draw(Graphics* g)
+{
+	if (mPauseAlpha == 200)
+		return;
+
+	Board* aBoard = mApp->mBoard;
+	int aRank;
+	int aPointsToNext;
+	SexyString aRankName = aBoard->RankName(&aRank, &aPointsToNext);
+
+	g->DrawImage(mApp->mImages[IMAGE_RANKBACKGROUND], 0, 0);
+	g->SetFont(mApp->mFonts[FONT_DOMO14_BOLD]);
+	Graphics aFireworks(*g);
+	aFireworks.ClipRect(0x5b, 0x3c, 0x1cf, 0xa9);
+	// (0x41abb0 draws the fireworks of the board's effects into the clipped part here; they are not translated yet)
+	g->DrawImage(mApp->mImages[IMAGE_JAR], 0x5b, 0x7a);
+
+	g->SetFont(mApp->mFonts[FONT_DOMO36_BOLD]);
+	g->SetColor(Color(0xff, 200, 200));
+	SexyString aHeader = GT(mGameOver ? 0x004e5100 : 0x004e50f4);
+	g->DrawString(aHeader, (mWidth - g->GetFont()->StringWidth(aHeader)) / 2, 0x2d);
+
+	Image* aStrip = mApp->mImages[IMAGE_RANKSTRIP];
+	g->DrawImage(aStrip, (mWidth - aStrip->GetWidth()) / 2, 0x5a, Rect(0, aRank * 200, 200, 200));
+
+	// the rank's name, in a colour that goes up and down through the hues, over two shadows
+	g->SetFont(mApp->mFonts[FONT_DOMO22_BOLD]);
+	int aHue = (mAnim * 10) % 0xaa - 0x55;
+	if (aHue < 0)
+		aHue = -aHue;
+	Color aRankColor((int) mApp->HSLToRGB(aHue, 0xff, 0xb4));
+	g->SetColor(Color(0, 0, 0, 0x60));
+	g->DrawString(aRankName, 0x134 - g->GetFont()->StringWidth(aRankName) / 2, 0x165);
+	g->SetColor(Color(0, 0, 0, 0x80));
+	g->DrawString(aRankName, 0x136 - g->GetFont()->StringWidth(aRankName) / 2, 0x167);
+	g->SetColor(aRankColor);
+	g->DrawString(aRankName, 0x132 - g->GetFont()->StringWidth(aRankName) / 2, 0x163);
+
+	switch (mPhase)
+	{
+	case 0:
+		DrawScorePage(g);
+		break;
+	case 1:
+		DrawRankPage(g, aPointsToNext, aBoard->mScore);
+		break;
+	case 2:
+		DrawBombsPage(g);
+		break;
+	case 3:
+		DrawFusePage(g);
+		break;
+	case 4:
+		DrawCoinsPage(g);
+		break;
+	case 5:
+		DrawRocketsPage(g);
+		break;
+	case 6:
+		DrawGemsPage(g);
+		break;
+	case 7:
+		DrawClocksPage(g);
+		break;
+	case 8:
+		DrawMatchesPage(g);
+		break;
+	case 9:
+		DrawLevelPage(g);
+		break;
+	}
+
+	g->SetFont(mApp->mFonts[FONT_DOMO14_BOLD]);
+	g->SetColor(Color(0xff, 0xff, 0xff));
+	if (!mGameOver && aBoard->m88 != aRank)
+	{
+		SexyString aText = GT(0x004e50c4);
+		g->DrawString(aText, (mWidth - g->GetFont()->StringWidth(aText)) / 2, 0x43);
+	}
+
+	if (0 < mPauseAlpha)
+	{
+		g->SetColor(Color(0, 0, 0, mPauseAlpha));
+		g->FillRect(0, 0, mWidth, mHeight);
+		g->SetColor(mApp->mDialogColors[0]);
+		g->SetFont(mApp->mFonts[FONT_VERDANA18_BOLD]);
+		g->DrawImageBox(Rect(0x94, 0x9b, 0x159, 0xaa), mApp->mImages[IMAGE_DIALOG]);
+		SexyString aPaused = GT(0x004e50bc);
+		g->DrawString(aPaused, 0x140 - g->GetFont()->StringWidth(aPaused) / 2, 0xd5);
+		g->SetColor(mApp->mDialogColors[1]);
+		g->SetFont(mApp->mFonts[FONT_VERDANA12_BOLD]);
+		SexyString aFirst = GT(0x004e50a4);
+		g->DrawString(aFirst, 0x140 - g->GetFont()->StringWidth(aFirst) / 2, 0x102);
+		SexyString aSecond = GT(0x004e5090);
+		g->DrawString(aSecond, 0x140 - g->GetFont()->StringWidth(aSecond) / 2, 0x116);
+	}
+}
+
+// one line of a page: centred on x = 0x61 in the font that is set
+void LevelUpDialog::DrawLine(Graphics* g, const SexyString& theText, int theY)
+{
+	g->DrawString(theText, 0x61 - g->GetFont()->StringWidth(theText) / 2, theY);
+}
+
+// a count with its word: "1 gem" but "%d gems"
+void LevelUpDialog::DrawCount(Graphics* g, int theCount, unsigned int theSingular, unsigned int thePlural, int theY)
+{
+	char aBuf[0x100];
+	if (theCount == 1)
+		snprintf(aBuf, sizeof(aBuf), "%s", GTC(theSingular));
+	else
+		snprintf(aBuf, sizeof(aBuf), GTC(thePlural), theCount);
+	DrawLine(g, aBuf, theY);
+}
+
+// The pages draw the figures of the level (kind 4) or the sums of the game (kind 5). The titles are dark, the figures light.
+static const Color sPageTitleColor(0x19, 0x30, 0x4f);
+static const Color sPageValueColor(0xbf, 0xf1, 0xf1);
+
+// 0x40c9c0
+void LevelUpDialog::DrawScorePage(Graphics* g)
+{
+	Board* aBoard = mApp->mBoard;
+	g->SetFont(mApp->mFonts[FONT_DOMO14_BOLD]);
+	g->SetColor(sPageTitleColor);
+	DrawLine(g, GT(mGameOver ? 0x004e4f30 : 0x004e4f28), 0xdc);
+	g->SetColor(sPageValueColor);
+	char aBuf[0x100];
+	snprintf(aBuf, sizeof(aBuf), GTC(0x004e498c), aBoard->mScore);
+	DrawLine(g, aBuf, 0xff);
+	DrawLine(g, GT(0x004e4f20), 0x113);
+}
+
+// 0x40ce00
+void LevelUpDialog::DrawLevelPage(Graphics* g)
+{
+	g->SetFont(mApp->mFonts[FONT_DOMO14_BOLD]);
+	g->SetColor(sPageTitleColor);
+	DrawLine(g, GT(mGameOver ? 0x004e4f44 : 0x004e4f3c), 0xf0);
+	g->SetColor(sPageValueColor);
+	char aBuf[0x100];
+	snprintf(aBuf, sizeof(aBuf), GTC(0x004e498c), mApp->mBoard->mLevel + 1);
+	DrawLine(g, aBuf, 0x113);
+}
+
+// 0x40d100: the score the next rank needs, or (at the top rank) that there is none
+void LevelUpDialog::DrawRankPage(Graphics* g, int thePointsToNext, int theScore)
+{
+	g->SetFont(mApp->mFonts[FONT_DOMO14_BOLD]);
+	g->SetColor(sPageTitleColor);
+	if (thePointsToNext == 0)
+	{
+		DrawLine(g, GT(0x004e4f70), 0xdc);
+		DrawLine(g, GT(0x004e4f64), 0xf0);
+		g->SetColor(sPageValueColor);
+		DrawLine(g, GT(0x004e4f5c), 0x10c);
+		DrawLine(g, GT(0x004e4f54), 0x127);
+		return;
+	}
+
+	DrawLine(g, GT(0x004e4f88), 0xdc);
+	DrawLine(g, GT(0x004e4f84), 0xf0);
+	g->SetColor(sPageValueColor);
+	char aBuf[0x100];
+	snprintf(aBuf, sizeof(aBuf), GTC(0x004e498c), theScore + thePointsToNext);
+	DrawLine(g, aBuf, 0x113);
+	DrawLine(g, GT(0x004e4f7c), 0x127);
+}
+
+// 0x40ea00
+void LevelUpDialog::DrawBombsPage(Graphics* g)
+{
+	Board* aBoard = mApp->mBoard;
+	g->SetFont(mApp->mFonts[FONT_DOMO14_BOLD]);
+	g->SetColor(sPageTitleColor);
+	DrawLine(g, GT(0x004e5048), 0xdc);
+	DrawLine(g, GT(0x004e501c), 0xf5);
+	g->SetColor(sPageValueColor);
+	DrawCount(g, mGameOver ? aBoard->mF0 : aBoard->mD4, 0x004e5040, 0x004e5034, 0x113);
+}
+
+// 0x40da40
+void LevelUpDialog::DrawFusePage(Graphics* g)
+{
+	Board* aBoard = mApp->mBoard;
+	g->SetFont(mApp->mFonts[FONT_DOMO14_BOLD]);
+	g->SetColor(sPageTitleColor);
+	DrawLine(g, GT(0x004e4fa8), 0xdc);
+	DrawLine(g, GT(0x004e4fa0), 0xf5);
+	g->SetColor(sPageValueColor);
+	char aBuf[0x100];
+	snprintf(aBuf, sizeof(aBuf), GTC(0x004e4f94), mGameOver ? aBoard->mE0 : aBoard->mC4);
+	DrawLine(g, aBuf, 0x113);
+}
+
+// 0x40f280
+void LevelUpDialog::DrawCoinsPage(Graphics* g)
+{
+	Board* aBoard = mApp->mBoard;
+	g->SetFont(mApp->mFonts[FONT_DOMO14_BOLD]);
+	g->SetColor(sPageTitleColor);
+	DrawLine(g, GT(0x004e5080), 0xf0);
+	g->SetColor(sPageValueColor);
+	DrawCount(g, mGameOver ? aBoard->mE8 : aBoard->mCc, 0x004e5078, 0x004e506c, 0x10c);
+}
+
+// 0x40de60
+void LevelUpDialog::DrawRocketsPage(Graphics* g)
+{
+	Board* aBoard = mApp->mBoard;
+	g->SetFont(mApp->mFonts[FONT_DOMO14_BOLD]);
+	g->SetColor(sPageTitleColor);
+	DrawLine(g, GT(0x004e4fe0), 0xdc);
+	DrawLine(g, GT(0x004e4fd0), 0xf5);
+	g->SetColor(sPageValueColor);
+	DrawCount(g, mGameOver ? aBoard->mE4 : aBoard->mC8, 0x004e4fc4, 0x004e4fb8, 0x113);
+}
+
+// 0x40e2a0
+void LevelUpDialog::DrawGemsPage(Graphics* g)
+{
+	Board* aBoard = mApp->mBoard;
+	g->SetFont(mApp->mFonts[FONT_DOMO14_BOLD]);
+	g->SetColor(sPageTitleColor);
+	DrawLine(g, GT(0x004e4ff8), 0xf0);
+	g->SetColor(sPageValueColor);
+	DrawCount(g, mGameOver ? aBoard->mEc : aBoard->mD0, 0x004e4ff0, 0x004e4fe8, 0x10c);
+}
+
+// 0x40e5c0
+void LevelUpDialog::DrawClocksPage(Graphics* g)
+{
+	Board* aBoard = mApp->mBoard;
+	g->SetFont(mApp->mFonts[FONT_DOMO14_BOLD]);
+	g->SetColor(sPageTitleColor);
+	DrawLine(g, GT(0x004e5028), 0xdc);
+	DrawLine(g, GT(0x004e501c), 0xf5);
+	g->SetColor(sPageValueColor);
+	DrawCount(g, mGameOver ? aBoard->mF4 : aBoard->mD8, 0x004e5014, 0x004e5008, 0x113);
+}
+
+// 0x40ee40
+void LevelUpDialog::DrawMatchesPage(Graphics* g)
+{
+	Board* aBoard = mApp->mBoard;
+	g->SetFont(mApp->mFonts[FONT_DOMO14_BOLD]);
+	g->SetColor(sPageTitleColor);
+	DrawLine(g, GT(0x004e5064), 0xdc);
+	DrawLine(g, GT(0x004e501c), 0xf5);
+	g->SetColor(sPageValueColor);
+	DrawCount(g, mGameOver ? aBoard->mF8 : aBoard->mDc, 0x004e505c, 0x004e5050, 0x113);
+}

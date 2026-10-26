@@ -229,6 +229,7 @@ void RocketApp::ButtonPress(int theId)
 bool RocketAutoplay(RocketApp* theApp, const ScriptCommand& theCommand);
 bool RocketGameOver(RocketApp* theApp, const ScriptCommand& theCommand);
 bool RocketHint(RocketApp* theApp, const ScriptCommand& theCommand);
+bool RocketLevelUp(RocketApp* theApp, const ScriptCommand& theCommand);
 
 // port: the test scripts' "startgame" clicks the play link as soon as the loading screen shows it (the update at which
 // the loading ends depends on the machine); it asks again at the next update until then
@@ -240,6 +241,8 @@ bool RocketApp::HandleScriptCommand(const ScriptCommand& theCommand)
 		return RocketGameOver(this, theCommand);
 	if (theCommand.mCommand == "hint")
 		return RocketHint(this, theCommand);
+	if (theCommand.mCommand == "levelup")
+		return RocketLevelUp(this, theCommand);
 	if (theCommand.mCommand != "startgame")
 		return SexyApp::HandleScriptCommand(theCommand);
 	if ((mLoadingScreen != NULL) && !mShutdown)
@@ -275,7 +278,7 @@ void RocketApp::ButtonDepress(int theId)
 			Shutdown();
 			break;
 		case DIALOG_HINT:
-			// (the original's hint dialog starts the game that waited for it: not translated yet)
+			// (the hint dialog's own button starts the game that waited for it)
 			KillDialog(DIALOG_HINT);
 			break;
 		case DIALOG_DIFFICULTY:
@@ -305,7 +308,7 @@ void RocketApp::ButtonDepress(int theId)
 			break;
 		}
 		default:
-			// (the level dialogs: not translated yet)
+			// (the dialogs without a case: the buttons of the dialogs that have their own are handled by them)
 			KillDialog(anId - 2000);
 			break;
 		}

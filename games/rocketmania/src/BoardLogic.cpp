@@ -90,6 +90,14 @@ Effect* EffectManager::Add(int theKind, bool theFlag)
 	return anEffect;
 }
 
+// 0x41aae0
+void EffectManager::Clear()
+{
+	for (std::list<Effect*>::iterator anItr = mEffects.begin(); anItr != mEffects.end(); ++anItr)
+		delete *anItr;
+	mEffects.clear();
+}
+
 // 0x41aa80
 void EffectManager::Remove(Effect* theEffect)
 {

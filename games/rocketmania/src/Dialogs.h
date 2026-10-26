@@ -18,6 +18,7 @@ namespace Sexy
 {
 
 class RocketApp;
+class MTRand;
 
 // 0x4118d0: a dialog with a black field behind its picture and a phase that goes round once in 2000 updates (the base of
 // the options dialog)
@@ -266,6 +267,61 @@ private:
 	void				DrawMatchStrips(Graphics* g, int theX, int theTime);                     // 0x40a7a0
 	void				DrawLaunchScene(Graphics* g, int theX, int theTime, bool theRockets, bool theArcade);  // 0x40a890
 	void				DrawDragScene(Graphics* g, int theX, int theTime);                       // 0x40acc0
+};
+
+// 0x40c2c0, 0x110 bytes: id 0xd, the screen that the board puts up when a level is finished (kind 4: "Well Done!") and when
+// the game is over (kind 5: "Congratulations!"). A rank picture and name, and under them a page of figures that turns every
+// 150 updates (the score, the rank to come, the longest fuse, the largest launch and the items collected: the pages that do
+// not apply to the mode or the level are skipped, Step); fireworks burst behind it from time to time. For a level the figures
+// are the level's, for the game they are the sums (the dialog adds the level's into the sums when it opens). Its one link
+// goes on to the next question (kind 4, Board::F4286b0) or to the high scores (kind 5). It also draws the pause: when the
+// window loses the focus it darkens and says so, and its link goes away until the focus comes back.
+class LevelUpDialog : public Dialog2004
+{
+public:
+	enum
+	{
+		KIND_LEVEL = 4,
+		KIND_GAME = 5
+	};
+
+	int					mStartTick;             // +0xec mUpdateCnt when it opened
+	bool				mGameOver;              // +0xf0 the kind is KIND_GAME
+	RocketApp*			mApp;                   // +0xf4
+	int					mAnim;                  // +0xf8 goes up every 10 updates: the colour of the rank name moves with it
+	MTRand*				mRand;                  // +0xfc the board's random generator (the fireworks)
+	HyperlinkWidget*	mButton;                // +0x100 the link under the rank (id 0)
+	int					mKind;                  // +0x104
+	int					mPhase;                 // +0x108 the page: 0 the score, 1 the next rank, 2 bombs, 3 fuse, 4 coins, 5 rockets,
+	                                            //        6 gems, 7 clocks, 8 matches, 9 the level
+	int					mPauseAlpha;            // +0x10c 0 to 200: how dark the pause is
+
+public:
+	LevelUpDialog(RocketApp* theApp, int theKind, MTRand* theRand);
+	virtual ~LevelUpDialog();
+
+	void				Step();                                             // 0x40f5a0: on to the next page that applies
+
+	virtual void		AddedToManager(WidgetManager* theWidgetManager) override;      // 0x40c970
+	virtual void		RemovedFromManager(WidgetManager* theWidgetManager) override;
+	virtual void		Update() override;                                  // 0x410340
+	virtual void		Draw(Graphics* g) override;                         // 0x40f660
+	virtual void		ButtonDepress(int theId) override;                  // 0x4102c0
+
+private:
+	// the pages, in the lower left of the dialog (centred on x = 0x61)
+	void				DrawLine(Graphics* g, const SexyString& theText, int theY);
+	void				DrawScorePage(Graphics* g);                         // 0x40c9c0
+	void				DrawLevelPage(Graphics* g);                         // 0x40ce00
+	void				DrawRankPage(Graphics* g, int thePointsToNext, int theScore);  // 0x40d100
+	void				DrawBombsPage(Graphics* g);                         // 0x40ea00
+	void				DrawFusePage(Graphics* g);                          // 0x40da40
+	void				DrawCoinsPage(Graphics* g);                         // 0x40f280
+	void				DrawRocketsPage(Graphics* g);                       // 0x40de60
+	void				DrawGemsPage(Graphics* g);                          // 0x40e2a0
+	void				DrawClocksPage(Graphics* g);                        // 0x40e5c0
+	void				DrawMatchesPage(Graphics* g);                       // 0x40ee40
+	void				DrawCount(Graphics* g, int theCount, unsigned int theSingular, unsigned int thePlural, int theY);
 };
 
 }

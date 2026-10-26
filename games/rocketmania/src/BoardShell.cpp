@@ -76,7 +76,7 @@ Board::~Board()
 
 // 0x426f40: the board's update. Left out (not translated yet): the talking head's calls (0x413b40, 0x416aa0, 0x416360,
 // 0x416470, 0x4163a0, 0x4164f0), the app's countdown at app+0x860 that makes the head speak, the colour that the widget at
-// +0x51c blinks between (m520 counts to 300), and the level-up dialog of state 5 (0x40c2c0).
+// +0x51c blinks between (m520 counts to 300).
 void Board::Update()
 {
 	if (0 < m4c4)
@@ -199,8 +199,10 @@ void Board::Update()
 		else if (mState == 5)
 		{
 			mState = 6;
+			ShowLevelUp(LevelUpDialog::KIND_LEVEL);
 			m360 = m360 + ((int) SDL_GetTicks() - m368) / 1000;
 			F428de0(1000);
+			// (the head is told to go on, 0x4164f0, and made a child of the board, 0x42fdf3: the head is not ported yet)
 		}
 	}
 	if (mState == 0 && 0x32 < mUpdateCnt - m458 && !m45c)
@@ -321,6 +323,89 @@ void Board::F41f280(int theIndex)
 // 0x428620: the buy-rockets screen goes up over the board (not translated yet)
 void Board::ShowBuyRockets()
 {
+}
+
+// 0x4286b0: after a level's screen. The widget at +0x51c goes; the first levels bring the hint of an item (level 1 the coins,
+// level 3 the gems, level 5 the bombs and, in the strategy mode, level 7 the clocks) and then the head goes on (0x416520
+// with 1: the head is not ported yet); otherwise, or when the hint is turned off, the buy-rockets screen follows. The
+// next level's launches are counted and the app's timer (0x42f770: the head's countdown) is looked at.
+void Board::F4286b0()
+{
+	if (m51cWidget != NULL)
+	{
+		mWidgetManager->RemoveWidget(m51cWidget);
+		mApp->SafeDeleteWidget(m51cWidget);
+		m51cWidget = NULL;
+	}
+	int aHint = -1;
+	if (mLevel == 0)
+		aHint = HintDialog::HINT_COIN;
+	else if (mLevel == 2)
+		aHint = HintDialog::HINT_GEM;
+	else if (mLevel == 4)
+		aHint = HintDialog::HINT_BOMB;
+	else if (mLevel == 6)
+	{
+		if (mApp->mMode == 1)
+			aHint = HintDialog::HINT_CLOCK;
+	}
+	if (aHint == -1 || !mApp->ShowModeHint(aHint, false))
+		ShowBuyRockets();
+	m318 = 0.0;
+	m4bc = 0;
+	m74 = mGen->RocketsForLevel(mLevel + 2);
+	m78 = m74;
+	m374 = 0;
+}
+
+// 0x428ca0: the rank of the score (0 to 26) by the table at 0x4c7848, its name, and how many points the next rank is away
+// (0 at the top rank)
+static const int sRankScores[27] =
+{
+	0, 6000, 12000, 18000, 24000, 30000, 36000, 42000, 48000, 54000, 60000, 69000, 78000, 90000, 120000, 180000, 240000,
+	300000, 360000, 420000, 480000, 600000, 750000, 900000, 1200000, 1800000, 3000000
+};
+
+// the names, by rank: the table at 0x4e62e8
+static const unsigned int sRankNames[27] =
+{
+	0x004e6560, 0x004e6550, 0x004e653c, 0x004e6528, 0x004e6514, 0x004e6508, 0x004e6500, 0x004e64f4, 0x004e64dc, 0x004e64d0,
+	0x004e64c8, 0x004e64bc, 0x004e64b0, 0x004e64a4, 0x004e6494, 0x004e6480, 0x004e6468, 0x004e6450, 0x004e6438, 0x004e6420,
+	0x004e6408, 0x004e63f8, 0x004e63e0, 0x004e63cc, 0x004e63bc, 0x004e63b0, 0x004e639c
+};
+
+SexyString Board::RankName(int* theRank, int* thePointsToNext)
+{
+	int anIndex = 0x1a;
+	int aNext = 0;
+	int aRank;
+	do
+	{
+		int aScore = sRankScores[anIndex];
+		aRank = anIndex;
+		if (aScore <= mScore)
+			break;
+		anIndex--;
+		aNext = aScore;
+		aRank = 0;
+	} while (-1 < anIndex);
+	*theRank = aRank;
+	int aToNext = aNext - mScore;
+	*thePointsToNext = (aToNext < 0) ? 0 : aToNext;
+	return GT(sRankNames[aRank]);
+}
+
+// the level-up dialog as the board opens it (0x426860 at the end of a game with kind 5, 0x426f40 after a level with kind 4):
+// white, green and green for the dialog's colours 0, 1 and 3, the whole board's size
+void Board::ShowLevelUp(int theKind)
+{
+	LevelUpDialog* aDialog = new LevelUpDialog(mApp, theKind, mRand);
+	aDialog->SetColor(0, Color(0xff, 0xff, 0xff));
+	aDialog->SetColor(1, Color(0, 0xff, 0));
+	aDialog->SetColor(3, Color(0, 0xff, 0));
+	aDialog->mContentInsets = Insets(0x24, 0x24, 0x24, 0x24);
+	aDialog->Resize(0, 0, mWidth, mHeight);
+	mApp->AddDialog(DIALOG_LEVEL_UP, aDialog);
 }
 
 // 0x428d10: the specials that the launches have earned are put on the board

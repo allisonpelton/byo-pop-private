@@ -115,6 +115,7 @@ public:
 	void				Remove(Effect* theEffect);           // 0x41aa80
 	bool				Has(Effect* theEffect);              // 0x41ab40
 	void				Update();                            // 0x41ab70 (the effects are not translated yet)
+	void				Clear();                             // 0x41aae0: all of them go
 };
 
 // 0x42a510, 0x74 bytes: draws the next piece of the board by the tables at 0x4e6800/0x4e6828 and keeps the counts of the
@@ -374,6 +375,9 @@ public:
 	void			F428ef0();
 	void			F428d10();
 	void			ShowBuyRockets();                                      // 0x428620
+	void			F4286b0();                                             // 0x4286b0: after the level-up screen, the question of the next level
+	SexyString		RankName(int* theRank, int* thePointsToNext);          // 0x428ca0: the rank of the score, how far the next one is
+	void			ShowLevelUp(int theKind);                              // the level-up dialog (0x40c2c0) as the board opens it
 	void			F428de0(int theValue);
 	void			F421de0(int theKind);
 	void			F421f30(bool theFlag);

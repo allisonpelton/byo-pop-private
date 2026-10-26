@@ -23,11 +23,14 @@ ROOT = os.path.normpath(os.path.join(HERE, "..", "..", ".."))
 CODE_RANGES = ((0x401000, 0x42f900),)
 # Extra texts that no function refers to by a plain address: the tables of string pointers in the data section (the tutorial
 # sidebar texts, the helper's speech bubbles, the help pages ...) lie between these addresses
-EXTRA = []
+EXTRA = [
+    0x4e4ff0, 0x4e5040, 0x4e5078,   # the singular counts on the end-of-level screen ("1 gem", "1 bomb", "1 coin"): Ghidra
+]                                   # leaves them as the tails of other strings
 POINTER_TABLES = (
     (0x4e44d0, 0x4e44ec),   # GameSelector's hint under the buttons (0x4059d0)
     (0x4e4658, 0x4e468c),   # the names in the high score lists made new (0x4064e0), the first of two tables
     (0x4e4690, 0x4e46d4),   # the second
+    (0x4e62e8, 0x4e6354),   # the rank names of the level-up dialog (0x428ca0)
 )
 # the read-only data where the strings are
 IMMEDIATE_STRINGS = (0x4e4000, 0x4e8000)

@@ -4,6 +4,7 @@
 
 #include "RocketApp.h"
 #include "Board.h"
+#include "Dialogs.h"
 #include "WidgetManager.h"
 
 #include <SDL.h>
@@ -174,5 +175,40 @@ bool RocketGameOver(RocketApp* theApp, const ScriptCommand& theCommand)
 	if (theApp->mBoard != NULL)
 		theApp->mBoard->mScore = aScore;
 	theApp->ShowHighScores(0);
+	return true;
+}
+
+// "levelup <kind> <mode> <level> <score> [<page>]": a game of that mode, at that level and score, opens the level-up
+// screen (kind 4 after a level, 5 after a game) with some figures; page sets the page it starts at
+bool RocketLevelUp(RocketApp* theApp, const ScriptCommand& theCommand)
+{
+	int aKind = 4, aMode = 0, aLevel = 0, aScore = 0, aPage = 0;
+	if ((sscanf(theCommand.mArgs.c_str(), "%d %d %d %d %d", &aKind, &aMode, &aLevel, &aScore, &aPage) < 4) ||
+		((aKind != 4) && (aKind != 5)))
+	{
+		SDL_Log("levelup: bad arguments '%s'", theCommand.mArgs.c_str());
+		return true;
+	}
+	theApp->mMode = aMode;
+	theApp->mDifficulty = 1;
+	theApp->mNoHints = true;
+	theApp->StartBoard(false);
+	theApp->mNoHints = false;
+	Board* aBoard = theApp->mBoard;
+	if (aBoard == NULL)
+		return true;
+	aBoard->mLevel = aLevel;
+	aBoard->mScore = aScore;
+	aBoard->mC4 = 7;
+	aBoard->mC8 = 4;
+	aBoard->mCc = 3;
+	aBoard->mD0 = 1;
+	aBoard->mD4 = 2;
+	aBoard->mD8 = 1;
+	aBoard->mDc = 5;
+	aBoard->ShowLevelUp(aKind);
+	LevelUpDialog* aDialog = (LevelUpDialog*) theApp->GetDialog(DIALOG_LEVEL_UP);
+	if (aDialog != NULL)
+		aDialog->mPhase = aPage;
 	return true;
 }

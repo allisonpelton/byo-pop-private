@@ -108,8 +108,8 @@ not read yet (marked with their addresses).
 
 Not yet read or translated: Update 0x426f40 (the order Connections, Timers, UpdatePieces and the effects is expected),
 the input handlers 0x4282a0-0x428780 and 0x428ae0-0x429460 (incl. 0x428d10, 0x428de0, 0x428ef0, 0x429050/60/80), Draw 0x41f540
-with its helpers, Save/Load 0x41b430-0x41c830, the fireworks (Rocket 0x4172f0), the talking head, the dialogs 0x4064e0
-0x411ba0 0x414060 0x40c2c0 0x4118d0 0x401010 0x403990 0x408f60, high scores, the game-to-menu return.
+with its helpers, Save/Load 0x41b430-0x41c830, the fireworks (Rocket 0x4172f0), the talking head, the buy-rockets screen 0x401010,
+the game-to-menu return.
 
 Hidden arguments the decompiler drops (found with tools/callargs.py): 0x4259c0 AddScore(int), 0x423120 ComboSound(double x,
 double y). Guesses still to verify against the original at the first run: PlaySample ids against Res.h's SOUND_ enum, the
@@ -240,8 +240,22 @@ game saved then comes back at that screen. The checkbox "Don't show this again" 
 registry; the Options dialog's Reset Hints clears them). The test script command "hint <n>" opens hint n (a board is started first
 for 3 to 7).
 
-Still to do after Draw (above): the dialogs (level-up 0x40c2c0, buy rockets 0x401010), the fireworks
-(Rocket 0x4172f0), the talking head (0x4161a0, 0x413aa0), the level-up screen's own music fades (0x40c2c0), then the
+The level-up screen (LevelUpDialog 0x40c2c0, id 0xd) is the whole window over the board. Kind 4 ("Well Done!") comes when a level
+is finished (Board::Update in state 5, which then goes to 6) and kind 5 ("Congratulations!") when a game is over (Board::Timers
+when the countdown of state 1 ends, state 1 goes to 2). It shows the rank of the score (RankName 0x428ca0: 27 ranks by the table
+at 0x4c7848, the medallion is frame rank of a strip with frames 200 pixels high, the name changes colour with the hue going up and
+down) over a pot, a jar with a page of figures in it, and one link at the bottom (to the next question 0x4286b0 after a level,
+to the high scores after a game). Every 150 updates the page turns (Step 0x40f5a0): the score, the points to the next rank
+(a level's screen only; at the top rank it says so), bombs (level 5 on), the longest fuse, coins (not strategy), the largest launch,
+gems (level 3 on), clocks (level 7 on), matches (strategy) and the level (not strategy); a level's screen shows the level's
+figures (Board::mC4-mDc) and a game's the sums (mE0-mF8, which the dialog adds the level's into when it opens). The song fades
+to the level-up song, and fireworks burst behind the pot now and then (BurstSome); the head's lines and the drawing of the
+effects are not translated yet. When the window is not active the page goes dark with a pause notice and the link is taken away
+until it is. Each of the rank-name strings is read from the table at 0x4e62e8 (make_gametext.py lists the pointer table). The
+test script command "levelup <kind> <mode> <level> <score> [<page>]" opens it.
+
+Still to do after Draw (above): the buy-rockets screen (0x401010), the fireworks
+(Rocket 0x4172f0), the talking head (0x4161a0, 0x413aa0), then the
 deliverables: the coordinator's `BYOPOP_BUY_rocketmania` line (cmake/ByopopStores.cmake has an
 uncommitted local placeholder that must not be committed), and an AddressSanitizer run of the autoplay (tools/build.sh has no
 asan option yet).

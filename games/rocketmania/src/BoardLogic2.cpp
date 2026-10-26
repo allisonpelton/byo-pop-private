@@ -4,6 +4,7 @@
 #include "Board.h"
 #include "RocketApp.h"
 #include "Compat2004.h"
+#include "Dialogs.h"
 #include "GameText.h"
 #include "Graphics.h"
 #include "Image.h"
@@ -1028,8 +1029,9 @@ void Board::Timers()
 		if (mState == 1 && 0 < m440 && --m440 == 0)
 		{
 			mState = 2;
-			// not translated: the original opens the level-up dialog (0x40c2c0, id 0xd) with 5 and the board's
-			// random generator, the talking head is told (0x416590, 0x416e80) and made a child of the board
+			ShowLevelUp(LevelUpDialog::KIND_GAME);
+			// (the talking head is told, 0x416590 and 0x416e80, and made a child of the board, 0x42fdf3: the head is
+			// not ported yet)
 		}
 		return;
 	}
