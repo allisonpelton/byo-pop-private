@@ -97,6 +97,29 @@ remove me, 0x14 needs update. The root window's mouse events (0x4387f0...) hit-t
 node (0x4386c0: exit on the old, enter on the new) and call the hit node's handler; key events go to the handlers
 in +0xb0, last first, until one returns true.
 
+Sound as read (for the port's SoundSystem and Sound over platform/Audio.h; the DirectSound buffer code itself is
+not translated). The game's sounds are loose WAV files under res/ (sounds and music; names differ in case from the
+files, e.g. shaku1.wav for Shaku1.wav). SimpleSoundDX (vtable 0x485190, 0x134 bytes): +0x118 the voices it made,
++0x124 a map name -> loaded data (+0x28 of the node), +0x130 the master volume. Slots: 0 0x443a30 load(name, file),
+a whole file (decoder 0x445810); 4 0x443b60 load a streamed file (decoder 0x445ae0; the music clips); 8 0x4427d0 get
++0x12c; 0xc 0x443120 unload the data no voice uses; 0x10 0x443190 unload(name); 0x14 0x4435e0 createSound(name, a,
+b); 0x18 0x4425a0 setVolume (0..1); 0x1c 0x443a20 getVolume; 0x20 0x453e50 and 0x24 0x453ea0 (base class; the game
+calls 0x20 with (1, 0) from 0x406520); 0x28 0x442810 each voice's slot 8; 0x2c 0x442840(ms) each voice's update
+(slot 0x5c; the window layer calls it with 100); 0x30, 0x34 debug dumps. A voice (vtable 0x4851e0; 0x4850f8 for a
+short sound): 0 play (from where it is; with a fade-in when +0x48 > 0; nothing when playing), 4 0x443dd0 halt (no
+rewind), 8 0x443df0 stop (a fade-out when +0x4c > 0, else halt, rewind (0xc) and tell the owner +4 its slot 4), 0xc
+rewind, 0x10 0x4447b0 close, 0x14 setPitch (+0x28; the frequency pitch x rate, 100..100000), 0x18 getPitch, 0x1c
+setPan (+0x30, -1..1), 0x20 getPan, 0x24 setVolume (+0x2c, 0..1), 0x28 getVolume, 0x2c setLoop (+0x34), 0x30
+isLoop, 0x34 isPlaying (+0x35), 0x38 setFadeIn (+0x48), 0x3c setFadeOut (+0x4c), 0x40-0x4c base class, 0x5c
+update(ms) 0x444240 (fades 0x444380, streaming 0x444270, volume 0x444730). The music (0x424160-0x426000): a layer
+(0x424810, 0x84 bytes: +0x10 its clips, +0x1c sequence (0 random, 1 random-not-last, 2 in order, 3 chosen), +0x20 the
+delay range, +0x28 the initial delay range, +0x30 fade-in, +0x34 fade-out, +0x38 volume, +0x3c the time left, +0x40
+the first clip, +0x44 the ending clip, +0x48/+0x4c clips, +0x50 the index, +0x54 how it stops (0 fade, 1 fade out
++0x34, 2 the ending clip), +0x58 running, +0x5c the chosen index) picks clips 0x4245f0, plays 0x424740, starts
+0x424910, stops 0x424970, updates 0x424a10, adds a clip 0x424b80 (stream-loaded, no loop, volume +0x38); the music
+system 0x4252f0 runs its layers (0x424be0 update, 0x424c10 start, 0x424c40 stop, 0x424c70 choose). Its file reader
+0x425250 (vtable 0x483178), the sound bank 0x426760 (the sounds file 0x425cf0) at controller +0x710 (0x426ac0).
+
 ## Next pieces, as read so far
 
 The controller (vtable 0x480a14: 0 dtor 0x4073d0, 4 configure 0x402eb0, 8 init 0x406b30, 0xc shutdown 0x401750, 0x10
