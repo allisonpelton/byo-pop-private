@@ -1,0 +1,30 @@
+{
+  "id": "example-undo",
+  "name": "Example: Undo",
+  "version": "1.0",
+  "defaultEnabled": false,
+  "author": "byo-pop examples",
+  "description": "Z, U or Backspace, or a click on the red orb left of the bar, takes the last move back. Repeating the move brings the same new gems, so undo cannot reroll them. Uses its own high-score table.",
+  "settings": [
+    { "type": "section", "label": "Undo" },
+    { "id": "depth", "label": "Moves you can take back", "type": "int", "default": 3, "min": 1, "max": 100,
+      "help": "How many moves in a row can be taken back." },
+    { "id": "limit", "label": "Undos per game", "type": "int", "default": -1, "min": -1, "max": 99,
+      "help": "-1: as many as you like. Otherwise the orb shows how many are left." },
+    { "id": "penalty", "label": "Cost of an undo", "type": "int", "default": 25, "min": 0, "max": 500, "step": 5,
+      "help": "Points taken for each undo, times the level's point multiplier, on top of the points the move made." },
+    { "id": "sameGems", "label": "Same new gems after an undo", "type": "bool", "default": true,
+      "help": "On: repeating a move brings the same gems as before. Off: they come out new." },
+    { "type": "section", "label": "Timed" },
+    { "id": "inTimed", "label": "Undo in Timed", "type": "bool", "default": false,
+      "help": "Allows undo in Timed games too." },
+    { "id": "restoreTime", "label": "An undo gives the time back", "type": "bool", "default": false,
+      "enabledIf": { "setting": "inTimed", "equals": true },
+      "help": "On: the bar goes back to where it was before the move. Off: the clock keeps running." }
+  ],
+  "rules": {
+    "undo": { "enabled": true, "depth": { "$setting": "depth" }, "max": { "$setting": "limit" },
+              "penalty": { "$setting": "penalty" }, "restoreRng": { "$setting": "sameGems" },
+              "inTimed": { "$setting": "inTimed" }, "restoreTime": { "$setting": "restoreTime" } }
+  }
+}

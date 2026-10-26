@@ -112,12 +112,26 @@ A mod's mask is only applied to the mod's own image, and a PNG with transparency
 
 The mods live in `games/bejeweled/mods/`; the generators write there by default.
 
+The mods named `example-*` that are listed as "in the repository" show one feature each with its settings in the mod menu (F2). They start off; turn one on in the menu to play with it. Several can be on at once: their rules combine into a game of your own, with a high-score table of its own.
+
 | Mod | How to get it |
 |---|---|
 | `example-crystal-gems`: new HD gem art (original artwork) | `python games/bejeweled/tools/make_example_mods.py` |
 | `example-voice-lines`: string overrides | same script |
 | `example-relaxed`: cheaper hints, separate high scores | same script |
 | `example-settings`: the hint cost, when the Timed bar flashes, replays and the big-move message, set in the mod menu ([docs/MOD_MENU.md](../../docs/MOD_MENU.md)) | in the repository |
+| `example-seeds`: Extras gets a seed field, and every game a seed of its own shown at game over (both in the mod menu); changes nothing in play | in the repository |
+| `example-replays`: every game is recorded; WATCH REPLAY at game over and a replay browser in Extras. The menu sets how many are kept and whether the mouse is recorded | in the repository |
+| `example-free-swaps`: a swap with no match stays, for a cost you set; the menu also says what a board with no moves does in Normal and in Timed | in the repository |
+| `example-undo`: Z, U, Backspace or the orb takes moves back: how many in a row, how many a game, the cost, whether the new gems repeat, and undo in Timed | in the repository |
+| `example-board-shapes`: a rectangle of 3 to 16 cells a side, a diamond, octagon, cross, ring or hourglass, or a new shape each level | in the repository |
+| `example-dirt`: Jewel Quest's dirt tiles in four layouts, with points for each layer cleared | in the repository |
+| `example-twilight`: Bejeweled 2's Twilight: the gems fall down, then up, after each move; the direction, the fall speed, the backdrop and the sound pitch are settings | in the repository |
+| `example-gem-colours`: 4 to 12 kinds of gem; those past the seventh are generated tints of the white gem | in the repository |
+| `example-match-patterns`: the shortest run, diagonal runs, crossing runs that join into an L, T or plus, and 2 x 2 squares, each with its bonus | in the repository |
+| `example-twist-slide`: twists (Bejeweled Twist) and slides (Chuzzle), alone or with swaps; the right click twists back, and the slide snap is a setting | in the repository |
+| `example-power-gems`: Bejeweled 2's flame and lightning gems: what makes each, the blast size, their points, chains, and whether cascades make them | in the repository |
+| `example-gold`: Jewel Quest's gold board: the level ends when every cell is gold. The menu sets the time limits in Normal and Timed, the points for the time left, and whether blasts gild | in the repository |
 | `livesplit`: LiveSplit auto splitter support (Windows): the block the auto splitter reads, 12 split templates and the script ([tools/livesplit](tools/livesplit/README.md)); changes nothing in play or on screen | same script (`--only livesplit`) |
 | `mines-trilliant`: orange gem as a trilliant cut shaped like the Colorado School of Mines triangle | `python games/bejeweled/tools/make_trilliant_mod.py` |
 | `true-gem`: every gem becomes a badly recoloured "True..." meme card, the logo reads BE TRUE LED, EXCELLENT! becomes TRUE... and NO MOVES! becomes NO TRUE... | `python games/bejeweled/tools/make_true_mod.py --image <picture>` |

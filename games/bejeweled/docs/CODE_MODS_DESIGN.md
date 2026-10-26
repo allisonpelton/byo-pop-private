@@ -437,6 +437,13 @@ When a group qualifies for both kinds of special, lightning is checked first.
 
 ### 3.3 One example per feature
 
+The playable versions ship in `games/bejeweled/mods/` as `example-seeds`, `example-replays`, `example-free-swaps`,
+`example-undo`, `example-board-shapes`, `example-dirt`, `example-twilight`, `example-gem-colours`,
+`example-match-patterns`, `example-twist-slide`, `example-power-gems` and `example-gold` (2026-10-26). Each starts off
+(`"defaultEnabled": false`) and puts its feature's values in the mod menu through `$setting` placeholders, with
+Bejeweled 2's or this design's values as the defaults. `game-stats` (4.19) has no settings, so it is a feature mod
+under its own name. The sketches below are the minimal forms.
+
 ```jsonc
 // 1. Allow invalid moves
 { "id": "free-swaps", "name": "Free Swaps", "version": "1.0",
