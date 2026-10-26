@@ -1,0 +1,6 @@
+# The Board smoke test (tools/check.sh rocketmania replaces @MODE@ and @DIFF@): the autoplay hook
+# (src/testhooks/Autoplay.cpp) starts a game of that mode and plays 3000 updates with random clicks and drags, turning
+# the lowest full row into a straight pipe now and then so that launches happen; it logs the score and checks the grid.
+5 startgame
+5000 autoplay @MODE@ @DIFF@ 3000
+9000 quit

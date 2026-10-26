@@ -62,9 +62,12 @@
 #                (waterbugs_banktest), a scripted game played headless (waterbugs_run: a beam across the first
 #                board, two state lines) and a rerun with the same screenshots, and the windowed exe twice with the
 #                same clicks: the runner's state, the same screen (under a minute)
+#   rocketmania  Rocket Mania Deluxe: the loading screen, the menu, a hover hint, the difficulty dialog and a new game
+#                started from a script (games/rocketmania/tools/menu_test.txt), four screenshots that must differ (under a
+#                minute)
 #   oracle       Bejeweled's oracle three ways (compare.sh --variants default,forcevariant,novariants); over
 #                ten minutes, so never in a subagent; refuses to start while another oracle runs
-# Sets: quick = build unit; games = bookworm bigmoney noahsark atomica alchemy sevenseas pixelus bookwormadv bookwormadv2 tiptop mummymaze ningpo wordharmony cosmicbugs waterbugs; all = every suite, builds first.
+# Sets: quick = build unit; games = bookworm bigmoney noahsark atomica alchemy sevenseas pixelus bookwormadv bookwormadv2 tiptop mummymaze ningpo wordharmony cosmicbugs waterbugs rocketmania; all = every suite, builds first.
 #
 # Prints "PASS <suite> (<seconds>s): <summary>" or "FAIL <suite> (<seconds>s): <summary> -> <log>" for each,
 # then "check: N passed, M failed". Exits 0 only when all passed. Logs: build/logs/check/<suite>.txt (and
@@ -117,9 +120,9 @@ while [ $# -gt 0 ]; do
 		--out=*) OUT="${1#--out=}"; shift ;;
 		-h|--help) sed -n '2,/^BW_CLASSIC/p' "$0" | sed '$d' | sed 's/^# \{0,1\}//'; exit 0 ;;
 		quick) SUITES+=(build unit); shift ;;
-		games) SUITES+=(bookworm bigmoney noahsark atomica alchemy sevenseas pixelus bookwormadv bookwormadv2 tiptop mummymaze ningpo wordharmony cosmicbugs waterbugs); shift ;;
-		all) SUITES+=(build build-web build-nov unit unit-web verify modmenu livesplit bookworm bigmoney noahsark atomica alchemy sevenseas pixelus bookwormadv bookwormadv2 tiptop mummymaze ningpo wordharmony cosmicbugs waterbugs oracle); shift ;;
-		build|build-web|build-nov|unit|unit-web|verify|modmenu|livesplit|bookworm|bigmoney|noahsark|atomica|alchemy|sevenseas|pixelus|bookwormadv|bookwormadv2|tiptop|mummymaze|ningpo|wordharmony|cosmicbugs|waterbugs|oracle) SUITES+=("$1"); shift ;;
+		games) SUITES+=(bookworm bigmoney noahsark atomica alchemy sevenseas pixelus bookwormadv bookwormadv2 tiptop mummymaze ningpo wordharmony cosmicbugs waterbugs rocketmania); shift ;;
+		all) SUITES+=(build build-web build-nov unit unit-web verify modmenu livesplit bookworm bigmoney noahsark atomica alchemy sevenseas pixelus bookwormadv bookwormadv2 tiptop mummymaze ningpo wordharmony cosmicbugs waterbugs rocketmania oracle); shift ;;
+		build|build-web|build-nov|unit|unit-web|verify|modmenu|livesplit|bookworm|bigmoney|noahsark|atomica|alchemy|sevenseas|pixelus|bookwormadv|bookwormadv2|tiptop|mummymaze|ningpo|wordharmony|cosmicbugs|waterbugs|rocketmania|oracle) SUITES+=("$1"); shift ;;
 		*) echo "check.sh: unknown suite '$1' (tools/check.sh --help)" >&2; exit 2 ;;
 	esac
 done
@@ -758,6 +761,41 @@ cosmicbugs_window() {  # <name>: the windowed exe with the runner's left clicks;
 	l="$(cat "$d/stdout.txt" "$d/stderr.txt" | tr -d '\r' | sed -n 's/^INFO: state: //p' | head -n 1)"
 	[ $e -eq 0 ] || l="$l; EXIT $e"
 	echo "$l"
+}
+
+suite_rocketmania() {
+	local st=0 d="$OUT/rocketmania" e=0 f n=""
+	need_assets rocketmania || return 1
+	rm -rf "$d"; mkdir -p "$d/user"
+	sed "s|@DIR@|$d|" games/rocketmania/tools/menu_test.txt > "$d/script.txt"
+	timeout 300 "$W/build/native/rocketmania.exe" -userdir="$d/user" -fast -seed=1 -script="$d/script.txt" > "$d/stdout.txt" 2> "$d/stderr.txt" || e=$?
+	cat "$d/stdout.txt" "$d/stderr.txt" > "$1"
+	[ "$e" -eq 0 ] || { SUMMARY="the exe exited with status $e"; return 1; }
+	grep -q "Resource Loading Time" "$1" || { SUMMARY="the game did not finish loading"; return 1; }
+	if grep -qE "Failed to load|texts do not match|not found in the game folder" "$1"; then SUMMARY="a load failed (see the log)"; return 1; fi
+	for f in menu hover difficulty after; do
+		[ -s "$d/$f.png" ] || { SUMMARY="no screenshot $f.png"; return 1; }
+	done
+	cmp -s "$d/menu.png" "$d/hover.png" && { SUMMARY="the hover changed nothing"; return 1; }
+	cmp -s "$d/hover.png" "$d/difficulty.png" && { SUMMARY="the click opened no dialog"; return 1; }
+	grep -q "StartBoard: mode 0 difficulty 1" "$1" || { SUMMARY="easy arcade did not start a game"; return 1; }
+	# the Board: a game of each mode played for 3000 updates by the autoplay hook (random clicks; launches are forced)
+	local m line score scores=""
+	for m in 0 1 2; do
+		sed -e "s|@MODE@|$m|" -e "s|@DIFF@|$((m + 1))|" games/rocketmania/tools/board_test.txt > "$d/board$m.txt"
+		e=0
+		timeout 300 "$W/build/native/rocketmania.exe" -userdir="$d/user" -fast -seed=1 -script="$d/board$m.txt" > "$d/board$m.out" 2>&1 || e=$?
+		cat "$d/board$m.out" >> "$1"
+		[ "$e" -eq 0 ] || { SUMMARY="mode $m: the exe exited with status $e"; return 1; }
+		line="$(grep "autoplay: done" "$d/board$m.out" | tail -n 1)"
+		[ -n "$line" ] || { SUMMARY="mode $m: the autoplay did not finish"; return 1; }
+		case "$line" in *"bad cells 0"*) ;; *) SUMMARY="mode $m: a tile stood in the wrong cell ($line)"; return 1;; esac
+		score="$(echo "$line" | sed 's/.* score \([0-9]*\) .*/\1/')"
+		[ "${score:-0}" -gt 0 ] || { SUMMARY="mode $m: no launch scored ($line)"; return 1; }
+		scores="$scores $score"
+	done
+	SUMMARY="loaded, menu, hover, difficulty dialog, and a game of each mode played (scores$scores)"
+	return $st
 }
 
 suite_cosmicbugs() {
