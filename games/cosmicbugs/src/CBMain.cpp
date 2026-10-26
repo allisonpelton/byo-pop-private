@@ -232,7 +232,7 @@ void ResetProfiles()
 	gProfiles[0].riderHits = 0;
 	gProfiles[0].kills = 0;
 	gProfiles[0].beamsFired = 0;
-	gProfiles[0].unk40 = 0;
+	gProfiles[0].powerupsCaught = 0;
 	for (Profile* aProfile = gProfiles + 1; aProfile < gProfiles + 10; aProfile++)
 	{
 		std::strcpy(aProfile->name, Localize(GT(0x458a84)));
@@ -244,7 +244,7 @@ void ResetProfiles()
 		aProfile->riderHits = 0;
 		aProfile->kills = 0;
 		aProfile->beamsFired = 0;
-		aProfile->unk40 = 0;
+		aProfile->powerupsCaught = 0;
 	}
 	Sys_UserName(gProfiles[10].name, 0x20);
 	gProfiles[10].levelReached = 0;
@@ -255,7 +255,7 @@ void ResetProfiles()
 	gProfiles[10].riderHits = 0;
 	gProfiles[10].kills = 0;
 	gProfiles[10].beamsFired = 0;
-	gProfiles[10].unk40 = 0;
+	gProfiles[10].powerupsCaught = 0;
 	for (LevelRecord* aRecord = gLevelRecords; aRecord < gLevelRecords + 1000; aRecord++)
 	{
 		aRecord->fillName[0] = 0;
@@ -471,7 +471,7 @@ void GameStep()
 		if (gLevels.current->kind == 0 && gTrial != 0 && gLevels.current->menus.current != nullptr &&
 			gLevels.current->menus.current->active.current == nullptr)
 			gTrialLeft = gTrialLeft + -1;
-		if (Level_Update(gLevels.current) == 0 || Key_Pressed(0xbe) != 0)
+		if (Level_Update(gLevels.current) == 0 || Key_Down(0xbe) != 0)
 		{
 			if (gLevels.current->kind == 0 || gLevels.current->kind == 0xe)
 				List_RemoveCurrent(&gLevels);
@@ -506,7 +506,7 @@ void GameStep()
 		}
 	}
 escape:
-	if (Key_Pressed(0x1b) == 0)
+	if (Key_Down(0x1b) == 0)
 	{
 		gEscape = 0;
 		return;

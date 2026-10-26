@@ -1,8 +1,11 @@
-// Retro64's lines (0x42cd10..0x42d820, and the 16-bit drawer 0x441c50..0x441ea0): Draw_SetTarget names the surface,
-// Draw_Line draws on it clipped, each pixel blended toward the colour by alpha/256. The original also has 24- and
-// 32-bit drawers (0x4423a0, 0x4428b0); the port's screen is 16-bit, so only that one is translated.
+// Retro64's lines and rectangles (0x42cd10..0x42d820, and the 16-bit drawers 0x441960..0x441ea0): Draw_SetTarget names
+// the surface, Draw_Line draws on it clipped, each pixel blended toward the colour by alpha/256; the others draw on the
+// surface they are given. The original also has 24- and 32-bit drawers (0x441f30.., 0x442430..); the port's screen is
+// 16-bit, so only those are translated, and the dispatchers do nothing at other depths.
 
 #include "R64Draw.h"
+
+#include <cstring>
 
 namespace r64
 {
@@ -101,6 +104,105 @@ inline uint32_t Blend(uint32_t thePixel, uint32_t theTo, uint32_t theMask, uint3
 	return ((theTo - (thePixel & theMask)) * theAlpha >> 8) + (thePixel & theMask) & theMask;
 }
 
+// 0x441960: the rectangle (inclusive) in the colour
+void Fill16(uint8_t* theBits, int thePitch, const PixelFormat* theFmt, int l, int t, int r, int b, uint8_t theR,
+	uint8_t theG, uint8_t theB)
+{
+	uint16_t aColour = (uint16_t)((uint32_t)(theB >> theFmt->bLoss) << theFmt->bShift |
+		(uint32_t)(theG >> theFmt->gLoss) << theFmt->gShift | (uint32_t)(theR >> theFmt->rLoss) << theFmt->rShift);
+	uint32_t aWidth = (r - l) + 1;
+	uint8_t* aRow = theBits + thePitch * t + l * 2;
+	if (theR == 0 && theG == 0 && theB == 0)
+	{
+		if (t <= b)
+		{
+			int aCount = (b - t) + 1;
+			do
+			{
+				std::memset(aRow, 0, aWidth * 2);
+				aRow = aRow + thePitch;
+				aCount = aCount - 1;
+			} while (aCount != 0);
+			return;
+		}
+	}
+	else if (t <= b)
+	{
+		int aCount = (b - t) + 1;
+		do
+		{
+			if (l <= r)
+			{
+				uint16_t* p = (uint16_t*)aRow;
+				for (uint32_t i = aWidth >> 1; i != 0; i--)
+				{
+					p[0] = aColour;
+					p[1] = aColour;
+					p = p + 2;
+				}
+				for (uint32_t i = (aWidth & 1) != 0; i != 0; i--)
+				{
+					*p = aColour;
+					p = p + 1;
+				}
+			}
+			aRow = aRow + thePitch;
+			aCount = aCount - 1;
+		} while (aCount != 0);
+	}
+}
+
+// 0x441a70: the rectangle (inclusive) blended toward the colour by theAlpha/256
+void FillBlend16(uint8_t* theBits, int thePitch, const PixelFormat* theFmt, int l, int t, int r, int b, uint8_t theR,
+	uint8_t theG, uint8_t theB, uint8_t theAlpha)
+{
+	uint16_t* aRow = (uint16_t*)(theBits + thePitch * t + l * 2);
+	uint32_t aR = (uint32_t)(theR >> theFmt->rLoss) << theFmt->rShift;
+	int aWidth = (r - l) + 1;
+	int aCount = (b - t) + 1;
+	uint32_t aB = (uint32_t)(theB >> theFmt->bLoss) << theFmt->bShift;
+	if (0 < aCount)
+	{
+		do
+		{
+			if (0 < aWidth)
+			{
+				uint16_t* p = aRow;
+				int n = aWidth;
+				do
+				{
+					uint32_t c = *p;
+					*p = (uint16_t)(Blend(c, (uint32_t)(theG >> theFmt->gLoss) << theFmt->gShift, theFmt->gMask, theAlpha) |
+						Blend(c, aR, theFmt->rMask, theAlpha) | Blend(c, aB, theFmt->bMask, theAlpha));
+					n = n - 1;
+					p = p + 1;
+				} while (n != 0);
+			}
+			aRow = aRow + thePitch / 2;
+			aCount = aCount - 1;
+		} while (aCount != 0);
+	}
+}
+
+// 0x441bc0: FillBlend16 on the part inside theClip
+void FillBlend16Clipped(uint8_t* theBits, int thePitch, const PixelFormat* theFmt, const int* theClip, int l, int t,
+	int r, int b, uint8_t theR, uint8_t theG, uint8_t theB, uint8_t theAlpha)
+{
+	if (l <= theClip[2] && theClip[0] <= r && t <= theClip[3] && theClip[1] <= b)
+	{
+		int aLeft = theClip[0];
+		if (aLeft <= l)
+			aLeft = l;
+		if (theClip[2] < r)
+			r = theClip[2];
+		if (t < theClip[1])
+			t = theClip[1];
+		if (theClip[3] < b)
+			b = theClip[3];
+		FillBlend16(theBits, thePitch, theFmt, aLeft, t, r, b, theR, theG, theB, theAlpha);
+	}
+}
+
 // 0x441c50: max(|dx|, |dy|) + 1 pixels, stepping along the longer axis
 void Line16(uint8_t* theBits, int thePitch, const PixelFormat* theFmt, int x0, int y0, int x1, int y1, uint8_t r,
 	uint8_t g, uint8_t b, uint8_t theAlpha)
@@ -188,6 +290,36 @@ void Draw_Line(int x0, int y0, int x1, int y1, int r, int g, int b, int theAlpha
 {
 	if (gTargetFmt.bpp == 16)
 		Line16Clipped(gTargetBits, gTargetPitch, &gTargetFmt, gTargetClip, x0, y0, x1, y1, r, g, b, theAlpha);
+}
+
+void Draw_Fill(uint8_t* theBits, int thePitch, const PixelFormat* theFmt, int l, int t, int r, int b, int theR,
+	int theG, int theB)
+{
+	if (theFmt->bpp == 0x10)
+		Fill16(theBits, thePitch, theFmt, l, t, r, b, (uint8_t)theR, (uint8_t)theG, (uint8_t)theB);
+}
+
+void Draw_FillBlend(uint8_t* theBits, int thePitch, const PixelFormat* theFmt, int l, int t, int r, int b, int theR,
+	int theG, int theB, int theAlpha)
+{
+	if (theFmt->bpp == 0x10)
+		FillBlend16(theBits, thePitch, theFmt, l, t, r, b, (uint8_t)theR, (uint8_t)theG, (uint8_t)theB,
+			(uint8_t)theAlpha);
+}
+
+void Draw_FillBlendClipped(uint8_t* theBits, int thePitch, const PixelFormat* theFmt, const int* theClip, int l, int t,
+	int r, int b, int theR, int theG, int theB, int theAlpha)
+{
+	if (theFmt->bpp == 0x10)
+		FillBlend16Clipped(theBits, thePitch, theFmt, theClip, l, t, r, b, (uint8_t)theR, (uint8_t)theG, (uint8_t)theB,
+			(uint8_t)theAlpha);
+}
+
+void Draw_LineOn(uint8_t* theBits, int thePitch, const PixelFormat* theFmt, int x0, int y0, int x1, int y1, int r,
+	int g, int b, int theAlpha)
+{
+	if (theFmt->bpp == 0x10)
+		Line16(theBits, thePitch, theFmt, x0, y0, x1, y1, (uint8_t)r, (uint8_t)g, (uint8_t)b, (uint8_t)theAlpha);
 }
 
 } // namespace r64

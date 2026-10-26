@@ -216,7 +216,7 @@ void Obj_Copy(Obj* theObj, const Obj* theFrom)
 	theObj->dieFrameTime = theFrom->dieFrameTime;
 	theObj->oneShot = theFrom->oneShot;
 	theObj->exploSound = theFrom->exploSound;
-	theObj->unka8 = theFrom->unka8;
+	theObj->appearSound = theFrom->appearSound;
 	theObj->midHandle = theFrom->midHandle;
 }
 

@@ -174,7 +174,7 @@ void Powerup_GiveWeapon(Powerup* thePowerup, float theRadius, int theKind)
 // 0x419420: shows its name (removing any long or main_font text still up) and takes effect
 int Powerup_Collect(Powerup* thePowerup)
 {
-	gProfiles[gProfile].unk40 = gProfiles[gProfile].unk40 + 1;
+	gProfiles[gProfile].powerupsCaught = gProfiles[gProfile].powerupsCaught + 1;
 	List<Text>* aTexts = &gLevels.current->texts;
 	List_Each(aTexts, [&](Text* aText) {
 		if (0xd < std::strlen(aText->text) || aText->font == Font_Find("main_font"))
@@ -863,33 +863,33 @@ Powerup* Powerup_Init(Powerup* thePowerup)
 		gPumpMessages = 1;
 	}
 	std::sprintf(thePowerup->text, "^%d", RandRange(1, 8));
-	if (Key_Pressed('0') != 0)
+	if (Key_Down('0') != 0)
 		thePowerup->kind = 0;
-	if (Key_Pressed('1') != 0)
+	if (Key_Down('1') != 0)
 		thePowerup->kind = 1;
-	if (Key_Pressed('2') != 0)
+	if (Key_Down('2') != 0)
 		thePowerup->kind = 2;
-	if (Key_Pressed('3') != 0)
+	if (Key_Down('3') != 0)
 		thePowerup->kind = 3;
-	if (Key_Pressed('4') != 0)
+	if (Key_Down('4') != 0)
 		thePowerup->kind = 4;
-	if (Key_Pressed('5') != 0)
+	if (Key_Down('5') != 0)
 		thePowerup->kind = 5;
-	if (Key_Pressed('6') != 0)
+	if (Key_Down('6') != 0)
 		thePowerup->kind = 6;
-	if (Key_Pressed('7') != 0)
+	if (Key_Down('7') != 0)
 		thePowerup->kind = 7;
-	if (Key_Pressed('8') != 0)
+	if (Key_Down('8') != 0)
 		thePowerup->kind = 8;
-	if (Key_Pressed('9') != 0)
+	if (Key_Down('9') != 0)
 		thePowerup->kind = 9;
-	if (Key_Pressed('A') != 0)
+	if (Key_Down('A') != 0)
 		thePowerup->kind = 10;
-	if (Key_Pressed('B') != 0)
+	if (Key_Down('B') != 0)
 		thePowerup->kind = 11;
-	if (Key_Pressed('C') != 0)
+	if (Key_Down('C') != 0)
 		thePowerup->kind = 12;
-	if (Key_Pressed('D') != 0)
+	if (Key_Down('D') != 0)
 		thePowerup->kind = 13;
 	// The texts and names are the exe's (each strcat'd from its .rdata)
 	uint32_t aText;

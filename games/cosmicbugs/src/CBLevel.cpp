@@ -960,7 +960,7 @@ int Level_Update(Level* theLevel)
 		theLevel->clicked = Mouse_Pressed(1);
 		int aRight;
 		if (Mouse_Pressed(2) == 0)
-			aRight = Key_Pressed(0x20) != 0 ? 1 : 0;
+			aRight = Key_Down(0x20) != 0 ? 1 : 0;
 		else
 			aRight = 1;
 		theLevel->rightClicked = aRight;
@@ -1081,7 +1081,7 @@ int Level_Update(Level* theLevel)
 			// a text is clicked away once the one it goes with (else itself) is shown
 			List_Each(&theLevel->texts, [&](Text* aText) {
 				bool aShown = false;
-				if (aText->unk1c4 == 0)
+				if (aText->loopTime == 0)
 					aShown = 5 < aText->state;
 				else if (aText->prev != nullptr)
 					aShown = 5 < aText->prev->state;
@@ -1094,9 +1094,9 @@ int Level_Update(Level* theLevel)
 				{
 					if (aText->state != 7)
 						aText->age = 0.0f;
-					theLevel->texts.current->lifetime = (float)theLevel->texts.current->unk1b8;
+					theLevel->texts.current->lifetime = (float)theLevel->texts.current->fadeOut;
 					theLevel->texts.current->state = 7;
-					theLevel->texts.current->unk1c4 = 0;
+					theLevel->texts.current->loopTime = 0;
 				}
 			});
 		}
@@ -1341,7 +1341,7 @@ int Level_UpdatePaused(Level* theLevel)
 		gGoTo = 1;
 		return 0;
 	}
-	if (Key_Pressed(0xd) != 0)
+	if (Key_Down(0xd) != 0)
 		theLevel->state = 1;
 	return 1;
 }

@@ -713,14 +713,6 @@ void Powerup_Insert(List<Powerup>* theList)
 	List_InsertBefore(theList, Powerup_Init(aPowerup));
 }
 
-Text* Text_Init(Text* theText)
-{
-	Obj_Init(theText);
-	// (0x42bda0 clears the text entry but its first two words; the port clears it all)
-	std::memset(theText->input, 0, sizeof(theText->input));
-	return theText;
-}
-
 void Enemy_Destroy(Enemy* theEnemy)
 {
 	if (theEnemy->shield != nullptr)

@@ -88,6 +88,18 @@ void CrtQsort(void* theBase, size_t theNum, size_t theWidth, int (*theCompare)(c
 void Draw_SetTarget(uint8_t* theBits, int thePitch, int theW, int theH, const PixelFormat* theFmt);
 // 0x42d820: a line blended toward (r, g, b) by theAlpha/256, both ends drawn; 16-bit surfaces only
 void Draw_Line(int x0, int y0, int x1, int y1, int r, int g, int b, int theAlpha);
+// 0x42d630: a rectangle (inclusive) in a colour (black clears it)
+void Draw_Fill(uint8_t* theBits, int thePitch, const PixelFormat* theFmt, int l, int t, int r, int b, int theR,
+	int theG, int theB);
+// 0x42d670: a rectangle (inclusive) blended toward a colour by theAlpha/256, unclipped
+void Draw_FillBlend(uint8_t* theBits, int thePitch, const PixelFormat* theFmt, int l, int t, int r, int b, int theR,
+	int theG, int theB, int theAlpha);
+// 0x42d6b0: the same on the part inside theClip {l, t, r, b}
+void Draw_FillBlendClipped(uint8_t* theBits, int thePitch, const PixelFormat* theFmt, const int* theClip, int l, int t,
+	int r, int b, int theR, int theG, int theB, int theAlpha);
+// 0x42d6f0: Draw_Line's drawing on a given surface, unclipped
+void Draw_LineOn(uint8_t* theBits, int thePitch, const PixelFormat* theFmt, int x0, int y0, int x1, int y1, int r,
+	int g, int b, int theAlpha);
 
 } // namespace r64
 

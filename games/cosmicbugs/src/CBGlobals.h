@@ -6,6 +6,7 @@
 
 #include "CBGame.h"
 #include "R64Font.h"
+#include "R64Sys.h"
 
 namespace cb
 {
@@ -41,7 +42,7 @@ struct Profile
 	int beamsFired;            // +0x34
 	int riderHits;             // +0x38  beamriders that reached the ship
 	int kills;                 // +0x3c  enemies killed
-	int unk40;                 // +0x40
+	int powerupsCaught;        // +0x40
 };
 static_assert(sizeof(Profile) == 0x44, "Profile");
 
@@ -106,14 +107,12 @@ extern Palette gColourCodes[10];           // 0x4735b8  the fonts' colour codes 
 extern Image gBackBuffer;
 bool Sys_FileExists(const char* thePath);
 
-// The game's texts, read from the player's exe by address (CBText.cpp)
+// The game's texts, read from the player's exe by address (CBGameText.cpp)
 const char* GT(uint32_t theVA);
 const char* Localize(const char* theText);                       // 0x420e10
 Font* Font_Find(const char* theName);                            // 0x420850
 
 // The system layer
-int Mouse_Pressed(int theButton);
-int Key_Pressed(int theKey);
 int Sound_Load(const char* thePath);                             // Sound_LoadList on the list at 0x473150
 int Sound_Find(const char* thePath);                             // 0x428650 on it
 void Sound_Play(int theSound);

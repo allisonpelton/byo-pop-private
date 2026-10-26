@@ -7,6 +7,7 @@
 
 #include "CBEmitter.h"
 #include "CBGlobals.h"
+#include "R64TextInput.h"
 
 namespace cb
 {
@@ -172,17 +173,26 @@ struct Menu : Obj
 };
 static_assert(sizeof(Menu) == 0x1e4, "Menu");
 
-// A text on the screen (0x407dd0 makes one)
+// A text on the screen (0x407dd0 makes one, 0x410a80 destroys it; CBText.cpp). state +0x0c: 3 a high score's
+// name being typed; else 4 dormant, 5 fading in, 6 shown, 7 fading out, 8 gone (it loops back to 5, or is removed).
+// kind +0x08 what it shows and refreshes each update: 0 its text, 1 a high score's name, 2 its score, 3 the level,
+// 5 shots fired, 6 lives lost, 7 bugs killed, 8 power-ups caught
 struct Text : Obj
 {
 	Font* font;                // +0xb0
-	char text[0x104];          // +0xb4
-	int unk1b8;                // +0x1b8  how long it stays once clicked away
-	int unk1bc;                // +0x1bc
-	int unk1c0;                // +0x1c0
-	int unk1c4;                // +0x1c4  clicked away together with its neighbours
-	uint8_t unk1c8[0x18];      // +0x1c8
-	uint8_t input[0x4e8];      // +0x1e0  a text entry (the engine's 0x42bed0..0x42c900, not translated yet)
+	char text[0x100];          // +0xb4  in capitals
+	int fadeIn;                // +0x1b4  ms
+	int fadeOut;               // +0x1b8  ms (also how long it takes once clicked away)
+	int idle;                  // +0x1bc  ms shown
+	int dormant;               // +0x1c0  ms before it fades in
+	int loopTime;              // +0x1c4  ms gone before it fades in again (0: it is removed; CBLevel: clicked away with its neighbours)
+	int align;                 // +0x1c8  0 left, 1 right, 2 centred on x
+	int row;                   // +0x1cc  a high score's
+	int blink;                 // +0x1d0  ms; not 0: blinks while shown
+	int firstParticle;         // +0x1d4  the art bank images its bubbles are drawn with
+	int lastParticle;          // +0x1d8
+	int unk1dc;                // +0x1dc
+	TextInput input;           // +0x1e0  a high score's name entry
 };
 static_assert(sizeof(Text) == 0x6c8, "Text");
 
@@ -431,8 +441,11 @@ void Pointer_Append(List<Obj>* theList);                         // 0x4109d0
 void Pointer_Insert(List<Obj>* theList);                         // 0x410920
 int Obj_FromXml(Obj* theObj, const char* p, const XmlTag* theTag);     // 0x40d860: any object's attributes; 0 if its animation is missing
 int Text_FromXml(Text* theText, const char* p, const XmlTag* theTag); // 0x41f950
-void Text_Make(Text* theText, const char* theString, Font* theFont, int theX, int theY, int theA, int theB,
-	int theC, int theD, int theE, int theF);                     // 0x41f0e0
+void Text_Make(Text* theText, const char* theString, Font* theFont, int theX, int theY, int theDormant, int theFadeIn,
+	int theIdle, int theFadeOut, int theLoopTime, int theBlink);  // 0x41f0e0
+void Text_Destroy(Text* theText);                                // 0x410a80
+void List_DeleteNode(Text* theText);                             // 0x411920's delete
+void HighScore_Entered(const char* theName);                     // 0x40cf70: the name entry's return
 int Text_Update(Text* theText);                                  // 0x41f1d0
 int Star_Update(Obj* theStar);                                   // 0x41e2c0
 void Level_AddStars(Level* theLevel);                            // 0x411440

@@ -50,7 +50,7 @@ struct Obj
 	int dieFrameTime;          // +0x9c
 	int oneShot;               // +0xa0  the animation's end (either way) finishes the object
 	int exploSound;            // +0xa4  -1: none
-	int unka8;                 // +0xa8
+	int appearSound;           // +0xa8  a text's, played with a burst of bubbles as it fades in (0: none)
 	int midHandle;             // +0xac  each frame is drawn about its middle
 };
 
@@ -70,7 +70,7 @@ void Obj_Copy(Obj* theObj, const Obj* theFrom);
 // 0x40b7d0 (CBEmitter.cpp; its result, the new particle system, goes unused)
 void Emitter_Update(Obj* theEmitter);
 
-// The screen the game draws on (gScreenBits 0x46e394 and its pitch), set by the host each frame
+// The screen the game draws on (gScreenBits 0x46e3a4 and its pitch 0x46e3a0), set by the host each frame
 extern uint8_t* gScreenBits;
 extern int gScreenPitch;
 
