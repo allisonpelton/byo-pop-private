@@ -5,8 +5,9 @@ A port of PopCap's Atomica Deluxe (version 2.52, 2003-03-28) to the shared SexyA
 by decompiling `Atomica.exe` with Ghidra; the game's files (pictures, sounds, the module music and the texts, which
 are read from the exe at run time) come from the player's own copy and are never in the repository.
 
-The strategy and the action modes play from the first level to the game over. The menu, the dialogs, the hint boxes,
-the high scores, the bonus molecules and the five elements are not ported yet (see Status).
+Everything the original's player sees is ported: the main menu, the strategy and the action modes from the first level to
+the game over, the dialogs, the tutorial boxes, the high scores, the bonus molecules, the five elements and the swirls
+(see Status for what is not the original's exact picture).
 
 ## The binary
 
