@@ -19,7 +19,6 @@ Bank gArt8Bank;
 List<Animation> gAnims = {nullptr, nullptr, nullptr};
 Palette gGreyPalette;
 int gGreyPaletteUnset = 1;
-int gFlag460004 = 0;
 
 namespace
 {
@@ -523,7 +522,7 @@ void Animation_FromXml(Animation* theAnim, const XmlTag* theTag)
 	if (std::strcmp(theAnim->name, "nag_logo") == 0)
 	{
 		std::strcpy(theAnim->file, "nag_logo_cosmicbugs");
-		if (gFlag460004 != 0)
+		if (gRegistered != 0)
 			std::strcpy(theAnim->file, "panel_cosmicbugs");
 	}
 	theAnim->rotation = Xml_GetInt(theTag, "rotation");

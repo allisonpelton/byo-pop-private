@@ -191,7 +191,7 @@ void Beam_DrawTo(Beam* theBeam, uint8_t* theDst, int theDPitch)
 			anImage = theBeam->image;
 		}
 	}
-	Dirty_AddClippedRect(&gDirty, aRect, kClip);
+	Dirty_AddClippedRect(&gDirty, aRect, kScreenClip);
 riders:
 	List_Each(&theBeam->riders, [](Rider* aRider) { Obj_Draw(aRider); });
 }

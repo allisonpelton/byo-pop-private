@@ -127,11 +127,17 @@ static_assert(sizeof(Shooter) == 0x4c4, "Shooter");
 // A menu (0x1e4 bytes, 0x415690 constructs one)
 struct Menu : Obj
 {
-	uint8_t unkb0[0x10];       // +0xb0
+	Image* logo;               // +0xb0  logo_animation's first frame, drawn about (logoX, logoY)
+	int logoX;                 // +0xb4
+	int logoY;                 // +0xb8
+	int unkbc;                 // +0xbc
 	List<Obj> items;           // +0xc0
-	uint8_t unkcc[0x10c];      // +0xcc
-	int active;                // +0x1d8
-	uint8_t unk1dc[8];         // +0x1dc
+	int lockedLevel;           // +0xcc  shown with locked_animation until the player reaches this level
+	char lockedAnim[0x80];     // +0xd0
+	int unk150;                // +0x150
+	uint8_t unk154[0x80];      // +0x154
+	int unk1d4;                // +0x1d4
+	List<Obj> active;          // +0x1d8  (0x4108b0 makes it a list) not empty: the menu is in use
 };
 static_assert(sizeof(Menu) == 0x1e4, "Menu");
 
@@ -366,10 +372,11 @@ void List_DeleteNode(Powerup* thePowerup);                       // 0x4186c0 and
 void Menu_Append(List<Menu>* theList);                           // 0x410750
 Menu* Menu_Init(Menu* theMenu);                                  // 0x415690
 void Menu_FromXml(Menu* theMenu, const char* p, const XmlTag* theTag); // 0x415310
+void Menu_DrawToBackground(Menu* theMenu);                       // 0x413b30: its image and logo, about their middles
 int Menu_Update(Menu* theMenu);                                  // 0x417c10
 void Pointer_Append(List<Obj>* theList);                         // 0x4109d0
 void Pointer_Insert(List<Obj>* theList);                         // 0x410920
-void Obj_FromXml(Obj* theObj, const char* p, const XmlTag* theTag);    // 0x40d860: any object's attributes
+int Obj_FromXml(Obj* theObj, const char* p, const XmlTag* theTag);     // 0x40d860: any object's attributes; 0 if its animation is missing
 int Text_FromXml(Text* theText, const char* p, const XmlTag* theTag); // 0x41f950
 void Text_Make(Text* theText, const char* theString, Font* theFont, int theX, int theY, int theA, int theB,
 	int theC, int theD, int theE, int theF);                     // 0x41f0e0

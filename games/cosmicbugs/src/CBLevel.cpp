@@ -451,7 +451,7 @@ void Level_DrawTrialTime(Level* theLevel)
 		Font* aFont = ScreenFont("micro_font");
 		aFont->align = 0;
 		Font_Printf(aFont, aRect, 4, 0x1fe, aText);
-		Dirty_AddClippedShown(&gDirty, 4, 0x1fe, Font_StringWidth(aFont, aText), 8, kClip);
+		Dirty_AddClippedShown(&gDirty, 4, 0x1fe, Font_StringWidth(aFont, aText), 8, kScreenClip);
 	}
 }
 
@@ -461,7 +461,7 @@ static void DrawCentred(Font* theFont, int theY, const char* theText)
 	Font_DrawOutlined(theFont, aRect, 400, theY, theText);
 	int aHeight = Font_StringHeight(theFont, theText) + 2;
 	int aWidth = Font_StringWidth(theFont, theText) + 2;
-	Dirty_AddClippedShown(&gDirty, 399 - Font_StringWidth(theFont, theText) / 2, theY - 1, aWidth, aHeight, kClip);
+	Dirty_AddClippedShown(&gDirty, 399 - Font_StringWidth(theFont, theText) / 2, theY - 1, aWidth, aHeight, kScreenClip);
 }
 
 // The original copies the lines onto the stack (the last from immediates in its code, which GT reads too)
@@ -480,7 +480,7 @@ void DrawPaused()
 
 int Level_IsPlaying(Level* theLevel)
 {
-	if ((theLevel->kind != 0 || (theLevel->menus.current != nullptr && theLevel->menus.current->active != 0) ||
+	if ((theLevel->kind != 0 || (theLevel->menus.current != nullptr && theLevel->menus.current->active.current != nullptr) ||
 			(theLevel->panels.current != nullptr && theLevel->panels.current->y <= (float)gMouseY)) &&
 		100.0f < theLevel->age)
 		return 0;
@@ -947,7 +947,7 @@ int Level_Update(Level* theLevel)
 		return 0;
 	}
 	if (theLevel->kind == 5 && theLevel->age < 3.0f)
-		Fn40d040();
+		Screen_Redraw();
 	if (gEscape != 0 && theLevel->kind == 0 && theLevel->state != 2)
 	{
 		theLevel->state = 2;
@@ -1036,7 +1036,7 @@ int Level_Update(Level* theLevel)
 				if (theLevel->kind == 0 && theLevel->powerups.current == nullptr && theLevel->totalCells != 0 &&
 					(theLevel->fillQuota <= (theLevel->filledCells * 100) / theLevel->totalCells ||
 						(gDemo != 0 && 0x32 < theLevel->time)) &&
-					(theLevel->menus.current == nullptr || theLevel->menus.current->active == 0))
+					(theLevel->menus.current == nullptr || theLevel->menus.current->active.current == nullptr))
 					Level_Won(theLevel);
 				else
 				{
@@ -1107,7 +1107,7 @@ int Level_Update(Level* theLevel)
 			;
 		if (theLevel->clicked != 0)
 		{
-			gGoTo = (gScore <= gLowestHighScore) + 2;
+			gGoTo = (gScore <= gHighScores[7].score) + 2;
 			return 0;
 		}
 	}
@@ -1318,9 +1318,9 @@ void Level_StartRandom(Level* theLevel)
 	Level_MakeRandom(theLevel, theLevel->seed);
 	Level_AddRandomEnemies(theLevel, theLevel->numWalkers, theLevel->numRollers);
 	Level_MakeEdges(theLevel);
-	Fn40d040();
+	Screen_Redraw();
 	Level_AddPointer(theLevel);
-	Dirty_AddClipped(&gDirty, 0, 0, 800, 600, kClip);
+	Dirty_AddClipped(&gDirty, 0, 0, 800, 600, kScreenClip);
 	if (theLevel->next != nullptr && Node_Next(theLevel)->kind == 0xb)
 		gGoTo = 0xb;
 	// inside the frame the cells start as state 6 (not yet reached by the fill); the fill starts in the corner

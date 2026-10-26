@@ -311,14 +311,14 @@ static void BumpRoller_Push(Cell* theHit, int theD, bool theInX)
 		Cell_PickImage(C(anAlong, theD));
 		Cell_Redraw(C(anAlong, theD));
 		Cell* aCell = C(anAlong, theD);
-		Dirty_AddClippedShown(&gDirty, (int)aCell->x, (int)aCell->y, 0x10, 0x10, kClip);
+		Dirty_AddClippedShown(&gDirty, (int)aCell->x, (int)aCell->y, 0x10, 0x10, kScreenClip);
 		if (anAlong == aMin || anAlong == aMax)
 		{
 			Cell_PickImage(C(anAlong, 0));
 			Cell_Redraw(C(anAlong, 0));
 		}
 		aCell = C(anAlong, 0);
-		Dirty_AddClippedShown(&gDirty, (int)aCell->x, (int)aCell->y, 0x10, 0x10, kClip);
+		Dirty_AddClippedShown(&gDirty, (int)aCell->x, (int)aCell->y, 0x10, 0x10, kScreenClip);
 	}
 }
 

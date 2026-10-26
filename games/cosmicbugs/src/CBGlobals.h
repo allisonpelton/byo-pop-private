@@ -10,6 +10,25 @@
 namespace cb
 {
 
+// A high score (0x24 bytes; nine at 0x46e250: eight shown, the ninth for the new score)
+struct HighScore
+{
+	char name[0x20];           // +0x00
+	int score;                 // +0x20
+};
+static_assert(sizeof(HighScore) == 0x24, "HighScore");
+
+// A font of the game file (the list at 0x470e4c; Font_Find gives its font by name)
+struct FontEntry
+{
+	FontEntry* next;           // +0x000
+	FontEntry* prev;           // +0x004
+	char name[0x20];           // +0x008
+	char strip[0x100];         // +0x028  Font_StripCut's image
+	char chars[0x100];         // +0x128  and characters
+	Font font;                 // +0x228
+};
+
 // A player (0x44 bytes; 11 of them at 0x46df60)
 struct Profile
 {
@@ -55,9 +74,7 @@ extern List<LevelSet> gLevelSets;          // 0x4700d4
 extern int gProfile;                       // 0x46e24c
 extern Profile gProfiles[11];              // 0x46df60
 extern LevelRecord gLevelRecords[1000];    // 0x4623e0
-extern int gRegistered;                    // 0x460004
 extern int gScore;                         // 0x46e5e8
-extern int gLowestHighScore;               // 0x46e36c
 extern int gFlag46003c;                    // 0x46003c
 extern int gLevelInSet;                    // 0x46e5ec
 extern int gMouseX;                        // 0x46e5bc
@@ -68,7 +85,22 @@ extern int gLives;                         // 0x460040
 extern float gBeamSpeed;                   // 0x460038  the ship's beams' speed at the start
 extern int gDifficulty;                    // 0x46e5e0  -1, 0 or 1 (the options' cycle)
 extern int gUnk460028;                     // 0x460028
-extern const int kClip[4];                 // 0x460010  the screen
+extern int gQuit;                          // 0x46e5d0
+extern int gFirstRun;                      // 0x46e5d4  cb.dat was missing
+extern char gUrl[0x200];                   // 0x46e3a8  opened when the game ends
+extern int gFrame;                         // 0x460a1c  updates
+extern HighScore gHighScores[9];           // 0x46e250
+extern List<FontEntry> gFonts;             // 0x470e4c
+extern Font gFontSmall;                    // 0x471d10
+extern Font gFontTreb11;                   // 0x46f368
+extern Font gFontTreb20;                   // 0x46e5f0
+extern Font gFontIcon;                     // 0x470f80
+extern Image* gCursor;                     // 0x4735b4  the mouse pointer drawn
+extern Image* gCursorArrow;                // 0x4735ac
+extern Image* gCursorClick;                // 0x4735a0
+extern Image* gCursorClock;                // 0x4735b0
+extern int gCursorShown;                   // 0x460874
+extern Palette gColourCodes[10];           // 0x4735b8  the fonts' colour codes '0' to '9'
 // 0x472ab0: 800x600 in the screen's format, the level's background with the cells drawn on (each frame the dirty
 // parts go to the screen under the objects)
 extern Image gBackBuffer;
@@ -92,7 +124,24 @@ void Music_Play();
 void DrawLoadingScreen();
 int CrtRand();                                                   // the CRT's rand
 void SaveProfiles();                                             // 0x40c900
-void Fn40d040();                                                 // 0x40d040
+void Screen_Redraw();                                            // 0x40d040
+void Cursor_Show();                                              // 0x404d60
+void Cursor_Set(int theCursor);                                  // 0x404d20: 1 the click, 2 the clock, else the arrow
+void Cursors_Init();                                             // 0x404d70: and the fonts' colour codes
+long FileSize(const char* thePath);                              // 0x40c8c0: 0 when missing
+void ResetProfiles();                                            // 0x40ca30: and saves them
+void LoadProfiles();                                             // 0x40ccd0
+int SortHighScores();                                            // 0x40ce10: and saves them
+void GameInit();                                                 // 0x40ce40
+void FreeAll();                                                  // 0x40d3a0
+void GoToScreen();                                               // 0x40d3f0: the screen of kind gGoTo
+void GameStep();                                                 // 0x40d6a0
+void LoadGameFile();                                             // 0x41e9b0
+// The port's: where cb.dat goes; a save is done (the web build keeps it); the account's name (0x429d30: the
+// original's GetUserNameA), "" when there is none
+const char* Sys_SavePath(const char* theName);
+void Sys_SaveDone();
+void Sys_UserName(char* theName, int theSize);
 
 } // namespace cb
 

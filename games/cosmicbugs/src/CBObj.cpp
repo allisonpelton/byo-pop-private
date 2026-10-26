@@ -1,6 +1,8 @@
 // The game objects' base (0x40eac0..0x40f0f0)
 
 #include "CBObj.h"
+#include "CBLevel.h"
+#include "R64Xml.h"
 
 #include <cstring>
 #include <new>
@@ -45,7 +47,7 @@ void Obj_Init(Obj* theObj)
 	theObj->shadow = 0;
 	theObj->loop = 1;
 	theObj->frameStep = 1;
-	theObj->unka4 = -1;
+	theObj->exploSound = -1;
 }
 
 void Obj_Destroy(Obj* theObj)
@@ -213,9 +215,188 @@ void Obj_Copy(Obj* theObj, const Obj* theFrom)
 	theObj->dieFrameCount = theFrom->dieFrameCount;
 	theObj->dieFrameTime = theFrom->dieFrameTime;
 	theObj->oneShot = theFrom->oneShot;
-	theObj->unka4 = theFrom->unka4;
+	theObj->exploSound = theFrom->exploSound;
 	theObj->unka8 = theFrom->unka8;
 	theObj->midHandle = theFrom->midHandle;
+}
+
+
+// The attributes every object of the game file takes. Positions are in 800 by 600 pixels (the original scales by
+// 800.0 / 800.0 and 600.0 / 600.0); "left", "right", "top" and "bottom" put an object with an image at an edge.
+int Obj_FromXml(Obj* theObj, const char* p, const XmlTag* theTag)
+{
+	(void)p;
+	if (Xml_GetString(theTag, "animation") != nullptr)
+	{
+		theObj->anim = Animation_Find(Xml_GetString(theTag, "animation"), &theObj->frameCount, &theObj->frameTime);
+		if (theObj->anim == nullptr)
+			return 0;
+	}
+	if (Xml_GetString(theTag, "explo_animation") != nullptr)
+		theObj->dieAnim = Animation_Find(Xml_GetString(theTag, "explo_animation"), &theObj->dieFrameCount,
+			&theObj->dieFrameTime);
+	if (theObj->anim != nullptr)
+		theObj->image = Animation_Frame(theObj->anim, 0);
+	if (Xml_GetString(theTag, "mid_handle") != nullptr)
+		theObj->midHandle = 1;
+	theObj->y = 0.0f;
+	theObj->x = 0.0f;
+	if (Xml_GetString(theTag, "x") != nullptr)
+	{
+		if (strcmp(Xml_GetString(theTag, "x"), "left") == 0 && theObj->image != nullptr)
+			theObj->x = 0.0f;
+		else if (strcmp(Xml_GetString(theTag, "x"), "right") == 0 && theObj->image != nullptr)
+			theObj->x = (float)(800 - theObj->image->w);
+		else
+			theObj->x = (float)(Xml_GetFloat(theTag, "x") * 800.0 / 800.0);
+	}
+	if (Xml_GetString(theTag, "y") != nullptr)
+	{
+		if (strcmp(Xml_GetString(theTag, "y"), "top") == 0 && theObj->image != nullptr)
+			theObj->y = 0.0f;
+		else if (strcmp(Xml_GetString(theTag, "y"), "bottom") == 0 && theObj->image != nullptr)
+			theObj->y = (float)(600 - theObj->image->h);
+		else
+			theObj->y = (float)(Xml_GetFloat(theTag, "y") * 600.0 / 600.0);
+	}
+	if (Xml_GetFloat(theTag, "z") != 0.0)
+		theObj->depth = (int)Xml_GetFloat(theTag, "z");
+	theObj->vx = (float)(Xml_GetFloat(theTag, "x_speed") * 800.0 / 800.0);
+	theObj->vy = (float)(Xml_GetFloat(theTag, "y_speed") * 800.0 / 800.0);
+	theObj->speed = (float)(Xml_GetFloat(theTag, "velocity") * 800.0 / 800.0);
+	theObj->dirty = Xml_GetInt(theTag, "buffered");
+	if (Xml_GetString(theTag, "explo_sound") != nullptr)
+		theObj->exploSound = Sound_Load(Xml_GetString(theTag, "explo_sound"));
+	if (Xml_GetString(theTag, "position") != nullptr)
+	{
+		// a key of the level's map: the middle of its cell
+		const char* aKey = Xml_GetString(theTag, "position");
+		int aCol = 0;
+		int aRow = 0;
+		Level_FindKey(gLevels.current, *aKey, &aCol, &aRow);
+		aCol = aCol * 0x10 + 8;
+		aRow = aRow * 0x10 + 8;
+		theObj->x = (float)aCol;
+		theObj->y = (float)aRow;
+	}
+	if (Xml_GetString(theTag, "terminate_on_end") != nullptr)
+		theObj->oneShot = Xml_GetInt(theTag, "terminate_on_end");
+	if (Xml_GetString(theTag, "loop") != nullptr)
+		theObj->loop = Xml_GetInt(theTag, "loop");
+	if (Xml_GetString(theTag, "color") != nullptr)
+	{
+		// a tint by name, else the draw list's colour and alpha as "rrggbbaa"
+		char aName[256];
+		strcpy(aName, Xml_GetString(theTag, "color"));
+		if (strcmp(aName, "black") == 0)
+			theObj->tint = 0;
+		else if (strcmp(aName, "white") == 0)
+			theObj->tint = 1;
+		else if (strcmp(aName, "red") == 0)
+			theObj->tint = 2;
+		else if (strcmp(aName, "orange") == 0)
+			theObj->tint = 3;
+		else if (strcmp(aName, "yellow") == 0)
+			theObj->tint = 4;
+		else if (strcmp(aName, "green") == 0)
+			theObj->tint = 5;
+		else if (strcmp(aName, "cyan") == 0)
+			theObj->tint = 6;
+		else if (strcmp(aName, "blue") == 0)
+			theObj->tint = 7;
+		else if (strcmp(aName, "purple") == 0)
+			theObj->tint = 8;
+		else if (strcmp(aName, "magenta") == 0)
+			theObj->tint = 9;
+		else
+			ParseHex4(Xml_GetString(theTag, "color"), &theObj->r, &theObj->g, &theObj->b, &theObj->alpha);
+	}
+	else
+		theObj->tint = 5; // (the original shares green's store: an object without a colour gets tint 5)
+	if (Xml_GetString(theTag, "blit_type") != nullptr)
+	{
+		if (strcmp(Xml_GetString(theTag, "blit_type"), "alpha_edge") == 0)
+			theObj->drawKind = 1;
+		if (strcmp(Xml_GetString(theTag, "blit_type"), "blend") == 0)
+		{
+			theObj->drawKind = 4;
+			return 1;
+		}
+		if (strcmp(Xml_GetString(theTag, "blit_type"), "alpha") == 0)
+		{
+			theObj->drawKind = 2;
+			return 1;
+		}
+		if (strcmp(Xml_GetString(theTag, "blit_type"), "solid") == 0)
+		{
+			theObj->drawKind = 3;
+			return 1;
+		}
+		if (strcmp(Xml_GetString(theTag, "blit_type"), "block") == 0)
+		{
+			theObj->drawKind = 0;
+			return 1;
+		}
+		if (strcmp(Xml_GetString(theTag, "blit_type"), "add") == 0)
+			theObj->drawKind = 6;
+	}
+	return 1;
+}
+
+// Three pieces of shrapnel (the original writes each set out)
+static void Explode_Shrapnel(Obj* theObj, float theVx, float theVy, const char* theFirst, const char* theLast)
+{
+	for (int i = 0; i < 3; i++)
+	{
+		ParticleSystem_New();
+		int aLifetime = RandRange(0x4b0, 2000);
+		int aFrameTime = RandRange(0x1e, 100);
+		int aLast = Bank_IndexOf(&gArtBank, theLast);
+		int aFirst = Bank_IndexOf(&gArtBank, theFirst);
+		float aVy = (float)((double)RandRange(-180, -60) / 1000.0 + (double)theVy);
+		float aVx = (float)((double)RandRange(-100, 100) / 1000.0 + (double)theVx);
+		float aY = (float)RandRange(-10, 10) + theObj->y;
+		float aX = (float)RandRange(-10, 10) + theObj->x;
+		ParticleSystem_Add(gLevels.current->systems.current, aX, aY, aVx, aVy, aFirst, aLast, aFrameTime, 0xff, 0xff,
+			0xff, 0xff, 0xff, 0xff, 0x2e4, 10, aLifetime, 0.9999f, 0.0002f, 4);
+	}
+}
+
+// The death animation, as a one-shot drawn above the rest, with a ball of fire and shrapnel thrown up and along
+// the object's way
+void Obj_Explode(Obj* theObj, float theVx, float theVy)
+{
+	theObj->anim = theObj->dieAnim;
+	theObj->frame = 0;
+	theObj->frameCount = theObj->dieFrameCount;
+	theObj->oneShot = 1;
+	theObj->frameTime = theObj->dieFrameTime;
+	theObj->frameTimer = 0;
+	theObj->state = 1;
+	theObj->depth = 9;
+	theObj->shadow = 0;
+	for (int i = 0; i < 0x18; i++)
+	{
+		ParticleSystem_New();
+		int aLifetime = RandRange(700, 0x44c);
+		int aLast = Bank_IndexOf(&gArtBank, "exp_4");
+		int aFirst = Bank_IndexOf(&gArtBank, "exp_0");
+		aFirst = aFirst + RandRange(0, 3);
+		float aVy = (float)((double)RandRange(-100, 100) / 1000.0);
+		float aVx = (float)((double)RandRange(-100, 100) / 1000.0);
+		float aY = (float)RandRange(-10, 10) + theObj->y;
+		float aX = (float)RandRange(-10, 10) + theObj->x;
+		ParticleSystem_Add(gLevels.current->systems.current, aX, aY, aVx, aVy, aFirst, aLast, 0, 0xff, 0xff, 0xff,
+			0xe7, 0xa6, 0x39, 0x21c, 10, aLifetime, 1.0f, 0.0f, 5);
+	}
+	Explode_Shrapnel(theObj, theVx, theVy, "shrapnel01_0001", "shrapnel01_0016");
+	if (-1 < theObj->exploSound)
+	{
+		// (the original works out a pan from x for a play call that takes none)
+		Sound_Play(theObj->exploSound);
+	}
+	Explode_Shrapnel(theObj, theVx, theVy, "shrapnel03_0001", "shrapnel03_0016");
+	Explode_Shrapnel(theObj, theVx, theVy, "shrapnel04_0001", "shrapnel04_0016");
 }
 
 } // namespace cb

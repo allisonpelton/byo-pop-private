@@ -4,6 +4,8 @@
 #include "CBLevel.h"
 #include "R64Blit.h"
 
+#include <cstdlib>
+
 namespace cb
 {
 
@@ -66,7 +68,7 @@ void Cell_Redraw(Cell* theCell)
 			Image* img = theCell->image;
 			Alpha16MaskFade(gScreenBits, gScreenPitch, &gBackBuffer.fmt, dx, dy, img->bits, img->pitch, sx, sy,
 				img->mask->bits, img->mask->pitch, 0, 0, 0x10, 0x10, theCell->alpha);
-			Dirty_AddClippedShown(&gDirty, dx, dy, 0x10, 0x10, kClip);
+			Dirty_AddClippedShown(&gDirty, dx, dy, 0x10, 0x10, kScreenClip);
 			return;
 		}
 	}
@@ -89,7 +91,7 @@ void Cell_Redraw(Cell* theCell)
 				int dx = (int)fx;
 				Alpha16MaskFade(gScreenBits, gScreenPitch, &gBackBuffer.fmt, dx, dy, img->bits, img->pitch, sx, sy,
 					img->mask->bits, img->mask->pitch, 0, 0, 0x10, 0x10, theCell->alpha);
-				Dirty_AddClippedShown(&gDirty, dx, dy, 0x10, 0x10, kClip);
+				Dirty_AddClippedShown(&gDirty, dx, dy, 0x10, 0x10, kScreenClip);
 				return;
 			}
 		}
@@ -172,7 +174,7 @@ void Cell_Redraw(Cell* theCell)
 		Image* img = theCell->image;
 		Alpha16Mask(aBack, aPitch, aFmt, (int)theCell->x, (int)theCell->y, img->bits, img->pitch, sx, sy,
 			img->mask->bits, img->mask->pitch, 0, 0, 0x10, 0x10);
-		Dirty_AddClippedShown(&gDirty, (int)theCell->x, (int)theCell->y, 0x18, 0x18, kClip);
+		Dirty_AddClippedShown(&gDirty, (int)theCell->x, (int)theCell->y, 0x18, 0x18, kScreenClip);
 	}
 }
 
@@ -524,7 +526,7 @@ int Cell_UpdateFill(Cell* theCell)
 		int dy = (int)(((double)theCell->y + (double)anOffY) - (double)anOffY);
 		if (-1 < dx && -1 < dy && dx + 0x10 < 800 && dy + 0x10 < 600)
 		{
-			Dirty_AddClippedShown(&gDirty, dx, dy, 0x10, 0x10, kClip);
+			Dirty_AddClippedShown(&gDirty, dx, dy, 0x10, 0x10, kScreenClip);
 			return 0;
 		}
 	}
@@ -540,6 +542,125 @@ int Fill_Update(Cell* theCell)
 	if (theCell->state == 7)
 		return Cell_UpdateFill(theCell);
 	return 0;
+}
+
+
+// The background under a cell, back in the back buffer
+static void Cell_Uncover(Cell* theCell)
+{
+	int aY = (int)theCell->y;
+	int aX = (int)theCell->x;
+	Image* aBack = gLevels.current->background;
+	Copy16(gBackBuffer.bits, gBackBuffer.pitch, aX, aY, aBack->bits, aBack->pitch, aX, aY, 0x10, 0x10);
+}
+
+static bool InBoard(int theCol, int theRow)
+{
+	return -1 < theCol && theCol < gLevels.current->cols && -1 < theRow && theRow < gLevels.current->rows;
+}
+
+// The filled cells and lines of the square of theRadius round a cell that the last flood did not reach open up,
+// the square's outer ring becoming lines. Then each row of the square (the original runs the tidy-up inside the
+// row loop) redraws its lines, throws fire from each cell when theRadius is 3 or more, and opens the lines with
+// open or edge cells on three of their four sides until none is left.
+void Level_Blast(int theCol, int theRow, int theRadius)
+{
+	for (int aRow = theRow - theRadius; aRow <= theRow + theRadius; aRow++)
+	{
+		for (int aCol = theCol - theRadius; aCol <= theCol + theRadius; aCol++)
+		{
+			if (InBoard(aCol, aRow))
+			{
+				Cell* aCell = At(aCol, aRow);
+				if ((aCell->kind == 4 || aCell->kind == 2) && aCell->unmarked != 0)
+				{
+					aCell->kind = 0;
+					aCell->state = 3;
+					aCell->image = gLevels.current->empty;
+					Cell_Uncover(aCell);
+					Cell_Redraw(aCell);
+					if (theRadius + -1 < std::abs(aCol - theCol) || theRadius + -1 < std::abs(aRow - theRow))
+						aCell->kind = 2;
+					else
+						gLevels.current->filledCells = gLevels.current->filledCells + -1;
+				}
+			}
+		}
+	}
+	for (int aRow = theRow - theRadius; aRow <= theRow + theRadius; aRow++)
+	{
+		for (int aCol = theCol - theRadius; aCol <= theCol + theRadius; aCol++)
+		{
+			if (InBoard(aCol, aRow))
+			{
+				Cell* aCell = At(aCol, aRow);
+				if (aCell->kind == 2)
+				{
+					Cell_PickImage(aCell);
+					Cell_Redraw(aCell);
+				}
+				Dirty_AddClippedShown(&gDirty, (int)aCell->x, (int)aCell->y, 0x10, 0x10, kScreenClip);
+				for (int i = 1; i < theRadius; i++)
+				{
+					if (theRadius < 3)
+						break;
+					ParticleSystem_New();
+					int aLifetime = RandRange(700, 0x44c);
+					int aLast = Bank_IndexOf(&gArtBank, "exp_4");
+					int aFirst = Bank_IndexOf(&gArtBank, "exp_0");
+					aFirst = aFirst + RandRange(0, 3);
+					float aVy = (float)((double)RandRange(-100, 100) / 1000.0);
+					float aVx = (float)((double)RandRange(-100, 100) / 1000.0);
+					float aY = (float)RandRange(-10, 10) + aCell->y;
+					float aX = (float)RandRange(-10, 10) + aCell->x;
+					ParticleSystem_Add(gLevels.current->systems.current, aX, aY, aVx, aVy, aFirst, aLast, 0, 0xff, 0xff,
+						0xff, 0xe7, 0xa6, 0x39, 0x21c, 10, aLifetime, 1.0f, 0.0f, 5);
+				}
+			}
+		}
+		bool aChanged;
+		do
+		{
+			aChanged = false;
+			for (int aRow2 = theRow - theRadius; aRow2 <= theRow + theRadius; aRow2++)
+			{
+				for (int aCol2 = theCol - theRadius; aCol2 <= theCol + theRadius; aCol2++)
+				{
+					if (InBoard(aCol2, aRow2) && At(aCol2, aRow2)->kind == 2)
+					{
+						Cell* aCell = At(aCol2, aRow2);
+						// the four sides' bits of Cell_Touches: left 8, right 0x20, up 2, down 0x80
+						uint32_t aSides = Cell_Touches(aCell, 0);
+						int aCount = (aSides & 8) != 0;
+						if ((aSides & 0x20) != 0)
+							aCount = aCount + 1;
+						if ((aSides & 2) != 0)
+							aCount = aCount + 1;
+						if ((aSides & 0x80) != 0)
+							aCount = aCount + 1;
+						aSides = Cell_Touches(aCell, 3);
+						if ((aSides & 8) != 0)
+							aCount = aCount + 1;
+						if ((aSides & 0x20) != 0)
+							aCount = aCount + 1;
+						if ((aSides & 2) != 0)
+							aCount = aCount + 1;
+						if ((aSides & 0x80) != 0)
+							aCount = aCount + 1;
+						if (2 < aCount)
+						{
+							aCell->kind = 0;
+							aCell->image = gLevels.current->empty;
+							Cell_Uncover(aCell);
+							Cell_Redraw(aCell);
+							gLevels.current->filledCells = gLevels.current->filledCells + -1;
+							aChanged = true;
+						}
+					}
+				}
+			}
+		} while (aChanged);
+	}
 }
 
 } // namespace cb

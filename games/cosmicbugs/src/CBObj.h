@@ -49,7 +49,7 @@ struct Obj
 	int dieFrameCount;         // +0x98
 	int dieFrameTime;          // +0x9c
 	int oneShot;               // +0xa0  the animation's end (either way) finishes the object
-	int unka4;                 // +0xa4
+	int exploSound;            // +0xa4  -1: none
 	int unka8;                 // +0xa8
 	int midHandle;             // +0xac  each frame is drawn about its middle
 };

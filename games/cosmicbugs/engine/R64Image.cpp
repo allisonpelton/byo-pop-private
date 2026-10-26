@@ -181,6 +181,30 @@ void Rect_Intersect(int* theOut, int l1, int t1, int r1, int b1, int l2, int t2,
 	theOut[3] = b1;
 }
 
+// 0x42bc10 (rounded to the nearest, as the original's fistp)
+void Palette_Gradient(Palette* thePalette, int theFrom, int theTo, uint8_t r0, uint8_t g0, uint8_t b0, uint8_t r1,
+	uint8_t g1, uint8_t b1)
+{
+	double aSteps = (double)std::abs(theTo - theFrom) + 1.0;
+	double r = r0;
+	double aDr = (double)r1 - r;
+	double g = g0;
+	double aDg = (double)g1 - g;
+	bool anUp = theFrom < theTo;
+	double b = b0;
+	double aDb = (double)b1 - b;
+	for (int i = 0; i < aSteps; i++)
+	{
+		thePalette->rgb[theFrom * 4] = (uint8_t)(int)std::nearbyint(r);
+		thePalette->rgb[theFrom * 4 + 1] = (uint8_t)(int)std::nearbyint(g);
+		thePalette->rgb[theFrom * 4 + 2] = (uint8_t)(int)std::nearbyint(b);
+		theFrom = theFrom + (anUp ? 1 : -1);
+		r = r + aDr / aSteps;
+		g = g + aDg / aSteps;
+		b = b + aDb / aSteps;
+	}
+}
+
 // 0x4234a0. The original leaves +0x3c and +0x40 alone; the port's are 0.
 void Image_Init(Image* img)
 {

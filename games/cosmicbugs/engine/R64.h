@@ -155,6 +155,9 @@ int ClipBlit(int clipL, int clipT, int clipR, int clipB, int x, int y, int w, in
 // 0x42b8d0, 0x42bbc0: rectangles {l, t, r, b}, inclusive
 int Rect_Overlap(int l1, int t1, int r1, int b1, int l2, int t2, int r2, int b2);
 void Rect_Intersect(int* theOut, int l1, int t1, int r1, int b1, int l2, int t2, int r2, int b2);
+// 0x42bc10: a palette's colours theFrom to theTo (either way, both included) shade from one colour to the other
+void Palette_Gradient(Palette* thePalette, int theFrom, int theTo, uint8_t r0, uint8_t g0, uint8_t b0, uint8_t r1,
+	uint8_t g1, uint8_t b1);
 
 // 0x42dbc0: converts w x h pixels at (sx, sy) of src to dstFmt at (dx, dy) of dst; an 8-bit source reads its colours
 // from rgb ({r, g, b, 0} per index). 0 for an 8-bit destination or an unknown depth.

@@ -281,4 +281,135 @@ void Log(const char* theFormat, ...)
 	(void)theFormat;
 }
 
+
+// 0x444b90 (the CRT's)
+static void Qsort_Swap(char* a, char* b, size_t theWidth)
+{
+	if (a != b)
+	{
+		for (; theWidth != 0; theWidth--)
+		{
+			char c = *a;
+			*a = *b;
+			*b = c;
+			a++;
+			b++;
+		}
+	}
+}
+
+// 0x444bc0 (the CRT's): each pass puts the greatest of lo..hi at hi
+static void Qsort_Short(char* lo, char* hi, size_t theWidth, int (*theCompare)(const void*, const void*))
+{
+	for (; lo < hi; hi -= theWidth)
+	{
+		char* aMax = lo;
+		for (char* p = lo + theWidth; p <= hi; p += theWidth)
+		{
+			if (theCompare(p, aMax) > 0)
+				aMax = p;
+		}
+		Qsort_Swap(aMax, hi, theWidth);
+	}
+}
+
+// The shorter side is sorted next and the longer one waits on the stack
+void CrtQsort(void* theBase, size_t theCount, size_t theWidth, int (*theCompare)(const void*, const void*))
+{
+	if (theCount < 2)
+		return;
+	char* aLoStack[30];
+	char* aHiStack[30];
+	int aTop = 0;
+	char* lo = (char*)theBase;
+	char* hi = lo + (theCount - 1) * theWidth;
+	for (;;)
+	{
+		size_t aSize = (size_t)(hi - lo) / theWidth + 1;
+		if (aSize <= 8)
+			Qsort_Short(lo, hi, theWidth, theCompare);
+		else
+		{
+			char* aMid = lo + (aSize >> 1) * theWidth;
+			if (theCompare(lo, aMid) > 0)
+				Qsort_Swap(lo, aMid, theWidth);
+			if (theCompare(lo, hi) > 0)
+				Qsort_Swap(lo, hi, theWidth);
+			if (theCompare(aMid, hi) > 0)
+				Qsort_Swap(aMid, hi, theWidth);
+			char* aLow = lo;
+			char* aHigh = hi;
+			for (;;)
+			{
+				if (aMid > aLow)
+				{
+					do
+						aLow += theWidth;
+					while (aLow < aMid && theCompare(aLow, aMid) <= 0);
+				}
+				if (aMid <= aLow)
+				{
+					do
+						aLow += theWidth;
+					while (aLow <= hi && theCompare(aLow, aMid) <= 0);
+				}
+				do
+					aHigh -= theWidth;
+				while (aHigh > aMid && theCompare(aHigh, aMid) > 0);
+				if (aHigh < aLow)
+					break;
+				Qsort_Swap(aLow, aHigh, theWidth);
+				if (aMid == aHigh)
+					aMid = aLow;
+			}
+			aHigh += theWidth;
+			if (aMid < aHigh)
+			{
+				do
+					aHigh -= theWidth;
+				while (aHigh > aMid && theCompare(aHigh, aMid) == 0);
+			}
+			if (aMid >= aHigh)
+			{
+				do
+					aHigh -= theWidth;
+				while (aHigh > lo && theCompare(aHigh, aMid) == 0);
+			}
+			if (aHigh - lo >= hi - aLow)
+			{
+				if (lo < aHigh)
+				{
+					aLoStack[aTop] = lo;
+					aHiStack[aTop] = aHigh;
+					aTop++;
+				}
+				if (aLow < hi)
+				{
+					lo = aLow;
+					continue;
+				}
+			}
+			else
+			{
+				if (aLow < hi)
+				{
+					aLoStack[aTop] = aLow;
+					aHiStack[aTop] = hi;
+					aTop++;
+				}
+				if (lo < aHigh)
+				{
+					hi = aHigh;
+					continue;
+				}
+			}
+		}
+		aTop--;
+		if (aTop < 0)
+			return;
+		lo = aLoStack[aTop];
+		hi = aHiStack[aTop];
+	}
+}
+
 } // namespace cb
