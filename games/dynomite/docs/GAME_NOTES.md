@@ -123,6 +123,21 @@ challenge's kind, +0x1094 is set for the tutorial (start choice 2 calls 0x419040
 (constructor 0x404030: lists at +0xb8, +0xd0, +0xe8, +0x10c, a `BinFile` at +0x164 (0x414a00), the pause count +0x150,
 the dynamite +0x154).
 
+The board's `Init` (slot 46, 0x407ac0: app, skill) reads the string list `gScoreNames` (0x48c0c0) into a global
+(0x5304a4), copies PLAY_THIS_PUZZLE_AGAIN to +0x208, sets +0x78 to the skill and +0x68/+0x6c/+0x70 to 306/153/250,
+and makes five objects, none with more than a virtual destructor (their methods are plain functions beside their
+constructors): +0x5c a 0xab0-byte one (0x401050, vtable 0x4f73ac, lists at +0xa74 and +0xa8c; its code is
+0x401000-0x4034b0, with small classes 0x4f73e4, 0x4f7420, 0x4f742c and 0x4f7444 up to 0x404030), +0x8c a 0x46e8-byte
+one (0x415770, vtable 0x4fa408, lists at +0x466c, +0x4694, +0x46b8; destructor 0x417420), +0x60 a 0x5c-byte one
+(0x431fc0, vtable 0x4fc828), +0x84 a 0x3c-byte one (0x437aa0, vtable 0x4fcd60) and +0x88 a 0x78-byte one (0x438400,
+vtable 0x4fcd80); then it calls the small Inchy's 0x423010 with 100 and `SetActive(true)` (0x4047e0). `StartGame`
+(0x418810) takes the menu down, takes the old board down (`SetActive(false)`, `SafeDeleteWidget`, without clearing
++0x19ec), news the mode's board, resizes it to (150, 0, 490, 480), calls `Init(app, +0x1084)` (`+0x1088` for the
+fossil mode), adds it, puts it at the back, gives it the focus, keeps it at +0x19ec and calls the side bar's
+`GameStarted`. The board's own slots: 43 0x404f30 (empty), 44 0x404c30, 45 0x404a70, 46 `Init`, 47 0x404660,
+48 0x406d60, 49 and 52 and 61 return 0, 50 0x404f40, 51 `MakeDynamite` 0x405010, 53 0x405070, 54 0x406f70,
+55 0x406160, 56 and 58 empty, 57 0x406040, 59 0x405140, 60 0x405590.
+
 Next, in this order: `StartGame` (0x418810: mode +0x108c makes DynomiteStomped
 0x40ea50 (0x62c bytes), DynomitePanic 0x40ca40 (0x274), DynomiteFossil 0x408e40 (0x328) or DynomiteTimeTrial
 0x411ff0 (0x254), resized to (150, 0, 490, 480), slot 46 `Init(app, level)` with +0x1084, or +0x1088 for the fossil
