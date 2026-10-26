@@ -299,12 +299,16 @@ void TempleScreen::BuildThumbs()
 		{
 			aThumb.mSolved = true;
 			aThumb.mFade = 255;
-			if (aBest < 1 || aProfile->IsMaxed(*aRecord, aThumb.mUuid))
-				aThumb.mMedal = 3;
-			else if (aRecord->mMoves <= aBest + 5)
-				aThumb.mMedal = 2;
-			else if (aRecord->mMoves <= aBest + 10)
-				aThumb.mMedal = 1;
+			// no medal while no best solution is known
+			if (aBest >= 1)
+			{
+				if (aProfile->IsMaxed(*aRecord, aThumb.mUuid))
+					aThumb.mMedal = 3;
+				else if (aRecord->mMoves <= aBest + 5)
+					aThumb.mMedal = 2;
+				else if (aRecord->mMoves <= aBest + 10)
+					aThumb.mMedal = 1;
+			}
 		}
 		aThumb.mMystery = aMysteryLocked && (i + 1 == aLevel->mPuzzles.size());
 		if (aThumb.mSolved && aThumb.mUuid == mApp->mLastSolvedUuid)

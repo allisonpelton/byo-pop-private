@@ -16,6 +16,10 @@ namespace Sexy
 
 class PixelusApp;
 
+// the original turns a uuid into 16 bytes, so the case of its letters never mattered; the port keys its tables on the
+// lower-case text, and imported saves may have capitals
+std::string UuidKey(const std::string& theUuid);
+
 class LevelData
 {
 public:

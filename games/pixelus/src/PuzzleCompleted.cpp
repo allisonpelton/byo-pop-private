@@ -128,7 +128,8 @@ PuzzleCompletedScreen::PuzzleCompletedScreen(PixelusApp* theApp, MemoryImage* th
 	}
 	mTempleDone = !aTempleDoneBefore && IsTempleSolved(mApp, aUser, aLevel);
 	mGameDone = !aGameDoneBefore && IsGameSolved(mApp, aUser);
-	mTutorialDone = mTutorial && aTutorialDone;
+	// mode 5 of 0x41b3c0: only the solve that finishes the tutorial says so (the same test before and after the record)
+	mTutorialDone = mTutorial && !aTempleDoneBefore && aTutorialDone;
 	if (mTutorialDone && aUser != NULL)
 		aUser->mFlag79 = true;
 
@@ -182,7 +183,6 @@ void PuzzleCompletedScreen::Update()
 			mX = (float) END_X;
 			mY = (float) END_Y;
 			mArrivedAt = mTicks;
-			mApp->PlaySample(SOUND_PIXELUS_PUZZLE_COMPLETED_STING_V01);
 		}
 		else
 		{

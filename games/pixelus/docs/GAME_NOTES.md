@@ -90,11 +90,21 @@ time) is looked up first. `ProgressManager::UpdateBest` (the table of best known
 "maxed" flag). The tutorial's last puzzle sets the tutorial-done flag (the player's flag 0x79). The result is entered with
 `SetRecord(uuid, matched, moves, time)`; a puzzle that finishes a temple can open the next one (`mOpenedTemple`, which the
 story then announces), and the last puzzle of the game sets `mGameDone`. The time is `Grid::mTime`: milliseconds, 10 added
-every update while the puzzle is not done and the game not paused.
+every update while the puzzle is not done or a tile was still in flight at the last update, so the last tile's flight counts.
+The tutorial-finished text and the player's flag 0x79 belong to the solve that completes the tutorial, not to every later one.
+
+The finish of a puzzle (0x422590, 0x424b30, 0x421e10, 0x409bd0). The throw that fills the last wanted cell calls `Complete`:
+the puzzle is done at once, sample 24 (the completed sting) plays and all music fades out. Then, once no tile is in flight,
+a delay of 84 updates runs (+0xb108 from 1.0 down to -1.5 by 0.03), then the picture is swept in over the board, three cells
+an update in reading order (+0xb100 from rows * cols down to 0), and a shimmer (+0x10, -25 to 60 by 0.6 an update) goes across
+the tiles from the top left. When the sweep is over (+0xb110) the Board counts 60 updates (the Tile Master throws once at the
+start) and shows the tablet: about 4 seconds from the last throw. A tile that lands pushes up to four tiles in line behind it
+(0x423d30: the nearest by the most and the soonest, one pixel an update out, a wait, back); a tile that bounces off a bouncy
+block does the same from the cell it stopped in. The undo plays the pull sound, throws a bounced tile again (kind B) or
+flies a tile that left the grid back in (kind F); a bounce is B in the move history and a tile that flies out is F.
 
 The tablet itself: the picture of the solved puzzle (20 pixels a cell, the picture's colours on the wanted cells) flies from
-the board's grid origin to the tablet over 80 updates (smoothstep, 320 to 117 pixels), the completed sting plays on arrival, and
-the medal grows after it. The two signs at the sides tell what is new. The continue button's label is one of the game's own
+the board's grid origin to the tablet over 80 updates (smoothstep, 320 to 117 pixels) and the medal grows after it. The two signs at the sides tell what is new. The continue button's label is one of the game's own
 texts and renders with the game's decorative font.
 
 ## 6. Story screens (0x432960)

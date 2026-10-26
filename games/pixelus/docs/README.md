@@ -78,6 +78,9 @@ puzzles (throw and pull of the tiles, aim marks, undo, reset, hint, pause, saved
 the hints), the credits and the how-to-play screen work, and the main menu is reachable from a puzzle's options.
 
 Not done or approximate:
+- The shimmer that crosses a puzzle's tiles every few thousand updates while it is played is not ported (the one at the
+  end of a puzzle is), and the picture swept in at the end shows the wanted cells only. A tile's own picture-change counter
+  (+0x20 of the tile) is counted down but nothing sets it, so it never fires, as in the original.
 - The island's decorations are simplified, the god figure of a temple has no speech bubbles or moving mouth, the story
   portraits are the heads of the gods without expressions of their own, and the particle effects and blinking eyes of the
   tablet are not ported. The medal's place on the tablet is the port's own.

@@ -52,7 +52,7 @@ void LevelData::Load()
 					{
 						Puzzle aNew;
 						aNew.mFile = aPuzzle;
-						aNew.mUuid = std::string(aHead + 6, 36);
+						aNew.mUuid = UuidKey(std::string(aHead + 6, 36));
 						mLevels[aLevel].mName = aLevel;
 						mLevels[aLevel].mPuzzles.push_back(aNew);
 						mFileByUuid[aNew.mUuid] = aPuzzle;
@@ -106,7 +106,7 @@ void LevelData::Load()
 		{
 			Puzzle aNew;
 			aNew.mFile = aPuzzle;
-			aNew.mUuid = std::string(aHead + 6, 36);
+			aNew.mUuid = UuidKey(std::string(aHead + 6, 36));
 			mLevels[aLevel].mName = aLevel;
 			mLevels[aLevel].mPuzzles.push_back(aNew);
 			mFileByUuid[aNew.mUuid] = aPuzzle;
@@ -115,6 +115,15 @@ void LevelData::Load()
 			p_fclose(aPuzzleFile);
 	}
 	p_fclose(aFile);
+}
+
+std::string Sexy::UuidKey(const std::string& theUuid)
+{
+	std::string aKey = theUuid;
+	for (size_t i = 0; i < aKey.size(); i++)
+		if (aKey[i] >= 'A' && aKey[i] <= 'Z')
+			aKey[i] = (char) (aKey[i] - 'A' + 'a');
+	return aKey;
 }
 
 const LevelData::Level* LevelData::GetLevel(const std::string& theName) const
@@ -141,12 +150,13 @@ const LevelData::Puzzle* LevelData::GetCurrentPuzzle() const
 
 const LevelData::Puzzle* LevelData::FindPuzzle(const std::string& theUuid) const
 {
-	std::map<std::string, std::string>::const_iterator anItr = mFileByUuid.find(theUuid);
+	std::string aKey = UuidKey(theUuid);
+	std::map<std::string, std::string>::const_iterator anItr = mFileByUuid.find(aKey);
 	if (anItr == mFileByUuid.end())
 		return NULL;
 	for (std::map<std::string, Level>::const_iterator aLevel = mLevels.begin(); aLevel != mLevels.end(); ++aLevel)
 		for (size_t i = 0; i < aLevel->second.mPuzzles.size(); i++)
-			if (aLevel->second.mPuzzles[i].mUuid == theUuid)
+			if (aLevel->second.mPuzzles[i].mUuid == aKey)
 				return &aLevel->second.mPuzzles[i];
 	return NULL;
 }

@@ -46,7 +46,7 @@ public:
 	{
 		GRID_X = 246,		// the grid's top left corner on the screen (0xf6, 0x4e)
 		GRID_Y = 78,
-		DONE_DELAY = 60,	// updates between the last tile and the puzzle-completed screen (0x3c)
+		DONE_DELAY = 60,	// updates between the end of the finish (the picture is in) and the puzzle-completed screen (0x3c)
 		SIDEBAR_WIDTH = 170
 	};
 
@@ -56,7 +56,7 @@ public:
 		int		mSide;
 		int		mCursor;
 		int		mPosition;		// the line of the tile that was pulled (type 1)
-		int		mType;			// 0 a thrown tile that stayed, 1 a pulled tile, 2 a thrown tile that left or bounced back
+		int		mType;			// 0 a thrown tile that stayed, 1 a pulled tile, 2 a throw that bounced back, 3 a tile that flew out
 	};
 
 	PixelusApp*		mApp;				// +0xd4
@@ -79,8 +79,9 @@ public:
 	int				mAlpha;				// +0xb184 how much of the grid shows (the intro fades it in)
 	int				mIntro;				// updates since the puzzle appeared
 	double			mPauseFade;			// +0x170 how far the pause screen has come in
-	int				mDoneTimer;			// updates since the last tile went down
+	int				mDoneTimer;			// +0xe0 the countdown to the puzzle-completed screen, DONE_DELAY once it has started
 	bool			mCompleted;			// the puzzle-completed screen has been asked for
+	bool			mFinishSounded;		// the sting of a finished puzzle has played and the music fades
 	int				mIdleTicks;			// +0x4c with no click (the original nags after 4500)
 	int				mMusicDelay;		// +0x78 -1 until the puzzle has been on for a moment, then counts down to the in-game music
 	int				mErrorTicks;		// +0x1cc

@@ -104,7 +104,7 @@ void Shot(PixelusApp* theApp, AutoplayState* s, int theKind, const char* theName
 	theApp->AutoplayShot(theApp->mAutoplayShots + "-" + theName + ".png");
 }
 
-enum { SHOT_MENU, SHOT_ISLAND, SHOT_TEMPLE, SHOT_BOARD, SHOT_BOARD_END, SHOT_COMPLETED, SHOT_COMPLETED_2 };
+enum { SHOT_MENU, SHOT_ISLAND, SHOT_TEMPLE, SHOT_BOARD, SHOT_BOARD_END, SHOT_COMPLETED, SHOT_COMPLETED_2, SHOT_SWEEP };
 
 // the first temple that is open and has a puzzle without a result; -1 when there is none
 int FindTemple(PixelusApp* theApp, UserProfile* theUser)
@@ -263,7 +263,13 @@ void PixelusApp::AutoplayUpdate()
 			return;
 		}
 		if (b->mGrid->mDone)
+		{
+			// three quarters through the sweep that shows the finished picture over the board
+			const Grid* g = b->mGrid;
+			if (!g->mTileMoving && g->mReveal > 0 && g->mReveal <= g->mRows * g->mCols / 4)
+				Shot(this, s, SHOT_SWEEP, "sweep");
 			return;
+		}
 		if (s->mMoveIndex >= (int) s->mSolution.size())
 		{
 			// out of moves and not done: the log says so and the run stops

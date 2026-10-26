@@ -46,7 +46,7 @@ void ProgressManager::ParseBest(const std::string& theText)
 			continue;
 		}
 		if (aIndex == 0)
-			aUuid = aField;
+			aUuid = UuidKey(aField);
 		else if (aIndex == 1)
 			aMoves = atoi(aField.c_str());
 		else if (aIndex == 2)
@@ -110,7 +110,7 @@ int ProgressManager::GetBestMoves(const std::string& theUuid) const
 
 const ProgressManager::Best* ProgressManager::FindBest(const std::string& theUuid) const
 {
-	std::map<std::string, Best>::const_iterator anItr = mBest.find(theUuid);
+	std::map<std::string, Best>::const_iterator anItr = mBest.find(UuidKey(theUuid));
 	return anItr == mBest.end() ? NULL : &anItr->second;
 }
 
@@ -118,10 +118,11 @@ const ProgressManager::Best* ProgressManager::FindBest(const std::string& theUui
 void ProgressManager::UpdateBest(const std::string& theUuid, int theMoves, const std::string& theSolution, bool* theMatched)
 {
 	*theMatched = false;
-	std::map<std::string, Best>::iterator anItr = mBest.find(theUuid);
+	const std::string aKey = UuidKey(theUuid);
+	std::map<std::string, Best>::iterator anItr = mBest.find(aKey);
 	if (anItr == mBest.end())
 	{
-		Best& aBest = mBest[theUuid];
+		Best& aBest = mBest[aKey];
 		aBest.mMoves = theMoves;
 		aBest.mSolution = theSolution;
 		aBest.mImproved = true;
@@ -157,7 +158,9 @@ void ProgressManager::LoadHistory(int theUserId)
 	std::string aFields[5];
 	std::string aField;
 	int aIndex = 0;
-	for (size_t i = 0; i < aText.size(); i++)
+	// the original reads a byte and then asks whether the buffer is at its end, so the last byte of the file is never
+	// looked at (the writer ends every line with a line break, so it is not a '#' there)
+	for (size_t i = 0; i + 1 < aText.size(); i++)
 	{
 		char c = aText[i];
 		if (c == '\r' || c == '\n')
@@ -172,7 +175,7 @@ void ProgressManager::LoadHistory(int theUserId)
 		if (aIndex == 5)
 		{
 			aIndex = 0;
-			History& aHistory = mHistory[aFields[0]];
+			History& aHistory = mHistory[UuidKey(aFields[0])];
 			aHistory.mMoves = aFields[1];
 			aHistory.mTiles = aFields[2];
 			aHistory.mUndo = aFields[3];
@@ -196,7 +199,7 @@ void ProgressManager::SaveHistory(int theUserId)
 const ProgressManager::History* ProgressManager::GetHistory(int theUserId, const std::string& theUuid)
 {
 	LoadHistory(theUserId);
-	std::map<std::string, History>::const_iterator anItr = mHistory.find(theUuid);
+	std::map<std::string, History>::const_iterator anItr = mHistory.find(UuidKey(theUuid));
 	return anItr == mHistory.end() ? NULL : &anItr->second;
 }
 
@@ -204,7 +207,7 @@ const ProgressManager::History* ProgressManager::GetHistory(int theUserId, const
 void ProgressManager::SetHistory(int theUserId, const std::string& theUuid, const History& theHistory)
 {
 	LoadHistory(theUserId);
-	mHistory[theUuid] = theHistory;
+	mHistory[UuidKey(theUuid)] = theHistory;
 	SaveHistory(theUserId);
 }
 
@@ -212,6 +215,6 @@ void ProgressManager::SetHistory(int theUserId, const std::string& theUuid, cons
 void ProgressManager::RemoveHistory(int theUserId, const std::string& theUuid)
 {
 	LoadHistory(theUserId);
-	mHistory.erase(theUuid);
+	mHistory.erase(UuidKey(theUuid));
 	SaveHistory(theUserId);
 }

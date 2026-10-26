@@ -45,6 +45,12 @@ void Grid::Clear()
 	mDone = false;
 	mMoveCount = 0;
 	mTime = 0;
+	mTileMoving = false;
+	mGlow = 0.0;
+	mReveal = 0;
+	mGlowDone = false;
+	mWaveOn = false;
+	mWave = 0.0;
 	mCanPlace = false;
 	mSlidesOut = false;
 	mLandCol = mLandRow = 0;
@@ -117,8 +123,59 @@ GridObject* Grid::NewObject(int theRow, int theCol)
 	anObject->mIdle = 100;
 	anObject->mTrail = 0;
 	anObject->mFlash = 0;
+	anObject->mNudge = false;
+	anObject->mNudgeOut = false;
+	anObject->mNudgeDir = 0;
+	anObject->mNudgeAmount = 0;
+	anObject->mNudgeMax = 0;
+	anObject->mNudgeStep = 0;
+	anObject->mNudgeDelay = 0;
 	mObjects.push_back(anObject);
 	return anObject;
+}
+
+// 0x423d30: up to four tiles in a line from the cell a tile has landed in, along the way it flew, are pushed: the
+// nearest by the most and the soonest (0x42ec40 starts the push of one); an empty cell ends the line
+void Grid::Nudge(int theRow, int theCol, int theDir)
+{
+	int aRow = theRow, aCol = theCol, aCount = 0;
+	for (;;)
+	{
+		bool anEdge;
+		switch (theDir)
+		{
+		case SIDE_UP:		anEdge = aRow <= 0; break;
+		case SIDE_RIGHT:	anEdge = aCol >= mCols - 1; break;
+		case SIDE_DOWN:		anEdge = aRow >= mRows - 1; break;
+		default:			anEdge = aCol <= 0; break;
+		}
+		if (anEdge)
+			break;
+		Step(&aCol, &aRow, theDir, 1);
+		if (aCount >= 4)
+			break;
+		aCount++;
+	}
+
+	int aAmount = aCount * 2 - 2, aDelay = 2;
+	aRow = theRow;
+	aCol = theCol;
+	for (int i = 0; i < aCount; i++)
+	{
+		Step(&aCol, &aRow, theDir, 1);
+		GridObject* anObject = mCells[aRow][aCol].mObject;
+		if (anObject == NULL)
+			return;
+		anObject->mNudgeDir = theDir;
+		anObject->mNudgeMax = aAmount;
+		anObject->mNudge = true;
+		anObject->mNudgeOut = true;
+		anObject->mNudgeAmount = 0;
+		anObject->mNudgeDelay = aDelay;
+		anObject->mNudgeStep = 1;
+		aDelay += 2;
+		aAmount -= 2;
+	}
 }
 
 // 0x424590 (the original also clears the editor's throw length +0xb0a4)
@@ -181,10 +238,55 @@ void Grid::Recount()
 		}
 }
 
-// 0x422590: every wanted cell holds a tile
+// 0x422590: every wanted cell holds a tile (the Board plays the sting and fades the music)
 void Grid::Complete()
 {
+	mGlow = 1.0;
 	mDone = true;
+	mReveal = mCols * mRows;
+	if (!mWaveOn)
+	{
+		mWaveOn = true;
+		mWave = -25.0;
+	}
+}
+
+// 0x424b30, the part after the tiles' update: once the puzzle is done and no tile is in flight the delay runs down,
+// then the picture is swept in, 3 cells an update; the shimmer goes on its own way
+void Grid::UpdateFinish()
+{
+	if (mDone && !mTileMoving)
+	{
+		if (mGlow <= -1.5)
+		{
+			if (mReveal < 1)
+				mGlowDone = true;
+			else
+			{
+				mReveal -= 3;
+				if (mReveal < 0)
+					mReveal = 0;
+			}
+		}
+		else
+		{
+			mGlow -= 0.03;
+			if (mGlow <= -1.5)
+				mGlow = -1.5;
+		}
+	}
+	if (mWaveOn)
+	{
+		mWave += 0.6;
+		if (mWave > 60.0)
+			mWaveOn = false;
+	}
+}
+
+// 0x421e10: done, nothing in flight and, when the puzzle has a picture, the sweep over
+bool Grid::IsFinished() const
+{
+	return mDone && !mTileMoving && (!mHasPicture || mGlowDone);
 }
 
 // 0x421fb0: the tile would hit a bouncy block
@@ -237,6 +339,7 @@ bool Grid::PlaceTile(bool theRecord)
 		aMove.mCursor = mCursor;
 		aMove.mPosition = -1;
 		aMove.mRemove = false;
+		aMove.mKind = aBounces ? 2 : aSlidesOut ? 3 : 0;
 		mHistory.push_back(aMove);
 	}
 
@@ -274,6 +377,7 @@ bool Grid::PullTile(bool theRecord, bool theForce)
 		aMove.mCursor = mCursor;
 		aMove.mPosition = (mSide == SIDE_UP || mSide == SIDE_DOWN) ? mStuckRow : mStuckCol;
 		aMove.mRemove = true;
+		aMove.mKind = 1;
 		mHistory.push_back(aMove);
 		mMoveCount++;
 	}
@@ -281,15 +385,18 @@ bool Grid::PullTile(bool theRecord, bool theForce)
 	return true;
 }
 
-// 0x425b40: "AU10-1" is {side U, 10, -1} of kind A (a thrown tile); "RD1003" a pulled one. B and F are the editor's.
+// 0x425b40: "AU10-1" is {side U, 10, -1} of kind A (a thrown tile); "RD1003" a pulled one. In play a throw that a bouncy
+// block sent back is recorded as B and a tile that flew out of the grid as F (0x424750); they replay as throws.
 bool Grid::ParseMove(const std::string& theString, Move* theMove)
 {
 	if (theString.size() < 6)
 		return false;
 	switch (theString[0])
 	{
-	case 'A': theMove->mRemove = false; break;
-	case 'R': theMove->mRemove = true; break;
+	case 'A': theMove->mRemove = false; theMove->mKind = 0; break;
+	case 'R': theMove->mRemove = true; theMove->mKind = 1; break;
+	case 'B': theMove->mRemove = false; theMove->mKind = 2; break;
+	case 'F': theMove->mRemove = false; theMove->mKind = 3; break;
 	default: return false;
 	}
 	switch (theString[1])
@@ -309,7 +416,7 @@ bool Grid::ParseMove(const std::string& theString, Move* theMove)
 std::string Grid::MoveToString(const Move& theMove)
 {
 	char aBuf[16];
-	sprintf(aBuf, "%c%c%02d%02d", theMove.mRemove ? 'R' : 'A', "URDL"[theMove.mSide & 3], theMove.mCursor, theMove.mPosition);
+	sprintf(aBuf, "%c%c%02d%02d", "ARBF"[theMove.mKind & 3], "URDL"[theMove.mSide & 3], theMove.mCursor, theMove.mPosition);
 	return aBuf;
 }
 

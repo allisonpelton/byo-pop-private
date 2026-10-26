@@ -13,6 +13,7 @@
 #include "WidgetManager.h"
 #include "Buffer.h"
 #include "GameDialog.h"
+#include "PuzzleImages.h"
 #include "Compat2004.h"
 #include <math.h>
 #include <stdio.h>
@@ -56,6 +57,7 @@ Board::Board(PixelusApp* theApp, const std::string& theLevelName, int thePuzzleI
 	mPauseFade = 0.0;
 	mDoneTimer = 0;
 	mCompleted = false;
+	mFinishSounded = false;
 	mIdleTicks = 0;
 	mMusicDelay = -1;
 	mErrorTicks = 0;
@@ -65,6 +67,7 @@ Board::Board(PixelusApp* theApp, const std::string& theLevelName, int thePuzzleI
 	mHintTicks = 0;
 	mHintMove.mSide = mHintMove.mCursor = mHintMove.mPosition = 0;
 	mHintMove.mRemove = false;
+	mHintMove.mKind = 0;
 
 	UserProfile* aUser = mApp->mUserDirectory->GetCurrent();
 	mExpert = aUser != NULL && aUser->mFlag38;
@@ -150,6 +153,8 @@ bool Board::LoadPuzzle()
 	std::string aText((const char*) aBuffer.GetDataPtr(), aBuffer.GetDataLen());
 	if (!mGrid->LoadFromText(aText))
 		return false;
+	// the picture of the finished puzzle (0x426910 reads it with the puzzle): the sweep at the end shows it
+	LoadPuzzlePicture(mApp, mGrid);
 
 	mUuid = aPuzzle.mUuid;
 	mApp->mLevelData->mCurrentLevel = mLevelName;
@@ -164,6 +169,7 @@ bool Board::LoadPuzzle()
 	mTileMaster->SetTarget(Grid::SIDE_UP, mGrid->mCols / 2, true);
 	mUndo.clear();
 	mCompleted = false;
+	mFinishSounded = false;
 	mDoneTimer = 0;
 	return true;
 }
@@ -179,6 +185,7 @@ void Board::Restore()
 		return;
 
 	std::string aMoves = aHistory->mMoves;
+	size_t aFirstNew = mGrid->mObjects.size();
 	for (size_t i = 0; i + 6 <= aMoves.size(); i += 6)
 	{
 		Grid::Move aMove;
@@ -200,14 +207,17 @@ void Board::Restore()
 				break;
 			if (aLeaves || aBounces)
 				mGrid->mSupply++;
-			RecordUndo(aMove.mSide, aMove.mCursor, -1, (aLeaves || aBounces) ? 2 : 0);
+			RecordUndo(aMove.mSide, aMove.mCursor, -1, aBounces ? 2 : aLeaves ? 3 : 0);
 		}
 	}
 
-	// every tile rests where it is
+	// every tile rests where it is; each one the replay made has a picture of its own (the tile's constructor, 0x42eee0,
+	// draws it)
 	for (size_t i = 0; i < mGrid->mObjects.size(); i++)
 	{
 		GridObject* anObject = mGrid->mObjects[i];
+		if (i >= aFirstNew)
+			anObject->mVariant = CrtRand() % 5;
 		anObject->mX = anObject->mCol * Grid::CELL_SIZE;
 		anObject->mY = anObject->mRow * Grid::CELL_SIZE;
 		anObject->mState = 0;
@@ -310,11 +320,16 @@ void Board::Undo()
 	case 0:
 	{
 		GridObject* anObject = mGrid->mCells[mGrid->mStuckRow][mGrid->mStuckCol].mObject;
-		if (mGrid->PullTile(false, true) && anObject != NULL)
+		if (mGrid->PullTile(false, true))
 		{
-			anObject->mState = 1;
-			anObject->mDir = ReverseSide(aMove.mSide);
-			anObject->mTrailLen = 0;
+			// 0x424990 plays the sound of a pull in the undo as well
+			mApp->PlaySample(SOUND_TILE_MOVING_02D);
+			if (anObject != NULL)
+			{
+				anObject->mState = 1;
+				anObject->mDir = ReverseSide(aMove.mSide);
+				anObject->mTrailLen = 0;
+			}
 		}
 		break;
 	}
@@ -334,13 +349,40 @@ void Board::Undo()
 		}
 		break;
 	}
+	case 2:
+	{
+		// a throw that was bounced back is thrown again, and bounces the same way (0x424750 without the record)
+		int aStartCol = mGrid->mStartCol, aStartRow = mGrid->mStartRow;
+		bool aBounces = !(!mGrid->mCanPlace && mGrid->mSlidesOut) && mGrid->IsBouncyAhead();
+		if (mGrid->PlaceTile(false))
+		{
+			GridObject* anObject = mGrid->mObjects.back();
+			anObject->mVariant = CrtRand() % 5;
+			LaunchTile(anObject, aStartCol, aStartRow, aMove.mSide, aBounces);
+			mApp->PlaySample(SOUND_TILE_MOVING_02D);
+		}
+		break;
+	}
+	case 3:
+	{
+		// a tile that flew out of the grid flies back in from the cell it left by and out the way it came (0x424690)
+		if (mGrid->mSupply > 0)
+		{
+			int aCol = mGrid->mStartCol, aRow = mGrid->mStartRow;
+			mGrid->Step(&aCol, &aRow, ReverseSide(aMove.mSide), 1);
+			GridObject* anObject = mGrid->NewObject(aRow, aCol);
+			anObject->mVariant = CrtRand() % 5;
+			LaunchTile(anObject, mGrid->mLandCol, mGrid->mLandRow, ReverseSide(aMove.mSide), false);
+			mGrid->mSupply--;
+		}
+		break;
+	}
 	default:
 		break;
 	}
 
 	mGrid->mHistory.pop_back();
 	mGrid->mMoveCount--;
-	mTileMaster->Pull();
 	SaveProgress();
 	mErrorTicks = 0;
 }
@@ -391,7 +433,7 @@ void Board::DoThrow()
 	GridObject* anObject = mGrid->mObjects.back();
 	anObject->mVariant = CrtRand() % 5;
 	LaunchTile(anObject, aStartCol, aStartRow, aSide, aBounces);
-	RecordUndo(aSide, aCursor, -1, (aLeaves || aBounces) ? 2 : 0);
+	RecordUndo(aSide, aCursor, -1, aBounces ? 2 : aLeaves ? 3 : 0);
 	mTileMaster->Throw();
 	mApp->PlaySample(SOUND_TILE_MOVING_02D);
 	mIdleTicks = 0;
@@ -421,14 +463,18 @@ void Board::DoPull()
 	SaveProgress();
 }
 
-// 0x423e50: a tile has come to rest
+// 0x423e50: a tile has come to rest: the sound of the cell (a sticky spot has its own, a wanted cell the same one, any other
+// cell the dull one) and the tiles in line behind it are pushed
 void Board::TileArrived(GridObject* theObject)
 {
 	const Grid::Cell& aCell = mGrid->mCells[theObject->mRow][theObject->mCol];
 	bool aWanted = aCell.mWanted || aCell.mStart;
-	mApp->PlaySample(aWanted ? SOUND_TILE_TARGET_02C : SOUND_TILE_NON_TARGET_02B);
+	if (aCell.mStart)
+		mApp->PlaySample(SOUND_TILE_TARGET_02C);
+	mApp->PlaySample(aCell.mWanted ? SOUND_TILE_TARGET_02C : SOUND_TILE_NON_TARGET_02B);
 	mFlash[theObject->mRow][theObject->mCol] = 40;
 	mFlashWanted[theObject->mRow][theObject->mCol] = aWanted;
+	mGrid->Nudge(theObject->mRow, theObject->mCol, theObject->mDir);
 }
 
 // 0x42f740 for every tile: the flight, the return and the fading of the trail
@@ -498,18 +544,56 @@ void Board::UpdateTiles()
 				}
 				else
 				{
-					// thrown back by a bouncy block (0x4251a0)
+					// thrown back by a bouncy block (0x4251a0): the tiles behind the cell it stopped in are pushed
+					mGrid->Nudge(anObject->mRow, anObject->mCol, anObject->mDir);
 					anObject->mDir = ReverseSide(anObject->mDir);
 					anObject->mState = 1;
 					anObject->mTrailLen = 0;
 					anObject->mBounce = false;
 					mGrid->mSupply++;
 					mGrid->ComputeLanding();
-					mApp->PlaySample(SOUND_TILE_NON_TARGET_02B);
 				}
 			}
 		}
+
+		// the picture changes at random when its counter runs out (nothing sets the counter)
+		if (anObject->mFlash > 0 && --anObject->mFlash == 0)
+		{
+			int aVariant;
+			do
+				aVariant = CrtRand() % 5;
+			while (aVariant == anObject->mVariant);
+			anObject->mVariant = aVariant;
+		}
+
+		// the push of a tile that has had another land in front of it: out, a wait, back
+		if (anObject->mNudge)
+		{
+			if (!anObject->mNudgeOut)
+			{
+				if (anObject->mNudgeDelay > 0)
+					anObject->mNudgeDelay--;
+				else if (--anObject->mNudgeStep < 1)
+				{
+					anObject->mNudgeStep = 1;
+					if (--anObject->mNudgeAmount < 1)
+						anObject->mNudge = false;
+				}
+			}
+			else if (--anObject->mNudgeStep < 1)
+			{
+				anObject->mNudgeStep = 1;
+				if (++anObject->mNudgeAmount >= anObject->mNudgeMax)
+					anObject->mNudgeOut = false;
+			}
+		}
 	}
+
+	// 0x424b30 asks every tile after its update whether it is still moving (0x42ee70)
+	mGrid->mTileMoving = false;
+	for (size_t i = 0; i < mGrid->mObjects.size(); i++)
+		if (!mGrid->mObjects[i]->mDead && mGrid->mObjects[i]->mState != 0)
+			mGrid->mTileMoving = true;
 }
 
 // 0x42ecf0: the colour of a tile: a block (0), a tile on a cell nobody wants (1), on a wanted cell (2), on a sticky spot (3)
@@ -542,17 +626,27 @@ void Board::Update()
 	if (mAlpha < 255)
 		mAlpha = std::min(255, mAlpha + 255 / 30 + 1);
 
-	// the pause screen comes in and goes out
+	// the pause screen comes in by 0.05 an update and goes out by 0.075
 	if (mApp->IsPaused())
-		mPauseFade = std::min(1.0, mPauseFade + 0.08);
+		mPauseFade = std::min(1.0, mPauseFade + 0.05);
 	else
-		mPauseFade = std::max(0.0, mPauseFade - 0.08);
+		mPauseFade = std::max(0.0, mPauseFade - 0.075);
 	if (mApp->IsPaused())
 		return;
 
-	if (!mGrid->mDone)
+	// 0x422590, when the last tile has been thrown: the sting, and the music fades out
+	if (mGrid->mDone && !mFinishSounded)
+	{
+		mFinishSounded = true;
+		mApp->PlaySample(SOUND_PIXELUS_PUZZLE_COMPLETED_STING_V01);
+		FadeOutAllMusic(mApp);
+	}
+
+	// the clock runs until the puzzle is done and the last tile has come to rest
+	if (!mGrid->mDone || mGrid->mTileMoving)
 		mGrid->mTime += 10;
 	UpdateTiles();
+	mGrid->UpdateFinish();
 	mTileMaster->Update();
 	for (int r = 0; r < Grid::MAX_SIZE; r++)
 		for (int c = 0; c < Grid::MAX_SIZE; c++)
@@ -570,11 +664,16 @@ void Board::Update()
 	if (mMusicDelay > 0 && --mMusicDelay == 0 && !mGrid->mDone)
 		StartMusic(mApp, MUSIC_CACHED_PIXELUS_IN_GAME, true);
 
-	// the last tile went down: the picture shines for a while, then the puzzle-completed screen comes
-	if (mGrid->mDone)
+	// the last tile is down, the delay is over and the picture has been swept in: 60 updates later (the Tile Master
+	// throws once at the start) the puzzle-completed screen comes (0x421e10)
+	if (!mCompleted && mGrid->IsFinished())
 	{
-		mDoneTimer++;
-		if (mDoneTimer >= DONE_DELAY && !mCompleted)
+		if (mDoneTimer == 0)
+		{
+			mTileMaster->Throw();
+			mDoneTimer = DONE_DELAY;
+		}
+		if (--mDoneTimer < 1)
 		{
 			mCompleted = true;
 			Complete();
@@ -768,6 +867,8 @@ void Board::DrawTile(Graphics* g, GridObject* theObject)
 	int aKind = TileKind(theObject);
 	int aX = GRID_X + theObject->mX - 1;
 	int aY = GRID_Y + theObject->mY - 1;
+	if (theObject->mNudge)
+		mGrid->Step(&aX, &aY, theObject->mNudgeDir, theObject->mNudgeAmount);
 	int aAlpha = mAlpha;
 	Image* aImage = mApp->mImages[IMAGE_TILEDARKBLUE01 + aKind * 5 + theObject->mVariant];
 
@@ -788,11 +889,10 @@ void Board::DrawTile(Graphics* g, GridObject* theObject)
 		g->SetDrawMode(Graphics::DRAWMODE_NORMAL);
 	}
 
-	// the finished picture: the glow goes across the tiles from a corner (0x4224a0 and the double at +0x10)
-	if (mGrid->mDone)
+	// the shimmer goes across the tiles from a corner, 0.6 diagonals an update (the double at +0x10)
+	if (mGrid->mWaveOn)
 	{
-		double aWave = -25.0 + mDoneTimer * 1.0;
-		double aDistance = (theObject->mRow + theObject->mCol) - aWave;
+		double aDistance = (theObject->mRow + theObject->mCol) - mGrid->mWave;
 		double aStrength = exp(-0.015 * aDistance * aDistance);
 		if (aStrength > 0.0)
 		{
@@ -951,6 +1051,11 @@ void Board::DrawGrid(Graphics* g)
 	g->SetColor(Color(255, 255, 255, mAlpha));
 	Image* aWanted = mApp->mImages[IMAGE_TILEBACK_WANTTILE_20X20];
 
+	// when the puzzle is done and still, the picture is swept in over the board, row by row (0x422ab0): the cells before
+	// aRevealed show the picture's colour in place of the tile
+	bool aSweep = mGrid->mDone && !mGrid->mTileMoving && mGrid->mHasPicture;
+	int aRevealed = aSweep ? mGrid->mRows * mGrid->mCols - mGrid->mReveal : 0;
+
 	for (int r = 0; r < mGrid->mRows; r++)
 		for (int c = 0; c < mGrid->mCols; c++)
 		{
@@ -960,6 +1065,15 @@ void Board::DrawGrid(Graphics* g)
 				g->DrawImage(aWanted, aX - 1, aY - 1);
 			if (aCell.mStart)
 				g->DrawImage(mApp->mImages[IMAGE_STICKYSPOT_20X20], aX, aY);
+			if (aSweep && aCell.mWanted && r * mGrid->mCols + c < aRevealed)
+			{
+				unsigned int aColor = mGrid->mPicture[r][c];
+				g->SetColorizeImages(true);
+				g->SetColor(Color((aColor >> 16) & 0xff, (aColor >> 8) & 0xff, aColor & 0xff, mAlpha));
+				g->DrawImage(mApp->mImages[IMAGE_GRAYTILE_20X20], aX, aY);
+				g->SetColorizeImages(mAlpha < 255);
+				g->SetColor(Color(255, 255, 255, mAlpha));
+			}
 		}
 
 	// the trails lie under every tile
@@ -972,6 +1086,8 @@ void Board::DrawGrid(Graphics* g)
 		{
 			GridObject* anObject = mGrid->mObjects[i];
 			if (anObject->mDead || (anObject->mState == 0) != (aPass == 0))
+				continue;
+			if (aSweep && anObject->mRow * mGrid->mCols + anObject->mCol <= aRevealed)
 				continue;
 			DrawTile(g, anObject);
 		}

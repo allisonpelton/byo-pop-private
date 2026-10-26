@@ -71,21 +71,22 @@ int UserProfile::CountSolved() const
 
 const PuzzleRecord* UserProfile::GetRecord(const std::string& theUuid) const
 {
-	std::map<std::string, PuzzleRecord>::const_iterator anItr = mRecords.find(theUuid);
+	std::map<std::string, PuzzleRecord>::const_iterator anItr = mRecords.find(UuidKey(theUuid));
 	return anItr == mRecords.end() ? NULL : &anItr->second;
 }
 
 // 0x437f10 (the first result) and 0x438f30: later results only improve the record
 void UserProfile::SetRecord(const std::string& theUuid, int theSolved, int theMoves, int theMoves2)
 {
-	std::map<std::string, PuzzleRecord>::iterator anItr = mRecords.find(theUuid);
+	const std::string aKey = UuidKey(theUuid);
+	std::map<std::string, PuzzleRecord>::iterator anItr = mRecords.find(aKey);
 	if (anItr == mRecords.end())
 	{
 		PuzzleRecord aRecord;
 		aRecord.mSolved = theSolved;
 		aRecord.mMoves2 = theMoves2;
 		aRecord.mMoves = theMoves;
-		mRecords[theUuid] = aRecord;
+		mRecords[aKey] = aRecord;
 		return;
 	}
 	PuzzleRecord& aRecord = anItr->second;
@@ -158,7 +159,7 @@ bool UserProfile::Read(const Buffer* theBuffer)
 		aRecord.mSolved = theBuffer->ReadLong();
 		aRecord.mMoves2 = theBuffer->ReadLong();
 		aRecord.mMoves = theBuffer->ReadLong();
-		mRecords[aUuid] = aRecord;
+		mRecords[UuidKey(aUuid)] = aRecord;
 	}
 	return true;
 }

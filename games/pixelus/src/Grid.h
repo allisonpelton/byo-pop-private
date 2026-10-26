@@ -39,7 +39,18 @@ struct GridObject
 	int		mState;			// +0x44 0 at rest, 1 returning, 2 flying to its cell
 	int		mIdle;			// +0x48 ticks at rest; the shine plays below 100
 	int		mTrail;			// +0x4c the trail's opacity, 0-200
-	int		mFlash;			// +0x20 ticks until the picture changes at random (the tiles of the first puzzle)
+	int		mFlash;			// +0x20 ticks until the picture changes at random (0x42f740 counts it down; the constructor
+							// leaves it alone and nothing sets it, so it stays 0)
+
+	// the push a tile gets when another lands in front of it (0x42ec40, 0x42f740): out along the direction by a pixel an
+	// update up to mNudgeMax, a wait of mNudgeDelay updates, and back
+	bool	mNudge;			// +0x25
+	bool	mNudgeOut;		// +0x26 still going out
+	int		mNudgeDir;		// +0x28
+	int		mNudgeAmount;	// +0x2c pixels it is pushed now
+	int		mNudgeMax;		// +0x30
+	int		mNudgeStep;		// +0x34
+	int		mNudgeDelay;	// +0x38
 };
 
 class Grid
@@ -59,13 +70,16 @@ public:
 	};
 
 	// one entry of the move history (+0xb114): {side, cursor, -1} for a thrown tile, {side, cursor, row or column of
-	// the pulled tile} for a pulled one; the strings are "A" or "R", the side letter and two two-digit numbers
+	// the pulled tile} for a pulled one; the strings are the kind's letter (A, R, B or F), the side letter and two
+	// two-digit numbers
 	struct Move
 	{
 		int		mSide;
 		int		mCursor;
 		int		mPosition;
-		bool	mRemove;
+		bool	mRemove;		// a pull (kind 1)
+		int		mKind;			// +0xc the letter: 0 A a throw that stayed, 1 R a pull, 2 B a throw that bounced back, 3 F a
+								// tile that flew out of the grid
 	};
 
 public:
@@ -79,7 +93,16 @@ public:
 	int			mSide;				// +0xb058
 	bool		mDone;				// +0xb05c
 	int			mMoveCount;			// +0xb060
-	int			mTime;				// +0xb064 milliseconds spent on the puzzle (10 per update until it is done)
+	int			mTime;				// +0xb064 milliseconds spent on the puzzle (10 per update until it is done and still)
+
+	// the finish (0x422590, 0x424b30, 0x421e10): a delay of 84 updates, a sweep of the picture over the board and a
+	// shimmer across the tiles; the puzzle-completed countdown waits for them
+	bool		mTileMoving;		// +0xb0a8 a tile was in flight at the last update
+	double		mGlow;				// +0xb108 the delay: 1.0 at the last throw, down by 0.03 an update to -1.5
+	int			mReveal;			// +0xb100 cells still to show as the picture: rows * cols, down by 3 an update
+	bool		mGlowDone;			// +0xb110 the sweep is over
+	bool		mWaveOn;			// +0xf the shimmer runs
+	double		mWave;				// +0x10 where the shimmer is, in diagonals: -25 up to 60 by 0.6 an update
 
 	bool		mCanPlace;			// +0xb069 a thrown tile would stay
 	bool		mSlidesOut;			// +0xb068 a thrown tile would leave the grid
@@ -128,6 +151,10 @@ public:
 	GridObject*		NewObject(int theRow, int theCol);			// 0x424390
 	GridObject*		PutTile(int theRow, int theCol);			// 0x4245c0: a tile on a free cell (taking back a pull)
 	bool			IsBouncyAhead() const;						// the cell behind the landing cell is a bouncy block
+
+	void			Nudge(int theRow, int theCol, int theDir);	// 0x423d30: push the tiles in line behind a tile that landed
+	void			UpdateFinish();								// 0x424b30 after the tiles: the delay, the sweep and the shimmer
+	bool			IsFinished() const;							// 0x421e10: the countdown to the puzzle-completed screen may run
 
 	bool			PlaceTile(bool theRecord);					// 0x424750: throw a tile
 	bool			PullTile(bool theRecord, bool theForce);	// 0x424990: pull the tile in the way back
