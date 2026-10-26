@@ -14,6 +14,12 @@ static const int kHDScales[] = {4, 3, 2};
 
 static std::map<std::string, int> gScaleOverrides;  // key: modId + '|' + normalized lower path
 static std::map<std::string, int> gModDefaultScales;
+static ImageGenerator gImageGenerator;
+
+void SetImageGenerator(ImageGenerator theGenerator)
+{
+	gImageGenerator = theGenerator;
+}
 
 static std::string LowerStr(std::string s)
 {
@@ -247,6 +253,21 @@ static bool LoadGameImageLayers(const std::string& theGamePath, LoadedImage& the
 	for (size_t li = 0; li < layers.size(); li++)
 	{
 		const Layer& layer = layers[li];
+
+		// A generated image stands between the mods and the game's files
+		if ((li + 1 == layers.size()) && gImageGenerator)
+		{
+			LoadedImage generated;
+			if (gImageGenerator(LowerStr(dir.empty() ? stem : dir + "/" + stem), generated) && !generated.mBits.empty())
+			{
+				if (generated.mHDBits.empty())
+					generated.mHDScale = 1;
+				generated.mModId.clear();
+				theOut = std::move(generated);
+				return true;
+			}
+		}
+
 		Candidate hd, one, maskHD, maskOne;
 		FindInRoot(layer.mRoot, dir, stem, ext, hd, one);
 		if (theLookForAlpha)

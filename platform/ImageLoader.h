@@ -17,6 +17,7 @@
 //    copy is produced for CPU-side code (hit tests, software blits, fonts).
 
 #include <cstdint>
+#include <functional>
 #include <string>
 #include <vector>
 
@@ -41,6 +42,15 @@ struct LoadedImage
 
 // theGamePath: "images/gemsheet6", "images\\titlescreen6.jpg", "../images/afont1" relative paths etc.
 bool LoadGameImage(const std::string& theGamePath, LoadedImage& theOut, bool theLookForAlpha = true);
+
+// Generated images (a game's code-drawn art): one function that may draw any game image at load time. LoadGameImage asks
+// it after the mod layers and before the game's files, so a mod's image still wins and image patches apply on top of
+// the drawn one. theGamePath comes normalized and lower case, without its extension ("images/gemsheet6"). The function
+// fills theOut as a decoded file would (mBits at the logical size, with their alpha; mHDBits and mHDScale for sharper
+// pixels) and returns false to leave the image to the game's files. An empty function turns it off. Set it before
+// loading starts: the loading thread calls it.
+using ImageGenerator = std::function<bool(const std::string& theGamePath, LoadedImage& theOut)>;
+void SetImageGenerator(ImageGenerator theGenerator);
 
 // Decodes an image file from memory into ARGB. Returns false on failure.
 bool DecodeImage(const std::vector<uint8_t>& theData, int& theWidth, int& theHeight, std::vector<uint32_t>& theBits, bool* theHasAlpha);
