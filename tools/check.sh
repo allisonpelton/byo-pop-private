@@ -23,9 +23,11 @@
 #                and a rerun of the first with the same screenshots (about 15 seconds)
 #   bookwormadv  Bookworm Adventures' PopLua: the compiler's dialect checks and every compiled script of the game
 #                loaded by the port's VM (bwa_luarun, headless; seconds)
+#   tiptop       TipTop's bot: two regular games, a strategy game and a speed game, and a rerun of the regular ones
+#                with the same screenshots (about two and a half minutes)
 #   oracle       Bejeweled's oracle three ways (compare.sh --variants default,forcevariant,novariants); over
 #                ten minutes, so never in a subagent; refuses to start while another oracle runs
-# Sets: quick = build unit; games = bookworm bigmoney noahsark atomica sevenseas bookwormadv; all = every suite, builds first.
+# Sets: quick = build unit; games = bookworm bigmoney noahsark atomica sevenseas bookwormadv tiptop; all = every suite, builds first.
 #
 # Prints "PASS <suite> (<seconds>s): <summary>" or "FAIL <suite> (<seconds>s): <summary> -> <log>" for each,
 # then "check: N passed, M failed". Exits 0 only when all passed. Logs: build/logs/check/<suite>.txt (and
@@ -45,6 +47,9 @@ AT_ACTION="update 20000: score 3360 level 2 moves 599 atoms 48"
 SS_BEGINNER="game 2 over at update 5308: score 165 level 2 moves 23"
 SS_BONUS="game 1 over at update 2286: score 330 level 12 moves 15"
 SS_LATE="game 1 over at update 2285: score 390 level 22 moves 13"
+TT_REGULAR="game 2 over at update 35544: level 7, score 37160, 352 moves"
+TT_STRATEGY="game 1 over at update 2593: level 1, score 2100, 24 moves"
+TT_SPEED="game 1 over at update 57249: level 11, score 78250, 1081 moves"
 
 set -u
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -57,9 +62,9 @@ while [ $# -gt 0 ]; do
 		--out=*) OUT="${1#--out=}"; shift ;;
 		-h|--help) sed -n '2,/^BW_CLASSIC/p' "$0" | sed '$d' | sed 's/^# \{0,1\}//'; exit 0 ;;
 		quick) SUITES+=(build unit); shift ;;
-		games) SUITES+=(bookworm bigmoney noahsark atomica sevenseas bookwormadv); shift ;;
-		all) SUITES+=(build build-web build-nov unit unit-web verify modmenu livesplit bookworm bigmoney noahsark atomica sevenseas bookwormadv oracle); shift ;;
-		build|build-web|build-nov|unit|unit-web|verify|modmenu|livesplit|bookworm|bigmoney|noahsark|atomica|sevenseas|bookwormadv|oracle) SUITES+=("$1"); shift ;;
+		games) SUITES+=(bookworm bigmoney noahsark atomica sevenseas bookwormadv tiptop); shift ;;
+		all) SUITES+=(build build-web build-nov unit unit-web verify modmenu livesplit bookworm bigmoney noahsark atomica sevenseas bookwormadv tiptop oracle); shift ;;
+		build|build-web|build-nov|unit|unit-web|verify|modmenu|livesplit|bookworm|bigmoney|noahsark|atomica|sevenseas|bookwormadv|tiptop|oracle) SUITES+=("$1"); shift ;;
 		*) echo "check.sh: unknown suite '$1' (tools/check.sh --help)" >&2; exit 2 ;;
 	esac
 done
@@ -291,6 +296,30 @@ suite_bookwormadv() {
 	case "$d" in "dialect: "*" checks passed") ;; *) return 1 ;; esac
 	case "$l" in "loaded "*) set -- $l; [ "$2" = "$4" ] && [ "$2" -gt 0 ] && return 0 ;; esac
 	return 1
+}
+
+tiptop_game() {  # <name> <mode> <games>: bot games; prints the last "game N over" line
+	local d="$OUT/tiptop/$1"
+	rm -rf "$d"; mkdir -p "$d/shots"
+	timeout 600 "$W/build/native/tiptop.exe" -gamedir=assets/tiptop -userdir="$d/user" -fast -seed=2 -autoplay=7 \
+		-autoplaymode="$2" -autoplaygames="$3" -autoplaycap=200000 -autoplaylog="$d/log.txt" -autoplayshots="$d/shots/s" \
+		> "$d/stdout.txt" 2> "$d/stderr.txt"
+	grep -E '^(game [0-9]+ over|update [0-9]+:)' "$d/log.txt" 2>/dev/null | tail -n 1
+}
+
+suite_tiptop() {
+	local st=0 g s p r
+	need_assets tiptop || return 1
+	g="$(tiptop_game regular regular 2)"; s="$(tiptop_game strategy strategy 1)"; p="$(tiptop_game speed speed 1)"
+	r="$(tiptop_game regular2 regular 2)"
+	{ echo "regular: $g"; echo "strategy: $s"; echo "speed: $p"; echo "regular rerun: $r"; } > "$1"
+	[ "$g" = "$TT_REGULAR" ] || st=1
+	[ "$s" = "$TT_STRATEGY" ] || st=1
+	[ "$p" = "$TT_SPEED" ] || st=1
+	if diff -rq "$OUT/tiptop/regular/shots" "$OUT/tiptop/regular2/shots" >> "$1" 2>&1 && [ "$g" = "$r" ]; then r="rerun identical"; else r="RERUN DIFFERS"; st=1; fi
+	SUMMARY="regular ${g#game }; strategy ${s#game }; speed ${p#game }; $r"
+	[ $st -eq 0 ] || SUMMARY="$SUMMARY (expected regular '$TT_REGULAR', strategy '$TT_STRATEGY', speed '$TT_SPEED')"
+	return $st
 }
 
 suite_oracle() {
