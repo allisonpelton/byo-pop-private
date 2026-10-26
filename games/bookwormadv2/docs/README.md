@@ -97,9 +97,15 @@ animated portal, Lex and his bubble); the Options dialog and the Hall of Fame; a
 saved in the prologue back into the battle; and the replay of a finished adventure (the "continue your current adventure?"
 dialog, `BookSelectScreen` with its three books, and the curtain's states 9, 10 and 12 up to the replay's chapter map and the
 Hall of Fame after it), tried with a profile set to a finished adventure. The music plays from the ten loose OGG files over the framework's music
-interface, by song id. Nothing of the battle has been played yet (no tile clicked). Not done: Volume 2's own credits and stats
-book (the port's are Volume 1's). (The trial wrapper's dialogs are left out on purpose.) The cut scene player lacks the bitmap tags Volume 2's five movies use; PopAnim loads all 304
-animations but 41 pictures in 7 of them are not found.
+interface, by song id. Also Volume 2's own: the mini-games' menu (the buttons by what is unlocked, the "new" mark, the
+tooltips checkbox, the two ways in and out), the cut scene (a click skips to the end of the scene), the credits (with the
+midground animation and the finale's tiles) and the stats book (the tome of knowledge with its list of secrets, the media
+player and the page after a timed game; the tome opens and its lists scroll and select, tried with a profile that has the
+tome unlocked, but it shows only the "????" lines of a game with nothing seen yet). Nothing of the battle has been played
+yet (no tile clicked). Not done: the cut scene player lacks the bitmap tags Volume 2's five movies use; PopAnim loads all
+304 animations but 41 pictures in 7 of them are not found; `TileEngine::ValidWordSpelled` lacks the noun, adjective and
+verb arguments of Volume 2's (the new-user tutorial's first word stops at `TileEngine.lua:856`, milestone 3); the end of
+the game's credits (the finale) has not been run. (The trial wrapper's dialogs are left out on purpose.)
 
 ## Changes outside the Bookworm Adventures Volume 2 folder
 
