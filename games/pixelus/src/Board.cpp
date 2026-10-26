@@ -55,6 +55,7 @@ Board::Board(PixelusApp* theApp, const std::string& theLevelName, int thePuzzleI
 	mAlpha = 0;
 	mIntro = 0;
 	mPauseFade = 0.0;
+	mPauseStarted = false;
 	mDoneTimer = 0;
 	mCompleted = false;
 	mFinishSounded = false;
@@ -589,7 +590,11 @@ void Board::UpdateTiles()
 		}
 	}
 
-	// 0x424b30 asks every tile after its update whether it is still moving (0x42ee70)
+	// 0x424b30 asks every tile after its update whether it is still moving (0x42ee70, which is only "+0x44 != 0"). The
+	// port also skips the tiles that are gone (mDead), which the original does not: there a tile that flies out of the grid
+	// (a throw into an empty line, move F, or the undo of one) is marked dead by 0x42f740 in state 2 and stays in state 2,
+	// its trail held at 200 (so 0x42ee90 never frees it) and +0xb0a8 set for good, so the picture and the tablet of a puzzle
+	// finished after such a throw never come. Nobody has seen that stall in a run; the port does not reproduce it.
 	mGrid->mTileMoving = false;
 	for (size_t i = 0; i < mGrid->mObjects.size(); i++)
 		if (!mGrid->mObjects[i]->mDead && mGrid->mObjects[i]->mState != 0)
@@ -626,11 +631,15 @@ void Board::Update()
 	if (mAlpha < 255)
 		mAlpha = std::min(255, mAlpha + 255 / 30 + 1);
 
-	// the pause screen comes in by 0.05 an update and goes out by 0.075
-	if (mApp->IsPaused())
+	// the pause screen comes in by 0.05 an update, and only for a pause that began while the board was there; it goes out
+	// by 0.075 (0x409bd0)
+	if (mPauseStarted && mApp->IsPaused())
 		mPauseFade = std::min(1.0, mPauseFade + 0.05);
 	else
+	{
 		mPauseFade = std::max(0.0, mPauseFade - 0.075);
+		mPauseStarted = false;
+	}
 	if (mApp->IsPaused())
 		return;
 
@@ -861,6 +870,13 @@ void Board::DrawWorkbench(Graphics* g)
 	}
 }
 
+// 0x4219b0: how strongly the shimmer lights the diagonal (row + column) theDiagonal: a bell around the wave's position
+static double ShimmerStrength(const Grid* theGrid, int theDiagonal)
+{
+	double aDistance = theDiagonal - theGrid->mWave;
+	return exp(-0.015 * aDistance * aDistance);
+}
+
 // the picture of one tile (0x42f2e0)
 void Board::DrawTile(Graphics* g, GridObject* theObject)
 {
@@ -889,16 +905,16 @@ void Board::DrawTile(Graphics* g, GridObject* theObject)
 		g->SetDrawMode(Graphics::DRAWMODE_NORMAL);
 	}
 
-	// the shimmer goes across the tiles from a corner, 0.6 diagonals an update (the double at +0x10)
+	// the shimmer goes across the tiles from a corner, 0.6 diagonals an update (the double at +0x10); a tile takes
+	// 80/255 of the strength (the qword at 0x510e88), the cell's back 30/255 (0x50f0c0)
 	if (mGrid->mWaveOn)
 	{
-		double aDistance = (theObject->mRow + theObject->mCol) - mGrid->mWave;
-		double aStrength = exp(-0.015 * aDistance * aDistance);
+		double aStrength = ShimmerStrength(mGrid, theObject->mRow + theObject->mCol);
 		if (aStrength > 0.0)
 		{
 			g->SetColorizeImages(true);
 			g->SetDrawMode(Graphics::DRAWMODE_ADDITIVE);
-			g->SetColor(Color(255, 255, 0x80, (int) (aStrength * aAlpha)));
+			g->SetColor(Color(255, 255, 0x80, (int) (aStrength * aAlpha * (80.0 / 255.0))));
 			g->DrawImage(mApp->mImages[IMAGE_GRAYTILE_20X20], aX, aY);
 			g->SetDrawMode(Graphics::DRAWMODE_NORMAL);
 		}
@@ -1051,8 +1067,8 @@ void Board::DrawGrid(Graphics* g)
 	g->SetColor(Color(255, 255, 255, mAlpha));
 	Image* aWanted = mApp->mImages[IMAGE_TILEBACK_WANTTILE_20X20];
 
-	// when the puzzle is done and still, the picture is swept in over the board, row by row (0x422ab0): the cells before
-	// aRevealed show the picture's colour in place of the tile
+	// when the puzzle is done and still, the picture is swept in over the board, row by row (0x422ab0): every cell
+	// before aRevealed shows the picture's colour (a grey tile, wanted or not) in place of its back and sticky spot
 	bool aSweep = mGrid->mDone && !mGrid->mTileMoving && mGrid->mHasPicture;
 	int aRevealed = aSweep ? mGrid->mRows * mGrid->mCols - mGrid->mReveal : 0;
 
@@ -1061,16 +1077,46 @@ void Board::DrawGrid(Graphics* g)
 		{
 			const Grid::Cell& aCell = mGrid->mCells[r][c];
 			int aX = GRID_X + c * S, aY = GRID_Y + r * S;
-			if (aCell.mWanted)
-				g->DrawImage(aWanted, aX - 1, aY - 1);
-			if (aCell.mStart)
-				g->DrawImage(mApp->mImages[IMAGE_STICKYSPOT_20X20], aX, aY);
-			if (aSweep && aCell.mWanted && r * mGrid->mCols + c < aRevealed)
+			if (aSweep && r * mGrid->mCols + c < aRevealed)
 			{
 				unsigned int aColor = mGrid->mPicture[r][c];
 				g->SetColorizeImages(true);
 				g->SetColor(Color((aColor >> 16) & 0xff, (aColor >> 8) & 0xff, aColor & 0xff, mAlpha));
 				g->DrawImage(mApp->mImages[IMAGE_GRAYTILE_20X20], aX, aY);
+				g->SetColorizeImages(mAlpha < 255);
+				g->SetColor(Color(255, 255, 255, mAlpha));
+				continue;
+			}
+
+			// the back of a wanted cell and its sticky spot are only drawn while no tile rests on the cell (0x42ee70)
+			double aStrength = mGrid->mWaveOn ? ShimmerStrength(mGrid, r + c) : 0.0;
+			int aShimmer = (int) (aStrength * mAlpha * (30.0 / 255.0));
+			if (aCell.mWanted && (aCell.mObject == NULL || aCell.mObject->mState != 0))
+			{
+				g->DrawImage(aWanted, aX - 1, aY - 1);
+				if (aStrength > 0.0)
+				{
+					g->SetColorizeImages(true);
+					g->SetDrawMode(Graphics::DRAWMODE_ADDITIVE);
+					g->SetColor(Color(255, 255, 0x80, aShimmer));
+					g->DrawImage(aWanted, aX - 1, aY - 1);
+					g->SetDrawMode(Graphics::DRAWMODE_NORMAL);
+					g->SetColorizeImages(mAlpha < 255);
+					g->SetColor(Color(255, 255, 255, mAlpha));
+				}
+				if (aCell.mStart)
+					g->DrawImage(mApp->mImages[IMAGE_STICKYSPOT_20X20], aX, aY);
+			}
+			// the shimmer also lights the playfield under the cell: a 20 by 20 slice of it, drawn where the back is
+			// (one pixel up and left on a wanted cell)
+			if (aStrength > 0.0)
+			{
+				int anOffset = aCell.mWanted ? -1 : 0;
+				g->SetColorizeImages(true);
+				g->SetDrawMode(Graphics::DRAWMODE_ADDITIVE);
+				g->SetColor(Color(255, 255, 0x80, aShimmer));
+				g->DrawImage(mApp->mImages[IMAGE_PLAYFIELD], aX + anOffset, aY + anOffset, Rect(aX, aY, S, S));
+				g->SetDrawMode(Graphics::DRAWMODE_NORMAL);
 				g->SetColorizeImages(mAlpha < 255);
 				g->SetColor(Color(255, 255, 255, mAlpha));
 			}

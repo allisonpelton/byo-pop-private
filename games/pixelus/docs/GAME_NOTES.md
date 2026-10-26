@@ -98,7 +98,16 @@ the puzzle is done at once, sample 24 (the completed sting) plays and all music 
 a delay of 84 updates runs (+0xb108 from 1.0 down to -1.5 by 0.03), then the picture is swept in over the board, three cells
 an update in reading order (+0xb100 from rows * cols down to 0), and a shimmer (+0x10, -25 to 60 by 0.6 an update) goes across
 the tiles from the top left. When the sweep is over (+0xb110) the Board counts 60 updates (the Tile Master throws once at the
-start) and shows the tablet: about 4 seconds from the last throw. A tile that lands pushes up to four tiles in line behind it
+start) and shows the tablet: at 100 updates a second that is about 2.3 seconds from the moment the last tile comes to rest on
+a 16 by 16 board (84 updates of delay, 86 of sweep, 60 of countdown; a bigger board sweeps longer). The sweep draws the
+picture's colour on every cell it has passed, wanted or not, in place of the cell's back and sticky spot, and the tiles on
+the swept cells (blocks too) are not drawn. The
+shimmer lights a tile by 80/255 and a cell's back, and the playfield behind it, by 30/255 of its strength. The back of a
+wanted cell and its sticky spot are only drawn while no tile rests on the cell. A tile that flies out of the grid (a
+throw into an empty line, move F, or its undo) is never freed in the original: 0x42f740 marks it dead in state 2 and leaves
+it there, its trail held at 200 and the grid's "a tile is moving" flag (+0xb0a8, 0x42ee70 is only +0x44 != 0) set for good,
+so a puzzle finished after such a throw would never show its picture or the tablet. Nobody has seen this in a run; the
+port skips the tiles that are gone and does not stall. A tile that lands pushes up to four tiles in line behind it
 (0x423d30: the nearest by the most and the soonest, one pixel an update out, a wait, back); a tile that bounces off a bouncy
 block does the same from the cell it stopped in. The undo plays the pull sound, throws a bounced tile again (kind B) or
 flies a tile that left the grid back in (kind F); a bounce is B in the move history and a tile that flies out is F.

@@ -811,6 +811,8 @@ void PixelusApp::HandlePaused(bool theWasPaused, bool theIsPaused, int theCount)
 		mMusicInterface->ResumeAllMusic();
 
 	// 0x403010: a pause that starts shows the pause screen, the one that ends restarts the idle count
+	if (mBoard != NULL && !theWasPaused && theIsPaused)
+		mBoard->mPauseStarted = true;
 	if (mBoard != NULL && theWasPaused && !theIsPaused)
 		mBoard->mIdleTicks = 0;
 }
