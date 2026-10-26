@@ -94,6 +94,17 @@ DiffValues		OriginalDiffValues();
 // when every move played as it was tried and the replays verify, 2 for a usage error.
 int				CascadeHunt(int argc, char** argv);
 
+// Funlab (native only, FunLab.cpp; games/bejeweled/docs/GAME_MODES.md): bot games on mods' rules, measured for what makes
+// a game mode fun. argv: "funlab", then [<mod.json>...] [--settings <mod-settings.json>] [--seeds <a>..<b>]
+// [--mode normal|timed|both] [--policy skilled|novice|both] [--wait <n>] [--samples <k>] [--moves <n>] [--minutes <m>].
+// The mods' rules merge over the defaults with the original diff.txt values, lowest priority first, their settings from
+// the settings file (the game's own format) or at their defaults. Each game, from seed a to b, mode by mode and bot by
+// bot, prints a line "GAME <json>" of its measures (tools/funlab/report.py sums them up). The skilled bot tries every
+// move on k guessed refills (default 2) and takes the safest, then the one that scores most; the novice takes any move.
+// Each move comes n updates after the settle (default 100: a second's look). A game stops at its game over or a cap
+// (default 3000 moves, 30 minutes). Exit status 0, 1 for rules that do not load, 2 for a usage error.
+int				FunLab(int argc, char** argv);
+
 }
 
 }

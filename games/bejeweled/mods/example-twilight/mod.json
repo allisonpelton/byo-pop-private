@@ -12,7 +12,7 @@
                    { "value": "down", "label": "Down" } ],
       "help": "Down, then up: Twilight, the direction changes after each move that makes a match. Up: always up." },
     { "id": "fallAccel", "label": "Fall speed", "type": "int", "default": 75, "min": 50, "max": 1000, "step": 5,
-      "help": "How fast falling gems speed up. Bejeweled 2's Twilight is 75, the original 180." },
+      "help": "How fast falling gems speed up. 75 slows falls as much as Bejeweled 2's Twilight does; the original is 180." },
     { "type": "section", "label": "Look and sound" },
     { "id": "backdrop", "label": "Twilight backdrop", "type": "bool", "default": true,
       "help": "The level's backdrop mirrored left to right at half brightness." },

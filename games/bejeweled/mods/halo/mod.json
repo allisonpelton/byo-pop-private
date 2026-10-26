@@ -1,0 +1,64 @@
+{
+  "id": "halo",
+  "name": "Halo",
+  "version": "1.0",
+  "defaultEnabled": false,
+  "author": "byo-pop",
+  "description": "A game mode on a ring: the board is 60 cells around a 2 x 2 hub, and the only move is a twist. Click where four gems meet to turn them clockwise; a right click turns them the other way. Shapes forge the power gems: four gems of one colour in a 2 x 2 square forge a flame gem, which blows up the 3 x 3 square around it, and runs that cross join into an L, T or plus and forge a lightning gem, which clears its row and column; straight runs only score. Runs count on the diagonals too, for a little bonus. Nine kinds of gem. Gems fall past the hub, and the game ends when no twist makes a match. Uses its own high-score table. Turn on one game mode at a time.",
+  "rules": {
+    "board": {
+      "mask": [
+        "########",
+        "########",
+        "########",
+        "###..###",
+        "###..###",
+        "########",
+        "########",
+        "########"
+      ],
+      "gemColors": 9
+    },
+    "moves": {
+      "type": "twist",
+      "twist": {
+        "direction": "both"
+      }
+    },
+    "match": {
+      "crossings": "merge",
+      "shapes": {
+        "square": {
+          "preset": "square"
+        }
+      },
+      "bonus": {
+        "diagonal": 20,
+        "L": 50,
+        "T": 50,
+        "plus": 100,
+        "square": 30
+      },
+      "diagonal": true
+    },
+    "specials": {
+      "flame": {
+        "createdBy": [
+          "square"
+        ],
+        "radius": 1,
+        "points": 20
+      },
+      "lightning": {
+        "createdBy": [
+          "L",
+          "T",
+          "plus"
+        ],
+        "points": 30
+      },
+      "chain": true,
+      "createIn": "any"
+    }
+  }
+}

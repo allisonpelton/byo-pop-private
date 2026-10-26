@@ -419,15 +419,21 @@ Model SuModel(int theColor)
 }
 
 // An arrow gem (4.20): the bullet cut, a long stone with a flat back and a sharp point, pointing theDir (0 up, 1 right,
-// 2 down, 3 left; the outline turns in the model, so the light stays at the upper left), in theColor's own tones
+// 2 down, 3 left, then the diagonals 4 up-right, 5 down-right, 6 down-left, 7 up-left; the outline turns in the model,
+// so the light stays at the upper left), in theColor's own tones
 Model ArrowModel(int theColor, int theDir)
 {
-	// as wide as a gem (a narrower, truer bullet reads as a pencil at 48 px), its point a third of its length
-	Poly aBullet = {{-27, -38}, {27, -38}, {27, 1}, {0, 40}, {-27, 1}};
+	// as wide as a gem (a narrower, truer bullet reads as a pencil at 48 px), its point half of its length. A diagonal is
+	// longer and narrower, as the cell's diagonal leaves room for, so it reads as pointing along it rather than as a kite.
+	Poly aBullet = (theDir >= 4) ? Poly{{-24, -42}, {24, -42}, {24, 2}, {0, 44}, {-24, 2}} :
+		Poly{{-27, -38}, {27, -38}, {27, 1}, {0, 40}, {-27, 1}};
+	// a diagonal is the straight direction before it turned 45 degrees on, clockwise
+	double aTurn = (theDir >= 4) ? 45 * kPi / 180 : 0.0, c = std::cos(aTurn), s = std::sin(aTurn);
 	for (std::pair<double, double>& p : aBullet)
 	{
-		for (int i = 0; i < theDir; i++)
+		for (int i = 0; i < theDir % 4; i++)
 			p = std::make_pair(p.second, -p.first);
+		p = std::make_pair(p.first * c + p.second * s, p.second * c - p.first * s);
 	}
 	Model m = Faceted(aBullet, Steps{{5.0, 10.0}, {6.0, 15.0}});
 	BaseTones(m, kColors[theColor % 12][0], kColors[theColor % 12][1], kColors[theColor % 12][2]);
@@ -759,7 +765,7 @@ void DrawArrowSheet(int theColors, int theScale, std::vector<uint32_t>& theOut)
 {
 	theColors = std::max(1, std::min(12, theColors));
 	int aCell = CELL * theScale;
-	int aW = 4 * aCell, aH = theColors * aCell;
+	int aW = ARROW_DIRECTIONS * aCell, aH = theColors * aCell;
 	theOut.assign((size_t) aW * aH, 0);
 	int aSS = (theScale >= 3) ? 2 : 3;
 	double aUnitPx = UNIT_PX * theScale;
@@ -767,7 +773,7 @@ void DrawArrowSheet(int theColors, int theScale, std::vector<uint32_t>& theOut)
 	std::vector<float> aTile;
 	for (int c = 0; c < theColors; c++)
 	{
-		for (int d = 0; d < 4; d++)
+		for (int d = 0; d < ARROW_DIRECTIONS; d++)
 		{
 			Model aModel = ArrowModel(c, d);
 			double bx, by;

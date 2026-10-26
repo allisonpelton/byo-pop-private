@@ -722,7 +722,7 @@ its folder kept in `.publishignore`.
 | 2 | Bejeweled Twist | Opus | yes | ~25x | after the BookWorm series; PopAnim comes from Bookworm Adventures |
 | 3 | Cosmic Bugs | Opus | yes | ~2x | Retro64's own small engine; added 2026-10-26 |
 | 4 | Water Bugs | Sonnet | yes | small after Cosmic Bugs | the same engine, a sequel |
-| 5 | Word Harmony | Opus | yes | ~3-4x | parked; its own engine |
+| 5 | Word Harmony | Opus | yes | ~3-4x | running; Sprout's first-generation engine in an older build (its session, 2026-10-26), ported first in games/wordharmony/engine/ so that it can move to shared code |
 | 6 | Rocket Mania Deluxe | Sonnet | yes | ~3.5x | parked; Noah's Ark's 2002 framework |
 | 7 | Dynomite Deluxe | Opus | yes | ~4.5x | parked; the oldest framework layout, no game RTTI |
 | 8 | Mahjong Escape: Ancient Japan | Opus | yes | ~4-5x | Jolly Bear's engine, no RTTI; added 2026-10-26 |
@@ -733,7 +733,7 @@ its folder kept in `.publishignore`.
 | 13 | Hammer Heads Deluxe | Sonnet | yes | ~6x | parked; Big Money's 1.2 framework |
 | 14 | Bejeweled 2 Deluxe | Sonnet | yes | ~6x | parked; Bejeweled's framework |
 | 15 | AstroPop Deluxe | Sonnet | yes | ~7-8x | parked; BookWorm's 2004 framework |
-| 16 | Pizza Frenzy | Opus | yes | ~8x as the first Sprout game | added 2026-10-26; builds Sprout's first-generation engine. The other decompilation is one unlicensed upload (2026-10-03), and no modding was found |
+| 16 | Pizza Frenzy | Opus | yes | ~8x as the first Sprout game | added 2026-10-26; finishes Sprout's first-generation engine, starting from Word Harmony's port of an older build (about 21% of the engine's bytes are the same). The other decompilation is one unlicensed upload (2026-10-03), and no modding was found |
 | 17 | Iggle Pop Deluxe | Sonnet | yes | ~5-6x after Pizza Frenzy | 72% of its engine functions are byte-identical to Pizza Frenzy's |
 | 18 | Feeding Frenzy Deluxe | Sonnet | yes | small to medium after Iggle Pop | the same first-generation engine, in an older form |
 | 19 | Chuzzle Deluxe | Opus | yes | ~8-12x | added back 2026-10-26: the reported decompilation has empty game files. Raptisoft's own engine, no RTTI |
@@ -1179,7 +1179,7 @@ through `tools/triage_popcap.py`. No existing decompilation or recompilation was
 | TipTop Deluxe | TipTop.exe | 2003-02 | 438 KB | not SAF (own engine) | two `.dat` archives | ~2-3x (the archive format first) |
 | Ning Po Mahjong Deluxe | Ningpo.exe | 2002-09 | 396 KB | not SAF | one `ningpo.pyz` archive | ~2-3x (the archive format first) |
 | Pixelus Deluxe | Pixelus.exe (DRM wrapper) | 2004-07 | 1.09 MB | SAF, BookWorm's generation (53) | 283 `.txt` levels, GIF/PNG/OGG | ~3x, with the 2004 compatibility library |
-| Word Harmony | WordHarmony.exe (DRM wrapper) | 2006-02 | 517 KB | not SAF (an `engine` namespace) | WAV, two `.db` | ~3-4x |
+| Word Harmony | WordHarmony.exe (DRM wrapper) | 2006-02 | 517 KB | not SAF: Sprout's first-generation engine, an older build (`engine` namespace, a `.saf` archive) | WAV; the two `.db` are Thumbs.db | ~3-4x |
 | Venice Deluxe | Venice.exe (DRM wrapper) | 2007-06 | 1.59 MB | SAF with PakInterface, plus PopLua | `main.pak` (XOR 0xF7), 15 `.luc` scripts | ~5x (PopLua: see the Sprout notes) |
 | Bonnie's Bookstore Deluxe | BonniesBookstore.exe (DRM wrapper) | 2006-11 | 349 KB | not SAF; PopLua `.luc` scripts | JPG/PNG/OGG, one `.pak` | ~4-6x |
 

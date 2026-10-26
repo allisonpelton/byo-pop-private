@@ -112,7 +112,7 @@ A mod's mask is only applied to the mod's own image, and a PNG with transparency
 
 The mods live in `games/bejeweled/mods/`; the generators write there by default.
 
-The mods named `example-*` that are listed as "in the repository" show one feature each with its settings in the mod menu (F2). They start off; turn one on in the menu to play with it. Several can be on at once: their rules combine into a game of your own, with a high-score table of its own.
+The mods named `example-*` that are listed as "in the repository" show one feature each with its settings in the mod menu (F2). They start off; turn one on in the menu to play with it. Several can be on at once: their rules combine into a game of your own, with a high-score table of its own. The board is the exception: `example-board-shapes` and `example-dirt` each bring a whole board, and only the higher one's plays (with board shapes above dirt there is no dirt, and only its points for a layer remain).
 
 | Mod | How to get it |
 |---|---|
@@ -124,7 +124,7 @@ The mods named `example-*` that are listed as "in the repository" show one featu
 | `example-replays`: every game is recorded; WATCH REPLAY at game over and a replay browser in Extras. The menu sets how many are kept and whether the mouse is recorded | in the repository |
 | `example-free-swaps`: a swap with no match stays, for a cost you set; the menu also says what a board with no moves does in Normal and in Timed | in the repository |
 | `example-undo`: Z, U, Backspace or the orb takes moves back: how many in a row, how many a game, the cost, whether the new gems repeat, and undo in Timed | in the repository |
-| `example-board-shapes`: a rectangle of 3 to 16 cells a side, a diamond, octagon, cross, ring or hourglass, or a new shape each level | in the repository |
+| `example-board-shapes`: a rectangle of 3 to 16 cells a side, a diamond (small or large), octagon, cross, ring or hourglass, or a new shape each level | in the repository |
 | `example-dirt`: Jewel Quest's dirt tiles in four layouts, with points for each layer cleared | in the repository |
 | `example-twilight`: Bejeweled 2's Twilight: the gems fall down, then up, after each move; the direction, the fall speed, the backdrop and the sound pitch are settings | in the repository |
 | `example-gem-colours`: 4 to 12 kinds of gem; those past the seventh are generated tints of the white gem | in the repository |
@@ -132,7 +132,7 @@ The mods named `example-*` that are listed as "in the repository" show one featu
 | `example-twist-slide`: twists (Bejeweled Twist) and slides (Chuzzle), alone or with swaps; the right click twists back, and the slide snap is a setting | in the repository |
 | `example-power-gems`: Bejeweled 2's flame and lightning gems: what makes each, the blast size, their points, chains, and whether cascades make them | in the repository |
 | `example-gold`: Jewel Quest's gold board: the level ends when every cell is gold. The menu sets the time limits in Normal and Timed, the points for the time left, and whether blasts gild | in the repository |
-| `example-arrows`: arrow gems step one gem the way they point after each move; match them for a growing bonus before one leaves the board and ends the game. The menu sets the ways they point, how often new ones come and the bonus | in the repository |
+| `example-arrows`: arrow gems step one gem the way they point after each move; match them for a growing bonus before one leaves the board and ends the game. The menu sets the ways they point (diagonally too, for the diamond board), how often new ones come and the bonus | in the repository |
 | `livesplit`: LiveSplit auto splitter support (Windows): the block the auto splitter reads, 12 split templates and the script ([tools/livesplit](tools/livesplit/README.md)); changes nothing in play or on screen | same script (`--only livesplit`) |
 | `mines-trilliant`: orange gem as a trilliant cut shaped like the Colorado School of Mines triangle | `python games/bejeweled/tools/make_trilliant_mod.py` |
 | `true-gem`: every gem becomes a badly recoloured "True..." meme card, the logo reads BE TRUE LED, EXCELLENT! becomes TRUE... and NO MOVES! becomes NO TRUE... | `python games/bejeweled/tools/make_true_mod.py --image <picture>` |
@@ -141,7 +141,20 @@ The mods named `example-*` that are listed as "in the repository" show one featu
 | `bejeweled2-gems`: the seven gems redrawn in the style of Bejeweled 2, HD (@4x) with spin and hover animations, and the same gems over the five on the title screen (leave those out with `--no-title`). New procedural art that reads no game files, but a close recreation of another game's look | `python games/bejeweled/tools/make_bej2_gems_mod.py` |
 | `su-gems`: the seven gems redrawn as gems from Steven Universe (fan art), as the show draws them: flat static pictures, HD (@4x), plus four more (Rose Quartz, Lapis Lazuli, Bismuth, Garnet) for boards of up to 11 colours, and the same gems on the title screen (`--no-title` leaves those out). New drawings; the script reads no files | `python games/bejeweled/tools/make_su_gems_mod.py` |
 | `code-art`: every image and font drawn by code as the game loads, in the port's own look, so the game runs without its `images` folder and is sharp at any window size. The mod menu picks the gems (cel, glossy or Steven Universe) and one of five palettes. Mods above it still win | in the repository |
+| `lean`: the game in less memory and processor time, looking and playing the same: images with 256 colours or fewer at 1 byte a pixel, the title's picture freed after the title, and a frame rate cap (30 a second by default). [docs/PROFILE.md](docs/PROFILE.md) has the profile behind it | in the repository |
 | `game-stats`: a STATS link on the game-over screen (and in a watched replay's REPLAY END) opens a page of the game in numbers: moves, swaps back, hints and undos with what they cost, runs of 3, 4 and 5 with their points, cascades, gems cleared per colour, points per level and the score over time. Undo and saves keep the counts; changes nothing in play | in the repository |
+
+The game modes are curated mods: features and settings chosen to play well together, each tuned and measured with
+bot games ([docs/GAME_MODES.md](docs/GAME_MODES.md) has the method and the numbers). Each has an idea of its own
+rather than another game's mode. They start off; turn on one at a time.
+
+| Mode | What it plays |
+|---|---|
+| `forge`: Gem Forge | Shapes, not lines, forge the power gems: a 2 x 2 square makes a flame gem, an L, T or plus a lightning gem |
+| `prism`: Prism | The diagonals hold the power: every diagonal run of four or more forges a flame gem, and straight runs only score |
+| `halo`: Halo | Twists only, on a ring of 60 cells around a hub, with diagonal runs and Gem Forge's shape-made power gems |
+| `goldsmith`: Goldsmith | Gild a 7 x 7 board against the level's clock, but only blasts gild: forge power gems and aim them. The most tense mode |
+| `arrowhead`: Arrowhead | Arrow gems cross the board and end the game at the top; a twist turns the arrows it holds, so you steer them into shots at the other edges. For a challenge |
 
 Mods built from other games' files or third-party pictures, or closely recreating another game's art, are generated locally and git-ignored.
 

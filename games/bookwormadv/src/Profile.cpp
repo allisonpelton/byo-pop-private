@@ -7,6 +7,7 @@
 #include "GameApp.h"
 #include "GameText.h"
 #include "LuaInterface.h"
+#include "LuaLinkedClass.h"
 #include "lauxlib.h"
 #include "lua.h"
 
@@ -214,6 +215,38 @@ void Profile::SetTable(const std::string& theKey, lua_State* L, int theIndex)
 void Profile::Delete(const std::string& theKey)
 {
 	mValues.erase(theKey);
+}
+
+void Profile::ResetTimedMode()
+{
+	// 0x48d130: the keys of the timed mode's run back to a new run's (the checkpoint's stage and book none, the
+	// first chapter), and the keys of what the run had done and seen gone
+	SetInt("TM_XP", 0);
+	SetInt("TM_XPLevel", 0);
+	SetFloat("TM_XPPercent", 0.0f);
+	SetInt("TM_Health", 4);
+	SetInt("TM_MaxHealth", 4);
+	SetBool("TM_InGame", false);
+	SetFloat("TM_OffenseBonusPct", 0.0f);
+	SetInt("TM_CurrentStage", -1);
+	SetInt("TM_CurrentChapter", 1);
+	SetInt("TM_CurrentBook", -1);
+	SetBool("TM_DidGoldenFleece", false);
+	SetInt("TM_EnemyHealth", 0);
+	SetInt("TM_GridTimer", 0);
+	SetInt("TM_CurrEnemyCounter", 0);
+	SetInt("TM_LastEnemyIndex", 0);
+	static const char* const kGone[] = {
+		"TM_OffenseBonusPct", "TM_DefenseLevel", "TM_TotalLettersSpelled", "TM_TotalWordsSpelled", "TM_TotalKills",
+		"TM_TotalDeaths", "TM_VisitedCreatures", "TM_SeenStageDialog", "TM_GridState", "TM_TopWords",
+		"TM_WordLengthsSpelled", "TM_EnemyTopWords", "TM_Items", "TM_EnemyAttackRates", "TM_EnemyStatusEffects",
+		"TM_LexStatusEffects", "TM_EnemyHealth", "TM_EnemyTimer", "TM_Counter", "TM_EnemyTimes",
+		"TM_NumWordsSpelled", "TM_LastLengthCount", "TM_LastLength", "TM_NumSpelledPerAttack", "TM_XPBonus",
+		"TM_LostHealth", "TM_Tokens", "TM_OnCheckpoint",
+	};
+	for (const char* aKey : kGone)
+		Delete(aKey);
+	LuaLib::CallLua("main.NewTimedModeStarted", 0);
 }
 
 // ---- the file: per value its key, its type and the value; a table's entries each say whether one follows ----

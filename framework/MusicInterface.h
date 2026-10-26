@@ -35,6 +35,11 @@ public:
 	// port: where a playing module is, as BASS_ChannelGetPosition(BASS_POS_MUSIC_ORDER) gives it: MAKELONG(order,
 	// row), or -1 when the song is not playing or is not a module (Bookworm Adventures' song queue reads it).
 	virtual int				GetMusicPosition(int theSongId);
+	// port: the song's spectrum, as BASS_ChannelGetData(channel, theOut, BASS_DATA_FFT...) gives it: theSamples / 2
+	// magnitudes from its last theSamples output samples (Platform::Mixer::GetSongFFT). In BASS 2.3 (Bookworm
+	// Adventures ships 2.3.0.1) 0x80000001 is a 1024-sample FFT and 0x80000002 a 2048-sample one, so read the flag
+	// against the game's own bass.dll; false when the song is not playing.
+	virtual bool			GetMusicFFT(int theSongId, float* theOut, int theSamples);
 
 	virtual void			SetVolume(double theVolume);
 	virtual void			SetMusicAmplify(int theSongId, double theAmp);

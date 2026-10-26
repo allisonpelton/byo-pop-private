@@ -116,6 +116,7 @@ public:
 	virtual void		WriteShutdownRegistry() {}
 	virtual void		HandleCmdLineParam(const std::string& theParamName, const std::string& theParamValue) {}
 	virtual bool		HandleScriptCommand(const ScriptCommand& theCommand) { return false; }
+	virtual bool		DrawDirtyStuff() { return false; }
 	virtual bool		HasGameInProgress() { return false; }
 	virtual bool		CanRestartNow(SexyString* theReason) { return true; }
 	virtual void		GetRestartArgs(std::vector<std::string>* theArgs) {}

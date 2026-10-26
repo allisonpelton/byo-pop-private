@@ -56,6 +56,12 @@
       "port": 18773
     },
     {
+      "name": "bookwormadv-web",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-m", "http.server", "18775", "--bind", "127.0.0.1", "--directory", "build/web"],
+      "port": 18775
+    },
+    {
       "name": "tiptop-web",
       "runtimeExecutable": "python",
       "runtimeArgs": ["-m", "http.server", "18774", "--bind", "127.0.0.1", "--directory", "build/web"],

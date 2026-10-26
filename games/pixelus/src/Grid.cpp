@@ -424,7 +424,8 @@ std::string Grid::MoveToString(const Move& theMove)
 bool Grid::ReplayMove(const Move& theMove)
 {
 	SetCursor(theMove.mSide, theMove.mCursor);
-	return theMove.mRemove ? PullTile(true, true) : PlaceTile(true);
+	// the original's replay (0x424b30) pulls with 0x424990(grid, 1, 0): a start cell's tile is not taken
+	return theMove.mRemove ? PullTile(true, false) : PlaceTile(true);
 }
 
 // 0x425220 (pulling: the cell holds a tile that can be taken) and 0x4253f0 (throwing: the cell is free and the

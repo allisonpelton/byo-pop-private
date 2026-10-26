@@ -77,6 +77,11 @@ bool MusicInterface::IsPlaying(int theSongId)
 	return false;
 }
 
+bool MusicInterface::GetMusicFFT(int theSongId, float* theOut, int theSamples)
+{
+	return false;
+}
+
 int MusicInterface::GetMusicPosition(int theSongId)
 {
 	return -1;

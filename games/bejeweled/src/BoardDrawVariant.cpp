@@ -21,6 +21,7 @@
 #include "ImageFont.h"
 
 #include <algorithm>
+#include <cmath>
 
 using namespace Sexy;
 
@@ -363,8 +364,24 @@ static Image* DirtGrain(WinDMApp* theApp)
 	return sGrain;
 }
 
+// Graphics::DrawImage stretched to a rectangle ignores the graphics' scale, which only the unstretched calls take, so on
+// the board layer (g scaled by mLayout.mScale) the stretched images (the dirt's dust, the arrows' warnings) take their
+// rectangle through the layout here, as the unstretched DrawImage does
+void Board::DrawStretched(Graphics* g, Image* theImage, const Rect& theDest, const Rect& theSrc)
+{
+	if (mLayout.mScale == 1.0)
+	{
+		g->DrawImage(theImage, theDest, theSrc);
+		return;
+	}
+	int aX = (int) std::floor(mLayout.ToScreenX(theDest.mX)), aY = (int) std::floor(mLayout.ToScreenY(theDest.mY));
+	int aWidth = std::max(1, (int) std::floor(mLayout.ToScreenX(theDest.mX + theDest.mWidth)) - aX);
+	int aHeight = std::max(1, (int) std::floor(mLayout.ToScreenY(theDest.mY + theDest.mHeight)) - aY);
+	g->DrawImage(theImage, Rect(aX, aY, aWidth, aHeight), theSrc);
+}
+
 // The dust of the dirt cells cleared lately, over the gems: twelve grains fly out from the cell's centre, sink a little,
-// shrink and fade (Graphics::FillRect would ignore the board's scale, so they are images)
+// shrink and fade (Graphics::FillRect would ignore the board's scale, so they are images, DrawStretched)
 void Board::DrawDirtDust(Graphics* g)
 {
 	while (!mDirtDust.empty() && (mUpdateCnt - mDirtDust.front().mStartTick >= DIRT_DUST_TICKS))
@@ -388,7 +405,7 @@ void Board::DrawDirtDust(Graphics* g)
 			int aReach = 6 + anAge * ((k % 2 == 0) ? 7 : 5) / 4;
 			int aX = aCenterX + kDirs[k][0] * aReach / 10 - aSize / 2;
 			int aY = aCenterY + kDirs[k][1] * aReach / 10 - aSize / 2 + anAge * anAge / 80;
-			g->DrawImage(aGrain, Rect(aX, aY, aSize, aSize), Rect(0, 0, 8, 8));
+			DrawStretched(g, aGrain, Rect(aX, aY, aSize, aSize), Rect(0, 0, 8, 8));
 		}
 	}
 	g->SetColorizeImages(false);

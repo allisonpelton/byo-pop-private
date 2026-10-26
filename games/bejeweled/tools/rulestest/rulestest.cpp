@@ -340,7 +340,7 @@ static void TestGroups()
 	r = Merge({{"a", "{\"rules\": {\"undo\": {\"enabled\": true, \"depth\": 5, \"penalty\": 25}, \"gold\": {\"enabled\": true, \"timeBonus\": 3}}}"},
 		{"b", "{\"rules\": {\"undo\": {\"enabled\": true}, \"gold\": {\"gild\": \"matches\"}}}"}});
 	Check(r.mRules.mUndo.mEnabled && r.mRules.mUndo.mDepth == 1 && r.mRules.mUndo.mPenalty == 0, "undo group: whole from b");
-	Check(!r.mRules.mGold.mEnabled && !r.mRules.mGold.mGildBlasts && r.mRules.mGold.mTimeBonus == 10, "gold group: whole from b");
+	Check(!r.mRules.mGold.mEnabled && (r.mRules.mGold.mGild == GameRules::GILD_MATCHES) && r.mRules.mGold.mTimeBonus == 10, "gold group: whole from b");
 
 	// A leaf outside the moves group combines with it (3.5 table: free-swaps + chuzzle-slides)
 	r = Merge({{"chuzzle-slides", "{\"rules\": {\"moves\": {\"type\": \"slide\"}}}"},
@@ -664,13 +664,37 @@ static void TestArrows()
 		(r.mRules.ArrowInterval(9) == 2), "arrows: one direction; everyMin above every gives every" + Messages(r));
 	r = Merge({{"a", "{\"rules\": {\"arrows\": {\"enabled\": true, \"directions\": [\"left\", \"right\"]}}}"}});
 	Check(Clean(r) && (r.mRules.mArrows.mDirections == ((1 << GameRules::ARROW_LEFT) | (1 << GameRules::ARROW_RIGHT))), "arrows: a list of directions" + Messages(r));
+	r = Merge({{"a", "{\"rules\": {\"arrows\": {\"enabled\": true, \"directions\": [\"upRight\", \"downRight\", \"downLeft\", \"upLeft\"]}}}"}});
+	Check(Clean(r) && (r.mRules.mArrows.mDirections == 0xf0) && (GameRules::NUM_ARROW_DIRECTIONS == 8) &&
+		(GameRules::ARROW_UP_LEFT == 7), "arrows: the diagonals, bits 4..7" + Messages(r));
 	r = Merge({{"a", "{\"rules\": {\"arrows\": {\"enabled\": true, \"directions\": [\"up\", \"north\"]}}}"}});
-	Check(HasMessage(r.mStatus.mErrors, "a", "arrows.directions must be \"up\", \"right\", \"down\", \"left\" or a list of them") &&
+	Check(HasMessage(r.mStatus.mErrors, "a", "arrows.directions must be \"up\", \"right\", \"down\", \"left\", \"upRight\", \"downRight\", "
+		"\"downLeft\", \"upLeft\" or a list of them") &&
 		!r.mRules.mArrows.mEnabled, "arrows: an unknown direction rejects the group" + Messages(r));
 	r = Merge({{"a", "{\"rules\": {\"arrows\": {\"enabled\": true, \"every\": 500}}}"}});
 	Check(r.mRules.mArrows.mEvery == 100, "arrows: every clamps to 100" + Messages(r));
 	Check(Merge({{"a", "{\"rules\": {\"arrows\": {\"enabled\": true}}}"}}).mRules.Canonical() !=
 		Merge({{"a", "{\"rules\": {\"arrows\": {\"enabled\": true, \"directions\": \"up\"}}}"}}).mRules.Canonical(), "arrows: the directions are in the canonical form");
+
+	// The curated modes' rules: a twist turns the arrows it carries, and the edges that count as shots
+	r = Merge({{"a", "{\"rules\": {\"arrows\": {\"enabled\": true}}}"}});
+	Check(!r.mRules.mArrows.mTurn && (r.mRules.mArrows.mShots == 0), "arrows: no turning and no shots by default");
+	std::string aPlain = r.mRules.RulesIdHex();
+	r = Merge({{"a", "{\"rules\": {\"arrows\": {\"enabled\": true, \"turn\": true, \"shots\": [\"right\", \"bottom\", \"left\"]}}}"}});
+	Check(Clean(r) && r.mRules.mArrows.mTurn && (r.mRules.mArrows.mShots == ((1 << GameRules::ARROW_EDGE_RIGHT) |
+		(1 << GameRules::ARROW_EDGE_BOTTOM) | (1 << GameRules::ARROW_EDGE_LEFT))), "arrows: turn and a list of shots" + Messages(r));
+	Check(r.mRules.RulesIdHex() != aPlain, "arrows: turn and shots are in the RulesId");
+	r = Merge({{"a", "{\"rules\": {\"arrows\": {\"enabled\": true, \"shots\": \"top\"}}}"}});
+	Check(Clean(r) && (r.mRules.mArrows.mShots == (1 << GameRules::ARROW_EDGE_TOP)), "arrows: one shot edge" + Messages(r));
+	r = Merge({{"a", "{\"rules\": {\"arrows\": {\"enabled\": true, \"shots\": [\"bottom\", \"down\"]}}}"}});
+	Check(HasMessage(r.mStatus.mErrors, "a", "arrows.shots must be \"top\", \"right\", \"bottom\", \"left\" or a list of them") &&
+		!r.mRules.mArrows.mEnabled, "arrows: an unknown edge rejects the group" + Messages(r));
+
+	// gold.gild "blasts": only flames and lightning turn cells gold
+	r = Merge({{"g", "{\"rules\": {\"gold\": {\"enabled\": true, \"gild\": \"blasts\"}}}"}});
+	Check(Clean(r) && (r.mRules.mGold.mGild == GameRules::GILD_BLASTS), "gold.gild: blasts" + Messages(r));
+	Check(Merge({{"g", "{\"rules\": {\"gold\": {\"enabled\": true}}}"}}).mRules.mGold.mGild == GameRules::GILD_MATCHES_AND_BLASTS,
+		"gold.gild: matches and blasts by default");
 }
 
 static void TestGravity()
@@ -839,6 +863,21 @@ static void TestFeatures()
 	r = Merge({{"bad", "{\"features\": {\"livesplit\": 1}}"}});
 	Check(!r.mFeatures.mLiveSplit && HasMessage(r.mStatus.mErrors, "bad", "features ignored: features.livesplit must be"),
 		"livesplit: a number is refused" + Messages(r));
+
+	// features.lean (4.21): compact images and a frame rate cap, not part of the RulesId
+	r = Merge({{"lean", "{\"features\": {\"lean\": true}}"}});
+	Check(r.mFeatures.mLean && r.mFeatures.mLeanImages && (r.mFeatures.mLeanFrameRate == 0) &&
+		(r.mFeatures.Text() == "lean(images, frameRate 0)") && Clean(r), "lean: true" + Messages(r));
+	Check(r.mRules.RulesIdHex() == Merge({}).mRules.RulesIdHex(), "lean is not part of the RulesId");
+	r = Merge({{"lean", "{\"features\": {\"lean\": {\"images\": false, \"frameRate\": 30}}}"}});
+	Check(r.mFeatures.mLean && !r.mFeatures.mLeanImages && (r.mFeatures.mLeanFrameRate == 30) &&
+		(r.mFeatures.Text() == "lean(frameRate 30)"), "lean options (" + r.mFeatures.Text() + ")");
+	r = Merge({{"bad", "{\"features\": {\"lean\": {\"frameRate\": 5}}}"}});
+	Check(!r.mFeatures.mLean && HasMessage(r.mStatus.mErrors, "bad", "features ignored: features.lean.frameRate must be"),
+		"lean: a frame rate below 10 is refused" + Messages(r));
+	r = Merge({{"typo", "{\"features\": {\"lean\": {\"image\": true}}}"}});
+	Check(r.mFeatures.mLean && HasMessage(r.mStatus.mWarnings, "typo", "did you mean features.lean.images?"),
+		"lean: unknown key" + Messages(r));
 }
 
 // JSON has no NaN or Infinity, though strtod reads them: rejected, so no libc's NaN reaches a RulesId
@@ -1392,9 +1431,9 @@ static void TestReplayFormat()
 		"replay: every op 1..15 has a name and an argument count, 0 and 16 none");
 
 	// A golden vector: the smallest file (header and END) and a one-segment file, byte for byte, the same on
-	// native and wasm (engine ABI 9 since stage 12)
+	// native and wasm (engine ABI 11 since the curated modes' rules)
 	Replay::File anEmpty;
-	Check(Hex(Replay::Write(anEmpty)) == "424a5250010000000900000045" "4e4420" "1d000000" "00" "00000000" "00000000" "00000000"
+	Check(Hex(Replay::Write(anEmpty)) == "424a5250010000000b00000045" "4e4420" "1d000000" "00" "00000000" "00000000" "00000000"
 		"00000000" "0000000000000000" "00000000", "replay: golden bytes of a file with only END");
 	Replay::File aSmall;
 	Replay::Segment aSegment;
@@ -1405,7 +1444,7 @@ static void TestReplayFormat()
 	aSmall.mEnd.mReason = Replay::END_NO_MOVES;
 	aSmall.mEnd.mScore = 90;
 	std::string aSmallHex = Hex(Replay::Write(aSmall));
-	Check(aSmallHex == "424a52500100000009000000" "5345474d" "1d000000" "00" "00" "92100000" "00" "00" "00000000" "00000000"
+	Check(aSmallHex == "424a5250010000000b000000" "5345474d" "1d000000" "00" "00" "92100000" "00" "00" "00000000" "00000000"
 		"02000000" "a001" "01" "0a" "0a" "01" "03" "01" "01"
 		"454e4420" "1d000000" "01" "00000000" "5a000000" "00000000" "00000000" "0000000000000000" "00000000",
 		"replay: golden bytes of a one-segment file (got " + aSmallHex + ")");
@@ -1930,7 +1969,7 @@ static void TestReplayPlayable()
 		Check(Replay::CheckPlayable(anOld, 8, 8, &aWhy, true), "playable: the original rules recorded by engine " + std::to_string(anAbi) + " (" + aWhy + ")");
 		Check(!Replay::CheckPlayable(anOld, 8, 8, &aWhy, false), "playable: refused: variant rules recorded by engine " + std::to_string(anAbi));
 	}
-	Check(Replay::ENGINE_ABI == 9, "playable: this is engine 9 (stage 12)");
+	Check(Replay::ENGINE_ABI == 11, "playable: this is engine 11 (arrows.turn, arrows.shots, gold.gild blasts)");
 }
 
 // A v2 save (Replay.h, games/bejeweled/docs/CODE_MODS_DESIGN.md 7.2) around the v1 test save's fields: the rules
@@ -2151,7 +2190,7 @@ static void TestReplayVariantSave()
 	{
 		{"ARRW twice", anArrowNoEnd + anArrowAlone + anEnd},
 		{"ARRW of 72 bytes", aBeforeArrows + "ARRW" + aLe32(72) + std::string(72, '\0') + anEnd},
-		{"ARRW arrow 5", aWithArrowByte(9 + 10, 5)},
+		{"ARRW arrow 9", aWithArrowByte(9 + 10, 9)},
 		{"ARRW on a hole", aWithArrowByte(9 + 9, 1)},
 		{"ARRW negative moves", aWithArrowByte(3, '\x80')},
 		{"ARRW step due 2", aWithArrowByte(8, 2)},

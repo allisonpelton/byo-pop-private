@@ -248,6 +248,7 @@ def main():
         "id": "example-crystal-gems",
         "name": "Crystal Gems HD",
         "version": "1.0",
+        "defaultEnabled": False,
         "author": "byo-pop examples",
         "description": "Replaces the gem sprites with new double-resolution art (images/gemsheet6@2x.png).",
     })
@@ -259,6 +260,7 @@ def main():
         "id": "example-voice-lines",
         "name": "New Messages",
         "version": "1.0",
+        "defaultEnabled": False,
         "author": "byo-pop examples",
         "description": "Changes a few on-screen messages using string overrides.",
         "strings": {
@@ -274,6 +276,7 @@ def main():
         "id": "example-relaxed",
         "name": "Relaxed Hints",
         "version": "1.0",
+        "defaultEnabled": False,
         "author": "byo-pop examples",
         "description": "Hints cost 10 points instead of 50 (per level multiplier). Uses its own high-score table.",
         "tunables": {"scoring": {"hintPenalty": 10}},

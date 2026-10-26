@@ -31,6 +31,7 @@
 #include "testhooks/Autoplay.h"
 #include "testhooks/CodecCheck.h"
 #include "testhooks/AudioCapture.h"
+#include "testhooks/MemReport.h"
 #include "WatchController.h"
 #include "ReplayOverlay.h"
 #include "GameStatsPage.h"
@@ -354,8 +355,33 @@ void WinDMApp::MakeGemShrinkImages(int theColor)
 }
 
 // 0x4d4591
+// port(lean): the loaded images at 1 byte a pixel where they have 256 colours or fewer (features.lean.images).
+// Palletize is lossless: it keeps an exact colour table or leaves the image as it is. The textures upload from the
+// table, and an image that is read or drawn into later gets its pixels back (MemoryImage::GetBits).
+static void CompactImages(SexyAppBase* theApp)
+{
+	for (MemoryImage* anImage : theApp->mMemoryImageSet)
+	{
+		DDImage* aDDImage = dynamic_cast<DDImage*>(anImage);
+		if ((aDDImage == NULL) || !aDDImage->mIsScreen)
+			anImage->Palletize();
+	}
+}
+
 void WinDMApp::LoadingThreadCompleted()
 {
+	if (gGameConfig.mFeatures.mLean && gGameConfig.mFeatures.mLeanImages)
+		CompactImages(this);
+}
+
+// port(lean): at most features.lean.frameRate frames a second once loaded; the game updates 100 times a second
+// whatever the frame rate, so only the drawing thins out
+bool WinDMApp::DrawDirtyStuff()
+{
+	bool aDrew = SexyApp::DrawDirtyStuff();
+	if (aDrew && mLoaded && gGameConfig.mFeatures.mLean && (gGameConfig.mFeatures.mLeanFrameRate > 0))
+		mNextDrawTick = mLastDrawTick + 1000 / gGameConfig.mFeatures.mLeanFrameRate;
+	return aDrew;
 }
 
 // 0x4d4592
@@ -673,6 +699,13 @@ bool WinDMApp::HandleScriptCommand(const ScriptCommand& theCommand)
 	{
 		if (!GemSheet::WritePngs((MemoryImage*) mImages[IMAGE_GEMSHEET], theCommand.mArgs))
 			SDL_Log("script: line %d: gemsheet: cannot write %s", theCommand.mLine, theCommand.mArgs.c_str());
+		return true;
+	}
+	// port: memreport <file>, what the game holds in memory by owner (testhooks/MemReport.h)
+	if (theCommand.mCommand == "memreport")
+	{
+		if (!WriteMemReport(this, theCommand.mArgs))
+			SDL_Log("script: line %d: memreport: cannot write %s", theCommand.mLine, theCommand.mArgs.c_str());
 		return true;
 	}
 	if (theCommand.mCommand != "save")
@@ -1340,6 +1373,12 @@ void WinDMApp::TitleScreenIsFinished()
 	mWidgetManager->RemoveWidget(mTitleScreen);
 	SafeDeleteWidget(mTitleScreen);
 	mTitleScreen = NULL;
+	if (gGameConfig.mFeatures.mLean && gGameConfig.mFeatures.mLeanImages)
+	{
+		// port(lean): only the title screen draws its picture
+		delete mImages[IMAGE_TITLESCREEN];
+		mImages[IMAGE_TITLESCREEN] = NULL;
+	}
 
 	MakeButton(BUTTON_NEW_GAME, Rect(18, 142, 156, 41), -1, IMAGE_OVER_NEWGAME_PUSHED);
 	mNormalModeButton = MakeButton(BUTTON_NORMAL_MODE, Rect(18, 185, 78, 31), -1, IMAGE_OVER_NORMAL_PUSHED);

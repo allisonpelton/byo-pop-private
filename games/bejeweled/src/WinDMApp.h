@@ -193,7 +193,8 @@ public:
 
 	virtual void	Shutdown() override;                                     // 0x4d43f9 slot 42
 	void			NewGame();                                      // 0x4d4455
-	virtual void	LoadingThreadCompleted() override;                       // 0x4d4591 slot 16 (empty)
+	virtual void	LoadingThreadCompleted() override;                       // 0x4d4591 slot 16 (empty; port: features.lean)
+	virtual bool	DrawDirtyStuff() override;                               // port: features.lean.frameRate
 	virtual void	URLOpenSucceeded(const std::string& theURL) override;    // 0x4d4592 slot 36
 	virtual MusicInterface* CreateMusicInterface() override;                 // 0x4d45b1 slot 18 (original takes the HWND; always BassMusicInterface, port: SDLMusicInterface)
 	void			ShowRecordScoreDialog(const SexyString& theLines); // 0x4d45e3

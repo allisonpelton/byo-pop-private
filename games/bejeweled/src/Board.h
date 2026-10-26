@@ -504,12 +504,15 @@ public:
 	bool			IsArrowEscaping() const;                        // STATE_ARROW_STEPPING: the step is an arrow's escape
 	void			AddNewArrow();                                  // the settle after every arrows.every moves: a gem on an edge turns into an arrow
 	void			ClearArrow(Piece* thePiece);                    // a matched or blasted arrow: the bonus, the count
+	static int		TurnArrow(int theArrow, int theQuarters);       // arrows.turn: a Piece::mArrow a quarter turn on (1 clockwise)
+	int				ArrowExitEdges(const ArrowStep& theStep) const; // the ARROW_EDGE_* bits a step leaves the board by
 	void			ClearMatchedArrows();                           // ProcessMatchesVariant found groups: each dying arrow
 	bool			DrawArrowGem(Graphics* g, Piece* thePiece, int theX, int theY); // an arrow's picture instead of its gem (false: not an arrow)
 	void			DrawArrowWarnings(Graphics* g);                 // DrawVariant: an arrow one step from its edge pulses, the edge glows
 	bool			ApplyDirtLayers(const std::vector<uint8_t>& theLayers, std::string* theWhy); // a save's or snapshot's layers onto the level's mask
 	void			DrawDirt(Graphics* g);                          // DrawVariant: the dirt cells, under the gems
 	void			DrawDirtDust(Graphics* g);                      // DrawVariant: the dust of cleared cells, over the gems
+	void			DrawStretched(Graphics* g, Image* theImage, const Rect& theDest, const Rect& theSrc); // on the board layer, through its scale
 	void			RollScoreFast();                                // Update, before the score roll: a large gap closes fast (mFastScoreRoll)
 	// Twists and slides (stage 10, games/bejeweled/docs/CODE_MODS_DESIGN.md 4.4, 4.5 and 4.7; BoardMoves.cpp)
 	MoveSet::Options MoveOptions(bool horizontal, bool vertical) const; // the rules' move types for MoveSet's search

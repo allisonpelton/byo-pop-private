@@ -88,8 +88,8 @@ if(BUILD_VERIFY)
     target_compile_options(bejeweled_verify PRIVATE -msse2 -mfpmath=sse)
   endif()
   if(NOT EMSCRIPTEN)
-    # cascadehunt writes replay files: the native verifier only
-    target_sources(bejeweled_verify PRIVATE src/headless/CascadeHunt.cpp)
+    # cascadehunt writes replay files, funlab reads mod files: the native verifier only
+    target_sources(bejeweled_verify PRIVATE src/headless/CascadeHunt.cpp src/headless/FunLab.cpp)
   endif()
   if(EMSCRIPTEN)
     # Out-of-range double-to-int conversions as on x86 and in the web game (bejeweled above)

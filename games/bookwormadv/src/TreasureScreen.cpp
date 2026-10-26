@@ -4,6 +4,7 @@
 #include "FadeButton.h"
 #include "GameApp.h"
 #include "LuaBind.h"
+#include "LuaSupport.h"
 #include "Res.h"
 #include "WidgetManager.h"
 
@@ -60,8 +61,13 @@ void TreasureScreen::SetButtonState(int theId, bool theVisible, bool theEnabled)
 	aButton->SetVisible(theVisible);
 	if (wasEnabled != theEnabled)
 		aButton->SetDisabled(!theEnabled);
-	// port: the original also started the continue button's effect animation (its PopAnim, "EFFECT" of
-	// images/pam/fx_attackbutton.pam) when it became enabled; FadeButton's PopAnim is not ported yet
+	// the continue button's glow plays from the start when it becomes enabled, and goes off when it is disabled
+	if (theId == BUTTON_CONTINUE && wasEnabled != theEnabled) {
+		if (!theEnabled)
+			aButton->mEffectOff = true;
+		else
+			aButton->EnableEffect(true, true);
+	}
 }
 
 int TreasureScreen::GetButtonRect(int theId, int theField)
@@ -100,6 +106,15 @@ void TreasureScreen::DoChapterTransition()
 	aBook->CallLinkedMethod("DoChapterTransition", 0);
 }
 
+void TreasureScreen::StartFullyDisplayed()
+{
+	PositionButton(BUTTON_BACK, 36, 489);
+	PositionButton(BUTTON_OPTIONS, 664, 489);
+	PositionButton(BUTTON_CONTINUE, 289, 555);
+	lua_pushboolean(LuaLib::gLuaSupport->L, false);
+	CallLinkedMethod("StartFullyDisplayed", 1);
+}
+
 void TreasureScreen::AddedToManager(WidgetManager* theWidgetManager)
 {
 	Widget::AddedToManager(theWidgetManager);
@@ -112,8 +127,13 @@ void TreasureScreen::AddedToManager(WidgetManager* theWidgetManager)
 		AddWidget(aButton);
 		aButton->SetVisible(false);
 		aButton->SetDisabled(true);
-		// port: the continue button also got its effect animation (FadeButton's PopAnim at -21: "EFFECT" of
-		// images/pam/fx_attackbutton.pam, at 308, 90), not ported yet
+		if (BUTTON_BACK + i == BUTTON_CONTINUE) {
+			// the continue button's glow: the attack button's animation, clipped to 308 by 90
+			aButton->SetEffect("images/pam/fx_attackbutton.pam", -21, "EFFECT");
+			aButton->mWidgetFlagsMod.mRemoveFlags &= WIDGETFLAGS_CLIP;
+			aButton->mEffectRect = Rect(0, 0, 308, 90);
+			aButton->mEffectOff = true;
+		}
 	}
 	CallLinkedMethod("Setup", 0);
 	theWidgetManager->SetFocus(this);

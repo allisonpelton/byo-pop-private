@@ -164,7 +164,7 @@ bool Board::ProcessMatchesVariant()
 		aMaxLength = std::max(aMaxLength, (int) aGroup.mCells.size());
 	}
 	// Stage 12: the groups' cells turn gold (BoardGold.cpp)
-	if (mVariant.mGold)
+	if (mVariant.mGold && (mRules.mGold.mGild != GameRules::GILD_BLASTS))
 	{
 		for (const MatchFinder::Group& aGroup : aGroups)
 			GildCells(aGroup.mCells);
