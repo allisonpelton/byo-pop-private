@@ -3,6 +3,7 @@
 #include <SDL.h>
 
 #include "BookManager.h"
+#include "ConversationPanel.h"
 #include "CurtainTransition.h"
 #include "CutScene.h"
 #include "FadeButton.h"
@@ -57,6 +58,10 @@ GameApp::~GameApp()
 	if (mMainMenu != nullptr) {
 		mWidgetManager->RemoveWidget(mMainMenu);
 		delete mMainMenu;
+	}
+	if (mConversationPanel != nullptr) {
+		mWidgetManager->RemoveWidget(mConversationPanel);
+		delete mConversationPanel;
 	}
 	delete mSongPlayer;
 	delete mSoundPlayer;
@@ -507,8 +512,13 @@ void GameApp::LoadingThreadCompleted()
 	}
 	if (!aName.empty())
 		SelectUser(aName);
-	// port: not yet: the "GAME LAUNCHED" statistic, the ConversationPanel (0x42f740) and the ArrowHintManager
-	// (0x40b2c0). The update check is left out.
+	mConversationPanel = new ConversationPanel(this);
+	mWidgetManager->AddWidget(mConversationPanel);
+	mConversationPanel->Resize(0, 0, mWidth, mHeight);
+	mConversationPanel->SetDisabled(true);
+	mConversationPanel->SetVisible(false);
+	// port: not yet: the "GAME LAUNCHED" statistic and the ArrowHintManager (0x40b2c0). The update check is left
+	// out.
 	RegistryWriteInteger("TotalBooks", mTotalBooks);
 }
 
@@ -649,6 +659,33 @@ bool GameApp::IsCurtainMoving() const
 	return mCurtain != nullptr && !(mCurtain->mDone && mCurtain->mDrawn);
 }
 
+void GameApp::NewConversationPanel()
+{
+	if (mConversationPanel != nullptr) {
+		mWidgetManager->RemoveWidget(mConversationPanel);
+		// port: the original deleted it at once, though a script's callback of the panel itself can ask for this
+		SafeDeleteWidget(mConversationPanel);
+	}
+	mConversationPanel = new ConversationPanel(this);
+	mWidgetManager->AddWidget(mConversationPanel);
+	mConversationPanel->Resize(0, 0, mWidth, mHeight);
+}
+
+bool GameApp::ShowingConversationPanel() const
+{
+	return mConversationPanel != nullptr && mConversationPanel->Active();
+}
+
+void GameApp::KeepCurtainOnTop()
+{
+	if (mCurtain == nullptr)
+		return;
+	mWidgetManager->BringToFront(mCurtain);
+	// port: as the original, one more than its own priority, not the panel's
+	if (ShowingConversationPanel() && mCurtain->mPriority < mConversationPanel->mPriority)
+		mCurtain->mPriority++;
+}
+
 CurtainTransition* GameApp::GetCurtain()
 {
 	if (mCurtain == nullptr) {
@@ -734,8 +771,7 @@ void GameApp::CurtainDone()
 			return;
 		}
 		mFullCurtain = false;
-		if (mTitleToMainMenu && mConversationPanel == nullptr) {
-			// port: also when the conversation panel (not ported yet) is not showing
+		if (mTitleToMainMenu && !ShowingConversationPanel()) {
 			mTitleToMainMenu = false;
 			mMainMenu->PlayReaction(MainMenu::REACTION_WELCOME);  // 0x44d340
 		}

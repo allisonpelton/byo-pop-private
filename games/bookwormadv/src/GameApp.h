@@ -17,6 +17,7 @@ class SoundPlayer;
 namespace Sexy {
 
 class BookManager;
+class ConversationPanel;
 class CurtainTransition;
 class CutScene;
 class GameDialog;
@@ -36,6 +37,7 @@ public:
 	enum {
 		DIALOG_OK = 0,           // DoOkDialog's
 		DIALOG_REALLY_QUIT = 2,  // the main menu's quit
+		DIALOG_MENU = 7,         // the game's menu (not ported yet): the conversation panel waits under it
 		DIALOG_CONFIRM = 18,     // DoConfirmDialog's
 		DIALOG_SKIP_MOVIE = 20,  // a click on a cut scene: skip it?
 	};
@@ -92,6 +94,7 @@ public:
 	bool mLoadingChapter = false;                  // +0x913: loading a chapter's resources (0x44e040)
 	bool mTitleScreenDone = false;                 // +0x914
 	bool mTitleScreenDoneQueued = false;           // +0x915
+	bool mShowTilePips = true;                     // +0x916: CanShowTilePips' answer when the profile has no EnablePips
 	bool mFullCurtain = false;                     // +0x917: a transition of the whole curtain (0x44d080)
 	bool mLoadingDone = false;                     // +0x919
 	bool mNoMusic = false;                         // +0x91a
@@ -100,7 +103,7 @@ public:
 	bool mTimedMode = false;                       // +0x96e: playing the timed mode (its TM_ profile keys)
 	std::vector<std::string> mStartupGroups;       // +0x924 (0x38-byte entries; the group's name at +0x1c)
 	Lex* mLex = nullptr;                           // +0x940
-	Widget* mConversationPanel = nullptr;          // +0x944 (not ported yet)
+	ConversationPanel* mConversationPanel = nullptr;  // +0x944
 	Widget* mBoard = nullptr;                      // +0x948: the battle's (not ported yet)
 	LuaInterface* mLuaInterface = nullptr;         // +0x94c
 	Profile* mProfile = nullptr;                   // +0x950, the player's
@@ -194,6 +197,12 @@ public:
 	void CloseCutScene();  // 0x44cf70
 	// 0x448ff0: the main menu's adventure, when the profile says the scripts' intro cut scene is due
 	void PlayMainMenuCutScene();
+	// 0x44c2d0 (convpanel.New): a new conversation panel in place of the old one
+	void NewConversationPanel();
+	// 0x450460: a conversation panel is active
+	bool ShowingConversationPanel() const;
+	// 0x450d20: the curtain in front, and above an active conversation panel's priority
+	void KeepCurtainOnTop();
 	// 0x44c440: the tooltip under the mouse (tooltips are not ported yet)
 	void UpdateTooltipHover(int x, int y) {}
 

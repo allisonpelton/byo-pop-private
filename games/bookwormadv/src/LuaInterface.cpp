@@ -3,6 +3,7 @@
 #include <SDL.h>
 
 #include "Color.h"
+#include "ConversationPanel.h"
 #include "GameApp.h"
 #include "Graphics.h"
 #include "JeffLib.h"
@@ -362,6 +363,7 @@ void LuaInterface::RegisterSexyFunctions()
 	RegisterFunction("sexy.SetPopAnimColor", SetPopAnimColor);
 	RegisterFunction("sexy.DeletePopAnim", DeletePopAnim);
 	RegisterProfileFunctions();
+	RegisterConvPanelFunctions();
 }
 
 void LuaInterface::ReportError(const std::string& theMessage)
