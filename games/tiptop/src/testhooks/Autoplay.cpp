@@ -10,7 +10,7 @@
 //   -autoplaymode=regular|strategy|speed   the game type (default regular)
 //   -autoplaygames=N      play N games, then quit
 //   -autoplaycap=N        quit after N updates in any case
-//   -autoplaylog=<file>   the log ("level N done", "game N over")
+//   -autoplaylog=<file>   the log ("level N done at update U", "game N over at update U")
 //   -autoplayshots=<prefix>  screenshots at each level summary and game over
 
 #include "TipTopApp.h"
@@ -177,14 +177,15 @@ void TipTopApp::Autoplay()
 		s->mShot = false;
 		if (aScreen == tiptop::SCREEN_LEVELSUMMARY && anApp.mBoard != nullptr)
 		{
-			Log(s, "level %u done: score %u\n", anApp.mBoard->mState.mLevel, anApp.mBoard->GetScore());
+			Log(s, "level %u done at update %d: score %u\n", anApp.mBoard->mState.mLevel, mUpdateCount,
+				anApp.mBoard->GetScore());
 			s->mWait = 300;
 		}
 		else if (aScreen == tiptop::SCREEN_GAMEOVER && anApp.mBoard != nullptr)
 		{
 			s->mGames++;
-			Log(s, "game %d over: level %u, score %u, %d moves\n", s->mGames, anApp.mBoard->mState.mLevel,
-				anApp.mBoard->GetScore(), s->mMoves);
+			Log(s, "game %d over at update %d: level %u, score %u, %d moves\n", s->mGames, mUpdateCount,
+				anApp.mBoard->mState.mLevel, anApp.mBoard->GetScore(), s->mMoves);
 			s->mWait = 600;
 			s->mNameTyped = false;
 			s->mMoves = 0;
