@@ -23,6 +23,8 @@
 #   noahsark     Noah's Ark's bot: action, strategy and puzzle games, an action rerun with the same screenshots, the
 #                mods' tests (games/noahsark/tools/run_mod_tests.sh) and the high-score loader's (run_hiscores_test.sh)
 #   atomica      Atomica's bot: a strategy game, an action game, and a strategy rerun with the same screenshots
+#   alchemy      Alchemy's bot: a strategic game, a time trial game and the tutorial, a strategic rerun with the same
+#                screenshots, and a game quit half way whose saved game the next run loads (about 20 seconds)
 #   sevenseas    Seven Seas' bot: a beginner's game from level 1, one from the bonus screen (level 10) and one from level 21,
 #                and a rerun of the first with the same screenshots (about 15 seconds)
 #   bookwormadv  Bookworm Adventures: the PopLua compiler's dialect checks and every compiled script of the game
@@ -31,6 +33,9 @@
 #                Play! stays and Quit quits, the test profile's first chapter won and saved by the port's
 #                "word attack" script command, and a run through the screens off the main menu (the credits, the
 #                players dialog, the mini-games' menu, the arena to its first word) (about two and a half minutes)
+#   pixelus      Pixelus Deluxe's grid replay test (every puzzle of the game solved by its recorded solution), a scripted tour of the
+#                options, credits and how-to-play screens, the bot's first 25 puzzles and a rerun with the same screenshots,
+#                and the bot's whole game (210 puzzles in all 12 temples, to the ending; about 2 minutes)
 #   mummymaze    Mummy Maze's bot: a classic game of 8 chambers (the name box, the options and their dialogs photographed) and
 #                a rerun with the same screenshots, a game from pyramid 3 (the tips), a whole classic game (225 chambers to the
 #                victory screen), a whole adventure (15 pyramids, the map, the saved game) and the tutorial (about 1 minute)
@@ -40,7 +45,7 @@
 #                times) and a rerun with the same screenshots and best time (under a minute)
 #   oracle       Bejeweled's oracle three ways (compare.sh --variants default,forcevariant,novariants); over
 #                ten minutes, so never in a subagent; refuses to start while another oracle runs
-# Sets: quick = build unit; games = bookworm bigmoney noahsark atomica sevenseas bookwormadv tiptop mummymaze ningpo; all = every suite, builds first.
+# Sets: quick = build unit; games = bookworm bigmoney noahsark atomica alchemy sevenseas pixelus bookwormadv tiptop mummymaze ningpo; all = every suite, builds first.
 #
 # Prints "PASS <suite> (<seconds>s): <summary>" or "FAIL <suite> (<seconds>s): <summary> -> <log>" for each,
 # then "check: N passed, M failed". Exits 0 only when all passed. Logs: build/logs/check/<suite>.txt (and
@@ -57,9 +62,15 @@ NA_STRATEGY="level 4 done at update 15469: score 4430 mode strategy"
 NA_PUZZLE="game 1 over at update 17550: score 4830 level 1 moves 117"
 AT_STRATEGY="game 1 over at update 6876: score 1600 level 2 moves 90"
 AT_ACTION="update 20000: score 2480 level 3 moves 680 atoms 66"
+AL_STRATEGIC="game 1 over at update 12206: score 7432 pieces 830 forged 29 boards 3"
+AL_TIMETRIAL="game 1 over at update 14641: score 15942 pieces 903 forged 87 boards 3"
+AL_TUTORIAL="tutorial button 1 at update 231"
 SS_BEGINNER="game 2 over at update 5308: score 165 level 2 moves 23"
 SS_BONUS="game 1 over at update 2286: score 330 level 12 moves 15"
 SS_LATE="game 1 over at update 2285: score 390 level 22 moves 13"
+PX_GRID="gridtest: 213 level files, 211 solutions, 211 solved, 0 without a level file"
+PX_START="done: 25 puzzles"
+PX_FULL="done: no temple left, 210 puzzles, log 2edb2003"
 MM_CLASSIC="game over: score 1500, list 1500 1000 900 800 700, the bot is number 1"
 MM_TIPS="game over: score 1730, list 1730 1000 900 800 700, the bot is number 1"
 MM_FULL="victory: score 251975, caught 0 times"
@@ -81,9 +92,9 @@ while [ $# -gt 0 ]; do
 		--out=*) OUT="${1#--out=}"; shift ;;
 		-h|--help) sed -n '2,/^BW_CLASSIC/p' "$0" | sed '$d' | sed 's/^# \{0,1\}//'; exit 0 ;;
 		quick) SUITES+=(build unit); shift ;;
-		games) SUITES+=(bookworm bigmoney noahsark atomica sevenseas bookwormadv tiptop mummymaze ningpo); shift ;;
-		all) SUITES+=(build build-web build-nov unit unit-web verify modmenu livesplit bookworm bigmoney noahsark atomica sevenseas bookwormadv tiptop mummymaze ningpo oracle); shift ;;
-		build|build-web|build-nov|unit|unit-web|verify|modmenu|livesplit|bookworm|bigmoney|noahsark|atomica|sevenseas|bookwormadv|tiptop|mummymaze|ningpo|oracle) SUITES+=("$1"); shift ;;
+		games) SUITES+=(bookworm bigmoney noahsark atomica alchemy sevenseas pixelus bookwormadv tiptop mummymaze ningpo); shift ;;
+		all) SUITES+=(build build-web build-nov unit unit-web verify modmenu livesplit bookworm bigmoney noahsark atomica alchemy sevenseas pixelus bookwormadv tiptop mummymaze ningpo oracle); shift ;;
+		build|build-web|build-nov|unit|unit-web|verify|modmenu|livesplit|bookworm|bigmoney|noahsark|atomica|alchemy|sevenseas|pixelus|bookwormadv|tiptop|mummymaze|ningpo|oracle) SUITES+=("$1"); shift ;;
 		*) echo "check.sh: unknown suite '$1' (tools/check.sh --help)" >&2; exit 2 ;;
 	esac
 done
@@ -313,6 +324,34 @@ suite_atomica() {
 	return $st
 }
 
+alchemy_game() {  # <name> <mode> <cap> [user dir to keep]: a bot game; prints its last "game over" or tutorial line
+	local d="$OUT/alchemy/$1" u
+	if [ -n "${4:-}" ]; then u="$OUT/alchemy/$4"; else rm -rf "$d"; u="$d/user"; fi
+	rm -rf "$d/shots" "$d/log.txt"; mkdir -p "$d/shots"
+	timeout 600 "$W/build/native/alchemy.exe" -userdir="$u" -fast -seed=1 -autoplay=1 -autoplaymode="$2" -autoplaycap="$3" 		-autoplaylog="$d/log.txt" -autoplayshots="$d/shots/s" > "$d/stdout.txt" 2> "$d/stderr.txt"
+	grep -E '^(game [0-9]+ over|tutorial button|cap reached)' "$d/log.txt" 2>/dev/null | tail -n 1
+}
+
+suite_alchemy() {
+	local st=0 s t u r v sv
+	need_assets alchemy || return 1
+	s="$(alchemy_game strategic strategic 20000)"; t="$(alchemy_game timetrial timetrial 20000)"
+	u="$(alchemy_game tutorial tutorial 20000)"; r="$(alchemy_game strategic2 strategic 20000)"
+	# a game quit half way is saved, and the next run offers it and plays on
+	sv="$(alchemy_game save strategic 700)"
+	v="$(alchemy_game save2 strategic 1500 save/user >/dev/null; grep -c '^saved game loaded' "$OUT/alchemy/save2/log.txt")"
+	[ -f "$OUT/alchemy/save/user/savegame.dat" ] || v="no saved game"
+	{ echo "strategic: $s"; echo "time trial: $t"; echo "tutorial: $u"; echo "strategic rerun: $r"; echo "save: $sv; loaded: $v"; } > "$1"
+	[ "$s" = "$AL_STRATEGIC" ] || st=1
+	[ "$t" = "$AL_TIMETRIAL" ] || st=1
+	[ "$u" = "$AL_TUTORIAL" ] || st=1
+	[ "$v" = 1 ] || st=1
+	if diff -rq "$OUT/alchemy/strategic/shots" "$OUT/alchemy/strategic2/shots" >> "$1" 2>&1 && cmp -s "$OUT/alchemy/strategic/log.txt" "$OUT/alchemy/strategic2/log.txt" && [ "$s" = "$r" ]; then r="rerun identical"; else r="RERUN DIFFERS"; st=1; fi
+	SUMMARY="strategic ${s#game 1 over at update }; time trial ${t#game 1 over at update }; ${u}; saved game loaded $v time; $r"
+	[ $st -eq 0 ] || SUMMARY="$SUMMARY (expected strategic '$AL_STRATEGIC', time trial '$AL_TIMETRIAL', tutorial '$AL_TUTORIAL')"
+	return $st
+}
+
 sevenseas_game() {  # <name> <seed> <difficulty> <start level> <games>: a bot game; prints the last "game N over" line
 	local d="$OUT/sevenseas/$1"
 	rm -rf "$d"; mkdir -p "$d/shots"
@@ -333,6 +372,38 @@ suite_sevenseas() {
 	if diff -rq "$OUT/sevenseas/beginner/shots" "$OUT/sevenseas/beginner2/shots" >> "$1" 2>&1 && [ "$a" = "$r" ]; then r="rerun identical"; else r="RERUN DIFFERS"; st=1; fi
 	SUMMARY="beginner ${a#game }; bonus ${b#game }; late ${c#game }; $r"
 	[ $st -eq 0 ] || SUMMARY="$SUMMARY (expected beginner '$SS_BEGINNER', bonus '$SS_BONUS', late '$SS_LATE')"
+	return $st
+}
+
+pixelus_game() {  # <name> <puzzles>: a bot game of that many puzzles (at most); prints its last line
+	local d="$OUT/pixelus/$1"
+	rm -rf "$d"; mkdir -p "$d/shots"
+	timeout 600 "$W/build/native/pixelus.exe" -userdir="$W/$d/user" -fast -seed=1 -autoplay=1 -autoplaypuzzles="$2" -autoplaycap=1000000 		-autoplaylog="$W/$d/log.txt" -autoplayshots="$W/$d/shots/s" > "$d/stdout.txt" 2> "$d/stderr.txt"
+	grep -E '^(done|cap reached)' "$d/log.txt" 2>/dev/null | tail -n 1
+}
+
+suite_pixelus() {
+	local st=0 g t a r f n h d="$OUT/pixelus"
+	need_assets pixelus || return 1
+	g="$(build/native/pixelus_gridtest.exe "$W/assets/pixelus" 2>&1 | tail -n 1)"
+	# the options, credits and how-to-play screens: a scripted run in real time (the script counts updates)
+	rm -rf "$d/tour"; mkdir -p "$d/tour"
+	sed "s#@OUT@#$W/$d/tour#g" games/pixelus/tests/menu_tour.txt.in > "$d/tour/script.txt"
+	timeout 300 "$W/build/native/pixelus.exe" -userdir="$W/$d/tour/user" -script="$W/$d/tour/script.txt" -seed=1 > "$d/tour/stdout.txt" 2> "$d/tour/stderr.txt"
+	t=$?
+	for f in options credits help menu; do [ -s "$d/tour/$f.png" ] || t="$t, $f.png missing"; done
+	[ "$t" = 0 ] && t="tour ok" || { t="TOUR FAILED ($t)"; st=1; }
+	a="$(pixelus_game start 25)"; r="$(pixelus_game start2 25)"
+	f="$(pixelus_game full 400)"
+	n="$(grep -c '^completed' "$d/full/log.txt" 2>/dev/null)"; h="$(sha1sum "$d/full/log.txt" 2>/dev/null | cut -c1-8)"
+	f="$f, $n puzzles, log $h"
+	{ echo "$g"; echo "$t"; echo "start: $a"; echo "start rerun: $r"; echo "full: $f"; } > "$1"
+	[ "$g" = "$PX_GRID" ] || st=1
+	[ "$a" = "$PX_START" ] || st=1
+	[ "$f" = "$PX_FULL" ] || st=1
+	if diff -rq "$d/start/shots" "$d/start2/shots" >> "$1" 2>&1 && diff -q "$d/start/log.txt" "$d/start2/log.txt" >> "$1" 2>&1; then r="rerun identical"; else r="RERUN DIFFERS"; st=1; fi
+	SUMMARY="${g#gridtest: }; $t; start ${a#done: }; $r; full ${f#done: }"
+	[ $st -eq 0 ] || SUMMARY="$SUMMARY (expected grid '$PX_GRID', start '$PX_START', full '$PX_FULL')"
 	return $st
 }
 

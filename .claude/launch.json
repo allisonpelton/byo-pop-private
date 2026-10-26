@@ -38,6 +38,12 @@
       "port": 18772
     },
     {
+      "name": "alchemy-web",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-m", "http.server", "18777", "--bind", "127.0.0.1", "--directory", "build/web"],
+      "port": 18777
+    },
+    {
       "name": "sevenseas-web",
       "runtimeExecutable": "python",
       "runtimeArgs": ["-m", "http.server", "18771", "--bind", "127.0.0.1", "--directory", "build/web"],
@@ -60,6 +66,12 @@
       "runtimeExecutable": "python",
       "runtimeArgs": ["-m", "http.server", "18774", "--bind", "127.0.0.1", "--directory", "build/web"],
       "port": 18774
+    },
+    {
+      "name": "pixelus-web",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-m", "http.server", "18776", "--bind", "127.0.0.1", "--directory", "build/web"],
+      "port": 18776
     },
     {
       "name": "ningpo-web",

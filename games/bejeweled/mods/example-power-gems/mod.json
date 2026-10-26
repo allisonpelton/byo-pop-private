@@ -1,0 +1,48 @@
+{
+  "id": "example-power-gems",
+  "name": "Example: Flame and Lightning Gems",
+  "version": "1.0",
+  "defaultEnabled": false,
+  "author": "byo-pop examples",
+  "description": "Bejeweled 2's special gems. A run of 4 leaves a flame gem, which blows up the gems around it when it is matched; a run of 5 leaves a lightning gem, which clears its row and column. A blast that catches another special sets it off too. Uses its own high-score table.",
+  "settings": [
+    { "type": "section", "label": "Flame gems" },
+    { "id": "flame", "label": "Flame gems", "type": "bool", "default": true },
+    { "id": "flameFrom", "label": "Made by", "type": "choice", "default": "run4",
+      "enabledIf": { "setting": "flame", "equals": true },
+      "choices": [ { "value": "run4", "label": "A run of 4" }, { "value": "run3", "label": "Every match" } ],
+      "help": "A run of 4: Bejeweled 2. Every match: each match leaves one, which makes for a lot of blasts." },
+    { "id": "radius", "label": "Blast size", "type": "choice", "default": 1,
+      "enabledIf": { "setting": "flame", "equals": true },
+      "choices": [ { "value": 1, "label": "3 x 3" }, { "value": 2, "label": "5 x 5" }, { "value": 3, "label": "7 x 7" } ],
+      "help": "The square of gems a flame gem blows up. Bejeweled 2: 3 x 3." },
+    { "id": "flamePoints", "label": "Points a gem", "type": "int", "default": 20, "min": 0, "max": 200, "step": 5,
+      "enabledIf": { "setting": "flame", "equals": true }, "help": "For each gem a blast takes, times the multiplier." },
+    { "type": "section", "label": "Lightning gems" },
+    { "id": "lightning", "label": "Lightning gems", "type": "bool", "default": true },
+    { "id": "lightningFrom", "label": "Made by", "type": "choice", "default": "run5",
+      "enabledIf": { "setting": "lightning", "equals": true },
+      "choices": [ { "value": "run5", "label": "A run of 5" }, { "value": "crossings", "label": "A run of 5, an L or a T" } ],
+      "help": "A run of 5: Bejeweled 2. With L and T, crossing runs of one colour join into one group and make one too." },
+    { "id": "lightningPoints", "label": "Points a gem", "type": "int", "default": 30, "min": 0, "max": 200, "step": 5,
+      "enabledIf": { "setting": "lightning", "equals": true }, "help": "For each gem a bolt takes, times the multiplier." },
+    { "type": "section", "label": "Both" },
+    { "id": "chain", "label": "Blasts set off specials", "type": "bool", "default": true,
+      "help": "A special caught in a blast goes off too." },
+    { "id": "onlyMoves", "label": "Only from your own moves", "type": "bool", "default": false,
+      "help": "On: specials form only in the matches a move makes, not in the cascades after it." }
+  ],
+  "rules": {
+    "match": { "$setting": "lightningFrom", "map": { "run5": { "$omit": true }, "crossings": { "crossings": "merge" } } },
+    "specials": {
+      "flame": { "$setting": "flame", "map": { "false": { "$omit": true }, "true": {
+        "createdBy": { "$setting": "flameFrom", "map": { "run4": [ "run4" ], "run3": [ "run3" ] } },
+        "radius": { "$setting": "radius" }, "points": { "$setting": "flamePoints" } } } },
+      "lightning": { "$setting": "lightning", "map": { "false": { "$omit": true }, "true": {
+        "createdBy": { "$setting": "lightningFrom", "map": { "run5": [ "run5" ], "crossings": [ "run5", "L", "T", "plus" ] } },
+        "points": { "$setting": "lightningPoints" } } } },
+      "chain": { "$setting": "chain" },
+      "createIn": { "$setting": "onlyMoves", "map": { "true": "move", "false": "any" } }
+    }
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "id": "example-twilight",
+  "name": "Example: Twilight Gravity",
+  "version": "1.0",
+  "defaultEnabled": false,
+  "author": "byo-pop examples",
+  "description": "Bejeweled 2's Twilight: after each move that makes a match, the gems fall the other way, down and then up. The backdrop is mirrored and dimmed, the gems fall slower and the sounds play a little lower. Uses its own high-score table.",
+  "settings": [
+    { "type": "section", "label": "Gravity" },
+    { "id": "direction", "label": "Gems fall", "type": "choice", "default": "alternate",
+      "choices": [ { "value": "alternate", "label": "Down, then up" }, { "value": "up", "label": "Up" },
+                   { "value": "down", "label": "Down" } ],
+      "help": "Down, then up: Twilight, the direction changes after each move that makes a match. Up: always up." },
+    { "id": "fallAccel", "label": "Fall speed", "type": "int", "default": 75, "min": 50, "max": 1000, "step": 5,
+      "help": "How fast falling gems speed up. Bejeweled 2's Twilight is 75, the original 180." },
+    { "type": "section", "label": "Look and sound" },
+    { "id": "backdrop", "label": "Twilight backdrop", "type": "bool", "default": true,
+      "help": "The level's backdrop mirrored left to right at half brightness." },
+    { "id": "pitch", "label": "Sound pitch (semitones)", "type": "int", "default": -2, "min": -12, "max": 12,
+      "help": "Every sound effect played this many semitones higher or lower." }
+  ],
+  "rules": {
+    "board": { "gravity": { "direction": { "$setting": "direction" }, "fallAccel": { "$setting": "fallAccel" } } },
+    "look": { "backdrop": { "$setting": "backdrop", "map": { "true": "twilight", "false": "normal" } },
+              "soundPitch": { "$setting": "pitch" } }
+  }
+}

@@ -37,6 +37,7 @@
 // says (the buttons do the same while it plays). The watch holds while a modal dialog is open.
 
 #include "Replay.h"
+#include "GameStats.h"
 #include "GameConfig.h"
 #include "Buffer.h"
 
@@ -128,6 +129,8 @@ private:
 	int				mCheckDue;          // the tick the board settled at, whose CHECK must come first; -1 for none
 	bool			mBoardEnded;        // the board called NewGame (New Game's fall is over)
 	bool			mNewGameApplied;    // a NEW_GAME event was applied in the last segment
+	GameStats		mCarriedStats;      // the Stats page's counts of the board before this segment's (CreateBoard)
+	bool			mHasCarriedStats;
 	Buffer			mLoadSave;          // what the next LOAD reads
 	bool			mLastSaveExact;     // the last SAVE's bytes were compared with its hash (and a sidecar's SVHA is)
 	bool			mPrevSeeded;        // the segment before ended on an own seeded RNG ...

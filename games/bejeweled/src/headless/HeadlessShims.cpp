@@ -10,6 +10,7 @@
 #include "Widget.h"
 #include "DDImage.h"
 #include "GameConfig.h"
+#include "Board.h"
 #include "platform/VFS.h"
 
 #include <SDL.h>
@@ -102,6 +103,19 @@ std::string Sexy::StrFormat(const char* fmt ...)
 std::string GameConfig::ScopedFileName(const std::string& theFileName)
 {
 	return theFileName;
+}
+
+// ---- BoardArrowsDraw.cpp ----
+
+// The verifier draws nothing, so the arrows' art is not built: an arrow gem draws as none (the board then draws the
+// gem under it as usual)
+bool Board::DrawArrowGem(Graphics* g, Piece* thePiece, int theX, int theY)
+{
+	return false;
+}
+
+void Board::DrawArrowWarnings(Graphics* g)
+{
 }
 
 // ---- platform/VFS.cpp ----

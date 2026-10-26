@@ -1,0 +1,41 @@
+{
+  "id": "example-gold",
+  "name": "Example: Gold Board",
+  "version": "1.0",
+  "defaultEnabled": false,
+  "author": "byo-pop examples",
+  "description": "Jewel Quest's goal: every cell a match clears turns gold, and the level ends when the whole board is gold. The bar fills as the gold spreads, or shows the time left when the level has a limit (Timed), and seconds left over earn points. With no moves the board refills. Uses its own high-score table.",
+  "settings": [
+    { "type": "section", "label": "Gold" },
+    { "id": "gild", "label": "Blasts gild too", "type": "bool", "default": true,
+      "help": "With flame or lightning gems from another mod: the cells a blast clears turn gold as well." },
+    { "id": "timeBonus", "label": "Points a second left", "type": "int", "default": 10, "min": 0, "max": 100,
+      "help": "When a timed level is all gold, each second left earns this many points, times the multiplier." },
+    { "type": "section", "label": "Normal" },
+    { "id": "normalLimit", "label": "Time limit in Normal", "type": "bool", "default": false,
+      "help": "Off: Normal games have all the time they need. On: as Timed, with the times below." },
+    { "id": "normalBase", "label": "First level (seconds)", "type": "int", "default": 240, "min": 10, "max": 900, "step": 10,
+      "enabledIf": { "setting": "normalLimit", "equals": true } },
+    { "id": "normalPerLevel", "label": "Each level adds (seconds)", "type": "int", "default": -10, "min": -120, "max": 120, "step": 5,
+      "enabledIf": { "setting": "normalLimit", "equals": true }, "help": "Below zero, every level has less time." },
+    { "id": "normalMin", "label": "Never less than (seconds)", "type": "int", "default": 90, "min": 10, "max": 900, "step": 10,
+      "enabledIf": { "setting": "normalLimit", "equals": true } },
+    { "type": "section", "label": "Timed" },
+    { "id": "timedBase", "label": "First level (seconds)", "type": "int", "default": 180, "min": 10, "max": 900, "step": 10 },
+    { "id": "timedPerLevel", "label": "Each level adds (seconds)", "type": "int", "default": -10, "min": -120, "max": 120, "step": 5,
+      "help": "Below zero, every level has less time." },
+    { "id": "timedMin", "label": "Never less than (seconds)", "type": "int", "default": 60, "min": 10, "max": 900, "step": 10 }
+  ],
+  "rules": {
+    "gold": {
+      "enabled": true,
+      "gild": { "$setting": "gild", "map": { "true": "matchesAndBlasts", "false": "matches" } },
+      "timeBonus": { "$setting": "timeBonus" },
+      "timeLimit": {
+        "normal": { "$setting": "normalLimit", "map": { "false": { "$omit": true }, "true": {
+          "base": { "$setting": "normalBase" }, "perLevel": { "$setting": "normalPerLevel" }, "min": { "$setting": "normalMin" } } } },
+        "timed": { "base": { "$setting": "timedBase" }, "perLevel": { "$setting": "timedPerLevel" }, "min": { "$setting": "timedMin" } }
+      }
+    }
+  }
+}

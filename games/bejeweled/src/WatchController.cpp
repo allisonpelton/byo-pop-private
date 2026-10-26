@@ -23,8 +23,8 @@ namespace
 
 const char* EndReasonName(int theReason)
 {
-	static const char* const aNames[] = {"abandoned", "no moves", "time up", "new game", "gold time up", "saved"};
-	return ((theReason >= 0) && (theReason <= Replay::END_SAVED)) ? aNames[theReason] : "?";
+	static const char* const aNames[] = {"abandoned", "no moves", "time up", "new game", "gold time up", "saved", "arrow escaped"};
+	return ((theReason >= 0) && (theReason < Replay::NUM_END_REASONS)) ? aNames[theReason] : "?";
 }
 
 std::string RngText(const Replay::RngStart& theStart, bool isUserSeeded)
@@ -78,6 +78,7 @@ WatchController::WatchController(WinDMApp* theApp, const std::string& theFileNam
 	mCheckDue = -1;
 	mBoardEnded = false;
 	mNewGameApplied = false;
+	mHasCarriedStats = false;
 	mPrevSeeded = false;
 	mLastSaveExact = false;
 	mChecks = 0;
@@ -246,6 +247,7 @@ bool WatchController::Start()
 	mOther.mConfig.mAnyModEnabled = gGameConfig.mAnyModEnabled;
 	mOther.mConfig.mForceVariant = gGameConfig.mForceVariant;
 	mOther.mConfig.mReplayDir = gGameConfig.mReplayDir;
+	mOther.mConfig.mFeatures.mGameStats = gGameConfig.mFeatures.mGameStats; // the Stats page: it counts, it plays nothing
 	mOther.mDiff = mRules.mDiff;
 	mSavedTimedMode = mApp->mTimedMode;
 	mStatus = STATUS_PLAYING;
@@ -268,6 +270,10 @@ void WatchController::CreateBoard()
 		anApp->SafeDeleteWidget(anApp->mHighScoreWidget);
 		anApp->mHighScoreWidget = NULL;
 	}
+	// The Stats page (GameStats.h): the counts of the segment before go on after this segment's LOAD
+	mHasCarriedStats = (anApp->mBoard != NULL) && (anApp->mBoard->mStats != NULL);
+	if (mHasCarriedStats)
+		mCarriedStats = *anApp->mBoard->mStats;
 	if (anApp->mBoard != NULL)
 	{
 		anApp->mWidgetManager->RemoveWidget(anApp->mBoard);
@@ -642,6 +648,19 @@ bool WatchController::Apply(const Replay::Event& theEvent)
 				isOk = false;
 				break;
 			}
+			// The Stats page counts the whole game: the segment before saved it, unless the replay holds only the save
+			if (b->mStats != NULL)
+			{
+				bool isCarried = mHasCarriedStats && !aSegment.mHasLoadSave;
+				if (isCarried)
+					*b->mStats = mCarriedStats;
+				else
+				{
+					*b->mStats = GameStats();
+					b->mStats->mFromResume = true;
+				}
+				b->mStats->OnLoad(b);
+			}
 			// A game the segment before played on its own seed goes on with that RNG as it was at the save (6.5)
 			const Replay::RngState& aRng = aSegment.mLoadRng;
 			if (!aSegment.mHasLoadSave && mPrevSeeded && !SameRng(aRng, mPrevRng))
@@ -717,7 +736,8 @@ bool WatchController::Finish()
 	const std::vector<Replay::Event>& anEvents = mFile.mSegments[mSegment].mEvents;
 	bool isGameOver = (b->mState == STATE_GAME_OVER_DONE);
 	std::string aWhy;
-	if ((anEnd.mReason == Replay::END_NO_MOVES) || (anEnd.mReason == Replay::END_TIME_UP) || (anEnd.mReason == Replay::END_GOLD_TIME_UP))
+	if ((anEnd.mReason == Replay::END_NO_MOVES) || (anEnd.mReason == Replay::END_TIME_UP) || (anEnd.mReason == Replay::END_GOLD_TIME_UP) ||
+		(anEnd.mReason == Replay::END_ARROW_ESCAPED))
 	{
 		if (!isGameOver)
 			aWhy = "END says the game was over, the board is not";

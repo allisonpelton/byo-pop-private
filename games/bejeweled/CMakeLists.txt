@@ -3,7 +3,7 @@
 # Web: bejeweled.html/.js/.wasm; its page (web/shell.html with web/page.js and page.css here) imports the user's game
 # files into /persist (IDBFS)
 # and starts the game with callMain().
-file(GLOB GAME_SOURCES CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp)
+file(GLOB GAME_SOURCES CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp ${CMAKE_CURRENT_SOURCE_DIR}/src/art/*.cpp)
 list(REMOVE_ITEM GAME_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/src/main.cpp)
 # Test hooks (-tracehash, -autoplay): test code kept out of the game code (the autoplay bot has its own RNG)
 file(GLOB TESTHOOK_SOURCES CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/src/testhooks/*.cpp)
@@ -64,8 +64,8 @@ endif()
 option(BUILD_VERIFY "Build the headless replay verifier" ON)
 if(BUILD_VERIFY)
   add_executable(bejeweled_verify
-    src/Board.cpp src/BoardRules.cpp src/BoardVariant.cpp src/BoardSave.cpp src/BoardShape.cpp src/BoardDrawVariant.cpp src/BoardTrace.cpp src/BoardMatch.cpp src/BoardMoves.cpp src/BoardSpecials.cpp src/BoardGold.cpp src/GameConfig.cpp src/GameRules.cpp
-    src/MatchFinder.cpp src/MoveSet.cpp src/Specials.cpp src/StateCodec.cpp src/Replay.cpp src/Sha256.cpp src/WatchController.cpp
+    src/Board.cpp src/BoardRules.cpp src/BoardVariant.cpp src/BoardSave.cpp src/BoardShape.cpp src/BoardDrawVariant.cpp src/BoardTrace.cpp src/BoardMatch.cpp src/BoardMoves.cpp src/BoardSpecials.cpp src/BoardGold.cpp src/BoardArrows.cpp src/GameConfig.cpp src/GameRules.cpp
+    src/MatchFinder.cpp src/MoveSet.cpp src/Specials.cpp src/StateCodec.cpp src/Replay.cpp src/Sha256.cpp src/WatchController.cpp src/GameStats.cpp
     src/headless/HeadlessShims.cpp src/headless/WinDMAppHeadless.cpp src/headless/ReplayRecorderHeadless.cpp
     src/headless/DiffBot.cpp src/headless/Verifier.cpp src/headless/verify_main.cpp
     ${PROJECT_SOURCE_DIR}/framework/MTRand.cpp ${PROJECT_SOURCE_DIR}/framework/Buffer.cpp

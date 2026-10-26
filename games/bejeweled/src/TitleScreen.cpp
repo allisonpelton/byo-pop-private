@@ -100,6 +100,13 @@ void TitleScreen::Draw(Graphics* g)
 	g->SetColor(Color(128, 128, 128));
 	SexyString aVersion = mApp->GetString("VERSION") + _S(" ") + StringToSexyStringFast(mApp->mProductVersion);
 	g->DrawString(aVersion, 537 - g->GetFont()->StringWidth(aVersion)/2, 221);
+
+	// port(variant): code-drawn art plays on without the game's sound files (features.codeArt), and says so
+	if (mApp->mMissingSounds > 0)
+	{
+		SexyString aSilent = mApp->GetString("CODEART_SILENT", _S("No sound files found: playing silent"));
+		g->DrawString(aSilent, (mWidth - g->GetFont()->StringWidth(aSilent)) / 2, 452);
+	}
 }
 
 // 0x4d3c6a

@@ -26,6 +26,7 @@ class Graphics;
 class WidgetManager;
 class HyperlinkWidget;
 class DDImage;
+class GameStatsPage;
 
 class HighScoreWidget : public Widget, public ButtonListener
 {
@@ -37,6 +38,7 @@ public:
 		HIGHSCORE_CHECKSUM_KEY = 0x42BEEF,
 		PLAY_AGAIN_LINK_ID = 0,
 		WATCH_REPLAY_LINK_ID = 1,       // port(variant)
+		STATS_LINK_ID = 2,              // port(variant)
 		SLIDE_SPEED = 8,                // px per tick
 		PANEL_CLIP_BOTTOM = 436
 	};
@@ -61,6 +63,10 @@ public:
 	// sliding with the panel like the play-again link. Hidden until Update finds the file written, NULL without the
 	// feature, so the screen stays the original's.
 	HyperlinkWidget* mWatchReplayLink;
+	// port(variant): "STATS" (stage 17, 4.19): with features.gameStats, at the left of the SEED line's row, opening the
+	// Stats page (GameStatsPage.h) over the board window; NULL without the feature. mStatsPage is the open page.
+	HyperlinkWidget* mStatsLink;
+	GameStatsPage*	mStatsPage;
 
 public:
 	static int		GetDayNumber();                                 // 0x4ced59 tm_year*366 + tm_yday (thiscall, this unused)
@@ -85,6 +91,8 @@ public:
 	static void		DrawCenteredString(Graphics* g, const SexyString& theString, int theCenterX, int theY);
 	static void		DrawHeading(Graphics* g, const SexyString& theString, int theCenterX, int theY); // centered, 1 px underline at y+3
 	static void		DrawScoreRow(Graphics* g, const SexyString& theName, int theScore, int theCenterX, int theY); // name at x-74, score right-aligned at x+74
+
+	void			CloseStats();                                   // port(variant): the Stats page's click
 
 	using Widget::Resize;
 };

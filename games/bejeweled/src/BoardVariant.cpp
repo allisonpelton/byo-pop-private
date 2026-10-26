@@ -55,7 +55,7 @@ void Board::InitVariant(WinDMApp* theApp)
 	mLevelShape = 0;
 	mCols = mLayout.mCols;
 	mRows = mLayout.mRows;
-	mFastScoreRoll = mRules.ScoringTunablesChanged();
+	mFastScoreRoll = mRules.ScoringTunablesChanged() || mRules.mArrows.mEnabled; // arrows: a bonus that grows each clear (4.20)
 	mMatchSpec = MatchFinder::Spec::FromRules(mRules);
 
 #ifndef BEJ_NO_VARIANTS
@@ -109,6 +109,10 @@ void Board::InitVariant(WinDMApp* theApp)
 	mDragOffset = 0;
 	mDragStart = 0;
 	mDragLength = 0;
+	mArrowMoves = 0;
+	mArrowsCleared = 0;
+	mArrowStepDue = false;
+	mArrowTick = 0;
 
 	// The RNG source WinDMApp::NewGame chose (WinDMApp::ChooseBoardRng), taken once: a board made any other
 	// way draws from the global stream
@@ -146,6 +150,7 @@ void Board::InitVariant(WinDMApp* theApp)
 	mVariant.mOwnRng = (mOwnRng != NULL);
 #endif
 
+	mStats = gGameConfig.mFeatures.mGameStats ? new GameStats() : NULL; // the Stats page (features.gameStats, GameStats.h)
 	// Replays: WinDMApp::NewGame attaches a recorder after the constructor; the stream it records from starts
 	// here, before the constructor's first draw (6.2: a seed, or the global stream's state)
 	mRecorder = NULL;
@@ -260,6 +265,7 @@ Board::Board(WinDMApp* theApp, ScratchBoardTag)
 	mRanked = false;
 	mBoardDraws = 0;
 	mTakesPendingSeed = false;
+	mStats = NULL;
 	mRecorder = NULL;
 	mPlaybackOnly = true;
 	mPlaybackApplying = false;
@@ -295,7 +301,9 @@ void Board::UsePendingSeed()
 void Board::OnMoveMade()
 {
 	mMoveCount++;
+	if (mStats != NULL) mStats->OnMove(this);
 	UsePendingSeed();
+	OnArrowMove(); // stage 18: its settle steps the arrows (BoardArrows.cpp)
 }
 
 // UpdateSwap (0x4cd84f) with moves.allowInvalid: the swap made no match and stays (4.1). The two gems are in
@@ -330,6 +338,7 @@ void Board::KeepInvalidMove()
 			mApp->KillDialog(DIALOG_INSTRUCTIONS);
 		}
 	}
+	int aScoreBefore = mScore;
 	if (mRules.mMoves.mInvalidPenalty != 0)
 	{
 		mScore = (int)((double)mScore - mPointMultiplier * mRules.mMoves.mInvalidPenalty);
@@ -337,6 +346,7 @@ void Board::KeepInvalidMove()
 			mScore = 0;
 	}
 	mInvalidMoves++;
+	if (mStats != NULL) mStats->OnInvalidKept(aScoreBefore - mScore);
 	if (mRules.mMoves.mInvalidCountsAsMove)
 	{
 		mIsNewGame = false;
@@ -345,6 +355,7 @@ void Board::KeepInvalidMove()
 	mApp->PlaySample(SOUND_BAD);
 	mState = STATE_FALLING;
 	mGravityNoFlip = true; // its settle does not flip "alternate" (4.16)
+	OnArrowMove(); // the kept move steps the arrows, counted as a move or not (4.20)
 }
 
 // UpdateFalling (0x4cd687): the board settled with no match and no move left (4.1). The mode's noMoves rule:
@@ -480,6 +491,7 @@ void Board::GameLoadedVariant(const Buffer& theSave)
 	mResumed = true;
 	mTakesPendingSeed = false;
 	mUndoStack.clear(); // a save holds no undo snapshots (4.12)
+	mStatsUndo.clear();
 	if (mVariant.mAny)
 		ReadVariantChunks(theSave);
 	// Stage 7: the loaded level's background, in its shape (BoardShape.cpp); not under -forcevariant, which keeps
@@ -519,6 +531,16 @@ void Board::GameLoadedVariant(const Buffer& theSave)
 
 	if (mRecorder != NULL)
 		mRecorder->OnLoad(aSave, hasSidecar ? &aSidecar : NULL);
+	// The Stats page goes on with the saved game's counts; without them it counts from here, and says so
+	if (mStats != NULL)
+	{
+		if (!(hasSidecar && aSidecar.mHasStats && mStats->Decode(aSidecar.mStats)))
+		{
+			*mStats = GameStats();
+			mStats->mFromResume = true;
+		}
+		mStats->OnLoad(this);
+	}
 }
 
 // LoadGame (0x4cca98) reads the save from the file, or a replay's board the bytes the replay's last SAVE
@@ -631,11 +653,30 @@ static std::string RngSidecar(Board* theBoard, const std::string& theSave)
 // does: a resume from that backup goes on with the right RNG, as a fresh replay that holds the save.
 std::string Board::SidecarSnapshot(const std::string& theSave)
 {
+	std::string aSidecar;
 	if ((mRecorder != NULL) && mRecorder->FitsBackup())
-		return mRecorder->SnapshotSidecar(theSave);
-	if ((mOwnRng != NULL) && !mVariant.mAny)
-		return RngSidecar(this, theSave);
-	return "";
+		aSidecar = mRecorder->SnapshotSidecar(theSave);
+	else if ((mOwnRng != NULL) && !mVariant.mAny)
+		aSidecar = RngSidecar(this, theSave);
+	AddStatsToSidecar(&aSidecar, theSave);
+	return aSidecar;
+}
+
+// The Stats page's counts (features.gameStats, GameStats.h) as the sidecar's STAT record. A save that has no sidecar
+// gets one that holds only them, with no RNG (the resume stays on its stream) and no recording.
+void Board::AddStatsToSidecar(std::string* theSidecar, const std::string& theSave)
+{
+	if (mStats == NULL)
+		return;
+	if (theSidecar->empty())
+	{
+		Replay::File aFile;
+		aFile.mHasSaveHash = true;
+		aFile.mSaveHash = Replay::SaveHash(theSave.data(), theSave.size());
+		aFile.mEnd = GetEndInfo(Replay::END_SAVED);
+		*theSidecar = Replay::Write(aFile);
+	}
+	Replay::AddStats(theSidecar, mStats->Encode());
 }
 
 // SaveGame (0x4ccdfe), just before the save is written: a recording records SAVE and leaves the game so far
@@ -656,6 +697,7 @@ void Board::WriteSaveSidecar(const Buffer& theSave)
 	}
 	else if ((mOwnRng != NULL) && !mVariant.mAny)
 		aSidecar = RngSidecar(this, aSave);
+	AddStatsToSidecar(&aSidecar, aSave);
 	if (aSidecar.empty())
 	{
 		mApp->EraseFile(GetSidecarFileName());
@@ -713,12 +755,21 @@ void Board::TakeUndoSnapshot()
 	mUndoStack.push_back(StateCodec::Encode(this, StateCodec::PROFILE_UNDO));
 	if ((int) mUndoStack.size() > mRules.mUndo.mDepth)
 		mUndoStack.erase(mUndoStack.begin());
+	// The Stats page's counts go with the snapshot (GameStats.h): the undo takes back the move's counts too
+	if (mStats != NULL)
+	{
+		mStatsUndo.push_back(*mStats);
+		if (mStatsUndo.size() > mUndoStack.size())
+			mStatsUndo.erase(mStatsUndo.begin());
+	}
 }
 
 void Board::PopUndoSnapshot()
 {
 	if (!mUndoStack.empty())
 		mUndoStack.pop_back();
+	if (!mStatsUndo.empty())
+		mStatsUndo.pop_back();
 }
 
 // In play, unpaused, a move to take back, undo.max not reached, and in timed mode only with undo.inTimed
@@ -777,6 +828,7 @@ void Board::Undo()
 {
 	std::string aSnapshot = mUndoStack.back();
 	mUndoStack.pop_back();
+	int aScoreBefore = 0;
 	double aTimeDrain = mTimeDrain;
 	double aTimeDrainRate = mTimeDrainRate;
 	int aTimeDrainDelay = mTimeDrainDelay;
@@ -819,6 +871,7 @@ void Board::Undo()
 	mHintGlowTimer = 0;
 	mHintGlowAlpha = 0.0;
 	mIdleTicks = 0;
+	aScoreBefore = mScore;
 	if (mRules.mUndo.mPenalty != 0)
 	{
 		mScore = (int)((double)mScore - mPointMultiplier * mRules.mUndo.mPenalty);
@@ -826,6 +879,11 @@ void Board::Undo()
 			mScore = 0;
 	}
 	mUndosUsed++;
+	if ((mStats != NULL) && !mStatsUndo.empty())
+	{
+		mStats->OnUndone(mStatsUndo.back(), aScoreBefore - mScore);
+		mStatsUndo.pop_back();
+	}
 	ShowText(mApp->GetString("UNDO", _S("UNDO")), 150); // 75 ticks in, 75 out (ColorizeText)
 	MarkDirty();
 }
@@ -863,12 +921,13 @@ VariantFlags Board::ComputeVariantFlags(const GameRules& theRules, const GameFea
 	aFlags.mSpecials = hasSpecials;
 	aFlags.mGold = theRules.mGold.mEnabled;
 	aFlags.mUndo = theRules.mUndo.mEnabled;
-	aFlags.mMatch = hasPatterns || (aMatch.mMinRun != 3) || hasSpecials || aFlags.mGold;
+	aFlags.mArrows = theRules.mArrows.mEnabled;
+	aFlags.mMatch = hasPatterns || (aMatch.mMinRun != 3) || hasSpecials || aFlags.mGold || aFlags.mArrows;
 	aFlags.mSearch = hasPatterns || (aMatch.mMinRun != 3) || hasNonSwapMoves;
 	aFlags.mMoves = (theRules.mMoves.mTypes & (GameRules::MOVE_TWIST | GameRules::MOVE_SLIDE)) != 0;
 	aFlags.mInvalid = theRules.mMoves.mAllowInvalid;
 	aFlags.mNoMoves = (theRules.mNoMoves.mNormal != GameRules::NOMOVES_GAME_OVER) || (theRules.mNoMoves.mTimed != GameRules::NOMOVES_FALL_OUT);
-	aFlags.mDraw = aFlags.mShape || hasSpecials || aFlags.mGold || hasNonSwapMoves || aFlags.mNoTutorial;
+	aFlags.mDraw = aFlags.mShape || hasSpecials || aFlags.mGold || hasNonSwapMoves || aFlags.mNoTutorial || aFlags.mArrows;
 	// Gravity (4.16): look.backdrop is no variant rule (mAny), but its tiles take the checker path
 	aFlags.mGravity = theRules.mBoard.mGravity != GameRules::GRAVITY_DOWN;
 	aFlags.mFall = aFlags.mShape || aFlags.mGravity || (theRules.mBoard.mFallAccel != GameRules::DEFAULT_FALL_ACCEL);
@@ -878,7 +937,8 @@ VariantFlags Board::ComputeVariantFlags(const GameRules& theRules, const GameFea
 	return aFlags;
 }
 
-// Update (0x4cdabc), before the score roll, on a board with a mod's scoring tunables (mFastScoreRoll). The roll
+// Update (0x4cdabc), before the score roll, on a board with a mod's scoring tunables or arrow gems, whose bonus grows
+// with each arrow cleared (mFastScoreRoll). The roll
 // moves the displayed score 3 times the multiplier a tick at most, which suits the original's points; with a
 // mod's thousands a match it falls levels behind, and Update's level-up and TIME_UP tests read the displayed
 // score: the next level, which starts at the real score, ends at once in TIME_UP (or a hint penalty of

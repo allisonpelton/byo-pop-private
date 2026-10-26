@@ -126,6 +126,29 @@ Git and publishing:
   engine, goes to the cheapest remaining game. New game sessions list the mods worth making but make none without
   the user's approval, and no further game gets mods until every PopCap game works in the browser (Noah's Ark's
   mods were the one exception, part of the Sonnet trial).
+- **No references (the user, 2026-10-26):** no port reads another project's decompilation, reimplementation, mod
+  kit, class layouts or address maps (Thunderball, haggle, WinFish, CircleShootApp, PvZ-Portable, the Pizza Frenzy
+  decompilation and the like); work from our own Ghidra export. PopCap's released SexyAppFramework source, the open
+  libraries a game itself uses and descriptions of file formats are fine.
+- **Which games, and where they are published (the user, 2026-10-26):** every game may be decompiled except Plants vs.
+  Zombies, Insaniquarium and Zuma Deluxe, whose fan communities we leave to their work. A game with another PC decompilation in
+  progress or an active modding community is built but unpublished: its folder goes into `.publishignore` and it stays
+  off the website. The "Published" column of `docs/POPCAP_GAMES_SURVEY.md` section 4 says which.
+- **Mods (the user, 2026-10-26):** code that makes a game moddable makes things configurable (rules, settings and
+  their ranges in `mod.json` and the mod menu); it never just overwrites the original, which plays unchanged with
+  no mod on. Every mod is data: a feature's code lives in the port, and a mod's `features` or `rules` turns it on.
+  So each feature the port adds also ships a mod that turns it on. There are three kinds of mod:
+  - An **example** mod has `example` in its name (`example-flame-gems`, `example-twist`). It shows how a single
+    feature can be configured, for playing with its settings and finding which features work well together. It
+    starts off (`"defaultEnabled": false`).
+  - A **feature** mod gives the player one feature under its own name (BookWorm's `widescreen` or `undo`). Its
+    settings are in the mod menu.
+  - A **curated** mod gives the player a tuned experience, much like a fan game: features, settings and art
+    chosen to play well together. It never copies a game mode from another game (the user, 2026-10-26): it always
+    has a twist of its own that makes a player want to pick it over the game it draws on. A port may implement
+    features from other games so that they can be recombined in new ways, and it is fine if a player can combine them
+    into something close to another game's mode; a curated mod itself is never just that mode. Bejeweled 2's
+    Twilight alone in Bejeweled is not interesting, but with other tunables it can be.
 - **Model selection (the user's rule, decided after the Sonnet trial on 2026-10-25):** a game whose port can
   largely copy another game's (the same framework generation and engine: Noah's Ark's for Seven Seas and Atomica,
   BookWorm's for Pixelus and Typer Shark, Big Money's for Hammer Heads, Bejeweled's for Bejeweled 2, a sequel after

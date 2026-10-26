@@ -36,7 +36,7 @@ enum FieldKind
 	KIND_SHAPES = 9,        // keyed: merged per id
 	KIND_BONUS = 10,        // keyed: merged per id
 	KIND_SPECIAL = 11,
-	KIND_MOVE_TYPES = 12    // a set of MoveType bits
+	KIND_MOVE_TYPES = 12    // a set of bits, one per name of mNames: moves.type, arrows.directions
 };
 
 // Atomic groups (3.5): the highest-priority mod that sets any key of a group supplies all of it
@@ -48,6 +48,7 @@ enum FieldGroup
 	GROUP_GOLD,
 	GROUP_UNDO,
 	GROUP_GRAVITY,
+	GROUP_ARROWS,
 	NUM_GROUPS
 };
 
@@ -81,6 +82,7 @@ const char* const gGildNames[] = {"matches", "matchesAndBlasts"};
 const char* const gMoveTypeNames[] = {"swap", "twist", "slide"};
 const char* const gGravityNames[] = {"down", "up", "alternate"};
 const char* const gBackdropNames[] = {"normal", "twilight"};
+const char* const gArrowNames[] = {"up", "right", "down", "left"}; // GameRules::ArrowDirection
 
 #define RULE_FIELD(theMember) [](GameRules* r) -> void* { return &r->theMember; }
 #define RULE_NAMES(theNames) theNames, (int) (sizeof(theNames) / sizeof(theNames[0]))
@@ -96,7 +98,7 @@ const FieldDef gFields[] =
 	{6, "board.dirtPoints", KIND_INT, GROUP_NONE, 0, 0, 1000000, NULL, 0, RULE_FIELD(mBoard.mDirtPoints)},
 	{7, "board.gravity.direction", KIND_ENUM, GROUP_GRAVITY, 0, 0, 0, RULE_NAMES(gGravityNames), RULE_FIELD(mBoard.mGravity)},
 	{8, "board.gravity.fallAccel", KIND_INT, GROUP_GRAVITY, FLAG_CLAMP, 50, 1000, NULL, 0, RULE_FIELD(mBoard.mFallAccel)},
-	{16, "moves.type", KIND_MOVE_TYPES, GROUP_MOVES, 0, 0, 0, NULL, 0, RULE_FIELD(mMoves.mTypes)},
+	{16, "moves.type", KIND_MOVE_TYPES, GROUP_MOVES, 0, 0, 0, RULE_NAMES(gMoveTypeNames), RULE_FIELD(mMoves.mTypes)},
 	{17, "moves.twist.direction", KIND_ENUM, GROUP_MOVES, FLAG_BOOL, 0, 0, RULE_NAMES(gTwistNames), RULE_FIELD(mMoves.mTwistBoth)},
 	{18, "moves.slide.snapTicks", KIND_INT, GROUP_MOVES, FLAG_CLAMP, 4, 60, NULL, 0, RULE_FIELD(mMoves.mSlideSnapTicks)},
 	{19, "moves.allowInvalid", KIND_BOOL, GROUP_NONE, 0, 0, 0, NULL, 0, RULE_FIELD(mMoves.mAllowInvalid)},
@@ -136,7 +138,12 @@ const FieldDef gFields[] =
 	{129, "timing.levelDrainDelay", KIND_INT, GROUP_NONE, FLAG_TUNABLE, INT_MIN, INT_MAX, NULL, 0, RULE_FIELD(mTunables.mLevelDrainDelay)},
 	{130, "timing.warningFraction", KIND_DOUBLE, GROUP_NONE, FLAG_TUNABLE, 0, 0, NULL, 0, RULE_FIELD(mTunables.mWarningFraction)},
 	{144, "look.backdrop", KIND_ENUM, GROUP_NONE, FLAG_LOOK, 0, 0, RULE_NAMES(gBackdropNames), RULE_FIELD(mLook.mBackdrop)},
-	{145, "look.soundPitch", KIND_INT, GROUP_NONE, FLAG_LOOK | FLAG_CLAMP, -12, 12, NULL, 0, RULE_FIELD(mLook.mSoundPitch)}
+	{145, "look.soundPitch", KIND_INT, GROUP_NONE, FLAG_LOOK | FLAG_CLAMP, -12, 12, NULL, 0, RULE_FIELD(mLook.mSoundPitch)},
+	{160, "arrows.enabled", KIND_BOOL, GROUP_ARROWS, 0, 0, 0, NULL, 0, RULE_FIELD(mArrows.mEnabled)},
+	{161, "arrows.directions", KIND_MOVE_TYPES, GROUP_ARROWS, 0, 0, 0, RULE_NAMES(gArrowNames), RULE_FIELD(mArrows.mDirections)},
+	{162, "arrows.every", KIND_INT, GROUP_ARROWS, FLAG_CLAMP, 1, 100, NULL, 0, RULE_FIELD(mArrows.mEvery)},
+	{163, "arrows.everyMin", KIND_INT, GROUP_ARROWS, FLAG_CLAMP, 1, 100, NULL, 0, RULE_FIELD(mArrows.mEveryMin)},
+	{164, "arrows.bonus", KIND_INT, GROUP_ARROWS, 0, 0, 1000000, NULL, 0, RULE_FIELD(mArrows.mBonus)}
 };
 
 const int NUM_FIELDS = (int) (sizeof(gFields) / sizeof(gFields[0]));
@@ -145,7 +152,7 @@ const int NUM_FIELDS = (int) (sizeof(gFields) / sizeof(gFields[0]));
 const char* const gNamespaces[] =
 {
 	"board", "board.gravity", "moves", "moves.twist", "moves.slide", "noMoves", "match", "specials", "gold",
-	"gold.timeLimit", "undo", "scoring", "timing", "look"
+	"gold.timeLimit", "undo", "scoring", "timing", "look", "arrows"
 };
 
 const char* const ADD_TYPES_KEY = "moves.addTypes";
@@ -1048,10 +1055,10 @@ JsonValue ValueJson(const FieldDef& theField, const GameRules& theRules)
 	{
 		JsonValue anArray = JsonValue::MakeArray();
 		int aTypes = FieldRef<int>(theField, theRules);
-		for (int i = 0; i < 3; i++)
+		for (int i = 0; i < theField.mNameCount; i++)
 		{
 			if (aTypes & (1 << i))
-				anArray.Push(JsonValue(std::string(gMoveTypeNames[i])));
+				anArray.Push(JsonValue(std::string(theField.mNames[i])));
 		}
 		return anArray;
 	}
@@ -1327,7 +1334,9 @@ bool ParseShape(const std::string& theKey, const JsonValue& theValue, ShapePatte
 	return true;
 }
 
-bool ParseMoveTypes(const std::string& theKey, const JsonValue& theValue, int* theTypes, ParseLog& theLog)
+// A name or a list of names (moves.type, moves.addTypes, arrows.directions): a bit for each, at its index
+bool ParseNameSet(const std::string& theKey, const JsonValue& theValue, const char* const* theNames, int theNameCount,
+	int* theTypes, ParseLog& theLog)
 {
 	*theTypes = 0;
 	std::vector<JsonValue> aNames;
@@ -1338,9 +1347,9 @@ bool ParseMoveTypes(const std::string& theKey, const JsonValue& theValue, int* t
 	for (size_t i = 0; i < aNames.size(); i++)
 	{
 		int aType = -1;
-		for (int j = 0; j < 3; j++)
+		for (int j = 0; j < theNameCount; j++)
 		{
-			if (aNames[i].IsString() && (aNames[i].AsString() == gMoveTypeNames[j]))
+			if (aNames[i].IsString() && (aNames[i].AsString() == theNames[j]))
 				aType = j;
 		}
 		if (aType < 0)
@@ -1351,7 +1360,12 @@ bool ParseMoveTypes(const std::string& theKey, const JsonValue& theValue, int* t
 		*theTypes |= 1 << aType;
 	}
 	if (*theTypes == 0)
-		return theLog.Error(theKey + " must be \"swap\", \"twist\", \"slide\" or a list of them");
+	{
+		std::string aList;
+		for (int j = 0; j < theNameCount; j++)
+			aList += std::string(j == 0 ? "" : ", ") + "\"" + theNames[j] + "\"";
+		return theLog.Error(theKey + " must be " + aList + " or a list of them");
+	}
 	return true;
 }
 
@@ -1449,7 +1463,7 @@ bool ParseStrict(const FieldDef& theField, const JsonValue& theValue, GameRules&
 	case KIND_SPECIAL:
 		return ParseSpecial(aKey, theValue, aKey == "specials.flame", &FieldRef<SpecialRule>(theField, theRules), theLog);
 	case KIND_MOVE_TYPES:
-		return ParseMoveTypes(aKey, theValue, &FieldRef<int>(theField, theRules), theLog);
+		return ParseNameSet(aKey, theValue, theField.mNames, theField.mNameCount, &FieldRef<int>(theField, theRules), theLog);
 	}
 	return theLog.Error(aKey + " cannot be set this way");
 }
@@ -1626,7 +1640,7 @@ void WalkRules(ModView& theView, const JsonValue& theObject, const std::string& 
 				theView.mAddTypesReset = true;
 			}
 			else
-				ParseMoveTypes(aPath, aValue, &theView.mAddTypes, theLog);
+				ParseNameSet(aPath, aValue, gMoveTypeNames, 3, &theView.mAddTypes, theLog);
 			continue;
 		}
 		int aField = FindField(aPath);
@@ -2208,6 +2222,14 @@ bool GameRules::PlaysAlikeInEveryEngine() const
 	return !HasVariantRules() && !ScoringTunablesChanged() && (mBoard.mGemColors <= ORIGINAL_GEM_COLORS);
 }
 
+// arrows.every at level 1 (theLevel 0), a move fewer each level, never below arrows.everyMin (nor every, when
+// everyMin is the larger: then every level takes every)
+int GameRules::ArrowInterval(int theLevel) const
+{
+	int aMin = std::min(mArrows.mEveryMin, mArrows.mEvery);
+	return std::max(aMin, mArrows.mEvery - theLevel);
+}
+
 bool GameRules::HasDirtRule() const
 {
 	for (int aLevel = 0; aLevel < ShapeCount(); aLevel++)
@@ -2749,6 +2771,10 @@ std::string GameFeatures::Text() const
 		aParts.push_back(std::string("leaderboard(") + (mRankedAlways ? "always" : "ask") + ")");
 	if (mLiveSplit)
 		aParts.push_back("livesplit");
+	if (mCodeArt)
+		aParts.push_back("codeArt(gems " + mCodeArtGems + ", palette " + mCodeArtPalette + ")");
+	if (mGameStats)
+		aParts.push_back("gameStats");
 	std::string aText;
 	for (size_t i = 0; i < aParts.size(); i++)
 		aText += (i ? ", " : "") + aParts[i];
@@ -2758,8 +2784,10 @@ std::string GameFeatures::Text() const
 namespace
 {
 
-enum { FEATURE_SEEDS, FEATURE_REPLAYS, FEATURE_LEADERBOARD, FEATURE_LIVESPLIT, NUM_FEATURES };
-const char* const gFeatureNames[NUM_FEATURES] = {"seeds", "replays", "leaderboard", "livesplit"};
+enum { FEATURE_SEEDS, FEATURE_REPLAYS, FEATURE_LEADERBOARD, FEATURE_LIVESPLIT, FEATURE_CODEART, FEATURE_GAMESTATS, NUM_FEATURES };
+const char* const gFeatureNames[NUM_FEATURES] = {"seeds", "replays", "leaderboard", "livesplit", "codeArt", "gameStats"};
+const char* const gCodeArtGems[] = {"cel", "glossy", "su"};
+const char* const gCodeArtPalettes[] = {"blue", "violet", "emerald", "ember", "night"};
 
 // One feature's value: false / null (off), true (on with its defaults) or its options object
 bool ParseFeature(int theFeature, const JsonValue& theValue, GameFeatures* theOut, ParseLog& theLog)
@@ -2790,6 +2818,15 @@ bool ParseFeature(int theFeature, const JsonValue& theValue, GameFeatures* theOu
 	case FEATURE_LIVESPLIT:
 		// no options yet: an object turns it on like true, and each of its members is an unknown key
 		theOut->mLiveSplit = anOn;
+		break;
+	case FEATURE_CODEART:
+		theOut->mCodeArt = anOn;
+		theOut->mCodeArtGems = "cel";
+		theOut->mCodeArtPalette = "blue";
+		break;
+	case FEATURE_GAMESTATS:
+		// no options: an object turns it on like true, and each of its members is an unknown key
+		theOut->mGameStats = anOn;
 		break;
 	}
 	if (!theValue.IsObject())
@@ -2824,6 +2861,22 @@ bool ParseFeature(int theFeature, const JsonValue& theValue, GameFeatures* theOu
 				return theLog.Error(aSubKey + " must be \"ask\" or \"always\"");
 			theOut->mRankedAlways = aValue.AsString() == "always";
 		}
+		else if ((theFeature == FEATURE_CODEART) && ((aName == "gems") || (aName == "palette")))
+		{
+			bool isGems = aName == "gems";
+			const char* const* aNames = isGems ? gCodeArtGems : gCodeArtPalettes;
+			int aCount = isGems ? 3 : 5;
+			std::string aList;
+			bool isKnown = false;
+			for (int k = 0; k < aCount; k++)
+			{
+				aList += std::string(k ? ", " : "") + "\"" + aNames[k] + "\"";
+				isKnown |= aValue.IsString() && (aValue.AsString() == aNames[k]);
+			}
+			if (!isKnown)
+				return theLog.Error(aSubKey + " must be one of " + aList);
+			(isGems ? theOut->mCodeArtGems : theOut->mCodeArtPalette) = aValue.AsString();
+		}
 		else
 		{
 			std::vector<std::string> aKnown;
@@ -2833,6 +2886,8 @@ bool ParseFeature(int theFeature, const JsonValue& theValue, GameFeatures* theOu
 				aKnown = {aKey + ".keep", aKey + ".hover"};
 			else if (theFeature == FEATURE_LEADERBOARD)
 				aKnown = {aKey + ".ranked"};
+			else if (theFeature == FEATURE_CODEART)
+				aKnown = {aKey + ".gems", aKey + ".palette"};
 			theLog.Warning(UnknownKey(aSubKey, aKnown));
 		}
 	}
@@ -2860,7 +2915,7 @@ void Sexy::MergeFeatures(const std::vector<RulesSource>& theSources, GameFeature
 			continue;
 		ParseLog aLog;
 		GameFeatures aParsed;
-		bool aSet[NUM_FEATURES] = {false, false, false, false};
+		bool aSet[NUM_FEATURES] = {};
 		if (!aSource.mFeatures.IsObject())
 			aLog.Error("\"features\" must be an object");
 		else
@@ -2911,11 +2966,19 @@ void Sexy::MergeFeatures(const std::vector<RulesSource>& theSources, GameFeature
 				aMerged.mLeaderboard = aParsed.mLeaderboard;
 				aMerged.mRankedAlways = aParsed.mRankedAlways;
 			}
-			else
+			else if (k == FEATURE_LIVESPLIT)
 			{
 				aMerged.mLiveSplit = aParsed.mLiveSplit;
 				aMerged.mLiveSplitMod = aParsed.mLiveSplit ? aSource.mModId : std::string();
 			}
+			else if (k == FEATURE_CODEART)
+			{
+				aMerged.mCodeArt = aParsed.mCodeArt;
+				aMerged.mCodeArtGems = aParsed.mCodeArtGems;
+				aMerged.mCodeArtPalette = aParsed.mCodeArtPalette;
+			}
+			else
+				aMerged.mGameStats = aParsed.mGameStats;
 			GameFeatures aText;
 			if (k == FEATURE_SEEDS)
 			{
@@ -2934,8 +2997,16 @@ void Sexy::MergeFeatures(const std::vector<RulesSource>& theSources, GameFeature
 				aText.mLeaderboard = aParsed.mLeaderboard;
 				aText.mRankedAlways = aParsed.mRankedAlways;
 			}
-			else
+			else if (k == FEATURE_LIVESPLIT)
 				aText.mLiveSplit = aParsed.mLiveSplit;
+			else if (k == FEATURE_CODEART)
+			{
+				aText.mCodeArt = aParsed.mCodeArt;
+				aText.mCodeArtGems = aParsed.mCodeArtGems;
+				aText.mCodeArtPalette = aParsed.mCodeArtPalette;
+			}
+			else
+				aText.mGameStats = aParsed.mGameStats;
 			if (!aSetter[k].empty() && (aSetterText[k] != aText.Text()))
 				theStatus->mWarnings.push_back({aSource.mModId, std::string("features.") + gFeatureNames[k] + " overrides " + aSetter[k]});
 			aSetter[k] = aSource.mModId;

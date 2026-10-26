@@ -1,0 +1,5 @@
+/* Alchemy's look on the shared page (web/shell.html): the alchemist's purple, a gold stone for the brand mark */
+:root { --accent: #7a4fb0; --gem-ruby: #c9302c; --stone: #e0b030; }  /* wizard purple */
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --accent: #b996e6; } }
+:root[data-theme="dark"] { --accent: #b996e6; }
+.brand .mark { width: 12px; height: 12px; background: var(--stone); border-radius: 2px; box-shadow: 0 0 0 2px var(--accent); }

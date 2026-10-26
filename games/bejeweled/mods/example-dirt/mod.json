@@ -1,0 +1,31 @@
+{
+  "id": "example-dirt",
+  "name": "Example: Dirt",
+  "version": "1.0",
+  "defaultEnabled": false,
+  "author": "byo-pop examples",
+  "description": "Dirt tiles, as in Jewel Quest: they hold no gem and stop falling gems, which slide past them diagonally. A match next to a tile takes a layer off it (it has a crack for each layer left), and the last layer leaves a cell for gems. Uses its own high-score table.",
+  "settings": [
+    { "type": "section", "label": "Dirt" },
+    { "id": "layout", "label": "Tiles", "type": "choice", "default": "scattered",
+      "choices": [ { "value": "scattered", "label": "A few, scattered" }, { "value": "corners", "label": "Corners" },
+                   { "value": "shelf", "label": "A shelf across" }, { "value": "heavy", "label": "Thick" } ],
+      "help": "Where the dirt starts and how many layers it has. Gems below a shelf come only past its ends and its gap." },
+    { "id": "points", "label": "Points a layer", "type": "int", "default": 10, "min": 0, "max": 100, "step": 5,
+      "help": "Points for each layer cleared, times the level's point multiplier." }
+  ],
+  "rules": {
+    "board": {
+      "mask": { "$setting": "layout", "map": {
+        "scattered": [ "#d######", "########", "#####3##", "########",
+                       "##2#####", "########", "######d#", "########" ],
+        "corners": [ "########", "#d####d#", "########", "########",
+                     "########", "########", "#2####2#", "########" ],
+        "shelf": [ "########", "########", "########", "#d2##2d#",
+                   "########", "########", "########", "########" ],
+        "heavy": [ "########", "#3####3#", "########", "##5##5##",
+                   "########", "#3####3#", "########", "########" ] } },
+      "dirtPoints": { "$setting": "points" }
+    }
+  }
+}

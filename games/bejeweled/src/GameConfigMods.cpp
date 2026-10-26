@@ -118,14 +118,15 @@ static void AddBuildWarnings(const GameRules& theRules, const GameFeatures& theF
 	// Played since stage 5 (4.1): kept invalid moves and the noMoves rule; since stage 6 (4.12) undo; since stage 7
 	// (4.3) the board's shape; since stage 7c (4.16) gravity; since stage 7b (4.14) dirt; since stage 9 (4.6) the match
 	// rules; since stage 10 (4.4, 4.5) the move types; since stage 11 (4.8) the specials; since stage 12 (4.9) the gold
-	// board. A BEJ_NO_VARIANTS build plays no rule, nor shows look.*.
+	// board; since stage 18 (4.20) arrow gems. A BEJ_NO_VARIANTS build plays no rule, nor shows look.*.
 	static const char* const aPlayed[] = {"moves.allowInvalid", "moves.invalidPenalty", "moves.invalidCountsAsMove", "noMoves.normal",
 		"noMoves.timed", "undo.enabled", "undo.depth", "undo.max", "undo.penalty", "undo.inTimed", "undo.restoreTime", "undo.restoreRng",
 		"board.cols", "board.rows", "board.mask", "board.levels", "board.gravity.direction", "board.gravity.fallAccel",
 		"board.dirtPoints", "match.minRun", "match.diagonal", "match.diagonalMinRun", "match.crossings", "match.shapes",
 		"match.bonus", "moves.type", "moves.addTypes", "moves.twist.direction", "moves.slide.snapTicks", "specials.flame",
 		"specials.lightning", "specials.chain", "specials.createIn", "gold.enabled", "gold.gild", "gold.timeLimit.normal",
-		"gold.timeLimit.timed", "gold.timeBonus", "gold.countDirt"};
+		"gold.timeLimit.timed", "gold.timeBonus", "gold.countDirt", "arrows.enabled", "arrows.directions", "arrows.every",
+		"arrows.everyMin", "arrows.bonus"};
 	for (size_t i = 0; i < sizeof(aPlayed) / sizeof(aPlayed[0]); i++)
 		aKeys.erase(std::remove(aKeys.begin(), aKeys.end(), std::string(aPlayed[i])), aKeys.end());
 #else
@@ -333,14 +334,15 @@ void GameConfig::Load(bool theCanCommit)
 
 // port(mods): NewGame's Load reads "rules", "tunables" and "features" again (ResolveRules; the legacy tunables through
 // ModManager::GetTunable*), so a value used only there applies at the next fresh game. Not features.livesplit: the
-// LiveSplit observer's run state and block outlive a board, so turning it on or off waits for a restart.
+// LiveSplit observer's run state and block outlive a board, so turning it on or off waits for a restart. Nor
+// features.codeArt: its images are drawn once, at start-up.
 bool GameConfig::IsNextGamePath(const std::string& thePath)
 {
 	auto isUnder = [&thePath](const char* theKey) {
 		size_t aLength = strlen(theKey);
 		return (thePath.compare(0, aLength, theKey) == 0) && ((thePath.size() == aLength) || (thePath[aLength] == '.'));
 	};
-	if (isUnder("features.livesplit") || (thePath == "features"))
+	if (isUnder("features.livesplit") || isUnder("features.codeArt") || (thePath == "features"))
 		return false;
 	return isUnder("rules") || isUnder("tunables") || isUnder("features");
 }

@@ -240,6 +240,7 @@ void ModManager::LoadManifest(ModInfo& theMod, bool theLog)
 	theMod.mAuthor = m["author"].AsString("");
 	theMod.mDescription = m["description"].AsString("");
 	theMod.mPriority = m["priority"].AsInt(0);
+	theMod.mDefaultEnabled = m["defaultEnabled"].AsBool(true);
 	theMod.mAffectsScores = m["affectsScores"].AsBool(false) || m.Has("tunables") || m.Has("rules");
 
 	// Settings: where their placeholders sit decides when each value applies and whether it splits the scores
@@ -328,17 +329,22 @@ bool ModManager::ReadConfig(JsonValue* theConfig, bool* theIsBroken) const
 }
 
 // Saved order / enabled flags: priority first, then the saved order; mods not listed are appended (in folder
-// order) and enabled
+// order) and enabled, unless their mod.json says "defaultEnabled": false. "enabled" turns such a mod on,
+// "disabled" turns any mod off.
 void ModManager::SortByConfig(std::vector<ModInfo>* theMods, const JsonValue& theConfig)
 {
 	std::stable_sort(theMods->begin(), theMods->end(), [](const ModInfo& a, const ModInfo& b) { return a.mDir < b.mDir; });
 	for (ModInfo& m : *theMods)
-		m.mEnabled = !m.mDuplicate;
+		m.mEnabled = !m.mDuplicate && m.mDefaultEnabled;
 	std::vector<std::string> order;
 	if (theConfig.IsObject())
 	{
 		for (const JsonValue& v : theConfig["order"].Items())
 			order.push_back(v.AsString());
+		for (const JsonValue& v : theConfig["enabled"].Items())
+			for (ModInfo& m : *theMods)
+				if (m.mId == v.AsString())
+					m.mEnabled = !m.mDuplicate;
 		for (const JsonValue& v : theConfig["disabled"].Items())
 			for (ModInfo& m : *theMods)
 				if (m.mId == v.AsString())
@@ -945,23 +951,32 @@ std::string ModManager::EditEnable(const std::string& theId, bool theEnabled)
 	bool isBroken;
 	ReadConfig(&cfg, &isBroken);
 	JsonValue anOld = cfg;
-	bool isDisabled = false;
-	JsonValue disabled = JsonValue::MakeArray();
-	for (const JsonValue& v : cfg["disabled"].Items())
+	// Only a choice that differs from the mod's default is listed: "disabled" holds the mods that start on and
+	// were turned off, "enabled" those that start off ("defaultEnabled": false) and were turned on
+	bool isChanged = false;
+	static const char* const aKeys[] = { "disabled", "enabled" };
+	for (const char* aKey : aKeys)
 	{
-		if (v.IsString() && (v.AsString() == theId))
-			isDisabled = true;
-		else
-			disabled.Push(v);
+		bool isWanted = (aKey == aKeys[0]) ? (!theEnabled && m->mDefaultEnabled) : (theEnabled && !m->mDefaultEnabled);
+		bool isListed = false;
+		JsonValue aKept = JsonValue::MakeArray();
+		for (const JsonValue& v : cfg[aKey].Items())
+		{
+			if (v.IsString() && (v.AsString() == theId))
+				isListed = true;
+			else
+				aKept.Push(v);
+		}
+		if (isListed == isWanted)
+			continue;
+		if (isWanted)
+			aKept.Push(JsonValue(theId));
+		cfg.Set(aKey, aKept);
+		isChanged = true;
 	}
 	std::string anError;
-	if (isDisabled == theEnabled)
-	{
-		if (!theEnabled)
-			disabled.Push(JsonValue(theId));
-		cfg.Set("disabled", disabled);
+	if (isChanged)
 		anError = WriteConfig(anOld, cfg, isBroken);
-	}
 	SortByConfig(&mDesired, anError.empty() ? cfg : anOld);
 	Changed();
 	return anError;
@@ -1136,7 +1151,7 @@ std::string ModManager::EditForget(const std::string& theId)
 	if (!ReadConfig(&cfg, &isBroken) || isBroken)
 		return "";  // nothing to forget; a broken file stays as it is until an edit has to replace it
 	JsonValue anOld = cfg;
-	static const char* const aKeys[] = { "order", "disabled" };
+	static const char* const aKeys[] = { "order", "disabled", "enabled" };
 	for (const char* aKey : aKeys)
 	{
 		if (!cfg[aKey].IsArray())

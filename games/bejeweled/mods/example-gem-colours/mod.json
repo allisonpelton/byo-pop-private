@@ -1,0 +1,14 @@
+{
+  "id": "example-gem-colours",
+  "name": "Example: Gem Colours",
+  "version": "1.0",
+  "defaultEnabled": false,
+  "author": "byo-pop examples",
+  "description": "More or fewer kinds of gem. Fewer make matches and long cascades easy; more make them rare. Gems past the seventh are drawn from the white gem in new tints, each with a small mark in the corner, unless a mod above this one draws them. Uses its own high-score table.",
+  "settings": [
+    { "type": "section", "label": "Gems" },
+    { "id": "colours", "label": "Kinds of gem", "type": "int", "default": 8, "min": 4, "max": 12,
+      "help": "The original has 7. A mod with more gem art, such as su-gems or code-art, draws up to 11 or 12." }
+  ],
+  "rules": { "board": { "gemColors": { "$setting": "colours" } } }
+}

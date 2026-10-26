@@ -743,6 +743,7 @@ void Board::ClearDirtLayers(const bool (*theCells)[BoardLayout::MAX_COLS])
 			if (aPoints > 0)
 			{
 				mScore += aPoints;
+				if (mStats != NULL) mStats->OnPoints(aPoints);
 				ScorePopup aPopup = {GetColX(aCol) + 24, GetRowY(aRow) + 16, 110, -1, aPoints};
 				mScorePopups.push_back(aPopup);
 			}

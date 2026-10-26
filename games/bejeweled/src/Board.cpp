@@ -520,7 +520,7 @@ bool Board::SaveGame()
 	Unpause(false);
 
 	Buffer aBuffer;
-	WriteSaveGame(&aBuffer, mPlaySeconds, IsVariantMoveState(mState) ? (int) STATE_PLAYING : mState); // port(variant): was mState; a twist or a slide is saved as the board before it
+	WriteSaveGame(&aBuffer, mPlaySeconds, IsVariantMoveState(mState) ? (int) STATE_PLAYING : (mState == STATE_ARROW_STEPPING) ? (int) STATE_FALLING : mState); // port(variant): was mState; a twist or a slide is saved as the board before it, arrows' steps done (BoardSave.cpp)
 
 	// A swap in progress is saved with its state, then the live board drops to STATE_PLAYING (the
 	// original drops it right after writing mState; nothing written later depends on it)
@@ -545,6 +545,8 @@ void Board::SaveGameSnapshot(Buffer* theBuffer)
 	int aState = mState;
 	if ((aState == STATE_SWAPPING) || (aState == STATE_SWAPPING_BACK) || IsVariantMoveState(aState)) // port(variant): a twist or a slide too, the grid the board before it
 		aState = STATE_PLAYING;
+	else if (aState == STATE_ARROW_STEPPING) // port(variant): arrows' steps, saved done (BoardSave.cpp)
+		aState = STATE_FALLING;
 
 	WriteSaveGame(theBuffer, aPlaySeconds, aState);
 }
@@ -642,6 +644,7 @@ Board::~Board()
 	delete mGoldTiles[0]; // port(variant): the gold art (BoardGold.cpp)
 	delete mGoldTiles[1];
 	delete mRecorder; // port(variant)
+	delete mStats; // port(variant)
 }
 
 // 0x4cd287
@@ -712,6 +715,7 @@ bool Board::ProcessMatches()
 					mScorePopups.push_back(aPopup);
 					mGemsCleared += aCount;
 					mScore += aPoints;
+					if (mStats != NULL) mStats->OnRun(aCount, aColor, aPoints); // port(variant): the Stats page (GameStats.h)
 					if (mVariant.mDirt) ClearDirtNextToRun(aStartCol, aStartRow, aCol, aRow, aColor); // port(variant): dirt next to the run loses a layer (BoardShape.cpp)
 					if (mMoveMatchCount == 1)
 					{
@@ -810,8 +814,13 @@ void Board::UpdateFalling()
 	{
 		if (ProcessMatches())
 			mState = STATE_CLEARING;
+		else if (mVariant.mArrows && ArrowSettle())
+		{
+			// port(variant): the move's arrows step first, then the board settles again (BoardArrows.cpp)
+		}
 		else
 		{
+			if (mStats != NULL) mStats->OnSettle(this); // port(variant): the move's cascades and the score line (GameStats.h)
 			if (!mStatsDisabled)
 			{
 				if (mCascadeCount > mLongestCascade)
@@ -886,6 +895,7 @@ void Board::UpdateSwap()
 		}
 		else if ((mState == STATE_SWAPPING) && !mVariant.mInvalid) // port(variant): was (mState == STATE_SWAPPING)
 		{
+			if (mStats != NULL) mStats->OnSwapBack(); // port(variant)
 			// Swap back along the same circle. The second gem mirrors the first one's offsets, which
 			// is off by 1 px when the centre was rounded.
 			aPiece1->mSwapOffX = -aPiece1->mSwapOffX;
@@ -1060,7 +1070,9 @@ void Board::Update()
 	if (mUpdateCnt == 150)
 	{
 		mApp->PlaySample(SOUND_GO);
-		if ((!mApp->mShowInstructions) || (mApp->mTimesPlayed >= 5))
+		// port(variant): not over an arrow escape that ended a resumed game already (BoardArrows.cpp; nothing else
+		// ends a game this soon)
+		if (((!mApp->mShowInstructions) || (mApp->mTimesPlayed >= 5)) && !(mVariant.mArrows && (mState == STATE_GAME_OVER)))
 			ShowText(mApp->GetString("GO"), 250);
 		if ((mApp->mShowInstructions) && (mApp->mTimesPlayed < 5))
 		{
@@ -1244,7 +1256,11 @@ void Board::Update()
 	case STATE_SLIDING_BACK:
 		UpdateSlide();
 		break;
+	case STATE_ARROW_STEPPING: // port(variant): arrow gems step (BoardArrows.cpp)
+		UpdateArrowSteps();
+		break;
 	}
 
 	if (mRecorder != NULL) mRecorder->AfterUpdate(); // port(variant): CHECK at a settle, END at the game-over screen
+	if (mStats != NULL) mStats->AfterUpdate(this); // port(variant): the play time and the level-ups (GameStats.h)
 }

@@ -1,0 +1,29 @@
+{
+  "id": "example-free-swaps",
+  "name": "Example: Free Swaps",
+  "version": "1.0",
+  "defaultEnabled": false,
+  "author": "byo-pop examples",
+  "description": "A swap that makes no match stays instead of swapping back, for a few points. A board with no moves left can play on, since a free swap can still make one. Uses its own high-score table.",
+  "settings": [
+    { "type": "section", "label": "Swaps" },
+    { "id": "penalty", "label": "Cost of a swap with no match", "type": "int", "default": 10, "min": 0, "max": 200,
+      "step": 5, "help": "Points taken for each swap that stays without a match, times the level's point multiplier." },
+    { "id": "countsAsMove", "label": "It counts as a move", "type": "bool", "default": true,
+      "help": "On: the first such swap of a game makes it a game in progress, as a match does." },
+    { "type": "section", "label": "No moves left" },
+    { "id": "noMovesNormal", "label": "Normal", "type": "choice", "default": "continue",
+      "choices": [ { "value": "continue", "label": "Play on" }, { "value": "fallOut", "label": "New gems" },
+                   { "value": "gameOver", "label": "Game over" } ],
+      "help": "Play on: keep swapping. New gems: the board falls out and refills, as Timed does. Game over: as the original." },
+    { "id": "noMovesTimed", "label": "Timed", "type": "choice", "default": "fallOut",
+      "choices": [ { "value": "continue", "label": "Play on" }, { "value": "fallOut", "label": "New gems" },
+                   { "value": "gameOver", "label": "Game over" } ],
+      "help": "Play on: keep swapping. New gems: the board falls out and refills, as the original. Game over: the game ends." }
+  ],
+  "rules": {
+    "moves": { "allowInvalid": true, "invalidPenalty": { "$setting": "penalty" },
+               "invalidCountsAsMove": { "$setting": "countsAsMove" } },
+    "noMoves": { "normal": { "$setting": "noMovesNormal" }, "timed": { "$setting": "noMovesTimed" } }
+  }
+}

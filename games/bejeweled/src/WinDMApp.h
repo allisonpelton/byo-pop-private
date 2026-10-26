@@ -28,6 +28,8 @@ class DDImage;
 class ImageFont;
 class ButtonWidget;
 class Dialog;
+class HyperlinkWidget;
+class GameStatsPage;
 class MusicInterface;
 class AutoplayBot;
 class CodecCheck;
@@ -80,7 +82,8 @@ enum ButtonId
 	BUTTON_OPTIONS = 13,
 	BUTTON_QUIT = 14,
 	BUTTON_HINT = 15,
-	BUTTON_UNDO = 16            // port(variant): the red orb on a board with undo (UndoOrb.h)
+	BUTTON_UNDO = 16,           // port(variant): the red orb on a board with undo (UndoOrb.h)
+	BUTTON_REPLAY_STATS = 17    // port(variant): STATS in the REPLAY END dialog (features.gameStats, GameStatsPage.h)
 };
 
 class WinDMApp : public SexyApp
@@ -176,10 +179,13 @@ public:
 	WatchController* mWatch;                    // port(variant): -replay, or the last watch from the game (NULL without)
 	bool			mReplayQuit;                // port(variant): -replayquit
 	ReplayOverlay*	mReplayOverlay;             // port(variant): over the board while watching (NULL otherwise)
+	HyperlinkWidget* mReplayStatsLink;          // port(variant): STATS inside REPLAY END, for a board that counted
+	GameStatsPage*	mReplayStatsPage;           // port(variant): its open Stats page (NULL otherwise)
 	std::string		mPendingWatch;              // port(variant): the replay DIALOG_CONFIRM_WATCH asks about
 	uint32_t		mPendingPlaySeed;           // port(variant): the seed DIALOG_CONFIRM_SEED asks about
 	uint32_t		mNextValuesBoard;           // port(mods): the board ApplyNextGameValues last tried (Board::mBoardSerial)
 	int				mGemShrinkColors;           // port(variant): the colours mGemShrinkImages has images for
+	int				mMissingSounds;             // port(variant): sounds code art plays on without (features.codeArt)
 
 public:
 	WinDMApp();                                                     // 0x4d4d82
@@ -246,6 +252,7 @@ public:
 	void			OnWatchBoard();
 	void			OnWatchEnded();
 	void			RemoveReplayOverlay();
+	void			RemoveReplayStats();        // port(variant): the link and its page, before REPLAY END goes
 	// port(variant): Extras (stage 13; ExtrasDialog.h, ReplayBrowserDialog.h): Options shows its button while a feature
 	// mod adds to it; Play this seed asks like New Game over a game in progress
 	bool			HasExtras();
@@ -260,6 +267,9 @@ public:
 	// theColors colours, the gem sheet gets the rows it lacks and the shrink images their colours
 	void			EnsureGemColors(int theColors);
 	void			MakeGemShrinkImages(int theColor);
+	// port(variant): code-drawn art (games/bejeweled/docs/CODE_MODS_DESIGN.md 4.18, art/CodeArt.h): with
+	// features.codeArt on, the images and fonts are drawn as they load, and missing sounds leave the game silent
+	void			EnableCodeArt();
 
 	// port(mods): the mod menu's "Restart game" and messages (docs/MOD_MENU_DESIGN.md 6, 8.2): a game in progress
 	// (Restart asks first); no restart while the high-score name is being entered; a restart keeps the replay

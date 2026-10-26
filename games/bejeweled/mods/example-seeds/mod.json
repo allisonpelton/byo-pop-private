@@ -1,0 +1,16 @@
+{
+  "id": "example-seeds",
+  "name": "Example: Set Seeds",
+  "version": "1.0",
+  "defaultEnabled": false,
+  "author": "byo-pop examples",
+  "description": "A seed makes a game's gems come out the same every time. Extras gets a field where you type the next game's seed, and every game can get a seed of its own, shown on the game-over screen, to play it again or pass it on. Changes nothing in play.",
+  "settings": [
+    { "type": "section", "label": "Seeds" },
+    { "id": "entry", "label": "Seed field in Extras", "type": "bool", "default": true,
+      "help": "Extras (in Options) gets a field for the seed of the next game." },
+    { "id": "perGame", "label": "A seed for every game", "type": "bool", "default": true,
+      "help": "Every game gets a seed of its own, shown at game over, so you can play the same gems again." }
+  ],
+  "features": { "seeds": { "entry": { "$setting": "entry" }, "perGame": { "$setting": "perGame" } } }
+}

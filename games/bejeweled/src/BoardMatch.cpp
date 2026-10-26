@@ -95,11 +95,15 @@ void Board::ScoreGroup(const MatchFinder::Group& theGroup, int* theAvgX)
 	ScorePopup aPopup = {anAvgX + 24, anAvgY + 16, 110, -1, aPoints};
 	mScorePopups.push_back(aPopup);
 	mGemsCleared += aCount;
+	int aScoreBefore = mScore;
 	mScore += aPoints;
 	// A negative match.bonus, as the hint penalty: never below 0. Without one the points add as the original adds them,
 	// so a score past the int's range wraps or turns INT_MIN as there (mods/stage4/overflow)
 	if ((aBonus < 0) && (mScore < 0))
 		mScore = 0;
+	if (mStats != NULL) // the Stats page (GameStats.h): a shape counts with the runs of 5 or more
+		mStats->OnRun(theGroup.IsRun() ? theGroup.mRunLength : std::max(aCount, 5),
+			mBoard[theGroup.mCells[0].second][theGroup.mCells[0].first]->mColor, mScore - aScoreBefore);
 	if (mVariant.mDirt)
 		ClearDirtNextToCells(theGroup.mCells);
 	if (mMoveMatchCount == 1)
@@ -168,6 +172,9 @@ bool Board::ProcessMatchesVariant()
 	// Stage 11: the specials the groups make and set off (BoardSpecials.cpp)
 	if (mVariant.mSpecials && !aGroups.empty())
 		ResolveSpecials(aGroups);
+	// Stage 18: the arrows the groups and blasts took are cleared (BoardArrows.cpp)
+	if (mVariant.mArrows && !aGroups.empty())
+		ClearMatchedArrows();
 
 	int aNumMatches = (int) aGroups.size();
 	if (aNumMatches > 0)

@@ -26,6 +26,7 @@ const uint32_t TAG_LDSV = Replay::Tag("LDSV");
 const uint32_t TAG_RNGS = Replay::Tag("RNGS");
 const uint32_t TAG_SEGM = Replay::Tag("SEGM");
 const uint32_t TAG_SVHA = Replay::Tag("SVHA");
+const uint32_t TAG_STAT = Replay::Tag("STAT");
 const uint32_t TAG_END = Replay::Tag("END ");
 
 const size_t RNGS_SIZE = 4 + 1 + 1 + Replay::MT_WORDS * 4 + 4;
@@ -40,6 +41,8 @@ const uint32_t TAG_DIRT = Replay::Tag("DIRT"); // u8 leftFirst, then a byte a ce
 const uint32_t TAG_KIND = Replay::Tag("KIND"); // a byte a cell (stage 11)
 const uint32_t TAG_GOLD = Replay::Tag("GOLD"); // a byte a cell (stage 12)
 const uint32_t TAG_GTIM = Replay::Tag("GTIM"); // the level's time (stage 12)
+const uint32_t TAG_ARRW = Replay::Tag("ARRW"); // the counts, then a byte a cell (stage 18)
+const size_t ARRW_FIXED = 4 + 4 + 1;
 const size_t SAVE_HEADER_FIXED = 4 + Replay::RULES_ID_SIZE + 2 + 2 + 4; // the version up to the mask
 
 void PutU8(std::string* theOut, int theValue)
@@ -428,6 +431,16 @@ std::string Replay::VariantSaveChunks(const VariantSave& theSave)
 		PutU32(&aTime, (uint32_t) theSave.mGoldTickLimit);
 		PutRecord(&aChunks, TAG_GTIM, aTime);
 	}
+	if (theSave.mHasArrows)
+	{
+		std::string anArrows;
+		PutU32(&anArrows, (uint32_t) theSave.mArrowMoves);
+		PutU32(&anArrows, (uint32_t) theSave.mArrowsCleared);
+		PutU8(&anArrows, theSave.mArrowStepDue ? 1 : 0);
+		for (size_t i = 0; i < theSave.mArrows.size(); i++)
+			PutU8(&anArrows, theSave.mArrows[i]);
+		PutRecord(&aChunks, TAG_ARRW, anArrows);
+	}
 	PutRecord(&aChunks, TAG_END, "");
 	return aChunks;
 }
@@ -667,6 +680,37 @@ bool Replay::ReadVariantSave(const std::string& theSave, VariantSave* theOut, st
 				return false;
 			}
 			s.mHasGoldTime = true;
+		}
+		else if (aTag == TAG_ARRW)
+		{
+			// stage 18: the moves toward the next arrow, the arrows cleared, a step due, then each gem's arrow (0 none,
+			// else its direction + 1), 0 where there is no gem
+			if (s.mHasArrows || (aLen != ARRW_FIXED + aCells))
+			{
+				anErr = s.mHasArrows ? std::string("ARRW twice") : "ARRW: " + std::to_string(aLen) + " bytes, not " + std::to_string(ARRW_FIXED + aCells);
+				return false;
+			}
+			s.mArrowMoves = (int32_t) aReader.U32();
+			s.mArrowsCleared = (int32_t) aReader.U32();
+			uint8_t aDue = (uint8_t) aReader.U8();
+			if ((s.mArrowMoves < 0) || (s.mArrowsCleared < 0) || (aDue > 1))
+			{
+				anErr = "ARRW: " + std::to_string(s.mArrowMoves) + " moves, " + std::to_string(s.mArrowsCleared) + " cleared, step due " + std::to_string(aDue);
+				return false;
+			}
+			s.mArrowStepDue = (aDue != 0);
+			for (size_t i = 0; i < aCells; i++)
+			{
+				uint8_t anArrow = (uint8_t) aReader.U8();
+				if ((anArrow > 4) || ((anArrow > 0) && !aPresent[i]))
+				{
+					anErr = "ARRW: arrow " + std::to_string(anArrow) + " at cell (" + std::to_string(i % s.mCols) + "," +
+						std::to_string(i / s.mCols) + ")" + (aPresent[i] ? "" : ", which has no gem");
+					return false;
+				}
+				s.mArrows.push_back(anArrow);
+			}
+			s.mHasArrows = true;
 		}
 		// any other chunk: a later stage's, skipped
 	}
@@ -1242,6 +1286,13 @@ bool Replay::Read(const std::string& theBytes, File* theFile, std::string* theEr
 		int aHeaderIndex = (aTag == TAG_RULE) ? 1 : (aTag == TAG_RLID) ? 2 : (aTag == TAG_META) ? 3 : (aTag == TAG_SESS) ? 4 : 0;
 		bool isKnown = (aHeaderIndex > 0) || (aTag == TAG_LDSV) || (aTag == TAG_RNGS) || (aTag == TAG_SEGM) || (aTag == TAG_SVHA) ||
 			(aTag == TAG_END);
+		if (aTag == TAG_STAT)
+		{
+			// the Stats page's counts (a sidecar's, GameStats.h): kept as they are, wherever they are
+			theFile->mStats.assign(theBytes, aStart, aLen);
+			theFile->mHasStats = true;
+			continue;
+		}
 		if (!isKnown)
 			continue; // a later format addition: skipped wherever it is
 		const char* aMisplaced = NULL;
@@ -1358,9 +1409,9 @@ bool Replay::Read(const std::string& theBytes, File* theFile, std::string* theEr
 				anErr = "END: " + std::to_string(aLen) + " bytes, not " + std::to_string(END_SIZE);
 				return false;
 			}
-			if (anEnd.mReason > END_SAVED)
+			if (anEnd.mReason >= NUM_END_REASONS)
 			{
-				anErr = "END: reason " + std::to_string(anEnd.mReason) + " (0..5)";
+				anErr = "END: reason " + std::to_string(anEnd.mReason) + " (0.." + std::to_string(NUM_END_REASONS - 1) + ")";
 				return false;
 			}
 			hasEnd = true;
@@ -1421,4 +1472,21 @@ bool Replay::Peek(const std::string& theBytes, Summary* theSummary)
 		aPos += aLen;
 	}
 	return hasEnd && (aPos == theBytes.size());
+}
+
+bool Replay::AddStats(std::string* theFile, const std::string& theStats)
+{
+	size_t anEndRecord = 8 + END_SIZE;
+	if (theFile->size() < 12 + anEndRecord)
+		return false;
+	size_t aPos = theFile->size() - anEndRecord;
+	const unsigned char* p = (const unsigned char*) theFile->data() + aPos;
+	uint32_t aTag = p[0] | (p[1] << 8) | (p[2] << 16) | ((uint32_t) p[3] << 24);
+	uint32_t aLen = p[4] | (p[5] << 8) | (p[6] << 16) | ((uint32_t) p[7] << 24);
+	if ((aTag != TAG_END) || (aLen != END_SIZE))
+		return false;
+	std::string aRecord;
+	PutRecord(&aRecord, TAG_STAT, theStats);
+	theFile->insert(aPos, aRecord);
+	return true;
 }

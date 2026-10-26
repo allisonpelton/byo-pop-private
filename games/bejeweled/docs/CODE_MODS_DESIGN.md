@@ -437,6 +437,14 @@ When a group qualifies for both kinds of special, lightning is checked first.
 
 ### 3.3 One example per feature
 
+The playable versions ship in `games/bejeweled/mods/` as `example-seeds`, `example-replays`, `example-free-swaps`,
+`example-undo`, `example-board-shapes`, `example-dirt`, `example-twilight`, `example-gem-colours`,
+`example-match-patterns`, `example-twist-slide`, `example-power-gems` and `example-gold` (2026-10-26), and
+`example-arrows` (stage 18, 4.20). Each starts off
+(`"defaultEnabled": false`) and puts its feature's values in the mod menu through `$setting` placeholders, with
+Bejeweled 2's or this design's values as the defaults. `game-stats` (4.19) has no settings, so it is a feature mod
+under its own name. The sketches below are the minimal forms.
+
 ```jsonc
 // 1. Allow invalid moves
 { "id": "free-swaps", "name": "Free Swaps", "version": "1.0",
@@ -1864,6 +1872,33 @@ It needs stages 3 (StateCodec), 5 (v2 chunks), 6 (the undo row) and 7 (`RefillMa
 - **Size:** ~650 lines of Python (gem models and cel shader ~350, moved into `gemsheet.py` ~200, tests
   and preview ~100).
 
+**As built (stage 15, `make_su_gems_mod.py`, `gemsheet.py`; GAME_NOTES 12.19):** the mod is a whole gem sheet,
+not a patch. An image patch pastes over its target and cannot make it taller, and the four extra gems need rows
+8 to 11, so the mod ships `images/gemsheet6@4x.png` with all 11 colours (3120 x 4576; the 1x comes from box
+downsampling). `--colors 7` writes only the original seven rows. With `board.gemColors` up to 11 the sheet is
+used as it is (4.2: a mod may ship a taller sheet); a twelfth colour gets stage 8's default look for that
+row, recoloured from a base row. The cuts settled on the preview: Yellow Diamond a kite, Jasper a flat
+hexagon, Rose Quartz a pentagon, Lapis Lazuli a teardrop pointing down, Bismuth an octagon whose facets take
+rainbow hues, and Garnet a round 20-sided cut with three steps. Each gem is one convex solid: a girdle
+polygon with stepped crown and pavilion planes, or for Pearl an ellipsoid of support planes, shaded smooth.
+`gemsheet.py` (~480 lines) holds the shared parts: geometry, the ray cast against a solid (`cast`, giving
+each pixel its face, normal and silhouette distance), the sheet layout and the title-gem cover. The
+Bejeweled 2 generator went from ~1000 lines to ~620, and its output is byte-identical. `make_su_gems_mod.py`
+is ~300 lines. The title gems fit the old gems' boxes, which the cover hides. The oracle is untouched: images
+only, no code change.
+
+**Redrawn (2026-10-26, the user: the ray-cast gems were not recognisably the show's; static pictures in the show's
+style instead):** `make_su_gems_mod.py` now draws each gem once, flat in 2D, after the show's designs. Sapphire,
+Ruby, Amethyst, Rose Quartz and Garnet are round, with a dark rim and a table of 3, 4, 6, 5 and 8 sides. Pearl is
+a white egg with a black rim and a pink crescent. Peridot is a rounded triangle, point down, with a pale highlight.
+Jasper is a kite of four facets, Yellow Diamond a rhombus with a rhombus table, Lapis Lazuli a teardrop pointing
+up, and Bismuth a square in a mauve setting, stepped in rainbow rings. The facets are flat wedges between the
+table and the edge. Each takes one of the gem's tones by the direction it faces, lit from the upper left. There
+are no glints, as in the show. Every frame of a spin row is the same picture, and its glow row is the same gem
+lifted toward white. The title patch places the same drawings in the old gems' boxes with the same cover and
+glows. The sheet and the patch keep their paths and sizes. The script no longer uses `gemsheet.py`'s ray cast,
+only its layout, title constants and writers; the shapes are new drawings, and the script reads no file.
+
 ### 4.18 Code-drawn art, no image files (`features.codeArt`)
 
 - **What:** code draws every image and bitmap font the game loads, at load time. The game then runs
@@ -1938,6 +1973,57 @@ It needs stages 3 (StateCodec), 5 (v2 chunks), 6 (the undo row) and 7 (`RefillMa
 - **Size:** ~3,800 lines (about 150 of them shared): rasteriser ~700, vector font and styles ~900, gem
   renderer ~700, the other generators ~1,100, tests and screenshots ~250.
 
+**As built (stage 16, `src/art/`, the mod `code-art`; GAME_NOTES 12.20):** about 3,850 lines in
+`games/bejeweled/src/art/`, 83 shared lines (commit 935cc5d) and about 150 more in the game. The shared hook is
+smaller than planned and has no registry of sizes. `Platform::SetImageGenerator` takes one function of a game path
+and a `LoadedImage`, which the image loader asks after the mod layers and before the game's files, so a mod's image
+still wins and image patches draw over a drawn one. `VFS::SetGeneratedFile` serves the five fonts' descriptors
+behind the mods, and `ImageFont`'s legacy reader now reads through the VFS to find them. `CodeArt::Generate` looks
+the name up in its own table of the images the game loads; a font whose image or descriptor a mod has stays wholly
+the mod's. Every image has the original's width and height, checked against the staged files. The five font strips
+do not: their descriptors carry the new layout (afont1 is 937 px wide against the original's 553), while each
+keeps the original's height, ascent and space width, so text stays where it was (the replay recorder stores
+alphadigits4's ascent of 32). `bagholder` and `blackcover` get no generator, because the port never loads them.
+
+The rasteriser keeps coverage masks under a nonzero rule clamped at 1, so contours of opposite winding cut holes
+and shapes of mixed winding are unioned by separate fills. Masks grow, shrink and blur through an exact distance
+transform and a running-sum box blur, and `Sampled` evaluates an expensive paint (noise, mist) on a coarse grid
+read back bilinearly. The letters are a stroke font, not outlines: each glyph is lines and elliptic arcs drawn
+with round caps at any weight, and each game font adds its own tracking, outline, fill and bevel. The gems are
+ray-cast facet solids in three styles. `cel` has the port's own twelve cuts in flat tones; `glossy` has the same
+cuts as glass reflecting a sky, which is the port's own shader and not Bejeweled 2's gems (a port of those would be
+a close recreation of another game's art); `su` has stage 15's models and cel look. The sheet has
+max(7, `board.gemColors`) rows of colours, up to 12.
+
+The density follows the window. `SettingsFor` asks for 4 natively and 2 on the web, and WinDMApp clamps that
+to the window's render scale but never below 2, so a window made larger later still looks sharp. The soft images
+(`sparkle`, `blackhole`, `holemask`) are drawn at 2x at most. Everything is drawn during the loading screen: about
+3.5 s at 4x (the title 1.0 s, the backdrop 0.6 s, the gem sheet 0.65 to 1.2 s on up to four threads) and 1.5 s at
+3x. The planned cache in the user dir was left out at those times. On the web the gem sheet is drawn on one
+thread.
+
+The settings are `gems` and `palette` (blue, violet, emerald, ember, night). Like `features.livesplit` they
+apply only at the next start (`IsNextGamePath`). Words drawn into images are string ids with defaults
+(`CODEART_NEW_GAME` and so on), so a strings mod can change them. Two start-up rules changed. With code art on,
+a missing sound is no longer fatal, and the title screen then says the game plays silent (`CODEART_SILENT`).
+`main.cpp` accepts a game folder that has `data/diff.txt`; if `images/gemsheet6.png` is missing too, it reads the
+mods' features and starts only when code art is on. `-dumpcodeart=<dir>` writes every drawn image at 1x and at
+its density, and the fonts' descriptors, with the milliseconds each took; `-codeartscale=N` picks another
+density.
+
+The tests ran as planned, with one change: test 1 ran outside the oracle, whose game folder is fixed. All 69 oracle
+scripts ran on a copy of the game files with only `data/diff.txt`, sounds, music and properties, with the mod, and
+were compared with the full game files without mods. 64 had identical hash files at once. One script waits for a
+saved game this harness did not give it, and both sides sat until the timeout with the same hashes. Three stage 13
+scripts click where an enabled mod with settings adds a Mods button; they match once both sides have the Extras
+mod they were written for. The seed script clicks inside the typed digits, where the text cursor lands by the new
+letter widths; it matches once the click lands past them. A folder with only `data/diff.txt` and properties also
+plays the playtest with the same hashes, silently, and the title says so. The web build under Node, without
+images, gives the native hashes. In the Browser pane the mod, imported as a zip, draws the title at 2x. With
+`bejeweled2-gems` above it, that mod's gems are patched over the drawn sheet; with `hd4x-textures` above it, every
+drawn image is replaced. On the web the import still asks for the whole install (its marker is
+`images/gemsheet6`), so there code art draws over files the player imported anyway.
+
 ### 4.19 Detailed game-over stats (`features.gameStats`)
 
 - **What:** the game-over screen (`HighScoreWidget`) shows three stats: gems cleared, longest cascade
@@ -1975,6 +2061,54 @@ It needs stages 3 (StateCodec), 5 (v2 chunks), 6 (the undo row) and 7 (`RefillMa
   through; screenshots of the page for normal and timed games, at 640x480 and @4x; oracle three ways
   without the mod.
 - **Size:** ~900 lines: observer and hooks ~250, sidecar chunk ~100, page and charts ~400, tests ~150.
+
+**As built (stage 17, `GameStats.*`, `GameStatsPage.*`, the mod `game-stats`; GAME_NOTES 12.21):** about
+790 new lines and 280 changed ones. The button is a **STATS** link, like WATCH REPLAY: it starts at x 225 on the SEED
+line's row and slides with the panel. The page is a widget over the board window (191,9, 435 x 423) with the board
+frame drawn over its edge, and a click anywhere on it closes it. Its layout flows instead of the fixed rows planned.
+PLAY and MATCHES are two columns of label and value. A row appears only when the rules play it or the game did it:
+kept invalid moves and undos when the rules allow them, twists, slides, specials and gold when there were any. A
+value that does not fit beside its label goes under it, and when either column passes seven rows they close up from
+15 px to 13. The gems cleared per colour sit in one row across both columns (up to 12 colours). The charts take the
+height left above y 292 (24 to 70 px), and the level line and the BOARD rows stay below. On the BOARD rows, Rules
+says "the original" when the score key is empty and otherwise shows the first eight hex digits of the RulesId. The
+seed shows for a board with its own RNG; a watched replay shows the recording's seed, and none for a game that
+played on the global stream. All the words are strings (`STATS_*`, `HSWIDGET_STATS`, `REPLAY_STATS`), so a mod can
+rename them.
+
+The counts come from the hooks listed above. A run counts by its length, and a shape (stage 11) counts with the runs
+of 5 or more. Blasts, the gold time bonus and dirt points are "other points". Each penalty is measured as the score
+before minus the score after, so a score clamped at 0 still adds up. A cascade is the number of sets of runs a
+move cleared: the board's `mCascadeCount` less one at the settle that ends the move. The score line has a point at
+each settle and each level-up, and when it reaches 1024 points every other one goes. The play time counts updates
+while the board is not paused, and it stops at game over.
+
+An undo restores the counts kept with its snapshot, except the play time and the undo count, which stay as the
+board's do: two undos in a row count as two. The points follow the score, so in a chain of undos the earlier undo's
+penalty goes back with its snapshot, just as it does on the board. The save's counts go into the sidecar as a STAT
+record just before END (`Replay::AddStats`); with the feature on, a save without a sidecar gets a minimal one
+(SVHA and END). `savegame.dat` itself is byte for byte the same with the feature on and off.
+
+A watched replay ends on the REPLAY END dialog, not on the game-over screen, so that dialog has the page's link: a
+STATS line above its buttons, a child of the dialog, so it moves with the dialog and takes clicks while the dialog
+is modal. The watch keeps the player's `gameStats` flag, though a watch otherwise plays the replay's rules with no
+features, because the flag only counts. Each segment's board carries the counts of the segment before, unless the
+segment starts from a LOAD of a save. Then it counts from there and says so.
+
+Test results:
+- **LOGIC hashes:** the bot's games hash the same with the mod and without it, update for update. That held for
+  seed 3 (normal, 21,496 updates) and for seed 5 under busy rules (undo, kept invalid moves, gold, specials, 9
+  colours; 40,000 updates). It also held for seed 6 with undo and gold, both timed (70,823) and normal (200,000), and
+  for seed 7 timed with kept invalid moves (76,322). Recording replays changes nothing either: the page is
+  pixel-identical with the replays feature on.
+- **Score sums:** on every page the score equals the run points plus the other points minus the penalties: 3935 =
+  4000 + 360 - 425 (seed 3); 14640 (seed 7, 157 kept invalid moves); 14851 (seed 6, three undos, two of them in a
+  row); 1780 after a resume. The gems per colour add up to the original screen's gems cleared (481; 174 after a
+  resume), and the play time matches its game duration (3:30). After a resume the page says 2:33 where the original
+  says 2.32; that second was not chased.
+- **Resume and watch:** a resume with the STAT record continues the counts, and one without it says "Counted from the
+  resume on". The watched replay's page is pixel-identical to the played game's, plain and with a bar hovered.
+- **Screens:** page screenshots for normal and timed games at 640 x 480 and @4x, under rundesk.
 
 ### 4.20 Arrow gems (`arrows`, after Bejeweled 3's Butterflies)
 
@@ -2023,6 +2157,41 @@ It needs stages 3 (StateCodec), 5 (v2 chunks), 6 (the undo row) and 7 (`RefillMa
   verify; autoplay runs in normal and timed mode.
 - **Size:** ~1,150 lines: rules and appearing ~200, stepping and the end ~250, art ~300, warning and effects
   ~150, save and codec ~100, tests ~150.
+
+**As built (stage 18, 2026-10-26).** The plan held, with these details. The rules live in `src/BoardArrows.cpp` and
+the art in `src/BoardArrowsDraw.cpp`, which the headless verifier replaces with empty drawing (it draws nothing), so it
+needs no art code. An arrow is a gem's `Piece::mArrow` (its direction + 1), so it falls with the gems like any gem
+when gems under it clear; a down arrow therefore travels faster than an up one, as Butterflies' butterflies sink. The
+move that stands makes the settle step the arrows (`OnMoveMade`, and a kept invalid move whether or not it counts).
+The steps trade the grid at once and animate for 24 ticks in `STATE_ARROW_STEPPING` (14), then the board settles again.
+The arrows closest to their edge go first, so an escape is always the settle's only step. On a shaped board an arrow
+with only holes ahead flies past them to the first cell off the grid. A board with arrows always takes the match
+rules' path (`ProcessMatchesVariant`), where the groups' and blasts' dying arrows are cleared; an arrow that a group
+turns into a flame or lightning gem is cleared too, and new arrows never start on a special gem. The bonus is
+`arrows.bonus` times the arrows cleared this game times the multiplier, so late in a game it is thousands a clear;
+such a board takes the fast score roll that scoring tunables get (`mFastScoreRoll`). Without it the shown score
+lagged a whole level behind the real one, and the original's test for a score a level below the level's start ended
+normal games as TIME UP. `-forcevariant` leaves `mArrows` off, since a new arrow draws from the RNG.
+The art is drawn on first use into a sheet of its own (four directions by the board's colours, at the gem sheet's HD
+scale): the bullet is as wide as a gem, since a true bullet's narrow outline reads as a pencil at 48 px, and it has a
+dark rim about 1.5 px wide like the game's own gems. The warning is the arrow's white pulse and a 4 px bar in its colour
+beyond the edge. An escape shows ARROW ESCAPED! (string id `ARROW_ESCAPED`, an own text) and ends the game with
+`END_ARROW_ESCAPED` (6) in replays. A save written mid-step holds the steps done, in `STATE_FALLING`; one written
+during an escape holds the settle before it, with its step due again, so the resumed game escapes at once. The "GO!"
+of a resumed game's tick 150 is then skipped, so it does not cover that text. The stats page has an "Arrows cleared"
+row, from the board's count (a `GameStats` field would change its record). The bot prefers a swap that lines the
+arrow closest to its edge up with two of its colour; its twists and slides have no such preference. The
+`example-arrows` mod sets the directions, `every`, `everyMin` and the bonus.
+
+Tested: rulestest (the group, the direction names, the interval, the ARRW chunk's golden bytes and eight bad ones);
+the example harness's seven arrow cases (alone at four settings, and with power gems and a diamond, twists and
+undo, and Twilight and free swaps); forty bot games in normal and timed mode; `-codeccheck` on six of them (about
+160,000 updates, no failure) with their replays verified headless (the escapes end as "arrow escaped"); resumes from
+a save made mid-move, mid-step and mid-escape, which match the uninterrupted game at its next settle; undo after a
+move whose settle stepped arrows (four games), which restores the settle before the move; the oracle three ways
+without the mod. With the default settings the bot's normal games end in 13 to 42 moves, mostly by an escape, since
+it only sees an arrow when a valid swap happens to match it; timed games go on longer, because each level's new board
+starts without arrows. These are the numbers the game modes' measures (section 9) start from.
 
 ---
 

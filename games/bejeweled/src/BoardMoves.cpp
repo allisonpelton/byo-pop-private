@@ -350,6 +350,7 @@ bool Board::MouseDownVariant(int x, int y, int theClickCount)
 		if (CanTwist(aCol, aRow, -1))
 		{
 			if (mRecorder != NULL) mRecorder->OnTwist(aCol, aRow, -1);
+			if (mStats != NULL) mStats->OnTwist();
 			StartTwist(aCol, aRow, -1);
 		}
 		return true;
@@ -374,6 +375,7 @@ bool Board::MouseDownVariant(int x, int y, int theClickCount)
 		else if (CanTwist(aCol, aRow, 1))
 		{
 			if (mRecorder != NULL) mRecorder->OnTwist(aCol, aRow, 1);
+			if (mStats != NULL) mStats->OnTwist();
 			StartTwist(aCol, aRow, 1);
 		}
 		return true;
@@ -430,6 +432,7 @@ void Board::MouseUpVariant(int x, int y)
 		if ((aK != 0) && CanSlide(mDragAxis, aLine, mDragStart, aK, anOffset))
 		{
 			if (mRecorder != NULL) mRecorder->OnSlide(mDragAxis, aLine, mDragStart, aK, anOffset);
+			if (mStats != NULL) mStats->OnSlide();
 			StartSlide(mDragAxis, aLine, mDragStart, aK, anOffset);
 		}
 		MarkDirty();
@@ -441,6 +444,7 @@ void Board::MouseUpVariant(int x, int y)
 		if (TwistAt(mMouseDownX, mMouseDownY, hasSwap, &aCol, &aRow) && CanTwist(aCol, aRow, 1))
 		{
 			if (mRecorder != NULL) mRecorder->OnTwist(aCol, aRow, 1);
+			if (mStats != NULL) mStats->OnTwist();
 			StartTwist(aCol, aRow, 1);
 		}
 	}
@@ -507,7 +511,10 @@ void Board::DrawMovesUnder(Graphics* g)
 			int anAt = aPos - aCopy * aSpan;
 			if ((aCopy == 1) && (aPos + GEM_SIZE <= aSpan))
 				break;
-			aLineG.DrawImage(mApp->mImages[IMAGE_GEMSHEET], isRow ? anOriginX + anAt : anOriginX, isRow ? anOriginY : anOriginY + anAt, aSrc);
+			int aX = isRow ? anOriginX + anAt : anOriginX;
+			int aY = isRow ? anOriginY : anOriginY + anAt;
+			if (!mVariant.mArrows || !DrawArrowGem(&aLineG, aPiece, aX, aY)) // an arrow gem slides as one (stage 18)
+				aLineG.DrawImage(mApp->mImages[IMAGE_GEMSHEET], aX, aY, aSrc);
 		}
 	}
 }

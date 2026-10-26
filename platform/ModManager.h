@@ -11,7 +11,8 @@
 //     "id": "hd-gems", "name": "HD Gems", "version": "1.0", "author": "you",
 //     "description": "Sharper gem sprites",
 //     "priority": 0,                       // higher loads on top; ties keep the user's order
-//     "imageScale": 2,                     // every plain-named image in this mod is 2x (optional)
+//     "defaultEnabled": true,              // false: off until the player turns it on (mods.json "enabled")
+//     "imageScale": 2,                    // every plain-named image in this mod is 2x (optional)
 //     "images": { "images/gemsheet6": { "scale": 2 } },   // per-image scale (optional)
 //     "imagePatches": [ { "target": "images/gemsheet6", "image": "patches/gem@2x.png",
 //                         "x": 0, "y": 520 } ],           // paste a region over a game image
@@ -54,8 +55,11 @@
 // are written to <user dir>/mods-status.json (GameConfig::Load) when an enabled mod has "rules" or "features".
 //
 // The enabled set and order are stored in <user dir>/mods.json:
-//   { "order": ["hd-gems", "other"], "disabled": ["other"] }
-// Mods found on disk but not listed are appended and enabled. Setting values are stored in
+//   { "order": ["hd-gems", "other"], "disabled": ["other"], "enabled": ["off-at-first"] }
+// Mods found on disk but not listed are appended, and enabled unless their mod.json says "defaultEnabled":
+// false. Only choices that differ from a mod's default are listed: "disabled" holds the mods that start on and
+// were turned off, "enabled" those that start off and were turned on ("disabled" wins if both list a mod).
+// Setting values are stored in
 // <user dir>/mod-settings.json, only those that differ from their defaults:
 //   { "v": 1, "mods": { "hd-gems": { "penalty": 25 } }, "next": { ... } }
 // ("next": values held until the next fresh game, in games that apply values then; elsewhere they count as
@@ -92,6 +96,7 @@ struct ModInfo
 	std::string mDir;   // the folder's name
 	int mPriority = 0;
 	bool mEnabled = true;
+	bool mDefaultEnabled = true;  // mod.json "defaultEnabled": false keeps it off until the player turns it on
 	bool mAffectsScores = false;
 	bool mHasManifest = false;
 	bool mDuplicate = false;  // another folder (earlier by name) has the same id: never loaded

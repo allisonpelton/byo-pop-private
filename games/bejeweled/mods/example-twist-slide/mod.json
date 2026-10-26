@@ -1,0 +1,29 @@
+{
+  "id": "example-twist-slide",
+  "name": "Example: Twists and Slides",
+  "version": "1.0",
+  "defaultEnabled": false,
+  "author": "byo-pop examples",
+  "description": "Other moves. A twist, as in Bejeweled Twist, turns the four gems around a corner: click where four gems meet. A slide, as in Chuzzle, drags a whole row or column along; it stays only if it makes a match. Uses its own high-score table.",
+  "settings": [
+    { "type": "section", "label": "Moves" },
+    { "id": "moves", "label": "Moves", "type": "choice", "default": "twist",
+      "choices": [ { "value": "twist", "label": "Twist" }, { "value": "slide", "label": "Slide" },
+                   { "value": "swapTwist", "label": "Swap and twist" }, { "value": "swapSlide", "label": "Swap and slide" },
+                   { "value": "twistSlide", "label": "Twist and slide" }, { "value": "all", "label": "All three" } ],
+      "help": "With swaps and twists, a click on a gem swaps and a click where four gems meet twists." },
+    { "id": "bothWays", "label": "Right click twists back", "type": "bool", "default": true,
+      "help": "A right click turns the four gems counter-clockwise; a left click always turns them clockwise." },
+    { "id": "snapTicks", "label": "Slide snap (hundredths of a second)", "type": "int", "default": 12, "min": 4, "max": 60,
+      "help": "How long a released slide takes to snap into place or slide back." }
+  ],
+  "rules": {
+    "moves": {
+      "type": { "$setting": "moves", "map": {
+        "twist": "twist", "slide": "slide", "swapTwist": [ "swap", "twist" ], "swapSlide": [ "swap", "slide" ],
+        "twistSlide": [ "twist", "slide" ], "all": [ "swap", "twist", "slide" ] } },
+      "twist": { "direction": { "$setting": "bothWays", "map": { "true": "both", "false": "cw" } } },
+      "slide": { "snapTicks": { "$setting": "snapTicks" } }
+    }
+  }
+}
