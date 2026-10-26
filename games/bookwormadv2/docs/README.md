@@ -76,8 +76,10 @@ exit status or a count that is not the whole set. The game's own runs join it as
 
 ## Mods
 
-None (the user's rule: no mods before every PopCap game works in the browser). `MOD_IDEAS.md` lists the ones worth
-making.
+None. The port is the original game, unmodified and working like its exe, and adds nothing for later mods, not even hooks
+(the user's rule of 2026-10-26); mods wait for the mod phase, after every PopCap game works in the browser. `MOD_IDEAS.md`
+maps the 29 standard mods of `docs/MOD_ROADMAP.md` onto this game (27 fit; local achievements and two players do not, with
+the reasons) and lists the ideas particular to it.
 
 ## Status (2026-10-26)
 
