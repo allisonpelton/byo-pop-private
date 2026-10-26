@@ -843,6 +843,21 @@ static void TestFeatures()
 	r = Merge({{"bad", "{\"features\": {\"livesplit\": 1}}"}});
 	Check(!r.mFeatures.mLiveSplit && HasMessage(r.mStatus.mErrors, "bad", "features ignored: features.livesplit must be"),
 		"livesplit: a number is refused" + Messages(r));
+
+	// features.lean (4.21): compact images and a frame rate cap, not part of the RulesId
+	r = Merge({{"lean", "{\"features\": {\"lean\": true}}"}});
+	Check(r.mFeatures.mLean && r.mFeatures.mLeanImages && (r.mFeatures.mLeanFrameRate == 0) &&
+		(r.mFeatures.Text() == "lean(images, frameRate 0)") && Clean(r), "lean: true" + Messages(r));
+	Check(r.mRules.RulesIdHex() == Merge({}).mRules.RulesIdHex(), "lean is not part of the RulesId");
+	r = Merge({{"lean", "{\"features\": {\"lean\": {\"images\": false, \"frameRate\": 30}}}"}});
+	Check(r.mFeatures.mLean && !r.mFeatures.mLeanImages && (r.mFeatures.mLeanFrameRate == 30) &&
+		(r.mFeatures.Text() == "lean(frameRate 30)"), "lean options (" + r.mFeatures.Text() + ")");
+	r = Merge({{"bad", "{\"features\": {\"lean\": {\"frameRate\": 5}}}"}});
+	Check(!r.mFeatures.mLean && HasMessage(r.mStatus.mErrors, "bad", "features ignored: features.lean.frameRate must be"),
+		"lean: a frame rate below 10 is refused" + Messages(r));
+	r = Merge({{"typo", "{\"features\": {\"lean\": {\"image\": true}}}"}});
+	Check(r.mFeatures.mLean && HasMessage(r.mStatus.mWarnings, "typo", "did you mean features.lean.images?"),
+		"lean: unknown key" + Messages(r));
 }
 
 // JSON has no NaN or Infinity, though strtod reads them: rejected, so no libc's NaN reaches a RulesId

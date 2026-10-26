@@ -2212,6 +2212,30 @@ original's. Diagonal arrows made no balanced mode on either diamond (docs/GAME_M
 choices, screenshots of diagonal arrows on the diamond and of their warnings on a 10 x 7 board, and of a straight
 arrow's warning on the original board.
 
+### 4.21 Less memory and processor time (`features.lean`)
+
+- **What:** the user asked for a mod that makes the game faster and leaner, after detailed profiling.
+  docs/PROFILE.md has the profile: where the memory and the processor time go, what this feature saves, and what is
+  left for the framework.
+- **Options:** `images` (true by default) and `frameRate` (0, or 10 to 100; 0 draws every frame the original draws).
+  It is no simulation state and not part of the RulesId. A replay watched keeps the player's settings
+  (`WatchController`).
+- **Images:** when loading ends (`WinDMApp::LoadingThreadCompleted`), every image except the screen goes through
+  `MemoryImage::Palletize`. That is lossless: an exact colour table of up to 256 colours, or the image unchanged. The
+  textures upload from the table (`DDInterface::PrepareTexture`), and `GetBits` gives an image its pixels back when
+  something reads it or draws into it. `TitleScreenIsFinished` deletes the title screen's picture, which nothing else
+  draws.
+- **Frame rate:** `WinDMApp::DrawDirtyStuff` sets the framework's draw throttle (`mNextDrawTick`, otherwise used while
+  loading) to the next frame's time after each frame. The 100 updates a second go on as before, so the game plays at
+  the same speed.
+- **The mod:** `lean`, with Compact images (on) and Frame rate (30 a second, also 50, 20 or as the original).
+
+As built and tested (2026-10-26): with the defaults the heap went from 28.3 to 24.1 MB (the images' pixels from 11.3
+to 7.2 MB), and processor time in a game from 4 to 6 % of a core to 1.9 %. The diagnostic script command `memreport
+<file>` (`src/testhooks/MemReport.h`) writes the report that measures it, and `tools/profile` the scripts that run
+it. Tested: rulestest (the options, a frame rate of 5 refused, an unknown key, not in the RulesId), and the profiles of
+section 4 of docs/PROFILE.md.
+
 ---
 
 ## 5. Board geometry and rendering

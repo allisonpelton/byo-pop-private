@@ -189,6 +189,7 @@ void WinDMApp::UpdateFrames()
 
 // The other virtual functions of WinDMApp: nothing in the verifier calls them
 void WinDMApp::LoadingThreadCompleted() {}
+bool WinDMApp::DrawDirtyStuff() { return false; }
 void WinDMApp::URLOpenSucceeded(const std::string& theURL) {}
 MusicInterface* WinDMApp::CreateMusicInterface() { return NULL; }
 Dialog* WinDMApp::NewDialog(int theDialogId, bool isModal, const SexyString& theDialogHeader, const SexyString& theDialogLines,

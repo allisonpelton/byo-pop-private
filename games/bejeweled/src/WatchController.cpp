@@ -248,6 +248,9 @@ bool WatchController::Start()
 	mOther.mConfig.mForceVariant = gGameConfig.mForceVariant;
 	mOther.mConfig.mReplayDir = gGameConfig.mReplayDir;
 	mOther.mConfig.mFeatures.mGameStats = gGameConfig.mFeatures.mGameStats; // the Stats page: it counts, it plays nothing
+	mOther.mConfig.mFeatures.mLean = gGameConfig.mFeatures.mLean; // lean: how the game draws and keeps its images
+	mOther.mConfig.mFeatures.mLeanImages = gGameConfig.mFeatures.mLeanImages;
+	mOther.mConfig.mFeatures.mLeanFrameRate = gGameConfig.mFeatures.mLeanFrameRate;
 	mOther.mDiff = mRules.mDiff;
 	mSavedTimedMode = mApp->mTimedMode;
 	mStatus = STATUS_PLAYING;

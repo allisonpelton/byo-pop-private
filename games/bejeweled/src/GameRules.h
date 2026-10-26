@@ -357,8 +357,11 @@ struct GameFeatures
 	std::string						mCodeArtGems = "cel";   // gem style: cel, glossy, su
 	std::string						mCodeArtPalette = "blue";   // blue, violet, emerald, ember, night
 	bool							mGameStats = false;     // the game-over screen's Stats page (4.19, GameStats.h)
+	bool							mLean = false;          // less memory and processor time (4.21)
+	bool							mLeanImages = true;     // images at 1 byte a pixel where they allow it, the title's freed after it
+	int								mLeanFrameRate = 0;     // at most this many frames a second; 0: every frame the original draws
 
-	bool							Any() const { return mSeeds || mReplays || mLeaderboard || mLiveSplit || mCodeArt || mGameStats; }
+	bool							Any() const { return mSeeds || mReplays || mLeaderboard || mLiveSplit || mCodeArt || mGameStats || mLean; }
 	std::string						Text() const;           // "seeds(entry, perGame), replays(keep 20), livesplit" or "none"
 };
 
