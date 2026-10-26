@@ -246,9 +246,9 @@ def main():
     gems = os.path.join(out, "example-crystal-gems")
     write_json(os.path.join(gems, "mod.json"), {
         "id": "example-crystal-gems",
-        "defaultEnabled": False,
         "name": "Crystal Gems HD",
         "version": "1.0",
+        "defaultEnabled": False,
         "author": "byo-pop examples",
         "description": "Replaces the gem sprites with new double-resolution art (images/gemsheet6@2x.png).",
     })
@@ -258,9 +258,9 @@ def main():
     voice = os.path.join(out, "example-voice-lines")
     write_json(os.path.join(voice, "mod.json"), {
         "id": "example-voice-lines",
-        "defaultEnabled": False,
         "name": "New Messages",
         "version": "1.0",
+        "defaultEnabled": False,
         "author": "byo-pop examples",
         "description": "Changes a few on-screen messages using string overrides.",
         "strings": {
@@ -274,9 +274,9 @@ def main():
     relaxed = os.path.join(out, "example-relaxed")
     write_json(os.path.join(relaxed, "mod.json"), {
         "id": "example-relaxed",
-        "defaultEnabled": False,
         "name": "Relaxed Hints",
         "version": "1.0",
+        "defaultEnabled": False,
         "author": "byo-pop examples",
         "description": "Hints cost 10 points instead of 50 (per level multiplier). Uses its own high-score table.",
         "tunables": {"scoring": {"hintPenalty": 10}},

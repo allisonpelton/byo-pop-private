@@ -8,7 +8,7 @@ import argparse, json, os, statistics, sys
 # player's games last, and its scores give the skill ratio). Minutes are game time at the runner's look per move. The
 # rewards' bands are centred on the original rules' measures (cascade % 41, big/100 9 for the skilled bot at 20 seeds),
 # since they are what Bejeweled feels like; tension and fairness are design targets, where the original's Normal mode
-# is weak (2.5 % danger, a third of its game overs unwarned).
+# is weak (2.3 % danger, and about one game over in six comes without a warning).
 BANDS = {
     'minutes':       {'normal': (8, 45), 'timed': (4, 15)},
     'novice min':    {'normal': (3, None), 'timed': (2, None)},

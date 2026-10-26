@@ -4,7 +4,7 @@
   "version": "1.0",
   "defaultEnabled": false,
   "author": "byo-pop",
-  "description": "A game mode for a challenge: arrow gems climb one gem up the board after every move, and if one leaves the top, the game is over. The only move is a twist: click where four gems meet to turn them clockwise, or right click to turn them the other way, and a twist that holds an arrow carries it a cell around, even back down. When gems below an arrow clear, it falls with the rest; match the arrow itself for a bonus that grows with each one cleared. Eight kinds of gem. A new arrow starts at the bottom every few moves, more often as the levels go up. Uses its own high-score table.",
+  "description": "A game mode for a challenge: arrow gems cross the board, one gem the way they point after every move. An arrow that leaves by the top ends the game; one that leaves by any other edge is a shot and scores a bonus that grows with each arrow cleared, as does matching an arrow. The only move is a twist: click where four gems meet to turn them clockwise, or right click to turn them the other way, and a twist turns the arrows it holds a quarter turn with it, so you can steer an arrow away from the top. When gems below an arrow clear, it falls with the rest. Eight kinds of gem. A new arrow starts at the edge behind it every 8 moves, one move sooner each level, down to 5. Uses its own high-score table. Turn on one game mode at a time.",
   "rules": {
     "board": {
       "gemColors": 8
@@ -17,10 +17,21 @@
     },
     "arrows": {
       "enabled": true,
-      "directions": "up",
-      "every": 6,
-      "everyMin": 3,
-      "bonus": 100
+      "directions": [
+        "up",
+        "right",
+        "down",
+        "left"
+      ],
+      "every": 8,
+      "everyMin": 5,
+      "bonus": 20,
+      "turn": true,
+      "shots": [
+        "right",
+        "bottom",
+        "left"
+      ]
     }
   }
 }

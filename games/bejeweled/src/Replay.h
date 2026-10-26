@@ -56,10 +56,12 @@ enum
 	// twists and slides (moves.type), which earlier engines played as swaps. 8: stage 11, flame and lightning gems
 	// (specials.*), which earlier engines never made. 9: stage 12, the gold board (gold.*), which earlier engines
 	// played as score levels. 10: stage 18, arrow gems (arrows.*, the diagonals with them), which earlier engines
-	// played without arrows. The original rules are frozen, so a replay of them (no variant rule, no scoring tunable
+	// played without arrows. 11: arrows that twists turn and edges they leave by for a bonus (arrows.turn,
+	// arrows.shots) and gold that only blasts gild (gold.gild "blasts"), which earlier engines played otherwise. The
+	// original rules are frozen, so a replay of them (no variant rule, no scoring tunable
 	// changed, at most 7 gem colours: GameRules::PlaysAlikeInEveryEngine) from an earlier engine still plays
 	// (CheckPlayable). games/bejeweled/tools/bjr.py repeats both values (the verifier's tests check that they agree)
-	ENGINE_ABI = 10,
+	ENGINE_ABI = 11,
 	FIRST_ENGINE_ABI = 1,
 	MT_WORDS = 624,
 	RULES_ID_SIZE = 32,

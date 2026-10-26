@@ -1,0 +1,8 @@
+{
+  "original": {"mods": []},
+  "forge": {"mods": ["forge"]},
+  "prism": {"mods": ["prism"]},
+  "halo": {"mods": ["halo"]},
+  "goldsmith": {"mods": ["goldsmith"]},
+  "arrowhead": {"mods": ["arrowhead"]}
+}

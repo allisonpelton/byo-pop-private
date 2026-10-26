@@ -174,6 +174,16 @@ static void CommitMove(Board* theBoard, const MoveSet::Move& theMove)
 		aPiece->mX = theBoard->GetColX(aPiece->mCol);
 		aPiece->mY = theBoard->GetRowY(aPiece->mRow);
 	}
+	// arrows.turn: a twist turns the arrows it carries with it, and the twist back turns them back
+	if ((theMove.mType == GameRules::MOVE_TWIST) && theBoard->mRules.mArrows.mTurn)
+	{
+		for (int i = 0; i < aCount; i++)
+		{
+			Piece* aPiece = theBoard->mBoard[aTo[i].second][aTo[i].first];
+			if (aPiece->mArrow > 0)
+				aPiece->mArrow = Board::TurnArrow(aPiece->mArrow, theMove.mC);
+		}
+	}
 }
 
 void Board::StartTwist(int theCol, int theRow, int theDir)

@@ -78,11 +78,12 @@ const char* const gTwistNames[] = {"cw", "both"};
 const char* const gNoMovesNames[] = {"gameOver", "fallOut", "continue"};
 const char* const gCrossingNames[] = {"separate", "merge"};
 const char* const gCreateInNames[] = {"any", "move"};
-const char* const gGildNames[] = {"matches", "matchesAndBlasts"};
+const char* const gGildNames[] = {"matches", "matchesAndBlasts", "blasts"};
 const char* const gMoveTypeNames[] = {"swap", "twist", "slide"};
 const char* const gGravityNames[] = {"down", "up", "alternate"};
 const char* const gBackdropNames[] = {"normal", "twilight"};
 const char* const gArrowNames[] = {"up", "right", "down", "left", "upRight", "downRight", "downLeft", "upLeft"}; // GameRules::ArrowDirection
+const char* const gArrowEdgeNames[] = {"top", "right", "bottom", "left"}; // GameRules::ArrowEdge
 
 #define RULE_FIELD(theMember) [](GameRules* r) -> void* { return &r->theMember; }
 #define RULE_NAMES(theNames) theNames, (int) (sizeof(theNames) / sizeof(theNames[0]))
@@ -117,7 +118,7 @@ const FieldDef gFields[] =
 	{66, "specials.chain", KIND_BOOL, GROUP_NONE, 0, 0, 0, NULL, 0, RULE_FIELD(mSpecials.mChain)},
 	{67, "specials.createIn", KIND_ENUM, GROUP_NONE, FLAG_BOOL, 0, 0, RULE_NAMES(gCreateInNames), RULE_FIELD(mSpecials.mCreateInMoveOnly)},
 	{80, "gold.enabled", KIND_BOOL, GROUP_GOLD, 0, 0, 0, NULL, 0, RULE_FIELD(mGold.mEnabled)},
-	{81, "gold.gild", KIND_ENUM, GROUP_GOLD, FLAG_BOOL, 0, 0, RULE_NAMES(gGildNames), RULE_FIELD(mGold.mGildBlasts)},
+	{81, "gold.gild", KIND_ENUM, GROUP_GOLD, 0, 0, 0, RULE_NAMES(gGildNames), RULE_FIELD(mGold.mGild)},
 	{82, "gold.timeLimit.normal", KIND_TIME_LIMIT, GROUP_GOLD, 0, 0, 0, NULL, 0, RULE_FIELD(mGold.mTimeLimitNormal)},
 	{83, "gold.timeLimit.timed", KIND_TIME_LIMIT, GROUP_GOLD, 0, 0, 0, NULL, 0, RULE_FIELD(mGold.mTimeLimitTimed)},
 	{84, "gold.timeBonus", KIND_INT, GROUP_GOLD, 0, 0, 1000000, NULL, 0, RULE_FIELD(mGold.mTimeBonus)},
@@ -143,7 +144,9 @@ const FieldDef gFields[] =
 	{161, "arrows.directions", KIND_MOVE_TYPES, GROUP_ARROWS, 0, 0, 0, RULE_NAMES(gArrowNames), RULE_FIELD(mArrows.mDirections)},
 	{162, "arrows.every", KIND_INT, GROUP_ARROWS, FLAG_CLAMP, 1, 100, NULL, 0, RULE_FIELD(mArrows.mEvery)},
 	{163, "arrows.everyMin", KIND_INT, GROUP_ARROWS, FLAG_CLAMP, 1, 100, NULL, 0, RULE_FIELD(mArrows.mEveryMin)},
-	{164, "arrows.bonus", KIND_INT, GROUP_ARROWS, 0, 0, 1000000, NULL, 0, RULE_FIELD(mArrows.mBonus)}
+	{164, "arrows.bonus", KIND_INT, GROUP_ARROWS, 0, 0, 1000000, NULL, 0, RULE_FIELD(mArrows.mBonus)},
+	{165, "arrows.turn", KIND_BOOL, GROUP_ARROWS, 0, 0, 0, NULL, 0, RULE_FIELD(mArrows.mTurn)},
+	{166, "arrows.shots", KIND_MOVE_TYPES, GROUP_ARROWS, 0, 0, 0, RULE_NAMES(gArrowEdgeNames), RULE_FIELD(mArrows.mShots)}
 };
 
 const int NUM_FIELDS = (int) (sizeof(gFields) / sizeof(gFields[0]));

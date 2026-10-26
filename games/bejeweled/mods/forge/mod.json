@@ -4,7 +4,7 @@
   "version": "1.0",
   "defaultEnabled": false,
   "author": "byo-pop",
-  "description": "A game mode where shapes, not lines, forge power gems. Four gems of one colour in a 2 x 2 square match and forge a flame gem, which blows up the 3 x 3 square around it when it goes; runs of one colour that cross join into an L, T or plus and forge a lightning gem, which clears its row and column. Straight runs only score, however long. Blasts set off the power gems they hit, and cascades forge them too. Uses its own high-score table.",
+  "description": "A game mode where shapes, not lines, forge power gems. Four gems of one colour in a 2 x 2 square match and forge a flame gem, which blows up the 3 x 3 square around it when it goes; runs of one colour that cross join into an L, T or plus and forge a lightning gem, which clears its row and column. Straight runs only score, however long. Blasts set off the power gems they hit, and cascades forge them too. Uses its own high-score table. Turn on one game mode at a time.",
   "rules": {
     "match": {
       "crossings": "merge",

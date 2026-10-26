@@ -158,7 +158,6 @@ void Board::UpdateArrowSteps()
 	mArrowTick++;
 	double t = (double) mArrowTick / ARROW_STEP_TICKS;
 	t = t * t * (3.0 - 2.0 * t);
-	bool anEscape = false;
 	for (const ArrowStep& s : mArrowSteps)
 	{
 		double aFromX = GetColX(s.mFromCol), aFromY = GetRowY(s.mFromRow);
@@ -166,7 +165,6 @@ void Board::UpdateArrowSteps()
 		bool isEscape = (s.mToCol < 0) || (s.mToCol >= mCols) || (s.mToRow < 0) || (s.mToRow >= mRows);
 		if (isEscape)
 		{
-			anEscape = true;
 			Piece* anArrow = mBoard[s.mFromRow][s.mFromCol];
 			anArrow->mX = aFromX + (aToX - aFromX) * t;
 			anArrow->mY = aFromY + (aToY - aFromY) * t;
@@ -182,6 +180,7 @@ void Board::UpdateArrowSteps()
 	if (mArrowTick < ARROW_STEP_TICKS)
 		return;
 
+	bool anEscape = false;
 	for (const ArrowStep& s : mArrowSteps)
 	{
 		bool isEscape = (s.mToCol < 0) || (s.mToCol >= mCols) || (s.mToRow < 0) || (s.mToRow >= mRows);
@@ -191,7 +190,16 @@ void Board::UpdateArrowSteps()
 			Piece* aPiece = mBoard[aRows[i]][aCols[i]];
 			if (isEscape)
 			{
-				// gone over the edge
+				// gone over the edge: a shot when every edge it crossed is one of arrows.shots, which scores the arrow's
+				// bonus and leaves a cell to refill; otherwise an escape, and the game is over
+				int anEdges = ArrowExitEdges(s);
+				if ((anEdges & ~mRules.mArrows.mShots) == 0)
+				{
+					ClearArrow(aPiece);
+					mApp->PlaySample(SOUND_GOTSETBIG, GetPanForX((int) aPiece->mX + 24));
+				}
+				else
+					anEscape = true;
 				mBoard[aRows[i]][aCols[i]] = NULL;
 				if (mSelectedPiece == aPiece)
 					mSelectedPiece = NULL;
@@ -212,6 +220,25 @@ void Board::UpdateArrowSteps()
 		return;
 	}
 	mState = STATE_FALLING;
+}
+
+// A quarter turn of an arrow (Piece::mArrow, its direction + 1), clockwise for theQuarters 1 and anticlockwise for -1:
+// the straight four turn among themselves, and so do the diagonals (GameRules::ArrowDirection's order is clockwise)
+int Board::TurnArrow(int theArrow, int theQuarters)
+{
+	int aDir = theArrow - 1;
+	int aFirst = (aDir >= GameRules::FIRST_DIAGONAL_ARROW) ? GameRules::FIRST_DIAGONAL_ARROW : 0;
+	return aFirst + (((aDir - aFirst + theQuarters) % 4) + 4) % 4 + 1;
+}
+
+int Board::ArrowExitEdges(const ArrowStep& theStep) const
+{
+	int anEdges = 0;
+	if (theStep.mToRow < 0) anEdges |= 1 << GameRules::ARROW_EDGE_TOP;
+	if (theStep.mToCol >= mCols) anEdges |= 1 << GameRules::ARROW_EDGE_RIGHT;
+	if (theStep.mToRow >= mRows) anEdges |= 1 << GameRules::ARROW_EDGE_BOTTOM;
+	if (theStep.mToCol < 0) anEdges |= 1 << GameRules::ARROW_EDGE_LEFT;
+	return anEdges;
 }
 
 // An escape is the settle's only step: the arrows closest to their edges go first, and the first with none ahead escapes

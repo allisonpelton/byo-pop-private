@@ -4,13 +4,33 @@
   "version": "1.0",
   "defaultEnabled": false,
   "author": "byo-pop",
-  "description": "A game mode: ten kinds of gem on a 9 x 9 board, and runs count on the diagonals too. With so many colours a straight line is rarer, so look along the slants; diagonal runs score a bonus, and crossing runs join into an L, T or plus for more. Half of all moves set off a cascade. Uses its own high-score table.",
+  "description": "A game mode where the diagonals hold the power. Runs of four or more count on the diagonals too, and every diagonal run forges a flame gem, which blows up the 3 x 3 square around it when it goes; straight runs only score, however long. Eight kinds of gem on a 10 x 10 board. Runs that cross join into an L, T or plus for a bonus, blasts set off the power gems they hit, and cascades forge them too. Uses its own high-score table. Turn on one game mode at a time.",
   "rules": {
-    "board": { "cols": 9, "rows": 9, "gemColors": 10 },
+    "board": {
+      "cols": 10,
+      "rows": 10,
+      "gemColors": 8
+    },
     "match": {
       "diagonal": true,
       "crossings": "merge",
-      "bonus": { "diagonal": 20, "L": 50, "T": 50, "plus": 100 }
+      "bonus": {
+        "L": 50,
+        "T": 50,
+        "plus": 100
+      },
+      "diagonalMinRun": 4
+    },
+    "specials": {
+      "flame": {
+        "createdBy": [
+          "diagonal"
+        ],
+        "radius": 1,
+        "points": 20
+      },
+      "chain": true,
+      "createIn": "any"
     }
   }
 }

@@ -415,7 +415,7 @@ Defaults are the original behaviour.
 | `specials.lightning` | object or null | null | `{"createdBy": [patterns], "points": int}`: clears the row and the column. Keyed. |
 | `specials.chain`, `specials.createIn` | bool, `"any"` / `"move"` | true, `"any"` | Blasts detonate caught specials. With `"move"`, specials form only in the move's own resolve. |
 | `gold.enabled` | bool | false | Atomic group *gold*. |
-| `gold.gild` | `"matches"` / `"matchesAndBlasts"` | `"matchesAndBlasts"` | |
+| `gold.gild` | `"matches"` / `"matchesAndBlasts"` / `"blasts"` | `"matchesAndBlasts"` | `"blasts"`: only flames and lightning gild, so a match alone leaves its cells plain. |
 | `gold.timeLimit.normal`, `.timed` | null or `{base, perLevel, min}` in seconds | null / `{180, -10, 60}` | Per mode. |
 | `gold.timeBonus` | int | 10 | Points per second left, times the multiplier. |
 | `undo.enabled`, `.depth`, `.max`, `.penalty`, `.inTimed`, `.restoreTime`, `.restoreRng` | | false, 1, -1, 0, false, false, true | Atomic group *undo*. depth 1..100; max per game, -1 = unlimited. |
@@ -2129,6 +2129,11 @@ Test results:
     level, down to the minimum [Q40: 6 and 3].
   - `arrows.bonus`: the points for clearing an arrow, times the number of arrows cleared so far this game
     [Q41: 100].
+  - `arrows.turn` (false): a twist turns each arrow it carries a quarter turn its way, so it points along its new
+    place in the twist. A diagonal arrow stays diagonal.
+  - `arrows.shots` (none): the edges, any of `top`, `right`, `bottom`, `left`, by which an arrow leaving the board
+    scores the growing bonus instead of ending the game. A diagonal arrow that leaves by a corner is a shot only if
+    both of its edges are.
 - **Where an arrow appears:** a gem on the edge opposite its direction turns into an arrow (an up arrow on
   the bottom row, a left arrow in the right column), so every arrow has the whole board to cross. The
   direction and the cell come from the board's owned RNG (stage 2), drawn at the settle after the move, so
@@ -2211,6 +2216,17 @@ original's. Diagonal arrows made no balanced mode on either diamond (docs/GAME_M
 (the diagonal names, the bits, an ARRW arrow of 9 refused), the example harness's arrow and shape cases with the new
 choices, screenshots of diagonal arrows on the diamond and of their warnings on a 10 x 7 board, and of a straight
 arrow's warning on the original board.
+
+**Steered arrows (2026-10-26).** The coordinator's review of the curated modes found Arrowhead too close to
+Butterflies, and suggested arrows that twists turn, with any edge but the top a shot. `arrows.turn` turns an arrow in
+`Board::CommitMove` as its twist moves it (`Board::TurnArrow`, a quarter turn the twist's way within the straight or
+the diagonal four), and `arrows.shots` makes `UpdateArrowSteps` clear an arrow that leaves by those edges, with the
+bonus and the big gem sound, where it would have ended the game. With them `gold.gild` took `"blasts"`, for a gold
+board that only power gems gild. The engine ABI went to 11. The same review found that `StateCodec`'s reader of an
+arrow's step refused a diagonal step, so a save or SNAPSHOT of a diagonal arrow mid-step did not read back; it now
+takes a step of one cell on an axis or along a diagonal. Tested: rulestest (turn and shots, an unknown edge, both in
+the RulesId, gild "blasts"); `-codeccheck` on 11 bot games of diagonal arrows on the large diamond, a gold board that
+only blasts gild and Prism with diagonal-made flames, and 12 of steered arrows, no failure.
 
 ### 4.21 Less memory and processor time (`features.lean`)
 

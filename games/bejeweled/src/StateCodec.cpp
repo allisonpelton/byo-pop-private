@@ -13,6 +13,7 @@
 #include "MTRand.h"
 
 #include <algorithm>
+#include <cstdlib>
 #include <cstring>
 
 using namespace Sexy;
@@ -479,9 +480,11 @@ public:
 			s.mFromRow = GetInt("mArrowSteps");
 			s.mToCol = GetInt("mArrowSteps");
 			s.mToRow = GetInt("mArrowSteps");
+			// A step goes along a row or a column, or along an exact diagonal (the diagonal arrows)
 			bool isFromCell = (s.mFromCol >= 0) && (s.mFromCol < mBoard->mCols) && (s.mFromRow >= 0) && (s.mFromRow < mBoard->mRows);
+			int aColStep = std::abs(s.mToCol - s.mFromCol), aRowStep = std::abs(s.mToRow - s.mFromRow);
 			bool isToNear = (s.mToCol >= -1) && (s.mToCol <= mBoard->mCols) && (s.mToRow >= -1) && (s.mToRow <= mBoard->mRows) &&
-				((s.mToCol == s.mFromCol) != (s.mToRow == s.mFromRow));
+				(((aColStep == 0) != (aRowStep == 0)) || ((aColStep == aRowStep) && (aColStep > 0)));
 			if (mOk && (!isFromCell || !isToNear))
 				Fail("an arrow step from (" + std::to_string(s.mFromCol) + "," + std::to_string(s.mFromRow) + ") to (" +
 					std::to_string(s.mToCol) + "," + std::to_string(s.mToRow) + ")");

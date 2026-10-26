@@ -1,9 +1,10 @@
 # Game modes and the fun lab
 
 The user asked for combinations of the mods' features and settings that make fun, balanced game modes, tested with a
-bot, and for ways to put a number on "fun" in a game of Bejeweled. This is the method, what it found, and the six
-modes it chose. The modes are curated mods (CLAUDE.md, "Mods"): `forge`, `prism`, `carousel`, `gold-rush`,
-`arrowhead` and `still-water` in `games/bejeweled/mods/`. Each starts off; turn one on at a time in the mod menu.
+bot, and for ways to put a number on "fun" in a game of Bejeweled. This is the method, what it found, and the five
+modes it chose. The modes are curated mods (CLAUDE.md, "Mods"): `forge`, `prism`, `halo`, `goldsmith` and
+`arrowhead` in `games/bejeweled/mods/`. Each starts off; turn one on at a time in the mod menu, as each description
+says.
 
 ## 1. The lab
 
@@ -71,9 +72,22 @@ novice's; and a novice's game at least 3 minutes in Normal and 2 in Timed.
 Four rounds tried about 50 candidates, 80 games each (seeds 1 to 20, both modes, both bots). A curated mode never
 copies another game's mode, though, and five of the first six leaned on one (Bejeweled 2's power gems, Twist's
 twists, Jewel Quest's gold, Bejeweled 3's Butterflies, Zen with Twilight), so three more rounds tried about 30
-candidates that give each an idea of its own. The six modes were then played again on seeds 101 to 150, which no
-tuning had seen. Some findings are worth more than the modes:
+candidates that give each an idea of its own. The coordinator's review of those six found four still too close to
+another game's mode (Twist's board, Jewel Quest's gold, Butterflies, Zen), so three more rounds tried about 40
+candidates on new rules: power gems that only diagonal runs make, gold that only blasts gild, and arrows that twists
+turn, with any edge but the top a shot. Still Water was dropped: a calm endless mode needs a mechanic of its own. The
+five modes were then played again on seeds 101 to 150, which no tuning had seen. Some findings are worth more than the
+modes:
 
+- **Blasts alone gild slowly.** When only power gems gild, no 7 x 7 or 8 x 8 board got past level 1 in four minutes
+  with Gem Forge's 3 x 3 flames. A 5 x 5 flame, and power gems from runs of 4 and 5 as well as from shapes, clear about
+  a level every five minutes, and the clock, 10 seconds shorter each level, ends the game.
+- **Diagonal power wants diagonals of four.** When every diagonal run of three forged a flame, flames came 28 times a
+  minute and more than half of all moves cascaded. Diagonals of four or more, on a 10 x 10 board with 8 colours,
+  brought every measure but danger into band.
+- **Steering and a small bonus tame the arrows.** With twists turning the arrows and three edges of four counting as
+  shots, a bonus of 100 an arrow made the levels fly (7 moves a level); at 20 the skilled bot's Normal score is about
+  130 times the novice's, where the first Arrowhead's was 434 times.
 - **Seven colours is the sweet spot, and the lab finds it.** With 6 kinds of gem, nine games in ten were still going
   at the 30-minute cap; with 8, a game lasted 3 minutes. The original's 7 gives 8 to 11 minutes with every measure in
   band. More colours need a bigger board or more ways to match: 8 colours on a 10 x 10 board, or 10 colours with
@@ -119,11 +133,10 @@ Normal:
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
 | original | 10.7 | 8 | 2.7 | 34 | 7 | 42 | 8.8 | 2.3 | 4.4 | 84 | 14.2 | 10/11 |
 | forge | 11.6 | 12 | 2.7 | 24 | 7 | 43 | 13.2 | 2.8 | 4.7 | 89 | 25.3 | 10/11 |
-| prism | 14.0 | 15 | 3.4 | 22 | 8 | 51 | 3.9 | 1.4 | 2.5 | 76 | 16.9 | 9/11 |
-| carousel | 13.2 | 14.5 | 3.0 | 24 | 8 | 45 | 5.6 | 2.1 | 5.3 | 75 | 19.1 | 11/11 |
-| gold-rush | 30 (cap) | 14 | 21.3 | 53 | 6 | 36 | 12.4 | 7.5 | 25.9 | 100 | 3.8 | 11/11 |
-| arrowhead | 7.3 | 18.5 | 0.8 | 7 | 10 | 50 | 12.5 | 2.4 | 2.3 | 91 | 434 | 8/11 |
-| still-water | 30 (cap) | 15 | 30 (cap) | 43 | 6 | 48 | 7.9 | 0.0 | 0.0 | - | 2.1 | 8/10 |
+| prism | 20.6 | 18 | 6.4 | 25 | 9 | 50 | 13.2 | 0.9 | 1.9 | 81 | 17.7 | 10/11 |
+| halo | 9.8 | 13 | 3.1 | 21 | 8 | 46 | 6.8 | 1.9 | 4.1 | 61 | 15.0 | 10/11 |
+| goldsmith | 19.9 | 5 | 6.7 | 82 | 6 | 37 | 19.9 | 15.5 | 19.5 | 100 | 11.9 | 9/11 |
+| arrowhead | 11.5 | 16.5 | 1.8 | 16 | 9 | 44 | 15.4 | 4.8 | 6.9 | 77 | 128 | 9/11 |
 
 Timed:
 
@@ -131,50 +144,50 @@ Timed:
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
 | original | 10.6 | 10 | 11.0 | 13 | 7 | 44 | 9.6 | 6.2 | 0.8 | 100 | 1.8 | 10/10 |
 | forge | 11.0 | 17 | 10.9 | 10 | 7 | 43 | 13.1 | 6.8 | 2.4 | 100 | 2.7 | 10/10 |
-| prism | 11.9 | 20 | 12.2 | 6 | 8 | 52 | 4.8 | 5.7 | 1.5 | 100 | 2.2 | 10/10 |
-| carousel | 13.4 | 21 | 13.5 | 8 | 8 | 46 | 5.9 | 5.2 | 1.7 | 100 | 2.1 | 10/10 |
-| gold-rush | 8.6 | 4 | 3.4 | 47 | 6 | 35 | 11.8 | 10.5 | 0.9 | 100 | 5.4 | 9/10 |
-| arrowhead | 13.6 | 46.5 | 1.3 | 5 | 10 | 52 | 7.9 | 7.4 | 6.9 | 100 | 956 | 8/10 |
-| still-water | 13.8 | 11 | 11.5 | 14 | 6 | 48 | 8.2 | 6.8 | 1.6 | 100 | 2.7 | 10/10 |
+| prism | 12.3 | 19.5 | 11.6 | 8 | 9 | 53 | 12.3 | 5.6 | 2.2 | 100 | 3.2 | 10/10 |
+| halo | 13.5 | 24 | 13.0 | 7 | 9 | 48 | 6.3 | 5.2 | 1.6 | 100 | 2.5 | 10/10 |
+| goldsmith | 11.5 | 3 | 5.0 | 67 | 6 | 38 | 20.6 | 12.1 | 0.6 | 100 | 5.6 | 8/10 |
+| arrowhead | 15.6 | 38.5 | 3.4 | 8 | 10 | 47 | 12.1 | 7.4 | 8.9 | 100 | 71.0 | 9/10 |
 
 Each mode below says what it draws on and the idea of its own that sets it apart.
 
 **Gem Forge** (`forge`): shapes, not lines, forge the power gems. Four gems of one colour in a 2 x 2 square match
 and make a flame gem; crossing runs join into an L, T or plus and make a lightning gem; a straight run only scores,
 however long. Bejeweled 2 makes its power gems from long runs, so the eye looks along rows; here it looks for
-corners and blocks, which the original never rewards. The original's pace and cascades, more big moments (13 in 100
-moves against 9), and the widest skill gap after the arrows: forging is something to plan. The safest mode to
-recommend.
+corners and blocks, which the original never rewards. The lightning gem from an L or T is exactly Bejeweled 3's Star
+Gem, so what is new is the square that forges a flame and the straight runs that forge nothing. The original's pace
+and cascades, more big moments (13 in 100 moves against 9), and a wide skill gap: forging is something to plan. The
+safest mode to recommend.
 
-**Prism** (`prism`): ten kinds of gem on a 9 x 9 board, with diagonal runs. Many colours make straight lines rare and
-the diagonals give them back, so the eye works differently. Half of all moves cascade; big moments are rarer (a
-cascade-rich board makes the median move high), and the danger is low, a calm mode with long games.
+**Prism** (`prism`): the diagonals hold the power. Runs of four or more count on the diagonals, and each diagonal
+run forges a flame gem; straight runs only score. Eight kinds of gem on a 10 x 10 board. Bejeweled's power gems come
+from straight runs and their crossings; here the rows and columns score and the slants build. Long games (21 minutes
+in Normal), every measure in band but danger (0.9 % of decisions), so a calm mode, and the novice lasts 6 minutes.
 
-**Carousel** (`carousel`): twists only, on a ring of 60 cells around a 2 x 2 hub, with diagonal runs (a small bonus)
-and nine kinds of gem; runs of 4 and 5 make flame and lightning gems. Twist's move on a board with a hole in it: the
-twists beside the hub reach fewer gems, gems fall past the hole, and the diagonals turn up matches that a square
-twist board would hide. All eleven Normal measures in band, games of 13 minutes, and the novice lasts 3, so twists
-around a hub can be learned.
+**Halo** (`halo`): twists only, on a ring of 60 cells around a 2 x 2 hub, with diagonal runs (a small bonus), nine
+kinds of gem, and Gem Forge's shapes making the power gems. The first version, Carousel, made them from runs of 4
+and 5, so the ring was all it added to Twist, and its name promised a board that turns. With shapes, a twist is the
+tool that builds squares and crossings around the hole, which neither Twist nor Gem Forge asks for. Every Normal
+measure in band but danger (1.9 %), games of 10 minutes, and the novice lasts 3.
 
-**Gold Rush** (`gold-rush`): gild a 7 x 7 board before the level's clock runs out, while the gems fall down, then
-up, after each move that matches, so the board fills from either edge in turn. Gilding is Jewel Quest's idea; the
-alternating gravity is its own, and it turns the hunt for the last plain cells into reading which way the next fall
-goes. No power gems, so every cell is gilded by hand. The most tense mode by far in Normal (26 close calls a game)
-and every ending warned, with the clock always in view. A board with no moves refills, so only the clock ends a game: in Normal the skilled bot is still playing at
-30 minutes in four games of five. Timed's levels have half the time, and its games last 9 minutes.
+**Goldsmith** (`goldsmith`): gild a 7 x 7 board before the level's clock runs out, but only blasts gild, so a match
+leaves its cells plain. Gem Forge's shapes and runs of 4 and 5 forge the power gems, and a flame blows up a 5 x 5
+square. Gilding is Jewel Quest's idea, where every match gilds; here the hunt for the last plain cells is a matter of
+forging a power gem and aiming its blast. The first version, Gold Rush, gilded with matches and refilled a board with
+no moves, so in Normal the skilled bot was still playing at 30 minutes in four games of five. Now the clock, 10
+seconds shorter each level, ends four Normal games of five, at level 5 after 20 minutes. The tensest mode (16 % of
+decisions in danger, about 20 close calls a game), every ending warned; a level takes about 80 moves, above the band,
+and the blasts make big moments common (20 in 100 moves). Timed's levels have 3 minutes.
 
-**Arrowhead** (`arrowhead`): arrows climb one gem up the board after every move and end the game if one leaves the
-top, as Bejeweled 3's Butterflies do; but the only move is a twist, and a twist that holds an arrow carries it a cell
-around, even back down. Eight kinds of gem, a new arrow every 6 moves (one sooner each level, down to 3), and a bonus
-of 100 a cleared arrow, growing with each. Short, tense and skill-heavy: the skilled bot outscores the novice
-several hundredfold, and the novice is gone in a minute. Levels fly past on the bonus. A challenge mode, not a first
+**Arrowhead** (`arrowhead`): arrows in the four straight directions cross the board one gem a move. One that leaves
+by the top ends the game; one that leaves by another edge is a shot and scores the bonus, which grows with each arrow
+cleared. The only move is a twist, and a twist turns the arrows it holds a quarter turn with it, so the player steers:
+an arrow headed for the top can be turned aside into a shot. The first version followed Bejeweled 3's Butterflies,
+whose butterflies only climb and end the game at the top; here an arrow goes where it points, and the player turns
+it. Eight kinds of gem, a new arrow every 8 moves (one sooner each level, down to 5), and a bonus of 20 an arrow.
+Games of 11 minutes in Normal and 16 in Timed; the novice, which never steers, is gone in 2, and the skilled bot's
+score is about 130 times the novice's in Normal (the first version's was 434 times). A challenge mode, not a first
 one.
-
-**Still Water** (`still-water`): a pond, the large diamond of 60 cells, with free swaps at no cost, a board with no
-moves that plays on, alternating gravity that falls slowly, the dusk backdrop and the sounds two semitones down.
-Endless modes exist elsewhere; this one is a shape to look at, whose corners fill from either point in turn. Normal
-never ends, with no danger at all, by design: a mode to unwind, with half of all moves cascading. Timed keeps its
-clock and is in band throughout.
 
 Two near misses are worth keeping in mind: twists with diagonal runs and eleven colours on the full board (10 of 11
 in Normal, 10 of 10 in Timed), and a 10 x 10 board with 8 colours and L, T and plus bonuses (11 of 11 in Normal, 9 of
@@ -194,4 +207,6 @@ which is some evidence that they measure something real. The modes are a startin
 `run.py` takes any modes file; `--only` picks labels, `--wait` the look per move, `--mode` and `--policy` one of
 each. The lab exits with status 1 when a mod's rules do not load (an error, a dropped mod or a setting it does not
 know), so a typo in a modes file fails loudly. A curated mod's RulesId in the lab's first line can be compared with
-the candidate's it came from: the six modes' match their candidates exactly.
+the candidate's it came from: the five modes' match their candidates exactly. Section 4's modes file is
+`games/bejeweled/tools/funlab/curated.json`; the candidates' files stayed in the lab's output folder and were not
+kept.

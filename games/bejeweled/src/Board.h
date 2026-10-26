@@ -504,6 +504,8 @@ public:
 	bool			IsArrowEscaping() const;                        // STATE_ARROW_STEPPING: the step is an arrow's escape
 	void			AddNewArrow();                                  // the settle after every arrows.every moves: a gem on an edge turns into an arrow
 	void			ClearArrow(Piece* thePiece);                    // a matched or blasted arrow: the bonus, the count
+	static int		TurnArrow(int theArrow, int theQuarters);       // arrows.turn: a Piece::mArrow a quarter turn on (1 clockwise)
+	int				ArrowExitEdges(const ArrowStep& theStep) const; // the ARROW_EDGE_* bits a step leaves the board by
 	void			ClearMatchedArrows();                           // ProcessMatchesVariant found groups: each dying arrow
 	bool			DrawArrowGem(Graphics* g, Piece* thePiece, int theX, int theY); // an arrow's picture instead of its gem (false: not an arrow)
 	void			DrawArrowWarnings(Graphics* g);                 // DrawVariant: an arrow one step from its edge pulses, the edge glows

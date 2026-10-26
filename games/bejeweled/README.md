@@ -151,11 +151,10 @@ rather than another game's mode. They start off; turn on one at a time.
 | Mode | What it plays |
 |---|---|
 | `forge`: Gem Forge | Shapes, not lines, forge the power gems: a 2 x 2 square makes a flame gem, an L, T or plus a lightning gem |
-| `prism`: Prism | Ten kinds of gem on a 9 x 9 board, and runs count on the diagonals too |
-| `carousel`: Carousel | Twists only, on a ring of 60 cells around a hub, with diagonal runs and nine kinds of gem |
-| `gold-rush`: Gold Rush | Gild a 7 x 7 board against the level's clock while the gems fall down, then up: the most tense mode |
-| `arrowhead`: Arrowhead | Arrow gems climb the board, and the only move is a twist, which can carry an arrow back down: for a challenge |
-| `still-water`: Still Water | Free swaps on a diamond pond, no game over in Normal, alternating gravity under a dusk sky: a mode to unwind |
+| `prism`: Prism | The diagonals hold the power: every diagonal run of four or more forges a flame gem, and straight runs only score |
+| `halo`: Halo | Twists only, on a ring of 60 cells around a hub, with diagonal runs and Gem Forge's shape-made power gems |
+| `goldsmith`: Goldsmith | Gild a 7 x 7 board against the level's clock, but only blasts gild: forge power gems and aim them. The most tense mode |
+| `arrowhead`: Arrowhead | Arrow gems cross the board and end the game at the top; a twist turns the arrows it holds, so you steer them into shots at the other edges. For a challenge |
 
 Mods built from other games' files or third-party pictures, or closely recreating another game's art, are generated locally and git-ignored.
 

@@ -169,6 +169,23 @@ public:
 		ALL_ARROW_DIRECTIONS = 15   // the straight four
 	};
 
+	// The board's edges an arrow can leave by (arrows.shots)
+	enum ArrowEdge
+	{
+		ARROW_EDGE_TOP = 0,
+		ARROW_EDGE_RIGHT,
+		ARROW_EDGE_BOTTOM,
+		ARROW_EDGE_LEFT
+	};
+
+	// gold.gild: which clears turn their cells gold
+	enum Gild
+	{
+		GILD_MATCHES = 0,
+		GILD_MATCHES_AND_BLASTS,
+		GILD_BLASTS
+	};
+
 	struct BoardRules
 	{
 		int							mCols = 8;              // board.cols 3..16 (shape)
@@ -218,7 +235,7 @@ public:
 	struct GoldRules
 	{
 		bool						mEnabled = false;       // gold.enabled (gold)
-		bool						mGildBlasts = true;     // gold.gild "matches" / "matchesAndBlasts"
+		int							mGild = GILD_MATCHES_AND_BLASTS; // gold.gild "matches" / "matchesAndBlasts" / "blasts"
 		TimeLimit					mTimeLimitNormal;       // gold.timeLimit.normal: null
 		TimeLimit					mTimeLimitTimed = TimeLimit{true, 180, -10, 60}; // gold.timeLimit.timed
 		int							mTimeBonus = 10;        // gold.timeBonus
@@ -244,6 +261,8 @@ public:
 		int							mEvery = 6;             // arrows.every: a new arrow after that many moves at level 1
 		int							mEveryMin = 3;          // arrows.everyMin: one move fewer each level, down to this
 		int							mBonus = 100;           // arrows.bonus: times the arrows cleared so far, times the multiplier
+		bool						mTurn = false;          // arrows.turn: a twist turns the arrows it carries a quarter turn its way
+		int							mShots = 0;             // arrows.shots: bits of ARROW_EDGE_*, edges an arrow leaves by for its bonus
 	};
 
 	// Presentation (4.16): in the RulesId and the score key, never a variant board
