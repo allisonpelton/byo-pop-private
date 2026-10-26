@@ -209,8 +209,15 @@ the destructor) holds the loaded egg at +0xc (Load 0x401210 makes one at (100, 1
 the board's +0x15c and +0x160 take its colour, the rubber-shot sound, a flying egg with the angle's unit vector
 as its step, and a recoil of 20 pixels the other way at +0x28/+0x2c); 0x4013f0 and 0x401470 move a point toward
 or away from another along the angle between them (0x42bbc0), and 0x4014f0 freezes it with an object at +0xaa8.
-Still to translate there: 0x401510-0x4034b0 (its update, draw 0x4033a0 and the parts the board draws, 0x401940
-and 0x401a10). Next: the rest of the launcher, then the base
+Translated since: the slingshot and the band with the hand (0x401940 and 0x401a10, which the board draws), the
+aim (0x401e40 aims at a point by AngleTo 0x42bbc0, and 0x401d30 puts the loaded egg 25 pixels back against it), the
+aiming arrow (0x401ed0) and the aim path's band (0x4022f0, with 0x4021e0 and the line crossing 0x42bcd0; its right
+side goes on +0xa74 and its left on +0xa8c). Still to translate there: the update 0x402c10 (read, not written: a
+frozen launcher holding an egg counts +0xaac up and past 55 loads the held egg, otherwise counts down and unfreezes
+at 0; the arrow's colour fades toward red or white by bit 1 of the board's +0x12c; +0xa60 eases toward +0xa64; the
+recoil shrinks by 0.85 a frame), the path 0x402d90 (it runs a flying egg to find the bounces, fills the band, and
+draws the app's +0x18a4 picture on the landing cell), the draw 0x4033a0, and the save and load 0x401510 and
+0x4016c0. Next: the rest of the launcher, then the base
 board's remaining slots (Init 0x407ac0, Update, Draw 0x4044a0, the input slots), the sub-objects at +0x60
 (0x431fc0), +0x84 (0x437aa0) and +0x88 (0x438400), and DynomitePanic.
 
