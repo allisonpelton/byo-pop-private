@@ -21,52 +21,52 @@ void Level_SetBackground(Level* theLevel)
 	{
 		if (n == 500)
 			aSong = "audio\\cosmo4.mo3";
-		aBack = "background09";
+		aBack = "finalshowdown";
 	}
 	else if (399 < n)
 	{
 		if (n == 400)
 			aSong = "audio\\cosmo5.mo3";
-		aBack = "background08";
+		aBack = "facility";
 	}
 	else if (299 < n)
 	{
 		if (n == 300)
 			aSong = "audio\\cosmo2.mo3";
-		aBack = "background07";
+		aBack = "arctic";
 	}
 	else if (199 < n)
 	{
 		if (n == 200)
 			aSong = "audio\\cosmo3.mo3";
-		aBack = "background06";
+		aBack = "minefield";
 	}
 	else if (99 < n)
 	{
 		if (n == 100)
 			aSong = "audio\\cosmo4.mo3";
-		aBack = "background05";
+		aBack = "lostcity";
 	}
 	else if (0x31 < n)
 	{
 		if (n == 0x32)
 			aSong = "audio\\cosmo5.mo3";
-		aBack = "background04";
+		aBack = "pirateship";
 	}
 	else if (0x13 < n)
 	{
 		if (n == 0x14)
 			aSong = "audio\\cosmo2.mo3";
-		aBack = "background03";
+		aBack = "coralreef";
 	}
 	else if (9 < n)
 	{
 		if (n == 10)
 			aSong = "audio\\cosmo3.mo3";
-		aBack = "background02";
+		aBack = "kelpjungle";
 	}
 	else
-		aBack = "background01";
+		aBack = "crashsite";
 	if (aSong != nullptr)
 		std::strcpy(gSongName, aSong);
 	std::strcpy(theLevel->backImage, aBack);
@@ -497,6 +497,13 @@ void Menu_Append(List<Menu>* theList)
 {
 	Menu* aMenu = (Menu*)::operator new(sizeof(Menu));
 	List_Append(theList, Menu_Init(aMenu));
+}
+
+// 0x418200
+void Menu_Insert(List<Menu>* theList)
+{
+	Menu* aMenu = (Menu*)::operator new(sizeof(Menu));
+	List_InsertBefore(theList, Menu_Init(aMenu));
 }
 
 void Shooter_Insert(List<Shooter>* theList)
@@ -1170,20 +1177,24 @@ void Star_Append(List<Obj>* theList)
 	List_InsertBefore(theList, aStar);
 }
 
+// 0x411350: the bubbles that rise behind the board (Cosmic Bugs' stars drifted sideways)
 void Level_AddStars(Level* theLevel)
 {
 	List<Obj>* aList = &theLevel->stars;
+	char aName[32];
 	int n = 0x28;
 	do
 	{
 		Star_Append(aList);
 		aList->current->x = (float)RandRange(0, 800);
 		aList->current->y = (float)RandRange(0, 0x250);
-		aList->current->vx = (float)((double)RandRange(0x14, 0x32) / 25.0 * 0.035);
+		aList->current->vy = (float)((double)RandRange(0x14, 0x32) / 25.0 * 0.035);
+		aList->current->vy = -aList->current->vy;
 		aList->current->drawKind = 2;
 		aList->current->midHandle = 1;
 		aList->current->dirty = 1;
-		Animation* anAnim = Animation_Find("star", &aList->current->frameCount, &aList->current->frameTime);
+		std::sprintf(aName, "bubble%d", RandRange(1, 3));
+		Animation* anAnim = Animation_Find(aName, &aList->current->frameCount, &aList->current->frameTime);
 		n = n + -1;
 		aList->current->anim = anAnim;
 	} while (n != 0);

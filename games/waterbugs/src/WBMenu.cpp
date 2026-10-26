@@ -95,20 +95,6 @@ void MenuItem_Append(List<MenuItem>* theList)
 	List_Append(theList, anItem);
 }
 
-// 0x4155f0
-void MenuItem_Insert(List<MenuItem>* theList)
-{
-	MenuItem* anItem = (MenuItem*)::operator new(sizeof(MenuItem));
-	Obj_Init(anItem);
-	anItem->autoClick = 0;
-	anItem->image = nullptr;
-	anItem->box = 0;
-	anItem->showOnlyHot = 0;
-	anItem->hotFont = nullptr;
-	anItem->alwaysHot = 0;
-	List_InsertBefore(theList, anItem);
-}
-
 // A requester's button: one of the art's animations at (x, y)
 void Button_Setup(MenuItem* theItem, const char* theAnim, float x, float y)
 {
@@ -862,6 +848,20 @@ int MenuItem_Update(MenuItem* theItem)
 }
 
 } // namespace
+
+// 0x4155f0
+void MenuItem_Insert(List<MenuItem>* theList)
+{
+	MenuItem* anItem = (MenuItem*)::operator new(sizeof(MenuItem));
+	Obj_Init(anItem);
+	anItem->autoClick = 0;
+	anItem->image = nullptr;
+	anItem->box = 0;
+	anItem->showOnlyHot = 0;
+	anItem->hotFont = nullptr;
+	anItem->alwaysHot = 0;
+	List_InsertBefore(theList, anItem);
+}
 
 void HighScore_Entered(const char*)
 {

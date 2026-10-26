@@ -18,7 +18,7 @@ namespace
 int gPanelPercent = -1;            // cb:0x460a38  what the panel last drew
 int gPanelLives = -1;              // cb:0x460a34
 int gPanelScore = -1;              // cb:0x460a30
-int gPowerupKinds[0x78];           // 0x6e5c00  a power-up's kind by a random index
+int gPowerupKinds[0x96];           // 0x6e5c08  a power-up's kind by a random index
 int gRebuildKinds = 1;             // cb:0x460a48  (never cleared: each power-up builds the table again)
 
 // 0x418170: a new item at the tail, made current
@@ -31,23 +31,24 @@ void Panel_AppendItem(List<Obj>* theList)
 
 // cb:0x4183b0: ten entries for each kind from 0 to 9, 0 for the indexes past 99 but six more of 10 at 110..115 (the
 // test for kinds 15 and 16 never holds)
+// 0x418810
 void Powerup_BuildKinds()
 {
-	for (uint32_t i = 0; (int)i < 0x78; i++)
+	for (uint32_t i = 0; (int)i < 0x96; i++)
 	{
 		uint32_t aKind = i / 10;
 		gPowerupKinds[i] = aKind;
-		if (99 < (int)i)
+		if (0x81 < (int)i)
 			gPowerupKinds[i] = 0;
-		if ((aKind == 0x10 || aKind == 0xf) && (i & 1) == 0)
+		if ((aKind == 9 || aKind == 8) && (i & 1) == 0)
 			gPowerupKinds[i] = 0;
 	}
-	gPowerupKinds[110] = 10;
-	gPowerupKinds[111] = 10;
-	gPowerupKinds[112] = 10;
-	gPowerupKinds[113] = 10;
-	gPowerupKinds[114] = 10;
-	gPowerupKinds[115] = 10;
+	gPowerupKinds[140] = 0xd;
+	gPowerupKinds[141] = 0xd;
+	gPowerupKinds[142] = 0xd;
+	gPowerupKinds[143] = 0xd;
+	gPowerupKinds[144] = 0xd;
+	gPowerupKinds[145] = 0xd;
 }
 
 // The effects. 0x4188a0: a faster beam (by the beams' starting speed)
@@ -114,17 +115,13 @@ void Powerup_FlipFlopper()
 	aShip->flags = aShip->flags | 8;
 }
 
-// cb:0x418590 and cb:0x4185d0 (explode all floaters, all walkers) would set the countdowns of a kind range to 300, 600 and
-// so on, but neither range can hold (the bounds are the original's, in variables to keep the compiler quiet). No
-// power-up is of these kinds anyway (see Powerup_Init).
+// 0x4189f0: explode all floaters: the countdowns of the enemies of kinds 0..6 are set to 300, 600 and so on
 void Powerup_ExplodeFloaters()
 {
 	int aDelay = 300;
-	int aOver = 0xe;
-	int anUnder = 4;
 	for (Enemy* anEnemy = gLevels.current->enemies.head; anEnemy != nullptr; anEnemy = Node_Next(anEnemy))
 	{
-		if (aOver < anEnemy->kind && anEnemy->kind < anUnder)
+		if (-1 < anEnemy->kind && anEnemy->kind < 7)
 		{
 			anEnemy->countdown = aDelay;
 			aDelay = aDelay + 300;
@@ -132,14 +129,13 @@ void Powerup_ExplodeFloaters()
 	}
 }
 
+// 0x418a30: explode all walkers (kinds 7..0xc)
 void Powerup_ExplodeWalkers()
 {
 	int aDelay = 300;
-	int aOver = 0x14;
-	int anUnder = 0x14;
 	for (Enemy* anEnemy = gLevels.current->enemies.head; anEnemy != nullptr; anEnemy = Node_Next(anEnemy))
 	{
-		if (aOver < anEnemy->kind && anEnemy->kind < anUnder)
+		if (6 < anEnemy->kind && anEnemy->kind < 0xd)
 		{
 			anEnemy->countdown = aDelay;
 			aDelay = aDelay + 300;
@@ -186,58 +182,58 @@ int Powerup_Collect(Powerup* thePowerup)
 	switch (thePowerup->kind)
 	{
 	case 1:
-		Powerup_SlowMotion();
-		break;
-	case 2:
-		Powerup_Multiplier();
-		break;
-	case 3:
-		Powerup_SlowShot();
+		Powerup_FlipFlopper();
 		aSound = "audio\\powerdn.wav";
 		goto play;
+	case 2:
+		Powerup_SlowMotion();
+		break;
+	case 3:
+		Powerup_GiveWeapon(thePowerup, 50.0f, 5);
+		break;
 	case 4:
 		Powerup_GiveWeapon(thePowerup, 50.0f, 4);
 		break;
 	case 5:
-		Powerup_HyperMotion();
+		Powerup_SlowShot();
 		aSound = "audio\\powerdn.wav";
 		goto play;
 	case 6:
-		Powerup_GiveWeapon(thePowerup, 40.0f, 1);
+		Powerup_Invincibubble();
 		break;
 	case 7:
-		Powerup_GiveWeapon(thePowerup, 40.0f, 3);
+		Powerup_GiveWeapon(thePowerup, 50.0f, 6);
 		break;
 	case 8:
-		Powerup_GiveWeapon(thePowerup, 50.0f, 0);
+		Powerup_ExplodeWalkers();
 		break;
 	case 9:
-		Powerup_Sweepers();
+		Powerup_ExplodeFloaters();
 		break;
 	case 10:
+		Powerup_Multiplier();
+		break;
+	case 0xb:
+		Powerup_HyperMotion();
+		aSound = "audio\\powerdn.wav";
+		goto play;
+	case 0xc:
+		Powerup_GiveWeapon(thePowerup, 40.0f, 1);
+		break;
+	case 0xd:
 		Powerup_ExtraLife();
 		break;
 	default:
 		Powerup_FastShot();
 		break;
-	case 0xc:
-		Powerup_FlipFlopper();
-		aSound = "audio\\powerdn.wav";
-		goto play;
-	case 0xd:
-		Powerup_Invincibubble();
-		break;
-	case 0xe:
-		Powerup_GiveWeapon(thePowerup, 50.0f, 6);
-		break;
 	case 0xf:
-		Powerup_ExplodeWalkers();
+		Powerup_Sweepers();
 		break;
 	case 0x10:
-		Powerup_ExplodeFloaters();
+		Powerup_GiveWeapon(thePowerup, 50.0f, 0);
 		break;
 	case 0x11:
-		Powerup_GiveWeapon(thePowerup, 50.0f, 5);
+		Powerup_GiveWeapon(thePowerup, 40.0f, 3);
 		break;
 	}
 	aSound = "audio\\powerup.wav";
@@ -730,17 +726,18 @@ void Panel_FromXml(Panel* thePanel, const char* p, const XmlTag* theTag)
 	thePanel->dirty = 0;
 }
 
-// The panel a level without a panel tag gets: the panel image along the bottom, the logo at its right
+// 0x4182a0: the panel a level without a panel tag gets: the panel image along the bottom, the logo at its right and,
+// in the level's menus, a quit button
 void Panel_Setup(Panel* thePanel)
 {
-	thePanel->percentX = 0x44;
-	thePanel->percentY = 0x220;
-	thePanel->livesX = 0x19b;
-	thePanel->livesY = 0x220;
-	thePanel->scoreX = 0xa8;
-	thePanel->scoreY = 0x220;
-	thePanel->levelX = 0x2c4;
-	thePanel->levelY = 0x230;
+	thePanel->percentX = 0x50;
+	thePanel->percentY = 0x224;
+	thePanel->livesX = 0x1de;
+	thePanel->livesY = 0x224;
+	thePanel->scoreX = 0xbd;
+	thePanel->scoreY = 0x224;
+	thePanel->levelX = 0x163;
+	thePanel->levelY = 0x224;
 	thePanel->percentFont = Font_Find("percent_font");
 	thePanel->livesFont = Font_Find("lives_font");
 	thePanel->scoreFont = Font_Find("score_font");
@@ -751,12 +748,26 @@ void Panel_Setup(Panel* thePanel)
 	thePanel->anim = Animation_Find("panel", &thePanel->frameCount, &thePanel->frameTime);
 	List<Obj>* anItems = &thePanel->items;
 	Panel_AppendItem(anItems);
-	anItems->current->anim = Animation_Find("logo_o", &anItems->current->frameCount, &anItems->current->frameTime);
-	anItems->current->x = 540.0f;
-	anItems->current->y = 542.0f;
-	anItems->current->midHandle = 1;
+	anItems->current->anim = Animation_Find("water_panel", &anItems->current->frameCount, &anItems->current->frameTime);
+	anItems->current->x = 656.0f;
+	anItems->current->y = 531.0f;
+	anItems->current->midHandle = 0;
 	anItems->current->drawKind = 1;
 	thePanel->drawKind = 0;
+	Menu_Insert(&gLevels.current->menus);
+	MenuItem_Insert(&gLevels.current->menus.current->items);
+	MenuItem* aQuit = gLevels.current->menus.current->items.current;
+	aQuit->x = 549.0f;
+	std::strcpy(aQuit->name, "aaa");
+	aQuit->y = 567.0f;
+	aQuit->font = Font_Find("main_font");
+	aQuit->anim = Animation_Find("quit", &aQuit->frameCount, &aQuit->frameTime);
+	aQuit->midHandle = 1;
+	aQuit->drawKind = 1;
+	aQuit->dirty = 1;
+	aQuit->kind = 0x21;
+	aQuit->firstParticle = Bank_IndexOf(&gArtBank, "bubble01");
+	aQuit->lastParticle = Bank_IndexOf(&gArtBank, "bubble02");
 }
 
 // (it returns 1)
@@ -841,25 +852,25 @@ void List_DeleteNode(Powerup* thePowerup)
 	::operator delete(thePowerup);
 }
 
-// A kind by the level (the later the level, the more kinds; no land mines or sweepers in an unregistered copy,
-// only sweepers in the demo), and its text, animation and three emitters of sparkles. The keys 0..9 and A..D,
-// held while it is made, choose kinds 0..13 (the developers' test). The table gives kinds 0..10 (0 a faster beam), so
-// only those keys make 12 and 13, and nothing makes the anchor, the explode-alls or the magnet (14..17).
+// 0x418d60: a kind by the level (the later the level, the more kinds; no water mines or sweepers in an unregistered
+// copy, only sweepers in the demo), and its text, animation and three emitters of sparkles. The keys 0..9 and A..D,
+// held while it is made, choose kinds 0..13 (the developers' test). The table gives kinds 0..13 (0 a faster beam; the
+// extra life is in its last six places), so nothing but the keys makes the sweepers, the water mine or the freeze (15..17).
 Powerup* Powerup_Init(Powerup* thePowerup)
 {
 	Obj_Init(thePowerup);
 	if (gRebuildKinds != 0)
 		Powerup_BuildKinds();
-	int aRange = gLevels.current->number / 2;
-	if (0xb < aRange)
-		aRange = 0xb;
+	int aRange = gLevels.current->number / 4;
+	if (0xe < aRange)
+		aRange = 0xe;
 	aRange = aRange * 10 + 9;
 	thePowerup->kind = gPowerupKinds[RandRange(0, aRange)];
-	while (gRegistered == 0 && (thePowerup->kind == 9 || thePowerup->kind == 8))
+	while (gRegistered == 0 && (thePowerup->kind == 0xf || thePowerup->kind == 0x10))
 		thePowerup->kind = gPowerupKinds[RandRange(0, aRange)];
 	if (gDemo != 0)
 	{
-		thePowerup->kind = 9;
+		thePowerup->kind = 0xf;
 		gPumpMessages = 1;
 	}
 	std::sprintf(thePowerup->text, "^%d", RandRange(1, 8));
@@ -897,42 +908,54 @@ Powerup* Powerup_Init(Powerup* thePowerup)
 	switch (thePowerup->kind)
 	{
 	case 1:
+		aText = GTA(0x45992c);
+		aName = "powerup_flip_flopper";
+		break;
+	case 2:
 		aText = GTA(0x459a68);
 		aName = "powerup_slowmo";
 		break;
-	case 2:
-		aText = GTA(0x4599ec);
-		aName = "powerup_2x";
-		break;
 	case 3:
-		aText = GTA(0x459a2c);
-		aName = "powerup_slow";
+		aText = GTA(0x4599bc);
+		aName = "powerup_magnet";
 		break;
 	case 4:
 		aText = GTA(0x459950);
 		aName = "powerup_timebomb";
 		break;
 	case 5:
+		aText = GTA(0x459a2c);
+		aName = "powerup_slow";
+		break;
+	case 6:
+		aText = GTA(0x4598a4);
+		aName = "powerup_invincibubble";
+		break;
+	case 7:
+		aText = GTA(0x459884);
+		aName = "powerup_anchor";
+		break;
+	case 8:
+		aText = GTA(0x4598cc);
+		aName = "powerup_destroywalkers";
+		break;
+	case 9:
+		aText = GTA(0x4598fc);
+		aName = "powerup_destroyrollers";
+		break;
+	case 10:
+		aText = GTA(0x4599ec);
+		aName = "powerup_2x";
+		break;
+	case 0xb:
 		aText = GTA(0x459a48);
 		aName = "powerup_hypermo";
 		break;
-	case 6:
+	case 0xc:
 		aText = GTA(0x4599a0);
 		aName = "powerup_missile";
 		break;
-	case 7:
-		aText = GTA(0x45996c);
-		aName = "powerup_freeze";
-		break;
-	case 8:
-		aText = GTA(0x4599d4);
-		aName = "powerup_mine";
-		break;
-	case 9:
-		aText = GTA(0x459984);
-		aName = "powerup_sweeper";
-		break;
-	case 10:
+	case 0xd:
 		aText = GTA(0x459a10);
 		aName = "powerup_plusone";
 		break;
@@ -940,31 +963,20 @@ Powerup* Powerup_Init(Powerup* thePowerup)
 		aText = GTA(0x459868);
 		aName = "powerup_speed";
 		break;
-	case 0xc:
-		aText = GTA(0x45992c);
-		aName = "powerup_flip_flopper";
-		break;
-	case 0xd:
-		aText = GTA(0x4598a4);
-		aName = "powerup_invincibubble";
-		break;
-	case 0xe:
-		aText = GTA(0x459884);
-		aName = "powerup_anchor";
-		break;
 	case 0xf:
-		aText = GTA(0x4598cc);
-		aName = "powerup_destroywalkers";
+		aText = GTA(0x459984);
+		aName = "powerup_sweeper";
 		break;
 	case 0x10:
-		aText = GTA(0x4598fc);
-		aName = "powerup_destroyrollers";
+		aText = GTA(0x4599d4);
+		aName = "powerup_mine";
 		break;
 	case 0x11:
-		aText = GTA(0x4599bc);
-		aName = "powerup_magnet";
+		aText = GTA(0x45996c);
+		aName = "powerup_freeze";
 		break;
 	}
+
 	std::strcat(thePowerup->text, GT(aText));
 	thePowerup->state = 4;
 	thePowerup->depth = 1;

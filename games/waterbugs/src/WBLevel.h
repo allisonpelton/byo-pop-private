@@ -328,7 +328,7 @@ extern List<Enemy> gEnemyDefs;
 
 Level* Level_Init(Level* theLevel);                              // 0x413a60
 void Level_Destroy(Level* theLevel);                             // 0x413b70
-// cb:0x412050: the level tag in theTag, the game file read on from p (null: theTag is all there is, the board is
+// 0x412640: the level tag in theTag, the game file read on from p (null: theTag is all there is, the board is
 // random and its cells are not made)
 void Level_Load(Level* theLevel, const char* p, XmlTag* theTag);
 int Level_Update(Level* theLevel);                               // cb:0x412960: 0 when it is left
@@ -340,7 +340,7 @@ void Level_EnemyCounts(Level* theLevel, int* theA, int* theB, int* theC, int* th
 void Level_MakeEdges(Level* theLevel);                           // 0x40ff90
 void Level_SetPatterns(Level* theLevel, const char* theH, const char* theV); // 0x410000
 void Level_LoadFillImages(Level* theLevel, const XmlTag* theTag); // 0x4100a0
-void Level_DefaultFillImages(Level* theLevel);                   // cb:0x4100a0
+void Level_DefaultFillImages(Level* theLevel);                   // 0x410210
 int PortalCount();                                               // cb:0x4101f0
 void Level_RedrawCells(Level* theLevel);                         // 0x4103c0
 void Level_DrawTrialTime(Level* theLevel);                       // 0x4104b0
@@ -388,7 +388,7 @@ int Cell_UpdateCapture(Cell* theCell);                           // 0x404880: 0 
 int Cell_UpdateFill(Cell* theCell);                              // 0x404ac0: 0 when done
 int Fill_Update(Cell* theCell);                                  // 0x404da0: 0 when done
 void Panel_Append(List<Panel>* theList);                         // 0x412490
-void Panel_Setup(Panel* thePanel);                               // cb:0x417ef0
+void Panel_Setup(Panel* thePanel);                               // 0x4182a0
 void Panel_FromXml(Panel* thePanel, const char* p, const XmlTag* theTag); // 0x418050
 void Panel_Draw(Panel* thePanel, int theAll);                    // 0x4184e0
 void Panel_Update(Panel* thePanel);                              // 0x418470
@@ -402,7 +402,7 @@ void Beams_RemoveAll(List<Beam>* theList);                       // cb:0x411900
 void Enemy_Insert(List<Enemy>* theList);                         // 0x410610
 // Enemies (WBEnemy.cpp)
 Enemy* Enemy_Init(Enemy* theEnemy);                              // 0x405070
-void Enemy_FromXml(Enemy* theEnemy, const char* p, const XmlTag* theTag); // cb:0x405040
+void Enemy_FromXml(Enemy* theEnemy, const char* p, const XmlTag* theTag); // 0x4050f0
 void Enemy_Draw(Enemy* theEnemy);                                // 0x405660
 int Enemy_Bounce(Enemy* theEnemy);                               // 0x405690: off cells that are not open
 int BurstRoller_Move(Enemy* theEnemy);                           // 0x405800
@@ -456,6 +456,8 @@ void Shooter_DropBeams(Shooter* theShooter);                     // 0x41d8c0
 Powerup* Powerup_Init(Powerup* thePowerup);                      // 0x418d60
 void List_DeleteNode(Powerup* thePowerup);                       // 0x418b20 and the memory
 void Menu_Append(List<Menu>* theList);                           // 0x4106b0
+void Menu_Insert(List<Menu>* theList);                           // 0x418200
+void MenuItem_Insert(List<MenuItem>* theList);                   // 0x4155f0
 Menu* Menu_Init(Menu* theMenu);                                  // 0x415ad0
 void Menu_Destroy(Menu* theMenu);                                // 0x415b20
 void List_DeleteNode(Menu* theMenu);                             // 0x411250's delete
@@ -466,7 +468,7 @@ void Menu_ShowRequester(Menu* theMenu, int theKind, const char* theText, const c
 void Pointer_Append(List<Obj>* theList);                         // 0x410920
 void Pointer_Insert(List<Obj>* theList);                         // 0x410870
 int Obj_FromXml(Obj* theObj, const char* p, const XmlTag* theTag);     // 0x40da50: any object's attributes; 0 if its animation is missing
-int Text_FromXml(Text* theText, const char* p, const XmlTag* theTag); // cb:0x41f950
+int Text_FromXml(Text* theText, const char* p, const XmlTag* theTag); // 0x41fe30
 void Text_Make(Text* theText, const char* theString, Font* theFont, int theX, int theY, int theDormant, int theFadeIn,
 	int theIdle, int theFadeOut, int theLoopTime, int theBlink);  // 0x41f5d0
 void Text_Destroy(Text* theText);                                // 0x4109d0
@@ -474,7 +476,7 @@ void List_DeleteNode(Text* theText);                             // 0x411850's d
 void HighScore_Entered(const char* theName);                     // cb:0x40cf70: the name entry's return
 int Text_Update(Text* theText);                                  // 0x41f6b0
 int Star_Update(Obj* theStar);                                   // cb:0x41e2c0
-void Level_AddStars(Level* theLevel);                            // cb:0x411440
+void Level_AddStars(Level* theLevel);                            // 0x411350
 int Powerup_Update(Powerup* thePowerup);                         // 0x419bf0: 0 when it is gone
 int Weapon_Update(Weapon* theWeapon);                            // 0x41b290: 0 when it is gone
 void Level_StartRandom(Level* theLevel);                         // cb:0x4119c0: a random board, on its first update

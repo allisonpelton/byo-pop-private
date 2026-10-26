@@ -60,7 +60,7 @@ def lines(t, strs, amap, names):
 
     def local(m):
         return seen.setdefault(m.group(0), "v%d" % (len(seen) + 1))
-    t = re.sub(r"\b(?:[a-z]{1,3}Var\d+|local_[0-9a-f]+|param_\d+|[a-z]Stack_\w+|extraout_\w+|in_\w+|unaff_\w+)\b", local, t)
+    t = re.sub(r"\b(?:[a-z]{1,3}Var\d+|local_[0-9a-f]+|param_\d+|[a-z]Stack_\w+|extraout_\w+|in_\w+|unaff_\w+|this_\d+)\b", local, t)
     t = re.sub(r"\b(?:LAB|caseD|switchD|switchdataD)_[0-9a-f]{8}\b", "LABEL", t)
     t = re.sub(r"\bDAT_004622e0\b", "gGameFile", t)
     out = []
@@ -100,9 +100,10 @@ def main():
         print("\n".join(wl))
         return
     def norm(s):
-        s = re.sub(r"\(int\)(v\d+)", r"", s)
-        s = re.sub(r"\(int \*\)(v\d+)", r"", s)
-        return re.sub(r"(?:DAT|PTR_DAT|_DAT|PTR)_[0-9a-f]{8}", "DAT", re.sub(r"v\d+", "v", s))
+        s = re.sub(r"\((?:int|int \*|void \*|uint)\)\s*(v\d+)", r"\1", s)
+        s = re.sub(r"\(undefined4 \*\)|\(float \*\)|\(int \*\)|\(char \*\)", "", s)
+        s = re.sub(r"(?:DAT|PTR_DAT|_DAT|PTR)_[0-9a-f]{8}", "DAT", re.sub(r"\bv\d+\b", "v", s))
+        return re.sub(r"\s+", "", s)
     sm = difflib.SequenceMatcher(None, [norm(x) for x in cl], [norm(x) for x in wl], autojunk=False)
     for tag, i1, i2, j1, j2 in sm.get_opcodes():
         if tag == "equal":
