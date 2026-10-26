@@ -87,6 +87,7 @@ public:
 	int						mMode;                  // app+0x530 the chosen game mode (0 arcade, 1 classic, 2 strategy)
 	int						mDifficulty;            // app+0x534 the chosen difficulty (1 easy, 2 medium, 3 hard)
 	bool					mNoPopLink;             // app+0x548 the "NoPopLink" property
+	bool					mNoHints;               // app+0x549 an option of the Options dialog (0x4130b0): no hint arrow, no talking head
 
 public:
 	RocketApp();

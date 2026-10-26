@@ -283,6 +283,10 @@ public:
 	void			DrawEdge(Graphics* g, Piece* thePiece, int theRow, int theColumn);  // 0x41ec20
 	void			DrawMover(Graphics* g, Piece* thePiece);                            // 0x41d420
 	void			DrawRocket(Graphics* g, int theIndex, int theX, int theY);          // 0x41d620
+	int				ChestImage();                                                       // 0x41f240
+	void			DrawCoins(Graphics* g);                                             // 0x421b80
+	void			DrawWiggle(Graphics* g, const SexyString& theText, int thePhase, int theRed, int theGreen, int theBlue, int theAmplitude);  // 0x4219a0
+	void			DrawOutlined(Graphics* g, const SexyString& theText, int theLeft, int theRight, int theSideY, int theAboveY, int theBelowY);
 
 	// 0x41b660: a piece of m504 by its id
 	Piece*			FindLoadedPiece(int theId);

@@ -11,6 +11,13 @@
 #include "MemoryImage.h"
 #include "MTRand.h"
 #include "WidgetManager.h"
+#include "Font.h"
+#include "ImageFont.h"
+#include "GameText.h"
+
+#include <cmath>
+#include <cstdio>
+#include <cstring>
 
 using namespace Sexy;
 
@@ -105,6 +112,200 @@ void Board::Draw(Graphics* g)
 
 	for (std::list<Piece*>::iterator anItr = mObjects.begin(); anItr != mObjects.end(); ++anItr)
 		DrawMover(&aClip, *anItr);
+
+	// the chest and the coins under it (not in strategy mode), then the specials that move (0x41d670: not translated yet)
+	bool aBars = false;
+	if (mState == 0 || mState == 7 || m4e0 != NULL || mState == 4 || mState == 5 || mState == 1 || mState == 6)
+	{
+		aBars = true;
+		if (mApp->mMode != 2)
+		{
+			g->DrawImage(anImages[IMAGE_CHEST0 + ChestImage()], 0x89, 0x181);
+			DrawCoins(g);
+		}
+	}
+	if (aBars)
+	{
+		// the small count at the left: the matches left (strategy mode) or the rockets the level still needs
+		char aBuf[32];
+		g->SetFont(mApp->mFonts[FONT_DOMO11_BOLD]);
+		g->SetColor(Color(0xff, 0xb6, 0x2b));
+		int aNumber;
+		int aRight;
+		if (mApp->mMode == 2)
+		{
+			aNumber = m108;
+			aRight = 0x30;
+		}
+		else
+		{
+			aNumber = m74 - m374;
+			if (aNumber < 0)
+				aNumber = 0;
+			aRight = 0x23;
+		}
+		sprintf(aBuf, "%d", aNumber);
+		g->DrawString(aBuf, aRight - g->GetFont()->StringWidth(aBuf), 0xc3);
+	}
+
+	// the score, a digit at a time in cells 13 pixels wide
+	g->SetColor(Color(m2e4 == mScore ? 0xc0 : 0xde, 10, 10));
+	if ((mState == 4 || mState == 5) && 0x32 < mUpdateCnt % 100)
+		g->SetColor(Color(0xff, 0x14, 0x14));
+	g->SetFont(mApp->mFonts[FONT_DOMO14_BOLD]);
+	{
+		char aBuf[32];
+		sprintf(aBuf, "%d", m2e4);
+		int aLength = (int) strlen(aBuf);
+		int aX = 0x65 - ((8 - aLength) * 0xd) / 2;
+		for (int anIndex = aLength; anIndex > 0; anIndex--)
+		{
+			g->DrawString(SexyString(1, aBuf[anIndex - 1]), aX, 0x62);
+			aX -= 0xd;
+		}
+	}
+	// (0x429230: the launch in progress is not translated yet)
+
+	if (mApp->mMode != 2)
+	{
+		char aBuf[32];
+		sprintf(aBuf, GTC(0x004e6654), mApp->mBoard->m100 ? mLevel + 2 : mLevel + 1);
+		g->SetColor(Color(0xff, 0xff, 0x80, 200));
+		g->SetFont(mApp->mFonts[FONT_ARIAL8_BOLD]);
+		g->DrawString(aBuf, 0x40 - g->GetFont()->StringWidth(aBuf) / 2, 0x82);
+	}
+	g->SetFont(mApp->mFonts[FONT_ARIAL8_BOLD]);
+	{
+		SexyString aName = RocketApp::ModeName(mApp->mMode) + " " + RocketApp::DifficultyName(mApp->mDifficulty);
+		int aY;
+		if (mApp->mMode == 2)
+		{
+			g->SetColor(Color(0xff, 0xff, 0x80, 0xb4));
+			aY = 0x8a;
+		}
+		else
+		{
+			g->SetColor(Color(0xff, 0xff, 0x80, 0xa0));
+			aY = 0x92;
+		}
+		g->DrawString(aName, 0x40 - g->GetFont()->StringWidth(aName) / 2, aY);
+	}
+
+	// the highlight of the tile under the pointer
+	if (mState == 0 && CellX(0) <= m4f4 && m4f4 < CellX(mCols) && CellY(0) <= m4f8 && m4f8 < CellY(mRows))
+	{
+		int aColumn = (m4f4 - CellX(0)) / 0x2a;
+		int aRow = (m4f8 - CellY(0)) / 0x2a;
+		if (mGrid[aRow][aColumn] != NULL)
+		{
+			g->SetDrawMode(Graphics::DRAWMODE_ADDITIVE);
+			g->DrawImage(anImages[IMAGE_HIGHLIGHT], CellX(0) + aColumn * 0x2a, CellY(0) + aRow * 0x2a);
+			g->SetDrawMode(Graphics::DRAWMODE_NORMAL);
+		}
+	}
+	// (the frozen-time bar of classic mode 0x41f360, the effects 0x41abb0 and the talking head's bubble 0x414000 are not
+	// translated yet)
+
+	// the hint that points at the first tile to turn
+	if (!m498 && !mApp->mNoHints)
+	{
+		int aRow = -1;
+		if (mApp->mMode == 0)
+		{
+			bool aFull = true;
+			for (int aColumn = 0; aColumn < 6; aColumn++)
+				if (mGrid[8][aColumn] == NULL)
+					aFull = false;
+			if (aFull)
+				aRow = 8;
+		}
+		else
+			aRow = 5;
+		if (aRow >= 0)
+		{
+			int aX = CellX(2) + 0x15;
+			int aY = CellY(aRow);
+			if (mUpdateCnt % 100 < 0x32)
+			{
+				Image* anArrow = anImages[IMAGE_HINTONPIECE];
+				g->SetColorizeImages(true);
+				g->SetColor(Color(255, 255, 255, 255));
+				g->DrawImage(anArrow, aX - anArrow->GetWidth() / 2, (aY + 0x15) - anArrow->GetHeight() / 2);
+				g->SetColorizeImages(false);
+			}
+			Image* aBubble = anImages[IMAGE_HINTBUBBLE];
+			g->DrawImage(aBubble, aX - aBubble->GetWidth() / 2, ((aY + 0x15) - aBubble->GetHeight()) - 0xc);
+		}
+	}
+
+	// the banners
+	if (0 < m43c && (mLevel != 0 || mApp->mNoHints))
+	{
+		g->SetColor(Color(255, 255, 255));
+		g->SetFont(mApp->mFonts[FONT_DOMO36_BOLD]);
+		SexyString aReady = GT(0x004e6640);
+		DrawWiggle(g, aReady, 0, 0, 0, 0, 2);
+		DrawWiggle(g, aReady, 5, 0x40, 0x40, 0, 2);
+		DrawWiggle(g, aReady, 10, 0x80, 0x80, 0, 2);
+		DrawWiggle(g, aReady, 15, 0xff, 0xff, 0, 2);
+	}
+	if (mState == 1)
+	{
+		SexyString anOver = GT(m460 == 1 ? 0x004e6634 : m460 == 2 ? 0x004e6624 : 0x004e6614);
+		g->SetFont(mApp->mFonts[FONT_DOMO36_BOLD]);
+		DrawWiggle(g, anOver, 0, 0, 0, 0, 5);
+		DrawWiggle(g, anOver, 5, 0x40, 0, 0, 5);
+		DrawWiggle(g, anOver, 10, 0x80, 0, 0, 5);
+		DrawWiggle(g, anOver, 15, 0xff, 0, 0, 5);
+	}
+	else if (mState == 4)
+	{
+		g->SetColor(Color(0xff, 0, 0));
+		g->SetFont(mApp->mFonts[FONT_DOMO36_BOLD]);
+		SexyString aUp = GT(0x004e6608);
+		DrawWiggle(g, aUp, 0, 0, 0x1a, 0, 0);
+		DrawWiggle(g, aUp, 5, 0x40, 0x34, 0, 0);
+		DrawWiggle(g, aUp, 10, 0x80, 0x69, 0, 0);
+		DrawWiggle(g, aUp, 15, 0xff, 0xff, 0xff, 0);
+		if (m4d9 && mUpdateCnt % 100 < 0x50)
+		{
+			g->SetFont(mApp->mFonts[FONT_DOMO22_BOLD]);
+			g->SetColor(Color(0, 0, 0));
+			DrawOutlined(g, GT(0x004e65f8), -5, 2, 0x44, 0x42, 0x49);
+			g->SetColor(Color(0xff, 0xff, 0xc8));
+			SexyString aText = GT(0x004e65f8);
+			g->DrawString(aText, CellX(3) - g->GetFont()->StringWidth(aText) / 2, 0x41);
+		}
+	}
+	if (mState == 0 && 0 < m4b0)
+	{
+		g->SetFont(mApp->mFonts[FONT_DOMO36_BOLD]);
+		g->SetDrawMode(Graphics::DRAWMODE_ADDITIVE);
+		DrawWiggle(g, GT(0x004e65f0), 0, 0xff, 0xff, 0xff, 10);
+		g->SetDrawMode(Graphics::DRAWMODE_NORMAL);
+	}
+	// (the dimmed screen and the pause window, m350 > 0: not translated yet)
+	if (mApp->mMode == 1 && mState == 0 && 0 < m4bc && m4bc < 500 && m4bc % 100 < 0x3c)
+	{
+		g->SetFont(mApp->mFonts[FONT_DOMO22_BOLD]);
+		g->SetColor(Color(0, 0, 0));
+		DrawOutlined(g, GT(0x004e65e4), -3, 2, 0x41, 0x3f, 0x44);
+		g->SetColor(Color(0xff, 0x78, 0xff));
+		SexyString aText = GT(0x004e65e4);
+		g->DrawString(aText, CellX(3) - g->GetFont()->StringWidth(aText) / 2, 0x3e);
+	}
+	if (mApp->mMode == 2 && mState == 0 && 0 < m10c && m350 == 0 && m10c < 500 && m10c % 100 < 0x32)
+	{
+		g->SetColor(Color(0x80, 0x3c, 0x80));
+		SexyString aText = GT(0x004e65d4);
+		int aX = CellX(3) - g->GetFont()->StringWidth(aText) / 2;
+		g->DrawString(aText, aX - 2, 0x28);
+		g->DrawString(aText, aX + 2, 0x28);
+		g->DrawString(aText, aX, 0x26);
+		g->DrawString(aText, aX, 0x2a);
+		g->SetColor(Color(0xff, 0x78, 0xff));
+		g->DrawString(aText, aX - 1, 0x27);
+	}
 }
 
 // 0x41e770: a tile of the grid. The colour of its picture says how it is connected: no path the plain grey one (variant 6),
@@ -287,4 +488,53 @@ void Board::DrawMover(Graphics* g, Piece* thePiece)
 				g->SetColorizeImages(false);
 		}
 	}
+}
+
+// 0x41f240: which of the chest's five pictures shows the coins collected
+int Board::ChestImage()
+{
+	int aCoins = m8c[7];
+	if (aCoins == 0)
+		return 0;
+	if (aCoins < 5)
+		return 1;
+	if (aCoins < 0xf)
+		return 2;
+	return (0x1d < aCoins) + 3;
+}
+
+// 0x421b80: the number of coins under the chest, and its label
+void Board::DrawCoins(Graphics* g)
+{
+	char aBuf[32];
+	g->SetColor(Color(0xed, 0xf8, 0xe8));
+	g->SetFont(mApp->mFonts[FONT_DOMO14_BOLD]);
+	sprintf(aBuf, "%d", m8c[7]);
+	g->DrawString(aBuf, 0xa7 - g->GetFont()->StringWidth(aBuf) / 2, 0x1bf);
+	g->SetColor(Color(0xd9, 0xe4, 0xd4));
+	g->SetFont(mApp->mFonts[FONT_ARIAL8]);
+	g->DrawString(GT(0x004e5080), 0x81, 0x1d4);
+}
+
+// 0x4219a0: a banner's text, centred over the board, wobbling with the update count (each call of a banner has its own
+// phase and colour, so the copies trail each other)
+void Board::DrawWiggle(Graphics* g, const SexyString& theText, int thePhase, int theRed, int theGreen, int theBlue, int theAmplitude)
+{
+	g->SetColor(Color(theRed, theGreen, theBlue));
+	int aHalf = g->GetFont()->StringWidth(theText) / 2;
+	double anAngle = (double) (mUpdateCnt + thePhase) * 0.06666666666666667;
+	int aX = Ftol((double) (CellX(3) - aHalf) + cos(anAngle) * (double) theAmplitude);
+	int aY = Ftol(sin(anAngle) * 10.0 + 220.0);
+	g->DrawString(theText, aX, aY);
+}
+
+// the dark copies behind a text on the board: left and right at one height, above and below at others (the caller sets
+// the colour; the text itself is drawn by the caller on top)
+void Board::DrawOutlined(Graphics* g, const SexyString& theText, int theLeft, int theRight, int theSideY, int theAboveY, int theBelowY)
+{
+	int aX = CellX(3) - g->GetFont()->StringWidth(theText) / 2;
+	g->DrawString(theText, aX + theLeft, theSideY);
+	g->DrawString(theText, aX + theRight, theSideY);
+	g->DrawString(theText, aX, theAboveY);
+	g->DrawString(theText, aX, theBelowY);
 }

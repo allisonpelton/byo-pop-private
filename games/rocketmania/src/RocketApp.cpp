@@ -83,6 +83,7 @@ RocketApp::RocketApp()
 	mMode = 0;
 	mDifficulty = 0;
 	mNoPopLink = false;
+	mNoHints = false;
 	mIsRegistered = true;      // the Steam build plays as the registered game (properties/partner.xml: NoReg)
 }
 
