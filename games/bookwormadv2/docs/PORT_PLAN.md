@@ -66,6 +66,11 @@ quitting to the menu left the chapter's images loaded (while the Lua side forgot
 exported nothing. The group names are now compared without case (`shared:` commit; the group list was already).
 The Hall of Fame's default names are Volume 1's code path: compare with Volume 2's `HallOfFame` (6.1 KB) too.
 
+Compared with Volume 2 (2026-10-26): `StartArena` (0x46c5d0), `ContinueArena` (0x46c4b0), `FillUserList` (0x46cde0) and the
+user dialog's handler (0x46d130, its OK, close, new, delete and delete-confirmed branches) do the same steps in the same
+order as the port's Volume 1 derived code; the new-name function 0x46cb30 and the Volume 2 offsets of the app's fields
+(the timed-mode flag is +0x9aa there, the replay flag +0x9ab, ELITE's +0x95b) have not been compared line by line.
+
 ## The curtain's states in Volume 2 (CurtainDone, 0x442700)
 
 The port's enum had Volume 1's numbering for the title screen's curtain (9); in Volume 2 that is 14 (0xe, set by 0x442430,
