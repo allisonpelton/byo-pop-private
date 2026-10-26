@@ -11,7 +11,7 @@ KIND = {'GetImage': 'Image', 'FUN_00437210': 'Pic', 'FUN_00436d40': 'Rect', 'FUN
 lines = sys.stdin.read().split('\n')
 pending = {}
 skip = re.compile(r'^\s*(\w+ = operator_new\(0x[0-9a-f]+\);|if \(\w+ == \(void \*\)0x0\) \{|\w+ = \(\w+ \*?\)0x0;|\w+ = 0;|\}|else \{|'
-                  r'param_1\.i4e8 = param_1\.i4e8 \+ 1;|local_\w+ = (?:\(void \*\))?0x[0-9a-f]+;|local_\w+ = \w+;)\s*$')
+                  r'local_\w+ = (?:\(void \*\))?0x[0-9a-f]+;|local_\w+ = \w+;)\s*$')
 call = re.compile(r'^\s*(\w+) = (?:\(\w+ \*?\))?([\w:]+)\((.*)\);\s*$')
 store = re.compile(r'^\s*param_1(?:\.[a-z]+|\[)(0x[0-9a-f]+|[0-9a-f]+)\]?(?:\.unused)? = (?:\(\w+\))?(\w+);\s*$')
 for ln in lines:
@@ -30,6 +30,9 @@ for ln in lines:
         if '[' in ln:
             off *= 4
         print('+%x = %s' % (off, pending.pop(m.group(2))))
+        continue
+    if re.match(r'^\s*param_1\.i4e8 = param_1\.i4e8 \+ 1;\s*$', ln):
+        print('STEP')
         continue
     if skip.match(ln):
         continue

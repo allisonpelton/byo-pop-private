@@ -9,8 +9,10 @@ one line per resource.
 
 The game classes have no RTTI. Their vtables were found by `tools/vtscan.py`; the classes are named by the texts they
 use and by the link order, which follows the source files' names (the comments of `properties/default.xml` list them).
+The storer is a function that writes the vtable: a constructor or the destructor (the TitleScreen's 0x4388d0 is its
+destructor; its constructor is 0x438b20).
 
-| Vtable | Constructor | Class | Base | Notes |
+| Vtable | Storer | Class | Base | Notes |
 |---|---|---|---|---|
 | 0x4f7470 | 0x404030 | `Dynomite` | Widget (62 slots) | the board: eggs, slingshot, the game rules |
 | 0x4f9a10 | 0x408e40 | `DynomiteFossil` | Dynomite | the Fossil (adventure) mode |
@@ -30,7 +32,7 @@ use and by the link order, which follows the source files' names (the comments o
 | 0x4fca40 | 0x433420 | `SaveGameDialog` | Dialog | |
 | 0x4fcb98 | 0x434dc0 | ? (`SideBar`) | Widget | |
 | 0x4fcca0 | 0x437520 | a button | ButtonWidget | `mId` +0x58, listener +0x90 |
-| 0x4fcd88 | 0x4388d0 | `TitleScreen` | Widget (47 slots) | 0xa8 bytes |
+| 0x4fcd98 | 0x4388d0 | `TitleScreen` | Widget, ButtonListener (0x4fcd88) | 0xa8 bytes; ported (`src/TitleScreen.cpp`) |
 | 0x4fd068 | 0x43aad0 | ? (`Tutor`) | Widget (47 slots) | |
 | 0x4ff5e0 | 0x441020 | `UpsellDialog` | Dialog | not ported (purchase pitch) |
 

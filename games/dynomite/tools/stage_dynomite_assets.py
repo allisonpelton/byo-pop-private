@@ -21,11 +21,12 @@ DEFAULT_INSTALLS = [
 ]
 
 # Folders and files the game reads at runtime. Dynomite.exe is read for the game's texts only, never run.
-# Not copied: the DRM wrapper's files (drm.swf, drm.xml, drmss.jpg, Flash.ocx, properties/partner.xml and its
-# signature), bass.dll (the port plays the music itself), the readme and licence, and the player's own data
+# properties/partner.xml is the distributor's settings (the Steam copy's says NoReg: the game is registered); it is
+# optional. Not copied: the DRM wrapper's files (drm.swf, drm.xml, drmss.jpg, Flash.ocx), partner.xml's signature,
+# bass.dll (the port plays the music itself), the readme and licence, and the player's own data
 # (the .HS high-score files and saved games).
 DIRS = ["images", "data", "sounds", "music", "stomped"]
-FILES = ["Dynomite.exe", "DEFAULT.EGG", "properties/default.xml"]
+FILES = ["Dynomite.exe", "DEFAULT.EGG", "properties/default.xml", "properties/partner.xml"]
 REQUIRED = ["dynomite.exe", "default.egg", "properties/default.xml", "images/welcomescreen.gif",
             "data/tinyfont.txt", "music/amazonas.it"]
 SKIP = {"thumbs.db", "readme.txt"}

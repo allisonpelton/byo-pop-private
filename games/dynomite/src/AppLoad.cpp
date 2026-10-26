@@ -3,6 +3,7 @@
 // the fonts, masks and fossils translated by hand. The field of each resource has the original's offset in
 // FossilizedApp.h.
 #include "FossilizedApp.h"
+#include "SoundManager.h"
 
 using namespace Sexy;
 

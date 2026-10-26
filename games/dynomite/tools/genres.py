@@ -19,6 +19,9 @@ def base(path):
 
 
 for ln in open(sys.argv[1], encoding='latin1').read().split('\n'):
+    if ln.strip() == 'STEP':
+        body.append('	mCompletedLoadingThreadTasks++;')
+        continue
     m = line_re.match(ln)
     if not m:
         if ln.strip() and not ln.startswith(('//', '/*', 'void', '{', '}')):

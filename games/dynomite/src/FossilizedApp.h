@@ -2,11 +2,11 @@
 #define __FOSSILIZEDAPP_H__
 
 // The application of Dynomite Deluxe (FossilizedApp, vtable 0x4fa410; docs/GAME_NOTES.md section 3). The original's
-// SexyApp is one class of 61 slots (docs/FRAMEWORK_2003.md); the port's derives from SexyAppBase. Every picture,
+// SexyApp is one class of 61 slots (docs/FRAMEWORK_2003.md); the port's derives from the framework's SexyApp. Every picture,
 // cell, font and sound is a field, with the original's offset in its comment (a translated function that reads
 // app+0x1298 finds its field by that offset).
 
-#include "SexyAppBase.h"
+#include "SexyApp.h"
 #include "Sprite.h"
 
 namespace Sexy
@@ -17,7 +17,7 @@ class ImageFont;
 class SoundInstance;
 class TitleScreen;
 
-class FossilizedApp : public SexyAppBase
+class FossilizedApp : public SexyApp
 {
 public:
 	DDImage*     mImgSidebar;                             // +0x10d4
@@ -104,10 +104,6 @@ public:
 	Pic*         mPicEggsheet;                            // +0x13b8
 	Pic*         mPicBomb;                                // +0x13bc
 	Cell*        mPicBomb_c0;                             // +0x13c0
-	Pic*         mPicEggsheet_1414;                       // +0x1414
-	Pic*         mPicEggsheet_1418;                       // +0x1418
-	Pic*         mPicEggsheet_141c;                       // +0x141c
-	Pic*         mPicEggsheet_1420;                       // +0x1420
 	Pic*         mPicKroneysheet;                         // +0x1574
 	Pic*         mPicKroneyfacesheet;                     // +0x1578
 	Pic*         mPicKroneyhourglasssheet;                // +0x157c
@@ -180,7 +176,6 @@ public:
 	Cell*        mPicMamameter_c0;                        // +0x191c
 	Cell*        mPicMamameter_c1;                        // +0x1920
 	Pic*         mPicThermoglow;                          // +0x1924
-	Pic*         mPicCrackmask4;                          // +0x1928
 	GameSound*   mSndBreakegg;                            // +0x19f0
 	GameSound*   mSndExplosion;                           // +0x19f4
 	GameSound*   mSndAooga;                               // +0x19fc
@@ -259,11 +254,30 @@ public:
 	SoundInstance* mTicktockInstance;                      // +0x1aa0
 	PicFont*     mAnnounceFont1928;                       // +0x1928 the same font as +0x192c
 
-	FossilizedApp();											// 0x4192xx (ctor)
-	virtual ~FossilizedApp();									// 0x4198b0
+	// set in Init (0x41f820)
+	DDImage*     mImgTitle;                               // +0x10c0 images\Title
+	DDImage*     mImgGreenbar;                            // +0x10c4 images\greenbar
+	Pic*         mPicCursor1;                             // +0x10d8
+	Pic*         mPicPointer2;                            // +0x10dc
+	Pic*         mPicOverhand;                            // +0x10e0
+	Pic*         mPicTyper;                               // +0x10e4
+	Pic*         mPicUnregistered;                        // +0x10e8
+	Pic*         mPicDialog;                              // +0x121c
+	Pic*         mPicDbutton;                             // +0x1220
+	Pic*         mPicWaitbar;                             // +0x1224
+	GameSound*   mSndEgglands;                            // +0x19f8
+	GameSound*   mSndClick;                               // +0x1a40
+
+	FossilizedApp();											// 0x4198b0
+	virtual ~FossilizedApp();									// 0x419320
+
+	virtual void	Init() override;							// 0x41f820 (slot 14)
+	virtual void	LoadingThreadProc() override;				// slot 15 runs LoadGame
 
 	DDImage*		GetGameImage(const std::string& thePath);	// 0x419ad0
 	void			LoadGame();									// 0x419c30 (InitHook, slot 15)
+	void			TitleScreenDone();							// 0x419250: the play link
+	void			PumpLoading();								// port: the loading runs in the main thread
 };
 
 }
