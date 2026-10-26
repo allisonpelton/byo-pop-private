@@ -693,7 +693,8 @@ None of these is a blocker: the image is not packed and has full RTTI. It is jus
 > - **Unpublished games.** A game with another PC decompilation in progress, or an active modding community, is still
 >   built, but published neither in the GitHub snapshot nor on the website. Decompilations of a phone or console build
 >   don't count, and neither do a handful of mods or one person's tool. The table's "Published" column applies this.
-> - Zuma Deluxe waits on the user's decision.
+> - Zuma Deluxe is skipped too (the user, the same night): like Insaniquarium, its fans already have a playable
+>   decompilation, a browser version, an extended engine, a level editor and new fan campaigns in 2026.
 >
 > The facts behind these choices are in [Appendix E](#appendix-e-other-projects-and-modding-communities-2026-10-26).
 > The point of the project is games that are moddable and playable in the browser, so that people can make fan games
@@ -747,8 +748,8 @@ its folder kept in `.publishignore`; "site only" is the website, with the source
 | 30 | Talismania Deluxe | Sonnet | yes | ~12-16x after Feeding Frenzy 2 | at the end by the same decision; HARD, on Feeding Frenzy 2's engine |
 
 Without references the estimates of Peggle (~12x instead of ~5x on Thunderball), Bejeweled 3 (~30x instead of ~10-15x)
-and Zuma's Revenge (~35x instead of ~15-20x) went up, so those games moved later. Zuma Deluxe is not in the table
-until the user decides on it.
+and Zuma's Revenge (~35x instead of ~15-20x) went up, so those games moved later. Zuma Deluxe is skipped
+(see the decision above).
 
 After these come the other studios' games (Appendix D), World of Goo among them; which of the others is decided then.
 
@@ -756,9 +757,8 @@ On 2026-10-26 the user added Cosmic Bugs, Water Bugs and both Mahjong Escape gam
 decision, at the places their effort gives them. Their copies are in the user's Popcap Game Collection (Appendix C).
 
 Every game has a copy on the user's machines ([Appendix C](#appendix-c-popcap-pc-games-missing-from-this-survey-2026-10-25)
-and the user's notes). Not decompiled: Plants vs. Zombies and Insaniquarium (their fan communities), Chuzzle's Christmas
+and the user's notes). Not decompiled: Plants vs. Zombies, Insaniquarium and Zuma Deluxe (their fan communities), Chuzzle's Christmas
 Edition, The Wizard's Pen, Sweet Tooth To Go, every hidden-object game and every game released after July 2011.
-Zuma Deluxe waits on the user's decision.
 
 Bejeweled Deluxe and then Big Money Deluxe are already planned ([MOD_ROADMAP.md](MOD_ROADMAP.md)). Big Money is DIRECT at about 2x. It builds the SAF 1.2 vtable map that Hammer Heads reuses, and its `.it` music already plays with libxmp-lite.
 

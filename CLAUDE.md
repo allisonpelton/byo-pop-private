@@ -131,7 +131,7 @@ Git and publishing:
   decompilation and the like); work from our own Ghidra export. PopCap's released SexyAppFramework source, the open
   libraries a game itself uses and descriptions of file formats are fine.
 - **Which games, and where they are published (the user, 2026-10-26):** every game may be decompiled except Plants vs.
-  Zombies and Insaniquarium, whose fan communities we leave to their work. A game with another PC decompilation in
+  Zombies, Insaniquarium and Zuma Deluxe, whose fan communities we leave to their work. A game with another PC decompilation in
   progress or an active modding community is built but unpublished: its folder goes into `.publishignore` and it stays
   off the website. The "Published" column of `docs/POPCAP_GAMES_SURVEY.md` section 4 says which.
 - **Mods (the user, 2026-10-26):** code that makes a game moddable makes things configurable (rules, settings and

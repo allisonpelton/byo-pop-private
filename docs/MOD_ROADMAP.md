@@ -61,10 +61,9 @@ Once Bejeweled Deluxe and all of the mods above are done and working:
    8. The newer frameworks: Bejeweled 3, Bejeweled Twist, Zuma's Revenge.
 
    **Decided 2026-10-26 (POPCAP_GAMES_SURVEY.md section 4):** every game may be decompiled, with no other project as a
-   reference, except Plants vs. Zombies and Insaniquarium, whose fan communities are left to their own work, and
+   reference, except Plants vs. Zombies, Insaniquarium and Zuma Deluxe, whose fan communities are left to their own work, and
    Chuzzle's Christmas Edition. Games with another PC decompilation in progress or an active modding community (Peggle
-   Deluxe and Nights) are built but not published. Pizza Frenzy and Chuzzle Deluxe are back in the order; Zuma Deluxe
-   waits on the user's decision.
+   Deluxe and Nights) are built but not published. Pizza Frenzy and Chuzzle Deluxe are back in the order.
 
 ## Very far out: the Build-a-Lot series
 
