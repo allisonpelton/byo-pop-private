@@ -20,6 +20,8 @@ Ball::Ball()
 	mGravity = nullptr;
 	mChain = nullptr;
 	mE4 = false;
+	mRow = -1;
+	mColumn = -1;
 	mSelector = nullptr;
 	mLetter = ' ';
 	mLinked = false;
@@ -202,9 +204,9 @@ float BallArray::getGap(int theFirst, int theSecond)
 	return dy;
 }
 
-Follow::Follow(Ball* theBall, float theC, float theRate, float theBlend, float theGrid)
+Follow::Follow(Node* theNode, float theC, float theRate, float theBlend, float theGrid)
 {
-	mBall = theBall;
+	mNode = theNode;
 	mC = theC;
 	mRate = theRate;
 	mBlend = theBlend;
@@ -218,7 +220,7 @@ void Follow::apply()
 {
 	if (!mActive)
 		return;
-	Point p = *mBall->getPosition();
+	Point p = *mNode->getPosition();
 	p.x = (mTarget.x - p.x) * mRate + p.x;
 	p.y = (mTarget.y - p.y) * mRate + p.y;
 	if (mSnap)
@@ -227,7 +229,7 @@ void Follow::apply()
 		p.x = (float)((float)(int)(k * mTarget.x) * mGrid + 22.0);
 		p.y = (float)((float)(int)(k * mTarget.y) * mGrid + 22.0);
 	}
-	mBall->setPosition(p);
+	mNode->setPosition(p);
 }
 
 Rope::Rope(Ball* theBall, const Point& theOffset, float theMaxStep, float theRate, float theBlend)

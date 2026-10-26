@@ -55,7 +55,7 @@ public:
 
 	engine::Node* mSelector;  // +0xa8: a Selector (its plain and lit images)
 	unsigned int mSpecial;    // +0xac
-	int mB0;                  // +0xb0
+	float mB0;                // +0xb0: 1 when spawned; picking sets it
 	engine::Point mOld;       // +0xb8: the last position
 	engine::Point mAcceleration;  // +0xc0: this step's
 	float mRadius;            // +0xc8
@@ -66,6 +66,9 @@ public:
 	engine::Point* mGravity;  // +0xdc: its own (owned), or null for the array's
 	Chain* mChain;            // +0xe0
 	bool mE4;                 // +0xe4
+	int mRow;                 // +0xe8: its row group (the ball system's 0x415c20), or -1 (the original leaves both unset
+	                          // until then; the port starts them at -1)
+	int mColumn;              // +0xec: its column group, or -1
 	char mLetter;             // +0xf0
 	bool mLinked;             // +0xf1: pulled to the other linked balls it touches
 };
@@ -76,6 +79,7 @@ class BallArray
 public:
 	BallArray();           // 0x40ec20
 	virtual ~BallArray();  // 0x40ec50
+	virtual void step() = 0;  // slot 1: the constraints, once a physics step
 
 	// 0x40ecd0
 	Ball* getBall(unsigned int theIndex) { return &mBalls[theIndex]; }
@@ -107,15 +111,15 @@ public:
 	bool mActive;  // +0x04
 };
 
-// 0x40e100 (0x2c bytes, vtable 0x481b28): moves a ball part of the way to a target each step; with the grid on,
-// straight onto the grid (the editor's drag)
+// 0x40e100 (0x2c bytes, vtable 0x481b28): moves a node (a ball, or in the editor an obstacle) part of the way to a
+// target each step; with the grid on, straight onto the grid (the editor's drag)
 class Follow : public Constraint
 {
 public:
-	Follow(Ball* theBall, float theC, float theRate, float theBlend, float theGrid);
+	Follow(engine::Node* theNode, float theC, float theRate, float theBlend, float theGrid);
 	void apply() override;  // 0x40e170
 
-	Ball* mBall;            // +0x08
+	engine::Node* mNode;    // +0x08
 	float mC;               // +0x0c
 	float mRate;            // +0x10
 	float mBlend;           // +0x14
