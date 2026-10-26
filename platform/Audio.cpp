@@ -85,6 +85,17 @@ struct Mixer::Song
 	float mGain = 1.0f;
 	float mCurGain = 1.0f;  // smoothed per buffer to avoid zipper noise on fades
 
+	// The song's last frames before any gain, the two channels averaged, for GetSongFFT.
+	static const int kHistoryFrames = 4096;
+	float mHistory[kHistoryFrames] = {};
+	int mHistoryPos = 0;
+
+	void Remember(float theLeft, float theRight)
+	{
+		mHistory[mHistoryPos] = (theLeft + theRight) * 0.5f;
+		mHistoryPos = (mHistoryPos + 1) & (kHistoryFrames - 1);
+	}
+
 	bool IsStream() const { return mVorbis || mPcm; }
 
 	void SeekSource(int64_t theFrame)
@@ -803,6 +814,11 @@ void Mixer::PlaySong(int theSong, int theOrder, int theRow, bool theLoop, bool t
 		s->mPlaying = true;
 		s->mPaused = false;
 		s->mCurGain = s->mGain;
+		if (theResetPosition)
+		{
+			std::fill(s->mHistory, s->mHistory + Song::kHistoryFrames, 0.0f);
+			s->mHistoryPos = 0;
+		}
 	}
 	Unlock();
 }
@@ -863,6 +879,67 @@ bool Mixer::GetSongPosition(int theSong, int& theOrder, int& theRow)
 	}
 	Unlock();
 	return known;
+}
+
+bool Mixer::GetSongFFT(int theSong, float* theOut, int theSamples)
+{
+	const int n = theSamples;
+	if (n < 64 || n > Song::kHistoryFrames || (n & (n - 1)) != 0)
+		return false;
+	std::vector<double> re(n), im(n, 0.0);
+	bool playing = false;
+	Lock();
+	SONG_FOR_HANDLE(theSong);
+	if (s && s->mPlaying)
+	{
+		playing = true;
+		for (int i = 0; i < n; i++)
+			re[i] = s->mHistory[(s->mHistoryPos - n + i) & (Song::kHistoryFrames - 1)];
+	}
+	Unlock();
+	if (!playing)
+		return false;
+
+	// BASS's default window: a periodic Hann window (measured with BASS 2.3.0.1: a sine centred on a bin puts
+	// half its value in each neighbour)
+	const double pi = 3.14159265358979323846;
+	for (int i = 0; i < n; i++)
+		re[i] *= 0.5 - 0.5 * std::cos(2.0 * pi * i / n);
+
+	// in-place radix-2 FFT
+	for (int i = 1, j = 0; i < n; i++)
+	{
+		int bit = n >> 1;
+		for (; j & bit; bit >>= 1)
+			j ^= bit;
+		j ^= bit;
+		if (i < j)
+		{
+			std::swap(re[i], re[j]);
+			std::swap(im[i], im[j]);
+		}
+	}
+	for (int len = 2; len <= n; len <<= 1)
+	{
+		const double ang = -2.0 * pi / len;
+		for (int i = 0; i < n; i += len)
+			for (int k = 0; k < len / 2; k++)
+			{
+				const double wr = std::cos(ang * k), wi = std::sin(ang * k);
+				const int a = i + k, b = i + k + len / 2;
+				const double xr = re[b] * wr - im[b] * wi, xi = re[b] * wi + im[b] * wr;
+				re[b] = re[a] - xr;
+				im[b] = im[a] - xi;
+				re[a] += xr;
+				im[a] += xi;
+			}
+	}
+
+	// BASS's scale: twice the magnitude over the window's sum (n / 2), so that a full-scale sine reads 1.0 in its
+	// bin, with or without the window, and a constant 0.5 reads 1.0 in bin 0
+	for (int k = 0; k < n / 2; k++)
+		theOut[k] = (float)(4.0 * std::sqrt(re[k] * re[k] + im[k] * im[k]) / n);
+	return true;
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -930,8 +1007,11 @@ void Mixer::Mix(float* theOut, int theFrames)
 			{
 				float g = g0 + (g1 - g0) * ((float)i / theFrames);
 				float t = (float)s.mFrac;
-				theOut[i * 2] += (s.mFrameA[0] + (s.mFrameB[0] - s.mFrameA[0]) * t) * g;
-				theOut[i * 2 + 1] += (s.mFrameA[1] + (s.mFrameB[1] - s.mFrameA[1]) * t) * g;
+				float l = s.mFrameA[0] + (s.mFrameB[0] - s.mFrameA[0]) * t;
+				float r = s.mFrameA[1] + (s.mFrameB[1] - s.mFrameA[1]) * t;
+				s.Remember(l, r);
+				theOut[i * 2] += l * g;
+				theOut[i * 2 + 1] += r * g;
 				s.mFrac += step;
 				while (s.mFrac >= 1.0)
 				{
@@ -958,6 +1038,7 @@ void Mixer::Mix(float* theOut, int theFrames)
 			for (int i = 0; i < theFrames; i++)
 			{
 				float g = g0 + (g1 - g0) * ((float)i / theFrames);
+				s.Remember(mModuleScratch[i * 2], mModuleScratch[i * 2 + 1]);
 				theOut[i * 2] += mModuleScratch[i * 2] * g;
 				theOut[i * 2 + 1] += mModuleScratch[i * 2 + 1] * g;
 			}
@@ -973,6 +1054,7 @@ void Mixer::Mix(float* theOut, int theFrames)
 		for (int i = 0; i < theFrames; i++)
 		{
 			float g = g0 + (g1 - g0) * ((float)i / theFrames);
+			s.Remember(mSongScratch[i * 2] / 32768.0f, mSongScratch[i * 2 + 1] / 32768.0f);
 			theOut[i * 2] += mSongScratch[i * 2] * (g / 32768.0f);
 			theOut[i * 2 + 1] += mSongScratch[i * 2 + 1] * (g / 32768.0f);
 		}

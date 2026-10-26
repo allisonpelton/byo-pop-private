@@ -183,6 +183,12 @@ int SDLMusicInterface::GetMusicPosition(int theSongId)
 	return (anOrder & 0xffff) | (aRow << 16);
 }
 
+bool SDLMusicInterface::GetMusicFFT(int theSongId, float* theOut, int theSamples)
+{
+	auto it = mSongs.find(theSongId);
+	return it != mSongs.end() && Mixer::Get().GetSongFFT(it->second.mHandle, theOut, theSamples);
+}
+
 void SDLMusicInterface::SetVolume(double theVolume)
 {
 	mGlobalVolume = theVolume;
