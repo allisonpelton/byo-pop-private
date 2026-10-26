@@ -21,9 +21,11 @@
 #   atomica      Atomica's bot: a strategy game, an action game, and a strategy rerun with the same screenshots
 #   sevenseas    Seven Seas' bot: a beginner's game from level 1, one from the bonus screen (level 10) and one from level 21,
 #                and a rerun of the first with the same screenshots (about 15 seconds)
+#   bookwormadv  Bookworm Adventures' PopLua: the compiler's dialect checks and every compiled script of the game
+#                loaded by the port's VM (bwa_luarun, headless; seconds)
 #   oracle       Bejeweled's oracle three ways (compare.sh --variants default,forcevariant,novariants); over
 #                ten minutes, so never in a subagent; refuses to start while another oracle runs
-# Sets: quick = build unit; games = bookworm bigmoney noahsark atomica sevenseas; all = every suite, builds first.
+# Sets: quick = build unit; games = bookworm bigmoney noahsark atomica sevenseas bookwormadv; all = every suite, builds first.
 #
 # Prints "PASS <suite> (<seconds>s): <summary>" or "FAIL <suite> (<seconds>s): <summary> -> <log>" for each,
 # then "check: N passed, M failed". Exits 0 only when all passed. Logs: build/logs/check/<suite>.txt (and
@@ -55,9 +57,9 @@ while [ $# -gt 0 ]; do
 		--out=*) OUT="${1#--out=}"; shift ;;
 		-h|--help) sed -n '2,/^BW_CLASSIC/p' "$0" | sed '$d' | sed 's/^# \{0,1\}//'; exit 0 ;;
 		quick) SUITES+=(build unit); shift ;;
-		games) SUITES+=(bookworm bigmoney noahsark atomica sevenseas); shift ;;
-		all) SUITES+=(build build-web build-nov unit unit-web verify modmenu livesplit bookworm bigmoney noahsark atomica sevenseas oracle); shift ;;
-		build|build-web|build-nov|unit|unit-web|verify|modmenu|livesplit|bookworm|bigmoney|noahsark|atomica|sevenseas|oracle) SUITES+=("$1"); shift ;;
+		games) SUITES+=(bookworm bigmoney noahsark atomica sevenseas bookwormadv); shift ;;
+		all) SUITES+=(build build-web build-nov unit unit-web verify modmenu livesplit bookworm bigmoney noahsark atomica sevenseas bookwormadv oracle); shift ;;
+		build|build-web|build-nov|unit|unit-web|verify|modmenu|livesplit|bookworm|bigmoney|noahsark|atomica|sevenseas|bookwormadv|oracle) SUITES+=("$1"); shift ;;
 		*) echo "check.sh: unknown suite '$1' (tools/check.sh --help)" >&2; exit 2 ;;
 	esac
 done
@@ -277,6 +279,18 @@ suite_sevenseas() {
 	SUMMARY="beginner ${a#game }; bonus ${b#game }; late ${c#game }; $r"
 	[ $st -eq 0 ] || SUMMARY="$SUMMARY (expected beginner '$SS_BEGINNER', bonus '$SS_BONUS', late '$SS_LATE')"
 	return $st
+}
+
+suite_bookwormadv() {
+	local b="$W/build/native/bwa_luarun.exe" d l
+	need_assets bookwormadv || return 1
+	[ -x "$b" ] || { SUMMARY="no $b (build first)"; return 1; }
+	d="$("$b" -gamedir=games/bookwormadv/tests/poplua dialect.lua 2>&1 | tee -a "$1" | tail -n 1)"
+	l="$("$b" -load 2>&1 | tee -a "$1" | tail -n 1)"
+	SUMMARY="$d; $l"
+	case "$d" in "dialect: "*" checks passed") ;; *) return 1 ;; esac
+	case "$l" in "loaded "*) set -- $l; [ "$2" = "$4" ] && [ "$2" -gt 0 ] && return 0 ;; esac
+	return 1
 }
 
 suite_oracle() {
