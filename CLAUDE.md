@@ -144,7 +144,11 @@ Git and publishing:
   - A **feature** mod gives the player one feature under its own name (BookWorm's `widescreen` or `undo`). Its
     settings are in the mod menu.
   - A **curated** mod gives the player a tuned experience, much like a fan game: features, settings and art
-    chosen to play well together.
+    chosen to play well together. It never copies a game mode from another game (the user, 2026-10-26): it always
+    has a twist of its own that makes a player want to pick it over the game it draws on. A port may implement
+    features from other games so that they can be recombined in new ways, and it is fine if a player can combine them
+    into something close to another game's mode; a curated mod itself is never just that mode. Bejeweled 2's
+    Twilight alone in Bejeweled is not interesting, but with other tunables it can be.
 - **Model selection (the user's rule, decided after the Sonnet trial on 2026-10-25):** a game whose port can
   largely copy another game's (the same framework generation and engine: Noah's Ark's for Seven Seas and Atomica,
   BookWorm's for Pixelus and Typer Shark, Big Money's for Hammer Heads, Bejeweled's for Bejeweled 2, a sequel after
