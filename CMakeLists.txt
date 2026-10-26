@@ -205,6 +205,11 @@ option(BUILD_BOOKWORMADV "Build the Bookworm Adventures Deluxe port" ON)
 if(BUILD_BOOKWORMADV AND EXISTS ${PROJECT_SOURCE_DIR}/games/bookwormadv/CMakeLists.txt)
   add_subdirectory(games/bookwormadv)
 endif()
+# Bookworm Adventures Volume 2: the same engine as Volume 1, copied into its own folder; optional while it is new
+option(BUILD_BOOKWORMADV2 "Build the Bookworm Adventures Volume 2 port" ON)
+if(BUILD_BOOKWORMADV2 AND EXISTS ${PROJECT_SOURCE_DIR}/games/bookwormadv2/CMakeLists.txt)
+  add_subdirectory(games/bookwormadv2)
+endif()
 # TipTop Deluxe: its own engine (games/tiptop/engine) under the framework's app host; optional while it is new
 option(BUILD_TIPTOP "Build the TipTop Deluxe port" ON)
 if(BUILD_TIPTOP AND EXISTS ${PROJECT_SOURCE_DIR}/games/tiptop/CMakeLists.txt)

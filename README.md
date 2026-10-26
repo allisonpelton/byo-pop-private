@@ -23,12 +23,38 @@ installed copy (for example from Steam):
 
 ## Games
 
-| Game | Status | Details |
-|---|---|---|
-| Bejeweled Deluxe 1.87 (2001) | Playable natively and in the browser, with graphics, sound, text and tunables mods. Gameplay code mods are being added in 15 stages, through stage 9 so far (board shapes, gravity, replays, up to 12 gem colours, diagonal and shaped matches, ...) | [games/bejeweled](games/bejeweled/README.md) |
-| Big Money Deluxe (2005) | Playable natively and in the browser, with mods: replays, LiveSplit, a puzzle solver, board and money variants | [games/bigmoney](games/bigmoney/docs/README.md) |
-| BookWorm Deluxe 1.03 (2004) | Playable natively and in the browser, with mods: undo, a word solver, replays, a daily board, a word journal, widescreen, LiveSplit, more word lists (built from your own files) | [games/bookworm](games/bookworm/docs/README.md) |
-| Noah's Ark Deluxe (2002) | Playable natively and in the browser, with mods: undo, a move helper, tide speed, a daily board | [games/noahsark](games/noahsark/docs/README.md) |
+### Progress (2026-10-26)
+
+| Game | Model | Status | On main since | Mods | Port work | Mod work | Other | Total |
+|---|---|---|---|---:|---:|---:|---:|---:|
+| [Bejeweled Deluxe](games/bejeweled/README.md) | Opus | Done, with graphics, sound, text and tunables mods and 18 stages of code mods (board shapes, gravity, replays, up to 12 gem colours, new gems) with curated modes | 2026-10-18 | 32 | $251 | $1,267 | $5 | $1,522 |
+| [Big Money Deluxe](games/bigmoney/docs/README.md) | Opus | Done, with mods: replays, LiveSplit, a puzzle solver, board and money variants | 2026-10-18 | 11 | $263 | $129 | $8 | $400 |
+| [BookWorm Deluxe](games/bookworm/docs/README.md) | Opus | Done, with mods: undo, a word solver, replays, a daily board, a word journal, widescreen, LiveSplit, more word lists | 2026-10-19 | 18 | $369 | $149 | $12 | $531 |
+| [Noah's Ark Deluxe](games/noahsark/docs/README.md) | Sonnet | Done, with mods: undo, a move helper, tide speed, a daily board | 2026-10-25 | 4 | $62 | $5 | | $67 |
+| [Seven Seas Deluxe](games/sevenseas/docs/README.md) | Sonnet | Done | 2026-10-25 | | $54 | | | $54 |
+| [Atomica Deluxe](games/atomica/docs/README.md) | Sonnet | Done | 2026-10-25 | | $105 | | | $105 |
+| [Mummy Maze Deluxe](games/mummymaze/docs/README.md) | Sonnet | Done | 2026-10-25 | | $84 | | | $84 |
+| [TipTop Deluxe](games/tiptop/docs/README.md) | Opus | Done | 2026-10-25 | | $106 | | | $106 |
+| [Bookworm Adventures Deluxe](games/bookwormadv/docs/README.md) | Opus | Done, with PopLua, PopAnim, Flash cutscenes and JPEG 2000 | 2026-10-25 | | $538 | $2 | | $539 |
+| [Ning Po Mahjong Deluxe](games/ningpo/docs/README.md) | Opus | Done | 2026-10-26 | | $66 | | | $66 |
+| [Pixelus Deluxe](games/pixelus/docs/README.md) | Sonnet | Done | 2026-10-26 | | $91 | | | $91 |
+| [Alchemy Deluxe](games/alchemy/docs/README.md) | Sonnet | Done | 2026-10-26 | | $70 | | | $70 |
+| [Word Harmony](games/wordharmony/docs/README.md) | Opus | Done, on Sprout's first-generation engine | 2026-10-26 | | $115 | | | $115 |
+| [Cosmic Bugs](games/cosmicbugs/docs/README.md) | Opus | Done, on Retro64's engine | 2026-10-26 | | $123 | | | $123 |
+| Rocket Mania Deluxe | Sonnet | Porting (begun 2026-10-26) | | | $16 | | | $16 |
+| Water Bugs | Sonnet | Porting on Cosmic Bugs' engine (begun 2026-10-26) | | | $20 | | | $20 |
+| Bookworm Adventures Volume 2 | Sonnet | Porting on Bookworm Adventures' engine; milestone 1 of 5 (the scripts run) ready | | | $4 | | | $4 |
+| Dynomite Deluxe, Mahjong Escape: Ancient Japan and Ancient China, Bonnie's Bookstore Deluxe, Venice Deluxe, Heavy Weapon Deluxe, Hammer Heads Deluxe, Bejeweled 2 Deluxe, AstroPop Deluxe | Opus or Sonnet | Waiting for a slot, in this order | | | under $1 each | | | |
+| Shared framework, tools and coordination | | | | | $367 | $154 | $188 | $709 |
+| **All** | | | | **65** | **$2,706** | **$1,707** | **$213** | **$4,625** |
+
+"Done" means the whole game plays natively and in the browser. The costs are what the work's tokens would cost at the
+API prices in [docs/TOKEN_ECONOMY.md](docs/TOKEN_ECONOMY.md), each model at its own; the subscription the work ran on
+does not bill them. A game's cost counts its own sessions with their subagents and workflow agents, and the
+coordinator's reviews, merges and fixes of that game. Until 2026-10-20 one session ported Bejeweled and set up the
+repository, and its work counts for Bejeweled. Port and mod work are split commit by commit: each commit gets the cost
+of the work since the one before, classified by what it did. "Other" is publishing, the website, licences, usage
+measurement and rules for the sessions. `tools/game_costs.py` computes the costs; the table is refreshed when asked.
 
 Later candidates, and what it takes to port each, are surveyed in
 [docs/POPCAP_GAMES_SURVEY.md](docs/POPCAP_GAMES_SURVEY.md); planned mods are in

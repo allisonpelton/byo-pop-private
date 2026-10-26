@@ -73,7 +73,7 @@ struct PEImage
 		uint32_t mRawPtr;
 	};
 	uint32_t mImageBase = 0;
-	size_t mBase = 0; // where the game's PE starts in the file (the wrapper holds it after a marker)
+	size_t mBase = 0; // where the PE image starts in the file
 	std::vector<Section> mSections;
 
 	bool Parse(const std::vector<uint8_t>& theData, size_t theBase)
@@ -116,8 +116,7 @@ bool Sexy::LoadGameTexts()
 	std::map<unsigned int, SexyString>& aTexts = Texts();
 	aTexts.clear();
 
-	// The retail launcher (Pixelus.exe, the 2004-07 build inside PopCap's wrapper) or a carved game image (as
-	// tools/extract_game_exe.py writes it)
+	// The retail launcher (Pixelus.exe) or a carved game image (as tools/extract_game_exe.py writes it)
 	std::vector<uint8_t> aData;
 	bool aRead = false;
 	const char* aNames[] = {"Pixelus.exe", "PixelusGame.exe"};

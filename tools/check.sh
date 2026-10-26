@@ -53,13 +53,18 @@
 #                (cosmicbugs_banktest), a scripted game played headless (cosmicbugs_run: two lines on the first
 #                board) and a rerun with the same screenshots, and the windowed exe twice with the same clicks: the
 #                runner's state, the same screen (under a minute)
+#   bookwormadv2 Bookworm Adventures Volume 2: PopLua on the game's 462 scripts (bwa2_luarun): the compiler's
+#                dialect checks, every compiled script loaded and its main chunk run, and the 8 scripts/common
+#                sources recompiled instruction for instruction against their shipped chunks; fails on a bad exit
+#                status, a failed load or a count that is not the whole set (milestone 1; the game's own runs
+#                join it as the port grows)
 #   waterbugs    Water Bugs: the fonts and every animation the game ships loaded
 #                (waterbugs_banktest), a scripted game played headless (waterbugs_run: a beam across the first
 #                board, two state lines) and a rerun with the same screenshots, and the windowed exe twice with the
 #                same clicks: the runner's state, the same screen (under a minute)
 #   oracle       Bejeweled's oracle three ways (compare.sh --variants default,forcevariant,novariants); over
 #                ten minutes, so never in a subagent; refuses to start while another oracle runs
-# Sets: quick = build unit; games = bookworm bigmoney noahsark atomica alchemy sevenseas pixelus bookwormadv tiptop mummymaze ningpo wordharmony cosmicbugs waterbugs; all = every suite, builds first.
+# Sets: quick = build unit; games = bookworm bigmoney noahsark atomica alchemy sevenseas pixelus bookwormadv bookwormadv2 tiptop mummymaze ningpo wordharmony cosmicbugs waterbugs; all = every suite, builds first.
 #
 # Prints "PASS <suite> (<seconds>s): <summary>" or "FAIL <suite> (<seconds>s): <summary> -> <log>" for each,
 # then "check: N passed, M failed". Exits 0 only when all passed. Logs: build/logs/check/<suite>.txt (and
@@ -112,9 +117,9 @@ while [ $# -gt 0 ]; do
 		--out=*) OUT="${1#--out=}"; shift ;;
 		-h|--help) sed -n '2,/^BW_CLASSIC/p' "$0" | sed '$d' | sed 's/^# \{0,1\}//'; exit 0 ;;
 		quick) SUITES+=(build unit); shift ;;
-		games) SUITES+=(bookworm bigmoney noahsark atomica alchemy sevenseas pixelus bookwormadv tiptop mummymaze ningpo wordharmony cosmicbugs waterbugs); shift ;;
-		all) SUITES+=(build build-web build-nov unit unit-web verify modmenu livesplit bookworm bigmoney noahsark atomica alchemy sevenseas pixelus bookwormadv tiptop mummymaze ningpo wordharmony cosmicbugs waterbugs oracle); shift ;;
-		build|build-web|build-nov|unit|unit-web|verify|modmenu|livesplit|bookworm|bigmoney|noahsark|atomica|alchemy|sevenseas|pixelus|bookwormadv|tiptop|mummymaze|ningpo|wordharmony|cosmicbugs|waterbugs|oracle) SUITES+=("$1"); shift ;;
+		games) SUITES+=(bookworm bigmoney noahsark atomica alchemy sevenseas pixelus bookwormadv bookwormadv2 tiptop mummymaze ningpo wordharmony cosmicbugs waterbugs); shift ;;
+		all) SUITES+=(build build-web build-nov unit unit-web verify modmenu livesplit bookworm bigmoney noahsark atomica alchemy sevenseas pixelus bookwormadv bookwormadv2 tiptop mummymaze ningpo wordharmony cosmicbugs waterbugs oracle); shift ;;
+		build|build-web|build-nov|unit|unit-web|verify|modmenu|livesplit|bookworm|bigmoney|noahsark|atomica|alchemy|sevenseas|pixelus|bookwormadv|bookwormadv2|tiptop|mummymaze|ningpo|wordharmony|cosmicbugs|waterbugs|oracle) SUITES+=("$1"); shift ;;
 		*) echo "check.sh: unknown suite '$1' (tools/check.sh --help)" >&2; exit 2 ;;
 	esac
 done
@@ -485,6 +490,23 @@ suite_bookwormadv() {
 	[ "$w" = "credits, players, mini-games, arena word ANTIBIOSIS" ] || return 1
 	[ "$v" = "spectrum lit both ways" ] || return 1
 	return 0
+}
+
+suite_bookwormadv2() {
+	local log="$1" b="$W/build/native/bwa2_luarun.exe" d l r p st
+	need_assets bookwormadv2 || return 1
+	[ -x "$b" ] || { SUMMARY="no $b (build first)"; return 1; }
+	d="$("$b" -gamedir=games/bookwormadv2/tests/poplua dialect.lua 2>&1 | tee -a "$log" | tail -n 1)"
+	l="$("$b" -gamedir=assets/bookwormadv2 -load 2>&1 | tee -a "$log" | tail -n 1)"
+	r="$("$b" -gamedir=assets/bookwormadv2 -runall 2>&1 | tee -a "$log" | tail -n 1)"
+	p="$(python games/bookwormadv2/tests/poplua/pairs.py "$b" assets/bookwormadv2 2>&1 | tee -a "$log" | tail -n 1)"
+	SUMMARY="$d; $l; $r; $p"
+	st=0
+	[ "$d" = "dialect: 150 checks passed" ] || st=1
+	[ "$l" = "loaded 462 of 462 scripts" ] || st=1
+	[ "$r" = "ran 462 of 462 scripts" ] || st=1
+	[ "$p" = "pairs: 8 of 8 identical" ] || st=1
+	return $st
 }
 
 bookwormadv_all() {  # <"loaded N of M ...">: true when all of at least one loaded
