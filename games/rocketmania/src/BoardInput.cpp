@@ -3,6 +3,7 @@
 
 #include "Board.h"
 #include "RocketApp.h"
+#include "TalkingHead.h"
 #include "MusicInterface.h"
 #include "Compat2004.h"
 #include "Graphics.h"
@@ -149,9 +150,8 @@ void Board::F428ef0()
 		m34c--;
 }
 
-// 0x421f30: pauses (theOn) or resumes. Left out: the original's test of a flag in the app's object at app+0x598 for a
-// game that is not running, the music fades (app+0x2f4), the talking head (0x416e50) and the app's call 0x42d270 that
-// tells it the pause state.
+// 0x421f30: pauses (theOn) or resumes; the head goes down into its hole for the pause and up again after it, and the app's
+// call 0x42d270 tells the buttons the pause state.
 void Board::F421f30(bool theOn)
 {
 	if (mState != 0 && mApp->mBoard->m100 == 0)
@@ -168,7 +168,7 @@ void Board::F421f30(bool theOn)
 		{
 			m368 = (int) SDL_GetTicks();
 			mApp->mMusicInterface->FadeIn(SONG_GAME, -1, 0.666, false);
-			// (the talking head's call 0x416e50 is not translated yet)
+			mApp->mHead->StartSlide(true, 0);
 			mApp->DisableBoardButtons(false);
 		}
 	}
@@ -176,6 +176,7 @@ void Board::F421f30(bool theOn)
 	{
 		m360 = m360 + ((int) SDL_GetTicks() - m368) / 1000;
 		mApp->mMusicInterface->FadeOut(SONG_GAME, false, 0.008);
+		mApp->mHead->StartSlide(false, 0);
 		mApp->DisableBoardButtons(true);
 	}
 	MarkDirty();
@@ -205,7 +206,7 @@ void Board::MouseMove(int x, int y)
 }
 
 // 0x4283e0. Arcade mode takes the tile under the pointer (a click at the top strip drops more tiles; the turn happens on
-// release); the other modes turn the tile at once. Left out: a click on the talking head (0x416a80).
+// release); the other modes turn the tile at once. A click at the lower left, where the head stands, fades its bubble.
 void Board::MouseDown(int x, int y, int theClickCount)
 {
 	if (theClickCount < 0)
@@ -243,6 +244,8 @@ void Board::MouseDown(int x, int y, int theClickCount)
 		if (aPiece != NULL && (aPiece->mType == 1 || (aPiece->mType == 4 && m2f4 == 0)))
 			RotatePiece(aPiece, 0 < theClickCount);
 	}
+	if (-1 < x && x < 0x88 && 0xf9 < y && y < 0x1dc)
+		mApp->mHead->HideBubble();
 }
 
 // 0x428520: arcade mode turns the tile that the pointer was pressed on when it is released on the same tile (unless it

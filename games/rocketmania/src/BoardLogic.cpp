@@ -1,10 +1,11 @@
 // The rules of the Board (RocketManiaGame 0x422120-0x428100): how tiles are made and fall, how a connection from the left
 // edge to a rocket is found and burnt, the timers of the three modes and the board's Update (0x426f40). The functions
-// keep the original's order and shape; the field offsets are in Board.h. Parts that need classes not translated yet
-// (the talking head, the dialogs, the particle effects) are marked "not translated".
+// keep the original's order and shape; the field offsets are in Board.h. The talking head, the dialogs and the particle effects
+// are in their own files (TalkingHead.cpp, Dialogs.cpp, Effects.cpp).
 
 #include "Board.h"
 #include "RocketApp.h"
+#include "TalkingHead.h"
 #include "Compat2004.h"
 #include "GameText.h"
 #include "Graphics.h"
@@ -525,7 +526,8 @@ void Board::ResetState(bool theContinuing)
 	m4c0 = false;
 	m2f8 = 0;
 	m44c = 500;
-	// (not translated: the talking head is reset when this is a new game)
+	if (!theContinuing)
+		mApp->mHead->GoToRest(true);
 	for (int i = 0; i < 14; i++)
 	{
 		if (mLevel < 1 || i != 7)
@@ -539,10 +541,17 @@ void Board::ResetState(bool theContinuing)
 	for (int i = 0; i < 10; i++)
 		m468[i] = 0;
 	m300 = 0;
+	// the head says "get ready" at every level but the first one, where (unless the hints are off) it has its own lines
+	bool aQuiet = false;
 	if (mLevel == 0)
 	{
 		m308 = 0;
-		// (the original also has the head say its first lines when the app's flag at 0x549 is clear)
+		aQuiet = !mApp->mNoHints;
+	}
+	if (!aQuiet)
+	{
+		mApp->mHead->Say(SOUND_VOICE_GET_READY_02);
+		mApp->mHead->SetMood(0xe);
 	}
 	m370 = 0;
 	m374 = 0;
@@ -645,7 +654,7 @@ void Board::LevelEffect(int theAction, int theKind, int theX, int theY)
 		BurstSome(theKind, theX, theY);
 }
 
-// 0x422df0: the fireworks of the end of a level (not translated: the effects are only created)
+// 0x422df0: the fireworks of the end of a level
 void Board::Burst(int theKind, int theX, int theY)
 {
 	Effect* anEffect = NULL;
@@ -1178,7 +1187,7 @@ int Board::AddScore(int thePoints)
 void Board::EndLevelA()
 {
 	m44c = 500;
-	// (not translated: the head is told to stop)
+	mApp->mHead->StartSlide(false, 0);
 	mState = 4;
 	m36c = 400;
 }

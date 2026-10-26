@@ -3,6 +3,7 @@
 #include "BuyRockets.h"
 #include "Board.h"
 #include "RocketApp.h"
+#include "TalkingHead.h"
 #include "MusicInterface.h"
 #include "GameText.h"
 #include "Graphics.h"
@@ -32,7 +33,7 @@ BuyRocketsWidget::BuyRocketsWidget(RocketApp* theApp, bool theGameOver) :
 	mStartTick = mUpdateCnt;
 	if (!mGameOver)
 	{
-		// (the talking head goes to rest, 0x416520 with 0: the head is not ported yet)
+		mApp->mHead->GoToRest(false);
 		aBoard->mEffects->Clear();      // 0x41aae0
 	}
 

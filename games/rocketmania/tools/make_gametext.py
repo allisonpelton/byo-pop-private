@@ -31,6 +31,7 @@ POINTER_TABLES = (
     (0x4e4658, 0x4e468c),   # the names in the high score lists made new (0x4064e0), the first of two tables
     (0x4e4690, 0x4e46d4),   # the second
     (0x4e62e8, 0x4e6354),   # the rank names of the level-up dialog (0x428ca0)
+    (0x4e57b0, 0x4e5970),   # the eight lines of each hover tip, for arcade and classic and then for strategy (0x413c00)
 )
 # the read-only data where the strings are
 IMMEDIATE_STRINGS = (0x4e4000, 0x4e8000)

@@ -7,6 +7,7 @@
 
 #include "Board.h"
 #include "RocketApp.h"
+#include "TalkingHead.h"
 #include "Buffer.h"
 #include "MTRand.h"
 
@@ -394,5 +395,6 @@ void Board::AfterLoad()
 	mFc = 0;
 	m100 = 0;
 	m104 = 0;
-	// (unless the state is 4 the talking head is told to go on, 0x416520 with 1: the head is not ported yet)
+	if (mState != 4)
+		mApp->mHead->GoToRest(true);
 }

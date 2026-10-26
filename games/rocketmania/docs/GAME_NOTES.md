@@ -16,7 +16,7 @@ image is linked 2003-09-08, base 0x400000, app class `WinTubeTricksApp` (the por
 | ContinueDialog | 0x402630 | id 0xf: NEW GAME or CONTINUE SAVED GAME (ported, the loading half waits for the Board) |
 | Board | 0x41ae80 | the game: Update 0x426f40, Draw 0x41f540, input 0x4285b0 to 0x4283e0, helpers 0x41b270 to 0x429460 |
 | Rocket (the effects) | 0x4172f0, manager 0x41a830 | the particle effects: fireworks, sparkles, flames and the menu's petals (ported, Effects.cpp) |
-| TalkingHead, SpeechBubble | 0x4161a0, 0x415c70 | the guide who speaks in the menu and in the first games (not ported) |
+| TalkingHead, SpeechBubble | 0x4161a0, 0x415c70 | the dragon announcer, its (never shown) bubble and the hover tips 0x413aa0 (ported, TalkingHead.cpp) |
 | HighScoreDisplayDialog | 0x4064e0 | id 0xe |
 | OptionsDialog | 0x411ba0 | id 1 |
 | RecordScoreDialog | 0x414060 | the name entry after a high score |
@@ -44,7 +44,7 @@ levels). The port keeps them under the user folder as `Players/save?.dat`.
 
 - Texts are read from the user's exe by address (`GT(0x...)`); none is in the repository.
 - The hint's alpha reaches 260 in the original (the test is `< 255`, the step 10); the port draws it at 255.
-- Not ported yet (marked in the code): the rockets over the menu, the talking head, the first-time mode hints, the Board.
+- Not ported yet (marked in the code): see the list at the end of this file.
 - The dialogs' buttons arrive at the app as 2000 + dialog id (yes, ok) and 3000 + dialog id (no, cancel) like in the
   other 2003 games; `RocketApp::ButtonDepress` mirrors the original's handler (0x42ed10).
 
@@ -287,7 +287,31 @@ Board::F428d10 when it is deleted (not when the manager is) and plays a firework
 sound in m40 and the delay in mc0). While the board is paused (m350) its effects stand still, as
 the original's update shows. The test script command "effect <kind> <x> <y> <life> [<layer>]" adds one.
 
-Still to do after Draw (above): the talking head (0x4161a0, 0x413aa0), then the
-deliverables: the coordinator's `BYOPOP_BUY_rocketmania` line (cmake/ByopopStores.cmake has an
-uncommitted local placeholder that must not be committed), and an AddressSanitizer run of the autoplay (tools/build.sh has no
-asan option yet).
+The talking head (TalkingHead.h, TalkingHead.cpp; the original class 0x4161a0, 0x110 bytes) is the dragon who announces the
+big moments. The app makes it at start-up (CreateHead, 0x42d360) as a button widget in its manager and keeps it for the whole
+run; it is never a mouse target. A head, a body and a shadow are drawn one over the other: the body at (sway, 20), the face
+at (sway, 40 - sway) turned by a pendulum when that turn is at least 0.005 radians, where the sway (5 to 25) is a sine of the
+speed. Two springs hold it: Place sets the target, the real position follows it with a damping, and the widget is moved to the
+position every update (when it is nearly still it bobs a little on sine terms). A mood (SetMood, table 0x4c5270, 23 moods of
+pairs of mouth and half-duration) is a list of mouths shown one after the other, with a random chance of 1 in 250 each update
+of a new face; the first games speak through Say, which stops the old voice line and plays a new one from the sound manager.
+The head also comes out of a hole at the board's left corner (the board draws the hole pictures, OUTOFHOLE01 + position / 100,
+and the head is drawn at 80 percent size while it is in the hole): StartSlide climbs 12 a step (or goes down at -12) over 600
+steps after a delay, and Surface brings it to the front. For the end of a level it flies in on a rocket: FlyIn gives it a
+trail effect of the board's effects (kind 0, 300 updates) and puts it at the top, where it swings down on a sine path, and
+Follow puts the trail's flames under it and clears the board's rows to that height; FlyOut sends it to the side. Dialogs and
+the menu call HeadBesideMenu or HeadBesideDialog (StepAside, Place and BringToFront) to put it next to what is open. The
+speech bubble (0x415c70) never gets a message in the shipped game (the function that would set one, 0x415d30, is empty), so
+it stays invisible; only its fade and its place in the widget order are kept. The hover tips (HoverTip, 0x413aa0) watch the
+pointer on the board: seven regions, and a pointer resting for 81 updates in one shows its tip (not in region 1 unless the
+mode is classic, not in region 2 in strategy), which fades in over 16 updates (alpha `shown * 4`) and goes when the pointer
+leaves. The tip's picture is the bubble (turned or flipped by region), its text eight lines centred in Arial 10 in the colour
+(29, 96, 78), the lines being addresses in two tables (0x4e57b0 for arcade and classic, 0x4e5890 for strategy) that
+`tools/make_headdata.py` turns into HeadData.inc, together with the numbers for the moods and places. The test command
+"endlevel <n>" flies the head in for the end of a level.
+
+Still to do: the frozen-time bar of the classic mode (0x41f360, drawn in Board::Draw before the effects), the tilted tile
+(0x41e630) and its overlay (0x41e690), the ghost trail, the rockets over the menu, and the deliverables: the coordinator's `BYOPOP_BUY_rocketmania` line
+(cmake/ByopopStores.cmake has an uncommitted local placeholder that must not be committed), and an AddressSanitizer run of the
+autoplay (tools/build.sh has no asan option yet). The trial clock (0x42f770) and the shareware dialogs (0x414790, 0x415020, 0x4153b0) are left out on purpose: the Steam copy
+is registered.

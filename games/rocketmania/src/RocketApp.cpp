@@ -3,6 +3,7 @@
 
 #include "RocketApp.h"
 #include "Screens.h"
+#include "TalkingHead.h"
 #include "Dialogs.h"
 #include "Board.h"
 #include "Dialog.h"
@@ -83,6 +84,11 @@ RocketApp::RocketApp()
 	mGameSelector = NULL;
 	mHintDialog = NULL;
 	mBoard = NULL;
+	mHead = NULL;
+	mBubble = NULL;
+	mWelcomed = false;
+	mFirstGameHint = false;
+	mHeadCountdown = 0;
 	mMode = 0;
 	mDifficulty = 0;
 	mNoPopLink = false;
@@ -96,6 +102,16 @@ RocketApp::~RocketApp()
 {
 	if (mBoard != NULL)
 		mWidgetManager->RemoveWidget((Widget*) mBoard);
+	if (mHead != NULL)
+	{
+		mWidgetManager->RemoveWidget(mHead);
+		delete mHead;
+	}
+	if (mBubble != NULL)
+	{
+		mWidgetManager->RemoveWidget(mBubble);
+		delete mBubble;
+	}
 	delete mBubbleFlipH;
 	delete mBubbleFlipV;
 	delete mCheckChecked;
@@ -230,6 +246,7 @@ bool RocketAutoplay(RocketApp* theApp, const ScriptCommand& theCommand);
 bool RocketGameOver(RocketApp* theApp, const ScriptCommand& theCommand);
 bool RocketHint(RocketApp* theApp, const ScriptCommand& theCommand);
 bool RocketLevelUp(RocketApp* theApp, const ScriptCommand& theCommand);
+bool RocketEndLevel(RocketApp* theApp, const ScriptCommand& theCommand);
 bool RocketBuyRockets(RocketApp* theApp, const ScriptCommand& theCommand);
 bool RocketEffect(RocketApp* theApp, const ScriptCommand& theCommand);
 
@@ -245,6 +262,8 @@ bool RocketApp::HandleScriptCommand(const ScriptCommand& theCommand)
 		return RocketHint(this, theCommand);
 	if (theCommand.mCommand == "levelup")
 		return RocketLevelUp(this, theCommand);
+	if (theCommand.mCommand == "endlevel")
+		return RocketEndLevel(this, theCommand);
 	if (theCommand.mCommand == "buyrockets")
 		return RocketBuyRockets(this, theCommand);
 	if (theCommand.mCommand == "effect")
@@ -405,8 +424,10 @@ void RocketApp::ShowHighScores(int theOpenedFrom)
 	aDialog->mContentInsets = Insets(0x24, 0x24, 0x24, 0x24);
 	aDialog->Resize(0, 0, mWidth, mHeight);
 	AddDialog(DIALOG_HIGH_SCORES, aDialog);
-	// (the talking head: unless opened in a game it goes to rest (0x4165f0), and in every case it is brought in front of the
-	// dialog (0x42fdf3); the head is not ported yet)
+	// the talking head steps aside (unless the list was opened in a game) and is brought in front of the dialog
+	if (theOpenedFrom != 2)
+		mHead->StepAside();
+	mWidgetManager->BringToFront(mHead);
 }
 
 // 0x42df40: the dialog for the name of a score, in the middle of the window, with a fanfare
@@ -431,9 +452,7 @@ void RocketApp::ShowOptions(bool theFromMenu)
 	aDialog->Resize(0x7e, 0xf0 - aHeight / 2, 0x184, aHeight);
 	AddDialog(DIALOG_OPTIONS, aDialog);
 	if (theFromMenu)
-	{
-		// (0x4165f0: the talking head's move is not ported yet)
-	}
+		mHead->StepAside();
 	else
 		mMusicInterface->FadeIn(0, -1, 0.2, false);
 }
@@ -498,7 +517,21 @@ void RocketApp::LoadingScreenDone()
 	mWidgetManager->RemoveWidget(mLoadingScreen);
 	SafeDeleteWidget(mLoadingScreen);
 	mLoadingScreen = NULL;
+	CreateHead();
 	ShowGameSelector();
+}
+
+// 0x42d360: the talking head and its bubble join the app's widgets for the rest of the run (in front of the menu and the
+// board, which are added later and put behind them with BringToBack/BringToFront by the code that needs it)
+void RocketApp::CreateHead()
+{
+	mHead = new TalkingHead(this);
+	mHead->Resize(0, 0, mImages[IMAGE_BODY]->GetWidth() + 0x19, mImages[IMAGE_BODY]->GetHeight() + 0x28);
+	mHead->Move(-200, 0);
+	mWidgetManager->AddWidget(mHead);
+	mBubble = new SpeechBubble(this);
+	mWidgetManager->AddWidget(mBubble);
+	mBubble->SetVisible(false);
 }
 
 // 0x42e010: the menu replaces whatever was on screen (the game in progress is closed first)
@@ -511,6 +544,9 @@ void RocketApp::ShowGameSelector()
 		// a game in progress is saved (0x41b420: unless it is finished) before the board goes
 		if (mBoard->mState != 2)
 			mBoard->Save();
+		mHead->SetSlide(false);
+		mHead->Move(250, -300);
+		mBoard->mState = 3;
 		mWidgetManager->RemoveWidget((Widget*) mBoard);
 		mBoard = NULL;
 	}

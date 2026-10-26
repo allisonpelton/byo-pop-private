@@ -5,6 +5,7 @@
 
 #include "Board.h"
 #include "RocketApp.h"
+#include "TalkingHead.h"
 #include "Compat2004.h"
 #include "Graphics.h"
 #include "Image.h"
@@ -69,7 +70,7 @@ void Board::Draw(Graphics* g)
 	// the effects of the layer behind the board (0x41abb0 with the flag set)
 	mEffects->Draw(g, true);
 	g->DrawImage(anImages[IMAGE_COLUMN], 0, 0);
-	// (the talking head, 0x416d50, is not translated yet)
+	mApp->mHead->DrawHole(g);
 	if (mApp->mMode == 2)
 		g->DrawImage(anImages[IMAGE_MATCHESLEFT], 0, 0xa6);
 	g->DrawImage(anImages[IMAGE_POLELEFT], 0xc3, 0x18);
@@ -206,9 +207,9 @@ void Board::Draw(Graphics* g)
 			g->SetDrawMode(Graphics::DRAWMODE_NORMAL);
 		}
 	}
-	// (the frozen-time bar of classic mode 0x41f360 and the talking head's bubble 0x414000 are not translated yet; the
-	// effects of the front layer go between them)
+	// (the frozen-time bar of classic mode 0x41f360 is not translated yet; the effects of the front layer go after it)
 	mEffects->Draw(g, false);
+	mTip->Draw(g);      // 0x414000
 
 	// the hint that points at the first tile to turn
 	if (!m498 && !mApp->mNoHints)
@@ -293,6 +294,7 @@ void Board::Draw(Graphics* g)
 	{
 		if (mApp->GetDialog(0xb) == NULL)
 		{
+			mApp->mHead->SkipDraw();
 			g->SetColor(Color(0, 0, 0, Ftol(m358 * 210.0)));
 			g->SetColorizeImages(true);
 			g->FillRect(0, 0, 0x280, 0x1e0);

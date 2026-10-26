@@ -3,6 +3,7 @@
 
 #include "Board.h"
 #include "RocketApp.h"
+#include "TalkingHead.h"
 #include "Compat2004.h"
 #include "Dialogs.h"
 #include "GameText.h"
@@ -1028,8 +1029,9 @@ void Board::Timers()
 		{
 			mState = 2;
 			ShowLevelUp(LevelUpDialog::KIND_GAME);
-			// (the talking head is told, 0x416590 and 0x416e80, and made a child of the board, 0x42fdf3: the head is
-			// not ported yet)
+			mApp->mHead->Arrive();
+			mApp->mHead->SetSlide(false);
+			mWidgetManager->BringToFront(mApp->mHead);
 		}
 		return;
 	}
@@ -1077,29 +1079,45 @@ void Board::Timers()
 		switch (i)
 		{
 		case 0:
-			// the original asks the app whether it is active (0x42f6f0) and has the head speak
-			m340[i] = true;
+			if (mApp->mMode == 1)       // 0x42f6f0
+			{
+				mApp->mHead->ShowBubble();
+				m340[i] = true;
+			}
 			break;
 		case 1:
 			if (0 < mLevel)
+			{
+				mApp->mHead->ShowBubble();
 				m340[i] = true;
+			}
 			break;
 		case 2:
 			if (mApp->mMode == 0)
+			{
+				mApp->mHead->ShowBubble();
 				m340[i] = true;
+			}
 			break;
 		case 3:
 			if (2 < mLevel)
+			{
+				mApp->mHead->ShowBubble();
 				m340[i] = true;
+			}
 			break;
 		case 4:
 			if (3 < mLevel)
+			{
+				if (!m439)
+					mApp->mHead->ShowBubble();
 				m340[i] = true;
+			}
 			break;
 		case 5:
 			if (mApp->mMode == 0)
 			{
-				Points* aPoints = new Points(mApp, mApp->mFonts[FONT_DOMO14_BOLD], "Click here to drop more tiles",
+				Points* aPoints = new Points(mApp, mApp->mFonts[FONT_DOMO14_BOLD], GT(0x004e66d0),
 					CellX(3) + mX, mY + 0x1e, 600, 0);
 				aPoints->mStatic = true;
 				mTexts.push_back(aPoints);

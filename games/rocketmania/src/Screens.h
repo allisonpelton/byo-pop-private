@@ -42,8 +42,8 @@ public:
 // 0x404e30: the menu (picture "select back"): the three game modes, the high scores, the options and the quit button.
 // A mode button opens the difficulty dialog (or, with a saved game of that mode, the continue dialog); the
 // difficulty dialog starts the game with StartGame.
-// port: the talking head that introduces the first game (0x4161a0) is not translated yet; its calls are marked "not
-// ported" below. Over the picture blow the leaves (an effect of kind 2 that never ends, 0x41a830).
+// The talking head welcomes the player at update 100 and waits beside the menu (HeadBesideMenu) or beside a dialog. Over
+// the picture blow the leaves (an effect of kind 2 that never ends, 0x41a830).
 class GameSelector : public Widget, public ButtonListener
 {
 public:
@@ -82,7 +82,8 @@ public:
 	void				ShowDifficultyDialog();     // 0x405fb0
 	void				ShowContinueDialog();       // 0x4060d0
 	void				StartGame(bool theContinuing);  // slot 44, 0x405ed0
-	void				ResetHead();                // 0x405950 / 0x405980: the talking head's place (not ported)
+	void				HeadBesideMenu();           // 0x405950: the talking head's place beside the menu
+	void				HeadBesideDialog();         // 0x405980: and while a dialog is up
 };
 
 }

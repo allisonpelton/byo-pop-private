@@ -1,6 +1,7 @@
 // The dialogs of Rocket Mania Deluxe (see Dialogs.h).
 
 #include "Dialogs.h"
+#include "TalkingHead.h"
 #include "Board.h"
 #include "Buffer.h"
 #include "RocketApp.h"
@@ -119,7 +120,7 @@ void DifficultyDialog::ButtonDepress(int theId)
 		break;
 	case 3:
 		mApp->KillDialog(DIALOG_DIFFICULTY);
-		mApp->mGameSelector->ResetHead();
+		mApp->mGameSelector->HeadBesideMenu();
 		return;
 	default:
 		Dialog2004::ButtonDepress(theId);
@@ -251,7 +252,7 @@ void ContinueDialog::ButtonDepress(int theId)
 		mApp->mGameSelector->mMode = mMode;
 		mApp->mGameSelector->mDifficulty = mSavedDifficulty;
 		mApp->KillDialog(DIALOG_CONTINUE);
-		mApp->mGameSelector->ResetHead();
+		mApp->mGameSelector->HeadBesideMenu();
 		mApp->mGameSelector->StartGame(true);
 		// the board that was just made takes the saved game, which is then deleted
 		if (mApp->mBoard != NULL)
@@ -444,7 +445,7 @@ void OptionsDialog::ButtonDepress(int theId)
 		if (!mFromMenu)
 			mApp->mMusicInterface->FadeOut(0, true, 0.02);
 		else
-			mApp->mGameSelector->ResetHead();
+			mApp->mGameSelector->HeadBesideMenu();
 		return;
 	}
 	// (the original's other buttons: register, check for updates, the partner links, a PopCap web page: not ported)
@@ -706,8 +707,8 @@ HighScoreDisplayDialog::HighScoreDisplayDialog(RocketApp* theApp, int theOpenedF
 	int aLabelWidth = mMenuButton->mFont->StringWidth(mMenuButton->mLabel);
 	mMenuButton->Resize(0x140 - (aLabelWidth + 8) / 2, 0x1b2, aLabelWidth + 8, 0x1e);
 
-	// (the original also sets the talking head's speech to its place (0x416aa0 with 60) and its mood (0x416360 with 8):
-	// the head is not ported yet)
+	mApp->mHead->Say(SOUND_VOICE_THESE_ARE_THE_MASTER_ROCKETEERS_06);
+	mApp->mHead->SetMood(8);
 }
 
 // 0x406ba0
@@ -839,7 +840,11 @@ void HighScoreDisplayDialog::CheckScore()
 	int aScore = mApp->mBoard->mScore;
 	bool aBestOfDay = mTodayScore[aMode] < aScore;
 	int aRank = FindRank(aMode, aScore);
-	// (a better score also changes the talking head: 0x416aa0 with 64 and 0x416360 with 12; not ported yet)
+	if (aBestOfDay || 0 < aRank)
+	{
+		mApp->mHead->Say(SOUND_VOICE_YOU_HAVE_GOT_A_HIGH_SCORE_04);
+		mApp->mHead->SetMood(12);
+	}
 
 	char aNumber[32];
 	snprintf(aNumber, sizeof(aNumber), "%d", aRank);
@@ -992,7 +997,7 @@ void HighScoreDisplayDialog::ButtonDepress(int theId)
 		if (mOpenedFrom == 0)
 			mApp->ShowGameSelector();
 		else if (mOpenedFrom == 1)
-			mApp->mGameSelector->ResetHead();
+			mApp->mGameSelector->HeadBesideMenu();
 	}
 }
 
@@ -1762,8 +1767,16 @@ LevelUpDialog::LevelUpDialog(RocketApp* theApp, int theKind, MTRand* theRand) :
 	mStartTick = mUpdateCnt;
 	aBoard->mFc = 1;
 
-	// (the talking head says line 0x3d and takes mood 9 after a game, line 0x3f and mood 10 after a level: 0x416aa0 and
-	// 0x416360, the head is not ported yet)
+	if (mGameOver)
+	{
+		mApp->mHead->Say(SOUND_VOICE_THIS_IS_YOUR_FINAL_RANK_07);
+		mApp->mHead->SetMood(9);
+	}
+	else
+	{
+		mApp->mHead->Say(SOUND_VOICE_WELL_DONE_01);
+		mApp->mHead->SetMood(10);
+	}
 	aBoard->mEffects->Clear();      // 0x41aae0
 	mApp->mMusicInterface->FadeOut(SONG_GAME, true, 0.02);
 	mApp->mMusicInterface->FadeOut(SONG_GAMEOVER, true, 0.02);
@@ -1895,7 +1908,8 @@ void LevelUpDialog::Update()
 		if (mRand->Next() % 5 == 0)
 			mApp->mBoard->BurstSome((int) (mRand->Next() % 10), 1, -1);
 	}
-	// (at 0xfa updates the talking head is told to go on, 0x416520 with 0: the head is not ported yet)
+	if (aTime == 0xfa)
+		mApp->mHead->GoToRest(false);
 	if (mUpdateCnt % 10 == 0)
 	{
 		mAnim++;

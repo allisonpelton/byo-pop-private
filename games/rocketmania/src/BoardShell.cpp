@@ -9,6 +9,7 @@
 #include "Compat2004.h"
 #include "Dialogs.h"
 #include "BuyRockets.h"
+#include "TalkingHead.h"
 #include "GameText.h"
 #include "Graphics.h"
 #include "Image.h"
@@ -37,6 +38,7 @@ Board::Board(RocketApp* theApp, bool theContinuing)
 	mRand = new MTRand((unsigned long) Rand());
 	mGen = new PieceGenerator(theApp, this, mRand);
 	mEffects = new EffectManager(mApp);
+	mTip = new HoverTip(mApp);      // 0x413aa0
 	// every plain field of the original starts as zero; the lists and the widget stay as they are
 	memset(&mState, 0, (char*) &mObjects - (char*) &mState);
 	for (int aRow = 0; aRow < 9; aRow++)
@@ -60,7 +62,14 @@ Board::Board(RocketApp* theApp, bool theContinuing)
 	mState = 0;
 	ResetState(theContinuing);
 	SetupBoard(true, theContinuing);
-	// 0x41ae80: the game's song fades in (the head's first lines when the app's hint flag is clear are not translated yet)
+	m498 = mApp->mNoHints;
+	// the head says its first lines a moment into the first new game of the run (the countdown is in Update)
+	if (!mApp->mNoHints && !theContinuing && !mApp->mFirstGameHint)
+	{
+		mApp->mFirstGameHint = true;
+		mApp->mHeadCountdown = 0x96;
+	}
+	// 0x41ae80: the game's song fades in
 	mApp->mMusicInterface->FadeIn(SONG_GAME, -1, 0.666, false);
 }
 
@@ -72,16 +81,25 @@ Board::~Board()
 	mTexts.clear();
 	delete mGen;
 	delete mEffects;
+	delete mTip;
 	delete mRand;
 }
 
-// 0x426f40: the board's update. Left out (not translated yet): the talking head's calls (0x413b40, 0x416aa0, 0x416360,
-// 0x416470, 0x4163a0, 0x4164f0), the app's countdown at app+0x860 that makes the head speak, the colour that the widget at
-// +0x51c blinks between (m520 counts to 300).
+// 0x426f40: the board's update. Left out (not translated yet): the colour that the widget at +0x51c blinks between (m520
+// counts to 300).
 void Board::Update()
 {
 	if (0 < m4c4)
 		m4c4--;
+	if (0 < mApp->mHeadCountdown)
+	{
+		mApp->mHeadCountdown--;
+		if (mApp->mHeadCountdown == 0)
+		{
+			mApp->mHead->Say(SOUND_VOICE_CLICK_ON_THE_TILE_TO_ROTATE_IT_01);
+			mApp->mHead->SetMood(3);
+		}
+	}
 	if (mState == 3)
 		return;
 	if (m350 < 1)
@@ -99,6 +117,7 @@ void Board::Update()
 	m364 = (int) SDL_GetTicks() - m368;
 	if (!m438)
 		m438 = true;
+	mTip->Update(m4f4, m4f8);
 	MarkDirty();
 	if (m2e8)
 	{
@@ -192,10 +211,18 @@ void Board::Update()
 			F428ef0();
 		else if (mState == 4)
 		{
+			if (m36c < 300)
+				mApp->mHead->Follow(mEffects);
 			if (m36c < 1)
 				EndLevelB();
 			else
+			{
 				m36c--;
+				if (m36c == 0x168)
+					mApp->mHead->Say(SOUND_VOICE_LEVEL_UP_02);
+				else if (m36c == 300)
+					mApp->mHead->FlyIn(mEffects);
+			}
 		}
 		else if (mState == 5)
 		{
@@ -203,7 +230,8 @@ void Board::Update()
 			ShowLevelUp(LevelUpDialog::KIND_LEVEL);
 			m360 = m360 + ((int) SDL_GetTicks() - m368) / 1000;
 			F428de0(1000);
-			// (the head is told to go on, 0x4164f0, and made a child of the board, 0x42fdf3: the head is not ported yet)
+			mApp->mHead->FlyOut(mEffects);
+			mWidgetManager->BringToFront(mApp->mHead);
 		}
 	}
 	if (mState == 0 && 0x32 < mUpdateCnt - m458 && !m45c)
@@ -279,8 +307,8 @@ void Board::F428090()
 }
 
 // 0x421de0: the game is over (theKind 0 the night ran out, 1 the top line is full, 2 strategy mode ran out of moves).
-// The talking head's lines (0x416aa0 with 0x37 for kinds 1 and 2, with 0x3b for the night; 0x416360 mood 13 or 6) are not
-// translated yet. The buy-rockets screen goes up in its game-over form: the coins turn into points.
+// The talking head says "game over" (kinds 1 and 2) or "out of time" (the night). The buy-rockets screen goes up in its
+// game-over form: the coins turn into points.
 void Board::F421de0(int theKind)
 {
 	m460 = theKind;
@@ -289,6 +317,16 @@ void Board::F421de0(int theKind)
 	mApp->mMusicInterface->FadeOut(SONG_GAME, true, 0.02);
 	mApp->mMusicInterface->FadeIn(SONG_GAMEOVER, -1, 0.02, false);
 	mApp->PlaySample(0x24);
+	if (theKind == 1 || theKind == 2)
+	{
+		mApp->mHead->Say(SOUND_VOICE_GAME_OVER_02);
+		mApp->mHead->SetMood(13);
+	}
+	else
+	{
+		mApp->mHead->Say(SOUND_VOICE_OUT_OF_TIME_02);
+		mApp->mHead->SetMood(6);
+	}
 	BuyRocketsWidget* aWidget = new BuyRocketsWidget(mApp, true);
 	aWidget->Resize(0, 0, mWidth, mHeight);
 	mWidgetManager->AddWidget(aWidget);
@@ -390,9 +428,10 @@ void Board::OrderInManagerChanged()
 }
 
 // 0x4286b0: after a level's screen. The widget at +0x51c goes; the first levels bring the hint of an item (level 1 the coins,
-// level 3 the gems, level 5 the bombs and, in the strategy mode, level 7 the clocks) and then the head goes on (0x416520
-// with 1: the head is not ported yet); otherwise, or when the hint is turned off, the buy-rockets screen follows. The
-// next level's launches are counted and the app's timer (0x42f770: the head's countdown) is looked at.
+// level 3 the gems, level 5 the bombs and, in the strategy mode, level 7 the clocks) and then the head climbs out of its
+// hole to watch (0x416520 with 1); otherwise, or when the hint is turned off, the buy-rockets screen follows. The next
+// level's launches are counted. (The original ends with 0x42f770, the clock of the trial game's minutes mode: the
+// registered game has none.)
 void Board::F4286b0()
 {
 	if (m51cWidget != NULL)
@@ -415,6 +454,8 @@ void Board::F4286b0()
 	}
 	if (aHint == -1 || !mApp->ShowModeHint(aHint, false))
 		ShowBuyRockets();
+	else
+		mApp->mHead->GoToRest(true);
 	m318 = 0.0;
 	m4bc = 0;
 	m74 = mGen->RocketsForLevel(mLevel + 2);

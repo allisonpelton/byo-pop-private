@@ -178,6 +178,27 @@ bool RocketGameOver(RocketApp* theApp, const ScriptCommand& theCommand)
 	return true;
 }
 
+// "endlevel <mode>": the first call starts a game of that mode; a later one ends its level at once: the head rides in on its
+// rocket (state 4), then the level-up screen follows
+bool RocketEndLevel(RocketApp* theApp, const ScriptCommand& theCommand)
+{
+	int aMode = 0;
+	if (sscanf(theCommand.mArgs.c_str(), "%d", &aMode) < 1)
+	{
+		SDL_Log("endlevel: bad arguments '%s'", theCommand.mArgs.c_str());
+		return true;
+	}
+	if (theApp->mBoard == NULL)
+	{
+		theApp->mMode = aMode;
+		theApp->mDifficulty = 1;
+		theApp->StartBoard(false);
+		return true;
+	}
+	theApp->mBoard->EndLevelA();
+	return true;
+}
+
 // "levelup <kind> <mode> <level> <score> [<page>]": a game of that mode, at that level and score, opens the level-up
 // screen (kind 4 after a level, 5 after a game) with some figures; page sets the page it starts at
 bool RocketLevelUp(RocketApp* theApp, const ScriptCommand& theCommand)

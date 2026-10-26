@@ -28,6 +28,7 @@ namespace Sexy
 {
 
 class RocketApp;
+class HoverTip;
 class WidgetManager;
 class MTRand;
 class Graphics;
@@ -161,6 +162,7 @@ public:
 	MTRand*			mRand;              // +0x110 (0x9c4 bytes in the original: the 2003 Mersenne twister)
 	PieceGenerator*	mGen;               // +0x4ec
 	EffectManager*	mEffects;           // +0x4f0
+	HoverTip*		mTip;               // +0x530 the tip that shows when the pointer rests on a part of the board
 	int				mCols;              // +0x4e4 6
 	int				mRows;              // +0x4e8 9
 
@@ -337,7 +339,6 @@ public:
 	void			AddMover(Piece* thePiece);                              // 0x427f90
 	void			EraseMover(Piece* thePiece);                            // 0x427ff0
 	void			AddFlash(Piece* thePiece, int theKind);                 // 0x428100
-	// not translated yet
 	void			F428780();
 	bool			F428ae0();
 	void			RotatePiece(Piece* thePiece, bool theCounter);          // 0x428340

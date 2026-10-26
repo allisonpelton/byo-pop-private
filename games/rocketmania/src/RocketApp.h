@@ -21,6 +21,8 @@ namespace Sexy
 {
 
 class Board;
+class TalkingHead;
+class SpeechBubble;
 class LoadingScreen;
 class GameSelector;
 class Image;
@@ -86,6 +88,11 @@ public:
 	GameSelector*			mGameSelector;          // app+0x890
 	Dialog*					mHintDialog;            // app+0x874 the hint dialog opened last (nothing reads it)
 	Board*					mBoard;                 // app+0x598 the game in progress, null in the menu
+	TalkingHead*			mHead;                  // app+0x59c the announcer, made when the loading screen is done (0x42d360)
+	SpeechBubble*			mBubble;                // app+0x5a0 its (always invisible) speech bubble
+	bool					mWelcomed;              // app+0x85c the head has welcomed the player in the menu (once per run)
+	bool					mFirstGameHint;         // app+0x85d the first game of the run has been started with the head's words
+	int						mHeadCountdown;         // app+0x860 updates until the head says its first lines in a game (0 none)
 	int						mMode;                  // app+0x530 the chosen game mode (0 arcade, 1 classic, 2 strategy)
 	int						mDifficulty;            // app+0x534 the chosen difficulty (1 easy, 2 medium, 3 hard)
 	bool					mNoPopLink;             // app+0x548 the "NoPopLink" property
@@ -122,6 +129,7 @@ public:
 
 	// the loading screen's play link was clicked (the original's slot 62)
 	virtual void			LoadingScreenDone();
+	void					CreateHead();           // 0x42d360
 	void					ShowGameSelector();     // 0x42e010
 
 	// the game modes (0 arcade, 1 classic, 2 strategy) and difficulties (1 easy to 3 hard, 0 none) and their texts,
@@ -144,7 +152,7 @@ public:
 	bool					ShowModeHint(int theHint, bool theContinuing);
 	void					StartBoard(bool theContinuing); // 0x42ea30
 
-	// the menu's lower buttons (the dialogs are not translated yet, the quit question is)
+	// the menu's lower buttons
 	void					ShowQuitDialog();       // 0x42e390
 	void					AddBoardButtons();      // 0x42d1a0 the Pause, Options and Quit buttons beside the board
 	void					RemoveBoardButtons();
