@@ -45,11 +45,23 @@ compared with 0x46c5d0, 0x46c4b0, 0x46cb30, 0x46cde0 and 0x46d130.
 ## What runs now (2026-10-26)
 
 Headless, `build/native/rundesk.exe build/native/bookwormadv2.exe -gamedir=assets/bookwormadv2 -userdir=<empty> -script=<file> -fast`
-(script lines `<update> click <x> <y> | screenshot <png> | key | char | quit`): the PopCap logo, the title with its
-curtain, the New User dialog (texts read from the exe) and, after OK at (400, 435), the intro cut scene, then the
-prologue battle of book 0 ("Is it Stuffy In Here?"): Lex, Stuffy, the tile board, the conversation panel, all drawn by
-Volume 2's own scripts (`gBookManager:StartGame`, `book0`, `battleengine`). That is milestone 3's ground reached early;
-nothing of the battle has been played yet (clicks on tiles, attacks, the word list, the end of the battle).
+(script lines `<update> click <x> <y> | screenshot <png> | key | char | quit`; the first run makes `users/Lex.bwa`, later
+runs with the same userdir reuse it). Seen in screenshots: the PopCap logo, the title with its curtain, the New User
+dialog (OK at (400, 435)), the intro cut scene, then the prologue battle of book 0 ("Is it Stuffy In Here?": Lex,
+Stuffy, the tile board, the conversation panel; clicks at (400, 300) page through the conversation), the in-game Menu
+dialog (button at (650, 580): Options, Quit To Main Menu at (405, 313), Return To Game) with its "Are you sure?" (YES at
+(330, 389)), and after it the main menu of Volume 2: the logo, the adventure portal, Lex with his welcome bubble, Hall
+of Fame, Quit, Options, the Tome; arena and mini games show only once the profile unlocks them. The Options dialog
+(Options at (110, 520)) and the Hall of Fame (at (655, 410), its three tabs and ten default entries) draw as well. No
+tile has been clicked yet.
+
+Open: clicking the adventure portal of that profile (quit in the prologue, so book 0, chapter 1, stage 1) ends in a script
+error, `scripts\common.lua:819: Can't find the image specified in CreateArenaAnim`, from `book0.luc:278` in
+`LoadChapterResources` called by `gBookManager:StartGame`: `GetSelectedChapter()` is not 1 there, so the arena animation
+gets no image. The port's `StartNewGameTransition` (the kind-8 transition, 0x443950) calls `SelectBookNumber(CurrentBook)`
+and the Lua side picks the chapter; whether Volume 2 shows a chapter screen first, or selects it some other way, has to be
+read in the original (0x443950 and the functions it calls, `BookManager.luc`'s `SelectBookNumber` and `SelectChapter`).
+The Hall of Fame's default names are Volume 1's code path: compare with Volume 2's `HallOfFame` (6.1 KB) too.
 
 ## Bound methods of Volume 2's GameApp (the registrations of 0x43a850 against `GameAppLua.cpp`)
 
