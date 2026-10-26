@@ -27,9 +27,11 @@
 #                Play! stays and Quit quits (under two minutes)
 #   tiptop       TipTop's bot: two regular games, a strategy game and a speed game, and a rerun of the regular ones
 #                with the same screenshots (about two and a half minutes)
+#   ningpo       Ning Po Mahjong: a scripted game (the cheat's matches until no pair is left, the name entry, the best
+#                times) and a rerun with the same screenshots and best time (under a minute)
 #   oracle       Bejeweled's oracle three ways (compare.sh --variants default,forcevariant,novariants); over
 #                ten minutes, so never in a subagent; refuses to start while another oracle runs
-# Sets: quick = build unit; games = bookworm bigmoney noahsark atomica sevenseas bookwormadv tiptop; all = every suite, builds first.
+# Sets: quick = build unit; games = bookworm bigmoney noahsark atomica sevenseas bookwormadv tiptop ningpo; all = every suite, builds first.
 #
 # Prints "PASS <suite> (<seconds>s): <summary>" or "FAIL <suite> (<seconds>s): <summary> -> <log>" for each,
 # then "check: N passed, M failed". Exits 0 only when all passed. Logs: build/logs/check/<suite>.txt (and
@@ -52,6 +54,7 @@ SS_LATE="game 1 over at update 2285: score 390 level 22 moves 13"
 TT_REGULAR="game 2 over at update 35544: level 7, score 37160, 352 moves"
 TT_STRATEGY="game 1 over at update 2593: level 1, score 2100, 24 moves"
 TT_SPEED="game 1 over at update 57249: level 11, score 78250, 1081 moves"
+NP_GAME="Test: 40 tiles left in 00:12"
 
 set -u
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -64,9 +67,9 @@ while [ $# -gt 0 ]; do
 		--out=*) OUT="${1#--out=}"; shift ;;
 		-h|--help) sed -n '2,/^BW_CLASSIC/p' "$0" | sed '$d' | sed 's/^# \{0,1\}//'; exit 0 ;;
 		quick) SUITES+=(build unit); shift ;;
-		games) SUITES+=(bookworm bigmoney noahsark atomica sevenseas bookwormadv tiptop); shift ;;
-		all) SUITES+=(build build-web build-nov unit unit-web verify modmenu livesplit bookworm bigmoney noahsark atomica sevenseas bookwormadv tiptop oracle); shift ;;
-		build|build-web|build-nov|unit|unit-web|verify|modmenu|livesplit|bookworm|bigmoney|noahsark|atomica|sevenseas|bookwormadv|tiptop|oracle) SUITES+=("$1"); shift ;;
+		games) SUITES+=(bookworm bigmoney noahsark atomica sevenseas bookwormadv tiptop ningpo); shift ;;
+		all) SUITES+=(build build-web build-nov unit unit-web verify modmenu livesplit bookworm bigmoney noahsark atomica sevenseas bookwormadv tiptop ningpo oracle); shift ;;
+		build|build-web|build-nov|unit|unit-web|verify|modmenu|livesplit|bookworm|bigmoney|noahsark|atomica|sevenseas|bookwormadv|tiptop|ningpo|oracle) SUITES+=("$1"); shift ;;
 		*) echo "check.sh: unknown suite '$1' (tools/check.sh --help)" >&2; exit 2 ;;
 	esac
 done
@@ -347,6 +350,42 @@ suite_tiptop() {
 	if diff -rq "$OUT/tiptop/regular/shots" "$OUT/tiptop/regular2/shots" >> "$1" 2>&1 && [ "$g" = "$r" ]; then r="rerun identical"; else r="RERUN DIFFERS"; st=1; fi
 	SUMMARY="regular ${g#game }; strategy ${s#game }; speed ${p#game }; $r"
 	[ $st -eq 0 ] || SUMMARY="$SUMMARY (expected regular '$TT_REGULAR', strategy '$TT_STRATEGY', speed '$TT_SPEED')"
+	return $st
+}
+
+ningpo_game() {  # <name>: a scripted game (-seed=7): the cheat's matches to the end, the name entry, the best times
+	local d="$OUT/ningpo/$1" u h n="" i
+	rm -rf "$d"; mkdir -p "$d/shots"
+	# start, the cheat (Backspace q Backspace) and its match key until no pair is left, End Game in the no-moves
+	# dialog, continue, the name "Test", the best times' OK and the title's quit
+	{
+		printf '%s\n' "150 click 320 425" "350 click 340 440" "500 key BACK" "510 char q" "520 key BACK"
+		for ((u = 550; u <= 2030; u += 20)); do echo "$u char m"; done
+		printf '%s\n' "2150 click 385 368" "2300 screenshot $d/shots/over.png" "2350 click 270 345" \
+			"2500 screenshot $d/shots/name.png" "2550 char T" "2555 char e" "2560 char s" "2565 char t" "2630 key RETURN" \
+			"2770 screenshot $d/shots/best.png" "2820 click 495 435" "2970 screenshot $d/shots/title.png" "3020 quit"
+	} > "$d/script.txt"
+	timeout 300 "$W/build/native/ningpo.exe" -gamedir=assets/ningpo -userdir="$d/user" -fast -seed=7 -script="$d/script.txt" \
+		> "$d/stdout.txt" 2> "$d/stderr.txt"
+	# the first best time of the first layout (HS:0x0, 0x30 bytes: the name at +4, the time at +0x24, the tiles left at +0x2c)
+	h="$(grep -m 1 '^HS:0x0=hex:' "$d/user/registry.ini" 2>/dev/null | tr -d '\r')"; h="${h#*hex:}"
+	[ ${#h} -eq 96 ] || { echo "no best time"; return; }
+	for ((i = 8; i < 72; i += 2)); do [ "${h:i:2}" = 00 ] && break; n="$n$(printf "\\x${h:i:2}")"; done
+	i=$(hexle "${h:72:8}")
+	printf '%s: %d tiles left in %02d:%02d\n' "$n" "$(hexle "${h:88:8}")" $((i / 60)) $((i % 60))
+}
+
+hexle() { echo $((16#${1:6:2}${1:4:2}${1:2:2}${1:0:2})); }  # <8 hex digits>: the little-endian 32-bit number
+
+suite_ningpo() {
+	local st=0 g r
+	need_assets ningpo || return 1
+	g="$(ningpo_game seed7)"; r="$(ningpo_game seed7b)"
+	{ echo "game: $g"; echo "rerun: $r"; } > "$1"
+	[ "$g" = "$NP_GAME" ] || st=1
+	if diff -rq "$OUT/ningpo/seed7/shots" "$OUT/ningpo/seed7b/shots" >> "$1" 2>&1 && [ "$g" = "$r" ]; then r="rerun identical"; else r="RERUN DIFFERS"; st=1; fi
+	SUMMARY="$g; $r"
+	[ $st -eq 0 ] || SUMMARY="$SUMMARY (expected '$NP_GAME')"
 	return $st
 }
 
