@@ -9,8 +9,10 @@
 #   build-web    tools/build.sh web
 #   build-nov    tools/build.sh novariants (Bejeweled without its variant code, for the oracle)
 #   unit         rulestest, modsettingstest and fwtest -hotkeytest, native (under a minute); fwtest is skipped
-#                without assets/bejeweled; then fwtest -hotkeytest -placeholders with no game files at all
-#   unit-web     rulestest and modsettingstest under Node (needs build-web)
+#                without assets/bejeweled; then fwtest -hotkeytest -placeholders with no game files at all; then
+#                jp2test (JPEG 2000: the .jp2 images of assets/bookwormadv/images against their PNGs, the loader's
+#                rules for .jp2 files, synthetic and damaged files), skipped without assets/bookwormadv/images
+#   unit-web    rulestest and modsettingstest under Node (needs build-web)
 #   verify       Bejeweled's headless verifier tests (games/bejeweled/tools/verify/run_tests.sh)
 #   modmenu      the mod menu's scripted runs, all games (tools/modmenutest/run_tests.sh all)
 #   livesplit    Bejeweled's, Big Money's and BookWorm's LiveSplit tests
@@ -123,7 +125,7 @@ suite_build-web() { build_suite web "$1"; }
 suite_build-nov() { build_suite novariants "$1"; }
 
 suite_unit() {
-	local st=0 a b c d
+	local st=0 a b c d e
 	(cd build/native && timeout 120 ./rulestest.exe) > "$1" 2>&1 || st=1
 	a="$(lastof "$1" 'checks')"
 	(cd build/native && timeout 120 ./modsettingstest.exe) > "$1.mst" 2>&1 || st=1
@@ -141,8 +143,16 @@ suite_unit() {
 	timeout 120 "build/native/fwtest.exe" -hotkeytest -placeholders -gamedir="$OUT/no-game-files" > "$1.ph" 2>&1 || st=1
 	d="placeholders: $(lastof "$1.ph" 'placeholders: [0-9]+ game files? missing' | sed 's/^placeholders: //'), $(lastof "$1.ph" 'hotkey: [0-9]+ failed')"
 	grep -q -E 'placeholders: [1-9][0-9]* game files? missing' "$1.ph" || st=1
-	cat "$1.mst" "$1.fw" "$1.ph" >> "$1"; rm -f "$1.mst" "$1.fw" "$1.ph"
-	SUMMARY="$a; $b; $c; $d"
+	# jp2test decodes Bookworm Adventures' .jp2 images against their staged PNGs: skipped without the staged folder
+	if [ -d assets/bookwormadv/images ]; then
+		(cd build/native && timeout 120 ./jp2test.exe "$W/assets/bookwormadv/images") > "$1.jp2" 2>&1 || st=1
+		e="$(lastof "$1.jp2" 'jp2: [0-9]+ files, max channel difference')"
+	else
+		echo "jp2test skipped: no assets/bookwormadv/images (tools/setup_worktree.sh)" > "$1.jp2"
+		e="jp2test skipped (no assets/bookwormadv)"
+	fi
+	cat "$1.mst" "$1.fw" "$1.ph" "$1.jp2" >> "$1"; rm -f "$1.mst" "$1.fw" "$1.ph" "$1.jp2"
+	SUMMARY="$a; $b; $c; $d; $e"
 	return $st
 }
 
