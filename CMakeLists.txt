@@ -166,6 +166,11 @@ option(BUILD_ATOMICA "Build the Atomica Deluxe port" ON)
 if(BUILD_ATOMICA AND EXISTS ${PROJECT_SOURCE_DIR}/games/atomica/CMakeLists.txt)
   add_subdirectory(games/atomica)
 endif()
+# Alchemy Deluxe: optional while it is new; the build skips it if its folder is missing
+option(BUILD_ALCHEMY "Build the Alchemy Deluxe port" ON)
+if(BUILD_ALCHEMY AND EXISTS ${PROJECT_SOURCE_DIR}/games/alchemy/CMakeLists.txt)
+  add_subdirectory(games/alchemy)
+endif()
 # Seven Seas Deluxe: optional while it is new; the build skips it if its folder is missing
 option(BUILD_SEVENSEAS "Build the Seven Seas Deluxe port" ON)
 if(BUILD_SEVENSEAS AND EXISTS ${PROJECT_SOURCE_DIR}/games/sevenseas/CMakeLists.txt)
