@@ -168,6 +168,8 @@ The HUD (0x422220-0x424040) is ported in game/Hud.cpp, all but its part of the s
 
 The floating texts are ported in engine/TextEffects.cpp: the factory ("SplatFactory", 0x428780-0x4298b0), its template reader (0x430a70-0x431930, the particle file's elements less position, particleLife and blackHole, plus resource type text and destination) and the text ("Splat", 0x42a400-0x42aa50). create takes a fifth argument, passed to the callback: the found word's letter count, which Game::scoreShown (0x401290) takes off the letters left. A text's own transform multiplies its opacity in but leaves out the rotation and the colour offset. The screen at 0x42a0d0/0x42a240 (vtable 0x483950) sits between them and belongs with the screens.
 
+Remaining, in order (2026-10-26): the screens 0x409c20-0x40df90 (90 functions, about 17 KB of code; the editor's WordEntry 0x40dcd0-0x40df90 left out, the saved game's reader 0x40cf90 kept for the save code), then the controller 0x401000-0x409c00 (0x403760 fills an empty score table with five names: game text, by GT), then the save code, then src/: main.cpp with the engine::Host (registry included), the GameText loader (game/GameText.h; table generated from the carved exe, texts read from the player's WordHarmony.exe), the sound system and the web shell (port 18778).
+
 ## Next pieces, as read so far
 
 The controller (vtable 0x480a14: 0 dtor 0x4073d0, 4 configure 0x402eb0, 8 init 0x406b30, 0xc shutdown 0x401750, 0x10
