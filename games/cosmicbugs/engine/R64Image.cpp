@@ -148,6 +148,39 @@ int ClipBlit(int clipL, int clipT, int clipR, int clipB, int x, int y, int w, in
 	return 0;
 }
 
+// 0x42b8d0: whether two rectangles {l, t, r, b} (inclusive) overlap, by the distance of their centres as the
+// original works it out (halves rounded toward 0)
+int Rect_Overlap(int l1, int t1, int r1, int b1, int l2, int t2, int r2, int b2)
+{
+	int w1 = (r1 - l1) + 1;
+	int w2 = (r2 - l2) + 1;
+	int aHalfW1 = w1 / 2;
+	int dx = std::abs(((aHalfW1 - w2 / 2) - l2) + l1);
+	int h1 = (b1 - t1) + 1;
+	int h2 = (b2 - t2) + 1;
+	if (((w2 + w1) / 2 < dx || (h2 + h1) / 2 < std::abs(((h1 / 2 - h2 / 2) - t2) + t1)) &&
+		(aHalfW1 <= dx || h1 / 2 <= std::abs(((h1 / 2 - h2 / 2) - t2) + t1)))
+		return 0;
+	return 1;
+}
+
+// 0x42bbc0
+void Rect_Intersect(int* theOut, int l1, int t1, int r1, int b1, int l2, int t2, int r2, int b2)
+{
+	if (l1 <= l2)
+		l1 = l2;
+	if (t1 <= t2)
+		t1 = t2;
+	if (r2 <= r1)
+		r1 = r2;
+	if (b2 <= b1)
+		b1 = b2;
+	theOut[0] = l1;
+	theOut[1] = t1;
+	theOut[2] = r1;
+	theOut[3] = b1;
+}
+
 // 0x4234a0. The original leaves +0x3c and +0x40 alone; the port's are 0.
 void Image_Init(Image* img)
 {
@@ -166,8 +199,8 @@ void Image_Init(Image* img)
 	img->dataSize = 0;
 	img->handleX = 0;
 	img->handleY = 0;
-	img->unk3c = 0;
-	img->unk40 = 0;
+	img->prev = nullptr;
+	img->next = nullptr;
 	PixelFormat_Init(&img->fmt, 8, 0, 0, 0);
 	img->palette = nullptr;
 	img->rawPalette = nullptr;

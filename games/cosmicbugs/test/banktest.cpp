@@ -1,11 +1,14 @@
 // Loads Cosmic Bugs' art banks the way GameMain does (art8.bbk raw, art.bbk converted to the 16-bit screen) and
-// draws every image of one onto 800x600 sheets through the engine's blitters, written as PNGs.
-//   cosmicbugs_banktest <gamedir> <outdir> [art|art8] [first image]
+// draws every image of one onto 800x600 sheets through the engine's blitters, written as PNGs. "fonts" draws a line
+// in each font bugs.xml names, plain, outlined and filled.
+//   cosmicbugs_banktest <gamedir> <outdir> [art|art8|fonts] [first image]
 // Opens no window and plays no sound.
 
 #include "R64.h"
 #include "R64Bank.h"
+#include "R64Font.h"
 #include "R64Sys.h"
+#include "R64Xml.h"
 
 #include "stb_image_write.h"
 
@@ -56,6 +59,57 @@ void WritePng(const char* thePath, const uint16_t* theScreen, int w, int h)
 	stbi_write_png(thePath, w, h, 3, aRgb.data(), w * 3);
 }
 
+
+void DrawFonts(Bank* theArt, Bank* theArt8, const PixelFormat* theFmt, const char* theOutDir)
+{
+	std::vector<uint8_t> aXml;
+	if (!Sys_ReadFile("animations\\bugs.xml", aXml))
+	{
+		std::fprintf(stderr, "bugs.xml failed\n");
+		return;
+	}
+	aXml.push_back(0);
+	const int W = 800, H = 600;
+	std::vector<uint16_t> aScreen((size_t)W * H, 0x2104);
+	XmlTag aTag;
+	const char* p = (const char*)aXml.data();
+	int y = 4;
+	std::vector<Font*> aFonts;
+	while (p != nullptr && *p != 0 && y < H)
+	{
+		p = Xml_NextTag(p, &aTag);
+		if (std::strcmp(aTag.name, "font") != 0)
+			continue;
+		const char* aFace = Xml_GetString(&aTag, "face");
+		const char* aStrip = Xml_GetString(&aTag, "strip");
+		Bank* aBank = Xml_GetInt(&aTag, "8bit") != 0 ? theArt8 : theArt;
+		Font* aFont = new Font();
+		aFonts.push_back(aFont);
+		if (aStrip != nullptr)
+			Font_StripCut(aFont, aBank, aFace, aStrip);
+		else
+			Font_LoadFromBank(aFont, aBank, aFace);
+		Font_SetTarget(aFont, (uint8_t*)aScreen.data(), W * 2, theFmt, W - 1, H - 1);
+		Font_SetSpacing(aFont, Xml_GetInt(&aTag, "spacing"));
+		Font_SetClipped(aFont, 1);
+		Font_SetEscapes(aFont, 1);
+		int aRect[4];
+		Font_DrawOutlined(aFont, aRect, 4, y, "0123456789 ABCDEFGHIJ abcdefghij");
+		Font_DrawFill(aFont, "0123456789", 560, y, 0, 0xff, 0x80, 0x20, 0x80);
+		std::printf("font %s face %s height %d drawn %d,%d-%d,%d\n", Xml_GetString(&aTag, "name"), aFace,
+			Font_Height(aFont), aRect[0], aRect[1], aRect[2], aRect[3]);
+		y += Font_Height(aFont) + 6;
+	}
+	char aPath[512];
+	std::snprintf(aPath, sizeof(aPath), "%s/fonts.png", theOutDir);
+	WritePng(aPath, aScreen.data(), W, H);
+	for (Font* aFont : aFonts)
+	{
+		Font_Clear(aFont);
+		delete aFont;
+	}
+}
+
 } // namespace
 
 int main(int argc, char** argv)
@@ -89,6 +143,13 @@ int main(int argc, char** argv)
 	std::printf("art8: %d images, %d palettes; art: %d images, %u bytes\n", Bank_Count(aBank8),
 		(int)aBank8->palettes.size(), Bank_Count(aBank), aBank->dataSize);
 
+	if (std::strcmp(aWhich, "fonts") == 0)
+	{
+		DrawFonts(aBank, aBank8, &aScreenFmt, argv[2]);
+		delete aBank;
+		delete aBank8;
+		return 0;
+	}
 	Bank* aShow = std::strcmp(aWhich, "art8") == 0 ? aBank8 : aBank;
 	const int W = 800, H = 600;
 	std::vector<uint16_t> aScreen((size_t)W * H);

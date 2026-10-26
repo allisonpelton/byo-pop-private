@@ -65,8 +65,8 @@ struct Image
 	int dataSize;           // +0x30
 	int handleX;            // +0x34  the point drawn at (x, y): Image_SetMidHandle makes it the middle
 	int handleY;            // +0x38
-	int unk3c;              // +0x3c  (the constructor leaves these two alone)
-	int unk40;              // +0x40
+	Image* prev;            // +0x3c  an ImageList's links
+	Image* next;            // +0x40
 	PixelFormat fmt;        // +0x44
 	Palette* palette;       // +0x78  an 8-bit image's current colours
 	uint8_t* rawPalette;    // +0x7c  an 8-bit bank image's colours as the .bbk lists them (Bank_AssignRawPalettes)
@@ -152,6 +152,9 @@ void Image_BlitRotated(Image* img, uint8_t* dst, int dpitch, const PixelFormat* 
 // 0x42bad0: clips a w x h rectangle at (x, y) to {clipL, clipT, clipR, clipB} (inclusive); 1 when some of it is left
 int ClipBlit(int clipL, int clipT, int clipR, int clipB, int x, int y, int w, int h, int* outX, int* outY,
 	int* outSx, int* outSy, int* outW, int* outH);
+// 0x42b8d0, 0x42bbc0: rectangles {l, t, r, b}, inclusive
+int Rect_Overlap(int l1, int t1, int r1, int b1, int l2, int t2, int r2, int b2);
+void Rect_Intersect(int* theOut, int l1, int t1, int r1, int b1, int l2, int t2, int r2, int b2);
 
 // 0x42dbc0: converts w x h pixels at (sx, sy) of src to dstFmt at (dx, dy) of dst; an 8-bit source reads its colours
 // from rgb ({r, g, b, 0} per index). 0 for an 8-bit destination or an unknown depth.
