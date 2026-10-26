@@ -466,6 +466,33 @@ static bool DecodeMP3(const std::vector<uint8_t>& theFile, std::vector<float>& t
 	return *theChannels > 0 && *theRate > 0 && !theOut.empty();
 }
 
+// A WAV whose format is MPEG Layer 3 (tag 0x55; Word Harmony's music): its data chunk, which is a plain MP3 stream
+static bool WavMP3Data(const std::vector<uint8_t>& theFile, std::vector<uint8_t>& theData)
+{
+	if (theFile.size() < 12 || memcmp(theFile.data(), "RIFF", 4) || memcmp(theFile.data() + 8, "WAVE", 4))
+		return false;
+	bool anMP3 = false;
+	size_t aPos = 12;
+	while (aPos + 8 <= theFile.size())
+	{
+		const uint8_t* aChunk = theFile.data() + aPos;
+		size_t aSize = aChunk[4] | (aChunk[5] << 8) | (aChunk[6] << 16) | ((size_t)aChunk[7] << 24);
+		size_t aBody = aPos + 8;
+		if (!memcmp(aChunk, "fmt ", 4) && aSize >= 2 && aBody + 2 <= theFile.size())
+			anMP3 = (theFile[aBody] | (theFile[aBody + 1] << 8)) == 0x55;
+		else if (!memcmp(aChunk, "data", 4))
+		{
+			if (!anMP3)
+				return false;
+			size_t anEnd = std::min(theFile.size(), aBody + aSize);
+			theData.assign(theFile.begin() + aBody, theFile.begin() + anEnd);
+			return true;
+		}
+		aPos = aBody + aSize + (aSize & 1);
+	}
+	return false;
+}
+
 std::shared_ptr<SoundData> Mixer::LoadSound(const std::string& theGamePath)
 {
 	std::vector<uint8_t> file;
@@ -522,6 +549,20 @@ std::shared_ptr<SoundData> Mixer::LoadSoundData(const std::vector<uint8_t>& file
 		if (!DecodeMP3(file, f, &channels, &rate))
 		{
 			SDL_Log("cannot decode sound %s (MP3: no frames decoded)", theName.c_str());
+			return nullptr;
+		}
+		ResampleToStereo(f.data(), (int)(f.size() / channels), channels, rate, mRate, *data);
+		return data;
+	}
+	// MP3 inside a WAV (Word Harmony's music)
+	std::vector<uint8_t> aWavMP3;
+	if (WavMP3Data(file, aWavMP3))
+	{
+		std::vector<float> f;
+		int channels = 0, rate = 0;
+		if (!DecodeMP3(aWavMP3, f, &channels, &rate))
+		{
+			SDL_Log("cannot decode sound %s (MP3 in WAV: no frames decoded)", theName.c_str());
 			return nullptr;
 		}
 		ResampleToStereo(f.data(), (int)(f.size() / channels), channels, rate, mRate, *data);
