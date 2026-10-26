@@ -82,6 +82,7 @@ public:
 	int				mDoneTimer;			// updates since the last tile went down
 	bool			mCompleted;			// the puzzle-completed screen has been asked for
 	int				mIdleTicks;			// +0x4c with no click (the original nags after 4500)
+	int				mMusicDelay;		// +0x78 -1 until the puzzle has been on for a moment, then counts down to the in-game music
 	int				mErrorTicks;		// +0x1cc
 	int				mFlash[Grid::MAX_SIZE][Grid::MAX_SIZE];		// the glow of a cell a tile has just landed on
 	bool			mFlashWanted[Grid::MAX_SIZE][Grid::MAX_SIZE];

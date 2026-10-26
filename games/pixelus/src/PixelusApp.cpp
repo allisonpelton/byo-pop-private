@@ -11,6 +11,9 @@
 #include "TempleScreen.h"
 #include "PuzzleCompleted.h"
 #include "StoryScreen.h"
+#include "OptionsDialog.h"
+#include "CreditsDialog.h"
+#include "HelpScreen.h"
 #include "PuzzleImages.h"
 #include "Grid.h"
 #include "Temples.h"
@@ -339,13 +342,87 @@ void PixelusApp::ShowQuitDialog()
 	CenterDialog(aDialog);
 }
 
-// the screens that are not ported yet
+// 0x434710: the original opens the link its configuration names ("MoreGamesLink") or, when there is none, a screen of
+// advertisements for other games of the publisher that comes from the network. The port has no online features and no
+// advertising: the button does nothing.
 void PixelusApp::ShowMoreGames()
 {
 }
 
+// 0x432a10
 void PixelusApp::ShowOptions()
 {
+	ShowOptionsDialog(false);
+}
+
+// 0x4194d0: the options dialog, in the middle of the window's top half; the options of a puzzle come with the way back to the
+// main menu
+void PixelusApp::ShowOptionsDialog(bool theInGame)
+{
+	KillDialog(OptionsDialog::DIALOG_ID);
+	OptionsDialog* aDialog = new OptionsDialog(this, theInGame);
+	StyleDialog(aDialog);
+	int aHeight = aDialog->GetPreferredHeight(0x1a4);
+	aDialog->Resize(0x6e, 0xf0 - aHeight / 2, 0x1a4, aHeight);
+	AddDialog(OptionsDialog::DIALOG_ID, aDialog);
+}
+
+// 0x432a00 (0x402290): over the options dialog
+void PixelusApp::ShowCredits()
+{
+	KillDialog(CreditsDialog::DIALOG_ID);
+	CreditsDialog* aDialog = new CreditsDialog(this);
+	StyleDialog(aDialog);
+	int aHeight = aDialog->GetPreferredHeight(0x1a4);
+	aDialog->Resize(0x6e, 0xf0 - aHeight / 2, 0x1a4, aHeight);
+	AddDialog(CreditsDialog::DIALOG_ID, aDialog);
+}
+
+// 0x4328c0: the "how to play" screen over everything, and the game stands still
+void PixelusApp::ShowHelp()
+{
+	if (mHelpScreen != NULL)
+		return;
+	mHelpScreen = new HelpScreen(this);
+	mHelpScreen->Resize(0, 0, mWidth, mHeight);
+	mWidgetManager->AddWidget(mHelpScreen);
+		mWidgetManager->SetFocus(mHelpScreen);
+	Pause(true);
+}
+
+// 0x432c20: the board that was under it takes its fade back with the end of the pause
+void PixelusApp::CloseHelp()
+{
+	if (mHelpScreen == NULL)
+		return;
+	mWidgetManager->RemoveWidget(mHelpScreen);
+	SafeDeleteWidget(mHelpScreen);
+	mHelpScreen = NULL;
+	if (mBoard != NULL)
+	{
+		if (GetDialog(OptionsDialog::DIALOG_ID) == NULL)
+			mBoard->mPauseFade = 0;
+		mWidgetManager->SetFocus(mBoard);
+	}
+	Pause(false);
+}
+
+// 0x4191e0 with 0x433e70: the puzzle is saved where it is, the board goes, and the main menu comes back
+void PixelusApp::OptionsToMainMenu()
+{
+	if (mBoard != NULL)
+	{
+		mBoard->SaveProgress();
+		mWidgetManager->RemoveWidget(mBoard);
+		SafeDeleteWidget(mBoard);
+		mBoard = NULL;
+	}
+	ShowMainMenu();
+	if (mUserDirectory->GetCurrent() == NULL)
+		ShowNewUser();
+	StartMusic(this, MUSIC_PIXELUS_MAIN_MENU_LOOP_V02, false);
+	KillDialog(OptionsDialog::DIALOG_ID);
+	Pause(false);
 }
 
 // 0x432600: the island; the music of the menu fades out (the sea and the birds are all there is to hear)
@@ -453,6 +530,10 @@ void PixelusApp::StartPuzzle(bool theRestart)
 	if (theRestart && aUser != NULL && aLevel != NULL && aPuzzle >= 0 && aPuzzle < (int) aLevel->mPuzzles.size())
 		mProgress->RemoveHistory(aUser->mId, aLevel->mPuzzles[aPuzzle].mUuid);
 	ShowBoard(mLevelData->mCurrentLevel, aPuzzle);
+
+	// a player who has asked for it sees the "how to play" screen before every puzzle outside the tutorial
+	if (aUser != NULL && aUser->mFlag2D && !mBoard->mTutorial)
+		ShowHelp();
 }
 
 // 0x434f70
@@ -573,8 +654,11 @@ void PixelusApp::ShowResetDialog()
 	aDialog->Move(((mWidth - 173) - aDialog->mWidth) / 2 + 173, (mHeight - aDialog->mHeight) / 2);
 }
 
+// 0x4194d0 over a puzzle: the puzzle stands still while the options are open
 void PixelusApp::ShowGameMenu()
 {
+	Pause(true);
+	ShowOptionsDialog(true);
 }
 
 void PixelusApp::ShowHint()
@@ -644,6 +728,11 @@ void PixelusApp::ButtonDepress(int theId)
 {
 	switch (theId)
 	{
+	case 2002:		// the options dialog is done
+		KillDialog(OptionsDialog::DIALOG_ID);
+		if (mBoard != NULL)
+			Pause(false);
+		return;
 	case 2024:		// reset the puzzle
 		KillDialog(24);
 		Pause(false);
@@ -711,8 +800,19 @@ void PixelusApp::UpdateFrames()
 }
 
 // 0x4333a0 (slot 84)
-void PixelusApp::HandlePaused(bool thePaused, bool theWasPaused, int theCount)
+void PixelusApp::HandlePaused(bool theWasPaused, bool theIsPaused, int theCount)
 {
+	// the music stops with the game, except while the options are open over a puzzle: the sliders are tried against it
+	if (theIsPaused && GetDialog(OptionsDialog::DIALOG_ID) != NULL && mBoard != NULL && mHasFocus)
+		StartMusic(this, MUSIC_CACHED_PIXELUS_IN_GAME, true);
+	else if (theIsPaused)
+		mMusicInterface->PauseAllMusic();
+	else if (theWasPaused)
+		mMusicInterface->ResumeAllMusic();
+
+	// 0x403010: a pause that starts shows the pause screen, the one that ends restarts the idle count
+	if (mBoard != NULL && theWasPaused && !theIsPaused)
+		mBoard->mIdleTicks = 0;
 }
 
 // what the dialog factory does to every dialog it makes: the fonts, colours and margins

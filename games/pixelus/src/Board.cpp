@@ -57,6 +57,7 @@ Board::Board(PixelusApp* theApp, const std::string& theLevelName, int thePuzzleI
 	mDoneTimer = 0;
 	mCompleted = false;
 	mIdleTicks = 0;
+	mMusicDelay = -1;
 	mErrorTicks = 0;
 	memset(mFlash, 0, sizeof(mFlash));
 	memset(mFlashWanted, 0, sizeof(mFlashWanted));
@@ -562,6 +563,12 @@ void Board::Update()
 	if (mHintShown && --mHintTicks <= 0)
 		mHintShown = false;
 	mIdleTicks++;
+
+	// 150 updates after the puzzle appears (and no help screen over it) the music of the puzzles comes in
+	if (mMusicDelay == -1 && mApp->mHelpScreen == NULL)
+		mMusicDelay = 150;
+	if (mMusicDelay > 0 && --mMusicDelay == 0 && !mGrid->mDone)
+		StartMusic(mApp, MUSIC_CACHED_PIXELUS_IN_GAME, true);
 
 	// the last tile went down: the picture shines for a while, then the puzzle-completed screen comes
 	if (mGrid->mDone)

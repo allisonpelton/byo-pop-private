@@ -25,6 +25,7 @@ class IslandMap;
 class TempleScreen;
 class PuzzleCompletedScreen;
 class StoryScreen;
+class HelpScreen;
 class LoadingScreen;
 class MemoryImage;
 class LevelData;
@@ -44,7 +45,7 @@ public:
 	};
 
 	Board*					mBoard;             // +0x678 the puzzle screen (0x432550)
-	Widget*					mHelpScreen;        // +0x67c over the board (0x4328c0)
+	HelpScreen*				mHelpScreen;        // +0x67c "how to play", over the board or the menu (0x4328c0)
 	TempleScreen*			mTempleScreen;      // +0x680 the puzzles of one temple, over a snapshot of the map (0x432420)
 	LoadingScreen*			mLoadingScreen;     // +0x684 (Init)
 	MainMenu*				mMainMenu;          // +0x688
@@ -72,7 +73,7 @@ public:
 	virtual void			Init() override;                                // 0x4336f0 slot 17
 	virtual void			LoadingThreadProc() override;                   // 0x433950 slot 18
 	virtual void			PlayClicked() override;                         // 0x433b90 slot 79
-	virtual void			HandlePaused(bool thePaused, bool theWasPaused, int theCount) override; // 0x4333a0 slot 84
+	virtual void			HandlePaused(bool theWasPaused, bool theIsPaused, int theCount) override; // 0x4333a0 slot 84
 	virtual Dialog*			NewDialog(int theDialogId, bool isModal, const SexyString& theDialogHeader,
 								const SexyString& theDialogLines, const SexyString& theDialogFooter,
 								int theButtonMode) override;                // 0x4331e0 slot 21
@@ -94,6 +95,11 @@ public:
 	void					ShowNewUser();                                  // 0x432ec0 (dialog 0x13)
 	void					ShowMoreGames();                                // 0x434710
 	void					ShowOptions();                                  // 0x432a10 (0x4194d0 with 0)
+	void					ShowOptionsDialog(bool theInGame);              // 0x4194d0
+	void					ShowCredits();                                  // 0x432a00 (0x402290)
+	void					ShowHelp();                                     // 0x4328c0
+	void					CloseHelp();                                    // 0x432c20
+	void					OptionsToMainMenu();                            // 0x4191e0 (500+1) with 0x433e70: the puzzle is saved and left
 	void					ShowQuitDialog();                               // 0x4e3970
 	void					ShowIslandMap();                                // 0x432600
 	void					BackToMainMenu();                               // 0x433c90: from the island

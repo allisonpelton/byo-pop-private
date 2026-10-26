@@ -56,7 +56,7 @@ public:
 	void					SetHintsDisabled(bool theDisabled);                             // 0x4e3aa0
 	bool					GetHintsDisabled();                                             // 0x4e3b20
 	// The game's own handler of a paused/unpaused change (slot 84 in the original)
-	virtual void			HandlePaused(bool thePaused, bool theWasPaused, int theCount) {}
+	virtual void			HandlePaused(bool theWasPaused, bool theIsPaused, int theCount) {}
 	// The loading screen's play link was clicked (slot 79 in the original, which fills it with its first-screen code)
 	virtual void			PlayClicked() {}
 };
