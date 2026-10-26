@@ -209,9 +209,28 @@ high scores 0x42dcc0 (flag 3 or 2), Reset Hints (id 0xe) clears the app's seen-h
 and re-ticks the hints box, and Done (dialog id 1) brings back the menu's music or head. Where the fullscreen and acceleration
 choices are applied was not found in the dialog's own functions (its destructor 0x412600 only deletes the widgets).
 
-Still to do after Draw (above): the dialogs (high scores 0x4064e0, options 0x411ba0, record 0x414060,
-level-up 0x40c2c0, money 0x4118d0, buy rockets 0x401010, credits 0x403990, hint 0x408f60), the fireworks (Rocket 0x4172f0), the
-talking head (0x4161a0, 0x413aa0), the level-up screen's own music fades (0x40c2c0), then the
+The high scores (HighScoreDisplayDialog 0x4064e0, id 0xe) fill the window: the Hall of Fame picture, three titles, three lists of
+ten and, under a list that has one, the best score of the day. Classic is on the left, arcade on the right, strategy in the middle and
+lower. Every list starts with ten of 30 names of the makers and their friends, taken in turn from two lists in the exe (13 and 17
+names, tables at 0x4e4658 and 0x4e4690), and the scores 10000 down in steps of 250. The lists live in Players/hiscores.dat: for
+each mode the day's number (the year times 366 plus the day of the year), the best score's name and score and a check, then ten
+entries of name, score and check, where the check is the score xor 0x42beef xor each character times 0x11; an entry whose check does
+not match keeps its name and its score is spoiled (it becomes the score modulo 256), and the best of the day is dropped when it
+was made on another day. The file is written as the dialog goes away (the port also writes it when a score is added, because a
+browser tab that is closed never destroys anything). The link under the lists is "MAIN MENU" after a game or from the menu (an
+unopened menu's head is put back), "BACK TO GAME" in a game and "OPTIONS MENU" from the options; it does nothing while the record
+dialog (id 3) is up. The dialog looks at the score in its 10th update after a game (CheckScore 0x4073b0): a score that beats the best
+of the day or makes the lists opens the record dialog (RecordScoreDialog 0x414060, a MoneyDialog with OK and CANCEL and a name field)
+with a line that says which of the two it made and its place (1st, 2nd, 3rd, 4th ..., 11th to 13th end in th); the unregistered
+game's question about registering is not ported. OK or the Return key hands the name to the app (ButtonDepress case 3), which adds
+it to the lists (AddScore 0x4084b0, the new entry is drawn in a colour that moves) and remembers it as the default name for the
+next time (LastScoreName in the registry). The test script command "gameover <mode> <score>" starts a game of the mode, gives it
+the score and opens the high scores the way the end of a game does, which is how this was run until the game-over screens exist.
+Who opens the high scores after a game is the buy-rockets screen's button 5 (0x4102c0) and the end-of-level screens (0x41b7e0); both
+come with those screens.
+
+Still to do after Draw (above): the dialogs (hint 0x408f60, level-up 0x40c2c0, buy rockets 0x401010), the fireworks
+(Rocket 0x4172f0), the talking head (0x4161a0, 0x413aa0), the level-up screen's own music fades (0x40c2c0), then the
 deliverables: the coordinator's `BYOPOP_BUY_rocketmania` line (cmake/ByopopStores.cmake has an
 uncommitted local placeholder that must not be committed), and an AddressSanitizer run of the autoplay (tools/build.sh has no
 asan option yet).

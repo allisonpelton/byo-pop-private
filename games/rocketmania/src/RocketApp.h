@@ -151,7 +151,8 @@ public:
 	void					ShowPauseDialog();      // 0x42d820
 	void					QuitGame();             // 0x42e530
 	std::list<ButtonWidget*>	mBoardButtons;      // app+0x87c
-	void					ShowHighScores(bool theFromMenu);   // 0x42dcc0
+	void					ShowHighScores(int theOpenedFrom);  // 0x42dcc0 (0 after a game, 1 from the menu, 2 in a game, 3 from the options)
+	void					ShowRecordScore(const SexyString& theMessage);  // 0x42df40
 	void					ShowOptions(bool theFromMenu);      // 0x42de20
 	void					CenterDialog(Dialog* theDialog);    // 0x42e330
 	void					ShowCredits();                      // 0x42d760
@@ -161,10 +162,12 @@ enum DialogId
 {
 	DIALOG_GAME_OVER = 0,
 	DIALOG_OPTIONS = 1,
+	DIALOG_RECORD_SCORE = 3,
 	DIALOG_QUIT = 5,
 	DIALOG_CREDITS = 7,
 	DIALOG_HINT = 0xb,
 	DIALOG_DIFFICULTY = 0xc,
+	DIALOG_HIGH_SCORES = 0xe,
 	DIALOG_CONTINUE = 0xf,
 	DIALOG_MESSAGE = 0x10,
 	DIALOG_REGISTER_TO_LOAD = 0x11

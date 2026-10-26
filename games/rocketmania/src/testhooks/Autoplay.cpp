@@ -136,3 +136,22 @@ bool RocketAutoplay(RocketApp* theApp, const ScriptCommand& theCommand)
 	}
 	return true;
 }
+
+// "gameover <mode> <score>": a game of that mode ends with that score: the high scores open the way they do after a game
+// (so that the dialog for a name comes up for a score that makes the lists)
+bool RocketGameOver(RocketApp* theApp, const ScriptCommand& theCommand)
+{
+	int aMode = 0, aScore = 0;
+	if (sscanf(theCommand.mArgs.c_str(), "%d %d", &aMode, &aScore) < 2)
+	{
+		SDL_Log("gameover: bad arguments '%s'", theCommand.mArgs.c_str());
+		return true;
+	}
+	theApp->mMode = aMode;
+	theApp->mDifficulty = 1;
+	theApp->StartBoard(false);
+	if (theApp->mBoard != NULL)
+		theApp->mBoard->mScore = aScore;
+	theApp->ShowHighScores(0);
+	return true;
+}

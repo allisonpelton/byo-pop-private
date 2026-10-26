@@ -226,6 +226,7 @@ void RocketApp::ButtonPress(int theId)
 
 // testhooks/Autoplay.cpp: plays a game with random clicks
 bool RocketAutoplay(RocketApp* theApp, const ScriptCommand& theCommand);
+bool RocketGameOver(RocketApp* theApp, const ScriptCommand& theCommand);
 
 // port: the test scripts' "startgame" clicks the play link as soon as the loading screen shows it (the update at which
 // the loading ends depends on the machine); it asks again at the next update until then
@@ -233,6 +234,8 @@ bool RocketApp::HandleScriptCommand(const ScriptCommand& theCommand)
 {
 	if (theCommand.mCommand == "autoplay")
 		return RocketAutoplay(this, theCommand);
+	if (theCommand.mCommand == "gameover")
+		return RocketGameOver(this, theCommand);
 	if (theCommand.mCommand != "startgame")
 		return SexyApp::HandleScriptCommand(theCommand);
 	if ((mLoadingScreen != NULL) && !mShutdown)
@@ -284,8 +287,21 @@ void RocketApp::ButtonDepress(int theId)
 			KillDialog(DIALOG_OPTIONS);
 			break;
 		}
+		case DIALOG_RECORD_SCORE:
+		{
+			// the record dialog's OK: the name goes into the lists (which are under it) and is kept for the next time
+			RecordScoreDialog* aDialog = (RecordScoreDialog*) GetDialog(DIALOG_RECORD_SCORE);
+			HighScoreDisplayDialog* aHighScores = (HighScoreDisplayDialog*) GetDialog(DIALOG_HIGH_SCORES);
+			if ((aDialog != NULL) && (aHighScores != NULL))
+			{
+				aHighScores->AddScore(aDialog->mEdit->mString);
+				mLastScoreName = aDialog->mEdit->mString;
+			}
+			KillDialog(DIALOG_RECORD_SCORE);
+			break;
+		}
 		default:
-			// (the high score, record and level dialogs: not translated yet)
+			// (the level dialogs: not translated yet)
 			KillDialog(anId - 2000);
 			break;
 		}
@@ -365,11 +381,29 @@ void RocketApp::ShowQuitDialog()
 		aDialog->Resize(mWidth / 2 - aDialog->mWidth / 2, mHeight / 2 - aDialog->mHeight / 2, aDialog->mWidth, aDialog->mHeight);
 }
 
-// 0x42dcc0 (not translated yet)
-void RocketApp::ShowHighScores(bool theFromMenu)
+// 0x42dcc0: the high scores over the whole window; theOpenedFrom is 0 after a game, 1 from the menu, 2 in a game and 3 from
+// the options
+void RocketApp::ShowHighScores(int theOpenedFrom)
 {
-	(void) theFromMenu;
-	SDL_Log("ShowHighScores: not translated yet");
+	HighScoreDisplayDialog* aDialog = new HighScoreDisplayDialog(this, theOpenedFrom);
+	aDialog->SetColor(0, Color(0xff, 0xff, 0xff));
+	aDialog->SetColor(1, Color(0, 0xff, 0));
+	aDialog->SetColor(3, Color(0, 0xff, 0));
+	aDialog->mContentInsets = Insets(0x24, 0x24, 0x24, 0x24);
+	aDialog->Resize(0, 0, mWidth, mHeight);
+	AddDialog(DIALOG_HIGH_SCORES, aDialog);
+	// (the talking head: unless opened in a game it goes to rest (0x4165f0), and in every case it is brought in front of the
+	// dialog (0x42fdf3); the head is not ported yet)
+}
+
+// 0x42df40: the dialog for the name of a score, in the middle of the window, with a fanfare
+void RocketApp::ShowRecordScore(const SexyString& theMessage)
+{
+	RecordScoreDialog* aDialog = new RecordScoreDialog(this, theMessage);
+	int aHeight = aDialog->GetPreferredHeight(0x13c);
+	aDialog->Resize(mWidth / 2 - 0x9e, mHeight / 2 - aHeight / 2, 0x13c, aHeight);
+	AddDialog(DIALOG_RECORD_SCORE, aDialog);
+	PlaySample(SOUND_TUBETRICKS_STING_ONE_V01);
 }
 
 // 0x42de20: the options dialog, in the middle of the screen; from the menu the talking head steps aside, in a game the

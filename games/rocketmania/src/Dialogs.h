@@ -10,6 +10,9 @@
 #include "Checkbox.h"
 #include "CheckboxListener.h"
 #include "SliderListener.h"
+#include "EditListener.h"
+#include "EditWidget.h"
+#include "HyperlinkWidget.h"
 
 namespace Sexy
 {
@@ -138,6 +141,71 @@ public:
 	virtual void		ButtonPress(int theId) override;
 	virtual void		ButtonDepress(int theId) override;
 	using Widget::Resize;
+};
+
+// 0x4064e0: id 0xe "High Scores": the whole screen. Three lists of ten (classic on the left, arcade on the right, strategy
+// below them in the middle) and under each the best score of the day. It keeps the lists in Players/hiscores.dat (saved
+// as it goes away) and is also where a score is entered (the record dialog hands over its name, AddScore).
+class HighScoreDisplayDialog : public Dialog2004
+{
+public:
+	enum
+	{
+		NUM_MODES = 3,
+		NUM_RANKS = 10
+	};
+
+	RocketApp*			mApp;                   // +0xec
+	HyperlinkWidget*	mMenuButton;            // +0xf0 the link under the lists (id 0)
+	int					mOpenedFrom;            // +0xf4 0 after a game, 1 from the menu, 2 in a game, 3 from the options
+	int					mTodayMode;             // +0xf8 the mode whose best score of the day was last beaten (-1)
+	int					mHighlightMode;         // +0xfc the entry that was just added is drawn in colour (-1)
+	int					mHighlightRank;         // +0x100
+	bool				mCheckPending;          // +0x104 (nothing sets it)
+	int					mTick;                  // +0x108 goes up every 20 updates; the colours of the list move with it
+	SexyString			mTodayName[NUM_MODES];  // +0x10c the best score of the day's name, per mode
+	int					mTodayScore[NUM_MODES]; // +0x13c and the score (0 when there is none)
+	SexyString			mNames[NUM_MODES * NUM_RANKS];  // +0x148 mode * 10 + rank
+	int					mScores[NUM_MODES * NUM_RANKS]; // +0x328
+
+public:
+	HighScoreDisplayDialog(RocketApp* theApp, int theOpenedFrom);
+	virtual ~HighScoreDisplayDialog();
+
+	int					FindRank(int theMode, int theScore);    // 0x407a30: 1 to 10, 0 when the score is not on the list
+	void				AddScore(const SexyString& theName);    // 0x4084b0
+	void				CheckScore();                           // 0x4073b0
+	void				LoadScores();                           // 0x406c80
+	void				SaveScores();                           // 0x407080
+
+	virtual void		AddedToManager(WidgetManager* theWidgetManager) override;      // 0x407a60
+	virtual void		RemovedFromManager(WidgetManager* theWidgetManager) override;  // 0x407a90
+	virtual void		Draw(Graphics* g) override;                                    // 0x407ac0
+	virtual void		Update() override;                                             // 0x408450
+	virtual void		ButtonPress(int theId) override;                               // 0x408800
+	virtual void		ButtonDepress(int theId) override;                             // 0x408820
+};
+
+// 0x414060: id 3 "HIGH SCORE": the line about the score that was made, and a field for the name; OK enters it
+class RecordScoreDialog : public MoneyDialog, public EditListener
+{
+public:
+	EditWidget*			mEdit;                  // +0x100
+
+public:
+	RecordScoreDialog(RocketApp* theApp, const SexyString& theMessage);
+	virtual ~RecordScoreDialog();
+
+	virtual int			GetPreferredHeight(int theWidth) override;                         // 0x414370
+	virtual void		AddedToManager(WidgetManager* theWidgetManager) override;          // 0x414390
+	virtual void		RemovedFromManager(WidgetManager* theWidgetManager) override;      // 0x4143d0
+	virtual void		Resize(int theX, int theY, int theWidth, int theHeight) override;  // 0x414400
+	virtual void		Draw(Graphics* g) override;                                        // 0x414450
+	virtual void		EditWidgetText(int theId, const SexyString& theString) override;   // 0x414720
+	using Widget::Resize;
+
+private:
+	void				DrawEditFrame(Graphics* g, const Rect& theRect);                   // 0x4145c0
 };
 
 }

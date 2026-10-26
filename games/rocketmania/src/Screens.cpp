@@ -294,7 +294,7 @@ void GameSelector::ButtonDepress(int theId)
 		mApp->ShowQuitDialog();
 		break;
 	case BUTTON_HIGH_SCORES:
-		mApp->ShowHighScores(true);
+		mApp->ShowHighScores(1);
 		break;
 	case BUTTON_OPTIONS:
 		mApp->ShowOptions(true);

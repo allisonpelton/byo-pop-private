@@ -2,6 +2,7 @@
 
 #include "Dialogs.h"
 #include "Board.h"
+#include "Buffer.h"
 #include "RocketApp.h"
 #include "Screens.h"
 #include "GameText.h"
@@ -11,6 +12,7 @@
 #include "WidgetManager.h"
 
 #include <cstdio>
+#include <ctime>
 
 using namespace Sexy;
 
@@ -470,7 +472,7 @@ void OptionsDialog::SliderVal(int theId, double theVal)
 		mApp->SetSfxVolume(theVal);
 		if (mUpdateCnt - mLastSoundUpdate > 0x32)
 		{
-			mApp->ButtonPress(5);
+			mApp->PlaySample(SOUND_TIMER_DANGER_06);
 			mLastSoundUpdate = mUpdateCnt;
 		}
 	}
@@ -590,4 +592,509 @@ void CreditsDialog::Update()
 	if (mScroll2 > 0.0)
 		mScroll2 -= 512.0;
 	MarkDirty();
+}
+
+// ---------------------------------------------------------------------------------------------------------
+// HighScoreDisplayDialog
+
+// the lists' file (the original names it "Players//hiscores.dat")
+static const char* const HIGH_SCORE_FILE = "Players/hiscores.dat";
+
+// 0x406c40: the day as a number (the year times 366 plus the day of the year); the best score of a day is only kept for
+// that day
+static int DayNumber()
+{
+	time_t aNow = time(NULL);
+	struct tm* aTime = localtime(&aNow);
+	if (aTime == NULL)
+		return 0;
+	return aTime->tm_year * 366 + aTime->tm_yday;
+}
+
+// the check the file keeps for each name and score (0x406c80, 0x407080); a name shorter than theLength counts as zeros
+static unsigned int ScoreCheck(const SexyString& theName, int theLength, int theScore)
+{
+	unsigned int aCheck = theScore ^ 0x42beef;
+	for (int i = 0; i < theLength; i++)
+	{
+		int aChar = (i < (int) theName.size()) ? (signed char) theName[i] : 0;
+		aCheck ^= aChar * 0x11;
+	}
+	return aCheck;
+}
+
+// 0x407880: the ending of an ordinal number
+static const SexyString& OrdinalSuffix(int theNumber)
+{
+	if ((theNumber % 100) / 10 != 1)
+	{
+		int aDigit = theNumber % 10;
+		if (aDigit == 1)
+			return GT(0x004e4990);
+		if (aDigit == 2)
+			return GT(0x004e4994);
+		if (aDigit == 3)
+			return GT(0x004e4998);
+	}
+	return GT(0x004e499c);
+}
+
+// 0x4064e0
+HighScoreDisplayDialog::HighScoreDisplayDialog(RocketApp* theApp, int theOpenedFrom) :
+	Dialog2004(theApp->mImages[IMAGE_DIALOG], theApp->mImages[IMAGE_DIALOGBUTTON], DIALOG_HIGH_SCORES, true, "", "", "",
+		BUTTONS_NONE),
+	mApp(theApp),
+	mOpenedFrom(theOpenedFrom),
+	mTodayMode(-1),
+	mHighlightMode(-1),
+	mHighlightRank(-1),
+	mCheckPending(false),
+	mTick(0)
+{
+	// the lists begin with 30 names of the game's makers and friends, taken in turn from two lists (13 and 17 names), and
+	// scores from 10000 down in steps of 250
+	static const unsigned int aFirstNames[13] = {0x004e47e4, 0x004e47e0, 0x004e47d4, 0x004e47c8, 0x004e47c0, 0x004e47b8,
+		0x004e47b0, 0x004e47ac, 0x004e47a4, 0x004e479c, 0x004e4794, 0x004e4788, 0x004e4780};
+	static const unsigned int aSecondNames[17] = {0x004e4778, 0x004e4770, 0x004e4760, 0x004e4758, 0x004e4750, 0x004e4744,
+		0x004e473c, 0x004e4730, 0x004e4728, 0x004e471c, 0x004e4714, 0x004e4704, 0x004e46fc, 0x004e46f4, 0x004e46ec,
+		0x004e46e4, 0x004e46d8};
+	bool aTakeFirst = true;
+	int aFirstIndex = 0;
+	int aSecondIndex = 0;
+	int aScore = 10000;
+	int aRank = 0;
+	do
+	{
+		for (int aMode = 0; aMode < NUM_MODES; aMode++)
+		{
+			mTodayScore[aMode] = 0;
+			mScores[aMode * NUM_RANKS + aRank] = aScore;
+			SexyString& aName = mNames[aMode * NUM_RANKS + aRank];
+			if (aTakeFirst && (aFirstIndex < 13))
+			{
+				aName = GT(aFirstNames[aFirstIndex]);
+				aFirstIndex++;
+				aTakeFirst = false;
+			}
+			else if (aSecondIndex < 17)
+			{
+				aName = GT(aSecondNames[aSecondIndex]);
+				aSecondIndex++;
+				aTakeFirst = true;
+			}
+			else
+				aName = GT(0x004e4844);
+		}
+		aScore -= 250;
+		aRank++;
+	} while (7500 < aScore);
+
+	LoadScores();
+
+	mMenuButton = new HyperlinkWidget(0, this);
+	mMenuButton->mUnderlineSize = 0;
+	mMenuButton->SetFont(mApp->mFonts[FONT_DOMO11_BOLD]);
+	mMenuButton->SetVisible(true);
+	mMenuButton->mColor = Color(0xe6, 0xf0, 0xe6);
+	if ((mOpenedFrom == 0) || (mOpenedFrom == 1))
+		mMenuButton->mLabel = GT(0x004e4838);
+	else if (mOpenedFrom == 2)
+		mMenuButton->mLabel = GT(0x004e4828);
+	else if (mOpenedFrom == 3)
+		mMenuButton->mLabel = GT(0x004e4818);
+	int aLabelWidth = mMenuButton->mFont->StringWidth(mMenuButton->mLabel);
+	mMenuButton->Resize(0x140 - (aLabelWidth + 8) / 2, 0x1b2, aLabelWidth + 8, 0x1e);
+
+	// (the original also sets the talking head's speech to its place (0x416aa0 with 60) and its mood (0x416360 with 8):
+	// the head is not ported yet)
+}
+
+// 0x406ba0
+HighScoreDisplayDialog::~HighScoreDisplayDialog()
+{
+	SaveScores();
+	delete mMenuButton;
+}
+
+// 0x406c80: the file keeps, for each mode, the best score of the day (with the day's number) and the ten entries, each
+// with a check; an entry with a wrong check keeps its name and only its score is spoiled (the lowest byte of it)
+void HighScoreDisplayDialog::LoadScores()
+{
+	Buffer aBuffer;
+	if (!mApp->ReadBufferFromFile(HIGH_SCORE_FILE, &aBuffer))
+		return;
+
+	for (int aMode = 0; aMode < NUM_MODES; aMode++)
+	{
+		int aDay = (int) aBuffer.ReadLong();
+		short aLength = aBuffer.ReadShort();
+		SexyString aName = aBuffer.ReadString();
+		int aScore = (int) aBuffer.ReadLong();
+		unsigned int aCheck = (unsigned int) aBuffer.ReadLong();
+		if ((aDay == DayNumber()) && (aCheck == ScoreCheck(aName, aLength, aScore)))
+		{
+			mTodayName[aMode] = aName;
+			mTodayScore[aMode] = aScore;
+		}
+
+		for (int aRank = 0; aRank < NUM_RANKS; aRank++)
+		{
+			short aEntryLength = aBuffer.ReadShort();
+			SexyString aEntryName = aBuffer.ReadString();
+			int aEntryScore = (int) aBuffer.ReadLong();
+			unsigned int aEntryCheck = (unsigned int) aBuffer.ReadLong();
+			mNames[aMode * NUM_RANKS + aRank] = aEntryName;
+			if (aEntryCheck == ScoreCheck(aEntryName, aEntryLength, aEntryScore))
+				mScores[aMode * NUM_RANKS + aRank] = aEntryScore;
+			else
+				mScores[aMode * NUM_RANKS + aRank] = aEntryScore % 256;
+		}
+	}
+}
+
+// 0x407080
+void HighScoreDisplayDialog::SaveScores()
+{
+	Buffer aBuffer;
+	for (int aMode = 0; aMode < NUM_MODES; aMode++)
+	{
+		aBuffer.WriteLong(DayNumber());
+		aBuffer.WriteShort((short) mTodayName[aMode].size());
+		aBuffer.WriteString(mTodayName[aMode]);
+		aBuffer.WriteLong(mTodayScore[aMode]);
+		aBuffer.WriteLong((long) ScoreCheck(mTodayName[aMode], (short) mTodayName[aMode].size(), mTodayScore[aMode]));
+
+		for (int aRank = 0; aRank < NUM_RANKS; aRank++)
+		{
+			const SexyString& aName = mNames[aMode * NUM_RANKS + aRank];
+			int aScore = mScores[aMode * NUM_RANKS + aRank];
+			aBuffer.WriteShort((short) aName.size());
+			aBuffer.WriteString(aName);
+			aBuffer.WriteLong(aScore);
+			aBuffer.WriteLong((long) ScoreCheck(aName, (short) aName.size(), aScore));
+		}
+	}
+	mApp->WriteBufferToFile(HIGH_SCORE_FILE, &aBuffer);
+}
+
+// 0x407a30
+int HighScoreDisplayDialog::FindRank(int theMode, int theScore)
+{
+	int aRank = 0;
+	int anIndex = NUM_RANKS - 1;
+	do
+	{
+		if (mScores[theMode * NUM_RANKS + anIndex] < theScore)
+			aRank = anIndex + 1;
+		anIndex--;
+	} while (-1 < anIndex);
+	return aRank;
+}
+
+// 0x4084b0: the game that has just ended (the board's score in the app's mode) goes into the list under the name; the
+// best score of the day too, when it beats it
+void HighScoreDisplayDialog::AddScore(const SexyString& theName)
+{
+	if (theName.empty())
+		return;
+
+	int aMode = mApp->mMode;
+	int aScore = mApp->mBoard->mScore;
+	int aRank = FindRank(aMode, aScore);
+	if (mTodayScore[aMode] < aScore)
+	{
+		mTodayScore[aMode] = aScore;
+		mTodayName[aMode] = theName;
+		mTodayMode = aMode;
+	}
+	if (aRank == 0)
+		return;
+
+	if (aRank < NUM_RANKS)
+	{
+		for (int i = NUM_RANKS - 1; i >= aRank; i--)
+		{
+			mNames[aMode * NUM_RANKS + i] = mNames[aMode * NUM_RANKS + i - 1];
+			mScores[aMode * NUM_RANKS + i] = mScores[aMode * NUM_RANKS + i - 1];
+		}
+	}
+	mNames[aMode * NUM_RANKS + aRank - 1] = theName;
+	mScores[aMode * NUM_RANKS + aRank - 1] = aScore;
+	mHighlightMode = aMode;
+	mHighlightRank = aRank - 1;
+
+	// port: the original saves the lists when the dialog goes away; a browser tab that is closed never gets there
+	SaveScores();
+}
+
+// 0x4073b0: after a game, says what the score made: a place of all time, the best of the day, or both, and asks for the
+// name. (The original's text for an unregistered game offers to register first; the registered game goes to the name.)
+void HighScoreDisplayDialog::CheckScore()
+{
+	if (mApp->mBoard == NULL)
+		return;
+
+	int aMode = mApp->mMode;
+	int aScore = mApp->mBoard->mScore;
+	bool aBestOfDay = mTodayScore[aMode] < aScore;
+	int aRank = FindRank(aMode, aScore);
+	// (a better score also changes the talking head: 0x416aa0 with 64 and 0x416360 with 12; not ported yet)
+
+	char aNumber[32];
+	snprintf(aNumber, sizeof(aNumber), "%d", aRank);
+	SexyString aMessage;
+	if (!aBestOfDay)
+	{
+		if (aRank < 1)
+			return;
+		aMessage = GT(0x004e48a0) + aNumber + OrdinalSuffix(aRank) + GT(0x004e488c);
+	}
+	else if (aRank < 1)
+		aMessage = GT(0x004e4864);
+	else
+		aMessage = GT(0x004e4960) + aNumber + OrdinalSuffix(aRank) + GT(0x004e488c);
+	mApp->ShowRecordScore(aMessage);
+}
+
+// 0x407a60 / 0x407a90
+void HighScoreDisplayDialog::AddedToManager(WidgetManager* theWidgetManager)
+{
+	Dialog2004::AddedToManager(theWidgetManager);
+	theWidgetManager->AddWidget(mMenuButton);
+}
+
+void HighScoreDisplayDialog::RemovedFromManager(WidgetManager* theWidgetManager)
+{
+	Dialog2004::RemovedFromManager(theWidgetManager);
+	theWidgetManager->RemoveWidget(mMenuButton);
+}
+
+// 0x407ac0: the picture, the three titles, the lists with the colours moving along them, and under each list the best
+// score of the day
+void HighScoreDisplayDialog::Draw(Graphics* g)
+{
+	Color aTitleColor(0x78, 0, 0);
+	g->DrawImage(mApp->mImages[IMAGE_HALLOFFAME03], 0, 0);
+	g->SetFont(mApp->mFonts[FONT_DOMO11_BOLD]);
+	g->SetColor(aTitleColor);
+	g->DrawString(RocketApp::HighScoreTitle(1), 0x26, 0x27);
+	g->DrawString(RocketApp::HighScoreTitle(0), 0x1bb, 0x27);
+	g->DrawString(RocketApp::HighScoreTitle(2), 0xeb, 0x6e);
+
+	// the lists: classic (mode 1) on the left, arcade (mode 0) on the right, strategy (mode 2) in the middle and lower
+	for (int aMode = 0; aMode < NUM_MODES; aMode++)
+	{
+		int aX;
+		int aY;
+		if (aMode == 1)
+		{
+			aX = 0;
+			aY = 0;
+		}
+		else if (aMode == 0)
+		{
+			aX = 0x193;
+			aY = 0;
+		}
+		else
+		{
+			aX = 199;
+			aY = 0x3c;
+		}
+
+		// the name colour and the line colour of the mode move with the tick, a little apart for each mode
+		int aHue = ((mTick + aMode * 0x28) * 8) % 0x168 - 0xb4;
+		Color aNameColor((int) mApp->HSLToRGB((aHue < 0) ? -aHue : aHue, 200, 0x32));
+		int aSparkleHue = ((mTick + aMode * 0x28) * 8) % 0x28 - 0x14;
+		Color aSparkleColor((int) mApp->HSLToRGB((aSparkleHue < 0) ? -aSparkleHue : aSparkleHue, 0xfa, mTick % 0x28 + 0x5a));
+
+		for (int aRank = 0; aRank < NUM_RANKS; aRank++)
+		{
+			int aRowY;
+			if (aRank == 0)
+				aRowY = aY + 0x5c;
+			else
+				aRowY = aY + 0x6e + aRank * 0x12;
+			bool aHighlighted = (mHighlightMode == aMode) && (mHighlightRank == aRank);
+
+			g->SetColor(aHighlighted ? aSparkleColor : mApp->mDialogColors[0]);
+			g->SetFont(mApp->mFonts[FONT_ARIAL10]);
+			char aText[64];
+			snprintf(aText, sizeof(aText), "%d.", aRank + 1);
+			g->DrawString(aText, (aX - g->GetFont()->StringWidth(aText)) + 0x30, aRowY);
+
+			g->SetColor(aHighlighted ? aSparkleColor : aNameColor);
+			g->SetFont(mApp->mFonts[FONT_ARIAL10_BOLD]);
+			g->DrawString(mNames[aMode * NUM_RANKS + aRank], aX + 0x32, aRowY);
+
+			g->SetColor(aHighlighted ? aSparkleColor : mApp->mDialogColors[0]);
+			g->SetFont(mApp->mFonts[FONT_ARIAL10]);
+			snprintf(aText, sizeof(aText), "%d", mScores[aMode * NUM_RANKS + aRank]);
+			g->DrawString(aText, (aX - g->GetFont()->StringWidth(aText)) + 0xcb, aRowY);
+		}
+
+		if (mTodayScore[aMode] != 0)
+		{
+			g->SetColor(aTitleColor);
+			g->SetFont(mApp->mFonts[FONT_DOMO11_BOLD]);
+			const SexyString& aTitle = GT(0x004e49a0);
+			g->DrawString(aTitle, (aX - g->GetFont()->StringWidth(aTitle) / 2) + 0x76, aY + 0x140);
+
+			g->SetColor((mTodayMode == aMode) ? aSparkleColor : aNameColor);
+			g->SetFont(mApp->mFonts[FONT_ARIAL10_BOLD]);
+			g->DrawString(mTodayName[aMode], aX + 0x32, aY + 0x15e);
+
+			g->SetColor((mTodayMode == aMode) ? aSparkleColor : mApp->mDialogColors[0]);
+			g->SetFont(mApp->mFonts[FONT_ARIAL10]);
+			char aText[64];
+			snprintf(aText, sizeof(aText), "%d", mTodayScore[aMode]);
+			g->DrawString(aText, (aX - g->GetFont()->StringWidth(aText)) + 0xcb, aY + 0x15e);
+		}
+	}
+}
+
+// 0x408450: after a game the score is looked at in the 10th update, and the colours move on every 20th
+void HighScoreDisplayDialog::Update()
+{
+	Dialog2004::Update();
+	if ((mOpenedFrom == 0) && ((mUpdateCnt == 10) || mCheckPending))
+	{
+		mCheckPending = false;
+		CheckScore();
+	}
+	if (mUpdateCnt % 20 == 0)
+	{
+		mTick++;
+		MarkDirty();
+	}
+}
+
+// 0x408800
+void HighScoreDisplayDialog::ButtonPress(int theId)
+{
+	mApp->PlaySample(SOUND_UI_LITTLE_BEEP_05B);
+}
+
+// 0x408820: the link under the lists closes them (not while a score is being entered): after a game and from the menu
+// it shows the menu again
+void HighScoreDisplayDialog::ButtonDepress(int theId)
+{
+	if (theId != 0)
+	{
+		Dialog2004::ButtonDepress(theId);
+		return;
+	}
+
+	if ((mApp->GetDialog(DIALOG_RECORD_SCORE) == NULL) && (mApp->GetDialog(9) == NULL))
+	{
+		mApp->KillDialog(DIALOG_HIGH_SCORES);
+		if (mOpenedFrom == 0)
+			mApp->ShowGameSelector();
+		else if (mOpenedFrom == 1)
+			mApp->mGameSelector->ResetHead();
+	}
+}
+
+// ---------------------------------------------------------------------------------------------------------
+// RecordScoreDialog
+
+// 0x414060
+RecordScoreDialog::RecordScoreDialog(RocketApp* theApp, const SexyString& theMessage) :
+	MoneyDialog(theApp, DIALOG_RECORD_SCORE, false, GT(0x004e5e58), theMessage, "", BUTTONS_OK_CANCEL)
+{
+	SetButtonFont(mApp->mFonts[FONT_VERDANA12_BOLD]);
+	SetHeaderFont(mApp->mFonts[FONT_VERDANA18_BOLD]);
+	SetLinesFont(mApp->mFonts[FONT_VERDANA12_BOLD]);
+	mContentInsets = Insets(0x26, 0x19, 0x26, 0x19);
+	SetColor(0, mApp->mDialogColors[0]);
+	SetColor(1, mApp->mDialogColors[1]);
+	SetColor(3, mApp->mDialogColors[2]);
+
+	// the colours of the name field (0x4e5dc0): the background, outline, text, selection and selected text
+	static int aEditColors[5][3] = {{0, 0, 0}, {0, 0, 0}, {0, 0, 240}, {240, 255, 255}, {255, 255, 255}};
+	mEdit = new EditWidget(0, this);
+	mEdit->SetFont(mApp->mFonts[FONT_DOMO14_BOLD]);
+	mEdit->SetColors(aEditColors, 5);
+	mEdit->mMaxPixels = 150;
+	mEdit->SetText(mApp->mLastScoreName);
+}
+
+// 0x414300
+RecordScoreDialog::~RecordScoreDialog()
+{
+	delete mEdit;
+}
+
+// 0x414370
+int RecordScoreDialog::GetPreferredHeight(int theWidth)
+{
+	return MoneyDialog::GetPreferredHeight(theWidth) + 0x38;
+}
+
+// 0x414390: the name field is in the dialog and has the keyboard
+void RecordScoreDialog::AddedToManager(WidgetManager* theWidgetManager)
+{
+	MoneyDialog::AddedToManager(theWidgetManager);
+	theWidgetManager->AddWidget(mEdit);
+	theWidgetManager->SetFocus(mEdit);
+}
+
+// 0x4143d0
+void RecordScoreDialog::RemovedFromManager(WidgetManager* theWidgetManager)
+{
+	MoneyDialog::RemovedFromManager(theWidgetManager);
+	theWidgetManager->RemoveWidget(mEdit);
+}
+
+// 0x414400
+void RecordScoreDialog::Resize(int theX, int theY, int theWidth, int theHeight)
+{
+	MoneyDialog::Resize(theX, theY, theWidth, theHeight);
+	mEdit->Resize(mX + 0x44, mY + mHeight - 100, mWidth - 0x88, 0x18);
+}
+
+// 0x414450
+void RecordScoreDialog::Draw(Graphics* g)
+{
+	MoneyDialog::Draw(g);
+
+	Rect aFrame = mEdit->GetRect();
+	aFrame.mWidth += 8;
+	aFrame.mY = aFrame.mY - mY - 4;
+	aFrame.mHeight += 8;
+	aFrame.mX = aFrame.mX - mX - 4;
+	DrawEditFrame(g, aFrame);
+
+	g->SetFont(mApp->mFonts[FONT_VERDANA12_BOLD]);
+	g->SetColor(mApp->mDialogColors[0]);
+	g->DrawString(GT(0x004e5e64), (mEdit->mX - mX) - 0x14, (mEdit->mY - mY) - 9);
+}
+
+// 0x4145c0: the box round the name field from the edit box picture: a left end, a right end, and the middle tiled between
+void RecordScoreDialog::DrawEditFrame(Graphics* g, const Rect& theRect)
+{
+	Image* anImage = mApp->mImages[IMAGE_EDITBOX];
+	g->DrawImage(anImage, theRect.mX, theRect.mY, Rect(0, 0, 0x20, 0x20));
+	g->DrawImage(anImage, theRect.mX + theRect.mWidth - 0x20, theRect.mY, Rect(0x40, 0, 0x20, 0x20));
+
+	Graphics aTiles(*g);
+	aTiles.ClipRect(theRect.mX + 0x20, theRect.mY, theRect.mWidth - 0x20, 0x20);
+	int aCount = (theRect.mWidth - 0x21) / 32;
+	if (0 < aCount)
+	{
+		int anIndex = 0;
+		int anOffset = 0x20;
+		do
+		{
+			aTiles.DrawImage(anImage, theRect.mX + anOffset, theRect.mY, Rect(0x20, 0, 0x20, 0x20));
+			anIndex++;
+			anOffset += 0x20;
+		} while (anIndex < aCount);
+	}
+}
+
+// 0x414720: the Return key in the field is the OK button
+void RecordScoreDialog::EditWidgetText(int theId, const SexyString& theString)
+{
+	mApp->ButtonDepress(mId + 2000);
 }
