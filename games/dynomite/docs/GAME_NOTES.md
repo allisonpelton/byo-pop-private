@@ -201,8 +201,12 @@ eggs past the line when +0x46d1 is set (0x416e30), and counts the matchable eggs
 +0x46e0. Its draw (0x417760) hides the rows past the line while the warning is on, shakes a baby egg by the C
 library's rand (CrtRand; whether the 2003 framework seeds it is not checked yet), breaks an egg past the right
 edge (unless +0x46e5) or in row 90 or below, and draws the ceiling's foot and, when +0x46d0 is set, the ceiling.
-Still to translate in the grid: 0x4163e0 (the next colour, through the app's picker at +0xf9c), the puzzle load
-0x4171c0 (colour 20 becomes a picked colour), and the save and load (0x415f70, 0x416150).
+The next colour (0x4163e0) is one of those in the lowest six rows, by 50 tries of the app's second generator at
++0xf9c (0x431d30, an additive lagged Fibonacci generator of 55 30-bit numbers, seeded by the board), else any
+colour up to the highest placed. Still to translate in the grid: the puzzle load 0x4171c0 (colour 20 becomes a
+picked colour) and the save and load (0x415f70, 0x416150). Next: the launcher (0x401050-0x4034b0), then the base
+board's remaining slots (Init 0x407ac0, Update, Draw 0x4044a0, the input slots), the sub-objects at +0x60
+(0x431fc0), +0x84 (0x437aa0) and +0x88 (0x438400), and DynomitePanic.
 
 Next, in this order: `StartGame` (0x418810: mode +0x108c makes DynomiteStomped
 0x40ea50 (0x62c bytes), DynomitePanic 0x40ca40 (0x274), DynomiteFossil 0x408e40 (0x328) or DynomiteTimeTrial
