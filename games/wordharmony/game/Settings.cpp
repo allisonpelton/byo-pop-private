@@ -116,8 +116,7 @@ void Settings::setScreen(ScreenLayout* theScreen)
 	mMusicBox->setChecked(mMusicEnabled);
 }
 
-// 0x40a250: the saved games' strings are read and parsed here in the original (with 0x40c8f0's reader); they come
-// with the save code
+// 0x40a250
 void Settings::load()
 {
 	mFullScreen = readInt("FullScreen", 1) != 0;
@@ -134,9 +133,19 @@ void Settings::load()
 	mShowSolitaireHelp = readInt("ShowSolitaireHelp", 1) != 0;
 	mILink = readString("ILink", "");
 	mSaverEnabled = readInt("SaverEnabled", 0) != 0;
+	// each saved game's text read into a new saved game of its mode (an empty one leaves the one there)
+	std::string aText = readString("PuzzleSavedGame", "");
+	if (aText.size() != 0)
+		readSavedGame(this, aText);
+	aText = readString("ActionSavedGame", "");
+	if (aText.size() != 0)
+		readSavedGame(this, aText);
+	aText = readString("SolitaireSavedGame", "");
+	if (aText.size() != 0)
+		readSavedGame(this, aText);
 }
 
-// 0x40aa10: the saved games are written here in the original (0x41e820, "" for none); they come with the save code
+// 0x40aa10
 void Settings::save()
 {
 	Host* aHost = getHost();
@@ -154,4 +163,8 @@ void Settings::save()
 	aHost->registryWriteInt("ShowActionHelp", mShowActionHelp);
 	aHost->registryWriteInt("ShowSolitaireHelp", mShowSolitaireHelp);
 	aHost->registryWriteInt("SaverEnabled", mSaverEnabled);
+	// the saved games' text (0x41e820), "" for none
+	aHost->registryWriteString("PuzzleSavedGame", mSavedGames[0] == nullptr ? "" : mSavedGames[0]->toXml());
+	aHost->registryWriteString("ActionSavedGame", mSavedGames[2] == nullptr ? "" : mSavedGames[2]->toXml());
+	aHost->registryWriteString("SolitaireSavedGame", mSavedGames[1] == nullptr ? "" : mSavedGames[1]->toXml());
 }

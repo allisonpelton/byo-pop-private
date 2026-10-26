@@ -32,9 +32,11 @@ DEFAULT_INSTALLS = [
     os.path.join(main_checkout(), "re", "_installers", "WordHarmonySetup", "files", "WordHarmony"),
 ]
 
-# The archive, and the loose folders the game reads next to it. Not copied: the DRM wrapper and its Flash files, the
-# uninstaller, the readme and license, partner.xml and Windows' Thumbs.db files.
+# The archive, and the loose folders the game reads next to it; WordHarmony.exe is read (never run) for the game's
+# texts (game/GameText.h). Not copied: the wrapper's Flash files, the uninstaller, the readme and license, partner.xml
+# and Windows' Thumbs.db files.
 ARCHIVE = "WHArchive.saf"
+EXE = "WordHarmony.exe"
 FOLDERS = ["res/sounds", "res/music", "res/splash", "res/buttons"]
 SKIP = {"thumbs.db"}
 
@@ -59,6 +61,7 @@ def main():
     out = os.path.abspath(args.out)
     os.makedirs(out, exist_ok=True)
     shutil.copy2(os.path.join(src, ARCHIVE), os.path.join(out, ARCHIVE))
+    shutil.copy2(os.path.join(src, EXE), os.path.join(out, EXE))
     count = 1
     for folder in FOLDERS:
         sdir = os.path.join(src, folder)

@@ -3,6 +3,7 @@
 #include "GameText.h"
 #include "Level.h"
 #include "Particles.h"
+#include "SavedGame.h"
 #include "TextItem.h"
 #include "WordBallSystem.h"
 #include <cstdio>
@@ -585,6 +586,13 @@ void Hud::reset()
 		delete mWords[i];
 	mWords.clear();
 	showWords();
+}
+
+// 0x422400
+void Hud::saveWords(SavedGame* theGame)
+{
+	for (unsigned int i = 0; i < mWords.size(); i++)
+		theGame->addWord(mWords[i]);
 }
 
 // 0x423e40

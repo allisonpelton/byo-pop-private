@@ -179,12 +179,47 @@ saved game's own code. The state machine is 0x4055f0 (states in Game.h); several
 splash's end, retry, newGame, the high score entry and update's state 2 and 6), and the port calls setState there,
 which differs only in the redundant root window fetch. The fades' callbacks 0x401200 and 0x401220 set +0x208 (removed
 at the next update) and +0x190 (the root's only child at the next update). Quirks kept: continueGame takes the level's
-points from the saved letters used (+0x24), not from +0x20; the end of a level shows text 4 again each frame between
-1.5 and 2 seconds only when text 3 was already shown; the score tables get their default names when any table has
+points from the saved letters used (+0x24), not from +0x20; the end of a level sets text 4 again every frame once the
+timer is under 1.5 seconds (the else of text 3's test); the score tables get their default names when any table has
 fewer than 10 entries, but each table only when it has fewer than 5. Left out: the beta's play time upload (+0x10c),
 the frame rate display (+0x300), the screen saver's install path from the registry, and the distributor's game link
 button (ShowLink and ILink); openLink still checks VisitURL. The host gained createSoundSystem and commandLine (the
 screen saver's /s, /c, /p), the controller its slot 0x14 activate (a lost focus pauses the game).
+
+The saved game as read (to port next). SavedGame (0x8c bytes): +0 level, +4 mode, +8 score, +0xc the respawn timer
+(float, the ball system's +0x100), +0x10 wildcards, +0x14 hints used, +0x18 the level's hints used, +0x1c hints, +0x20
+level points, +0x24 letters used, +0x28 the template, +0x2c time, +0x30 the bonus word (the ball system's +0x148),
++0x4c vector<Bubble*> (one per ball of the array, null for one not in play), +0x5c vector<Chain*> (Chain(null, 0); its
+word +0x18 and indices +0xc), +0x6c vector<FoundWord*> (the HUD's +0xdc), +0x7c vector<string> (the queue +0x110).
+Adders: 0x41e760 header(level, score, respawn), 0x41f0d0 a ball (new Bubble: origin = position (Node slot 0xc), letters
+append(1, ball +0xf0), flags = ball +0xac), 0x41f1c0 a read bubble (letter, special, x, y; '?' adds flag 2), 0x41f2b0 a
+null, 0x41f310 a read chain (its word), 0x41f3d0 a read word, 0x41f6c0 a copied word, 0x41f7d0 a queue entry, 0x41f7e0 a
+copied chain. Destructor 0x41f4e0. saveState 0x4142c0: header from the controller's +0x308 and +0x2c and +0x100; +0x30 =
++0x148; each chain of +0xe8; each ball (+4 the count): state +0xd8 0 or 4 saved, else a null; the HUD's words (0x422400);
+the queue. The writer 0x41e820 (text for the registry): `<level mode level score respawnTimer wc hug hul ha lp lba bonus
+ilg time>`, then per chain `	<rope text>` with its balls' bubbles (each written once: the slot is nulled) and
+`	</rope>`, the other bubbles, `	<HUD>` with `		<word displayText word isMatched score multiplier chains>` (chains
+joined by ','), `	</HUD>`, `	<spawnqueue>` with `		<letters text>`, `</level>`. loadState 0x4199d0: every ball
+state 3 (+0xd8) and +0xe0 cleared, the chains deleted; count (+4) and +0x10c = the bubbles' count; each bubble: in play
++8 counted, position set (slot 0x14) and +0xb8 = it, +0xd4 false, +0xe0 null, state 0, its own gravity (a copy of the
+level's +0x3c0), flags, letter = toupper(first letter), 0x4113f0, added to the layer (slot 0xd0); each chain: Chain(this,
+2) with the word and the indices, +0x14 false, pushed to +0xe8, its balls' +0xe0 = it and 0x4113f0; the HUD's words
+(0x423e40); the queue replaced; freematch (+0xd4 == 2): +0x100 = the respawn timer, the HUD's 0x422340, +0x124 = +0x128
+= min(1, in play / the level's max balls); "LEVEL_BEGIN"; a mode other than puzzle: the hint thread stopped and 0x419540
+(the hints found again); +0x148 = the bonus word. Still to read: the reader 0x40cf90 (with 0x40c8f0) and Settings'
+load 0x40a250 and save 0x40aa10 of the three saved games, the HUD's 0x423e40 and 0x422340.
+
+The host (`src/`, 2026-10-26): `WordHarmonyApp` runs the engine from a framework widget (a frame whenever the frame
+period has passed, the sound system's update(100) every 100 ms as the window timer did), `Render.*` decodes images
+and draws them into the 800x600 MemoryImage, `SoundHost.*` is SimpleSoundDX over the platform mixer, `GameText.*`
+reads the exe's texts by address (`tools/make_gametext.py` makes the table). The saved games are ported (SavedGame,
+its reader, Settings' load and save, the ball system's saveState and loadState). Played natively under rundesk:
+the splash, the menu, all three modes' level choice, help and start, Save/Quit with Save Game, and Continue Game
+(the board comes back as saved). Found while checking: the music WAVs are MP3 inside a WAV (format tag 0x55), which
+the platform decoder now reads (a `shared:` commit); a mask's alpha is its pixels' last channel after the original's
+PNG set-up (0x45ea10, 0x4651c0: alpha for masks with alpha, else the grey level), not its red; the white line round
+the play area is in comp01.jpg, the first chain link on the first ball's centre is the original's loop, and the
+level title's font has a space width of 1 ("LEVEL1"), all as in the original.
 
 ## Next pieces, as read so far
 

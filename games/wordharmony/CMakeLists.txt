@@ -20,6 +20,28 @@ if(NOT MSVC)
   target_compile_options(wordharmonygame PRIVATE -Wall -Wno-unused-private-field)
 endif()
 
+# The game: src/ hosts the engine on the framework (WordHarmonyApp) and draws with the port's blitter (Render).
+# Native: wordharmony.exe [-gamedir=<dir>] [-userdir=<dir>] (src/main.cpp); it finds assets/wordharmony/
+# (tools/stage_wordharmony_assets.py) or the retail install by itself.
+# Web: wordharmony.html/.js/.wasm; its page (web/shell.html with web/page.js here) imports the user's game files into
+# /whpersist (IDBFS) and starts the game with callMain(). The engine runs a frame per framework update, so no ASYNCIFY.
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/src/WordHarmonyApp.cpp)
+  add_executable(wordharmony ${WORDHARMONY_SOURCES})
+  target_include_directories(wordharmony PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src ${CMAKE_CURRENT_SOURCE_DIR})
+  target_link_libraries(wordharmony PRIVATE wordharmonygame sexyframework sexycompat2004 stb)
+  if(NOT MSVC)
+    target_compile_options(wordharmony PRIVATE -Wall -Wno-unused-private-field)
+  endif()
+  if(EMSCRIPTEN)
+    byopop_web_game(wordharmony TITLE "Word Harmony"
+      COPYRIGHT "Word Harmony © 2006 Sprout Games. All rights reserved.")
+  else()
+    add_custom_command(TARGET wordharmony POST_BUILD
+      COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:SDL2::SDL2> ${PORT_RUNTIME_DLLS} $<TARGET_FILE_DIR:wordharmony>
+      VERBATIM)
+  endif()
+endif()
+
 # The engine's check: reads WHArchive.saf and parses every XML file in it (tools/enginetest.cpp)
 if(NOT EMSCRIPTEN)
   add_executable(wordharmony_enginetest ${CMAKE_CURRENT_SOURCE_DIR}/tools/enginetest.cpp)

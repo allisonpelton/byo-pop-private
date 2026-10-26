@@ -8,6 +8,9 @@
 
 #include <string>
 
+// Reads the texts from the game folder's WordHarmony.exe (through the engine's host; GameTextTable.inc, made by
+// tools/make_gametext.py, gives each one's address, length and hash). False when the exe is missing or nothing matched.
+bool loadGameTexts();
 // The text the original keeps at theVA; "" for an address that is not in the table or did not match
 const std::string& gameText(unsigned int theVA);
 

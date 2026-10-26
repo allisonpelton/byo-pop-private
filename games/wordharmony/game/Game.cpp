@@ -558,13 +558,13 @@ void Game::makeOptions()
 	}
 }
 
-// 0x403370: the original says why in a message box before it ends
+// 0x403370: the original says why in a message box (0x480450: not unlocked yet; 0x48041c: no settings) before it ends
 void Game::startScreenSaver()
 {
 	const char* aText;
 	if (!mSettings.mSaverEnabled)
 	{
-		aText = "To enable this screen saver, you must first complete all Relax mode puzzles.";
+		aText = GT(0x480450).c_str();
 	}
 	else
 	{
@@ -580,7 +580,7 @@ void Game::startScreenSaver()
 		}
 		if (mSaverMode != 2)
 			goto end;
-		aText = "This screen saver has no options that you can set.";
+		aText = GT(0x48041c).c_str();
 	}
 	getHost()->showMessage("Word Harmony", aText);
 end:
@@ -770,7 +770,7 @@ void Game::openLink()
 		std::string aStart = aURL.substr(0, 8);
 		if (aStart.compare("https://") != 0)
 		{
-			getHost()->showMessage("Bad URL", "Bad URL");
+			getHost()->showMessage(GT(0x480678).c_str(), GT(0x480678).c_str());
 			return;
 		}
 	}

@@ -10,6 +10,7 @@
 #include "Obstacles.h"
 #include "Particles.h"
 #include "Random.h"
+#include "SavedGame.h"
 #include "Selector.h"
 #include "TextEffects.h"
 #include <cctype>
@@ -2420,4 +2421,119 @@ void WordBallSystem::onRightUp(Point& p)
 	if (mMode != MODE_PUZZLE)
 		submit();
 	onMouseUp(p);
+}
+
+// 0x4142c0
+void WordBallSystem::saveState(SavedGame* theGame)
+{
+	Game* aGame = Game::instance();
+	theGame->setHeader(aGame->mLevel, aGame->mScore, mSpawnTime);
+	theGame->mBonusWord = mWord;
+	for (std::vector<Chain*>::iterator it = mChains.begin(); it != mChains.end(); ++it)
+		theGame->addChain(*it);
+	unsigned int i = 0;
+	if (mCount != 0)
+	{
+		do
+		{
+			Ball* aBall = getBall(i);
+			if (aBall->mState == BALL_FREE || aBall->mState == BALL_STATE_4)
+				theGame->addBall(aBall);
+			else
+				theGame->addEmpty();
+			i++;
+		} while (i < mCount);
+	}
+	mHud->saveWords(theGame);
+	for (unsigned int j = 0; j < mQueue.size(); j++)
+	{
+		std::string aLetters = mQueue[j];
+		theGame->addLetters(aLetters);
+	}
+}
+
+// 0x4199d0: after startLevel, the balls, chains, found words and queue of a saved game
+void WordBallSystem::loadState(SavedGame* theGame)
+{
+	Game* aGame = Game::instance();
+	mCount = 0;
+	mBallsLeft = 0;
+	unsigned int i = 0;
+	do
+	{
+		mBalls[i].mState = BALL_GONE;
+		mBalls[i].mChain = nullptr;
+		i++;
+	} while (i < 105);
+	for (std::vector<Chain*>::iterator it = mChains.begin(); it != mChains.end(); ++it)
+		delete *it;
+	mChains.clear();
+	unsigned int aCount = (unsigned int)theGame->mBubbles.size();
+	mCount = aCount;
+	mNextSlot = (int)aCount;
+	i = 0;
+	if (aCount != 0)
+	{
+		do
+		{
+			Bubble* aBubble = theGame->mBubbles[i];
+			if (aBubble != nullptr)
+			{
+				Ball* aBall = getBall(i);
+				mBallsLeft++;
+				aBall->setPosition(Point(aBubble->mOrigin));
+				aBall->mOld = Point(aBall->getPosition()->x, aBall->getPosition()->y);
+				aBall->mFixed = false;
+				aBall->mChain = nullptr;
+				aBall->mState = BALL_FREE;
+				// (the original replaces the ball's gravity without freeing the one it had)
+				delete aBall->mGravity;
+				aBall->mGravity = new Point(aGame->mCurrentLevel->mGravity);
+				aBall->mSpecial = aBubble->mFlags;
+				aBall->mLetter = (char)toupper(aBubble->mLetters.c_str()[0]);
+				setupBall(aBall);
+				mLayer->addChild(aBall);
+			}
+			i++;
+		} while (i < mCount);
+	}
+	for (i = 0; i < theGame->mChains.size(); i++)
+	{
+		Chain* aSaved = theGame->mChains[i];
+		Chain* aChain = new Chain(this, 2);
+		aChain->mWord = aSaved->mWord;
+		aChain->mIndices = aSaved->mIndices;
+		aChain->mAlong = false;
+		mChains.push_back(aChain);
+		for (std::list<int>::iterator it = aChain->mIndices.begin(); it != aChain->mIndices.end(); ++it)
+		{
+			Ball* aBall = getBall(*it);
+			aBall->mChain = aChain;
+			setupBall(aBall);
+		}
+	}
+	mHud->setWords(theGame->mWords);
+	mQueue.clear();
+	for (unsigned int j = 0; j < theGame->mQueue.size(); j++)
+	{
+		std::string aLetters = theGame->mQueue[j];
+		mQueue.push_back(aLetters);
+	}
+	if (mMode == MODE_FREEMATCH)
+	{
+		mSpawnTime = theGame->mRespawnTimer;
+		mHud->restartNextBall();
+		float aFill = (float)mBallsLeft / (float)aGame->mCurrentLevel->mMaxBalls;
+		if (1.0f <= aFill)
+			aFill = 1.0f;
+		mFill = aFill;
+		mWaterLevel = aFill;
+	}
+	aGame->playSound("LEVEL_BEGIN");
+	if (mMode != MODE_PUZZLE)
+	{
+		stopHintThread();
+		startHints();
+	}
+	mWord = theGame->mBonusWord;
 }

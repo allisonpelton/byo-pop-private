@@ -18,6 +18,8 @@ class TextItem;
 class SaveWriter;
 
 // A line of the word list (0x54 bytes)
+class SavedGame;
+
 struct FoundWord
 {
 	std::string mLetters;                 // +0x00: the balls' letters (wildcards as '?')
@@ -69,7 +71,8 @@ public:
 	void setWildcardReady(bool theReady);
 	// 0x422340: freematch's next ball hidden, shown again half a second later
 	void restartNextBall();
-	// 0x422400: its part of the saved game (not ported yet)
+	// 0x422400: its part of the saved game (copies of the found words)
+	void saveWords(SavedGame* theGame);
 	void save(SaveWriter& theWriter);
 
 private:
