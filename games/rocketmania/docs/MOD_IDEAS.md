@@ -1,21 +1,40 @@
-# Rocket Mania Deluxe: mod ideas
+# Rocket Mania Deluxe: mod plan
 
-A list only. No mod is made without the user's approval (CLAUDE.md), and no further game gets mods until every PopCap game
-works in the browser. Mods would use the shared mod system (`docs/MOD_MENU.md`) and be configurable, never an overwrite.
+The port is first the original game, unmodified and working like its exe, with nothing added for later mods (CLAUDE.md, "Port
+first, unmodified"). The mod phase waits until every PopCap game works in the browser, and no mod is made without the user's
+approval. This file maps the 29 standard mods of `docs/MOD_ROADMAP.md` ("Standard mods for every game") onto this game, with a
+reason for each one that does not fit, so the phase can start from it. Mods would use the shared mod system
+(`docs/MOD_MENU.md`) and be configurable, never an overwrite.
 
-What the game is, from its menu hints (the Board is not read yet, so every idea below is to be checked against it): a game
-of pipe-piece tiles that are turned to launch rockets, in three modes (arcade where falling tiles must not fill the
-screen, classic against the dawn, strategy with a limited number of matches), each at three difficulties.
+The game, as the Board's code shows it: a field of 6 columns by 9 rows of pipe tiles that are turned (a click, or a drag to the
+next column in arcade mode) until a pipe runs from a fuse on the left to a rocket launcher on the right, which then burns and
+launches. Arcade mode drops tiles from above until a column is full, classic mode runs against the night (the dawn is the
+timer) and levels need a number of rockets, strategy mode has bombs and, by the menu's hint, a limited number of matches. Each mode has
+three difficulties. Randomness is the Board's own twister plus the framework's global one, and the tick count, so a seed and
+the clicks of each update are the whole input.
 
-Ideas for mods, once the Board is ported:
+Fits as it is: 1 LiveSplit (classic mode could split at each level; to be checked against the Board's level code), 2 widescreen
+(the sky, city and ground pictures are drawn behind a fixed field, so the extra width can show more of them), 3 high-res
+textures, 4 replays, 5 seeded RNG, 7 replay checker and 9 daily board (all three follow from 4 and 5, the update loop being
+deterministic once the seed is fixed), 8 timer and input display, 13 game stats (rockets launched per round, the longest
+chain, the largest launch the Board already tracks), 14 speed control (the burn, the fall and the night each run on update
+counts), 16 reduced motion (the earthquake shake of a big launch, the flashes and the fireworks), 17 other controls
+(keyboard-only turning and moving of a tile, touch for the phone browser), 18 larger text and high contrast, 19 rule settings
+(night length, fall interval, rockets per level, special-piece weights, all of which are tables or constants in the generator),
+20 a relaxed variant (no night timer, no full-column loss), 24 translations, 27 pixel-perfect scaling, 28 smooth frames, 29
+jukebox (the game loads four music files, assembled from segments for the menu and the game).
 
-- A faster or slower burn, for slower or faster rounds (if the game has a fuse speed to set).
-- More time in arcade mode and a slower tile fall, as an accessibility setting; a pause that keeps the board visible.
-- A colour-blind setting for the four rocket hues and the tinted pieces (patterns on the rockets).
-- Undo of the last turned tile in strategy mode.
-- A hint that shows one tile worth turning, on demand.
-- A larger board or a different number of rocket columns (the board's size is two constants in the original).
-- A reworked score table: a bonus for long chains, shown as a running total.
-- A level editor for the classic mode's levels (they are tables in the game image, the port would read them from a file).
-- Replacement pictures for the menu's background and the tile art (the picture mods the other games have).
-- A separate high score list for each mod set, like the other games.
+Fits with a note: 6 bot scoring (the bot must find rotations that connect a pipe, which is a search over a 6 by 9 field, and in
+arcade mode it plays in real time), 10 undo (a turned tile can be turned back and a cancelled burn can be lit again, but a launch,
+a drop and the bombs cannot be undone, so it covers the turns between launches only), 11 hints or a solver
+(the same search as the bot), 12 level select (classic mode has levels; arcade and strategy have no levels to choose),
+15 colour-blind help (a tile's state is shown by its colour variant, and the four rockets differ only by hue), 21 custom
+levels (levels are numbers fed to the generator, not drawn layouts, so the format would be a table of per-level settings),
+23 developer leftovers (the exe has debug strings and a flag in the app object that gates something at the Board's start; to
+be searched once the port is complete), 25 local achievements (to be checked against the Steam version of the game).
+
+Skipped: 22 randomizer (the levels are not distinct designs to shuffle, and 19 already randomises their settings), 26 two
+players (one shared field and real-time play leave no turns to take, and a split field would be a different game).
+
+Ideas beyond the 29 are left for the mod phase itself: replacement pictures for the menu's background and the tile art are
+covered by 3, a separate high score list for each mod set comes with the shared mod system.
