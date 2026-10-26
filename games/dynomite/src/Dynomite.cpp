@@ -45,6 +45,7 @@ Dynomite::Dynomite()
 	mField131 = false;
 	mField13c = 0;
 	mField138 = 0;
+	mField140 = 0;	// port: the original leaves it to the mode
 	mPowerUps.Clear();
 	mTalker = NULL;
 	mField148 = true;

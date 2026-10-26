@@ -1,6 +1,7 @@
 #include "FossilizedApp.h"
 #include "GameText.h"
 #include "Dynomite.h"
+#include "DynomitePanic.h"
 #include "SideBar.h"
 #include "AngleTable.h"
 #include "InchySmall.h"
@@ -226,10 +227,71 @@ void FossilizedApp::SaveGame()
 	// TODO: SaveGameDialog (0x433910, 0x2d0 bytes)
 }
 
-// 0x418810
+// 0x418810: the chosen mode's board in place of the main menu (or the board before)
 void FossilizedApp::StartGame()
 {
-	// TODO: the board of the chosen mode
+	if (mIntroScreen != NULL)
+	{
+		mWidgetManager->RemoveWidget(mIntroScreen);
+		SafeDeleteWidget(mIntroScreen);
+		mIntroScreen = NULL;
+	}
+	if (mBoard != NULL)
+	{
+		mWidgetManager->RemoveWidget(mBoard);
+		mBoard->SetActive(false);
+		SafeDeleteWidget(mBoard);
+		mBoard = NULL;	// port: the original keeps the deleted board's pointer until the new one
+	}
+	Dynomite* aBoard;
+	int aSkill;
+	switch (mGameMode)
+	{
+	case 1:
+		// TODO: DynomiteStomped (0x40ea50, 0x62c bytes)
+		mSideBar->GameStarted();
+		return;
+	case 2:
+		aBoard = new DynomitePanic();
+		break;
+	case 3:
+		// TODO: DynomiteFossil (0x408e40, 0x328 bytes), which starts with mFossilKind for its skill
+		mSideBar->GameStarted();
+		return;
+	case 4:
+		// TODO: DynomiteTimeTrial (0x411ff0, 0x254 bytes)
+		mSideBar->GameStarted();
+		return;
+	default:
+		mSideBar->GameStarted();
+		return;
+	}
+	aBoard->Resize(0x96, 0, 0x1ea, 0x1e0);
+	aSkill = mSkill;
+	aBoard->Init(this, aSkill);
+	mWidgetManager->AddWidget(aBoard);
+	mWidgetManager->BringToBack(aBoard);
+	mWidgetManager->SetFocus(aBoard);
+	mBoard = aBoard;
+	mSideBar->GameStarted();
+}
+
+// 0x418470
+void FossilizedApp::ShowBuyDialog()
+{
+	// TODO: the unregistered copy's dialog 21 (0x4411d0); the port runs as a registered copy
+}
+
+// 0x4185a0
+void FossilizedApp::ShowRegisterDialog(const char* theLines)
+{
+	// TODO: the unregistered copy's dialog 14 (0x432740); the port runs as a registered copy
+}
+
+// 0x418df0
+void FossilizedApp::ShowHighScoreDialog(HighScores* theHighScores)
+{
+	// TODO: dialog 6 (0x413f50), which asks for the name, comes with the game's end
 }
 
 // 0x419040

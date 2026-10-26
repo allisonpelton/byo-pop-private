@@ -9,11 +9,20 @@ using namespace Sexy;
 
 // port: the original reads the cell at app +0x13c0 + theColor * 4, where the bomb's cell is followed by the egg
 // sheet's twenty
-static Cell* EggCell(FossilizedApp* theApp, int theColor)
+Cell* Sexy::EggCell(FossilizedApp* theApp, int theColor)
 {
 	if (theColor == 0)
 		return theApp->mPicBomb_c0;
 	return theApp->mEggCells[theColor - 1];
+}
+
+// 0x415600
+void Sexy::DrawCellAt(Cell* theCell, float x, float y)
+{
+	int aHeight = theCell->mHeight;
+	int aY = (int) y - (aHeight >> 1);
+	int aWidth = theCell->mWidth;
+	theCell->Draw((int) x - (aWidth >> 1), aY);
 }
 
 // 0x4155a0

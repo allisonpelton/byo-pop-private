@@ -69,6 +69,7 @@ public:
 	int					mField134;			// +0x134 (350)
 	int					mField138;			// +0x138
 	int					mField13c;			// +0x13c
+	int					mField140;			// +0x140 the alpha of a mode's "game over" (Panic)
 	MenuTalker*			mTalker;			// +0x144 the large Inchy (Stomped's end)
 	bool				mField148;			// +0x148 (true)
 	bool				mField149;			// +0x149 (true)

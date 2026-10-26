@@ -7,8 +7,14 @@
 namespace Sexy
 {
 
+class Cell;
 class Dynomite;
 class FossilizedApp;
+
+// the egg picture of a colour (0 the bomb)
+Cell*					EggCell(FossilizedApp* theApp, int theColor);
+// 0x415600: theCell centred on x, y, each cut to a whole pixel
+void					DrawCellAt(Cell* theCell, float x, float y);
 
 class Egg
 {

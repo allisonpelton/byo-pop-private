@@ -18,6 +18,7 @@ class DDImage;
 class ImageFont;
 class SoundInstance;
 class Dynomite;
+class HighScores;
 class AngleTable;
 class IntroScreen;
 class SideBar;
@@ -274,6 +275,9 @@ public:
 
 	void			ShowMainMenu();								// 0x4186d0
 	void			StartGame();								// 0x418810
+	void			ShowBuyDialog();							// 0x418470: dialog 21 (BUY_AND_UNLOCK_DYNOMITE)
+	void			ShowRegisterDialog(const char* theLines);	// 0x4185a0: dialog 14 (REGISTRATION)
+	void			ShowHighScoreDialog(HighScores* theHighScores);	// 0x418df0: dialog 6, the name for a high score
 	void			MenuButton();								// 0x41e770: the side bar's menu button
 	void			ShowOptions();								// 0x418ba0
 	void			ConfirmExit();								// 0x41e590
