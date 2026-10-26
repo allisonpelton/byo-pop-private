@@ -8,6 +8,8 @@
 #include "BinFile.h"
 #include "PtrList.h"
 #include "Widget.h"
+#include <string>
+#include <vector>
 
 namespace Sexy
 {
@@ -19,6 +21,7 @@ class FirePrompt;
 class FlyingEgg;
 class FossilizedApp;
 class Launcher;
+class MenuTalker;
 class PowerUp;
 class Steggy;
 class Tank;
@@ -40,6 +43,11 @@ public:
 	Steggy*				mSteggy;			// +0x84 (0x437aa0)
 	Tank*				mTank;				// +0x88 (0x438400)
 	EggGrid*			mGrid;				// +0x8c (0x415770)
+	int					mClipRect[4];		// +0x90 where SetActive keeps the cursor (left, top, right, bottom)
+	int					mFieldA0;			// +0xa0 the window's left on the screen
+	int					mFieldA4;			// +0xa4 and its top
+	int					mFieldA8;			// +0xa8 the clip's middle
+	int					mFieldAc;			// +0xac the window's top + 400
 	bool				mFieldB0;			// +0xb0
 	bool				mInitialized;		// +0xb1 what the destructor frees
 	int					mFieldB4;			// +0xb4
@@ -51,6 +59,7 @@ public:
 	int					mField108;			// +0x108 (a leaving baby sets it to 20)
 	PtrList<PowerUp>	mPowerUps;			// +0x10c
 	int					mPowerUpAngle;		// +0x124 where on its circle the next power-up starts
+	int					mField128;			// +0x128
 	int					mBonusBits;			// +0x12c 2, 4 and 8 double, triple and quadruple the points
 	bool				mField130;			// +0x130
 	bool				mField131;			// +0x131
@@ -58,6 +67,7 @@ public:
 	int					mField134;			// +0x134 (350)
 	int					mField138;			// +0x138
 	int					mField13c;			// +0x13c
+	MenuTalker*			mTalker;			// +0x144 the large Inchy (Stomped's end)
 	bool				mField148;			// +0x148 (true)
 	bool				mField149;			// +0x149 (true)
 	int					mChain;				// +0x14c (-1)
@@ -75,6 +85,7 @@ public:
 	int					mField1cc;			// +0x1cc
 	int					mLongestChain;		// +0x1d0
 	int					mBabies;			// +0x1d4 the babies hatched
+	char				mReplayText[0x30];	// +0x208 PLAY_THIS_PUZZLE_AGAIN
 	int					mSong;				// +0x238 the music the destructor fades out
 	int					mField23c;			// +0x23c
 	unsigned int		mStartTicks;		// +0x240 GetTickCount at construction
@@ -90,6 +101,8 @@ public:
 	// 0x404a70 (slot 45): an egg of a colour in the bottom ten rows, not the one fired last (else the board's
 	// +0x160, else any colour up to the highest placed)
 	virtual Egg*		NextEgg();
+	// 0x407ac0 (slot 46): the launcher, the grid, the fire prompt, Steggy and Tank; the small Inchy rises
+	virtual void		Init(FossilizedApp* theApp, int theDifficulty);
 	// 0x404c30 (slot 44): thePoints times theMultiplier (when positive) plus the chain's bonus, by skill, ten
 	// times over, times the bonus bits; a popup at x, y
 	virtual void		AddPoints(int x, int y, int thePoints, int theMultiplier, bool isChain);
@@ -107,6 +120,8 @@ public:
 
 // 0x5304a0, zeroed by the board's constructor
 extern int gBoardGlobal5304a0;
+// 0x5304a4, the score ranks' names (the string list gScoreNames), read by Init
+extern std::vector<std::string> gScoreNames;
 
 }
 

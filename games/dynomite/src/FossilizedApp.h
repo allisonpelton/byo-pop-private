@@ -238,6 +238,7 @@ public:
 	int          mGameMode;                               // +0x108c 1 stomped, 2 endless, 3 fossil, 4 time trial
 	int          mField1090;                              // +0x1090 the puzzle list's chosen pack
 	bool         mInTutorial;                             // +0x1094 (the menu button goes straight to the main menu)
+	bool         mLockCursor;                             // +0x1095 registry LockCursor: the board keeps the cursor in a window
 	Widget*      mField10bc;                              // +0x10bc a widget the main menu takes down
 	char         mPackFile[0x100];                        // +0x1118 the Stomped Puzzle pack (DEFAULT.EGG, STOMPED\...)
 	unsigned int mPuzzleSkills;                           // +0x1218 the skills the pack has (bits 1, 2, 4), -1 all

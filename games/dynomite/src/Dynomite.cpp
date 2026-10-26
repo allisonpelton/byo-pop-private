@@ -4,11 +4,15 @@
 #include "EggGrid.h"
 #include "FossilizedApp.h"
 #include "InchySmall.h"
+#include "FirePrompt.h"
 #include "Launcher.h"
+#include "MenuTalker.h"
 #include "MusicInterface.h"
 #include "PortCompat.h"
 #include "SideBar.h"
 #include "SoundInstance.h"
+#include "Steggy.h"
+#include "Tank.h"
 #include "Thunderbolt.h"
 #include "WidgetManager.h"
 #include <cstdio>
@@ -17,6 +21,7 @@
 using namespace Sexy;
 
 int Sexy::gBoardGlobal5304a0 = 0;
+std::vector<std::string> Sexy::gScoreNames;
 
 // 0x404030
 Dynomite::Dynomite()
@@ -35,7 +40,7 @@ Dynomite::Dynomite()
 	mField13c = 0;
 	mField138 = 0;
 	mPowerUps.Clear();
-	// TODO: +0x144 = 0
+	mTalker = NULL;
 	mField148 = true;
 	mChain = -1;
 	mPauseCount = 0;
@@ -80,7 +85,13 @@ Dynomite::~Dynomite()
 		mApp->mMusicInterface->FadeOut(mSong, true, 0.004);
 		mApp->mMusicInterface->FadeOut(4, true, 0.004);
 	}
-	// TODO: +0x204 (removed from the widget manager and safe-deleted), +0x1d8 and +0x154 (the dynamite)
+	// TODO: +0x204 (removed from the widget manager and safe-deleted) and +0x1d8 (the high scores) come with the
+	// game's end
+	if (mThunderbolt != NULL)
+	{
+		delete mThunderbolt;
+		mThunderbolt = NULL;
+	}
 	if (mInitialized == true)
 	{
 		if (mApp->mFootfallRumbleInstance->IsPlaying() == true)
@@ -121,10 +132,45 @@ Dynomite::~Dynomite()
 			delete mGrid;
 		if (mLauncher != NULL)
 			delete mLauncher;
-		// TODO: +0x60, +0x84 and +0x88
+		if (mFirePrompt != NULL)
+			delete mFirePrompt;
+		if (mSteggy != NULL)
+			delete mSteggy;
+		if (mTank != NULL)
+			delete mTank;
 		mInitialized = false;
 	}
-	// TODO: +0x144
+	if (mTalker != NULL)
+	{
+		delete mTalker;
+		mTalker = NULL;
+	}
+}
+
+// 0x407ac0
+void Dynomite::Init(FossilizedApp* theApp, int theDifficulty)
+{
+	mApp = theApp;
+	gScoreNames = mApp->GetStringVector("gScoreNames");
+	mInitialized = true;
+	mPowerUpAngle = 0;
+	mField128 = 0;
+	strcpy(mReplayText, mApp->GetString("PLAY_THIS_PUZZLE_AGAIN").c_str());
+	mDifficulty = theDifficulty;
+	mField68 = 0x132;
+	mField6c = 0x99;
+	mField70 = 0xfa;
+	mLauncher = new Launcher(theApp, this);
+	mApp->mSideBar->mShowTime = false;
+	mGrid = new EggGrid(theApp, this);
+	mFlyingEggs.Clear();
+	mFirePrompt = new FirePrompt(theApp, this);
+	mEffects.Clear();
+	mPopups.Clear();
+	mSteggy = new Steggy(theApp, this);
+	mTank = new Tank(theApp, this);
+	mApp->mSideBar->mInchy->Rise(100);
+	SetActive(true);
 }
 
 // 0x404fb0
@@ -139,9 +185,47 @@ void Dynomite::SetPaused(bool isPaused)
 	SetActive(mPauseCount == 0);
 }
 
-// 0x4047e0 (TODO)
+// 0x4047e0: with the LockCursor option a windowed game keeps the cursor between the board's top left and the
+// window's bottom right while the board is active
 void Dynomite::SetActive(bool isActive)
 {
+	FossilizedApp* anApp = mApp;
+	if (anApp->mLockCursor == false)
+		isActive = false;
+	if (anApp->mIsWindowed != false)
+	{
+		mClipRect[0] = 0;
+		mClipRect[1] = 0;
+		mClipRect[2] = 800;
+		mClipRect[3] = 600;
+		mFieldA0 = 0;
+		mFieldA4 = 0;
+		mFieldA8 = 400;
+		mFieldAc = 400;
+		if (isActive == true)
+		{
+			// port: the window's client area is the app's size at the screen's origin; the original asks
+			// GetClientRect and ClientToScreen
+			int aLeft = 0;
+			int aTop = 0;
+			int aRight = mApp->mWidth;
+			int aBottom = mApp->mHeight;
+			int aBoardTop = mY + aTop;
+			mClipRect[2] = aRight;
+			mClipRect[3] = aBottom;
+			int aBoardLeft = mX + aLeft;
+			mFieldA0 = aLeft;
+			mClipRect[1] = aBoardTop;
+			mClipRect[0] = aBoardLeft;
+			mFieldA4 = aTop;
+			mFieldA8 = (aRight - aBoardLeft) / 2 + aBoardLeft;
+			mFieldAc = aBoardTop + 400;
+			// TODO: ClipCursor(mClipRect) wants a platform call (a shared change); nothing sets LockCursor
+			// until the registry and the options dialog are ported
+			return;
+		}
+		// TODO: ClipCursor(NULL), as above
+	}
 }
 
 // 0x4060c0: the next one 20 degrees on round the circle

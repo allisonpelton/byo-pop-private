@@ -39,6 +39,7 @@ FossilizedApp::FossilizedApp()
 	mIntroScreen = NULL;
 	// port: the original leaves these to its allocation
 	mField1090 = 0;
+	mLockCursor = false;
 	mPackFile[0] = 0;
 	mPuzzleSkills = 0;
 	mBoard = NULL;
