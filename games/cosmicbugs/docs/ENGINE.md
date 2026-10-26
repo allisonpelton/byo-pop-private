@@ -70,3 +70,52 @@ the row above when its y truncates there.
 
 The engine keeps its objects in doubly linked lists of {current, head, tail} with nodes {next, prev}; the banks
 use MSVC std::lists, read by position.
+
+## Drawing order and dirty rectangles
+
+The game does not draw its sprites at once: it queues them with DrawList_Add (0x421070, up to 2000 items of 0x44
+bytes at 0x6e6540) and DrawList_Flush (0x4211d0) sorts and draws them. The sort is a comb sort by depth then by a
+sequence value (the game passes the object's address), followed by the CRT's qsort by depth alone with a comparator
+that never answers 0; the order of equal depths therefore depends on the MSVC 2005 qsort's algorithm, which the
+port translates from the exe (CrtQsort, 0x444c50). Each item swaps its palette into the image for the draw and
+names one of seven blits (plain, alpha, blend, colour fill, faded alpha, faded fill, additive).
+
+The back buffer is copied to the screen through a grid of 40x40 cells (Dirty, 0x4214b0..0x421e00), each with the
+rectangles that changed in it. GameMain uses one bounding rectangle per cell (mode 1); in the other mode a cell
+keeps up to maxRects rectangles, merging two when the union is no larger than their sum, and becomes one whole-cell
+rectangle when full. Dirty_CopyTo copies each rectangle and reports it to the screen (0x428f50).
+
+## Fonts
+
+A Font (0xd6c bytes, 0x421e40..0x423440) is a glyph image per character code, read from a bank by a name prefix
+followed by the code (Font_LoadFromBank) or cut from one strip image at its empty mask columns (Font_StripCut, which
+adds a space half as wide as the first glyph). It draws onto a target buffer with a palette (the 8-bit faces), a
+spacing, an optional clip, and, in Font_DrawBounded, a '^' code that picks one of the palettes stored by character,
+an outline palette drawn a pixel up, down, left and right first, a texture drawn through the glyphs' masks and a
+mask target that collects the glyphs' masks. Glyphs with a mask on a screen over 8 bits are drawn faded at the
+font's alpha. The game's fonts are the `font` tags of its files (`face` is the prefix, `8bit` picks art8.bbk).
+
+## FLIC
+
+The exe reads FLI and FLC files itself (0x40c1a0 open, 0x40c690 next frame, 0x40c890 close): the whole file is kept
+in memory behind a 0x14-byte handle and each call decodes one frame onto an 8-bit buffer, with palette chunks going
+to a global 256-colour palette (0x6e57a0). It handles COLOR_256 and COLOR_64 alike without scaling (and moves the
+index only by each packet's skip), BYTE_RUN (taking each row's packet count from its count byte), DELTA_FLI and
+DELTA_FLC; after the ring frame it goes on with the second frame. The port's decoder is R64Flic.
+
+## The game's animations and objects
+
+An Animation (0x5dcc bytes, 0x401480..0x402850) is an `animation` tag: a run of `num_frames` bank images starting at
+`start_frame`, or a FLIC (`X.eco` stands for `animations/X.flc`) whose mask FLIC `mask_X.flc` gives each frame a mask
+from its palette's red channel, or a TGA (the game ships none). FLIC animations keep the file's palette and ten
+tinted copies of it that recolour the green-dominant entries (ColourShift 0x4204c0); `rotation` turns square frames
+by 90, 180 or 270 degrees when loaded. The animations are a global list (0x46f35c) searched by name.
+
+The game's objects share a base of 0xb0 bytes (constructor 0x40f060, destructor 0x40f0f0): the list links, a kind
+and state, the position and the previous one, the velocity, a depth, a colour and alpha, a tint index, the current
+image, the draw-list kind, an age and lifetime, two child lists (one of particle emitters, one of child objects),
+the animation with its frame, frame count, frame time, timer and step, and flags for looping, ping-pong and a
+shadow. The base update (0x40ee80) moves the object, steps its animation (state 2 fades it out), ages it, and
+updates its children, removing those whose update returns 0; the base draw (0x40eac0) queues the image (and its
+shadow) on the draw list. Every walk over a list goes on from the node after the one that replaced a removed node,
+so that node is skipped for the frame; the port keeps this (List_Each).
