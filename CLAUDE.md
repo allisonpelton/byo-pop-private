@@ -126,6 +126,9 @@ Git and publishing:
   engine, goes to the cheapest remaining game. New game sessions list the mods worth making but make none without
   the user's approval, and no further game gets mods until every PopCap game works in the browser (Noah's Ark's
   mods were the one exception, part of the Sonnet trial).
+- **Mod names (the user, 2026-10-26):** a mod that only shows how a single feature can be configured has `example`
+  in its name (`example-flame-gems`, `example-twist`). A mod without it gives the player a curated experience,
+  much like a fan game: a combination of features, settings and art tuned to play well together.
 - **Model selection (the user's rule, decided after the Sonnet trial on 2026-10-25):** a game whose port can
   largely copy another game's (the same framework generation and engine: Noah's Ark's for Seven Seas and Atomica,
   BookWorm's for Pixelus and Typer Shark, Big Money's for Hammer Heads, Bejeweled's for Bejeweled 2, a sequel after
