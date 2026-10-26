@@ -33,51 +33,26 @@ bool Board::HasMatchVariant()
 	return MatchFinder::AnyGroup(aGrid, mMatchSpec);
 }
 
-// FindMove (0x4c9dda) under the match rules, for swaps: the original's candidates in its order (rows, columns,
-// then the directions right, left, down, up), each swap applied to a copy of the grid. A swap counts when the gem
-// it brings into (aCol, aRow) lands in a group (horizontal: a horizontal run, vertical: a vertical one, both: any
-// group), so each swap is found from both of its cells, as in the original, and at default rules the n-th move is
-// the original's.
+// FindMove (0x4c9dda) under the match and move rules: MoveSet's search (MoveSet.h), the swaps first in the
+// original's order and test, each swap found from both of its cells, so at default rules the n-th move is the
+// original's. theMove keeps FindMove's {col, row, col2, row2}, read as "the gem at (col2, row2) moves into (col, row),
+// where it lands in a group": a swap's two cells, or the cell a twist or a slide brings that gem into and the cell
+// it comes from (DoHint sparkles it there). FindVariantMove gives the move itself (BoardMoves.cpp).
 bool Board::FindMoveVariant(int* theMove, int theMoveNum, bool horizontal, bool vertical)
 {
-	static const int aDirs[4][2] = {{1, 0}, {-1, 0}, {0, 1}, {0, -1}};
-
 	MatchFinder::ColorGrid aGrid;
 	FillColorGrid(&aGrid);
-	int aMoveCount = 0;
-	for (int aRow = 0; aRow < mRows; aRow++)
+	MoveSet::Found aFound;
+	if (!MoveSet::FindMove(aGrid, mLayout, mMatchSpec, MoveOptions(horizontal, vertical), theMoveNum, &aFound))
+		return false;
+	if (theMove != NULL)
 	{
-		for (int aCol = 0; aCol < mCols; aCol++)
-		{
-			if (mBoard[aRow][aCol] == NULL)
-				continue;
-			for (int aDir = 0; aDir < 4; aDir++)
-			{
-				int aCol2 = aCol + aDirs[aDir][0];
-				int aRow2 = aRow + aDirs[aDir][1];
-				if ((aCol2 < 0) || (aCol2 >= mCols) || (aRow2 < 0) || (aRow2 >= mRows) || (mBoard[aRow2][aCol2] == NULL))
-					continue;
-				std::swap(aGrid.mColor[aRow][aCol], aGrid.mColor[aRow2][aCol2]);
-				bool isMove = MatchFinder::InGroup(aGrid, mMatchSpec, aCol, aRow, horizontal, vertical);
-				std::swap(aGrid.mColor[aRow][aCol], aGrid.mColor[aRow2][aCol2]);
-				if (!isMove)
-					continue;
-				if (aMoveCount == theMoveNum)
-				{
-					if (theMove != NULL)
-					{
-						theMove[0] = aCol;
-						theMove[1] = aRow;
-						theMove[2] = aCol2;
-						theMove[3] = aRow2;
-					}
-					return true;
-				}
-				aMoveCount++;
-			}
-		}
+		theMove[0] = aFound.mTo.first;
+		theMove[1] = aFound.mTo.second;
+		theMove[2] = aFound.mFrom.first;
+		theMove[3] = aFound.mFrom.second;
 	}
-	return false;
+	return true;
 }
 
 // ProcessMatches (0x4cd287)'s scoring block for one group: the original's for a vertical or horizontal run, plus

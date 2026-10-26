@@ -58,6 +58,8 @@ public:
 	void			OnSelect(Piece* thePiece);
 	void			OnDeselect();
 	void			OnTarget(Piece* thePiece);
+	void			OnTwist(int theCol, int theRow, int theDir);   // stage 10: TWIST (Board::MouseDownVariant, MouseUpVariant)
+	void			OnSlide(int theAxis, int theLine, int theStart, int theK, int theOffset); // stage 10: SLIDE (Board::MouseUpVariant)
 	void			OnHint();
 	void			OnUndo();                       // stage 6: UNDO (Board::RequestUndo)
 	void			OnPause(bool theUserPause);
@@ -109,7 +111,7 @@ private:
 	bool			mContinued;         // ... and the sidecar's replay went on (OnLoad)
 	bool			mWroteSidecar;      // this board has written a sidecar (FirstSidecar)
 	int				mLastState;         // the board state after the last update (CHECK at a settle)
-	int				mMoves;             // TARGET events with a cell, this board's and the resumed ones
+	int				mMoves;             // TARGET events with a cell, TWIST and SLIDE events: this board's and the resumed ones
 	int				mLastHoverX;
 	int				mLastHoverY;
 	// Session mode

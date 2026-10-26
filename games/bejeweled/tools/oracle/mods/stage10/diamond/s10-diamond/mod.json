@@ -1,0 +1,20 @@
+{
+  "id": "s10-diamond",
+  "name": "Stage 10: twists and slides on the diamond",
+  "version": "1.0",
+  "description": "Oracle fixture: stage 7's 9x9 diamond of 41 cells with twists and slides: the diamond's rows and columns are segments of 1 to 9 cells, and its edge has few blocks of four.",
+  "rules": {
+    "moves": { "type": ["twist", "slide"] },
+    "board": { "mask": [
+      "....#....",
+      "...###...",
+      "..#####..",
+      ".#######.",
+      "#########",
+      ".#######.",
+      "..#####..",
+      "...###...",
+      "....#...."
+    ] }
+  }
+}

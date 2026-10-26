@@ -205,6 +205,11 @@ left out for a candidate built without variant paths, BEJ_NO_VARIANTS; flags "k=
               settle's move lines are, in order, the swaps that put a gem into a group (FindMoveVariant), found
               here by brute force on the grid. "kinds=<kind>,...": the variant line's counts (the groups the board
               scored: L, T, plus, diagonal, shapes) of each of those kinds above 0 at some settle.
+              Stage 10 (twists and slides, mods/stage10): "moves=<type>+...", the rules' move types (swap, twist,
+              slide), with "twist=both" when twists go both ways (and "match=<dir>" for match rules): no settled
+              grid holds a group, every settle's move lines are, in order, MoveSet's moves of those types (the
+              swaps, the twists, the slides of the full segments), found here by brute force with where the gem
+              that makes the group lands and comes from, and each type has a move at some settle.
 More gem colours (stage 8, games/bejeweled/docs/CODE_MODS_DESIGN.md 4.2; candidate runs with the mods of
 mods/stage8, every build: board.gemColors is a tunable; flags "k=v;k=v"):
   colors      "colors=N": every gem in the TRACE rows a colour 0..N-1, all N of them with "all"; above 7 colours the
@@ -1792,7 +1797,7 @@ def variant_settles(stdout):
             settles.append({"update": int(m.group(1)), "mode": m.group(2), "level": int(m.group(3)), "score": int(m.group(4)),
                             "tick": int(m.group(5)),
                             "grid": [], "seed": None, "moves": None, "invalid": None, "undos": 0, "gravity": None,
-                            "flips": 0, "dirt": None, "side": None, "found": 0, "movelist": [], "groups": None})
+                            "flips": 0, "dirt": None, "side": None, "found": 0, "movelist": [], "typed": [], "groups": None})
         elif settles and line.startswith("TRACE   row "):
             settles[-1]["grid"].append([int(v) for v in line.split(":", 1)[1].split()])
         elif settles and line.startswith("TRACE   seed "):
@@ -1812,6 +1817,20 @@ def variant_settles(stdout):
             m = re.match(r"TRACE   move \d+: \((-?\d+),(-?\d+)\)->\((-?\d+),(-?\d+)\)", line)
             if m:
                 settles[-1]["movelist"].append(tuple(int(v) for v in m.groups()))
+                c, w, c2, w2 = settles[-1]["movelist"][-1]
+                settles[-1]["typed"].append(("swap", c, w, c2, w2, (c, w), (c2, w2)))
+                continue
+            # Stage 10's twists and slides (BoardTrace.cpp PrintVariantMoves): the move, where the gem that makes the
+            # group lands and where it comes from
+            m = re.match(r"TRACE   move \d+: twist \((\d+),(\d+)\) (cw|ccw) lands \((\d+),(\d+)\) from \((\d+),(\d+)\)", line)
+            if m:
+                v = [int(x) if x.isdigit() else x for x in m.groups()]
+                settles[-1]["typed"].append(("twist", v[0], v[1], 1 if v[2] == "cw" else -1, (v[3], v[4]), (v[5], v[6])))
+                continue
+            m = re.match(r"TRACE   move \d+: slide (row|col) (\d+) from (\d+) length (\d+) by (\d+) lands \((\d+),(\d+)\) from \((\d+),(\d+)\)", line)
+            if m:
+                v = [int(x) if x.isdigit() else x for x in m.groups()]
+                settles[-1]["typed"].append(("slide", v[0], v[1], v[2], v[3], v[4], (v[5], v[6]), (v[7], v[8])))
     return settles
 
 
@@ -1929,6 +1948,137 @@ def match_check(r, settles, spec, kinds, label, notes):
             return
     notes.append("match=%s: no group left in %d settled grids, their %d moves the brute force's; groups scored (most on a board) %s"
                  % (spec, len(settles), moves, " ".join("%s %d" % (k, most[k]) for k in MATCH_KINDS)))
+
+
+def moveset_moves(grid, rules, types, both):
+    """Stage 10: the moves of a settled grid in MoveSet's order (MoveSet.h), found by brute force: the swaps that put
+    the gem at the first cell into a group, then the twists of each block of four gems (row-major, clockwise then
+    anticlockwise with both), then the slides of each full segment of the rows and then the columns (holes, -1,
+    break the segments) by 1 to length - 1 cells. A twist or slide counts once, at the first of its moved gems
+    (MovedCells' order) that lands in a group. Each move as the trace's lines parse (variant_settles)"""
+    rows, cols = len(grid), len(grid[0])
+    moves = []
+
+    def lands(moved):
+        g = [list(row) for row in grid]
+        for (fc, fw), (tc, tw) in moved:
+            g[tw][tc] = grid[fw][fc]
+        for frm, to in moved:
+            if match_in_group(g, rules, to[0], to[1]):
+                return to, frm
+        return None
+
+    if "swap" in types:
+        for w in range(rows):
+            for c in range(cols):
+                if grid[w][c] < 0:
+                    continue
+                for dc, dw in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+                    c2, w2 = c + dc, w + dw
+                    if not (0 <= c2 < cols and 0 <= w2 < rows) or grid[w2][c2] < 0:
+                        continue
+                    grid[w][c], grid[w2][c2] = grid[w2][c2], grid[w][c]
+                    if match_in_group(grid, rules, c, w):
+                        moves.append(("swap", c, w, c2, w2, (c, w), (c2, w2)))
+                    grid[w][c], grid[w2][c2] = grid[w2][c2], grid[w][c]
+    if "twist" in types:
+        for w in range(rows - 1):
+            for c in range(cols - 1):
+                corners = [(c, w), (c + 1, w), (c + 1, w + 1), (c, w + 1)]
+                if any(grid[cw][cc] < 0 for cc, cw in corners):
+                    continue
+                for d in ((1, -1) if both else (1,)):
+                    hit = lands([(corners[i], corners[(i + (1 if d > 0 else 3)) % 4]) for i in range(4)])
+                    if hit:
+                        moves.append(("twist", c, w, d) + hit)
+    if "slide" in types:
+        for axis, line, start, cells in full_segments(grid):
+            n = len(cells)
+            for k in range(1, n):
+                hit = lands([(cells[i], cells[(i + k) % n]) for i in range(n)])
+                if hit:
+                    moves.append(("slide", axis, line, start, n, k) + hit)
+    return moves
+
+
+def full_segments(grid):
+    """Stage 10: the segments of the rows and then the columns (runs of cells between holes, -1) full of gems, as
+    (axis, line, start, cells)"""
+    rows, cols = len(grid), len(grid[0])
+    for axis, lines, length in (("row", rows, cols), ("col", cols, rows)):
+        for line in range(lines):
+            cells = [(i, line) if axis == "row" else (line, i) for i in range(length)]
+            start = 0
+            while start < length:
+                if grid[cells[start][1]][cells[start][0]] == -1:
+                    start += 1
+                    continue
+                end = start
+                while end < length and grid[cells[end][1]][cells[end][0]] != -1:
+                    end += 1
+                if all(grid[w][c] >= 0 for c, w in cells[start:end]):
+                    yield axis, line, start, cells[start:end]
+                start = end
+
+
+def made_move(grid0, grid1, types, both):
+    """Stage 10: whether one move of those types, with or without a group, turns grid0 into grid1 (a kept invalid
+    move): a swap of neighbours, a twist of a block of four gems, a slide of a full segment"""
+    rows, cols = len(grid0), len(grid0[0])
+    if len(grid1) != rows or any(len(row) != cols for row in grid1):
+        return False
+
+    def made(moved):
+        g = [list(row) for row in grid0]
+        for (fc, fw), (tc, tw) in moved:
+            g[tw][tc] = grid0[fw][fc]
+        return g == grid1
+
+    gem = lambda c, w: 0 <= c < cols and 0 <= w < rows and grid0[w][c] >= 0
+    if "swap" in types and swapped_cells(grid0, grid1) is not None:
+        return True
+    if "twist" in types:
+        for w in range(rows - 1):
+            for c in range(cols - 1):
+                corners = [(c, w), (c + 1, w), (c + 1, w + 1), (c, w + 1)]
+                if all(gem(cc, cw) for cc, cw in corners) and any(
+                        made([(corners[i], corners[(i + (1 if d > 0 else 3)) % 4]) for i in range(4)]) for d in ((1, -1) if both else (1,))):
+                    return True
+    if "slide" in types:
+        for axis, line, start, cells in full_segments(grid0):
+            n = len(cells)
+            if any(made([(cells[i], cells[(i + k) % n]) for i in range(n)]) for k in range(1, n)):
+                return True
+    return False
+
+
+def moves_check(r, settles, types, both, spec, label, notes):
+    """Stage 10, "moves=<type>+..." (module comment): no group of three in a settled grid, and the move lines are, in
+    order, MoveSet's (moveset_moves); each of the types has a line at some settle"""
+    types = types.split("+")
+    rules = match_rules(spec) if spec else (3, None, [])
+    counts = dict((t, 0) for t in ("swap", "twist", "slide"))
+    for s in settles:
+        grid = s["grid"]
+        if not grid:
+            continue
+        rows, cols = len(grid), len(grid[0])
+        found = [(c, w) for w in range(rows) for c in range(cols) if match_in_group(grid, rules, c, w)]
+        if found:
+            r.fail("%s: the settled grid of update %d holds a group at %s" % (label, s["update"], found[:4]))
+            return
+        expected = moveset_moves(grid, rules, types, both)
+        if s["typed"] != expected or s["found"] != len(expected):
+            r.fail("%s: the moves of update %d are %s, the brute force's %s" % (label, s["update"], s["typed"][:4], expected[:4]))
+            return
+        for m in expected:
+            counts[m[0]] += 1
+    missing = [t for t in types if counts.get(t, 0) == 0]
+    if missing:
+        r.fail("%s: moves=%s: no settle offered a move of type %s" % (label, "+".join(types), ", ".join(missing)))
+        return
+    notes.append("moves=%s%s: %d settled grids without a group, their moves MoveSet's (%s)"
+                 % ("+".join(types), " both ways" if both else "", len(settles), ", ".join("%s %d" % (t, counts[t]) for t in types)))
 
 
 def shapes_check(r, settles, spec, label, notes):
@@ -2231,9 +2381,12 @@ def variant_check(r, cand, run, flags, label):
                     rerolled += 1
             undone = None
         if di == 1 and not refilled:
-            # a kept invalid move: one swap of neighbours, nothing else changed (no match, no refill)
-            cells = swapped_cells(s0["grid"], s1["grid"])
-            if cells is None:
+            # a kept invalid move: one swap of neighbours, nothing else changed (no match, no refill); stage 10: one
+            # move of the rules' types
+            if "moves" in f and not made_move(s0["grid"], s1["grid"], f["moves"].split("+"), f.get("twist") == "both"):
+                r.fail("%s: the kept move between updates %d and %d is not one %s move" % (label, s0["update"], s1["update"], f["moves"]))
+                break
+            if "moves" not in f and swapped_cells(s0["grid"], s1["grid"]) is None:
                 r.fail("%s: the kept move between updates %d and %d is not one swap of neighbours" % (label, s0["update"], s1["update"]))
                 break
             if s1["score"] > s0["score"]:
@@ -2246,9 +2399,9 @@ def variant_check(r, cand, run, flags, label):
         notes.append("%d swaps of a stale selection that went back, its old gem in its cell" % stale_backs)
     if "kept" in f:
         if kept < int(f["kept"]):
-            r.fail("%s: %d kept invalid moves seen as swaps, expected at least %s" % (label, kept, f["kept"]))
+            r.fail("%s: %d kept invalid moves seen, expected at least %s" % (label, kept, f["kept"]))
         else:
-            notes.append("%d kept invalid moves, each one swap of neighbours" % kept)
+            notes.append("%d kept invalid moves, each one %s" % (kept, ("%s move" % f["moves"]) if "moves" in f else "swap of neighbours"))
     if "undos" in f:
         if undo_steps != int(f["undos"]):
             r.fail("%s: %d undos seen, expected %s" % (label, undo_steps, f["undos"]))
@@ -2316,8 +2469,10 @@ def variant_check(r, cand, run, flags, label):
         shapes_check(r, settles, f["shapes"], label, notes)
     if "dirt" in f:
         dirt_check(r, settles, f["dirt"], label, notes)
-    if "match" in f:
+    if "match" in f and "moves" not in f:
         match_check(r, settles, f["match"], f.get("kinds", ""), label, notes)
+    if "moves" in f:
+        moves_check(r, settles, f["moves"], f.get("twist") == "both", f.get("match"), label, notes)
     if "boards" in f:
         seed_check(r, cand, run, flags, "seeds")
     if r.failures == before:

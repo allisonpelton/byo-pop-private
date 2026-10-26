@@ -2234,6 +2234,45 @@ Engine ABI 6: earlier engines played the match rules as runs of 3. With match ru
 oracle's `kinds=` reads; its `match=` recomputes every settle's moves by brute force and finds no group left in a
 settled grid.
 
+### 12.15 Twists and slides (code mods, stage 10)
+
+games/bejeweled/docs/CODE_MODS_DESIGN.md 4.4, 4.5 and 4.7, as built (`MoveSet.cpp`, `BoardMoves.cpp`). `moves.type`
+is a set of `swap`, `twist` and `slide`, and a board whose set holds more than swaps takes the variant paths for its
+input, its states and its search. `MoveSet` is framework-free (tools/rulestest compares it with a brute force on
+random masks and match rules). A move is a type and five numbers: a swap's two cells, a twist's top-left cell and
+direction (+1 clockwise, -1 anticlockwise), a slide's axis, line, segment start, segment length and the number of
+cells it moves by. The search gives the swaps in the original's order, then the twists (blocks row-major, clockwise
+before anticlockwise), then the slides (each row's segments, then each column's, by 1 to length - 1 cells). A twist
+or a slide counts once, at the first of its moved gems that lands in a group, in `MovedCells`' order (the corners
+from the top left clockwise; a slide's cells from the segment's start). `FindMove`'s contract is unchanged: where
+that gem lands and where it comes from. `DoHint` therefore sparkles the right gem with no variant path, and the
+callers that read a swap out of `FindMove` (the tutorial board, the headless verifier's bots and CascadeHunt) only
+ever play swap rules.
+
+Four new states: `STATE_TWISTING` (10), `STATE_TWISTING_BACK`, `STATE_SLIDING` and `STATE_SLIDING_BACK` (13). The
+grid holds the board before the move until the forward animation ends; then the move is made in the grid and
+`ProcessMatches` runs as after a swap (the tutorial box goes, `mIsNewGame` is cleared). Without a group the move is
+undone in the grid at once and only the positions animate back with the bad move's sound, or `KeepInvalidMove`
+keeps it. A twist turns 5 degrees a tick for 18 ticks (the swap's pace) by a table of cos and sin times 1024, so the
+positions are integers on every platform. A slide goes from the offset it was let go at to its k cells, or to k
+cells less the segment's span when that is nearer, in `moves.slide.snapTicks` ticks; the gem that leaves one end is
+drawn again at the other, clipped to the segment. A save in the middle of a move writes state 1 and the board
+before it and puts the gems back (`EndVariantMove`); `LoadGame` maps the four states to playing.
+
+Input (the design's table): a click at a point where four gems meet twists them clockwise, a right click
+anticlockwise when `moves.twist.direction` is `both`. With swaps too, only a click within 13 px of the point twists
+and one elsewhere selects. With slides, a drag along a row or a column locks its axis after 16 px and slides the
+segment it started on, rounded to whole cells; less than half a cell snaps back with no move, and a press at a twist
+point waits for the mouse up, since a drag from there slides. The ring under the mouse is four 26 px quarters of the
+selection cursor. The instructions name the types: `INSTRUCTIONDIALOG_<types>` and `FULL_INSTRUCTIONS_<types>` (the
+suffix `TWIST`, `SWAP_SLIDE` and so on), with English defaults; the tutorial is off for any set but swaps alone.
+
+Engine ABI 7: the events `TWIST` and `SLIDE`, which the watch controller applies after the board's own checks; the
+codec's rows for the move in play exist only when the rules have twists or slides. `-autoplay` plans typed moves on
+such boards (a click, a right click or a drag from the trace's points). `-trace` prints a twist as its block,
+direction, landing cell, origin and click point, and a slide as its line, segment, k, landing cell, origin and drag;
+the oracle's `moves=` recomputes them by brute force and `kept=` checks a kept move is one move of the rules' types.
+
 ## 13. Naming reconciliation (analyst names → chosen names)
 
 **Board fields.**

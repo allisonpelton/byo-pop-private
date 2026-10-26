@@ -1,0 +1,7 @@
+{
+  "id": "s10-kept",
+  "name": "Stage 10: kept twists and slides",
+  "version": "1.0",
+  "description": "Oracle fixture: twists and slides with moves.allowInvalid: a move without a group stays, for a penalty of 50.",
+  "rules": { "moves": { "type": ["twist", "slide"], "allowInvalid": true, "invalidPenalty": 50 } }
+}
