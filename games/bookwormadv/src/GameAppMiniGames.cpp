@@ -6,6 +6,7 @@
 #include "Board.h"
 #include "CurtainTransition.h"
 #include "LuaLinkedClass.h"
+#include "MinigameMenu.h"
 #include "PopAnimManager.h"
 #include "Profile.h"
 #include "SongPlayer.h"
@@ -16,7 +17,7 @@ using namespace Sexy;
 void GameApp::StartMiniGame(std::string theName, int x, int y, int theXGap, int theYGap, int theCols, int theRows,
                             std::string theLetters, bool theNoTilesWhilePaused)
 {
-	// 0x44b780: a mini-game's board, over everything but the curtain; theName goes unused
+	// 0x44b780: a mini-game's board, over everything but the curtain; theName is the mini-game's class
 	mBoard = new Board(this, true);
 	mBoard->CreateLinkedObject(mBoard);
 	mBoard->Resize(0, 0, mWidth, mHeight);
@@ -25,7 +26,7 @@ void GameApp::StartMiniGame(std::string theName, int x, int y, int theXGap, int 
 		mWidgetManager->BringToFront(mCurtain);
 		mCurtain->MarkDirtyFull();
 	}
-	mBoard->InitMiniGame(x, y, theXGap, theYGap, theCols, theRows, theLetters, theNoTilesWhilePaused);
+	mBoard->InitMiniGame(theName, x, y, theXGap, theYGap, theCols, theRows, theLetters, theNoTilesWhilePaused);
 	mWidgetManager->SetFocus(mBoard);
 	// port: the original then freed the images' extra buffers (0x5492a0, the resource manager's 0x575cd0), as
 	// StartBattle did; the port's images keep none
@@ -63,6 +64,16 @@ void GameApp::UnlockedMiniGameComplete()
 	mCurtainCallback = MiniGameDoneCallback;
 	mCurtainCallbackObject = this;
 	mCurtain->mPriority = 999999;
+}
+
+void GameApp::ShowMiniGameMenu()
+{
+	// 0x44f9d0: the mini-games' menu, over the screens but under the curtain. Its buttons (MinigameMenu) close the
+	// whole curtain again and then start the mini-game picked, or bring the main menu back.
+	mMiniGameMenu = new MinigameMenu(this);
+	mWidgetManager->AddWidget(mMiniGameMenu);
+	if (mCurtain != nullptr)
+		mWidgetManager->BringToFront(mCurtain);
 }
 
 void GameApp::AddBonusText(const std::string& theText, float x, float y, float theSpeed, int theFadeDelay,

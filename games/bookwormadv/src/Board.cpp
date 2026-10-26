@@ -211,7 +211,7 @@ void Board::Init()
 	mApp->ClearUpdateBacklog(false);
 }
 
-void Board::InitMiniGame(int x, int y, int theXGap, int theYGap, int theCols, int theRows,
+void Board::InitMiniGame(const std::string& theName, int x, int y, int theXGap, int theYGap, int theCols, int theRows,
                          const std::string& theLetters, bool theNoTilesWhilePaused)
 {
 	mGridHeight = theRows;
@@ -233,7 +233,9 @@ void Board::InitMiniGame(int x, int y, int theXGap, int theYGap, int theCols, in
 				aTile->SetLetter(StrFormat("%c", theLetters[mGridWidth * aRow + aCol]));
 		}
 	}
-	RehupMouse();
+	// 0x426230: the scripts' Board:InitMiniGame(theName) makes the mini-game (gMiniGame) and loads its resources
+	lua_pushstring(LS(), theName.c_str());
+	CallLinkedMethod("InitMiniGame", 1);
 	mApp->ClearUpdateBacklog(false);
 }
 

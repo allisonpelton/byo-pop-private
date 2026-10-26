@@ -589,6 +589,12 @@ static void OpenHallOfFameCallback(void* theApp)
 	static_cast<GameApp*>(theApp)->OpenHallOfFame();
 }
 
+// The curtain's callback of the mini-games' menu (0x44f9d0, the app's function that the original called with the app)
+static void ShowMiniGameMenuCallback(void* theApp)
+{
+	static_cast<GameApp*>(theApp)->ShowMiniGameMenu();
+}
+
 void MainMenu::MouseUp(int x, int y, int theClickCount)
 {
 	if (mApp->mBookScreen != nullptr || mApp->IsCurtainMoving() || mApp->GetDialogCount() != 0)
@@ -615,7 +621,6 @@ void MainMenu::MouseUp(int x, int y, int theClickCount)
 		}
 		aFound = true;
 		mApp->SetCursor(CURSOR_HAND);
-		// port: the screens these lead to are not ported yet; the menu stays
 		if (anItem->mPressed) switch (i) {
 		case ITEM_OPTIONS:
 			mFromTitle = false;
@@ -667,7 +672,16 @@ void MainMenu::MouseUp(int x, int y, int theClickCount)
 			mApp->SetCursor(CURSOR_POINTER);
 			break;
 		case ITEM_MINI_GAMES:
-			SDL_Log("MainMenu: the mini-games (0x44f9d0) are not ported yet");
+			// 0x47b9cf: only once the mini-games are unlocked: the menu goes dim, the whole curtain closes, and the
+			// mini-games' menu comes (GameApp::ShowMiniGameMenu)
+			if (mApp->mProfile->KeyExists("UnlockedMiniGames") && mApp->mProfile->GetBool("UnlockedMiniGames")) {
+				SetDisabled(true);
+				mApp->DoFullCurtainTransition("");
+				mApp->mCurtainCallback = ShowMiniGameMenuCallback;
+				mApp->mCurtainCallbackObject = mApp;
+				mFromTitle = false;
+			}
+			mApp->SetCursor(CURSOR_POINTER);
 			break;
 		case ITEM_TOME:
 			// 0x47bd24: only once the tome is unlocked: the whole curtain closes over the menu, then the tome comes

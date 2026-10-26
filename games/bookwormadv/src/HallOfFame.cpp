@@ -967,8 +967,7 @@ void HallOfFame::CurtainClosed()
 void HallOfFame::ShowMiniGamesMenu()
 {
 	if (!mTimed && !mMiniGameName.empty()) {
-		// port: the mini-games' menu (GameApp 0x44f9d0, MinigameMenu 0x4805e0) is not ported yet
-		SDL_Log("HallOfFame: the mini-games' menu (0x44f9d0) is not ported yet");
+		mApp->ShowMiniGameMenu();
 		mApp->CloseHallOfFame();
 	}
 }

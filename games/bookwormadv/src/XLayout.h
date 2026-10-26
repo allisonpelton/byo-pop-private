@@ -98,7 +98,11 @@ public:
 	void SetVertJust(int theJust);                     // slot 15, 0x4c84a0
 	void SetBoundsX(int theX);                         // slot 16, 0x4c84c0
 	void SetBoundsY(int theY);                         // slot 17, 0x4c84d0
+	void SetBoundsHeight(int theHeight);               // slot 20, 0x4c8520
 	void SetBounds(int theX, int theY, int theWidth, int theHeight);  // slot 22, 0x4c8530
+	// slots 13 and 12 (0x4c8460, 0x4c9670): the part of the picture a box is drawn from
+	Rect GetSrcRect() const { return mSrcRect; }
+	void SetSrcRect(const Rect& theSrcRect) { mSrcRect = theSrcRect; }
 	void SetVisible(bool theVisible) { mVisible = theVisible; }   // slot 23, 0x4c8590
 	void SetUpdate(bool theUpdate) { mUpdate = theUpdate; }       // slot 24, 0x4c85a0
 	// slot 7, 0x4c95e0: a text drawn word-wrapped in the bounds

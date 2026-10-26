@@ -64,16 +64,20 @@ void FadeButton::SetupImage(Image* theImage)
 		SetFont(FONT_LARGE_OUTLINE);
 	SetColor(COLOR_LABEL, Color(255, 255, 255));
 	SetColor(COLOR_LABEL_HILITE, Color(255, 255, 0));
-	if (theImage == nullptr)
+	// The original goes on with the button's picture whether it was given here or put into mButtonImage by the
+	// caller (the mini-games' menu does); port: a button with none stops here, where the original would crash
+	Image* aButtonImage = mButtonImage;
+	if (aButtonImage == nullptr)
 		return;
-	int aCelWidth = theImage->GetCelWidth();
-	int aCelHeight = theImage->GetCelHeight();
+	int aCelWidth = aButtonImage->GetCelWidth();
+	int aCelHeight = aButtonImage->GetCelHeight();
 	mNormalRect = Rect(0, 0, aCelWidth, aCelHeight);
 	mOverRect = Rect(aCelWidth, 0, aCelWidth, aCelHeight);
 	mDownRect = Rect(aCelWidth * 2, 0, aCelWidth, aCelHeight);
 	mDisabledRect = Rect(0, 0, aCelWidth, aCelHeight);
-	if (theImage->mNumCols > 3)
+	if (aButtonImage->mNumCols > 3)
 		mDisabledRect = Rect(aCelWidth * 3, 0, aCelWidth, aCelHeight);
+	mSavedDisabledRect = mDisabledRect;
 	mHasAlpha = true;
 	mHasTransparencies = true;
 	mFadeSpeed = 20;

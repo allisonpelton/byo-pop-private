@@ -32,6 +32,7 @@ class Image;
 class Lex;
 class LuaInterface;
 class MainMenu;
+class MinigameMenu;
 class PopAnimManager;
 class Profile;
 class TitleScreen;
@@ -103,6 +104,7 @@ public:
 	std::string mCutSceneCaption;                  // +0x80c
 	CurtainTransition* mCurtain = nullptr;         // +0x828
 	Widget* mBookScreen = nullptr;                 // +0x82c: the stats book (StatsBook): the tome's or the media player's
+	MinigameMenu* mMiniGameMenu = nullptr;         // +0x834: the mini-games' menu (MinigameMenu), made by ShowMiniGameMenu
 	ButtonListener* mConfirmListener = nullptr;    // +0x838: a widget's ButtonListener part, in the original
 	Widget* mChapterLoadScreen = nullptr;          // +0x83c: a chapter's loading screen (ChapterLoadScreen)
 	std::string mCurtainLuaCallback;               // +0x840: the scripts' function called when the curtain is done
@@ -198,6 +200,9 @@ public:
 	                   std::string theLetters, bool theNoTilesWhilePaused);
 	void ReturnToMMFromMiniGame();
 	void UnlockedMiniGameComplete();
+	// 0x44f9d0: the mini-games' menu (mMiniGameMenu), added over the screens and under the curtain. The main menu
+	// has its item's curtain callback for it, the hall of fame calls it after a mini-game.
+	void ShowMiniGameMenu();
 	void AddBonusText(const std::string& theText, float x, float y, float theSpeed, int theFadeDelay, Font* theFont);
 	void UpdateBonusText();           // 0x44fbd0
 	void DrawBonusText(Graphics* g);  // 0x44fb70

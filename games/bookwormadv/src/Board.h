@@ -105,9 +105,10 @@ public:
 	// saved grid's)
 	void Init();
 	// 0x418120: a mini-game's grid of theCols x theRows at (x, y), theXGap and theYGap pixels between its tiles,
-	// its letters from theLetters (row by row) when not empty, else random ones
-	void InitMiniGame(int x, int y, int theXGap, int theYGap, int theCols, int theRows, const std::string& theLetters,
-	                  bool theNoTilesWhilePaused);
+	// its letters from theLetters (row by row) when not empty, else random ones; then the scripts' own
+	// InitMiniGame(theName) (the mini-game's class), which makes the mini-game and loads its resources
+	void InitMiniGame(const std::string& theName, int x, int y, int theXGap, int theYGap, int theCols, int theRows,
+	                  const std::string& theLetters, bool theNoTilesWhilePaused);
 	static void LoadScripts();  // 0x4185d0
 
 	// Widget

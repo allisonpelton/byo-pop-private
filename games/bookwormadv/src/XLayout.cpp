@@ -206,6 +206,13 @@ void XLayout::SetBoundsY(int theY)
 	Place();
 }
 
+void XLayout::SetBoundsHeight(int theHeight)
+{
+	// 0x4c8520
+	mBounds.mHeight = theHeight;
+	Place();
+}
+
 void XLayout::SetBounds(int theX, int theY, int theWidth, int theHeight)
 {
 	// 0x4c8530
