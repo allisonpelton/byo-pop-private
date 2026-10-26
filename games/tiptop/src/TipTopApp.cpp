@@ -9,11 +9,18 @@
 #include "compat2004/Compat2004.h"
 
 #include <SDL.h>
+#include <cstdlib>
 #include <cstring>
 
 using namespace Sexy;
 
 TipTopApp* Sexy::gApp = nullptr;
+
+namespace Sexy
+{
+AutoplayState* NewAutoplayState(unsigned int theSeed);  // testhooks/Autoplay.cpp
+void DeleteAutoplayState(AutoplayState* theState);
+}
 
 static uint32_t AppClock()
 {
@@ -114,6 +121,11 @@ TipTopApp::TipTopApp()
 	mGameStarted = false;
 	mGameEnded = false;
 	mApplyingGameMode = false;
+	mAutoplay = false;
+	mAutoplayMode = 0;
+	mAutoplayGames = 1;
+	mAutoplayCap = 100000;
+	mAutoplayState = nullptr;
 }
 
 TipTopApp::~TipTopApp()
@@ -123,6 +135,8 @@ TipTopApp::~TipTopApp()
 		mWidgetManager->RemoveWidget(mWidget);
 		delete mWidget;
 	}
+	if (mAutoplayState != nullptr)
+		DeleteAutoplayState(mAutoplayState);
 }
 
 void TipTopApp::Init()
@@ -164,6 +178,12 @@ void TipTopApp::RunFrame()
 {
 	if (!mGameStarted || mGameEnded)
 		return;
+	if (mAutoplay)
+	{
+		Autoplay();
+		if (mShutdown)
+			return;
+	}
 	if (!tiptop::GameFrame())
 	{
 		mGameEnded = true;
@@ -213,4 +233,28 @@ void TipTopApp::SwitchScreenMode(bool wantWindowed, bool is3d, bool force)
 	}
 	if (wantWindowed != mIsWindowed)
 		lowos::HostRequestScreenSwitch();
+}
+
+// the command line: -autoplay=<seed> -autoplaymode=regular|strategy|speed -autoplaygames=N -autoplaycap=N
+// -autoplaylog=<file> -autoplayshots=<prefix> (testhooks/Autoplay.cpp)
+void TipTopApp::HandleCmdLineParam(const std::string& theParamName, const std::string& theParamValue)
+{
+	if (theParamName == "-autoplay")
+	{
+		mAutoplay = true;
+		mAutoplayState = NewAutoplayState((unsigned int)atoi(theParamValue.c_str()));
+		mScriptedInput = true;  // the bot's input only, as in a -script run
+	}
+	else if (theParamName == "-autoplaymode")
+		mAutoplayMode = (theParamValue == "strategy") ? 1 : (theParamValue == "speed") ? 2 : 0;
+	else if (theParamName == "-autoplaygames")
+		mAutoplayGames = atoi(theParamValue.c_str());
+	else if (theParamName == "-autoplaycap")
+		mAutoplayCap = atoi(theParamValue.c_str());
+	else if (theParamName == "-autoplaylog")
+		mAutoplayLog = theParamValue;
+	else if (theParamName == "-autoplayshots")
+		mAutoplayShots = theParamValue;
+	else
+		SexyAppBase::HandleCmdLineParam(theParamName, theParamValue);
 }

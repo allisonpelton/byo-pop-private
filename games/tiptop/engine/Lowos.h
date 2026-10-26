@@ -39,10 +39,10 @@ struct Image
 enum
 {
 	SURF_SCREENFORMAT = 0x01,  // pixels are in the display format (every surface the game registers)
-	SURF_ALPHABYTE = 0x02,     // each pixel is preceded by a byte (unused by TipTop)
+	SURF_ALPHABYTE = 0x02,     // each pixel is preceded by its level (the particles, the board's glow)
 	SURF_TRANSLUCENT = 0x04,   // blend with a level 1..254 (0 = invisible, 255 = opaque)
 	SURF_COLORKEY = 0x08,      // pixels of the color key (lowos::SetColorKey) are transparent
-	SURF_ADDITIVE = 0x10,      // unused by TipTop
+	SURF_ADDITIVE = 0x10,      // add to the destination, saturating (the fading animations, 0x42cbe4)
 };
 
 // A registered surface (0x18 bytes, LOWOS_RegisterSurface 0x42ffd0): the original also kept a DirectDraw copy
@@ -99,6 +99,7 @@ void HostSetActive(bool isActive);
 
 // --- app and screen (0x42d020-0x42f750) ---
 void MessageBox_(const char* theText, const char* theCaption);                  // 0x42d1b0
+uint32_t TickCount();                                                            // GetTickCount: the host clock (ms)
 void Pump();                                                                     // 0x42d070
 int64_t PerfFrequency();                                                         // 0x42d0f0
 int64_t PerfCounter();                                                           // 0x42d150

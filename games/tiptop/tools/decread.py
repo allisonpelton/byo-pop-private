@@ -128,6 +128,8 @@ for a in sys.argv[1:]:
             continue
         if decl.match(ln):
             continue
+        # a loop header that also sets the exception chain: keep the loop
+        ln = re.sub(r'ExceptionList = \w+, ', '', ln)
         if re.search(r'(pvStack_\w+|puStack_\w+|ExceptionList)\s*(=|;)', ln):
             continue
         if re.match(r'\s*(local_4|uStack_4)\b[^\n]*= ', ln):

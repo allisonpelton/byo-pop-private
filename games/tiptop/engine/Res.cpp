@@ -357,14 +357,16 @@ lowos::Image* ConvertJpeg(const uint8_t* theFile, uint32_t theSize)
 	return ToDisplayFormat(anImage);
 }
 
-// 0x438a70
+// 0x438a70. port: two terminators, not one: the tips dialog (0x420ea9) goes on reading one past the end of a text
+// that ends with its last word.
 static char* ConvertText(const uint8_t* theData, uint32_t theSize)
 {
-	char* aText = (char*)malloc(theSize + 1);
+	char* aText = (char*)malloc(theSize + 2);
 	if (aText == nullptr)
 		return nullptr;
 	memcpy(aText, theData, theSize);
 	aText[theSize] = 0;
+	aText[theSize + 1] = 0;
 	return aText;
 }
 

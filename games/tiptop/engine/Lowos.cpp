@@ -117,7 +117,7 @@ static uint32_t gRepeatRate = 0;      // 0x47e370
 static int gMouseX = 0;
 static int gMouseY = 0;
 
-static uint32_t TickCount()
+uint32_t TickCount()
 {
 	return gClock ? gClock() : 0;
 }
@@ -561,8 +561,8 @@ static bool SameFormat(const PixelFormat* a, const PixelFormat* b)
 }
 
 // The software blitter (0x437e3c and its 48 specialised routines from 0x4346f0): copies, skipping the color key
-// (SURF_COLORKEY) and blending with a level (SURF_TRANSLUCENT): each channel becomes
-// s + (d - s) * (255 - level) / 255, truncated toward zero (the table built by 0x438067).
+// (SURF_COLORKEY) and blending with a level (SURF_TRANSLUCENT, or each pixel's own with SURF_ALPHABYTE): each
+// channel becomes s + (d - s) * (255 - level) / 255, truncated toward zero (the table built by 0x438067).
 void BlitPixels(const PixelFormat* theSrcFormat, const PixelFormat* theDestFormat, uint8_t* theDest,
 	const uint8_t* theSrc, int theHeight, int theWidth, uint32_t theDestPitch, uint32_t theSrcPitch,
 	uint8_t theFlags, uint8_t theSrcBpp, uint8_t theDestBpp, uint32_t theColorKey, uint8_t theLevel)
@@ -573,6 +573,7 @@ void BlitPixels(const PixelFormat* theSrcFormat, const PixelFormat* theDestForma
 	if (aBlend && theLevel == 0)
 		return;
 	bool aKey = (theFlags & SURF_COLORKEY) != 0;
+	bool anAlphaByte = (theFlags & SURF_ALPHABYTE) != 0;
 	bool aConvert = !SameFormat(theSrcFormat, theDestFormat);
 	for (int y = 0; y < theHeight; y++)
 	{
@@ -580,12 +581,45 @@ void BlitPixels(const PixelFormat* theSrcFormat, const PixelFormat* theDestForma
 		uint8_t* d = theDest + y * theDestPitch;
 		for (int x = 0; x < theWidth; x++, s += theSrcBpp, d += theDestBpp)
 		{
+			uint8_t aLevel = theLevel;
+			if (anAlphaByte)
+			{
+				// 0x436e0c, 0x436ec3 (32 bits): the pixel's own level in the byte before it, times the level when
+				// translucent (the table at 0x47ebc4 holds a * level / 255); 0 draws nothing
+				aLevel = *s;
+				s = s + 1;
+				if (aBlend)
+					aLevel = (uint8_t)((uint32_t)aLevel * theLevel / 0xff);
+				if (aLevel == 0)
+					continue;
+			}
 			uint32_t v = ReadPixel(s, theSrcBpp);
 			if (aKey && v == theColorKey)
 				continue;
 			if (aConvert)
 				v = ConvertColor(theSrcFormat, theDestFormat, v);
-			if (aBlend)
+			if ((theFlags & SURF_ADDITIVE) != 0)
+			{
+				// 0x4370a5, 0x437129 (32 bits): black adds nothing; each channel adds, scaled by the level when
+				// translucent (the table at 0x47ebc0 holds c * level / 255), and saturates
+				if (v == 0)
+					continue;
+				uint32_t aDest = ReadPixel(d, theDestBpp);
+				uint32_t aResult = aDest;
+				for (int aShift = 0; aShift < 24; aShift += 8)
+				{
+					int sc = (int)(v >> aShift & 0xff);
+					if (aBlend)
+						sc = sc * theLevel / 0xff;
+					int c = (int)(aDest >> aShift & 0xff) + sc;
+					if (c > 0xff)
+						c = 0xff;
+					aResult = (aResult & ~(0xffu << aShift)) | (uint32_t)c << aShift;
+				}
+				WritePixel(d, theDestBpp, aResult);
+				continue;
+			}
+			if (aBlend || anAlphaByte)
 			{
 				uint32_t aDest = ReadPixel(d, theDestBpp);
 				uint32_t aResult = v;
@@ -593,7 +627,7 @@ void BlitPixels(const PixelFormat* theSrcFormat, const PixelFormat* theDestForma
 				{
 					int sc = (int)(v >> aShift & 0xff);
 					int dc = (int)(aDest >> aShift & 0xff);
-					int c = sc + (int)((int64_t)(dc - sc) * (0xff - theLevel) / 0xff);
+					int c = sc + (int)((int64_t)(dc - sc) * (0xff - aLevel) / 0xff);
 					aResult = (aResult & ~(0xffu << aShift)) | (uint32_t)c << aShift;
 				}
 				v = aResult;
@@ -658,7 +692,7 @@ void Blit(int theWidth, int theHeight, int theDestX, int theDestY, int theSrcX, 
 	}
 	uint32_t aKey = ConvertColor(&SCREEN_FORMAT, &SCREEN_FORMAT, gColorKey);
 	uint8_t* aDest = (uint8_t*)gScreen + theDestY * SCREEN_W * 4 + theDestX * 4;
-	const uint8_t* aSrc = theSrcBits + theSrcY * theSrcPitch + theSrcX * 4 + ((aFlags >> 1) & 1) * 0;
+	const uint8_t* aSrc = theSrcBits + theSrcY * theSrcPitch + theSrcX * (4 + ((aFlags >> 1) & 1));
 	BlitPixels(&SCREEN_FORMAT, &SCREEN_FORMAT, aDest, aSrc, theHeight, theWidth, SCREEN_W * 4, theSrcPitch,
 		aFlags, 4, 4, aKey, theLevel);
 }

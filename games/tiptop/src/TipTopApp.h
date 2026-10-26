@@ -12,6 +12,7 @@ namespace Sexy
 {
 
 class MemoryImage;
+struct AutoplayState;
 
 class TipTopWidget : public Widget
 {
@@ -40,6 +41,16 @@ public:
 	bool mGameEnded;
 	bool mApplyingGameMode;  // SwitchScreenMode is the game's own request (LOWOS_ScreenScope)
 
+	// Test hooks (testhooks/Autoplay.cpp): -autoplay=<seed> plays games by itself with a bot that has its own
+	// random numbers
+	bool mAutoplay;
+	int mAutoplayMode;       // 0 regular, 1 strategy, 2 speed
+	int mAutoplayGames;
+	int mAutoplayCap;
+	std::string mAutoplayLog;
+	std::string mAutoplayShots;
+	AutoplayState* mAutoplayState;
+
 	TipTopApp();
 	virtual ~TipTopApp();
 
@@ -49,10 +60,13 @@ public:
 	virtual void GotFocus() override;
 	virtual void LostFocus() override;
 	virtual void SwitchScreenMode(bool wantWindowed, bool is3d, bool force = false) override;
+	virtual void HandleCmdLineParam(const std::string& theParamName, const std::string& theParamValue) override;
 	using SexyAppBase::SwitchScreenMode;
 
 	// One pass of the original's main loop, then the screen mode it asked for
 	void RunFrame();
+	// One step of the autoplay bot, before the game's pass
+	void Autoplay();
 };
 
 extern TipTopApp* gApp;
