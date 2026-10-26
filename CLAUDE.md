@@ -23,9 +23,10 @@ the same machine. A plain run opens a window, raises it over whatever the user i
   game process below.
 - Open the web builds in the Browser pane only with `?silent=1`, e.g.
   `http://127.0.0.1:18766/bejeweled.html?silent=1`: the pane may be hidden, and without it the game plays
-  its music and sounds on the user's speakers. The status line ends in "silent" when it is on. Each game page
-  first shows that game's terms with a checkbox; test sessions may tick it and press Continue in the Browser
-  pane (the user, 2026-10-25), once per origin.
+  its music and sounds on the user's speakers. The status line ends in "silent" when it is on. The terms card
+  with its checkbox is off on every game page for now (the user, 2026-10-26; `BYOPOP_WEB_TERMS_GATE` in
+  `cmake/ByopopWeb.cmake`): leave it off. Bringing it back blocks deployment: no game page goes on a public host
+  until it is on again (`docs/WEB_PLAYER.md`, "The terms").
 - Under rundesk (and the oracle) the framework never opens a URL; it logs "OpenURL in a test run". Builds or
   frozen exes from before that guard do open them: a click on a game's "more games" link (a steam:// URL)
   brings up the user's Steam client on their desktop. Random or generated input must not click link
