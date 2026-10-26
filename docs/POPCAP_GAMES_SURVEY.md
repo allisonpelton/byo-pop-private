@@ -698,35 +698,37 @@ The model follows CLAUDE.md's rule: Opus for the first game on an engine, Sonnet
 |---|---|---|---|---|
 | 1 | Bookworm Adventures Vol. 2 | Sonnet | ~4-6x after Vol. 1 | the BookWorm series; a sequel on Bookworm Adventures' engine |
 | 2 | Bejeweled Twist | Opus | ~25x | after the BookWorm series; PopAnim comes from Bookworm Adventures |
-| 3 | Word Harmony | Opus | ~3-4x | parked; its own engine |
-| 4 | Rocket Mania Deluxe | Sonnet | ~3.5x | parked; Noah's Ark's 2002 framework |
-| 5 | Dynomite Deluxe | Opus | ~4.5x | parked; the oldest framework layout, no game RTTI |
-| 6 | Bonnie's Bookstore Deluxe | Opus | ~4-6x | parked; its own engine with PopLua |
-| 7 | Venice Deluxe | Sonnet | ~5x | parked; Bejeweled's framework with PopLua |
-| 8 | Heavy Weapon Deluxe | Opus | ~5x | parked; a 2005 framework no port has, SWF cutscenes |
-| 9 | Peggle Deluxe | Sonnet | ~5x on Thunderball | Bejeweled's framework generation; JPEG 2000 is in; Thunderball (MIT) is a start |
-| 10 | Peggle Extreme | Sonnet | ~1x after Deluxe | 84% of its functions are Deluxe's |
-| 11 | Peggle Nights | Sonnet | ~4-5x after Deluxe | |
-| 12 | Peggle World of Warcraft Edition | Sonnet | ~1-2x after Nights | the Nights branch |
-| 13 | Hammer Heads Deluxe | Sonnet | ~6x | parked; Big Money's 1.2 framework |
-| 14 | Bejeweled 2 Deluxe | Sonnet | ~6x | parked; Bejeweled's framework |
-| 15 | AstroPop Deluxe | Sonnet | ~7-8x | parked; BookWorm's 2004 framework |
-| 16 | Iggle Pop Deluxe | Opus | ~8x as the first Sprout game | builds Sprout's first-generation engine; the Pizza Frenzy decompilation has no licence, so it is a reference only |
-| 17 | Feeding Frenzy Deluxe | Sonnet | small to medium after Iggle Pop | the same first-generation engine, in an older form |
-| 18 | Feeding Frenzy 2 Deluxe | Opus | ~10x | Sprout's second generation |
-| 19 | Bejeweled 3 | Opus | ~10-15x | builds the prime-compat layer (PopAnim, PIEffect, CurvedVal) that Zuma's Revenge reuses |
-| 20 | Banana Bugs | Opus | waits on the image | PopCap's 2010 framework, near Bejeweled 3's; its image must first come out of the 2010 DRM |
-| 21 | Gyromancer | Opus | large | Square Enix's own engine; the Steam stub must come off first, with a tool that needs the user's OK |
-| 22 | Zuma's Revenge! | Opus | ~15-20x with references | HARD; prime-compat and JeffLib |
-| 23 | Typer Shark! Deluxe | Sonnet | ~5x | at the end by the decision of 2026-10-24; BookWorm's framework |
-| 24 | Talismania Deluxe | Sonnet | ~12-16x after Feeding Frenzy 2 | at the end by the same decision; HARD, on Feeding Frenzy 2's engine |
+| 3 | Cosmic Bugs | Opus | ~2x | Retro64's own small engine; added 2026-10-26 |
+| 4 | Water Bugs | Sonnet | small after Cosmic Bugs | the same engine, a sequel |
+| 5 | Word Harmony | Opus | ~3-4x | parked; its own engine |
+| 6 | Rocket Mania Deluxe | Sonnet | ~3.5x | parked; Noah's Ark's 2002 framework |
+| 7 | Dynomite Deluxe | Opus | ~4.5x | parked; the oldest framework layout, no game RTTI |
+| 8 | Mahjong Escape: Ancient Japan | Opus | ~4-5x | Jolly Bear's engine, no RTTI; added 2026-10-26 |
+| 9 | Mahjong Escape: Ancient China | Sonnet | small after Ancient Japan | the same code with other resources |
+| 10 | Bonnie's Bookstore Deluxe | Opus | ~4-6x | parked; its own engine with PopLua |
+| 11 | Venice Deluxe | Sonnet | ~5x | parked; Bejeweled's framework with PopLua |
+| 12 | Heavy Weapon Deluxe | Opus | ~5x | parked; a 2005 framework no port has, SWF cutscenes |
+| 13 | Peggle Deluxe | Sonnet | ~5x on Thunderball | Bejeweled's framework generation; JPEG 2000 is in; Thunderball (MIT) is a start |
+| 14 | Peggle Extreme | Sonnet | ~1x after Deluxe | 84% of its functions are Deluxe's |
+| 15 | Peggle Nights | Sonnet | ~4-5x after Deluxe |  |
+| 16 | Peggle World of Warcraft Edition | Sonnet | ~1-2x after Nights | the Nights branch |
+| 17 | Hammer Heads Deluxe | Sonnet | ~6x | parked; Big Money's 1.2 framework |
+| 18 | Bejeweled 2 Deluxe | Sonnet | ~6x | parked; Bejeweled's framework |
+| 19 | AstroPop Deluxe | Sonnet | ~7-8x | parked; BookWorm's 2004 framework |
+| 20 | Iggle Pop Deluxe | Opus | ~8x as the first Sprout game | builds Sprout's first-generation engine; the Pizza Frenzy decompilation has no licence, so it is a reference only |
+| 21 | Feeding Frenzy Deluxe | Sonnet | small to medium after Iggle Pop | the same first-generation engine, in an older form |
+| 22 | Feeding Frenzy 2 Deluxe | Opus | ~10x | Sprout's second generation |
+| 23 | Bejeweled 3 | Opus | ~10-15x | builds the prime-compat layer (PopAnim, PIEffect, CurvedVal) that Zuma's Revenge reuses |
+| 24 | Banana Bugs | Opus | waits on the image | PopCap's 2010 framework, near Bejeweled 3's; its image must first come out of the 2010 DRM |
+| 25 | Gyromancer | Opus | large | Square Enix's own engine; the Steam stub must come off first, with a tool that needs the user's OK |
+| 26 | Zuma's Revenge! | Opus | ~15-20x with references | HARD; prime-compat and JeffLib |
+| 27 | Typer Shark! Deluxe | Sonnet | ~5x | at the end by the decision of 2026-10-24; BookWorm's framework |
+| 28 | Talismania Deluxe | Sonnet | ~12-16x after Feeding Frenzy 2 | at the end by the same decision; HARD, on Feeding Frenzy 2's engine |
 
 After these come the other studios' games (Appendix D), World of Goo among them; which of the others is decided then.
 
-Four games wait on the user's decision. Their places are fixed by effort if they go ahead. Cosmic Bugs (~2x, Opus,
-Retro64's engine) would go first in the queue, before Word Harmony, with Water Bugs (Sonnet, small) right after it.
-Mahjong Escape: Ancient Japan (~4-5x, Opus, Jolly Bear's engine) would go after Dynomite, with Ancient China
-(Sonnet, small) right after it.
+On 2026-10-26 the user added Cosmic Bugs, Water Bugs and both Mahjong Escape games, which had waited on their
+decision, at the places their effort gives them. Their copies are in the user's Popcap Game Collection (Appendix C).
 
 Every game has a copy on the user's machines ([Appendix C](#appendix-c-popcap-pc-games-missing-from-this-survey-2026-10-25)
 and the user's notes). Skipped, unchanged: Zuma Deluxe, Insaniquarium, Plants vs. Zombies and Pizza Frenzy (existing
@@ -1200,7 +1202,8 @@ The user's decisions on this list (2026-10-25):
 - **To port:** Alchemy Deluxe, Mummy Maze Deluxe, Banana Bugs, Gyromancer (after Twist) and Feeding Frenzy Deluxe
   (in the Sprout line; its 2004-2005 build may share the first-generation engine with Pizza Frenzy and Iggle Pop,
   not yet checked). Each needs the user's own copy first.
-- **Waiting on the user's research:** Cosmic Bugs, Water Bugs and the two Mahjong Escape games.
+- **Waiting on the user's research:** Cosmic Bugs, Water Bugs and the two Mahjong Escape games. Added to the order
+  on 2026-10-26 (section 4, "The order of the remaining games").
 - **Skipped:** Chuzzle: Christmas Edition, along with Chuzzle Deluxe, which someone else has reportedly decompiled.
   Sweet Tooth To Go is skipped too, though a Bejeweled mod with its look may come later (MOD_ROADMAP.md).
   The Wizard's Pen counts as a hidden-object game, so it is skipped.
