@@ -2,6 +2,9 @@
 #include "GameDialog.h"
 #include "GameText.h"
 #include "LoadingScreen.h"
+#include "LevelData.h"
+#include "ProgressManager.h"
+#include "UserDirectory.h"
 #include "Graphics.h"
 #include "ImageFont.h"
 #include "MemoryImage.h"
@@ -40,7 +43,6 @@ PixelusApp::PixelusApp()
 	mLevelData = NULL;
 	mUserDirectory = NULL;
 	mProgress = NULL;
-	mSessionLog = NULL;
 
 	mProdName = "Pixelus";
 	mTitle = "Pixelus " + mProductVersion;
@@ -57,6 +59,9 @@ PixelusApp::PixelusApp()
 
 PixelusApp::~PixelusApp()
 {
+	delete mUserDirectory;
+	delete mProgress;
+	delete mLevelData;
 	delete mColorDark;
 	delete mColorMid;
 	delete mColorLight;
@@ -70,6 +75,10 @@ void PixelusApp::Init()
 {
 	NcApp::Init();
 	LoadGameTexts();
+
+	mLevelData = new LevelData(this);
+	mProgress = new ProgressManager(this, mLevelData);
+	mUserDirectory = new UserDirectory(this);
 
 	mLoadingScreen = new LoadingScreen(this);
 	mLoadingScreen->Resize(0, 0, mWidth, mHeight);

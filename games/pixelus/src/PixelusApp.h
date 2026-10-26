@@ -24,7 +24,6 @@ class LoadingScreen;
 class MemoryImage;
 class LevelData;
 class ProgressManager;
-class SessionLog;
 class UserDirectory;
 
 class PixelusApp : public NcApp
@@ -57,7 +56,7 @@ public:
 	LevelData*				mLevelData;         // +0x768 (Init: 0x42abd0)
 	UserDirectory*			mUserDirectory;     // +0x76c (Init: 0x43da10)
 	ProgressManager*		mProgress;          // +0x770 (Init: 0x421380)
-	SessionLog*				mSessionLog;        // +0x774 (Init: 0x43aac0)
+	// +0x774 SessionLog (0x43aac0) is the original's statistics file for the developers; not ported
 
 public:
 	PixelusApp();
