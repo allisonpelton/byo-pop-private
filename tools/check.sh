@@ -9,7 +9,9 @@
 #   build-web    tools/build.sh web
 #   build-nov    tools/build.sh novariants (Bejeweled without its variant code, for the oracle)
 #   unit         rulestest, modsettingstest and fwtest -hotkeytest, native (under a minute); fwtest is skipped
-#                without assets/bejeweled; then fwtest -hotkeytest -placeholders with no game files at all, and
+#                without assets/bejeweled; then fwtest -hotkeytest -placeholders with no game files at all; then
+#                jp2test (JPEG 2000: the .jp2 images of assets/bookwormadv/images against their PNGs, the loader's
+#                rules for .jp2 files, synthetic and damaged files), skipped without assets/bookwormadv/images; and
 #                songpostest on Bejeweled's and BookWorm's modules (skipped without their assets)
 #   unit-web     rulestest and modsettingstest under Node (needs build-web)
 #   verify       Bejeweled's headless verifier tests (games/bejeweled/tools/verify/run_tests.sh)
@@ -124,7 +126,7 @@ suite_build-web() { build_suite web "$1"; }
 suite_build-nov() { build_suite novariants "$1"; }
 
 suite_unit() {
-	local st=0 a b c d
+	local st=0 a b c d e f
 	(cd build/native && timeout 120 ./rulestest.exe) > "$1" 2>&1 || st=1
 	a="$(lastof "$1" 'checks')"
 	(cd build/native && timeout 120 ./modsettingstest.exe) > "$1.mst" 2>&1 || st=1
@@ -142,17 +144,25 @@ suite_unit() {
 	timeout 120 "build/native/fwtest.exe" -hotkeytest -placeholders -gamedir="$OUT/no-game-files" > "$1.ph" 2>&1 || st=1
 	d="placeholders: $(lastof "$1.ph" 'placeholders: [0-9]+ game files? missing' | sed 's/^placeholders: //'), $(lastof "$1.ph" 'hotkey: [0-9]+ failed')"
 	grep -q -E 'placeholders: [1-9][0-9]* game files? missing' "$1.ph" || st=1
+	# jp2test decodes Bookworm Adventures' .jp2 images against their staged PNGs: skipped without the staged folder
+	if [ -d assets/bookwormadv/images ]; then
+		(cd build/native && timeout 120 ./jp2test.exe "$W/assets/bookwormadv/images") > "$1.jp2" 2>&1 || st=1
+		e="$(lastof "$1.jp2" 'jp2: [0-9]+ files, max channel difference')"
+	else
+		echo "jp2test skipped: no assets/bookwormadv/images (tools/setup_worktree.sh)" > "$1.jp2"
+		e="jp2test skipped (no assets/bookwormadv)"
+	fi
 	# Mixer::GetSongPosition on Bejeweled's modules (libxmp-lite) and BookWorm's (libopenmpt), where they are staged
-	local e="songpos skipped (no assets/bejeweled or assets/bookworm)"
+	f="songpos skipped (no assets/bejeweled or assets/bookworm)"
 	if [ -d assets/bejeweled ] && [ -d assets/bookworm ]; then
 		{ timeout 120 build/native/songpostest.exe assets/bejeweled music/1980-autonomus.s3m music/1984-network.s3m &&
 		  timeout 120 build/native/songpostest.exe assets/bookworm music/bookworm1.mo3; } > "$1.sp" 2>&1 || st=1
-		e="songpos: $(grep -c ', start at 2 ok' "$1.sp") of 3 songs ok"
+		f="songpos: $(grep -c ', start at 2 ok' "$1.sp") of 3 songs ok"
 	else
-		echo "$e" > "$1.sp"
+		echo "$f" > "$1.sp"
 	fi
-	cat "$1.mst" "$1.fw" "$1.ph" "$1.sp" >> "$1"; rm -f "$1.mst" "$1.fw" "$1.ph" "$1.sp"
-	SUMMARY="$a; $b; $c; $d; $e"
+	cat "$1.mst" "$1.fw" "$1.ph" "$1.jp2" "$1.sp" >> "$1"; rm -f "$1.mst" "$1.fw" "$1.ph" "$1.jp2" "$1.sp"
+	SUMMARY="$a; $b; $c; $d; $e; $f"
 	return $st
 }
 

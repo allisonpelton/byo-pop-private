@@ -121,6 +121,23 @@ if(BUILD_MODSETTINGSTEST)
   endif()
 endif()
 
+# JPEG 2000 test (tools/jp2test): decodes the .jp2 images of a folder that have a .png beside them through the image
+# loader (platform/openjpeg) and compares the pixels with the PNG's; the loader's mask and extension rules with .jp2
+# files. Native only: tools/check.sh unit runs it on assets/bookwormadv/images when that folder is staged.
+if(NOT EMSCRIPTEN)
+  option(BUILD_JP2TEST "Build the JPEG 2000 test" ON)
+  if(BUILD_JP2TEST)
+    add_executable(jp2test tools/jp2test/jp2test.cpp)
+    target_link_libraries(jp2test PRIVATE sexyframework sexyopenjpeg openjp2)  # openjp2: the encoder, for synthetic images
+    if(NOT MSVC)
+      target_compile_options(jp2test PRIVATE -Wall)
+    endif()
+    add_custom_command(TARGET jp2test POST_BUILD
+      COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:SDL2::SDL2> ${PORT_RUNTIME_DLLS} $<TARGET_FILE_DIR:jp2test>
+      VERBATIM)
+  endif()
+endif()
+
 # Test launcher (tools/rundesk): runs a command on a private, invisible desktop so test runs of a game
 # never show a window or take focus. games/bejeweled/tools/oracle/compare.sh runs itself under it.
 if(WIN32 AND NOT EMSCRIPTEN)
