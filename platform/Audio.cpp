@@ -497,14 +497,15 @@ static bool WavMP3Data(const std::vector<uint8_t>& theFile, std::vector<uint8_t>
 		const uint8_t* aChunk = theFile.data() + aPos;
 		size_t aSize = aChunk[4] | (aChunk[5] << 8) | (aChunk[6] << 16) | ((size_t)aChunk[7] << 24);
 		size_t aBody = aPos + 8;
+		// a chunk said to run past the end ends there (size_t is 32 bits in the web build: no sum may wrap)
+		aSize = std::min(aSize, theFile.size() - aBody);
 		if (!memcmp(aChunk, "fmt ", 4) && aSize >= 2 && aBody + 2 <= theFile.size())
 			anMP3 = (theFile[aBody] | (theFile[aBody + 1] << 8)) == 0x55;
 		else if (!memcmp(aChunk, "data", 4))
 		{
 			if (!anMP3)
 				return false;
-			size_t anEnd = std::min(theFile.size(), aBody + aSize);
-			theData.assign(theFile.begin() + aBody, theFile.begin() + anEnd);
+			theData.assign(theFile.begin() + aBody, theFile.begin() + aBody + aSize);
 			return true;
 		}
 		aPos = aBody + aSize + (aSize & 1);
@@ -593,7 +594,7 @@ std::shared_ptr<SoundData> Mixer::LoadSoundData(const std::vector<uint8_t>& file
 			SDL_Log("cannot decode sound %s (MP3 in WAV: no frames decoded)", theName.c_str());
 			return nullptr;
 		}
-		ResampleToStereo(f.data(), (int)(f.size() / channels), channels, rate, mRate, *data);
+		StoreSound(f.data(), (int)(f.size() / channels), channels, rate, *data);
 		return data;
 	}
 	// WAV (and anything else SDL can read)
