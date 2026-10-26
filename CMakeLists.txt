@@ -241,3 +241,8 @@ option(BUILD_WATERBUGS "Build the Water Bugs port" ON)
 if(BUILD_WATERBUGS AND EXISTS ${PROJECT_SOURCE_DIR}/games/waterbugs/CMakeLists.txt)
   add_subdirectory(games/waterbugs)
 endif()
+# Dynomite Deluxe: optional while it is new; the build skips it if its folder is missing
+option(BUILD_DYNOMITE "Build the Dynomite Deluxe port" ON)
+if(BUILD_DYNOMITE AND EXISTS ${PROJECT_SOURCE_DIR}/games/dynomite/CMakeLists.txt)
+  add_subdirectory(games/dynomite)
+endif()
