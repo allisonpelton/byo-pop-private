@@ -767,12 +767,12 @@ bool Board::RequestUndo()
 	return true;
 }
 
-// The newest snapshot back: the grid (fresh gems at rest), the score and the stats, the counts of moves and kept
-// invalid moves, the time only with undo.restoreTime, and the RNG unless undo.restoreRng is false (with it the same
+// The newest snapshot back: the grid (fresh gems at rest), the gold layer, the score and the stats, the counts of moves
+// and kept invalid moves, the time (the drain, a gold level's time left) only with undo.restoreTime, and the RNG unless undo.restoreRng is false (with it the same
 // move again refills the same way: an undo is no reroll). Kept: the board tick, the pauses, the play time, the undos
 // taken and whether the board still holds the seed the player chose (a match used it up). Then undo.penalty times
-// the multiplier comes off the score, as DoHint takes the hint penalty; the selection, the popups, the move score
-// and the hint glow go; the banner says UNDO.
+// the multiplier comes off the score, as DoHint takes the hint penalty; the selection, the popups, the gold's shine,
+// the move score and the hint glow go; the banner says UNDO.
 void Board::Undo()
 {
 	std::string aSnapshot = mUndoStack.back();
@@ -780,6 +780,7 @@ void Board::Undo()
 	double aTimeDrain = mTimeDrain;
 	double aTimeDrainRate = mTimeDrainRate;
 	int aTimeDrainDelay = mTimeDrainDelay;
+	int aGoldTicksLeft = mGoldTicksLeft;
 	bool takesPendingSeed = mTakesPendingSeed;
 	uint32_t aBoardDraws = mBoardDraws;
 	uint32_t aMt[MTRAND_N];
@@ -801,6 +802,7 @@ void Board::Undo()
 		mTimeDrain = aTimeDrain;
 		mTimeDrainRate = aTimeDrainRate;
 		mTimeDrainDelay = aTimeDrainDelay;
+		mGoldTicksLeft = aGoldTicksLeft;
 	}
 	if (!mRules.mUndo.mRestoreRng)
 	{
@@ -811,6 +813,7 @@ void Board::Undo()
 	mTakesPendingSeed = takesPendingSeed;
 
 	mScorePopups.clear();
+	mGoldShines.clear();
 	mMoveScoreTimer = 0;
 	mMoveScoreAlpha = 0.0;
 	mHintGlowTimer = 0;

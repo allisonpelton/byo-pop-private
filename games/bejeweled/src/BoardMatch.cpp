@@ -109,14 +109,20 @@ void Board::ScoreGroup(const MatchFinder::Group& theGroup, int* theAvgX)
 		mMoveScore = 0;
 		mUnused218 = 0;
 	}
+	AddMoveScore(aPoints);
+}
 
+// ScoreGroup's end (0x4cd287's, for a run), and a blast's (BoardSpecials.cpp): the move's score so far, EXCELLENT when
+// it passes the mark, the score timer
+void Board::AddMoveScore(int thePoints)
+{
 	int anExcellentScore = (int)(mPointMultiplier * gGameConfig.mExcellentFactor);
-	if ((mMoveScore < anExcellentScore) && (mMoveScore + aPoints >= anExcellentScore))
+	if ((mMoveScore < anExcellentScore) && (mMoveScore + thePoints >= anExcellentScore))
 	{
 		ShowText(mApp->GetString("EXCELLENT"), 200);
 		mApp->PlaySample(SOUND_EXCELLENT);
 	}
-	mMoveScore += aPoints;
+	mMoveScore += thePoints;
 	if (mMoveScoreTimer != -1)
 	{
 		double aTicks = mMoveScore / mPointMultiplier * 3.0;
@@ -153,6 +159,15 @@ bool Board::ProcessMatchesVariant()
 		anAvgXSum += anAvgX;
 		aMaxLength = std::max(aMaxLength, (int) aGroup.mCells.size());
 	}
+	// Stage 12: the groups' cells turn gold (BoardGold.cpp)
+	if (mVariant.mGold)
+	{
+		for (const MatchFinder::Group& aGroup : aGroups)
+			GildCells(aGroup.mCells);
+	}
+	// Stage 11: the specials the groups make and set off (BoardSpecials.cpp)
+	if (mVariant.mSpecials && !aGroups.empty())
+		ResolveSpecials(aGroups);
 
 	int aNumMatches = (int) aGroups.size();
 	if (aNumMatches > 0)

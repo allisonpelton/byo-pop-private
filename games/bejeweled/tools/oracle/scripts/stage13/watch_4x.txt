@@ -1,0 +1,4 @@
+# Stage 13, as watch_2x.txt at 4x (3)
+300 click 320 398
+301 char 3
+400000 quit

@@ -75,6 +75,8 @@ WinDMApp::WinDMApp()
 	mCodecCheck = NULL;
 	mWatch = NULL;
 	mReplayQuit = false;
+	mReplayOverlay = NULL;
+	mPendingPlaySeed = 0;
 
 	mWidgetManager = new WidgetManager();
 	mSoundManager = new SoundManager();
@@ -161,6 +163,19 @@ void WinDMApp::ShowInstructionsDialog()
 }
 
 void WinDMApp::ConfirmLoadGame()
+{
+}
+
+// Watching from the game (stage 13): the verifier's watch quits at its end (-replayquit) and has no overlay or dialogs
+void WinDMApp::OnWatchBoard()
+{
+}
+
+void WinDMApp::OnWatchEnded()
+{
+}
+
+void WinDMApp::EndWatch()
 {
 }
 

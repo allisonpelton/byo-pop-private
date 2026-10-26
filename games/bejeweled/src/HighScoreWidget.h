@@ -36,6 +36,7 @@ public:
 		NUM_HIGH_SCORE_MODES = 2,       // 0 = normal, 1 = timed
 		HIGHSCORE_CHECKSUM_KEY = 0x42BEEF,
 		PLAY_AGAIN_LINK_ID = 0,
+		WATCH_REPLAY_LINK_ID = 1,       // port(variant)
 		SLIDE_SPEED = 8,                // px per tick
 		PANEL_CLIP_BOTTOM = 436
 	};
@@ -55,6 +56,11 @@ public:
 	// chose has its own table). Kept for the dtor's save: NewGame deletes the widget only after the next
 	// board has replaced mApp->mBoard (SafeDeleteWidget).
 	std::string		mFileName;
+	// port(variant): "WATCH REPLAY" (stage 13, games/bejeweled/docs/CODE_MODS_DESIGN.md 8): with features.replays, for a
+	// game whose replay was written (ReplayRecorder::FinishedReplay), at the right of the SEED line's row (y 120),
+	// sliding with the panel like the play-again link. Hidden until Update finds the file written, NULL without the
+	// feature, so the screen stays the original's.
+	HyperlinkWidget* mWatchReplayLink;
 
 public:
 	static int		GetDayNumber();                                 // 0x4ced59 tm_year*366 + tm_yday (thiscall, this unused)

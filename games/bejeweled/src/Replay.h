@@ -50,11 +50,13 @@ enum
 	// masks, level shapes), which earlier engines played on the original 8x8, and the displayed score's fast roll
 	// with a mod's scoring tunables (Board::RollScoreFast). 4: stage 7b, dirt cells (board.mask "d"), which earlier
 	// engines played as holes, and their diagonal slides. 5: stage 8, board.gemColors 8..12, which earlier engines
-	// played as 7. 6: stage 9, the match rules (match.*), which earlier engines played as runs of 3. 7: stage 10, twists and
-	// slides (moves.type), which earlier engines played as swaps. The original rules are frozen, so a replay of them (no variant rule, no scoring tunable changed,
-	// at most 7 gem colours: GameRules::PlaysAlikeInEveryEngine) from an earlier engine still plays (CheckPlayable). games/bejeweled/tools/bjr.py repeats both
-	// values (the verifier's tests check that they agree)
-	ENGINE_ABI = 7,
+	// played as 7. 6: stage 9, the match rules (match.*), which earlier engines played as runs of 3. 7: stage 10,
+	// twists and slides (moves.type), which earlier engines played as swaps. 8: stage 11, flame and lightning gems
+	// (specials.*), which earlier engines never made. 9: stage 12, the gold board (gold.*), which earlier engines
+	// played as score levels. The original rules are frozen, so a replay of them (no variant rule, no scoring tunable
+	// changed, at most 7 gem colours: GameRules::PlaysAlikeInEveryEngine) from an earlier engine still plays
+	// (CheckPlayable). games/bejeweled/tools/bjr.py repeats both values (the verifier's tests check that they agree)
+	ENGINE_ABI = 9,
 	FIRST_ENGINE_ABI = 1,
 	MT_WORDS = 624,
 	RULES_ID_SIZE = 32,
@@ -210,6 +212,21 @@ std::string			Write(const File& theFile);
 // as it comes (5 KB each, MAX_SEGMENTS at most).
 bool				Read(const std::string& theBytes, File* theFile, std::string* theError = NULL);
 
+// A row of the replay browser (stage 13, ReplayBrowserDialog.h): META, the first segment's mode and seed, the
+// number of segments and END, from the records without their events, so a long replay costs no more than its
+// bytes. False for what is no replay (the magic, the format, a record past the end, no END of its size); whether
+// one plays is for Read and CheckPlayable to say.
+struct Summary
+{
+	std::string		mMeta;                      // "" without META
+	int				mSegments = 0;
+	int				mMode = 0;                  // the first segment's
+	bool			mHasSeed = false;           // the first segment's RNG starts from a seed (RNG_SEED) ...
+	uint32_t		mSeed = 0;                  // ... this one
+	EndInfo			mEnd;
+};
+bool				Peek(const std::string& theBytes, Summary* theSummary);
+
 // Building blocks, exposed for the tests
 void				PutVarint(std::string* theOut, uint64_t theValue);
 bool				GetVarint(const std::string& theBytes, size_t* thePos, size_t theEnd, uint64_t* theValue);
@@ -279,7 +296,9 @@ bool				CheckSave(const std::string& theSave, int theCols, int theRows, std::str
 //     GRAV  i32 flips, u8 noFlip (stage 7c)
 //     DIRT  u8 leftFirst, u8 layers[cols * rows] (stage 7b, row-major: a dirt cell's layers left, 0 elsewhere; a
 //           cell with layers is no gem cell of the mask, and one whose last layer went is)
-//   Later stages add KIND, GOLD and GTIM (7.2).
+//     KIND  u8 kinds[cols * rows] (stage 11, row-major: a gem's kind, 0 normal, 1 flame, 2 lightning; 0 where no gem)
+//     GOLD  u8 gold[cols * rows] (stage 12, row-major: 1 a gold cell, 0 elsewhere; gold only on a gem cell of the mask)
+//     GTIM  u32 ticksLeft, u32 limit (stage 12: the level's time, 0 0 for none)
 // A v1 save (version 1) has the v1 field sequence right after its version.
 enum
 {
@@ -307,12 +326,19 @@ struct VariantSave
 	                                            // level's mask has all its layers where the save's mask has no gem cell, else none
 	bool			mDiagonalLeftFirst = true;
 	std::vector<uint8_t> mDirtLayers;           // mCols * mRows, row-major
+	bool			mHasKinds = false;          // KIND (stage 11): written when the rules have specials; absent, every gem is normal
+	std::vector<uint8_t> mKinds;                // mCols * mRows, row-major
+	bool			mHasGold = false;           // GOLD and GTIM (stage 12): written when the rules have gold; absent, no cell is gold
+	std::vector<uint8_t> mGold;                 // mCols * mRows, row-major
+	bool			mHasGoldTime = false;       // GTIM; absent, the level's whole time
+	int32_t			mGoldTicksLeft = 0;
+	int32_t			mGoldTickLimit = 0;
 	size_t			mBodyStart = 0;             // ReadVariantSave: where the v1 field sequence starts (mTimedMode)
 	size_t			mBodyEnd = 0;               // and where the chunks start
 };
 
 // The bytes after the version up to the v1 field sequence, and the chunks after it (RNGS, MOVE, GRAV when mHasGravity,
-// DIRT when mHasDirt, END)
+// DIRT when mHasDirt, KIND when mHasKinds, GOLD and GTIM when mHasGold, END)
 std::string			VariantSaveHeader(const VariantSave& theSave);
 std::string			VariantSaveChunks(const VariantSave& theSave);
 

@@ -33,6 +33,7 @@ class AutoplayBot;
 class CodecCheck;
 class AudioCapture;
 class WatchController;
+class ReplayOverlay;
 
 // Dialog ids (SexyAppBase dialog map). YES/OK/footer presses arrive in ButtonDepress as 2000+id,
 // NO/CANCEL as 3000+id.
@@ -58,6 +59,14 @@ enum DialogId
 	DIALOG_CHECK_UPDATES = 17,          // never created; its YES ran DoUpdateCheck 0x4d68da (not ported)
 	DIALOG_UPDATE_CHECK = 18,           // UpdateCheckDialog (not ported)
 	DIALOG_ALREADY_REGISTERED = 19,
+	// port(variant): stage 13 (games/bejeweled/docs/CODE_MODS_DESIGN.md 4.10, 4.11, 8)
+	DIALOG_EXTRAS = 30,                 // ExtrasDialog
+	DIALOG_REPLAYS = 31,                // ReplayBrowserDialog
+	DIALOG_CONFIRM_WATCH = 32,          // leave the game in progress to watch a replay
+	DIALOG_REPLAY_END = 33,             // Watch again / Back
+	DIALOG_REPLAY_ERROR = 34,           // a replay that cannot be played
+	DIALOG_CONFIRM_SEED = 35,           // Play this seed over a game in progress
+	DIALOG_CONFIRM_DELETE = 36,         // delete a replay
 	DIALOG_UPDATE_AVAILABLE = 10018,    // UpdateCheckDialog result (mId+10000, YES_NO)
 	DIALOG_UP_TO_DATE = 20018           // UpdateCheckDialog result (mId+20000, FOOTER)
 };
@@ -164,8 +173,11 @@ public:
 	CodecCheck*		mCodecCheck;
 	std::string		mAudioCaptureFileName;
 	AudioCapture*	mAudioCapture;
-	WatchController* mWatch;                    // port(variant): -replay (NULL without)
+	WatchController* mWatch;                    // port(variant): -replay, or the last watch from the game (NULL without)
 	bool			mReplayQuit;                // port(variant): -replayquit
+	ReplayOverlay*	mReplayOverlay;             // port(variant): over the board while watching (NULL otherwise)
+	std::string		mPendingWatch;              // port(variant): the replay DIALOG_CONFIRM_WATCH asks about
+	uint32_t		mPendingPlaySeed;           // port(variant): the seed DIALOG_CONFIRM_SEED asks about
 	uint32_t		mNextValuesBoard;           // port(mods): the board ApplyNextGameValues last tried (Board::mBoardSerial)
 	int				mGemShrinkColors;           // port(variant): the colours mGemShrinkImages has images for
 
@@ -222,6 +234,27 @@ public:
 	// port(variant): set seed (games/bejeweled/docs/CODE_MODS_DESIGN.md 6.2): NewGame's choice of the new
 	// board's RNG
 	void			ChooseBoardRng();
+
+	// port(variant): watching from the game (stage 13; WatchController.h, ReplayOverlay.h). WatchReplay asks to leave
+	// a game in progress (theFromDialogs: Options, Extras and the replay browser close first); StartWatch watches
+	// thePath in place of the game or of the last watch; EndWatch goes back to the player's game (Back, Esc, New Game,
+	// a mode button). The controller calls OnWatchBoard for each playback board it makes and OnWatchEnded when the
+	// replay ends without -replayquit (REPLAY END).
+	void			WatchReplay(const std::string& thePath, bool theFromDialogs);
+	void			StartWatch(const std::string& thePath);
+	void			EndWatch();
+	void			OnWatchBoard();
+	void			OnWatchEnded();
+	void			RemoveReplayOverlay();
+	// port(variant): Extras (stage 13; ExtrasDialog.h, ReplayBrowserDialog.h): Options shows its button while a feature
+	// mod adds to it; Play this seed asks like New Game over a game in progress
+	bool			HasExtras();
+	void			ShowExtrasDialog();
+	void			ShowReplayBrowser();
+	void			PlaySeed(uint32_t theSeed);
+	void			StartSeedGame(uint32_t theSeed);
+	void			ConfirmDeleteReplay();
+	void			CloseExtras();                  // Options (as its Done), Extras and the browser
 
 	// port(variant): more gem colours (games/bejeweled/docs/CODE_MODS_DESIGN.md 4.2, GemSheet.h): before a board of
 	// theColors colours, the gem sheet gets the rows it lacks and the shrink images their colours

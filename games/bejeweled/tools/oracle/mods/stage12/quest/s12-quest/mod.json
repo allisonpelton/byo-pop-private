@@ -1,0 +1,13 @@
+{
+  "id": "s12-quest",
+  "name": "Stage 12: a twisted gold quest",
+  "version": "1.0",
+  "description": "Oracle fixture: the gold board on a 6x6 played with twists (both ways) and slides, with flame gems that gild only their own groups (gold.gild matches: a blast's gems do not turn gold) and undo.",
+  "rules": {
+    "board": { "cols": 6, "rows": 6 },
+    "moves": { "type": ["twist", "slide"], "twist": { "direction": "both" } },
+    "specials": { "flame": {} },
+    "gold": { "enabled": true, "gild": "matches" },
+    "undo": { "enabled": true }
+  }
+}

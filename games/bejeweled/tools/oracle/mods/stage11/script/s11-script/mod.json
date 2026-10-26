@@ -1,0 +1,7 @@
+{
+  "id": "s11-script",
+  "name": "Stage 11: specials from every run",
+  "version": "1.0",
+  "description": "Oracle fixture for the scripted games: every run of 3 keeps a flame gem and every run of 4 or more a lightning gem, so a script makes them at will.",
+  "rules": { "specials": { "flame": { "createdBy": ["run3"] }, "lightning": { "createdBy": ["run4"] } } }
+}

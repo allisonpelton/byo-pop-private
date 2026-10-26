@@ -1,0 +1,6 @@
+# Stage 13, run with -replay=replay.bjr -replayquit: the title screen's link starts the watch; 2 sets 2x (two board
+# updates a frame) at once, and the player quits when the replay ends. The quit below only stops a replay that never
+# ends.
+300 click 320 398
+301 char 2
+400000 quit

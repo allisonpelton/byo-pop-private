@@ -1,0 +1,11 @@
+{
+  "id": "s12-script",
+  "name": "Stage 12: gold for the scripted games",
+  "version": "1.0",
+  "description": "Oracle fixture for the scripted games: the gold board on a 6x6 with 90 seconds a level in Normal mode, and undo (the gold comes back with the board, the time does not).",
+  "rules": {
+    "board": { "cols": 6, "rows": 6 },
+    "gold": { "enabled": true, "timeLimit": { "normal": { "base": 90, "perLevel": 0, "min": 10 } } },
+    "undo": { "enabled": true }
+  }
+}

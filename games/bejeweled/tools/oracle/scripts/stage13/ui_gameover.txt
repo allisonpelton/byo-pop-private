@@ -1,0 +1,22 @@
+# Stage 13, with mods/stage3/replays: stage 0's nomoves_normal.txt to its game over (the replay is written when the
+# game ends) and the name dialog (Cancel); then the high-score screen's WATCH REPLAY link watches that game at once
+# (no game in progress), 4 at 8x, Back at its end: a new game.
+4 click 320 398
+152 click 386 143
+178 click 322 149
+262 click 333 303
+270 click 276 299
+392 click 488 40
+395 click 483 86
+512 click 433 140
+525 click 483 139
+693 click 270 197
+707 click 272 220
+1330 click 476 207
+1340 screenshot shots/g01_link.png
+1360 click 540 116
+1370 char 4
+1600 screenshot shots/g02_end.png
+1610 click 476 153
+1700 screenshot shots/g03_back.png
+1800 quit

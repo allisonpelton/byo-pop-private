@@ -840,6 +840,7 @@ void Board::SetupLevel()
 	mLevelPoints = (int)(aPoints * mPointMultiplier);
 	mTimeDrainRate = (mApp->mTimeDrainPerLevel * aLevel + mApp->mTimeDrainBase) * mPointMultiplier;
 	mTimeDrainAccel = (aLevel * mApp->mTimeDrainAccelPerLevel + mApp->mTimeDrainAccelBase) * mPointMultiplier;
+	if (mVariant.mGold) SetupLevelGold(); // port(variant): no gold yet, the level's time (BoardGold.cpp)
 }
 
 // 0x4cb182

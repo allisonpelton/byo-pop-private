@@ -111,6 +111,18 @@
 # Stage 10 (twists and slides) plays the rule mods of mods/stage10: twists, slides, both with swaps, kept without a
 # group and on the diamond by the bot, a scripted game saved in the middle of a twist and resumed, recorded and played
 # back (compare.py "variant" with "moves"). Left out the same way.
+# Stage 11 (flame and lightning gems) plays the rule mods of mods/stage11: Bejeweled 2's specials, specials from
+# crossings that chain, from the move only, with twists and slides and with dirt by the bot, a scripted game quit with
+# specials on the board and resumed, recorded and played back (compare.py "variant" with "specials"). Left out the
+# same way.
+# Stage 12 (the gold board) plays the rule mods of mods/stage12: gold on small boards by turns, against the clock in
+# both modes, under dirt, with specials, with twists and slides by the bot, a scripted game with an undo quit with gold
+# on the board and resumed, recorded and played back (compare.py "variant" with "gold"). Left out the same way.
+# Stage 13 (the watch in the game, the Extras dialog) plays recordings at 2x, 4x and 8x and through the watch's keys
+# (compare.py "playback" with "speed"), and the game's own dialogs: Options -> Extras -> Replays..., Watch, the end
+# dialog's Watch again and Back, a game in progress left to watch and resumed, Keep, Delete and a replay that cannot be
+# played, the high-score screen's WATCH REPLAY link (compare.py "ui"), and Play this seed (compare.py "seeded"). In
+# every build.
 #
 # The frozen exes (build/baseline, build/baseline-stage0) predate the audio shutdown fix (af758b9) and can
 # crash on exit after writing all their outputs: a baseline or hooks-baseline run that exits 139 or with an
@@ -1136,10 +1148,10 @@ define_cases() {
 		# Hint on a "continue" board without a move: no penalty, no sparkle, no idle glow (s5-free0 keeps the score)
 		variant free_hint "-gameseed=$GS, mods/stage5/free0: a match (10), kept swaps to a board without a move (\"continue\"): Hint there costs nothing, no idle glow" \
 			"kept=6;continue=1;v2=last;boards=user;gameseed=$GS" 1 "$S5/free_hint.txt" modsdir="$M5/free0" arg=-gameseed=$GS
-		# gold.enabled alone: the gold rule is not played yet, but its derived noMoves.normal "fallOut" is, and
-		# mods-status.json says so
-		variant gold_status "mods/stage5/gold (gold.enabled alone): a variant board; mods-status.json says its noMoves.normal \"fallOut\" is played" \
-			"nosave;warn=the gold rule is not played yet, but with it noMoves.normal defaults to" 1 "$PT/stage2/seed_start.txt" modsdir="$M5/gold"
+		# gold.enabled alone: until stage 12 only its derived noMoves.normal "fallOut" played, and mods-status.json said
+		# so; since then it is the gold board (no gold yet on the first board) and nothing is warned
+		variant gold_status "mods/stage5/gold (gold.enabled alone): the gold board on the full 8x8, none of it gold yet; mods-status.json warns nothing" \
+			"nosave;nowarn;gold=0,1" 1 "$PT/stage2/seed_start.txt" modsdir="$M5/gold"
 		variant free_auto "-autoplay=1, mods/stage5/free, 20000 updates: the bot's random swaps are kept, boards without a move go on (\"continue\")" \
 			"kept=20;continue=2;v2" 1 - modsdir="$M5/free" arg=-autoplay=1 "${FREEBOT[@]}"
 		variant free_auto_timed "-autoplay=2 -autoplaytimed, mods/stage5/free, 20000 updates: \"continue\" in timed mode" \
@@ -1375,8 +1387,89 @@ define_cases() {
 			"trace=rec_moves_auto_timed" "$C/rec_moves_auto_timed/user/savegame-*.bjr"
 		playback watch_moves_resume "rec_moves_quit.resume's sidecar: the second segment LOADs the save made in the twist" \
 			"trace=rec_moves_quit,rec_moves_quit.resume" "$C/rec_moves_quit.resume/user/savegame-*.bjr"
+
+		# Stage 11: flame and lightning gems (games/bejeweled/docs/CODE_MODS_DESIGN.md 4.8). The rule mods of mods/stage11:
+		# s11-b2 (Bejeweled 2's: a run of 4 keeps a flame, a run of 5 or more lightning), s11-rich (merged crossings: an L,
+		# T or plus keeps lightning, a run of 4 a flame of radius 2; made in cascades too, chained), s11-move (a flame of
+		# radius 3, made by the move's own groups only, no chain), s11-twist (with twists and slides), s11-dirt (stage 7b's
+		# dirt, which blasts clear a layer off) and s11-script (every run of 3 keeps a flame, of 4 lightning). The bot plays
+		# each one; compare.py "variant" with specials= checks every settle's counts and specials line and that the board
+		# made them and set them off (rich's timed game only makes them: the level wipes take them first), and moves= or
+		# match= that no group is left in a settled grid. A scripted game (-gameseed) makes flame and lightning gems, sets a
+		# flame off that takes three more, and quits with specials on the board; its resume reads them back from the KIND
+		# chunk (after=) and sets them all off with one lightning gem. Recorded and played back (engine 8).
+		M11="$GAME/tools/oracle/mods/stage11"
+		S11="$PT/stage11"
+		variant specials_b2_auto "-autoplay=1, mods/stage11/b2, 20000 updates: Bejeweled 2's flame and lightning gems" \
+			"moves=swap;specials=5,0,2" 1 - modsdir="$M11/b2" arg=-autoplay=1 "${SHAPEBOT[@]}"
+		variant specials_rich_auto_timed "-autoplay=2 -autoplaytimed, mods/stage11/rich, 20000 updates: specials from crossings (an L keeps lightning)" \
+			"match=stage11/rich;specials=1,1,0" 1 - modsdir="$M11/rich" arg=-autoplay=2 arg=-autoplaytimed "${SHAPEBOT[@]}"
+		variant specials_move_auto "-autoplay=1, mods/stage11/move, 20000 updates: specials from the move's groups only, no chain" \
+			"moves=swap;specials=1,0,1" 1 - modsdir="$M11/move" arg=-autoplay=1 "${SHAPEBOT[@]}"
+		variant specials_twist_auto "-autoplay=1, mods/stage11/twist, 20000 updates: specials with twists and slides" \
+			"moves=twist+slide;twist=both;specials=5,1,5" 1 - modsdir="$M11/twist" arg=-autoplay=1 "${SHAPEBOT[@]}"
+		variant specials_dirt_auto "-autoplay=1, mods/stage11/dirt, 20000 updates: blasts take dirt layers off" \
+			"dirt=4:7;specials=1,0,1" 1 - modsdir="$M11/dirt" arg=-autoplay=1 "${SHAPEBOT[@]}"
+		variant specials_quit "-gameseed=$GS, mods/stage11/script: flame and lightning gems made and set off; the quit with specials on the board" \
+			"moves=swap;specials=5,1,4;v2=last" 1 "$S11/specials_quit.txt" modsdir="$M11/script" arg=-gameseed=$GS
+		variant specials_quit.resume "specials_quit's user dir: Yes resumes with the save's specials (KIND), which then go off" \
+			"moves=swap;specials=3,2,5;after=specials_quit" 1 "$S11/specials_resume.txt" from=specials_quit modsdir="$M11/script"
+		# Recorded (mods/stage11/b2-replays and script-replays: those with stage 3's replays feature mod) and played back
+		recording rec_specials_b2_auto "specials_b2_auto recorded: flame and lightning gems in a replay" \
+			specials_b2_auto 1 - modsdir="$M11/b2-replays" arg=-autoplay=1 "${SHAPEBOT[@]}"
+		recording rec_specials_quit "specials_quit recorded: the sidecar next to the v2 save with its KIND chunk" \
+			specials_quit 1 "$S11/specials_quit.txt" modsdir="$M11/script-replays" arg=-gameseed=$GS
+		recording rec_specials_quit.resume "specials_quit.resume in a copy of rec_specials_quit's user dir: the sidecar goes on" \
+			specials_quit.resume 1 "$S11/specials_resume.txt" from=rec_specials_quit modsdir="$M11/script-replays"
+		playback watch_specials_b2_auto "rec_specials_b2_auto's sidecar (saved at the cap): the same specials and blasts again" \
+			"trace=rec_specials_b2_auto" "$C/rec_specials_b2_auto/user/savegame-*.bjr"
+		playback watch_specials_resume "rec_specials_quit.resume's sidecar: the second segment LOADs the save with specials on the board" \
+			"trace=rec_specials_quit,rec_specials_quit.resume" "$C/rec_specials_quit.resume/user/savegame-*.bjr"
+		# Stage 12: the Jewel Quest gold board (games/bejeweled/docs/CODE_MODS_DESIGN.md 4.9). The rule mods of
+		# mods/stage12: s12-small (untimed, a 6x6 without its corners and a 5x5 by turns), s12-timed (10 s a level in
+		# Normal mode; in Timed mode 120 s, 50 fewer each level after, 50 points a second left), s12-dirt (dirt cells count
+		# toward the goal), s12-specials (Bejeweled 2's specials, whose blasts gild), s12-quest (twists and slides, flame
+		# gems that gild only their groups, undo) and s12-script (90 s a level in Normal mode, undo). The bot plays each;
+		# compare.py "variant" with gold= checks every settle's gold counts and gold line, that the gold stays within a
+		# level, that a level ends only with all of its gold and the next starts with none ("timeup": the clock ends the
+		# game). A scripted game gilds nineteen cells, undoes a move (the gold comes back, the time runs on), makes it
+		# again and quits; its resume reads the gold and the time left back from the GOLD and GTIM chunks (after=). Since
+		# stage 12 the stage 5 case gold_status is a gold board too. Recorded and played back (engine 9).
+		M12="$GAME/tools/oracle/mods/stage12"
+		S12="$PT/stage12"
+		variant gold_small_auto "-autoplay=1, mods/stage12/small, 20000 updates: gold on the 6x6 and the 5x5 by turns, a level done" \
+			"gold=32,2" 1 - modsdir="$M12/small" arg=-autoplay=1 "${SHAPEBOT[@]}"
+		variant gold_timeup_auto "-autoplay=1, mods/stage12/timed: 10 seconds a level in Normal mode, TIME UP before the gold is done" \
+			"gold=10,1;timeup" 1 - modsdir="$M12/timed" arg=-autoplay=1 "${SHAPEBOT[@]}"
+		variant gold_timed_auto_timed "-autoplay=2 -autoplaytimed, mods/stage12/timed, 20000 updates: a level done in time (50 points a second left), then 70 seconds" \
+			"gold=36,2" 1 - modsdir="$M12/timed" arg=-autoplay=2 arg=-autoplaytimed "${SHAPEBOT[@]}"
+		variant gold_dirt_auto "-autoplay=1, mods/stage12/dirt, 20000 updates: dirt cells count toward the gold, gilded once cleared" \
+			"dirt=3:4;gold=45,1" 1 - modsdir="$M12/dirt" arg=-autoplay=1 "${SHAPEBOT[@]}"
+		variant gold_specials_auto "-autoplay=1, mods/stage12/specials, 20000 updates: blasts gild the cells of the gems they take" \
+			"moves=swap;specials=2,0,1;gold=45,1" 1 - modsdir="$M12/specials" arg=-autoplay=1 "${SHAPEBOT[@]}"
+		variant gold_quest_auto "-autoplay=1, mods/stage12/quest, 20000 updates: gold with twists and slides, flames that gild only their groups" \
+			"moves=twist+slide;twist=both;specials=5,0,5;gold=36,2" 1 - modsdir="$M12/quest" arg=-autoplay=1 "${SHAPEBOT[@]}"
+		variant gold_quit "-gameseed=$GS, mods/stage12/script: nineteen cells gilded, an undo (the gold back, the time on), the move again; the quit with gold and time" \
+			"moves=swap;undos=1;gold=19,1;v2=last" 1 "$S12/gold_quit.txt" modsdir="$M12/script" arg=-gameseed=$GS
+		variant gold_quit.resume "gold_quit's user dir: Yes resumes with the save's gold and time left (GOLD, GTIM), and gilds on" \
+			"moves=swap;gold=22,1;after=gold_quit" 1 "$S12/gold_resume.txt" from=gold_quit modsdir="$M12/script"
+		# Recorded (mods/stage12/*-replays: those with stage 3's replays feature mod) and played back
+		recording rec_gold_small_auto "gold_small_auto recorded: the gold board's levels in a replay" \
+			gold_small_auto 1 - modsdir="$M12/small-replays" arg=-autoplay=1 "${SHAPEBOT[@]}"
+		recording rec_gold_timeup_auto "gold_timeup_auto recorded: a finished replay that ends in a gold level's TIME UP" \
+			gold_timeup_auto 1 - modsdir="$M12/timed-replays" arg=-autoplay=1 "${SHAPEBOT[@]}"
+		recording rec_gold_quit "gold_quit recorded: the sidecar next to the v2 save with its GOLD and GTIM chunks" \
+			gold_quit 1 "$S12/gold_quit.txt" modsdir="$M12/script-replays" arg=-gameseed=$GS
+		recording rec_gold_quit.resume "gold_quit.resume in a copy of rec_gold_quit's user dir: the sidecar goes on" \
+			gold_quit.resume 1 "$S12/gold_resume.txt" from=rec_gold_quit modsdir="$M12/script-replays"
+		playback watch_gold_small_auto "rec_gold_small_auto's sidecar (saved at the cap): the same gold and levels again" \
+			"trace=rec_gold_small_auto" "$C/rec_gold_small_auto/user/savegame-*.bjr"
+		playback watch_gold_timeup_auto "rec_gold_timeup_auto's replay: the same game to its TIME UP (END gold time up)" \
+			"trace=rec_gold_timeup_auto" "$C/rec_gold_timeup_auto/user/replays/*.bjr"
+		playback watch_gold_resume "rec_gold_quit.resume's sidecar: the second segment LOADs the save with its gold and time" \
+			"trace=rec_gold_quit,rec_gold_quit.resume" "$C/rec_gold_quit.resume/user/savegame-*.bjr"
 	else
-		echo "$VTAG  (the candidate has no variant paths: the stage-5, 6, 7, 7c, 7b, 9 and 10 cases are left out)"
+		echo "$VTAG  (the candidate has no variant paths: the stage-5, 6, 7, 7c, 7b, 9, 10, 11 and 12 cases are left out)"
 	fi
 
 	# Stage 8: more gem colours (games/bejeweled/docs/CODE_MODS_DESIGN.md 4.2), a tunable every build plays. sheet.txt
@@ -1409,6 +1502,37 @@ define_cases() {
 		colors_auto_timed 1 - modsdir="$M8/twelve-replays" arg=-autoplay=2 arg=-autoplaytimed "${COLORBOT[@]}"
 	playback watch_colors_auto_timed "rec_colors_auto_timed's sidecar watched without the mod: its rules grow the sheet to 12" \
 		"trace=rec_colors_auto_timed" "$C/rec_colors_auto_timed/user/savegame-*.bjr"
+
+	# Stage 13: the watch in the game and the Extras dialog (games/bejeweled/docs/CODE_MODS_DESIGN.md 4.10, 4.11). The
+	# speeds: the per-frame hooks see a settle only when a frame ends on it, so compare.py "speed" leaves out the TRACE
+	# settles and checks the REPLAY end line, which the controller writes after matching every CHECK and END. The
+	# dialogs' flows run with mods/stage3/replays (in a copy of rec_decline's user dir: two finished replays, no save),
+	# the seed field with mods/stage2/entry.
+	S13="$PT/stage13"
+	playback watch_main_timed_2x "rec_main's timed game at 2x" "speed" "$C/rec_main/user/replays/*-timed-*.bjr" \
+		script="$S13/watch_2x.txt"
+	playback watch_load_4x "rec_load's two-segment sidecar at 4x" "speed" "$C/rec_load/user/savegame.bjr" script="$S13/watch_4x.txt"
+	playback watch_autoplay_timed_8x "rec_autoplay_timed's replay at 8x: the bot's timed game to time up on level 10" "speed" \
+		"$C/rec_autoplay_timed/user/replays/*.bjr" script="$S13/watch_8x.txt"
+	playback watch_level_steps "rec_level's sidecar through the keys: pause, a click, next move three times, 2x, 8x" "speed" \
+		"$C/rec_level/user/savegame.bjr" script="$S13/watch_steps.txt"
+	# ui <case> <description> <flags> <seed> <script> [options]
+	ui() {
+		local name=$1 desc=$2 flags=$3
+		shift 3
+		printf '%s\t%s\t%s\t%s\n' "$name" ui "$desc" "$flags" >> "$OUT/cases.txt"
+		run candidate "$name" "$@"
+	}
+	ui ui_watch "Extras -> Replays..., Watch at 8x, Watch again, Back: a new game" "ends=ok,ok;replays=2" 1 "$S13/ui_watch.txt" \
+		from=rec_decline modsdir="$M3"
+	ui ui_watch_resume "a move, then Watch: the question, the replay, Back: the game left to watch resumes" \
+		"ends=ok;resume;replays=2" 1 "$S13/ui_watch_resume.txt" from=rec_decline modsdir="$M3"
+	ui ui_keep_delete "the fake replays: Keep, Delete (asked), a Keep refused, Watch: the error dialog" \
+		"ends=unplayable;replays=9" 1 "$S13/ui_keep_delete.txt" fakereplays modsdir="$M3"
+	ui ui_gameover "no moves, the name dialog, the high-score screen's WATCH REPLAY at 8x, Back: a new game" \
+		"ends=ok;replays=1" 1 "$S13/ui_gameover.txt" modsdir="$M3"
+	seeded ui_seed "Extras: 4242 in the seed field, Play this seed over a game in progress (asked), Extras again, 0 refused" \
+		"boards=-,user;gameseed=$GS" 1 "$S13/ui_seed.txt" modsdir="$GAME/tools/oracle/mods/stage2/entry"
 
 	# Stage 4: the headless verifier and the web build under Node (games/bejeweled/tools/verify/oracle_cases.sh): the
 	# drift guard on every replay above, the verifier's tests and difftest, LOGIC hashes of the web build

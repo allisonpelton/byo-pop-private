@@ -1,0 +1,23 @@
+# Stage 12, run with -gameseed=4242 and mods/stage12/script (s12-script: the gold board on a 6x6, 90 seconds a level
+# in Normal mode, undo). The 6x6 has no tutorial; the moves stay below the first game's instructions box.
+300 click 320 398
+520 screenshot shots/g01_settled.png
+# A: (5,2) into (5,3): a run of 3 in column 5, and a cascade in row 0: five cells gold
+560 click 533 193
+562 click 533 244
+# B: (3,3) into (3,4): a run of 3 in row 3, and a cascade in column 1: ten
+760 click 431 244
+762 click 431 295
+# C: (4,2) into (3,2): a run of 3 in column 4, and cascades: nineteen
+960 click 482 193
+962 click 431 193
+1200 screenshot shots/g02_gold.png
+# z: the undo brings back B's board with its ten gold cells; the time runs on (undo.restoreTime is off)
+1240 char z
+1300 screenshot shots/g03_undone.png
+# C again: the same refill (undo.restoreRng), the nineteen gold cells again
+1320 click 482 193
+1322 click 431 193
+1580 screenshot shots/g04_again.png
+# The quit with gold on the board and time on the clock: the v2 save's GOLD and GTIM chunks hold them
+1600 quit
