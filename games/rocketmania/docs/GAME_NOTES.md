@@ -52,11 +52,13 @@ levels). The port keeps them under the user folder as `Players/save?.dat`.
 
 141 functions, 60 KB, 0x41ae80 to 0x429ed0. Fields are the original's offsets.
 
-- The grid is 9 columns (board+0x4e8) by 6 rows (board+0x4e4) of 42 by 42 cells: x = 250 + 42 column (0x4220e0), y = 78 +
-  42 row (0x422100). The cells' objects (0xb8 bytes each, constructor 0x41ad90, which gets a random spin of -5 to 5 in
-  its field +0x18) are at board+0x114 + (column * 6 + row) * 4. Outside the grid there are three more rows of objects:
-  board+0x1ec (6, down the left edge, drawn only in arcade mode by 0x41e3e0), board+0x208 (9, along the top, drawn by
-  0x41ec20 at row 0) and board+0x22c (9, along the bottom, drawn at the last row); board+0x204 is one more object.
+- The grid is 6 columns (board+0x4e4) by 9 rows (board+0x4e8) of 42 by 42 cells (corrected 2026-10-26: the first notes had
+  them the other way round; 0x422620 and 0x422a90 take x from piece+0x54, the column, and y from piece+0x50, the row):
+  x = 250 + 42 column (0x4220e0), y = 78 + 42 row (0x422100). The cells' objects (0xb8 bytes each, constructor 0x41ad90,
+  which gets a random spin of -5 to 5 in its field +0x18) are at board+0x114 + (row * 6 + column) * 4. Around the grid
+  are the lines of edge objects: board+0x1ec (6, above the first row, the tiles that wait to fall in arcade mode), board+0x208
+  (9, the left, column -1: where the fuses start) and board+0x22c (9, the right, column 6: the rocket launchers);
+  board+0x204 is one more object (the spare tile).
 - The Board's constructor (0x41ae80) makes a random generator (0x9c4 bytes, the framework's MTRand-like class), the
   pieces' generator `0x42a510` (0x74 bytes: tile distribution tables at 0x4e6800 and 0x4e6828, filled by 0x42a460 from the
   difficulty and level), a 0x14-byte fireworks manager (0x41a830) and an 0x18-byte object (0x413aa0), then runs the two
@@ -90,3 +92,25 @@ using them has been read. Translate in address order, one group at a time, each 
 
 The pieces' pictures are the app's mPieces[kind 0..4][rotation 0..3][variant 0..6] (app+0x5f8; the original reads
 `app+0x610 + (rotation + kind * 4) * 0x1c`, which is variant 6, the grey one, used for the edge pieces).
+
+### Status of the Board translation (2026-10-26, commit "Board rules")
+
+Translated and compiling (BoardLogic.cpp, BoardLogic2.cpp, Board.h; nothing runs them yet, StartBoard is still a stub):
+the generator class 0x42a460-0x42adf0, Points 0x429ed0-0x42a2d0, ResetState 0x422120, AddRight 0x422390, ClearBoard 0x422460,
+SetupBoard 0x422620, DropPiece/SettleAll 0x422a90-0x422bc0, NewTop 0x422c50, LevelEffect/Burst/BurstSome/ComboSound/BonusFor
+0x422d30-0x4231a0, SmokePuff/DestroySpecial 0x423200-0x423270, MakeSpecial/MaybeSpecial/FindFreeTile/AttachBomb/AttachSpecial10
+0x423b00-0x423e20, DropTop/DropTopTimed 0x424010-0x424180, AddText/AddScoreText/CountBurning/Ping 0x424370-0x424700,
+UpdatePieces 0x424730, Flood 0x4251b0, StartBurn/Launch/AddScore/MakeFlame/MakeMarker/MakeRocket/FinishBurn/Ignite/
+ResolveLaunch 0x425410-0x425e30, BothEnds/Trace/TraceUp/Connections 0x426030-0x426370, SmoothFraction/NightTimer/Timers
+0x426580-0x426860, AllTiles 0x426eb0, Bounce/HitBombs 0x427830-0x427910, PieceAtPoint/LowestEmpty/MovePiece/Shock/RemovePiece
+0x427ab0-0x427d00, AddMover/EraseMover/AddFlash 0x427f90-0x428100. BoardShell.cpp has the constructor and stubs for what is
+not read yet (marked with their addresses).
+
+Not yet read or translated: Update 0x426f40 (the order Connections, Timers, UpdatePieces and the effects is expected),
+the input handlers 0x4282a0-0x428780 and 0x428ae0-0x429460 (incl. 0x428d10, 0x428de0, 0x428ef0, 0x429050/60/80), Draw 0x41f540
+with its helpers, Save/Load 0x41b430-0x41c830, the fireworks (Rocket 0x4172f0), the talking head, the dialogs 0x4064e0
+0x411ba0 0x414060 0x40c2c0 0x4118d0 0x401010 0x403990 0x408f60, high scores, the game-to-menu return.
+
+Hidden arguments the decompiler drops (found with tools/callargs.py): 0x4259c0 AddScore(int), 0x423120 ComboSound(double x,
+double y). Guesses still to verify against the original at the first run: PlaySample ids against Res.h's SOUND_ enum, the
+float-up of Points, m84, DropTopTimed's use of m4c.
