@@ -27,6 +27,19 @@ struct List
 	T* tail;
 };
 
+// A node's links, as the list's own type (kinds that extend Obj keep Obj links)
+template <class T>
+T* Node_Next(T* theNode)
+{
+	return static_cast<T*>(theNode->next);
+}
+
+template <class T>
+T* Node_Prev(T* theNode)
+{
+	return static_cast<T*>(theNode->prev);
+}
+
 // 0x4108b0 and the like
 template <class T>
 void List_Init(List<T>* theList)
@@ -72,12 +85,12 @@ bool List_RemoveCurrent(List<T>* theList)
 	T* aNode = theList->current;
 	if (aNode == nullptr)
 		return false;
-	T* aPrev = aNode->prev;
+	T* aPrev = Node_Prev(aNode);
 	if (aPrev == nullptr)
 	{
 		if (aNode->next != nullptr)
 		{
-			T* aNext = aNode->next;
+			T* aNext = Node_Next(aNode);
 			aNext->prev = nullptr;
 			theList->current = aNext;
 			theList->head = aNext;
@@ -89,7 +102,7 @@ bool List_RemoveCurrent(List<T>* theList)
 	{
 		aPrev->next = aNode->next;
 		aNode->next->prev = aNode->prev;
-		theList->current = aNode->next;
+		theList->current = Node_Next(aNode);
 		List_DeleteNode(aNode);
 		return true;
 	}
@@ -106,6 +119,47 @@ bool List_RemoveCurrent(List<T>* theList)
 		theList->tail = aPrev;
 	}
 	List_DeleteNode(aNode);
+	return true;
+}
+
+// 0x40b0f0: List_RemoveCurrent for nodes the list does not own (the particle pools): unlinks without deleting
+template <class T>
+bool List_Unlink(List<T>* theList)
+{
+	T* aNode = theList->current;
+	if (aNode == nullptr)
+		return false;
+	T* aPrev = Node_Prev(aNode);
+	if (aPrev == nullptr)
+	{
+		if (aNode->next != nullptr)
+		{
+			T* aNext = Node_Next(aNode);
+			aNext->prev = nullptr;
+			theList->current = aNext;
+			theList->head = aNext;
+			return true;
+		}
+	}
+	else if (aNode->next != nullptr)
+	{
+		aPrev->next = aNode->next;
+		aNode->next->prev = aNode->prev;
+		theList->current = Node_Next(aNode);
+		return true;
+	}
+	if (aPrev == nullptr)
+	{
+		theList->current = nullptr;
+		theList->head = nullptr;
+		theList->tail = nullptr;
+	}
+	else
+	{
+		aPrev->next = nullptr;
+		theList->current = aPrev;
+		theList->tail = aPrev;
+	}
 	return true;
 }
 
@@ -143,7 +197,7 @@ void List_Each(List<T>* theList, F theFunc)
 				theList->current = theList->head;
 				return;
 			}
-			theList->current = aNode->next;
+			theList->current = Node_Next(aNode);
 		}
 	}
 }

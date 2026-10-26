@@ -43,6 +43,8 @@ const char* Xml_ReadToken(const char* p, char* out, int limit, int* count);
 const char* Xml_GetString(const XmlTag* theTag, const char* theName);
 // 0x4013f0: an attribute's value through atol, or 0
 int Xml_GetInt(const XmlTag* theTag, const char* theName);
+// 0x404f30: an attribute's value through atof, or 0
+double Xml_GetFloat(const XmlTag* theTag, const char* theName);
 // 0x41e970: forgets the tag and frees its attributes
 void Xml_Reset(XmlTag* theTag);
 

@@ -267,4 +267,19 @@ int Xml_GetInt(const XmlTag* theTag, const char* theName)
 	return 0;
 }
 
+double Xml_GetFloat(const XmlTag* theTag, const char* theName)
+{
+	int i = 0;
+	if (0 < theTag->count)
+	{
+		do
+		{
+			if (std::strcmp(theName, theTag->attrs[i].name) == 0)
+				return std::atof(theTag->attrs[i].value);
+			i++;
+		} while (i < theTag->count);
+	}
+	return 0.0;
+}
+
 } // namespace r64

@@ -182,4 +182,40 @@ void Obj_ClearChildren(List<Obj>* theList)
 	List_Clear(theList);
 }
 
+void Obj_Copy(Obj* theObj, const Obj* theFrom)
+{
+	theObj->kind = theFrom->kind;
+	theObj->state = theFrom->state;
+	theObj->x = theFrom->x;
+	theObj->y = theFrom->y;
+	theObj->depth = theFrom->depth;
+	theObj->oldX = theFrom->oldX;
+	theObj->oldY = theFrom->oldY;
+	theObj->vx = theFrom->vx;
+	theObj->vy = theFrom->vy;
+	theObj->unk2c = theFrom->unk2c;
+	theObj->r = theFrom->r;
+	theObj->g = theFrom->g;
+	theObj->b = theFrom->b;
+	theObj->alpha = theFrom->alpha;
+	theObj->image = theFrom->image;
+	theObj->drawKind = theFrom->drawKind;
+	theObj->dirty = theFrom->dirty;
+	theObj->lifetime = theFrom->lifetime;
+	theObj->anim = theFrom->anim;
+	theObj->frame = theFrom->frame;
+	theObj->frameCount = theFrom->frameCount;
+	theObj->frameTime = theFrom->frameTime;
+	theObj->frameTimer = theFrom->frameTimer;
+	theObj->fade = theFrom->fade;
+	theObj->shadow = theFrom->shadow;
+	theObj->unk94 = theFrom->unk94;
+	theObj->unk98 = theFrom->unk98;
+	theObj->unk9c = theFrom->unk9c;
+	theObj->oneShot = theFrom->oneShot;
+	theObj->unka4 = theFrom->unka4;
+	theObj->unka8 = theFrom->unka8;
+	theObj->midHandle = theFrom->midHandle;
+}
+
 } // namespace cb

@@ -66,7 +66,11 @@ void Obj_Draw(Obj* theObj);                                      // 0x40ec70: on
 void Obj_UpdateEmitters(Obj* theObj);                            // 0x40ee40
 void Obj_ClearChildren(List<Obj>* theList);                      // 0x40f040
 
-int Emitter_Update(Obj* theEmitter);                             // 0x40b7d0
+// 0x40e3c0: the fields a copy of an object takes (not the links, lists, tint, age, frame step or loop)
+void Obj_Copy(Obj* theObj, const Obj* theFrom);
+
+// 0x40b7d0 (CBEmitter.cpp; its result, the new particle system, goes unused)
+void Emitter_Update(Obj* theEmitter);
 
 // The screen the game draws on (gScreenBits 0x46e394 and its pitch), set by the host each frame
 extern uint8_t* gScreenBits;
