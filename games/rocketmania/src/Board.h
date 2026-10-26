@@ -27,6 +27,7 @@ namespace Sexy
 {
 
 class RocketApp;
+class WidgetManager;
 class MTRand;
 class Graphics;
 class Buffer;
@@ -160,6 +161,7 @@ public:
 	int			FullestMeter();                         // 0x42ada0
 	void		RaiseMeter(int theRow);                 // 0x42add0
 	bool		AllMetersFull();                        // 0x42adf0
+	int			Upgrades(int theCoins, int theMode, int theIndex);   // 0x42ae10: how many launchers the coins upgrade (mode 0), or the launcher of the n-th upgrade (mode 1)
 };
 
 // 0x429ed0: the floating text (points, messages) made by the board; 0x98 bytes. It floats up one pixel every third
@@ -267,6 +269,8 @@ public:
 	// Widget
 	virtual void	Update() override;
 	virtual void	Draw(Graphics* g) override;
+	virtual void	RemovedFromManager(WidgetManager* theWidgetManager) override;   // 0x424260
+	virtual void	OrderInManagerChanged() override;                               // 0x424340
 	virtual void	ButtonDepress(int theId) override;
 	virtual void	KeyChar(SexyChar theChar) override;                     // 0x427a90
 	virtual void	MouseLeave() override;                                  // 0x4285b0
@@ -377,6 +381,7 @@ public:
 	void			ShowBuyRockets();                                      // 0x428620
 	void			F4286b0();                                             // 0x4286b0: after the level-up screen, the question of the next level
 	SexyString		RankName(int* theRank, int* thePointsToNext);          // 0x428ca0: the rank of the score, how far the next one is
+	void			NextLevel();                                           // 0x428bc0: the level after the buy-rockets screen
 	void			ShowLevelUp(int theKind);                              // the level-up dialog (0x40c2c0) as the board opens it
 	void			F428de0(int theValue);
 	void			F421de0(int theKind);

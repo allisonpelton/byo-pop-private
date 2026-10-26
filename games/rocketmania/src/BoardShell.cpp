@@ -8,6 +8,7 @@
 #include "MusicInterface.h"
 #include "Compat2004.h"
 #include "Dialogs.h"
+#include "BuyRockets.h"
 #include "GameText.h"
 #include "Graphics.h"
 #include "Image.h"
@@ -278,8 +279,8 @@ void Board::F428090()
 }
 
 // 0x421de0: the game is over (theKind 0 the night ran out, 1 the top line is full, 2 strategy mode ran out of moves).
-// Left out: the talking head's lines (0x416aa0, 0x416360) and the
-// buy-rockets screen (BuyRocketsWidget 0x401010, which the original adds over the board).
+// The talking head's lines (0x416aa0 with 0x37 for kinds 1 and 2, with 0x3b for the night; 0x416360 mood 13 or 6) are not
+// translated yet. The buy-rockets screen goes up in its game-over form: the coins turn into points.
 void Board::F421de0(int theKind)
 {
 	m460 = theKind;
@@ -288,6 +289,9 @@ void Board::F421de0(int theKind)
 	mApp->mMusicInterface->FadeOut(SONG_GAME, true, 0.02);
 	mApp->mMusicInterface->FadeIn(SONG_GAMEOVER, -1, 0.02, false);
 	mApp->PlaySample(0x24);
+	BuyRocketsWidget* aWidget = new BuyRocketsWidget(mApp, true);
+	aWidget->Resize(0, 0, mWidth, mHeight);
+	mWidgetManager->AddWidget(aWidget);
 }
 
 // 0x429050, 0x429060, 0x429080: the count of the flames that were lit for one launch; when the launch is done
@@ -320,9 +324,69 @@ void Board::F41f280(int theIndex)
 	mApp->PlaySample(4);
 }
 
-// 0x428620: the buy-rockets screen goes up over the board (not translated yet)
+// 0x428620: the buy-rockets screen goes up over the board; the board keeps it (m4e0) and takes it away when the next level
+// begins (NextLevel) or when it goes itself
 void Board::ShowBuyRockets()
 {
+	BuyRocketsWidget* aWidget = new BuyRocketsWidget(mApp, false);
+	m4e0 = aWidget;
+	m4e0->Resize(0, 0, mWidth, mHeight);
+	mWidgetManager->AddWidget(m4e0);
+}
+
+// 0x428bc0: the next level. The rank is counted again (0x428cf0 keeps it in m88: the level-up screen says a new rank was
+// made when it differs), the board is made ready and plays.
+void Board::NextLevel()
+{
+	int aRank;
+	int aPointsToNext;
+	RankName(&aRank, &aPointsToNext);       // (0x428ca0 once more before the level number goes up; nothing uses it)
+	mLevel++;
+	RankName(&m88, &aPointsToNext);         // 0x428cf0
+	m368 = (int) SDL_GetTicks();
+	if (m4e0 != NULL)
+	{
+		mWidgetManager->RemoveWidget(m4e0);
+		mApp->SafeDeleteWidget(m4e0);
+		m4e0 = NULL;
+	}
+	ResetState(false);
+	SetupBoard(false, false);
+	mState = 0;
+	m4a4 = 200;
+}
+
+// 0x424260: the widgets that the board owns go with it (the original deletes the buy-rockets screen at once, not later)
+void Board::RemovedFromManager(WidgetManager* theWidgetManager)
+{
+	Widget::RemovedFromManager(theWidgetManager);
+	if (m51cWidget != NULL)
+	{
+		theWidgetManager->RemoveWidget(m51cWidget);
+		mApp->SafeDeleteWidget(m51cWidget);
+		m51cWidget = NULL;
+	}
+	if (m4e0 != NULL)
+	{
+		theWidgetManager->RemoveWidget(m4e0);
+		delete m4e0;
+		m4e0 = NULL;
+	}
+	for (std::list<Points*>::iterator anItr = mTexts.begin(); anItr != mTexts.end(); ++anItr)
+	{
+		theWidgetManager->RemoveWidget(*anItr);
+		mApp->SafeDeleteWidget(*anItr);
+	}
+	mTexts.clear();
+}
+
+// 0x424340: when the board is moved in the order of the widgets its screens follow it, in front
+void Board::OrderInManagerChanged()
+{
+	if (m4e0 != NULL)
+		mWidgetManager->PutInfront(m4e0, this);
+	if (m51cWidget != NULL)
+		mWidgetManager->PutInfront(m51cWidget, this);
 }
 
 // 0x4286b0: after a level's screen. The widget at +0x51c goes; the first levels bring the hint of an item (level 1 the coins,

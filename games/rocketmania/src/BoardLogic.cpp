@@ -475,6 +475,34 @@ bool PieceGenerator::AllMetersFull()
 	return true;
 }
 
+// 0x42ae10: the launchers that coins upgrade, five coins each, in the order of the table at 0x4e6990 and only those whose
+// meter is not full and not above the fullest meter's level (FullestMeter). Mode 0 counts them; mode 1 gives the launcher of
+// the theIndex-th.
+static const int sUpgradeOrder[9] = {4, 5, 3, 6, 2, 7, 1, 8, 0};
+
+int PieceGenerator::Upgrades(int theCoins, int theMode, int theIndex)
+{
+	int aCount = 0;
+	int aLevel = FullestMeter();
+	for (int i = 0; i < 9; i++)
+	{
+		if (5 <= theCoins)
+		{
+			int aMeter = mMeter[sUpgradeOrder[i]];
+			if ((aMeter < 9) && (aMeter <= aLevel))
+			{
+				theCoins -= 5;
+				if ((theMode == 1) && (theIndex == aCount))
+					return sUpgradeOrder[i];
+				aCount++;
+			}
+		}
+	}
+	if (theMode != 0)
+		return 1;
+	return aCount;
+}
+
 // ---------------------------------------------------------------------------------------------------------
 // Points
 

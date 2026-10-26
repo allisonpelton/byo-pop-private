@@ -374,13 +374,25 @@ bool Board::Load()
 }
 
 // 0x41b7e0: what a loaded game was in the middle of (a screen of the end of a level, the buying of rockets) is flagged in
-// mFc, m100 and m104; the original puts those screens up again here. Not translated yet: the buy-rockets screen
-// (0x428620, BuyRocketsWidget 0x401010), the level-up question (0x4286b0) and the next level (0x428bc0); the flags are
-// cleared as the original clears them.
+// mFc, m100 and m104 and put up again here: the hint of a bonus item (m104 2) goes on to the buy-rockets screen, the level-up
+// screen (mFc) to the high scores after a game and to the question after a level, and the buy-rockets screen (m100) to
+// the next level.
 void Board::AfterLoad()
 {
 	m36c = 0;
+	if (m104 == 2)
+		ShowBuyRockets();
+	if (mFc == 1)
+	{
+		if (mState == 2)
+			mApp->ShowHighScores(0);
+		else
+			F4286b0();
+	}
+	if (m100 == 1)
+		NextLevel();
 	mFc = 0;
 	m100 = 0;
 	m104 = 0;
+	// (unless the state is 4 the talking head is told to go on, 0x416520 with 1: the head is not ported yet)
 }

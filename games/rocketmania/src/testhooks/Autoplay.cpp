@@ -212,3 +212,35 @@ bool RocketLevelUp(RocketApp* theApp, const ScriptCommand& theCommand)
 		aDialog->mPhase = aPage;
 	return true;
 }
+
+// "buyrockets <over> <level> <coins> <meter>": a game of the arcade mode at that level, with that many coins and every
+// launcher's meter at that value, puts up the buy-rockets screen (over 1: the game is over, so that the coins turn into points)
+bool RocketBuyRockets(RocketApp* theApp, const ScriptCommand& theCommand)
+{
+	int anOver = 0, aLevel = 0, aCoins = 0, aMeter = 0;
+	if (sscanf(theCommand.mArgs.c_str(), "%d %d %d %d", &anOver, &aLevel, &aCoins, &aMeter) < 4)
+	{
+		SDL_Log("buyrockets: bad arguments '%s'", theCommand.mArgs.c_str());
+		return true;
+	}
+	theApp->mMode = 0;
+	theApp->mDifficulty = 1;
+	theApp->StartBoard(false);
+	theApp->mNoHints = false;
+	Board* aBoard = theApp->mBoard;
+	if (aBoard == NULL)
+		return true;
+	aBoard->mLevel = aLevel;
+	aBoard->m8c[7] = aCoins;
+	for (int i = 0; i < 9; i++)
+		aBoard->mGen->mMeter[i] = aMeter;
+	if (anOver)
+		aBoard->F421de0(1);
+	else
+	{
+		aBoard->mState = 6;
+		aBoard->ShowBuyRockets();
+	}
+	return true;
+}
+

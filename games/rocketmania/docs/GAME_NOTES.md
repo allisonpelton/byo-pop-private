@@ -108,7 +108,7 @@ not read yet (marked with their addresses).
 
 Not yet read or translated: Update 0x426f40 (the order Connections, Timers, UpdatePieces and the effects is expected),
 the input handlers 0x4282a0-0x428780 and 0x428ae0-0x429460 (incl. 0x428d10, 0x428de0, 0x428ef0, 0x429050/60/80), Draw 0x41f540
-with its helpers, Save/Load 0x41b430-0x41c830, the fireworks (Rocket 0x4172f0), the talking head, the buy-rockets screen 0x401010,
+with its helpers, Save/Load 0x41b430-0x41c830, the fireworks (Rocket 0x4172f0), the talking head,
 the game-to-menu return.
 
 Hidden arguments the decompiler drops (found with tools/callargs.py): 0x4259c0 AddScore(int), 0x423120 ComboSound(double x,
@@ -254,8 +254,22 @@ effects are not translated yet. When the window is not active the page goes dark
 until it is. Each of the rank-name strings is read from the table at 0x4e62e8 (make_gametext.py lists the pointer table). The
 test script command "levelup <kind> <mode> <level> <score> [<page>]" opens it.
 
-Still to do after Draw (above): the buy-rockets screen (0x401010), the fireworks
-(Rocket 0x4172f0), the talking head (0x4161a0, 0x413aa0), then the
+The buy-rockets screen (BuyRocketsWidget 0x401010) is a widget of the board's size that the board lays over itself after a level
+(ShowBuyRockets 0x428620, which the board keeps in m4e0) and, in its game-over form, when a game ends (0x421de0). It runs only
+while the board has the focus. Between two levels every five coins that were collected buy an upgrade of a launcher's meter
+(PieceGenerator::Upgrades 0x42ae10: the launchers in the order of the table at 0x4e6990, the lowest meters first, never more than
+one level above the rest): five coins fly one after the other, 50 updates apart, from the box of the coins to the launcher, each on a
+path that is straight across and slows down going up or down, and the fifth raises the meter (the rocket then glows). When every
+meter is full, and at the end of a game, the coins turn into points instead: up to 15 coins fly to the score, 14 updates apart,
+and the first one adds 500 for each coin. With nothing to buy the screen shows the help for the coins (four lines) in the first
+five levels when the hints are on, waits 250 updates, and goes on; in any other level it goes on at once. Going on is
+Board::NextLevel (0x428bc0): the level goes up, the rank is kept in m88, the board is set up again and plays. The board's
+m100 says what a saved game was in the middle of (1 the buy-rockets screen, 2 the game's end), and AfterLoad (0x41b7e0) puts
+the screens up again. Board::RemovedFromManager (0x424260) deletes the widgets that the board owns. The test script command
+"buyrockets <over> <level> <coins> <meter>" opens the screen.
+
+Still to do after Draw (above): the fireworks (Rocket 0x4172f0, which also fills in the effects drawn by the level-up and
+buy-rockets screens), the talking head (0x4161a0, 0x413aa0), then the
 deliverables: the coordinator's `BYOPOP_BUY_rocketmania` line (cmake/ByopopStores.cmake has an
 uncommitted local placeholder that must not be committed), and an AddressSanitizer run of the autoplay (tools/build.sh has no
 asan option yet).
