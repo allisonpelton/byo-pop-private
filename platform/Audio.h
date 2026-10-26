@@ -89,6 +89,11 @@ public:
 	// The order and row a playing module has been rendered up to (libxmp's frame info, or a ModulePlayer's
 	// GetPosition). False for a song that is not playing, and for Ogg and WAV tracks.
 	bool GetSongPosition(int theSong, int& theOrder, int& theRow);
+	// The spectrum of the song's last theSamples frames (a power of two from 64 to 4096), as BASS_ChannelGetData's
+	// FFT flags give it: theSamples / 2 magnitudes of the song's own output before its gain and the music volume, the
+	// two channels averaged, with a Hann window, scaled so that a full-scale sine reads 1.0 in its bin. The bins are
+	// at the mixer's rate. False for a song that is not playing.
+	bool GetSongFFT(int theSong, float* theOut, int theSamples);
 
 	void SetMusicMasterGain(float theGain) { mMusicMaster = theGain; }
 	void SetSfxMasterGain(float theGain) { mSfxMaster = theGain; }
