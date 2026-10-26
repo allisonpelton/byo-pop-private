@@ -715,3 +715,23 @@ void Launcher::DrawPath(Graphics* g)
 		aPoint = aPoints.Next();
 	}
 }
+
+// 0x4033a0: the aim, while the mouse is over the board and nothing else holds it: the path (clipped to the board)
+// while +0xa60 is away from 0 and the aim is above 421, else the arrow
+void Launcher::Draw(Graphics* g)
+{
+	Dynomite* aBoard = mBoard;
+	if ((aBoard->mField130 != true) && (aBoard->mField131 != true) && (aBoard->mIsOver == true) &&
+		(aBoard->mField244 == false) && ((mApp->mInTutorial != true) || (aBoard->mPauseCount < 1)))
+	{
+		if ((mAimY <= 0x1a4) && (mFieldA60 != 0))
+		{
+			Graphics aClipG(*g);
+			aBoard = mBoard;
+			aClipG.ClipRect(aBoard->mField70 - aBoard->mField6c, 0, aBoard->mField68, 0x1e0);
+			DrawPath(&aClipG);
+			return;
+		}
+		DrawArrow(g);
+	}
+}

@@ -77,6 +77,7 @@ public:
 	void				Widen(PathLine* theLine, float* theFrom, float* theTo, float theWidth);
 	void				AddPath(Graphics* g, PathLine* thePrev, PathLine* theLine, PathLine* theNext);	// 0x4022f0
 	void				DrawPath(Graphics* g);				// 0x402d90
+	void				Draw(Graphics* g);					// 0x4033a0
 };
 
 }
