@@ -119,3 +119,49 @@ shadow. The base update (0x40ee80) moves the object, steps its animation (state 
 updates its children, removing those whose update returns 0; the base draw (0x40eac0) queues the image (and its
 shadow) on the draw list. Every walk over a list goes on from the node after the one that replaced a removed node,
 so that node is skipped for the frame; the port keeps this (List_Each).
+
+## Input
+
+The window procedure (0x42a7a0) fills the input that the game reads (0x4289d0..0x428b20): the three mouse buttons
+held, a press latch for each that Mouse_Pressed (0x428a00) sets once per press and a release clears, the keys held
+by virtual-key code, and a ring of the last 100 keys pressed (Key_Pop 0x428aa0 takes the newest). The game samples
+them once per pass of the loop, after PumpMessages has handled every waiting message, so a button pressed and let
+go between two passes is never seen. Before queueing a key the procedure acts on four of its own: F5 turns the
+sound on or off, F6 the music, F7 switches between the window and the full screen, F8 between stretched and
+centred. Activating the window clears the keys held and resumes the music; deactivating it pauses the sound, and
+while the window is inactive PumpMessages (0x42a070) waits instead of returning, so the game stops, unless
+0x70819c is 1 (only the demo's power-ups set it). The pointer is read with Mouse_Update (0x429e40), in the game's
+800x600 coordinates; the game also moves it (it pins it to the ship while a line is fired).
+
+The engine's text entry (R64TextInput, 0x42bda0..0x42c190) edits one line from the key ring into its own image,
+with a font, a fill colour, an outline, a case mode and an Enter callback; the name requesters and the Hall of Fame's
+name use it.
+
+## The screen, the settings and the saves
+
+The screen functions (0x428e70..0x428ff0) wrap DirectDraw: the clock (TimeMs, timeGetTime), opening a link (OpenURL
+0x428e90, which the game does at exit when its URL is set), the mode (full screen or a window, stretched or
+centred), locking the screen for GameDraw's copy and presenting it. A change of mode is applied by PumpMessages: it
+keeps the pointer's position, reopens the screen, calls the screen-changed callback (the game's, 0x41e7d0, marks the
+whole screen dirty) and writes the settings.
+
+The settings are `cp.cfg` in the save folder (LoadConfig 0x42a340, SaveConfig 0x429db0): one `CP_CONFIG` tag with
+`fullscreen`, `desktopResolution` (the centred mode), `wave` and `music`, defaulting to the full screen, stretched,
+with sound and music. The players, their progress and the high scores are `cb.dat` (0xbf9c bytes; LoadProfiles in
+the port's CBMain.cpp has the order): the eight high scores of 0x24 bytes come first, then the current player's
+level reached, the trial's time left and the shooter mode.
+
+## Sound and music
+
+Sound and music go through BASS. Sound_Start (0x42ad70) opens the device at 44100 Hz (22050 if that fails) and sets
+the overall volume to 60 of 100. Samples (Sample_Load 0x42b370) are kept by index and played by Sound_Play
+(0x429fb0); the game keeps its own list of named sounds (SoundList_Load 0x428770, SoundList_Find 0x428650) whose
+lookup answers 0, the first sound, for a name it lacks. The music is one MO3 module at a time: Music_Load (0x429030)
+loads it looping with BASS's volume ramping, Music_Play (0x429090) starts it from the beginning, Music_Resume
+(0x4290c0) goes on, and Music_SetVolume (0x429000) takes 0..256 and gives BASS a percentage. Each level set names
+its song, and a `song` tag of a game file loads one at once (the title's).
+
+The port puts all of this behind one interface, `r64::SysHost` in `engine/R64Sys.h` (the files, the screen, the
+clock, the pointer, the sounds, the music, links, the save folder and the player's name), which the port's host
+(`src/CosmicBugsApp.cpp`) implements over the platform and the headless runner (`test/gamerun.cpp`) over plain
+memory.
