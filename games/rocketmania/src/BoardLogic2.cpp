@@ -360,7 +360,9 @@ void Board::HitBombs()
 // when the flag is clear, and the moving list's pieces in both cases)
 void Board::ClearBoard(bool theForget)
 {
-	if (mApp->mMode != 0 || theForget || true)
+	// (the original clears the grid only if the mode is not arcade, or theForget is set, or a second argument is set; its two
+	// callers make that always true: the destructor passes the second argument as 1, and 0x422620 calls it only with
+	// theForget set)
 	{
 		for (int aRow = 0; aRow < mRows; aRow++)
 		{
@@ -1365,11 +1367,13 @@ void Board::UpdatePieces()
 								m8c[11] = m8c[11] + 1;
 								mDc = m8c[aKind];
 								if (m108 < 0x14)
+								{
 									m108 = m108 + 1;
+									if (2 < m108)
+										m10c = 0;      // the warning that the matches run out stops
+								}
 								else
 									AddScore(500);
-								if (m108 > 2 && m108 <= 0x14 && false)
-									m10c = 0;
 							}
 							aLeaveList = true;
 							aDestroy = true;
