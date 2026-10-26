@@ -702,7 +702,7 @@ void Shooter_Fire(Shooter* theShooter)
 // the player has turned it or the auto-turn option is off, toward the shorter way across the span)
 void Shooter_Control(Shooter* theShooter)
 {
-	if (gUnk460028 == 0)
+	if (gAutoFire == 0)
 		theShooter->noAutoTurn = 1;
 	int aTurn = gLevels.current->rightClicked;
 	if (gDemo == 0)

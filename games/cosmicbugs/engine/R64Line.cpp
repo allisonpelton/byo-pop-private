@@ -307,6 +307,13 @@ void Draw_FillBlend(uint8_t* theBits, int thePitch, const PixelFormat* theFmt, i
 			(uint8_t)theAlpha);
 }
 
+void Draw_FillBlendTarget(int l, int t, int r, int b, int theR, int theG, int theB, int theAlpha)
+{
+	if (gTargetFmt.bpp == 0x10)
+		FillBlend16(gTargetBits, gTargetPitch, &gTargetFmt, l, t, r, b, (uint8_t)theR, (uint8_t)theG, (uint8_t)theB,
+			(uint8_t)theAlpha);
+}
+
 void Draw_FillBlendClipped(uint8_t* theBits, int thePitch, const PixelFormat* theFmt, const int* theClip, int l, int t,
 	int r, int b, int theR, int theG, int theB, int theAlpha)
 {

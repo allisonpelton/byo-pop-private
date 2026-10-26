@@ -156,20 +156,43 @@ struct Shooter : Obj
 };
 static_assert(sizeof(Shooter) == 0x4c4, "Shooter");
 
-// A menu (0x1e4 bytes, 0x415690 constructs one)
+struct Text;
+
+// A menu's item (0x1dc bytes; 0x415270 appends one, 0x4151b0 inserts one; CBMenu.cpp). kind +0x08 what a click
+// does (MenuItem_FromXml's types: 0 buy_now .. 0x23 a requester's no); it is drawn with its animation, else as its
+// name in its font (with the setting it changes)
+struct MenuItem : Obj
+{
+	char name[0x80];           // +0xb0  (localized; a profile slot's number, a key's character)
+	char shown[0x80];          // +0x130  what was last drawn, without colour codes (the hover box's size)
+	Font* font;                // +0x1b0
+	Font* hotFont;             // +0x1b4  under the mouse (none: font)
+	int hot;                   // +0x1b8  under the mouse
+	int firstParticle;         // +0x1bc  the sparkles while it is hot
+	int lastParticle;          // +0x1c0
+	int autoClick;             // +0x1c4  clicked at its next update (HighScore_Entered)
+	int box;                   // +0x1c8  a frame is drawn round it
+	int boxSize;               // +0x1cc  (0: round the text)
+	int showOnlyHot;           // +0x1d0  drawn only while hot
+	int alwaysHot;             // +0x1d4
+	int heightAdder;           // +0x1d8  makes the hover box taller
+};
+static_assert(sizeof(MenuItem) == 0x1dc, "MenuItem");
+
+// A menu (0x1e4 bytes, 0x415690 constructs one, 0x4156e0 destroys it; CBMenu.cpp)
 struct Menu : Obj
 {
 	Image* logo;               // +0xb0  logo_animation's first frame, drawn about (logoX, logoY)
 	int logoX;                 // +0xb4
 	int logoY;                 // +0xb8
 	int unkbc;                 // +0xbc
-	List<Obj> items;           // +0xc0
+	List<MenuItem> items;      // +0xc0
 	int lockedLevel;           // +0xcc  shown with locked_animation until the player reaches this level
 	char lockedAnim[0x80];     // +0xd0
-	int unk150;                // +0x150
-	uint8_t unk154[0x80];      // +0x154
-	int unk1d4;                // +0x1d4
-	List<Obj> active;          // +0x1d8  (0x4108b0 makes it a list) not empty: the menu is in use
+	Text* entry;               // +0x150  a requester's name entry (one of the level's texts)
+	Text* texts[0x20];         // +0x154  a requester's texts (the level's), removed with it
+	int textCount;             // +0x1d4
+	List<Menu> requesters;     // +0x1d8  over the menu (the newest first): while there is one, only it is used
 };
 static_assert(sizeof(Menu) == 0x1e4, "Menu");
 
@@ -401,7 +424,7 @@ void Enemy_Append(List<Enemy>* theList);                         // 0x4072b0
 void Powerup_Insert(List<Powerup>* theList);                     // 0x407340
 Text* Text_Init(Text* theText);                                  // 0x4073e0
 void Enemy_Destroy(Enemy* theEnemy);                             // 0x4074b0
-void List_DeleteNode(Enemy* theEnemy);                           // 0x407430's delete
+void List_DeleteNode(Enemy* theEnemy);                           // 0x401080's delete (0x407430 is plain objects')
 void TurnRoller_Move(Enemy* theEnemy);                           // 0x407530
 void Walker_Turn(Enemy* theEnemy);                               // 0x407700
 int LaserShot_HitBeams(Enemy* theEnemy);                         // 0x4078e0
@@ -434,9 +457,12 @@ Powerup* Powerup_Init(Powerup* thePowerup);                      // 0x418900
 void List_DeleteNode(Powerup* thePowerup);                       // 0x4186c0 and the memory
 void Menu_Append(List<Menu>* theList);                           // 0x410750
 Menu* Menu_Init(Menu* theMenu);                                  // 0x415690
+void Menu_Destroy(Menu* theMenu);                                // 0x4156e0
+void List_DeleteNode(Menu* theMenu);                             // 0x411340's delete
 void Menu_FromXml(Menu* theMenu, const char* p, const XmlTag* theTag); // 0x415310
 void Menu_DrawToBackground(Menu* theMenu);                       // 0x413b30: its image and logo, about their middles
-int Menu_Update(Menu* theMenu);                                  // 0x417c10
+int Menu_Update(Menu* theMenu);                                  // 0x417c10: 0 when its screen is done
+void Menu_ShowRequester(Menu* theMenu, int theKind, const char* theText, const char* theSecond); // 0x415900: 0 delete the player, 1 a message, 2 a name, 3 quit, 4 a board's end, 5 resume
 void Pointer_Append(List<Obj>* theList);                         // 0x4109d0
 void Pointer_Insert(List<Obj>* theList);                         // 0x410920
 int Obj_FromXml(Obj* theObj, const char* p, const XmlTag* theTag);     // 0x40d860: any object's attributes; 0 if its animation is missing

@@ -35,7 +35,7 @@ struct Profile
 {
 	char name[0x20];           // +0x00
 	int levelReached;          // +0x20
-	int unk24;                 // +0x24
+	int autoFire;              // +0x24  the shooter mode (gAutoFire) the player last chose
 	int savedLevel;            // +0x28  the game in progress (0 when there is none)
 	int savedLives;            // +0x2c
 	int savedScore;            // +0x30
@@ -85,7 +85,7 @@ extern int gTrialLeft;                     // 0x460044  ms
 extern int gLives;                         // 0x460040
 extern float gBeamSpeed;                   // 0x460038  the ship's beams' speed at the start
 extern int gDifficulty;                    // 0x46e5e0  -1, 0 or 1 (the options' cycle)
-extern int gUnk460028;                     // 0x460028
+extern int gAutoFire;                      // 0x460028  the shooter mode: 0 manual, 1 auto
 extern int gQuit;                          // 0x46e5d0
 extern int gFirstRun;                      // 0x46e5d4  cb.dat was missing
 extern char gUrl[0x200];                   // 0x46e3a8  opened when the game ends
@@ -120,6 +120,14 @@ void Music_Free();
 void Music_Load(const char* thePath);
 void Music_SetVolume(int theVolume);
 void Music_Play();
+int Screen_Fullscreen();                                         // 0x428f00
+void Screen_SetFullscreen(int theOn);                            // 0x428ee0
+int Screen_Centered();                                           // 0x428f40: 0 the screen is stretched to the display
+void Screen_SetCentered(int theOn);                              // 0x428f10
+int Sound_On();                                                  // 0x4290f0
+void Sound_SetOn(int theOn);                                     // 0x42a010
+int Music_On();                                                  // 0x429100
+void Music_SetOn(int theOn);                                     // 0x42a020
 void DrawLoadingScreen();
 int CrtRand();                                                   // the CRT's rand
 void SaveProfiles();                                             // 0x40c900

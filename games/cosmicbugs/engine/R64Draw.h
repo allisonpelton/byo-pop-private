@@ -94,6 +94,8 @@ void Draw_Fill(uint8_t* theBits, int thePitch, const PixelFormat* theFmt, int l,
 // 0x42d670: a rectangle (inclusive) blended toward a colour by theAlpha/256, unclipped
 void Draw_FillBlend(uint8_t* theBits, int thePitch, const PixelFormat* theFmt, int l, int t, int r, int b, int theR,
 	int theG, int theB, int theAlpha);
+// 0x42d730: the same on the surface lines go to (Draw_SetTarget)
+void Draw_FillBlendTarget(int l, int t, int r, int b, int theR, int theG, int theB, int theAlpha);
 // 0x42d6b0: the same on the part inside theClip {l, t, r, b}
 void Draw_FillBlendClipped(uint8_t* theBits, int thePitch, const PixelFormat* theFmt, const int* theClip, int l, int t,
 	int r, int b, int theR, int theG, int theB, int theAlpha);

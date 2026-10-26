@@ -480,7 +480,7 @@ void DrawPaused()
 
 int Level_IsPlaying(Level* theLevel)
 {
-	if ((theLevel->kind != 0 || (theLevel->menus.current != nullptr && theLevel->menus.current->active.current != nullptr) ||
+	if ((theLevel->kind != 0 || (theLevel->menus.current != nullptr && theLevel->menus.current->requesters.current != nullptr) ||
 			(theLevel->panels.current != nullptr && theLevel->panels.current->y <= (float)gMouseY)) &&
 		100.0f < theLevel->age)
 		return 0;
@@ -1036,7 +1036,7 @@ int Level_Update(Level* theLevel)
 				if (theLevel->kind == 0 && theLevel->powerups.current == nullptr && theLevel->totalCells != 0 &&
 					(theLevel->fillQuota <= (theLevel->filledCells * 100) / theLevel->totalCells ||
 						(gDemo != 0 && 0x32 < theLevel->shots)) &&
-					(theLevel->menus.current == nullptr || theLevel->menus.current->active.current == nullptr))
+					(theLevel->menus.current == nullptr || theLevel->menus.current->requesters.current == nullptr))
 					Level_Won(theLevel);
 				else
 				{
@@ -1415,7 +1415,7 @@ void Level_SetUserName(const char* theName)
 	if (std::strlen(theName) != 0 && std::strcmp(theName, Localize(GT(0x458a84))) != 0)
 	{
 		std::strcpy(gProfiles[gProfile].name, theName);
-		gUnk460028 = gProfiles[gProfile].unk24;
+		gAutoFire = gProfiles[gProfile].autoFire;
 		SaveProfiles();
 	}
 }

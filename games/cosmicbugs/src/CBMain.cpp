@@ -14,7 +14,7 @@ namespace cb
 
 // The data section's (0x460000..)
 int gRegistered = 1;                   // 0x460004
-int gUnk460028 = 1;                    // 0x460028
+int gAutoFire = 1;                    // 0x460028
 int gGoTo = 1;                         // 0x460034
 float gBeamSpeed = 0.14f;              // 0x460038
 int gFirstWeapon = 1;                  // 0x46003c
@@ -180,9 +180,9 @@ void SaveProfiles()
 		std::fwrite(gHighScores, 0x24, 8, aFile);
 		std::fwrite(&gProfiles[gProfile].levelReached, 4, 1, aFile);
 		std::fwrite(&gTrialLeft, 4, 1, aFile);
-		std::fwrite(&gUnk460028, 4, 1, aFile);
+		std::fwrite(&gAutoFire, 4, 1, aFile);
 		Profile* aProfile = &gProfiles[gProfile];
-		aProfile->unk24 = gUnk460028;
+		aProfile->autoFire = gAutoFire;
 		if (gLevels.current != nullptr && gLevels.current->kind == 0)
 		{
 			if (gLives < 1)
@@ -225,7 +225,7 @@ void ResetProfiles()
 		if ('a' <= *c && *c <= 'z')
 			*c = (char)(*c - 0x20);
 	gProfiles[0].levelReached = 0;
-	gProfiles[0].unk24 = 1;
+	gProfiles[0].autoFire = 1;
 	gProfiles[0].savedLevel = 0;
 	gProfiles[0].savedLives = 0;
 	gProfiles[0].savedScore = 0;
@@ -237,7 +237,7 @@ void ResetProfiles()
 	{
 		std::strcpy(aProfile->name, Localize(GT(0x458a84)));
 		aProfile->levelReached = 0;
-		aProfile->unk24 = gUnk460028;
+		aProfile->autoFire = gAutoFire;
 		aProfile->savedLevel = 0;
 		aProfile->savedLives = 0;
 		aProfile->savedScore = 0;
@@ -248,7 +248,7 @@ void ResetProfiles()
 	}
 	Sys_UserName(gProfiles[10].name, 0x20);
 	gProfiles[10].levelReached = 0;
-	gProfiles[10].unk24 = 1;
+	gProfiles[10].autoFire = 1;
 	gProfiles[10].savedLevel = 0;
 	gProfiles[10].savedLives = 0;
 	gProfiles[10].savedScore = 0;
@@ -286,12 +286,12 @@ void LoadProfiles()
 		std::fread(gHighScores, 0x24, 8, aFile);
 		std::fread(&gProfiles[gProfile].levelReached, 4, 1, aFile);
 		std::fread(&gTrialLeft, 4, 1, aFile);
-		std::fread(&gUnk460028, 4, 1, aFile);
+		std::fread(&gAutoFire, 4, 1, aFile);
 		std::fread(&gProfile, 4, 1, aFile);
 		std::fread(gProfiles, 0x44, 0xb, aFile);
 		std::fread(gLevelRecords, 0x30, 1000, aFile);
 		std::fclose(aFile);
-		gUnk460028 = gProfiles[gProfile].unk24;
+		gAutoFire = gProfiles[gProfile].autoFire;
 		gDifficulty = gProfiles[10].riderHits;
 		// (the original closes the file a second time here)
 	}
@@ -469,7 +469,7 @@ void GameStep()
 	if (gLevels.current != nullptr)
 	{
 		if (gLevels.current->kind == 0 && gTrial != 0 && gLevels.current->menus.current != nullptr &&
-			gLevels.current->menus.current->active.current == nullptr)
+			gLevels.current->menus.current->requesters.current == nullptr)
 			gTrialLeft = gTrialLeft + -1;
 		if (Level_Update(gLevels.current) == 0 || Key_Down(0xbe) != 0)
 		{
