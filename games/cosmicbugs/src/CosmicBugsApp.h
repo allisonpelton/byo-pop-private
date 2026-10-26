@@ -42,7 +42,6 @@ public:
 	bool mGameStarted;
 	bool mGameEnded;
 	bool mApplyingGameMode;  // SwitchScreenMode is the game's own request (r64 SetScreenMode)
-	bool mActive;
 
 	// The engine's screen: 800x600 RGB565, and the part of it presented since the widget last copied it
 	std::vector<uint16_t> mScreen;
@@ -57,8 +56,6 @@ public:
 	void Init() override;
 	void Shutdown() override;
 	void CloseRequestAsync() override;
-	void GotFocus() override;
-	void LostFocus() override;
 	void SwitchScreenMode(bool wantWindowed, bool is3d, bool force = false) override;
 	using SexyAppBase::SwitchScreenMode;
 	// -script's "state": logs the score, the lives, the board in its set and the board's filled cells, as the headless

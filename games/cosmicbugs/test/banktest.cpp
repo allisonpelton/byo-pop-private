@@ -77,20 +77,21 @@ void WritePng(const char* thePath, const uint16_t* theScreen, int w, int h)
 }
 
 
-void DrawFonts(Bank* theArt, Bank* theArt8, const PixelFormat* theFmt, const char* theOutDir)
+// false when bugs.xml or a font fails (a font with no height)
+bool DrawFonts(Bank* theArt, Bank* theArt8, const PixelFormat* theFmt, const char* theOutDir)
 {
 	std::vector<uint8_t> aXml;
 	if (!Sys_ReadFile("animations\\bugs.xml", aXml))
 	{
 		std::fprintf(stderr, "bugs.xml failed\n");
-		return;
+		return false;
 	}
 	aXml.push_back(0);
 	const int W = 800, H = 600;
 	std::vector<uint16_t> aScreen((size_t)W * H, 0x2104);
 	XmlTag aTag;
 	const char* p = (const char*)aXml.data();
-	int y = 4;
+	int y = 4, aLoaded = 0, aFailed = 0;
 	std::vector<Font*> aFonts;
 	while (p != nullptr && *p != 0 && y < H)
 	{
@@ -115,6 +116,10 @@ void DrawFonts(Bank* theArt, Bank* theArt8, const PixelFormat* theFmt, const cha
 		Font_DrawFill(aFont, "0123456789", 560, y, 0, 0xff, 0x80, 0x20, 0x80);
 		std::printf("font %s face %s height %d drawn %d,%d-%d,%d\n", Xml_GetString(&aTag, "name"), aFace,
 			Font_Height(aFont), aRect[0], aRect[1], aRect[2], aRect[3]);
+		if (Font_Height(aFont) > 0)
+			aLoaded++;
+		else
+			aFailed++;
 		y += Font_Height(aFont) + 6;
 	}
 	char aPath[512];
@@ -125,24 +130,39 @@ void DrawFonts(Bank* theArt, Bank* theArt8, const PixelFormat* theFmt, const cha
 		Font_Clear(aFont);
 		delete aFont;
 	}
+	std::printf("%d fonts, %d failed\n", aLoaded, aFailed);
+	return aFailed == 0 && aLoaded > 0;
 }
 
 
-// Every <animation> of bugs.xml loaded as the game loads it, the first frame of each drawn with its mask
-void DrawAnims(Bank* theArt, const PixelFormat* theFmt, const char* theOutDir)
+// The file an animation names is in the game's folder, where Animation_Load opens it ("animations/X", an .eco read
+// as the .flc)
+bool AnimFileExists(const char* theFile)
+{
+	std::string aPath = std::string("animations/") + theFile;
+	size_t anEco = aPath.find(".eco");
+	if (anEco != std::string::npos)
+		aPath.replace(anEco, 4, ".flc");
+	return Sys_FileExists(aPath.c_str());
+}
+
+// Every <animation> of bugs.xml loaded as the game loads it, the first frame of each drawn with its mask. bugs.xml
+// names a few files the game does not ship (they load no frame in the original either): those are counted as
+// missing; false when one that is there has no first frame.
+bool DrawAnims(Bank* theArt, const PixelFormat* theFmt, const char* theOutDir)
 {
 	if (Bank_Load(&cb::gArtBank, "art.bbk", 1, theFmt) == 0)
-		return;
+		return false;
 	std::vector<uint8_t> aXml;
 	if (!Sys_ReadFile("animations\\bugs.xml", aXml))
-		return;
+		return false;
 	aXml.push_back(0);
 	const int W = 800, H = 600;
 	std::vector<uint16_t> aScreen((size_t)W * H);
 	int aClip[4] = {0, 0, W - 1, H - 1};
 	XmlTag aTag;
 	const char* p = (const char*)aXml.data();
-	int x = 0, y = 0, aRowH = 0, aSheet = 0, n = 0;
+	int x = 0, y = 0, aRowH = 0, aSheet = 0, n = 0, aMissing = 0, aFailed = 0;
 	auto aFlush = [&]() {
 		char aPath[512];
 		std::snprintf(aPath, sizeof(aPath), "%s/anims_%d.png", theOutDir, aSheet++);
@@ -157,10 +177,23 @@ void DrawAnims(Bank* theArt, const PixelFormat* theFmt, const char* theOutDir)
 			continue;
 		cb::Animation* anAnim = cb::List_Append(&cb::gAnims, new cb::Animation());
 		cb::Animation_FromXml(anAnim, &aTag);
-		n++;
 		std::printf("anim %s file %s frames %d time %d\n", anAnim->name, anAnim->file, anAnim->count, anAnim->frameTime);
 		if (anAnim->count < 1 || anAnim->frames[0] == nullptr)
+		{
+			if ((std::strstr(anAnim->file, ".eco") != nullptr || std::strstr(anAnim->file, ".tga") != nullptr) &&
+				!AnimFileExists(anAnim->file))
+			{
+				std::printf("anim %s missing (%s is not in the game)\n", anAnim->name, anAnim->file);
+				aMissing++;
+			}
+			else
+			{
+				std::printf("anim %s FAILED\n", anAnim->name);
+				aFailed++;
+			}
 			continue;
+		}
+		n++;
 		Image* aFrame = anAnim->frames[0];
 		if (x + aFrame->w > W)
 		{
@@ -186,9 +219,10 @@ void DrawAnims(Bank* theArt, const PixelFormat* theFmt, const char* theOutDir)
 			aRowH = aFrame->h;
 	}
 	aFlush();
-	std::printf("%d animations\n", n);
+	std::printf("%d animations, %d missing, %d failed\n", n, aMissing, aFailed);
 	cb::List_Clear(&cb::gAnims);
 	(void)theArt;
+	return aFailed == 0 && n > 0;
 }
 
 } // namespace
@@ -227,17 +261,17 @@ int main(int argc, char** argv)
 	if (std::strcmp(aWhich, "anims") == 0)
 	{
 		Sys_SetScreenFormat(&aScreenFmt);
-		DrawAnims(aBank, &aScreenFmt, argv[2]);
+		bool ok = DrawAnims(aBank, &aScreenFmt, argv[2]);
 		delete aBank;
 		delete aBank8;
-		return 0;
+		return ok ? 0 : 1;
 	}
 	if (std::strcmp(aWhich, "fonts") == 0)
 	{
-		DrawFonts(aBank, aBank8, &aScreenFmt, argv[2]);
+		bool ok = DrawFonts(aBank, aBank8, &aScreenFmt, argv[2]);
 		delete aBank;
 		delete aBank8;
-		return 0;
+		return ok ? 0 : 1;
 	}
 	Bank* aShow = std::strcmp(aWhich, "art8") == 0 ? aBank8 : aBank;
 	const int W = 800, H = 600;

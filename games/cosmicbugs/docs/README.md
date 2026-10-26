@@ -33,7 +33,8 @@ engine, each with its address in a comment). `docs/symbols/10_engine.jsonl` hold
 
 The art is two banks, each an XML index (`.bbk`) over a file of pixels (`.dat`): `art8` holds 730 8-bit images (the
 fonts and the loading screen) with three palettes, `art` 219 32-bit images that the engine converts to the screen's
-16 bits. `animations/` holds 124 FLIC files (bugs.xml names 91 animations; masks are FLICs of their own) and the XML
+16 bits. `animations/` holds 124 FLIC files (bugs.xml names 91 animations, nine of them in files the game does not
+ship, which load no frame in the original either; masks are FLICs of their own) and the XML
 game files: the menus and screens (`bugs.xml`, which names the boards' `level1.xml` as its next file), and the
 localised strings (`local.xml`). `audio/` holds 33 WAV sounds and five MO3 modules.
 
@@ -61,9 +62,14 @@ python games/cosmicbugs/tools/make_gametext.py                                  
 ```
 tools/setup_worktree.sh                                                        # a new worktree: the git-ignored files
 python games/cosmicbugs/tools/stage_cosmicbugs_assets.py "<the game's folder>"  # stages assets/cosmicbugs/
-TARGET=cosmicbugs tools/build.sh native                                        # build/native/cosmicbugs.exe
+tools/build.sh native                                                          # every native target, as below
+TARGET=cosmicbugs tools/build.sh native                                        # build/native/cosmicbugs.exe alone
+TARGET=cosmicbugs_run tools/build.sh native                                    # the headless runner (the check needs it)
+TARGET=cosmicbugs_banktest tools/build.sh native                               # the bank test (the check needs it)
 tools/build.sh web                                                             # build/web/cosmicbugs.html, .js, .wasm
 ```
+
+`tools/check.sh cosmicbugs` needs all three native targets: build them one by one, or run the whole native build.
 
 `cosmicbugs.exe [-gamedir=<folder>] [-userdir=<folder>]` finds `assets/cosmicbugs/` or the retail install by itself
 and keeps the player's files in its own folder of the user's application data. The web page imports the game's
@@ -72,8 +78,8 @@ files from the install folder or a .zip of it into the browser's storage (`/cbpe
 
 ## Testing
 
-`tools/check.sh cosmicbugs` (about 5 seconds) loads both art banks, the fonts and every animation
-(`cosmicbugs_banktest`), then plays a scripted game headless twice (`cosmicbugs_run`, the game on a clock of its own
+`tools/check.sh cosmicbugs` (about 20 seconds) loads both art banks, the fonts and every animation the game ships
+(`cosmicbugs_banktest`, which fails on any font or shipped animation that does not load), then plays a scripted game headless twice (`cosmicbugs_run`, the game on a clock of its own
 with scripted input and PNG screenshots): Start Game, the instructions' Play, a line down the first board, the aim
 switched with the right button and a line across. Both runs must reach the expected score and fill and the same
 screenshots. Then it runs the windowed exe twice with the same clicks (`-fast -script`); its state after the first

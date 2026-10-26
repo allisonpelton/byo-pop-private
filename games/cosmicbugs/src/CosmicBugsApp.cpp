@@ -77,7 +77,8 @@ public:
 		return gApp->GetClockTime();
 	}
 
-	// The web page is active while it runs (the browser stops it when hidden); a test run's window may never be
+	// The original's activation (its WndProc's WM_ACTIVATEAPP) is the framework's mActive, set from SDL's focus
+	// events. The web page is active while it runs (the browser stops it when hidden); a test run's window may never be
 	bool IsActive() override
 	{
 #ifdef __EMSCRIPTEN__
@@ -299,7 +300,6 @@ CosmicBugsApp::CosmicBugsApp()
 	mGameStarted = false;
 	mGameEnded = false;
 	mApplyingGameMode = false;
-	mActive = true;
 	mScreen.assign(800 * 600, 0);
 	mPresented = false;
 	mWholeScreen = false;
@@ -444,18 +444,6 @@ void CosmicBugsApp::CloseRequestAsync()
 		cb::gQuit = 1;
 	else
 		SexyAppBase::CloseRequestAsync();
-}
-
-void CosmicBugsApp::GotFocus()
-{
-	SexyAppBase::GotFocus();
-	mActive = true;
-}
-
-void CosmicBugsApp::LostFocus()
-{
-	SexyAppBase::LostFocus();
-	mActive = false;
 }
 
 // Alt+Enter goes to the game like its F7 (0x42a7a0); it then asks for the mode through SetScreenMode. (The web

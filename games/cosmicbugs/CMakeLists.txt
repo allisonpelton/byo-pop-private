@@ -31,7 +31,8 @@ if(NOT MSVC)
 endif()
 if(EMSCRIPTEN)
   byopop_web_game(cosmicbugs TITLE "Cosmic Bugs"
-    COPYRIGHT "Cosmic Bugs © 2007 PopCap Games, Inc. All rights reserved. Cosmic Bugs was developed by Retro64, Inc.")
+    COPYRIGHT "Cosmic Bugs © 2007 PopCap Games, Inc. All rights reserved. Cosmic Bugs was developed by Retro64, Inc."
+    LICENSES libopenmpt)
 else()
   add_custom_command(TARGET cosmicbugs POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:SDL2::SDL2> ${PORT_RUNTIME_DLLS} $<TARGET_FILE_DIR:cosmicbugs>
@@ -48,6 +49,9 @@ if(NOT EMSCRIPTEN)
   if(WIN32)
     add_custom_command(TARGET cosmicbugs_banktest POST_BUILD
       COMMAND ${CMAKE_COMMAND} -E copy_if_different ${PORT_RUNTIME_DLLS} $<TARGET_FILE_DIR:cosmicbugs_banktest>
+      VERBATIM)
+    add_custom_command(TARGET cosmicbugs_run POST_BUILD
+      COMMAND ${CMAKE_COMMAND} -E copy_if_different ${PORT_RUNTIME_DLLS} $<TARGET_FILE_DIR:cosmicbugs_run>
       VERBATIM)
   endif()
 endif()
