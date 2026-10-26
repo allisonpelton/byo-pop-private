@@ -897,71 +897,71 @@ Powerup* Powerup_Init(Powerup* thePowerup)
 	switch (thePowerup->kind)
 	{
 	case 1:
-		aText = 0x4598d0;
+		aText = GTA(0x4598d0);
 		aName = "powerup_slowmo";
 		break;
 	case 2:
-		aText = 0x459854;
+		aText = GTA(0x459854);
 		aName = "powerup_2x";
 		break;
 	case 3:
-		aText = 0x459894;
+		aText = GTA(0x459894);
 		aName = "powerup_slow";
 		break;
 	case 4:
-		aText = 0x4597b8;
+		aText = GTA(0x4597b8);
 		aName = "powerup_timebomb";
 		break;
 	case 5:
-		aText = 0x4598b0;
+		aText = GTA(0x4598b0);
 		aName = "powerup_hypermo";
 		break;
 	case 6:
-		aText = 0x459808;
+		aText = GTA(0x459808);
 		aName = "powerup_missile";
 		break;
 	case 7:
-		aText = 0x4597d4;
+		aText = GTA(0x4597d4);
 		aName = "powerup_freeze";
 		break;
 	case 8:
-		aText = 0x45983c;
+		aText = GTA(0x45983c);
 		aName = "powerup_mine";
 		break;
 	case 9:
-		aText = 0x4597ec;
+		aText = GTA(0x4597ec);
 		aName = "powerup_sweeper";
 		break;
 	case 10:
-		aText = 0x459878;
+		aText = GTA(0x459878);
 		aName = "powerup_plusone";
 		break;
 	default:
-		aText = 0x4596d0;
+		aText = GTA(0x4596d0);
 		aName = "powerup_speed";
 		break;
 	case 0xc:
-		aText = 0x459794;
+		aText = GTA(0x459794);
 		aName = "powerup_flip_flopper";
 		break;
 	case 0xd:
-		aText = 0x45970c;
+		aText = GTA(0x45970c);
 		aName = "powerup_invincibubble";
 		break;
 	case 0xe:
-		aText = 0x4596ec;
+		aText = GTA(0x4596ec);
 		aName = "powerup_anchor";
 		break;
 	case 0xf:
-		aText = 0x459734;
+		aText = GTA(0x459734);
 		aName = "powerup_destroywalkers";
 		break;
 	case 0x10:
-		aText = 0x459764;
+		aText = GTA(0x459764);
 		aName = "powerup_destroyrollers";
 		break;
 	case 0x11:
-		aText = 0x459824;
+		aText = GTA(0x459824);
 		aName = "powerup_magnet";
 		break;
 	}

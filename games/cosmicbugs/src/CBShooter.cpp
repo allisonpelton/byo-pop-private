@@ -960,4 +960,46 @@ int Star_Update(Obj* theStar)
 	return 1;
 }
 
+void Star_Draw(Obj* theStar)
+{
+	// not over the board's cells, except open and solid ones; inside the board while it has a panel
+	Level* aLevel = gLevels.current;
+	if ((int)theStar->x / 16 < 0x32)
+	{
+		int aRow = (int)theStar->y / 16;
+		if (aRow < 0x25)
+		{
+			int aKind = aLevel->columns[(int)theStar->x / 16][aRow].kind;
+			if (aKind != 5 && aKind != 0)
+				return;
+		}
+	}
+	Image* anImage = theStar->image;
+	if (anImage == nullptr)
+		return;
+	int aClip[4];
+	aClip[1] = 0;
+	aClip[0] = 0;
+	aClip[2] = aLevel->cols * 0x10 + -1;
+	aClip[3] = aLevel->rows * 0x10 + -1;
+	const int* aDirtyClip;
+	if (aLevel->panels.current == nullptr)
+	{
+		DrawList_Add(anImage, (uint32_t)(uintptr_t)theStar, (int)((double)theStar->x + 0.0), (int)theStar->y,
+			theStar->depth, theStar->drawKind, gScreenBits, gScreenPitch, theStar->r, theStar->g, theStar->b,
+			theStar->alpha, &theStar->anim->palette, nullptr);
+		anImage = theStar->image;
+		aDirtyClip = kScreenClip;
+	}
+	else
+	{
+		DrawList_Add(anImage, (uint32_t)(uintptr_t)theStar, (int)((double)theStar->x + 0.0), (int)theStar->y,
+			theStar->depth, theStar->drawKind, gScreenBits, gScreenPitch, theStar->r, theStar->g, theStar->b,
+			theStar->alpha, &theStar->anim->palette, aClip);
+		anImage = theStar->image;
+		aDirtyClip = aClip;
+	}
+	Dirty_AddClippedImage(&gDirty, (int)((double)theStar->x + 0.0), (int)theStar->y, anImage, aDirtyClip);
+}
+
 } // namespace cb

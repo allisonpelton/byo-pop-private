@@ -464,7 +464,7 @@ static void DrawCentred(Font* theFont, int theY, const char* theText)
 	Dirty_AddClippedShown(&gDirty, 399 - Font_StringWidth(theFont, theText) / 2, theY - 1, aWidth, aHeight, kScreenClip);
 }
 
-// The original copies the lines onto the stack (the last from immediates in its code, which GT reads too)
+// The original copies the lines onto the stack (the last a dword at a time)
 void DrawPaused()
 {
 	char aText[32];
@@ -474,7 +474,7 @@ void DrawPaused()
 	DrawCentred(aFont, 200, aText);
 	std::strcpy(aText, GT(0x458e58));
 	DrawCentred(aFont, 0xfa, aText);
-	std::strcpy(aText, GT(0x410580));
+	std::strcpy(aText, GT(0x458e44));
 	DrawCentred(aFont, 300, aText);
 }
 

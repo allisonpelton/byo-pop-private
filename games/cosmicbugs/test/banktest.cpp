@@ -45,6 +45,22 @@ public:
 		std::fclose(f);
 		return ok;
 	}
+
+	// (nothing here draws to the screen, keeps time or saves)
+	bool LockScreen(uint8_t**, int*) override
+	{
+		return false;
+	}
+
+	uint32_t TimeMs() override
+	{
+		return 0;
+	}
+
+	const char* SavePath(const char* theName) override
+	{
+		return theName;
+	}
 };
 
 void WritePng(const char* thePath, const uint16_t* theScreen, int w, int h)

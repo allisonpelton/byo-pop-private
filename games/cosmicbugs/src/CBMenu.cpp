@@ -1167,7 +1167,7 @@ void Menu_ShowRequester(Menu* theMenu, int theKind, const char* theText, const c
 		Button_Setup(anItem, "yes", 340.0f, 330.0f);
 		anItem->midHandle = 1;
 		anItem->kind = 0x22;
-		strcpy(anItem->name, GT(0x41642f));
+		strcpy(anItem->name, GT(0x416435));
 		MenuItem_Append(&aList->current->items);
 		anItem = aList->current->items.current;
 		Button_Setup(anItem, "no", 460.0f, 330.0f);

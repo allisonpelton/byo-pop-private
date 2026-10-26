@@ -105,31 +105,20 @@ extern Palette gColourCodes[10];           // 0x4735b8  the fonts' colour codes 
 // 0x472ab0: 800x600 in the screen's format, the level's background with the cells drawn on (each frame the dirty
 // parts go to the screen under the objects)
 extern Image gBackBuffer;
-bool Sys_FileExists(const char* thePath);
 
-// The game's texts, read from the player's exe by address (CBGameText.cpp)
+// The game's texts, read from the player's exe by address (CBGameText.cpp): false when none could be
 const char* GT(uint32_t theVA);
+#define GTA(theVA) (theVA)
+bool LoadGameTexts();
 const char* Localize(const char* theText);                       // 0x420e10
 Font* Font_Find(const char* theName);                            // 0x420850
 
-// The system layer
-int Sound_Load(const char* thePath);                             // Sound_LoadList on the list at 0x473150
-int Sound_Find(const char* thePath);                             // 0x428650 on it
-void Sound_Play(int theSound);
-void Music_Free();
-void Music_Load(const char* thePath);
-void Music_SetVolume(int theVolume);
-void Music_Play();
-int Screen_Fullscreen();                                         // 0x428f00
-void Screen_SetFullscreen(int theOn);                            // 0x428ee0
-int Screen_Centered();                                           // 0x428f40: 0 the screen is stretched to the display
-void Screen_SetCentered(int theOn);                              // 0x428f10
-int Sound_On();                                                  // 0x4290f0
-void Sound_SetOn(int theOn);                                     // 0x42a010
-int Music_On();                                                  // 0x429100
-void Music_SetOn(int theOn);                                     // 0x42a020
-void DrawLoadingScreen();
-int CrtRand();                                                   // the CRT's rand
+// The game's sounds (0x473150): SoundList_Load and SoundList_Find on them
+extern SoundList gSounds;
+int Sound_Load(const char* thePath);
+int Sound_Find(const char* thePath);
+int CrtRand();                                                   // 0x444f09: the CRT's rand
+void CrtSrand(unsigned theSeed);                                 // 0x444efc
 void SaveProfiles();                                             // 0x40c900
 void Screen_Redraw();                                            // 0x40d040
 void Cursor_Show();                                              // 0x404d60
@@ -143,12 +132,24 @@ void GameInit();                                                 // 0x40ce40
 void FreeAll();                                                  // 0x40d3a0
 void GoToScreen();                                               // 0x40d3f0: the screen of kind gGoTo
 void GameStep();                                                 // 0x40d6a0
+void GameDraw();                                                 // 0x40ce80
+// The start (CBStart.cpp)
+extern char gGameFile[0x100];              // 0x4622e0  the game file read next
+extern Font gFontBase;                     // 0x4700e0  (loaded, never drawn)
+// 0x46e394: the screen locked for drawing (its pitch and pixels are gScreenPitch and gScreenBits, which
+// Screen_Lock sets, as LockScreen on it does)
+extern ScreenLock gScreenLock;
+int Screen_Lock();
+void LoadArt8();                                                 // 0x41e4b0
+void LoadArtAndFonts();                                          // 0x41e4d0
+void DrawLoadingScreen();                                        // 0x41e560
 void LoadGameFile();                                             // 0x41e9b0
-// The port's: where cb.dat goes; a save is done (the web build keeps it); the account's name (0x429d30: the
-// original's GetUserNameA), "" when there is none
-const char* Sys_SavePath(const char* theName);
-void Sys_SaveDone();
-void Sys_UserName(char* theName, int theSize);
+// 0x41ee60, the game's main: GameStart is what comes before its loop, GameFrame one pass of the loop (0 when the
+// game quits), GameEnd what follows it
+void GameStart();
+int GameFrame();
+void GameEnd();
+int Font_LoadXml(const char* p, const XmlTag* theTag);           // 0x420ba0: a font tag of the game file
 
 } // namespace cb
 

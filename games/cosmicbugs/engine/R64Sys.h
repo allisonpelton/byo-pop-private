@@ -25,6 +25,41 @@ public:
 	// 0x429e40: where the mouse pointer is on the game's screen (the original reads the system's and takes off the
 	// window's place)
 	virtual void GetMousePos(int* x, int* y) { *x = 0; *y = 0; }
+
+	// The screen (the original's DirectDraw surfaces, 0x42e1d0..): 800x600 in Sys_ScreenFormat's format. LockScreen
+	// gives its pixels to draw into (false: it cannot be drawn now), Present shows what was drawn (theWait: on the
+	// display's refresh); SetScreenMode applies the windowed or full screen mode, stretched to the display or
+	// centred in it.
+	virtual bool LockScreen(uint8_t** theBits, int* thePitch) = 0;
+	virtual void UnlockScreen() {}
+	virtual void Present(int theWait) {}
+	virtual void SetScreenMode(int theFullscreen, int theCentered) {}
+	// timeGetTime
+	virtual uint32_t TimeMs() = 0;
+	// The window is the active one (WM_ACTIVATEAPP)
+	virtual bool IsActive() { return true; }
+	// BASS's samples (a sound's id, -1 when it cannot be loaded) and its one music (BASS_MusicLoad with
+	// BASS_SAMPLE_LOOP | BASS_MUSIC_RAMP; PlayMusic(1) from the start); theVolume is BASS's music volume, 0 to 100
+	virtual int LoadSound(const char* thePath) { return -1; }
+	virtual void PlaySound(int theSound) {}
+	virtual void StopSounds() {}
+	virtual bool LoadMusic(const char* thePath) { return false; }
+	virtual void FreeMusic() {}
+	virtual void PlayMusic(int theRestart) {}
+	virtual void PauseMusic() {}
+	virtual void SetMusicVolume(int theVolume) {}
+	// ShellExecute's "open"
+	virtual void OpenURL(const char* theUrl) {}
+	// The player's files (cp.cfg, cb.dat): where one is opened (the original's FixPath: the game's folder), and
+	// one that was written (the web build keeps it)
+	virtual const char* SavePath(const char* theName) = 0;
+	virtual void SaveDone() {}
+	// GetUserNameA, "" when there is none
+	virtual void UserName(char* theName, int theSize)
+	{
+		if (theSize > 0)
+			theName[0] = 0;
+	}
 };
 
 void Sys_SetHost(SysHost* theHost);
@@ -32,12 +67,18 @@ SysHost* Sys_Host();
 
 // fopen/fseek/ftell/fread on the whole file, as the loaders do: false when it cannot be read
 bool Sys_ReadFile(const char* thePath, std::vector<uint8_t>& theData);
+// The port's: a game file is there
+bool Sys_FileExists(const char* thePath);
+// The port's: the host's SavePath, SaveDone and UserName (0x429d30)
+const char* Sys_SavePath(const char* theName);
+void Sys_SaveDone();
+void Sys_UserName(char* theName, int theSize);
 // 0x428f50
 void Sys_AddUpdateRect(int x, int y, int w, int h);
 // 0x428890
 void Sys_SetMousePos(int x, int y);
-// 0x70819c: the original's PumpMessages (0x42a070) pumps the window's messages only while it is 1, and it picks
-// which focus messages pause the sound; only the demo's power-ups set it (the port's host does neither)
+// 0x70819c: while it is 1, PumpMessages does not wait for the window to be active (and the original picks which
+// focus messages pause the sound by it); only the demo's power-ups set it
 extern int gPumpMessages;
 
 // The input (0x4289d0..0x428b20), which the window's messages fill: the mouse buttons held, the keys held (by
@@ -55,6 +96,75 @@ void Sys_MouseButton(int theButton, int theDown);
 // 0x428eb0: the screen's pixel format (gScreenFormat 0x46e5b8 points at it)
 const PixelFormat* Sys_ScreenFormat();
 void Sys_SetScreenFormat(const PixelFormat* theFmt);
+
+// The screen (0x428e70..0x428ff0) and the window's messages
+struct ScreenLock
+{
+	int unk00;
+	int w;                     // +0x04
+	int h;                     // +0x08
+	int pitch;                 // +0x0c
+	uint8_t* bits;             // +0x10
+};
+uint32_t TimeMs();                       // 0x428e70
+void Sys_Sleep(int theMs);               // 0x428820
+void OpenURL(const char* theUrl);        // 0x428e90
+// 0x428ec0 and 0x428ed0: called after PumpMessages opened the screen again, the first with the screen's format
+void SetScreenLostCallback(void (*theCallback)(const PixelFormat*));
+void SetScreenChangeCallback(void (*theCallback)());
+int Screen_Fullscreen();                 // 0x428f00
+void Screen_SetFullscreen(int theOn);    // 0x428ee0: at the next PumpMessages
+int Screen_Centered();                   // 0x428f40: 0 the screen is stretched to the display
+void Screen_SetCentered(int theOn);      // 0x428f10: at the next PumpMessages
+void Present(int theWait);               // 0x428f70
+int LockScreen(ScreenLock* theLock);     // 0x428fa0: 0 when it cannot be drawn
+void UnlockScreen();                     // 0x428fe0
+// 0x42a070: the window's messages are the host's, between frames; this is what follows them: 0 while the window is
+// inactive, when the original waited for it (unless gPumpMessages), else 1 after the screen mode asked for (F7, F8
+// and the options) is applied
+int PumpMessages();
+// 0x42a340: cp.cfg's settings (the mode, the sound and the music), written with the defaults when it is missing
+void LoadConfig();
+void SaveConfig();                       // 0x429db0
+// WM_ACTIVATEAPP (and WM_SETFOCUS, WM_KILLFOCUS): the keys held are let go, the sound paused or resumed
+void Sys_Activate(int theActive);
+
+// The sound (BASS): the samples by id and the one music. A sound list (0x18 bytes) keeps them by file name.
+struct SoundEntry
+{
+	SoundEntry* next;          // +0x000
+	SoundEntry* prev;          // +0x004
+	char name[0x100];          // +0x008
+	int sound;                 // +0x108
+};
+struct SoundList
+{
+	SoundEntry* current;       // +0x00
+	SoundEntry* head;          // +0x04
+	SoundEntry* tail;          // +0x08
+	void* unk0c;
+	int count;                 // +0x10
+	int unk14;
+};
+int Sample_Load(const char* thePath);    // 0x42b370: its id, -1 when it cannot be loaded
+int Sound_Play(int theSound);            // 0x429fb0
+int Sound_StopAll();                     // 0x42a570
+int Sound_On();                          // 0x4290f0
+void Sound_SetOn(int theOn);             // 0x42a010
+// 0x428650: the id of the sound loaded from thePath (0 when there is none: the first one's)
+int SoundList_Find(SoundList* theList, const char* thePath);
+// 0x428770: loads it unless it is in the list
+int SoundList_Load(SoundList* theList, const char* thePath);
+int Music_SetVolume(int theVolume);      // 0x429000: 0 to 255
+int Music_Load(const char* thePath);     // 0x429030
+int Music_Free();                        // 0x429070
+int Music_Play();                        // 0x429090: from the start, when the music is on
+int Music_Resume();                      // 0x4290c0
+int Music_On();                          // 0x429100
+void Music_SetOn(int theOn);             // 0x42a020
+void Sound_Start();                      // 0x42ad70: BASS_Init (the port: on the host's sound)
+void Sound_Shutdown();                   // 0x42a6a0
+int Sound_Pause();                       // 0x42a610: the music paused and the sounds stopped
 
 } // namespace r64
 

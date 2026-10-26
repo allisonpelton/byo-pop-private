@@ -498,7 +498,7 @@ void CopyString(char* theDst, size_t theSize, const char* theSrc)
 
 // The original copies the attributes without bounds (and a missing one from a null pointer); here they are cut to
 // their fields and a missing one is empty
-void Animation_FromXml(Animation* theAnim, const XmlTag* theTag)
+int Animation_FromXml(Animation* theAnim, const XmlTag* theTag)
 {
 	if (gGreyPaletteUnset != 0)
 	{
@@ -532,7 +532,7 @@ void Animation_FromXml(Animation* theAnim, const XmlTag* theTag)
 		CopyString(theAnim->swap2, sizeof(theAnim->swap2), Xml_GetString(theTag, "swap2"));
 	if (Xml_GetString(theTag, "swap3") != nullptr)
 		CopyString(theAnim->swap3, sizeof(theAnim->swap3), Xml_GetString(theTag, "swap3"));
-	Animation_Load(theAnim, 0);
+	return Animation_Load(theAnim, 0);
 }
 
 } // namespace cb

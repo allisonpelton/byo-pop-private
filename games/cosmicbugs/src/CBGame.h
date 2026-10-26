@@ -311,8 +311,8 @@ Animation* Animation_Find(const char* theName, int* theCount, int* theFrameTime)
 int Animation_Load(Animation* theAnim, int theReload);
 // 0x4025c0: every animation again, after the screen's format changed
 void Animation_ReloadAll();
-// 0x402610: an <animation> tag
-void Animation_FromXml(Animation* theAnim, const XmlTag* theTag);
+// 0x402610: an <animation> tag; Animation_Load's result
+int Animation_FromXml(Animation* theAnim, const XmlTag* theTag);
 
 // Utilities (0x420090..0x420850)
 // 0x420090: the whole file, malloc'd, with a 0 after it (the port's; not counted in theSize); null if missing

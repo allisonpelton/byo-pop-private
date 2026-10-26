@@ -71,7 +71,8 @@ const int kColourCodes[10][9] = {
 };
 
 // 0x458ad4..0x458a94: the default high scores' names (the code copies each literal in place)
-const uint32_t kDefaultNames[8] = {0x458ad4, 0x458acc, 0x458ac4, 0x458abc, 0x458ab4, 0x458aac, 0x458aa0, 0x458a94};
+const uint32_t kDefaultNames[8] = {GTA(0x458ad4), GTA(0x458acc), GTA(0x458ac4), GTA(0x458abc), GTA(0x458ab4),
+	GTA(0x458aac), GTA(0x458aa0), GTA(0x458a94)};
 const int kDefaultScores[8] = {120000, 80000, 70000, 60000, 50000, 40000, 20000, 10000};
 
 // 0x40cdf0: the higher score first (never "equal", so CrtQsort's order of ties is the original's)
@@ -312,6 +313,19 @@ void GameInit()
 	LoadProfiles();
 	gUrl[0] = 0;
 	Dirty_AddClipped(&gDirty, 0, 0, 800, 600, kScreenClip);
+}
+
+// The screen's dirty parts from the back buffer, then the level over them
+void GameDraw()
+{
+	if (Screen_Lock() != 0)
+	{
+		Dirty_CopyTo(&gDirty, gScreenBits, gScreenPitch);
+		Draw_SetTarget(gScreenBits, gScreenPitch, gScreenLock.w, gScreenLock.h, &gBackBuffer.fmt);
+		if (gLevels.current != nullptr)
+			Level_Draw(gLevels.current);
+		UnlockScreen();
+	}
 }
 
 // Onto the level's background
