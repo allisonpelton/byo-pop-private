@@ -9,6 +9,7 @@
 
 #include <SDL.h>
 #include <cstdio>
+#include <vector>
 
 using namespace Sexy;
 
@@ -18,6 +19,18 @@ static int Next(int theRange)
 {
 	sSeed = sSeed * 1103515245u + 12345u;
 	return (int) ((sSeed >> 16) % (unsigned int) theRange);
+}
+
+// A test command that starts a game while a dialog of the game before it is still up (the level-up screen at the end of a
+// game keeps the old board's random generator) must close the dialogs first: the game itself only starts a board from the menu.
+static void StartTestBoard(RocketApp* theApp)
+{
+	std::vector<int> anIds;
+	for (DialogMap::iterator anItr = theApp->mDialogMap.begin(); anItr != theApp->mDialogMap.end(); ++anItr)
+		anIds.push_back(anItr->first);
+	for (size_t i = 0; i < anIds.size(); i++)
+		theApp->KillDialog(anIds[i]);
+	theApp->StartBoard(false);
 }
 
 // the cells whose piece does not know its place, and the pieces that stand in two cells
@@ -60,7 +73,7 @@ bool RocketAutoplay(RocketApp* theApp, const ScriptCommand& theCommand)
 		sSeed = 12345;
 		theApp->mMode = aMode;
 		theApp->mDifficulty = aDifficulty;
-		theApp->StartBoard(false);
+		StartTestBoard(theApp);
 	}
 	Board* aBoard = theApp->mBoard;
 	if (aBoard == NULL)
@@ -151,7 +164,7 @@ bool RocketHint(RocketApp* theApp, const ScriptCommand& theCommand)
 	{
 		theApp->mMode = 0;
 		theApp->mDifficulty = 1;
-		theApp->StartBoard(false);
+		StartTestBoard(theApp);
 	}
 	theApp->mNoHints = false;
 	theApp->mHintFlags[aHint] = false;
@@ -171,7 +184,7 @@ bool RocketGameOver(RocketApp* theApp, const ScriptCommand& theCommand)
 	}
 	theApp->mMode = aMode;
 	theApp->mDifficulty = 1;
-	theApp->StartBoard(false);
+	StartTestBoard(theApp);
 	if (theApp->mBoard != NULL)
 		theApp->mBoard->mScore = aScore;
 	theApp->ShowHighScores(0);
@@ -192,7 +205,7 @@ bool RocketEndLevel(RocketApp* theApp, const ScriptCommand& theCommand)
 	{
 		theApp->mMode = aMode;
 		theApp->mDifficulty = 1;
-		theApp->StartBoard(false);
+		StartTestBoard(theApp);
 		return true;
 	}
 	theApp->mBoard->EndLevelA();
@@ -213,7 +226,7 @@ bool RocketLevelUp(RocketApp* theApp, const ScriptCommand& theCommand)
 	theApp->mMode = aMode;
 	theApp->mDifficulty = 1;
 	theApp->mNoHints = true;
-	theApp->StartBoard(false);
+	StartTestBoard(theApp);
 	theApp->mNoHints = false;
 	Board* aBoard = theApp->mBoard;
 	if (aBoard == NULL)
@@ -247,7 +260,7 @@ bool RocketBuyRockets(RocketApp* theApp, const ScriptCommand& theCommand)
 	}
 	theApp->mMode = 0;
 	theApp->mDifficulty = 1;
-	theApp->StartBoard(false);
+	StartTestBoard(theApp);
 	theApp->mNoHints = false;
 	Board* aBoard = theApp->mBoard;
 	if (aBoard == NULL)
@@ -280,7 +293,7 @@ bool RocketEffect(RocketApp* theApp, const ScriptCommand& theCommand)
 	{
 		theApp->mMode = 0;
 		theApp->mDifficulty = 1;
-		theApp->StartBoard(false);
+		StartTestBoard(theApp);
 	}
 	Board* aBoard = theApp->mBoard;
 	if (aBoard == NULL)

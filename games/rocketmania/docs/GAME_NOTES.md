@@ -319,7 +319,7 @@ rows gets an additive warning picture over it (0x41e690), and a tile that was mo
 it passed. The points of the launch in progress show beside its row (0x4290b0, 0x429230) in a hue that moves with the length of
 the chain, as five points for each flame times the difficulty's factor.
 
-Still to do: the rockets over the menu, and the deliverables: the coordinator's `BYOPOP_BUY_rocketmania` line
+Still to do: the deliverables: the coordinator's `BYOPOP_BUY_rocketmania` line
 (cmake/ByopopStores.cmake has an uncommitted local placeholder that must not be committed), and an AddressSanitizer run of the
 autoplay (tools/build.sh has no asan option yet). The trial clock (0x42f770) and the shareware dialogs (0x414790, 0x415020, 0x4153b0) are left out on purpose: the Steam copy
 is registered.

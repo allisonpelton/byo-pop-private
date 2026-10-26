@@ -1,7 +1,6 @@
-// The Board's widget shell: construction and the parts of the original that are not translated yet (Update 0x426f40,
-// the input handlers 0x4282a0-0x428780, the saved games are in BoardSave.cpp, the drawing in BoardDraw.cpp). See docs/GAME_NOTES.md for the map.
-// What is here makes the translated rules (BoardLogic.cpp, BoardLogic2.cpp) build and run on a Board; each stub says
-// which original function it stands for.
+// The Board's widget shell: construction, the update (0x426f40), the end of a level and of a game, and the manager hooks (the
+// input handlers are in BoardInput.cpp, the saved games in BoardSave.cpp, the drawing in BoardDraw.cpp, the rules in
+// BoardLogic.cpp and BoardLogic2.cpp). See docs/GAME_NOTES.md for the map.
 
 #include "Board.h"
 #include "RocketApp.h"
@@ -85,8 +84,8 @@ Board::~Board()
 	delete mRand;
 }
 
-// 0x426f40: the board's update. Left out (not translated yet): the colour that the widget at +0x51c blinks between (m520
-// counts to 300).
+// 0x426f40: the board's update. (The original also blinks the colour of the widget at +0x51c, which the shipped game never
+// creates, so there is nothing to blink.)
 void Board::Update()
 {
 	if (0 < m4c4)
@@ -261,10 +260,12 @@ void Board::Update()
 	}
 }
 
-// (not translated yet)
+// 0x428600: a released button makes the click sound (no button has the board as its listener: the app handles the three
+// beside the board)
 void Board::ButtonDepress(int theId)
 {
 	(void) theId;
+	mApp->PlaySample(0);
 }
 
 // ---------------------------------------------------------------------------------------------------------
