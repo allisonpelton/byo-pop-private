@@ -13,3 +13,11 @@ downloaded on 2026-10-25 with the user's approval. It is kept outside the reposi
 presets a game's music uses, by a script that records which presets it kept, so the build and the web page carry a
 few megabytes instead of 32. Each cut-down bank sits in this folder beside `LICENSE.txt`, and web pages that load one
 list `LICENSES generaluser-gs` (`web/licenses/generaluser-gs.txt`).
+
+`tiptop.sf2` (3,305,494 bytes, SHA-256 `f9e30575a12e81e05f3cb5bc42244d231e8a6499213fc048ac51f89ea2bbf97e`) is TipTop
+Deluxe's (`games/tiptop`), made on 2026-10-25 by `python tools/sf2trim.py <GeneralUser-GS.sf2> tiptop.sf2 --midi
+re/tiptop/dat/sounds/bkgd.mid --comment "TipTop Deluxe's music (games/tiptop)"` from the game's one MIDI file. It keeps
+eight presets, Grand Piano (0:0), Vibraphone (0:11), Percussive Organ (0:17), Jazz Guitar (0:26), Acoustic Bass (0:32),
+Trumpet (0:56), Trombone (0:57) and the Brush drum kit (128:40), and of them only the zones the song's notes reach (27
+instruments, 66 samples); its INFO comment says the same. The song rendered with it and with the full bank differs by
+at most one in 32767 (the test hook `musicwav`, `games/tiptop/docs/README.md`).

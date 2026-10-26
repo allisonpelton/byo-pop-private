@@ -14,8 +14,9 @@ into).
 
 All three modes (Regular, Strategy and Speed) play from the first level to the game over, with every screen of the
 original: the splash, the menus, the options, the instructions, the credits, the high scores, the tips, the level
-summaries, pause, the save and continue of a game in progress, and the high score name. The music is missing: it is a
-General MIDI file that the original sent to Windows' MIDI mapper, and the port has no MIDI synth yet (see Status).
+summaries, pause, the save and continue of a game in progress, the high score name and the music. The music is a
+General MIDI file that the original's sequencer sent to Windows' MIDI mapper; the port plays it with TinySoundFont and
+a General MIDI bank cut down from GeneralUser GS (see Music).
 
 ## The binary
 
@@ -66,8 +67,10 @@ install folder or a zip of it into its own IndexedDB folder (`/ttpersist`) and k
 
 Native options: `-gamedir=<dir>` (else `assets/tiptop` next to the exe or up to two levels up, or the retail install),
 `-userdir=<dir>` (the preferences and the saved game; the original kept them in its own folder), `-fast`, `-seed=N`
-(the C library generator's seed, otherwise the clock) and `-script=<file>` (the framework's scripted input:
-`<update> click <x> <y>`, `key <name>`, `char <c>`, `screenshot <file>`, `quit`).
+(the C library generator's seed, otherwise the clock), `-script=<file>` (the framework's scripted input:
+`<update> click <x> <y>`, `key <name>`, `char <c>`, `screenshot <file>`, `quit`, and TipTop's `canvasshot <file>` and
+`musicwav <file> <seconds>`), `-canvas=<width>x<height>` (a test run's larger screen, see Testing) and
+`-soundfont=<file>` (the music's bank, else `tiptop.sf2` beside the exe, where the build copies it).
 
 ## Testing
 
@@ -83,12 +86,39 @@ What the bot does not reach was checked with scripts: the options, instructions,
 end of a game through the save dialog, and the saved game's panel and continue on the new game screen (natively, and
 in the browser across a page reload).
 
+To see what the game draws beyond 640x480 (the hidden timed mode's button and high score rows, placed at 1000 by the
+configuration), `-canvas=<width>x<height>` gives the game a larger screen, of which the window still shows the top left
+640x480, and the script command `canvasshot <file>` saves all of it as a PNG after blanking what earlier screens left
+outside 640x480 and redrawing every layer (`src/testhooks/Canvas.cpp`). With `-canvas=1280x1200` the main menu shows
+the timed mode's best score at y=1000, the high scores screen its table of five, and the new game screen its button at
+(1000, 1000).
+
 An AddressSanitizer build (2026-10-25): `cmake -S . -B build/native-asan -G Ninja -DCMAKE_BUILD_TYPE=Debug
 -DCMAKE_TOOLCHAIN_FILE=cmake/llvm-mingw-i686.cmake -DSDL2_DIR=... "-DCMAKE_CXX_FLAGS=-fsanitize=address
 -fno-omit-frame-pointer -O1" "-DCMAKE_C_FLAGS=<the same>"`, then `cmake --build build/native-asan --target tiptop` and
 copy `libclang_rt.asan_dynamic-i386.dll` (llvm-mingw's `i686-w64-mingw32/bin`) next to the exe. The bot's two regular
 games and a speed game (the same results as the normal build) and the scripts that save a game and continue it ran
 with no report.
+
+## Music
+
+The original's sequencer (`src/Music.cpp`, 0x4276f0-0x428031) ran on a thread that played the due events every 20 ms
+and sent them to the MIDI mapper with `midiOutShortMsg`. The port sends them to TinySoundFont
+(`third_party/tinysoundfont`, `src/MusicSynth.cpp`) with `third_party/generaluser-gs/tiptop.sf2`, GeneralUser GS cut
+down by `tools/sf2trim.py` to the eight presets the song plays and the zones its notes reach (3.3 MB of the bank's 32).
+The synth is a song of the platform's mixer (`Mixer::AddSong`), so the music goes through SDL's audio like the
+sounds, and test runs stay silent; the sequencer runs in its rendering in the audio callback, a pass for each
+millisecond of sound, so the music keeps time whatever the frame rate or the audio buffer. The functions the game
+calls (play, stop, pause, the volume) hold the mixer's lock, and the stop sends a system reset in place of the
+original's `midiOutClose`, which ends the notes. The native build copies the bank beside the exe; the web build embeds
+it in the wasm (`/tiptop.sf2`), and the page's copyright page lists both licenses.
+
+The script command `musicwav <file> <seconds>` starts the song again and renders it into a WAV file without the audio
+device, logging how long the device had played and how many voices sounded. Rendered for 180 seconds (the song is
+168.8 s and loops), the cut-down bank and the full one (`-soundfont=`) differ by at most one in 32767, and so do the
+native build and the web build under Node (`games/bejeweled/tools/verify/wasmrun.js game build/web/tiptop.js ...`).
+The song sounds up to 116 voices at once, most of them fading out; the synth has 256. At the default music volume its
+level is about -24 dB on average with peaks at -5 dB, below the sounds (peaks at 0 dB).
 
 ## Mods
 
@@ -97,8 +127,7 @@ making.
 
 ## Status (2026-10-25)
 
-Everything plays but the music. The sequencer (`src/Music.cpp`, 0x4276f0-0x428031) is translated and runs once a frame
-instead of on a 20 ms thread; its MIDI messages go to an output the host sets, and there is none yet. The registration
+Everything plays, the music too (since 2026-10-25, see Music). The registration
 and the trial (the count of plays, the "no more plays" dialog, the registration dialog and its code check) are left
 out: the port plays as registered, so no dialog shows a register button. The links of the options screen open through
 the framework (never in a test run).
@@ -119,5 +148,6 @@ The original opened its files by bare names in the working directory; the port r
 
 ## Changes outside the TipTop folders
 
-`CMakeLists.txt` (the `BUILD_TIPTOP` option), `tools/check.sh` (the `tiptop` suite) and `.claude/launch.json` (the
-`tiptop-web` preview on port 18774).
+`CMakeLists.txt` (the `BUILD_TIPTOP` option), `tools/check.sh` (the `tiptop` suite), `.claude/launch.json` (the
+`tiptop-web` preview on port 18774), `platform/Audio.h` (`Mixer::AddSong`, for the music synth), `tools/sf2trim.py`
+(cuts a SoundFont bank down to what MIDI files play) and `third_party/generaluser-gs/tiptop.sf2` (the music's bank).

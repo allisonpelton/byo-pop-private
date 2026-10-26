@@ -37,7 +37,11 @@ images and the handlers that need to be found again. The screens are numbered: 1
 The game modes are set by commands 0x20-0x23, each with its own list of levels: 0x20 regular (mode 0), 0x21 speed
 (mode 2), 0x22 timed (mode 1) and 0x23 strategy (mode 3). The configuration places the timed mode's button at
 (1000, 1000), off the screen, so TipTop Deluxe shows three modes; the timed mode's rules (a meter that empties with
-time, the level won when it reaches the goal, the game lost when it runs out) are all in the board.
+time, the level won when it reaches the goal, the game lost when it runs out) are all in the board. Its high score
+rows on the main menu and the high scores screen are at y=1000 too. Drawn on a larger screen (the port's `-canvas`),
+they are the names, scores and levels alone, since the panels and the mode's names are parts of the background
+pictures, which have none for the timed mode; and its button's picture (`ButtonNewGameTimed.pcx`) is a 16x16
+placeholder, two states of 16x8 like the other buttons' stacked pictures, where theirs are about 130 pixels wide.
 
 The game's random numbers are MSVC's `rand` (0x44ccaf), seeded once with the tick count (0x411fff); the port seeds it
 with `-seed` when given, which makes the bot's games repeatable.

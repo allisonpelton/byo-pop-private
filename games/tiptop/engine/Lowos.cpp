@@ -4,6 +4,7 @@
 #include "Lowos.h"
 #include "platform/Audio.h"
 
+#include <algorithm>
 #include <cstdio>
 #include <cstring>
 #include <memory>
@@ -12,12 +13,14 @@
 namespace lowos
 {
 
-static const int SCREEN_W = 640;
-static const int SCREEN_H = 480;
+// The screen is the original's 640x480; a test run can make it larger (HostSetCanvas, TipTopApp's -canvas) to see
+// what the game draws beyond it
+static int SCREEN_W = 640;
+static int SCREEN_H = 480;
 // The game asks for mode 1 of the mode table (0x47e318): 640x480, 32 bits, R 8:16, G 8:8, B 8:0.
 static const PixelFormat SCREEN_FORMAT = {8, 16, 8, 8, 8, 0};
 
-static uint32_t gScreen[SCREEN_W * SCREEN_H];
+static std::vector<uint32_t> gScreen(640 * 480);
 static ClockFunc gClock = nullptr;
 static MessageFunc gMessageFunc = nullptr;
 static bool gActive = true;
@@ -40,7 +43,20 @@ static int gMessageDepth = 0;         // 0x48a224
 
 uint32_t* HostScreen()
 {
-	return gScreen;
+	return gScreen.data();
+}
+
+void HostScreenSize(int* theWidth, int* theHeight)
+{
+	*theWidth = SCREEN_W;
+	*theHeight = SCREEN_H;
+}
+
+void HostSetCanvas(int theWidth, int theHeight)
+{
+	SCREEN_W = theWidth;
+	SCREEN_H = theHeight;
+	gScreen.assign((size_t)theWidth * (size_t)theHeight, 0);
 }
 
 void HostSetClock(ClockFunc theClock)
@@ -361,7 +377,7 @@ char InitScreen(uint8_t theMode, ActivateCallback theActivate, CloseCallback the
 	gOnSwitch = theOnSwitch;
 	gModeRequest = theWindowed == 1 ? 1 : 2;
 	gWindowed = theWindowed != 1;
-	memset(gScreen, 0, sizeof(gScreen));
+	std::fill(gScreen.begin(), gScreen.end(), 0);
 	gScreenInited = true;
 	return gWindowed ? 2 : 1;
 }
@@ -434,7 +450,7 @@ uint8_t* LockScreen(uint32_t* thePitch)
 {
 	if (thePitch != nullptr)
 		*thePitch = SCREEN_W * 4;
-	return (uint8_t*)gScreen;
+	return (uint8_t*)gScreen.data();
 }
 
 // 0x42f9c0
@@ -691,7 +707,7 @@ void Blit(int theWidth, int theHeight, int theDestX, int theDestY, int theSrcX, 
 			aFlags = theFlags & 0xfb;
 	}
 	uint32_t aKey = ConvertColor(&SCREEN_FORMAT, &SCREEN_FORMAT, gColorKey);
-	uint8_t* aDest = (uint8_t*)gScreen + theDestY * SCREEN_W * 4 + theDestX * 4;
+	uint8_t* aDest = (uint8_t*)gScreen.data() + theDestY * SCREEN_W * 4 + theDestX * 4;
 	const uint8_t* aSrc = theSrcBits + theSrcY * theSrcPitch + theSrcX * (4 + ((aFlags >> 1) & 1));
 	BlitPixels(&SCREEN_FORMAT, &SCREEN_FORMAT, aDest, aSrc, theHeight, theWidth, SCREEN_W * 4, theSrcPitch,
 		aFlags, 4, 4, aKey, theLevel);
