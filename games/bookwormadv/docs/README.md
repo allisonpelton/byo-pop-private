@@ -77,8 +77,9 @@ pak reader against the staged files.
 
 What the suite does not reach was checked with scripts: the arena from the main menu (its treasure room, the tutorial
 and a timed fight), the hall of fame, the tome and its media player, the credits from the options, the players dialog
-(choosing, adding, deleting, a name in use), the mini-games' menu and its three games, and in the browser the import,
-the main menu, the map and a battle.
+(choosing, adding, deleting, a name in use), the mini-games' menu and its three games. In the browser: the import,
+the main menu, the map, a battle, the credits, the players dialog, the mini-games' menu, a game of Word Master left
+for the hall of fame, the tome, and the window losing and regaining the focus.
 
 ## Mods
 
@@ -88,7 +89,9 @@ making.
 ## Status (2026-10-26)
 
 The adventure, the arena, the mini-games, the hall of fame, the tome, the credits and the players dialog play
-natively; in the browser the import, the main menu, the map and a battle are tested so far. Left out: the media player's music visualiser (it needs the music's spectrum, which the
+natively and in the browser (where the arena was not reached, as only a script command unlocks it for a test
+profile). Tiles and letters are chosen by clicking, as in the original: no widget of the exe chooses them by typed letters
+(the board's keys are only 1 to 4, Enter and space; the scripts' KeyChar handlers are empty). Left out: the media player's music visualiser (it needs the music's spectrum, which the
 platform's player does not give yet), the trial and its buy screens (the port plays as bought), and the developers'
 tools in the exe (the DProps editor, the Lua debugger console). Notes starting `port:` in the code mark every place
 where the port differs from the original.
