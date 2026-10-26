@@ -285,11 +285,17 @@ bool XMLParser::OpenFile(const std::string& theFileName)
 				int aChar3 = p_fgetc(mFile);
 
 				if (aChar1 == 0xEF && aChar2 == 0xBB && aChar3 == 0xBF)
+				{
+					// port: the byte order mark is consumed here; left in the stream it reached the properties
+					// parser as text before the first element (Bookworm Adventures Volume 2's partner.xml has one)
 					mGetCharFunc = &XMLParser::GetUTF8Char;
-
-				p_ungetc(aChar3, mFile);
-				p_ungetc(aChar2, mFile);
-				p_ungetc(aChar1, mFile);			
+				}
+				else
+				{
+					p_ungetc(aChar3, mFile);
+					p_ungetc(aChar2, mFile);
+					p_ungetc(aChar1, mFile);
+				}
 			}
 		}
 	}

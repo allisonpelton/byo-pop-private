@@ -11,7 +11,7 @@ using namespace Sexy;
 // 0x401180: dialog 0x15 with "Continue" as its one button (the footer's), 0x1c4 wide and 0x154 high (0x168 for
 // the first win's), in the middle of the screen
 ArenaWinDialog::ArenaWinDialog(bool theFirstTime, const std::string& theCallback)
-	: GameDialog(GameApp::DIALOG_ARENA_WIN, _S(""), _S(""), GT(0x7a95e8), BUTTONS_FOOTER), mFirstTime(theFirstTime),
+	: GameDialog(GameApp::DIALOG_ARENA_WIN, _S(""), _S(""), GT(0x6f6ab8), BUTTONS_FOOTER), mFirstTime(theFirstTime),
 	  mCallback(theCallback)
 {
 	int aHeight = 0x154 + (theFirstTime ? 0x14 : 0);
@@ -41,17 +41,12 @@ void ArenaWinDialog::Draw(Graphics* g)
 	           mWidth - mBackgroundInsets.mRight - mContentInsets.mRight - mBackgroundInsets.mLeft -
 	               mContentInsets.mLeft - 4,
 	           0);
-	WriteWordWrapped(g, aRect, GT(0x7a95f4), -1, 0);
-	if (mFirstTime) {
-		g->DrawImage(IMAGE_FILM_REEL, (mWidth - IMAGE_FILM_REEL->mWidth) / 2, 100);
-		aRect.mY = 0xdc;
-		WriteWordWrapped(g, aRect, GT(0x7a9610), -1, 0);
-	} else {
-		// each line is its label (the game's, in the brown of the markup) and the value in black
-		g->WriteString(GT(0x7a96bc) + mTime, aRect.mX, aRect.mY + 0x32, aRect.mWidth, 0, true, 0, -1, -1);
-		g->WriteString(GT(0x7a96dc) + mPotions, aRect.mX, aRect.mY + 0x4b, aRect.mWidth, 0, true, 0, -1, -1);
-		g->WriteString(GT(0x7a96fc) + mWords, aRect.mX, aRect.mY + 0x64, aRect.mWidth, 0, true, 0, -1, -1);
-		g->WriteString(GT(0x7a971c) + mLevel, aRect.mX, aRect.mY + 0x7d, aRect.mWidth, 0, true, 0, -1, -1);
-		g->WriteString(GT(0x7a973c) + mAverageWordLength, aRect.mX, aRect.mY + 0x96, aRect.mWidth, 0, true, 0, -1, -1);
-	}
+	WriteWordWrapped(g, aRect, GT(0x6f6ac4), -1, 0);
+	// port: Volume 2's draw (0x4013a0) has no film reel and no first-time branch: always the list of how the run went
+	// each line is its label (the game's, in the brown of the markup) and the value in black
+	g->WriteString(GT(0x6f6ae0) + mTime, aRect.mX, aRect.mY + 0x32, aRect.mWidth, 0, true, 0, -1, -1);
+	g->WriteString(GT(0x6f6b00) + mPotions, aRect.mX, aRect.mY + 0x4b, aRect.mWidth, 0, true, 0, -1, -1);
+	g->WriteString(GT(0x6f6b20) + mWords, aRect.mX, aRect.mY + 0x64, aRect.mWidth, 0, true, 0, -1, -1);
+	g->WriteString(GT(0x6f6b40) + mLevel, aRect.mX, aRect.mY + 0x7d, aRect.mWidth, 0, true, 0, -1, -1);
+	g->WriteString(GT(0x6f6b60) + mAverageWordLength, aRect.mX, aRect.mY + 0x96, aRect.mWidth, 0, true, 0, -1, -1);
 }

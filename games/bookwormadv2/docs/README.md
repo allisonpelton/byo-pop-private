@@ -59,7 +59,9 @@ The staging unpacks `main.pak` (`tools/popcap_pak.py`, XOR 0xF7), copies `images
 `scripts/` (the loose `scripts/common`), names every file in lower case, and leaves out `images/upsell` (the buy
 screen's trailer). The game's 34 JPEG 2000 pictures are decoded at run time by the platform's OpenJPEG.
 
-The game's own exe target, `bookwormadv2`, is `-DBWA2_GAME=ON` until milestone 2: `src/` is still Volume 1's code.
+The game's own exe target, `bookwormadv2`, is `-DBWA2_GAME=ON` until milestone 2 is done. Run it only under
+`build/native/rundesk.exe` (invisible, silent, low priority), e.g. with a `-script` that clicks and takes screenshots:
+`build/native/rundesk.exe $PWD/build/native/bookwormadv2.exe -gamedir=$PWD/assets/bookwormadv2 -userdir=<empty folder> -script=<file> -fast`.
 
 `bwa2_luarun -runall` runs the main chunk of each script in a state of its own whose missing globals are a stub that
 answers every index, call and operator with itself: the chunks define classes and functions and need the game's C++
@@ -74,20 +76,37 @@ exit status or a count that is not the whole set. The game's own runs join it as
 
 ## Mods
 
-None (the user's rule: no mods before every PopCap game works in the browser). `MOD_IDEAS.md` lists the ones worth
-making.
+None. The port is the original game, unmodified and working like its exe, and adds nothing for later mods, not even hooks
+(the user's rule of 2026-10-26); mods wait for the mod phase, after every PopCap game works in the browser. `MOD_IDEAS.md`
+maps the 29 standard mods of `docs/MOD_ROADMAP.md` onto this game (27 fit; local achievements and two players do not, with
+the reasons) and lists the ideas particular to it.
 
 ## Status (2026-10-26)
 
-Milestone 1 of 5: PopLua runs all 462 scripts headless. The Volume 1 VM and compiler undump all of them, run each main
-chunk, and compile the shipped sources to the shipped chunks. `luaV_execute` differs in layout from Volume 1's (the
+Milestone 1 of 5 is done: PopLua runs all 462 scripts headless. Volume 1's VM and compiler undump all of them, run each
+main chunk, and compile the shipped sources to the shipped chunks. `luaV_execute` differs in layout from Volume 1's (the
 later compiler), and its handlers have not been read case by case against `POPLUA.md`; the battles of milestone 3 are
-the real test of the VM. Not yet done: the title, menus, dialogs and cut scenes (the exe's C++ is still Volume 1's;
-the cut scene player lacks bitmap fills and embedded images that Volume 2's five movies use; PopAnim loads all 304
-animations but 41 pictures in 7 of them are not found), battles, the whole game, the browser.
+the real test of the VM.
+
+Milestone 2 (the title, menus, dialogs and cut scenes) is in place for a game that is not yet finished: 
+`bookwormadv2.exe` (`-DBWA2_GAME=ON`, off by default until the milestone is done) builds from `src/` reworked for Volume 2's
+resource ids and classes, and runs headless under `-script`: the PopCap logo, the title with its curtain, the New User
+dialog and, after OK, the intro cut scene and the prologue battle of book 0, drawn by Volume 2's scripts (`PORT_PLAN.md`);
+the in-game Menu dialog with Options and Quit To Main Menu; the main menu (rebuilt from the original's: seven items, the
+animated portal, Lex and his bubble); the Options dialog and the Hall of Fame; and the portal's click, which takes a game
+saved in the prologue back into the battle. The music plays from the ten loose OGG files over the framework's music
+interface, by song id. Nothing of the battle has been played yet (no tile clicked). Not done: replaying a finished
+adventure (`BookSelectScreen` and three of the curtain's states), Volume 2's secret words, the dialogs of the trial's end
+and of a locked tome, the credits', mini-games' and stats book's song ids, and the arena's and user dialogs' comparison
+with the original. The cut scene player lacks the bitmap tags Volume 2's five movies use; PopAnim loads all 304
+animations but 41 pictures in 7 of them are not found.
 
 ## Changes outside the Bookworm Adventures Volume 2 folder
 
 `CMakeLists.txt` (the `BUILD_BOOKWORMADV2` option), `cmake/ByopopStores.cmake` (the `BYOPOP_BUY_bookwormadv2`
 placeholder; its stores are checked at the web milestone), `.claude/launch.json` (`bookwormadv2-web` on port 18792) and
 `tools/check.sh` (the `bookwormadv2` suite).
+
+In `framework/`, for Volume 2's descriptors and files: `DescParser` (the original's escape rules for quotes and
+backslashes), `ImageFont` (the `LayerSetExInfo` and `LayerSetAlphaCorrection` commands), `PropertiesParser` and
+`XMLParser` (a byte order mark at the start of a file) and `ResourceManager` (a group is found by name without case).

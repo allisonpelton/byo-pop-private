@@ -46,64 +46,6 @@ static LuaClassRet BattleCall(const char* theMethod)
 	return gBattleEngine->CallLinkedMethod(theMethod, 0);
 }
 
-// ---- the AstroPop flash ----
-
-void Board::Flash::Start()
-{
-	mActive = false;
-	mDone = false;
-	mAlphaDelta = 16;
-	mAlpha = 0;
-	mY = gSexyAppBase->mHeight;
-	mHue = 0;
-}
-
-void Board::Flash::Update()
-{
-	if (mDone || !mActive)
-		return;
-	mY -= 4;
-	mHue = (mHue + 4) & 0xff;
-	mAlpha += mAlphaDelta;
-	if (mAlpha >= 256 || mAlpha < 0) {
-		mAlpha = mAlpha >= 256 ? 255 : 0;
-		mAlphaDelta = -mAlphaDelta;
-	}
-	// done once the ships and their jets are above the screen
-	if (mY <= -(IMAGE_GS_SHIP1_WARPJET->GetHeight() + IMAGE_GS_SHIP1->GetHeight())) {
-		mDone = true;
-		mActive = false;
-	}
-}
-
-void Board::Flash::Draw(Graphics* g)
-{
-	if (mDone || !mActive)
-		return;
-	// the screen in a colour that cycles, then the four ships of AstroPop flying up with their jets
-	Color aColor((int)(gApp->HSLToRGB(mHue, 255, 128) | 0xff000000));
-	aColor.mAlpha = 128;
-	g->SetColor(aColor);
-	g->FillRect(0, 0, gApp->mWidth, gApp->mHeight);
-	if (gBoard->mZooming)
-		return;
-	g->DrawImage(IMAGE_GS_GO, (gApp->mWidth - IMAGE_GS_GO->GetWidth()) / 2,
-	             (gApp->mHeight - IMAGE_GS_GO->GetHeight()) / 2);
-	static const int kShipX[4] = {243, 343, 443, 543};
-	Image* const aShips[4] = {IMAGE_GS_SHIP1, IMAGE_GS_SHIP2, IMAGE_GS_SHIP3, IMAGE_GS_SHIP4};
-	for (int i = 0; i < 4; i++)
-		g->DrawImageCel(aShips[i], kShipX[i], mY, 2);
-	g->SetDrawMode(Graphics::DRAWMODE_ADDITIVE);
-	for (int i = 0; i < 4; i++)
-		g->DrawImageCel(IMAGE_GS_SHIP1_WARPJET, kShipX[i] - 5, mY - 55, 8);
-	g->SetColorizeImages(true);
-	g->SetColor(Color(mAlpha, mAlpha, mAlpha));
-	for (int i = 0; i < 4; i++)
-		g->DrawImageCel(IMAGE_GS_SHIP1_WARPJET, kShipX[i] - 5, mY - 55, 8);
-	g->SetColorizeImages(false);
-	g->SetDrawMode(Graphics::DRAWMODE_NORMAL);
-}
-
 // ---- construction ----
 
 Board::Board(GameApp* theApp, bool theIsMiniGame) : mIsMiniGame(theIsMiniGame), mApp(theApp)
@@ -111,8 +53,6 @@ Board::Board(GameApp* theApp, bool theIsMiniGame) : mIsMiniGame(theIsMiniGame), 
 	// port: the original sets gBoard before its members are made
 	RegisterLua();
 	gBoard = this;
-	mFlash = new Flash();
-	mFlash->mY = gSexyAppBase->mHeight;
 	if (!theIsMiniGame)
 		new BattleEngine(this, theApp);  // gBattleEngine
 	else
@@ -128,7 +68,6 @@ Board::Board(GameApp* theApp, bool theIsMiniGame) : mIsMiniGame(theIsMiniGame), 
 Board::~Board()
 {
 	CallLinkedMethod("Destructor", 0);
-	delete mFlash;
 	for (int i = 0; i < mMuteCount; i++)
 		mApp->Unmute(true);
 	RemoveAllWidgets(true, true);
@@ -183,9 +122,9 @@ void Board::Init()
 
 	// the first game's grid: the tutorial's letters
 	static const unsigned int kFirstGrid[16] = {
-	    GTA(0x7aa92c), GTA(0x7aa928), GTA(0x7aa924), GTA(0x7aa920), GTA(0x7aa91c), GTA(0x7aa928),
-	    GTA(0x7aa918), GTA(0x7aa914), GTA(0x7aa910), GTA(0x7aa90c), GTA(0x7aa908), GTA(0x7aa904),
-	    GTA(0x7aa900), GTA(0x7aa8fc), GTA(0x7aa8f8), GTA(0x7aa92c)};
+	    GTA(0x6f7d58), GTA(0x6f7d54), GTA(0x6f7d50), GTA(0x6f7d4c), GTA(0x6f7d48), GTA(0x6f7d54),
+	    GTA(0x6f7d44), GTA(0x6f7d40), GTA(0x6f7d3c), GTA(0x6f7d38), GTA(0x6f7d34), GTA(0x6f7d30),
+	    GTA(0x6f7d2c), GTA(0x6f7d28), GTA(0x6f7d24), GTA(0x6f7d58)};
 	for (int aRow = 0; aRow < mGridHeight; aRow++) {
 		for (int aCol = 0; aCol < mGridWidth; aCol++) {
 			Tile* aTile = AddTile(gTileEngine->CreateTile(false, true, true), aCol, aRow);
@@ -405,7 +344,7 @@ std::string Board::GetWord(const std::list<Tile*>& theTiles)
 	for (Tile* aTile : theTiles) {
 		char c = aTile->GetLetter();
 		if (c == 'Q')
-			aWord.append(GT(0x7aacdc));  // its tile is "Qu"
+			aWord.append(GT(0x6f81ac));  // its tile is "Qu"
 		else
 			aWord.append(1, c);
 	}
@@ -416,12 +355,7 @@ bool Board::IsValidWord(const std::string& theWord, bool theNoEgg)
 {
 	if (theWord.size() <= 2 || !mApp->mLex->IsWord(theWord))
 		return false;
-	if (theWord == GT(0x7aad5c) && !mApp->mMiniGameFromMenu && !mFlash->mActive && !theNoEgg) {
-		mApp->PlaySample(SOUND_SLOWDOWN);
-		BattleCall("SpelledAstroPop");
-		mFlash->Start();
-		mFlash->mActive = true;
-	}
+	// port: Volume 2 has no AstroPop egg (the rainbow Flash and its test of the word are gone from its Board)
 	return true;
 }
 
@@ -853,8 +787,6 @@ void Board::Update()
 		}
 		return;
 	}
-	if (mFlash->mActive)
-		mFlash->Update();
 	gTileEngine->DeleteAllTiles();
 	if (!mIsMiniGame) {
 		if (!mLevelupOverlay && !mEndingChapter)
@@ -1012,7 +944,7 @@ void Board::Draw(Graphics* g)
 		for (int i = 0; i < (int)mButtons.size(); i++)
 			mButtons[i]->DrawFade(g);
 	}
-	if ((mPauseCount > 0 || mLevelupOverlay || HasOverlays() || mFlash->mActive) && !mApp->mQuitting)
+	if ((mPauseCount > 0 || mLevelupOverlay || HasOverlays()) && !mApp->mQuitting)
 		DeferOverlay(10000);  // port: 0 in the original when SexyAppBase's +0x32c is set (nothing in the game sets it)
 	if (mShowBeatdownMultiplier) {
 		float aMultiplier = 0;
@@ -1020,7 +952,7 @@ void Board::Draw(Graphics* g)
 			aMultiplier = mApp->mProfile->GetFloat("BeatdownMultiplier");
 		g->SetFont(FONT_LARGE);
 		g->SetColor(Color::White);
-		g->DrawString(StrFormat(GTC(0x7aae94), (double)aMultiplier), 750, 550);
+		g->DrawString(StrFormat(GTC(0x6f83c4), (double)aMultiplier), 750, 550);
 	}
 }
 
@@ -1055,7 +987,7 @@ void Board::SubmitWord()
 	if (!mLevelupOverlay) {
 		if (mImmuneLook && !mIsMiniGame) {
 			// the enemy is immune to words this short
-			mApp->DoOkDialog(GT(0x7ab038), StrFormat(GTC(0x7ab004), EnemyImmunity()), "", nullptr);
+			mApp->DoOkDialog(GT(0x6f8598), StrFormat(GTC(0x6f85a0), EnemyImmunity()), "", nullptr);
 			BattleCall("ClickedImmuneButton");
 			RehupMouse();
 			return;
@@ -1552,8 +1484,8 @@ void Board::AddedToManager(WidgetManager* theWidgetManager)
 	mTooltip->SetTextColor(Color(0, 0, 0));
 	mTooltip->SetDisplayDelay(100);
 	mTooltip->SetDisplayTime(500);
-	mTooltip->AddText(GT(0x7aad78));
-	mTooltip->AddText(GT(0x7aad94));
+	mTooltip->AddText(GT(0x6f825c));
+	mTooltip->AddText(GT(0x6f8278));
 	mTooltip->SetXY(mButtons[BUTTON_ATTACK]->mX + 20, mButtons[BUTTON_ATTACK]->mY);
 	mWidgetManager->SetFocus(this);
 	if (mApp->mArrowHintManager != nullptr)
@@ -1570,7 +1502,7 @@ void Board::DrawOverlay(Graphics* g)
 		mApp->mArrowHintManager->DrawOverlay(g);
 	if (mLevelupOverlay && !mIsMiniGame)
 		DrawLua(g, "gBattleEngine:DrawLevelupOverlay");
-	if (mPauseCount > 0 && !mApp->ShowingConversationPanel() && mApp->mBookScreen == nullptr && !mFlash->mActive &&
+	if (mPauseCount > 0 && !mApp->ShowingConversationPanel() && mApp->mBookScreen == nullptr &&
 	    mApp->GetDialog(GameApp::DIALOG_ARENA_WIN) == nullptr) {
 		g->SetColor(Color(0, 0, 0, 140));
 		g->FillRect(0, 0, mWidth, mHeight);
@@ -1578,8 +1510,6 @@ void Board::DrawOverlay(Graphics* g)
 			g->DrawImage(IMAGE_PAUSED_BANNER, (mWidth - IMAGE_PAUSED_BANNER->GetWidth()) / 2,
 			             (mHeight - IMAGE_PAUSED_BANNER->GetHeight()) / 2);
 	}
-	if (mFlash->mActive)
-		mFlash->Draw(g);
 }
 
 // ---- the scripts' Board class ----
