@@ -125,24 +125,29 @@ pause 0x421f30, the first board of the timed modes 0x428780/0x428ae0, the dealin
 0x428e80, game over 0x421de0, 0x4282a0, 0x428090, 0x428d10, 0x428de0, 0x41f280, 0x429050-0x429080, the app's StartBoard
 0x42ea30 (without the music fades, the three left-hand buttons 0x42d1a0 and the deletion of the mode's saved game).
 
-Draw (0x41f540 and helpers) is the next block and has a prerequisite: the tiles' pictures. The loading procedure (app vf15,
-0x42bdb0, around lines 585-760 of its decompile) builds app->mPieces: for each of 5 kinds and 4 rotations a 42 by 42 image cut
-from the piece sheet (image table entry 17, source rectangle (rotation * 42, kind * 42)) over a background (entry 33 for
-kind 4, entry 37 for the others), in 7 variants: variant 0 as it is, variants 1 to 5 with the hue set to 45.75, 28.75, 0.25,
-337.25 and 100.0 degrees (HSL, through 0x416fd0 and 0x417140), variant 6 grey (every pixel's three channels become the
-largest of them). The port's mPieces is still empty (RocketApp.cpp only deletes it). Which variant a grid tile shows
-(0x41e770): path 0 or no connection: variant 6; connected to the left edge (m384[path] bit 1): variant 1 when m3fc[path]
-else 2; connected to the right edge (bit 2): variant 4 when m41a[path] is clear, else a seventh-index variant the
-decompile shows as `(rotation + 0x37 + kind * 4) * 0x1c` (check the disassembly: it is not one of the seven); a burning tile
-(type 4) is drawn as variant 6 with the variant-0 picture over it at a fading alpha; a tile with |m80| > 0.005 is drawn by
-0x41e630 (tilted; not read). Positions are `ftol(mX), ftol(mY)` of the piece (the first ftol is y). Edge pieces: 0x41ec20 (left:
-a flickering fuse from the font entry 48 / 0xc0, right: the rocket from 0x41d620 with an alpha ramp over its first 155
-updates). Sky: if 1 - m318/m68 <= 0.5 (or m4e0, or the app's test 0xb) the night sky (image 67) is drawn alone at (63, 0),
-otherwise the day sky (image 68) is drawn over it with alpha ftol((1 - m318/m68 - 0.5) * 510) when that is above 4; the sun
-(71) rises with that alpha; then city (72) at (116, 317), ground (66) at (116, 382), the effects, the column (65) at (0, 0),
-the matches (112) at (0, 166) in strategy mode, the poles (69, 70) at (195, 24) and (492, 24).
+### Draw (2026-10-26, late)
 
-Still to do after Draw: Save/Load 0x41b430-0x41c830, the dialogs (high scores 0x4064e0, options 0x411ba0, record 0x414060,
+BoardDraw.cpp translates Draw 0x41f540 and its helpers as far as the board's own picture goes: the sky, sun, city, ground,
+column, poles, the tiles in their seven variants (0x41e770; the right-connected case with m41a set is variant 3, the
+decompile's `(rotation + 0x37 + kind * 4) * 0x1c` is the address of that variant, not another one), the tiles above the board
+(0x41e3e0, 0x41e530), the fuses and rocket launchers (0x41ec20, with the rocket picture chosen by 0x41d620), the pieces that
+move (0x41d420), the score digit by digit, the level and mode texts, the chest and the coins under it (0x41f240, 0x421b80),
+the count of rockets or matches left (0x41ef20, 0x41f0b0), the highlight of the tile under the pointer, the hint arrow
+(shown until the first tile is turned; the option at app+0x549 turns it off), the banners (0x4219a0 draws a text four times
+with phases 0, 5, 10 and 15 so that the copies trail each other) and the texts "Get Ready", game over, level up, "just in
+time", combo, unfreezing and low on matches. Every text is named by its address (GT), none is in the source. The offsets of
+the dark copies behind "just in time" are a reading of the disassembly with one y value inferred from the other texts'
+pattern; compare with the original's picture when the test site can show both.
+
+Not translated yet, in Draw: the specials pass 0x41d670 (3362 bytes: a switch over the special's kind 0 to 13 that draws
+the chest, bombs, coins and the rockets in flight with stretched drawings and attaches sparks to them; the conversion
+operands are in the disassembly, `callargs.py 41d670 41e3a0 -n 3` lists them), the effects 0x41abb0 (called twice, behind
+and in front), the tilted tile 0x41e630 and the overlay 0x41e690, the ghost trail of a moved tile, the dimmed screen and the
+pause window (m350 > 0), the frozen-time bar 0x41f360 of classic mode, the launch counter 0x429230/0x4290b0, the head and its
+bubble (0x416d50, 0x414000). Until the specials pass is in, a rocket in flight and the bombs are not visible, although the
+rules run.
+
+Still to do after Draw (above): Save/Load 0x41b430-0x41c830, the dialogs (high scores 0x4064e0, options 0x411ba0, record 0x414060,
 level-up 0x40c2c0, money 0x4118d0, buy rockets 0x401010, credits 0x403990, hint 0x408f60), the fireworks (Rocket 0x4172f0), the
 talking head (0x4161a0, 0x413aa0), the left-hand buttons 0x42d1a0 and the Board's ButtonDepress, the music fades, then the
 deliverables: the LICENSES entry, the coordinator's `BYOPOP_BUY_rocketmania` line (cmake/ByopopStores.cmake has an
