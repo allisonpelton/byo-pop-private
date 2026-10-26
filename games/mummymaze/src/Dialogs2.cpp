@@ -51,13 +51,13 @@ OptionsDialog::OptionsDialog(MummyApp* theApp) :
 	mSpeedSlider->SetValue(mApp->mSpeed == 2 ? 0.5 : (mApp->mSpeed == 4 ? 1.0 : 0.0));
 
 	// the check box art: the unchecked picture is the left half of checked.gif, the checked one the right
-	MemoryImage* aChecked = new MemoryImage(mApp);
+	MemoryImage* aChecked = mCheckedImage = new MemoryImage(mApp);
 	aChecked->Create(0x24, 0x25);
 	{
 		Graphics g(aChecked);
 		g.DrawImage(mApp->mImages[IMAGE_CHECKED], -0x24, 0);
 	}
-	MemoryImage* aUnchecked = new MemoryImage(mApp);
+	MemoryImage* aUnchecked = mUncheckedImage = new MemoryImage(mApp);
 	aUnchecked->Create(0x24, 0x25);
 	{
 		Graphics g(aUnchecked);
@@ -87,6 +87,8 @@ OptionsDialog::~OptionsDialog()
 	delete mCursorsCheckbox;
 	delete mClockCheckbox;
 	delete mAnkhCheckbox;
+	delete mCheckedImage;
+	delete mUncheckedImage;
 }
 
 // 0x425ff0
@@ -284,13 +286,13 @@ TipDialog::TipDialog(MummyApp* theApp, int theWhich) :
 	SetButtonFont(mApp->mHeaderFont);
 	SetHeaderFont(mApp->mFont1);
 	SetLinesFont(mApp->mFont1);
-	MemoryImage* aChecked = new MemoryImage(mApp);
+	MemoryImage* aChecked = mCheckedImage = new MemoryImage(mApp);
 	aChecked->Create(0x24, 0x25);
 	{
 		Graphics g(aChecked);
 		g.DrawImage(mApp->mImages[IMAGE_CHECKED], -0x24, 0);
 	}
-	MemoryImage* aUnchecked = new MemoryImage(mApp);
+	MemoryImage* aUnchecked = mUncheckedImage = new MemoryImage(mApp);
 	aUnchecked->Create(0x24, 0x25);
 	{
 		Graphics g(aUnchecked);
@@ -302,6 +304,8 @@ TipDialog::TipDialog(MummyApp* theApp, int theWhich) :
 TipDialog::~TipDialog()
 {
 	delete mCheckbox;
+	delete mCheckedImage;
+	delete mUncheckedImage;
 }
 
 // 0x42bba0

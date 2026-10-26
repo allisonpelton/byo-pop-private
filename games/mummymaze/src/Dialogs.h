@@ -17,6 +17,7 @@ namespace Sexy
 {
 
 class MummyApp;
+class MemoryImage;
 class HighScoreScreen;
 
 // 0x427dc0: the name for a high score
@@ -57,6 +58,8 @@ public:
 	DialogButton*		mScoresButton;          // +0xf0 id 2
 	DialogButton*		mWebButton;             // +0xf4 id 3
 	DialogButton*		mCreditsButton;         // +0xf8 id 4
+	MemoryImage*		mCheckedImage;          // the check box pictures (the checkboxes do not own them)
+	MemoryImage*		mUncheckedImage;
 
 public:
 	OptionsDialog(MummyApp* theApp);
@@ -80,6 +83,8 @@ public:
 	MummyApp*			mApp;                   // +0xc4
 	Checkbox*			mCheckbox;              // +0xc8 "do not show this screen again"
 	int					mWhich;                 // +0xcc 0 two mummies, 1 gate, 2 traps, 3 red mummy, 4 scorpion, 5 dark maze, 6 no ankh
+	MemoryImage*		mCheckedImage;
+	MemoryImage*		mUncheckedImage;
 
 public:
 	TipDialog(MummyApp* theApp, int theWhich);

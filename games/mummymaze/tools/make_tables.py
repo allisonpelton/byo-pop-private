@@ -24,6 +24,10 @@ TABLES = [
     ("kMummyIdleLen", 0x49496c, 4),
     ("kExplorerIdleCount", 0x495250, 1),
     ("kExplorerIdleLen", 0x495254, 4),
+    ("kMapPos", 0x481b44, 30),                 # the world map: where each of the 15 pyramids is (x, y pairs)
+    ("kMapLinks", 0x481bbc, 225),              # the world map: 15 x 15, 1 where a path joins two pyramids
+    ("kMapEdge", 0x481f40, 225),               # the world map: 15 x 15, the number of the path between two pyramids (negative: walked backwards)
+    ("kMapWay", 0x4822c4, 252),                # the world map: six waypoints (x, y) per path, path numbers 1 to 19 (path n starts at pair 6n)
     ("kRankScore", 0x491f98, 22),              # the points at which a classic game's rank rises
 ]
 

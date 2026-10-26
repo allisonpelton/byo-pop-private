@@ -573,10 +573,16 @@ SidePanel::SidePanel(MummyApp* theApp) :
 		mButtons[3]->SetDisabled(true);
 }
 
+// (the original's buttons own the pictures that CopyImage made for them; here they are deleted with the button)
 SidePanel::~SidePanel()
 {
 	for (int i = 0; i < 5; i++)
+	{
+		delete mButtons[i]->mButtonImage;
+		delete mButtons[i]->mOverImage;
+		delete mButtons[i]->mDownImage;
 		delete mButtons[i];
+	}
 }
 
 // 0x42a2a0 / 0x42a2f0
