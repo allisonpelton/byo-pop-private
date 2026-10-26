@@ -1,0 +1,24 @@
+# Stage 13, with the oracle's ten fake replays (compare.py fake-replays: header and END only) and mods/stage3/replays:
+# the browser lists them newest first by the name's time; Keep pins the first (renamed -keep.bjr); Delete on the second
+# asks first (Yes); Keep on the pinned 2000-01-01 is refused (its unpinned twin has the name); Watch on a fake opens the
+# error dialog (a fake has no RULE record), OK.
+300 click 320 398
+400 click 96 261
+430 click 408 232
+450 click 408 206
+460 screenshot shots/k01_list.png
+470 click 319 280
+480 screenshot shots/k02_kept.png
+490 click 200 110
+500 click 491 280
+510 screenshot shots/k03_confirm.png
+520 click 338 169
+530 screenshot shots/k04_deleted.png
+540 click 200 222
+550 click 319 280
+560 screenshot shots/k05_refused.png
+570 click 147 280
+580 screenshot shots/k06_error.png
+600 click 408 169
+620 screenshot shots/k07_ok.png
+700 quit

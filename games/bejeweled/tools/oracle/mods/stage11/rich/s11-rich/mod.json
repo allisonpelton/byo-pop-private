@@ -1,0 +1,11 @@
+{
+  "id": "s11-rich",
+  "name": "Stage 11: specials from crossings",
+  "version": "1.0",
+  "description": "Oracle fixture: crossing runs merge; an L, a T, a plus or a run of 5 keeps a lightning gem, a run of 4 a flame of radius 2 (5x5, 15 points a gem). Specials form in cascades too, and chain.",
+  "rules": {
+    "match": { "crossings": "merge" },
+    "specials": { "flame": { "createdBy": ["run4"], "radius": 2, "points": 15 },
+                  "lightning": { "createdBy": ["L", "T", "plus", "run5"], "points": 25 }, "chain": true, "createIn": "any" }
+  }
+}

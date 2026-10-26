@@ -2,6 +2,6 @@
   "id": "s5-gold",
   "name": "Stage 5: gold only",
   "version": "1.0",
-  "description": "Oracle fixture: gold.enabled alone. The gold rule is not played yet (stage 12), but its derived noMoves.normal \"fallOut\" is (the noMoves rule, stage 5), which mods-status.json must say.",
+  "description": "Oracle fixture: gold.enabled alone. Until stage 12 only its derived noMoves.normal \"fallOut\" played, which mods-status.json said; since then it is the gold board on the full 8x8, and nothing is warned.",
   "rules": { "gold": { "enabled": true } }
 }

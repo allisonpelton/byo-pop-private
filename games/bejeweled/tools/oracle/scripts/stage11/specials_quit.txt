@@ -1,0 +1,24 @@
+# Stage 11, run with -gameseed=4242 and mods/stage11/script (s11-script: every run of 3 keeps a flame gem, every run of
+# 4 a lightning gem; flames of radius 1 that chain). The moves stay below the first game's instructions box.
+300 click 320 398
+520 screenshot shots/s01_settled.png
+# A: (5,6) into (4,6) makes a run of 3 in row 6: the moved gem stays, a flame
+560 click 431 346
+562 click 482 346
+650 screenshot shots/s02_flame.png
+# B: (6,5) and (5,5) swapped: runs of 3 in columns 5 and 6, each keeps its moved gem as a flame, which falls to row 6;
+# a cascade makes a fourth
+700 click 533 295
+702 click 482 295
+# C: (4,5) into (5,5): a run of 3 in column 5, a fifth flame
+880 click 482 295
+882 click 431 295
+# D: (4,4) into (5,4): a run of 4 in column 5 through the flame at (5,5): the moved gem stays as lightning, the flame
+# goes off and takes the flames at (4,6), (5,6) and (6,6), which go off in turn; a cascade makes a flame
+1000 click 482 244
+1002 click 431 244
+1040 screenshot shots/s03_blasts.png
+1060 screenshot shots/s04_chain.png
+# The quit with a lightning and a flame gem on the board: the v2 save's KIND chunk holds them
+1130 screenshot shots/s05_specials.png
+1140 quit

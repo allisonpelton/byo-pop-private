@@ -1,0 +1,20 @@
+# Stage 11: specials_quit's user dir, mods/stage11/script. Play, then Yes resumes the save: its KIND chunk puts the
+# lightning gem back at (5,7) and the flame at (6,7).
+300 click 320 398
+340 click 330 201
+360 screenshot shots/r01_resumed.png
+# A: (5,4) into (5,5): a run of 4 in row 5, the moved gem stays as lightning
+400 click 482 295
+402 click 482 244
+# B: (3,5) into (3,4): a run of 5 in row 4, lightning at (3,4); a cascade makes a flame at (5,4)
+520 click 380 244
+522 click 380 295
+# C: (2,3) into (2,4): a run of 3 in row 4 through the lightning at (3,4): its row and column go, and with them the
+# flame at (5,4), whose blast takes the lightning at (5,5), whose column takes the one at (5,7), whose row takes the
+# flame at (6,7): five blasts in one move
+680 click 329 244
+682 click 329 193
+712 screenshot shots/r02_lightning.png
+718 screenshot shots/r03_chain.png
+900 screenshot shots/r04_settled.png
+1000 quit

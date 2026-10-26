@@ -132,6 +132,18 @@ public:
 	// A twist or slide rule set's field (stage 10), read from the rules as the gravity rows
 	void MovesInt(const char* theName, int& theValue, int theFlags) { if (mBoard->mRules.mMoves.mTypes & (GameRules::MOVE_TWIST | GameRules::MOVE_SLIDE)) Int(theName, theValue, theFlags); }
 	// A dirt rule set's rows (stage 7b), read from the rules as the gravity rows: the layers left on each cell (0 off dirt)
+	// A gold rule set's rows (stage 12): the level's time, and the gold cells (1 gold, 0 not)
+	void GoldInt(const char* theName, int& theValue, int theFlags) { if (mBoard->mVariant.mGold) Int(theName, theValue, theFlags); }
+	void GoldCells(int theFlags)
+	{
+		if (!mBoard->mVariant.mGold || !Want(theFlags, "mGold"))
+			return;
+		for (int aRow = 0; aRow < mBoard->mRows; aRow++)
+		{
+			for (int aCol = 0; aCol < mBoard->mCols; aCol++)
+				PutByte(mBoard->mGold[aRow][aCol]);
+		}
+	}
 	void DirtBool(const char* theName, bool& theValue, int theFlags) { if (mBoard->mDirtRules) Bool(theName, theValue, theFlags); }
 	void DirtLayers(int theFlags)
 	{
@@ -387,6 +399,22 @@ public:
 	void GravityBool(const char* theName, bool& theValue, int theFlags) { if (mBoard->mRules.HasGravityRule()) Bool(theName, theValue, theFlags); }
 	void MovesInt(const char* theName, int& theValue, int theFlags) { if (mBoard->mRules.mMoves.mTypes & (GameRules::MOVE_TWIST | GameRules::MOVE_SLIDE)) Int(theName, theValue, theFlags); }
 	void DirtBool(const char* theName, bool& theValue, int theFlags) { if (mBoard->mDirtRules) Bool(theName, theValue, theFlags); }
+	void GoldInt(const char* theName, int& theValue, int theFlags) { if (mBoard->mVariant.mGold) Int(theName, theValue, theFlags); }
+	void GoldCells(int theFlags)
+	{
+		if (!mBoard->mVariant.mGold || ((theFlags & mFlag) == 0))
+			return;
+		memset(mBoard->mGold, 0, sizeof(mBoard->mGold));
+		for (int i = 0; i < mBoard->mRows * mBoard->mCols; i++)
+		{
+			if (!Has(1, "mGold"))
+				return;
+			uint8_t aGold = (uint8_t) mBytes[mPos++];
+			if (aGold > 1)
+				Fail("gold " + std::to_string(aGold) + " at cell (" + std::to_string(i % mBoard->mCols) + "," + std::to_string(i / mBoard->mCols) + ")");
+			mBoard->mGold[i / mBoard->mCols][i % mBoard->mCols] = aGold;
+		}
+	}
 	// After the cells: a cell with layers holds no gem
 	void DirtLayers(int theFlags)
 	{
@@ -646,6 +674,12 @@ template<class V> void VisitBoard(V& v, Board* b)
 	// plays as the original; UNDO, since an undo brings the dirt back
 	v.DirtLayers(FULL | LOGIC | SNAP | V2 | UNDO);
 	v.DirtBool("mDiagonalLeftFirst", b->mDiagonalLeftFirst, FULL | LOGIC | SNAP | V2 | UNDO);
+	// Stage 12, the gold board (the v2 save's GOLD and GTIM chunks), only when the rules have gold: the gold cells and the
+	// level's time. FULL too, since no such rule set plays as the original; UNDO, since an undo brings the gold back (and
+	// the time left with undo.restoreTime: Board::Undo)
+	v.GoldCells(FULL | LOGIC | SNAP | V2 | UNDO);
+	v.GoldInt("mGoldTicksLeft", b->mGoldTicksLeft, FULL | LOGIC | SNAP | V2 | UNDO);
+	v.GoldInt("mGoldTickLimit", b->mGoldTickLimit, FULL | LOGIC | SNAP | V2);
 	// Stage 10, twists and slides, only when the rules have them: the move of states 10..13 (the grid holds the board
 	// before it, so a save needs none of it: not V2) and its animation. FULL too, since no such rule set plays as the
 	// original; not UNDO, since an undo is taken in STATE_PLAYING

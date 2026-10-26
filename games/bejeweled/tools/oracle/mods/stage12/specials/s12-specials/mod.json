@@ -1,0 +1,11 @@
+{
+  "id": "s12-specials",
+  "name": "Stage 12: gold and specials",
+  "version": "1.0",
+  "description": "Oracle fixture: the gold board on a 7x7 with Bejeweled 2's flame and lightning gems; with gold.gild at its default (matchesAndBlasts) the gems a blast takes turn their cells gold too.",
+  "rules": {
+    "board": { "cols": 7, "rows": 7 },
+    "specials": { "flame": {}, "lightning": {} },
+    "gold": { "enabled": true }
+  }
+}

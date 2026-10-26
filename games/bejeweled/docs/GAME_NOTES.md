@@ -1774,7 +1774,7 @@ games/bejeweled/docs/CODE_MODS_DESIGN.md 4.11, 6.2-6.6 and 7.3, as built:
   setting (`rec_main_nohover`, `rec_load_hover_on`, `rec_load_hover_off`), a quit mid-swap
   (`quit_midswap`), a save that replaces a recorded one (`mode_switch_match`: the timed game kept), and
   Options → High Scores mid-watch (`watch_seed_quit_highscores`). The browser, the speeds and the REPLAY
-  END screen are stage 13.
+  END screen are stage 13 (12.18).
 
 ### 12.5 Auto LiveSplit (code mods, stage 2b)
 
@@ -2272,6 +2272,123 @@ codec's rows for the move in play exist only when the rules have twists or slide
 such boards (a click, a right click or a drag from the trace's points). `-trace` prints a twist as its block,
 direction, landing cell, origin and click point, and a slide as its line, segment, k, landing cell, origin and drag;
 the oracle's `moves=` recomputes them by brute force and `kept=` checks a kept move is one move of the rules' types.
+
+### 12.16 Flame and lightning gems (code mods, stage 11)
+
+games/bejeweled/docs/CODE_MODS_DESIGN.md 4.8, as built (`Specials.cpp`, `BoardSpecials.cpp`). `specials.flame` and
+`specials.lightning` are each null (off) or an object; an empty one is Bejeweled 2's: a flame from a run of 4 or more
+(`run4`), radius 1, 20 points a gem; lightning from a run of 5 or more (`run5`), 30 points a gem. `createdBy` names
+patterns: `runN` is a straight run of N or more, `L`, `T` and `plus` are merged crossings, `diagonal` a diagonal run,
+any other name a shape's id. `Specials` is framework-free, so tools/rulestest checks it on fixtures.
+
+`ProcessMatchesVariant` scores the groups and marks their gems dying as before; `ResolveSpecials` then runs in the
+same tick. Each group whose pattern a special's `createdBy` names (lightning's checked first) keeps one gem alive as
+that special. On the move's own resolve (the first after it) that is the first moved gem in the group, in
+`MovedCells`' order (a swap's two gems, a twist's corners, a slide's cells); otherwise, and when no moved gem is in
+it, the group's middle cell (`mCells[size / 2]`: a run's middle, a merged group's runs in order, a shape's
+orientation's cells), then on round the group from there. A cell already special or taken by another group's
+creation is skipped, and keeping a gem wins over the death another group gave it. `createIn: "move"` makes specials
+only on the move's own resolve. A created special keeps its colour, falls with the board, and is set off by a later
+group that takes it.
+
+The blasts are a queue, first the specials in this pass's groups in group order (each group's cells in order). A
+flame takes the cells within its radius (a square), lightning its whole row and column; holes are never in reach,
+dirt cells are. A blast destroys the gems in reach that are not dying yet and were not made special in this pass;
+with `chain` (the default) a special it destroys joins the queue, without it that special only dies. Each blast
+scores its special's points for each gem it destroyed, times the multiplier, with a popup at the special's cell;
+the points count toward the score, the gems cleared and the move's score (EXCELLENT) but not the set value's count
+(`mMoveMatchCount`), so the next group's points are as if the blast had not been. Under dirt rules each dirt cell in
+reach loses a layer, once per blast. `UpdateClearing` shrinks the blasts' gems with the groups', so no state is new.
+The first blast of each kind in a pass plays its sound: a mod's `sounds\flame` or `sounds\lightning`, else the
+original's explode and firecrackle samples.
+
+Drawing is cosmetic and reads no RNG. A mod's `images\flamegem` and `images\lightninggem` (49 px frames across) are
+drawn additively over the gem; without them a flame glows with the sparkle sheet in fire colours, pulsing, and
+lightning shows the level wipe's electric strip clipped in the gem. Each blast shows for 36 ticks: a flame's
+sparkles over its square, lightning's strip along its row and down its column. These effects are not saved.
+
+Engine ABI 8: a piece's kind is play state (hashed and snapshotted by the codec since stage 5), and a v2 save under
+specials rules writes a `KIND` chunk, a byte a cell, row-major (0 normal, 1 flame, 2 lightning; 0 where there is no
+gem), read back on resume; a v1 save cannot hold one. An undo brings the kinds back with the board (the codec's undo
+rows). `-trace` adds the flames and lightning made and the blasts so far to the variant line, then a line naming each
+special on the board. The counts are the game's since it was started or resumed, and an undo does not take them
+back, so a resumed board can hold more specials than it made; the oracle's `specials=` and `after=` allow for that.
+
+### 12.17 The gold board (code mods, stage 12)
+
+games/bejeweled/docs/CODE_MODS_DESIGN.md 4.9, as built (`BoardGold.cpp`). With `gold.enabled` a level is won by
+turning every cell of the goal gold, Jewel Quest's way, and no longer by points. The goal is the board's gem cells,
+and its dirt cells too with `gold.countDirt` (the default). `ProcessMatchesVariant` gilds the cells of every group it
+scores, before the specials are resolved, and with `gold.gild` at its default (`matchesAndBlasts`) a blast gilds the
+cells of the gems it destroys; `matches` leaves a blast's cells as they were. Only a gem cell turns gold, so a dirt
+cell does once its last layer is gone and a group takes the gem that fell into it. The gold belongs to the cell: it
+stays put when the gems fall, through a fall-out (with gold, `noMoves.normal` defaults to `fallOut`) and through the
+cascades, and only the next level clears it.
+
+`Update`'s level block calls `UpdateGoldGoal` in place of the score's level end and TIME_UP, and the timed mode's score
+drain does not run. A level may have a time limit, `gold.timeLimit.normal` or `.timed` for the mode (Normal is
+untimed by default, Timed `{180, -10, 60}`): `max(min, base + perLevel × level)` seconds, the first level being
+level 0, each at least 10. Its ticks run down in the states the drain runs in (playing, swapping, twisting,
+sliding) once the GO delay is over. In the playing state with no cell of the goal left, a timed level scores
+`timeBonus` (10 by default) for each whole second left, times the multiplier, and the vortex takes the board to the
+next level as after a score level. When the time runs out first, TIME_UP shows and the game is over, which a replay
+records as END reason 4. The bar shows the time left of a level with a limit, else the gold done, and takes the timed
+colours only with a limit. Over it the HUD writes `GOLD done/goal` in the main font (string `GOLD_PROGRESS`, a format
+of the two numbers).
+
+Drawing is cosmetic and reads no RNG. Under the gems each gold cell shows a mod's `images\goldtile`, or else the
+level's checker tile tinted gold (235, 185, 45), made once a level. A cell that just turned gold shines for 30 ticks
+with the sparkle sheet in gold, additively. The shine is not saved.
+
+Engine ABI 9: the gold layer and the level's time are play state (hashed and snapshotted by the codec, the gold's
+limit outside the undo rows). A v2 save under gold rules writes a `GOLD` chunk, a byte a cell, row-major (1 gold,
+only on a gem cell of the mask), and `GTIM`, the ticks left and the limit as two u32s; without them a resume has no
+gold and the level's whole time. A resume on a shape board rebuilds its background through `SetupLevel`
+(`RebuildLoadedBackground`, stage 7), which keeps the loaded gold and time as it keeps the level's other values. An
+undo brings the gold back with the board; the time left comes back only with `undo.restoreTime`, so by default the
+clock runs on. `-forcevariant` does not turn gold on. `-trace` ends the variant line with `gold D/N`, and `time T/L`
+in ticks with a limit, then prints a gold line, a word a row: `1` gold, `0` a cell of the goal not yet gold, `.` a
+cell outside it. Since gold plays, the stage 5 warning that only its fall-out default did is gone.
+
+### 12.18 The watch in the game and the Extras dialog (code mods, stage 13)
+
+games/bejeweled/docs/CODE_MODS_DESIGN.md 4.10, 4.11 and 8, as built. With a feature mod on (the seed field, per-game
+seeds, replays or the leaderboard) Options shows an Extras button in the register slot of its three-button row, where
+the Mods button stands otherwise; the Mods button then moves into Extras, which shows it while an enabled mod has
+settings. Without feature mods Options is drawn as before. The Extras dialog (`ExtrasDialog.cpp`, 348 wide like
+Options) holds the seed field (`features.seeds.entry`: digits only, at most ten, filled in with the seed of a board
+that has one) with "Play this seed", the line "This game: SEED n" for such a board, and "Replays..." with the replays
+feature. Play this seed takes 1 to 4294967295 and refuses anything else with a red line (`MTRand::SRand(0)` would
+play 4357's board). Over a game in progress it asks first, as New Game does; then it sets the pending seed and starts
+a new game, from which the pending-seed rule of 4.10 takes over. Enter in the field plays the seed too.
+
+The replay browser (`ReplayBrowserDialog.cpp`, 560 wide, ten rows and a scrollbar) lists the files of the replay
+folder whose names `ReplayRecorder::IsReplayName` accepts, newest first by the time in the name, a star in front of a
+pinned one. Each row shows the date, the mode and the score from the name, and from the file itself (`Replay::Peek`,
+which reads only the records' heads) the first segment's seed and META's title. Watch (or a double click) watches the
+selected file; Keep and Unkeep rename it to and from its `-keep` name, refused when a file has that name already;
+Delete asks first. Every change calls `Platform::UserDataChanged`, which the web build persists.
+
+A watch starts from the browser, from the high-score screen's WATCH REPLAY link (the replay that game's end just
+wrote, `ReplayRecorder::FinishedReplay`), and as before from `-replay=` and the web page's `?replay=`. Over a game in
+progress it asks first; the player's board is deleted for the playback board, and `~Board` saves it as on a mode
+switch. A transparent overlay (`ReplayOverlay.cpp`) covers the board right of the side bar and holds the focus: a
+banner over the board's top frame says "REPLAY" and the speed, "REPLAY PAUSED", "REPLAY NEXT MOVE" or "REPLAY END",
+and while paused a strip over the bottom frame lists the keys. Space or a click pauses and plays on; 1 to 4 set 1x,
+2x, 4x or 8x, the board's updates in one frame (`WatchController::BeforeFrame`); N plays on at 8x and pauses at the
+next move, the first tick at which a TARGET naming a cell, a TWIST, a SLIDE or an UNDO is due, once at least one update
+has run. A dialog the player opens holds the watch. At the end the REPLAY END dialog gives the score and level, or
+where the replay went out of step: Watch again plays it from its start, and Back (or Esc during the watch, or New
+Game and the mode buttons, as in stage 3b) leaves it through `NewGame(); ConfirmLoadGame();`, which offers the saved
+game again. A file that cannot be played opens a dialog with the reason instead, and gives the player's game back
+when a watch was showing. `-replayquit` still quits at the end, and the headless verifier has no overlay or dialogs.
+
+The test hooks (`-trace`, `-codeccheck`, `-tracehash`) run once a frame, so faster than 1x they see a settle only when
+a frame ends on it. The controller still matches every CHECK and END itself, which is what the oracle's speed cases
+check. The mods status no longer says replays are watched only from the command line, nor that the seed field is to
+come: of the features only the leaderboard is "not in this build" (stage 14). The new strings have defaults and can
+be renamed by mods: `OPTIONSDLG_EXTRAS`, the `EXTRASDLG_*`, `REPLAYSDLG_*` and `REPLAY_*` ids, `CONFIRM_SEED1/2` and
+`HSWIDGET_WATCH_REPLAY`.
 
 ## 13. Naming reconciliation (analyst names → chosen names)
 

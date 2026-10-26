@@ -1,0 +1,13 @@
+# Stage 12, gold_quit's user dir and mods/stage12/script: Yes resumes the saved board with its nineteen gold cells and
+# its time left (the GOLD and GTIM chunks; RebuildLoadedBackground keeps them through its SetupLevel)
+300 click 320 398
+340 click 330 201
+360 screenshot shots/r01_resumed.png
+# A: (3,5) into (2,5): a run of 3 in column 3, two cells more
+400 click 431 346
+402 click 380 346
+# B: (4,4) into (5,4): a run of 3 in row 4, one more
+560 click 482 295
+562 click 533 295
+720 screenshot shots/r02_gold.png
+800 quit
