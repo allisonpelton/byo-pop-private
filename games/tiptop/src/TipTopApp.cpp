@@ -3,6 +3,7 @@
 #include "TipTopApp.h"
 #include "Game.h"
 #include "Lowos.h"
+#include "MusicSynth.h"
 #include "Graphics.h"
 #include "MemoryImage.h"
 #include "WidgetManager.h"
@@ -160,6 +161,13 @@ void TipTopApp::Init()
 	mWidgetManager->AddWidget(mWidget);
 	mWidgetManager->SetFocus(mWidget);
 
+	if (mSoundFont.empty())
+	{
+		char* aBase = SDL_GetBasePath();
+		mSoundFont = std::string(aBase != nullptr ? aBase : "") + "tiptop.sf2";
+		SDL_free(aBase);
+	}
+	tiptop::StartMusicSynth(mSoundFont);
 	if (!tiptop::GameInit())
 	{
 		mGameEnded = true;
@@ -176,6 +184,7 @@ void TipTopApp::Shutdown()
 		mGameEnded = true;
 		tiptop::GameShutdown();
 	}
+	tiptop::StopMusicSynth();
 	SexyAppBase::Shutdown();
 }
 
@@ -243,7 +252,8 @@ void TipTopApp::SwitchScreenMode(bool wantWindowed, bool is3d, bool force)
 }
 
 // the command line: -autoplay=<seed> -autoplaymode=regular|strategy|speed -autoplaygames=N -autoplaycap=N
-// -autoplaylog=<file> -autoplayshots=<prefix> (testhooks/Autoplay.cpp); -canvas=<width>x<height> (testhooks/Canvas.cpp)
+// -autoplaylog=<file> -autoplayshots=<prefix> (testhooks/Autoplay.cpp); -canvas=<width>x<height> (testhooks/Canvas.cpp);
+// -soundfont=<file> (MusicSynth.h)
 void TipTopApp::HandleCmdLineParam(const std::string& theParamName, const std::string& theParamValue)
 {
 	if (theParamName == "-autoplay")
@@ -271,6 +281,8 @@ void TipTopApp::HandleCmdLineParam(const std::string& theParamName, const std::s
 		else
 			SDL_Log("-canvas=%s: expected <width>x<height>, from 640x480 to 4096x4096", theParamValue.c_str());
 	}
+	else if (theParamName == "-soundfont")
+		mSoundFont = theParamValue;
 	else
 		SexyAppBase::HandleCmdLineParam(theParamName, theParamValue);
 }

@@ -21,10 +21,9 @@
 
 using namespace Sexy;
 
-bool TipTopApp::HandleScriptCommand(const ScriptCommand& theCommand)
+// The -script command canvasshot <file> (Script.cpp)
+void TipTopApp::StartCanvasShot(const std::string& theFile)
 {
-	if (theCommand.mCommand != "canvasshot")
-		return false;
 	int aWidth, aHeight;
 	lowos::HostScreenSize(&aWidth, &aHeight);
 	uint32_t* aScreen = lowos::HostScreen();
@@ -32,8 +31,7 @@ bool TipTopApp::HandleScriptCommand(const ScriptCommand& theCommand)
 		for (int x = (y < 480) ? 640 : 0; x < aWidth; x++)
 			aScreen[y * aWidth + x] = 0;
 	tiptop::MarkAllLayersDirty();
-	mCanvasShot = theCommand.mArgs;
-	return true;
+	mCanvasShot = theFile;
 }
 
 // After the frame that redrew everything (RunFrame)

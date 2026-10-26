@@ -4,6 +4,7 @@
 #include "Game.h"
 #include "GameText.h"
 #include "Res.h"
+#include "platform/Audio.h"
 
 #include <cmath>
 #include <cstring>
@@ -39,6 +40,14 @@ uint32_t gMusicVolume = 0x100;       // 0x47e298
 uint32_t gSentVolume = 0x101;        // the thread's local_c: the music volume it last sent
 
 MidiOutFunc gMidiOut = nullptr;
+uint32_t gTime = 0;                  // port: the synth's clock (UpdateMusic), read where the original read the tick count
+
+// port: the game thread's calls change what the audio thread's sequencer reads
+struct MusicLock
+{
+	MusicLock() { Platform::Mixer::Get().Lock(); }
+	~MusicLock() { Platform::Mixer::Get().Unlock(); }
+};
 
 void MidiOutShortMsg(uint32_t theMessage)
 {
@@ -80,7 +89,7 @@ void StartTracks()
 // 0x42792b: plays the events that are due
 void Sequence()
 {
-	uint32_t aNow = RealTime();
+	uint32_t aNow = gTime;
 	if (aNow < gLastTime)
 		gLastTime = aNow;
 	uint32_t anElapsed = aNow - gLastTime;
@@ -188,6 +197,7 @@ void SetMidiOut(MidiOutFunc theFunc)
 // 0x42782c: the table of channel volumes for a music volume (0..0x100)
 void BuildMusicVolumes(uint32_t theVolume)
 {
+	MusicLock aLock;
 	for (uint32_t i = 0; i < 0x80; i = i + 1)
 	{
 		double aLevel = (double)i / 127.0;
@@ -206,10 +216,11 @@ uint32_t MusicVolume()
 	return gMusicVolume;
 }
 
-// 0x427ddc: the player thread. The port runs one pass of its loop per frame (UpdateMusic); the original slept
-// 20 ms after each, and waited in the loop while the music was paused.
-void UpdateMusic()
+// 0x427ddc: the player thread. The port runs one pass of its loop for each millisecond the synth renders; the
+// original slept 20 ms after each, and waited in the loop while the music was paused.
+void UpdateMusic(uint32_t theTime)
 {
+	gTime = theTime;
 	if (!gPlaying || gStop != 0)
 		return;
 	if ((gSentVolume != gMusicVolume) || (gVolumeDirty != 0))
@@ -227,7 +238,7 @@ void UpdateMusic()
 		if (gPausedAck != 0)
 		{
 			// the end of the original's wait for the pause to end
-			gLastTime = RealTime();
+			gLastTime = gTime;
 			gRemainder = 0;
 			gPausedAck = 0;
 		}
@@ -245,12 +256,13 @@ void UpdateMusic()
 // 0x427f35: plays resource theId of theGroup (the original opened the MIDI mapper here and started the thread)
 char PlayMusic(int theGroup, int theId)
 {
+	MusicLock aLock;
 	memset(gTracks, 0, sizeof(gTracks));
 	gMidi = (const uint8_t*)res::Get(theGroup, theId);
 	if (gMidi == nullptr)
 		return 1;
 	StartTracks();
-	gLastTime = RealTime();
+	gLastTime = gTime;
 	gRemainder = 0;
 	gTempo = 0;
 	gStop = 0;
@@ -265,12 +277,14 @@ char MusicPlaying()
 	return gPlaying;
 }
 
-// 0x427fef
+// 0x427fef: the original asked the thread to end, waited for it and closed the MIDI output
 void StopMusic_()
 {
+	MusicLock aLock;
 	if (gPlaying != 0)
 	{
 		gStop = 2;
+		MidiOutShortMsg(MIDI_CLOSE);
 		gPlaying = 0;
 	}
 }
@@ -278,6 +292,7 @@ void StopMusic_()
 // 0x428031: pauses (counted) or resumes the music; the original waited for the thread to answer
 void PauseMusic(char isPaused)
 {
+	MusicLock aLock;
 	if (gPlaying != 0)
 	{
 		if (isPaused == 0)
