@@ -843,6 +843,28 @@ bool Mixer::IsSongPlaying(int theSong)
 	return playing;
 }
 
+bool Mixer::GetSongPosition(int theSong, int& theOrder, int& theRow)
+{
+	bool known = false;
+	Lock();
+	SONG_FOR_HANDLE(theSong);
+	if (s && s->mPlaying)
+	{
+		if (s->mCtx)
+		{
+			xmp_frame_info anInfo;
+			xmp_get_frame_info(s->mCtx, &anInfo);
+			theOrder = anInfo.pos;
+			theRow = anInfo.row;
+			known = true;
+		}
+		else if (s->mModule)
+			known = s->mModule->GetPosition(theOrder, theRow);
+	}
+	Unlock();
+	return known;
+}
+
 // ---------------------------------------------------------------------------------------------
 // Mixing
 

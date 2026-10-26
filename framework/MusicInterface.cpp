@@ -77,6 +77,11 @@ bool MusicInterface::IsPlaying(int theSongId)
 	return false;
 }
 
+int MusicInterface::GetMusicPosition(int theSongId)
+{
+	return -1;
+}
+
 void MusicInterface::SetVolume(double theVolume)
 {
 }

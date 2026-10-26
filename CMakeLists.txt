@@ -84,6 +84,16 @@ elseif(BUILD_FWTEST)
   endif()
 endif()
 
+# Song position test (tools/songpostest): Mixer::GetSongPosition on modules rendered offline, through libxmp-lite and
+# libopenmpt. Native only; songpostest.exe <gamedir> <music path>... (tools/check.sh unit).
+if(NOT EMSCRIPTEN)
+  add_executable(songpostest tools/songpostest/songpostest.cpp)
+  target_link_libraries(songpostest PRIVATE sexyopenmpt)
+  add_custom_command(TARGET songpostest POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:SDL2::SDL2> ${PORT_RUNTIME_DLLS} $<TARGET_FILE_DIR:songpostest>
+    VERBATIM)
+endif()
+
 # Mod settings tests (tools/modsettingstest): the settings schema, values, placeholders, levels and score key
 # entries (platform/ModSettings.*) and the mod menu's model in ModManager (mods.json and mod-settings.json
 # edits, the effective manifests, next-game commits). Native: modsettingstest.exe. Web: modsettingstest.js,
