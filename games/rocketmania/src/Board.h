@@ -193,7 +193,7 @@ public:
 	int				mRows;              // +0x4e8 9
 
 	// ------------------------------------------------------------------ saved state, in the file's order
-	int				mUpdateCnt;         // +0x4c
+	// (+0x4c is the base class's mUpdateCnt, which Widget::Update counts)
 	int				mState;             // +0x5c 0 playing, 1 game over, 2 finished (saved), 3, 4/5/6/7 end-of-level screens
 	int				mScore;             // +0x60
 	double			m68;                // +0x68 the length of the night (classic mode)
@@ -298,8 +298,8 @@ public:
 	Piece*			FindFreeTile();                                         // 0x423cd0
 	void			AttachBomb(int theIndex);                               // 0x423d10
 	void			AttachSpecial10();                                      // 0x423e20
-	void			EndLevelA();                                            // 0x425b?? (the end of a level by the launches)
-	void			EndLevelB();
+	void			EndLevelA();                                            // 0x425940 (the level is done: the end-of-level countdown starts)
+	void			EndLevelB();                                            // 0x425980
 	void			DropTop();                                              // 0x424010
 	int				DropTopTimed();                                         // 0x424180
 	Points*			AddText(const std::string& theText, int theX, int theY);   // 0x424370
