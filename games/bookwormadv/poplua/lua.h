@@ -157,6 +157,8 @@ void lua_concat(lua_State* L, int n);
 #define lua_unboxpointer(L, i) (*(void**)(lua_touserdata(L, i)))
 #define lua_pop(L, n) lua_settop(L, -(n)-1)
 #define lua_register(L, n, f) (lua_pushstring(L, n), lua_pushcfunction(L, f), lua_settable(L, LUA_GLOBALSINDEX))
+#define lua_getglobal(L, s) (lua_pushstring(L, s), lua_gettable(L, LUA_GLOBALSINDEX))
+#define lua_setglobal(L, s) (lua_pushstring(L, s), lua_insert(L, -2), lua_settable(L, LUA_GLOBALSINDEX))
 #define lua_pushcfunction(L, f) lua_pushcclosure(L, f, 0)
 #define lua_isfunction(L, n) (lua_type(L, n) == LUA_TFUNCTION)
 #define lua_istable(L, n) (lua_type(L, n) == LUA_TTABLE)

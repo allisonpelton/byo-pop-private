@@ -195,16 +195,15 @@ void FadeButton::MouseLeave()
 	MarkDirty();
 }
 
-void FadeButton::MouseDown(int x, int y, int theBtnNum, int theClickCount)
+void FadeButton::MouseDown(int x, int y, int theClickCount)
 {
-	ButtonWidget::MouseDown(x, y, theBtnNum, theClickCount);
+	Widget::MouseDown(x, y, theClickCount);
 	mFade = mFadeOnDown ? 0 : 255;
 	MarkDirty();
 }
 
-void FadeButton::MouseUp(int x, int y, int theBtnNum, int theClickCount)
+void FadeButton::MouseUp(int x, int y)
 {
-	ButtonWidget::MouseUp(x, y, theBtnNum, theClickCount);
 	mFade = mFadeOnUp ? 0 : 255;
 	if (mIsOver)
 		mClicked = true;

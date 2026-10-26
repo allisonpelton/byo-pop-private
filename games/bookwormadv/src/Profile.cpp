@@ -101,6 +101,12 @@ bool Profile::GetBool(const std::string& theKey) const
 	return aValue != nullptr && aValue->mType == TYPE_BOOL && aValue->mBool;
 }
 
+std::string Profile::GetString(const std::string& theKey) const
+{
+	const Value* aValue = GetValue(theKey);
+	return aValue != nullptr && aValue->mType == TYPE_STRING ? aValue->mString : std::string();
+}
+
 void Profile::Set(const std::string& theKey, const Value& theValue)
 {
 	mValues[theKey] = theValue;
