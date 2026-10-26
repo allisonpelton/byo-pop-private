@@ -31,11 +31,7 @@ namespace {
 
 // The methods not ported yet, by name.
 const char* const kNotPorted[] = {
-	"DoArenaWinDialog", "SetArenaWinStats", "DoEndGame",
-	"EnableBoardForTMCheckpointContinuation",
-	"DoTimedModeTSTransition",
-	"DoHighScoreScreenFromMG",
-	"AddStatsBook",
+	"DoArenaWinDialog", "SetArenaWinStats",
 	"LuaAntiAliasImage",
 };
 
@@ -69,9 +65,13 @@ bool HasPlayedGameBefore(GameApp* app) { return app->HasPlayedGameBefore(); }
 void ClearUpdateBacklog(GameApp* app) { app->ClearUpdateBacklog(false); }  // 0x442eb0
 // 0x442ec0: the original's two vsync flags; the port's display has neither
 bool SmoothScrolling(GameApp* app) { return false; }
-// 0x429cc0 (+0x91d) and 0x416380 (the stats book, +0x82c): neither exists in the port yet
+// 0x429cc0 (+0x91d): the trial's lockout does not exist in the port yet
 bool QueuedHydraLockout(GameApp* app) { return false; }
-bool ShowingStatsBook(GameApp* app) { return false; }
+bool ShowingStatsBook(GameApp* app) { return app->mBookScreen != nullptr; }  // 0x416380
+void AddStatsBook(GameApp* app, bool theFromGame, bool theBestiary, bool theMediaPlayer)  // 0x444150
+{
+	app->AddStatsBook(theFromGame, theBestiary, theMediaPlayer);
+}
 bool ShowingConversationPanel(GameApp* app) { return app->ShowingConversationPanel(); }  // 0x450460
 
 // 0x44f880: the profile's EnablePips when it has one, else the app's own flag
@@ -223,6 +223,10 @@ void StartMiniGame(GameApp* app, std::string theName, int x, int y, int theXGap,
 }
 void ReturnToMMFromMiniGame(GameApp* app) { app->ReturnToMMFromMiniGame(); }
 void UnlockedMiniGameComplete(GameApp* app) { app->UnlockedMiniGameComplete(); }
+void DoTimedModeTSTransition(GameApp* app) { app->DoTimedModeTSTransition(); }
+void DoEndGame(GameApp* app) { app->DoEndGame(); }
+void DoHighScoreScreenFromMG(GameApp* app, std::string theName) { app->DoHighScoreScreenFromMG(theName); }
+void EnableBoardForTMCheckpointContinuation(GameApp* app) { app->EnableBoardForTMCheckpointContinuation(); }
 void AddBonusText(GameApp* app, std::string theText, float x, float y, float theSpeed, int theFadeDelay, LuaFont* theFont)
 {
 	app->AddBonusText(theText, x, y, theSpeed, theFadeDelay, FontOf(theFont));
@@ -410,6 +414,7 @@ void GameApp::RegisterGameAppMethods()
 		.Function<&::SmoothScrolling>("SmoothScrolling")
 		.Function<&::QueuedHydraLockout>("QueuedHydraLockout")
 		.Function<&::ShowingStatsBook>("ShowingStatsBook")
+		.Function<&::AddStatsBook>("AddStatsBook")
 		.Function<&::ShowingConversationPanel>("ShowingConversationPanel")
 		.Function<&::CanShowTilePips>("CanShowTilePips")
 		.Function<&::PlayDelayedSample>("PlayDelayedSample")
@@ -442,6 +447,10 @@ void GameApp::RegisterGameAppMethods()
 		.Function<&::StartMiniGame>("StartMiniGame")
 		.Function<&::ReturnToMMFromMiniGame>("ReturnToMMFromMiniGame")
 		.Function<&::UnlockedMiniGameComplete>("UnlockedMiniGameComplete")
+		.Function<&::DoTimedModeTSTransition>("DoTimedModeTSTransition")
+		.Function<&::DoEndGame>("DoEndGame")
+		.Function<&::DoHighScoreScreenFromMG>("DoHighScoreScreenFromMG")
+		.Function<&::EnableBoardForTMCheckpointContinuation>("EnableBoardForTMCheckpointContinuation")
 		.Function<&::AddBonusText>("AddBonusText")
 		.Function<&::UpdateBonusText>("UpdateBonusText")
 		.Function<&::RemoveAllBonusText>("RemoveAllBonusText")

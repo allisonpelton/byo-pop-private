@@ -39,6 +39,9 @@ public:
 	void PreventRightClick(bool thePrevent) { mPreventRightClick = thePrevent; }  // 0x4a4180
 	// 0x4a4ff0: back to the book, its buttons where these are, and the book's Lua DoChapterTransition
 	void DoChapterTransition();
+	// 0x4a5270: the arena's checkpoint: the buttons where the screen shows them in full, then the script's
+	// StartFullyDisplayed(false)
+	void StartFullyDisplayed();
 	int GetState() { return mState; }                   // 0x4a4170
 	void SetState(int theState) { mState = theState; }  // 0x4a4160
 

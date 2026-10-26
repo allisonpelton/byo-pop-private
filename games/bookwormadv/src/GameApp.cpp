@@ -783,9 +783,11 @@ void GameApp::CurtainDone()
 			return;
 		}
 		// closed: the movie in place of the screen
-		if (mCutScene != nullptr)
+		if (mCutScene != nullptr) {
 			mCutScene->SetVisible(true);
-		// port: the hall of fame went too (0x450bb0), not ported yet
+			if (mHallOfFame != nullptr)
+				CloseHallOfFame();
+		}
 		if (!mFullCurtain) {
 			if (mTitleScreen != nullptr) {
 				mWidgetManager->RemoveWidget(mTitleScreen);
@@ -825,7 +827,8 @@ void GameApp::CurtainDone()
 		if (!aClosed)
 			break;
 		RemoveMainMenu();
-		// port: the hall of fame went too (0x450bb0), not ported yet
+		if (mHallOfFame != nullptr)
+			CloseHallOfFame();
 		int aBook = mTimedMode ? -1 : mProfile->GetInt("CurrentBook");
 		InitGameScreen(mTimedMode);
 		if (mNukeProfile) {
@@ -892,7 +895,8 @@ void GameApp::CurtainDone()
 		if (mTreasureScreen != nullptr)
 			mWidgetManager->RemoveWidget(mTreasureScreen);
 		SafeDeleteWidget(mTreasureScreen);
-		// port: the stats book went too (0x444470), not ported yet
+		if (mBookScreen != nullptr)
+			RemoveStatsBook();
 		RemoveBookManager();
 		mTreasureScreen = nullptr;
 		RemoveBoard();
@@ -1332,7 +1336,8 @@ void GameApp::PlayMainMenuCutScene()
 	std::string aCaption = mProfile->GetString("IntroCutsceneTitle");
 	std::string aFile = mProfile->GetString("NeedsIntroCutscene");
 	PlayCutScene(aFile, "gBookManager:MMCutsceneDone", aCaption, false, true);
-	// port: the hall of fame was put behind the curtain (not ported yet)
+	if (mHallOfFame != nullptr)
+		mWidgetManager->PutBehind(mHallOfFame, mCurtain);
 	mProfile->Delete("NeedsIntroCutscene");
 	mProfile->Delete("IntroCutsceneTitle");
 }

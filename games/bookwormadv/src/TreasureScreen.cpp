@@ -4,6 +4,7 @@
 #include "FadeButton.h"
 #include "GameApp.h"
 #include "LuaBind.h"
+#include "LuaSupport.h"
 #include "Res.h"
 #include "WidgetManager.h"
 
@@ -98,6 +99,15 @@ void TreasureScreen::DoChapterTransition()
 	}
 	mApp->mWidgetManager->SetFocus(aBook);
 	aBook->CallLinkedMethod("DoChapterTransition", 0);
+}
+
+void TreasureScreen::StartFullyDisplayed()
+{
+	PositionButton(BUTTON_BACK, 36, 489);
+	PositionButton(BUTTON_OPTIONS, 664, 489);
+	PositionButton(BUTTON_CONTINUE, 289, 555);
+	lua_pushboolean(LuaLib::gLuaSupport->L, false);
+	CallLinkedMethod("StartFullyDisplayed", 1);
 }
 
 void TreasureScreen::AddedToManager(WidgetManager* theWidgetManager)

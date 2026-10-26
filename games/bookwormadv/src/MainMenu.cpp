@@ -581,6 +581,12 @@ void MainMenu::MouseDown(int x, int y, int theClickCount)
 	}
 }
 
+// The curtain's callback of the hall of fame (0x450760 is the app's function that the original called with the app)
+static void OpenHallOfFameCallback(void* theApp)
+{
+	static_cast<GameApp*>(theApp)->OpenHallOfFame();
+}
+
 void MainMenu::MouseUp(int x, int y, int theClickCount)
 {
 	if (mApp->mBookScreen != nullptr || mApp->IsCurtainMoving() || mApp->GetDialogCount() != 0)
@@ -643,16 +649,31 @@ void MainMenu::MouseUp(int x, int y, int theClickCount)
 			SDL_Log("MainMenu: the arena (0x47c290) is not ported yet");
 			break;
 		case ITEM_HALL_OF_FAME:
-			SDL_Log("MainMenu: the hall of fame (0x450760) is not ported yet");
+			// 0x47be8f: the menu goes dim, the whole curtain closes, and the hall of fame comes (GameApp::OpenHallOfFame)
+			SetDisabled(true);
+			mApp->DoFullCurtainTransition("");
+			mApp->mCurtainCallback = OpenHallOfFameCallback;
+			mApp->mCurtainCallbackObject = mApp;
+			mApp->SetCursor(CURSOR_POINTER);
 			break;
 		case ITEM_MINI_GAMES:
 			SDL_Log("MainMenu: the mini-games (0x44f9d0) are not ported yet");
 			break;
 		case ITEM_TOME:
-			SDL_Log("MainMenu: the tome of knowledge (0x444310) is not ported yet");
+			// 0x47bd24: only once the tome is unlocked: the whole curtain closes over the menu, then the tome comes
+			// (the original wrote out what AddStatsBook does for it)
+			if (mApp->mProfile != nullptr && mApp->mProfile->KeyExists("UnlockedBestiary") &&
+			    mApp->mProfile->GetBool("UnlockedBestiary")) {
+				mApp->AddStatsBook(false, true, false);
+				CloseTooltips();
+			}
+			mApp->SetCursor(CURSOR_POINTER);
 			break;
 		case ITEM_FILM_REEL:
-			SDL_Log("MainMenu: the media player (0x4443c0) is not ported yet");
+			// 0x47bef8: the media player, the same way
+			mApp->AddStatsBook(false, false, true);
+			CloseTooltips();
+			mApp->SetCursor(CURSOR_POINTER);
 			break;
 		}
 		anItem->mFadeTarget = 128;

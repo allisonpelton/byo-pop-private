@@ -97,12 +97,12 @@ public:
 	std::string mCutSceneCallback;                 // +0x7f0
 	std::string mCutSceneCaption;                  // +0x80c
 	CurtainTransition* mCurtain = nullptr;         // +0x828
-	Widget* mBookScreen = nullptr;                 // +0x82c: the tome's or the media player's (not ported yet)
+	Widget* mBookScreen = nullptr;                 // +0x82c: the stats book (StatsBook): the tome's or the media player's
 	ButtonListener* mConfirmListener = nullptr;    // +0x838: a widget's ButtonListener part, in the original
 	Widget* mChapterLoadScreen = nullptr;          // +0x83c: a chapter's loading screen (ChapterLoadScreen)
 	std::string mCurtainLuaCallback;               // +0x840: the scripts' function called when the curtain is done
 	std::string mDialogCallback;                   // +0x878: the scripts' function told the answer to dialog 0 or 18
-	Widget* mHallOfFame = nullptr;                 // +0x89c (not ported yet)
+	Widget* mHallOfFame = nullptr;                 // +0x89c: the hall of fame (HallOfFame)
 	Widget* mCredits = nullptr;                    // +0x8a0: the credits, which take the keys (not ported yet)
 	void* mCurtainCallbackObject = nullptr;        // +0x894
 	void (*mCurtainCallback)(void*) = nullptr;     // +0x898 (a member function in the original)
@@ -174,6 +174,11 @@ public:
 	                            ButtonListener* theListener, const std::string& theCallback);
 	// 0x44b620: the battle's board over the book, its grid and engines started
 	void StartBattle();
+	// The arena (GameAppArena.cpp): the scripts' DoTimedModeTSTransition (0x4513b0) closes the whole curtain and
+	// shows the treasure screen as the checkpoint; EnableBoardForTMCheckpointContinuation (0x4515a0) returns to
+	// the board
+	void DoTimedModeTSTransition();
+	void EnableBoardForTMCheckpointContinuation();
 	// The mini-games (GameAppMiniGames.cpp): the scripts' StartMiniGame (0x44b780), a mini-game's board of theCols x
 	// theRows tiles at (x, y), theLetters on them when not empty; ReturnToMMFromMiniGame (0x44b9d0) frees it and
 	// shows the main menu, and UnlockedMiniGameComplete (0x44d1e0) does that behind the whole curtain
@@ -283,6 +288,39 @@ public:
 	bool ShowingConversationPanel() const;
 	// 0x450d20: the curtain in front, and above an active conversation panel's priority
 	void KeepCurtainOnTop();
+
+	// The hall of fame (GameAppHallOfFame.cpp): mHallOfFame is made by one of the openers and removed by
+	// CloseHallOfFame. 0x450710: it is added as big as the app, under the curtain.
+	void ShowHallOfFame();
+	// 0x450760: from the main menu (once the curtain has closed over it)
+	void OpenHallOfFame();
+	// 0x450850: after a timed game: the board and the book go, and the arena's tab comes with "Play Again"
+	void ShowArenaHallOfFame();
+	// 0x450aa0 (the scripts' DoHighScoreScreenFromMG): after a mini-game (theName), the board goes and the mini-games'
+	// tab comes with "Play Again"
+	void DoHighScoreScreenFromMG(std::string theName);
+	// 0x450c30: after the end of the game: the adventure's tab, and "Continue" to the credits
+	void ShowEndOfGameHallOfFame();
+	// 0x450c00 (the scripts' DoEndGame): the music stops, the curtain closes to the main menu, and the hall of fame
+	// above (ShowEndOfGameHallOfFame) comes when it is closed
+	void DoEndGame();
+	// 0x450bb0: the screen goes
+	void CloseHallOfFame();
+	// 0x451090: the whole curtain closes, then the credits come (0x451130)
+	void StartEndOfGameCredits();
+
+	// The stats book (GameAppStatsBook.cpp): the tome of knowledge, the media player, and the book of what the
+	// player saw. mBookScreen is made by one of these and removed by RemoveStatsBook.
+	// 0x444150 (the scripts' AddStatsBook(theFromGame, theBestiary, theMediaPlayer)): at once when theFromGame or
+	// when neither of the other two is asked for, else after the whole curtain has closed (the tome, or the media
+	// player when theMediaPlayer)
+	void AddStatsBook(bool theFromGame, bool theBestiary, bool theMediaPlayer);
+	// 0x444310 and 0x4443c0: the tome and the media player, once the curtain has closed over the main menu
+	void ShowTome();
+	void ShowMediaPlayer();
+	// 0x444470: the book goes: at once when it was opened from the game (or is neither the tome nor the media
+	// player), else the whole curtain closes first and the main menu comes back
+	void RemoveStatsBook();
 
 	// ---- tooltips (TooltipWidget.cpp) ----
 	std::vector<TooltipWidget*> mTooltips;        // +0x79c: every tooltip made by MakeTooltip (the app owns them)
