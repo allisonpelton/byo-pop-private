@@ -93,12 +93,19 @@ comment (a translated function that reads app+0x1298 finds its field by grepping
 the parts loadtable.py does not fold (arrays filled with one picture, the PicFonts, the fossils and their copies,
 the masks multiplied into the egg sheets), which are translated by hand from `decread.py 419c30`.
 
-State (2026-10-26): `src/AppLoad.cpp` is the whole loader translated (`FossilizedApp::LoadGame`, nothing RAW left;
-not compiled yet). `src/AppFields.draft` lists every field it uses with the original's offsets (the generated ones,
-then the arrays, fonts, fossils and fonts of Init), to become the fields of `FossilizedApp.h`; it also needs
-`mGrindInstance` +0x1a28, `mTicktockInstance` +0x1aa0, `mFootfallRumbleInstance` +0x1a90 (SoundInstance* from the
-sound manager's slot 4 `GetSoundInstance`), `mSound1a50` +0x1a50 (set NULL), and `GetGameImage(path)` (0x419ad0:
-`GetImage`, a popup and `mLoadingFailed` if missing, else `Palletize`). `src/AppLoad.draft` can go once the build
-works. Next: the app
-(`FossilizedApp.h/.cpp` from Init 0x41f820, InitHook, ButtonPress 0x418e90, ButtonDepress 0x4201b0), the title
-screen (0x4388d0), then the board (`Dynomite`, 0x404030) and its modes.
+State (2026-10-26, evening): the native build runs (`TARGET=dynomite tools/build.sh native`; run it under rundesk).
+Translated and checked on screen: the app's Init, the loader (`src/AppLoad.cpp`), `GetGameImage`, the dialog
+(`NewDialog` 0x418a00 on `Dialog2004`), the title screen (`src/TitleScreen.cpp`, 0x438b20), the side bar
+(`src/SideBar.cpp`, 0x435420) with its `CellButton`s (0x437520) and the small Inchy (`src/InchySmall.cpp`), and the
+game's pointer list (`src/PtrList.h`, 0x430ea0). `src/Dynomite.h/.cpp` is a stub with the board fields known so far
+(constructor 0x404030: lists at +0xb8, +0xd0, +0xe8, +0x10c, an object at +0x164 (0x414a00), the pause count +0x150,
+the dynamite +0x154).
+
+Next, in this order: the main menu (`IntroScreen`, 0x424e90, 0x284 bytes; its methods 0x423d10-0x424e90 and on into
+0x425000-0x42a000), `ShowMainMenu`'s TODO (0x4186d0), `StartGame` (0x418810: mode +0x108c makes DynomiteStomped
+0x40ea50 (0x62c bytes), DynomitePanic 0x40ca40 (0x274), DynomiteFossil 0x408e40 (0x328) or DynomiteTimeTrial
+0x411ff0 (0x254), resized to (150, 0, 490, 480), slot 46 `Init(app, level)` with +0x1084, or +0x1088 for the fossil
+mode), then the board (0x401000-0x408e40; 0x401000-0x404030 holds other classes), the modes, the app's
+ButtonPress/ButtonDepress (0x418e90, 0x4201b0), the dialogs (options 0x42ee20, save 0x433910, high scores), the
+museum (0x42bb50 at app+0x5d4) and the tutor. App slot 51 is `DoDialog`, 53 `AddDialog`, 20 `SafeDeleteWidget`,
+31 `Shutdown`; WidgetManager 0x47ec90 is `BringToBack`.
