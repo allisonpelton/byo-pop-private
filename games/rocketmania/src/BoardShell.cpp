@@ -246,11 +246,6 @@ void Board::ResolveLoadedPieces()
 // ---------------------------------------------------------------------------------------------------------
 // the originals' small helpers (their addresses are their names; what is left out is said at each)
 
-// 0x428780 (856 bytes, not read yet): the first rows of the timed modes
-void Board::F428780()
-{
-}
-
 // 0x4282a0: a burning tile is moved: the burn is cancelled and its tiles are plain again
 void Board::F4282a0(int thePath)
 {
@@ -398,9 +393,4 @@ void Board::F428de0(int theValue)
 			}
 		}
 	}
-}
-
-// 0x428ef0 (350 bytes, not read yet): state 7
-void Board::F428ef0()
-{
 }

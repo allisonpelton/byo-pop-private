@@ -105,6 +105,16 @@ void EffectManager::Remove(Effect* theEffect)
 
 // 0x41ab70: the original asks each effect (0x419340) whether it goes on and removes the finished ones; the effects
 // themselves are not translated, so they only wait out their life here
+bool EffectManager::Has(Effect* theEffect)
+{
+	for (std::list<Effect*>::iterator anItr = mEffects.begin(); anItr != mEffects.end(); ++anItr)
+	{
+		if (*anItr == theEffect)
+			return true;
+	}
+	return false;
+}
+
 void EffectManager::Update()
 {
 	for (std::list<Effect*>::iterator anItr = mEffects.begin(); anItr != mEffects.end(); )

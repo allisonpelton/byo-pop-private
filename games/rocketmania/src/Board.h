@@ -112,6 +112,7 @@ public:
 	~EffectManager();
 	Effect*				Add(int theKind, bool theFlag);      // 0x41a9c0
 	void				Remove(Effect* theEffect);           // 0x41aa80
+	bool				Has(Effect* theEffect);              // 0x41ab40
 	void				Update();                            // 0x41ab70 (the effects are not translated yet)
 };
 
@@ -246,7 +247,8 @@ public:
 
 	// ------------------------------------------------------------------ not saved
 	int				m4f4, m4f8;         // +0x4f4 the pointer's place
-	int				m4fc, m51c;         // +0x4fc
+	Effect*			m4fc;               // +0x4fc the sweep effect of state 7
+	int				m51c, m50c, m510;   // +0x51c; +0x50c the last click
 	Widget*			m4e0;               // +0x4e0 a widget the board owns (deleted in RemovedFromManager)
 	Widget*			m51cWidget;         // +0x51c
 	int				m520;               // +0x520
@@ -264,6 +266,12 @@ public:
 	virtual void	Update() override;
 	virtual void	Draw(Graphics* g) override;
 	virtual void	ButtonDepress(int theId) override;
+	virtual void	KeyChar(SexyChar theChar) override;                     // 0x427a90
+	virtual void	MouseLeave() override;                                  // 0x4285b0
+	virtual void	MouseMove(int x, int y) override;                       // 0x4285d0
+	virtual void	MouseDown(int x, int y, int theClickCount) override;    // 0x4283e0
+	virtual void	MouseUp(int x, int y, int theClickCount) override;      // 0x428520
+	virtual void	MouseDrag(int x, int y) override;                       // 0x4281a0
 
 	static int		CellX(int theColumn) { return theColumn * 42 + 250; }     // 0x4220e0
 	static int		CellY(int theRow) { return theRow * 42 + 78; }            // 0x422100
@@ -337,6 +345,9 @@ public:
 	void			AddFlash(Piece* thePiece, int theKind);                 // 0x428100
 	// not translated yet
 	void			F428780();
+	bool			F428ae0();
+	void			RotatePiece(Piece* thePiece, bool theCounter);          // 0x428340
+	bool			EdgeOpen(int theRow, int theColumn);                    // 0x428e80
 	void			F4282a0(int thePath);
 	void			F428ef0();
 	void			F428d10();
