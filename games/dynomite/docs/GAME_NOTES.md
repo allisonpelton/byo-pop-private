@@ -182,6 +182,22 @@ set), the grid (0x417760), the rope from +0x70 - +0x6c to +0x6c + +0x70 at +0x74
 flying eggs that have not crossed the middle, the launcher's 0x401940, the others, its 0x401a10, slots 47, 49 and
 48, the +0x60 object (0x432090), slot 54 when +0x132 is set, and +0x144's slot 1.
 
+An egg that lands (`FlyingEgg::Land`, 0x414d60) backs out along its path until its cell is free; a bomb there
+blasts (0x418100: a big boom, and every egg within two cells broken, scored ten times over, then `DropLoose`),
+anything else is placed (0x416590) and matched (0x417bd0). Placing an egg next to one of its colour that has no
+stick of dynamite lays a stick (0x438270, the table at +0x2ef4 and the list +0x466c) and clears +0x46e4; if
++0x46e4 is still set after the match, the board's slot 56 hears the colour, and slot 61 follows every landing.
+`Match` floods the colour's group through the copy at +0x1784 (marking 100); three or more break (`Break`, then
+0x416800 empties the cell and booms its stick), score through slot 44 with the count of eggs that then fall
+(`DropLoose` 0x416b80: an egg with both cells above it empty and no path to the top row, found by the search
+object 0x430c90 in at most 400 steps, falls as effect type 1), and the board's slot 50 counts the chain (Inchy
+calls it out, 0x423990, not translated). Colours from 18 up never match, from 50 up are the mode's pieces (the
+board's slots 57 and 58 draw them falling and hear them land). A baby egg (0x4349d0, the list +0x46b8) sets a
+random egg's bit 0x100 for 200 to 900 frames; breaking it then hatches a baby. 0x418020 pushes every row down
+two and adds two random rows (0x416b00). Still to translate in the grid: 0x4163e0 (the next colour, through the
+app's picker at +0xf9c), 0x416e30, 0x4171c0, the update 0x4174c0, the draw 0x417760, and the save and load
+(0x415f70, 0x416150).
+
 Next, in this order: `StartGame` (0x418810: mode +0x108c makes DynomiteStomped
 0x40ea50 (0x62c bytes), DynomitePanic 0x40ca40 (0x274), DynomiteFossil 0x408e40 (0x328) or DynomiteTimeTrial
 0x411ff0 (0x254), resized to (150, 0, 490, 480), slot 46 `Init(app, level)` with +0x1084, or +0x1088 for the fossil
