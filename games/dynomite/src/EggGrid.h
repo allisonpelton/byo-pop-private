@@ -85,11 +85,29 @@ public:
 	int					Find(int theCol, int theRow, GridCell* theCells);	// 0x430e60
 };
 
+// vtable 0x4fcb68 (only its destructor), 0x14 bytes: a baby in an egg for a while (the cell's bit 0x100), which
+// hatches if the egg breaks in time (the grid's list at +0x46b8)
+class BabyEgg
+{
+public:
+	int					mCol;			// +4
+	int					mRow;			// +8
+	int					mTime;			// +0xc
+	EggGrid*			mGrid;			// +0x10
+
+	BabyEgg(EggGrid* theGrid);											// 0x4349d0: a random egg
+	BabyEgg(EggGrid* theGrid, int theCol, int theRow, int theTime);		// 0x434ac0
+	virtual ~BabyEgg();													// 0x434b10
+
+	bool				Update();										// 0x434b40: false when it is over
+};
+
 class EggGrid
 {
 public:
 	float				mCeiling;			// +4 the ceiling's offset (grid y = screen y - this)
 	float				mRows;				// +8 the rows in use
+	int					mField0c;			// +0xc (a baby egg's row is chosen below this many pixels)
 	int					mMaxColor;			// +0x10 the highest colour placed (4)
 	GridCell			mCells[15][100];	// +0x14 column, row
 	GridCell			mScratch[15][100];	// +0x1784 Match's copy of mCells
@@ -97,14 +115,16 @@ public:
 	Dynomite*			mBoard;				// +0x4664
 	FossilizedApp*		mApp;				// +0x4668
 	PtrList<GridDynamite> mDynamites;		// +0x466c
+	int					mField4684;			// +0x4684
 	bool				mField4688;			// +0x4688
+	int					mField468c;			// +0x468c
 	bool				mField4690;			// +0x4690
 	bool				mField4691;			// +0x4691
 	PtrList<GridTarget>	mTargets;			// +0x4694
 	bool				mField46ac;			// +0x46ac
 	int					mField46b0;			// +0x46b0 (200)
 	int					mField46b4;			// +0x46b4 (200)
-	PtrList<void>		mList46b8;			// +0x46b8
+	PtrList<BabyEgg>	mBabyEggs;			// +0x46b8
 	bool				mField46d0;			// +0x46d0
 	bool				mField46d1;			// +0x46d1
 	int					mBlastX;			// +0x46d4 Blast's sums, then the middle
@@ -123,6 +143,11 @@ public:
 	void				GridToScreen(int x, int y, GridPoint* thePoint);	// 0x415950
 	void				CountRows();										// 0x415980
 	void				ResetCeiling();										// 0x4159f0
+	bool				HasColor(int theColor);								// 0x415f00
+	void				ClearDynamite();									// 0x416500
+	void				AddRow(int theRow);									// 0x416b00: random eggs across a row
+	void				Clear();											// 0x417190
+	void				PushDown();											// 0x418020: two new rows on top
 	unsigned int		Probe(int x, int y, bool theGhost);					// 0x4169c0
 	void				Break(int x, int y, GridCell* theCell);				// 0x415a20
 	void				Place(int theCol, int theRow, int theColor, int theKind);	// 0x416590

@@ -45,13 +45,24 @@ EggGrid::EggGrid(FossilizedApp* theApp, Dynomite* theBoard)
 	mBlastY = 0;
 	mBlastCount = 0;
 	mTargets.Clear();
-	mList46b8.Clear();
+	mBabyEggs.Clear();
+	// port: not set by the original constructor
+	mField0c = 0;
+	mField4684 = 0;
+	mField468c = 0;
 }
 
 // 0x417420
 EggGrid::~EggGrid()
 {
-	// TODO: the lists' items
+	Clear();
+	mBabyEggs.ResetIter();
+	BabyEgg* aBabyEgg = mBabyEggs.Next();
+	while (aBabyEgg != NULL)
+	{
+		delete aBabyEgg;
+		aBabyEgg = mBabyEggs.Next();
+	}
 }
 
 // 0x415890: the cell under a point of the grid
@@ -795,4 +806,185 @@ void GridDynamite::Draw()
 	aCell->Draw(aPoint.mX - (aCell->mWidth >> 1), aPoint.mY - (aCell->mHeight >> 1));
 	aCell = mGrid->mApp->mSparkCells[(int) mSpark];
 	aCell->Draw((int) (mDX * 29.0f + aPoint.mX) - (aCell->mWidth >> 1), (int) (mDY * 29.0f + aPoint.mY) - (aCell->mHeight >> 1));
+}
+
+// 0x415f00: whether an egg of theColor is in the rows in use
+bool EggGrid::HasColor(int theColor)
+{
+	int aCol = 0;
+	do
+	{
+		int aRow = 0;
+		if (0.0f < mRows)
+		{
+			do
+			{
+				if ((mCells[aCol][aRow].mBits & 0xff) == (unsigned int) theColor)
+					return true;
+				aRow++;
+			} while ((float) aRow < mRows);
+		}
+		aCol++;
+	} while (aCol < 0xf);
+	return false;
+}
+
+// 0x416500
+void EggGrid::ClearDynamite()
+{
+	GridDynamite** aSlot = &mDynamite[0][0];
+	int aCols = 0xf;
+	do
+	{
+		int aRows = 100;
+		do
+		{
+			if (*aSlot != NULL)
+			{
+				mDynamites.Remove(*aSlot);
+				if (*aSlot != NULL)
+					delete *aSlot;
+				*aSlot = NULL;
+			}
+			aSlot++;
+			aRows--;
+		} while (aRows != 0);
+		aCols--;
+	} while (aCols != 0);
+}
+
+// 0x416b00: as many eggs as the board is wide (odd rows start 16 pixels in), of colours 1 to the highest yet
+void EggGrid::AddRow(int theRow)
+{
+	int x = 0;
+	if ((theRow % 2) != 0)
+		x = 0x10;
+	int aCol = 0;
+	do
+	{
+		x = x + 0x21;
+		if (mBoard->mField68 < x)
+			break;
+		Place(aCol, theRow, mApp->mRand.NextNoAssert() % (unsigned int) mMaxColor + 1, 0);
+		aCol++;
+	} while (aCol < 0xf);
+	if (mRows < (float) theRow)
+		mRows = (float) theRow;
+}
+
+// 0x417190
+void EggGrid::Clear()
+{
+	GridCell* aCell = &mCells[0][0];
+	for (int i = 0x5dc; i != 0; i--)
+	{
+		aCell->mBits = 0;
+		aCell++;
+	}
+	mField46e0 = 0;
+	mField4691 = false;
+	ClearDynamite();
+}
+
+// 0x418020: every row (and stick of dynamite, and baby egg) two rows down, and two new rows on top
+void EggGrid::PushDown()
+{
+	int aRow = (int) mRows;
+	if (-1 < aRow)
+	{
+		int aCount = aRow + 1;
+		do
+		{
+			int aCol = 0;
+			int i = 0xf;
+			do
+			{
+				mCells[aCol][aRow + 2] = mCells[aCol][aRow];
+				mDynamite[aCol][aRow + 2] = mDynamite[aCol][aRow];
+				mDynamite[aCol][aRow] = NULL;
+				aCol++;
+				i--;
+			} while (i != 0);
+			aRow--;
+			aCount--;
+		} while (aCount != 0);
+	}
+	mDynamites.ResetIter();
+	GridDynamite* aDynamite = mDynamites.Next();
+	while (aDynamite != NULL)
+	{
+		aDynamite->mY = aDynamite->mY + 66.0f;
+		aDynamite = mDynamites.Next();
+	}
+	mBabyEggs.ResetIter();
+	BabyEgg* aBabyEgg = mBabyEggs.Next();
+	while (aBabyEgg != NULL)
+	{
+		aBabyEgg->mRow = aBabyEgg->mRow + 2;
+		aBabyEgg = mBabyEggs.Next();
+	}
+	AddRow(0);
+	AddRow(1);
+	mRows = mRows + 2.0f;
+}
+
+// 0x4349d0: a random egg without a baby, of colours below 18, gets one for 200 to 900 frames
+BabyEgg::BabyEgg(EggGrid* theGrid)
+{
+	mGrid = theGrid;
+	if (theGrid->mField0c < 1)
+	{
+		mTime = 0;
+		mRow = 0;
+		mCol = 0;
+		return;
+	}
+	unsigned int aX = theGrid->mApp->mRand.NextNoAssert() % (unsigned int) theGrid->mBoard->mField68;
+	unsigned int aY = mGrid->mApp->mRand.NextNoAssert() % (unsigned int) mGrid->mField0c;
+	GridPoint aCell;
+	EggGrid::PixelToCell(aX, aY, &aCell);
+	mCol = aCell.mX;
+	mRow = aCell.mY;
+	unsigned int aBits = mGrid->mCells[mCol][mRow].mBits;
+	unsigned int aColor = aBits & 0xff;
+	if ((aColor != 0) && ((aBits & 0x100) == 0) && (aColor < 0x12))
+	{
+		mTime = ((mGrid->mApp->mRand.NextNoAssert() & 7) + 2) * 100;
+		mGrid->mCells[mCol][mRow].mBits = mGrid->mCells[mCol][mRow].mBits | 0x100;
+		return;
+	}
+	mTime = 0;
+}
+
+// 0x434ac0
+BabyEgg::BabyEgg(EggGrid* theGrid, int theCol, int theRow, int theTime)
+{
+	mCol = theCol;
+	mGrid = theGrid;
+	mRow = theRow;
+	GridCell* aCell = &theGrid->mCells[theCol][theRow];
+	if ((char) aCell->mBits != 0)
+	{
+		aCell->mBits = aCell->mBits | 0x100;
+		mTime = theTime;
+		return;
+	}
+	mTime = 0;
+}
+
+// 0x434b10
+BabyEgg::~BabyEgg()
+{
+	GridCell* aCell = &mGrid->mCells[mCol][mRow];
+	if ((aCell->mBits & 0x100) != 0)
+		aCell->mBits = aCell->mBits & 0xfffffeff;
+}
+
+// 0x434b40
+bool BabyEgg::Update()
+{
+	mTime--;
+	if (mTime < 1)
+		return false;
+	return (char) mGrid->mCells[mCol][mRow].mBits != 0;
 }
