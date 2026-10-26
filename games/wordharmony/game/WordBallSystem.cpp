@@ -289,7 +289,7 @@ void WordBallSystem::grab(Ball* theBall)
 	mRope = new Rope(theBall, anOffset, 21.99f, 0.3f, 0.8f);
 	mRope->mTarget = mMouse;
 	mTarget->setVisible(true);
-	mHud->grabChanged(false, false, false);
+	mHud->setControlsEnabled(false, false, false);
 }
 
 // 0x411ba0
@@ -302,7 +302,7 @@ void WordBallSystem::letGo()
 	}
 	mRope = nullptr;
 	mTarget->setVisible(false);
-	mHud->grabChanged(true, false, false);
+	mHud->setControlsEnabled(true, false, false);
 }
 
 // 0x411c00
@@ -684,7 +684,7 @@ int WordBallSystem::spawn(float x, float y, char theLetter, unsigned int theFlag
 	aSystem->setPosition(*aBall->getPosition());
 	aSystem->startEmitting();
 	if (!theQuiet)
-		Game::instance()->playSound("BALL_RUSTLE2", false);
+		Game::instance()->playSound("BALL_RUSTLE2");
 	return aSlot;
 }
 
@@ -736,7 +736,7 @@ int WordBallSystem::spawnLetter(char theLetter, bool theQuiet)
 	aSystem->setPosition(*aBall->getPosition());
 	aSystem->startEmitting();
 	if (!theQuiet)
-		Game::instance()->playSound("BALL_RUSTLE2", false);
+		Game::instance()->playSound("BALL_RUSTLE2");
 	mBallsLeft++;
 	return aSlot;
 }
@@ -853,7 +853,7 @@ void WordBallSystem::reset()
 	stopHintThread();
 	mStarted = false;
 	mSpawnTime = 0;
-	mHud->refresh();
+	mHud->restartNextBall();
 	mQueue.clear();
 	mHud->setPlaying(false);
 	mWaterLevel = 0;
@@ -1253,7 +1253,7 @@ bool WordBallSystem::keyDown(int theKey)
 // maxBalls in play
 void WordBallSystem::spawnWord(const std::string& theWord)
 {
-	Game::instance()->playSound("BALL_RUSTLE2", false);
+	Game::instance()->playSound("BALL_RUSTLE2");
 	unsigned int i = 0;
 	Chain* aChain = nullptr;
 	if (theWord.size() != 0)
@@ -1290,7 +1290,7 @@ void WordBallSystem::spawnWord(const std::string& theWord)
 // 0x4174f0
 void WordBallSystem::spawnWordAt(const std::string& theWord, float x, float y)
 {
-	Game::instance()->playSound("BALL_RUSTLE2", false);
+	Game::instance()->playSound("BALL_RUSTLE2");
 	unsigned int i = 0;
 	Chain* aChain = nullptr;
 	if (theWord.size() != 0)
@@ -1501,7 +1501,7 @@ void WordBallSystem::startLevel()
 	}
 	else if (mMode == MODE_FREEMATCH)
 	{
-		mHud->refresh();
+		mHud->restartNextBall();
 		mFill = 0;
 		mWaterLevel = 0;
 		mWaveTime = 0;
@@ -1566,7 +1566,7 @@ void WordBallSystem::startLevel()
 		delete mRope;
 		mRope = nullptr;
 		mTarget->setVisible(false);
-		mHud->grabChanged(true, false, false);
+		mHud->setControlsEnabled(true, false, false);
 	}
 	if (mFollow != nullptr)
 	{
@@ -1574,7 +1574,7 @@ void WordBallSystem::startLevel()
 		mFollow = nullptr;
 	}
 	mStarted = true;
-	aGame->playSound("LEVEL_BEGIN", false);
+	aGame->playSound("LEVEL_BEGIN");
 	mLayer->fade(true, 0.5f, 1.0f);
 	mWord.clear();
 	mHud->setPlaying(true);
@@ -1752,7 +1752,7 @@ void WordBallSystem::addWildcard()
 		return;
 	}
 	spawnNext();
-	mHud->refresh();
+	mHud->restartNextBall();
 }
 
 // Whether theLetters (with '?' for a wildcard) make the bonus word theBonus, letter by letter (inline in 0x41a120 and
@@ -1855,7 +1855,7 @@ void WordBallSystem::scoreWord(const int* theIndices, int theStart, const std::s
 		if (aSince / (double)anApp->getTicksPerSecond() < 2.0)
 		{
 			aGame->mTextEffects->create("speedy", aPosition.x, aPosition.y, NULL);
-			aGame->playSound("SPEEDY_MATCH", false);
+			aGame->playSound("SPEEDY_MATCH");
 			aMultiplier *= 2;
 		}
 	}
@@ -1863,7 +1863,7 @@ void WordBallSystem::scoreWord(const int* theIndices, int theStart, const std::s
 	if (5 < theLetters.size())
 	{
 		aGame->mTextEffects->create("longword", aPosition.x, aPosition.y, NULL);
-		aGame->playSound("SPECIAL_LONGWORD", false);
+		aGame->playSound("SPECIAL_LONGWORD");
 		aMultiplier *= 2;
 		// A long word not made before earns a wildcard
 		if (mMode != MODE_PUZZLE)
@@ -1890,7 +1890,7 @@ aBonus:
 		if (matchesBonus(mWord, theLetters))
 		{
 			aGame->mTextEffects->create("bonusWord", aPosition.x, aPosition.y, NULL);
-			aGame->playSound("SPECIAL_BONUS", false);
+			aGame->playSound("SPECIAL_BONUS");
 			aMultiplier *= 10;
 			mWord.erase(mWord.begin(), mWord.end());
 			pickAll();
@@ -1899,7 +1899,7 @@ aBonus:
 
 	TextEffect* anEffect = aGame->mTextEffects->create("foundWord", aPosition.x, aPosition.y, &Game::scoreShown);
 	anEffect->setText(theWord);
-	aGame->playSound("BALL_POP_WIND", false);
+	aGame->playSound("BALL_POP_WIND");
 	int aPoints = aScore * aMultiplier;
 	aGame->mLettersUsed += (int)theLetters.size();
 	aGame->addScore(aPoints);
@@ -2245,12 +2245,12 @@ void WordBallSystem::update(UpdateInfo& theInfo)
 								aPosition.x += getPosition()->x;
 								aPosition.y += getPosition()->y;
 								aGame->mTextEffects->create(aText, aPosition.x, aPosition.y, NULL);
-								aGame->playSound("SPECIAL_MULTIPLIER", false);
+								aGame->playSound("SPECIAL_MULTIPLIER");
 							}
 							ParticleSystem* aSystem = mBlossoms->getSystem();
 							aSystem->setPosition(*aBall->getPosition());
 							aSystem->startEmitting();
-							aGame->playSound("BALL_POP", false);
+							aGame->playSound("BALL_POP");
 						}
 						break;
 					}
@@ -2367,8 +2367,8 @@ void WordBallSystem::update(UpdateInfo& theInfo)
 				spawn(470.0f, -26.0f, aPiece[0], 0, false);
 			else
 				spawnWordAt(aPiece, 470.0f, -26.0f);
-			if (aGame->m3C < 0)
-				aGame->m3C = 0;
+			if (aGame->mLettersLeft < 0)
+				aGame->mLettersLeft = 0;
 			if (mQueue.size() == 0)
 			{
 				stopHintThread();
@@ -2382,7 +2382,7 @@ void WordBallSystem::update(UpdateInfo& theInfo)
 				spawnLetter(aPiece[0], false);
 			else
 				spawnWord(aPiece);
-			mHud->refresh();
+			mHud->restartNextBall();
 			if (mBallsToCome < 1)
 			{
 				mSpawnTime = aGame->mCurrentLevel->mSpawnDelay;

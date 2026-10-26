@@ -27,12 +27,12 @@ public:
 
 	// 0x401260: points to the score, and the score to the HUD
 	void addScore(int thePoints);
-	// 0x401290: a found word's floating text is done (m3C less thePoints, at least 0)
+	// 0x401290: a found word's floating text is done (mLettersLeft less thePoints, at least 0)
 	static void scoreShown(int thePoints);
 	// 0x401580
 	bool isPaused();
 	// 0x402b10: plays a sound of the sound bank by its name
-	void playSound(std::string theName, bool theFlag);
+	void playSound(std::string theName);
 	// 0x402980: the letters in a random order
 	static std::string shuffle(std::string theLetters);
 	// 0x404220
@@ -45,8 +45,12 @@ public:
 	std::string randomLetters(int theCount);
 	// 0x4055f0: the next state of the state machine (+0x1d8)
 	void setState(int theState);
+	// 0x406430 (not read yet): the retry button
+	void retry();
 	// 0x406520
 	void pause(bool theShowMenu);
+	// 0x407280 (not read yet): the quit button
+	void quit();
 	// 0x4070d0 (not read yet): the H key
 	void helpKey(int theA, int theMode);
 	// 0x4088f0 (not read yet): a found word into the list of the longest (+0x5c)
@@ -60,7 +64,8 @@ public:
 	std::vector<std::string> mHintWords;  // +0x1c: config\hintList.txt
 	int mScore;                         // +0x2c
 	int m38;                            // +0x38: the points too (0x401260)
-	int m3C;                            // +0x3c: lowered by the found words' floating texts (0x401290)
+	int mLettersLeft;                   // +0x3c: the HUD's balls remaining, the level's mBallCriteria less mLettersUsed
+	                                    // (and lowered as the found words' floating texts end, 0x401290)
 	int mLettersUsed;                   // +0x40: the found words' lengths, and solitaire's wildcards
 	unsigned int mWildcards;            // +0x48: wildcards to add to the next level's letters
 	int mHints;                         // +0x4c: hints left
