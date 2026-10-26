@@ -126,6 +126,14 @@ Git and publishing:
   engine, goes to the cheapest remaining game. New game sessions list the mods worth making but make none without
   the user's approval, and no further game gets mods until every PopCap game works in the browser (Noah's Ark's
   mods were the one exception, part of the Sonnet trial).
+- **No references (the user, 2026-10-26):** no port reads another project's decompilation, reimplementation, mod
+  kit, class layouts or address maps (Thunderball, haggle, WinFish, CircleShootApp, PvZ-Portable, the Pizza Frenzy
+  decompilation and the like); work from our own Ghidra export. PopCap's released SexyAppFramework source, the open
+  libraries a game itself uses and descriptions of file formats are fine.
+- **Which games, and where they are published (the user, 2026-10-26):** every game may be decompiled except Plants vs.
+  Zombies, Insaniquarium and Zuma Deluxe, whose fan communities we leave to their work. A game with another PC decompilation in
+  progress or an active modding community is built but unpublished: its folder goes into `.publishignore` and it stays
+  off the website. The "Published" column of `docs/POPCAP_GAMES_SURVEY.md` section 4 says which.
 - **Mods (the user, 2026-10-26):** code that makes a game moddable makes things configurable (rules, settings and
   their ranges in `mod.json` and the mod menu); it never just overwrites the original, which plays unchanged with
   no mod on. Every mod is data: a feature's code lives in the port, and a mod's `features` or `rules` turns it on.

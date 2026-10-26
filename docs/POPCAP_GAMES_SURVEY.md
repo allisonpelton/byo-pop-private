@@ -681,6 +681,24 @@ None of these is a blocker: the image is not packed and has full RTTI. It is jus
 > Feeding Frenzy Deluxe are added. Gyromancer comes after Twist, whose battles it uses, and Feeding Frenzy joins the
 > Sprout line. Every game PopCap released after EA bought it in
 > 2011 is out. Appendix C has the rest.
+>
+> **Decision (2026-10-26, late), replacing the skips above:** every game may be decompiled except Plants vs. Zombies
+> and Insaniquarium, whose large fan communities (much of Plants vs. Zombies' is in China) are left to their own work,
+> and Chuzzle's Christmas Edition, which mostly changes the art. The rules:
+> - **No references.** No port reads another project's decompilation, reimplementation, mod kit, class layouts or
+>   address maps (Thunderball, haggle, WinFish, CircleShootApp, PvZ-Portable, the Pizza Frenzy decompilation, Prime,
+>   Bejeweled LIVE+ and the like). PopCap's released SexyAppFramework source, the open libraries a game itself uses
+>   and descriptions of file formats stay allowed. Earlier ports that read CircleShootApp (the 2004 framework layer,
+>   with the user's OK of 2026-10-18) are left as they are.
+> - **Unpublished games.** A game with another PC decompilation in progress, or an active modding community, is still
+>   built, but published neither in the GitHub snapshot nor on the website. Decompilations of a phone or console build
+>   don't count, and neither do a handful of mods or one person's tool. The table's "Published" column applies this.
+> - Zuma Deluxe is skipped too (the user, the same night): like Insaniquarium, its fans already have a playable
+>   decompilation, a browser version, an extended engine, a level editor and new fan campaigns in 2026.
+>
+> The facts behind these choices are in [Appendix E](#appendix-e-other-projects-and-modding-communities-2026-10-26).
+> The point of the project is games that are moddable and playable in the browser, so that people can make fan games
+> without code; a faithful, unmodded decompilation is a by-product.
 
 ### The order of the remaining games (2026-10-26)
 
@@ -693,37 +711,45 @@ so Volume 2 takes the first slot that frees once Bookworm Adventures is merged, 
 largest game left and holds its slot for weeks, so the queue after it runs in the remaining slots. That queue
 takes the least predicted effort first, and a game that waits on another game's engine goes right after that game.
 The model follows CLAUDE.md's rule: Opus for the first game on an engine, Sonnet for a game that can copy one.
+"Published" says where a finished port goes: "yes" is the GitHub snapshot and the website; "no" is neither,
+its folder kept in `.publishignore`; "site only" is the website, with the source kept out of the snapshot.
 
-| # | Game | Model | Effort | Why it stands here |
-|---|---|---|---|---|
-| 1 | Bookworm Adventures Vol. 2 | Sonnet | ~4-6x after Vol. 1 | the BookWorm series; a sequel on Bookworm Adventures' engine |
-| 2 | Bejeweled Twist | Opus | ~25x | after the BookWorm series; PopAnim comes from Bookworm Adventures |
-| 3 | Cosmic Bugs | Opus | ~2x | Retro64's own small engine; added 2026-10-26 |
-| 4 | Water Bugs | Sonnet | small after Cosmic Bugs | the same engine, a sequel |
-| 5 | Word Harmony | Opus | ~3-4x | parked; its own engine |
-| 6 | Rocket Mania Deluxe | Sonnet | ~3.5x | parked; Noah's Ark's 2002 framework |
-| 7 | Dynomite Deluxe | Opus | ~4.5x | parked; the oldest framework layout, no game RTTI |
-| 8 | Mahjong Escape: Ancient Japan | Opus | ~4-5x | Jolly Bear's engine, no RTTI; added 2026-10-26 |
-| 9 | Mahjong Escape: Ancient China | Sonnet | small after Ancient Japan | the same code with other resources |
-| 10 | Bonnie's Bookstore Deluxe | Opus | ~4-6x | parked; its own engine with PopLua |
-| 11 | Venice Deluxe | Sonnet | ~5x | parked; Bejeweled's framework with PopLua |
-| 12 | Heavy Weapon Deluxe | Opus | ~5x | parked; a 2005 framework no port has, SWF cutscenes |
-| 13 | Peggle Deluxe | Sonnet | ~5x on Thunderball | Bejeweled's framework generation; JPEG 2000 is in; Thunderball (MIT) is a start |
-| 14 | Peggle Extreme | Sonnet | ~1x after Deluxe | 84% of its functions are Deluxe's |
-| 15 | Peggle Nights | Sonnet | ~4-5x after Deluxe |  |
-| 16 | Peggle World of Warcraft Edition | Sonnet | ~1-2x after Nights | the Nights branch |
-| 17 | Hammer Heads Deluxe | Sonnet | ~6x | parked; Big Money's 1.2 framework |
-| 18 | Bejeweled 2 Deluxe | Sonnet | ~6x | parked; Bejeweled's framework |
-| 19 | AstroPop Deluxe | Sonnet | ~7-8x | parked; BookWorm's 2004 framework |
-| 20 | Iggle Pop Deluxe | Opus | ~8x as the first Sprout game | builds Sprout's first-generation engine; the Pizza Frenzy decompilation has no licence, so it is a reference only |
-| 21 | Feeding Frenzy Deluxe | Sonnet | small to medium after Iggle Pop | the same first-generation engine, in an older form |
-| 22 | Feeding Frenzy 2 Deluxe | Opus | ~10x | Sprout's second generation |
-| 23 | Bejeweled 3 | Opus | ~10-15x | builds the prime-compat layer (PopAnim, PIEffect, CurvedVal) that Zuma's Revenge reuses |
-| 24 | Banana Bugs | Opus | waits on the image | PopCap's 2010 framework, near Bejeweled 3's; its image must first come out of the 2010 DRM |
-| 25 | Gyromancer | Opus | large | Square Enix's own engine; the Steam stub must come off first, with a tool that needs the user's OK |
-| 26 | Zuma's Revenge! | Opus | ~15-20x with references | HARD; prime-compat and JeffLib |
-| 27 | Typer Shark! Deluxe | Sonnet | ~5x | at the end by the decision of 2026-10-24; BookWorm's framework |
-| 28 | Talismania Deluxe | Sonnet | ~12-16x after Feeding Frenzy 2 | at the end by the same decision; HARD, on Feeding Frenzy 2's engine |
+| # | Game | Model | Published | Effort | Why it stands here |
+|---|---|---|---|---|---|
+| 1 | Bookworm Adventures Vol. 2 | Sonnet | yes | ~4-6x after Vol. 1 | the BookWorm series; a sequel on Bookworm Adventures' engine |
+| 2 | Bejeweled Twist | Opus | yes | ~25x | after the BookWorm series; PopAnim comes from Bookworm Adventures |
+| 3 | Cosmic Bugs | Opus | yes | ~2x | Retro64's own small engine; added 2026-10-26 |
+| 4 | Water Bugs | Sonnet | yes | small after Cosmic Bugs | the same engine, a sequel |
+| 5 | Word Harmony | Opus | yes | ~3-4x | parked; its own engine |
+| 6 | Rocket Mania Deluxe | Sonnet | yes | ~3.5x | parked; Noah's Ark's 2002 framework |
+| 7 | Dynomite Deluxe | Opus | yes | ~4.5x | parked; the oldest framework layout, no game RTTI |
+| 8 | Mahjong Escape: Ancient Japan | Opus | yes | ~4-5x | Jolly Bear's engine, no RTTI; added 2026-10-26 |
+| 9 | Mahjong Escape: Ancient China | Sonnet | yes | small after Ancient Japan | the same code with other resources |
+| 10 | Bonnie's Bookstore Deluxe | Opus | yes | ~4-6x | parked; its own engine with PopLua |
+| 11 | Venice Deluxe | Sonnet | yes | ~5x | parked; Bejeweled's framework with PopLua |
+| 12 | Heavy Weapon Deluxe | Opus | yes | ~5x | parked; a 2005 framework no port has, SWF cutscenes |
+| 13 | Hammer Heads Deluxe | Sonnet | yes | ~6x | parked; Big Money's 1.2 framework |
+| 14 | Bejeweled 2 Deluxe | Sonnet | yes | ~6x | parked; Bejeweled's framework |
+| 15 | AstroPop Deluxe | Sonnet | yes | ~7-8x | parked; BookWorm's 2004 framework |
+| 16 | Pizza Frenzy | Opus | yes | ~8x as the first Sprout game | added 2026-10-26; builds Sprout's first-generation engine. The other decompilation is one unlicensed upload (2026-10-03), and no modding was found |
+| 17 | Iggle Pop Deluxe | Sonnet | yes | ~5-6x after Pizza Frenzy | 72% of its engine functions are byte-identical to Pizza Frenzy's |
+| 18 | Feeding Frenzy Deluxe | Sonnet | yes | small to medium after Iggle Pop | the same first-generation engine, in an older form |
+| 19 | Chuzzle Deluxe | Opus | yes | ~8-12x | added back 2026-10-26: the reported decompilation has empty game files. Raptisoft's own engine, no RTTI |
+| 20 | Feeding Frenzy 2 Deluxe | Opus | yes | ~10x | Sprout's second generation |
+| 21 | Peggle Deluxe | Sonnet | no | ~12x | Bejeweled's framework generation; JPEG 2000 is in. Unpublished: Thunderball's decompilation is in progress |
+| 22 | Peggle Extreme | Sonnet | site only | ~1x after Deluxe | 84% of its functions are Deluxe's, so its source would publish Deluxe's |
+| 23 | Peggle Nights | Sonnet | no | ~4-5x after Deluxe | unpublished: the most active modding community of any game left (82 GameBanana mods, new ones in 2026) |
+| 24 | Peggle World of Warcraft Edition | Sonnet | site only | ~1-2x after Nights | the Nights branch, so its source would publish Nights' |
+| 25 | Bejeweled 3 | Opus | yes | ~30x | builds the prime-compat layer (PopAnim, PIEffect, CurvedVal) that Zuma's Revenge reuses |
+| 26 | Banana Bugs | Opus | yes | waits on the image | PopCap's 2010 framework, near Bejeweled 3's; its image must first come out of the 2010 DRM |
+| 27 | Gyromancer | Opus | yes | large | Square Enix's own engine; the Steam stub must come off first, with a tool that needs the user's OK |
+| 28 | Zuma's Revenge! | Opus | yes | ~35x | HARD; prime-compat and JeffLib |
+| 29 | Typer Shark! Deluxe | Sonnet | yes | ~5x | at the end by the decision of 2026-10-24; BookWorm's framework |
+| 30 | Talismania Deluxe | Sonnet | yes | ~12-16x after Feeding Frenzy 2 | at the end by the same decision; HARD, on Feeding Frenzy 2's engine |
+
+Without references the estimates of Peggle (~12x instead of ~5x on Thunderball), Bejeweled 3 (~30x instead of ~10-15x)
+and Zuma's Revenge (~35x instead of ~15-20x) went up, so those games moved later. Zuma Deluxe is skipped
+(see the decision above).
 
 After these come the other studios' games (Appendix D), World of Goo among them; which of the others is decided then.
 
@@ -731,9 +757,8 @@ On 2026-10-26 the user added Cosmic Bugs, Water Bugs and both Mahjong Escape gam
 decision, at the places their effort gives them. Their copies are in the user's Popcap Game Collection (Appendix C).
 
 Every game has a copy on the user's machines ([Appendix C](#appendix-c-popcap-pc-games-missing-from-this-survey-2026-10-25)
-and the user's notes). Skipped, unchanged: Zuma Deluxe, Insaniquarium, Plants vs. Zombies and Pizza Frenzy (existing
-decompilations), Chuzzle and its Christmas Edition, The Wizard's Pen, Sweet Tooth To Go, every hidden-object game and
-every game released after July 2011.
+and the user's notes). Not decompiled: Plants vs. Zombies, Insaniquarium and Zuma Deluxe (their fan communities), Chuzzle's Christmas
+Edition, The Wizard's Pen, Sweet Tooth To Go, every hidden-object game and every game released after July 2011.
 
 Bejeweled Deluxe and then Big Money Deluxe are already planned ([MOD_ROADMAP.md](MOD_ROADMAP.md)). Big Money is DIRECT at about 2x. It builds the SAF 1.2 vtable map that Hammer Heads reuses, and its `.it` music already plays with libxmp-lite.
 
@@ -976,7 +1001,8 @@ The key facts for the 20 non-priority games, in the order of the table in sectio
   - [teampopwork/Thunderball](https://github.com/teampopwork/Thunderball): a matching decompilation (reccmp, MSVC 8.0 SP1, Mac debug symbols) of the same 1.01 Steam English build. 38.90% implemented (2,558 of 6,576 functions, framework included), 91.28% accuracy, last pushed 2026-10-05. MIT plus the PopCap Framework License. Not stated to be playable.
   - [PeggleCommunity/haggle](https://github.com/PeggleCommunity/haggle): a mod SDK (MIT).
   - Empty or irrelevant: [Peggle-Reversed/Peggle-Deluxe](https://github.com/Peggle-Reversed/Peggle-Deluxe), [eddieburke/peggle-decompilation-rust](https://github.com/eddieburke/peggle-decompilation-rust) (empty), and the XBLA projects [SplaatSites/peggle](https://github.com/SplaatSites/peggle) and [JosueMora918/peggle360-decomp](https://github.com/JosueMora918/peggle360-decomp).
-- **Plan:** use Thunderball's layouts and implemented functions, fill the gaps from our own Ghidra export (ideally upstreaming them), then build its game folder against our framework.
+- **Plan (2026-10-26, replacing the first plan):** decompile from our own Ghidra export only, with no Thunderball or haggle
+  code, layouts or addresses (section 4, "No references"), and keep the port unpublished while Thunderball is in progress.
 
 ### Peggle Extreme: DIRECT, ~1x after Deluxe
 - **Image:** `PeggleExtreme.exe` and `testapp.exe` are identical 2007-08-10 wrappers; the game inside it is 2,859,008 bytes. The game was linked 2007-08-22 with VS2005 and no LTCG (PDB path `ThunderballExtreme`).
@@ -1301,3 +1327,27 @@ OpenInsaniquarium, a clean-room reimplementation; the framework's own 1.3 source
 
 **Decision (the user, 2026-10-25):** the other studios' games come at the very end, after every PopCap game, and World
 of Goo is wanted among them. Which of the others to port is decided then; each needs the user's own copy.
+
+## Appendix E: other projects and modding communities (2026-10-26)
+
+Checked on 2026-10-26 for the publishing rules in section 4 (a research pass; the Peggle Nights, Zuma Deluxe and
+Pizza Frenzy findings were rechecked by hand). "Active" means mods or tools since late 2024: "strong" is many authors
+or regular releases, "thin" a handful, often from one person. Dates are the last activity seen. A "none found" means
+GitHub, GameBanana and Nexus showed nothing; Reddit, ModDB and Discord servers were not read.
+
+| Game | Other decompilation or remake | Modding |
+|---|---|---|
+| Peggle Deluxe | [Thunderball](https://github.com/teampopwork/Thunderball), matching decompilation, 39% (2026-10-18); Xbox 360 recompilations | strong: the [haggle](https://github.com/PeggleCommunity/haggle) mod kit (2026-08), a few GameBanana mods |
+| Peggle Nights | none of its own (the Xbox 360 recompilations include it) | strong: [GameBanana](https://gamebanana.com/games/6197), 82 mods, nine in 2026 from eight people (newest 2026-10-01); [PeggleEdit](https://github.com/IntelOrca/PeggleEdit) level editor (2026-03) |
+| Zuma Deluxe | [CircleShootApp](https://github.com/alula/CircleShootApp), finished and playable (quiet since 2025-12), with active ports and a browser build | strong: [GameBanana](https://gamebanana.com/games/8223), eight mods in 2026 from four people (six from one); new level tools in 2026-10 |
+| Pizza Frenzy | one unlicensed upload of a decompilation (2026-10-03), nothing since | none found |
+| Chuzzle Deluxe | a repository whose 13 game files are empty (2026-04); an iOS recompilation | dormant (one mod, 2024) |
+| Bejeweled 3, Zuma's Revenge, Bejeweled 2 | console or phone builds being recompiled or decompiled (2026-10) | thin |
+| Bookworm Adventures 1 and 2 | none | thin: one person's mod builder (2026-07); a Spanish translation of Vol. 2 |
+| Bejeweled Twist, Dynomite, Heavy Weapon, Feeding Frenzy 2 | Heavy Weapon has a reimplementation for the Vita | thin: a fix, a recovered official level editor, an input mod, an Archipelago client |
+| Alchemy | flamel, a web remake written from scratch (2026-10) | none found |
+| Bejeweled, Big Money, BookWorm (ported) | none | thin: a few GameBanana mods; BookWorm's word-list editor |
+| every other game in the order | none found | none found |
+
+Plants vs. Zombies and Insaniquarium were not rechecked: both have finished decompilations, many ports and large
+communities (section 3.4 for Insaniquarium).
