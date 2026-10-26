@@ -207,10 +207,18 @@ export's class recovery is by RTTI only), `MainMenu` 24 KB, `GameApp` 20 KB, `Bo
 6. Web page (`web/page.js`): markers, import folders (`music/`, `scripts/` are loose in Volume 2) and prose still say
    Volume 1; its persist folder is already `/bwa2persist`.
 
-## Found while testing the replay (2026-10-26), for the battle milestone
+## The word list's flags (2026-10-26), the start of the battle milestone
 
-`TileEngine::ValidWordSpelled` passes `(is_valid, count, tiles...)` to the script, but Volume 2's `TileEngine.lua` reads
-`is_noun`, `is_adjective` and `is_verb` after `is_valid`; with a new profile the tutorial's first tile click (the tutorial now shows,
-as the profile defaults are Volume 2's) stops with `TileEngine.lua:856 attempt to index local ttable`. The original's 0x49b1e0 is
-to be read for where the three flags come from (they are the word list's part-of-speech marks). Until then the game runs headless
-with a profile whose `NeedsIntroTileHelp` is false (the recipe: an existing user's folder and `lua profile.Set(...)` script lines).
+Volume 2's `TileEngine.lua` reads `is_noun`, `is_adjective` and `is_verb` after `is_valid` in `ValidWordSpelled` (found when a new
+profile's tutorial stopped at `TileEngine.lua:856`). They come from the word list: `data/compressed_attribs.dat` holds four bytes
+(little-endian; 1 adjective, 2 verb, 4 noun) for each word of 3 to 16 letters of `data/compressed.txt`, in the list's order
+(191,743 of both, which is how the format was checked), read by `0x49d650` into a hash map that `0x49dad0` looks up. `Lex` keeps
+them in a `std::map`; `Board::IsValidWord` gives its callers the flags, and 0x486fa0 (`TileEngine::ValidWordSpelled`) pushes
+`(is_valid, count, is_noun, is_adjective, is_verb, tiles...)` with the call's count the tiles' plus 5; a word that is not a word
+(or under 3 letters) has flags 0. The board's `IsNoun`, `IsVerb` and `IsAdjective` (0x41a1a0, 0x41a1d0, 0x41a200) take the word in
+capitals. The suite's new-player run (`tools/check.sh bookwormadv2`) goes through the tutorial to its first attack.
+
+Volume 2's Board registers more Lua methods than the port's, which still has Volume 1's list (0x40f970 against `Board::RegisterLua`:
+`GridRemoveTile`, `AddNewTiles`, `SetAttackVisible`, `GetTMEnemyAttacking`, `IsScrambling`, `GetTileBelow` and `GetTopTiles` are not
+registered; `ChangeAttackBtnImage`, `GetRandomizedTiles` and `GetRandomizedAdjacentTiles` are, as Volume 1's); the battle milestone
+fills them in.
