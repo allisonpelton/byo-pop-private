@@ -246,6 +246,10 @@ input[type=file] { display: none; }
   //   lock        the Web Lock that lets one page at a time run the game; never changed either
   //   gameDirs    the folders of the install that are copied (and that make a folder of files a mod)
   //   gameFiles   files at the top of the install that are copied too, in lower case (BookWorm: its word lists)
+  //   paks        PopCap paks at the top of the install, in lower case (["main.pak"]): the import unpacks each into the
+  //               game's folder instead of copying it, as native staging does, and its files count as the install's
+  //               (a file in both the pak and the install comes from the pak, as PakInterface reads it). A pak may be
+  //               a marker; once imported, files in the game's folders stand for it.
   //   markers     the files that make a folder the game's install, relative to it, in any case ("name.*": with any
   //               extension); the import looks for them, and the page asks for an import while one is missing
   //   markerText  the markers as the import's error names them ("images/gemsheet6 file")
@@ -259,7 +263,7 @@ input[type=file] { display: none; }
   //   start(run)  as the game starts: may add to run.args (its arguments) and run.status (the status line)
   //   shown(id)   a panel was opened (the game's own: page.html's <aside class="panel" data-button="...">)
   //   init()      once, after the page's controls are set up
-  // gameFiles, skip and the functions may be left out.
+  // gameFiles, paks, skip and the functions may be left out.
 /* byopop:game-js */
 
   var PERSIST = PAGE.persist;
@@ -273,6 +277,7 @@ input[type=file] { display: none; }
   var REPLAYS = PERSIST + "/replays";
   var GAME_DIRS = PAGE.gameDirs;
   var GAME_FILES = PAGE.gameFiles || [];
+  var PAKS = PAGE.paks || [];
   function $(id) { return document.getElementById(id); }
   var statusEl = $("status");
   var statusText = "";
@@ -428,7 +433,9 @@ input[type=file] { display: none; }
     // with placeholders any of the game's folders will do: the game stands in for the rest
     if (pagePlaceholders())
       return GAME_DIRS.some(function (d) { return web().fs.listDir(GAME + "/" + d).length > 0; });
+    var anyGameDir = function () { return GAME_DIRS.some(function (d) { return web().fs.listDir(GAME + "/" + d).length > 0; }); };
     return PAGE.markers.every(function (m) {
+      if (PAKS.indexOf(m.toLowerCase()) >= 0) return anyGameDir();  // unpacked at the import, not stored
       var i = m.lastIndexOf("/"), name = new RegExp("^" + markerPattern(m.substring(i + 1)) + "$", "i");
       return web().fs.listDir(GAME + (i < 0 ? "" : "/" + m.substring(0, i))).some(function (n) { return name.test(n); });
     });
@@ -462,8 +469,25 @@ input[type=file] { display: none; }
     return best;
   }
 
+  // The install's files with its paks (PAGE.paks) unpacked: each pak's files take its place, after the loose files, so
+  // that a file in both is written from the pak
+  function withPaks(entries, root) {
+    var W = web();
+    var paks = entries.filter(function (e) {
+      return e.path.substring(0, root.length) === root && PAKS.indexOf(e.path.substring(root.length).toLowerCase()) >= 0;
+    });
+    if (paks.length > 0) $("import-msg").textContent = "Unpacking " + paks.map(function (e) { return e.path.substring(root.length); }).join(", ") + "…";
+    return paks.reduce(function (p, e) {
+      return p.then(function (all) {
+        return e.read().then(function (bytes) {
+          return all.concat(W.pak.read(bytes).map(function (f) { return { path: root + f.path, read: f.read }; }));
+        });
+      });
+    }, Promise.resolve(entries.filter(function (e) { return paks.indexOf(e) < 0; })));
+  }
+
   function importGame(entries) {
-    var W = web(), root = findGameRoot(entries);
+    var root = findGameRoot(entries);
     var msg = $("import-msg");
     if (root === null) {
       msg.innerHTML = '<span class="error"></span>';
@@ -471,6 +495,11 @@ input[type=file] { display: none; }
         $("brand-name").textContent + " install folder itself.";
       return Promise.resolve(false);
     }
+    return withPaks(entries, root).then(function (all) { return copyGame(all, root); });
+  }
+
+  function copyGame(entries, root) {
+    var W = web(), msg = $("import-msg");
     var skip = PAGE.skip || [];
     var wanted = [];
     entries.forEach(function (e) {
@@ -500,9 +529,10 @@ input[type=file] { display: none; }
   // The game's terms (web/terms.html, with its name and notice) come before its files are imported or loaded: boot shows
   // them first, and the import and the start check them again. The agreement is kept per game, with the version of
   // its terms (a hash of their text), so each game asks on its own and changed terms ask again. Where localStorage
-  // fails (a private window, blocked site data), it lasts until the page closes.
-  var TERMS_KEY = "byopop-terms-" + PAGE.id, TERMS_VERSION = "@BYOPOP_TERMS_VERSION@";
-  var termsAgreed = false;
+  // fails (a private window, blocked site data), it lasts until the page closes. TERMS_GATE (BYOPOP_WEB_TERMS_GATE in
+  // cmake/ByopopWeb.cmake) is off for now: then the card never shows, and the pages must not be deployed.
+  var TERMS_KEY = "byopop-terms-" + PAGE.id, TERMS_VERSION = "@BYOPOP_TERMS_VERSION@", TERMS_GATE = @BYOPOP_TERMS_GATE@;
+  var termsAgreed = !TERMS_GATE;
   function hasAgreed() {
     if (!termsAgreed) {
       try { termsAgreed = localStorage.getItem(TERMS_KEY) === TERMS_VERSION; } catch (e) {}

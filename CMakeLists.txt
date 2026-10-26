@@ -84,6 +84,16 @@ elseif(BUILD_FWTEST)
   endif()
 endif()
 
+# Song position test (tools/songpostest): Mixer::GetSongPosition on modules rendered offline, through libxmp-lite and
+# libopenmpt. Native only; songpostest.exe <gamedir> <music path>... (tools/check.sh unit).
+if(NOT EMSCRIPTEN)
+  add_executable(songpostest tools/songpostest/songpostest.cpp)
+  target_link_libraries(songpostest PRIVATE sexyopenmpt)
+  add_custom_command(TARGET songpostest POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:SDL2::SDL2> ${PORT_RUNTIME_DLLS} $<TARGET_FILE_DIR:songpostest>
+    VERBATIM)
+endif()
+
 # Mod settings tests (tools/modsettingstest): the settings schema, values, placeholders, levels and score key
 # entries (platform/ModSettings.*) and the mod menu's model in ModManager (mods.json and mod-settings.json
 # edits, the effective manifests, next-game commits). Native: modsettingstest.exe. Web: modsettingstest.js,
@@ -107,6 +117,23 @@ if(BUILD_MODSETTINGSTEST)
       MODSETTINGSTEST_EXAMPLE="${PROJECT_SOURCE_DIR}/games/bejeweled/mods/example-settings/mod.json")
     add_custom_command(TARGET modsettingstest POST_BUILD
       COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:SDL2::SDL2> ${PORT_RUNTIME_DLLS} $<TARGET_FILE_DIR:modsettingstest>
+      VERBATIM)
+  endif()
+endif()
+
+# JPEG 2000 test (tools/jp2test): decodes the .jp2 images of a folder that have a .png beside them through the image
+# loader (platform/openjpeg) and compares the pixels with the PNG's; the loader's mask and extension rules with .jp2
+# files. Native only: tools/check.sh unit runs it on assets/bookwormadv/images when that folder is staged.
+if(NOT EMSCRIPTEN)
+  option(BUILD_JP2TEST "Build the JPEG 2000 test" ON)
+  if(BUILD_JP2TEST)
+    add_executable(jp2test tools/jp2test/jp2test.cpp)
+    target_link_libraries(jp2test PRIVATE sexyframework sexyopenjpeg openjp2)  # openjp2: the encoder, for synthetic images
+    if(NOT MSVC)
+      target_compile_options(jp2test PRIVATE -Wall)
+    endif()
+    add_custom_command(TARGET jp2test POST_BUILD
+      COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:SDL2::SDL2> ${PORT_RUNTIME_DLLS} $<TARGET_FILE_DIR:jp2test>
       VERBATIM)
   endif()
 endif()
@@ -157,4 +184,10 @@ endif()
 option(BUILD_TIPTOP "Build the TipTop Deluxe port" ON)
 if(BUILD_TIPTOP AND EXISTS ${PROJECT_SOURCE_DIR}/games/tiptop/CMakeLists.txt)
   add_subdirectory(games/tiptop)
+endif()
+# Ning Po Mahjong Deluxe: Pyrogon's framework (games/ningpo/engine) under the framework's app host; optional while it
+# is new
+option(BUILD_NINGPO "Build the Ning Po Mahjong Deluxe port" ON)
+if(BUILD_NINGPO AND EXISTS ${PROJECT_SOURCE_DIR}/games/ningpo/CMakeLists.txt)
+  add_subdirectory(games/ningpo)
 endif()

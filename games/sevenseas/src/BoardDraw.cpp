@@ -721,7 +721,8 @@ void Board::Draw(Graphics* g)
 			g->SetColorizeImages(true);
 			g->SetColor(Color(0xff, 0xff, 0xff, (int) ((double) mLifeFlash / 20.0 * 255.0)));
 		}
-		g->DrawImage(anImages[IMAGE_EXTRALIFE], mWidth / 2 - 0x3f, mHeight / 2 - 0x49);
+		// the big ship (image 37, 125 x 105), not the small life icon of the side panel (image 31)
+		g->DrawImage(anImages[IMAGE_BONUSSHIP], mWidth / 2 - 0x3f, mHeight / 2 - 0x49);
 		g->SetFont(mApp->mFonts[FONT_FONT1]);
 		g->SetColor(Color(0xff, 0xff, 0));
 		WriteCenteredLine(g, mHeight / 2 - 0x49 + 0x60, GT(0x004a2e80));

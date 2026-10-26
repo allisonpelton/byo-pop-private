@@ -264,7 +264,6 @@ public:
 
 	void				TitleScreenDone();					// the title screen's play link was clicked
 	void				StartGame();						// 0x405b10
-	void				StartNewGame(int theMode, int theExpert);
 	bool				HasSavedGame();
 	void				SaveGame();							// 0x405fc0
 	void				ResumeGame();						// 0x406060
