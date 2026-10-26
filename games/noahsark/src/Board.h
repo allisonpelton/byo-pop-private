@@ -250,7 +250,7 @@ public:
 	void					LinkPieces(Piece* theFirst, Piece* theSecond);
 
 	// BoardUpdate.cpp
-	void					ExchangeContents(Piece* a, Piece* b, int theOffsetXForA, int theOffsetYForA);
+	void					ExchangeContents(Piece* a, Piece* b, int theOffsetXForA, int theOffsetXForB, bool theSwapOffsetY);
 
 	// BoardDraw.cpp
 	void					DrawFish(Graphics* g);          // 0x408ce0

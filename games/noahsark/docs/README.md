@@ -62,7 +62,8 @@ Test runs follow `CLAUDE.md`: native runs only under `build/native/rundesk.exe`,
 ## Testing
 
 `tools/check.sh noahsark` runs the bot in all three modes and one mode again, and compares the screenshots of the
-two runs (about 12 seconds). The bot is `src/testhooks/Autoplay.cpp`, started with `-autoplay=<seed>`
+two runs, then the mods' tests and the high-score loader's test (`tools/run_hiscores_test.sh`: tampered, NUL-named and cut
+`hiscores.dat` files made by `tools/make_hiscores.py`), about 30 seconds in all. The bot is `src/testhooks/Autoplay.cpp`, started with `-autoplay=<seed>`
 `-autoplaymode=action|strategy|puzzle -autoplaydiff=0|4|8 -autoplaygames=N -autoplaycap=<updates>
 -autoplaylog=<file> -autoplayshots=<prefix>`. It has its own random generator, so a run depends only on `-seed` and its
 arguments: the same run gives the same log and the same screenshots, and the suite's expected results (the last level or

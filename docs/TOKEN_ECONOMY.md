@@ -104,7 +104,7 @@ column weighs every model at Opus 5.5's API prices, as the report does, so it ov
 | Noah's Ark Deluxe | Sonnet, none | ~1-1.5x | 1 h 23 | 330 | 134M | 1.1M | 0.5M | $45 |
 
 Per unit of the survey's effort estimate, Noah's Ark used about 107M cache reads, against 267M for Big Money and about
-330M for BookWorm: two and a half to three times fewer, before Sonnet's lower prices. Part of that is the game, which
+330M for BookWorm: between a third and two fifths as many, before Sonnet's lower prices. Part of that is the game, which
 is the smallest and reused BookWorm's pipeline, and part is the single session, whose calls carried a large context
 (409K on average, 967K at most, one compaction) but made a tenth as many calls. Output was a larger share (21% of the
 weighted cost, against 3-4%), so Sonnet wrote and thought more per call. Its own account of where it struggled
@@ -152,3 +152,53 @@ no port has yet run on Opus. Opus covers Sonnet's deficits by review: the coordi
 translated functions against the decompilation before merging it, as above. Each later game is measured the same way
 (tokens and time per unit of the survey's estimate, and the review's findings), so the rule can move a kind of game
 back to Opus if Sonnet does badly on it.
+
+## The next Sonnet port: Seven Seas Deluxe (2026-10-25)
+
+Seven Seas was the first game ported on Sonnet under that rule: a 2003 game of the same estimated size as Noah's Ark
+(~1-1.5x), copying Noah's Ark's port of the 2002 framework. Its one session, from its start to the tip with the
+review's fixes (20:27 to 22:15 UTC, 1 h 48), made 431 calls: 184.6M cache reads, 1.3M cache writes and 0.6M output,
+about $59 at Opus prices. That covers the port, a second pass on the dialogs (it first guessed their sizes, then read
+them from the vtables and the creators' disassembly) and the review's fixes, but no mods, so it cost somewhat more
+than Noah's Ark's whole session with its mods (394 calls, 1 h 36, about $50). Per unit of the estimate that is about
+148M cache reads, against 107M for Noah's Ark's port and 267M for Big Money's.
+
+An Opus review agent compared about 25 of its functions with the decompilation and the disassembly. The game logic
+is a very faithful translation: the board, the enemies, the shots, the level generation, the order of the `rand()`
+calls and the original's quirks all match. It found six differences. One desynchronises the random stream: undo
+restored each ship with one `rand()` draw, where the original's inlined constructor makes a second. Three are rare
+behaviour differences: a continued game's side panel counted its score up from 0; the high-score file ignored the
+day and dropped a record's name on a bad check, the same mistake Noah's Ark's port had made; and the game-over talk
+ended one update early (`< 300` for the original's `<= 300`, another bound turned around). Two change nothing but a
+sound's pan or a field that held the same value. Three comments were wrong too. The session fixed all of it in one
+turn, and the `<= 300` fix moved its bot's pinned results by one update.
+
+## Atomica Deluxe (2026-10-25)
+
+Atomica ran on Sonnet at the same time as Seven Seas, copying Noah's Ark's port of the 2002 framework for a 2003 game
+that the survey put at ~1.5x. Its one session, from its start to the tip with the review's fixes (20:27 to 23:31 UTC,
+3 h 03), made 771 calls: 371.8M cache reads, 2.4M cache writes and 1.1M output, about $115 at Opus prices. It ported
+everything on its Status list, the menus, dialogs, tutorial boxes, bonus molecules, element atoms and swirls included,
+but no mods. Per unit of the estimate that is about 248M cache reads, close to Big Money's 267M and well above Seven
+Seas' 148M.
+
+Much of the difference is context, not work. The session carried 485K tokens of context per call on average and
+reached 965K before each of its two compactions. The 400K auto-compact of 2026-10-24 was set in the user's settings for
+Opus 5.5 only (`modelSettings`), so the Sonnet sessions ran to the full window: Noah's Ark averaged 409K (967K at most)
+and Seven Seas 431K. Every call re-reads that context, so the cache reads grow with it. Sonnet 5.5 got the same 400K
+window at the end of 2026-10-25, so the next Sonnet ports should show whether that closes the gap.
+
+An Opus review agent compared about 30 functions with the decompilation and the disassembly. The game logic is
+faithful: the molecule search, the scoring, all 41 level set-ups, the bonus levels, the path finder, the random
+generator and the order of the constructors' draws match, and in several places the port fixed what Ghidra had lost.
+It found seven differences, weightier than Seven Seas'. The bomb button was never disabled, so the atomic bomb worked
+at any charge and on bonus levels: the original disables it through a virtual call whose argument Ghidra drops, and
+the port had left the call out. Two of the original's random-number users were missing (an object on the board that
+draws a number every update, and the air element's clouds), so the port's random stream parted from the original's
+from a game's first update on. The biohazard's infection set the wrong flag on the new atom and drew a stand-in effect
+instead of the original's travelling spark. The saved game was four bytes short, so a save from the original exe
+would be misread from its radiation cells on. The rest is small: the high-score date in local time instead of UTC, one
+flag written where another was meant, and `Widget::Update` called where the original marks the board dirty. Three
+comments were wrong too. Most of these are omissions beside code that Ghidra renders poorly (dropped arguments,
+unnamed objects), not mistranslations. The session fixed all of it in one turn, and the restored random-number users
+moved its bot's pinned results.

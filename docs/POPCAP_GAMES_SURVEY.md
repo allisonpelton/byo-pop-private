@@ -675,6 +675,12 @@ None of these is a blocker: the image is not packed and has full RTTI. It is jus
 > Volume 2 waits for its engine, and Twist for PopAnim, which Bookworm Adventures builds first, so the other two
 > places go to the cheapest games: Seven Seas Deluxe and Atomica Deluxe (Appendix B), on Sonnet, which reuse
 > Noah's Ark's 2002 framework.
+>
+> **Decision (2026-10-25, later), after Appendix C:** Chuzzle Deluxe is skipped (someone else has reportedly
+> decompiled it), and so is its Christmas Edition. Alchemy Deluxe, Mummy Maze Deluxe, Banana Bugs, Gyromancer and
+> Feeding Frenzy Deluxe are added. Gyromancer comes after Twist, whose battles it uses, and Feeding Frenzy joins the
+> Sprout line. Every game PopCap released after EA bought it in
+> 2011 is out. Appendix C has the rest.
 
 Bejeweled Deluxe and then Big Money Deluxe are already planned ([MOD_ROADMAP.md](MOD_ROADMAP.md)). Big Money is DIRECT at about 2x. It builds the SAF 1.2 vtable map that Hammer Heads reuses, and its `.it` music already plays with libxmp-lite.
 
@@ -1096,3 +1102,148 @@ Notes:
 - "DRM wrapper" means `tools/extract_game_exe.py` carves the inner game image, as for BookWorm.
 - The effort figures are first estimates from the triage alone (code size, framework, data formats), not
   from a Ghidra export.
+
+## Appendix C: PopCap PC games missing from this survey (2026-10-25)
+
+The user asked which PopCap games are still missing from the lists above, and ruled out hidden-object games for
+ports, since they have almost no replay value. One research pass, mostly web search, compared the lists above with
+Wikipedia's list of PopCap games, Backloggd, Steam and search results from MobyGames, PCGamingWiki and Giant Bomb.
+It searched GitHub for decompilations or source releases of each title and found none. Those three sites refused
+direct requests, and the Wayback Machine's copies of popcap.com's download catalogue could not be read, so the list
+may still have gaps. None of these games is among the user's installers or installs found so far, so each needs
+the user's own copy first. The effort column is a guess from the year, the studio and the games already surveyed,
+not from a triage of the exe.
+
+| Game | PC release | Developer | Kind of game | Likely effort | Notes |
+|---|---|---|---|---|---|
+| Alchemy Deluxe | 2001 or 2002 | PopCap | tile placement, Ishido-like | small: early SAF, as Noah's Ark | |
+| Mummy Maze Deluxe | 2002 | PopCap | maze puzzle | small: early SAF | |
+| Feeding Frenzy Deluxe | 2004; PopCap's Deluxe 2005 | Sprout | eat-or-be-eaten arcade | after the Sprout engine | Feeding Frenzy 2 is in section 2 |
+| Cosmic Bugs | 2004 or 2005 | Retro64 | Qix-style area capture | unknown engine | PopCap published it from about 2006 |
+| Water Bugs | 2005 | Retro64 | the same, a sequel | after Cosmic Bugs | |
+| Mahjong Escape: Ancient Japan | 2006 | SpinTop | mahjong solitaire with a story | unknown engine | |
+| Mahjong Escape: Ancient China | 2006 | SpinTop | a re-skin of Ancient Japan | small after Ancient Japan | |
+| Chuzzle: Christmas Edition | 2008 | Raptisoft | a holiday re-skin of Chuzzle | small after Chuzzle | not certain PopCap sold it |
+| The Wizard's Pen | 2008 | PopCap | uncover a picture and guess it | late SAF | sometimes called "reverse hidden object": the user's call |
+| Gyromancer | 2009 | PopCap with Square Enix | puzzle RPG on Bejeweled Twist's battles | after Twist | Square Enix published it |
+| Banana Bugs | 2010 | PopCap | arcade, a monkey ropes off bugs | late SAF | |
+| Sweet Tooth To Go | 2003 | PopCap, for Pogo | candy match-three | small | not certain it was a PopCap download |
+
+Out of scope, unless the user decides otherwise:
+- The Hasbro board games of 2012-2013 (Monopoly, Risk, Battleship, The Game of Life). Other studios made them on
+  their own engines (Battleship is Unity) under licence, and Wikipedia's PopCap list leaves them out.
+- The Plants vs. Zombies Garden Warfare games (2014, 2016, 2019). These are online 3D shooters on EA's engine, not
+  casual games.
+- Plants vs. Zombies: Replanted (2025). This is a remaster that is still on sale, and the original is already
+  covered by its existing decompilation.
+
+Skipped as hidden-object games: the Mystery P.I. series (eight games), the Amazing Adventures series (five), the
+Escape games (Rosecliff Island, the Emerald Star, Whisper Valley), Vacation Quest (the Hawaiian Islands,
+Australia) and Hidden Identity: Chicago Blackout.
+
+The research left out web-only, Facebook-only and mobile games (Diamond Mine, Bejeweled Blitz, Zuma Blitz and the
+like), Bejeweled Live (Windows Phone and Windows 8), Peggle 2 (consoles only) and the compilations. Mystery
+Solitaire: Secret Island appears on one list of SpinTop's games, but Mumbo Jumbo seems to have published it.
+
+The user's decisions on this list (2026-10-25):
+- **To port:** Alchemy Deluxe, Mummy Maze Deluxe, Banana Bugs, Gyromancer (after Twist) and Feeding Frenzy Deluxe
+  (in the Sprout line; its 2004-2005 build may share the first-generation engine with Pizza Frenzy and Iggle Pop,
+  not yet checked). Each needs the user's own copy first.
+- **Waiting on the user's research:** Cosmic Bugs, Water Bugs and the two Mahjong Escape games.
+- **Skipped:** Chuzzle: Christmas Edition, along with Chuzzle Deluxe, which someone else has reportedly decompiled.
+  Sweet Tooth To Go is skipped too, though a Bejeweled mod with its look may come later (MOD_ROADMAP.md).
+  The Wizard's Pen counts as a hidden-object game, so it is skipped.
+- **Out:** every game PopCap released after EA bought it in July 2011, which covers the Hasbro games, the Garden
+  Warfare games and Replanted. Bejeweled 3 (December 2010) predates the purchase and stays on the list.
+
+Triage of the user's new copies (2026-10-25). The two installers were unpacked with 7-Zip into the git-ignored
+`re/_installers/` without being run, and the three games went through `tools/triage_popcap.py`:
+- **Mummy Maze Deluxe** (`WinMM.exe`, 2002-06, 523 KB of code, no wrapper) is early SAF with 30 class strings, like
+  Noah's Ark. Its data is GIF/JPG/OGG, 101 maze `.dat` files and `.it` music, plus one short MP3 sound
+  (`pummel.mp3`), which needs an MP3 decoder the platform does not have yet. About 1-1.5x, on Sonnet from Noah's
+  Ark's port, and the cheapest game left.
+- **Alchemy Deluxe** is not the 2001 original but a 2004 rebuild: its `Alchemy.exe` is a 2007 DRM wrapper around an
+  image built in 2004-08 (900 KB of code, 47 class strings, BookWorm's framework generation). It has 15 compiled Lua
+  scripts with PopLua's own header (`\x1bLuaV`), `.s3m` music and GIF/JPG/PNG/OGG images. So it comes after
+  Bookworm Adventures' PopLua VM, with the 2004 compatibility layer: about 2-3x, and it can largely copy those ports.
+- **Gyromancer** (Steam, `E:/SteamLibrary/steamapps/common/Gyromancer`, 2009-09) is not on Twist's or any PopCap
+  framework: no SexyApp class strings at all, and 80 game classes of Square Enix's own engine (`CGM_*` game modes,
+  `CData*` tables, effects). Its data is in its own archives (`.bjm`, `.cab`, `.dat`). Steam's DRM stub has
+  encrypted the code section (entropy 8.0), so analysis needs the stub removed first, with a tool that would be a
+  download (the user's OK first) and a how-to that stays private. It is a large port of a new engine, on Opus, and no
+  longer depends on Twist.
+
+The user then found five more installed in `C:/Program Files (x86)/Popcap Game Collection` (2026-10-25). The
+collection's copies are plain exes with no wrapper (a signed `properties/partner.xml` sits beside each):
+- **Feeding Frenzy Deluxe** (built 2005-07, 640 KB of code) runs on Sprout's first-generation engine, an older form
+  of the one under Feeding Frenzy 2 and Talismania. Its RTTI names only three `engine` classes, but source file
+  names (`SimpleSoundDX.cpp`, `WaveFileReader.cpp`) and the PDB name are left in. The data is an 8 MB
+  `FFArchive.saf` plus loose WAV, music and menu files. It belongs to the Sprout line: on Opus if it is the first
+  Sprout game ported, and largely a copy if Talismania or Feeding Frenzy 2 comes first.
+- **Cosmic Bugs** and **Water Bugs** (built 2007-11 and 2007-10, about 350 KB of code each, almost the same size)
+  run on Retro64's own small engine: MSVC, a `tObject` base class, no RTTI, DirectDraw, and the closed-source BASS
+  library for sound (`bass.dll`), which a port replaces with the platform's audio. Their data is `.bbk`/`.dat`
+  archives (a 16-bit and an 8-bit art set), 124 and 140 FLIC animations (`.flc`) placed by XML files, WAV sounds and
+  MO3 music (libopenmpt is approved for MO3). A guess: about 2x for Cosmic Bugs on Opus, as a new engine, then
+  Water Bugs largely copies it on Sonnet.
+- **Mahjong Escape: Ancient Japan** and **Ancient China** (built 2006-11 and 2006-08, about 1.15 MB of code each)
+  are not on a PopCap or SpinTop framework: the exe carries Jolly Bear Games' copyright (2004-2006), MSVC with no
+  RTTI, DirectDraw, BASS and libjpeg, and the art is in a `Resource.dll` of 10 to 12 MB per game. The largest of
+  the five, with no class names to start from: on Opus, perhaps 4-5x for the first, and the second, the same code
+  with other resources, small after it.
+- **Banana Bugs** came last, as an installer (`BananaBugsSetup.exe`, 82 MB, unpacked into `re/_installers/` without
+  running it). Despite the name and the rope-walling play it is not Retro64's engine but PopCap's own of 2010:
+  `Main.pak` (62 MB, the usual PopCap pak), 120 OGG sounds, BASS, and `j2k-codec.dll` for JPEG 2000 images (the
+  OpenJPEG that Bookworm Adventures brings in replaces it). It is the only game here behind PopCap's 2010 DRM:
+  `BananaBugs.exe` (2010-05, readable, with RTTI) is the launcher, its licensing and update client and
+  `XLayout.dll`, and the game itself is the encrypted `BananaBugs.dat` (2.4 MB, entropy 8.0). So the game image has
+  to be taken out of the launcher's protection before any analysis; the how-to and any tool for it stay private.
+  After that it is a 2010 framework port, near Bejeweled 3's generation: on Opus, and an estimate waits on the
+  image.
+
+---
+
+## Appendix D: other studios' games on the same engines (2026-10-25)
+
+The user asked which games that PopCap neither developed nor published run on an engine shared by two or more games on
+this list. A research agent searched the web for them. MobyGames, ModDB, Giant Bomb and the Internet Archive refused
+its requests, so much of what follows rests on search-engine summaries of MobyGames pages and should be checked
+before anything depends on it. In the evidence column, A means the game's own credits or store page name the
+framework, B an engine field on PCGamingWiki, Wikidata or Wikipedia, C a MobyGames middleware tag seen only in a
+search summary, and D the same developer with the engine assumed.
+
+Only SexyAppFramework turned up such games. PopLua, Sprout's engine, Retro64's, SpinTop's and Nuclide's showed none
+outside PopCap's catalogue, apart from Retro64's own Bugatron Worlds (2006) and Rune Raiders, both D only.
+PCGamingWiki files the Sprout and Retro64 games under the PopCap framework, but the triage in Appendix C contradicts
+it: Feeding Frenzy Deluxe's classes are Sprout's own `engine` namespace, and Cosmic and Water Bugs carry no SexyApp
+class names at all. Its engine labels seem to follow the publisher, not the code.
+
+| Game | Year | Developer | Kind of game | Evidence |
+|---|---|---|---|---|
+| Zen of Sudoku | 2006 | Unknown Worlds | sudoku | A: its Steam page credits the framework |
+| Cindy's Sundaes | 2008 | Viqua Games | match-3 and time management | A/C |
+| Puzzle Park | 2008 | Black Blob Studios | match-3 | A/C |
+| FishCo | 2008 | Fugazo | business sim | A/C |
+| Cooking Academy 1 and 2 | 2008, 2009 | Fugazo | cooking | C for the second, D for the first |
+| Cake Mania | 2006 | Sandlot Games | time management | B and C |
+| Cake Mania 3; Lights, Camera, Action! | 2008; 2010 | Sandlot Games | time management | C |
+| Arctic Quest 1 and 2 | 2005, 2007 | Stargaze Interactive | tile-fitting puzzle | C |
+| Mysteries of Horus | 2006 | Stargaze Interactive | not confirmed | C |
+| Alex Gordon | 2008 | DayTerium | platformer | C |
+| Memory Loops | 2005 | Dekovir | memory pairs | C |
+| Daycare Nightmare | 2007 | Floodgate Entertainment | time management | C |
+| Ice Cream Tycoon | 2006 | Kozmogames | business sim | C |
+| Operation Mania | 2008 | Magellan Interactive, for Pogo | time management | C |
+| Winter in New York | 2019 | PixQuake | tile matching | C: credits "PopCap Framework 1.3" |
+| Winter Magic Factory | 2017-19 | PixQuake | match-3 | C (snippet only) and D |
+| The Far Kingdoms: Age of Solitaire | 2015-18 | Lazy Turtle | solitaire | C (snippet only) |
+| World of Goo | 2008 | 2D Boy | physics puzzle | B, weak: Wikipedia lists the framework among its tools, probably in part |
+
+Bunny Quest (2013) and Nuclide's Penguin Puzzle (2005) rest on even less. Eight hidden-object games on the framework
+were found too and left out by the user's rule against the genre. MobyGames' framework group reportedly holds 94
+games, mostly PopCap's, and the agent could not open it, so more may exist. No decompilation or source release turned
+up for any of these. The known ones are all of PopCap games (Zuma Deluxe's CircleShootApp, Peggle's Thunderball) and
+OpenInsaniquarium, a clean-room reimplementation; the framework's own 1.3 source is public on SourceForge.
+
+**Decision (the user, 2026-10-25):** the other studios' games come at the very end, after every PopCap game, and World
+of Goo is wanted among them. Which of the others to port is decided then; each needs the user's own copy.
