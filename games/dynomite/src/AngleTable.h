@@ -16,6 +16,8 @@ public:
 
 	AngleTable();						// 0x42bb50
 	virtual ~AngleTable() {}
+
+	int					AngleTo(int theFromX, int theFromY, int theToX, int theToY);	// 0x42bbc0
 };
 
 }

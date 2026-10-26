@@ -30,13 +30,13 @@ public:
 	int					mField20[2];		// +0x20 the hand's middle (saved)
 	float				mRecoilX;			// +0x28
 	float				mRecoilY;			// +0x2c
-	int					mField30[2];		// +0x30 (a point; saved)
+	int					mField30[2];		// +0x30 the egg's place mirrored to 0.4 of its distance (saved)
 	int					mField38[20];		// +0x38 (0x50 bytes; saved; the first two the band's pull from the egg)
 	MTRand				mRand;				// +0x88 seeded with the tick count
-	int					mFieldA4c;			// +0xa4c (the board's +0x158 + +0x70)
-	int					mFieldA50;			// +0xa50 (382)
-	int					mFieldA54;			// +0xa54 the slingshot's middle (as +0xa4c)
-	int					mFieldA58;			// +0xa58 (432)
+	int					mAimX;				// +0xa4c the point aimed at (the board's +0x158 + +0x70)
+	int					mAimY;				// +0xa50 (382)
+	int					mSlingX;			// +0xa54 the slingshot's middle (as the aim)
+	int					mSlingY;			// +0xa58 (432)
 	int					mFieldA5c;			// +0xa5c (50)
 	int					mFieldA60;			// +0xa60
 	int					mFieldA64;			// +0xa64
@@ -58,6 +58,8 @@ public:
 	void				Freeze(Egg* theEgg);				// 0x4014f0
 	void				DrawSling(Graphics* g);				// 0x401940
 	void				DrawBand();							// 0x401a10
+	void				PlaceEgg(float& theX, float& theY);	// 0x401d30
+	void				Aim(int theX, int theY);			// 0x401e40
 };
 
 }

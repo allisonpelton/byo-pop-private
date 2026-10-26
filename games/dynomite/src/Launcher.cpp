@@ -24,7 +24,7 @@ Launcher::Launcher(FossilizedApp* theApp, Dynomite* theBoard)
 	mField18 = 0;
 	mFieldA5c = 0x32;
 	int x = mBoard->mField158 + mBoard->mField70;
-	mFieldA4c = x;
+	mAimX = x;
 	mFieldA60 = 0;
 	mFieldA64 = 0;
 	mFieldA68 = 0;
@@ -32,9 +32,9 @@ Launcher::Launcher(FossilizedApp* theApp, Dynomite* theBoard)
 	mFrozen = false;
 	mHeld = NULL;
 	mFieldAac = 0;
-	mFieldA54 = x;
-	mFieldA58 = 0x1b0;
-	mFieldA50 = 0x17e;
+	mSlingX = x;
+	mSlingY = 0x1b0;
+	mAimY = 0x17e;
 	mFieldA6c = 0xff;
 }
 
@@ -121,11 +121,11 @@ void Launcher::DrawSling(Graphics* g)
 	anOffset.mY = 0;
 	Pic* aPic = mApp->mPicSlingshot;
 	float aLimit = (float) (aPic->mHeight / 2) + mBoard->mGrid->mCeiling;
-	if ((float) mFieldA58 < aLimit)
+	if ((float) mSlingY < aLimit)
 		anOffset.mY = (int) aLimit;
 	AddDrawOffset(anOffset);
 	aPic = mApp->mPicSlingshot;
-	aPic->Draw(mFieldA54 - (aPic->mWidth >> 1), mFieldA58 - (aPic->mHeight >> 1));
+	aPic->Draw(mSlingX - (aPic->mWidth >> 1), mSlingY - (aPic->mHeight >> 1));
 	if (mLoaded != NULL)
 		mLoaded->Draw();
 	anOffset.mY = -anOffset.mY;
@@ -140,7 +140,7 @@ void Launcher::DrawBand()
 	anOffset.mX = 0;
 	anOffset.mY = 0;
 	float aLimit = (float) (mApp->mPicSlingshot->mHeight / 2) + mBoard->mGrid->mCeiling;
-	if ((float) mFieldA58 < aLimit)
+	if ((float) mSlingY < aLimit)
 		anOffset.mY = (int) aLimit;
 	AddDrawOffset(anOffset);
 	int aMiddle = mBoard->mField158 + mBoard->mField70;
@@ -176,4 +176,52 @@ void Launcher::DrawBand()
 	}
 	anOffset.mY = -anOffset.mY;
 	AddDrawOffset(anOffset);
+}
+
+// 0x401d30: the egg pulled back 25 pixels against the aim, and the band's points
+// port: the original takes the egg's +0x18 as a float[2]; the x87 code works in 53 bits and keeps the offsets
+// unrounded, so this works in double
+void Launcher::PlaceEgg(float& theX, float& theY)
+{
+	AngleTable* anAngles = mApp->mAngles;
+	double aX = (double) anAngles->mDY[mAngle] * 0.0 - (double) anAngles->mDX[mAngle] * 25.0;
+	float aY = (float) ((double) anAngles->mDY[mAngle] * 25.0 + (double) anAngles->mDX[mAngle] * 0.0);
+	theX = (float) ((double) mSlingX + aX);
+	double aBack = (double) mSlingY - (double) aY;
+	theY = (float) aBack;
+	theY = (float) ((double) mFieldAac + aBack);
+	mField30[0] = (int) ((double) mSlingX - aX * 0.4);
+	mField30[1] = (int) ((double) aY * 0.4 + (double) mSlingY);
+	int anAngle = mAngle;
+	if (anAngle >= 0x168)
+		anAngle = anAngle - 0x168;
+	if (anAngle < 0)
+		anAngle = anAngle + 0x168;
+	mField38[0] = (int) ((double) anAngles->mDY[anAngle] * 0.0 - (double) anAngles->mDX[anAngle] * 10.0);
+	mField38[1] = mFieldAac - (int) ((double) anAngles->mDX[anAngle] * 0.0 + (double) anAngles->mDY[anAngle] * 10.0);
+}
+
+// 0x401e40: aims at a point no lower than 10 above the slingshot's middle; the hand turns with the aim
+void Launcher::Aim(int theX, int theY)
+{
+	int aTop = mSlingY - 10;
+	mAimX = theX;
+	mAimY = theY;
+	if (aTop < theY)
+		theY = aTop;
+	int anAngle = mApp->mAngles->AngleTo(mSlingX, mSlingY, theX, theY);
+	mAngle = anAngle;
+	anAngle = anAngle & ~1;
+	mField18 = anAngle;
+	if (anAngle > 0x5a)
+		anAngle = (anAngle - 0x11e) >> 1;
+	else
+		anAngle = (anAngle >> 1) + 0x25;
+	mField18 = anAngle;
+	if (anAngle < 0)
+		mField18 = 0;
+	if (mField18 > 0x47)
+		mField18 = 0x47;
+	if (mLoaded != NULL)
+		PlaceEgg(mLoaded->mX, mLoaded->mY);
 }
