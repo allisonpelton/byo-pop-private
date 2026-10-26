@@ -70,12 +70,10 @@ re-reads the whole context, so what costs is context times calls, and a cache th
   log file and print a summary line.
 - Test with `tools/check.sh <suite>...` (`--help` lists them): one line per suite, logs in files.
 - Give an agent the files and sections it needs, so it need not read the design docs to find them.
-- **Weekly cap (the user, 2026-10-26):** when the account's weekly usage (all models) reaches 85%, game sessions stop.
-  Check it with `mcp__ccd_session_mgmt__get_usage` (load it with ToolSearch) before each new step and at each commit.
-  At 85% a game session commits what is verified on its branch, sends the coordinator one line on where it stands,
-  and ends its turn without starting the next step. The coordinator then sends no "Begin" and spends the rest only on
-  the local test site: `build/web` built from `main`, with every finished game importing and playable, so the user can
-  test without usage and keeps what remains for other tasks.
+- **Weekly cap (the user, 2026-10-26):** when the account's weekly usage (all models) reaches 85%, the coordinator
+  starts no new game session and sends no "Begin"; it checks with `mcp__ccd_session_mgmt__get_usage` before each one.
+  Game sessions already running carry on and do not watch the usage. The coordinator keeps merging their milestones
+  and keeps the local test site ready: `build/web` built from `main`, with every finished game importing and playable.
 
 ## Sessions, ownership and git (the user's rules)
 
@@ -126,6 +124,11 @@ Git and publishing:
   engine, goes to the cheapest remaining game. New game sessions list the mods worth making but make none without
   the user's approval, and no further game gets mods until every PopCap game works in the browser (Noah's Ark's
   mods were the one exception, part of the Sonnet trial).
+- **Port first, unmodified (the user, 2026-10-26):** a port is the original game, unmodified and working like its exe;
+  it adds nothing for later mods, not even hooks. Every addition waits for the game's mod phase, which goes through the
+  29 standard mods in `docs/MOD_ROADMAP.md` ("Standard mods for every game"): the session makes each one that fits its
+  game and says in the game's README why it skipped any. Games that already have mods (Bejeweled, Big Money, BookWorm,
+  Noah's Ark) make none of these either until the user says every decomp runs in the browser to their satisfaction.
 - **No references (the user, 2026-10-26):** no port reads another project's decompilation, reimplementation, mod
   kit, class layouts or address maps (Thunderball, haggle, WinFish, CircleShootApp, PvZ-Portable, the Pizza Frenzy
   decompilation and the like); work from our own Ghidra export. PopCap's released SexyAppFramework source, the open
@@ -133,7 +136,8 @@ Git and publishing:
 - **Which games, and where they are published (the user, 2026-10-26):** every game may be decompiled except Plants vs.
   Zombies, Insaniquarium and Zuma Deluxe, whose fan communities we leave to their work. A game with another PC decompilation in
   progress or an active modding community is built but unpublished: its folder goes into `.publishignore` and it stays
-  off the website. The "Published" column of `docs/POPCAP_GAMES_SURVEY.md` section 4 says which.
+  off the website. The "Published" column of `docs/POPCAP_GAMES_SURVEY.md` section 4 says which; "web only" (Zuma's
+  Revenge, the user 2026-10-26) keeps the folder in `.publishignore` but puts the game on the website.
 - **Mods (the user, 2026-10-26):** code that makes a game moddable makes things configurable (rules, settings and
   their ranges in `mod.json` and the mod menu); it never just overwrites the original, which plays unchanged with
   no mod on. Every mod is data: a feature's code lives in the port, and a mod's `features` or `rules` turns it on.

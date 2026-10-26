@@ -62,6 +62,12 @@
       "port": 18775
     },
     {
+      "name": "bookwormadv2-web",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-m", "http.server", "18792", "--bind", "127.0.0.1", "--directory", "build/web"],
+      "port": 18792
+    },
+    {
       "name": "tiptop-web",
       "runtimeExecutable": "python",
       "runtimeArgs": ["-m", "http.server", "18774", "--bind", "127.0.0.1", "--directory", "build/web"],
@@ -96,6 +102,12 @@
       "runtimeExecutable": "python",
       "runtimeArgs": ["-m", "http.server", "18781", "--bind", "127.0.0.1", "--directory", "build/web"],
       "port": 18781
+    },
+    {
+      "name": "waterbugs-web",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-m", "http.server", "18789", "--bind", "127.0.0.1", "--directory", "build/web"],
+      "port": 18789
     }
   ]
 }

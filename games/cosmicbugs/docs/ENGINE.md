@@ -122,9 +122,11 @@ so that node is skipped for the frame; the port keeps this (List_Each).
 
 ## Input
 
-The window procedure (0x42a7a0) fills the input that the game reads (0x4289d0..0x428b20): the three mouse buttons
+The window procedure (0x42a7a0) fills the input that the game reads (0x4289d0..0x428b40): the three mouse buttons
 held, a press latch for each that Mouse_Pressed (0x428a00) sets once per press and a release clears, the keys held
-by virtual-key code, and a ring of the last 100 keys pressed (Key_Pop 0x428aa0 takes the newest). The game samples
+by virtual-key code, and a ring of the last 100 keys pressed (Key_Pop 0x428aa0 takes the newest). A key's slot is 1
+from its press until Key_Pressed (0x428b40) reads it, then 2 until its release; Key_Down (0x428b20) is the held test.
+The game's own keys (space, Enter, Esc and '.') go through Key_Pressed, so holding one acts once. The game samples
 them once per pass of the loop, after PumpMessages has handled every waiting message, so a button pressed and let
 go between two passes is never seen. Before queueing a key the procedure acts on four of its own: F5 turns the
 sound on or off, F6 the music, F7 switches between the window and the full screen, F8 between stretched and
