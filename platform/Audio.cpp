@@ -663,6 +663,20 @@ int Mixer::LoadSong(const std::string& theGamePath)
 	return handle;
 }
 
+int Mixer::AddSong(std::unique_ptr<ModulePlayer> thePlayer)
+{
+	if (!thePlayer)
+		return 0;
+	std::unique_ptr<Song> song(new Song());
+	song->mModule = std::move(thePlayer);
+	song->mLoaded = true;
+	Lock();
+	mSongs.push_back(std::move(song));
+	int handle = (int)mSongs.size();
+	Unlock();
+	return handle;
+}
+
 void Mixer::UnloadSong(int theSong)
 {
 	if (theSong <= 0 || theSong > (int)mSongs.size() || !mSongs[theSong - 1])
