@@ -1,0 +1,73 @@
+{"addr": "0040c890", "name": "WinMain"}
+{"addr": "0040f840", "name": "PGApp::run"}
+{"addr": "0040d4c0", "name": "PGApp::PGApp"}
+{"addr": "0040e040", "name": "PGApp::init"}
+{"addr": "0040e430", "name": "PGApp::shutdown"}
+{"addr": "0040d820", "name": "PGApp::mainLoop"}
+{"addr": "0040d950", "name": "PGApp::preHandleEvent"}
+{"addr": "0040dad0", "name": "PGApp::dispatchToControls"}
+{"addr": "0040ded0", "name": "PGApp::renderDirty"}
+{"addr": "0040dd90", "name": "PGApp::drawControls"}
+{"addr": "0040ed70", "name": "PGApp::presentDirty"}
+{"addr": "0040df70", "name": "PGApp::endFrame"}
+{"addr": "0040dea0", "name": "PGApp::invalidateAll"}
+{"addr": "0040de00", "name": "PGApp::invalidateRect"}
+{"addr": "0040d940", "name": "PGApp::setActive"}
+{"addr": "0040d690", "name": "PGApp::getTime"}
+{"addr": "0040d710", "name": "PGApp::beginPause"}
+{"addr": "0040d770", "name": "PGApp::endPause"}
+{"addr": "0040d810", "name": "PGApp::isPaused"}
+{"addr": "0040dfb0", "name": "PGApp::registerCvars"}
+{"addr": "0040df50", "name": "PGApp::canDraw"}
+{"addr": "0040df90", "name": "PGApp::useSpriteCursor"}
+{"addr": "0040ea20", "name": "PGApp::invalidateCursor"}
+{"addr": "0040d2fa", "name": "PGLog"}
+{"addr": "0040d2c1", "name": "PGAlert"}
+{"addr": "0040d240", "name": "PGVerifyFailed"}
+{"addr": "00426a50", "name": "HInput::getEvent"}
+{"addr": "00413a42", "name": "HCvarManager::init"}
+{"addr": "00413a9c", "name": "HCvarManager::registerVariable"}
+{"addr": "00413b3d", "name": "HCvarManager::setVariableString"}
+{"addr": "00413b81", "name": "HCvarManager::getVariableInt"}
+{"addr": "00413bab", "name": "HCvarManager::getVariableString"}
+{"addr": "00413beb", "name": "HCvarManager::parseCommandLine"}
+{"addr": "00413c9e", "name": "HGlobal::setCommandLine"}
+{"addr": "00413cd7", "name": "HGlobal::setResourceDir"}
+{"addr": "004138ed", "name": "HStrncpy"}
+{"addr": "0041387c", "name": "HStricmp"}
+{"addr": "00414670", "name": "HObjectList::HObjectList"}
+{"addr": "00411030", "name": "PGControl::PGControl"}
+{"addr": "004110a0", "name": "PGControl::draw"}
+{"addr": "00411240", "name": "PGControl::handleEvent"}
+{"addr": "00411370", "name": "PGControl::isClick"}
+{"addr": "004112a0", "name": "PGControl::setSprites"}
+{"addr": "00411290", "name": "PGControl::setOwner"}
+{"addr": "004112d0", "name": "PGControl::setPosition"}
+{"addr": "00411070", "name": "PGControl::setHighlight"}
+{"addr": "004113c0", "name": "PGControl::setEnabled"}
+{"addr": "00418af0", "name": "_purecall"}
+{"addr": "00418456", "name": "HNop"}
+{"addr": "004139f9", "name": "HSnprintf", "sig": "char * __cdecl HSnprintf(char * buf, int n, char * fmt, ...)"}
+{"addr": "0040d289", "name": "PGMessageBox", "sig": "void __cdecl PGMessageBox(uint flags, char * caption, char * fmt, ...)"}
+{"addr": "0040d2c1", "name": "PGAlert", "sig": "void __cdecl PGAlert(char * fmt, ...)"}
+{"addr": "0040d2fa", "name": "PGLog", "sig": "void __cdecl PGLog(char * fmt, ...)"}
+{"addr": "0040d456", "name": "PyTime::get", "sig": "longlong __fastcall get(longlong * t)"}
+{"addr": "0040d47b", "name": "PyTime::sub", "sig": "longlong __thiscall sub(longlong * this, longlong * other)"}
+{"addr": "0041415f", "name": "HTimeGetTime", "sig": "uint __cdecl HTimeGetTime(void)"}
+{"addr": "00405af0", "name": "NingPo::getSprite"}
+{"addr": "004010a0", "name": "NingPo::NingPo"}
+{"addr": "00401330", "name": "NingPo::initSpriteTable"}
+{"addr": "00401a40", "name": "NingPo::init"}
+{"addr": "00401c40", "name": "NingPo::shutdown"}
+{"addr": "00401c80", "name": "NingPo::render"}
+{"addr": "00402ad0", "name": "ClipBlitRect"}
+{"addr": "00402bf0", "name": "ClampDelta"}
+{"addr": "00402c30", "name": "NingPo::digitSprite"}
+{"addr": "00402d30", "name": "NingPo::drawNumber"}
+{"addr": "00402fd0", "name": "NingPo::drawPanel"}
+{"addr": "00403cd0", "name": "NingPo::handleEvent"}
+{"addr": "00401950", "name": "NingPo::onExit"}
+{"addr": "004059e0", "name": "NingPo::toggleFullscreen"}
+{"addr": "004105a0", "name": "PGApp::messageDialog"}
+{"addr": "004116e0", "name": "PGDialog::doModal"}
+{"addr": "0040d3f0", "name": "HSin", "sig": "float10 __cdecl HSin(float x)"}

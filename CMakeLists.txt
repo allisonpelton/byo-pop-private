@@ -185,3 +185,9 @@ option(BUILD_TIPTOP "Build the TipTop Deluxe port" ON)
 if(BUILD_TIPTOP AND EXISTS ${PROJECT_SOURCE_DIR}/games/tiptop/CMakeLists.txt)
   add_subdirectory(games/tiptop)
 endif()
+# Ning Po Mahjong Deluxe: Pyrogon's framework (games/ningpo/engine) under the framework's app host; optional while it
+# is new
+option(BUILD_NINGPO "Build the Ning Po Mahjong Deluxe port" ON)
+if(BUILD_NINGPO AND EXISTS ${PROJECT_SOURCE_DIR}/games/ningpo/CMakeLists.txt)
+  add_subdirectory(games/ningpo)
+endif()
