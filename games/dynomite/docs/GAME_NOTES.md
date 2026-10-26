@@ -84,6 +84,24 @@ Pics, +0x19d4/0x19d8/0x19dc the three white ImageFonts, +0x19e0 the TitleScreen,
 through `GetImage` (0x419ad0), +0x2cc the WidgetManager, +0x314 the music interface, +0x490 the sound manager.
 App slot 19 (+0x4c) is `Popup(string)`, slot 37 (+0x94) `PlaySample(id)`.
 
+## 3a. The main menu (`IntroScreen`, vtable 0x4fb970, 0x284 bytes)
+
+Constructor 0x424e90 (destructor 0x425570; 0x424970 frees the saved-game slots). Bases: Widget, ButtonListener at
++0x58 (vtable 0x4fb95c; ButtonDepress 0x424740), and the one-slot interface at +0x5c (0x4fb958). Fields: +0x60 the
+app, +0x68, three arrays of 8 at +0x70/+0x90/+0xb0 (per saved-game slot: two objects deleted by their destructors
+and a widget at +0xb0+4i), +0xd0 the slot count, +0xd4 the chosen slot (-1), +0x238 (-1), the CellButtons +0x23c
+(id 10), +0x240 (11), +0x244 (12) of page 0, +0x248/+0x24c/+0x250 (ids 0-2, skill), +0x254..+0x260 (ids 3-6, the
+modes), +0x264 (id 7, pictures app+0x12bc/0x12c0, or 0x12cc/0x12d0 on pages 2, 3, 6) and +0x268 (id 9, app+0x12c4/
+0x12c8); +0x26c a ScrollbarWidget-like 0xb0-byte widget (0x47f610, id 1), +0x270 a 0x194-byte list widget (0x4318f0,
+the puzzle list), +0x278 a 0x1c-byte object (0x422d90(app, this, 1 or 3); its slot 2 runs in Update), +0x27c the
+page (0 start: buttons 10-12; 1 the four modes; 2 skill 1-3, disabled by the bits of app+0x1218; 3 the saved games
+"SLOT%d.SAV" (0x424a20); 5 the puzzle list; 6 the fossil mode's two skills), +0x280. The global 0x52b320 (cleared
+by the destructor) skips the music change and passes 1 instead of 3 to 0x422d90. The constructor fades out songs 0
+and 1, sets song 2's volume to 0 and fades it in from order 0x16. ButtonDepress: ids 10-12 pick +0x10 of the
+listener (+0x68 of the menu), ids 0-2 the skill (app+0x1084, or app+0x1088 on page 6), ids 3-6 the mode (app+0x108c
+1-4); the same choice again plays egglands and acts as id 7, a new one plays click. Draw (0x425790) is 1851
+decompiled lines.
+
 ## 4. How the port is being written
 
 `src/Sprite.h/.cpp` is the toolkit of section 2. The app's resource fields and the loading are drafted by
