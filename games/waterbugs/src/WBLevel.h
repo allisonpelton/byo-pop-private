@@ -406,7 +406,7 @@ void Enemy_FromXml(Enemy* theEnemy, const char* p, const XmlTag* theTag); // cb:
 void Enemy_Draw(Enemy* theEnemy);                                // 0x405660
 int Enemy_Bounce(Enemy* theEnemy);                               // 0x405690: off cells that are not open
 int BurstRoller_Move(Enemy* theEnemy);                           // 0x405800
-int Jellyfish_Move(Enemy* theEnemy);                             // cb:0x4057c0
+int Jellyfish_Move(Enemy* theEnemy);                             // 0x405870
 int BumpRoller_Move(Enemy* theEnemy);                            // 0x405a20
 void SpinRoller_Move(Enemy* theEnemy);                           // 0x406610
 int Frog_Move(Enemy* theEnemy);                                  // 0x406840
@@ -425,24 +425,24 @@ void Powerup_Insert(List<Powerup>* theList);                     // 0x4073f0
 Text* Text_Init(Text* theText);                                  // 0x407490
 void Enemy_Destroy(Enemy* theEnemy);                             // 0x4074e0
 void List_DeleteNode(Enemy* theEnemy);                           // 0x401120's delete (0x40c200 is plain objects')
-void TurnRoller_Move(Enemy* theEnemy);                           // cb:0x407530
+void TurnRoller_Move(Enemy* theEnemy);                           // 0x407560
 void Walker_Turn(Enemy* theEnemy);                               // 0x407730
 int LaserShot_HitBeams(Enemy* theEnemy);                         // cb:0x4078e0
 int Enemy_PlaceFirst(Enemy* theEnemy);                           // 0x407b60: 0 when there is no room
 void Text_Append(List<Text>* theList);                           // 0x407e00
-int Teleporter_Move(Enemy* theEnemy);                            // cb:0x407e60
+int Teleporter_Move(Enemy* theEnemy);                            // 0x407e90
 void Walker_TurnAtJunction(Enemy* theEnemy, int theKind);         // 0x408420
 void Walker_Follow(Enemy* theEnemy, int theKind);                 // 0x4086f0
 void Enemy_CopyDef(Enemy* theEnemy, Enemy* theDef);              // 0x408930
 void Enemy_Kill(Enemy* theEnemy, int thePoints);                 // 0x408a30
-int SnakeShooter_Move(Enemy* theEnemy);                          // cb:0x408c70
+int SnakeShooter_Move(Enemy* theEnemy);                          // 0x408de0
 int Snake_Move(Enemy* theEnemy);                                 // 0x409160
 int CannonBall_Move(Enemy* theEnemy);                            // 0x409210: 0 when it has burst
 int Walker_Move(Enemy* theEnemy, int theKind);                   // 0x4092c0
 void ScurryWalker_Move(Enemy* theEnemy);                         // 0x409380
 void SmartWalker_Move(Enemy* theEnemy);                          // 0x409480
-void CannonWalker_Move(Enemy* theEnemy);                         // cb:0x4095d0
-void LaserWalker_Move(Enemy* theEnemy);                          // cb:0x409ac0
+void CannonWalker_Move(Enemy* theEnemy);                         // 0x409740
+void LaserWalker_Move(Enemy* theEnemy);                          // 0x409c30
 int CrabWalker_Move(Enemy* theEnemy);                            // 0x409fd0
 int LobsterWalker_Move(Enemy* theEnemy);                         // 0x40a270
 int TurtleWalker_Move(Enemy* theEnemy);                          // 0x40a360

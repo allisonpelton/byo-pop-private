@@ -99,8 +99,19 @@ def main():
     if full:
         print("\n".join(wl))
         return
-    for ln in difflib.unified_diff(cl, wl, "cosmic", "water", n=1, lineterm=""):
-        print(ln)
+    def norm(s):
+        s = re.sub(r"\(int\)(v\d+)", r"", s)
+        s = re.sub(r"\(int \*\)(v\d+)", r"", s)
+        return re.sub(r"(?:DAT|PTR_DAT|_DAT|PTR)_[0-9a-f]{8}", "DAT", re.sub(r"v\d+", "v", s))
+    sm = difflib.SequenceMatcher(None, [norm(x) for x in cl], [norm(x) for x in wl], autojunk=False)
+    for tag, i1, i2, j1, j2 in sm.get_opcodes():
+        if tag == "equal":
+            continue
+        print("@@ cosmic %d,%d  water %d,%d" % (i1 + 1, i2 - i1, j1 + 1, j2 - j1))
+        for x in cl[i1:i2]:
+            print("-" + x)
+        for x in wl[j1:j2]:
+            print("+" + x)
 
 
 if __name__ == "__main__":

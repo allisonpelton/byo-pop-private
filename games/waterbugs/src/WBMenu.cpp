@@ -626,9 +626,7 @@ int MenuItem_Update(MenuItem* theItem)
 				gLives = gDemo != 0 ? 299 : 6;
 				aResult = 0;
 				gScore = 0;
-				if (gProfiles[gProfile].levelReached == 0)
-					gGoTo = 0xd;
-				else if (gProfiles[gProfile].savedLives < 1)
+				if (gProfiles[gProfile].levelReached == 0 || gProfiles[gProfile].savedLives < 1)
 					gGoTo = 5;
 				else
 					Menu_ShowRequester(gLevels.current->menus.tail, 5, GT(0x459728), GT(0x459744));
@@ -838,15 +836,15 @@ int MenuItem_Update(MenuItem* theItem)
 		if (gLevels.current->menus.current->lockedLevel <= gProfiles[gProfile].levelReached + 1 &&
 			RandRange(1, 0x1e) == 1)
 		{
-			// a sparkle at the mouse
+			// a bubble at the mouse
 			ParticleSystem_New();
-			int aLifetime = RandRange(400, 500);
-			int aLast = theItem->lastParticle;
-			int aFirst = theItem->firstParticle;
-			float aVy = (float)((double)RandRange(-0x32, 0x32) / 200.0);
-			float aVx = (float)((double)RandRange(-0x32, 0x32) / 200.0);
+			int aLifetime = RandRange(600, 700);
+			int aLast = Bank_IndexOf(&gArtBank, "bubble03");
+			int aFirst = Bank_IndexOf(&gArtBank, "bubble01");
+			float aVy = (float)((double)RandRange(-0x1e, 0x1e) / 200.0);
+			float aVx = (float)((double)RandRange(-10, 10) / 200.0);
 			ParticleSystem_Add(gLevels.current->systems.current, (float)gMouseX, (float)gMouseY, aVx, aVy, aFirst,
-				aLast, 0, 0xff, 0xff, 0xff, 0xff, 0xff, 0, 400, 10, aLifetime, 0.998f, 0.0003f, 5);
+				aLast, 0, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 400, 10, aLifetime, 0.998f, -0.0002f, 5);
 		}
 	}
 	if (theItem->kind == 0x15)

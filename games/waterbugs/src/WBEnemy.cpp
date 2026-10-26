@@ -30,6 +30,7 @@ static bool IsType(const XmlTag* theTag, const char* theType)
 	return std::strcmp(Xml_GetString(theTag, "type"), theType) == 0;
 }
 
+// 0x4050f0: an enemy type from its tag; Water Bugs numbers the kinds differently from Cosmic Bugs (the roller is 0x11)
 void Enemy_FromXml(Enemy* theEnemy, const char* p, const XmlTag* theTag)
 {
 	Obj_FromXml(theEnemy, p, theTag);
@@ -37,32 +38,32 @@ void Enemy_FromXml(Enemy* theEnemy, const char* p, const XmlTag* theTag)
 	theEnemy->decay = (float)Xml_GetFloat(theTag, "decay");
 	theEnemy->turnSpeed = (float)Xml_GetFloat(theTag, "turn_speed");
 	if (IsType(theTag, "roller"))
-		theEnemy->kind = 0;
+		theEnemy->kind = 0x11;
 	else if (IsType(theTag, "burst_roller"))
 		theEnemy->kind = 1;
 	else if (IsType(theTag, "jellyfish_roller"))
 	{
-		theEnemy->kind = 0x11;
+		theEnemy->kind = 3;
 		theEnemy->firstParticle = Bank_IndexOf(&gArtBank, "bubble01");
 		theEnemy->lastParticle = Bank_IndexOf(&gArtBank, "bubble02");
 	}
 	else if (IsType(theTag, "teleporter_roller"))
 	{
-		theEnemy->kind = 0x10;
+		theEnemy->kind = 5;
 		theEnemy->firstParticle = Bank_IndexOf(&gArtBank, "bubble01");
 		theEnemy->lastParticle = Bank_IndexOf(&gArtBank, "bubble02");
 	}
 	else if (IsType(theTag, "spin_roller"))
 	{
-		theEnemy->kind = 2;
+		theEnemy->kind = 4;
 		theEnemy->firstParticle = Bank_IndexOf(&gArtBank, "particle_0");
 		theEnemy->lastParticle = Bank_IndexOf(&gArtBank, "particle_0");
 	}
 	else if (IsType(theTag, "turn_roller"))
-		theEnemy->kind = 3;
+		theEnemy->kind = 6;
 	else if (IsType(theTag, "bump_roller"))
 	{
-		theEnemy->kind = 4;
+		theEnemy->kind = 2;
 		theEnemy->firstParticle = Bank_IndexOf(&gArtBank, "particle_0");
 		theEnemy->lastParticle = Bank_IndexOf(&gArtBank, "particle_0");
 	}
@@ -70,11 +71,11 @@ void Enemy_FromXml(Enemy* theEnemy, const char* p, const XmlTag* theTag)
 	{
 		theEnemy->firstParticle = Bank_IndexOf(&gArtBank, "exp_0");
 		theEnemy->lastParticle = Bank_IndexOf(&gArtBank, "exp_4");
-		theEnemy->kind = 5;
+		theEnemy->kind = 0x12;
 	}
 	else if (IsType(theTag, "line_walker"))
 	{
-		theEnemy->kind = 7;
+		theEnemy->kind = 0x10;
 		theEnemy->shadow = 1;
 	}
 	else if (IsType(theTag, "scurry_walker"))
@@ -84,46 +85,46 @@ void Enemy_FromXml(Enemy* theEnemy, const char* p, const XmlTag* theTag)
 	}
 	else if (IsType(theTag, "smart_walker"))
 	{
-		theEnemy->kind = 9;
+		theEnemy->kind = 0x14;
 		theEnemy->shadow = 1;
 	}
 	else if (IsType(theTag, "cannon_walker"))
 	{
 		theEnemy->firstParticle = Bank_IndexOf(&gArtBank, "smoke_0001");
 		theEnemy->lastParticle = Bank_IndexOf(&gArtBank, "smoke_0009");
-		theEnemy->kind = 10;
+		theEnemy->kind = 0xb;
 		theEnemy->shadow = 1;
 	}
 	else if (IsType(theTag, "laser_walker"))
 	{
-		theEnemy->kind = 0xb;
+		theEnemy->kind = 10;
 		theEnemy->shadow = 1;
 		theEnemy->firstParticle = Bank_IndexOf(&gArtBank, "particle_4");
 		theEnemy->lastParticle = Bank_IndexOf(&gArtBank, "particle_4");
 	}
 	else if (IsType(theTag, "crab_walker"))
 	{
-		theEnemy->kind = 0x13;
+		theEnemy->kind = 0xc;
 		theEnemy->shadow = 1;
 		theEnemy->firstParticle = Bank_IndexOf(&gArtBank, "particle_4");
 		theEnemy->lastParticle = Bank_IndexOf(&gArtBank, "particle_4");
 	}
 	else if (IsType(theTag, "lobster_walker"))
 	{
-		theEnemy->kind = 0x15;
+		theEnemy->kind = 7;
 		theEnemy->shadow = 1;
 		theEnemy->firstParticle = Bank_IndexOf(&gArtBank, "particle_4");
 		theEnemy->lastParticle = Bank_IndexOf(&gArtBank, "particle_4");
 	}
 	else if (IsType(theTag, "turtle_walker"))
 	{
-		theEnemy->kind = 0x14;
+		theEnemy->kind = 9;
 		theEnemy->shadow = 1;
 		theEnemy->firstParticle = Bank_IndexOf(&gArtBank, "exp_2");
 		theEnemy->lastParticle = Bank_IndexOf(&gArtBank, "exp_4");
 	}
 	else if (IsType(theTag, "frog"))
-		theEnemy->kind = 0xf;
+		theEnemy->kind = 0;
 	if (Xml_GetString(theTag, "left_animation") != nullptr)
 	{
 		theEnemy->leftAnim = Animation_Find(Xml_GetString(theTag, "left_animation"), &theEnemy->frameCount,
@@ -608,13 +609,13 @@ void Enemy_UpdateIce(Enemy* theEnemy)
 		Sound_Play(Sound_Find("audio\\ice.wav"));
 }
 
-// No other roller within 120 pixels
+// 0x407070: No other roller (kind 0x11 or 0x12) within 120 pixels
 int Enemy_ClearOfRollers(Enemy* theEnemy)
 {
 	int aResult = 1;
 	for (Enemy* anEnemy = gLevels.current->enemies.head; anEnemy != nullptr; anEnemy = Node_Next(anEnemy))
 	{
-		if (anEnemy != theEnemy && -1 < anEnemy->kind && anEnemy->kind < 6)
+		if (anEnemy != theEnemy && 0x10 < anEnemy->kind && anEnemy->kind < 0x13)
 		{
 			double dy = (double)theEnemy->y - (double)anEnemy->y;
 			double dx = (double)theEnemy->x - (double)anEnemy->x;
@@ -625,13 +626,14 @@ int Enemy_ClearOfRollers(Enemy* theEnemy)
 	return aResult;
 }
 
-// No other walker within 100 pixels
+// No other walker within 100 pixels (Water Bugs' kind test can never hold: the walkers' kinds were renumbered and this
+// function was not)
 int Enemy_ClearOfWalkers(Enemy* theEnemy)
 {
 	int aResult = 1;
 	for (Enemy* anEnemy = gLevels.current->enemies.head; anEnemy != nullptr; anEnemy = Node_Next(anEnemy))
 	{
-		if (anEnemy != theEnemy && 6 < anEnemy->kind && anEnemy->kind < 0xc)
+		if (anEnemy != theEnemy && 0xf < anEnemy->kind && anEnemy->kind < 0xb)
 		{
 			double dy = (double)theEnemy->y - (double)anEnemy->y;
 			double dx = (double)theEnemy->x - (double)anEnemy->x;
@@ -1127,7 +1129,9 @@ void Enemy_CopyDef(Enemy* theEnemy, Enemy* theDef)
 	});
 }
 
-// Dies, exploding where it is. A walker or roller scores 100 for each enemy killed while this capture fills (at
+int gKillCount = 0; // 0x478608: the kills since a power-up was last allowed (every second and fourth of five)
+
+// 0x408a30: Dies, exploding where it is. A walker or roller scores 100 for each enemy killed while this capture fills (at
 // most 900; thePoints instead when given) times the ship's multiplier, and now and then leaves a power-up while the
 // board is short of its quota.
 void Enemy_Kill(Enemy* theEnemy, int thePoints)
@@ -1138,7 +1142,7 @@ void Enemy_Kill(Enemy* theEnemy, int thePoints)
 	theEnemy->ice = nullptr;
 	Obj_Explode(theEnemy, 0.0f, 0.0f);
 	int aKind = theEnemy->kind;
-	if (aKind != 6 && aKind != 0xc && aKind != 0xd)
+	if (aKind != 0x13 && aKind != 0xd && aKind != 0xe)
 	{
 		int aPoints = gLevels.current->chain * 100;
 		if (thePoints != 0)
@@ -1164,11 +1168,33 @@ void Enemy_Kill(Enemy* theEnemy, int thePoints)
 			gLevels.current->texts.current->vy = -0.02f;
 		}
 		Text_Append(&gLevels.current->texts);
-		Text_Make(gLevels.current->texts.current, aText, Font_Find("bonus_font"), (int)theEnemy->x, (int)theEnemy->y,
+		Text_Make(gLevels.current->texts.current, aText, Font_Find("bonus_font2"), (int)theEnemy->x, (int)theEnemy->y,
 			0, 0x28, 2000, 300, 0, 0);
 		gLevels.current->texts.current->vy = -0.02f;
+		if (aPoints == (aPoints / 300) * 300)
+		{
+			// a chain of 300, 600 or 900 points names itself above the score
+			const char* aCombo = "";
+			if (aPoints == 300)
+				aCombo = GT(0x458884);
+			else if (aPoints == 600)
+				aCombo = GT(0x45887c);
+			else if (aPoints == 900)
+				aCombo = GT(0x458870);
+			Text_Append(&gLevels.current->texts);
+			Text_Make(gLevels.current->texts.current, aCombo, Font_Find("bonus_font"), (int)theEnemy->x,
+				(int)((double)theEnemy->y + 10.0), 0, 0x28, 2500, 300, 0, 0);
+			gLevels.current->texts.current->vy = 0.0f;
+		}
 		gLevels.current->chain = gLevels.current->chain + 1;
-		if (6 < RandRange(1, 10) &&
+		RandRange(1, 10);
+		gKillCount = gKillCount + 1;
+		if (4 < gKillCount)
+		{
+			gKillCount = 0;
+			return;
+		}
+		if ((gKillCount == 2 || gKillCount == 4) &&
 			((gLevels.current->unk3c0 + gLevels.current->filledCells) * 100) / gLevels.current->totalCells <
 				gLevels.current->fillQuota)
 			Powerup_Insert(&gLevels.current->powerups);
@@ -1197,7 +1223,7 @@ int SnakeShooter_Move(Enemy* theEnemy)
 			Enemy_CopyDef(aShot, theEnemy);
 			aShot->age = 0.0f;
 			aShot->lifetime = 0.0f;
-			aShot->kind = 6;
+			aShot->kind = 0x13;
 			aShot->state = 3;
 			aShot->anim = Animation_Find("snake", &aShot->frameCount, &aShot->frameTime);
 			aShot->dieAnim = Animation_Find("small_explo", &aShot->dieFrameCount, &aShot->dieFrameTime);
@@ -1404,7 +1430,7 @@ void CannonWalker_Move(Enemy* theEnemy)
 			Enemy_Append(&gLevels.current->enemies);
 			Enemy* aBall = gLevels.current->enemies.current;
 			Enemy_CopyDef(aBall, theEnemy);
-			aBall->kind = 0xc;
+			aBall->kind = 0xd;
 			aBall->state = 3;
 			aBall->x = (float)((double)Sign(theEnemy->vx) * 16.0 + (double)theEnemy->x);
 			aBall->y = (float)((double)Sign(theEnemy->vy) * 16.0 + (double)theEnemy->y);
@@ -1489,7 +1515,7 @@ void LaserWalker_Move(Enemy* theEnemy)
 			aShot->age = 0.0f;
 			aShot->state = 3;
 			aShot->lifetime = 0.0f;
-			aShot->kind = 0xd;
+			aShot->kind = 0xe;
 			aShot->midHandle = 1;
 			aShot->depth = theEnemy->depth + 1;
 			aShot->x = (float)((double)aDx * (double)theEnemy->image->w * 0.5 + (double)theEnemy->x);
@@ -1682,75 +1708,75 @@ int Enemy_Step(Enemy* theEnemy)
 			switch (theEnemy->kind)
 			{
 			case 0:
-				Enemy_Bounce(theEnemy);
+				Frog_Move(theEnemy);
 				break;
 			case 1:
 				BurstRoller_Move(theEnemy);
 				break;
 			case 2:
-				SpinRoller_Move(theEnemy);
-				break;
-			case 3:
-				TurnRoller_Move(theEnemy);
-				break;
-			case 4:
 				BumpRoller_Move(theEnemy);
 				break;
+			case 3:
+				Jellyfish_Move(theEnemy);
+				break;
+			case 4:
+				SpinRoller_Move(theEnemy);
+				break;
 			case 5:
-				SnakeShooter_Move(theEnemy);
+				Teleporter_Move(theEnemy);
 				break;
 			case 6:
-				Snake_Move(theEnemy);
+				TurnRoller_Move(theEnemy);
 				break;
 			case 7:
-				Walker_Move(theEnemy, 2);
+				LobsterWalker_Move(theEnemy);
 				break;
 			case 8:
 				ScurryWalker_Move(theEnemy);
 				break;
 			case 9:
-				SmartWalker_Move(theEnemy);
-				break;
-			case 10:
-				CannonWalker_Move(theEnemy);
-				break;
-			case 0xb:
-				LaserWalker_Move(theEnemy);
-				break;
-			case 0xc:
-				CannonBall_Move(theEnemy);
-				break;
-			case 0xd:
-				aResult = aResult & LaserShot_Move(theEnemy);
-				break;
-			case 0xf:
-				Frog_Move(theEnemy);
-				break;
-			case 0x10:
-				Teleporter_Move(theEnemy);
-				break;
-			case 0x11:
-				Jellyfish_Move(theEnemy);
-				break;
-			case 0x13:
-				CrabWalker_Move(theEnemy);
-				break;
-			case 0x14:
 				TurtleWalker_Move(theEnemy);
 				break;
-			case 0x15:
-				LobsterWalker_Move(theEnemy);
+			case 10:
+				LaserWalker_Move(theEnemy);
+				break;
+			case 0xb:
+				CannonWalker_Move(theEnemy);
+				break;
+			case 0xc:
+				CrabWalker_Move(theEnemy);
+				break;
+			case 0xd:
+				CannonBall_Move(theEnemy);
+				break;
+			case 0xe:
+				aResult = aResult & LaserShot_Move(theEnemy);
+				break;
+			case 0x10:
+				Walker_Move(theEnemy, 2);
+				break;
+			case 0x11:
+				Enemy_Bounce(theEnemy);
+				break;
+			case 0x12:
+				SnakeShooter_Move(theEnemy);
+				break;
+			case 0x13:
+				Snake_Move(theEnemy);
+				break;
+			case 0x14:
+				SmartWalker_Move(theEnemy);
 				break;
 			}
 			Obj_UpdateEmitters(theEnemy);
 		}
-		Beam* aBeam = Obj_TouchedBeam(theEnemy, theEnemy->kind == 0xf ? 2 : 3, theEnemy->kind == 0xf ? 5 : 3);
-		if (aBeam == theEnemy->lastBeam || theEnemy->ice != nullptr || theEnemy->kind == 6 || theEnemy->kind == 0xc ||
-			theEnemy->kind == 0xd)
+		Beam* aBeam = Obj_TouchedBeam(theEnemy, theEnemy->kind == 0 ? 2 : 3, theEnemy->kind == 0 ? 5 : 3);
+		if (aBeam == theEnemy->lastBeam || theEnemy->ice != nullptr || theEnemy->kind == 0x13 || theEnemy->kind == 0xd ||
+			theEnemy->kind == 0xe)
 		{
 			if (aBeam != nullptr)
 			{
-				if (theEnemy->kind == 0xd)
+				if (theEnemy->kind == 0xe)
 					aResult = aResult & LaserShot_HitBeams(theEnemy);
 				theEnemy->lastBeam = aBeam;
 			}
@@ -1778,13 +1804,13 @@ int Enemy_Step(Enemy* theEnemy)
 		}
 		int aKind = theEnemy->kind;
 		bool aDies = false;
-		if (aKind != 0xc)
+		if (aKind != 0xd)
 		{
 			int aCell = gLevels.current->columns[(int)theEnemy->x / 16][(int)theEnemy->y / 16].kind;
-			aDies = aCell == 4 || (-1 < aKind && aKind < 6 && aCell == 2);
+			aDies = aCell == 4 || (-1 < aKind && aKind < 7 && aCell == 2);
 		}
 		if (!aDies)
-			aDies = 6 < aKind && aKind < 0xc && Enemy_NearCapture(theEnemy) != 0;
+			aDies = 6 < aKind && aKind < 0xd && Enemy_NearCapture(theEnemy) != 0;
 		if (aDies)
 		{
 			if (theEnemy->shield != nullptr)
