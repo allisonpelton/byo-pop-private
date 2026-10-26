@@ -99,6 +99,11 @@ void GameApp::Init()
 	if (mMusicInterface != nullptr) {
 		mSongPlayer = new JeffLib::SongPlayer(mMusicInterface);
 		mSongPlayer->LoadSong("sounds/music.mo3", 12.0);
+		// the media player's spectrum: 320 x 240. port: cleared (the original's is not until a song plays)
+		mSongPlayer->mSpectrumWidth = 320;
+		mSongPlayer->mSpectrumHeight = 240;
+		delete[] mSongPlayer->mSpectrum;
+		mSongPlayer->mSpectrum = new unsigned char[320 * 240]();
 	}
 
 	if (!mResourceManager->LoadResources("TitleAndMM"))

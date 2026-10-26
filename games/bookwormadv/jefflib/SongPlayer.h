@@ -16,6 +16,9 @@ namespace JeffLib {
 class SongPlayer {
 public:
 	Sexy::MusicInterface* mMusic;
+	int mSpectrumWidth = 0;              // +0x18: of the media player's spectrum (GameApp::Init: 320)
+	int mSpectrumHeight = 0;             // +0x1c: (240)
+	unsigned char* mSpectrum = nullptr;  // +0x3c: a level for each cell, row 0 at the bottom; 0 is unlit
 	int mCurrentSong = -1;    // +0x20: 1 or 2, the copy playing (-1 before the first song)
 	int mCurrentOrder = -1;   // +0x24: the order the song playing started at
 	int mLastOrder = -1;      // +0x28: the one before it
@@ -25,6 +28,7 @@ public:
 	float mQueuedSpeed = 0;   // +0x38: the queued song's fade
 
 	explicit SongPlayer(Sexy::MusicInterface* theMusic) : mMusic(theMusic) {}
+	~SongPlayer();  // 0x6c4c30: frees the spectrum
 
 	// slot 20, 0x6c4c50: loads the module as songs 1 and 2, with an amplification (when not 0). port: the
 	// original's BASS flags are left out.
@@ -38,6 +42,10 @@ public:
 	// 0x6c4eb0 (slot 19, after the music interface's own Update): plays the queued song once the one playing is
 	// done
 	void Update();
+	// 0x6c50a0: every fourth update, the spectrum of the song playing drawn into mSpectrum, each cell lit holding
+	// its row plus one. Mode 0 has a column for each of the first bins (half the width), with a column halfway
+	// between neighbours; mode 1 has 28 bars on a logarithmic scale. Other modes leave it unlit.
+	void UpdateSpectrum(int theUpdateCnt, int theMode);
 };
 
 }  // namespace JeffLib

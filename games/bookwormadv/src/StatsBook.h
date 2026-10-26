@@ -9,9 +9,9 @@
 // button, and, for the media player, a Flash movie (PlaySWF) or a song (PlayMusic) on its screen. It drops in from
 // above and bounces once (Bounce).
 //
-// port: the media player's music visualiser (0x494a10: each update the music interface's spectrum, 0x6c50a0, is
-// drawn into a 320 x 240 picture that shows on the screen while a song plays) is not ported: the port's music
-// player has no spectrum, so the screen stays empty during a song.
+// While a song plays, the media player's screen shows the music's spectrum (Update, 0x494a10): the app's music
+// interface draws it into a map each fourth update (JeffLib::SongPlayer::UpdateSpectrum here, 0x6c50a0), and the
+// book paints the map into a 320 x 240 picture. A click on the screen changes between its two kinds.
 #pragma once
 
 #include <map>
@@ -62,7 +62,7 @@ public:
 	FadeButton* mScrollUp;             // +0xd0: id 10
 	FadeButton* mScrollDown;           // +0xd4: id 11
 	FlashWidget* mFlash;               // +0xd8: the media player's movie (a MyFlashWidget)
-	MemoryImage* mScreenImage;         // +0xdc: 320 x 240, the visualiser's picture (not ported)
+	MemoryImage* mScreenImage;         // +0xdc: 320 x 240, the spectrum's picture
 	bool mBouncing = false;            // +0xe4: dropping in
 	bool mFromGame;                    // +0xe5: opened from the game (after a timed game)
 	bool mBestiary;                    // +0xe6: the tome of knowledge
@@ -106,8 +106,21 @@ public:
 	void MouseDown(int x, int y, int theClickCount) override;       // 0x494340
 	void MouseDown(int x, int y, int theBtnNum, int theClickCount) override { Widget::MouseDown(x, y, theBtnNum, theClickCount); }
 	void MouseUp(int x, int y, int theBtnNum, int theClickCount) override { Widget::MouseUp(x, y, theBtnNum, theClickCount); }
+	void MouseUp(int x, int y, int theLastDownButtonId) override {}  // 0x4943c0
 	void MouseDrag(int x, int y) override {}                        // 0x4943d0
 	void MouseWheel(int theDelta) override;                         // 0x494f30
+	// The original's book is a plain Widget beside its Lua link, not a LuaWidgetTpl: these are Widget's own, where
+	// the port's LuaWidget would call the Lua object, which has none of them (a mouse over the book ended the game)
+	bool WantsFocus() override { return Widget::WantsFocus(); }
+	void DrawOverlay(Graphics* g) override { Widget::DrawOverlay(g); }
+	void GotFocus() override { Widget::GotFocus(); }
+	void LostFocus() override { Widget::LostFocus(); }
+	void KeyChar(SexyChar theChar) override { Widget::KeyChar(theChar); }
+	void KeyDown(KeyCode theKey) override { Widget::KeyDown(theKey); }
+	void KeyUp(KeyCode theKey) override { Widget::KeyUp(theKey); }
+	void MouseEnter() override { Widget::MouseEnter(); }
+	void MouseLeave() override { Widget::MouseLeave(); }
+	bool IsPointVisible(int x, int y) override { return Widget::IsPointVisible(x, y); }
 
 	// ButtonListener (0x4947c0, 0x4947e0); the rest of it does nothing (the Lua object has none of those methods)
 	void ButtonPress(int theId, int theClickCount) override;
