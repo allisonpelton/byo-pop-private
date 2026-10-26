@@ -21,8 +21,8 @@ public:
 class TextEffects
 {
 public:
-	// 0x4289d0: a text of the template theName at (x, y), or null
-	TextEffect* create(std::string theName, float x, float y, int theFlags);
+	// 0x4289d0: a text of the template theName at (x, y), or null; theDone is called when it ends
+	TextEffect* create(std::string theName, float x, float y, void (*theDone)(int));
 };
 
 } // namespace engine

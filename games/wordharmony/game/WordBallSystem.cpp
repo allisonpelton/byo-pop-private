@@ -6,6 +6,7 @@
 #include "Hud.h"
 #include "ImageNode.h"
 #include "Level.h"
+#include "Music.h"
 #include "Obstacles.h"
 #include "Particles.h"
 #include "Random.h"
@@ -14,6 +15,7 @@
 #include <cctype>
 #include <cmath>
 #include <cstdio>
+#include <set>
 
 using namespace engine;
 
@@ -23,7 +25,8 @@ WordBallSystem::WordBallSystem(int theMode)
 {
 	mMode = theMode;
 	mObstacles = nullptr;
-	mFC = 0;
+	mStepTime = 0;
+	mLastStep = 0;
 	mSpawnTime = 0;
 	mStarted = false;
 	mLongestPiece = 0;
@@ -33,6 +36,7 @@ WordBallSystem::WordBallSystem(int theMode)
 	mFill = 0;
 	mShortestWord = 0;
 	m194 = false;
+	mLastMatch = 0;
 	mNoPicking = false;
 	mWaveTime = 0;
 	m1F0 = false;
@@ -321,7 +325,7 @@ void WordBallSystem::stopHintThread()
 }
 
 // 0x411c90
-int WordBallSystem::weightedRandom(float theValue)
+int WordBallSystem::waterStage(float theValue)
 {
 	int aValue = (int)(theValue * 100.0f);
 	if (aValue < 26)
@@ -348,7 +352,7 @@ void WordBallSystem::levelDone()
 		int aCount = (int)aGame->mLevels.size();
 		if (aGame->mLevel == aCount - 1)
 		{
-			aGame->finishPuzzles(false, false);
+			aGame->gameOver(false, false);
 			mNoPicking = true;
 			return;
 		}
@@ -836,7 +840,7 @@ void WordBallSystem::showHint()
 	}
 }
 
-// 0x414fb0
+// 0x414fb0 (a method of the queue, its pop_back)
 void WordBallSystem::popQueue()
 {
 	if (mQueue.size() != 0)
@@ -1744,9 +1748,676 @@ void WordBallSystem::addWildcard()
 	mQueue.push_back("?");
 	if (mMode == MODE_SOLITAIRE)
 	{
-		Game::instance()->mWildcardsSaved++;
+		Game::instance()->mLettersUsed++;
 		return;
 	}
 	spawnNext();
 	mHud->refresh();
+}
+
+// Whether theLetters (with '?' for a wildcard) make the bonus word theBonus, letter by letter (inline in 0x41a120 and
+// twice in 0x41a8b0)
+static bool matchesBonus(const std::string& theBonus, const std::string& theLetters)
+{
+	const char* aLetter = theLetters.c_str();
+	const char* aBonusLetter = theBonus.c_str();
+	char c = *aBonusLetter;
+	for (; c != '\0' && (c == *aLetter || *aLetter == '?'); aLetter++)
+	{
+		c = aBonusLetter[1];
+		aBonusLetter++;
+	}
+	return *aBonusLetter == '\0' && *aLetter == '\0';
+}
+
+// 0x41a120: theCount balls from theIndices[theStart] make theWord (theLetters as on the balls, '?' for a wildcard): the
+// balls picked, the specials' effects and sounds, and the points. Without +0x194 the balls only light up and the HUD
+// shows its submit button. (The original also copies theLetters and calls the first ball's getPosition, using neither.)
+void WordBallSystem::scoreWord(const int* theIndices, int theStart, const std::string& theLetters,
+	const std::string& theWord, int theCount)
+{
+	Game* aGame = Game::instance();
+	if (theLetters.size() == 0)
+		return;
+	if (!m194)
+	{
+		unsigned int i = 0;
+		if (theLetters.size() != 0)
+		{
+			const int* anIndex = theIndices + theStart;
+			do
+			{
+				Ball* aBall = getBall(*anIndex);
+				aBall->mLinked = true;
+				aBall->setOn(true);
+				i++;
+				anIndex++;
+			} while (i < theLetters.size());
+		}
+		mHud->showSubmit(true);
+		return;
+	}
+
+	Ball* aBall = getBall(theIndices[theStart]);
+	int aScore = (int)theLetters.size() * 100;
+	int aMultiplier = 1;
+	float aDelay = 0.0f;
+	std::vector<std::string> aChainWords;
+	if (theCount != 0)
+	{
+		int aLeft = theCount;
+		const int* anIndex = theIndices + theStart;
+		do
+		{
+			int aBallIndex = *anIndex;
+			aBall = getBall(aBallIndex);
+			if (theLetters.compare(0, theLetters.size(), "BOMB", 4) == 0)
+				aBall->mSpecial |= BALL_FLAG_1;
+			unsigned int aSpecial = aBall->mSpecial;
+			if ((aSpecial & BALL_X2) == 0)
+			{
+				if ((aSpecial & BALL_X3) == 0)
+				{
+					if ((aSpecial & BALL_X4) != 0)
+						aMultiplier *= 4;
+				}
+				else
+				{
+					aMultiplier *= 3;
+				}
+			}
+			else
+			{
+				aMultiplier *= 2;
+			}
+			Chain* aChain = aBall->mChain;
+			if (aChain != NULL && aChain->mWord.size() != 0)
+			{
+				aChainWords.push_back(aChain->mWord);
+				aChain->mWord.erase(aChain->mWord.begin(), aChain->mWord.end());
+			}
+			pickBall(aBallIndex, aDelay);
+			aDelay += 0.1f;
+			anIndex++;
+			aLeft--;
+		} while (aLeft != 0);
+	}
+
+	// The effects start at the last ball
+	Point aPosition = *aBall->getPosition();
+	aPosition.x += getPosition()->x;
+	aPosition.y += getPosition()->y;
+
+	if (0.0 < mLastMatch)
+	{
+		App* anApp = App::instance();
+		double aSince = (double)(int)anApp->getTime() - mLastMatch;
+		if (aSince / (double)anApp->getTicksPerSecond() < 2.0)
+		{
+			aGame->mTextEffects->create("speedy", aPosition.x, aPosition.y, NULL);
+			aGame->playSound("SPEEDY_MATCH", false);
+			aMultiplier *= 2;
+		}
+	}
+
+	if (5 < theLetters.size())
+	{
+		aGame->mTextEffects->create("longword", aPosition.x, aPosition.y, NULL);
+		aGame->playSound("SPECIAL_LONGWORD", false);
+		aMultiplier *= 2;
+		// A long word not made before earns a wildcard
+		if (mMode != MODE_PUZZLE)
+		{
+			std::vector<std::string>::iterator anIt = m204.begin();
+			if (anIt != m204.end())
+			{
+				while (anIt->compare(0, anIt->size(), theWord.c_str(), theWord.size()) != 0 && ++anIt != m204.end())
+					;
+				if (anIt != m204.end())
+					goto aBonus;
+			}
+			m204.push_back(theWord);
+			if (mMode == MODE_FREEMATCH)
+				addWildcard();
+			else
+				aGame->mWildcards++;
+		}
+	}
+
+aBonus:
+	if (mWord.size() != 0)
+	{
+		if (matchesBonus(mWord, theLetters))
+		{
+			aGame->mTextEffects->create("bonusWord", aPosition.x, aPosition.y, NULL);
+			aGame->playSound("SPECIAL_BONUS", false);
+			aMultiplier *= 10;
+			mWord.erase(mWord.begin(), mWord.end());
+			pickAll();
+		}
+	}
+
+	TextEffect* anEffect = aGame->mTextEffects->create("foundWord", aPosition.x, aPosition.y, &Game::scoreShown);
+	anEffect->setText(theWord);
+	aGame->playSound("BALL_POP_WIND", false);
+	int aPoints = aScore * aMultiplier;
+	aGame->mLettersUsed += (int)theLetters.size();
+	aGame->addScore(aPoints);
+	if (mMode == MODE_SOLITAIRE || mMode == MODE_FREEMATCH)
+		mHud->addFound(theLetters, theWord, aChainWords, aPoints, aMultiplier);
+	aGame->noteWord(theWord);
+}
+
+// 0x41a8b0: the words in a row or a column of balls, theMinLength letters or more. From each start the longest run
+// that makes a word is kept: a run breaks at a ball not free or too far from the one before, and every chain in it must
+// lie wholly in it. A word overlapping the kept one replaces it only when longer; the kept word is scored once a later
+// start passes its end, and at the end. A wildcard ball takes its letter from the word, and a multiplier ball has no
+// letter (a quirk kept: the wildcards' balls are then found by the letters' positions, not the balls'). Returns how
+// many words it scored, counting the empty one "scored" when a start passes the end before any was kept.
+int WordBallSystem::scoreGroup(BallGroup* theGroup, unsigned int theMinLength)
+{
+	Game* aGame = Game::instance();
+	int aScored = 0;
+	unsigned int aKeptCount = 0;
+	unsigned int aKeptEnd = 0;
+	unsigned int aKeptStart = 0;
+	std::string aKeptLetters;
+	std::string aKeptWord;
+	std::string aLetters;
+	std::string aWord;
+	std::vector<std::string> aWords;
+	std::set<int> aBallIndices;
+	std::set<Chain*> aChains;
+	unsigned int aCount = theGroup->mCount;
+	if (aCount < theMinLength)
+		return 0;
+	unsigned int aStart = 0;
+	do
+	{
+		unsigned int aLength = aCount - aStart;
+	aTry:
+		if (aLength < theMinLength)
+			goto aNextStart;
+		aLetters.erase();
+		aBallIndices.clear();
+		aChains.clear();
+		{
+			bool aBroken = false;
+			unsigned int i = 0;
+			if (aLength != 0)
+			{
+				const int* anIndex = theGroup->mIndices + aStart;
+				do
+				{
+					int aBallIndex = *anIndex;
+					Ball* aBall = getBall(aBallIndex);
+					if (aBall->mState != BALL_FREE || (i != 0 && getGap(aBallIndex, anIndex[-1]) > 3.0f))
+					{
+						aBroken = true;
+						break;
+					}
+					if ((aBall->mSpecial & BALL_WILDCARD) != 0)
+						aLetters.append(1, '?');
+					else if ((aBall->mSpecial & (BALL_X2 | BALL_X3 | BALL_X4)) == 0)
+						aLetters.append(1, aBall->mLetter);
+					if (aBall->mChain != NULL)
+					{
+						aBallIndices.insert(aBallIndex);
+						aChains.insert(aBall->mChain);
+					}
+					i++;
+					anIndex++;
+				} while (i < aLength);
+			}
+			if (aLetters.size() < theMinLength)
+				goto aNextStart;
+			if (aBroken)
+				goto aShorter;
+		}
+		if (aChains.size() != 0)
+		{
+			std::set<Chain*>::iterator aChain = aChains.begin();
+			if (aChain != aChains.end())
+			{
+				do
+				{
+					std::list<int>& anIndices = (*aChain)->mIndices;
+					std::list<int>::iterator anIt = anIndices.begin();
+					if (anIt != anIndices.end())
+					{
+						do
+						{
+							if (aBallIndices.find(*anIt) == aBallIndices.end())
+								goto aShorter;
+							++anIt;
+						} while (anIt != anIndices.end());
+					}
+					++aChain;
+				} while (aChain != aChains.end());
+			}
+		}
+		aWords.clear();
+		aWord.erase();
+		if (aLetters.find('?', 0) == std::string::npos)
+		{
+			if (mWord.size() != 0 && matchesBonus(mWord, aLetters))
+			{
+				aWord = mWord;
+			}
+			else
+			{
+				bool isWord = aGame->mDictionary.checkWord(aLetters.c_str(), 0) == 0;
+				aWord = aLetters;
+				if (!isWord)
+					goto aShorter;
+			}
+		}
+		else if (mWord.size() != 0 && matchesBonus(mWord, aLetters))
+		{
+			aWord = mWord;
+		}
+		else
+		{
+			if (!aGame->mDictionary.findMatches(aLetters.c_str(), &aWords))
+				goto aShorter;
+			aWord = aWords[randomIndex(0, (int)aWords.size() - 1)];
+		}
+
+		if (aStart > aKeptEnd)
+		{
+			aScored++;
+			scoreWord(theGroup->mIndices, aKeptStart, aKeptLetters, aKeptWord, aKeptCount);
+		}
+		else if (aLength <= aKeptCount)
+		{
+			goto aNextStart;
+		}
+		aKeptStart = aStart;
+		aKeptLetters = aLetters;
+		aKeptWord = aWord;
+		aKeptEnd = aLength + aStart - 1;
+		aKeptCount = aLength;
+		for (std::string::size_type aPos = aLetters.find('?', 0); aPos != std::string::npos;
+			aPos = aLetters.find('?', aPos + 1))
+		{
+			Ball* aBall = getBall(theGroup->mIndices[aPos + aStart]);
+			aBall->mLetter = (char)toupper(aWord[aPos]);
+		}
+		goto aNextStart;
+
+	aShorter:
+		aLength--;
+		goto aTry;
+
+	aNextStart:
+		aCount = theGroup->mCount;
+		aStart++;
+	} while (aStart <= aCount - theMinLength);
+	if (aKeptCount != 0)
+	{
+		aScored++;
+		scoreWord(theGroup->mIndices, aKeptStart, aKeptLetters, aKeptWord, aKeptCount);
+	}
+	return aScored;
+}
+
+// 0x41b2d0: the puzzle's words in a row or a column: from each start the longest run (a run breaks at a ball not free
+// or more than 1.5 from the one before; multiplier balls add no letter) that matches a word still to find, which is
+// scored, marked in the HUD's list and its definition shown; the next start is the one after it. Returns how many.
+int WordBallSystem::scorePuzzleGroup(BallGroup* theGroup)
+{
+	int aScored = 0;
+	unsigned int aStart = 0;
+	do
+	{
+		for (unsigned int aLength = theGroup->mCount - aStart; aLength != 0; aLength--)
+		{
+			unsigned int i = 0;
+			std::string aLetters;
+			if (aLength != 0)
+			{
+				const int* anIndex = theGroup->mIndices + aStart;
+				do
+				{
+					int aBallIndex = *anIndex;
+					Ball* aBall = getBall(aBallIndex);
+					if (aBall->mState != BALL_FREE || (i != 0 && getGap(aBallIndex, anIndex[-1]) > 1.5f))
+						goto aShorter;
+					if ((aBall->mSpecial & (BALL_X2 | BALL_X3 | BALL_X4)) == 0)
+						aLetters.append(1, aBall->mLetter);
+					i++;
+					anIndex++;
+				} while (i < aLength);
+			}
+			{
+				std::map<std::string, int>::iterator anIt = mWordIndex.begin();
+				if (anIt != mWordIndex.end())
+				{
+					do
+					{
+						if (matchesBonus(anIt->first, aLetters))
+							break;
+						++anIt;
+					} while (anIt != mWordIndex.end());
+					if (anIt != mWordIndex.end())
+					{
+						aScored++;
+						m194 = true;
+						scoreWord(theGroup->mIndices, aStart, aLetters, aLetters, aLength);
+						mHud->markFound(anIt->second);
+						showDefinition(anIt->second);
+						mWordIndex.erase(anIt);
+						aStart = aStart - 1 + aLength;
+						m194 = false;
+						break;
+					}
+				}
+			}
+		aShorter:;
+		}
+		aStart++;
+	} while (aStart <= theGroup->mCount);
+	return aScored;
+}
+
+// 0x41b5c0: the puzzle's words in every row and column; how many
+int WordBallSystem::scorePuzzle()
+{
+	unsigned int aScored = 0;
+	groupBalls();
+	for (unsigned int i = 0; i < mRows.size(); i++)
+		aScored += scorePuzzleGroup(mRows[i]);
+	for (unsigned int i = 0; i < mColumns.size(); i++)
+		aScored += scorePuzzleGroup(mColumns[i]);
+	if (aScored > 0)
+		mLastMatch = (double)(int)App::instance()->getTime();
+	return aScored;
+}
+
+// 0x41b650: the words of theMinLength letters or more in every row and column; how many
+int WordBallSystem::scoreGroups(unsigned int theMinLength)
+{
+	unsigned int aScored = 0;
+	groupBalls();
+	for (unsigned int i = 0; i < mRows.size(); i++)
+		aScored += scoreGroup(mRows[i], theMinLength);
+	for (unsigned int i = 0; i < mColumns.size(); i++)
+		aScored += scoreGroup(mColumns[i], theMinLength);
+	if (aScored > 0 && m194)
+		mLastMatch = (double)(int)App::instance()->getTime();
+	return aScored;
+}
+
+// 0x41b6f0: the submit button: the hint finder stopped (inline in the original, as 0x411c50 does) and the words scored
+void WordBallSystem::submit()
+{
+	stopHintThread();
+	m194 = true;
+	scoreGroups(mShortestWord);
+	m194 = false;
+	m1F0 = true;
+	mHud->setHintReady(false);
+}
+
+// 0x41b760: while playing (or in state 7) the physics in steps of 0.03 seconds and each ball by its state: a free
+// ball unlit (in freematch dimmed and slowed under the water), a picked one's multiplier and blossom when its time is
+// up, a fading one gone, a new one grown and then free. Freematch's water rises with the balls in play, the words are
+// looked for, the submit button shown when there are some, and freematch and solitaire spawn their next balls.
+void WordBallSystem::update(UpdateInfo& theInfo)
+{
+	Game* aGame = Game::instance();
+	if (aGame->mState == 5 || aGame->mState == 7)
+	{
+		mWaveTime = theInfo.mSeconds + mWaveTime;
+		float aTime = theInfo.mSeconds + mStepTime;
+		mStepTime = aTime;
+		if (0.03 < aTime)
+		{
+			do
+			{
+				mStepTime = (float)(mStepTime - 0.03);
+				accumulate(0.03f);
+				integrate(0.03f, mLastStep);
+				int i = 3;
+				do
+				{
+					step();
+					i--;
+				} while (i != 0);
+				mLastStep = 0.03f;
+			} while (0.03 < mStepTime);
+		}
+
+		unsigned int anIndex = 0;
+		if (mCount != 0)
+		{
+			do
+			{
+				Ball* aBall = getBall(anIndex);
+				if (aBall->mState == BALL_GONE)
+				{
+					if (anIndex < (unsigned int)mNextSlot)
+						mNextSlot = anIndex;
+				}
+				else
+				{
+					switch (aBall->mState)
+					{
+					case BALL_FREE:
+						aBall->setOn(false);
+						aBall->mLinked = false;
+						if ((aBall->mSpecial & BALL_WILDCARD) != 0)
+							aBall->mLetter = (char)toupper(' ');
+						if (mMode != MODE_FREEMATCH || aBall->getPosition()->y <= (1.0 - mWaterLevel) * 440.0)
+						{
+							aBall->setOpacity(1.0f);
+						}
+						else
+						{
+							aBall->mDamping = (float)(aBall->mDamping - 0.4);
+							aBall->setOpacity(0.9f);
+						}
+						break;
+					case BALL_PICKED:
+					{
+						float aLeft = aBall->mB0 - theInfo.mSeconds;
+						aBall->mB0 = aLeft;
+						if (aLeft <= 0.0f)
+						{
+							unsigned int aSpecial = aBall->mSpecial;
+							aBall->mState = BALL_PICKED_2;
+							aBall->mB0 = (float)(aLeft + 0.2);
+							const char* aText = NULL;
+							if ((aSpecial & BALL_X2) == 0)
+							{
+								if ((aSpecial & BALL_X3) != 0)
+									aText = "3x";
+								else if ((aSpecial & BALL_X4) != 0)
+									aText = "4x";
+							}
+							else
+							{
+								aText = "2x";
+							}
+							if (aText != NULL)
+							{
+								Point aPosition = *aBall->getPosition();
+								aPosition.x += getPosition()->x;
+								aPosition.y += getPosition()->y;
+								aGame->mTextEffects->create(aText, aPosition.x, aPosition.y, NULL);
+								aGame->playSound("SPECIAL_MULTIPLIER", false);
+							}
+							ParticleSystem* aSystem = mBlossoms->getSystem();
+							aSystem->setPosition(*aBall->getPosition());
+							aSystem->startEmitting();
+							aGame->playSound("BALL_POP", false);
+						}
+						break;
+					}
+					case BALL_PICKED_2:
+					{
+						float aLeft = aBall->mB0 - theInfo.mSeconds;
+						aBall->mB0 = aLeft;
+						float anOpacity = aLeft * 5.0f;
+						if (1.0f <= anOpacity)
+							anOpacity = 1.0f;
+						else if (anOpacity <= 0.0f)
+							anOpacity = 0.0f;
+						aBall->setOpacity(anOpacity);
+						if (aBall->mB0 <= 0.0f)
+							removeBall(anIndex);
+						break;
+					}
+					case BALL_STATE_4:
+					{
+						float aLeft = aBall->mB0 - theInfo.mSeconds;
+						aBall->mB0 = aLeft;
+						if (mMode != MODE_FREEMATCH)
+						{
+							float aScale = (1.0f - aLeft) * 4.0f;
+							if (aScale < 1.0f)
+							{
+								if (aScale <= 0.0f)
+									aScale = 0.0f;
+							}
+							else
+							{
+								aScale = 1.0f;
+							}
+							aScale = aScale * 0.8f + 0.2f;
+							aBall->setScale(aScale, aScale);
+						}
+						if (aBall->mB0 <= 0.0f)
+						{
+							// The old gravity leaks, as in the original
+							aBall->mB0 = 0;
+							aBall->mState = BALL_FREE;
+							aBall->mGravity = new Point(aGame->mCurrentLevel->mGravity);
+						}
+						break;
+					}
+					}
+				}
+				anIndex++;
+			} while (anIndex < mCount);
+		}
+		if (mRope != NULL)
+			mTarget->setPosition(*mRope->mBall->getPosition());
+	}
+
+	if (mMode == MODE_FREEMATCH && aGame->mState == 5)
+	{
+		if (mEditor)
+			goto aHints;
+		Level* aLevel = aGame->mCurrentLevel;
+		float aFill = (1.0f / ((float)aLevel->mMaxBalls * aLevel->mSpawnDelay)) * theInfo.mSeconds + mFill;
+		mFill = aFill;
+		if (aFill <= mWaterLevel)
+		{
+			if (aFill < mWaterLevel)
+			{
+				float aLevelNow = mWaterLevel - theInfo.mSeconds * 0.1f;
+				mWaterLevel = aLevelNow;
+				if (aLevelNow < mFill)
+					mWaterLevel = mFill;
+			}
+		}
+		else
+		{
+			float aLevelNow = theInfo.mSeconds * 0.1f + mWaterLevel;
+			mWaterLevel = aLevelNow;
+			if (mFill < aLevelNow)
+				mWaterLevel = mFill;
+		}
+		if (1.0f <= mWaterLevel)
+			aGame->gameOver(false, false);
+	}
+	if (mEditor || aGame->mState != 5)
+		goto aHints;
+
+	{
+		int aFound = scorePuzzle();
+		if (mMode == MODE_FREEMATCH || mMode == MODE_SOLITAIRE)
+			aFound += scoreGroups(mShortestWord);
+		mHud->showSubmit(aFound != 0);
+	}
+	if (mStarted)
+		mSpawnTime -= theInfo.mSeconds;
+	if (mMode == MODE_FREEMATCH)
+	{
+		aGame->mMusic->select(waterStage(mWaterLevel), true);
+		if (mWord.size() == 0)
+		{
+			mWord = aGame->makeLetters(5, 5);
+			mHud->showBonusWord();
+		}
+	}
+	{
+		std::string aPiece;
+		if (mMode != MODE_FREEMATCH || 0.0f <= mSpawnTime)
+		{
+			if (mMode != MODE_SOLITAIRE)
+				goto aHints;
+			if (mQueue.size() == 0 || mSpawnTime > 0.0f)
+				goto aHints;
+			aPiece = mQueue[mQueue.size() - 1];
+			popQueue();
+			mSpawnTime = 0.2f;
+			if (aPiece.size() == 1)
+				spawn(470.0f, -26.0f, aPiece[0], 0, false);
+			else
+				spawnWordAt(aPiece, 470.0f, -26.0f);
+			if (aGame->m3C < 0)
+				aGame->m3C = 0;
+			if (mQueue.size() == 0)
+			{
+				stopHintThread();
+				startHints();
+			}
+		}
+		else
+		{
+			nextPiece(aPiece, false);
+			if (aPiece.size() < 2)
+				spawnLetter(aPiece[0], false);
+			else
+				spawnWord(aPiece);
+			mHud->refresh();
+			if (mBallsToCome < 1)
+			{
+				mSpawnTime = aGame->mCurrentLevel->mSpawnDelay;
+				startHints();
+			}
+			else
+			{
+				mSpawnTime = 0.1f;
+				mBallsToCome--;
+				float aFill = (float)(unsigned int)mBallsLeft / (float)aGame->mCurrentLevel->mMaxBalls;
+				if (1.0f <= aFill)
+					aFill = 1.0f;
+				mFill = aFill;
+			}
+		}
+	}
+
+aHints:
+	// After a submit the hints are looked for again once the balls are done
+	if (m1F0)
+	{
+		if (!isBusy() && mMode != MODE_PUZZLE)
+		{
+			stopHintThread();
+			startHints();
+		}
+	}
+	mHud->setWildcardReady(0 < aGame->mWildcards);
+	Container::update(theInfo);
+}
+
+// 0x41c2d0: the right button submits (but in the puzzles), then works as the left one's release
+void WordBallSystem::onRightUp(Point& p)
+{
+	if (mMode != MODE_PUZZLE)
+		submit();
+	onMouseUp(p);
 }

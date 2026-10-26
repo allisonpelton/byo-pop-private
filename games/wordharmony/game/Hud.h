@@ -7,6 +7,7 @@
 
 #include "ScreenLayout.h"
 #include <string>
+#include <vector>
 
 class SaveWriter;
 
@@ -29,6 +30,17 @@ public:
 	void grabChanged(bool theReleased, bool theB, bool theC);
 	// 0x422340 (not read yet; called whenever the balls or the queue change)
 	void refresh();
+	// 0x422380 (not read yet): word theIndex of the list found
+	void markFound(int theIndex);
+	// 0x422c40 (not read yet): the submit button shown or hidden
+	void showSubmit(bool theShow);
+	// 0x423ca0 (not read yet): a found word's line, with the chains' words it freed
+	void addFound(const std::string& theLetters, const std::string& theWord, std::vector<std::string>& theChainWords,
+		int thePoints, int theMultiplier);
+	// 0x423260 (not read yet): the bonus word shown
+	void showBonusWord();
+	// 0x422f00 (not read yet): whether the wildcard button works
+	void setWildcardReady(bool theReady);
 	// 0x422d30 (not read yet): whether the hint button works
 	void setHintReady(bool theReady);
 	// 0x423210 (not read yet)

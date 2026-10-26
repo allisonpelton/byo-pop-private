@@ -75,8 +75,8 @@ public:
 	void setMode(int theMode);
 	// 0x411c50 (the port runs the hint finder without a thread)
 	void stopHintThread();
-	// 0x411c90: 0-7 from a number in [0, 1), weighted
-	static int weightedRandom(float theValue);
+	// 0x411c90: freematch's water level (0 to 1) as the music's clip, 0-7
+	static int waterStage(float theValue);
 	// 0x411dc0: the level is over
 	void levelDone();
 	// 0x412080: the nearest obstacle within 23 pixels, or null
@@ -101,7 +101,7 @@ public:
 	void makeHuds();
 	// 0x414d60: the next hint as a floating text
 	void showHint();
-	// 0x414fb0: the last letter or piece of the queue taken off
+	// 0x414fb0 (the queue's pop_back): the last letter or piece of the queue taken off
 	void popQueue();
 	// 0x415300
 	void reset();
@@ -127,14 +127,29 @@ public:
 	void spawnNext();
 	// 0x41a050
 	void addWildcard();
+	// 0x41a120: theCount balls from theIndices[theStart] make theWord: picked and scored
+	void scoreWord(const int* theIndices, int theStart, const std::string& theLetters, const std::string& theWord,
+		int theCount);
+	// 0x41a8b0: a row's or a column's words of theMinLength letters or more, scored; how many
+	int scoreGroup(BallGroup* theGroup, unsigned int theMinLength);
+	// 0x41b2d0: a row's or a column's words of the puzzle, scored; how many
+	int scorePuzzleGroup(BallGroup* theGroup);
+	// 0x41b5c0
+	int scorePuzzle();
+	// 0x41b650
+	int scoreGroups(unsigned int theMinLength);
+	// 0x41b6f0: the submit button
+	void submit();
 
 	int mMode;                                  // +0xd4
+	float mLastStep;                            // +0xd8: the last physics step's time (the original leaves it
+	                                            // unset until the first; the port starts it at 0)
 	Bounds* mBounds;                            // +0xdc
 	Rope* mRope;                                // +0xe0: the mouse's rope on the grabbed ball
 	Follow* mFollow;                            // +0xe4: the editor's drag
 	std::vector<Chain*> mChains;                // +0xe8
 	std::vector<Obstacle*>* mObstacles;         // +0xf8: the level's
-	int mFC;                                    // +0xfc
+	float mStepTime;                            // +0xfc: time not yet stepped
 	float mSpawnTime;                           // +0x100
 	bool mStarted;                              // +0x104: set when a level starts
 	int mLongestPiece;                          // +0x108
@@ -145,11 +160,14 @@ public:
 	float mFill;                                // +0x128: the balls in play over the level's maxBalls, at most 1
 	int mShortestWord;                          // +0x12c
 	std::map<std::string, int> mWordIndex;      // +0x130: the level's words
+	double mLastMatch;                          // +0x140: the time of the last word (the original leaves it unset
+	                                            // until then; the port starts it at 0)
 	std::string mWord;                          // +0x148
 	std::vector<BallGroup*> mRows;              // +0x164
 	std::vector<BallGroup*> mColumns;           // +0x174
 	std::vector<BallGroup*> mFreeGroups;        // +0x184
-	bool m194;                                  // +0x194
+	bool m194;                                  // +0x194: set while words are scored (a submit, the puzzles);
+	                                            // otherwise a word found only lights its balls
 	Hud* mHud;                                  // +0x198: the mode's
 	Hud* mSolitaireHud;                         // +0x19c
 	Hud* mPuzzleHud;                            // +0x1a0
@@ -164,7 +182,8 @@ public:
 	engine::Image* mWater[4];                   // +0x1c8
 	float mWaveTime;                            // +0x1d8
 	std::vector<std::string> mHints;            // +0x1e0
-	bool m1F0;                                  // +0x1f0
+	bool m1F0;                                  // +0x1f0: set by a submit, so the hints are looked for again
+	                                            // once the balls are done
 	unsigned int mHintIndex;                    // +0x1f4
 	bool mEditor;                               // +0x1f8: never set in this build
 	int m1FC;                                   // +0x1fc
