@@ -13,6 +13,10 @@ What differs is where things are, and a few calls:
   twins side by side.
 - The emitter set-up takes three more numbers (100.0, 10.0 and 400.0 for the smoke of a shot).
 - The first palette tints (`ColourShift` calls of the animation loader) differ for two of the tint slots.
+- Input: a key's slot goes from 0 to 1 when it goes down, and `Key_Pressed` (0x429020) answers 1 once and sets the slot
+  to 2 (`Key_Down` answers for as long as it is held). Water Bugs calls it three times, for space in `Level_Update`
+  and for '.' and Esc in `GameStep`; unlike Cosmic Bugs, its paused update (0x412100) reads no Enter. The power-up
+  keys (0x418d60) and the text entry's shift stay `Key_Down`.
 - The system layer is the same set of calls; the files are `water_art.bbk` and `water_art8.bbk`, the game file is
   `wanims\water_bugs.eco` (read as `water_bugs.xml`), and the saves are the same two files as Cosmic Bugs'
   (`cp.cfg` and `cb.dat`).
