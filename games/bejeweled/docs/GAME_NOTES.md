@@ -2390,6 +2390,19 @@ come: of the features only the leaderboard is "not in this build" (stage 14). Th
 be renamed by mods: `OPTIONSDLG_EXTRAS`, the `EXTRASDLG_*`, `REPLAYSDLG_*` and `REPLAY_*` ids, `CONFIRM_SEED1/2` and
 `HSWIDGET_WATCH_REPLAY`.
 
+### 12.19 Steven Universe gems (code mods, stage 15)
+
+games/bejeweled/docs/CODE_MODS_DESIGN.md 4.17, as built. `tools/make_su_gems_mod.py` draws the mod `su-gems`: the
+seven gems as gems from Steven Universe in their Bejeweled colours, plus Rose Quartz, Lapis Lazuli, Bismuth and Garnet
+for boards of up to 11 colours. It writes a whole `images/gemsheet6@4x.png` rather than a patch, because a patch cannot
+make the sheet taller; the game's 1x comes from box downsampling, and boards of 7 colours read only the first seven
+rows. Each gem is a convex solid ray-cast per pixel and cel shaded: four Lambert tones from a fixed light, a rim
+tone, one white glint and a dark outline, with Pearl a smooth ellipsoid and Bismuth's facets in rainbow hues. The spin
+and glow rows use the frame layout of the Bejeweled 2 gems, whose shared code moved into `tools/gemsheet.py` (that
+generator's output is byte-identical). The title screen's five gems are covered and redrawn as SU gems, unless
+`--no-title`. The output is fan art of the show's designs and stays git-ignored (`mods/.gitignore`). Nothing in the
+game changed.
+
 ## 13. Naming reconciliation (analyst names → chosen names)
 
 **Board fields.**

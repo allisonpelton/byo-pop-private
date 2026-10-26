@@ -1864,6 +1864,21 @@ It needs stages 3 (StateCodec), 5 (v2 chunks), 6 (the undo row) and 7 (`RefillMa
 - **Size:** ~650 lines of Python (gem models and cel shader ~350, moved into `gemsheet.py` ~200, tests
   and preview ~100).
 
+**As built (stage 15, `make_su_gems_mod.py`, `gemsheet.py`; GAME_NOTES 12.19):** the mod is a whole gem sheet,
+not a patch. An image patch pastes over its target and cannot make it taller, and the four extra gems need rows
+8 to 11, so the mod ships `images/gemsheet6@4x.png` with all 11 colours (3120 x 4576; the 1x comes from box
+downsampling). `--colors 7` writes only the original seven rows. With `board.gemColors` up to 11 the sheet is
+used as it is (4.2: a mod may ship a taller sheet); a twelfth colour gets stage 8's default look for that
+row, recoloured from a base row. The cuts settled on the preview: Yellow Diamond a kite, Jasper a flat
+hexagon, Rose Quartz a pentagon, Lapis Lazuli a teardrop pointing down, Bismuth an octagon whose facets take
+rainbow hues, and Garnet a round 20-sided cut with three steps. Each gem is one convex solid: a girdle
+polygon with stepped crown and pavilion planes, or for Pearl an ellipsoid of support planes, shaded smooth.
+`gemsheet.py` (~480 lines) holds the shared parts: geometry, the ray cast against a solid (`cast`, giving
+each pixel its face, normal and silhouette distance), the sheet layout and the title-gem cover. The
+Bejeweled 2 generator went from ~1000 lines to ~620, and its output is byte-identical. `make_su_gems_mod.py`
+is ~300 lines. The title gems fit the old gems' boxes, which the cover hides. The oracle is untouched: images
+only, no code change.
+
 ### 4.18 Code-drawn art, no image files (`features.codeArt`)
 
 - **What:** code draws every image and bitmap font the game loads, at load time. The game then runs
