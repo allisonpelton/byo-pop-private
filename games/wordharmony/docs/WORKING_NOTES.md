@@ -183,6 +183,70 @@ scratch `attrs.py <start> <end>` lists each read with its name and default. The 
 ("" = none), name ("_Image_"), x, y (0), opacity, scaleX, scaleY (1), alphaType, alphaThresh (5), pivot
 ("upperleft"; "center" centres the image's pivot); the node goes to the screen's slot 0xe8 and to the top group.
 
+## The game code as read (0x401000-0x424000)
+
+`re/wordharmony/work/game.c` is the whole range from fr.py (16,400 lines; about 60 functions are container
+internals). The extracted archive is in `re/wordharmony/saf/` (lower-case names): the level files show which
+branches the readers take. Source modules in address order: the controller 0x401000-0x409c00 (a global at
+0x4995b8 points at it), CongratsScreen 0x409c20, the options in the registry 0x40a000-0x40aec0, GameOverScreen
+0x40b0d0, HighScoreEntryLayout 0x40b510, the score tables 0x40b6c0, HighScoreScreen 0x40c190, LevelsSelectionScreen
+0x40c2b0-0x40c480, MainMenuScreen 0x40c5a0-0x40c770, the saved game's reader 0x40cf90, ScreenSaver 0x40db70, the
+editor's WordEntry 0x40dcd0-0x40df90, the physics 0x40e100-0x40ede0, the ball 0x40efa0-0x40f200, the obstacles
+0x40f310-0x410c90, the bounds 0x410ef0, the ball system 0x4113f0-0x417680 (class 0x416fd0, "WordBallSystem"), the
+game rules 0x417b20-0x41c2f0, the level 0x41c2f0-0x41e820, the saved game's writer 0x41e820, the dictionary and the
+anagram finder 0x41f...-0x420b40, the high scores and the registry 0x421200-0x422030, the HUD 0x422220-0x423e40, and
+a 500-byte screen 0x423fa0.
+
+Physics (Verlet, Jakobsen style). The ball array (0x40ec20, vtable 0x481bb0): +4 count, +0x10 gravity (Point), +0x18
+friction 0.2, +0x1c the balls (an array of 0xfc-byte balls, new[] with a count; 0x40ecd0 gets ball i). 0x40ed10
+accumulate(dt): a ball not fixed gets acceleration = (gravity, or its own at +0xdc, or (g.x, -g.y) when its inverse
+mass <= 0) x dt x dt; a fixed one (0, 0). 0x40ede0 integrate(dt, lastDt): pos += (pos - old) x damping x dt/lastDt
++ acceleration, old = pos, damping = 1; a fixed ball's old = pos; state 3 balls are skipped. Constraints (base
+vtable 0x481b20, +4 active, slot 0 apply): 0x40e100 (0x2c bytes) pulls a ball towards a target with a lerp, or with
+a random jitter when +0x28 is set; 0x40e220 (0x2c) a mouse rope: within +0x18 of the target it does nothing, else
+pulls by the excess capped at +0xc times +0x10, and blends the old position by +0x14; 0x40e5d0 (0x3c) a chain over
+a list of ball indices; 0x40e6c0 every pair of balls (not state 3 or 4, not fixed) pushed apart within 44 px
+(1936 = 44^2, the inverse masses), and a 0x40ea90 stick between two balls whose +0xf1 is set; 0x40e920/0x40e950 a
+distance constraint (mode 0 at least, 1 at most, 2 exactly); 0x410ef0 (vtable 0x482198, 0x1c bytes) the screen's
+bounds: x in [r, +0x18 - r], y in [r, +0x14 - r], damping -= hits x friction, and the old position clamped too.
+
+The ball (Container, 0xfc bytes, constructor 0x40f200, vtable 0x481bd0; overrides only the destructor and draw
+0x40ef30: Container::draw with snap 3, then its letter centred): +0xa8 a Selector (off and on images), +0xac
+special flags, +0xb0, +0xb8 old position, +0xc0 acceleration, +0xc8 radius 22, +0xcc inverse mass 1, +0xd0 damping
+1, +0xd4 fixed, +0xd8 state (0 free, 1 and 2 picked, 3 gone, 4), +0xdc own gravity (owned), +0xe0 its chain, +0xf0
+the letter (upper case, 0x4111b0), +0xf1 linked. 0x4113f0 builds its look from the flags: 2 wildcard (green font,
+blank letter, a particle system from the ball system's pool and wildcardGlow.png), 1 (becomes 2), 0x100 breakable
+(cube02.png, fixed), 0x20 (cube02.png, inverse mass 0.01), 0x40 stone (rock.png, inverse mass 0.25), else ball.png
+and ball_on.png (or the -chain versions with a chain); 4, 8, 0x10 the x2, x3, x4 badges.
+
+Obstacles (0xb0 bytes; the port: Obstacle : Node with the new slots 0xc8 collide(balls), 0xcc setActive, 0xd0
+isActive, 0xd4 touches(balls, i, margin), 0xd8/0xdc origin (the node's position), 0xe0/0xe4 extents, 0xe8/0xec
+letter, 0xf0 the XML line, 0xf4 type, 0xf8 clone; contains 0x40 is a rectangle test, draw the image and a yellow
+letter, layout the image's bounds). Box 0x40fb00 (vtable 0x481ea8): +4 extents (22, 22), +0xc box type (0 cube01.png,
+1 "star", 3 invisible), +0x10 active, +0x14 image, +0x18 letter; collide 0x40f440 pushes a ball out along the
+shallower axis, or from the nearest corner. Ramp 0x4109f0 (vtable 0x482010): +4 extents, +0xc active, +0x10 image
+(cube03-<rotation>.png), +0x14 letter, +0x18 rotation (0, 90, 180, 270); collide 0x410040 is the box test with the
+diagonal half (x87 compares: read 0x410040 in the disassembly).
+
+The level (0x3e8 bytes, constructor 0x41c760 copying time, shortestWord, ballCriteria, maxBalls, spawnDelay and +0x3b8
+from the previous level): 3 intro texts, 14 words, 14 definitions, 14 bonuses (+0x364), balls +0x39c, time +0x3a0
+(60), shortestWord +0x3a4 (3), freematch +0x3a8, ballCriteria +0x3ac (10), spawnDelay +0x3b0 (5), maxBalls +0x3b4,
++0x3b8 (2), gravity +0x3c0 (0, 500), obstacles +0x3cc, bubbles +0x3dc (0x28 bytes: origin, flags +8, letter +0xc;
+"?" sets flag 2). The reader (0x41cf70): level (gravity, shortestWord 3, balls, maxBalls, ballCriteria, freematch,
+spawnDelay 5), intro (text0-2), word (the first empty slot: text, definition, bonus), obstacle (origin, letter of
+one character, type: breakable makes a bubble with flag 0x100, box a Box, ramp a Ramp with rotation; extents; named
+"obstacle"), bubble (letter, origin, special parsed by 0x41e280: block, bomb, heavy, obstacle, stone, wildcard, and
+2x/3x/4x). A tag before the first level: "Level parse error".
+
+The ball system (0x220 bytes, constructor 0x416fd0): the ball array at +0 and a Container at +0x20 (offsets below
+are from the object's start). +0x8 a ball count (0x412b30 lowers it), +0xd4 the game mode (0, 1 or 2; 0x411c00 picks
+the HUD +0x198 from +0x1a0, +0x19c or +0x1a4 and tells it 0x422740; mode 2 has the rising water), +0xe0 the mouse rope (0x411ac0 grab, 0x411ba0 let
+go), +0xe4 the grab target, +0x104 the water level (mode 2, drawn by 0x412310 from four images +0x1a8-+0x1b4), +0x128,
++0x188 paused, +0x1b8 the mouse, +0x1c0/+0x1c4 particle pools, +0x1dc the hint thread (a Win32 thread; the port runs
+it without one). 0x411c90 a weighted random 0-7 (thresholds 26, 51, 61, 71, 81, 91, 96).
+0x4111d0 the nearest free ball within 23 px; 0x412b30 puts a ball in state 1 (in mode 2, +0x128 = count / the level's maxBalls, at most 1); 0x412bf0 puts
+one in state 3 and clears its look.
+
 ## Reading the decompilation
 
 Two scratch helpers (not in the repository) print functions: `fn.py <addr>...` (whole functions) and `fr.py <lo> <hi>`
