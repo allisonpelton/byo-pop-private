@@ -332,10 +332,169 @@ void EggGrid::Remove(int theCol, int theRow, bool isMatch)
 	}
 }
 
-// 0x416b80 (TODO: what hangs from nothing falls; the count)
+// 0x416b80: from the second row down, an egg with nothing above it and no path to the top falls; the count
 int EggGrid::DropLoose()
 {
-	return 0;
+	int aFallen = 0;
+	GridCell* aSrc = &mCells[0][0];
+	GridCell* aDest = &mScratch[0][0];
+	for (int i = 0x5dc; i != 0; i--)
+	{
+		*aDest = *aSrc;
+		aSrc++;
+		aDest++;
+	}
+	CeilingFinder* aFinder = new CeilingFinder();
+	PtrList<GridPoint>* aFallenList = new PtrList<GridPoint>();
+	int aRow = 1;
+	if (1.0f <= mRows)
+	{
+		do
+		{
+			int aCol = 0;
+			do
+			{
+				if ((char) mCells[aCol][aRow].mBits != 0)
+				{
+					// the empty cells of the two above (one off the grid's side counts as empty)
+					unsigned char anEmpty;
+					if ((aRow % 2) == 0)
+					{
+						if ((0 < aCol) && ((char) mCells[aCol - 1][aRow - 1].mBits != 0))
+							anEmpty = (char) mCells[aCol][aRow - 1].mBits == 0;
+						else
+							anEmpty = ((char) mCells[aCol][aRow - 1].mBits == 0) + 1;
+					}
+					else
+					{
+						if ((aCol <= 0xd) && ((char) mCells[aCol + 1][aRow - 1].mBits != 0))
+							anEmpty = (char) mCells[aCol][aRow - 1].mBits == 0;
+						else
+							anEmpty = ((char) mCells[aCol][aRow - 1].mBits == 0) + 1;
+					}
+					if ((1 < anEmpty) && (aFinder->Find(aCol, aRow, &mCells[0][0]) == 0))
+					{
+						GridPoint* aPoint = new GridPoint;
+						aPoint->mX = aCol;
+						aPoint->mY = aRow;
+						aFallenList->Add(aPoint);
+						unsigned int aBits = mCells[aCol][aRow].mBits;
+						Remove(aCol, aRow, false);
+						GridPoint aPixel;
+						CellToPixel(aCol, aRow, &aPixel);
+						GridPoint aScreen;
+						GridToScreen(aPixel.mX, aPixel.mY, &aScreen);
+						FallingEggEffect* anEgg = new FallingEggEffect();
+						anEgg->Init(mApp, aScreen.mX + 0x10, aScreen.mY + 0x10, aBits & 0xff, aBits >> 9 & 0xf);
+						mBoard->mEffects.Add(anEgg);
+						aFallen++;
+					}
+				}
+				aCol++;
+			} while (aCol < 0xf);
+			aRow++;
+		} while ((float) aRow <= mRows);
+	}
+	aFallenList->ResetIter();
+	GridPoint* aPoint = aFallenList->Next();
+	while (aPoint != NULL)
+	{
+		delete aPoint;
+		aPoint = aFallenList->Next();
+	}
+	if (aFinder != NULL)
+		delete aFinder;
+	if (aFallenList != NULL)
+		delete aFallenList;
+	return aFallen;
+}
+
+// 0x430c90
+CeilingFinder::CeilingFinder()
+{
+}
+
+// 0x430ca0
+CeilingFinder::~CeilingFinder()
+{
+}
+
+// 0x430e60
+int CeilingFinder::Find(int theCol, int theRow, GridCell* theCells)
+{
+	mVisitedCount = 0;
+	mSteps = 0;
+	GridCell* aDest = &mCells[0][0];
+	for (int i = 0x5dc; i != 0; i--)
+	{
+		*aDest = *theCells;
+		theCells++;
+		aDest++;
+	}
+	return Search(theCol, theRow);
+}
+
+// 0x430cb0: up, down, then the other side's two (on the side the row leans to), then left and right
+int CeilingFinder::Search(int theCol, int theRow)
+{
+	mSteps++;
+	if (399 < mSteps)
+		return 1;
+	short aCol = (short) theCol;
+	int aRow = (short) theRow;
+	if ((char) mCells[aCol][aRow].mBits == 0)
+		return 0;
+	if ((short) theRow == 0)
+		return 1;
+	short i = 0;
+	if (0 < mVisitedCount)
+	{
+		do
+		{
+			if ((aCol == mVisited[i].mCol) && (aRow == mVisited[i].mRow))
+				return 0;
+			i++;
+		} while (i < mVisitedCount);
+	}
+	mVisited[mVisitedCount].mCol = aCol;
+	mVisited[mVisitedCount].mRow = aRow;
+	mVisitedCount++;
+	short aFound;
+	if ((aRow % 2) == 0)
+	{
+		aFound = (short) Search(theCol, theRow - 1);
+		if (aFound == 0)
+			aFound = (short) Search(theCol, theRow + 1);
+		if (aCol < 1)
+		{
+			if ((aCol < 0xe) && (aFound == 0))
+				aFound = (short) Search(theCol + 1, theRow);
+			return aFound;
+		}
+		if (aFound == 0)
+		{
+			aFound = (short) Search(theCol - 1, theRow - 1);
+			if (aFound == 0)
+				aFound = (short) Search(theCol - 1, theRow + 1);
+		}
+	}
+	else
+	{
+		aFound = (short) Search(theCol, theRow - 1);
+		if (aFound == 0)
+			aFound = (short) Search(theCol, theRow + 1);
+		if ((aCol < 0xe) && (aFound == 0))
+		{
+			aFound = (short) Search(theCol + 1, theRow - 1);
+			if (aFound == 0)
+				aFound = (short) Search(theCol + 1, theRow + 1);
+		}
+	}
+	if ((0 < aCol) && (aFound == 0))
+		aFound = (short) Search(theCol - 1, theRow);
+	if ((aCol < 0xe) && (aFound == 0))
+		aFound = (short) Search(theCol + 1, theRow);
+	return aFound;
 }
 
 // 0x417bd0: floods theColor's group from the cell through a copy of the grid (marking 100); three or more break,

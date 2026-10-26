@@ -280,6 +280,16 @@ void Dynomite::EggAlone(int theColor)
 {
 }
 
+// 0x406040
+void Dynomite::DrawPiece(int theColor, int x, int y)
+{
+}
+
+// 0x4050d0
+void Dynomite::PieceFell(int theColor)
+{
+}
+
 // 0x4b1930
 void Dynomite::EggLanded()
 {

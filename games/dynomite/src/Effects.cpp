@@ -551,3 +551,61 @@ void BoomEffect::Draw()
 	}
 	mApp->mBoomCells[(int) mFrame]->DrawStretched((int) (mX - 75.0f), (int) (mY - 100.0f), (int) (mX + 75.0f), (int) (mY + 100.0f));
 }
+
+// 0x4147c0
+FallingEggEffect::FallingEggEffect()
+{
+	mType = 1;
+}
+
+// 0x4147e0
+FallingEggEffect::~FallingEggEffect()
+{
+}
+
+// 0x4147f0
+void FallingEggEffect::Init(FossilizedApp* theApp, int x, int y, int theColor, int theKind)
+{
+	mApp = theApp;
+	mX = (float) x;
+	mColor = theColor;
+	mKind = theKind;
+	mVY = 0;
+	mY = (float) y;
+	mGravity = (float) y * 0.015151516f * 0.1f + 1.0f;
+}
+
+// 0x414840
+bool FallingEggEffect::Update()
+{
+	mY = mVY * 0.16666667f + mY;
+	mVY = mGravity + mVY;
+	if (mY <= 650.0f)
+		return true;
+	if (0x32 <= mColor)
+		mApp->mBoard->PieceFell(mColor);
+	return false;
+}
+
+// 0x414930
+void FallingEggEffect::Draw()
+{
+	if (0x32 <= mColor)
+	{
+		mApp->mBoard->DrawPiece(mColor, (int) mX, (int) mY);
+		return;
+	}
+	float x = mX;
+	float y = mY;
+	// port: the original's app +0x13c0 + mColor * 4 is the bomb's cell or the egg sheet's cell mColor - 1
+	Cell* aCell = (mColor == 0) ? mApp->mPicBomb_c0 : mApp->mEggCells[mColor - 1];
+	aCell->Draw((int) x - (aCell->mWidth >> 1), (int) y - (aCell->mHeight >> 1));
+	if (0 < mKind)
+	{
+		x = mX;
+		y = mY;
+		// port: the original's app +0x1830 + mKind * 4 is the bonus egg sheet's cell mKind - 1
+		aCell = mApp->mBonusEggCells[mKind - 1];
+		aCell->Draw((int) x - (aCell->mWidth >> 1), (int) y - (aCell->mHeight >> 1));
+	}
+}

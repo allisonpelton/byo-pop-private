@@ -17,12 +17,31 @@ class Effect
 public:
 	float				mX;				// +4
 	float				mY;				// +8
-	int					mType;			// +0xc 2 a yolk, 3 egg white, 4 a boom, 5 a shell, 6 points, 7 a baby, 8 a bonus, 9 confetti
+	int					mType;			// +0xc 1 a falling egg, 2 a yolk, 3 egg white, 4 a boom, 5 a shell, 6 points, 7 a baby, 8 a bonus, 9 confetti
 
 	Effect();								// 0x4034b0
 	virtual ~Effect();						// 0x4034c0
 	virtual void		Draw();				// 0x4b1930 (empty)
 	virtual bool		Update();			// 0x4034d0: false when it is done
+};
+
+// vtable 0x4fa3a0, 0x24 bytes: an egg that lost its hold, falling off the screen (colours from 50 up are the
+// mode's pieces, drawn by the board's slot 57 and reported by slot 58)
+class FallingEggEffect : public Effect
+{
+public:
+	FossilizedApp*		mApp;			// +0x10
+	int					mColor;			// +0x14
+	int					mKind;			// +0x18
+	float				mVY;			// +0x1c
+	float				mGravity;		// +0x20
+
+	FallingEggEffect();						// 0x4147c0
+	virtual ~FallingEggEffect();			// 0x4147e0
+	virtual void		Draw() override;	// 0x414930
+	virtual bool		Update() override;	// 0x414840
+
+	void				Init(FossilizedApp* theApp, int x, int y, int theColor, int theKind);	// 0x4147f0
 };
 
 // vtable 0x4f73f8, 0x24 bytes: a baby dinosaur from a bonus egg, falling off the screen after a moment

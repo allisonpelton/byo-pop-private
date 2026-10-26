@@ -61,6 +61,30 @@ public:
 	void				Draw();						// 0x438350
 };
 
+// vtable 0x4fc744, 0x307c bytes: a depth-first search for a path of eggs from a cell to the top row (400 steps at
+// most, after which it gives up and answers yes)
+class CeilingFinder
+{
+public:
+	struct Visit
+	{
+		int				mCol;
+		int				mRow;
+		int				mUnused[2];
+	};
+
+	Visit				mVisited[400];		// +4
+	short				mVisitedCount;		// +0x1904
+	int					mSteps;				// +0x1908
+	GridCell			mCells[15][100];	// +0x190c
+
+	CeilingFinder();						// 0x430c90
+	virtual ~CeilingFinder();				// 0x430ca0
+
+	int					Search(int theCol, int theRow);			// 0x430cb0
+	int					Find(int theCol, int theRow, GridCell* theCells);	// 0x430e60
+};
+
 class EggGrid
 {
 public:
@@ -100,7 +124,7 @@ public:
 	void				Break(int x, int y, GridCell* theCell);				// 0x415a20
 	void				Place(int theCol, int theRow, int theColor, int theKind);	// 0x416590
 	void				Remove(int theCol, int theRow, bool isMatch);		// 0x416800
-	int					DropLoose();										// 0x416b80 (TODO)
+	int					DropLoose();										// 0x416b80
 	void				Match(int theCol, int theRow, int theColor);		// 0x417bd0
 	void				Blast(int theCol, int theRow);						// 0x418100 (a bomb lands)
 };
