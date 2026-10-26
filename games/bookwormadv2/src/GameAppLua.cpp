@@ -228,6 +228,7 @@ void DoCSToMMTransition(GameApp* app) { app->StartToMenuTransition(); }
 void DoGameToMMTransition(GameApp* app) { app->StartGameToMenuTransition(); }
 void DoReplayToHOFTransition(GameApp* app) { app->StartReplayHallOfFameTransition(); }
 void DoCSToMiniMenuTransition(GameApp* app) { app->StartMiniGameMenuTransition(); }
+void DoHighScoreScreenFromReplay(GameApp* app) { app->DoHighScoreScreenFromReplay(); }
 void HideBookManager(GameApp* app) { app->HideBookManager(); }
 
 // The mini-games (GameAppMiniGames.cpp)
@@ -472,6 +473,7 @@ void GameApp::RegisterGameAppMethods()
 		.Function<&::DoGameToMMTransition>("DoGameToMMTransition")
 		.Function<&::DoReplayToHOFTransition>("DoReplayToHOFTransition")
 		.Function<&::DoCSToMiniMenuTransition>("DoCSToMiniMenuTransition")
+		.Function<&::DoHighScoreScreenFromReplay>("DoHighScoreScreenFromReplay")
 		.Function<&::HideBookManager>("HideBookManager")
 		.Function<&::StartMiniGame>("StartMiniGame")
 		.Function<&::ReturnToMMFromMiniGame>("ReturnToMMFromMiniGame")

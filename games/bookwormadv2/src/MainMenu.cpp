@@ -270,6 +270,7 @@ MainMenu::MainMenu(GameApp* theApp, bool theFromTitle)
 	}
 	LoadPopAnims(true);
 	MakeTooltips(GT(0x6fcb40));
+	mApp->PlayMenuSong();  // (0x468d46: the song of the book on the map, with no look at the no-music flag)
 
 	// "(Click here to change users)" under the name
 	mChangeUserLink = new HyperlinkWidget(1, this);

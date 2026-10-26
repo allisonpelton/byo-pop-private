@@ -99,6 +99,15 @@ void GameApp::Init()
 	LoadGameTexts();
 	mNumLoadingThreadTasks = mResourceManager->GetNumResources("CommonGame") + 1;
 
+	// the songs of the three books' maps and fights, which the scripts play by number (their MUSIC_ constants). The
+	// original names "chinese_level" for 5 and "scifi_level" for 8 a second time (the boss songs are loaded by the
+	// scripts for the chapters, ids x01), and the port keeps that
+	static const char* const kBookSongs[9] = {"fairy_tale_map", "fairy_tale_level", "fairy_tale_boss",
+	                                          "chinese_map",    "chinese_level",    "chinese_level",
+	                                          "scifi_map",      "scifi_level",      "scifi_level"};
+	for (int i = 0; i < 9; i++)
+		LoadMusic(i, kBookSongs[i]);
+
 	if (!mResourceManager->LoadResources("TitleAndMM"))
 		ShowResourceError(true);
 	if (!ExtractTitleAndMMResources(mResourceManager))
@@ -815,8 +824,11 @@ void GameApp::ShowMainMenu(bool theFromTitle, bool theToBack)
 		mWidgetManager->BringToFront(mHallOfFame);
 	if (mCurtain != nullptr)
 		mWidgetManager->BringToFront(mCurtain);
-	if (!mNoMusic)
-		PlaySong(0x8c, 0.006f, true);  // the main menu's song
+	if (!mNoMusic) {
+		PlayMenuSong();
+		if (!theFromTitle)
+			UnloadChapterMusic();
+	}
 	mWidgetManager->SetFocus(mMainMenu);
 	ClearUpdateBacklog(false);
 }
@@ -941,7 +953,7 @@ void GameApp::StartIntro(int theMode)
 	if (aNewPlayer)
 		mPlayIntro = true;
 	if (!mNoMusic)
-		PlaySong(0x8c, 0.006f, true);  // the intro's song (0x43df46: the same one as the main menu's)
+		PlaySong(0x8c, 0.006f, true);  // the intro's song (0x43df46; nothing loads song 140, so it is silent)
 	PlayCutScene("images/cutscenes/intro.swf", "gBookManager:StartGame", GT(0x6fb018), true, false);
 	if (mCurtain != nullptr)
 		mWidgetManager->BringToFront(mCurtain);
@@ -1559,6 +1571,22 @@ void GameApp::PlayMusic(int theSongId, int theOffset, bool theFadeOthers)
 		mMusicInterface->FadeOutAll(true, 0.006);
 	mMusicInterface->PlayMusic(theSongId, theOffset, false);
 	mLastSongId = theSongId;
+}
+
+void GameApp::PlayMenuSong()
+{
+	int aBook = mProfile != nullptr ? mProfile->GetInt("CurrentBook") : 0;
+	PlayMusic(aBook < 5 ? 1 : aBook == 5 ? 4 : 7, 0, true);
+}
+
+void GameApp::UnloadChapterMusic()
+{
+	if (mMusicInterface == nullptr)
+		return;
+	for (int i = 400; i < 700; i++) {
+		if (i % 100 < 2 && !mMusicInterface->IsPlaying(i))
+			mMusicInterface->UnloadMusic(i);
+	}
 }
 
 // 0x4452f0: not while it plays

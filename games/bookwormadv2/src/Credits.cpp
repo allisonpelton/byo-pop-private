@@ -105,8 +105,6 @@ Credits::Credits()
 	mState = STATE_NONE;
 	if (mCurSection->mAnim != nullptr)
 		mCurSection->mAnim->PlayLabel(mCurSection->mFrame);
-	if (gApp->mSongPlayer != nullptr)
-		gApp->mSongPlayer->PlaySong(0x4e, 0.005f, true);
 	gApp->SetCursor(CURSOR_POINTER);
 	MakeTiles();
 }

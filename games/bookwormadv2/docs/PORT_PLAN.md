@@ -100,14 +100,28 @@ the key is missing (0x47aca0 with its flag: the port's `ProfileBool`).
 
 ## Bound methods of Volume 2's GameApp (the registrations of 0x43a850 against `GameAppLua.cpp`)
 
-Missing: `DoHighScoreScreenFromReplay`, and four more whose names the registration code takes from its own strings and
-still have to be read (`DoReplayToHOFTransition` and `DoCSToMiniMenuTransition` are in now). `LoadMusic` (0x4448c0, the
+All the methods that 0x43a850 registers by name are in now (`DoHighScoreScreenFromReplay` is 0x446860, which no script calls;
+`DoReplayToHOFTransition` and `DoCSToMiniMenuTransition` too), and every `gCApp` method the 462 scripts call is bound. The
+rest of the bound methods come from the registrations of the other classes (`LuaApp`, which the port has in `luaapp/`). `LoadMusic` (0x4448c0, the
 file is `music\<name>.ogg`), `PlayMusic(id, offset, fadeOthers)` (0x445290) and `UnloadMusic` (0x4452f0) are in, over the
 framework's `MusicInterface` by song id; Volume 1's tracker-module `SongPlayer` is not made (`mSongPlayer` stays null) and
 `PlaySong(id, speed, loop, flag)` is the inlined `IsPlaying`, `FadeOutAll`, `PlayMusic` of 0x43df46 (its fourth flag was
-not found; the implementation behind 0x44c490 has not been located). The ids the port's C++ plays (0x8c for the menu and
-the intro; the credits', mini games' and stats book's are still Volume 1's order numbers and play nothing) have to be
-checked against Volume 2's code.
+not found; the implementation behind 0x44c490 has not been located).
+
+The songs of Volume 2's C++ (every use of the app's music interface, the field at +0x374, was listed in the exe): the
+start-up loads ids 0 to 8 (0x43b0cd..0x43b214: `fairy_tale_map`, `_level`, `_boss`, `chinese_map`, `chinese_level` twice,
+`scifi_map`, `scifi_level` twice; the scripts' `MUSIC_FAIRY_MAP` and the like are these numbers, and the boss songs of the
+Chinese and sci-fi books come from `book.luc`'s chapter songs, `LoadMusic(tonumber(mSongId.."0"), name.."_level")` and
+`.."1"` with `mSongId` the book and the chapter number run together, so 400, 401, 410 ...). The main menu plays 1 up to
+book 4, 4 for book 5 and 7 above (the constructor 0x468d46 with no look at the no-music flag, `ShowMainMenu` 0x43e38d
+without it when that flag is set), and `ShowMainMenu` then (when not from the title) unloads the chapters' first songs that
+are not playing, ids 400, 401, 500, 501, 600 and 601 (0x445320). The intro asks for 140 (0x8c), which nothing loads, so it
+plays nothing. Nothing else in the C++ plays a song: not the credits (`Credits` is a `DataDrivenClass` with
+`data/credits.xml` in Volume 2, which the port's Volume 1 `Credits` is not: to be rewritten from 0x42c160 onwards;
+`CloseCredits` 0x446ed0 has no song either and does not clear the no-music flag), not the mini games' menu, and the stats
+book's `PlayMusic` (bound at 0x47f5a0, called by `statsbook.luc` for a music entry) is not among the sites. The stats book
+of Volume 2 is a different class (a list with `SelectIndex`, `AddSecondaryLine`, `Rehup`, no media player in the
+sites found): the port's `StatsBook` is Volume 1's and to be rewritten from 0x47f5a0 as well.
 
 ## Why the exact-match counts look worse than the survey's
 

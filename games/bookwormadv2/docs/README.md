@@ -98,7 +98,7 @@ saved in the prologue back into the battle; and the replay of a finished adventu
 dialog, `BookSelectScreen` with its three books, and the curtain's states 9, 10 and 12 up to the replay's chapter map and the
 Hall of Fame after it), tried with a profile set to a finished adventure. The music plays from the ten loose OGG files over the framework's music
 interface, by song id. Nothing of the battle has been played yet (no tile clicked). Not done: the dialogs of the trial's end
-and of a locked tome, the credits', mini-games' and stats book's song ids, and the arena's and user dialogs' comparison
+and of a locked tome, Volume 2's own credits and stats book (the port's are Volume 1's), and the arena's and user dialogs' comparison
 with the original. The cut scene player lacks the bitmap tags Volume 2's five movies use; PopAnim loads all 304
 animations but 41 pictures in 7 of them are not found.
 

@@ -29,9 +29,8 @@ void GameApp::StartMiniGame(std::string theName, int x, int y, int theXGap, int 
 	mBoard->InitMiniGame(theName, x, y, theXGap, theYGap, theCols, theRows, theLetters, theNoTilesWhilePaused);
 	mWidgetManager->SetFocus(mBoard);
 	// port: the original then freed the images' extra buffers (0x5492a0, the resource manager's 0x575cd0), as
-	// StartBattle did; the port's images keep none
-	if (!mNoMusic && mSongPlayer != nullptr)
-		mSongPlayer->PlaySong(0x96, 0.005f, true);  // the mini-games' song
+	// StartBattle did; the port's images keep none. (No song starts here in Volume 2: the scripts' minigame.luc plays
+	// its own)
 }
 
 void GameApp::ReturnToMMFromMiniGame()

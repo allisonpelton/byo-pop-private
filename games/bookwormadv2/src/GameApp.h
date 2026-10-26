@@ -293,6 +293,9 @@ public:
 	void StartReplayTransition();
 	// 0x443a00: from the BookSelectScreen to the book it picked (TRANSITION_REPLAY_BOOK, CurrentBook in ReplayCurrentBook)
 	void StartReplayBookTransition();
+	// 0x446860 (bound as DoHighScoreScreenFromReplay, which no script calls): what state 12 does once its curtain is closed,
+	// but at once: the book goes, the Hall of Fame comes and the curtain opens over it
+	void DoHighScoreScreenFromReplay();
 	// 0x443a40 (the scripts' DoReplayToHOFTransition): from a replay's chapter map to the Hall of Fame (TRANSITION_REPLAY_HOF)
 	void StartReplayHallOfFameTransition();
 	// 0x43e090: the BookSelectScreen goes
@@ -332,6 +335,10 @@ public:
 	void LoadMusic(int theSongId, const std::string& theName);
 	void PlayMusic(int theSongId, int theOffset, bool theFadeOthers);
 	void UnloadMusic(int theSongId);
+	// 0x43e38d and 0x468d46: the main menu's song goes with the book on the map (1 up to book 4, 4 for book 5, 7 above)
+	void PlayMenuSong();
+	// 0x445320: the chapters' first songs (ids 400, 401, 500, 501, 600, 601) that are not playing are unloaded
+	void UnloadChapterMusic();
 	// 0x43de80 and others inline this one: not playing yet, then the others fade out and the song starts
 	void PlaySong(int theSongId, float theFadeSpeed, bool theLoop);
 	void RemoveMainMenu();     // 0x449300
