@@ -136,6 +136,30 @@ def simplify(t):
     return t
 
 
+_res = None
+
+
+def resnames():
+    """index -> name of the IMAGE_ and FONT_ enumerators of src/Res.h (the app's mImages / mFonts tables)"""
+    global _res
+    if _res is None:
+        _res = {"IMAGE": {}, "FONT": {}}
+        h = os.path.join(ROOT, "games", "pixelus", "src", "Res.h")
+        if os.path.exists(h):
+            for m in re.finditer(r"^\s*((?:IMAGE|FONT)_\w+)\s*=\s*(\d+)", open(h, encoding="utf-8").read(), re.M):
+                _res[m.group(1).split("_")[0]][int(m.group(2))] = m.group(1)
+    return _res
+
+
+def annotate_res(t):
+    """app.638.<hex off> is mImages[off / 4], app.63c.<hex off> mFonts[off / 4]"""
+    r = resnames()
+    t = re.sub(r"\.638\.([0-9a-f]+)", lambda m: ".IMG[%s]" % r["IMAGE"].get(int(m.group(1), 16) // 4, "?"), t)
+    t = re.sub(r"\.63c\.([0-9a-f]+)", lambda m: ".FONT[%s]" % r["FONT"].get(int(m.group(1), 16) // 4, "?"), t)
+    t = re.sub(r"\.63c \+ (\d+)", lambda m: ".FONT[%s]" % r["FONT"].get(int(m.group(1)) // 4, "?"), t)
+    return t
+
+
 def render(path):
     addr = os.path.basename(path)[:8]
     t = open(path, encoding="utf-8", errors="replace").read()
@@ -148,6 +172,7 @@ def render(path):
     t = vcalls(t)
     t = annotate_strings(t, addr)
     t = simplify(t)
+    t = annotate_res(t)
     # local variable declarations ("uint uVar5;", "undefined4 **ppuStack_e4;") and the stack-cookie noise
     t = re.sub(r"^[ \t]+(?:undefined\d?|uint|int|char|bool|float|double|byte|void|string|Color|Rect|Graphics|ulonglong|longlong|"
                r"short|ushort|\w+ \*?)[ \t]*\**[ \t]*\w+(?:\[\w+\])?;\n", "", t, flags=re.M)
