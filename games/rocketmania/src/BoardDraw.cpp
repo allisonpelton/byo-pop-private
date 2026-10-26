@@ -113,7 +113,7 @@ void Board::Draw(Graphics* g)
 	for (std::list<Piece*>::iterator anItr = mObjects.begin(); anItr != mObjects.end(); ++anItr)
 		DrawMover(&aClip, *anItr);
 
-	// the chest and the coins under it (not in strategy mode), then the specials that move (0x41d670: not translated yet)
+	// the chest and the coins under it (not in strategy mode), then the specials
 	bool aBars = false;
 	if (mState == 0 || mState == 7 || m4e0 != NULL || mState == 4 || mState == 5 || mState == 1 || mState == 6)
 	{
@@ -124,6 +124,8 @@ void Board::Draw(Graphics* g)
 			DrawCoins(g);
 		}
 	}
+	for (std::list<Piece*>::iterator anItr = mObjects.begin(); anItr != mObjects.end(); ++anItr)
+		DrawSpecial(g, *anItr);
 	if (aBars)
 	{
 		// the small count at the left: the matches left (strategy mode) or the rockets the level still needs
@@ -537,4 +539,239 @@ void Board::DrawOutlined(Graphics* g, const SexyString& theText, int theLeft, in
 	g->DrawString(theText, aX + theRight, theSideY);
 	g->DrawString(theText, aX, theAboveY);
 	g->DrawString(theText, aX, theBelowY);
+}
+
+// 0x41d670's drawing of a special's picture stretched about its centre by theScale (SetFastStretch on; theOdd makes the
+// width and height odd, as the original does for the clock and the bonuses)
+void Board::DrawStretched(Graphics* g, Image* theImage, double theScale, Piece* thePiece, bool theOdd)
+{
+	int aWidth = theImage->GetWidth();
+	int aHeight = theImage->GetHeight();
+	int aStretchedWidth = Ftol((double) aWidth * theScale);
+	int aStretchedHeight = Ftol((double) aHeight * theScale);
+	if (theOdd)
+	{
+		aStretchedWidth |= 1;
+		aStretchedHeight |= 1;
+	}
+	g->SetFastStretch(true);
+	int aX = Ftol((double) (aWidth / 2 - aStretchedWidth / 2) + thePiece->mX);
+	int aY = Ftol((double) (aHeight / 2 - aStretchedHeight / 2) + thePiece->mY - 1.0);
+	g->DrawImage(theImage, Rect(aX, aY, aStretchedWidth, aStretchedHeight), Rect(0, 0, aWidth, aHeight));
+	g->SetFastStretch(false);
+}
+
+// 0x41d670: how far down a special that rides on a tile waiting above the board is drawn, while that tile falls
+int Board::SpecialDy(Piece* thePiece)
+{
+	int aDy = 0;
+	if (mApp->mMode == 0 && thePiece->mHost != NULL)
+	{
+		int aColumn = thePiece->mColumn;
+		if (thePiece->mHost == mTop[aColumn])
+		{
+			if (m448 == aColumn)
+			{
+				aDy = Ftol((double) m2e0 / (double) m444 * 42.0);
+				if (mGrid[0][aColumn] != NULL && 0x20 < aDy)
+					aDy = 0x20;
+			}
+		}
+		else if (thePiece->mHost == mSpare)
+		{
+			aDy = Ftol((double) m2e0 / (double) m444 * 42.0 - 42.0);
+			if (mGrid[0][aColumn] != NULL && -10 < aDy)
+				aDy = -10;
+		}
+	}
+	return aDy;
+}
+
+// 0x41d670: the specials (type 6 pieces), by kind: 0 and 1 a bomb (pulsing, and growing as it goes off), 2 and 3 a bonus
+// that bounces in, 4 a flame, 5 a rocket, 6 and 7 a coin that falls into the chest, 8 a picture that fades out,
+// 9 a launch's number (0x4290b0, not translated yet), 10 and 11 a torch whose frame shows its hits left, 12 and 13 the
+// clock. Some drawings move a sparkle effect (the piece's mFlash) along with the piece until it lands; the effects
+// themselves are not translated yet.
+void Board::DrawSpecial(Graphics* g, Piece* thePiece)
+{
+	Image** anImages = mApp->mImages;
+	if (mApp->mMode == 1 || mApp->mMode == 2)
+	{
+		if (thePiece->mType != 6)
+			return;
+		if (thePiece->mHost != NULL)
+		{
+			for (int i = 0; i < 6; i++)
+			{
+				if (thePiece->mHost == mTop[i])
+					return;
+			}
+		}
+	}
+	if (thePiece->mType != 6)
+		return;
+	switch (thePiece->mKind)
+	{
+	case 0:
+	{
+		double aScale = 1.0;
+		if (mUpdateCnt % 800 < 0x32)
+		{
+			double aPulse = sin((double) mUpdateCnt * 0.002 * 62.83185307) * 0.36 + 1.0;
+			if (1.0 <= aPulse)
+				aScale = aPulse;
+		}
+		if (thePiece->mBorn < mUpdateCnt)
+			DrawStretched(g, anImages[IMAGE_BOMB], aScale, thePiece, false);
+		else
+			g->DrawImage(anImages[IMAGE_BOMB], Ftol(thePiece->mX), Ftol((double) SpecialDy(thePiece) + thePiece->mY));
+		break;
+	}
+	case 1:
+		DrawStretched(g, anImages[IMAGE_BOMB],
+			(double) (mUpdateCnt - thePiece->mBorn) * 0.023809523809523808 * 0.3 + 1.0, thePiece, false);
+		break;
+	case 2:
+	case 3:
+	{
+		static const int sImages[5] = { 0x55, 0x56, 0x57, 0x58, 0x59 };
+		Image* anImage = anImages[sImages[thePiece->mIndex >= 0 && thePiece->mIndex < 5 ? thePiece->mIndex : 0]];
+		int anAge = thePiece->mBorn - mUpdateCnt;
+		bool aStretch = false;
+		double aScale = 1.0;
+		if (anAge < 100)
+		{
+			double aGrow = 1.0 - cos((double) anAge * 0.01 * 1.57079632675);
+			aScale = 0.4 <= aGrow ? aGrow : 0.4;
+			aStretch = true;
+		}
+		else if (anAge < 600)
+		{
+			double aWobble = (1.05 - (double) ((anAge - 100) / 100) * 0.2) * sin((double) (anAge - 100) * 0.002 * 31.415926535) + 1.0;
+			aScale = 1.0 <= aWobble ? aWobble : 1.0;
+			aStretch = true;
+		}
+		if (aStretch && thePiece->mKind == 2)
+			DrawStretched(g, anImage, aScale, thePiece, true);
+		else
+			g->DrawImage(anImage, Ftol(thePiece->mX), Ftol((double) SpecialDy(thePiece) + thePiece->mY));
+		break;
+	}
+	case 4:
+	{
+		Image* aStrip = anImages[IMAGE_MATCHFLAME];
+		int aWidth = aStrip->GetWidth() / 10;
+		int aHeight = aStrip->GetHeight();
+		int aFrame = CrtRand() % 10;
+		g->SetDrawMode(Graphics::DRAWMODE_ADDITIVE);
+		g->DrawImage(aStrip, Ftol((double) ((0x2a - aWidth) / 2) + thePiece->mX), Ftol((double) ((0x2a - aHeight) / 2) + thePiece->mY),
+			Rect(aFrame * aWidth, 0, aWidth, aHeight));
+		g->SetDrawMode(Graphics::DRAWMODE_NORMAL);
+		break;
+	}
+	case 5:
+		DrawRocket(g, thePiece->mIndex, Ftol(thePiece->mX), Ftol(thePiece->mY));
+		break;
+	case 6:
+	case 7:
+	{
+		int anAge = mUpdateCnt - thePiece->mBorn;
+		int aX = Ftol(thePiece->mX);
+		int aY;
+		if (anAge < 100)
+		{
+			aY = Ftol((double) anAge * (double) anAge * 0.0001 * thePiece->mY);
+			if (thePiece->mFlash != NULL)
+			{
+				thePiece->mFlash->mX = (double) (aX + 7);
+				thePiece->mFlash->mY = (double) aY;
+			}
+		}
+		else
+		{
+			aY = Ftol(thePiece->mY);
+			if (thePiece->mFlash != NULL)
+			{
+				mEffects->Remove(thePiece->mFlash);
+				thePiece->mFlash = NULL;
+			}
+		}
+		int aCoin = thePiece->mIndex == 0 ? IMAGE_COINBRONZE : thePiece->mIndex == 1 ? IMAGE_COINSILVER :
+			thePiece->mIndex == 2 ? IMAGE_COINGOLD : IMAGE_COINPLATINUM;
+		g->DrawImage(anImages[aCoin], aX, aY);
+		int aPhase = (aX / 10 + aY / 10 + mUpdateCnt) % 800;
+		if (aPhase <= 100 && 100 <= anAge)
+		{
+			int aShade = Ftol(sin((double) aPhase * 0.01 * 3.1415926535) * 60.0);
+			g->SetColorizeImages(true);
+			g->SetColor(Color(aShade, aShade, aShade));
+			g->SetDrawMode(Graphics::DRAWMODE_ADDITIVE);
+			g->DrawImage(anImages[IMAGE_COINGLOW], aX - 2, aY - 3);
+			g->SetDrawMode(Graphics::DRAWMODE_NORMAL);
+			g->SetColorizeImages(false);
+		}
+		break;
+	}
+	case 8:
+	{
+		int anAlpha = thePiece->mBorn - mUpdateCnt + 0xff;
+		if (anAlpha < 0)
+			anAlpha = 0;
+		g->SetColorizeImages(true);
+		g->SetColor(Color(255, 255, 255, anAlpha));
+		g->DrawImage(anImages[thePiece->mIndex], Ftol(thePiece->mX), Ftol(thePiece->mY));
+		g->SetColorizeImages(false);
+		break;
+	}
+	case 9:
+		// (the number of a launch, 0x4290b0, is not translated yet)
+		break;
+	case 10:
+	case 11:
+	{
+		int aX;
+		int aY;
+		if (mUpdateCnt - thePiece->mBorn < 100)
+		{
+			int aRest = 100 - (mUpdateCnt - thePiece->mBorn);
+			aX = thePiece->m40;
+			double anEase = 1.0 - (double) aRest * (double) aRest * 0.0001;
+			aY = Ftol((double) thePiece->m44 + anEase * (thePiece->mY - (double) thePiece->m44));
+			if (thePiece->mFlash != NULL)
+			{
+				thePiece->mFlash->mX = (double) (aX + 7);
+				thePiece->mFlash->mY = (double) aY;
+			}
+		}
+		else
+		{
+			aX = Ftol(thePiece->mX);
+			aY = Ftol(thePiece->mY);
+			if (thePiece->mFlash != NULL)
+			{
+				mEffects->Remove(thePiece->mFlash);
+				thePiece->mFlash = NULL;
+			}
+		}
+		Image* aSheet = anImages[IMAGE_TORCH];
+		int aWidth = aSheet->GetWidth() / 3;
+		int aHeight = aSheet->GetHeight() / 3;
+		int aColumn = ((mUpdateCnt % 0x2d) / 0xf + aY % 5 + aY % 3 + aX % 7) % 3;
+		g->DrawImage(aSheet, aX, aY, Rect(aColumn * aWidth, (3 - thePiece->ma8) * aHeight, aWidth, aHeight));
+		break;
+	}
+	case 12:
+	case 13:
+		if (mUpdateCnt % 800 < 100)
+		{
+			double aScale = sin((double) mUpdateCnt * 0.004 * 47.1238898025) * 0.15 + 1.0;
+			if (thePiece->mKind == 12)
+			{
+				DrawStretched(g, anImages[IMAGE_CLOCK], aScale, thePiece, true);
+				break;
+			}
+		}
+		g->DrawImage(anImages[IMAGE_CLOCK], Ftol(thePiece->mX), Ftol((double) SpecialDy(thePiece) + thePiece->mY));
+		break;
+	}
 }
