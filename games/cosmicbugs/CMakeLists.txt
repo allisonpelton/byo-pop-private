@@ -13,10 +13,18 @@ if(NOT MSVC)
   target_compile_options(cosmicbugsengine PRIVATE -Wall)
 endif()
 
+# The game's code over the engine
+add_library(cosmicbugsgame STATIC ${COSMICBUGS_SOURCES})
+target_include_directories(cosmicbugsgame PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
+target_link_libraries(cosmicbugsgame PUBLIC cosmicbugsengine)
+if(NOT MSVC)
+  target_compile_options(cosmicbugsgame PRIVATE -Wall)
+endif()
+
 # Headless checks of the engine against the user's game files (no window, no sound)
 if(NOT EMSCRIPTEN)
   add_executable(cosmicbugs_banktest test/banktest.cpp)
-  target_link_libraries(cosmicbugs_banktest PRIVATE cosmicbugsengine stb)
+  target_link_libraries(cosmicbugs_banktest PRIVATE cosmicbugsgame cosmicbugsengine stb)
   if(WIN32)
     add_custom_command(TARGET cosmicbugs_banktest POST_BUILD
       COMMAND ${CMAKE_COMMAND} -E copy_if_different ${PORT_RUNTIME_DLLS} $<TARGET_FILE_DIR:cosmicbugs_banktest>

@@ -1,7 +1,7 @@
 // Loads Cosmic Bugs' art banks the way GameMain does (art8.bbk raw, art.bbk converted to the 16-bit screen) and
 // draws every image of one onto 800x600 sheets through the engine's blitters, written as PNGs. "fonts" draws a line
 // in each font bugs.xml names, plain, outlined and filled.
-//   cosmicbugs_banktest <gamedir> <outdir> [art|art8|fonts] [first image]
+//   cosmicbugs_banktest <gamedir> <outdir> [art|art8|fonts|anims] [first image]
 // Opens no window and plays no sound.
 
 #include "R64.h"
@@ -9,6 +9,7 @@
 #include "R64Font.h"
 #include "R64Sys.h"
 #include "R64Xml.h"
+#include "CBGame.h"
 
 #include "stb_image_write.h"
 
@@ -110,6 +111,70 @@ void DrawFonts(Bank* theArt, Bank* theArt8, const PixelFormat* theFmt, const cha
 	}
 }
 
+
+// Every <animation> of bugs.xml loaded as the game loads it, the first frame of each drawn with its mask
+void DrawAnims(Bank* theArt, const PixelFormat* theFmt, const char* theOutDir)
+{
+	if (Bank_Load(&cb::gArtBank, "art.bbk", 1, theFmt) == 0)
+		return;
+	std::vector<uint8_t> aXml;
+	if (!Sys_ReadFile("animations\\bugs.xml", aXml))
+		return;
+	aXml.push_back(0);
+	const int W = 800, H = 600;
+	std::vector<uint16_t> aScreen((size_t)W * H);
+	int aClip[4] = {0, 0, W - 1, H - 1};
+	XmlTag aTag;
+	const char* p = (const char*)aXml.data();
+	int x = 0, y = 0, aRowH = 0, aSheet = 0, n = 0;
+	auto aFlush = [&]() {
+		char aPath[512];
+		std::snprintf(aPath, sizeof(aPath), "%s/anims_%d.png", theOutDir, aSheet++);
+		WritePng(aPath, aScreen.data(), W, H);
+	};
+	for (size_t k = 0; k < aScreen.size(); k++)
+		aScreen[k] = (uint16_t)((((k / W) / 16 + (k % W) / 16) & 1) ? 0x4208 : 0x8410);
+	while (p != nullptr && *p != 0)
+	{
+		p = Xml_NextTag(p, &aTag);
+		if (std::strcmp(aTag.name, "animation") != 0)
+			continue;
+		cb::Animation* anAnim = cb::List_Append(&cb::gAnims, new cb::Animation());
+		cb::Animation_FromXml(anAnim, &aTag);
+		n++;
+		std::printf("anim %s file %s frames %d time %d\n", anAnim->name, anAnim->file, anAnim->count, anAnim->frameTime);
+		if (anAnim->count < 1 || anAnim->frames[0] == nullptr)
+			continue;
+		Image* aFrame = anAnim->frames[0];
+		if (x + aFrame->w > W)
+		{
+			x = 0;
+			y += aRowH + 2;
+			aRowH = 0;
+		}
+		if (y + aFrame->h > H)
+		{
+			aFlush();
+			for (size_t k = 0; k < aScreen.size(); k++)
+				aScreen[k] = (uint16_t)((((k / W) / 16 + (k % W) / 16) & 1) ? 0x4208 : 0x8410);
+			x = 0;
+			y = 0;
+			aRowH = 0;
+		}
+		if (aFrame->hasMask != 0)
+			Image_BlitAlpha(aFrame, (uint8_t*)aScreen.data(), W * 2, theFmt, aClip, x, y);
+		else
+			Image_Blit(aFrame, (uint8_t*)aScreen.data(), W * 2, theFmt, aClip, x, y);
+		x += aFrame->w + 2;
+		if (aFrame->h > aRowH)
+			aRowH = aFrame->h;
+	}
+	aFlush();
+	std::printf("%d animations\n", n);
+	cb::List_Clear(&cb::gAnims);
+	(void)theArt;
+}
+
 } // namespace
 
 int main(int argc, char** argv)
@@ -143,6 +208,14 @@ int main(int argc, char** argv)
 	std::printf("art8: %d images, %d palettes; art: %d images, %u bytes\n", Bank_Count(aBank8),
 		(int)aBank8->palettes.size(), Bank_Count(aBank), aBank->dataSize);
 
+	if (std::strcmp(aWhich, "anims") == 0)
+	{
+		Sys_SetScreenFormat(&aScreenFmt);
+		DrawAnims(aBank, &aScreenFmt, argv[2]);
+		delete aBank;
+		delete aBank8;
+		return 0;
+	}
 	if (std::strcmp(aWhich, "fonts") == 0)
 	{
 		DrawFonts(aBank, aBank8, &aScreenFmt, argv[2]);
