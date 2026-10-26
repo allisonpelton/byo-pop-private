@@ -239,9 +239,8 @@ void OptionsDialog::ButtonDepress(int theId)
 	// 0x4853d0: the footer button is the Dialog's (it ends the options); the Credits button starts the credits
 	Dialog::ButtonDepress(theId);
 	if (mCreditsButton != nullptr && theId == mCreditsButton->mId) {
-		// port: the credits (0x450fe0: the whole curtain closes and the credits screen, 0x450d80, comes) are not
-		// ported yet; the original also disabled the button
-		SDL_Log("OptionsDialog: the credits (0x450fe0) are not ported yet");
+		mCreditsButton->SetDisabled(true);
+		mApp->StartCredits();
 	}
 }
 

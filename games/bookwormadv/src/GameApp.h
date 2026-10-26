@@ -22,6 +22,7 @@ namespace Sexy {
 class Board;
 class BookManager;
 class ConversationPanel;
+class Credits;
 class CurtainTransition;
 class CutScene;
 class Font;
@@ -105,7 +106,8 @@ public:
 	std::string mCurtainLuaCallback;               // +0x840: the scripts' function called when the curtain is done
 	std::string mDialogCallback;                   // +0x878: the scripts' function told the answer to dialog 0 or 18
 	Widget* mHallOfFame = nullptr;                 // +0x89c: the hall of fame (HallOfFame)
-	Widget* mCredits = nullptr;                    // +0x8a0: the credits, which take the keys (not ported yet)
+	Credits* mCredits = nullptr;                   // +0x8a0: the credits (Credits), which take the mouse and stop the screens under them
+	int mCreditsCount = 0;                         // +0x8e8: credits showing (0 or 1); the focus handlers 0x451160 and 0x451230 (not ported yet) leave the screens under them alone
 	void* mCurtainCallbackObject = nullptr;        // +0x894
 	void (*mCurtainCallback)(void*) = nullptr;     // +0x898 (a member function in the original)
 	int mTransitionState = TRANSITION_NONE;        // +0x8ec
@@ -316,6 +318,17 @@ public:
 	void CloseHallOfFame();
 	// 0x451090: the whole curtain closes, then the credits come (0x451130)
 	void StartEndOfGameCredits();
+
+	// The credits (GameAppCredits.cpp): mCredits is made by ShowCredits and removed by CloseCredits.
+	// 0x450fe0 (the options' Credits button): the whole curtain closes over the main menu, then ShowCredits
+	void StartCredits();
+	// 0x450d80: the options go, and the credits over every screen, which stop; the curtain stays in front
+	void ShowCredits();
+	// 0x450e90: the credits go, the screens under them go on and the song from before comes back (after the end of
+	// the game the main menu comes)
+	void CloseCredits();
+	// the curtain's callback (+0x898) that ends the credits: CloseCredits (a member function in the original)
+	static void CloseCreditsCallback(void* theApp);
 
 	// The stats book (GameAppStatsBook.cpp): the tome of knowledge, the media player, and the book of what the
 	// player saw. mBookScreen is made by one of these and removed by RemoveStatsBook.

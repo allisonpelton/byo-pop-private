@@ -4,6 +4,7 @@
 
 #include "Board.h"
 #include "BookManager.h"
+#include "Credits.h"
 #include "CurtainTransition.h"
 #include "GameApp.h"
 #include "HallOfFame.h"
@@ -113,11 +114,11 @@ void GameApp::CloseHallOfFame()
 
 static void EndOfGameCreditsCallback(void* theApp)
 {
-	// 0x451130: the credits come (0x450d80: the Credits screen; the original then set its +0x157, which makes them
-	// end on the main menu), and the hall of fame goes
+	// 0x451130: the credits come (0x450d80), with the finale of the end of the game (their +0x157, which also makes
+	// them end on the main menu), and the hall of fame goes
 	GameApp* anApp = static_cast<GameApp*>(theApp);
-	// port: the credits are not ported yet
-	SDL_Log("GameApp: the credits (0x450d80) are not ported yet");
+	anApp->ShowCredits();
+	anApp->mCredits->mEndOfGame = true;
 	if (anApp->mHallOfFame != nullptr)
 		anApp->CloseHallOfFame();
 }
