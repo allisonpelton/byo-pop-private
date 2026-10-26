@@ -51,12 +51,14 @@ struct AutoplayState
 	size_t				mPathIndex;
 	bool				mGameOverLogged;
 	bool				mGivenUp;           // Abandon Hope was pressed in this game
+	int					mOptionsStage;      // with screenshots on: 0 not yet, 1 options up, 2 its high scores seen, 3 its credits seen
+	unsigned int		mDialogShots;       // a bit per dialog id: its screenshot was taken
 	int					mShotWait;          // the chamber-done screenshot: 0 not yet, 1 waiting, 2 taken
 	FILE*				mLog;
 
 	AutoplayState() : mSeed(1), mTick(0), mGames(0), mWait(0), mLevels(0), mLevelsPerGame(3), mStartPyramid(0),
 		mStartChamber(0), mHeldKey(0), mPlanned(false), mUseSolver(true), mRandomMoves(0), mPathIndex(0),
-		mGameOverLogged(false), mGivenUp(false), mShotWait(0), mLog(NULL) {}
+		mGameOverLogged(false), mGivenUp(false), mOptionsStage(0), mDialogShots(0), mShotWait(0), mLog(NULL) {}
 
 	int Rand(int theRange)
 	{
@@ -132,14 +134,36 @@ void MummyApp::AutoplayUpdate()
 		}
 		return;
 	}
-	// the dialogs: the name for the high score is typed, the others answered with their first button
+	// the dialogs, the newest first: each is photographed once (their sizes are checked by eye), the name for the high
+	// score is typed, the options visit their high scores and credits, the others are answered with their first button
 	if (GetDialogCount() > 0)
 	{
-		for (int anId = 0; anId < 32; anId++)
+		for (int anId = 31; anId >= 0; anId--)
 		{
 			Dialog* aDialog = GetDialog(anId);
 			if (aDialog == NULL)
 				continue;
+			if (!mAutoplayShots.empty() && !(s->mDialogShots & (1u << anId)))
+			{
+				s->mDialogShots |= 1u << anId;
+				SaveScreenshot(StrFormat("%s-dialog%d.png", mAutoplayShots.c_str(), anId));
+				s->mWait = 3;
+				return;
+			}
+			if (anId == DIALOG_OPTIONS && s->mOptionsStage == 1)
+			{
+				s->mOptionsStage = 2;
+				((OptionsDialog*) aDialog)->ButtonDepress(2);
+				s->mWait = 5;
+				return;
+			}
+			if (anId == DIALOG_OPTIONS && s->mOptionsStage == 2)
+			{
+				s->mOptionsStage = 3;
+				((OptionsDialog*) aDialog)->ButtonDepress(4);
+				s->mWait = 5;
+				return;
+			}
 			if (anId == DIALOG_RECORD_SCORE)
 			{
 				char aName[32];
@@ -244,6 +268,15 @@ void MummyApp::AutoplayUpdate()
 		return;
 	if (mGameMode != MODE_CLASSIC)
 		return;
+
+	// the options and the dialogs they lead to are photographed once
+	if (!mAutoplayShots.empty() && s->mOptionsStage == 0 && mSidePanel != NULL)
+	{
+		s->mOptionsStage = 1;
+		mSidePanel->ButtonDepress(12);
+		s->mWait = 5;
+		return;
+	}
 
 	// enough levels: give up, so that the solution plays and the high scores come
 	if (s->mLevels >= s->mLevelsPerGame && !s->mGivenUp)

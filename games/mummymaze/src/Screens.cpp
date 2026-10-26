@@ -628,7 +628,15 @@ void SidePanel::Update()
 	}
 }
 
-// 0x42a340 sets the buttons' places in Resize
+// 0x42a340: the buttons' places (the creation order is undo, retry, options, world map, quit)
+void SidePanel::Resize(int theX, int theY, int theWidth, int theHeight)
+{
+	Widget::Resize(theX, theY, theWidth, theHeight);
+	static const int kY[5] = {0x83, 0xae, 0xe2, 0x10d, 0x1ae};
+	for (int i = 0; i < 5; i++)
+		mButtons[i]->Resize(7, kY[i], 0x87, 0x2a);
+}
+
 // 0x429790
 void SidePanel::Draw(Graphics* g)
 {

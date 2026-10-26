@@ -26,7 +26,7 @@ using namespace Sexy;
 // a dialog with the game's colours and fonts (0x41aa90) whose text is named by its address in the exe
 void MummyApp::DoMessage(int theId, const SexyString& theHeader, const SexyString& theLines, int theMode, int theX, int theY, int theW)
 {
-	Dialog* aDialog = NewDialog(theId, true, theHeader, theLines, theMode == 3 ? GT(0x004955b4) : SexyString(""), theMode);
+	Dialog* aDialog = NewDialog(theId, true, theHeader, theLines, theMode == 3 ? GT(0x004922d0) : SexyString(""), theMode);
 	aDialog->Resize(theX, theY, theW, aDialog->GetPreferredHeight(theW));
 	AddDialog(theId, aDialog);
 }
@@ -270,7 +270,28 @@ void MummyApp::ShowRecordScore(const SexyString& theLines)
 // 0x41eab0: the options
 void MummyApp::ShowOptions()
 {
-	DoMessage(DIALOG_OPTIONS, GT(0x004941a8), "", 3, 0x99, 0x1a, 0x1e0);
+	OptionsDialog* aDialog = (OptionsDialog*) NewDialogOf(new OptionsDialog(this));
+	aDialog->Resize(0x99, 0x1a, 0x1e0, aDialog->GetPreferredHeight(0x1b6));
+	AddDialog(DIALOG_OPTIONS, aDialog);
+}
+
+// 0x41f6a0: the high scores as a dialog
+void MummyApp::ShowHighScoreDialog()
+{
+	HighScoreDialog* aDialog = (HighScoreDialog*) NewDialogOf(new HighScoreDialog(this));
+	aDialog->Resize(0xf5, 0x5a, 300, aDialog->GetPreferredHeight(0x1ac));
+	AddDialog(DIALOG_HIGH_SCORES, aDialog);
+}
+
+// the game's colours for a dialog of its own (the end of 0x41aa90, which the classes of 0x4250f0 and 0x413c30 get from
+// the callers: 0x41eab0 and 0x41f6a0)
+Dialog* MummyApp::NewDialogOf(Dialog* theDialog)
+{
+	theDialog->SetColor(Dialog::COLOR_HEADER, Color(0x66, 0x5c, 0x38));
+	theDialog->SetColor(Dialog::COLOR_LINES, Color(0x2e, 0x14, 0));
+	theDialog->SetColor(Dialog::COLOR_BUTTON_TEXT, Color(0xe0, 0xb7, 0x28));
+	theDialog->mContentInsets = Insets(0x26, 0x26, 0x26, 0x26);
+	return theDialog;
 }
 
 // 0x41b5b0: the tips (not ported yet)
@@ -372,7 +393,22 @@ void MummyApp::ButtonDepress(int theId)
 		ShowMainMenu(2, true);
 		break;
 	case 2000 + DIALOG_OPTIONS:
+	{
+		// 0x4201e0 case 0x7d5: DONE takes over what the switches say
+		OptionsDialog* aDialog = (OptionsDialog*) GetDialog(DIALOG_OPTIONS);
+		bool aFullscreen = aDialog->mFullscreenCheckbox->IsChecked();
+		if (mIsWindowed == aFullscreen)
+			SwitchScreenMode(!aFullscreen);
+		EnableCustomCursors(aDialog->mCursorsCheckbox->IsChecked());
+		mShowClock = aDialog->mClockCheckbox->IsChecked();
+		mShowAnkh = aDialog->mAnkhCheckbox->IsChecked();
 		KillDialog(DIALOG_OPTIONS);
+		break;
+	}
+	case 2000 + DIALOG_RESET_TIPS:
+		// 0x7ec: the tips come back
+		KillDialog(DIALOG_RESET_TIPS);
+		mTipTwoMummies = mTipGate = mTipTrap = mTipRed = mTipScorpion = mTipDark = mTipAnkh = true;
 		break;
 	case 2000 + DIALOG_RECORD_SCORE:
 	{

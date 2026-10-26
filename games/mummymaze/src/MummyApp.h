@@ -56,6 +56,7 @@ enum DialogId
 	DIALOG_QUIT_TO_MAIN = 3,
 	DIALOG_OPTIONS = 5,
 	DIALOG_REGISTER = 6,
+	DIALOG_CREDITS = 0x12,
 	DIALOG_ADVENTURE_NEW = 0xa,
 	DIALOG_NEW_ADVENTURE_NAME = 0xb,
 	DIALOG_CONTINUE = 0xe,
@@ -167,6 +168,8 @@ public:
 	void					ShowQuitDialog();                       // 0x41cc30
 	void					ShowQuitToMainDialog();                 // 0x41cfb0
 	void					ShowOptions();                          // 0x41eab0
+	void					ShowHighScoreDialog();                  // 0x41f6a0
+	Dialog*					NewDialogOf(Dialog* theDialog);
 	void					ShowRecordScore(const SexyString& theLines);   // 0x41f3e0
 	void					ShowTip(int theWhich);                  // 0x41b5b0
 	void					ShowAdventureSlots();                   // 0x41b800

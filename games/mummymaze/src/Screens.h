@@ -143,10 +143,12 @@ public:
 
 	virtual void		AddedToManager(WidgetManager* theWidgetManager) override;
 	virtual void		RemovedFromManager(WidgetManager* theWidgetManager) override;
+	virtual void		Resize(int theX, int theY, int theWidth, int theHeight) override;   // 0x42a340
 	virtual void		Update() override;
 	virtual void		Draw(Graphics* g) override;
 	virtual void		ButtonDepress(int theId) override;
 	virtual void		ButtonPress(int theId) override;
+	using Widget::Resize;
 	using ButtonListener::ButtonPress;
 	using ButtonListener::ButtonDepress;
 };
