@@ -24,6 +24,7 @@ class Launcher;
 class MenuTalker;
 class PowerUp;
 class Steggy;
+class ButtonWidget;
 class Tank;
 class Thunderbolt;
 
@@ -85,6 +86,7 @@ public:
 	int					mField1cc;			// +0x1cc
 	int					mLongestChain;		// +0x1d0
 	int					mBabies;			// +0x1d4 the babies hatched
+	ButtonWidget*		mReplayButton;		// +0x204 the game's end's button (id 5)
 	char				mReplayText[0x30];	// +0x208 PLAY_THIS_PUZZLE_AGAIN
 	int					mSong;				// +0x238 the music the destructor fades out
 	int					mField23c;			// +0x23c
@@ -95,6 +97,7 @@ public:
 	virtual ~Dynomite();					// 0x4041e0
 
 	virtual void		Draw(Graphics* g) override;		// 0x4044a0
+	virtual void		Update() override;				// 0x406aa0
 
 	void				SetPaused(bool isPaused);		// 0x404fb0
 	void				SetActive(bool isActive);		// 0x4047e0
@@ -117,6 +120,10 @@ public:
 	virtual void		DrawMode();						// 0x4b1930 (slot 49; empty): what a mode draws between them
 	// 0x406f70 (slot 54): the game's end, with the time, the rank and the high scores (TODO with the game's end)
 	virtual void		DrawGameOver(Graphics* g);
+	// 0x405070 (slot 53): the game's end's panel comes down from above, and its button with it
+	virtual void		UpdateGameOver();
+	// 0x406160 (slot 55): the power-ups' spin, the flying eggs, the ceiling, the minute played, the effects
+	virtual void		UpdateBoard();
 	virtual void		MakeDynamite();					// 0x405010 (slot 51): a thunderbolt strikes the loaded egg
 	virtual void		Blasted();						// 0x4b1930 (slot 52; empty): after a bomb's blast
 	virtual void		EggAlone(int theColor);			// 0x4050d0 (slot 56; empty): a landed egg touches none of its colour

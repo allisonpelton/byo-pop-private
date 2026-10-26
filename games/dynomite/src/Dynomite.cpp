@@ -1,9 +1,11 @@
 #include "Dynomite.h"
+#include "ButtonWidget.h"
 #include "Effects.h"
 #include "Egg.h"
 #include "EggGrid.h"
 #include "FossilizedApp.h"
 #include "Graphics.h"
+#include "ImageFont.h"
 #include "InchySmall.h"
 #include "FirePrompt.h"
 #include "Launcher.h"
@@ -54,7 +56,7 @@ Dynomite::Dynomite()
 	// TODO: +0x1d8 = 0
 	mBabies = 0;
 	mLongestChain = 0;
-	// TODO: +0x204 (a widget) = 0
+	mReplayButton = NULL;
 	mField149 = true;
 	mField158 = 0;
 	mBonusBits = 0;
@@ -87,8 +89,13 @@ Dynomite::~Dynomite()
 		mApp->mMusicInterface->FadeOut(mSong, true, 0.004);
 		mApp->mMusicInterface->FadeOut(4, true, 0.004);
 	}
-	// TODO: +0x204 (removed from the widget manager and safe-deleted) and +0x1d8 (the high scores) come with the
-	// game's end
+	if (mReplayButton != NULL)
+	{
+		mApp->mWidgetManager->RemoveWidget(mReplayButton);
+		mApp->SafeDeleteWidget(mReplayButton);
+		mReplayButton = NULL;
+	}
+	// TODO: +0x1d8 (the high scores) comes with the game's end
 	if (mThunderbolt != NULL)
 	{
 		delete mThunderbolt;
@@ -226,6 +233,138 @@ void Dynomite::Draw(Graphics* g)
 		DrawGameOver(g);
 	if (mTalker != NULL)
 		mTalker->Draw();
+}
+
+// 0x406aa0: nothing while the game is in the background, and only the end's panel once it is shown
+void Dynomite::Update()
+{
+	if (mApp->mActive != false)
+	{
+		if (mField132 == true)
+		{
+			UpdateGameOver();
+			return;
+		}
+		if (mTalker != NULL)
+			mTalker->Update();
+		if ((mThunderbolt != NULL) && (mThunderbolt->Update() == false))
+		{
+			if (mThunderbolt != NULL)
+				delete mThunderbolt;
+			mThunderbolt = NULL;
+		}
+		mBonusBits = 0;
+		mPowerUps.ResetIter();
+		PowerUp* aPowerUp = mPowerUps.Next();
+		while (aPowerUp != NULL)
+		{
+			if (aPowerUp->Update() == false)
+			{
+				mPowerUps.Remove(aPowerUp);
+				if (aPowerUp != NULL)
+					delete aPowerUp;
+			}
+			else
+				mBonusBits |= aPowerUp->mFlag;
+			aPowerUp = mPowerUps.Next();
+		}
+		mFirePrompt->Update();
+		mLauncher->Update();
+		mSteggy->Update();
+		mTank->Update();
+		mGrid->Update();
+		if ((mField149 == true) && (0x145 < mGrid->mPastLineFrames) && ((mBonusBits & 0x10) == 0))
+		{
+			if (mField130 == false)
+				mApp->mSideBar->mInchy->Sink(0);
+			mField130 = true;
+			mGrid->mBreakPastLine = true;
+		}
+		UpdateBoard();
+		if (mField131 == true)
+		{
+			mField134--;
+			if ((mField134 == 0) && (mField132 == false))
+			{
+				mReplayButton = new ButtonWidget(5, mApp);
+				mReplayButton->mButtonImage = mApp->mPicLargedbutton->mImage;
+				mReplayButton->mDoFinger = true;
+				mReplayButton->mLabel = mReplayText;
+				mReplayButton->SetFont(mApp->mWhiteFont);
+				mReplayButton->SetColor(ButtonWidget::COLOR_LABEL, Color(0xff, 0xff, 0xff));
+				mReplayButton->SetColor(ButtonWidget::COLOR_LABEL_HILITE, Color(0xff, 0xff, 0xff));
+				mApp->mWidgetManager->AddWidget(mReplayButton);
+				mField132 = true;
+			}
+		}
+		MarkDirty();
+	}
+}
+
+// 0x405070
+void Dynomite::UpdateGameOver()
+{
+	mField1c8 = (int) ((double) mField1c8 * (double) 0.9f);
+	mReplayButton->Resize(400 - mApp->mPicLargedbutton->mWidth / 2, mField1c8 + 0x172, 0x17e, 0x41);
+	MarkDirty();
+}
+
+// 0x406160
+void Dynomite::UpdateBoard()
+{
+	int aSpin = mField128 + 1;
+	if (0x167 < aSpin)
+		aSpin = mField128 - 0x167;
+	if (aSpin < 0)
+		aSpin += 0x168;
+	mField128 = aSpin;
+	mFlyingEggs.ResetIter();
+	FlyingEgg* anEgg = mFlyingEggs.Next();
+	while (anEgg != NULL)
+	{
+		if (anEgg->Update() == false)
+		{
+			mFlyingEggs.Remove(anEgg);
+			if (mLauncher->mFlying == anEgg)
+				mLauncher->mFlying = NULL;
+			delete anEgg;
+		}
+		anEgg = mFlyingEggs.Next();
+	}
+	EggGrid* aGrid = mGrid;
+	float aTarget = (float) mField104;
+	if ((aGrid->mCeiling < aTarget) && (mField100 == false))
+		aGrid->mCeiling = (float) (((double) aTarget - aGrid->mCeiling) * (double) 0.05f + aGrid->mCeiling);
+	if (mField104 <= (int) mGrid->mCeiling)
+		mField100 = true;
+	if ((mFieldB0 == true) && (mField131 == false))
+	{
+		mField1cc++;
+		if (mField1cc == 6000)
+			mApp->mField4d8++;
+	}
+	mEffects.ResetIter();
+	Effect* anEffect = mEffects.Next();
+	while (anEffect != NULL)
+	{
+		if (anEffect->Update() == false)
+		{
+			mEffects.Remove(anEffect);
+			delete anEffect;
+		}
+		anEffect = mEffects.Next();
+	}
+	mPopups.ResetIter();
+	anEffect = mPopups.Next();
+	while (anEffect != NULL)
+	{
+		if (anEffect->Update() == false)
+		{
+			mPopups.Remove(anEffect);
+			delete anEffect;
+		}
+		anEffect = mPopups.Next();
+	}
 }
 
 // 0x404660
