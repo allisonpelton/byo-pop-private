@@ -21,6 +21,7 @@
 #include "MatchFinder.h"
 #include "MoveSet.h"
 #include "Sha256.h"
+#include "Specials.h"
 #include "MTRand.h"
 #include "Replay.h"
 #include "Piece.h"
@@ -1368,9 +1369,9 @@ static void TestReplayFormat()
 		"replay: every op 1..15 has a name and an argument count, 0 and 16 none");
 
 	// A golden vector: the smallest file (header and END) and a one-segment file, byte for byte, the same on
-	// native and wasm (engine ABI 7 since stage 10)
+	// native and wasm (engine ABI 9 since stage 12)
 	Replay::File anEmpty;
-	Check(Hex(Replay::Write(anEmpty)) == "424a5250010000000700000045" "4e4420" "1d000000" "00" "00000000" "00000000" "00000000"
+	Check(Hex(Replay::Write(anEmpty)) == "424a5250010000000900000045" "4e4420" "1d000000" "00" "00000000" "00000000" "00000000"
 		"00000000" "0000000000000000" "00000000", "replay: golden bytes of a file with only END");
 	Replay::File aSmall;
 	Replay::Segment aSegment;
@@ -1381,7 +1382,7 @@ static void TestReplayFormat()
 	aSmall.mEnd.mReason = Replay::END_NO_MOVES;
 	aSmall.mEnd.mScore = 90;
 	std::string aSmallHex = Hex(Replay::Write(aSmall));
-	Check(aSmallHex == "424a52500100000007000000" "5345474d" "1d000000" "00" "00" "92100000" "00" "00" "00000000" "00000000"
+	Check(aSmallHex == "424a52500100000009000000" "5345474d" "1d000000" "00" "00" "92100000" "00" "00" "00000000" "00000000"
 		"02000000" "a001" "01" "0a" "0a" "01" "03" "01" "01"
 		"454e4420" "1d000000" "01" "00000000" "5a000000" "00000000" "00000000" "0000000000000000" "00000000",
 		"replay: golden bytes of a one-segment file (got " + aSmallHex + ")");
@@ -1897,8 +1898,8 @@ static void TestReplayPlayable()
 	anOld.mEngineAbi = 0;
 	Check(!Replay::CheckPlayable(anOld, 8, 8, &aWhy, true), "playable: refused: engine 0");
 	// Stage 7: engine 3 (the board shape rules); stage 7b: engine 4 (dirt); stage 8: engine 5 (more gem colours); stage 9:
-	// engine 6 (the match rules); stage 10: engine 7 (twists and slides). An earlier engine's replays of variant rules
-	// no longer play, its replays of the original rules do
+	// engine 6 (the match rules); stage 10: engine 7 (twists and slides); stage 11: engine 8 (flame and lightning gems).
+	// An earlier engine's replays of variant rules no longer play, its replays of the original rules do
 	for (uint32_t anAbi = 2; anAbi < (uint32_t) Replay::ENGINE_ABI; anAbi++)
 	{
 		anOld.mEngineAbi = anAbi;
@@ -1906,7 +1907,7 @@ static void TestReplayPlayable()
 		Check(Replay::CheckPlayable(anOld, 8, 8, &aWhy, true), "playable: the original rules recorded by engine " + std::to_string(anAbi) + " (" + aWhy + ")");
 		Check(!Replay::CheckPlayable(anOld, 8, 8, &aWhy, false), "playable: refused: variant rules recorded by engine " + std::to_string(anAbi));
 	}
-	Check(Replay::ENGINE_ABI == 7, "playable: this is engine 7 (stage 10)");
+	Check(Replay::ENGINE_ABI == 9, "playable: this is engine 9 (stage 12)");
 }
 
 // A v2 save (Replay.h, games/bejeweled/docs/CODE_MODS_DESIGN.md 7.2) around the v1 test save's fields: the rules
@@ -2031,8 +2032,79 @@ static void TestReplayVariantSave()
 		Check(!Replay::ReadVariantSave(aDirtBads[i].mBytes, &aRead, &aWhy) && !aWhy.empty(), std::string("v2: refused: ") + aDirtBads[i].mWhat + " (" + aWhy + ")");
 	}
 
+	// KIND (stage 11): a byte a cell, a gem's kind, written when the rules have specials
+	Check(!aRead.mHasKinds && aRead.mKinds.empty(), "v2: no KIND chunk");
+	Replay::VariantSave aKinds = aHoled;
+	aKinds.mHasKinds = true;
+	aKinds.mKinds.assign(64, 0);
+	aKinds.mKinds[8] = 1;
+	aKinds.mKinds[63] = 2;
+	std::string aKindBytes = V2Save(aKinds, aV1Hole);
+	std::string aKindChunk = Replay::VariantSaveChunks(aKinds).substr(2514 + 20);
+	Check(Hex(aKindChunk.substr(0, 8 + 10)) == "4b494e44" "40000000" "00000000000000000100", "v2: golden KIND chunk after MOVE");
+	Check(Replay::ReadVariantSave(aKindBytes, &aRead, &aWhy) && aRead.mHasKinds && (aRead.mKinds == aKinds.mKinds),
+		"v2: KIND reads back (" + aWhy + ")");
+	std::string aKindNoEnd = aKindBytes.substr(0, aKindBytes.size() - 8);
+	std::string aKindAlone = aKindNoEnd.substr(aKindNoEnd.size() - (8 + 64));
+	size_t aKindCells = aKindNoEnd.size() - 64;
+	auto aWithKind = [&](size_t theCell, char theKind) { std::string aCopy = aKindNoEnd; aCopy[aKindCells + theCell] = theKind; return aCopy + anEnd; };
+	const Bad aKindBads[] =
+	{
+		{"KIND twice", aKindNoEnd + aKindAlone + anEnd},
+		{"KIND of 63 bytes", aKindNoEnd.substr(0, aKindNoEnd.size() - (8 + 64)) + "KIND" + std::string("\x3f\0\0\0", 4) + std::string(63, '\0') + anEnd},
+		{"KIND 3", aWithKind(10, 3)},
+		{"KIND on a hole", aWithKind(9, 1)},
+	};
+	for (size_t i = 0; i < sizeof(aKindBads) / sizeof(aKindBads[0]); i++)
+	{
+		aWhy.clear();
+		Check(!Replay::ReadVariantSave(aKindBads[i].mBytes, &aRead, &aWhy) && !aWhy.empty(), std::string("v2: refused: ") + aKindBads[i].mWhat + " (" + aWhy + ")");
+	}
+
+	// GOLD and GTIM (stage 12): a byte a cell (1 gold) and the level's time, written when the rules have gold
+	Check(Replay::ReadVariantSave(aKindBytes, &aRead, &aWhy) && !aRead.mHasGold && !aRead.mHasGoldTime, "v2: no GOLD or GTIM chunk (" + aWhy + ")");
+	Replay::VariantSave aGold = aHoled;
+	aGold.mHasGold = true;
+	aGold.mGold.assign(64, 0);
+	aGold.mGold[8] = 1;
+	aGold.mGold[63] = 1;
+	aGold.mHasGoldTime = true;
+	aGold.mGoldTicksLeft = 4321;
+	aGold.mGoldTickLimit = 6000;
+	std::string aGoldBytes = V2Save(aGold, aV1Hole);
+	std::string aGoldChunk = Replay::VariantSaveChunks(aGold).substr(2514 + 20);
+	Check(Hex(aGoldChunk.substr(0, 8 + 10)) == "474f4c44" "40000000" "00000000000000000100", "v2: golden GOLD chunk after MOVE");
+	Check(Hex(aGoldChunk.substr(8 + 64, 16)) == "4754494d" "08000000" "e1100000" "70170000", "v2: golden GTIM chunk after GOLD");
+	Check(Replay::ReadVariantSave(aGoldBytes, &aRead, &aWhy) && aRead.mHasGold && (aRead.mGold == aGold.mGold) && aRead.mHasGoldTime &&
+		(aRead.mGoldTicksLeft == 4321) && (aRead.mGoldTickLimit == 6000), "v2: GOLD and GTIM read back (" + aWhy + ")");
+	std::string aGoldNoEnd = aGoldBytes.substr(0, aGoldBytes.size() - 8);
+	std::string aGtim = aGoldNoEnd.substr(aGoldNoEnd.size() - 16);
+	std::string aGoldAlone = aGoldNoEnd.substr(aGoldNoEnd.size() - 16 - (8 + 64), 8 + 64);
+	std::string aBeforeGold = aGoldNoEnd.substr(0, aGoldNoEnd.size() - 16 - (8 + 64));
+	size_t aGoldCells = aBeforeGold.size() + 8;
+	auto aWithGold = [&](size_t theCell, char theGold) { std::string aCopy = aGoldNoEnd; aCopy[aGoldCells + theCell] = theGold; return aCopy + anEnd; };
+	auto aLe32 = [](uint32_t theValue) { std::string anOut; for (int i = 0; i < 4; i++) anOut += (char)((theValue >> (8 * i)) & 0xff); return anOut; };
+	auto aWithTime = [&](uint32_t theLeft, uint32_t theLimit) { return aBeforeGold + aGoldAlone + "GTIM" + aLe32(8) + aLe32(theLeft) + aLe32(theLimit) + anEnd; };
+	Check(Replay::ReadVariantSave(aWithTime(0, 0), &aRead, &aWhy) && aRead.mHasGoldTime && (aRead.mGoldTickLimit == 0), "v2: GTIM 0 0, no limit (" + aWhy + ")");
+	const Bad aGoldBads[] =
+	{
+		{"GOLD twice", aBeforeGold + aGoldAlone + aGoldAlone + aGtim + anEnd},
+		{"GOLD of 63 bytes", aBeforeGold + "GOLD" + std::string("\x3f\0\0\0", 4) + std::string(63, '\0') + aGtim + anEnd},
+		{"GOLD 2", aWithGold(10, 2)},
+		{"GOLD on a hole", aWithGold(9, 1)},
+		{"GTIM twice", aGoldNoEnd + aGtim + anEnd},
+		{"GTIM of 4 bytes", aBeforeGold + aGoldAlone + "GTIM" + aLe32(4) + aLe32(0) + anEnd},
+		{"GTIM more left than the limit", aWithTime(6001, 6000)},
+		{"GTIM a negative limit", aWithTime(0, 0xffffffffu)},
+	};
+	for (size_t i = 0; i < sizeof(aGoldBads) / sizeof(aGoldBads[0]); i++)
+	{
+		aWhy.clear();
+		Check(!Replay::ReadVariantSave(aGoldBads[i].mBytes, &aRead, &aWhy) && !aWhy.empty(), std::string("v2: refused: ") + aGoldBads[i].mWhat + " (" + aWhy + ")");
+	}
+
 	// An unknown chunk before END is skipped
-	std::string anExtra = aBytes.substr(0, aBytes.size() - 8) + "GOLD" + std::string("\x02\0\0\0", 4) + "ab" + aBytes.substr(aBytes.size() - 8);
+	std::string anExtra = aBytes.substr(0, aBytes.size() - 8) + "XTRA" + std::string("\x02\0\0\0", 4) + "ab" + aBytes.substr(aBytes.size() - 8);
 	Check(Replay::ReadVariantSave(anExtra, &aRead, &aWhy) && (aRead.mMoves == 2), "v2: an unknown chunk is skipped (" + aWhy + ")");
 
 	std::string aNoEnd = aBytes.substr(0, aBytes.size() - 8);
@@ -2589,6 +2661,104 @@ static void TestMoveSet()
 		" twists, " + std::to_string(aFound[4]) + " slides)");
 }
 
+// Stage 11 (4.8): the gem a group keeps as a special, and the blasts in turn (Specials.h). theRows a letter a colour, "."
+// no gem; theKinds "f" a flame, "l" lightning; theMask the layout ("#" a cell, "." a hole, "d" dirt; all "#" when
+// empty). The result: "make f@c,r ...; blast f@c,r:destroyed ..." in order
+static std::string SpecialsRun(const std::vector<std::string>& theRows, const std::vector<std::string>& theKinds, const std::string& theRules,
+	const std::vector<MatchFinder::Cell>& theMoved = {}, std::vector<std::string> theMask = {})
+{
+	std::string aJson = "{\"rules\": {\"board\": {\"gemColors\": 12}, " + theRules + "}}";
+	Result aResult = Merge({{"s", aJson.c_str()}});
+	Check(Clean(aResult), "specials: the rules " + theRules + Messages(aResult));
+	MatchFinder::Spec aSpec = MatchFinder::Spec::FromRules(aResult.mRules);
+	MatchFinder::ColorGrid aColors = Grid(theRows);
+	if (theMask.empty())
+		theMask.assign(theRows.size(), std::string(theRows[0].size(), '#'));
+	BoardLayout aLayout;
+	aLayout.SetMask(aColors.mCols, aColors.mRows, theMask);
+	std::vector<MatchFinder::Group> aGroups;
+	MatchFinder::FindGroups(aColors, aSpec, &aGroups);
+	Specials::Grid aGrid;
+	aGrid.mCols = aColors.mCols;
+	aGrid.mRows = aColors.mRows;
+	for (int r = 0; r < aGrid.mRows; r++)
+	{
+		for (int c = 0; c < aGrid.mCols; c++)
+		{
+			aGrid.mGem[r][c] = (aColors.mColor[r][c] != MatchFinder::NO_GEM);
+			aGrid.mKind[r][c] = (theKinds.empty() || (theKinds[r][c] == '.')) ? 0 : (theKinds[r][c] == 'f') ? 1 : 2;
+		}
+	}
+	for (const MatchFinder::Group& g : aGroups)
+	{
+		for (const MatchFinder::Cell& c : g.mCells)
+			aGrid.mDying[c.second][c.first] = true;
+	}
+	std::vector<Specials::Creation> aCreations;
+	Specials::Creations(aGroups, aSpec, aResult.mRules.mSpecials, theMoved, aGrid, &aCreations);
+	std::string aText = "make";
+	for (const Specials::Creation& c : aCreations)
+	{
+		aGrid.mDying[c.mCell.second][c.mCell.first] = false;
+		aText += std::string(" ") + ((c.mKind == 1) ? "f" : "l") + "@" + std::to_string(c.mCell.first) + "," + std::to_string(c.mCell.second);
+	}
+	std::vector<Specials::Blast> aBlasts;
+	Specials::Blasts(aGroups, aLayout, aResult.mRules.mSpecials, aCreations, &aGrid, &aBlasts);
+	aText += "; blast";
+	for (const Specials::Blast& b : aBlasts)
+		aText += std::string(" ") + ((b.mKind == 1) ? "f" : "l") + "@" + std::to_string(b.mCell.first) + "," + std::to_string(b.mCell.second) + ":" +
+			std::to_string(b.mDestroyed.size());
+	return aText;
+}
+
+static void CheckSpecials(const std::string& theGot, const std::string& theExpected, const std::string& theWhat)
+{
+	Check(theGot == theExpected, "specials: " + theWhat + " (got \"" + theGot + "\")");
+}
+
+static void TestSpecials()
+{
+	// Bejeweled 2's defaults: a run of 4 makes a flame gem (radius 1, 20 points a gem), a run of 5 lightning (30)
+	const std::string aB2 = "\"specials\": {\"flame\": {}, \"lightning\": {}}";
+	CheckSpecials(SpecialsRun({"aaaa", "bcbc"}, {}, aB2), "make f@2,0; blast", "a run of 4 keeps its middle gem (scan order) as a flame");
+	CheckSpecials(SpecialsRun({"aaaa", "bcbc"}, {}, aB2, {{3, 0}, {3, 1}}), "make f@3,0; blast", "... the gem the move put into it");
+	CheckSpecials(SpecialsRun({"aaaa", "bcbc"}, {}, aB2, {{2, 1}, {1, 0}}), "make f@1,0; blast", "... the first moved gem in the group");
+	CheckSpecials(SpecialsRun({"aaaaa", "bcbcb"}, {}, aB2), "make l@2,0; blast", "a run of 5 makes lightning, not a flame");
+	CheckSpecials(SpecialsRun({"aaaaaa", "bcbcbc"}, {}, aB2), "make l@3,0; blast", "a run of 6 makes lightning");
+	CheckSpecials(SpecialsRun({"aaa", "bcb"}, {}, aB2), "make; blast", "a run of 3 makes nothing");
+	CheckSpecials(SpecialsRun({"ab", "ab", "ab", "ac"}, {}, aB2), "make f@0,2; blast", "a vertical run of 4 (and one of 3)");
+	CheckSpecials(SpecialsRun({"aaaa", "bcbc"}, {"..f.", "...."}, aB2), "make f@3,0; blast f@2,0:3",
+		"the middle gem a special: the next on round; the flame goes off, sparing the new one");
+
+	// A flame takes the gems not yet dying within its radius; a created special is spared
+	CheckSpecials(SpecialsRun({"bcbd", "aaac", "cdcd"}, {"....", ".f..", "...."}, aB2), "make; blast f@1,1:6", "a flame in a run of 3: its 3x3");
+	CheckSpecials(SpecialsRun({"aaaa", "bcbc"}, {"f...", "...."}, "\"specials\": {\"flame\": {\"radius\": 2}}"), "make f@2,0; blast f@0,0:3",
+		"radius 2; the flame made in the same resolve is spared");
+	// Lightning takes its row and column, holes left out, dirt reached but no gem
+	CheckSpecials(SpecialsRun({"bcbcb", "aaacd", "cdcdc", "dcdcd"}, {".....", ".l...", ".....", "....."}, aB2), "make; blast l@1,1:5",
+		"lightning: its row and its column");
+	CheckSpecials(SpecialsRun({"bcbcb", "aaa.d", "cdcdc", "d.dcd"}, {".....", ".l...", ".....", "....."}, aB2,
+		{}, {"#####", "###.#", "#####", "#d###"}), "make; blast l@1,1:3", "lightning: a hole and a dirt cell hold no gem");
+
+	// Chains: a special a blast takes goes off in turn with specials.chain, not without
+	CheckSpecials(SpecialsRun({"bcbdc", "aaacd", "cdcdc"}, {".....", ".f...", "..l.."}, aB2), "make; blast f@1,1:6 l@2,2:2",
+		"chain: the lightning the flame took goes off");
+	CheckSpecials(SpecialsRun({"bcbdc", "aaacd", "cdcdc"}, {".....", ".f...", "..l.."}, "\"specials\": {\"flame\": {}, \"lightning\": {}, \"chain\": false}"),
+		"make; blast f@1,1:6", "no chain: it only dies");
+	CheckSpecials(SpecialsRun({"aaab", "cdcb", "dcdb"}, {"..f.", "....", "...l"}, aB2), "make; blast l@3,2:3 f@2,0:2",
+		"two specials in the groups go off in the groups' order: the column's run first");
+
+	// Patterns: lightning checked first; merged crossings, diagonals and shapes name their groups
+	CheckSpecials(SpecialsRun({"aaaa", "bcbc"}, {}, "\"specials\": {\"flame\": {\"createdBy\": [\"run4\"]}, \"lightning\": {\"createdBy\": [\"run4\", \"run5\"]}}"),
+		"make l@2,0; blast", "a run both name makes lightning");
+	CheckSpecials(SpecialsRun({"aaa", "bab", "cad"}, {}, "\"match\": {\"crossings\": \"merge\"}, \"specials\": {\"lightning\": {\"createdBy\": [\"T\"]}}"),
+		"make l@1,2; blast", "a T makes lightning at the middle of its cells (its runs' in order)");
+	CheckSpecials(SpecialsRun({"abc", "cad", "dca"}, {}, "\"match\": {\"diagonal\": true}, \"specials\": {\"flame\": {\"createdBy\": [\"diagonal\"]}}"),
+		"make f@1,1; blast", "a diagonal");
+	CheckSpecials(SpecialsRun({"aab", "aac"}, {}, "\"match\": {\"shapes\": {\"sq\": {\"preset\": \"square\"}}}, \"specials\": {\"flame\": {\"createdBy\": [\"sq\"]}}"),
+		"make f@1,0; blast", "a shape by its id, at the middle of its orientation's cells");
+}
+
 int main(int argc, char** argv)
 {
 	for (int i = 1; i < argc; i++)
@@ -2610,6 +2780,7 @@ int main(int argc, char** argv)
 	TestFillMinimum();
 	TestMatchFinder();
 	TestMoveSet();
+	TestSpecials();
 	TestGravity();
 	TestDirt();
 	TestDesignExamples();

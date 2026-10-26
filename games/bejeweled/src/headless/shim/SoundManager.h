@@ -16,6 +16,7 @@ class SoundManager
 public:
 	virtual ~SoundManager() {}
 	virtual SoundInstance* GetSoundInstance(unsigned int theSfxID) { return NULL; }
+	int LoadSound(const std::string& theFilename) { return -1; }
 	void SetDefaultPitch(double theNumSteps) {}
 };
 

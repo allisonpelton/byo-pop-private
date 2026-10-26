@@ -37,6 +37,9 @@ const size_t MOVE_SIZE = 3 * 4;
 const uint32_t TAG_GRAV = Replay::Tag("GRAV");
 const size_t GRAV_SIZE = 4 + 1;
 const uint32_t TAG_DIRT = Replay::Tag("DIRT"); // u8 leftFirst, then a byte a cell
+const uint32_t TAG_KIND = Replay::Tag("KIND"); // a byte a cell (stage 11)
+const uint32_t TAG_GOLD = Replay::Tag("GOLD"); // a byte a cell (stage 12)
+const uint32_t TAG_GTIM = Replay::Tag("GTIM"); // the level's time (stage 12)
 const size_t SAVE_HEADER_FIXED = 4 + Replay::RULES_ID_SIZE + 2 + 2 + 4; // the version up to the mask
 
 void PutU8(std::string* theOut, int theValue)
@@ -407,6 +410,24 @@ std::string Replay::VariantSaveChunks(const VariantSave& theSave)
 			PutU8(&aDirt, theSave.mDirtLayers[i]);
 		PutRecord(&aChunks, TAG_DIRT, aDirt);
 	}
+	if (theSave.mHasKinds)
+	{
+		std::string aKinds;
+		for (size_t i = 0; i < theSave.mKinds.size(); i++)
+			PutU8(&aKinds, theSave.mKinds[i]);
+		PutRecord(&aChunks, TAG_KIND, aKinds);
+	}
+	if (theSave.mHasGold)
+	{
+		std::string aGold;
+		for (size_t i = 0; i < theSave.mGold.size(); i++)
+			PutU8(&aGold, theSave.mGold[i]);
+		PutRecord(&aChunks, TAG_GOLD, aGold);
+		std::string aTime;
+		PutU32(&aTime, (uint32_t) theSave.mGoldTicksLeft);
+		PutU32(&aTime, (uint32_t) theSave.mGoldTickLimit);
+		PutRecord(&aChunks, TAG_GTIM, aTime);
+	}
 	PutRecord(&aChunks, TAG_END, "");
 	return aChunks;
 }
@@ -458,6 +479,7 @@ bool Replay::ReadVariantSave(const std::string& theSave, VariantSave* theOut, st
 		return false;
 	}
 	aPos += SAVE_HEAD_SIZE;
+	std::vector<bool> aPresent(aCells, false);
 	for (size_t i = 0; i < aCells; i++)
 	{
 		if (aPos >= theSave.size())
@@ -468,6 +490,7 @@ bool Replay::ReadVariantSave(const std::string& theSave, VariantSave* theOut, st
 		bool isPresent = (theSave[aPos++] != 0);
 		if (!isPresent)
 			continue;
+		aPresent[i] = true;
 		if (!s.mPlayable[i])
 		{
 			anErr = "a gem in the hole at cell (" + std::to_string(i % s.mCols) + "," + std::to_string(i / s.mCols) + ")";
@@ -585,6 +608,65 @@ bool Replay::ReadVariantSave(const std::string& theSave, VariantSave* theOut, st
 				s.mDirtLayers.push_back(aLayers);
 			}
 			s.mHasDirt = true;
+		}
+		else if (aTag == TAG_KIND)
+		{
+			// stage 11: a gem's kind (Specials::Kind: 0 normal, 1 flame, 2 lightning), 0 where there is no gem
+			if (s.mHasKinds || (aLen != aCells))
+			{
+				anErr = s.mHasKinds ? std::string("KIND twice") : "KIND: " + std::to_string(aLen) + " bytes, not " + std::to_string(aCells);
+				return false;
+			}
+			for (size_t i = 0; i < aCells; i++)
+			{
+				uint8_t aKind = (uint8_t) aReader.U8();
+				if ((aKind > 2) || ((aKind > 0) && !aPresent[i]))
+				{
+					anErr = "KIND: kind " + std::to_string(aKind) + " at cell (" + std::to_string(i % s.mCols) + "," +
+						std::to_string(i / s.mCols) + ")" + (aPresent[i] ? "" : ", which has no gem");
+					return false;
+				}
+				s.mKinds.push_back(aKind);
+			}
+			s.mHasKinds = true;
+		}
+		else if (aTag == TAG_GOLD)
+		{
+			// stage 12: 1 a gold cell, only on a gem cell of the save's mask
+			if (s.mHasGold || (aLen != aCells))
+			{
+				anErr = s.mHasGold ? std::string("GOLD twice") : "GOLD: " + std::to_string(aLen) + " bytes, not " + std::to_string(aCells);
+				return false;
+			}
+			for (size_t i = 0; i < aCells; i++)
+			{
+				uint8_t aGold = (uint8_t) aReader.U8();
+				if ((aGold > 1) || ((aGold > 0) && !s.mPlayable[i]))
+				{
+					anErr = "GOLD: " + std::to_string(aGold) + " at cell (" + std::to_string(i % s.mCols) + "," +
+						std::to_string(i / s.mCols) + ")" + (s.mPlayable[i] ? "" : ", which is no gem cell");
+					return false;
+				}
+				s.mGold.push_back(aGold);
+			}
+			s.mHasGold = true;
+		}
+		else if (aTag == TAG_GTIM)
+		{
+			// stage 12: the level's time left and its limit, in ticks (0 0: no limit)
+			if (s.mHasGoldTime || (aLen != 8))
+			{
+				anErr = s.mHasGoldTime ? std::string("GTIM twice") : "GTIM: " + std::to_string(aLen) + " bytes, not 8";
+				return false;
+			}
+			s.mGoldTicksLeft = (int32_t) aReader.U32();
+			s.mGoldTickLimit = (int32_t) aReader.U32();
+			if ((s.mGoldTickLimit < 0) || (s.mGoldTicksLeft < 0) || (s.mGoldTicksLeft > s.mGoldTickLimit))
+			{
+				anErr = "GTIM: " + std::to_string(s.mGoldTicksLeft) + " ticks left of " + std::to_string(s.mGoldTickLimit);
+				return false;
+			}
+			s.mHasGoldTime = true;
 		}
 		// any other chunk: a later stage's, skipped
 	}
@@ -1292,4 +1374,51 @@ bool Replay::Read(const std::string& theBytes, File* theFile, std::string* theEr
 	theFile->mHasTrailingRng = hasPendingRng;
 	theFile->mTrailingRng = aPendingRng;
 	return true;
+}
+
+bool Replay::Peek(const std::string& theBytes, Summary* theSummary)
+{
+	*theSummary = Summary();
+	if ((theBytes.size() > (size_t) MAX_FILE_SIZE) || (theBytes.size() < 12) || (theBytes.compare(0, 4, "BJRP") != 0))
+		return false;
+	Reader aHeader(theBytes, 4, 12);
+	if ((int) aHeader.U16() != FORMAT)
+		return false;
+	bool hasEnd = false;
+	size_t aPos = 12;
+	while (theBytes.size() - aPos >= 8)
+	{
+		Reader aRecordHeader(theBytes, aPos, aPos + 8);
+		uint32_t aTag = aRecordHeader.U32();
+		uint32_t aLen = aRecordHeader.U32();
+		aPos += 8;
+		if (aLen > theBytes.size() - aPos)
+			return false;
+		Reader aReader(theBytes, aPos, aPos + aLen);
+		if (aTag == TAG_META)
+			theSummary->mMeta = theBytes.substr(aPos, aLen);
+		else if ((aTag == TAG_SEGM) && (theSummary->mSegments++ == 0))
+		{
+			theSummary->mMode = aReader.U8();
+			if (aReader.U8() == RNG_SEED)
+			{
+				theSummary->mHasSeed = true;
+				theSummary->mSeed = aReader.U32();
+			}
+		}
+		else if ((aTag == TAG_END) && (aLen == END_SIZE))
+		{
+			EndInfo& anEnd = theSummary->mEnd;
+			anEnd.mReason = aReader.U8();
+			anEnd.mEndTick = aReader.U32();
+			anEnd.mScore = (int32_t) aReader.U32();
+			anEnd.mLevel = (int32_t) aReader.U32();
+			anEnd.mGems = (int32_t) aReader.U32();
+			anEnd.mLogicHash = aReader.U64();
+			anEnd.mBoardDraws = aReader.U32();
+			hasEnd = true;
+		}
+		aPos += aLen;
+	}
+	return hasEnd && (aPos == theBytes.size());
 }

@@ -639,6 +639,8 @@ Board::~Board()
 	delete mOwnRng; // port(variant): the board's own RNG
 	delete mDirtTiles[0]; // port(variant): the dirt art (BoardDrawVariant.cpp)
 	delete mDirtTiles[1];
+	delete mGoldTiles[0]; // port(variant): the gold art (BoardGold.cpp)
+	delete mGoldTiles[1];
 	delete mRecorder; // port(variant)
 }
 
@@ -928,6 +930,8 @@ void Board::Update()
 		mInputDelay--;
 
 	Widget::Update();
+	if (mVariant.mSpecials) UpdateSpecials(); // port(variant): the specials' overlays and blasts (cosmetic; BoardSpecials.cpp)
+	if (mVariant.mGold) UpdateGold(); // port(variant): the gold cells' shine (cosmetic; BoardGold.cpp)
 
 	if (mShowingText)
 	{
@@ -940,7 +944,7 @@ void Board::Update()
 	if (mTimeDrainDelay > 0)
 		mTimeDrainDelay--;
 
-	if ((mTimedMode) && (mTimeDrainDelay == 0) && ((mState == STATE_PLAYING) || (mState == STATE_SWAPPING) ||
+	if ((mTimedMode) && !mVariant.mGold && (mTimeDrainDelay == 0) && ((mState == STATE_PLAYING) || (mState == STATE_SWAPPING) || // port(variant): a gold board has its own time (UpdateGoldGoal)
 		(mState == STATE_TWISTING) || (mState == STATE_SLIDING))) // port(variant): a twist or a slide on its way, as a swap
 	{
 		mTimeDrain += mTimeDrainRate / 100.0;
@@ -1003,6 +1007,7 @@ void Board::Update()
 		aTargetWidth = BAR_WIDTH;
 	if (aTargetWidth < 0)
 		aTargetWidth = 0;
+	if (mVariant.mGold) aTargetWidth = GoldBarTarget(); // port(variant): the gold so far, or the level's time left (BoardGold.cpp)
 
 	bool aBarGrew = false;
 	for (int i = 0; i < 2; i++)
@@ -1021,7 +1026,7 @@ void Board::Update()
 	}
 
 	int aBarColor;
-	if (!mTimedMode)
+	if (mVariant.mGold ? !GoldTimed() : !mTimedMode) // port(variant): a gold level's bar is a timer only when it has a limit
 		aBarColor = BAR_COLOR_NORMAL;
 	else
 	{
@@ -1193,6 +1198,7 @@ void Board::Update()
 			++anItr;
 	}
 
+	if (mVariant.mGold) UpdateGoldGoal(); else // port(variant): a gold board's level ends with the gold (BoardGold.cpp)
 	if (mState == STATE_PLAYING)
 	{
 		if (mDisplayScore - (int)mTimeDrain - mLevelStartScore >= mLevelTargetScore - mLevelStartScore)

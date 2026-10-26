@@ -2,6 +2,7 @@
 #include "WinDMApp.h"
 #include "Board.h"
 #include "GameConfig.h"
+#include "ReplayRecorder.h"
 #include "Res.h"
 #include "platform/VFS.h"
 
@@ -139,6 +140,8 @@ void HighScoreWidget::AddedToManager(WidgetManager* theWidgetManager)
 {
 	Widget::AddedToManager(theWidgetManager);
 	theWidgetManager->AddWidget(mPlayAgainLink);
+	if (mWatchReplayLink != NULL) // port(variant)
+		theWidgetManager->AddWidget(mWatchReplayLink);
 }
 
 // 0x4cedd2
@@ -146,6 +149,8 @@ void HighScoreWidget::RemovedFromManager(WidgetManager* theWidgetManager)
 {
 	Widget::RemovedFromManager(theWidgetManager);
 	theWidgetManager->RemoveWidget(mPlayAgainLink);
+	if (mWatchReplayLink != NULL) // port(variant)
+		theWidgetManager->RemoveWidget(mWatchReplayLink);
 }
 
 // 0x4cedf5
@@ -167,6 +172,13 @@ void HighScoreWidget::Resize(int theX, int theY, int theWidth, int theHeight)
 // 0x4ceeb7
 void HighScoreWidget::ButtonDepress(int theId)
 {
+	if (theId == WATCH_REPLAY_LINK_ID) // port(variant): this game's replay, if it is still there
+	{
+		std::string aPath = ReplayRecorder::FinishedReplay(mApp->mBoard);
+		if (!aPath.empty())
+			mApp->WatchReplay(aPath, false);
+		return;
+	}
 	mApp->NewGame();
 }
 
@@ -399,6 +411,19 @@ HighScoreWidget::HighScoreWidget(WinDMApp* theApp)
 	mPlayAgainLink->mOverColor = Color(255, 255, 255);
 	mPlayAgainLink->mUnderlineSize = 0;
 
+	// port(variant): hidden until Update finds this game's replay written (ReplayRecorder::AfterUpdate writes it an update
+	// after this widget is made: it asks the widget whether the score makes a table)
+	mWatchReplayLink = NULL;
+	if (gGameConfig.mFeatures.mReplays)
+	{
+		mWatchReplayLink = new HyperlinkWidget(WATCH_REPLAY_LINK_ID, this);
+		mWatchReplayLink->mLabel = mApp->GetString("HSWIDGET_WATCH_REPLAY", _S("WATCH REPLAY"));
+		mWatchReplayLink->SetFont(mApp->mMainFont);
+		mWatchReplayLink->mColor = Color(255, 100, 220);
+		mWatchReplayLink->mOverColor = Color(255, 255, 255);
+		mWatchReplayLink->mVisible = false;
+	}
+
 	mBoardImage = NULL;
 
 	int aTipNum = Rand() % 9;
@@ -440,6 +465,7 @@ HighScoreWidget::~HighScoreWidget()
 {
 	delete mBoardImage;
 	delete mPlayAgainLink;
+	delete mWatchReplayLink; // port(variant)
 	SaveHighScores();
 }
 
@@ -473,6 +499,8 @@ void HighScoreWidget::DoCheckForHighScore()
 void HighScoreWidget::Update()
 {
 	Widget::Update();
+	if ((mWatchReplayLink != NULL) && !mWatchReplayLink->mVisible && !ReplayRecorder::FinishedReplay(mApp->mBoard).empty()) // port(variant)
+		mWatchReplayLink->SetVisible(true);
 
 	if (mSlideY < 0)
 	{
@@ -484,6 +512,12 @@ void HighScoreWidget::Update()
 		}
 		MarkDirty();
 		mPlayAgainLink->Resize(265, mSlideY + 389, 286, 23);
+		if (mWatchReplayLink != NULL) // port(variant): right-aligned with the stats at 587, its baseline at 120
+		{
+			int aLinkWidth = mApp->mMainFont->StringWidth(mWatchReplayLink->mLabel) + 8;
+			int aLinkHeight = mApp->mMainFont->GetHeight() + 4;
+			mWatchReplayLink->Resize(591 - aLinkWidth, mSlideY + 121 - (aLinkHeight + mApp->mMainFont->GetAscent()) / 2, aLinkWidth, aLinkHeight);
+		}
 	}
 
 	if (mUpdateCnt % 10 == 0)

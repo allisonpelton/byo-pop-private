@@ -1,0 +1,18 @@
+# Stage 13, run with -replay=replay.bjr -replayquit: the watch's controls in turn. Space pauses and plays on, a click
+# on the board pauses and plays on, N plays to the next move at 8x and pauses before it (three times, the last from the
+# pause), 2 plays on at 2x, then Space and 4: the rest at 8x. The board waits while paused: the replay is the same.
+300 click 320 398
+400 char SPACE
+410 screenshot shots/s01_paused.png
+450 char SPACE
+470 click 400 200
+480 screenshot shots/s02_clicked.png
+500 click 400 200
+520 char n
+600 screenshot shots/s03_next_move.png
+610 char n
+700 char n
+800 char 2
+900 char SPACE
+950 char 4
+400000 quit

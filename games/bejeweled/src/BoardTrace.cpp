@@ -102,7 +102,9 @@ void Sexy::PrintBoardTrace(Board* theBoard, int theUpdate)
 	// port(variant): a variant board's own state (stage 5: the moves that stood, the kept invalid moves; stage 6:
 	// the undos taken, on a board with undo; stage 7c: the direction the next fall takes and the flips so far, when
 	// the rules set a gravity rule; stage 7b: the dirt layers left in all and the side the next diagonal slide tries
-	// first, when the rules have dirt; stage 9: the groups of each kind the board scored but runs, with match rules)
+	// first, when the rules have dirt; stage 9: the groups of each kind the board scored but runs, with match rules;
+	// stage 11: the flame and lightning gems made and the blasts, with specials rules, then a line of the specials;
+	// stage 12: the gold cells of the goal and, with a time limit, the level's ticks left, then a line of the gold)
 	if (aBoard->mVariant.mAny)
 	{
 		printf("TRACE   variant moves %d invalid %d", aBoard->mMoveCount, aBoard->mInvalidMoves);
@@ -127,7 +129,47 @@ void Sexy::PrintBoardTrace(Board* theBoard, int theUpdate)
 				aCounts[MatchFinder::GROUP_PLUS], aCounts[MatchFinder::GROUP_DIAGONAL_DOWN] + aCounts[MatchFinder::GROUP_DIAGONAL_UP],
 				aCounts[MatchFinder::GROUP_SHAPE]);
 		}
+		// stage 11: the specials made and the blasts, with specials rules; then the specials on the board, row-major
+		if (aBoard->mVariant.mSpecials)
+			printf(" specials flame %d lightning %d blasts %d", aBoard->mSpecialsMade[Specials::KIND_FLAME],
+				aBoard->mSpecialsMade[Specials::KIND_LIGHTNING], aBoard->mBlastCount);
+		if (aBoard->mVariant.mGold)
+		{
+			printf(" gold %d/%d", aBoard->GoldGoal() - aBoard->GoldLeft(), aBoard->GoldGoal());
+			if (aBoard->GoldTimed())
+				printf(" time %d/%d", aBoard->mGoldTicksLeft, aBoard->mGoldTickLimit);
+		}
 		printf("\n");
+		if (aBoard->mVariant.mSpecials)
+		{
+			printf("TRACE   specials:");
+			for (int aRow = 0; aRow < aBoard->mRows; aRow++)
+			{
+				for (int aCol = 0; aCol < aBoard->mCols; aCol++)
+				{
+					Piece* aPiece = aBoard->mBoard[aRow][aCol];
+					if ((aPiece != NULL) && (aPiece->mKind != Specials::KIND_NONE))
+						printf(" %s (%d,%d)", (aPiece->mKind == Specials::KIND_FLAME) ? "flame" : "lightning", aCol, aRow);
+				}
+			}
+			printf("\n");
+		}
+		// stage 12: a word a row, a character a cell: 1 gold, 0 a cell of the goal not yet gold, . a cell outside it
+		// (x: gold outside the goal, which no board makes)
+		if (aBoard->mVariant.mGold)
+		{
+			printf("TRACE   gold:");
+			for (int aRow = 0; aRow < aBoard->mRows; aRow++)
+			{
+				printf(" ");
+				for (int aCol = 0; aCol < aBoard->mCols; aCol++)
+				{
+					bool counts = aBoard->CountsForGold(aCol, aRow);
+					printf("%c", aBoard->mGold[aRow][aCol] ? (counts ? '1' : 'x') : (counts ? '0' : '.'));
+				}
+			}
+			printf("\n");
+		}
 	}
 	// The clicks are screen positions: on a scaled board (stage 7) the cell centres scaled into the window
 	const BoardLayout& aLayout = aBoard->mLayout;

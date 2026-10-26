@@ -1,0 +1,19 @@
+# Stage 13, in a copy of rec_decline's user dir with mods/stage3/replays: a move that scores (playtest.txt's first),
+# then Options -> Extras -> Replays... -> Watch: the game in progress asks first (Yes: ~Board saves it), the replay at
+# 8x, Back at its end: the saved game is offered (Yes) and resumes as it was left.
+300 click 320 398
+460 click 482 295
+461 click 533 295
+650 click 96 261
+670 click 408 232
+690 click 408 206
+710 click 147 280
+720 screenshot shots/r01_confirm.png
+730 click 330 185
+740 char 4
+1000 screenshot shots/r02_end.png
+1010 click 476 153
+1030 screenshot shots/r03_load.png
+1040 click 330 201
+1100 screenshot shots/r04_resumed.png
+1200 quit

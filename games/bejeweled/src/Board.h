@@ -16,6 +16,7 @@
 #include "Replay.h"
 #include "MatchFinder.h"
 #include "MoveSet.h"
+#include "Specials.h"
 #include <list>
 #include <vector>
 
@@ -233,6 +234,31 @@ public:
 #endif
 	MatchFinder::Spec mMatchSpec;           // the match rules as MatchFinder reads them (InitVariant)
 	int				mGroupCounts[MatchFinder::GROUP_SHAPE + 1] = {}; // the groups this board scored, by kind (-trace's variant line)
+	int				mSpecialsMade[3] = {};  // stage 11: the flame (1) and lightning (2) gems this board made (-trace's variant line)
+	int				mBlastCount = 0;        // ... and the blasts that went off
+	struct BlastEffect
+	{
+		int			mKind;                  // Specials::KIND_FLAME or KIND_LIGHTNING
+		int			mCol;
+		int			mRow;
+		int			mTick;                  // ticks since it went off
+	};
+	std::vector<BlastEffect> mBlastEffects;  // cosmetic, not saved: the blasts of late (DrawSpecials)
+	// The gold board (stage 12, games/bejeweled/docs/CODE_MODS_DESIGN.md 4.9; BoardGold.cpp), on a board with gold rules
+	// (mVariant.mGold): the layer is per cell and stays when the gems move; the level ends when every cell that counts
+	// is gold (GoldLeft), or the game when the level's time runs out. Hashed, saved (GOLD, GTIM) and undone
+	uint8_t			mGold[MAX_ROWS][MAX_COLS] = {}; // 1: the cell is gold
+	int				mGoldTicksLeft = 0;     // the level's time left (ticks), when it has a limit
+	int				mGoldTickLimit = 0;     // the level's time limit (ticks), 0 for none (gold.timeLimit of the mode)
+	struct GoldShine
+	{
+		int			mCol;
+		int			mRow;
+		int			mTick;                  // ticks since the cell turned gold
+	};
+	std::vector<GoldShine> mGoldShines;     // cosmetic, not saved: the cells gilded lately (DrawGold)
+	Image*			mGoldTiles[2] = {};     // the level's checker tiles A and B tinted gold (DrawGold)
+	int				mGoldTilesLevel = -1;   // the level mGoldTiles were made for, -1 for none
 	BoardLayout		mLayout;                // current level's layout (8x8: origin 203/16, D 406, bottom 480)
 	int				mCols;                  // == mLayout.mCols; 8
 	int				mRows;                  // == mLayout.mRows; 8
@@ -419,12 +445,35 @@ public:
 	bool			SlideDiagonal();                                // RefillDiagonal: one gem into an unreachable cell; false when none can go
 	void			ClearDirtNextToRun(int theStartCol, int theStartRow, int theEndCol, int theEndRow, int theColor); // ProcessMatches: one layer off each dirt cell next to the run
 	void			ClearDirtNextToCells(const std::vector<std::pair<int, int> >& theCells); // ... next to any group's cells
+	void			ClearDirtCells(const std::vector<std::pair<int, int> >& theCells); // stage 11: ... in a blast's reach
+	void			ClearDirtLayers(const bool (*theCells)[BoardLayout::MAX_COLS]); // ... a layer off each marked cell (row-major)
 	// Match rules (stage 9, games/bejeweled/docs/CODE_MODS_DESIGN.md 4.6 and 4.7; BoardMatch.cpp)
 	void			FillColorGrid(MatchFinder::ColorGrid* theGrid) const; // each cell's colour, NO_GEM for none
 	bool			HasMatchVariant();                              // HasMatch under the match rules
 	bool			FindMoveVariant(int* theMove, int theMoveNum, bool horizontal, bool vertical); // FindMove under the match and move rules: {to col, to row, from col, from row}
 	bool			ProcessMatchesVariant();                        // ProcessMatches under the match rules
 	void			ScoreGroup(const MatchFinder::Group& theGroup, int* theAvgX); // ProcessMatchesVariant: one group's points
+	void			AddMoveScore(int thePoints);                     // ScoreGroup and ScoreBlast: the move's score, EXCELLENT, the score timer
+	// Flame and lightning gems (stage 11, games/bejeweled/docs/CODE_MODS_DESIGN.md 4.8; BoardSpecials.cpp)
+	void			ResolveSpecials(const std::vector<MatchFinder::Group>& theGroups); // ProcessMatchesVariant: the specials made, the blasts
+	void			MovedCells(std::vector<MatchFinder::Cell>* theCells); // the cells the move in its own resolve put gems into
+	void			ScoreBlast(const Specials::Blast& theBlast);     // ResolveSpecials: one blast's gems, points, dirt and effect
+	void			PlaySpecialSound(int theKind, int thePan);      // sounds/flame or sounds/lightning, else the original's explode or firecrackle
+	void			UpdateSpecials();                               // Update: the overlays' frames and the blast effects (cosmetic)
+	void			DrawSpecials(Graphics* g, bool isOver);         // DrawVariant: the specials' overlays (under), the blasts (over)
+	// The gold board (stage 12, games/bejeweled/docs/CODE_MODS_DESIGN.md 4.9; BoardGold.cpp)
+	bool			CountsForGold(int theCol, int theRow) const;    // a cell of the goal: a gem cell, or dirt with gold.countDirt
+	int				GoldGoal() const;                               // the cells of the goal
+	int				GoldLeft() const;                               // ... not gold yet
+	void			GildCells(const std::vector<MatchFinder::Cell>& theCells); // ProcessMatchesVariant and ScoreBlast: gem cells turn gold
+	int				GoldLimitTicks() const;                         // the level's time limit for the mode (0: none)
+	void			SetupLevelGold();                               // SetupLevel: no gold, the level's time
+	void			UpdateGoldGoal();                               // Update's level block on a gold board: the time, the level's end, TIME_UP
+	int				GoldBarTarget() const;                          // Update: the bar's width, the gold so far or the time left
+	bool			GoldTimed() const { return mGoldTickLimit > 0; }
+	void			UpdateGold();                                   // Update: the shines (cosmetic)
+	void			DrawGold(Graphics* g, bool isOver);             // DrawVariant: the gold cells (under the gems), the shines (over)
+	void			DrawGoldHud(Graphics* g);                       // DrawVariant: GOLD n/m over the bar
 	bool			ApplyDirtLayers(const std::vector<uint8_t>& theLayers, std::string* theWhy); // a save's or snapshot's layers onto the level's mask
 	void			DrawDirt(Graphics* g);                          // DrawVariant: the dirt cells, under the gems
 	void			DrawDirtDust(Graphics* g);                      // DrawVariant: the dust of cleared cells, over the gems

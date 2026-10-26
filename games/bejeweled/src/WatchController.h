@@ -2,16 +2,17 @@
 #define __WATCHCONTROLLER_H__
 
 // port(variant): plays a replay in the game (games/bejeweled/docs/CODE_MODS_DESIGN.md 4.11, 6.8). Not part
-// of the original game. Stage 3b: started with -replay=<file> (WinDMApp::HandleCmdLineParam); the replay
-// browser, the speeds and the REPLAY END screen come with stage 13.
+// of the original game. Stage 3b: started with -replay=<file> (WinDMApp::HandleCmdLineParam). Stage 13: also from
+// the game (WinDMApp::WatchReplay: the replay browser, the game-over screen's WATCH REPLAY), with the speeds, pause
+// and step of ReplayOverlay and the REPLAY END dialog.
 //
 // Watching replaces the game the way a mode switch does: TitleScreenIsFinished starts the watch instead of
 // its two new games. Each segment of the replay gets a playback board (Board::mPlaybackOnly, made here, not
 // by NewGame) that owns an MTRand from the segment's RNG start (Board::InitVariant), takes no input, never
 // saves, counts or deletes anything, and only pauses when the replay says so (Board::Pause). The widget
 // manager does not update it: BeforeFrame (from WinDMApp::UpdateFrames, before the frame's own update) runs
-// the playback loop of 6.8 once per frame, one board update each time, so the board ticks as the recorded
-// one did:
+// the playback loop of 6.8 once per frame, one board update each time (1 << speed of them at the faster speeds,
+// none while paused), so at 1x the board ticks as the recorded one did:
 //   apply every event stamped with the board's tick (the gates of 6.3; a CHECK compares the LOGIC hash)
 //   stop at the end of a segment (the next one gets a new board and LOADs the save the last SAVE made), or
 //   at the replay's END (the game-over screen, New Game, or its tick), comparing END
@@ -30,9 +31,10 @@
 //   REPLAY end: ok, <c> CHECKs, END <reason> tick <t> score <s> level <l> gems <g> draws <d>
 //   REPLAY end: CORRUPT at segment <k> tick <t> event <i> <op>: <why>
 //   REPLAY <file>: cannot play: <why>
-// At the end the last board stays on screen. -replayquit quits then (the CLI and the oracle); otherwise New
-// Game or a mode button ends the watch: the mode is restored and NewGame + ConfirmLoadGame offer the saved
-// game, as 4.11 says (the buttons do the same while it plays). The watch holds while a modal dialog is open.
+// At the end the last board stays on screen. -replayquit quits then (the CLI and the oracle); otherwise the app
+// shows REPLAY END (WinDMApp::OnWatchEnded), whose Back, like New Game or a mode button, Esc and a new watch, ends
+// the watch (WinDMApp::EndWatch): the mode is restored and NewGame + ConfirmLoadGame offer the saved game, as 4.11
+// says (the buttons do the same while it plays). The watch holds while a modal dialog is open.
 
 #include "Replay.h"
 #include "GameConfig.h"
@@ -62,6 +64,21 @@ public:
 	// (-trace, -codeccheck) see no settles of it: its last SAVE may have dropped a swap to STATE_PLAYING without
 	// an update, which the recorded board, deleted right after, never showed.
 	bool			IsEndedBoard(const Board* theBoard) const;
+	bool			HasEnded() const { return mStatus == STATUS_ENDED; }
+	bool			IsEndOk() const { return mResult.compare(0, 15, "REPLAY end: ok,") == 0; }
+	const std::string& GetFileName() const { return mFileName; }
+	void			Stop();             // back to the game: the player's mode (WinDMApp::EndWatch then makes its board)
+
+	// Stage 13: the overlay's controls (ReplayOverlay.h). The speeds 0..3 are 1x, 2x, 4x and 8x: 1 << speed board
+	// updates a frame. StepToMove plays on at 8x until the next move is due (a swap's target, a twist, a slide or
+	// an undo, not yet applied: the swap's gem shows selected), then pauses; a speed or a pause ends it.
+	enum { NUM_SPEEDS = 4 };
+	void			SetSpeed(int theSpeed);             // and plays on
+	void			TogglePause();
+	void			StepToMove();
+	int				GetSpeed() const { return mSpeed; }
+	bool			IsPaused() const { return mPaused; }
+	bool			IsStepping() const { return mStepping; }
 
 	// The headless verifier (games/bejeweled/src/headless, games/bejeweled/docs/CODE_MODS_DESIGN.md 6.9) plays a
 	// replay it holds in memory with this same player: Start reads theBytes instead of the file (its name is then
@@ -118,6 +135,10 @@ private:
 	int				mChecks;            // CHECKs that matched
 	int				mEventsApplied;
 	std::string		mResult;            // the "REPLAY end" line
+	int				mSpeed;             // SetSpeed
+	bool			mPaused;
+	bool			mStepping;          // StepToMove: playing on to the next move ...
+	int				mStepUpdates;       // ... with this many updates since
 
 	bool			Load(std::string* theError);
 	void			Exchange();         // swaps mOther with the app's state
@@ -127,7 +148,7 @@ private:
 	bool			NextSegment();
 	bool			Finish();
 	bool			Corrupt(const std::string& theWhy, const Replay::Event* theEvent = NULL);
-	void			Stop();             // back to the game: the player's mode
+	bool			IsMoveDue() const;  // a move among the events at the board's tick
 	Piece*			CellPiece(int64_t theCol, int64_t theRow);
 };
 

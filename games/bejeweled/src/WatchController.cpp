@@ -82,6 +82,10 @@ WatchController::WatchController(WinDMApp* theApp, const std::string& theFileNam
 	mLastSaveExact = false;
 	mChecks = 0;
 	mEventsApplied = 0;
+	mSpeed = 0;
+	mPaused = false;
+	mStepping = false;
+	mStepUpdates = 0;
 }
 
 // The file, read and checked before anything changes: no larger than a replay may be, well-formed
@@ -289,6 +293,7 @@ void WatchController::CreateBoard()
 	anApp->mWidgetManager->SetFocus(mBoard);
 	anApp->mMusicInterface->FadeOut(isTimed ? MUSIC_NORMAL : MUSIC_TIMED, true, 0.004);
 	anApp->mMusicInterface->FadeIn(isTimed ? MUSIC_TIMED : MUSIC_NORMAL, -1, 0.002, false);
+	anApp->OnWatchBoard(); // the overlay over it, with the focus
 
 	mEvent = 0;
 	mLastState = mBoard->mState;
@@ -307,22 +312,76 @@ void WatchController::BeforeFrame()
 	if (mStatus != STATUS_PLAYING)
 		return;
 	// A dialog the player opened holds the watch, as it pauses a game
-	if (mApp->mWidgetManager->mBaseModalWidget != NULL)
+	if ((mApp->mWidgetManager->mBaseModalWidget != NULL) || mPaused)
 		return;
 
+	// 1 << speed updates a frame; a step to the next move at 8x, which pauses before it
+	int anUpdates = mStepping ? (1 << (NUM_SPEEDS - 1)) : (1 << mSpeed);
+	bool isPlaying = true;
 	Exchange();
-	bool isPlaying = Step();
+	for (int i = 0; (i < anUpdates) && isPlaying; i++)
+	{
+		if (mStepping && (mStepUpdates > 0) && IsMoveDue())
+		{
+			mStepping = false;
+			mPaused = true;
+			break;
+		}
+		isPlaying = Step();
+		mStepUpdates++;
+	}
 	Exchange();
 	if (isPlaying)
 		return;
 
 	mStatus = STATUS_ENDED;
+	mStepping = false;
 	Print(mResult);
 	if (mApp->mReplayQuit)
 	{
 		Stop();
 		mApp->Shutdown();
 	}
+	else
+		mApp->OnWatchEnded(); // REPLAY END
+}
+
+void WatchController::SetSpeed(int theSpeed)
+{
+	mSpeed = std::max(0, std::min(theSpeed, (int) NUM_SPEEDS - 1));
+	mPaused = false;
+	mStepping = false;
+}
+
+void WatchController::TogglePause()
+{
+	mPaused = mStepping || !mPaused;
+	mStepping = false;
+}
+
+void WatchController::StepToMove()
+{
+	if (mStatus != STATUS_PLAYING)
+		return;
+	mPaused = false;
+	mStepping = true;
+	mStepUpdates = 0;
+}
+
+// The events the next Step applies first, those at the board's tick: a swap's target (not one that only drops the
+// selection), a twist, a slide or an undo
+bool WatchController::IsMoveDue() const
+{
+	const std::vector<Replay::Event>& anEvents = mFile.mSegments[mSegment].mEvents;
+	uint32_t aTick = (uint32_t) mBoard->mUpdateCnt;
+	for (size_t i = mEvent; (i < anEvents.size()) && (anEvents[i].mTick == aTick); i++)
+	{
+		const Replay::Event& anEvent = anEvents[i];
+		if ((anEvent.mOp == Replay::OP_TWIST) || (anEvent.mOp == Replay::OP_SLIDE) || (anEvent.mOp == Replay::OP_UNDO) ||
+			((anEvent.mOp == Replay::OP_TARGET) && (anEvent.mArgs[0] != -1)))
+			return true;
+	}
+	return false;
 }
 
 // One iteration of the playback loop (6.8). Swapped in.
@@ -753,15 +812,13 @@ bool WatchController::OnBoardEnd(bool isGameOverScreen)
 }
 
 // New Game and the mode buttons end the watch: the game the player left is offered again (4.11). Options,
-// Quit and Hint (which a playback board ignores) work as usual.
+// Quit and Hint (which a playback board ignores) work as usual; the overlay covers the undo orb.
 bool WatchController::ButtonDepress(int theId)
 {
 	if (!IsWatching())
 		return false;
 	if ((theId != BUTTON_NEW_GAME) && (theId != BUTTON_NORMAL_MODE) && (theId != BUTTON_TIMED_MODE))
 		return false;
-	Stop();
-	mApp->NewGame();
-	mApp->ConfirmLoadGame();
+	mApp->EndWatch();
 	return true;
 }

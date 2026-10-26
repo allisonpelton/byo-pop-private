@@ -1,0 +1,5 @@
+/* TipTop's look on the shared page (web/shell.html): the logo's orange, a little orange for the brand mark */
+:root { --accent: #b85a14; --fruit: #f08c28; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --accent: #f0a050; } }
+:root[data-theme="dark"] { --accent: #f0a050; }
+.brand .mark { width: 12px; height: 12px; background: var(--fruit); border-radius: 50%; box-shadow: 0 0 0 2px var(--accent); }

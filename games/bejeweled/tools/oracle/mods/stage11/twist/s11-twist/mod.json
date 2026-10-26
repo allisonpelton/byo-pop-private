@@ -1,0 +1,7 @@
+{
+  "id": "s11-twist",
+  "name": "Stage 11: specials with twists and slides",
+  "version": "1.0",
+  "description": "Oracle fixture: Bejeweled 2's specials on a board of twists (both ways) and slides: the special stays in the cell a twisted or slid gem landed in.",
+  "rules": { "moves": { "type": ["twist", "slide"], "twist": { "direction": "both" } }, "specials": { "flame": {}, "lightning": {} } }
+}

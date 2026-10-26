@@ -1,0 +1,7 @@
+{
+  "id": "s11-move",
+  "name": "Stage 11: specials from the move only, no chains",
+  "version": "1.0",
+  "description": "Oracle fixture: specials.createIn \"move\" (none from cascades) and specials.chain false (a special a blast takes only dies); a run of 4 makes a flame of radius 3 (7x7).",
+  "rules": { "specials": { "flame": { "radius": 3 }, "lightning": {}, "chain": false, "createIn": "move" } }
+}
