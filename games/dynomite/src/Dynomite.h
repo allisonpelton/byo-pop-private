@@ -21,6 +21,7 @@ class FossilizedApp;
 class Launcher;
 class PowerUp;
 class Steggy;
+class Tank;
 
 class Dynomite : public Widget
 {
@@ -36,6 +37,7 @@ public:
 	int					mGameType;			// +0x7c (the side bar's mode picture; 2 shows its sixth button)
 	bool				mField80;			// +0x80
 	Steggy*				mSteggy;			// +0x84 (0x437aa0)
+	Tank*				mTank;				// +0x88 (0x438400)
 	EggGrid*			mGrid;				// +0x8c (0x415770)
 	bool				mFieldB0;			// +0xb0
 	bool				mInitialized;		// +0xb1 what the destructor frees

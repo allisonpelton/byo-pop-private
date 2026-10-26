@@ -65,6 +65,7 @@ Dynomite::Dynomite()
 	mLauncher = NULL;
 	mFirePrompt = NULL;
 	mSteggy = NULL;
+	mTank = NULL;
 	mGrid = NULL;
 	mDifficulty = 0;
 	mGameType = 0;

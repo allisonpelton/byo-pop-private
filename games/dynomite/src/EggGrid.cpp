@@ -5,6 +5,7 @@
 #include "AngleTable.h"
 #include "Rect.h"
 #include "Sprite.h"
+#include "Tank.h"
 #include <cstring>
 #include "compat2004/Compat2004.h"
 
@@ -637,7 +638,7 @@ void EggGrid::Match(int theCol, int theRow, int theColor)
 			aPoint = aGroup->Next();
 		}
 		int aDropped = DropLoose();
-		// TODO: the board's +0x88 (0x438400) gets aBroken (0x4384d0)
+		mBoard->mTank->Flinch(aBroken);
 		int x = aSumX / aCount;
 		int y = aSumY / aCount;
 		mBoard->Chain(x, y, 2 < aGroup->mCount);
@@ -667,7 +668,7 @@ void EggGrid::Blast(int theCol, int theRow)
 	aBoom->Init(aPoint.mX + 0x10, aPoint.mY + 0x10, mApp, 0.2f);
 	mBoard->mEffects.Add(aBoom);
 	mApp->mSndExplosion->Play();
-	// TODO: the board's +0x88 (0x438400) gets 100 (0x4384d0)
+	mBoard->mTank->Flinch(100);
 	mBlastX = 0;
 	mBlastY = 0;
 	mBlastCount = 0;
