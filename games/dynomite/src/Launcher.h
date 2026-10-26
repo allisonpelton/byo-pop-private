@@ -49,7 +49,7 @@ public:
 	int					mFieldA60;			// +0xa60 eases a pixel a frame toward +0xa64, never below +0xa68 unless
 										// the board's bonus bit 1 is on
 	int					mFieldA64;			// +0xa64 (-600 while the board's bonus bit 1 is on, else 0)
-	int					mFieldA68;			// +0xa68
+	int					mFieldA68;			// +0xa68 how far below the aim the last path ended
 	int					mFieldA6c;			// +0xa6c (255) the arrow's red
 	int					mFieldA70;			// +0xa70 the arrow's green and blue
 	PtrList<Point>		mPathRight;			// +0xa74 the aim path's right side, first to last
@@ -76,6 +76,7 @@ public:
 	// 0x4021e0: the line's two points each moved theWidth to either side (x, y, x, y)
 	void				Widen(PathLine* theLine, float* theFrom, float* theTo, float theWidth);
 	void				AddPath(Graphics* g, PathLine* thePrev, PathLine* theLine, PathLine* theNext);	// 0x4022f0
+	void				DrawPath(Graphics* g);				// 0x402d90
 };
 
 }

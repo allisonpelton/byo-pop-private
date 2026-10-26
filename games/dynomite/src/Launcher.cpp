@@ -7,6 +7,7 @@
 #include "Graphics.h"
 #include "PortCompat.h"
 #include "Sprite.h"
+#include <cmath>
 
 using namespace Sexy;
 
@@ -556,4 +557,161 @@ void Launcher::Update()
 		PlaceEgg(mLoaded->mX, mLoaded->mY);
 	mRecoilX = mRecoilX * 0.85f;
 	mRecoilY = mRecoilY * 0.85f;
+}
+
+// port: the original computes this in line, in 53 bits
+static double LineLength(const PathLine& theLine)
+{
+	double aDY = (double) theLine.mTo[1] - (double) theLine.mFrom[1];
+	double aDX = (double) theLine.mTo[0] - (double) theLine.mFrom[0];
+	return sqrt(aDY * aDY + aDX * aDX);
+}
+
+// 0x402d90: the aim's path, found by flying a ghost egg from the slingshot: its points are the start, two points
+// back along the path at each bounce, and 25 back from where it stops; drawn as a band when it stops more than
+// 50 above the slingshot's middle (lines under 50 long left out), then the aim marker on the cell it lands in
+// port: the x87 code keeps the products unrounded, so the sums work in double
+void Launcher::DrawPath(Graphics* g)
+{
+	AngleTable* anAngles = mApp->mAngles;
+	float aLastVX = anAngles->mDX[mAngle];
+	float aVY = anAngles->mDY[mAngle];
+	PtrList<float> aPoints;
+	aPoints.Clear();
+	GridPoint aMarker;
+	// port: the original leaves the marker's place unset when the ghost lands on its first step
+	aMarker.mX = 0;
+	aMarker.mY = 0;
+	FlyingEgg* anEgg = new FlyingEgg();
+	PlaceEgg(anEgg->mX, anEgg->mY);
+	anEgg->mGhost = true;
+	anEgg->mColor = 1000;
+	anEgg->mApp = mApp;
+	anEgg->mBoard = mBoard;
+	anEgg->mVY = aVY;
+	anEgg->mVX = aLastVX;
+	anEgg->mKind = 0;
+	if (anEgg->Update())
+	{
+		float* aPoint = new float[2];
+		aPoint[0] = (float) mSlingX;
+		aPoint[1] = (float) mSlingY;
+		aPoints.Add(aPoint);
+		aLastVX = anEgg->mVX;
+		anEgg->mCol = -1;
+		while (anEgg->Update() && ((float) (mFieldA60 + mAimY - 0x10) <= anEgg->mY))
+		{
+			if (anEgg->mVX != aLastVX)
+			{
+				aLastVX = anEgg->mVX;
+				aPoint = new float[2];
+				aPoint[0] = (float) ((double) anEgg->mVX * 25.0 + (double) anEgg->mX);
+				aPoint[1] = (float) ((double) anEgg->mY - (double) anEgg->mVY * 25.0);
+				aPoints.Add(aPoint);
+				aPoint = new float[2];
+				aPoint[0] = anEgg->mVX + anEgg->mX;
+				aPoint[1] = anEgg->mY - anEgg->mVY;
+				aPoints.Add(aPoint);
+			}
+		}
+		GridPoint aCell;
+		mBoard->mGrid->ScreenToGrid((int) anEgg->mX, (int) anEgg->mY, &aCell);
+		GridPoint aPixel;
+		EggGrid::PixelToCell(aCell.mX, aCell.mY, &aPixel);
+		EggGrid::CellToPixel(aPixel.mX, aPixel.mY, &aCell);
+		mBoard->mGrid->GridToScreen(aCell.mX, aCell.mY, &aMarker);
+		aMarker.mX = aMarker.mX + 0x10;
+		aPoint = new float[2];
+		aPoint[0] = (float) ((double) anEgg->mX - (double) anEgg->mVX * 25.0);
+		aPoint[1] = (float) ((double) anEgg->mY - (double) anEgg->mVY * 25.0);
+		aPoints.Add(aPoint);
+		mFieldA68 = (int) (anEgg->mY - (float) mAimY);
+		if ((float) (mSlingY - 0x32) > anEgg->mY)
+		{
+			int aLast = aPoints.mCount - 1;
+			mPathRight.Clear();
+			mPathLeft.Clear();
+			if (0 < aLast)
+			{
+				int i = -1;
+				do
+				{
+					PathLine aPrev;
+					aPrev.mFrom = aPoints.Get(i - 1);
+					aPrev.mTo = aPoints.Get(i);
+					if ((aPrev.mFrom != NULL) &&
+						(LineLength(aPrev) < 50.0))
+						aPrev.mFrom = NULL;
+					PathLine aLine;
+					aLine.mFrom = aPoints.Get(i + 1);
+					aLine.mTo = aPoints.Get(i + 2);
+					if ((aLine.mFrom != NULL) &&
+						(LineLength(aLine) < 50.0))
+						aLine.mFrom = NULL;
+					PathLine aNext;
+					aNext.mFrom = aPoints.Get(i + 3);
+					aNext.mTo = aPoints.Get(i + 4);
+					if ((aNext.mFrom != NULL) &&
+						(LineLength(aNext) < 50.0))
+						aNext.mFrom = NULL;
+					if (aPrev.mFrom == NULL)
+					{
+						if (aLine.mFrom != NULL)
+						{
+							if (aNext.mFrom == NULL)
+								AddPath(g, NULL, &aLine, NULL);
+							else
+								AddPath(g, NULL, &aLine, &aNext);
+						}
+					}
+					else if (aLine.mFrom != NULL)
+					{
+						if (aNext.mFrom == NULL)
+							AddPath(g, &aPrev, &aLine, NULL);
+						else
+							AddPath(g, &aPrev, &aLine, &aNext);
+					}
+					i = i + 2;
+				} while (i + 1 < aLast);
+			}
+			Point* aPolygon = new Point[mPathLeft.mCount + mPathRight.mCount];
+			Point* aDest = aPolygon;
+			mPathRight.ResetIter();
+			Point* aCorner = mPathRight.Next();
+			while (aCorner != NULL)
+			{
+				*aDest = *aCorner;
+				aDest++;
+				delete aCorner;
+				aCorner = mPathRight.Next();
+			}
+			mPathLeft.ResetIter();
+			aCorner = mPathLeft.Next();
+			while (aCorner != NULL)
+			{
+				*aDest = *aCorner;
+				aDest++;
+				delete aCorner;
+				aCorner = mPathLeft.Next();
+			}
+			g->SetColor(Color(mFieldA6c, mFieldA70, mFieldA70, 0x78));
+			g->PolyFill(aPolygon, mPathLeft.mCount + mPathRight.mCount);
+			delete[] aPolygon;
+			mPathRight.Clear();
+			mPathLeft.Clear();
+		}
+	}
+	if (anEgg->mCol != -1)
+	{
+		Pic* aPic = mApp->mPicAimx;
+		aPic->Draw(aMarker.mX - (aPic->mWidth >> 1), aMarker.mY - (aPic->mHeight >> 1));
+	}
+	delete anEgg;
+	aPoints.ResetIter();
+	float* aPoint = aPoints.Next();
+	while (aPoint != NULL)
+	{
+		delete[] aPoint;
+		aPoint = aPoints.Next();
+	}
 }
