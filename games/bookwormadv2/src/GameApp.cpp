@@ -124,7 +124,7 @@ void GameApp::Init()
 	mTitleScreen = new TitleScreen(this);
 	if (!mTitleScreen->InitLoadingScreen()) {
 		// the original's message (GT 0x7acbc8) asked the player to reinstall the game
-		Popup(GT(0x7acbc8));
+		Popup(GT(0x6fac00));
 		Shutdown();
 		return;
 	}
@@ -363,7 +363,7 @@ GameDialog* GameApp::DoOkDialog(const SexyString& theHeader, const SexyString& t
 	}
 	mDialogCallback = theCallback;
 	GameDialog* aDialog = static_cast<GameDialog*>(
-		DoDialog(DIALOG_OK, true, theHeader, theLines, GT(0x7ac5a0), Dialog::BUTTONS_FOOTER));
+		DoDialog(DIALOG_OK, true, theHeader, theLines, GT(0x6fa51c), Dialog::BUTTONS_FOOTER));
 	Unmute(true);
 	mSoundPlayer->PauseLooping(true);
 	aDialog->SetHeaderFont(FONT_LARGE_OUTLINE);
@@ -665,7 +665,7 @@ void GameApp::LoadingThreadCompleted()
 	mTitleScreen->mLoaded = true;
 	// the profiles that do not load are deleted, and the player is told
 	if (!CheckProfiles() && !mProfileErrors.empty()) {
-		DoOkDialog(GT(0x7a9c04), StrFormat(GT(0x7acdc0).c_str(), mProfileErrors.c_str()), "", nullptr);
+		DoOkDialog(GT(0x6f701c), StrFormat(GT(0x6fae30).c_str(), mProfileErrors.c_str()), "", nullptr);
 		// wide enough for what failed, and put back in the middle
 		GameDialog* aDialog = static_cast<GameDialog*>(GetDialog(DIALOG_OK));
 		aDialog->mWidth = 600;
@@ -752,7 +752,7 @@ bool GameApp::CheckProfiles()
 			continue;
 		// "Profile for <name>: <why>", and its files go
 		anAllLoaded = false;
-		mProfileErrors += StrFormat(GT(0x7acd44).c_str(), aName.c_str(), aProfile.mOutOfDateReasons.c_str());
+		mProfileErrors += StrFormat(GT(0x6fadb0).c_str(), aName.c_str(), aProfile.mOutOfDateReasons.c_str());
 		if (aHasLastUser && StringToLower(aName) == StringToLower(aLastUser))
 			RegistryEraseValue("LastUser");
 		EraseFile(aUsers + "/" + aFile);
@@ -775,9 +775,9 @@ bool GameApp::SelectUser(const std::string& theName)
 		// a profile that is out of date says why in a message box (the app's vf 0x78, MsgBox), any other that does not
 		// load in the error dialog
 		if (aReasons.empty())
-			DoOkDialog(GT(0x7a9c04), StrFormat(GT(0x7acec8).c_str(), theName.c_str()), "", nullptr);
+			DoOkDialog(GT(0x6f701c), StrFormat(GT(0x6faf38).c_str(), theName.c_str()), "", nullptr);
 		else
-			MsgBox(StrFormat(GT(0x7acf08).c_str(), aReasons.c_str()), GT(0x7acef4), 0);
+			MsgBox(StrFormat(GT(0x6faf78).c_str(), aReasons.c_str()), GT(0x6faf64), 0);
 		return false;
 	}
 	RegistryWriteString("LastUser", mProfile->mName);
@@ -848,13 +848,13 @@ void GameApp::ShowUnlockMessages()
 		// the tome, and what else came with it
 		aNewPanel();
 		mConversationPanel->AddTextPage(GT(0x7ad090));
-		mConversationPanel->AddTextPage(GT(0x7ad0e0));
+		mConversationPanel->AddTextPage(GT(0x6fb100));
 		if (aMiniGames) {
-			mConversationPanel->AddTextPage(GT(0x7ad128));
+			mConversationPanel->AddTextPage(GT(0x6fb148));
 			mProfile->SetBool("NeedsMiniGamesDialog", false);
 		}
 		if (aArena) {
-			mConversationPanel->AddTextPage(aMiniGames ? GT(0x7ad170) : GT(0x7ad1c0));
+			mConversationPanel->AddTextPage(aMiniGames ? GT(0x6fb190) : GT(0x6fb1e0));
 			mProfile->SetBool("NeedsArenaDialog", false);
 		}
 		if (aExpansionBoss) {
@@ -869,9 +869,9 @@ void GameApp::ShowUnlockMessages()
 	if (aMiniGames) {
 		aNewPanel();
 		mConversationPanel->AddTextPage(GT(0x7ad290));
-		mConversationPanel->AddTextPage(GT(0x7ad2e0));
+		mConversationPanel->AddTextPage(GT(0x6fb280));
 		if (aArena) {
-			mConversationPanel->AddTextPage(GT(0x7ad1c0));
+			mConversationPanel->AddTextPage(GT(0x6fb1e0));
 			mProfile->SetBool("NeedsArenaDialog", false);
 		}
 		if (aExpansionBoss) {
@@ -889,7 +889,7 @@ void GameApp::ShowUnlockMessages()
 	if (aArena) {
 		aNewPanel();
 		mConversationPanel->AddTextPage(GT(0x7ad308));
-		mConversationPanel->AddTextPage(GT(0x7ad360));
+		mConversationPanel->AddTextPage(GT(0x6fb300));
 		if (aExpansionBoss) {
 			mConversationPanel->AddTextPage(GT(0x7ad254));
 			mProfile->SetBool("NeedsExpansionBossDialog", false);
@@ -931,7 +931,7 @@ void GameApp::StartIntro(int theMode)
 		mPlayIntro = true;
 	if (!mNoMusic && mSongPlayer != nullptr)
 		mSongPlayer->PlaySong(0x1b, 0.005f, true);  // the intro's song
-	PlayCutScene("images/cutscenes/intro.swf", "gBookManager:StartGame", GT(0x7acfdc), true, false);
+	PlayCutScene("images/cutscenes/intro.swf", "gBookManager:StartGame", GT(0x6fb018), true, false);
 	if (mCurtain != nullptr)
 		mWidgetManager->BringToFront(mCurtain);
 }
@@ -1090,7 +1090,7 @@ void GameApp::CurtainDone()
 				mTreasureScreen->CallLinkedMethod("InitTimedModeCheckpoint", 0);
 			} else {
 				// a new run: what the arena is, under the arena's banner
-				DoOkDialog(_S(""), GT(0x7ad7d8), "", IMAGE_TM_INTRO_TITLE);
+				DoOkDialog(_S(""), GT(0x6fb8d0), "", IMAGE_TM_INTRO_TITLE);
 				GameDialog* aDialog = static_cast<GameDialog*>(GetDialog(DIALOG_OK));
 				aDialog->SetLinesFont(FONT_LARGE);
 				aDialog->mSpaceAfterHeader += 0x14;

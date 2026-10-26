@@ -269,7 +269,7 @@ void DoAfterHydraConvPanel(GameApp* app)
 // 0x44c390: a message box with the title "ERROR"
 void DoErrorDialog(GameApp* app, std::string theText)
 {
-	app->MsgBox(theText, GT(0x7a9c04), MB_ICONERROR);
+	app->MsgBox(theText, GT(0x6f701c), MB_ICONERROR);
 }
 
 // 0x444b30: the confirm dialog (DIALOG_CONFIRM), with theHeader in place of its banner unless theBanner

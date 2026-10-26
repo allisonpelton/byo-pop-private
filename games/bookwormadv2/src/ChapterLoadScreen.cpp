@@ -18,11 +18,11 @@ ChapterLoadScreen::ChapterLoadScreen(GameApp* theApp) : mApp(theApp)
 	mHasTransparencies = true;
 	// the hints
 	mMessages = {
-		GT(0x007ab820), GT(0x007ab834), GT(0x007ab84c), GT(0x007ab85c), GT(0x007ab878), GT(0x007ab88c),
-		GT(0x007ab8a0), GT(0x007ab8b8), GT(0x007ab8d0), GT(0x007ab8f4), GT(0x007ab918), GT(0x007ab930),
-		GT(0x007ab94c), GT(0x007ab970), GT(0x007ab998), GT(0x007ab9b4), GT(0x007ab9d0), GT(0x007ab9e4),
-		GT(0x007ab9f8), GT(0x007aba0c), GT(0x007aba1c), GT(0x007aba38), GT(0x007aba50), GT(0x007aba70),
-		GT(0x007aba84), GT(0x007abaa8), GT(0x007abacc),
+		GT(0x6f929c), GT(0x6f92b0), GT(0x6f92c8), GT(0x007ab85c), GT(0x6f92d8), GT(0x007ab88c),
+		GT(0x6f9300), GT(0x6f9318), GT(0x6f9330), GT(0x007ab8f4), GT(0x6f9354), GT(0x6f936c),
+		GT(0x6f9388), GT(0x6f93ac), GT(0x6f93d4), GT(0x6f93f0), GT(0x6f940c), GT(0x6f9420),
+		GT(0x6f9434), GT(0x007aba0c), GT(0x007aba1c), GT(0x6f9448), GT(0x6f9460), GT(0x6f9480),
+		GT(0x6f9494), GT(0x6f94b8), GT(0x6f94dc),
 	};
 	mCurrent = (unsigned int)Rand() % mMessages.size();
 	mShown.push_back(mCurrent);

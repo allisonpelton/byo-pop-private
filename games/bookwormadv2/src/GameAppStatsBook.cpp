@@ -41,7 +41,7 @@ void GameApp::AddStatsBook(bool theFromGame, bool theBestiary, bool theMediaPlay
 	mMainMenu->mFromTitle = false;
 	if (!theMediaPlayer) {
 		mCurtain->mShowLoadingBox = true;
-		mCurtain->mLoadingText = GT(0x7ac5a4);
+		mCurtain->mLoadingText = GT(0x6fa520);
 		mCurtain->mLoadingBoxShown = false;
 	}
 }

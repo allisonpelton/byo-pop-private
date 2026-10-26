@@ -29,8 +29,8 @@ namespace {
 const char* const kIdleLabel = "idle";
 
 // the secret words (and the names of the animations Lex does for them)
-const unsigned int kSecretWords[] = {GTA(0x7ae700), GTA(0x7ae6f0), GTA(0x7ae6e8), GTA(0x7ae6e0),
-                                     GTA(0x7ae6d4), GTA(0x7ae6cc), GTA(0x7ae6c4)};
+const unsigned int kSecretWords[] = {GTA(0x6fc908), GTA(0x7ae6f0), GTA(0x6fc8f4), GTA(0x6fc8ec),
+                                     GTA(0x6fc8e0), GTA(0x6fc8d8), GTA(0x6fc8d0)};
 const int kNumSecretWords = (int)(sizeof(kSecretWords) / sizeof(kSecretWords[0]));
 
 // The things of the menu, by Item: where the lit picture goes, where the mouse is over it (and how much smaller
@@ -234,7 +234,7 @@ MainMenu::MainMenu(GameApp* theApp, bool theFromTitle)
 		mHoverUpdate[i] = -200;
 		mItems.push_back(anItem);
 	}
-	MakeTooltips(GT(0x7ae8c8));
+	MakeTooltips(GT(0x6fcb40));
 
 	// "(Click here to change users)" under the name
 	mChangeUserLink = new HyperlinkWidget(1, this);
@@ -242,7 +242,7 @@ MainMenu::MainMenu(GameApp* theApp, bool theFromTitle)
 	mChangeUserLink->SetFont(FONT_MEDIUM);
 	mChangeUserLink->mColor = Color(200, 0, 0);
 	mChangeUserLink->mOverColor = Color(255, 205, 90);
-	mChangeUserLink->mLabel = GT(0x7ae9a0);
+	mChangeUserLink->mLabel = GT(0x6fcbcc);
 	int aLinkWidth = FONT_MEDIUM->StringWidth(mChangeUserLink->mLabel) + 10;
 	mChangeUserLink->Resize(279 + (245 - aLinkWidth) / 2, 198, aLinkWidth, FONT_MEDIUM->GetHeight());
 	AddWidget(mChangeUserLink);
@@ -291,13 +291,13 @@ void MainMenu::MakeTooltips(const std::string& theTomeText)
 		case ITEM_ADVENTURE:
 			anItem->mPulse = mAdventureAvailable ? 1 : 0;
 			// "Help Lex solve the mystery ...", or that adventure mode is completed
-			anItem->mTooltip = new Tooltip(IMAGE_MM_ADVENTURE, mAdventureAvailable ? GT(0x7ae740) : GT(0x7ae774), 0);
+			anItem->mTooltip = new Tooltip(IMAGE_MM_ADVENTURE, mAdventureAvailable ? GT(0x6fc97c) : GT(0x6fc9b0), 0);
 			break;
 		case ITEM_ARENA:
-			anItem->mTooltip = new Tooltip(IMAGE_MM_ARENA, mArenaUnlocked ? GT(0x7ae7b8) : GT(0x7ae804), 0);
+			anItem->mTooltip = new Tooltip(IMAGE_MM_ARENA, mArenaUnlocked ? GT(0x6fca30) : GT(0x7ae804), 0);
 			break;
 		case ITEM_MINI_GAMES:
-			anItem->mTooltip = new Tooltip(IMAGE_MM_MINIGAMES, mMiniGamesUnlocked ? GT(0x7ae840) : GT(0x7ae88c), 0);
+			anItem->mTooltip = new Tooltip(IMAGE_MM_MINIGAMES, mMiniGamesUnlocked ? GT(0x6fcab8) : GT(0x7ae88c), 0);
 			break;
 		case ITEM_TOME:
 			anItem->mTooltip = new Tooltip(IMAGE_MM_TOME_TEXT, mTomeUnlocked ? theTomeText : GT(0x7ae910), -12);
@@ -321,7 +321,7 @@ void MainMenu::RefreshUnlocks()
 	mItems[ITEM_FILM_REEL]->mVisible = aProfile != nullptr && aProfile->KeyExists("MediaPlayer");
 	mExpansionAvailable = mAdventureAvailable && mApp->mTotalBooks > 3;
 	// (the tome's text is not the constructor's here, as in the original)
-	MakeTooltips(GT(0x7aea10));
+	MakeTooltips(GT(0x6fcc70));
 }
 
 void MainMenu::PlayReaction(int theItem)
@@ -735,12 +735,12 @@ void MainMenu::AskReallyQuit()
 {
 	mApp->PlaySample(SOUND_MM_DONTLEAVE);
 	mApp->SetCursor(CURSOR_POINTER);
-	mApp->DoConfirmDialog(GameApp::DIALOG_REALLY_QUIT, _S(""), GT(0x7aee60), nullptr, "");
+	mApp->DoConfirmDialog(GameApp::DIALOG_REALLY_QUIT, _S(""), GT(0x6fd0a0), nullptr, "");
 	GameDialog* aDialog = static_cast<GameDialog*>(mApp->GetDialog(GameApp::DIALOG_REALLY_QUIT));
 	aDialog->SetBanner(IMAGE_MM_REALLY_QUIT_BANNER, 0);
 	aDialog->mDialogHeader = _S(" ");
 	aDialog->Resize(200, 305, aDialog->mWidth + 75, aDialog->mHeight + 20);
-	aDialog->SetButtonText(GT(0x7aeea0), GT(0x7aee98));
+	aDialog->SetButtonText(GT(0x6fd0e0), GT(0x6fd0d8));
 	aDialog->mPriority = 10;
 	aDialog->SetAllowDrag(false);
 	MarkDirty();
@@ -759,10 +759,10 @@ void MainMenu::StartArena()
 		mApp->StartNewGameTransition();
 	} else {
 		// the question without DoConfirmDialog's banner, and with its header's words
-		mApp->DoConfirmDialog(GameApp::DIALOG_CONTINUE_GAME, GT(0x7aed7c), GT(0x7aed20), nullptr, "");
+		mApp->DoConfirmDialog(GameApp::DIALOG_CONTINUE_GAME, GT(0x6fcfbc), GT(0x6fcf60), nullptr, "");
 		GameDialog* aDialog = static_cast<GameDialog*>(mApp->GetDialog(GameApp::DIALOG_CONTINUE_GAME));
 		aDialog->SetBanner(nullptr, 0);
-		aDialog->mDialogHeader = GT(0x7aed7c);
+		aDialog->mDialogHeader = GT(0x6fcfbc);
 	}
 	for (int i = 0; i < (int)mItems.size(); i++)
 		mItems[i]->mDisabled = true;
@@ -802,8 +802,8 @@ void MainMenu::ShowUserDialog()
 	aResources.mButtonImage = IMAGE_DIALOG_BUTTON;
 	aResources.mClickSound = SOUND_CLICK1;
 	aResources.mFont = FONT_MEDIUM;
-	aResources.mHeader = GT(0x7c5a20);
-	aResources.mNewLabel = GT(0x7c5a30);
+	aResources.mHeader = GT(0x703fbc);
+	aResources.mNewLabel = GT(0x703fcc);
 	aResources.mDeleteLabel = GT(0x7c5a34);
 	mUserDialog = new JeffLib::UserSelectionDialog(aResources);
 	mUserDialog->mMaxProfiles = mApp->GetInteger("MaxProfiles", 10);
@@ -885,7 +885,7 @@ bool MainMenu::TakeNewUser(const std::string& theName)
 	// 0x47d390
 	if (!theName.empty()) {
 		if (!IsUserNameFree(theName)) {
-			mApp->DoOkDialog(GT(0x7a9c04), StrFormat(GT(0x7aee10).c_str(), theName.c_str()), "", nullptr);
+			mApp->DoOkDialog(GT(0x6f701c), StrFormat(GT(0x6fd050).c_str(), theName.c_str()), "", nullptr);
 			return false;
 		}
 		FillUserList();
@@ -934,7 +934,7 @@ void MainMenu::DialogButtonDepress(int theDialogId, int theButtonId)
 			if (theButtonId != aDialog->mDeleteButton->mId)
 				return;
 			// DELETE: asks first; the answer comes back here, as the confirmation's dialog 18
-			mApp->DoConfirmDialog(-1, GT(0x7aee00), StrFormat(GT(0x7aed98).c_str(), aDialog->mSelected.c_str()),
+			mApp->DoConfirmDialog(-1, GT(0x6fd040), StrFormat(GT(0x6fcfd8).c_str(), aDialog->mSelected.c_str()),
 			                      nullptr, "");
 			mApp->GetDialog(GameApp::DIALOG_CONFIRM)->mDialogListener = this;
 			return;
