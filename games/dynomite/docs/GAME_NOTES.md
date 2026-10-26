@@ -71,6 +71,12 @@ pictures (`images\dialog`, `dbutton`, `waitbar`), makes the `TitleScreen` and ad
 cursors (`cursor1`, `pointer2`, `overhand`, `typer`). The loading (`InitHook`, slot 15, 0x419c30) makes 394 steps
 (+0x4e4) of Pics, Cells, PicFonts, MaskedPics and Sounds into fields of the app; `tools/loadtable.py` lists them.
 
+The constructor is 0x4198b0 (0x419320 is the destructor): product "Dynomite", title "Dynomite Deluxe", version
+"2.71" (+0x374), registry key `PopCap\Dynomite`, 640 x 480, music volume 0.5 (+0x68) and sound volume 0.85 (+0x70);
+it makes a 0xb48-byte object (0x42bb50, link order: Museum.cpp) at +0x5d4, seeds the MTRand at +0x5d8 with
+`GetTickCount()` and the game's own generator at +0xf9c (class 0x431d30, seeded by 0x431d50 with `GetTickCount() >> 1`),
+and sets +0x1084 = 1, +0x1088 = 0, +0x108c = 2 (settings read later), +0x1094, +0x1aac, +0x10b4, +0x10ec, +0x1830 to 0.
+
 Other app fields seen so far: +0x10b8 sound initialised (the sound manager's slot 1), +0x10d8-0x10e4 the four cursor
 Pics, +0x19d4/0x19d8/0x19dc the three white ImageFonts, +0x19e0 the TitleScreen, +0x5bc a list of every image loaded
 through `GetImage` (0x419ad0), +0x2cc the WidgetManager, +0x314 the music interface, +0x490 the sound manager.
