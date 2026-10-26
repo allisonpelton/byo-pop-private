@@ -180,6 +180,7 @@ public:
 	uint32_t		mPendingPlaySeed;           // port(variant): the seed DIALOG_CONFIRM_SEED asks about
 	uint32_t		mNextValuesBoard;           // port(mods): the board ApplyNextGameValues last tried (Board::mBoardSerial)
 	int				mGemShrinkColors;           // port(variant): the colours mGemShrinkImages has images for
+	int				mMissingSounds;             // port(variant): sounds code art plays on without (features.codeArt)
 
 public:
 	WinDMApp();                                                     // 0x4d4d82
@@ -260,6 +261,9 @@ public:
 	// theColors colours, the gem sheet gets the rows it lacks and the shrink images their colours
 	void			EnsureGemColors(int theColors);
 	void			MakeGemShrinkImages(int theColor);
+	// port(variant): code-drawn art (games/bejeweled/docs/CODE_MODS_DESIGN.md 4.18, art/CodeArt.h): with
+	// features.codeArt on, the images and fonts are drawn as they load, and missing sounds leave the game silent
+	void			EnableCodeArt();
 
 	// port(mods): the mod menu's "Restart game" and messages (docs/MOD_MENU_DESIGN.md 6, 8.2): a game in progress
 	// (Restart asks first); no restart while the high-score name is being entered; a restart keeps the replay

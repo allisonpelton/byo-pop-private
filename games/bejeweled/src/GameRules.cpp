@@ -2749,6 +2749,8 @@ std::string GameFeatures::Text() const
 		aParts.push_back(std::string("leaderboard(") + (mRankedAlways ? "always" : "ask") + ")");
 	if (mLiveSplit)
 		aParts.push_back("livesplit");
+	if (mCodeArt)
+		aParts.push_back("codeArt(gems " + mCodeArtGems + ", palette " + mCodeArtPalette + ")");
 	std::string aText;
 	for (size_t i = 0; i < aParts.size(); i++)
 		aText += (i ? ", " : "") + aParts[i];
@@ -2758,8 +2760,10 @@ std::string GameFeatures::Text() const
 namespace
 {
 
-enum { FEATURE_SEEDS, FEATURE_REPLAYS, FEATURE_LEADERBOARD, FEATURE_LIVESPLIT, NUM_FEATURES };
-const char* const gFeatureNames[NUM_FEATURES] = {"seeds", "replays", "leaderboard", "livesplit"};
+enum { FEATURE_SEEDS, FEATURE_REPLAYS, FEATURE_LEADERBOARD, FEATURE_LIVESPLIT, FEATURE_CODEART, NUM_FEATURES };
+const char* const gFeatureNames[NUM_FEATURES] = {"seeds", "replays", "leaderboard", "livesplit", "codeArt"};
+const char* const gCodeArtGems[] = {"cel", "glossy", "su"};
+const char* const gCodeArtPalettes[] = {"blue", "violet", "emerald", "ember", "night"};
 
 // One feature's value: false / null (off), true (on with its defaults) or its options object
 bool ParseFeature(int theFeature, const JsonValue& theValue, GameFeatures* theOut, ParseLog& theLog)
@@ -2790,6 +2794,11 @@ bool ParseFeature(int theFeature, const JsonValue& theValue, GameFeatures* theOu
 	case FEATURE_LIVESPLIT:
 		// no options yet: an object turns it on like true, and each of its members is an unknown key
 		theOut->mLiveSplit = anOn;
+		break;
+	case FEATURE_CODEART:
+		theOut->mCodeArt = anOn;
+		theOut->mCodeArtGems = "cel";
+		theOut->mCodeArtPalette = "blue";
 		break;
 	}
 	if (!theValue.IsObject())
@@ -2824,6 +2833,22 @@ bool ParseFeature(int theFeature, const JsonValue& theValue, GameFeatures* theOu
 				return theLog.Error(aSubKey + " must be \"ask\" or \"always\"");
 			theOut->mRankedAlways = aValue.AsString() == "always";
 		}
+		else if ((theFeature == FEATURE_CODEART) && ((aName == "gems") || (aName == "palette")))
+		{
+			bool isGems = aName == "gems";
+			const char* const* aNames = isGems ? gCodeArtGems : gCodeArtPalettes;
+			int aCount = isGems ? 3 : 5;
+			std::string aList;
+			bool isKnown = false;
+			for (int k = 0; k < aCount; k++)
+			{
+				aList += std::string(k ? ", " : "") + "\"" + aNames[k] + "\"";
+				isKnown |= aValue.IsString() && (aValue.AsString() == aNames[k]);
+			}
+			if (!isKnown)
+				return theLog.Error(aSubKey + " must be one of " + aList);
+			(isGems ? theOut->mCodeArtGems : theOut->mCodeArtPalette) = aValue.AsString();
+		}
 		else
 		{
 			std::vector<std::string> aKnown;
@@ -2833,6 +2858,8 @@ bool ParseFeature(int theFeature, const JsonValue& theValue, GameFeatures* theOu
 				aKnown = {aKey + ".keep", aKey + ".hover"};
 			else if (theFeature == FEATURE_LEADERBOARD)
 				aKnown = {aKey + ".ranked"};
+			else if (theFeature == FEATURE_CODEART)
+				aKnown = {aKey + ".gems", aKey + ".palette"};
 			theLog.Warning(UnknownKey(aSubKey, aKnown));
 		}
 	}
@@ -2860,7 +2887,7 @@ void Sexy::MergeFeatures(const std::vector<RulesSource>& theSources, GameFeature
 			continue;
 		ParseLog aLog;
 		GameFeatures aParsed;
-		bool aSet[NUM_FEATURES] = {false, false, false, false};
+		bool aSet[NUM_FEATURES] = {};
 		if (!aSource.mFeatures.IsObject())
 			aLog.Error("\"features\" must be an object");
 		else
@@ -2911,10 +2938,16 @@ void Sexy::MergeFeatures(const std::vector<RulesSource>& theSources, GameFeature
 				aMerged.mLeaderboard = aParsed.mLeaderboard;
 				aMerged.mRankedAlways = aParsed.mRankedAlways;
 			}
-			else
+			else if (k == FEATURE_LIVESPLIT)
 			{
 				aMerged.mLiveSplit = aParsed.mLiveSplit;
 				aMerged.mLiveSplitMod = aParsed.mLiveSplit ? aSource.mModId : std::string();
+			}
+			else
+			{
+				aMerged.mCodeArt = aParsed.mCodeArt;
+				aMerged.mCodeArtGems = aParsed.mCodeArtGems;
+				aMerged.mCodeArtPalette = aParsed.mCodeArtPalette;
 			}
 			GameFeatures aText;
 			if (k == FEATURE_SEEDS)
@@ -2934,8 +2967,14 @@ void Sexy::MergeFeatures(const std::vector<RulesSource>& theSources, GameFeature
 				aText.mLeaderboard = aParsed.mLeaderboard;
 				aText.mRankedAlways = aParsed.mRankedAlways;
 			}
-			else
+			else if (k == FEATURE_LIVESPLIT)
 				aText.mLiveSplit = aParsed.mLiveSplit;
+			else
+			{
+				aText.mCodeArt = aParsed.mCodeArt;
+				aText.mCodeArtGems = aParsed.mCodeArtGems;
+				aText.mCodeArtPalette = aParsed.mCodeArtPalette;
+			}
 			if (!aSetter[k].empty() && (aSetterText[k] != aText.Text()))
 				theStatus->mWarnings.push_back({aSource.mModId, std::string("features.") + gFeatureNames[k] + " overrides " + aSetter[k]});
 			aSetter[k] = aSource.mModId;

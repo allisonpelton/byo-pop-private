@@ -323,8 +323,11 @@ struct GameFeatures
 	bool							mRankedAlways = false;  // leaderboard.ranked "always" (else "ask")
 	bool							mLiveSplit = false;     // fill the LiveSplit block (desktop builds, 4.15)
 	std::string						mLiveSplitMod;          // the mod that turned it on (its livesplit/ templates)
+	bool							mCodeArt = false;       // code-drawn images and fonts (4.18, src/art/CodeArt.h)
+	std::string						mCodeArtGems = "cel";   // gem style: cel, glossy, su
+	std::string						mCodeArtPalette = "blue";   // blue, violet, emerald, ember, night
 
-	bool							Any() const { return mSeeds || mReplays || mLeaderboard || mLiveSplit; }
+	bool							Any() const { return mSeeds || mReplays || mLeaderboard || mLiveSplit || mCodeArt; }
 	std::string						Text() const;           // "seeds(entry, perGame), replays(keep 20), livesplit" or "none"
 };
 

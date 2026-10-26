@@ -17,7 +17,9 @@ repository or in its builds.
 
 ## Getting the game files
 
-The port reads the `images`, `data`, `sounds`, `music` and `properties` folders of an installed copy.
+The port reads the `images`, `data`, `sounds`, `music` and `properties` folders of an installed copy. With the
+`code-art` mod (below) the native game needs only `data` and `properties`: it draws every image itself, and plays
+silent without the sounds.
 
 - **Native**: the executable finds a Steam install automatically, or run it with
   `-gamedir="<Bejeweled Deluxe folder>"`. For development, `python games/bejeweled/tools/stage_assets.py`
@@ -52,6 +54,7 @@ Command-line options (native; the web shell passes the equivalent paths):
 | `-gameseed=<n>` | play the next game on seed n (1 to 4294967295): the same board every time. The seed waits until you play it: a mode switch or New Game before your first match, or a resumed saved game, leaves it for the next game; your first match or a game over uses it up. On the web: `bejeweled.html?seed=<n>`. The game-over screen shows the seed, and the scores go to a separate high-score table |
 | `-script=<file>`, `-fast`, `-trace` | scripted input and screenshots for automated tests |
 | `-livesplitlog=<file>` | with the `livesplit` mod (Windows): one line per write of the LiveSplit block, for tests |
+| `-dumpcodeart=<dir>` | with the `code-art` mod: write every image it draws (1x and at its density) and the fonts' descriptors to the folder, then exit; `-codeartscale=<n>` picks the density |
 
 ## Mods
 
@@ -122,6 +125,7 @@ The mods live in `games/bejeweled/mods/`; the generators write there by default.
 | `bejeweled2-audio`: Bejeweled 2's music and sound effects (needs your Bejeweled 2 Deluxe install and an ffmpeg build with libopenmpt) | `python games/bejeweled/tools/make_bej2_audio_mod.py` |
 | `bejeweled2-gems`: the seven gems redrawn in the style of Bejeweled 2, HD (@4x) with spin and hover animations, and the same gems over the five on the title screen (leave those out with `--no-title`). New procedural art that reads no game files, but a close recreation of another game's look | `python games/bejeweled/tools/make_bej2_gems_mod.py` |
 | `su-gems`: the seven gems redrawn as gems from Steven Universe (fan art), cel shaded, HD (@4x) with spin and hover animations, plus four more (Rose Quartz, Lapis Lazuli, Bismuth, Garnet) for boards of up to 11 colours, and the same gems on the title screen (`--no-title` leaves those out). Procedural; reads no files | `python games/bejeweled/tools/make_su_gems_mod.py` |
+| `code-art`: every image and font drawn by code as the game loads, in the port's own look, so the game runs without its `images` folder and is sharp at any window size. The mod menu picks the gems (cel, glossy or Steven Universe) and one of five palettes. Mods above it still win | in the repository |
 
 Mods built from other games' files or third-party pictures, or closely recreating another game's art, are generated locally and git-ignored.
 

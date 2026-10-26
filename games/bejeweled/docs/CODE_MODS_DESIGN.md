@@ -1953,6 +1953,57 @@ only, no code change.
 - **Size:** ~3,800 lines (about 150 of them shared): rasteriser ~700, vector font and styles ~900, gem
   renderer ~700, the other generators ~1,100, tests and screenshots ~250.
 
+**As built (stage 16, `src/art/`, the mod `code-art`; GAME_NOTES 12.20):** about 3,850 lines in
+`games/bejeweled/src/art/`, 83 shared lines (commit 935cc5d) and about 150 more in the game. The shared hook is
+smaller than planned and has no registry of sizes. `Platform::SetImageGenerator` takes one function of a game path
+and a `LoadedImage`, which the image loader asks after the mod layers and before the game's files, so a mod's image
+still wins and image patches draw over a drawn one. `VFS::SetGeneratedFile` serves the five fonts' descriptors
+behind the mods, and `ImageFont`'s legacy reader now reads through the VFS to find them. `CodeArt::Generate` looks
+the name up in its own table of the images the game loads; a font whose image or descriptor a mod has stays wholly
+the mod's. Every image has the original's width and height, checked against the staged files. The five font strips
+do not: their descriptors carry the new layout (afont1 is 937 px wide against the original's 553), while each
+keeps the original's height, ascent and space width, so text stays where it was (the replay recorder stores
+alphadigits4's ascent of 32). `bagholder` and `blackcover` get no generator, because the port never loads them.
+
+The rasteriser keeps coverage masks under a nonzero rule clamped at 1, so contours of opposite winding cut holes
+and shapes of mixed winding are unioned by separate fills. Masks grow, shrink and blur through an exact distance
+transform and a running-sum box blur, and `Sampled` evaluates an expensive paint (noise, mist) on a coarse grid
+read back bilinearly. The letters are a stroke font, not outlines: each glyph is lines and elliptic arcs drawn
+with round caps at any weight, and each game font adds its own tracking, outline, fill and bevel. The gems are
+ray-cast facet solids in three styles. `cel` has the port's own twelve cuts in flat tones; `glossy` has the same
+cuts as glass reflecting a sky, which is the port's own shader and not Bejeweled 2's gems (a port of those would be
+a close recreation of another game's art); `su` has stage 15's models and cel look. The sheet has
+max(7, `board.gemColors`) rows of colours, up to 12.
+
+The density follows the window. `SettingsFor` asks for 4 natively and 2 on the web, and WinDMApp clamps that
+to the window's render scale but never below 2, so a window made larger later still looks sharp. The soft images
+(`sparkle`, `blackhole`, `holemask`) are drawn at 2x at most. Everything is drawn during the loading screen: about
+3.5 s at 4x (the title 1.0 s, the backdrop 0.6 s, the gem sheet 0.65 to 1.2 s on up to four threads) and 1.5 s at
+3x. The planned cache in the user dir was left out at those times. On the web the gem sheet is drawn on one
+thread.
+
+The settings are `gems` and `palette` (blue, violet, emerald, ember, night). Like `features.livesplit` they
+apply only at the next start (`IsNextGamePath`). Words drawn into images are string ids with defaults
+(`CODEART_NEW_GAME` and so on), so a strings mod can change them. Two start-up rules changed. With code art on,
+a missing sound is no longer fatal, and the title screen then says the game plays silent (`CODEART_SILENT`).
+`main.cpp` accepts a game folder that has `data/diff.txt`; if `images/gemsheet6.png` is missing too, it reads the
+mods' features and starts only when code art is on. `-dumpcodeart=<dir>` writes every drawn image at 1x and at
+its density, and the fonts' descriptors, with the milliseconds each took; `-codeartscale=N` picks another
+density.
+
+The tests ran as planned, with one change: test 1 ran outside the oracle, whose game folder is fixed. All 69 oracle
+scripts ran on a copy of the game files with only `data/diff.txt`, sounds, music and properties, with the mod, and
+were compared with the full game files without mods. 64 had identical hash files at once. One script waits for a
+saved game this harness did not give it, and both sides sat until the timeout with the same hashes. Three stage 13
+scripts click where an enabled mod with settings adds a Mods button; they match once both sides have the Extras
+mod they were written for. The seed script clicks inside the typed digits, where the text cursor lands by the new
+letter widths; it matches once the click lands past them. A folder with only `data/diff.txt` and properties also
+plays the playtest with the same hashes, silently, and the title says so. The web build under Node, without
+images, gives the native hashes. In the Browser pane the mod, imported as a zip, draws the title at 2x. With
+`bejeweled2-gems` above it, that mod's gems are patched over the drawn sheet; with `hd4x-textures` above it, every
+drawn image is replaced. On the web the import still asks for the whole install (its marker is
+`images/gemsheet6`), so there code art draws over files the player imported anyway.
+
 ### 4.19 Detailed game-over stats (`features.gameStats`)
 
 - **What:** the game-over screen (`HighScoreWidget`) shows three stats: gems cleared, longest cascade
