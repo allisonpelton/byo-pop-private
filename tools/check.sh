@@ -380,7 +380,7 @@ suite_bookwormadv() {
 	bookwormadv_all "$p" || return 1
 	[ "$s" = 4 ] || return 1
 	[ "$m" = "quit at update 1310" ] || return 1
-	[ "$c" = "6 words, won, saved" ] || return 1
+	[ "$c" = "7 words, won, saved" ] || return 1
 	return 0
 }
 
