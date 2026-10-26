@@ -2,7 +2,8 @@
 //
 // Arguments (all optional):
 //   -gamedir=<dir>   folder containing the game's images/, data/, sounds/, music/ and properties/ (the original
-//                    install folder; Alchemy.exe is not needed: the game's texts are in properties/default.xml)
+//                    install folder; the game's texts are in properties/default.xml, and Alchemy.exe, if it is there, gives
+//                    the score tables' default names: GameText.h)
 //   -userdir=<dir>   writable folder for the saved game, high scores and registry.ini
 //   -modsdir=<dir>   folder containing data mods (one sub-folder per mod)
 //   -nomods          start without any mods

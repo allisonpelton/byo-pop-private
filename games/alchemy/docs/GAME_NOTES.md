@@ -61,9 +61,10 @@ button (`mTutWaiting`), a wrong placement gets a message, the last step's button
 - `userdata\hiscores.dat`: for each kind of game the best score of the day (the day, a name, a score and a check) and five
   scores (a name, a score and a check); numbers are little-endian 32-bit, a name's length 16-bit. The check is
   `score ^ 0x42beef`, then a step for each character of the name (0x40a15a, 0x40a341). The default scores are 1000 down
-  to 600; the default names are the port's own placeholders (the original has a table of names inside the game, which the
-  port does not copy; `DEFAULT_NAME_STRATEGIC_1..5` and `DEFAULT_NAME_TIME_TRIAL_1..5` in `properties/default.xml` replace
-  them).
+  to 600; the default names are ten names inside the game (0x4e4108-0x4e4148, taken by the score table's constructor in the
+  strategic table's order, then the time trial's). The port reads them from the player's own `Alchemy.exe` (`GameText.h`),
+  and starts a table with its own placeholders when the exe is not in the game folder or is another version;
+  `DEFAULT_NAME_STRATEGIC_1..5` and `DEFAULT_NAME_TIME_TRIAL_1..5` in `properties/default.xml` replace either.
 - the registry (`registry.ini` in the port): `SkillLevel`, `TimeTrial`, `LastScoreName`, `LastInternetScoreName` (kept,
   never shown), `NoPopLink`, and the framework's (volumes, full screen, custom cursors, times played).
 

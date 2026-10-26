@@ -29,7 +29,8 @@ is at (10, 0x23)); `LoadProperties()` must be called in Init or every `GetString
 - RTTI has only framework and std classes (120 classes): the game's own classes have no RTTI. Their vtables were found
   from constructor stores of `0x4e3xxx-0x4e5xxx` immediates.
 - The game's strings are string IDs looked up at run time in `properties/default.xml` (the user's file, 228 strings);
-  no GameText reader is needed. The exe holds a little more game text than ids (the default names of the score tables, which the port does not copy: see GAME_NOTES.md section 3); the port reads the strings from the player's file only.
+  no GameText reader is needed for them. The exe holds a little more game text than ids: the default names of the score
+  tables, which `GameText.cpp` reads from the player's exe (GAME_NOTES.md section 3); the strings are read from the player's file.
 - Files: images/*.gif|jpg|png, sounds/*.ogg, music/*.s3m (2), data/*.txt (font descriptors + diff.txt), properties/*.xml.
   The wrapper's `drm/` folder, bass.dll, readme.html, license.txt are not used by the port.
 

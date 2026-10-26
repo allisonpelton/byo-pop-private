@@ -7,6 +7,7 @@
 #include "SidePanel.h"
 #include "TitleScreen.h"
 #include "Effects.h"
+#include "GameText.h"
 #include "HighScores.h"
 #include "Selector.h"
 #include "DDImage.h"
@@ -263,6 +264,7 @@ void AlchemyApp::Init()
 	CrtSRand(mHasSeedParam ? (unsigned int) mRandSeed : (unsigned int) GameTickCount());
 
 	LoadProperties();  // 0x46d740: properties\default.xml, the game's texts
+	LoadGameTexts();   // port: the score tables' default names, from the player's own Alchemy.exe
 
 	DIALOG_YES_STRING = GetString("DIALOG_BUTTON_YES");
 	DIALOG_NO_STRING = GetString("DIALOG_BUTTON_NO");
