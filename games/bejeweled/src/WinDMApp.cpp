@@ -20,6 +20,7 @@
 #include "DialogButton.h"
 #include "ImageFont.h"
 #include "DDImage.h"
+#include "DDInterface.h"
 #include "MemoryImage.h"
 #include "Graphics.h"
 #include "SoundManager.h"
@@ -34,6 +35,7 @@
 #include "ReplayOverlay.h"
 #include "ExtrasDialog.h"
 #include "ReplayBrowserDialog.h"
+#include "art/CodeArt.h"
 #include "platform/ModManager.h"
 
 #include <SDL.h>
@@ -51,6 +53,7 @@ WinDMApp::WinDMApp()
 	mImages = NULL;
 	mGemShrinkImages = NULL;
 	mGemShrinkColors = 0; // port(variant)
+	mMissingSounds = 0; // port(variant)
 	mTitleScreen = NULL;
 	mBoard = NULL;
 	mNoPopLink = false;
@@ -881,6 +884,7 @@ void WinDMApp::Init()
 	gGameConfig.Load(CanCommitNextGameValues());
 
 	LoadProperties();
+	EnableCodeArt(); // port(variant)
 
 	DIALOG_YES_STRING = GetString("DIALOG_BUTTON_YES");
 	DIALOG_NO_STRING = GetString("DIALOG_BUTTON_NO");
@@ -915,6 +919,19 @@ void WinDMApp::Init()
 	SetCursorImage(CURSOR_HAND, mImages[IMAGE_POINTER]);
 	SetCursorImage(CURSOR_DRAGGING, mImages[IMAGE_OVERHAND]);
 	SetCursorImage(CURSOR_TEXT, mImages[IMAGE_TYPER]);
+}
+
+// port(variant): code-drawn art (art/CodeArt.h). The labels drawn into the images are strings, so a mod can reword them.
+void WinDMApp::EnableCodeArt()
+{
+	if (!gGameConfig.mFeatures.mCodeArt)
+		return;
+	CodeArt::Settings aSettings = CodeArt::SettingsFor(gGameConfig.mFeatures, gGameConfig.mGemColors);
+	// drawn at the window's render scale, and at least 2, so a window made larger later still looks sharp
+	int aRenderScale = (mDDInterface != NULL) ? mDDInterface->mRenderScale : 2;
+	aSettings.mScale = std::max(2, std::min(aSettings.mScale, aRenderScale));
+	aSettings.mText = [this](const std::string& theId, const std::string& theDefault) { return GetString(theId, theDefault); };
+	CodeArt::Enable(aSettings);
 }
 
 // DoUpdateCheck (0x4d68da, UpdateCheckDialog 18 + HTTP version check) is not ported: the port is always up to date
@@ -1326,9 +1343,13 @@ void WinDMApp::LoadingThreadProc()
 		{
 			if (!mSoundManager->LoadSound(i, std::string("sounds\\") + gSoundNames[i]))
 			{
-				Popup(std::string("Failed to load sounds\\") + gSoundNames[i]);
-				mLoadingFailed = true;
-				return;
+				if (!CodeArt::IsEnabled())
+				{
+					Popup(std::string("Failed to load sounds\\") + gSoundNames[i]);
+					mLoadingFailed = true;
+					return;
+				}
+				mMissingSounds++; // port(variant): code art plays on without it (features.codeArt)
 			}
 			mCompletedLoadingThreadTasks++;
 		}

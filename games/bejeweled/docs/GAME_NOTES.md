@@ -2390,6 +2390,32 @@ come: of the features only the leaderboard is "not in this build" (stage 14). Th
 be renamed by mods: `OPTIONSDLG_EXTRAS`, the `EXTRASDLG_*`, `REPLAYSDLG_*` and `REPLAY_*` ids, `CONFIRM_SEED1/2` and
 `HSWIDGET_WATCH_REPLAY`.
 
+### 12.19 Steven Universe gems (code mods, stage 15)
+
+games/bejeweled/docs/CODE_MODS_DESIGN.md 4.17, as built. `tools/make_su_gems_mod.py` draws the mod `su-gems`: the
+seven gems as gems from Steven Universe in their Bejeweled colours, plus Rose Quartz, Lapis Lazuli, Bismuth and Garnet
+for boards of up to 11 colours. It writes a whole `images/gemsheet6@4x.png` rather than a patch, because a patch cannot
+make the sheet taller; the game's 1x comes from box downsampling, and boards of 7 colours read only the first seven
+rows. Each gem is a convex solid ray-cast per pixel and cel shaded: four Lambert tones from a fixed light, a rim
+tone, one white glint and a dark outline, with Pearl a smooth ellipsoid and Bismuth's facets in rainbow hues. The spin
+and glow rows use the frame layout of the Bejeweled 2 gems, whose shared code moved into `tools/gemsheet.py` (that
+generator's output is byte-identical). The title screen's five gems are covered and redrawn as SU gems, unless
+`--no-title`. The output is fan art of the show's designs and stays git-ignored (`mods/.gitignore`). Nothing in the
+game changed.
+
+### 12.20 Code-drawn art (code mods, stage 16)
+
+games/bejeweled/docs/CODE_MODS_DESIGN.md 4.18, as built. The mod `code-art` turns on `features.codeArt`, and code in
+`src/art/` then draws every image the game loads and its five bitmap fonts while the loading screen shows, so the game
+runs without its `images` folder and the fonts' `data/*.txt`. The look is the port's own: bevelled panels, procedural
+textures, a stroke font and ray-cast gems in three styles (cel, glossy, and stage 15's Steven Universe gems), in five
+palettes. Images keep the originals' names and sizes, so no Draw code, layout or hit test changed; the font strips
+differ in width but keep each font's height, ascent and space. The density follows the window's render scale (2 to
+4; 2 on the web). The platform asks the game's generator after the mod layers and before the game's files (shared
+commit 935cc5d), so mod images and image patches still apply over the drawn art. A missing sound file is not fatal
+with code art on, and the title screen then says the game plays silent. Nothing changes without the mod: the
+generator is not registered, and play never reads what it draws.
+
 ## 13. Naming reconciliation (analyst names → chosen names)
 
 **Board fields.**

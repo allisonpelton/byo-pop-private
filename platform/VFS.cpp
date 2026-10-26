@@ -253,8 +253,27 @@ FILE* VFS::Open(const std::string& theGamePath, const char* theMode) const
 	return fopen(p.c_str(), theMode);
 }
 
+void VFS::SetGeneratedFile(const std::string& theGamePath, const std::string& theContents)
+{
+	std::string key = Lower(Normalize(theGamePath));
+	if (theContents.empty())
+		mGenerated.erase(key);
+	else
+		mGenerated[key] = theContents;
+}
+
 bool VFS::ReadAll(const std::string& theGamePath, std::vector<uint8_t>& theData) const
 {
+	if (!mGenerated.empty() && !IsAbsolute(theGamePath))
+	{
+		auto g = mGenerated.find(Lower(Normalize(theGamePath)));
+		std::string modId;
+		if ((g != mGenerated.end()) && (Resolve(theGamePath, &modId).empty() || modId.empty()))
+		{
+			theData.assign(g->second.begin(), g->second.end());
+			return true;
+		}
+	}
 	FILE* f = Open(theGamePath, "rb");
 	if (!f)
 		return false;

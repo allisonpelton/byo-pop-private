@@ -333,14 +333,15 @@ void GameConfig::Load(bool theCanCommit)
 
 // port(mods): NewGame's Load reads "rules", "tunables" and "features" again (ResolveRules; the legacy tunables through
 // ModManager::GetTunable*), so a value used only there applies at the next fresh game. Not features.livesplit: the
-// LiveSplit observer's run state and block outlive a board, so turning it on or off waits for a restart.
+// LiveSplit observer's run state and block outlive a board, so turning it on or off waits for a restart. Nor
+// features.codeArt: its images are drawn once, at start-up.
 bool GameConfig::IsNextGamePath(const std::string& thePath)
 {
 	auto isUnder = [&thePath](const char* theKey) {
 		size_t aLength = strlen(theKey);
 		return (thePath.compare(0, aLength, theKey) == 0) && ((thePath.size() == aLength) || (thePath[aLength] == '.'));
 	};
-	if (isUnder("features.livesplit") || (thePath == "features"))
+	if (isUnder("features.livesplit") || isUnder("features.codeArt") || (thePath == "features"))
 		return false;
 	return isUnder("rules") || isUnder("tunables") || isUnder("features");
 }
