@@ -5,6 +5,7 @@
 // slingshot that holds the loaded egg and fires it. Work in progress: the functions not translated yet are TODO.
 
 #include "MTRand.h"
+#include "Point.h"
 #include "PtrList.h"
 
 namespace Sexy
@@ -50,8 +51,8 @@ public:
 	int					mFieldA68;			// +0xa68
 	int					mFieldA6c;			// +0xa6c (255) the arrow's red
 	int					mFieldA70;			// +0xa70 the arrow's green and blue
-	PtrList<void>		mListA74;			// +0xa74
-	PtrList<void>		mListA8c;			// +0xa8c
+	PtrList<Point>		mPathRight;			// +0xa74 the aim path's right side, first to last
+	PtrList<Point>		mPathLeft;			// +0xa8c its left side, last to first
 	bool				mFrozen;			// +0xaa4 Fire does nothing while it is set
 	Egg*				mHeld;				// +0xaa8 an egg held while frozen (saved like the loaded one)
 	int					mFieldAac;			// +0xaac
@@ -72,6 +73,7 @@ public:
 	void				DrawArrow(Graphics* g);				// 0x401ed0
 	// 0x4021e0: the line's two points each moved theWidth to either side (x, y, x, y)
 	void				Widen(PathLine* theLine, float* theFrom, float* theTo, float theWidth);
+	void				AddPath(Graphics* g, PathLine* thePrev, PathLine* theLine, PathLine* theNext);	// 0x4022f0
 };
 
 }

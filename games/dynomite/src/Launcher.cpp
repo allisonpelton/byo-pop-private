@@ -347,3 +347,150 @@ void Launcher::Widen(PathLine* theLine, float* theFrom, float* theTo, float theW
 	theTo[2] = (float) ((double) theTo[2] - aSideX);
 	theTo[3] = (float) ((double) theTo[3] - aSideY);
 }
+
+// 0x4022f0: a line of the aim's path as a band 30 wide, its sides mitred with the lines before and after, the
+// right side added to the right list and the left side put in front of the left list; the first line starts 10
+// further back, and the last ends 25 short with a head 40 wide and its tip 30 further
+void Launcher::AddPath(Graphics* g, PathLine* thePrev, PathLine* theLine, PathLine* theNext)
+{
+	float aFrom[4];
+	float aTo[4];
+	float aNextFrom[4];
+	float aNextTo[4];
+	float aPrevFrom[4];
+	float aPrevTo[4];
+	float aLine1[4];
+	float aLine2[4];
+	float aCross1[2];
+	float aCross2[2];
+	float aCross3[2];
+	float aCross4[2];
+	if (thePrev == NULL)
+		Retract(theLine, 10.0f);
+	if (theNext == NULL)
+		Extend(theLine, -25.0f);
+	if (thePrev != NULL)
+	{
+		if (theNext != NULL)
+		{
+			Widen(theLine, aFrom, aTo, 15.0f);
+			Widen(theNext, aNextFrom, aNextTo, 15.0f);
+			Widen(thePrev, aPrevFrom, aPrevTo, 15.0f);
+			aLine1[0] = aFrom[0];
+			aLine1[1] = aFrom[1];
+			aLine1[2] = aTo[0];
+			aLine1[3] = aTo[1];
+			aLine2[0] = aNextFrom[0];
+			aLine2[1] = aNextFrom[1];
+			aLine2[2] = aNextTo[0];
+			aLine2[3] = aNextTo[1];
+			AngleTable::Intersect(aLine1, aLine2, aCross1);
+			aLine1[0] = aFrom[0];
+			aLine1[1] = aFrom[1];
+			aLine1[2] = aTo[0];
+			aLine1[3] = aTo[1];
+			aLine2[0] = aPrevFrom[0];
+			aLine2[1] = aPrevFrom[1];
+			aLine2[2] = aPrevTo[0];
+			aLine2[3] = aPrevTo[1];
+			AngleTable::Intersect(aLine1, aLine2, aCross2);
+			aLine1[0] = aFrom[2];
+			aLine1[1] = aFrom[3];
+			aLine1[2] = aTo[2];
+			aLine1[3] = aTo[3];
+			aLine2[0] = aNextFrom[2];
+			aLine2[1] = aNextFrom[3];
+			aLine2[2] = aNextTo[2];
+			aLine2[3] = aNextTo[3];
+			AngleTable::Intersect(aLine1, aLine2, aCross3);
+			aLine1[0] = aFrom[2];
+			aLine1[1] = aFrom[3];
+			aLine1[2] = aTo[2];
+			aLine1[3] = aTo[3];
+			aLine2[0] = aPrevFrom[2];
+			aLine2[1] = aPrevFrom[3];
+			aLine2[2] = aPrevTo[2];
+			aLine2[3] = aPrevTo[3];
+			AngleTable::Intersect(aLine1, aLine2, aCross4);
+			mPathRight.Add(new Point((int) aCross2[0], (int) aCross2[1]));
+			mPathRight.Add(new Point((int) aCross1[0], (int) aCross1[1]));
+			mPathLeft.InsertAt(new Point((int) aCross4[0], (int) aCross4[1]), 0);
+			mPathLeft.InsertAt(new Point((int) aCross3[0], (int) aCross3[1]), 0);
+		}
+		else
+		{
+			Widen(theLine, aFrom, aTo, 15.0f);
+			Widen(thePrev, aPrevFrom, aPrevTo, 15.0f);
+			aLine1[0] = aFrom[0];
+			aLine1[1] = aFrom[1];
+			aLine1[2] = aTo[0];
+			aLine1[3] = aTo[1];
+			aLine2[0] = aPrevFrom[0];
+			aLine2[1] = aPrevFrom[1];
+			aLine2[2] = aPrevTo[0];
+			aLine2[3] = aPrevTo[1];
+			AngleTable::Intersect(aLine1, aLine2, aCross1);
+			aLine1[0] = aFrom[2];
+			aLine1[1] = aFrom[3];
+			aLine1[2] = aTo[2];
+			aLine1[3] = aTo[3];
+			aLine2[0] = aPrevFrom[2];
+			aLine2[1] = aPrevFrom[3];
+			aLine2[2] = aPrevTo[2];
+			aLine2[3] = aPrevTo[3];
+			AngleTable::Intersect(aLine1, aLine2, aCross2);
+			mPathRight.Add(new Point((int) aCross1[0], (int) aCross1[1]));
+			mPathRight.Add(new Point((int) aTo[0], (int) aTo[1]));
+			mPathLeft.InsertAt(new Point((int) aCross2[0], (int) aCross2[1]), 0);
+			mPathLeft.InsertAt(new Point((int) aTo[2], (int) aTo[3]), 0);
+		}
+	}
+	else
+	{
+		if (theNext != NULL)
+		{
+			Widen(theLine, aFrom, aTo, 15.0f);
+			Widen(theNext, aNextFrom, aNextTo, 15.0f);
+			aLine1[0] = aFrom[0];
+			aLine1[1] = aFrom[1];
+			aLine1[2] = aTo[0];
+			aLine1[3] = aTo[1];
+			aLine2[0] = aNextFrom[0];
+			aLine2[1] = aNextFrom[1];
+			aLine2[2] = aNextTo[0];
+			aLine2[3] = aNextTo[1];
+			AngleTable::Intersect(aLine1, aLine2, aCross1);
+			aLine1[0] = aFrom[2];
+			aLine1[1] = aFrom[3];
+			aLine1[2] = aTo[2];
+			aLine1[3] = aTo[3];
+			aLine2[0] = aNextFrom[2];
+			aLine2[1] = aNextFrom[3];
+			aLine2[2] = aNextTo[2];
+			aLine2[3] = aNextTo[3];
+			AngleTable::Intersect(aLine1, aLine2, aCross2);
+			mPathRight.Add(new Point((int) aFrom[0], (int) aFrom[1]));
+			mPathRight.Add(new Point((int) aCross1[0], (int) aCross1[1]));
+			mPathLeft.InsertAt(new Point((int) aFrom[2], (int) aFrom[3]), 0);
+			mPathLeft.InsertAt(new Point((int) aCross2[0], (int) aCross2[1]), 0);
+		}
+		else
+		{
+			Widen(theLine, aFrom, aTo, 15.0f);
+			mPathRight.Add(new Point((int) aFrom[0], (int) aFrom[1]));
+			mPathRight.Add(new Point((int) aTo[0], (int) aTo[1]));
+			mPathLeft.InsertAt(new Point((int) aFrom[2], (int) aFrom[3]), 0);
+			mPathLeft.InsertAt(new Point((int) aTo[2], (int) aTo[3]), 0);
+		}
+	}
+	if (theNext == NULL)
+	{
+		float aHead[4];
+		Widen(theLine, aFrom, aTo, 15.0f);
+		Widen(theLine, aFrom, aHead, 20.0f);
+		Extend(theLine, 30.0f);
+		mPathRight.Add(new Point((int) aHead[0], (int) aHead[1]));
+		mPathRight.Add(new Point((int) theLine->mTo[0], (int) theLine->mTo[1]));
+		mPathRight.Add(new Point((int) aHead[2], (int) aHead[3]));
+	}
+}
