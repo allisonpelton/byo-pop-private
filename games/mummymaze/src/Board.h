@@ -199,8 +199,8 @@ public:
 	double				mFade;                  // +0x4d0 the board fades in (1 = all in)
 	double				mFade2;                 // +0x4d8
 	bool				mDark;                  // +0x4e0 dark pyramid
-	int					mTutorialStep;          // +0x498 index into kTutorialMove
-	int					mTutorialPart;          // +0x4e4
+	int					mTutorialStep;          // +0x4e4 index into kTutorialMove
+	int					mTutorialPart;          // +0x498 (only ever zeroed)
 	int					mExitStyle;             // +0x4e8
 	bool				mSolvable;              // +0x4ec the ankh is gold
 	int					mEndAlpha;              // +0x4f0

@@ -111,8 +111,23 @@ makes a map from the saved file (so the time and the catches are those of the fi
 whenever it removes the map). When the last pyramid is solved the victory screen comes and the saved progress starts again from zero.
 
 Saved game (`data/saves/adv<n>.sav` in the original, `adv<n>.sav` in the user folder here): int length and the player's name, int 2 (the
-format), int length and the name again (app+0x104cc), int length and the progress as a Buffer's web string (the 15 values as bytes, 0xff for a shut
+format), int length (0x9c0) and the app's random generator (app+0x104cc: its 624 state words, 0x4195d0 writes them with 0x432760, 0x417010
+reads them with 0x4326d0), int length and the progress as a Buffer's web string (the 15 values as bytes, 0xff for a shut
 pyramid), a byte for the pyramid the marker stands on, a double for the seconds played (app+0x10418), an int for the catches (app+0x10420).
+
+The map's marker byte sets the current pyramid only when it is below 0x10 and the target pyramid always. The ENTER button's picture is a
+0x118 x 0x2d crop of the buttons' sheet, at y 0 for a pyramid with no chamber done and y 0x2d after that; it is cropped again each time the
+marker arrives. After the solved-pyramid branch of the map's Update (0x417c10) the original goes on with the hover, the marker and the twinkles.
+
+The classic game's saved file (`data/saves/classic.sav`, 0x410b70 writes it, 0x41c600 reads it): int 2, an int 0x9c0 and the board's random
+generator (board+0x500), an int length and the app's Buffer (+0x103ec: the data for the Internet score list, as a web string; the main
+menu's classic link clears it and writes a byte, the registered name and code and the time, the level-complete screen adds a 0 byte and the
+level's seconds, Abandon Hope a 1 byte and the score), then the chamber, the pyramid, the maze, the file, the score, a byte for a level
+that was done, the time played in updates and the game mode. A level that was done is not played again: the loader moves on to the next
+chamber (and pyramid), takes the file as (pyramid x 99 + chamber x 7) / 15 (at most 99) and draws the maze number as
+abs(rand() % 7) + chamber x 99 / 15 + 1, a second time when the first number is 100 or less (it always is), until the pair is not in the
+table at 0x492708 (483 pairs). The high scores file is written by the destructors of the high-score and victory screens, not when a name is
+set; a record whose check fails keeps its name and its score becomes the stored one modulo 256.
 
 The original's search for a way out (the one behind the Ankh and ABANDON HOPE, 0x405580 and 0x411a90) does not know that a mummy that
 wins a fight with the other one flips the gate when it is on the key stone (0x407cc0 calls 0x421d00 when the fight ends); the board does,

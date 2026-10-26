@@ -3,8 +3,8 @@
 // it). The slot chooser, the new-game and delete dialogs are in Dialogs.cpp and the app's methods that tie them together
 // at the end of this file.
 //
-// A saved adventure: the player's name (int length, characters), the format number 2, the name again (the app's +0x104cc),
-// the progress of the fifteen pyramids (a Buffer's "web string": one byte each, 0xff for a pyramid that is still shut, else
+// A saved adventure: the player's name (int length, characters), the format number 2, the app's random generator (+0x104cc: its
+// 624 state words, 2496 bytes with an int length in front), the progress of the fifteen pyramids (a Buffer's "web string": one byte each, 0xff for a pyramid that is still shut, else
 // 0 to 15 chambers done), the pyramid the marker stands on (a byte), the time played (a double) and the number of times
 // the explorer was caught (an int).
 
@@ -142,7 +142,7 @@ void MummyApp::CreateAdventure(int theSlot, const SexyString& theName)
 	std::string aData;
 	PutString(aData, theName);
 	PutInt(aData, 2);
-	PutString(aData, theName);
+	PutString(aData, mRand.Serialize());
 	Buffer aBuffer;
 	for (int i = 0; i < 15; i++)
 		aBuffer.WriteByte(0xff);
@@ -277,7 +277,7 @@ WorldMap::WorldMap(MummyApp* theApp, int theSlot, bool theCheckEntry) :
 		mInvalid = true;
 	else
 	{
-		mApp->mAdvName = aReader.String();
+		std::string aRandom = aReader.String();
 		std::string aProgress = aReader.String();
 		int aCurrent = aReader.Byte();
 		double aTime = aReader.Double();
@@ -295,7 +295,17 @@ WorldMap::WorldMap(MummyApp* theApp, int theSlot, bool theCheckEntry) :
 					mProgress[i] = aValue;
 			}
 			mProgress[0] = mProgress[0] < 0 ? 0 : mProgress[0];
-			mCurrent = mTarget = (aCurrent >= 0 && aCurrent < 15) ? aCurrent : 0;
+			mApp->mAdvName = aName;
+			mApp->mRand.SRand(aRandom);	// 0x4326d0: the state words, or the seed 0x1105 when the size is wrong
+			// the byte sets mCurrent only below 0x10 and mTarget always
+			if (aCurrent < 0x10)
+				mCurrent = aCurrent;
+			mTarget = aCurrent;
+			// port: a pyramid that the map's tables do not have (a damaged file) would be read out of range
+			if (mCurrent > 14)
+				mCurrent = 0;
+			if (mTarget > 14)
+				mTarget = mCurrent;
 			mApp->mTotalTime = aTime;
 			mApp->mDeaths = aDeaths;
 		}
@@ -316,10 +326,14 @@ WorldMap::WorldMap(MummyApp* theApp, int theSlot, bool theCheckEntry) :
 
 	mEnterButton = new ButtonWidget(99, this);
 	mEnterButton->mDoFinger = true;
-	mEnterButton->mButtonImage = mApp->mImages[IMAGE_ADVBUTTONS];
+	mEnterButton->mButtonImage = NULL;
+	CropEnterButton();
 	mEnterButton->mMouseInsets = Insets(-1, -1, -1, -1);
 	if (mProgress[mCurrent] == 0xf)
-		mEnterButton->SetVisible(false);
+	{
+		mEnterButton->SetDisabled(true);
+		mEnterButton->mBtnNoDraw = true;
+	}
 	mBackButton = new ButtonWidget(0x62, this);
 	mBackButton->mDoFinger = true;
 	mBackButton->mButtonImage = mApp->mImages[IMAGE_ADVSAVEANDQUIT];
@@ -359,8 +373,18 @@ WorldMap::WorldMap(MummyApp* theApp, int theSlot, bool theCheckEntry) :
 	mApp->SetMusicOrder(0x43, true);
 }
 
+// 0x417010, 0x417c10 (on arrival): the ENTER button's picture is a 0x118 x 0x2d crop of the buttons' sheet, the upper row for
+// a pyramid with no chamber done, the lower one after that (the original's button owns the copy that CopyImage made)
+void WorldMap::CropEnterButton()
+{
+	delete mEnterButton->mButtonImage;
+	mEnterButton->mButtonImage = mApp->CopyImage(mApp->mImages[IMAGE_ADVBUTTONS],
+		Rect(0, mProgress[mCurrent] != 0 ? 0x2d : 0, 0x118, 0x2d));
+}
+
 WorldMap::~WorldMap()
 {
+	delete mEnterButton->mButtonImage;
 	delete mEnterButton;
 	delete mBackButton;
 	delete mStatsButton;
@@ -506,7 +530,7 @@ void WorldMap::Save()
 	std::string aData;
 	PutString(aData, aName);
 	PutInt(aData, 2);
-	PutString(aData, mApp->mAdvName);
+	PutString(aData, mApp->mRand.Serialize());
 	Buffer aBuffer;
 	for (int i = 0; i < 15; i++)
 		aBuffer.WriteByte((uchar) mProgress[i]);
@@ -569,6 +593,7 @@ void WorldMap::Update()
 	Widget::Update();
 	if (mApp->mGameMode == MODE_ADVENTURE_DONE)
 		mApp->mGameMode = MODE_ADVENTURE;
+	bool aEntered = false;
 	if (mCheckEntry)
 	{
 		if (mProgress[mCurrent] < 0xf)
@@ -580,9 +605,10 @@ void WorldMap::Update()
 			mApp->RemoveWorldMap();
 			return;
 		}
-		if (mApp->mGameMode != MODE_ADVENTURE_DONE)
+		if (mProgress[mCurrent] == 0xf && mApp->mGameMode != MODE_ADVENTURE_DONE)
 		{
 			// the pyramid is solved: its treasure on the ending board
+			aEntered = true;
 			Unlock();
 			mApp->mGameMode = MODE_ADVENTURE_DONE;
 			mApp->mAdvChamber = 0xe;
@@ -600,10 +626,10 @@ void WorldMap::Update()
 				}
 			}
 			mApp->RemoveWorldMap();
-			return;
+			// (the original goes on here: the hover, the marker and the twinkles, which draw random numbers)
 		}
 	}
-	if (mApp->mIsRegistered && !mOpened)
+	if (!aEntered && mApp->mIsRegistered && !mOpened)
 	{
 		// (the first time: what the solved pyramids have opened can be entered)
 		mOpened = true;
@@ -678,8 +704,9 @@ void WorldMap::Update()
 			if (mNext == mTarget)
 			{
 				EnableOpenPyramids();
+				CropEnterButton();
 				mEnterButton->SetDisabled(false);
-				mEnterButton->SetVisible(mProgress[mCurrent] < 0xf);
+				mEnterButton->mBtnNoDraw = false;
 			}
 		}
 		MarkDirty();
@@ -822,7 +849,7 @@ void WorldMap::ButtonDepress(int theId)
 			mPyramids[i]->mDoFinger = false;
 		}
 		mEnterButton->SetDisabled(true);
-		mEnterButton->SetVisible(false);
+		mEnterButton->mBtnNoDraw = true;
 		return;
 	}
 	if (mStep >= 0)

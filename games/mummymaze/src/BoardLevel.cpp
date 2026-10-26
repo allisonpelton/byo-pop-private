@@ -154,7 +154,10 @@ Board::Board(MummyApp* theApp) :
 	mTorchFrame = 0;
 	mKeyFrame = 0;
 	mEndFade = 0.0;
-	SeedMTRand2004(mRand, (CrtRand() << 16) | (CrtRand() & 0xffff));
+	// the high half is drawn first (C++ does not order the two calls of one expression)
+	int aHigh = CrtRand();
+	int aLow = CrtRand();
+	SeedMTRand2004(mRand, (aHigh << 16) | (aLow & 0xffff));
 }
 
 Board::~Board()
@@ -413,6 +416,8 @@ struct ByteReader
 };
 }
 
+// 0x40e1d0. Left out on purpose: the original also writes debug.txt on every load (a debug file that the player should not
+// get).
 void Board::LoadMaze()
 {
 	mShowingSolution = false;

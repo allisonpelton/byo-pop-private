@@ -65,6 +65,9 @@ LevelCompleteScreen::LevelCompleteScreen(MummyApp* theApp) :
 		if (mApp->mClassicChamber == 0xe)
 			mBonus += (mApp->mClassicPyramid + 1) * 500;
 		mApp->mScore += mBonus + mBase;
+		// 0x4347a0, 0x434a40: a byte and the seconds go to the list's data
+		mApp->mScoreBuffer.WriteByte(0);
+		mApp->mScoreBuffer.WriteLong(mSeconds);
 	}
 	mVariant = CrtRand() % 3;
 	mFrame = 0;
@@ -290,7 +293,6 @@ void LevelCompleteScreen::ButtonPress(int theId)
 // 0x4143a0
 HighScoreScreen::HighScoreScreen(MummyApp* theApp) :
 	mApp(theApp),
-	mRank(-1),
 	mCounter(0),
 	mNameAsked(false),
 	mFade(0.0)
@@ -307,9 +309,12 @@ HighScoreScreen::HighScoreScreen(MummyApp* theApp) :
 	Load();
 }
 
+// 0x414850: the list is written whenever the screen goes (0x4148e0; the victory screen's 0x402190 does the same with 0x4023e0).
+// The original shows a message when the file cannot be made; the port leaves that out.
 HighScoreScreen::~HighScoreScreen()
 {
 	delete mMenuLink;
+	Save();
 }
 
 void HighScoreScreen::AddedToManager(WidgetManager* theWidgetManager)
@@ -333,7 +338,7 @@ void HighScoreScreen::Resize(int theX, int theY, int theWidth, int theHeight)
 }
 
 // the list: five records of [u16 length][name][i32 score][i32 check], the check being score ^ 0x42beef with every
-// character times 0x11 xored in (0x4148e0 writes it, 0x414850.. reads it)
+// character times 0x11 xored in (0x4148e0 writes it, 0x402220 reads it)
 // the names of the list that a new player finds (texts of the exe)
 static const unsigned kDefaultNames[5] = {0x0048d218, 0x0048d210, 0x0048d208, 0x0048d200, 0x0048d1f8};
 static const int kDefaultScores[5] = {1000, 900, 800, 700, 500};
@@ -349,10 +354,9 @@ void HighScoreScreen::Load()
 	if (!Platform::ReadHostFile(Platform::VFS::Get().GetUserDir() + "/hiscores.dat", &aData))
 		return;
 	size_t aPos = 0;
-	std::string aNames[5];
-	int aScores[5];
 	for (int i = 0; i < 5; i++)
 	{
+		// (a short file leaves the rest as it was; the original's fread calls would fail and use what is on its stack)
 		if (aPos + 2 > aData.size())
 			return;
 		unsigned short aLen;
@@ -360,23 +364,20 @@ void HighScoreScreen::Load()
 		aPos += 2;
 		if (aPos + aLen + 8 > aData.size())
 			return;
-		aNames[i] = aData.substr(aPos, aLen);
+		const char* aName = aData.data() + aPos;
 		aPos += aLen;
 		int aScore, aCheck;
 		memcpy(&aScore, aData.data() + aPos, 4);
 		memcpy(&aCheck, aData.data() + aPos + 4, 4);
 		aPos += 8;
 		int aExpect = aScore ^ 0x42beef;
-		for (size_t j = 0; j < aNames[i].size(); j++)
-			aExpect ^= (signed char) aNames[i][j] * 0x11;
-		aScores[i] = aScore;
-		if (aExpect != aCheck)
-			return;
-	}
-	for (int i = 0; i < 5; i++)
-	{
-		mNames[i] = aNames[i];
-		mScores[i] = aScores[i];
+		for (int j = 0; j < aLen; j++)
+			aExpect ^= (signed char) aName[j] * 0x11;
+		// the name is what comes before the first NUL (the original's strlen); an entry that fails the check keeps its name and
+		// its score becomes the stored one modulo 256 (signed)
+		const void* aEnd = memchr(aName, 0, aLen);
+		mNames[i] = std::string(aName, aEnd != NULL ? (const char*) aEnd - aName : aLen);
+		mScores[i] = aExpect == aCheck ? aScore : aScore % 256;
 	}
 }
 
@@ -457,8 +458,6 @@ void HighScoreScreen::SetName(const SexyString& theName)
 	}
 	mNames[aRank] = theName;
 	mScores[aRank] = mApp->mScore;
-	mRank = aRank;
-	Save();
 }
 
 // 0x402850: the ordinal's ending (its four texts are st, nd, rd and th)

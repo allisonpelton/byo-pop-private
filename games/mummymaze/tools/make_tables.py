@@ -20,6 +20,7 @@ TABLES = [
     ("kAdventureMaze", 0x48f458, 225),         # per pyramid and chamber (15 x 15): the maze file number
     ("kAdventureLevel", 0x48f7dc, 225),        # per pyramid and chamber: the maze number in the file, minus 1
     ("kExcluded", 0x48fb60, 2 * 481),  # (file, maze) pairs a classic game never picks, after a leading word
+    ("kExcludedResume", 0x492708, 2 * 483),    # (file, maze) pairs that LoadClassic (0x41c600) skips when it picks the next chamber of a saved game
     ("kMummyIdleCount", 0x494968, 1),
     ("kMummyIdleLen", 0x49496c, 4),
     ("kExplorerIdleCount", 0x495250, 1),

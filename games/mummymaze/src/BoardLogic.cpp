@@ -548,7 +548,6 @@ void Board::UpdateExplorer()
 			mExplorer->mY = mExplorer->mTargetY;
 			e = mExplorer;
 			e->mProgress = 0.0;
-			e->mIdleTimer = 0;
 			KeyStep(mExplorer->mX, mExplorer->mY);
 			e = mExplorer;
 			if ((e->mX == mTrapX[0] && e->mY == mTrapY[0]) || (e->mX == mTrapX[1] && e->mY == mTrapY[1]))
@@ -600,7 +599,6 @@ void Board::UpdateExplorer()
 		if ((double) mCellSize <= e->mProgress)
 		{
 			e->mProgress = 0.0;
-			e->mIdleTimer = 0;
 			e = mExplorer;
 			if (e->mX < e->mTargetX)
 				e->mX = e->mX + 1;

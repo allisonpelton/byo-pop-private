@@ -204,7 +204,7 @@ void Board::SolveRec(const ChaseState& theFrom, std::vector<ChaseState>& thePath
 				break;
 			}
 		}
-		if (aIndex >= 0 && thePath.size() < (size_t) aIndex)
+		if (aIndex >= 0 && thePath.size() < (size_t) (aIndex + 1))	// 0x405010 returns the 1-based index
 		{
 			std::vector<ChaseState> aSolution(thePath.begin(), thePath.end());
 			aSolution.insert(aSolution.end(), mSolution.begin() + aIndex + 1, mSolution.end());
@@ -239,6 +239,8 @@ void Board::Solve()
 	}
 	mState = STATE_READY;
 	Retry();
+	// left out on purpose: when the search finds no way the original appends the maze to badmaps.dat (a debug file that the
+	// player should not get)
 	if (mShowingSolution && !mSolution.empty())
 		mSolution.erase(mSolution.begin());
 	ClearVisited();

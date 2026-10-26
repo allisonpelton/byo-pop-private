@@ -82,6 +82,10 @@ MummyApp::MummyApp()
 	mChamberDone = false;
 	mIsRegistered = true;
 	memset(mLightMask, 0, sizeof(mLightMask));
+	// 0x419bb0: the high half is drawn first (the C library's generator is seeded later, in Init)
+	int aHigh = CrtRand();
+	int aLow = CrtRand();
+	SeedMTRand2004(mRand, (aHigh << 16) | (aLow & 0xffff));
 
 	mAutoplay = false;
 	mAutoplayGames = 1;
@@ -300,7 +304,7 @@ void MummyApp::HandleCmdLineParam(const std::string& theParamName, const std::st
 		mScriptedInput = true;   // the bot's input only, as in a -script run
 		HandleAutoplayParam(theParamName, theParamValue);
 	}
-	else if ((theParamName == "-autoplaylevels") || (theParamName == "-autoplaystart"))
+	else if ((theParamName == "-autoplaylevels") || (theParamName == "-autoplaystart") || (theParamName == "-autoplaycontinue"))
 		HandleAutoplayParam(theParamName, theParamValue);
 	else if (theParamName == "-autoplaymode")
 		mAutoplayMode = theParamValue;

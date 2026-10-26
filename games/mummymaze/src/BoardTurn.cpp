@@ -445,7 +445,7 @@ void Board::UpdateScorpion()
 			s->mFromY = s->mY;
 			s->mX = s->mToX;
 			s->mY = s->mToY;
-			s->mDir = 0;
+			s->mProgress = 0;	// 0x408567
 			for (int i = 0; i < 2; i++)
 			{
 				Mummy* m = mMummies[i];

@@ -10,6 +10,7 @@
 //   -autoplaygames=N         play N games, then quit
 //   -autoplaylevels=N        levels played in a game before the bot gives up with Abandon Hope (default 3)
 //   -autoplaystart=P,C       the first game starts at pyramid P (0 to 14), chamber C (0 to 14)
+//   -autoplaycontinue        answer the Continue question with yes (a classic.sav in the user folder is loaded)
 //   -autoplaycap=N           quit after N updates in any case
 //   -autoplaylog=<file>      the log
 //   -autoplayshots=<prefix>  screenshots at each game over
@@ -54,6 +55,7 @@ struct AutoplayState
 	int					mLastKey;           // the last key pressed
 	unsigned int		mTutorialShots;     // the tutorial steps that were photographed
 	bool				mTutorial;          // the tutorial is being played
+	bool				mContinue;          // the Continue question is answered with yes
 	bool				mAdventure;         // an adventure is being played
 	bool				mMapShot;           // the world map was photographed
 	bool				mDiverged;          // the board left the solver's path (logged once per plan)
@@ -73,7 +75,7 @@ struct AutoplayState
 	FILE*				mLog;
 
 	AutoplayState() : mSeed(1), mTick(0), mLastAction(0), mGames(0), mWait(0), mLevels(0), mLevelsPerGame(3), mStartPyramid(0),
-		mStartChamber(0), mHeldKey(0), mLastKey(0), mTutorialShots(0), mTutorial(false), mAdventure(false), mMapShot(false), mDiverged(false), mReplan(false), mReplans(0), mPlanned(false), mUseSolver(true), mRandomMoves(0), mPathIndex(0),
+		mStartChamber(0), mHeldKey(0), mLastKey(0), mTutorialShots(0), mTutorial(false), mContinue(false), mAdventure(false), mMapShot(false), mDiverged(false), mReplan(false), mReplans(0), mPlanned(false), mUseSolver(true), mRandomMoves(0), mPathIndex(0),
 		mGameOverLogged(false), mGivenUp(false), mOptionsStage(0), mDialogShots(0), mDialogSeen(0), mShotWait(0), mLog(NULL) {}
 
 	int Rand(int theRange)
@@ -111,6 +113,8 @@ void MummyApp::HandleAutoplayParam(const std::string& theParamName, const std::s
 		mAutoplayState->mSeed = (unsigned int) atoi(theParamValue.c_str());
 	else if (theParamName == "-autoplaylevels")
 		mAutoplayState->mLevelsPerGame = atoi(theParamValue.c_str());
+	else if (theParamName == "-autoplaycontinue")
+		mAutoplayState->mContinue = true;
 	else if (theParamName == "-autoplaystart")
 		sscanf(theParamValue.c_str(), "%d,%d", &mAutoplayState->mStartPyramid, &mAutoplayState->mStartChamber);
 }
@@ -223,7 +227,7 @@ void MummyApp::AutoplayUpdate()
 				((AdventureSlotsDialog*) aDialog)->ButtonDepress(0);
 			}
 			else if (anId == DIALOG_CONTINUE)
-				ButtonDepress(3000 + anId);
+				ButtonDepress((s->mContinue ? 2000 : 3000) + anId);
 			else
 				ButtonDepress(2000 + anId);
 			s->mWait = 5;
@@ -309,8 +313,12 @@ void MummyApp::AutoplayUpdate()
 		if (mHighScores->mFade >= 255.0 && mHighScoreBack == NULL && mHighScores->mNameAsked && !s->mGameOverLogged)
 		{
 			s->mGameOverLogged = true;
+			int aPlace = 0;	// where the bot's score stands in the list (0: not in it)
+			for (int i = 4; i >= 0; i--)
+				if (mHighScores->mScores[i] == mScore)
+					aPlace = i + 1;
 			Log(s, "game over: score %d, list %d %d %d %d %d, the bot is number %d", mScore, mHighScores->mScores[0], mHighScores->mScores[1],
-				mHighScores->mScores[2], mHighScores->mScores[3], mHighScores->mScores[4], mHighScores->mRank + 1);
+				mHighScores->mScores[2], mHighScores->mScores[3], mHighScores->mScores[4], aPlace);
 			if (!mAutoplayShots.empty())
 				SaveScreenshot(StrFormat("%s-gameover%d.png", mAutoplayShots.c_str(), s->mGames));
 			mHighScores->ButtonDepress(1);

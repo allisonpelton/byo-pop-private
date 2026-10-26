@@ -192,7 +192,6 @@ public:
 	HyperlinkWidget*	mMenuLink;              // id 0 "click here to return to main menu"
 	std::string			mNames[5];
 	int					mScores[5];
-	int					mRank;                  // 0..4: the new score's place, -1 none
 	int					mCounter;               // +0xc0
 	bool				mNameAsked;             // +0xc4 the dialog for the name has been shown
 	double				mFade;                  // +0xc8 0 .. 255
@@ -296,6 +295,7 @@ public:
 public:
 	WorldMap(MummyApp* theApp, int theSlot, bool theCheckEntry);
 	virtual ~WorldMap();
+	void				CropEnterButton();
 
 	virtual void		AddedToManager(WidgetManager* theWidgetManager) override;           // 0x4187d0
 	virtual void		RemovedFromManager(WidgetManager* theWidgetManager) override;       // 0x418840

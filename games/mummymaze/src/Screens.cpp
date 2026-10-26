@@ -17,6 +17,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <ctime>
 
 using namespace Sexy;
 
@@ -386,6 +387,16 @@ void MainMenu::ButtonDepress(int theId)
 		mApp->mClassicChamber = 0;
 		mApp->mClassicPyramid = 0;
 		mApp->mScore = 0;
+		if (mApp->mIsRegistered)
+		{
+			// the data for the Internet score list start over: a byte, the registered name and code (the port has neither) and
+			// the time
+			mApp->mScoreBuffer.Clear();
+			mApp->mScoreBuffer.WriteByte(1);
+			mApp->mScoreBuffer.WriteString("");
+			mApp->mScoreBuffer.WriteString("");
+			mApp->mScoreBuffer.WriteLong((long) time(NULL));
+		}
 		mApp->StartClassicOrContinue();
 		return;
 	case 1:

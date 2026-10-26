@@ -330,6 +330,11 @@ void MummyApp::ShowGamePanel()
 		if (mBoard->mShowingSolution)
 		{
 			// the solution has played: the high scores, with the game-over scroll over them
+			if (mGameMode == MODE_CLASSIC)
+			{
+				mScoreBuffer.WriteByte(1);
+				mScoreBuffer.WriteLong(mScore);
+			}
 			mHighScores = new HighScoreScreen(this);
 			mHighScores->Resize(0x96, 0, 0x1ea, 0x1e0);
 			mWidgetManager->AddWidget(mHighScores);
