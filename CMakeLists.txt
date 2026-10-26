@@ -231,3 +231,8 @@ option(BUILD_COSMICBUGS "Build the Cosmic Bugs port" ON)
 if(BUILD_COSMICBUGS AND EXISTS ${PROJECT_SOURCE_DIR}/games/cosmicbugs/CMakeLists.txt)
   add_subdirectory(games/cosmicbugs)
 endif()
+# Water Bugs: Cosmic Bugs' sequel on the same Retro64 engine (games/waterbugs/engine); optional while it is new
+option(BUILD_WATERBUGS "Build the Water Bugs port" ON)
+if(BUILD_WATERBUGS AND EXISTS ${PROJECT_SOURCE_DIR}/games/waterbugs/CMakeLists.txt)
+  add_subdirectory(games/waterbugs)
+endif()
