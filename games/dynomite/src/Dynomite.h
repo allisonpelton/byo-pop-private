@@ -11,6 +11,7 @@
 namespace Sexy
 {
 
+class EggGrid;
 class FossilizedApp;
 
 // the board's +0x5c (its +0xc is tested before the dynamite combo gives a stick)
@@ -27,8 +28,10 @@ class Dynomite : public Widget
 public:
 	FossilizedApp*		mApp;				// +0x58
 	BoardPart5c*		mBoard5c;			// +0x5c
+	int					mField70;			// +0x70 250, the launcher's middle
 	int					mDifficulty;		// +0x78 1-3 (the side bar's skill picture)
 	int					mGameType;			// +0x7c (the side bar's mode picture; 2 shows its sixth button)
+	EggGrid*			mGrid;				// +0x8c (0x415770)
 	bool				mField130;			// +0x130
 	bool				mField131;			// +0x131
 	int					mPauseCount;		// +0x150
