@@ -10,6 +10,7 @@
 #include "GameText.h"
 #include "Graphics.h"
 #include "HyperlinkWidget.h"
+#include "JeffLib.h"
 #include "MemoryImage.h"
 #include "PopLua.h"
 #include "Profile.h"
@@ -17,6 +18,7 @@
 #include "ResourceManager.h"
 #include "SoundInstance.h"
 #include "SoundPlayer.h"
+#include "UserSelectionDialog.h"
 #include "WidgetManager.h"
 #include "lua.h"
 
@@ -755,7 +757,192 @@ void MainMenu::ButtonDepress(int theId)
 {
 	if (theId != mChangeUserLink->mId || mApp->IsCurtainMoving())
 		return;
-	SDL_Log("MainMenu: the dialog of the players (0x47c770) is not ported yet");
+	ShowUserDialog();
+}
+
+void MainMenu::ShowUserDialog()
+{
+	// 0x47c770
+	JeffLib::UserSelectionDialog::Resources aResources;
+	aResources.mDialogImage = IMAGE_DIALOG;
+	aResources.mButtonImage = IMAGE_DIALOG_BUTTON;
+	aResources.mClickSound = SOUND_CLICK1;
+	aResources.mFont = FONT_MEDIUM;
+	aResources.mHeader = GT(0x7c5a20);
+	aResources.mNewLabel = GT(0x7c5a30);
+	aResources.mDeleteLabel = GT(0x7c5a34);
+	mUserDialog = new JeffLib::UserSelectionDialog(aResources);
+	mUserDialog->mMaxProfiles = mApp->GetInteger("MaxProfiles", 10);
+	mUserDialog->mSpaceAfterHeader += 35;
+	mUserDialog->mPriority = 2;
+	mUserDialog->mContentInsets.mTop += 5;
+	mUserDialog->mAllowDrag = false;
+	mUserDialog->mScrollbar->mTrackColor = Color(89, 70, 14);
+	mUserDialog->SetButtonFont(FONT_LARGE_OUTLINE);
+	mUserDialog->SetColor(Dialog::COLOR_BUTTON_TEXT, Color(255, 255, 255));
+	mUserDialog->SetColor(Dialog::COLOR_BUTTON_TEXT_HILITE, Color(255, 255, 0));
+	mUserDialog->SetHeaderFont(FONT_LARGE_OUTLINE);
+	mUserDialog->SetColor(Dialog::COLOR_HEADER, Color(255, 255, 255));
+	int aHeight = mUserDialog->GetPreferredHeight(400);
+	mUserDialog->Resize((mWidth - 400) / 2, (mHeight - (aHeight + 40)) / 2, 400, aHeight + 40);
+
+	// the list and its scrollbar a little taller than the dialog made them
+	ListWidget* aList = mUserDialog->mList;
+	int aListHeight = aList->mHeight;
+	aList->Resize(aList->mX, aList->mY, aList->mWidth, aListHeight + 40);
+	JeffLib::SexyScrollbarWidget* aScrollbar = mUserDialog->mScrollbar;
+	aScrollbar->ResizeScrollbar(aScrollbar->mX, aScrollbar->mY, aScrollbar->mWidth, aListHeight + 40);
+
+	mUserDialog->mDialogListener = this;
+	mApp->AddDialog(mUserDialog);
+	mWidgetManager->SetFocus(mUserDialog);
+	FillUserList();
+}
+
+void MainMenu::FillUserList()
+{
+	// 0x47ca20
+	mUserDialog->ClearUsers();
+	// the players' files: users/<name>.bwa
+	std::vector<std::string> aFiles = JeffLib::GetFilesInDirectory("users/*.bwa");
+	size_t i = 0;
+	while (true) {
+		bool aMore;
+		if (aFiles.empty() || i >= aFiles.size())
+			aMore = false;
+		else
+			aMore = (int)i < mApp->GetInteger("MaxProfiles", 10);
+		if (!aMore)
+			break;
+		std::string aName = aFiles[i].substr(0, aFiles[i].find(".bwa"));
+		mUserDialog->AddUser(aName);
+		i++;
+	}
+	// the player now playing is first, and chosen
+	if (mApp->mProfile != nullptr) {
+		std::string aName = mApp->mProfile->mName;
+		mUserDialog->mCurrentUser = aName;
+		mUserDialog->RefreshList();
+		mUserDialog->SelectUser(aName);
+	}
+}
+
+bool MainMenu::IsUserNameFree(const std::string& theName)
+{
+	// 0x47d200: the names are compared in capitals
+	if (theName.empty())
+		return false;
+	std::string aName = StringToUpper(theName);
+	int aCount = mUserDialog->GetUserCount();
+	if (aCount <= 0)
+		return true;
+	int i = 0;
+	do {
+		bool aTaken = StringToUpper(mUserDialog->GetUser(i)) == aName;
+		if (aTaken)
+			return false;
+		i++;
+	} while (i < aCount);
+	return true;
+}
+
+bool MainMenu::TakeNewUser(const std::string& theName)
+{
+	// 0x47d390
+	if (!theName.empty()) {
+		if (!IsUserNameFree(theName)) {
+			mApp->DoOkDialog(GT(0x7a9c04), StrFormat(GT(0x7aee10).c_str(), theName.c_str()), "", nullptr);
+			return false;
+		}
+		FillUserList();
+		mApp->KillDialog(GameApp::DIALOG_USER_SELECTION);
+		// (the original has 0x47d510 here in line)
+		StartIntroIfNew();
+		mApp->ClearUpdateBacklog(false);
+	}
+	return true;
+}
+
+bool MainMenu::StartIntroIfNew()
+{
+	// 0x47d510
+	if (!mApp->HasPlayedGameBefore()) {
+		mFromTitle = false;
+		mApp->StartIntro(1);
+		return true;
+	}
+	return false;
+}
+
+void MainMenu::DialogButtonDepress(int theDialogId, int theButtonId)
+{
+	// 0x47cd70
+	if (theDialogId == GameApp::DIALOG_USER_SELECTION) {
+		JeffLib::UserSelectionDialog* aDialog = mUserDialog;
+		if (theButtonId == aDialog->mYesButton->mId || theButtonId == Dialog::ID_YES) {
+			// OK: the chosen player's profile, if it loads
+			if (!mApp->SelectUser(aDialog->mSelected))
+				return;
+			RefreshUnlocks();
+			mApp->KillDialog(GameApp::DIALOG_USER_SELECTION);
+			mUserDialog = nullptr;
+			mApp->ShowUnlockMessages();
+			StartIntroIfNew();
+			return;
+		}
+		if (theButtonId != aDialog->mNoButton->mId && theButtonId != Dialog::ID_NO) {
+			if (theButtonId == aDialog->mNewButton->mId) {
+				// a new player's name: with others to go back to, the name dialog has CANCEL
+				mApp->ShowNewUserDialog(aDialog->GetUserCount() != 0 ? Dialog::BUTTONS_OK_CANCEL
+				                                                     : Dialog::BUTTONS_FOOTER);
+				return;
+			}
+			if (theButtonId != aDialog->mDeleteButton->mId)
+				return;
+			// DELETE: asks first; the answer comes back here, as the confirmation's dialog 18
+			mApp->DoConfirmDialog(-1, GT(0x7aee00), StrFormat(GT(0x7aed98).c_str(), aDialog->mSelected.c_str()),
+			                      nullptr, "");
+			mApp->GetDialog(GameApp::DIALOG_CONFIRM)->mDialogListener = this;
+			return;
+		}
+		// CANCEL
+		mApp->KillDialog(GameApp::DIALOG_USER_SELECTION);
+		mUserDialog = nullptr;
+		StartIntroIfNew();
+		return;
+	}
+	if (theDialogId != GameApp::DIALOG_CONFIRM)
+		return;
+	if (theButtonId != Dialog::ID_YES) {
+		mApp->KillDialog(GameApp::DIALOG_CONFIRM);
+		return;
+	}
+	// yes: the chosen player's profile file goes (and the profile too when it is the one now playing)
+	bool aIsCurrent = false;
+	bool aDeletedCurrent = false;
+	if (mApp->mProfile != nullptr) {
+		std::string aCurrentName = mApp->mProfile->mName;
+		aIsCurrent = mUserDialog->mSelected == aCurrentName;
+	}
+	if (aIsCurrent) {
+		delete mApp->mProfile;
+		mApp->mProfile = nullptr;
+		mApp->RegistryEraseValue("LastUser");
+		aDeletedCurrent = true;
+	}
+	mApp->EraseFile(GetAppDataFolder() + StrFormat("users/%s.bwa", mUserDialog->mSelected.c_str()));
+	FillUserList();
+	mApp->KillDialog(GameApp::DIALOG_CONFIRM);
+	if (mUserDialog->GetUserCount() == 0) {
+		// no one left: a new player's name
+		mApp->ShowNewUserDialog(Dialog::BUTTONS_FOOTER);
+		return;
+	}
+	if (aDeletedCurrent) {
+		// the first of the others plays
+		mApp->SelectUser(mUserDialog->GetUser(0));
+		mUserDialog->SelectUser(mUserDialog->GetUser(0));
+	}
 }
 
 void MainMenu::PopAnimStopped(int theId)

@@ -10,6 +10,7 @@
 #include "FlashWidget.h"
 #include "GameApp.h"
 #include "GameText.h"
+#include "MainMenu.h"
 #include "MenuDialog.h"
 #include "NewUserDialog.h"
 #include "OptionsDialog.h"
@@ -136,9 +137,8 @@ void GameApp::NewUserDialogDone()
 	// 0x4450a0
 	NewUserDialog* aDialog = static_cast<NewUserDialog*>(GetDialog(DIALOG_NEW_USER));
 	std::string aName = aDialog != nullptr ? aDialog->GetName() : std::string();
-	if (!aName.empty()) {
-		// port: with the main menu up (a player added from its list, not ported yet) the original asked it first
-		// whether the name was free (0x47d200)
+	// with the main menu up (a player added from its list) the name must be free
+	if (!aName.empty() && (mMainMenu == nullptr || mMainMenu->IsUserNameFree(aName))) {
 		if (mProfile == nullptr || !mProfile->mNoSave) {
 			// a player of the list: a profile of their own
 			delete mProfile;
@@ -162,10 +162,16 @@ void GameApp::NewUserDialogDone()
 		mCutScene->mWaitingForCurtain = false;
 	}
 	mPlayIntro = false;
-	// port: with the main menu up (not ported yet) the original asked it (0x47d390) to take the player, or to say
-	// the name is taken and keep the dialog; the player's data goes either way
-	DeleteUserData(aName);
-	KillDialog(DIALOG_NEW_USER);
+	// the main menu, when it is up, takes the player, or says the name is taken and the dialog stays
+	if (mMainMenu != nullptr) {
+		if (mMainMenu->TakeNewUser(aName)) {
+			DeleteUserData(aName);
+			KillDialog(DIALOG_NEW_USER);
+		}
+	} else {
+		DeleteUserData(aName);
+		KillDialog(DIALOG_NEW_USER);
+	}
 }
 
 void GameApp::DeleteUserData(const std::string& theName)

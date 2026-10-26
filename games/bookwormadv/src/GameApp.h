@@ -46,6 +46,7 @@ public:
 		DIALOG_OK = 0,           // DoOkDialog's
 		DIALOG_OPTIONS = 1,      // the options (OptionsDialog)
 		DIALOG_REALLY_QUIT = 2,  // the main menu's quit
+		DIALOG_USER_SELECTION = 6,  // the players' dialog (UserSelectionDialog, MainMenu::ShowUserDialog)
 		DIALOG_NEW_USER = 7,     // the new player's name (NewUserDialog): the conversation panel waits under it
 		DIALOG_NO_WINDOWED = 13, // the options' "no windowed mode" message
 		DIALOG_MENU = 17,        // the game's menu (MenuDialog)
@@ -53,6 +54,7 @@ public:
 		DIALOG_CONTINUE_GAME = 19,  // the arena's "continue your saved game?" (MainMenu::StartArena): yes goes on with it, no begins a new run
 		DIALOG_SKIP_MOVIE = 20,  // a click on a cut scene: skip it?
 		DIALOG_ARENA_WIN = 21,   // the arena's win (ArenaWinDialog): pausing the board mutes it only without this dialog
+		DIALOG_NEW_PROFILE = 22, // the trial's end, asked in MainMenu (0x47b470): a new profile? Its yes opens the players' dialog; the port has no trial
 		DIALOG_TRIAL_COMPLETE = 23,  // the trial's end ("buy the full version?", UpdateFrames 0x44aa50): the port has no trial
 	};
 
@@ -242,6 +244,12 @@ public:
 	bool SelectUser(const std::string& theName);
 	// 0x4494f0
 	void ShowMainMenu(bool theFromTitle, bool theToBack);
+	// 0x449660 (with a new main menu, and after a player is chosen): Lex tells in a conversation panel what the
+	// profile has newly unlocked (its NeedsBestiaryDialog, NeedsMiniGamesDialog, NeedsArenaDialog,
+	// NeedsExpansionBossDialog and NeedsMPDialog): one panel, for the first of those in that order, which has the
+	// later ones too for the tome and the mini-games (the arena's only the bosses). What it told is cleared in the
+	// profile, which is saved. With mNoMusic (after the end of the game) the panel is made but not shown.
+	void ShowUnlockMessages();
 	// 0x449160: a new player: a profile, the intro, then the first book
 	void StartIntro(int theMode);
 

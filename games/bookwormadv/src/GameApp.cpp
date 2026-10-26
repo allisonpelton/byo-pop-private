@@ -345,6 +345,10 @@ void GameApp::ButtonDepress(int theId)
 		case DIALOG_NO_WINDOWED:  // the options' message
 			KillDialog(DIALOG_NO_WINDOWED);
 			break;
+		case DIALOG_NEW_PROFILE:  // the trial's "new profile?": the players' dialog
+			KillDialog(DIALOG_NEW_PROFILE);
+			mMainMenu->ShowUserDialog();
+			break;
 		case DIALOG_CONTINUE_GAME:  // the arena's saved run
 			mMainMenu->ContinueArena(true);
 			KillDialog(DIALOG_CONTINUE_GAME);
@@ -684,8 +688,8 @@ void GameApp::ShowMainMenu(bool theFromTitle, bool theToBack)
 	}
 	mWidgetManager->SetFocus(mMainMenu);
 	mMainMenu->SetDisabled(false);
-	// port: a new menu then told the player of what was unlocked (0x449660: the profile's NeedsBestiaryDialog,
-	// NeedsMiniGamesDialog, NeedsArenaDialog, ...), with dialogs not ported yet
+	if (aNew)
+		ShowUnlockMessages();
 	if (theToBack && mHallOfFame != nullptr)
 		mWidgetManager->BringToFront(mHallOfFame);
 	if (mCurtain != nullptr)
@@ -694,6 +698,109 @@ void GameApp::ShowMainMenu(bool theFromTitle, bool theToBack)
 		mSongPlayer->PlaySong(0x8c, 0.005f, true);  // the main menu's song
 	mWidgetManager->SetFocus(mMainMenu);
 	ClearUpdateBacklog(false);
+}
+
+void GameApp::ShowUnlockMessages()
+{
+	// 0x449660
+	auto aNeeds = [this](const char* theKey) {
+		return mProfile != nullptr && mProfile->KeyExists(theKey) && mProfile->GetBool(theKey);
+	};
+	bool aBestiary = aNeeds("NeedsBestiaryDialog");
+	bool aMiniGames = aNeeds("NeedsMiniGamesDialog");
+	bool aArena = aNeeds("NeedsArenaDialog");
+	bool aExpansionBoss = aNeeds("NeedsExpansionBossDialog");
+	bool aMediaPlayer = aNeeds("NeedsMPDialog");
+
+	// Lex speaks from a new panel, one page after another
+	auto aNewPanel = [this]() {
+		NewConversationPanel();
+		mConversationPanel->SetDefaults(-1, Color(0, 75, 10), IMAGE_TUT_PIC_LEX, FONT_HUGE, 0);
+		mConversationPanel->SetContinueTextColor(Color(0, 140, 20));
+	};
+	// the panel comes over the menu, and the menu's welcome when it is done. (After the end of the game it is made
+	// but not shown: the credits show it.)
+	auto aShowPanel = [this]() {
+		if (!mNoMusic) {
+			mConversationPanel->Activate(false);
+			mWidgetManager->PutInfront(mConversationPanel, mMainMenu);
+			mConversationPanel->mOnInactive = [this]() {
+				// 0x44d340
+				if (mTitleToMainMenu) {
+					mTitleToMainMenu = false;
+					mMainMenu->PlayReaction(MainMenu::REACTION_WELCOME);
+				}
+			};
+		}
+	};
+
+	if (aBestiary) {
+		// the tome, and what else came with it
+		aNewPanel();
+		mConversationPanel->AddTextPage(GT(0x7ad090));
+		mConversationPanel->AddTextPage(GT(0x7ad0e0));
+		if (aMiniGames) {
+			mConversationPanel->AddTextPage(GT(0x7ad128));
+			mProfile->SetBool("NeedsMiniGamesDialog", false);
+		}
+		if (aArena) {
+			mConversationPanel->AddTextPage(aMiniGames ? GT(0x7ad170) : GT(0x7ad1c0));
+			mProfile->SetBool("NeedsArenaDialog", false);
+		}
+		if (aExpansionBoss) {
+			mConversationPanel->AddTextPage(!aMiniGames && !aArena ? GT(0x7ad254) : GT(0x7ad210));
+			mProfile->SetBool("NeedsExpansionBossDialog", false);
+		}
+		aShowPanel();
+		mProfile->SetBool("NeedsBestiaryDialog", false);
+		mProfile->Save();
+		return;
+	}
+	if (aMiniGames) {
+		aNewPanel();
+		mConversationPanel->AddTextPage(GT(0x7ad290));
+		mConversationPanel->AddTextPage(GT(0x7ad2e0));
+		if (aArena) {
+			mConversationPanel->AddTextPage(GT(0x7ad1c0));
+			mProfile->SetBool("NeedsArenaDialog", false);
+		}
+		if (aExpansionBoss) {
+			mConversationPanel->AddTextPage(aArena ? GT(0x7ad210) : GT(0x7ad254));
+			mProfile->SetBool("NeedsExpansionBossDialog", false);
+		}
+		aShowPanel();
+		mProfile->SetBool("NeedsMiniGamesDialog", false);
+		mProfile->Save();
+		return;
+	}
+
+	// the arena, the expansion's bosses or the film reel: one of them
+	const char* aKey;
+	if (aArena) {
+		aNewPanel();
+		mConversationPanel->AddTextPage(GT(0x7ad308));
+		mConversationPanel->AddTextPage(GT(0x7ad360));
+		if (aExpansionBoss) {
+			mConversationPanel->AddTextPage(GT(0x7ad254));
+			mProfile->SetBool("NeedsExpansionBossDialog", false);
+		}
+		aKey = "NeedsArenaDialog";
+	} else if (aExpansionBoss) {
+		aNewPanel();
+		mConversationPanel->AddTextPage(GT(0x7ad3c0));
+		mConversationPanel->AddTextPage(GT(0x7ad3f4));
+		aKey = "NeedsExpansionBossDialog";
+	} else {
+		if (!aMediaPlayer)
+			return;
+		aNewPanel();
+		mConversationPanel->AddTextPage(GT(0x7ad420));
+		mConversationPanel->AddTextPage(GT(0x7ad470));
+		aKey = "NeedsMPDialog";
+	}
+	mProfile->SetBool(aKey, false);
+	aShowPanel();
+	mProfile->Save();
 }
 
 void GameApp::StartIntro(int theMode)
