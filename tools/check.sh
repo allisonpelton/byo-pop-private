@@ -13,7 +13,8 @@
 #                jp2test (JPEG 2000: the .jp2 images of assets/bookwormadv/images against their PNGs, the loader's
 #                rules for .jp2 files, synthetic and damaged files), skipped without assets/bookwormadv/images; and
 #                songpostest on Bejeweled's and BookWorm's modules (skipped without their assets)
-#   unit-web     rulestest and modsettingstest under Node (needs build-web)
+#   unit-web     rulestest and modsettingstest under Node (needs build-web); paktest (the page's pak reader), with
+#                Bookworm Adventures' main.pak against assets/bookwormadv when both are there
 #   verify       Bejeweled's headless verifier tests (games/bejeweled/tools/verify/run_tests.sh)
 #   modmenu      the mod menu's scripted runs, all games (tools/modmenutest/run_tests.sh all)
 #   livesplit    Bejeweled's, Big Money's and BookWorm's LiveSplit tests
@@ -173,8 +174,19 @@ suite_unit-web() {
 	a="$(lastof "$1" 'checks')"
 	(cd build/web && "$NODE" modsettingstest.js) > "$1.mst" 2>&1 || st=1
 	b="$(lastof "$1.mst" 'checks')"
-	cat "$1.mst" >> "$1"; rm -f "$1.mst"
-	SUMMARY="$a; $b"
+	# the page's pak reader (web/modpanel.js); with Bookworm Adventures installed and staged, its main.pak against the
+	# staged files (BWA_PAK names another copy)
+	local pak="${BWA_PAK:-C:/Program Files (x86)/PopCap Games/Bookworm Adventures Deluxe/main.pak}" c
+	if [ -f "$pak" ] && [ -d assets/bookwormadv ]; then
+		"$NODE" tools/paktest/paktest.js "$pak" assets/bookwormadv > "$1.pak" 2>&1 || st=1
+		c="$(lastof "$1.pak" 'paktest: main.pak')"
+	else
+		"$NODE" tools/paktest/paktest.js > "$1.pak" 2>&1 || st=1
+		c="$(lastof "$1.pak" 'paktest: synthetic') (no BWA main.pak or assets/bookwormadv)"
+	fi
+	grep -q '^paktest: 0 failed' "$1.pak" || st=1
+	cat "$1.mst" "$1.pak" >> "$1"; rm -f "$1.mst" "$1.pak"
+	SUMMARY="$a; $b; $c"
 	return $st
 }
 

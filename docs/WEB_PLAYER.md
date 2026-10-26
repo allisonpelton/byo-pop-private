@@ -32,7 +32,11 @@ Big Money (`bigmoney.*`) and BookWorm (`bookworm.*`) have the same three files.
    until it is back.
 6. **Game files.** If there are none yet, the import card asks for the install folder or a .zip. Only the
    folders the game reads (`images`, `data`, `sounds`, `music`, `properties`) are copied. The browser's
-   own `DecompressionStream` unpacks a .zip.
+   own `DecompressionStream` unpacks a .zip. A game whose files are in a PopCap pak (Bookworm Adventures'
+   `main.pak`, XORed with 0xF7) names it in its page's `paks`: the import unpacks it into the game's folder
+   (`Module.byopop.pak.read` in `web/modpanel.js`, the format of `tools/popcap_pak.py`) and does not store the pak,
+   so the browser keeps one copy of the files, the same tree native staging gives the game.
+   `tools/paktest/paktest.js` checks the reader under Node.
 7. **Play.** Browsers allow sound only after you click or press a key, so the page waits for "Play". Then
    it calls the game's `main()` with folder arguments (`-gamedir=/persist/game -userdir=... -modsdir=...`),
    plus `-gameseed=N` for a `?seed=N` in the address, `-placeholders` for `?placeholders=1` and `-nomods` for
