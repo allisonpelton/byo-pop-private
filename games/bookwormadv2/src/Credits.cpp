@@ -47,14 +47,14 @@ struct TileDef {
 };
 
 const TileDef kTileDefs[] = {
-	{230, 240, 220, 240, -0.5f, GTA(0x7aa900)},   {282, 220, 220, 240, 0.45f, GTA(0x7abfbc)},
-	{334, 240, 220, 240, -0.6f, GTA(0x7aa924)},   {386, 220, 220, 240, 0.55f, GTA(0x7aa914)},
-	{438, 240, 220, 240, -0.4f, GTA(0x7abfc0)},   {490, 220, 220, 240, 0.52f, GTA(0x7aa92c)},
-	{570, 240, 220, 240, -0.35f, GTA(0x7aa928)},  {622, 220, 220, 240, 0.5f, GTA(0x7abfc4)},
-	{674, 240, 220, 240, -0.45f, GTA(0x7aa910)},  {260, 320, 300, 320, -0.6f, GTA(0x7aa91c)},
-	{312, 300, 300, 320, 0.4f, GTA(0x7aa8fc)},    {364, 320, 300, 320, -0.55f, GTA(0x7aa924)},
-	{416, 300, 300, 320, 0.35f, GTA(0x7aa904)},   {468, 320, 300, 320, -0.48f, GTA(0x7aa8f8)},
-	{520, 300, 300, 320, 0.58f, GTA(0x7aa914)},   {572, 320, 300, 320, -0.37f, GTA(0x7abfc8)},
+	{230, 240, 220, 240, -0.5f, GTA(0x6f7d2c)},   {282, 220, 220, 240, 0.45f, GTA(0x7abfbc)},
+	{334, 240, 220, 240, -0.6f, GTA(0x6f7d50)},   {386, 220, 220, 240, 0.55f, GTA(0x6f7d40)},
+	{438, 240, 220, 240, -0.4f, GTA(0x7abfc0)},   {490, 220, 220, 240, 0.52f, GTA(0x6f7d58)},
+	{570, 240, 220, 240, -0.35f, GTA(0x6f7d54)},  {622, 220, 220, 240, 0.5f, GTA(0x7abfc4)},
+	{674, 240, 220, 240, -0.45f, GTA(0x6f7d3c)},  {260, 320, 300, 320, -0.6f, GTA(0x6f7d48)},
+	{312, 300, 300, 320, 0.4f, GTA(0x6f7d28)},    {364, 320, 300, 320, -0.55f, GTA(0x6f7d50)},
+	{416, 300, 300, 320, 0.35f, GTA(0x6f7d30)},   {468, 320, 300, 320, -0.48f, GTA(0x6f7d24)},
+	{520, 300, 300, 320, 0.58f, GTA(0x6f7d40)},   {572, 320, 300, 320, -0.37f, GTA(0x7abfc8)},
 	{652, 300, 300, 320, 0.53f, GTA(0x7abfcc)},
 };
 
@@ -175,7 +175,7 @@ void Credits::LoadSectionAnims()
 {
 	if (!mCurSection->mPamFile.empty() && mCurSection->mAnim != nullptr) {
 		if (!mCurSection->mAnim->LoadAnimation(mCurSection->mPamFile)) {
-			gApp->MsgBox(GT(0x7abe1c) + mCurSection->mPamFile, GT(0x7a9c04), 0);
+			gApp->MsgBox(GT(0x6f9dd4) + mCurSection->mPamFile, GT(0x6f701c), 0);
 			delete mCurSection->mAnim;
 			mCurSection->mAnim = nullptr;
 		}
@@ -185,7 +185,7 @@ void Credits::LoadSectionAnims()
 		Entry& anEntry = mCurSection->mEntries[i];
 		if (!anEntry.mPamFile.empty() && anEntry.mAnim != nullptr) {
 			if (!anEntry.mAnim->LoadAnimation(anEntry.mPamFile)) {
-				gApp->MsgBox(GT(0x7abe3c) + anEntry.mPamFile, GT(0x7a9c04), 0);
+				gApp->MsgBox(GT(0x6f9df4) + anEntry.mPamFile, GT(0x6f701c), 0);
 				delete anEntry.mAnim;
 				anEntry.mAnim = nullptr;
 			}
@@ -242,7 +242,7 @@ void Credits::ReadSettings(const AttributeList& theAttributes)
 			aSection.mPamFile = "images/pam/" + aValue + ".pam";
 			// only the first credit is loaded now
 			if ((kLoadAllAtOnce || mSections.size() == 1) && !aSection.mAnim->LoadAnimation(aSection.mPamFile)) {
-				gApp->MsgBox(GT(0x7abe1c) + aSection.mPamFile, GT(0x7a9c04), 0);
+				gApp->MsgBox(GT(0x6f9dd4) + aSection.mPamFile, GT(0x6f701c), 0);
 				delete aSection.mAnim;
 				aSection.mAnim = nullptr;
 			}
@@ -259,7 +259,7 @@ void Credits::ReadSettings(const AttributeList& theAttributes)
 		} else if (NameIs(aKey, "bgimage")) {
 			aSection.mBgImage = gApp->GetImage(aValue, true);
 			if (aSection.mBgImage == nullptr)
-				gApp->MsgBox(GT(0x7abebc) + aValue, GT(0x7abeb4), 0);
+				gApp->MsgBox(GT(0x6f9e7c) + aValue, GT(0x6f9e74), 0);
 		}
 		i++;
 	}
@@ -293,7 +293,7 @@ void Credits::ReadEntry(const AttributeList& theAttributes)
 			anEntry.mAnim = new PopAnim(mNextAnimId++, this);
 			anEntry.mPamFile = "images/pam/" + aValue + ".pam";
 			if ((kLoadAllAtOnce || mSections.size() == 1) && !anEntry.mAnim->LoadAnimation(anEntry.mPamFile)) {
-				gApp->MsgBox(GT(0x7abe1c) + anEntry.mPamFile, GT(0x7a9c04), 0);
+				gApp->MsgBox(GT(0x6f9dd4) + anEntry.mPamFile, GT(0x6f701c), 0);
 				delete anEntry.mAnim;
 				anEntry.mAnim = nullptr;
 			}
@@ -476,7 +476,7 @@ void Credits::Update()
 				mState = STATE_LEX_COMES;
 				mLex = new PopAnim(mNextAnimId++, this);
 				if (!mLex->LoadAnimation("images/pam/lex.pam")) {
-					gApp->MsgBox(GT(0x7abf38), GT(0x7abeb4), 0);
+					gApp->MsgBox(GT(0x6f9ef8), GT(0x6f9e74), 0);
 					delete mLex;
 					mLex = nullptr;  // port: the original went on to play the animation it had just deleted
 					mEndOfGame = false;
@@ -746,7 +746,7 @@ void Credits::Draw(Graphics* g)
 	g->DrawImage(IMAGE_BANNER_CREDITS, (mWidth - IMAGE_BANNER_CREDITS->GetWidth()) / 2, 112);
 	g->SetFont(FONT_MEDIUM_BOLD);
 	g->SetColor(Color(89, 0, 0));
-	g->WriteWordWrapped(Rect(0, 429, mWidth, 200), GT(0x7abf98), -1, 0, nullptr, -1);
+	g->WriteWordWrapped(Rect(0, 429, mWidth, 200), GT(0x6f9f58), -1, 0, nullptr, -1);
 
 	// the band the credit shows in
 	g->PushState();

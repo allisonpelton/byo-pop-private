@@ -68,7 +68,7 @@ void SetupDialogButton(DialogButton* theButton, Font* theFont)
 // 0x4842e0: dialog 1 with a footer button that continues the battle (or closes), and the controls, which show the
 // app's settings
 OptionsDialog::OptionsDialog(bool theHasBoard)
-	: GameDialog(GameApp::DIALOG_OPTIONS, _S(""), _S(""), theHasBoard ? GT(0x7afa70) : GT(0x7af0a4),
+	: GameDialog(GameApp::DIALOG_OPTIONS, _S(""), _S(""), theHasBoard ? GT(0x6fdee0) : GT(0x6fd4ac),
 	             BUTTONS_FOOTER)
 {
 	mHasBoard = theHasBoard;
@@ -90,7 +90,7 @@ OptionsDialog::OptionsDialog(bool theHasBoard)
 	mCreditsButton = new DialogButton(IMAGE_DIALOG_BUTTON, ID_CREDITS, this);
 	SetupDialogButton(mCreditsButton, FONT_LARGE_OUTLINE);
 	mCreditsButton->mTextOffsetY = 0;
-	mCreditsButton->mLabel = GT(0x7abe00);
+	mCreditsButton->mLabel = GT(0x6f9db8);
 	mExtraHeight = 200;
 	mBanner = IMAGE_DIALOG_BANNER_OPTIONS;
 	mBannerY = 17;
@@ -204,14 +204,14 @@ void OptionsDialog::Draw(Graphics* g)
 	g->SetFont(FONT_LARGE);
 	g->SetColor(GetColor(COLOR_LINES));
 	int aLabelX = mFullscreenBox->mX - mX + 5;
-	g->DrawString(GT(0x7afa80), aLabelX, FONT_LARGE->GetAscent() + mMusicSlider->mY - mY + 5);
-	g->DrawString(GT(0x7afa90), aLabelX, FONT_LARGE->GetAscent() + mSoundSlider->mY - mY + 5);
+	g->DrawString(GT(0x6fdef0), aLabelX, FONT_LARGE->GetAscent() + mMusicSlider->mY - mY + 5);
+	g->DrawString(GT(0x6fdf00), aLabelX, FONT_LARGE->GetAscent() + mSoundSlider->mY - mY + 5);
 	g->DrawImage(IMAGE_DIALOG_DIVIDER_TOP, 80, 173);
-	DrawBoxLabel(g, GT(0x7afaa0), mFullscreenBox);
-	DrawBoxLabel(g, GT(0x7afaac), mCursorsBox);
-	DrawBoxLabel(g, GT(0x7afabc), m3DBox);
-	DrawBoxLabel(g, GT(0x7afad0), mLetterValuesBox);
-	DrawBoxLabel(g, GT(0x7afae4), mNoTooltipsBox);
+	DrawBoxLabel(g, GT(0x6fdf10), mFullscreenBox);
+	DrawBoxLabel(g, GT(0x6fdf1c), mCursorsBox);
+	DrawBoxLabel(g, GT(0x6fdf2c), m3DBox);
+	DrawBoxLabel(g, GT(0x6fdf40), mLetterValuesBox);
+	DrawBoxLabel(g, GT(0x6fdf54), mNoTooltipsBox);
 	g->DrawImage(IMAGE_DIALOG_DIVIDER_BOT, 80, 325);
 }
 
@@ -262,7 +262,7 @@ void OptionsDialog::CheckboxChecked(int theId, bool checked)
 	switch (theId) {
 	case ID_FULLSCREEN:
 		if (mApp->mForceFullscreen && !checked) {
-			mApp->DoDialog(GameApp::DIALOG_NO_WINDOWED, true, GT(0x7afb70), GT(0x7afaf8), GT(0x7ac5a0),
+			mApp->DoDialog(GameApp::DIALOG_NO_WINDOWED, true, GT(0x6fdfe0), GT(0x6fdf68), GT(0x6fa51c),
 			               BUTTONS_FOOTER);
 			Dialog* aDialog = mApp->GetDialog(GameApp::DIALOG_NO_WINDOWED);
 			aDialog->SetColor(COLOR_HEADER, Color::White);
@@ -276,9 +276,9 @@ void OptionsDialog::CheckboxChecked(int theId, bool checked)
 			break;
 		if (!mApp->Is3DAccelerationSupported()) {
 			m3DBox->SetChecked(false, true);
-			mApp->DoOkDialog(GT(0x7afc08), GT(0x7afb88), "", nullptr);
+			mApp->DoOkDialog(GT(0x6fe078), GT(0x6fdff8), "", nullptr);
 		} else if (!mApp->Is3DAccelerationRecommended())
-			mApp->DoOkDialog(GT(0x7afc98), GT(0x7afc18), "", nullptr);
+			mApp->DoOkDialog(GT(0x6fe108), GT(0x6fe088), "", nullptr);
 		break;
 	case ID_LETTER_VALUES:
 		mApp->SetShowTilePips(checked);

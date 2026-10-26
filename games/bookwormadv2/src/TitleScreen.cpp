@@ -50,8 +50,8 @@ bool TitleScreen::InitLoadingScreen()
 	mEatWidth = aTileWidth * 7;
 	mTileWidth = aTileWidth;
 	// "LOADING", a letter a tile
-	const SexyString* aLetters[7] = {&GT(0x7aa8fc), &GT(0x7abfc4), &GT(0x7aa924), &GT(0x7aa908), &GT(0x7aa8f8),
-	                                 &GT(0x7aa914), &GT(0x7abfc8)};
+	const SexyString* aLetters[7] = {&GT(0x6f7d28), &GT(0x7abfc4), &GT(0x6f7d50), &GT(0x6f7d34), &GT(0x6f7d24),
+	                                 &GT(0x6f7d40), &GT(0x7abfc8)};
 	static const int kY[7] = {475, 469, 479, 473, 469, 460, 468};
 	for (int i = 0; i < 7; i++) {
 		MemoryImage* anImage = new MemoryImage(mApp);
@@ -181,13 +181,12 @@ void TitleScreen::Draw(Graphics* g)
 	}
 	g->DrawImage(IMAGE_MM_LOGO, (mWidth - IMAGE_MM_LOGO->mWidth) / 2, mLogoY);
 	g->SetColorizeImages(false);
+	// port: Volume 2's draw (0x48a940) keeps these colourize toggles but no longer draws Volume 1's "Deluxe" mark between them
 	if (mLogoAlpha != 255) {
 		g->SetColorizeImages(true);
 		g->SetColor(Color(255, 255, 255, mLogoAlpha));
-	}
-	g->DrawImage(IMAGE_TS_DELUXE, 330, IMAGE_MM_LOGO->mHeight - 40 + mLogoY);
-	if (mLogoAlpha != 255)
 		g->SetColorizeImages(false);
+	}
 
 	// What Lex has eaten of the tiles is not drawn
 	int anEaten = (int)(mApp->GetLoadingThreadProgress() * mEatWidth);

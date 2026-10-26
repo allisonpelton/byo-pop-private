@@ -50,7 +50,7 @@ GameApp::GameApp()
 	mProductVersion = "1.0";
 	mRegKey = "PopCap\\WinBAD";
 	// port: the original's title was the properties' Title (InitPropertiesHook) and the version
-	mTitle = "Bookworm Adventures Deluxe";
+	mTitle = "Bookworm Adventures Volume 2";
 	mWidth = 800;
 	mHeight = 600;
 	mAutoStartLoadingThread = false;  // the title screen starts it once the curtain is closed
@@ -96,15 +96,6 @@ void GameApp::Init()
 	LoadResourceManifest();
 	LoadGameTexts();
 	mNumLoadingThreadTasks = mResourceManager->GetNumResources("CommonGame") + 1;
-	if (mMusicInterface != nullptr) {
-		mSongPlayer = new JeffLib::SongPlayer(mMusicInterface);
-		mSongPlayer->LoadSong("sounds/music.mo3", 12.0);
-		// the media player's spectrum: 320 x 240. port: cleared (the original's is not until a song plays)
-		mSongPlayer->mSpectrumWidth = 320;
-		mSongPlayer->mSpectrumHeight = 240;
-		delete[] mSongPlayer->mSpectrum;
-		mSongPlayer->mSpectrum = new unsigned char[320 * 240]();
-	}
 
 	if (!mResourceManager->LoadResources("TitleAndMM"))
 		ShowResourceError(true);
@@ -124,7 +115,7 @@ void GameApp::Init()
 	mTitleScreen = new TitleScreen(this);
 	if (!mTitleScreen->InitLoadingScreen()) {
 		// the original's message (GT 0x7acbc8) asked the player to reinstall the game
-		Popup(GT(0x7acbc8));
+		Popup(GT(0x6fac00));
 		Shutdown();
 		return;
 	}
@@ -363,7 +354,7 @@ GameDialog* GameApp::DoOkDialog(const SexyString& theHeader, const SexyString& t
 	}
 	mDialogCallback = theCallback;
 	GameDialog* aDialog = static_cast<GameDialog*>(
-		DoDialog(DIALOG_OK, true, theHeader, theLines, GT(0x7ac5a0), Dialog::BUTTONS_FOOTER));
+		DoDialog(DIALOG_OK, true, theHeader, theLines, GT(0x6fa51c), Dialog::BUTTONS_FOOTER));
 	Unmute(true);
 	mSoundPlayer->PauseLooping(true);
 	aDialog->SetHeaderFont(FONT_LARGE_OUTLINE);
@@ -665,7 +656,7 @@ void GameApp::LoadingThreadCompleted()
 	mTitleScreen->mLoaded = true;
 	// the profiles that do not load are deleted, and the player is told
 	if (!CheckProfiles() && !mProfileErrors.empty()) {
-		DoOkDialog(GT(0x7a9c04), StrFormat(GT(0x7acdc0).c_str(), mProfileErrors.c_str()), "", nullptr);
+		DoOkDialog(GT(0x6f701c), StrFormat(GT(0x6fae30).c_str(), mProfileErrors.c_str()), "", nullptr);
 		// wide enough for what failed, and put back in the middle
 		GameDialog* aDialog = static_cast<GameDialog*>(GetDialog(DIALOG_OK));
 		aDialog->mWidth = 600;
@@ -752,7 +743,7 @@ bool GameApp::CheckProfiles()
 			continue;
 		// "Profile for <name>: <why>", and its files go
 		anAllLoaded = false;
-		mProfileErrors += StrFormat(GT(0x7acd44).c_str(), aName.c_str(), aProfile.mOutOfDateReasons.c_str());
+		mProfileErrors += StrFormat(GT(0x6fadb0).c_str(), aName.c_str(), aProfile.mOutOfDateReasons.c_str());
 		if (aHasLastUser && StringToLower(aName) == StringToLower(aLastUser))
 			RegistryEraseValue("LastUser");
 		EraseFile(aUsers + "/" + aFile);
@@ -775,9 +766,9 @@ bool GameApp::SelectUser(const std::string& theName)
 		// a profile that is out of date says why in a message box (the app's vf 0x78, MsgBox), any other that does not
 		// load in the error dialog
 		if (aReasons.empty())
-			DoOkDialog(GT(0x7a9c04), StrFormat(GT(0x7acec8).c_str(), theName.c_str()), "", nullptr);
+			DoOkDialog(GT(0x6f701c), StrFormat(GT(0x6faf38).c_str(), theName.c_str()), "", nullptr);
 		else
-			MsgBox(StrFormat(GT(0x7acf08).c_str(), aReasons.c_str()), GT(0x7acef4), 0);
+			MsgBox(StrFormat(GT(0x6faf78).c_str(), aReasons.c_str()), GT(0x6faf64), 0);
 		return false;
 	}
 	RegistryWriteString("LastUser", mProfile->mName);
@@ -804,8 +795,8 @@ void GameApp::ShowMainMenu(bool theFromTitle, bool theToBack)
 		mWidgetManager->BringToFront(mHallOfFame);
 	if (mCurtain != nullptr)
 		mWidgetManager->BringToFront(mCurtain);
-	if (!mNoMusic && mSongPlayer != nullptr)
-		mSongPlayer->PlaySong(0x8c, 0.005f, true);  // the main menu's song
+	if (!mNoMusic)
+		PlaySong(0x8c, 0.006f, true);  // the main menu's song
 	mWidgetManager->SetFocus(mMainMenu);
 	ClearUpdateBacklog(false);
 }
@@ -848,13 +839,13 @@ void GameApp::ShowUnlockMessages()
 		// the tome, and what else came with it
 		aNewPanel();
 		mConversationPanel->AddTextPage(GT(0x7ad090));
-		mConversationPanel->AddTextPage(GT(0x7ad0e0));
+		mConversationPanel->AddTextPage(GT(0x6fb100));
 		if (aMiniGames) {
-			mConversationPanel->AddTextPage(GT(0x7ad128));
+			mConversationPanel->AddTextPage(GT(0x6fb148));
 			mProfile->SetBool("NeedsMiniGamesDialog", false);
 		}
 		if (aArena) {
-			mConversationPanel->AddTextPage(aMiniGames ? GT(0x7ad170) : GT(0x7ad1c0));
+			mConversationPanel->AddTextPage(aMiniGames ? GT(0x6fb190) : GT(0x6fb1e0));
 			mProfile->SetBool("NeedsArenaDialog", false);
 		}
 		if (aExpansionBoss) {
@@ -869,9 +860,9 @@ void GameApp::ShowUnlockMessages()
 	if (aMiniGames) {
 		aNewPanel();
 		mConversationPanel->AddTextPage(GT(0x7ad290));
-		mConversationPanel->AddTextPage(GT(0x7ad2e0));
+		mConversationPanel->AddTextPage(GT(0x6fb280));
 		if (aArena) {
-			mConversationPanel->AddTextPage(GT(0x7ad1c0));
+			mConversationPanel->AddTextPage(GT(0x6fb1e0));
 			mProfile->SetBool("NeedsArenaDialog", false);
 		}
 		if (aExpansionBoss) {
@@ -889,7 +880,7 @@ void GameApp::ShowUnlockMessages()
 	if (aArena) {
 		aNewPanel();
 		mConversationPanel->AddTextPage(GT(0x7ad308));
-		mConversationPanel->AddTextPage(GT(0x7ad360));
+		mConversationPanel->AddTextPage(GT(0x6fb300));
 		if (aExpansionBoss) {
 			mConversationPanel->AddTextPage(GT(0x7ad254));
 			mProfile->SetBool("NeedsExpansionBossDialog", false);
@@ -922,16 +913,16 @@ void GameApp::StartIntro(int theMode)
 		aNewPlayer = true;
 	}
 	InitGameScreen(false);
-	lua_pushint(mLua->L, 1);
+	lua_pushint(mLua->L, 0);  // port: Volume 2 selects book 0 (0x43de80), where Volume 1 selected book 1; it has no book 1 to 3
 	lua_pushboolean(mLua->L, 1);
 	lua_pushboolean(mLua->L, 1);
 	mBookManager->CallLinkedMethod("SelectBookNumber", 3);
 	HideBookManager();
 	if (aNewPlayer)
 		mPlayIntro = true;
-	if (!mNoMusic && mSongPlayer != nullptr)
-		mSongPlayer->PlaySong(0x1b, 0.005f, true);  // the intro's song
-	PlayCutScene("images/cutscenes/intro.swf", "gBookManager:StartGame", GT(0x7acfdc), true, false);
+	if (!mNoMusic)
+		PlaySong(0x8c, 0.006f, true);  // the intro's song (0x43df46: the same one as the main menu's)
+	PlayCutScene("images/cutscenes/intro.swf", "gBookManager:StartGame", GT(0x6fb018), true, false);
 	if (mCurtain != nullptr)
 		mWidgetManager->BringToFront(mCurtain);
 }
@@ -1090,7 +1081,7 @@ void GameApp::CurtainDone()
 				mTreasureScreen->CallLinkedMethod("InitTimedModeCheckpoint", 0);
 			} else {
 				// a new run: what the arena is, under the arena's banner
-				DoOkDialog(_S(""), GT(0x7ad7d8), "", IMAGE_TM_INTRO_TITLE);
+				DoOkDialog(_S(""), GT(0x6fb8d0), "", IMAGE_TM_INTRO_TITLE);
 				GameDialog* aDialog = static_cast<GameDialog*>(GetDialog(DIALOG_OK));
 				aDialog->SetLinesFont(FONT_LARGE);
 				aDialog->mSpaceAfterHeader += 0x14;
@@ -1312,6 +1303,42 @@ void GameApp::RemoveBookManager()
 	mBookManager->CallLinkedMethod("Destructor", 0);
 	SafeDeleteWidget(mBookManager);
 	mBookManager = nullptr;
+}
+
+// 0x4448c0: the file is music/<name>.ogg (the scripts name a song "<book>_level", "<book>_map", "<book>_boss")
+void GameApp::LoadMusic(int theSongId, const std::string& theName)
+{
+	if (mMusicInterface != nullptr)
+		mMusicInterface->LoadMusic(theSongId, "music\\" + theName + ".ogg");
+}
+
+// 0x445290: a song that is not playing yet, the others faded out first when asked
+void GameApp::PlayMusic(int theSongId, int theOffset, bool theFadeOthers)
+{
+	if (mMusicInterface == nullptr || mMusicInterface->IsPlaying(theSongId))
+		return;
+	if (theFadeOthers)
+		mMusicInterface->FadeOutAll(true, 0.006);
+	mMusicInterface->PlayMusic(theSongId, theOffset, false);
+	mLastSongId = theSongId;
+}
+
+// 0x4452f0: not while it plays
+void GameApp::UnloadMusic(int theSongId)
+{
+	if (mMusicInterface != nullptr && !mMusicInterface->IsPlaying(theSongId))
+		mMusicInterface->UnloadMusic(theSongId);
+}
+
+// 0x43df46 (inlined into the intro's start): the other songs fade out by theFadeSpeed, then the song starts
+// (port: the scripts' PlaySong has a fourth flag the inlined copies cannot show; not found yet)
+void GameApp::PlaySong(int theSongId, float theFadeSpeed, bool theLoop)
+{
+	if (mMusicInterface == nullptr || mMusicInterface->IsPlaying(theSongId))
+		return;
+	mMusicInterface->FadeOutAll(true, theFadeSpeed);
+	mMusicInterface->PlayMusic(theSongId, 0, !theLoop);
+	mLastSongId = theSongId;
 }
 
 void GameApp::HideBookManager()

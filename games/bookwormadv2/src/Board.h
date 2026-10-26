@@ -32,22 +32,7 @@ public:
 		BUTTON_SCRAMBLE = 2,
 	};
 
-	// 0x14 bytes at +0xdc (made in the constructor, 0x4165a0 starts it, 0x4165d0 updates it, 0x416650 draws it):
-	// the rainbow that sweeps up the screen when the word is the name of another PopCap game
-	struct Flash {
-		int mHue = 0;          // +0x00, 0..255, 4 a frame
-		int mY = 0;            // +0x04, from the bottom of the screen up, 4 a frame
-		int mAlpha = 0;        // +0x08, between 0 and 255
-		int mAlphaDelta = 16;  // +0x0c
-		bool mDone = false;    // +0x10
-		bool mActive = false;  // +0x11
-		void Start();          // 0x4165a0 (without the activation, which its caller does)
-		void Update();         // 0x4165d0
-		void Draw(Graphics* g);  // 0x416650
-	};
-
 	std::vector<std::vector<bool>> mGridCells;  // +0xd0: [row][col], a cell that holds a tile
-	Flash* mFlash = nullptr;                    // +0xdc
 	bool mStarting = false;                     // +0xe0: Init's tiles still falling in (no clicks)
 	bool mImmuneLook = false;                   // +0xe1: the attack button shows the enemy's immunity
 	bool mLevelupOverlay = false;               // +0xe2: the battle engine's level-up overlay is up

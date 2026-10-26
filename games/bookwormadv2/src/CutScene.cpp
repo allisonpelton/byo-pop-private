@@ -88,7 +88,7 @@ void CutScene::Draw(Graphics* g)
 	if (mCanSkip) {
 		g->SetFont(FONT_MEDIUM);
 		g->SetColor(Color(255, 0, 0));
-		g->WriteString(GT(0x7abf98), 0, 585, mWidth, 0);  // "(Click anywhere to skip.)"
+		g->WriteString(GT(0x6f9f58), 0, 585, mWidth, 0);  // "(Click anywhere to skip.)"
 	}
 }
 

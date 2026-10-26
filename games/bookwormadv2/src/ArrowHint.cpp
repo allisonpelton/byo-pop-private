@@ -415,7 +415,7 @@ void ArrowHint::Draw(Graphics* g)
 		g->WriteString(mShortText, aRect->mX + aPad, aRect->mY + aY, mRectShort.mWidth - aPad * 2, 0, true, 0, -1, -1);
 		if (aHasLines) {
 			g->SetColor(Color(255, 255, 255, anAlpha));
-			g->WriteString(GT(0x7a98f8), aRect->mX + aPad, aRect->mY + aY + mFont->GetHeight(),
+			g->WriteString(GT(0x6f6d10), aRect->mX + aPad, aRect->mY + aY + mFont->GetHeight(),
 			               mRectShort.mWidth - aPad * 2, 0, true, 0, -1, -1);
 		}
 	}
@@ -525,7 +525,7 @@ void ArrowHint::SetShortText(std::string theText)
 {
 	mShortText = theText;
 	// port: the original used the font without looking whether the script had set one
-	int aHintWidth = mFont != nullptr ? mFont->StringWidth(GT(0x7a98f8)) : 0;
+	int aHintWidth = mFont != nullptr ? mFont->StringWidth(GT(0x6f6d10)) : 0;
 	int aTextWidth = mFont != nullptr ? mFont->StringWidth(theText) : 0;
 	if (aHintWidth <= aTextWidth)
 		aHintWidth = aTextWidth;
@@ -902,7 +902,7 @@ ArrowHint* ArrowHintManager::AddArrowHint(int theId, bool)
 void ArrowHintManager::DeleteArrowHint(int theId)
 {
 	if (sWalking) {
-		mApp->MsgBox(GT(0x7a9c0c), GT(0x7a9c04), 0);
+		mApp->MsgBox(GT(0x6f7024), GT(0x6f701c), 0);
 	} else {
 		for (size_t i = 0; i < mHints.size(); i++) {
 			if (mHints[i]->mId == theId) {
@@ -941,7 +941,7 @@ ArrowHint* ArrowHintManager::GetArrowHintById(int theId)
 void ArrowHintManager::DeleteAllArrowHints()
 {
 	if (sWalking) {
-		mApp->MsgBox(GT(0x7a9c0c), GT(0x7a9c04), 0);
+		mApp->MsgBox(GT(0x6f7024), GT(0x6f701c), 0);
 	} else {
 		for (size_t i = 0; i < mHints.size(); i++)
 			delete mHints[i];

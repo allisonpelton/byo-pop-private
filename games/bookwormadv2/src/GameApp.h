@@ -69,7 +69,10 @@ public:
 		TRANSITION_TREASURE = 5,       // the treasure screen's continue
 		TRANSITION_TO_MENU = 7,        // from the book back to the main menu (6 is the same)
 		TRANSITION_NEW_GAME = 8,       // from the main menu to the book
-		TRANSITION_TITLE_CURTAIN = 9,  // the title screen's: the callback when closed
+		// not ported yet (0x442700, the original's CurtainDone): 9 is the replay of a finished adventure, whose closed curtain
+		// shows the BookSelectScreen; 10 is the book chosen on it (ReplayCurrentBook); 12 is the Hall of Fame from a replay
+		// (0x443a40); 11 and 13 are not set by the game's code
+		TRANSITION_TITLE_CURTAIN = 14, // the title screen's: the callback when closed (0x442430)
 	};
 
 	// port: the loading thread runs in steps between frames (LoadingStep)
@@ -135,6 +138,7 @@ public:
 	bool mTitleToMainMenu = false;                 // +0x91b
 	bool mQueuedHydraLockout = false;              // +0x91d (not ported yet: the trial's)
 	bool mTimedMode = false;                       // +0x96e: playing the timed mode (its TM_ profile keys)
+	bool mLeetMode = false;                        // +0x95b: the word ELITE, typed on the menu, switched the 1337 tiles on
 	bool mMiniGameFromMenu = false;                // +0x96f: a mini-game started from the main menu's list (0x4819a0)
 	bool mQuitting = false;                        // +0x91c: leaving the game (0x451c20; 0x451920 clears it)
 	int mBattleUpdates = 0;                        // +0x974: updates of battle (not of a level-up or a chapter's end); written only
@@ -148,8 +152,10 @@ public:
 	Profile* mProfile = nullptr;                   // +0x950, the player's
 	ArrowHintManager* mArrowHintManager = nullptr; // +0x964: the tutorial's arrows (made by LoadingThreadCompleted)
 	bool mKillCutSceneWhenDone = false;            // +0x96d
-	// port: the original's music interface was a JeffLib::SexyBassMusicInterface; this does what it added
+	// port: Volume 1's tracker-module song player. Volume 2 has none (its music is ten OGG files the scripts load by
+	// song id with LoadMusic), so this stays null; what still reaches it is guarded
 	JeffLib::SongPlayer* mSongPlayer = nullptr;
+	int mLastSongId = 0;                           // port: the song PlaySong started last
 	std::string mProfileErrors;                    // +0x8c8: CheckProfiles' report of the profiles it deleted
 
 	GameApp();
@@ -300,6 +306,12 @@ public:
 	void InitGameScreen(bool theHidden);
 	void RemoveBookManager();  // 0x449340
 	void HideBookManager();    // 0x44a830: the book and its buttons
+	// the scripts' music, by song id (the music interface's own ids): 0x4448c0, 0x445290, 0x4452f0
+	void LoadMusic(int theSongId, const std::string& theName);
+	void PlayMusic(int theSongId, int theOffset, bool theFadeOthers);
+	void UnloadMusic(int theSongId);
+	// 0x43de80 and others inline this one: not playing yet, then the others fade out and the song starts
+	void PlaySong(int theSongId, float theFadeSpeed, bool theLoop);
 	void RemoveMainMenu();     // 0x449300
 	// 0x44cd00: the Flash movie theFile with theCaption, after the curtain; theCallback (a scripts' function)
 	// once it has closed over the movie's end. theHide keeps it hidden until the curtain is closed.

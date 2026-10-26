@@ -1,8 +1,8 @@
-// Entry point for the Bookworm Adventures Deluxe port (native and Emscripten).
+// Entry point for the Bookworm Adventures Volume 2 port (native and Emscripten).
 //
 // Arguments (all optional):
 //   -gamedir=<dir>   folder with the game's images/, scripts/, properties/, data/, sounds/ and
-//                    BookwormAdventures.exe (read for a few texts, never run): the staged copy that
+//                    BookwormAdventuresVol2.exe (read for a few texts, never run): the staged copy that
 //                    games/bookwormadv2/tools/stage_bookwormadv2_assets.py makes
 //   -userdir=<dir>   writable folder for the profiles and registry.ini
 //   -modsdir=<dir>   folder containing data mods (one sub-folder per mod)
@@ -54,7 +54,7 @@ static bool HasFlag(int argc, char** argv, const char* theFlag)
 // of the game folder
 static bool LooksLikeGameDir(const std::string& theDir)
 {
-	return !Platform::VFS::FindCaseInsensitive(theDir, "bookwormadventures.exe").empty() &&
+	return !Platform::VFS::FindCaseInsensitive(theDir, "bookwormadventuresvol2.exe").empty() &&
 		!Platform::VFS::FindCaseInsensitive(theDir, "properties/resources.xml").empty() &&
 		!Platform::VFS::FindCaseInsensitive(theDir, "scripts/main.luc").empty();
 }
@@ -94,16 +94,16 @@ int main(int argc, char** argv)
 	// port (web): its page mounts its own IndexedDB-backed folder, so the game's files never mix with the
 	// other games' on the same site
 	if (gameDir.empty())
-		gameDir = "/bwapersist/game";
+		gameDir = "/bwa2persist/game";
 	if (userDir.empty())
-		userDir = "/bwapersist/userdata";
+		userDir = "/bwa2persist/userdata";
 	if (modsDir.empty())
-		modsDir = "/bwapersist/mods";
+		modsDir = "/bwa2persist/mods";
 #else
 	if (gameDir.empty())
 		gameDir = FindGameDir();
 	if (userDir.empty()) {
-		char* pref = SDL_GetPrefPath("wasm-bejeweled", "Bookworm Adventures Deluxe");
+		char* pref = SDL_GetPrefPath("wasm-bejeweled", "Bookworm Adventures Volume 2");
 		userDir = pref ? pref : "userdata";
 		SDL_free(pref);
 		while (!userDir.empty() && (userDir.back() == '/' || userDir.back() == '\\'))
@@ -114,10 +114,12 @@ int main(int argc, char** argv)
 #endif
 
 	if (gameDir.empty() || !LooksLikeGameDir(gameDir)) {
-		std::string msg = "Could not find the Bookworm Adventures Deluxe game files.\n\n"
+		std::string msg = "Could not find the Bookworm Adventures Volume 2 game files.\n\n"
 			"Stage them with games/bookwormadv2/tools/stage_bookwormadv2_assets.py (it makes assets/bookwormadv2) "
 			"or run with -gamedir=\"<the staged folder>\".";
-		SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Bookworm Adventures Deluxe", msg.c_str(), nullptr);
+		// port: a scripted test run shows no box (on its hidden desktop nobody could close it)
+		if (ArgValue(argc, argv, "script").empty())
+			SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Bookworm Adventures Volume 2", msg.c_str(), nullptr);
 		SDL_Log("%s", msg.c_str());
 		return 1;
 	}

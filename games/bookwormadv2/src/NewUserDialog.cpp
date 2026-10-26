@@ -44,7 +44,7 @@ NewUserDialog::NewUserDialog(int theButtonMode, const std::string& theName)
 	: GameDialog(GameApp::DIALOG_NEW_USER, _S(""), _S(""), _S(""), theButtonMode), mEdit(nullptr), mPrevFocus(nullptr)
 {
 	if (mButton1 != nullptr)
-		mButton1->mLabel = GT(0x7ac5a0);
+		mButton1->mLabel = GT(0x6fa51c);
 	if (theButtonMode == BUTTONS_OK_CANCEL && mButton2 != nullptr) {
 		mButton2->mLabel = GT(0x7af838);
 		mButton2->mDisabledRect = IMAGE_DIALOG_BUTTON->GetCelRect(4);
@@ -112,7 +112,7 @@ void NewUserDialog::Draw(Graphics* g)
 	g->SetFont(FONT_LARGE);
 	g->SetColor(Color(128, 101, 39));
 	Rect aTextRect(50, mEdit->mY - mY - 85, mWidth - 100, mHeight);
-	g->WriteWordWrapped(aTextRect, GT(0x7af840), -1, 0, nullptr, -1, nullptr);
+	g->WriteWordWrapped(aTextRect, GT(0x6fdcb0), -1, 0, nullptr, -1, nullptr);
 	Rect aFrame = mEdit->GetRect();
 	aFrame.mX += -11 - mX;
 	aFrame.mY += -7 - mY;
@@ -127,14 +127,14 @@ void NewUserDialog::ButtonDepress(int theId)
 	if (theId == mButton1->mId) {
 		const std::string& aName = mEdit->mString;
 		if (aName.empty()) {
-			mApp->DoOkDialog(GT(0x7ab038), GT(0x7af89c), "", nullptr);
+			mApp->DoOkDialog(GT(0x6f8598), GT(0x6fdd0c), "", nullptr);
 			return;
 		}
 		size_t i = 0;
 		while (i < aName.size() && aName[i] == ' ')
 			i++;
 		if (i >= aName.size()) {
-			mApp->DoOkDialog(GT(0x7ab038), GT(0x7af8bc), "", nullptr);
+			mApp->DoOkDialog(GT(0x6f8598), GT(0x6fdd2c), "", nullptr);
 			return;
 		}
 		mApp->NewUserDialogDone();

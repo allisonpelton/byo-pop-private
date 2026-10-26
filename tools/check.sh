@@ -499,12 +499,13 @@ suite_bookwormadv2() {
 	local log="$1" b="$W/build/native/bwa2_luarun.exe" d l r p st
 	need_assets bookwormadv2 || return 1
 	[ -x "$b" ] || { SUMMARY="no $b (build first)"; return 1; }
-	d="$("$b" -gamedir=games/bookwormadv2/tests/poplua dialect.lua 2>&1 | tee -a "$log" | tail -n 1)"
-	l="$("$b" -gamedir=assets/bookwormadv2 -load 2>&1 | tee -a "$log" | tail -n 1)"
-	r="$("$b" -gamedir=assets/bookwormadv2 -runall 2>&1 | tee -a "$log" | tail -n 1)"
-	p="$(python games/bookwormadv2/tests/poplua/pairs.py "$b" assets/bookwormadv2 2>&1 | tee -a "$log" | tail -n 1)"
-	SUMMARY="$d; $l; $r; $p"
+	# (each tool's own exit status, not tee's or tail's, is the substitution's: a crash after the last line still fails)
 	st=0
+	d="$("$b" -gamedir=games/bookwormadv2/tests/poplua dialect.lua 2>&1 | tee -a "$log" | tail -n 1; exit "${PIPESTATUS[0]}")" || st=1
+	l="$("$b" -gamedir=assets/bookwormadv2 -load 2>&1 | tee -a "$log" | tail -n 1; exit "${PIPESTATUS[0]}")" || st=1
+	r="$("$b" -gamedir=assets/bookwormadv2 -runall 2>&1 | tee -a "$log" | tail -n 1; exit "${PIPESTATUS[0]}")" || st=1
+	p="$(python games/bookwormadv2/tests/poplua/pairs.py "$b" assets/bookwormadv2 2>&1 | tee -a "$log" | tail -n 1; exit "${PIPESTATUS[0]}")" || st=1
+	SUMMARY="$d; $l; $r; $p"
 	[ "$d" = "dialect: 150 checks passed" ] || st=1
 	[ "$l" = "loaded 462 of 462 scripts" ] || st=1
 	[ "$r" = "ran 462 of 462 scripts" ] || st=1

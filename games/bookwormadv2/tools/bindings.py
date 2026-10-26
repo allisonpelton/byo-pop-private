@@ -22,8 +22,8 @@ import sys
 EXE = 're/bookwormadv2/bin/BookwormAdventuresVol2.exe'
 OBJDUMP = 'E:/retools/llvm-mingw-20261006-ucrt-x86_64/bin/llvm-objdump.exe'
 GH = 're/bookwormadv2/gh'
-ADDMETHOD = 0x6d2400
-MAKESTRING = 0x401e00  # std::string::assign(const char*, size)
+ADDMETHOD = 0x642e80
+MAKESTRING = 0x401b70  # std::string::assign(const char*, size)
 
 funcs = {}
 for line in open(os.path.join(GH, 'functions.jsonl'), encoding='utf-8'):
@@ -196,7 +196,7 @@ def vcall_slot(fn):
 _lua_class = {}
 
 
-CREATECLASS = 0x6d1720
+CREATECLASS = 0x6422a0
 starters = {int(c, 16) for c in funcs[CREATECLASS]['callers']}
 
 

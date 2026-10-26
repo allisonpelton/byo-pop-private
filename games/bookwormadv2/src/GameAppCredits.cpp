@@ -79,13 +79,12 @@ void GameApp::CloseCredits()
 		mNoMusic = false;
 		mConversationPanel->Activate(false);
 		mWidgetManager->PutInfront(mConversationPanel, mMainMenu);
-		if (mSongPlayer != nullptr)
-			mSongPlayer->PlaySong(0x8c, 0.005f, true);
+		PlaySong(0x8c, 0.006f, true);
 		if (mCurtain != nullptr)
 			mWidgetManager->BringToFront(mCurtain);
-	} else if (mSongPlayer != nullptr) {
-		// the song from before the credits
-		mSongPlayer->PlaySong(mSongPlayer->mLastOrder, 0.005f, true);
+	} else if (mLastSongId != 0) {
+		// the song from before the credits (port: Volume 2's way of doing this has not been read yet)
+		PlaySong(mLastSongId, 0.006f, true);
 	}
 	if (mHoverTooltip != nullptr)
 		mHoverTooltip->MouseLeave();
