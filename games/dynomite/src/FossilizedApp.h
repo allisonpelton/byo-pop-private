@@ -6,6 +6,7 @@
 // cell, font and sound is a field, with the original's offset in its comment (a translated function that reads
 // app+0x1298 finds its field by that offset).
 
+#include "FibRand.h"
 #include "MTRand.h"
 #include "SexyApp.h"
 #include "Sprite.h"
@@ -231,6 +232,7 @@ public:
 
 	AngleTable*  mAngles;                                 // +0x5d4
 	MTRand       mRand;                                   // +0x5d8 seeded with the tick count
+	FibRand      mPicker;                                 // +0xf9c (the board seeds it)
 	int          mSkill;                                  // +0x1084 1 normal, 2 hard, 3 expert
 	int          mFossilKind;                             // +0x1088 the fossil challenge: 0 strategic, 1 panic
 	int          mGameMode;                               // +0x108c 1 stomped, 2 endless, 3 fossil, 4 time trial

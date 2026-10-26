@@ -5,6 +5,7 @@
 #include "AngleTable.h"
 #include "Rect.h"
 #include "Sprite.h"
+#include <cstring>
 #include "compat2004/Compat2004.h"
 
 using namespace Sexy;
@@ -1284,4 +1285,50 @@ void EggGrid::Draw()
 			}
 		}
 	}
+}
+
+// 0x4163e0: a colour of the eggs in the lowest six rows (50 tries of the app's picker), else any colour up to the
+// highest yet
+int EggGrid::PickColor()
+{
+	unsigned char aPresent[20];
+	memset(aPresent, 0, sizeof(aPresent));
+	int aFirstRow = (int) (mRows - 6.0f);
+	if (aFirstRow < 0)
+		aFirstRow = 0;
+	int aCol = 0;
+	int i = 0xf;
+	do
+	{
+		int aRow = aFirstRow;
+		if ((float) aFirstRow <= mRows)
+		{
+			do
+			{
+				unsigned int aColor = mCells[aCol][aRow].mBits & 0xff;
+				if ((aColor != 0) && (aColor < 0x12))
+					aPresent[aColor] = 1;
+				aRow++;
+			} while ((float) aRow <= mRows);
+		}
+		aCol++;
+		i--;
+	} while (i != 0);
+	int aTries = 0;
+	aPresent[0] = 0;
+	while (true)
+	{
+		int aColor = mApp->mPicker.Random(0x14, false);
+		if (aPresent[aColor] == 0)
+			aColor = 0;
+		aTries++;
+		if (0x32 < aTries)
+			break;
+		if (aColor != 0)
+			return aColor;
+	}
+	int aColor = mApp->mPicker.Random(mMaxColor, false) + 1;
+	while (aColor == 0)
+		aColor = mApp->mRand.NextNoAssert() % (unsigned int) mMaxColor + 1;
+	return aColor;
 }

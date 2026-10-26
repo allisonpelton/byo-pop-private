@@ -144,6 +144,7 @@ public:
 	void				CountRows();										// 0x415980
 	void				ResetCeiling();										// 0x4159f0
 	bool				HasColor(int theColor);								// 0x415f00
+	int					PickColor();										// 0x4163e0
 	void				ClearDynamite();									// 0x416500
 	void				AddRow(int theRow);									// 0x416b00: random eggs across a row
 	void				Clear();											// 0x417190
