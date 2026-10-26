@@ -10,6 +10,8 @@
 
 #include "CurtainTransition.h"
 #include "GameApp.h"
+#include "GameDialog.h"
+#include "GameText.h"
 #include "Graphics.h"
 #include "LuaBind.h"
 #include "LuaImage.h"
@@ -29,7 +31,6 @@ namespace {
 // The methods not ported yet, by name. PlaySongWhenDone (0x44f440, the music interface's vf 0x58: the song to
 // play when this one is done, the queue SongPlayer does not have yet) is among them.
 const char* const kNotPorted[] = {
-	"DoErrorDialog", "DoYesNoDialog",
 	"ReturnToMMFromMiniGame", "StartMiniGame",
 	"DoArenaWinDialog", "SetArenaWinStats", "DoEndGame",
 	"EnableBoardForTMCheckpointContinuation",
@@ -210,6 +211,22 @@ void DoCSToMMTransition(GameApp* app) { app->StartToMenuTransition(); }
 void DoGameToMMTransition(GameApp* app) { app->StartGameToMenuTransition(); }
 void HideBookManager(GameApp* app) { app->HideBookManager(); }
 
+// 0x44c390: a message box with the title "ERROR"
+void DoErrorDialog(GameApp* app, std::string theText)
+{
+	app->MsgBox(theText, GT(0x7a9c04), MB_ICONERROR);
+}
+
+// 0x444b30: the confirm dialog (DIALOG_CONFIRM), with theHeader in place of its banner unless theBanner
+void DoYesNoDialog(GameApp* app, std::string theHeader, std::string theLines, std::string theCallback, bool theBanner)
+{
+	GameDialog* aDialog = app->DoConfirmDialog(-1, theHeader, theLines, nullptr, theCallback);
+	if (!theBanner) {
+		aDialog->mDialogHeader = theHeader;
+		aDialog->SetBanner(nullptr, 0);
+	}
+}
+
 // 0x44f900: the height of theText wrapped at theWidth in theFont
 int GetWordWrappedHeight(GameApp* app, std::string theText, int theWidth, int theLineSpacing, LuaFont* theFont)
 {
@@ -378,6 +395,8 @@ void GameApp::RegisterGameAppMethods()
 		.Function<&::DoCSToMMTransition>("DoCSToMMTransition")
 		.Function<&::DoGameToMMTransition>("DoGameToMMTransition")
 		.Function<&::HideBookManager>("HideBookManager")
+		.Function<&::DoErrorDialog>("DoErrorDialog")
+		.Function<&::DoYesNoDialog>("DoYesNoDialog")
 		.Function<&::GetWordWrappedHeight>("GetWordWrappedHeight")
 		.Function<&::CloseCutScene>("CloseCutScene")
 		.Raw<&::StartLoadChapterResources>("StartLoadChapterResources")
