@@ -152,15 +152,21 @@ public:
 		DEFAULT_FALL_ACCEL = 180    // board.gravity.fallAccel: 180 / 1000.0 is the original's 0.18
 	};
 
-	// The way an arrow gem points (4.20); a piece's mArrow is the direction + 1, 0 for none
+	// The way an arrow gem points (4.20); a piece's mArrow is the direction + 1, 0 for none. The diagonals came after
+	// the straight four, which stay the default.
 	enum ArrowDirection
 	{
 		ARROW_UP = 0,
 		ARROW_RIGHT = 1,
 		ARROW_DOWN = 2,
 		ARROW_LEFT = 3,
-		NUM_ARROW_DIRECTIONS = 4,
-		ALL_ARROW_DIRECTIONS = 15
+		ARROW_UP_RIGHT = 4,
+		ARROW_DOWN_RIGHT = 5,
+		ARROW_DOWN_LEFT = 6,
+		ARROW_UP_LEFT = 7,
+		NUM_ARROW_DIRECTIONS = 8,
+		FIRST_DIAGONAL_ARROW = ARROW_UP_RIGHT,
+		ALL_ARROW_DIRECTIONS = 15   // the straight four
 	};
 
 	struct BoardRules
@@ -230,7 +236,7 @@ public:
 		bool						mRestoreRng = true;     // undo.restoreRng
 	};
 
-	// Arrow gems (4.20, stage 18): directions are bits 1 << ARROW_UP .. ARROW_LEFT
+	// Arrow gems (4.20, stage 18): directions are bits 1 << ARROW_UP .. ARROW_UP_LEFT
 	struct ArrowRules
 	{
 		bool						mEnabled = false;       // arrows.enabled (arrows)

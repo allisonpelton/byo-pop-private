@@ -4,7 +4,7 @@
   "version": "1.0",
   "defaultEnabled": false,
   "author": "byo-pop examples",
-  "description": "Z, U or Backspace, or a click on the red orb left of the bar, takes the last move back. Repeating the move brings the same new gems, so undo cannot reroll them. Uses its own high-score table.",
+  "description": "Z, U or Backspace, or a click on the red orb left of the bar, takes the last move back. By default, repeating the move brings the same new gems, so undo cannot reroll them. Uses its own high-score table.",
   "settings": [
     { "type": "section", "label": "Undo" },
     { "id": "depth", "label": "Moves you can take back", "type": "int", "default": 3, "min": 1, "max": 100,

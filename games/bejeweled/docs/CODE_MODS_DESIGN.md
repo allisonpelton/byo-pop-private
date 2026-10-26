@@ -2191,7 +2191,26 @@ a save made mid-move, mid-step and mid-escape, which match the uninterrupted gam
 move whose settle stepped arrows (four games), which restores the settle before the move; the oracle three ways
 without the mod. With the default settings the bot's normal games end in 13 to 42 moves, mostly by an escape, since
 it only sees an arrow when a valid swap happens to match it; timed games go on longer, because each level's new board
-starts without arrows. These are the numbers the game modes' measures (section 9) start from.
+starts without arrows. The game modes (docs/GAME_MODES.md) measured the settings further.
+
+**Diagonals (2026-10-26).** At the user's suggestion, for a diagonal board, `arrows.directions` also takes `upRight`,
+`downRight`, `downLeft` and `upLeft` (bits 4 to 7; the default stays the straight four, so no RulesId changed). The
+steps, the escape past holes and the closest-first order work per direction as they were. A diagonal arrow starts on a
+gem with no gem behind it on its diagonal, if that gem is at least half as far from its edge as the farthest such gem:
+on a square board, not in the corners it would leave at once; on a diamond, anywhere along the edge behind it. The
+straight directions draw from the RNG as before, so stage 18's games replay the same. The art turns the bullet 45
+degrees on from the straight direction before it, longer and narrower (48 by 86 units against 54 by 78), as the cell's
+diagonal has room for; the warning lights half of each side that meets at the corner the arrow will cross. The engine
+ABI went to 10 with them, which covers stage 18's arrows too: they had missed their bump, so a build from before stage
+18, also engine 9, would have played a replay with arrows without them. Drawing them on a scaled board showed that the
+warning's bars and the dirt's dust ignored the board's scale (`Graphics::FillRect` and the stretched `DrawImage` take
+none), so both now take their rectangles through the layout (`Board::DrawStretched`). The `example-arrows` mod's
+directions gained "Diagonally" and "Every way and diagonally", and `example-board-shapes` a large diamond (10 x 10, 60
+cells): in the fun lab the 9 x 9 diamond's normal games last about a minute and the large one's as long as the
+original's. Diagonal arrows made no balanced mode on either diamond (docs/GAME_MODES.md section 3). Tested: rulestest
+(the diagonal names, the bits, an ARRW arrow of 9 refused), the example harness's arrow and shape cases with the new
+choices, screenshots of diagonal arrows on the diamond and of their warnings on a 10 x 7 board, and of a straight
+arrow's warning on the original board.
 
 ---
 

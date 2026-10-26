@@ -1,0 +1,34 @@
+{
+  "id": "gold-rush",
+  "name": "Gold Rush",
+  "version": "1.0",
+  "defaultEnabled": false,
+  "author": "byo-pop",
+  "description": "A game mode: turn every cell of a 7 x 7 board to gold before the level's time runs out, while the gems fall down, then up, after each move that matches, so the board fills from both edges in turn. A match gilds the cells it clears. Each level has 4 minutes in Normal and 2 in Timed, 10 seconds less each level, and each second left over scores points. A board with no moves refills. Uses its own high-score table.",
+  "rules": {
+    "board": {
+      "cols": 7,
+      "rows": 7,
+      "gravity": {
+        "direction": "alternate"
+      }
+    },
+    "gold": {
+      "enabled": true,
+      "gild": "matchesAndBlasts",
+      "timeBonus": 10,
+      "timeLimit": {
+        "normal": {
+          "base": 240,
+          "perLevel": -10,
+          "min": 90
+        },
+        "timed": {
+          "base": 120,
+          "perLevel": -10,
+          "min": 50
+        }
+      }
+    }
+  }
+}

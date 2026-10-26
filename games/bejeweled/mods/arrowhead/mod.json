@@ -1,0 +1,26 @@
+{
+  "id": "arrowhead",
+  "name": "Arrowhead",
+  "version": "1.0",
+  "defaultEnabled": false,
+  "author": "byo-pop",
+  "description": "A game mode for a challenge: arrow gems climb one gem up the board after every move, and if one leaves the top, the game is over. The only move is a twist: click where four gems meet to turn them clockwise, or right click to turn them the other way, and a twist that holds an arrow carries it a cell around, even back down. When gems below an arrow clear, it falls with the rest; match the arrow itself for a bonus that grows with each one cleared. Eight kinds of gem. A new arrow starts at the bottom every few moves, more often as the levels go up. Uses its own high-score table.",
+  "rules": {
+    "board": {
+      "gemColors": 8
+    },
+    "moves": {
+      "type": "twist",
+      "twist": {
+        "direction": "both"
+      }
+    },
+    "arrows": {
+      "enabled": true,
+      "directions": "up",
+      "every": 6,
+      "everyMin": 3,
+      "bonus": 100
+    }
+  }
+}

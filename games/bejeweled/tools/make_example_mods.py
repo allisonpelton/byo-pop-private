@@ -246,6 +246,7 @@ def main():
     gems = os.path.join(out, "example-crystal-gems")
     write_json(os.path.join(gems, "mod.json"), {
         "id": "example-crystal-gems",
+        "defaultEnabled": False,
         "name": "Crystal Gems HD",
         "version": "1.0",
         "author": "byo-pop examples",
@@ -257,6 +258,7 @@ def main():
     voice = os.path.join(out, "example-voice-lines")
     write_json(os.path.join(voice, "mod.json"), {
         "id": "example-voice-lines",
+        "defaultEnabled": False,
         "name": "New Messages",
         "version": "1.0",
         "author": "byo-pop examples",
@@ -272,6 +274,7 @@ def main():
     relaxed = os.path.join(out, "example-relaxed")
     write_json(os.path.join(relaxed, "mod.json"), {
         "id": "example-relaxed",
+        "defaultEnabled": False,
         "name": "Relaxed Hints",
         "version": "1.0",
         "author": "byo-pop examples",

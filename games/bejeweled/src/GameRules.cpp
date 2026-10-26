@@ -82,7 +82,7 @@ const char* const gGildNames[] = {"matches", "matchesAndBlasts"};
 const char* const gMoveTypeNames[] = {"swap", "twist", "slide"};
 const char* const gGravityNames[] = {"down", "up", "alternate"};
 const char* const gBackdropNames[] = {"normal", "twilight"};
-const char* const gArrowNames[] = {"up", "right", "down", "left"}; // GameRules::ArrowDirection
+const char* const gArrowNames[] = {"up", "right", "down", "left", "upRight", "downRight", "downLeft", "upLeft"}; // GameRules::ArrowDirection
 
 #define RULE_FIELD(theMember) [](GameRules* r) -> void* { return &r->theMember; }
 #define RULE_NAMES(theNames) theNames, (int) (sizeof(theNames) / sizeof(theNames[0]))

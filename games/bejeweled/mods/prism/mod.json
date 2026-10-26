@@ -1,0 +1,16 @@
+{
+  "id": "prism",
+  "name": "Prism",
+  "version": "1.0",
+  "defaultEnabled": false,
+  "author": "byo-pop",
+  "description": "A game mode: ten kinds of gem on a 9 x 9 board, and runs count on the diagonals too. With so many colours a straight line is rarer, so look along the slants; diagonal runs score a bonus, and crossing runs join into an L, T or plus for more. Half of all moves set off a cascade. Uses its own high-score table.",
+  "rules": {
+    "board": { "cols": 9, "rows": 9, "gemColors": 10 },
+    "match": {
+      "diagonal": true,
+      "crossings": "merge",
+      "bonus": { "diagonal": 20, "L": 50, "T": 50, "plus": 100 }
+    }
+  }
+}

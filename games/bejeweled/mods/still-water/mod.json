@@ -1,0 +1,41 @@
+{
+  "id": "still-water",
+  "name": "Still Water",
+  "version": "1.0",
+  "defaultEnabled": false,
+  "author": "byo-pop",
+  "description": "A game mode to unwind on a pond: a diamond of 60 cells, where any two neighbouring gems may swap, a match or not, at no cost, and in Normal a board with no moves plays on, so the game never ends; leave it when you like. The gems fall down, then up, after each move that matches, which sets off many cascades, under a dusk sky with the sounds a little lower. In Timed the clock still runs. Uses its own high-score table.",
+  "rules": {
+    "board": {
+      "mask": [
+        "....##....",
+        "...####...",
+        "..######..",
+        ".########.",
+        "##########",
+        "##########",
+        ".########.",
+        "..######..",
+        "...####...",
+        "....##...."
+      ],
+      "gravity": {
+        "direction": "alternate",
+        "fallAccel": 75
+      }
+    },
+    "moves": {
+      "allowInvalid": true,
+      "invalidPenalty": 0,
+      "invalidCountsAsMove": true
+    },
+    "noMoves": {
+      "normal": "continue",
+      "timed": "continue"
+    },
+    "look": {
+      "backdrop": "twilight",
+      "soundPitch": -2
+    }
+  }
+}

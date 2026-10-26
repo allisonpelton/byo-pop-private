@@ -176,7 +176,8 @@ void Sexy::PrintBoardTrace(Board* theBoard, int theUpdate)
 		// stage 18: each arrow, its direction and its cell, row-major
 		if (aBoard->mVariant.mArrows)
 		{
-			static const char* const kArrowNames[GameRules::NUM_ARROW_DIRECTIONS] = {"up", "right", "down", "left"};
+			static const char* const kArrowNames[GameRules::NUM_ARROW_DIRECTIONS] = {"up", "right", "down", "left", "upRight",
+				"downRight", "downLeft", "upLeft"};
 			printf("TRACE   arrows:");
 			for (int aRow = 0; aRow < aBoard->mRows; aRow++)
 			{
