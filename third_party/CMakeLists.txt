@@ -33,7 +33,7 @@ endif()
 
 # libopenmpt 0.8.9 (BSD-3-Clause, libopenmpt/LICENSE; minimp3 CC0): MO3 music, only for games that link
 # sexyopenmpt (platform/openmpt). Sources as in its Makefile (COMMON, SOUNDLIB and LIBOPENMPT sources),
-# with minimp3 for MP3-compressed samples. Vorbis-compressed samples use the stb_vorbis implementation of
+# with minimp3 (below) for MP3-compressed samples. Vorbis-compressed samples use the stb_vorbis implementation of
 # the stb library above (libopenmpt includes stb_vorbis.c header-only, common/BuildSettings.h).
 set(OPENMPT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/libopenmpt)
 file(GLOB OPENMPT_SOURCES
@@ -42,12 +42,19 @@ file(GLOB OPENMPT_SOURCES
   ${OPENMPT_DIR}/src/openmpt/fileformat_base/*.cpp ${OPENMPT_DIR}/src/openmpt/soundbase/*.cpp
   ${OPENMPT_DIR}/src/openmpt/soundfile_data/*.cpp ${OPENMPT_DIR}/soundlib/*.cpp ${OPENMPT_DIR}/soundlib/plugins/*.cpp
   ${OPENMPT_DIR}/soundlib/plugins/dmo/*.cpp ${OPENMPT_DIR}/sounddsp/*.cpp ${OPENMPT_DIR}/libopenmpt/*.cpp)
-add_library(openmpt STATIC ${OPENMPT_SOURCES} ${OPENMPT_DIR}/include/minimp3/minimp3.c)
+# minimp3 (CC0, libopenmpt/include/minimp3/LICENSE), which came with libopenmpt, is its own library: libopenmpt decodes
+# MP3 samples with it and the framework MP3 sounds (platform/Audio.cpp, Mummy Maze), so both share one copy.
+add_library(minimp3 STATIC ${OPENMPT_DIR}/include/minimp3/minimp3.c)
+target_include_directories(minimp3 PUBLIC ${OPENMPT_DIR}/include/minimp3)
+if(NOT MSVC)
+  target_compile_options(minimp3 PRIVATE -w)
+endif()
+add_library(openmpt STATIC ${OPENMPT_SOURCES})
 target_include_directories(openmpt PUBLIC ${OPENMPT_DIR})
 target_include_directories(openmpt PRIVATE ${OPENMPT_DIR}/src ${OPENMPT_DIR}/common ${OPENMPT_DIR}/include)
 target_compile_definitions(openmpt PRIVATE LIBOPENMPT_BUILD MPT_WITH_MINIMP3 MPT_WITH_STBVORBIS
   STB_VORBIS_NO_PULLDATA_API STB_VORBIS_NO_STDIO)
-target_link_libraries(openmpt PRIVATE stb)
+target_link_libraries(openmpt PRIVATE stb minimp3)
 if(NOT MSVC)
   target_compile_options(openmpt PRIVATE -w)
 endif()
@@ -68,3 +75,9 @@ target_compile_definitions(openjp2 PUBLIC OPJ_STATIC)
 if(NOT MSVC)
   target_compile_options(openjp2 PRIVATE -w)
 endif()
+
+# TinySoundFont (MIT, tinysoundfont/LICENSE; tinysoundfont/BYO-POP.md): a SoundFont synthesizer (tsf.h) and MIDI file
+# loader (tml.h), for the games whose music is MIDI (TipTop), with a General MIDI bank cut down from GeneralUser GS
+# (generaluser-gs/). Single headers: the game source that uses them defines TSF_IMPLEMENTATION and TML_IMPLEMENTATION.
+add_library(tinysoundfont INTERFACE)
+target_include_directories(tinysoundfont INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/tinysoundfont)

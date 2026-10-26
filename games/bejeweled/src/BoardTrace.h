@@ -9,6 +9,9 @@
 //   TRACE   seed <seed> <user|pergame>        a board with a seed of its own (code mods, stage 2)
 //   TRACE   variant moves <n> invalid <n>     a variant board (stage 5: the moves that stood, the kept invalid ones;
 //                                             stage 6: then " undos <n>", the undos taken, when its rules have undo)
+//   TRACE   gold: <a word a row>             a gold board (stage 12; the variant line then ends " gold <done>/<goal>",
+//                                             and " time <left>/<limit>" in ticks with a time limit): 1 gold, 0 not
+//                                             yet, . a cell outside the goal
 //   TRACE   move <i>: (<col>,<row>)->(<col2>,<row2>) click <x> <y> then <x2> <y2>
 // <update> is the caller's count (the app's update count in the game); everything after it is the board's.
 // Moved out of WinDMApp.cpp (games/bejeweled/docs/CODE_MODS_DESIGN.md 6.9), so the headless verifier

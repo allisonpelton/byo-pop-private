@@ -17,6 +17,7 @@
 #include "Checkbox.h"
 #include "EditWidget.h"
 #include "Dialog.h"
+#include "DialogButton.h"
 #include "ImageFont.h"
 #include "DDImage.h"
 #include "MemoryImage.h"
@@ -30,6 +31,9 @@
 #include "testhooks/CodecCheck.h"
 #include "testhooks/AudioCapture.h"
 #include "WatchController.h"
+#include "ReplayOverlay.h"
+#include "ExtrasDialog.h"
+#include "ReplayBrowserDialog.h"
 #include "platform/ModManager.h"
 
 #include <SDL.h>
@@ -103,6 +107,8 @@ WinDMApp::WinDMApp()
 	mWatch = NULL; // port(variant): watching a replay (-replay, WatchController.h)
 	mNextValuesBoard = 0; // port(mods)
 	mReplayQuit = false; // port(variant)
+	mReplayOverlay = NULL; // port(variant)
+	mPendingPlaySeed = 0; // port(variant)
 }
 
 // 0x4d4b08
@@ -171,6 +177,11 @@ WinDMApp::~WinDMApp()
 		fclose(mTraceHashFile);
 	delete mCodecCheck;
 	delete mAudioCapture;
+	if (mReplayOverlay != NULL) // port(variant)
+	{
+		mWidgetManager->RemoveWidget(mReplayOverlay);
+		delete mReplayOverlay;
+	}
 	delete mWatch; // port(variant)
 	LiveSplitObserver::AppDestroyed(this); // port(variant): the LiveSplit block's last write: not active, no board
 }
@@ -695,6 +706,8 @@ bool WinDMApp::KillDialog(int theDialogId)
 	{
 		if (mDialogMap.size() == 0)
 			mWidgetManager->SetFocus(mBoard);
+		if ((mDialogMap.size() == 0) && (mReplayOverlay != NULL)) // port(variant): the watch's keys (ReplayOverlay.h)
+			mWidgetManager->SetFocus(mReplayOverlay);
 		return true;
 	}
 
@@ -966,6 +979,34 @@ void WinDMApp::ButtonDepress(int theId)
 			mBoard->DeleteSaveGame();
 			break;
 
+		// port(variant): stage 13
+		case DIALOG_CONFIRM_WATCH:
+			KillDialog(DIALOG_CONFIRM_WATCH);
+			StartWatch(mPendingWatch);
+			break;
+
+		case DIALOG_REPLAY_END:
+			{
+				// Watch again: the same file from its start (StartWatch deletes the controller that holds the name)
+				std::string aPath = mWatch->GetFileName();
+				StartWatch(aPath);
+			}
+			break;
+
+		case DIALOG_CONFIRM_SEED:
+			KillDialog(DIALOG_CONFIRM_SEED);
+			StartSeedGame(mPendingPlaySeed);
+			break;
+
+		case DIALOG_CONFIRM_DELETE:
+			{
+				KillDialog(DIALOG_CONFIRM_DELETE);
+				ReplayBrowserDialog* aBrowser = (ReplayBrowserDialog*) GetDialog(DIALOG_REPLAYS);
+				if (aBrowser != NULL)
+					aBrowser->DeleteSelected();
+			}
+			break;
+
 		// DIALOG_CHECK_UPDATES (DoUpdateCheck) and the UpdateCheckDialog results DIALOG_UPDATE_AVAILABLE
 		// (OpenUpdateURL) / DIALOG_UP_TO_DATE are not ported
 
@@ -983,6 +1024,8 @@ void WinDMApp::ButtonDepress(int theId)
 			KillDialog(DIALOG_CONFIRM_LOAD);
 			mBoard->DeleteSaveGame();
 		}
+		else if (aDialogId == DIALOG_REPLAY_END) // port(variant): Back
+			EndWatch();
 		else
 			KillDialog(aDialogId);
 	}
@@ -1028,6 +1071,177 @@ void WinDMApp::ButtonDepress(int theId)
 		mBoard->RequestUndo();
 		break;
 	}
+}
+
+// port(variant): a replay from the browser or the game-over screen (WinDMApp.h). A game in progress is left only after
+// asking; ~Board saves it, as on a mode switch, and the end of the watch offers it again.
+void WinDMApp::WatchReplay(const std::string& thePath, bool theFromDialogs)
+{
+	std::string aPath = thePath; // the browser that holds it may close first
+	if (theFromDialogs)
+		CloseExtras();
+	if (HasGameInProgress())
+	{
+		mPendingWatch = aPath;
+		Dialog* aDialog = DoDialog(DIALOG_CONFIRM_WATCH, true, GetString("REPLAY_CONFIRM_WATCH1", _S("WATCH REPLAY")),
+			GetString("REPLAY_CONFIRM_WATCH2", _S("Leave this game to watch the replay? Your game is saved, and offered again when you are done watching.")),
+			"", Dialog::BUTTONS_YES_NO);
+		aDialog->Resize(234, 50, 348, aDialog->GetPreferredHeight(348));
+		return;
+	}
+	StartWatch(aPath);
+}
+
+// port(variant): a new controller in place of the last one (stopped first if it still watched; its ended board
+// is replaced by the new watch's, or by the player's game if this replay cannot be played)
+void WinDMApp::StartWatch(const std::string& thePath)
+{
+	std::string aPath = thePath; // it may be the name the old controller holds
+	KillDialog(DIALOG_REPLAY_END);
+	bool wasPlayback = (mBoard != NULL) && mBoard->mPlaybackOnly;
+	if (mWatch != NULL)
+	{
+		if (mWatch->IsWatching())
+			mWatch->Stop();
+		delete mWatch;
+	}
+	mWatch = new WatchController(this, aPath);
+	if (mWatch->Start())
+		return;
+	RemoveReplayOverlay();
+	if (wasPlayback)
+	{
+		NewGame();
+		ConfirmLoadGame();
+	}
+	// "REPLAY <file>: cannot play: <why>": the why
+	std::string aWhy = mWatch->GetResult();
+	size_t aColon = aWhy.find(": cannot play: ");
+	if (aColon != std::string::npos)
+		aWhy = aWhy.substr(aColon + 15);
+	Dialog* aDialog = DoDialog(DIALOG_REPLAY_ERROR, true, GetString("REPLAY_ERROR1", _S("REPLAY")),
+		GetString("REPLAY_ERROR2", _S("This replay cannot be played here: ")) + aWhy, GetString("DIALOG_BUTTON_OK", _S("OK")), Dialog::BUTTONS_FOOTER);
+	aDialog->Resize(234, 50, 348, aDialog->GetPreferredHeight(348));
+}
+
+// port(variant): back to the player's game, as the side-bar buttons ended a watch in stage 3b
+void WinDMApp::EndWatch()
+{
+	KillDialog(DIALOG_REPLAY_END);
+	RemoveReplayOverlay();
+	if ((mWatch == NULL) || !mWatch->IsWatching())
+		return;
+	mWatch->Stop();
+	NewGame();
+	ConfirmLoadGame();
+}
+
+// port(variant): the overlay over each playback board, on top of the side bar's widgets, with the focus (a modal
+// dialog keeps both)
+void WinDMApp::OnWatchBoard()
+{
+	if (mReplayOverlay == NULL)
+	{
+		mReplayOverlay = new ReplayOverlay(this);
+		mWidgetManager->AddWidget(mReplayOverlay);
+	}
+	if (mWidgetManager->mBaseModalWidget == NULL)
+	{
+		mWidgetManager->BringToFront(mReplayOverlay);
+		mWidgetManager->SetFocus(mReplayOverlay);
+	}
+}
+
+// port(variant): REPLAY END over the replay's last board: Watch again or Back
+void WinDMApp::OnWatchEnded()
+{
+	SexyString aLines;
+	if (mWatch->IsEndOk() && (mBoard != NULL))
+		aLines = GetString("REPLAY_END_SCORE", _S("Score: ")) + StrFormat(_S("%d"), mBoard->mScore) + GetString("REPLAY_END_LEVEL", _S(", level ")) +
+			StrFormat(_S("%d"), mBoard->mLevel + 1);
+	else
+		aLines = GetString("REPLAY_END_CORRUPT", _S("This replay no longer plays the same in this build, so it stops here."));
+	Dialog* aDialog = DoDialog(DIALOG_REPLAY_END, true, GetString("REPLAY_END", _S("REPLAY END")), aLines, "", Dialog::BUTTONS_YES_NO);
+	aDialog->mYesButton->mLabel = GetString("REPLAY_WATCH_AGAIN", _S("Watch again"));
+	aDialog->mNoButton->mLabel = GetString("REPLAY_BACK", _S("Back"));
+	aDialog->Resize(234, 50, 348, aDialog->GetPreferredHeight(348));
+}
+
+void WinDMApp::RemoveReplayOverlay()
+{
+	if (mReplayOverlay == NULL)
+		return;
+	mWidgetManager->RemoveWidget(mReplayOverlay);
+	SafeDeleteWidget(mReplayOverlay);
+	mReplayOverlay = NULL;
+}
+
+// port(variant): Extras has something to show (8): the seed field or line, replays (the leaderboard implies them);
+// not LiveSplit alone
+bool WinDMApp::HasExtras()
+{
+	const GameFeatures& aFeatures = gGameConfig.mFeatures;
+	return aFeatures.mSeedEntry || aFeatures.mSeedPerGame || aFeatures.mReplays || aFeatures.mLeaderboard;
+}
+
+void WinDMApp::ShowExtrasDialog()
+{
+	ExtrasDialog* aDialog = new ExtrasDialog(this);
+	aDialog->Resize(234, 50, 348, aDialog->GetPreferredHeight(348));
+	AddDialog(DIALOG_EXTRAS, aDialog);
+}
+
+void WinDMApp::ShowReplayBrowser()
+{
+	ReplayBrowserDialog* aDialog = new ReplayBrowserDialog(this);
+	aDialog->Resize((mWidth - ReplayBrowserDialog::WIDTH) / 2, 30, ReplayBrowserDialog::WIDTH,
+		aDialog->GetPreferredHeight(ReplayBrowserDialog::WIDTH));
+	AddDialog(DIALOG_REPLAYS, aDialog);
+}
+
+void WinDMApp::CloseExtras()
+{
+	KillDialog(DIALOG_REPLAYS);
+	KillDialog(DIALOG_EXTRAS);
+	if (GetDialog(DIALOG_OPTIONS) != NULL)
+		ButtonDepress(2000 + DIALOG_OPTIONS); // Done: its checkboxes apply
+}
+
+// port(variant): Extras' Play this seed (4.10): a new game on theSeed now. A game in progress is abandoned as New
+// Game abandons it, after asking; an untouched board or the game-over screen needs no asking, and a watch ends
+// first (then the saved game is offered, as after any watch; a resumed save leaves the seed for the next new game).
+void WinDMApp::PlaySeed(uint32_t theSeed)
+{
+	bool isWatching = (mWatch != NULL) && mWatch->IsWatching();
+	if (!isWatching && (mBoard != NULL) && (mBoard->mState != STATE_GAME_OVER_DONE) && !mBoard->mIsNewGame)
+	{
+		mPendingPlaySeed = theSeed;
+		Dialog* aDialog = DoDialog(DIALOG_CONFIRM_SEED, true, GetString("CONFIRM_SEED1", _S("PLAY SEED")),
+			GetString("CONFIRM_SEED2", _S("Abandon this game and start a new one on seed ")) + StrFormat(_S("%u?"), (unsigned) theSeed), "",
+			Dialog::BUTTONS_YES_NO);
+		aDialog->Resize(234, 50, 348, aDialog->GetPreferredHeight(348));
+		return;
+	}
+	StartSeedGame(theSeed);
+}
+
+void WinDMApp::StartSeedGame(uint32_t theSeed)
+{
+	CloseExtras();
+	gGameConfig.mPendingSeed = theSeed;
+	if ((mWatch != NULL) && mWatch->IsWatching())
+		EndWatch();
+	else if ((mBoard->mState == STATE_GAME_OVER_DONE) || mBoard->mIsNewGame)
+		NewGame();
+	else
+		mBoard->RequestNewGame(); // New Game's shake and fall, then NewGame
+}
+
+void WinDMApp::ConfirmDeleteReplay()
+{
+	Dialog* aDialog = DoDialog(DIALOG_CONFIRM_DELETE, true, GetString("REPLAY_DELETE1", _S("DELETE REPLAY")),
+		GetString("REPLAY_DELETE2", _S("Delete this replay? It cannot be brought back.")), "", Dialog::BUTTONS_YES_NO);
+	aDialog->Resize(234, 50, 348, aDialog->GetPreferredHeight(348));
 }
 
 // 0x4d6e71

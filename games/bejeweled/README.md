@@ -69,9 +69,10 @@ described in [docs/MOD_MENU.md](../../docs/MOD_MENU.md); `mods/example-settings`
 In Bejeweled, a setting used only in `rules`, `tunables` or `features` applies at the next fresh game, without a
 restart (except `features.livesplit`). While a game is in progress or saved, the value waits, so that game keeps
 its rules and its high-score table; a board nobody has played yet is made again with it. While an enabled mod
-has settings, Options shows a **Mods** button that opens the menu. Restart game asks first while a game is in
-progress (it is saved and offered again), keeps `-replaydir` and a `-gameseed` that has not been played yet,
-and waits while a high-score name is being entered. The menu also shows each mod's rule errors and warnings.
+has settings, Options shows a **Mods** button that opens the menu (with a feature mod on, such as the seed field or
+replays, Options shows **Extras** instead, which holds the seed field, the replay browser and the Mods button).
+Restart game asks first while a game is in progress (it is saved and offered again), keeps `-replaydir` and a
+`-gameseed` that has not been played yet, and waits while a high-score name is being entered. The menu also shows each mod's rule errors and warnings.
 
 ```jsonc
 {

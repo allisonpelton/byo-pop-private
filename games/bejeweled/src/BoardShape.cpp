@@ -348,7 +348,7 @@ void Board::SetLoadedLayout(const BoardLayout& theLayout, int theLevelShape)
 
 // GameLoadedVariant on a shape board: the background of the loaded level and its shape, where the original keeps
 // the level-0 background it was made with (5.3). SetupLevel draws it; the level parameters it would set are the
-// save's and stay.
+// save's and stay, and so do the gold and its time (stage 12: the GOLD and GTIM chunks, ReadVariantChunks).
 void Board::RebuildLoadedBackground()
 {
 	bool aBackgroundChanged = mBackgroundChanged;
@@ -357,6 +357,10 @@ void Board::RebuildLoadedBackground()
 	int aLevelPoints = mLevelPoints;
 	double aTimeDrainRate = mTimeDrainRate;
 	double aTimeDrainAccel = mTimeDrainAccel;
+	uint8_t aGold[MAX_ROWS][MAX_COLS];
+	memcpy(aGold, mGold, sizeof(mGold));
+	int aGoldTicksLeft = mGoldTicksLeft;
+	int aGoldTickLimit = mGoldTickLimit;
 	SetupLevel();
 	mBackgroundChanged = aBackgroundChanged;
 	mTimeDrain = aTimeDrain;
@@ -364,6 +368,9 @@ void Board::RebuildLoadedBackground()
 	mLevelPoints = aLevelPoints;
 	mTimeDrainRate = aTimeDrainRate;
 	mTimeDrainAccel = aTimeDrainAccel;
+	memcpy(mGold, aGold, sizeof(mGold));
+	mGoldTicksLeft = aGoldTicksLeft;
+	mGoldTickLimit = aGoldTickLimit;
 
 	Graphics g(mBackgroundImage);
 	g.DrawImage(mNextBackgroundImage, 0, 0);
@@ -702,12 +709,34 @@ void Board::ClearDirtNextToCells(const std::vector<std::pair<int, int> >& theCel
 	}
 	if (!isAny)
 		return;
+	ClearDirtLayers(aNext);
+}
 
+// Stage 11: the dirt cells of theCells (a blast's reach) lose a layer each, as ClearDirtNextToCells' neighbours
+void Board::ClearDirtCells(const std::vector<std::pair<int, int> >& theCells)
+{
+	bool aCells[BoardLayout::MAX_ROWS][BoardLayout::MAX_COLS] = {};
+	bool isAny = false;
+	for (const std::pair<int, int>& aCell : theCells)
+	{
+		if (mLayout.IsDirt(aCell.first, aCell.second))
+		{
+			aCells[aCell.second][aCell.first] = true;
+			isAny = true;
+		}
+	}
+	if (isAny)
+		ClearDirtLayers(aCells);
+}
+
+// One layer off each marked dirt cell, row-major: its points (board.dirtPoints), and its dust when it was the last
+void Board::ClearDirtLayers(const bool (*theCells)[BoardLayout::MAX_COLS])
+{
 	for (int aRow = 0; aRow < mRows; aRow++)
 	{
 		for (int aCol = 0; aCol < mCols; aCol++)
 		{
-			if (!aNext[aRow][aCol])
+			if (!theCells[aRow][aCol])
 				continue;
 			mLayout.ClearDirtLayer(aCol, aRow);
 			int aPoints = (int)(mRules.mBoard.mDirtPoints * mPointMultiplier);

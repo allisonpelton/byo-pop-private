@@ -1,0 +1,14 @@
+{
+  "id": "s12-timed",
+  "name": "Stage 12: gold against the clock",
+  "version": "1.0",
+  "description": "Oracle fixture: the gold board on a 6x6 with time limits: 10 seconds a level in Normal mode, which runs out before the gold is done (TIME UP, the game over), and in Timed mode 120 seconds for the first level, 50 fewer each level after, at least 10. Gold done in time scores 50 points a second left.",
+  "rules": {
+    "board": { "cols": 6, "rows": 6 },
+    "gold": {
+      "enabled": true,
+      "timeLimit": { "normal": { "base": 10, "perLevel": 0, "min": 10 }, "timed": { "base": 120, "perLevel": -50, "min": 10 } },
+      "timeBonus": 50
+    }
+  }
+}

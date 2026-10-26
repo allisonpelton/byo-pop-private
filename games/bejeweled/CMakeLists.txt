@@ -41,7 +41,7 @@ endif()
 # rulestest.exe. Web: rulestest.js, run with Node (the vectors must match native).
 option(BUILD_RULESTEST "Build the code-mod rules tests" ON)
 if(BUILD_RULESTEST)
-  add_executable(rulestest tools/rulestest/rulestest.cpp src/GameRules.cpp src/MatchFinder.cpp src/MoveSet.cpp src/Sha256.cpp src/Replay.cpp
+  add_executable(rulestest tools/rulestest/rulestest.cpp src/GameRules.cpp src/MatchFinder.cpp src/MoveSet.cpp src/Specials.cpp src/Sha256.cpp src/Replay.cpp
     ${PROJECT_SOURCE_DIR}/platform/Json.cpp ${PROJECT_SOURCE_DIR}/framework/MTRand.cpp)
   target_include_directories(rulestest PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src ${PROJECT_SOURCE_DIR}
     ${PROJECT_SOURCE_DIR}/framework)
@@ -50,7 +50,8 @@ if(BUILD_RULESTEST)
   endif()
   if(EMSCRIPTEN)
     set_target_properties(rulestest PROPERTIES SUFFIX ".js")
-    target_link_options(rulestest PRIVATE "-sENVIRONMENT=node" "-sEXIT_RUNTIME=1" "-sALLOW_MEMORY_GROWTH=1")
+    # The game's stack: the v2 save tests hold a dozen VariantSaves (2.5 KB of MT state each), past the 64 KB default
+    target_link_options(rulestest PRIVATE "-sENVIRONMENT=node" "-sEXIT_RUNTIME=1" "-sALLOW_MEMORY_GROWTH=1" "-sSTACK_SIZE=1048576")
   endif()
 endif()
 
@@ -63,8 +64,8 @@ endif()
 option(BUILD_VERIFY "Build the headless replay verifier" ON)
 if(BUILD_VERIFY)
   add_executable(bejeweled_verify
-    src/Board.cpp src/BoardRules.cpp src/BoardVariant.cpp src/BoardSave.cpp src/BoardShape.cpp src/BoardDrawVariant.cpp src/BoardTrace.cpp src/BoardMatch.cpp src/BoardMoves.cpp src/GameConfig.cpp src/GameRules.cpp
-    src/MatchFinder.cpp src/MoveSet.cpp src/StateCodec.cpp src/Replay.cpp src/Sha256.cpp src/WatchController.cpp
+    src/Board.cpp src/BoardRules.cpp src/BoardVariant.cpp src/BoardSave.cpp src/BoardShape.cpp src/BoardDrawVariant.cpp src/BoardTrace.cpp src/BoardMatch.cpp src/BoardMoves.cpp src/BoardSpecials.cpp src/BoardGold.cpp src/GameConfig.cpp src/GameRules.cpp
+    src/MatchFinder.cpp src/MoveSet.cpp src/Specials.cpp src/StateCodec.cpp src/Replay.cpp src/Sha256.cpp src/WatchController.cpp
     src/headless/HeadlessShims.cpp src/headless/WinDMAppHeadless.cpp src/headless/ReplayRecorderHeadless.cpp
     src/headless/DiffBot.cpp src/headless/Verifier.cpp src/headless/verify_main.cpp
     ${PROJECT_SOURCE_DIR}/framework/MTRand.cpp ${PROJECT_SOURCE_DIR}/framework/Buffer.cpp
