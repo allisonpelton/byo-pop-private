@@ -88,18 +88,25 @@ main chunk, and compile the shipped sources to the shipped chunks. `luaV_execute
 later compiler), and its handlers have not been read case by case against `POPLUA.md`; the battles of milestone 3 are
 the real test of the VM.
 
-Milestone 2 (the title, menus, dialogs and cut scenes) is under way: `bookwormadv2.exe` (`-DBWA2_GAME=ON`, off by
-default until the milestone is done) builds from `src/` reworked for Volume 2's resource ids and classes, and runs
-headless under `-script`: the PopCap logo, the title with its curtain, the New User dialog and, after OK, the intro cut
-scene and the prologue battle of book 0, drawn by Volume 2's scripts (`PORT_PLAN.md`; nothing of the battle has been
-played yet). `MainMenu`, `TitleScreen`, `ArenaWinDialog` and `Board` are reworked; the main
-menu's pictures, hit masks and animated items are in but its screen has not been seen yet (the run has no profile that
-has played), and replaying a finished adventure, `BookSelectScreen`, Volume 2's secret words and the music (ten loose OGG
-files, a different player from Volume 1's) are not done. The cut scene player lacks the bitmap tags Volume 2's five
-movies use; PopAnim loads all 304 animations but 41 pictures in 7 of them are not found.
+Milestone 2 (the title, menus, dialogs and cut scenes) is in place for a game that is not yet finished: 
+`bookwormadv2.exe` (`-DBWA2_GAME=ON`, off by default until the milestone is done) builds from `src/` reworked for Volume 2's
+resource ids and classes, and runs headless under `-script`: the PopCap logo, the title with its curtain, the New User
+dialog and, after OK, the intro cut scene and the prologue battle of book 0, drawn by Volume 2's scripts (`PORT_PLAN.md`);
+the in-game Menu dialog with Options and Quit To Main Menu; the main menu (rebuilt from the original's: seven items, the
+animated portal, Lex and his bubble); the Options dialog and the Hall of Fame; and the portal's click, which takes a game
+saved in the prologue back into the battle. The music plays from the ten loose OGG files over the framework's music
+interface, by song id. Nothing of the battle has been played yet (no tile clicked). Not done: replaying a finished
+adventure (`BookSelectScreen` and three of the curtain's states), Volume 2's secret words, the dialogs of the trial's end
+and of a locked tome, the credits', mini-games' and stats book's song ids, and the arena's and user dialogs' comparison
+with the original. The cut scene player lacks the bitmap tags Volume 2's five movies use; PopAnim loads all 304
+animations but 41 pictures in 7 of them are not found.
 
 ## Changes outside the Bookworm Adventures Volume 2 folder
 
 `CMakeLists.txt` (the `BUILD_BOOKWORMADV2` option), `cmake/ByopopStores.cmake` (the `BYOPOP_BUY_bookwormadv2`
 placeholder; its stores are checked at the web milestone), `.claude/launch.json` (`bookwormadv2-web` on port 18792) and
 `tools/check.sh` (the `bookwormadv2` suite).
+
+In `framework/`, for Volume 2's descriptors and files: `DescParser` (the original's escape rules for quotes and
+backslashes), `ImageFont` (the `LayerSetExInfo` and `LayerSetAlphaCorrection` commands), `PropertiesParser` and
+`XMLParser` (a byte order mark at the start of a file) and `ResourceManager` (a group is found by name without case).
