@@ -9,13 +9,14 @@ namespace Sexy
 {
 
 class FossilizedApp;
+class Pic;
 
 class Effect
 {
 public:
 	float				mX;				// +4
 	float				mY;				// +8
-	int					mType;			// +0xc 7 a baby, 9 confetti
+	int					mType;			// +0xc 3 egg white, 7 a baby, 9 confetti
 
 	Effect();								// 0x4034b0
 	virtual ~Effect();						// 0x4034c0
@@ -56,6 +57,22 @@ public:
 	virtual bool		Update() override;	// 0x415450
 
 	void				Init(int x, int y, FossilizedApp* theApp);	// 0x415390
+};
+
+// vtable 0x4ff754, 0x1c bytes: a drop of egg white flung out of a broken egg
+class EggWhiteEffect : public Effect
+{
+public:
+	Pic*				mPic;			// +0x10 app +0x16a8
+	float				mVX;			// +0x14
+	float				mVY;			// +0x18
+
+	EggWhiteEffect();						// 0x442320
+	virtual ~EggWhiteEffect();				// 0x442340
+	virtual void		Draw() override;	// 0x442460
+	virtual bool		Update() override;	// 0x4423c0
+
+	void				Init(int x, int y, int theAngle, FossilizedApp* theApp);	// 0x442350
 };
 
 }

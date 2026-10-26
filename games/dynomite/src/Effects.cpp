@@ -122,3 +122,45 @@ void ConfettiEffect::Draw()
 	aCell = mApp->mWowStarCells[mColor];
 	aCell->Draw((int) x - (aCell->mWidth >> 1), (int) y - (aCell->mHeight >> 1));
 }
+
+// 0x442320
+EggWhiteEffect::EggWhiteEffect()
+{
+	mType = 3;
+}
+
+// 0x442340
+EggWhiteEffect::~EggWhiteEffect()
+{
+}
+
+// 0x442350: three pixels a frame along theAngle, starting two steps out
+void EggWhiteEffect::Init(int x, int y, int theAngle, FossilizedApp* theApp)
+{
+	mX = (float) x;
+	mY = (float) y;
+	mPic = theApp->mPicEggwhite;
+	mVX = theApp->mAngles->mDX[theAngle] * 3.0f;
+	mVY = theApp->mAngles->mDY[theAngle] * -3.0f;
+	mX = mVX + mVX + (float) x;
+	mY = mVY + (float) y + mVY;
+}
+
+// 0x4423c0
+bool EggWhiteEffect::Update()
+{
+	mX = mVX + mX;
+	mY = mVY + mY;
+	mVY = mVY + 0.2f;
+	if (650.0f < mY)
+		return false;
+	return true;
+}
+
+// 0x442460
+void EggWhiteEffect::Draw()
+{
+	float x = mX;
+	float y = mY;
+	mPic->Draw((int) x - (mPic->mWidth >> 1), (int) y - (mPic->mHeight >> 1));
+}
