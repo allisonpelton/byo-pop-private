@@ -54,6 +54,12 @@
       "runtimeExecutable": "python",
       "runtimeArgs": ["-m", "http.server", "18774", "--bind", "127.0.0.1", "--directory", "build/web"],
       "port": 18774
+    },
+    {
+      "name": "pixelus-web",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-m", "http.server", "18776", "--bind", "127.0.0.1", "--directory", "build/web"],
+      "port": 18776
     }
   ]
 }
