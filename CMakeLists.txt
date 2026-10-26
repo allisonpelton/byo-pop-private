@@ -185,6 +185,11 @@ option(BUILD_TIPTOP "Build the TipTop Deluxe port" ON)
 if(BUILD_TIPTOP AND EXISTS ${PROJECT_SOURCE_DIR}/games/tiptop/CMakeLists.txt)
   add_subdirectory(games/tiptop)
 endif()
+# Pixelus Deluxe: optional while it is new; the build skips it if its folder is missing
+option(BUILD_PIXELUS "Build the Pixelus Deluxe port" ON)
+if(BUILD_PIXELUS AND EXISTS ${PROJECT_SOURCE_DIR}/games/pixelus/CMakeLists.txt)
+  add_subdirectory(games/pixelus)
+endif()
 # Ning Po Mahjong Deluxe: Pyrogon's framework (games/ningpo/engine) under the framework's app host; optional while it
 # is new
 option(BUILD_NINGPO "Build the Ning Po Mahjong Deluxe port" ON)
