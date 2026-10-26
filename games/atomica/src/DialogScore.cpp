@@ -78,8 +78,8 @@ void HighScoreDialog::EditWidgetText(int theId, const SexyString& theString)
 	ButtonDepress(2);
 }
 
-// 0x41cf90: port: the title, the score, what the monitor says, the name line and the two buttons (the original also
-// cycles colours and slides a head across the monitor)
+// 0x41cf90: port: the title, the score, what the monitor says, the name line (on the picture of a text field) and the two
+// buttons (the original also cycles colours and slides a head across the monitor)
 void HighScoreDialog::Draw(Graphics* g)
 {
 	GameDialog::Draw(g);
@@ -103,6 +103,7 @@ void HighScoreDialog::Draw(Graphics* g)
 	g->SetColor(Color(0, 255, 0, 255));
 	const std::string& aPrompt = GT(0x4b0244);
 	g->DrawString(aPrompt, mWidth / 2 - mApp->mMonitorFontSmall->StringWidth(aPrompt) / 2, 0x10e);
+	mApp->mTextEdit->Draw(g, mEdit->mX - mX, mEdit->mY - mY);
 	DrawButton(g, mOk, GT(0x4b01c8));
 	DrawButton(g, mSkip, GT(0x4b01d0));
 }

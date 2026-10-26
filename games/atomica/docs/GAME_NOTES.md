@@ -110,3 +110,20 @@ next target, the next minimum radius) are globals of the program, not of the gam
 swirl update until the first swirl has gone, so that the background is full from the first picture. Everything here uses the game's
 random numbers (the ring's jitter, the flicker of an atom's brightness), so the bot's results depend on it.
 The freeze (water element) walks `mGlowSwirl` along the list every ten steps; that swirl glows brighter.
+
+## 8. The doors (main menu and high score box)
+
+`MainMenu` (0x4198e0, `Update` 0x4191d0, `Draw` 0x41a010) and `HighScoresBox` (0x41ea40, 0x41e770, 0x41ec90) share one
+animation: two halves of the picture `menudoors` that stand `mDoor` pixels apart (0x12f at first, 0 shut, 0x14a wide open), and
+the panel (`menupanel`) that hangs `mPanelY` pixels above its place. The menu comes over the title screen or the game that ended
+and the doors close over it, each update `door = -1 - ftol(door * -0.95)`; when the gap is gone they slam (`mSndDoorSlam`),
+0x405e20 deletes the title screen and the board behind them, and 75 updates later (15 in the high score box) the panel comes
+down (`panelY = -1 - ftol(panelY * -0.9)`, `mSndSwoop` when it has arrived) while its contents fade in 3 a step. A game that
+starts (`ButtonPress`, the listener's slot 1; the board is made at once and stays under the menu) makes the panel go up by a tenth
+more of what it has gone each step and, when it is away, plays `mSndDoorOpen` and opens the doors by a quarter more each step;
+at 0x14a the app's `mB3eac` closes the menu (the board's update does it). "Main menu" after a game lets the panel drop out of
+sight below the screen (a tenth more each step, `mSndSwoop` when it is under 480) and come back from above with the main page.
+`ButtonDepress` (slot 2) only handles the exit. The menu's music is song 1 (order 0x1f; 0x29 after a game), stopped by the
+menu's destructor; the game's is song 0. The box's "return" button plays its click on press and closes the box on release.
+The widget's `mHasTransparencies` is `mDoor != 0`: while the doors are shut the menu hides what is under it.
+(The original's `HighScoresBox::Update` goes on to write the widget's flag after it has deleted the widget; the port returns.)

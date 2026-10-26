@@ -107,6 +107,13 @@ to the drawing code. I spent a long stretch auditing the game logic (the path tr
 vectors) for heap corruption that did not exist. An AddressSanitizer build found the line in one run. The lesson for
 the next game: build the sanitizer configuration first, when the first crash that is not at its cause appears.
 
+The first versions of the tutorial and name-entry dialogs were stand-ins that looked reasonable: the tutorial's picture
+stepped through a counter, and the name box was a plain white field. Neither drew the picture that the original puts
+behind it (images 82 and 77), which the repository's sweep for pictures a player cannot reach found on 2026-10-26;
+translating the two functions properly also changed the dialogs' constructors (heading, button text and mode, colours),
+positions and the animation (FRAMEWORK_2002.md, Dialogs). An image id that no draw call of the port uses is worth a
+look in any game's port.
+
 Smaller redos: the strings' addresses had to be taken from the string list, not from nearby references (two wrong tables);
 the crate and block piece types were named the wrong way round; the checkbox image halves and the tutorial dialog's layout
 were off; the bot stalled on a stale pixel offset of empty pieces; writing files with backslashes through a shell

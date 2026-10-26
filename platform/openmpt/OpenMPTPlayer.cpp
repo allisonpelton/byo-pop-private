@@ -38,6 +38,13 @@ public:
 		openmpt_module_set_position_order_row(mModule, theOrder, theRow);
 	}
 
+	bool GetPosition(int& theOrder, int& theRow) override
+	{
+		theOrder = openmpt_module_get_current_order(mModule);
+		theRow = openmpt_module_get_current_row(mModule);
+		return true;
+	}
+
 	bool Render(float* theOut, int theFrames, bool theLoop) override
 	{
 		if (theLoop != mLoop)

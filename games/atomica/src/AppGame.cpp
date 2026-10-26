@@ -120,17 +120,6 @@ void AtomicaApp::WriteHighScores()
 	WriteBufferToFile("HS.CFG", &aBuffer);
 }
 
-// a game of the given mode starts (from the menu)
-void AtomicaApp::StartNewGame(int theMode, int theExpert)
-{
-	CloseMenu();
-	CloseBoard();
-	mMode = theMode;
-	mExpertMode = theExpert;
-	mPauseCount = 0;
-	StartGame();
-}
-
 // port: the saved game is a file in the user's folder
 bool AtomicaApp::HasSavedGame()
 {
@@ -167,14 +156,12 @@ void AtomicaApp::DeleteSavedGame()
 	WriteBufferToFile("SAVEGAME.DAT", &aBuffer);
 }
 
-// 0x406060: the saved game goes on
+// 0x406060: the saved game goes on (the menu closes itself when its doors are open)
 void AtomicaApp::ResumeGame()
 {
 	Buffer aBuffer;
 	if (!ReadBufferFromFile("SAVEGAME.DAT", &aBuffer) || (aBuffer.GetDataLen() <= 8))
 		return;
-	CloseMenu();
-	CloseBoard();
 	FILE* aFile = tmpfile();
 	if (aFile == NULL)
 		return;
@@ -207,8 +194,8 @@ void AtomicaApp::EndGame()
 	}
 }
 
-// 0x405d70: the main menu (theGameOver: after a game). The board stays under it until a game starts (0x405e20 closes it);
-// a game in progress waits meanwhile.
+// 0x405d70: the main menu (theGameOver: after a game). The title screen or the board stays under it until its doors have shut
+// (0x405e20 closes them); a game in progress waits meanwhile.
 void AtomicaApp::ShowMainMenu(bool theGameOver)
 {
 	CloseMenu();
@@ -220,9 +207,15 @@ void AtomicaApp::ShowMainMenu(bool theGameOver)
 	mWidgetManager->AddWidget(aMenu);
 }
 
-// 0x405e20: the board goes
+// 0x405e20: the title screen and the board go
 void AtomicaApp::CloseBoard()
 {
+	if (mTitleScreen != NULL)
+	{
+		mWidgetManager->RemoveWidget(mTitleScreen);
+		SafeDeleteWidget(mTitleScreen);
+		mTitleScreen = NULL;
+	}
 	if (mBoard != NULL)
 	{
 		mWidgetManager->RemoveWidget(mBoard);
