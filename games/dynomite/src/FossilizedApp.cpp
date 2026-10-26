@@ -1,6 +1,7 @@
 #include "FossilizedApp.h"
 #include "Dynomite.h"
 #include "SideBar.h"
+#include "AngleTable.h"
 #include "InchySmall.h"
 #include "IntroScreen.h"
 #include "TitleScreen.h"
@@ -27,6 +28,7 @@ FossilizedApp::FossilizedApp()
 	mHeight = 480;
 	mMusicVolume = 0.5;
 	mSfxVolume = 0.85;
+	mAngles = new AngleTable();
 	mRand.SRand(GetTickCount());
 	mSkill = 1;
 	mFossilKind = 0;
@@ -52,6 +54,11 @@ FossilizedApp::FossilizedApp()
 // 0x419320
 FossilizedApp::~FossilizedApp()
 {
+	if (mAngles != NULL)
+	{
+		delete mAngles;
+		mAngles = NULL;
+	}
 	if (mTitleScreen != NULL)
 	{
 		mWidgetManager->RemoveWidget(mTitleScreen);

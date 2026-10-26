@@ -17,6 +17,7 @@ class DDImage;
 class ImageFont;
 class SoundInstance;
 class Dynomite;
+class AngleTable;
 class IntroScreen;
 class SideBar;
 class TitleScreen;
@@ -121,9 +122,7 @@ public:
 	Pic*         mPicHandsheet;                           // +0x17c4
 	Pic*         mPicScorefont;                           // +0x17ec
 	Pic*         mPicBabysheet;                           // +0x181c
-	Cell*        mPicBabysheet_c0;                        // +0x1820
-	Cell*        mPicBabysheet_c1;                        // +0x1824
-	Cell*        mPicBabysheet_c2;                        // +0x1828
+	Cell*        mBabyCells[3];                              // +0x1820 babysheet_c0..c2
 	Pic*         mPicBonuseggsheet;                       // +0x182c
 	Pic*         mPicBonusviewsheet;                      // +0x185c
 	Pic*         mPicWowstarsheet;                        // +0x188c
@@ -231,6 +230,7 @@ public:
 	SoundInstance* mTicktockInstance;                      // +0x1aa0
 	PicFont*     mAnnounceFont1928;                       // +0x1928 the same font as +0x192c
 
+	AngleTable*  mAngles;                                 // +0x5d4
 	MTRand       mRand;                                   // +0x5d8 seeded with the tick count
 	int          mSkill;                                  // +0x1084 1 normal, 2 hard, 3 expert
 	int          mFossilKind;                             // +0x1088 the fossil challenge: 0 strategic, 1 panic

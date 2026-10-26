@@ -75,7 +75,7 @@ cursors (`cursor1`, `pointer2`, `overhand`, `typer`). The loading (`InitHook`, s
 
 The constructor is 0x4198b0 (0x419320 is the destructor): product "Dynomite", title "Dynomite Deluxe", version
 "2.71" (+0x374), registry key `PopCap\Dynomite`, 640 x 480, music volume 0.5 (+0x68) and sound volume 0.85 (+0x70);
-it makes a 0xb48-byte object (0x42bb50, link order: Museum.cpp) at +0x5d4, seeds the MTRand at +0x5d8 with
+it makes the angle table (0x42bb50, 0xb48 bytes: sin and -cos of each whole degree at +4 and +0x5a4) at +0x5d4, seeds the MTRand at +0x5d8 with
 `GetTickCount()` and the game's own generator at +0xf9c (class 0x431d30, seeded by 0x431d50 with `GetTickCount() >> 1`),
 and sets +0x1084 = 1, +0x1088 = 0, +0x108c = 2 (settings read later), +0x1094, +0x1aac, +0x10b4, +0x10ec, +0x1830 to 0.
 
@@ -160,5 +160,5 @@ Next, in this order: `StartGame` (0x418810: mode +0x108c makes DynomiteStomped
 0x411ff0 (0x254), resized to (150, 0, 490, 480), slot 46 `Init(app, level)` with +0x1084, or +0x1088 for the fossil
 mode), then the board (0x401000-0x408e40; 0x401000-0x404030 holds other classes), the modes, the app's
 ButtonPress/ButtonDepress (0x418e90, 0x4201b0), the dialogs (options 0x42ee20, save 0x433910, high scores), the saved games (0x418fd0 loads
-SLOTn.SAV), the tutorial (0x419040), the museum (0x42bb50 at app+0x5d4) and the tutor. App slot 51 is `DoDialog`, 53 `AddDialog`, 20 `SafeDeleteWidget`,
+SLOTn.SAV), the tutorial (0x419040), the museum and the tutor. App slot 51 is `DoDialog`, 53 `AddDialog`, 20 `SafeDeleteWidget`,
 31 `Shutdown`; WidgetManager 0x47ec90 is `BringToBack`.

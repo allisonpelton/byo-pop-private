@@ -418,11 +418,11 @@ void FossilizedApp::LoadGame()
 	}
 	mPicBabysheet = new Pic(this, "images\\babysheet", true);
 	mCompletedLoadingThreadTasks++;
-	mPicBabysheet_c0 = new Cell(mPicBabysheet, 64, 64, 0);
+	mBabyCells[0] = new Cell(mPicBabysheet, 64, 64, 0);
 	mCompletedLoadingThreadTasks++;
-	mPicBabysheet_c1 = new Cell(mPicBabysheet, 64, 64, 1);
+	mBabyCells[1] = new Cell(mPicBabysheet, 64, 64, 1);
 	mCompletedLoadingThreadTasks++;
-	mPicBabysheet_c2 = new Cell(mPicBabysheet, 64, 64, 2);
+	mBabyCells[2] = new Cell(mPicBabysheet, 64, 64, 2);
 	mCompletedLoadingThreadTasks++;
 	mPicBonuseggsheet = new Pic(this, "images\\bonus(egg)sheet", true);
 	mCompletedLoadingThreadTasks++;
