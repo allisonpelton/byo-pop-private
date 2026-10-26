@@ -6,6 +6,7 @@
 
 #include <map>
 #include <string>
+#include <vector>
 
 #include "PopAnim.h"
 #include "lua.h"
@@ -19,12 +20,12 @@ public:
 		std::string mCallback;
 	};
 	std::map<int, Entry> mAnims;  // +0x04
-	// (+0x10: a list of ids that the original's add filled when asked to; nothing read it)
+	std::vector<int> mClones;  // +0x10: the ids of sexy.ClonePAM's animations, deleted when a battle ends
 
 	~PopAnimManager() override;  // 0x485740: deletes the animations
 
-	// 0x485830
-	void Add(int theId, PopAnim* theAnim, const std::string& theCallback);
+	// 0x485830; theClone: one of mClones
+	void Add(int theId, PopAnim* theAnim, const std::string& theCallback, bool theClone = false);
 	// 0x485de0
 	bool Has(int theId) const { return mAnims.count(theId) != 0; }
 	// 0x486310: NULL when there is none
@@ -36,6 +37,8 @@ public:
 	void ChangeCallback(lua_State* L, int theId, const std::string& theCallback);  // 0x485930
 	// 0x486100: tells PAMAnimator.AnimDeleted, then deletes the animation
 	void Delete(int theId);
+	// 0x486370: Delete for each of mClones, then none
+	void DeleteClones();
 
 	// PopAnimListener (vf00 0x485e30, vf01 0x485fa0)
 	void PopAnimStopped(int theId) override;
