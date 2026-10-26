@@ -82,13 +82,38 @@ of about 12,000 updates takes two seconds with `-fast`), the screens were looked
 board, tutorial boxes, wizard messages, cleared-board panel, score table, name entry, options, all-time table, help, quit
 question), and the web build was played in the browser pane (import, title, selector, a game, the wizard's messages).
 
+Checked after that, with the bot and a click script under rundesk and in the browser pane:
+
+- **AddressSanitizer.** An i686 build with `-fsanitize=address` (`cmake -S . -B build/asan -G Ninja -DCMAKE_BUILD_TYPE=Release
+  -DCMAKE_TOOLCHAIN_FILE=cmake/llvm-mingw-i686.cmake -DSDL2_DIR=<SDL2> -DBUILD_ALCHEMY=ON "-DCMAKE_C_FLAGS=-fsanitize=address
+  -fno-omit-frame-pointer -g -O1" "-DCMAKE_CXX_FLAGS=<the same>" -DCMAKE_EXE_LINKER_FLAGS=-fsanitize=address`; the toolchain's
+  `libclang_rt.asan_dynamic-i386.dll` goes next to the exe, and `ASAN_OPTIONS=detect_leaks=0`, since leak checking does not
+  exist on Windows) ran the five games of `tools/check.sh alchemy` (strategic, time trial, tutorial, a game quit half way and
+  the saved game's load) with the same results as the normal build, and a click script through the title, the selector, the
+  options (the full screen box, Help) with no report.
+- **The saved game in the browser.** A game in progress leaves a backup in `localStorage` (`sexy-userdata-backup:/alpersist/userdata`,
+  with `savegame.dat` inside) within a second of the first rune; reloading the page, which runs no shutdown, brings the
+  "Continue?" question and "Yes" restores the board, score and piece positions; the backup is still there after a second
+  reload and is gone within two seconds of the player's answer "No". The backup holds the file while the game runs because
+  `AlchemyApp::GetShutdownSaves` returns `Board::SerializeGame`, which touches no clock.
+- **Full screen.** Natively the options' box switches the window (the box starts checked, since the game's `partner.xml`
+  says `DefaultWindowed` false) and the setting is written (`ScreenMode`) and shown again the next time the dialog opens. In the
+  browser the game always starts in the page; the options' box asks SDL for full screen, and the Browser pane has no document
+  full screen (the page's own Fullscreen button does nothing there either), so there it leaves the canvas at the screen's size
+  until the page is reloaded; in a browser that allows full screen the framework's `SDL_WINDOWEVENT_SIZE_CHANGED` handler
+  is meant to set the box right again when the player leaves it (Esc), which was not run. The page's Fullscreen button is
+  the usual way on the web.
+- **Sound.** All 15 samples and the two songs load with no error (a failed load would open the framework's popup). With
+  `AlchemyApp::PlaySample` logging for one run, every sample was played at the right place: thunk (a
+  placement), melt (a discard), skull, forge down, final vanish (twice in the table), end of game, final gong, warning, gem
+  change, click, bad, welcome (the selector, a second in), level complete and game over. The bot clicks "next board" at once, before the
+  wizard has faded in, so the level complete sound is not in its runs, as in the original (0x407130 plays it only
+  when the wizard is fully in); with the click delayed by 150 updates it plays once per cleared board.
+
 Not done or not checked:
 
-- no AddressSanitizer run yet (no crash has been seen);
-- the web build's saved game (the `GetShutdownSaves` backup) and the options' full screen switch were not exercised;
-- the sounds and the music were never heard (every run is silent), only that they load;
-- `cmake/ByopopStores.cmake` has no `BYOPOP_BUY_alchemy` entry: the web build stops at configuration without it (a shared
-  file, the coordinator's);
+- the sounds and the music were never heard (every run is silent), only that they load and play;
+- the full screen switch in a browser that allows it (the pane does not);
 - the original was never run next to the port: the drawing was compared with the disassembly instead (the next section), so
   what is left unchecked is only what a comparison of code cannot show (timing on a real machine, the sound).
 
