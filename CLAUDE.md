@@ -126,6 +126,11 @@ Git and publishing:
   engine, goes to the cheapest remaining game. New game sessions list the mods worth making but make none without
   the user's approval, and no further game gets mods until every PopCap game works in the browser (Noah's Ark's
   mods were the one exception, part of the Sonnet trial).
+- **Port first, unmodified (the user, 2026-10-26):** a port is the original game, unmodified and working like its exe;
+  it adds nothing for later mods, not even hooks. Every addition waits for the game's mod phase, which goes through the
+  29 standard mods in `docs/MOD_ROADMAP.md` ("Standard mods for every game"): the session makes each one that fits its
+  game and says in the game's README why it skipped any. Games that already have mods (Bejeweled, Big Money, BookWorm,
+  Noah's Ark) make none of these either until the user says every decomp runs in the browser to their satisfaction.
 - **No references (the user, 2026-10-26):** no port reads another project's decompilation, reimplementation, mod
   kit, class layouts or address maps (Thunderball, haggle, WinFish, CircleShootApp, PvZ-Portable, the Pizza Frenzy
   decompilation and the like); work from our own Ghidra export. PopCap's released SexyAppFramework source, the open
