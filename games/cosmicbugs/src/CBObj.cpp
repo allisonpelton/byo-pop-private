@@ -193,7 +193,7 @@ void Obj_Copy(Obj* theObj, const Obj* theFrom)
 	theObj->oldY = theFrom->oldY;
 	theObj->vx = theFrom->vx;
 	theObj->vy = theFrom->vy;
-	theObj->unk2c = theFrom->unk2c;
+	theObj->speed = theFrom->speed;
 	theObj->r = theFrom->r;
 	theObj->g = theFrom->g;
 	theObj->b = theFrom->b;
@@ -209,9 +209,9 @@ void Obj_Copy(Obj* theObj, const Obj* theFrom)
 	theObj->frameTimer = theFrom->frameTimer;
 	theObj->fade = theFrom->fade;
 	theObj->shadow = theFrom->shadow;
-	theObj->unk94 = theFrom->unk94;
-	theObj->unk98 = theFrom->unk98;
-	theObj->unk9c = theFrom->unk9c;
+	theObj->dieAnim = theFrom->dieAnim;
+	theObj->dieFrameCount = theFrom->dieFrameCount;
+	theObj->dieFrameTime = theFrom->dieFrameTime;
 	theObj->oneShot = theFrom->oneShot;
 	theObj->unka4 = theFrom->unka4;
 	theObj->unka8 = theFrom->unka8;

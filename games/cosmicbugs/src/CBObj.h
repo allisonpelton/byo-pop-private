@@ -23,7 +23,7 @@ struct Obj
 	float oldY;                // +0x20
 	float vx;                  // +0x24
 	float vy;                  // +0x28
-	int unk2c;                 // +0x2c
+	float speed;               // +0x2c  the game file's
 	int r;                     // +0x30  the draw list's colour and alpha
 	int g;                     // +0x34
 	int b;                     // +0x38
@@ -45,9 +45,9 @@ struct Obj
 	int loop;                  // +0x88  0: the last frame starts the fade out
 	float fade;                // +0x8c
 	int shadow;                // +0x90  a dark copy 5 pixels down and right, a depth below
-	int unk94;                 // +0x94
-	int unk98;                 // +0x98
-	int unk9c;                 // +0x9c
+	Animation* dieAnim;        // +0x94  Obj_Explode plays it
+	int dieFrameCount;         // +0x98
+	int dieFrameTime;          // +0x9c
 	int oneShot;               // +0xa0  the animation's end (either way) finishes the object
 	int unka4;                 // +0xa4
 	int unka8;                 // +0xa8

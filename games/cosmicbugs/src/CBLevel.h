@@ -43,11 +43,40 @@ static_assert(sizeof(Panel) == 0xec, "Panel");
 void Panel_Destroy(Panel* thePanel);                             // 0x411e30
 void List_DeleteNode(Panel* thePanel);                           // 0x411fd0's delete
 
-// 0x110 bytes (0x404fc0 constructs one)
+struct Beam;
+
+// An enemy (0x110 bytes, 0x404fc0 constructs one). The game file's enemy tags make a level's enemies, and outside
+// a level the defaults (gEnemyDefs) that random boards copy. kind +0x08: 0 roller, 1 burst_roller, 2 spin_roller,
+// 3 turn_roller, 4 bump_roller, 5 snake_shooter, 7 line_walker, 8 scurry_walker, 9 smart_walker, 10 cannon_walker,
+// 0xb laser_walker, 0xf frog, 0x10 teleporter_roller, 0x11 jellyfish_roller, 0x13 crab_walker, 0x14 turtle_walker,
+// 0x15 lobster_walker, and the shots: 6 a snake shooter's snake, 0xc a cannon ball, 0xd a laser shot; state +0x0c:
+// 0 appearing, 1 and 2 dying, 3 about
 struct Enemy : Obj
 {
-	uint8_t unkb0[0x5c];       // +0xb0
-	Obj* rider;                // +0x10c
+	Animation* leftAnim;       // +0xb0
+	Animation* rightAnim;      // +0xb4
+	Animation* upAnim;         // +0xb8  Enemy_Face shows it going down the screen (and downAnim going up)
+	Animation* downAnim;       // +0xbc
+	int phase;                 // +0xc0  a spin roller's, a frog's, a teleporter's
+	int firstParticle;         // +0xc4
+	int lastParticle;          // +0xc8
+	int shotDelay;             // +0xcc  2000..3000 when made: a snake shooter's updates between shots
+	int lastZap;               // +0xd0  the age it last made the electricity sound
+	int lastTurn;              // +0xd4  the age a walker last turned at a junction
+	int countdown;             // +0xd8  it dies when this comes down to 1
+	float baseSpeed;           // +0xdc  the game file's speed
+	float baseAcceleration;    // +0xe0  the game file's acceleration
+	float baseFrameTime;       // +0xe4  the game file's frame time
+	float acceleration;        // +0xe8
+	float decay;               // +0xec
+	float turnSpeed;           // +0xf0
+	float lastShot;            // +0xf4  the age it last shot (a smart walker: last turned to the ship)
+	float prevVx;              // +0xf8  the speed after the last update (bump rollers, turtles)
+	float prevVy;              // +0xfc
+	Beam* lastBeam;            // +0x100  the beam it touched last
+	Cell* hitCell;             // +0x104  the cell it bounced off last
+	Obj* shield;               // +0x108  the flash where a beam touches it
+	Obj* ice;                  // +0x10c  an ice capsule; while there is one the enemy does not move
 };
 static_assert(sizeof(Enemy) == 0x110, "Enemy");
 
@@ -115,7 +144,17 @@ struct Text : Obj
 	int unk1bc;                // +0x1bc
 	int unk1c0;                // +0x1c0
 	int unk1c4;                // +0x1c4  clicked away together with its neighbours
+	uint8_t unk1c8[0x18];      // +0x1c8
+	uint8_t input[0x4e8];      // +0x1e0  a text entry (the engine's 0x42bed0..0x42c900, not translated yet)
 };
+static_assert(sizeof(Text) == 0x6c8, "Text");
+
+// A power-up (0xd8 bytes; 0x418900 makes one of a random kind, 0x4186c0 destroys it)
+struct Powerup : Obj
+{
+	uint8_t unkb0[0x28];       // +0xb0
+};
+static_assert(sizeof(Powerup) == 0xd8, "Powerup");
 
 // A node of the level's key map (0x14 bytes)
 struct KeyMapNode
@@ -154,7 +193,7 @@ struct Level : Obj
 	int numWalkers;                  // +0x388
 	int numRollers;                  // +0x38c
 	int seed;                        // +0x390  a random board's
-	int unk394;                      // +0x394
+	int chain;                       // +0x394  enemies killed while the current capture fills, plus 1
 	int clicked;                     // +0x398
 	int rightClicked;                // +0x39c  or space
 	Image* fillImage;                // +0x3a0
@@ -181,7 +220,7 @@ struct Level : Obj
 	List<Panel> panels;              // +0x40c
 	List<Enemy> enemies;             // +0x418  the current one is the one the game file's tags go to
 	List<KeyMapNode> keyMap;         // +0x424
-	List<Obj> unk430;                // +0x430
+	List<Powerup> powerups;          // +0x430
 	List<Obj> stars;                 // +0x43c
 	List<Text> texts;                // +0x448
 	List<Menu> menus;                // +0x454
@@ -235,6 +274,7 @@ void Beam_Destroy(Beam* theBeam);                                // 0x403410
 void List_DeleteNode(Beam* theBeam);                             // 0x4112c0's delete
 Beam* Beam_Init(Beam* theBeam);                                  // 0x41dad0
 void Rider_Append(List<Rider>* theList);                         // 0x407d40
+Beam* Obj_TouchedBeam(Obj* theObj, int theWDiv, int theHDiv);   // 0x40ec90: the ship's beam it touches
 
 // The kinds' code the level calls (translated with each kind)
 // Cells (CBCell.cpp)
@@ -268,32 +308,82 @@ void Shooter_Update(Shooter* theShooter);                        // 0x41e200
 void Shooter_Hit(Shooter* theShooter, float theVx, float theVy);  // 0x41bee0: a beamrider reached it
 void Beams_RemoveAll(List<Beam>* theList);                       // 0x411900
 void Enemy_Insert(List<Enemy>* theList);                         // 0x4106b0
+// Enemies (CBEnemy.cpp)
 Enemy* Enemy_Init(Enemy* theEnemy);                              // 0x404fc0
 void Enemy_FromXml(Enemy* theEnemy, const char* p, const XmlTag* theTag); // 0x405040
+void Enemy_Draw(Enemy* theEnemy);                                // 0x4055b0
+int Enemy_Bounce(Enemy* theEnemy);                               // 0x4055e0: off cells that are not open
+int BurstRoller_Move(Enemy* theEnemy);                           // 0x405750
+int Jellyfish_Move(Enemy* theEnemy);                             // 0x4057c0
+int BumpRoller_Move(Enemy* theEnemy);                            // 0x405970
+void SpinRoller_Move(Enemy* theEnemy);                           // 0x406560
+int Frog_Move(Enemy* theEnemy);                                  // 0x406790
+int LaserShot_Move(Enemy* theEnemy);                             // 0x4069b0: 0 when it has burst
+int Enemy_NearCapture(Enemy* theEnemy);                          // 0x406ae0
+void Enemy_Face(Enemy* theEnemy);                                // 0x406ba0
+void Enemy_UpdateShield(Enemy* theEnemy);                        // 0x406c00
+void Enemy_Shield(Enemy* theEnemy);                              // 0x406c60
+void Enemy_Freeze(Enemy* theEnemy);                              // 0x406d70
+void Enemy_UpdateIce(Enemy* theEnemy);                           // 0x406ea0
+int Enemy_ClearOfRollers(Enemy* theEnemy);                       // 0x406fc0
+int Enemy_ClearOfWalkers(Enemy* theEnemy);                       // 0x407020
+int Enemy_Place(Enemy* theEnemy);                                // 0x407080: 0 when there is no room
+void Enemy_Append(List<Enemy>* theList);                         // 0x4072b0
+void Powerup_Insert(List<Powerup>* theList);                     // 0x407340
+Text* Text_Init(Text* theText);                                  // 0x4073e0
+void Enemy_Destroy(Enemy* theEnemy);                             // 0x4074b0
+void List_DeleteNode(Enemy* theEnemy);                           // 0x407430's delete
+void TurnRoller_Move(Enemy* theEnemy);                           // 0x407530
+void Walker_Turn(Enemy* theEnemy);                               // 0x407700
+int LaserShot_HitBeams(Enemy* theEnemy);                         // 0x4078e0
+int Enemy_PlaceFirst(Enemy* theEnemy);                           // 0x407b30: 0 when there is no room
+void Text_Append(List<Text>* theList);                           // 0x407dd0
+int Teleporter_Move(Enemy* theEnemy);                            // 0x407e60
+void Walker_TurnAtJunction(Enemy* theEnemy, int theKind);         // 0x4083f0
+void Walker_Follow(Enemy* theEnemy, int theKind);                 // 0x4086c0
+void Enemy_CopyDef(Enemy* theEnemy, Enemy* theDef);              // 0x408900
+void Enemy_Kill(Enemy* theEnemy, int thePoints);                 // 0x408a00
+int SnakeShooter_Move(Enemy* theEnemy);                          // 0x408c70
+int Snake_Move(Enemy* theEnemy);                                 // 0x408ff0
+int CannonBall_Move(Enemy* theEnemy);                            // 0x4090a0: 0 when it has burst
+int Walker_Move(Enemy* theEnemy, int theKind);                   // 0x409150
+void ScurryWalker_Move(Enemy* theEnemy);                         // 0x409210
+void SmartWalker_Move(Enemy* theEnemy);                          // 0x409310
+void CannonWalker_Move(Enemy* theEnemy);                         // 0x4095d0
+void LaserWalker_Move(Enemy* theEnemy);                          // 0x409ac0
+int CrabWalker_Move(Enemy* theEnemy);                            // 0x409e60
+int LobsterWalker_Move(Enemy* theEnemy);                         // 0x40a100
+int TurtleWalker_Move(Enemy* theEnemy);                          // 0x40a1f0
+int Enemy_Step(Enemy* theEnemy);                                 // 0x40a650
+int Enemy_UpdateAppearing(Enemy* theEnemy);                      // 0x40aae0
 int Enemy_Update(Enemy* theEnemy);                               // 0x40ab70
+// Called from the enemies, translated with their own parts
+void Obj_Explode(Obj* theObj, float theVx, float theVy);         // 0x40de60: its death animation and a burst
+void Level_Blast(int theCol, int theRow, int theRadius);         // 0x40e4d0: holes the filled cells round a cell
+void Shooter_DropBeams(Shooter* theShooter);                     // 0x41d380
+Powerup* Powerup_Init(Powerup* thePowerup);                      // 0x418900
+void List_DeleteNode(Powerup* thePowerup);                       // 0x4186c0 and the memory
 void Menu_Append(List<Menu>* theList);                           // 0x410750
 Menu* Menu_Init(Menu* theMenu);                                  // 0x415690
 void Menu_FromXml(Menu* theMenu, const char* p, const XmlTag* theTag); // 0x415310
 int Menu_Update(Menu* theMenu);                                  // 0x417c10
 void Pointer_Append(List<Obj>* theList);                         // 0x4109d0
 void Pointer_Insert(List<Obj>* theList);                         // 0x410920
-void Pointer_FromXml(Obj* thePointer, const char* p, const XmlTag* theTag); // 0x40d860
-void Text_Append(List<Text>* theList);                           // 0x407dd0
+void Obj_FromXml(Obj* theObj, const char* p, const XmlTag* theTag);    // 0x40d860: any object's attributes
 int Text_FromXml(Text* theText, const char* p, const XmlTag* theTag); // 0x41f950
 void Text_Make(Text* theText, const char* theString, Font* theFont, int theX, int theY, int theA, int theB,
 	int theC, int theD, int theE, int theF);                     // 0x41f0e0
 int Text_Update(Text* theText);                                  // 0x41f1d0
 int Star_Update(Obj* theStar);                                   // 0x41e2c0
 void Level_AddStars(Level* theLevel);                            // 0x411440
-int Fn419770(Obj* theObj);                                       // 0x419770
+int Fn419770(Powerup* thePowerup);                               // 0x419770
 int Fn41ae10(Obj* theObj);                                       // 0x41ae10
 void Level_StartRandom(Level* theLevel);                         // 0x4119c0: a random board, on its first update
 int Level_UpdatePaused(Level* theLevel);                         // 0x411bc0
 void Shooter_Draw(Shooter* theShooter);                          // 0x41d430
-void Enemy_Draw(Enemy* theEnemy);                                // 0x4055b0
 void Fn419790(Obj* theObj);                                      // 0x419790
 void Fn419880(Obj* theObj);                                      // 0x419880
-void Fn418420(Obj* theObj);                                      // 0x418420
+void Fn418420(Powerup* thePowerup);                              // 0x418420
 void Star_Draw(Obj* theStar);                                    // 0x41e310
 void Menu_Draw(Menu* theMenu);                                   // 0x4154d0
 void Text_Draw(Text* theText);                                   // 0x41f6f0
@@ -303,10 +393,6 @@ void Star_Append(List<Obj>* theList);                            // 0x4111a0
 void Level_AddRandomEnemies(Level* theLevel, int theFirst, int theSecond); // 0x411500
 void Level_ShowStart(Level* theLevel);                           // 0x4117c0: the level number and quota
 void Level_GameOver(Level* theLevel);                            // 0x411c10
-void Enemy_Append(List<Enemy>* theList);                         // 0x4072b0
-void Enemy_CopyDef(Enemy* theEnemy, const Enemy* theDef);        // 0x408900
-int Enemy_Place(Enemy* theEnemy);                                // 0x407080: 0 when there is no room
-int Enemy_PlaceFirst(Enemy* theEnemy);                           // 0x407b30: 0 when there is no room
 
 } // namespace cb
 

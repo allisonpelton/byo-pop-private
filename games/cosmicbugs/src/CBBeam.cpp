@@ -2,6 +2,8 @@
 
 #include "CBLevel.h"
 
+#include <cmath>
+
 namespace cb
 {
 
@@ -293,6 +295,37 @@ void Rider_Append(List<Rider>* theList)
 	Rider* aRider = (Rider*)::operator new(sizeof(Rider));
 	Obj_Init(aRider);
 	List_Append(theList, aRider);
+}
+
+// The ship's beam an object touches: a box twice its image's size over the divisors overlaps the beam's, and the
+// beam passes within the image's width over theWDiv of it (the walk stops on that beam)
+Beam* Obj_TouchedBeam(Obj* theObj, int theWDiv, int theHDiv)
+{
+	Shooter* aShip = gLevels.current->shooters.current;
+	if (aShip != nullptr && aShip->beams.current != nullptr)
+	{
+		aShip->beams.current = aShip->beams.head;
+		while (true)
+		{
+			Beam* aBeam = gLevels.current->shooters.current->beams.current;
+			if (BoxOverlap(theObj->x, theObj->y, (float)((theObj->image->w * 2) / theWDiv),
+					(float)((theObj->image->h * 2) / theHDiv), (float)(((double)aBeam->startX + aBeam->x) * 0.5),
+					(float)(((double)aBeam->startY + aBeam->y) * 0.5), std::fabs(aBeam->startX - aBeam->x),
+					std::fabs(aBeam->startY - aBeam->y)) != 0 &&
+				SegmentDist(theObj->x, theObj->y, aBeam->startX, aBeam->startY, aBeam->x, aBeam->y) <
+					(float)(theObj->image->w / theWDiv))
+				return aBeam;
+			aShip = gLevels.current->shooters.current;
+			Beam* aNode = aShip->beams.current;
+			if (aNode == nullptr)
+				return nullptr;
+			if (aNode->next == nullptr)
+				break;
+			aShip->beams.current = Node_Next(aNode);
+		}
+		aShip->beams.current = aShip->beams.head;
+	}
+	return nullptr;
 }
 
 } // namespace cb

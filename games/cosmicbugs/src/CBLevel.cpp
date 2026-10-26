@@ -578,7 +578,7 @@ Level* Level_Init(Level* theLevel)
 	List_Init(&theLevel->panels);
 	List_Init(&theLevel->enemies);
 	List_Init(&theLevel->keyMap);
-	List_Init(&theLevel->unk430);
+	List_Init(&theLevel->powerups);
 	List_Init(&theLevel->stars);
 	List_Init(&theLevel->texts);
 	List_Init(&theLevel->menus);
@@ -597,7 +597,7 @@ Level* Level_Init(Level* theLevel)
 	theLevel->time = 0;
 	theLevel->unk3d4 = 0;
 	gSongName[0] = 0;
-	theLevel->unk394 = 1;
+	theLevel->chain = 1;
 	for (int i = 0; i < 50; i++)
 		theLevel->columns[i] = nullptr;
 	theLevel->bonus = 0;
@@ -623,7 +623,7 @@ void Level_Destroy(Level* theLevel)
 	List_Clear(&theLevel->menus);
 	List_Clear(&theLevel->texts);
 	List_Clear(&theLevel->stars);
-	List_Clear(&theLevel->unk430);
+	List_Clear(&theLevel->powerups);
 	List_Clear(&theLevel->keyMap);
 	List_Clear(&theLevel->enemies);
 	List_Clear(&theLevel->panels);
@@ -760,7 +760,7 @@ void Level_Load(Level* theLevel, const char* p, XmlTag* theTag)
 		else if (std::strcmp(aName, "pointer") == 0)
 		{
 			Pointer_Append(&theLevel->pointers);
-			Pointer_FromXml(theLevel->pointers.current, p, theTag);
+			Obj_FromXml(theLevel->pointers.current, p, theTag);
 		}
 		else if (std::strcmp(aName, "text") == 0)
 		{
@@ -779,7 +779,7 @@ void Level_Load(Level* theLevel, const char* p, XmlTag* theTag)
 				do
 				{
 					Star_Append(&theLevel->stars);
-					Pointer_FromXml(theLevel->stars.current, p, theTag);
+					Obj_FromXml(theLevel->stars.current, p, theTag);
 					theLevel->stars.current->x = (float)RandRange(0, 800);
 					theLevel->stars.current->y = (float)RandRange(0, 0x250);
 					Obj* aStar = theLevel->stars.current;
@@ -912,8 +912,8 @@ static void Level_Won(Level* theLevel)
 	AddText(theLevel, aText, 400, aY + 100, 100, 400, 200, 400, 200, 0);
 	List_Each(&theLevel->enemies, [&](Enemy* anEnemy) {
 		anEnemy->state = 2;
-		if (theLevel->enemies.current->rider != nullptr)
-			theLevel->enemies.current->rider->state = 2;
+		if (theLevel->enemies.current->ice != nullptr)
+			theLevel->enemies.current->ice->state = 2;
 	});
 	List_Each(&theLevel->unk46c, [](Obj* anObj) { anObj->state = 2; });
 	// the original steps through the enemies here, not the shooters: the current shooter is told once per enemy
@@ -1033,14 +1033,14 @@ int Level_Update(Level* theLevel)
 			List<Cell>* aFills = &theLevel->fills;
 			if (aFills->current == nullptr)
 			{
-				if (theLevel->kind == 0 && theLevel->unk430.current == nullptr && theLevel->totalCells != 0 &&
+				if (theLevel->kind == 0 && theLevel->powerups.current == nullptr && theLevel->totalCells != 0 &&
 					(theLevel->fillQuota <= (theLevel->filledCells * 100) / theLevel->totalCells ||
 						(gDemo != 0 && 0x32 < theLevel->time)) &&
 					(theLevel->menus.current == nullptr || theLevel->menus.current->active == 0))
 					Level_Won(theLevel);
 				else
 				{
-					theLevel->unk394 = 1;
+					theLevel->chain = 1;
 					theLevel->unk3c0 = 0;
 				}
 			}
@@ -1058,9 +1058,9 @@ int Level_Update(Level* theLevel)
 					}
 				});
 			}
-			List_Each(&theLevel->unk430, [&](Obj* anObj) {
-				if (Fn419770(anObj) == 0)
-					List_RemoveCurrent(&theLevel->unk430);
+			List_Each(&theLevel->powerups, [&](Powerup* aPowerup) {
+				if (Fn419770(aPowerup) == 0)
+					List_RemoveCurrent(&theLevel->powerups);
 			});
 		}
 		else if (theLevel->state == 3)
@@ -1125,7 +1125,7 @@ void Level_Draw(Level* theLevel)
 	List_Each(&theLevel->systems, [](ParticleSystem* aSystem) { ParticleSystem_Draw(aSystem); });
 	List_Each(&theLevel->enemies, [](Enemy* anEnemy) { Enemy_Draw(anEnemy); });
 	List_Each(&theLevel->unk46c, [](Obj* anObj) { Fn419790(anObj); });
-	List_Each(&theLevel->unk430, [](Obj* anObj) { Fn418420(anObj); });
+	List_Each(&theLevel->powerups, [](Powerup* aPowerup) { Fn418420(aPowerup); });
 	List_Each(&theLevel->stars, [](Obj* aStar) { Star_Draw(aStar); });
 	if (theLevel->panels.current != nullptr)
 	{

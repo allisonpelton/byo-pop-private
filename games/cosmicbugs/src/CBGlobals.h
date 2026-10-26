@@ -21,7 +21,8 @@ struct Profile
 	int savedScore;            // +0x30
 	int beamsFired;            // +0x34
 	int riderHits;             // +0x38  beamriders that reached the ship
-	int unk3c[2];              // +0x3c
+	int kills;                 // +0x3c  enemies killed
+	int unk40;                 // +0x40
 };
 static_assert(sizeof(Profile) == 0x44, "Profile");
 
