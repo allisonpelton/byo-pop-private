@@ -204,7 +204,13 @@ edge (unless +0x46e5) or in row 90 or below, and draws the ceiling's foot and, w
 The next colour (0x4163e0) is one of those in the lowest six rows, by 50 tries of the app's second generator at
 +0xf9c (0x431d30, an additive lagged Fibonacci generator of 55 30-bit numbers, seeded by the board), else any
 colour up to the highest placed. Still to translate in the grid: the puzzle load 0x4171c0 (colour 20 becomes a
-picked colour) and the save and load (0x415f70, 0x416150). Next: the launcher (0x401050-0x4034b0), then the base
+picked colour) and the save and load (0x415f70, 0x416150). The launcher (Launcher.cpp; vtable 0x4f73ac has only
+the destructor) holds the loaded egg at +0xc (Load 0x401210 makes one at (100, 100)) and fires it (0x4012a0:
+the board's +0x15c and +0x160 take its colour, the rubber-shot sound, a flying egg with the angle's unit vector
+as its step, and a recoil of 20 pixels the other way at +0x28/+0x2c); 0x4013f0 and 0x401470 move a point toward
+or away from another along the angle between them (0x42bbc0), and 0x4014f0 freezes it with an object at +0xaa8.
+Still to translate there: 0x401510-0x4034b0 (its update, draw 0x4033a0 and the parts the board draws, 0x401940
+and 0x401a10). Next: the rest of the launcher, then the base
 board's remaining slots (Init 0x407ac0, Update, Draw 0x4044a0, the input slots), the sub-objects at +0x60
 (0x431fc0), +0x84 (0x437aa0) and +0x88 (0x438400), and DynomitePanic.
 
