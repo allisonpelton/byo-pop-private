@@ -9,7 +9,7 @@
     // WHArchive.saf holds the pictures, fonts, screens, levels and word lists; res/ the sounds, the music and the
     // splash; WordHarmony.exe the texts
     gameDirs: ["res"],
-    gameFiles: ["WHArchive.saf", "WordHarmony.exe"],
+    gameFiles: ["wharchive.saf", "wordharmony.exe"],
     markers: ["WHArchive.saf", "WordHarmony.exe"],
     markerText: "WHArchive.saf and WordHarmony.exe",
     importHtml: 'Choose the game\'s install folder (for the retail version: <span class="mono">Program Files/PopCap ' +

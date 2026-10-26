@@ -13,6 +13,9 @@
 #include "platform/VFS.h"
 
 #include <SDL.h>
+#ifdef __EMSCRIPTEN__
+#include <emscripten.h>
+#endif
 #include <algorithm>
 #include <cstring>
 
@@ -64,13 +67,33 @@ public:
 		return gApp->RegistryWriteInteger(theName, theValue);
 	}
 
+	// On the web the page's stage goes full screen, as the page's Fullscreen button does: SDL's window cannot (the
+	// canvas was left with no size). A browser grants it only soon after a click, so the settings' full screen at the
+	// start leaves the game in the page.
 	void setFullScreen(bool theFullScreen) override
 	{
+#ifdef __EMSCRIPTEN__
+		EM_ASM({
+			var aStage = document.getElementById("stage");
+			if ($0 && !document.fullscreenElement && aStage && aStage.requestFullscreen)
+				aStage.requestFullscreen().catch(function () {});
+			else if (!$0 && document.fullscreenElement && document.exitFullscreen)
+				document.exitFullscreen().catch(function () {});
+		}, theFullScreen);
+#else
 		if (theFullScreen == gApp->mIsWindowed)
 			gApp->SwitchScreenMode(!theFullScreen);
+#endif
 	}
 
-	bool isFullScreen() override { return !gApp->mIsWindowed; }
+	bool isFullScreen() override
+	{
+#ifdef __EMSCRIPTEN__
+		return EM_ASM_INT({ return document.fullscreenElement ? 1 : 0; }) != 0;
+#else
+		return !gApp->mIsWindowed;
+#endif
+	}
 
 	// PostQuitMessage(): the program ends after the frame
 	void quit() override { gApp->mQuitRequested = true; }
