@@ -90,6 +90,12 @@
       "runtimeExecutable": "python",
       "runtimeArgs": ["-m", "http.server", "18788", "--bind", "127.0.0.1", "--directory", "build/web"],
       "port": 18788
+    },
+    {
+      "name": "rocketmania-web",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-m", "http.server", "18781", "--bind", "127.0.0.1", "--directory", "build/web"],
+      "port": 18781
     }
   ]
 }
