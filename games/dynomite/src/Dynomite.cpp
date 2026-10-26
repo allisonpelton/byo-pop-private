@@ -9,6 +9,7 @@
 #include "PortCompat.h"
 #include "SideBar.h"
 #include "SoundInstance.h"
+#include "Thunderbolt.h"
 #include "WidgetManager.h"
 #include <cstdio>
 #include <cstring>
@@ -38,7 +39,7 @@ Dynomite::Dynomite()
 	mField148 = true;
 	mChain = -1;
 	mPauseCount = 0;
-	// TODO: +0x154 (the dynamite) = 0
+	mThunderbolt = NULL;
 	mField134 = 0x15e;
 	mField132 = false;
 	mField1c8 = -0x1e0;
@@ -339,9 +340,10 @@ void Dynomite::Chain(int x, int y, bool isMatch)
 	mChain = -1;
 }
 
-// 0x405010 (TODO: the 0x1c-byte dynamite, 0x407e00, at +0x154)
+// 0x405010
 void Dynomite::MakeDynamite()
 {
+	mThunderbolt = new Thunderbolt(mApp, this);
 }
 
 // 0x4b1930

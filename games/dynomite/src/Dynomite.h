@@ -22,6 +22,7 @@ class Launcher;
 class PowerUp;
 class Steggy;
 class Tank;
+class Thunderbolt;
 
 class Dynomite : public Widget
 {
@@ -61,6 +62,7 @@ public:
 	bool				mField149;			// +0x149 (true)
 	int					mChain;				// +0x14c (-1)
 	int					mPauseCount;		// +0x150
+	Thunderbolt*		mThunderbolt;		// +0x154 (slot 51)
 	int					mField158;			// +0x158 (the launcher's x from the middle)
 	int					mField15c;			// +0x15c (-1; the colour fired last)
 	int					mField160;			// +0x160 (-1)
@@ -94,7 +96,7 @@ public:
 	// 0x404f40 (slot 50): a match (isMatch) adds to the chain, which Inchy calls out; a miss or a chain of eight
 	// ends it
 	virtual void		Chain(int x, int y, bool isMatch);
-	virtual void		MakeDynamite();					// 0x405010 (slot 51)
+	virtual void		MakeDynamite();					// 0x405010 (slot 51): a thunderbolt strikes the loaded egg
 	virtual void		Blasted();						// 0x4b1930 (slot 52; empty): after a bomb's blast
 	virtual void		EggAlone(int theColor);			// 0x4050d0 (slot 56; empty): a landed egg touches none of its colour
 	virtual void		DrawPiece(int theColor, int x, int y);	// 0x406040 (slot 57; empty): a falling colour from 50 up
