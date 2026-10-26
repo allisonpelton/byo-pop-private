@@ -15,15 +15,47 @@ files got this far, each step a fix that is now in the tree:
    the original handles it in its `EncodingParser`, a class Volume 1 lacks.
 3. `Image resource not found: IMAGE_MM_ADV_COMPLETE`: `src/Res.cpp` and `Res.h` were Volume 1's. They are now
    generated from Volume 2's `properties/resources.xml` (`tools/resgen.py`: 550 resources in 9 groups, the same group names
-   as Volume 1). With them the game's C++ no longer compiles: 28 uses of ids Volume 2 does not have, which is the
-   list of what the C++ has to be reworked for:
+   as Volume 1). With them the game's C++ no longer compiled: 28 uses of ids Volume 2 does not have. `TitleScreen`,
+   `ArenaWinDialog` and `Board` (the film reel, the title's "Deluxe" picture and the ship pictures of the Flash
+   minigame) are reworked; `MainMenu` was rewritten from Volume 2's code (below); `BookSelectScreen` is not ported yet.
+4. Four more start-up failures, found by running the game headless (`-script`, see below), each fixed in the shared
+   framework (a `shared:` commit): the framework's `DescParser::Unquote` did not match Volume 2's (its fonts write a quote
+   as `'''` and `"\""`: the original keeps the backslash in the token and `Unquote` takes the next character literally,
+   and skips the closing quote; the framework dropped the backslash and counted the closing quote, which only worked by
+   luck), the font descriptor commands `LayerSetExInfo` and `LayerSetAlphaCorrection` are new (the first is checked and
+   dropped, the second is kept in `FontLayer::mAlphaCorrection` but not used by the drawing: the original adds it to a
+   glyph's alpha before a 256-entry table in its draw routine at 0x4eeb10), and `properties/partner.xml`'s byte order
+   mark reached the parser through `PropertiesParser::ParsePropertiesBuffer` (the earlier fix covered `OpenFile` only).
+5. `StartIntro` selected book 1; Volume 2's selects book 0 (0x43de80), as it has no books 1 to 3 (its books are 0, 4, 5, 6
+   and the timed mode).
 
-   | File | Ids Volume 2 lacks | Meaning |
-   |---|---|---|
-   | `TitleScreen.cpp` | `IMAGE_TS_DELUXE` | no such image in Volume 2 |
-   | `MainMenu.cpp` | `IMAGE_MM_OPTIONS_OVER`, `_QUIT_OVER`, `_HS_OVER`, `_TOME_OVER`, `_FILM_REEL_OVER`, `_FILM_REEL_DOWN`, `_CNG_TITLE`, `_ADV_COMPLETE`, `_EXP_PACK_AVAILABLE`, `_LOCKED_LEFT`, `_LOCKED_RIGHT`, `IMAGE_FILM_REEL` | Volume 2's main menu is a different class (24 KB, none of it matched) and `BookSelectScreen` is new |
-   | `ArenaWinDialog.cpp` | `IMAGE_FILM_REEL` | |
-   | `Board.cpp` | `IMAGE_GS_SHIP1`..`4`, `IMAGE_GS_SHIP1_WARPJET`, `IMAGE_GS_GO` | (not looked at yet) |
+## MainMenu as Volume 2 has it (rewritten from 0x4690xx-0x46dxxx)
+
+Seven items: options, quit, adventure, arena, high scores, mini games and tome; the film reel is gone. The adventure,
+arena and mini games are PopAnim animations (`images/pam/mm_adventure.pam` and `mm_adventure_replay.pam` for a finished
+adventure, `mm_arena.pam`, `mm_minigames.pam`), driven by labels (`BookLabel()` picks the book's label), the others are
+cel images with a hit mask (quit and high scores have a mask image, the rest use the cel's rectangle). The tome shows
+when `CurrentBook` is set and above 4; arena and mini games when their profile flags are set (`RefreshUnlocks`). The
+tooltips are made but the original never draws them (inferred, not proven). Not ported yet: replaying a finished
+adventure (the kind-9 transition, `SetReplayMode`, the "continue your current adventure" dialog, `BookSelectScreen`), the
+locked-tome dialog, Volume 2's `KeyChar` (the MOUSTACHE, PANCAKES, CONE and ELITE hats and the `_CompleteBook` word) and
+the trial dialogs; `StartArena`, `ContinueArena` and the user-dialog functions are still Volume 1's and have to be
+compared with 0x46c5d0, 0x46c4b0, 0x46cb30, 0x46cde0 and 0x46d130.
+
+## What runs now (2026-10-26)
+
+Headless, `build/native/rundesk.exe build/native/bookwormadv2.exe -gamedir=assets/bookwormadv2 -userdir=<empty> -script=<file> -fast`
+(script lines `<update> click <x> <y> | screenshot <png> | key | char | quit`): the PopCap logo, the title with its
+curtain, the New User dialog (texts read from the exe) and, after OK, the intro cut scene until `gBookManager:StartGame`,
+which stops with `gCApp:LoadMusic` missing: the bound methods of Volume 2's `GameApp` are not all in `GameAppLua.cpp`.
+
+## Bound methods of Volume 2's GameApp the port lacks (the registrations of 0x43a850 against `GameAppLua.cpp`)
+
+`PlayMusic`, `LoadMusic(int, string)` (0x44c7b0) and `UnloadMusic` (0x44be90), and the transitions
+`DoReplayToHOFTransition`, `DoCSToMiniMenuTransition` and `DoHighScoreScreenFromReplay`; four more take their names from
+strings the registration code holds itself and still have to be read. The music ones come first: Volume 2 plays its ten
+loose OGG files (`music/`) by song id where Volume 1 played tracker module orders, so `SongPlayer` is replaced, not
+adapted.
 
 ## Why the exact-match counts look worse than the survey's
 
@@ -48,8 +80,8 @@ export's class recovery is by RTTI only), `MainMenu` 24 KB, `GameApp` 20 KB, `Bo
 1. Read Volume 2's `TitleScreen`, `GameApp` (31 bound methods; its start-up in `GameApp::Init`), `MainMenu` and
    `BookSelectScreen` with `tools/decread.py` and rework the port's classes of the same names until the title and the
    main menu draw; `GameApp::LoadingThreadProc` and the first `main.*` script calls are the path to follow.
-2. Redo `tools/gametext.py` for Volume 2 (the `GT(0x...)` uses in `src/` are Volume 1's addresses; `GameTextTable.inc`
-   is empty) and fix `LoadGameTexts()`, which returns false for an empty table.
+2. (done) `tools/gametext.py` and `tools/gtmap.py` for Volume 2: `GameTextTable.inc` has 238 entries; 41 addresses of the
+   port's sources still have no Volume 2 counterpart (`tools/gt_todo.txt`).
 3. `tools/bindings.py` finds 1 method in Volume 2 (the registration code is compiled differently, with register
    passing); until it works, the 233 bound methods have to be read from `fnfind.py -s <method name>` on the
    `MethodWrapper` RTTI names, or the scripts' calls compared with `src/GameAppLua.cpp`'s table (a script calling an

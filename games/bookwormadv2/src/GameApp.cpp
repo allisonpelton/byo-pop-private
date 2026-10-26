@@ -922,7 +922,7 @@ void GameApp::StartIntro(int theMode)
 		aNewPlayer = true;
 	}
 	InitGameScreen(false);
-	lua_pushint(mLua->L, 1);
+	lua_pushint(mLua->L, 0);  // port: Volume 2 selects book 0 (0x43de80), where Volume 1 selected book 1; it has no book 1 to 3
 	lua_pushboolean(mLua->L, 1);
 	lua_pushboolean(mLua->L, 1);
 	mBookManager->CallLinkedMethod("SelectBookNumber", 3);
