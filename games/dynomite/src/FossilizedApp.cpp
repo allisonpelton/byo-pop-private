@@ -1,4 +1,5 @@
 #include "FossilizedApp.h"
+#include "GameText.h"
 #include "Dynomite.h"
 #include "SideBar.h"
 #include "AngleTable.h"
@@ -87,6 +88,8 @@ void FossilizedApp::Init()
 {
 	SexyApp::Init();
 	LoadProperties();
+	// port: the few texts the original keeps in its exe come from the player's Dynomite.exe (GameText.h)
+	LoadGameTexts();
 	DIALOG_YES_STRING = GetString("DIALOG_BUTTON_YES");
 	DIALOG_NO_STRING = GetString("DIALOG_BUTTON_NO");
 	DIALOG_OK_STRING = GetString("DIALOG_BUTTON_OK");

@@ -20,6 +20,7 @@ class EggGrid;
 class FirePrompt;
 class FlyingEgg;
 class FossilizedApp;
+class HighScores;
 class Launcher;
 class MenuTalker;
 class PowerUp;
@@ -86,6 +87,8 @@ public:
 	int					mField1cc;			// +0x1cc
 	int					mLongestChain;		// +0x1d0
 	int					mBabies;			// +0x1d4 the babies hatched
+	HighScores*			mHighScores;		// +0x1d8 the mode's (made by its constructor)
+	char				mHighScoreTitle[0x28];	// +0x1dc the mode's high-score title, from the exe
 	ButtonWidget*		mReplayButton;		// +0x204 the game's end's button (id 5)
 	char				mReplayText[0x30];	// +0x208 PLAY_THIS_PUZZLE_AGAIN
 	int					mSong;				// +0x238 the music the destructor fades out

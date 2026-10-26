@@ -4,7 +4,9 @@
 #include "Egg.h"
 #include "EggGrid.h"
 #include "FossilizedApp.h"
+#include "GameText.h"
 #include "Graphics.h"
+#include "HighScores.h"
 #include "ImageFont.h"
 #include "InchySmall.h"
 #include "FirePrompt.h"
@@ -53,7 +55,8 @@ Dynomite::Dynomite()
 	mField132 = false;
 	mField1c8 = -0x1e0;
 	mField1cc = 0;
-	// TODO: +0x1d8 = 0
+	mHighScores = NULL;
+	mHighScoreTitle[0] = 0;	// port: the mode sets it
 	mBabies = 0;
 	mLongestChain = 0;
 	mReplayButton = NULL;
@@ -95,7 +98,11 @@ Dynomite::~Dynomite()
 		mApp->SafeDeleteWidget(mReplayButton);
 		mReplayButton = NULL;
 	}
-	// TODO: +0x1d8 (the high scores) comes with the game's end
+	if (mHighScores != NULL)
+	{
+		delete mHighScores;
+		mHighScores = NULL;
+	}
 	if (mThunderbolt != NULL)
 	{
 		delete mThunderbolt;
@@ -460,11 +467,10 @@ void Dynomite::DrawEffects()
 		g->SetColor(Color(0, 0, 0, 0xff));
 		std::string aText = mApp->GetString("PAUSED");
 		PicFont* aFont = mApp->mAnnounceFont1928;
-		// port: the original measures both, and draws the yellow one, with its own English word, which is the
-		// same as PAUSED's text; the port takes PAUSED's text for all four
-		aFont->Draw(aText.c_str(), (mField70 - aFont->Width(aText.c_str()) / 2) + 4, 0x194);
+		// the shadow is PAUSED's text; both are measured, and the yellow one drawn, with the exe's own word
+		aFont->Draw(aText.c_str(), (mField70 - aFont->Width(GTC(0x4f7594)) / 2) + 4, 0x194);
 		g->SetColor(Color(0xff, 0xff, 0, 0xff));
-		aFont->Draw(aText.c_str(), mField70 - aFont->Width(aText.c_str()) / 2, 400);
+		aFont->Draw(GTC(0x4f7594), mField70 - aFont->Width(GTC(0x4f7594)) / 2, 400);
 		g->SetColorizeImages(false);
 	}
 }
