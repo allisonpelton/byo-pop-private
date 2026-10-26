@@ -4,6 +4,7 @@
 #include "Egg.h"
 #include "EggGrid.h"
 #include "FossilizedApp.h"
+#include "Graphics.h"
 #include "PortCompat.h"
 #include "Sprite.h"
 
@@ -224,4 +225,67 @@ void Launcher::Aim(int theX, int theY)
 		mField18 = 0x47;
 	if (mLoaded != NULL)
 		PlaceEgg(mLoaded->mX, mLoaded->mY);
+}
+
+// 0x401ed0: the aiming arrow while the aim is at least 10 above the slingshot's middle: a shaft 24 wide from 20
+// behind the middle to 20 short of the aim, a head 36 wide and its tip 10 past the aim
+// port: the x87 code keeps some sums unrounded (in 53 bits) where the floats are not stored; those work in double
+void Launcher::DrawArrow(Graphics* g)
+{
+	if (mAimY <= mSlingY - 10)
+	{
+		AngleTable* anAngles = mApp->mAngles;
+		int anAngle = mAngle;
+		float aBackX = anAngles->mDX[anAngle] * 20.0f;
+		float aBackY = anAngles->mDY[anAngle] * 20.0f;
+		float aTipX = aBackX * 0.5f + (float) mAimX;
+		float aTipY = aBackY * 0.5f + (float) mAimY;
+		double aTailX = (double) mSlingX - (double) aBackX;
+		float aTailRightY = (float) mSlingY - aBackY;
+		float aTailLeftX = (float) mSlingX - aBackX;
+		float aTailLeftY = (float) mSlingY - aBackY;
+		int aSide = anAngle + 0x5a;
+		if (aSide >= 0x168)
+			aSide = aSide - 0x168;
+		if (aSide < 0)
+			aSide = aSide + 0x168;
+		double aSideX = (double) anAngles->mDX[aSide] * 12.0;
+		double aSideY = (double) anAngles->mDY[aSide] * 12.0;
+		float aShaftRightX = (float) (((double) mAimX + aSideX) - (double) aBackX);
+		float aShaftRightY = (float) (((double) mAimY + aSideY) - (double) aBackY);
+		float aTailRightX = (float) (aSideX + aTailX);
+		aTailRightY = (float) ((double) aTailRightY + aSideY);
+		float aHeadRightX = (float) (aSideX * 0.5 + (double) aShaftRightX);
+		float aHeadRightY = (float) (aSideY * 0.5 + (double) aShaftRightY);
+		aSide = anAngle - 0x5a;
+		if (aSide >= 0x168)
+			aSide = aSide - 0x168;
+		if (aSide < 0)
+			aSide = aSide + 0x168;
+		aSideX = (double) anAngles->mDX[aSide] * 12.0;
+		aSideY = (double) anAngles->mDY[aSide] * 12.0;
+		float aShaftLeftX = (float) (((double) mAimX + aSideX) - (double) aBackX);
+		float aShaftLeftY = (float) (((double) mAimY + aSideY) - (double) aBackY);
+		aTailLeftX = (float) (aSideX + (double) aTailLeftX);
+		aTailLeftY = (float) ((double) aTailLeftY + aSideY);
+		float aHeadLeftX = (float) (aSideX * 0.5 + (double) aShaftLeftX);
+		float aHeadLeftY = (float) (aSideY * 0.5 + (double) aShaftLeftY);
+		g->SetColor(Color(mFieldA6c, mFieldA70, mFieldA70, 0x78));
+		Point aPoints[7];
+		aPoints[0].mX = (int) aTailRightX;
+		aPoints[0].mY = (int) aTailRightY;
+		aPoints[1].mX = (int) aShaftRightX;
+		aPoints[1].mY = (int) aShaftRightY;
+		aPoints[2].mX = (int) aHeadRightX;
+		aPoints[2].mY = (int) aHeadRightY;
+		aPoints[3].mX = (int) aTipX;
+		aPoints[3].mY = (int) aTipY;
+		aPoints[4].mX = (int) aHeadLeftX;
+		aPoints[4].mY = (int) aHeadLeftY;
+		aPoints[5].mX = (int) aShaftLeftX;
+		aPoints[5].mY = (int) aShaftLeftY;
+		aPoints[6].mX = (int) aTailLeftX;
+		aPoints[6].mY = (int) aTailLeftY;
+		g->PolyFill(aPoints, 7);
+	}
 }

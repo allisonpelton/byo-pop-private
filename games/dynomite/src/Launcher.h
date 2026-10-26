@@ -41,8 +41,8 @@ public:
 	int					mFieldA60;			// +0xa60
 	int					mFieldA64;			// +0xa64
 	int					mFieldA68;			// +0xa68
-	int					mFieldA6c;			// +0xa6c (255)
-	int					mFieldA70;			// +0xa70
+	int					mFieldA6c;			// +0xa6c (255) the arrow's red
+	int					mFieldA70;			// +0xa70 the arrow's green and blue
 	PtrList<void>		mListA74;			// +0xa74
 	PtrList<void>		mListA8c;			// +0xa8c
 	bool				mFrozen;			// +0xaa4 Fire does nothing while it is set
@@ -60,6 +60,7 @@ public:
 	void				DrawBand();							// 0x401a10
 	void				PlaceEgg(float& theX, float& theY);	// 0x401d30
 	void				Aim(int theX, int theY);			// 0x401e40
+	void				DrawArrow(Graphics* g);				// 0x401ed0
 };
 
 }
