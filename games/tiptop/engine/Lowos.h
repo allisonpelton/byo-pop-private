@@ -70,8 +70,13 @@ struct Sound
 };
 
 // --- the host (TipTopApp) ---
-// The screen the frame was drawn into, 640x480 XRGB8888, row pitch 2560 bytes.
+// The screen the frame was drawn into, XRGB8888 with a row pitch of its width: 640x480 unless HostSetCanvas made it
+// larger
 uint32_t* HostScreen();
+void HostScreenSize(int* theWidth, int* theHeight);
+// Test runs: a screen of theWidth x theHeight (at least 640x480), set before InitScreen. The game sizes its screen
+// layers to the display, so it draws what the original placed beyond 640x480 (the host still shows the top left)
+void HostSetCanvas(int theWidth, int theHeight);
 // The host's clock in milliseconds (framework app clock: real, or virtual with -fast).
 typedef uint32_t (*ClockFunc)();
 void HostSetClock(ClockFunc theClock);

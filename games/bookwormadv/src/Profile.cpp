@@ -95,10 +95,28 @@ int Profile::GetInt(const std::string& theKey) const
 	return 0;
 }
 
+float Profile::GetFloat(const std::string& theKey) const
+{
+	const Value* aValue = GetValue(theKey);
+	if (aValue == nullptr)
+		return 0;
+	if (aValue->mType == TYPE_FLOAT)
+		return aValue->mFloat;
+	if (aValue->mType == TYPE_INT)
+		return (float)aValue->mInt;
+	return 0;
+}
+
 bool Profile::GetBool(const std::string& theKey) const
 {
 	const Value* aValue = GetValue(theKey);
 	return aValue != nullptr && aValue->mType == TYPE_BOOL && aValue->mBool;
+}
+
+std::string Profile::GetString(const std::string& theKey) const
+{
+	const Value* aValue = GetValue(theKey);
+	return aValue != nullptr && aValue->mType == TYPE_STRING ? aValue->mString : std::string();
 }
 
 void Profile::Set(const std::string& theKey, const Value& theValue)

@@ -2,6 +2,7 @@
 
 #include <SDL.h>
 
+#include "BookManager.h"
 #include "CurtainTransition.h"
 #include "Font.h"
 #include "GameApp.h"
@@ -616,7 +617,27 @@ void MainMenu::MouseUp(int x, int y, int theClickCount)
 			AskReallyQuit();
 			break;
 		case ITEM_ADVENTURE:
-			SDL_Log("MainMenu: the adventure (0x448ff0, 0x44de70, 0x44df60) is not ported yet");
+			// port: the trial's end (0x451c80, its dialog) is left out
+			if (!mAdventureAvailable) {
+				mApp->DoOkDialog(GT(0x7aebf8), GT(0x7aeb50), "", IMAGE_DIALOG_BANNER_HOWTOPLAY);
+				break;
+			}
+			mFromTitle = false;
+			if (LuaLib::CallLua("main.NeedsIntroCutscene", 0).Bool()) {
+				SetDisabled(true);
+				mApp->PlayMainMenuCutScene();
+			} else if (!mApp->mProfile->GetBool("InMiniGame") && !mApp->mProfile->GetBool("InGame")) {
+				SetDisabled(true);
+				mApp->StartNewGameTransition();
+			} else {
+				// a game in progress: the book under the menu, then the scripts' StartGame once the curtain is closed
+				SetDisabled(true);
+				mApp->InitGameScreen(false);
+				mApp->mWidgetManager->BringToFront(this);
+				lua_pushboolean(mApp->mLua->L, 1);
+				mApp->mBookManager->CallLinkedMethod("InitSavedGame", 1);
+				mApp->StartSavedGameTransition();
+			}
 			break;
 		case ITEM_ARENA:
 			SDL_Log("MainMenu: the arena (0x47c290) is not ported yet");

@@ -13,7 +13,7 @@ add_library(sexyframework STATIC ${FRAMEWORK_SOURCES})
 target_include_directories(sexyframework PUBLIC
   ${SHARED_ROOT}
   ${CMAKE_CURRENT_SOURCE_DIR})
-target_link_libraries(sexyframework PUBLIC ${PORT_SDL} stb xmp_lite tremor)
+target_link_libraries(sexyframework PUBLIC ${PORT_SDL} stb xmp_lite tremor minimp3)
 if(NOT MSVC)
   # The framework predates C++11 and relies on a few now-pedantic idioms.
   target_compile_options(sexyframework PRIVATE -Wno-deprecated-declarations -Wno-switch -Wno-parentheses
@@ -34,6 +34,11 @@ endif()
 # (and call Platform::RegisterOpenMPTModules) carry libopenmpt.
 add_library(sexyopenmpt STATIC ${SHARED_ROOT}/platform/openmpt/OpenMPTPlayer.cpp)
 target_link_libraries(sexyopenmpt PUBLIC sexyframework PRIVATE openmpt)
+
+# JPEG 2000 images through OpenJPEG (platform/openjpeg): a separate library likewise, for the games whose images are
+# .jp2 files; a game links it and calls Platform::RegisterOpenJPEGImages() once before loading images.
+add_library(sexyopenjpeg STATIC ${SHARED_ROOT}/platform/openjpeg/JP2Decoder.cpp)
+target_link_libraries(sexyopenjpeg PUBLIC sexyframework PRIVATE openjp2)
 
 # The early-2004 SexyAppFramework's behaviours (legacy dialog buttons, the 2004 Slider, the 2004 text layout,
 # MTRand 1.2 seeding, MSVC rand, the repeatable game clock) that its games (BookWorm, Typer Shark, AstroPop)

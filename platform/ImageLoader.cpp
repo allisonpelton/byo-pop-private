@@ -12,6 +12,32 @@ namespace Platform
 static const char* kImageExtensions[] = {".tga", ".jpg", ".png", ".gif", ".jpeg", ".bmp", nullptr};
 static const int kHDScales[] = {4, 3, 2};
 
+// Formats a game registered with RegisterImageFormat: tried before stb, and their extensions join the
+// extension search after the built-in ones (so a staged .png still wins over a .jp2 of the same name).
+struct ImageFormat
+{
+	ImageDetector mDetect;
+	ImageDecoder mDecode;
+};
+
+static std::vector<ImageFormat>& ImageFormats()
+{
+	static std::vector<ImageFormat> sFormats;
+	return sFormats;
+}
+
+// The extension search order: the built-in extensions, then the registered ones in registration order.
+static std::vector<std::string>& ImageExtensions()
+{
+	static std::vector<std::string> sExtensions;
+	if (sExtensions.empty())
+	{
+		for (int i = 0; kImageExtensions[i]; i++)
+			sExtensions.push_back(kImageExtensions[i]);
+	}
+	return sExtensions;
+}
+
 static std::map<std::string, int> gScaleOverrides;  // key: modId + '|' + normalized lower path
 static std::map<std::string, int> gModDefaultScales;
 
@@ -70,8 +96,37 @@ static bool MoveIHDRFirst(const std::vector<uint8_t>& theData, std::vector<uint8
 	return false;
 }
 
+void RegisterImageFormat(const char* theExtension, ImageDetector theDetector, ImageDecoder theDecoder)
+{
+	if (!theDetector || !theDecoder)
+		return;
+	std::string ext = LowerStr(theExtension ? theExtension : "");
+	if (!ext.empty() && ext[0] != '.')
+		ext = "." + ext;
+	if (ext.size() > 1)
+	{
+		std::vector<std::string>& exts = ImageExtensions();
+		if (std::find(exts.begin(), exts.end(), ext) == exts.end())
+			exts.push_back(ext);
+	}
+	// one format under several extensions (.jp2 and .j2k) is tried once per file
+	std::vector<ImageFormat>& formats = ImageFormats();
+	for (const ImageFormat& f : formats)
+	{
+		if (f.mDetect == theDetector && f.mDecode == theDecoder)
+			return;
+	}
+	formats.push_back({theDetector, theDecoder});
+}
+
 bool DecodeImage(const std::vector<uint8_t>& theData, int& theWidth, int& theHeight, std::vector<uint32_t>& theBits, bool* theHasAlpha)
 {
+	for (const ImageFormat& format : ImageFormats())
+	{
+		if (format.mDetect(theData) && format.mDecode(theData, theWidth, theHeight, theBits, theHasAlpha))
+			return true;
+	}
+
 	std::vector<uint8_t> reordered;
 	const std::vector<uint8_t>& data = MoveIHDRFirst(theData, reordered) ? reordered : theData;
 
@@ -124,9 +179,9 @@ static std::string FindVariant(const std::string& theRoot, const std::string& th
 	std::string base = theDir.empty() ? theStem : theDir + "/" + theStem;
 	if (!theExt.empty())
 		return VFS::FindCaseInsensitive(theRoot, base + theExt);
-	for (int i = 0; kImageExtensions[i]; i++)
+	for (const std::string& e : ImageExtensions())
 	{
-		std::string p = VFS::FindCaseInsensitive(theRoot, base + kImageExtensions[i]);
+		std::string p = VFS::FindCaseInsensitive(theRoot, base + e);
 		if (!p.empty())
 			return p;
 	}
@@ -223,9 +278,9 @@ static bool LoadGameImageLayers(const std::string& theGamePath, LoadedImage& the
 	if (dot != std::string::npos)
 	{
 		std::string e = LowerStr(file.substr(dot));
-		for (int i = 0; kImageExtensions[i]; i++)
+		for (const std::string& known : ImageExtensions())
 		{
-			if (e == kImageExtensions[i])
+			if (e == known)
 			{
 				ext = file.substr(dot);
 				file = file.substr(0, dot);

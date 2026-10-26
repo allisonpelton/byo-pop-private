@@ -233,6 +233,8 @@ void GuiInit(uint16_t theLayers, uint16_t theHandlers, lowos::Surface* theSkin);
 void GuiShutdown();                                                            // 0x428fa3
 Layer* NewLayer(uint16_t theContentWidth, uint16_t theContentHeight, const GuiRect* theRect);  // 0x428fd3
 void PushModal(Layer* theLayer);                                               // 0x42907f
+// port (test hooks): every layer in use draws all its handlers again in the next frame
+void MarkAllLayersDirty();
 char InTopModal(Layer* theLayer);                                              // 0x42917f
 char IsInside(Layer* theLayer, Layer* theAncestor);                            // 0x4291bf
 void FreeLayer(Layer* theLayer);                                               // 0x4291f9

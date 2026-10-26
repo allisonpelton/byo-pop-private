@@ -53,7 +53,38 @@ void LuaLinkedClass::CreateLinkedObject(void* obj)
 	lua_pushstring(s->L, mLinkedName);
 	PushLinkedObject();
 	s->Call("CreateLinkedObject", 2, 0);
-	// vf07 (0x6ca560) then registers the class's enums in gLinkedObjectTable; no class here has any
+	RegisterEnums();
+}
+
+void LuaLinkedClass::RegisterEnums()
+{
+	if (mEnums.empty())
+		return;
+	LuaSupport* s = gLuaSupport;
+	lua_State* L = s->L;
+	auto aSet = [&]() {
+		if (!lua_istable(L, -1))
+			return;
+		for (const auto& anEnum : mEnums) {
+			lua_pushstring(L, anEnum.first.c_str());
+			lua_pushint(L, anEnum.second);
+			lua_settable(L, -3);
+		}
+	};
+	lua_getglobal(L, "gLinkedObjectTable");
+	if (lua_isnil(L, -1)) {
+		lua_pop(L, 1);
+		s->ReportError("Unable to locate gLinkedObjectTable in LuaLinkedClass::RegisterEnums");
+		return;
+	}
+	PushLinkedObject();
+	lua_gettable(L, -2);  // the Lua object
+	aSet();
+	lua_pop(L, 2);
+	lua_getglobal(L, mLinkedName);  // the Lua class
+	aSet();
+	lua_pop(L, 1);
+	// (the original then did the same for a second list of the class's, which no class here has)
 }
 
 void LuaLinkedClass::DeleteLinkedObject()
@@ -86,7 +117,15 @@ LuaClassRet LuaLinkedClass::CallLinkedMethod(const char* method, int nargs)
 	lua_insert(L, -(nargs + 1));
 	lua_pushstring(L, method);
 	lua_insert(L, -(nargs + 1));
-	if (!s->Call("CallLinkedMethod", nargs + 2, LUA_MULTRET))
+	return CallLua("CallLinkedMethod", nargs + 2);
+}
+
+LuaClassRet LuaLib::CallLua(const std::string& path, int nargs)
+{
+	LuaClassRet r;
+	LuaSupport* s = gLuaSupport;
+	lua_State* L = s->L;
+	if (!s->Call(path, nargs, LUA_MULTRET))
 		return r;
 	int n = s->Results();
 	for (int i = 0; i < n && i < 8; i++) {

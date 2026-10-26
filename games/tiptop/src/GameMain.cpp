@@ -351,7 +351,6 @@ bool GameFrame()
 	gSkipMouseDown = 0;
 	if ((gQuit != 0) || (gApp.Frame(), gQuit != 0))
 		return false;
-	UpdateMusic();
 	char aResult = 0;
 	lowos::EndFrame(&aResult);
 	if (aResult == 0)

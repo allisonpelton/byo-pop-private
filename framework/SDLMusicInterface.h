@@ -51,6 +51,7 @@ public:
 	virtual void SetSongVolume(int theSongId, double theVolume);
 	virtual void SetSongMaxVolume(int theSongId, double theMaxVolume);
 	virtual bool IsPlaying(int theSongId);
+	virtual int GetMusicPosition(int theSongId);
 	virtual void SetVolume(double theVolume);
 	virtual void SetMusicAmplify(int theSongId, double theAmp);
 	virtual void Update();

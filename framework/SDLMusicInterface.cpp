@@ -173,6 +173,16 @@ bool SDLMusicInterface::IsPlaying(int theSongId)
 	return it != mSongs.end() && Mixer::Get().IsSongPlaying(it->second.mHandle);
 }
 
+// BASS_ChannelGetPosition(BASS_POS_MUSIC_ORDER): the order in the low word, the row in the high word
+int SDLMusicInterface::GetMusicPosition(int theSongId)
+{
+	auto it = mSongs.find(theSongId);
+	int anOrder = 0, aRow = 0;
+	if (it == mSongs.end() || !Mixer::Get().GetSongPosition(it->second.mHandle, anOrder, aRow))
+		return -1;
+	return (anOrder & 0xffff) | (aRow << 16);
+}
+
 void SDLMusicInterface::SetVolume(double theVolume)
 {
 	mGlobalVolume = theVolume;

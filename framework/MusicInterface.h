@@ -32,7 +32,10 @@ public:
 	virtual void			SetSongVolume(int theSongId, double theVolume);
 	virtual void			SetSongMaxVolume(int theSongId, double theMaxVolume);
 	virtual bool			IsPlaying(int theSongId);
-	
+	// port: where a playing module is, as BASS_ChannelGetPosition(BASS_POS_MUSIC_ORDER) gives it: MAKELONG(order,
+	// row), or -1 when the song is not playing or is not a module (Bookworm Adventures' song queue reads it).
+	virtual int				GetMusicPosition(int theSongId);
+
 	virtual void			SetVolume(double theVolume);
 	virtual void			SetMusicAmplify(int theSongId, double theAmp);
 	virtual void			Update();

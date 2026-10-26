@@ -3,6 +3,7 @@
 #include <SDL.h>
 
 #include "Color.h"
+#include "ConversationPanel.h"
 #include "GameApp.h"
 #include "Graphics.h"
 #include "JeffLib.h"
@@ -216,7 +217,7 @@ static int ClonePAM(lua_State* L)
 		luaL_error(L, "ClonePAM: id = %d: not found", anId);  // port: the original used the missing animation
 	PopAnim* aClone = anAnim->Clone();
 	aClone->mId = aNewId;
-	aManager->Add(aNewId, aClone, aCallback != nullptr ? aCallback : "");
+	aManager->Add(aNewId, aClone, aCallback != nullptr ? aCallback : "", true);
 	return 0;
 }
 
@@ -362,6 +363,7 @@ void LuaInterface::RegisterSexyFunctions()
 	RegisterFunction("sexy.SetPopAnimColor", SetPopAnimColor);
 	RegisterFunction("sexy.DeletePopAnim", DeletePopAnim);
 	RegisterProfileFunctions();
+	RegisterConvPanelFunctions();
 }
 
 void LuaInterface::ReportError(const std::string& theMessage)

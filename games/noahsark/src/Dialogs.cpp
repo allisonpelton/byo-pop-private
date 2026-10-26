@@ -147,22 +147,28 @@ void HighScoreDialog::Draw(Graphics* g)
 // ---------------------------------------------------------------------------------------------------------
 // RecordScoreDialog
 
-// 0x41d750
+// 0x41d750: OK and CANCEL buttons (mode 2, no footer), and an edit widget with no background of its own: Draw puts
+// the edit box picture under it. Its colours are a table at 0x4960a4 (background and outline fully transparent, text
+// 240/240/255, highlight white, highlighted text black), and then the highlighted text is set to white; the name may
+// be 120 pixels wide (the field at +0x80), with no limit on the number of characters.
 RecordScoreDialog::RecordScoreDialog(NoahApp* theApp, const std::string& thePlace) :
 	Dialog2004(theApp->mImages[IMAGE_DIALOG], theApp->mImages[IMAGE_DBUTTON], DIALOG_RECORD_SCORE, true,
-		GT(0x00495ef0), thePlace, GT(0x00495998), BUTTONS_FOOTER),
+		GT(0x00495ef0), thePlace, GT(0x0049c510), BUTTONS_OK_CANCEL),
 	mApp(theApp)
 {
 	SetButtonFont(mApp->mFonts[FONT_SMALL]);
 	SetHeaderFont(mApp->mFonts[FONT_MEDIUM]);
 	SetLinesFont(mApp->mFonts[FONT_SMALL]);
 	mNameEdit = new EditWidget(0, this);
-	mNameEdit->SetFont(mApp->mFonts[FONT_GARAMOND_SMALL]);
-	mNameEdit->mMaxChars = 0x10;
+	mNameEdit->SetFont(mApp->mFonts[FONT_SMALL]);
+	mNameEdit->SetColor(EditWidget::COLOR_BKG, Color(0, 0, 0, 0));
+	mNameEdit->SetColor(EditWidget::COLOR_OUTLINE, Color(0, 0, 0, 0));
+	mNameEdit->SetColor(EditWidget::COLOR_TEXT, Color(240, 240, 255, 255));
+	mNameEdit->SetColor(EditWidget::COLOR_HILITE, Color(255, 255, 255, 255));
+	mNameEdit->SetColor(EditWidget::COLOR_HILITE_TEXT, Color(0, 0, 0, 255));
+	mNameEdit->mMaxPixels = 0x78;
 	mNameEdit->SetText(mApp->mLastScoreName);
-	mNameEdit->SetColor(EditWidget::COLOR_BKG, Color(0xff, 0xff, 0xff));
-	mNameEdit->SetColor(EditWidget::COLOR_OUTLINE, Color(0, 0, 0));
-	mNameEdit->SetColor(EditWidget::COLOR_TEXT, Color(0, 0, 0));
+	mNameEdit->SetColor(EditWidget::COLOR_HILITE_TEXT, Color(0xff, 0xff, 0xff));
 }
 
 RecordScoreDialog::~RecordScoreDialog()
@@ -186,7 +192,7 @@ void RecordScoreDialog::RemovedFromManager(WidgetManager* theWidgetManager)
 void RecordScoreDialog::Resize(int theX, int theY, int theWidth, int theHeight)
 {
 	Dialog2004::Resize(theX, theY, theWidth, theHeight);
-	mNameEdit->Resize(theX + mContentInsets.mLeft + 10, theY + theHeight - 0x92, theWidth - mContentInsets.mLeft - mContentInsets.mRight - 20, 0x1c);
+	mNameEdit->Resize(mX + 0x30, mY + mHeight - 0x78, mWidth - 0x60, 0x18);       // 0x41da70
 }
 
 // slot 47 of the dialog classes is a function that returns a constant (Ghidra shows none): 0x411730, shared by this
@@ -197,13 +203,30 @@ int RecordScoreDialog::GetPreferredHeight(int theWidth)
 	return 0x12c;
 }
 
-// 0x41dac0
+// 0x41dac0: the edit box picture around the edit widget (4 pixels more on each side), and the prompt over it
 void RecordScoreDialog::Draw(Graphics* g)
 {
 	Dialog2004::Draw(g);
-	g->SetFont(mApp->mFonts[FONT_SMALL]);
-	g->SetColor(Color(0, 0, 0));
-	g->DrawString(GT(0x00496120), mContentInsets.mLeft + 10, mHeight - 0xa2);
+	DrawEditBox(g, mNameEdit->mX - mX - 4, mNameEdit->mY - mY - 4, mNameEdit->mWidth + 8);
+	g->SetFont(mApp->mFonts[FONT_GARAMOND_SMALL]);
+	g->SetColor(Color(0xa4, 0x2c, 0));
+	SexyString aPrompt = GT(0x00496120);
+	g->DrawString(aPrompt, (mWidth - g->GetFont()->StringWidth(aPrompt)) / 2, mNameEdit->mY - mY - 0x13);
+}
+
+// 0x41dca0: a strip of the edit box picture (a left end, a right end and the middle piece repeated between them,
+// all 0x20 high) from x to x + theWidth. The middle pieces are clipped to the part right of the left end, and are
+// drawn after the right end.
+void RecordScoreDialog::DrawEditBox(Graphics* g, int theX, int theY, int theWidth)
+{
+	Image* aBox = mApp->mImages[IMAGE_EDITBOX];
+	g->DrawImage(aBox, theX, theY, Rect(0, 0, 0x20, 0x20));
+	g->DrawImage(aBox, theWidth - 0x20 + theX, theY, Rect(0x40, 0, 0x20, 0x20));
+	Graphics aClipped(*g);
+	aClipped.ClipRect(theX + 0x20, theY, theWidth - 0x20, 0x20);
+	int aCount = (theWidth - 0x21) / 0x20;
+	for (int i = 0; i < aCount; i++)
+		aClipped.DrawImage(aBox, theX + 0x20 + i * 0x20, theY, Rect(0x20, 0, 0x20, 0x20));
 }
 
 void RecordScoreDialog::EditWidgetText(int theId, const SexyString& theString)
@@ -390,14 +413,16 @@ void OptionsDialog::SliderVal(int theId, double theVal)
 // ---------------------------------------------------------------------------------------------------------
 // TutorialDialog
 
-// 0x4205b0
+// 0x4205b0: the dialog has no header and no lines of its own (Draw writes the heading), and its button reads READY
 TutorialDialog::TutorialDialog(NoahApp* theApp) :
 	Dialog2004(theApp->mImages[IMAGE_DIALOG], theApp->mImages[IMAGE_DBUTTON], DIALOG_TUTORIAL, true,
-		GT(0x00496384), GT(0x0049c510), GT(0x00495998), BUTTONS_FOOTER),
+		GT(0x0049c510), GT(0x0049c510), GT(0x004962e4), BUTTONS_FOOTER),
 	mApp(theApp),
+	mWait(0),
 	mStep(0),
 	mCursorX(0x14),
-	mCursorY(0x4e)
+	mCursorY(0x4e),
+	mClicked(false)
 {
 	SetButtonFont(mApp->mFonts[FONT_GARAMOND_SMALL]);
 	SetHeaderFont(mApp->mFonts[FONT_MEDIUM]);
@@ -439,7 +464,7 @@ void TutorialDialog::RemovedFromManager(WidgetManager* theWidgetManager)
 void TutorialDialog::Resize(int theX, int theY, int theWidth, int theHeight)
 {
 	Dialog2004::Resize(theX, theY, theWidth, theHeight);
-	mAgainCheckbox->Resize(mX + 0x30, mY + mHeight - 0x70, 0x24, 0x25);
+	mAgainCheckbox->Resize(mX + 0x30, mY + mWidth - 0x3c, 0x24, 0x25);   // the width, not the height: as the original has it
 }
 
 int TutorialDialog::GetPreferredHeight(int theWidth)
@@ -448,48 +473,171 @@ int TutorialDialog::GetPreferredHeight(int theWidth)
 	return 0x1b6;                                       // 0x4209f0, the same function as the Options dialog's
 }
 
-// 0x420ab0: the picture's little animation (a cursor goes to an animal, clicks, goes to the match)
+// 0x420ab0: the picture's little animation. The cursor goes to the left animal (step 0) and clicks it (1), goes to the
+// matching animal (2) and clicks it (3), then the pair walks to the ark and the picture waits (4), and starts again.
 void TutorialDialog::Update()
 {
 	Dialog2004::Update();
-	mUpdateCnt++;
-	if (mUpdateCnt % 40 == 0)
+	int aHalf = (mWidth - 10) / 2;
+	switch (mStep)
 	{
-		mStep = (mStep + 1) % 4;
+	case 0:
+		if ((aHalf - 0x32) / 2 + 0x19 <= mCursorX)
+		{
+			mApp->PlaySample(SOUND_CLICK);
+			mStep = 1;
+			mClicked = true;
+			MarkDirty();
+			return;
+		}
+		mCursorX += 2;
+		if (mCursorY < 100)
+		{
+			mCursorY++;
+			MarkDirty();
+			return;
+		}
+		break;
+	case 1:
+	case 3:
+		if (mClicked)
+		{
+			if (mCursorY < 0x6a)
+			{
+				mCursorX++;
+				mCursorY++;
+				MarkDirty();
+				return;
+			}
+			mClicked = false;
+			MarkDirty();
+			return;
+		}
+		if (100 < mCursorY)
+		{
+			mCursorY--;
+			mCursorX--;
+			MarkDirty();
+			return;
+		}
+		if (mStep == 1)
+		{
+			mStep = 2;
+			MarkDirty();
+			return;
+		}
+		mStep = 4;
+		mWait = 0;
+		mApp->PlaySample(SOUND_WINELEPHANT);
 		MarkDirty();
+		return;
+	case 2:
+		if (mCursorX < (aHalf - 0x32) / 2 + 0x19 + aHalf)
+		{
+			mCursorX += 2;
+			MarkDirty();
+			return;
+		}
+		mApp->PlaySample(SOUND_CLICK);
+		mStep = 3;
+		mClicked = true;
+		MarkDirty();
+		return;
+	case 4:
+	{
+		bool aDone = (aHalf - 0x32) / 2 + 0x4b + aHalf <= mCursorX;
+		if (!aDone)
+			mCursorX += 2;
+		mWait++;
+		if (299 < mWait)
+		{
+			mCursorX = 0x14;
+			mCursorY = 0x4e;
+			mStep = 0;
+		}
+		if (aDone)
+			return;
+		break;
 	}
+	default:
+		return;
+	}
+	MarkDirty();
 }
 
 // 0x420d10
 void TutorialDialog::Draw(Graphics* g)
 {
 	Dialog2004::Draw(g);
+	Image* anAnimals = mApp->mImages[IMAGE_ANIMALS];
+	int aHalf = (mWidth - 10) / 2;                      // each half of the picture
+	int aMidLeft = (aHalf - 0x32) / 2;                  // an animal centred in the left half
+
+	// the heading and the check box's label, then the line above the picture (0x422330 centres a line on the dialog)
+	g->SetFont(mApp->mFonts[FONT_MEDIUM]);
+	g->SetColor(Color(0xff, 0xff, 0xff));
+	SexyString aHeading = GT(0x00496384);
+	g->DrawString(aHeading, (mWidth - g->GetFont()->StringWidth(aHeading)) / 2, 0x30);
 	g->SetFont(mApp->mFonts[FONT_GARAMOND_TINY]);
 	g->SetColor(Color(0, 0, 0));
 	g->DrawString(GT(0x00496364), mAgainCheckbox->mX - mX + 0x30, mAgainCheckbox->mY - mY + 0x1a);
+	g->SetFont(mApp->mFonts[FONT_GARAMOND_TINY]);
+	SexyString aClosing = GT(0x0049633c);
+	g->DrawString(aClosing, (mWidth - g->GetFont()->StringWidth(aClosing)) / 2, 0x4b);
 
-	int aHalf = ((mWidth - 10) / 2 - 0x32) / 2;
-	Image* anAnimals = mApp->mImages[IMAGE_ANIMALS];
-	// the two animals of one kind and the way between them
-	g->DrawImage(anAnimals, aHalf, 0x5a, Rect(0, 0, 0x32, 0x32));
-	g->DrawImage(anAnimals, aHalf + 0x96, 0x5a, Rect(0, 0, 0x32, 0x32));
-	g->DrawImage(mApp->mImages[IMAGE_TRAILLR], aHalf + 0x32, 0x5a);
-	g->DrawImage(mApp->mImages[IMAGE_TRAILLR], aHalf + 100, 0x5a);
-	g->DrawImage(mApp->mImages[IMAGE_TRAILARROWRIGHT], aHalf + 0x96 - 1, 0x5a);
-	int aCursorX = aHalf + 0x1c + mStep * 0x28;
-	g->DrawImage(mApp->mImages[IMAGE_ARROW], aCursorX, 0x5a + 0x1c);
+	// the two animals of one kind: each shows its picked (second) row after the click on it; the way between them
+	// and its arrow appear with the second click
+	g->DrawImage(anAnimals, aMidLeft, 0x5a, Rect(0x96, (mStep < 1) ? 0 : 0x12c, 0x32, 0x32));
+	g->DrawImage(anAnimals, aMidLeft + aHalf, 0x5a, Rect(0x96, (mStep < 3) ? 0 : 0x12c, 0x32, 0x32));
+	if (mStep >= 3)
+	{
+		g->DrawImage(mApp->mImages[IMAGE_TRAILLR], aMidLeft + 0x32, 0x5a);
+		g->DrawImage(mApp->mImages[IMAGE_TRAILLR], aMidLeft + 100, 0x5a);
+		g->DrawImage(mApp->mImages[IMAGE_TRAILLR], aMidLeft + 0x96, 0x5a);
+		g->DrawImage(mApp->mImages[IMAGE_TRAILARROWRIGHT], aMidLeft + aHalf, 0x5a);
+	}
 
 	g->SetFont(mApp->mFonts[FONT_GARAMOND_TINY]);
-	g->SetColor(Color(0, 0, 0));
 	SexyString aLine1 = GT(0x00496328);
 	SexyString aLine2 = GT(0x00496318);
 	SexyString aLine3 = GT(0x00496304);
 	SexyString aLine4 = GT(0x004962f0);
-	int aCenter = (mWidth - 10) / 2;
-	g->DrawString(aLine1, (aCenter - g->GetFont()->StringWidth(aLine1)) / 2, 0xa0);
-	g->DrawString(aLine2, (aCenter - g->GetFont()->StringWidth(aLine2)) / 2, 0xb2);
-	g->DrawString(aLine3, (aCenter - g->GetFont()->StringWidth(aLine3)) / 2 + aCenter, 0xa0);
-	g->DrawString(aLine4, (aCenter - g->GetFont()->StringWidth(aLine4)) / 2 + aCenter, 0xb2);
-	SexyString aClosing = GT(0x0049633c);
-	g->DrawString(aClosing, (mWidth - 10 - g->GetFont()->StringWidth(aClosing)) / 2, 0x112);
+	g->DrawString(aLine1, (aHalf - g->GetFont()->StringWidth(aLine1)) / 2, 0xa0);
+	g->DrawString(aLine2, (aHalf - g->GetFont()->StringWidth(aLine2)) / 2, 0xb0);
+	g->DrawString(aLine3, (aHalf - g->GetFont()->StringWidth(aLine3)) / 2 + aHalf, 0xa0);
+	g->DrawString(aLine4, (aHalf - g->GetFont()->StringWidth(aLine4)) / 2 + aHalf, 0xb0);
+
+	// the two little panels (the tutorial box picture, 0x148) with a 3 by 2 field in each: on the left a pair that
+	// can be joined, on the right two that cannot (a red X on the animal in the way)
+	Image* aBox = mApp->mImages[IMAGE_TUTORIALBOX];
+	int aPanel = (aHalf - aBox->GetWidth()) / 2;
+	g->DrawImage(aBox, aPanel, 0xc0);
+	g->DrawImage(anAnimals, aPanel + 5, 0xc5, Rect(0x96, 0, 0x32, 0x32));
+	g->DrawImage(anAnimals, aPanel + 5, 0xf7, Rect(100, 0, 0x32, 0x32));
+	g->DrawImage(anAnimals, aPanel + 0x37, 0xf7, Rect(200, 0, 0x32, 0x32));
+	g->DrawImage(anAnimals, aPanel + 0x69, 0xf7, Rect(0x96, 0, 0x32, 0x32));
+	g->DrawImage(mApp->mImages[IMAGE_TRAILLR], aPanel + 0x37, 0xc5);
+	g->DrawImage(mApp->mImages[IMAGE_TRAILLD], aPanel + 0x69, 0xc5);
+	g->SetColorizeImages(true);
+	g->SetColor(Color(0x32, 0x32, 0xb9));
+	g->DrawImage(mApp->mImages[IMAGE_TRAILLD_OVER], aPanel + 0x69, 0xc5);
+	g->SetColorizeImages(false);
+	g->DrawImage(mApp->mImages[IMAGE_TRAILARROWDOWN], aPanel + 0x69, 0xf7);
+
+	aPanel = (aHalf - aBox->GetWidth()) / 2 + aHalf;
+	g->DrawImage(aBox, aPanel, 0xc0);
+	g->DrawImage(anAnimals, aPanel + 5, 0xc5, Rect(0x96, 0, 0x32, 0x32));
+	g->DrawImage(anAnimals, aPanel + 0x37, 0xc5, Rect(0x32, 0, 0x32, 0x32));
+	g->DrawImage(anAnimals, aPanel + 5, 0xf7, Rect(100, 0, 0x32, 0x32));
+	g->DrawImage(anAnimals, aPanel + 0x37, 0xf7, Rect(200, 0, 0x32, 0x32));
+	g->DrawImage(anAnimals, aPanel + 0x69, 0xf7, Rect(0x96, 0, 0x32, 0x32));
+	g->DrawImage(mApp->mImages[IMAGE_TRAILARROWRIGHT], aPanel + 0x37, 0xc5);
+	g->DrawImage(mApp->mImages[IMAGE_TRAILARROWDOWN], aPanel + 5, 0xf7);
+	g->SetColor(Color(0xff, 0, 0));
+	g->SetFont(mApp->mFonts[FONT_GARAMOND_MED]);
+	SexyString anX = GT(0x004962ec);
+	g->DrawString(anX, (0x32 - g->GetFont()->StringWidth(anX)) / 2 + 0x37 + aPanel + 5, 0xe8);
+	g->DrawString(anX, (0x32 - g->GetFont()->StringWidth(anX)) / 2 + 5 + aPanel + 5, 0x11f);
+
+	g->DrawImage(mApp->mImages[IMAGE_ARROW], mCursorX, mCursorY);
 }

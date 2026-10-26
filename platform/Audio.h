@@ -29,6 +29,9 @@ public:
 	// Writes theFrames interleaved stereo frames (float, +-1.0) at the mixer rate to theOut. Returns false
 	// once a module that does not loop has ended (theOut is then silence from there on).
 	virtual bool Render(float* theOut, int theFrames, bool theLoop) = 0;
+	// The module position the player has rendered up to (BASS_ChannelGetPosition with BASS_POS_MUSIC_ORDER);
+	// false when the player cannot tell.
+	virtual bool GetPosition(int& theOrder, int& theRow) { return false; }
 };
 
 typedef bool (*ModuleDetector)(const std::vector<uint8_t>& theFile);
@@ -72,6 +75,10 @@ public:
 	// Returns a song handle (>0) or 0 on failure. A mod remap of theGamePath (VFS::GetRemap) can set a
 	// start order inside a multi-song module, a stream loop point and a per-track gain.
 	int LoadSong(const std::string& theGamePath);
+	// A song a game renders itself, such as a synthesizer its own sequencer plays live (TipTop's MIDI music):
+	// the mixer calls thePlayer's Render in the audio callback, so the game changes the player's state only
+	// between Lock and Unlock. Returns the song handle, played and freed like a loaded song's.
+	int AddSong(std::unique_ptr<ModulePlayer> thePlayer);
 	void UnloadSong(int theSong);
 	// theOrder/theRow: start position (BASS_MusicPlayEx offset = MAKELONG(order,row)).
 	void PlaySong(int theSong, int theOrder, int theRow, bool theLoop, bool theResetPosition = true);
@@ -79,6 +86,9 @@ public:
 	void PauseSong(int theSong, bool thePaused);
 	void SetSongGain(int theSong, float theGain);
 	bool IsSongPlaying(int theSong);
+	// The order and row a playing module has been rendered up to (libxmp's frame info, or a ModulePlayer's
+	// GetPosition). False for a song that is not playing, and for Ogg and WAV tracks.
+	bool GetSongPosition(int theSong, int& theOrder, int& theRow);
 
 	void SetMusicMasterGain(float theGain) { mMusicMaster = theGain; }
 	void SetSfxMasterGain(float theGain) { mSfxMaster = theGain; }
