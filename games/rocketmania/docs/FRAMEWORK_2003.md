@@ -42,8 +42,8 @@ the application's own destructor is slot 12). The game's application class overr
 ## Widget slots
 
 The 44 slots of this `Widget`, as far as read: 0 destructor, 1 and 2 the manager hooks (`AddedToManager` stores the
-manager at +0x24, `RemovedFromManager` clears it), 3 an empty hook, 4 `SetVisible`, 5 and 6 `SetColors` (four-int and
-three-int tables), 7 `SetColor(i, color)`, 8 `GetColor(i)`, 9 `SetDisabled`, 12 and 13 `Resize` (rect and x, y, w, h),
+manager at +0x24, `RemovedFromManager` clears it), 3 an empty hook, 4 an empty hook, 5 and 6 `SetColors` (four-int and
+three-int tables), 7 `SetColor(i, color)`, 8 `GetColor(i)`, 9 `SetVisible`, 10 `SetDisabled` (it also clears the pointer-over state), 12 and 13 `Resize` (rect and x, y, w, h),
 14 `Move`, 15 `WantsFocus` (returns false), 16 `Draw(g)`, 17 `Update` (the base counts at +0x4c), 31 to 37 the
 text-writing helpers (`WriteCenteredLine`, `WriteString`, `WriteWordWrapped`, `GetWordWrappedHeight`, `GetNumDigits`,
 `WriteNumberFromStrip`), 38 `Contains(x, y)`, 42 and 43 `MarkDirty` and `MarkDirtyFull`. The mouse, key and focus

@@ -116,7 +116,8 @@ def comp(t):
     return t
 
 
-for a in sys.argv[1:]:
+RAW = '--raw' in sys.argv
+for a in [x for x in sys.argv[1:] if x != '--raw']:
     a = a.lower()[2:].zfill(8) if a.lower().startswith('0x') else a.lower().zfill(8)
     fs = glob.glob(f'{root}/*/{a}_*.c') + glob.glob(f'{root}/{a}_*.c')
     if not fs:
@@ -133,6 +134,9 @@ for a in sys.argv[1:]:
         if re.search(r'(pvStack_\w+|puStack_\w+|ExceptionList)\s*(=|;)', ln):
             continue
         if re.match(r'\s*(local_4|uStack_4)\b[^\n]*= ', ln):
+            continue
+        # the compiler's string-release bookkeeping and exception-state stores (--raw keeps them)
+        if not RAW and re.search(r'string_tidy\(|STRFREE\(|\blocal_8(\._0_1_)? = |std::length_error|/\*memcpy', ln):
             continue
         out.append(ln)
     print('\n'.join(out))

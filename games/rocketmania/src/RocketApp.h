@@ -84,6 +84,8 @@ public:
 	LoadingScreen*			mLoadingScreen;         // app+0x870
 	GameSelector*			mGameSelector;          // app+0x890
 	Board*					mBoard;                 // app+0x598 the game in progress, null in the menu
+	int						mMode;                  // app+0x530 the chosen game mode (0 arcade, 1 classic, 2 strategy)
+	int						mDifficulty;            // app+0x534 the chosen difficulty (1 easy, 2 medium, 3 hard)
 	bool					mNoPopLink;             // app+0x548 the "NoPopLink" property
 
 public:
@@ -94,6 +96,7 @@ public:
 	virtual void			Init() override;
 	virtual void			LoadingThreadProc() override;
 	virtual void			ButtonPress(int theId) override;
+	virtual void			ButtonDepress(int theId) override;
 
 	// Helpers of the module (RocketManiaGame addresses in RocketApp.cpp)
 	bool					LoadImage(int theImageId);
@@ -103,7 +106,40 @@ public:
 
 	// the loading screen's play link was clicked (the original's slot 62)
 	virtual void			LoadingScreenDone();
-	void					ShowGameSelector();
+	void					ShowGameSelector();     // 0x42e010
+
+	// the game modes (0 arcade, 1 classic, 2 strategy) and difficulties (1 easy to 3 hard, 0 none) and their texts,
+	// kept in the original at app+0x554 to +0x594
+	static const SexyString&	ModeName(int theMode);          // "Arcade"
+	static const SexyString&	ModeTitle(int theMode);         // the game's title in that mode
+	static const SexyString&	HighScoreTitle(int theMode);    // the high score list's title
+	static const SexyString&	DifficultyName(int theDifficulty);
+	static const SexyString&	DifficultyNameUpper(int theDifficulty);
+
+	// the saved game of a mode (the file's first four bytes are 0xFADA0002; classic saves to savea, arcade to saveb,
+	// strategy to savec)
+	static std::string		SavePath(int theMode);          // 0x42f700 (path relative to the user folder)
+	bool					HasSavedGame(int theMode);      // 0x4062b0
+	bool					ReadSavedGame(int theMode, int* theDifficulty, int* theScore, int* theLevel);  // 0x4036f0
+
+	// the first-time explanation of a mode (0x42d670); true when it opened a dialog, which starts the game when closed
+	bool					ShowModeHint(int theHint, bool theForce);
+	void					StartBoard(bool theContinuing); // 0x42ea30
+
+	// the menu's lower buttons (the dialogs are not translated yet, the quit question is)
+	void					ShowQuitDialog();       // 0x42e390
+	void					ShowHighScores(bool theFromMenu);   // 0x42dcc0
+	void					ShowOptions(bool theFromMenu);      // 0x42de20
+};
+
+enum DialogId
+{
+	DIALOG_GAME_OVER = 0,
+	DIALOG_QUIT = 5,
+	DIALOG_HINT = 0xb,
+	DIALOG_DIFFICULTY = 0xc,
+	DIALOG_CONTINUE = 0xf,
+	DIALOG_REGISTER_TO_LOAD = 0x11
 };
 
 extern RocketApp* gApp;

@@ -24,7 +24,9 @@ CODE_RANGES = ((0x401000, 0x42f900),)
 # Extra texts that no function refers to by a plain address: the tables of string pointers in the data section (the tutorial
 # sidebar texts, the helper's speech bubbles, the help pages ...) lie between these addresses
 EXTRA = []
-POINTER_TABLES = (0, 0)
+POINTER_TABLES = (
+    (0x4e44d0, 0x4e44ec),   # GameSelector's hint under the buttons (0x4059d0)
+)
 # the read-only data where the strings are
 IMMEDIATE_STRINGS = (0x4e4000, 0x4e8000)
 
@@ -76,15 +78,15 @@ def main():
         j = json.loads(line)
         if j["type"] == "string":
             known.add(int(j["addr"], 16))
-    lo, hi = POINTER_TABLES
-    for va in range(lo, hi, 4):
-        try:
-            o = va_to_off(d, va)
-        except ValueError:
-            continue
-        v = struct.unpack_from("<I", d, o)[0]
-        if v in known:
-            rows.add(v)
+    for lo, hi in POINTER_TABLES:
+        for va in range(lo, hi, 4):
+            try:
+                o = va_to_off(d, va)
+            except ValueError:
+                continue
+            v = struct.unpack_from("<I", d, o)[0]
+            if v in known:
+                rows.add(v)
     # strings Ghidra did not define as strings (it merges or skips some): an address the code pushes or loads
     lo, hi = IMMEDIATE_STRINGS
     for a, b in CODE_RANGES:
@@ -94,7 +96,7 @@ def main():
             if not (lo <= v < hi):
                 continue
             op = d[o - 1]
-            if not (op == 0x68 or 0xb8 <= op <= 0xbf or d[o - 2] == 0xc7 or d[o - 3] == 0xc7 or d[o - 4] == 0xc7):
+            if not (op == 0x68 or 0xb8 <= op <= 0xbf or d[o - 2] == 0xc7 or d[o - 3] == 0xc7 or d[o - 4] == 0xc7 or d[o - 6] == 0xc7 or d[o - 7] == 0xc7):
                 continue
             try:
                 so = va_to_off(d, v)

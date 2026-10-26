@@ -1,6 +1,7 @@
 // The full-screen widgets of Rocket Mania Deluxe (see Screens.h).
 
 #include "Screens.h"
+#include "Dialogs.h"
 #include "RocketApp.h"
 #include "GameText.h"
 #include "Compat2004.h"
@@ -125,4 +126,238 @@ void LoadingScreen::Draw(Graphics* g)
 void LoadingScreen::ButtonDepress(int theId)
 {
 	mApp->LoadingScreenDone();
+}
+
+// ---------------------------------------------------------------------------------------------------------
+// GameSelector
+
+// the hint texts' addresses (the pointer table at 0x4e44d0): nothing hovered, the three modes, the lower buttons
+static const unsigned int gHintTexts[7] =
+{
+	0x004e45e0, 0x004e45b0, 0x004e4590, 0x004e4550, 0x004e4530, 0x004e4514, 0x004e44ec
+};
+
+static DialogButton* MakeMenuButton(RocketApp* theApp, int theId, ButtonListener* theListener, const SexyString& theLabel,
+	const Color& theColor, int theY)
+{
+	DialogButton* aButton = new DialogButton(theApp->mImages[IMAGE_DARKBUTTON], theId, theListener);
+	aButton->SetFont(theApp->mFonts[FONT_DOMO14_BOLD]);
+	aButton->SetColor(ButtonWidget::COLOR_LABEL, theColor);
+	aButton->SetColor(ButtonWidget::COLOR_LABEL_HILITE, Color(0xff, 0xff, 0xff));
+	aButton->mLabel = theLabel;
+	aButton->mMouseInsets = Insets(-10, -10, -10, -10);
+	aButton->mDoFinger = true;
+	aButton->Resize(4, theY, 0x86, 0x23);
+	return aButton;
+}
+
+// 0x404e30
+GameSelector::GameSelector(RocketApp* theApp) :
+	mApp(theApp),
+	mAlpha(0xff),
+	mHint(0),
+	mDifficulty(-1),
+	mMode(-1),
+	mYOffset(0)
+{
+	Color aModeColor(0x97, 0xef, 0xc2);
+	Color aMenuColor(0x97, 0xc2, 0xef);
+
+	// the buttons stand one under the other: classic, arcade, strategy, then high scores, options and quit
+	mModeButtons[BUTTON_CLASSIC] = MakeMenuButton(mApp, BUTTON_CLASSIC, this, RocketApp::ModeName(1), aModeColor, 0xa7);
+	mModeButtons[BUTTON_ARCADE] = MakeMenuButton(mApp, BUTTON_ARCADE, this, RocketApp::ModeName(0), aModeColor, 0xd2);
+	mModeButtons[BUTTON_STRATEGY] = MakeMenuButton(mApp, BUTTON_STRATEGY, this, RocketApp::ModeName(2), aModeColor, 0xfd);
+	mHighScoresButton = MakeMenuButton(mApp, BUTTON_HIGH_SCORES, this, GT(0x004e464c), aMenuColor, 0x130);
+	mOptionsButton = MakeMenuButton(mApp, BUTTON_OPTIONS, this, GT(0x004e4644), aMenuColor, 0x15b);
+	mQuitButton = MakeMenuButton(mApp, BUTTON_QUIT, this, GT(0x004e463c), aMenuColor, 0x186);
+
+	// not ported: the firework rockets over the menu (RocketManager 0x41a830, one rocket made with 0x41a9c0(2, 1)) and the
+	// talking head (0x405950 puts it at 150, 65)
+	ResetHead();
+}
+
+GameSelector::~GameSelector()
+{
+	for (int i = 0; i < 3; i++)
+		delete mModeButtons[i];
+	delete mHighScoresButton;
+	delete mOptionsButton;
+	delete mQuitButton;
+}
+
+// 0x405d80
+void GameSelector::AddedToManager(WidgetManager* theWidgetManager)
+{
+	Widget::AddedToManager(theWidgetManager);
+	theWidgetManager->AddWidget(mModeButtons[BUTTON_ARCADE]);
+	theWidgetManager->AddWidget(mModeButtons[BUTTON_CLASSIC]);
+	theWidgetManager->AddWidget(mModeButtons[BUTTON_STRATEGY]);
+	theWidgetManager->AddWidget(mQuitButton);
+	theWidgetManager->AddWidget(mHighScoresButton);
+	theWidgetManager->AddWidget(mOptionsButton);
+}
+
+// 0x405e40
+void GameSelector::RemovedFromManager(WidgetManager* theWidgetManager)
+{
+	Widget::RemovedFromManager(theWidgetManager);
+	theWidgetManager->RemoveWidget(mModeButtons[BUTTON_ARCADE]);
+	theWidgetManager->RemoveWidget(mModeButtons[BUTTON_CLASSIC]);
+	theWidgetManager->RemoveWidget(mModeButtons[BUTTON_STRATEGY]);
+	theWidgetManager->RemoveWidget(mQuitButton);
+	theWidgetManager->RemoveWidget(mHighScoresButton);
+	theWidgetManager->RemoveWidget(mOptionsButton);
+}
+
+// 0x405bd0: the hint under the picture follows the hovered button and fades in
+void GameSelector::Update()
+{
+	Widget::Update();
+
+	// not ported: the rockets' update, and at update 100 the talking head's welcome (0x416aa0 with text 0x3e on the
+	// first start, 0x39 after, and 0x416360 with 0x10 or 1)
+
+	if (mAlpha < 0xff)
+	{
+		mAlpha += 10;
+		MarkDirty();
+	}
+
+	// the hovered button decides the hint; the lower three keep it while the pointer is over them
+	DialogButton* aButtons[6] = {mModeButtons[BUTTON_ARCADE], mModeButtons[BUTTON_CLASSIC], mModeButtons[BUTTON_STRATEGY],
+		mHighScoresButton, mOptionsButton, mQuitButton};
+	bool anyOver = false;
+	for (int i = 0; i < 5; i++)
+	{
+		if (aButtons[i]->mIsOver)
+		{
+			anyOver = true;
+			if (mHint != i + 1)
+			{
+				mHint = i + 1;
+				MarkDirty();
+				mAlpha = 0;
+			}
+		}
+	}
+	if (aButtons[5]->mIsOver)
+	{
+		if (mHint != 6)
+		{
+			mHint = 6;
+			MarkDirty();
+			mAlpha = 0;
+		}
+	}
+	else if (!anyOver && (mHint != 0))
+	{
+		mHint = 0;
+		MarkDirty();
+		mAlpha = 0;
+	}
+}
+
+// 0x4059d0
+void GameSelector::Draw(Graphics* g)
+{
+	g->DrawImage(mApp->mImages[IMAGE_SELECTBACK], 0, mYOffset);
+
+	if ((mApp->GetDialog(DIALOG_DIFFICULTY) == NULL) && (mApp->GetDialog(DIALOG_CONTINUE) == NULL) &&
+		(mApp->GetDialog(DIALOG_REGISTER_TO_LOAD) == NULL))
+	{
+		// (the original lets the alpha reach 260; it is kept at 255 here)
+		int anAlpha = (mAlpha > 0xff) ? 0xff : mAlpha;
+		g->SetFont(mApp->mFonts[FONT_VERDANA12_BOLD]);
+		g->SetColor(Color(0, anAlpha, anAlpha, anAlpha));
+		const SexyString& aText = GT(gHintTexts[mHint]);
+		g->DrawString(aText, 0x140 - g->GetFont()->StringWidth(aText) / 2, 0x1cc);
+	}
+
+	// not ported: the rockets (0x41abb0)
+}
+
+// 0x406220
+void GameSelector::ButtonDepress(int theId)
+{
+	switch (theId)
+	{
+	case BUTTON_ARCADE:
+	case BUTTON_CLASSIC:
+	case BUTTON_STRATEGY:
+		mMode = theId;
+		if (mApp->HasSavedGame(mMode))
+			ShowContinueDialog();
+		else
+			ShowDifficultyDialog();
+		break;
+	case BUTTON_QUIT:
+		mApp->ShowQuitDialog();
+		break;
+	case BUTTON_HIGH_SCORES:
+		mApp->ShowHighScores(true);
+		break;
+	case BUTTON_OPTIONS:
+		mApp->ShowOptions(true);
+		break;
+	}
+}
+
+// 0x405fb0
+void GameSelector::ShowDifficultyDialog()
+{
+	DifficultyDialog* aDialog = new DifficultyDialog(mApp);
+	aDialog->SetColor(0, mApp->mDialogColors[0]);
+	aDialog->SetColor(1, mApp->mDialogColors[1]);
+	aDialog->SetColor(3, mApp->mDialogColors[2]);
+	aDialog->mContentInsets = Insets(0x24, 0x24, 0x24, 0x24);
+	aDialog->Resize(5, (mHeight - 0x1a9) / 2, 0x1a4, 0x1a9);
+	mApp->AddDialog(DIALOG_DIFFICULTY, aDialog);
+	ResetHead();
+}
+
+// 0x4060d0
+void GameSelector::ShowContinueDialog()
+{
+	ContinueDialog* aDialog = new ContinueDialog(mApp, mMode);
+	aDialog->SetColor(0, mApp->mDialogColors[0]);
+	aDialog->SetColor(1, mApp->mDialogColors[1]);
+	aDialog->SetColor(3, mApp->mDialogColors[2]);
+	aDialog->mContentInsets = Insets(0x24, 0x24, 0x24, 0x24);
+	aDialog->Resize(5, (mHeight - 0x1a9) / 2, 0x1a4, 0x1a9);
+	mApp->AddDialog(DIALOG_CONTINUE, aDialog);
+	ResetHead();
+}
+
+// slot 44, 0x405ed0: the dialogs call this with the chosen mode and difficulty
+void GameSelector::StartGame(bool theContinuing)
+{
+	mApp->mMode = mMode;
+	mApp->mDifficulty = mDifficulty;
+	// (the original counts the start in the trial game's counter when it is not registered)
+
+	bool aHintShown = false;
+	if (!theContinuing)
+	{
+		// the first game of a mode opens that mode's explanation, which starts the game when it is closed
+		if (mApp->mMode == 1)
+			aHintShown = mApp->ShowModeHint(2, false);
+		else if (mApp->mMode == 2)
+			aHintShown = mApp->ShowModeHint(1, false);
+		else if (mApp->mMode == 0)
+			aHintShown = mApp->ShowModeHint(0, false);
+	}
+	if (!aHintShown)
+		mApp->StartBoard(theContinuing);
+
+	for (int i = 0; i < 3; i++)
+		mModeButtons[i]->SetDisabled(true);
+	mQuitButton->SetDisabled(true);
+	mHighScoresButton->SetDisabled(true);
+	mOptionsButton->SetDisabled(true);
+}
+
+// 0x405950 and 0x405980: the talking head waits at (150, 65) on the menu and moves to (400, 75) while a dialog is up
+// (not ported)
+void GameSelector::ResetHead()
+{
 }
