@@ -89,6 +89,8 @@ public:
 	int						mDifficulty;            // app+0x534 the chosen difficulty (1 easy, 2 medium, 3 hard)
 	bool					mNoPopLink;             // app+0x548 the "NoPopLink" property
 	bool					mNoHints;               // app+0x549 an option of the Options dialog (0x4130b0): no hint arrow, no talking head
+	bool					mHintFlags[8];          // app+0x54a to +0x551 the hints that were shown (kept as HintsDisabledFlag%d)
+	SexyString				mLastScoreName;         // app+0x538 the name typed for the last high score (kept as LastScoreName)
 
 public:
 	RocketApp();
@@ -108,6 +110,8 @@ public:
 	virtual void			ButtonPress(int theId) override;
 	virtual void			ButtonDepress(int theId) override;
 	virtual bool			HandleScriptCommand(const ScriptCommand& theCommand) override;
+	virtual void			WriteToRegistry() override;                 // 0x42f2b0
+	virtual void			ReadFromRegistry() override;                // 0x42f4b0
 
 	// Helpers of the module (RocketManiaGame addresses in RocketApp.cpp)
 	bool					LoadImage(int theImageId);
@@ -149,15 +153,19 @@ public:
 	std::list<ButtonWidget*>	mBoardButtons;      // app+0x87c
 	void					ShowHighScores(bool theFromMenu);   // 0x42dcc0
 	void					ShowOptions(bool theFromMenu);      // 0x42de20
+	void					CenterDialog(Dialog* theDialog);    // 0x42e330
+	void					ShowCredits();                      // 0x42d760
 };
 
 enum DialogId
 {
 	DIALOG_GAME_OVER = 0,
+	DIALOG_OPTIONS = 1,
 	DIALOG_QUIT = 5,
 	DIALOG_HINT = 0xb,
 	DIALOG_DIFFICULTY = 0xc,
 	DIALOG_CONTINUE = 0xf,
+	DIALOG_MESSAGE = 0x10,
 	DIALOG_REGISTER_TO_LOAD = 0x11
 };
 

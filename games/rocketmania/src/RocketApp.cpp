@@ -3,6 +3,7 @@
 
 #include "RocketApp.h"
 #include "Screens.h"
+#include "Dialogs.h"
 #include "Board.h"
 #include "Dialog.h"
 #include "ButtonWidget.h"
@@ -85,6 +86,8 @@ RocketApp::RocketApp()
 	mDifficulty = 0;
 	mNoPopLink = false;
 	mNoHints = false;
+	for (int i = 0; i < 8; i++)
+		mHintFlags[i] = false;
 	mIsRegistered = true;      // the Steam build plays as the registered game (properties/partner.xml: NoReg)
 }
 
@@ -271,8 +274,18 @@ void RocketApp::ButtonDepress(int theId)
 		case DIALOG_DIFFICULTY:
 			KillDialog(DIALOG_DIFFICULTY);
 			break;
+		case DIALOG_OPTIONS:
+		{
+			// the options' DONE button: the screen mode and the cursors (the checkboxes act on nothing before)
+			OptionsDialog* aDialog = (OptionsDialog*) GetDialog(DIALOG_OPTIONS);
+			bool aWantWindowed = !aDialog->mFullscreenCheckbox->IsChecked();
+			SwitchScreenMode(aWantWindowed, aDialog->m3DCheckbox->IsChecked());
+			EnableCustomCursors(aDialog->mCursorsCheckbox->IsChecked());
+			KillDialog(DIALOG_OPTIONS);
+			break;
+		}
 		default:
-			// (the options, high score, record and level dialogs: not translated yet)
+			// (the high score, record and level dialogs: not translated yet)
 			KillDialog(anId - 2000);
 			break;
 		}
@@ -283,9 +296,7 @@ void RocketApp::ButtonDepress(int theId)
 	if (theId == 1)
 	{
 		if (mBoard != NULL && mBoard->mState == 0)
-		{
-			// (0x42de20: the options dialog is not translated yet)
-		}
+			ShowOptions(false);
 	}
 	else if (theId == 2)
 		QuitGame();
@@ -301,7 +312,7 @@ Dialog* RocketApp::NewDialog(int theDialogId, bool isModal, const SexyString& th
 	Dialog* aDialog = new Dialog2004(mImages[IMAGE_DIALOG], mImages[IMAGE_DIALOGBUTTON], theDialogId, isModal,
 		theDialogHeader, theDialogLines, theDialogFooter, theButtonMode);
 	aDialog->SetButtonFont(mFonts[FONT_VERDANA12_BOLD]);
-	aDialog->SetHeaderFont(mFonts[FONT_SHOWCARD22]);
+	aDialog->SetHeaderFont(mFonts[FONT_VERDANA18_BOLD]);
 	aDialog->SetLinesFont(mFonts[FONT_VERDANA12_BOLD]);
 	aDialog->SetColor(0, mDialogColors[0]);
 	aDialog->SetColor(1, mDialogColors[1]);
@@ -361,11 +372,71 @@ void RocketApp::ShowHighScores(bool theFromMenu)
 	SDL_Log("ShowHighScores: not translated yet");
 }
 
-// 0x42de20 (not translated yet)
+// 0x42de20: the options dialog, in the middle of the screen; from the menu the talking head steps aside, in a game the
+// menu music plays
 void RocketApp::ShowOptions(bool theFromMenu)
 {
-	(void) theFromMenu;
-	SDL_Log("ShowOptions: not translated yet");
+	OptionsDialog* aDialog = new OptionsDialog(this, theFromMenu);
+	aDialog->SetColor(0, mDialogColors[0]);
+	aDialog->SetColor(1, mDialogColors[1]);
+	aDialog->SetColor(3, mDialogColors[2]);
+	int aHeight = aDialog->GetPreferredHeight(0x184);
+	aDialog->Resize(0x7e, 0xf0 - aHeight / 2, 0x184, aHeight);
+	AddDialog(DIALOG_OPTIONS, aDialog);
+	if (theFromMenu)
+	{
+		// (0x4165f0: the talking head's move is not ported yet)
+	}
+	else
+		mMusicInterface->FadeIn(0, -1, 0.2, false);
+}
+
+// 0x42d760 (not translated yet)
+void RocketApp::ShowCredits()
+{
+	SDL_Log("ShowCredits: not translated yet");
+}
+
+// 0x42e330: a dialog in the middle of the window
+void RocketApp::CenterDialog(Dialog* theDialog)
+{
+	if (theDialog != NULL)
+		theDialog->Resize(mWidth / 2 - theDialog->mWidth / 2, mHeight / 2 - theDialog->mHeight / 2, theDialog->mWidth,
+			theDialog->mHeight);
+}
+
+// 0x42f2b0: the framework's values, then the last name typed for a high score and the hints
+void RocketApp::WriteToRegistry()
+{
+	SexyApp::WriteToRegistry();
+	if (mLastScoreName.length() != 0)
+		RegistryWriteString("LastScoreName", mLastScoreName);
+	RegistryWriteBoolean("HintsDisabled", mNoHints);
+	for (int i = 0; i < 8; i++)
+	{
+		char aName[200];
+		snprintf(aName, sizeof(aName), "HintsDisabledFlag%d", i);
+		RegistryWriteBoolean(aName, mHintFlags[i]);
+	}
+}
+
+// 0x42f4b0
+void RocketApp::ReadFromRegistry()
+{
+	SexyApp::ReadFromRegistry();
+	std::string aName;
+	if (RegistryReadString("LastScoreName", &aName))
+		mLastScoreName = aName;
+	bool aFlag;
+	if (RegistryReadBoolean("HintsDisabled", &aFlag))
+		mNoHints = aFlag;
+	for (int i = 0; i < 8; i++)
+	{
+		char aKey[200];
+		snprintf(aKey, sizeof(aKey), "HintsDisabledFlag%d", i);
+		if (RegistryReadBoolean(aKey, &aFlag))
+			mHintFlags[i] = aFlag;
+	}
 }
 
 // 0x42d470

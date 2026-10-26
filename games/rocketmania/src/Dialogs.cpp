@@ -7,6 +7,7 @@
 #include "GameText.h"
 #include "Graphics.h"
 #include "ImageFont.h"
+#include "MusicInterface.h"
 #include "WidgetManager.h"
 
 #include <cstdio>
@@ -256,4 +257,251 @@ void ContinueDialog::ButtonDepress(int theId)
 	}
 	else
 		Dialog2004::ButtonDepress(theId);
+}
+
+// ---------------------------------------------------------------------------------------------------------
+// MoneyDialog
+
+// 0x4118d0 and the Dialog constructor 0x433e8c: the game's dialog picture and button picture
+MoneyDialog::MoneyDialog(RocketApp* theApp, int theId, bool isModal, const SexyString& theHeader,
+	const SexyString& theLines, const SexyString& theFooter, int theButtonMode) :
+	Dialog2004(theApp->mImages[IMAGE_DIALOG], theApp->mImages[IMAGE_DIALOGBUTTON], theId, isModal, theHeader, theLines,
+		theFooter, theButtonMode),
+	mApp(theApp),
+	mPhase(0.0)
+{
+}
+
+// 0x411b20: the phase goes round once in 2000 updates, and the dialog is drawn again each time
+void MoneyDialog::Update()
+{
+	Dialog2004::Update();
+	mPhase += 0.0005;
+	if (mPhase > 1.0)
+		mPhase -= 1.0;
+	MarkDirty();
+}
+
+// 0x411980: black behind the picture. (The original goes on to work out 40 points along the border from the phase and
+// switches the draw mode to additive and back, drawing nothing with them.)
+void MoneyDialog::Draw(Graphics* g)
+{
+	g->SetColor(Color(0, 0, 0));
+	g->FillRect(8, 8, mWidth - 16, mHeight - 16);
+	Dialog2004::Draw(g);
+}
+
+// ---------------------------------------------------------------------------------------------------------
+// OptionsDialog
+
+// 0x411ba0
+OptionsDialog::OptionsDialog(RocketApp* theApp, bool theFromMenu) :
+	MoneyDialog(theApp, DIALOG_OPTIONS, true, GT(0x004e55f8), "", GT(0x004e4350), BUTTONS_FOOTER),
+	mFromMenu(theFromMenu),
+	mLastSoundUpdate(mUpdateCnt - 100),
+	mMusicSlider(NULL),
+	mSfxSlider(NULL),
+	mFullscreenCheckbox(NULL),
+	m3DCheckbox(NULL),
+	mCursorsCheckbox(NULL),
+	mHintsCheckbox(NULL),
+	mResetHintsButton(NULL),
+	mCreditsButton(NULL)
+{
+	SetButtonFont(mApp->mFonts[FONT_VERDANA12_BOLD]);
+	SetHeaderFont(mApp->mFonts[FONT_VERDANA18_BOLD]);
+	SetLinesFont(mApp->mFonts[FONT_VERDANA12_BOLD]);
+
+	mResetHintsButton = MakeDialogButton(mApp, BUTTON_RESET_HINTS, this, GT(0x004e55d4));
+	mResetHintsButton->SetFont(mApp->mFonts[FONT_VERDANA12_BOLD]);
+	mCreditsButton = MakeDialogButton(mApp, BUTTON_CREDITS, this, GT(0x004e55cc));
+	mCreditsButton->SetFont(mApp->mFonts[FONT_VERDANA12_BOLD]);
+
+	mMusicSlider = new Slider2004(mApp->mImages[IMAGE_SLIDERTRACK], mApp->mImages[IMAGE_SLIDERTHUMB], 0, this);
+	mMusicSlider->SetValue(mApp->GetMusicVolume());
+	mSfxSlider = new Slider2004(mApp->mImages[IMAGE_SLIDERTRACK], mApp->mImages[IMAGE_SLIDERTHUMB], 1, this);
+	mSfxSlider->SetValue(mApp->GetSfxVolume());
+
+	mFullscreenCheckbox = new Checkbox(mApp->mCheckUnchecked, mApp->mCheckChecked, CHECK_FULLSCREEN, this);
+	mFullscreenCheckbox->SetChecked(!mApp->mIsWindowed);
+	m3DCheckbox = new Checkbox(mApp->mCheckUnchecked, mApp->mCheckChecked, CHECK_HARDWARE, this);
+	m3DCheckbox->mChecked = mApp->Is3DAccelerated();
+	mCursorsCheckbox = new Checkbox(mApp->mCheckUnchecked, mApp->mCheckChecked, CHECK_CURSORS, this);
+	mCursorsCheckbox->SetChecked(mApp->mCustomCursorsEnabled);
+	mHintsCheckbox = new Checkbox(mApp->mCheckUnchecked, mApp->mCheckChecked, CHECK_HINTS, this);
+	mHintsCheckbox->SetChecked(mApp->mNoHints);
+}
+
+OptionsDialog::~OptionsDialog()
+{
+	delete mResetHintsButton;
+	delete mCreditsButton;
+	delete mMusicSlider;
+	delete mSfxSlider;
+	delete mFullscreenCheckbox;
+	delete m3DCheckbox;
+	delete mCursorsCheckbox;
+	delete mHintsCheckbox;
+}
+
+// 0x4127c0: colour 3 is the buttons' label colour
+void OptionsDialog::SetColor(int theIdx, const Color& theColor)
+{
+	MoneyDialog::SetColor(theIdx, theColor);
+	if (theIdx == COLOR_BUTTON_TEXT)
+	{
+		if (mResetHintsButton != NULL)
+			mResetHintsButton->SetColor(ButtonWidget::COLOR_LABEL, theColor);
+		if (mCreditsButton != NULL)
+			mCreditsButton->SetColor(ButtonWidget::COLOR_LABEL, theColor);
+	}
+}
+
+// 0x412860
+void OptionsDialog::AddedToManager(WidgetManager* theWidgetManager)
+{
+	MoneyDialog::AddedToManager(theWidgetManager);
+	theWidgetManager->AddWidget(mMusicSlider);
+	theWidgetManager->AddWidget(mSfxSlider);
+	theWidgetManager->AddWidget(mCursorsCheckbox);
+	theWidgetManager->AddWidget(mHintsCheckbox);
+	theWidgetManager->AddWidget(mFullscreenCheckbox);
+	theWidgetManager->AddWidget(m3DCheckbox);
+	theWidgetManager->AddWidget(mResetHintsButton);
+	theWidgetManager->AddWidget(mCreditsButton);
+}
+
+// 0x412940
+void OptionsDialog::RemovedFromManager(WidgetManager* theWidgetManager)
+{
+	MoneyDialog::RemovedFromManager(theWidgetManager);
+	theWidgetManager->RemoveWidget(mMusicSlider);
+	theWidgetManager->RemoveWidget(mSfxSlider);
+	theWidgetManager->RemoveWidget(mFullscreenCheckbox);
+	theWidgetManager->RemoveWidget(m3DCheckbox);
+	theWidgetManager->RemoveWidget(mCursorsCheckbox);
+	theWidgetManager->RemoveWidget(mHintsCheckbox);
+	theWidgetManager->RemoveWidget(mResetHintsButton);
+	theWidgetManager->RemoveWidget(mCreditsButton);
+}
+
+// 0x412a20: sliders, then the checkboxes (the hardware acceleration one hangs from the hints one), then the two buttons
+// that share the width under them. (The original also puts the register button, the update check and the partner links
+// around them.)
+void OptionsDialog::Resize(int theX, int theY, int theWidth, int theHeight)
+{
+	MoneyDialog::Resize(theX, theY, theWidth, theHeight);
+	mMusicSlider->Resize(mX + 0x98, mY + 0x35, mWidth - 0xc0, 0x24);
+	mSfxSlider->Resize(mX + 0x98, mY + 0x55, mWidth - 0xc0, 0x24);
+	mFullscreenCheckbox->Resize(mX + 0x30, mY + 0x7b, 0x18, 0x18);
+	mCursorsCheckbox->Resize(mX + 0xb0, mY + 0x7b, 0x18, 0x18);
+	mHintsCheckbox->Resize(mX + 0x30, mY + 0x94, 0x18, 0x18);
+	m3DCheckbox->Layout(LAY_SameSize | LAY_SameLeft | LAY_Below, mHintsCheckbox);
+
+	int aHalf = ((mWidth - mContentInsets.mLeft) - mContentInsets.mRight) / 2;
+	mResetHintsButton->Resize(mX + mContentInsets.mLeft, mY + 0xd0, aHalf, 0x24);
+	mCreditsButton->Resize(mX + aHalf + mContentInsets.mLeft, mY + 0xd0, aHalf, 0x24);
+}
+
+// 0x412770: the original's 0x156, less 0x24 when the update check is switched off (as it is here), less 0x24 when there
+// is no register button (the game is registered), plus 0x24 for each partner link (none here)
+int OptionsDialog::GetPreferredHeight(int theWidth)
+{
+	return 0x156 - 0x24 - 0x24 + 0x24;
+}
+
+// 0x412c60: the captions (the dialog's lines colour is still set)
+void OptionsDialog::Draw(Graphics* g)
+{
+	MoneyDialog::Draw(g);
+	g->SetFont(mApp->mFonts[FONT_VERDANA12_BOLD]);
+	g->DrawString(GT(0x004e565c), 0x30, 0x4d);
+	g->DrawString(GT(0x004e5650), 0x30, 0x6d);
+	g->DrawString(GT(0x004e5644), mFullscreenCheckbox->mX - mX + 0x1c, mFullscreenCheckbox->mY - mY + 0x11);
+	g->DrawString(GT(0x004e5634), mCursorsCheckbox->mX - mX + 0x1c, mCursorsCheckbox->mY - mY + 0x11);
+	g->DrawString(GT(0x004e5618), mHintsCheckbox->mX - mX + 0x1c, mHintsCheckbox->mY - mY + 0x11);
+	g->DrawString(GT(0x004e5600), m3DCheckbox->mX - mX + 0x1c, m3DCheckbox->mY - mY + 0x11);
+}
+
+// 0x413470: every button but the dialog's own plays the click
+void OptionsDialog::ButtonPress(int theId)
+{
+	MoneyDialog::ButtonPress(theId);
+	if ((theId != mId + 2000) && (theId != mId + 3000))
+		mApp->ButtonPress(0);
+}
+
+// 0x4134b0
+void OptionsDialog::ButtonDepress(int theId)
+{
+	// DONE goes to the app (RocketApp::ButtonDepress applies the choices and closes the dialog)
+	MoneyDialog::ButtonDepress(theId);
+	if (theId == mId + 2000)
+	{
+		if (!mFromMenu)
+			mApp->mMusicInterface->FadeOut(0, true, 0.02);
+		else
+			mApp->mGameSelector->ResetHead();
+		return;
+	}
+	// (the original's other buttons: register, check for updates, the partner links, a PopCap web page: not ported)
+	if (theId == BUTTON_CREDITS)
+		mApp->ShowCredits();
+	else if (theId == BUTTON_RESET_HINTS)
+	{
+		// every hint is shown again, and the button waits dimmed until the dialog is opened again
+		mApp->mNoHints = false;
+		mHintsCheckbox->SetChecked(mApp->mNoHints);
+		mResetHintsButton->SetDisabled(true);
+		const Color& aColor = mApp->mDialogColors[2];
+		mResetHintsButton->SetColor(ButtonWidget::COLOR_LABEL, Color(aColor.mRed, aColor.mGreen, aColor.mBlue, 0x80));
+		for (int i = 0; i < 8; i++)
+			mApp->mHintFlags[i] = false;
+	}
+}
+
+// 0x413040: the volume sliders act at once; the sound one clicks while it is dragged, at most once in 50 updates
+void OptionsDialog::SliderVal(int theId, double theVal)
+{
+	if (theId == 0)
+		mApp->SetMusicVolume(theVal);
+	else if (theId == 1)
+	{
+		mApp->SetSfxVolume(theVal);
+		if (mUpdateCnt - mLastSoundUpdate > 0x32)
+		{
+			mApp->ButtonPress(5);
+			mLastSoundUpdate = mUpdateCnt;
+		}
+	}
+}
+
+// 0x4130b0: nothing is applied before DONE, except the hints option. Hardware acceleration says when the computer
+// cannot do it, or may not do it well.
+void OptionsDialog::CheckboxChecked(int theId, bool checked)
+{
+	if (theId == CHECK_FULLSCREEN)
+	{
+		// the game could not run in a window (the user was asked and chose full screen): it stays full screen
+		if (!checked && mApp->mForceFullscreen)
+			mFullscreenCheckbox->SetChecked(true);
+	}
+	else if (theId == CHECK_HINTS)
+		mApp->mNoHints = checked;
+	else if ((theId == CHECK_HARDWARE) && checked)
+	{
+		if (!mApp->Is3DAccelerationSupported())
+		{
+			m3DCheckbox->SetChecked(false);
+			Dialog* aDialog = mApp->DoDialog(DIALOG_MESSAGE, true, GT(0x004e56f0), GT(0x004e5700), GT(0x004e5780),
+				BUTTONS_FOOTER);
+			mApp->CenterDialog(aDialog);
+		}
+		else if (!mApp->Is3DAccelerationRecommended())
+		{
+			Dialog* aDialog = mApp->DoDialog(DIALOG_MESSAGE, true, GT(0x004e5664), GT(0x004e5670), GT(0x004e5780),
+				BUTTONS_FOOTER);
+			mApp->CenterDialog(aDialog);
+		}
+	}
 }
