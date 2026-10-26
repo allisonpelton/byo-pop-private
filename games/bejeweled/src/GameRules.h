@@ -326,8 +326,9 @@ struct GameFeatures
 	bool							mCodeArt = false;       // code-drawn images and fonts (4.18, src/art/CodeArt.h)
 	std::string						mCodeArtGems = "cel";   // gem style: cel, glossy, su
 	std::string						mCodeArtPalette = "blue";   // blue, violet, emerald, ember, night
+	bool							mGameStats = false;     // the game-over screen's Stats page (4.19, GameStats.h)
 
-	bool							Any() const { return mSeeds || mReplays || mLeaderboard || mLiveSplit || mCodeArt; }
+	bool							Any() const { return mSeeds || mReplays || mLeaderboard || mLiveSplit || mCodeArt || mGameStats; }
 	std::string						Text() const;           // "seeds(entry, perGame), replays(keep 20), livesplit" or "none"
 };
 

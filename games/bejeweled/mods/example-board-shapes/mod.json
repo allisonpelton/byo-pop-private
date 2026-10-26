@@ -1,0 +1,46 @@
+{
+  "id": "example-board-shapes",
+  "name": "Example: Board Shapes and Sizes",
+  "version": "1.0",
+  "defaultEnabled": false,
+  "author": "byo-pop examples",
+  "description": "Boards of other sizes and shapes. Gems fall through the holes in a shape, and a board wider or taller than 8 cells is scaled to fit the window. One choice gives every level a shape of its own. Uses its own high-score table.",
+  "settings": [
+    { "type": "section", "label": "Board" },
+    { "id": "shape", "label": "Shape", "type": "choice", "default": "diamond",
+      "choices": [ { "value": "rect", "label": "Rectangle" }, { "value": "diamond", "label": "Diamond" },
+                   { "value": "octagon", "label": "Octagon" }, { "value": "cross", "label": "Cross" },
+                   { "value": "ring", "label": "Ring" }, { "value": "hourglass", "label": "Hourglass" },
+                   { "value": "levels", "label": "A new shape each level" } ],
+      "help": "Rectangle: the size below. Each level in turn: octagon, diamond, cross, ring, then 10 x 7, over again." },
+    { "id": "cols", "label": "Columns", "type": "int", "default": 10, "min": 3, "max": 16,
+      "enabledIf": { "setting": "shape", "equals": "rect" }, "help": "Cells across, 3 to 16 (the original has 8)." },
+    { "id": "rows", "label": "Rows", "type": "int", "default": 7, "min": 3, "max": 16,
+      "enabledIf": { "setting": "shape", "equals": "rect" }, "help": "Cells down, 3 to 16 (the original has 8)." }
+  ],
+  "rules": {
+    "board": { "$setting": "shape", "map": {
+      "rect": { "cols": { "$setting": "cols" }, "rows": { "$setting": "rows" } },
+      "diamond": { "mask": [ "....#....", "...###...", "..#####..", ".#######.", "#########",
+                             ".#######.", "..#####..", "...###...", "....#...." ] },
+      "octagon": { "mask": [ "..####..", ".######.", "########", "########",
+                             "########", "########", ".######.", "..####.." ] },
+      "cross": { "mask": [ "...###...", "...###...", "...###...", "#########", "#########",
+                           "#########", "...###...", "...###...", "...###..." ] },
+      "ring": { "mask": [ "########", "########", "########", "###..###",
+                          "###..###", "########", "########", "########" ] },
+      "hourglass": { "mask": [ "#########", ".#######.", "..#####..", "...###...", "...###...",
+                               "...###...", "..#####..", ".#######.", "#########" ] },
+      "levels": { "levels": [
+        { "mask": [ "..####..", ".######.", "########", "########",
+                    "########", "########", ".######.", "..####.." ] },
+        { "mask": [ "....#....", "...###...", "..#####..", ".#######.", "#########",
+                    ".#######.", "..#####..", "...###...", "....#...." ] },
+        { "mask": [ "...###...", "...###...", "...###...", "#########", "#########",
+                    "#########", "...###...", "...###...", "...###..." ] },
+        { "mask": [ "########", "########", "########", "###..###",
+                    "###..###", "########", "########", "########" ] },
+        { "cols": 10, "rows": 7 } ] }
+    } }
+  }
+}

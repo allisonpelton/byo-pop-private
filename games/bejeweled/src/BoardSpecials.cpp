@@ -85,6 +85,7 @@ void Board::ResolveSpecials(const std::vector<MatchFinder::Group>& theGroups)
 		aPiece->mKindFrame = 0;
 		aGrid.mDying[c.mCell.second][c.mCell.first] = false;
 		mSpecialsMade[c.mKind]++;
+		if (mStats != NULL) mStats->OnSpecialMade();
 	}
 
 	std::vector<Specials::Blast> aBlasts;
@@ -112,6 +113,7 @@ void Board::ScoreBlast(const Specials::Blast& theBlast)
 		aPiece->mDying = true;
 	}
 	mBlastCount++;
+	if (mStats != NULL) mStats->OnSpecialSetOff();
 
 	int aCount = (int) theBlast.mDestroyed.size();
 	const SpecialRule& aRule = (theBlast.mKind == Specials::KIND_FLAME) ? mRules.mSpecials.mFlame : mRules.mSpecials.mLightning;
@@ -122,6 +124,7 @@ void Board::ScoreBlast(const Specials::Blast& theBlast)
 		mScorePopups.push_back(aPopup);
 		mGemsCleared += aCount;
 		mScore += aPoints;
+		if (mStats != NULL) mStats->OnPoints(aPoints);
 		AddMoveScore(aPoints);
 	}
 	// The cells of the gems it took turn gold with gold.gild "matchesAndBlasts" (4.9)

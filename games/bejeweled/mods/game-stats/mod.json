@@ -1,0 +1,9 @@
+{
+  "id": "game-stats",
+  "name": "Game Stats",
+  "version": "1.0",
+  "defaultEnabled": false,
+  "author": "byo-pop",
+  "description": "A STATS link on the game-over screen opens a page of the game's numbers: moves, swaps back, hints and undos with the points they cost, runs of 3, 4 and 5 with their points, cascades, the gems cleared per colour, the points per level as bars and the score over time as a line. An undo takes back its move's counts, and a saved game keeps them. Changes nothing in play.",
+  "features": { "gameStats": true }
+}

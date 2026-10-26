@@ -82,6 +82,7 @@ void Board::GildCells(const std::vector<MatchFinder::Cell>& theCells)
 		if (!mLayout.IsPlayable(aCol, aRow) || mGold[aRow][aCol])
 			continue;
 		mGold[aRow][aCol] = 1;
+		if (mStats != NULL) mStats->OnGoldCovered(1);
 		GoldShine aShine = {aCol, aRow, 0};
 		mGoldShines.push_back(aShine);
 		MarkDirty();
@@ -119,6 +120,7 @@ void Board::UpdateGoldGoal()
 		{
 			int aBonus = (int)((double) mRules.mGold.mTimeBonus * (mGoldTicksLeft / 100) * mPointMultiplier);
 			mScore += aBonus;
+			if (mStats != NULL) mStats->OnPoints(aBonus);
 		}
 		StartBlackHole();
 	}

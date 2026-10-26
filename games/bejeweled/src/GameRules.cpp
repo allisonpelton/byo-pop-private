@@ -2751,6 +2751,8 @@ std::string GameFeatures::Text() const
 		aParts.push_back("livesplit");
 	if (mCodeArt)
 		aParts.push_back("codeArt(gems " + mCodeArtGems + ", palette " + mCodeArtPalette + ")");
+	if (mGameStats)
+		aParts.push_back("gameStats");
 	std::string aText;
 	for (size_t i = 0; i < aParts.size(); i++)
 		aText += (i ? ", " : "") + aParts[i];
@@ -2760,8 +2762,8 @@ std::string GameFeatures::Text() const
 namespace
 {
 
-enum { FEATURE_SEEDS, FEATURE_REPLAYS, FEATURE_LEADERBOARD, FEATURE_LIVESPLIT, FEATURE_CODEART, NUM_FEATURES };
-const char* const gFeatureNames[NUM_FEATURES] = {"seeds", "replays", "leaderboard", "livesplit", "codeArt"};
+enum { FEATURE_SEEDS, FEATURE_REPLAYS, FEATURE_LEADERBOARD, FEATURE_LIVESPLIT, FEATURE_CODEART, FEATURE_GAMESTATS, NUM_FEATURES };
+const char* const gFeatureNames[NUM_FEATURES] = {"seeds", "replays", "leaderboard", "livesplit", "codeArt", "gameStats"};
 const char* const gCodeArtGems[] = {"cel", "glossy", "su"};
 const char* const gCodeArtPalettes[] = {"blue", "violet", "emerald", "ember", "night"};
 
@@ -2799,6 +2801,10 @@ bool ParseFeature(int theFeature, const JsonValue& theValue, GameFeatures* theOu
 		theOut->mCodeArt = anOn;
 		theOut->mCodeArtGems = "cel";
 		theOut->mCodeArtPalette = "blue";
+		break;
+	case FEATURE_GAMESTATS:
+		// no options: an object turns it on like true, and each of its members is an unknown key
+		theOut->mGameStats = anOn;
 		break;
 	}
 	if (!theValue.IsObject())
@@ -2943,12 +2949,14 @@ void Sexy::MergeFeatures(const std::vector<RulesSource>& theSources, GameFeature
 				aMerged.mLiveSplit = aParsed.mLiveSplit;
 				aMerged.mLiveSplitMod = aParsed.mLiveSplit ? aSource.mModId : std::string();
 			}
-			else
+			else if (k == FEATURE_CODEART)
 			{
 				aMerged.mCodeArt = aParsed.mCodeArt;
 				aMerged.mCodeArtGems = aParsed.mCodeArtGems;
 				aMerged.mCodeArtPalette = aParsed.mCodeArtPalette;
 			}
+			else
+				aMerged.mGameStats = aParsed.mGameStats;
 			GameFeatures aText;
 			if (k == FEATURE_SEEDS)
 			{
@@ -2969,12 +2977,14 @@ void Sexy::MergeFeatures(const std::vector<RulesSource>& theSources, GameFeature
 			}
 			else if (k == FEATURE_LIVESPLIT)
 				aText.mLiveSplit = aParsed.mLiveSplit;
-			else
+			else if (k == FEATURE_CODEART)
 			{
 				aText.mCodeArt = aParsed.mCodeArt;
 				aText.mCodeArtGems = aParsed.mCodeArtGems;
 				aText.mCodeArtPalette = aParsed.mCodeArtPalette;
 			}
+			else
+				aText.mGameStats = aParsed.mGameStats;
 			if (!aSetter[k].empty() && (aSetterText[k] != aText.Text()))
 				theStatus->mWarnings.push_back({aSource.mModId, std::string("features.") + gFeatureNames[k] + " overrides " + aSetter[k]});
 			aSetter[k] = aSource.mModId;

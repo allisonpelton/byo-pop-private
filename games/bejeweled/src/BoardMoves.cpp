@@ -350,6 +350,7 @@ bool Board::MouseDownVariant(int x, int y, int theClickCount)
 		if (CanTwist(aCol, aRow, -1))
 		{
 			if (mRecorder != NULL) mRecorder->OnTwist(aCol, aRow, -1);
+			if (mStats != NULL) mStats->OnTwist();
 			StartTwist(aCol, aRow, -1);
 		}
 		return true;
@@ -374,6 +375,7 @@ bool Board::MouseDownVariant(int x, int y, int theClickCount)
 		else if (CanTwist(aCol, aRow, 1))
 		{
 			if (mRecorder != NULL) mRecorder->OnTwist(aCol, aRow, 1);
+			if (mStats != NULL) mStats->OnTwist();
 			StartTwist(aCol, aRow, 1);
 		}
 		return true;
@@ -430,6 +432,7 @@ void Board::MouseUpVariant(int x, int y)
 		if ((aK != 0) && CanSlide(mDragAxis, aLine, mDragStart, aK, anOffset))
 		{
 			if (mRecorder != NULL) mRecorder->OnSlide(mDragAxis, aLine, mDragStart, aK, anOffset);
+			if (mStats != NULL) mStats->OnSlide();
 			StartSlide(mDragAxis, aLine, mDragStart, aK, anOffset);
 		}
 		MarkDirty();
@@ -441,6 +444,7 @@ void Board::MouseUpVariant(int x, int y)
 		if (TwistAt(mMouseDownX, mMouseDownY, hasSwap, &aCol, &aRow) && CanTwist(aCol, aRow, 1))
 		{
 			if (mRecorder != NULL) mRecorder->OnTwist(aCol, aRow, 1);
+			if (mStats != NULL) mStats->OnTwist();
 			StartTwist(aCol, aRow, 1);
 		}
 	}

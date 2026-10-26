@@ -1,0 +1,44 @@
+{
+  "id": "example-match-patterns",
+  "name": "Example: Match Patterns",
+  "version": "1.0",
+  "defaultEnabled": false,
+  "author": "byo-pop examples",
+  "description": "Other ways to match: runs of another length, diagonal runs, crossing runs of one colour that score as an L, T or plus, and 2 x 2 squares. Each pattern can earn bonus points. Uses its own high-score table.",
+  "settings": [
+    { "type": "section", "label": "Runs" },
+    { "id": "minRun", "label": "Shortest run", "type": "int", "default": 3, "min": 2, "max": 5,
+      "help": "Gems in a row that make a match. The original: 3." },
+    { "id": "diagonal", "label": "Diagonal runs", "type": "bool", "default": false,
+      "help": "Runs along both diagonals match too." },
+    { "id": "bonusDiagonal", "label": "Diagonal bonus", "type": "int", "default": 20, "min": 0, "max": 500, "step": 5,
+      "enabledIf": { "setting": "diagonal", "equals": true }, "help": "Points added for a diagonal run, before the level's multiplier." },
+    { "type": "section", "label": "Crossings" },
+    { "id": "merge", "label": "Crossing runs join", "type": "bool", "default": true,
+      "help": "Runs of one colour that cross form one group, an L, T or plus." },
+    { "id": "bonusLT", "label": "L and T bonus", "type": "int", "default": 50, "min": 0, "max": 500, "step": 5,
+      "enabledIf": { "setting": "merge", "equals": true }, "help": "Points added for an L or a T, before the multiplier." },
+    { "id": "bonusPlus", "label": "Plus bonus", "type": "int", "default": 100, "min": 0, "max": 500, "step": 5,
+      "enabledIf": { "setting": "merge", "equals": true }, "help": "Points added for a plus, before the multiplier." },
+    { "type": "section", "label": "Shapes" },
+    { "id": "square", "label": "2 x 2 squares", "type": "bool", "default": true,
+      "help": "Four gems of one colour in a square match too." },
+    { "id": "bonusSquare", "label": "Square bonus", "type": "int", "default": 30, "min": 0, "max": 500, "step": 5,
+      "enabledIf": { "setting": "square", "equals": true }, "help": "Points added for a square, before the multiplier." }
+  ],
+  "rules": {
+    "match": {
+      "minRun": { "$setting": "minRun" },
+      "diagonal": { "$setting": "diagonal" },
+      "crossings": { "$setting": "merge", "map": { "true": "merge", "false": "separate" } },
+      "shapes": { "$setting": "square", "map": { "true": { "square": { "preset": "square" } }, "false": { "$omit": true } } },
+      "bonus": {
+        "diagonal": { "$setting": "diagonal", "map": { "true": { "$setting": "bonusDiagonal" }, "false": { "$omit": true } } },
+        "L": { "$setting": "merge", "map": { "true": { "$setting": "bonusLT" }, "false": { "$omit": true } } },
+        "T": { "$setting": "merge", "map": { "true": { "$setting": "bonusLT" }, "false": { "$omit": true } } },
+        "plus": { "$setting": "merge", "map": { "true": { "$setting": "bonusPlus" }, "false": { "$omit": true } } },
+        "square": { "$setting": "square", "map": { "true": { "$setting": "bonusSquare" }, "false": { "$omit": true } } }
+      }
+    }
+  }
+}

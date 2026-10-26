@@ -2396,10 +2396,10 @@ games/bejeweled/docs/CODE_MODS_DESIGN.md 4.17, as built. `tools/make_su_gems_mod
 seven gems as gems from Steven Universe in their Bejeweled colours, plus Rose Quartz, Lapis Lazuli, Bismuth and Garnet
 for boards of up to 11 colours. It writes a whole `images/gemsheet6@4x.png` rather than a patch, because a patch cannot
 make the sheet taller; the game's 1x comes from box downsampling, and boards of 7 colours read only the first seven
-rows. Each gem is a convex solid ray-cast per pixel and cel shaded: four Lambert tones from a fixed light, a rim
-tone, one white glint and a dark outline, with Pearl a smooth ellipsoid and Bismuth's facets in rainbow hues. The spin
-and glow rows use the frame layout of the Bejeweled 2 gems, whose shared code moved into `tools/gemsheet.py` (that
-generator's output is byte-identical). The title screen's five gems are covered and redrawn as SU gems, unless
+rows. Since 2026-10-26 each gem is a static flat drawing in the show's style: a dark rim, wedge facets toned by the
+direction they face around a table, no glints. Every spin frame is the same picture and the glow row is the gem
+lifted toward white. (Stage 15 ray-cast cel-shaded solids instead; the user found them not recognisably the
+show's.) The sheet uses the frame layout of `tools/gemsheet.py`, shared with the Bejeweled 2 gems. The title screen's five gems are covered and redrawn as SU gems, unless
 `--no-title`. The output is fan art of the show's designs and stays git-ignored (`mods/.gitignore`). Nothing in the
 game changed.
 
@@ -2415,6 +2415,17 @@ differ in width but keep each font's height, ascent and space. The density follo
 commit 935cc5d), so mod images and image patches still apply over the drawn art. A missing sound file is not fatal
 with code art on, and the title screen then says the game plays silent. Nothing changes without the mod: the
 generator is not registered, and play never reads what it draws.
+
+### 12.21 Game-over stats (code mods, stage 17)
+
+games/bejeweled/docs/CODE_MODS_DESIGN.md 4.19, as built. The mod `game-stats` turns on `features.gameStats`.
+The board then owns a `GameStats` (`src/GameStats.*`), which its hooks feed: each scored run, the other points, each
+penalty, move, swap back, hint, undo, twist, slide, special and gilded cell, and the settle that ends a move. After
+each update it counts the play time and notices level-ups. It is no game state. It draws from no RNG, is not in
+StateCodec's LOGIC and does not touch the score key, so the oracle's runs without the mod are unchanged and the bot's
+games hash the same with it. The game-over screen gets a STATS link next to the SEED line's row, and the REPLAY END
+dialog of a watched replay gets one too; either opens `GameStatsPage` over the board window. Undo snapshots keep
+a copy of the counts, and saves keep them in the sidecar's STAT record.
 
 ## 13. Naming reconciliation (analyst names → chosen names)
 

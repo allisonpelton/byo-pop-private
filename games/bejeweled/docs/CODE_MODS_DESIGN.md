@@ -437,6 +437,13 @@ When a group qualifies for both kinds of special, lightning is checked first.
 
 ### 3.3 One example per feature
 
+The playable versions ship in `games/bejeweled/mods/` as `example-seeds`, `example-replays`, `example-free-swaps`,
+`example-undo`, `example-board-shapes`, `example-dirt`, `example-twilight`, `example-gem-colours`,
+`example-match-patterns`, `example-twist-slide`, `example-power-gems` and `example-gold` (2026-10-26). Each starts off
+(`"defaultEnabled": false`) and puts its feature's values in the mod menu through `$setting` placeholders, with
+Bejeweled 2's or this design's values as the defaults. `game-stats` (4.19) has no settings, so it is a feature mod
+under its own name. The sketches below are the minimal forms.
+
 ```jsonc
 // 1. Allow invalid moves
 { "id": "free-swaps", "name": "Free Swaps", "version": "1.0",
@@ -1879,6 +1886,18 @@ Bejeweled 2 generator went from ~1000 lines to ~620, and its output is byte-iden
 is ~300 lines. The title gems fit the old gems' boxes, which the cover hides. The oracle is untouched: images
 only, no code change.
 
+**Redrawn (2026-10-26, the user: the ray-cast gems were not recognisably the show's; static pictures in the show's
+style instead):** `make_su_gems_mod.py` now draws each gem once, flat in 2D, after the show's designs. Sapphire,
+Ruby, Amethyst, Rose Quartz and Garnet are round, with a dark rim and a table of 3, 4, 6, 5 and 8 sides. Pearl is
+a white egg with a black rim and a pink crescent. Peridot is a rounded triangle, point down, with a pale highlight.
+Jasper is a kite of four facets, Yellow Diamond a rhombus with a rhombus table, Lapis Lazuli a teardrop pointing
+up, and Bismuth a square in a mauve setting, stepped in rainbow rings. The facets are flat wedges between the
+table and the edge. Each takes one of the gem's tones by the direction it faces, lit from the upper left. There
+are no glints, as in the show. Every frame of a spin row is the same picture, and its glow row is the same gem
+lifted toward white. The title patch places the same drawings in the old gems' boxes with the same cover and
+glows. The sheet and the patch keep their paths and sizes. The script no longer uses `gemsheet.py`'s ray cast,
+only its layout, title constants and writers; the shapes are new drawings, and the script reads no file.
+
 ### 4.18 Code-drawn art, no image files (`features.codeArt`)
 
 - **What:** code draws every image and bitmap font the game loads, at load time. The game then runs
@@ -2041,6 +2060,54 @@ drawn image is replaced. On the web the import still asks for the whole install 
   through; screenshots of the page for normal and timed games, at 640x480 and @4x; oracle three ways
   without the mod.
 - **Size:** ~900 lines: observer and hooks ~250, sidecar chunk ~100, page and charts ~400, tests ~150.
+
+**As built (stage 17, `GameStats.*`, `GameStatsPage.*`, the mod `game-stats`; GAME_NOTES 12.21):** about
+790 new lines and 280 changed ones. The button is a **STATS** link, like WATCH REPLAY: it starts at x 225 on the SEED
+line's row and slides with the panel. The page is a widget over the board window (191,9, 435 x 423) with the board
+frame drawn over its edge, and a click anywhere on it closes it. Its layout flows instead of the fixed rows planned.
+PLAY and MATCHES are two columns of label and value. A row appears only when the rules play it or the game did it:
+kept invalid moves and undos when the rules allow them, twists, slides, specials and gold when there were any. A
+value that does not fit beside its label goes under it, and when either column passes seven rows they close up from
+15 px to 13. The gems cleared per colour sit in one row across both columns (up to 12 colours). The charts take the
+height left above y 292 (24 to 70 px), and the level line and the BOARD rows stay below. On the BOARD rows, Rules
+says "the original" when the score key is empty and otherwise shows the first eight hex digits of the RulesId. The
+seed shows for a board with its own RNG; a watched replay shows the recording's seed, and none for a game that
+played on the global stream. All the words are strings (`STATS_*`, `HSWIDGET_STATS`, `REPLAY_STATS`), so a mod can
+rename them.
+
+The counts come from the hooks listed above. A run counts by its length, and a shape (stage 11) counts with the runs
+of 5 or more. Blasts, the gold time bonus and dirt points are "other points". Each penalty is measured as the score
+before minus the score after, so a score clamped at 0 still adds up. A cascade is the number of sets of runs a
+move cleared: the board's `mCascadeCount` less one at the settle that ends the move. The score line has a point at
+each settle and each level-up, and when it reaches 1024 points every other one goes. The play time counts updates
+while the board is not paused, and it stops at game over.
+
+An undo restores the counts kept with its snapshot, except the play time and the undo count, which stay as the
+board's do: two undos in a row count as two. The points follow the score, so in a chain of undos the earlier undo's
+penalty goes back with its snapshot, just as it does on the board. The save's counts go into the sidecar as a STAT
+record just before END (`Replay::AddStats`); with the feature on, a save without a sidecar gets a minimal one
+(SVHA and END). `savegame.dat` itself is byte for byte the same with the feature on and off.
+
+A watched replay ends on the REPLAY END dialog, not on the game-over screen, so that dialog has the page's link: a
+STATS line above its buttons, a child of the dialog, so it moves with the dialog and takes clicks while the dialog
+is modal. The watch keeps the player's `gameStats` flag, though a watch otherwise plays the replay's rules with no
+features, because the flag only counts. Each segment's board carries the counts of the segment before, unless the
+segment starts from a LOAD of a save. Then it counts from there and says so.
+
+Test results:
+- **LOGIC hashes:** the bot's games hash the same with the mod and without it, update for update. That held for
+  seed 3 (normal, 21,496 updates) and for seed 5 under busy rules (undo, kept invalid moves, gold, specials, 9
+  colours; 40,000 updates). It also held for seed 6 with undo and gold, both timed (70,823) and normal (200,000), and
+  for seed 7 timed with kept invalid moves (76,322). Recording replays changes nothing either: the page is
+  pixel-identical with the replays feature on.
+- **Score sums:** on every page the score equals the run points plus the other points minus the penalties: 3935 =
+  4000 + 360 - 425 (seed 3); 14640 (seed 7, 157 kept invalid moves); 14851 (seed 6, three undos, two of them in a
+  row); 1780 after a resume. The gems per colour add up to the original screen's gems cleared (481; 174 after a
+  resume), and the play time matches its game duration (3:30). After a resume the page says 2:33 where the original
+  says 2.32; that second was not chased.
+- **Resume and watch:** a resume with the STAT record continues the counts, and one without it says "Counted from the
+  resume on". The watched replay's page is pixel-identical to the played game's, plain and with a bar hovered.
+- **Screens:** page screenshots for normal and timed games at 640 x 480 and @4x, under rundesk.
 
 ### 4.20 Arrow gems (`arrows`, after Bejeweled 3's Butterflies)
 
