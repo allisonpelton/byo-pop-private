@@ -47,3 +47,46 @@ levels). The port keeps them under the user folder as `Players/save?.dat`.
 - Not ported yet (marked in the code): the rockets over the menu, the talking head, the first-time mode hints, the Board.
 - The dialogs' buttons arrive at the app as 2000 + dialog id (yes, ok) and 3000 + dialog id (no, cancel) like in the
   other 2003 games; `RocketApp::ButtonDepress` mirrors the original's handler (0x42ed10).
+
+## The Board (read so far; not ported)
+
+141 functions, 60 KB, 0x41ae80 to 0x429ed0. Fields are the original's offsets.
+
+- The grid is 9 columns (board+0x4e8) by 6 rows (board+0x4e4) of 42 by 42 cells: x = 250 + 42 column (0x4220e0), y = 78 +
+  42 row (0x422100). The cells' objects (0xb8 bytes each, constructor 0x41ad90, which gets a random spin of -5 to 5 in
+  its field +0x18) are at board+0x114 + (column * 6 + row) * 4. Outside the grid there are three more rows of objects:
+  board+0x1ec (6, down the left edge, drawn only in arcade mode by 0x41e3e0), board+0x208 (9, along the top, drawn by
+  0x41ec20 at row 0) and board+0x22c (9, along the bottom, drawn at the last row); board+0x204 is one more object.
+- The Board's constructor (0x41ae80) makes a random generator (0x9c4 bytes, the framework's MTRand-like class), the
+  pieces' generator `0x42a510` (0x74 bytes: tile distribution tables at 0x4e6800 and 0x4e6828, filled by 0x42a460 from the
+  difficulty and level), a 0x14-byte fireworks manager (0x41a830) and an 0x18-byte object (0x413aa0), then runs the two
+  setup functions 0x422120 (state reset per mode) and 0x422620 (the first board: fills the top and bottom rows and the
+  left column, for strategy and classic the rows made by 0x428780).
+- Draw (0x41f540, 9306 bytes) clips to x 176..640, shakes the whole screen with a random offset while board+0x4b4 > 0
+  (the "earthquake"), draws the night sky (image 67, with the day sky 68 fading in over it as the dawn comes) at (63, 0), the sun (71) rising,
+  the city (72) at (116, 317) and the ground (66) at (116, 382), the fireworks, the column picture (65) at (0, 0), the
+  talking head, in strategy mode the matches (112) at (0, 166), the poles (69, 70) at (195, 24) and (492, 24), then the
+  pieces by columns, the edge rows and the lists at board+0x278 (0x41d420 each). State is at board+0x5c (0 playing, 1, 4,
+  5, 6, 7 are other screens such as the level-up and the end, 2 over).
+
+### Board translation plan and progress (2026-10-26)
+
+Board.h holds the field layout read from the saved-game writer 0x41c830 (the list of saved fields, in file order) and the
+Piece object (0x41ad90 constructor, 0x41c5a0 writer, 0x41b430 reader). Fields keep their offset in the name until the code
+using them has been read. Translate in address order, one group at a time, each a compiled step:
+
+1. Piece, list helpers, Save/Load (one field table visits both): 0x41b2a0 destructor, 0x41b430 to 0x41b7e0, 0x41b880 load
+   (3350 bytes), 0x41c830 save (2890), 0x41c5a0, 0x41d380 to 0x41d3a0.
+2. Setup: 0x422120 (state reset per mode), 0x422390, 0x422460 (clear), 0x422620 (the first board), 0x422a90 to 0x4231a0,
+   the generator class 0x42a510 (distribution tables 0x4e6800/0x4e6828, 0x42a460 fills 0x4f6cfc..0x4f6d0c from level and
+   difficulty, 0x42a590 draws a kind 0 to 4, 0x42a770 per-difficulty values, 0x42a980 speed from 0x42a940).
+3. Update 0x426f40 (2288 bytes) and its helpers 0x423270 (2143), 0x424730 (2687), 0x425490 (1157), 0x426860 (1587).
+4. Input: 0x4285b0 (vf24) to 0x4283e0 (vf26/vf29), 0x427d00, 0x428780.
+5. Draw 0x41f540 (9306 bytes) with the helpers 0x41d420, 0x41d620, 0x41d670 (3362), 0x41e3e0 to 0x41f360, 0x4219a0,
+   0x421b80, 0x421de0, 0x429230. Draw's `__ftol` calls hide the x and y arguments: read the disassembly
+   (`bash build/rm_dis.sh <start> <stop>`, llvm-objdump) where an argument matters.
+6. Points 0x429ed0 (floating score text), the dialogs, high scores, the fireworks (Rocket 0x4172f0, manager 0x41a830) and
+   the talking head (0x4161a0), which Board calls at many places (stubs first).
+
+The pieces' pictures are the app's mPieces[kind 0..4][rotation 0..3][variant 0..6] (app+0x5f8; the original reads
+`app+0x610 + (rotation + kind * 4) * 0x1c`, which is variant 6, the grey one, used for the edge pieces).
