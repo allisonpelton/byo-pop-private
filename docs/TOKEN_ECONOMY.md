@@ -172,3 +172,33 @@ day and dropped a record's name on a bad check, the same mistake Noah's Ark's po
 ended one update early (`< 300` for the original's `<= 300`, another bound turned around). Two change nothing but a
 sound's pan or a field that held the same value. Three comments were wrong too. The session fixed all of it in one
 turn, and the `<= 300` fix moved its bot's pinned results by one update.
+
+## Atomica Deluxe (2026-10-25)
+
+Atomica ran on Sonnet at the same time as Seven Seas, copying Noah's Ark's port of the 2002 framework for a 2003 game
+that the survey put at ~1.5x. Its one session, from its start to the tip with the review's fixes (20:27 to 23:31 UTC,
+3 h 03), made 771 calls: 371.8M cache reads, 2.4M cache writes and 1.1M output, about $115 at Opus prices. It ported
+everything on its Status list, the menus, dialogs, tutorial boxes, bonus molecules, element atoms and swirls included,
+but no mods. Per unit of the estimate that is about 248M cache reads, close to Big Money's 267M and well above Seven
+Seas' 148M.
+
+Much of the difference is context, not work. The session carried 485K tokens of context per call on average and
+reached 965K before each of its two compactions. The 400K auto-compact of 2026-10-24 was set in the user's settings for
+Opus 5.5 only (`modelSettings`), so the Sonnet sessions ran to the full window: Noah's Ark averaged 409K (967K at most)
+and Seven Seas 431K. Every call re-reads that context, so the cache reads grow with it. Sonnet 5.5 got the same 400K
+window at the end of 2026-10-25, so the next Sonnet ports should show whether that closes the gap.
+
+An Opus review agent compared about 30 functions with the decompilation and the disassembly. The game logic is
+faithful: the molecule search, the scoring, all 41 level set-ups, the bonus levels, the path finder, the random
+generator and the order of the constructors' draws match, and in several places the port fixed what Ghidra had lost.
+It found seven differences, weightier than Seven Seas'. The bomb button was never disabled, so the atomic bomb worked
+at any charge and on bonus levels: the original disables it through a virtual call whose argument Ghidra drops, and
+the port had left the call out. Two of the original's random-number users were missing (an object on the board that
+draws a number every update, and the air element's clouds), so the port's random stream parted from the original's
+from a game's first update on. The biohazard's infection set the wrong flag on the new atom and drew a stand-in effect
+instead of the original's travelling spark. The saved game was four bytes short, so a save from the original exe
+would be misread from its radiation cells on. The rest is small: the high-score date in local time instead of UTC, one
+flag written where another was meant, and `Widget::Update` called where the original marks the board dirty. Three
+comments were wrong too. Most of these are omissions beside code that Ghidra renders poorly (dropped arguments,
+unnamed objects), not mistranslations. The session fixed all of it in one turn, and the restored random-number users
+moved its bot's pinned results.
