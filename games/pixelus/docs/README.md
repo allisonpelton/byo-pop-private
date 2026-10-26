@@ -79,8 +79,15 @@ the hints), the credits and the how-to-play screen work, and the main menu is re
 
 Not done or approximate:
 - The shimmer that crosses a puzzle's tiles every few thousand updates while it is played is not ported (the one at the
-  end of a puzzle is), and the picture swept in at the end shows the wanted cells only. A tile's own picture-change counter
-  (+0x20 of the tile) is counted down but nothing sets it, so it never fires, as in the original.
+  end of a puzzle is). A tile's own picture-change counter (+0x20 of the tile) is counted down, but the port starts it at 0
+  so it never fires; the original's constructor never writes it and the tile comes from operator new, so there it starts as
+  leftover heap data and can fire.
+- The streak behind a tile that has left the grid (a pulled tile, or one that flew out) vanishes at once in the port; the
+  original keeps drawing it (0x42f6c0 draws the trail before it tests whether the tile is gone) and fades it over a second.
+- Not a gap but a fix: the original appears never to free a tile that flies out of the grid (a throw into an empty line, move
+  F, or the undo of one): it stays in state 2 with +0xb0a8 ("a tile is moving") set for good, so a puzzle finished after
+  such a throw would never show its picture or its tablet. Nobody has seen that in a run; the port skips the gone tiles
+  and finishes the puzzle (details in GAME_NOTES section 5).
 - The island's decorations are simplified, the god figure of a temple has no speech bubbles or moving mouth, the story
   portraits are the heads of the gods without expressions of their own, and the particle effects and blinking eyes of the
   tablet are not ported. The medal's place on the tablet is the port's own.

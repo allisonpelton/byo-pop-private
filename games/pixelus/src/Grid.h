@@ -39,8 +39,9 @@ struct GridObject
 	int		mState;			// +0x44 0 at rest, 1 returning, 2 flying to its cell
 	int		mIdle;			// +0x48 ticks at rest; the shine plays below 100
 	int		mTrail;			// +0x4c the trail's opacity, 0-200
-	int		mFlash;			// +0x20 ticks until the picture changes at random (0x42f740 counts it down; the constructor
-							// leaves it alone and nothing sets it, so it stays 0)
+	int		mFlash;			// +0x20 ticks until the picture changes at random (0x42f740 counts it down). The original's
+							// constructor (0x42eee0) never writes it and 0x424390 allocates the tile with operator new, so
+							// it starts as whatever the heap held and can fire; the port starts it at 0, so it never does
 
 	// the push a tile gets when another lands in front of it (0x42ec40, 0x42f740): out along the direction by a pixel an
 	// update up to mNudgeMax, a wait of mNudgeDelay updates, and back
