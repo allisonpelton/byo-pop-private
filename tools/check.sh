@@ -21,11 +21,15 @@
 #   atomica      Atomica's bot: a strategy game, an action game, and a strategy rerun with the same screenshots
 #   sevenseas    Seven Seas' bot: a beginner's game from level 1, one from the bonus screen (level 10) and one from level 21,
 #                and a rerun of the first with the same screenshots (about 15 seconds)
-#   bookwormadv  Bookworm Adventures' PopLua: the compiler's dialect checks and every compiled script of the game
-#                loaded by the port's VM (bwa_luarun, headless; seconds)
+#   bookwormadv  Bookworm Adventures: the PopLua compiler's dialect checks and every compiled script of the game
+#                loaded by the port's VM (bwa_luarun), every PopAnim loaded (bwa_pamtest), every cutscene played
+#                to its end (bwa_swftest), and a scripted run from the title to the main menu whose quit asks,
+#                Play! stays and Quit quits (under two minutes)
+#   tiptop       TipTop's bot: two regular games, a strategy game and a speed game, and a rerun of the regular ones
+#                with the same screenshots (about two and a half minutes)
 #   oracle       Bejeweled's oracle three ways (compare.sh --variants default,forcevariant,novariants); over
 #                ten minutes, so never in a subagent; refuses to start while another oracle runs
-# Sets: quick = build unit; games = bookworm bigmoney noahsark atomica sevenseas bookwormadv; all = every suite, builds first.
+# Sets: quick = build unit; games = bookworm bigmoney noahsark atomica sevenseas bookwormadv tiptop; all = every suite, builds first.
 #
 # Prints "PASS <suite> (<seconds>s): <summary>" or "FAIL <suite> (<seconds>s): <summary> -> <log>" for each,
 # then "check: N passed, M failed". Exits 0 only when all passed. Logs: build/logs/check/<suite>.txt (and
@@ -45,6 +49,9 @@ AT_ACTION="update 20000: score 3360 level 2 moves 599 atoms 48"
 SS_BEGINNER="game 2 over at update 5308: score 165 level 2 moves 23"
 SS_BONUS="game 1 over at update 2286: score 330 level 12 moves 15"
 SS_LATE="game 1 over at update 2285: score 390 level 22 moves 13"
+TT_REGULAR="game 2 over at update 35544: level 7, score 37160, 352 moves"
+TT_STRATEGY="game 1 over at update 2593: level 1, score 2100, 24 moves"
+TT_SPEED="game 1 over at update 57249: level 11, score 78250, 1081 moves"
 
 set -u
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -57,9 +64,9 @@ while [ $# -gt 0 ]; do
 		--out=*) OUT="${1#--out=}"; shift ;;
 		-h|--help) sed -n '2,/^BW_CLASSIC/p' "$0" | sed '$d' | sed 's/^# \{0,1\}//'; exit 0 ;;
 		quick) SUITES+=(build unit); shift ;;
-		games) SUITES+=(bookworm bigmoney noahsark atomica sevenseas bookwormadv); shift ;;
-		all) SUITES+=(build build-web build-nov unit unit-web verify modmenu livesplit bookworm bigmoney noahsark atomica sevenseas bookwormadv oracle); shift ;;
-		build|build-web|build-nov|unit|unit-web|verify|modmenu|livesplit|bookworm|bigmoney|noahsark|atomica|sevenseas|bookwormadv|oracle) SUITES+=("$1"); shift ;;
+		games) SUITES+=(bookworm bigmoney noahsark atomica sevenseas bookwormadv tiptop); shift ;;
+		all) SUITES+=(build build-web build-nov unit unit-web verify modmenu livesplit bookworm bigmoney noahsark atomica sevenseas bookwormadv tiptop oracle); shift ;;
+		build|build-web|build-nov|unit|unit-web|verify|modmenu|livesplit|bookworm|bigmoney|noahsark|atomica|sevenseas|bookwormadv|tiptop|oracle) SUITES+=("$1"); shift ;;
 		*) echo "check.sh: unknown suite '$1' (tools/check.sh --help)" >&2; exit 2 ;;
 	esac
 done
@@ -282,15 +289,65 @@ suite_sevenseas() {
 }
 
 suite_bookwormadv() {
-	local b="$W/build/native/bwa_luarun.exe" d l
+	local log="$1" b="$W/build/native/bwa_luarun.exe" d l p s m
 	need_assets bookwormadv || return 1
 	[ -x "$b" ] || { SUMMARY="no $b (build first)"; return 1; }
-	d="$("$b" -gamedir=games/bookwormadv/tests/poplua dialect.lua 2>&1 | tee -a "$1" | tail -n 1)"
-	l="$("$b" -load 2>&1 | tee -a "$1" | tail -n 1)"
-	SUMMARY="$d; $l"
+	d="$("$b" -gamedir=games/bookwormadv/tests/poplua dialect.lua 2>&1 | tee -a "$log" | tail -n 1)"
+	l="$("$b" -load 2>&1 | tee -a "$log" | tail -n 1)"
+	p="$("$W/build/native/bwa_pamtest.exe" 2>&1 | tee -a "$log" | tail -n 1 | tr -d '\r')"
+	s="$("$W/build/native/bwa_swftest.exe" 2>&1 | tee -a "$log" | grep -c '; unsupported: none')"
+	m="$(bookwormadv_menu "$log")"
+	SUMMARY="$d; $l; pam $p; swf $s of 4 to their end; menu: $m"
 	case "$d" in "dialect: "*" checks passed") ;; *) return 1 ;; esac
-	case "$l" in "loaded "*) set -- $l; [ "$2" = "$4" ] && [ "$2" -gt 0 ] && return 0 ;; esac
-	return 1
+	bookwormadv_all "$l" || return 1
+	bookwormadv_all "$p" || return 1
+	[ "$s" = 4 ] || return 1
+	[ "$m" = "quit at update 1310" ] || return 1
+	return 0
+}
+
+bookwormadv_all() {  # <"loaded N of M ...">: true when all of at least one loaded
+	set -- $1
+	[ "$1" = loaded ] && [ "$2" = "$4" ] && [ "$2" -gt 0 ]
+}
+
+bookwormadv_menu() {  # <log>: the test profile (tests/menu) from the title to the main menu, its quit asked, Play!, Quit
+	local d="$OUT/bookwormadv/menu" n
+	rm -rf "$d"; mkdir -p "$d"
+	cp -r games/bookwormadv/tests/menu/user "$d/user"
+	# the quit sign, its dialog's Play! (it stays), the quit sign again and the dialog's Quit (it quits)
+	printf '%s\n' "900 move 680 520" "920 click 680 520" "1000 screenshot $d/dialog.png" "1060 click 497 476" \
+		"1150 screenshot $d/menu.png" "1200 move 680 520" "1220 click 680 520" "1310 click 325 476" "2000 quit" > "$d/script.txt"
+	# (an absolute user folder: the game reads its profiles by GetAppDataFolder() paths)
+	timeout 120 "$W/build/native/bookwormadv.exe" -userdir="$W/$d/user" -script="$d/script.txt" -fast > "$d/stdout.txt" 2>&1
+	cat "$d/stdout.txt" >> "$1"
+	[ -f "$d/dialog.png" ] && [ -f "$d/menu.png" ] || { echo "no screenshots"; return; }
+	n="$(grep -o 'Update Count = [0-9]*' "$d/stdout.txt" | tail -n 1)"
+	echo "quit at update ${n#Update Count = }"
+}
+
+tiptop_game() {  # <name> <mode> <games>: bot games; prints the last "game N over" line
+	local d="$OUT/tiptop/$1"
+	rm -rf "$d"; mkdir -p "$d/shots"
+	timeout 600 "$W/build/native/tiptop.exe" -gamedir=assets/tiptop -userdir="$d/user" -fast -seed=2 -autoplay=7 \
+		-autoplaymode="$2" -autoplaygames="$3" -autoplaycap=200000 -autoplaylog="$d/log.txt" -autoplayshots="$d/shots/s" \
+		> "$d/stdout.txt" 2> "$d/stderr.txt"
+	grep -E '^(game [0-9]+ over|update [0-9]+:)' "$d/log.txt" 2>/dev/null | tail -n 1
+}
+
+suite_tiptop() {
+	local st=0 g s p r
+	need_assets tiptop || return 1
+	g="$(tiptop_game regular regular 2)"; s="$(tiptop_game strategy strategy 1)"; p="$(tiptop_game speed speed 1)"
+	r="$(tiptop_game regular2 regular 2)"
+	{ echo "regular: $g"; echo "strategy: $s"; echo "speed: $p"; echo "regular rerun: $r"; } > "$1"
+	[ "$g" = "$TT_REGULAR" ] || st=1
+	[ "$s" = "$TT_STRATEGY" ] || st=1
+	[ "$p" = "$TT_SPEED" ] || st=1
+	if diff -rq "$OUT/tiptop/regular/shots" "$OUT/tiptop/regular2/shots" >> "$1" 2>&1 && [ "$g" = "$r" ]; then r="rerun identical"; else r="RERUN DIFFERS"; st=1; fi
+	SUMMARY="regular ${g#game }; strategy ${s#game }; speed ${p#game }; $r"
+	[ $st -eq 0 ] || SUMMARY="$SUMMARY (expected regular '$TT_REGULAR', strategy '$TT_STRATEGY', speed '$TT_SPEED')"
+	return $st
 }
 
 suite_oracle() {
