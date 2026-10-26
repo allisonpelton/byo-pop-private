@@ -43,6 +43,11 @@ public:
 	void Pause();
 	void Unpause();
 
+	// the Flash control's TCurrentLabel and TGotoLabel on the movie (_level0): the label the movie is at, and a jump to
+	// a label (false when the movie has none by that name); the movie goes on as it was, playing or stopped
+	std::string GetCurrentLabel() const { return mMovie.GetCurrentLabel(); }
+	bool GotoLabel(const std::string& theLabel);
+
 	void Update() override;  // 0x528a50
 	void Draw(Graphics* g) override;  // 0x528be0
 	// MyFlashWidget's (0x482540): the mouse-ups go to the widget that shows the movie (the cut scene) too

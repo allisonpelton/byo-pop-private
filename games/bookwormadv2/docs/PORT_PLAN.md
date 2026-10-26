@@ -70,7 +70,16 @@ exported nothing. The group names are now compared without case (`shared:` commi
 The Hall of Fame's ten default entries per list now come from Volume 2's builders (0x455890 powers, 0x4566e0 arena times,
 0x457840 bonuses): the arena's times carry stage 2 or 1 (two bosses), not Volume 1's 11 to 1. The names and the title's
 LOADING letters that `gametext.py` could not map are found by their Volume 2 addresses. Left in `tools/gt_todo.txt`: the
-stale list of Volume 1 addresses (the credits, the skip-movie dialog and the conversation pages still read some).
+stale list of Volume 1 addresses (the credits and the conversation pages still read some).
+
+The cut scene is Volume 2's now (`CutScene`, 0x436560-0x436e60), not Volume 1's click-then-confirm. A click anywhere reads
+the label the movie is at (the five movies label each scene "Nstart" and "Nend"), takes its first character and jumps
+the movie to the label that character and "end" make, so a click skips the rest of the scene it is in
+(`SwfMovie::GetCurrentLabel` and `GotoLabel`, the Flash control's TCurrentLabel and TGotoLabel, with a self-test in
+`bwa2_swftest -selftest`). The hint "click anywhere" is not written, and a "Skip" button is made, hidden, and enabled once
+the curtain is open (it is never shown, so a movie is skipped scene by scene only). `End` pauses the movie first. The
+handler's skip-movie dialog (id 20) is as Volume 2 left it, but nothing opens it. Tried headless: a click in scene 3 of
+`book4intro.swf` went to "3end" and the movie played on into scene 4.
 
 Compared with Volume 2 (2026-10-26): `StartArena` (0x46c5d0), `ContinueArena` (0x46c4b0), `FillUserList` (0x46cde0) and the
 user dialog's handler (0x46d130, its OK, close, new, delete and delete-confirmed branches) do the same steps in the same

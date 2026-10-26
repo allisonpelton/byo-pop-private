@@ -397,6 +397,16 @@ int SelfTest(const std::string& thePath)
 	Check(aMovie.GetCurrentFrame() == 0, "Play at the end: the timeline starts over");
 	aMovie.NextFrame();
 	Check(aMovie.GetCurrentFrame() == 1, "and goes on from frame 0");
+
+	// TCurrentLabel and TGotoLabel: the movies label each scene "Nstart" and "Nend" (a click skips to the end of the scene)
+	aMovie.GotoFrame(0);
+	Check(aMovie.GetCurrentLabel() == "1start", "frame 0 is at the label 1start");
+	aMovie.GotoFrame(5);
+	Check(aMovie.GetCurrentLabel() == "1start", "a frame with no label is at the nearest label before it");
+	Check(aMovie.GotoLabel("1end") && aMovie.GetCurrentLabel() == "1end" && aMovie.GetCurrentFrame() > 5,
+	      "GotoLabel(1end) jumps to the end of the scene");
+	int aFrame = aMovie.GetCurrentFrame();
+	Check(!aMovie.GotoLabel("nolabel") && aMovie.GetCurrentFrame() == aFrame, "a label no frame has: no jump");
 	return aFailures;
 }
 

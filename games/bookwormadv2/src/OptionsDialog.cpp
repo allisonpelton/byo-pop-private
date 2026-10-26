@@ -65,6 +65,16 @@ void SetupDialogButton(DialogButton* theButton, Font* theFont)
 
 }  // namespace
 
+DialogButton* Sexy::MakeDialogButton(ButtonListener* theListener, const std::string& theLabel)
+{
+	DialogButton* aButton = new DialogButton(IMAGE_DIALOG_BUTTON, 1, theListener);
+	aButton->mLabel = theLabel;
+	aButton->mWidth = IMAGE_DIALOG_BUTTON->mWidth / 3;
+	aButton->mHeight = IMAGE_DIALOG_BUTTON->mHeight;
+	SetupDialogButton(aButton, nullptr);
+	return aButton;
+}
+
 // 0x4842e0: dialog 1 with a footer button that continues the battle (or closes), and the controls, which show the
 // app's settings
 OptionsDialog::OptionsDialog(bool theHasBoard)
