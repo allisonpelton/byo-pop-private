@@ -218,6 +218,28 @@ void RocketApp::ButtonPress(int theId)
 	PlaySample(SOUND_UI_LITTLE_BEEP_05B);
 }
 
+// port: the test scripts' "startgame" clicks the play link as soon as the loading screen shows it (the update at which
+// the loading ends depends on the machine); it asks again at the next update until then
+bool RocketApp::HandleScriptCommand(const ScriptCommand& theCommand)
+{
+	if (theCommand.mCommand != "startgame")
+		return SexyApp::HandleScriptCommand(theCommand);
+	if ((mLoadingScreen != NULL) && !mShutdown)
+	{
+		if (!mLoadingScreen->mLinkShown)
+			AddScriptCommand(mUpdateCount + 1, theCommand.mCommand, theCommand.mArgs);
+		else
+		{
+			int aX = mLoadingScreen->mPlayLink->mX + mLoadingScreen->mPlayLink->mWidth / 2;
+			int aY = mLoadingScreen->mPlayLink->mY + mLoadingScreen->mPlayLink->mHeight / 2;
+			mWidgetManager->MouseMove(aX, aY);
+			mWidgetManager->MouseDown(aX, aY, 1);
+			mWidgetManager->MouseUp(aX, aY, 1);
+		}
+	}
+	return true;
+}
+
 // 0x42ed10: the dialogs' buttons arrive as 2000 + dialog id (yes, ok) and 3000 + dialog id (no, cancel)
 void RocketApp::ButtonDepress(int theId)
 {

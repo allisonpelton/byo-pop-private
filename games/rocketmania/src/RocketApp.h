@@ -97,6 +97,7 @@ public:
 	virtual void			LoadingThreadProc() override;
 	virtual void			ButtonPress(int theId) override;
 	virtual void			ButtonDepress(int theId) override;
+	virtual bool			HandleScriptCommand(const ScriptCommand& theCommand) override;
 
 	// Helpers of the module (RocketManiaGame addresses in RocketApp.cpp)
 	bool					LoadImage(int theImageId);
