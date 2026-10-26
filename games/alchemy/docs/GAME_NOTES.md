@@ -60,8 +60,10 @@ button (`mTutWaiting`), a wrong placement gets a message, the last step's button
   port's format is the original's field order with a version byte; a damaged file keeps what it could not read.
 - `userdata\hiscores.dat`: for each kind of game the best score of the day (the day, a name, a score and a check) and five
   scores (a name, a score and a check); numbers are little-endian 32-bit, a name's length 16-bit. The check is
-  `score ^ 0x42beef`, then a step for each character of the name (0x40a15a, 0x40a341). The defaults are the table's seven
-  names with 1000 down to 600.
+  `score ^ 0x42beef`, then a step for each character of the name (0x40a15a, 0x40a341). The default scores are 1000 down
+  to 600; the default names are the port's own placeholders (the original has a table of names inside the game, which the
+  port does not copy; `DEFAULT_NAME_STRATEGIC_1..5` and `DEFAULT_NAME_TIME_TRIAL_1..5` in `properties/default.xml` replace
+  them).
 - the registry (`registry.ini` in the port): `SkillLevel`, `TimeTrial`, `LastScoreName`, `LastInternetScoreName` (kept,
   never shown), `NoPopLink`, and the framework's (volumes, full screen, custom cursors, times played).
 

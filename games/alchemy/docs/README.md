@@ -15,8 +15,12 @@ internet scores and every link to a web page.
 ## The binary
 
 `Alchemy.exe` is a 2007 wrapper (a "drm" folder with Lua scripts, a trial and buy screen) around the 2004 game, a plain
-MSVC 7.0 build of 1,314,816 bytes at 0x1891a2 inside it. `tools/extract_game_exe.py` carves it to
-`re/alchemy/bin/AlchemyGame.exe` (image base 0x400000). The scripts belong to the wrapper, so the port needs no PopLua.
+MSVC 7.0 build.
+<!-- private: The analysis works on a copy of the game's image that a private tool takes out of the wrapper (`re/alchemy/bin/AlchemyGame.exe`, image base 0x400000). -->
+The image is 1,314,816 bytes at 0x1891a2 inside the wrapper; `tools/extract_game_exe.py` carves it to
+`re/alchemy/bin/AlchemyGame.exe` (image base 0x400000).
+<!-- /private -->
+The scripts belong to the wrapper, so the port needs no PopLua.
 The game's classes have no RTTI; their vtables were found from the constructors' stores. The framework in the game is the
 2004 SexyAppFramework (BookWorm's generation: 47 widget slots, 53 dialog slots), so the port uses `sexycompat2004`
 (`Dialog2004`, `Slider2004`, the 2004 word wrap, the C library's `rand`). `GAME_NOTES.md` has the class map and the rules
@@ -24,8 +28,12 @@ as the code has them; `WORKING_NOTES.md` has how the analysis went.
 
 ## Reproducing the analysis
 
+<!-- private: The game's image is first taken out of the wrapper by a private tool; the commands below work on that copy. -->
 ```
 python tools/extract_game_exe.py ...                  # carve the game image out of the wrapper
+```
+<!-- /private -->
+```
 tools/ghidra_import.sh ...                            # then funcmatch against BookWorm (WORKING_NOTES.md)
 python games/alchemy/tools/make_game_region.py        # the game's functions only (0x401000-0x415000) into re/alchemy/game.c
 python games/alchemy/tools/fn.py 40d836               # one function of the export

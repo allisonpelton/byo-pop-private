@@ -320,7 +320,7 @@ Piece* Board::NewPiece()
 				break;
 			case 9:
 				aPiece->mShape = 5;
-				aPiece->mColor = (int) (mRand.Next() % mNumColors);
+				aPiece->mColor = 3;   // 0x4013bb jumps to the store at 0x40149b with edx = 3: no random draw
 				break;
 			case 0xb:
 				aPiece->mSkull = true;
@@ -1214,8 +1214,7 @@ void Board::MouseDown(int x, int y, int theClickCount)
 			ShowMessage("INVALID_MOVE_NON_EMPTY_SPOT");
 		else if (aReason == 5)
 			ShowMessage("INVALID_MOVE_BOMB");
-		else
-			return;
+		// any other reason (0, off the grid) says nothing, but the click still sounds (0x406ec7 is the common end)
 	}
 	mApp->PlaySample(SOUND_BAD);
 }

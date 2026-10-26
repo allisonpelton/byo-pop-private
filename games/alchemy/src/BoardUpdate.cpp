@@ -22,9 +22,10 @@
 
 using namespace Sexy;
 
-// The order in which the pixels of a newly lit tile light up (the original keeps it as a table of 5000 numbers,
-// 0x4de400): groups of pixels that appear together, each group ended by -1 and the whole table by -2, from the middle
-// outward, with a bell of group sizes (46 groups). This one is made the same way, from a fixed seed.
+// The order in which the pixels of a newly lit tile light up (the original keeps it as a table, 0x4de400): 45 groups of
+// pixels that appear together (the 2704 pixels of a tile), all but the last ended by -1 and the last directly by -2, so
+// the dissolve takes 45 steps; from the middle outward, with a bell of group sizes. This one is made the same way, from a
+// fixed seed.
 static const std::vector<int>& LightOrder()
 {
 	static std::vector<int> aOrder;
@@ -32,7 +33,7 @@ static const std::vector<int>& LightOrder()
 		return aOrder;
 
 	const int aSize = Board::CELL;
-	const int aGroups = 46;
+	const int aGroups = 45;
 	const int aTotal = aSize * aSize;
 
 	std::vector<std::pair<int, int> > aKeys;
@@ -73,9 +74,8 @@ static const std::vector<int>& LightOrder()
 	{
 		for (int j = 0; j < aSizes[i]; j++)
 			aOrder.push_back(aKeys[aNext++].second);
-		aOrder.push_back(-1);
+		aOrder.push_back(i < aGroups - 1 ? -1 : -2);
 	}
-	aOrder.push_back(-2);
 	return aOrder;
 }
 
@@ -128,8 +128,17 @@ void Board::Update()
 	{
 		if (mHelpBox->mFadeDir == 1 && mHelpBox->mAlpha == 1.0)
 		{
-			mHelpBox->Talk((mState == STATE_GAME_OVER || mState == STATE_ENDING) ? 2 : 1);
-			mApp->PlaySample(SOUND_GAMEOVER);
+			// 0x407130: the game's end speaks with track 2 and its sound, anything else (a cleared board) with track 1
+			if (mState == STATE_GAME_OVER || mState == STATE_ENDING)
+			{
+				mHelpBox->Talk(2);
+				mApp->PlaySample(SOUND_GAMEOVER);
+			}
+			else
+			{
+				mHelpBox->Talk(1);
+				mApp->PlaySample(SOUND_LEVELCOMPLETE);
+			}
 			mHelpBox->mFadeDir = 0;
 		}
 		if (mHelpBox->mFadeDir == -1 && mHelpBox->mAlpha == 0.0)
@@ -500,7 +509,7 @@ void Board::Update()
 				mFxImage->BitsChanged();
 
 				mFxPiece->mShrink += 0x28;
-				mFxPiece->mFlyX = 39.0;
+				mFxPiece->mFlyX = 38.0;   // 0x407c3f: rdata 0x4e36d0 (the arrival test above uses 39.0, 0x4e3a78)
 				mFxPiece->mFlyY = (double) (mFxPiece->mShrink / 200 + 0x140);
 				mFxPiece->mFlyVX = 0;
 				mFxPiece->mFlyVY = 0;

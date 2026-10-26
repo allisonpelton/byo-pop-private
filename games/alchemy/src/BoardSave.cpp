@@ -171,6 +171,8 @@ bool Board::LoadGame()
 
 	int aVersion = 0;
 	ReadRaw(&aBuffer, &aVersion);
+	if (aVersion != SAVEGAME_VERSION)   // 0x4058dd: the game is applied only when the first int is 1
+		return false;
 	ReadRaw(&aBuffer, &mApp->mSkillLevel);
 	ReadBool(&aBuffer, &mApp->mTimeTrial);
 	ReadRaw(&aBuffer, &mState);
@@ -217,7 +219,9 @@ bool Board::LoadGame()
 				ReadBool(&aBuffer, &aPiece->mSkull);
 				aPiece->mShrink = 0;
 				aPiece->mShrinkDir = 0;
-				aPiece->Resize(ColToX(aCol) + mX, RowToY(aRow) + mY, 0x4b, 0x4b);
+				// 0x405b39: the original has no board offset here (a piece's position is the board's, not the screen's, until
+				// the next Resize); the end-of-game shrink of a continued game draws from it, as the original's does
+				aPiece->Resize(ColToX(aPiece->mCol), RowToY(aPiece->mRow), 0x4b, 0x4b);
 				mGrid[aRow][aCol] = aPiece;
 			}
 			ReadBool(&aBuffer, &mLit[aRow][aCol]);
