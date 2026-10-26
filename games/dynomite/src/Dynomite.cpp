@@ -3,6 +3,7 @@
 #include "Egg.h"
 #include "EggGrid.h"
 #include "FossilizedApp.h"
+#include "Graphics.h"
 #include "InchySmall.h"
 #include "FirePrompt.h"
 #include "Launcher.h"
@@ -11,6 +12,7 @@
 #include "PortCompat.h"
 #include "SideBar.h"
 #include "SoundInstance.h"
+#include "Sprite.h"
 #include "Steggy.h"
 #include "Tank.h"
 #include "Thunderbolt.h"
@@ -171,6 +173,128 @@ void Dynomite::Init(FossilizedApp* theApp, int theDifficulty)
 	mTank = new Tank(theApp, this);
 	mApp->mSideBar->mInchy->Rise(100);
 	SetActive(true);
+}
+
+// 0x4044a0: white while a thunderbolt flashes; the flying eggs that have crossed the launcher's middle go
+// behind the slingshot's front, the rest in front of it
+void Dynomite::Draw(Graphics* g)
+{
+	SetDrawGraphics(g);
+	if ((mThunderbolt != NULL) && (mThunderbolt->mBomb == true))
+	{
+		g->SetColor(Color(0xff, 0xff, 0xff, 0xff));
+		g->FillRect(0, 0, 0x1ea, 0x1e0);
+	}
+	else
+		mApp->mPicJungleback->Draw(0, 0);
+	mGrid->Draw();
+	int x = mField70 - mField6c;
+	if (x < mField6c + mField70)
+	{
+		Pic* aRope = mApp->mPicRope;
+		do
+		{
+			aRope->Draw(x, mField74 + 0x21);
+			aRope = mApp->mPicRope;
+			x += aRope->mWidth;
+		} while (x < mField6c + mField70);
+	}
+	mLauncher->Draw(g);
+	mFlyingEggs.ResetIter();
+	FlyingEgg* anEgg = mFlyingEggs.Next();
+	while (anEgg != NULL)
+	{
+		if (anEgg->mField20 == false)
+			anEgg->Draw();
+		anEgg = mFlyingEggs.Next();
+	}
+	mLauncher->DrawSling(g);
+	mFlyingEggs.ResetIter();
+	anEgg = mFlyingEggs.Next();
+	while (anEgg != NULL)
+	{
+		if (anEgg->mField20 == true)
+			anEgg->Draw();
+		anEgg = mFlyingEggs.Next();
+	}
+	mLauncher->DrawBand();
+	DrawScenery();
+	DrawMode();
+	DrawEffects();
+	mFirePrompt->Draw();
+	if (mField132 == true)
+		DrawGameOver(g);
+	if (mTalker != NULL)
+		mTalker->Draw();
+}
+
+// 0x404660
+void Dynomite::DrawScenery()
+{
+	mApp->mPicLeftwall->Draw((mField70 - mField6c) - 0x38, 0);
+	mApp->mPicRightwall->Draw(mField6c - 0x1e + mField70, 0);
+	mSteggy->Draw();
+	mTank->Draw();
+	mApp->mPicEggpilesheet_c1->Draw(mField158 - 0x110 + mField70, 0x185);
+	mApp->mPicEggpilesheet_c1->Draw(mField158 - 0x1a6 + mField70, 0x185);
+	mApp->mPicEggpilesheet_c0->Draw(mField158 + 0x50 + mField70, 400);
+	mApp->mPicEggpilesheet_c0->Draw(mField158 + 0xe6 + mField70, 400);
+	mPowerUps.ResetIter();
+	PowerUp* aPowerUp = mPowerUps.Next();
+	while (aPowerUp != NULL)
+	{
+		aPowerUp->Draw(mField128);
+		aPowerUp = mPowerUps.Next();
+	}
+	if (mThunderbolt != NULL)
+		mThunderbolt->Draw();
+	Point anOffset = GetDrawOffset();
+	SetDrawOffset(Point(0, 0));
+	mApp->mPicMenuoverlap->Draw(0, 0);
+	SetDrawOffset(anOffset);
+}
+
+// 0x406d60
+void Dynomite::DrawEffects()
+{
+	mEffects.ResetIter();
+	Effect* anEffect = mEffects.Next();
+	while (anEffect != NULL)
+	{
+		anEffect->Draw();
+		anEffect = mEffects.Next();
+	}
+	mPopups.ResetIter();
+	anEffect = mPopups.Next();
+	while (anEffect != NULL)
+	{
+		anEffect->Draw();
+		anEffect = mPopups.Next();
+	}
+	if ((0 < mPauseCount) && (mApp->mInTutorial == false))
+	{
+		Graphics* g = GetDrawGraphics();
+		g->SetColorizeImages(true);
+		g->SetColor(Color(0, 0, 0, 0xff));
+		std::string aText = mApp->GetString("PAUSED");
+		PicFont* aFont = mApp->mAnnounceFont1928;
+		// port: the original measures both, and draws the yellow one, with its own English word, which is the
+		// same as PAUSED's text; the port takes PAUSED's text for all four
+		aFont->Draw(aText.c_str(), (mField70 - aFont->Width(aText.c_str()) / 2) + 4, 0x194);
+		g->SetColor(Color(0xff, 0xff, 0, 0xff));
+		aFont->Draw(aText.c_str(), mField70 - aFont->Width(aText.c_str()) / 2, 400);
+		g->SetColorizeImages(false);
+	}
+}
+
+// 0x4b1930
+void Dynomite::DrawMode()
+{
+}
+
+// 0x406f70 (TODO with the game's end: it needs the high scores at +0x1d8)
+void Dynomite::DrawGameOver(Graphics* g)
+{
 }
 
 // 0x404fb0

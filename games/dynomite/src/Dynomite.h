@@ -94,6 +94,8 @@ public:
 	Dynomite();								// 0x404030
 	virtual ~Dynomite();					// 0x4041e0
 
+	virtual void		Draw(Graphics* g) override;		// 0x4044a0
+
 	void				SetPaused(bool isPaused);		// 0x404fb0
 	void				SetActive(bool isActive);		// 0x4047e0
 	void				AddPowerUp(int theKind);		// 0x4060c0
@@ -109,6 +111,12 @@ public:
 	// 0x404f40 (slot 50): a match (isMatch) adds to the chain, which Inchy calls out; a miss or a chain of eight
 	// ends it
 	virtual void		Chain(int x, int y, bool isMatch);
+	// 0x404660 (slot 47): the walls, Steggy, Tank, the egg piles, the power-ups, the thunderbolt and the menu's edge
+	virtual void		DrawScenery();
+	virtual void		DrawEffects();					// 0x406d60 (slot 48): the effects, the popups and "paused"
+	virtual void		DrawMode();						// 0x4b1930 (slot 49; empty): what a mode draws between them
+	// 0x406f70 (slot 54): the game's end, with the time, the rank and the high scores (TODO with the game's end)
+	virtual void		DrawGameOver(Graphics* g);
 	virtual void		MakeDynamite();					// 0x405010 (slot 51): a thunderbolt strikes the loaded egg
 	virtual void		Blasted();						// 0x4b1930 (slot 52; empty): after a bomb's blast
 	virtual void		EggAlone(int theColor);			// 0x4050d0 (slot 56; empty): a landed egg touches none of its colour
