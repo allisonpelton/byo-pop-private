@@ -166,6 +166,8 @@ The high score tables as read (0x421200-0x422030, ported in game/HighScores.cpp;
 
 The HUD (0x422220-0x424040) is ported in game/Hud.cpp, all but its part of the saved game (0x422400). It carries out its buttons' actions itself (0x422850): the menu's (retry, quit, pause, help: the controller's, declared but not read yet), the ball system's (submit, nextLevel, wildcard, hint, spawnBall) and the recycle buttons "submit1" to "submit14", which put a found word's letters back. The controller's +0x3c is the HUD's balls remaining (the level's ball criteria less the letters used), now mLettersLeft; Game::playSound takes the name only (ret 0x1c). Its three texts go through game/GameText.h (GT(address)); the loader, which reads them from the player's WordHarmony.exe, comes with the host (the texts are there as they are in the game image).
 
+The floating texts are ported in engine/TextEffects.cpp: the factory ("SplatFactory", 0x428780-0x4298b0), its template reader (0x430a70-0x431930, the particle file's elements less position, particleLife and blackHole, plus resource type text and destination) and the text ("Splat", 0x42a400-0x42aa50). create takes a fifth argument, passed to the callback: the found word's letter count, which Game::scoreShown (0x401290) takes off the letters left. A text's own transform multiplies its opacity in but leaves out the rotation and the colour offset. The screen at 0x42a0d0/0x42a240 (vtable 0x483950) sits between them and belongs with the screens.
+
 ## Next pieces, as read so far
 
 The controller (vtable 0x480a14: 0 dtor 0x4073d0, 4 configure 0x402eb0, 8 init 0x406b30, 0xc shutdown 0x401750, 0x10

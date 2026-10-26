@@ -821,7 +821,7 @@ void WordBallSystem::showHint()
 	Game* aGame = Game::instance();
 	if (mHints.size() != 0 && (0 < aGame->mHints || mMode != MODE_SOLITAIRE))
 	{
-		TextEffect* anEffect = aGame->mTextEffects->create("hint", 108.0f, 573.0f, 0);
+		TextEffect* anEffect = aGame->mTextEffects->create("hint", 108.0f, 573.0f, nullptr, 0);
 		std::string aHint;
 		if (mMode == MODE_SOLITAIRE)
 		{
@@ -1854,7 +1854,7 @@ void WordBallSystem::scoreWord(const int* theIndices, int theStart, const std::s
 		double aSince = (double)(int)anApp->getTime() - mLastMatch;
 		if (aSince / (double)anApp->getTicksPerSecond() < 2.0)
 		{
-			aGame->mTextEffects->create("speedy", aPosition.x, aPosition.y, NULL);
+			aGame->mTextEffects->create("speedy", aPosition.x, aPosition.y, nullptr, 0);
 			aGame->playSound("SPEEDY_MATCH");
 			aMultiplier *= 2;
 		}
@@ -1862,7 +1862,7 @@ void WordBallSystem::scoreWord(const int* theIndices, int theStart, const std::s
 
 	if (5 < theLetters.size())
 	{
-		aGame->mTextEffects->create("longword", aPosition.x, aPosition.y, NULL);
+		aGame->mTextEffects->create("longword", aPosition.x, aPosition.y, nullptr, 0);
 		aGame->playSound("SPECIAL_LONGWORD");
 		aMultiplier *= 2;
 		// A long word not made before earns a wildcard
@@ -1889,7 +1889,7 @@ aBonus:
 	{
 		if (matchesBonus(mWord, theLetters))
 		{
-			aGame->mTextEffects->create("bonusWord", aPosition.x, aPosition.y, NULL);
+			aGame->mTextEffects->create("bonusWord", aPosition.x, aPosition.y, nullptr, 0);
 			aGame->playSound("SPECIAL_BONUS");
 			aMultiplier *= 10;
 			mWord.erase(mWord.begin(), mWord.end());
@@ -1897,7 +1897,7 @@ aBonus:
 		}
 	}
 
-	TextEffect* anEffect = aGame->mTextEffects->create("foundWord", aPosition.x, aPosition.y, &Game::scoreShown);
+	TextEffect* anEffect = aGame->mTextEffects->create("foundWord", aPosition.x, aPosition.y, &Game::scoreShown, (int)theLetters.size());
 	anEffect->setText(theWord);
 	aGame->playSound("BALL_POP_WIND");
 	int aPoints = aScore * aMultiplier;
@@ -2244,7 +2244,7 @@ void WordBallSystem::update(UpdateInfo& theInfo)
 								Point aPosition = *aBall->getPosition();
 								aPosition.x += getPosition()->x;
 								aPosition.y += getPosition()->y;
-								aGame->mTextEffects->create(aText, aPosition.x, aPosition.y, NULL);
+								aGame->mTextEffects->create(aText, aPosition.x, aPosition.y, nullptr, 0);
 								aGame->playSound("SPECIAL_MULTIPLIER");
 							}
 							ParticleSystem* aSystem = mBlossoms->getSystem();

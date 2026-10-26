@@ -27,8 +27,8 @@ public:
 
 	// 0x401260: points to the score, and the score to the HUD
 	void addScore(int thePoints);
-	// 0x401290: a found word's floating text is done (mLettersLeft less thePoints, at least 0)
-	static void scoreShown(int thePoints);
+	// 0x401290: a found word's floating text is done: mLettersLeft less its letters (theLetters), at least 0
+	static void scoreShown(int theLetters);
 	// 0x401580
 	bool isPaused();
 	// 0x402b10: plays a sound of the sound bank by its name
