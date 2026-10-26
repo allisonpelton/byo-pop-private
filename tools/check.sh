@@ -23,8 +23,9 @@
 #                and a rerun of the first with the same screenshots (about 15 seconds)
 #   bookwormadv  Bookworm Adventures: the PopLua compiler's dialect checks and every compiled script of the game
 #                loaded by the port's VM (bwa_luarun), every PopAnim loaded (bwa_pamtest), every cutscene played
-#                to its end (bwa_swftest), and a scripted run from the title to the main menu whose quit asks,
-#                Play! stays and Quit quits (under two minutes)
+#                to its end (bwa_swftest), a scripted run from the title to the main menu whose quit asks,
+#                Play! stays and Quit quits, and the test profile's first chapter won and saved by the port's
+#                "word attack" script command (under two minutes)
 #   oracle       Bejeweled's oracle three ways (compare.sh --variants default,forcevariant,novariants); over
 #                ten minutes, so never in a subagent; refuses to start while another oracle runs
 # Sets: quick = build unit; games = bookworm bigmoney noahsark atomica sevenseas bookwormadv; all = every suite, builds first.
@@ -284,7 +285,7 @@ suite_sevenseas() {
 }
 
 suite_bookwormadv() {
-	local log="$1" b="$W/build/native/bwa_luarun.exe" d l p s m
+	local log="$1" b="$W/build/native/bwa_luarun.exe" d l p s m c
 	need_assets bookwormadv || return 1
 	[ -x "$b" ] || { SUMMARY="no $b (build first)"; return 1; }
 	d="$("$b" -gamedir=games/bookwormadv/tests/poplua dialect.lua 2>&1 | tee -a "$log" | tail -n 1)"
@@ -292,12 +293,14 @@ suite_bookwormadv() {
 	p="$("$W/build/native/bwa_pamtest.exe" 2>&1 | tee -a "$log" | tail -n 1 | tr -d '\r')"
 	s="$("$W/build/native/bwa_swftest.exe" 2>&1 | tee -a "$log" | grep -c '; unsupported: none')"
 	m="$(bookwormadv_menu "$log")"
-	SUMMARY="$d; $l; pam $p; swf $s of 4 to their end; menu: $m"
+	c="$(bookwormadv_chapter "$log")"
+	SUMMARY="$d; $l; pam $p; swf $s of 4 to their end; menu: $m; chapter 1: $c"
 	case "$d" in "dialect: "*" checks passed") ;; *) return 1 ;; esac
 	bookwormadv_all "$l" || return 1
 	bookwormadv_all "$p" || return 1
 	[ "$s" = 4 ] || return 1
 	[ "$m" = "quit at update 1310" ] || return 1
+	[ "$c" = "6 words, won, saved" ] || return 1
 	return 0
 }
 
@@ -319,6 +322,30 @@ bookwormadv_menu() {  # <log>: the test profile (tests/menu) from the title to t
 	[ -f "$d/dialog.png" ] && [ -f "$d/menu.png" ] || { echo "no screenshots"; return; }
 	n="$(grep -o 'Update Count = [0-9]*' "$d/stdout.txt" | tail -n 1)"
 	echo "quit at update ${n#Update Count = }"
+}
+
+bookwormadv_chapter() {  # <log>: the test profile's first chapter, its battles won by the port's "word attack" (seed 1)
+	local d="$OUT/bookwormadv/chapter" n k t u
+	rm -rf "$d"; mkdir -p "$d"
+	cp -r games/bookwormadv/tests/menu/user "$d/user"
+	# Adventure, the map's Enter, the conversations clicked through (400 150), then the longest word and the
+	# attack every 500 updates (the command waits for an idle board), with a click after each
+	{ printf '%s\n' "900 move 230 300" "920 click 230 300" "2400 move 400 575" "2420 click 400 575" \
+		"4000 click 400 150" "4400 click 400 150" "4800 click 400 150" "5200 click 400 150"
+	  for k in $(seq 0 39); do t=$((5600 + k * 500)); printf '%s\n' "$t word attack" "$((t + 400)) click 400 150"; done
+	  printf '%s\n' "25000 screenshot $d/map.png" "25600 quit"; } > "$d/script.txt"
+	u="$d/user"; case "$u" in /*|[A-Za-z]:*) ;; *) u="$W/$u" ;; esac
+	timeout 180 "$W/build/native/bookwormadv.exe" -userdir="$u" -script="$d/script.txt" -fast -seed=1 \
+		> "$d/stdout.txt" 2>&1
+	cat "$d/stdout.txt" >> "$1"
+	grep -q "FATAL" "$d/stdout.txt" && { echo "failed: $(grep -m 1 -A 2 FATAL "$d/stdout.txt" | tail -n 1)"; return; }
+	n="$(grep -c 'script: word [A-Z]' "$d/stdout.txt")"
+	# the profile then holds the chapter as completed (its key, in the saved Lua table)
+	if grep -q "CompletedChapters" "$d/user/users/Tester.bwa" && [ -f "$d/map.png" ]; then
+		echo "$n words, won, saved"
+	else
+		echo "$n words, not won"
+	fi
 }
 
 suite_oracle() {
