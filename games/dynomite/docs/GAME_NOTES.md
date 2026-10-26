@@ -155,6 +155,17 @@ rectangle of the list at +0x4694 (fields +4..+0x10, flag +5 set unless the egg i
 occupied cell near the point (0x416550). +0x4664 is the board, +0x4668 the app, +0x10 starts at 4, +0x46b0 and
 +0x46b4 at 200, +0x46e0 at 100.
 
+`EggGrid::Break` (0x415a20, x and y the cell's corner, the cell's bits) fills the board's effect list (+0xd0):
+40 confetti (0x415360) when the board's +0x12c has a bit of 0xe, a bonus item (0x403c30 then 0x403c60, at
+(x+16, y+6), kind bits >> 9 & 0xf, with board slot 43's two outputs; sound app +0x1a20) when the cell has bits
+0x1e00, then either a baby (0x403540/0x4035d0, rand % 3, sound app +0x1a18 or +0x1a1c, board +0x1d4 + 1, board
+slot 44 (x+16, y+6, 25, 0, 1)) when the cell has bit 0x100, or a 0x24-byte effect (0x4424b0/0x4424e0, rand & 1);
+then 2 to 11 sparks (0x442320/0x442350, rand % 360) and four 0x28-byte pieces (0x434b90/0x434cc0) at angles
+-45, 45, 225 and 135 with the colour and their index. 0x403750 (vtable 0x4f7420, 0x2c bytes) is a power-up:
+kinds 1 to 10 set a time (+0x14: 6000, 3000, 3000, 3000, 400, 33, 33, 150, 300, 450) and a flag bit (+0x28: 1 << (kind
+- 1)); its update (0x4038d0) counts down, blinks for the last +0x18 frames (500, or 20 for kinds 8-10), and the bits
+0x380 end in 40 confetti and board slot 44 with 5, 10 or 15.
+
 Next, in this order: `StartGame` (0x418810: mode +0x108c makes DynomiteStomped
 0x40ea50 (0x62c bytes), DynomitePanic 0x40ca40 (0x274), DynomiteFossil 0x408e40 (0x328) or DynomiteTimeTrial
 0x411ff0 (0x254), resized to (150, 0, 490, 480), slot 46 `Init(app, level)` with +0x1084, or +0x1088 for the fossil
