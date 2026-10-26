@@ -96,7 +96,7 @@ the in-game Menu dialog with Options and Quit To Main Menu; the main menu (rebui
 animated portal, Lex and his bubble); the Options dialog and the Hall of Fame; and the portal's click, which takes a game
 saved in the prologue back into the battle. The music plays from the ten loose OGG files over the framework's music
 interface, by song id. Nothing of the battle has been played yet (no tile clicked). Not done: replaying a finished
-adventure (`BookSelectScreen` and three of the curtain's states), Volume 2's secret words, the dialogs of the trial's end
+adventure (`BookSelectScreen` and three of the curtain's states), the dialogs of the trial's end
 and of a locked tome, the credits', mini-games' and stats book's song ids, and the arena's and user dialogs' comparison
 with the original. The cut scene player lacks the bitmap tags Volume 2's five movies use; PopAnim loads all 304
 animations but 41 pictures in 7 of them are not found.

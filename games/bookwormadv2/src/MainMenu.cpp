@@ -33,6 +33,24 @@ const unsigned int kSecretWords[] = {GTA(0x6fc908), GTA(0x6fc8fc), GTA(0x6fc8f4)
                                      GTA(0x6fc8e0), GTA(0x6fc8d8), GTA(0x6fc8d0)};
 const int kNumSecretWords = (int)(sizeof(kSecretWords) / sizeof(kSecretWords[0]));
 
+// The words that can be typed on the menu (0x46deb0, in the order of its switch) and what each does: the animation Lex
+// plays for it (none for some), the text the scripts keep it by (main.SecretUnlocked) and the hat it puts on Lex
+// (main.SetHatMode; 0 for none). ELITE, the eighth, switches the 1337 tiles instead.
+struct TypedWord {
+	unsigned int mWord;
+	const char* mLabel;
+	unsigned int mText;
+	int mHat;
+};
+const TypedWord kTypedWords[] = {
+    {GTA(0x6fc908), "seattle", GTA(0x6fd0fc), 5},   {GTA(0x6fc8fc), nullptr, GTA(0x6fd148), 4},
+    {GTA(0x6fc8f4), "lovely", GTA(0x6fd17c), 0},    {GTA(0x6fc8ec), "gobble", GTA(0x6fd1ac), 0},
+    {GTA(0x6fc8e0), "celebrate", GTA(0x6fd1e0), 6}, {GTA(0x6fc8d8), "pirate", GTA(0x6fd214), 0},
+    {GTA(0x6fc8d0), "winter", GTA(0x6fd244), 0},    {GTA(0x6f8634), nullptr, GTA(0x6fd26c), 0},
+    {GTA(0x6fc8c4), nullptr, GTA(0x6fd29c), 7},     {GTA(0x6fc8bc), nullptr, GTA(0x6fd2c8), 3}};
+const int kNumTypedWords = (int)(sizeof(kTypedWords) / sizeof(kTypedWords[0]));
+const int kEliteWord = 7;
+
 // The things of the menu, by Item: where the picture is drawn and where the mouse is over it, from the
 // constructor's tables (Volume 2 0x466420). The tome is centred on x = 420. The adventure, the arena and the
 // mini-games are animations: the mouse is over them within kPopRects (their pictures' size is also the hit
@@ -540,6 +558,12 @@ void MainMenu::DrawOverlay(Graphics* g)
 
 void MainMenu::KeyChar(SexyChar theChar)
 {
+	// the slash shows the arena's and the mini-games' "unlocked" animations (no guard, as the original had none)
+	if (theChar == '/') {
+		for (int anItem : {(int)ITEM_ARENA, (int)ITEM_MINI_GAMES})
+			if (mItems[anItem]->mPopAnim != nullptr)
+				mItems[anItem]->mPopAnim->PlayLabel("unlocked");
+	}
 	// port: the original also wanted no hall of fame (the app's +0x89c), nothing at the app's +0x8a0, +0x82c
 	// and +0x948, no conversation panel and no cheat console (none of them is ported yet), and the full game's
 	// marketing mode, which the port always is
@@ -551,8 +575,8 @@ void MainMenu::KeyChar(SexyChar theChar)
 	// the secret words: one more letter of one keeps them, a word makes Lex do something
 	int aFound = -1;
 	bool aPrefix = false;
-	for (int i = 0; i < kNumSecretWords && aFound == -1; i++) {
-		const std::string& aWord = GT(kSecretWords[i]);
+	for (int i = 0; i < kNumTypedWords && aFound == -1; i++) {
+		const std::string& aWord = GT(kTypedWords[i].mWord);
 		size_t aLength = std::min(aWord.size(), mTypedKeys.size());
 		if (mTypedKeys.compare(0, aLength, aWord, 0, aLength) == 0) {
 			aPrefix = true;
@@ -567,20 +591,26 @@ void MainMenu::KeyChar(SexyChar theChar)
 	if (aFound == -1)
 		return;
 	mTypedKeys.clear();
-	static const char* const kLabels[] = {"seattle", nullptr, "lovely", "gobble", "celebrate", "pirate", "winter"};
-	if (aFound == 1) {
-		// Volume 1's word for the media player (the film reel). Volume 2's second word is MOUSTACHE, a hat for
-		// Lex (main.SetHatMode); its KeyChar (0x46deb0: also PANCAKES, CONE and ELITE, "_CompleteBook") is not
-		// ported yet.
-		if (mApp->mLua->PushPath("_DefaultMP")) {
-			lua_pop(mApp->mLua->L, 1);
-			if (mApp->mLua->Call("_DefaultMP", 0, 1))
-				lua_pop(mApp->mLua->L, 1);
-		}
-		RefreshUnlocks();
+	const TypedWord& aWord = kTypedWords[aFound];
+	if (aWord.mLabel != nullptr)
+		mLex->PlayLabel(aWord.mLabel);
+	if (aFound == kEliteWord)
+		mApp->mLeetMode = !mApp->mLeetMode;
+	lua_pushstring(mApp->mLua->L, GT(aWord.mText).c_str());
+	LuaLib::CallLua("main.SecretUnlocked", 1);
+	if (aFound == kEliteWord) {
+		// the 1337 tiles, on or off
+		lua_pushboolean(mApp->mLua->L, mApp->mLeetMode ? 1 : 0);
+		LuaLib::CallLua("main.SetLeetMode", 1);
 		return;
 	}
-	mLex->PlayLabel(kLabels[aFound]);
+	if (aWord.mHat != 0) {
+		lua_pushint(mApp->mLua->L, aWord.mHat);
+		LuaLib::CallLua("main.SetHatMode", 1);
+	}
+	// (the original calls RefreshUnlocks after the second word only: it changes nothing here)
+	if (aFound == 1)
+		RefreshUnlocks();
 }
 
 void MainMenu::AppLostFocus()

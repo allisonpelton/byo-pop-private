@@ -37,9 +37,12 @@ adventure, `mm_arena.pam`, `mm_minigames.pam`), driven by labels (`BookLabel()` 
 cel images with a hit mask (quit and high scores have a mask image, the rest use the cel's rectangle). The tome shows
 when `CurrentBook` is set and above 4; arena and mini games when their profile flags are set (`RefreshUnlocks`). The
 tooltips are made but the original never draws them (inferred, not proven). Not ported yet: replaying a finished
-adventure (the kind-9 transition, `SetReplayMode`, the "continue your current adventure" dialog, `BookSelectScreen`), the
-locked-tome dialog, Volume 2's `KeyChar` (the MOUSTACHE, PANCAKES, CONE and ELITE hats and the `_CompleteBook` word) and
-the trial dialogs; `StartArena`, `ContinueArena` and the user-dialog functions are still Volume 1's and have to be
+adventure (the replay's curtain states, `SetReplayMode`, the "continue your current adventure" dialog, `BookSelectScreen`), the
+locked-tome dialog and the trial dialogs. `KeyChar` is Volume 2's (0x46deb0): ten words (SEATTLE, MOUSTACHE, LOVELY, GOBBLE,
+CELEBRATE, PIRATE, WINTER, ELITE, PANCAKES, CONE), each calling `main.SecretUnlocked` with its hint text, Lex's animation for
+six of them, `main.SetHatMode` (hats 5, 4, 6, 7 and 3 for SEATTLE, MOUSTACHE, CELEBRATE, PANCAKES and CONE) and, for ELITE,
+`main.SetLeetMode`; the slash plays the "unlocked" animation of the arena and the mini games; the ninth `_CompleteBook`
+case of the original's switch cannot be reached (its table holds ten words), so it is left out; `StartArena`, `ContinueArena` and the user-dialog functions are still Volume 1's and have to be
 compared with 0x46c5d0, 0x46c4b0, 0x46cb30, 0x46cde0 and 0x46d130.
 
 ## What runs now (2026-10-26)
@@ -62,6 +65,11 @@ file as `book0Chapter1`, and the framework's `DeleteResources` and `GetNumResour
 quitting to the menu left the chapter's images loaded (while the Lua side forgot them), and the next load skipped them and
 exported nothing. The group names are now compared without case (`shared:` commit; the group list was already).
 The Hall of Fame's default names are Volume 1's code path: compare with Volume 2's `HallOfFame` (6.1 KB) too.
+
+Compared with Volume 2 (2026-10-26): `StartArena` (0x46c5d0), `ContinueArena` (0x46c4b0), `FillUserList` (0x46cde0) and the
+user dialog's handler (0x46d130, its OK, close, new, delete and delete-confirmed branches) do the same steps in the same
+order as the port's Volume 1 derived code; the new-name function 0x46cb30 and the Volume 2 offsets of the app's fields
+(the timed-mode flag is +0x9aa there, the replay flag +0x9ab, ELITE's +0x95b) have not been compared line by line.
 
 ## The curtain's states in Volume 2 (CurtainDone, 0x442700)
 

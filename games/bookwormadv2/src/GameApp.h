@@ -138,6 +138,7 @@ public:
 	bool mTitleToMainMenu = false;                 // +0x91b
 	bool mQueuedHydraLockout = false;              // +0x91d (not ported yet: the trial's)
 	bool mTimedMode = false;                       // +0x96e: playing the timed mode (its TM_ profile keys)
+	bool mLeetMode = false;                        // +0x95b: the word ELITE, typed on the menu, switched the 1337 tiles on
 	bool mMiniGameFromMenu = false;                // +0x96f: a mini-game started from the main menu's list (0x4819a0)
 	bool mQuitting = false;                        // +0x91c: leaving the game (0x451c20; 0x451920 clears it)
 	int mBattleUpdates = 0;                        // +0x974: updates of battle (not of a level-up or a chapter's end); written only
