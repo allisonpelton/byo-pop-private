@@ -123,7 +123,7 @@ and then, a check of every grid cell) and sees launches score (scores 130, 1604,
 mode end. Translated since the status above: Update 0x426f40, KeyChar/MouseMove/MouseLeave/MouseDown/MouseUp/MouseDrag,
 pause 0x421f30, the first board of the timed modes 0x428780/0x428ae0, the dealing of a new board (state 7) 0x428ef0 with
 0x428e80, game over 0x421de0, 0x4282a0, 0x428090, 0x428d10, 0x428de0, 0x41f280, 0x429050-0x429080, the app's StartBoard
-0x42ea30 (without the music fades and the deletion of the mode's saved game).
+0x42ea30.
 
 ### Draw (2026-10-26, late)
 
@@ -170,6 +170,11 @@ its KillDialog (0x42d620) gives the board the keyboard focus again when the last
 dimmed and with the pause window under every modal dialog, as the original does. The options dialog is not translated yet,
 so the Options button does nothing.
 
+Music (the app's four songs: 0 menu, 1 game, 2 game over, 3 level up): StartBoard fades all four out at 0.005 a step, the
+Board's constructor fades the game song in at 0.666, a pause fades it out at 0.008 without stopping it and the resume fades it
+in again, and a game over fades the game song out at 0.02 and the game-over song in. The pause also disables the three
+left-hand buttons (0x42d270) and the resume enables them.
+
 Saved games (BoardSave.cpp, 2026-10-26): the writer 0x41c830 and the loader 0x41b880 share one order, so one visitor
 (Board::Fields) lists the plain fields for both. The file is the 2003 framework's Buffer: the magic 0xFADA0002, the app's mode
 and difficulty, the score, the level and the state, the random generator's state as a string (MTRand::Serialize, 2496 bytes),
@@ -188,7 +193,7 @@ menu and continuing it: the board, score, level and difficulty come back pixel f
 
 Still to do after Draw (above): the dialogs (high scores 0x4064e0, options 0x411ba0, record 0x414060,
 level-up 0x40c2c0, money 0x4118d0, buy rockets 0x401010, credits 0x403990, hint 0x408f60), the fireworks (Rocket 0x4172f0), the
-talking head (0x4161a0, 0x413aa0), the music fades, then the
+talking head (0x4161a0, 0x413aa0), the level-up screen's own music fades (0x40c2c0), then the
 deliverables: the coordinator's `BYOPOP_BUY_rocketmania` line (cmake/ByopopStores.cmake has an
 uncommitted local placeholder that must not be committed), and an AddressSanitizer run of the autoplay (tools/build.sh has no
 asan option yet).

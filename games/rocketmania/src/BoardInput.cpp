@@ -3,6 +3,7 @@
 
 #include "Board.h"
 #include "RocketApp.h"
+#include "MusicInterface.h"
 #include "Compat2004.h"
 #include "Graphics.h"
 #include "MTRand.h"
@@ -164,10 +165,19 @@ void Board::F421f30(bool theOn)
 	if (m350 < 1)
 	{
 		if (0 < anOld)
+		{
 			m368 = (int) SDL_GetTicks();
+			mApp->mMusicInterface->FadeIn(SONG_GAME, -1, 0.666, false);
+			// (the talking head's call 0x416e50 is not translated yet)
+			mApp->DisableBoardButtons(false);
+		}
 	}
 	else if (anOld <= 0)
+	{
 		m360 = m360 + ((int) SDL_GetTicks() - m368) / 1000;
+		mApp->mMusicInterface->FadeOut(SONG_GAME, false, 0.008);
+		mApp->DisableBoardButtons(true);
+	}
 	MarkDirty();
 }
 

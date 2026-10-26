@@ -5,6 +5,7 @@
 
 #include "Board.h"
 #include "RocketApp.h"
+#include "MusicInterface.h"
 #include "Compat2004.h"
 #include "GameText.h"
 #include "Graphics.h"
@@ -57,6 +58,8 @@ Board::Board(RocketApp* theApp, bool theContinuing)
 	mState = 0;
 	ResetState(theContinuing);
 	SetupBoard(true, theContinuing);
+	// 0x41ae80: the game's song fades in (the head's first lines when the app's hint flag is clear are not translated yet)
+	mApp->mMusicInterface->FadeIn(SONG_GAME, -1, 0.666, false);
 }
 
 Board::~Board()
@@ -272,13 +275,15 @@ void Board::F428090()
 }
 
 // 0x421de0: the game is over (theKind 0 the night ran out, 1 the top line is full, 2 strategy mode ran out of moves).
-// Left out: the music fades (the app's music object at app+0x2f4), the talking head's lines (0x416aa0, 0x416360) and the
+// Left out: the talking head's lines (0x416aa0, 0x416360) and the
 // buy-rockets screen (BuyRocketsWidget 0x401010, which the original adds over the board).
 void Board::F421de0(int theKind)
 {
 	m460 = theKind;
 	mState = 1;
 	m440 = 300;
+	mApp->mMusicInterface->FadeOut(SONG_GAME, true, 0.02);
+	mApp->mMusicInterface->FadeIn(SONG_GAMEOVER, -1, 0.02, false);
 	mApp->PlaySample(0x24);
 }
 

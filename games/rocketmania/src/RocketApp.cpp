@@ -483,11 +483,12 @@ bool RocketApp::ShowModeHint(int theHint, bool theForce)
 	return false;
 }
 
-// 0x42ea30: a game begins (or is continued): the board replaces the one in progress. Left out: the fade of the four
-// songs (app+0x2f4).
+// 0x42ea30: a game begins (or is continued): the board replaces the one in progress.
 void RocketApp::StartBoard(bool theContinuing)
 {
 	KillDialog(3);
+	for (int aSong = 0; aSong < 4; aSong++)
+		mMusicInterface->FadeOut(aSong, true, 0.005);
 	if (mBoard != NULL)
 	{
 		mWidgetManager->RemoveWidget(mBoard);
@@ -510,8 +511,8 @@ void RocketApp::StartBoard(bool theContinuing)
 	AddBoardButtons();
 	if (!theContinuing)
 	{
-		KillDialog(1);
 		DeleteSavedGame(mMode);
+		KillDialog(1);
 	}
 }
 
@@ -536,6 +537,13 @@ void RocketApp::AddBoardButtons()
 		mWidgetManager->AddWidget(aButton);
 		mBoardButtons.push_back(aButton);
 	}
+}
+
+// 0x42d270: the buttons are disabled while the board is paused
+void RocketApp::DisableBoardButtons(bool theDisabled)
+{
+	for (std::list<ButtonWidget*>::iterator anItr = mBoardButtons.begin(); anItr != mBoardButtons.end(); ++anItr)
+		(*anItr)->SetDisabled(theDisabled);
 }
 
 void RocketApp::RemoveBoardButtons()

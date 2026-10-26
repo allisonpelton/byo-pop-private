@@ -143,6 +143,7 @@ public:
 	void					ShowQuitDialog();       // 0x42e390
 	void					AddBoardButtons();      // 0x42d1a0 the Pause, Options and Quit buttons beside the board
 	void					RemoveBoardButtons();
+	void					DisableBoardButtons(bool theDisabled);  // 0x42d270
 	void					ShowPauseDialog();      // 0x42d820
 	void					QuitGame();             // 0x42e530
 	std::list<ButtonWidget*>	mBoardButtons;      // app+0x87c
