@@ -682,6 +682,57 @@ None of these is a blocker: the image is not packed and has full RTTI. It is jus
 > Sprout line. Every game PopCap released after EA bought it in
 > 2011 is out. Appendix C has the rest.
 
+### The order of the remaining games (2026-10-26)
+
+This list applies the decisions above to every game still to port, and replaces the older "Order" further down
+where they differ. Done by 2026-10-26: Bejeweled, Big Money, BookWorm, Noah's Ark, Seven Seas, Atomica, Mummy Maze,
+TipTop and Ning Po. Running: Bookworm Adventures (Opus), Pixelus and Alchemy (Sonnet).
+
+The BookWorm series and Twist come first, as decided on 2026-10-24. They waited only on Bookworm Adventures' engine,
+so Volume 2 takes the first slot that frees once Bookworm Adventures is merged, and Twist the next. Twist is the
+largest game left and holds its slot for weeks, so the queue after it runs in the remaining slots. That queue
+takes the least predicted effort first, and a game that waits on another game's engine goes right after that game.
+The model follows CLAUDE.md's rule: Opus for the first game on an engine, Sonnet for a game that can copy one.
+
+| # | Game | Model | Effort | Why it stands here |
+|---|---|---|---|---|
+| 1 | Bookworm Adventures Vol. 2 | Sonnet | ~4-6x after Vol. 1 | the BookWorm series; a sequel on Bookworm Adventures' engine |
+| 2 | Bejeweled Twist | Opus | ~25x | after the BookWorm series; PopAnim comes from Bookworm Adventures |
+| 3 | Word Harmony | Opus | ~3-4x | parked; its own engine |
+| 4 | Rocket Mania Deluxe | Sonnet | ~3.5x | parked; Noah's Ark's 2002 framework |
+| 5 | Dynomite Deluxe | Opus | ~4.5x | parked; the oldest framework layout, no game RTTI |
+| 6 | Bonnie's Bookstore Deluxe | Opus | ~4-6x | parked; its own engine with PopLua |
+| 7 | Venice Deluxe | Sonnet | ~5x | parked; Bejeweled's framework with PopLua |
+| 8 | Heavy Weapon Deluxe | Opus | ~5x | parked; a 2005 framework no port has, SWF cutscenes |
+| 9 | Peggle Deluxe | Sonnet | ~5x on Thunderball | Bejeweled's framework generation; JPEG 2000 is in; Thunderball (MIT) is a start |
+| 10 | Peggle Extreme | Sonnet | ~1x after Deluxe | 84% of its functions are Deluxe's |
+| 11 | Peggle Nights | Sonnet | ~4-5x after Deluxe | |
+| 12 | Peggle World of Warcraft Edition | Sonnet | ~1-2x after Nights | the Nights branch |
+| 13 | Hammer Heads Deluxe | Sonnet | ~6x | parked; Big Money's 1.2 framework |
+| 14 | Bejeweled 2 Deluxe | Sonnet | ~6x | parked; Bejeweled's framework |
+| 15 | AstroPop Deluxe | Sonnet | ~7-8x | parked; BookWorm's 2004 framework |
+| 16 | Iggle Pop Deluxe | Opus | ~8x as the first Sprout game | builds Sprout's first-generation engine; the Pizza Frenzy decompilation has no licence, so it is a reference only |
+| 17 | Feeding Frenzy Deluxe | Sonnet | small to medium after Iggle Pop | the same first-generation engine, in an older form |
+| 18 | Feeding Frenzy 2 Deluxe | Opus | ~10x | Sprout's second generation |
+| 19 | Bejeweled 3 | Opus | ~10-15x | builds the prime-compat layer (PopAnim, PIEffect, CurvedVal) that Zuma's Revenge reuses |
+| 20 | Banana Bugs | Opus | waits on the image | PopCap's 2010 framework, near Bejeweled 3's; its image must first come out of the 2010 DRM |
+| 21 | Gyromancer | Opus | large | Square Enix's own engine; the Steam stub must come off first, with a tool that needs the user's OK |
+| 22 | Zuma's Revenge! | Opus | ~15-20x with references | HARD; prime-compat and JeffLib |
+| 23 | Typer Shark! Deluxe | Sonnet | ~5x | at the end by the decision of 2026-10-24; BookWorm's framework |
+| 24 | Talismania Deluxe | Sonnet | ~12-16x after Feeding Frenzy 2 | at the end by the same decision; HARD, on Feeding Frenzy 2's engine |
+
+After these come the other studios' games (Appendix D), World of Goo among them; which of the others is decided then.
+
+Four games wait on the user's decision. Their places are fixed by effort if they go ahead. Cosmic Bugs (~2x, Opus,
+Retro64's engine) would go first in the queue, before Word Harmony, with Water Bugs (Sonnet, small) right after it.
+Mahjong Escape: Ancient Japan (~4-5x, Opus, Jolly Bear's engine) would go after Dynomite, with Ancient China
+(Sonnet, small) right after it.
+
+Every game has a copy on the user's machines ([Appendix C](#appendix-c-popcap-pc-games-missing-from-this-survey-2026-10-25)
+and the user's notes). Skipped, unchanged: Zuma Deluxe, Insaniquarium, Plants vs. Zombies and Pizza Frenzy (existing
+decompilations), Chuzzle and its Christmas Edition, The Wizard's Pen, Sweet Tooth To Go, every hidden-object game and
+every game released after July 2011.
+
 Bejeweled Deluxe and then Big Money Deluxe are already planned ([MOD_ROADMAP.md](MOD_ROADMAP.md)). Big Money is DIRECT at about 2x. It builds the SAF 1.2 vtable map that Hammer Heads reuses, and its `.it` music already plays with libxmp-lite.
 
 ### Groundwork
