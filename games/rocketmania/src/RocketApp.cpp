@@ -391,10 +391,15 @@ void RocketApp::ShowOptions(bool theFromMenu)
 		mMusicInterface->FadeIn(0, -1, 0.2, false);
 }
 
-// 0x42d760 (not translated yet)
+// 0x42d760: the credits, near the top of the screen
 void RocketApp::ShowCredits()
 {
-	SDL_Log("ShowCredits: not translated yet");
+	CreditsDialog* aDialog = new CreditsDialog(this);
+	aDialog->SetColor(0, mDialogColors[0]);
+	aDialog->SetColor(1, mDialogColors[1]);
+	aDialog->SetColor(3, mDialogColors[0]);
+	aDialog->Resize(0xc4, 0x10, 0x184, aDialog->GetPreferredHeight(0x184));
+	AddDialog(DIALOG_CREDITS, aDialog);
 }
 
 // 0x42e330: a dialog in the middle of the window

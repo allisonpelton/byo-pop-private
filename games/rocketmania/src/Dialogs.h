@@ -32,6 +32,23 @@ public:
 	virtual void		Draw(Graphics* g) override;     // 0x411980
 };
 
+// 0x403990: id 7 "Credits", opened over the options dialog; the picture, the names of the makers and a DONE button
+class CreditsDialog : public Dialog2004
+{
+public:
+	RocketApp*			mApp;                   // +0xec
+	double				mPhase;                 // +0xf0 these three move on in every update; nothing reads them
+	double				mScroll1;               // +0xf8
+	double				mScroll2;               // +0x100
+
+public:
+	CreditsDialog(RocketApp* theApp);
+
+	virtual int			GetPreferredHeight(int theWidth) override;     // 0x403c10
+	virtual void		Draw(Graphics* g) override;                    // 0x403c20
+	virtual void		Update() override;                             // 0x4042c0
+};
+
 // 0x411ba0: id 1 "Options": the volumes, the screen mode, the cursors, the hints; the DONE button applies them
 // (RocketApp::ButtonDepress). The original also lists a register button (the game is registered), an update check
 // (online) and the partner links (the user's decision for the ports, 2026-10-24): none of them is ported.

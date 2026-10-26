@@ -505,3 +505,89 @@ void OptionsDialog::CheckboxChecked(int theId, bool checked)
 		}
 	}
 }
+
+// ---------------------------------------------------------------------------------------------------------
+// CreditsDialog
+
+// 0x403990
+CreditsDialog::CreditsDialog(RocketApp* theApp) :
+	Dialog2004(theApp->mImages[IMAGE_DIALOG], theApp->mImages[IMAGE_DIALOGBUTTON], DIALOG_CREDITS, true, "", "",
+		GT(0x004e4350), BUTTONS_FOOTER),
+	mApp(theApp),
+	mPhase(0.0),
+	mScroll1(0.0),
+	mScroll2(0.0)
+{
+	mContentInsets = Insets(0x24, 0x24, 0x24, 0x14);
+	SetButtonFont(mApp->mFonts[FONT_VERDANA12_BOLD]);
+	// port: the original leaves the lines font unset (it has no lines); the compat dialog's Draw measures with it
+	SetLinesFont(mApp->mFonts[FONT_VERDANA12_BOLD]);
+}
+
+// 0x403c10
+int CreditsDialog::GetPreferredHeight(int theWidth)
+{
+	return 0x18c;
+}
+
+// 0x403c20: the picture with its inner edge shaded, and the names
+void CreditsDialog::Draw(Graphics* g)
+{
+	Dialog2004::Draw(g);
+
+	// six outlines, each a pixel further in and fainter, along the edge of the field the names are on
+	Graphics aShade(*g);
+	int aShadeX = 0x27;
+	int aShadeY = 0x22;
+	int aShadeWidth = mWidth - 0x4e;
+	int aShadeHeight = mHeight - 0x6e;
+	aShade.ClipRect(Rect(aShadeX, aShadeY, aShadeWidth, aShadeHeight));
+	int anAlpha = 0x5fa;
+	int anIndex = 0;
+	int anInset = 0;
+	do
+	{
+		aShade.SetColor(Color(0x30, 0x30, 0x30, anAlpha / 7));
+		aShade.DrawRect(anIndex + aShadeX, aShadeY + anIndex, aShadeWidth - anInset, aShadeHeight - anInset);
+		anAlpha -= 0xff;
+		anIndex++;
+		anInset += 2;
+	} while (0 < anAlpha);
+
+	g->SetFont(mApp->mFonts[FONT_ARIAL10_BOLD]);
+	g->SetColor(mApp->mDialogColors[0]);
+	WriteCenteredLine(g, 0x3e, GT(0x004e447c));
+
+	g->SetFont(mApp->mFonts[FONT_ARIAL10]);
+	g->SetColor(mApp->mDialogColors[0]);
+	WriteCenteredLine(g, 0x54, GT(0x004e4458));
+	WriteCenteredLine(g, 0x6a, GT(0x004e4434));
+	WriteCenteredLine(g, 0x80, GT(0x004e4424));
+	g->SetColor(mApp->mDialogColors[0]);
+	WriteCenteredLine(g, 0x95, GT(0x004e4414));
+
+	g->SetFont(mApp->mFonts[FONT_ARIAL10_BOLD]);
+	g->SetColor(mApp->mDialogColors[0]);
+	WriteCenteredLine(g, 0xbe, GT(0x004e4404));
+
+	g->SetFont(mApp->mFonts[FONT_ARIAL10]);
+	g->SetColor(mApp->mDialogColors[0]);
+	WriteCenteredLine(g, 0xd4, GT(0x004e43d8));
+	WriteCenteredLine(g, 0xea, GT(0x004e43a8));
+	WriteCenteredLine(g, 0x100, GT(0x004e438c));
+	WriteCenteredLine(g, 0x12c, GT(0x004e4358));
+}
+
+// 0x4042c0
+void CreditsDialog::Update()
+{
+	Dialog2004::Update();
+	mPhase += 0.004;
+	mScroll1 += 0.2;
+	if (mScroll1 > 0.0)
+		mScroll1 -= 512.0;
+	mScroll2 += 0.3;
+	if (mScroll2 > 0.0)
+		mScroll2 -= 512.0;
+	MarkDirty();
+}
