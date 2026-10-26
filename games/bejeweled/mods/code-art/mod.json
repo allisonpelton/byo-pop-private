@@ -1,0 +1,20 @@
+{
+  "id": "code-art",
+  "name": "Code-Drawn Art",
+  "version": "1.0",
+  "author": "byo-pop",
+  "description": "Every image and font drawn by code as the game loads, in the port's own look: the game runs without its images folder and stays sharp at any window size. Pick the gems and the colours in the settings (they apply at the next start). Mods above this one still win: their images replace the drawn ones and their patches draw over them.",
+  "settings": [
+    { "type": "section", "label": "Look" },
+    { "id": "gems", "label": "Gems", "type": "choice", "default": "cel",
+      "choices": [ { "value": "cel", "label": "Cel" }, { "value": "glossy", "label": "Glossy" },
+                   { "value": "su", "label": "Steven Universe" } ],
+      "help": "Cel: flat tones and an outline. Glossy: glass that reflects a sky. Steven Universe: the fan-art gems of the su-gems mod." },
+    { "id": "palette", "label": "Colours", "type": "choice", "default": "blue",
+      "choices": [ { "value": "blue", "label": "Blue" }, { "value": "violet", "label": "Violet" },
+                   { "value": "emerald", "label": "Emerald" }, { "value": "ember", "label": "Ember" },
+                   { "value": "night", "label": "Night" } ],
+      "help": "The panels, the title screen and the lettering." }
+  ],
+  "features": { "codeArt": { "gems": { "$setting": "gems" }, "palette": { "$setting": "palette" } } }
+}

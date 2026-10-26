@@ -3,7 +3,7 @@
 # Web: bejeweled.html/.js/.wasm; its page (web/shell.html with web/page.js and page.css here) imports the user's game
 # files into /persist (IDBFS)
 # and starts the game with callMain().
-file(GLOB GAME_SOURCES CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp)
+file(GLOB GAME_SOURCES CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp ${CMAKE_CURRENT_SOURCE_DIR}/src/art/*.cpp)
 list(REMOVE_ITEM GAME_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/src/main.cpp)
 # Test hooks (-tracehash, -autoplay): test code kept out of the game code (the autoplay bot has its own RNG)
 file(GLOB TESTHOOK_SOURCES CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/src/testhooks/*.cpp)
