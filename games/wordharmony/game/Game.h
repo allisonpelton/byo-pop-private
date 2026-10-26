@@ -71,6 +71,7 @@ public:
 	int mHints;                         // +0x4c: hints left
 	int mHintsUsed;                     // +0x50
 	int mHintsUsedTotal;                // +0x54
+	std::vector<std::string> mLongestWords;  // +0x5c: the longest words found (0x4088f0), five at most
 	engine::TextEffects* mTextEffects;  // +0x70
 	engine::ScreenLayout* mOptions;     // +0x104
 	bool mGridSnap;                     // +0x108: the editor's grid
