@@ -33,6 +33,9 @@ bool Sys_ReadFile(const char* thePath, std::vector<uint8_t>& theData);
 void Sys_AddUpdateRect(int x, int y, int w, int h);
 // 0x428890
 void Sys_SetMousePos(int x, int y);
+// 0x70819c: the original's PumpMessages (0x42a070) pumps the window's messages only while it is 1, and it picks
+// which focus messages pause the sound; only the demo's power-ups set it (the port's host does neither)
+extern int gPumpMessages;
 // 0x428eb0: the screen's pixel format (gScreenFormat 0x46e5b8 points at it)
 const PixelFormat* Sys_ScreenFormat();
 void Sys_SetScreenFormat(const PixelFormat* theFmt);

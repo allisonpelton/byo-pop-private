@@ -583,7 +583,7 @@ Level* Level_Init(Level* theLevel)
 	List_Init(&theLevel->texts);
 	List_Init(&theLevel->menus);
 	List_Init(&theLevel->pointers);
-	List_Init(&theLevel->unk46c);
+	List_Init(&theLevel->weapons);
 	theLevel->totalCells = 0;
 	theLevel->filledCells = 0;
 	theLevel->title[0] = 0;
@@ -618,7 +618,7 @@ void Level_Destroy(Level* theLevel)
 		if (theLevel->columns[i] != nullptr)
 			Cells_Delete(theLevel->columns[i]);
 	}
-	List_Clear(&theLevel->unk46c);
+	List_Clear(&theLevel->weapons);
 	List_Clear(&theLevel->pointers);
 	List_Clear(&theLevel->menus);
 	List_Clear(&theLevel->texts);
@@ -915,7 +915,7 @@ static void Level_Won(Level* theLevel)
 		if (theLevel->enemies.current->ice != nullptr)
 			theLevel->enemies.current->ice->state = 2;
 	});
-	List_Each(&theLevel->unk46c, [](Obj* anObj) { anObj->state = 2; });
+	List_Each(&theLevel->weapons, [](Obj* anObj) { anObj->state = 2; });
 	// the original steps through the enemies here, not the shooters: the current shooter is told once per enemy
 	if (theLevel->shooters.current != nullptr)
 	{
@@ -1007,10 +1007,10 @@ int Level_Update(Level* theLevel)
 		if (Enemy_Update(anEnemy) == 0)
 			List_RemoveCurrent(&theLevel->enemies);
 	});
-	gFlag46003c = 1;
-	List_Each(&theLevel->unk46c, [&](Obj* anObj) {
-		if (Fn41ae10(anObj) == 0)
-			List_RemoveCurrent(&theLevel->unk46c);
+	gFirstWeapon = 1;
+	List_Each(&theLevel->weapons, [&](Weapon* aWeapon) {
+		if (Weapon_Update(aWeapon) == 0)
+			List_RemoveCurrent(&theLevel->weapons);
 	});
 	List_Each(&theLevel->pointers, [&](Obj* aPointer) {
 		if (Pointer_Update(aPointer) == 0)
@@ -1059,7 +1059,7 @@ int Level_Update(Level* theLevel)
 				});
 			}
 			List_Each(&theLevel->powerups, [&](Powerup* aPowerup) {
-				if (Fn419770(aPowerup) == 0)
+				if (Powerup_Update(aPowerup) == 0)
 					List_RemoveCurrent(&theLevel->powerups);
 			});
 		}
@@ -1124,8 +1124,8 @@ void Level_Draw(Level* theLevel)
 	List_Each(&theLevel->fills, [](Cell* aCell) { Cell_Redraw(aCell); });
 	List_Each(&theLevel->systems, [](ParticleSystem* aSystem) { ParticleSystem_Draw(aSystem); });
 	List_Each(&theLevel->enemies, [](Enemy* anEnemy) { Enemy_Draw(anEnemy); });
-	List_Each(&theLevel->unk46c, [](Obj* anObj) { Fn419790(anObj); });
-	List_Each(&theLevel->powerups, [](Powerup* aPowerup) { Fn418420(aPowerup); });
+	List_Each(&theLevel->weapons, [](Weapon* aWeapon) { Weapon_Draw(aWeapon); });
+	List_Each(&theLevel->powerups, [](Powerup* aPowerup) { Powerup_Draw(aPowerup); });
 	List_Each(&theLevel->stars, [](Obj* aStar) { Star_Draw(aStar); });
 	if (theLevel->panels.current != nullptr)
 	{
@@ -1134,13 +1134,13 @@ void Level_Draw(Level* theLevel)
 	}
 	List_Each(&theLevel->menus, [](Menu* aMenu) { Menu_Draw(aMenu); });
 	DrawList_Flush();
-	// the first one leaving (state 3) is drawn again on top, and ends the walk
-	List_Each(&theLevel->unk46c, [&](Obj* anObj) {
-		if (anObj->state == 3)
+	// the first orbiting one (state 3) says so when an enemy is too close to launch it, and ends the walk
+	List_Each(&theLevel->weapons, [&](Weapon* aWeapon) {
+		if (aWeapon->state == 3)
 		{
-			Fn419880(anObj);
-			if (theLevel->unk46c.current != nullptr)
-				theLevel->unk46c.current = theLevel->unk46c.tail;
+			Weapon_DrawTooClose(aWeapon);
+			if (theLevel->weapons.current != nullptr)
+				theLevel->weapons.current = theLevel->weapons.tail;
 		}
 	});
 	List_Each(&theLevel->texts, [](Text* aText) { Text_Draw(aText); });

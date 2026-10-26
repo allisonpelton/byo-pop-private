@@ -75,7 +75,7 @@ extern int gProfile;                       // 0x46e24c
 extern Profile gProfiles[11];              // 0x46df60
 extern LevelRecord gLevelRecords[1000];    // 0x4623e0
 extern int gScore;                         // 0x46e5e8
-extern int gFlag46003c;                    // 0x46003c
+extern int gFirstWeapon;                   // 0x46003c  no orbiting weapon has been updated yet this update
 extern int gLevelInSet;                    // 0x46e5ec
 extern int gMouseX;                        // 0x46e5bc
 extern int gMouseY;                        // 0x46e5c0

@@ -33,10 +33,22 @@ struct Cell : Obj
 };
 static_assert(sizeof(Cell) == 0xe4, "Cell");
 
-// The board's side panel (+0x40c; its members are not named yet)
+// The board's panel along the bottom (+0x40c; CBPowerup.cpp): the fill percentage, level, score and lives in
+// their fonts at their places, and its items (the logo) drawn over it
 struct Panel : Obj
 {
-	uint8_t unkb0[0x30];       // +0xb0
+	int scoreX;                // +0xb0
+	int scoreY;                // +0xb4
+	int percentX;              // +0xb8
+	int percentY;              // +0xbc
+	int livesX;                // +0xc0
+	int livesY;                // +0xc4
+	int levelX;                // +0xc8
+	int levelY;                // +0xcc
+	Font* percentFont;         // +0xd0
+	Font* livesFont;           // +0xd4
+	Font* scoreFont;           // +0xd8
+	Font* levelFont;           // +0xdc
 	List<Obj> items;           // +0xe0
 };
 static_assert(sizeof(Panel) == 0xec, "Panel");
@@ -174,11 +186,33 @@ struct Text : Obj
 };
 static_assert(sizeof(Text) == 0x6c8, "Text");
 
-// A power-up (0xd8 bytes; 0x418900 makes one of a random kind, 0x4186c0 destroys it)
+// A power-up (0xd8 bytes; 0x418900 makes one of a random kind, 0x4186c0 destroys it; CBPowerup.cpp). It falls
+// from where an enemy died until the ship (under the player's control) touches it. kind +0x08 the effect (1
+// slow motion .. 0x11 a magnet, else a faster beam); state +0x0c 4 while it falls
 struct Powerup : Obj
 {
-	uint8_t unkb0[0x28];       // +0xb0
+	float gravity;             // +0xb0  added to vy each update
+	char text[0x20];           // +0xb4  shown when it is collected: a colour code and the effect's name
+	Obj* attached;             // +0xd4  follows it (nothing here sets one)
 };
+
+// A weapon a power-up gives (0xd8 bytes, in the level's list at +0x46c; CBPowerup.cpp). It orbits the ship
+// (state 3) until a click launches it (state 4) straight out the way it is from the ship. kind +0x08: 0 a mine,
+// 1 a missile, 3 an ice shot, 4 a time bomb, 5 a magnet, 6 an anchor
+struct Weapon : Obj
+{
+	int unkb0;                 // +0xb0
+	float drag;                // +0xb4  the speed is multiplied by it each update once launched
+	int unkb8;                 // +0xb8
+	float launchSpeed;         // +0xbc
+	int across;                // +0xc0  the ship's beamAcross at the last update
+	int particle;              // +0xc4  particle_0's index in the art bank
+	int tooClose;              // +0xc8  an enemy touches it: it cannot be launched
+	int fuseSound;             // +0xcc
+	int angle;                 // +0xd0  degrees about the ship
+	float radius;              // +0xd4  its distance from the ship
+};
+static_assert(sizeof(Weapon) == 0xd8, "Weapon");
 static_assert(sizeof(Powerup) == 0xd8, "Powerup");
 
 // A node of the level's key map (0x14 bytes)
@@ -250,7 +284,7 @@ struct Level : Obj
 	List<Text> texts;                // +0x448
 	List<Menu> menus;                // +0x454
 	List<Obj> pointers;              // +0x460
-	List<Obj> unk46c;                // +0x46c
+	List<Weapon> weapons;            // +0x46c
 };
 static_assert(sizeof(Level) == 0x478, "Level");
 
@@ -402,14 +436,14 @@ void Text_Make(Text* theText, const char* theString, Font* theFont, int theX, in
 int Text_Update(Text* theText);                                  // 0x41f1d0
 int Star_Update(Obj* theStar);                                   // 0x41e2c0
 void Level_AddStars(Level* theLevel);                            // 0x411440
-int Fn419770(Powerup* thePowerup);                               // 0x419770
-int Fn41ae10(Obj* theObj);                                       // 0x41ae10
+int Powerup_Update(Powerup* thePowerup);                         // 0x419770: 0 when it is gone
+int Weapon_Update(Weapon* theWeapon);                            // 0x41ae10: 0 when it is gone
 void Level_StartRandom(Level* theLevel);                         // 0x4119c0: a random board, on its first update
 int Level_UpdatePaused(Level* theLevel);                         // 0x411bc0
 void Shooter_Draw(Shooter* theShooter);                          // 0x41d430
-void Fn419790(Obj* theObj);                                      // 0x419790
-void Fn419880(Obj* theObj);                                      // 0x419880
-void Fn418420(Powerup* thePowerup);                              // 0x418420
+void Weapon_Draw(Weapon* theWeapon);                             // 0x419790: a time bomb's fuse too
+void Weapon_DrawTooClose(Weapon* theWeapon);                     // 0x419880
+void Powerup_Draw(Powerup* thePowerup);                          // 0x418420
 void Star_Draw(Obj* theStar);                                    // 0x41e310
 void Menu_Draw(Menu* theMenu);                                   // 0x4154d0
 void Text_Draw(Text* theText);                                   // 0x41f6f0

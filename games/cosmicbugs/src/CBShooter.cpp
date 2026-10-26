@@ -21,7 +21,7 @@ uint8_t gVisited[50][37];          // 0x6e5de0  the open cells Region_Count has 
 int Weapons_Orbiting()
 {
 	int aCount = 0;
-	List_Each(&gLevels.current->unk46c, [&](Obj* aWeapon) {
+	List_Each(&gLevels.current->weapons, [&](Weapon* aWeapon) {
 		if (aWeapon->state == 3)
 			aCount = aCount + 1;
 	});
@@ -634,7 +634,7 @@ void Shooter_Fire(Shooter* theShooter)
 			Shooter_EnemiesNear(theShooter) != 0)
 		{
 			// (the original works out a pan from x for a play call that takes none)
-			Sound_Play(Sound_Load("audio\\buzzer.wav"));
+			Sound_Play(Sound_Find("audio\\buzzer.wav"));
 		}
 		return;
 	}

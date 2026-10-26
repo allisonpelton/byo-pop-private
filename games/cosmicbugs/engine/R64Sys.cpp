@@ -34,6 +34,8 @@ void Sys_AddUpdateRect(int x, int y, int w, int h)
 		gHost->AddUpdateRect(x, y, w, h);
 }
 
+int gPumpMessages = 0;
+
 // 0x428890
 void Sys_SetMousePos(int x, int y)
 {
