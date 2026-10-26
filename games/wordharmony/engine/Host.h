@@ -33,6 +33,8 @@ public:
 	// The window's full screen mode (App slots 0x04 and 0x08: the window's 0x456fa0 and 0x455b80)
 	virtual void setFullScreen(bool theFullScreen) = 0;
 	virtual bool isFullScreen() = 0;
+	// The program's end (App slot 0x70: PostQuitMessage())
+	virtual void quit() = 0;
 	// ShellExecute() of a link
 	virtual void openURL(const std::string& theURL) = 0;
 	virtual void log(const char* theText) = 0;

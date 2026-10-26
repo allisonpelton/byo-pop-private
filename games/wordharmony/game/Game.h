@@ -25,10 +25,16 @@ class Game : public engine::Controller, public engine::ScreenListener
 public:
 	static Game* instance() { return sInstance; }  // 0x4995b8
 
+	// 0x401240: the program's end
+	void endProgram();
 	// 0x401260: points to the score, and the score to the HUD
 	void addScore(int thePoints);
 	// 0x401290: a found word's floating text is done: mLettersLeft less its letters (theLetters), at least 0
 	static void scoreShown(int theLetters);
+	// 0x401490: the mouse over a main menu mode button (MODE_ values): that mode's description is the one shown
+	void showModeInfo(int theMode);
+	// 0x4014d0: the mouse off it: the description fades out
+	void hideModeInfo(int theMode);
 	// 0x401580
 	bool isPaused();
 	// 0x402b10: plays a sound of the sound bank by its name

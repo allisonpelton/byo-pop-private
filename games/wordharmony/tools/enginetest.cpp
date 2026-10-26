@@ -62,6 +62,7 @@ public:
 	bool registryWriteInt(const std::string&, int) override { return false; }
 	void setFullScreen(bool) override {}
 	bool isFullScreen() override { return false; }
+	void quit() override {}
 	void openURL(const std::string&) override {}
 	void log(const char* theText) override { fputs(theText, stdout); }
 	void showMessage(const char* theCaption, const char* theText) override { printf("%s: %s\n", theCaption, theText); }

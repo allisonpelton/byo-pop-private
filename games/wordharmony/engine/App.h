@@ -84,6 +84,8 @@ public:
 	uint32_t getTime();
 	// 0x60: 0x454190
 	int getTicksPerSecond() { return 1000; }
+	// 0x70: 0x454230, PostQuitMessage(theCode)
+	void quit(int theCode);
 	// 0x78: 0x4540a0 and 0x7c: 0x454110, a new font loaded from the archive or a loose file
 	Font* createFont(const char* theName, bool theFromFile);
 

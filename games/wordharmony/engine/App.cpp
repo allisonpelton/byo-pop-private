@@ -174,6 +174,12 @@ uint32_t App::getTime()
 	return getHost()->timeMs();
 }
 
+// 0x454230: the code is not used
+void App::quit(int theCode)
+{
+	getHost()->quit();
+}
+
 // 0x4540a0, 0x454110
 Font* App::createFont(const char* theName, bool theFromFile)
 {
