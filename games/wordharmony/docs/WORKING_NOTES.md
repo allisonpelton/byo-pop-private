@@ -172,6 +172,8 @@ Remaining, in order (2026-10-26): the screens 0x409c20-0x40df90 (90 functions, a
 
 The settings (0x409d50-0x40aec0) are ported in game/Settings.cpp, all but the three saved games kept as XML strings in the registry (PuzzleSavedGame, SolitaireSavedGame, ActionSavedGame: parsed by 0x40c8f0's reader through a string stream 0x421a70, written by 0x41e820), which come with the save code. Full screen goes through new engine::Host calls (App slots 0x04 and 0x08 are the window's). CongratsScreen (0x409c20) is a ScreenLayout named "CongratsScreen" with vtable 0x480e88; 0x40aec0 fills the game over screen (score, hints used, the five longest words of the controller's +0x5c, "extraScores" shown outside the puzzles).
 
+Screens ported so far (game/Screens.cpp): CongratsScreen, GameOverScreen with its results (0x40aec0) and HighScoreEntryLayout (0x40b1d0-0x40b640: a key handler on the root window, printable keys 0x20-0x87 up to 16 letters, backspace, enter tells the controller "highScoreEntryDone"). Next is the score tables class at 0x40b6c0, which 0x40b660 (three fields at +0xd4-+0xdc, enabled, +0xe0 cleared) and 0x40b6a0 (+0xe0 cleared, its slot 0xf4) belong to; dumps in build/wh_sc3.txt (0x40b0d0-0x40c190).
+
 ## Next pieces, as read so far
 
 The controller (vtable 0x480a14: 0 dtor 0x4073d0, 4 configure 0x402eb0, 8 init 0x406b30, 0xc shutdown 0x401750, 0x10
