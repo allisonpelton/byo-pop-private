@@ -1,0 +1,34 @@
+# Stage 13, with mods/stage2/entry (the seed field only): a move that scores (playtest.txt's first), then Options ->
+# Extras: the seed field (empty: the board is on the global stream), 4242 typed, Play this seed: the game in progress
+# asks first (Yes); the new game is MTRand(4242)'s first board. Once it settles, Extras again: the field and "This game:
+# SEED 4242", the field cleared and 0 typed: refused (the red line), Done in Extras and in Options.
+300 click 320 398
+460 click 482 295
+461 click 533 295
+650 click 96 261
+670 click 408 232
+680 screenshot shots/e01_extras.png
+690 click 300 148
+700 char 4
+701 char 2
+702 char 4
+703 char 2
+710 click 488 148
+720 screenshot shots/e02_confirm.png
+730 click 330 170
+1300 screenshot shots/e03_seeded.png
+1400 click 96 261
+1420 click 408 232
+1430 screenshot shots/e04_extras_again.png
+1440 click 300 148
+1450 key BACK
+1451 key BACK
+1452 key BACK
+1453 key BACK
+1455 char 0
+1460 click 488 148
+1470 screenshot shots/e05_refused.png
+1480 click 408 247
+1490 click 408 300
+1500 screenshot shots/e06_done.png
+1600 quit

@@ -118,6 +118,11 @@
 # Stage 12 (the gold board) plays the rule mods of mods/stage12: gold on small boards by turns, against the clock in
 # both modes, under dirt, with specials, with twists and slides by the bot, a scripted game with an undo quit with gold
 # on the board and resumed, recorded and played back (compare.py "variant" with "gold"). Left out the same way.
+# Stage 13 (the watch in the game, the Extras dialog) plays recordings at 2x, 4x and 8x and through the watch's keys
+# (compare.py "playback" with "speed"), and the game's own dialogs: Options -> Extras -> Replays..., Watch, the end
+# dialog's Watch again and Back, a game in progress left to watch and resumed, Keep, Delete and a replay that cannot be
+# played, the high-score screen's WATCH REPLAY link (compare.py "ui"), and Play this seed (compare.py "seeded"). In
+# every build.
 #
 # The frozen exes (build/baseline, build/baseline-stage0) predate the audio shutdown fix (af758b9) and can
 # crash on exit after writing all their outputs: a baseline or hooks-baseline run that exits 139 or with an
@@ -1497,6 +1502,37 @@ define_cases() {
 		colors_auto_timed 1 - modsdir="$M8/twelve-replays" arg=-autoplay=2 arg=-autoplaytimed "${COLORBOT[@]}"
 	playback watch_colors_auto_timed "rec_colors_auto_timed's sidecar watched without the mod: its rules grow the sheet to 12" \
 		"trace=rec_colors_auto_timed" "$C/rec_colors_auto_timed/user/savegame-*.bjr"
+
+	# Stage 13: the watch in the game and the Extras dialog (games/bejeweled/docs/CODE_MODS_DESIGN.md 4.10, 4.11). The
+	# speeds: the per-frame hooks see a settle only when a frame ends on it, so compare.py "speed" leaves out the TRACE
+	# settles and checks the REPLAY end line, which the controller writes after matching every CHECK and END. The
+	# dialogs' flows run with mods/stage3/replays (in a copy of rec_decline's user dir: two finished replays, no save),
+	# the seed field with mods/stage2/entry.
+	S13="$PT/stage13"
+	playback watch_main_timed_2x "rec_main's timed game at 2x" "speed" "$C/rec_main/user/replays/*-timed-*.bjr" \
+		script="$S13/watch_2x.txt"
+	playback watch_load_4x "rec_load's two-segment sidecar at 4x" "speed" "$C/rec_load/user/savegame.bjr" script="$S13/watch_4x.txt"
+	playback watch_autoplay_timed_8x "rec_autoplay_timed's replay at 8x: the bot's timed game to time up on level 10" "speed" \
+		"$C/rec_autoplay_timed/user/replays/*.bjr" script="$S13/watch_8x.txt"
+	playback watch_level_steps "rec_level's sidecar through the keys: pause, a click, next move three times, 2x, 8x" "speed" \
+		"$C/rec_level/user/savegame.bjr" script="$S13/watch_steps.txt"
+	# ui <case> <description> <flags> <seed> <script> [options]
+	ui() {
+		local name=$1 desc=$2 flags=$3
+		shift 3
+		printf '%s\t%s\t%s\t%s\n' "$name" ui "$desc" "$flags" >> "$OUT/cases.txt"
+		run candidate "$name" "$@"
+	}
+	ui ui_watch "Extras -> Replays..., Watch at 8x, Watch again, Back: a new game" "ends=ok,ok;replays=2" 1 "$S13/ui_watch.txt" \
+		from=rec_decline modsdir="$M3"
+	ui ui_watch_resume "a move, then Watch: the question, the replay, Back: the game left to watch resumes" \
+		"ends=ok;resume;replays=2" 1 "$S13/ui_watch_resume.txt" from=rec_decline modsdir="$M3"
+	ui ui_keep_delete "the fake replays: Keep, Delete (asked), a Keep refused, Watch: the error dialog" \
+		"ends=unplayable;replays=9" 1 "$S13/ui_keep_delete.txt" fakereplays modsdir="$M3"
+	ui ui_gameover "no moves, the name dialog, the high-score screen's WATCH REPLAY at 8x, Back: a new game" \
+		"ends=ok;replays=1" 1 "$S13/ui_gameover.txt" modsdir="$M3"
+	seeded ui_seed "Extras: 4242 in the seed field, Play this seed over a game in progress (asked), Extras again, 0 refused" \
+		"boards=-,user;gameseed=$GS" 1 "$S13/ui_seed.txt" modsdir="$GAME/tools/oracle/mods/stage2/entry"
 
 	# Stage 4: the headless verifier and the web build under Node (games/bejeweled/tools/verify/oracle_cases.sh): the
 	# drift guard on every replay above, the verifier's tests and difftest, LOGIC hashes of the web build

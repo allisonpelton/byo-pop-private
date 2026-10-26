@@ -1375,3 +1375,50 @@ bool Replay::Read(const std::string& theBytes, File* theFile, std::string* theEr
 	theFile->mTrailingRng = aPendingRng;
 	return true;
 }
+
+bool Replay::Peek(const std::string& theBytes, Summary* theSummary)
+{
+	*theSummary = Summary();
+	if ((theBytes.size() > (size_t) MAX_FILE_SIZE) || (theBytes.size() < 12) || (theBytes.compare(0, 4, "BJRP") != 0))
+		return false;
+	Reader aHeader(theBytes, 4, 12);
+	if ((int) aHeader.U16() != FORMAT)
+		return false;
+	bool hasEnd = false;
+	size_t aPos = 12;
+	while (theBytes.size() - aPos >= 8)
+	{
+		Reader aRecordHeader(theBytes, aPos, aPos + 8);
+		uint32_t aTag = aRecordHeader.U32();
+		uint32_t aLen = aRecordHeader.U32();
+		aPos += 8;
+		if (aLen > theBytes.size() - aPos)
+			return false;
+		Reader aReader(theBytes, aPos, aPos + aLen);
+		if (aTag == TAG_META)
+			theSummary->mMeta = theBytes.substr(aPos, aLen);
+		else if ((aTag == TAG_SEGM) && (theSummary->mSegments++ == 0))
+		{
+			theSummary->mMode = aReader.U8();
+			if (aReader.U8() == RNG_SEED)
+			{
+				theSummary->mHasSeed = true;
+				theSummary->mSeed = aReader.U32();
+			}
+		}
+		else if ((aTag == TAG_END) && (aLen == END_SIZE))
+		{
+			EndInfo& anEnd = theSummary->mEnd;
+			anEnd.mReason = aReader.U8();
+			anEnd.mEndTick = aReader.U32();
+			anEnd.mScore = (int32_t) aReader.U32();
+			anEnd.mLevel = (int32_t) aReader.U32();
+			anEnd.mGems = (int32_t) aReader.U32();
+			anEnd.mLogicHash = aReader.U64();
+			anEnd.mBoardDraws = aReader.U32();
+			hasEnd = true;
+		}
+		aPos += aLen;
+	}
+	return hasEnd && (aPos == theBytes.size());
+}

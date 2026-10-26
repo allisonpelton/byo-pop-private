@@ -1012,6 +1012,11 @@ player actually starts playing, so switching to Timed straight away still plays 
 - Default-rules owned-RNG games keep them in the sidecar (7.3).
 - A resumed seeded game continues its stream, which also stops "quit and resume to reroll".
 
+**As built (stage 13, `ExtrasDialog.cpp`; GAME_NOTES 12.18):** the field takes digits only, at most ten, and is
+filled in with the seed of a board that has one; "Play this seed" (or Enter) refuses 0 and anything above
+4294967295 with a red line, asks over a game in progress as New Game does, then sets the pending seed and starts a
+new game. The dialog's line is "This game: SEED n". Oracle case `ui_seed`.
+
 ### 4.11 Save and watch replays
 
 Format, recording and playback are in section 6.
@@ -1066,6 +1071,15 @@ Format, recording and playback are in section 6.
     then `NewGame(); ConfirmLoadGame();` as in step 5. Options, Quit and Hint work as usual (a
     playback board ignores `ShowHint`); a modal dialog holds the watch, as it pauses a game. Options →
     High Scores shows and re-saves the player's table, never a replay's `-seeded` one.
+- **As built (stage 13, `ReplayBrowserDialog.cpp`, `ReplayOverlay.cpp`; GAME_NOTES 12.18):** the watch
+  starts from the browser (Options → Extras → Replays...) and the high-score screen's WATCH REPLAY link too
+  (`WinDMApp::WatchReplay`, `StartWatch`, `EndWatch`). Step 2 stays as stage 3b built it (the state is
+  swapped in for each step). The speeds run 1, 2, 4 or 8 board updates in a frame; N plays at 8x to the next
+  tick with a move's event (TARGET naming a cell, TWIST, SLIDE, UNDO) and pauses there. REPLAY END is a
+  dialog over the last board with the score and level (or where the replay went out of step); a file
+  that cannot be played opens a dialog with the reason. Esc, Back, New Game and the mode buttons all end
+  the watch through `EndWatch`. The test hooks run once a frame, so faster watches are checked by their
+  REPLAY end line (compare.py "playback" with "speed"), the dialogs by compare.py "ui".
 
 ### 4.12 Undo
 
@@ -2862,17 +2876,17 @@ All new UI depends on mods. Without them the screens are pixel-identical.
 | Surface | Change | Shown when |
 |---|---|---|
 | Web mods panel | Tags "Changes gameplay · separate high scores" (`affectsScores`, `tunables`, `rules`) and "Adds features". Rule warnings, errors and dropped mods from `mods-status.json`. | mods installed |
-| Options dialog | "Extras" button in the register slot of the three-button row (2.6). | any feature mod |
-| Extras dialog (new, 348 wide like Options) | "Seed for the next game" `EditWidget` (digits) with "Play this seed" (confirms like New Game); "Last game: SEED n"; "Replays..."; "Online scores..." (web: opens the shell panel through `EM_JS`). | `seeds.entry` / `replays` / `leaderboard` |
-| Game-over screen | "SEED n" line at about y 120; "WATCH REPLAY" and "SUBMIT SCORE" `HyperlinkWidget`s next to it. Positions checked on a screenshot. | owned-RNG game / replays / eligible ranked game |
+| Options dialog | "Extras" button in the register slot of the three-button row (2.6); the Mods button moves into Extras. | any feature mod |
+| Extras dialog (new, 348 wide like Options) | "Seed for the next game" `EditWidget` (digits) with "Play this seed" (confirms like New Game); "This game: SEED n"; "Replays..."; "Mods..."; "Online scores..." (web: opens the shell panel through `EM_JS`; not built, stage 14). | `seeds.entry` / `replays` / mods with settings / `leaderboard` |
+| Game-over screen | "SEED n" line at about y 120; "WATCH REPLAY" and "SUBMIT SCORE" `HyperlinkWidget`s next to it. As built (stage 13): WATCH REPLAY ends at x 591 on the SEED line's baseline, for the replay the game's end wrote; SUBMIT SCORE is stage 14's. | owned-RNG game / replays / eligible ranked game |
 | Undo | Red-orb hotspot with a hover glow and a remaining-count digit when `max ≥ 0`; keys z, u, Backspace; a short "UNDO" banner. | `undo.enabled` |
 | Gold HUD | "GOLD n/m" over the bar; the bar shows progress (untimed) or time (timed); gold tiles under the gems. | `gold.enabled` |
 | Twist / slide | Ring cursor at the hovered intersection; the dragged segment follows the pointer, with its wrap copy. | move types |
 | Instructions | `INSTRUCTIONDIALOG_TWIST`, `_SLIDE`, and `FULL_INSTRUCTIONS_TWIST/_SLIDE` paragraphs appended by Help. `INSTRUCTIONDIALOG_TWILIGHT`, `_GRAVITY_UP` and a replacement `FULL_INSTRUCTIONS2` text for gravity rules (4.16). Strings have defaults and can be overridden by mods. | move types, gravity |
 | Twilight look | The level backdrop mirrored left to right at half brightness; sounds pitched down. No gravity indicator. | `look.*` |
 | Specials | Overlays, blast and beam effects, optional `PATTERN_<name>` banners. | specials / patterns |
-| Replay browser (new) | `ListWidget` + `ScrollbarWidget`, rows "date · mode · rules title · score · seed". Buttons Watch / Keep / Delete / Close. | `replays` |
-| Watch mode | Banner "REPLAY 2x". Space or click pauses, 1–4 set the speed, N steps to the next move, Esc exits. End screen "REPLAY END" (Watch again / Back). A transparent overlay widget above the board takes the clicks and keys. Side-bar buttons are routed to the controller. | watching |
+| Replay browser (new) | `ListWidget` + `ScrollbarWidget`, rows "date · mode · score · seed · rules title", a star for a pinned one. Buttons Watch / Keep (Unkeep) / Delete / Close. | `replays` |
+| Watch mode | Banner "REPLAY 2x" over the board's top frame (PAUSED, NEXT MOVE, END), the keys over its bottom frame while paused. Space or click pauses, 1–4 set the speed, N steps to the next move, Esc exits. End dialog "REPLAY END" (Watch again / Back). A transparent overlay widget right of the side bar takes the clicks and keys. Side-bar buttons are routed to the controller. | watching |
 | Web shell | Replays panel (list of `/persist/replays`, import/export `.bjr`, links `?replay=<id>`), Leaderboard panel (board picker, top 50, Watch), `?seed=`. | features |
 
 ---

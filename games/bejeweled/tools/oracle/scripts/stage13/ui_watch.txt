@@ -1,0 +1,19 @@
+# Stage 13, in a copy of rec_decline's user dir (two finished replays, no save) with mods/stage3/replays: Options ->
+# Extras -> Replays... lists them newest first; Watch plays the first (the normal game, END saved) without a question
+# (no game in progress), 4 at 8x; at its end the REPLAY END dialog: Watch again plays it from the start (at 1x, then
+# 4), and Back leaves it for a new game (nothing to resume).
+300 click 320 398
+400 click 96 261
+430 click 408 232
+450 click 408 206
+460 screenshot shots/u01_browser.png
+470 click 147 280
+480 char 4
+700 screenshot shots/u02_end.png
+710 click 330 153
+720 screenshot shots/u03_again.png
+730 char 4
+1000 screenshot shots/u04_end_again.png
+1010 click 476 153
+1100 screenshot shots/u05_back.png
+1200 quit

@@ -25,6 +25,10 @@
 
 using namespace Sexy;
 
+// The last finished replay written and the board whose game it holds (FinishedReplay)
+static uint32_t gFinishedBoard = 0;
+static std::string gFinishedPath;
+
 ReplayRecorder::ReplayRecorder(WinDMApp* theApp, Board* theBoard)
 {
 	mApp = theApp;
@@ -439,7 +443,26 @@ void ReplayRecorder::Finish(int theReason, bool isPinned)
 	aFile.mHasMeta = true;
 	aFile.mMeta = Meta();
 	aFile.mEnd = mBoard->GetEndInfo(theReason, HashRng());
-	WriteFinished(aFile, mBoard->mTimedMode, isPinned);
+	std::string aPath;
+	if (WriteFinished(aFile, mBoard->mTimedMode, isPinned, &aPath))
+	{
+		gFinishedBoard = mBoard->mBoardSerial;
+		gFinishedPath = aPath;
+	}
+}
+
+std::string ReplayRecorder::FinishedReplay(const Board* theBoard)
+{
+	if ((theBoard == NULL) || (gFinishedBoard != theBoard->mBoardSerial) || gFinishedPath.empty())
+		return "";
+	struct stat aStat;
+	return (stat(gFinishedPath.c_str(), &aStat) == 0) ? gFinishedPath : "";
+}
+
+void ReplayRecorder::Renamed(const std::string& theOld, const std::string& theNew)
+{
+	if (gFinishedPath == theOld)
+		gFinishedPath = theNew;
 }
 
 bool ReplayRecorder::FirstSidecar()
@@ -571,7 +594,7 @@ bool ReplayRecorder::IsReplayName(const std::string& theName, bool* isPinned, in
 	return true;
 }
 
-bool ReplayRecorder::WriteFinished(const Replay::File& theFile, bool isTimed, bool isPinned)
+bool ReplayRecorder::WriteFinished(const Replay::File& theFile, bool isTimed, bool isPinned, std::string* thePath)
 {
 	const std::string& aDir = gGameConfig.mReplayDir;
 	if (aDir.empty())
@@ -607,6 +630,8 @@ bool ReplayRecorder::WriteFinished(const Replay::File& theFile, bool isTimed, bo
 	}
 	Prune(aDir, gGameConfig.mFeatures.mReplayKeep);
 	Platform::SyncUserData();
+	if (thePath != NULL)
+		*thePath = aPath;
 	return true;
 }
 

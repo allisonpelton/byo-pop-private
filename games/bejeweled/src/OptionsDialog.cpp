@@ -62,6 +62,8 @@ void OptionsDialog::AddedToManager(WidgetManager* theWidgetManager)
 		theWidgetManager->AddWidget(mLinkButtons[i]);
 	if (mModsButton != NULL) // port(mods)
 		theWidgetManager->AddWidget(mModsButton);
+	if (mExtrasButton != NULL) // port(variant)
+		theWidgetManager->AddWidget(mExtrasButton);
 }
 
 // 0x4d14f3
@@ -80,6 +82,8 @@ void OptionsDialog::RemovedFromManager(WidgetManager* theWidgetManager)
 		theWidgetManager->RemoveWidget(mLinkButtons[i]);
 	if (mModsButton != NULL) // port(mods)
 		theWidgetManager->RemoveWidget(mModsButton);
+	if (mExtrasButton != NULL) // port(variant)
+		theWidgetManager->RemoveWidget(mExtrasButton);
 }
 
 // 0x4d15ac
@@ -92,12 +96,13 @@ void OptionsDialog::Resize(int theX, int theY, int theWidth, int theHeight)
 	int aButtonWidth = (mWidth - 54) / 2;
 	mHelpButton->Resize(mX + 24, mY + 166, aButtonWidth, 32);
 	mHighScoresButton->Resize(mX + 30 + aButtonWidth, mY + 166, aButtonWidth, 32);
-	if (mModsButton != NULL)
+	DialogButton* aSlotButton = (mExtrasButton != NULL) ? mExtrasButton : mModsButton;
+	if (aSlotButton != NULL)
 	{
-		// port(mods): Mods in the register slot of the locked build's three-button row
+		// port(mods): Mods (port(variant): or Extras) in the register slot of the locked build's three-button row
 		aButtonWidth = (mWidth - 60) / 3;
 		mHelpButton->Resize(mX + 24, mY + 166, aButtonWidth, 32);
-		mModsButton->Resize(mX + 30 + aButtonWidth, mY + 166, aButtonWidth, 32);
+		aSlotButton->Resize(mX + 30 + aButtonWidth, mY + 166, aButtonWidth, 32);
 		mHighScoresButton->Resize(mX + 36 + 2 * aButtonWidth, mY + 166, aButtonWidth, 32);
 	}
 
@@ -128,6 +133,7 @@ OptionsDialog::~OptionsDialog()
 	delete mCheckboxCheckedImage;
 	delete mCheckboxUncheckedImage;
 	delete mModsButton; // port(mods)
+	delete mExtrasButton; // port(variant)
 }
 
 // 0x4d1a8f
@@ -163,6 +169,8 @@ void OptionsDialog::ButtonDepress(int theId)
 		mApp->OpenURL("http://www.popcap.com", false);
 	else if (theId == MODS_BUTTON_ID)
 		mApp->OpenModMenu(); // port(mods): over this dialog, which stays open
+	else if (theId == EXTRAS_BUTTON_ID)
+		mApp->ShowExtrasDialog(); // port(variant): over this dialog, which stays open
 	// port: CHECK_UPDATES_BUTTON_ID called DoUpdateCheck(); update checks are not ported (the button is never laid out)
 }
 
@@ -194,9 +202,17 @@ OptionsDialog::OptionsDialog(WinDMApp* theApp) :
 	// port(mods): Mods while an enabled mod has settings. Not an installed one that is off, as in Big Money: the
 	// oracle's examples case has example-settings installed but off, and its Options screens stay the original.
 	mModsButton = NULL;
+	mExtrasButton = NULL;
+	if (mApp->HasExtras())
+	{
+		// port(variant): Extras, with Mods inside it
+		mExtrasButton = new DialogButton(mApp->mImages[IMAGE_BOXBUTTON], EXTRAS_BUTTON_ID, this);
+		mExtrasButton->SetFont(mApp->mMainFont);
+		mExtrasButton->mLabel = mApp->GetString("OPTIONSDLG_EXTRAS", _S("Extras"));
+	}
 	for (const Platform::ModInfo* aMod : Platform::ModManager::Get().GetEnabledMods())
 	{
-		if (aMod->HasSettings())
+		if ((mExtrasButton == NULL) && aMod->HasSettings())
 		{
 			mModsButton = new DialogButton(mApp->mImages[IMAGE_BOXBUTTON], MODS_BUTTON_ID, this);
 			mModsButton->SetFont(mApp->mMainFont);

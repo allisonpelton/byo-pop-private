@@ -212,6 +212,21 @@ std::string			Write(const File& theFile);
 // as it comes (5 KB each, MAX_SEGMENTS at most).
 bool				Read(const std::string& theBytes, File* theFile, std::string* theError = NULL);
 
+// A row of the replay browser (stage 13, ReplayBrowserDialog.h): META, the first segment's mode and seed, the
+// number of segments and END, from the records without their events, so a long replay costs no more than its
+// bytes. False for what is no replay (the magic, the format, a record past the end, no END of its size); whether
+// one plays is for Read and CheckPlayable to say.
+struct Summary
+{
+	std::string		mMeta;                      // "" without META
+	int				mSegments = 0;
+	int				mMode = 0;                  // the first segment's
+	bool			mHasSeed = false;           // the first segment's RNG starts from a seed (RNG_SEED) ...
+	uint32_t		mSeed = 0;                  // ... this one
+	EndInfo			mEnd;
+};
+bool				Peek(const std::string& theBytes, Summary* theSummary);
+
 // Building blocks, exposed for the tests
 void				PutVarint(std::string* theOut, uint64_t theValue);
 bool				GetVarint(const std::string& theBytes, size_t* thePos, size_t theEnd, uint64_t* theValue);

@@ -1774,7 +1774,7 @@ games/bejeweled/docs/CODE_MODS_DESIGN.md 4.11, 6.2-6.6 and 7.3, as built:
   setting (`rec_main_nohover`, `rec_load_hover_on`, `rec_load_hover_off`), a quit mid-swap
   (`quit_midswap`), a save that replaces a recorded one (`mode_switch_match`: the timed game kept), and
   Options → High Scores mid-watch (`watch_seed_quit_highscores`). The browser, the speeds and the REPLAY
-  END screen are stage 13.
+  END screen are stage 13 (12.18).
 
 ### 12.5 Auto LiveSplit (code mods, stage 2b)
 
@@ -2349,6 +2349,46 @@ undo brings the gold back with the board; the time left comes back only with `un
 clock runs on. `-forcevariant` does not turn gold on. `-trace` ends the variant line with `gold D/N`, and `time T/L`
 in ticks with a limit, then prints a gold line, a word a row: `1` gold, `0` a cell of the goal not yet gold, `.` a
 cell outside it. Since gold plays, the stage 5 warning that only its fall-out default did is gone.
+
+### 12.18 The watch in the game and the Extras dialog (code mods, stage 13)
+
+games/bejeweled/docs/CODE_MODS_DESIGN.md 4.10, 4.11 and 8, as built. With a feature mod on (the seed field, per-game
+seeds, replays or the leaderboard) Options shows an Extras button in the register slot of its three-button row, where
+the Mods button stands otherwise; the Mods button then moves into Extras, which shows it while an enabled mod has
+settings. Without feature mods Options is drawn as before. The Extras dialog (`ExtrasDialog.cpp`, 348 wide like
+Options) holds the seed field (`features.seeds.entry`: digits only, at most ten, filled in with the seed of a board
+that has one) with "Play this seed", the line "This game: SEED n" for such a board, and "Replays..." with the replays
+feature. Play this seed takes 1 to 4294967295 and refuses anything else with a red line (`MTRand::SRand(0)` would
+play 4357's board). Over a game in progress it asks first, as New Game does; then it sets the pending seed and starts
+a new game, from which the pending-seed rule of 4.10 takes over. Enter in the field plays the seed too.
+
+The replay browser (`ReplayBrowserDialog.cpp`, 560 wide, ten rows and a scrollbar) lists the files of the replay
+folder whose names `ReplayRecorder::IsReplayName` accepts, newest first by the time in the name, a star in front of a
+pinned one. Each row shows the date, the mode and the score from the name, and from the file itself (`Replay::Peek`,
+which reads only the records' heads) the first segment's seed and META's title. Watch (or a double click) watches the
+selected file; Keep and Unkeep rename it to and from its `-keep` name, refused when a file has that name already;
+Delete asks first. Every change calls `Platform::UserDataChanged`, which the web build persists.
+
+A watch starts from the browser, from the high-score screen's WATCH REPLAY link (the replay that game's end just
+wrote, `ReplayRecorder::FinishedReplay`), and as before from `-replay=` and the web page's `?replay=`. Over a game in
+progress it asks first; the player's board is deleted for the playback board, and `~Board` saves it as on a mode
+switch. A transparent overlay (`ReplayOverlay.cpp`) covers the board right of the side bar and holds the focus: a
+banner over the board's top frame says "REPLAY" and the speed, "REPLAY PAUSED", "REPLAY NEXT MOVE" or "REPLAY END",
+and while paused a strip over the bottom frame lists the keys. Space or a click pauses and plays on; 1 to 4 set 1x,
+2x, 4x or 8x, the board's updates in one frame (`WatchController::BeforeFrame`); N plays on at 8x and pauses at the
+next move, the first tick at which a TARGET naming a cell, a TWIST, a SLIDE or an UNDO is due, once at least one update
+has run. A dialog the player opens holds the watch. At the end the REPLAY END dialog gives the score and level, or
+where the replay went out of step: Watch again plays it from its start, and Back (or Esc during the watch, or New
+Game and the mode buttons, as in stage 3b) leaves it through `NewGame(); ConfirmLoadGame();`, which offers the saved
+game again. A file that cannot be played opens a dialog with the reason instead, and gives the player's game back
+when a watch was showing. `-replayquit` still quits at the end, and the headless verifier has no overlay or dialogs.
+
+The test hooks (`-trace`, `-codeccheck`, `-tracehash`) run once a frame, so faster than 1x they see a settle only when
+a frame ends on it. The controller still matches every CHECK and END itself, which is what the oracle's speed cases
+check. The mods status no longer says replays are watched only from the command line, nor that the seed field is to
+come: of the features only the leaderboard is "not in this build" (stage 14). The new strings have defaults and can
+be renamed by mods: `OPTIONSDLG_EXTRAS`, the `EXTRASDLG_*`, `REPLAYSDLG_*` and `REPLAY_*` ids, `CONFIRM_SEED1/2` and
+`HSWIDGET_WATCH_REPLAY`.
 
 ## 13. Naming reconciliation (analyst names → chosen names)
 

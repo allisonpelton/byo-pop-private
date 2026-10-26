@@ -156,7 +156,11 @@ Replays (stage 3; candidate runs, flags "k=v;k=v"):
               the rest), codec.txt without a failure and one settle per TRACE settle, and the user dir only
               registry.ini, with TimesPlayed 0: watching saves, counts and records nothing ("user=" lists the
               files a script's own actions leave, such as hiscores.dat from Options -> High Scores). With
-              "corrupt=", the line must say CORRUPT and contain that text
+              "corrupt=", the line must say CORRUPT and contain that text. With "speed" (stage 13: the script sets
+              2x, 4x or 8x, or steps to the next move at 8x; the test hooks still run once a frame, after several
+              board updates), the TRACE settles are not compared with the recording's, nor counted against
+              codec.txt: a settle and the next move can fall in one frame. The REPLAY end line carries the check
+              (the controller matched every CHECK and END), with the segment count and codec.txt without a failure
 The headless verifier (stage 4, games/bejeweled/docs/CODE_MODS_DESIGN.md 6.9; the cases come from
 games/bejeweled/tools/verify/oracle_cases.sh, which compare.sh sources):
   verifier    <watch>.verify (flags "watch=<case>" and that case's flags, or "unplayable"): the native verifier
@@ -167,7 +171,9 @@ games/bejeweled/tools/verify/oracle_cases.sh, which compare.sh sources):
               REPLAY line as its message, and their exit status 0 for ok, else 1: game, native verifier and wasm
               verifier agree on TRACE, CHECK and END (9.1 item 6, the shim drift guard). With "verdict=ok" the
               game's verdict must be ok too (a watch run that is no playback case: one without -codeccheck, whose
-              saves the save check of an LDSV refuses on purpose, such as a score past the int range)
+              saves the save check of an LDSV refuses on purpose, such as a score past the int range). A "speed"
+              watch (stage 13) is compared by its REPLAY lines only: the verifiers play at 1x, so their TRACE
+              settles are the recording's and not the faster game's; the two verifiers still agree line for line
   wasmlogic   <case>.wasm (flags "ref=<case>"): the game's web build under Node (wasmrun.js game) ran <case>'s
               switches and inputs: hash.txt's update, board state and LOGIC columns and stdout.txt identical to
               the candidate's <case> (the FULL column, same platform only, is reported, not required)
@@ -231,6 +237,12 @@ mods/stage8, every build: board.gemColors is a tunable; flags "k=v;k=v"):
               makes the 1x rows a scaled copy of its own, so that case has no ref); "glyphs=a-b": those rows carry
               the corner glyph (white at (41, 39) of the first frame); "hd=S": the HD pixels dumped too
               (shots/gemsheet@Sx.png), S times the size
+  ui          stage 13 (the watch in the game, games/bejeweled/docs/CODE_MODS_DESIGN.md 4.11): a script that browses,
+              watches and leaves replays from the game's own dialogs. "ends=<verdict>,...": its "REPLAY end" and
+              "cannot play" lines in order, each ok, corrupt or unplayable; "resume": the last settle before the
+              first "REPLAY start" and the first after the last of those lines show the same game (the rows, mode,
+              level and score, not the update and board tick: the game left to watch, saved and resumed);
+              "replays=N": user/replays holds N files at the quit
 Finished replays are named after the wall clock: compared and listed with replays/<yyyymmdd>-<hhmmss>- masked
 as replays/*- (normal_path), their contents without META's date (compare_bjr).
 Auto LiveSplit (stage 2b, games/bejeweled/docs/CODE_MODS_DESIGN.md 4.15; candidate runs):
@@ -300,7 +312,7 @@ WALL_CLOCK = [(re.compile(r"Seconds = [0-9.e+-]+"), "Seconds = *"),
               (re.compile(r"(Update Count = -?[0-9]+, Draw Count = )[0-9]+"), r"\1*")]  # DRAWS: compare_log
 DRAW_LINE = re.compile(r"Seconds = ([0-9.e+-]+), Sleep Count = -?[0-9]+, Update Count = -?[0-9]+, Draw Count = ([0-9]+)")
 EXPECT_KINDS = ("script", "load", "quitcut", "inert", "autoplay", "seeded", "recording", "samestream", "reference",
-                "playback", "variant", "colors")
+                "playback", "variant", "colors", "ui")
 AUTO_KEYS = ("exit", "mods", "user", "settle", "settles", "last-settle", "states", "snap", "save", "sidecar", "replay",
              "status", "seeds", "end", "codec", "watch", "variant")
 NOVARIANTS = "@novariants"  # expect.txt: "<case>@novariants" facts, a BEJ_NO_VARIANTS candidate's own (expect-update)
@@ -2715,7 +2727,7 @@ def playback_check(r, cand, run, flags, label):
         if len(played) != len(replay["segments"]):
             r.fail("%s: %d segments played, the replay has %d" % (label, len(played), len(replay["segments"])))
         traces = f.get("trace", "").split(",")
-        for k, blocks in enumerate(played):
+        for k, blocks in enumerate(played if "speed" not in f else []):
             source = traces[min(k, len(traces) - 1)]
             recorded = [b for seg in trace_blocks(run_stdout(os.path.join(cand, source))) for b in seg]
             if not recorded or contiguous_in(blocks, recorded) is None:
@@ -2727,7 +2739,7 @@ def playback_check(r, cand, run, flags, label):
         lines = read_lines(codec) if os.path.exists(codec) else []
         settles = sum(len(b) for b in played)
         m = re.fullmatch(r"codeccheck: (\d+) updates checked, (\d+) settles, (\d+) failures", lines[-1] if lines else "")
-        if not m or m.group(3) != "0" or int(m.group(2)) != settles:
+        if not m or m.group(3) != "0" or ("speed" not in f and int(m.group(2)) != settles):
             r.fail("%s: codec.txt: %s (%d TRACE settles)" % (label, lines[-1] if lines else "missing", settles))
     user = sorted(list_tree(os.path.join(run, "user"), lambda p: True))
     allowed = sorted(f.get("user", "registry.ini").split(","))
@@ -2738,10 +2750,57 @@ def playback_check(r, cand, run, flags, label):
     if r.failures == before:
         if "corrupt" in f:
             r.out("    %s: %s" % (label, ends[0]))
+        elif "speed" in f:
+            r.out("    %s: %s; %d segments, faster than 1x (every CHECK matched, the settles not compared); StateCodec round"
+                  " trip after every frame; the user dir %s" % (label, ends[0][len("REPLAY end: "):], len(replay["segments"]),
+                                                               "untouched" if "user" not in f else "only " + ", ".join(user)))
         else:
             r.out("    %s: %s; %d segments, each a run of %s's TRACE settles; StateCodec round trip after every update;"
                   " the user dir %s" % (label, ends[0][len("REPLAY end: "):], len(replay["segments"]), f.get("trace", ""),
                                         "untouched" if "user" not in f else "only " + ", ".join(user)))
+    return r.failures == before
+
+
+def ui_check(r, cand, run, flags, label):
+    """A replay browsed, watched and left in the game (the module comment, "ui")"""
+    before = r.failures
+    f = parse_flags(flags)
+    stdout = run_stdout(run)
+    ends = []
+    blocks = []  # (stdout index, the settle without its update and board tick numbers)
+    first_start = None
+    last_end = None
+    for i, line in enumerate(stdout):
+        if line.startswith("REPLAY start ") and first_start is None:
+            first_start = i
+        if line.startswith("REPLAY end: ") or ": cannot play: " in line:
+            ends.append(line)
+            last_end = i
+        m = re.match(r"TRACE update \d+: (.*) board tick \d+$", line)
+        if m:
+            blocks.append((i, [m.group(1)]))
+        elif line.startswith("TRACE   ") and blocks:
+            blocks[-1][1].append(line)
+    verdicts = ["ok" if e.startswith("REPLAY end: ok, ") else "corrupt" if e.startswith("REPLAY end: CORRUPT ")
+                else "unplayable" for e in ends]
+    want = f.get("ends", "").split(",") if f.get("ends") else []
+    if verdicts != want:
+        r.fail("%s: the watches ended %s, expected %s: %s" % (label, ",".join(verdicts) or "(none)", ",".join(want) or
+                                                              "(none)", " | ".join(ends)))
+    if "resume" in f:
+        left = [b for i, b in blocks if first_start is not None and i < first_start]
+        back = [b for i, b in blocks if last_end is not None and i > last_end]
+        if not left or not back or left[-1] != back[0]:
+            r.fail("%s: the game after the watch (%s) is not the one left to watch (%s)" % (
+                label, back[0][0] if back else "no settle", left[-1][0] if left else "no settle"))
+    replays = sorted(p for p in list_tree(os.path.join(run, "user"), lambda p: True) if p.startswith("replays/") and
+                     p != "replays/")
+    if "replays" in f and len(replays) != int(f["replays"]):
+        r.fail("%s: %d files in user/replays, expected %s: %s" % (label, len(replays), f["replays"], " ".join(replays)))
+    if r.failures == before:
+        r.out("    %s: %d watches (%s)%s%s" % (label, len(ends), ",".join(verdicts) or "none",
+                                            "; the game left to watch resumed: " + left[-1][0] if "resume" in f else "",
+                                            "; %d replays at the quit" % len(replays) if "replays" in f else ""))
     return r.failures == before
 
 
@@ -2794,7 +2853,10 @@ def verifier_check(r, cand, run, flags, label):
             continue
         got = verifier_lines(lines[:-1])
         results[side] = (got, result, status)
-        at = first_difference(got, game)
+        if "speed" in f:  # the game's TRACE lines came once a frame at 2x to 8x (the module comment)
+            at = first_difference([x for x in got if x.startswith("REPLAY")], [x for x in game if x.startswith("REPLAY")])
+        else:
+            at = first_difference(got, game)
         if at is not None:
             r.fail("%s: the %s verifier's %d REPLAY/TRACE lines are not the game's %d: line %d: %s / %s" % (
                 label, side, len(got), len(game), at + 1, got[at] if at < len(got) else "(none)",
@@ -2806,7 +2868,12 @@ def verifier_check(r, cand, run, flags, label):
             r.fail("%s: the %s verifier's exit status %s for %s" % (label, side, status, verdict))
     if len(results) == 2 and results["native"][:2] != results["wasm"][:2]:
         r.fail("%s: the native and the wasm verifier differ" % label)
-    if r.failures == before:
+    if r.failures == before and "speed" in f:
+        r.out("    %s: the native and the wasm verifier print the game's %d REPLAY lines (a faster watch: its TRACE not"
+              " compared) and agree on their %d TRACE settles, and its verdict: %s" % (
+                  label, sum(1 for line in game if line.startswith("REPLAY")),
+                  sum(1 for line in results["native"][0] if line.startswith("TRACE update ")), ends[0]))
+    elif r.failures == before:
         settles = sum(1 for line in game if line.startswith("TRACE update "))
         r.out("    %s: the native and the wasm verifier print the game's %d REPLAY and TRACE lines (%d settles) and"
               " its verdict: %s" % (label, len(game), settles, ends[0]))
@@ -2989,6 +3056,8 @@ def compare(oracle, expect_path=None):
                 seed_check(r, cand, run, flags, "seeds")
         elif kind == "playback":
             playback_check(r, cand, run, flags, "watch")
+        elif kind == "ui":
+            ui_check(r, cand, run, flags, "ui")
         elif kind == "reference":
             r.out("    a reference for other cases: its exit status and expect facts only")
         elif kind == "samestream":
