@@ -7,6 +7,7 @@
 
 #include "Geometry.h"
 #include "Object.h"
+#include <cstdint>
 #include <deque>
 
 namespace engine
@@ -14,13 +15,45 @@ namespace engine
 
 class Font;
 
-// An image (the Windows layer's image keeps this interface at +0x0c; its slots 0 and 1 give the size, slot 7 the
-// kind: 1 colour-keyed, 2 without alpha)
-class Image : public virtual Interface
+// The alpha modes of an image (its slot 0x18)
+enum
+{
+	ALPHA_NONE = 0,   // drawn opaque (JPEGs, PNGs without alpha)
+	ALPHA_TEST = 1,   // PNGs with alpha (threshold 0), or alphaType="alphaTest" in a screen
+	ALPHA_BLEND = 2   // images with a mask, or alphaType="alphaBlend"
+};
+
+// An image: the interface the Windows layer's image (0x457410, 0x48 bytes) keeps at +0x0c (vtable 0x48aba8; its base
+// 0x45e670 holds the pivot and the alpha mode). The host's image implements the size and the pixels.
+class Image : public Object
 {
 public:
-	virtual int getWidth() = 0;
-	virtual int getHeight() = 0;
+	Image() : mAlphaMode(ALPHA_NONE), mAlphaThreshold(0) {}
+	virtual int getWidth() = 0;   // slot 0x00: 0x4572a0
+	virtual int getHeight() = 0;  // slot 0x04: 0x4572b0
+	// slot 0x0c: 0x45e5d0, 1 puts the pivot at the centre (in whole pixels); other values leave it
+	void setPivot(int theMode)
+	{
+		if (theMode == 1)
+			setPivot(getWidth() / 2, getHeight() / 2);
+	}
+	void setPivot(int x, int y) { mPivotX = x; mPivotY = y; }  // slot 0x10: 0x45e5c0
+	int getPivotX() const { return mPivotX; }                  // slot 0x14: 0x45e600
+	int getPivotY() const { return mPivotY; }
+	// slot 0x18: 0x45e610
+	void setAlphaMode(int theMode, uint8_t theThreshold)
+	{
+		mAlphaMode = theMode;
+		mAlphaThreshold = theThreshold;
+	}
+	int getAlphaMode() const { return mAlphaMode; }            // slot 0x1c: 0x45e630
+	uint8_t getAlphaThreshold() const { return mAlphaThreshold; }
+
+private:
+	int mAlphaMode;            // +0x08
+	uint8_t mAlphaThreshold;   // +0x0c
+	int mPivotX = 0;           // +0x10
+	int mPivotY = 0;
 };
 
 // A render state (0x40 bytes; 0x43c470 makes the first)

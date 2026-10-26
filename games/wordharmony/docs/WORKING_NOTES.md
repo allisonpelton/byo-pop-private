@@ -65,6 +65,33 @@ remove me, 0x14 needs update. The root window's mouse events (0x4387f0...) hit-t
 node (0x4386c0: exit on the old, enter on the new) and call the hit node's handler; key events go to the handlers
 in +0xb0, last first, until one returns true.
 
+## Next pieces, as read so far
+
+The controller (vtable 0x480a14: 0 dtor 0x4073d0, 4 configure 0x402eb0, 8 init 0x406b30, 0xc shutdown 0x401750, 0x10
+update 0x409060, 0x14 0x4070a0; a one-slot listener vtable 0x480a10 at +0xc, 0x407580). init seeds rand with
+GetTickCount, makes the sound system (0x443ca0, from the window handle, App slot 0x74 stores it) and a 0x14-byte
+object at +0x710 (0x426ac0), sets up a beta play-time reporter (0x42a090; an online feature, left out of the port),
+then runs the screensaver (+0x1fc set) or 0x4055f0(this, 0). The screen layout handler (constructor 0x42c7f0, a
+group stack at +0x18) dispatches elements in 0x430910: image 0x430280, text 0x42ef20, imageButton 0x42c920,
+checkBox 0x42d6f0, textButton 0x42e2b0, group 0x42fa90, particleSystem 0x42f760, textSub 0x4300c0, include
+0x42fed0; the end of a group pops (0x42c4f0, "Mis-matched end group"). `re/wordharmony/work/layout.c` and
+`controller.c` hold the dumps.
+
+Images: the image interface (the image's +0xc, vtable 0x48aba8) has 0 getWidth, 4 getHeight, 8 nothing, 0xc
+setPivot(mode: 1 = the centre, w/2 and h/2 in integers), 0x10 setPivot(x, y), 0x14 getPivot (integers), 0x18
+setAlphaMode(mode, threshold byte), 0x1c getAlphaMode. The pivot and the alpha mode belong to the cached image, so
+every node of that image shares them. Modes: 0 opaque (JPEGs, PNGs without alpha), 1 alpha test (PNGs with alpha get
+1 with threshold 0; the layout's alphaType="alphaTest" sets 1 with alphaThresh, default 5), 2 blend (masked images,
+alphaType="alphaBlend"). The draw 0x45e2d0: a colour offset uses 0x45d5a0; mode 2 or an opacity other than 1 the
+blend 0x45ce90; mode 1 the alpha test 0x45c780; mode 0 the plain 0x45c070 (the pivot and the rotation are applied
+inside the blitters; how mode 1 treats partial alpha is not yet read). The image node (0x435d50, 0x94 bytes, vtable
+0x484858): a counted image at +0x88, own flag DRAWABLE, name "Image"; draw 0x435d20 draws the image when visible;
+layout 0x435c60: bounds = position - pivot to position - pivot + size, then scaled by |scale| (after the offset).
+The layout's attribute getters take the map by value: 0x42abd0 string, 0x42ad20 int (atol), 0x42aeb0 float; the
+scratch `attrs.py <start> <end>` lists each read with its name and default. The image element 0x430280: file
+("" = none), name ("_Image_"), x, y (0), opacity, scaleX, scaleY (1), alphaType, alphaThresh (5), pivot
+("upperleft"; "center" centres the image's pivot); the node goes to the screen's slot 0xe8 and to the top group.
+
 ## Reading the decompilation
 
 Two scratch helpers (not in the repository) print functions: `fn.py <addr>...` (whole functions) and `fr.py <lo> <hi>`
