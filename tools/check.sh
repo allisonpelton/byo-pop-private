@@ -22,7 +22,7 @@
 #                and a rerun of the first with the same screenshots (about 15 seconds)
 #   mummymaze    Mummy Maze's bot: a classic game of 8 chambers (the name box, the options and their dialogs photographed) and
 #                a rerun with the same screenshots, a game from pyramid 3 (the tips), a whole classic game (225 chambers to the
-#                victory screen) and the tutorial (about 40 seconds)
+#                victory screen), a whole adventure (15 pyramids, the map, the saved game) and the tutorial (about 1 minute)
 #   oracle       Bejeweled's oracle three ways (compare.sh --variants default,forcevariant,novariants); over
 #                ten minutes, so never in a subagent; refuses to start while another oracle runs
 # Sets: quick = build unit; games = bookworm bigmoney noahsark sevenseas mummymaze; all = every suite, builds first.
@@ -43,9 +43,10 @@ NA_PUZZLE="game 1 over at update 17550: score 4830 level 1 moves 117"
 SS_BEGINNER="game 2 over at update 5308: score 165 level 2 moves 23"
 SS_BONUS="game 1 over at update 2286: score 330 level 12 moves 15"
 SS_LATE="game 1 over at update 2285: score 390 level 22 moves 13"
-MM_CLASSIC="game over: score 1860, list Bot1 1860, Kimberly 1000, Glenn 900, Brian 800, Jason 700"
-MM_TIPS="game over: score 2050, list Bot1 2050, Kimberly 1000, Glenn 900, Brian 800, Jason 700"
-MM_FULL="victory: score 277725"
+MM_CLASSIC="game over: score 1500, list Bot1 1500, Kimberly 1000, Glenn 900, Brian 800, Jason 700"
+MM_TIPS="game over: score 1750, list Bot1 1750, Kimberly 1000, Glenn 900, Brian 800, Jason 700"
+MM_FULL="victory: score 251785, caught 0 times"
+MM_ADVENTURE="victory: score 0, caught 49 times"
 MM_TUTORIAL="tutorial done at update 6591"
 
 set -u
@@ -272,21 +273,23 @@ mummymaze_game() {  # <name> <bot arguments>...: a bot game; prints the last res
 }
 
 suite_mummymaze() {
-	local st=0 a b c t r
+	local st=0 a b c t r v
 	need_assets mummymaze || return 1
 	a="$(mummymaze_game classic -seed=1 -autoplay=7 -autoplaygames=1 -autoplaylevels=8 -autoplaycap=60000)"
 	r="$(mummymaze_game classic2 -seed=1 -autoplay=7 -autoplaygames=1 -autoplaylevels=8 -autoplaycap=60000)"
 	b="$(mummymaze_game tips -seed=3 -autoplay=5 -autoplaygames=1 -autoplaystart=3,0 -autoplaylevels=4 -autoplaycap=60000)"
 	c="$(mummymaze_game full -seed=21 -autoplay=21 -autoplaygames=1 -autoplaylevels=250 -autoplaycap=3000000)"
 	t="$(mummymaze_game tutorial -seed=1 -autoplay=3 -autoplaymode=tutorial -autoplaycap=100000)"
-	{ echo "classic: $a"; echo "classic rerun: $r"; echo "tips: $b"; echo "full: $c"; echo "tutorial: $t"; } > "$1"
+	v="$(mummymaze_game adventure -seed=1 -autoplay=5 -autoplaymode=adventure -autoplaygames=1 -autoplaylevels=400 -autoplaycap=8000000)"
+	{ echo "classic: $a"; echo "classic rerun: $r"; echo "tips: $b"; echo "full: $c"; echo "adventure: $v"; echo "tutorial: $t"; } > "$1"
 	[ "$a" = "$MM_CLASSIC" ] || st=1
 	[ "$b" = "$MM_TIPS" ] || st=1
 	[ "$c" = "$MM_FULL" ] || st=1
 	[ "$t" = "$MM_TUTORIAL" ] || st=1
+	[ "$v" = "$MM_ADVENTURE" ] || st=1
 	if diff -rq "$OUT/mummymaze/classic/shots" "$OUT/mummymaze/classic2/shots" >> "$1" 2>&1 && cmp -s "$OUT/mummymaze/classic/log.txt" "$OUT/mummymaze/classic2/log.txt" && [ "$a" = "$r" ]; then r="rerun identical"; else r="RERUN DIFFERS"; st=1; fi
-	SUMMARY="classic ${a#game over: }; tips ${b#game over: }; full ${c}; ${t}; $r"
-	[ $st -eq 0 ] || SUMMARY="$SUMMARY (expected classic '$MM_CLASSIC', tips '$MM_TIPS', full '$MM_FULL', tutorial '$MM_TUTORIAL')"
+	SUMMARY="classic ${a#game over: }; tips ${b#game over: }; full ${c}; adventure ${v}; ${t}; $r"
+	[ $st -eq 0 ] || SUMMARY="$SUMMARY (expected classic '$MM_CLASSIC', tips '$MM_TIPS', full '$MM_FULL', tutorial '$MM_TUTORIAL', adventure '$MM_ADVENTURE')"
 	return $st
 }
 
