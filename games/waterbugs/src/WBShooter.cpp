@@ -63,8 +63,9 @@ void Shooter_Appear(Shooter* theShooter)
 			{
 				int anAngle = RandRange(0, 0x167);
 				int aSpeed = RandRange(0, 100);
-				float aVx = (float)((double)CosDeg(anAngle) * ((double)(float)aSpeed / 360.0));
-				float aVy = (float)((double)SinDeg(anAngle) * ((double)(float)aSpeed / 360.0));
+				float aStep = (float)((double)aSpeed / 360.0);
+				float aVx = (float)((double)CosDeg(anAngle) * (double)aStep);
+				float aVy = (float)((double)SinDeg(anAngle) * (double)aStep);
 				ParticleSystem_New();
 				int aLifetime = RandRange(600, 0x4b0);
 				ParticleSystem_Add(gLevels.current->systems.current, theShooter->x, theShooter->y, aVx, aVy, 0, 0, 0,
@@ -105,7 +106,7 @@ void Shooter_Appear(Shooter* theShooter)
 	{
 		Obj* aChild = theShooter->children.head;
 		Obj* aCurrent;
-		double aRadius = (double)(float)((1.0 - (double)aRatio * (double)aRatio) * 160.0);
+		double aRadius = (double)(float)(1.0 - (double)aRatio * (double)aRatio) * 160.0;
 		while (true)
 		{
 			theShooter->children.current = aChild;

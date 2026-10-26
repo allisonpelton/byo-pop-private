@@ -204,9 +204,10 @@ void Level_MakeRandom(Level* theLevel, int theSeed)
 	}
 }
 
-// 0x40fc90: how many of each kind of enemy a level has, by its number. theA and theB are the pairs and the singles
-// (the level file's numbers when the level is past the table), theC and theD how far the kinds reach above the first
-// kind of each (7 for the pairs, 0 for the singles), theE and theF the tint of each (0: one near the level's)
+// 0x40fc90: by level number, how many walkers (theA, placed in mirrored pairs, kinds 7 on) and rollers (theB,
+// singles, kinds 0 on) a random board gets, theC and theD how far the kinds of each reach above its first kind, and
+// theE and theF their tints (0: one near the level's). Past the table, or for a level number of 0 or less, theA and
+// theB are the level file's numbers, at least 4 each, theC and theD are 5 and 6, and the tints stay 0.
 void Level_EnemyCounts(Level* theLevel, int* theA, int* theB, int* theC, int* theD, int* theE, int* theF)
 {
 	int n = theLevel->number;
@@ -938,7 +939,7 @@ int Level_Update(Level* theLevel)
 		theLevel->clicked = Mouse_Pressed(1);
 		int aRight;
 		if (Mouse_Pressed(2) == 0)
-			aRight = Key_Down(0x20) != 0 ? 1 : 0;
+			aRight = Key_Pressed(0x20) != 0 ? 1 : 0;
 		else
 			aRight = 1;
 		theLevel->rightClicked = aRight;

@@ -20,8 +20,8 @@ namespace
 
 int gSliding = 0;                  // 0x6e5bf8  the level slider is being dragged
 int gWorldChanged = 0;             // 0x6e5bfc  a world was chosen: the slider starts again
-int gSavedProfile = 0;             // 0x6e5af0  the player, and the name, to go back to when a requester is cancelled
-char gSavedName[0x20];             // 0x6e5af8
+int gSavedProfile = 0;             // 0x6e5af8  the player, and the name, to go back to when a requester is cancelled
+char gSavedName[0x20];             // 0x6e5b00
 
 // The sprintf of the drawn text onto itself that the original does (it works on MSVC's, which copies as it goes)
 void AppendTo(char* theDrawn, const char* theFormat, int theCode, const char* theValue)
@@ -1051,8 +1051,7 @@ void Menu_ShowRequester(Menu* theMenu, int theKind, const char* theText, const c
 		Button_Setup(anItem, "okay", 340.0f, 330.0f);
 		anItem->midHandle = 1;
 		anItem->kind = 0x1d;
-		// (Cosmic Bugs' name entry also had a cancel button here)
-		return;
+		break;
 	}
 	case 3:
 		// leaving the game
@@ -1174,7 +1173,7 @@ void Menu_ShowRequester(Menu* theMenu, int theKind, const char* theText, const c
 	default:
 		return;
 	}
-	// cases 0 and 3: okay and cancel
+	// cases 0, 2 and 3: the okay button's name and a cancel button
 	strcpy(aList->current->items.current->name, GT(0x459604));
 	MenuItem_Append(&aList->current->items);
 	anItem = aList->current->items.current;

@@ -90,6 +90,7 @@ int Key_Pop();                           // 0x428f80: the queue's newest key, 0 
 void Key_Push(int theKey);               // 0x428fb0
 void Key_Clear();                        // 0x428fe0: empties the queue (not the keys held)
 int Key_Down(int theKey);                // 0x429000: held
+int Key_Pressed(int theKey);             // 0x429020: once for each press (the key's slot goes from 1 to 2)
 void Mouse_Update(int* x, int* y);       // 0x42a320: the pointer on the game's screen
 void Sys_KeyEvent(int theKey, int theDown);
 void Sys_MouseButton(int theButton, int theDown);

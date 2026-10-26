@@ -15,8 +15,8 @@ namespace r64
 namespace
 {
 
-int gCosTable[361]; // 0x709988
-int gSinTable[361]; // 0x709f30
+int gCosTable[361]; // 0x709a08
+int gSinTable[361]; // 0x709fb0
 
 void InitComponent(uint32_t theMask, uint32_t& theMaskOut, int& theBits, int& theShift, int& theLoss)
 {

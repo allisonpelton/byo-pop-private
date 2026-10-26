@@ -149,6 +149,17 @@ int Key_Down(int theKey)
 	return gKeysDown[theKey] != 0;
 }
 
+// 0x429020: Sys_KeyEvent sets a slot to 1 only from 0, so a held key answers once
+int Key_Pressed(int theKey)
+{
+	if (gKeysDown[theKey] == 1)
+	{
+		gKeysDown[theKey] = 2;
+		return 1;
+	}
+	return 0;
+}
+
 void Mouse_Update(int* x, int* y)
 {
 	if (gHost != nullptr)

@@ -335,7 +335,8 @@ int Level_Update(Level* theLevel);                               // 0x412f50: 0 
 void Level_SetBackground(Level* theLevel);                       // 0x40f340: and the song, by the level number
 void Level_StartSong(Level* theLevel, int thePlay);              // 0x40f6b0
 void Level_MakeRandom(Level* theLevel, int theSeed);             // 0x40f710
-// 0x40fc90: a level number's enemies (walkers, rollers and two more kinds)
+// 0x40fc90: by level number, how many walkers and rollers a random board gets, how far each one's kinds range and
+// their tints (the table is in the .cpp)
 void Level_EnemyCounts(Level* theLevel, int* theA, int* theB, int* theC, int* theD, int* theE, int* theF); // 0x40fc90
 void Level_MakeEdges(Level* theLevel);                           // 0x40ff90
 void Level_SetPatterns(Level* theLevel, const char* theH, const char* theV); // 0x410000

@@ -49,8 +49,8 @@ Image* gCursorArrow = nullptr;         // 0x4735ac
 Image* gCursorClock = nullptr;         // 0x4735b0
 Image* gCursor = nullptr;              // 0x4735b4
 Palette gColourCodes[10];              // 0x4735b8
-char gSongName[0x40];                  // 0x6e5aa8
-int gLogoCount = 0;                    // 0x6e5ae8
+char gSongName[0x40];                  // 0x6e5ab0
+int gLogoCount = 0;                    // 0x6e5af0
 
 namespace
 {
@@ -482,7 +482,7 @@ void GameStep()
 		if (gLevels.current->kind == 0 && gTrial != 0 && gLevels.current->menus.current != nullptr &&
 			gLevels.current->menus.current->requesters.current == nullptr)
 			gTrialLeft = gTrialLeft + -1;
-		if (Level_Update(gLevels.current) == 0 || Key_Down(0xbe) != 0)
+		if (Level_Update(gLevels.current) == 0 || Key_Pressed(0xbe) != 0)
 		{
 			if (gLevels.current->kind == 0 || gLevels.current->kind == 0xe)
 				List_RemoveCurrent(&gLevels);
@@ -517,7 +517,7 @@ void GameStep()
 		}
 	}
 escape:
-	if (Key_Down(0x1b) == 0)
+	if (Key_Pressed(0x1b) == 0)
 	{
 		gEscape = 0;
 		return;

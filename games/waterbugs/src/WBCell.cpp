@@ -332,7 +332,8 @@ void Cell_StartFill(Cell* theCell)
 	}
 	else
 	{
-		// (both offsets are the cosine, as in the original: the cells fly in along a diagonal)
+		// (both offsets are the cosine, as in the original: the cells fly out along a diagonal; the first cell's
+		// random offsets are flown in instead, see Cell_Redraw's state 7)
 		theCell->offX = (int)((double)CosDeg(anAngle) * 38.0);
 		theCell->offY = (int)((double)CosDeg(anAngle) * 38.0);
 	}
