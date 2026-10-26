@@ -17,6 +17,13 @@ class FossilizedApp;
 class Graphics;
 class LoadedEgg;
 
+// a line of the aim's path: two points of two floats (the original's pair of pointers on the stack)
+struct PathLine
+{
+	float*				mFrom;
+	float*				mTo;
+};
+
 class Launcher
 {
 public:
@@ -55,12 +62,16 @@ public:
 	void				SetLoaded(LoadedEgg* theEgg);		// 0x4011f0: unless one is loaded
 	void				Load(int theColor);					// 0x401210: unless one is loaded
 	void				Fire();								// 0x4012a0
+	void				Extend(PathLine* theLine, float theDist);	// 0x4013f0: moves its end on
+	void				Retract(PathLine* theLine, float theDist);	// 0x401470: moves its start back
 	void				Freeze(Egg* theEgg);				// 0x4014f0
 	void				DrawSling(Graphics* g);				// 0x401940
 	void				DrawBand();							// 0x401a10
 	void				PlaceEgg(float& theX, float& theY);	// 0x401d30
 	void				Aim(int theX, int theY);			// 0x401e40
 	void				DrawArrow(Graphics* g);				// 0x401ed0
+	// 0x4021e0: the line's two points each moved theWidth to either side (x, y, x, y)
+	void				Widen(PathLine* theLine, float* theFrom, float* theTo, float theWidth);
 };
 
 }

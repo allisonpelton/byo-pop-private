@@ -105,6 +105,33 @@ void Launcher::Fire()
 	}
 }
 
+// 0x4013f0
+// port: the x87 code keeps the step unrounded, so the sums work in double
+void Launcher::Extend(PathLine* theLine, float theDist)
+{
+	float* aTo = theLine->mTo;
+	float* aFrom = theLine->mFrom;
+	int anAngle = mApp->mAngles->AngleTo((int) aFrom[0], (int) aFrom[1], (int) aTo[0], (int) aTo[1]);
+	AngleTable* anAngles = mApp->mAngles;
+	double aStepX = (double) theDist * (double) anAngles->mDX[anAngle];
+	double aStepY = (double) theDist * (double) anAngles->mDY[anAngle];
+	theLine->mTo[0] = (float) (aStepX + (double) theLine->mTo[0]);
+	theLine->mTo[1] = (float) (aStepY + (double) theLine->mTo[1]);
+}
+
+// 0x401470
+void Launcher::Retract(PathLine* theLine, float theDist)
+{
+	float* aTo = theLine->mTo;
+	float* aFrom = theLine->mFrom;
+	int anAngle = mApp->mAngles->AngleTo((int) aFrom[0], (int) aFrom[1], (int) aTo[0], (int) aTo[1]);
+	AngleTable* anAngles = mApp->mAngles;
+	double aStepX = (double) theDist * (double) anAngles->mDX[anAngle];
+	double aStepY = (double) theDist * (double) anAngles->mDY[anAngle];
+	theLine->mFrom[0] = (float) ((double) theLine->mFrom[0] - aStepX);
+	theLine->mFrom[1] = (float) ((double) theLine->mFrom[1] - aStepY);
+}
+
 // 0x4014f0
 void Launcher::Freeze(Egg* theEgg)
 {
@@ -288,4 +315,35 @@ void Launcher::DrawArrow(Graphics* g)
 		aPoints[6].mY = (int) aTailLeftY;
 		g->PolyFill(aPoints, 7);
 	}
+}
+
+// 0x4021e0
+void Launcher::Widen(PathLine* theLine, float* theFrom, float* theTo, float theWidth)
+{
+	theFrom[0] = theLine->mFrom[0];
+	theFrom[1] = theLine->mFrom[1];
+	theFrom[2] = theLine->mFrom[0];
+	theFrom[3] = theLine->mFrom[1];
+	theTo[0] = theLine->mTo[0];
+	theTo[1] = theLine->mTo[1];
+	theTo[2] = theLine->mTo[0];
+	theTo[3] = theLine->mTo[1];
+	float* aTo = theLine->mTo;
+	float* aFrom = theLine->mFrom;
+	int anAngle = mApp->mAngles->AngleTo((int) aFrom[0], (int) aFrom[1], (int) aTo[0], (int) aTo[1]) + 0x5a;
+	if (anAngle >= 0x168)
+		anAngle = anAngle - 0x168;
+	if (anAngle < 0)
+		anAngle = anAngle + 0x168;
+	AngleTable* anAngles = mApp->mAngles;
+	double aSideX = (double) theWidth * (double) anAngles->mDX[anAngle];
+	double aSideY = (double) theWidth * (double) anAngles->mDY[anAngle];
+	theFrom[0] = (float) (aSideX + (double) theFrom[0]);
+	theFrom[1] = (float) (aSideY + (double) theFrom[1]);
+	theFrom[2] = (float) ((double) theFrom[2] - aSideX);
+	theFrom[3] = (float) ((double) theFrom[3] - aSideY);
+	theTo[0] = (float) (aSideX + (double) theTo[0]);
+	theTo[1] = (float) (aSideY + (double) theTo[1]);
+	theTo[2] = (float) ((double) theTo[2] - aSideX);
+	theTo[3] = (float) ((double) theTo[3] - aSideY);
 }

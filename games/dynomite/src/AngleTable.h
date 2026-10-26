@@ -18,6 +18,9 @@ public:
 	virtual ~AngleTable() {}
 
 	int					AngleTo(int theFromX, int theFromY, int theToX, int theToY);	// 0x42bbc0
+	// 0x42bcd0: where the lines through theLine1's and theLine2's two points (x1, y1, x2, y2) cross, and whether
+	// the crossing is within both
+	static bool			Intersect(const float* theLine1, const float* theLine2, float* thePoint);
 };
 
 }

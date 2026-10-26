@@ -39,3 +39,27 @@ int AngleTable::AngleTo(int theFromX, int theFromY, int theToX, int theToY)
 		return (int) (180.0 - anAngle);
 	return (int) (anAngle + 180.0);
 }
+
+// 0x42bcd0
+// port: the x87 code keeps the products and sums unrounded (in 53 bits), so this works in double
+bool AngleTable::Intersect(const float* theLine1, const float* theLine2, float* thePoint)
+{
+	float aDY1 = theLine1[3] - theLine1[1];
+	double aCross = ((double) theLine2[3] - (double) theLine2[1]) * (double) theLine1[0];
+	double aDenom = ((((double) theLine2[1] - (double) theLine2[3]) * (double) theLine1[2] +
+		((double) theLine1[1] - (double) theLine1[3]) * (double) theLine2[0]) + (double) aDY1 * (double) theLine2[2]) +
+		aCross;
+	if (aDenom == 0.0)
+		return false;
+	double aScale = 1.0 / aDenom;
+	double aT1 = (aCross + (((double) theLine2[1] - (double) theLine1[1]) * (double) theLine2[2] +
+		((double) theLine1[1] - (double) theLine2[3]) * (double) theLine2[0])) * aScale;
+	double aT2 = -(((((double) theLine1[1] - (double) theLine2[1]) * (double) theLine1[2] +
+		((double) theLine2[1] - (double) theLine1[3]) * (double) theLine1[0])) + (double) aDY1 * (double) theLine2[0]) *
+		aScale;
+	thePoint[0] = (float) (((double) theLine1[2] - (double) theLine1[0]) * aT1 + (double) theLine1[0]);
+	thePoint[1] = (float) (((double) theLine1[3] - (double) theLine1[1]) * aT1 + (double) theLine1[1]);
+	if ((0.0 <= aT1) && (aT1 <= 1.0) && (0.0 <= aT2) && (aT2 <= 1.0))
+		return true;
+	return false;
+}
