@@ -7,8 +7,8 @@ tools/extract_game_exe.py
 tools/triage_popcap.py
 
 # The Peggle ports (the user, 2026-10-26): Deluxe and Nights stay unpublished while Thunderball's decompilation is in
-# progress and Nights has an active modding community. Extreme and World of Warcraft Edition may go on the website, but
-# their source is mostly Deluxe's and Nights', so it stays out too (docs/POPCAP_GAMES_SURVEY.md section 4).
+# progress and Nights has an active modding community. Extreme and World of Warcraft Edition are not ported: they become
+# mods of Deluxe and Nights and stay unpublished with them (docs/POPCAP_GAMES_SURVEY.md section 4).
 games/peggle*
 
 # Bejeweled's Steven Universe gems: fan art of Cartoon Network's designs, never redistributed (the user, 2026-10-25),

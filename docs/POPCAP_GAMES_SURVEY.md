@@ -712,7 +712,7 @@ largest game left and holds its slot for weeks, so the queue after it runs in th
 takes the least predicted effort first, and a game that waits on another game's engine goes right after that game.
 The model follows CLAUDE.md's rule: Opus for the first game on an engine, Sonnet for a game that can copy one.
 "Published" says where a finished port goes: "yes" is the GitHub snapshot and the website; "no" is neither,
-its folder kept in `.publishignore`; "site only" is the website, with the source kept out of the snapshot.
+its folder kept in `.publishignore`.
 
 | # | Game | Model | Published | Effort | Why it stands here |
 |---|---|---|---|---|---|
@@ -737,19 +737,26 @@ its folder kept in `.publishignore`; "site only" is the website, with the source
 | 19 | Chuzzle Deluxe | Opus | yes | ~8-12x | added back 2026-10-26: the reported decompilation has empty game files. Raptisoft's own engine, no RTTI |
 | 20 | Feeding Frenzy 2 Deluxe | Opus | yes | ~10x | Sprout's second generation |
 | 21 | Peggle Deluxe | Sonnet | no | ~12x | Bejeweled's framework generation; JPEG 2000 is in. Unpublished: Thunderball's decompilation is in progress |
-| 22 | Peggle Extreme | Sonnet | site only | ~1x after Deluxe | 84% of its functions are Deluxe's, so its source would publish Deluxe's |
-| 23 | Peggle Nights | Sonnet | no | ~4-5x after Deluxe | unpublished: the most active modding community of any game left (82 GameBanana mods, new ones in 2026) |
-| 24 | Peggle World of Warcraft Edition | Sonnet | site only | ~1-2x after Nights | the Nights branch, so its source would publish Nights' |
-| 25 | Bejeweled 3 | Opus | yes | ~30x | builds the prime-compat layer (PopAnim, PIEffect, CurvedVal) that Zuma's Revenge reuses |
-| 26 | Banana Bugs | Opus | yes | waits on the image | PopCap's 2010 framework, near Bejeweled 3's; its image must first come out of the 2010 DRM |
-| 27 | Gyromancer | Opus | yes | large | Square Enix's own engine; the Steam stub must come off first, with a tool that needs the user's OK |
-| 28 | Zuma's Revenge! | Opus | yes | ~35x | HARD; prime-compat and JeffLib |
-| 29 | Typer Shark! Deluxe | Sonnet | yes | ~5x | at the end by the decision of 2026-10-24; BookWorm's framework |
-| 30 | Talismania Deluxe | Sonnet | yes | ~12-16x after Feeding Frenzy 2 | at the end by the same decision; HARD, on Feeding Frenzy 2's engine |
+| 22 | Peggle Nights | Sonnet | no | ~4-5x after Deluxe | unpublished: the most active modding community of any game left (82 GameBanana mods, new ones in 2026) |
+| 23 | Bejeweled 3 | Opus | yes | ~30x | builds the prime-compat layer (PopAnim, PIEffect, CurvedVal) that Zuma's Revenge reuses |
+| 24 | Banana Bugs | Opus | yes | waits on the image | PopCap's 2010 framework, near Bejeweled 3's; its image must first come out of the 2010 DRM |
+| 25 | Gyromancer | Opus | yes | large | Square Enix's own engine; the Steam stub must come off first, with a tool that needs the user's OK |
+| 26 | Zuma's Revenge! | Opus | yes | ~35x | HARD; prime-compat and JeffLib |
+| 27 | Typer Shark! Deluxe | Sonnet | yes | ~5x | at the end by the decision of 2026-10-24; BookWorm's framework |
+| 28 | Talismania Deluxe | Sonnet | yes | ~12-16x after Feeding Frenzy 2 | at the end by the same decision; HARD, on Feeding Frenzy 2's engine |
 
 Without references the estimates of Peggle (~12x instead of ~5x on Thunderball), Bejeweled 3 (~30x instead of ~10-15x)
 and Zuma's Revenge (~35x instead of ~15-20x) went up, so those games moved later. Zuma Deluxe is skipped
 (see the decision above).
+
+Peggle Extreme and Peggle World of Warcraft Edition left the order on 2026-10-26 (the user): they become mods
+instead of ports. A comparison of their programs and paks with Deluxe's and Nights' found no gameplay change, only
+presentation. Extreme adds a headcrab on Bjorn and Striders to the main menu, its logo to the loading screen, the
+Heavy popping in after a good shot, four voice lines each for a won and a lost level, picked at random, and a teleport
+sound. WoW is Nights cut down to two masters, with an animated main menu, a dragon loading screen and its own texts.
+In our ports they will be mods of Peggle Deluxe and Nights, and the parts drawn by their own code become settings of
+those ports, unpublished with them. For the original games they are theme mods, sounds, menus and art only, released
+apart from byo-pop; their levels come from KurZab's level pack for Nights (GameBanana, 2022), which has no theme.
 
 After these come the other studios' games (Appendix D), World of Goo among them; which of the others is decided then.
 
@@ -757,8 +764,8 @@ On 2026-10-26 the user added Cosmic Bugs, Water Bugs and both Mahjong Escape gam
 decision, at the places their effort gives them. Their copies are in the user's Popcap Game Collection (Appendix C).
 
 Every game has a copy on the user's machines ([Appendix C](#appendix-c-popcap-pc-games-missing-from-this-survey-2026-10-25)
-and the user's notes). Not decompiled: Plants vs. Zombies, Insaniquarium and Zuma Deluxe (their fan communities), Chuzzle's Christmas
-Edition, The Wizard's Pen, Sweet Tooth To Go, every hidden-object game and every game released after July 2011.
+and the user's notes). Not decompiled: Plants vs. Zombies, Insaniquarium and Zuma Deluxe (their fan communities), Peggle Extreme and
+Peggle World of Warcraft Edition (mods of Deluxe and Nights instead), Chuzzle's Christmas Edition, The Wizard's Pen, Sweet Tooth To Go, every hidden-object game and every game released after July 2011.
 
 Bejeweled Deluxe and then Big Money Deluxe are already planned ([MOD_ROADMAP.md](MOD_ROADMAP.md)). Big Money is DIRECT at about 2x. It builds the SAF 1.2 vtable map that Hammer Heads reuses, and its `.it` music already plays with libxmp-lite.
 
