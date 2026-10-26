@@ -20,7 +20,7 @@ static const int kVersionMinor2 = 5;
 
 // The changes of the format, oldest first (the constructor's list, +0x24)
 static const Profile::FormatChange kFormatChanges[] = {
-	{0, 0, 2, GTA(0x6fe718)}, {0, 0, 3, GTA(0x6fe744)}, {0, 0, 4, GTA(0x6fe780)}, {0, 0, 5, GTA(0x7b0258)},
+	{0, 0, 2, GTA(0x6fe718)}, {0, 0, 3, GTA(0x6fe744)}, {0, 0, 4, GTA(0x6fe780)}, {0, 0, 5, GTA(0x6fe7c8)},
 	{0, 0, 6, GTA(0x6fe818)}, {0, 0, 7, GTA(0x6fe870)}, {0, 0, 8, GTA(0x6fe8a0)}, {0, 0, 9, GTA(0x6fe8d0)},
 	{0, 1, 0, GTA(0x6fe924)}, {0, 1, 1, GTA(0x6fe948)}, {0, 1, 2, GTA(0x6fe980)}, {0, 1, 3, GTA(0x6fe99c)},
 	{0, 1, 4, GTA(0x6fe9b4)}, {0, 1, 5, GTA(0x6fe9dc)},

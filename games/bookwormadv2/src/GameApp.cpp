@@ -835,15 +835,14 @@ void GameApp::ShowMainMenu(bool theFromTitle, bool theToBack)
 
 void GameApp::ShowUnlockMessages()
 {
-	// 0x449660
+	// 0x43e440
 	auto aNeeds = [this](const char* theKey) {
 		return mProfile != nullptr && mProfile->KeyExists(theKey) && mProfile->GetBool(theKey);
 	};
 	bool aBestiary = aNeeds("NeedsBestiaryDialog");
 	bool aMiniGames = aNeeds("NeedsMiniGamesDialog");
 	bool aArena = aNeeds("NeedsArenaDialog");
-	bool aExpansionBoss = aNeeds("NeedsExpansionBossDialog");
-	bool aMediaPlayer = aNeeds("NeedsMPDialog");
+	// (the original reads "NeedsMPDialog" too and does nothing with it; Volume 1's expansion's bosses have no page)
 
 	// Lex speaks from a new panel, one page after another
 	auto aNewPanel = [this]() {
@@ -870,7 +869,7 @@ void GameApp::ShowUnlockMessages()
 	if (aBestiary) {
 		// the tome, and what else came with it
 		aNewPanel();
-		mConversationPanel->AddTextPage(GT(0x7ad090));
+		mConversationPanel->AddTextPage(GT(0x6fb0b0));
 		mConversationPanel->AddTextPage(GT(0x6fb100));
 		if (aMiniGames) {
 			mConversationPanel->AddTextPage(GT(0x6fb148));
@@ -880,10 +879,6 @@ void GameApp::ShowUnlockMessages()
 			mConversationPanel->AddTextPage(aMiniGames ? GT(0x6fb190) : GT(0x6fb1e0));
 			mProfile->SetBool("NeedsArenaDialog", false);
 		}
-		if (aExpansionBoss) {
-			mConversationPanel->AddTextPage(!aMiniGames && !aArena ? GT(0x7ad254) : GT(0x7ad210));
-			mProfile->SetBool("NeedsExpansionBossDialog", false);
-		}
 		aShowPanel();
 		mProfile->SetBool("NeedsBestiaryDialog", false);
 		mProfile->Save();
@@ -891,47 +886,23 @@ void GameApp::ShowUnlockMessages()
 	}
 	if (aMiniGames) {
 		aNewPanel();
-		mConversationPanel->AddTextPage(GT(0x7ad290));
+		mConversationPanel->AddTextPage(GT(0x6fb230));
 		mConversationPanel->AddTextPage(GT(0x6fb280));
 		if (aArena) {
 			mConversationPanel->AddTextPage(GT(0x6fb1e0));
 			mProfile->SetBool("NeedsArenaDialog", false);
-		}
-		if (aExpansionBoss) {
-			mConversationPanel->AddTextPage(aArena ? GT(0x7ad210) : GT(0x7ad254));
-			mProfile->SetBool("NeedsExpansionBossDialog", false);
 		}
 		aShowPanel();
 		mProfile->SetBool("NeedsMiniGamesDialog", false);
 		mProfile->Save();
 		return;
 	}
-
-	// the arena, the expansion's bosses or the film reel: one of them
-	const char* aKey;
-	if (aArena) {
-		aNewPanel();
-		mConversationPanel->AddTextPage(GT(0x7ad308));
-		mConversationPanel->AddTextPage(GT(0x6fb300));
-		if (aExpansionBoss) {
-			mConversationPanel->AddTextPage(GT(0x7ad254));
-			mProfile->SetBool("NeedsExpansionBossDialog", false);
-		}
-		aKey = "NeedsArenaDialog";
-	} else if (aExpansionBoss) {
-		aNewPanel();
-		mConversationPanel->AddTextPage(GT(0x7ad3c0));
-		mConversationPanel->AddTextPage(GT(0x7ad3f4));
-		aKey = "NeedsExpansionBossDialog";
-	} else {
-		if (!aMediaPlayer)
-			return;
-		aNewPanel();
-		mConversationPanel->AddTextPage(GT(0x7ad420));
-		mConversationPanel->AddTextPage(GT(0x7ad470));
-		aKey = "NeedsMPDialog";
-	}
-	mProfile->SetBool(aKey, false);
+	if (!aArena)
+		return;
+	aNewPanel();
+	mConversationPanel->AddTextPage(GT(0x6fb2a8));
+	mConversationPanel->AddTextPage(GT(0x6fb300));
+	mProfile->SetBool("NeedsArenaDialog", false);
 	aShowPanel();
 	mProfile->Save();
 }

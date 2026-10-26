@@ -69,8 +69,10 @@ quitting to the menu left the chapter's images loaded (while the Lua side forgot
 exported nothing. The group names are now compared without case (`shared:` commit; the group list was already).
 The Hall of Fame's ten default entries per list now come from Volume 2's builders (0x455890 powers, 0x4566e0 arena times,
 0x457840 bonuses): the arena's times carry stage 2 or 1 (two bosses), not Volume 1's 11 to 1. The names and the title's
-LOADING letters that `gametext.py` could not map are found by their Volume 2 addresses. Left in `tools/gt_todo.txt`: the
-stale list of Volume 1 addresses (the credits and the conversation pages still read some).
+LOADING letters that `gametext.py` could not map are found by their Volume 2 addresses. The loading screen's hints are Volume 2's own list (0x425c60: 88, not Volume 1's 27). The unlock messages (0x43e440: the tome, mini-games and arena pages, in that order of precedence; Volume 1's
+expansion-boss and film-reel pages do not exist in Volume 2), the new-user dialog's "CANCEL" and the profile format's
+change list now read Volume 2's texts. Left in `tools/gt_todo.txt`: only the credits' lines (to be rewritten) and the Astro Pop
+flash's word.
 
 The cut scene is Volume 2's now (`CutScene`, 0x436560-0x436e60), not Volume 1's click-then-confirm. A click anywhere reads
 the label the movie is at (the five movies label each scene "Nstart" and "Nend"), takes its first character and jumps
