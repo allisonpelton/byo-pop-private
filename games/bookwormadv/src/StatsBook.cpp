@@ -3,6 +3,7 @@
 #include <SDL.h>
 
 #include <climits>
+#include <cstring>
 
 #include <algorithm>
 
@@ -11,6 +12,7 @@
 #include "GameApp.h"
 #include "Graphics.h"
 #include "Image.h"
+#include "MemoryImage.h"
 #include "LuaBind.h"
 #include "LuaResourceManager.h"
 #include "PopLua.h"
@@ -197,7 +199,13 @@ StatsBook::StatsBook(GameApp* theApp, bool theFromGame, bool theBestiary, bool t
 
 	// no clicks for the first five updates (the click that opened the book is still on its way)
 	mWidgetFlagsMod.mRemoveFlags |= WIDGETFLAGS_ALLOW_MOUSE;
-	// port: the 320 x 240 picture the music's visualiser draws (0x494a10) is not made: nothing draws into it
+	// the 320 x 240 picture of the music's spectrum (Update draws it), clear. port: a MemoryImage (a DDImage)
+	mScreenImage = new MemoryImage(mApp);
+	mScreenImage->Create(320, 240);
+	mScreenImage->Clear();
+	mScreenImage->SetVolatile(true);
+	memset(mScreenImage->GetBits(), 0, mScreenImage->mWidth * mScreenImage->mHeight * 4);
+	mScreenImage->BitsChanged();
 	mPriority = 10001;
 
 	if (!mApp->mResourceManager->LoadResources("StatsBook"))
@@ -378,12 +386,42 @@ void StatsBook::AddedToManager(WidgetManager* theWidgetManager)
 	mApp->ClearUpdateBacklog(false);
 }
 
-// 0x494a10: the drop, the movie, and the scripts' Update
+// 0x494a10: the music's spectrum, the drop, the movie, and the scripts' Update
 void StatsBook::Update()
 {
 	MarkDirty();
 	mUpdateCnt++;
-	// port: the music's visualiser (the picture drawn from the spectrum while a song plays) is not ported
+	// while a song plays in the media player: its spectrum, and after the first 100 updates the picture of it, each
+	// lit cell green at the bottom to red 120 rows up, the others fading by 10 an update
+	JeffLib::SongPlayer* aSongs = mApp->mSongPlayer;
+	if (mMediaPlayer && mPlayingMusic && mApp->mHasFocus && !mApp->IsCurtainMoving() && aSongs != nullptr) {
+		aSongs->UpdateSpectrum(mUpdateCnt, mScreenMode);
+		if (mCountdown > 0) {
+			mCountdown--;
+		} else {
+			unsigned char* aSpectrum = aSongs->mSpectrum;
+			ulong* aBits = mScreenImage->GetBits();
+			int aRowFromBottom = -1;
+			for (int y = 0; y < aSongs->mSpectrumHeight; y++) {
+				int aRed = y * 2;
+				if (y > 120)
+					aRed = 240;
+				for (int x = 0; x < aSongs->mSpectrumWidth; x++) {
+					ulong& aPixel = aBits[(mScreenImage->mHeight + aRowFromBottom) * mScreenImage->mWidth + x];
+					if (aSpectrum[aSongs->mSpectrumWidth * y + x] != 0) {
+						aPixel = 0xFF000000 | (aRed << 16) | ((240 - aRed) << 8);
+					} else {
+						int anAlpha = (int)(aPixel >> 24) - 10;
+						if (anAlpha < 0)
+							anAlpha = 0;
+						aPixel = ((ulong)anAlpha << 24) | (aPixel & 0xFFFFFF);
+					}
+				}
+				aRowFromBottom--;
+			}
+		}
+		mScreenImage->BitsChanged();
+	}
 	// the clicks count after five updates
 	if (mUpdateCnt == 5) {
 		mWidgetFlagsMod.mRemoveFlags &= ~WIDGETFLAGS_ALLOW_MOUSE;

@@ -62,26 +62,27 @@ install folder or a zip of it: `main.pak` (unpacked into the game's folders), `B
 Native options: `-gamedir=<dir>` (else `assets/bookwormadv` next to the exe or up to two levels up), `-userdir=<dir>`
 (the profiles and `registry.ini`), `-modsdir=<dir>` and `-nomods`, and the framework's test hooks `-fast`, `-seed=N`,
 `-trace` and `-script=<file>`. Scripts take the framework's commands (`<update> move <x> <y>`, `click <x> <y>`,
-`key <name>`, `screenshot <file>`, `quit`) and two of the game's own (`src/TestHooks.cpp`): `word [attack]` spells the
-longest word the battle's grid allows (and attacks with it), and `lua <chunk>` runs a line of Lua in the game's state,
-for example `lua profile.Set('UnlockedArena', true)` once the main menu is up (about update 950).
+`key <name>`, `screenshot <file>`, `quit`) and three of the game's own (`src/TestHooks.cpp`): `word [attack]` spells
+the longest word the battle's grid allows (and attacks with it), `lua <chunk>` runs a line of Lua in the game's state,
+for example `lua profile.Set('UnlockedArena', true)` once the main menu is up (about update 950), and `spectrum` logs
+how many cells of the media player's spectrum are lit.
 
 ## Testing
 
 `tools/check.sh bookwormadv` (about two and a half minutes) runs the PopLua compiler's dialect checks, loads every
 compiled script of the game with the port's VM, every PopAnim animation, and four Flash cut scenes to their end, then
-plays three runs of the test profile. The first goes from the title to the main menu, whose quit asks (Play! stays,
+plays four runs of the test profile. The first goes from the title to the main menu, whose quit asks (Play! stays,
 Quit quits). The second wins the first chapter, spelling with `word attack`, and saves it. The third goes through the
 screens off the main menu: the credits from the options (skipped), the players dialog (cancelled), the mini-games'
-menu and its way back, and the arena from its intro and treasure room through Cassandra's tutorial to its first word.
+menu and its way back, and the arena from its intro and treasure room through Cassandra's tutorial to its first word. The fourth opens the
+media player, plays a song and counts its spectrum's lit cells in both of the screen's kinds, the mouse over the book.
 The unit suite (`tools/check.sh unit`) checks the JPEG 2000 decoder against Pillow's pictures in
 `re/bookwormadv/jp2ref`, and `unit-web` checks the page's pak reader against the staged files.
 
-What the suite does not reach was checked with scripts: a timed fight in the arena, the hall of fame, the tome and its
-media player, the players dialog's choosing, adding and deleting (and a name in use), and the three mini-games. In
-the browser: the import,
-the main menu, the map, a battle, the credits, the players dialog, the mini-games' menu, a game of Word Master left
-for the hall of fame, the tome, and the window losing and regaining the focus.
+What the suite does not reach was checked with scripts: a timed fight in the arena, the hall of fame, the tome, the
+players dialog's choosing, adding and deleting (and a name in use), and the three mini-games. In the browser: the
+import, the main menu, the map, a battle, the credits, the players dialog, the mini-games' menu, a game of Word Master
+left for the hall of fame, the tome, and the window losing and regaining the focus.
 
 ## Mods
 
@@ -92,10 +93,11 @@ making.
 
 The adventure, the arena, the mini-games, the hall of fame, the tome, the credits and the players dialog play
 natively and in the browser (where the arena was not reached, as only a script command unlocks it for a test
-profile). Tiles and letters are chosen by clicking, as in the original: no widget of the exe chooses them by typed letters
-(the board's keys are only 1 to 4, Enter and space; the scripts' KeyChar handlers are empty). Left out: the media player's music visualiser (it needs the music's spectrum, which the
-platform's player does not give yet), the trial and its buy screens (the port plays as bought), and the developers'
-tools in the exe (the DProps editor, the Lua debugger console). Notes starting `port:` in the code mark every place
+profile). Tiles and letters are chosen by clicking, as in the original: no widget of the exe chooses them by typed
+letters (the board's keys are only 1 to 4, Enter and space; the scripts' KeyChar handlers are empty). The media
+player's spectrum takes its bins at the mixer's rate (48 kHz in the browser), where the original's BASS took them at
+44.1 kHz, so a tone stands a little further left. Left out: the trial and its buy screens (the port plays as bought),
+and the developers' tools in the exe (the DProps editor, the Lua debugger console). Notes starting `port:` in the code mark every place
 where the port differs from the original.
 
 ## Where the work was hard

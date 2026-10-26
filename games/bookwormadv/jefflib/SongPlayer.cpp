@@ -1,8 +1,72 @@
 #include "SongPlayer.h"
 
+#include <cmath>
+#include <cstring>
+
 #include "MusicInterface.h"
 
 using namespace JeffLib;
+
+SongPlayer::~SongPlayer()
+{
+	delete[] mSpectrum;
+}
+
+void SongPlayer::UpdateSpectrum(int theUpdateCnt, int theMode)
+{
+	if (mSpectrum == nullptr || theUpdateCnt % 4 != 0)
+		return;
+	// BASS_DATA_FFT2048 of the copy playing: 1024 magnitudes. port: the platform's mixer gives them
+	// (MusicInterface::GetMusicFFT), at its own rate where BASS's were at 44.1 kHz
+	float anFFT[1024];
+	if (!mMusic->GetMusicFFT(mCurrentSong, anFFT, 2048))
+		return;
+	// a magnitude that is not a number counts as 0
+	for (int i = 0; i < 1024; i++)
+		if (anFFT[i] != anFFT[i])
+			anFFT[i] = 0.0f;
+	memset(mSpectrum, 0, mSpectrumWidth * mSpectrumHeight);
+	if (theMode == 0) {
+		// the square root of each bin from the second on, every other column, the one between them at the height
+		// halfway between theirs
+		int aLastY = 0;
+		for (int x = 0; x < mSpectrumWidth / 2; x++) {
+			float aLevel = (float)sqrt((double)anFFT[x + 1]);
+			int y = (int)(aLevel * 3.0 * mSpectrumHeight - 4.0);
+			if (y > mSpectrumHeight)
+				y = mSpectrumHeight;
+			int aMid;
+			if (x != 0 && (aMid = (aLastY + y) / 2) != 0)
+				while (--aMid >= 0)
+					mSpectrum[mSpectrumWidth * aMid + x * 2 - 1] = (unsigned char)(aMid + 1);
+			aLastY = y;
+			while (--y >= 0)
+				mSpectrum[mSpectrumWidth * y + x * 2] = (unsigned char)(y + 1);
+		}
+	} else if (theMode == 1) {
+		// bar n sums the bins up to 2^(n * 10 / 27) (at least one), over the log of their count plus 10
+		int aBin = 0;
+		for (int aBar = 0; aBar < 28; aBar++) {
+			float aSum = 0.0f;
+			int anEnd = (int)pow(2.0, aBar * 10.0 / 27.0);
+			if (anEnd > 1023)
+				anEnd = 1023;
+			if (anEnd <= aBin)
+				anEnd = aBin + 1;
+			int aCount = anEnd - aBin + 10;
+			for (; aBin < anEnd; aBin++)
+				aSum += anFFT[aBin + 1];
+			float aLog = (float)log10((double)aCount);
+			float aLevel = (float)sqrt((double)(float)(aSum / (double)aLog));
+			int y = (int)(aLevel * 1.7 * mSpectrumHeight - 4.0);
+			if (y > mSpectrumHeight)
+				y = mSpectrumHeight;
+			int aBarWidth = mSpectrumWidth / 28;
+			while (--y >= 0)
+				memset(mSpectrum + mSpectrumWidth * y + aBarWidth * aBar, y + 1, aBarWidth - 2);
+		}
+	}
+}
 
 bool SongPlayer::LoadSong(const std::string& theFileName, double theAmplify)
 {
