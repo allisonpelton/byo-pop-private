@@ -2946,6 +2946,44 @@ level 24, best 2.4 million), so safety alone is the default.
 `<prefix>-seed<s>.bjr` and verifies it. A 500,000-move game makes a 10 MB replay of 127 million ticks, which
 verifies in 54 s; `Replay::MAX_TICKS` was raised for those games.
 
+**Scores on the current build, and a stronger fair bot (planned, on hold (the user, 2026-10-26)).** The user asked how
+the bots score on the original rules against the ~7 million they gave as the number to beat. On 2026-10-26 fair played
+seed 11 again on the current build: level 65 and 7,492,760 points at move 20,000, and the game over at move 20,487,
+in 457 s (22 ms a move, with two other bots running). Survive passed 7 million on seed 1 before move 10,000 (8,418,655
+at level 68) and had 32,681,215 points at move 25,000 (level 108), in 16 s, about 12 trials a move. The fun lab's
+skilled bot (docs/GAME_MODES.md) scores far less. On seeds 101 to 150 with no time cap, it averages level 9.4 and 65,544
+points (median level 8 and 25,168), and its best game reached level 27 and 590,285 points (seed 111). All 50 games
+ended with no moves left. It was made to measure how a mode plays, not to score: it takes the best-scoring move whose
+risk is within 0.05 of the safest, so any move that leaves about 5 moves or more counts as safe. Greed, not its
+two-sample guess at the falling gems, is the likeliest cause of its short games. With 16 samples its games lasted no
+longer (a mean of 325 moves against 385). Once greed is gone, samples matter: fair with 2 samples instead of 16
+lasted a mean of 2,931 moves on seeds 1 to 20, where the 16-sample median is 5,686. These runs did not separate one
+move of lookahead from fair's second move in danger.
+
+The plan, for when the user takes it up, is a fair bot that beats 7 million in most games, not 2 of 20. Seed 11
+passed 7 million at about 19,500 moves (level 64). For half of all games to get that far at a steady death rate,
+the bot must die about once in 28,000 moves, against about once in 8,000 today (from the median), so about 3/10 of
+today's death rate. The plan has three steps:
+
+1. Find out why fair dies (about 1 hour). Log each game's last decisions: the risks it saw, the moves left, and
+   whether any move was safe. That separates deaths no fair bot could avoid from misjudged moves. If most are
+   unavoidable, say so before going on.
+2. Search harder where it matters (2 to 4 hours):
+   - more samples (64 to 256) when the safest move's risk is above a small threshold;
+   - the full two-move expectimax from risk 1/32 instead of 1/8, and three moves on the narrowest boards;
+   - a risk that looks past the next refill (the chance of a dead board within two refills, by nested samples);
+   - ties to the move that disturbs fewer gems;
+   - a beaten level as safe, so that a narrow board prefers a move that beats the level;
+   - score only as a tie-break.
+3. Measure. At 50 to 90 ms a move, a 25,000-move game takes 20 to 40 minutes, and a round of seeds 1 to 20, three at
+   a time, takes 3 to 5 hours. Expect two or three rounds.
+
+In all, about 5 to 8 hours of session time and 10 to 15 hours of machine time. A logic-only simulator, ten or more
+times faster than trials through the game's board, is worth building only if the rounds are too slow, since it
+would have to match the game exactly. The improvements serve survive as well, since the two policies differ only in
+whether a trial board keeps the game's RNG state. The result may still be a floor: a fair bot that passes 7 million
+in a third or half of its games.
+
 **Videos of a replay.** The native game watches the replay under rundesk with `-fast`. A `-script` takes a
 screenshot every 2 updates, which gives 50 frames a second. `-audiocapture=<file.wav>` (`testhooks/AudioCapture.h`)
 writes the sound alongside. It mixes 1/100 s per update, so the sound keeps time with the screenshots however
