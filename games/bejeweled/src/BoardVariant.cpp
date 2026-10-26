@@ -55,7 +55,7 @@ void Board::InitVariant(WinDMApp* theApp)
 	mLevelShape = 0;
 	mCols = mLayout.mCols;
 	mRows = mLayout.mRows;
-	mFastScoreRoll = mRules.ScoringTunablesChanged();
+	mFastScoreRoll = mRules.ScoringTunablesChanged() || mRules.mArrows.mEnabled; // arrows: a bonus that grows each clear (4.20)
 	mMatchSpec = MatchFinder::Spec::FromRules(mRules);
 
 #ifndef BEJ_NO_VARIANTS
@@ -109,6 +109,10 @@ void Board::InitVariant(WinDMApp* theApp)
 	mDragOffset = 0;
 	mDragStart = 0;
 	mDragLength = 0;
+	mArrowMoves = 0;
+	mArrowsCleared = 0;
+	mArrowStepDue = false;
+	mArrowTick = 0;
 
 	// The RNG source WinDMApp::NewGame chose (WinDMApp::ChooseBoardRng), taken once: a board made any other
 	// way draws from the global stream
@@ -299,6 +303,7 @@ void Board::OnMoveMade()
 	mMoveCount++;
 	if (mStats != NULL) mStats->OnMove(this);
 	UsePendingSeed();
+	OnArrowMove(); // stage 18: its settle steps the arrows (BoardArrows.cpp)
 }
 
 // UpdateSwap (0x4cd84f) with moves.allowInvalid: the swap made no match and stays (4.1). The two gems are in
@@ -350,6 +355,7 @@ void Board::KeepInvalidMove()
 	mApp->PlaySample(SOUND_BAD);
 	mState = STATE_FALLING;
 	mGravityNoFlip = true; // its settle does not flip "alternate" (4.16)
+	OnArrowMove(); // the kept move steps the arrows, counted as a move or not (4.20)
 }
 
 // UpdateFalling (0x4cd687): the board settled with no match and no move left (4.1). The mode's noMoves rule:
@@ -915,12 +921,13 @@ VariantFlags Board::ComputeVariantFlags(const GameRules& theRules, const GameFea
 	aFlags.mSpecials = hasSpecials;
 	aFlags.mGold = theRules.mGold.mEnabled;
 	aFlags.mUndo = theRules.mUndo.mEnabled;
-	aFlags.mMatch = hasPatterns || (aMatch.mMinRun != 3) || hasSpecials || aFlags.mGold;
+	aFlags.mArrows = theRules.mArrows.mEnabled;
+	aFlags.mMatch = hasPatterns || (aMatch.mMinRun != 3) || hasSpecials || aFlags.mGold || aFlags.mArrows;
 	aFlags.mSearch = hasPatterns || (aMatch.mMinRun != 3) || hasNonSwapMoves;
 	aFlags.mMoves = (theRules.mMoves.mTypes & (GameRules::MOVE_TWIST | GameRules::MOVE_SLIDE)) != 0;
 	aFlags.mInvalid = theRules.mMoves.mAllowInvalid;
 	aFlags.mNoMoves = (theRules.mNoMoves.mNormal != GameRules::NOMOVES_GAME_OVER) || (theRules.mNoMoves.mTimed != GameRules::NOMOVES_FALL_OUT);
-	aFlags.mDraw = aFlags.mShape || hasSpecials || aFlags.mGold || hasNonSwapMoves || aFlags.mNoTutorial;
+	aFlags.mDraw = aFlags.mShape || hasSpecials || aFlags.mGold || hasNonSwapMoves || aFlags.mNoTutorial || aFlags.mArrows;
 	// Gravity (4.16): look.backdrop is no variant rule (mAny), but its tiles take the checker path
 	aFlags.mGravity = theRules.mBoard.mGravity != GameRules::GRAVITY_DOWN;
 	aFlags.mFall = aFlags.mShape || aFlags.mGravity || (theRules.mBoard.mFallAccel != GameRules::DEFAULT_FALL_ACCEL);
@@ -930,7 +937,8 @@ VariantFlags Board::ComputeVariantFlags(const GameRules& theRules, const GameFea
 	return aFlags;
 }
 
-// Update (0x4cdabc), before the score roll, on a board with a mod's scoring tunables (mFastScoreRoll). The roll
+// Update (0x4cdabc), before the score roll, on a board with a mod's scoring tunables or arrow gems, whose bonus grows
+// with each arrow cleared (mFastScoreRoll). The roll
 // moves the displayed score 3 times the multiplier a tick at most, which suits the original's points; with a
 // mod's thousands a match it falls levels behind, and Update's level-up and TIME_UP tests read the displayed
 // score: the next level, which starts at the real score, ends at once in TIME_UP (or a hint penalty of

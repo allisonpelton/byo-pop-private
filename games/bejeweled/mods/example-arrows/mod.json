@@ -1,0 +1,33 @@
+{
+  "id": "example-arrows",
+  "name": "Example: Arrow Gems",
+  "version": "1.0",
+  "defaultEnabled": false,
+  "author": "byo-pop examples",
+  "description": "Some gems are arrows, cut like a bullet and pointing up, right, down or left. After each move every arrow steps one gem the way it points, trading places with that gem. Match an arrow to clear it for a growing bonus; if one steps off the board, the game is over. A new arrow starts at the far edge every few moves, more often as the levels go up. Uses its own high-score table.",
+  "settings": [
+    { "type": "section", "label": "Arrows" },
+    { "id": "directions", "label": "Arrows point", "type": "choice", "default": "all",
+      "choices": [ { "value": "all", "label": "Every way" }, { "value": "up", "label": "Up" },
+                   { "value": "upDown", "label": "Up and down" }, { "value": "sideways", "label": "Left and right" } ],
+      "help": "The ways a new arrow can point. An arrow starts at the edge behind it, so it has the whole board to cross." },
+    { "id": "every", "label": "New arrow every (moves)", "type": "int", "default": 6, "min": 1, "max": 30,
+      "help": "Moves between new arrows on level 1. Each level takes one move off, down to the next setting." },
+    { "id": "everyMin", "label": "At the most every (moves)", "type": "int", "default": 3, "min": 1, "max": 30,
+      "help": "The fewest moves between new arrows, however high the level." },
+    { "type": "section", "label": "Score" },
+    { "id": "bonus", "label": "Bonus per arrow", "type": "int", "default": 100, "min": 0, "max": 1000, "step": 10,
+      "help": "Points for clearing an arrow, times the arrows cleared so far this game, times the level's multiplier." }
+  ],
+  "rules": {
+    "arrows": {
+      "enabled": true,
+      "directions": { "$setting": "directions",
+                      "map": { "all": [ "up", "right", "down", "left" ], "up": "up", "upDown": [ "up", "down" ],
+                               "sideways": [ "left", "right" ] } },
+      "every": { "$setting": "every" },
+      "everyMin": { "$setting": "everyMin" },
+      "bonus": { "$setting": "bonus" }
+    }
+  }
+}

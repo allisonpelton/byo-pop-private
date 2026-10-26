@@ -439,7 +439,8 @@ When a group qualifies for both kinds of special, lightning is checked first.
 
 The playable versions ship in `games/bejeweled/mods/` as `example-seeds`, `example-replays`, `example-free-swaps`,
 `example-undo`, `example-board-shapes`, `example-dirt`, `example-twilight`, `example-gem-colours`,
-`example-match-patterns`, `example-twist-slide`, `example-power-gems` and `example-gold` (2026-10-26). Each starts off
+`example-match-patterns`, `example-twist-slide`, `example-power-gems` and `example-gold` (2026-10-26), and
+`example-arrows` (stage 18, 4.20). Each starts off
 (`"defaultEnabled": false`) and puts its feature's values in the mod menu through `$setting` placeholders, with
 Bejeweled 2's or this design's values as the defaults. `game-stats` (4.19) has no settings, so it is a feature mod
 under its own name. The sketches below are the minimal forms.
@@ -2156,6 +2157,41 @@ Test results:
   verify; autoplay runs in normal and timed mode.
 - **Size:** ~1,150 lines: rules and appearing ~200, stepping and the end ~250, art ~300, warning and effects
   ~150, save and codec ~100, tests ~150.
+
+**As built (stage 18, 2026-10-26).** The plan held, with these details. The rules live in `src/BoardArrows.cpp` and
+the art in `src/BoardArrowsDraw.cpp`, which the headless verifier replaces with empty drawing (it draws nothing), so it
+needs no art code. An arrow is a gem's `Piece::mArrow` (its direction + 1), so it falls with the gems like any gem
+when gems under it clear; a down arrow therefore travels faster than an up one, as Butterflies' butterflies sink. The
+move that stands makes the settle step the arrows (`OnMoveMade`, and a kept invalid move whether or not it counts).
+The steps trade the grid at once and animate for 24 ticks in `STATE_ARROW_STEPPING` (14), then the board settles again.
+The arrows closest to their edge go first, so an escape is always the settle's only step. On a shaped board an arrow
+with only holes ahead flies past them to the first cell off the grid. A board with arrows always takes the match
+rules' path (`ProcessMatchesVariant`), where the groups' and blasts' dying arrows are cleared; an arrow that a group
+turns into a flame or lightning gem is cleared too, and new arrows never start on a special gem. The bonus is
+`arrows.bonus` times the arrows cleared this game times the multiplier, so late in a game it is thousands a clear;
+such a board takes the fast score roll that scoring tunables get (`mFastScoreRoll`). Without it the shown score
+lagged a whole level behind the real one, and the original's test for a score a level below the level's start ended
+normal games as TIME UP. `-forcevariant` leaves `mArrows` off, since a new arrow draws from the RNG.
+The art is drawn on first use into a sheet of its own (four directions by the board's colours, at the gem sheet's HD
+scale): the bullet is as wide as a gem, since a true bullet's narrow outline reads as a pencil at 48 px, and it has a
+dark rim about 1.5 px wide like the game's own gems. The warning is the arrow's white pulse and a 4 px bar in its colour
+beyond the edge. An escape shows ARROW ESCAPED! (string id `ARROW_ESCAPED`, an own text) and ends the game with
+`END_ARROW_ESCAPED` (6) in replays. A save written mid-step holds the steps done, in `STATE_FALLING`; one written
+during an escape holds the settle before it, with its step due again, so the resumed game escapes at once. The "GO!"
+of a resumed game's tick 150 is then skipped, so it does not cover that text. The stats page has an "Arrows cleared"
+row, from the board's count (a `GameStats` field would change its record). The bot prefers a swap that lines the
+arrow closest to its edge up with two of its colour; its twists and slides have no such preference. The
+`example-arrows` mod sets the directions, `every`, `everyMin` and the bonus.
+
+Tested: rulestest (the group, the direction names, the interval, the ARRW chunk's golden bytes and eight bad ones);
+the example harness's seven arrow cases (alone at four settings, and with power gems and a diamond, twists and
+undo, and Twilight and free swaps); forty bot games in normal and timed mode; `-codeccheck` on six of them (about
+160,000 updates, no failure) with their replays verified headless (the escapes end as "arrow escaped"); resumes from
+a save made mid-move, mid-step and mid-escape, which match the uninterrupted game at its next settle; undo after a
+move whose settle stepped arrows (four games), which restores the settle before the move; the oracle three ways
+without the mod. With the default settings the bot's normal games end in 13 to 42 moves, mostly by an escape, since
+it only sees an arrow when a valid swap happens to match it; timed games go on longer, because each level's new board
+starts without arrows. These are the numbers the game modes' measures (section 9) start from.
 
 ---
 

@@ -83,6 +83,21 @@ void Board::GetVariantSave(Replay::VariantSave* theSave)
 		s.mGoldTicksLeft = mGoldTicksLeft;
 		s.mGoldTickLimit = mGoldTickLimit;
 	}
+	// ARRW (stage 18) when the rules have arrows. A save in STATE_ARROW_STEPPING holds the steps done (WriteSaveGame's
+	// STATE_FALLING); an escape traded nothing, so it holds the settle before it, the step due again
+	s.mHasArrows = mVariant.mArrows;
+	if (s.mHasArrows)
+	{
+		for (int aRow = 0; aRow < mRows; aRow++)
+		{
+			for (int aCol = 0; aCol < mCols; aCol++)
+				s.mArrows.push_back((mBoard[aRow][aCol] != NULL) ? (uint8_t) mBoard[aRow][aCol]->mArrow : 0);
+		}
+		bool isEscaping = (mState == STATE_ARROW_STEPPING) && IsArrowEscaping();
+		s.mArrowMoves = mArrowMoves - (isEscaping ? 1 : 0);
+		s.mArrowsCleared = mArrowsCleared;
+		s.mArrowStepDue = mArrowStepDue || isEscaping;
+	}
 }
 
 void Board::WriteVariantHeader(Buffer* theBuffer)
@@ -234,5 +249,23 @@ void Board::ReadVariantChunks(const Buffer& theBuffer)
 		}
 		mGoldTickLimit = aSave.mHasGoldTime ? aSave.mGoldTickLimit : GoldLimitTicks();
 		mGoldTicksLeft = aSave.mHasGoldTime ? aSave.mGoldTicksLeft : mGoldTickLimit;
+	}
+	// the arrows (stage 18); ReadVariantSave let an arrow through only where the save has a gem
+	if (mVariant.mArrows)
+	{
+		bool hasCells = aSave.mHasArrows && (aSave.mArrows.size() == (size_t)(mCols * mRows));
+		for (int aRow = 0; aRow < mRows; aRow++)
+		{
+			for (int aCol = 0; aCol < mCols; aCol++)
+			{
+				if (mBoard[aRow][aCol] != NULL)
+					mBoard[aRow][aCol]->mArrow = hasCells ? aSave.mArrows[aRow * mCols + aCol] : 0;
+			}
+		}
+		mArrowMoves = aSave.mArrowMoves;
+		mArrowsCleared = aSave.mArrowsCleared;
+		mArrowStepDue = aSave.mArrowStepDue;
+		mArrowSteps.clear();
+		mArrowTick = 0;
 	}
 }

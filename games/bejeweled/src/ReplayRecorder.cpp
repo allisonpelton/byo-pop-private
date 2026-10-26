@@ -299,7 +299,8 @@ void ReplayRecorder::OnGameOver()
 	if (mNewGame)
 		mEndReason = Replay::END_NEW_GAME;
 	else
-		mEndReason = (mBoard->mState == STATE_FALLING) ? Replay::END_NO_MOVES : mBoard->mVariant.mGold ? Replay::END_GOLD_TIME_UP : Replay::END_TIME_UP; // port(variant): a gold level's time (stage 12)
+		mEndReason = (mBoard->mState == STATE_FALLING) ? Replay::END_NO_MOVES : (mBoard->mState == STATE_ARROW_STEPPING) ? Replay::END_ARROW_ESCAPED : // port(variant): an arrow escaped (stage 18)
+			mBoard->mVariant.mGold ? Replay::END_GOLD_TIME_UP : Replay::END_TIME_UP; // port(variant): a gold level's time (stage 12)
 }
 
 void ReplayRecorder::BeginSave()

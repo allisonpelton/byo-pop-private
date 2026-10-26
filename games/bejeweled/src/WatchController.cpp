@@ -23,8 +23,8 @@ namespace
 
 const char* EndReasonName(int theReason)
 {
-	static const char* const aNames[] = {"abandoned", "no moves", "time up", "new game", "gold time up", "saved"};
-	return ((theReason >= 0) && (theReason <= Replay::END_SAVED)) ? aNames[theReason] : "?";
+	static const char* const aNames[] = {"abandoned", "no moves", "time up", "new game", "gold time up", "saved", "arrow escaped"};
+	return ((theReason >= 0) && (theReason < Replay::NUM_END_REASONS)) ? aNames[theReason] : "?";
 }
 
 std::string RngText(const Replay::RngStart& theStart, bool isUserSeeded)
@@ -736,7 +736,8 @@ bool WatchController::Finish()
 	const std::vector<Replay::Event>& anEvents = mFile.mSegments[mSegment].mEvents;
 	bool isGameOver = (b->mState == STATE_GAME_OVER_DONE);
 	std::string aWhy;
-	if ((anEnd.mReason == Replay::END_NO_MOVES) || (anEnd.mReason == Replay::END_TIME_UP) || (anEnd.mReason == Replay::END_GOLD_TIME_UP))
+	if ((anEnd.mReason == Replay::END_NO_MOVES) || (anEnd.mReason == Replay::END_TIME_UP) || (anEnd.mReason == Replay::END_GOLD_TIME_UP) ||
+		(anEnd.mReason == Replay::END_ARROW_ESCAPED))
 	{
 		if (!isGameOver)
 			aWhy = "END says the game was over, the board is not";

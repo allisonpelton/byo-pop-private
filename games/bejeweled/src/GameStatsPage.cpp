@@ -115,7 +115,7 @@ std::vector<Line> PlayLines(WinDMApp* theApp, Board* theBoard, const GameStats& 
 	return aLines;
 }
 
-std::vector<Line> MatchLines(WinDMApp* theApp, const GameStats& theStats)
+std::vector<Line> MatchLines(WinDMApp* theApp, Board* theBoard, const GameStats& theStats)
 {
 	std::vector<Line> aLines;
 	const char* const anIds[3] = {"STATS_RUNS_3", "STATS_RUNS_4", "STATS_RUNS_5"};
@@ -135,6 +135,9 @@ std::vector<Line> MatchLines(WinDMApp* theApp, const GameStats& theStats)
 			StrFormat(_S("%d, %d"), theStats.mSpecialsMade, theStats.mSpecialsSetOff)});
 	if (theStats.mGoldCovered > 0)
 		aLines.push_back({theApp->GetString("STATS_GOLD", _S("Gold covered")), Count(theStats.mGoldCovered)});
+	// the board's own count (stage 18: saved with the arrows, the bonus's factor), so the whole game's
+	if (theBoard->mVariant.mArrows)
+		aLines.push_back({theApp->GetString("STATS_ARROWS", _S("Arrows cleared")), Count(theBoard->mArrowsCleared)});
 	return aLines;
 }
 
@@ -207,7 +210,7 @@ void GameStatsPage::Draw(Graphics* g)
 
 		// Two columns, closer rows when either is long; then the gems across both, and the charts in what is left
 		std::vector<Line> aPlay = PlayLines(mApp, aBoard, aStats);
-		std::vector<Line> aMatches = MatchLines(mApp, aStats);
+		std::vector<Line> aMatches = MatchLines(mApp, aBoard, aStats);
 		int aRows = std::max(ColumnRows(mApp->mMainFont, aPlay), ColumnRows(mApp->mMainFont, aMatches));
 		int aStep = (aRows > 7) ? 13 : 15;
 		g->SetColor(kHeading);

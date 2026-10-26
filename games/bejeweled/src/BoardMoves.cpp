@@ -511,7 +511,10 @@ void Board::DrawMovesUnder(Graphics* g)
 			int anAt = aPos - aCopy * aSpan;
 			if ((aCopy == 1) && (aPos + GEM_SIZE <= aSpan))
 				break;
-			aLineG.DrawImage(mApp->mImages[IMAGE_GEMSHEET], isRow ? anOriginX + anAt : anOriginX, isRow ? anOriginY : anOriginY + anAt, aSrc);
+			int aX = isRow ? anOriginX + anAt : anOriginX;
+			int aY = isRow ? anOriginY : anOriginY + anAt;
+			if (!mVariant.mArrows || !DrawArrowGem(&aLineG, aPiece, aX, aY)) // an arrow gem slides as one (stage 18)
+				aLineG.DrawImage(mApp->mImages[IMAGE_GEMSHEET], aX, aY, aSrc);
 		}
 	}
 }

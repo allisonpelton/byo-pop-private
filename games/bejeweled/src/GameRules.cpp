@@ -36,7 +36,7 @@ enum FieldKind
 	KIND_SHAPES = 9,        // keyed: merged per id
 	KIND_BONUS = 10,        // keyed: merged per id
 	KIND_SPECIAL = 11,
-	KIND_MOVE_TYPES = 12    // a set of MoveType bits
+	KIND_MOVE_TYPES = 12    // a set of bits, one per name of mNames: moves.type, arrows.directions
 };
 
 // Atomic groups (3.5): the highest-priority mod that sets any key of a group supplies all of it
@@ -48,6 +48,7 @@ enum FieldGroup
 	GROUP_GOLD,
 	GROUP_UNDO,
 	GROUP_GRAVITY,
+	GROUP_ARROWS,
 	NUM_GROUPS
 };
 
@@ -81,6 +82,7 @@ const char* const gGildNames[] = {"matches", "matchesAndBlasts"};
 const char* const gMoveTypeNames[] = {"swap", "twist", "slide"};
 const char* const gGravityNames[] = {"down", "up", "alternate"};
 const char* const gBackdropNames[] = {"normal", "twilight"};
+const char* const gArrowNames[] = {"up", "right", "down", "left"}; // GameRules::ArrowDirection
 
 #define RULE_FIELD(theMember) [](GameRules* r) -> void* { return &r->theMember; }
 #define RULE_NAMES(theNames) theNames, (int) (sizeof(theNames) / sizeof(theNames[0]))
@@ -96,7 +98,7 @@ const FieldDef gFields[] =
 	{6, "board.dirtPoints", KIND_INT, GROUP_NONE, 0, 0, 1000000, NULL, 0, RULE_FIELD(mBoard.mDirtPoints)},
 	{7, "board.gravity.direction", KIND_ENUM, GROUP_GRAVITY, 0, 0, 0, RULE_NAMES(gGravityNames), RULE_FIELD(mBoard.mGravity)},
 	{8, "board.gravity.fallAccel", KIND_INT, GROUP_GRAVITY, FLAG_CLAMP, 50, 1000, NULL, 0, RULE_FIELD(mBoard.mFallAccel)},
-	{16, "moves.type", KIND_MOVE_TYPES, GROUP_MOVES, 0, 0, 0, NULL, 0, RULE_FIELD(mMoves.mTypes)},
+	{16, "moves.type", KIND_MOVE_TYPES, GROUP_MOVES, 0, 0, 0, RULE_NAMES(gMoveTypeNames), RULE_FIELD(mMoves.mTypes)},
 	{17, "moves.twist.direction", KIND_ENUM, GROUP_MOVES, FLAG_BOOL, 0, 0, RULE_NAMES(gTwistNames), RULE_FIELD(mMoves.mTwistBoth)},
 	{18, "moves.slide.snapTicks", KIND_INT, GROUP_MOVES, FLAG_CLAMP, 4, 60, NULL, 0, RULE_FIELD(mMoves.mSlideSnapTicks)},
 	{19, "moves.allowInvalid", KIND_BOOL, GROUP_NONE, 0, 0, 0, NULL, 0, RULE_FIELD(mMoves.mAllowInvalid)},
@@ -136,7 +138,12 @@ const FieldDef gFields[] =
 	{129, "timing.levelDrainDelay", KIND_INT, GROUP_NONE, FLAG_TUNABLE, INT_MIN, INT_MAX, NULL, 0, RULE_FIELD(mTunables.mLevelDrainDelay)},
 	{130, "timing.warningFraction", KIND_DOUBLE, GROUP_NONE, FLAG_TUNABLE, 0, 0, NULL, 0, RULE_FIELD(mTunables.mWarningFraction)},
 	{144, "look.backdrop", KIND_ENUM, GROUP_NONE, FLAG_LOOK, 0, 0, RULE_NAMES(gBackdropNames), RULE_FIELD(mLook.mBackdrop)},
-	{145, "look.soundPitch", KIND_INT, GROUP_NONE, FLAG_LOOK | FLAG_CLAMP, -12, 12, NULL, 0, RULE_FIELD(mLook.mSoundPitch)}
+	{145, "look.soundPitch", KIND_INT, GROUP_NONE, FLAG_LOOK | FLAG_CLAMP, -12, 12, NULL, 0, RULE_FIELD(mLook.mSoundPitch)},
+	{160, "arrows.enabled", KIND_BOOL, GROUP_ARROWS, 0, 0, 0, NULL, 0, RULE_FIELD(mArrows.mEnabled)},
+	{161, "arrows.directions", KIND_MOVE_TYPES, GROUP_ARROWS, 0, 0, 0, RULE_NAMES(gArrowNames), RULE_FIELD(mArrows.mDirections)},
+	{162, "arrows.every", KIND_INT, GROUP_ARROWS, FLAG_CLAMP, 1, 100, NULL, 0, RULE_FIELD(mArrows.mEvery)},
+	{163, "arrows.everyMin", KIND_INT, GROUP_ARROWS, FLAG_CLAMP, 1, 100, NULL, 0, RULE_FIELD(mArrows.mEveryMin)},
+	{164, "arrows.bonus", KIND_INT, GROUP_ARROWS, 0, 0, 1000000, NULL, 0, RULE_FIELD(mArrows.mBonus)}
 };
 
 const int NUM_FIELDS = (int) (sizeof(gFields) / sizeof(gFields[0]));
@@ -145,7 +152,7 @@ const int NUM_FIELDS = (int) (sizeof(gFields) / sizeof(gFields[0]));
 const char* const gNamespaces[] =
 {
 	"board", "board.gravity", "moves", "moves.twist", "moves.slide", "noMoves", "match", "specials", "gold",
-	"gold.timeLimit", "undo", "scoring", "timing", "look"
+	"gold.timeLimit", "undo", "scoring", "timing", "look", "arrows"
 };
 
 const char* const ADD_TYPES_KEY = "moves.addTypes";
@@ -1048,10 +1055,10 @@ JsonValue ValueJson(const FieldDef& theField, const GameRules& theRules)
 	{
 		JsonValue anArray = JsonValue::MakeArray();
 		int aTypes = FieldRef<int>(theField, theRules);
-		for (int i = 0; i < 3; i++)
+		for (int i = 0; i < theField.mNameCount; i++)
 		{
 			if (aTypes & (1 << i))
-				anArray.Push(JsonValue(std::string(gMoveTypeNames[i])));
+				anArray.Push(JsonValue(std::string(theField.mNames[i])));
 		}
 		return anArray;
 	}
@@ -1327,7 +1334,9 @@ bool ParseShape(const std::string& theKey, const JsonValue& theValue, ShapePatte
 	return true;
 }
 
-bool ParseMoveTypes(const std::string& theKey, const JsonValue& theValue, int* theTypes, ParseLog& theLog)
+// A name or a list of names (moves.type, moves.addTypes, arrows.directions): a bit for each, at its index
+bool ParseNameSet(const std::string& theKey, const JsonValue& theValue, const char* const* theNames, int theNameCount,
+	int* theTypes, ParseLog& theLog)
 {
 	*theTypes = 0;
 	std::vector<JsonValue> aNames;
@@ -1338,9 +1347,9 @@ bool ParseMoveTypes(const std::string& theKey, const JsonValue& theValue, int* t
 	for (size_t i = 0; i < aNames.size(); i++)
 	{
 		int aType = -1;
-		for (int j = 0; j < 3; j++)
+		for (int j = 0; j < theNameCount; j++)
 		{
-			if (aNames[i].IsString() && (aNames[i].AsString() == gMoveTypeNames[j]))
+			if (aNames[i].IsString() && (aNames[i].AsString() == theNames[j]))
 				aType = j;
 		}
 		if (aType < 0)
@@ -1351,7 +1360,12 @@ bool ParseMoveTypes(const std::string& theKey, const JsonValue& theValue, int* t
 		*theTypes |= 1 << aType;
 	}
 	if (*theTypes == 0)
-		return theLog.Error(theKey + " must be \"swap\", \"twist\", \"slide\" or a list of them");
+	{
+		std::string aList;
+		for (int j = 0; j < theNameCount; j++)
+			aList += std::string(j == 0 ? "" : ", ") + "\"" + theNames[j] + "\"";
+		return theLog.Error(theKey + " must be " + aList + " or a list of them");
+	}
 	return true;
 }
 
@@ -1449,7 +1463,7 @@ bool ParseStrict(const FieldDef& theField, const JsonValue& theValue, GameRules&
 	case KIND_SPECIAL:
 		return ParseSpecial(aKey, theValue, aKey == "specials.flame", &FieldRef<SpecialRule>(theField, theRules), theLog);
 	case KIND_MOVE_TYPES:
-		return ParseMoveTypes(aKey, theValue, &FieldRef<int>(theField, theRules), theLog);
+		return ParseNameSet(aKey, theValue, theField.mNames, theField.mNameCount, &FieldRef<int>(theField, theRules), theLog);
 	}
 	return theLog.Error(aKey + " cannot be set this way");
 }
@@ -1626,7 +1640,7 @@ void WalkRules(ModView& theView, const JsonValue& theObject, const std::string& 
 				theView.mAddTypesReset = true;
 			}
 			else
-				ParseMoveTypes(aPath, aValue, &theView.mAddTypes, theLog);
+				ParseNameSet(aPath, aValue, gMoveTypeNames, 3, &theView.mAddTypes, theLog);
 			continue;
 		}
 		int aField = FindField(aPath);
@@ -2206,6 +2220,14 @@ bool GameRules::ScoringTunablesChanged() const
 bool GameRules::PlaysAlikeInEveryEngine() const
 {
 	return !HasVariantRules() && !ScoringTunablesChanged() && (mBoard.mGemColors <= ORIGINAL_GEM_COLORS);
+}
+
+// arrows.every at level 1 (theLevel 0), a move fewer each level, never below arrows.everyMin (nor every, when
+// everyMin is the larger: then every level takes every)
+int GameRules::ArrowInterval(int theLevel) const
+{
+	int aMin = std::min(mArrows.mEveryMin, mArrows.mEvery);
+	return std::max(aMin, mArrows.mEvery - theLevel);
 }
 
 bool GameRules::HasDirtRule() const
