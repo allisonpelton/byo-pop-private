@@ -6,6 +6,14 @@ MSVC 7.0 (linker 7.0). Carved with `tools/extract_game_exe.py` to `re/alchemy/bi
 **The 15 `.luc` scripts are the wrapper's, not the game's** (`drm/common/scripts/` = the buy/trial screen of the 2007
 wrapper: DRMApp, LuaApp, Layout...). The game itself uses no Lua, so no PopLua link is needed.
 
+## State (2026-10-26)
+
+The port is written, builds natively and for the web, and plays (README.md, status). `GAME_NOTES.md` is the behaviour spec as 
+the code has it; `tools/check.sh alchemy` is the test. The plan section below was the plan before the code existed.
+Lessons: the decompiler drops the trailing arguments of draw calls (check them in the disassembly: the selector's base picture 
+is at (10, 0x23)); `LoadProperties()` must be called in Init or every `GetString` is empty and all dialog text is blank; 
+`AllTimeDialog::GetPreferredHeight` is an override returning 0x156 (the base class's height for empty lines is too small).
+
 ## Where things are
 
 - Game code 0x401000-0x413fff (about 280 functions, 76 KB, mixed with std::string/list/vector instantiations).
