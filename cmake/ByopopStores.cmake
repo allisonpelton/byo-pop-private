@@ -42,6 +42,10 @@ set(BYOPOP_BUY_cosmicbugs 2026-10-26)
 # Steam publisher page, not in EA's library, and has no store page at GameHouse, Big Fish Games, iWin or Pogo; Retro64's
 # site no longer answers, and only third-party archive pages mention it.
 set(BYOPOP_BUY_waterbugs 2026-10-26)
+# Checked 2026-10-26: Rocket Mania Deluxe (PopCap, 2004) keeps its Steam page (app 3440), which says it is no longer
+# available on the Steam store; EA's library does not list it, Amazon has only an old disc, and GameHouse, iWin, Big Fish
+# Games and Pogo showed no page for it (their search pages render with JavaScript, so a listing could have been missed).
+set(BYOPOP_BUY_rocketmania 2026-10-26)
 # Bookworm Adventures Volume 2 (PopCap, 2009): a placeholder that only lets the web configure pass. Its stores are
 # checked at the web milestone, before a page is published.
 set(BYOPOP_BUY_bookwormadv2 2026-10-26)
