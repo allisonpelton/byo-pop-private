@@ -102,7 +102,7 @@ static std::vector<std::string> ProvenanceFor(const RulesStatus& theStatus, cons
 // the RNG. Stage 3 records replays and plays them back from the command line only (-replay=<file>); the replay
 // browser comes with stage 13. Stage 5 plays moves.allowInvalid (with its penalty and invalidCountsAsMove) and
 // the noMoves rule, stage 6 the undo group, stage 7 the board shape group (sizes, masks, level shapes; dirt cells
-// stay holes until stage 7b)
+// stay holes until stage 7b), stages 7c, 7b and 9 gravity, dirt and the match rules, stage 10 the move types
 static void AddBuildWarnings(const GameRules& theRules, const GameFeatures& theFeatures, RulesStatus* theStatus)
 {
 	// per mod: its rule keys, its feature keys (features.replays apart)
@@ -118,12 +118,12 @@ static void AddBuildWarnings(const GameRules& theRules, const GameFeatures& theF
 #ifndef BEJ_NO_VARIANTS
 	// Played since stage 5 (4.1): kept invalid moves and the noMoves rule; since stage 6 (4.12) undo; since stage 7
 	// (4.3) the board's shape; since stage 7c (4.16) gravity; since stage 7b (4.14) dirt; since stage 9 (4.6) the match
-	// rules. A BEJ_NO_VARIANTS build plays no rule, nor shows look.*.
+	// rules; since stage 10 (4.4, 4.5) the move types. A BEJ_NO_VARIANTS build plays no rule, nor shows look.*.
 	static const char* const aPlayed[] = {"moves.allowInvalid", "moves.invalidPenalty", "moves.invalidCountsAsMove", "noMoves.normal",
 		"noMoves.timed", "undo.enabled", "undo.depth", "undo.max", "undo.penalty", "undo.inTimed", "undo.restoreTime", "undo.restoreRng",
 		"board.cols", "board.rows", "board.mask", "board.levels", "board.gravity.direction", "board.gravity.fallAccel",
 		"board.dirtPoints", "match.minRun", "match.diagonal", "match.diagonalMinRun", "match.crossings", "match.shapes",
-		"match.bonus"};
+		"match.bonus", "moves.type", "moves.addTypes", "moves.twist.direction", "moves.slide.snapTicks"};
 	for (size_t i = 0; i < sizeof(aPlayed) / sizeof(aPlayed[0]); i++)
 		aKeys.erase(std::remove(aKeys.begin(), aKeys.end(), std::string(aPlayed[i])), aKeys.end());
 #else

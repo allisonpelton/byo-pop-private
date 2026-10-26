@@ -64,7 +64,7 @@ void Board::DrawVariant(Graphics* g)
 			for (int aCol = 0; aCol < mCols; aCol++)
 			{
 				Piece* aPiece = mBoard[aRow][aCol];
-				if (aPiece == NULL)
+				if ((aPiece == NULL) || (mVariant.mMoves && DrawsSlideCell(aCol, aRow))) // a sliding line: DrawMovesUnder
 					continue;
 
 				int aSrcX = aPiece->mSpinFrame * 52 + 2;
@@ -83,6 +83,9 @@ void Board::DrawVariant(Graphics* g)
 					aBoardG.DrawImage(mApp->mImages[IMAGE_GEMSHEET], (int)aPiece->mX, (int)aPiece->mY, Rect(aSrcX, aSrcY, GEM_SIZE, GEM_SIZE));
 			}
 		}
+
+		if (mVariant.mMoves)
+			DrawMovesUnder(&aBoardG);
 
 		Image* aSparkleImage = mApp->mImages[IMAGE_SPARKLE];
 		for (int aRow = 0; aRow < mRows; aRow++)
@@ -122,6 +125,8 @@ void Board::DrawVariant(Graphics* g)
 			if (aCursorPieces[i] != NULL)
 				aScaledG.DrawImage(mApp->mImages[IMAGE_TARGET], (int)(aCursorPieces[i]->mX - 2.0), (int)(aCursorPieces[i]->mY - 2.0), Rect((mCursorFrame % 6) * 52, 0, 52, 52));
 		}
+		if (mVariant.mMoves)
+			DrawMovesOver(&aScaledG);
 
 		g->SetColor(Color::White);
 		for (std::list<ScorePopup>::iterator anItr = mScorePopups.begin(); anItr != mScorePopups.end(); ++anItr)

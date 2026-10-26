@@ -445,6 +445,29 @@ bool WatchController::Apply(const Replay::Event& theEvent)
 		}
 		break;
 
+	case Replay::OP_TWIST:
+		// Stage 10: the gate the input layer records it behind (Board::CanTwist: in play, open to input, the rules'
+		// twists that way, four gems)
+		if (!b->mVariant.mMoves || !b->CanTwist((int) a[0], (int) a[1], (int) a[2]))
+		{
+			aWhy = "a twist the board would not make";
+			isOk = false;
+			break;
+		}
+		b->StartTwist((int) a[0], (int) a[1], (int) a[2]);
+		break;
+
+	case Replay::OP_SLIDE:
+		// ... (Board::CanSlide: a whole segment of gems from that cell, 1 <= k < its length)
+		if (!b->mVariant.mMoves || !b->CanSlide((int) a[0], (int) a[1], (int) a[2], (int) a[3], (int) a[4]))
+		{
+			aWhy = "a slide the board would not make";
+			isOk = false;
+			break;
+		}
+		b->StartSlide((int) a[0], (int) a[1], (int) a[2], (int) a[3], (int) a[4]);
+		break;
+
 	case Replay::OP_HINT:
 		// ShowHint's gate; the board's own ShowHint ignores a playback board. Stage 5: a board playing without a
 		// move gives no hint either (Board::NoHintVariant)

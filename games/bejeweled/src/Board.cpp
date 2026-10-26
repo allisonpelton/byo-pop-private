@@ -477,7 +477,7 @@ bool Board::LoadGame()
 	}
 
 	aBuffer.ReadBytes((uchar*)&mState, 4);
-	if ((mState == STATE_SWAPPING) || (mState == STATE_SWAPPING_BACK))
+	if ((mState == STATE_SWAPPING) || (mState == STATE_SWAPPING_BACK) || IsVariantMoveState(mState)) // port(variant): a twist or a slide too (no save holds one)
 		mState = STATE_PLAYING;
 	mTimedMode = ReadSaveBool(aBuffer);
 	mIsNewGame = ReadSaveBool(aBuffer);
@@ -520,12 +520,13 @@ bool Board::SaveGame()
 	Unpause(false);
 
 	Buffer aBuffer;
-	WriteSaveGame(&aBuffer, mPlaySeconds, mState);
+	WriteSaveGame(&aBuffer, mPlaySeconds, IsVariantMoveState(mState) ? (int) STATE_PLAYING : mState); // port(variant): was mState; a twist or a slide is saved as the board before it
 
 	// A swap in progress is saved with its state, then the live board drops to STATE_PLAYING (the
 	// original drops it right after writing mState; nothing written later depends on it)
 	if ((mState == STATE_SWAPPING) || (mState == STATE_SWAPPING_BACK))
 		mState = STATE_PLAYING;
+	else if (IsVariantMoveState(mState)) EndVariantMove(); // port(variant): a twist or a slide (saved as the board before it), its gems back (BoardMoves.cpp)
 
 	return WriteSaveFile(aBuffer); // port(variant): was mApp->WriteBufferToFile(GetSaveGameFileName(), &aBuffer); also SAVE and the sidecar
 }
@@ -542,7 +543,7 @@ void Board::SaveGameSnapshot(Buffer* theBuffer)
 		aPlaySeconds += (int)((uint)(mUpdateCnt - mPlayStartTick) / 100);
 
 	int aState = mState;
-	if ((aState == STATE_SWAPPING) || (aState == STATE_SWAPPING_BACK))
+	if ((aState == STATE_SWAPPING) || (aState == STATE_SWAPPING_BACK) || IsVariantMoveState(aState)) // port(variant): a twist or a slide too, the grid the board before it
 		aState = STATE_PLAYING;
 
 	WriteSaveGame(theBuffer, aPlaySeconds, aState);
@@ -939,7 +940,8 @@ void Board::Update()
 	if (mTimeDrainDelay > 0)
 		mTimeDrainDelay--;
 
-	if ((mTimedMode) && (mTimeDrainDelay == 0) && ((mState == STATE_PLAYING) || (mState == STATE_SWAPPING)))
+	if ((mTimedMode) && (mTimeDrainDelay == 0) && ((mState == STATE_PLAYING) || (mState == STATE_SWAPPING) ||
+		(mState == STATE_TWISTING) || (mState == STATE_SLIDING))) // port(variant): a twist or a slide on its way, as a swap
 	{
 		mTimeDrain += mTimeDrainRate / 100.0;
 		mTimeDrainRate += mTimeDrainAccel / 100.0;
@@ -1227,6 +1229,14 @@ void Board::Update()
 		break;
 	case STATE_FALL_OUT:
 		UpdateFallOut();
+		break;
+	case STATE_TWISTING: // port(variant): the move rules' twists and slides (BoardMoves.cpp)
+	case STATE_TWISTING_BACK:
+		UpdateTwist();
+		break;
+	case STATE_SLIDING:
+	case STATE_SLIDING_BACK:
+		UpdateSlide();
 		break;
 	}
 
