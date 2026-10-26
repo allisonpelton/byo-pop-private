@@ -89,8 +89,9 @@ Not done or approximate:
   More Games button does nothing (the original shows advertisements fetched from the network): no online or commercial
   features are ported.
 - A puzzle's time is not saved with its moves: a restored puzzle restarts its clock.
-- The browser build was run to the end of the game under Node and compared with the native run; the page's own import flow
-  (the terms, the folder or .zip pick) was not clicked through in a browser pane, because it asks for the player's agreement.
+- The browser build was run to the end of the game under Node and compared with the native run. The page itself was run in
+  the Browser pane after the merge of 2026-10-26: a .zip of the game folder set on the page's pick (the file dialogs cannot
+  be driven), the import, Play, the title screen and a click through to the new-player dialog of the main menu.
 
 ## Changes outside the Pixelus folders
 
