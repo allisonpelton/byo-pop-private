@@ -32,8 +32,9 @@
 #                loaded by the port's VM (bwa_luarun), every PopAnim loaded (bwa_pamtest), every cutscene played
 #                to its end (bwa_swftest), a scripted run from the title to the main menu whose quit asks,
 #                Play! stays and Quit quits, the test profile's first chapter won and saved by the port's
-#                "word attack" script command, and a run through the screens off the main menu (the credits, the
-#                players dialog, the mini-games' menu, the arena to its first word) (about two and a half minutes)
+#                "word attack" script command, a run through the screens off the main menu (the credits, the
+#                players dialog, the mini-games' menu, the arena to its first word), and the media player's
+#                spectrum of a song, both ways, with the mouse over the book (about two and a half minutes)
 #   pixelus      Pixelus Deluxe's grid replay test (every puzzle of the game solved by its recorded solution), a scripted tour of the
 #                options, credits and how-to-play screens, the bot's first 25 puzzles and a rerun with the same screenshots,
 #                and the bot's whole game (210 puzzles in all 12 temples, to the ending; about 2 minutes)
@@ -441,7 +442,7 @@ suite_mummymaze() {
 }
 
 suite_bookwormadv() {
-	local log="$1" b="$W/build/native/bwa_luarun.exe" d l p s m c w
+	local log="$1" b="$W/build/native/bwa_luarun.exe" d l p s m c w v
 	need_assets bookwormadv || return 1
 	[ -x "$b" ] || { SUMMARY="no $b (build first)"; return 1; }
 	d="$("$b" -gamedir=games/bookwormadv/tests/poplua dialect.lua 2>&1 | tee -a "$log" | tail -n 1)"
@@ -451,7 +452,8 @@ suite_bookwormadv() {
 	m="$(bookwormadv_menu "$log")"
 	c="$(bookwormadv_chapter "$log")"
 	w="$(bookwormadv_screens "$log")"
-	SUMMARY="$d; $l; pam $p; swf $s of 4 to their end; menu: $m; chapter 1: $c; screens: $w"
+	v="$(bookwormadv_media "$log")"
+	SUMMARY="$d; $l; pam $p; swf $s of 4 to their end; menu: $m; chapter 1: $c; screens: $w; media player: $v"
 	case "$d" in "dialect: "*" checks passed") ;; *) return 1 ;; esac
 	bookwormadv_all "$l" || return 1
 	bookwormadv_all "$p" || return 1
@@ -459,6 +461,7 @@ suite_bookwormadv() {
 	[ "$m" = "quit at update 1310" ] || return 1
 	[ "$c" = "7 words, won, saved" ] || return 1
 	[ "$w" = "credits, players, mini-games, arena word ANTIBIOSIS" ] || return 1
+	[ "$v" = "spectrum lit both ways" ] || return 1
 	return 0
 }
 
@@ -533,6 +536,30 @@ bookwormadv_screens() {  # <log>: the test profile through the screens off the m
 	for n in credits players minigames arena; do [ -f "$d/$n.png" ] || { echo "no $n screenshot"; return; }; done
 	n="$(grep -m 1 -o 'script: word [A-Z]*' "$d/stdout.txt")"
 	echo "credits, players, mini-games, arena ${n#script: }"
+}
+
+bookwormadv_media() {  # <log>: the test profile's media player: a song's spectrum both ways, the mouse over the book
+	local d="$OUT/bookwormadv/media" u n a b
+	rm -rf "$d"; mkdir -p "$d"
+	cp -r games/bookwormadv/tests/menu/user "$d/user"
+	# the profile lists one song (the book's script wants the credits' theme among them); the book, opened from Lua,
+	# plays it; once its first 100 updates are past the bars are counted, then a click on the screen changes them to
+	# columns
+	printf '%s\n' "940 lua profile.Set('MediaPlayer', {{mType=1, mTitle='Credits Theme', mData=78}})" \
+		"950 lua gCApp:AddStatsBook(false, false, true)" "1100 lua gStatsBook.mCObj:PlayMusic(78)" "1400 spectrum" \
+		"1420 screenshot $d/bars.png" "1440 move 570 224" "1450 click 570 224" "1650 spectrum" \
+		"1660 screenshot $d/columns.png" "1700 quit" > "$d/script.txt"
+	u="$d/user"; case "$u" in /*|[A-Za-z]:*) ;; *) u="$W/$u" ;; esac
+	timeout 120 "$W/build/native/bookwormadv.exe" -userdir="$u" -script="$d/script.txt" -fast -seed=1 \
+		> "$d/stdout.txt" 2>&1
+	cat "$d/stdout.txt" >> "$1"
+	grep -q "FATAL" "$d/stdout.txt" && { echo "failed: $(grep -m 1 -A 2 FATAL "$d/stdout.txt" | tail -n 1)"; return; }
+	grep -q "script: lua:" "$d/stdout.txt" && { echo "failed: $(grep -m 1 'script: lua:' "$d/stdout.txt")"; return; }
+	for n in bars columns; do [ -f "$d/$n.png" ] || { echo "no $n screenshot"; return; }; done
+	a="$(grep -o 'script: spectrum [0-9]*' "$d/stdout.txt" | sed -n 1p)"; b="$(grep -o 'script: spectrum [0-9]*' "$d/stdout.txt" | sed -n 2p)"
+	a="${a##* }"; b="${b##* }"
+	[ "${a:-0}" -gt 0 ] && [ "${b:-0}" -gt 0 ] || { echo "spectrum dark (${a:-none}, ${b:-none} lit)"; return; }
+	echo "spectrum lit both ways"
 }
 
 tiptop_game() {  # <name> <mode> <games>: bot games; prints the last "game N over" line
