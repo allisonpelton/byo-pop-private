@@ -1,0 +1,18 @@
+{
+  "id": "lean",
+  "name": "Lean",
+  "version": "1.0",
+  "defaultEnabled": false,
+  "author": "byo-pop",
+  "description": "The game in less memory and processor time, and it looks and plays the same. Images with 256 colours or fewer are kept at 1 byte a pixel instead of 4, and the title screen's picture is let go once the title is gone. A frame rate cap draws fewer frames, while the game still updates 100 times a second. Changes nothing in play.",
+  "settings": [
+    { "id": "images", "label": "Compact images", "type": "bool", "default": true,
+      "help": "Images with 256 colours or fewer at 1 byte a pixel, and the title's picture freed after the title. Takes effect at the next start." },
+    { "id": "frameRate", "label": "Frame rate", "type": "choice", "default": "30",
+      "choices": [ { "value": "original", "label": "As the original" }, { "value": "50", "label": "50 a second" },
+                   { "value": "30", "label": "30 a second" }, { "value": "20", "label": "20 a second" } ],
+      "help": "The most frames drawn in a second. Fewer frames take less processor time; the game itself runs at the same speed." }
+  ],
+  "features": { "lean": { "images": { "$setting": "images" },
+                          "frameRate": { "$setting": "frameRate", "map": { "original": 0, "50": 50, "30": 30, "20": 20 } } } }
+}

@@ -30,7 +30,7 @@
     "match": {
       "minRun": { "$setting": "minRun" },
       "diagonal": { "$setting": "diagonal" },
-      "crossings": { "$setting": "merge", "map": { "true": "merge", "false": "separate" } },
+      "crossings": { "$setting": "merge", "map": { "true": "merge", "false": { "$omit": true } } },
       "shapes": { "$setting": "square", "map": { "true": { "square": { "preset": "square" } }, "false": { "$omit": true } } },
       "bonus": {
         "diagonal": { "$setting": "diagonal", "map": { "true": { "$setting": "bonusDiagonal" }, "false": { "$omit": true } } },

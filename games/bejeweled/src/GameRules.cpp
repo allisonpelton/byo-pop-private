@@ -78,11 +78,12 @@ const char* const gTwistNames[] = {"cw", "both"};
 const char* const gNoMovesNames[] = {"gameOver", "fallOut", "continue"};
 const char* const gCrossingNames[] = {"separate", "merge"};
 const char* const gCreateInNames[] = {"any", "move"};
-const char* const gGildNames[] = {"matches", "matchesAndBlasts"};
+const char* const gGildNames[] = {"matches", "matchesAndBlasts", "blasts"};
 const char* const gMoveTypeNames[] = {"swap", "twist", "slide"};
 const char* const gGravityNames[] = {"down", "up", "alternate"};
 const char* const gBackdropNames[] = {"normal", "twilight"};
-const char* const gArrowNames[] = {"up", "right", "down", "left"}; // GameRules::ArrowDirection
+const char* const gArrowNames[] = {"up", "right", "down", "left", "upRight", "downRight", "downLeft", "upLeft"}; // GameRules::ArrowDirection
+const char* const gArrowEdgeNames[] = {"top", "right", "bottom", "left"}; // GameRules::ArrowEdge
 
 #define RULE_FIELD(theMember) [](GameRules* r) -> void* { return &r->theMember; }
 #define RULE_NAMES(theNames) theNames, (int) (sizeof(theNames) / sizeof(theNames[0]))
@@ -117,7 +118,7 @@ const FieldDef gFields[] =
 	{66, "specials.chain", KIND_BOOL, GROUP_NONE, 0, 0, 0, NULL, 0, RULE_FIELD(mSpecials.mChain)},
 	{67, "specials.createIn", KIND_ENUM, GROUP_NONE, FLAG_BOOL, 0, 0, RULE_NAMES(gCreateInNames), RULE_FIELD(mSpecials.mCreateInMoveOnly)},
 	{80, "gold.enabled", KIND_BOOL, GROUP_GOLD, 0, 0, 0, NULL, 0, RULE_FIELD(mGold.mEnabled)},
-	{81, "gold.gild", KIND_ENUM, GROUP_GOLD, FLAG_BOOL, 0, 0, RULE_NAMES(gGildNames), RULE_FIELD(mGold.mGildBlasts)},
+	{81, "gold.gild", KIND_ENUM, GROUP_GOLD, 0, 0, 0, RULE_NAMES(gGildNames), RULE_FIELD(mGold.mGild)},
 	{82, "gold.timeLimit.normal", KIND_TIME_LIMIT, GROUP_GOLD, 0, 0, 0, NULL, 0, RULE_FIELD(mGold.mTimeLimitNormal)},
 	{83, "gold.timeLimit.timed", KIND_TIME_LIMIT, GROUP_GOLD, 0, 0, 0, NULL, 0, RULE_FIELD(mGold.mTimeLimitTimed)},
 	{84, "gold.timeBonus", KIND_INT, GROUP_GOLD, 0, 0, 1000000, NULL, 0, RULE_FIELD(mGold.mTimeBonus)},
@@ -143,7 +144,9 @@ const FieldDef gFields[] =
 	{161, "arrows.directions", KIND_MOVE_TYPES, GROUP_ARROWS, 0, 0, 0, RULE_NAMES(gArrowNames), RULE_FIELD(mArrows.mDirections)},
 	{162, "arrows.every", KIND_INT, GROUP_ARROWS, FLAG_CLAMP, 1, 100, NULL, 0, RULE_FIELD(mArrows.mEvery)},
 	{163, "arrows.everyMin", KIND_INT, GROUP_ARROWS, FLAG_CLAMP, 1, 100, NULL, 0, RULE_FIELD(mArrows.mEveryMin)},
-	{164, "arrows.bonus", KIND_INT, GROUP_ARROWS, 0, 0, 1000000, NULL, 0, RULE_FIELD(mArrows.mBonus)}
+	{164, "arrows.bonus", KIND_INT, GROUP_ARROWS, 0, 0, 1000000, NULL, 0, RULE_FIELD(mArrows.mBonus)},
+	{165, "arrows.turn", KIND_BOOL, GROUP_ARROWS, 0, 0, 0, NULL, 0, RULE_FIELD(mArrows.mTurn)},
+	{166, "arrows.shots", KIND_MOVE_TYPES, GROUP_ARROWS, 0, 0, 0, RULE_NAMES(gArrowEdgeNames), RULE_FIELD(mArrows.mShots)}
 };
 
 const int NUM_FIELDS = (int) (sizeof(gFields) / sizeof(gFields[0]));
@@ -2775,6 +2778,8 @@ std::string GameFeatures::Text() const
 		aParts.push_back("codeArt(gems " + mCodeArtGems + ", palette " + mCodeArtPalette + ")");
 	if (mGameStats)
 		aParts.push_back("gameStats");
+	if (mLean)
+		aParts.push_back(std::string("lean(") + (mLeanImages ? "images, " : "") + "frameRate " + IntText(mLeanFrameRate) + ")");
 	std::string aText;
 	for (size_t i = 0; i < aParts.size(); i++)
 		aText += (i ? ", " : "") + aParts[i];
@@ -2784,8 +2789,9 @@ std::string GameFeatures::Text() const
 namespace
 {
 
-enum { FEATURE_SEEDS, FEATURE_REPLAYS, FEATURE_LEADERBOARD, FEATURE_LIVESPLIT, FEATURE_CODEART, FEATURE_GAMESTATS, NUM_FEATURES };
-const char* const gFeatureNames[NUM_FEATURES] = {"seeds", "replays", "leaderboard", "livesplit", "codeArt", "gameStats"};
+enum { FEATURE_SEEDS, FEATURE_REPLAYS, FEATURE_LEADERBOARD, FEATURE_LIVESPLIT, FEATURE_CODEART, FEATURE_GAMESTATS, FEATURE_LEAN,
+	NUM_FEATURES };
+const char* const gFeatureNames[NUM_FEATURES] = {"seeds", "replays", "leaderboard", "livesplit", "codeArt", "gameStats", "lean"};
 const char* const gCodeArtGems[] = {"cel", "glossy", "su"};
 const char* const gCodeArtPalettes[] = {"blue", "violet", "emerald", "ember", "night"};
 
@@ -2828,6 +2834,11 @@ bool ParseFeature(int theFeature, const JsonValue& theValue, GameFeatures* theOu
 		// no options: an object turns it on like true, and each of its members is an unknown key
 		theOut->mGameStats = anOn;
 		break;
+	case FEATURE_LEAN:
+		theOut->mLean = anOn;
+		theOut->mLeanImages = true;
+		theOut->mLeanFrameRate = 0;
+		break;
 	}
 	if (!theValue.IsObject())
 		return true;
@@ -2844,6 +2855,8 @@ bool ParseFeature(int theFeature, const JsonValue& theValue, GameFeatures* theOu
 			aFlag = &theOut->mSeedPerGame;
 		else if ((theFeature == FEATURE_REPLAYS) && (aName == "hover"))
 			aFlag = &theOut->mReplayHover;
+		else if ((theFeature == FEATURE_LEAN) && (aName == "images"))
+			aFlag = &theOut->mLeanImages;
 		if (aFlag != NULL)
 		{
 			if (!aValue.IsBool())
@@ -2854,6 +2867,13 @@ bool ParseFeature(int theFeature, const JsonValue& theValue, GameFeatures* theOu
 		{
 			if (!ReadInt(aValue, &theOut->mReplayKeep) || (theOut->mReplayKeep < 0) || (theOut->mReplayKeep > 1000))
 				return theLog.Error(aSubKey + " must be an integer 0..1000");
+		}
+		else if ((theFeature == FEATURE_LEAN) && (aName == "frameRate"))
+		{
+			int aRate = 0;
+			if (!ReadInt(aValue, &aRate) || ((aRate != 0) && ((aRate < 10) || (aRate > 100))))
+				return theLog.Error(aSubKey + " must be 0 (every frame) or an integer 10..100");
+			theOut->mLeanFrameRate = aRate;
 		}
 		else if ((theFeature == FEATURE_LEADERBOARD) && (aName == "ranked"))
 		{
@@ -2888,6 +2908,8 @@ bool ParseFeature(int theFeature, const JsonValue& theValue, GameFeatures* theOu
 				aKnown = {aKey + ".ranked"};
 			else if (theFeature == FEATURE_CODEART)
 				aKnown = {aKey + ".gems", aKey + ".palette"};
+			else if (theFeature == FEATURE_LEAN)
+				aKnown = {aKey + ".images", aKey + ".frameRate"};
 			theLog.Warning(UnknownKey(aSubKey, aKnown));
 		}
 	}
@@ -2977,8 +2999,14 @@ void Sexy::MergeFeatures(const std::vector<RulesSource>& theSources, GameFeature
 				aMerged.mCodeArtGems = aParsed.mCodeArtGems;
 				aMerged.mCodeArtPalette = aParsed.mCodeArtPalette;
 			}
-			else
+			else if (k == FEATURE_GAMESTATS)
 				aMerged.mGameStats = aParsed.mGameStats;
+			else
+			{
+				aMerged.mLean = aParsed.mLean;
+				aMerged.mLeanImages = aParsed.mLeanImages;
+				aMerged.mLeanFrameRate = aParsed.mLeanFrameRate;
+			}
 			GameFeatures aText;
 			if (k == FEATURE_SEEDS)
 			{
@@ -3005,8 +3033,14 @@ void Sexy::MergeFeatures(const std::vector<RulesSource>& theSources, GameFeature
 				aText.mCodeArtGems = aParsed.mCodeArtGems;
 				aText.mCodeArtPalette = aParsed.mCodeArtPalette;
 			}
-			else
+			else if (k == FEATURE_GAMESTATS)
 				aText.mGameStats = aParsed.mGameStats;
+			else
+			{
+				aText.mLean = aParsed.mLean;
+				aText.mLeanImages = aParsed.mLeanImages;
+				aText.mLeanFrameRate = aParsed.mLeanFrameRate;
+			}
 			if (!aSetter[k].empty() && (aSetterText[k] != aText.Text()))
 				theStatus->mWarnings.push_back({aSource.mModId, std::string("features.") + gFeatureNames[k] + " overrides " + aSetter[k]});
 			aSetter[k] = aSource.mModId;

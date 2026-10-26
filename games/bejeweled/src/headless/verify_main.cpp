@@ -18,6 +18,8 @@
 //   bejeweled_verify cascadehunt first|play|replay ...
 //       the bot that hunts the original rules' biggest cascades and writes replays of them (Verifier::CascadeHunt).
 //       Native only.
+//   bejeweled_verify funlab [<mod.json>...] [--settings <file>] [--seeds <a>..<b>] ...
+//       bot games on mods' rules, measured for what makes a game mode fun (Verifier::FunLab). Native only.
 // Exit status 2 for a usage error or a file that cannot be read.
 //
 // Wasm (bejeweled_verify.wasm: -sSTANDALONE_WASM --no-entry, no JS glue; its WASI imports are stubbed by the
@@ -107,7 +109,8 @@ int Usage()
 		"       bejeweled_verify difftest --seeds <a>..<b> [--ticks <n>] [--mode normal|timed|both] [-v]\n"
 		"       bejeweled_verify rulesid <mod.json>\n"
 		"       bejeweled_verify mirrortest --seeds <a>..<b> [--moves <n>] [-v]\n"
-		"       bejeweled_verify cascadehunt first|play|replay ... (Verifier.h)\n");
+		"       bejeweled_verify cascadehunt first|play|replay ... (Verifier.h)\n"
+		"       bejeweled_verify funlab [<mod.json>...] [--settings <file>] [--seeds <a>..<b>] ... (Verifier.h)\n");
 	return 2;
 }
 
@@ -238,6 +241,11 @@ int main(int argc, char** argv)
 	if (aCommand == "cascadehunt")
 	{
 		int aStatus = Verifier::CascadeHunt(argc, argv);
+		return (aStatus == 2) ? Usage() : aStatus;
+	}
+	if (aCommand == "funlab")
+	{
+		int aStatus = Verifier::FunLab(argc, argv);
 		return (aStatus == 2) ? Usage() : aStatus;
 	}
 	if (aCommand == "rulesid")

@@ -332,7 +332,10 @@ for d in "$MODS"/*/; do
 	MODS_JSON="$MODS_JSON\"$m\""
 	first=0
 done
-MODS_JSON="$MODS_JSON] }"
+# the order's mods are enabled by name too, since some start off ("defaultEnabled": false)
+MODS_JSON="$MODS_JSON], \"enabled\": ["
+for m in "${MOD_ORDER[@]}"; do MODS_JSON="$MODS_JSON\"$m\", "; done
+MODS_JSON="${MODS_JSON%, }] }"
 
 mods_listing() { (cd "$MODS" && find . -printf '%P\t%y\t%s\t%T@\n' | LC_ALL=C sort); }
 

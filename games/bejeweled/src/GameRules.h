@@ -152,15 +152,38 @@ public:
 		DEFAULT_FALL_ACCEL = 180    // board.gravity.fallAccel: 180 / 1000.0 is the original's 0.18
 	};
 
-	// The way an arrow gem points (4.20); a piece's mArrow is the direction + 1, 0 for none
+	// The way an arrow gem points (4.20); a piece's mArrow is the direction + 1, 0 for none. The diagonals came after
+	// the straight four, which stay the default.
 	enum ArrowDirection
 	{
 		ARROW_UP = 0,
 		ARROW_RIGHT = 1,
 		ARROW_DOWN = 2,
 		ARROW_LEFT = 3,
-		NUM_ARROW_DIRECTIONS = 4,
-		ALL_ARROW_DIRECTIONS = 15
+		ARROW_UP_RIGHT = 4,
+		ARROW_DOWN_RIGHT = 5,
+		ARROW_DOWN_LEFT = 6,
+		ARROW_UP_LEFT = 7,
+		NUM_ARROW_DIRECTIONS = 8,
+		FIRST_DIAGONAL_ARROW = ARROW_UP_RIGHT,
+		ALL_ARROW_DIRECTIONS = 15   // the straight four
+	};
+
+	// The board's edges an arrow can leave by (arrows.shots)
+	enum ArrowEdge
+	{
+		ARROW_EDGE_TOP = 0,
+		ARROW_EDGE_RIGHT,
+		ARROW_EDGE_BOTTOM,
+		ARROW_EDGE_LEFT
+	};
+
+	// gold.gild: which clears turn their cells gold
+	enum Gild
+	{
+		GILD_MATCHES = 0,
+		GILD_MATCHES_AND_BLASTS,
+		GILD_BLASTS
 	};
 
 	struct BoardRules
@@ -212,7 +235,7 @@ public:
 	struct GoldRules
 	{
 		bool						mEnabled = false;       // gold.enabled (gold)
-		bool						mGildBlasts = true;     // gold.gild "matches" / "matchesAndBlasts"
+		int							mGild = GILD_MATCHES_AND_BLASTS; // gold.gild "matches" / "matchesAndBlasts" / "blasts"
 		TimeLimit					mTimeLimitNormal;       // gold.timeLimit.normal: null
 		TimeLimit					mTimeLimitTimed = TimeLimit{true, 180, -10, 60}; // gold.timeLimit.timed
 		int							mTimeBonus = 10;        // gold.timeBonus
@@ -230,7 +253,7 @@ public:
 		bool						mRestoreRng = true;     // undo.restoreRng
 	};
 
-	// Arrow gems (4.20, stage 18): directions are bits 1 << ARROW_UP .. ARROW_LEFT
+	// Arrow gems (4.20, stage 18): directions are bits 1 << ARROW_UP .. ARROW_UP_LEFT
 	struct ArrowRules
 	{
 		bool						mEnabled = false;       // arrows.enabled (arrows)
@@ -238,6 +261,8 @@ public:
 		int							mEvery = 6;             // arrows.every: a new arrow after that many moves at level 1
 		int							mEveryMin = 3;          // arrows.everyMin: one move fewer each level, down to this
 		int							mBonus = 100;           // arrows.bonus: times the arrows cleared so far, times the multiplier
+		bool						mTurn = false;          // arrows.turn: a twist turns the arrows it carries a quarter turn its way
+		int							mShots = 0;             // arrows.shots: bits of ARROW_EDGE_*, edges an arrow leaves by for its bonus
 	};
 
 	// Presentation (4.16): in the RulesId and the score key, never a variant board
@@ -351,8 +376,11 @@ struct GameFeatures
 	std::string						mCodeArtGems = "cel";   // gem style: cel, glossy, su
 	std::string						mCodeArtPalette = "blue";   // blue, violet, emerald, ember, night
 	bool							mGameStats = false;     // the game-over screen's Stats page (4.19, GameStats.h)
+	bool							mLean = false;          // less memory and processor time (4.21)
+	bool							mLeanImages = true;     // images at 1 byte a pixel where they allow it, the title's freed after it
+	int								mLeanFrameRate = 0;     // at most this many frames a second; 0: every frame the original draws
 
-	bool							Any() const { return mSeeds || mReplays || mLeaderboard || mLiveSplit || mCodeArt || mGameStats; }
+	bool							Any() const { return mSeeds || mReplays || mLeaderboard || mLiveSplit || mCodeArt || mGameStats || mLean; }
 	std::string						Text() const;           // "seeds(entry, perGame), replays(keep 20), livesplit" or "none"
 };
 
