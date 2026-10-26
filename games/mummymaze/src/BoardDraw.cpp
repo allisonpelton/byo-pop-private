@@ -142,7 +142,7 @@ void Board::DrawTutorialText(int x, int y, int w, int h, Graphics* g)
 	if (mApp->mFont1->StringWidth(aHeader) < 200)
 		aTop += 10;
 	Rect aRect(aInsets.mLeft + 2, aTop, w - aInsets.mRight - aInsets.mLeft - 4, 0);
-	WriteWordWrapped(g, aRect, aText, -1, (aMove == 5 || aMove == 6) ? 0 : 0);
+	WriteWordWrapped(g, aRect, aText, -1, (aMove == 5 || aMove == 6) ? -1 : 0);
 	g->Translate(-x, -y);
 }
 

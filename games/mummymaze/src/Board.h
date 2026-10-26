@@ -241,6 +241,7 @@ public:
 	void				ClearVisited();                 // 0x404e30
 	void				ClearSolution();                // 0x404e90
 	void				Solve();                        // 0x4050b0
+	bool				FindWay(std::vector<ChaseState>& thePath);   // port: the same search from where the explorer stands now
 	void				CheckSolvable(bool thePlaySound); // 0x411640
 	void				SolveRec(const ChaseState& theFrom, std::vector<ChaseState>& thePath, int theDX, int theDY, bool theRecord); // 0x405580 / 0x411a90
 	void				StepScorpion(ChaseState& s);

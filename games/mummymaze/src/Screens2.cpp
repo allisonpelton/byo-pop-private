@@ -556,14 +556,73 @@ void HighScoreScreen::Draw(Graphics* g)
 	}
 }
 
+// 0x402dc0: the link back to the main menu (id 0 of the original is the Internet score list: not here)
 void HighScoreScreen::ButtonDepress(int theId)
 {
-	(void) theId;
-	mApp->ShowMainMenu(2, true);
+	if (theId == 1)
+		mApp->ShowMainMenu(0, true);
 }
 
 void HighScoreScreen::ButtonPress(int theId)
 {
 	(void) theId;
 	mApp->PlaySample(SOUND_CLICK);
+}
+
+// ---------------------------------------------------------------------------------------------------------
+// VictoryScreen
+
+// 0x401ca0
+VictoryScreen::VictoryScreen(MummyApp* theApp) :
+	HighScoreScreen(theApp)
+{
+}
+
+VictoryScreen::~VictoryScreen()
+{
+}
+
+// 0x402a00: nothing yet; the link comes with the name (Update)
+void VictoryScreen::AddedToManager(WidgetManager* theWidgetManager)
+{
+	Widget::AddedToManager(theWidgetManager);
+}
+
+// 0x402c60: the name for the score is asked for once the picture is in, and the link to the menu comes then
+void VictoryScreen::Update()
+{
+	Widget::Update();
+	if (!mNameAsked && mFade >= 175.0)
+	{
+		AskName();
+		mWidgetManager->AddWidget(mMenuLink);
+		mNameAsked = true;
+	}
+	if (mFade < 255.0)
+	{
+		mFade += 1.0;
+		MarkDirty();
+	}
+}
+
+// 0x402a10
+void VictoryScreen::Draw(Graphics* g)
+{
+	g->SetColorizeImages(true);
+	g->SetColor(Color(0xff, 0xff, 0xff, (int) mFade));
+	g->DrawImage(mApp->mImages[IMAGE_BACKDROP], -0x96, 0);
+	{
+		Graphics gc(*g);
+		gc.ClipRect(0, 0, 0x1e7, 0x1dd);
+		gc.DrawImage(mApp->mImages[IMAGE_NEXTLEVEL], -5, 5);
+	}
+	if (mApp->mGameMode == MODE_ADVENTURE_DONE)
+	{
+		g->DrawImage(mApp->mImages[IMAGE_BEACH], (mWidth - 0x17b) / 2, (mHeight - 0x180) / 2);
+		g->SetFont(mApp->mHeaderFont);
+		g->SetColor(Color(0, 0xff, 0, (int) mFade));
+		DrawCentered(g, GT(0x0048d34c), mWidth, 0x1e);
+	}
+	else
+		g->DrawImage(mApp->mImages[IMAGE_BEACH], (mWidth - 0x17b) / 2, 0xe);
 }

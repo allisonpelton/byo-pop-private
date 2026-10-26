@@ -300,6 +300,8 @@ void MummyApp::HandleCmdLineParam(const std::string& theParamName, const std::st
 	}
 	else if ((theParamName == "-autoplaylevels") || (theParamName == "-autoplaystart"))
 		HandleAutoplayParam(theParamName, theParamValue);
+	else if (theParamName == "-autoplaymode")
+		mAutoplayMode = theParamValue;
 	else if (theParamName == "-autoplaygames")
 		mAutoplayGames = atoi(theParamValue.c_str());
 	else if (theParamName == "-autoplaycap")

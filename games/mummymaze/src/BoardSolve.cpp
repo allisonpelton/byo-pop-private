@@ -244,6 +244,40 @@ void Board::Solve()
 	ClearVisited();
 }
 
+// port: the shortest way out from the state the board is in now (Solve does the same from the start, after taking every
+// move back, and plays it); the way is left in mSolution as well. The test bot uses it to go on after a turn that the
+// search did not foresee (the original's search leaves out that a mummy that wins a fight on the key stone flips the gate)
+bool Board::FindWay(std::vector<ChaseState>& thePath)
+{
+	mShowingSolution = false;
+	ClearVisited();
+	ClearSolution();
+	ChaseState aStart = GetChaseState();
+	for (int dx = -1; dx < 2; dx++)
+	{
+		for (int dy = -1; dy < 2; dy++)
+		{
+			if (dx == 0 || dy == 0)
+			{
+				std::vector<ChaseState> aPath;
+				aPath.push_back(aStart);
+				mVisited.insert(aStart);
+				if (CanMove(aStart.mExplorerX, aStart.mExplorerY, aStart.mExplorerX + dx, aStart.mExplorerY + dy, false,
+					aStart.mGateClosed))
+					SolveRec(aStart, aPath, dx, dy, true);
+			}
+		}
+	}
+	bool aFound = mShowingSolution && !mSolution.empty();
+	thePath = mSolution;
+	if (aFound)
+		thePath.erase(thePath.begin());
+	mShowingSolution = false;
+	ClearVisited();
+	ClearSolution();
+	return aFound;
+}
+
 // 0x411640: the Ankh: is there still a way out
 void Board::CheckSolvable(bool thePlaySound)
 {

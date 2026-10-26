@@ -217,13 +217,17 @@ public:
 	void				SetName(const SexyString& theName);   // 0x415b40
 };
 
-// 0x401ca0: the victory screen (not ported yet)
-class VictoryScreen : public Widget
+// 0x401ca0: the victory screen: the same list, name box and links as the high scores (the original's twin classes share
+// the functions that load and keep the list), but another picture, and the link comes after the name
+class VictoryScreen : public HighScoreScreen
 {
 public:
-	VictoryScreen(MummyApp* theApp) : mApp(theApp) {}
-	MummyApp*			mApp;
-	void				SetName(const SexyString& theName) { (void) theName; }
+	VictoryScreen(MummyApp* theApp);
+	virtual ~VictoryScreen();
+
+	virtual void		AddedToManager(WidgetManager* theWidgetManager) override;   // 0x402a00
+	virtual void		Update() override;                                          // 0x402c60
+	virtual void		Draw(Graphics* g) override;                                 // 0x402a10
 };
 
 // 0x417010: the adventure's world map (not ported yet)

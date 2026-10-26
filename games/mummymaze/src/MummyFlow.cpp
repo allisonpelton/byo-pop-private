@@ -325,9 +325,19 @@ void MummyApp::OnWorldMapButton()
 {
 }
 
+// 0x41e890: the game is won
 void MummyApp::ShowVictory()
 {
-	ShowMainMenu(2, true);
+	RemoveBoard();
+	if (mGameMode == MODE_CLASSIC)
+		mGameMode = MODE_CLASSIC_DONE;
+	if (mGameMode == MODE_ADVENTURE)
+		mGameMode = MODE_ADVENTURE_DONE;
+	mVictory = new VictoryScreen(this);
+	mVictory->Resize(0x96, 0, 0x1ea, 0x1e0);
+	mWidgetManager->AddWidget(mVictory);
+	mWidgetManager->SetFocus(mVictory);
+	SetMusicOrder(0x37, false);
 }
 
 // 0x41b2f0: the panel with undo, try again, save and quit and abandon hope

@@ -6,6 +6,7 @@
 // tests compare.
 //
 //   -autoplay=<seed>         play with the bot (its own seed)
+//   -autoplaymode=tutorial   play the tutorial instead of a classic game (every step by the table of allowed moves)
 //   -autoplaygames=N         play N games, then quit
 //   -autoplaylevels=N        levels played in a game before the bot gives up with Abandon Hope (default 3)
 //   -autoplaystart=P,C       the first game starts at pyramid P (0 to 14), chamber C (0 to 14)
@@ -31,6 +32,8 @@
 
 using namespace Sexy;
 
+#include "Tables.inc"
+
 namespace Sexy
 {
 
@@ -38,12 +41,19 @@ struct AutoplayState
 {
 	unsigned int		mSeed;
 	int					mTick;
+	int					mLastAction;        // the update of the last log line or key
 	int					mGames;             // games started
 	int					mWait;              // updates to wait before the next action
 	int					mLevels;            // levels finished in this game
 	int					mLevelsPerGame;
 	int					mStartPyramid, mStartChamber;
 	int					mHeldKey;           // the key that is down, or 0
+	int					mLastKey;           // the last key pressed
+	unsigned int		mTutorialShots;     // the tutorial steps that were photographed
+	bool				mTutorial;          // the tutorial is being played
+	bool				mDiverged;          // the board left the solver's path (logged once per plan)
+	bool				mReplan;            // plan again from where the explorer stands
+	int					mReplans;           // how often in this level
 	bool				mPlanned;           // the board's current level has a plan
 	bool				mUseSolver;
 	int					mRandomMoves;       // moves still to make at random
@@ -57,8 +67,8 @@ struct AutoplayState
 	int					mShotWait;          // the chamber-done screenshot: 0 not yet, 1 waiting, 2 taken
 	FILE*				mLog;
 
-	AutoplayState() : mSeed(1), mTick(0), mGames(0), mWait(0), mLevels(0), mLevelsPerGame(3), mStartPyramid(0),
-		mStartChamber(0), mHeldKey(0), mPlanned(false), mUseSolver(true), mRandomMoves(0), mPathIndex(0),
+	AutoplayState() : mSeed(1), mTick(0), mLastAction(0), mGames(0), mWait(0), mLevels(0), mLevelsPerGame(3), mStartPyramid(0),
+		mStartChamber(0), mHeldKey(0), mLastKey(0), mTutorialShots(0), mTutorial(false), mDiverged(false), mReplan(false), mReplans(0), mPlanned(false), mUseSolver(true), mRandomMoves(0), mPathIndex(0),
 		mGameOverLogged(false), mGivenUp(false), mOptionsStage(0), mDialogShots(0), mDialogSeen(0), mShotWait(0), mLog(NULL) {}
 
 	int Rand(int theRange)
@@ -75,6 +85,7 @@ namespace
 
 void Log(AutoplayState* s, const char* theFormat, ...)
 {
+	s->mLastAction = s->mTick;
 	if (s->mLog == NULL)
 		return;
 	va_list args;
@@ -111,6 +122,23 @@ void MummyApp::AutoplayUpdate()
 	if (s->mTick >= mAutoplayCap)
 	{
 		Log(s, "cap reached at update %d", s->mTick);
+		Shutdown();
+		return;
+	}
+	// a watchdog: when the bot has done nothing for a long time, say where the game stands and stop
+	if (s->mTick - s->mLastAction > 30000)
+	{
+		Board* b = mBoard;
+		if (b != NULL)
+			Log(s, "stalled: state %d, explorer %d,%d (target %d,%d, progress %.1f), mummies %d,%d and %d,%d, scorpion %d, death timers %d %d, "
+				"fade2 %.1f, path %d of %d, dialogs %d, panel %d, complete %d", b->mState, b->mExplorer->mX, b->mExplorer->mY,
+				b->mExplorer->mTargetX, b->mExplorer->mTargetY, b->mExplorer->mProgress,
+				b->mMummies[0] ? b->mMummies[0]->mX : -9, b->mMummies[0] ? b->mMummies[0]->mY : -9,
+				b->mMummies[1] ? b->mMummies[1]->mX : -9, b->mMummies[1] ? b->mMummies[1]->mY : -9, b->mScorpion != NULL ? 1 : 0,
+				b->mDeathTimer, b->mDeathTimer2, b->mFade2, (int) s->mPathIndex, (int) s->mPath.size(), GetDialogCount(),
+				mGamePanel != NULL ? 1 : 0, mLevelComplete != NULL ? 1 : 0);
+		else
+			Log(s, "stalled: no board");
 		Shutdown();
 		return;
 	}
@@ -201,6 +229,14 @@ void MummyApp::AutoplayUpdate()
 			return;
 		}
 		s->mGames++;
+		if (mAutoplayMode == "tutorial")
+		{
+			Log(s, "tutorial");
+			s->mTutorial = true;
+			mMainMenu->ButtonDepress(3);
+			s->mWait = 5;
+			return;
+		}
 		s->mLevels = 0;
 		s->mGivenUp = false;
 		s->mGameOverLogged = false;
@@ -227,6 +263,13 @@ void MummyApp::AutoplayUpdate()
 			mHighScores->ButtonDepress(1);
 			s->mWait = 20;
 		}
+		return;
+	}
+	// the tutorial finished: a classic game has begun
+	if (s->mTutorial && mGameMode == MODE_CLASSIC)
+	{
+		Log(s, "tutorial done at update %d", s->mTick);
+		Shutdown();
 		return;
 	}
 	// a chamber is done: on to the next
@@ -270,12 +313,78 @@ void MummyApp::AutoplayUpdate()
 		s->mWait = 5;
 		return;
 	}
+	// the victory screen: look at it, then back to the menu
+	if (mVictory != NULL)
+	{
+		if (mVictory->mFade >= 255.0 && mVictory->mNameAsked && !s->mGameOverLogged)
+		{
+			s->mGameOverLogged = true;
+			Log(s, "victory: score %d", mScore);
+			if (!mAutoplayShots.empty())
+				SaveScreenshot(StrFormat("%s-victory.png", mAutoplayShots.c_str()));
+			mVictory->ButtonDepress(1);
+			s->mWait = 20;
+		}
+		return;
+	}
 	if (mBoard == NULL)
 		return;
+
+	// the tutorial: the move the table allows, or the button that is showing
+	if (mGameMode >= MODE_TUTORIAL && mGameMode <= 8)
+	{
+		Board* b = mBoard;
+		if (b->mState != STATE_READY || b->mDeathTimer2 >= 0 || b->mFade2 < 1.0)
+			return;
+		for (int i = 0; i < 2; i++)
+			if (b->mMummies[i] != NULL && b->mMummies[i]->mFighting)
+				return;
+		if (b->mPlayNowButton0->mVisible || b->mPlayNowButton->mVisible)
+		{
+			int anId = b->mPlayNowButton0->mVisible ? b->mPlayNowButton0->mId : b->mPlayNowButton->mId;
+			Log(s, "tutorial part %d step %d: button %d", mGameMode, b->mTutorialStep, anId);
+			if (!mAutoplayShots.empty() && !(s->mTutorialShots & (1 << b->mTutorialStep % 24)) && b->mTutorialStep % 10 == 2)
+			{
+				s->mTutorialShots |= 1 << b->mTutorialStep % 24;
+				SaveScreenshot(StrFormat("%s-step%d.png", mAutoplayShots.c_str(), b->mTutorialStep));
+			}
+			b->ButtonDepress(anId);
+			s->mWait = 10;
+			return;
+		}
+		int aMove = kTutorialMove[b->mTutorialStep];
+		static const int kKeys[5] = {KEYCODE_UP, KEYCODE_LEFT, KEYCODE_RIGHT, KEYCODE_DOWN, KEYCODE_SPACE};
+		if (aMove < 0 || aMove > 4)
+			return;
+		Log(s, "tutorial part %d step %d: move %d", mGameMode, b->mTutorialStep, aMove);
+		mWidgetManager->KeyDown((KeyCode) kKeys[aMove]);
+		s->mHeldKey = kKeys[aMove];
+		s->mWait = 1;
+		return;
+	}
+
+	// the scene at the end of a pyramid: the explorer takes the treasure, then the link on to the next pyramid
+	if (mGameMode == MODE_CLASSIC_DONE)
+	{
+		if (mBoard->mContinueLink != NULL && mBoard->mContinueLink->mVisible)
+		{
+			Log(s, "pyramid %d done, score %d", mClassicPyramid, mScore);
+			if (!mAutoplayShots.empty() && mClassicPyramid == 0)
+				SaveScreenshot(StrFormat("%s-pyramid0.png", mAutoplayShots.c_str()));
+			s->mPlanned = false;
+			mBoard->ButtonDepress(3);
+			s->mWait = 20;
+		}
+		return;
+	}
 
 	Board* b = mBoard;
 	if (b->mState != STATE_READY || b->mDeathTimer2 >= 0 || b->mFade2 < 1.0 || b->mShowingSolution)
 		return;
+	// a mummy that has just won a fight with the other one dances first, and the explorer waits for it
+	for (int i = 0; i < 2; i++)
+		if (b->mMummies[i] != NULL && b->mMummies[i]->mFighting)
+			return;
 	if (mGameMode != MODE_CLASSIC)
 		return;
 
@@ -301,6 +410,8 @@ void MummyApp::AutoplayUpdate()
 	if (!s->mPlanned)
 	{
 		s->mPlanned = true;
+		s->mDiverged = false;
+		s->mReplans = 0;
 		s->mUseSolver = s->mRandomMoves == 0 && s->Rand(10) < 7;
 		s->mRandomMoves = s->mUseSolver ? 0 : 2 + s->Rand(6);
 		if (s->mUseSolver)
@@ -324,6 +435,62 @@ void MummyApp::AutoplayUpdate()
 	int aKey = 0;
 	if (s->mUseSolver)
 	{
+		// the board must be where the solver said it would be after the last move: a difference is a bug in one of them
+		if (s->mPathIndex > 0 && s->mPathIndex <= s->mPath.size() && !s->mDiverged)
+		{
+			ChaseState aWant = s->mPath[s->mPathIndex - 1];
+			ChaseState aHave = b->GetChaseState();
+			// (where a dead mummy or scorpion lies does not matter)
+			for (int i = 0; i < 2; i++)
+			{
+				if (!aWant.mMummyAlive[i])
+					aWant.mMummyX[i] = aWant.mMummyY[i] = 0;
+				if (!aHave.mMummyAlive[i])
+					aHave.mMummyX[i] = aHave.mMummyY[i] = 0;
+			}
+			if (!aWant.mScorpionAlive)
+				aWant.mScorpionX = aWant.mScorpionY = 0;
+			if (!aHave.mScorpionAlive)
+				aHave.mScorpionX = aHave.mScorpionY = 0;
+			if (mAutoplayMode == "stopondiverge")
+				Log(s, "  step %d: explorer %d,%d (want %d,%d) mummy %d,%d (want %d,%d) gate %d (want %d); key at %d,%d gate at %d,%d, traps %d,%d",
+					(int) s->mPathIndex, aHave.mExplorerX, aHave.mExplorerY, aWant.mExplorerX, aWant.mExplorerY,
+					aHave.mMummyX[0], aHave.mMummyY[0], aWant.mMummyX[0], aWant.mMummyY[0], aHave.mGateClosed ? 1 : 0,
+					aWant.mGateClosed ? 1 : 0, b->mKeyX, b->mKeyY, b->mGateX, b->mGateY, b->mTrapX[0], b->mTrapY[0]);
+			if (!(aWant == aHave))
+			{
+				s->mDiverged = true;
+				s->mReplan = true;
+				Log(s, "DIVERGED after move %d: want explorer %d,%d mummies %d,%d%s %d,%d%s scorpion %d,%d%s gate %d; "
+					"have explorer %d,%d mummies %d,%d%s %d,%d%s scorpion %d,%d%s gate %d", (int) s->mPathIndex,
+					aWant.mExplorerX, aWant.mExplorerY, aWant.mMummyX[0], aWant.mMummyY[0], aWant.mMummyAlive[0] ? "" : "(dead)",
+					aWant.mMummyX[1], aWant.mMummyY[1], aWant.mMummyAlive[1] ? "" : "(dead)", aWant.mScorpionX, aWant.mScorpionY,
+					aWant.mScorpionAlive ? "" : "(dead)", aWant.mGateClosed ? 1 : 0,
+					aHave.mExplorerX, aHave.mExplorerY, aHave.mMummyX[0], aHave.mMummyY[0], aHave.mMummyAlive[0] ? "" : "(dead)",
+					aHave.mMummyX[1], aHave.mMummyY[1], aHave.mMummyAlive[1] ? "" : "(dead)", aHave.mScorpionX, aHave.mScorpionY,
+					aHave.mScorpionAlive ? "" : "(dead)", aHave.mGateClosed ? 1 : 0);
+				if ((mAutoplayMode == "stopondiverge"))
+					Shutdown();
+			}
+		}
+		// the turn did not go as the search foresaw (the original's search leaves out a few things, and the board then
+		// does them): the way out from where the explorer stands now
+		if (s->mReplan)
+		{
+			s->mReplan = false;
+			std::vector<ChaseState> aPath;
+			if (++s->mReplans <= 8 && b->FindWay(aPath) && !aPath.empty())
+			{
+				s->mPath = aPath;
+				s->mPathIndex = 0;
+				s->mDiverged = false;
+				Log(s, "replanned from the explorer's place: %d moves", (int) aPath.size());
+			}
+			else
+				s->mUseSolver = false, s->mRandomMoves = 3;
+			s->mWait = 5;
+			return;
+		}
 		if (s->mPathIndex >= s->mPath.size())
 		{
 			// the way is walked; the board takes the explorer out by itself, or the plan failed: plan again
@@ -363,6 +530,8 @@ void MummyApp::AutoplayUpdate()
 		}
 	}
 	mWidgetManager->KeyDown((KeyCode) aKey);
+	s->mLastKey = aKey;
+	s->mLastAction = s->mTick;
 	s->mHeldKey = aKey;
 	s->mWait = 1;
 }
