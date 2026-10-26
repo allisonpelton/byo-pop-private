@@ -52,6 +52,8 @@ void Grid::Clear()
 	mStuckCol = mStuckRow = 0;
 	mEmptyWanted = mStrayTiles = mWantedCells = 0;
 	mHasStart = false;
+	mHasPicture = false;
+	memset(mPicture, 0, sizeof(mPicture));
 	mHistory.clear();
 }
 

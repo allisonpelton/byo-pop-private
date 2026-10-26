@@ -90,6 +90,11 @@ public:
 	int			mStuckCol;			// +0xb080 the first cell on the line that is taken (or the last cell of the line)
 	int			mStuckRow;			// +0xb084
 
+	// the finished picture (0x426910 reads images/levels/<name>.gif; the Board and the thumbnails do that, this class
+	// is free of the framework): the colour of each cell, ARGB, already brightened
+	bool		mHasPicture;
+	unsigned int mPicture[MAX_SIZE][MAX_SIZE];
+
 	int			mEmptyWanted;		// +0xb164 wanted cells still without a tile
 	int			mStrayTiles;		// +0xb168 tiles on cells nobody wants
 	int			mWantedCells;		// +0xb16c

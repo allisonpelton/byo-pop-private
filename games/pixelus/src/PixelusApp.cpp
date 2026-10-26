@@ -7,6 +7,9 @@
 #include "UserDirectory.h"
 #include "Board.h"
 #include "MainMenu.h"
+#include "IslandMap.h"
+#include "TempleScreen.h"
+#include "Temples.h"
 #include "UserDialogs.h"
 #include "GameText.h"
 #include "Graphics.h"
@@ -47,6 +50,7 @@ PixelusApp::PixelusApp()
 	mLevelData = NULL;
 	mUserDirectory = NULL;
 	mProgress = NULL;
+	mCurrentTemple = 0;
 
 	mProdName = "Pixelus";
 	mTitle = "Pixelus " + mProductVersion;
@@ -336,9 +340,136 @@ void PixelusApp::ShowOptions()
 {
 }
 
+// 0x432600: the island; the music of the menu fades out (the sea and the birds are all there is to hear)
 void PixelusApp::ShowIslandMap()
 {
-	ShowBoard("Tutorial", 0);
+	if (mIslandMap != NULL)
+	{
+		mWidgetManager->RemoveWidget(mIslandMap);
+		SafeDeleteWidget(mIslandMap);
+		mIslandMap = NULL;
+	}
+	mIslandMap = new IslandMap(this);
+	mIslandMap->Resize(0, 0, mWidth, mHeight);
+	mWidgetManager->AddWidget(mIslandMap);
+	mWidgetManager->BringToBack(mIslandMap);
+	mWidgetManager->SetFocus(mIslandMap);
+	FadeOutAllMusic(this);
+}
+
+// 0x433c90: the way back from the island
+void PixelusApp::BackToMainMenu()
+{
+	if (mIslandMap != NULL)
+	{
+		mWidgetManager->RemoveWidget(mIslandMap);
+		SafeDeleteWidget(mIslandMap);
+		mIslandMap = NULL;
+	}
+	ShowMainMenu();
+	if (mUserDirectory->GetCurrent() == NULL)
+		ShowNewUser();
+	StartMusic(this, MUSIC_PIXELUS_MAIN_MENU_LOOP_V02, true);
+}
+
+// 0x4170d0: the player chose a temple on the island
+void PixelusApp::EnterTemple(int theTemple)
+{
+	const char* aName = gTemples[theTemple].mName;
+	UserProfile* aUser = mUserDirectory->GetCurrent();
+	if (aUser != NULL)
+		aUser->mTempleFlags[aName] |= 4;
+	if (mCurrentTemple != theTemple || mLevelData->mCurrentLevel != aName)
+		mLevelData->mCurrentPuzzle = -1;
+	mCurrentTemple = theTemple;
+	mLevelData->mCurrentLevel = aName;
+
+	ShowTemple();
+	if (mIslandMap != NULL)
+	{
+		mWidgetManager->RemoveWidget(mIslandMap);
+		SafeDeleteWidget(mIslandMap);
+		mIslandMap = NULL;
+	}
+}
+
+// 0x432420: the temple screen, over a picture of the island if the island is there
+void PixelusApp::ShowTemple()
+{
+	MemoryImage* aBackdrop = NULL;
+	if (mIslandMap != NULL)
+	{
+		aBackdrop = new MemoryImage(this);
+		aBackdrop->Create(mWidth, mHeight);
+		aBackdrop->SetImageMode(false, false);
+		Graphics g(aBackdrop);
+		mIslandMap->Draw(&g);
+	}
+	if (mTempleScreen != NULL)
+	{
+		mWidgetManager->RemoveWidget(mTempleScreen);
+		SafeDeleteWidget(mTempleScreen);
+	}
+	mTempleScreen = new TempleScreen(this, aBackdrop);
+	mTempleScreen->Resize(0, 0, mWidth, mHeight);
+	mWidgetManager->AddWidget(mTempleScreen);
+	mWidgetManager->SetFocus(mTempleScreen);
+}
+
+// 0x432ac0
+void PixelusApp::BackToIsland()
+{
+	if (mTempleScreen != NULL)
+	{
+		mWidgetManager->RemoveWidget(mTempleScreen);
+		SafeDeleteWidget(mTempleScreen);
+		mTempleScreen = NULL;
+	}
+	ShowIslandMap();
+}
+
+// 0x433820: the puzzle the cursor is on, from the start or from where the player left it
+void PixelusApp::StartPuzzle(bool theRestart)
+{
+	Pause(false);
+	if (mTempleScreen != NULL)
+	{
+		mWidgetManager->RemoveWidget(mTempleScreen);
+		SafeDeleteWidget(mTempleScreen);
+		mTempleScreen = NULL;
+	}
+
+	const LevelData::Level* aLevel = mLevelData->GetLevel(mLevelData->mCurrentLevel);
+	int aPuzzle = mLevelData->mCurrentPuzzle;
+	UserProfile* aUser = mUserDirectory->GetCurrent();
+	if (theRestart && aUser != NULL && aLevel != NULL && aPuzzle >= 0 && aPuzzle < (int) aLevel->mPuzzles.size())
+		mProgress->RemoveHistory(aUser->mId, aLevel->mPuzzles[aPuzzle].mUuid);
+	ShowBoard(mLevelData->mCurrentLevel, aPuzzle);
+}
+
+// 0x434f70
+void PixelusApp::ShowResumeQuestion()
+{
+	KillDialog(0x20);
+	Dialog* aDialog = DoDialog(0x20, true, GT(0x512684), GT(0x512698), "", Dialog::BUTTONS_YES_NO);
+	CenterDialog(aDialog);
+}
+
+// 0x433de0: yes carries on with the saved puzzle, no starts it again
+void PixelusApp::ResumeAnswer(bool theResume)
+{
+	KillDialog(0x20);
+	StartPuzzle(!theResume);
+}
+
+// 0x4101d0: the player skips the tutorial
+void PixelusApp::SkipTutorialOK()
+{
+	KillDialog(0x1b);
+	UserProfile* aUser = mUserDirectory->GetCurrent();
+	if (aUser != NULL)
+		aUser->mFlag79 = true;
+	BackToIsland();
 }
 
 void PixelusApp::ShowStory(bool theFromMenu, int theChapter)
@@ -355,6 +486,7 @@ void PixelusApp::ShowBoard(const std::string& theLevel, int thePuzzle)
 		SafeDeleteWidget(mBoard);
 		mBoard = NULL;
 	}
+	FadeOutAllMusic(this);
 	mBoard = new Board(this, theLevel, thePuzzle);
 	mBoard->Resize(0, 0, mWidth, mHeight);
 	mWidgetManager->AddWidget(mBoard);
@@ -370,6 +502,7 @@ void PixelusApp::LeaveBoard()
 	mWidgetManager->RemoveWidget(mBoard);
 	SafeDeleteWidget(mBoard);
 	mBoard = NULL;
+	ShowTemple();
 }
 
 // 0x434e40: the question before a puzzle is started over
@@ -409,6 +542,20 @@ void PixelusApp::ButtonDepress(int theId)
 	case 3024:
 		KillDialog(24);
 		Pause(false);
+		return;
+	case 2025:		// "Not yet" / mystery puzzle notice
+		KillDialog(0x19);
+		if (mTempleScreen != NULL)
+			mWidgetManager->SetFocus(mTempleScreen);
+		return;
+	case 2027:		// skip the tutorial
+		SkipTutorialOK();
+		return;
+	case 2032:		// a saved puzzle: carry on or start again
+		ResumeAnswer(true);
+		return;
+	case 3032:
+		ResumeAnswer(false);
 		return;
 	case 2018:
 		SelectUserOK(true);

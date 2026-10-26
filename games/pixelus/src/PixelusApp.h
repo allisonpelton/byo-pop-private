@@ -21,6 +21,8 @@ namespace Sexy
 class Widget;
 class Board;
 class MainMenu;
+class IslandMap;
+class TempleScreen;
 class LoadingScreen;
 class MemoryImage;
 class LevelData;
@@ -41,10 +43,10 @@ public:
 
 	Board*					mBoard;             // +0x678 the puzzle screen (0x432550)
 	Widget*					mHelpScreen;        // +0x67c over the board (0x4328c0)
-	Widget*					mTempleScreen;      // +0x680 the puzzles of one temple, over a snapshot of the map (0x432420)
+	TempleScreen*			mTempleScreen;      // +0x680 the puzzles of one temple, over a snapshot of the map (0x432420)
 	LoadingScreen*			mLoadingScreen;     // +0x684 (Init)
 	MainMenu*				mMainMenu;          // +0x688
-	Widget*					mIslandMap;         // +0x68c (0x432600)
+	IslandMap*				mIslandMap;         // +0x68c (0x432600)
 	Widget*					mPuzzleCompleted;   // +0x690 (0x4326c0)
 	Widget*					mMoreGames;         // +0x694 (0x432780)
 	Widget*					mHintOverlay;       // +0x698
@@ -57,6 +59,8 @@ public:
 	LevelData*				mLevelData;         // +0x768 (Init: 0x42abd0)
 	UserDirectory*			mUserDirectory;     // +0x76c (Init: 0x43da10)
 	ProgressManager*		mProgress;          // +0x770 (Init: 0x421380)
+	int						mCurrentTemple;     // +0x780 the temple the player is in (an index of gTemples)
+	std::string				mLastSolvedUuid;    // +0x77c the puzzle just solved: its picture comes in on the temple screen
 	// +0x774 SessionLog (0x43aac0) is the original's statistics file for the developers; not ported
 
 public:
@@ -87,6 +91,14 @@ public:
 	void					ShowOptions();                                  // 0x432a10 (0x4194d0 with 0)
 	void					ShowQuitDialog();                               // 0x4e3970
 	void					ShowIslandMap();                                // 0x432600
+	void					BackToMainMenu();                               // 0x433c90: from the island
+	void					EnterTemple(int theTemple);                     // 0x4170d0: a click on a temple of the island
+	void					ShowTemple();                                   // 0x432420 (the island is kept as its backdrop)
+	void					BackToIsland();                                 // 0x432ac0
+	void					StartPuzzle(bool theRestart);                   // 0x433820: from the temple to the board
+	void					ShowResumeQuestion();                           // 0x434f70 (dialog 0x20)
+	void					ResumeAnswer(bool theResume);                   // 0x433de0
+	void					SkipTutorialOK();                               // 0x4101d0
 	void					ShowStory(bool theFromMenu, int theChapter);    // 0x432960
 	void					ShowRenameDialog(const std::string& theName);   // 0x432fc0 (dialog 0x15)
 	void					ShowDeleteQuestion(const std::string& theName); // 0x434bc0 (dialog 0x14)
