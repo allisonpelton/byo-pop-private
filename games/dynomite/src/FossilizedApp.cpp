@@ -1,5 +1,9 @@
 #include "FossilizedApp.h"
+#include "Dynomite.h"
+#include "SideBar.h"
+#include "InchySmall.h"
 #include "TitleScreen.h"
+#include "compat2004/Compat2004.h"
 #include "DDImage.h"
 #include "Dialog.h"
 #include "ImageFont.h"
@@ -22,6 +26,15 @@ FossilizedApp::FossilizedApp()
 	mHeight = 480;
 	mMusicVolume = 0.5;
 	mSfxVolume = 0.85;
+	mRand.SRand(GetTickCount());
+	mField1084 = 1;
+	mField1088 = 0;
+	mGameMode = 2;
+	mField1094 = false;
+	mField10bc = NULL;
+	mSideBar = NULL;
+	mIntroScreen = NULL;
+	mBoard = NULL;
 	mTitleScreen = NULL;
 	mImgTitle = NULL;
 	mTinyFont = NULL;
@@ -109,7 +122,89 @@ void FossilizedApp::TitleScreenDone()
 	mWidgetManager->RemoveWidget(mTitleScreen);
 	SafeDeleteWidget(mTitleScreen);
 	mTitleScreen = NULL;
-	// TODO: the side bar (0x435420) at +0x19e4, then the main menu (0x4186d0)
+	mSideBar = new SideBar(this);
+	mSideBar->Resize(0, 0, 0x96, 0x1e0);
+	mWidgetManager->AddWidget(mSideBar);
+	mSideBar->MarkDirty();
+	ShowMainMenu();
+}
+
+// 0x4186d0
+void FossilizedApp::ShowMainMenu()
+{
+	if (mBoard != NULL)
+	{
+		mWidgetManager->RemoveWidget(mBoard);
+		SafeDeleteWidget(mBoard);
+		mBoard = NULL;
+	}
+	if (mField10bc != NULL)
+	{
+		mWidgetManager->RemoveWidget(mField10bc);
+		SafeDeleteWidget(mField10bc);
+		mField10bc = NULL;
+	}
+	mSideBar->DisableGameButtons();
+	mSideBar->SetPauseState(0);
+	// TODO: the main menu (IntroScreen 0x424e90, 0x284 bytes) at +0x19e8, resized to (150, 0, 490, 480), added
+	// and put at the back
+	mSideBar->mInchy->Sink(0);
+}
+
+// 0x418a00 (slot 18): the game's dialog, in the white small font on its dialog pictures
+Dialog* FossilizedApp::NewDialog(int theDialogId, bool isModal, const SexyString& theDialogHeader,
+	const SexyString& theDialogLines, const SexyString& theDialogFooter, int theButtonMode)
+{
+	Dialog* aDialog = new Dialog2004(mPicDialog->mImage, mPicDbutton->mImage, theDialogId, isModal, theDialogHeader,
+		theDialogLines, theDialogFooter, theButtonMode);
+	aDialog->SetButtonFont(mWhiteFontSmall);
+	aDialog->SetHeaderFont(mWhiteFontSmall);
+	aDialog->SetLinesFont(mWhiteFontSmall);
+	aDialog->SetColor(1, Color(0xff, 0xff, 0xff));
+	aDialog->SetColor(3, Color(0xff, 0xff, 0xff));
+	aDialog->mContentInsets = Insets(0x26, 0x26, 0x26, 0x26);
+	aDialog->Resize(0xdc, 0x96, 0x170, aDialog->GetPreferredHeight(0x15c));
+	return aDialog;
+}
+
+// 0x41e770: the side bar's menu button; in a game it asks first (dialog 1)
+void FossilizedApp::MenuButton()
+{
+	if (mField1094 == true)
+	{
+		ShowMainMenu();
+		mField1094 = false;
+		return;
+	}
+	if (mBoard != NULL)
+	{
+		if (mBoard->mField131 == true)
+		{
+			ShowMainMenu();
+			return;
+		}
+		DoDialog(1, true, GetString("FOSSAPP_NEW_GAME"), GetString("ARE_YOU_SURE_YOU_WANT_TO_QUIT_THE_CURRENT_GAME"), "",
+			Dialog::BUTTONS_YES_NO);
+	}
+}
+
+// 0x41e590: dialog 0
+void FossilizedApp::ConfirmExit()
+{
+	DoDialog(0, true, GetString("EXIT_GAME"), GetString("ARE_YOU_SURE_YOU_WANT_TO_EXIT_DYNOMITE"), "",
+		Dialog::BUTTONS_YES_NO);
+}
+
+// 0x418ba0: the options dialog (2)
+void FossilizedApp::ShowOptions()
+{
+	// TODO: OptionsDialog (0x42ee20, 0x154 bytes)
+}
+
+// 0x419130: a picture of the screen for the save dialog, then the save dialog
+void FossilizedApp::SaveGame()
+{
+	// TODO: SaveGameDialog (0x433910, 0x2d0 bytes)
 }
 
 // port: the loading runs in the main thread, so the loader draws the title screen now and then

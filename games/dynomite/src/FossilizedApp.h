@@ -6,6 +6,7 @@
 // cell, font and sound is a field, with the original's offset in its comment (a translated function that reads
 // app+0x1298 finds its field by that offset).
 
+#include "MTRand.h"
 #include "SexyApp.h"
 #include "Sprite.h"
 
@@ -15,6 +16,9 @@ namespace Sexy
 class DDImage;
 class ImageFont;
 class SoundInstance;
+class Dynomite;
+class IntroScreen;
+class SideBar;
 class TitleScreen;
 
 class FossilizedApp : public SexyApp
@@ -64,14 +68,9 @@ public:
 	Pic*         mPicThumb;                               // +0x1314
 	Pic*         mPicInchysmallsheet;                     // +0x1318
 	Pic*         mPicInchysmallblink;                     // +0x131c
-	Cell*        mPicInchysmallsheet_c0;                  // +0x1320
-	Cell*        mPicInchysmallsheet_c1;                  // +0x1324
-	Cell*        mPicInchysmallsheet_c2;                  // +0x1328
+	Cell*        mInchyCells[3];                             // +0x1320 inchysmallsheet_c0..c2
 	Pic*         mPicInchysmallmouthsheet;                // +0x132c
-	Cell*        mPicInchysmallmouthsheet_c0;             // +0x1330
-	Cell*        mPicInchysmallmouthsheet_c1;             // +0x1334
-	Cell*        mPicInchysmallmouthsheet_c2;             // +0x1338
-	Cell*        mPicInchysmallmouthsheet_c3;             // +0x133c
+	Cell*        mInchyMouthCells[4];                        // +0x1330 inchysmallmouthsheet_c0..c3
 	Pic*         mPicSidebarbuttons;                      // +0x1340
 	Cell*        mPicSidebarbuttons_r1344;                // +0x1344
 	Cell*        mPicSidebarbuttons_r1348;                // +0x1348
@@ -80,20 +79,9 @@ public:
 	Cell*        mPicSidebarbuttons_r1354;                // +0x1354
 	Cell*        mPicSidebarbuttons_r1358;                // +0x1358
 	Pic*         mPicSkillsheet;                          // +0x135c
-	Cell*        mPicSkillsheet_c0;                       // +0x1360
-	Cell*        mPicSkillsheet_c1;                       // +0x1364
-	Cell*        mPicSkillsheet_c2;                       // +0x1368
-	Cell*        mPicSkillsheet_c3;                       // +0x136c
-	Cell*        mPicSkillsheet_c4;                       // +0x1370
-	Cell*        mPicSkillsheet_c5;                       // +0x1374
-	Cell*        mPicSkillsheet_c6;                       // +0x1378
+	Cell*        mSkillCells[7];                             // +0x1360 skillsheet_c0..c6
 	Pic*         mPicPausebuttons;                        // +0x137c
-	Cell*        mPicPausebuttons_c0;                     // +0x1380
-	Cell*        mPicPausebuttons_c1;                     // +0x1384
-	Cell*        mPicPausebuttons_c2;                     // +0x1388
-	Cell*        mPicPausebuttons_c3;                     // +0x138c
-	Cell*        mPicPausebuttons_c4;                     // +0x1390
-	Cell*        mPicPausebuttons_c5;                     // +0x1394
+	Cell*        mPauseCells[6];                             // +0x1380 pausebuttons_c0..c5
 	Cell*        mPicPausebuttons_r1398;                  // +0x1398
 	Cell*        mPicPausebuttons_r139c;                  // +0x139c
 	Pic*         mPicLeftwall;                            // +0x13a0
@@ -160,14 +148,7 @@ public:
 	Cell*        mPicTextwords_c3;                        // +0x18dc
 	Cell*        mPicTextwords_c4;                        // +0x18e0
 	Pic*         mPicCombotext;                           // +0x18e4
-	Cell*        mPicCombotext_c0;                        // +0x18e8
-	Cell*        mPicCombotext_c1;                        // +0x18ec
-	Cell*        mPicCombotext_c2;                        // +0x18f0
-	Cell*        mPicCombotext_c3;                        // +0x18f4
-	Cell*        mPicCombotext_c4;                        // +0x18f8
-	Cell*        mPicCombotext_c5;                        // +0x18fc
-	Cell*        mPicCombotext_c6;                        // +0x1900
-	Cell*        mPicCombotext_c7;                        // +0x1904
+	Cell*        mComboTextCells[8];                         // +0x18e8 combotext_c0..c7
 	Pic*         mPicAlert;                               // +0x1908
 	Pic*         mPicBolt;                                // +0x190c
 	Pic*         mPicWhirleyalarm;                        // +0x1910
@@ -254,6 +235,16 @@ public:
 	SoundInstance* mTicktockInstance;                      // +0x1aa0
 	PicFont*     mAnnounceFont1928;                       // +0x1928 the same font as +0x192c
 
+	MTRand       mRand;                                   // +0x5d8 seeded with the tick count
+	int          mField1084;                              // +0x1084 (1)
+	int          mField1088;                              // +0x1088 (0)
+	int          mGameMode;                               // +0x108c 1 puzzle, 2 panic, 3 fossil, 4 time trial
+	bool         mField1094;                              // +0x1094 the menu button goes straight to the main menu
+	Widget*      mField10bc;                              // +0x10bc a widget the main menu takes down
+	SideBar*     mSideBar;                                // +0x19e4
+	IntroScreen* mIntroScreen;                            // +0x19e8 the main menu
+	Dynomite*    mBoard;                                  // +0x19ec
+
 	// set in Init (0x41f820)
 	DDImage*     mImgTitle;                               // +0x10c0 images\Title
 	DDImage*     mImgGreenbar;                            // +0x10c4 images\greenbar
@@ -276,6 +267,15 @@ public:
 
 	DDImage*		GetGameImage(const std::string& thePath);	// 0x419ad0
 	void			LoadGame();									// 0x419c30 (InitHook, slot 15)
+	virtual Dialog*	NewDialog(int theDialogId, bool isModal, const SexyString& theDialogHeader,
+		const SexyString& theDialogLines, const SexyString& theDialogFooter, int theButtonMode) override;	// 0x418a00
+
+	void			ShowMainMenu();								// 0x4186d0
+	void			StartGame();								// 0x418810
+	void			MenuButton();								// 0x41e770: the side bar's menu button
+	void			ShowOptions();								// 0x418ba0
+	void			ConfirmExit();								// 0x41e590
+	void			SaveGame();									// 0x419130
 	void			TitleScreenDone();							// 0x419250: the play link
 	void			PumpLoading();								// port: the loading runs in the main thread
 };
