@@ -66,8 +66,9 @@ install folder or a zip of it into its own IndexedDB folder (`/ttpersist`) and k
 
 Native options: `-gamedir=<dir>` (else `assets/tiptop` next to the exe or up to two levels up, or the retail install),
 `-userdir=<dir>` (the preferences and the saved game; the original kept them in its own folder), `-fast`, `-seed=N`
-(the C library generator's seed, otherwise the clock) and `-script=<file>` (the framework's scripted input:
-`<update> click <x> <y>`, `key <name>`, `char <c>`, `screenshot <file>`, `quit`).
+(the C library generator's seed, otherwise the clock), `-script=<file>` (the framework's scripted input:
+`<update> click <x> <y>`, `key <name>`, `char <c>`, `screenshot <file>`, `quit`, and TipTop's `canvasshot <file>`) and
+`-canvas=<width>x<height>` (a test run's larger screen, see Testing).
 
 ## Testing
 
@@ -82,6 +83,13 @@ strategy game in its first level (it does not plan).
 What the bot does not reach was checked with scripts: the options, instructions, credits and high score screens, the
 end of a game through the save dialog, and the saved game's panel and continue on the new game screen (natively, and
 in the browser across a page reload).
+
+To see what the game draws beyond 640x480 (the hidden timed mode's button and high score rows, placed at 1000 by the
+configuration), `-canvas=<width>x<height>` gives the game a larger screen, of which the window still shows the top left
+640x480, and the script command `canvasshot <file>` saves all of it as a PNG after blanking what earlier screens left
+outside 640x480 and redrawing every layer (`src/testhooks/Canvas.cpp`). With `-canvas=1280x1200` the main menu shows
+the timed mode's best score at y=1000, the high scores screen its table of five, and the new game screen its button at
+(1000, 1000).
 
 An AddressSanitizer build (2026-10-25): `cmake -S . -B build/native-asan -G Ninja -DCMAKE_BUILD_TYPE=Debug
 -DCMAKE_TOOLCHAIN_FILE=cmake/llvm-mingw-i686.cmake -DSDL2_DIR=... "-DCMAKE_CXX_FLAGS=-fsanitize=address

@@ -9,6 +9,7 @@
 #include "compat2004/Compat2004.h"
 
 #include <SDL.h>
+#include <cstdio>
 #include <cstdlib>
 #include <cstring>
 
@@ -58,9 +59,13 @@ void TipTopWidget::Update()
 void TipTopWidget::Draw(Graphics* g)
 {
 	const uint32_t* aScreen = lowos::HostScreen();
+	int aWidth, aHeight;
+	lowos::HostScreenSize(&aWidth, &aHeight);
 	ulong* aBits = mScreenImage->GetBits();
-	for (int i = 0; i < 640 * 480; i++)
-		aBits[i] = 0xff000000 | aScreen[i];
+	// the top left 640x480 of a larger -canvas screen
+	for (int y = 0; y < 480; y++)
+		for (int x = 0; x < 640; x++)
+			aBits[y * 640 + x] = 0xff000000 | aScreen[y * aWidth + x];
 	mScreenImage->BitsChanged();
 	g->DrawImage(mScreenImage, 0, 0);
 }
@@ -191,6 +196,8 @@ void TipTopApp::RunFrame()
 		Shutdown();
 		return;
 	}
+	if (!mCanvasShot.empty())
+		SaveCanvasShot();
 	int aMode = lowos::HostTakeScreenModeRequest();
 	if (aMode != 0)
 	{
@@ -236,7 +243,7 @@ void TipTopApp::SwitchScreenMode(bool wantWindowed, bool is3d, bool force)
 }
 
 // the command line: -autoplay=<seed> -autoplaymode=regular|strategy|speed -autoplaygames=N -autoplaycap=N
-// -autoplaylog=<file> -autoplayshots=<prefix> (testhooks/Autoplay.cpp)
+// -autoplaylog=<file> -autoplayshots=<prefix> (testhooks/Autoplay.cpp); -canvas=<width>x<height> (testhooks/Canvas.cpp)
 void TipTopApp::HandleCmdLineParam(const std::string& theParamName, const std::string& theParamValue)
 {
 	if (theParamName == "-autoplay")
@@ -255,6 +262,15 @@ void TipTopApp::HandleCmdLineParam(const std::string& theParamName, const std::s
 		mAutoplayLog = theParamValue;
 	else if (theParamName == "-autoplayshots")
 		mAutoplayShots = theParamValue;
+	else if (theParamName == "-canvas")
+	{
+		int aWidth = 0, aHeight = 0;
+		if (sscanf(theParamValue.c_str(), "%dx%d", &aWidth, &aHeight) == 2 && aWidth >= 640 && aHeight >= 480 &&
+			aWidth <= 4096 && aHeight <= 4096)
+			lowos::HostSetCanvas(aWidth, aHeight);
+		else
+			SDL_Log("-canvas=%s: expected <width>x<height>, from 640x480 to 4096x4096", theParamValue.c_str());
+	}
 	else
 		SexyAppBase::HandleCmdLineParam(theParamName, theParamValue);
 }

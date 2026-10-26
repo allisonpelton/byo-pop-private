@@ -61,6 +61,10 @@ public:
 	virtual void LostFocus() override;
 	virtual void SwitchScreenMode(bool wantWindowed, bool is3d, bool force = false) override;
 	virtual void HandleCmdLineParam(const std::string& theParamName, const std::string& theParamValue) override;
+	// Test hook (testhooks/Canvas.cpp): the -script command canvasshot <file> saves the whole screen of a -canvas run
+	virtual bool HandleScriptCommand(const ScriptCommand& theCommand) override;
+	void SaveCanvasShot();
+	std::string mCanvasShot;  // the file of a canvasshot, saved after the next frame
 	using SexyAppBase::SwitchScreenMode;
 
 	// One pass of the original's main loop, then the screen mode it asked for

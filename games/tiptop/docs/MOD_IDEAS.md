@@ -13,7 +13,9 @@ can change different keys.
 its high score rows are placed off the screen by the configuration, but its level list, its ramps, its starting high
 scores and its rules (a meter that empties with time, a level won when the meter reaches the goal, the game lost when
 it runs out) are all there and translated. A mod that moves the button and the high score rows on screen brings it
-back; the menus' layout leaves room for a fourth button only if the others move a little.
+back, but it needs pictures too: the archive's button for the mode is a 16x16 placeholder, and the backgrounds of the
+main menu and the high scores screen have panels and names for three modes only. The menus' layout leaves room for a
+fourth button only if the others move a little.
 
 **Rules from the configuration.** The configuration already holds almost every number of the game: the board's columns
 and rows, each mode's levels (speed, rows to clear, goals), the ramps that make the special blocks and the random
