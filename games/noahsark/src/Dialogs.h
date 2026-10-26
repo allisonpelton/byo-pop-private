@@ -77,6 +77,8 @@ public:
 	virtual void		EditWidgetText(int theId, const SexyString& theString) override;
 	virtual bool		AllowChar(int theId, SexyChar theChar) override;
 	using Widget::Resize;
+
+	void				DrawEditBox(Graphics* g, int theX, int theY, int theWidth);     // 0x41dca0
 };
 
 // 0x41c230: volume, full screen, hints, and the way to the help, scores and credits
@@ -115,9 +117,11 @@ class TutorialDialog : public Dialog2004, public CheckboxListener
 public:
 	NoahApp*			mApp;                   // +0xc8
 	Checkbox*			mAgainCheckbox;         // +0xcc id 0
-	int					mStep;                  // +0xd4 which part of the picture is showing
-	int					mCursorX;               // +0xd8
+	int					mWait;                  // +0xd0 updates the last part of the picture has shown
+	int					mStep;                  // +0xd4 which part of the picture is showing (0 to 4)
+	int					mCursorX;               // +0xd8 the cursor's position in the picture
 	int					mCursorY;               // +0xdc
+	bool				mClicked;               // +0xe0 the cursor is pressed down
 
 public:
 	TutorialDialog(NoahApp* theApp);
