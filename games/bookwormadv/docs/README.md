@@ -68,17 +68,20 @@ for example `lua profile.Set('UnlockedArena', true)` once the main menu is up (a
 
 ## Testing
 
-`tools/check.sh bookwormadv` (about two minutes) runs the PopLua compiler's dialect checks, loads every compiled
-script of the game with the port's VM, every PopAnim animation, and four Flash cut scenes to their end, then plays:
-from the title to the main menu, whose quit asks (Play! stays, Quit quits), and the test profile's first chapter,
-spelling with `word attack` until it is won and saved. The unit suite
-(`tools/check.sh unit`) checks the JPEG 2000 decoder against Pillow's pictures in `re/bookwormadv/jp2ref` and the
-pak reader against the staged files.
+`tools/check.sh bookwormadv` (about two and a half minutes) runs the PopLua compiler's dialect checks, loads every
+compiled script of the game with the port's VM, every PopAnim animation, and four Flash cut scenes to their end, then
+plays three runs of the test profile. The first goes from the title to the main menu, whose quit asks (Play! stays,
+Quit quits). The second wins the first chapter, spelling with `word attack`, and saves it. The third goes through the
+screens off the main menu: the credits from the options (skipped), the players dialog (cancelled), the mini-games'
+menu and its way back, and the arena from its intro and treasure room through Cassandra's tutorial to its first word.
+The unit suite (`tools/check.sh unit`) checks the JPEG 2000 decoder against Pillow's pictures in
+`re/bookwormadv/jp2ref`, and `unit-web` checks the page's pak reader against the staged files.
 
-What the suite does not reach was checked with scripts: the arena from the main menu (its treasure room, the tutorial
-and a timed fight), the hall of fame, the tome and its media player, the credits from the options, the players dialog
-(choosing, adding, deleting, a name in use), the mini-games' menu and its three games, and in the browser the import,
-the main menu, the map and a battle.
+What the suite does not reach was checked with scripts: a timed fight in the arena, the hall of fame, the tome and its
+media player, the players dialog's choosing, adding and deleting (and a name in use), and the three mini-games. In
+the browser: the import,
+the main menu, the map, a battle, the credits, the players dialog, the mini-games' menu, a game of Word Master left
+for the hall of fame, the tome, and the window losing and regaining the focus.
 
 ## Mods
 
@@ -88,7 +91,9 @@ making.
 ## Status (2026-10-26)
 
 The adventure, the arena, the mini-games, the hall of fame, the tome, the credits and the players dialog play
-natively; in the browser the import, the main menu, the map and a battle are tested so far. Left out: the media player's music visualiser (it needs the music's spectrum, which the
+natively and in the browser (where the arena was not reached, as only a script command unlocks it for a test
+profile). Tiles and letters are chosen by clicking, as in the original: no widget of the exe chooses them by typed letters
+(the board's keys are only 1 to 4, Enter and space; the scripts' KeyChar handlers are empty). Left out: the media player's music visualiser (it needs the music's spectrum, which the
 platform's player does not give yet), the trial and its buy screens (the port plays as bought), and the developers'
 tools in the exe (the DProps editor, the Lua debugger console). Notes starting `port:` in the code mark every place
 where the port differs from the original.
