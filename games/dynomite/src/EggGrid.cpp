@@ -5,6 +5,7 @@
 #include "AngleTable.h"
 #include "Rect.h"
 #include "Sprite.h"
+#include "compat2004/Compat2004.h"
 
 using namespace Sexy;
 
@@ -1140,5 +1141,147 @@ void EggGrid::Update()
 			break;
 		aRecounted = true;
 		CountRows();
+	}
+}
+
+// 0x417760: the eggs row by row (the rows past the line blink while the warning is on; a baby egg shakes; an egg
+// past the board's right edge, or in row 90 or below, breaks), then the ceiling's foot and the ceiling
+void EggGrid::Draw()
+{
+	Dynomite* aBoard = mBoard;
+	int aLeft = (aBoard->mField70 - aBoard->mField6c) + 0x10;
+	int y = (int) mCeiling;
+	int aCols = aBoard->mField68 / 0x21 + 1;
+	int x = aLeft;
+	int aLastRow = (int) mRows;
+	if ((0 < mPastLineFrames) && (mWarning == true) && (mField4690 == false))
+	{
+		GridPoint aPoint;
+		ScreenToGrid(0, aBoard->mField74, &aPoint);
+		PixelToCell(0, aPoint.mY, &aPoint);
+		aLastRow = aPoint.mY;
+	}
+	bool aBroke = false;
+	int aRow = 0;
+	if (-1 < aLastRow)
+	{
+		do
+		{
+			x = aLeft;
+			if ((aRow % 2) != 0)
+				x = aLeft + 0x10;
+			int aCol = 0;
+			if (0 < aCols)
+			{
+				do
+				{
+					GridCell* aCell = &mCells[aCol][aRow];
+					unsigned int aColor = aCell->mBits & 0xff;
+					if (aColor < 0x32)
+					{
+						if ((aColor != 0) && (aColor < 0x14))
+						{
+							if (aRow < 0x5a)
+							{
+								if ((mBoard->mField70 + 0x10 + mBoard->mField6c < x + 0x21) && (mField46e5 == false))
+								{
+									GridPoint aPixel;
+									CellToPixel(aCol, aRow, &aPixel);
+									GridPoint aScreen;
+									GridToScreen(aPixel.mX, aPixel.mY, &aScreen);
+									// the original keeps the stack slot's bits from 13 up
+									GridCell aBroken;
+									aBroken.mBits = aColor;
+									Break(aScreen.mX, aScreen.mY, &aBroken);
+									Remove(aCol, aRow, false);
+									aBroke = true;
+								}
+								else
+								{
+									Point aShake;
+									if ((aCell->mBits & 0x100) != 0)
+									{
+										aShake.mX = CrtRand() % 9 - 4;
+										aShake.mY = CrtRand() % 9 - 4;
+										AddDrawOffset(aShake);
+									}
+									if (mDynamite[aCol][aRow] != NULL)
+										mDynamite[aCol][aRow]->Draw();
+									// port: the original's app +0x13c0 + colour * 4 is the egg sheet's cell colour - 1
+									Cell* anEgg = mApp->mEggCells[(aCell->mBits & 0xff) - 1];
+									anEgg->Draw(x - (anEgg->mWidth >> 1), y - (anEgg->mHeight >> 1));
+									unsigned int aKind = aCell->mBits >> 9 & 0xf;
+									if (aKind != 0)
+									{
+										// port: the original's app +0x1830 + kind * 4 is the bonus egg sheet's cell kind - 1
+										anEgg = mApp->mBonusEggCells[aKind - 1];
+										anEgg->Draw(x - (anEgg->mWidth >> 1), y - (anEgg->mHeight >> 1));
+									}
+									if ((aCell->mBits & 0x100) != 0)
+									{
+										aShake.mX = -aShake.mX;
+										aShake.mY = -aShake.mY;
+										AddDrawOffset(aShake);
+									}
+								}
+							}
+							else
+							{
+								GridPoint aPixel;
+								CellToPixel(aCol, aRow, &aPixel);
+								GridPoint aScreen;
+								GridToScreen(aPixel.mX, aPixel.mY, &aScreen);
+								Break(aScreen.mX, aScreen.mY, aCell);
+								Remove(aCol, aRow, false);
+								mApp->mSndBreakegg->Play();
+								CountRows();
+							}
+						}
+					}
+					else
+						mBoard->DrawPiece(aColor, x, y);
+					x = x + 0x21;
+					aCol++;
+				} while (aCol < aCols);
+			}
+			y = y + 0x21;
+			aRow++;
+		} while (aRow <= aLastRow);
+		if (aBroke)
+		{
+			DropLoose();
+			mApp->mSndBreakegg->Play();
+		}
+	}
+	if (0.0f < mCeiling)
+	{
+		int aCeiling = (int) (mCeiling - 16.0f);
+		int aLeftEdge = mBoard->mField70;
+		int aHalf = mBoard->mField6c;
+		int aRight = aHalf + aLeftEdge;
+		int aFoot = aCeiling;
+		if (mField46d0 == true)
+			aFoot = aCeiling - 0x14;
+		Pic* aPic = mApp->mPicFoot;
+		if (-1 < aFoot)
+			aPic->DrawStretched(aLeftEdge - aHalf, aFoot - aPic->mHeight, aRight, aFoot, true);
+		if (mField46d0 == true)
+		{
+			int aMiddle = mBoard->mField70;
+			aHalf = mBoard->mField6c;
+			aPic = mApp->mPicCeiling;
+			int aX = aMiddle - aHalf;
+			if (aPic->mWidth + aX < aHalf + aPic->mWidth + aMiddle)
+			{
+				int aWidth;
+				do
+				{
+					aPic->Draw(aX, aCeiling - aPic->mHeight);
+					aPic = mApp->mPicCeiling;
+					aWidth = aPic->mWidth;
+					aX = aX + aWidth;
+				} while (aWidth + aX < mBoard->mField70 + mBoard->mField6c + aWidth);
+			}
+		}
 	}
 }

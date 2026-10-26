@@ -118,21 +118,21 @@ public:
 	int					mPastLineFrames;	// +0x4684 frames the eggs have been past the board's line
 	bool				mWarning;			// +0x4688 the warning's blink, on or off
 	int					mWarningBlink;		// +0x468c
-	bool				mField4690;			// +0x4690
+	bool				mField4690;			// +0x4690 (Draw hides nothing past the line while it is set)
 	bool				mField4691;			// +0x4691 (set when the eggs first pass the line)
 	PtrList<GridTarget>	mTargets;			// +0x4694
 	bool				mBabyEggsOn;		// +0x46ac
 	int					mBabyEggChance;		// +0x46b0 one in this many frames (200)
 	int					mField46b4;			// +0x46b4 (200)
 	PtrList<BabyEgg>	mBabyEggs;			// +0x46b8
-	bool				mField46d0;			// +0x46d0
+	bool				mField46d0;			// +0x46d0 the ceiling is drawn (20 pixels higher foot)
 	bool				mBreakPastLine;		// +0x46d1 Update breaks the eggs past the line
 	int					mBlastX;			// +0x46d4 Blast's sums, then the middle
 	int					mBlastY;			// +0x46d8
 	int					mBlastCount;		// +0x46dc
 	int					mEggCount;			// +0x46e0 matchable eggs in the lowest ten rows (100)
 	bool				mLoneEgg;			// +0x46e4 set before a landing egg is placed; cleared when it touches its colour
-	bool				mField46e5;			// +0x46e5
+	bool				mField46e5;			// +0x46e5 (eggs past the right edge are kept)
 
 	EggGrid(FossilizedApp* theApp, Dynomite* theBoard);		// 0x415770
 	virtual ~EggGrid();										// 0x417420
@@ -150,6 +150,7 @@ public:
 	void				PushDown();											// 0x418020: two new rows on top
 	void				BreakPastLine();									// 0x416e30
 	void				Update();											// 0x4174c0
+	void				Draw();												// 0x417760
 	unsigned int		Probe(int x, int y, bool theGhost);					// 0x4169c0
 	void				Break(int x, int y, GridCell* theCell);				// 0x415a20
 	void				Place(int theCol, int theRow, int theColor, int theKind);	// 0x416590
