@@ -31,7 +31,7 @@ struct SoundSamples : public SDLSoundManager
 			const std::shared_ptr<Platform::SoundData>& aData = (theManager->*aSounds)[i];
 			if (aData == NULL)
 				continue;
-			aBytes += aData->mSamples.capacity() * sizeof(float);
+			aBytes += aData->Bytes();
 			(*theCount)++;
 		}
 		return aBytes;
@@ -107,7 +107,7 @@ bool WriteMemReport(SexyAppBase* theApp, const std::string& theFileName)
 	{
 		int aCount = 0;
 		size_t aBytes = SoundSamples::Bytes(aSoundManager, &aCount);
-		fprintf(aFile, "sounds: %d, %.2f MB of samples at %d Hz\n", aCount, aBytes / MB, Platform::Mixer::Get().GetRate());
+		fprintf(aFile, "sounds: %d, %.2f MB of samples\n", aCount, aBytes / MB);
 	}
 
 	fputs(DescribeHeaps().c_str(), aFile);

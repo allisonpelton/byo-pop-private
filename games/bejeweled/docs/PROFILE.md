@@ -22,8 +22,9 @@ run.
 
 ## 2. Where the memory goes
 
-While playing, the process has a working set of 57 to 68 MB and about 57 MB of private bytes. The working set by
-owner, from a snapshot 15 seconds into the game:
+Sections 2 to 4 are the profile as it was made, before the framework changes of section 5. While playing, the
+process has a working set of 57 to 68 MB and about 57 MB of private bytes. The working set by owner, from a snapshot
+15 seconds into the game:
 
 | Owner | Resident |
 |---|---|
@@ -86,20 +87,32 @@ Processor time is a share of one core, and it varies by about a point from run t
 4 bytes a pixel, since it has more than 256 colours once its alpha mask is applied, and so does the background art, a
 JPEG. The board's two backgrounds are made from it during play, after loading, and are drawn into at every level.
 
-## 5. What the framework could save
+## 5. What the framework saved
 
-The rest of the heap is the framework's to change, and these were proposed to the coordinator:
+The rest of the heap was the framework's to change. Three changes were proposed to the coordinator, and two of them
+have been in `main` since 2026-10-26:
 
-- **Smaller sounds.** Keeping each sound as 16-bit samples at its own rate and channels, and resampling as it mixes
-  (the mixer already steps through a sound at a rate), would make the 7.4 MB about 2.5 MB. Keeping the Ogg data and
-  decoding a sound as it plays would make it about 0.3 MB.
-- **The premultiply buffer.** Uploading in strips through a small buffer, or releasing it after loading, saves 2.4 MB.
-- **Pixels after upload.** SexyAppFramework let an image drop its pixels once the GPU had them (`PurgeBits`); the
-  port keeps them, since a texture cannot be read back. An image loaded from a file could drop them and load the file
-  again when they are needed (a lost device, a second texture filter, a software draw from it). That frees the gem
-  sheet's 2.2 MB and most of the other images' pixels.
+- **Smaller sounds** (in `main`). Each sound is kept as 16-bit samples at its file's own rate, with its first one or
+  two channels, and a voice resamples it as it mixes. The 21 sounds take 2.35 MB instead of 7.4. Keeping the Ogg data
+  and decoding a sound as it plays would make it about 0.3 MB.
+- **The premultiply buffer** (in `main`). Images are converted and uploaded 64K pixels at a time, so the buffer stays
+  at 256 KB instead of 2.4 MB.
+- **Pixels after upload** (not for now). SexyAppFramework let an image drop its pixels once the GPU had them
+  (`PurgeBits`); the port keeps them, since a texture cannot be read back. An image loaded from a file could drop
+  them and load the file again when they are needed (a lost device, a second texture filter, a software draw from
+  it), which would free the gem sheet's 2.2 MB and most of the other images' pixels. The coordinator left it for now:
+  reloading has to reproduce exactly what loading did, some code draws into images after they load, and no game's
+  heap has been shown to be at risk.
 
-With all three the heap would be about 12 MB, and the game's own data (images, sounds and music) about 5 MB.
+The same moment of the same game as section 2, 15 seconds in:
+
+| Rules | Heap before | Heap with the two changes |
+|---|---|---|
+| The original | 27.6 MB | 21.6 MB |
+| lean, the default settings | 24.1 MB | 17.2 MB |
+
+Dropping the pixels after upload as well would take the lean heap to about 12 MB, and the game's own data (images,
+sounds and music) to about 5 MB.
 
 ## 6. Why not 3 MB
 
