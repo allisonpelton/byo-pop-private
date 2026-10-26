@@ -1,10 +1,4 @@
 # Volume 1 addresses of GT(...) uses whose text has no single match in Volume 2: gametext.py leaves them
 # out (they read as empty) until each is found in Volume 2's decompile and the source rewritten. What is left:
-# the credits' lines (Credits.cpp, to be rewritten from Volume 2's data-driven credits) and the word that starts
-# the Astro Pop flash (TestHooks.cpp).
+# the word that starts the Astro Pop flash (TestHooks.cpp).
 0x7aad5c
-0x7abfbc
-0x7abfc0
-0x7abfc4
-0x7abfc8
-0x7abfcc
