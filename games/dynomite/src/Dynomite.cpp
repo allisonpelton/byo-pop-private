@@ -301,6 +301,49 @@ void Dynomite::Update()
 	}
 }
 
+// 0x404930
+void Dynomite::KeyDown(KeyCode theKey)
+{
+	if ((theKey == KEYCODE_SPACE) || (theKey == KEYCODE_ESCAPE))
+		mApp->mSideBar->SetPauseState(0);
+	if ((theKey == KEYCODE_F1) || (theKey == (KeyCode) 'P'))
+		mApp->mSideBar->SetPauseState(0);
+}
+
+// 0x404a30
+void Dynomite::MouseMove(int x, int y)
+{
+	Widget::MouseMove(x, y);
+	if ((mPauseCount == 0) && (mField244 == false))
+		mLauncher->Aim(x, y);
+}
+
+// 0x404a30, the same function as MouseMove
+void Dynomite::MouseDrag(int x, int y)
+{
+	Widget::MouseDrag(x, y);
+	if ((mPauseCount == 0) && (mField244 == false))
+		mLauncher->Aim(x, y);
+}
+
+// 0x404980: any button
+void Dynomite::MouseDown(int x, int y, int theClickCount)
+{
+	if ((mField244 != true) && (mPauseCount < 1) && (mField80 != true) && (mThunderbolt == NULL) &&
+		(mField130 == false) && (mField131 == false))
+	{
+		mLauncher->Fire();
+		mFieldB4++;
+		if ((gBoardGlobal5304a0 == 0) && (mApp->mInTutorial == false))
+		{
+			mApp->mMusicInterface->FadeIn(mSong, mField23c, 0.002, false);
+			gBoardGlobal5304a0 = 1;
+		}
+		mField16c = true;
+		mFieldB0 = true;
+	}
+}
+
 // 0x405070
 void Dynomite::UpdateGameOver()
 {

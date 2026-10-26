@@ -98,6 +98,11 @@ public:
 
 	virtual void		Draw(Graphics* g) override;		// 0x4044a0
 	virtual void		Update() override;				// 0x406aa0
+	virtual void		KeyDown(KeyCode theKey) override;	// 0x404930: space, escape, F1 and P pause
+	virtual void		MouseMove(int x, int y) override;	// 0x404a30 (slots 25 and 29)
+	virtual void		MouseDrag(int x, int y) override;	// 0x404a30
+	// 0x404980: fires, and the first shot of a run starts the music
+	virtual void		MouseDown(int x, int y, int theClickCount) override;
 
 	void				SetPaused(bool isPaused);		// 0x404fb0
 	void				SetActive(bool isActive);		// 0x4047e0
