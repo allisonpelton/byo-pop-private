@@ -78,6 +78,12 @@
       "runtimeExecutable": "python",
       "runtimeArgs": ["-m", "http.server", "18779", "--bind", "127.0.0.1", "--directory", "build/web"],
       "port": 18779
+    },
+    {
+      "name": "wordharmony-web",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-m", "http.server", "18778", "--bind", "127.0.0.1", "--directory", "build/web"],
+      "port": 18778
     }
   ]
 }

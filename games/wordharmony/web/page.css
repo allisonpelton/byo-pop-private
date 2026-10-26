@@ -1,0 +1,5 @@
+/* Word Harmony's look on the shared page (web/shell.html): the sea blue of its title, a letter ball as the brand mark */
+:root { --accent: #1f6fa8; --ball: #e8b23a; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --accent: #6fb3e6; } }
+:root[data-theme="dark"] { --accent: #6fb3e6; }
+.brand .mark { width: 12px; height: 12px; background: var(--ball); border-radius: 50%; box-shadow: 0 0 0 2px var(--accent); }
