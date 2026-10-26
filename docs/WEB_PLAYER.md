@@ -27,15 +27,17 @@ Big Money (`bigmoney.*`) and BookWorm (`bookworm.*`) have the same three files.
    both would write the same saves. A second tab shows "Already open" and starts by itself when the
    first one closes.
 4. **Mods.** The Mods panel finishes any removals that were waiting for this start.
-5. **Game files.** If there are none yet, the import card asks for the install folder or a .zip. Only the
+5. **Terms.** Until the player has agreed to this game's terms (below, "The terms"), the terms card comes
+   first, before any game files are imported or loaded.
+6. **Game files.** If there are none yet, the import card asks for the install folder or a .zip. Only the
    folders the game reads (`images`, `data`, `sounds`, `music`, `properties`) are copied. The browser's
    own `DecompressionStream` unpacks a .zip.
-6. **Play.** Browsers allow sound only after you click or press a key, so the page waits for "Play". Then
+7. **Play.** Browsers allow sound only after you click or press a key, so the page waits for "Play". Then
    it calls the game's `main()` with folder arguments (`-gamedir=/persist/game -userdir=... -modsdir=...`),
    plus `-gameseed=N` for a `?seed=N` in the address, `-placeholders` for `?placeholders=1` and `-nomods` for
    "Play without mods". From then on,
    the game runs one frame per browser animation frame, as SDL drives it.
-7. **Leaving.** Quitting from the game's menu shows the exit card. Closing the tab works too: the game's
+8. **Leaving.** Quitting from the game's menu shows the exit card. Closing the tab works too: the game's
    saves are written to IndexedDB as they happen, and a small backup goes to localStorage, because a
    closing tab cannot wait for IndexedDB.
 
@@ -119,7 +121,7 @@ then copies the result to `bejeweled.html` and puts the `<script>` that loads `b
 `{{{ SCRIPT }}}` marker.
 
 The shell holds:
-- the bar, the canvas and the cards (import, start, already open, exit) as HTML and CSS;
+- the bar, the canvas and the cards (terms, import, start, already open, exit) as HTML and CSS;
 - its script, which boots in the order described above: storage, the instance lock, import, start, the
   `?seed=`, `?silent=` and `?placeholders=` address options, and the exit card;
 - the panels' containers, which `web/modpanel.js` fills.
@@ -143,6 +145,36 @@ At configure time `byopop_web_shell()` in `cmake/ByopopWeb.cmake` writes both fi
 Each game sets its own name, its notice (the copyright and trademark lines of its readme) and any libraries of
 its own: `byopop_web_game(<target> TITLE "..." COPYRIGHT "..." [LICENSES <name>...])` in its `CMakeLists.txt`
 (BookWorm: `LICENSES libopenmpt`). A web host serves the copyright page with the game's page.
+
+### The terms
+
+Before a game's files are imported or loaded, its page shows the game's terms with a checkbox ("I own a licensed copy
+of ..., and I agree to these terms") and a Continue button that stays disabled until the box is ticked. The terms say
+that the player owns a licensed copy and loads the files from it (a never-bought trial is not one), keeps the files to
+themselves, plays for no commercial purpose, gets no rights in the game from the terms, takes the player as is, and
+removes the files if they no longer own a copy. They are a record of the player's agreement, not a lock: nothing in a
+page can check a purchase.
+
+The text is `web/terms.html`, one file for every game. `byopop_web_shell()` fills in the game's `TITLE` and
+`COPYRIGHT` and puts it on the terms card (at the shell's `<!-- byopop:terms -->`) and in the copyright page's Terms
+section (`@BYOPOP_TERMS@`). The page keeps the agreement in localStorage under `byopop-terms-<PAGE.id>`, with the
+first 12 hex digits of the SHA-1 of the filled-in text as its version: each game asks on its own, and any change to
+the wording, or to a game's name or notice, asks again. Where localStorage fails, the agreement lasts until the page
+closes. Boot shows the card, and the import, the start and "Play without mods" refuse to go ahead without the
+agreement. A test in the Browser pane ticks the box once per origin (and game), as a player would; the agreement then
+stays for that origin.
+
+### Where to buy
+
+Under the terms, on the card and on the copyright page, one line says where the game can be bought digitally ("Where
+to buy Big Money Deluxe digitally, as of October 25, 2026: Steam, EA app", each store a link that opens in a new tab)
+or that it is not for sale as of a date. The stores are in `cmake/ByopopStores.cmake`, one shared file for every
+game: `set(BYOPOP_BUY_<target> <YYYY-MM-DD> [<store> <url>]...)`, the date the stores were checked and each store
+that sells the game. A game with a web page and no entry stops the configure with a message. Only stores that sell
+the game new and digitally under the publisher's license are listed, on their own trusted sites: the publisher's
+store, platforms like Steam, established game stores. Key resellers and second-hand sales are not. The file records
+which stores were checked; check them again before a launch, and change the date with the result. The line is not
+part of the terms' version, so a change of stores asks nobody to agree again.
 
 ## The site's logo and icons
 

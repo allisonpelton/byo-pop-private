@@ -56,3 +56,15 @@ if(EMSCRIPTEN)
   target_compile_options(openmpt PRIVATE "-sDISABLE_EXCEPTION_CATCHING=0")
   target_link_options(openmpt INTERFACE "-sDISABLE_EXCEPTION_CATCHING=0")
 endif()
+
+# OpenJPEG 2.5.4 (BSD-2-Clause, openjpeg/LICENSE; openjpeg/BYO-POP.md): JPEG 2000 decoding, for the games whose images
+# are JPEG 2000 (Bookworm Adventures and later ones). The sources of src/lib/openjp2 as OpenJPEG's CMake lists them
+# (without JPIP); byopop/ holds the two config headers that CMake would generate. No MUTEX_* define: single-threaded.
+set(OPENJPEG_DIR ${CMAKE_CURRENT_SOURCE_DIR}/openjpeg)
+file(GLOB OPENJPEG_SOURCES ${OPENJPEG_DIR}/src/lib/openjp2/*.c)
+add_library(openjp2 STATIC ${OPENJPEG_SOURCES})
+target_include_directories(openjp2 PUBLIC ${OPENJPEG_DIR}/src/lib/openjp2 ${OPENJPEG_DIR}/byopop)
+target_compile_definitions(openjp2 PUBLIC OPJ_STATIC)
+if(NOT MSVC)
+  target_compile_options(openjp2 PRIVATE -w)
+endif()

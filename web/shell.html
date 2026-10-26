@@ -97,6 +97,23 @@ canvas#canvas { display: block; width: 100%; height: 100%; outline: none; image-
 .progress { height: 6px; background: var(--panel-2); border-radius: 99px; overflow: hidden; }
 .progress > div { height: 100%; width: 0; background: var(--accent); transition: width 120ms linear; }
 .error { color: var(--gem-ruby); }
+/* The terms card (web/terms.html): its text scrolls in its own box, and the card in the stage when the stage is small */
+#terms-overlay { overflow: auto; place-items: safe center; }
+.card.terms-card { max-width: 600px; }
+.terms {
+  max-height: 15em; overflow: auto; display: grid; gap: 10px; padding: 12px 14px; font-size: 13px;
+  background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px;
+}
+.terms p { color: var(--fg); }
+.terms .terms-notice { color: var(--muted); }
+.terms ol { margin: 0; padding-left: 1.4em; display: grid; gap: 6px; }
+.terms:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+/* a small stage: one scroll (the card's), not a box scrolling inside it */
+@media (max-width: 600px), (max-height: 600px) { .terms { max-height: none; overflow: visible; } }
+.card p.terms-buy { font-size: 13px; }
+.terms-buy a { color: var(--accent); font-weight: 600; }
+.agree { display: flex; gap: 8px; align-items: flex-start; font-weight: 600; cursor: pointer; }
+.agree input { accent-color: var(--accent); width: 16px; height: 16px; margin: 2px 0 0; flex: none; }
 input[type=file] { display: none; }
 
 /* Slide-over panels */
@@ -127,6 +144,19 @@ input[type=file] { display: none; }
 <div class="stage-wrap">
   <div class="stage" id="stage">
     <canvas id="canvas" tabindex="0" oncontextmenu="event.preventDefault()"></canvas>
+
+    <div class="overlay" id="terms-overlay" hidden>
+      <div class="card terms-card" role="dialog" aria-labelledby="terms-title">
+        <h2 id="terms-title">Terms for @BYOPOP_TITLE@</h2>
+        <div class="terms" tabindex="0" aria-label="The terms">
+<!-- byopop:terms -->
+        </div>
+<!-- byopop:buy -->
+        <label class="agree"><input type="checkbox" id="terms-agree" autocomplete="off"> I own a licensed copy of
+          @BYOPOP_TITLE@, and I agree to these terms</label>
+        <div class="row"><button class="primary" id="btn-terms" type="button" disabled>Continue</button></div>
+      </div>
+    </div>
 
     <div class="overlay" id="import-overlay" hidden>
       <div class="card">
@@ -466,6 +496,35 @@ input[type=file] { display: none; }
     });
   }
 
+  // ---------- terms ----------
+  // The game's terms (web/terms.html, with its name and notice) come before its files are imported or loaded: boot shows
+  // them first, and the import and the start check them again. The agreement is kept per game, with the version of
+  // its terms (a hash of their text), so each game asks on its own and changed terms ask again. Where localStorage
+  // fails (a private window, blocked site data), it lasts until the page closes.
+  var TERMS_KEY = "byopop-terms-" + PAGE.id, TERMS_VERSION = "@BYOPOP_TERMS_VERSION@";
+  var termsAgreed = false;
+  function hasAgreed() {
+    if (!termsAgreed) {
+      try { termsAgreed = localStorage.getItem(TERMS_KEY) === TERMS_VERSION; } catch (e) {}
+    }
+    return termsAgreed;
+  }
+  function showTerms() {
+    $("start-overlay").hidden = $("import-overlay").hidden = true;
+    $("terms-agree").checked = false;  // a reload may bring back the box's last state
+    $("btn-terms").disabled = true;
+    $("terms-overlay").hidden = false;
+    setStatus("Terms to agree to");
+  }
+  $("terms-agree").addEventListener("change", function (ev) { $("btn-terms").disabled = !ev.target.checked; });
+  $("btn-terms").addEventListener("click", function () {
+    if (!$("terms-agree").checked) return;
+    termsAgreed = true;
+    try { localStorage.setItem(TERMS_KEY, TERMS_VERSION); } catch (e) {}
+    $("terms-overlay").hidden = true;
+    boot();
+  });
+
   // ---------- boot ----------
   // ?seed=N (PAGE.seeds): passed on as -gameseed=N, the seed of every new game until one is played on it. Digits
   // only, 1..4294967295 (leading zeros allowed, as on native). 0 without the parameter; -1 for any other value: the
@@ -482,7 +541,7 @@ input[type=file] { display: none; }
   function pageSilent() { return new URLSearchParams(location.search).get("silent") === "1"; }
   // noMods: this run only (-nomods), the rescue when a mod stops the game from starting
   function startGame(isAutostart, noMods) {
-    if (started) return;
+    if (started || !hasAgreed()) return;
     started = true;
     closePanels();
     $("start-overlay").hidden = true;
@@ -513,12 +572,14 @@ input[type=file] { display: none; }
         gameDirs: GAME_DIRS, gameFiles: GAME_FILES, intro: PAGE.modsIntro,
         isOpen: function () { return !$("panel-mods").hidden; },
         show: function () { openPanel("panel-mods"); },
-        canPlay: function () { return !started && hasGameFiles(); },
+        canPlay: function () { return !started && hasAgreed() && hasGameFiles(); },
         playWithoutMods: function () { startGame(false, true); }
       });
     }
     // Removals and replacements that waited for this start, then the mods as the game will see them
     panel.boot();
+    // The terms come before any game files are imported or loaded
+    if (!hasAgreed()) { showTerms(); return; }
     if (!hasGameFiles()) {
       setStatus("Game files needed");
       showImport();
@@ -541,6 +602,7 @@ input[type=file] { display: none; }
   // The import card, over the Ready card; with game files stored it can go back to that (Cancel). Only before the
   // game starts: once it has, "Import again" closes it and shows this in a new page.
   function showImport() {
+    if (!hasAgreed()) { showTerms(); return; }
     $("start-overlay").hidden = true;
     $("btn-import-cancel").hidden = !hasGameFiles();
     $("import-overlay").hidden = false;
@@ -550,7 +612,7 @@ input[type=file] { display: none; }
   var importing = false;
   var IMPORT_NOTE = $("import-msg").textContent;
   function onGamePicked(promise) {
-    if (importing) return;
+    if (importing || !hasAgreed()) return;
     importing = true;
     $("btn-import-cancel").disabled = true;
     promise.then(importGame).then(function (ok) {
