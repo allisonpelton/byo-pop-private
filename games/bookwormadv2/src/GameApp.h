@@ -148,8 +148,10 @@ public:
 	Profile* mProfile = nullptr;                   // +0x950, the player's
 	ArrowHintManager* mArrowHintManager = nullptr; // +0x964: the tutorial's arrows (made by LoadingThreadCompleted)
 	bool mKillCutSceneWhenDone = false;            // +0x96d
-	// port: the original's music interface was a JeffLib::SexyBassMusicInterface; this does what it added
+	// port: Volume 1's tracker-module song player. Volume 2 has none (its music is ten OGG files the scripts load by
+	// song id with LoadMusic), so this stays null; what still reaches it is guarded
 	JeffLib::SongPlayer* mSongPlayer = nullptr;
+	int mLastSongId = 0;                           // port: the song PlaySong started last
 	std::string mProfileErrors;                    // +0x8c8: CheckProfiles' report of the profiles it deleted
 
 	GameApp();
@@ -300,6 +302,12 @@ public:
 	void InitGameScreen(bool theHidden);
 	void RemoveBookManager();  // 0x449340
 	void HideBookManager();    // 0x44a830: the book and its buttons
+	// the scripts' music, by song id (the music interface's own ids): 0x4448c0, 0x445290, 0x4452f0
+	void LoadMusic(int theSongId, const std::string& theName);
+	void PlayMusic(int theSongId, int theOffset, bool theFadeOthers);
+	void UnloadMusic(int theSongId);
+	// 0x43de80 and others inline this one: not playing yet, then the others fade out and the song starts
+	void PlaySong(int theSongId, float theFadeSpeed, bool theLoop);
 	void RemoveMainMenu();     // 0x449300
 	// 0x44cd00: the Flash movie theFile with theCaption, after the curtain; theCallback (a scripts' function)
 	// once it has closed over the movie's end. theHide keeps it hidden until the curtain is closed.

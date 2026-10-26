@@ -89,8 +89,8 @@ the real test of the VM.
 Milestone 2 (the title, menus, dialogs and cut scenes) is under way: `bookwormadv2.exe` (`-DBWA2_GAME=ON`, off by
 default until the milestone is done) builds from `src/` reworked for Volume 2's resource ids and classes, and runs
 headless under `-script`: the PopCap logo, the title with its curtain, the New User dialog and, after OK, the intro cut
-scene up to `gBookManager:StartGame`, which stops at `gCApp:LoadMusic`, one of the bound methods of Volume 2's
-`GameApp` the port lacks (`PORT_PLAN.md`). `MainMenu`, `TitleScreen`, `ArenaWinDialog` and `Board` are reworked; the main
+scene and the prologue battle of book 0, drawn by Volume 2's scripts (`PORT_PLAN.md`; nothing of the battle has been
+played yet). `MainMenu`, `TitleScreen`, `ArenaWinDialog` and `Board` are reworked; the main
 menu's pictures, hit masks and animated items are in but its screen has not been seen yet (the run has no profile that
 has played), and replaying a finished adventure, `BookSelectScreen`, Volume 2's secret words and the music (ten loose OGG
 files, a different player from Volume 1's) are not done. The cut scene player lacks the bitmap tags Volume 2's five

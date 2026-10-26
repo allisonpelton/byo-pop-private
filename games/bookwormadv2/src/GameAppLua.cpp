@@ -146,11 +146,25 @@ void ReleaseCachedSample(GameApp* app, int theId)
 	}
 }
 
-// 0x44f410: the music interface's vf 0x54. port: the song player does what the original's interface added
-void PlaySong(GameApp* app, int theOrder, float theSpeed, bool theLoop)
+// Volume 2's: (song id, fade speed, loop, a flag the port ignores; see GameApp::PlaySong)
+void PlaySong(GameApp* app, int theSongId, float theSpeed, bool theLoop, bool)
 {
-	if (app->mSongPlayer != nullptr)
-		app->mSongPlayer->PlaySong(theOrder, theSpeed, theLoop);
+	app->PlaySong(theSongId, theSpeed, theLoop);
+}
+
+void LoadMusic(GameApp* app, int theSongId, std::string theName)
+{
+	app->LoadMusic(theSongId, theName);
+}
+
+void PlayMusic(GameApp* app, int theSongId, int theOffset, bool theFadeOthers)
+{
+	app->PlayMusic(theSongId, theOffset, theFadeOthers);
+}
+
+void UnloadMusic(GameApp* app, int theSongId)
+{
+	app->UnloadMusic(theSongId);
 }
 
 // 0x44f440: the music interface's vf 0x58. port: the song player's queue
@@ -437,6 +451,9 @@ void GameApp::RegisterGameAppMethods()
 		.Function<&::PlayCachedSample>("PlayCachedSample")
 		.Function<&::ReleaseCachedSample>("ReleaseCachedSample")
 		.Function<&::PlaySong>("PlaySong")
+		.Function<&::LoadMusic>("LoadMusic")
+		.Function<&::PlayMusic>("PlayMusic")
+		.Function<&::UnloadMusic>("UnloadMusic")
 		.Function<&::PlaySongWhenDone>("PlaySongWhenDone")
 		.Function<&::DoingCurtainTransition>("DoingCurtainTransition")
 		.Function<&::IsResGroupLoaded>("IsResGroupLoaded")

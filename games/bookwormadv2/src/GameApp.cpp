@@ -96,15 +96,6 @@ void GameApp::Init()
 	LoadResourceManifest();
 	LoadGameTexts();
 	mNumLoadingThreadTasks = mResourceManager->GetNumResources("CommonGame") + 1;
-	if (mMusicInterface != nullptr) {
-		mSongPlayer = new JeffLib::SongPlayer(mMusicInterface);
-		mSongPlayer->LoadSong("sounds/music.mo3", 12.0);
-		// the media player's spectrum: 320 x 240. port: cleared (the original's is not until a song plays)
-		mSongPlayer->mSpectrumWidth = 320;
-		mSongPlayer->mSpectrumHeight = 240;
-		delete[] mSongPlayer->mSpectrum;
-		mSongPlayer->mSpectrum = new unsigned char[320 * 240]();
-	}
 
 	if (!mResourceManager->LoadResources("TitleAndMM"))
 		ShowResourceError(true);
@@ -804,8 +795,8 @@ void GameApp::ShowMainMenu(bool theFromTitle, bool theToBack)
 		mWidgetManager->BringToFront(mHallOfFame);
 	if (mCurtain != nullptr)
 		mWidgetManager->BringToFront(mCurtain);
-	if (!mNoMusic && mSongPlayer != nullptr)
-		mSongPlayer->PlaySong(0x8c, 0.005f, true);  // the main menu's song
+	if (!mNoMusic)
+		PlaySong(0x8c, 0.006f, true);  // the main menu's song
 	mWidgetManager->SetFocus(mMainMenu);
 	ClearUpdateBacklog(false);
 }
@@ -929,8 +920,8 @@ void GameApp::StartIntro(int theMode)
 	HideBookManager();
 	if (aNewPlayer)
 		mPlayIntro = true;
-	if (!mNoMusic && mSongPlayer != nullptr)
-		mSongPlayer->PlaySong(0x1b, 0.005f, true);  // the intro's song
+	if (!mNoMusic)
+		PlaySong(0x8c, 0.006f, true);  // the intro's song (0x43df46: the same one as the main menu's)
 	PlayCutScene("images/cutscenes/intro.swf", "gBookManager:StartGame", GT(0x6fb018), true, false);
 	if (mCurtain != nullptr)
 		mWidgetManager->BringToFront(mCurtain);
@@ -1312,6 +1303,42 @@ void GameApp::RemoveBookManager()
 	mBookManager->CallLinkedMethod("Destructor", 0);
 	SafeDeleteWidget(mBookManager);
 	mBookManager = nullptr;
+}
+
+// 0x4448c0: the file is music/<name>.ogg (the scripts name a song "<book>_level", "<book>_map", "<book>_boss")
+void GameApp::LoadMusic(int theSongId, const std::string& theName)
+{
+	if (mMusicInterface != nullptr)
+		mMusicInterface->LoadMusic(theSongId, "music\\" + theName + ".ogg");
+}
+
+// 0x445290: a song that is not playing yet, the others faded out first when asked
+void GameApp::PlayMusic(int theSongId, int theOffset, bool theFadeOthers)
+{
+	if (mMusicInterface == nullptr || mMusicInterface->IsPlaying(theSongId))
+		return;
+	if (theFadeOthers)
+		mMusicInterface->FadeOutAll(true, 0.006);
+	mMusicInterface->PlayMusic(theSongId, theOffset, false);
+	mLastSongId = theSongId;
+}
+
+// 0x4452f0: not while it plays
+void GameApp::UnloadMusic(int theSongId)
+{
+	if (mMusicInterface != nullptr && !mMusicInterface->IsPlaying(theSongId))
+		mMusicInterface->UnloadMusic(theSongId);
+}
+
+// 0x43df46 (inlined into the intro's start): the other songs fade out by theFadeSpeed, then the song starts
+// (port: the scripts' PlaySong has a fourth flag the inlined copies cannot show; not found yet)
+void GameApp::PlaySong(int theSongId, float theFadeSpeed, bool theLoop)
+{
+	if (mMusicInterface == nullptr || mMusicInterface->IsPlaying(theSongId))
+		return;
+	mMusicInterface->FadeOutAll(true, theFadeSpeed);
+	mMusicInterface->PlayMusic(theSongId, 0, !theLoop);
+	mLastSongId = theSongId;
 }
 
 void GameApp::HideBookManager()

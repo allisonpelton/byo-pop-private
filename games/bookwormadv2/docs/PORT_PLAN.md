@@ -46,16 +46,21 @@ compared with 0x46c5d0, 0x46c4b0, 0x46cb30, 0x46cde0 and 0x46d130.
 
 Headless, `build/native/rundesk.exe build/native/bookwormadv2.exe -gamedir=assets/bookwormadv2 -userdir=<empty> -script=<file> -fast`
 (script lines `<update> click <x> <y> | screenshot <png> | key | char | quit`): the PopCap logo, the title with its
-curtain, the New User dialog (texts read from the exe) and, after OK, the intro cut scene until `gBookManager:StartGame`,
-which stops with `gCApp:LoadMusic` missing: the bound methods of Volume 2's `GameApp` are not all in `GameAppLua.cpp`.
+curtain, the New User dialog (texts read from the exe) and, after OK at (400, 435), the intro cut scene, then the
+prologue battle of book 0 ("Is it Stuffy In Here?"): Lex, Stuffy, the tile board, the conversation panel, all drawn by
+Volume 2's own scripts (`gBookManager:StartGame`, `book0`, `battleengine`). That is milestone 3's ground reached early;
+nothing of the battle has been played yet (clicks on tiles, attacks, the word list, the end of the battle).
 
-## Bound methods of Volume 2's GameApp the port lacks (the registrations of 0x43a850 against `GameAppLua.cpp`)
+## Bound methods of Volume 2's GameApp (the registrations of 0x43a850 against `GameAppLua.cpp`)
 
-`PlayMusic`, `LoadMusic(int, string)` (0x44c7b0) and `UnloadMusic` (0x44be90), and the transitions
-`DoReplayToHOFTransition`, `DoCSToMiniMenuTransition` and `DoHighScoreScreenFromReplay`; four more take their names from
-strings the registration code holds itself and still have to be read. The music ones come first: Volume 2 plays its ten
-loose OGG files (`music/`) by song id where Volume 1 played tracker module orders, so `SongPlayer` is replaced, not
-adapted.
+Missing: the transitions `DoReplayToHOFTransition`, `DoCSToMiniMenuTransition` and `DoHighScoreScreenFromReplay`, and four
+more whose names the registration code takes from its own strings and still have to be read. `LoadMusic` (0x4448c0, the
+file is `music\<name>.ogg`), `PlayMusic(id, offset, fadeOthers)` (0x445290) and `UnloadMusic` (0x4452f0) are in, over the
+framework's `MusicInterface` by song id; Volume 1's tracker-module `SongPlayer` is not made (`mSongPlayer` stays null) and
+`PlaySong(id, speed, loop, flag)` is the inlined `IsPlaying`, `FadeOutAll`, `PlayMusic` of 0x43df46 (its fourth flag was
+not found; the implementation behind 0x44c490 has not been located). The ids the port's C++ plays (0x8c for the menu and
+the intro; the credits', mini games' and stats book's are still Volume 1's order numbers and play nothing) have to be
+checked against Volume 2's code.
 
 ## Why the exact-match counts look worse than the survey's
 
