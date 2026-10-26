@@ -66,3 +66,15 @@ Board field facts (also in re/alchemy/fields_Board.txt): +0x60 mState (0 play,1 
 Functions read so far: Board 401130,40118b,401220,401304,401324,40153a,401682,401707,4017ba,4017dd,40182f,40187c,4019d1,401a82,401c9b,401d15,402a44(save),
 402f42,402fcf(tutorial step setup),403c24(hint balloons),403ee5,403f5c,40400d(board cleared screen),406f2a(Update);
 App 4118c9,41159c,41222f,411a41,411b43,412d69,4124cf,413eea,410ee0,410f28,410fef,4110bf,411138,411357.
+
+## Plan and decisions (2026-10-26)
+
+- Dropped as the wrapper's/DRM: registration dialogs (40f314, 40f5e0, 413846, 413ab9, 413a2f), nags (413bdc PREGAME_NAG, 413e12 TIME_TRIAL_NAG), license
+  errors, internet scores (41351d, 4131ca score upload), update check (412139, UpdateCheckDialog), URL/browser dialogs (412aa0, 412c68). The port is
+  a registered copy; "more games" links are not opened.
+- Order: read the rest of Board (404923 Draw, 4053e0..40578f, 40589a load game, 405e31, 4061d6..406347 place piece, 4068f1 MouseDown, 4062e5, 406ee4,
+  407dc4..407ebe), then the screens (408..412 classes), then write src/: AlchemyApp, Board (+BoardDraw), Piece, Screens, HighScores, Dialogs, main.cpp,
+  testhooks/Autoplay.cpp; games/alchemy/CMakeLists.txt; BUILD_ALCHEMY option in the top CMakeLists.txt and a `.claude/launch.json` entry on port 18777
+  (shared: commit); tools/stage_alchemy_assets.py; web/page.js+page.css; tools/check.sh suite `alchemy` (shared: commit); README.
+- The port pattern is games/atomica (Sonnet, 2003 framework, SexyApp from the port framework, sexycompat2004): copy its main.cpp / CMake / web page / check suite.
+  The strings are SexyApp::GetString ids read from properties/default.xml by the port framework (LoadProperties); no GameText.
