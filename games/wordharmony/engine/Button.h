@@ -111,6 +111,61 @@ public:
 	Selector* mSelector;  // +0xfc (a child)
 };
 
+// A check box (0x108 bytes, built inline by the layout reader, vtable 0x483dc8): four images, unchecked and checked,
+// each with its over image; a press flips it
+class CheckBox : public Button
+{
+public:
+	CheckBox();
+
+	void mouseMove(Point& p) override {}  // 0x9c: 0x429d50
+	// 0xf8: 0x434ce0, the unchecked and checked images are needed; an over image defaults to its plain one
+	virtual bool setImages(Image* theUnchecked, Image* theUncheckedOver, Image* theChecked, Image* theCheckedOver);
+	// 0xfc: 0x42c1e0
+	virtual bool isChecked() { return mChecked; }
+	// 0x100: 0x435020
+	virtual void setChecked(bool theChecked);
+	// 0x104: 0x434ff0, shows the plain image of the state
+	virtual void updateImage();
+
+protected:
+	void onMouseDown(Point& p) override;   // 0x80: 0x434f10
+	void onMouseEnter(Point& p) override;  // 0xa4: 0x434f60
+	void onMouseExit(Point& p) override;   // 0xac: 0x434fa0
+
+public:
+	bool mChecked;        // +0xfc
+	Selector* mSelector;  // +0x100 (a child)
+};
+
+class TextItem;
+
+// A text button (0x158 bytes, constructor 0x42c2c0, vtable 0x483f10): a text node whose font changes with the mouse
+class TextButton : public Button
+{
+public:
+	TextButton();  // 0x42c2c0
+
+	virtual void setText(std::string theText);  // 0xf8: 0x435080
+	virtual void setHAlign(int theAlign);       // 0xfc: 0x435040
+	virtual void setVAlign(int theAlign);       // 0x100: 0x435050
+	virtual void setStyle(unsigned int theStyle);  // 0x104: 0x435060
+	virtual std::string getText();              // 0x108: 0x435120
+	// 0x10c: 0x435240, the fonts by name; the text node is made here, so the button needs the first two
+	virtual bool setFonts(const std::string& theFont, const std::string& theOverFont, const std::string& theActiveFont);
+
+protected:
+	void onMouseDown(Point& p) override;   // 0x80: 0x435150
+	void onMouseEnter(Point& p) override;  // 0xa4: 0x435190
+	void onMouseExit(Point& p) override;   // 0xac: 0x4351f0
+
+public:
+	std::string mFont;        // +0xfc
+	std::string mOverFont;    // +0x118
+	std::string mActiveFont;  // +0x134
+	TextItem* mText;          // +0x150 (a child)
+};
+
 } // namespace engine
 
 #endif

@@ -32,7 +32,10 @@ private:
 	bool addImage(const XmlAttributes& theAttributes);        // 0x430280
 	bool addText(const XmlAttributes& theAttributes);         // 0x42ef20
 	bool addImageButton(const XmlAttributes& theAttributes);  // 0x42c920
+	bool addCheckBox(const XmlAttributes& theAttributes);     // 0x42d6f0
+	bool addTextButton(const XmlAttributes& theAttributes);   // 0x42e2b0
 	bool addGroup(const XmlAttributes& theAttributes);        // 0x42fa90
+	bool addTextSub(const XmlAttributes& theAttributes);      // 0x4300c0
 	bool addInclude(const XmlAttributes& theAttributes);      // 0x42fed0
 
 	ScreenLayout* mScreen;            // +0x14

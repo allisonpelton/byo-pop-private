@@ -51,7 +51,7 @@ The run loop 0x4552b0: frame period 1000 / fps (fps = config +0x90); the root wi
 seconds (+0xb8), 0x6c and 0x70 not yet read. The image loader (0x457510) reads a PNG or JPEG and, when
 `<dir>_<name>.png` exists, takes its alpha from that mask (0x45ea10; which channel is not yet checked).
 
-Screens, ported and checked (the engine test reads all 27 layouts of the archive into ScreenLayouts, 459 named nodes,
+Screens, ported and checked (the engine test reads all 27 layouts of the archive into ScreenLayouts, 469 named nodes,
 every font of the layouts loaded):
 `ImageNode`, `FadeContainer` (0x429b70: groups and screens), `Selector` (0x426f10: one child shown, cross-fades),
 `Button` and `ImageButton` (0x432600, 0x429c70: hover scaling, flashing, enter and press sounds, listeners told under
@@ -59,8 +59,10 @@ the button's action; a press is told on mouse down), `ScreenLayout` (0x428640: n
 its ScreenListener, the controller's +0xc), `Layout` (the reader 0x42c7f0 with image, imageButton, group and include),
 `Sound.h` (the two SoundSystem slots the buttons call; App::getSoundSystem is the global 0x49bfc0), `TextItem`
 (0x427680: lines split at a literal backslash-n, aligned, underlined or struck through; setNumber puts commas in,
-setTime gives h:mm:ss) and the text element 0x42ef20. Still to port of the reader: particleSystem 0x42f760 (7), checkBox 0x42d6f0 (7), textButton
-0x42e2b0 (3, a Button subclass, vtable 0x483f10, constructor 0x42c2c0) and textSub 0x4300c0 (unused by the layouts).
+setTime gives h:mm:ss) and the text element 0x42ef20, `CheckBox` (0x483dc8: four images, a press flips it) and
+`TextButton` (0x42c2c0: a text node whose font follows the mouse) with their elements 0x42d6f0 and 0x42e2b0, and
+textSub 0x4300c0. Still to port of the reader: particleSystem 0x42f760 (7 uses; the particle code 0x430d20-0x435d50,
+ParticleSystem 0x42b920, ParticleStream 0x433390).
 
 Node vtable (0x484b50, 27 slots), by offset: 0 dtor, 4 getX, 8 getY, 0xc getPosition, 0x10 getAbsPosition, 0x14
 setPosition(Point), 0x18 setPosition(x, y), 0x1c setScale, 0x20 setRotation, 0x24 getBounds, 0x28 setOpacity, 0x2c

@@ -5,6 +5,7 @@
 #include "ImageNode.h"
 #include "Selector.h"
 #include "Sound.h"
+#include "TextItem.h"
 
 using namespace engine;
 
@@ -317,4 +318,164 @@ bool ImageButton::setImages(Image* theUp, Image* theOver, Image* theDown)
 	mSelector->select(0, 0, true);
 	setName("ImageButton");
 	return true;
+}
+
+// The layout reader's inline constructor sets neither field; setImages sets the state
+CheckBox::CheckBox()
+{
+	mChecked = false;
+	mSelector = nullptr;
+}
+
+// 0x434f10: the press flips the state before the button's press is told
+void CheckBox::onMouseDown(Point& p)
+{
+	mChecked = !mChecked;
+	if (mChecked)
+		mSelector->select(3, 0, true);
+	else
+		mSelector->select(1, 0, true);
+	Button::onMouseDown(p);
+}
+
+// 0x434f60
+void CheckBox::onMouseEnter(Point& p)
+{
+	if (mChecked)
+		mSelector->select(3, 0, true);
+	else
+		mSelector->select(1, 0, true);
+	Button::onMouseEnter(p);
+}
+
+// 0x434fa0
+void CheckBox::onMouseExit(Point& p)
+{
+	if (mChecked)
+		mSelector->select(2, 0, true);
+	else
+		mSelector->select(0, 0, true);
+	Button::onMouseExit(p);
+}
+
+// 0x434ce0: the pivots stay as they are, unlike the image button's
+bool CheckBox::setImages(Image* theUnchecked, Image* theUncheckedOver, Image* theChecked, Image* theCheckedOver)
+{
+	if (theUnchecked == nullptr || theChecked == nullptr)
+		return false;
+	mSelector = new Selector();
+	addChild(mSelector);
+	mSelector->addChild(new ImageNode(theUnchecked));
+	if (theUncheckedOver == nullptr)
+		mSelector->addChild(new ImageNode(theUnchecked));
+	else
+		mSelector->addChild(new ImageNode(theUncheckedOver));
+	mSelector->addChild(new ImageNode(theChecked));
+	if (theCheckedOver == nullptr)
+		mSelector->addChild(new ImageNode(theChecked));
+	else
+		mSelector->addChild(new ImageNode(theCheckedOver));
+	addOwnFlags(NODE_MOUSE);
+	mSelector->layout();
+	layout();
+	mSelector->select(0, 0, true);
+	setChecked(false);
+	return true;
+}
+
+// 0x435020
+void CheckBox::setChecked(bool theChecked)
+{
+	mChecked = theChecked;
+	updateImage();
+}
+
+// 0x434ff0
+void CheckBox::updateImage()
+{
+	if (mChecked)
+	{
+		mSelector->select(2, 0, true);
+		return;
+	}
+	mSelector->select(0, 0, true);
+}
+
+// 0x42c2c0
+TextButton::TextButton()
+{
+	mText = nullptr;
+}
+
+// 0x435080
+void TextButton::setText(std::string theText)
+{
+	mText->setText(theText);
+}
+
+// 0x435040
+void TextButton::setHAlign(int theAlign)
+{
+	mText->setHAlign(theAlign);
+}
+
+// 0x435050
+void TextButton::setVAlign(int theAlign)
+{
+	mText->setVAlign(theAlign);
+}
+
+// 0x435060
+void TextButton::setStyle(unsigned int theStyle)
+{
+	mText->mStyle = theStyle;
+}
+
+// 0x435120 (0x4350e0 copies the text node's text)
+std::string TextButton::getText()
+{
+	return mText->mText;
+}
+
+// 0x435240
+bool TextButton::setFonts(const std::string& theFont, const std::string& theOverFont, const std::string& theActiveFont)
+{
+	if (theFont.size() != 0 && theOverFont.size() != 0)
+	{
+		mFont = theFont;
+		mOverFont = theOverFont;
+		mActiveFont = theActiveFont;
+		mText = new TextItem();
+		addChild(mText);
+		mText->setFont(std::string(mFont));
+		addOwnFlags(NODE_MOUSE);
+		addOwnFlags(NODE_LISTENERS);
+		layout();
+		return true;
+	}
+	return false;
+}
+
+// 0x435150
+void TextButton::onMouseDown(Point& p)
+{
+	Button::onMouseDown(p);
+	mText->setFont(std::string(mActiveFont));
+}
+
+// 0x435190
+void TextButton::onMouseEnter(Point& p)
+{
+	if (!mPressed)
+		mText->setFont(std::string(mOverFont));
+	else
+		mText->setFont(std::string(mActiveFont));
+	Button::onMouseEnter(p);
+}
+
+// 0x4351f0
+void TextButton::onMouseExit(Point& p)
+{
+	mText->setFont(std::string(mFont));
+	Button::onMouseExit(p);
 }

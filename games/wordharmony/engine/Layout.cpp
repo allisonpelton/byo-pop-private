@@ -112,7 +112,7 @@ LayoutHandler::~LayoutHandler()
 }
 
 // 0x430910: an element the reader does not know is skipped (its children are still read). Not ported yet:
-// checkBox 0x42d6f0, textButton 0x42e2b0, particleSystem 0x42f760 and textSub 0x4300c0.
+// particleSystem 0x42f760.
 void LayoutHandler::startElement(const std::string& theName, const XmlAttributes& theAttributes)
 {
 	if (theName.compare("image") == 0)
@@ -130,9 +130,24 @@ void LayoutHandler::startElement(const std::string& theName, const XmlAttributes
 		addImageButton(theAttributes);
 		return;
 	}
+	if (theName.compare("checkBox") == 0)
+	{
+		addCheckBox(theAttributes);
+		return;
+	}
+	if (theName.compare("textButton") == 0)
+	{
+		addTextButton(theAttributes);
+		return;
+	}
 	if (theName.compare("group") == 0)
 	{
 		addGroup(theAttributes);
+		return;
+	}
+	if (theName.compare("textSub") == 0)
+	{
+		addTextSub(theAttributes);
 		return;
 	}
 	if (theName.compare("include") == 0)
@@ -294,6 +309,88 @@ bool LayoutHandler::addImageButton(const XmlAttributes& theAttributes)
 	return true;
 }
 
+// 0x42d6f0: like the image button, with an unchecked and a checked image (both needed) and their over images
+bool LayoutHandler::addCheckBox(const XmlAttributes& theAttributes)
+{
+	float x = getFloatAttribute(theAttributes, "x", 0);
+	float y = getFloatAttribute(theAttributes, "y", 0);
+	float anOpacity = getFloatAttribute(theAttributes, "opacity", 1.0f);
+	float aScaleX = getFloatAttribute(theAttributes, "scaleX", 1.0f);
+	float aScaleY = getFloatAttribute(theAttributes, "scaleY", 1.0f);
+	std::string anUncheckedFile = getStringAttribute(theAttributes, "uncheckedImg", "");
+	std::string anUncheckedOverFile = getStringAttribute(theAttributes, "uncheckedOverImg", "");
+	std::string aCheckedFile = getStringAttribute(theAttributes, "checkedImg", "");
+	std::string aCheckedOverFile = getStringAttribute(theAttributes, "checkedOverImg", "");
+	std::string anOverSound = getStringAttribute(theAttributes, "overSound", "");
+	std::string anActiveSound = getStringAttribute(theAttributes, "activeSound", "");
+	std::string aName = getStringAttribute(theAttributes, "name", "_ImgButton_");
+	std::string anAction = getStringAttribute(theAttributes, "action", "defaultAction");
+	Image* anUnchecked = App::instance()->getImage(anUncheckedFile.c_str());
+	Image* aChecked = App::instance()->getImage(aCheckedFile.c_str());
+	Image* anUncheckedOver = nullptr;
+	Image* aCheckedOver = nullptr;
+	if (anUncheckedOverFile.size() != 0)
+		anUncheckedOver = App::instance()->getImage(anUncheckedOverFile.c_str());
+	if (aCheckedOverFile.size() != 0)
+		aCheckedOver = App::instance()->getImage(aCheckedOverFile.c_str());
+	if (aChecked == nullptr || anUnchecked == nullptr)
+		return false;
+	CheckBox* aBox = new CheckBox();
+	if (!aBox->setImages(anUnchecked, anUncheckedOver, aChecked, aCheckedOver))
+		return false;
+	aBox->setPosition(x, y);
+	aBox->setOpacity(anOpacity);
+	aBox->setScale(aScaleX, aScaleY);
+	aBox->setSounds(anOverSound, anActiveSound);
+	aBox->setName(aName);
+	mScreen->listenTo(aBox, aName, anAction);
+	mScreen->registerNode(aBox, aName);
+	mGroups.back()->addChild(aBox);
+	return true;
+}
+
+// 0x42e2b0: the font and the over font are needed; the active font defaults to the over font
+bool LayoutHandler::addTextButton(const XmlAttributes& theAttributes)
+{
+	std::string aString = getStringAttribute(theAttributes, "string", "");
+	std::string aName = getStringAttribute(theAttributes, "name", "_Text_");
+	float x = getFloatAttribute(theAttributes, "x", 0);
+	float y = getFloatAttribute(theAttributes, "y", 0);
+	std::string anXAlign = getStringAttribute(theAttributes, "xAlign", "");
+	std::string aYAlign = getStringAttribute(theAttributes, "yAlign", "");
+	std::string aFont = getStringAttribute(theAttributes, "font", "");
+	std::string anOverFont = getStringAttribute(theAttributes, "overFont", "");
+	std::string anActiveFont = getStringAttribute(theAttributes, "activeFont", anOverFont);
+	std::string anAction = getStringAttribute(theAttributes, "action", "defaultAction");
+	std::string anOverSound = getStringAttribute(theAttributes, "overSound", "");
+	std::string anActiveSound = getStringAttribute(theAttributes, "activeSound", "");
+	if (aFont.size() == 0 || anOverFont.size() == 0)
+		return false;
+	TextButton* aButton = new TextButton();
+	if (!aButton->setFonts(aFont, anOverFont, anActiveFont))
+		return false;
+	aButton->setText(aString);
+	if (anXAlign.compare("center") == 0)
+		aButton->setHAlign(1);
+	else if (anXAlign.compare("right") == 0)
+		aButton->setHAlign(2);
+	else
+		aButton->setHAlign(0);
+	if (aYAlign.compare("middle") == 0)
+		aButton->setVAlign(1);
+	else if (aYAlign.compare("bottom") == 0)
+		aButton->setVAlign(2);
+	else
+		aButton->setVAlign(0);
+	aButton->setPosition(x, y);
+	aButton->setSounds(anOverSound, anActiveSound);
+	aButton->setName(aName);
+	mScreen->listenTo(aButton, aName, anAction);
+	mScreen->registerNode(aButton, aName);
+	mGroups.back()->addChild(aButton);
+	return true;
+}
+
 // 0x42fa90: a fading container; its rectangle is (0, 0, width, height)
 bool LayoutHandler::addGroup(const XmlAttributes& theAttributes)
 {
@@ -314,6 +411,17 @@ bool LayoutHandler::addGroup(const XmlAttributes& theAttributes)
 	mGroups.back()->addChild(aGroup);
 	mScreen->registerNode(aGroup, aName);
 	mGroups.push_back(aGroup);
+	return true;
+}
+
+// 0x4300c0: replaces the text of a named node, taken to be a text node as in the original (no layout uses it)
+bool LayoutHandler::addTextSub(const XmlAttributes& theAttributes)
+{
+	std::string aName = getStringAttribute(theAttributes, "name", "");
+	std::string aString = getStringAttribute(theAttributes, "string", "");
+	Node* aNode = mScreen->getNode(aName);
+	if (aNode != nullptr)
+		static_cast<TextItem*>(aNode)->setText(aString);
 	return true;
 }
 
