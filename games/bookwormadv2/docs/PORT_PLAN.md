@@ -153,9 +153,22 @@ are not playing, ids 400, 401, 500, 501, 600 and 601 (0x445320). The intro asks 
 plays nothing. Nothing else in the C++ plays a song: not the credits (`Credits` is a `DataDrivenClass` with
 `data/credits.xml` in Volume 2, which the port's Volume 1 `Credits` is not: to be rewritten from 0x42c160 onwards;
 `CloseCredits` 0x446ed0 has no song either and does not clear the no-music flag), not the mini games' menu, and the stats
-book's `PlayMusic` (bound at 0x47f5a0, called by `statsbook.luc` for a music entry) is not among the sites. The stats book
-of Volume 2 is a different class (a list with `SelectIndex`, `AddSecondaryLine`, `Rehup`, no media player in the
-sites found): the port's `StatsBook` is Volume 1's and to be rewritten from 0x47f5a0 as well.
+book's `PlayMusic` (bound at 0x47f5a0, called by `statsbook.luc` for a music entry) is not among the sites. `StatsBook::PlayMusic`
+(0x4815e0) only notes that a song plays, and ignores the song.
+
+The stats book is Volume 2's now (`StatsBook`, 0x47f4d0-0x481610, with `CustomListWidget` 0x481650-0x481e90 and the new
+`SecretListWidget` 0x481ec0-0x482390). Against Volume 1's: the tome has a second list, of secrets (a tray for each, `???` until
+found, the name written on the tray with the medium font once it is; no clicks, no hand), with its own slider (id 2) and two
+arrows (ids 12 and 13) that nothing shows; the scripts have `AddNewAreaLine` (a second text for each line of the list that
+`AddSecondaryLine`'s does not fill: the book draws the secondary texts after a timed game and the new area's in the tome),
+`AddSecretLine`, `ReloadSecrets` (empties the secrets and calls the script's `RehupSecretList`) and `Rehup` (what
+`SetLayoutFile` does after reading the layout: the "Continue Button", "List" and, in the tome, "Secret List" nodes). The
+list draws a line without what follows its first `(` (and the space before it) and cuts one longer than 19 letters to 18
+and `...`. The arrows of the first list show from 13 lines, `SliderVal` is by lines minus 12 (the secrets' by minus 4) and
+the wheel by minus 14 (minus 4), the arrows move the first slider 0.05 and the secrets' 0.075. The continue button of the
+media player stops the movie and plays no song, and `PlayMusic` plays none either (Volume 1's played the song it was given
+and showed its spectrum). The constructor also keeps a copy of an app field (+0xe0) that nothing reads; the port has no
+member for it.
 
 ## Why the exact-match counts look worse than the survey's
 
