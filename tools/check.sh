@@ -633,7 +633,7 @@ suite_ningpo() {
 }
 
 wordharmony_game() {  # <name> <think|tsunami>: a scripted game (-fast) that ends saved; prints the saved game
-	local d="$OUT/wordharmony/$1" m g re=' level="([0-9]+)" score="([0-9]+)"'
+	local d="$OUT/wordharmony/$1" m g rc f s shots="" re=' level="([0-9]+)" score="([0-9]+)"'
 	rm -rf "$d"; mkdir -p "$d/shots" "$d/user"
 	if [ "$2" = think ]; then
 		# a saved THINK game of the suite's own making: the chain ORD on the top ledge of level template 4, a W below
@@ -651,7 +651,7 @@ wordharmony_game() {  # <name> <think|tsunami>: a scripted game (-fast) that end
 			"1340 move 564 140" "1400 move 500 140" "1440 move 430 140" "1480 move 360 140" "1520 move 359 172" "1600 up 359 172" \
 			"1650 screenshot $d/shots/word.png" "1700 rclick 600 500" "2400 screenshot $d/shots/end.png" "2480 move 430 500" \
 			"2500 click 430 500" > "$d/script.txt"
-		m=Solitaire
+		m=Solitaire shots="board word end"
 	else
 		# TSUNAMI, level 1, the help's Play Game, and 20 seconds of falling balls
 		printf '%s\n' "480 move 447 237" "500 click 447 237" "700 move 300 200" "720 click 300 200" "880 move 165 415" \
@@ -663,6 +663,12 @@ wordharmony_game() {  # <name> <think|tsunami>: a scripted game (-fast) that end
 		"3170 click 360 325" "3400 screenshot $d/shots/menu.png" "3420 quit" >> "$d/script.txt"
 	timeout 300 "$W/build/native/wordharmony.exe" -gamedir=assets/wordharmony -userdir="$d/user" -fast -script="$d/script.txt" \
 		> "$d/stdout.txt" 2> "$d/stderr.txt"
+	rc=$?
+	[ $rc -eq 0 ] || { echo "exit status $rc"; return; }
+	# the engine's exceptions (WordHarmonyApp::EngineFailed) and any message box the test run did not show
+	f="$(grep -h -m 1 -F -e "Word Harmony: " -e "(a test run: not shown)" "$d/stdout.txt" "$d/stderr.txt" | head -n 1)"
+	[ -z "$f" ] || { echo "failed: ${f#INFO: }"; return; }
+	for s in $shots play menu; do [ -f "$d/shots/$s.png" ] || { echo "no screenshot $s"; return; }; done
 	g="$(grep -m 1 "^${m}SavedGame=sz:<level" "$d/user/registry.ini" 2>/dev/null | tr -d '\r')"
 	[ -n "$g" ] || { echo "no saved game"; return; }
 	[[ "$g" =~ $re ]] || { echo "saved game unreadable"; return; }
