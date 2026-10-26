@@ -194,9 +194,15 @@ object 0x430c90 in at most 400 steps, falls as effect type 1), and the board's s
 calls it out, 0x423990, not translated). Colours from 18 up never match, from 50 up are the mode's pieces (the
 board's slots 57 and 58 draw them falling and hear them land). A baby egg (0x4349d0, the list +0x46b8) sets a
 random egg's bit 0x100 for 200 to 900 frames; breaking it then hatches a baby. 0x418020 pushes every row down
-two and adds two random rows (0x416b00). Still to translate in the grid: 0x4163e0 (the next colour, through the
-app's picker at +0xf9c), 0x416e30, 0x4171c0, the update 0x4174c0, the draw 0x417760, and the save and load
-(0x415f70, 0x416150).
+two and adds two random rows (0x416b00). The grid's update (0x4174c0) spawns baby eggs (one chance in +0x46b0
+a frame while +0x46ac is set), slides the sticks, sets +0xc to the screen y of the lowest row and blinks a warning
+(+0x4688, every 25 frames while the board's +0x149 is set) while that is past the board's line (+0x74), breaks the
+eggs past the line when +0x46d1 is set (0x416e30), and counts the matchable eggs of the lowest ten rows into
++0x46e0. Its draw (0x417760) hides the rows past the line while the warning is on, shakes a baby egg by the C
+library's rand (CrtRand; whether the 2003 framework seeds it is not checked yet), breaks an egg past the right
+edge (unless +0x46e5) or in row 90 or below, and draws the ceiling's foot and, when +0x46d0 is set, the ceiling.
+Still to translate in the grid: 0x4163e0 (the next colour, through the app's picker at +0xf9c), the puzzle load
+0x4171c0 (colour 20 becomes a picked colour), and the save and load (0x415f70, 0x416150).
 
 Next, in this order: `StartGame` (0x418810: mode +0x108c makes DynomiteStomped
 0x40ea50 (0x62c bytes), DynomitePanic 0x40ca40 (0x274), DynomiteFossil 0x408e40 (0x328) or DynomiteTimeTrial
