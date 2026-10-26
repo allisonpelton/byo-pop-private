@@ -37,7 +37,7 @@ public:
 
 	virtual void	Move(int theNewX, int theNewY) override;                        // 0x41c470 slot 14
 	virtual void	Draw(Graphics* g) override;                                     // 0x41c4d0 slot 16
-	virtual void	MouseDown(int x, int y, int theBtnNum, int theClickCount) override; // 0x41c3e0 slot 27
+	virtual void	MouseDown(int x, int y, int theClickCount) override;            // 0x41c3e0 slot 27
 	virtual void	ButtonPress(int theId) override;                                // 0x41c440 (listener part)
 
 	using Dialog2004::MouseDown;

@@ -56,17 +56,17 @@ int GameDialog::GetContentWidth()
 }
 
 // 0x41c3e0: a press in the strip above the frame only counts over the decoration
-void GameDialog::MouseDown(int x, int y, int theBtnNum, int theClickCount)
+void GameDialog::MouseDown(int x, int y, int theClickCount)
 {
 	if (mDecoration != NULL)
 	{
 		int aWidth = mDecoration->GetWidth();
 		int aLeft = (mWidth - aWidth) / 2;
 		if (mBackgroundInsets.mTop <= y || (aLeft <= x && x <= aLeft + aWidth))
-			Dialog2004::MouseDown(x, y, theBtnNum, theClickCount);
+			Dialog2004::MouseDown(x, y, theClickCount);
 		return;
 	}
-	Dialog2004::MouseDown(x, y, theBtnNum, theClickCount);
+	Dialog2004::MouseDown(x, y, theClickCount);
 }
 
 // 0x41c440: the listener's ButtonPress(id); the dialog's own ids (YES = 2000 + id, NO = 3000 + id) click

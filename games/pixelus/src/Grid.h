@@ -1,0 +1,130 @@
+#ifndef __PIXELUS_GRID_H__
+#define __PIXELUS_GRID_H__
+
+// Grid.cpp: the rules of Pixelus' puzzle ("PuzzPix::Grid", Pixelus.exe 0x421a30-0x426910; vftable 0x50f0f4, ctor
+// 0x425d40). The original's Grid also draws itself and animates its tiles; the port keeps the rules here, free of the
+// framework (so that tools/ and the tests can replay the shipped solutions on it), and the picture and the flying
+// tiles in Board.cpp.
+//
+// A puzzle is a grid of at most 32x32 cells (16x16 in the shipped ones). The Tile Master stands on one of the four
+// sides (0 below, throwing up; 1 left, throwing right; 2 above, throwing down; 3 right, throwing left, which the
+// move strings call U, R, D, L) at a cursor position along that edge and throws a tile along the row or column: it
+// slides until the next cell holds something, and stays at the cell before it. With nothing in its way it flies
+// out of the other side (and is lost); the cell next to the thrower being taken, it cannot be thrown at all.
+// Pulling takes the first tile of that line back, unless it is a fixed block or a start cell's tile. Cells: wanted
+// (the picture), fixed ('X' blocks), bouncy ('B' blocks that throw a tile back) and start ('S').
+
+#include <string>
+#include <vector>
+
+namespace Sexy
+{
+
+// 0x42eee0: a tile (or a fixed block) with the cell it rests in; the flying and bouncing of a tile is the Board's
+struct GridObject
+{
+	int		mRow;
+	int		mCol;
+	bool	mFixed;
+};
+
+class Grid
+{
+public:
+	enum { MAX_SIZE = 32 };
+	enum { SIDE_UP = 0, SIDE_RIGHT = 1, SIDE_DOWN = 2, SIDE_LEFT = 3 };
+
+	// the cell at 0x40 + (row * 32 + col) * 0x2c: +0x10 wanted, +0x11 fixed, +0x14 object, +0x18 bouncy, +0x19 start
+	struct Cell
+	{
+		bool		mWanted;
+		bool		mFixed;
+		bool		mBouncy;
+		bool		mStart;
+		GridObject*	mObject;
+	};
+
+	// one entry of the move history (+0xb114): {side, cursor, -1} for a thrown tile, {side, cursor, row or column of
+	// the pulled tile} for a pulled one; the strings are "A" or "R", the side letter and two two-digit numbers
+	struct Move
+	{
+		int		mSide;
+		int		mCursor;
+		int		mPosition;
+		bool	mRemove;
+	};
+
+public:
+	int			mRows;				// +0x30
+	int			mCols;				// +0x34
+	Cell		mCells[MAX_SIZE][MAX_SIZE];
+	std::vector<GridObject*> mObjects;	// +0xb040 every tile ever made (the cells point into it)
+
+	int			mSupply;			// +0xb050 tiles on the workbench
+	int			mCursor;			// +0xb054 position along the edge
+	int			mSide;				// +0xb058
+	bool		mDone;				// +0xb05c
+	int			mMoveCount;			// +0xb060
+
+	bool		mCanPlace;			// +0xb069 a thrown tile would stay
+	bool		mSlidesOut;			// +0xb068 a thrown tile would leave the grid
+	int			mLandCol;			// +0xb06c where it would stay (or leave the grid)
+	int			mLandRow;			// +0xb070
+	int			mStartCol;			// +0xb074 the edge cell it enters
+	int			mStartRow;			// +0xb078
+	bool		mCanPull;			// +0xb07c the tile it would hit can be pulled back
+	int			mStuckCol;			// +0xb080 the first cell on the line that is taken (or the last cell of the line)
+	int			mStuckRow;			// +0xb084
+
+	int			mEmptyWanted;		// +0xb164 wanted cells still without a tile
+	int			mStrayTiles;		// +0xb168 tiles on cells nobody wants
+	int			mWantedCells;		// +0xb16c
+
+	std::string	mTitle;				// +0xb0b0
+	std::string	mName;				// +0xb0cc
+	std::string	mUuid;				// +0xb0ec (text; the original keeps the 16 bytes)
+	int			mDifficulty;		// +0xb0e8
+	bool		mHasStart;			// +0xb18c a start cell exists
+	std::vector<Move> mHistory;		// +0xb114
+
+public:
+	Grid(int theRows = 16, int theCols = 16);	// 0x425d40
+	~Grid();									// 0x4256b0
+
+	void			Clear();									// 0x4262c0
+	bool			LoadFromFile(const std::string& thePath, std::string* theError = NULL);	// 0x426910
+	bool			LoadFromText(const std::string& theText, std::string* theError = NULL);
+
+	// 0x4220a0: the cell of the edge the tile enters at
+	void			EdgeCell(int theSide, int theCursor, int* theCol, int* theRow) const;
+	bool			AtFarEdge(int theCol, int theRow, int theSide) const;
+	void			Step(int* theCol, int* theRow, int theSide, int theCount) const;	// 0x4030a0
+	bool			InGrid(int theRow, int theCol) const;
+	bool			HasObject(int theRow, int theCol) const { return mCells[theRow][theCol].mObject != NULL; }
+
+	void			SetCursor(int theSide, int theCursor);		// 0x424590
+	void			ComputeLanding();							// 0x423ee0
+	void			Recount();									// 0x422320
+	GridObject*		NewObject(int theRow, int theCol);			// 0x424390
+
+	bool			PlaceTile(bool theRecord);					// 0x424750: throw a tile
+	bool			PullTile(bool theRecord, bool theForce);	// 0x424990: pull the tile in the way back
+
+	// 0x425b40 and 0x4257e0: the move strings
+	static bool		ParseMove(const std::string& theString, Move* theMove);
+	static std::string MoveToString(const Move& theMove);
+	bool			ReplayMove(const Move& theMove);
+
+	// the mouse: the side the Tile Master throws from to land a tile on the free cell (0x4253f0), or to pull
+	// the tile on the cell back (0x425220); the preferred side if it works, else the first; -1 if none
+	int				FindThrowSide(int theRow, int theCol, int thePreferredSide, int* theCursor) const;
+	int				FindPullSide(int theRow, int theCol, int thePreferredSide, int* theCursor) const;
+
+private:
+	bool			IsBouncyAhead() const;
+	void			Complete();									// 0x422590
+};
+
+}
+
+#endif
