@@ -191,6 +191,24 @@ the board, loads the save into it and deletes the file. Not translated: what a g
 next level 0x428bc0), so those flags are cleared and the game goes on from its state. Checked by saving a game, going to the
 menu and continuing it: the board, score, level and difficulty come back pixel for pixel.
 
+Options dialog (read 2026-10-26, not translated yet): OptionsDialog (ctor 0x411ba0, opened by 0x42de20 with a flag for
+"from the menu") derives from MoneyDialog (0x4118d0: the dialog on a black fill of the window minus 8 pixels, Dialog::Draw on
+top, a phase at +0xf0 that Update raises by 0.0005 and wraps at 1; the loop in its Draw that works out 40 points round the edge
+is dead code, nothing is drawn with them). It is made with the app's dialog picture and the three dialog colours, 0x184 wide,
+placed at x 0x7e and centred on y 240, and holds two sliders (music id 0 at (0x98, 0x35), sound effects id 1 at (0x98, 0x55),
+each the window width minus 0xc0 wide and 0x24 high, their ends the slider pictures at images 0x30/0x34 of the app's table),
+four checkboxes of 0x18 by 0x18 (fullscreen id 0 at (0x30, 0x7b), custom cursors id 1 at (0xb0, 0x7b), disabled hints id 2 at
+(0x30, 0x94), hardware acceleration id 3 hidden behind the others), and DialogButtons from the dialog button picture: Register
+id 1 (only when the game is not registered, so never in the port), Reset Hints id 0xe, Credits id 6, one id 7 button whose label
+and meaning (0x42e770) are for the next reading, and one link button per "NumOptionsLinks" entry of the app's string table (ids
+100 and up; their URLs are never opened in a test run). Its handlers: the slider (0x413040) sets the music or sound volume
+and, for sound effects, plays sample 5 at most once in 50 updates; the checkbox listener (0x4130b0) keeps fullscreen ticked
+when the app forces it, stores the hints checkbox in the app (the port's mNoHints) and for hardware acceleration shows two
+message dialogs (id 0x10: "Not Supported" and "Warning"); the button handler (0x4134b0) sends Credits to 0x42d760, 2 to the
+high scores 0x42dcc0 (flag 3 or 2), Reset Hints (id 0xe) clears the app's seen-hint flags (app+0x549 and the 8 bytes after it)
+and re-ticks the hints box, and Done (dialog id 1) brings back the menu's music or head. Where the fullscreen and acceleration
+choices are applied was not found in the dialog's own functions (its destructor 0x412600 only deletes the widgets).
+
 Still to do after Draw (above): the dialogs (high scores 0x4064e0, options 0x411ba0, record 0x414060,
 level-up 0x40c2c0, money 0x4118d0, buy rockets 0x401010, credits 0x403990, hint 0x408f60), the fireworks (Rocket 0x4172f0), the
 talking head (0x4161a0, 0x413aa0), the level-up screen's own music fades (0x40c2c0), then the
