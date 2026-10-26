@@ -309,10 +309,8 @@ void MummyApp::AutoplayUpdate()
 		if (mHighScores->mFade >= 255.0 && mHighScoreBack == NULL && mHighScores->mNameAsked && !s->mGameOverLogged)
 		{
 			s->mGameOverLogged = true;
-			Log(s, "game over: score %d, list %s %d, %s %d, %s %d, %s %d, %s %d", mScore,
-				mHighScores->mNames[0].c_str(), mHighScores->mScores[0], mHighScores->mNames[1].c_str(), mHighScores->mScores[1],
-				mHighScores->mNames[2].c_str(), mHighScores->mScores[2], mHighScores->mNames[3].c_str(), mHighScores->mScores[3],
-				mHighScores->mNames[4].c_str(), mHighScores->mScores[4]);
+			Log(s, "game over: score %d, list %d %d %d %d %d, the bot is number %d", mScore, mHighScores->mScores[0], mHighScores->mScores[1],
+				mHighScores->mScores[2], mHighScores->mScores[3], mHighScores->mScores[4], mHighScores->mRank + 1);
 			if (!mAutoplayShots.empty())
 				SaveScreenshot(StrFormat("%s-gameover%d.png", mAutoplayShots.c_str(), s->mGames));
 			mHighScores->ButtonDepress(1);

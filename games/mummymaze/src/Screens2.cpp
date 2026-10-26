@@ -334,14 +334,15 @@ void HighScoreScreen::Resize(int theX, int theY, int theWidth, int theHeight)
 
 // the list: five records of [u16 length][name][i32 score][i32 check], the check being score ^ 0x42beef with every
 // character times 0x11 xored in (0x4148e0 writes it, 0x414850.. reads it)
-static const char* const kDefaultNames[5] = {"Kimberly", "Glenn", "Brian", "Jason", "John"};
+// the names of the list that a new player finds (texts of the exe)
+static const unsigned kDefaultNames[5] = {0x0048d218, 0x0048d210, 0x0048d208, 0x0048d200, 0x0048d1f8};
 static const int kDefaultScores[5] = {1000, 900, 800, 700, 500};
 
 void HighScoreScreen::Load()
 {
 	for (int i = 0; i < 5; i++)
 	{
-		mNames[i] = kDefaultNames[i];
+		mNames[i] = GT(kDefaultNames[i]);
 		mScores[i] = kDefaultScores[i];
 	}
 	std::string aData;
