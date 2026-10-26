@@ -1,4 +1,5 @@
 #include "InchySmall.h"
+#include "Launcher.h"
 #include "Dynomite.h"
 #include "FossilizedApp.h"
 #include "WidgetManager.h"
@@ -335,7 +336,7 @@ void InchySmall::Update()
 		{
 			// the dynamite combo's call has ended: the board gets its stick of dynamite
 			Dynomite* aBoard = mApp->mBoard;
-			if ((aBoard == NULL) || (aBoard->mBoard5c->mField0c == 0))
+			if ((aBoard == NULL) || (aBoard->mLauncher->mLoaded == NULL))
 				goto blink;
 			aBoard->MakeDynamite();
 		}

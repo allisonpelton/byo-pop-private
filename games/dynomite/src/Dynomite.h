@@ -16,22 +16,14 @@ class Effect;
 class EggGrid;
 class FlyingEgg;
 class FossilizedApp;
+class Launcher;
 class PowerUp;
-
-// the board's +0x5c (its +0xc is tested before the dynamite combo gives a stick)
-struct BoardPart5c
-{
-	int					mField00;
-	int					mField04;
-	int					mField08;
-	int					mField0c;
-};
 
 class Dynomite : public Widget
 {
 public:
 	FossilizedApp*		mApp;				// +0x58
-	BoardPart5c*		mBoard5c;			// +0x5c
+	Launcher*			mLauncher;			// +0x5c (0x401050)
 	int					mField68;			// +0x68 306
 	int					mField6c;			// +0x6c 153
 	int					mField70;			// +0x70 250, the launcher's middle
@@ -62,8 +54,8 @@ public:
 	bool				mField149;			// +0x149 (true)
 	int					mChain;				// +0x14c (-1)
 	int					mPauseCount;		// +0x150
-	int					mField158;			// +0x158
-	int					mField15c;			// +0x15c (-1)
+	int					mField158;			// +0x158 (the launcher's x from the middle)
+	int					mField15c;			// +0x15c (-1; the colour fired last)
 	int					mField160;			// +0x160 (-1)
 	BinFile				mBinFile;			// +0x164
 	bool				mField16c;			// +0x16c

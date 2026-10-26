@@ -4,6 +4,7 @@
 #include "EggGrid.h"
 #include "FossilizedApp.h"
 #include "InchySmall.h"
+#include "Launcher.h"
 #include "MusicInterface.h"
 #include "PortCompat.h"
 #include "SideBar.h"
@@ -61,7 +62,7 @@ Dynomite::Dynomite()
 	mStartTicks = GetTickCount();
 	mFieldB4 = 0;
 	// port: the fields the original constructor leaves to Init (slot 46)
-	mBoard5c = NULL;
+	mLauncher = NULL;
 	mGrid = NULL;
 	mDifficulty = 0;
 	mGameType = 0;
@@ -114,7 +115,9 @@ Dynomite::~Dynomite()
 		}
 		if (mGrid != NULL)
 			delete mGrid;
-		// TODO: +0x5c (the launcher), +0x60, +0x84 and +0x88
+		if (mLauncher != NULL)
+			delete mLauncher;
+		// TODO: +0x60, +0x84 and +0x88
 		mInitialized = false;
 	}
 	// TODO: +0x144
