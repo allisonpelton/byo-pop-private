@@ -9,6 +9,7 @@
 #include "GameText.h"
 #include "Image.h"
 #include "Res.h"
+#include "SoundPlayer.h"
 
 using namespace Sexy;
 
@@ -75,13 +76,14 @@ void MenuDialog::ButtonDepress(int theId)
 	// 0x480230. Any button but "Main Menu" over a battle ends the menu (so does Escape, as the way back), and the
 	// battle goes on; "Main Menu" over a battle asks first, with the menu staying under the question
 	if (!mHasBoard || theId != BUTTON_MAIN_MENU) {
-		// port: the sound player's unpause of the looping samples (0x6afe90) is not ported
+		if (theId != BUTTON_OPTIONS)
+			mApp->mSoundPlayer->PauseLooping(false);
 		mApp->KillDialog(mId);
 		if (mApp->mBoard != nullptr)
 			mApp->mBoard->Pause(false, true);
 	}
 	if (theId == BUTTON_OPTIONS) {
-		// port: the sound player's unpause of the looping samples (0x6afe90) is not ported
+		mApp->mSoundPlayer->PauseLooping(false);
 		mApp->ShowOptionsDialog();
 	} else if (theId == BUTTON_MAIN_MENU) {
 		if (!mHasBoard) {

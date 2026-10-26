@@ -28,6 +28,11 @@ namespace {
 
 const char* const kIdleLabel = "idle";
 
+// the secret words (and the names of the animations Lex does for them)
+const unsigned int kSecretWords[] = {GTA(0x7ae700), GTA(0x7ae6f0), GTA(0x7ae6e8), GTA(0x7ae6e0),
+                                     GTA(0x7ae6d4), GTA(0x7ae6cc), GTA(0x7ae6c4)};
+const int kNumSecretWords = (int)(sizeof(kSecretWords) / sizeof(kSecretWords[0]));
+
 // The things of the menu, by Item: where the lit picture goes, where the mouse is over it (and how much smaller
 // than the picture that is), from the constructor's tables
 struct ItemPlace {
@@ -475,12 +480,10 @@ void MainMenu::KeyChar(SexyChar theChar)
 	mTypedKeys += (char)theChar;
 	mTypedKeys = StringToUpper(mTypedKeys);
 	// the secret words: one more letter of one keeps them, a word makes Lex do something
-	static const unsigned int kWords[] = {GTA(0x7ae700), GTA(0x7ae6f0), GTA(0x7ae6e8), GTA(0x7ae6e0),
-	                                      GTA(0x7ae6d4), GTA(0x7ae6cc), GTA(0x7ae6c4)};
 	int aFound = -1;
 	bool aPrefix = false;
-	for (int i = 0; i < (int)(sizeof(kWords) / sizeof(kWords[0])) && aFound == -1; i++) {
-		const std::string& aWord = GT(kWords[i]);
+	for (int i = 0; i < kNumSecretWords && aFound == -1; i++) {
+		const std::string& aWord = GT(kSecretWords[i]);
 		size_t aLength = std::min(aWord.size(), mTypedKeys.size());
 		if (mTypedKeys.compare(0, aLength, aWord, 0, aLength) == 0) {
 			aPrefix = true;
@@ -507,6 +510,23 @@ void MainMenu::KeyChar(SexyChar theChar)
 		return;
 	}
 	mLex->PlayLabel(kLabels[aFound]);
+}
+
+void MainMenu::AppLostFocus()
+{
+	// 0x47d940: redrawn; Lex idles, unless he is at one of the secret words' animations (the labels are the words)
+	MarkDirtyFull();
+	bool aFound = false;
+	const unsigned int* aWord = kSecretWords;
+	do {
+		if (aFound)
+			return;
+		if (SDL_strcasecmp(mLex->mLabel.c_str(), GT(*aWord).c_str()) == 0)
+			aFound = true;
+		aWord++;
+	} while (aWord < kSecretWords + kNumSecretWords);
+	if (!aFound)
+		mLex->PlayLabel(kIdleLabel);
 }
 
 void MainMenu::MouseMove(int x, int y)

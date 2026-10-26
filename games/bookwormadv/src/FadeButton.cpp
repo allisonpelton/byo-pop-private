@@ -266,6 +266,13 @@ void FadeButton::MouseLeave()
 	MarkDirty();
 }
 
+void FadeButton::MouseMove(int x, int y)
+{
+	ButtonWidget::MouseMove(x, y);
+	if (mOwner != nullptr)
+		mOwner->MouseMove(mX + x, mY + y);
+}
+
 void FadeButton::MouseDown(int x, int y, int theClickCount)
 {
 	Widget::MouseDown(x, y, theClickCount);
@@ -279,4 +286,10 @@ void FadeButton::MouseUp(int x, int y)
 	if (mIsOver)
 		mClicked = true;
 	MarkDirty();
+}
+
+void FadeButton::PopAnimStopped(int theId)
+{
+	if (!mEffectOff)
+		mEffect->PlayLabel(mEffectLabel);
 }

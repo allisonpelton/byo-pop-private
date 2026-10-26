@@ -6,6 +6,7 @@
 #include "BookManager.h"
 #include "ChapterLoadScreen.h"
 #include "ConversationPanel.h"
+#include "Credits.h"
 #include "CurtainTransition.h"
 #include "CutScene.h"
 #include "FadeButton.h"
@@ -16,6 +17,7 @@
 #include "LuaInterface.h"
 #include "LuaResourceManager.h"
 #include "MainMenu.h"
+#include "MinigameMenu.h"
 #include "MusicInterface.h"
 #include "PopAnimManager.h"
 #include "Profile.h"
@@ -23,6 +25,7 @@
 #include "ResourceManager.h"
 #include "SongPlayer.h"
 #include "SoundPlayer.h"
+#include "StatsBook.h"
 #include "TitleScreen.h"
 #include "TreasureScreen.h"
 #include "WidgetManager.h"
@@ -189,7 +192,7 @@ void GameApp::UpdateFrames()
 		mSongPlayer->Update();
 	// port: every 100 updates the original checked the trial's limits of its marketing modes (an hour's play,
 	// or the Hydra); the port is the full game
-	if (mTitleScreenDone) {
+	if (mCountsTime) {
 		mAppTime++;
 		mUserUpdates++;
 	}
@@ -202,9 +205,87 @@ void GameApp::Shutdown()
 		return;
 	if (mProfile != nullptr)
 		mProfile->Save();
-	// port: the original also took the battle's board away (+0x948, not ported yet) and, in the trial's marketing
-	// modes, asked its trial window whether to show the "buy" screen
+	// the battle's board goes
+	if (mBoard != nullptr) {
+		mWidgetManager->RemoveWidget(mBoard);
+		SafeDeleteWidget(mBoard);
+		mBoard = nullptr;
+	}
+	// port: the original, in the trial's marketing modes, also asked its trial window whether to show the "buy"
+	// screen here
 	LuaApp::Shutdown();
+}
+
+namespace {
+
+// the screen stops updating (the focus handlers' flag), or goes on
+void StopUpdating(Widget* theWidget, bool isStopped)
+{
+	if (isStopped)
+		theWidget->mWidgetFlagsMod.mRemoveFlags |= WIDGETFLAGS_UPDATE;
+	else
+		theWidget->mWidgetFlagsMod.mRemoveFlags &= ~WIDGETFLAGS_UPDATE;
+}
+
+}  // namespace
+
+void GameApp::GotFocus()
+{
+	// 0x451230: the screens update again, unless the credits are up (they stopped the ones under them)
+	mCountsTime = true;
+	if (mCredits != nullptr)
+		StopUpdating(mCredits, false);
+	if (mBookScreen != nullptr) {
+		StatsBook* aBook = static_cast<StatsBook*>(mBookScreen);
+		if (aBook->mMediaPlayer && aBook->mFlash != nullptr)
+			aBook->mFlash->Unpause();
+	}
+	// port: the original also went on with the trial's "buy" screen (the app's +0x8a4) here, and in two of the
+	// trial's marketing modes asked its trial window whether to leave the game; the port is the full game
+	if (mCreditsCount == 0) {
+		if (mBoard != nullptr)
+			StopUpdating(mBoard, false);
+		if (mBookManager != nullptr)
+			StopUpdating(mBookManager, false);
+		if (mTreasureScreen != nullptr)
+			StopUpdating(mTreasureScreen, false);
+		if (mMainMenu != nullptr)
+			StopUpdating(mMainMenu, false);
+		if (mHallOfFame != nullptr)
+			StopUpdating(mHallOfFame, false);
+		if (mMiniGameMenu != nullptr)
+			StopUpdating(mMiniGameMenu, false);
+	}
+}
+
+void GameApp::LostFocus()
+{
+	// 0x451160: the screens stop updating, unless the credits are up (they stopped the ones under them)
+	mCountsTime = false;
+	if (mCredits != nullptr)
+		StopUpdating(mCredits, true);
+	if (mMainMenu != nullptr)
+		mMainMenu->AppLostFocus();
+	if (mBookScreen != nullptr) {
+		StatsBook* aBook = static_cast<StatsBook*>(mBookScreen);
+		if (aBook->mMediaPlayer && aBook->mFlash != nullptr)
+			aBook->mFlash->Pause();
+	}
+	// port: the original also stopped the trial's "buy" screen (the app's +0x8a4) here
+	if (mCreditsCount == 0) {
+		if (mBoard != nullptr)
+			StopUpdating(mBoard, true);
+		if (mBookManager != nullptr)
+			StopUpdating(mBookManager, true);
+		if (mTreasureScreen != nullptr)
+			StopUpdating(mTreasureScreen, true);
+		if (mMainMenu != nullptr && mMainMenu->mLogoY == 0)
+			StopUpdating(mMainMenu, true);
+		if (mHallOfFame != nullptr)
+			StopUpdating(mHallOfFame, true);
+		if (mMiniGameMenu != nullptr)
+			StopUpdating(mMiniGameMenu, true);
+	}
 }
 
 void GameApp::PlaySample(int theSoundNum)
@@ -244,16 +325,17 @@ GameDialog* GameApp::DoConfirmDialog(int theId, const SexyString& theHeader, con
 {
 	if (theId == -1)
 		theId = DIALOG_CONFIRM;
-	// the battle holds under it (with its sounds; port: the sound player's pause of the looping samples is not
-	// ported)
+	// the battle holds under it (with its sounds, and the looping samples go silent)
 	if (mBoard != nullptr) {
 		mBoard->Pause(true, true);
 		Unmute(true);
+		mSoundPlayer->PauseLooping(true);
 	}
 	mDialogCallback = theCallback;
 	mConfirmListener = theListener;
 	GameDialog* aDialog = static_cast<GameDialog*>(DoDialog(theId, true, theHeader, theLines, _S(""), Dialog::BUTTONS_YES_NO));
 	Unmute(true);
+	mSoundPlayer->PauseLooping(true);
 	aDialog->Resize(mWidth / 2 - aDialog->mWidth / 2, mHeight / 2 - aDialog->mHeight / 2, aDialog->mWidth,
 	                aDialog->mHeight + 50);
 	aDialog->SetHeaderFont(FONT_LARGE_OUTLINE);
@@ -272,11 +354,13 @@ GameDialog* GameApp::DoOkDialog(const SexyString& theHeader, const SexyString& t
 	if (mBoard != nullptr) {
 		mBoard->Pause(true, true);
 		Unmute(true);
+		mSoundPlayer->PauseLooping(true);
 	}
 	mDialogCallback = theCallback;
 	GameDialog* aDialog = static_cast<GameDialog*>(
 		DoDialog(DIALOG_OK, true, theHeader, theLines, GT(0x7ac5a0), Dialog::BUTTONS_FOOTER));
 	Unmute(true);
+	mSoundPlayer->PauseLooping(true);
 	aDialog->SetHeaderFont(FONT_LARGE_OUTLINE);
 	aDialog->SetLinesFont(FONT_MEDIUM);
 	aDialog->SetColor(Dialog::COLOR_HEADER, Color::White);
@@ -314,6 +398,17 @@ void GameApp::ButtonDepress(int theId)
 	int anId = theId % 10000;
 	if (anId >= 2000 && anId < 3000) {
 		int aDialogId = theId - 2000;
+		// 0x44adae: the battle's board takes the focus back first
+		if (mBoard != nullptr)
+			mWidgetManager->SetFocus(mBoard);
+		// the pauses of the looping samples end: two for the ok and the question (both pause once more over a
+		// battle), one for the options and the menu
+		if (aDialogId == DIALOG_CONFIRM || aDialogId == DIALOG_OPTIONS || aDialogId == DIALOG_OK ||
+		    aDialogId == DIALOG_MENU) {
+			mSoundPlayer->PauseLooping(false);
+			if (aDialogId == DIALOG_CONFIRM || aDialogId == DIALOG_OK)
+				mSoundPlayer->PauseLooping(false);
+		}
 		switch (aDialogId) {
 		case DIALOG_REALLY_QUIT:  // its yes is "Quit"
 			mMainMenu->mReallyQuit = false;
@@ -373,7 +468,15 @@ void GameApp::ButtonDepress(int theId)
 		}
 	} else if (anId >= 3000 && anId < 4000) {
 		int aDialogId = theId - 3000;
-		if (aDialogId == DIALOG_REALLY_QUIT)
+		// 0x44b20e: the battle's board takes the focus back first
+		if (mBoard != nullptr)
+			mWidgetManager->SetFocus(mBoard);
+		if (aDialogId == DIALOG_CONFIRM || aDialogId == DIALOG_OPTIONS || aDialogId == DIALOG_OK ||
+		    aDialogId == DIALOG_MENU) {
+			mSoundPlayer->PauseLooping(false);
+			if (aDialogId == DIALOG_CONFIRM || aDialogId == DIALOG_OK)
+				mSoundPlayer->PauseLooping(false);
+		} else if (aDialogId == DIALOG_REALLY_QUIT)
 			mMainMenu->mReallyQuit = false;
 		else if (aDialogId == DIALOG_SKIP_MOVIE) {
 			if (mCutScene != nullptr)
@@ -596,7 +699,7 @@ void GameApp::TitleScreenDone()
 		mTitleScreenDoneQueued = true;
 		return;
 	}
-	mTitleScreenDone = true;
+	mCountsTime = true;
 	if (!RegistryReadInteger("AppTime", &mAppTime))
 		mAppTime = 0;
 	if (mAppTime < 0)
@@ -673,7 +776,9 @@ bool GameApp::SelectUser(const std::string& theName)
 		return false;
 	}
 	RegistryWriteString("LastUser", mProfile->mName);
-	mUserUpdates = 0;  // port: the original also cleared +0x974 and +0x978 here (not ported yet)
+	mUserUpdates = 0;
+	mBattleUpdates = 0;
+	mMiniGameUpdates = 0;
 	return true;
 }
 

@@ -111,7 +111,7 @@ public:
 	std::string mDialogCallback;                   // +0x878: the scripts' function told the answer to dialog 0 or 18
 	Widget* mHallOfFame = nullptr;                 // +0x89c: the hall of fame (HallOfFame)
 	Credits* mCredits = nullptr;                   // +0x8a0: the credits (Credits), which take the mouse and stop the screens under them
-	int mCreditsCount = 0;                         // +0x8e8: credits showing (0 or 1); the focus handlers 0x451160 and 0x451230 (not ported yet) leave the screens under them alone
+	int mCreditsCount = 0;                         // +0x8e8: credits showing (0 or 1); the focus handlers (GotFocus, LostFocus) leave the screens under them alone
 	void* mCurtainCallbackObject = nullptr;        // +0x894
 	void (*mCurtainCallback)(void*) = nullptr;     // +0x898 (a member function in the original)
 	int mTransitionState = TRANSITION_NONE;        // +0x8ec
@@ -125,7 +125,8 @@ public:
 	bool mChapterInitQueued = false;               // +0x911: the player's ChapterInit once the curtain is open
 	bool mPlayIntro = false;                       // +0x912: the intro's: the new player's name once it is open
 	bool mLoadingChapter = false;                  // +0x913: loading a chapter's resources (0x44e040)
-	bool mTitleScreenDone = false;                 // +0x914
+	bool mCountsTime = false;                      // +0x914: UpdateFrames counts mAppTime and mUserUpdates (set when the title
+	                                               // screen is done and when the window gets the focus, off when it loses it)
 	bool mTitleScreenDoneQueued = false;           // +0x915
 	bool mShowTilePips = true;                     // +0x916: CanShowTilePips' answer when the profile has no EnablePips
 	bool mFullCurtain = false;                     // +0x917: a transition of the whole curtain (0x44d080)
@@ -136,8 +137,8 @@ public:
 	bool mTimedMode = false;                       // +0x96e: playing the timed mode (its TM_ profile keys)
 	bool mMiniGameFromMenu = false;                // +0x96f: a mini-game started from the main menu's list (0x4819a0)
 	bool mQuitting = false;                        // +0x91c: leaving the game (0x451c20; 0x451920 clears it)
-	int mBattleUpdates = 0;                        // +0x974: updates of battle (not of a level-up or a chapter's end)
-	int mMiniGameUpdates = 0;                      // +0x978: updates of the adventure's mini-games
+	int mBattleUpdates = 0;                        // +0x974: updates of battle (not of a level-up or a chapter's end); written only
+	int mMiniGameUpdates = 0;                      // +0x978: updates of the adventure's mini-games; written only
 	std::vector<std::string> mStartupGroups;       // +0x924 (0x38-byte entries; the group's name at +0x1c)
 	std::vector<JeffLib::BonusText*> mBonusTexts;  // +0x934: the mini-games' floating texts (AddBonusText)
 	Lex* mLex = nullptr;                           // +0x940
@@ -162,6 +163,8 @@ public:
 	bool UpdateAppStep(bool* updated) override;
 	void UpdateFrames() override;           // 0x44aa50
 	void Shutdown() override;               // 0x445960
+	void GotFocus() override;               // 0x451230: the screens update again
+	void LostFocus() override;              // 0x451160: the screens stop updating
 	// port: the test scripts' "word" (TestHooks.cpp)
 	bool HandleScriptCommand(const ScriptCommand& theCommand) override;
 	// 0x44f5c0: through the sound player, not again within 5 updates

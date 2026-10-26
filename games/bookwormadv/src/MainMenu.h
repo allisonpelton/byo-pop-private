@@ -165,6 +165,9 @@ public:
 	// when the name is taken, so the name dialog stays; else the dialog's list is made again, the players' dialog
 	// goes and a player who has not played begins the intro. A blank name (CANCEL) is nothing.
 	bool TakeNewUser(const std::string& theName);
+	// 0x47d940 (the app's LostFocus calls it): the menu is redrawn, and Lex goes idle unless he is doing one of the
+	// secret words' animations (his current label is one of the words, whatever the letters' case)
+	void AppLostFocus();
 
 	// Widget
 	void Update() override;                       // 0x47c5b0

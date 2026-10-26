@@ -16,6 +16,7 @@
 #include "OptionsDialog.h"
 #include "PopLua.h"
 #include "Profile.h"
+#include "SoundPlayer.h"
 #include "TileEngine.h"
 #include "TooltipWidget.h"
 #include "WidgetManager.h"
@@ -38,7 +39,7 @@ void GameApp::ShowGameMenu(bool theFromTreasure)
 		mHoverTooltip->Hide();
 	AddDialog(new MenuDialog(mBoard != nullptr, theFromTreasure, mMiniGameFromMenu));
 	Unmute(true);
-	// port: the sound player's pause of the looping samples (0x6afe90) is not ported
+	mSoundPlayer->PauseLooping(true);
 }
 
 void GameApp::ShowOptionsDialog()
@@ -52,7 +53,7 @@ void GameApp::ShowOptionsDialog()
 	aDialog->Layout(500);
 	AddDialog(DIALOG_OPTIONS, aDialog);
 	Unmute(true);
-	// port: the sound player's pause of the looping samples (0x6afe90) is not ported
+	mSoundPlayer->PauseLooping(true);
 	SetCursor(CURSOR_POINTER);
 }
 
