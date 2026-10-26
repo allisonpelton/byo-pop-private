@@ -31,8 +31,8 @@ void Board::Draw(Graphics* g)
 {
 	if (mFc == 1)
 		return;
-	if (m358 == 1.0)
-		return;
+	// port: the original returns here once the dimming of a paused game is complete (m358 == 1.0) and leaves the last frame
+	// in its back buffer; this port's screen does not keep it (the screenshot is black), so the frame is drawn once more
 	if (m350 == 0 && 0 < m4b4 && (mState == 0 || mState == 4 || mState == 5 || mState == 1))
 		Resize(CrtRand() % (m4b8 * 2 + 1) - m4b8, 0, 640, 480);
 	else
@@ -286,7 +286,31 @@ void Board::Draw(Graphics* g)
 		DrawWiggle(g, GT(0x004e65f0), 0, 0xff, 0xff, 0xff, 10);
 		g->SetDrawMode(Graphics::DRAWMODE_NORMAL);
 	}
-	// (the dimmed screen and the pause window, m350 > 0: not translated yet)
+	// the dimmed screen and the pause window (m350 > 0)
+	if (0 < m350)
+	{
+		if (mApp->GetDialog(0xb) == NULL)
+		{
+			g->SetColor(Color(0, 0, 0, Ftol(m358 * 210.0)));
+			g->SetColorizeImages(true);
+			g->FillRect(0, 0, 0x280, 0x1e0);
+			g->SetColorizeImages(false);
+		}
+		if (mApp->GetDialog(8) == NULL && mApp->GetDialog(0) == NULL && mApp->GetDialog(1) == NULL)
+		{
+			g->SetColor(mApp->mDialogColors[0]);
+			g->SetFont(mApp->mFonts[FONT_VERDANA18_BOLD]);
+			g->DrawImageBox(Rect(0x94, 0x9b, 0x159, 0xaa), anImages[IMAGE_DIALOG]);
+			SexyString aPaused = GT(0x004e50bc);
+			g->DrawString(aPaused, 0x140 - g->GetFont()->StringWidth(aPaused) / 2, 0xd5);
+			g->SetColor(mApp->mDialogColors[1]);
+			g->SetFont(mApp->mFonts[FONT_VERDANA12_BOLD]);
+			SexyString aClick = GT(0x004e50a4);
+			g->DrawString(aClick, 0x140 - g->GetFont()->StringWidth(aClick) / 2, 0x102);
+			SexyString aResume = GT(0x004e5090);
+			g->DrawString(aResume, 0x140 - g->GetFont()->StringWidth(aResume) / 2, 0x116);
+		}
+	}
 	if (mApp->mMode == 1 && mState == 0 && 0 < m4bc && m4bc < 500 && m4bc % 100 < 0x3c)
 	{
 		g->SetFont(mApp->mFonts[FONT_DOMO22_BOLD]);

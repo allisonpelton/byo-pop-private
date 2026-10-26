@@ -401,7 +401,7 @@ bool RocketApp::ShowModeHint(int theHint, bool theForce)
 }
 
 // 0x42ea30: a game begins (or is continued): the board replaces the one in progress. Left out: the fade of the four
-// songs (app+0x2f4), the overlay at app+0x890 (0x42e190), the three buttons on the left of the screen (0x42d1a0, which
+// songs (app+0x2f4), the three buttons on the left of the screen (0x42d1a0, which
 // the Board's ButtonDepress answers) and the deletion of this mode's saved game when it is a new one (0x41d380).
 void RocketApp::StartBoard(bool theContinuing)
 {
@@ -411,6 +411,13 @@ void RocketApp::StartBoard(bool theContinuing)
 		mWidgetManager->RemoveWidget(mBoard);
 		SafeDeleteWidget(mBoard);
 		mBoard = NULL;
+	}
+	// 0x42e190: the menu is taken away (and deleted) when a game begins
+	if (mGameSelector != NULL)
+	{
+		mWidgetManager->RemoveWidget(mGameSelector);
+		SafeDeleteWidget(mGameSelector);
+		mGameSelector = NULL;
 	}
 	SDL_Log("StartBoard: mode %d difficulty %d", mMode, mDifficulty);
 	mBoard = new Board(this, theContinuing);

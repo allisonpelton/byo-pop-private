@@ -139,6 +139,11 @@ time", combo, unfreezing and low on matches. Every text is named by its address 
 the dark copies behind "just in time" are a reading of the disassembly with one y value inferred from the other texts'
 pattern; compare with the original's picture when the test site can show both.
 
+The dimming and the pause window (m350 > 0, the dialog picture 11 over a 345 by 170 box) are in. The original's Draw returns
+without drawing once the dimming is complete (m358 == 1.0) and relies on its back buffer keeping the last frame; this port's
+screen showed black, so the frame is drawn once more at that point (a port difference, noted in BoardDraw.cpp). StartBoard now
+removes and deletes the menu (0x42e190) as the original does, so nothing of it shows under the board.
+
 The specials pass 0x41d670 is in too (kinds 0 and 1 the bomb that pulses and grows, 2 and 3 the bonuses that bounce in, 4 the
 flame, 5 a rocket, 6 and 7 the coins that fall into the chest with their sparkle, 8 a fading picture, 10 and 11 the torch
 whose frame shows its hits left, 12 and 13 the clock; the images are the table's entries 30, 85-89, 48, 45-47 and 84, 21,
@@ -147,7 +152,7 @@ the pieces point at (mFlash) are moved and removed as the original does, but not
 
 Not translated yet, in Draw: the number of a launch (kind 9 of the specials pass, and 0x429230/0x4290b0), the effects 0x41abb0
 (called twice, behind and in front), the tilted tile 0x41e630 and the overlay 0x41e690, the ghost trail of a moved tile, the
-dimmed screen and the pause window (m350 > 0), the frozen-time bar 0x41f360 of classic mode, and the head and its bubble
+frozen-time bar 0x41f360 of classic mode, and the head and its bubble
 (0x416d50, 0x414000).
 
 The three buttons on the left (app 0x42d1a0, called by StartBoard 0x42ea30 through 0x42d090): ButtonWidgets with ids 3, 1 and 2
