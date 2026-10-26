@@ -37,17 +37,42 @@ struct GridTarget
 	bool				mHit;			// +0x14
 };
 
+class EggGrid;
+
+// vtable 0x4fcd74 (only its destructor), 0x28 bytes: a stick of dynamite between two eggs of a colour, sliding 5
+// pixels along one of three angles with its fuse sparkling (the grid's list at +0x466c)
+class GridDynamite
+{
+public:
+	int					mAngle;			// +4 315, 335 or 5
+	int					mWhich;			// +8 the picture, 0-2
+	float				mX;				// +0xc in the grid
+	float				mY;				// +0x10
+	float				mDX;			// +0x14
+	float				mDY;			// +0x18
+	EggGrid*			mGrid;			// +0x1c
+	float				mTime;			// +0x20 to 5 by quarters
+	float				mSpark;			// +0x24 the spark's frame (0 to 3)
+
+	GridDynamite(EggGrid* theGrid, int x, int y);	// 0x438270
+	virtual ~GridDynamite();						// 0x438200
+
+	void				Update();					// 0x438210
+	void				Draw();						// 0x438350
+};
+
 class EggGrid
 {
 public:
 	float				mCeiling;			// +4 the ceiling's offset (grid y = screen y - this)
 	float				mRows;				// +8 the rows in use
-	int					mField10;			// +0x10 (4)
+	int					mMaxColor;			// +0x10 the highest colour placed (4)
 	GridCell			mCells[15][100];	// +0x14 column, row
-	GridCell			mCells2[15][100];	// +0x2ef4
+	GridCell			mScratch[15][100];	// +0x1784 Match's copy of mCells
+	GridDynamite*		mDynamite[15][100];	// +0x2ef4 the stick at a cell
 	Dynomite*			mBoard;				// +0x4664
 	FossilizedApp*		mApp;				// +0x4668
-	PtrList<void>		mList466c;			// +0x466c
+	PtrList<GridDynamite> mDynamites;		// +0x466c
 	bool				mField4688;			// +0x4688
 	bool				mField4690;			// +0x4690
 	bool				mField4691;			// +0x4691
@@ -59,7 +84,7 @@ public:
 	bool				mField46d0;			// +0x46d0
 	bool				mField46d1;			// +0x46d1
 	int					mField46e0;			// +0x46e0 (100)
-	bool				mField46e4;			// +0x46e4
+	bool				mLoneEgg;			// +0x46e4 set before a landing egg is placed; cleared when it touches its colour
 	bool				mField46e5;			// +0x46e5
 
 	EggGrid(FossilizedApp* theApp, Dynomite* theBoard);		// 0x415770
@@ -73,6 +98,9 @@ public:
 	void				ResetCeiling();										// 0x4159f0
 	unsigned int		Probe(int x, int y, bool theGhost);					// 0x4169c0
 	void				Break(int x, int y, GridCell* theCell);				// 0x415a20
+	void				Place(int theCol, int theRow, int theColor, int theKind);	// 0x416590
+	void				Match(int theCol, int theRow, int theColor);		// 0x417bd0
+	void				Blast(int theCol, int theRow);						// 0x418100 (a bomb lands)
 };
 
 }

@@ -256,6 +256,16 @@ void Dynomite::MakeDynamite()
 {
 }
 
+// 0x4050d0
+void Dynomite::EggAlone(int theColor)
+{
+}
+
+// 0x4b1930
+void Dynomite::EggLanded()
+{
+}
+
 // 0x40ad90 (TODO)
 void Dynomite::Hint()
 {

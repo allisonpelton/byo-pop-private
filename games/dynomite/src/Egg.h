@@ -45,8 +45,8 @@ public:
 	float				mVX;			// +0x24
 	float				mVY;			// +0x28
 	bool				mGhost;			// +0x2c
-	int					mRow;			// +0x30
-	int					mCol;			// +0x34
+	int					mCol;			// +0x30 the cell it landed in
+	int					mRow;			// +0x34
 
 	FlyingEgg();										// 0x414d10
 	virtual ~FlyingEgg();								// 0x414d30

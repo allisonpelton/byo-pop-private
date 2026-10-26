@@ -133,16 +133,67 @@ bool FlyingEgg::Update()
 		GridCell aCell;
 		aCell.mBits = (unsigned int) (mColor & 0xff);
 		mBoard->mGrid->Break((int) (mX - 16.0f), (int) (mY - 16.0f), &aCell);
-		mRow = -1;
 		mCol = -1;
+		mRow = -1;
 		return false;
 	}
 	return true;
 }
 
-// 0x414d60
+// 0x414d60: backs out along its path (fifteen steps at a time, bouncing off the walls) until its cell is free,
+// then a bomb blasts there and an egg is placed and matched
 void FlyingEgg::Land()
 {
-	// TODO: back up to a free cell of the grid and put the egg there (0x4158f0, 0x415890, 0x4169c0, 0x418100,
-	// 0x416590, 0x417bd0; board slots 56 and 61)
+	GridPoint aPoint;
+	GridPoint aCell;
+	mBoard->mGrid->ScreenToGrid((int) mX, (int) mY, &aPoint);
+	EggGrid::PixelToCell(aPoint.mX, aPoint.mY, &aCell);
+	char anEgg = (char) mBoard->mGrid->mCells[aCell.mX][aCell.mY].mBits;
+	while (anEgg != 0)
+	{
+		unsigned int aHits = 0;
+		int i = 0;
+		do
+		{
+			mX = mX - mVX;
+			mY = mY - mVY;
+			EggGrid* aGrid = mBoard->mGrid;
+			aHits |= aGrid->Probe((int) mX, (int) (mY - 24.0f), false);
+			aHits |= aGrid->Probe((int) mX - 10, (int) (mY - 18.0f), false);
+			aHits |= aGrid->Probe((int) mX + 10, (int) (mY - 18.0f), false);
+			aHits |= aGrid->Probe((int) mX - 0x10, (int) (mY - 1.0f), false);
+			aHits |= aGrid->Probe((int) mX + 0x10, (int) (mY - 1.0f), false);
+			aHits |= aGrid->Probe((int) mX - 9, (int) (mY + 9.0f), false);
+			aHits |= aGrid->Probe((int) mX + 9, (int) (mY + 9.0f), false);
+			aHits |= aGrid->Probe((int) mX, (int) (mY + 12.0f), false);
+			if ((aHits & 1) != 0)
+				mVX = fabsf(mVX);
+			if ((aHits & 2) != 0)
+				mVX = -fabsf(mVX);
+		} while ((mY <= 570.0f) && (++i < 0xf));
+		mBoard->mGrid->ScreenToGrid((int) mX, (int) mY, &aPoint);
+		EggGrid::PixelToCell(aPoint.mX, aPoint.mY, &aCell);
+		anEgg = (char) mBoard->mGrid->mCells[aCell.mX][aCell.mY].mBits;
+	}
+	mCol = aCell.mX;
+	mRow = aCell.mY;
+	if (mGhost != true)
+	{
+		if (mColor == 0)
+			mBoard->mGrid->Blast(aCell.mX, aCell.mY);
+		else
+		{
+			mApp->mSndEgglands->Play();
+			mBoard->mGrid->mLoneEgg = true;
+			mBoard->mGrid->Place(aCell.mX, aCell.mY, mColor, mKind);
+			mBoard->mGrid->Match(aCell.mX, aCell.mY, mColor);
+			if (mBoard->mGrid->mLoneEgg == true)
+			{
+				mBoard->EggAlone(mColor);
+				mBoard->EggLanded();
+				return;
+			}
+		}
+		mBoard->EggLanded();
+	}
 }

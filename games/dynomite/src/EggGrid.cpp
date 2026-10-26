@@ -2,7 +2,9 @@
 #include "Dynomite.h"
 #include "Effects.h"
 #include "FossilizedApp.h"
+#include "AngleTable.h"
 #include "Rect.h"
+#include "Sprite.h"
 
 using namespace Sexy;
 
@@ -14,20 +16,21 @@ EggGrid::EggGrid(FossilizedApp* theApp, Dynomite* theBoard)
 	mCeiling = 0;
 	mRows = 0;
 	mField4688 = false;
+	mLoneEgg = false; // port: not set by the original constructor
 	GridCell* aCell = &mCells[0][0];
 	for (int i = 0x5dc; i != 0; i--)
 	{
 		aCell->mBits = 0;
 		aCell++;
 	}
-	aCell = &mCells2[0][0];
+	GridDynamite** aSlot = &mDynamite[0][0];
 	for (int i = 0x5dc; i != 0; i--)
 	{
-		aCell->mBits = 0;
-		aCell++;
+		*aSlot = NULL;
+		aSlot++;
 	}
-	mList466c.Clear();
-	mField10 = 4;
+	mDynamites.Clear();
+	mMaxColor = 4;
 	mField4690 = false;
 	mField4691 = false;
 	mField46d0 = true;
@@ -223,4 +226,139 @@ void EggGrid::Break(int x, int y, GridCell* theCell)
 	aShell = new ShellEffect();
 	aShell->Init(aCenterX, aCenterY, 0x87, aColor, 3, mApp);
 	mBoard->mEffects.Add(aShell);
+}
+
+// 0x416590: an egg of theColor (and bonus theKind) at a cell; a stick of dynamite there when it touches an egg of
+// its colour that has none
+void EggGrid::Place(int theCol, int theRow, int theColor, int theKind)
+{
+	GridCell* aCell = &mCells[theCol][theRow];
+	aCell->mBits = (aCell->mBits & 0xffffff00) | (theColor & 0xff);
+	aCell->mBits = (theKind & 0xf) << 9 | (aCell->mBits & 0xffffe0ff);
+	if (mRows < (float) theRow)
+		mRows = (float) theRow;
+	if (mMaxColor < theColor)
+		mMaxColor = theColor;
+	GridPoint aPoint;
+	CellToPixel(theCol, theRow, &aPoint);
+	unsigned int aColor = (unsigned int) theColor;
+	int aSame = 0;
+	if ((0 < theCol) && ((mCells[theCol - 1][theRow].mBits & 0xff) == aColor) && (mDynamite[theCol - 1][theRow] == NULL))
+		aSame = 1;
+	if ((theCol < 0xe) && ((mCells[theCol + 1][theRow].mBits & 0xff) == aColor) && (mDynamite[theCol + 1][theRow] == NULL))
+		aSame++;
+	if ((theRow % 2) == 0)
+	{
+		if (0 < theRow)
+		{
+			if ((0 < theCol) && ((mCells[theCol - 1][theRow - 1].mBits & 0xff) == aColor) && (mDynamite[theCol - 1][theRow - 1] == NULL))
+				aSame++;
+			if (((mCells[theCol][theRow - 1].mBits & 0xff) == aColor) && (mDynamite[theCol][theRow - 1] == NULL))
+				aSame++;
+		}
+		if (theRow <= 0x62)
+		{
+			if ((0 < theCol) && ((mCells[theCol - 1][theRow + 1].mBits & 0xff) == aColor) && (mDynamite[theCol - 1][theRow + 1] == NULL))
+				aSame++;
+			if (((mCells[theCol][theRow + 1].mBits & 0xff) == aColor) && (mDynamite[theCol][theRow + 1] == NULL))
+				aSame++;
+		}
+	}
+	else
+	{
+		if (0 < theRow)
+		{
+			if (((mCells[theCol][theRow - 1].mBits & 0xff) == aColor) && (mDynamite[theCol][theRow - 1] == NULL))
+				aSame++;
+			if ((theCol < 0xe) && ((mCells[theCol + 1][theRow - 1].mBits & 0xff) == aColor) && (mDynamite[theCol + 1][theRow - 1] == NULL))
+				aSame++;
+		}
+		if (theRow <= 0x62)
+		{
+			if (((mCells[theCol][theRow + 1].mBits & 0xff) == aColor) && (mDynamite[theCol][theRow + 1] == NULL))
+				aSame++;
+			if ((theCol < 0xe) && ((mCells[theCol + 1][theRow + 1].mBits & 0xff) == aColor) && (mDynamite[theCol + 1][theRow + 1] == NULL))
+				aSame++;
+		}
+	}
+	if ((aSame != 0) && (theColor < 0x12))
+	{
+		mLoneEgg = false;
+		// the old stick leaves the list but is not deleted
+		if (mDynamite[theCol][theRow] != NULL)
+			mDynamites.Remove(mDynamite[theCol][theRow]);
+		GridDynamite* aDynamite = new GridDynamite(this, aPoint.mX + 0x10, aPoint.mY);
+		mDynamites.Add(aDynamite);
+		mDynamite[theCol][theRow] = aDynamite;
+	}
+}
+
+// 0x417bd0 (TODO)
+void EggGrid::Match(int theCol, int theRow, int theColor)
+{
+}
+
+// 0x418100 (TODO)
+void EggGrid::Blast(int theCol, int theRow)
+{
+}
+
+// 0x438270
+GridDynamite::GridDynamite(EggGrid* theGrid, int x, int y)
+{
+	mX = (float) x;
+	mGrid = theGrid;
+	mTime = 0;
+	mY = (float) y;
+	unsigned int aRand = theGrid->mApp->mRand.NextNoAssert() % 3;
+	if (aRand == 0)
+	{
+		mAngle = 0x13b;
+		mWhich = 0;
+	}
+	else if (aRand == 1)
+	{
+		mAngle = 0x14f;
+		mWhich = 1;
+	}
+	else if (aRand == 2)
+	{
+		mAngle = 5;
+		mWhich = 2;
+	}
+	mSpark = 0;
+	mDX = theGrid->mApp->mAngles->mDX[mAngle];
+	mDY = theGrid->mApp->mAngles->mDY[mAngle];
+}
+
+// 0x438200
+GridDynamite::~GridDynamite()
+{
+}
+
+// 0x438210
+void GridDynamite::Update()
+{
+	mTime = (float) (mTime + 0.25);
+	if (mTime <= 5.0f)
+	{
+		mX = mDX + mX;
+		mY = mDY + mY;
+	}
+	else
+		mTime = 5.0f;
+	mSpark = mSpark + 0.15f;
+	if (3.0f <= mSpark)
+		mSpark = 0;
+}
+
+// 0x438350: the stick, and the spark 29 pixels along at its fuse
+void GridDynamite::Draw()
+{
+	GridPoint aPoint;
+	mGrid->GridToScreen((int) mX, (int) mY, &aPoint);
+	Cell* aCell = mGrid->mApp->mDynamiteCells[mWhich];
+	aCell->Draw(aPoint.mX - (aCell->mWidth >> 1), aPoint.mY - (aCell->mHeight >> 1));
+	aCell = mGrid->mApp->mSparkCells[(int) mSpark];
+	aCell->Draw((int) (mDX * 29.0f + aPoint.mX) - (aCell->mWidth >> 1), (int) (mDY * 29.0f + aPoint.mY) - (aCell->mHeight >> 1));
 }

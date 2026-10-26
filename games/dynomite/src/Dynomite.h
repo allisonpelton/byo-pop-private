@@ -90,6 +90,8 @@ public:
 	// times over, times the bonus bits; a popup at x, y
 	virtual void		AddPoints(int x, int y, int thePoints, int theMultiplier, bool isChain);
 	virtual void		MakeDynamite();					// 0x405010 (slot 51)
+	virtual void		EggAlone(int theColor);			// 0x4050d0 (slot 56; empty): a landed egg touches none of its colour
+	virtual void		EggLanded();					// 0x4b1930 (slot 61; empty)
 	void				Hint();							// 0x40ad90 (the side bar's sixth button)
 };
 
