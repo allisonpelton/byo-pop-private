@@ -776,7 +776,7 @@ void Panel_Update(Panel* thePanel)
 	List_Each(&thePanel->items, [](Obj* anItem) { Obj_Update(anItem); });
 }
 
-// Into the back buffer when theAll is set or a number changed (the lives shown stop at 9, and so do the lives);
+// 0x4184e0: into the back buffer when theAll is set or a number changed (the lives shown stop at 99, and so do the lives);
 // its items onto the screen
 void Panel_Draw(Panel* thePanel, int theAll)
 {
@@ -789,8 +789,8 @@ void Panel_Draw(Panel* thePanel, int theAll)
 	else
 	{
 		aPercent = (aLevel->filledCells * 100) / aLevel->totalCells;
-		if (99 < aPercent)
-			aPercent = 99;
+		if (100 < aPercent)
+			aPercent = 100;
 	}
 	Obj_Update(thePanel);
 	if (theAll != 0 || aPercent != gPanelPercent || gLives != gPanelLives || gScore != gPanelScore)
@@ -798,7 +798,7 @@ void Panel_Draw(Panel* thePanel, int theAll)
 		Image* anImage = thePanel->image;
 		Image_BlitRect(anImage, gBackBuffer.bits, gBackBuffer.pitch, &gBackBuffer.fmt, (int)thePanel->x,
 			(int)thePanel->y, 0, 0, anImage->w, anImage->h);
-		std::sprintf(aText, "%02d", aPercent);
+		std::sprintf(aText, "%03d", aPercent);
 		Font_SetTarget(thePanel->percentFont, gBackBuffer.bits, gBackBuffer.pitch, &gBackBuffer.fmt, gBackBuffer.w,
 			gBackBuffer.h);
 		Font_Printf(thePanel->percentFont, aRect, thePanel->percentX, thePanel->percentY, aText);
@@ -807,15 +807,15 @@ void Panel_Draw(Panel* thePanel, int theAll)
 			gBackBuffer.h);
 		Font_Printf(thePanel->levelFont, aRect, thePanel->levelX, thePanel->levelY, aText);
 		int aScore = gScore;
-		if (999999 < gScore)
-			aScore = 999999;
-		std::sprintf(aText, "%06d", aScore);
+		if (9999999 < gScore)
+			aScore = 9999999;
+		std::sprintf(aText, "%07d", aScore);
 		Font_SetTarget(thePanel->scoreFont, gBackBuffer.bits, gBackBuffer.pitch, &gBackBuffer.fmt, gBackBuffer.w,
 			gBackBuffer.h);
 		Font_Printf(thePanel->scoreFont, aRect, thePanel->scoreX, thePanel->scoreY, aText);
-		if (8 < gLives)
-			gLives = 9;
-		std::sprintf(aText, "%01d", gLives);
+		if (0x62 < gLives)
+			gLives = 99;
+		std::sprintf(aText, "%02d", gLives);
 		Font_SetTarget(thePanel->livesFont, gBackBuffer.bits, gBackBuffer.pitch, &gBackBuffer.fmt, gBackBuffer.w,
 			gBackBuffer.h);
 		Font_Printf(thePanel->livesFont, aRect, thePanel->livesX, thePanel->livesY, aText);

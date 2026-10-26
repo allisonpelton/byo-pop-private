@@ -445,6 +445,8 @@ void MenuItem_TypeKey(MenuItem* theItem)
 	});
 }
 
+} // namespace
+
 // 0x417080: the quit requester (the board's texts go first)
 void MenuItem_ConfirmQuit(MenuItem* theItem)
 {
@@ -461,6 +463,9 @@ void MenuItem_ConfirmQuit(MenuItem* theItem)
 	gLevels.current->state = 2;
 	theItem->hot = 0;
 }
+
+namespace
+{
 
 // 0x417120: hot under the mouse (or always), and its kind's thing when clicked; 0 when the menu's screen is done
 int MenuItem_Update(MenuItem* theItem)
@@ -1036,7 +1041,6 @@ void Menu_ShowRequester(Menu* theMenu, int theKind, const char* theText, const c
 		TextInput* anInput = &anEntry->input;
 		TextInput_Init(anInput, nullptr, nullptr, Font_Find("bonus_font"), 0xc, 4, 0x113, 0x113, 0x20d, 300);
 		TextInput_SetFocus(anInput, 1);
-		TextInput_SetCaseMode(anInput, 1);
 		TextInput_SetFillColour(anInput, 100, 100, 100, 100);
 		TextInput_SetOutline(anInput, 0);
 		TextInput_SetOnEnter(anInput, Level_SetUserName);
@@ -1047,13 +1051,7 @@ void Menu_ShowRequester(Menu* theMenu, int theKind, const char* theText, const c
 		Button_Setup(anItem, "okay", 340.0f, 330.0f);
 		anItem->midHandle = 1;
 		anItem->kind = 0x1d;
-		strcpy(anItem->name, GT(0x459604));
-		MenuItem_Append(&aList->current->items);
-		anItem = aList->current->items.current;
-		Button_Setup(anItem, "cancel", 460.0f, 330.0f);
-		anItem->midHandle = 1;
-		anItem->kind = 0x20;
-		strcpy(anItem->name, GT(0x4595f0));
+		// (Cosmic Bugs' name entry also had a cancel button here)
 		return;
 	}
 	case 3:

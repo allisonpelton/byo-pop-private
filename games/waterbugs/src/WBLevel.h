@@ -331,7 +331,7 @@ void Level_Destroy(Level* theLevel);                             // 0x413b70
 // 0x412640: the level tag in theTag, the game file read on from p (null: theTag is all there is, the board is
 // random and its cells are not made)
 void Level_Load(Level* theLevel, const char* p, XmlTag* theTag);
-int Level_Update(Level* theLevel);                               // cb:0x412960: 0 when it is left
+int Level_Update(Level* theLevel);                               // 0x412f50: 0 when it is left
 void Level_SetBackground(Level* theLevel);                       // 0x40f340: and the song, by the level number
 void Level_StartSong(Level* theLevel, int thePlay);              // 0x40f6b0
 void Level_MakeRandom(Level* theLevel, int theSeed);             // cb:0x40f580
@@ -398,7 +398,7 @@ void Shooter_Setup(Shooter* theShooter);                         // 0x41b570
 void Shooter_FromXml(Shooter* theShooter, const char* p, const XmlTag* theTag); // 0x41b340
 int Shooter_Update(Shooter* theShooter);                         // 0x41e740
 void Shooter_Hit(Shooter* theShooter, float theVx, float theVy);  // 0x41bfe0: a beamrider reached it
-void Beams_RemoveAll(List<Beam>* theList);                       // cb:0x411900
+void Beams_RemoveAll(List<Beam>* theList);                       // 0x411830
 void Enemy_Insert(List<Enemy>* theList);                         // 0x410610
 // Enemies (WBEnemy.cpp)
 Enemy* Enemy_Init(Enemy* theEnemy);                              // 0x405070
@@ -479,8 +479,11 @@ int Star_Update(Obj* theStar);                                   // cb:0x41e2c0
 void Level_AddStars(Level* theLevel);                            // 0x411350
 int Powerup_Update(Powerup* thePowerup);                         // 0x419bf0: 0 when it is gone
 int Weapon_Update(Weapon* theWeapon);                            // 0x41b290: 0 when it is gone
-void Level_StartRandom(Level* theLevel);                         // cb:0x4119c0: a random board, on its first update
-int Level_UpdatePaused(Level* theLevel);                         // cb:0x411bc0
+void Level_StartRandom(Level* theLevel);                         // 0x411910: a random board, on its first update
+int Level_UpdatePaused(Level* theLevel);                         // 0x412100
+void Level_Tutorial(Level* theLevel);                             // 0x411b10: the first levels' hints
+void Texts_RemoveAll(List<Text>* theList);                      // 0x4118d0
+void MenuItem_ConfirmQuit(MenuItem* theItem);                    // 0x417080
 void Shooter_Draw(Shooter* theShooter);                          // 0x41d970
 void Weapon_Draw(Weapon* theWeapon);                             // 0x419c10: a time bomb's fuse too
 void Weapon_DrawTooClose(Weapon* theWeapon);                     // 0x419d00

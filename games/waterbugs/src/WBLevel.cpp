@@ -855,7 +855,7 @@ static void Level_Won(Level* theLevel)
 			theLevel->columns[x][y].steps = 0x168;
 		}
 	}
-	Cell_StartFill(&theLevel->columns[1][1]);
+	Cell_StartFill(&theLevel->columns[gLevels.current->cols + -2][gLevels.current->rows + -2]);
 	List_Each(&theLevel->texts, [&](Text* aText) {
 		if (5 < std::strlen(aText->text) || aText->font == Font_Find("main_font"))
 		{
@@ -868,32 +868,7 @@ static void Level_Won(Level* theLevel)
 	theLevel->bonus = aBonus;
 	gScore = gScore + aBonus;
 	std::sprintf(aText, "^1%s", Localize(GT(0x4592f4)));
-	AddText(theLevel, aText, 400, 100, 100, 300, 0x1863c, 500, 0, 0);
-	int aY;
-	if (Level_EnemiesLeft(theLevel) == 0)
-	{
-		theLevel->bonus = 2000;
-		gScore = gScore + 2000;
-		std::sprintf(aText, "^4%s", Localize(GT(0 /* TODO cb:0x459130 */)));
-		AddText(theLevel, aText, 400, 0xb4, 100, 300, 0xf41dc, 500, 0, 0);
-		aY = 0xf0;
-	}
-	else
-	{
-		int aCount = theLevel->filledCells;
-		int aTotal = theLevel->totalCells;
-		std::sprintf(aText, "^1%s", Localize(GT(0 /* TODO cb:0x459150 */)));
-		AddText(theLevel, aText, 400, 0xaa, 100, 300, 0xf41dc, 500, 0, 0);
-		std::sprintf(aText, "^4%d%s", (aCount * 100) / aTotal, "%");
-		AddText(theLevel, aText, 400, 200, 100, 300, 0xf41dc, 500, 0, 0);
-		aY = 0xfa;
-	}
-	std::sprintf(aText, "^1%s", Localize(GT(0 /* TODO cb:0x459118 */)));
-	AddText(theLevel, aText, 400, aY, 100, 300, 0xf41dc, 500, 0, 0);
-	std::sprintf(aText, "^4%d", theLevel->bonus);
-	AddText(theLevel, aText, 400, aY + 0x1e, 100, 300, 0xf41dc, 500, 0, 0);
-	std::sprintf(aText, "^1%s", Localize(GT(0x45954c)));
-	AddText(theLevel, aText, 400, aY + 100, 100, 400, 200, 400, 200, 0);
+	AddText(theLevel, aText, 400, 0xf0, 100, 300, 1000, 500, 0, 0);
 	List_Each(&theLevel->enemies, [&](Enemy* anEnemy) {
 		anEnemy->state = 2;
 		if (theLevel->enemies.current->ice != nullptr)
@@ -930,13 +905,10 @@ int Level_Update(Level* theLevel)
 		gGoTo = (gLogoCount <= PortalCount()) ? 0xe : 1;
 		return 0;
 	}
-	if (theLevel->kind == 5 && theLevel->age < 3.0f)
-		Screen_Redraw();
-	if (gEscape != 0 && theLevel->kind == 0 && theLevel->state != 2)
-	{
-		theLevel->state = 2;
-		gEscape = 0;
-	}
+	// Esc on a board asks whether to quit, unless a requester is open already
+	if (gEscape != 0 && theLevel->kind == 0 && theLevel->menus.current != nullptr &&
+		theLevel->menus.current->requesters.current == nullptr)
+		MenuItem_ConfirmQuit(theLevel->menus.current->items.current);
 	if (theLevel->state == 2)
 		return Level_UpdatePaused(theLevel);
 	if (gDemo == 0 || theLevel->kind != 0)
@@ -1030,7 +1002,7 @@ int Level_Update(Level* theLevel)
 			}
 			else
 			{
-				if ((int)theLevel->age % 0x78 == 0 && theLevel->kind == 0 && gLevels.current->kind != 0xe &&
+				if ((int)theLevel->age % 0xb4 == 0 && theLevel->kind == 0 && gLevels.current->kind != 0xe &&
 					theLevel->totalCells != 0)
 					Sound_Play(theLevel->fillSound);
 				List_Each(aFills, [&](Cell* aFill) {
@@ -1038,7 +1010,10 @@ int Level_Update(Level* theLevel)
 					{
 						List_Unlink(aFills);
 						if (List_Count(aFills) == 1 && theLevel->kind == 0)
+						{
 							Sound_Play(theLevel->fillEndSound);
+							Level_Tutorial(theLevel);
+						}
 					}
 				});
 			}
@@ -1052,8 +1027,9 @@ int Level_Update(Level* theLevel)
 			List<Cell>* aFills = &theLevel->fills;
 			if (aFills->current == nullptr)
 			{
-				if (theLevel->texts.head == nullptr)
-					aResult = 0;
+				// the texts gone, the results requester comes up
+				if (theLevel->texts.head == nullptr && theLevel->menus.current->requesters.current == nullptr)
+					Menu_ShowRequester(theLevel->menus.current, 4, Localize(GT(0x4592c8)), Localize(GT(0x4592dc)));
 			}
 			else
 			{
@@ -1062,7 +1038,7 @@ int Level_Update(Level* theLevel)
 						List_Unlink(aFills);
 				});
 			}
-			// a text is clicked away once the one it goes with (else itself) is shown
+			// a click, once the text it goes with (else itself) is shown, clears the texts for the requester
 			List_Each(&theLevel->texts, [&](Text* aText) {
 				bool aShown = false;
 				if (aText->loopTime == 0)
@@ -1074,13 +1050,10 @@ int Level_Update(Level* theLevel)
 					aShown = 5 < aText->next->state;
 					aText = theLevel->texts.current;
 				}
-				if (theLevel->clicked != 0 && aShown)
+				if (theLevel->clicked != 0 && theLevel->menus.current->requesters.current == nullptr && aShown)
 				{
-					if (aText->state != 7)
-						aText->age = 0.0f;
-					theLevel->texts.current->lifetime = (float)theLevel->texts.current->fadeOut;
-					theLevel->texts.current->state = 7;
-					theLevel->texts.current->loopTime = 0;
+					Texts_RemoveAll(&theLevel->texts);
+					Menu_ShowRequester(theLevel->menus.current, 4, Localize(GT(0x4592c8)), Localize(GT(0x4592dc)));
 				}
 			});
 		}
@@ -1308,18 +1281,132 @@ void Level_StartRandom(Level* theLevel)
 	Cell_StartFill(&theLevel->columns[gLevels.current->cols - 2][gLevels.current->rows - 2]);
 }
 
+// 0x4118d0
+void Texts_RemoveAll(List<Text>* theList)
+{
+	while (List_RemoveCurrent(theList))
+		;
+}
+
+// 0x412100: while the board waits on its quit requester only the texts, the menus and the pointers go on; 0 when the
+// menu's screen is done
 int Level_UpdatePaused(Level* theLevel)
 {
-	while (List_RemoveCurrent(&theLevel->texts))
-		;
-	if (gEscape != 0)
+	theLevel->clicked = Mouse_Pressed(1);
+	List_Each(&theLevel->texts, [&](Text* aText) {
+		if (Text_Update(aText) == 0)
+			List_RemoveCurrent(&theLevel->texts);
+	});
+	List<Menu>* aMenus = &theLevel->menus;
+	if (aMenus->current != nullptr)
 	{
-		gGoTo = 1;
-		return 0;
+		aMenus->current = aMenus->head;
+		while (true)
+		{
+			if (Menu_Update(aMenus->current) == 0)
+				return 0;
+			Menu* aMenu = aMenus->current;
+			if (aMenu == nullptr)
+				break;
+			if (aMenu->next == nullptr)
+			{
+				aMenus->current = aMenus->head;
+				break;
+			}
+			aMenus->current = Node_Next(aMenu);
+		}
 	}
-	if (Key_Down(0xd) != 0)
-		theLevel->state = 1;
+	List_Each(&theLevel->pointers, [](Obj* aPointer) { Pointer_Update(aPointer); });
 	return 1;
+}
+
+// A hint line in the bonus font: it fades in and out over 200 and stays 4000
+static void AddHint(Level* theLevel, const char* theString, int theY)
+{
+	Text_Append(&theLevel->texts);
+	Text_Make(theLevel->texts.current, theString, Font_Find("bonus_font"), 400, theY, 0, 200, 4000, 200, 0, 0);
+}
+
+// 0x411b10: the first levels' hints, put up when a fill ends. They go by the level and the beam pairs that have
+// stopped, and stop once the board is mostly filled.
+void Level_Tutorial(Level* theLevel)
+{
+	int aNumber = theLevel->number;
+	if (3 < aNumber)
+		return;
+	List<Text>* aTexts = &theLevel->texts;
+	if (theLevel->powerups.current != nullptr)
+	{
+		Texts_RemoveAll(aTexts);
+		AddHint(theLevel, GT(0x45909c), 0xe6);
+		return;
+	}
+	int aLines = theLevel->lines;
+	if (aLines == 0 && aNumber == 1 && theLevel->menus.current != nullptr)
+	{
+		Texts_RemoveAll(aTexts);
+		AddHint(theLevel, Localize(GT(0x459084)), 0xe6);
+		AddHint(theLevel, Localize(GT(0x45905c)), 0xfa);
+		return;
+	}
+	if (aNumber == 1)
+	{
+		if (aLines == 1)
+		{
+			Texts_RemoveAll(aTexts);
+			AddHint(theLevel, Localize(GT(0x459040)), 0xe6);
+			AddHint(theLevel, Localize(GT(0x459020)), 0xfa);
+			return;
+		}
+		if (aLines == 2)
+		{
+			Texts_RemoveAll(aTexts);
+			AddHint(theLevel, Localize(GT(0x459008)), 0xe6);
+			AddHint(theLevel, Localize(GT(0x458fec)), 0xfa);
+			return;
+		}
+		if (aLines == 3)
+		{
+			Texts_RemoveAll(aTexts);
+			AddHint(theLevel, GT(0x458fd0), 0xe6);
+			AddHint(theLevel, GT(0x458fbc), 0xfa);
+			return;
+		}
+		if (0x54 < (theLevel->filledCells * 100) / theLevel->totalCells)
+			return;
+	}
+	if (aNumber == 2)
+	{
+		if (aLines == 0)
+		{
+			Texts_RemoveAll(aTexts);
+			AddHint(theLevel, GT(0x458fa4), 0xe6);
+			AddHint(theLevel, GT(0x458f84), 0xfa);
+			return;
+		}
+		if (aLines == 1)
+		{
+			Texts_RemoveAll(aTexts);
+			AddHint(theLevel, GT(0x458f64), 0xe6);
+			AddHint(theLevel, GT(0x458f44), 0xfa);
+			return;
+		}
+		if (aLines == 2)
+		{
+			Texts_RemoveAll(aTexts);
+			AddHint(theLevel, GT(0x458f24), 0xe6);
+			AddHint(theLevel, GT(0x458f04), 0xfa);
+			return;
+		}
+		if (0x54 < (theLevel->filledCells * 100) / theLevel->totalCells)
+			return;
+	}
+	if (aNumber == 3 && aLines == 0)
+	{
+		Texts_RemoveAll(aTexts);
+		AddHint(theLevel, GT(0x458ee8), 0xe6);
+		AddHint(theLevel, GT(0x458ecc), 0xfa);
+	}
 }
 
 void Level_GameOver(Level* theLevel)
