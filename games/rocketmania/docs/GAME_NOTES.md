@@ -15,7 +15,7 @@ image is linked 2003-09-08, base 0x400000, app class `WinTubeTricksApp` (the por
 | DifficultyDialog | 0x404380 | id 0xc: EASY, MEDIUM, HARD, CANCEL (ported) |
 | ContinueDialog | 0x402630 | id 0xf: NEW GAME or CONTINUE SAVED GAME (ported, the loading half waits for the Board) |
 | Board | 0x41ae80 | the game: Update 0x426f40, Draw 0x41f540, input 0x4285b0 to 0x4283e0, helpers 0x41b270 to 0x429460 |
-| Rocket (fireworks) | 0x4172f0, manager 0x41a830 | the decorative rockets over the menu and board (not ported) |
+| Rocket (the effects) | 0x4172f0, manager 0x41a830 | the particle effects: fireworks, sparkles, flames and the menu's petals (ported, Effects.cpp) |
 | TalkingHead, SpeechBubble | 0x4161a0, 0x415c70 | the guide who speaks in the menu and in the first games (not ported) |
 | HighScoreDisplayDialog | 0x4064e0 | id 0xe |
 | OptionsDialog | 0x411ba0 | id 1 |
@@ -148,10 +148,9 @@ The specials pass 0x41d670 is in too (kinds 0 and 1 the bomb that pulses and gro
 flame, 5 a rocket, 6 and 7 the coins that fall into the chest with their sparkle, 8 a fading picture, 10 and 11 the torch
 whose frame shows its hits left, 12 and 13 the clock; the images are the table's entries 30, 85-89, 48, 45-47 and 84, 21,
 91 and 92). A special that rides on a tile waiting above the board is drawn down with that tile (SpecialDy). The effects
-the pieces point at (mFlash) are moved and removed as the original does, but nothing draws them yet.
+the pieces point at (mFlash) are moved and removed as the original does, and are drawn with the others (see the effects below).
 
-Not translated yet, in Draw: the number of a launch (kind 9 of the specials pass, and 0x429230/0x4290b0), the effects 0x41abb0
-(called twice, behind and in front), the tilted tile 0x41e630 and the overlay 0x41e690, the ghost trail of a moved tile, the
+Not translated yet, in Draw: the number of a launch (kind 9 of the specials pass, and 0x429230/0x4290b0), the tilted tile 0x41e630 and the overlay 0x41e690, the ghost trail of a moved tile, the
 frozen-time bar 0x41f360 of classic mode, and the head and its bubble
 (0x416d50, 0x414000).
 
@@ -249,8 +248,7 @@ to the high scores after a game). Every 150 updates the page turns (Step 0x40f5a
 (a level's screen only; at the top rank it says so), bombs (level 5 on), the longest fuse, coins (not strategy), the largest launch,
 gems (level 3 on), clocks (level 7 on), matches (strategy) and the level (not strategy); a level's screen shows the level's
 figures (Board::mC4-mDc) and a game's the sums (mE0-mF8, which the dialog adds the level's into when it opens). The song fades
-to the level-up song, and fireworks burst behind the pot now and then (BurstSome); the head's lines and the drawing of the
-effects are not translated yet. When the window is not active the page goes dark with a pause notice and the link is taken away
+to the level-up song, and fireworks burst behind the pot now and then (BurstSome); the head's lines are not translated yet. When the window is not active the page goes dark with a pause notice and the link is taken away
 until it is. Each of the rank-name strings is read from the table at 0x4e62e8 (make_gametext.py lists the pointer table). The
 test script command "levelup <kind> <mode> <level> <score> [<page>]" opens it.
 
@@ -268,8 +266,28 @@ m100 says what a saved game was in the middle of (1 the buy-rockets screen, 2 th
 the screens up again. Board::RemovedFromManager (0x424260) deletes the widgets that the board owns. The test script command
 "buyrockets <over> <level> <coins> <meter>" opens the screen.
 
-Still to do after Draw (above): the fireworks (Rocket 0x4172f0, which also fills in the effects drawn by the level-up and
-buy-rockets screens), the talking head (0x4161a0, 0x413aa0), then the
+The effects (Effects.h, Effects.cpp; the original class "Rocket", 0x128 bytes, made by the manager's Add 0x41a9c0) are particle
+emitters of 24 kinds (0 to 0x17; the game makes 0 to 0x12). An effect holds a position, how far its particles spread from it,
+the direction they fly (a unit vector made when it is built), their speed, drag, acceleration, life and how many it makes
+every so many updates; EffectKinds.inc is what the original constructor (0x4172f0) stores for each kind, generated from its
+disassembly. The board sets the rest after Add: where it is (mX, mY), how many updates it keeps making particles (mLife; zero
+stops it, below zero never), the delay before it starts (mc0) and, for the sounds, m40. Each update (0x419340) the effect moves,
+every particle moves by its speed and then keeps the drag's fraction of it plus the acceleration, a particle at the end of its
+age goes back to the manager's pool (1000 particles, the same for all of its effects; an effect holds at most 200), and new
+ones are made while the effect has life. The manager removes a finished effect only when the flag given to Add is set. A
+particle's colour is a blend of a pair out of six colours that the effect holds (it takes the pair of 3 to 5 at random, the
+kinds 5 and 0xf one of 0 to 2 for each particle). The effect is drawn (0x4194d0) from strips of pictures chosen by the
+particle's age, with the add mode, in the layer given by m90: the explosion (0, 3, 0x14 to 0x16), the strip of nine (1, 0x11),
+the leaf (2, the petals of the menu, whose first 60 updates fade in), the stars (4 to 6, 0xb to 0xe, 0x17; kind 6 turns every
+other one), the rotating fireworks and the novas (7 to 10) and the sparkles (0xf, 0x10, 0x12, 0x13). The effects behind the board
+(layer set) are drawn before the column, those in front after the grid; the level-up screen draws the layer that is set,
+clipped to the window, and the buy-rockets screen the other one; the menu keeps one effect of kind 2 with a life of -1. An
+effect of a kind that tells the board when it goes (the byte at +8; kinds 1, 7, 9, 0xa, 0xf, 0x10, 0x11, 0x12, 8) calls
+Board::F428d10 when it is deleted (not when the manager is) and plays a firework sound when its delay is over (+9; the board puts the
+sound in m40 and the delay in mc0). While the board is paused (m350) its effects stand still, as
+the original's update shows. The test script command "effect <kind> <x> <y> <life> [<layer>]" adds one.
+
+Still to do after Draw (above): the talking head (0x4161a0, 0x413aa0), then the
 deliverables: the coordinator's `BYOPOP_BUY_rocketmania` line (cmake/ByopopStores.cmake has an
 uncommitted local placeholder that must not be committed), and an AddressSanitizer run of the autoplay (tools/build.sh has no
 asan option yet).

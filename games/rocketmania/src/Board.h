@@ -19,6 +19,7 @@
 #include "Widget.h"
 #include "ButtonListener.h"
 #include "Common.h"
+#include "Effects.h"
 #include <list>
 #include <string>
 #include <vector>
@@ -75,7 +76,7 @@ struct Piece
 	Piece*		mHost;          // +0x90 the tile a special is attached to
 	bool		m94;            // +0x94 the piece is in the board's list of moving pieces
 	int			m98;            // +0x98
-	struct Effect*	mFlash;     // +0x9c an effect attached to it
+	Effect*		mFlash;     // +0x9c an effect attached to it
 	int			mIndex;         // +0xa0 the launcher's number, or other counters
 	int			mIndex2;        // +0xa4
 	int			ma8;            // +0xa8 (3 at the start: the hits a bomb takes)
@@ -83,40 +84,6 @@ struct Piece
 	int			mb0, mb4;       // +0xb0 where a moved tile came from
 	int			mLoadedSpecial, mLoadedHost;    // (port) the numbers of mSpecial and mHost that a save holds, until 0x41b690 resolves them
 	Piece(int theBorn);
-};
-
-// The fireworks objects of the original (class Rocket, 0x4172f0, 0x128 bytes; manager 0x41a830, made by 0x41a9c0): a
-// particle effect of one of about 24 kinds. The fields the Board sets are named by offset; the effect itself is not
-// translated yet (the Board creates them and nothing is drawn).
-struct Effect
-{
-	int			mKind;
-	bool		mFlag;
-	int			m40;                // +0x40
-	double		mX, mY;             // +0x48, +0x50
-	double		m78, m80;           // +0x78, +0x80
-	bool		m90;                // +0x90
-	int			ma8, mac;           // +0xa8
-	int			mc0;                // +0xc0
-	int			mLife;              // +0xc4 the number of updates it lasts
-	int			md0, md4;           // +0xd0
-	double		mf8;                // +0xf8
-	double		m108;               // +0x108
-	int			m110, m118;         // +0x110
-	Effect(int theKind, bool theFlag);
-};
-
-// The manager of the effects (0x41a830): an effect list.
-class EffectManager
-{
-public:
-	std::list<Effect*>	mEffects;
-	~EffectManager();
-	Effect*				Add(int theKind, bool theFlag);      // 0x41a9c0
-	void				Remove(Effect* theEffect);           // 0x41aa80
-	bool				Has(Effect* theEffect);              // 0x41ab40
-	void				Update();                            // 0x41ab70 (the effects are not translated yet)
-	void				Clear();                             // 0x41aae0: all of them go
 };
 
 // 0x42a510, 0x74 bytes: draws the next piece of the board by the tables at 0x4e6800/0x4e6828 and keeps the counts of the

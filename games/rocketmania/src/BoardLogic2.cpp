@@ -105,9 +105,7 @@ void Board::RemovePiece(Piece* thePiece, bool theFlag)
 		{
 			Effect* anEffect = mEffects->Add(5, true);
 			anEffect->ma8 = 0;
-			anEffect->mac = 0;
 			anEffect->md0 = 0;
-			anEffect->md4 = 0;
 			anEffect->m108 = 0.93;
 			anEffect->mLife = 1;
 			anEffect->mc0 = 0;
@@ -1413,9 +1411,7 @@ void Board::UpdatePieces()
 					{
 						Effect* anEffect = mEffects->Add(5, true);
 						anEffect->ma8 = 0;
-						anEffect->mac = 0;
 						anEffect->md0 = 0;
-						anEffect->md4 = 0;
 						anEffect->m108 = 0.92;
 						anEffect->mLife = 1;
 						anEffect->mc0 = 0;

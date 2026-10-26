@@ -227,15 +227,14 @@ void BuyRocketsWidget::Draw(Graphics* g)
 		{
 			if (mUpgrades == 0)
 			{
-				if (mSkipWait)
+				if (!mSkipWait)
 				{
-					// (the effects are drawn at the end of every way through: not translated yet)
-					return;
+					DrawCentered(g, GT(0x004e41c4), 0x96);
+					DrawCentered(g, GT(0x004e41b4), 0xb9);
+					DrawCentered(g, GT(0x004e41a8), 0xdc);
+					DrawCentered(g, GT(0x004e4198), 0xff);
 				}
-				DrawCentered(g, GT(0x004e41c4), 0x96);
-				DrawCentered(g, GT(0x004e41b4), 0xb9);
-				DrawCentered(g, GT(0x004e41a8), 0xdc);
-				DrawCentered(g, GT(0x004e4198), 0xff);
+				aBoard->mEffects->Draw(g, false);       // 0x41abb0: every way through ends with the board's effects
 				return;
 			}
 
@@ -261,7 +260,7 @@ void BuyRocketsWidget::Draw(Graphics* g)
 					g->SetDrawMode(Graphics::DRAWMODE_NORMAL);
 				}
 			}
-			// (0x41abb0 draws the board's effects over it: not translated yet)
+			aBoard->mEffects->Draw(g, false);
 			return;
 		}
 	}
@@ -284,5 +283,5 @@ void BuyRocketsWidget::Draw(Graphics* g)
 			g->DrawImage(mApp->mImages[IMAGE_COINBRONZE], aX, aY);
 		}
 	}
-	// (0x41abb0 draws the board's effects over it: not translated yet)
+	aBoard->mEffects->Draw(g, false);
 }

@@ -66,7 +66,8 @@ void Board::Draw(Graphics* g)
 	}
 	g->DrawImage(anImages[IMAGE_CITY], 0x74, 0x13d);
 	g->DrawImage(anImages[IMAGE_GROUND], 0x74, 0x17e);
-	// (the effects behind the board, 0x41abb0 with the flag set, are not translated yet)
+	// the effects of the layer behind the board (0x41abb0 with the flag set)
+	mEffects->Draw(g, true);
 	g->DrawImage(anImages[IMAGE_COLUMN], 0, 0);
 	// (the talking head, 0x416d50, is not translated yet)
 	if (mApp->mMode == 2)
@@ -205,8 +206,9 @@ void Board::Draw(Graphics* g)
 			g->SetDrawMode(Graphics::DRAWMODE_NORMAL);
 		}
 	}
-	// (the frozen-time bar of classic mode 0x41f360, the effects 0x41abb0 and the talking head's bubble 0x414000 are not
-	// translated yet)
+	// (the frozen-time bar of classic mode 0x41f360 and the talking head's bubble 0x414000 are not translated yet; the
+	// effects of the front layer go between them)
+	mEffects->Draw(g, false);
 
 	// the hint that points at the first tile to turn
 	if (!m498 && !mApp->mNoHints)

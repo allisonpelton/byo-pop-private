@@ -70,71 +70,6 @@ Piece::Piece(int theBorn) :
 {
 }
 
-Effect::Effect(int theKind, bool theFlag) :
-	mKind(theKind), mFlag(theFlag), m40(0), mX(0), mY(0), m78(0), m80(0), m90(false), ma8(0), mac(0), mc0(0),
-	mLife(0), md0(0), md4(0), mf8(0), m108(0), m110(0), m118(0)
-{
-}
-
-EffectManager::~EffectManager()
-{
-	for (std::list<Effect*>::iterator anItr = mEffects.begin(); anItr != mEffects.end(); ++anItr)
-		delete *anItr;
-}
-
-// 0x41a9c0
-Effect* EffectManager::Add(int theKind, bool theFlag)
-{
-	Effect* anEffect = new Effect(theKind, theFlag);
-	mEffects.push_back(anEffect);
-	return anEffect;
-}
-
-// 0x41aae0
-void EffectManager::Clear()
-{
-	for (std::list<Effect*>::iterator anItr = mEffects.begin(); anItr != mEffects.end(); ++anItr)
-		delete *anItr;
-	mEffects.clear();
-}
-
-// 0x41aa80
-void EffectManager::Remove(Effect* theEffect)
-{
-	for (std::list<Effect*>::iterator anItr = mEffects.begin(); anItr != mEffects.end(); ++anItr)
-	{
-		if (*anItr == theEffect)
-		{
-			mEffects.erase(anItr);
-			delete theEffect;
-			return;
-		}
-	}
-}
-
-// 0x41ab70: the original asks each effect (0x419340) whether it goes on and removes the finished ones; the effects
-// themselves are not translated, so they only wait out their life here
-bool EffectManager::Has(Effect* theEffect)
-{
-	for (std::list<Effect*>::iterator anItr = mEffects.begin(); anItr != mEffects.end(); ++anItr)
-	{
-		if (*anItr == theEffect)
-			return true;
-	}
-	return false;
-}
-
-void EffectManager::Update()
-{
-	for (std::list<Effect*>::iterator anItr = mEffects.begin(); anItr != mEffects.end(); )
-	{
-		Effect* anEffect = *anItr;
-		++anItr;
-		if (--anEffect->mLife <= 0)
-			Remove(anEffect);
-	}
-}
-
 // 0x42a510
 PieceGenerator::PieceGenerator(RocketApp* theApp, Board* theBoard, MTRand* theRand) :
 	mApp(theApp), mBoard(theBoard), mRand(theRand)
@@ -799,9 +734,7 @@ void Board::SmokePuff(Piece* thePiece)
 	Effect* anEffect = mEffects->Add(5, true);
 	anEffect->m108 = 0.93;
 	anEffect->ma8 = 0;
-	anEffect->mac = 0;
 	anEffect->md0 = 0;
-	anEffect->md4 = 0;
 	anEffect->mc0 = 0;
 	anEffect->mLife = 1;
 	anEffect->mX = thePiece->mX + 10.0;

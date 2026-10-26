@@ -154,6 +154,7 @@ static DialogButton* MakeMenuButton(RocketApp* theApp, int theId, ButtonListener
 // 0x404e30
 GameSelector::GameSelector(RocketApp* theApp) :
 	mApp(theApp),
+	mEffects(NULL),
 	mAlpha(0xff),
 	mHint(0),
 	mDifficulty(-1),
@@ -171,13 +172,18 @@ GameSelector::GameSelector(RocketApp* theApp) :
 	mOptionsButton = MakeMenuButton(mApp, BUTTON_OPTIONS, this, GT(0x004e4644), aMenuColor, 0x15b);
 	mQuitButton = MakeMenuButton(mApp, BUTTON_QUIT, this, GT(0x004e463c), aMenuColor, 0x186);
 
-	// not ported: the firework rockets over the menu (RocketManager 0x41a830, one rocket made with 0x41a9c0(2, 1)) and the
-	// talking head (0x405950 puts it at 150, 65)
+	// the leaves: one effect of kind 2 that makes leaves for ever (its life is -1)
+	mEffects = new EffectManager(mApp);
+	Effect* aLeaves = mEffects->Add(2, true);
+	aLeaves->mLife = -1;
+
+	// not ported: the talking head (0x405950 puts it at 150, 65)
 	ResetHead();
 }
 
 GameSelector::~GameSelector()
 {
+	delete mEffects;
 	for (int i = 0; i < 3; i++)
 		delete mModeButtons[i];
 	delete mHighScoresButton;
@@ -214,7 +220,9 @@ void GameSelector::Update()
 {
 	Widget::Update();
 
-	// not ported: the rockets' update, and at update 100 the talking head's welcome (0x416aa0 with text 0x3e on the
+	mEffects->Update();     // 0x41ab70
+
+	// not ported: at update 100 the talking head's welcome (0x416aa0 with text 0x3e on the
 	// first start, 0x39 after, and 0x416360 with 0x10 or 1)
 
 	if (mAlpha < 0xff)
@@ -273,7 +281,7 @@ void GameSelector::Draw(Graphics* g)
 		g->DrawString(aText, 0x140 - g->GetFont()->StringWidth(aText) / 2, 0x1cc);
 	}
 
-	// not ported: the rockets (0x41abb0)
+	mEffects->Draw(g, false);       // 0x41abb0: the leaves
 }
 
 // 0x406220

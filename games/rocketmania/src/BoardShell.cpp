@@ -36,7 +36,7 @@ Board::Board(RocketApp* theApp, bool theContinuing)
 	mRows = 9;
 	mRand = new MTRand((unsigned long) Rand());
 	mGen = new PieceGenerator(theApp, this, mRand);
-	mEffects = new EffectManager();
+	mEffects = new EffectManager(mApp);
 	// every plain field of the original starts as zero; the lists and the widget stay as they are
 	memset(&mState, 0, (char*) &mObjects - (char*) &mState);
 	for (int aRow = 0; aRow < 9; aRow++)

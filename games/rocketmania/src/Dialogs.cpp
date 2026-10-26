@@ -1939,7 +1939,7 @@ void LevelUpDialog::Draw(Graphics* g)
 	g->SetFont(mApp->mFonts[FONT_DOMO14_BOLD]);
 	Graphics aFireworks(*g);
 	aFireworks.ClipRect(0x5b, 0x3c, 0x1cf, 0xa9);
-	// (0x41abb0 draws the fireworks of the board's effects into the clipped part here; they are not translated yet)
+	aBoard->mEffects->Draw(&aFireworks, true);       // 0x41abb0: the fireworks of the board's effects, in the clipped part
 	g->DrawImage(mApp->mImages[IMAGE_JAR], 0x5b, 0x7a);
 
 	g->SetFont(mApp->mFonts[FONT_DOMO36_BOLD]);

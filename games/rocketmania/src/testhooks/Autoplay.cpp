@@ -206,6 +206,7 @@ bool RocketLevelUp(RocketApp* theApp, const ScriptCommand& theCommand)
 	aBoard->mD4 = 2;
 	aBoard->mD8 = 1;
 	aBoard->mDc = 5;
+	aBoard->mState = (aKind == LevelUpDialog::KIND_LEVEL) ? 6 : 2;     // the board is not paused by the dialog then
 	aBoard->ShowLevelUp(aKind);
 	LevelUpDialog* aDialog = (LevelUpDialog*) theApp->GetDialog(DIALOG_LEVEL_UP);
 	if (aDialog != NULL)
@@ -244,3 +245,30 @@ bool RocketBuyRockets(RocketApp* theApp, const ScriptCommand& theCommand)
 	return true;
 }
 
+// "effect <kind> <x> <y> <life> [<layer>]": adds an effect of that kind to the board's effects (starting a game of the arcade
+// mode first if there is no board) where the particles start at x y, that makes particles for that many updates
+bool RocketEffect(RocketApp* theApp, const ScriptCommand& theCommand)
+{
+	int aKind = 0, anX = 0, aY = 0, aLife = 1, aLayer = 0;
+	if (sscanf(theCommand.mArgs.c_str(), "%d %d %d %d %d", &aKind, &anX, &aY, &aLife, &aLayer) < 4)
+	{
+		SDL_Log("effect: bad arguments '%s'", theCommand.mArgs.c_str());
+		return true;
+	}
+	if (theApp->mBoard == NULL)
+	{
+		theApp->mMode = 0;
+		theApp->mDifficulty = 1;
+		theApp->StartBoard(false);
+	}
+	Board* aBoard = theApp->mBoard;
+	if (aBoard == NULL)
+		return true;
+	Effect* anEffect = aBoard->mEffects->Add(aKind, true);
+	anEffect->mX = (double) anX;
+	anEffect->mY = (double) aY;
+	anEffect->mLife = aLife;
+	anEffect->mc0 = 0;
+	anEffect->m90 = aLayer != 0;
+	return true;
+}

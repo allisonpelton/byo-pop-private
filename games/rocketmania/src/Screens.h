@@ -9,6 +9,7 @@
 #include "ButtonListener.h"
 #include "HyperlinkWidget.h"
 #include "DialogButton.h"
+#include "Effects.h"
 #include <string>
 
 namespace Sexy
@@ -41,8 +42,8 @@ public:
 // 0x404e30: the menu (picture "select back"): the three game modes, the high scores, the options and the quit button.
 // A mode button opens the difficulty dialog (or, with a saved game of that mode, the continue dialog); the
 // difficulty dialog starts the game with StartGame.
-// port: the firework rockets the original keeps flying over the menu (RocketManager, 0x41a830) and the talking head
-// that introduces the first game (0x4161a0) are not translated yet; their calls are marked "not ported" below.
+// port: the talking head that introduces the first game (0x4161a0) is not translated yet; its calls are marked "not
+// ported" below. Over the picture blow the leaves (an effect of kind 2 that never ends, 0x41a830).
 class GameSelector : public Widget, public ButtonListener
 {
 public:
@@ -61,6 +62,7 @@ public:
 	DialogButton*		mHighScoresButton;      // +0x68 id 4
 	DialogButton*		mOptionsButton;         // +0x6c id 5
 	DialogButton*		mQuitButton;            // +0x70 id 3
+	EffectManager*		mEffects;               // +0x7c the leaves that blow over the picture
 	int					mAlpha;                 // +0x74 the hint text's fade-in, 0 to 255 in steps of 10
 	int					mHint;                  // +0x78 which hint text shows: 0 none hovered, 1-3 a mode, 4-6 the lower buttons
 	int					mDifficulty;            // +0x84 the chosen difficulty, 1 easy to 3 hard (-1 none)
