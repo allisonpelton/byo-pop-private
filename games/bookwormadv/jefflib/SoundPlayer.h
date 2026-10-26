@@ -31,6 +31,8 @@ public:
 	// 0x6af910: plays a sample unless it started within the last theMinUpdates updates (its cached instance if
 	// it has one, else one that releases itself)
 	void PlaySampleMinTime(int theId, int theMinUpdates);
+	// 0x6af9d0: the same at a pan, unless it started within the last 5 updates
+	void PlaySamplePan(int theId, int thePan);
 	// 0x6afaa0: plays a sample on its cached instance (made the first time), at a pan, unless it started within
 	// the last theMinUpdates updates
 	void PlayCachedSample(int theId, int thePan, int theMinUpdates);

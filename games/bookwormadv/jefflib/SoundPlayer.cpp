@@ -37,6 +37,22 @@ void SoundPlayer::PlaySampleMinTime(int theId, int theMinUpdates)
 	mLastPlayed[theId] = mUpdateCount;
 }
 
+void SoundPlayer::PlaySamplePan(int theId, int thePan)
+{
+	if (theId < 0 || theId >= MAX_SAMPLES)
+		return;
+	auto anIt = mLastPlayed.find(theId);
+	if (anIt != mLastPlayed.end() && mUpdateCount - anIt->second < 6)
+		return;
+	bool aNew = mCached[theId] == nullptr;
+	Sexy::SoundInstance* anInstance = aNew ? mApp->mSoundManager->GetSoundInstance(theId) : mCached[theId];
+	if (anInstance != nullptr) {
+		anInstance->SetPan(thePan);
+		anInstance->Play(false, aNew);
+	}
+	mLastPlayed[theId] = mUpdateCount;
+}
+
 void SoundPlayer::PlayCachedSample(int theId, int thePan, int theMinUpdates)
 {
 	if (theId < 0 || theId >= MAX_SAMPLES || PlayedWithin(theId, theMinUpdates))

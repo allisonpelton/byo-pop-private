@@ -193,6 +193,11 @@ void GameApp::PlaySample(int theSoundNum)
 	mSoundPlayer->PlaySampleMinTime(theSoundNum, 5);
 }
 
+void GameApp::PlaySample(int theSoundNum, int thePan)
+{
+	mSoundPlayer->PlaySamplePan(theSoundNum, thePan);
+}
+
 Dialog* GameApp::NewDialog(int theDialogId, bool isModal, const SexyString& theDialogHeader,
                            const SexyString& theDialogLines, const SexyString& theDialogFooter, int theButtonMode)
 {

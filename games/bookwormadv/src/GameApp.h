@@ -97,6 +97,8 @@ public:
 	void Shutdown() override;               // 0x445960
 	// 0x44f5c0: through the sound player, not again within 5 updates
 	void PlaySample(int theSoundNum) override;
+	// 0x44f600: the same at a pan
+	void PlaySample(int theSoundNum, int thePan) override;
 
 	// Dialogs. Every one is a GameDialog (NewDialog, 0x443f00), laid out at least 348 wide.
 	Dialog* NewDialog(int theDialogId, bool isModal, const SexyString& theDialogHeader,
