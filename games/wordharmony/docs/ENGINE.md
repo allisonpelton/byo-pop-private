@@ -83,7 +83,13 @@ pushes the first; 0x43d120 pushes a copy of the top, 0x43ce10 pops). A state is 
 a rotation (+0x10, added), an opacity (+0x14, multiplied), a colour (+0x18), a colour offset (+0x24, added), the font
 (+0x30, counted) and a bit field (+0x34: the text's alignment among other things). The context's pure slots draw an
 image with the current state; slot 3 (0x43cba0) draws a string glyph by glyph through them. The Windows layer
-implements it over DirectDraw surfaces.
+implements it over DirectDraw surfaces (constructor 0x45dcb0, vtable 0x48ac14) with Sprout's own software blitters
+(0x457830-0x45dcb0). Its image draw (slot 0, 0x45e2d0) adds the state's translation to the position, rounds it to whole
+pixels according to the state's snapping bits (both coordinates, only one, or neither), and picks a blitter: a colour
+offset blit when the state's colour offset is not zero, a plain or colour-keyed blit when the opacity is 1, and an
+alpha blit (opacity times 255) otherwise; each takes the scale and the rotation. Slots 5 and 6 fill a rectangle with the
+state's colour and opacity, slot 7 draws a line. The port maps all of these onto the framework's blits (matrix blits
+with a colour), so its pixels can differ slightly from the original's.
 
 ## Fonts
 
