@@ -24,8 +24,12 @@ public:
 	           int theButtonMode);
 	~GameDialog() override;
 
-	// 0x4be9c0: the fonts and colours, and the size: at least theMinWidth wide and as wide as the header,
-	// centred, a little below the first dialog open (or near the top)
+	// 0x4be3f0: a dialog's button: a FadeButton on IMAGE_DIALOG_BUTTON, stretched to its size, with theLabel (its
+	// fades are left as SetupImage makes them: the dialogs turn them off)
+	static FadeButton* MakeButton(int theId, ButtonListener* theListener, const SexyString& theLabel);
+
+	// 0x4be9c0: the fonts and colours, and the size: first theMinWidth wide (and centred), then at least that wide
+	// and as wide as the header, centred, a little below the first dialog open (or near the top)
 	void Layout(int theMinWidth);
 
 	// slot 81, 0x4bf0d0: the buttons' labels (an empty one is left as it is)

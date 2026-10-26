@@ -211,9 +211,9 @@ void Board::Init()
 	mApp->ClearUpdateBacklog(false);
 }
 
-void Board::InitMiniGame(int x, int y, int theCols, int theRows, const std::string& theLetters, bool theNoTilesWhilePaused)
+void Board::InitMiniGame(const std::string& theName, int x, int y, int theXGap, int theYGap, int theCols, int theRows,
+                         const std::string& theLetters, bool theNoTilesWhilePaused)
 {
-	// MINIGAME: check the argument order with the asm of 0x418120
 	mGridHeight = theRows;
 	mGridX = x;
 	mIsMiniGame = true;
@@ -228,12 +228,14 @@ void Board::InitMiniGame(int x, int y, int theCols, int theRows, const std::stri
 	gTileEngine->CallLinkedMethod("Setup", 0);
 	for (int aRow = 0; aRow < mGridHeight; aRow++) {
 		for (int aCol = 0; aCol < mGridWidth; aCol++) {
-			Tile* aTile = AddTile(gTileEngine->CreateTile(false, true, true), aCol, aRow);
+			Tile* aTile = AddTile(gTileEngine->CreateTile(false, true, theLetters.empty()), aCol, aRow, theXGap, theYGap);
 			if (!theLetters.empty())
 				aTile->SetLetter(StrFormat("%c", theLetters[mGridWidth * aRow + aCol]));
 		}
 	}
-	RehupMouse();
+	// 0x426230: the scripts' Board:InitMiniGame(theName) makes the mini-game (gMiniGame) and loads its resources
+	lua_pushstring(LS(), theName.c_str());
+	CallLinkedMethod("InitMiniGame", 1);
 	mApp->ClearUpdateBacklog(false);
 }
 
@@ -764,7 +766,7 @@ void Board::Pause(bool thePause, bool theNoBanner)
 			if (it != mButtons.end() && it->second != nullptr)
 				mButtons[BUTTON_MENU]->SetDisabled(false);
 		}
-		if (mApp->GetDialog(GameApp::DIALOG_CONTINUE) == nullptr) {
+		if (mApp->GetDialog(GameApp::DIALOG_ARENA_WIN) == nullptr) {
 			mApp->Unmute(true);
 			mMuteCount--;
 		}
@@ -775,7 +777,7 @@ void Board::Pause(bool thePause, bool theNoBanner)
 		mPauseCount++;
 		if (theNoBanner)
 			mPauseNoBannerCount++;
-		if (mApp->GetDialog(GameApp::DIALOG_CONTINUE) == nullptr) {
+		if (mApp->GetDialog(GameApp::DIALOG_ARENA_WIN) == nullptr) {
 			mApp->Mute(true);
 			mMuteCount++;
 		}
@@ -1569,7 +1571,7 @@ void Board::DrawOverlay(Graphics* g)
 	if (mLevelupOverlay && !mIsMiniGame)
 		DrawLua(g, "gBattleEngine:DrawLevelupOverlay");
 	if (mPauseCount > 0 && !mApp->ShowingConversationPanel() && mApp->mBookScreen == nullptr && !mFlash->mActive &&
-	    mApp->GetDialog(GameApp::DIALOG_CONTINUE) == nullptr) {
+	    mApp->GetDialog(GameApp::DIALOG_ARENA_WIN) == nullptr) {
 		g->SetColor(Color(0, 0, 0, 140));
 		g->FillRect(0, 0, mWidth, mHeight);
 		if (mPauseNoBannerCount == 0)

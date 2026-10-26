@@ -30,8 +30,9 @@
 #   bookwormadv  Bookworm Adventures: the PopLua compiler's dialect checks and every compiled script of the game
 #                loaded by the port's VM (bwa_luarun), every PopAnim loaded (bwa_pamtest), every cutscene played
 #                to its end (bwa_swftest), a scripted run from the title to the main menu whose quit asks,
-#                Play! stays and Quit quits, and the test profile's first chapter won and saved by the port's
-#                "word attack" script command (under two minutes)
+#                Play! stays and Quit quits, the test profile's first chapter won and saved by the port's
+#                "word attack" script command, and a run through the screens off the main menu (the credits, the
+#                players dialog, the mini-games' menu, the arena to its first word) (about two and a half minutes)
 #   pixelus      Pixelus Deluxe's grid replay test (every puzzle of the game solved by its recorded solution), a scripted tour of the
 #                options, credits and how-to-play screens, the bot's first 25 puzzles and a rerun with the same screenshots,
 #                and the bot's whole game (210 puzzles in all 12 temples, to the ending; about 2 minutes)
@@ -436,7 +437,7 @@ suite_mummymaze() {
 }
 
 suite_bookwormadv() {
-	local log="$1" b="$W/build/native/bwa_luarun.exe" d l p s m c
+	local log="$1" b="$W/build/native/bwa_luarun.exe" d l p s m c w
 	need_assets bookwormadv || return 1
 	[ -x "$b" ] || { SUMMARY="no $b (build first)"; return 1; }
 	d="$("$b" -gamedir=games/bookwormadv/tests/poplua dialect.lua 2>&1 | tee -a "$log" | tail -n 1)"
@@ -445,13 +446,15 @@ suite_bookwormadv() {
 	s="$("$W/build/native/bwa_swftest.exe" 2>&1 | tee -a "$log" | grep -c '; unsupported: none')"
 	m="$(bookwormadv_menu "$log")"
 	c="$(bookwormadv_chapter "$log")"
-	SUMMARY="$d; $l; pam $p; swf $s of 4 to their end; menu: $m; chapter 1: $c"
+	w="$(bookwormadv_screens "$log")"
+	SUMMARY="$d; $l; pam $p; swf $s of 4 to their end; menu: $m; chapter 1: $c; screens: $w"
 	case "$d" in "dialect: "*" checks passed") ;; *) return 1 ;; esac
 	bookwormadv_all "$l" || return 1
 	bookwormadv_all "$p" || return 1
 	[ "$s" = 4 ] || return 1
 	[ "$m" = "quit at update 1310" ] || return 1
-	[ "$c" = "6 words, won, saved" ] || return 1
+	[ "$c" = "7 words, won, saved" ] || return 1
+	[ "$w" = "credits, players, mini-games, arena word ANTIBIOSIS" ] || return 1
 	return 0
 }
 
@@ -498,6 +501,34 @@ bookwormadv_chapter() {  # <log>: the test profile's first chapter, its battles 
 	else
 		echo "$n words, not won"
 	fi
+}
+
+bookwormadv_screens() {  # <log>: the test profile through the screens off the main menu: the credits, the players, the mini-games, the arena
+	local d="$OUT/bookwormadv/screens" u n k t
+	rm -rf "$d"; mkdir -p "$d"
+	cp -r games/bookwormadv/tests/menu/user "$d/user"
+	# the profile unlocks the mini-games and the arena (for a player past the first book); then the options'
+	# credits, skipped; the players dialog, cancelled; the mini-games' menu and its way back; the arena: its
+	# intro, the treasure room's continue (enabled from Lua, as no treasure is chosen), Cassandra's tutorial clicked
+	# through off the grid, and the longest word with the attack
+	{ printf '%s\n' "950 lua profile.Set('UnlockedMiniGames', true) profile.Set('UnlockedArena', true) profile.Set('CurrentBook', 2)" \
+		"1000 move 50 500" "1010 click 50 500" "1100 move 275 458" "1110 click 275 458" "1600 screenshot $d/credits.png" \
+		"1700 click 400 300" "2300 move 400 209" "2310 click 400 209" "2500 screenshot $d/players.png" \
+		"2550 move 470 464" "2560 click 470 464" "2700 move 110 400" "2710 click 110 400" "3200 screenshot $d/minigames.png" \
+		"3250 move 393 494" "3260 click 393 494" "3900 move 530 270" "3920 click 530 270" "5300 move 400 385" \
+		"5320 click 400 385" "5500 lua gTreasureScreen.mCObj:SetButtonState(gTreasureScreen.ButtonId_Continue, true, true)" \
+		"5600 move 400 515" "5620 click 400 515"
+	  for k in $(seq 0 9); do t=$((6500 + k * 200)); printf '%s\n' "$t move 700 500" "$((t + 20)) click 700 500"; done
+	  printf '%s\n' "8700 word attack" "9300 screenshot $d/arena.png" "9400 quit"; } > "$d/script.txt"
+	u="$d/user"; case "$u" in /*|[A-Za-z]:*) ;; *) u="$W/$u" ;; esac
+	timeout 180 "$W/build/native/bookwormadv.exe" -userdir="$u" -script="$d/script.txt" -fast -seed=1 \
+		> "$d/stdout.txt" 2>&1
+	cat "$d/stdout.txt" >> "$1"
+	grep -q "FATAL" "$d/stdout.txt" && { echo "failed: $(grep -m 1 -A 2 FATAL "$d/stdout.txt" | tail -n 1)"; return; }
+	grep -q "script: lua:" "$d/stdout.txt" && { echo "failed: $(grep -m 1 'script: lua:' "$d/stdout.txt")"; return; }
+	for n in credits players minigames arena; do [ -f "$d/$n.png" ] || { echo "no $n screenshot"; return; }; done
+	n="$(grep -m 1 -o 'script: word [A-Z]*' "$d/stdout.txt")"
+	echo "credits, players, mini-games, arena ${n#script: }"
 }
 
 tiptop_game() {  # <name> <mode> <games>: bot games; prints the last "game N over" line

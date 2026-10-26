@@ -3,7 +3,7 @@
 // Arguments (all optional):
 //   -gamedir=<dir>   folder with the game's images/, scripts/, properties/, data/, sounds/ and
 //                    BookwormAdventures.exe (read for a few texts, never run): the staged copy that
-//                    games/bookwormadv/tools/stage_bookwormadv_assets.py makes (its JPEG 2000 images as PNG)
+//                    games/bookwormadv/tools/stage_bookwormadv_assets.py makes
 //   -userdir=<dir>   writable folder for the profiles and registry.ini
 //   -modsdir=<dir>   folder containing data mods (one sub-folder per mod)
 //   -nomods          start without any mods
@@ -14,6 +14,8 @@
 #include "platform/ModManager.h"
 #include "platform/VFS.h"
 #include "platform/WebPersist.h"
+#include "platform/openjpeg/JP2Decoder.h"
+#include "platform/openmpt/OpenMPTPlayer.h"
 
 #include <SDL.h>
 #include <cstdio>
@@ -130,6 +132,10 @@ int main(int argc, char** argv)
 	if (!HasFlag(argc, argv, "nomods"))
 		Platform::ModManager::Get().Refresh();
 	SDL_Log("game: %s | user: %s | mods: %s", gameDir.c_str(), userDir.c_str(), modsDir.c_str());
+
+	// The music is one MO3 module (sounds/music.mo3), which libopenmpt plays, and 42 of the pictures are JPEG 2000
+	Platform::RegisterOpenMPTModules();
+	Platform::RegisterOpenJPEGImages();
 
 	// The original keeps the app as a global object and calls Init, Start and Shutdown on it.
 	static GameApp* anApp = new GameApp();

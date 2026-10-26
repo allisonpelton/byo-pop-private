@@ -4,7 +4,9 @@
 
 #include "Board.h"
 #include "BookManager.h"
+#include "ChapterLoadScreen.h"
 #include "ConversationPanel.h"
+#include "Credits.h"
 #include "CurtainTransition.h"
 #include "CutScene.h"
 #include "FadeButton.h"
@@ -15,6 +17,7 @@
 #include "LuaInterface.h"
 #include "LuaResourceManager.h"
 #include "MainMenu.h"
+#include "MinigameMenu.h"
 #include "MusicInterface.h"
 #include "PopAnimManager.h"
 #include "Profile.h"
@@ -22,6 +25,7 @@
 #include "ResourceManager.h"
 #include "SongPlayer.h"
 #include "SoundPlayer.h"
+#include "StatsBook.h"
 #include "TitleScreen.h"
 #include "TreasureScreen.h"
 #include "WidgetManager.h"
@@ -164,6 +168,10 @@ void GameApp::Init()
 
 bool GameApp::UpdateAppStep(bool* updated)
 {
+	// A chapter's resources load between the frames while its loading screen is up (StartLoadChapterResources);
+	// with -fast all of them at once
+	if (mChapterLoadScreen != nullptr && !mChapterLoadDone)
+		mChapterLoadDone = LoadChapterResources(mFastMode ? 0 : SDL_GetTicks() + 20);
 	// The loading thread's next 20 ms of work, between the frames (StartLoading); with -fast all of it at once,
 	// so that a test run reaches the menu at the same update on any machine
 	if (mLoadingPhase != LOADING_IDLE && mLoadingPhase != LOADING_DONE && mDrawCount > 0) {
@@ -179,9 +187,12 @@ void GameApp::UpdateFrames()
 {
 	// (SexyApp's: not LuaApp's, whose UpdateState the original called only with a development flag set)
 	SexyApp::UpdateFrames();
+	// (the original's music interface did this in its Update, the end of SexyAppBase::UpdateFrames)
+	if (mSongPlayer != nullptr)
+		mSongPlayer->Update();
 	// port: every 100 updates the original checked the trial's limits of its marketing modes (an hour's play,
 	// or the Hydra); the port is the full game
-	if (mTitleScreenDone) {
+	if (mCountsTime) {
 		mAppTime++;
 		mUserUpdates++;
 	}
@@ -194,9 +205,87 @@ void GameApp::Shutdown()
 		return;
 	if (mProfile != nullptr)
 		mProfile->Save();
-	// port: the original also took the battle's board away (+0x948, not ported yet) and, in the trial's marketing
-	// modes, asked its trial window whether to show the "buy" screen
+	// the battle's board goes
+	if (mBoard != nullptr) {
+		mWidgetManager->RemoveWidget(mBoard);
+		SafeDeleteWidget(mBoard);
+		mBoard = nullptr;
+	}
+	// port: the original, in the trial's marketing modes, also asked its trial window whether to show the "buy"
+	// screen here
 	LuaApp::Shutdown();
+}
+
+namespace {
+
+// the screen stops updating (the focus handlers' flag), or goes on
+void StopUpdating(Widget* theWidget, bool isStopped)
+{
+	if (isStopped)
+		theWidget->mWidgetFlagsMod.mRemoveFlags |= WIDGETFLAGS_UPDATE;
+	else
+		theWidget->mWidgetFlagsMod.mRemoveFlags &= ~WIDGETFLAGS_UPDATE;
+}
+
+}  // namespace
+
+void GameApp::GotFocus()
+{
+	// 0x451230: the screens update again, unless the credits are up (they stopped the ones under them)
+	mCountsTime = true;
+	if (mCredits != nullptr)
+		StopUpdating(mCredits, false);
+	if (mBookScreen != nullptr) {
+		StatsBook* aBook = static_cast<StatsBook*>(mBookScreen);
+		if (aBook->mMediaPlayer && aBook->mFlash != nullptr)
+			aBook->mFlash->Unpause();
+	}
+	// port: the original also went on with the trial's "buy" screen (the app's +0x8a4) here, and in two of the
+	// trial's marketing modes asked its trial window whether to leave the game; the port is the full game
+	if (mCreditsCount == 0) {
+		if (mBoard != nullptr)
+			StopUpdating(mBoard, false);
+		if (mBookManager != nullptr)
+			StopUpdating(mBookManager, false);
+		if (mTreasureScreen != nullptr)
+			StopUpdating(mTreasureScreen, false);
+		if (mMainMenu != nullptr)
+			StopUpdating(mMainMenu, false);
+		if (mHallOfFame != nullptr)
+			StopUpdating(mHallOfFame, false);
+		if (mMiniGameMenu != nullptr)
+			StopUpdating(mMiniGameMenu, false);
+	}
+}
+
+void GameApp::LostFocus()
+{
+	// 0x451160: the screens stop updating, unless the credits are up (they stopped the ones under them)
+	mCountsTime = false;
+	if (mCredits != nullptr)
+		StopUpdating(mCredits, true);
+	if (mMainMenu != nullptr)
+		mMainMenu->AppLostFocus();
+	if (mBookScreen != nullptr) {
+		StatsBook* aBook = static_cast<StatsBook*>(mBookScreen);
+		if (aBook->mMediaPlayer && aBook->mFlash != nullptr)
+			aBook->mFlash->Pause();
+	}
+	// port: the original also stopped the trial's "buy" screen (the app's +0x8a4) here
+	if (mCreditsCount == 0) {
+		if (mBoard != nullptr)
+			StopUpdating(mBoard, true);
+		if (mBookManager != nullptr)
+			StopUpdating(mBookManager, true);
+		if (mTreasureScreen != nullptr)
+			StopUpdating(mTreasureScreen, true);
+		if (mMainMenu != nullptr && mMainMenu->mLogoY == 0)
+			StopUpdating(mMainMenu, true);
+		if (mHallOfFame != nullptr)
+			StopUpdating(mHallOfFame, true);
+		if (mMiniGameMenu != nullptr)
+			StopUpdating(mMiniGameMenu, true);
+	}
 }
 
 void GameApp::PlaySample(int theSoundNum)
@@ -236,16 +325,17 @@ GameDialog* GameApp::DoConfirmDialog(int theId, const SexyString& theHeader, con
 {
 	if (theId == -1)
 		theId = DIALOG_CONFIRM;
-	// the battle holds under it (with its sounds; port: the sound player's pause of the looping samples is not
-	// ported)
+	// the battle holds under it (with its sounds, and the looping samples go silent)
 	if (mBoard != nullptr) {
 		mBoard->Pause(true, true);
 		Unmute(true);
+		mSoundPlayer->PauseLooping(true);
 	}
 	mDialogCallback = theCallback;
 	mConfirmListener = theListener;
 	GameDialog* aDialog = static_cast<GameDialog*>(DoDialog(theId, true, theHeader, theLines, _S(""), Dialog::BUTTONS_YES_NO));
 	Unmute(true);
+	mSoundPlayer->PauseLooping(true);
 	aDialog->Resize(mWidth / 2 - aDialog->mWidth / 2, mHeight / 2 - aDialog->mHeight / 2, aDialog->mWidth,
 	                aDialog->mHeight + 50);
 	aDialog->SetHeaderFont(FONT_LARGE_OUTLINE);
@@ -264,11 +354,13 @@ GameDialog* GameApp::DoOkDialog(const SexyString& theHeader, const SexyString& t
 	if (mBoard != nullptr) {
 		mBoard->Pause(true, true);
 		Unmute(true);
+		mSoundPlayer->PauseLooping(true);
 	}
 	mDialogCallback = theCallback;
 	GameDialog* aDialog = static_cast<GameDialog*>(
 		DoDialog(DIALOG_OK, true, theHeader, theLines, GT(0x7ac5a0), Dialog::BUTTONS_FOOTER));
 	Unmute(true);
+	mSoundPlayer->PauseLooping(true);
 	aDialog->SetHeaderFont(FONT_LARGE_OUTLINE);
 	aDialog->SetLinesFont(FONT_MEDIUM);
 	aDialog->SetColor(Dialog::COLOR_HEADER, Color::White);
@@ -306,6 +398,17 @@ void GameApp::ButtonDepress(int theId)
 	int anId = theId % 10000;
 	if (anId >= 2000 && anId < 3000) {
 		int aDialogId = theId - 2000;
+		// 0x44adae: the battle's board takes the focus back first
+		if (mBoard != nullptr)
+			mWidgetManager->SetFocus(mBoard);
+		// the pauses of the looping samples end: two for the ok and the question (both pause once more over a
+		// battle), one for the options and the menu
+		if (aDialogId == DIALOG_CONFIRM || aDialogId == DIALOG_OPTIONS || aDialogId == DIALOG_OK ||
+		    aDialogId == DIALOG_MENU) {
+			mSoundPlayer->PauseLooping(false);
+			if (aDialogId == DIALOG_CONFIRM || aDialogId == DIALOG_OK)
+				mSoundPlayer->PauseLooping(false);
+		}
 		switch (aDialogId) {
 		case DIALOG_REALLY_QUIT:  // its yes is "Quit"
 			mMainMenu->mReallyQuit = false;
@@ -325,10 +428,38 @@ void GameApp::ButtonDepress(int theId)
 			KillDialog(DIALOG_OK);
 			CallDialogCallback(true);
 			break;
+		case DIALOG_OPTIONS:  // the options' footer button, or Escape
+			CloseOptionsDialog(true);
+			if (mBoard != nullptr)
+				mWidgetManager->SetFocus(mBoard);
+			else if (mBookManager != nullptr)
+				mWidgetManager->SetFocus(mBookManager);
+			break;
+		case DIALOG_NEW_USER:  // the dialog hears its buttons itself (NewUserDialog::ButtonDepress)
+			break;
+		case DIALOG_NO_WINDOWED:  // the options' message
+			KillDialog(DIALOG_NO_WINDOWED);
+			break;
+		case DIALOG_NEW_PROFILE:  // the trial's "new profile?": the players' dialog
+			KillDialog(DIALOG_NEW_PROFILE);
+			mMainMenu->ShowUserDialog();
+			break;
+		case DIALOG_CONTINUE_GAME:  // the arena's saved run
+			mMainMenu->ContinueArena(true);
+			KillDialog(DIALOG_CONTINUE_GAME);
+			break;
 		case DIALOG_SKIP_MOVIE:
 			if (mCutScene != nullptr)
 				mCutScene->Skip();
 			KillDialog(DIALOG_SKIP_MOVIE);
+			break;
+		case DIALOG_ARENA_WIN:  // its Continue (the original has no case of its own, but kills the dialog)
+			KillDialog(DIALOG_ARENA_WIN);
+			break;
+		case DIALOG_TRIAL_COMPLETE:  // "buy now"
+			// port: the original asked the trial's window (0x44fdb0) and went on to its buy screen (0x451c20); the
+			// port has no trial, so this dialog is never made
+			KillDialog(DIALOG_TRIAL_COMPLETE);
 			break;
 		default:
 			SDL_Log("GameApp: the answer %d to dialog %d is not ported yet", theId, aDialogId);
@@ -337,11 +468,27 @@ void GameApp::ButtonDepress(int theId)
 		}
 	} else if (anId >= 3000 && anId < 4000) {
 		int aDialogId = theId - 3000;
-		if (aDialogId == DIALOG_REALLY_QUIT)
+		// 0x44b20e: the battle's board takes the focus back first
+		if (mBoard != nullptr)
+			mWidgetManager->SetFocus(mBoard);
+		if (aDialogId == DIALOG_CONFIRM || aDialogId == DIALOG_OPTIONS || aDialogId == DIALOG_OK ||
+		    aDialogId == DIALOG_MENU) {
+			mSoundPlayer->PauseLooping(false);
+			if (aDialogId == DIALOG_CONFIRM || aDialogId == DIALOG_OK)
+				mSoundPlayer->PauseLooping(false);
+		} else if (aDialogId == DIALOG_REALLY_QUIT)
 			mMainMenu->mReallyQuit = false;
 		else if (aDialogId == DIALOG_SKIP_MOVIE) {
 			if (mCutScene != nullptr)
 				mCutScene->mFlash->Unpause();
+		} else if (aDialogId == DIALOG_CONTINUE_GAME) {
+			// a new run (the original killed the dialog here and again below)
+			mProfile->ResetTimedMode();
+			StartNewGameTransition();
+		} else if (aDialogId == DIALOG_TRIAL_COMPLETE) {
+			// port: the original went back to the main menu unless the trial's window (0x44fdb0) said the game was
+			// bought; the port has none
+			StartToMenuTransition();
 		} else if (aDialogId != DIALOG_CONFIRM && aDialogId != DIALOG_OK)
 			SDL_Log("GameApp: the answer %d to dialog %d is not ported yet", theId, aDialogId);
 		KillDialog(aDialogId);
@@ -377,7 +524,7 @@ void GameApp::ButtonDepress(int theId)
 		case BookManager::BUTTON_OPTIONS:
 		case TreasureScreen::BUTTON_OPTIONS:
 			if (!mQueuedHydraLockout)
-				ShowGameMenu(true);
+				ShowGameMenu(theId == TreasureScreen::BUTTON_OPTIONS);
 			break;
 		case TreasureScreen::BUTTON_BACK:
 			if (mQueuedHydraLockout)
@@ -513,8 +660,11 @@ void GameApp::LoadingThreadCompleted()
 	mTitleScreen->mLoaded = true;
 	// the profiles that do not load are deleted, and the player is told
 	if (!CheckProfiles() && !mProfileErrors.empty()) {
-		// port: the original's dialog (0x443f90) is not ported yet
-		Popup(StrFormat(GT(0x7acdc0).c_str(), mProfileErrors.c_str()));
+		DoOkDialog(GT(0x7a9c04), StrFormat(GT(0x7acdc0).c_str(), mProfileErrors.c_str()), "", nullptr);
+		// wide enough for what failed, and put back in the middle
+		GameDialog* aDialog = static_cast<GameDialog*>(GetDialog(DIALOG_OK));
+		aDialog->mWidth = 600;
+		aDialog->Move((mWidth - 600) / 2, (mHeight - aDialog->mHeight) / 2);
 	}
 	// the last player's profile, or the first there is
 	std::string aName;
@@ -549,7 +699,7 @@ void GameApp::TitleScreenDone()
 		mTitleScreenDoneQueued = true;
 		return;
 	}
-	mTitleScreenDone = true;
+	mCountsTime = true;
 	if (!RegistryReadInteger("AppTime", &mAppTime))
 		mAppTime = 0;
 	if (mAppTime < 0)
@@ -617,15 +767,18 @@ bool GameApp::SelectUser(const std::string& theName)
 		delete mProfile;
 		mProfile = nullptr;
 		RegistryEraseValue("LastUser");
-		// port: the original's dialogs (0x443f90 with an error title, the app's vf 0x78) are not ported yet
+		// a profile that is out of date says why in a message box (the app's vf 0x78, MsgBox), any other that does not
+		// load in the error dialog
 		if (aReasons.empty())
-			Popup(StrFormat(GT(0x7acec8).c_str(), ""));
+			DoOkDialog(GT(0x7a9c04), StrFormat(GT(0x7acec8).c_str(), theName.c_str()), "", nullptr);
 		else
-			Popup(StrFormat(GT(0x7acf08).c_str(), aReasons.c_str()));
+			MsgBox(StrFormat(GT(0x7acf08).c_str(), aReasons.c_str()), GT(0x7acef4), 0);
 		return false;
 	}
 	RegistryWriteString("LastUser", mProfile->mName);
-	mUserUpdates = 0;  // port: the original also cleared +0x974 and +0x978 here (not ported yet)
+	mUserUpdates = 0;
+	mBattleUpdates = 0;
+	mMiniGameUpdates = 0;
 	return true;
 }
 
@@ -640,8 +793,8 @@ void GameApp::ShowMainMenu(bool theFromTitle, bool theToBack)
 	}
 	mWidgetManager->SetFocus(mMainMenu);
 	mMainMenu->SetDisabled(false);
-	// port: a new menu then told the player of what was unlocked (0x449660: the profile's NeedsBestiaryDialog,
-	// NeedsMiniGamesDialog, NeedsArenaDialog, ...), with dialogs not ported yet
+	if (aNew)
+		ShowUnlockMessages();
 	if (theToBack && mHallOfFame != nullptr)
 		mWidgetManager->BringToFront(mHallOfFame);
 	if (mCurtain != nullptr)
@@ -650,6 +803,109 @@ void GameApp::ShowMainMenu(bool theFromTitle, bool theToBack)
 		mSongPlayer->PlaySong(0x8c, 0.005f, true);  // the main menu's song
 	mWidgetManager->SetFocus(mMainMenu);
 	ClearUpdateBacklog(false);
+}
+
+void GameApp::ShowUnlockMessages()
+{
+	// 0x449660
+	auto aNeeds = [this](const char* theKey) {
+		return mProfile != nullptr && mProfile->KeyExists(theKey) && mProfile->GetBool(theKey);
+	};
+	bool aBestiary = aNeeds("NeedsBestiaryDialog");
+	bool aMiniGames = aNeeds("NeedsMiniGamesDialog");
+	bool aArena = aNeeds("NeedsArenaDialog");
+	bool aExpansionBoss = aNeeds("NeedsExpansionBossDialog");
+	bool aMediaPlayer = aNeeds("NeedsMPDialog");
+
+	// Lex speaks from a new panel, one page after another
+	auto aNewPanel = [this]() {
+		NewConversationPanel();
+		mConversationPanel->SetDefaults(-1, Color(0, 75, 10), IMAGE_TUT_PIC_LEX, FONT_HUGE, 0);
+		mConversationPanel->SetContinueTextColor(Color(0, 140, 20));
+	};
+	// the panel comes over the menu, and the menu's welcome when it is done. (After the end of the game it is made
+	// but not shown: the credits show it.)
+	auto aShowPanel = [this]() {
+		if (!mNoMusic) {
+			mConversationPanel->Activate(false);
+			mWidgetManager->PutInfront(mConversationPanel, mMainMenu);
+			mConversationPanel->mOnInactive = [this]() {
+				// 0x44d340
+				if (mTitleToMainMenu) {
+					mTitleToMainMenu = false;
+					mMainMenu->PlayReaction(MainMenu::REACTION_WELCOME);
+				}
+			};
+		}
+	};
+
+	if (aBestiary) {
+		// the tome, and what else came with it
+		aNewPanel();
+		mConversationPanel->AddTextPage(GT(0x7ad090));
+		mConversationPanel->AddTextPage(GT(0x7ad0e0));
+		if (aMiniGames) {
+			mConversationPanel->AddTextPage(GT(0x7ad128));
+			mProfile->SetBool("NeedsMiniGamesDialog", false);
+		}
+		if (aArena) {
+			mConversationPanel->AddTextPage(aMiniGames ? GT(0x7ad170) : GT(0x7ad1c0));
+			mProfile->SetBool("NeedsArenaDialog", false);
+		}
+		if (aExpansionBoss) {
+			mConversationPanel->AddTextPage(!aMiniGames && !aArena ? GT(0x7ad254) : GT(0x7ad210));
+			mProfile->SetBool("NeedsExpansionBossDialog", false);
+		}
+		aShowPanel();
+		mProfile->SetBool("NeedsBestiaryDialog", false);
+		mProfile->Save();
+		return;
+	}
+	if (aMiniGames) {
+		aNewPanel();
+		mConversationPanel->AddTextPage(GT(0x7ad290));
+		mConversationPanel->AddTextPage(GT(0x7ad2e0));
+		if (aArena) {
+			mConversationPanel->AddTextPage(GT(0x7ad1c0));
+			mProfile->SetBool("NeedsArenaDialog", false);
+		}
+		if (aExpansionBoss) {
+			mConversationPanel->AddTextPage(aArena ? GT(0x7ad210) : GT(0x7ad254));
+			mProfile->SetBool("NeedsExpansionBossDialog", false);
+		}
+		aShowPanel();
+		mProfile->SetBool("NeedsMiniGamesDialog", false);
+		mProfile->Save();
+		return;
+	}
+
+	// the arena, the expansion's bosses or the film reel: one of them
+	const char* aKey;
+	if (aArena) {
+		aNewPanel();
+		mConversationPanel->AddTextPage(GT(0x7ad308));
+		mConversationPanel->AddTextPage(GT(0x7ad360));
+		if (aExpansionBoss) {
+			mConversationPanel->AddTextPage(GT(0x7ad254));
+			mProfile->SetBool("NeedsExpansionBossDialog", false);
+		}
+		aKey = "NeedsArenaDialog";
+	} else if (aExpansionBoss) {
+		aNewPanel();
+		mConversationPanel->AddTextPage(GT(0x7ad3c0));
+		mConversationPanel->AddTextPage(GT(0x7ad3f4));
+		aKey = "NeedsExpansionBossDialog";
+	} else {
+		if (!aMediaPlayer)
+			return;
+		aNewPanel();
+		mConversationPanel->AddTextPage(GT(0x7ad420));
+		mConversationPanel->AddTextPage(GT(0x7ad470));
+		aKey = "NeedsMPDialog";
+	}
+	mProfile->SetBool(aKey, false);
+	aShowPanel();
+	mProfile->Save();
 }
 
 void GameApp::StartIntro(int theMode)
@@ -753,9 +1009,9 @@ void GameApp::CurtainDone()
 		if (!aClosed) {
 			// open over the movie: it plays (after the new player's name, for the intro)
 			if (mPlayIntro) {
-				// port: the new player's name (0x444b90, a NewUserDialog) is not ported yet; the movie plays
-				SDL_Log("GameApp: the new player's name dialog (0x444b90) is not ported yet");
-				mPlayIntro = false;
+				// the movie waits for the name (NewUserDialogDone lets it play)
+				ShowNewUserDialog(Dialog::BUTTONS_FOOTER);
+				return;
 			}
 			if (!mCutScene->mEnded)
 				mCutScene->mFlash->Unpause();
@@ -763,9 +1019,11 @@ void GameApp::CurtainDone()
 			return;
 		}
 		// closed: the movie in place of the screen
-		if (mCutScene != nullptr)
+		if (mCutScene != nullptr) {
 			mCutScene->SetVisible(true);
-		// port: the hall of fame went too (0x450bb0), not ported yet
+			if (mHallOfFame != nullptr)
+				CloseHallOfFame();
+		}
 		if (!mFullCurtain) {
 			if (mTitleScreen != nullptr) {
 				mWidgetManager->RemoveWidget(mTitleScreen);
@@ -805,7 +1063,8 @@ void GameApp::CurtainDone()
 		if (!aClosed)
 			break;
 		RemoveMainMenu();
-		// port: the hall of fame went too (0x450bb0), not ported yet
+		if (mHallOfFame != nullptr)
+			CloseHallOfFame();
 		int aBook = mTimedMode ? -1 : mProfile->GetInt("CurrentBook");
 		InitGameScreen(mTimedMode);
 		if (mNukeProfile) {
@@ -818,7 +1077,25 @@ void GameApp::CurtainDone()
 		mBookManager->CallLinkedMethod("SelectBookNumber", 3);
 		mBookManager->CallLinkedMethod("DoArrowHints", 0);
 		mBookManager->CallLinkedMethod("MMToCSTransitionComplete", 0);
-		// port: the timed mode's book (DoTreasureTransition and its TM_ dialogs) is not ported yet
+		if (mTimedMode) {
+			mBookManager->DoTreasureTransition();
+			if (mProfile->KeyExists("TM_OnCheckpoint") && mProfile->GetBool("TM_OnCheckpoint")) {
+				// a run saved at its checkpoint: the treasure screen as it, over the book
+				mBookManager->CallLinkedMethod("InitTimedModeCheckpoint", 0);
+				mTreasureScreen->CallLinkedMethod("InitTimedModeCheckpoint", 0);
+			} else {
+				// a new run: what the arena is, under the arena's banner
+				DoOkDialog(_S(""), GT(0x7ad7d8), "", IMAGE_TM_INTRO_TITLE);
+				GameDialog* aDialog = static_cast<GameDialog*>(GetDialog(DIALOG_OK));
+				aDialog->SetLinesFont(FONT_LARGE);
+				aDialog->mSpaceAfterHeader += 0x14;
+				aDialog->mPriority = 5;
+				int aWidth = aDialog->mWidth;
+				aDialog->SetBanner(IMAGE_TM_INTRO_TITLE, 3);
+				aWidth += 0x96;
+				aDialog->Resize((mWidth - aWidth) / 2, (mHeight - aDialog->mHeight) / 2, aWidth, aDialog->mHeight);
+			}
+		}
 		mCurtain->StartOpening();
 		mWidgetManager->BringToFront(mCurtain);
 		ClearUpdateBacklog(true);
@@ -872,7 +1149,8 @@ void GameApp::CurtainDone()
 		if (mTreasureScreen != nullptr)
 			mWidgetManager->RemoveWidget(mTreasureScreen);
 		SafeDeleteWidget(mTreasureScreen);
-		// port: the stats book went too (0x444470), not ported yet
+		if (mBookScreen != nullptr)
+			RemoveStatsBook();
 		RemoveBookManager();
 		mTreasureScreen = nullptr;
 		RemoveBoard();
@@ -1131,18 +1409,51 @@ int GameApp::StartLoadChapterResources(lua_State* L)
 		mChapterResources.push_back(aResource);
 	}
 
-	// port: the original counted the resources, showed the chapter's loading screen (ChapterLoadScreen,
-	// 0x42e780) over the curtain and updated the app until its loading thread had loaded them; the port loads
-	// them at once
-	std::string anError;
-	bool aLoaded = LoadChapterResources(anError);
+	// The loading screen over the closed curtain, with a bar of the resources loaded (a group's resources, and
+	// one for an animation), while the app updates until they are all loaded
+	mChapterLoadTotal = 0;
+	for (const ChapterResource& aResource : mChapterResources) {
+		if (aResource.mType == CHAPTER_RES_GROUP)
+			mChapterLoadTotal += mResourceManager->GetNumResources(aResource.mString);
+		else
+			mChapterLoadTotal++;
+	}
+	mChapterLoadCount = 0;
+	mChapterLoadIndex = 0;
+	mChapterLoadGroupStarted = false;
+	mChapterLoadDone = false;
+	mChapterLoadFailed = false;
+	mChapterLoadError.clear();
+	mLoadingDone = false;
+#ifdef __EMSCRIPTEN__
+	// port: the browser shows nothing until the game returns to it, and the scripts need the resources when
+	// this returns, so the web build loads them at once, behind the closed curtain. The draw is the first hint the
+	// loading screen picks (natively), so that a seed plays the same in both.
+	Rand();
+	LoadChapterResources(0);
+#else
+	mChapterLoadScreen = new ChapterLoadScreen(this);
+	mWidgetManager->AddWidget(mChapterLoadScreen);
+	mWidgetManager->BringToFront(mChapterLoadScreen);
+	if (mCurtain != nullptr) {
+		mCurtain->mPriority = 99999;
+		mChapterLoadScreen->mPriority = mCurtain->mPriority + 1;
+	}
+	// (with -fast all of them in the first step, so that a test run takes the same updates on any machine)
+	while (!mChapterLoadDone && !mShutdown)
+		UpdateApp();
+	mWidgetManager->RemoveWidget(mChapterLoadScreen);
+	SafeDeleteWidget(mChapterLoadScreen);
+	mChapterLoadScreen = nullptr;
+#endif
 	((LuaResourceManager*)mResourceManager)->ExportToLua();
 	if (mShutdown) {
+		mLoadingChapter = false;
 		lua_pushboolean(L, 0);
 		return 1;
 	}
-	if (!aLoaded)
-		luaL_error(L, "There was an error loading the chapter's resources:\n%s", anError.c_str());
+	if (mChapterLoadFailed)
+		luaL_error(L, "There was an error loading the chapter's resources:\n%s", mChapterLoadError.c_str());
 	if (!aContinuing)
 		StartBattle();
 	mLoadingChapter = false;
@@ -1150,35 +1461,55 @@ int GameApp::StartLoadChapterResources(lua_State* L)
 	return 1;
 }
 
-bool GameApp::LoadChapterResources(std::string& theError)
+bool GameApp::LoadChapterResources(unsigned int theDeadline)
 {
-	for (const ChapterResource& aResource : mChapterResources) {
+	while (mChapterLoadIndex < mChapterResources.size()) {
 		if (mShutdown)
 			return true;
+		const ChapterResource& aResource = mChapterResources[mChapterLoadIndex];
 		if (aResource.mType == CHAPTER_RES_GROUP) {
-			if (mResourceManager->IsGroupLoaded(aResource.mString))
-				continue;
-			mResourceManager->StartLoadResources(aResource.mString);
+			if (!mChapterLoadGroupStarted) {
+				if (mResourceManager->IsGroupLoaded(aResource.mString)) {
+					mChapterLoadIndex++;
+					continue;
+				}
+				mResourceManager->StartLoadResources(aResource.mString);
+				mChapterLoadGroupStarted = true;
+			}
 			while (mResourceManager->LoadNextResource()) {
-				// port: the original gave up after twice the resources it had counted ("taking an unnaturally
-				// long time")
+				mChapterLoadCount++;
 				if (mShutdown)
 					return true;
+				// port: the original gave up after twice the resources it had counted ("taking an unnaturally
+				// long time")
+				if (mChapterLoadScreen != nullptr)
+					mChapterLoadScreen->MarkDirtyFull();
+				if (theDeadline != 0 && SDL_TICKS_PASSED(SDL_GetTicks(), theDeadline))
+					return false;
 			}
+			mChapterLoadGroupStarted = false;
 			if (mResourceManager->HadError()) {
-				theError = mResourceManager->GetErrorText();
-				return false;
+				mChapterLoadFailed = true;
+				mChapterLoadError = mResourceManager->GetErrorText();
+				return true;
 			}
 		} else {
 			PopAnim* anAnim = new PopAnim(aResource.mIntParameter, mPopAnimManager);
 			if (!anAnim->LoadAnimation(aResource.mString)) {
-				theError = StrFormat("Error loading PAM file: \"%s\". Reason given: %s", aResource.mString.c_str(),
-				                     anAnim->GetError().c_str());
+				mChapterLoadFailed = true;
+				mChapterLoadError = StrFormat("Error loading PAM file: \"%s\". Reason given: %s", aResource.mString.c_str(),
+				                              anAnim->GetError().c_str());
 				delete anAnim;
-				return false;
+				return true;
 			}
 			mPopAnimManager->Add(aResource.mIntParameter, anAnim, aResource.mStrParameter);
+			mChapterLoadCount++;
+			if (mChapterLoadScreen != nullptr)
+				mChapterLoadScreen->MarkDirtyFull();
 		}
+		mChapterLoadIndex++;
+		if (theDeadline != 0 && SDL_TICKS_PASSED(SDL_GetTicks(), theDeadline))
+			return false;
 	}
 	return true;
 }
@@ -1259,7 +1590,8 @@ void GameApp::PlayMainMenuCutScene()
 	std::string aCaption = mProfile->GetString("IntroCutsceneTitle");
 	std::string aFile = mProfile->GetString("NeedsIntroCutscene");
 	PlayCutScene(aFile, "gBookManager:MMCutsceneDone", aCaption, false, true);
-	// port: the hall of fame was put behind the curtain (not ported yet)
+	if (mHallOfFame != nullptr)
+		mWidgetManager->PutBehind(mHallOfFame, mCurtain);
 	mProfile->Delete("NeedsIntroCutscene");
 	mProfile->Delete("IntroCutsceneTitle");
 }
@@ -1278,11 +1610,4 @@ void GameApp::StartBattle()
 	mWidgetManager->SetFocus(mBoard);
 	// port: the original then freed the images' extra buffers (0x5492a0, and the resource manager's 0x575cd0 for
 	// every group); the port's images keep none
-}
-
-void GameApp::ShowGameMenu(bool theFromBook)
-{
-	// port: MenuDialog (0x47fd00) is not ported yet. The original takes the tutorial's arrows away (0x40ba40),
-	// pauses the board without its banner, hides the tooltip, adds the menu and unmutes.
-	SDL_Log("GameApp: the menu dialog (0x4456a0, %d) is not ported yet", (int)theFromBook);
 }

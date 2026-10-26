@@ -70,6 +70,9 @@ public:
 	void SetString(const std::string& theKey, const std::string& theValue);  // 0x488db0
 	void SetTable(const std::string& theKey, lua_State* L, int theIndex);    // 0x4892d0: a Lua table's entries
 	void Delete(const std::string& theKey);            // 0x48c030
+	// 0x48d130: a new timed-mode run: its TM_ keys back to their starts and those of the last run's progress deleted;
+	// the scripts are told (main.NewTimedModeStarted)
+	void ResetTimedMode();
 
 	// 0x489f10: users/<name>.bwa (and the registry's LastUser), unless mNoSave. False when it could not write.
 	bool Save();

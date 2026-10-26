@@ -4,6 +4,7 @@
 //                   (then a move to the attack button and a click on it when asked). Logs "script: word <WORD>", or "no word". While
 //                   the board is busy (a dialog, a conversation, a pause, tiles moving, falling or already in
 //                   the word) it tries again every 10 updates, and gives up after 200 tries ("busy").
+//   lua <chunk>     runs the rest of the line as Lua (logs "script: lua: <error>" when it fails)
 #include <SDL.h>
 
 #include <cstdlib>
@@ -16,6 +17,7 @@
 #include "GameApp.h"
 #include "GameText.h"
 #include "Lex.h"
+#include "LuaSupport.h"
 #include "Tile.h"
 
 using namespace Sexy;
@@ -49,6 +51,15 @@ bool Spell(const std::string& theWord, const TileLetters& theTiles, std::vector<
 
 bool GameApp::HandleScriptCommand(const ScriptCommand& theCommand)
 {
+	if (theCommand.mCommand == "lua") {
+		lua_State* L = LuaLib::gLuaSupport->L;
+		if (luaL_loadbuffer(L, theCommand.mArgs.data(), theCommand.mArgs.size(), "=script") != 0 ||
+		    lua_pcall(L, 0, 0, 0) != 0) {
+			SDL_Log("script: lua: %s", lua_tostring(L, -1));
+			lua_pop(L, 1);
+		}
+		return true;
+	}
 	if (theCommand.mCommand != "word")
 		return false;
 	if (mBoard == nullptr || mLex == nullptr) {

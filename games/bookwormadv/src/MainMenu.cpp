@@ -10,6 +10,7 @@
 #include "GameText.h"
 #include "Graphics.h"
 #include "HyperlinkWidget.h"
+#include "JeffLib.h"
 #include "MemoryImage.h"
 #include "PopLua.h"
 #include "Profile.h"
@@ -17,6 +18,7 @@
 #include "ResourceManager.h"
 #include "SoundInstance.h"
 #include "SoundPlayer.h"
+#include "UserSelectionDialog.h"
 #include "WidgetManager.h"
 #include "lua.h"
 
@@ -25,6 +27,11 @@ using namespace Sexy;
 namespace {
 
 const char* const kIdleLabel = "idle";
+
+// the secret words (and the names of the animations Lex does for them)
+const unsigned int kSecretWords[] = {GTA(0x7ae700), GTA(0x7ae6f0), GTA(0x7ae6e8), GTA(0x7ae6e0),
+                                     GTA(0x7ae6d4), GTA(0x7ae6cc), GTA(0x7ae6c4)};
+const int kNumSecretWords = (int)(sizeof(kSecretWords) / sizeof(kSecretWords[0]));
 
 // The things of the menu, by Item: where the lit picture goes, where the mouse is over it (and how much smaller
 // than the picture that is), from the constructor's tables
@@ -473,12 +480,10 @@ void MainMenu::KeyChar(SexyChar theChar)
 	mTypedKeys += (char)theChar;
 	mTypedKeys = StringToUpper(mTypedKeys);
 	// the secret words: one more letter of one keeps them, a word makes Lex do something
-	static const unsigned int kWords[] = {GTA(0x7ae700), GTA(0x7ae6f0), GTA(0x7ae6e8), GTA(0x7ae6e0),
-	                                      GTA(0x7ae6d4), GTA(0x7ae6cc), GTA(0x7ae6c4)};
 	int aFound = -1;
 	bool aPrefix = false;
-	for (int i = 0; i < (int)(sizeof(kWords) / sizeof(kWords[0])) && aFound == -1; i++) {
-		const std::string& aWord = GT(kWords[i]);
+	for (int i = 0; i < kNumSecretWords && aFound == -1; i++) {
+		const std::string& aWord = GT(kSecretWords[i]);
 		size_t aLength = std::min(aWord.size(), mTypedKeys.size());
 		if (mTypedKeys.compare(0, aLength, aWord, 0, aLength) == 0) {
 			aPrefix = true;
@@ -505,6 +510,23 @@ void MainMenu::KeyChar(SexyChar theChar)
 		return;
 	}
 	mLex->PlayLabel(kLabels[aFound]);
+}
+
+void MainMenu::AppLostFocus()
+{
+	// 0x47d940: redrawn; Lex idles, unless he is at one of the secret words' animations (the labels are the words)
+	MarkDirtyFull();
+	bool aFound = false;
+	const unsigned int* aWord = kSecretWords;
+	do {
+		if (aFound)
+			return;
+		if (SDL_strcasecmp(mLex->mLabel.c_str(), GT(*aWord).c_str()) == 0)
+			aFound = true;
+		aWord++;
+	} while (aWord < kSecretWords + kNumSecretWords);
+	if (!aFound)
+		mLex->PlayLabel(kIdleLabel);
 }
 
 void MainMenu::MouseMove(int x, int y)
@@ -581,6 +603,18 @@ void MainMenu::MouseDown(int x, int y, int theClickCount)
 	}
 }
 
+// The curtain's callback of the hall of fame (0x450760 is the app's function that the original called with the app)
+static void OpenHallOfFameCallback(void* theApp)
+{
+	static_cast<GameApp*>(theApp)->OpenHallOfFame();
+}
+
+// The curtain's callback of the mini-games' menu (0x44f9d0, the app's function that the original called with the app)
+static void ShowMiniGameMenuCallback(void* theApp)
+{
+	static_cast<GameApp*>(theApp)->ShowMiniGameMenu();
+}
+
 void MainMenu::MouseUp(int x, int y, int theClickCount)
 {
 	if (mApp->mBookScreen != nullptr || mApp->IsCurtainMoving() || mApp->GetDialogCount() != 0)
@@ -607,11 +641,10 @@ void MainMenu::MouseUp(int x, int y, int theClickCount)
 		}
 		aFound = true;
 		mApp->SetCursor(CURSOR_HAND);
-		// port: the screens these lead to are not ported yet; the menu stays
 		if (anItem->mPressed) switch (i) {
 		case ITEM_OPTIONS:
 			mFromTitle = false;
-			SDL_Log("MainMenu: the options dialog (0x4455d0) is not ported yet");
+			mApp->ShowOptionsDialog();
 			break;
 		case ITEM_QUIT:
 			AskReallyQuit();
@@ -640,19 +673,51 @@ void MainMenu::MouseUp(int x, int y, int theClickCount)
 			}
 			break;
 		case ITEM_ARENA:
-			SDL_Log("MainMenu: the arena (0x47c290) is not ported yet");
+			// 0x47bc2e: only once the arena is unlocked and the player is in the second book or the first's sixth
+			// chapter
+			if (mApp->mProfile->KeyExists("UnlockedArena") && mApp->mProfile->GetBool("UnlockedArena")) {
+				if (mApp->mProfile->GetInt("CurrentBook") > 1 || mApp->mProfile->GetInt("CurrentChapter") >= 6) {
+					SetDisabled(true);
+					StartArena();
+				}
+				mApp->SetCursor(CURSOR_POINTER);
+			}
 			break;
 		case ITEM_HALL_OF_FAME:
-			SDL_Log("MainMenu: the hall of fame (0x450760) is not ported yet");
+			// 0x47be8f: the menu goes dim, the whole curtain closes, and the hall of fame comes (GameApp::OpenHallOfFame)
+			SetDisabled(true);
+			mApp->DoFullCurtainTransition("");
+			mApp->mCurtainCallback = OpenHallOfFameCallback;
+			mApp->mCurtainCallbackObject = mApp;
+			mApp->SetCursor(CURSOR_POINTER);
 			break;
 		case ITEM_MINI_GAMES:
-			SDL_Log("MainMenu: the mini-games (0x44f9d0) are not ported yet");
+			// 0x47b9cf: only once the mini-games are unlocked: the menu goes dim, the whole curtain closes, and the
+			// mini-games' menu comes (GameApp::ShowMiniGameMenu)
+			if (mApp->mProfile->KeyExists("UnlockedMiniGames") && mApp->mProfile->GetBool("UnlockedMiniGames")) {
+				SetDisabled(true);
+				mApp->DoFullCurtainTransition("");
+				mApp->mCurtainCallback = ShowMiniGameMenuCallback;
+				mApp->mCurtainCallbackObject = mApp;
+				mFromTitle = false;
+			}
+			mApp->SetCursor(CURSOR_POINTER);
 			break;
 		case ITEM_TOME:
-			SDL_Log("MainMenu: the tome of knowledge (0x444310) is not ported yet");
+			// 0x47bd24: only once the tome is unlocked: the whole curtain closes over the menu, then the tome comes
+			// (the original wrote out what AddStatsBook does for it)
+			if (mApp->mProfile != nullptr && mApp->mProfile->KeyExists("UnlockedBestiary") &&
+			    mApp->mProfile->GetBool("UnlockedBestiary")) {
+				mApp->AddStatsBook(false, true, false);
+				CloseTooltips();
+			}
+			mApp->SetCursor(CURSOR_POINTER);
 			break;
 		case ITEM_FILM_REEL:
-			SDL_Log("MainMenu: the media player (0x4443c0) is not ported yet");
+			// 0x47bef8: the media player, the same way
+			mApp->AddStatsBook(false, false, true);
+			CloseTooltips();
+			mApp->SetCursor(CURSOR_POINTER);
 			break;
 		}
 		anItem->mFadeTarget = 128;
@@ -682,11 +747,236 @@ void MainMenu::AskReallyQuit()
 	mReallyQuit = true;
 }
 
+void MainMenu::StartArena()
+{
+	// 0x47c290
+	lua_pushboolean(mApp->mLua->L, 1);
+	mApp->mLua->Call("main.SetTimedMode", 1, 0);
+	mApp->mTimedMode = true;
+	mFromTitle = false;
+	if (!mApp->mProfile->GetBool("TM_InGame")) {
+		mApp->mProfile->ResetTimedMode();
+		mApp->StartNewGameTransition();
+	} else {
+		// the question without DoConfirmDialog's banner, and with its header's words
+		mApp->DoConfirmDialog(GameApp::DIALOG_CONTINUE_GAME, GT(0x7aed7c), GT(0x7aed20), nullptr, "");
+		GameDialog* aDialog = static_cast<GameDialog*>(mApp->GetDialog(GameApp::DIALOG_CONTINUE_GAME));
+		aDialog->SetBanner(nullptr, 0);
+		aDialog->mDialogHeader = GT(0x7aed7c);
+	}
+	for (int i = 0; i < (int)mItems.size(); i++)
+		mItems[i]->mDisabled = true;
+}
+
+void MainMenu::ContinueArena(bool theContinue)
+{
+	// 0x47c170
+	if (theContinue) {
+		mApp->InitGameScreen(true);
+		BookManager* aBook = mApp->mBookManager;
+		mApp->mWidgetManager->BringToFront(this);
+		if (!(mApp->mProfile->KeyExists("TM_OnCheckpoint") && mApp->mProfile->GetBool("TM_OnCheckpoint"))) {
+			lua_pushboolean(mApp->mLua->L, 1);
+			aBook->CallLinkedMethod("InitSavedGame", 1);
+			mApp->StartSavedGameTransition();
+			return;
+		}
+	} else {
+		mApp->mProfile->ResetTimedMode();
+	}
+	mApp->StartNewGameTransition();
+}
+
 void MainMenu::ButtonDepress(int theId)
 {
 	if (theId != mChangeUserLink->mId || mApp->IsCurtainMoving())
 		return;
-	SDL_Log("MainMenu: the dialog of the players (0x47c770) is not ported yet");
+	ShowUserDialog();
+}
+
+void MainMenu::ShowUserDialog()
+{
+	// 0x47c770
+	JeffLib::UserSelectionDialog::Resources aResources;
+	aResources.mDialogImage = IMAGE_DIALOG;
+	aResources.mButtonImage = IMAGE_DIALOG_BUTTON;
+	aResources.mClickSound = SOUND_CLICK1;
+	aResources.mFont = FONT_MEDIUM;
+	aResources.mHeader = GT(0x7c5a20);
+	aResources.mNewLabel = GT(0x7c5a30);
+	aResources.mDeleteLabel = GT(0x7c5a34);
+	mUserDialog = new JeffLib::UserSelectionDialog(aResources);
+	mUserDialog->mMaxProfiles = mApp->GetInteger("MaxProfiles", 10);
+	mUserDialog->mSpaceAfterHeader += 35;
+	mUserDialog->mPriority = 2;
+	mUserDialog->mContentInsets.mTop += 5;
+	mUserDialog->mAllowDrag = false;
+	mUserDialog->mScrollbar->mTrackColor = Color(89, 70, 14);
+	mUserDialog->SetButtonFont(FONT_LARGE_OUTLINE);
+	mUserDialog->SetColor(Dialog::COLOR_BUTTON_TEXT, Color(255, 255, 255));
+	mUserDialog->SetColor(Dialog::COLOR_BUTTON_TEXT_HILITE, Color(255, 255, 0));
+	mUserDialog->SetHeaderFont(FONT_LARGE_OUTLINE);
+	mUserDialog->SetColor(Dialog::COLOR_HEADER, Color(255, 255, 255));
+	int aHeight = mUserDialog->GetPreferredHeight(400);
+	mUserDialog->Resize((mWidth - 400) / 2, (mHeight - (aHeight + 40)) / 2, 400, aHeight + 40);
+
+	// the list and its scrollbar a little taller than the dialog made them
+	ListWidget* aList = mUserDialog->mList;
+	int aListHeight = aList->mHeight;
+	aList->Resize(aList->mX, aList->mY, aList->mWidth, aListHeight + 40);
+	JeffLib::SexyScrollbarWidget* aScrollbar = mUserDialog->mScrollbar;
+	aScrollbar->ResizeScrollbar(aScrollbar->mX, aScrollbar->mY, aScrollbar->mWidth, aListHeight + 40);
+
+	mUserDialog->mDialogListener = this;
+	mApp->AddDialog(mUserDialog);
+	mWidgetManager->SetFocus(mUserDialog);
+	FillUserList();
+}
+
+void MainMenu::FillUserList()
+{
+	// 0x47ca20
+	mUserDialog->ClearUsers();
+	// the players' files: users/<name>.bwa
+	std::vector<std::string> aFiles = JeffLib::GetFilesInDirectory("users/*.bwa");
+	size_t i = 0;
+	while (true) {
+		bool aMore;
+		if (aFiles.empty() || i >= aFiles.size())
+			aMore = false;
+		else
+			aMore = (int)i < mApp->GetInteger("MaxProfiles", 10);
+		if (!aMore)
+			break;
+		std::string aName = aFiles[i].substr(0, aFiles[i].find(".bwa"));
+		mUserDialog->AddUser(aName);
+		i++;
+	}
+	// the player now playing is first, and chosen
+	if (mApp->mProfile != nullptr) {
+		std::string aName = mApp->mProfile->mName;
+		mUserDialog->mCurrentUser = aName;
+		mUserDialog->RefreshList();
+		mUserDialog->SelectUser(aName);
+	}
+}
+
+bool MainMenu::IsUserNameFree(const std::string& theName)
+{
+	// 0x47d200: the names are compared in capitals
+	if (theName.empty())
+		return false;
+	std::string aName = StringToUpper(theName);
+	int aCount = mUserDialog->GetUserCount();
+	if (aCount <= 0)
+		return true;
+	int i = 0;
+	do {
+		bool aTaken = StringToUpper(mUserDialog->GetUser(i)) == aName;
+		if (aTaken)
+			return false;
+		i++;
+	} while (i < aCount);
+	return true;
+}
+
+bool MainMenu::TakeNewUser(const std::string& theName)
+{
+	// 0x47d390
+	if (!theName.empty()) {
+		if (!IsUserNameFree(theName)) {
+			mApp->DoOkDialog(GT(0x7a9c04), StrFormat(GT(0x7aee10).c_str(), theName.c_str()), "", nullptr);
+			return false;
+		}
+		FillUserList();
+		mApp->KillDialog(GameApp::DIALOG_USER_SELECTION);
+		// (the original has 0x47d510 here in line)
+		StartIntroIfNew();
+		mApp->ClearUpdateBacklog(false);
+	}
+	return true;
+}
+
+bool MainMenu::StartIntroIfNew()
+{
+	// 0x47d510
+	if (!mApp->HasPlayedGameBefore()) {
+		mFromTitle = false;
+		mApp->StartIntro(1);
+		return true;
+	}
+	return false;
+}
+
+void MainMenu::DialogButtonDepress(int theDialogId, int theButtonId)
+{
+	// 0x47cd70
+	if (theDialogId == GameApp::DIALOG_USER_SELECTION) {
+		JeffLib::UserSelectionDialog* aDialog = mUserDialog;
+		if (theButtonId == aDialog->mYesButton->mId || theButtonId == Dialog::ID_YES) {
+			// OK: the chosen player's profile, if it loads
+			if (!mApp->SelectUser(aDialog->mSelected))
+				return;
+			RefreshUnlocks();
+			mApp->KillDialog(GameApp::DIALOG_USER_SELECTION);
+			mUserDialog = nullptr;
+			mApp->ShowUnlockMessages();
+			StartIntroIfNew();
+			return;
+		}
+		if (theButtonId != aDialog->mNoButton->mId && theButtonId != Dialog::ID_NO) {
+			if (theButtonId == aDialog->mNewButton->mId) {
+				// a new player's name: with others to go back to, the name dialog has CANCEL
+				mApp->ShowNewUserDialog(aDialog->GetUserCount() != 0 ? Dialog::BUTTONS_OK_CANCEL
+				                                                     : Dialog::BUTTONS_FOOTER);
+				return;
+			}
+			if (theButtonId != aDialog->mDeleteButton->mId)
+				return;
+			// DELETE: asks first; the answer comes back here, as the confirmation's dialog 18
+			mApp->DoConfirmDialog(-1, GT(0x7aee00), StrFormat(GT(0x7aed98).c_str(), aDialog->mSelected.c_str()),
+			                      nullptr, "");
+			mApp->GetDialog(GameApp::DIALOG_CONFIRM)->mDialogListener = this;
+			return;
+		}
+		// CANCEL
+		mApp->KillDialog(GameApp::DIALOG_USER_SELECTION);
+		mUserDialog = nullptr;
+		StartIntroIfNew();
+		return;
+	}
+	if (theDialogId != GameApp::DIALOG_CONFIRM)
+		return;
+	if (theButtonId != Dialog::ID_YES) {
+		mApp->KillDialog(GameApp::DIALOG_CONFIRM);
+		return;
+	}
+	// yes: the chosen player's profile file goes (and the profile too when it is the one now playing)
+	bool aIsCurrent = false;
+	bool aDeletedCurrent = false;
+	if (mApp->mProfile != nullptr) {
+		std::string aCurrentName = mApp->mProfile->mName;
+		aIsCurrent = mUserDialog->mSelected == aCurrentName;
+	}
+	if (aIsCurrent) {
+		delete mApp->mProfile;
+		mApp->mProfile = nullptr;
+		mApp->RegistryEraseValue("LastUser");
+		aDeletedCurrent = true;
+	}
+	mApp->EraseFile(GetAppDataFolder() + StrFormat("users/%s.bwa", mUserDialog->mSelected.c_str()));
+	FillUserList();
+	mApp->KillDialog(GameApp::DIALOG_CONFIRM);
+	if (mUserDialog->GetUserCount() == 0) {
+		// no one left: a new player's name
+		mApp->ShowNewUserDialog(Dialog::BUTTONS_FOOTER);
+		return;
+	}
+	if (aDeletedCurrent) {
+		// the first of the others plays
+		mApp->SelectUser(mUserDialog->GetUser(0));
+		mUserDialog->SelectUser(mUserDialog->GetUser(0));
+	}
 }
 
 void MainMenu::PopAnimStopped(int theId)

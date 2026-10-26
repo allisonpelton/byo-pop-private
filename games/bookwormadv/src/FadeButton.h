@@ -2,9 +2,13 @@
 // game's button. A picture of three or four cels (normal, lit, pressed, disabled) that fades into its new look
 // when the mouse comes, goes, presses or lets go (each one chosen by a flag), can glow on its own, can be drawn
 // stretched to its size, and draws its label in its first colour, or its second while the mouse is over it.
-// It can play an animation over itself (SetEffect: the battle's attack button glows while a word can attack).
-// port: the tooltip it keeps (a TooltipWidget at +0x18c, shown above it while the mouse is over it) is not ported
-// yet; nothing ported gives it one.
+// It can play an animation over itself, again and again (SetEffect: the battle's attack button glows while a word
+// can attack; the treasure screen's continue button, while it can be pressed).
+// port: the tooltip it keeps is not ported: the constructor makes an empty TooltipWidget (+0x18c) as a child, which
+// MouseEnter and MouseLeave show and hide (0x442060, 0x4420c0), SetDisabled hides (0x442a90), a resize puts above the
+// button (0x442920, 0x4429c0) and the manager keeps in front (0x4428f0, 0x442a70), but each of those does something
+// only to a tooltip with a line of text or a font, and nothing in the exe gives a button's one either (no code
+// reaches the field but these, and no script can reach a FadeButton), so it never shows.
 #pragma once
 
 #include <string>
@@ -68,10 +72,15 @@ public:
 	void SetDisabled(bool isDisabled) override;  // 0x442a90
 	void MouseEnter() override;              // 0x442060
 	void MouseLeave() override;              // 0x4420c0
+	void MouseMove(int x, int y) override;   // 0x442d70: the owner hears it too, in its own coordinates
 	using ButtonWidget::MouseDown;
 	using ButtonWidget::MouseUp;
 	void MouseDown(int x, int y, int theClickCount) override;  // 0x442110
 	void MouseUp(int x, int y) override;                       // 0x442150, before the button's MouseUp
+
+	// PopAnimListener: the animation reached a frame that stops it (listener slot 0, 0x442cc0): it plays again from
+	// its label while it is on
+	void PopAnimStopped(int theId) override;
 
 	// ButtonWidget: 0x442b10, stretched when mStretch
 	void DrawButtonImage(Graphics* g, Image* theImage, const Rect& theRect, int x, int y) override;

@@ -6,12 +6,14 @@ build stages them from the user's own copy into the git-ignored assets/bookworma
 next to itself or up to two levels up).
 
     python games/bookwormadv/tools/stage_bookwormadv_assets.py ["C:/Program Files (x86)/PopCap Games/Bookworm Adventures Deluxe"]
-        [--out assets/bookwormadv] [--no-png]
+        [--out assets/bookwormadv]
 
 main.pak (XOR 0xF7, tools/popcap_pak.py) is unpacked; the game reads its files exactly as it reads loose ones, and
 loose files win over the pak's in the original too. Names are staged in lower case, so case-sensitive file systems
-(Emscripten MEMFS/IDBFS, Linux) see the names the game asks for. The 42 JPEG 2000 images (.jp2) are also written as
-.png next to themselves (Pillow), because the framework's image loader has no JPEG 2000 decoder; --no-png skips that.
+(Emscripten MEMFS/IDBFS, Linux) see the names the game asks for. The game loads its 42 JPEG 2000 images (.jp2)
+itself (platform/openjpeg); they are also decoded with Pillow into re/bookwormadv/jp2ref/ (the same paths, as .png),
+the reference the unit suite's jp2test compares that decoder with. PNG copies that earlier staging wrote next to them
+are removed, so that the game reads the .jp2 files as in the browser.
 """
 import argparse
 import os
@@ -56,7 +58,6 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("install", nargs="?", help="Bookworm Adventures Deluxe install folder (contains main.pak)")
     ap.add_argument("--out", default=os.path.join(ROOT, "assets", "bookwormadv"))
-    ap.add_argument("--no-png", action="store_true", help="do not write .png copies of the .jp2 images")
     args = ap.parse_args()
 
     src = find_install(args.install)
@@ -87,18 +88,22 @@ def main():
         count += 1
 
     converted = 0
-    if not args.no_png and jp2:
+    if jp2:
         from PIL import Image
+        ref = os.path.join(ROOT, "re", "bookwormadv", "jp2ref")
         for path in jp2:
-            png = path[:-4] + ".png"
+            refpng = os.path.join(ref, os.path.relpath(path, out)[:-4] + ".png")
+            os.makedirs(os.path.dirname(refpng), exist_ok=True)
             with Image.open(path) as im:
-                im.save(png)
+                im.save(refpng)
             converted += 1
+            if os.path.isfile(path[:-4] + ".png"):
+                os.remove(path[:-4] + ".png")
 
     missing = [r for r in REQUIRED if not os.path.isfile(os.path.join(out, r))]
     if missing:
         sys.exit(f"Staged {count} files but required files are missing: {missing}")
-    print(f"Staged {count} files ({converted} JPEG 2000 images also as PNG) from {src} -> {out}")
+    print(f"Staged {count} files ({converted} JPEG 2000 references in re/bookwormadv/jp2ref) from {src} -> {out}")
 
 
 if __name__ == "__main__":
