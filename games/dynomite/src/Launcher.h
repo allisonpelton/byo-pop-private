@@ -11,6 +11,7 @@ namespace Sexy
 {
 
 class Dynomite;
+class Egg;
 class FlyingEgg;
 class FossilizedApp;
 class LoadedEgg;
@@ -25,8 +26,11 @@ public:
 	int					mAngle;				// +0x14 degrees, 0 up
 	int					mField18;			// +0x18
 	int					mField1c;			// +0x1c
+	int					mField20[2];		// +0x20 (a point; saved)
 	float				mRecoilX;			// +0x28
 	float				mRecoilY;			// +0x2c
+	int					mField30[2];		// +0x30 (a point; saved)
+	int					mField38[20];		// +0x38 (0x50 bytes; saved)
 	MTRand				mRand;				// +0x88 seeded with the tick count
 	int					mFieldA4c;			// +0xa4c (the board's +0x158 + +0x70)
 	int					mFieldA50;			// +0xa50 (382)
@@ -41,7 +45,7 @@ public:
 	PtrList<void>		mListA74;			// +0xa74
 	PtrList<void>		mListA8c;			// +0xa8c
 	bool				mFrozen;			// +0xaa4 Fire does nothing while it is set
-	void*				mFieldAa8;			// +0xaa8 (an object the destructor deletes)
+	Egg*				mHeld;				// +0xaa8 an egg held while frozen (saved like the loaded one)
 	int					mFieldAac;			// +0xaac
 
 	Launcher(FossilizedApp* theApp, Dynomite* theBoard);	// 0x401050
@@ -50,7 +54,7 @@ public:
 	void				SetLoaded(LoadedEgg* theEgg);		// 0x4011f0: unless one is loaded
 	void				Load(int theColor);					// 0x401210: unless one is loaded
 	void				Fire();								// 0x4012a0
-	void				Freeze(void* theObject);			// 0x4014f0
+	void				Freeze(Egg* theEgg);				// 0x4014f0
 };
 
 }

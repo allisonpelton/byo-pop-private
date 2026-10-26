@@ -28,7 +28,7 @@ Launcher::Launcher(FossilizedApp* theApp, Dynomite* theBoard)
 	mFieldA68 = 0;
 	mFieldA70 = 0;
 	mFrozen = false;
-	mFieldAa8 = NULL;
+	mHeld = NULL;
 	mFieldAac = 0;
 	mFieldA54 = x;
 	mFieldA58 = 0x1b0;
@@ -44,8 +44,11 @@ Launcher::~Launcher()
 		delete mLoaded;
 		mLoaded = NULL;
 	}
-	// TODO: +0xaa8 (its type is not known yet) is deleted here
-	mFieldAa8 = NULL;
+	if (mHeld != NULL)
+	{
+		delete mHeld;
+		mHeld = NULL;
+	}
 }
 
 // 0x4011f0
@@ -100,9 +103,9 @@ void Launcher::Fire()
 }
 
 // 0x4014f0
-void Launcher::Freeze(void* theObject)
+void Launcher::Freeze(Egg* theEgg)
 {
 	mFrozen = true;
-	mFieldAa8 = theObject;
+	mHeld = theEgg;
 	mFieldAac = 0;
 }
