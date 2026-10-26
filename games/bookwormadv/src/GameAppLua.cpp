@@ -8,6 +8,7 @@
 #include <utility>
 #include <vector>
 
+#include "ConversationPanel.h"
 #include "CurtainTransition.h"
 #include "GameApp.h"
 #include "GameDialog.h"
@@ -28,18 +29,14 @@ using namespace LuaLib;
 
 namespace {
 
-// The methods not ported yet, by name. PlaySongWhenDone (0x44f440, the music interface's vf 0x58: the song to
-// play when this one is done, the queue SongPlayer does not have yet) is among them.
+// The methods not ported yet, by name.
 const char* const kNotPorted[] = {
-	"ReturnToMMFromMiniGame", "StartMiniGame",
 	"DoArenaWinDialog", "SetArenaWinStats", "DoEndGame",
 	"EnableBoardForTMCheckpointContinuation",
 	"DoTimedModeTSTransition",
-	"DoAfterHydraConvPanel", "DoHighScoreScreenFromMG",
-	"UnlockedMiniGameComplete", "ShouldDoHydraLockout",
-	"PlaySongWhenDone",
-	"AddStatsBook", "AddBonusText", "RemoveAllBonusText", "DrawBonusText", "UpdateBonusText",
-	"WriteStat", "LuaAntiAliasImage",
+	"DoHighScoreScreenFromMG",
+	"AddStatsBook",
+	"LuaAntiAliasImage",
 };
 
 template <int N>
@@ -157,6 +154,13 @@ void PlaySong(GameApp* app, int theOrder, float theSpeed, bool theLoop)
 		app->mSongPlayer->PlaySong(theOrder, theSpeed, theLoop);
 }
 
+// 0x44f440: the music interface's vf 0x58. port: the song player's queue
+void PlaySongWhenDone(GameApp* app, int theOrder, float theSpeed, int theAtOrder, int theAtRow)
+{
+	if (app->mSongPlayer != nullptr)
+		app->mSongPlayer->PlaySongWhenDone(theOrder, theSpeed, theAtOrder, theAtRow);
+}
+
 // 0x44f540: a curtain that has not finished
 bool DoingCurtainTransition(GameApp* app)
 {
@@ -210,6 +214,45 @@ void DoCSToGameTransition(GameApp* app) { app->StartSavedGameTransition(); }
 void DoCSToMMTransition(GameApp* app) { app->StartToMenuTransition(); }
 void DoGameToMMTransition(GameApp* app) { app->StartGameToMenuTransition(); }
 void HideBookManager(GameApp* app) { app->HideBookManager(); }
+
+// The mini-games (GameAppMiniGames.cpp)
+void StartMiniGame(GameApp* app, std::string theName, int x, int y, int theXGap, int theYGap, int theCols, int theRows,
+                   std::string theLetters, bool theNoTilesWhilePaused)
+{
+	app->StartMiniGame(theName, x, y, theXGap, theYGap, theCols, theRows, theLetters, theNoTilesWhilePaused);
+}
+void ReturnToMMFromMiniGame(GameApp* app) { app->ReturnToMMFromMiniGame(); }
+void UnlockedMiniGameComplete(GameApp* app) { app->UnlockedMiniGameComplete(); }
+void AddBonusText(GameApp* app, std::string theText, float x, float y, float theSpeed, int theFadeDelay, LuaFont* theFont)
+{
+	app->AddBonusText(theText, x, y, theSpeed, theFadeDelay, FontOf(theFont));
+}
+void UpdateBonusText(GameApp* app) { app->UpdateBonusText(); }
+void RemoveAllBonusText(GameApp* app) { app->RemoveAllBonusText(); }
+// 0x44f010: empty in the released game (no script calls it)
+int WriteStat(GameApp*, lua_State*)
+{
+	return 0;
+}
+
+// 0x44fc20: DrawBonusText(g)
+int DrawBonusText(GameApp* app, lua_State* L)
+{
+	app->DrawBonusText((Graphics*)gLuaSupport->CheckObject(1, ClassOf<Graphics>::info));
+	return 0;
+}
+
+// 0x451c80: whether the trial's lockout follows the hydra's conversation (a distribution of the trial, not
+// registered, past the first book's seventh chapter). port: the port plays as registered, so never
+bool ShouldDoHydraLockout(GameApp* app) { return false; }
+// 0x451e30: the conversation panel comes up again, and the warp-in sound plays once it is off (the lockout's
+// callback 0x451eb0 instead, in the trial)
+void DoAfterHydraConvPanel(GameApp* app)
+{
+	app->mConversationPanel->Activate(true);
+	if (!ShouldDoHydraLockout(app))
+		app->mConversationPanel->mInactiveCallback = "Book.PlayWarpInSound";
+}
 
 // 0x44c390: a message box with the title "ERROR"
 void DoErrorDialog(GameApp* app, std::string theText)
@@ -381,6 +424,7 @@ void GameApp::RegisterGameAppMethods()
 		.Function<&::PlayCachedSample>("PlayCachedSample")
 		.Function<&::ReleaseCachedSample>("ReleaseCachedSample")
 		.Function<&::PlaySong>("PlaySong")
+		.Function<&::PlaySongWhenDone>("PlaySongWhenDone")
 		.Function<&::DoingCurtainTransition>("DoingCurtainTransition")
 		.Function<&::IsResGroupLoaded>("IsResGroupLoaded")
 		.Function<&::LoadResGroup>("LoadResGroup")
@@ -395,6 +439,16 @@ void GameApp::RegisterGameAppMethods()
 		.Function<&::DoCSToMMTransition>("DoCSToMMTransition")
 		.Function<&::DoGameToMMTransition>("DoGameToMMTransition")
 		.Function<&::HideBookManager>("HideBookManager")
+		.Function<&::StartMiniGame>("StartMiniGame")
+		.Function<&::ReturnToMMFromMiniGame>("ReturnToMMFromMiniGame")
+		.Function<&::UnlockedMiniGameComplete>("UnlockedMiniGameComplete")
+		.Function<&::AddBonusText>("AddBonusText")
+		.Function<&::UpdateBonusText>("UpdateBonusText")
+		.Function<&::RemoveAllBonusText>("RemoveAllBonusText")
+		.Raw<&::DrawBonusText>("DrawBonusText")
+		.Raw<&::WriteStat>("WriteStat")
+		.Function<&::ShouldDoHydraLockout>("ShouldDoHydraLockout")
+		.Function<&::DoAfterHydraConvPanel>("DoAfterHydraConvPanel")
 		.Function<&::DoErrorDialog>("DoErrorDialog")
 		.Function<&::DoYesNoDialog>("DoYesNoDialog")
 		.Function<&::GetWordWrappedHeight>("GetWordWrappedHeight")

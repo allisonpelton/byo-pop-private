@@ -45,3 +45,37 @@ void SongPlayer::PlaySong(int theOrder, float theSpeed, bool theLoop)
 	mCurrentSong = anOther;
 	mCurrentOrder = theOrder;
 }
+
+void SongPlayer::PlaySongWhenDone(int theOrder, float theSpeed, int theAtOrder, int theAtRow)
+{
+	mQueuedSpeed = theSpeed;
+	mQueuedAtOrder = theAtOrder;
+	mQueuedAtRow = theAtRow;
+	mQueuedOrder = -1;
+	if (!mMusic->IsPlaying(mCurrentSong)) {
+		PlaySong(theOrder, 0.005f, true);
+		return;
+	}
+	mQueuedOrder = theOrder;
+}
+
+void SongPlayer::Update()
+{
+	// port: the original checked this in its loop over the songs, for the copy playing, with BASS's channel state;
+	// a fade out to silence that stopped that copy also ended it. The framework stops a song a fade out silenced,
+	// so a stopped copy covers both when no order is waited for.
+	if (mQueuedOrder == -1 || mCurrentSong == -1)
+		return;
+	bool aDone = false;
+	bool aPlaying = mMusic->IsPlaying(mCurrentSong);
+	if (mQueuedAtOrder == -1 && !aPlaying) {
+		aDone = true;
+	} else if (aPlaying && mQueuedAtOrder != -1) {
+		int aPosition = mMusic->GetMusicPosition(mCurrentSong);
+		if (aPosition != -1 && mQueuedAtOrder == (aPosition & 0xffff) &&
+		    (mQueuedAtRow == -1 || mQueuedAtRow == (int)((unsigned int)aPosition >> 16)))
+			aDone = true;
+	}
+	if (aDone)
+		PlaySong(mQueuedOrder, mQueuedSpeed, true);
+}

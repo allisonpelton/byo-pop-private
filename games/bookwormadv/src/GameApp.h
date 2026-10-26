@@ -12,6 +12,7 @@
 #include "LuaApp.h"
 
 namespace JeffLib {
+class BonusText;
 class SongPlayer;
 class SoundPlayer;
 }
@@ -23,7 +24,9 @@ class BookManager;
 class ConversationPanel;
 class CurtainTransition;
 class CutScene;
+class Font;
 class GameDialog;
+class Graphics;
 class Image;
 class Lex;
 class LuaInterface;
@@ -96,7 +99,7 @@ public:
 	CurtainTransition* mCurtain = nullptr;         // +0x828
 	Widget* mBookScreen = nullptr;                 // +0x82c: the tome's or the media player's (not ported yet)
 	ButtonListener* mConfirmListener = nullptr;    // +0x838: a widget's ButtonListener part, in the original
-	Widget* mChapterLoadScreen = nullptr;          // +0x83c: a chapter's loading screen (not ported yet)
+	Widget* mChapterLoadScreen = nullptr;          // +0x83c: a chapter's loading screen (ChapterLoadScreen)
 	std::string mCurtainLuaCallback;               // +0x840: the scripts' function called when the curtain is done
 	std::string mDialogCallback;                   // +0x878: the scripts' function told the answer to dialog 0 or 18
 	Widget* mHallOfFame = nullptr;                 // +0x89c (not ported yet)
@@ -104,6 +107,8 @@ public:
 	void* mCurtainCallbackObject = nullptr;        // +0x894
 	void (*mCurtainCallback)(void*) = nullptr;     // +0x898 (a member function in the original)
 	int mTransitionState = TRANSITION_NONE;        // +0x8ec
+	int mChapterLoadCount = 0;                     // +0x8f0: the chapter's resources loaded so far
+	int mChapterLoadTotal = 0;                     // +0x8f4: and all of them (ChapterLoadScreen's bar)
 	int mTotalBooks = 0;                           // +0x8f8, from main.LoadRequiredScripts
 	int mRegTotalBooks = 0;                        // +0x8fc, the registry's TotalBooks
 	int mAppTime = 0;                              // +0x900, the registry's AppTime, counting updates
@@ -126,6 +131,7 @@ public:
 	int mBattleUpdates = 0;                        // +0x974: updates of battle (not of a level-up or a chapter's end)
 	int mMiniGameUpdates = 0;                      // +0x978: updates of the adventure's mini-games
 	std::vector<std::string> mStartupGroups;       // +0x924 (0x38-byte entries; the group's name at +0x1c)
+	std::vector<JeffLib::BonusText*> mBonusTexts;  // +0x934: the mini-games' floating texts (AddBonusText)
 	Lex* mLex = nullptr;                           // +0x940
 	ConversationPanel* mConversationPanel = nullptr;  // +0x944
 	Board* mBoard = nullptr;                       // +0x948: the battle's or a mini-game's (gBoard)
@@ -168,6 +174,17 @@ public:
 	                            ButtonListener* theListener, const std::string& theCallback);
 	// 0x44b620: the battle's board over the book, its grid and engines started
 	void StartBattle();
+	// The mini-games (GameAppMiniGames.cpp): the scripts' StartMiniGame (0x44b780), a mini-game's board of theCols x
+	// theRows tiles at (x, y), theLetters on them when not empty; ReturnToMMFromMiniGame (0x44b9d0) frees it and
+	// shows the main menu, and UnlockedMiniGameComplete (0x44d1e0) does that behind the whole curtain
+	void StartMiniGame(std::string theName, int x, int y, int theXGap, int theYGap, int theCols, int theRows,
+	                   std::string theLetters, bool theNoTilesWhilePaused);
+	void ReturnToMMFromMiniGame();
+	void UnlockedMiniGameComplete();
+	void AddBonusText(const std::string& theText, float x, float y, float theSpeed, int theFadeDelay, Font* theFont);
+	void UpdateBonusText();           // 0x44fbd0
+	void DrawBonusText(Graphics* g);  // 0x44fb70
+	void RemoveAllBonusText();        // 0x44fd00
 	// 0x4456a0: the game's menu (MenuDialog, dialog DIALOG_MENU) over the paused board. theFromTreasure: it is the
 	// treasure screen's (its "Main Menu" button goes back with the transition 0x44ded0).
 	void ShowGameMenu(bool theFromTreasure);
@@ -296,7 +313,14 @@ private:
 	void RemoveBoard();  // 0x4493f0
 	// 0x44eae0 (the original's loading thread, with mLoadingChapter): mChapterResources loaded; false and
 	// theError when one fails
-	bool LoadChapterResources(std::string& theError);
+	// port: the thread's work in steps, the next resources until theDeadline (SDL ticks; 0: all of them); true when
+	// it is done (mChapterLoadError says when one failed)
+	bool LoadChapterResources(unsigned int theDeadline);
+	size_t mChapterLoadIndex = 0;          // the resource loading
+	bool mChapterLoadGroupStarted = false;  // its group's loading started
+	bool mChapterLoadDone = false;
+	bool mChapterLoadFailed = false;
+	std::string mChapterLoadError;
 	// ReturnToChapterSelect's: the groups of mChapterResources deleted, its animations too
 	void FreeChapterResources();
 

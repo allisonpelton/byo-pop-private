@@ -4,6 +4,7 @@
 
 #include "Board.h"
 #include "BookManager.h"
+#include "ChapterLoadScreen.h"
 #include "ConversationPanel.h"
 #include "CurtainTransition.h"
 #include "CutScene.h"
@@ -164,6 +165,10 @@ void GameApp::Init()
 
 bool GameApp::UpdateAppStep(bool* updated)
 {
+	// A chapter's resources load between the frames while its loading screen is up (StartLoadChapterResources);
+	// with -fast all of them at once
+	if (mChapterLoadScreen != nullptr && !mChapterLoadDone)
+		mChapterLoadDone = LoadChapterResources(mFastMode ? 0 : SDL_GetTicks() + 20);
 	// The loading thread's next 20 ms of work, between the frames (StartLoading); with -fast all of it at once,
 	// so that a test run reaches the menu at the same update on any machine
 	if (mLoadingPhase != LOADING_IDLE && mLoadingPhase != LOADING_DONE && mDrawCount > 0) {
@@ -179,6 +184,9 @@ void GameApp::UpdateFrames()
 {
 	// (SexyApp's: not LuaApp's, whose UpdateState the original called only with a development flag set)
 	SexyApp::UpdateFrames();
+	// (the original's music interface did this in its Update, the end of SexyAppBase::UpdateFrames)
+	if (mSongPlayer != nullptr)
+		mSongPlayer->Update();
 	// port: every 100 updates the original checked the trial's limits of its marketing modes (an hour's play,
 	// or the Hydra); the port is the full game
 	if (mTitleScreenDone) {
@@ -1143,18 +1151,51 @@ int GameApp::StartLoadChapterResources(lua_State* L)
 		mChapterResources.push_back(aResource);
 	}
 
-	// port: the original counted the resources, showed the chapter's loading screen (ChapterLoadScreen,
-	// 0x42e780) over the curtain and updated the app until its loading thread had loaded them; the port loads
-	// them at once
-	std::string anError;
-	bool aLoaded = LoadChapterResources(anError);
+	// The loading screen over the closed curtain, with a bar of the resources loaded (a group's resources, and
+	// one for an animation), while the app updates until they are all loaded
+	mChapterLoadTotal = 0;
+	for (const ChapterResource& aResource : mChapterResources) {
+		if (aResource.mType == CHAPTER_RES_GROUP)
+			mChapterLoadTotal += mResourceManager->GetNumResources(aResource.mString);
+		else
+			mChapterLoadTotal++;
+	}
+	mChapterLoadCount = 0;
+	mChapterLoadIndex = 0;
+	mChapterLoadGroupStarted = false;
+	mChapterLoadDone = false;
+	mChapterLoadFailed = false;
+	mChapterLoadError.clear();
+	mLoadingDone = false;
+#ifdef __EMSCRIPTEN__
+	// port: the browser shows nothing until the game returns to it, and the scripts need the resources when
+	// this returns, so the web build loads them at once, behind the closed curtain. The draw is the first hint the
+	// loading screen picks (natively), so that a seed plays the same in both.
+	Rand();
+	LoadChapterResources(0);
+#else
+	mChapterLoadScreen = new ChapterLoadScreen(this);
+	mWidgetManager->AddWidget(mChapterLoadScreen);
+	mWidgetManager->BringToFront(mChapterLoadScreen);
+	if (mCurtain != nullptr) {
+		mCurtain->mPriority = 99999;
+		mChapterLoadScreen->mPriority = mCurtain->mPriority + 1;
+	}
+	// (with -fast all of them in the first step, so that a test run takes the same updates on any machine)
+	while (!mChapterLoadDone && !mShutdown)
+		UpdateApp();
+	mWidgetManager->RemoveWidget(mChapterLoadScreen);
+	SafeDeleteWidget(mChapterLoadScreen);
+	mChapterLoadScreen = nullptr;
+#endif
 	((LuaResourceManager*)mResourceManager)->ExportToLua();
 	if (mShutdown) {
+		mLoadingChapter = false;
 		lua_pushboolean(L, 0);
 		return 1;
 	}
-	if (!aLoaded)
-		luaL_error(L, "There was an error loading the chapter's resources:\n%s", anError.c_str());
+	if (mChapterLoadFailed)
+		luaL_error(L, "There was an error loading the chapter's resources:\n%s", mChapterLoadError.c_str());
 	if (!aContinuing)
 		StartBattle();
 	mLoadingChapter = false;
@@ -1162,35 +1203,55 @@ int GameApp::StartLoadChapterResources(lua_State* L)
 	return 1;
 }
 
-bool GameApp::LoadChapterResources(std::string& theError)
+bool GameApp::LoadChapterResources(unsigned int theDeadline)
 {
-	for (const ChapterResource& aResource : mChapterResources) {
+	while (mChapterLoadIndex < mChapterResources.size()) {
 		if (mShutdown)
 			return true;
+		const ChapterResource& aResource = mChapterResources[mChapterLoadIndex];
 		if (aResource.mType == CHAPTER_RES_GROUP) {
-			if (mResourceManager->IsGroupLoaded(aResource.mString))
-				continue;
-			mResourceManager->StartLoadResources(aResource.mString);
+			if (!mChapterLoadGroupStarted) {
+				if (mResourceManager->IsGroupLoaded(aResource.mString)) {
+					mChapterLoadIndex++;
+					continue;
+				}
+				mResourceManager->StartLoadResources(aResource.mString);
+				mChapterLoadGroupStarted = true;
+			}
 			while (mResourceManager->LoadNextResource()) {
-				// port: the original gave up after twice the resources it had counted ("taking an unnaturally
-				// long time")
+				mChapterLoadCount++;
 				if (mShutdown)
 					return true;
+				// port: the original gave up after twice the resources it had counted ("taking an unnaturally
+				// long time")
+				if (mChapterLoadScreen != nullptr)
+					mChapterLoadScreen->MarkDirtyFull();
+				if (theDeadline != 0 && SDL_TICKS_PASSED(SDL_GetTicks(), theDeadline))
+					return false;
 			}
+			mChapterLoadGroupStarted = false;
 			if (mResourceManager->HadError()) {
-				theError = mResourceManager->GetErrorText();
-				return false;
+				mChapterLoadFailed = true;
+				mChapterLoadError = mResourceManager->GetErrorText();
+				return true;
 			}
 		} else {
 			PopAnim* anAnim = new PopAnim(aResource.mIntParameter, mPopAnimManager);
 			if (!anAnim->LoadAnimation(aResource.mString)) {
-				theError = StrFormat("Error loading PAM file: \"%s\". Reason given: %s", aResource.mString.c_str(),
-				                     anAnim->GetError().c_str());
+				mChapterLoadFailed = true;
+				mChapterLoadError = StrFormat("Error loading PAM file: \"%s\". Reason given: %s", aResource.mString.c_str(),
+				                              anAnim->GetError().c_str());
 				delete anAnim;
-				return false;
+				return true;
 			}
 			mPopAnimManager->Add(aResource.mIntParameter, anAnim, aResource.mStrParameter);
+			mChapterLoadCount++;
+			if (mChapterLoadScreen != nullptr)
+				mChapterLoadScreen->MarkDirtyFull();
 		}
+		mChapterLoadIndex++;
+		if (theDeadline != 0 && SDL_TICKS_PASSED(SDL_GetTicks(), theDeadline))
+			return false;
 	}
 	return true;
 }

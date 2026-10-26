@@ -211,9 +211,9 @@ void Board::Init()
 	mApp->ClearUpdateBacklog(false);
 }
 
-void Board::InitMiniGame(int x, int y, int theCols, int theRows, const std::string& theLetters, bool theNoTilesWhilePaused)
+void Board::InitMiniGame(int x, int y, int theXGap, int theYGap, int theCols, int theRows,
+                         const std::string& theLetters, bool theNoTilesWhilePaused)
 {
-	// MINIGAME: check the argument order with the asm of 0x418120
 	mGridHeight = theRows;
 	mGridX = x;
 	mIsMiniGame = true;
@@ -228,7 +228,7 @@ void Board::InitMiniGame(int x, int y, int theCols, int theRows, const std::stri
 	gTileEngine->CallLinkedMethod("Setup", 0);
 	for (int aRow = 0; aRow < mGridHeight; aRow++) {
 		for (int aCol = 0; aCol < mGridWidth; aCol++) {
-			Tile* aTile = AddTile(gTileEngine->CreateTile(false, true, true), aCol, aRow);
+			Tile* aTile = AddTile(gTileEngine->CreateTile(false, true, theLetters.empty()), aCol, aRow, theXGap, theYGap);
 			if (!theLetters.empty())
 				aTile->SetLetter(StrFormat("%c", theLetters[mGridWidth * aRow + aCol]));
 		}
