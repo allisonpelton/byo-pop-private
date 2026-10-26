@@ -40,6 +40,20 @@ App* App::instance()
 	return gApp;
 }
 
+static SoundSystem* gSoundSystem = nullptr;  // 0x49bfc0
+
+// 0x435f30
+SoundSystem* App::getSoundSystem()
+{
+	return gSoundSystem;
+}
+
+// 0x435f40
+void App::setSoundSystem(SoundSystem* theSoundSystem)
+{
+	gSoundSystem = theSoundSystem;
+}
+
 // 0x437b20
 Image* App::getImage(const char* theName)
 {

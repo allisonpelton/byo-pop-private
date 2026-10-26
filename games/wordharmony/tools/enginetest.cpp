@@ -5,7 +5,10 @@
 
 #include "App.h"
 #include "Exception.h"
+#include "Font.h"
+#include "Graphics.h"
 #include "Host.h"
+#include "ScreenLayout.h"
 #include "Xml.h"
 #include <chrono>
 #include <cstdio>
@@ -13,6 +16,14 @@
 #include <iterator>
 
 using namespace engine;
+
+// Images of a fixed size: the test reads no pixels
+class TestImage : public Image
+{
+public:
+	int getWidth() override { return 16; }
+	int getHeight() override { return 16; }
+};
 
 class TestHost : public Host
 {
@@ -36,7 +47,7 @@ public:
 	{
 		return std::ifstream(mDir + "/" + theName).good();
 	}
-	Image* createImage(const std::vector<uint8_t>&, const std::vector<uint8_t>*) override { return nullptr; }
+	Image* createImage(const std::vector<uint8_t>&, const std::vector<uint8_t>*) override { return new TestImage(); }
 	bool registryReadString(const std::string&, std::string&) override { return false; }
 	bool registryWriteString(const std::string&, const std::string&) override { return false; }
 	bool registryReadInt(const std::string&, int&) override { return false; }
@@ -107,5 +118,32 @@ int main(int argc, char** argv)
 	}
 	printf("%d files in the archive, %d XML files parsed, %d elements, %d failed\n", (int)aNames.size(), aFiles,
 		anElements, aFailed);
+
+	// Every XML file read as a screen layout (the files that are not layouts give no nodes)
+	int aScreens = 0;
+	int aNodes = 0;
+	for (const std::string& aName : aNames)
+	{
+		if (aName.size() < 4 || aName.compare(aName.size() - 4, 4, ".xml") != 0)
+			continue;
+		Ref<ScreenLayout> aScreen = new ScreenLayout();
+		try
+		{
+			aScreen->loadLayout(aName);
+			if (aScreen->mNodes.size() != 0)
+			{
+				aScreens++;
+				aNodes += (int)aScreen->mNodes.size();
+				printf("layout %s: %d named nodes, %d children\n", aName.c_str(), (int)aScreen->mNodes.size(),
+					(int)aScreen->mChildren.size());
+			}
+		}
+		catch (const Exception& e)
+		{
+			printf("FAIL layout %s: %s\n", aName.c_str(), e.what());
+			aFailed++;
+		}
+	}
+	printf("%d layouts, %d named nodes\n", aScreens, aNodes);
 	return aFailed == 0 && aFiles > 0 ? 0 : 1;
 }

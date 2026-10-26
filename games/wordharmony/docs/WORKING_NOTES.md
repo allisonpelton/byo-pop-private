@@ -51,6 +51,15 @@ The run loop 0x4552b0: frame period 1000 / fps (fps = config +0x90); the root wi
 seconds (+0xb8), 0x6c and 0x70 not yet read. The image loader (0x457510) reads a PNG or JPEG and, when
 `<dir>_<name>.png` exists, takes its alpha from that mask (0x45ea10; which channel is not yet checked).
 
+Screens, ported and checked (the engine test reads all 27 layouts of the archive into ScreenLayouts, 213 named nodes):
+`ImageNode`, `FadeContainer` (0x429b70: groups and screens), `Selector` (0x426f10: one child shown, cross-fades),
+`Button` and `ImageButton` (0x432600, 0x429c70: hover scaling, flashing, enter and press sounds, listeners told under
+the button's action; a press is told on mouse down), `ScreenLayout` (0x428640: named nodes, passes a pressed action to
+its ScreenListener, the controller's +0xc), `Layout` (the reader 0x42c7f0 with image, imageButton, group and include),
+`Sound.h` (the two SoundSystem slots the buttons call; App::getSoundSystem is the global 0x49bfc0). Still to port of
+the reader: text 0x42ef20 (287 uses in the layouts), particleSystem 0x42f760 (7), checkBox 0x42d6f0 (7), textButton
+0x42e2b0 (3, a Button subclass, vtable 0x483f10, constructor 0x42c2c0) and textSub 0x4300c0 (unused by the layouts).
+
 Node vtable (0x484b50, 27 slots), by offset: 0 dtor, 4 getX, 8 getY, 0xc getPosition, 0x10 getAbsPosition, 0x14
 setPosition(Point), 0x18 setPosition(x, y), 0x1c setScale, 0x20 setRotation, 0x24 getBounds, 0x28 setOpacity, 0x2c
 getOpacity, 0x30 setFont, 0x34 setName, 0x38 getName, 0x3c applyTransform(Graphics), 0x40 contains(Point), 0x44

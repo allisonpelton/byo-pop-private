@@ -19,6 +19,7 @@ namespace engine
 class Font;
 class Graphics;
 class Image;
+class SoundSystem;
 
 // The configuration the controller fills in (the application's +0x88)
 struct AppConfig
@@ -49,6 +50,9 @@ public:
 	~App() override;  // 0x4381b0
 
 	static App* instance();  // 0x435f20
+	static SoundSystem* getSoundSystem();  // 0x435f30
+	// 0x74: 0x435f40, sets the global that getSoundSystem returns
+	void setSoundSystem(SoundSystem* theSoundSystem);
 
 	// The resource manager's functions (slots 0x18-0x34)
 	void addArchive(const char* thePath) { mResources->addArchive(thePath); }                  // 0x18
