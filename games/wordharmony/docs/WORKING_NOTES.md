@@ -61,39 +61,27 @@ its ScreenListener, the controller's +0xc), `Layout` (the reader 0x42c7f0 with i
 (0x427680: lines split at a literal backslash-n, aligned, underlined or struck through; setNumber puts commas in,
 setTime gives h:mm:ss) and the text element 0x42ef20, `CheckBox` (0x483dc8: four images, a press flips it) and
 `TextButton` (0x42c2c0: a text node whose font follows the mouse) with their elements 0x42d6f0 and 0x42e2b0, and
-textSub 0x4300c0. Still to port of the reader: particleSystem 0x42f760 (7 uses; the particle code 0x430d20-0x435d50,
-ParticleSystem 0x42b920, ParticleStream 0x433390). The particleSystem element reads x, y (0), file (""), name ("ParticleSystem")
-and warmup (int, 0): a new ParticleSystem (0xbc bytes, constructor 0x42b920) goes into the top group, then 0x42b7a0
-(load the file), setPosition, 0x42b6e0, setName, and 0x42b6b0(warmup) when warmup is set. The dumps are in
+textSub 0x4300c0, and the particles (`Particles`, `Random`; the particleSystem element 0x42f760). The dumps are in
 `re/wordharmony/work/psystem.c` (0x42b4c0-0x42c1e0), `particles.c` (0x430d20-0x434ce0) and `particles2.c`
-(0x435300-0x435d50). After the particles: sound (SimpleSoundDX 0x4425f0-0x444970) and music (0x424160-0x426000),
-then the controller and the game code.
+(0x435300-0x435d50). Next: sound (SimpleSoundDX 0x4425f0-0x444970) and music (0x424160-0x426000), then the
+controller and the game code. 0x430d20/0x430ee0 are not particles: they belong to another file reader (vtable
+0x484288, slot 0x20 makes a 200-byte object 0x430c20 with lifeTime and name), to be read with the code that uses it.
+The sounds file's handler (0x42bdf0, element "sound": name, file, vol, pitch, count, category) feeds 0x426760 of the
+object at its +0x14 (the sound part).
 
-ParticleSystem as read (0x42b920, vtable 0x483b70, a Container named "ParticleSystem"): +0xa8 running, +0xac
-duration (-1), +0xb0 time left. Its children are the streams. start 0x42b6e0: each stream 0x432880, running = 1,
-time left = duration when duration > 0. stop 0x42b730: each stream 0x4328d0, running = 0. isDone 0x42b760: every
-stream's 0x432900. setDuration 0x42b6a0. warmup 0x42b6b0(float s): Container::update with origin (0,0) and s
-seconds. load 0x42b7a0(file): the particle XML handler (constructor 0x433870, 0x4337f0 sets its system) parses the
-file from the archive. update 0x42b8c0: when running with a duration, the time counts down and stop runs below 0;
-then Container::update. A pool (0x42bb20, vtable 0x483c68, Container: +0xa8 file, n systems of the file) has
-0x42ba00 all done and 0x42ba40 a done system or a new one. Point helpers: 0x42b520 scale, 0x42b540 add, 0x42b560
-subtract, 0x42b590 rotate by degrees, 0x42b5d0 normalise, 0x42b610 "%f,%f". 0x42bd10: a random float between a
-range's two ends (rand() * 3.051851e-05). The sounds file's handler (0x42bdf0, element "sound": name, file, vol,
-pitch, count, category) feeds 0x426760 of the object at its +0x14 (the sound part). ParticleStream as read so far (constructor
-0x433390, vtable 0x484518, a Container; its particles are its children): +0x148 a string, +0x16c a vector, +0x17c a
-vector of counted objects (released in the destructor 0x432940), +0x18c emitting, +0x194 delay, +0x198 delay left,
-+0x19c duration, +0x1a0 time left, +0x1a4 from App 0x436880(name) (0x432ad0). start 0x432880: delay left = delay
-when delay > 0; with a duration, time left = duration (emitting stays as it is), else emitting = 1. stop 0x4328d0:
-emitting = 0. isDone 0x432900: not emitting, time left <= 0 and no particles. layout 0x4328e0: empty bounds. Still to
-read: 0x432e10, 0x4331b0 (update and emit, likely), 0x433390, the particle XML handler 0x4337f0-0x433ef0 and
-0x430d20/0x430ee0 (0x430ee0 is large). Read, to be checked against the disassembly before writing: update 0x4331b0
-removes particles whose +0xd8 (life left) went below 0 (clearParent, erase), counts time left down to start
-emitting, the delay left down to stop it, accumulates rate (+0xa8) x seconds onto +0x188 and emits one particle per
-whole unit while +0xac (a cap on the particle count, 0 none) allows, at the stream's position (or the origin when
-+0x190 is set), then Container::update. emit 0x432e10(x, y): up to 25 tries of a random index (0x42bce0) into the
-+0x17c templates, takes one whose slot 8 returns 1, and sets it up from the stream's ranges (pairs of floats at
-+0xb0 ... +0x130, each drawn with 0x42bd10), a rotation by a random angle (0x42b590), an optional motion listener
-(0x431930, 0x3c bytes) when the ranges at +0xf0/+0x100 are not zero, visible, +0x138/+0x13c copied, then addChild.
+The particles as ported. A system's children are streams; a stream's children are the particles it emitted, and its
+pool (+0x178, counted) holds them all: a particle whose reference count is 1 is free. A stream's pool is made when its
+end tag is read: (int)(the longest life x the emit rate x 1.5 + 1) particles, one per image <path>0, <path>1, ...
+(.png, else .jpg) in rounds; the original loops forever when <path>0 is missing (smoke.xml, which no code names,
+would hang it), the port stops. The emit credit starts at 1, so a started stream emits at its first update. emit
+tries 25 random pool indexes (0x42bce0 truncates, so the last particle comes only on rand() 0x7fff) and draws the
+particle's values in a fixed order (acceleration, position, start and end scale, life, velocity, rotation, opacity,
+jitter rates, then the jitter amounts y before x); keep that order, the random sequence depends on it. A particle
+lives in screen coordinates: applyTransform translates by its position less the graphics' current translation (no
+rotation, no colour offset) and sets the stream's filter as the graphics' snap. Jitter (0x431930) adds amount x
+cos(rate x time) to the position each frame. The random numbers are the C library's (Random.h); the game seeds them
+with srand(GetTickCount()) in the controller 0x406b30, not ported yet. Slot 0x64/0x68 (start/stop, which containers forward)
+are not the systems' start and stop, so the port names those startEmitting and stopEmitting.
 
 Node vtable (0x484b50, 27 slots), by offset: 0 dtor, 4 getX, 8 getY, 0xc getPosition, 0x10 getAbsPosition, 0x14
 setPosition(Point), 0x18 setPosition(x, y), 0x1c setScale, 0x20 setRotation, 0x24 getBounds, 0x28 setOpacity, 0x2c

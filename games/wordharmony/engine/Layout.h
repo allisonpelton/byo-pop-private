@@ -5,6 +5,7 @@
 // layout file becomes a node of the screen. Groups nest: an element goes into the innermost open group, and the screen
 // is the outermost one. The screen keeps every node by its name.
 
+#include "Geometry.h"
 #include "Xml.h"
 #include <string>
 #include <vector>
@@ -14,6 +15,21 @@ namespace engine
 
 class Container;
 class ScreenLayout;
+
+// The attribute readers of the layout elements, and of the particle file's: each takes a copy of the attributes and
+// gives the default for a missing attribute
+// 0x42abd0
+std::string getStringAttribute(XmlAttributes theAttributes, const std::string& theName, const std::string& theDefault);
+// 0x42ad20
+long getIntAttribute(XmlAttributes theAttributes, const std::string& theName, long theDefault);
+// 0x42aeb0
+float getFloatAttribute(XmlAttributes theAttributes, const std::string& theName, float theDefault);
+// 0x42b040: "(x,y)", or one number for both
+Point getScaleAttribute(XmlAttributes theAttributes, const std::string& theName, Point theDefault);
+// 0x42b1c0: "x,y"
+Point getPointAttribute(XmlAttributes theAttributes, const std::string& theName, Point theDefault);
+// 0x42b350: "true" or "false"
+bool getBoolAttribute(XmlAttributes theAttributes, const std::string& theName, bool theDefault);
 
 class LayoutHandler : public XmlHandler
 {
@@ -35,6 +51,7 @@ private:
 	bool addCheckBox(const XmlAttributes& theAttributes);     // 0x42d6f0
 	bool addTextButton(const XmlAttributes& theAttributes);   // 0x42e2b0
 	bool addGroup(const XmlAttributes& theAttributes);        // 0x42fa90
+	bool addParticleSystem(const XmlAttributes& theAttributes);  // 0x42f760
 	bool addTextSub(const XmlAttributes& theAttributes);      // 0x4300c0
 	bool addInclude(const XmlAttributes& theAttributes);      // 0x42fed0
 

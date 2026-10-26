@@ -1,6 +1,7 @@
 // The engine's check: opens WHArchive.saf from a game folder (assets/wordharmony by default) through the engine's
-// resource manager and parses every XML file in it with the engine's parser, counting the elements. It opens no window
-// and plays no sound.
+// resource manager and parses every XML file in it with the engine's parser, counting the elements; then reads each as
+// a screen layout and as a particle file, and runs the particle systems until they are done. It opens no window and
+// plays no sound.
 //   wordharmony_enginetest [<game folder>]
 
 #include "App.h"
@@ -8,6 +9,7 @@
 #include "Font.h"
 #include "Graphics.h"
 #include "Host.h"
+#include "Particles.h"
 #include "ScreenLayout.h"
 #include "Xml.h"
 #include <chrono>
@@ -145,5 +147,69 @@ int main(int argc, char** argv)
 		}
 	}
 	printf("%d layouts, %d named nodes\n", aScreens, aNodes);
+
+	// Every XML file read as a particle file (the files that are not give no streams), emitting for five seconds of
+	// 60 frames a second, then run until it is done
+	int aSystems = 0;
+	int aStreams = 0;
+	for (const std::string& aName : aNames)
+	{
+		if (aName.size() < 4 || aName.compare(aName.size() - 4, 4, ".xml") != 0)
+			continue;
+		Ref<ParticleSystem> aSystem = new ParticleSystem();
+		try
+		{
+			aSystem->load(aName);
+			if (aSystem->mChildren.size() == 0)
+				continue;
+			aSystems++;
+			aStreams += (int)aSystem->mChildren.size();
+			int aPool = 0;
+			float aLongest = 0;
+			for (Node* aChild : aSystem->mChildren)
+			{
+				ParticleStream* aStream = static_cast<ParticleStream*>(aChild);
+				aPool += (int)aStream->mParticles.size();
+				if (aStream->mLifeTime.y > aLongest)
+					aLongest = aStream->mLifeTime.y;
+			}
+			if (aPool == 0)
+			{
+				// smoke.xml names images the archive does not have (and no code names the file): the original's
+				// makeParticles would loop forever on it
+				printf("particles %s: no images\n", aName.c_str());
+				continue;
+			}
+			aSystem->startEmitting();
+			int aMost = 0;
+			int aFrames = 0;
+			int anAfter = (int)((aLongest + 1) * 60);
+			while (aFrames < 300 || (!aSystem->isDone() && aFrames < 300 + anAfter))
+			{
+				if (aFrames == 300)
+					aSystem->stopEmitting();
+				UpdateInfo anInfo;
+				anInfo.mSeconds = 1.0f / 60;
+				aSystem->update(anInfo);
+				int aLive = 0;
+				for (Node* aChild : aSystem->mChildren)
+					aLive += (int)static_cast<ParticleStream*>(aChild)->mChildren.size();
+				if (aLive > aMost)
+					aMost = aLive;
+				aFrames++;
+			}
+			printf("particles %s: %d streams, %d in the pools, at most %d at once, %s %d frames after the stop\n",
+				aName.c_str(), (int)aSystem->mChildren.size(), aPool, aMost, aSystem->isDone() ? "done" : "NOT done",
+				aFrames - 300);
+			if (!aSystem->isDone())
+				aFailed++;
+		}
+		catch (const std::exception& e)
+		{
+			printf("FAIL particles %s: %s\n", aName.c_str(), e.what());
+			aFailed++;
+		}
+	}
+	printf("%d particle files, %d streams\n", aSystems, aStreams);
 	return aFailed == 0 && aFiles > 0 ? 0 : 1;
 }

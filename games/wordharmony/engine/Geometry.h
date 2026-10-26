@@ -4,6 +4,8 @@
 // The engine's points, rectangles and colours (games/wordharmony/docs/ENGINE.md). Rectangles are {left, top, right,
 // bottom}; right and bottom are exclusive.
 
+#include <cmath>
+
 namespace engine
 {
 
@@ -11,8 +13,55 @@ struct Point
 {
 	float x, y;
 
-	Point() : x(0), y(0) {}
+	Point() : x(0), y(0) {}  // 0x42b490
 	Point(float theX, float theY) : x(theX), y(theY) {}  // 0x42b4c0, 0x42b580
+
+	// 0x42b520
+	void scale(float theFactor)
+	{
+		x = theFactor * x;
+		y = theFactor * y;
+	}
+	// 0x42b540
+	void add(const Point& p)
+	{
+		x = p.x + x;
+		y = p.y + y;
+	}
+	// 0x42b560
+	void subtract(const Point& p)
+	{
+		x = x - p.x;
+		y = y - p.y;
+	}
+	// 0x42b580
+	void set(float theX, float theY)
+	{
+		x = theX;
+		y = theY;
+	}
+	// 0x42b590: turns the point about the origin (degrees; y down, so a positive angle turns it clockwise on the
+	// screen)
+	void rotate(float theDegrees)
+	{
+		double anAngle = theDegrees * 0.017453292519943295;
+		double aCos = cos(anAngle);
+		double aSin = sin(anAngle);
+		float aY = (float)(x * aSin + y * aCos);
+		x = (float)(x * aCos - y * aSin);
+		y = aY;
+	}
+	// 0x42b5d0: to length 1; a zero point stays
+	void normalize()
+	{
+		double aLength = sqrt((double)x * x + (double)y * y);
+		if (aLength != 0)
+		{
+			double anInverse = 1.0f / aLength;
+			x = (float)(anInverse * x);
+			y = (float)(anInverse * y);
+		}
+	}
 };
 
 struct IntRect

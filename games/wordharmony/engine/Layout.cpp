@@ -5,6 +5,7 @@
 #include "Font.h"
 #include "Graphics.h"
 #include "ImageNode.h"
+#include "Particles.h"
 #include "ScreenLayout.h"
 #include "Stream.h"
 #include "TextItem.h"
@@ -13,11 +14,10 @@
 
 using namespace engine;
 
-// The attribute readers of the layout elements: each takes a copy of the attributes and gives the default for a
-// missing attribute
+// The attribute readers (Layout.h)
 
 // 0x42abd0
-static std::string getStringAttribute(XmlAttributes theAttributes, const std::string& theName,
+std::string engine::getStringAttribute(XmlAttributes theAttributes, const std::string& theName,
 	const std::string& theDefault)
 {
 	XmlAttributes::iterator anIt = theAttributes.find(theName);
@@ -27,7 +27,7 @@ static std::string getStringAttribute(XmlAttributes theAttributes, const std::st
 }
 
 // 0x42ad20
-static long getIntAttribute(XmlAttributes theAttributes, const std::string& theName, long theDefault)
+long engine::getIntAttribute(XmlAttributes theAttributes, const std::string& theName, long theDefault)
 {
 	XmlAttributes::iterator anIt = theAttributes.find(theName);
 	if (anIt == theAttributes.end())
@@ -36,7 +36,7 @@ static long getIntAttribute(XmlAttributes theAttributes, const std::string& theN
 }
 
 // 0x42aeb0
-static float getFloatAttribute(XmlAttributes theAttributes, const std::string& theName, float theDefault)
+float engine::getFloatAttribute(XmlAttributes theAttributes, const std::string& theName, float theDefault)
 {
 	XmlAttributes::iterator anIt = theAttributes.find(theName);
 	if (anIt == theAttributes.end())
@@ -45,7 +45,7 @@ static float getFloatAttribute(XmlAttributes theAttributes, const std::string& t
 }
 
 // 0x42b040: "(x,y)", or one number for both
-static Point getScaleAttribute(XmlAttributes theAttributes, const std::string& theName, Point theDefault)
+Point engine::getScaleAttribute(XmlAttributes theAttributes, const std::string& theName, Point theDefault)
 {
 	float x = theDefault.x;
 	float y = theDefault.y;
@@ -68,7 +68,7 @@ static Point getScaleAttribute(XmlAttributes theAttributes, const std::string& t
 
 // 0x42b1c0: "x,y". The original reads into uninitialised locals, so a value that does not parse gives what the stack
 // held; the port gives the default for the numbers that do not parse.
-static Point getPointAttribute(XmlAttributes theAttributes, const std::string& theName, Point theDefault)
+Point engine::getPointAttribute(XmlAttributes theAttributes, const std::string& theName, Point theDefault)
 {
 	Point aPoint = theDefault;
 	XmlAttributes::iterator anIt = theAttributes.find(theName);
@@ -84,7 +84,7 @@ static Point getPointAttribute(XmlAttributes theAttributes, const std::string& t
 }
 
 // 0x42b350: "true" or "false"; anything else is the default
-static bool getBoolAttribute(XmlAttributes theAttributes, const std::string& theName, bool theDefault)
+bool engine::getBoolAttribute(XmlAttributes theAttributes, const std::string& theName, bool theDefault)
 {
 	bool aValue = theDefault;
 	XmlAttributes::iterator anIt = theAttributes.find(theName);
@@ -111,8 +111,7 @@ LayoutHandler::~LayoutHandler()
 	mScreen = nullptr;
 }
 
-// 0x430910: an element the reader does not know is skipped (its children are still read). Not ported yet:
-// particleSystem 0x42f760.
+// 0x430910: an element the reader does not know is skipped (its children are still read)
 void LayoutHandler::startElement(const std::string& theName, const XmlAttributes& theAttributes)
 {
 	if (theName.compare("image") == 0)
@@ -143,6 +142,11 @@ void LayoutHandler::startElement(const std::string& theName, const XmlAttributes
 	if (theName.compare("group") == 0)
 	{
 		addGroup(theAttributes);
+		return;
+	}
+	if (theName.compare("particleSystem") == 0)
+	{
+		addParticleSystem(theAttributes);
 		return;
 	}
 	if (theName.compare("textSub") == 0)
@@ -411,6 +415,29 @@ bool LayoutHandler::addGroup(const XmlAttributes& theAttributes)
 	mGroups.back()->addChild(aGroup);
 	mScreen->registerNode(aGroup, aName);
 	mGroups.push_back(aGroup);
+	return true;
+}
+
+// 0x42f760: a system with a file is started at once (after a warm-up of the whole seconds given); it is named but
+// not kept by the screen
+bool LayoutHandler::addParticleSystem(const XmlAttributes& theAttributes)
+{
+	float x = getFloatAttribute(theAttributes, "x", 0);
+	float y = getFloatAttribute(theAttributes, "y", 0);
+	std::string aFile = getStringAttribute(theAttributes, "file", "");
+	std::string aName = getStringAttribute(theAttributes, "name", "ParticleSystem");
+	long aWarmup = getIntAttribute(theAttributes, "warmup", 0);
+	if (aFile.compare("") != 0)
+	{
+		ParticleSystem* aSystem = new ParticleSystem();
+		mGroups.back()->addChild(aSystem);
+		aSystem->load(aFile);
+		aSystem->setPosition(x, y);
+		aSystem->startEmitting();
+		aSystem->setName(aName);
+		if (0 < aWarmup)
+			aSystem->warmup((float)aWarmup);
+	}
 	return true;
 }
 
