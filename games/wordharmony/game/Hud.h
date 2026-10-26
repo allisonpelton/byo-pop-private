@@ -27,8 +27,10 @@ public:
 	void setMode(int theMode);
 	// 0x422220 (not read yet): a ball was grabbed (theReleased false) or let go
 	void grabChanged(bool theReleased, bool theB, bool theC);
-	// 0x422340 (not read yet)
-	void clearScore();
+	// 0x422340 (not read yet; called whenever the balls or the queue change)
+	void refresh();
+	// 0x422d30 (not read yet): whether the hint button works
+	void setHintReady(bool theReady);
 	// 0x423210 (not read yet)
 	void setPlaying(bool thePlaying);
 	// 0x422400: its part of the saved game

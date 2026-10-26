@@ -115,6 +115,18 @@ public:
 	void spawnWord(const std::string& theWord);
 	// 0x4174f0: the same at (x, y)
 	void spawnWordAt(const std::string& theWord, float x, float y);
+	// 0x418f30: theLetters into the queue, the pieces first (their letters taken out of theLetters)
+	void queueLetters(std::string theLetters, const std::vector<std::string>& thePieces);
+	// 0x4191e0: the words the balls in play can make (the original's hint thread)
+	void findHints();
+	// 0x419540
+	void startHints();
+	// 0x4195d0: the queue's next letter or piece, refilled when empty; taken off unless theKeep
+	void nextPiece(std::string& theResult, bool theKeep);
+	// 0x419f40: freematch's next ball or word
+	void spawnNext();
+	// 0x41a050
+	void addWildcard();
 
 	int mMode;                                  // +0xd4
 	Bounds* mBounds;                            // +0xdc
@@ -152,6 +164,7 @@ public:
 	engine::Image* mWater[4];                   // +0x1c8
 	float mWaveTime;                            // +0x1d8
 	std::vector<std::string> mHints;            // +0x1e0
+	bool m1F0;                                  // +0x1f0
 	unsigned int mHintIndex;                    // +0x1f4
 	bool mEditor;                               // +0x1f8: never set in this build
 	int m1FC;                                   // +0x1fc

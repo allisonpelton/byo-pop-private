@@ -6,6 +6,7 @@
 // so far; the rest comes with the controller's port (0x401000-0x409c00).
 
 #include "App.h"
+#include "Dictionary.h"
 #include "ScreenLayout.h"
 #include <string>
 #include <vector>
@@ -33,6 +34,8 @@ public:
 	void resume();
 	// 0x404e10 (not read yet): the last puzzle level is done
 	void finishPuzzles(bool theA, bool theB);
+	// 0x404f60 (not read yet): random letters, theMin to theMax of them
+	std::string makeLetters(int theMin, int theMax);
 	// 0x4050f0: theCount random letters
 	std::string randomLetters(int theCount);
 	// 0x4055f0: the next state of the state machine (+0x1d8)
@@ -45,8 +48,10 @@ public:
 	void makeWords(int theCount, std::vector<std::string>& theWords);
 
 	// The fields the ball system uses
+	Dictionary mDictionary;             // +0x10
 	int mLevelIndex;                    // +0x2c (with +0x308 in the saved game)
 	int m38;                            // +0x38
+	int mWildcardsSaved;                // +0x40: solitaire's wildcards
 	unsigned int mWildcards;            // +0x48: wildcards to add to the next level's letters
 	int mHints;                         // +0x4c: hints left
 	int mHintsUsed;                     // +0x50
@@ -59,6 +64,7 @@ public:
 	int mLevel;                         // +0x308: the puzzle level played
 	Level* mCurrentLevel;               // +0x30c
 	WordBallSystem* mBallSystem;        // +0x700
+	int mMode;                          // +0x708: the game's mode (the ball system's MODE_ values)
 
 	static Game* sInstance;
 };

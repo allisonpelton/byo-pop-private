@@ -35,6 +35,7 @@ WordBallSystem::WordBallSystem(int theMode)
 	m194 = false;
 	mNoPicking = false;
 	mWaveTime = 0;
+	m1F0 = false;
 	mHintIndex = 0;
 	mEditor = false;
 	m1FC = 0;
@@ -848,7 +849,7 @@ void WordBallSystem::reset()
 	stopHintThread();
 	mStarted = false;
 	mSpawnTime = 0;
-	mHud->clearScore();
+	mHud->refresh();
 	mQueue.clear();
 	mHud->setPlaying(false);
 	mWaterLevel = 0;
@@ -1496,7 +1497,7 @@ void WordBallSystem::startLevel()
 	}
 	else if (mMode == MODE_FREEMATCH)
 	{
-		mHud->clearScore();
+		mHud->refresh();
 		mFill = 0;
 		mWaterLevel = 0;
 		mWaveTime = 0;
@@ -1576,4 +1577,176 @@ void WordBallSystem::startLevel()
 	aGame->m18C = 0;
 	aGame->m38 = 0;
 	mBallsLeft = mCount;
+}
+
+// 0x418f30
+void WordBallSystem::queueLetters(std::string theLetters, const std::vector<std::string>& thePieces)
+{
+	unsigned int aPiece;
+	for (aPiece = 0; aPiece < thePieces.size(); aPiece++)
+	{
+		std::string aLetters = thePieces[aPiece];
+		unsigned int c = 0;
+		if (aLetters.size() != 0)
+		{
+			do
+			{
+				size_t anAt = theLetters.find(aLetters[c]);
+				if (anAt != std::string::npos)
+					theLetters.erase(anAt, 1);
+				c++;
+			} while (c < aLetters.size());
+		}
+		mQueue.push_back(aLetters);
+	}
+	unsigned int i = 0;
+	if (theLetters.size() != 0)
+	{
+		do
+		{
+			mQueue.push_back(std::string(1, theLetters[i]));
+			i++;
+		} while (i < theLetters.size());
+	}
+}
+
+// 0x4191e0: the chains' letters still in play as words of their own, the loose letters together; the puzzle
+// levels' finder fills the hints directly (and the button needs hints left), the others' only when it finds some
+void WordBallSystem::findHints()
+{
+	Game* aGame = Game::instance();
+	std::string aLetters;
+	std::vector<std::string> aChains;
+	WordBallSystem* aSystem = aGame->mBallSystem;
+	for (unsigned int i = 0; i < aSystem->mChains.size(); i++)
+	{
+		Chain* aChain = aSystem->mChains[i];
+		std::list<int>::iterator aLink = aChain->mIndices.begin();
+		if (aLink != aChain->mIndices.end())
+		{
+			do
+			{
+				Ball* aBall = aSystem->getBall(*aLink);
+				if (aBall->mState == BALL_FREE || aBall->mState == BALL_STATE_4)
+					aLetters.append(1, aBall->mLetter);
+				aLink++;
+			} while (aLink != aChain->mIndices.end());
+		}
+		aChains.push_back(aLetters);
+		aLetters.clear();
+	}
+	unsigned int i = 0;
+	if (aSystem->mCount != 0)
+	{
+		do
+		{
+			Ball* aBall = aSystem->getBall(i);
+			if ((aBall->mState == BALL_FREE || aBall->mState == BALL_STATE_4) && aBall->mChain == nullptr)
+				aLetters.append(1, aBall->mLetter);
+			i++;
+		} while (i < aSystem->mCount);
+	}
+	if (aGame->mMode == MODE_SOLITAIRE)
+	{
+		bool aFound = aGame->mDictionary.findWords(aLetters, aChains, &aSystem->mHints);
+		if (!aFound || aGame->mHints == 0)
+			aSystem->mHud->setHintReady(false);
+		else
+			aSystem->mHud->setHintReady(true);
+	}
+	else
+	{
+		std::vector<std::string> aWords;
+		bool aFound = aGame->mDictionary.findAnyWords(aLetters, aChains, aWords);
+		if (aFound)
+			aSystem->mHints = aWords;
+		aSystem->mHud->setHintReady(aFound);
+	}
+}
+
+// 0x419540: the original starts findHints on a thread (or logs "still finding hints..." while one runs); the port
+// runs it at once
+void WordBallSystem::startHints()
+{
+	mHintIndex = 0;
+	m1F0 = false;
+	if (mMode != MODE_FREEMATCH)
+	{
+		mHud->setHintReady(false);
+		mHints.clear();
+	}
+	findHints();
+}
+
+// 0x4195d0: an empty queue gets a piece cut from a run of random letters, then the rest of them and another run
+// one by one, in a random order
+void WordBallSystem::nextPiece(std::string& theResult, bool theKeep)
+{
+	Game* aGame = Game::instance();
+	if (mQueue.size() == 0)
+	{
+		std::vector<std::string> aPieces;
+		std::string aLetters = aGame->makeLetters(4, 10);
+		if (1 < mLongestPiece)
+		{
+			int aLength = randomIndex(2, mLongestPiece);
+			int aStart = randomIndex(0, (int)aLetters.size() - aLength);
+			std::string aPiece = aLetters.substr(aStart, aLength);
+			aLetters.erase(aStart, aLength);
+			aPieces.push_back(aPiece);
+		}
+		aLetters.append(aGame->makeLetters(4, 10));
+		unsigned int i = 0;
+		if (aLetters.size() != 0)
+		{
+			do
+			{
+				aPieces.push_back(std::string(1, aLetters[i]));
+				i++;
+			} while (i < aLetters.size());
+		}
+		while (aPieces.size() != 0)
+		{
+			int anIndex = randomIndex(0, (int)aPieces.size() - 1);
+			mQueue.push_back(aPieces[anIndex]);
+			aPieces.erase(aPieces.begin() + anIndex);
+		}
+	}
+	std::string aNext = mQueue.back();
+	if (!theKeep && mQueue.size() != 0)
+		mQueue.pop_back();
+	theResult = aNext;
+}
+
+// 0x419f40
+void WordBallSystem::spawnNext()
+{
+	if (mMode == MODE_FREEMATCH)
+	{
+		float aFill = (float)(unsigned int)mBallsLeft / (float)Game::instance()->mCurrentLevel->mMaxBalls;
+		if (1.0f <= aFill)
+			aFill = 1.0f;
+		mFill = aFill;
+		std::string aNext;
+		nextPiece(aNext, false);
+		if (aNext.size() < 2)
+			spawnLetter(aNext[0], false);
+		else
+			spawnWord(aNext);
+		startHints();
+		mSpawnTime = Game::instance()->mCurrentLevel->mSpawnDelay;
+	}
+}
+
+// 0x41a050
+void WordBallSystem::addWildcard()
+{
+	mQueue.push_back("?");
+	if (mMode == MODE_SOLITAIRE)
+	{
+		Game::instance()->mWildcardsSaved++;
+		return;
+	}
+	spawnNext();
+	mHud->refresh();
 }
