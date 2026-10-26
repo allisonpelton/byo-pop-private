@@ -150,6 +150,12 @@ deletes its old layers first (0x425230 -> 0x424e90). A layer's random pick uses 
 random-not-last takes size - 1 when it draws the last index again; sequential wraps to 0; loop keeps the index
 unless one was chosen (0x4247c0 select(index, now)), and its clips loop.
 
+The music as ported (engine/Music.h/.cpp): the layer, the system and the reader as read above; a clip that fails to
+register is left out of the list, as in the original (0x424b80 returns null). The engine
+test reads every XML file as a sounds file and as a music file over a sound system that plays nothing: 17 sounds, 4
+music files (drums, game-over-music, menuMusic, music: 1, 1, 1 and 4 layers), every file found ignoring case, and
+each music file runs two minutes, stops and runs ten seconds more.
+
 ## Next pieces, as read so far
 
 The controller (vtable 0x480a14: 0 dtor 0x4073d0, 4 configure 0x402eb0, 8 init 0x406b30, 0xc shutdown 0x401750, 0x10
