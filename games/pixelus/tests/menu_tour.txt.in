@@ -1,0 +1,22 @@
+1250 click 320 452
+1310 char B
+1312 char o
+1314 char b
+1340 key return
+1400 move 460 250
+1420 click 460 250
+1500 screenshot @OUT@/options.png
+1510 move 400 310
+1520 click 400 310
+1600 screenshot @OUT@/credits.png
+1610 move 320 385
+1620 click 320 385
+1680 move 320 348
+1700 click 320 348
+1900 screenshot @OUT@/help.png
+1910 move 540 440
+1920 click 540 440
+1980 move 320 384
+2000 click 320 384
+2060 screenshot @OUT@/menu.png
+2070 quit

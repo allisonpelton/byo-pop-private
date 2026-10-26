@@ -25,6 +25,9 @@
 #                loaded by the port's VM (bwa_luarun), every PopAnim loaded (bwa_pamtest), every cutscene played
 #                to its end (bwa_swftest), and a scripted run from the title to the main menu whose quit asks,
 #                Play! stays and Quit quits (under two minutes)
+#   pixelus      Pixelus Deluxe's grid replay test (every puzzle of the game solved by its recorded solution), a scripted tour of the
+#                options, credits and how-to-play screens, the bot's first 25 puzzles and a rerun with the same screenshots,
+#                and the bot's whole game (210 puzzles in all 12 temples, to the ending; about 2 minutes)
 #   mummymaze    Mummy Maze's bot: a classic game of 8 chambers (the name box, the options and their dialogs photographed) and
 #                a rerun with the same screenshots, a game from pyramid 3 (the tips), a whole classic game (225 chambers to the
 #                victory screen), a whole adventure (15 pyramids, the map, the saved game) and the tutorial (about 1 minute)
@@ -32,7 +35,7 @@
 #                with the same screenshots (about two and a half minutes)
 #   oracle       Bejeweled's oracle three ways (compare.sh --variants default,forcevariant,novariants); over
 #                ten minutes, so never in a subagent; refuses to start while another oracle runs
-# Sets: quick = build unit; games = bookworm bigmoney noahsark atomica sevenseas bookwormadv tiptop mummymaze; all = every suite, builds first.
+# Sets: quick = build unit; games = bookworm bigmoney noahsark atomica sevenseas pixelus bookwormadv tiptop mummymaze; all = every suite, builds first.
 #
 # Prints "PASS <suite> (<seconds>s): <summary>" or "FAIL <suite> (<seconds>s): <summary> -> <log>" for each,
 # then "check: N passed, M failed". Exits 0 only when all passed. Logs: build/logs/check/<suite>.txt (and
@@ -52,6 +55,9 @@ AT_ACTION="update 20000: score 3360 level 2 moves 599 atoms 48"
 SS_BEGINNER="game 2 over at update 5308: score 165 level 2 moves 23"
 SS_BONUS="game 1 over at update 2286: score 330 level 12 moves 15"
 SS_LATE="game 1 over at update 2285: score 390 level 22 moves 13"
+PX_GRID="gridtest: 213 level files, 211 solutions, 211 solved, 0 without a level file"
+PX_START="done: 25 puzzles"
+PX_FULL="done: no temple left, 210 puzzles, log 086af383"
 MM_CLASSIC="game over: score 1500, list 1500 1000 900 800 700, the bot is number 1"
 MM_TIPS="game over: score 1730, list 1730 1000 900 800 700, the bot is number 1"
 MM_FULL="victory: score 251975, caught 0 times"
@@ -72,9 +78,9 @@ while [ $# -gt 0 ]; do
 		--out=*) OUT="${1#--out=}"; shift ;;
 		-h|--help) sed -n '2,/^BW_CLASSIC/p' "$0" | sed '$d' | sed 's/^# \{0,1\}//'; exit 0 ;;
 		quick) SUITES+=(build unit); shift ;;
-		games) SUITES+=(bookworm bigmoney noahsark atomica sevenseas bookwormadv tiptop mummymaze); shift ;;
-		all) SUITES+=(build build-web build-nov unit unit-web verify modmenu livesplit bookworm bigmoney noahsark atomica sevenseas bookwormadv tiptop mummymaze oracle); shift ;;
-		build|build-web|build-nov|unit|unit-web|verify|modmenu|livesplit|bookworm|bigmoney|noahsark|atomica|sevenseas|bookwormadv|tiptop|mummymaze|oracle) SUITES+=("$1"); shift ;;
+		games) SUITES+=(bookworm bigmoney noahsark atomica sevenseas pixelus bookwormadv tiptop mummymaze); shift ;;
+		all) SUITES+=(build build-web build-nov unit unit-web verify modmenu livesplit bookworm bigmoney noahsark atomica sevenseas pixelus bookwormadv tiptop mummymaze oracle); shift ;;
+		build|build-web|build-nov|unit|unit-web|verify|modmenu|livesplit|bookworm|bigmoney|noahsark|atomica|sevenseas|pixelus|bookwormadv|tiptop|mummymaze|oracle) SUITES+=("$1"); shift ;;
 		*) echo "check.sh: unknown suite '$1' (tools/check.sh --help)" >&2; exit 2 ;;
 	esac
 done
@@ -293,6 +299,38 @@ suite_sevenseas() {
 	if diff -rq "$OUT/sevenseas/beginner/shots" "$OUT/sevenseas/beginner2/shots" >> "$1" 2>&1 && [ "$a" = "$r" ]; then r="rerun identical"; else r="RERUN DIFFERS"; st=1; fi
 	SUMMARY="beginner ${a#game }; bonus ${b#game }; late ${c#game }; $r"
 	[ $st -eq 0 ] || SUMMARY="$SUMMARY (expected beginner '$SS_BEGINNER', bonus '$SS_BONUS', late '$SS_LATE')"
+	return $st
+}
+
+pixelus_game() {  # <name> <puzzles>: a bot game of that many puzzles (at most); prints its last line
+	local d="$OUT/pixelus/$1"
+	rm -rf "$d"; mkdir -p "$d/shots"
+	timeout 600 "$W/build/native/pixelus.exe" -userdir="$W/$d/user" -fast -seed=1 -autoplay=1 -autoplaypuzzles="$2" -autoplaycap=1000000 		-autoplaylog="$W/$d/log.txt" -autoplayshots="$W/$d/shots/s" > "$d/stdout.txt" 2> "$d/stderr.txt"
+	grep -E '^(done|cap reached)' "$d/log.txt" 2>/dev/null | tail -n 1
+}
+
+suite_pixelus() {
+	local st=0 g t a r f n h d="$OUT/pixelus"
+	need_assets pixelus || return 1
+	g="$(build/native/pixelus_gridtest.exe "$W/assets/pixelus" 2>&1 | tail -n 1)"
+	# the options, credits and how-to-play screens: a scripted run in real time (the script counts updates)
+	rm -rf "$d/tour"; mkdir -p "$d/tour"
+	sed "s#@OUT@#$W/$d/tour#g" games/pixelus/tests/menu_tour.txt.in > "$d/tour/script.txt"
+	timeout 300 "$W/build/native/pixelus.exe" -userdir="$W/$d/tour/user" -script="$W/$d/tour/script.txt" -seed=1 > "$d/tour/stdout.txt" 2> "$d/tour/stderr.txt"
+	t=$?
+	for f in options credits help menu; do [ -s "$d/tour/$f.png" ] || t="$t, $f.png missing"; done
+	[ "$t" = 0 ] && t="tour ok" || { t="TOUR FAILED ($t)"; st=1; }
+	a="$(pixelus_game start 25)"; r="$(pixelus_game start2 25)"
+	f="$(pixelus_game full 400)"
+	n="$(grep -c '^completed' "$d/full/log.txt" 2>/dev/null)"; h="$(sha1sum "$d/full/log.txt" 2>/dev/null | cut -c1-8)"
+	f="$f, $n puzzles, log $h"
+	{ echo "$g"; echo "$t"; echo "start: $a"; echo "start rerun: $r"; echo "full: $f"; } > "$1"
+	[ "$g" = "$PX_GRID" ] || st=1
+	[ "$a" = "$PX_START" ] || st=1
+	[ "$f" = "$PX_FULL" ] || st=1
+	if diff -rq "$d/start/shots" "$d/start2/shots" >> "$1" 2>&1 && diff -q "$d/start/log.txt" "$d/start2/log.txt" >> "$1" 2>&1; then r="rerun identical"; else r="RERUN DIFFERS"; st=1; fi
+	SUMMARY="${g#gridtest: }; $t; start ${a#done: }; $r; full ${f#done: }"
+	[ $st -eq 0 ] || SUMMARY="$SUMMARY (expected grid '$PX_GRID', start '$PX_START', full '$PX_FULL')"
 	return $st
 }
 
