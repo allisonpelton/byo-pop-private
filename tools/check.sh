@@ -42,9 +42,12 @@
 #                with the same screenshots (about two and a half minutes)
 #   ningpo       Ning Po Mahjong: a scripted game (the cheat's matches until no pair is left, the name entry, the best
 #                times) and a rerun with the same screenshots and best time (under a minute)
+#   wordharmony  Word Harmony: a THINK game from a saved game (a ball dragged into a word, the word sent, the level
+#                ended, level 2 saved) and a TSUNAMI game saved after 20 seconds, each run twice with the same
+#                screenshots (about 20 seconds)
 #   oracle       Bejeweled's oracle three ways (compare.sh --variants default,forcevariant,novariants); over
 #                ten minutes, so never in a subagent; refuses to start while another oracle runs
-# Sets: quick = build unit; games = bookworm bigmoney noahsark atomica alchemy sevenseas pixelus bookwormadv tiptop mummymaze ningpo; all = every suite, builds first.
+# Sets: quick = build unit; games = bookworm bigmoney noahsark atomica alchemy sevenseas pixelus bookwormadv tiptop mummymaze ningpo wordharmony; all = every suite, builds first.
 #
 # Prints "PASS <suite> (<seconds>s): <summary>" or "FAIL <suite> (<seconds>s): <summary> -> <log>" for each,
 # then "check: N passed, M failed". Exits 0 only when all passed. Logs: build/logs/check/<suite>.txt (and
@@ -79,6 +82,8 @@ TT_REGULAR="game 2 over at update 35544: level 7, score 37160, 352 moves"
 TT_STRATEGY="game 1 over at update 2593: level 1, score 2100, 24 moves"
 TT_SPEED="game 1 over at update 57249: level 11, score 78250, 1081 moves"
 NP_GAME="Test: 40 tiles left in 00:12"
+WH_THINK="level 2 saved, score 1600"
+WH_TSUNAMI="level 1 saved, score 0, 8 balls, 6 to come"
 
 set -u
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -91,9 +96,9 @@ while [ $# -gt 0 ]; do
 		--out=*) OUT="${1#--out=}"; shift ;;
 		-h|--help) sed -n '2,/^BW_CLASSIC/p' "$0" | sed '$d' | sed 's/^# \{0,1\}//'; exit 0 ;;
 		quick) SUITES+=(build unit); shift ;;
-		games) SUITES+=(bookworm bigmoney noahsark atomica alchemy sevenseas pixelus bookwormadv tiptop mummymaze ningpo); shift ;;
-		all) SUITES+=(build build-web build-nov unit unit-web verify modmenu livesplit bookworm bigmoney noahsark atomica alchemy sevenseas pixelus bookwormadv tiptop mummymaze ningpo oracle); shift ;;
-		build|build-web|build-nov|unit|unit-web|verify|modmenu|livesplit|bookworm|bigmoney|noahsark|atomica|alchemy|sevenseas|pixelus|bookwormadv|tiptop|mummymaze|ningpo|oracle) SUITES+=("$1"); shift ;;
+		games) SUITES+=(bookworm bigmoney noahsark atomica alchemy sevenseas pixelus bookwormadv tiptop mummymaze ningpo wordharmony); shift ;;
+		all) SUITES+=(build build-web build-nov unit unit-web verify modmenu livesplit bookworm bigmoney noahsark atomica alchemy sevenseas pixelus bookwormadv tiptop mummymaze ningpo wordharmony oracle); shift ;;
+		build|build-web|build-nov|unit|unit-web|verify|modmenu|livesplit|bookworm|bigmoney|noahsark|atomica|alchemy|sevenseas|pixelus|bookwormadv|tiptop|mummymaze|ningpo|wordharmony|oracle) SUITES+=("$1"); shift ;;
 		*) echo "check.sh: unknown suite '$1' (tools/check.sh --help)" >&2; exit 2 ;;
 	esac
 done
@@ -557,6 +562,64 @@ suite_ningpo() {
 	if diff -rq "$OUT/ningpo/seed7/shots" "$OUT/ningpo/seed7b/shots" >> "$1" 2>&1 && [ "$g" = "$r" ]; then r="rerun identical"; else r="RERUN DIFFERS"; st=1; fi
 	SUMMARY="$g; $r"
 	[ $st -eq 0 ] || SUMMARY="$SUMMARY (expected '$NP_GAME')"
+	return $st
+}
+
+wordharmony_game() {  # <name> <think|tsunami>: a scripted game (-fast) that ends saved; prints the saved game
+	local d="$OUT/wordharmony/$1" m g re=' level="([0-9]+)" score="([0-9]+)"'
+	rm -rf "$d"; mkdir -p "$d/shots" "$d/user"
+	if [ "$2" = think ]; then
+		# a saved THINK game of the suite's own making: the chain ORD on the top ledge of level template 4, a W below
+		{
+			printf '%s\n' '[SOFTWARE\GameHouse\WordHarmony]'
+			printf '%s' 'SolitaireSavedGame=sz:<level mode="1" level="0" score="0" respawnTimer="0" wc="0" hug="0" hul="0" '
+			printf '%s' 'ha="1" lp="0" lba="0" bonus="" ilg="4" time="3" ><rope text="ORD" ><bubble letter="O" origin="194.2,66" '
+			printf '%s' 'special="" /><bubble letter="R" origin="238.2,66" special="" /><bubble letter="D" origin="282.2,66" '
+			printf '%s\n' 'special="" /></rope><bubble letter="W" origin="355.3,198" special="" /><HUD></HUD><spawnqueue></spawnqueue></level>'
+		} > "$d/user/registry.ini"
+		# THINK, Continue, the help's Play Game; the W pulled up, over the ledge and down before the O; a right click
+		# sends WORD; the level's end and its Continue
+		printf '%s\n' "480 move 530 395" "500 click 530 395" "680 move 330 350" "700 click 330 350" "880 move 165 415" \
+			"900 click 165 415" "1250 screenshot $d/shots/board.png" "1260 move 564 305" "1270 down 564 305" "1300 move 564 250" \
+			"1340 move 564 140" "1400 move 500 140" "1440 move 430 140" "1480 move 360 140" "1520 move 359 172" "1600 up 359 172" \
+			"1650 screenshot $d/shots/word.png" "1700 rclick 600 500" "2400 screenshot $d/shots/end.png" "2480 move 430 500" \
+			"2500 click 430 500" > "$d/script.txt"
+		m=Solitaire
+	else
+		# TSUNAMI, level 1, the help's Play Game, and 20 seconds of falling balls
+		printf '%s\n' "480 move 447 237" "500 click 447 237" "700 move 300 200" "720 click 300 200" "880 move 165 415" \
+			"900 click 165 415" > "$d/script.txt"
+		m=Action
+	fi
+	# Save/Quit and Save Game
+	printf '%s\n' "2900 screenshot $d/shots/play.png" "2980 move 155 30" "3000 click 155 30" "3150 move 360 325" \
+		"3170 click 360 325" "3400 screenshot $d/shots/menu.png" "3420 quit" >> "$d/script.txt"
+	timeout 300 "$W/build/native/wordharmony.exe" -gamedir=assets/wordharmony -userdir="$d/user" -fast -script="$d/script.txt" \
+		> "$d/stdout.txt" 2> "$d/stderr.txt"
+	g="$(grep -m 1 "^${m}SavedGame=sz:<level" "$d/user/registry.ini" 2>/dev/null | tr -d '\r')"
+	[ -n "$g" ] || { echo "no saved game"; return; }
+	[[ "$g" =~ $re ]] || { echo "saved game unreadable"; return; }
+	if [ "$2" = think ]; then
+		echo "level $((BASH_REMATCH[1] + 1)) saved, score ${BASH_REMATCH[2]}"
+	else
+		echo "level $((BASH_REMATCH[1] + 1)) saved, score ${BASH_REMATCH[2]}, $(grep -o '<bubble' <<< "$g" | wc -l) balls," \
+			"$(grep -o '<letters' <<< "$g" | wc -l) to come"
+	fi
+}
+
+suite_wordharmony() {
+	local st=0 t t2 a a2 r
+	need_assets wordharmony || return 1
+	t="$(wordharmony_game think think)"; t2="$(wordharmony_game think2 think)"
+	a="$(wordharmony_game tsunami tsunami)"; a2="$(wordharmony_game tsunami2 tsunami)"
+	{ echo "think: $t"; echo "think rerun: $t2"; echo "tsunami: $a"; echo "tsunami rerun: $a2"; } > "$1"
+	[ "$t" = "$WH_THINK" ] || st=1
+	[ "$a" = "$WH_TSUNAMI" ] || st=1
+	if diff -rq "$OUT/wordharmony/think/shots" "$OUT/wordharmony/think2/shots" >> "$1" 2>&1 &&
+		diff -rq "$OUT/wordharmony/tsunami/shots" "$OUT/wordharmony/tsunami2/shots" >> "$1" 2>&1 &&
+		[ "$t" = "$t2" ] && [ "$a" = "$a2" ]; then r="reruns identical"; else r="RERUNS DIFFER"; st=1; fi
+	SUMMARY="THINK $t; TSUNAMI $a; $r"
+	[ $st -eq 0 ] || SUMMARY="$SUMMARY (expected THINK '$WH_THINK', TSUNAMI '$WH_TSUNAMI')"
 	return $st
 }
 
