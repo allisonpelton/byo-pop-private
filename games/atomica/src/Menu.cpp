@@ -43,12 +43,15 @@ namespace
 // 0x4198e0
 MainMenu::MainMenu(AtomicaApp* theApp, bool theGameOver) :
 	mApp(theApp),
-	mDoor(0),
+	mDoor(0x12f),
 	mAlpha(0),
-	mDoorTick(0),
+	mTimer(0),
+	mSlammed(false),
+	mDoorOpenPlayed(false),
+	mSwoopPlayed(false),
+	mClosing(false),
+	mLeaving(false),
 	mGameOver(theGameOver),
-	mOpening(true),
-	mPanelShown(false),
 	mSpin(0),
 	mInsertTimer(100),
 	mRank(0),
@@ -61,7 +64,6 @@ MainMenu::MainMenu(AtomicaApp* theApp, bool theGameOver) :
 	mApp->mB3eac = false;
 	mPanelY = mPanel->mHeight + 10;
 	mHasSave = mApp->HasSavedGame();
-	mApp->mMusicInterface->PlayMusic(0, 0, false);
 
 	// 0x419760: what the game that just ended came to
 	Board* aBoard = mApp->mBoard;
@@ -88,6 +90,8 @@ MainMenu::MainMenu(AtomicaApp* theApp, bool theGameOver) :
 		mBonusUpgrades = aBoard->mStat1dc;
 	}
 	mRank = RankOfScore(mScore);
+	mApp->mMusicInterface->PlayMusic(1, theGameOver ? 0x29 : 0x1f, false);
+	mHasTransparencies = true;
 
 	for (int i = 0; i < 8; i++)
 		mBtn[i] = NULL;
@@ -108,6 +112,7 @@ MainMenu::MainMenu(AtomicaApp* theApp, bool theGameOver) :
 
 MainMenu::~MainMenu()
 {
+	mApp->mMusicInterface->StopMusic(1);
 	mButtons.Reset();
 	Widget* aButton = mButtons.Next();
 	while (aButton != NULL)
@@ -153,43 +158,18 @@ void MainMenu::RemovedFromManager(WidgetManager* theWidgetManager)
 	}
 }
 
-// 0x4191d0: the doors slide open, the panel comes up and its contents fade in; after a game the score goes to the high
-// score table 100 updates later
+// 0x4191d0: the doors close over what is behind the menu and slam (0x405e20 deletes the title screen or the game that ended),
+// 75 updates later the panel comes down and its contents fade in; after a game the score goes to the high score table 100
+// updates after the menu began. "Main menu" after a game makes the panel drop out of sight and come back with the main page;
+// a game that starts makes the panel go up, and the doors open wide on the new board (the board closes the menu then).
+// Each step eases: a tenth to a twentieth of what is left, or a tenth or a quarter more of what is gone.
 void MainMenu::Update()
 {
-	Widget::Update();
+	MarkDirty();	// the original calls the widget's vtable slot 42 here, not Widget::Update
 	mSpin += 0.04f;
 	if (mSpin >= 256.0f)
 		mSpin -= 256.0f;
-	if (mOpening)
-	{
-		if (mDoorTick == 0)
-			mApp->mSndDoorOpen->Play();
-		mDoorTick++;
-		if (mDoorTick > 20)
-		{
-			mDoor += 3;
-			if (mDoor > 0x14a)
-			{
-				mDoor = 0x14a;
-				mOpening = false;
-			}
-		}
-	}
-	else if (mPanelY > 0)
-	{
-		mPanelY -= 12;
-		if (mPanelY < 0)
-			mPanelY = 0;
-	}
-	else if (mAlpha < 255)
-	{
-		mAlpha += 3;
-		if (mAlpha > 255)
-			mAlpha = 255;
-		mPanelShown = (mAlpha >= 255);
-	}
-	if (mGameOver && mPanelShown && !mEntryShown)
+	if (mGameOver)
 	{
 		mInsertTimer--;
 		if (mInsertTimer == 0)
@@ -200,7 +180,97 @@ void MainMenu::Update()
 				mApp->ShowHighScoreEntry(mScore);
 		}
 	}
-	MarkDirty();
+	if (mLeaving)
+	{
+		mAlpha -= 3;
+		if (mAlpha < 0)
+			mAlpha = 0;
+		mPanelY = (int) ((double) (mPanelY - 1) * 1.1);
+		if (mPanelY >= -0x1e0)
+			return;
+		mLeaving = false;
+		mApp->mSndSwoop->Play();
+		mPanelY = mPanel->mHeight + 10;
+		mAlpha = 0;
+		ShowPage(false);
+		return;
+	}
+	if (!mClosing)
+	{
+		mDoor = -1 - (int) ((double) mDoor * (double) -0.95f);
+		if (mDoor < 0)
+		{
+			mDoor = 0;
+			if (!mSlammed)
+			{
+				mApp->CloseBoard();
+				mApp->mSndDoorSlam->Play();
+				mTimer = 0x4b;
+				mSlammed = true;
+				mButtons.Reset();
+				Widget* aButton = mButtons.Next();
+				while (aButton != NULL)
+				{
+					mWidgetManager->BringToFront(aButton);
+					aButton = mButtons.Next();
+				}
+			}
+			mTimer--;
+			if (mTimer < 0)
+				mTimer = 0;
+		}
+		if ((mDoor == 0) && (mTimer < 1))
+		{
+			mPanelY = -1 - (int) ((double) mPanelY * (double) -0.9f);
+			if (mPanelY < 0)
+			{
+				if (!mSwoopPlayed)
+				{
+					mApp->mSndSwoop->Play();
+					mSwoopPlayed = true;
+				}
+				mPanelY = 0;
+			}
+			mAlpha += 3;
+			if (mAlpha > 0xff)
+			{
+				mAlpha = 0xff;
+				mHasTransparencies = (mDoor != 0);
+				return;
+			}
+		}
+	}
+	else
+	{
+		mAlpha -= 3;
+		if (mAlpha < 0)
+			mAlpha = 0;
+		int aGone = mPanel->mHeight + 10;
+		mPanelY = (int) ((double) (mPanelY + 1) * (double) 1.1f);
+		if (mPanelY > aGone)
+			mPanelY = aGone;
+		if (mPanelY == aGone)
+		{
+			if (!mDoorOpenPlayed)
+			{
+				mApp->mSndDoorOpen->Play();
+				mDoorOpenPlayed = true;
+			}
+			mDoor = (int) ((double) (mDoor + 1) * (double) 1.25f);
+			if (mDoor >= 0x14a)
+			{
+				mDoor = 0x14a;
+				mApp->mB3eac = true;
+			}
+		}
+	}
+	mHasTransparencies = (mDoor != 0);
+}
+
+// port: the panel is up and complete: the bot waits for it, and a click before the doors have shut is ignored
+bool MainMenu::PanelShown() const
+{
+	return mSlammed && !mClosing && !mLeaving && (mAlpha >= 0xff);
 }
 
 bool MainMenu::Over(int theId) const
@@ -222,14 +292,13 @@ void MainMenu::FillButton(Graphics* g, int theId)
 // 0x41a010
 void MainMenu::Draw(Graphics* g)
 {
-	g->SetColor(Color(0, 0, 0, 255));
-	g->FillRect(0, 0, mWidth, mHeight);
-	if (mDoor > 0)
-		mPanel->Draw(g, 0x140 - mPanel->mWidth / 2, 10 - mPanelY);
+	int aDoor = (mDoor < 0) ? 0 : mDoor;
+	mDoorLeft->Draw(g, -aDoor, 0);
+	mDoorRight->Draw(g, 0x12f + aDoor, 0);
+	mPanel->Draw(g, 0x140 - mPanel->mWidth / 2, 10 - mPanelY);
 	int aPY = mPanelY;
 	ImageFont* aAtomic = mApp->mAtomicFont;
 	ImageFont* aSmall = mApp->mMonitorFontSmall;
-	if (!mOpening || mDoor >= 0x14a)
 	{
 		if (mGameOver)
 		{
@@ -360,43 +429,80 @@ void MainMenu::Draw(Graphics* g)
 			g->SetColorizeImages(false);
 		}
 	}
-	if (mDoor < 0x14a + 1)
+}
+
+// the head the game's buttons share: the panel will go and the doors open on the board that is made next (0x405b10, or
+// 0x406060 for the saved game; the menu goes to the front over it)
+void MainMenu::BeginClosing()
+{
+	mClosing = true;
+	mButtons.Reset();
+	Widget* aButton = mButtons.Next();
+	while (aButton != NULL)
 	{
-		mDoorLeft->Draw(g, -mDoor, 0);
-		mDoorRight->Draw(g, 0x12f + mDoor, 0);
+		aButton->SetVisible(false);
+		aButton = mButtons.Next();
 	}
 }
 
-// 0x4195a0: the games (0 and 1 the strategy mode, normal and expert; 2 and 3 the action mode), the saved game, the exit;
-// after a game "main menu" (6) and "play again" (7)
-void MainMenu::ButtonDepress(int theId)
+// 0x4195a0: the games (0 and 1 the strategy mode, normal and expert; 2 and 3 the action mode), the saved game, "main menu" (6)
+// and "play again" (7) after a game; the buttons act when they are pressed
+void MainMenu::ButtonPress(int theId)
 {
-	if (!mPanelShown)
+	if (!mSlammed)
 		return;
 	mApp->mSndCapClick->Play();
 	switch (theId)
 	{
 	case 0:
 	case 1:
-		mApp->StartNewGame(0, theId == 1 ? 1 : 0);
+		mApp->mMode = 0;
+		mApp->mExpertMode = (theId == 1) ? 1 : 0;
+		BeginClosing();
+		mApp->StartGame();
 		break;
 	case 2:
 	case 3:
-		mApp->StartNewGame(1, theId == 3 ? 1 : 0);
+		mApp->mMode = 1;
+		mApp->mExpertMode = (theId == 3) ? 1 : 0;
+		BeginClosing();
+		mApp->StartGame();
 		break;
 	case 4:
+		BeginClosing();
 		mApp->ResumeGame();
 		break;
-	case 5:
-		mApp->Shutdown();
-		break;
 	case 6:
-		ShowPage(false);
-		break;
+		mLeaving = true;
+		mBtn[6]->SetVisible(false);
+		mBtn[7]->SetVisible(false);
+		mApp->mMusicInterface->PlayMusic(1, 0x1f, false);
+		return;
 	case 7:
-		mApp->StartNewGame(mApp->mMode, mApp->mExpertMode);
+		BeginClosing();
+		mApp->StartGame();
 		break;
+	default:
+		return;
 	}
+	mWidgetManager->BringToFront(this);
+	mApp->mSndSwoop->Play();
+}
+
+// 0x419520: the exit (5), when it is released
+void MainMenu::ButtonDepress(int theId)
+{
+	if (!mSlammed || (theId != 5))
+		return;
+	if (mGameOver)
+	{
+		BeginClosing();
+		mApp->StartGame();
+		mWidgetManager->BringToFront(this);
+		mApp->mSndSwoop->Play();
+	}
+	else
+		mApp->Shutdown();
 }
 
 // ---------------------------------------------------------------------------------------------------------
@@ -405,9 +511,21 @@ void MainMenu::ButtonDepress(int theId)
 // 0x41ea40
 HighScoresBox::HighScoresBox(AtomicaApp* theApp) :
 	mApp(theApp),
-	mAlpha(0)
+	mDoor(0x12f),
+	mAlpha(0),
+	mTimer(0),
+	mSlammed(false),
+	mDoorOpenPlayed(false),
+	mSwoopPlayed(false),
+	mClosing(false),
+	mSpin(0)
 {
+	Sprite* aDoors = mApp->mSprites->Load("menudoors");
+	mDoorLeft = mApp->mSprites->SubSprite(aDoors, 0, 0, 0x12f, 0x1e0);
+	mDoorRight = mApp->mSprites->SubSprite(aDoors, 0x12f, 0, 0x151, 0x1e0);
 	mPanel = mApp->mSprites->Load("menupanel");
+	mPanelY = mPanel->mHeight + 10;
+	mHasTransparencies = true;
 	mReturn = new ButtonWidget(0, this);
 	mReturn->mBtnNoDraw = true;
 	mReturn->mDoFinger = true;
@@ -434,35 +552,104 @@ void HighScoresBox::RemovedFromManager(WidgetManager* theWidgetManager)
 	theWidgetManager->RemoveWidget(mReturn);
 }
 
+// 0x41e770: the menu's doors and panel (see MainMenu::Update), the doors shut over what is under the box and the panel waits
+// 15 updates after the slam; "return" makes the panel go, the doors open and the box delete itself
 void HighScoresBox::Update()
 {
-	Widget::Update();
-	if (mAlpha < 255)
-		mAlpha = (mAlpha + 8 > 255) ? 255 : mAlpha + 8;
-	MarkDirty();
+	MarkDirty();	// the original calls the widget's vtable slot 42 here, not Widget::Update
+	mSpin += 0.04f;
+	if (mSpin >= 256.0f)
+		mSpin -= 256.0f;
+	if (!mClosing)
+	{
+		mDoor = -1 - (int) ((double) mDoor * (double) -0.95f);
+		if (mDoor < 0)
+		{
+			mDoor = 0;
+			if (!mSlammed)
+			{
+				mApp->mSndDoorSlam->Play();
+				mTimer = 0xf;
+				mSlammed = true;
+				mApp->mWidgetManager->BringToFront(mReturn);
+			}
+			mTimer--;
+			if (mTimer < 0)
+				mTimer = 0;
+		}
+		if ((mDoor == 0) && (mTimer < 1))
+		{
+			mPanelY = -1 - (int) ((double) mPanelY * (double) -0.9f);
+			if (mPanelY < 0)
+			{
+				if (!mSwoopPlayed)
+				{
+					mApp->mSndSwoop->Play();
+					mSwoopPlayed = true;
+				}
+				mPanelY = 0;
+			}
+			mAlpha += 3;
+			if (mAlpha > 0xff)
+			{
+				mAlpha = 0xff;
+				mHasTransparencies = (mDoor != 0);
+				return;
+			}
+		}
+	}
+	else
+	{
+		mAlpha -= 3;
+		if (mAlpha < 0)
+			mAlpha = 0;
+		int aGone = mPanel->mHeight + 10;
+		mPanelY = (int) ((double) (mPanelY + 1) * (double) 1.1f);
+		if (mPanelY > aGone)
+			mPanelY = aGone;
+		if (mPanelY == aGone)
+		{
+			if (!mDoorOpenPlayed)
+			{
+				mApp->mSndDoorOpen->Play();
+				mDoorOpenPlayed = true;
+			}
+			mDoor = (int) ((double) (mDoor + 1) * (double) 1.25f);
+			if (mDoor > 0x149)
+			{
+				mDoor = 0x14a;
+				mApp->mWidgetManager->RemoveWidget(this);
+				mApp->SafeDeleteWidget(this);
+				return;		// the original goes on to write the widget's flag after it was deleted
+			}
+		}
+	}
+	mHasTransparencies = (mDoor != 0);
 }
 
 // 0x41ec90: both tables side by side (strategy left, action right), each with the best of the day
 void HighScoresBox::Draw(Graphics* g)
 {
-	g->SetColor(Color(0, 0, 0, 255));
-	g->FillRect(0, 0, mWidth, mHeight);
-	mPanel->Draw(g, 0x140 - mPanel->mWidth / 2, 10);
+	int aDoor = (mDoor < 0) ? 0 : mDoor;
+	mDoorLeft->Draw(g, -aDoor, 0);
+	mDoorRight->Draw(g, 0x12f + aDoor, 0);
+	mPanel->Draw(g, 0x140 - mPanel->mWidth / 2, 10 - mPanelY);
+	int aPY = mPanelY;
 	// the button
 	g->SetFont(mApp->mAtomicFont);
 	g->SetColor(Color(mReturn->mIsOver ? 0x80 : 0, 0x80, 0, mAlpha / 2));
-	g->FillRect(mReturn->mX, mReturn->mY, mReturn->mWidth, mReturn->mHeight);
+	g->FillRect(mReturn->mX, mReturn->mY - aPY, mReturn->mWidth, mReturn->mHeight);
 	g->SetColor(Color(mReturn->mIsOver ? 255 : 0, 255, 0, mAlpha));
 	const std::string& aReturn = GT(0x4b03b4);
 	g->DrawString(aReturn, mReturn->mX + mReturn->mWidth / 2 - mApp->mAtomicFont->StringWidth(aReturn) / 2,
-		mReturn->mY + mReturn->mHeight - 0xc);
+		mReturn->mY + mReturn->mHeight - aPY - 0xc);
 	// the title
 	g->SetFont(mApp->mAnnounceFont);
 	g->SetColor(Color(0, 255, 0, 200));
 	std::string aAtomic = "ATOMIC";
-	g->DrawString(aAtomic, 0x140 - mApp->mAnnounceFont->StringWidth(aAtomic) / 2, 0x50);
+	g->DrawString(aAtomic, 0x140 - mApp->mAnnounceFont->StringWidth(aAtomic) / 2, 0x50 - aPY);
 	const std::string& aTitle = GT(0x4afe88);
-	g->DrawString(aTitle, 0x140 - mApp->mAnnounceFont->StringWidth(aTitle) / 2, 0x82);
+	g->DrawString(aTitle, 0x140 - mApp->mAnnounceFont->StringWidth(aTitle) / 2, 0x82 - aPY);
 	// the tables
 	Font* aMedium = mApp->mMonitorFontMedium;
 	for (int aKind = 0; aKind < 2; aKind++)
@@ -474,37 +661,41 @@ void HighScoresBox::Draw(Graphics* g)
 		g->SetFont(mApp->mMonitorFont);
 		g->SetColor(Color(0xaf, 255, 0x3c, 255));
 		const std::string& aHeading = GT(aKind == 0 ? 0x4b038c : 0x4b039c);
-		g->DrawString(aHeading, aCenter - mApp->mMonitorFont->StringWidth(aHeading) / 2, 0xb4);
+		g->DrawString(aHeading, aCenter - mApp->mMonitorFont->StringWidth(aHeading) / 2, 0xb4 - aPY);
 		const std::string& aToday = GT(0x4b037c);
-		g->DrawString(aToday, aCenter - mApp->mMonitorFont->StringWidth(aToday) / 2, 0x140);
+		g->DrawString(aToday, aCenter - mApp->mMonitorFont->StringWidth(aToday) / 2, 0x140 - aPY);
 		g->SetFont(aMedium);
 		g->SetColor(Color(0, 255, 0, mAlpha));
 		for (int i = 0; i < ScoreTable::NUM_SCORES; i++)
 		{
-			g->DrawString(aTable.mNames[i], aNameX, 0xd2 + 0x12 * i);
+			g->DrawString(aTable.mNames[i], aNameX, 0xd2 + 0x12 * i - aPY);
 			std::string aScore = Format(GT(0x4aff20), aTable.mScores[i]);
-			g->DrawString(aScore, aScoreX - aMedium->StringWidth(aScore), 0xd2 + 0x12 * i);
+			g->DrawString(aScore, aScoreX - aMedium->StringWidth(aScore), 0xd2 + 0x12 * i - aPY);
 		}
 		if ((aTable.mDate == ScoreTable::DateCode()) && (aTable.mBestToday != -1))
 		{
-			g->DrawString(aTable.mBestName, aNameX, 0x159);
+			g->DrawString(aTable.mBestName, aNameX, 0x159 - aPY);
 			std::string aScore = Format(GT(0x4aff20), aTable.mBestToday);
-			g->DrawString(aScore, aScoreX - aMedium->StringWidth(aScore), 0x159);
+			g->DrawString(aScore, aScoreX - aMedium->StringWidth(aScore), 0x159 - aPY);
 		}
 		else
 		{
 			const std::string& aNone = GT(0x4afe5c);
-			g->DrawString(aNone, aCenter - aMedium->StringWidth(aNone) / 2, 0x159);
+			g->DrawString(aNone, aCenter - aMedium->StringWidth(aNone) / 2, 0x159 - aPY);
 		}
 	}
 }
 
+// 0x41e9f0
+void HighScoresBox::ButtonPress(int theId)
+{
+	(void) theId;
+	mApp->mSndCapClick->Play();
+}
+
+// 0x41e9e0
 void HighScoresBox::ButtonDepress(int theId)
 {
-	if (theId == 0)
-	{
-		mApp->mSndCapClick->Play();
-		mApp->mWidgetManager->RemoveWidget(this);
-		mApp->SafeDeleteWidget(this);
-	}
+	(void) theId;
+	mClosing = true;
 }

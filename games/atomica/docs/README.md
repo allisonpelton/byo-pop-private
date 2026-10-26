@@ -5,8 +5,9 @@ A port of PopCap's Atomica Deluxe (version 2.52, 2003-03-28) to the shared SexyA
 by decompiling `Atomica.exe` with Ghidra; the game's files (pictures, sounds, the module music and the texts, which
 are read from the exe at run time) come from the player's own copy and are never in the repository.
 
-The strategy and the action modes play from the first level to the game over. The menu, the dialogs, the hint boxes,
-the high scores, the bonus molecules and the five elements are not ported yet (see Status).
+Everything the original's player sees is ported: the main menu, the strategy and the action modes from the first level to
+the game over, the dialogs, the tutorial boxes, the high scores, the bonus molecules, the five elements and the swirls
+(see Status for what is not the original's exact picture).
 
 ## The binary
 
@@ -68,7 +69,8 @@ the path finder, the effects, the Board (HUD, meter, atomic bomb, freeze and air
 popups a click opens), Atomicus' voices, the bonus molecules (30 shapes in three tiers) and the five element atoms with their
 effects, the tutorial boxes (`HintBox`, 28 hints; their lines are generated from the decompilation by `tools/genhints.py`, numbers only)
 and `Grid::CheckHints`, the swirls (the tunnel behind the field and the atoms that circle in it, `Swirl.cpp`), the main menu
-(ranks, high scores, the saved game), the high score entry and tables, the options, quit, new-game and level-up boxes, the
+(the doors that close over the title screen or the ended game, the panel, ranks, high scores, the saved game; `GAME_NOTES.md` section 8),
+the high score entry and tables, the options, quit, new-game and level-up boxes, the
 registry values (hints shown, hints off, colour-blind symbols, music and sound volumes), a bot and its suite.
 
 Where the port is not the original's exact picture (each marked in the code):
