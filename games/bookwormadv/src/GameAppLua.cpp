@@ -2,17 +2,23 @@
 // to yet log their name the first time a script calls them and return nothing.
 #include <SDL.h>
 
+#include <cmath>
 #include <set>
 #include <string>
+#include <utility>
+#include <vector>
 
 #include "CurtainTransition.h"
 #include "GameApp.h"
+#include "Graphics.h"
 #include "LuaBind.h"
+#include "LuaImage.h"
 #include "Profile.h"
 #include "ResourceManager.h"
 #include "SongPlayer.h"
 #include "SoundInstance.h"
 #include "SoundPlayer.h"
+#include "TooltipWidget.h"
 #include "lauxlib.h"
 
 using namespace Sexy;
@@ -23,17 +29,16 @@ namespace {
 // The methods not ported yet, by name. PlaySongWhenDone (0x44f440, the music interface's vf 0x58: the song to
 // play when this one is done, the queue SongPlayer does not have yet) is among them.
 const char* const kNotPorted[] = {
-	"DoErrorDialog", "DoGenericDialog", "DoYesNoDialog", "MakeTooltip", "TurnOffTooltips", "EnableTooltips",
-	"RemoveTooltip", "ReturnToChapterSelect", "ReturnToMMFromMiniGame", "StartBattle", "StartMiniGame",
-	"DoArenaWinDialog", "SetArenaWinStats", "PlayCutScene", "DoEndGame",
-	"EnableBoardForTMCheckpointContinuation", "DoCurtainTransition", "DoFullCurtainTransition",
-	"DoTimedModeTSTransition", "DoCSToGameTransition", "DoCSToMMTransition", "DoGameToMMTransition",
+	"DoErrorDialog", "DoYesNoDialog",
+	"ReturnToMMFromMiniGame", "StartMiniGame",
+	"DoArenaWinDialog", "SetArenaWinStats", "DoEndGame",
+	"EnableBoardForTMCheckpointContinuation",
+	"DoTimedModeTSTransition",
 	"DoAfterHydraConvPanel", "DoHighScoreScreenFromMG",
-	"HideBookManager", "GetWordWrappedHeight", "CloseCutScene",
 	"UnlockedMiniGameComplete", "ShouldDoHydraLockout",
 	"PlaySongWhenDone",
-	"AddStatsBook", "AddBonusText", "RemoveAllBonusText", "DrawBonusText", "UpdateBonusText", "BreakupString",
-	"WriteStat", "StartLoadChapterResources", "MakeSepia", "MakeGrayscale", "LuaAntiAliasImage",
+	"AddStatsBook", "AddBonusText", "RemoveAllBonusText", "DrawBonusText", "UpdateBonusText",
+	"WriteStat", "LuaAntiAliasImage",
 };
 
 template <int N>
@@ -160,6 +165,8 @@ bool DoingCurtainTransition(GameApp* app)
 	return !(aCurtain->mDone && aCurtain->mDrawn);
 }
 
+void StartBattle(GameApp* app) { app->StartBattle(); }  // 0x44b620
+
 bool IsResGroupLoaded(GameApp* app, std::string theGroup)  // 0x44cb30
 {
 	return app->mResourceManager->IsGroupLoaded(theGroup);
@@ -180,6 +187,149 @@ std::string GetResGroupError(GameApp* app)  // 0x44cc70
 void UnloadResGroup(GameApp* app, std::string theGroup)  // 0x44cca0
 {
 	app->mResourceManager->DeleteResources(theGroup);
+}
+
+// ---- the curtain and the screens ----
+
+void ReturnToChapterSelect(GameApp* app, bool theLexWon, bool theFromOptions, bool theNoMusic, bool theFromMainMenu)
+{
+	app->ReturnToChapterSelect(theLexWon, theFromOptions, theNoMusic, theFromMainMenu);
+}
+void PlayCutScene(GameApp* app, std::string theFile, std::string theCallback, std::string theCaption,
+                  bool theKillWhenDone, bool theHide)
+{
+	app->PlayCutScene(theFile, theCallback, theCaption, theKillWhenDone, theHide);
+}
+void DoCurtainTransition(GameApp* app, bool theClose, std::string theCallback, int thePriority)
+{
+	app->DoCurtainTransition(theClose, theCallback, thePriority);
+}
+void DoFullCurtainTransition(GameApp* app, std::string theCallback) { app->DoFullCurtainTransition(theCallback); }
+void DoCSToGameTransition(GameApp* app) { app->StartSavedGameTransition(); }
+void DoCSToMMTransition(GameApp* app) { app->StartToMenuTransition(); }
+void DoGameToMMTransition(GameApp* app) { app->StartGameToMenuTransition(); }
+void HideBookManager(GameApp* app) { app->HideBookManager(); }
+
+// 0x44f900: the height of theText wrapped at theWidth in theFont
+int GetWordWrappedHeight(GameApp* app, std::string theText, int theWidth, int theLineSpacing, LuaFont* theFont)
+{
+	Graphics g;
+	g.SetFont(FontOf(theFont));
+	return g.GetWordWrappedHeight(theWidth, theText, theLineSpacing, nullptr);
+}
+void CloseCutScene(GameApp* app) { app->CloseCutScene(); }
+int StartLoadChapterResources(GameApp* app, lua_State* L) { return app->StartLoadChapterResources(L); }
+
+// ---- the images' filters ----
+
+// A pixel's grey: 0.3 red, 0.59 green and 0.11 blue, rounded to the nearest (half to even, as the x87 did)
+int PixelGrey(ulong thePixel)
+{
+	double aGrey = (thePixel & 0xff) * (double)0.11f + ((thePixel >> 8) & 0xff) * (double)0.59f +
+	               ((thePixel >> 16) & 0xff) * (double)0.3f;
+	return (int)std::nearbyint(aGrey);
+}
+
+// 0x44c730: the grey, with red +0x36 and green +0x26 (at most 255)
+void SepiaFilter(MemoryImage* theImage)
+{
+	ulong* aBits = theImage->GetBits();
+	int aCount = theImage->GetWidth() * theImage->GetHeight();
+	for (int i = 0; i < aCount; i++) {
+		int aGrey = PixelGrey(aBits[i]);
+		ulong aRed = aGrey + 0x36 < 0xff ? aGrey + 0x36 : 0xff;
+		ulong aGreen = aGrey + 0x26 < 0xff ? aGrey + 0x26 : 0xff;
+		aBits[i] = (aBits[i] & 0xff000000) | (aRed << 16) | (aGreen << 8) | (ulong)aGrey;
+	}
+	theImage->BitsChanged();
+}
+
+// 0x44c950
+void GrayscaleFilter(MemoryImage* theImage)
+{
+	ulong* aBits = theImage->GetBits();
+	int aCount = theImage->GetWidth() * theImage->GetHeight();
+	for (int i = 0; i < aCount; i++) {
+		ulong aGrey = (ulong)PixelGrey(aBits[i]);
+		aBits[i] = (aBits[i] & 0xff000000) | (aGrey << 16) | (aGrey << 8) | aGrey;
+	}
+	theImage->BitsChanged();
+}
+
+int MakeSepia(GameApp* app, lua_State* L)  // 0x44c890: MakeSepia(image)
+{
+	LuaImage* anImage = (LuaImage*)gLuaSupport->CheckObject(1, ClassOf<LuaImage>::info);
+	if (anImage != nullptr)
+		anImage->ApplyFilter(&SepiaFilter);
+	return 0;
+}
+
+int MakeGrayscale(GameApp* app, lua_State* L)  // 0x44ca70: MakeGrayscale(image)
+{
+	LuaImage* anImage = (LuaImage*)gLuaSupport->CheckObject(1, ClassOf<LuaImage>::info);
+	if (anImage != nullptr)
+		anImage->ApplyFilter(&GrayscaleFilter);
+	return 0;
+}
+
+// 0x4445c0: DoGenericDialog(header, lines[, callback[, banner image]]): DoOkDialog
+int DoGenericDialog(GameApp* app, lua_State* L)
+{
+	const char* aHeader = lua_tostring(L, 1);
+	const char* aLines = lua_tostring(L, 2);
+	std::string aCallback;
+	if (lua_gettop(L) >= 3) {
+		const char* aName = lua_tostring(L, 3);
+		aCallback = aName != nullptr ? aName : "";
+	}
+	Image* aBanner = nullptr;
+	if (lua_gettop(L) >= 4)
+		aBanner = ImageOf((LuaImage*)gLuaSupport->CheckObject(4, ClassOf<LuaImage>::info));
+	app->DoOkDialog(aHeader != nullptr ? aHeader : "", aLines != nullptr ? aLines : "", aCallback, aBanner);
+	return 0;
+}
+
+// 0x6a7810: theText's parts between the '#' marks, which are red, and outside them (empty parts left out);
+// false for a '#' without its pair
+bool SplitRedParts(const std::string& theText, std::vector<std::pair<std::string, bool>>& theParts)
+{
+	bool aRed = false;
+	size_t aStart = 0;
+	for (size_t i = 0; i < theText.size(); i++) {
+		if (theText[i] != '#')
+			continue;
+		if (i > aStart)
+			theParts.push_back(std::make_pair(theText.substr(aStart, i - aStart), aRed));
+		aRed = !aRed;
+		aStart = i + 1;
+	}
+	if (aRed)
+		return false;
+	if (theText.size() > aStart)
+		theParts.push_back(std::make_pair(theText.substr(aStart), false));
+	return true;
+}
+
+// 0x44f020: BreakupString(text): its parts, as a table from 0 of {mStr = part, mRed = red}
+int BreakupString(GameApp* app, lua_State* L)
+{
+	const char* aText = lua_tostring(L, 1);
+	std::vector<std::pair<std::string, bool>> aParts;
+	if (!SplitRedParts(aText != nullptr ? aText : "", aParts))
+		luaL_error(L, "Malformed string passed to BreakupString");
+	lua_newtable(L);
+	for (size_t i = 0; i < aParts.size(); i++) {
+		lua_pushnumber(L, (lua_Number)i);
+		lua_newtable(L);
+		lua_pushstring(L, "mStr");
+		lua_pushstring(L, aParts[i].first.c_str());
+		lua_settable(L, -3);
+		lua_pushstring(L, "mRed");
+		lua_pushboolean(L, aParts[i].second);
+		lua_settable(L, -3);
+		lua_settable(L, -3);
+	}
+	return 1;
 }
 
 }  // namespace
@@ -218,6 +368,26 @@ void GameApp::RegisterGameAppMethods()
 		.Function<&::IsResGroupLoaded>("IsResGroupLoaded")
 		.Function<&::LoadResGroup>("LoadResGroup")
 		.Function<&::GetResGroupError>("GetResGroupError")
-		.Function<&::UnloadResGroup>("UnloadResGroup");
+		.Function<&::UnloadResGroup>("UnloadResGroup")
+		.Function<&::StartBattle>("StartBattle")
+		.Function<&::ReturnToChapterSelect>("ReturnToChapterSelect")
+		.Function<&::PlayCutScene>("PlayCutScene")
+		.Function<&::DoCurtainTransition>("DoCurtainTransition")
+		.Function<&::DoFullCurtainTransition>("DoFullCurtainTransition")
+		.Function<&::DoCSToGameTransition>("DoCSToGameTransition")
+		.Function<&::DoCSToMMTransition>("DoCSToMMTransition")
+		.Function<&::DoGameToMMTransition>("DoGameToMMTransition")
+		.Function<&::HideBookManager>("HideBookManager")
+		.Function<&::GetWordWrappedHeight>("GetWordWrappedHeight")
+		.Function<&::CloseCutScene>("CloseCutScene")
+		.Raw<&::StartLoadChapterResources>("StartLoadChapterResources")
+		.Raw<&::MakeSepia>("MakeSepia")
+		.Raw<&::MakeGrayscale>("MakeGrayscale")
+		.Raw<&::DoGenericDialog>("DoGenericDialog")
+		.Raw<&::BreakupString>("BreakupString")
+		.Method<&GameApp::MakeTooltip>("MakeTooltip")
+		.Method<&GameApp::TurnOffTooltips>("TurnOffTooltips")
+		.Method<&GameApp::EnableTooltips>("EnableTooltips")
+		.Method<&GameApp::RemoveTooltip>("RemoveTooltip");
 	RegisterNotPorted(aClass, std::make_integer_sequence<int, (int)(sizeof(kNotPorted) / sizeof(kNotPorted[0]))>{});
 }

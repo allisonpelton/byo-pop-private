@@ -61,6 +61,7 @@ public:
 	bool KeyExists(const std::string& theKey) const;  // 0x489a50
 	const Value* GetValue(const std::string& theKey) const;  // NULL when there is none (0x4898f0)
 	int GetInt(const std::string& theKey) const;       // 0x48b2a0: a float truncates, others are 0
+	float GetFloat(const std::string& theKey) const;   // 0x48b420: an int converts, others are 0
 	bool GetBool(const std::string& theKey) const;     // 0x48b210
 	std::string GetString(const std::string& theKey) const;  // 0x48b5a0: empty when it is not a string
 	void SetInt(const std::string& theKey, int theValue);          // 0x488a30

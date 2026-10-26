@@ -4,9 +4,11 @@
 // the scripts 73 methods (RegisterGameAppMethods, GameAppLua.cpp).
 #pragma once
 
+#include <set>
 #include <string>
 #include <vector>
 
+#include "ArrowHint.h"
 #include "LuaApp.h"
 
 namespace JeffLib {
@@ -16,6 +18,7 @@ class SoundPlayer;
 
 namespace Sexy {
 
+class Board;
 class BookManager;
 class ConversationPanel;
 class CurtainTransition;
@@ -28,6 +31,7 @@ class MainMenu;
 class PopAnimManager;
 class Profile;
 class TitleScreen;
+class TooltipWidget;
 class TreasureScreen;
 class Widget;
 
@@ -40,6 +44,7 @@ public:
 		DIALOG_MENU = 7,         // the game's menu (not ported yet): the conversation panel waits under it
 		DIALOG_CONFIRM = 18,     // DoConfirmDialog's
 		DIALOG_SKIP_MOVIE = 20,  // a click on a cut scene: skip it?
+		DIALOG_CONTINUE = 21,    // "Continue" after the game lost the focus (the board stays muted under it)
 	};
 
 	// mTransitionState: what the curtain is doing (CurtainDone goes on from it)
@@ -47,7 +52,8 @@ public:
 		TRANSITION_NONE = 0,
 		TRANSITION_CUTSCENE = 1,       // closing over a screen to show a cut scene, then opening on it
 		TRANSITION_OPENING = 2,        // closing (mCurtainLuaCallback when closed), then opening over a new screen
-		TRANSITION_SAVED_GAME = 3,     // from the main menu to the book of a game in progress
+		TRANSITION_SAVED_GAME = 3,     // from the main menu or the chapter map to the game in progress
+		TRANSITION_GAME_TO_MENU = 4,   // from a battle (or a mini-game) back to the main menu
 		TRANSITION_TREASURE = 5,       // the treasure screen's continue
 		TRANSITION_TO_MENU = 7,        // from the book back to the main menu (6 is the same)
 		TRANSITION_NEW_GAME = 8,       // from the main menu to the book
@@ -63,6 +69,17 @@ public:
 		LOADING_DONE,
 	};
 
+	// one of the chapter's resources, from the table of tables StartLoadChapterResources was given (keys in any
+	// case); 0x40 bytes
+	struct ChapterResource {
+		std::string mString;        // MSTRING: a resource group, or a PAM file
+		std::string mStrParameter;  // MSTRPARAMETER: the animation's Lua callback
+		int mType = 0;              // MTYPE: CHAPTER_RES_GROUP, else (2) a PAM file
+		int mIntParameter = 0;      // MINTPARAMETER: the animation's id
+	};
+	enum { CHAPTER_RES_GROUP = 1 };
+
+	std::vector<ChapterResource> mChapterResources;  // +0x788
 	JeffLib::SoundPlayer* mSoundPlayer = nullptr;  // +0x7b4
 	TitleScreen* mTitleScreen = nullptr;           // +0x7b8
 	BookManager* mBookManager = nullptr;           // +0x7bc, the game screen (gBookManager)
@@ -101,13 +118,17 @@ public:
 	bool mTitleToMainMenu = false;                 // +0x91b
 	bool mQueuedHydraLockout = false;              // +0x91d (not ported yet: the trial's)
 	bool mTimedMode = false;                       // +0x96e: playing the timed mode (its TM_ profile keys)
+	bool mMiniGameFromMenu = false;                // +0x96f: a mini-game started from the main menu's list (0x4819a0)
+	bool mQuitting = false;                        // +0x91c: leaving the game (0x451c20; 0x451920 clears it)
+	int mBattleUpdates = 0;                        // +0x974: updates of battle (not of a level-up or a chapter's end)
+	int mMiniGameUpdates = 0;                      // +0x978: updates of the adventure's mini-games
 	std::vector<std::string> mStartupGroups;       // +0x924 (0x38-byte entries; the group's name at +0x1c)
 	Lex* mLex = nullptr;                           // +0x940
 	ConversationPanel* mConversationPanel = nullptr;  // +0x944
-	Widget* mBoard = nullptr;                      // +0x948: the battle's (not ported yet)
+	Board* mBoard = nullptr;                       // +0x948: the battle's or a mini-game's (gBoard)
 	LuaInterface* mLuaInterface = nullptr;         // +0x94c
 	Profile* mProfile = nullptr;                   // +0x950, the player's
-	Widget* mArrowHintManager = nullptr;           // +0x964: the tutorial's arrows (not ported yet)
+	ArrowHintManager* mArrowHintManager = nullptr; // +0x964: the tutorial's arrows (made by LoadingThreadCompleted)
 	bool mKillCutSceneWhenDone = false;            // +0x96d
 	// port: the original's music interface was a JeffLib::SexyBassMusicInterface; this does what it added
 	JeffLib::SongPlayer* mSongPlayer = nullptr;
@@ -124,6 +145,8 @@ public:
 	bool UpdateAppStep(bool* updated) override;
 	void UpdateFrames() override;           // 0x44aa50
 	void Shutdown() override;               // 0x445960
+	// port: the test scripts' "word" (TestHooks.cpp)
+	bool HandleScriptCommand(const ScriptCommand& theCommand) override;
 	// 0x44f5c0: through the sound player, not again within 5 updates
 	void PlaySample(int theSoundNum) override;
 	// 0x44f600: the same at a pan
@@ -140,6 +163,10 @@ public:
 	// the answer, and theListener hears ButtonDepress(1018) for yes and (3018) for no.
 	GameDialog* DoConfirmDialog(int theId, const SexyString& theHeader, const SexyString& theLines,
 	                            ButtonListener* theListener, const std::string& theCallback);
+	// 0x44b620: the battle's board over the book, its grid and engines started
+	void StartBattle();
+	// 0x4456a0: the game's menu (dialog DIALOG_MENU) over the paused board (not ported yet: MenuDialog 0x47fd00)
+	void ShowGameMenu(bool theFromBook);
 	// 0x443f90: a message with an OK button (dialog 0), under a banner when there is one; OK calls the scripts'
 	// function theCallback (when not empty) with true
 	GameDialog* DoOkDialog(const SexyString& theHeader, const SexyString& theLines, const std::string& theCallback,
@@ -177,12 +204,28 @@ public:
 	void DoCurtainTransition(bool theClose, const std::string& theCallback, int thePriority);
 	// 0x44de70: from the main menu to a new game's book (TRANSITION_NEW_GAME)
 	void StartNewGameTransition();
-	// 0x44df60: from the main menu to the book of the game in progress, then gBookManager:StartGame
+	// 0x44df60 (the scripts' DoCSToGameTransition): from the main menu or the chapter map to the game in
+	// progress, gBookManager:StartGame once closed
 	void StartSavedGameTransition();
-	// 0x44df10: from the book back to the main menu
+	// 0x44df10 (DoCSToMMTransition): from the book back to the main menu
 	void StartToMenuTransition();
+	// 0x44dfb0 (DoGameToMMTransition): from a battle back to the main menu, the curtain over everything
+	void StartGameToMenuTransition();
 	// 0x44e000: the treasure screen's continue, gTreasureScreen:ContinueButtonPressed once closed
 	void StartTreasureTransition();
+	// 0x44d080: the whole curtain closes and opens again (a TRANSITION_CUTSCENE with mFullCurtain), theCallback
+	// (a scripts' function) once it is open
+	void DoFullCurtainTransition(const std::string& theCallback);
+	// 0x44bb90: the battle (or a mini-game) ends and the chapter map comes back, told to the scripts' BookManager
+	// ReturnToChapterSelect. Unless theFromMainMenu, the book then plays the end of the book (when that answered
+	// 0) or its arrow hints.
+	void ReturnToChapterSelect(bool theLexWon, bool theFromOptions, bool theNoMusic, bool theFromMainMenu);
+	// 0x44e040 (the scripts' StartLoadChapterResources(theContinuing, theResources)): loads the chapter's resource
+	// groups and animations (mChapterResources), then starts the battle unless theContinuing (a timed mode's
+	// checkpoint). Pushes true when done, false when the app is shutting down.
+	int StartLoadChapterResources(lua_State* L);
+	// 0x44a920: the treasure screen and its buttons, hidden and disabled
+	void HideTreasureScreen();
 
 	// 0x44a0e0: the book and the treasure screen, made again; theHidden keeps the book hidden (behind the
 	// treasure screen) and leaves its scripts unloaded
@@ -203,8 +246,18 @@ public:
 	bool ShowingConversationPanel() const;
 	// 0x450d20: the curtain in front, and above an active conversation panel's priority
 	void KeepCurtainOnTop();
-	// 0x44c440: the tooltip under the mouse (tooltips are not ported yet)
-	void UpdateTooltipHover(int x, int y) {}
+
+	// ---- tooltips (TooltipWidget.cpp) ----
+	std::vector<TooltipWidget*> mTooltips;        // +0x79c: every tooltip made by MakeTooltip (the app owns them)
+	std::set<TooltipWidget*> mDisabledTooltips;   // +0x7ac: those EnableTooltips(false) disabled (to enable again)
+	TooltipWidget* mHoverTooltip = nullptr;       // +0x7cc: the tooltip showing under the mouse
+	TooltipWidget* MakeTooltip();                      // 0x44bf00, the scripts' MakeTooltip
+	bool RemoveTooltip(TooltipWidget* theTooltip);     // 0x44c080, the scripts' RemoveTooltip
+	void RemoveAllTooltips();                          // 0x44c1a0
+	// 0x44c440: the tooltip under the mouse shows, the one before it hides
+	void UpdateTooltipHover(int x, int y);
+	void TurnOffTooltips();                            // 0x44c570, the scripts' TurnOffTooltips
+	void EnableTooltips(bool theEnable);               // 0x44c590, the scripts' EnableTooltips
 
 private:
 	LoadingPhase mLoadingPhase = LOADING_IDLE;
@@ -221,6 +274,11 @@ private:
 	bool CallCurtainCallback();
 	bool CallCurtainLuaCallback();
 	void RemoveBoard();  // 0x4493f0
+	// 0x44eae0 (the original's loading thread, with mLoadingChapter): mChapterResources loaded; false and
+	// theError when one fails
+	bool LoadChapterResources(std::string& theError);
+	// ReturnToChapterSelect's: the groups of mChapterResources deleted, its animations too
+	void FreeChapterResources();
 
 	void RegisterGameAppMethods();  // the Lua class GameApp (part of Init)
 };

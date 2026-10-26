@@ -13,6 +13,41 @@ FadeButton::FadeButton(int theId, ButtonListener* theListener)
 	mDoFinger = true;
 }
 
+FadeButton::~FadeButton()
+{
+	RemoveAllWidgets(true, true);
+	delete mEffect;
+}
+
+void FadeButton::SetEffect(const std::string& theFileName, int theY, const std::string& theLabel)
+{
+	delete mEffect;
+	mEffect = new PopAnim(-1, this);
+	mEffect->LoadAnimation(theFileName);
+	mEffectX = -31;
+	mEffectY = theY;
+	mEffectLabel = theLabel;
+	mEffectOff = true;
+}
+
+void FadeButton::EnableEffect(bool theReset, bool theOn)
+{
+	if (theReset)
+		mEffect->ResetAnim();
+	if (theOn) {
+		mEffectOff = false;
+		mEffect->PlayLabel(mEffectLabel);
+	} else {
+		mEffectOff = true;
+	}
+}
+
+void FadeButton::SetEffectPlaying(bool isPlaying)
+{
+	if (mEffect != nullptr)
+		mEffect->mPlaying = isPlaying;
+}
+
 void FadeButton::SetupImage(Image* theImage)
 {
 	if (theImage == nullptr) {
@@ -62,6 +97,8 @@ void FadeButton::FadeStep()
 void FadeButton::Update()
 {
 	ButtonWidget::Update();
+	if (!mEffectOff && mEffect != nullptr && mEffect->mPlaying)
+		mEffect->UpdateF(1.0f);
 	if (mIsOver || (mFadeOnLeave && mFade > 0 && mFade < 255))
 		MarkDirty();
 	if (mGlow && !mIsOver && !mIsDown) {
@@ -103,8 +140,38 @@ void FadeButton::DrawButtonImage(Graphics* g, Image* theImage, const Rect& theRe
 
 void FadeButton::Draw(Graphics* g)
 {
+	if (!mDrawnByOwner && !mBtnNoDraw)
+		DrawFade(g);
+}
+
+void FadeButton::DrawFade(Graphics* g)
+{
 	if (mBtnNoDraw)
 		return;
+	if (mDrawnByOwner) {
+		g->PushState();
+		g->Translate(mX, mY);
+	}
+	DrawLook(g);
+	if (!mEffectOff && mEffect != nullptr) {
+		g->Translate(mEffectX, mEffectY);
+		if (mEffectRect.mWidth != 0) {
+			g->PushState();
+			g->ClearClipRect();
+			g->SetClipRect(mEffectRect);
+		}
+		mEffect->Draw(g);
+		if (mEffectRect.mWidth != 0)
+			g->PopState();
+		g->Translate(-mEffectX, -mEffectY);
+	}
+	if (mDrawnByOwner)
+		g->PopState();
+}
+
+// the button's picture and label (the main part of 0x442340)
+void FadeButton::DrawLook(Graphics* g)
+{
 	int aLabelX = 0;
 	int aLabelY = 0;
 	if (mFont != nullptr) {

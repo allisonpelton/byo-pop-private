@@ -217,7 +217,7 @@ static int ClonePAM(lua_State* L)
 		luaL_error(L, "ClonePAM: id = %d: not found", anId);  // port: the original used the missing animation
 	PopAnim* aClone = anAnim->Clone();
 	aClone->mId = aNewId;
-	aManager->Add(aNewId, aClone, aCallback != nullptr ? aCallback : "");
+	aManager->Add(aNewId, aClone, aCallback != nullptr ? aCallback : "", true);
 	return 0;
 }
 

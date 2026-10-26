@@ -2,6 +2,7 @@
 
 #include <SDL.h>
 
+#include "Board.h"
 #include "BookManager.h"
 #include "ConversationPanel.h"
 #include "CurtainTransition.h"
@@ -235,8 +236,12 @@ GameDialog* GameApp::DoConfirmDialog(int theId, const SexyString& theHeader, con
 {
 	if (theId == -1)
 		theId = DIALOG_CONFIRM;
-	// port: the original first paused the battle's board (+0x948, not ported yet), with Unmute(true) and its
-	// sound player's pause of the looping samples (none are ported yet)
+	// the battle holds under it (with its sounds; port: the sound player's pause of the looping samples is not
+	// ported)
+	if (mBoard != nullptr) {
+		mBoard->Pause(true, true);
+		Unmute(true);
+	}
 	mDialogCallback = theCallback;
 	mConfirmListener = theListener;
 	GameDialog* aDialog = static_cast<GameDialog*>(DoDialog(theId, true, theHeader, theLines, _S(""), Dialog::BUTTONS_YES_NO));
@@ -256,7 +261,10 @@ GameDialog* GameApp::DoConfirmDialog(int theId, const SexyString& theHeader, con
 GameDialog* GameApp::DoOkDialog(const SexyString& theHeader, const SexyString& theLines, const std::string& theCallback,
                                 Image* theBanner)
 {
-	// port: the board's pause as in DoConfirmDialog
+	if (mBoard != nullptr) {
+		mBoard->Pause(true, true);
+		Unmute(true);
+	}
 	mDialogCallback = theCallback;
 	GameDialog* aDialog = static_cast<GameDialog*>(
 		DoDialog(DIALOG_OK, true, theHeader, theLines, GT(0x7ac5a0), Dialog::BUTTONS_FOOTER));
@@ -304,13 +312,16 @@ void GameApp::ButtonDepress(int theId)
 			Shutdown();
 			break;
 		case DIALOG_CONFIRM:
-			// port: the original also resumed the board (not ported yet), here and below
+			if (mBoard != nullptr)
+				mBoard->Pause(false, true);
 			CallDialogCallback(true);
 			KillDialog(DIALOG_CONFIRM);
 			if (mConfirmListener != nullptr)
 				mConfirmListener->ButtonDepress(1018);
 			break;
 		case DIALOG_OK:
+			if (mBoard != nullptr)
+				mBoard->Pause(false, true);
 			KillDialog(DIALOG_OK);
 			CallDialogCallback(true);
 			break;
@@ -335,6 +346,8 @@ void GameApp::ButtonDepress(int theId)
 			SDL_Log("GameApp: the answer %d to dialog %d is not ported yet", theId, aDialogId);
 		KillDialog(aDialogId);
 		if (aDialogId == DIALOG_CONFIRM) {
+			if (mBoard != nullptr)
+				mBoard->Pause(false, true);
 			CallDialogCallback(false);
 			if (mConfirmListener != nullptr)
 				mConfirmListener->ButtonDepress(3018);
@@ -352,7 +365,11 @@ void GameApp::ButtonDepress(int theId)
 		case BookManager::BUTTON_CONTINUE:
 			if (!mQueuedHydraLockout && mBookManager->mState == BookManager::STATE_NORMAL &&
 			    mBookManager->IsContinueEnabled() && mBookManager->CallLinkedMethod("CanClickContinue", 0).Bool()) {
-				// port: the original first took the tutorial's arrows away (0x40ba40, 0x40beb0), not ported yet
+				// the tutorial's arrows hear a click at the corner (the whole-screen hot spot) and go
+				if (mArrowHintManager != nullptr) {
+					mArrowHintManager->Click(0, 0, 1);
+					mArrowHintManager->DeleteAllArrowHints();
+				}
 				mBookManager->CallLinkedMethod("ContinueButtonPressed", 0);
 				mBookManager->DisableContinueButton();
 			}
@@ -360,7 +377,7 @@ void GameApp::ButtonDepress(int theId)
 		case BookManager::BUTTON_OPTIONS:
 		case TreasureScreen::BUTTON_OPTIONS:
 			if (!mQueuedHydraLockout)
-				SDL_Log("GameApp: the menu dialog (0x4456a0) is not ported yet");
+				ShowGameMenu(true);
 			break;
 		case TreasureScreen::BUTTON_BACK:
 			if (mQueuedHydraLockout)
@@ -517,8 +534,12 @@ void GameApp::LoadingThreadCompleted()
 	mConversationPanel->Resize(0, 0, mWidth, mHeight);
 	mConversationPanel->SetDisabled(true);
 	mConversationPanel->SetVisible(false);
-	// port: not yet: the "GAME LAUNCHED" statistic and the ArrowHintManager (0x40b2c0). The update check is left
-	// out.
+	// the tutorial's arrows (0x40b2c0), over the whole screen and linked to a Lua object of their own
+	mArrowHintManager = new ArrowHintManager(this);
+	mWidgetManager->AddWidget(mArrowHintManager);
+	mArrowHintManager->Resize(0, 0, mWidth, mHeight);
+	mArrowHintManager->RegisterObject();
+	// port: not yet: the "GAME LAUNCHED" statistic. The update check is left out.
 	RegistryWriteInteger("TotalBooks", mTotalBooks);
 }
 
@@ -742,7 +763,8 @@ void GameApp::CurtainDone()
 			return;
 		}
 		// closed: the movie in place of the screen
-		mCutScene->SetVisible(true);
+		if (mCutScene != nullptr)
+			mCutScene->SetVisible(true);
 		// port: the hall of fame went too (0x450bb0), not ported yet
 		if (!mFullCurtain) {
 			if (mTitleScreen != nullptr) {
@@ -841,8 +863,33 @@ void GameApp::CurtainDone()
 		ClearUpdateBacklog(true);
 		return;
 
+	case TRANSITION_GAME_TO_MENU:
+		if (!aClosed)
+			break;
+		KillDialog(1);
+		ReturnToChapterSelect(false, true, true, true);
+		mWidgetManager->RemoveWidget(mBookManager);
+		if (mTreasureScreen != nullptr)
+			mWidgetManager->RemoveWidget(mTreasureScreen);
+		SafeDeleteWidget(mTreasureScreen);
+		// port: the stats book went too (0x444470), not ported yet
+		RemoveBookManager();
+		mTreasureScreen = nullptr;
+		RemoveBoard();
+		if (mTimedMode) {
+			mTimedMode = false;
+			lua_pushboolean(mLua->L, 0);
+			mLua->Call("main.SetTimedMode", 1, 0);
+		}
+		ShowMainMenu(false, false);
+		if (!CallCurtainCallback())
+			return;
+		mCurtain->StartOpening();
+		mWidgetManager->BringToFront(mCurtain);
+		ClearUpdateBacklog(true);
+		return;
+
 	default:
-		// port: 4, the return from a mini-game, is not ported yet
 		break;
 	}
 
@@ -895,9 +942,28 @@ void GameApp::StartSavedGameTransition()
 
 void GameApp::StartToMenuTransition()
 {
-	// port: the tutorial's arrows were taken away first (0x40beb0), not ported yet
+	if (mArrowHintManager != nullptr)
+		mArrowHintManager->DeleteAllArrowHints();
 	mTransitionState = TRANSITION_TO_MENU;
 	DoCurtainTransition(true, "", -1);
+}
+
+void GameApp::StartGameToMenuTransition()
+{
+	mTransitionState = TRANSITION_GAME_TO_MENU;
+	DoCurtainTransition(true, "", -1);
+	mCurtain->mPriority = 99999;
+}
+
+void GameApp::DoFullCurtainTransition(const std::string& theCallback)
+{
+	mCurtainLuaCallback = theCallback;
+	int aPriority = mCurtain != nullptr ? mCurtain->mPriority : 0;
+	mCurtain = GetCurtain();
+	mCurtain->StartClosing();
+	mTransitionState = TRANSITION_CUTSCENE;
+	mCurtain->mPriority = aPriority;
+	mFullCurtain = true;
 }
 
 void GameApp::StartTreasureTransition()
@@ -986,11 +1052,167 @@ void GameApp::RemoveMainMenu()
 	mMainMenu = nullptr;
 }
 
+void GameApp::ReturnToChapterSelect(bool theLexWon, bool theFromOptions, bool theNoMusic, bool theFromMainMenu)
+{
+	mProfile->Save();
+	if (mArrowHintManager != nullptr)
+		mArrowHintManager->DeleteAllArrowHints();  // 0x40beb0
+	LuaLib::CallLua("PAMAnimator.CleanUp", 0);
+	FreeChapterResources();
+	mPopAnimManager->DeleteClones();
+	CleanSharedImages();
+	RemoveAllTooltips();  // 0x44c1a0
+	if (mBoard != nullptr) {
+		mWidgetManager->RemoveWidget(mBoard);
+		Unmute(true);
+		Unmute(true);
+		SafeDeleteWidget(mBoard);
+		mBoard->SetDisabled(true);
+		mBoard->SetVisible(false);
+		mBoard->mLevelupOverlay = false;
+		mBoard->RestoreButtons();
+	}
+	mBoard = nullptr;
+	gBoard = nullptr;
+	if (!ShowingConversationPanel())
+		mWidgetManager->SetFocus(mBookManager);
+	mBookManager->SetVisible(true);
+	mBookManager->SetDisabled(false);
+	for (int i = BookManager::BUTTON_BACK; i <= BookManager::BUTTON_OPTIONS; i++) {
+		FadeButton* aButton = mBookManager->mButtons[i];
+		aButton->SetVisible(true);
+		aButton->SetDisabled(false);
+	}
+	lua_State* L = mLua->L;
+	lua_pushboolean(L, theLexWon);
+	lua_pushboolean(L, theFromOptions);
+	lua_pushboolean(L, theNoMusic);
+	lua_pushboolean(L, theFromMainMenu);
+	bool anEndOfBook = mBookManager->CallLinkedMethod("ReturnToChapterSelect", 4).Int() == 0;
+	if (!theFromMainMenu)
+		mBookManager->CallLinkedMethod(anEndOfBook ? "DoEndOfBookSequence" : "DoArrowHints", 0);
+	if (mCurtain != nullptr)
+		mWidgetManager->BringToFront(mCurtain);
+}
+
+int GameApp::StartLoadChapterResources(lua_State* L)
+{
+	if (mLoadingChapter)
+		luaL_error(L, "ERROR: StartLoadChapterResources called twice");
+	HideBookManager();
+	if (mTimedMode)
+		HideTreasureScreen();
+	bool aContinuing = lua_toboolean(L, 1) != 0;
+	mLoadingChapter = true;
+	mChapterResources.clear();
+	lua_pushnil(L);
+	while (lua_next(L, 2) != 0) {
+		ChapterResource aResource;
+		lua_pushnil(L);
+		while (lua_next(L, -2) != 0) {
+			lua_pushvalue(L, -2);
+			const char* aKeyStr = lua_tostring(L, -1);
+			std::string aKey = StringToUpper(aKeyStr != nullptr ? aKeyStr : "");
+			lua_pop(L, 1);
+			const char* aValue = lua_tostring(L, -1);
+			if (aKey == "MTYPE")
+				aResource.mType = (int)lua_tonumber(L, -1);
+			else if (aKey == "MSTRING")
+				aResource.mString = aValue != nullptr ? aValue : "";
+			else if (aKey == "MSTRPARAMETER")
+				aResource.mStrParameter = aValue != nullptr ? aValue : "";
+			else if (aKey == "MINTPARAMETER")
+				aResource.mIntParameter = (int)lua_tonumber(L, -1);
+			else
+				luaL_error(L, "Invalid key passed to StartLoadChapterResources: %s", aKey.c_str());
+			lua_pop(L, 1);
+		}
+		lua_pop(L, 1);
+		mChapterResources.push_back(aResource);
+	}
+
+	// port: the original counted the resources, showed the chapter's loading screen (ChapterLoadScreen,
+	// 0x42e780) over the curtain and updated the app until its loading thread had loaded them; the port loads
+	// them at once
+	std::string anError;
+	bool aLoaded = LoadChapterResources(anError);
+	((LuaResourceManager*)mResourceManager)->ExportToLua();
+	if (mShutdown) {
+		lua_pushboolean(L, 0);
+		return 1;
+	}
+	if (!aLoaded)
+		luaL_error(L, "There was an error loading the chapter's resources:\n%s", anError.c_str());
+	if (!aContinuing)
+		StartBattle();
+	mLoadingChapter = false;
+	lua_pushboolean(L, 1);
+	return 1;
+}
+
+bool GameApp::LoadChapterResources(std::string& theError)
+{
+	for (const ChapterResource& aResource : mChapterResources) {
+		if (mShutdown)
+			return true;
+		if (aResource.mType == CHAPTER_RES_GROUP) {
+			if (mResourceManager->IsGroupLoaded(aResource.mString))
+				continue;
+			mResourceManager->StartLoadResources(aResource.mString);
+			while (mResourceManager->LoadNextResource()) {
+				// port: the original gave up after twice the resources it had counted ("taking an unnaturally
+				// long time")
+				if (mShutdown)
+					return true;
+			}
+			if (mResourceManager->HadError()) {
+				theError = mResourceManager->GetErrorText();
+				return false;
+			}
+		} else {
+			PopAnim* anAnim = new PopAnim(aResource.mIntParameter, mPopAnimManager);
+			if (!anAnim->LoadAnimation(aResource.mString)) {
+				theError = StrFormat("Error loading PAM file: \"%s\". Reason given: %s", aResource.mString.c_str(),
+				                     anAnim->GetError().c_str());
+				delete anAnim;
+				return false;
+			}
+			mPopAnimManager->Add(aResource.mIntParameter, anAnim, aResource.mStrParameter);
+		}
+	}
+	return true;
+}
+
+void GameApp::FreeChapterResources()
+{
+	for (const ChapterResource& aResource : mChapterResources) {
+		if (aResource.mType == CHAPTER_RES_GROUP)
+			mResourceManager->DeleteResources(aResource.mString);
+		else
+			mPopAnimManager->Delete(aResource.mIntParameter);
+	}
+}
+
+void GameApp::HideTreasureScreen()
+{
+	mTreasureScreen->SetVisible(false);
+	mTreasureScreen->SetDisabled(true);
+	for (int i = TreasureScreen::BUTTON_BACK; i <= TreasureScreen::BUTTON_OPTIONS; i++) {
+		FadeButton* aButton = mTreasureScreen->mButtons[i];
+		bool aDisabled = aButton->mDisabled;
+		aButton->SetVisible(false);
+		if (!aDisabled) {
+			aButton->SetDisabled(true);
+			if (i == TreasureScreen::BUTTON_CONTINUE)
+				aButton->mEffectOff = true;
+		}
+	}
+}
+
 void GameApp::RemoveBoard()
 {
 	if (mBoard == nullptr)
 		return;
-	// port: the board is not ported yet (the original's 0x4493f0)
 	mWidgetManager->RemoveWidget(mBoard);
 	SafeDeleteWidget(mBoard);
 	mBoard = nullptr;
@@ -1040,4 +1262,27 @@ void GameApp::PlayMainMenuCutScene()
 	// port: the hall of fame was put behind the curtain (not ported yet)
 	mProfile->Delete("NeedsIntroCutscene");
 	mProfile->Delete("IntroCutsceneTitle");
+}
+
+void GameApp::StartBattle()
+{
+	mBoard = new Board(this, false);
+	mBoard->CreateLinkedObject(mBoard);
+	mBoard->Resize(0, 0, mWidth, mHeight);
+	mWidgetManager->AddWidget(mBoard);
+	if (mCurtain != nullptr) {
+		mWidgetManager->BringToFront(mCurtain);
+		mCurtain->MarkDirtyFull();
+	}
+	mBoard->Init();
+	mWidgetManager->SetFocus(mBoard);
+	// port: the original then freed the images' extra buffers (0x5492a0, and the resource manager's 0x575cd0 for
+	// every group); the port's images keep none
+}
+
+void GameApp::ShowGameMenu(bool theFromBook)
+{
+	// port: MenuDialog (0x47fd00) is not ported yet. The original takes the tutorial's arrows away (0x40ba40),
+	// pauses the board without its banner, hides the tooltip, adds the menu and unmutes.
+	SDL_Log("GameApp: the menu dialog (0x4456a0, %d) is not ported yet", (int)theFromBook);
 }

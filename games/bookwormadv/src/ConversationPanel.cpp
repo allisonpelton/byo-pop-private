@@ -5,6 +5,7 @@
 #include <cstdlib>
 
 #include "Animator.h"
+#include "Board.h"
 #include "Font.h"
 #include "GameApp.h"
 #include "GameText.h"
@@ -298,12 +299,11 @@ void ConversationPanel::OffsetPanelY(int theOffset)
 	}
 }
 
-// port: Board::0x41a700 (pauses the battle's board while the panel shows) and 0x41ec10; the board is not
-// ported yet
+// the battle's board holds while the panel shows
 static void PauseBoard(GameApp* theApp, bool thePause)
 {
 	if (theApp->mBoard != nullptr)
-		SDL_Log("ConversationPanel: Board pause (0x41a700, %d) not ported yet", (int)thePause);
+		theApp->mBoard->Pause(thePause, false);
 }
 
 void ConversationPanel::Activate(bool thePauseBoard)
@@ -609,7 +609,7 @@ void ConversationPanel::Update()
 			mOnInactive = nullptr;
 			mPriority = mOldPriority;
 			if (mApp->mBoard != nullptr)
-				SDL_Log("ConversationPanel: Board 0x41ec10 not ported yet");
+				mApp->mBoard->RehupMouse();
 		}
 		break;
 	case STATE_NEXT_PANEL: {

@@ -2,9 +2,12 @@
 // game's button. A picture of three or four cels (normal, lit, pressed, disabled) that fades into its new look
 // when the mouse comes, goes, presses or lets go (each one chosen by a flag), can glow on its own, can be drawn
 // stretched to its size, and draws its label in its first colour, or its second while the mouse is over it.
-// port: the tooltip it keeps (a TooltipWidget at +0x18c, shown above it while the mouse is over it) and the
-// animation it can play over itself (a PopAnim at +0x158) are not ported yet; nothing ported gives it either.
+// It can play an animation over itself (SetEffect: the battle's attack button glows while a word can attack).
+// port: the tooltip it keeps (a TooltipWidget at +0x18c, shown above it while the mouse is over it) is not ported
+// yet; nothing ported gives it one.
 #pragma once
+
+#include <string>
 
 #include "ButtonWidget.h"
 #include "PopAnim.h"
@@ -20,10 +23,16 @@ public:
 	bool mGlow = false;              // +0x12a, glows on its own (additively, between mGlowMin and mGlowMax)
 	bool mStretch = false;           // +0x12b, the cel drawn stretched to the button's size
 	bool mHideMouseWhenDisabled = false;  // +0x12c
+	bool mEffectOff = true;          // +0x12d: the animation neither plays nor shows
 	int mGlowAlpha = 0;              // +0x130
 	int mGlowMax = 0;                // +0x134
 	int mGlowMin = 0;                // +0x138
 	int mGlowDelta = 0;              // +0x13c
+	int mEffectX = 0;                // +0x140: where the animation is drawn, from the button's corner
+	int mEffectY = 0;                // +0x144
+	Rect mEffectRect;                // +0x148: the animation is clipped to it (from mEffectX, mEffectY) unless empty
+	PopAnim* mEffect = nullptr;      // +0x158
+	std::string mEffectLabel;        // +0x15c: where it plays from
 	Widget* mOwner = nullptr;        // +0x178, the widget that made it (the book's mini-game buttons)
 	bool mFadeOnDisable = false;     // +0x17c: each of these starts the fade from 0 when it happens
 	bool mFadeOnEnter = false;       // +0x17d
@@ -31,19 +40,31 @@ public:
 	bool mFadeOnDown = false;        // +0x17f
 	bool mFadeOnUp = false;          // +0x180
 	int mFadeEvery = 1;              // +0x184, updates between fade steps
+	bool mDrawnByOwner = false;      // +0x181: Draw skips it, the owner calls DrawFade (translated to the button)
 	int mFadeSpeed = 27;             // +0x188, alpha a step
+	Rect mSavedDisabledRect;         // +0x194: the board's (ScrambleUseNormalForDisabled)
 	int mLabelOffsetY = 0;           // +0x1a4
 
 	FadeButton(int theId, ButtonListener* theListener);
+	~FadeButton() override;  // 0x441fb0
 
 	// 0x4be490: the game's usual button, on a picture of cels side by side (normal, lit, pressed and, when it
 	// has a fourth, disabled), sized to a cel, with FONT_LARGE_OUTLINE unless it has a font, its label white
 	// and yellow while lit, and every fade on at 20 a step. With no picture: as wide as its label.
 	void SetupImage(Image* theImage);
+	// 0x442c00: the animation (a .pam) that plays over the button, from theLabel, drawn at (-31, theY); off until
+	// EnableEffect turns it on
+	void SetEffect(const std::string& theFileName, int theY, const std::string& theLabel);
+	// 0x442ce0: back to its first frame when theReset; playing from its label when theOn, else off
+	void EnableEffect(bool theReset, bool theOn);
+	// the animation goes on or holds where it is (the board's pause and focus write PopAnim::mPlaying)
+	void SetEffectPlaying(bool isPlaying);
+	// 0x442340: the button (and its animation), translated to its place when mDrawnByOwner
+	void DrawFade(Graphics* g);
 
 	// Widget
 	void Update() override;                  // 0x4421d0
-	void Draw(Graphics* g) override;         // 0x442310, 0x442340
+	void Draw(Graphics* g) override;         // 0x442310: DrawFade unless the owner draws it
 	void SetDisabled(bool isDisabled) override;  // 0x442a90
 	void MouseEnter() override;              // 0x442060
 	void MouseLeave() override;              // 0x4420c0
@@ -57,6 +78,7 @@ public:
 
 private:
 	void FadeStep();  // 0x442190
+	void DrawLook(Graphics* g);
 };
 
 }  // namespace Sexy
