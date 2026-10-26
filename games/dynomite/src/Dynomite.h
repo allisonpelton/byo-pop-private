@@ -139,7 +139,6 @@ public:
 	virtual void		DrawPiece(int theColor, int x, int y);	// 0x406040 (slot 57; empty): a falling colour from 50 up
 	virtual void		PieceFell(int theColor);		// 0x4050d0 (slot 58; empty): one off the bottom
 	virtual void		EggLanded();					// 0x4b1930 (slot 61; empty)
-	void				Hint();							// 0x40ad90 (the side bar's sixth button)
 };
 
 // 0x5304a0, zeroed by the board's constructor

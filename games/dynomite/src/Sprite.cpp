@@ -216,11 +216,112 @@ void Pic::MultiplyAlpha(Pic* thePic, int theX, int theY)
 	BitsChanged();
 }
 
-// 0x436800: only ever called with all three channels (0xff); the alpha is the OR of the mask's channels
-void Pic::AlphaFromColour(Pic* theMask, int theChannels)
+// 0x436260: a pixel takes the glow when it is clear (alpha under 25) and one of its four neighbours is not; the
+// first pass looks at this picture, each further one at the glow so far
+Pic* Pic::MakeGlow(const Color& theColor, int theWidth)
+{
+	Pic* aGlow = new Pic(*this);
+	unsigned char* aDest = (unsigned char*) aGlow->GetBits();
+	unsigned char* aSrc = (unsigned char*) GetBits();
+	memset(aDest, 0, mWidth * mHeight * 4);
+	unsigned char aRed = (unsigned char) theColor.GetRed();
+	unsigned char aGreen = (unsigned char) theColor.GetGreen();
+	unsigned char aBlue = (unsigned char) theColor.GetBlue();
+	int aPasses = theWidth;
+	int x = 0;
+	if (0 < mWidth)
+	{
+		do
+		{
+			int y = 0;
+			if (0 < mHeight)
+			{
+				do
+				{
+					int i = mWidth * y + x;
+					unsigned char* aPixel = aSrc + i * 4;
+					if (aPixel[3] < 0x19)
+					{
+						bool isEdge = false;
+						if ((x < mWidth - 1) && (0x19 < aPixel[7]))
+							isEdge = true;
+						if ((0 < x) && (0x19 < aPixel[-1]))
+							isEdge = true;
+						if ((0 < y) && (0x19 < aPixel[mWidth * -4 + 3]))
+							isEdge = true;
+						if (((y < mHeight - 1) && (0x19 < aPixel[mWidth * 4 + 3])) || (isEdge))
+						{
+							aDest[i * 4 + 2] = aRed;
+							aDest[i * 4 + 1] = aGreen;
+							aDest[i * 4] = aBlue;
+							aDest[i * 4 + 3] = 0xff;
+						}
+					}
+					y++;
+				} while (y < mHeight);
+			}
+			x++;
+		} while (x < mWidth);
+	}
+	float aStep = (float) (0xff / theWidth);
+	// port: the original keeps the alpha on the x87 stack across the passes
+	double anAlpha = 255.0f;
+	// port: the original allocates four times what it copies
+	unsigned char* aBuffer = new unsigned char[mWidth * mHeight * 0x10];
+	if (0 < aPasses)
+	{
+		do
+		{
+			anAlpha = anAlpha - (double) aStep;
+			memcpy(aBuffer, aDest, mWidth * mHeight * 4);
+			x = 0;
+			if (0 < mWidth)
+			{
+				do
+				{
+					int y = 0;
+					if (0 < mHeight)
+					{
+						do
+						{
+							int i = mWidth * y + x;
+							unsigned char* aPixel = aBuffer + i * 4;
+							if (aPixel[3] < 0x19)
+							{
+								bool isEdge = false;
+								if ((x < mWidth - 1) && (0x19 < aPixel[7]))
+									isEdge = true;
+								if ((0 < x) && (0x19 < aPixel[-1]))
+									isEdge = true;
+								if ((0 < y) && (0x19 < aPixel[mWidth * -4 + 3]))
+									isEdge = true;
+								if (((y < mHeight - 1) && (0x19 < aPixel[mWidth * 4 + 3])) || (isEdge == true))
+								{
+									aDest[i * 4 + 2] = aRed;
+									aDest[i * 4 + 1] = aGreen;
+									aDest[i * 4] = aBlue;
+									aDest[i * 4 + 3] = (unsigned char) (int) (anAlpha + (double) 0.5f);
+								}
+							}
+							y++;
+						} while (y < mHeight);
+					}
+					x++;
+				} while (x < mWidth);
+			}
+			aPasses--;
+		} while (aPasses != 0);
+	}
+	delete[] aBuffer;
+	aGlow->BitsChanged();
+	return aGlow;
+}
+
+// 0x436800: the alpha is the OR of the mask's channels that theChannels names
+void MaskedPic::AlphaFromColour(int theChannels)
 {
 	unsigned char* aDest = (unsigned char*) GetBits();
-	unsigned char* aSrc = (unsigned char*) theMask->GetBits();
+	unsigned char* aSrc = (unsigned char*) mMask->GetBits();
 	unsigned char aRed = (theChannels & 1) ? 0xff : 0;
 	unsigned char aGreen = (theChannels & 2) ? 0xff : 0;
 	unsigned char aBlue = (theChannels & 4) ? 0xff : 0;
@@ -405,7 +506,7 @@ MaskedPic::MaskedPic(SexyAppBase* theApp, const std::string& thePath) : Pic(theA
 {
 	mMask = new Pic(theApp, thePath + "_", false);
 	mImage->SetImageMode(false, true);
-	AlphaFromColour(mMask, 0xff);
+	AlphaFromColour(0xff);
 }
 
 // 0x436720

@@ -106,7 +106,7 @@ void EggGrid::CountRows()
 {
 	int aDeepest = 0;
 	int aRow = 0;
-	if (0.0f < mRows)
+	if (0.0f <= mRows)
 	{
 		do
 		{
@@ -122,7 +122,7 @@ void EggGrid::CountRows()
 				aCol++;
 			} while (aCol < 0xf);
 			aRow++;
-		} while ((float) aRow < mRows);
+		} while ((float) aRow <= mRows);
 	}
 	mRows = (float) aDeepest;
 }

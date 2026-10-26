@@ -1,7 +1,7 @@
 #include "SideBar.h"
 #include "CellButton.h"
 #include "DDImage.h"
-#include "Dynomite.h"
+#include "DynomiteFossil.h"
 #include "FossilizedApp.h"
 #include "Graphics.h"
 #include "InchySmall.h"
@@ -258,7 +258,8 @@ void SideBar::ButtonDepress(int theId)
 		if (mApp->mBoard != NULL)
 		{
 			mApp->mSndEgglands->Play();
-			mApp->mBoard->Hint();
+			// the button shows only in the fossil challenge
+			static_cast<DynomiteFossil*>(mApp->mBoard)->ToggleMuseum();
 			return;
 		}
 	}

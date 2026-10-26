@@ -831,8 +831,3 @@ void Dynomite::PieceFell(int theColor)
 void Dynomite::EggLanded()
 {
 }
-
-// 0x40ad90 (TODO)
-void Dynomite::Hint()
-{
-}

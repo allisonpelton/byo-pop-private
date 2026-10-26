@@ -2,6 +2,7 @@
 #include "GameText.h"
 #include "Dynomite.h"
 #include "DynomitePanic.h"
+#include "DynomiteFossil.h"
 #include "DynomiteTimeTrial.h"
 #include "EditWidget.h"
 #include "EnterNameDialog.h"
@@ -257,7 +258,7 @@ void FossilizedApp::StartGame()
 		mBoard = NULL;	// port: the original keeps the deleted board's pointer until the new one
 	}
 	Dynomite* aBoard;
-	int aSkill;
+	int aSkill = mSkill;
 	switch (mGameMode)
 	{
 	case 1:
@@ -268,9 +269,10 @@ void FossilizedApp::StartGame()
 		aBoard = new DynomitePanic();
 		break;
 	case 3:
-		// TODO: DynomiteFossil (0x408e40, 0x328 bytes), which starts with mFossilKind for its skill
-		mSideBar->GameStarted();
-		return;
+		// the fossil challenge starts with its kind for the skill
+		aBoard = new DynomiteFossil();
+		aSkill = mFossilKind;
+		break;
 	case 4:
 		aBoard = new DynomiteTimeTrial();
 		break;
@@ -279,7 +281,6 @@ void FossilizedApp::StartGame()
 		return;
 	}
 	aBoard->Resize(0x96, 0, 0x1ea, 0x1e0);
-	aSkill = mSkill;
 	aBoard->Init(this, aSkill);
 	mWidgetManager->AddWidget(aBoard);
 	mWidgetManager->BringToBack(aBoard);

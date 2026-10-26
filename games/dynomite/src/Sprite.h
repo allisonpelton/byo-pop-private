@@ -51,8 +51,9 @@ public:
 	void			DrawStretched(int theX1, int theY1, int theX2, int theY2, bool fast);
 	// 0x4361a0: the alpha of the pixels under thePic at theX, theY scaled by thePic's alpha
 	void			MultiplyAlpha(Pic* thePic, int theX, int theY);
-	// 0x436800: the alpha taken from theMask's colour channels (theChannels: 1 red, 2 green, 4 blue)
-	void			AlphaFromColour(Pic* theMask, int theChannels);
+	// 0x436260: a new picture of theColor around this one's opaque pixels, theWidth passes wide, each pass
+	// outward a step of 255 / theWidth fainter
+	Pic*			MakeGlow(const Color& theColor, int theWidth);
 };
 
 // vtable 0x4fcc8c, 0x20 bytes: a rectangle of a Pic's image
@@ -102,6 +103,10 @@ public:
 	MaskedPic(SexyAppBase* theApp, const std::string& thePath);		// 0x4372e0
 	MaskedPic(const MaskedPic& theOther);								// 0x436720
 	virtual ~MaskedPic();												// 0x4367a0
+
+	// 0x436800: the alpha from the mask's colour channels (theChannels: 1 red, 2 green, 4 blue; 0xff all, 0
+	// none). The fossils' masks keep a fragment in each channel.
+	void			AlphaFromColour(int theChannels);
 };
 
 // vtable 0x4fcc5c, 0xc bytes
