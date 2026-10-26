@@ -34,3 +34,7 @@ set(BYOPOP_BUY_alchemy 2026-10-26
 # EA's store, GameHouse has no page for it (only a support note that it does not suit Windows 10 and 11), and a search
 # of Big Fish Games, iWin and Pogo found none.
 set(BYOPOP_BUY_wordharmony 2026-10-26)
+# Checked 2026-10-26: Cosmic Bugs (Retro64, published by PopCap in 2005) is not in Steam's store search or on EA's
+# store, Retro64's site no longer answers, and GameHouse names it only on a support page of games that suit Windows 10
+# and 11, with no store page found there or at Big Fish Games, iWin or Pogo.
+set(BYOPOP_BUY_cosmicbugs 2026-10-26)
