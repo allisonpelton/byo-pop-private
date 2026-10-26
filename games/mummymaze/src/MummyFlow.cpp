@@ -48,7 +48,7 @@ void MummyApp::ShowMainMenu(int theEntry, bool theFade)
 	if (mMainMenu != NULL)
 		return;
 	Widget** aSlots[] = {(Widget**) &mHighScores, (Widget**) &mGamePanel, (Widget**) &mLevelComplete, (Widget**) &mBoard,
-		(Widget**) &mVictory, (Widget**) &mSidePanel};
+		(Widget**) &mVictory, (Widget**) &mSidePanel, (Widget**) &mHighScoreBack};
 	for (size_t i = 0; i < sizeof(aSlots) / sizeof(aSlots[0]); i++)
 	{
 		if (*aSlots[i] != NULL)
@@ -83,6 +83,17 @@ void MummyApp::RemoveGamePanel()
 		mWidgetManager->RemoveWidget(mGamePanel);
 		SafeDeleteWidget(mGamePanel);
 		mGamePanel = NULL;
+	}
+}
+
+// 0x41c380
+void MummyApp::RemoveGameOverScroll()
+{
+	if (mHighScoreBack != NULL)
+	{
+		mWidgetManager->RemoveWidget(mHighScoreBack);
+		SafeDeleteWidget(mHighScoreBack);
+		mHighScoreBack = NULL;
 	}
 }
 
@@ -248,6 +259,14 @@ void MummyApp::ShowQuitToMainDialog()
 		aDialog->mDialogHeader = GT(0x004942c4);
 }
 
+// 0x41f3e0: the name for a high score
+void MummyApp::ShowRecordScore(const SexyString& theLines)
+{
+	RecordScoreDialog* aDialog = new RecordScoreDialog(this, theLines);
+	aDialog->Resize(0xfa, 0x20, 0x13c, aDialog->GetPreferredHeight(0x13c));
+	AddDialog(DIALOG_RECORD_SCORE, aDialog);
+}
+
 // 0x41eab0: the options
 void MummyApp::ShowOptions()
 {
@@ -288,6 +307,18 @@ void MummyApp::ShowGamePanel()
 {
 	if (mGamePanel == NULL && mBoard != NULL)
 	{
+		if (mBoard->mShowingSolution)
+		{
+			// the solution has played: the high scores, with the game-over scroll over them
+			mHighScores = new HighScoreScreen(this);
+			mHighScores->Resize(0x96, 0, 0x1ea, 0x1e0);
+			mWidgetManager->AddWidget(mHighScores);
+			mHighScoreBack = new GameOverScroll(this);
+			mHighScoreBack->Resize(0, 0, 0x280, 0x1e0);
+			mWidgetManager->AddWidget(mHighScoreBack);
+			SetMusicOrder(0x4c, true);
+			return;
+		}
 		mGamePanel = new GamePanel(this);
 		mGamePanel->mScrollState = 0;
 		mGamePanel->Resize(0, 0, 0x280, 0x1e0);
@@ -343,6 +374,20 @@ void MummyApp::ButtonDepress(int theId)
 	case 2000 + DIALOG_OPTIONS:
 		KillDialog(DIALOG_OPTIONS);
 		break;
+	case 2000 + DIALOG_RECORD_SCORE:
+	{
+		RecordScoreDialog* aDialog = (RecordScoreDialog*) GetDialog(DIALOG_RECORD_SCORE);
+		if (mGameMode == 3)
+		{
+			if (mVictory != NULL)
+				mVictory->SetName(aDialog->mNameEdit->mString);
+		}
+		else if (mHighScores != NULL)
+			mHighScores->SetName(aDialog->mNameEdit->mString);
+		mLastScoreName = aDialog->mNameEdit->mString;
+		KillDialog(DIALOG_RECORD_SCORE);
+		break;
+	}
 	case 2000 + DIALOG_CONTINUE:
 		KillDialog(DIALOG_CONTINUE);
 		LoadClassic();

@@ -29,6 +29,7 @@ class GamePanel;
 class LevelCompleteScreen;
 class HighScoreScreen;
 class VictoryScreen;
+class GameOverScroll;
 class WorldMap;
 class Image;
 class MemoryImage;
@@ -60,6 +61,8 @@ enum DialogId
 	DIALOG_CONTINUE = 0xe,
 	DIALOG_INTRO = 0x10,
 	DIALOG_TIP = 0x1b,
+	DIALOG_RECORD_SCORE = 0x15,
+	DIALOG_HIGH_SCORES = 0x17,
 	DIALOG_RESET_TIPS = 0x1c
 };
 
@@ -123,11 +126,11 @@ public:
 	bool					mAutoplay;
 	int						mAutoplayGames;
 	int						mAutoplayCap;
-	std::string				mAutoplayMode;
 	std::string				mAutoplayLog;
 	std::string				mAutoplayShots;
 	struct AutoplayState*	mAutoplayState;
 	void					AutoplayUpdate();
+	void					HandleAutoplayParam(const std::string& theParamName, const std::string& theParamValue);
 
 public:
 	MummyApp();
@@ -156,6 +159,7 @@ public:
 	void					RemoveWorldMap();                       // 0x41c300
 	void					StartBoardScreen();                     // 0x41e6a0
 	void					ShowGamePanel();                        // 0x41b2f0
+	void					RemoveGameOverScroll();                 // 0x41c380
 	void					OnLevelComplete();                      // 0x41b4f0
 	void					OnContinueLink();                       // 0x4112b0 case 3
 	void					StartClassicOrContinue();               // 0x41c410
@@ -163,6 +167,7 @@ public:
 	void					ShowQuitDialog();                       // 0x41cc30
 	void					ShowQuitToMainDialog();                 // 0x41cfb0
 	void					ShowOptions();                          // 0x41eab0
+	void					ShowRecordScore(const SexyString& theLines);   // 0x41f3e0
 	void					ShowTip(int theWhich);                  // 0x41b5b0
 	void					ShowAdventureSlots();                   // 0x41b800
 	void					LoadAdventure(int theSlot, bool theFlag);   // 0x41bcc0

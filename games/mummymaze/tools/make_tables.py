@@ -30,6 +30,7 @@ TABLES = [
 # tables of pointers to texts: name, address of the table, count (written as the texts' addresses)
 POINTER_TABLES = [
     ("kRankText", 0x491ff0, 23),               # the rank names
+    ("kTreasureText", 0x494ab8, 15),           # the treasure of each pyramid, in the sentence "YOU HAVE FOUND THE ...!"
 ]
 
 

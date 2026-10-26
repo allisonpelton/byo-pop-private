@@ -295,11 +295,11 @@ void MummyApp::HandleCmdLineParam(const std::string& theParamName, const std::st
 	if (theParamName == "-autoplay")
 	{
 		mAutoplay = true;
-		if (!theParamValue.empty())
-			mRandSeed = atoi(theParamValue.c_str());
+		mScriptedInput = true;   // the bot's input only, as in a -script run
+		HandleAutoplayParam(theParamName, theParamValue);
 	}
-	else if (theParamName == "-autoplaymode")
-		mAutoplayMode = theParamValue;
+	else if ((theParamName == "-autoplaylevels") || (theParamName == "-autoplaystart"))
+		HandleAutoplayParam(theParamName, theParamValue);
 	else if (theParamName == "-autoplaygames")
 		mAutoplayGames = atoi(theParamValue.c_str());
 	else if (theParamName == "-autoplaycap")

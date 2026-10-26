@@ -138,12 +138,14 @@ void LevelCompleteScreen::Update()
 	}
 }
 
+void DrawNinePatch(Graphics* g, Image* theImage, int theW, int theH);
+
 static void DrawCentered(Graphics* g, const SexyString& theText, int theWidth, int theY)
 {
 	g->DrawString(theText, (theWidth - g->GetFont()->StringWidth(theText)) / 2, theY);
 }
 
-// 0x422b00 (approximately: the layout of the lines is from the decompilation, the pictures' places are estimated)
+// 0x422b00: the picture of the explorer, the lines of the result, and the rank (the adventure shows the total time)
 void LevelCompleteScreen::Draw(Graphics* g)
 {
 	g->DrawImage(mApp->mImages[IMAGE_BACKDROP], -0x96, 0);
@@ -152,42 +154,73 @@ void LevelCompleteScreen::Draw(Graphics* g)
 		gc.ClipRect(0, 0, 0x1e7, 0x1dd);
 		gc.DrawImage(mApp->mImages[IMAGE_NEXTLEVEL], -5, 5);
 	}
+	{
+		// the little film: 60 wide frames of one of three strips
+		Graphics gc(*g);
+		gc.ClipRect((mWidth - 0x3c) / 2, 0x55, 0x3c, 0x3c);
+		if (mVariant == 1)
+			gc.DrawImage(mApp->mImages[IMAGE_SEARCH6], (mWidth - 0x3c) / 2 + mFrame * -0x3c, 0x55);
+		else if (mVariant == 2)
+			gc.DrawImage(mApp->mImages[IMAGE_READMAP6], (mWidth - 0x3c) / 2 + (mFrame + 0x1c) * -0x3c, 0x55);
+		else
+			gc.DrawImage(mApp->mImages[IMAGE_EXPLORER6], (mWidth - 0x3c) / 2 + mFrame * -0x3c, -0x23);
+	}
 	g->SetFont(mApp->mHeaderFont);
-	g->SetColor(Color(0x66, 0x5c, 0x38));
-	bool aTreasure = (mApp->mGameMode == MODE_CLASSIC && mApp->mClassicChamber == 0xe) ||
-		(mApp->mGameMode == MODE_ADVENTURE && mApp->mAdvChamber == 0xe);
-	SexyString aTitle = aTreasure ? GT(0x00495090) : GT(0x00495074);
-	DrawCentered(g, aTitle, mWidth, 0x6e);
-	g->SetFont(mApp->mFont1);
-	g->SetColor(Color(0x2e, 0x14, 0));
+	g->SetColor(Color(0xff, 0xff, 0));
+	int aMode = mApp->mGameMode;
+	if ((aMode == MODE_CLASSIC && mApp->mClassicChamber == 0xe) || (aMode == MODE_ADVENTURE && mApp->mAdvChamber == 0xe))
+	{
+		int aPyramid = (aMode == MODE_ADVENTURE) ? mApp->mAdvPyramid : mApp->mClassicPyramid;
+		DrawCentered(g, GT(0x00495090), mWidth, 0x28);
+		DrawCentered(g, GT(kTreasureText[aPyramid]) + SexyString("!"), mWidth, 0x46);
+	}
+	else
+		DrawCentered(g, GT(0x00495074), mWidth, 0x28);
+
 	char aBuf[128];
 	int aMinutes = mSeconds / 60;
 	int aSecs = mSeconds % 60;
-	sprintf(aBuf, aSecs < 10 ? "%d:0%d" : "%d:%d", aMinutes, aSecs);
-	DrawCentered(g, GT(0x00494fec) + SexyString(" ") + aBuf, mWidth, 0xb4);
-	if (mApp->mGameMode == MODE_CLASSIC)
+	// the lines of a result: the whole text in the light colour, then its label again over it in the dark one
+	if (aMinutes == 1)
+		sprintf(aBuf, aSecs == 1 ? GTC(0x00495054) : GTC(0x00495034), aMinutes, aSecs);
+	else
+		sprintf(aBuf, aSecs == 1 ? GTC(0x00495014) : GTC(0x00494ff4), aMinutes, aSecs);
+	int aX = (mWidth - g->GetFont()->StringWidth(aBuf)) / 2;
+	g->SetColor(Color(0xff, 0x7c, 0));
+	g->DrawString(aBuf, aX, 0xb4);
+	g->SetColor(Color(0xd6, 0x55, 0));
+	g->DrawString(GT(0x00494fec), aX, 0xb4);
+	if (aMode == MODE_CLASSIC)
 	{
 		sprintf(aBuf, GTC(0x00494fd8), mBase);
-		DrawCentered(g, aBuf, mWidth, 0xdc);
+		aX = (mWidth - g->GetFont()->StringWidth(aBuf)) / 2;
+		g->SetColor(Color(0xff, 0x7c, 0));
+		g->DrawString(aBuf, aX, 0xdc);
+		g->SetColor(Color(0xd6, 0x55, 0));
+		g->DrawString(GT(0x00494fc8), aX, 0xdc);
 		sprintf(aBuf, GTC(0x00494fb4), mBonus);
-		DrawCentered(g, aBuf, mWidth, 0x104);
+		aX = (mWidth - g->GetFont()->StringWidth(aBuf)) / 2;
+		g->SetColor(Color(0xff, 0x7c, 0));
+		g->DrawString(aBuf, aX, 0x104);
+		g->SetColor(Color(0xd6, 0x55, 0));
+		g->DrawString(GT(0x00494fa4), aX, 0x104);
+		g->SetColor(Color(0xbc, 0xa5, 0x25));
+		DrawCentered(g, GT(0x00494f90), mWidth, 0x140);
 		int aRank = 0;
 		while (aRank < 22 && kRankScore[aRank] < mApp->mScore)
 			aRank++;
-		g->SetFont(mApp->mHeaderFont);
-		g->SetColor(Color(0x66, 0x5c, 0x38));
-		DrawCentered(g, GT(0x00494f90), mWidth, 0x138);
-		g->SetColor(Color(0x46, 0x20, 0));
-		DrawCentered(g, GT(kRankText[aRank]), mWidth, 0x158);
-		g->SetFont(mApp->mFont1);
+		g->SetColor(Color(0xff, 0xff, 0));
+		DrawCentered(g, GT(kRankText[aRank]), mWidth, 0x15e);
 		if (aRank < 22)
 		{
 			sprintf(aBuf, GTC(0x00494f78), kRankScore[aRank]);
-			DrawCentered(g, aBuf, mWidth, 0x178);
+			g->SetColor(Color(0xc2, 0x2c, 0x14));
+			DrawCentered(g, aBuf, mWidth, 0x18b);
 		}
 	}
 	else
 	{
+		// the adventure: the time of the whole game so far (the lines below it are not ported yet)
 		int aTotal = (int) mApp->mTotalTime;
 		int aHours = aTotal / 3600;
 		int aMins = (aTotal / 60) % 60;
@@ -197,10 +230,14 @@ void LevelCompleteScreen::Draw(Graphics* g)
 		SexyString aText = aLine;
 		sprintf(aLine, GTC(0x00494f58), aMins);
 		aText += aLine;
-		DrawCentered(g, GT(0x00494f48), mWidth, 0xdc);
-		DrawCentered(g, aText, mWidth, 0xf4);
+		aX = (mWidth - g->GetFont()->StringWidth(aText)) / 2;
+		g->SetColor(Color(0xff, 0x7c, 0));
+		g->DrawString(aText, aX, 0xdc);
+		g->SetColor(Color(0xd6, 0x55, 0));
+		g->DrawString(GT(0x00494f48), aX, 0xdc);
 		sprintf(aLine, GTC(0x00494f38), aSeconds);
-		DrawCentered(g, aLine, mWidth, 0x10c);
+		g->SetColor(Color(0xff, 0x7c, 0));
+		DrawCentered(g, aLine, mWidth, 0x104);
 	}
 }
 
@@ -254,12 +291,15 @@ void LevelCompleteScreen::ButtonPress(int theId)
 HighScoreScreen::HighScoreScreen(MummyApp* theApp) :
 	mApp(theApp),
 	mRank(-1),
+	mCounter(0),
+	mNameAsked(false),
 	mFade(0.0)
 {
 	mDoFinger = true;
-	mMenuLink = new HyperlinkWidget(0, this);
+	mMenuLink = new HyperlinkWidget(1, this);
 	mMenuLink->mLabel = GT(0x0048d224);
-	mMenuLink->mColor = Color(0xff, 0xff, 0);
+	mMenuLink->mColor = Color(0xf8, 0x7a, 2);
+	mMenuLink->mOverColor = Color(0xff, 0xff, 0xff);
 	mMenuLink->mUnderlineSize = 1;
 	mMenuLink->SetFont(mApp->mHeaderFont);
 	for (int i = 0; i < 5; i++)
@@ -288,13 +328,14 @@ void HighScoreScreen::Resize(int theX, int theY, int theWidth, int theHeight)
 {
 	Widget::Resize(theX, theY, theWidth, theHeight);
 	int aWidth = mMenuLink->mFont->StringWidth(mMenuLink->mLabel);
-	mMenuLink->Resize((mWidth - aWidth) / 2 + mX, mHeight - 0x37, aWidth, 0x1d);
+	(void) aWidth;
+	mMenuLink->Resize(mWidth / 2 - 0xb9 + mX, 0x1b1, 0x172, 0x1e);
 }
 
 // the list: five records of [u16 length][name][i32 score][i32 check], the check being score ^ 0x42beef with every
 // character times 0x11 xored in (0x4148e0 writes it, 0x414850.. reads it)
-static const char* const kDefaultNames[5] = {"Jason", "Brian", "Kimberly", "Jason", "Brian"};
-static const int kDefaultScores[5] = {5000, 4000, 3000, 2000, 1000};
+static const char* const kDefaultNames[5] = {"Kimberly", "Glenn", "Brian", "Jason", "John"};
+static const int kDefaultScores[5] = {1000, 900, 800, 700, 500};
 
 void HighScoreScreen::Load()
 {
@@ -364,8 +405,47 @@ int HighScoreScreen::RankOf(int theScore)
 	return -1;
 }
 
-void HighScoreScreen::AddScore(const std::string& theName)
+// ---------------------------------------------------------------------------------------------------------
+// GameOverScroll
+
+// 0x414290
+GameOverScroll::GameOverScroll(MummyApp* theApp) :
+	ScrollScreen(theApp),
+	mHold(0)
 {
+}
+
+GameOverScroll::~GameOverScroll()
+{
+}
+
+// 0x414330: it rests 50 updates once it has come down, goes up, and leaves
+void GameOverScroll::Update()
+{
+	ScrollScreen::Update();
+	if (mOffset == 0)
+	{
+		if (mHold < 0x32)
+			mHold++;
+		else
+			mScrollState = 5;
+	}
+	if (mScrollState == 6)
+		mApp->RemoveGameOverScroll();
+}
+
+// 0x4142f0
+void GameOverScroll::Draw(Graphics* g)
+{
+	ScrollScreen::Draw(g);
+	g->DrawImage(mApp->mImages[IMAGE_GAMEOVERTEXT], 100, mOffset - 0x71 + mY);
+}
+
+// 0x415b40: the name for the score that the dialog asked for: the score takes its place and the others move down
+void HighScoreScreen::SetName(const SexyString& theName)
+{
+	if (theName.empty())
+		return;
 	int aRank = RankOf(mApp->mScore);
 	if (aRank < 0)
 		return;
@@ -380,23 +460,62 @@ void HighScoreScreen::AddScore(const std::string& theName)
 	Save();
 }
 
+// 0x402850: the ordinal's ending (its four texts are st, nd, rd and th)
+static SexyString OrdinalSuffix(int theNumber)
+{
+	if ((theNumber % 100) / 10 != 1)
+	{
+		switch (theNumber % 10)
+		{
+		case 1:
+			return GT(0x0048d33c);
+		case 2:
+			return GT(0x0048d340);
+		case 3:
+			return GT(0x0048d344);
+		}
+	}
+	return GT(0x0048d348);
+}
+
+// 0x414ac0 (and 0x4025c0 of the victory screen): a score that makes the list asks for the name
+void HighScoreScreen::AskName()
+{
+	int aRank = RankOf(mApp->mScore) + 1;
+	if (aRank > 0)
+	{
+		char aBuf[16];
+		sprintf(aBuf, "%d", aRank);
+		mApp->ShowRecordScore(GT(0x0048d32c) + SexyString(aBuf) + OrdinalSuffix(aRank) + GT(0x0048d2c8));
+	}
+}
+
+// 0x415a00
 void HighScoreScreen::Update()
 {
 	Widget::Update();
-	if (mFade < 1.0)
+	if (mCounter > 0 && --mCounter == 0)
 	{
-		mFade += 0.02;
-		if (mFade > 1.0)
-			mFade = 1.0;
+		// (the Internet link of the original is not here)
+	}
+	if (!mNameAsked && mFade >= 175.0)
+	{
+		AskName();
+		mNameAsked = true;
+	}
+	if (mFade < 255.0)
+	{
+		mFade += 1.0;
 		MarkDirty();
 	}
 }
 
-// 0x415250
+// 0x415250: the score, its rank and the list, fading in; the list stands in a frame of the dialog's picture (0x414de0)
 void HighScoreScreen::Draw(Graphics* g)
 {
+	int anAlpha = (int) mFade;
 	g->SetColorizeImages(true);
-	g->SetColor(Color(0xff, 0xff, 0xff, (int) (mFade * 255.0)));
+	g->SetColor(Color(0xff, 0xff, 0xff, anAlpha));
 	g->DrawImage(mApp->mImages[IMAGE_BACKDROP], -0x96, 0);
 	{
 		Graphics gc(*g);
@@ -404,20 +523,23 @@ void HighScoreScreen::Draw(Graphics* g)
 		gc.DrawImage(mApp->mImages[IMAGE_NEXTLEVEL], -5, 5);
 	}
 	g->SetFont(mApp->mHeaderFont);
-	g->SetColor(Color(0x66, 0x5c, 0x38));
-	DrawCentered(g, GT(0x004921b8), mWidth, 0x5a);
+	g->SetColor(Color(0xff, 0xbf, 0x22, anAlpha));
+	DrawCentered(g, GT(0x004921b8), mWidth, 0x27);
+	g->SetColor(Color(0xff, 0xff, 0, anAlpha));
 	char aBuf[64];
 	sprintf(aBuf, GTC(0x004921ac), mApp->mScore);
-	g->SetColor(Color(0x46, 0x20, 0));
-	DrawCentered(g, aBuf, mWidth, 0x78);
-	g->SetColor(Color(0x66, 0x5c, 0x38));
-	DrawCentered(g, GT(0x00492194), mWidth, 0x96);
+	DrawCentered(g, aBuf, mWidth, 0x49);
+	g->SetColor(Color(0xff, 0xbf, 0x22, anAlpha));
+	DrawCentered(g, GT(0x00492194), mWidth, 0x6d);
 	int aRank = 0;
 	while (aRank < 22 && kRankScore[aRank] < mApp->mScore)
 		aRank++;
-	g->SetColor(Color(0xff, 0xff, 0, (int) (mFade * 255.0)));
-	DrawCentered(g, GT(kRankText[aRank]), mWidth, 0x8f + 0x20);
+	g->SetColor(Color(0xff, 0xff, 0, anAlpha));
+	DrawCentered(g, GT(kRankText[aRank]), mWidth, 0x8f);
 	g->SetColorizeImages(false);
+	g->Translate((mWidth - 0x19f) / 2, 0xa0);
+	DrawNinePatch(g, mApp->mImages[IMAGE_DIALOG], 0x19f, 0xf0);
+	g->Translate(-((mWidth - 0x19f) / 2), -0xa0);
 	g->SetFont(mApp->mHeaderFont);
 	g->SetColor(Color(0x76, 0x27, 0));
 	DrawCentered(g, GT(0x00491f84), mWidth, 0xd1);
@@ -429,7 +551,7 @@ void HighScoreScreen::Draw(Graphics* g)
 		g->SetColor(Color(0x46, 0x20, 0));
 		sprintf(aBuf, "%d", mScores[i]);
 		SexyString aScore = aBuf;
-		g->DrawString(aScore, (mWidth - g->GetFont()->StringWidth(aScore)) - 0x50, aY);
+		g->DrawString(aScore, (mWidth - mApp->mHeaderFont->StringWidth(aScore)) - 0x50, aY);
 		aY += 0x1b;
 	}
 }

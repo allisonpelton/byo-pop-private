@@ -112,6 +112,20 @@ public:
 	virtual void		ButtonDepress(int theId) override;
 };
 
+// 0x414290: the parchment with the game-over text that comes down over the high scores and goes up again
+class GameOverScroll : public ScrollScreen
+{
+public:
+	int					mHold;                  // +0x6c how long it has rested
+
+public:
+	GameOverScroll(MummyApp* theApp);
+	virtual ~GameOverScroll();
+
+	virtual void		Update() override;      // 0x414330
+	virtual void		Draw(Graphics* g) override;  // 0x4142f0
+};
+
 // 0x4291d0: the panel at the left of the board (0x96 wide): the buttons, the score, the Ankh
 class SidePanel : public Widget, public ButtonListener
 {
@@ -175,7 +189,9 @@ public:
 	std::string			mNames[5];
 	int					mScores[5];
 	int					mRank;                  // 0..4: the new score's place, -1 none
-	double				mFade;
+	int					mCounter;               // +0xc0
+	bool				mNameAsked;             // +0xc4 the dialog for the name has been shown
+	double				mFade;                  // +0xc8 0 .. 255
 
 public:
 	HighScoreScreen(MummyApp* theApp);
@@ -195,7 +211,8 @@ public:
 	void				Load();
 	void				Save();
 	int					RankOf(int theScore);
-	void				AddScore(const std::string& theName);
+	void				AskName();                  // 0x414ac0
+	void				SetName(const SexyString& theName);   // 0x415b40
 };
 
 // 0x401ca0: the victory screen (not ported yet)

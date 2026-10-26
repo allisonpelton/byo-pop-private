@@ -37,7 +37,7 @@ void Board::DrawClipped(Graphics* g, Image* theImage, int theX, int theY, int th
 
 // A dialog-like frame of a nine-patch picture (the dialog picture, IMAGE_DIALOG) of a given size, as the message boxes of
 // the board draw it (0x408780): the corners, the tiled edges and the tiled middle
-static void DrawFrame(Graphics* g, Image* theImage, int theW, int theH)
+void DrawNinePatch(Graphics* g, Image* theImage, int theW, int theH)
 {
 	int aW = theImage->GetWidth() / 3;
 	int aH = theImage->GetHeight() / 3;
@@ -89,7 +89,7 @@ static void DrawFrame(Graphics* g, Image* theImage, int theW, int theH)
 void Board::DrawSolving(int x, int y, int w, int h, Graphics* g)
 {
 	g->Translate(x, y);
-	DrawFrame(g, IMG(IMAGE_DIALOG), w, h);
+	DrawNinePatch(g, IMG(IMAGE_DIALOG), w, h);
 	Insets aInsets(0x18, 0x1e, 0x18, 0x18);
 	int aTop = aInsets.mTop;
 	g->SetFont(mApp->mHeaderFont);
@@ -112,7 +112,7 @@ void Board::DrawTutorialText(int x, int y, int w, int h, Graphics* g)
 	if (mUpdateCnt - mTimeBase < 0xa5)
 		return;
 	g->Translate(x, y);
-	DrawFrame(g, IMG(IMAGE_DIALOG), w, h);
+	DrawNinePatch(g, IMG(IMAGE_DIALOG), w, h);
 	Insets aInsets(0x1a, 0x18, 0x18, 0x18);
 	int aTop = aInsets.mTop;
 	SexyString aHeader;
