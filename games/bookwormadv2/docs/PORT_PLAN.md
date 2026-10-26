@@ -63,6 +63,21 @@ quitting to the menu left the chapter's images loaded (while the Lua side forgot
 exported nothing. The group names are now compared without case (`shared:` commit; the group list was already).
 The Hall of Fame's default names are Volume 1's code path: compare with Volume 2's `HallOfFame` (6.1 KB) too.
 
+## The curtain's states in Volume 2 (CurtainDone, 0x442700)
+
+The port's enum had Volume 1's numbering for the title screen's curtain (9); in Volume 2 that is 14 (0xe, set by 0x442430,
+called from 0x48a7a0), and 9 is the replay of a finished adventure. Volume 2's states: 1 cut scene, 2 opening, 3 saved game
+(0x4408c0), 4 game to menu (0x443b70), 5 treasure (0x443be0), 6 and 7 to menu (0x443a90, 0x443ad0), 8 new game (0x443950),
+9 replay (0x4439b0), 10 the book chosen on the replay's screen (0x443a00, called by `BookSelectScreen`'s button handler
+0x4254e0), 12 the Hall of Fame from a replay (0x443a40), 14 the title's curtain. Not ported: 9, 10 and 12, and in state 8 the
+replay branch (when the mReplayMode flag at +0x9aa is set, `ReplayCurrentBook` is read in place of `CurrentBook`, and
+`main.SetReplayMode` is called). A finished adventure's click on the portal (MainMenu::MouseUp, 0x46b3b0, case 2) does: with a
+replay in progress (`ReplayInGame`) the "Continue your current adventure?" dialog (id 0x1a, "CONTINUE?"); with none,
+`main.SetReplayMode(true)`, `ReplayBookComplete` set to false if absent, the menu disabled, and either the same dialog (when
+`ReplayCompletedChapters` exists and `ReplayBookComplete` is false) or the state-9 curtain, which opens the
+`BookSelectScreen` (class at 0x423e50..0x425630, script `bookselectscreen.luc`). The profile's booleans read as false when
+the key is missing (0x47aca0 with its flag: the port's `ProfileBool`).
+
 ## Bound methods of Volume 2's GameApp (the registrations of 0x43a850 against `GameAppLua.cpp`)
 
 Missing: the transitions `DoReplayToHOFTransition`, `DoCSToMiniMenuTransition` and `DoHighScoreScreenFromReplay`, and four

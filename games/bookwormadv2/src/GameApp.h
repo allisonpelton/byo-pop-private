@@ -69,7 +69,10 @@ public:
 		TRANSITION_TREASURE = 5,       // the treasure screen's continue
 		TRANSITION_TO_MENU = 7,        // from the book back to the main menu (6 is the same)
 		TRANSITION_NEW_GAME = 8,       // from the main menu to the book
-		TRANSITION_TITLE_CURTAIN = 9,  // the title screen's: the callback when closed
+		// not ported yet (0x442700, the original's CurtainDone): 9 is the replay of a finished adventure, whose closed curtain
+		// shows the BookSelectScreen; 10 is the book chosen on it (ReplayCurrentBook); 12 is the Hall of Fame from a replay
+		// (0x443a40); 11 and 13 are not set by the game's code
+		TRANSITION_TITLE_CURTAIN = 14, // the title screen's: the callback when closed (0x442430)
 	};
 
 	// port: the loading thread runs in steps between frames (LoadingStep)
