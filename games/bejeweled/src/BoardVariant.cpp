@@ -67,7 +67,8 @@ void Board::InitVariant(WinDMApp* theApp)
 		// (stage 5): its default "gameOver" and "fallOut" are the original branches. Not mInvalid: keeping a
 		// swap is no default rule. The gravity paths too (stage 7c): the rules still say "down", so GravityUp()
 		// is false and the flip and the GetPieceAt guard stay off. The dirt paths too (stage 7b): without dirt
-		// cells RefillDiagonal is RefillMasked's passes, draw for draw, and no slide or layer applies.
+		// cells RefillDiagonal is RefillMasked's passes, draw for draw, and no slide or layer applies. The input layer
+		// of twists and slides too (stage 10): with swaps alone it leaves every press, drag and release to the original.
 		mVariant.mShape = true;
 		mVariant.mMatch = true;
 		mVariant.mSearch = true;
@@ -77,6 +78,7 @@ void Board::InitVariant(WinDMApp* theApp)
 		mVariant.mFall = true;
 		mVariant.mChecker = true;
 		mVariant.mDirt = true;
+		mVariant.mMoves = true;
 	}
 	// look.soundPitch (4.16): every sound the app plays while this board is the game's; the next board sets its own
 	if (theApp->mSoundManager != NULL)
@@ -96,6 +98,17 @@ void Board::InitVariant(WinDMApp* theApp)
 	mDirtTiles[0] = NULL;
 	mDirtTiles[1] = NULL;
 	mDirtTilesLevel = -1;
+	mMoveInPlay = MoveSet::Move();
+	mMoveTick = 0;
+	mSlideFrom = 0;
+	mSlideTo = 0;
+	mPressCol = -1;
+	mPressRow = -1;
+	mPressTwist = false;
+	mDragAxis = -1;
+	mDragOffset = 0;
+	mDragStart = 0;
+	mDragLength = 0;
 
 	// The RNG source WinDMApp::NewGame chose (WinDMApp::ChooseBoardRng), taken once: a board made any other
 	// way draws from the global stream
@@ -369,11 +382,44 @@ bool Board::NoHintVariant()
 	return mVariant.mInvalid && (mState == STATE_PLAYING) && !FindMove(NULL, 0, true, true);
 }
 
-// The quick instructions (WinDMApp::ShowInstructionsDialog, 2.6): INSTRUCTIONDIALOG, or with a gravity rule
-// (4.16) INSTRUCTIONDIALOG_TWILIGHT ("alternate") or _GRAVITY_UP. The engine's English defaults; a mod's strings
-// override them.
+// Stage 10: a board with twists or slides names its move types in the instructions (InstructionsText,
+// FullInstructionsText): the string id's suffix ("TWIST", "SWAP_SLIDE", ...), and the English default of how to make
+// each, joined into one phrase ("swap neighbouring gems, click where four gems meet to turn them or drag ...")
+static void MoveTypesText(const GameRules& theRules, std::string* theSuffix, SexyString* thePhrase)
+{
+	static const int aTypes[3] = {GameRules::MOVE_SWAP, GameRules::MOVE_TWIST, GameRules::MOVE_SLIDE};
+	static const char* const aNames[3] = {"SWAP", "TWIST", "SLIDE"};
+	std::vector<SexyString> aParts;
+	for (int i = 0; i < 3; i++)
+	{
+		if (!(theRules.mMoves.mTypes & aTypes[i]))
+			continue;
+		*theSuffix += std::string(theSuffix->empty() ? "" : "_") + aNames[i];
+		if (aTypes[i] == GameRules::MOVE_SWAP)
+			aParts.push_back(_S("swap neighbouring gems"));
+		else if (aTypes[i] == GameRules::MOVE_TWIST)
+			aParts.push_back(theRules.mMoves.mTwistBoth ? _S("click where four gems meet to turn them (right-click: the other way)") :
+				_S("click where four gems meet to turn them"));
+		else
+			aParts.push_back(_S("drag a row or a column to slide it"));
+	}
+	for (size_t i = 0; i < aParts.size(); i++)
+		*thePhrase += ((i == 0) ? _S("") : (i + 1 == aParts.size()) ? _S(" or ") : _S(", ")) + aParts[i];
+}
+
+// The quick instructions (WinDMApp::ShowInstructionsDialog, 2.6): INSTRUCTIONDIALOG; with twists or slides (stage
+// 10) INSTRUCTIONDIALOG_ and the move types (MoveTypesText); else with a gravity rule (4.16)
+// INSTRUCTIONDIALOG_TWILIGHT ("alternate") or _GRAVITY_UP. The engine's English defaults; a mod's strings override
+// them.
 SexyString Board::InstructionsText()
 {
+	if (mVariant.mMoves && (mRules.mMoves.mTypes != GameRules::MOVE_SWAP))
+	{
+		std::string aSuffix;
+		SexyString aPhrase;
+		MoveTypesText(mRules, &aSuffix, &aPhrase);
+		return mApp->GetString("INSTRUCTIONDIALOG_" + aSuffix, _S("Line up 3 or more gems of a kind: ") + aPhrase + _S("."));
+	}
 	int aDirection = mVariant.mGravity ? mRules.mBoard.mGravity : GameRules::GRAVITY_DOWN;
 	if (aDirection == GameRules::GRAVITY_ALTERNATE)
 		return mApp->GetString("INSTRUCTIONDIALOG_TWILIGHT", _S("Line up 3 or more gems by swapping neighbours. Gravity turns over after every move!"));
@@ -385,12 +431,26 @@ SexyString Board::InstructionsText()
 // Help (WinDMApp::ShowFullInstructionsDialog) with a gravity rule (4.16): the first paragraph of theText (the
 // game's FULL_INSTRUCTIONS2, whose first paragraph has new gems drop in from above) gives way to
 // FULL_INSTRUCTIONS_TWILIGHT or _GRAVITY_UP, of about its length, so the dialog keeps its size; the other
-// paragraphs stay. English defaults; a mod's strings override them.
+// paragraphs stay. With twists or slides (stage 10) it is FULL_INSTRUCTIONS_ and the move types (MoveTypesText),
+// with the gravity's new gems. English defaults; a mod's strings override them.
 SexyString Board::FullInstructionsText(const SexyString& theText)
 {
 	int aDirection = mVariant.mGravity ? mRules.mBoard.mGravity : GameRules::GRAVITY_DOWN;
 	SexyString aFirst;
-	if (aDirection == GameRules::GRAVITY_ALTERNATE)
+	if (mVariant.mMoves && (mRules.mMoves.mTypes != GameRules::MOVE_SWAP))
+	{
+		std::string aSuffix;
+		SexyString aPhrase;
+		MoveTypesText(mRules, &aSuffix, &aPhrase);
+		SexyString aTitle;
+		for (size_t i = 0; i < aSuffix.size(); i++)
+			aTitle += (aSuffix[i] == '_') ? _S(" AND ") : SexyString(1, (SexyChar) aSuffix[i]);
+		const SexyChar* aNewGems = (aDirection == GameRules::GRAVITY_ALTERNATE) ? _S("new gems fall in from above and rise from below by turns") :
+			(aDirection == GameRules::GRAVITY_UP) ? _S("new gems rise in from below") : _S("new gems fall in from above");
+		aFirst = mApp->GetString("FULL_INSTRUCTIONS_" + aSuffix, aTitle + _S(" - Line up 3 or more gems of a kind: ") + aPhrase +
+			_S(". They vanish and score, and ") + aNewGems + _S(". Fill the Bonus Bar to reach the next level, where matches score more."));
+	}
+	else if (aDirection == GameRules::GRAVITY_ALTERNATE)
 		aFirst = mApp->GetString("FULL_INSTRUCTIONS_TWILIGHT", _S("TWILIGHT - Swap neighbouring gems to line up 3 or more of a kind: ")
 			_S("they vanish and score. Gravity turns over after every move, so one move's new gems fall in from above ")
 			_S("and the next move's rise from below. Fill the Bonus Bar to reach the next level, where matches score more."));
@@ -786,16 +846,16 @@ VariantFlags Board::ComputeVariantFlags(const GameRules& theRules, const GameFea
 		aFlags.mScaled = aFlags.mScaled || (theRules.LayoutForLevel(aLevel).mExtent > BoardLayout::VIEW_SIZE);
 
 	// The tutorial looks for a horizontal 3-run swap to the right in rows 4..6, columns 1..6, and its text is about
-	// rows of three: it is off on a board without such cells, with runs of another length or with diagonals (stage 9).
-	// The board swaps whatever moves.type says (AddBuildWarnings), so that joins this test in the stage that plays it
-	// (10), not before; a stage 1 mod set with twists kept the tutorial (oracle case rules_inert)
+	// rows of three: it is off on a board without such cells, with runs of another length or with diagonals (stage 9),
+	// and on a board with moves other than swaps (stage 10): its arrows show a swap, and FillBoardWithMove's board
+	// has a move of the rules' types
 	bool canTutorial = (aFirst.mCols >= 8) && (aFirst.mRows >= 7);
 	for (int aRow = 4; (aRow <= 6) && canTutorial; aRow++)
 	{
 		for (int aCol = 0; aCol < 8; aCol++)
 			canTutorial = canTutorial && aFirst.IsPlayable(aCol, aRow);
 	}
-	aFlags.mNoTutorial = !canTutorial || (aMatch.mMinRun != 3) || aMatch.mDiagonal;
+	aFlags.mNoTutorial = !canTutorial || (aMatch.mMinRun != 3) || aMatch.mDiagonal || hasNonSwapMoves;
 
 	aFlags.mSpecials = hasSpecials;
 	aFlags.mGold = theRules.mGold.mEnabled;

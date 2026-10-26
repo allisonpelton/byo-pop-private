@@ -498,6 +498,7 @@ void Board::MouseDown(int x, int y, int theClickCount)
 
 	if (mState == STATE_GAME_OVER || mState == STATE_GAME_OVER_DONE || mState == STATE_BLACK_HOLE || mState == STATE_LEVEL_WIPE)
 		return;
+	if (mVariant.mMoves && MouseDownVariant(x, y, theClickCount)) return; // port(variant): twists and slides (BoardMoves.cpp)
 
 	if (theClickCount <= 0)
 	{
@@ -556,6 +557,7 @@ void Board::MouseUp(int x, int y, int theClickCount)
 {
 	if (mPlaybackOnly) return; // port(variant)
 	mMouseDown = false;
+	if (mVariant.mMoves) MouseUpVariant(x, y); // port(variant): a slide, or a twist the press left for the release (BoardMoves.cpp)
 }
 
 // 0x4ca8c1
@@ -563,6 +565,7 @@ void Board::MouseDrag(int x, int y)
 {
 	if (mPlaybackOnly) return; // port(variant)
 	if (mVariant.mScaled) mLayout.ToLogical(&x, &y); // port(variant)
+	if (mVariant.mMoves && MouseDragVariant(x, y)) return; // port(variant): a slide's drag (BoardMoves.cpp)
 	if (!mMouseDown || mSelectedPiece == NULL || mState != STATE_PLAYING)
 		return;
 

@@ -24,6 +24,8 @@ void ReplayRecorder::AfterUpdate() { Unreachable("AfterUpdate"); }
 void ReplayRecorder::OnSelect(Piece* thePiece) { Unreachable("OnSelect"); }
 void ReplayRecorder::OnDeselect() { Unreachable("OnDeselect"); }
 void ReplayRecorder::OnTarget(Piece* thePiece) { Unreachable("OnTarget"); }
+void ReplayRecorder::OnTwist(int theCol, int theRow, int theDir) { Unreachable("OnTwist"); }
+void ReplayRecorder::OnSlide(int theAxis, int theLine, int theStart, int theK, int theOffset) { Unreachable("OnSlide"); }
 void ReplayRecorder::OnHint() { Unreachable("OnHint"); }
 void ReplayRecorder::OnUndo() { Unreachable("OnUndo"); }
 void ReplayRecorder::OnPause(bool theUserPause) { Unreachable("OnPause"); }

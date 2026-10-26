@@ -19,6 +19,7 @@
 
 #include "GameRules.h"
 #include "MatchFinder.h"
+#include "MoveSet.h"
 #include "Sha256.h"
 #include "MTRand.h"
 #include "Replay.h"
@@ -1358,8 +1359,8 @@ static void TestReplayFormat()
 	bool isRead = Replay::Read(aBytes, &aRead, &anError);
 	Check(isRead && SameFile(aFile, aRead, &aWhat), "replay: write, read: every record and op as written (" + anError + aWhat + ")");
 	Check(isRead && (Replay::Write(aRead) == aBytes), "replay: read, write: the same bytes");
-	Check((Replay::CountMoves(aRead.mSegments[0]) == 1) && (Replay::CountMoves(aRead.mSegments[1]) == 0),
-		"replay: CountMoves counts the TARGETs that name a cell");
+	Check((Replay::CountMoves(aRead.mSegments[0]) == 3) && (Replay::CountMoves(aRead.mSegments[1]) == 0),
+		"replay: CountMoves counts the TARGETs that name a cell, the TWISTs and the SLIDEs");
 	bool areCounted = true;
 	for (int anOp = 1; anOp < Replay::NUM_OPS; anOp++)
 		areCounted = areCounted && (Replay::OpArgCount(anOp) >= 0) && (strcmp(Replay::OpName(anOp), "?") != 0);
@@ -1367,9 +1368,9 @@ static void TestReplayFormat()
 		"replay: every op 1..15 has a name and an argument count, 0 and 16 none");
 
 	// A golden vector: the smallest file (header and END) and a one-segment file, byte for byte, the same on
-	// native and wasm (engine ABI 6 since stage 9)
+	// native and wasm (engine ABI 7 since stage 10)
 	Replay::File anEmpty;
-	Check(Hex(Replay::Write(anEmpty)) == "424a5250010000000600000045" "4e4420" "1d000000" "00" "00000000" "00000000" "00000000"
+	Check(Hex(Replay::Write(anEmpty)) == "424a5250010000000700000045" "4e4420" "1d000000" "00" "00000000" "00000000" "00000000"
 		"00000000" "0000000000000000" "00000000", "replay: golden bytes of a file with only END");
 	Replay::File aSmall;
 	Replay::Segment aSegment;
@@ -1380,7 +1381,7 @@ static void TestReplayFormat()
 	aSmall.mEnd.mReason = Replay::END_NO_MOVES;
 	aSmall.mEnd.mScore = 90;
 	std::string aSmallHex = Hex(Replay::Write(aSmall));
-	Check(aSmallHex == "424a52500100000006000000" "5345474d" "1d000000" "00" "00" "92100000" "00" "00" "00000000" "00000000"
+	Check(aSmallHex == "424a52500100000007000000" "5345474d" "1d000000" "00" "00" "92100000" "00" "00" "00000000" "00000000"
 		"02000000" "a001" "01" "0a" "0a" "01" "03" "01" "01"
 		"454e4420" "1d000000" "01" "00000000" "5a000000" "00000000" "00000000" "0000000000000000" "00000000",
 		"replay: golden bytes of a one-segment file (got " + aSmallHex + ")");
@@ -1819,7 +1820,12 @@ static void TestReplayPlayable()
 		{"SAVE hash 2^32", [](Replay::File* f) { f->mSegments[0].mEvents[6].mArgs[1] = 0x100000000ll; }},
 		{"XRAND 0", [](Replay::File* f) { f->mSegments[1].mEvents[4].mArgs[0] = 0; }},
 		{"XRAND past MAX_XRAND", [](Replay::File* f) { f->mSegments[1].mEvents[4].mArgs[0] = Replay::MAX_XRAND + 1; }},
-		{"a TWIST", [](Replay::File* f) { f->mSegments[0].mEvents[2] = MakeEvent(161, Replay::OP_TWIST, 3, 3, 1); }},
+		{"a TWIST off the board", [](Replay::File* f) { f->mSegments[0].mEvents[2] = MakeEvent(161, Replay::OP_TWIST, 7, 3, 1); }},
+		{"a TWIST of direction 2", [](Replay::File* f) { f->mSegments[0].mEvents[2] = MakeEvent(161, Replay::OP_TWIST, 3, 3, 2); }},
+		{"a SLIDE of k 0", [](Replay::File* f) { f->mSegments[0].mEvents[2] = MakeEvent(161, Replay::OP_SLIDE, 0, 3, 0, 0, 0); }},
+		{"a SLIDE of axis 2", [](Replay::File* f) { f->mSegments[0].mEvents[2] = MakeEvent(161, Replay::OP_SLIDE, 2, 3, 0, 1, 51); }},
+		{"a SLIDE past the line", [](Replay::File* f) { f->mSegments[0].mEvents[2] = MakeEvent(161, Replay::OP_SLIDE, 1, 3, 0, 8, 51); }},
+		{"a SLIDE offset past the line", [](Replay::File* f) { f->mSegments[0].mEvents[2] = MakeEvent(161, Replay::OP_SLIDE, 0, 3, 0, 1, 409); }},
 		{"a CHECK at tick 0", [](Replay::File* f) { f->mSegments[1].mEvents[0] = MakeEvent(0, Replay::OP_CHECK, 1); }},
 		{"a LOAD after tick 0", [](Replay::File* f) { f->mSegments[1].mEvents[2].mTick = 1; }},
 		{"two LOADs", [](Replay::File* f) { f->mSegments[1].mEvents[1] = MakeEvent(0, Replay::OP_LOAD); }},
@@ -1849,6 +1855,14 @@ static void TestReplayPlayable()
 	anUndo.mSegments[0].mEvents[2] = MakeEvent(161, Replay::OP_UNDO);
 	aWhy.clear();
 	Check(Replay::CheckPlayable(anUndo, 8, 8, &aWhy), "playable: an UNDO (" + aWhy + ")");
+	// Stage 10 plays TWIST and SLIDE, with variant rules (the rules' move types and the board's cells are
+	// WatchController's to check: Board::CanTwist, CanSlide)
+	Replay::File aMoves = PlayableReplay();
+	aMoves.mSegments[0].mEvents[2] = MakeEvent(161, Replay::OP_TWIST, 6, 6, -1);
+	aMoves.mSegments[0].mEvents.insert(aMoves.mSegments[0].mEvents.begin() + 3, MakeEvent(161, Replay::OP_SLIDE, 1, 7, 0, 7, -408));
+	aWhy.clear();
+	Check(Replay::CheckPlayable(aMoves, 8, 8, &aWhy), "playable: a TWIST and a SLIDE (" + aWhy + ")");
+	Check(!Replay::CheckPlayable(aMoves, 8, 8, &aWhy, true) && !aWhy.empty(), "playable: refused: a TWIST under the original rules (" + aWhy + ")");
 
 	// What makes it playable again: the first segment's save comes with it (LDSV), then it may LOAD
 	Replay::File aFresh = PlayableReplay();
@@ -1883,8 +1897,8 @@ static void TestReplayPlayable()
 	anOld.mEngineAbi = 0;
 	Check(!Replay::CheckPlayable(anOld, 8, 8, &aWhy, true), "playable: refused: engine 0");
 	// Stage 7: engine 3 (the board shape rules); stage 7b: engine 4 (dirt); stage 8: engine 5 (more gem colours); stage 9:
-	// engine 6 (the match rules). An earlier engine's replays of variant rules no longer play, its replays of the
-	// original rules do
+	// engine 6 (the match rules); stage 10: engine 7 (twists and slides). An earlier engine's replays of variant rules
+	// no longer play, its replays of the original rules do
 	for (uint32_t anAbi = 2; anAbi < (uint32_t) Replay::ENGINE_ABI; anAbi++)
 	{
 		anOld.mEngineAbi = anAbi;
@@ -1892,7 +1906,7 @@ static void TestReplayPlayable()
 		Check(Replay::CheckPlayable(anOld, 8, 8, &aWhy, true), "playable: the original rules recorded by engine " + std::to_string(anAbi) + " (" + aWhy + ")");
 		Check(!Replay::CheckPlayable(anOld, 8, 8, &aWhy, false), "playable: refused: variant rules recorded by engine " + std::to_string(anAbi));
 	}
-	Check(Replay::ENGINE_ABI == 6, "playable: this is engine 6 (stage 9)");
+	Check(Replay::ENGINE_ABI == 7, "playable: this is engine 7 (stage 10)");
 }
 
 // A v2 save (Replay.h, games/bejeweled/docs/CODE_MODS_DESIGN.md 7.2) around the v1 test save's fields: the rules
@@ -2333,6 +2347,248 @@ static void TestMatchFinder()
 	Check(aMoveMismatches == 0, "match finder: InGroup at default rules is the original FindMove's test (" + std::to_string(aMoveMismatches) + " differ)");
 }
 
+// Stage 10 (4.4, 4.5, 4.7): MoveSet's moves, and its search against a brute force that makes every candidate on a
+// copy of the grid and asks FindGroups, in the order MoveSet.h gives
+static std::string FoundText(const MoveSet::Found& f)
+{
+	const MoveSet::Move& m = f.mMove;
+	return std::to_string(m.mType) + ":" + std::to_string(m.mA) + "," + std::to_string(m.mB) + "," + std::to_string(m.mC) + "," +
+		std::to_string(m.mD) + "," + std::to_string(m.mE) + " to " + std::to_string(f.mTo.first) + "," + std::to_string(f.mTo.second) +
+		" from " + std::to_string(f.mFrom.first) + "," + std::to_string(f.mFrom.second);
+}
+
+static std::vector<MoveSet::Found> BruteMoves(const MatchFinder::ColorGrid& theGrid, const BoardLayout& theLayout,
+	const MatchFinder::Spec& theSpec, int theTypes, bool theTwistBoth)
+{
+	std::vector<MoveSet::Found> aMoves;
+	std::vector<MatchFinder::Group> aGroups;
+	// The first of the moved gems (from theFrom[i] to theTo[i]) in a group of theMoved
+	auto aLanding = [&](const MatchFinder::ColorGrid& theMoved, const std::vector<MatchFinder::Cell>& theFrom,
+		const std::vector<MatchFinder::Cell>& theTo, MoveSet::Found* theFound) -> bool
+	{
+		MatchFinder::FindGroups(theMoved, theSpec, &aGroups);
+		for (size_t i = 0; i < theTo.size(); i++)
+		{
+			for (const MatchFinder::Group& g : aGroups)
+			{
+				if (g.Contains(theTo[i].first, theTo[i].second))
+				{
+					theFound->mTo = theTo[i];
+					theFound->mFrom = theFrom[i];
+					return true;
+				}
+			}
+		}
+		return false;
+	};
+	auto aGem = [&](int c, int r) { return theLayout.IsPlayable(c, r) && (theGrid.At(c, r) != MatchFinder::NO_GEM); };
+	if (theTypes & GameRules::MOVE_SWAP)
+	{
+		const int aDirs[4][2] = {{1, 0}, {-1, 0}, {0, 1}, {0, -1}};
+		for (int r = 0; r < theGrid.mRows; r++)
+			for (int c = 0; c < theGrid.mCols; c++)
+				for (int d = 0; d < 4; d++)
+				{
+					int c2 = c + aDirs[d][0];
+					int r2 = r + aDirs[d][1];
+					if ((theGrid.At(c, r) == MatchFinder::NO_GEM) || (theGrid.At(c2, r2) == MatchFinder::NO_GEM))
+						continue;
+					MatchFinder::ColorGrid aMoved = theGrid;
+					std::swap(aMoved.mColor[r][c], aMoved.mColor[r2][c2]);
+					MoveSet::Found f;
+					f.mMove.mType = GameRules::MOVE_SWAP;
+					f.mMove.mA = c;
+					f.mMove.mB = r;
+					f.mMove.mC = c2;
+					f.mMove.mD = r2;
+					// a swap counts at its first cell only, the gem it brings there (the original's test)
+					if (aLanding(aMoved, {MatchFinder::Cell(c2, r2)}, {MatchFinder::Cell(c, r)}, &f))
+						aMoves.push_back(f);
+				}
+	}
+	if (theTypes & GameRules::MOVE_TWIST)
+	{
+		for (int r = 0; r + 1 < theGrid.mRows; r++)
+			for (int c = 0; c + 1 < theGrid.mCols; c++)
+			{
+				if (!aGem(c, r) || !aGem(c + 1, r) || !aGem(c, r + 1) || !aGem(c + 1, r + 1))
+					continue;
+				std::vector<MatchFinder::Cell> aCorners = {{c, r}, {c + 1, r}, {c + 1, r + 1}, {c, r + 1}};
+				for (int aDir = 1; aDir >= (theTwistBoth ? -1 : 1); aDir -= 2)
+				{
+					MatchFinder::ColorGrid aMoved = theGrid;
+					std::vector<MatchFinder::Cell> aTo;
+					for (int i = 0; i < 4; i++)
+					{
+						MatchFinder::Cell aDest = aCorners[(i + 4 + aDir) % 4];
+						aMoved.mColor[aDest.second][aDest.first] = theGrid.mColor[aCorners[i].second][aCorners[i].first];
+						aTo.push_back(aDest);
+					}
+					MoveSet::Found f;
+					f.mMove.mType = GameRules::MOVE_TWIST;
+					f.mMove.mA = c;
+					f.mMove.mB = r;
+					f.mMove.mC = aDir;
+					if (aLanding(aMoved, aCorners, aTo, &f))
+						aMoves.push_back(f);
+				}
+			}
+	}
+	if (theTypes & GameRules::MOVE_SLIDE)
+	{
+		for (int anAxis = 0; anAxis < 2; anAxis++)
+		{
+			int aLines = anAxis ? theGrid.mCols : theGrid.mRows;
+			int aLength = anAxis ? theGrid.mRows : theGrid.mCols;
+			for (int aLine = 0; aLine < aLines; aLine++)
+			{
+				auto aCell = [&](int i) { return anAxis ? MatchFinder::Cell(aLine, i) : MatchFinder::Cell(i, aLine); };
+				for (int aStart = 0; aStart < aLength; )
+				{
+					if (!theLayout.IsPlayable(aCell(aStart).first, aCell(aStart).second))
+					{
+						aStart++;
+						continue;
+					}
+					int anEnd = aStart;
+					bool isFull = true;
+					while ((anEnd < aLength) && theLayout.IsPlayable(aCell(anEnd).first, aCell(anEnd).second))
+					{
+						isFull = isFull && aGem(aCell(anEnd).first, aCell(anEnd).second);
+						anEnd++;
+					}
+					int n = anEnd - aStart;
+					for (int k = 1; isFull && (k < n); k++)
+					{
+						MatchFinder::ColorGrid aMoved = theGrid;
+						std::vector<MatchFinder::Cell> aFrom;
+						std::vector<MatchFinder::Cell> aTo;
+						for (int i = 0; i < n; i++)
+						{
+							MatchFinder::Cell s = aCell(aStart + i);
+							MatchFinder::Cell t = aCell(aStart + (i + k) % n);
+							aMoved.mColor[t.second][t.first] = theGrid.mColor[s.second][s.first];
+							aFrom.push_back(s);
+							aTo.push_back(t);
+						}
+						MoveSet::Found f;
+						f.mMove.mType = GameRules::MOVE_SLIDE;
+						f.mMove.mA = anAxis;
+						f.mMove.mB = aLine;
+						f.mMove.mC = aStart;
+						f.mMove.mD = n;
+						f.mMove.mE = k;
+						if (aLanding(aMoved, aFrom, aTo, &f))
+							aMoves.push_back(f);
+					}
+					aStart = anEnd;
+				}
+			}
+		}
+	}
+	return aMoves;
+}
+
+static void TestMoveSet()
+{
+	// The moves' cells: a clockwise twist takes the top left gem to the top right, a slide wraps in its segment
+	MoveSet::Move aTwist;
+	aTwist.mType = GameRules::MOVE_TWIST;
+	aTwist.mA = 1;
+	aTwist.mB = 2;
+	aTwist.mC = 1;
+	MatchFinder::ColorGrid aGrid = Grid({"abcd", "efgh", "ijkl", "mnop"});
+	MoveSet::Apply(aGrid.mColor, aTwist);
+	Check((aGrid.mColor[2][1] == 'n' - 'a') && (aGrid.mColor[2][2] == 'j' - 'a') && (aGrid.mColor[3][2] == 'k' - 'a') &&
+		(aGrid.mColor[3][1] == 'o' - 'a'), "move set: a clockwise twist turns the block on screen");
+	aTwist.mC = -1;
+	MoveSet::Apply(aGrid.mColor, aTwist);
+	Check((aGrid.mColor[2][1] == 'j' - 'a') && (aGrid.mColor[3][2] == 'o' - 'a'), "move set: an anticlockwise twist turns it back");
+	MoveSet::Move aSlide;
+	aSlide.mType = GameRules::MOVE_SLIDE;
+	aSlide.mA = MoveSet::AXIS_COL;
+	aSlide.mB = 3;
+	aSlide.mC = 1;
+	aSlide.mD = 3;
+	aSlide.mE = 2;
+	MoveSet::Apply(aGrid.mColor, aSlide);
+	Check((aGrid.mColor[0][3] == 'd' - 'a') && (aGrid.mColor[3][3] == 'h' - 'a') && (aGrid.mColor[1][3] == 'l' - 'a') &&
+		(aGrid.mColor[2][3] == 'p' - 'a'), "move set: a slide of 2 down a 3-cell segment wraps inside it");
+	int aCos = 0;
+	int aSin = 0;
+	MoveSet::TwistCosSin(9, &aCos, &aSin);
+	Check((aCos == 724) && (aSin == 724), "move set: cos and sin of 45 degrees");
+	MoveSet::TwistCosSin(MoveSet::TWIST_STEPS, &aCos, &aSin);
+	Check((aCos == 0) && (aSin == 1024), "move set: cos and sin of 90 degrees");
+	BoardLayout aHoled;
+	aHoled.SetMask(5, 1, {"##.##"});
+	int aStart = 0;
+	int aLength = 0;
+	Check(MoveSet::SegmentAt(aHoled, MoveSet::AXIS_ROW, 4, 0, &aStart, &aLength) && (aStart == 3) && (aLength == 2) &&
+		!MoveSet::SegmentAt(aHoled, MoveSet::AXIS_ROW, 2, 0, &aStart, &aLength), "move set: a hole splits a row into segments");
+
+	// Random grids on random masks, every type set and twist direction, a few match specs: the search is the brute
+	// force's, the n-th move FindMove's, and with swaps alone stage 9's (the brute force's first part)
+	std::vector<MatchFinder::Spec> aSpecs = {MatchFinder::Spec::FromRules(GameRules()), MatchSpec("{\"minRun\": 4}"),
+		MatchSpec("{\"diagonal\": true, \"crossings\": \"merge\", \"shapes\": {\"sq\": {\"preset\": \"square\"}}}")};
+	MTRand aRand(10010);
+	int aMismatches = 0;
+	int aFound[8] = {};
+	for (int aTrial = 0; aTrial < 300; aTrial++)
+	{
+		int aCols = 2 + (int) aRand.Next(8UL);
+		int aRows = 2 + (int) aRand.Next(8UL);
+		std::vector<std::string> aMask(aRows, std::string(aCols, '#'));
+		for (int r = 0; r < aRows; r++)
+			for (int c = 0; c < aCols; c++)
+				aMask[r][c] = (aRand.Next(8UL) == 0) ? '.' : '#';
+		BoardLayout aLayout;
+		aLayout.SetMask(aCols, aRows, aMask);
+		MatchFinder::ColorGrid aRandom;
+		aRandom.mCols = aCols;
+		aRandom.mRows = aRows;
+		int aColors = 3 + (int) aRand.Next(4UL);
+		for (int r = 0; r < aRows; r++)
+			for (int c = 0; c < aCols; c++)
+				aRandom.mColor[r][c] = (aMask[r][c] == '.') ? (int) MatchFinder::NO_GEM : (int) aRand.Next((unsigned long) aColors);
+		for (const MatchFinder::Spec& aSpec : aSpecs)
+		{
+			for (int aTypes = 1; aTypes < 8; aTypes++)
+			{
+				for (int aBoth = 0; aBoth < 2; aBoth++)
+				{
+					MoveSet::Options anOptions;
+					anOptions.mTypes = aTypes;
+					anOptions.mTwistBoth = (aBoth != 0);
+					std::vector<MoveSet::Found> aMoves;
+					MoveSet::FindMoves(aRandom, aLayout, aSpec, anOptions, &aMoves);
+					std::vector<MoveSet::Found> aBrute = BruteMoves(aRandom, aLayout, aSpec, aTypes, aBoth != 0);
+					bool isSame = (aMoves.size() == aBrute.size());
+					for (size_t i = 0; isSame && (i < aMoves.size()); i++)
+						isSame = (FoundText(aMoves[i]) == FoundText(aBrute[i]));
+					MoveSet::Found aNth;
+					for (size_t i = 0; isSame && (i < aMoves.size()); i += 1 + i / 3)
+						isSame = MoveSet::FindMove(aRandom, aLayout, aSpec, anOptions, (int) i, &aNth) && (FoundText(aNth) == FoundText(aMoves[i]));
+					isSame = isSame && !MoveSet::FindMove(aRandom, aLayout, aSpec, anOptions, (int) aMoves.size(), NULL);
+					if (!isSame)
+					{
+						if (aMismatches++ == 0)
+							printf("move set: trial %d, types %d, both %d: %d moves, the brute force %d; first %s vs %s\n", aTrial, aTypes, aBoth,
+								(int) aMoves.size(), (int) aBrute.size(), aMoves.empty() ? "-" : FoundText(aMoves[0]).c_str(),
+								aBrute.empty() ? "-" : FoundText(aBrute[0]).c_str());
+					}
+					for (const MoveSet::Found& f : aMoves)
+						aFound[f.mMove.mType]++;
+				}
+			}
+		}
+	}
+	Check(aMismatches == 0, "move set: the search is the brute force's on random grids (" + std::to_string(aMismatches) + " differ)");
+	Check((aFound[GameRules::MOVE_SWAP] > 1000) && (aFound[GameRules::MOVE_TWIST] > 1000) && (aFound[GameRules::MOVE_SLIDE] > 1000),
+		"move set: the random grids have moves of each type (" + std::to_string(aFound[1]) + " swaps, " + std::to_string(aFound[2]) +
+		" twists, " + std::to_string(aFound[4]) + " slides)");
+}
+
 int main(int argc, char** argv)
 {
 	for (int i = 1; i < argc; i++)
@@ -2353,6 +2609,7 @@ int main(int argc, char** argv)
 	TestValidation();
 	TestFillMinimum();
 	TestMatchFinder();
+	TestMoveSet();
 	TestGravity();
 	TestDirt();
 	TestDesignExamples();

@@ -21,6 +21,60 @@ void BoardTracer::AfterUpdate(Board* theBoard, int theUpdate)
 		PrintBoardTrace(theBoard, theUpdate);
 }
 
+// port(variant): the move lines of a board with twists or slides (stage 10, games/bejeweled/docs/CODE_MODS_DESIGN.md
+// 4.7), in MoveSet's order: a swap's as before; a twist's block, its direction, where the gem that makes the group
+// lands and comes from, and the click (a right click anticlockwise) on the point where the four gems meet; a slide's
+// line, its segment, k and that gem, and a drag along the segment that makes it (from a cell's centre k cells on, or
+// length - k back when that is shorter). The points are screen positions, as the swaps' clicks.
+static void PrintVariantMoves(Board* theBoard)
+{
+	const BoardLayout& aLayout = theBoard->mLayout;
+	auto aScreen = [&](int* thePoint)
+	{
+		if (theBoard->mVariant.mScaled)
+		{
+			thePoint[0] = (int)floor(aLayout.ToScreenX(thePoint[0]) + 0.5);
+			thePoint[1] = (int)floor(aLayout.ToScreenY(thePoint[1]) + 0.5);
+		}
+	};
+	std::vector<MoveSet::Found> aMoves;
+	theBoard->FindVariantMoves(&aMoves);
+	for (size_t i = 0; i < aMoves.size(); i++)
+	{
+		const MoveSet::Found& f = aMoves[i];
+		const MoveSet::Move& m = f.mMove;
+		if (m.mType == GameRules::MOVE_SWAP)
+		{
+			int aClick[2][2] = {{theBoard->GetColX(m.mA) + 24, theBoard->GetRowY(m.mB) + 24}, {theBoard->GetColX(m.mC) + 24, theBoard->GetRowY(m.mD) + 24}};
+			aScreen(aClick[0]);
+			aScreen(aClick[1]);
+			printf("TRACE   move %d: (%d,%d)->(%d,%d) click %d %d then %d %d\n", (int) i, m.mA, m.mB, m.mC, m.mD,
+				aClick[0][0], aClick[0][1], aClick[1][0], aClick[1][1]);
+		}
+		else if (m.mType == GameRules::MOVE_TWIST)
+		{
+			int aClick[2] = {theBoard->GetColX(m.mA + 1) - 1, theBoard->GetRowY(m.mB + 1) - 1};
+			aScreen(aClick);
+			printf("TRACE   move %d: twist (%d,%d) %s lands (%d,%d) from (%d,%d) %s %d %d\n", (int) i, m.mA, m.mB, (m.mC > 0) ? "cw" : "ccw",
+				f.mTo.first, f.mTo.second, f.mFrom.first, f.mFrom.second, (m.mC > 0) ? "click" : "rclick", aClick[0], aClick[1]);
+		}
+		else
+		{
+			bool isRow = (m.mA == MoveSet::AXIS_ROW);
+			bool isBack = (m.mD - m.mE < m.mE);
+			int aFrom = isBack ? m.mC + m.mD - 1 : m.mC;
+			int aTo = isBack ? aFrom - (m.mD - m.mE) : aFrom + m.mE;
+			int aDrag[2][2] = {{theBoard->GetColX(isRow ? aFrom : m.mB) + 24, theBoard->GetRowY(isRow ? m.mB : aFrom) + 24},
+				{theBoard->GetColX(isRow ? aTo : m.mB) + 24, theBoard->GetRowY(isRow ? m.mB : aTo) + 24}};
+			aScreen(aDrag[0]);
+			aScreen(aDrag[1]);
+			printf("TRACE   move %d: slide %s %d from %d length %d by %d lands (%d,%d) from (%d,%d) drag %d %d to %d %d\n", (int) i,
+				isRow ? "row" : "col", m.mB, m.mC, m.mD, m.mE, f.mTo.first, f.mTo.second, f.mFrom.first, f.mFrom.second,
+				aDrag[0][0], aDrag[0][1], aDrag[1][0], aDrag[1][1]);
+		}
+	}
+}
+
 // port(variant): a board with a seed of its own also prints it (a replay's board on the global stream's state has
 // an MTRand of its own, but no seed), and a variant board its variant line. A board of a noMoves "continue" rule
 // can settle without a move: no move lines then.
@@ -77,6 +131,12 @@ void Sexy::PrintBoardTrace(Board* theBoard, int theUpdate)
 	}
 	// The clicks are screen positions: on a scaled board (stage 7) the cell centres scaled into the window
 	const BoardLayout& aLayout = aBoard->mLayout;
+	if (aBoard->mVariant.mMoves)
+	{
+		PrintVariantMoves(aBoard);
+		fflush(stdout);
+		return;
+	}
 	int aMove[4];
 	for (int i = 0; aBoard->FindMove(aMove, i, true, true); i++)
 	{

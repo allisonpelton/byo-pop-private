@@ -362,7 +362,7 @@ int Replay::CountMoves(const Segment& theSegment)
 	for (size_t i = 0; i < theSegment.mEvents.size(); i++)
 	{
 		const Event& anEvent = theSegment.mEvents[i];
-		if ((anEvent.mOp == OP_TARGET) && (anEvent.mArgs[0] >= 0))
+		if (((anEvent.mOp == OP_TARGET) && (anEvent.mArgs[0] >= 0)) || (anEvent.mOp == OP_TWIST) || (anEvent.mOp == OP_SLIDE))
 			aMoves++;
 	}
 	return aMoves;
@@ -926,9 +926,28 @@ bool Replay::CheckPlayable(const File& theFile, int theCols, int theRows, std::s
 				}
 				break;
 			case OP_TWIST:
+				// stage 10: a block inside the board and a direction; whether the rules twist that way, and the four
+				// gems, are the player's gate (WatchController)
+				if (isOriginalRules || (a[0] < 0) || (a[0] + 1 >= theCols) || (a[1] < 0) || (a[1] + 1 >= theRows) || ((a[2] != 1) && (a[2] != -1)))
+				{
+					anErr = anAt + (isOriginalRules ? "a twist under the original rules" : "not a block of the board and a direction 1 or -1");
+					return false;
+				}
+				break;
 			case OP_SLIDE:
-				anErr = anAt + "a move this build does not play";
-				return false;
+				// ... an axis, a line and a cell of it, a k and an offset that a segment of the board can take; its segment
+				// is the player's gate
+				{
+					int64_t aLength = (a[0] == 0) ? theCols : theRows;
+					if (isOriginalRules || ((a[0] != 0) && (a[0] != 1)) || (a[1] < 0) || (a[1] >= ((a[0] == 0) ? theRows : theCols)) ||
+						(a[2] < 0) || (a[2] >= aLength) || (a[3] < 1) || (a[3] >= aLength) ||
+						(a[4] < -aLength * BoardLayout::PITCH) || (a[4] > aLength * BoardLayout::PITCH))
+					{
+						anErr = anAt + (isOriginalRules ? "a slide under the original rules" : "not a slide a line of the board can make");
+						return false;
+					}
+				}
+				break;
 			case OP_UNDO:
 				// stage 6: no arguments; whether the board may undo then is the player's gate (WatchController)
 				break;

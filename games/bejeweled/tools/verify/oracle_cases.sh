@@ -180,9 +180,13 @@ v4_wasm_job() {
 		cp "$script" "$dir/script.txt"
 		args+=("-script=script.txt")
 	fi
+	# wasmrun's own timeout first (exit 4), at 95% of the oracle's: it flushes stdout and writes out the game's files,
+	# hash.txt to the last update, where timeout's kill (exit 124) would leave nothing to see how far a hung run got
+	local aTimeout="${ORACLE_TIMEOUT:-600}"
 	game_slot_take
-	(cd "$dir" && timeout "${ORACLE_TIMEOUT:-600}" "$V4_NODE" "$V4_RUNNER_W" game "$V4_GAMEJS_W" -gamedir="$ASSETS_W" -userdir=user \
-		-modsdir="$modsdir" -seed="$seed" -fast -trace -tracehash=hash.txt "${args[@]}" > stdout.txt 2> stderr.txt; echo $? > exit.txt)
+	(cd "$dir" && timeout "$aTimeout" "$V4_NODE" "$V4_RUNNER_W" game --timeout "$((aTimeout * 19 / 20))" "$V4_GAMEJS_W" \
+		-gamedir="$ASSETS_W" -userdir=user -modsdir="$modsdir" -seed="$seed" -fast -trace -tracehash=hash.txt "${args[@]}" \
+		> stdout.txt 2> stderr.txt; echo $? > exit.txt)
 	game_slot_give
 	echo "$VTAG  candidate $ref.wasm: exit $(cat "$dir/exit.txt")"
 }

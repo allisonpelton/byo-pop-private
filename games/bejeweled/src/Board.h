@@ -15,6 +15,7 @@
 #include "Buffer.h"
 #include "Replay.h"
 #include "MatchFinder.h"
+#include "MoveSet.h"
 #include <list>
 #include <vector>
 
@@ -42,7 +43,12 @@ enum BoardState
 	STATE_GAME_OVER_DONE = 6,   // HighScoreWidget shown; nothing updates
 	STATE_BLACK_HOLE = 7,       // level complete: gems spiral into the vortex (UpdateBlackHole)
 	STATE_LEVEL_WIPE = 8,       // new background wiped in 3 px/tick, then FillBoard (UpdateLevelWipe)
-	STATE_FALL_OUT = 9          // timed mode, no moves: the board falls out and is refilled (UpdateFallOut)
+	STATE_FALL_OUT = 9,         // timed mode, no moves: the board falls out and is refilled (UpdateFallOut)
+	// port(variant): the move rules' twists and slides (stage 10, BoardMoves.cpp), never under the original rules
+	STATE_TWISTING = 10,        // a 2x2 block turns (UpdateTwist)
+	STATE_TWISTING_BACK = 11,   // a twist that made no group turns back
+	STATE_SLIDING = 12,         // a line's gems slide along it (UpdateSlide)
+	STATE_SLIDING_BACK = 13     // a slide that made no group slides back
 };
 
 // Element of Board::mScorePopups (0x14 bytes; std::list node 0x1c).
@@ -285,6 +291,22 @@ public:
 	std::vector<DirtDust> mDirtDust;        // cosmetic, not saved: the dust of the cells cleared lately
 	Image*			mDirtTiles[2];          // the level's checker tiles A and B darkened and tinted brown (DrawDirt)
 	int				mDirtTilesLevel;        // the level mDirtTiles were made for, -1 for none
+	// Twists and slides (stage 10, games/bejeweled/docs/CODE_MODS_DESIGN.md 4.4 and 4.5; BoardMoves.cpp): the move of
+	// states 10..13, hashed and snapshotted only on a board with those moves (mVariant.mMoves). The grid holds the
+	// board before the move in all four states (a move that goes back is undone in the grid when it turns back), so a
+	// save during one is that board in STATE_PLAYING
+	MoveSet::Move	mMoveInPlay;            // the twist or the slide
+	int				mMoveTick;              // its animation's ticks so far: TWIST_STEPS, or moves.slide.snapTicks, in all
+	int				mSlideFrom;             // a slide's offset along its axis at the release (px; cosmetic, from the SLIDE event)
+	int				mSlideTo;               // ... where its animation ends: k cells on, the way round nearest mSlideFrom
+	// The variant input layer (MouseDownVariant ..): not game state, neither hashed nor saved
+	int				mPressCol;              // the cell under the press (-1: none, or not one that can slide)
+	int				mPressRow;
+	bool			mPressTwist;            // the press twists when it ends without a slide (MouseUpVariant)
+	int				mDragAxis;              // -1 until the drag passes 16 px, then the axis of the slide it shows
+	int				mDragOffset;            // the drag along that axis (px, logical): drawn only
+	int				mDragStart;             // the dragged segment's first cell and length
+	int				mDragLength;
 
 public:
 	int				GetColX(int theCol);                            // 0x4c9b25 theCol*51 + 203 (thiscall in the binary, this unused; port(variant): a member, + mLayout.mOriginX)
@@ -400,13 +422,32 @@ public:
 	// Match rules (stage 9, games/bejeweled/docs/CODE_MODS_DESIGN.md 4.6 and 4.7; BoardMatch.cpp)
 	void			FillColorGrid(MatchFinder::ColorGrid* theGrid) const; // each cell's colour, NO_GEM for none
 	bool			HasMatchVariant();                              // HasMatch under the match rules
-	bool			FindMoveVariant(int* theMove, int theMoveNum, bool horizontal, bool vertical); // FindMove under the match rules
+	bool			FindMoveVariant(int* theMove, int theMoveNum, bool horizontal, bool vertical); // FindMove under the match and move rules: {to col, to row, from col, from row}
 	bool			ProcessMatchesVariant();                        // ProcessMatches under the match rules
 	void			ScoreGroup(const MatchFinder::Group& theGroup, int* theAvgX); // ProcessMatchesVariant: one group's points
 	bool			ApplyDirtLayers(const std::vector<uint8_t>& theLayers, std::string* theWhy); // a save's or snapshot's layers onto the level's mask
 	void			DrawDirt(Graphics* g);                          // DrawVariant: the dirt cells, under the gems
 	void			DrawDirtDust(Graphics* g);                      // DrawVariant: the dust of cleared cells, over the gems
 	void			RollScoreFast();                                // Update, before the score roll: a large gap closes fast (mFastScoreRoll)
+	// Twists and slides (stage 10, games/bejeweled/docs/CODE_MODS_DESIGN.md 4.4, 4.5 and 4.7; BoardMoves.cpp)
+	MoveSet::Options MoveOptions(bool horizontal, bool vertical) const; // the rules' move types for MoveSet's search
+	bool			FindVariantMove(MoveSet::Found* theFound, int theMoveNum); // the theMoveNum-th move of every type (MoveSet's order)
+	void			FindVariantMoves(std::vector<MoveSet::Found>* theMoves); // ... all of them
+	static bool		IsVariantMoveState(int theState) { return (theState >= STATE_TWISTING) && (theState <= STATE_SLIDING_BACK); }
+	bool			CanTwist(int theCol, int theRow, int theDir);    // TWIST's gate: the board in play, the block's four gems, the direction allowed
+	bool			CanSlide(int theAxis, int theLine, int theStart, int theK, int theOffset); // SLIDE's gate: ... a whole segment of gems, 1 <= k < its length
+	void			StartTwist(int theCol, int theRow, int theDir); // a twist of the block at (theCol, theRow) after CanTwist (input or a TWIST event)
+	void			StartSlide(int theAxis, int theLine, int theStart, int theK, int theOffset); // a slide after CanSlide (input or a SLIDE event)
+	void			UpdateTwist();                                  // states 10 and 11
+	void			UpdateSlide();                                  // states 12 and 13
+	void			EndVariantMove();                               // SaveGame in states 10..13: the gems back in their cells, STATE_PLAYING
+	bool			MouseDownVariant(int x, int y, int theClickCount); // MouseDown on a board with twists or slides: true when it took the press
+	bool			MouseDragVariant(int x, int y);                 // MouseDrag ...: true when it took the drag
+	void			MouseUpVariant(int x, int y);                   // MouseUp ...: a slide, or a twist the press left pending
+	bool			TwistAt(int x, int y, bool isNearOnly, int* theCol, int* theRow); // the block a click at (x, y) twists (logical)
+	void			DrawMovesUnder(Graphics* g);                    // DrawVariant, with the gems: a slide's line clipped to its segment
+	bool			DrawsSlideCell(int theCol, int theRow);         // ... whose gems the gem loop leaves to it
+	void			DrawMovesOver(Graphics* g);                     // DrawVariant, with the cursor: the twist ring
 
 	// port(variant): every draw of the translated code. Class scope finds it before Sexy::Rand, so the 9
 	// Rand() expressions keep their text; without an own MTRand it is the original global stream, draw for
