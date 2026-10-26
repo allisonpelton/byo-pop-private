@@ -645,9 +645,9 @@ bool GameApp::LoadingStep(unsigned int theDeadline)
 		}
 		case LOADING_LEX:
 			mLex = new Lex(false);
-			if (!mLex->Load("data/defs.bin", "data/compressed.txt")) {
+			if (!mLex->Load("data/compressed_attribs.dat", "data/compressed.txt")) {
 				// the original: "ERROR: " and the product name, then it quit at once
-				Popup("Could not read the word list (data/compressed.txt).");
+				Popup("Could not read the word list (data/compressed.txt and data/compressed_attribs.dat).");
 				mLoadingFailed = true;
 				Shutdown();
 				mLoadingPhase = LOADING_DONE;

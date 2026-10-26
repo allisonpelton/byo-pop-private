@@ -103,11 +103,13 @@ bool GameApp::HandleScriptCommand(const ScriptCommand& theCommand)
 	std::string aBest;
 	std::vector<Tile*> aBestOrder;
 	std::vector<Tile*> anOrder;
-	for (const std::string& aWord : mLex->mWords)
+	for (const std::pair<const std::string, int>& aEntry : mLex->mWords) {
+		const std::string& aWord = aEntry.first;
 		if (aWord.size() > aBest.size() && aWord != anEgg && Spell(aWord, aTiles, anOrder)) {
 			aBest = aWord;
 			aBestOrder = anOrder;
 		}
+	}
 	if (aBest.empty()) {
 		SDL_Log("script: word: no word");
 		return true;

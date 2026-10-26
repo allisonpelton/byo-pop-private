@@ -7,6 +7,7 @@
 #include "GameApp.h"
 #include "GameText.h"
 #include "Graphics.h"
+#include "Lex.h"
 #include "LuaBind.h"
 #include "LuaWidgetTpl.h"
 #include "Profile.h"
@@ -279,14 +280,17 @@ void TileEngine::StopMoving(Tile* theTile, bool theNotify)
 		mBoard->RehupMouse();
 }
 
-void TileEngine::ValidWordSpelled(std::list<Tile*>& theTiles, bool theIsValid)
+void TileEngine::ValidWordSpelled(std::list<Tile*>& theTiles, bool theIsValid, int theFlags)
 {
 	lua_State* L = gLuaSupport->L;
 	lua_pushboolean(L, theIsValid);
 	lua_pushint(L, (int)theTiles.size());
+	lua_pushboolean(L, (theFlags & Lex::FLAG_NOUN) == Lex::FLAG_NOUN);
+	lua_pushboolean(L, (theFlags & Lex::FLAG_ADJECTIVE) == Lex::FLAG_ADJECTIVE);
+	lua_pushboolean(L, (theFlags & Lex::FLAG_VERB) == Lex::FLAG_VERB);
 	for (Tile* aTile : theTiles)
 		Tile::PushTile(aTile);
-	gLuaSupport->Call("gTileEngine:ValidWordSpelled", (int)theTiles.size() + 2, 0);
+	gLuaSupport->Call("gTileEngine:ValidWordSpelled", (int)theTiles.size() + 5, 0);
 }
 
 bool TileEngine::IsLetterAllowed(const std::vector<std::string>& thePatterns, char theLetter, int theVowels,

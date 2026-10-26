@@ -147,7 +147,12 @@ public:
 	void LayoutWord(Tile* theTile, bool theSelected);
 	static std::string GetWord(const std::list<Tile*>& theTiles);  // 0x418c70
 	// 0x41a4d0: a word of the list (and the easter egg of another PopCap game's name, unless theNoEgg)
-	bool IsValidWord(const std::string& theWord, bool theNoEgg);
+	// theFlags, when given, gets the word's Lex flags (0 for what is not a word)
+	bool IsValidWord(const std::string& theWord, bool theNoEgg, int* theFlags = nullptr);
+	// 0x41a1a0, 0x41a1d0 and 0x41a200: what the word can be (the scripts ask; the word must be in capitals)
+	bool IsNoun(const std::string& theWord);
+	bool IsVerb(const std::string& theWord);
+	bool IsAdjective(const std::string& theWord);
 	bool ValidateWord(const std::string& theWord) { return IsValidWord(theWord, false); }  // 0x41a5b0
 	void CheckIfWordStillValid();                    // 0x419840
 	void UpdateHilite(int x, int y);                 // 0x418ad0

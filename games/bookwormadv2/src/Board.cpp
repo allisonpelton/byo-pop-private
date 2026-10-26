@@ -353,10 +353,18 @@ std::string Board::GetWord(const std::list<Tile*>& theTiles)
 	return aWord;
 }
 
-bool Board::IsValidWord(const std::string& theWord, bool theNoEgg)
+bool Board::IsValidWord(const std::string& theWord, bool theNoEgg, int* theFlags)
 {
-	if (theWord.size() <= 2 || !mApp->mLex->IsWord(theWord))
+	if (theFlags != nullptr)
+		*theFlags = 0;
+	if (theWord.size() <= 2)
 		return false;
+	bool aFound;
+	int aFlags = mApp->mLex->GetFlags(theWord, &aFound);
+	if (!aFound)
+		return false;
+	if (theFlags != nullptr)
+		*theFlags = aFlags;
 	// port: Volume 2 has no AstroPop egg (the rainbow Flash and its test of the word are gone from its Board)
 	return true;
 }
@@ -368,16 +376,32 @@ static int EnemyImmunity()
 	return BattleCall("GetEnemyWordLengthImmunity").Int();
 }
 
+bool Board::IsNoun(const std::string& theWord)
+{
+	return (mApp->mLex->GetFlags(theWord) & Lex::FLAG_NOUN) == Lex::FLAG_NOUN;
+}
+
+bool Board::IsVerb(const std::string& theWord)
+{
+	return (mApp->mLex->GetFlags(theWord) & Lex::FLAG_VERB) == Lex::FLAG_VERB;
+}
+
+bool Board::IsAdjective(const std::string& theWord)
+{
+	return (mApp->mLex->GetFlags(theWord) & Lex::FLAG_ADJECTIVE) == Lex::FLAG_ADJECTIVE;
+}
+
 void Board::CheckIfWordStillValid()
 {
 	std::string aWord = GetWord(mSelected);
-	if (!IsValidWord(aWord, false)) {
-		gTileEngine->ValidWordSpelled(mSelected, false);
+	int aFlags;
+	if (!IsValidWord(aWord, false, &aFlags)) {
+		gTileEngine->ValidWordSpelled(mSelected, false, 0);
 		SetAttackDisabled(true, false);
 		mButtons[BUTTON_ATTACK]->mGlow = false;
 	} else if ((int)aWord.size() > EnemyImmunity()) {
 		SetAttackDisabled(false, false);
-		gTileEngine->ValidWordSpelled(mSelected, true);
+		gTileEngine->ValidWordSpelled(mSelected, true, aFlags);
 	} else {
 		ShowImmuneAttack();
 	}
@@ -433,12 +457,13 @@ void Board::DeselectTile(Tile* theTile)
 	if (!mIsMiniGame) {
 		mString130.clear();
 		std::string aWord = GetWord(mSelected);
-		if (!IsValidWord(aWord, false)) {
-			gTileEngine->ValidWordSpelled(mSelected, false);
+		int aFlags;
+		if (!IsValidWord(aWord, false, &aFlags)) {
+			gTileEngine->ValidWordSpelled(mSelected, false, 0);
 			SetAttackDisabled(true, false);
 			mButtons[BUTTON_ATTACK]->mGlow = false;
 		} else if ((int)aWord.size() > EnemyImmunity()) {
-			gTileEngine->ValidWordSpelled(mSelected, true);
+			gTileEngine->ValidWordSpelled(mSelected, true, aFlags);
 			SetAttackDisabled(false, false);
 		} else {
 			ShowImmuneAttack();
@@ -470,7 +495,7 @@ void Board::DeselectAllTiles()
 	}
 	mSelected.clear();
 	mString130.clear();
-	gTileEngine->ValidWordSpelled(mSelected, false);
+	gTileEngine->ValidWordSpelled(mSelected, false, 0);
 	gTileEngine->CallLinkedMethod("DeselectedAllTiles", 0);
 	if (!mIsMiniGame && !BattleCall("GridHasOverlay").Bool())
 		SetAttackDisabled(true, false);
@@ -1586,6 +1611,9 @@ void Board::RegisterLua()
 		.Method<&Board::SetTMEnemyAttacking>("SetTMEnemyAttacking")
 		.Method<&Board::GetWordTileSize>("GetWordTileSize")
 		.Method<&Board::Scramble>("Scramble")
+		.Method<&Board::IsNoun>("IsNoun")
+		.Method<&Board::IsVerb>("IsVerb")
+		.Method<&Board::IsAdjective>("IsAdjective")
 		.Method<&Board::DoingZoomEffect>("DoingZoomEffect")
 		.Method<&Board::DoZoom>("DoZoom")
 		.Method<&Board::GetZoomValue>("GetZoomValue")

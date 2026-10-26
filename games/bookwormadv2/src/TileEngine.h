@@ -67,8 +67,9 @@ public:
 	void StartMoving(Tile* theTile, bool theNotify);
 	// 0x49b170: the tile stops sliding (the script's TileXYChanged and TileStoppedMoving when theNotify)
 	void StopMoving(Tile* theTile, bool theNotify);
-	// 0x49b1e0: the script's ValidWordSpelled(is_valid, num_tiles, tiles...)
-	void ValidWordSpelled(std::list<Tile*>& theTiles, bool theIsValid);
+	// 0x49b1e0 (0x486fa0 in the exe): the script's ValidWordSpelled(is_valid, num_tiles, is_noun, is_adjective, is_verb,
+	// tiles...); theFlags are the word's (Lex::GetFlags), 0 when it is not a word
+	void ValidWordSpelled(std::list<Tile*>& theTiles, bool theIsValid, int theFlags);
 
 	// 0x49a120: the letter of a new tile. Counts the letters on the board; the candidates are the letters below
 	// their maximum count (kMaxLetters) that make no avoided word in a 4x4 grid (IsLetterAllowed) and keep the
