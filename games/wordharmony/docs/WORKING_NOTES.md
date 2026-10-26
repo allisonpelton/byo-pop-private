@@ -170,6 +170,8 @@ The floating texts are ported in engine/TextEffects.cpp: the factory ("SplatFact
 
 Remaining, in order (2026-10-26): the screens 0x409c20-0x40df90 (90 functions, about 17 KB of code; the editor's WordEntry 0x40dcd0-0x40df90 left out, the saved game's reader 0x40cf90 kept for the save code), then the controller 0x401000-0x409c00 (0x403760 fills an empty score table with five names: game text, by GT), then the save code, then src/: main.cpp with the engine::Host (registry included), the GameText loader (game/GameText.h; table generated from the carved exe, texts read from the player's WordHarmony.exe), the sound system and the web shell (port 18778).
 
+The settings (0x409d50-0x40aec0) are ported in game/Settings.cpp, all but the three saved games kept as XML strings in the registry (PuzzleSavedGame, SolitaireSavedGame, ActionSavedGame: parsed by 0x40c8f0's reader through a string stream 0x421a70, written by 0x41e820), which come with the save code. Full screen goes through new engine::Host calls (App slots 0x04 and 0x08 are the window's). CongratsScreen (0x409c20) is a ScreenLayout named "CongratsScreen" with vtable 0x480e88; 0x40aec0 fills the game over screen (score, hints used, the five longest words of the controller's +0x5c, "extraScores" shown outside the puzzles).
+
 ## Next pieces, as read so far
 
 The controller (vtable 0x480a14: 0 dtor 0x4073d0, 4 configure 0x402eb0, 8 init 0x406b30, 0xc shutdown 0x401750, 0x10

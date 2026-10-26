@@ -60,6 +60,8 @@ public:
 	bool registryWriteString(const std::string&, const std::string&) override { return false; }
 	bool registryReadInt(const std::string&, int&) override { return false; }
 	bool registryWriteInt(const std::string&, int) override { return false; }
+	void setFullScreen(bool) override {}
+	bool isFullScreen() override { return false; }
 	void openURL(const std::string&) override {}
 	void log(const char* theText) override { fputs(theText, stdout); }
 	void showMessage(const char* theCaption, const char* theText) override { printf("%s: %s\n", theCaption, theText); }
