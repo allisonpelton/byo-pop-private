@@ -2,6 +2,7 @@
 #include "GameText.h"
 #include "Dynomite.h"
 #include "DynomitePanic.h"
+#include "DynomiteTimeTrial.h"
 #include "EditWidget.h"
 #include "EnterNameDialog.h"
 #include "HighScores.h"
@@ -35,6 +36,7 @@ FossilizedApp::FossilizedApp()
 	mSfxVolume = 0.85;
 	mAngles = new AngleTable();
 	mRand.SRand(GetTickCount());
+	mPicker.Seed(GetTickCount() >> 1);
 	mSkill = 1;
 	mFossilKind = 0;
 	mGameMode = 2;
@@ -91,6 +93,14 @@ DDImage* FossilizedApp::GetGameImage(const std::string& thePath)
 void FossilizedApp::Init()
 {
 	SexyApp::Init();
+	// port: SexyApp::Init seeds the C library generator with the tick count, and the constructor seeds the app's
+	// own two with it; -seed=N makes a test run repeatable
+	CrtSRand(mHasSeedParam ? (unsigned int) mRandSeed : (unsigned int) GetTickCount());
+	if (mHasSeedParam)
+	{
+		mRand.SRand((unsigned int) mRandSeed);
+		mPicker.Seed((unsigned int) mRandSeed >> 1);
+	}
 	LoadProperties();
 	// port: the few texts the original keeps in its exe come from the player's Dynomite.exe (GameText.h)
 	LoadGameTexts();
@@ -262,9 +272,8 @@ void FossilizedApp::StartGame()
 		mSideBar->GameStarted();
 		return;
 	case 4:
-		// TODO: DynomiteTimeTrial (0x411ff0, 0x254 bytes)
-		mSideBar->GameStarted();
-		return;
+		aBoard = new DynomiteTimeTrial();
+		break;
 	default:
 		mSideBar->GameStarted();
 		return;

@@ -7,3 +7,4 @@
 0x4f9cc4    # DynomitePanic's high-score title
 0x4f9e48    # DynomiteStomped's high-score title
 0x4fa0e4    # DynomiteTimeTrial's high-score title
+0x4fa068    # DynomiteTimeTrial: a high score in the unregistered version (the register dialog's lines)
