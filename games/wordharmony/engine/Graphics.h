@@ -110,6 +110,12 @@ public:
 	void popState();
 	RenderState& state() { return mStates.back(); }  // 0x43c660
 
+	// 0x43c5c0
+	void setTranslation(float x, float y)
+	{
+		state().mTranslation.x = x;
+		state().mTranslation.y = y;
+	}
 	void translate(float x, float y);       // 0x43c610
 	void scale(float sx, float sy);         // 0x43c690
 	float getScaleX();                      // 0x43c6e0

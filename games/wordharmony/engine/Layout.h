@@ -30,6 +30,7 @@ public:
 
 private:
 	bool addImage(const XmlAttributes& theAttributes);        // 0x430280
+	bool addText(const XmlAttributes& theAttributes);         // 0x42ef20
 	bool addImageButton(const XmlAttributes& theAttributes);  // 0x42c920
 	bool addGroup(const XmlAttributes& theAttributes);        // 0x42fa90
 	bool addInclude(const XmlAttributes& theAttributes);      // 0x42fed0

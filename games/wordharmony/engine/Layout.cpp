@@ -7,6 +7,7 @@
 #include "ImageNode.h"
 #include "ScreenLayout.h"
 #include "Stream.h"
+#include "TextItem.h"
 #include <cstdio>
 #include <cstdlib>
 
@@ -110,13 +111,18 @@ LayoutHandler::~LayoutHandler()
 	mScreen = nullptr;
 }
 
-// 0x430910: an element the reader does not know is skipped (its children are still read). Not ported yet: text
-// 0x42ef20, checkBox 0x42d6f0, textButton 0x42e2b0, particleSystem 0x42f760 and textSub 0x4300c0.
+// 0x430910: an element the reader does not know is skipped (its children are still read). Not ported yet:
+// checkBox 0x42d6f0, textButton 0x42e2b0, particleSystem 0x42f760 and textSub 0x4300c0.
 void LayoutHandler::startElement(const std::string& theName, const XmlAttributes& theAttributes)
 {
 	if (theName.compare("image") == 0)
 	{
 		addImage(theAttributes);
+		return;
+	}
+	if (theName.compare("text") == 0)
+	{
+		addText(theAttributes);
 		return;
 	}
 	if (theName.compare("imageButton") == 0)
@@ -197,6 +203,47 @@ bool LayoutHandler::addImage(const XmlAttributes& theAttributes)
 	aNode->setName(aName);
 	mScreen->registerNode(aNode, aName);
 	mGroups.back()->addChild(aNode);
+	return true;
+}
+
+// 0x42ef20: the text, the font and the name must all be given
+bool LayoutHandler::addText(const XmlAttributes& theAttributes)
+{
+	std::string aString = getStringAttribute(theAttributes, "string", "");
+	std::string aFont = getStringAttribute(theAttributes, "font", "");
+	std::string aName = getStringAttribute(theAttributes, "name", "_Text_");
+	float x = getFloatAttribute(theAttributes, "x", 0);
+	float y = getFloatAttribute(theAttributes, "y", 0);
+	float anOpacity = getFloatAttribute(theAttributes, "opacity", 1.0f);
+	std::string anXAlign = getStringAttribute(theAttributes, "xAlign", "");
+	std::string aYAlign = getStringAttribute(theAttributes, "yAlign", "");
+	std::string aStyle = getStringAttribute(theAttributes, "style", "");
+	if (aString.compare("") == 0 || aName.compare("") == 0 || aFont.compare("") == 0)
+		return false;
+	TextItem* aText = new TextItem();
+	aText->setFont(std::string(aFont.c_str()));
+	aText->setText(std::string(aString.c_str()));
+	if (anXAlign.compare("center") == 0)
+		aText->setHAlign(1);
+	else if (anXAlign.compare("right") == 0)
+		aText->setHAlign(2);
+	else
+		aText->setHAlign(0);
+	if (aYAlign.compare("middle") == 0)
+		aText->setVAlign(1);
+	else if (aYAlign.compare("bottom") == 0)
+		aText->setVAlign(2);
+	else
+		aText->setVAlign(0);
+	if (aStyle.compare("underline") == 0)
+		aText->mStyle = TEXT_UNDERLINE;
+	else if (aStyle.compare("strikethrough") == 0)
+		aText->mStyle = TEXT_STRIKETHROUGH;
+	aText->setPosition(x, y);
+	aText->setOpacity(anOpacity);
+	aText->setName(aName);
+	mScreen->registerNode(aText, std::string(aName.c_str()));
+	mGroups.back()->addChild(aText);
 	return true;
 }
 
