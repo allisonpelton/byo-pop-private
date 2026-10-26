@@ -34,6 +34,13 @@ void Sys_AddUpdateRect(int x, int y, int w, int h)
 		gHost->AddUpdateRect(x, y, w, h);
 }
 
+// 0x428890
+void Sys_SetMousePos(int x, int y)
+{
+	if (gHost != nullptr)
+		gHost->SetMousePos(x, y);
+}
+
 const PixelFormat* Sys_ScreenFormat()
 {
 	return gScreenFormat;

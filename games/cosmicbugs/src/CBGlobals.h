@@ -48,8 +48,8 @@ static_assert(sizeof(Profile) == 0x44, "Profile");
 // A level's records (0x30 bytes, 1000 of them at 0x4623e0 by level number)
 struct LevelRecord
 {
-	char timeName[0x14];       // +0x00
-	int bestTime;              // +0x14
+	char shotsName[0x14];      // +0x00
+	int fewestShots;           // +0x14
 	char fillName[0x14];       // +0x18
 	int bestFill;              // +0x2c  percent
 };

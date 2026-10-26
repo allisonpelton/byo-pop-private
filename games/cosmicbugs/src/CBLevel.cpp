@@ -594,8 +594,8 @@ Level* Level_Init(Level* theLevel)
 	theLevel->fillEndSound = 0;
 	theLevel->unk3c0 = 0;
 	theLevel->seed = 0;
-	theLevel->time = 0;
-	theLevel->unk3d4 = 0;
+	theLevel->shots = 0;
+	theLevel->lines = 0;
 	gSongName[0] = 0;
 	theLevel->chain = 1;
 	for (int i = 0; i < 50; i++)
@@ -837,10 +837,10 @@ static void Level_Won(Level* theLevel)
 	char aText[64];
 	int aProfile = gProfile;
 	LevelRecord* aRecord = &gLevelRecords[theLevel->number];
-	if (theLevel->time < aRecord->bestTime)
+	if (theLevel->shots < aRecord->fewestShots)
 	{
-		aRecord->bestTime = theLevel->time;
-		std::strcpy(aRecord->timeName, gProfiles[aProfile].name);
+		aRecord->fewestShots = theLevel->shots;
+		std::strcpy(aRecord->shotsName, gProfiles[aProfile].name);
 	}
 	int aFilled = (theLevel->filledCells * 100) / theLevel->totalCells;
 	if (aRecord->bestFill < aFilled)
@@ -1035,7 +1035,7 @@ int Level_Update(Level* theLevel)
 			{
 				if (theLevel->kind == 0 && theLevel->powerups.current == nullptr && theLevel->totalCells != 0 &&
 					(theLevel->fillQuota <= (theLevel->filledCells * 100) / theLevel->totalCells ||
-						(gDemo != 0 && 0x32 < theLevel->time)) &&
+						(gDemo != 0 && 0x32 < theLevel->shots)) &&
 					(theLevel->menus.current == nullptr || theLevel->menus.current->active.current == nullptr))
 					Level_Won(theLevel);
 				else

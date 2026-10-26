@@ -20,6 +20,8 @@ public:
 	virtual bool ReadFile(const char* thePath, std::vector<uint8_t>& theData) = 0;
 	// 0x42e6e0 (through 0x428f50): a rectangle of the screen that changed, for the next present
 	virtual void AddUpdateRect(int x, int y, int w, int h) {}
+	// 0x428890: puts the mouse pointer at (x, y) of the game's screen (the original moves the system's)
+	virtual void SetMousePos(int x, int y) {}
 };
 
 void Sys_SetHost(SysHost* theHost);
@@ -29,6 +31,8 @@ SysHost* Sys_Host();
 bool Sys_ReadFile(const char* thePath, std::vector<uint8_t>& theData);
 // 0x428f50
 void Sys_AddUpdateRect(int x, int y, int w, int h);
+// 0x428890
+void Sys_SetMousePos(int x, int y);
 // 0x428eb0: the screen's pixel format (gScreenFormat 0x46e5b8 points at it)
 const PixelFormat* Sys_ScreenFormat();
 void Sys_SetScreenFormat(const PixelFormat* theFmt);

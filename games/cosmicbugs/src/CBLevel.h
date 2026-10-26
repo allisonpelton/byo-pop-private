@@ -106,20 +106,39 @@ struct Rider : Obj
 };
 static_assert(sizeof(Rider) == 0xc0, "Rider");
 
-// The player's ship (0x4c4 bytes, 0x41d540 constructs one)
+// The player's ship (0x4c4 bytes, 0x41d540 constructs one; CBShooter.cpp). state +0x0c: 1 hit, 3 under the
+// player's control, 4 coming in, 5 firing, 6 dying
 struct Shooter : Obj
 {
-	uint8_t unkb0[0x40];       // +0xb0
-	List<Beam> beams;          // +0xf0
-	uint8_t unkfc[0x14];       // +0xfc
-	Obj unk110[5];             // +0x110
+	char vertName[0x20];       // +0xb0  the vertical animation's name (each new life starts with it)
+	char horizName[0x20];      // +0xd0
+	List<Beam> beams;          // +0xf0  while firing, the pair: the head goes down or right
+	Animation* horizAnim;      // +0xfc
+	Animation* vertAnim;       // +0x100
+	Animation* horizShootAnim; // +0x104
+	Animation* vertShootAnim;  // +0x108
+	int unk10c;                // +0x10c
+	Obj wingsH;                // +0x110  drawn over the ship while no weapon orbits it
+	Obj wingsV;                // +0x1c0
+	Obj sweeper;               // +0x270  (flag 4) at both ends of the open span, pushing enemies off its line
+	Obj unk320;                // +0x320
+	Obj bubble;                // +0x3d0  (flag 0x10) the invincibubble
 	int beamAcross;            // +0x480  1: the beams go left and right
-	int unk484;                // +0x484
+	float appearTime;          // +0x484  updates the ship takes to come in
 	float beamSpeed;           // +0x488
-	int flags;                 // +0x48c  0x10: invincible
-	uint8_t unk490[0x10];      // +0x490
-	int hitSound;              // +0x4a0  a beam meets a wall
-	uint8_t unk4a4[0x1c];      // +0x4a4
+	int flags;                 // +0x48c  4: the sweeper, 8: it turns by itself, 0x10: invincible
+	int unk490;                // +0x490
+	int unk494;                // +0x494
+	int drillSound;            // +0x498
+	int fireAge;               // +0x49c  its age when it last fired
+	int hitSound;              // +0x4a0  clank_sound: a beam meets a wall
+	int shootSound;            // +0x4a4
+	int particle;              // +0x4a8  particle_0's index in the art bank
+	int noAutoTurn;            // +0x4ac  the player turned it, or the auto-turn option is off
+	float extLeft;             // +0x4b0  the open span about the ship (0x41ba40)
+	float extRight;            // +0x4b4
+	float extTop;              // +0x4b8
+	float extBottom;           // +0x4bc
 	int cellPoints;            // +0x4c0  the score for each cell captured
 };
 static_assert(sizeof(Shooter) == 0x4c4, "Shooter");
@@ -214,8 +233,8 @@ struct Level : Obj
 	int fillSound;                   // +0x3c4
 	int fillEndSound;                // +0x3c8
 	int symmetry;                    // +0x3cc  a random board's
-	int time;                        // +0x3d0
-	int unk3d4;                      // +0x3d4
+	int shots;                       // +0x3d0  beams fired (the level's record keeps the fewest)
+	int lines;                       // +0x3d4  beam pairs that have stopped
 	int bonus;                       // +0x3d8
 	int unk3dc;                      // +0x3dc
 	int unk3e0;                      // +0x3e0
@@ -310,7 +329,7 @@ void Shooter_Insert(List<Shooter>* theList);                     // 0x4107e0
 Shooter* Shooter_Init(Shooter* theShooter);                      // 0x41d540
 void Shooter_Setup(Shooter* theShooter);                         // 0x41b0f0
 void Shooter_FromXml(Shooter* theShooter, const char* p, const XmlTag* theTag); // 0x41aec0
-void Shooter_Update(Shooter* theShooter);                        // 0x41e200
+int Shooter_Update(Shooter* theShooter);                         // 0x41e200
 void Shooter_Hit(Shooter* theShooter, float theVx, float theVy);  // 0x41bee0: a beamrider reached it
 void Beams_RemoveAll(List<Beam>* theList);                       // 0x411900
 void Enemy_Insert(List<Enemy>* theList);                         // 0x4106b0

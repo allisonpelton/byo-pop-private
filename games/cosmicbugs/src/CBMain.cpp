@@ -260,8 +260,8 @@ void ResetProfiles()
 	{
 		aRecord->fillName[0] = 0;
 		aRecord->bestFill = 0;
-		aRecord->timeName[0] = 0;
-		aRecord->bestTime = 999;
+		aRecord->shotsName[0] = 0;
+		aRecord->fewestShots = 999;
 	}
 	SaveProfiles();
 }

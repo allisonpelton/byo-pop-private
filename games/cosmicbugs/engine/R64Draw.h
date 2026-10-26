@@ -84,6 +84,11 @@ void Dirty_AddClippedImage(Dirty* theDirty, int x, int y, const Image* theImage,
 // never answers 0, so the order of equal depths is whatever this algorithm leaves
 void CrtQsort(void* theBase, size_t theNum, size_t theWidth, int (*theCompare)(const void*, const void*));
 
+// R64Line.cpp. 0x42cd10: the surface lines go to (clipped to all of it; a null format keeps the last one)
+void Draw_SetTarget(uint8_t* theBits, int thePitch, int theW, int theH, const PixelFormat* theFmt);
+// 0x42d820: a line blended toward (r, g, b) by theAlpha/256, both ends drawn; 16-bit surfaces only
+void Draw_Line(int x0, int y0, int x1, int y1, int r, int g, int b, int theAlpha);
+
 } // namespace r64
 
 #endif
