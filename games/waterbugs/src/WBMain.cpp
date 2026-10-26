@@ -12,14 +12,14 @@
 namespace wb
 {
 
-// The data section's (cb:0x460000..)
+// The data section's (0x460000..)
 int gRegistered = 1;                   // 0x460004
 int gAutoFire = 1;                    // 0x460028
 int gGoTo = 1;                         // 0x460034
 float gBeamSpeed = 0.14f;              // 0x460038
 int gFirstWeapon = 1;                  // 0x46003c
-int gLives = 5;                        // cb:0x460040
-int gTrialLeft = 3600000;              // cb:0x460044
+int gLives = 6;                        // 0x460040
+int gTrialLeft = 3600000;              // 0x460044
 int gCursorShown = 1;                  // 0x460874
 int gFrame = 1;                        // 0x460a1c
 // And the zeroed (0x4623e0..)
@@ -55,7 +55,7 @@ int gLogoCount = 0;                    // 0x6e5ae8
 namespace
 {
 
-// cb:0x4608a0: the colour codes' three colours each: 0..200 shades from the first to the second, 200..255 from the
+// 0x4608a0: the colour codes' three colours each: 0..200 shades from the first to the second, 200..255 from the
 // second to the third
 const int kColourCodes[10][9] = {
 	{0, 0, 0, 3, 3, 3, 6, 6, 6},

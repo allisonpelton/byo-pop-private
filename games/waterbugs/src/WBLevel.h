@@ -109,7 +109,7 @@ struct Beam : Obj
 };
 static_assert(sizeof(Beam) == 0x17c, "Beam");
 
-// A beamrider: an enemy's shot that runs back along a beam to the ship (0xc0 bytes, cb:0x407d40 appends one)
+// A beamrider: an enemy's shot that runs back along a beam to the ship (0xc0 bytes, 0x407d70 appends one)
 struct Rider : Obj
 {
 	Beam* beam;                // +0xb0
@@ -334,14 +334,14 @@ void Level_Load(Level* theLevel, const char* p, XmlTag* theTag);
 int Level_Update(Level* theLevel);                               // 0x412f50: 0 when it is left
 void Level_SetBackground(Level* theLevel);                       // 0x40f340: and the song, by the level number
 void Level_StartSong(Level* theLevel, int thePlay);              // 0x40f6b0
-void Level_MakeRandom(Level* theLevel, int theSeed);             // cb:0x40f580
-// cb:0x40fb00: a level number's enemies (walkers, rollers and two more kinds)
+void Level_MakeRandom(Level* theLevel, int theSeed);             // 0x40f710
+// 0x40fc90: a level number's enemies (walkers, rollers and two more kinds)
 void Level_EnemyCounts(Level* theLevel, int* theA, int* theB, int* theC, int* theD, int* theE, int* theF); // 0x40fc90
 void Level_MakeEdges(Level* theLevel);                           // 0x40ff90
 void Level_SetPatterns(Level* theLevel, const char* theH, const char* theV); // 0x410000
 void Level_LoadFillImages(Level* theLevel, const XmlTag* theTag); // 0x4100a0
 void Level_DefaultFillImages(Level* theLevel);                   // 0x410210
-int PortalCount();                                               // cb:0x4101f0
+int PortalCount();                                               // 0x410360
 void Level_RedrawCells(Level* theLevel);                         // 0x4103c0
 void Level_DrawTrialTime(Level* theLevel);                       // 0x4104b0
 int Level_IsPlaying(Level* theLevel);                            // 0x4105c0
@@ -355,7 +355,7 @@ int Pointer_Update(Obj* thePointer);                             // 0x414030
 void Pointer_Draw(Obj* thePointer);                              // 0x414120
 
 // Beams and beamriders (WBBeam.cpp)
-void Beam_Setup(Beam* theBeam, Shooter* theOwner, float theX, float theY, float theVx, float theVy); // cb:0x402850
+void Beam_Setup(Beam* theBeam, Shooter* theOwner, float theX, float theY, float theVx, float theVy); // 0x402830
 void Rider_Setup(Rider* theRider, Beam* theBeam, float theX, float theY, Enemy* theEnemy); // 0x4029d0
 int Rider_Update(Rider* theRider);                               // 0x402a90: 0 when it is done
 void Beam_DrawTo(Beam* theBeam, uint8_t* theDst, int theDPitch); // 0x402d60
@@ -364,7 +364,7 @@ int Beam_Update(Beam* theBeam);                                  // 0x4031f0: 0 
 void Beam_Destroy(Beam* theBeam);                                // 0x4034a0
 void List_DeleteNode(Beam* theBeam);                             // 0x4111d0's delete
 Beam* Beam_Init(Beam* theBeam);                                  // 0x41e010
-void Rider_Append(List<Rider>* theList);                         // cb:0x407d40
+void Rider_Append(List<Rider>* theList);                         // 0x407d70
 Beam* Obj_TouchedBeam(Obj* theObj, int theWDiv, int theHDiv);   // 0x40ee80: the ship's beam it touches
 
 // The kinds' code the level calls (translated with each kind)
@@ -427,7 +427,7 @@ void Enemy_Destroy(Enemy* theEnemy);                             // 0x4074e0
 void List_DeleteNode(Enemy* theEnemy);                           // 0x401120's delete (0x40c200 is plain objects')
 void TurnRoller_Move(Enemy* theEnemy);                           // 0x407560
 void Walker_Turn(Enemy* theEnemy);                               // 0x407730
-int LaserShot_HitBeams(Enemy* theEnemy);                         // cb:0x4078e0
+int LaserShot_HitBeams(Enemy* theEnemy);                         // 0x407910
 int Enemy_PlaceFirst(Enemy* theEnemy);                           // 0x407b60: 0 when there is no room
 void Text_Append(List<Text>* theList);                           // 0x407e00
 int Teleporter_Move(Enemy* theEnemy);                            // 0x407e90
@@ -473,7 +473,7 @@ void Text_Make(Text* theText, const char* theString, Font* theFont, int theX, in
 	int theIdle, int theFadeOut, int theLoopTime, int theBlink);  // 0x41f5d0
 void Text_Destroy(Text* theText);                                // 0x4109d0
 void List_DeleteNode(Text* theText);                             // 0x411850's delete
-void HighScore_Entered(const char* theName);                     // cb:0x40cf70: the name entry's return
+void HighScore_Entered(const char* theName);                     // the name entry's return
 int Text_Update(Text* theText);                                  // 0x41f6b0
 int Star_Update(Obj* theStar);                                   // 0x41e800
 void Level_AddStars(Level* theLevel);                            // 0x411350
@@ -490,11 +490,10 @@ void Weapon_DrawTooClose(Weapon* theWeapon);                     // 0x419d00
 void Powerup_Draw(Powerup* thePowerup);                          // 0x418880
 void Star_Draw(Obj* theStar);                                    // 0x41e850
 void Menu_Draw(Menu* theMenu);                                   // 0x415910
-void Text_Draw(Text* theText);                                   // cb:0x41f6f0
+void Text_Draw(Text* theText);                                   // 0x41fbd0
 void Level_Draw(Level* theLevel);                                // 0x410c60
-int Level_EnemiesLeft(Level* theLevel);                          // cb:0x4110e0
 void Star_Append(List<Obj>* theList);                            // 0x4110b0
-void Level_AddRandomEnemies(Level* theLevel, int theFirst, int theSecond); // cb:0x411500
+void Level_AddRandomEnemies(Level* theLevel, int theFirst, int theSecond); // 0x411430
 void Level_ShowStart(Level* theLevel);                           // 0x411700: the level number and quota
 void Level_GameOver(Level* theLevel);                            // 0x412200
 

@@ -1,7 +1,7 @@
 #ifndef __COSMICBUGS_R64SYS_H__
 #define __COSMICBUGS_R64SYS_H__
 
-// Retro64's system layer (cb:0x428000..cb:0x42a800, 0x42e6b0..): what the original asked of Windows, DirectDraw,
+// Retro64's system layer (0x4284e0..0x42ace0, 0x42e6b0..): what the original asked of Windows, DirectDraw,
 // DirectInput and BASS. The port's host (src/CosmicBugsApp) implements SysHost on the shared platform layer.
 
 #include <cstdint>

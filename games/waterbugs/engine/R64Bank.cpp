@@ -163,7 +163,7 @@ Image* Bank_ImageAt(const Bank* theBank, uint32_t theIndex)
 	return nullptr;
 }
 
-// cb:0x4259f0
+// 0x425ed0
 int Bank_Count(const Bank* theBank)
 {
 	return (int)theBank->images.size();

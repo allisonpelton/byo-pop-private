@@ -35,7 +35,7 @@ void Bank_Reset(Bank* theBank);                                      // 0x4261b0
 void Bank_Clear(Bank* theBank);                                      // 0x426250
 int Bank_Alloc(Bank* theBank, uint32_t theSize);                     // 0x425de0
 Image* Bank_ImageAt(const Bank* theBank, uint32_t theIndex);         // 0x425eb0
-int Bank_Count(const Bank* theBank);                                 // cb:0x4259f0
+int Bank_Count(const Bank* theBank);                                 // 0x425ed0
 uint8_t* Bank_RawPaletteAt(const Bank* theBank, uint32_t theIndex);  // 0x426430
 Palette* Bank_PaletteAt(const Bank* theBank, uint32_t theIndex);     // 0x426480
 int Bank_LoadRaw(Bank* theBank, const char* thePath);                // 0x4264d0

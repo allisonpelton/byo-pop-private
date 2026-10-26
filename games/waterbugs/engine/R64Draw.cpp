@@ -28,7 +28,7 @@ int CombGap(int theGap)
 	return 0xb;
 }
 
-// cb:0x421050
+// 0x421530
 int CompareDepth(const void* a, const void* b)
 {
 	return ((const DrawItem*)a)->depth > ((const DrawItem*)b)->depth ? 1 : -1;
@@ -209,7 +209,7 @@ void DrawList_Add(Image* theImage, uint32_t theSeq, int x, int y, int theDepth, 
 	}
 }
 
-// cb:0x4211d0: a comb sort by depth then sequence, then the CRT's qsort by depth alone, then each sprite drawn with
+// 0x4216b0: a comb sort by depth then sequence, then the CRT's qsort by depth alone, then each sprite drawn with
 // its palette swapped in
 void DrawList_Flush()
 {

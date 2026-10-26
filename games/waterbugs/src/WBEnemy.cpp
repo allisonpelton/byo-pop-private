@@ -901,7 +901,7 @@ void Text_Append(List<Text>* theList)
 	List_Append(theList, Text_Init(aText));
 }
 
-// 60 sparkles flying off from where it is (cb:0x407e60 has this twice)
+// 60 sparkles flying off from where it is (0x407e90 has this twice)
 static void Teleporter_Sparkles(Enemy* theEnemy)
 {
 	for (int n = 0x3c; n != 0; n--)

@@ -1,7 +1,7 @@
 #ifndef __COSMICBUGS_R64FONT_H__
 #define __COSMICBUGS_R64FONT_H__
 
-// Retro64's bitmap fonts (0x422320..cb:0x423440): a glyph image per character, taken from a bank by name
+// Retro64's bitmap fonts (0x422320..0x423920): a glyph image per character, taken from a bank by name
 // (Font_LoadFromBank) or cut from one strip image at its empty columns (Font_StripCut), drawn onto a target buffer
 // with a palette, an optional outline, a texture through the glyphs' masks and '^' colour codes.
 

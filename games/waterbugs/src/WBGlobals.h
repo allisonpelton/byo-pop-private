@@ -1,7 +1,7 @@
 #ifndef __WATERBUGS_WBGLOBALS_H__
 #define __WATERBUGS_WBGLOBALS_H__
 
-// The game's globals and the system layer's calls (the input, sound and music of cb:0x428000..cb:0x42cd00, which the
+// The game's globals and the system layer's calls (the input, sound and music of 0x4284e0..0x42d1e0, which the
 // host provides)
 
 #include "WBGame.h"
@@ -81,8 +81,8 @@ extern int gLevelInSet;                    // 0x46e5ec
 extern int gMouseX;                        // 0x46e5bc
 extern int gMouseY;                        // 0x46e5c0
 extern int gTrial;                         // 0x46e5c4
-extern int gTrialLeft;                     // cb:0x460044  ms
-extern int gLives;                         // cb:0x460040
+extern int gTrialLeft;                     // 0x460044  ms
+extern int gLives;                         // 0x460040
 extern float gBeamSpeed;                   // 0x460038  the ship's beams' speed at the start
 extern int gDifficulty;                    // 0x46e5e0  -1, 0 or 1 (the options' cycle)
 extern int gAutoFire;                      // 0x460028  the shooter mode: 0 manual, 1 auto
@@ -134,7 +134,7 @@ void GoToScreen();                                               // 0x40d5e0: th
 void GameStep();                                                 // 0x40d890
 void GameDraw();                                                 // 0x40d070
 // The start (WBStart.cpp)
-extern char gGameFile[0x100];              // cb:0x4622e0  the game file read next
+extern char gGameFile[0x100];              // 0x4622e0  the game file read next
 extern Font gFontBase;                     // 0x4700e0  (loaded, never drawn)
 // 0x46e394: the screen locked for drawing (its pitch and pixels are gScreenPitch and gScreenBits, which
 // Screen_Lock sets, as LockScreen on it does)

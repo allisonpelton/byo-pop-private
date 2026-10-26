@@ -1,4 +1,4 @@
-// Particle emitters and particles (0x40ad60..cb:0x40c0d0)
+// Particle emitters and particles (0x40ad60..0x40c2c0)
 
 #include "WBEmitter.h"
 #include "WBLevel.h"

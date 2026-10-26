@@ -13,7 +13,7 @@
 namespace wb
 {
 
-char gGameFile[0x100];                 // cb:0x4622e0
+char gGameFile[0x100];                 // 0x4622e0
 Font gFontBase;                        // 0x4700e0
 Image gBackBuffer;                     // 0x472ab0
 SoundList gSounds = {nullptr, nullptr, nullptr, nullptr, 0, 0}; // 0x473150
@@ -22,10 +22,10 @@ ScreenLock gScreenLock;                // 0x46e394
 namespace
 {
 
-int gLastMode = 1;                     // cb:0x460024  the screen mode at the last pass (cb:0x460024's 1 before the first)
-int gLastElapsed = 1;                  // cb:0x460030
-int gLastTime = 0;                     // cb:0x46e5d8
-int gElapsedMs = 0;                    // cb:0x46e5dc  since the last pass: the game steps a millisecond at a time
+int gLastMode = 1;                     // 0x460024  the screen mode at the last pass (0x460024's 1 before the first)
+int gLastElapsed = 1;                  // 0x460030
+int gLastTime = 0;                     // 0x46e5d8
+int gElapsedMs = 0;                    // 0x46e5dc  since the last pass: the game steps a millisecond at a time
 
 // 0x42bda0
 void SeedCrtRand()

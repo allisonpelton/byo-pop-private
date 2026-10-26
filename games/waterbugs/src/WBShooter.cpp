@@ -1,4 +1,4 @@
-// The player's ship (0x41b340..cb:0x41e2c0): it comes in, follows the mouse, fires a pair of beams along its row or
+// The player's ship (0x41b340..0x41e800): it comes in, follows the mouse, fires a pair of beams along its row or
 // column and, when both have stopped, fills the smaller side; the sweeper and the invincibubble are its extras.
 // The weapons that orbit it (0x41a910..0x41b290) go with the power-ups.
 
@@ -650,7 +650,7 @@ void Shooter_Firing(Shooter* theShooter)
 	Shooter_DropBeams(theShooter);
 }
 
-// cb:0x41dbd0: a click fires a beam each way from the middle of the cell under the ship, if it is open and not yet
+// 0x41e110: a click fires a beam each way from the middle of the cell under the ship, if it is open and not yet
 // reached by a flood; with the quota met or an enemy on the ship it buzzes instead
 void Shooter_Fire(Shooter* theShooter)
 {

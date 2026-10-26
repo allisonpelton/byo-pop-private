@@ -1129,17 +1129,6 @@ void Level_Draw(Level* theLevel)
 	// (while it is paused the original calls 0x401410, which is empty: Cosmic Bugs' texts are gone)
 }
 
-// The enemies not in state 1
-int Level_EnemiesLeft(Level* theLevel)
-{
-	int aCount = 0;
-	List_Each(&theLevel->enemies, [&](Enemy* anEnemy) {
-		if (anEnemy->state != 1)
-			aCount = aCount + 1;
-	});
-	return aCount;
-}
-
 // 0x4110b0: a new star (a plain object) before the current one
 void Star_Append(List<Obj>* theList)
 {

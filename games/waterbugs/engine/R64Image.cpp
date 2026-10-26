@@ -501,13 +501,13 @@ void Image_BlitUnclipped(Image* img, uint8_t* dst, int dpitch, const PixelFormat
 		{
 			if (img->fmt.bpp != 8)
 			{
-				if (Is16(fmt)) // cb:0x429610
+				if (Is16(fmt)) // 0x429af0
 					Rle16Copy(dst, dpitch, fmt, ax, ay, img->bits, img->pitch, aRle);
 				return;
 			}
 			if (img->palette == nullptr)
 				return;
-			if (Is16(fmt)) // cb:0x429bf0
+			if (Is16(fmt)) // 0x42a0d0
 				RlePal16Copy(dst, dpitch, fmt, ax, ay, img->bits, img->pitch, img->palette, aRle);
 			return;
 		}
@@ -581,13 +581,13 @@ void Image_BlitMasked(Image* img, uint8_t* dst, int dpitch, const PixelFormat* f
 		{
 			if (img->fmt.bpp != 8)
 			{
-				if (Is16(fmt)) // cb:0x429610
+				if (Is16(fmt)) // 0x429af0
 					Rle16Copy(dst, dpitch, fmt, ox, oy, img->bits, img->pitch, aRle);
 				return;
 			}
 			if (img->palette != nullptr)
 			{
-				if (Is16(fmt)) // cb:0x429bf0
+				if (Is16(fmt)) // 0x42a0d0
 					RlePal16Copy(dst, dpitch, fmt, ox, oy, img->bits, img->pitch, img->palette, aRle);
 				return;
 			}
@@ -620,7 +620,7 @@ void Image_BlitFill(Image* img, uint8_t* dst, int dpitch, const PixelFormat* fmt
 			const uint8_t* aRle = img->mask->rle;
 			if (aRle != nullptr && img->maskX == 0 && img->maskY == 0 && w == img->w && h == img->h)
 			{
-				if (Is16(fmt)) // cb:0x429650
+				if (Is16(fmt)) // 0x429b30
 					Rle16Fill(dst, dpitch, fmt, ox, oy, aRle, (uint16_t)colour);
 				return;
 			}
@@ -662,7 +662,7 @@ void Image_BlitFillAlpha(Image* img, uint8_t* dst, int dpitch, const PixelFormat
 			const uint8_t* aRle = img->mask->rle;
 			if (aRle != nullptr && img->maskX == 0 && img->maskY == 0 && w == img->w && h == img->h)
 			{
-				if (Is16(fmt)) // cb:0x429690
+				if (Is16(fmt)) // 0x429b70
 					Rle16FillAlpha(dst, dpitch, fmt, ox, oy, aRle, (uint16_t)colour, alpha & 0xff);
 				return;
 			}
@@ -717,26 +717,26 @@ void BlitMaskedKind(MaskedKind theKind, Image* img, uint8_t* dst, int dpitch, co
 		{
 			if (img->palette != nullptr && Is16(fmt))
 			{
-				if (theKind == kBlend) // cb:0x4299d0
+				if (theKind == kBlend) // 0x429eb0
 					PalBlend16Mask(dst, dpitch, fmt, ox, oy, img->bits, img->pitch, img->palette, sx, sy, m, mp,
 						img->maskX, img->maskY, w, h);
-				else if (theKind == kAlpha) // cb:0x429a10
+				else if (theKind == kAlpha) // 0x429ef0
 					PalAlpha16Mask(dst, dpitch, fmt, ox, oy, img->bits, img->pitch, img->palette, sx, sy, m, mp,
 						img->maskX, img->maskY, w, h);
-				else // cb:0x429a90
+				else // 0x429f70
 					PalAdd16Mask(dst, dpitch, fmt, ox, oy, img->bits, img->pitch, img->palette, sx, sy, m, mp,
 						img->maskX, img->maskY, w, h);
 			}
 		}
 		else if (Is16(fmt))
 		{
-			if (theKind == kBlend) // cb:0x429400
+			if (theKind == kBlend) // 0x4298e0
 				Blend16Mask(dst, dpitch, fmt, ox, oy, img->bits, img->pitch, sx, sy, m, mp, img->maskX, img->maskY, w,
 					h);
-			else if (theKind == kAlpha) // cb:0x429440
+			else if (theKind == kAlpha) // 0x429920
 				Alpha16Mask(dst, dpitch, fmt, ox, oy, img->bits, img->pitch, sx, sy, m, mp, img->maskX, img->maskY, w,
 					h);
-			else // cb:0x4294c0
+			else // 0x4299a0
 				Add16Mask(dst, dpitch, fmt, ox, oy, img->bits, img->pitch, sx, sy, m, mp, img->maskX, img->maskY, w, h);
 		}
 	}
@@ -744,21 +744,21 @@ void BlitMaskedKind(MaskedKind theKind, Image* img, uint8_t* dst, int dpitch, co
 	{
 		if (Is16(fmt))
 		{
-			if (theKind == kBlend) // cb:0x4296d0
+			if (theKind == kBlend) // 0x429bb0
 				Rle16Blend(dst, dpitch, fmt, ox, oy, img->bits, img->pitch, aRle);
-			else if (theKind == kAlpha) // cb:0x429710
+			else if (theKind == kAlpha) // 0x429bf0
 				Rle16Alpha(dst, dpitch, fmt, ox, oy, img->bits, img->pitch, aRle);
-			else // cb:0x429790
+			else // 0x429c70
 				Rle16Add(dst, dpitch, fmt, ox, oy, img->bits, img->pitch, aRle);
 		}
 	}
 	else if (img->palette != nullptr && Is16(fmt))
 	{
-		if (theKind == kBlend) // cb:0x429c30
+		if (theKind == kBlend) // 0x42a110
 			RlePal16Blend(dst, dpitch, fmt, ox, oy, img->bits, img->pitch, img->palette, aRle);
-		else if (theKind == kAlpha) // cb:0x429c70
+		else if (theKind == kAlpha) // 0x42a150
 			RlePal16Alpha(dst, dpitch, fmt, ox, oy, img->bits, img->pitch, img->palette, aRle);
-		else // cb:0x429cf0
+		else // 0x42a1d0
 			RlePal16Add(dst, dpitch, fmt, ox, oy, img->bits, img->pitch, img->palette, aRle);
 	}
 }
@@ -774,20 +774,20 @@ void BlitAlphaFadeAt(Image* img, uint8_t* dst, int dpitch, const PixelFormat* fm
 	{
 		if (img->fmt.bpp == 8)
 		{
-			if (img->palette != nullptr && Is16(fmt)) // cb:0x429a50
+			if (img->palette != nullptr && Is16(fmt)) // 0x429f30
 				PalAlpha16MaskFade(dst, dpitch, fmt, ox, oy, img->bits, img->pitch, img->palette, sx, sy, m, mp,
 					img->maskX, img->maskY, w, h, (int)alpha);
 		}
-		else if (Is16(fmt)) // cb:0x429480
+		else if (Is16(fmt)) // 0x429960
 			Alpha16MaskFade(dst, dpitch, fmt, ox, oy, img->bits, img->pitch, sx, sy, m, mp, img->maskX, img->maskY, w,
 				h, (int)alpha);
 	}
 	else if (img->fmt.bpp != 8)
 	{
-		if (Is16(fmt)) // cb:0x429750
+		if (Is16(fmt)) // 0x429c30
 			Rle16AlphaFade(dst, dpitch, fmt, ox, oy, img->bits, img->pitch, aRle, alpha);
 	}
-	else if (img->palette != nullptr && Is16(fmt)) // cb:0x429cb0
+	else if (img->palette != nullptr && Is16(fmt)) // 0x42a190
 		RlePal16AlphaFade(dst, dpitch, fmt, ox, oy, img->bits, img->pitch, img->palette, aRle, alpha);
 }
 

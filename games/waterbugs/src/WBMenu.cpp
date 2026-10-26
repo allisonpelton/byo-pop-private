@@ -1,4 +1,4 @@
-// The menus (0x414150..0x418050, and cb:0x40cf70): a menu of the game file is a list of items, each drawn with its
+// The menus (0x414150..0x418050): a menu of the game file is a list of items, each drawn with its
 // animation or as its name in a font, hot under the mouse and doing its kind's thing when clicked: going to another
 // screen, changing a setting, choosing a level, a world or a player. A requester (a box with texts and buttons, such
 // as "are you sure?") goes over a menu, and only it is used while it is up.

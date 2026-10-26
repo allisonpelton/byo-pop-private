@@ -1,7 +1,7 @@
 #ifndef __WATERBUGS_WBEMITTER_H__
 #define __WATERBUGS_WBEMITTER_H__
 
-// Particle emitters and particles (0x40ad60..cb:0x40c0d0). An emitter is an object in another object's emitter list
+// Particle emitters and particles (0x40ad60..0x40c2c0). An emitter is an object in another object's emitter list
 // (an enemy's, from the game file's emitter tags); every few updates it makes a particle system from a static pool,
 // appends it to the level's list, and gives it one particle from another static pool. The pools are used round
 // and round without checking that a slot is free, and their nodes are unlinked, never deleted.
@@ -60,7 +60,7 @@ struct ParticleSystem : Obj
 };
 static_assert(sizeof(ParticleSystem) == 0xbc, "ParticleSystem");
 
-// The CRT's construction of the pools: cb:0x40c0d0 on each system, the base on each particle
+// The CRT's construction of the pools: 0x40c2c0 on each system, the base on each particle
 void Particles_Init();
 
 int Particle_Update(Particle* theParticle);                      // 0x40ad60: 0 when done
@@ -85,7 +85,7 @@ void ParticleSystem_Add(ParticleSystem* theSystem, float theX, float theY, float
 	int theDrawKind);                                            // 0x40b360
 void ParticleSystem_Draw(ParticleSystem* theSystem);             // 0x40b5b0: its first particle
 int ParticleSystem_Update(ParticleSystem* theSystem);            // 0x40c280: 0 when it has no particles left
-ParticleSystem* ParticleSystem_Init(ParticleSystem* theSystem);  // cb:0x40c0d0
+ParticleSystem* ParticleSystem_Init(ParticleSystem* theSystem);  // 0x40c2c0
 
 } // namespace wb
 

@@ -1,7 +1,7 @@
 #ifndef __COSMICBUGS_R64DRAW_H__
 #define __COSMICBUGS_R64DRAW_H__
 
-// Retro64's draw list (0x421550..0x421980) and dirty rectangles (0x421990..cb:0x421e00). The game queues its sprites
+// Retro64's draw list (0x421550..0x421980) and dirty rectangles (0x421990..0x4222e0). The game queues its sprites
 // with DrawList_Add and DrawList_Flush draws them by depth; the dirty grid records what changed in the back buffer
 // so only that is copied to the screen.
 
@@ -34,7 +34,7 @@ struct DrawItem
 // 0x421550: queues a sprite (null clip: the whole screen); nothing past 2000
 void DrawList_Add(Image* theImage, uint32_t theSeq, int x, int y, int theDepth, int theKind, uint8_t* theDst,
 	int theDPitch, int r, int g, int b, int theAlpha, Palette* thePalette, const int* theClip);
-// cb:0x4211d0: sorts by depth and draws with the screen's format
+// 0x4216b0: sorts by depth and draws with the screen's format
 void DrawList_Flush();
 // 0x421980
 void DrawList_Clear();

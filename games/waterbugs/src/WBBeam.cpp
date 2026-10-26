@@ -1,4 +1,4 @@
-// The ship's beams and the beamriders that run back along them (cb:0x402850..0x4035d0)
+// The ship's beams and the beamriders that run back along them (0x402830..0x4035d0)
 
 #include "WBLevel.h"
 

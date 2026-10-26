@@ -1,4 +1,4 @@
-// The board's cells (0x403580..cb:0x404d10): 16x16 squares in 50 columns. Captured cells slide into place one by one
+// The board's cells (0x403580..0x404dc0): 16x16 squares in 50 columns. Captured cells slide into place one by one
 // from a cell next to them; the board's wave fades the cells in at the start and out when the level is won.
 
 #include "WBLevel.h"

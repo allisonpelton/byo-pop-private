@@ -1,4 +1,4 @@
-// The texts on the screen (0x41f5d0..cb:0x41fe90): a string in a font that waits, fades in, stays, fades out and is
+// The texts on the screen (0x41f5d0..0x420370): a string in a font that waits, fades in, stays, fades out and is
 // gone (or fades in again after a while), refreshing what it shows each update when it is a high score, the level
 // or one of the player's numbers; the high-score name entry is a text too. 0x4109d0 destroys one.
 

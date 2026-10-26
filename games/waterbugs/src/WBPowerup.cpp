@@ -1,4 +1,4 @@
-// The board's panel (0x418050..cb:0x4183b0), the power-ups (cb:0x4183b0..0x419c00) and the weapons some of them give
+// The board's panel (0x418050..0x418810), the power-ups (0x418810..0x419c00) and the weapons some of them give
 // (0x419c10..0x41b340). A power-up falls from where an enemy died; when the ship touches it, it shows its name and
 // changes the ship or the game, or gives the ship a weapon to orbit it. A click launches the first orbiting weapon.
 
@@ -15,13 +15,13 @@ namespace wb
 namespace
 {
 
-int gPanelPercent = -1;            // cb:0x460a38  what the panel last drew
-int gPanelLives = -1;              // cb:0x460a34
-int gPanelScore = -1;              // cb:0x460a30
+int gPanelPercent = -1;            // 0x460a38  what the panel last drew
+int gPanelLives = -1;              // 0x460a34
+int gPanelScore = -1;              // 0x460a30
 int gPowerupKinds[0x96];           // 0x6e5c08  a power-up's kind by a random index
-int gRebuildKinds = 1;             // cb:0x460a48  (never cleared: each power-up builds the table again)
+int gRebuildKinds = 1;             // 0x460a48  (never cleared: each power-up builds the table again)
 
-// cb:0x4183b0: ten entries for each kind from 0 to 9, 0 for the indexes past 99 but six more of 10 at 110..115 (the
+// 0x418810: ten entries for each kind from 0 to 9, 0 for the indexes past 99 but six more of 10 at 110..115 (the
 // test for kinds 15 and 16 never holds)
 // 0x418810
 void Powerup_BuildKinds()
@@ -1009,7 +1009,7 @@ Powerup* Powerup_Init(Powerup* thePowerup)
 	aLast->endB = 0xff;
 	aLast->variance = 0;
 	thePowerup->attached = nullptr;
-	// (the original then calls 0x401410, which is empty, while the flag at cb:0x460a40 is set)
+	// (the original then calls 0x401410, which is empty, while the flag at 0x460a40 is set)
 	return thePowerup;
 }
 

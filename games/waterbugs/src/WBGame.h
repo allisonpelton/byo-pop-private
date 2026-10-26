@@ -311,7 +311,7 @@ Animation* Animation_Find(const char* theName, int* theCount, int* theFrameTime)
 int Animation_Load(Animation* theAnim, int theReload);
 // 0x402670: every animation again, after the screen's format changed
 void Animation_ReloadAll();
-// cb:0x402610: an <animation> tag; Animation_Load's result
+// 0x4026c0: an <animation> tag; Animation_Load's result
 int Animation_FromXml(Animation* theAnim, const XmlTag* theTag);
 
 // Utilities (0x420570..0x420d30)
@@ -320,7 +320,7 @@ uint8_t* ReadWholeFile(const char* thePath, size_t* theSize);
 void ParseHex4(const char* theText, int* a, int* b, int* c, int* d);       // 0x4205f0: "rrggbbaa"
 void ParseHex3(const char* theText, int* a, int* b, int* c);               // 0x4206d0: "rrggbb"
 void Rand();                                                               // 0x420770
-void SeedRand(int theSeed);                                                // cb:0x4202c0
+void SeedRand(int theSeed);                                                // 0x4207a0
 uint32_t RandMod(uint32_t theRange);                                       // 0x4207b0
 int RandRange(int theLow, int theHigh);                                    // 0x4207c0
 int RandValue();                                                           // the generator's state
@@ -343,8 +343,8 @@ void Log(const char* theFormat, ...);
 extern Bank gArtBank;            // 0x472bd8
 extern Bank gArt8Bank;           // 0x473168
 extern List<Animation> gAnims;   // 0x46f35c
-extern Palette gGreyPalette;     // cb:0x460058: r = g = b = index (its packed colours stay 0)
-extern int gGreyPaletteUnset;    // cb:0x460860
+extern Palette gGreyPalette;     // 0x460058: r = g = b = index (its packed colours stay 0)
+extern int gGreyPaletteUnset;    // 0x460860
 extern int gRegistered;          // 0x460004 (1 in the player's copy): nag_logo shows panel_waterbugs
 extern Dirty gDirty;             // 0x472a7c
 extern const int kScreenClip[4]; // 0x460010: {0, 0, 799, 599}

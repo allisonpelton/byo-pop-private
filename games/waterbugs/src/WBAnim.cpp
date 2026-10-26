@@ -1,4 +1,4 @@
-// Animations (0x401530..cb:0x402850): the <animation> tags of the game files, each a run of bank images, a FLIC with
+// Animations (0x401530..0x402830): the <animation> tags of the game files, each a run of bank images, a FLIC with
 // an optional mask FLIC, or a TGA.
 
 #include "WBGame.h"
