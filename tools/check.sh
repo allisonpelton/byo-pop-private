@@ -46,10 +46,10 @@
 #                with the same screenshots (about two and a half minutes)
 #   ningpo       Ning Po Mahjong: a scripted game (the cheat's matches until no pair is left, the name entry, the best
 #                times) and a rerun with the same screenshots and best time (under a minute)
-#   cosmicbugs   Cosmic Bugs: both art banks, the fonts and every animation loaded (cosmicbugs_banktest), a scripted
-#                game played headless (cosmicbugs_run: two lines on the first board) and a rerun with the same
-#                screenshots, and the windowed exe twice with the same clicks: the runner's state, the same screen
-#                (under a minute)
+#   cosmicbugs   Cosmic Bugs: both art banks, the fonts and every animation the game ships loaded
+#                (cosmicbugs_banktest), a scripted game played headless (cosmicbugs_run: two lines on the first
+#                board) and a rerun with the same screenshots, and the windowed exe twice with the same clicks: the
+#                runner's state, the same screen (under a minute)
 #   oracle       Bejeweled's oracle three ways (compare.sh --variants default,forcevariant,novariants); over
 #                ten minutes, so never in a subagent; refuses to start while another oracle runs
 # Sets: quick = build unit; games = bookworm bigmoney noahsark atomica alchemy sevenseas pixelus bookwormadv tiptop mummymaze ningpo cosmicbugs; all = every suite, builds first.
@@ -87,6 +87,7 @@ TT_REGULAR="game 2 over at update 35544: level 7, score 37160, 352 moves"
 TT_STRATEGY="game 1 over at update 2593: level 1, score 2100, 24 moves"
 TT_SPEED="game 1 over at update 57249: level 11, score 78250, 1081 moves"
 NP_GAME="Test: 40 tiles left in 00:12"
+CB_BANKS="82 animations, 9 missing, 0 failed; 8 fonts, 0 failed"
 CB_GAME="17000 ms: score 526, lives 6, board 0, filled 426 of 85%; 28000 ms: score 729, lives 6, board 0, filled 629 of 85%"
 
 set -u
@@ -632,49 +633,57 @@ suite_ningpo() {
 	return $st
 }
 
-cosmicbugs_run() {  # <name>: the headless runner's scripted game; prints its state lines
-	local d="$OUT/cosmicbugs/$1"
+cosmicbugs_run() {  # <name>: the headless runner's scripted game; prints its state lines (and its exit status if not 0)
+	local d="$OUT/cosmicbugs/$1" e=0 l
 	rm -rf "$d"; mkdir -p "$d"
 	# Start Game, the instructions' Play, a line down the first board, the aim switched (the right button) and a line
 	# across (times in ms; a click holds the button 30 ms)
 	printf '%s\n' "3000 click 175 313" "4000 click 400 563" "7500 click 400 300" "17000 state" "17000 shot line1" \
 		"18000 down 2" "18030 up 2" "18500 click 250 200" "28000 state" "28000 shot line2" "28010 end" > "$d/script.txt"
-	timeout 300 build/native/cosmicbugs_run.exe assets/cosmicbugs "$d" "$d/script.txt" > "$d/stdout.txt" 2> "$d/stderr.txt"
-	grep -E '^[0-9]+ ms: score' "$d/stdout.txt" | tr -d '\r' | paste -sd ';' - | sed 's/;/; /g'
+	timeout 300 build/native/cosmicbugs_run.exe assets/cosmicbugs "$d" "$d/script.txt" > "$d/stdout.txt" 2> "$d/stderr.txt" || e=$?
+	l="$(grep -E '^[0-9]+ ms: score' "$d/stdout.txt" | tr -d '\r' | paste -sd ';' - | sed 's/;/; /g')"
+	[ $e -eq 0 ] || l="$l; EXIT $e"
+	echo "$l"
 }
 
 cosmicbugs_window() {  # <name>: the windowed exe with the runner's left clicks; prints its state after the first line
-	local d="$OUT/cosmicbugs/$1"
+	local d="$OUT/cosmicbugs/$1" e=0 l u
 	rm -rf "$d"; mkdir -p "$d/user"
+	u="$(cygpath -ma "$d")"  # the exe's paths, also inside its script: absolute Windows ones, from any --out
 	printf '<CP_CONFIG\n    fullscreen="0"\n    desktopResolution="0"\n    wave="1"\n    music="1"\n/>\n' > "$d/user/cp.cfg"
 	# an update is 10 ms, a click holds the button 3 updates (pressed and let go in one update, it is lost, as it was
 	# between two of the original's frames)
 	printf '%s\n' "300 down 175 313" "303 up 175 313" "400 down 400 563" "403 up 400 563" "750 down 400 300" "753 up 400 300" \
-		"1700 state" "1700 screenshot $W/$d/line1.png" "1710 quit" > "$d/script.txt"
-	timeout 300 "$W/build/native/cosmicbugs.exe" -gamedir=assets/cosmicbugs -userdir="$W/$d/user" -fast -script="$W/$d/script.txt" \
-		> "$d/stdout.txt" 2> "$d/stderr.txt"
-	cat "$d/stdout.txt" "$d/stderr.txt" | tr -d '\r' | sed -n 's/^INFO: state: //p' | head -n 1
+		"1700 state" "1700 screenshot $u/line1.png" "1710 quit" > "$d/script.txt"
+	timeout 300 "$W/build/native/cosmicbugs.exe" -gamedir=assets/cosmicbugs -userdir="$u/user" -fast -script="$u/script.txt" \
+		> "$d/stdout.txt" 2> "$d/stderr.txt" || e=$?
+	l="$(cat "$d/stdout.txt" "$d/stderr.txt" | tr -d '\r' | sed -n 's/^INFO: state: //p' | head -n 1)"
+	[ $e -eq 0 ] || l="$l; EXIT $e"
+	echo "$l"
 }
 
 suite_cosmicbugs() {
-	local st=0 b g r w w2 c="$OUT/cosmicbugs"
+	local st=0 b g r w w2 c="$OUT/cosmicbugs" ea=0 ef=0
 	need_assets cosmicbugs || return 1
 	mkdir -p "$c/banks"
-	b="$(build/native/cosmicbugs_banktest.exe assets/cosmicbugs "$c/banks" anims 2>&1 | tr -d '\r' | tail -n 1)"
-	build/native/cosmicbugs_banktest.exe assets/cosmicbugs "$c/banks" fonts > "$c/banks/fonts.txt" 2>&1 || b="FONTS FAILED"
+	# Every animation bugs.xml names and every font, each listing kept (bugs.xml names nine files the game does not ship)
+	timeout 120 build/native/cosmicbugs_banktest.exe assets/cosmicbugs "$c/banks" anims > "$c/banks/anims.txt" 2>&1 || ea=$?
+	timeout 120 build/native/cosmicbugs_banktest.exe assets/cosmicbugs "$c/banks" fonts > "$c/banks/fonts.txt" 2>&1 || ef=$?
+	b="$(tail -n 1 "$c/banks/anims.txt" | tr -d '\r'); $(tail -n 1 "$c/banks/fonts.txt" | tr -d '\r')"
+	[ $ea -eq 0 ] && [ $ef -eq 0 ] || b="$b; EXIT $ea $ef"
 	g="$(cosmicbugs_run game)"; r="$(cosmicbugs_run game2)"
 	# The windowed exe's -fast clock does not step 10 ms on every update, so its animations' phases are not the
 	# runner's: its state after the first line is, and its screen is its rerun's
 	w="$(cosmicbugs_window window)"; w2="$(cosmicbugs_window window2)"
 	{ echo "banks: $b"; echo "game: $g"; echo "rerun: $r"; echo "window: $w"; echo "window rerun: $w2"; } > "$1"
-	[ "$b" = "91 animations" ] || st=1
+	[ "$b" = "$CB_BANKS" ] || st=1
 	[ "$g" = "$CB_GAME" ] || st=1
 	if diff -q "$c/game/line1.png" "$c/game2/line1.png" >> "$1" 2>&1 && diff -q "$c/game/line2.png" "$c/game2/line2.png" >> "$1" 2>&1 &&
 		[ "$g" = "$r" ]; then r="rerun identical"; else r="RERUN DIFFERS"; st=1; fi
 	if [ "$w" = "$(echo "${g%%;*}" | sed 's/^[0-9]* ms: //')" ] && diff -q "$c/window/line1.png" "$c/window2/line1.png" >> "$1" 2>&1 &&
 		[ "$w" = "$w2" ]; then w="window the same, twice"; else w="WINDOW DIFFERS ('$w')"; st=1; fi
 	SUMMARY="$b; $g; $r; $w"
-	[ $st -eq 0 ] || SUMMARY="$SUMMARY (expected '$CB_GAME', 91 animations)"
+	[ $st -eq 0 ] || SUMMARY="$SUMMARY (expected '$CB_BANKS', '$CB_GAME')"
 	return $st
 }
 
