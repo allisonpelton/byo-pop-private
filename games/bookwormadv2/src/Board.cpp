@@ -140,8 +140,10 @@ void Board::Init()
 		lua_pushboolean(LS(), true);
 		gTileEngine->CallLinkedMethod("SaveGridState", 1);
 	} else {
-		// (the original asks first whether a game is in progress, and restores the grid either way)
-		if (mApp->mProfile->KeyExists(mApp->mTimedMode ? "TM_GridState" : "GridState"))
+		// a saved grid (the timed mode's, the replay's or the adventure's keys) is restored; the original asks the
+		// in-progress flag of the same three first, but both its branches end in the same test of the grid's key
+		const char* aGridKey = mApp->mTimedMode ? "TM_GridState" : mApp->mReplayMode ? "ReplayGridState" : "GridState";
+		if (mApp->mProfile->KeyExists(aGridKey))
 			gTileEngine->CallLinkedMethod("RestoreGridState", 0);
 	}
 	mRestoringGrid = false;
@@ -1087,37 +1089,6 @@ void Board::Refill()
 			}
 			lua_pushboolean(LS(), true);
 			gTileEngine->CallLinkedMethod("SaveGridState", 1);
-		}
-	}
-
-	Profile* aProfile = mApp->mProfile;
-	if (aProfile->GetInt(mApp->mTimedMode ? "TM_CurrentChapter" : "CurrentChapter") < 4 &&
-	    aProfile->GetInt(mApp->mTimedMode ? "TM_CurrentBook" : "CurrentBook") == 1) {
-		// the first chapters always have an A and an E
-		int anEs = 0;
-		int anAs = 0;
-		for (int aRow = 0; aRow < mGridHeight; aRow++) {
-			for (int aCol = 0; aCol < mGridWidth; aCol++) {
-				if (!IsGridCell(aCol, aRow) || !mGridCells[aRow][aCol])
-					continue;
-				char aLetter = GridGetTile(aCol, aRow)->GetLetter();
-				if (aLetter == 'E')
-					anEs++;
-				else if (aLetter == 'A')
-					anAs++;
-			}
-		}
-		for (Tile* aTile : aNewTiles) {
-			char aLetter = aTile->GetLetter();
-			if (aLetter == 'A' || aLetter == 'E')
-				continue;
-			if (anEs == 0) {
-				aTile->SetLetter("E");
-				anEs = 1;
-			} else if (anAs == 0) {
-				aTile->SetLetter("A");
-				anAs = 1;
-			}
 		}
 	}
 

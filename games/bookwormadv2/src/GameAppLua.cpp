@@ -226,6 +226,8 @@ void DoFullCurtainTransition(GameApp* app, std::string theCallback) { app->DoFul
 void DoCSToGameTransition(GameApp* app) { app->StartSavedGameTransition(); }
 void DoCSToMMTransition(GameApp* app) { app->StartToMenuTransition(); }
 void DoGameToMMTransition(GameApp* app) { app->StartGameToMenuTransition(); }
+void DoReplayToHOFTransition(GameApp* app) { app->StartReplayHallOfFameTransition(); }
+void DoCSToMiniMenuTransition(GameApp* app) { app->StartMiniGameMenuTransition(); }
 void HideBookManager(GameApp* app) { app->HideBookManager(); }
 
 // The mini-games (GameAppMiniGames.cpp)
@@ -468,6 +470,8 @@ void GameApp::RegisterGameAppMethods()
 		.Function<&::DoCSToGameTransition>("DoCSToGameTransition")
 		.Function<&::DoCSToMMTransition>("DoCSToMMTransition")
 		.Function<&::DoGameToMMTransition>("DoGameToMMTransition")
+		.Function<&::DoReplayToHOFTransition>("DoReplayToHOFTransition")
+		.Function<&::DoCSToMiniMenuTransition>("DoCSToMiniMenuTransition")
 		.Function<&::HideBookManager>("HideBookManager")
 		.Function<&::StartMiniGame>("StartMiniGame")
 		.Function<&::ReturnToMMFromMiniGame>("ReturnToMMFromMiniGame")

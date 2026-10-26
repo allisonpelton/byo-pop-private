@@ -4,6 +4,7 @@
 
 #include "Board.h"
 #include "BookManager.h"
+#include "BookSelectScreen.h"
 #include "ChapterLoadScreen.h"
 #include "ConversationPanel.h"
 #include "Credits.h"
@@ -13,6 +14,7 @@
 #include "FlashWidget.h"
 #include "GameDialog.h"
 #include "GameText.h"
+#include "HallOfFame.h"
 #include "Lex.h"
 #include "LuaInterface.h"
 #include "LuaResourceManager.h"
@@ -452,6 +454,13 @@ void GameApp::ButtonDepress(int theId)
 		case DIALOG_ARENA_WIN:  // its Continue (the original has no case of its own, but kills the dialog)
 			KillDialog(DIALOG_ARENA_WIN);
 			break;
+		case DIALOG_CONTINUE_ADVENTURE:  // the replay in progress goes on, or a new one begins (case 0x7ea in 0x43f840)
+			KillDialog(DIALOG_CONTINUE_ADVENTURE);
+			if (mProfile->GetBool("ReplayInGame"))
+				ResumeSavedReplayGame();
+			else
+				StartNewGameTransition();
+			break;
 		case DIALOG_TRIAL_COMPLETE:  // "buy now"
 			// port: the original asked the trial's window (0x44fdb0) and went on to its buy screen (0x451c20); the
 			// port has no trial, so this dialog is never made
@@ -485,6 +494,10 @@ void GameApp::ButtonDepress(int theId)
 			// port: the original went back to the main menu unless the trial's window (0x44fdb0) said the game was
 			// bought; the port has none
 			StartToMenuTransition();
+		} else if (aDialogId == DIALOG_CONTINUE_ADVENTURE) {
+			// a new replay: the BookSelectScreen (the original killed the dialog first, and again below)
+			KillDialog(DIALOG_CONTINUE_ADVENTURE);
+			StartReplayTransition();
 		} else if (aDialogId != DIALOG_CONFIRM && aDialogId != DIALOG_OK)
 			SDL_Log("GameApp: the answer %d to dialog %d is not ported yet", theId, aDialogId);
 		KillDialog(aDialogId);
@@ -504,9 +517,11 @@ void GameApp::ButtonDepress(int theId)
 		case BookManager::BUTTON_BACK:
 			if (mBookManager != nullptr && !mQueuedHydraLockout && mBookManager->mState == BookManager::STATE_NORMAL)
 				StartToMenuTransition();
+			else if (mBookSelectScreen != nullptr)  // the replay's book list: back to the main menu
+				StartToMenuTransition();
 			break;
-		case BookManager::BUTTON_CONTINUE:
-			if (!mQueuedHydraLockout && mBookManager->mState == BookManager::STATE_NORMAL &&
+		case BookManager::BUTTON_CONTINUE:  // (the BookSelectScreen's options button has this id too)
+			if (mBookManager != nullptr && !mQueuedHydraLockout && mBookManager->mState == BookManager::STATE_NORMAL &&
 			    mBookManager->IsContinueEnabled() && mBookManager->CallLinkedMethod("CanClickContinue", 0).Bool()) {
 				// the tutorial's arrows hear a click at the corner (the whole-screen hot spot) and go
 				if (mArrowHintManager != nullptr) {
@@ -515,12 +530,16 @@ void GameApp::ButtonDepress(int theId)
 				}
 				mBookManager->CallLinkedMethod("ContinueButtonPressed", 0);
 				mBookManager->DisableContinueButton();
-			}
+			} else if (mBookSelectScreen != nullptr && !mQueuedHydraLockout)
+				ShowGameMenu(false);
 			break;
-		case BookManager::BUTTON_OPTIONS:
+		case BookManager::BUTTON_OPTIONS:  // (the BookSelectScreen's begin button has this id too)
 		case TreasureScreen::BUTTON_OPTIONS:
-			if (!mQueuedHydraLockout)
-				ShowGameMenu(theId == TreasureScreen::BUTTON_OPTIONS);
+			if (mBookManager != nullptr || theId == TreasureScreen::BUTTON_OPTIONS) {
+				if (!mQueuedHydraLockout)
+					ShowGameMenu(theId == TreasureScreen::BUTTON_OPTIONS);
+			} else if (mBookSelectScreen != nullptr)
+				StartReplayOfSelectedBook();
 			break;
 		case TreasureScreen::BUTTON_BACK:
 			if (mQueuedHydraLockout)
@@ -720,8 +739,9 @@ bool GameApp::HasPlayedGameBefore()
 		return false;
 	if (mTimedMode)
 		return true;
+	// (Volume 2's first book is 4, where Volume 1's was 1: 0x43dda0 tests CurrentBook against 4)
 	return !(mProfile->GetBool("NeedsIntroTileHelp") && mProfile->GetInt("CurrentChapter") < 2 &&
-	         mProfile->GetInt("CurrentStage") < 2 && mProfile->GetInt("CurrentBook") < 2);
+	         mProfile->GetInt("CurrentStage") < 2 && mProfile->GetInt("CurrentBook") <= 4);
 }
 
 bool GameApp::CheckProfiles()
@@ -1062,6 +1082,14 @@ void GameApp::CurtainDone()
 		if (mHallOfFame != nullptr)
 			CloseHallOfFame();
 		int aBook = mTimedMode ? -1 : mProfile->GetInt("CurrentBook");
+		if (mProfile->GetBool("AdventureComplete") && !mTimedMode) {
+			// a finished adventure plays again: the book the replay is in
+			aBook = mProfile->GetInt("ReplayCurrentBook");
+			lua_pushboolean(mLua->L, 1);
+			mLua->Call("main.SetReplayMode", 1, 0);
+			mLua->Call("main.SetScoreFile", 0, 0);
+			mReplayMode = true;
+		}
 		InitGameScreen(mTimedMode);
 		if (mNukeProfile) {
 			mLua->Call("_NukeProfile", 0, 0);
@@ -1098,6 +1126,88 @@ void GameApp::CurtainDone()
 		return;
 	}
 
+	case TRANSITION_REPLAY:
+		// the curtain has closed over the main menu: the list of the books to replay comes in its place
+		if (!aClosed)
+			break;
+		mBookSelectScreen = new BookSelectScreen(this);
+		mBookSelectScreen->CreateLinkedObject(mBookSelectScreen);
+		mWidgetManager->AddWidget(mBookSelectScreen);
+		mWidgetManager->BringToBack(mBookSelectScreen);
+		RemoveMainMenu();
+		if (mHallOfFame != nullptr) {
+			mWidgetManager->RemoveWidget(mHallOfFame);
+			SafeDeleteWidget(mHallOfFame);
+			mHallOfFame = nullptr;
+		}
+		mWidgetManager->SetFocus(mBookSelectScreen);
+		mCurtain->StartOpening();
+		mWidgetManager->BringToFront(mCurtain);
+		ClearUpdateBacklog(true);
+		return;
+
+	case TRANSITION_REPLAY_BOOK: {
+		// the book is picked (ReplayCurrentBook): as the new game's, with the replay's profile keys
+		if (mShutdown)
+			return;
+		if (!aClosed)
+			break;
+		RemoveBookSelectScreen();
+		int aBook = mProfile->GetInt("ReplayCurrentBook");
+		lua_pushboolean(mLua->L, 1);
+		mLua->Call("main.SetReplayMode", 1, 0);
+		mLua->Call("main.SetScoreFile", 0, 0);
+		mReplayMode = true;
+		InitGameScreen(mTimedMode);
+		if (mNukeProfile) {
+			mLua->Call("_NukeProfile", 0, 0);
+			mNukeProfile = false;
+		}
+		lua_pushint(mLua->L, aBook);
+		lua_pushboolean(mLua->L, 1);
+		lua_pushboolean(mLua->L, 1);
+		mBookManager->CallLinkedMethod("SelectBookNumber", 3);
+		mBookManager->CallLinkedMethod("DoArrowHints", 0);
+		mBookManager->CallLinkedMethod("MMToCSTransitionComplete", 0);
+		mCurtain->StartOpening();
+		mWidgetManager->BringToFront(mCurtain);
+		ClearUpdateBacklog(true);
+		return;
+	}
+
+	case TRANSITION_REPLAY_HOF: {
+		// from a replay's chapter map to the Hall of Fame: the book goes (as in the way back to the menu), the replay ends
+		if (!aClosed)
+			break;
+		KillDialog(DIALOG_OPTIONS);
+		mWidgetManager->RemoveWidget(mBookManager);
+		if (mTreasureScreen != nullptr)
+			mWidgetManager->RemoveWidget(mTreasureScreen);
+		SafeDeleteWidget(mTreasureScreen);
+		if (mBookScreen != nullptr)
+			RemoveStatsBook();
+		RemoveBookManager();
+		mTreasureScreen = nullptr;
+		RemoveBoard();
+		if (mTimedMode) {
+			mTimedMode = false;
+			lua_pushboolean(mLua->L, 0);
+			mLua->Call("main.SetTimedMode", 1, 0);
+		}
+		lua_pushboolean(mLua->L, 0);
+		mLua->Call("main.SetReplayMode", 1, 0);
+		mReplayMode = false;
+		HallOfFame* aHall = new HallOfFame(this, HallOfFame::MODE_ADVENTURE, true, false, std::string(), false);
+		mHallOfFame = aHall;
+		aHall->mFromArena = true;
+		ShowHallOfFame();
+		SetCursor(CURSOR_POINTER);
+		mCurtain->StartOpening();
+		mWidgetManager->BringToFront(mCurtain);
+		ClearUpdateBacklog(true);
+		return;
+	}
+
 	case TRANSITION_SAVED_GAME:
 	case TRANSITION_TREASURE:
 		if (mShutdown)
@@ -1124,9 +1234,13 @@ void GameApp::CurtainDone()
 		SafeDeleteWidget(mTreasureScreen);
 		RemoveBookManager();
 		RemoveBoard();
+		RemoveBookSelectScreen();
 		mTimedMode = false;
 		lua_pushboolean(mLua->L, 0);
 		mLua->Call("main.SetTimedMode", 1, 0);
+		mReplayMode = false;
+		lua_pushboolean(mLua->L, 0);
+		mLua->Call("main.SetReplayMode", 1, 0);
 		mTreasureScreen = nullptr;
 		ShowMainMenu(false, false);
 		if (!CallCurtainCallback())
@@ -1154,6 +1268,11 @@ void GameApp::CurtainDone()
 			mTimedMode = false;
 			lua_pushboolean(mLua->L, 0);
 			mLua->Call("main.SetTimedMode", 1, 0);
+		}
+		if (mReplayMode) {
+			mReplayMode = false;
+			lua_pushboolean(mLua->L, 0);
+			mLua->Call("main.SetReplayMode", 1, 0);
 		}
 		ShowMainMenu(false, false);
 		if (!CallCurtainCallback())
@@ -1208,6 +1327,112 @@ void GameApp::StartNewGameTransition()
 	DoCurtainTransition(true, "", -1);
 }
 
+void GameApp::StartReplayTransition()
+{
+	// as StartNewGameTransition, which also forgets the profile's nuking (mNukeProfile)
+	mTransitionState = TRANSITION_REPLAY;
+	if (mMainMenu != nullptr)
+		mMainMenu->mFromTitle = false;
+	DoCurtainTransition(true, "", -1);
+}
+
+void GameApp::StartReplayBookTransition()
+{
+	mTransitionState = TRANSITION_REPLAY_BOOK;
+	DoCurtainTransition(true, "", -1);
+}
+
+void GameApp::StartReplayHallOfFameTransition()
+{
+	mTransitionState = TRANSITION_REPLAY_HOF;
+	DoCurtainTransition(true, "", -1);
+}
+
+void GameApp::RemoveBookSelectScreen()
+{
+	if (mBookSelectScreen == nullptr)
+		return;
+	mWidgetManager->RemoveWidget(mBookSelectScreen);
+	SafeDeleteWidget(mBookSelectScreen);
+	mBookSelectScreen = nullptr;
+}
+
+void GameApp::ResumeSavedReplayGame()
+{
+	// the saved game's way (MainMenu::ClickAdventure): the book under the main menu, then the scripts' StartGame
+	mMainMenu->SetDisabled(true);
+	InitGameScreen(false);
+	mWidgetManager->BringToFront(mMainMenu);
+	lua_pushboolean(mLua->L, 1);
+	mBookManager->CallLinkedMethod("InitSavedGame", 1);
+	StartSavedGameTransition();
+}
+
+void GameApp::StartReplayOfSelectedBook()
+{
+	// the book picked, or the first (4) when none is
+	int aBook = mBookSelectScreen->mSelected > 0 ? mBookSelectScreen->mSelected : 4;
+	mProfile->SetInt("ReplayCurrentBook", aBook);
+	mProfile->SetBool("ReplayBookComplete", false);
+	mProfile->SetInt("ReplayCurrentChapter", 1);
+	mProfile->SetInt("ReplayCurrentStage", 1);
+	mProfile->SetBool("ReplayInGame", false);
+	mProfile->SetInt("ReplayHighScore", 0);
+	mProfile->SetInt("ReplayChapterPoints", 0);
+	mProfile->SetBool("ReplayNewGame", true);
+	mProfile->SetBool("ReplayLexDied", false);
+	mProfile->SetBool("ReplayInMiniGame", false);
+	mProfile->SetBool("MiniGamePrompting", false);
+	mProfile->SetInt("ReplayTotalLettersSpelled", 0);
+	mProfile->SetInt("ReplayTotalWordsSpelled", 0);
+	mProfile->SetInt("ReplayTotalDeaths", 0);
+	mProfile->SetInt("ReplayTotalKills", 0);
+	mProfile->SetInt("ReplayNumOneWordKills", 0);
+	mProfile->SetInt("ReplayNumTwoWordKills", 0);
+	mProfile->SetInt("ReplayNumThreeWordKills", 0);
+	mProfile->SetInt("ReplayNumGems", 0);
+	mProfile->SetInt("ReplayNumOverkills", 0);
+	mProfile->SetInt("BeatdownMultiplier", 0);
+	mProfile->Delete("ReplayCompletedChapters");
+	mProfile->Delete("ReplayEnabledMiniGames");
+	mProfile->Delete("ReplayGridState");
+	mProfile->Delete("ReplayWordLengthsSpelled");
+	mProfile->Delete("ReplayChapterTopWords");
+	mProfile->Delete("ReplayTopWords");
+	mProfile->Delete("ReplayItems");
+	mProfile->Delete("ReplayChapterTrophies");
+	mProfile->Delete("ReplayTotalChapterLettersSpelled");
+	mProfile->Delete("ReplayTotalChapterWordsSpelled");
+	// the character as it was when the book was first begun: its level, experience, health and defense
+	int aXPLevel = 0;
+	int aXP = 0;
+	int aHealth = 3;
+	int aDefense = 0;
+	float anOffenseBonus = 0.0f;
+	if (aBook == 5) {
+		aXPLevel = 10;
+		aXP = 0x497;
+		aHealth = 7;
+		aDefense = 3;
+		anOffenseBonus = 1.1638610363006592f;  // 0x715e54
+	} else if (aBook == 6) {
+		aXPLevel = 20;
+		aXP = 0x5bb3;
+		aHealth = 10;
+		aDefense = 6;
+		anOffenseBonus = 2.474869966506958f;  // 0x715e50
+	}
+	mProfile->SetInt("ReplayXPLevel", aXPLevel);
+	mProfile->SetInt("ReplayXP", aXP);
+	mProfile->SetFloat("ReplayXPPercent", 0.0f);
+	mProfile->SetInt("ReplayHealth", aHealth);
+	mProfile->SetInt("ReplayMaxHealth", aHealth);
+	mProfile->SetInt("ReplayDefense", aDefense);
+	mProfile->SetInt("ReplayDefenseLevel", aDefense);
+	mProfile->SetFloat("ReplayOffenseBonusPct", anOffenseBonus);
+	StartReplayBookTransition();
+}
+
 void GameApp::StartSavedGameTransition()
 {
 	mTransitionState = TRANSITION_SAVED_GAME;
@@ -1244,6 +1469,19 @@ void GameApp::StartTreasureTransition()
 {
 	mTransitionState = TRANSITION_TREASURE;
 	DoCurtainTransition(true, "gTreasureScreen:ContinueButtonPressed", -1);
+}
+
+// The curtain's callback of the mini-games' menu (0x4458b0, the app's function that the original called with the app)
+static void ShowMiniGameMenuCallback(void* theApp)
+{
+	static_cast<GameApp*>(theApp)->ShowMiniGameMenu();
+}
+
+void GameApp::StartMiniGameMenuTransition()
+{
+	DoFullCurtainTransition("");
+	mCurtainCallback = ShowMiniGameMenuCallback;
+	mCurtainCallbackObject = this;
 }
 
 // gName = gLinkedObjectTable[cobj]: the scripts' global of a screen's Lua object

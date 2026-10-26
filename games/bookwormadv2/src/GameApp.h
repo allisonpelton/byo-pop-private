@@ -21,6 +21,7 @@ namespace Sexy {
 
 class Board;
 class BookManager;
+class BookSelectScreen;
 class ConversationPanel;
 class Credits;
 class CurtainTransition;
@@ -57,6 +58,8 @@ public:
 		DIALOG_ARENA_WIN = 21,   // the arena's win (ArenaWinDialog): pausing the board mutes it only without this dialog
 		DIALOG_NEW_PROFILE = 22, // the trial's end, asked in MainMenu (0x47b470): a new profile? Its yes opens the players' dialog; the port has no trial
 		DIALOG_TRIAL_COMPLETE = 23,  // the trial's end ("buy the full version?", UpdateFrames 0x44aa50): the port has no trial
+		DIALOG_CONTINUE_ADVENTURE = 26,  // a finished adventure's portal: "Continue your current adventure?" (a replay is in
+		                                 // progress): yes goes on with it, no picks a book on the BookSelectScreen
 	};
 
 	// mTransitionState: what the curtain is doing (CurtainDone goes on from it)
@@ -68,10 +71,11 @@ public:
 		TRANSITION_GAME_TO_MENU = 4,   // from a battle (or a mini-game) back to the main menu
 		TRANSITION_TREASURE = 5,       // the treasure screen's continue
 		TRANSITION_TO_MENU = 7,        // from the book back to the main menu (6 is the same)
-		TRANSITION_NEW_GAME = 8,       // from the main menu to the book
-		// not ported yet (0x442700, the original's CurtainDone): 9 is the replay of a finished adventure, whose closed curtain
-		// shows the BookSelectScreen; 10 is the book chosen on it (ReplayCurrentBook); 12 is the Hall of Fame from a replay
-		// (0x443a40); 11 and 13 are not set by the game's code
+		TRANSITION_NEW_GAME = 8,       // from the main menu to the book (the replay's book too, when the adventure is finished)
+		TRANSITION_REPLAY = 9,         // from the main menu to the BookSelectScreen (a finished adventure's replay, 0x4439b0)
+		TRANSITION_REPLAY_BOOK = 10,   // from the BookSelectScreen to the book picked (ReplayCurrentBook, 0x443a00)
+		TRANSITION_REPLAY_HOF = 12,    // from a replay's chapter map to the Hall of Fame (0x443a40)
+		// 11 and 13 are not set by the game's code (0x442700, the original's CurtainDone)
 		TRANSITION_TITLE_CURTAIN = 14, // the title screen's: the callback when closed (0x442430)
 	};
 
@@ -100,6 +104,7 @@ public:
 	BookManager* mBookManager = nullptr;           // +0x7bc, the game screen (gBookManager)
 	TreasureScreen* mTreasureScreen = nullptr;     // +0x7c0 (gTreasureScreen)
 	MainMenu* mMainMenu = nullptr;                 // +0x7c4
+	BookSelectScreen* mBookSelectScreen = nullptr; // Volume 2: +0x800; the replay's book to pick (made by CurtainDone, state 9)
 	PopAnimManager* mPopAnimManager = nullptr;     // +0x7c8, the scripts' animations
 	CutScene* mCutScene = nullptr;                 // +0x7d0
 	std::string mCutSceneFile;                     // +0x7d4: the last PlayCutScene's
@@ -137,7 +142,8 @@ public:
 	bool mNoMusic = false;                         // +0x91a
 	bool mTitleToMainMenu = false;                 // +0x91b
 	bool mQueuedHydraLockout = false;              // +0x91d (not ported yet: the trial's)
-	bool mTimedMode = false;                       // +0x96e: playing the timed mode (its TM_ profile keys)
+	bool mTimedMode = false;                       // Volume 2: +0x9aa; playing the timed mode (its TM_ profile keys)
+	bool mReplayMode = false;                      // Volume 2: +0x9ab; replaying a finished adventure (its Replay* profile keys)
 	bool mLeetMode = false;                        // +0x95b: the word ELITE, typed on the menu, switched the 1337 tiles on
 	bool mMiniGameFromMenu = false;                // +0x96f: a mini-game started from the main menu's list (0x4819a0)
 	bool mQuitting = false;                        // +0x91c: leaving the game (0x451c20; 0x451920 clears it)
@@ -283,10 +289,26 @@ public:
 	void StartSavedGameTransition();
 	// 0x44df10 (DoCSToMMTransition): from the book back to the main menu
 	void StartToMenuTransition();
+	// 0x4439b0: from the main menu to the BookSelectScreen of a finished adventure's replay (TRANSITION_REPLAY)
+	void StartReplayTransition();
+	// 0x443a00: from the BookSelectScreen to the book it picked (TRANSITION_REPLAY_BOOK, CurrentBook in ReplayCurrentBook)
+	void StartReplayBookTransition();
+	// 0x443a40 (the scripts' DoReplayToHOFTransition): from a replay's chapter map to the Hall of Fame (TRANSITION_REPLAY_HOF)
+	void StartReplayHallOfFameTransition();
+	// 0x43e090: the BookSelectScreen goes
+	void RemoveBookSelectScreen();
+	// 0x4408c0: the replay in progress goes on (the book under the main menu, then the saved game's curtain)
+	void ResumeSavedReplayGame();
+	// ButtonDepress 0x44006c: Begin on the BookSelectScreen: the replay's profile begins anew (the Replay* keys, the
+	// start values of the book picked), then the curtain closes (StartReplayBookTransition)
+	void StartReplayOfSelectedBook();
 	// 0x44dfb0 (DoGameToMMTransition): from a battle back to the main menu, the curtain over everything
 	void StartGameToMenuTransition();
 	// 0x44e000: the treasure screen's continue, gTreasureScreen:ContinueButtonPressed once closed
 	void StartTreasureTransition();
+	// 0x443c20 (the scripts' DoCSToMiniMenuTransition): the whole curtain closes, then the mini-games' menu comes
+	// (ShowMiniGameMenu). The original also sets a flag of the app's, +0x95a, that this port does not use.
+	void StartMiniGameMenuTransition();
 	// 0x44d080: the whole curtain closes and opens again (a TRANSITION_CUTSCENE with mFullCurtain), theCallback
 	// (a scripts' function) once it is open
 	void DoFullCurtainTransition(const std::string& theCallback);

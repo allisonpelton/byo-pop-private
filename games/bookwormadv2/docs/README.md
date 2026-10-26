@@ -94,9 +94,10 @@ resource ids and classes, and runs headless under `-script`: the PopCap logo, th
 dialog and, after OK, the intro cut scene and the prologue battle of book 0, drawn by Volume 2's scripts (`PORT_PLAN.md`);
 the in-game Menu dialog with Options and Quit To Main Menu; the main menu (rebuilt from the original's: seven items, the
 animated portal, Lex and his bubble); the Options dialog and the Hall of Fame; and the portal's click, which takes a game
-saved in the prologue back into the battle. The music plays from the ten loose OGG files over the framework's music
-interface, by song id. Nothing of the battle has been played yet (no tile clicked). Not done: replaying a finished
-adventure (`BookSelectScreen` and three of the curtain's states), the dialogs of the trial's end
+saved in the prologue back into the battle; and the replay of a finished adventure (the "continue your current adventure?"
+dialog, `BookSelectScreen` with its three books, and the curtain's states 9, 10 and 12 up to the replay's chapter map and the
+Hall of Fame after it), tried with a profile set to a finished adventure. The music plays from the ten loose OGG files over the framework's music
+interface, by song id. Nothing of the battle has been played yet (no tile clicked). Not done: the dialogs of the trial's end
 and of a locked tome, the credits', mini-games' and stats book's song ids, and the arena's and user dialogs' comparison
 with the original. The cut scene player lacks the bitmap tags Volume 2's five movies use; PopAnim loads all 304
 animations but 41 pictures in 7 of them are not found.

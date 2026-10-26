@@ -17,7 +17,7 @@ files got this far, each step a fix that is now in the tree:
    generated from Volume 2's `properties/resources.xml` (`tools/resgen.py`: 550 resources in 9 groups, the same group names
    as Volume 1). With them the game's C++ no longer compiled: 28 uses of ids Volume 2 does not have. `TitleScreen`,
    `ArenaWinDialog` and `Board` (the film reel, the title's "Deluxe" picture and the ship pictures of the Flash
-   minigame) are reworked; `MainMenu` was rewritten from Volume 2's code (below); `BookSelectScreen` is not ported yet.
+   minigame) are reworked; `MainMenu` was rewritten from Volume 2's code (below); `BookSelectScreen` was ported later (below).
 4. Four more start-up failures, found by running the game headless (`-script`, see below), each fixed in the shared
    framework (a `shared:` commit): the framework's `DescParser::Unquote` did not match Volume 2's (its fonts write a quote
    as `'''` and `"\""`: the original keeps the backslash in the token and `Unquote` takes the next character literally,
@@ -36,9 +36,8 @@ arena and mini games are PopAnim animations (`images/pam/mm_adventure.pam` and `
 adventure, `mm_arena.pam`, `mm_minigames.pam`), driven by labels (`BookLabel()` picks the book's label), the others are
 cel images with a hit mask (quit and high scores have a mask image, the rest use the cel's rectangle). The tome shows
 when `CurrentBook` is set and above 4; arena and mini games when their profile flags are set (`RefreshUnlocks`). The
-tooltips are made but the original never draws them (inferred, not proven). Not ported yet: replaying a finished
-adventure (the replay's curtain states, `SetReplayMode`, the "continue your current adventure" dialog, `BookSelectScreen`), the
-locked-tome dialog and the trial dialogs. `KeyChar` is Volume 2's (0x46deb0): ten words (SEATTLE, MOUSTACHE, LOVELY, GOBBLE,
+tooltips are made but the original never draws them (inferred, not proven). The replay of a finished adventure is in
+(the next sections). Not ported yet: the locked-tome dialog and the trial dialogs. `KeyChar` is Volume 2's (0x46deb0): ten words (SEATTLE, MOUSTACHE, LOVELY, GOBBLE,
 CELEBRATE, PIRATE, WINTER, ELITE, PANCAKES, CONE), each calling `main.SecretUnlocked` with its hint text, Lex's animation for
 six of them, `main.SetHatMode` (hats 5, 4, 6, 7 and 3 for SEATTLE, MOUSTACHE, CELEBRATE, PANCAKES and CONE) and, for ELITE,
 `main.SetLeetMode`; the slash plays the "unlocked" animation of the arena and the mini games; the ninth `_CompleteBook`
@@ -69,7 +68,9 @@ The Hall of Fame's default names are Volume 1's code path: compare with Volume 2
 Compared with Volume 2 (2026-10-26): `StartArena` (0x46c5d0), `ContinueArena` (0x46c4b0), `FillUserList` (0x46cde0) and the
 user dialog's handler (0x46d130, its OK, close, new, delete and delete-confirmed branches) do the same steps in the same
 order as the port's Volume 1 derived code; the new-name function 0x46cb30 and the Volume 2 offsets of the app's fields
-(the timed-mode flag is +0x9aa there, the replay flag +0x9ab, ELITE's +0x95b) have not been compared line by line.
+(the timed-mode flag is +0x9aa there, the replay flag +0x9ab, ELITE's +0x95b) have not been compared line by line. The
+header comments of `GameApp.h` that give offsets are Volume 1's, except the new `mBookSelectScreen` (+0x800) and
+`mReplayMode` (+0x9ab).
 
 ## The curtain's states in Volume 2 (CurtainDone, 0x442700)
 
@@ -77,9 +78,20 @@ The port's enum had Volume 1's numbering for the title screen's curtain (9); in 
 called from 0x48a7a0), and 9 is the replay of a finished adventure. Volume 2's states: 1 cut scene, 2 opening, 3 saved game
 (0x4408c0), 4 game to menu (0x443b70), 5 treasure (0x443be0), 6 and 7 to menu (0x443a90, 0x443ad0), 8 new game (0x443950),
 9 replay (0x4439b0), 10 the book chosen on the replay's screen (0x443a00, called by `BookSelectScreen`'s button handler
-0x4254e0), 12 the Hall of Fame from a replay (0x443a40), 14 the title's curtain. Not ported: 9, 10 and 12, and in state 8 the
-replay branch (when the mReplayMode flag at +0x9aa is set, `ReplayCurrentBook` is read in place of `CurrentBook`, and
-`main.SetReplayMode` is called). A finished adventure's click on the portal (MainMenu::MouseUp, 0x46b3b0, case 2) does: with a
+0x4254e0), 12 the Hall of Fame from a replay (0x443a40), 14 the title's curtain. All of them are ported now (9, 10 and 12
+as `TRANSITION_REPLAY`, `TRANSITION_REPLAY_BOOK` and `TRANSITION_REPLAY_HOF`; the starters are `StartReplayTransition`,
+`StartReplayBookTransition` and `StartReplayHallOfFameTransition`), and so is state 8's replay branch: when the profile's
+`AdventureComplete` is set and the timed mode is off, `ReplayCurrentBook` is read in place of `CurrentBook`, and
+`main.SetReplayMode(true)` and `SetScoreFile` are called, and the replay flag (+0x9ab, `mReplayMode`; the timed flag is
++0x9aa) is set. States 4, 6 and 7 clear the replay flag and call `main.SetReplayMode(false)`; 6 and 7 also remove the
+`BookSelectScreen`. State 9 puts the screen under the curtain (`mFromTitle` of the main menu is false, and unlike state 8 it
+does not reset the nuke flag of the profile), 10 is state 8 without the timed block after the screen is removed, and 12 is
+state 4's removals and a `HallOfFame` (`MODE_ADVENTURE`, the end-of-game flag false) with `mFromArena` set, which `bookmanager.luc` reaches
+through `DoReplayToHOFTransition` when a replayed book ends. `BookSelectScreen`'s ids 0 (back), 1 (options) and 2 (begin) are
+the ids of `BookManager`'s back, continue and options buttons: `ButtonDepress` decides by which of the two screens exists (the
+original does the same). Begin (`StartReplayOfSelectedBook`, 0x4254e0) writes the `Replay*` keys of the picked book and
+starts state 10; the picked book is 4, 5 or 6 (4 when none). `ResumeSavedReplayGame` is the "Yes" answer's path when
+`ReplayInGame` is set: `InitSavedGame(true)` on the book manager and the saved-game curtain. A finished adventure's click on the portal (MainMenu::MouseUp, 0x46b3b0, case 2) does: with a
 replay in progress (`ReplayInGame`) the "Continue your current adventure?" dialog (id 0x1a, "CONTINUE?"); with none,
 `main.SetReplayMode(true)`, `ReplayBookComplete` set to false if absent, the menu disabled, and either the same dialog (when
 `ReplayCompletedChapters` exists and `ReplayBookComplete` is false) or the state-9 curtain, which opens the
@@ -88,8 +100,8 @@ the key is missing (0x47aca0 with its flag: the port's `ProfileBool`).
 
 ## Bound methods of Volume 2's GameApp (the registrations of 0x43a850 against `GameAppLua.cpp`)
 
-Missing: the transitions `DoReplayToHOFTransition`, `DoCSToMiniMenuTransition` and `DoHighScoreScreenFromReplay`, and four
-more whose names the registration code takes from its own strings and still have to be read. `LoadMusic` (0x4448c0, the
+Missing: `DoHighScoreScreenFromReplay`, and four more whose names the registration code takes from its own strings and
+still have to be read (`DoReplayToHOFTransition` and `DoCSToMiniMenuTransition` are in now). `LoadMusic` (0x4448c0, the
 file is `music\<name>.ogg`), `PlayMusic(id, offset, fadeOthers)` (0x445290) and `UnloadMusic` (0x4452f0) are in, over the
 framework's `MusicInterface` by song id; Volume 1's tracker-module `SongPlayer` is not made (`mSongPlayer` stays null) and
 `PlaySong(id, speed, loop, flag)` is the inlined `IsPlaying`, `FadeOutAll`, `PlayMusic` of 0x43df46 (its fourth flag was
@@ -133,3 +145,11 @@ export's class recovery is by RTTI only), `MainMenu` 24 KB, `GameApp` 20 KB, `Bo
    loader at 0x510c00 before the battles.
 6. Web page (`web/page.js`): markers, import folders (`music/`, `scripts/` are loose in Volume 2) and prose still say
    Volume 1; its persist folder is already `/bwa2persist`.
+
+## Found while testing the replay (2026-10-26), for the battle milestone
+
+`TileEngine::ValidWordSpelled` passes `(is_valid, count, tiles...)` to the script, but Volume 2's `TileEngine.lua` reads
+`is_noun`, `is_adjective` and `is_verb` after `is_valid`; with a new profile the tutorial's first tile click (the tutorial now shows,
+as the profile defaults are Volume 2's) stops with `TileEngine.lua:856 attempt to index local ttable`. The original's 0x49b1e0 is
+to be read for where the three flags come from (they are the word list's part-of-speech marks). Until then the game runs headless
+with a profile whose `NeedsIntroTileHelp` is false (the recipe: an existing user's folder and `lua profile.Set(...)` script lines).
