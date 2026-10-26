@@ -114,3 +114,37 @@ with its helpers, Save/Load 0x41b430-0x41c830, the fireworks (Rocket 0x4172f0), 
 Hidden arguments the decompiler drops (found with tools/callargs.py): 0x4259c0 AddScore(int), 0x423120 ComboSound(double x,
 double y). Guesses still to verify against the original at the first run: PlaySample ids against Res.h's SOUND_ enum, the
 float-up of Points, m84, DropTopTimed's use of m4c.
+
+### Where the Board stands after the input work (2026-10-26, evening)
+
+The Board runs end to end without a picture: StartBoard builds it, `tools/check.sh rocketmania` plays a game of each mode with
+the autoplay hook (src/testhooks/Autoplay.cpp: random clicks and drags, a straight pipe forced into the lowest full row now
+and then, a check of every grid cell) and sees launches score (scores 130, 1604, 1630 at update 3000) and the strategy
+mode end. Translated since the status above: Update 0x426f40, KeyChar/MouseMove/MouseLeave/MouseDown/MouseUp/MouseDrag,
+pause 0x421f30, the first board of the timed modes 0x428780/0x428ae0, the dealing of a new board (state 7) 0x428ef0 with
+0x428e80, game over 0x421de0, 0x4282a0, 0x428090, 0x428d10, 0x428de0, 0x41f280, 0x429050-0x429080, the app's StartBoard
+0x42ea30 (without the music fades, the three left-hand buttons 0x42d1a0 and the deletion of the mode's saved game).
+
+Draw (0x41f540 and helpers) is the next block and has a prerequisite: the tiles' pictures. The loading procedure (app vf15,
+0x42bdb0, around lines 585-760 of its decompile) builds app->mPieces: for each of 5 kinds and 4 rotations a 42 by 42 image cut
+from the piece sheet (image table entry 17, source rectangle (rotation * 42, kind * 42)) over a background (entry 33 for
+kind 4, entry 37 for the others), in 7 variants: variant 0 as it is, variants 1 to 5 with the hue set to 45.75, 28.75, 0.25,
+337.25 and 100.0 degrees (HSL, through 0x416fd0 and 0x417140), variant 6 grey (every pixel's three channels become the
+largest of them). The port's mPieces is still empty (RocketApp.cpp only deletes it). Which variant a grid tile shows
+(0x41e770): path 0 or no connection: variant 6; connected to the left edge (m384[path] bit 1): variant 1 when m3fc[path]
+else 2; connected to the right edge (bit 2): variant 4 when m41a[path] is clear, else a seventh-index variant the
+decompile shows as `(rotation + 0x37 + kind * 4) * 0x1c` (check the disassembly: it is not one of the seven); a burning tile
+(type 4) is drawn as variant 6 with the variant-0 picture over it at a fading alpha; a tile with |m80| > 0.005 is drawn by
+0x41e630 (tilted; not read). Positions are `ftol(mX), ftol(mY)` of the piece (the first ftol is y). Edge pieces: 0x41ec20 (left:
+a flickering fuse from the font entry 48 / 0xc0, right: the rocket from 0x41d620 with an alpha ramp over its first 155
+updates). Sky: if 1 - m318/m68 <= 0.5 (or m4e0, or the app's test 0xb) the night sky (image 67) is drawn alone at (63, 0),
+otherwise the day sky (image 68) is drawn over it with alpha ftol((1 - m318/m68 - 0.5) * 510) when that is above 4; the sun
+(71) rises with that alpha; then city (72) at (116, 317), ground (66) at (116, 382), the effects, the column (65) at (0, 0),
+the matches (112) at (0, 166) in strategy mode, the poles (69, 70) at (195, 24) and (492, 24).
+
+Still to do after Draw: Save/Load 0x41b430-0x41c830, the dialogs (high scores 0x4064e0, options 0x411ba0, record 0x414060,
+level-up 0x40c2c0, money 0x4118d0, buy rockets 0x401010, credits 0x403990, hint 0x408f60), the fireworks (Rocket 0x4172f0), the
+talking head (0x4161a0, 0x413aa0), the left-hand buttons 0x42d1a0 and the Board's ButtonDepress, the music fades, then the
+deliverables: the LICENSES entry, the coordinator's `BYOPOP_BUY_rocketmania` line (cmake/ByopopStores.cmake has an
+uncommitted local placeholder that must not be committed), and an AddressSanitizer run of the autoplay (tools/build.sh has no
+asan option yet).
