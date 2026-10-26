@@ -38,3 +38,6 @@ set(BYOPOP_BUY_wordharmony 2026-10-26)
 # store, Retro64's site no longer answers, and GameHouse names it only on a support page of games that suit Windows 10
 # and 11, with no store page found there or at Big Fish Games, iWin or Pogo.
 set(BYOPOP_BUY_cosmicbugs 2026-10-26)
+# Bookworm Adventures Volume 2 (PopCap, 2009): a placeholder that only lets the web configure pass. Its stores are
+# checked at the web milestone, before a page is published.
+set(BYOPOP_BUY_bookwormadv2 2026-10-26)
