@@ -75,8 +75,8 @@ bool StartsWith(const std::string& theText, const char* thePrefix)
 
 const char* EndReasonName(int theReason)
 {
-	static const char* const aNames[] = {"abandoned", "no moves", "time up", "new game", "gold time up", "saved"};
-	return ((theReason >= 0) && (theReason <= Replay::END_SAVED)) ? aNames[theReason] : "?";
+	static const char* const aNames[] = {"abandoned", "no moves", "time up", "new game", "gold time up", "saved", "arrow escaped"};
+	return ((theReason >= 0) && (theReason < Replay::NUM_END_REASONS)) ? aNames[theReason] : "?";
 }
 
 // The player's state the verifier starts from: no mods, no seed, no switches (a replay brings its own rules)

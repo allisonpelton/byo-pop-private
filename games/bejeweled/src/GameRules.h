@@ -152,6 +152,17 @@ public:
 		DEFAULT_FALL_ACCEL = 180    // board.gravity.fallAccel: 180 / 1000.0 is the original's 0.18
 	};
 
+	// The way an arrow gem points (4.20); a piece's mArrow is the direction + 1, 0 for none
+	enum ArrowDirection
+	{
+		ARROW_UP = 0,
+		ARROW_RIGHT = 1,
+		ARROW_DOWN = 2,
+		ARROW_LEFT = 3,
+		NUM_ARROW_DIRECTIONS = 4,
+		ALL_ARROW_DIRECTIONS = 15
+	};
+
 	struct BoardRules
 	{
 		int							mCols = 8;              // board.cols 3..16 (shape)
@@ -219,6 +230,16 @@ public:
 		bool						mRestoreRng = true;     // undo.restoreRng
 	};
 
+	// Arrow gems (4.20, stage 18): directions are bits 1 << ARROW_UP .. ARROW_LEFT
+	struct ArrowRules
+	{
+		bool						mEnabled = false;       // arrows.enabled (arrows)
+		int							mDirections = ALL_ARROW_DIRECTIONS; // arrows.directions
+		int							mEvery = 6;             // arrows.every: a new arrow after that many moves at level 1
+		int							mEveryMin = 3;          // arrows.everyMin: one move fewer each level, down to this
+		int							mBonus = 100;           // arrows.bonus: times the arrows cleared so far, times the multiplier
+	};
+
 	// Presentation (4.16): in the RulesId and the score key, never a variant board
 	struct LookRules
 	{
@@ -246,6 +267,7 @@ public:
 	SpecialRules					mSpecials;
 	GoldRules						mGold;
 	UndoRules						mUndo;
+	ArrowRules						mArrows;
 	LookRules						mLook;
 	TunableRules					mTunables;
 	DiffValues						mDiff;          // always part of the canonical form
@@ -275,6 +297,8 @@ public:
 	// traces (4.16; default rules, -forcevariant included, keep the frozen forms)
 	bool							HasGravityRule() const { return (mBoard.mGravity != GRAVITY_DOWN) || (mBoard.mFallAccel != DEFAULT_FALL_ACCEL); }
 	bool							HasDirtRule() const;   // a level's mask has dirt (stage 7b, 4.14)
+	// The new arrows (4.20, stage 18): a new arrow after this many moves on the 0-based level theLevel
+	int								ArrowInterval(int theLevel) const;
 
 	// The checks of 3.6 (all of them, for the merged set). False with a message and the causes of the
 	// failure: the fields the failing check reads whose values differ from their defaults (the board shape
@@ -326,8 +350,9 @@ struct GameFeatures
 	bool							mCodeArt = false;       // code-drawn images and fonts (4.18, src/art/CodeArt.h)
 	std::string						mCodeArtGems = "cel";   // gem style: cel, glossy, su
 	std::string						mCodeArtPalette = "blue";   // blue, violet, emerald, ember, night
+	bool							mGameStats = false;     // the game-over screen's Stats page (4.19, GameStats.h)
 
-	bool							Any() const { return mSeeds || mReplays || mLeaderboard || mLiveSplit || mCodeArt; }
+	bool							Any() const { return mSeeds || mReplays || mLeaderboard || mLiveSplit || mCodeArt || mGameStats; }
 	std::string						Text() const;           // "seeds(entry, perGame), replays(keep 20), livesplit" or "none"
 };
 

@@ -69,6 +69,8 @@ void Board::DrawVariant(Graphics* g)
 				if ((aPiece == NULL) || (mVariant.mMoves && DrawsSlideCell(aCol, aRow))) // a sliding line: DrawMovesUnder
 					continue;
 
+				if (mVariant.mArrows && DrawArrowGem(&aBoardG, aPiece, (int)aPiece->mX, (int)aPiece->mY)) // an arrow gem (stage 18, BoardArrowsDraw.cpp)
+					continue;
 				int aSrcX = aPiece->mSpinFrame * 52 + 2;
 				int aSrcY = aPiece->mColor * 104;
 				if ((aPiece->mGlowing) && (aPiece->mSpinFrame == 0) && (!aPiece->mDying))
@@ -126,6 +128,8 @@ void Board::DrawVariant(Graphics* g)
 			DrawGold(&aBoardG, true); // the cells gilded lately
 		if (mVariant.mDirt)
 			DrawDirtDust(&aScaledG);
+		if (mVariant.mArrows)
+			DrawArrowWarnings(&aScaledG); // the edges arrows are about to cross (stage 18)
 
 		Piece* aCursorPieces[3] = {mSelectedPiece, mSwapPiece1, mSwapPiece2};
 		for (int i = 0; i < 3; i++)

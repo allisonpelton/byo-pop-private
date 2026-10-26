@@ -22,6 +22,8 @@
 //           ENV (u8 showInstructions, i32 timesPlayed, i32 pointsAscent), u32 count + events
 //           { varint tickDelta, u8 op, zigzag-varint args (as many as the op takes) }
 //     SVHA  sidecar only: u32, the first 4 bytes (little-endian) of SHA-256 of the save it goes with
+//     STAT  sidecar only: the Stats page's counts of the saved game (features.gameStats, GameStats::Encode), right
+//           before END (AddStats); any place is read, and a reader without the feature skips it
 //     END   u8 reason (0 abandoned, 1 no moves, 2 time up, 3 new game, 4 gold time up, 5 saved), u32 endTick,
 //           i32 score, i32 level, i32 gems, u64 LOGIC hash, u32 board draws. Always the last record.
 // The records come in this order, each at most once where it stands:
@@ -105,7 +107,9 @@ enum EndReason
 	END_TIME_UP = 2,
 	END_NEW_GAME = 3,
 	END_GOLD_TIME_UP = 4,
-	END_SAVED = 5
+	END_SAVED = 5,
+	END_ARROW_ESCAPED = 6,      // port(variant): an arrow gem stepped off the board (stage 18)
+	NUM_END_REASONS = 7
 };
 
 enum RngKind
@@ -196,7 +200,13 @@ struct File
 	bool			mHasSaveHash = false;       // SVHA
 	uint32_t		mSaveHash = 0;
 	EndInfo			mEnd;                       // END (always written; Read fails without it)
+	bool			mHasStats = false;          // STAT (Write leaves it out: AddStats puts it in)
+	std::string		mStats;
 };
+
+// A sidecar with theStats as its STAT record, just before its END (the last record, of a fixed size), so the rest
+// stays byte for byte as it was written. False, theFile unchanged, when it does not end in an END record.
+bool				AddStats(std::string* theFile, const std::string& theStats);
 
 // The bytes of theFile in the record order above
 std::string			Write(const File& theFile);
@@ -299,6 +309,8 @@ bool				CheckSave(const std::string& theSave, int theCols, int theRows, std::str
 //     KIND  u8 kinds[cols * rows] (stage 11, row-major: a gem's kind, 0 normal, 1 flame, 2 lightning; 0 where no gem)
 //     GOLD  u8 gold[cols * rows] (stage 12, row-major: 1 a gold cell, 0 elsewhere; gold only on a gem cell of the mask)
 //     GTIM  u32 ticksLeft, u32 limit (stage 12: the level's time, 0 0 for none)
+//     ARRW  i32 moves, i32 cleared, u8 stepDue, u8 arrows[cols * rows] (stage 18: the moves toward the next arrow, the
+//           arrows cleared, whether the settle steps them, then row-major each gem's arrow, 0 none or its direction + 1)
 // A v1 save (version 1) has the v1 field sequence right after its version.
 enum
 {
@@ -333,12 +345,17 @@ struct VariantSave
 	bool			mHasGoldTime = false;       // GTIM; absent, the level's whole time
 	int32_t			mGoldTicksLeft = 0;
 	int32_t			mGoldTickLimit = 0;
+	bool			mHasArrows = false;         // ARRW (stage 18): written when the rules have arrows; absent, none and no counts
+	std::vector<uint8_t> mArrows;               // mCols * mRows, row-major
+	int32_t			mArrowMoves = 0;
+	int32_t			mArrowsCleared = 0;
+	bool			mArrowStepDue = false;
 	size_t			mBodyStart = 0;             // ReadVariantSave: where the v1 field sequence starts (mTimedMode)
 	size_t			mBodyEnd = 0;               // and where the chunks start
 };
 
 // The bytes after the version up to the v1 field sequence, and the chunks after it (RNGS, MOVE, GRAV when mHasGravity,
-// DIRT when mHasDirt, KIND when mHasKinds, GOLD and GTIM when mHasGold, END)
+// DIRT when mHasDirt, KIND when mHasKinds, GOLD and GTIM when mHasGold, ARRW when mHasArrows, END)
 std::string			VariantSaveHeader(const VariantSave& theSave);
 std::string			VariantSaveChunks(const VariantSave& theSave);
 

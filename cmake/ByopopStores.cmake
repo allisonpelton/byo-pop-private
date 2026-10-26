@@ -27,3 +27,6 @@ set(BYOPOP_BUY_mummymaze 2026-10-25)
 set(BYOPOP_BUY_ningpo 2026-10-25)
 set(BYOPOP_BUY_pixelus 2026-10-25)
 set(BYOPOP_BUY_tiptop 2026-10-25)
+# Checked 2026-10-26: the EA app sells Alchemy (its page on ea.com); Steam's store search has no Alchemy of PopCap's.
+set(BYOPOP_BUY_alchemy 2026-10-26
+  "EA app" "https://www.ea.com/games/alchemy/alchemy")

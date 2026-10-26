@@ -1,0 +1,16 @@
+{
+  "id": "example-replays",
+  "name": "Example: Replays",
+  "version": "1.0",
+  "defaultEnabled": false,
+  "author": "byo-pop examples",
+  "description": "Every game is recorded as it is played. The game-over screen gets WATCH REPLAY, and Extras (in Options) a browser of the recent replays, which plays any of them back exactly. Changes nothing in play.",
+  "settings": [
+    { "type": "section", "label": "Replays" },
+    { "id": "keep", "label": "Replays kept", "type": "int", "default": 20, "min": 1, "max": 200, "step": 1,
+      "help": "The newest games kept in the replay folder; older ones go. Replays you Keep in the browser stay." },
+    { "id": "hover", "label": "Record the mouse", "type": "bool", "default": true,
+      "help": "Also records where the mouse moved, so a replay shows the hover glow on gems. Makes the files larger." }
+  ],
+  "features": { "replays": { "keep": { "$setting": "keep" }, "hover": { "$setting": "hover" } } }
+}

@@ -7,6 +7,7 @@
 // bytes, so Board data starts at +0x88; Ghidra's Board_data.offset_N is absolute N+0x88).
 // Behaviour spec: games/bejeweled/docs/GAME_NOTES.md (Board section).
 
+#include "GameStats.h"
 #include "Widget.h"
 #include "MTRand.h"
 #include "Piece.h"
@@ -49,7 +50,9 @@ enum BoardState
 	STATE_TWISTING = 10,        // a 2x2 block turns (UpdateTwist)
 	STATE_TWISTING_BACK = 11,   // a twist that made no group turns back
 	STATE_SLIDING = 12,         // a line's gems slide along it (UpdateSlide)
-	STATE_SLIDING_BACK = 13     // a slide that made no group slides back
+	STATE_SLIDING_BACK = 13,    // a slide that made no group slides back
+	// port(variant): the arrow gems (stage 18, BoardArrows.cpp), never under the original rules
+	STATE_ARROW_STEPPING = 14   // at a move's settle the arrows step a cell and trade places (UpdateArrowSteps)
 };
 
 // Element of Board::mScorePopups (0x14 bytes; std::list node 0x1c).
@@ -103,6 +106,7 @@ struct VariantFlags
 	bool mFall = false;         // mShape || mGravity || fallAccel != 180: FallPiecesVariant, RefillMasked, FillBoardVariant, the end falls
 	bool mChecker = false;      // mShape || look.backdrop "twilight": DrawVariantChecker for SetupLevel's tiles
 	bool mDirt = false;         // a level's mask has dirt (4.14): RefillDiagonal, layers off next to scored runs, the dirt art
+	bool mArrows = false;       // arrows.enabled (4.20): new arrows and their steps at a move's settle, the arrow art
 };
 
 class Board : public Widget
@@ -280,6 +284,8 @@ public:
 	bool			mTakesPendingSeed;      // seeded with GameConfig::mPendingSeed, unplayed: a matching swap or a game over uses it up (4.10)
 	// Replays (games/bejeweled/docs/CODE_MODS_DESIGN.md 6.3-6.5): observers of play, so like the RNG source
 	// they are no code path and BEJ_NO_VARIANTS keeps them
+	GameStats*		mStats;                 // port(variant): the Stats page's counts (features.gameStats, GameStats.h); owned
+	std::vector<GameStats> mStatsUndo;      // port(variant): the counts with each of mUndoStack's snapshots, newest last
 	ReplayRecorder*	mRecorder;              // records this board's game (features.replays); NULL unless recording; owned, deleted in ~Board
 	bool			mPlaybackOnly;          // driven by a replay player (WatchController) or the verifier: takes no input, never saves, counts or deletes
 	bool			mPlaybackApplying;      // the player is applying an event: only then do Pause and Unpause reach a playback board
@@ -333,6 +339,20 @@ public:
 	int				mDragOffset;            // the drag along that axis (px, logical): drawn only
 	int				mDragStart;             // the dragged segment's first cell and length
 	int				mDragLength;
+	// Arrow gems (stage 18, games/bejeweled/docs/CODE_MODS_DESIGN.md 4.20; BoardArrows.cpp), on a board with arrow rules
+	// (mVariant.mArrows): the arrows are the pieces' mArrow. Saved (ARRW), hashed, traced and undone with these counts
+	struct ArrowStep
+	{
+		int			mFromCol;               // the arrow's cell before the step
+		int			mFromRow;
+		int			mToCol;                 // ... and after it, where the traded gem was; off the board for the arrow that escapes
+		int			mToRow;
+	};
+	int				mArrowMoves;            // moves since the last new arrow (arrows.every)
+	int				mArrowsCleared;         // the arrows cleared this game: the bonus's factor
+	bool			mArrowStepDue;          // a move stood: the settle that ends it steps the arrows
+	std::vector<ArrowStep> mArrowSteps;     // STATE_ARROW_STEPPING: this settle's steps, in the order they were taken
+	int				mArrowTick;             // ... the ticks of their animation so far
 
 public:
 	int				GetColX(int theCol);                            // 0x4c9b25 theCol*51 + 203 (thiscall in the binary, this unused; port(variant): a member, + mLayout.mOriginX)
@@ -420,6 +440,7 @@ public:
 	void			DeleteSaveSidecar();                            // DeleteSaveGame: the sidecar goes with the save
 	void			KeepSidecarGame();                              // the recorded game of the sidecar there is, kept as a finished replay
 	std::string		SidecarSnapshot(const std::string& theSave);   // the sidecar a shutdown would leave with theSave ("" for none)
+	void			AddStatsToSidecar(std::string* theSidecar, const std::string& theSave); // port(variant): the STAT record (GameStats.h)
 	bool			ReadSaveSidecar(const std::string& theSave, Replay::File* theSidecar); // the sidecar, if it goes with theSave
 	void			GetRngState(Replay::RngState* theRng);         // the RNG Board::Rand draws from, as RNGS stores it
 	bool			SetPlaybackRng(const Replay::RngState& theRng); // a playback LOAD: the RNG the recorded board went on with (RNGS)
@@ -474,6 +495,18 @@ public:
 	void			UpdateGold();                                   // Update: the shines (cosmetic)
 	void			DrawGold(Graphics* g, bool isOver);             // DrawVariant: the gold cells (under the gems), the shines (over)
 	void			DrawGoldHud(Graphics* g);                       // DrawVariant: GOLD n/m over the bar
+	// Arrow gems (stage 18, games/bejeweled/docs/CODE_MODS_DESIGN.md 4.20; BoardArrows.cpp)
+	void			OnArrowMove();                                  // OnMoveMade, KeepInvalidMove: a move stood
+	bool			ArrowSettle();                                  // UpdateFalling's settle: steps the arrows (true: they step now), a new arrow
+	bool			NextArrowCell(int theCol, int theRow, int theDir, int* theNextCol, int* theNextRow) const; // the next gem cell the way theDir points
+	int				ArrowDistance(int theCol, int theRow, int theDir) const; // the gem cells between an arrow and its edge
+	void			UpdateArrowSteps();                             // STATE_ARROW_STEPPING
+	bool			IsArrowEscaping() const;                        // STATE_ARROW_STEPPING: the step is an arrow's escape
+	void			AddNewArrow();                                  // the settle after every arrows.every moves: a gem on an edge turns into an arrow
+	void			ClearArrow(Piece* thePiece);                    // a matched or blasted arrow: the bonus, the count
+	void			ClearMatchedArrows();                           // ProcessMatchesVariant found groups: each dying arrow
+	bool			DrawArrowGem(Graphics* g, Piece* thePiece, int theX, int theY); // an arrow's picture instead of its gem (false: not an arrow)
+	void			DrawArrowWarnings(Graphics* g);                 // DrawVariant: an arrow one step from its edge pulses, the edge glows
 	bool			ApplyDirtLayers(const std::vector<uint8_t>& theLayers, std::string* theWhy); // a save's or snapshot's layers onto the level's mask
 	void			DrawDirt(Graphics* g);                          // DrawVariant: the dirt cells, under the gems
 	void			DrawDirtDust(Graphics* g);                      // DrawVariant: the dust of cleared cells, over the gems
