@@ -835,10 +835,15 @@ void MainMenu::MouseUp(int x, int y, int theClickCount)
 			ClickAdventure(aDisableAll);
 			break;
 		case ITEM_ARENA:
-			// 0x46bf5x: only once the arena is unlocked and the player is in the second book or the first's sixth
-			// chapter. (The warning that an expansion pack's installing ends the arena's games in progress,
-			// TM_Invalidated, is not ported: nothing sets that key here.)
-			if (ProfileBool(mApp, "UnlockedArena")) {
+			// 0x46be19: a profile marked TM_Invalidated (nothing in Volume 2 sets it: an expansion pack's installing ended the
+			// arena's games in progress) is warned once. Else only once the arena is unlocked and the player is in the
+			// second book or the first's sixth chapter
+			if (ProfileBool(mApp, "TM_Invalidated")) {
+				mApp->mProfile->Delete("TM_Invalidated");
+				mApp->mProfile->Save();
+				mApp->DoOkDialog(GT(0x6fcf08), GT(0x6fce88), "", nullptr);
+				mApp->GetDialog(GameApp::DIALOG_OK)->mPriority = 2;
+			} else if (ProfileBool(mApp, "UnlockedArena")) {
 				if (mApp->mProfile->GetInt("CurrentBook") >= 2 || mApp->mProfile->GetInt("CurrentChapter") >= 6) {
 					SetDisabled(true);
 					StartArena();
@@ -866,12 +871,14 @@ void MainMenu::MouseUp(int x, int y, int theClickCount)
 			mApp->SetCursor(CURSOR_POINTER);
 			break;
 		case ITEM_TOME:
-			// 0x46c0xx: only once the tome is open: the whole curtain closes over the menu, then the tome comes (the
-			// original wrote out what AddStatsBook does for it). A closed one answers with a dialog whose texts
-			// are not known yet.
+			// 0x46c104: only once the tome is open: the whole curtain closes over the menu, then the tome comes (the
+			// original wrote out what AddStatsBook does for it). A closed one answers with a message
 			if (mTomeUnlocked) {
 				mApp->AddStatsBook(false, true, false);
 				CloseTooltips();
+			} else {
+				mApp->DoOkDialog(GT(0x6fcf10), GT(0x6fcb88), "", nullptr);
+				mApp->GetDialog(GameApp::DIALOG_OK)->mPriority = 2;
 			}
 			mApp->SetCursor(CURSOR_POINTER);
 			break;

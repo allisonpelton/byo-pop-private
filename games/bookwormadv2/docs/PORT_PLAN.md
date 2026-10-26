@@ -37,7 +37,11 @@ adventure, `mm_arena.pam`, `mm_minigames.pam`), driven by labels (`BookLabel()` 
 cel images with a hit mask (quit and high scores have a mask image, the rest use the cel's rectangle). The tome shows
 when `CurrentBook` is set and above 4; arena and mini games when their profile flags are set (`RefreshUnlocks`). The
 tooltips are made but the original never draws them (inferred, not proven). The replay of a finished adventure is in
-(the next sections). Not ported yet: the locked-tome dialog and the trial dialogs. `KeyChar` is Volume 2's (0x46deb0): ten words (SEATTLE, MOUSTACHE, LOVELY, GOBBLE,
+(the next sections), and so are the locked tome's message ("NOT YET!") and the arena's TM_Invalidated warning. The trial
+dialogs ("You have reached the end of your free trial!", dialog 0x16, four places in `MouseUp`) are left out on purpose:
+the check (0x447b50) is false for the marketing modes 0, 1 and 4 that the start-up derives from `properties/partner.xml`
+(`MarketingMode` "60Normal", "60Trailer", anything else; "Hydra" and "HydraTrailer" are 2 and 3, the trial wrappers), and a
+Steam copy has no `partner.xml`, so it is mode 4. `KeyChar` is Volume 2's (0x46deb0): ten words (SEATTLE, MOUSTACHE, LOVELY, GOBBLE,
 CELEBRATE, PIRATE, WINTER, ELITE, PANCAKES, CONE), each calling `main.SecretUnlocked` with its hint text, Lex's animation for
 six of them, `main.SetHatMode` (hats 5, 4, 6, 7 and 3 for SEATTLE, MOUSTACHE, CELEBRATE, PANCAKES and CONE) and, for ELITE,
 `main.SetLeetMode`; the slash plays the "unlocked" animation of the arena and the mini games; the ninth `_CompleteBook`
@@ -63,7 +67,10 @@ script error in `CreateArenaAnim` (`book0.luc:278`): the scripts name a resource
 file as `book0Chapter1`, and the framework's `DeleteResources` and `GetNumResources` compared the names with case, so
 quitting to the menu left the chapter's images loaded (while the Lua side forgot them), and the next load skipped them and
 exported nothing. The group names are now compared without case (`shared:` commit; the group list was already).
-The Hall of Fame's default names are Volume 1's code path: compare with Volume 2's `HallOfFame` (6.1 KB) too.
+The Hall of Fame's ten default entries per list now come from Volume 2's builders (0x455890 powers, 0x4566e0 arena times,
+0x457840 bonuses): the arena's times carry stage 2 or 1 (two bosses), not Volume 1's 11 to 1. The names and the title's
+LOADING letters that `gametext.py` could not map are found by their Volume 2 addresses. Left in `tools/gt_todo.txt`: the
+stale list of Volume 1 addresses (the credits, the skip-movie dialog and the conversation pages still read some).
 
 Compared with Volume 2 (2026-10-26): `StartArena` (0x46c5d0), `ContinueArena` (0x46c4b0), `FillUserList` (0x46cde0) and the
 user dialog's handler (0x46d130, its OK, close, new, delete and delete-confirmed branches) do the same steps in the same
