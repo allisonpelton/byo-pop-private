@@ -1,5 +1,6 @@
 #include "DynomitePanic.h"
 #include "Egg.h"
+#include "ImageFont.h"
 #include "EggGrid.h"
 #include "FirePrompt.h"
 #include "FossilizedApp.h"
@@ -15,6 +16,7 @@
 #include "Sprite.h"
 #include "Thunderbolt.h"
 #include "Whirley.h"
+#include <cstdio>
 #include <cstring>
 
 using namespace Sexy;
@@ -203,6 +205,45 @@ Egg* DynomitePanic::NextEgg()
 		mField108 = 0;
 	}
 	return anEgg;
+}
+
+// 0x40dd50: each line has a black shadow two pixels down and right; the numbers are right-aligned
+void DynomitePanic::DrawGameOver(Graphics* g)
+{
+	std::vector<std::string> aComboNames = mApp->GetStringVector("ComboNames");
+	Dynomite::DrawGameOver(g);
+	g->SetFont(mApp->mWhiteFontSmall);
+	char aCombo[32];
+	strcpy(aCombo, aComboNames[mLongestChain].c_str());
+	int aComboWidth = g->GetFont()->StringWidth(aCombo);
+	char aScore[16];
+	sprintf(aScore, "%d", mApp->mSideBar->mScore);
+	int aScoreWidth = g->GetFont()->StringWidth(aScore);
+	char aWhirleys[16];
+	sprintf(aWhirleys, "%d", mWhirleysHit);
+	int aWhirleysWidth = g->GetFont()->StringWidth(aWhirleys);
+	char aBabies[16];
+	sprintf(aBabies, "%d", mBabies);
+	int aBabiesWidth = g->GetFont()->StringWidth(aBabies);
+	g->SetColor(Color(0, 0, 0));
+	g->DrawString(mApp->GetString("BEST_COMBO"), 0xe3, mField1c8 + 0x57);
+	g->DrawString(mApp->GetString("BABIES_HATCHED"), 0xe3, mField1c8 + 0x6b);
+	g->DrawString(mApp->GetString("WHIRLEYS_WHACKED"), 0xe3, mField1c8 + 0x7f);
+	g->DrawString(mApp->GetString("FINAL_SCORE"), 0xe3, mField1c8 + 0x93);
+	g->DrawString(aCombo, 0x1b7 - aComboWidth, mField1c8 + 0x57);
+	g->DrawString(aWhirleys, 0x1b7 - aWhirleysWidth, mField1c8 + 0x7f);
+	g->DrawString(aScore, 0x1b7 - aScoreWidth, mField1c8 + 0x93);
+	g->DrawString(aBabies, 0x1b7 - aBabiesWidth, mField1c8 + 0x6b);
+	g->SetColor(Color(0xe6, 0xe6, 0xff));
+	g->DrawString(mApp->GetString("BEST_COMBO"), 0xe1, mField1c8 + 0x55);
+	g->DrawString(aCombo, 0x1b5 - aComboWidth, mField1c8 + 0x55);
+	g->DrawString(mApp->GetString("BABIES_HATCHED"), 0xe1, mField1c8 + 0x69);
+	g->DrawString(mApp->GetString("WHIRLEYS_WHACKED"), 0xe1, mField1c8 + 0x7d);
+	g->DrawString(aWhirleys, 0x1b5 - aWhirleysWidth, mField1c8 + 0x7d);
+	g->DrawString(aBabies, 0x1b5 - aBabiesWidth, mField1c8 + 0x69);
+	g->SetColor(Color(0xff, 0xff, 0xff));
+	g->DrawString(mApp->GetString("FINAL_SCORE"), 0xe1, mField1c8 + 0x91);
+	g->DrawString(aScore, 0x1b5 - aScoreWidth, mField1c8 + 0x91);
 }
 
 // 0x40d2a0

@@ -481,9 +481,73 @@ void Dynomite::DrawMode()
 {
 }
 
-// 0x406f70 (TODO with the game's end: it needs the high scores at +0x1d8)
+// 0x406f70: a dialog panel (mField1c8 from the top) with the game's time, the rank, the mode's title and its high
+// scores; each text has a black shadow two pixels down and right (the labels' shadows are the properties' texts,
+// the labels themselves the exe's)
 void Dynomite::DrawGameOver(Graphics* g)
 {
+	mApp->mDialogCells[0]->Draw(10, mField1c8);
+	int x = 0x3a;
+	do
+	{
+		mApp->mDialogCells[1]->Draw(x, mField1c8);
+		x = x + 0x30;
+	} while (x < 0x1ba);
+	mApp->mDialogCells[2]->Draw(x, mField1c8);
+	int aRight = x;
+	int y = mField1c8 + 0x30;
+	if (y < mField1c8 + 0x1b0)
+	{
+		do
+		{
+			mApp->mDialogCells[3]->Draw(10, y);
+			int aX = 0x3a;
+			do
+			{
+				mApp->mDialogCells[4]->Draw(aX, y);
+				aX = aX + 0x30;
+			} while (aX < 0x1ba);
+			mApp->mDialogCells[5]->Draw(aRight, y);
+			y = y + 0x30;
+		} while (y < mField1c8 + 0x1b0);
+	}
+	mApp->mDialogCells[6]->Draw(10, y);
+	x = 0x3a;
+	do
+	{
+		mApp->mDialogCells[7]->Draw(x, y);
+		x = x + 0x30;
+	} while (x < 0x1ba);
+	mApp->mDialogCells[8]->Draw(x, y);
+
+	g->SetFont(mApp->mWhiteFontSmall);
+	char aTime[32];
+	int aSeconds = mField1cc / 100;
+	sprintf(aTime, "%d:%.2d", aSeconds / 60, aSeconds % 60);
+	int aTimeWidth = g->GetFont()->StringWidth(aTime);
+	g->SetColor(Color(0, 0, 0));
+	g->DrawString(mApp->GetString("GAME_TIME"), 0xe3, mField1c8 + 0x43);
+	g->DrawString(aTime, 0x1b7 - aTimeWidth, mField1c8 + 0x43);
+	g->SetColor(Color(0xff, 0xff, 0xff));
+	g->DrawString(GT(0x4f75b4), 0xe1, mField1c8 + 0x41);
+	g->DrawString(aTime, 0x1b5 - aTimeWidth, mField1c8 + 0x41);
+
+	g->SetFont(mApp->mWhiteFont);
+	g->SetColor(Color(0, 0, 0));
+	g->DrawString(mApp->GetString("RANK"), 0xe3, mField1c8 + 0xbb);
+	g->DrawString(gScoreNames[mRank], 0xe3, mField1c8 + 0xd2);
+	g->SetColor(Color(0xff, 200, 200));
+	g->DrawString(GT(0x4f75a4), 0xe1, mField1c8 + 0xb9);
+	g->SetColor(Color(200, 0xff, 200));
+	g->DrawString(gScoreNames[mRank], 0xe1, mField1c8 + 0xd0);
+
+	int aHalf = g->GetFont()->StringWidth(mHighScoreTitle) / 2;
+	g->SetColor(Color(0, 0, 0));
+	g->DrawString(mHighScoreTitle, 0xf7 - aHalf, mField1c8 + 0x106);
+	g->SetColor(Color(0xff, 0xff, 0xff));
+	g->DrawString(mHighScoreTitle, 0xf5 - aHalf, mField1c8 + 0x104);
+	g->SetFont(mApp->mWhiteFontSmall);
+	mHighScores->Draw(g, 0x3a, mField1c8 + 0x10e, 0x180, 0x5a);
 }
 
 // 0x404fb0

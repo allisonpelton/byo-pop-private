@@ -40,7 +40,9 @@ public:
 	virtual void		DrawScenery() override;		// 0x40d0a0: and Kroney
 	virtual void		DrawMode() override;		// 0x40cca0: the whirleys
 	virtual void		Blasted() override;			// 0x40d080: the kick
-	// TODO: the game's end (0x40dd50, slot 54) and the save and load (slots 59 and 60, 0x40d0c0 and 0x40d160) come with those
+	// 0x40dd50: the board's, with the best combo, the babies hatched, the whirleys whacked and the final score
+	virtual void		DrawGameOver(Graphics* g) override;
+	// TODO: the save and load (slots 59 and 60, 0x40d0c0 and 0x40d160) come with the saved games
 };
 
 }

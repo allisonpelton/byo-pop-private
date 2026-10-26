@@ -2,6 +2,9 @@
 #include "GameText.h"
 #include "Dynomite.h"
 #include "DynomitePanic.h"
+#include "EditWidget.h"
+#include "EnterNameDialog.h"
+#include "HighScores.h"
 #include "SideBar.h"
 #include "AngleTable.h"
 #include "InchySmall.h"
@@ -291,7 +294,169 @@ void FossilizedApp::ShowRegisterDialog(const char* theLines)
 // 0x418df0
 void FossilizedApp::ShowHighScoreDialog(HighScores* theHighScores)
 {
-	// TODO: dialog 6 (0x413f50), which asks for the name, comes with the game's end
+	EnterNameDialog* aDialog = new EnterNameDialog(this, theHighScores);
+	aDialog->Resize(0xd3, 0xe1, 0x177, aDialog->GetPreferredHeight(0x177));
+	AddDialog(6, aDialog);
+}
+
+// 0x41e250
+void FossilizedApp::ReadFromRegistry()
+{
+	SexyApp::ReadFromRegistry();
+	// port: the original opens HKLM\SOFTWARE\<mRegKey> itself; the framework's registry is the same key
+	int aValue;
+	if (RegistryReadInteger("LockCursor", &aValue))
+		mLockCursor = aValue != 0;
+	if (RegistryReadInteger("FossilGameType", &aValue))
+		mFossilKind = aValue;
+	if (RegistryReadInteger("SkillLevel", &aValue))
+		mSkill = aValue;
+	if (RegistryReadInteger("GameType", &aValue))
+		mGameMode = aValue;
+	if (RegistryReadInteger("StompedLevel", &aValue))
+		mField1090 = aValue;
+	std::string aName;
+	if (RegistryReadString("LastScoreName", &aName))
+		mLastScoreName = aName;
+}
+
+// 0x41e420
+void FossilizedApp::WriteToRegistry()
+{
+	SexyApp::WriteToRegistry();
+	RegistryWriteInteger("LockCursor", mLockCursor);
+	RegistryWriteInteger("FossilGameType", mFossilKind);
+	RegistryWriteInteger("SkillLevel", mSkill);
+	RegistryWriteInteger("GameType", mGameMode);
+	RegistryWriteInteger("StompedLevel", mField1090);
+	RegistryWriteInteger("StompedLevel", mField1090);
+	if (mLastScoreName.length() != 0)
+		RegistryWriteString("LastScoreName", mLastScoreName);
+}
+
+// 0x4201b0
+void FossilizedApp::ButtonDepress(int theId)
+{
+	if (theId < 0x1f5)
+	{
+		if (theId == 500)
+		{
+			// TODO: the save dialog's OK (dialog 7: an empty slot saves, a used one asks first, dialog 10)
+		}
+		else if (theId == 5)
+			StartGame();
+		else if (theId == 100)
+		{
+			EnterNameDialog* aDialog = (EnterNameDialog*) GetDialog(6);
+			mLastScoreName = aDialog->mNameEdit->mString;
+			aDialog->mHighScores->Add(mSideBar->mScore, aDialog->mNameEdit->mString.c_str(), (int) mBoard->mStartTicks);
+			aDialog->mHighScores->Save();
+			KillDialog(6);
+		}
+		else if (theId == 0x65)
+			KillDialog(6);
+	}
+	else if (theId == 0x1f5)
+		KillDialog(7);
+	else if (theId == 700)
+	{
+		// TODO: the save dialog's second OK (dialog 8, the saved game's name), which saves SLOTn.SAV
+	}
+	else if (theId == 0x2bd)
+		KillDialog(8);
+
+	int aMod = theId % 10000;
+	if (aMod < 2000)
+		return;
+	if (aMod < 3000)
+	{
+		int aDialogId = theId - 2000;
+		if (aDialogId > 0x2724)
+		{
+			if (aDialogId == 0x4e34)
+			{
+				KillDialog(0x4e34);
+				KillDialog(0x14);
+				return;
+			}
+			KillDialog(aDialogId);
+			return;
+		}
+		if (aDialogId == 0x2724)
+		{
+			// TODO: the unregistered copy's buy dialog opens the buy page (the port runs as a registered copy)
+			KillDialog(0x2724);
+			KillDialog(0x14);
+			return;
+		}
+		switch (aDialogId)
+		{
+		case 0:
+			KillDialog(0);
+			Shutdown();
+			return;
+		case 1:
+			KillDialog(1);
+			ShowMainMenu();
+			return;
+		case 2:
+			// TODO: the options dialog's OK (windowed or full screen, the volumes), then dialog 2 goes and the board
+			// gets the focus; as in the original it runs on into dialog 3's
+		case 3:
+			KillDialog(3);
+			return;
+		case 4:
+			GetDialog(2);
+			KillDialog(4);
+			return;
+		case 5:
+			return;
+		case 9:
+			KillDialog(9);
+			return;
+		case 10:
+			KillDialog(10);
+			// TODO: the chosen slot's saved game (dialog 7's slot name, then 0x418f40) comes with the saved games
+			return;
+		case 0xb:
+			KillDialog(0xb);
+			ShowMainMenu();
+			return;
+		case 0xc:
+			KillDialog(0xc);
+			return;
+		case 0xd:
+			// TODO: the fossil board's next puzzle (0x40a930) comes with DynomiteFossil
+			return;
+		case 0xe:
+			// TODO: the registration dialog's OK (the port runs as a registered copy)
+			return;
+		case 0x10:
+			KillDialog(0x10);
+			return;
+		case 0x13:
+			KillDialog(0x13);
+			// port: the original then looks for an update online (0x41f4c0), which the port does not do
+			return;
+		case 0x16:
+			KillDialog(0x16);
+			return;
+		}
+		KillDialog(aDialogId);
+		return;
+	}
+	if (aMod < 4000)
+	{
+		int aDialogId = theId - 3000;
+		if (aDialogId == 0x2724)
+		{
+			KillDialog(0x2724);
+			aDialogId = 0x14;
+		}
+		KillDialog(aDialogId);
+		if (mBoard != NULL)
+			mWidgetManager->SetFocus(mBoard);
+	}
 }
 
 // 0x419040

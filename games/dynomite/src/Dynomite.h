@@ -127,7 +127,7 @@ public:
 	virtual void		DrawScenery();
 	virtual void		DrawEffects();					// 0x406d60 (slot 48): the effects, the popups and "paused"
 	virtual void		DrawMode();						// 0x4b1930 (slot 49; empty): what a mode draws between them
-	// 0x406f70 (slot 54): the game's end, with the time, the rank and the high scores (TODO with the game's end)
+	// 0x406f70 (slot 54): the game's end, with the time, the rank and the high scores
 	virtual void		DrawGameOver(Graphics* g);
 	// 0x405070 (slot 53): the game's end's panel comes down from above, and its button with it
 	virtual void		UpdateGameOver();

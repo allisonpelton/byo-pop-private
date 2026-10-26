@@ -241,6 +241,7 @@ public:
 	bool         mInTutorial;                             // +0x1094 (the menu button goes straight to the main menu)
 	int          mField4d8;                               // +0x4d8 the framework's: games that lasted a minute (the trial's screens compare it)
 	bool         mLockCursor;                             // +0x1095 registry LockCursor: the board keeps the cursor in a window
+	std::string  mLastScoreName;                          // +0x1098 registry LastScoreName: the name last given a high score
 	Widget*      mField10bc;                              // +0x10bc a widget the main menu takes down
 	char         mPackFile[0x100];                        // +0x1118 the Stomped Puzzle pack (DEFAULT.EGG, STOMPED\...)
 	unsigned int mPuzzleSkills;                           // +0x1218 the skills the pack has (bits 1, 2, 4), -1 all
@@ -267,6 +268,11 @@ public:
 
 	virtual void	Init() override;							// 0x41f820 (slot 14)
 	virtual void	LoadingThreadProc() override;				// slot 15 runs LoadGame
+	virtual void	ReadFromRegistry() override;				// 0x41e250
+	virtual void	WriteToRegistry() override;					// 0x41e420
+	// 0x4201b0 (slot 2): the app's own buttons (5 plays again, 100 and 101 the high-score name's OK and Cancel, 500-701
+	// the save dialog's) and the dialogs' yes (2000 + id) and no (3000 + id)
+	virtual void	ButtonDepress(int theId) override;
 
 	DDImage*		GetGameImage(const std::string& thePath);	// 0x419ad0
 	void			LoadGame();									// 0x419c30 (InitHook, slot 15)
