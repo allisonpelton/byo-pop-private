@@ -13,7 +13,7 @@ add_library(sexyframework STATIC ${FRAMEWORK_SOURCES})
 target_include_directories(sexyframework PUBLIC
   ${SHARED_ROOT}
   ${CMAKE_CURRENT_SOURCE_DIR})
-target_link_libraries(sexyframework PUBLIC ${PORT_SDL} stb xmp_lite tremor)
+target_link_libraries(sexyframework PUBLIC ${PORT_SDL} stb xmp_lite tremor minimp3)
 if(NOT MSVC)
   # The framework predates C++11 and relies on a few now-pedantic idioms.
   target_compile_options(sexyframework PRIVATE -Wno-deprecated-declarations -Wno-switch -Wno-parentheses
