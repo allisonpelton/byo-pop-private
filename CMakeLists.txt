@@ -144,3 +144,8 @@ option(BUILD_SEVENSEAS "Build the Seven Seas Deluxe port" ON)
 if(BUILD_SEVENSEAS AND EXISTS ${PROJECT_SOURCE_DIR}/games/sevenseas/CMakeLists.txt)
   add_subdirectory(games/sevenseas)
 endif()
+# TipTop Deluxe: its own engine (games/tiptop/engine) under the framework's app host; optional while it is new
+option(BUILD_TIPTOP "Build the TipTop Deluxe port" ON)
+if(BUILD_TIPTOP AND EXISTS ${PROJECT_SOURCE_DIR}/games/tiptop/CMakeLists.txt)
+  add_subdirectory(games/tiptop)
+endif()
