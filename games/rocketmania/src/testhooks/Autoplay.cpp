@@ -137,6 +137,27 @@ bool RocketAutoplay(RocketApp* theApp, const ScriptCommand& theCommand)
 	return true;
 }
 
+// "hint <n>": opens that hint (a bonus item's hint needs a board: an arcade game starts first)
+bool RocketHint(RocketApp* theApp, const ScriptCommand& theCommand)
+{
+	int aHint = 0;
+	if ((sscanf(theCommand.mArgs.c_str(), "%d", &aHint) < 1) || (aHint < 0) || (aHint > 7))
+	{
+		SDL_Log("hint: bad arguments '%s'", theCommand.mArgs.c_str());
+		return true;
+	}
+	if ((aHint > 2) && (theApp->mBoard == NULL))
+	{
+		theApp->mMode = 0;
+		theApp->mDifficulty = 1;
+		theApp->StartBoard(false);
+	}
+	theApp->mNoHints = false;
+	theApp->mHintFlags[aHint] = false;
+	theApp->ShowModeHint(aHint, false);
+	return true;
+}
+
 // "gameover <mode> <score>": a game of that mode ends with that score: the high scores open the way they do after a game
 // (so that the dialog for a name comes up for a score that makes the lists)
 bool RocketGameOver(RocketApp* theApp, const ScriptCommand& theCommand)

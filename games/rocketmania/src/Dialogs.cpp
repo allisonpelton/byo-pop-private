@@ -11,6 +11,7 @@
 #include "MusicInterface.h"
 #include "WidgetManager.h"
 
+#include <cmath>
 #include <cstdio>
 #include <ctime>
 
@@ -1097,4 +1098,645 @@ void RecordScoreDialog::DrawEditFrame(Graphics* g, const Rect& theRect)
 void RecordScoreDialog::EditWidgetText(int theId, const SexyString& theString)
 {
 	mApp->ButtonDepress(mId + 2000);
+}
+
+// ---------------------------------------------------------------------------------------------------------
+// HintDialog
+
+// 0x408f60
+HintDialog::HintDialog(RocketApp* theApp, int theHint, bool theContinuing) :
+	Dialog2004(theApp->mImages[IMAGE_DIALOG], theApp->mImages[IMAGE_DIALOGBUTTON], DIALOG_HINT, true, "", "", "",
+		BUTTONS_NONE),
+	mApp(theApp),
+	mCheckbox(NULL),
+	mPlayButton(NULL),
+	mHint(theHint),
+	mStartTick(0),
+	mContinuing(theContinuing),
+	mLabelX(0),
+	mLabelY(0),
+	mHelpWidth(theApp->mImages[IMAGE_HELP5]->GetWidth())
+{
+	// a bonus item's hint is up while the board waits: a game saved now comes back at the buy-rockets screen (Board::m104)
+	if (!IsModeHint(mHint))
+	{
+		mApp->PlaySample(SOUND_HINT_POPUP_01);
+		if (mApp->mBoard != NULL)
+			mApp->mBoard->m104 = 2;
+	}
+
+	mContentInsets = Insets(-0x24, -0x24, -0x24, -0x14);
+	SetButtonFont(mApp->mFonts[FONT_DOMO14_BOLD]);
+	SetHeaderFont(mApp->mFonts[FONT_DOMO14_BOLD]);
+	SetLinesFont(mApp->mFonts[FONT_DOMO11_BOLD]);
+
+	mCheckbox = new Checkbox(mApp->mCheckUnchecked, mApp->mCheckChecked, 0, this);
+	mCheckbox->SetChecked(false);
+
+	mPlayButton = new DialogButton(mApp->mImages[IMAGE_DIALOGBUTTON], 1, this);
+	mPlayButton->SetFont(mApp->mFonts[FONT_VERDANA12_BOLD]);
+	mPlayButton->SetColor(ButtonWidget::COLOR_LABEL, mApp->mDialogColors[2]);
+	mPlayButton->SetColor(ButtonWidget::COLOR_LABEL_HILITE, Color(255, 255, 255));
+	mPlayButton->mLabel = GT(0x004e49fc);
+	mPlayButton->mDoFinger = true;
+
+	mStartTick = mUpdateCnt;
+}
+
+HintDialog::~HintDialog()
+{
+	delete mCheckbox;
+	delete mPlayButton;
+}
+
+// 0x40c1c0: hints 0, 1 and 2 are the modes'
+bool HintDialog::IsModeHint(int theHint)
+{
+	return (theHint == HINT_CLASSIC) || (theHint == HINT_ARCADE) || (theHint == HINT_STRATEGY);
+}
+
+// 0x4094f0
+void HintDialog::Layout(bool theFull)
+{
+	if (theFull)
+	{
+		Resize(10, 10, 0x26c, 0x1cc);
+		mLabelX = 0x20a;
+		mLabelY = 0x1a2;
+		mCheckbox->Resize(0x1f9, 0x1a6, 0x18, 0x18);
+		mPlayButton->Resize(0x91, 0x19c, 0x15e, 0x28);
+	}
+	else
+	{
+		Resize(0x46, 0x50, 500, 0x104);
+		mLabelX = 0x1a1;
+		mLabelY = 0xda;
+		mCheckbox->Resize(0x1cc, 0x122, 0x18, 0x18);
+		mPlayButton->Resize(0xc3, 0x11a, 0xfa, 0x28);
+	}
+}
+
+// 0x40c170
+void HintDialog::CheckboxChecked(int theId, bool checked)
+{
+	mApp->mHintFlags[mHint] = checked;
+}
+
+// 0x409470
+void HintDialog::AddedToManager(WidgetManager* theWidgetManager)
+{
+	Dialog2004::AddedToManager(theWidgetManager);
+	theWidgetManager->AddWidget(mCheckbox);
+	theWidgetManager->AddWidget(mPlayButton);
+}
+
+// 0x4094b0
+void HintDialog::RemovedFromManager(WidgetManager* theWidgetManager)
+{
+	Dialog2004::RemovedFromManager(theWidgetManager);
+	theWidgetManager->RemoveWidget(mCheckbox);
+	theWidgetManager->RemoveWidget(mPlayButton);
+}
+
+// 0x40c270
+void HintDialog::Update()
+{
+	Dialog2004::Update();
+	MarkDirty();
+}
+
+// 0x40c190
+void HintDialog::ButtonPress(int theId)
+{
+	Dialog2004::ButtonPress(theId);
+	mApp->PlaySample(SOUND_UI_LITTLE_BEEP_05B);
+}
+
+// 0x40c1e0: the button starts the game that waited for a mode's hint; a bonus item's hint hands over to the buy-rockets
+// screen (but the strategy mode's matches hint opens during the game and goes back to it)
+void HintDialog::ButtonDepress(int theId)
+{
+	RocketApp* anApp = mApp;
+	if (IsModeHint(mHint))
+	{
+		Dialog2004::ButtonDepress(theId);
+		anApp->KillDialog(DIALOG_HINT);
+		anApp->StartBoard(mContinuing);
+	}
+	else
+	{
+		anApp->KillDialog(DIALOG_HINT);
+		if ((mHint != HINT_MATCHES) && (anApp->mBoard != NULL))
+			anApp->mBoard->ShowBuyRockets();
+	}
+	if (anApp->mBoard != NULL)
+		anApp->mBoard->m104 = 0;
+}
+
+// 0x4095c0 (a whole line) and 0x409720 (a line given in fractions, as the bonus items' second text is): the text centred
+// on the dialog, 35 pixels a line from 80
+void HintDialog::DrawTextLine(Graphics* g, const SexyString& theText, double theLine)
+{
+	int aWidth = g->GetFont()->StringWidth(theText);
+	g->DrawString(theText, (mWidth - aWidth) / 2, (int) (theLine * 35.0 + 80.0));
+}
+
+// 0x409880: a line of a picture's caption in black; theAlpha from 0 to 254 is a fade in (255 or none: plain)
+void HintDialog::DrawFadingText(Graphics* g, const SexyString& theText, int theX, int theY, int theAlpha)
+{
+	g->SetFont(mApp->mFonts[FONT_MYRIAD11]);
+	if ((theAlpha > 254) || (theAlpha < 0))
+	{
+		g->SetColor(Color(0, 0, 0));
+		int aWidth = g->GetFont()->StringWidth(theText);
+		g->DrawString(theText, theX - aWidth / 2, theY);
+		return;
+	}
+
+	g->SetColorizeImages(true);
+	g->SetColor(Color(0, 0, 0, theAlpha));
+	int aWidth = g->GetFont()->StringWidth(theText);
+	g->DrawString(theText, theX - aWidth / 2, theY);
+	g->SetColorizeImages(false);
+}
+
+// 0x409b30: the background of a picture (the nine help pictures are in the strip's order of the game files)
+void HintDialog::DrawScene(Graphics* g, int theX, int theIndex)
+{
+	g->DrawImage(mApp->mImages[IMAGE_HELP0 + theIndex], theX, 0x78);
+}
+
+// 0x409b60: the picture about turning tiles: a pipe piece under the pointer turns a quarter every 200 updates
+void HintDialog::DrawRotateScene(Graphics* g, int theX, int theTime)
+{
+	static int aLastTime = 0;   // _DAT_004f6454: the time of the last frame that was drawn at rest
+
+	if (theTime < 0)
+		return;
+
+	int anAlpha = 255;
+	if (theTime < 100)
+	{
+		anAlpha = (int) (theTime * 0.01 * 255.0);
+		g->SetColorizeImages(true);
+		g->SetColor(Color(255, 255, 255, anAlpha));
+		DrawScene(g, theX, 1);
+		g->DrawImage(mApp->mPieces[1][3][6], theX + 0x2b, 0xa1);
+		g->SetDrawMode(Graphics::DRAWMODE_ADDITIVE);
+		g->DrawImage(mApp->mImages[IMAGE_HIGHLIGHT], theX + 0x2b, 0xa1);
+		g->SetDrawMode(Graphics::DRAWMODE_NORMAL);
+		g->DrawImage(mApp->mImages[IMAGE_CURSOR_POINTER], theX + 0x32, 0xa0);
+		g->SetColorizeImages(false);
+	}
+	else
+	{
+		int aCycle = theTime % 800;
+		int aStep = aCycle / 0x19;
+		int aFrame = 3 - aStep / 8;
+		DrawScene(g, theX, 1);
+
+		// during the first 25 updates of each 200 the piece of the next picture turns into place
+		bool aTurning = false;
+		double anAngle = 0.0;
+		if (aStep % 8 == 0)
+		{
+			anAngle = (theTime - aLastTime) * 1.57079632625 * 0.04;
+			if (anAngle >= 1.57079632625)
+				anAngle = 1.57079632625;
+			aTurning = (anAngle != 0.0);
+		}
+		else
+			aLastTime = theTime;
+
+		int aHighlightY;
+		if (aTurning)
+		{
+			g->SetColor(Color(0, 0, 0));
+			g->FillRect(theX + 0x2b, 0xa0, 0x2a, 0x2a);
+			g->DrawImageRotated(mApp->mPieces[1][(aFrame + 1) % 4][6], theX + 0x2b, 0xa0, anAngle);
+			aHighlightY = 0xa0;
+		}
+		else
+		{
+			g->DrawImage(mApp->mPieces[1][aFrame][6], theX + 0x2b, 0xa1);
+			aHighlightY = 0xa1;
+		}
+		g->SetDrawMode(Graphics::DRAWMODE_ADDITIVE);
+		g->DrawImage(mApp->mImages[IMAGE_HIGHLIGHT], theX + 0x2b, aHighlightY);
+		g->SetDrawMode(Graphics::DRAWMODE_NORMAL);
+		g->DrawImage(mApp->mImages[IMAGE_CURSOR_POINTER], theX + 0x32, 0xa0);
+		if (aCycle % 200 > 0xb9)
+		{
+			g->SetDrawMode(Graphics::DRAWMODE_ADDITIVE);
+			g->DrawImage(mApp->mImages[IMAGE_CURSOR_POINTER], theX + 0x32, 0xa0);
+			g->SetDrawMode(Graphics::DRAWMODE_NORMAL);
+		}
+	}
+
+	DrawFadingText(g, GT(0x004e4a44), mHelpWidth / 2 + theX, 0x10e, anAlpha);
+	DrawFadingText(g, GT(0x004e4a34), mHelpWidth / 2 + theX, 0x122, anAlpha);
+	DrawFadingText(g, GT(0x004e4a24), mHelpWidth / 2 + theX, 0x140, anAlpha);
+	DrawFadingText(g, GT(0x004e4a10), mHelpWidth / 2 + theX, 0x154, anAlpha);
+}
+
+// 0x409ef0: the picture about the lanterns (classic mode): the lantern lights up and fades, over and over
+void HintDialog::DrawLanternsScene(Graphics* g, int theX, int theTime)
+{
+	if (theTime < 0)
+		return;
+
+	int anAlpha = 255;
+	if (theTime < 100)
+	{
+		anAlpha = (int) (theTime * 0.01 * 255.0);
+		g->SetColorizeImages(true);
+		g->SetColor(Color(255, 255, 255, anAlpha));
+		DrawScene(g, theX, 2);
+		g->DrawImage(mApp->mImages[IMAGE_LANTERNON], theX + 0x27, 0x92);
+		g->SetColorizeImages(false);
+	}
+	else
+	{
+		DrawScene(g, theX, 2);
+		int aPhase = theTime % 200;
+		g->DrawImage(mApp->mImages[IMAGE_LANTERNDIM], theX + 0x27, 0x92);
+		if (aPhase < 100)
+		{
+			g->SetColorizeImages(true);
+			g->SetColor(Color(255, 255, 255, (int) ((1.0 - aPhase * 0.01) * 255.0)));
+			g->DrawImage(mApp->mImages[IMAGE_LANTERNON], theX + 0x27, 0x92);
+			g->SetColorizeImages(false);
+		}
+	}
+
+	DrawFadingText(g, GT(0x004e4a78), mHelpWidth / 2 + theX, 0x11d, anAlpha);
+	DrawFadingText(g, GT(0x004e4a68), mHelpWidth / 2 + theX, 0x13b, anAlpha);
+	DrawFadingText(g, GT(0x004e4a54), mHelpWidth / 2 + theX, 0x14f, anAlpha);
+}
+
+// 0x40a0e0: the picture about launching three or more rockets at once for extra matches (strategy mode)
+void HintDialog::DrawRocketsScene(Graphics* g, int theX, int theTime)
+{
+	if (theTime < 0)
+		return;
+
+	int anAlpha = 255;
+	if (theTime < 100)
+	{
+		anAlpha = (int) (theTime * 0.01 * 255.0);
+		g->SetColorizeImages(true);
+		g->SetColor(Color(255, 255, 255, anAlpha));
+		DrawScene(g, theX, 6);
+		g->SetColorizeImages(false);
+	}
+	else
+		DrawScene(g, theX, 6);
+
+	DrawFadingText(g, GT(0x004e4ac0), mHelpWidth / 2 + theX, 0x116, anAlpha);
+	DrawFadingText(g, GT(0x004e4aac), mHelpWidth / 2 + theX, 0x12a, anAlpha);
+	DrawFadingText(g, GT(0x004e4a9c), mHelpWidth / 2 + theX, 0x13e, anAlpha);
+	DrawFadingText(g, GT(0x004e4a8c), mHelpWidth / 2 + theX, 0x152, anAlpha);
+}
+
+// 0x40a210: the picture about picking up the matches that burn out (strategy mode)
+void HintDialog::DrawMatchesScene(Graphics* g, int theX, int theTime)
+{
+	if (theTime < 0)
+		return;
+
+	int anAlpha = 255;
+	if (theTime < 100)
+	{
+		anAlpha = (int) (theTime * 0.01 * 255.0);
+		g->SetColorizeImages(true);
+		g->SetColor(Color(255, 255, 255, anAlpha));
+	}
+	DrawScene(g, theX, 7);
+
+	// the strip of the burning match has three pictures across and three rows; the last row is the one drawn here
+	Image* aTorch = mApp->mImages[IMAGE_TORCH];
+	int aWidth = aTorch->GetWidth();
+	int aHeight = aTorch->GetHeight() / 3;
+	g->DrawImage(aTorch, theX + 0x30, 0x9b, Rect(((theTime % 0x2d) / 0xf) * (aWidth / 3), aHeight * 2, aWidth / 3, aHeight));
+	g->SetColorizeImages(false);
+
+	DrawFadingText(g, GT(0x004e4aec), mHelpWidth / 2 + theX, 0x122, anAlpha);
+	DrawFadingText(g, GT(0x004e4ae0), mHelpWidth / 2 + theX, 0x136, anAlpha);
+	DrawFadingText(g, GT(0x004e4ad4), mHelpWidth / 2 + theX, 0x14a, anAlpha);
+}
+
+// 0x40a3c0: the picture about the screen filling up (arcade mode): the four tiles of the top flash
+void HintDialog::DrawScreenFillScene(Graphics* g, int theX, int theTime)
+{
+	if (theTime < 0)
+		return;
+
+	int anAlpha = 255;
+	if (theTime < 100)
+	{
+		anAlpha = (int) (theTime * 0.01 * 255.0);
+		g->SetColorizeImages(true);
+		g->SetColor(Color(255, 255, 255, anAlpha));
+		DrawScene(g, theX, 0);
+		g->SetColorizeImages(false);
+	}
+	else
+	{
+		DrawScene(g, theX, 0);
+		if (theTime % 100 < 0x32)
+		{
+			g->SetDrawMode(Graphics::DRAWMODE_ADDITIVE);
+			g->DrawImage(mApp->mImages[IMAGE_HIGHLIGHT], theX + 0x14, 0x92);
+			g->DrawImage(mApp->mImages[IMAGE_HIGHLIGHT], theX + 0x3e, 0x92);
+			g->DrawImage(mApp->mImages[IMAGE_HIGHLIGHT], theX + 0x14, 0xbc);
+			g->DrawImage(mApp->mImages[IMAGE_HIGHLIGHT], theX + 0x3e, 0xbc);
+			g->SetDrawMode(Graphics::DRAWMODE_NORMAL);
+		}
+	}
+
+	DrawFadingText(g, GT(0x004e4b20), mHelpWidth / 2 + theX, 0x11f, anAlpha);
+	DrawFadingText(g, GT(0x004e4b0c), mHelpWidth / 2 + theX, 0x133, anAlpha);
+	DrawFadingText(g, GT(0x004e4b00), mHelpWidth / 2 + theX, 0x147, anAlpha);
+}
+
+// 0x40a580: a bonus item's picture, fading in, then pulsing larger every 500 updates (drawn stretched about its centre)
+void HintDialog::DrawNewItem(Graphics* g, int theX, int theTime, int theImage)
+{
+	if (theTime < 0)
+		return;
+
+	Image* anImage = mApp->mImages[theImage];
+	if (theTime < 100)
+	{
+		g->SetColorizeImages(true);
+		g->SetColor(Color(255, 255, 255, (int) (theTime * 0.01 * 255.0)));
+		g->DrawImage(anImage, theX, 0x4b);
+		g->SetColorizeImages(false);
+		return;
+	}
+
+	double aScale = 1.0;
+	int aPhase = 499 - theTime % 500;
+	if ((aPhase >= 100) && (aPhase < 600))
+	{
+		aScale = sin((399 - theTime % 500) * 0.002 * 31.415926535) * 0.525 + 1.0;
+		if (aScale < 1.0)
+			aScale = 1.0;
+	}
+
+	int aWidth = anImage->GetWidth();
+	int aHeight = anImage->GetHeight();
+	int aStretchedWidth = ((int) (aWidth * aScale)) | 1;
+	int aStretchedHeight = ((int) (aHeight * aScale)) | 1;
+	g->SetFastStretch(true);
+	g->DrawImage(anImage, Rect((aWidth / 2 - aStretchedWidth / 2) + theX, (aHeight / 2 - aStretchedHeight / 2) + 0x4a,
+		aStretchedWidth, aStretchedHeight), Rect(0, 0, aWidth, aHeight));
+	g->SetFastStretch(false);
+}
+
+// 0x40a7a0: the matches bonus' picture: three burning matches side by side
+void HintDialog::DrawMatchStrips(Graphics* g, int theX, int theTime)
+{
+	Image* aTorch = mApp->mImages[IMAGE_TORCH];
+	int aWidth = aTorch->GetWidth() / 3;
+	int aHeight = aTorch->GetHeight() / 3;
+	int aFrame = (theTime % 0x2d) / 0xf;
+
+	int aX = theX - 100;
+	int aSourceY = 0;
+	for (int aCount = 3; aCount != 0; aCount--)
+	{
+		g->DrawImage(aTorch, aX, 0x4b, Rect(aFrame * aWidth, aSourceY, aWidth, aHeight));
+		aSourceY += aHeight;
+		aX += 100;
+	}
+}
+
+// 0x40a890: the picture about the count that is left to launch (rockets: 12 on the rocket picture, arcade has its own scene) or
+// about the limited matches (10 on the match picture); the picture flashes every 300 updates
+void HintDialog::DrawLaunchScene(Graphics* g, int theX, int theTime, bool theRockets, bool theArcade)
+{
+	if (theTime < 0)
+		return;
+
+	int aGlow = theRockets ? IMAGE_ROCKET_GLOW : IMAGE_MATCH_GLOW;
+	int aScene = theRockets ? (theArcade ? 8 : 3) : 4;
+
+	int anAlpha = 255;
+	if (theTime < 100)
+	{
+		anAlpha = (int) (theTime * 0.01 * 255.0);
+		g->SetColorizeImages(true);
+		g->SetColor(Color(255, 255, 255, anAlpha));
+		DrawScene(g, theX, aScene);
+		g->SetColorizeImages(false);
+	}
+	else
+	{
+		DrawScene(g, theX, aScene);
+		int aPhase = theTime % 300;
+		if (aPhase < 0x32)
+		{
+			g->SetColorizeImages(true);
+			g->SetColor(Color(255, 255, 255, (int) ((1.0 - aPhase * 0.02) * 150.0)));
+			g->DrawImage(mApp->mImages[aGlow], theX + (theRockets ? 0x1f : 0x2e), 0xaa);
+			g->SetColorizeImages(false);
+		}
+
+		g->SetFont(mApp->mFonts[FONT_DOMO11_BOLD]);
+		g->SetColor(Color(0xff, 0xb6, 0x2b));
+		if (theRockets)
+			g->DrawString(GT(0x004e4ba0), theX + 0x12, 199);
+		else
+			g->DrawString(GT(0x004e4b9c), theX + 0x1e, 199);
+	}
+
+	if (!theRockets)
+	{
+		DrawFadingText(g, GT(0x004e4b58), mHelpWidth / 2 + theX, 0x122, anAlpha);
+		DrawFadingText(g, GT(0x004e4b44), mHelpWidth / 2 + theX, 0x136, anAlpha);
+		DrawFadingText(g, GT(0x004e4b38), mHelpWidth / 2 + theX, 0x14a, anAlpha);
+	}
+	else
+	{
+		DrawFadingText(g, GT(0x004e4b88), mHelpWidth / 2 + theX, 0x11f, anAlpha);
+		DrawFadingText(g, GT(0x004e4b78), mHelpWidth / 2 + theX, 0x133, anAlpha);
+		DrawFadingText(g, GT(0x004e4b68), mHelpWidth / 2 + theX, 0x147, anAlpha);
+	}
+}
+
+// 0x40acc0: the picture about dragging tiles sideways (arcade mode): a tile slides over and back
+void HintDialog::DrawDragScene(Graphics* g, int theX, int theTime)
+{
+	if (theTime < 0)
+		return;
+
+	// (when the picture has faded in, the original hands its text a stale value, which is out of range: plain text)
+	int anAlpha = 255;
+	if (theTime < 100)
+	{
+		anAlpha = (int) (theTime * 0.01 * 255.0);
+		g->SetColorizeImages(true);
+		g->SetColor(Color(255, 255, 255, anAlpha));
+	}
+
+	// the tile goes the width of one tile to the right and comes back, over 800 updates
+	int aTileWidth = mApp->mImages[IMAGE_TILE]->GetWidth();
+	int aCycle = theTime % 800;
+	int anOffset;
+	if (aCycle >= 400)
+	{
+		anOffset = aTileWidth;
+		if (aCycle - 400 < 100)
+			anOffset = (int) ((aCycle - 400.0) * 0.01 * aTileWidth);
+	}
+	else if (aCycle >= 100)
+		anOffset = 0;
+	else
+		anOffset = (int) (aTileWidth - aCycle * 0.01 * aTileWidth);
+
+	DrawScene(g, theX, 5);
+	g->DrawImage(mApp->mPieces[2][1][6], anOffset + 0x17 + theX, 0xa3);
+	int aCursorX = anOffset + 0x1e + theX;
+	g->DrawImage(mApp->mImages[IMAGE_CURSOR_POINTER], aCursorX, 0xaa);
+	if ((aCycle % 400 < 0x69) || (aCycle % 400 > 0x186))
+	{
+		g->SetDrawMode(Graphics::DRAWMODE_ADDITIVE);
+		g->DrawImage(mApp->mImages[IMAGE_CURSOR_POINTER], aCursorX, 0xaa);
+		g->SetDrawMode(Graphics::DRAWMODE_NORMAL);
+	}
+	g->SetColorizeImages(false);
+
+	DrawFadingText(g, GT(0x004e4bd8), mHelpWidth / 2 + theX, 0x115, anAlpha);
+	DrawFadingText(g, GT(0x004e4bc4), mHelpWidth / 2 + theX, 0x129, anAlpha);
+	DrawFadingText(g, GT(0x004e4bb0), mHelpWidth / 2 + theX, 0x13d, anAlpha);
+	DrawFadingText(g, GT(0x004e4ba4), mHelpWidth / 2 + theX, 0x151, anAlpha);
+}
+
+// 0x40aef0
+void HintDialog::Draw(Graphics* g)
+{
+	Dialog2004::Draw(g);
+
+	int aTime = mUpdateCnt - mStartTick;
+	switch (mHint)
+	{
+	case HINT_ARCADE:
+	case HINT_STRATEGY:
+	{
+		g->DrawImageBox(Rect(0x18, 0x6e, 0x23c, 0x104), mApp->mImages[IMAGE_GREENBOX]);
+
+		// four pictures across, 35 hundredths of the free width from the edge and 10 hundredths apart
+		int aFree = mWidth - mHelpWidth * 4;
+		int aFirst = (int) (aFree * 0.35);
+		int aStep = (int) (aFree * 0.1 + mHelpWidth);
+		g->SetFont(mApp->mFonts[FONT_VERDANA12_BOLD]);
+		DrawRotateScene(g, aFirst, aTime);
+		if (mHint == HINT_ARCADE)
+		{
+			DrawDragScene(g, aStep + aFirst, aTime - 100);
+			DrawLaunchScene(g, aFirst + aStep * 2, aTime - 200, true, true);
+			DrawScreenFillScene(g, aFirst + aStep * 3, aTime - 300);
+		}
+		else
+		{
+			DrawLaunchScene(g, aStep + aFirst, aTime - 100, false, false);
+			DrawRocketsScene(g, aFirst + aStep * 2, aTime - 200);
+			DrawMatchesScene(g, aFirst + aStep * 3, aTime - 300);
+		}
+
+		const SexyString& aTitle = (mHint == HINT_ARCADE) ? RocketApp::ModeTitle(0) : RocketApp::ModeTitle(2);
+		g->SetFont(mApp->mFonts[FONT_VERDANA18_BOLD]);
+		g->SetColor(mApp->mDialogColors[0]);
+		g->DrawString(aTitle, (mWidth - g->GetFont()->StringWidth(aTitle)) / 2, 0x32);
+		g->SetFont(mApp->mFonts[FONT_VERDANA12_BOLD]);
+		g->SetColor(mApp->mDialogColors[1]);
+		DrawTextLine(g, (mHint == HINT_ARCADE) ? GT(0x004e4e68) : GT(0x004e4e2c), 0);
+		break;
+	}
+	case HINT_CLASSIC:
+	{
+		g->DrawImageBox(Rect(0x1e, 0x64, 0x230, 0x118), mApp->mImages[IMAGE_GREENBOX]);
+
+		// three pictures across
+		int aFree = (mWidth - mHelpWidth * 3) / 3;
+		int aFirst = (int) (aFree * 0.75);
+		int aStep = (int) (mHelpWidth + aFree * 0.75);
+		g->SetFont(mApp->mFonts[FONT_VERDANA12_BOLD]);
+		DrawRotateScene(g, aFirst, aTime);
+		DrawLaunchScene(g, aStep + aFirst, aTime - 100, true, false);
+		DrawLanternsScene(g, aFirst + aStep * 2, aTime - 200);
+
+		const SexyString& aTitle = RocketApp::ModeTitle(1);
+		g->SetFont(mApp->mFonts[FONT_VERDANA18_BOLD]);
+		g->SetColor(mApp->mDialogColors[0]);
+		g->DrawString(aTitle, (mWidth - g->GetFont()->StringWidth(aTitle)) / 2, 0x32);
+		g->SetFont(mApp->mFonts[FONT_VERDANA12_BOLD]);
+		g->SetColor(mApp->mDialogColors[1]);
+		DrawTextLine(g, GT(0x004e4ea4), 0);
+		break;
+	}
+	default:
+	{
+		// a bonus item: its picture, a title (centred by the width of the title without its "!") and two lines
+		const SexyString* aTitle = &GT(0x004e4e0c);
+		const SexyString* aTitleWidth = &GT(0x004e4e1c);
+		const SexyString* aFirstText;
+		const SexyString* aSecondText;
+		switch (mHint)
+		{
+		case HINT_GEM:
+			DrawNewItem(g, mWidth / 2 - mApp->mImages[IMAGE_GEM01]->GetWidth() / 2, aTime, IMAGE_GEM01);
+			aFirstText = &GT(0x004e4df0);
+			aSecondText = &GT(0x004e4dc0);
+			break;
+		case HINT_BOMB:
+			DrawNewItem(g, mWidth / 2 - mApp->mImages[IMAGE_BOMB]->GetWidth() / 2, aTime, IMAGE_BOMB);
+			aFirstText = &GT(0x004e4d9c);
+			aSecondText = &GT(0x004e4d64);
+			break;
+		case HINT_CLOCK:
+			DrawNewItem(g, mWidth / 2 - mApp->mImages[IMAGE_CLOCK]->GetWidth() / 2, aTime, IMAGE_CLOCK);
+			aFirstText = &GT(0x004e4d48);
+			aSecondText = &GT(0x004e4d24);
+			break;
+		case HINT_COIN:
+			DrawNewItem(g, mWidth / 2 - mApp->mImages[IMAGE_COINGOLD]->GetWidth() / 2, aTime, IMAGE_COINGOLD);
+			aTitle = &GT(0x004e4cdc);
+			aTitleWidth = &GT(0x004e4d00);
+			aFirstText = &GT(0x004e4ca8);
+			aSecondText = &GT(0x004e4c84);
+			break;
+		case HINT_MATCHES:
+			DrawMatchStrips(g, mWidth / 2 - mApp->mImages[IMAGE_COINGOLD]->GetWidth() / 2, aTime);
+			aTitle = &GT(0x004e4c74);
+			aTitleWidth = &GT(0x004e4c74);
+			aFirstText = &GT(0x004e4c34);
+			aSecondText = &GT(0x004e4bfc);
+			break;
+		default:
+			// (the original draws only the footer)
+			aFirstText = NULL;
+			aSecondText = NULL;
+			break;
+		}
+
+		if (aFirstText != NULL)
+		{
+			g->SetFont(mApp->mFonts[FONT_VERDANA18_BOLD]);
+			g->SetColor(mApp->mDialogColors[0]);
+			g->DrawString(*aTitle, (mWidth - g->GetFont()->StringWidth(*aTitleWidth)) / 2, 0x32);
+			g->SetFont(mApp->mFonts[FONT_ARIAL10_BOLD]);
+			g->SetColor(mApp->mDialogColors[1]);
+			DrawTextLine(g, *aFirstText, 2.0);
+			DrawTextLine(g, *aSecondText, 2.6);
+		}
+		break;
+	}
+	}
+
+	g->SetFont(mApp->mFonts[FONT_ARIAL8_BOLD]);
+	g->SetColor(mApp->mDialogColors[2]);
+	g->DrawString(GT(0x004e4bf0), mLabelX, mLabelY);
+	g->DrawString(GT(0x004e4be4), mLabelX, mLabelY + 0x10);
 }

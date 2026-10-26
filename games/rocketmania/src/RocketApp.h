@@ -84,6 +84,7 @@ public:
 
 	LoadingScreen*			mLoadingScreen;         // app+0x870
 	GameSelector*			mGameSelector;          // app+0x890
+	Dialog*					mHintDialog;            // app+0x874 the hint dialog opened last (nothing reads it)
 	Board*					mBoard;                 // app+0x598 the game in progress, null in the menu
 	int						mMode;                  // app+0x530 the chosen game mode (0 arcade, 1 classic, 2 strategy)
 	int						mDifficulty;            // app+0x534 the chosen difficulty (1 easy, 2 medium, 3 hard)
@@ -140,7 +141,7 @@ public:
 	bool					ReadSavedGame(int theMode, int* theDifficulty, int* theScore, int* theLevel);  // 0x4036f0
 
 	// the first-time explanation of a mode (0x42d670); true when it opened a dialog, which starts the game when closed
-	bool					ShowModeHint(int theHint, bool theForce);
+	bool					ShowModeHint(int theHint, bool theContinuing);
 	void					StartBoard(bool theContinuing); // 0x42ea30
 
 	// the menu's lower buttons (the dialogs are not translated yet, the quit question is)

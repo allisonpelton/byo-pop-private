@@ -373,6 +373,7 @@ public:
 	void			F4282a0(int thePath);
 	void			F428ef0();
 	void			F428d10();
+	void			ShowBuyRockets();                                      // 0x428620
 	void			F428de0(int theValue);
 	void			F421de0(int theKind);
 	void			F421f30(bool theFlag);

@@ -7,6 +7,7 @@
 #include "RocketApp.h"
 #include "MusicInterface.h"
 #include "Compat2004.h"
+#include "Dialogs.h"
 #include "GameText.h"
 #include "Graphics.h"
 #include "Image.h"
@@ -317,8 +318,13 @@ void Board::F41f280(int theIndex)
 	mApp->PlaySample(4);
 }
 
+// 0x428620: the buy-rockets screen goes up over the board (not translated yet)
+void Board::ShowBuyRockets()
+{
+}
+
 // 0x428d10: the specials that the launches have earned are put on the board
-// (the original also tells the app 0x42d670(7, 0) when the strategy mode's special was attached; not translated)
+// (the first matches special that is attached opens the matches hint)
 void Board::F428d10()
 {
 	if (mState != 0)
@@ -327,7 +333,10 @@ void Board::F428d10()
 	{
 		while (0 < mGen->m70)
 		{
+			bool aWasAttached = m4d8;
 			AttachSpecial10();
+			if (m4d8 != aWasAttached)
+				mApp->ShowModeHint(HintDialog::HINT_MATCHES, false);
 			mGen->m70--;
 		}
 	}

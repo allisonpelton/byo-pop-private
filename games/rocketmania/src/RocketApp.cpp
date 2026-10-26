@@ -81,6 +81,7 @@ RocketApp::RocketApp()
 		mRocketHues[i] = NULL;
 	mLoadingScreen = NULL;
 	mGameSelector = NULL;
+	mHintDialog = NULL;
 	mBoard = NULL;
 	mMode = 0;
 	mDifficulty = 0;
@@ -227,6 +228,7 @@ void RocketApp::ButtonPress(int theId)
 // testhooks/Autoplay.cpp: plays a game with random clicks
 bool RocketAutoplay(RocketApp* theApp, const ScriptCommand& theCommand);
 bool RocketGameOver(RocketApp* theApp, const ScriptCommand& theCommand);
+bool RocketHint(RocketApp* theApp, const ScriptCommand& theCommand);
 
 // port: the test scripts' "startgame" clicks the play link as soon as the loading screen shows it (the update at which
 // the loading ends depends on the machine); it asks again at the next update until then
@@ -236,6 +238,8 @@ bool RocketApp::HandleScriptCommand(const ScriptCommand& theCommand)
 		return RocketAutoplay(this, theCommand);
 	if (theCommand.mCommand == "gameover")
 		return RocketGameOver(this, theCommand);
+	if (theCommand.mCommand == "hint")
+		return RocketHint(this, theCommand);
 	if (theCommand.mCommand != "startgame")
 		return SexyApp::HandleScriptCommand(theCommand);
 	if ((mLoadingScreen != NULL) && !mShutdown)
@@ -585,12 +589,18 @@ bool RocketApp::ReadSavedGame(int theMode, int* theDifficulty, int* theScore, in
 	return true;
 }
 
-// 0x42d670 (not translated yet): no mode explanation opens
-bool RocketApp::ShowModeHint(int theHint, bool theForce)
+// 0x42d670: a hint opens (a mode's before its first game, a bonus item's the first time it turns up), unless hints are
+// switched off or this one was turned off with its checkbox; theContinuing is handed to StartBoard when the button is clicked
+bool RocketApp::ShowModeHint(int theHint, bool theContinuing)
 {
-	(void) theHint;
-	(void) theForce;
-	return false;
+	if (mNoHints || mHintFlags[theHint])
+		return false;
+
+	HintDialog* aDialog = new HintDialog(this, theHint, theContinuing);
+	AddDialog(DIALOG_HINT, aDialog);
+	aDialog->Layout(HintDialog::IsModeHint(theHint));
+	mHintDialog = aDialog;
+	return true;
 }
 
 // 0x42ea30: a game begins (or is continued): the board replaces the one in progress.

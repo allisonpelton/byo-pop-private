@@ -208,6 +208,66 @@ private:
 	void				DrawEditFrame(Graphics* g, const Rect& theRect);                   // 0x4145c0
 };
 
+// 0x408f60: id 0xb "Hint". Hints 0 (arcade), 1 (strategy) and 2 (classic) explain a mode before its first game, as a strip of
+// small animated pictures under the mode's title; "Click Here To Play" starts the game that waited for it. Hints 3 (gem),
+// 4 (bomb), 5 (clock), 6 (coin) and 7 (matches) are a smaller box that the board opens the first time a bonus item turns up.
+// The checkbox "Don't show this again" turns the hint off for good (RocketApp::mHintFlags).
+class HintDialog : public Dialog2004, public CheckboxListener
+{
+public:
+	enum
+	{
+		HINT_ARCADE,
+		HINT_STRATEGY,
+		HINT_CLASSIC,
+		HINT_GEM,
+		HINT_BOMB,
+		HINT_CLOCK,
+		HINT_COIN,
+		HINT_MATCHES
+	};
+
+	RocketApp*			mApp;                   // +0xf0
+	Checkbox*			mCheckbox;              // +0xf4
+	DialogButton*		mPlayButton;            // +0xf8
+	int					mHint;                  // +0xfc
+	int					mStartTick;             // +0x100 mUpdateCnt when it opened: the pictures' clock
+	bool				mContinuing;            // +0x104 the game that waits is a saved one
+	int					mLabelX;                // +0x108 where "Don't show this again" is written
+	int					mLabelY;                // +0x10c
+	int					mHelpWidth;             // +0x110 the width of a picture in the strip
+
+public:
+	HintDialog(RocketApp* theApp, int theHint, bool theContinuing);
+	virtual ~HintDialog();
+
+	static bool			IsModeHint(int theHint);        // 0x40c1c0
+	void				Layout(bool theFull);           // 0x4094f0: the whole dialog (modes) or the small one (bonus items)
+
+	virtual void		CheckboxChecked(int theId, bool checked) override;          // 0x40c170
+	virtual void		AddedToManager(WidgetManager* theWidgetManager) override;   // 0x409470
+	virtual void		RemovedFromManager(WidgetManager* theWidgetManager) override;  // 0x4094b0
+	virtual void		Update() override;                                          // 0x40c270
+	virtual void		Draw(Graphics* g) override;                                 // 0x40aef0
+	virtual void		ButtonPress(int theId) override;                            // 0x40c190
+	virtual void		ButtonDepress(int theId) override;                          // 0x40c1e0
+
+private:
+	// the pieces of Draw; theTime counts from the picture's own start (it is negative before it)
+	void				DrawTextLine(Graphics* g, const SexyString& theText, double theLine);  // 0x4095c0 and 0x409720: centred on line theLine
+	void				DrawFadingText(Graphics* g, const SexyString& theText, int theX, int theY, int theAlpha);  // 0x409880
+	void				DrawScene(Graphics* g, int theX, int theIndex);                          // 0x409b30: one of the nine help pictures
+	void				DrawRotateScene(Graphics* g, int theX, int theTime);                     // 0x409b60
+	void				DrawLanternsScene(Graphics* g, int theX, int theTime);                   // 0x409ef0
+	void				DrawRocketsScene(Graphics* g, int theX, int theTime);                    // 0x40a0e0
+	void				DrawMatchesScene(Graphics* g, int theX, int theTime);                    // 0x40a210
+	void				DrawScreenFillScene(Graphics* g, int theX, int theTime);                 // 0x40a3c0
+	void				DrawNewItem(Graphics* g, int theX, int theTime, int theImage);          // 0x40a580
+	void				DrawMatchStrips(Graphics* g, int theX, int theTime);                     // 0x40a7a0
+	void				DrawLaunchScene(Graphics* g, int theX, int theTime, bool theRockets, bool theArcade);  // 0x40a890
+	void				DrawDragScene(Graphics* g, int theX, int theTime);                       // 0x40acc0
+};
+
 }
 
 #endif

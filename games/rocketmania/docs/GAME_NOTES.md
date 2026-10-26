@@ -229,7 +229,18 @@ the score and opens the high scores the way the end of a game does, which is how
 Who opens the high scores after a game is the buy-rockets screen's button 5 (0x4102c0) and the end-of-level screens (0x41b7e0); both
 come with those screens.
 
-Still to do after Draw (above): the dialogs (hint 0x408f60, level-up 0x40c2c0, buy rockets 0x401010), the fireworks
+The hint dialog (HintDialog 0x408f60, id 0xb) has two forms. The three mode hints (0 arcade, 1 strategy, 2 classic) are opened by
+GameSelector::StartGame (0x405ed0) before a mode's first game and fill the window: a strip of four (classic: three) small animated
+pictures on a green board, each fading in 100 updates after the one before it, under the mode's title and one line; "Click Here
+To Play" starts the game that waited (StartBoard with the "continuing" flag the hint was given). The five bonus hints (3 gem, 4
+bomb, 5 clock, 6 coin, 7 matches) are a smaller box with the item's picture pulsing; 7 is opened by the board when the first matches
+special of a strategy game is attached (0x428d10), the others by the end-of-level question 0x4286b0, which comes with the level-up
+screen. Closing a bonus hint other than 7 opens the buy-rockets screen (0x428620); Board::m104 is 2 while one is up, so that a
+game saved then comes back at that screen. The checkbox "Don't show this again" sets the app's hint flag (HintsDisabledFlag0-7 in the
+registry; the Options dialog's Reset Hints clears them). The test script command "hint <n>" opens hint n (a board is started first
+for 3 to 7).
+
+Still to do after Draw (above): the dialogs (level-up 0x40c2c0, buy rockets 0x401010), the fireworks
 (Rocket 0x4172f0), the talking head (0x4161a0, 0x413aa0), the level-up screen's own music fades (0x40c2c0), then the
 deliverables: the coordinator's `BYOPOP_BUY_rocketmania` line (cmake/ByopopStores.cmake has an
 uncommitted local placeholder that must not be committed), and an AddressSanitizer run of the autoplay (tools/build.sh has no

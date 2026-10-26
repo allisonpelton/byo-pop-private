@@ -1,5 +1,5 @@
 # The menu smoke test (tools/check.sh rocketmania replaces the screenshot paths): load, start, the menu, a hover, the
-# difficulty dialog, the first game
+# difficulty dialog, the arcade hint that opens before the first game, and Click Here To Play (which starts it)
 5 startgame
 5000 screenshot @DIR@/menu.png
 5010 move 71 227
@@ -8,4 +8,6 @@
 5120 screenshot @DIR@/difficulty.png
 5130 click 215 177
 5170 screenshot @DIR@/after.png
-5200 quit
+5180 click 320 432
+5250 screenshot @DIR@/game.png
+5300 quit
