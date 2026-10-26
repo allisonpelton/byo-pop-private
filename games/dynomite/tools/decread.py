@@ -45,7 +45,7 @@ def esc(s):
 
 
 # the inline strlen of a literal followed by string::assign(dest, literal, length)
-STRASSIGN = re.compile(r"[ ]*(\w+) = (\"[^\n]*\"|&?DAT_\w+|\(char \*\)&DAT_\w+|\(str\)\"[^\n]*\");\n\s*do \{\n\s*(\w+) = \1;\n\s*\1 = \3 \+ 1;\n\s*\} while \(\*\3 != '" + re.escape(BS) + r"0'\);\n\s*FUN_004066c0\(([^,\n]+),(?:\(_String_base \*\))?([^,\n]+),\(uint\)\(\3 \+ -0x[0-9a-f]+\)\);\n")
+STRASSIGN = re.compile(r"[ ]*(\w+) = (\"[^\n]*\"|&?DAT_\w+|\(char \*\)&DAT_\w+|\(str\)\"[^\n]*\");\n\s*do \{\n\s*(\w+) = \1;\n\s*\1 = \3 \+ 1;\n\s*\} while \(\*\3 != '" + re.escape(BS) + r"0'\);\n\s*(?:FUN_004066c0|(?:std::string::)?assign_ptr_len)\s*\(\s*([^,\n]+),\s*(?:\(_String_base \*\))?([^,\n]+),\s*\(uint\)\(\3 \+ -0x[0-9a-f]+\)\s*\);\n")
 STRINIT = re.compile(r"[ ]*(\w+) = 0xf;\n[ ]*(\w+) = 0;\n[ ]*(\w+) = \(void \*\)\(\(uint\)\3 & 0xffffff00\);\n")
 STRFREE = re.compile(r"[ ]*if \(0xf < (\w+)\) \{\n[ ]*_free\((\w+)\);\n[ ]*\}\n")
 EHSTATE = re.compile(r"^\s*local_8(\._\d_\d_)? = [^\n]*;\n", re.M)
@@ -120,8 +120,8 @@ def comp(t):
                (('(str)' + esc(exe_str(m.group(1)))) if exe_str(m.group(1)) is not None else m.group(0)), t)
     t = re.sub(r"\(_String_base \*\)(\"[^\n]*?\")", r"\1", t)
     t = STRASSIGN.sub(lambda m: "  STRASSIGN(" + m.group(4) + ", " + m.group(5) + ");\n", t)
-    t = STRINIT.sub("  STRINIT;\n", t)
-    t = STRFREE.sub("  STRFREE;\n", t)
+    t = STRINIT.sub("", t)
+    t = STRFREE.sub("", t)
     t = EHSTATE.sub("", t)
     t = fields(t)
     return t
