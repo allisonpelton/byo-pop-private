@@ -17,10 +17,8 @@
 
 using namespace Sexy;
 
-namespace {
-
-// 0x4be830: a checkbox on IMAGE_DIALOG_CHECKBOX, whose left half is the box unticked and right half ticked
-Checkbox* MakeCheckbox(int theId, CheckboxListener* theListener)
+// 0x49f7b0: a checkbox on IMAGE_DIALOG_CHECKBOX, whose left half is the box unticked and right half ticked
+Checkbox* Sexy::MakeCheckbox(int theId, CheckboxListener* theListener)
 {
 	Image* anImage = IMAGE_DIALOG_CHECKBOX;
 	Checkbox* aBox = new Checkbox(anImage, anImage, theId, theListener);
@@ -32,6 +30,8 @@ Checkbox* MakeCheckbox(int theId, CheckboxListener* theListener)
 	aBox->mHasAlpha = true;
 	return aBox;
 }
+
+namespace {
 
 // 0x4be680 (GameDialog::Layout's too, for the Dialog's own buttons, which the port makes FadeButtons): the game's
 // look for a DialogButton: label white and yellow while lit, a click moves it a pixel, the label two pixels up, the

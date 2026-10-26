@@ -1460,11 +1460,12 @@ static void ShowMiniGameMenuCallback(void* theApp)
 	static_cast<GameApp*>(theApp)->ShowMiniGameMenu();
 }
 
-void GameApp::StartMiniGameMenuTransition()
+void GameApp::StartMiniGameMenuTransition(bool theFromMainMenu)
 {
 	DoFullCurtainTransition("");
 	mCurtainCallback = ShowMiniGameMenuCallback;
 	mCurtainCallbackObject = this;
+	mMiniMenuFromMainMenu = theFromMainMenu;
 }
 
 // gName = gLinkedObjectTable[cobj]: the scripts' global of a screen's Lua object

@@ -4,7 +4,9 @@
 
 #include "BonusText.h"
 #include "Board.h"
+#include "Checkbox.h"
 #include "CurtainTransition.h"
+#include "FadeButton.h"
 #include "LuaLinkedClass.h"
 #include "MinigameMenu.h"
 #include "PopAnimManager.h"
@@ -67,9 +69,17 @@ void GameApp::UnlockedMiniGameComplete()
 
 void GameApp::ShowMiniGameMenu()
 {
-	// 0x44f9d0: the mini-games' menu, over the screens but under the curtain. Its buttons (MinigameMenu) close the
-	// whole curtain again and then start the mini-game picked, or bring the main menu back.
+	// 0x4458b0: the mini-games' menu, over the screens but under the curtain. Its buttons (MinigameMenu) close the
+	// whole curtain again and then start the mini-game picked, or bring the main menu back. Asked for by the chapter
+	// screen it has neither the main menu button nor the tooltips box.
 	mMiniGameMenu = new MinigameMenu(this);
+	mMiniGameMenu->mFromMainMenu = mMiniMenuFromMainMenu;
+	if (!mMiniMenuFromMainMenu) {
+		mMiniGameMenu->mMainMenuButton->SetDisabled(true);
+		mMiniGameMenu->mMainMenuButton->SetVisible(false);
+		mMiniGameMenu->mTipsBox->SetDisabled(true);
+		mMiniGameMenu->mTipsBox->SetVisible(false);
+	}
 	mWidgetManager->AddWidget(mMiniGameMenu);
 	if (mCurtain != nullptr)
 		mWidgetManager->BringToFront(mCurtain);

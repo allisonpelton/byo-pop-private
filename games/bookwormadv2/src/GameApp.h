@@ -112,7 +112,7 @@ public:
 	std::string mCutSceneCaption;                  // +0x80c
 	CurtainTransition* mCurtain = nullptr;         // +0x828
 	Widget* mBookScreen = nullptr;                 // +0x82c: the stats book (StatsBook): the tome's or the media player's
-	MinigameMenu* mMiniGameMenu = nullptr;         // +0x834: the mini-games' menu (MinigameMenu), made by ShowMiniGameMenu
+	MinigameMenu* mMiniGameMenu = nullptr;         // +0x870: the mini-games' menu (MinigameMenu), made by ShowMiniGameMenu
 	ButtonListener* mConfirmListener = nullptr;    // +0x838: a widget's ButtonListener part, in the original
 	Widget* mChapterLoadScreen = nullptr;          // +0x83c: a chapter's loading screen (ChapterLoadScreen)
 	std::string mCurtainLuaCallback;               // +0x840: the scripts' function called when the curtain is done
@@ -145,7 +145,8 @@ public:
 	bool mTimedMode = false;                       // Volume 2: +0x9aa; playing the timed mode (its TM_ profile keys)
 	bool mReplayMode = false;                      // Volume 2: +0x9ab; replaying a finished adventure (its Replay* profile keys)
 	bool mLeetMode = false;                        // +0x95b: the word ELITE, typed on the menu, switched the 1337 tiles on
-	bool mMiniGameFromMenu = false;                // +0x96f: a mini-game started from the main menu's list (0x4819a0)
+	bool mMiniGameFromMenu = false;                // Volume 2: +0x9ac; a mini-game started from the main menu's list (0x471f70)
+	bool mMiniMenuFromMainMenu = false;            // +0x95a: the mini-games' menu was asked for by the main menu (0x443c20), not the chapter screen (0x443cc0)
 	bool mQuitting = false;                        // +0x91c: leaving the game (0x451c20; 0x451920 clears it)
 	int mBattleUpdates = 0;                        // +0x974: updates of battle (not of a level-up or a chapter's end); written only
 	int mMiniGameUpdates = 0;                      // +0x978: updates of the adventure's mini-games; written only
@@ -309,9 +310,10 @@ public:
 	void StartGameToMenuTransition();
 	// 0x44e000: the treasure screen's continue, gTreasureScreen:ContinueButtonPressed once closed
 	void StartTreasureTransition();
-	// 0x443c20 (the scripts' DoCSToMiniMenuTransition): the whole curtain closes, then the mini-games' menu comes
-	// (ShowMiniGameMenu). The original also sets a flag of the app's, +0x95a, that this port does not use.
-	void StartMiniGameMenuTransition();
+	// The whole curtain closes, then the mini-games' menu comes (ShowMiniGameMenu). The main menu's item asks for it
+	// with theFromMainMenu (0x443c20), the scripts' DoCSToMiniMenuTransition without (0x443cc0); the flag is kept
+	// (mMiniMenuFromMainMenu) for the menu, which the hall of fame also opens (0x466340)
+	void StartMiniGameMenuTransition(bool theFromMainMenu);
 	// 0x44d080: the whole curtain closes and opens again (a TRANSITION_CUTSCENE with mFullCurtain), theCallback
 	// (a scripts' function) once it is open
 	void DoFullCurtainTransition(const std::string& theCallback);

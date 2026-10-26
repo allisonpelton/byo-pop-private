@@ -865,7 +865,7 @@ void MainMenu::MouseUp(int x, int y, int theClickCount)
 			// mini-games' menu comes (GameApp::StartMiniGameMenuTransition, 0x443c20)
 			if (ProfileBool(mApp, "UnlockedMiniGames")) {
 				SetDisabled(true);
-				mApp->StartMiniGameMenuTransition();
+				mApp->StartMiniGameMenuTransition(true);
 				mFromTitle = false;
 			}
 			mApp->SetCursor(CURSOR_POINTER);

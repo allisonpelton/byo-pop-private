@@ -83,12 +83,28 @@ the curtain is open (it is never shown, so a movie is skipped scene by scene onl
 handler's skip-movie dialog (id 20) is as Volume 2 left it, but nothing opens it. Tried headless: a click in scene 3 of
 `book4intro.swf` went to "3end" and the movie played on into scene 4.
 
+The mini-games' menu is Volume 2's now (`MinigameMenu`, 0x470120-0x472530, 0xfc bytes), not Volume 1's. A mini-game has
+a button only if the player has unlocked it: all once `AdventureComplete`, else by `CurrentBook` (MutaWords from 6,
+GoldenCoins from 5, any other from 4), the buttons' ids being their places in the list (not the mini-game's number),
+and the first button is 90 under the top of the box (Volume 1: by the number of mini-games). The mini-game that book
+has just unlocked (WordUp in 4, GoldenCoins in 5, MutaWords in 6) gets the "new" mark of `IMAGE_MINIMENU_NEW`, drawn
+by `DrawOverlay` over the curtain once it is open. The menu has two openers that set the app's flag +0x95a: the main
+menu's mini-games item (0x443c20, flag on) and the scripts' `DoCSToMiniMenuTransition` (0x443cc0, flag off). With
+the flag on the menu has the main menu button and the "Show helpful tooltips" checkbox (a `Checkbox` of id 124 at
+(745, 558) on a `IMAGE_MINIMENU_TIP_BG` panel at the bottom right; the profile's `ShowMGTips`, ticked and written at
+the first visit); with it off both are hidden and disabled (0x4458b0) and a mini-game is started by
+`main.StartMinigameFromCS` instead of `main.StartMinigameFromMainMenu` (0x472330). A mini-game button sets the app's
+`mMiniGameFromMenu` (+0x9ac) to the flag. Lex is `images/pam/Lex_normal.txt` and not `lex.pam`. Tried headless with a
+profile at book 4, 5 and 6: the box, the buttons, the "new" mark, the checkbox's toggle, the Main Menu button, and a
+click on WordUp, which starts the mini-game with its welcome dialog (the scripts' `DoGenericDialog` gives a `false`
+for "no banner", which the binding now accepts).
+
 Compared with Volume 2 (2026-10-26): `StartArena` (0x46c5d0), `ContinueArena` (0x46c4b0), `FillUserList` (0x46cde0) and the
 user dialog's handler (0x46d130, its OK, close, new, delete and delete-confirmed branches) do the same steps in the same
 order as the port's Volume 1 derived code; the new-name function 0x46cb30 and the Volume 2 offsets of the app's fields
 (the timed-mode flag is +0x9aa there, the replay flag +0x9ab, ELITE's +0x95b) have not been compared line by line. The
 header comments of `GameApp.h` that give offsets are Volume 1's, except the new `mBookSelectScreen` (+0x800) and
-`mReplayMode` (+0x9ab).
+`mReplayMode` (+0x9ab), `mMiniGameMenu` (+0x870), `mMiniGameFromMenu` (+0x9ac) and `mMiniMenuFromMainMenu` (+0x95a).
 
 ## The curtain's states in Volume 2 (CurtainDone, 0x442700)
 

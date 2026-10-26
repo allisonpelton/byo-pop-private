@@ -22,6 +22,9 @@ class Slider;
 // the default font)
 DialogButton* MakeDialogButton(ButtonListener* theListener, const std::string& theLabel);
 
+// 0x49f7b0: a checkbox of the given id on IMAGE_DIALOG_CHECKBOX (the left half the box unticked, the right half ticked)
+Checkbox* MakeCheckbox(int theId, CheckboxListener* theListener);
+
 class OptionsDialog : public GameDialog, public SliderListener, public CheckboxListener {
 public:
 	// the widgets' ids (the sliders' 0 and 1, the checkboxes' and the Credits button's)
