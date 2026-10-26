@@ -115,11 +115,24 @@ STRASSIGN = re.compile(r'std::string::assign_ptr_len\(\(?(?:string \*\))?([^,]+)
 
 
 
+# strlen idiom: do { c = *p; p = p + 1; } while (c != '\0');
+STRLEN = re.compile(r"^[ \t]*do \{\n[ \t]*\w+ = \*(\w+);\n[ \t]*\1 = \1 \+ 1;\n[ \t]*\} while \(\w+ != '\\0'\);\n", re.M)
+STRRESET2 = re.compile(r"^[ \t]*\w+ = \(void \*\)\(\(uint\)\w+ & 0xffffff00\);\n", re.M)
+STRCSTR = re.compile(r"std::string::assign_ptr_len\(\(?(?:string \*\))?(&?\w+(?:\[\d+\])?),\(undefined4 \*\)([^,]+),[^;]*?\);")
+SEHSTATE = re.compile(r"^[ \t]*(?:local_4|uStack_4|uStack_14|uStack_24|uStack_34|local_44|local_64|local_14|uStack_54)(?:\._0_1_)? = [^;]*;\n", re.M)
+
+
 def simplify(t):
     """collapse the string constructor/destructor boilerplate of Dinkumware's std::string"""
     t = STRINIT.sub("", t)
     t = STRFREE.sub("", t)
     t = STRASSIGN.sub(lambda m: "%s = STR(%s)" % (m.group(1), m.group(2)), t)
+    t = STRLEN.sub("", t)
+    t = STRCSTR.sub(lambda m: "%s = STR(%s);" % (m.group(1), m.group(2)), t)
+    t = re.sub(r"std::string::assign_substr\(\(string \*\)([^,]+),([^,]+),0,0xffffffff\)", r"\1 = \2", t)
+    t = re.sub(r"std::string::assign_substr\(([^,]+),([^,]+),0,0xffffffff\)", r"\1 = \2", t)
+    t = re.sub(r"^[ \t]*std_string_Tidy\(\(int\)[^)]*\);\n", "", t, flags=re.M)
+    t = STRRESET2.sub("", t)
     return t
 
 
@@ -134,7 +147,13 @@ def render(path):
     t = fieldsub(t)
     t = vcalls(t)
     t = annotate_strings(t, addr)
-    return simplify(t)
+    t = simplify(t)
+    # local variable declarations ("uint uVar5;", "undefined4 **ppuStack_e4;") and the stack-cookie noise
+    t = re.sub(r"^[ \t]+(?:undefined\d?|uint|int|char|bool|float|double|byte|void|string|Color|Rect|Graphics|ulonglong|longlong|"
+               r"short|ushort|\w+ \*?)[ \t]*\**[ \t]*\w+(?:\[\w+\])?;\n", "", t, flags=re.M)
+    t = re.sub(r"^[ \t]+(?:undefined\d?|uint|int|char|bool|void|string|\w+)(?: \*+| )+\w+(?:\[\w+\])?;\n", "", t, flags=re.M)
+    t = re.sub(r"\n{2,}", "\n", t)
+    return t
 
 
 def main():

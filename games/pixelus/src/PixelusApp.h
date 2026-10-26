@@ -1,0 +1,79 @@
+#ifndef __PIXELUS_PIXELUSAPP_H__
+#define __PIXELUS_PIXELUSAPP_H__
+
+// PixelusApp.cpp: the application class of Pixelus Deluxe 1.0 and its screen flow (Pixelus.exe 0x4326c0-0x436000,
+// WinMain 0x432360). Behaviour spec: docs/GAME_NOTES.md section 2.
+//
+// Original: class PixelusApp : public NcApp, vftable 0x5123a0 (87 slots), ctor 0x435880, data from +0x678:
+// one pointer per screen (the board, the help screen, the temple, the loading screen, ...). Exactly one screen
+// is on the widget manager at a time (plus the board under the help screen); each ShowXxx / the matching
+// handler removes the old screen, deletes it later (SafeDeleteWidget) and makes the next one.
+// Offsets below are the original's (code never depends on them).
+
+#include "NcApp.h"
+#include "Res.h"
+#include "Color.h"
+#include <string>
+
+namespace Sexy
+{
+
+class Widget;
+class Board;
+class LoadingScreen;
+class MemoryImage;
+class LevelData;
+class ProgressManager;
+class SessionLog;
+class UserDirectory;
+
+class PixelusApp : public NcApp
+{
+public:
+	enum
+	{
+		GAME_WIDTH = 640,
+		GAME_HEIGHT = 480,
+		NUM_HEAD_EXPRESSIONS = 4,
+		NUM_HEADS = 11,
+		NUM_LOADING_TASKS = 328
+	};
+
+	Widget*					mBoard;             // +0x678 the puzzle screen (0x432550)
+	Widget*					mHelpScreen;        // +0x67c over the board (0x4328c0)
+	Widget*					mTempleScreen;      // +0x680 the puzzles of one temple, over a snapshot of the map (0x432420)
+	LoadingScreen*			mLoadingScreen;     // +0x684 (Init)
+	Widget*					mMainMenu;          // +0x688
+	Widget*					mIslandMap;         // +0x68c (0x432600)
+	Widget*					mPuzzleCompleted;   // +0x690 (0x4326c0)
+	Widget*					mMoreGames;         // +0x694 (0x432780)
+	Widget*					mHintOverlay;       // +0x698
+	Widget*					mHintScreen;        // +0x69c (0x432820)
+	Widget*					mStoryScreen;       // +0x6a0 (0x432960)
+	Color*					mColorDark;         // +0x6ac (0x1a, 0x5e, 0x49)
+	Color*					mColorMid;          // +0x6b0 (0x39, 0x79, 0x68)
+	Color*					mColorLight;        // +0x6b4 (0x49, 0x8c, 0x7a)
+	MemoryImage*			mHeads[NUM_HEADS][NUM_HEAD_EXPRESSIONS]; // +0x6b8: the gods' heads, each with its four expressions
+	LevelData*				mLevelData;         // +0x768 (Init: 0x42abd0)
+	UserDirectory*			mUserDirectory;     // +0x76c (Init: 0x43da10)
+	ProgressManager*		mProgress;          // +0x770 (Init: 0x421380)
+	SessionLog*				mSessionLog;        // +0x774 (Init: 0x43aac0)
+
+public:
+	PixelusApp();
+	virtual ~PixelusApp();
+
+	virtual void			Init() override;                                // 0x4336f0 slot 17
+	virtual void			LoadingThreadProc() override;                   // 0x433950 slot 18
+	virtual void			PlayClicked() override;                         // 0x433b90 slot 79
+	virtual void			HandlePaused(bool thePaused, bool theWasPaused, int theCount) override; // 0x4333a0 slot 84
+	virtual Dialog*			NewDialog(int theDialogId, bool isModal, const SexyString& theDialogHeader,
+								const SexyString& theDialogLines, const SexyString& theDialogFooter,
+								int theButtonMode) override;                // 0x4331e0 slot 21
+};
+
+extern PixelusApp* gApp;
+
+}
+
+#endif
