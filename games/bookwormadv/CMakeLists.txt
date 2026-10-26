@@ -41,3 +41,42 @@ if(NOT MSVC)
   # classes anyway
   target_compile_options(bwa_luaapp PRIVATE -Wall -Wno-overloaded-virtual)
 endif()
+
+# bwa_popanim: Sexy::PopAnim, PopCap's player for .pam animations (popanim/), kept free of game code.
+# bwa_pamtest loads every animation of the staged game files and draws a frame of any of them to a PNG,
+# headless (tools/pamtest/pamtest.cpp).
+file(GLOB POPANIM_SOURCES CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/popanim/*.cpp)
+add_library(bwa_popanim STATIC ${POPANIM_SOURCES})
+target_include_directories(bwa_popanim PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/popanim)
+target_link_libraries(bwa_popanim PUBLIC sexyframework)
+if(NOT MSVC)
+  target_compile_options(bwa_popanim PRIVATE -Wall)
+endif()
+if(NOT EMSCRIPTEN)
+  add_executable(bwa_pamtest tools/pamtest/pamtest.cpp)
+  target_link_libraries(bwa_pamtest PRIVATE bwa_popanim)
+  add_custom_command(TARGET bwa_pamtest POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different ${PORT_RUNTIME_DLLS} $<TARGET_FILE_DIR:bwa_pamtest>
+    VERBATIM)
+endif()
+
+# bookwormadv: the game (src/: its C++ classes, which the scripts drive; jefflib/: the PopCap Lua games' helper
+# library, kept free of game code). Native: bookwormadv.exe [-gamedir=<dir>] [-userdir=<dir>] (src/main.cpp);
+# it finds assets/bookwormadv/ by itself.
+file(GLOB BWA_SOURCES CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp)
+file(GLOB JEFFLIB_SOURCES CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/jefflib/*.cpp)
+add_library(bwa_jefflib STATIC ${JEFFLIB_SOURCES})
+target_include_directories(bwa_jefflib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/jefflib)
+target_link_libraries(bwa_jefflib PUBLIC sexyframework)
+add_executable(bookwormadv ${BWA_SOURCES})
+target_include_directories(bookwormadv PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
+target_link_libraries(bookwormadv PRIVATE bwa_luaapp bwa_popanim bwa_jefflib sexyframework)
+if(NOT MSVC)
+  target_compile_options(bwa_jefflib PRIVATE -Wall)
+  target_compile_options(bookwormadv PRIVATE -Wall -Wno-overloaded-virtual)
+endif()
+if(NOT EMSCRIPTEN)
+  add_custom_command(TARGET bookwormadv POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:SDL2::SDL2> ${PORT_RUNTIME_DLLS} $<TARGET_FILE_DIR:bookwormadv>
+    VERBATIM)
+endif()

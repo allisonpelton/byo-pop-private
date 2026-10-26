@@ -1,6 +1,9 @@
 #include "PopLua.h"
 
 #include <stdint.h>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
 
 #include <vector>
 
@@ -14,6 +17,8 @@
 #include "TriVertex.h"
 #include "Widget.h"
 #include "WidgetManager.h"
+#include "lauxlib.h"
+#include "platform/VFS.h"
 
 using namespace Sexy;
 using namespace LuaLib;
@@ -705,10 +710,67 @@ static int F_NotPorted(lua_State* L)
 	return luaL_error(L, "PushXMLFileData and StringWrapAnalyze are not in the port");
 }
 
+// ---- the scripts' files ----
+
+// port: the original read the scripts (and io's files) from the current folder, the game's. The port reads
+// them through the VFS (the game folder and its mods, any case), a file the scripts wrote from the user
+// folder first, and writes io's files there.
+static std::string UserFile(const char* thePath)
+{
+	const std::string& aUserDir = Platform::VFS::Get().GetUserDir();
+	return Platform::VFS::FindCaseInsensitive(aUserDir, Platform::VFS::Normalize(thePath));
+}
+
+static int ReadScriptFile(const char* thePath, char** theData, size_t* theSize)
+{
+	std::vector<uint8_t> aData;
+	std::string aUserFile = UserFile(thePath);
+	bool aRead = false;
+	if (!aUserFile.empty()) {
+		if (FILE* f = fopen(aUserFile.c_str(), "rb")) {
+			uint8_t aBuf[4096];
+			size_t n;
+			while ((n = fread(aBuf, 1, sizeof aBuf, f)) > 0)
+				aData.insert(aData.end(), aBuf, aBuf + n);
+			fclose(f);
+			aRead = true;
+		}
+	}
+	if (!aRead && !Platform::VFS::Get().ReadAll(Platform::VFS::Normalize(thePath), aData))
+		return 0;
+	*theData = (char*)malloc(aData.empty() ? 1 : aData.size());
+	if (!aData.empty())
+		memcpy(*theData, aData.data(), aData.size());
+	*theSize = aData.size();
+	return 1;
+}
+
+static int ScriptFileExists(const char* thePath)
+{
+	return !UserFile(thePath).empty() || Platform::VFS::Get().Exists(Platform::VFS::Normalize(thePath));
+}
+
+static int WriteScriptFile(const char* thePath, const char* theData, size_t theSize)
+{
+	std::string aPath = Platform::VFS::Get().GetUserDir() + "/" + Platform::VFS::Normalize(thePath);
+	size_t aSlash = aPath.find_last_of('/');
+	if (aSlash != std::string::npos)
+		Platform::MakeDirs(aPath.substr(0, aSlash));
+	FILE* f = fopen(aPath.c_str(), "wb");
+	if (f == NULL)
+		return 0;
+	bool ok = fwrite(theData, 1, theSize, f) == theSize;
+	fclose(f);
+	return ok ? 1 : 0;
+}
+
 // ---- registering (0x66f510) ----
 
 void PopLua::OpenPopLua()
 {
+	poplua_setreader(ReadScriptFile);
+	poplua_setexists(ScriptFileExists);
+	poplua_setwriter(WriteScriptFile);
 	Open();
 
 	RegisterFunction("Rand", F_Rand);

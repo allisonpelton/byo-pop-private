@@ -31,7 +31,7 @@ for line in open(os.path.join(ROOT, 'functions.jsonl'), encoding='utf-8'):
     j = json.loads(line)
     funcs[j['addr']] = j
 
-decl = re.compile(r'^\s*(undefined\d?|int|uint|char|byte|bool|float|double|long|short|ushort|ulong|longlong|'
+decl = re.compile(r'^\s*(?!(?:goto|return|break|continue)\b)(undefined\d?|int|uint|char|byte|bool|float|double|long|short|ushort|ulong|longlong|'
                   r'ulonglong|void|code|float10|[A-Za-z_]\w* \*+|[A-Za-z_]\w*)\s*\*?\s*\**[A-Za-z_]\w*(\[\d+\])?;\s*$')
 BS = chr(92)
 
@@ -50,7 +50,7 @@ def comp(t):
     t = re.sub(r'\b(?:thunk_)?FUN_([0-9a-f]{8})\b', lambda m: names.get(m.group(1), m.group(0)), t)
     t = re.sub(r's_\w+?_([0-9a-f]{8})\b', lambda m: esc(strs[m.group(1)]) if m.group(1) in strs else m.group(0), t)
     t = re.sub(r'&?(?:DAT|PTR_DAT|u)_([0-9a-f]{8})\b',
-               lambda m: ('(str)' + esc(strs[m.group(1)])) if m.group(1) in strs else m.group(0), t)
+               lambda m: ('(str)' + esc(strs[m.group(1)])) if m.group(1) in strs else names.get(m.group(1), m.group(0)), t)
     return t
 
 
