@@ -2,7 +2,10 @@
 #include "AngleTable.h"
 #include "Dynomite.h"
 #include "FossilizedApp.h"
+#include "Graphics.h"
 #include "Sprite.h"
+#include <cstdlib>
+#include <cstring>
 
 using namespace Sexy;
 
@@ -261,4 +264,246 @@ void ShellEffect::Draw()
 	// mColor - 1
 	Cell* aCell = mApp->mCrackedEggCells[mColor - 1][mQuarter];
 	aCell->Draw((int) mX - (aCell->mWidth >> 1), (int) mY - (aCell->mHeight >> 1));
+}
+
+// 0x403c30
+BonusItemEffect::BonusItemEffect()
+{
+	mType = 8;
+}
+
+// 0x403c50
+BonusItemEffect::~BonusItemEffect()
+{
+}
+
+// 0x403c60
+void BonusItemEffect::Init(int x, int y, int theKind, int theTargetX, int theTargetY, Dynomite* theBoard)
+{
+	mKind = theKind;
+	mX = (float) x;
+	mBoard = theBoard;
+	mFrames = 0x14;
+	mY = (float) y;
+	mTargetX = (float) theTargetX;
+	mTargetY = (float) theTargetY;
+	mVX = ((float) theTargetX - (float) x) * 0.05f;
+	mVY = ((float) theTargetY - (float) y) * 0.05f;
+}
+
+// 0x403cc0
+bool BonusItemEffect::Update()
+{
+	mFrames--;
+	if (mFrames < 1)
+	{
+		mBoard->AddPowerUp(mKind);
+		return false;
+	}
+	mX = mVX + mX;
+	mY = mVY + mY;
+	return true;
+}
+
+// 0x403dc0
+void BonusItemEffect::Draw()
+{
+	// port: the original's app +0x1860 + mKind * 4 is the bonus view sheet's cell mKind - 1
+	Cell* aCell = mBoard->mApp->mBonusViewCells[mKind - 1];
+	aCell->Draw((int) mX - (aCell->mWidth >> 1), (int) mY - (aCell->mHeight >> 1));
+}
+
+// 0x4346a0
+ScorePopup::ScorePopup()
+{
+	mText = NULL;
+	mSpeed = 0.3f;
+	mType = 6;
+}
+
+// 0x4346d0
+ScorePopup::~ScorePopup()
+{
+	if (mText != NULL)
+		free(mText);
+}
+
+// 0x434700: centred on x, y
+void ScorePopup::Init(int x, int y, const char* theText, FossilizedApp* theApp)
+{
+	mX = (float) x;
+	mY = (float) y;
+	char* aText = (char*) malloc(strlen(theText) + 1);
+	mApp = theApp;
+	mText = aText;
+	mBlink = false;
+	mBlinkCount = 0x19;
+	mLife = 0x96;
+	mLength = 0;
+	strcpy(aText, theText);
+	mLength = (int) strlen(mText);
+	mX = mX - (float) (mApp->mAnnounceFont1928->Width(mText) / 2);
+	mY = mY - (float) (mApp->mAnnounceFont1928->mHeight / 2);
+}
+
+// 0x4347d0: up and off, blinking every 25 frames; 150 frames at most
+bool ScorePopup::Update()
+{
+	float y = mY - mSpeed;
+	mBlinkCount--;
+	mY = y;
+	if (mBlinkCount < 1)
+	{
+		mBlinkCount = 0x19;
+		mBlink = mBlink != true;
+	}
+	if (y < -50.0f)
+		return false;
+	mLife--;
+	return 0 < mLife;
+}
+
+// 0x434900: a black shadow 3 pixels down and right, then light blue, or yellow while it blinks
+void ScorePopup::Draw()
+{
+	Graphics* g = GetDrawGraphics();
+	g->SetColorizeImages(true);
+	g->SetColor(Color::Black);
+	mApp->mAnnounceFont1928->Draw(mText, (int) (mX + 3.0f), (int) (mY + 3.0f));
+	if (mBlink == false)
+		g->SetColor(Color(0x96, 0x96, 0xff, 0xff));
+	else
+		g->SetColor(Color(0xff, 0xff, 0, 0xff));
+	mApp->mAnnounceFont1928->Draw(mText, (int) mX, (int) mY);
+	g->SetColorizeImages(false);
+}
+
+// 0x403750
+PowerUp::PowerUp(Dynomite* theBoard, int theKind, int theAngle)
+{
+	mAngle = theAngle;
+	mBoard = theBoard;
+	mKind = theKind;
+	mRadius = 0;
+	mBlinkTime = 500;
+	// port: a kind outside 1-10 left the time and the flag as they were (they are zeroed here)
+	mTime = 0;
+	mFlag = 0;
+	switch (theKind)
+	{
+	case 1:
+		mTime = 6000;
+		mFlag = 1;
+		break;
+	case 2:
+		mTime = 3000;
+		mFlag = 2;
+		break;
+	case 3:
+		mTime = 3000;
+		mFlag = 4;
+		break;
+	case 4:
+		mTime = 3000;
+		mFlag = 8;
+		break;
+	case 5:
+		mTime = 400;
+		mFlag = 0x10;
+		break;
+	case 6:
+		mTime = 0x21;
+		mFlag = 0x20;
+		break;
+	case 7:
+		mTime = 0x21;
+		mFlag = 0x40;
+		break;
+	case 8:
+		mTime = 0x96;
+		mFlag = 0x80;
+		mBlinkTime = 0x14;
+		break;
+	case 9:
+		mTime = 300;
+		mFlag = 0x100;
+		mBlinkTime = 0x14;
+		break;
+	case 10:
+		mTime = 0x1c2;
+		mFlag = 0x200;
+		mBlinkTime = 0x14;
+		break;
+	}
+	mBlinkCount = 0;
+	mVisible = true;
+}
+
+// 0x4038c0
+PowerUp::~PowerUp()
+{
+}
+
+// 0x4038d0: the circle widens to 65 (45 in game type 0); kinds 8-10 burst into confetti and points at once
+bool PowerUp::Update()
+{
+	mRadius = mRadius + 1.0f;
+	if (65.0f < mRadius)
+		mRadius = 65.0f;
+	if ((mBoard->mGameType == 0) && (45.0f < mRadius))
+		mRadius = 45.0f;
+	mTime--;
+	if (mTime < 0)
+		return false;
+	if (mTime < mBlinkTime)
+	{
+		mBlinkCount--;
+		if (mBlinkCount < 1)
+		{
+			mBlinkCount = 0xf;
+			mVisible = mVisible != true;
+		}
+	}
+	if ((mFlag & 0x380) == 0)
+		return true;
+	int x;
+	int y;
+	mBoard->GetPowerUpCenter(&x, &y);
+	mBoard->mApp->mSndScoremultiplier->Play();
+	int i = 0x28;
+	do
+	{
+		ConfettiEffect* aConfetti = new ConfettiEffect();
+		aConfetti->Init(x, y, mBoard->mApp);
+		mBoard->mEffects.Add(aConfetti);
+		i--;
+	} while (i != 0);
+	if (mFlag == 0x80)
+		mBoard->AddPoints(x, y, 5, 0, false);
+	else if (mFlag == 0x100)
+		mBoard->AddPoints(x, y, 10, 0, false);
+	else if (mFlag == 0x200)
+		mBoard->AddPoints(x, y, 0xf, 0, false);
+	return false;
+}
+
+// 0x403ba0: on its circle, theSpin degrees on
+void PowerUp::Draw(int theSpin)
+{
+	mSpin = theSpin;
+	if (mVisible)
+	{
+		int anAngle = mAngle + theSpin;
+		if (anAngle >= 0x168)
+			anAngle = anAngle - 0x168;
+		if (anAngle < 0)
+			anAngle = anAngle + 0x168;
+		int x;
+		int y;
+		mBoard->GetPowerUpCenter(&x, &y);
+		FossilizedApp* anApp = mBoard->mApp;
+		AngleTable* anAngles = anApp->mAngles;
+		// port: the original's app +0x1860 + mKind * 4 is the bonus view sheet's cell mKind - 1
+		anApp->mBonusViewCells[mKind - 1]->Draw((int) (anAngles->mDX[anAngle] * mRadius + x), (int) (anAngles->mDY[anAngle] * mRadius + y));
+	}
 }

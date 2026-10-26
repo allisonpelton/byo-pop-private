@@ -1,13 +1,14 @@
 #ifndef __EFFECTS_H__
 #define __EFFECTS_H__
 
-// The board's effects (its list at +0xd0): the base (vtable 0x4f73e4, 0x10 bytes; 0x4034b0) and the kinds an egg's
-// breaking makes (EggGrid::Break, 0x415a20). Work in progress: the kinds are added as they are translated, and
-// their Save/Load slots (3, 4, 8, 9) come with the saved games.
+// The board's effects (its lists at +0xd0 and +0xe8): the base (vtable 0x4f73e4, 0x10 bytes; 0x4034b0) and the
+// kinds an egg's breaking makes (EggGrid::Break, 0x415a20), and the power-ups (the board's list at +0x10c). Work in
+// progress: the kinds are added as they are translated, and their Save/Load slots (3, 4) come with the saved games.
 
 namespace Sexy
 {
 
+class Dynomite;
 class FossilizedApp;
 class Pic;
 
@@ -16,7 +17,7 @@ class Effect
 public:
 	float				mX;				// +4
 	float				mY;				// +8
-	int					mType;			// +0xc 2 a yolk, 3 egg white, 5 a shell, 7 a baby, 9 confetti
+	int					mType;			// +0xc 2 a yolk, 3 egg white, 5 a shell, 6 points, 7 a baby, 8 a bonus, 9 confetti
 
 	Effect();								// 0x4034b0
 	virtual ~Effect();						// 0x4034c0
@@ -110,6 +111,70 @@ public:
 	virtual bool		Update() override;	// 0x434bc0
 
 	void				Init(int x, int y, int theAngle, int theColor, int theQuarter, FossilizedApp* theApp);	// 0x434cc0
+};
+
+// vtable 0x4f742c, 0x2c bytes: a bonus egg's prize flying to the power-ups' circle (20 frames), where it becomes
+// a power-up
+class BonusItemEffect : public Effect
+{
+public:
+	float				mTargetX;		// +0x10
+	float				mTargetY;		// +0x14
+	float				mVX;			// +0x18
+	float				mVY;			// +0x1c
+	int					mKind;			// +0x20 1-10
+	Dynomite*			mBoard;			// +0x24
+	int					mFrames;		// +0x28
+
+	BonusItemEffect();						// 0x403c30
+	virtual ~BonusItemEffect();				// 0x403c50
+	virtual void		Draw() override;	// 0x403dc0
+	virtual bool		Update() override;	// 0x403cc0
+
+	void				Init(int x, int y, int theKind, int theTargetX, int theTargetY, Dynomite* theBoard);	// 0x403c60
+};
+
+// vtable 0x4fcb50, 0x2c bytes: points rising from where they were scored (the board's list at +0xe8)
+class ScorePopup : public Effect
+{
+public:
+	char*				mText;			// +0x10
+	int					mLength;		// +0x14
+	bool				mBlink;			// +0x18
+	int					mBlinkCount;	// +0x1c
+	int					mLife;			// +0x20
+	float				mSpeed;			// +0x24
+	FossilizedApp*		mApp;			// +0x28
+
+	ScorePopup();							// 0x4346a0
+	virtual ~ScorePopup();					// 0x4346d0
+	virtual void		Draw() override;	// 0x434900
+	virtual bool		Update() override;	// 0x4347d0
+
+	void				Init(int x, int y, const char* theText, FossilizedApp* theApp);	// 0x434700
+};
+
+// vtable 0x4f7420 (only its destructor), 0x2c bytes: a power-up circling the board's centre for power-ups; kinds 8
+// to 10 pay their points at once
+class PowerUp
+{
+public:
+	Dynomite*			mBoard;			// +4
+	int					mAngle;			// +8
+	int					mSpin;			// +0xc the last Draw's
+	int					mKind;			// +0x10 1-10
+	int					mTime;			// +0x14
+	int					mBlinkTime;		// +0x18 it blinks for its last this many frames
+	float				mRadius;		// +0x1c
+	bool				mVisible;		// +0x20
+	int					mBlinkCount;	// +0x24
+	int					mFlag;			// +0x28 1 << (mKind - 1)
+
+	PowerUp(Dynomite* theBoard, int theKind, int theAngle);	// 0x403750
+	virtual ~PowerUp();											// 0x4038c0
+
+	bool				Update();								// 0x4038d0: false when it is done
+	void				Draw(int theSpin);						// 0x403ba0
 };
 
 }

@@ -1,5 +1,7 @@
 #include "EggGrid.h"
 #include "Dynomite.h"
+#include "Effects.h"
+#include "FossilizedApp.h"
 #include "Rect.h"
 
 using namespace Sexy;
@@ -147,8 +149,78 @@ unsigned int EggGrid::Probe(int x, int y, bool theGhost)
 	return 0;
 }
 
-// 0x415a20
+// 0x415a20: x, y the cell's corner on the screen; confetti while a bonus multiplies, a bonus egg's prize, a baby
+// (bit 0x100) or a yolk, egg white and the shell's four quarters
 void EggGrid::Break(int x, int y, GridCell* theCell)
 {
-	// TODO
+	int aColor = theCell->mBits & 0xff;
+	if ((mBoard->mBonusBits & 0xe) != 0)
+	{
+		int i = 0x28;
+		do
+		{
+			ConfettiEffect* aConfetti = new ConfettiEffect();
+			aConfetti->Init(x + 0x10, y + 0x10, mApp);
+			mBoard->mEffects.Add(aConfetti);
+			i--;
+		} while (i != 0);
+	}
+	if ((theCell->mBits & 0x1e00) != 0)
+	{
+		// port: the original leaves the target to the mode's slot 43 (the base's is empty)
+		int aTargetX = 0;
+		int aTargetY = 0;
+		mBoard->GetPowerUpCenter(&aTargetX, &aTargetY);
+		BonusItemEffect* anItem = new BonusItemEffect();
+		anItem->Init(x + 0x10, y + 6, theCell->mBits >> 9 & 0xf, aTargetX, aTargetY, mBoard);
+		mBoard->mEffects.Add(anItem);
+		mApp->mSndPopbonus->Play();
+	}
+	if ((theCell->mBits & 0x100) == 0)
+	{
+		YolkEffect* aYolk = new YolkEffect();
+		FossilizedApp* anApp = mApp;
+		aYolk->Init(x + 0x10, y + 0x10, true, anApp->mRand.NextNoAssert() & 1, anApp);
+		mBoard->mEffects.Add(aYolk);
+	}
+	else
+	{
+		BabyEffect* aBaby = new BabyEffect();
+		FossilizedApp* anApp = mApp;
+		aBaby->Init(x + 0x10, y + 6, anApp->mRand.NextNoAssert() % 3, anApp);
+		mBoard->mEffects.Add(aBaby);
+		// port: the original's app +0x1a18 + (rand & 1) * 4 picks one of the two loads of mama1
+		if ((mApp->mRand.NextNoAssert() & 1) == 0)
+			mApp->mSndMama1->Play();
+		else
+			mApp->mSndMama1_1a1c->Play();
+		mBoard->mBabies = mBoard->mBabies + 1;
+		mBoard->AddPoints(x + 0x10, y + 6, 0x19, 0, true);
+	}
+	int aCenterX = x + 0x10;
+	int i = mApp->mRand.NextNoAssert() % 10 + 2;
+	if (i != 0)
+	{
+		do
+		{
+			EggWhiteEffect* aWhite = new EggWhiteEffect();
+			FossilizedApp* anApp = mApp;
+			aWhite->Init(aCenterX, y + 0x10, anApp->mRand.NextNoAssert() % 0x168, anApp);
+			mBoard->mEffects.Add(aWhite);
+			i--;
+		} while (i != 0);
+	}
+	int aCenterY = y + 0x10;
+	ShellEffect* aShell = new ShellEffect();
+	aShell->Init(aCenterX, aCenterY, -0x2d, aColor, 0, mApp);
+	mBoard->mEffects.Add(aShell);
+	aShell = new ShellEffect();
+	aShell->Init(aCenterX, aCenterY, 0x2d, aColor, 1, mApp);
+	mBoard->mEffects.Add(aShell);
+	aShell = new ShellEffect();
+	aShell->Init(aCenterX, aCenterY, 0xe1, aColor, 2, mApp);
+	mBoard->mEffects.Add(aShell);
+	aShell = new ShellEffect();
+	aShell->Init(aCenterX, aCenterY, 0x87, aColor, 3, mApp);
+	mBoard->mEffects.Add(aShell);
 }
