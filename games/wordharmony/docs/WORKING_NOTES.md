@@ -197,7 +197,7 @@ game rules 0x417b20-0x41c2f0, the level 0x41c2f0-0x41e820, the saved game's writ
 anagram finder 0x41f...-0x420b40, the high scores and the registry 0x421200-0x422030, the HUD 0x422220-0x423e40, and
 a 500-byte screen 0x423fa0.
 
-Physics (Verlet, Jakobsen style). The ball array (0x40ec20, vtable 0x481bb0): +4 count, +0x10 gravity (Point), +0x18
+Physics (game/Physics.h; Verlet, Jakobsen style). The ball array (0x40ec20, vtable 0x481bb0): +4 count, +0x10 gravity (Point), +0x18
 friction 0.2, +0x1c the balls (an array of 0xfc-byte balls, new[] with a count; 0x40ecd0 gets ball i). 0x40ed10
 accumulate(dt): a ball not fixed gets acceleration = (gravity, or its own at +0xdc, or (g.x, -g.y) when its inverse
 mass <= 0) x dt x dt; a fixed one (0, 0). 0x40ede0 integrate(dt, lastDt): pos += (pos - old) x damping x dt/lastDt
@@ -207,7 +207,7 @@ a random jitter when +0x28 is set; 0x40e220 (0x2c) a mouse rope: within +0x18 of
 pulls by the excess capped at +0xc times +0x10, and blends the old position by +0x14; 0x40e5d0 (0x3c) a chain over
 a list of ball indices; 0x40e6c0 every pair of balls (not state 3 or 4, not fixed) pushed apart within 44 px
 (1936 = 44^2, the inverse masses), and a 0x40ea90 stick between two balls whose +0xf1 is set; 0x40e920/0x40e950 a
-distance constraint (mode 0 at least, 1 at most, 2 exactly); 0x410ef0 (vtable 0x482198, 0x1c bytes) the screen's
+distance constraint (mode 0 at most, 1 at least, 2 exactly); 0x410ef0 (vtable 0x482198, 0x1c bytes) the screen's
 bounds: x in [r, +0x18 - r], y in [r, +0x14 - r], damping -= hits x friction, and the old position clamped too.
 
 The ball (Container, 0xfc bytes, constructor 0x40f200, vtable 0x481bd0; overrides only the destructor and draw
@@ -219,7 +219,7 @@ blank letter, a particle system from the ball system's pool and wildcardGlow.png
 (cube02.png, fixed), 0x20 (cube02.png, inverse mass 0.01), 0x40 stone (rock.png, inverse mass 0.25), else ball.png
 and ball_on.png (or the -chain versions with a chain); 4, 8, 0x10 the x2, x3, x4 badges.
 
-Obstacles (0xb0 bytes; the port: Obstacle : Node with the new slots 0xc8 collide(balls), 0xcc setActive, 0xd0
+Obstacles (game/Obstacles.h; 0xb0 bytes; the port: Obstacle : Node with the new slots 0xc8 collide(balls), 0xcc setActive, 0xd0
 isActive, 0xd4 touches(balls, i, margin), 0xd8/0xdc origin (the node's position), 0xe0/0xe4 extents, 0xe8/0xec
 letter, 0xf0 the XML line, 0xf4 type, 0xf8 clone; contains 0x40 is a rectangle test, draw the image and a yellow
 letter, layout the image's bounds). Box 0x40fb00 (vtable 0x481ea8): +4 extents (22, 22), +0xc box type (0 cube01.png,
