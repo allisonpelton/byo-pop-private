@@ -25,13 +25,13 @@ public:
 	LoadedEgg*			mLoaded;			// +0xc
 	FlyingEgg*			mFlying;			// +0x10 the last fired
 	int					mAngle;				// +0x14 degrees, 0 up
-	int					mField18;			// +0x18
+	int					mField18;			// +0x18 (the hand's cell is 8 - this / 8)
 	int					mField1c;			// +0x1c
-	int					mField20[2];		// +0x20 (a point; saved)
+	int					mField20[2];		// +0x20 the hand's middle (saved)
 	float				mRecoilX;			// +0x28
 	float				mRecoilY;			// +0x2c
 	int					mField30[2];		// +0x30 (a point; saved)
-	int					mField38[20];		// +0x38 (0x50 bytes; saved)
+	int					mField38[20];		// +0x38 (0x50 bytes; saved; the first two the band's pull from the egg)
 	MTRand				mRand;				// +0x88 seeded with the tick count
 	int					mFieldA4c;			// +0xa4c (the board's +0x158 + +0x70)
 	int					mFieldA50;			// +0xa50 (382)
@@ -57,6 +57,7 @@ public:
 	void				Fire();								// 0x4012a0
 	void				Freeze(Egg* theEgg);				// 0x4014f0
 	void				DrawSling(Graphics* g);				// 0x401940
+	void				DrawBand();							// 0x401a10
 };
 
 }

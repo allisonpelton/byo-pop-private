@@ -131,3 +131,49 @@ void Launcher::DrawSling(Graphics* g)
 	anOffset.mY = -anOffset.mY;
 	AddDrawOffset(anOffset);
 }
+
+// 0x401a10: the rubber band from the slingshot's two posts, round the loaded egg (and back to the pull) or the
+// flying one until it is above 388, and the hand; moved down like the slingshot
+void Launcher::DrawBand()
+{
+	Point anOffset;
+	anOffset.mX = 0;
+	anOffset.mY = 0;
+	float aLimit = (float) (mApp->mPicSlingshot->mHeight / 2) + mBoard->mGrid->mCeiling;
+	if ((float) mFieldA58 < aLimit)
+		anOffset.mY = (int) aLimit;
+	AddDrawOffset(anOffset);
+	int aMiddle = mBoard->mField158 + mBoard->mField70;
+	if ((mLoaded == NULL) && (mFlying == NULL))
+		mApp->mPicRubberband->DrawLine(aMiddle - 0x36, 0x18c, aMiddle + 0x36, 0x18c);
+	Cell* aHand;
+	if (mLoaded != NULL)
+	{
+		mApp->mPicRubberband->DrawLine(aMiddle - 0x36, 0x18c, (int) (mLoaded->mX - 16.0f), (int) mLoaded->mY);
+		mApp->mPicRubberband->DrawLine(aMiddle + 0x36, 0x18c, (int) (mLoaded->mX + 16.0f), (int) mLoaded->mY);
+		mApp->mPicRubberband->DrawLine((int) (mLoaded->mX + 16.0f), (int) mLoaded->mY,
+			(int) ((float) mField38[0] + mLoaded->mX), (int) ((float) mField38[1] + mLoaded->mY));
+		mApp->mPicRubberband->DrawLine((int) (mLoaded->mX - 16.0f), (int) mLoaded->mY,
+			(int) ((float) mField38[0] + mLoaded->mX), (int) ((float) mField38[1] + mLoaded->mY));
+		mField20[0] = (int) ((float) (mField38[0] * 2) + mLoaded->mX);
+		mField20[1] = (int) ((mLoaded->mY - 10.0f) + (float) mField38[1] + 50.0f);
+		aHand = mApp->mHandCells[8 - mField18 / 8];
+		aHand->Draw(mField20[0] - (aHand->mWidth >> 1), mField20[1] - (aHand->mHeight >> 1));
+	}
+	else
+	{
+		aHand = mApp->mHandCells[8 - mField18 / 8];
+		aHand->Draw(mField20[0] - (aHand->mWidth >> 1), (mField20[1] - (aHand->mHeight >> 1)) + 0x1e);
+	}
+	if (mFlying != NULL)
+	{
+		mApp->mPicRubberband->DrawLine(aMiddle - 0x36, 0x18c, (int) (mFlying->mX - 16.0f), (int) mFlying->mY);
+		mApp->mPicRubberband->DrawLine(aMiddle + 0x36, 0x18c, (int) (mFlying->mX + 16.0f), (int) mFlying->mY);
+		int y = (int) mFlying->mY;
+		mApp->mPicRubberband->DrawLine((int) (mFlying->mX + 16.0f), y, (int) (mFlying->mX - 16.0f), y);
+		if (mFlying->mY < 388.0f)
+			mFlying = NULL;
+	}
+	anOffset.mY = -anOffset.mY;
+	AddDrawOffset(anOffset);
+}
