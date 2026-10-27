@@ -7,6 +7,10 @@
 #include "Sprite.h"
 #include "WidgetManager.h"
 
+#ifdef __EMSCRIPTEN__
+#include "WebProfiles.h"
+#endif
+
 using namespace Sexy;
 
 // 0x52b280: the edit box's colours (r, g, b, a): no background or outline, the text pale blue, the selection white
@@ -35,6 +39,10 @@ EnterNameDialog::EnterNameDialog(FossilizedApp* theApp, HighScores* theHighScore
 	mNameEdit->SetText(mApp->mLastScoreName);
 	mNameEdit->mMaxChars = 0x14;
 	mNameEdit->mMaxPixels = 0x73;
+#ifdef __EMSCRIPTEN__
+	// the web page's player (framework/WebProfiles.h): under "fill" and "create" the box starts with the site's player
+	Byopop::SiteType("dynomite", mNameEdit, false);
+#endif
 	mNameEdit->FocusCursor(false);
 
 	mOkButton = new DialogButton(NULL, 100, mApp);

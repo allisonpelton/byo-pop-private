@@ -31,6 +31,10 @@
 #include "WidgetManager.h"
 #include <SDL.h>
 
+#ifdef __EMSCRIPTEN__
+#include "SiteProfiles.h"
+#endif
+
 using namespace Sexy;
 
 // 0x4198b0
@@ -463,6 +467,9 @@ void FossilizedApp::ButtonDepress(int theId)
 		{
 			EnterNameDialog* aDialog = (EnterNameDialog*) GetDialog(6);
 			mLastScoreName = aDialog->mNameEdit->mString;
+#ifdef __EMSCRIPTEN__
+			SiteScoresChanged(this);
+#endif
 			aDialog->mHighScores->Add(mSideBar->mScore, aDialog->mNameEdit->mString.c_str(), (int) mBoard->mStartTicks);
 			aDialog->mHighScores->Save();
 			KillDialog(6);
