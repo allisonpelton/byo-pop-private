@@ -1,5 +1,6 @@
 #include "BinFile.h"
 #include "platform/VFS.h"
+#include <cstdio>
 #include <cstdlib>
 #include <cstring>
 
@@ -20,11 +21,50 @@ BinFile::~BinFile()
 	Close();
 }
 
-// 0x414a50: the original opens read-only and then, either way, read-write (the handle it keeps)
+// port: a name UserPath made
+static bool IsUserPath(const std::string& theName)
+{
+	std::string aPrefix = Platform::VFS::Get().GetUserDir() + "/";
+	return theName.compare(0, aPrefix.size(), aPrefix) == 0;
+}
+
+// port: a host file read whole
+static bool ReadHostFile(const std::string& thePath, std::vector<uint8_t>& theData)
+{
+	FILE* aFile = fopen(thePath.c_str(), "rb");
+	if (aFile == NULL)
+		return false;
+	fseek(aFile, 0, SEEK_END);
+	long aSize = ftell(aFile);
+	fseek(aFile, 0, SEEK_SET);
+	theData.resize(aSize > 0 ? (size_t) aSize : 0);
+	if (aSize > 0)
+		theData.resize(fread(&theData[0], 1, (size_t) aSize, aFile));
+	fclose(aFile);
+	return true;
+}
+
+// 0x414a10: _creat, then the file opened read-write
+void BinFile::Create(const char* theName)
+{
+	mData.clear();
+	mPos = 0;
+	mOpen = true;
+	mWritePath = theName;
+}
+
+// 0x414a50: the original opens read-only and then, either way, read-write (the handle it keeps). Port: the saved
+// games are read from the user folder, the game's files through the VFS; writes after Open stay in memory
 void BinFile::Open(const char* theName, bool readOnly)
 {
 	mData.clear();
 	mPos = 0;
+	mWritePath.clear();
+	if (IsUserPath(theName))
+	{
+		mOpen = ReadHostFile(theName, mData);
+		return;
+	}
 	std::map<std::string, std::vector<uint8_t> >::iterator aFile = sMemoryFiles.find(theName);
 	if (aFile != sMemoryFiles.end())
 	{
@@ -35,9 +75,26 @@ void BinFile::Open(const char* theName, bool readOnly)
 	mOpen = Platform::VFS::Get().ReadAll(theName, mData);
 }
 
-// 0x414a90
+// 0x414a90. port: a file made by Create is written out now, into the user folder (or kept in memory, see the header)
 void BinFile::Close()
 {
+	if (mOpen && !mWritePath.empty())
+	{
+		if (IsUserPath(mWritePath))
+		{
+			Platform::MakeDirs(Platform::VFS::Get().GetUserDir());
+			FILE* aFile = fopen(mWritePath.c_str(), "wb");
+			if (aFile != NULL)
+			{
+				if (!mData.empty())
+					fwrite(&mData[0], 1, mData.size(), aFile);
+				fclose(aFile);
+			}
+		}
+		else
+			SetMemoryFile(mWritePath.c_str(), mData);
+	}
+	mWritePath.clear();
 	mData.clear();
 	mPos = 0;
 	mOpen = false;
@@ -47,6 +104,45 @@ void BinFile::Close()
 void BinFile::Skip(long theCount)
 {
 	Seek((long) mPos + theCount);
+}
+
+// 0x414ac0
+void BinFile::WriteBool(bool theValue)
+{
+	unsigned char aByte = theValue ? 1 : 0;
+	Write(&aByte, 1);
+}
+
+// 0x414ae0
+void BinFile::WriteInt(int theValue)
+{
+	Write(&theValue, 4);
+}
+
+// port: 0x414ae0, given the float's bits
+void BinFile::WriteFloat(float theValue)
+{
+	Write(&theValue, 4);
+}
+
+// 0x414b00
+void BinFile::WriteString(const char* theString)
+{
+	unsigned int aLength = (unsigned int) strlen(theString) + 1;
+	Write(&aLength, 4);
+	Write(theString, aLength);
+}
+
+// 0x414b50: like _write, at the position, the file growing as needed
+void BinFile::Write(const void* theBuffer, unsigned int theSize)
+{
+	if (!mOpen)
+		return;
+	if (mData.size() < mPos + theSize)
+		mData.resize(mPos + theSize);
+	if (theSize != 0)
+		memcpy(&mData[mPos], theBuffer, theSize);
+	mPos += theSize;
 }
 
 // 0x414b70
@@ -102,6 +198,15 @@ void* BinFile::ReadAlloc()
 	return aBuffer;
 }
 
+// 0x414c70
+void BinFile::CopyFrom(BinFile* theFile, unsigned int theSize)
+{
+	void* aBuffer = malloc(theSize);
+	theFile->Read(aBuffer, theSize);
+	Write(aBuffer, theSize);
+	free(aBuffer);
+}
+
 // 0x414c60
 int BinFile::Length()
 {
@@ -125,4 +230,14 @@ void BinFile::Seek(long thePos)
 void BinFile::SetMemoryFile(const char* theName, const std::vector<uint8_t>& theData)
 {
 	sMemoryFiles[theName] = theData;
+}
+
+std::string BinFile::UserPath(const char* theName)
+{
+	return Platform::VFS::Get().GetUserDir() + "/" + theName;
+}
+
+bool BinFile::UserFileExists(const char* theName)
+{
+	return Platform::IsFile(UserPath(theName));
 }

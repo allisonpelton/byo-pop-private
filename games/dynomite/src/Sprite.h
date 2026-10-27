@@ -36,6 +36,9 @@ public:
 	Pic(SexyAppBase* theApp, const std::string& thePath, bool palletize);
 	// 0x435ee0: a picture of theWidth x theHeight made from 32-bit pixels
 	Pic(SexyAppBase* theApp, const unsigned int* theBits, int theWidth, int theHeight);
+	// 0x4368d0: theSrcRect of theImage stretched into a picture of theDestRect's size, inside a border of one pixel
+	// of black at alpha 1 (the save's picture of the board). The last argument is not read
+	Pic(SexyAppBase* theApp, Image* theImage, const Rect& theSrcRect, const Rect& theDestRect, bool);
 	// 0x435fc0: a copy with its own image
 	Pic(const Pic& theOther);
 	virtual ~Pic();										// 0x4360c0

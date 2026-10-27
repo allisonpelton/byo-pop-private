@@ -12,6 +12,7 @@
 namespace Sexy
 {
 
+class BinFile;
 class ButtonWidget;
 class Cell;
 class CellButton;
@@ -44,6 +45,8 @@ public:
 
 	void				Update();			// 0x42d3f0
 	void				Draw();				// 0x42d620
+	void				SaveState(BinFile* theFile);	// 0x42c490
+	void				LoadState(BinFile* theFile);	// 0x42c4e0
 };
 
 class Museum : public ButtonListener
@@ -71,6 +74,9 @@ public:
 	virtual void		ButtonDepress(int theId) override;
 
 	void				SetScroll(int theScroll);				// 0x42c050
+	// 0x42c630: the close button's state and label, and the tyrannosaurus; the music is kept from then on
+	void				SaveState(BinFile* theFile);
+	void				LoadState(BinFile* theFile);			// 0x42d2c0
 	// 0x42d000: at a round's end: the scroll to the fossil, and the close button's label
 	void				Start();
 	void				Update();								// 0x42e460

@@ -1074,7 +1074,7 @@ void IntroScreen::LoadChosenSlot()
 	mApp->mInTutorial = false;
 	mApp->mSndEgglands->Play();
 	char aName[20];
-	sprintf(aName, "SLOT%d.SAV", mChosenSlot);
+	sprintf(aName, "SLOT%d.SAV", mSlotNumbers[mChosenSlot]);
 	mApp->LoadSavedGame(aName);
 	// port: the original also moves the mouse pointer to the board's middle (SetCursorPos)
 }

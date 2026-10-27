@@ -76,7 +76,8 @@ public:
 	virtual void		DrawGameOver(Graphics* g) override;
 	virtual void		EggAlone(int theColor) override;	// 0x40f3f0: while the grid has its colour, -25 bonus
 	virtual void		EggLanded() override;				// 0x40f030: a shot nearer the next drop
-	// TODO: the save and load (slots 59 and 60, 0x40f440 and 0x40f6b0) come with the saved games
+	virtual void		Save() override;				// 0x40f440 (slot 59): the board's, the mode's, then the pack
+	virtual void		Load() override;				// 0x40f6b0 (slot 60)
 
 	void				LoadGrid(int theUnused);			// 0x40eef0: the round's eggs, once the walls are in place
 	static void			CopyPack(const char* theFile);		// 0x40f8f0: the pack to STOMPED.TMP

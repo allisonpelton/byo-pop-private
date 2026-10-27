@@ -8,9 +8,12 @@
 #include "CreditsDialog.h"
 #include "EditWidget.h"
 #include "EnterNameDialog.h"
+#include "GetSaveNameDialog.h"
+#include "BinFile.h"
 #include "HighScores.h"
 #include "HighScoresDialog.h"
 #include "OptionsDialog.h"
+#include "SaveGameDialog.h"
 #include "Checkbox.h"
 #include "SideBar.h"
 #include "AngleTable.h"
@@ -20,6 +23,7 @@
 #include "Tutorial.h"
 #include "compat2004/Compat2004.h"
 #include "DDImage.h"
+#include "DDInterface.h"
 #include "Dialog.h"
 #include "ImageFont.h"
 #include "MusicInterface.h"
@@ -51,7 +55,10 @@ FossilizedApp::FossilizedApp()
 	mTutor = NULL;
 	mSideBar = NULL;
 	mIntroScreen = NULL;
+	mSavePic = NULL;
 	// port: the original leaves these to its allocation
+	mSaveMode[0] = 0;
+	mSaveName[0] = 0;
 	mField1090 = 0;
 	mLockCursor = false;
 	mField4d8 = 0;
@@ -70,6 +77,11 @@ FossilizedApp::FossilizedApp()
 // 0x419320
 FossilizedApp::~FossilizedApp()
 {
+	if (mSavePic != NULL)
+	{
+		delete mSavePic;
+		mSavePic = NULL;
+	}
 	if (mAngles != NULL)
 	{
 		delete mAngles;
@@ -270,10 +282,48 @@ void FossilizedApp::ShowNoWindowed()
 		GetString("OK"), Dialog::BUTTONS_FOOTER);
 }
 
-// 0x419130: a picture of the screen for the save dialog, then the save dialog
+// 0x419130: a picture of the board for the save, then the save dialog
 void FossilizedApp::SaveGame()
 {
-	// TODO: SaveGameDialog (0x433910, 0x2d0 bytes)
+	if (mSavePic != NULL)
+		delete mSavePic;
+	// the screen's image (0x4570d0)
+	mSavePic = new Pic(this, mDDInterface->mScreenImage, Rect(0x96, 0, 0x1ea, 0x1e0), Rect(0, 0, 0x3c, 0x3c), true);
+	SaveGameDialog* aDialog = new SaveGameDialog(this);
+	aDialog->Resize(0xbe, 0xf, 0x1ac, aDialog->GetPreferredHeight(0x1ac));
+	AddDialog(7, aDialog);
+}
+
+// 0x418f40
+void FossilizedApp::ShowSaveNameDialog()
+{
+	GetSaveNameDialog* aDialog = new GetSaveNameDialog(this);
+	aDialog->Resize(0xd8, 0x7d, 0x177, aDialog->GetPreferredHeight(0x177));
+	AddDialog(8, aDialog);
+}
+
+// 0x418e90
+void FossilizedApp::ButtonPress(int theId)
+{
+	if ((theId >= 600) && (theId < 700))
+	{
+		SaveGameDialog* aDialog = (SaveGameDialog*) GetDialog(7);
+		aDialog->mChosenSlot = theId - 600;
+		aDialog->MarkDirty();
+	}
+	if ((theId >= 900) && (theId < 1000))
+	{
+		int aLastSlot = mIntroScreen->mChosenSlot;
+		mIntroScreen->mChosenSlot = theId - 900;
+		mIntroScreen->MarkDirty();
+		mIntroScreen->PlaceOkButton();
+		if (mIntroScreen->mChosenSlot == aLastSlot)
+		{
+			mIntroScreen->ButtonDepress(7);
+			return;
+		}
+	}
+	mSndClick->Play();
 }
 
 // 0x418810: the chosen mode's board in place of the main menu (or the board before)
@@ -385,7 +435,26 @@ void FossilizedApp::ButtonDepress(int theId)
 	{
 		if (theId == 500)
 		{
-			// TODO: the save dialog's OK (dialog 7: an empty slot saves, a used one asks first, dialog 10)
+			// the save dialog's Save: an empty slot asks for the name, a used one asks first (dialog 10)
+			if (((SaveGameDialog*) GetDialog(7))->mChosenSlot == -1)
+			{
+				mSndWhirleyhit->Play();
+				DoDialog(9, true, GetString("NO_GAME_SLOT_SELECTED"), GetString("YOU_HAVE_NOT_SELECTED_A_SAVE_GAME_SLOT__"),
+					GetString("OK"), Dialog::BUTTONS_FOOTER);
+			}
+			else
+			{
+				char aName[0x14];
+				sprintf(aName, "SLOT%d.SAV", ((SaveGameDialog*) GetDialog(7))->mChosenSlot);
+				if (BinFile::UserFileExists(aName))
+					DoDialog(10, true, GetString("OVERWRITE_SAVED_GAME"),
+						GetString("THIS_GAME_SLOT_ALREADY_HAS_A_SAVED_GAME__"), "", Dialog::BUTTONS_YES_NO);
+				else
+				{
+					strcpy(mSaveName, GetString("SAVED_GAME").c_str());
+					ShowSaveNameDialog();
+				}
+			}
 		}
 		else if (theId == 5)
 			StartGame();
@@ -404,7 +473,21 @@ void FossilizedApp::ButtonDepress(int theId)
 		KillDialog(7);
 	else if (theId == 700)
 	{
-		// TODO: the save dialog's second OK (dialog 8, the saved game's name), which saves SLOTn.SAV
+		// the name's Save: the board writes SLOTn.SAV
+		SaveGameDialog* aSaveDialog = (SaveGameDialog*) GetDialog(7);
+		GetSaveNameDialog* aNameDialog = (GetSaveNameDialog*) GetDialog(8);
+		strcpy(mSaveName, aNameDialog->mNameEdit->mString.c_str());
+		char aName[0x14];
+		sprintf(aName, "SLOT%d.SAV", aSaveDialog->mChosenSlot);
+		// port: the saved games are in the user folder (the original's are beside the exe)
+		mBoard->CreateSaveFile(BinFile::UserPath(aName).c_str());
+		mBoard->WriteSaveHeader();
+		mBoard->Save();
+		mBoard->CloseSaveFile();
+		KillDialog(8);
+		KillDialog(7);
+		DoDialog(0xb, true, GetString("GAME_SAVED"), GetString("YOUR_GAME_HAS_BEEN_SAVED__"), GetString("OK"),
+			Dialog::BUTTONS_FOOTER);
 	}
 	else if (theId == 0x2bd)
 		KillDialog(8);
@@ -469,9 +552,14 @@ void FossilizedApp::ButtonDepress(int theId)
 			KillDialog(9);
 			return;
 		case 10:
+		{
+			// the overwrite's yes: the name, the slot's to start with
 			KillDialog(10);
-			// TODO: the chosen slot's saved game (dialog 7's slot name, then 0x418f40) comes with the saved games
+			SaveGameDialog* aDialog = (SaveGameDialog*) GetDialog(7);
+			strcpy(mSaveName, aDialog->mNames[aDialog->mChosenSlot]);
+			ShowSaveNameDialog();
 			return;
+		}
 		case 0xb:
 			KillDialog(0xb);
 			ShowMainMenu();
@@ -535,7 +623,16 @@ void FossilizedApp::StartTutorial()
 // 0x418fd0
 void FossilizedApp::LoadSavedGame(const char* theFile)
 {
-	// TODO: the saved game's board
+	StartGame();
+	if (BinFile::UserFileExists(theFile))
+	{
+		// port: the saved games are in the user folder (the original's are beside the exe)
+		std::string aPath = BinFile::UserPath(theFile);
+		mBoard->OpenSaveFile(aPath.c_str());
+		mBoard->SkipSaveHeader();
+		mBoard->Load();
+		mBoard->CloseSaveFile();
+	}
 }
 
 // port: the loading runs in the main thread, so the loader draws the title screen now and then

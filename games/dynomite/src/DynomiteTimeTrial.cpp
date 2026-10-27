@@ -1,4 +1,5 @@
 #include "DynomiteTimeTrial.h"
+#include "BinFile.h"
 #include "Egg.h"
 #include "EggGrid.h"
 #include "FirePrompt.h"
@@ -303,4 +304,22 @@ void DynomiteTimeTrial::DrawGameOver(Graphics* g)
 	g->SetColor(Color(0xff, 0xff, 0xff));
 	g->DrawString(mApp->GetString("FINAL_SCORE"), 0xe1, mField1c8 + 0x91);
 	g->DrawString(aTime, 0x1b5 - aTimeWidth, mField1c8 + 0x91);
+}
+
+// 0x4126b0
+void DynomiteTimeTrial::Save()
+{
+	Dynomite::Save();
+	mBinFile.WriteInt(mEggsBroken);
+	mBinFile.WriteInt(mEggsDropped);
+	mBinFile.WriteInt(mRowsCleared);
+}
+
+// 0x4126f0
+void DynomiteTimeTrial::Load()
+{
+	Dynomite::Load();
+	mEggsBroken = mBinFile.ReadInt();
+	mEggsDropped = mBinFile.ReadInt();
+	mRowsCleared = mBinFile.ReadInt();
 }

@@ -1,4 +1,5 @@
 #include "DynomiteStomped.h"
+#include "BinFile.h"
 #include "Effects.h"
 #include "Egg.h"
 #include "EggGrid.h"
@@ -1011,4 +1012,92 @@ void DynomiteStomped::Update()
 			(mApp->mIsRegistered == true))
 			mApp->ShowHighScoreDialog(mHighScores);
 	}
+}
+
+// 0x40f440: the pack (STOMPED.TMP) goes into the saved game whole, after its length and the places in it
+void DynomiteStomped::Save()
+{
+	Dynomite::Save();
+	mBinFile.WriteFloat(mKick);
+	mBinFile.WriteFloat(mCeilingTarget);
+	mBinFile.WriteBool(mCeilingMoving);
+	mBinFile.WriteInt(mWidth);
+	mBinFile.WriteInt(mLauncherX);
+	mBinFile.WriteInt(mGrindFrames);
+	mBinFile.WriteBool(mSettingUp);
+	mBinFile.WriteBool(mRoundLoaded);
+	mBinFile.WriteBool(mFirstRound);
+	mBinFile.WriteInt(mShotsPerDrop);
+	mBinFile.WriteInt(mShotsLeft);
+	mBinFile.Write(mColors, 0x100);
+	mBinFile.WriteInt(mEggIndex);
+	mBinFile.WriteInt(mEggCount);
+	mBinFile.WriteInt(mWarnTimer);
+	mBinFile.WriteInt(mMeter);
+	mBinFile.WriteInt(mMeterTarget);
+	mBinFile.WriteInt(mStartEggs);
+	mBinFile.WriteInt(mShots);
+	mBinFile.WriteInt(mRound);
+	mBinFile.WriteInt(mRoundsCleared);
+	mBinFile.WriteInt(mRoundBonus);
+	mBinFile.WriteString(mRoundText);
+	mBinFile.WriteString(mPuzzleName);
+	mBinFile.WriteInt(mTextAlpha);
+	mBinFile.WriteInt(mTextHold);
+	mBinFile.WriteBool(mCleared);
+	mBinFile.WriteInt(mClearedAlpha);
+	mBinFile.WriteInt(mClearedFrames);
+	BinFile aPack;
+	aPack.Open("STOMPED.TMP", true);
+	mBinFile.WriteInt(aPack.Length());
+	mBinFile.WriteInt(mPackPos);
+	mBinFile.WriteInt(mFirstPos);
+	mBinFile.CopyFrom(&aPack, aPack.Length());
+	aPack.Close();
+	mPack.Close();
+}
+
+// 0x40f6b0: the pack is written back to STOMPED.TMP
+void DynomiteStomped::Load()
+{
+	Dynomite::Load();
+	mKick = mBinFile.ReadFloat();
+	mCeilingTarget = mBinFile.ReadFloat();
+	mCeilingMoving = mBinFile.ReadBool();
+	mWidth = mBinFile.ReadInt();
+	mLauncherX = mBinFile.ReadInt();
+	mGrindFrames = mBinFile.ReadInt();
+	mSettingUp = mBinFile.ReadBool();
+	mRoundLoaded = mBinFile.ReadBool();
+	mFirstRound = mBinFile.ReadBool();
+	mShotsPerDrop = mBinFile.ReadInt();
+	mShotsLeft = mBinFile.ReadInt();
+	mBinFile.Read(mColors, 0x100);
+	mEggIndex = mBinFile.ReadInt();
+	mEggCount = mBinFile.ReadInt();
+	mWarnTimer = mBinFile.ReadInt();
+	mMeter = mBinFile.ReadInt();
+	mMeterTarget = mBinFile.ReadInt();
+	mStartEggs = mBinFile.ReadInt();
+	mShots = mBinFile.ReadInt();
+	mRound = mBinFile.ReadInt();
+	mRoundsCleared = mBinFile.ReadInt();
+	mRoundBonus = mBinFile.ReadInt();
+	mBinFile.ReadString(mRoundText);
+	mBinFile.ReadString(mPuzzleName);
+	mTextAlpha = mBinFile.ReadInt();
+	mTextHold = mBinFile.ReadInt();
+	mCleared = mBinFile.ReadBool();
+	mClearedAlpha = mBinFile.ReadInt();
+	mClearedFrames = mBinFile.ReadInt();
+	int aLength = mBinFile.ReadInt();
+	int aPackPos = mBinFile.ReadInt();
+	mFirstPos = mBinFile.ReadInt();
+	mTextTimer = 500;
+	BinFile aPack;
+	aPack.Create("STOMPED.TMP");
+	aPack.CopyFrom(&mBinFile, aLength);
+	aPack.Close();
+	mPack.Close();
+	mPackPos = aPackPos;
 }

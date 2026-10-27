@@ -1,5 +1,6 @@
 #include "Effects.h"
 #include "AngleTable.h"
+#include "BinFile.h"
 #include "Dynomite.h"
 #include "FossilizedApp.h"
 #include "Graphics.h"
@@ -608,4 +609,232 @@ void FallingEggEffect::Draw()
 		aCell = mApp->mBonusEggCells[mKind - 1];
 		aCell->Draw((int) x - (aCell->mWidth >> 1), (int) y - (aCell->mHeight >> 1));
 	}
+}
+
+// The saved games. Where the original writes two neighbouring fields as one block of 8 bytes, the port writes them
+// one at a time (the same bytes), and a float the original writes through WriteInt goes through WriteFloat.
+
+// 0x4034e0
+void Effect::Save(BinFile* theFile)
+{
+	theFile->WriteFloat(mX);
+	theFile->WriteFloat(mY);
+}
+
+// 0x403500
+void Effect::Load(BinFile* theFile)
+{
+	mX = theFile->ReadFloat();
+	mY = theFile->ReadFloat();
+}
+
+// 0x403660
+void BabyEffect::Save(BinFile* theFile)
+{
+	Effect::Save(theFile);
+	theFile->WriteInt(mBaby);
+	theFile->WriteFloat(mVY);
+	theFile->WriteFloat(mGravity);
+	theFile->WriteInt(mDelay);
+}
+
+// 0x4036a0
+void BabyEffect::Load(BinFile* theFile)
+{
+	Effect::Load(theFile);
+	mBaby = theFile->ReadInt();
+	mVY = theFile->ReadFloat();
+	mGravity = theFile->ReadFloat();
+	mDelay = theFile->ReadInt();
+}
+
+// 0x403a90
+void PowerUp::SaveState(BinFile* theFile)
+{
+	theFile->WriteInt(mAngle);
+	theFile->WriteInt(mSpin);
+	theFile->WriteInt(mKind);
+	theFile->WriteInt(mTime);
+	theFile->WriteInt(mBlinkTime);
+	theFile->WriteFloat(mRadius);
+	theFile->WriteBool(mVisible);
+	theFile->WriteInt(mBlinkCount);
+	theFile->WriteInt(mFlag);
+}
+
+// 0x403b10
+void PowerUp::LoadState(BinFile* theFile)
+{
+	mAngle = theFile->ReadInt();
+	mSpin = theFile->ReadInt();
+	mKind = theFile->ReadInt();
+	mTime = theFile->ReadInt();
+	mBlinkTime = theFile->ReadInt();
+	mRadius = theFile->ReadFloat();
+	mVisible = theFile->ReadBool();
+	mBlinkCount = theFile->ReadInt();
+	mFlag = theFile->ReadInt();
+}
+
+// 0x403d00
+void BonusItemEffect::Save(BinFile* theFile)
+{
+	Effect::Save(theFile);
+	theFile->WriteFloat(mTargetX);
+	theFile->WriteFloat(mTargetY);
+	theFile->WriteFloat(mVX);
+	theFile->WriteFloat(mVY);
+	theFile->WriteInt(mKind);
+	theFile->WriteInt(mFrames);
+}
+
+// 0x403d50
+void BonusItemEffect::Load(BinFile* theFile)
+{
+	Effect::Load(theFile);
+	mTargetX = theFile->ReadFloat();
+	mTargetY = theFile->ReadFloat();
+	mVX = theFile->ReadFloat();
+	mVY = theFile->ReadFloat();
+	mKind = theFile->ReadInt();
+	mFrames = theFile->ReadInt();
+}
+
+// 0x403ec0
+void BoomEffect::Save(BinFile* theFile)
+{
+	Effect::Save(theFile);
+	theFile->WriteFloat(mFrame);
+	theFile->WriteFloat(mSpeed);
+	theFile->WriteBool(mStretched);
+}
+
+// 0x403f00
+void BoomEffect::Load(BinFile* theFile)
+{
+	Effect::Load(theFile);
+	mFrame = theFile->ReadFloat();
+	mSpeed = theFile->ReadFloat();
+	mStretched = theFile->ReadBool();
+}
+
+// 0x414890
+void FallingEggEffect::Save(BinFile* theFile)
+{
+	Effect::Save(theFile);
+	theFile->WriteFloat(mVY);
+	theFile->WriteFloat(mGravity);
+	theFile->WriteInt(mColor);
+	theFile->WriteInt(mKind);
+}
+
+// 0x4148d0
+void FallingEggEffect::Load(BinFile* theFile)
+{
+	Effect::Load(theFile);
+	mVY = theFile->ReadFloat();
+	mGravity = theFile->ReadFloat();
+	mColor = theFile->ReadInt();
+	mKind = theFile->ReadInt();
+}
+
+// 0x415490
+void ConfettiEffect::Save(BinFile* theFile)
+{
+	Effect::Save(theFile);
+	theFile->WriteInt(mColor);
+	theFile->WriteFloat(mVX);
+	theFile->WriteFloat(mVY);
+}
+
+// 0x4154c0
+void ConfettiEffect::Load(BinFile* theFile)
+{
+	Effect::Load(theFile);
+	mColor = theFile->ReadInt();
+	mVX = theFile->ReadFloat();
+	mVY = theFile->ReadFloat();
+}
+
+// 0x434820
+void ScorePopup::Save(BinFile* theFile)
+{
+	Effect::Save(theFile);
+	theFile->WriteInt(mLength);
+	theFile->WriteString(mText);
+	theFile->WriteBool(mBlink);
+	theFile->WriteInt(mBlinkCount);
+	theFile->WriteInt(mLife);
+	theFile->WriteFloat(mSpeed);
+}
+
+// 0x434880
+void ScorePopup::Load(BinFile* theFile)
+{
+	Effect::Load(theFile);
+	free(mText);
+	mLength = theFile->ReadInt();
+	mText = (char*) theFile->ReadAlloc();
+	mBlink = theFile->ReadBool();
+	mBlinkCount = theFile->ReadInt();
+	mLife = theFile->ReadInt();
+	mSpeed = theFile->ReadFloat();
+}
+
+// 0x434c10
+void ShellEffect::Save(BinFile* theFile)
+{
+	Effect::Save(theFile);
+	theFile->WriteInt(mColor);
+	theFile->WriteInt(mQuarter);
+	theFile->WriteFloat(mGravity);
+	theFile->WriteFloat(mVX);
+	theFile->WriteFloat(mVY);
+}
+
+// 0x434c60
+void ShellEffect::Load(BinFile* theFile)
+{
+	Effect::Load(theFile);
+	mColor = theFile->ReadInt();
+	mQuarter = theFile->ReadInt();
+	mGravity = theFile->ReadFloat();
+	mVX = theFile->ReadFloat();
+	mVY = theFile->ReadFloat();
+}
+
+// 0x442400
+void EggWhiteEffect::Save(BinFile* theFile)
+{
+	Effect::Save(theFile);
+	theFile->WriteFloat(mVX);
+	theFile->WriteFloat(mVY);
+}
+
+// 0x442420
+void EggWhiteEffect::Load(BinFile* theFile)
+{
+	Effect::Load(theFile);
+	mVX = theFile->ReadFloat();
+	mVY = theFile->ReadFloat();
+}
+
+// 0x442560
+void YolkEffect::Save(BinFile* theFile)
+{
+	Effect::Save(theFile);
+	theFile->WriteFloat(mVY);
+	theFile->WriteFloat(mGravity);
+	theFile->WriteBool(mYolk);
+	theFile->WriteInt(mWhich);
+}
+
+// 0x4425b0
+void YolkEffect::Load(BinFile* theFile)
+{
+	Effect::Load(theFile);
+	mVY = theFile->ReadFloat();
+	mGravity = theFile->ReadFloat();
+	mYolk = theFile->ReadBool();
+	mWhich = theFile->ReadInt();
 }

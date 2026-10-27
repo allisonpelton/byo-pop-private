@@ -1,4 +1,5 @@
 #include "Museum.h"
+#include "BinFile.h"
 #include "ButtonWidget.h"
 #include "CellButton.h"
 #include "DynomiteFossil.h"
@@ -495,5 +496,70 @@ void Museum::DrawFossil(int theFossil)
 			mBoard->mFossil->mGlow->Draw(x, y);
 		}
 		g->SetColorizeImages(false);
+	}
+}
+
+// 0x42c490
+void RexAttack::SaveState(BinFile* theFile)
+{
+	theFile->WriteInt(mDelay);
+	theFile->WriteInt(mStepTimer);
+	theFile->WriteInt(mSteps);
+	theFile->WriteFloat(mFrame);
+	theFile->WriteBool(mDone);
+}
+
+// 0x42c4e0
+void RexAttack::LoadState(BinFile* theFile)
+{
+	mDelay = theFile->ReadInt();
+	mStepTimer = theFile->ReadInt();
+	mSteps = theFile->ReadInt();
+	mFrame = theFile->ReadFloat();
+	mDone = theFile->ReadBool();
+}
+
+// 0x42c630
+void Museum::SaveState(BinFile* theFile)
+{
+	theFile->WriteInt(mScroll);
+	theFile->WriteBool(mRoundEnd);
+	theFile->WriteInt(mFragmentAlpha);
+	theFile->WriteInt(mGlowAlpha);
+	theFile->WriteInt(mWait);
+	theFile->WriteInt(mY);
+	theFile->WriteBool(mCloseButton->mDisabled);
+	theFile->WriteString(mCloseButton->mLabel.c_str());
+	if (mRex == NULL)
+	{
+		theFile->WriteBool(false);
+		mKeepMusic = true;
+		return;
+	}
+	theFile->WriteBool(true);
+	mRex->SaveState(theFile);
+	mKeepMusic = true;
+}
+
+// 0x42d2c0
+void Museum::LoadState(BinFile* theFile)
+{
+	char aLabel[0x3c];
+	mScroll = theFile->ReadInt();
+	mRoundEnd = theFile->ReadBool();
+	mFragmentAlpha = theFile->ReadInt();
+	mGlowAlpha = theFile->ReadInt();
+	mWait = theFile->ReadInt();
+	mY = theFile->ReadInt();
+	bool isDisabled = theFile->ReadBool();
+	theFile->ReadString(aLabel);
+	mCloseButton->SetDisabled(isDisabled);
+	mCloseButton->mLabel = aLabel;
+	if (theFile->ReadBool() == true)
+	{
+		if (mApp->mInTutorial == false)
+			mApp->mMusicInterface->FadeOut(4, true, 0.004);
+		mRex = new RexAttack(this);
+		mRex->LoadState(theFile);
 	}
 }

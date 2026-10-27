@@ -1,4 +1,5 @@
 #include "DynomiteFossil.h"
+#include "BinFile.h"
 #include "Effects.h"
 #include "Egg.h"
 #include "EggGrid.h"
@@ -1216,4 +1217,99 @@ void DynomiteFossil::DrawGameOver(Graphics* g)
 	g->SetColor(Color(0xff, 0xff, 0xff));
 	g->DrawString(mApp->GetString("FINAL_SCORE"), 0xe1, mField1c8 + 0x91);
 	g->DrawString(aScore, 0x1b5 - aScoreWidth, mField1c8 + 0x91);
+}
+
+// 0x408330: the ceiling's pushes and the rounds played are written twice, as the original does
+void DynomiteFossil::Save()
+{
+	Dynomite::Save();
+	mBinFile.WriteFloat(mKick);
+	mBinFile.WriteInt(mFirstLevel);
+	mBinFile.WriteInt(mLevel);
+	mBinFile.WriteInt(mRound);
+	mBinFile.WriteInt(mFossilsAssembled);
+	mBinFile.WriteInt(mShownFossil);
+	mBinFile.WriteInt(mShownChannels);
+	mKroney->SaveState(&mBinFile);
+	mBinFile.WriteInt(mField264);
+	mBinFile.WriteInt(mPushes);
+	mBinFile.WriteInt(mRoundCount);
+	mBinFile.WriteInt(mPushes);
+	mBinFile.WriteInt(mRoundCount);
+	mBinFile.WriteBool(mFossilFell);
+	mBinFile.WriteInt(mFallAlpha);
+	mBinFile.WriteInt(mFallTimer);
+	mBinFile.WriteBool(mResizing);
+	mBinFile.WriteInt(mWidth);
+	mBinFile.WriteInt(mMuseumScroll);
+	mBinFile.WriteBool(mPanicKind);
+	mBinFile.WriteFloat(mFallSpeed);
+	mBinFile.WriteFloat(mFallSpeedUp);
+	if (mMuseum == NULL)
+	{
+		mBinFile.WriteBool(false);
+		return;
+	}
+	mBinFile.WriteBool(true);
+	mMuseum->SaveState(&mBinFile);
+}
+
+// 0x40aae0: song 4 starts silent at the museum's part, as with the first shot (MouseDown); an open museum comes
+// back, and the fossils before this one are shown whole
+void DynomiteFossil::Load()
+{
+	Dynomite::Load();
+	mTextTimer = 500;
+	if (gBoardGlobal5304a0 == 1)
+	{
+		mApp->mMusicInterface->PlayMusic(4, 0x54, false);
+		mApp->mMusicInterface->SetSongVolume(4, 0.0);
+	}
+	mKick = mBinFile.ReadFloat();
+	mFirstLevel = mBinFile.ReadInt();
+	mLevel = mBinFile.ReadInt();
+	mRound = mBinFile.ReadInt();
+	mFossilsAssembled = mBinFile.ReadInt();
+	mShownFossil = mBinFile.ReadInt();
+	mShownChannels = mBinFile.ReadInt();
+	mKroney->LoadState(&mBinFile);
+	mField264 = mBinFile.ReadInt();
+	mPushes = mBinFile.ReadInt();
+	mRoundCount = mBinFile.ReadInt();
+	mPushes = mBinFile.ReadInt();
+	mRoundCount = mBinFile.ReadInt();
+	mFossilFell = mBinFile.ReadBool();
+	mFallAlpha = mBinFile.ReadInt();
+	mFallTimer = mBinFile.ReadInt();
+	mResizing = mBinFile.ReadBool();
+	mWidth = mBinFile.ReadInt();
+	SetFossil(mLevel, mRound);
+	mMuseumScroll = mBinFile.ReadInt();
+	mPanicKind = mBinFile.ReadBool();
+	mFallSpeed = mBinFile.ReadFloat();
+	mFallSpeedUp = mBinFile.ReadFloat();
+	if (mBinFile.ReadBool() == true)
+	{
+		mApp->mMusicInterface->StopAllMusic();
+		mApp->mMusicInterface->PlayMusic(4, 0x54, false);
+		mApp->mMusicInterface->SetSongVolume(4, 0.0);
+		mMuseum = new Museum(mApp, this);
+		mMuseum->LoadState(&mBinFile);
+		mApp->mMusicInterface->SetSongVolume(mSong, 0.0);
+	}
+	int aFossil = mFirstLevel;
+	if (aFossil < mLevel)
+	{
+		do
+		{
+			mApp->mFossils[aFossil - 1]->AlphaFromColour(7);
+			aFossil++;
+		} while (aFossil < mLevel);
+	}
+	int aChannels = 0;
+	if (mRound == 2)
+		aChannels = 1;
+	if (mRound == 3)
+		aChannels = mRound;
+	mApp->mFossils[mLevel - 1]->AlphaFromColour(aChannels);
 }

@@ -234,3 +234,4 @@
 0x4fd220    # Tutorial: step 0x6c's text id
 0x4fd1d0    # Tutorial: step 0x6d's text id
 0x4fd194    # Tutorial: step 0x6e's text id
+0x4fcb00    # SaveGameDialog: an empty slot's mode and name

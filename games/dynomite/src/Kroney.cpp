@@ -1,4 +1,5 @@
 #include "Kroney.h"
+#include "BinFile.h"
 #include "Dynomite.h"
 #include "FossilizedApp.h"
 #include "SoundInstance.h"
@@ -191,4 +192,36 @@ void Kroney::Draw()
 		aCell->Draw((aBoard->mField70 - (aCell->mWidth >> 1)) + 2 + aBoard->mField6c,
 			(int) ((double) mY + 12.0) - (aCell->mHeight >> 1));
 	}
+}
+
+// 0x42b630
+void Kroney::SaveState(BinFile* theFile)
+{
+	theFile->WriteFloat(mFrame);
+	theFile->WriteFloat(mY);
+	theFile->WriteFloat(mSandFraction);
+	theFile->WriteFloat(mTimeLeft);
+	theFile->WriteFloat(mCallTime);
+	theFile->WriteFloat(mPeriod);
+	theFile->WriteInt(mState);
+	theFile->WriteBool(mTalking);
+	theFile->WriteBool(mFirstFlip);
+	theFile->WriteBool(mCallAlt);
+	theFile->WriteBool(mHurry);
+}
+
+// 0x42b6c0
+void Kroney::LoadState(BinFile* theFile)
+{
+	mFrame = theFile->ReadFloat();
+	mY = theFile->ReadFloat();
+	mSandFraction = theFile->ReadFloat();
+	mTimeLeft = theFile->ReadFloat();
+	mCallTime = theFile->ReadFloat();
+	mPeriod = theFile->ReadFloat();
+	mState = theFile->ReadInt();
+	mTalking = theFile->ReadBool();
+	mFirstFlip = theFile->ReadBool();
+	mCallAlt = theFile->ReadBool();
+	mHurry = theFile->ReadBool();
 }

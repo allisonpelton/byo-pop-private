@@ -2,12 +2,13 @@
 #define __EFFECTS_H__
 
 // The board's effects (its lists at +0xd0 and +0xe8): the base (vtable 0x4f73e4, 0x10 bytes; 0x4034b0) and the
-// kinds an egg's breaking makes (EggGrid::Break, 0x415a20), and the power-ups (the board's list at +0x10c). Work in
-// progress: the kinds are added as they are translated, and their Save/Load slots (3, 4) come with the saved games.
+// kinds an egg's breaking makes (EggGrid::Break, 0x415a20), and the power-ups (the board's list at +0x10c). A saved
+// game keeps each effect's kind (mType), then what its Save writes (slot 3; Load, slot 4, reads it back).
 
 namespace Sexy
 {
 
+class BinFile;
 class Dynomite;
 class FossilizedApp;
 class Pic;
@@ -23,6 +24,8 @@ public:
 	virtual ~Effect();						// 0x4034c0
 	virtual void		Draw();				// 0x4b1930 (empty)
 	virtual bool		Update();			// 0x4034d0: false when it is done
+	virtual void		Save(BinFile* theFile);	// 0x4034e0 (slot 3): mX and mY
+	virtual void		Load(BinFile* theFile);	// 0x403500 (slot 4)
 };
 
 // vtable 0x4fa3a0, 0x24 bytes: an egg that lost its hold, falling off the screen (colours from 50 up are the
@@ -40,6 +43,8 @@ public:
 	virtual ~FallingEggEffect();			// 0x4147e0
 	virtual void		Draw() override;	// 0x414930
 	virtual bool		Update() override;	// 0x414840
+	virtual void		Save(BinFile* theFile) override;	// 0x414890
+	virtual void		Load(BinFile* theFile) override;	// 0x4148d0
 
 	void				Init(FossilizedApp* theApp, int x, int y, int theColor, int theKind);	// 0x4147f0
 };
@@ -58,6 +63,8 @@ public:
 	virtual ~BabyEffect();					// 0x403560
 	virtual void		Draw() override;	// 0x403700
 	virtual bool		Update() override;	// 0x403620
+	virtual void		Save(BinFile* theFile) override;	// 0x403660
+	virtual void		Load(BinFile* theFile) override;	// 0x4036a0
 
 	void				Init(int x, int y, int theBaby, FossilizedApp* theApp);	// 0x4035d0
 };
@@ -75,6 +82,8 @@ public:
 	virtual ~ConfettiEffect();				// 0x415380
 	virtual void		Draw() override;	// 0x415510
 	virtual bool		Update() override;	// 0x415450
+	virtual void		Save(BinFile* theFile) override;	// 0x415490
+	virtual void		Load(BinFile* theFile) override;	// 0x4154c0
 
 	void				Init(int x, int y, FossilizedApp* theApp);	// 0x415390
 };
@@ -91,6 +100,8 @@ public:
 	virtual ~EggWhiteEffect();				// 0x442340
 	virtual void		Draw() override;	// 0x442460
 	virtual bool		Update() override;	// 0x4423c0
+	virtual void		Save(BinFile* theFile) override;	// 0x442400
+	virtual void		Load(BinFile* theFile) override;	// 0x442420
 
 	void				Init(int x, int y, int theAngle, FossilizedApp* theApp);	// 0x442350
 };
@@ -109,6 +120,8 @@ public:
 	virtual ~YolkEffect();					// 0x4424d0
 	virtual void		Draw() override;	// 0x442610
 	virtual bool		Update() override;	// 0x442530
+	virtual void		Save(BinFile* theFile) override;	// 0x442560
+	virtual void		Load(BinFile* theFile) override;	// 0x4425b0
 
 	void				Init(int x, int y, bool isYolk, int theWhich, FossilizedApp* theApp);	// 0x4424e0
 };
@@ -128,6 +141,8 @@ public:
 	virtual ~ShellEffect();					// 0x434bb0
 	virtual void		Draw() override;	// 0x434d60
 	virtual bool		Update() override;	// 0x434bc0
+	virtual void		Save(BinFile* theFile) override;	// 0x434c10
+	virtual void		Load(BinFile* theFile) override;	// 0x434c60
 
 	void				Init(int x, int y, int theAngle, int theColor, int theQuarter, FossilizedApp* theApp);	// 0x434cc0
 };
@@ -145,6 +160,8 @@ public:
 	virtual ~BoomEffect();					// 0x403e40
 	virtual void		Draw() override;	// 0x403f60
 	virtual bool		Update() override;	// 0x403e90
+	virtual void		Save(BinFile* theFile) override;	// 0x403ec0
+	virtual void		Load(BinFile* theFile) override;	// 0x403f00
 
 	void				Init(int x, int y, FossilizedApp* theApp, float theSpeed);	// 0x403e50
 };
@@ -166,6 +183,8 @@ public:
 	virtual ~BonusItemEffect();				// 0x403c50
 	virtual void		Draw() override;	// 0x403dc0
 	virtual bool		Update() override;	// 0x403cc0
+	virtual void		Save(BinFile* theFile) override;	// 0x403d00
+	virtual void		Load(BinFile* theFile) override;	// 0x403d50
 
 	void				Init(int x, int y, int theKind, int theTargetX, int theTargetY, Dynomite* theBoard);	// 0x403c60
 };
@@ -186,6 +205,8 @@ public:
 	virtual ~ScorePopup();					// 0x4346d0
 	virtual void		Draw() override;	// 0x434900
 	virtual bool		Update() override;	// 0x4347d0
+	virtual void		Save(BinFile* theFile) override;	// 0x434820
+	virtual void		Load(BinFile* theFile) override;	// 0x434880
 
 	void				Init(int x, int y, const char* theText, FossilizedApp* theApp);	// 0x434700
 };
@@ -211,6 +232,8 @@ public:
 
 	bool				Update();								// 0x4038d0: false when it is done
 	void				Draw(int theSpin);						// 0x403ba0
+	void				SaveState(BinFile* theFile);			// 0x403a90
+	void				LoadState(BinFile* theFile);			// 0x403b10
 };
 
 }

@@ -9,6 +9,7 @@
 namespace Sexy
 {
 
+class BinFile;
 class DynomitePanic;
 class FossilizedApp;
 
@@ -34,7 +35,8 @@ public:
 	void				ResetSpeed();		// 0x435dc0
 	void				LevelUp();			// 0x435e70: a whirley was hit
 	void				Reset();			// 0x435eb0: a whirley got away
-	// TODO: the save and load (0x435dd0, 0x435e20) come with the saved games
+	void				SaveState(BinFile* theFile);	// 0x435dd0
+	void				LoadState(BinFile* theFile);	// 0x435e20
 };
 
 // vtable 0x4ff740, 0x50 bytes; 0x441c90-0x442320: a whirley rises from below the board with an egg, slows, then
@@ -63,7 +65,8 @@ public:
 
 	bool				Update();			// 0x441e00: false when it has left the board
 	void				Draw();				// 0x4421e0
-	// TODO: the save and load (0x4420e0, 0x442150) come with the saved games
+	void				SaveState(BinFile* theFile);	// 0x4420e0
+	void				LoadState(BinFile* theFile);	// 0x442150
 };
 
 }

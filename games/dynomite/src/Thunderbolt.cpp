@@ -1,4 +1,5 @@
 #include "Thunderbolt.h"
+#include "BinFile.h"
 #include "Dynomite.h"
 #include "Egg.h"
 #include "FossilizedApp.h"
@@ -55,4 +56,22 @@ void Thunderbolt::Draw()
 		Pic* aPic = mApp->mPicBolt;
 		aPic->Draw(0xff - (aPic->mWidth >> 1), 0x15e - (aPic->mHeight >> 1));
 	}
+}
+
+// 0x407ed0
+void Thunderbolt::SaveState(BinFile* theFile)
+{
+	theFile->WriteInt(mTime);
+	theFile->WriteBool(mBomb);
+	theFile->WriteInt(mFlip);
+	theFile->WriteInt(mColor);
+}
+
+// 0x407f10
+void Thunderbolt::LoadState(BinFile* theFile)
+{
+	mTime = theFile->ReadInt();
+	mBomb = theFile->ReadBool();
+	mFlip = theFile->ReadInt();
+	mColor = theFile->ReadInt();
 }

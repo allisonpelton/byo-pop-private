@@ -78,6 +78,7 @@ Dynomite::Dynomite()
 	// port: the fields the original constructor leaves to Init (slot 46)
 	mLauncher = NULL;
 	mFirePrompt = NULL;
+	mField64 = 0;
 	mSteggy = NULL;
 	mTank = NULL;
 	mGrid = NULL;
@@ -825,6 +826,347 @@ void Dynomite::DrawPiece(int theColor, int x, int y)
 // 0x4050d0
 void Dynomite::PieceFell(int theColor)
 {
+}
+
+// 0x4050e0
+void Dynomite::CreateSaveFile(const char* theName)
+{
+	mBinFile.Create(theName);
+}
+
+// 0x4050f0
+void Dynomite::WriteSaveHeader()
+{
+	mBinFile.Write(mApp->mSaveMode, 0x14);
+	mBinFile.Write(mApp->mSaveName, 0x14);
+	mBinFile.Write(mApp->mSavePic->GetBits(), 0x3840);
+}
+
+// 0x405140. Where the original writes two neighbouring fields as one block of 8 bytes, the port writes them one at
+// a time (the same bytes), and a float the original writes through WriteInt goes through WriteFloat.
+void Dynomite::Save()
+{
+	mBinFile.WriteInt((int) GetTickCount());
+	mBinFile.WriteBool(gBoardGlobal5304a0 != 0);
+	mBinFile.WriteInt((int) mStartTicks);
+	mBinFile.WriteInt(mApp->mSideBar->mScore);
+	mBinFile.WriteInt(mDifficulty);
+	mBinFile.WriteInt(mGameType);
+	mBinFile.WriteInt(mField64);
+	mBinFile.WriteInt(mField68);
+	mBinFile.WriteInt(mField6c);
+	mBinFile.WriteInt(mField70);
+	mBinFile.WriteInt(mField74);
+	mBinFile.WriteBool(mFieldB0);
+	mBinFile.WriteBool(mInitialized);
+	mBinFile.WriteInt(mField104);
+	mBinFile.WriteInt(mField108);
+	mBinFile.WriteInt(mPowerUpAngle);
+	mBinFile.WriteInt(mField128);
+	mBinFile.WriteInt(mBonusBits);
+	mBinFile.WriteBool(mField130);
+	mBinFile.WriteBool(mField131);
+	mBinFile.WriteBool(mField132);
+	mBinFile.WriteInt(mField134);
+	mBinFile.WriteInt(mField138);
+	mBinFile.WriteInt(mField13c);
+	mBinFile.WriteInt(mField140);
+	mBinFile.WriteInt(mChain);
+	mBinFile.WriteInt(mField158);
+	mBinFile.WriteInt(mField15c);
+	mBinFile.WriteInt(mField160);
+	mBinFile.WriteInt(mField1c8);
+	mBinFile.WriteInt(mField1cc);
+	mBinFile.WriteInt(mLongestChain);
+	mBinFile.WriteInt(mBabies);
+	mBinFile.WriteString(mHighScoreTitle);
+	mBinFile.WriteBool(mField16c);
+	mBinFile.WriteBool(mField100);
+	mBinFile.WriteInt(mRank);
+	mBinFile.WriteBool(mRankChanged);
+	mBinFile.WriteBool(mField80);
+	mGrid->SaveState(&mBinFile);
+	mLauncher->SaveState(&mBinFile);
+	mSteggy->SaveState(&mBinFile);
+	mFirePrompt->SaveState(&mBinFile);
+	if (mThunderbolt == NULL)
+		mBinFile.WriteBool(false);
+	else
+	{
+		mBinFile.WriteBool(true);
+		mThunderbolt->SaveState(&mBinFile);
+	}
+	mFlyingEggs.ResetIter();
+	FlyingEgg* anEgg = mFlyingEggs.Next();
+	while (anEgg != NULL)
+	{
+		mBinFile.WriteBool(true);
+		mBinFile.WriteInt(anEgg->mColor);
+		mBinFile.WriteInt(anEgg->mKind);
+		mBinFile.WriteFloat(anEgg->mSparkle);
+		mBinFile.WriteFloat(anEgg->mX);
+		mBinFile.WriteFloat(anEgg->mY);
+		mBinFile.WriteFloat(anEgg->mVX);
+		mBinFile.WriteFloat(anEgg->mVY);
+		mBinFile.WriteInt(anEgg->mCol);
+		mBinFile.WriteInt(anEgg->mRow);
+		mBinFile.WriteBool(anEgg->mField20);
+		mBinFile.WriteBool(anEgg->mGhost);
+		anEgg = mFlyingEggs.Next();
+	}
+	mBinFile.WriteBool(false);
+	mPowerUps.ResetIter();
+	PowerUp* aPowerUp = mPowerUps.Next();
+	while (aPowerUp != NULL)
+	{
+		mBinFile.WriteBool(true);
+		aPowerUp->SaveState(&mBinFile);
+		aPowerUp = mPowerUps.Next();
+	}
+	mBinFile.WriteBool(false);
+	mEffects.ResetIter();
+	Effect* anEffect = mEffects.Next();
+	while (anEffect != NULL)
+	{
+		mBinFile.WriteBool(true);
+		mBinFile.WriteInt(anEffect->mType);
+		anEffect->Save(&mBinFile);
+		anEffect = mEffects.Next();
+	}
+	mBinFile.WriteBool(false);
+	mPopups.ResetIter();
+	anEffect = mPopups.Next();
+	while (anEffect != NULL)
+	{
+		mBinFile.WriteBool(true);
+		mBinFile.WriteInt(anEffect->mType);
+		anEffect->Save(&mBinFile);
+		anEffect = mPopups.Next();
+	}
+	mBinFile.WriteBool(false);
+}
+
+// 0x405540
+void Dynomite::OpenSaveFile(const char* theName)
+{
+	mBinFile.Open(theName, true);
+}
+
+// 0x405560
+void Dynomite::SkipSaveHeader()
+{
+	mBinFile.Skip(0x3868);
+}
+
+// 0x405580
+void Dynomite::CloseSaveFile()
+{
+	mBinFile.Close();
+}
+
+// Load's effect of a saved kind, made as the original does before its Load reads the rest. Port: the original has
+// this switch twice, for the effects and the popups; a kind above 9 makes nothing and gives the last one again.
+static Effect* NewSavedEffect(int theType, FossilizedApp* theApp, Dynomite* theBoard, Effect* theLast)
+{
+	switch (theType)
+	{
+	case 0:
+		return new Effect();
+	case 1:
+	{
+		FallingEggEffect* anEffect = new FallingEggEffect();
+		anEffect->Init(theApp, 0, 0, 1, 0);
+		return anEffect;
+	}
+	case 2:
+	{
+		YolkEffect* anEffect = new YolkEffect();
+		anEffect->Init(0, 0, true, 0, theApp);
+		return anEffect;
+	}
+	case 3:
+	{
+		EggWhiteEffect* anEffect = new EggWhiteEffect();
+		anEffect->Init(0, 0, 0, theApp);
+		return anEffect;
+	}
+	case 4:
+	{
+		BoomEffect* anEffect = new BoomEffect();
+		anEffect->Init(0, 0, theApp, 1.0f);
+		return anEffect;
+	}
+	case 5:
+	{
+		ShellEffect* anEffect = new ShellEffect();
+		anEffect->Init(0, 0, 0, 1, 0, theApp);
+		return anEffect;
+	}
+	case 6:
+	{
+		ScorePopup* anEffect = new ScorePopup();
+		anEffect->Init(0, 0, "No", theApp);
+		return anEffect;
+	}
+	case 7:
+	{
+		BabyEffect* anEffect = new BabyEffect();
+		anEffect->Init(0, 0, 0, theApp);
+		return anEffect;
+	}
+	case 8:
+	{
+		BonusItemEffect* anEffect = new BonusItemEffect();
+		anEffect->Init(0, 0, 1, 5, 5, theBoard);
+		return anEffect;
+	}
+	case 9:
+	{
+		ConfettiEffect* anEffect = new ConfettiEffect();
+		anEffect->Init(5, 5, theApp);
+		return anEffect;
+	}
+	}
+	return theLast;
+}
+
+// 0x405590: the picker is seeded with the tick count saved, and the music comes back if it was on
+void Dynomite::Load()
+{
+	mApp->mPicker.Seed((unsigned int) mBinFile.ReadInt());
+	bool wasPlaying = mBinFile.ReadBool();
+	gBoardGlobal5304a0 = wasPlaying;
+	if (wasPlaying == true)
+		mApp->mMusicInterface->FadeIn(mSong, mField23c, 0.002, false);
+	mStartTicks = (unsigned int) mBinFile.ReadInt();
+	mApp->mSideBar->mScore = mBinFile.ReadInt();
+	mDifficulty = mBinFile.ReadInt();
+	mGameType = mBinFile.ReadInt();
+	mField64 = mBinFile.ReadInt();
+	mField68 = mBinFile.ReadInt();
+	mField6c = mBinFile.ReadInt();
+	mField70 = mBinFile.ReadInt();
+	mField74 = mBinFile.ReadInt();
+	mFieldB0 = mBinFile.ReadBool();
+	mInitialized = mBinFile.ReadBool();
+	mField104 = mBinFile.ReadInt();
+	mField108 = mBinFile.ReadInt();
+	mPowerUpAngle = mBinFile.ReadInt();
+	mField128 = mBinFile.ReadInt();
+	mBonusBits = mBinFile.ReadInt();
+	mField130 = mBinFile.ReadBool();
+	mField131 = mBinFile.ReadBool();
+	mField132 = mBinFile.ReadBool();
+	mField134 = mBinFile.ReadInt();
+	mField138 = mBinFile.ReadInt();
+	mField13c = mBinFile.ReadInt();
+	mField140 = mBinFile.ReadInt();
+	mChain = mBinFile.ReadInt();
+	mField158 = mBinFile.ReadInt();
+	mField15c = mBinFile.ReadInt();
+	mField160 = mBinFile.ReadInt();
+	mField1c8 = mBinFile.ReadInt();
+	mField1cc = mBinFile.ReadInt();
+	mLongestChain = mBinFile.ReadInt();
+	mBabies = mBinFile.ReadInt();
+	mBinFile.ReadString(mHighScoreTitle);
+	mField16c = mBinFile.ReadBool();
+	mField100 = mBinFile.ReadBool();
+	mRank = mBinFile.ReadInt();
+	mRankChanged = mBinFile.ReadBool();
+	mField80 = mBinFile.ReadBool();
+	mGrid->LoadState(&mBinFile);
+	mLauncher->LoadState(&mBinFile);
+	mSteggy->LoadState(&mBinFile);
+	mFirePrompt->LoadState(&mBinFile);
+	if (mThunderbolt != NULL)
+	{
+		delete mThunderbolt;
+		mThunderbolt = NULL;
+	}
+	if (mBinFile.ReadBool() == true)
+	{
+		mThunderbolt = new Thunderbolt(mApp, this);
+		mThunderbolt->LoadState(&mBinFile);
+	}
+
+	mFlyingEggs.ResetIter();
+	FlyingEgg* anEgg = mFlyingEggs.Next();
+	while (anEgg != NULL)
+	{
+		delete anEgg;
+		anEgg = mFlyingEggs.Next();
+	}
+	mFlyingEggs.Clear();
+	while (mBinFile.ReadBool())
+	{
+		anEgg = new FlyingEgg();
+		anEgg->mBoard = this;
+		anEgg->mApp = mApp;
+		anEgg->mColor = mBinFile.ReadInt();
+		anEgg->mKind = mBinFile.ReadInt();
+		anEgg->mSparkle = mBinFile.ReadFloat();
+		anEgg->mX = mBinFile.ReadFloat();
+		anEgg->mY = mBinFile.ReadFloat();
+		anEgg->mVX = mBinFile.ReadFloat();
+		anEgg->mVY = mBinFile.ReadFloat();
+		anEgg->mCol = mBinFile.ReadInt();
+		anEgg->mRow = mBinFile.ReadInt();
+		anEgg->mField20 = mBinFile.ReadBool();
+		anEgg->mGhost = mBinFile.ReadBool();
+		mFlyingEggs.Add(anEgg);
+	}
+
+	mPowerUps.ResetIter();
+	PowerUp* aPowerUp = mPowerUps.Next();
+	while (aPowerUp != NULL)
+	{
+		delete aPowerUp;
+		aPowerUp = mPowerUps.Next();
+	}
+	mPowerUps.Clear();
+	while (mBinFile.ReadBool())
+	{
+		aPowerUp = new PowerUp(this, 4, 0);
+		aPowerUp->LoadState(&mBinFile);
+		mPowerUps.Add(aPowerUp);
+	}
+
+	mEffects.ResetIter();
+	Effect* anEffect = mEffects.Next();
+	while (anEffect != NULL)
+	{
+		delete anEffect;
+		anEffect = mEffects.Next();
+	}
+	mEffects.Clear();
+	anEffect = NULL;
+	while (mBinFile.ReadBool())
+	{
+		anEffect = NewSavedEffect(mBinFile.ReadInt(), mApp, this, anEffect);
+		if (anEffect == NULL)	// port: a kind above 9 first (the original loads into what it made last)
+			return;
+		anEffect->Load(&mBinFile);
+		mEffects.Add(anEffect);
+	}
+
+	mPopups.ResetIter();
+	anEffect = mPopups.Next();
+	while (anEffect != NULL)
+	{
+		delete anEffect;
+		anEffect = mPopups.Next();
+	}
+	mPopups.Clear();
+	anEffect = NULL;
+	while (mBinFile.ReadBool())
+	{
+		anEffect = NewSavedEffect(mBinFile.ReadInt(), mApp, this, anEffect);
+		if (anEffect == NULL)	// port: as above
+			return;
+		anEffect->Load(&mBinFile);
+		mPopups.Add(anEffect);
+	}
 }
 
 // 0x4b1930

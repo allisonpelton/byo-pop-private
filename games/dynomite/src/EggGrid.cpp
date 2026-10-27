@@ -1393,3 +1393,130 @@ int EggGrid::PickColor()
 		aColor = mApp->mRand.NextNoAssert() % (unsigned int) mMaxColor + 1;
 	return aColor;
 }
+
+// 0x415f70
+void EggGrid::SaveState(BinFile* theFile)
+{
+	theFile->WriteFloat(mCeiling);
+	theFile->Write(mCells, 0x1770);
+	theFile->WriteFloat(mRows);
+	theFile->WriteInt(mBottom);
+	theFile->WriteInt(mEggCount);
+	theFile->WriteInt(mMaxColor);
+	theFile->WriteInt(mPastLineFrames);
+	theFile->WriteBool(mWarning);
+	theFile->WriteInt(mWarningBlink);
+	theFile->WriteBool(mField4690);
+	theFile->WriteBool(mField4691);
+	theFile->WriteBool(mBabyEggsOn);
+	theFile->WriteInt(mBabyEggChance);
+	theFile->WriteBool(mField46d0);
+	theFile->WriteBool(mBreakPastLine);
+	theFile->WriteInt(mBlastX);
+	theFile->WriteInt(mBlastY);
+	theFile->WriteInt(mBlastCount);
+	theFile->WriteBool(mLoneEgg);
+	int aCol = 0;
+	do
+	{
+		int aRow = 0;
+		do
+		{
+			if (mDynamite[aCol][aRow] != NULL)
+			{
+				GridPoint aCell;
+				aCell.mX = aCol;
+				aCell.mY = aRow;
+				theFile->Write(&aCell, 8);
+			}
+			aRow++;
+		} while (aRow < 100);
+		aCol++;
+	} while (aCol < 0xf);
+	GridPoint anEnd;
+	anEnd.mX = -1;
+	anEnd.mY = -1;
+	theFile->Write(&anEnd, 8);
+	mBabyEggs.ResetIter();
+	BabyEgg* aBaby = mBabyEggs.Next();
+	while (aBaby != NULL)
+	{
+		theFile->WriteBool(true);
+		theFile->WriteInt(aBaby->mCol);
+		theFile->WriteInt(aBaby->mRow);
+		theFile->WriteInt(aBaby->mTime);
+		aBaby = mBabyEggs.Next();
+	}
+	theFile->WriteBool(false);
+}
+
+// 0x416150: each baby in an egg is made as a random one (as the original does) and then given its place and time
+void EggGrid::LoadState(BinFile* theFile)
+{
+	mCeiling = theFile->ReadFloat();
+	theFile->Read(mCells, 0x1770);
+	mRows = theFile->ReadFloat();
+	mBottom = theFile->ReadInt();
+	mEggCount = theFile->ReadInt();
+	mMaxColor = theFile->ReadInt();
+	mPastLineFrames = theFile->ReadInt();
+	mWarning = theFile->ReadBool();
+	mWarningBlink = theFile->ReadInt();
+	mField4690 = theFile->ReadBool();
+	mField4691 = theFile->ReadBool();
+	mBabyEggsOn = theFile->ReadBool();
+	mBabyEggChance = theFile->ReadInt();
+	mField46d0 = theFile->ReadBool();
+	mBreakPastLine = theFile->ReadBool();
+	mBlastX = theFile->ReadInt();
+	mBlastY = theFile->ReadInt();
+	mBlastCount = theFile->ReadInt();
+	mLoneEgg = theFile->ReadBool();
+	GridDynamite** aStick = &mDynamite[0][0];
+	int aCols = 0xf;
+	do
+	{
+		int aRows = 100;
+		do
+		{
+			if (*aStick != NULL)
+			{
+				mDynamites.Remove(*aStick);
+				if (*aStick != NULL)
+					delete *aStick;
+				*aStick = NULL;
+			}
+			aStick++;
+			aRows--;
+		} while (aRows != 0);
+		aCols--;
+	} while (aCols != 0);
+	for (;;)
+	{
+		GridPoint aCell;
+		theFile->Read(&aCell, 8);
+		if ((aCell.mX == -1) && (aCell.mY == -1))
+			break;
+		GridPoint aPixel;
+		CellToPixel(aCell.mX, aCell.mY, &aPixel);
+		GridDynamite* aNewStick = new GridDynamite(this, aPixel.mX + 0x10, aPixel.mY);
+		mDynamites.Add(aNewStick);
+		mDynamite[aCell.mX][aCell.mY] = aNewStick;
+	}
+	mBabyEggs.ResetIter();
+	BabyEgg* aBaby = mBabyEggs.Next();
+	while (aBaby != NULL)
+	{
+		delete aBaby;
+		aBaby = mBabyEggs.Next();
+	}
+	mBabyEggs.Clear();
+	while (theFile->ReadBool())
+	{
+		aBaby = new BabyEgg(this);
+		aBaby->mCol = theFile->ReadInt();
+		aBaby->mRow = theFile->ReadInt();
+		aBaby->mTime = theFile->ReadInt();
+		mBabyEggs.Add(aBaby);
+	}
+}

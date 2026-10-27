@@ -82,7 +82,8 @@ public:
 	virtual void		DrawGameOver(Graphics* g) override;
 	virtual void		DrawPiece(int theColor, int x, int y) override;	// 0x407fb0: where the fragment's cell is
 	virtual void		PieceFell(int theColor) override;	// 0x407fd0: the fragment off the bottom ends the round
-	// TODO: the save and load (slots 59 and 60, 0x408330 and 0x40aae0) come with the saved games
+	virtual void		Save() override;				// 0x408330 (slot 59): the board's, then the mode's
+	virtual void		Load() override;				// 0x40aae0 (slot 60)
 
 	void				SetupRound(int theLevel, int theRound);		// 0x4091f0: the width, the names
 	void				SetFossil(int theLevel, int theRound);		// 0x4094b0: the fragment, where it is, its glow

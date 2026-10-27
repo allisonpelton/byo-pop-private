@@ -1,4 +1,5 @@
 #include "FirePrompt.h"
+#include "BinFile.h"
 #include "Dynomite.h"
 #include "FossilizedApp.h"
 #include "Graphics.h"
@@ -91,4 +92,24 @@ void FirePrompt::Draw()
 		g->DrawString(aLine1, mBoard->mField70 - aHalf1, 0x154);
 		g->DrawString(aLine2, mBoard->mField70 - aHalf2, 0x168);
 	}
+}
+
+// 0x431ef0
+void FirePrompt::SaveState(BinFile* theFile)
+{
+	theFile->WriteInt(mField0c);
+	theFile->WriteFloat(mPulses);
+	theFile->WriteBool(mField1c);
+	theFile->WriteInt(mAlpha);
+	theFile->WriteInt(mFade);
+}
+
+// 0x431f40
+void FirePrompt::LoadState(BinFile* theFile)
+{
+	mField0c = theFile->ReadInt();
+	mPulses = theFile->ReadFloat();
+	mField1c = theFile->ReadBool();
+	mAlpha = theFile->ReadInt();
+	mFade = theFile->ReadInt();
 }

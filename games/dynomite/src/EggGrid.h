@@ -145,6 +145,9 @@ public:
 	void				CountRows();										// 0x415980
 	void				ResetCeiling();										// 0x4159f0
 	bool				HasColor(int theColor);								// 0x415f00
+	// 0x415f70: a saved game's grid: the cells, the sticks of dynamite (to -1, -1) and the babies in eggs
+	void				SaveState(BinFile* theFile);
+	void				LoadState(BinFile* theFile);						// 0x416150
 	int					PickColor();										// 0x4163e0
 	void				ClearDynamite();									// 0x416500
 	void				AddRow(int theRow);									// 0x416b00: random eggs across a row

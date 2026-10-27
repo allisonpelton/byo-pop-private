@@ -9,6 +9,7 @@
 namespace Sexy
 {
 
+class BinFile;
 class Dynomite;
 class FossilizedApp;
 
@@ -35,7 +36,8 @@ public:
 	void				Start(float thePeriod);	// 0x42b3e0: a flip first, then thePeriod seconds
 	bool				Update();				// 0x42b420: true when a flip has ended and the whirleys come
 	void				Draw();					// 0x42b7c0
-	// TODO: the save and load (0x42b630, 0x42b6c0) come with the saved games
+	void				SaveState(BinFile* theFile);	// 0x42b630
+	void				LoadState(BinFile* theFile);	// 0x42b6c0
 };
 
 }

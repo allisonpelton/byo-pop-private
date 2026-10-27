@@ -8,6 +8,7 @@
 namespace Sexy
 {
 
+class BinFile;
 class Dynomite;
 class Egg;
 class FossilizedApp;
@@ -38,7 +39,8 @@ public:
 	void				Toss();								// 0x437b20
 	void				Draw();								// 0x437ea0
 	void				Update();							// 0x438010
-	// TODO: the save and load (0x437b50, 0x437c90) come with the saved games
+	void				SaveState(BinFile* theFile);		// 0x437b50
+	void				LoadState(BinFile* theFile);		// 0x437c90
 };
 
 }

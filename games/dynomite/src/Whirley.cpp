@@ -1,4 +1,5 @@
 #include "Whirley.h"
+#include "BinFile.h"
 #include "DynomitePanic.h"
 #include "Egg.h"
 #include "FossilizedApp.h"
@@ -289,4 +290,58 @@ void Whirley::Draw()
 		else
 			DrawCellAt(mApp->mWhirleyCells[(int) mFrame + 12], mX, mY);
 	}
+}
+
+// 0x435dd0
+void CeilingSpeed::SaveState(BinFile* theFile)
+{
+	theFile->WriteInt(mHigh);
+	theFile->WriteInt(mLow);
+	theFile->WriteInt(mWait);
+	theFile->WriteInt(mWaitReset);
+	theFile->WriteFloat(mSpeed);
+	theFile->WriteFloat(mMinSpeed);
+}
+
+// 0x435e20
+void CeilingSpeed::LoadState(BinFile* theFile)
+{
+	mHigh = theFile->ReadInt();
+	mLow = theFile->ReadInt();
+	mWait = theFile->ReadInt();
+	mWaitReset = theFile->ReadInt();
+	mSpeed = theFile->ReadFloat();
+	mMinSpeed = theFile->ReadFloat();
+}
+
+// 0x4420e0: its grid target as the 0x18 bytes it is
+void Whirley::SaveState(BinFile* theFile)
+{
+	theFile->WriteFloat(mX);
+	theFile->WriteFloat(mY);
+	theFile->WriteFloat(mVX);
+	theFile->WriteFloat(mVY);
+	theFile->WriteFloat(mSpeed);
+	theFile->WriteFloat(mClimb);
+	theFile->WriteInt(mLevel);
+	theFile->WriteInt(mColor);
+	theFile->WriteInt(mState);
+	theFile->WriteFloat(mFrame);
+	theFile->Write(&mTarget, 0x18);
+}
+
+// 0x442150
+void Whirley::LoadState(BinFile* theFile)
+{
+	mX = theFile->ReadFloat();
+	mY = theFile->ReadFloat();
+	mVX = theFile->ReadFloat();
+	mVY = theFile->ReadFloat();
+	mSpeed = theFile->ReadFloat();
+	mClimb = theFile->ReadFloat();
+	mLevel = theFile->ReadInt();
+	mColor = theFile->ReadInt();
+	mState = theFile->ReadInt();
+	mFrame = theFile->ReadFloat();
+	theFile->Read(&mTarget, 0x18);
 }

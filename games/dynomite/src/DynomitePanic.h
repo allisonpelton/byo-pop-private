@@ -42,7 +42,8 @@ public:
 	virtual void		Blasted() override;			// 0x40d080: the kick
 	// 0x40dd50: the board's, with the best combo, the babies hatched, the whirleys whacked and the final score
 	virtual void		DrawGameOver(Graphics* g) override;
-	// TODO: the save and load (slots 59 and 60, 0x40d0c0 and 0x40d160) come with the saved games
+	virtual void		Save() override;				// 0x40d0c0 (slot 59): the board's, then the mode's
+	virtual void		Load() override;				// 0x40d160 (slot 60)
 };
 
 }

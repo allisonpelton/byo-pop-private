@@ -1,6 +1,7 @@
 #include "Sprite.h"
 #include "FossilizedApp.h"
 #include "DDImage.h"
+#include "Graphics.h"
 #include "SexyAppBase.h"
 #include "SoundManager.h"
 #include <cstring>
@@ -79,6 +80,30 @@ Pic::Pic(SexyAppBase* theApp, const unsigned int* theBits, int theWidth, int the
 	mImage->BitsChanged();
 	mWidth = theWidth;
 	mHeight = theHeight;
+	mShared = false;
+}
+
+// 0x4368d0
+Pic::Pic(SexyAppBase* theApp, Image* theImage, const Rect& theSrcRect, const Rect& theDestRect, bool)
+{
+	mApp = theApp;
+	mImage = new DDImage(theApp->mDDInterface);
+	mImage->Create(theDestRect.mWidth, theDestRect.mHeight);
+	mImage->SetImageMode(false, true);
+	unsigned long* aBits = mImage->GetBits();
+	int aCount = theDestRect.mWidth * theDestRect.mHeight;
+	while (aCount > 0)
+	{
+		*aBits++ = 0x1000000;
+		aCount--;
+	}
+	// port: the original stretches through its image's graphics (0x463860) and the image's slot 9, with the source
+	// rectangle in doubles; its values are whole numbers, so a Graphics on the image draws the same
+	Graphics aGraphics(mImage);
+	aGraphics.DrawImage(theImage, Rect(1, 1, theDestRect.mWidth - 2, theDestRect.mHeight - 2),
+		Rect(theSrcRect.mX + 1, theSrcRect.mY + 1, theSrcRect.mWidth - 2, theSrcRect.mHeight - 2));
+	mWidth = theDestRect.mWidth;
+	mHeight = theDestRect.mHeight;
 	mShared = false;
 }
 

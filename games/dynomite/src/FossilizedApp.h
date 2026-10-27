@@ -244,6 +244,9 @@ public:
 	bool         mLockCursor;                             // +0x1095 registry LockCursor: the board keeps the cursor in a window
 	std::string  mLastScoreName;                          // +0x1098 registry LastScoreName: the name last given a high score
 	Tutorial*    mTutor;                                  // +0x10bc the tutorial (StartTutorial), taken down by the main menu
+	Pic*         mSavePic;                                // +0x10ec SaveGame's picture of the board, 60 x 60
+	char         mSaveMode[0x14];                         // +0x10f0 the saved game's mode (GetSaveNameDialog)
+	char         mSaveName[0x14];                         // +0x1104 and its name (SAVED_GAME, or the slot's)
 	char         mPackFile[0x100];                        // +0x1118 the Stomped Puzzle pack (DEFAULT.EGG, STOMPED\...)
 	unsigned int mPuzzleSkills;                           // +0x1218 the skills the pack has (bits 1, 2, 4), -1 all
 	SideBar*     mSideBar;                                // +0x19e4
@@ -274,6 +277,9 @@ public:
 	// 0x4201b0 (slot 2): the app's own buttons (5 plays again, 100 and 101 the high-score name's OK and Cancel, 500-701
 	// the save dialog's) and the dialogs' yes (2000 + id) and no (3000 + id)
 	virtual void	ButtonDepress(int theId) override;
+	// 0x418e90 (slot 1): a save slot (600-699) is chosen, a saved game's slot on the main menu (900-999) too and a second
+	// press on it is OK; any other press clicks
+	virtual void	ButtonPress(int theId) override;
 
 	DDImage*		GetGameImage(const std::string& thePath);	// 0x419ad0
 	void			LoadGame();									// 0x419c30 (InitHook, slot 15)
@@ -292,11 +298,14 @@ public:
 	void			ShowNoWindowed();							// 0x41e940: dialog 3, NO_WINDOWED
 	void			ConfirmExit();								// 0x41e590
 	void			SaveGame();									// 0x419130
+	void			ShowSaveNameDialog();						// 0x418f40: dialog 8, the saved game's name
 	void			StartTutorial();							// 0x419040
 	void			LoadSavedGame(const char* theFile);			// 0x418fd0
 	void			TitleScreenDone();							// 0x419250: the play link
 	void			PumpLoading();								// port: the loading runs in the main thread
 	virtual bool	HandleScriptCommand(const ScriptCommand& theCommand) override;	// port: TestHooks.cpp
+
+	using SexyAppBase::ButtonPress;
 };
 
 }

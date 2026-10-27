@@ -1,4 +1,5 @@
 #include "Steggy.h"
+#include "BinFile.h"
 #include "AngleTable.h"
 #include "Dynomite.h"
 #include "Egg.h"
@@ -164,5 +165,91 @@ void Steggy::Update()
 			mBlink = mBlink != true;
 			mBlinkCount = 5;
 		}
+	}
+}
+
+// 0x437b50: the egg he holds and the one he tossed each after a flag
+void Steggy::SaveState(BinFile* theFile)
+{
+	theFile->WriteFloat(mBob);
+	theFile->WriteFloat(mDrop);
+	theFile->WriteInt(mBobAngle);
+	theFile->WriteFloat(mTossVX);
+	theFile->WriteFloat(mTossVY);
+	theFile->WriteBool(mField28);
+	theFile->WriteInt(mField2c);
+	theFile->WriteBool(mAlerting);
+	theFile->WriteInt(mBlinkCount);
+	theFile->WriteBool(mBlink);
+	theFile->WriteBool(mWantEgg);
+	theFile->WriteBool(mDropEgg);
+	if (mNext == NULL)
+		theFile->WriteBool(false);
+	else
+	{
+		theFile->WriteBool(true);
+		theFile->WriteInt(mNext->mColor);
+		theFile->WriteInt(mNext->mKind);
+		theFile->WriteFloat(mNext->mSparkle);
+		theFile->WriteFloat(mNext->mX);
+		theFile->WriteFloat(mNext->mY);
+	}
+	if (mToss == NULL)
+	{
+		theFile->WriteBool(false);
+		return;
+	}
+	theFile->WriteBool(true);
+	theFile->WriteInt(mToss->mColor);
+	theFile->WriteInt(mToss->mKind);
+	theFile->WriteFloat(mToss->mSparkle);
+	theFile->WriteFloat(mToss->mX);
+	theFile->WriteFloat(mToss->mY);
+}
+
+// 0x437c90
+void Steggy::LoadState(BinFile* theFile)
+{
+	mBob = theFile->ReadFloat();
+	mDrop = theFile->ReadFloat();
+	mBobAngle = theFile->ReadInt();
+	mTossVX = theFile->ReadFloat();
+	mTossVY = theFile->ReadFloat();
+	mField28 = theFile->ReadBool();
+	mField2c = theFile->ReadInt();
+	mAlerting = theFile->ReadBool();
+	mBlinkCount = theFile->ReadInt();
+	mBlink = theFile->ReadBool();
+	mWantEgg = theFile->ReadBool();
+	mDropEgg = theFile->ReadBool();
+	if (mNext != NULL)
+	{
+		delete mNext;
+		mNext = NULL;
+	}
+	if (mToss != NULL)
+	{
+		delete mToss;
+		mToss = NULL;
+	}
+	if (theFile->ReadBool() == true)
+	{
+		mNext = new LoadedEgg();
+		mNext->Init(mApp, mBoard, 0);
+		mNext->mColor = theFile->ReadInt();
+		mNext->mKind = theFile->ReadInt();
+		mNext->mSparkle = theFile->ReadFloat();
+		mNext->mX = theFile->ReadFloat();
+		mNext->mY = theFile->ReadFloat();
+	}
+	if (theFile->ReadBool() == true)
+	{
+		mToss = new LoadedEgg();
+		mToss->Init(mApp, mBoard, 0);
+		mToss->mColor = theFile->ReadInt();
+		mToss->mKind = theFile->ReadInt();
+		mToss->mSparkle = theFile->ReadFloat();
+		mToss->mX = theFile->ReadFloat();
+		mToss->mY = theFile->ReadFloat();
 	}
 }

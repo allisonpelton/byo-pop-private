@@ -35,7 +35,8 @@ public:
 	virtual void		DrawScenery() override;		// 0x412ad0: and the rows to go
 	// 0x412cb0: the board's, with the rows cleared, the eggs broken and dropped and the time
 	virtual void		DrawGameOver(Graphics* g) override;
-	// TODO: the save and load (slots 59 and 60, 0x4126b0 and 0x4126f0) come with the saved games
+	virtual void		Save() override;				// 0x4126b0 (slot 59): the board's, then the mode's
+	virtual void		Load() override;				// 0x4126f0 (slot 60)
 };
 
 }

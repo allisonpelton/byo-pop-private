@@ -35,6 +35,7 @@ public:
 	FossilizedApp*		mApp;				// +0x58
 	Launcher*			mLauncher;			// +0x5c (0x401050)
 	FirePrompt*			mFirePrompt;		// +0x60 (0x431fc0)
+	int					mField64;			// +0x64 only saved and loaded (port: 0, where the original leaves it unset)
 	int					mField68;			// +0x68 306
 	int					mField6c;			// +0x6c 153
 	int					mField70;			// +0x70 250, the launcher's middle
@@ -109,6 +110,12 @@ public:
 	virtual void		MouseDown(int x, int y, int theClickCount) override;
 
 	void				SetPaused(bool isPaused);		// 0x404fb0
+	void				CreateSaveFile(const char* theName);	// 0x4050e0
+	// 0x4050f0: the saved game's header: the mode's name, the game's, and the app's picture of the board
+	void				WriteSaveHeader();
+	void				OpenSaveFile(const char* theName);		// 0x405540
+	void				SkipSaveHeader();						// 0x405560
+	void				CloseSaveFile();						// 0x405580
 	void				SetActive(bool isActive);		// 0x4047e0
 	void				AddPowerUp(int theKind);		// 0x4060c0
 	virtual void		GetPowerUpCenter(int* x, int* y);	// 0x404f30 (slot 43; empty)
@@ -138,6 +145,9 @@ public:
 	virtual void		EggAlone(int theColor);			// 0x4050d0 (slot 56; empty): a landed egg touches none of its colour
 	virtual void		DrawPiece(int theColor, int x, int y);	// 0x406040 (slot 57; empty): a falling colour from 50 up
 	virtual void		PieceFell(int theColor);		// 0x4050d0 (slot 58; empty): one off the bottom
+	// 0x405140 (slot 59): the board into mBinFile, after the saved game's header (a mode's adds its own after)
+	virtual void		Save();
+	virtual void		Load();							// 0x405590 (slot 60): and back
 	virtual void		EggLanded();					// 0x4b1930 (slot 61; empty)
 };
 

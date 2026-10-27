@@ -11,6 +11,7 @@
 namespace Sexy
 {
 
+class BinFile;
 class Dynomite;
 class Egg;
 class FlyingEgg;
@@ -64,6 +65,8 @@ public:
 	void				SetLoaded(Egg* theEgg);				// 0x4011f0: unless one is loaded
 	void				Load(int theColor);					// 0x401210: unless one is loaded
 	void				Fire();								// 0x4012a0
+	void				SaveState(BinFile* theFile);		// 0x401510
+	void				LoadState(BinFile* theFile);		// 0x4016c0
 	void				Update();							// 0x402c10
 	void				Extend(PathLine* theLine, float theDist);	// 0x4013f0: moves its end on
 	void				Retract(PathLine* theLine, float theDist);	// 0x401470: moves its start back

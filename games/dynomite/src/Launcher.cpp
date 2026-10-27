@@ -1,4 +1,5 @@
 #include "Launcher.h"
+#include "BinFile.h"
 #include "AngleTable.h"
 #include "Dynomite.h"
 #include "Egg.h"
@@ -734,5 +735,107 @@ void Launcher::Draw(Graphics* g)
 			return;
 		}
 		DrawArrow(g);
+	}
+}
+
+// 0x401510: the loaded egg and the held one each after a flag
+void Launcher::SaveState(BinFile* theFile)
+{
+	theFile->WriteInt(mAngle);
+	theFile->WriteInt(mField18);
+	theFile->WriteInt(mField1c);
+	theFile->Write(mField20, 8);
+	theFile->WriteFloat(mRecoilX);
+	theFile->WriteFloat(mRecoilY);
+	theFile->Write(mField30, 8);
+	theFile->Write(mField38, 0x50);
+	theFile->WriteInt(mAimX);
+	theFile->WriteInt(mAimY);
+	theFile->WriteInt(mSlingX);
+	theFile->WriteInt(mSlingY);
+	theFile->WriteInt(mFieldA5c);
+	theFile->WriteInt(mFieldA60);
+	theFile->WriteInt(mFieldA64);
+	theFile->WriteInt(mFieldA68);
+	theFile->WriteInt(mFieldA6c);
+	theFile->WriteInt(mFieldA70);
+	theFile->WriteBool(mFrozen);
+	theFile->WriteInt(mFieldAac);
+	if (mLoaded == NULL)
+		theFile->WriteBool(false);
+	else
+	{
+		theFile->WriteBool(true);
+		theFile->WriteInt(mLoaded->mColor);
+		theFile->WriteInt(mLoaded->mKind);
+		theFile->WriteFloat(mLoaded->mSparkle);
+		theFile->WriteFloat(mLoaded->mX);
+		theFile->WriteFloat(mLoaded->mY);
+	}
+	if (mHeld == NULL)
+	{
+		theFile->WriteBool(false);
+		return;
+	}
+	theFile->WriteBool(true);
+	theFile->WriteInt(mHeld->mColor);
+	theFile->WriteInt(mHeld->mKind);
+	theFile->WriteFloat(mHeld->mSparkle);
+	theFile->WriteFloat(mHeld->mX);
+	theFile->WriteFloat(mHeld->mY);
+}
+
+// 0x4016c0
+void Launcher::LoadState(BinFile* theFile)
+{
+	mAngle = theFile->ReadInt();
+	mField18 = theFile->ReadInt();
+	mField1c = theFile->ReadInt();
+	theFile->Read(mField20, 8);
+	mRecoilX = theFile->ReadFloat();
+	mRecoilY = theFile->ReadFloat();
+	theFile->Read(mField30, 8);
+	theFile->Read(mField38, 0x50);
+	mAimX = theFile->ReadInt();
+	mAimY = theFile->ReadInt();
+	mSlingX = theFile->ReadInt();
+	mSlingY = theFile->ReadInt();
+	mFieldA5c = theFile->ReadInt();
+	mFieldA60 = theFile->ReadInt();
+	mFieldA64 = theFile->ReadInt();
+	mFieldA68 = theFile->ReadInt();
+	mFieldA6c = theFile->ReadInt();
+	mFieldA70 = theFile->ReadInt();
+	mFrozen = theFile->ReadBool();
+	mFieldAac = theFile->ReadInt();
+	if (mLoaded != NULL)
+	{
+		delete mLoaded;
+		mLoaded = NULL;
+	}
+	if (mHeld != NULL)
+	{
+		delete mHeld;
+		mHeld = NULL;
+	}
+	if (theFile->ReadBool() == true)
+	{
+		mLoaded = new LoadedEgg();
+		mLoaded->Init(mApp, mBoard, 0);
+		mLoaded->mColor = theFile->ReadInt();
+		mLoaded->mKind = theFile->ReadInt();
+		mLoaded->mSparkle = theFile->ReadFloat();
+		mLoaded->mX = theFile->ReadFloat();
+		mLoaded->mY = theFile->ReadFloat();
+	}
+	if (theFile->ReadBool() == true)
+	{
+		mHeld = new LoadedEgg();
+		mHeld->Init(mApp, mBoard, 0);
+		mHeld->mColor = theFile->ReadInt();
+		mHeld->mKind = theFile->ReadInt();
+		mHeld->mSparkle = theFile->ReadFloat();
+		mHeld->mX = theFile->ReadFloat();
+		mHeld->mY = theFile->ReadFloat();
 	}
 }

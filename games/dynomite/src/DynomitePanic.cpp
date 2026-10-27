@@ -1,4 +1,5 @@
 #include "DynomitePanic.h"
+#include "BinFile.h"
 #include "Egg.h"
 #include "ImageFont.h"
 #include "EggGrid.h"
@@ -476,5 +477,50 @@ void DynomitePanic::Update()
 		mField140 = mField140 + 2;
 		if (mField140 > 0xff)
 			mField140 = 0xff;
+	}
+}
+
+// 0x40d0c0
+void DynomitePanic::Save()
+{
+	Dynomite::Save();
+	mBinFile.WriteFloat(mKick);
+	mBinFile.WriteInt(mWhirleysHit);
+	mBinFile.WriteInt(mWhirleyLevel);
+	mKroney->SaveState(&mBinFile);
+	mCeilingSpeed->SaveState(&mBinFile);
+	mWhirleys.ResetIter();
+	Whirley* aWhirley = mWhirleys.Next();
+	while (aWhirley != NULL)
+	{
+		mBinFile.WriteBool(true);
+		aWhirley->SaveState(&mBinFile);
+		aWhirley = mWhirleys.Next();
+	}
+	mBinFile.WriteBool(false);
+}
+
+// 0x40d160
+void DynomitePanic::Load()
+{
+	Dynomite::Load();
+	mKick = mBinFile.ReadFloat();
+	mWhirleysHit = mBinFile.ReadInt();
+	mWhirleyLevel = mBinFile.ReadInt();
+	mKroney->LoadState(&mBinFile);
+	mCeilingSpeed->LoadState(&mBinFile);
+	mWhirleys.ResetIter();
+	Whirley* aWhirley = mWhirleys.Next();
+	while (aWhirley != NULL)
+	{
+		delete aWhirley;
+		aWhirley = mWhirleys.Next();
+	}
+	mWhirleys.Clear();
+	while (mBinFile.ReadBool())
+	{
+		aWhirley = new Whirley(mApp, this, mGrid, mWhirleyLevel, mGrid->mMaxColor + 1);
+		aWhirley->LoadState(&mBinFile);
+		mWhirleys.Add(aWhirley);
 	}
 }
