@@ -460,9 +460,6 @@ void GameApp::ButtonDepress(int theId)
 				mCutScene->Skip();
 			KillDialog(DIALOG_SKIP_MOVIE);
 			break;
-		case DIALOG_ARENA_WIN:  // its Continue (the original has no case of its own, but kills the dialog)
-			KillDialog(DIALOG_ARENA_WIN);
-			break;
 		case DIALOG_CONTINUE_ADVENTURE:  // the replay in progress goes on, or a new one begins (case 0x7ea in 0x43f840)
 			KillDialog(DIALOG_CONTINUE_ADVENTURE);
 			if (mProfile->GetBool("ReplayInGame"))
