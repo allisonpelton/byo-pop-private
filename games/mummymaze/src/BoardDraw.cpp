@@ -104,7 +104,10 @@ void Board::DrawSolving(int x, int y, int w, int h, Graphics* g)
 	g->Translate(-x, -y);
 }
 
-// 0x408e50: the tutorial's box under the maze: the part's title and the text of the step
+// 0x408e50: the tutorial's box under the maze: the text of the step. The original builds the part's title ("TUTORIAL
+// Part 1: The Basics", chosen by the game mode: 0x491e28, 0x491e44, 0x491e60) into a local string and never draws it
+// (the function has one text write, in font 1, and does not touch the header font): the box has no title. Both width
+// tests (under 0x35c, under 200) measure the step's text.
 void Board::DrawTutorialText(int x, int y, int w, int h, Graphics* g)
 {
 	if (mState != STATE_READY)
@@ -115,31 +118,13 @@ void Board::DrawTutorialText(int x, int y, int w, int h, Graphics* g)
 	DrawNinePatch(g, IMG(IMAGE_DIALOG), w, h);
 	Insets aInsets(0x1a, 0x18, 0x18, 0x18);
 	int aTop = aInsets.mTop;
-	SexyString aHeader;
-	int aMode = mApp->mGameMode;
-	if (aMode == 4)
-		aHeader = GT(0x00491e28);
-	else if (aMode == 5)
-		aHeader = GT(0x00491e44);
-	else if (aMode == 6)
-		aHeader = GT(0x00491e60);
 	const SexyString& aText = GT(kTutorialText[mTutorialStep]);
 	g->SetFont(mApp->mFont1);
 	g->SetColor(Color(0x2e, 0x14, 0));
 	int aMove = kTutorialMove[mTutorialStep];
-	if (!aHeader.empty())
-	{
-		g->SetFont(mApp->mHeaderFont);
-		g->SetColor(Color(0x66, 0x5c, 0x38));
-		Rect aRect(aInsets.mLeft + 2, aTop, w - aInsets.mRight - aInsets.mLeft - 4, 0);
-		WriteWordWrapped(g, aRect, aHeader, -1, 0);
-		aTop = aTop + 10 + mApp->mHeaderFont->GetHeight();
-		g->SetFont(mApp->mFont1);
-		g->SetColor(Color(0x2e, 0x14, 0));
-	}
 	if (mApp->mFont1->StringWidth(aText) < 0x35c && aMove != 5 && aMove != 6)
 		aTop += 10;
-	if (mApp->mFont1->StringWidth(aHeader) < 200)
+	if (mApp->mFont1->StringWidth(aText) < 200)
 		aTop += 10;
 	Rect aRect(aInsets.mLeft + 2, aTop, w - aInsets.mRight - aInsets.mLeft - 4, 0);
 	WriteWordWrapped(g, aRect, aText, -1, (aMove == 5 || aMove == 6) ? -1 : 0);
