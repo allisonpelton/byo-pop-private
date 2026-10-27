@@ -10,8 +10,9 @@
 //       in-memory file system and becomes its working directory, a switch naming an absolute host path (the game
 //       files) gets a read-only copy, and when the game quits every file it wrote or deleted in the working
 //       directory is written or deleted on the host (so a -script run's screenshots appear there; give -userdir
-//       a path inside it to get the profile back too). Its stdout and stderr are the game's (SDL_Log lines on
-//       stderr as natively). The page is replaced by stubs: no canvas is drawn (SDL falls back to its software
+//       a path inside it to get the profile back too: a relative one is made absolute in the game's file system,
+//       which is the only kind the game reads a profile from). Its stdout and stderr are the game's (SDL_Log
+//       lines on stderr as natively). The page is replaced by stubs: no canvas is drawn (SDL falls back to its software
 //       renderer), no audio device (the game plays silently), no URL is opened, the browser's frames come back
 //       to back (-fast then runs as fast as natively). Exit status: the game's 0, 3 when it crashed, 4 when it did
 //       not quit within --timeout seconds (default 600).
@@ -184,6 +185,10 @@ function gameCommand(theArgs) {
 		let aHostCopies = 0;
 		const aCallArgs = aGameArgs.map((theArg) => {
 			const m = /^(-[A-Za-z]+=)(.+)$/.exec(theArg);
+			// The game reads a profile only from an absolute path (the page's is /bwa2persist/userdata): a relative
+			// -userdir names the folder in the working directory, where its files come back when the game quits
+			if (m && m[1] === "-userdir=" && !isHostAbsolute(m[2]))
+				return m[1] + WORK + "/" + m[2];
 			if (!m || !isHostAbsolute(m[2]) || !fs.existsSync(m[2]))
 				return theArg;
 			const aMem = "/host/" + (aHostCopies++);
