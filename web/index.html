@@ -46,20 +46,64 @@ h1 { margin: 0; font-size: 20px; font-weight: 600; }
   list-style: none; margin: 0; padding: 0;
   display: grid; grid-template-columns: repeat(auto-fill, minmax(128px, 1fr)); gap: 16px;
 }
-.games li { display: flex; }
+/* A game's card (the li): the link with the badge and the name, and under it the row with the label for the files */
+.games > li {
+  position: relative; display: flex; flex-direction: column;
+  background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
+}
+.games > li:hover, .games > li:focus-within { border-color: var(--accent); }
 .tile {
   flex: 1; box-sizing: border-box; display: flex; flex-direction: column; align-items: center; gap: 10px;
-  padding: 16px 8px 12px; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
-  color: inherit; text-decoration: none; text-align: center;
+  padding: 16px 8px 6px; color: inherit; text-decoration: none; text-align: center; border-radius: var(--radius) var(--radius) 0 0;
 }
-.tile:hover { border-color: var(--accent); }
-.tile:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.tile:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
 .badge {
   display: flex; align-items: center; justify-content: center; flex: none; width: 72px; height: 72px;
   border-radius: 16px; background: var(--tile); box-shadow: inset 0 -4px 0 rgba(0, 0, 0, 0.18);
   color: #ffffff; font-size: 26px; font-weight: 700; letter-spacing: 0.02em;
 }
 .name { font-weight: 600; overflow-wrap: anywhere; }
+/* A game whose files are loaded shows its own icon in place of the initials: the badge's size, with crisp pixels
+   when it is enlarged (icons are kept at 64 px or less) */
+.badge.has-icon { background: none; box-shadow: none; }
+.badge img { display: block; width: 72px; height: 72px; object-fit: contain; image-rendering: crisp-edges; image-rendering: pixelated; }
+/* Under the name, in words: whether the game's files are loaded in this browser ("Your copy") or not ("Needs your files"),
+   and for a game played here before, a "?" that explains why they are not (docs/WEB_PLAYER.md, "The listing page") */
+.ownrow { display: flex; align-items: center; justify-content: center; gap: 6px; padding: 0 8px 12px; min-height: 20px; }
+.own { font-size: 12px; color: var(--muted); }
+.own:empty { display: none; }
+.own-yes { color: var(--accent); font-weight: 600; }
+.why {
+  flex: none; width: 20px; height: 20px; padding: 0; border-radius: 50%; border: 1px solid var(--line);
+  background: var(--bg); color: var(--fg); font: inherit; font-size: 12px; font-weight: 700; line-height: 1; cursor: pointer;
+}
+.why:hover { border-color: var(--accent); }
+.why:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.why[aria-expanded="true"] { background: var(--accent); border-color: var(--accent); color: var(--panel); }
+.why-pop {
+  position: absolute; top: calc(100% + 6px); left: 0; z-index: 5; box-sizing: border-box; width: min(340px, calc(100vw - 32px));
+  padding: 14px 16px; background: var(--panel); color: var(--fg); border: 1px solid var(--accent); border-radius: var(--radius);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25); text-align: left; font-size: 13px;
+}
+.why-pop h3 { margin: 0 0 8px; font-size: 14px; }
+.why-pop p, .why-pop ul { margin: 0 0 8px; }
+.why-pop :last-child { margin-bottom: 0; }
+.why-pop ul { padding-left: 18px; }
+.why-pop a { color: var(--accent); font-weight: 600; }
+/* The site's settings (docs/WEB_PLAYER.md, "Site settings"): web/settings.js draws the controls and brings their style */
+#settings { margin-top: 40px; scroll-margin-top: 16px; }
+#settings h2 { margin: 0 0 8px; font-size: 18px; font-weight: 600; }
+/* The foot of the page: the disclaimer and the credit, at the page's width, in the muted colour of both themes */
+/* Where a game can still be bought: a link for each store, beside the game's own link in the card (cmake/ByopopStores.cmake) */
+.buyrow { display: flex; flex-wrap: wrap; justify-content: center; gap: 2px 10px; padding: 0 8px 12px; font-size: 12px; }
+.buyrow a { color: var(--accent); }
+.buyrow a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 2px; }
+footer {
+  max-width: 960px; margin: 0 auto; padding-block: 0 32px; box-sizing: border-box; color: var(--muted); font-size: 12.5px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+footer p { margin: 0 0 8px; }
+footer a { color: var(--accent); }
 </style>
 </head>
 <body>
@@ -72,7 +116,230 @@ h1 { margin: 0; font-size: 20px; font-weight: 600; }
   <ul class="games">
 <!-- byopop:games -->
   </ul>
+  <section id="settings" aria-labelledby="settings-title">
+    <h2 id="settings-title">Settings</h2>
+    <div id="settings-controls"></div>
+  </section>
 </main>
+<footer>
+  <p>byo-pop is an unofficial, non-commercial project, not affiliated with, endorsed or sponsored by Electronic Arts or PopCap Games. It serves none of the games' files: you load them from your own copy, and they stay in your browser. We don't condone piracy; please play only copies you own. This website does not accept donations. If you have the money, buy some games!</p>
+  <p>PopCap and the games' names are trademarks of Electronic Arts Inc. or of their other owners, and appear here only to say which game each page plays.</p>
+  <p>Project by <a href="https://technocra.cy/">technocra.cy</a></p>
+</footer>
+<script src="settings.js"></script>
+<script>
+// The settings section: the controls are web/settings.js's, the same as in a game's Settings panel
+try { ByopopSettings.render(document.getElementById("settings-controls")); } catch (e) {}
+</script>
+<script>
+// Which games have their files loaded, as a sign that the player owns them (docs/WEB_PLAYER.md, "The listing page"). A
+// game page keeps a record in localStorage (web/settings.js, ByopopGameFiles): when it last found the game's files, and
+// when the player forgot them or the page found them gone. For a game without a record, because its files were imported
+// before the pages kept one, this looks in the game's IDBFS database (the card's data-persist, which is the game's persist
+// folder from its page.js, put in at build time): first indexedDB.databases(), so that opening a name never creates an
+// empty database, and then the keys only, never the files' contents. Without databases() such a game is shown as unknown,
+// not guessed. A game that was played here before but has no files now gets a "?" that explains why. All of it runs again
+// when the page comes back into view, as the files may have been loaded or forgotten in another tab or page.
+(function () {
+  var tiles = Array.prototype.slice.call(document.querySelectorAll("a.tile[data-game]"));
+  var WORDS = { yes: "Your copy", no: "Needs your files", unknown: "Files unknown" };
+  var WHY = "Why aren\u2019t my files here?";
+  var generation = 0;
+  var open = null;  // the "?" whose explanation is showing: {button, pop}
+
+  function make(tag, text) {
+    var e = document.createElement(tag);
+    if (text) e.textContent = text;
+    return e;
+  }
+  function close(focusButton) {
+    if (!open) return;
+    var o = open;
+    open = null;
+    o.pop.hidden = true;
+    o.button.setAttribute("aria-expanded", "false");
+    if (focusButton) o.button.focus();
+  }
+  // The explanation, in the card's popover. info: what is known about the game's files (see check)
+  function fill(pop, tile, info) {
+    pop.textContent = "";
+    var title = make("h3", WHY);
+    title.id = pop.id + "-title";
+    pop.setAttribute("aria-labelledby", title.id);
+    pop.appendChild(title);
+    pop.appendChild(make("p", "Your game files were loaded in this browser before" + (info.loaded ? " (last on " + info.loaded + ")" : "") +
+      ", but they are not here now."));
+    pop.appendChild(make("p", "The likely causes:"));
+    var causes = make("ul");
+    causes.appendChild(make("li", info.forgotten
+      ? "You used \u201cForget game files\u201d on the game\u2019s page on " + info.forgotten + "."
+      : "\u201cForget game files\u201d was used on the game\u2019s page."));
+    causes.appendChild(make("li", "The browser\u2019s data for this site was cleared, or the browser freed up the storage."));
+    causes.appendChild(make("li", "This is a different browser, profile or device."));
+    pop.appendChild(causes);
+    pop.appendChild(make("p", "This site never uploads your game files, and no server keeps a copy. The games belong to their " +
+      "publishers, so your copy stays only in this browser. Each browser and device needs the files loaded from your own install."));
+    if (info.saves) pop.appendChild(make("p", "Your saves and settings for this game are still stored in this browser."));
+    var last = make("p", "To get them back, ");
+    var link = make("a", "open the game");
+    link.href = tile.href;
+    last.appendChild(link);
+    last.appendChild(document.createTextNode(" and load your files again."));
+    pop.appendChild(last);
+  }
+  function toggle(button, tile) {
+    if (open && open.button === button) { close(false); return; }
+    close(false);
+    var pop = button.parentNode.parentNode.querySelector(".why-pop");
+    fill(pop, tile, button.byopopInfo);
+    pop.hidden = false;
+    // beside the card's left edge, or its right edge when that would leave the window
+    pop.style.left = "0"; pop.style.right = "auto";
+    if (pop.getBoundingClientRect().right > document.documentElement.clientWidth - 8) { pop.style.left = "auto"; pop.style.right = "0"; }
+    button.setAttribute("aria-expanded", "true");
+    open = { button: button, pop: pop };
+  }
+  // The label under the game's name, the link's accessible name, and the "?" for a game played before
+  function show(tile, info, gen) {
+    if (gen !== generation) return;  // a newer check has started
+    var card = tile.parentNode, row = card.querySelector(".ownrow"), label = card.querySelector(".own");
+    // the game's own icon (read out of its exe by the game's page, kept in the record) in place of the initials
+    var badge = tile.querySelector(".badge");
+    if (badge.getAttribute("data-initials") === null) badge.setAttribute("data-initials", badge.textContent);
+    if (info.state === "yes" && info.icon) {
+      var shown = badge.querySelector("img");
+      if (!shown) {
+        badge.textContent = "";
+        shown = make("img");
+        shown.alt = "";  // the card has the game's name
+        badge.appendChild(shown);
+        badge.classList.add("has-icon");
+      }
+      if (shown.getAttribute("src") !== info.icon) shown.src = info.icon;
+    } else if (badge.classList.contains("has-icon")) {
+      badge.classList.remove("has-icon");
+      badge.textContent = badge.getAttribute("data-initials");
+    }
+    label.textContent = WORDS[info.state];
+    label.className = "own own-" + info.state;
+    // the link's accessible name: the game's name, then the same words ("Bejeweled Deluxe, your copy")
+    tile.setAttribute("aria-label", tile.querySelector(".name").textContent + ", " + WORDS[info.state].toLowerCase());
+    var button = row.querySelector(".why"), pop = card.querySelector(".why-pop");
+    if (info.state === "no" && info.played) {
+      if (!button) {
+        var id = "why-" + tile.getAttribute("data-game");
+        button = make("button", "?");
+        button.type = "button";
+        button.className = "why";
+        button.setAttribute("aria-label", WHY);
+        button.title = WHY;
+        button.setAttribute("aria-expanded", "false");
+        button.setAttribute("aria-controls", id);
+        button.addEventListener("click", function () { toggle(button, tile); });
+        row.appendChild(button);
+        pop = make("div");
+        pop.id = id;
+        pop.className = "why-pop";
+        pop.setAttribute("role", "region");
+        pop.hidden = true;
+        card.appendChild(pop);
+      }
+      button.byopopInfo = info;
+      if (open && open.button === button) fill(pop, tile, info);  // showing: the new facts
+    } else if (button) {
+      if (open && open.button === button) close(false);
+      button.remove();
+      pop.remove();
+    }
+  }
+
+  // What the IDBFS database called name holds, from its keys only: {game, saves, entries}. A key is a file's when it is in
+  // a folder of the database's folders (game, userdata, mods...) below the first level, or has an extension at that
+  // level (TipTop's files are at the top of game/); the others are folders. game: a file in game/, saves: one in
+  // userdata/, entries: any file.
+  function scan(name) {
+    var found = { game: false, saves: false, entries: false };
+    return new Promise(function (resolve) {
+      var done = false;
+      function end() { if (!done) { done = true; resolve(found); } }
+      try {
+        var request = indexedDB.open(name);
+        request.onerror = request.onblocked = end;
+        // (the database was just listed, so this does not run; if it was deleted since, nothing is created)
+        request.onupgradeneeded = function (ev) { try { ev.target.transaction.abort(); } catch (e) {} end(); };
+        request.onsuccess = function () {
+          var db = request.result;
+          function finish() { try { db.close(); } catch (e) {} end(); }
+          try {
+            if (!db.objectStoreNames.contains("FILE_DATA")) { finish(); return; }
+            var cursor = db.transaction("FILE_DATA", "readonly").objectStore("FILE_DATA").openKeyCursor();
+            cursor.onerror = finish;
+            cursor.onsuccess = function () {
+              var at = cursor.result;
+              if (!at) { finish(); return; }
+              var key = String(at.key);
+              if (key.indexOf(name + "/") === 0) {
+                var segs = key.substring(name.length + 1).split("/");
+                if ((segs.length >= 3) || ((segs.length === 2) && (segs[1].indexOf(".") >= 0))) {
+                  found.entries = true;
+                  if (segs[0] === "game") { found.game = true; finish(); return; }  // all that is needed
+                  if (segs[0] === "userdata") found.saves = true;
+                }
+              }
+              at.continue();
+            };
+          } catch (e) { finish(); }
+        };
+      } catch (e) { end(); }
+    });
+  }
+  // the save backup that the game pages keep in localStorage (platform/WebPersist.cpp): the game's user folder
+  function hasBackup(persist) {
+    try { return localStorage.getItem("sexy-userdata-backup:" + persist + "/userdata") !== null; } catch (e) { return false; }
+  }
+
+  function check() {
+    var gen = ++generation, record = {};
+    try { record = ByopopGameFiles.all(); } catch (e) {}
+    var haveNames = !!(window.indexedDB && typeof indexedDB.databases === "function");
+    (haveNames ? indexedDB.databases().then(function (list) { return list.map(function (d) { return d.name; }); }) : Promise.resolve(null))
+      .catch(function () { return null; })
+      .then(function (names) {  // null: the browser cannot list its databases
+        tiles.forEach(function (tile) {
+          var id = tile.getAttribute("data-game"), persist = tile.getAttribute("data-persist"), rec = record[id] || null;
+          var listed = names !== null && names.indexOf(persist) >= 0;
+          var info = { state: "unknown", played: false, loaded: rec && rec.loaded, forgotten: rec && rec.forgotten, saves: hasBackup(persist),
+            icon: (rec && ByopopGameFiles.present(rec) && rec.icon) || "" };
+          if (rec && ByopopGameFiles.present(rec) && (names === null || listed)) {
+            // the record says the files are there, and the database that holds them is
+            info.state = "yes";
+            show(tile, info, gen);
+            return;
+          }
+          if (names === null && !rec) { show(tile, info, gen); return; }  // not known, and not guessed
+          (listed ? scan(persist) : Promise.resolve({ game: false, saves: false, entries: false })).then(function (found) {
+            if (found.game) info.state = "yes";
+            else {
+              info.state = "no";
+              // played before: a record (kept when the files are forgotten), a save backup, or entries in the database
+              info.played = !!rec || info.saves || found.entries;
+              info.saves = info.saves || found.saves;
+            }
+            show(tile, info, gen);
+          });
+        });
+      });
+  }
+  document.addEventListener("keydown", function (ev) { if (open && ev.key === "Escape") { ev.preventDefault(); close(true); } });
+  document.addEventListener("click", function (ev) {
+    if (open && !open.button.parentNode.parentNode.contains(ev.target)) close(false);
+  });
+  check();
+  window.addEventListener("pageshow", check);
+  document.addEventListener("visibilitychange", function () { if (!document.hidden) check(); });
+  window.addEventListener("storage", function (ev) { if (ev.key === null || ev.key === ByopopGameFiles.KEY) check(); });
+})();
+</script>
 <script>
 // A page opened with ?silent=1 (automated tests in a browser pane, CLAUDE.md) opens its games silent too
 try {

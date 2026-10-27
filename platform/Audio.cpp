@@ -1010,6 +1010,10 @@ void Mixer::Callback(void* theUser, uint8_t* theStream, int theLen)
 	m->Mix((float*)theStream, theLen / (int)(sizeof(float) * 2));
 	if (m->mSilent)
 		memset(theStream, 0, theLen);
+#ifdef __EMSCRIPTEN__
+	if (m->mPageMuted)
+		memset(theStream, 0, theLen);
+#endif
 }
 
 void Mixer::Mix(float* theOut, int theFrames)

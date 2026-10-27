@@ -11,13 +11,14 @@
 # in BYOPOP_WEB_FINISHED, below.
 # EXPORTS adds a game's own functions to the exported list (Bejeweled: _fflush, for its Node test runner).
 # The page runs the game with callMain() (INVOKE_RUN=0) and calls the C functions of platform/WebApi.cpp,
-# framework/ModMenu.cpp and framework/WebCursor.cpp with ccall. Those live in the sexyframework static library, where EMSCRIPTEN_KEEPALIVE
-# alone would not link them: EXPORTED_FUNCTIONS names them, which pulls them in. That list replaces
-# Emscripten's default, so it names _main too.
+# framework/ModMenu.cpp, framework/WebCursor.cpp and framework/WebSettings.cpp with ccall. Those live in the
+# sexyframework static library, where EMSCRIPTEN_KEEPALIVE alone would not link them: EXPORTED_FUNCTIONS names them,
+# which pulls them in. That list replaces Emscripten's default, so it names _main too.
 # web/modpanel.js (the Mods panel, the rescue and restart bookkeeping, the page's file helpers: Module.byopop) is
 # appended to the game's JS with --post-js, so every game's page has the same one without a file of its own.
 set(BYOPOP_WEB_EXPORTED_FUNCTIONS _main _byopop_userdata_restore _byopop_mods_open _byopop_mods_state
-  _byopop_mods_edit _byopop_mods_rescan _byopop_menu _byopop_restart _byopop_cursor _byopop_cursor_copy)
+  _byopop_mods_edit _byopop_mods_rescan _byopop_menu _byopop_restart _byopop_cursor _byopop_cursor_copy
+  _byopop_audio_mute _byopop_audio_muted _byopop_site_apply)
 set(BYOPOP_WEB_RUNTIME_METHODS FS callMain ccall)
 get_filename_component(BYOPOP_WEB_SHELL "${CMAKE_CURRENT_LIST_DIR}/../web/shell.html" ABSOLUTE)
 get_filename_component(BYOPOP_WEB_POST_JS "${CMAKE_CURRENT_LIST_DIR}/../web/modpanel.js" ABSOLUTE)
@@ -27,6 +28,10 @@ get_filename_component(BYOPOP_WEB_FOOTER_CSS "${CMAKE_CURRENT_LIST_DIR}/../web/f
 include(${CMAKE_CURRENT_LIST_DIR}/ByopopStores.cmake)
 # the site's logo and icons (web/brand; docs/WEB_PLAYER.md), copied next to the pages, which link them
 set(BYOPOP_WEB_BRAND favicon.svg favicon.ico apple-touch-icon.png logo.svg logo-dark.svg)
+# web/settings.js, the site's settings and the record of which games have their files (docs/WEB_PLAYER.md, "Site
+# settings", "The listing page"): one file that the listing page and every game page load. web/exeicon.js reads a game's icon
+# out of its exe (the game pages load it). Both are copied next to the pages.
+set(BYOPOP_WEB_SHARED_JS settings.js exeicon.js)
 # The listing page, build/web/index.html (made from web/index.html by byopop_web_index() at the end of this file): one
 # tile for each game in BYOPOP_WEB_FINISHED, in this order, with the game's TITLE and a badge. The list is the
 # coordinator's: the coordinator adds a game's target at that game's final merge. A game with a web page that is not
@@ -187,6 +192,9 @@ function(byopop_web_shell var target pagedir)
   foreach(name ${BYOPOP_WEB_BRAND})
     configure_file(${web}/brand/${name} ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${name} COPYONLY)
   endforeach()
+  foreach(name ${BYOPOP_WEB_SHARED_JS})
+    configure_file(${web}/${name} ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${name} COPYONLY)
+  endforeach()
 
   set(copyright_page ${target}-copyright.html)
   file(READ ${web}/copyright.html text)
@@ -233,7 +241,17 @@ function(byopop_web_game target)
     set(arg_PAGE ${CMAKE_CURRENT_SOURCE_DIR}/web)
   endif()
   byopop_web_shell(page ${target} ${arg_PAGE} TITLE "${arg_TITLE}" COPYRIGHT "${arg_COPYRIGHT}" LICENSES ${arg_LICENSES})
-  # the listing page (byopop_web_index() below) reads the game's name from here
+  # the listing page (byopop_web_index() below) reads the game's name from here, and its id and persist folder from the
+  # page's settings (games/<game>/web/page.js, "id" and "persist"): the folder is the name of the game's browser
+  # database, where the listing page looks for game files that were imported before the page kept a record of them
+  file(READ ${arg_PAGE}/page.js page_js)
+  foreach(field id persist)
+    string(REGEX MATCH "\n[ \t]+${field}:[ \t]*\"([^\"]+)\"" ignored "${page_js}")
+    if(NOT CMAKE_MATCH_1)
+      message(FATAL_ERROR "byopop_web_game(${target}): ${arg_PAGE}/page.js has no ${field}: \"...\" in its PAGE")
+    endif()
+    set_property(GLOBAL PROPERTY BYOPOP_WEB_${field}_${target} "${CMAKE_MATCH_1}")
+  endforeach()
   set_property(GLOBAL PROPERTY BYOPOP_WEB_TITLE_${target} "${arg_TITLE}")
   set(export_list ${BYOPOP_WEB_EXPORTED_FUNCTIONS} ${arg_EXPORTS})
   list(REMOVE_DUPLICATES export_list)
@@ -303,8 +321,39 @@ function(byopop_web_index)
       string(REPLACE "<" "&lt;" ${field} "${${field}}")
       string(REPLACE ">" "&gt;" ${field} "${${field}}")
     endforeach()
-    string(CONCAT tile "    <li><a class=\"tile\" href=\"${target}.html\" style=\"--tile: ${colour}\">"
-      "<span class=\"badge\" aria-hidden=\"true\">${initials}</span><span class=\"name\">${title}</span></a></li>")
+    # data-game and data-persist: the page's id for the game (the record of its files in localStorage, web/settings.js) and
+    # its browser database (the persist folder), for the label under the name and its "?" (web/index.html)
+    get_property(game_id GLOBAL PROPERTY BYOPOP_WEB_id_${target})
+    get_property(game_persist GLOBAL PROPERTY BYOPOP_WEB_persist_${target})
+    # where the game can still be bought (cmake/ByopopStores.cmake, the data of the game pages' buy note): a link for each
+    # store, in the card but beside the game's own link, since a link cannot hold a link; none for a game with no store
+    set(buy_html "")
+    if(DEFINED BYOPOP_BUY_${target})
+      set(buy ${BYOPOP_BUY_${target}})
+      list(POP_FRONT buy checked)
+      while(buy)
+        list(POP_FRONT buy store url)
+        string(REPLACE "&" "&amp;" url "${url}")
+        string(REPLACE "\"" "&quot;" url "${url}")
+        foreach(field store)
+          string(REPLACE "&" "&amp;" ${field} "${${field}}")
+          string(REPLACE "<" "&lt;" ${field} "${${field}}")
+          string(REPLACE ">" "&gt;" ${field} "${${field}}")
+        endforeach()
+        # "Buy on Steam", "Buy on the EA app": a store named as an app takes "the"
+        set(on "${store}")
+        if(store MATCHES " app$")
+          set(on "the ${store}")
+        endif()
+        string(APPEND buy_html "<a href=\"${url}\" rel=\"noopener\" aria-label=\"Buy ${title} on ${on}\">Buy on ${on}</a>")
+      endwhile()
+      if(NOT buy_html STREQUAL "")
+        set(buy_html "<div class=\"buyrow\">${buy_html}</div>")
+      endif()
+    endif()
+    string(CONCAT tile "    <li class=\"game\" style=\"--tile: ${colour}\"><a class=\"tile\" href=\"${target}.html\" "
+      "data-game=\"${game_id}\" data-persist=\"${game_persist}\"><span class=\"badge\" aria-hidden=\"true\">${initials}</span>"
+      "<span class=\"name\">${title}</span></a><div class=\"ownrow\"><span class=\"own\"></span></div>${buy_html}</li>")
     list(APPEND tiles "${tile}")
     math(EXPR count "${count} + 1")
   endforeach()
@@ -314,6 +363,9 @@ function(byopop_web_index)
   # (the logo and icons are copied by byopop_web_shell(); this keeps the page whole if no game is listed)
   foreach(name ${BYOPOP_WEB_BRAND})
     configure_file(${BYOPOP_WEB_BRAND_DIR}/${name} ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${name} COPYONLY)
+  endforeach()
+  foreach(name ${BYOPOP_WEB_SHARED_JS})
+    configure_file(${BYOPOP_WEB_BRAND_DIR}/../${name} ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${name} COPYONLY)
   endforeach()
   byopop_write_if_changed(${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/index.html "${page}")
   message(STATUS "byo-pop: the listing page shows ${count} games")

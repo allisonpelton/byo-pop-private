@@ -9,6 +9,7 @@
 // rendered by libxmp-lite at the device rate inside the audio callback. Other module formats (MO3 via
 // libopenmpt, platform/openmpt/) are rendered by a ModulePlayer a game registers.
 
+#include <atomic>
 #include <cstdint>
 #include <memory>
 #include <string>
@@ -104,6 +105,15 @@ public:
 	void SetMusicMasterGain(float theGain) { mMusicMaster = theGain; }
 	void SetSfxMasterGain(float theGain) { mSfxMaster = theGain; }
 
+#ifdef __EMSCRIPTEN__
+	// The web page's own mute (its sound button and the site setting "start muted", docs/WEB_PLAYER.md): like
+	// ?silent=1, the mixer goes on mixing, so that playback timing is as it was, and the device gets silence. It is
+	// below every game's volume, mute and options (so it changes and saves none of them), and it reaches every game
+	// that plays through the mixer, SexyAppFramework or not.
+	void SetPageMute(bool theMuted) { mPageMuted = theMuted; }
+	bool IsPageMuted() const { return mPageMuted; }
+#endif
+
 	void Lock();
 	void Unlock();
 
@@ -124,6 +134,9 @@ private:
 	float mMusicMaster = 1.0f;
 	float mSfxMaster = 1.0f;
 	bool mSilent = false;  // web test runs (web/shell.html ?silent=1): mix as usual, output silence
+#ifdef __EMSCRIPTEN__
+	std::atomic<bool> mPageMuted{false};  // the web page's mute (SetPageMute): likewise
+#endif
 	bool mOffline = false; // InitOffline: voices without a device
 	std::vector<std::unique_ptr<Voice>> mVoices;
 	std::vector<std::unique_ptr<Song>> mSongs;

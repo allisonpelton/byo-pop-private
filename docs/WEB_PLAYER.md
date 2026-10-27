@@ -73,6 +73,8 @@ The panels:
   once in a page and must not have its files changed under it, so once it has started, both close it first
   (as the mod menu's Restart does, saving the game in progress) and go on in a reloaded page: the import
   card, which can go back to the Ready card.
+- **Settings** is the site's settings (see "Site settings", below), the same controls as the listing page's.
+- **Sound** turns the page's sound off or on, below the game's own volume and mute options (see "Site settings").
 - **Fullscreen** puts the canvas in fullscreen.
 - A game can add panels of its own: Big Money's page also has **Replays**, for watching and importing recorded games.
 
@@ -207,7 +209,142 @@ drawn by the page, never from the game's files) linking to its page; opened with
 links. `byopop_web_index()` in `cmake/ByopopWeb.cmake` makes it from `web/index.html` at configure time, after every
 game has been added. Which games it shows is the `BYOPOP_WEB_FINISHED` list in that file: the coordinator adds a game
 there at its final merge, and a name in it with no web page stops the configure (unless the game's `BUILD_<TARGET>`
-option is off).
+option is off). Below the tiles it has the Settings section (`#settings`; "Site settings", below), which `web/settings.js`
+draws; the build copies that file next to the pages.
+
+At the foot of the page is a `<footer>`, at the page's width and in its muted colours, with the disclaimer, in the words of
+`web/copyright.html` and `web/terms.html` (an unofficial, non-commercial project, not affiliated with or endorsed by
+Electronic Arts or PopCap Games; it serves none of the games' files; the trademarks are their owners'; the site accepts no
+donations and a player with the money should buy games), and a credit line that links to the project's website, which
+opens normally, with no name or email beside it.
+
+**Which games are yours.** Under each game's name the card says, in words, whether the game's files are loaded in this
+browser, as a sign that the player owns the game: "Your copy" when they are, "Needs your files" when they are not, and
+"Files unknown" when the page cannot tell (below). The link's accessible name carries the same words ("Bejeweled Deluxe,
+your copy"). The page knows without starting any game, from a record that the game pages keep. The record is one
+localStorage item for the whole site, `byopop-game-files` (`ByopopGameFiles` in `web/settings.js`): a JSON object from a
+game's id to `{loaded, forgotten, missing}`, with dates as YYYY-MM-DD. `loaded` is when the game's files were last found,
+`forgotten` when the player used "Forget game files" on the game's page, and `missing` when a game page found the files
+gone without that. The files count as there when there is a `loaded` date and neither of the others. A game page writes
+the entry whenever `hasGameFiles()` is true in `boot()`, so after an import finishes and at every start that finds the
+files, and finding them again clears `forgotten` and `missing`. "Forget game files" does not delete the entry: it adds
+`forgotten`, with the date, and keeps `loaded`. A start that finds the files gone, or an import that wipes the old copy,
+adds `missing` to a game that had an entry. Entries are never removed, since that a game was played here is part of what
+the page says. With `?placeholders=1` a game page writes nothing, since part of a game stands in for all of it.
+
+Files imported before the pages kept the record have none. For a game without a usable entry the listing page looks in
+the game's IDBFS database, read only. The database's name is the game's persist folder from its `page.js` (`/ttpersist`),
+which `byopop_web_game()` reads at configure time and `byopop_web_index()` puts on the card as `data-persist` (with the
+game's id as `data-game`); the page does not read `page.js`. It first calls `indexedDB.databases()`, so that opening a
+name never creates an empty database; a name that is not listed means no files, and a browser without `databases()`
+shows a game with no entry as unknown instead of guessing. For a listed name it opens the database and walks the keys
+with a key cursor, never reading a file's contents. A key is a file's when it is in a folder below the first level (a
+file of the game's `game/`, of `userdata/`, `mods/`...), or has an extension at that level (TipTop's files are at the
+top of `game/`), which tells a file from a folder without opening it. A file in `game/` counts the game as loaded (a
+heuristic: the game page, which knows the game's marker files, has the last word and corrects the record at its next
+start). A record that says the files are there is believed only while its database is still listed. The listing page
+writes no record itself. It checks again when the page comes back into view (`pageshow`, `visibilitychange` to visible)
+and when another tab changes the record (`storage`).
+
+**The "?" for a game played before.** When a game has been played in this browser but its files are not there, the
+card has a small "?" button next to "Needs your files". Played before means any of these: the game has an entry in the
+record (so a forgotten game stays one); its database holds files in other folders than `game/` (saves, mods, replays)
+but no game files; or the game's save backup exists in localStorage (`sexy-userdata-backup:<persist>/userdata`, which
+`platform/WebPersist.cpp` keeps). A game that was only opened, whose database holds nothing but its empty folders, is not
+one. The "?" is a real `<button type="button">` labelled "Why aren't my files here?" with `aria-expanded` and
+`aria-controls`. It opens a short popover under the card and closes with a second click, Esc (the focus then returns
+to the button) or a click elsewhere; it works by keyboard and by pointer, and the popover follows the button in the tab
+order. The text is the page's own words: the game's files were loaded here before but are not now (with the date they
+were last found, when the record has one); the likely causes, which are that "Forget game files" was used on the game's
+page (when the record says forgotten, it says so with the date), that the browser's data for the site was cleared or the
+browser freed the storage, and that this is a different browser, profile or device; that the site never uploads the
+game files and no server keeps a copy, that the games belong to their publishers, so the copy stays only in this
+browser and each browser and device needs the files loaded from the player's own install; that the saves and settings
+are still stored in this browser, said only when the database holds files in `userdata/` or the save backup exists; and
+that getting the files back means opening the game (a link) and loading them again. It mentions no accounts or online
+features, as there are none.
+
+**Where to buy.** A game that can still be bought has a small link for each store under its label, "Buy on Steam" or "Buy on
+the EA app" (a store whose name ends in "app" takes "the"), with `rel="noopener"` and an accessible name that includes the
+game ("Buy Big Money Deluxe on Steam"). `byopop_web_index()` writes them at build time from the same data as the game pages'
+buy note, `BYOPOP_BUY_<target>` in `cmake/ByopopStores.cmake` (a check date, then each store's name and page), so the two
+cannot disagree; a game with no store shows nothing. The links are in the same list item as the game's link but not inside
+it, in a `.buyrow` beside it, as a link cannot hold a link.
+
+**The game's own icon.** Once a game's files are loaded, its card shows the game's icon in place of the initials badge
+(an `<img alt="">`, since the card has the name, at the badge's size and with `image-rendering: pixelated` so that a small
+icon stays crisp when enlarged), and the game's page uses it as its tab icon (a `<link rel="icon">` that replaces the
+site's, set when the page starts). The icon is read out of the game's exe, which the import already stores: the page takes
+the `.exe` in the game's `gameFiles` (`games/<game>/web/page.js`; of several the largest, as the game's own binary is
+bigger than a helper, though no game lists more than one) and `web/exeicon.js` reads it, with no library. It parses the PE
+file (`MZ`, the PE header, the section table, the resource directory), finds `RT_GROUP_ICON` (14) and its `RT_ICON` (3)
+images, and takes a 32-bit image at the size nearest 48 to 64 px or, without a 32-bit image, the largest (and, if that one
+cannot be decoded, the next). An image is a PNG, used as it is, or a DIB (a `BITMAPINFOHEADER` with the colour bitmap and a
+1-bit transparency mask under it, at 1, 4, 8, 24 or 32 bits per pixel, the palette up to 8) which is decoded to RGBA and
+drawn on a canvas; the result is a PNG data URL of at most 64 px a side and 16 KB (a larger icon is made smaller until it
+fits). An exe that is wrapped or damaged, or has no icon, gives nothing, and the badge stays; nothing in it throws. A game
+that does not store its exe (Bejeweled, Big Money and Alchemy import none) has no icon.
+
+The data URL is kept in the game's entry of the ownership record (`icon`), where the listing page reads it. The game page
+reads the exe in `boot()`, which follows an import and every start, when the entry has no icon yet, so the icon also
+appears for files imported before this existed. It is derived from the files, so "Forget game files" deletes it with them
+(and so does finding the files gone), and it is shown only while the files are there. It stays in this browser and is
+never sent anywhere. `tools/exeicontest.js` checks the parser under Node against the exes in `assets/<game>/` (it prints
+one line for each exe and writes no icon) and against synthetic exes made for every decoder, and feeds it damaged files.
+
+### Site settings
+
+Preferences that the player sets once and every game page applies when its game starts. They are edited in two places
+that draw the same controls from one file, `web/settings.js` (copied next to the pages and loaded by the listing page and
+by every game page): the Settings section at the foot of the listing page, and the **Settings** panel of a game's page
+(the bar's Settings button, a side panel like Mods and Game files). The settings are site-wide: the panel edits the same
+stored values as the listing page, and nothing is kept per game.
+
+They are one localStorage item, `byopop-settings`, a JSON object with one field per setting. A setting that is not in it
+has its default, and the default always leaves the game as it is: **"game" keeps the original's behaviour**, so a player
+who never opens the settings sees every game exactly as before, and the unmodded games stay identical to their
+originals. A choice is `"game"` (the default), `"on"` or `"off"`; a volume is `"game"` or a whole number from 0 to 100;
+a page feature that the originals lack is `"on"` or `"off"` and is `"off"` by default. Setting a default removes the
+field. Fields that `settings.js` does not know are kept when it writes. Every read and write is in a try/catch: with
+storage blocked the pages behave as if nothing was set, and the controls say a setting was not kept.
+
+The settings, by their field in the item:
+
+- `mute` ("game" or "on"): "on" starts the game muted. The page's mute is the platform's audio output
+  (`Platform::Mixer::SetPageMute`, the exports `byopop_audio_mute` and `byopop_audio_muted` in
+  `framework/WebSettings.cpp`): the mixer goes on mixing, as with `?silent=1`, and the device gets silence. It sits below
+  every game's volume, mute and options, so it changes and saves none of them, and it reaches every game that plays
+  through the mixer, the SexyAppFramework ones and the engine ones (TipTop, Word Harmony, Cosmic Bugs, Water Bugs) alike.
+  The bar's **Sound** button turns it off and on in any case; the setting sets it when the page opens (so the button
+  shows it before Play) and again when the game starts, unless the button has been used since. `?silent=1` stays silent
+  whatever the settings say.
+- `fullscreen` ("game" or "on"): "on" asks for full screen when the player presses Play, by the same path as the
+  Fullscreen button (browsers allow it only from a click, so the restart of the game's own menu, which has no click,
+  does not ask, and a browser may refuse).
+- `cursors` ("game", "on" or "off"): "on" or "off" calls the game's `EnableCustomCursors(true/false)`. The export
+  `byopop_site_apply(cursors, music, sfx)` does it and the volumes below; it returns 0 until `SexyAppBase::Init` has
+  finished, which is after the game has read its saved options, so the setting wins over them, and the page calls it again
+  every 100 ms until it returns 1. Only SexyAppFramework games have the option; for the others it does nothing and
+  raises no error. "game" leaves the game's own option alone.
+- `musicVolume` and `sfxVolume` ("game" or 0 to 100): the game's own music and sound volume options
+  (`SetMusicVolume`, `SetSfxVolume`, through the same export and call as the cursors). TipTop, Word Harmony, Cosmic Bugs,
+  Water Bugs and Ning Po keep their volume in an engine of their own, which SexyAppBase's volumes do not reach (and
+  Cosmic Bugs and Water Bugs fix the output volume at the original's 60%), so the page leaves them out (the list in
+  `web/shell.html`, or `PAGE.siteVolume` in a game's `page.js`) and the controls are off in their panels.
+- `wakeLock` ("on" or "off", default off): keeps the screen awake while a game runs (`navigator.wakeLock`), taken after
+  the game starts, released when it ends or the page is hidden, and taken again when the page is shown. A refusal or a
+  browser without the API is fine.
+- `confirmLeave` ("on" or "off", default off): asks before leaving the page while a game runs (`beforeunload`). A
+  closed game's page, and the reloads after a close, do not ask.
+- `pauseHidden` ("on" or "off", default off): when on and `document.hidden`, the page stops the game's main loop and
+  suspends the audio context, and resumes both when the tab is shown. Off must stay as it was, since the originals keep
+  running in a window you cannot see. The Browser pane can be hidden while `document.hidden` stays false, so this does not
+  touch the hidden-pane tests; test it by overriding `document.hidden` and dispatching `visibilitychange`.
+
+The settings apply when a game starts. In a game's page, the Settings panel also applies at once what can be: the volumes
+and custom cursors (to the running game), the wake lock and pause when hidden; "ask before leaving" is read when the page
+is left, and the Sound button acts at once. "Start muted" and "full screen at start" only apply at the next start, and
+the panel says so. Choosing "game" again leaves the running game as it is.
 
 ## The site's logo and icons
 
@@ -219,7 +356,7 @@ both page templates link them. A web host serves them with the pages.
 | `favicon.svg` | The mark: a bottle opener (chrome head, red handle) on a sky-blue tile. It is the tab icon in browsers that take SVG icons. |
 | `favicon.ico` | The mark at 16, 32 and 48 px, for browsers without SVG icons. |
 | `apple-touch-icon.png` | 180 px, opaque, for home screens (iOS rounds the corners itself). |
-| `logo.svg`, `logo-dark.svg` | The mark and the wordmark "byo-pop", whose "o" in "pop" is a red crown cap. One file for light backgrounds, one for dark. The top bar shows the one that matches the page's theme, before the game's mark and name. The copyright page shows it at the top. |
+| `logo.svg`, `logo-dark.svg` | The mark and the wordmark "byo-pop", whose "o" in "pop" is a red crown cap. One file for light backgrounds, one for dark. The top bar shows the one that matches the page's theme, before the game's mark and name, and it is a link to the listing page (`./`, relative, so it works on any host and path); the link's name, "byo-pop, all games", is the light logo's alt, which a dark theme keeps in the page, out of sight, for that. Leaving through the link is leaving the page like any other: the game saves on `beforeunload` and the backup is written (`SexyAppBase::PageGoingAway`), and "ask before leaving" (Site settings) asks. The copyright page shows the logo at the top. |
 
 - **Colours.** The colours are taken from PopCap's classic logo: its red (#ED1C24), sky blue and chrome. The shapes
   and lettering are byo-pop's own, and none of PopCap's are copied. The outline is the dark blue #12304A.
