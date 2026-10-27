@@ -1,15 +1,15 @@
 <!-- BookWorm's Replays panel on the shared page (web/shell.html gives it its bar button); page.js fills the list -->
-<aside class="panel" id="panel-replays" data-button="Replays" hidden aria-label="Replays" tabindex="-1">
-  <header><h2>Replays</h2><button type="button" data-close>Close</button></header>
+<aside class="panel" id="panel-replays" data-button="Replays" hidden aria-labelledby="panel-replays-title" tabindex="-1">
+  <header><h2 id="panel-replays-title">Replays</h2><button type="button" data-close>Close</button></header>
   <div class="body">
-    <p class="note">With the <span class="mono">replays</span> mod on, every game played to its end is kept here (the
+    <p class="note" id="replays-about">With the <span class="mono">replays</span> mod on, every game played to its end is kept here (the
       newest 50, and every one that made a high-score table). Watch one, or press R on the game-over page to watch the
       game you just played. While watching: 1 to 4 for the speed, space to pause, Esc to stop.</p>
     <div class="row">
-      <label class="button" for="pick-replay">Import .bwr</label>
-      <input type="file" id="pick-replay" accept=".bwr" multiple>
+      <button type="button" data-pick="pick-replay" aria-describedby="replays-about replay-msg">Import .bwr</button>
+      <input type="file" id="pick-replay" accept=".bwr" multiple hidden tabindex="-1" aria-hidden="true">
     </div>
-    <div class="replays" id="replay-list"></div>
-    <p class="note" id="replay-msg"></p>
+    <ul class="replays" id="replay-list" aria-label="Replays"></ul>
+    <p class="note" id="replay-msg" role="status"></p>
   </div>
 </aside>
