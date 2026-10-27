@@ -174,7 +174,7 @@ void Profile::SetString(const std::string& theKey, const std::string& theValue)
 	Set(theKey, aValue);
 }
 
-// 0x488f40: a Lua table's entries, in lua_next's order; an empty table keeps one entry of TYPE_NONE
+// V1:0x488f40: a Lua table's entries, in lua_next's order; an empty table keeps one entry of TYPE_NONE
 static void TableFromLua(std::vector<Profile::Entry>& theTable, lua_State* L, int theIndex)
 {
 	if (theIndex < 0)
@@ -236,7 +236,7 @@ void Profile::Delete(const std::string& theKey)
 
 void Profile::ResetTimedMode()
 {
-	// 0x48d130: the keys of the timed mode's run back to a new run's (the checkpoint's stage and book none, the
+	// V1:0x48d130: the keys of the timed mode's run back to a new run's (the checkpoint's stage and book none, the
 	// first chapter), and the keys of what the run had done and seen gone
 	SetInt("TM_XP", 0);
 	SetInt("TM_XPLevel", 0);
@@ -310,7 +310,7 @@ static void WriteValue(Buffer& theBuffer, const Profile::Value& theValue)
 
 static void ReadValue(const Buffer& theBuffer, Profile::Value& theValue);
 
-// 0x48aff0
+// V1:0x48aff0
 static void ReadTable(const Buffer& theBuffer, std::vector<Profile::Entry>& theTable)
 {
 	bool aHasNext;
@@ -441,7 +441,7 @@ static std::string KeyArg(lua_State* L)
 	return aKey != nullptr ? aKey : "";
 }
 
-// profile.GetName(): the player's name, "Lex" without one (0x48b820)
+// profile.GetName(): the player's name, "Lex" without one (V1:0x48b820)
 static int ProfileGetName(lua_State* L)
 {
 	std::string aName = gApp->mProfile != nullptr ? gApp->mProfile->mName : "";
@@ -451,7 +451,7 @@ static int ProfileGetName(lua_State* L)
 	return 1;
 }
 
-// profile.Set(key, value [, check]): by the value's Lua type; nil deletes the key (0x48b950)
+// profile.Set(key, value [, check]): by the value's Lua type; nil deletes the key (V1:0x48b950)
 static int ProfileSet(lua_State* L)
 {
 	Profile* aProfile = CurrentProfile(L);
@@ -482,7 +482,7 @@ static int ProfileSet(lua_State* L)
 }
 
 // profile.GetTableSize(key [, check]): the number of entries (an empty table has one) and true, or 0 and false
-// when there is no such key, or (checking) it is not a table (0x48c5a0)
+// when there is no such key, or (checking) it is not a table (V1:0x48c5a0)
 static int ProfileGetTableSize(lua_State* L)
 {
 	Profile* aProfile = CurrentProfile(L);
@@ -498,7 +498,7 @@ static int ProfileGetTableSize(lua_State* L)
 	return 2;
 }
 
-// profile.Save(): an error the player is told about (0x48cb30)
+// profile.Save(): an error the player is told about (V1:0x48cb30)
 static int ProfileSave(lua_State* L)
 {
 	Profile* aProfile = CurrentProfile(L);
@@ -507,7 +507,7 @@ static int ProfileSave(lua_State* L)
 	return 0;
 }
 
-// profile.KeyExists(key [, check]) (0x48cc20)
+// profile.KeyExists(key [, check]) (V1:0x48cc20)
 static int ProfileKeyExists(lua_State* L)
 {
 	lua_pushboolean(L, CurrentProfile(L)->KeyExists(KeyArg(L)));
@@ -516,7 +516,7 @@ static int ProfileKeyExists(lua_State* L)
 
 static void PushValue(lua_State* L, const Profile::Value& theValue);
 
-// 0x48c820: a table value as a Lua table (the empty table's entry is not one)
+// V1:0x48c820: a table value as a Lua table (the empty table's entry is not one)
 static void PushTable(lua_State* L, const std::vector<Profile::Entry>& theTable)
 {
 	lua_newtable(L);
@@ -556,7 +556,7 @@ static void PushValue(lua_State* L, const Profile::Value& theValue)
 	}
 }
 
-// profile.Get(key [, check]): the value, nil when there is none (0x48c0f0)
+// profile.Get(key [, check]): the value, nil when there is none (V1:0x48c0f0)
 static int ProfileGet(lua_State* L)
 {
 	const Profile::Value* aValue = CurrentProfile(L)->GetValue(KeyArg(L));
@@ -567,7 +567,7 @@ static int ProfileGet(lua_State* L)
 	return 1;
 }
 
-// profile.Delete(key) (0x48bf10)
+// profile.Delete(key) (V1:0x48bf10)
 static int ProfileDelete(lua_State* L)
 {
 	CurrentProfile(L)->Delete(KeyArg(L));

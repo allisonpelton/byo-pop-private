@@ -29,7 +29,7 @@ void ShowCreditsCallback(void* theApp)
 
 void GameApp::StartCredits()
 {
-	// 0x450fe0: the curtain closes over everything, then the credits come; the main menu is not the title screen's
+	// 0x446f80: the curtain closes over everything, then the credits come; the main menu is not the title screen's
 	DoFullCurtainTransition("");
 	mCurtainCallback = ShowCreditsCallback;
 	mCurtainCallbackObject = this;
@@ -39,7 +39,7 @@ void GameApp::StartCredits()
 
 void GameApp::ShowCredits()
 {
-	// 0x450d80: the options go (and the battle they paused goes on), the screens under the credits stop
+	// V1:0x450d80: the options go (and the battle they paused goes on), the screens under the credits stop
 	if (GetDialog(DIALOG_OPTIONS) != nullptr) {
 		KillDialog(DIALOG_OPTIONS);
 		if (mBoard != nullptr)

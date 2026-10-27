@@ -1,7 +1,7 @@
-// Sexy::CurtainTransition (0xcc bytes, constructor 0x440e90, vtable 0x7ac134): the theatre curtain that closes
+// Sexy::CurtainTransition (0xcc bytes, constructor 0x435e40, vtable 0x6fa0dc): the theatre curtain that closes
 // over the screen and opens again between the game's screens. Its four quarters are cels of IMAGE_CURTAIN_ANIM:
 // the strip as it is for the top left, mirrored for the right, flipped for the bottom. When it is done it calls
-// the app's CurtainDone (0x44d360), which goes on with the transition the app is in.
+// the app's CurtainDone (0x442700), which goes on with the transition the app is in.
 #pragma once
 
 #include <string>
@@ -33,13 +33,13 @@ public:
 	GameApp* mApp;             // +0xc8
 
 	explicit CurtainTransition(GameApp* theApp);
-	~CurtainTransition() override;  // 0x441020
+	~CurtainTransition() override;  // 0x435fd0
 
-	void StartClosing();  // 0x4410e0
-	void StartOpening();  // 0x441140
+	void StartClosing();  // 0x436090
+	void StartOpening();  // V1:0x441140
 
-	void Update() override;              // 0x4411d0
-	void Draw(Graphics* g) override;     // 0x4413b0
+	void Update() override;              // 0x436190
+	void Draw(Graphics* g) override;     // 0x436370
 };
 
 }  // namespace Sexy

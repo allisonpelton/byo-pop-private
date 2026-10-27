@@ -28,7 +28,7 @@ TreasureScreen::~TreasureScreen()
 	CallLinkedMethod("Destructor", 0);
 }
 
-// The original registered the class in the constructor (0x4a5340), every time
+// The original registered the class in the constructor (V1:0x4a5340), every time
 void TreasureScreen::RegisterLua()
 {
 	static bool sRegistered = false;

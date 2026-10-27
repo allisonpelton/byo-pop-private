@@ -1,4 +1,4 @@
-// Sexy::Profile (0x6c bytes, no vtable, constructor 0x487ba0; the app's +0x950): a player's profile, saved as
+// Sexy::Profile (0x6c bytes, no vtable, constructor V1:0x487ba0; the app's +0x950): a player's profile, saved as
 // users/<name>.bwa in the user folder. It is a store of named values: the scripts read and write it through the
 // Lua functions profile.Get, profile.Set and the others (RegisterProfileFunctions), and the C++ code reads a few
 // of them (the current book, chapter and stage, NeedsIntroTileHelp, ...). A value is an int, a float, a bool, a
@@ -55,28 +55,28 @@ public:
 	std::string mOutOfDateReasons;         // +0x50: set by Load when the file is from an older format
 	bool mNoSave;                          // +0x68: a profile that is never saved (the intro's, before a name)
 
-	// 0x487ba0: the defaults of a new player
+	// V1:0x487ba0: the defaults of a new player
 	Profile(const std::string& theName, bool theNoSave);
 
-	bool KeyExists(const std::string& theKey) const;  // 0x489a50
-	const Value* GetValue(const std::string& theKey) const;  // NULL when there is none (0x4898f0)
-	int GetInt(const std::string& theKey) const;       // 0x48b2a0: a float truncates, others are 0
-	float GetFloat(const std::string& theKey) const;   // 0x48b420: an int converts, others are 0
-	bool GetBool(const std::string& theKey) const;     // 0x48b210
-	std::string GetString(const std::string& theKey) const;  // 0x48b5a0: empty when it is not a string
-	void SetInt(const std::string& theKey, int theValue);          // 0x488a30
-	void SetFloat(const std::string& theKey, float theValue);      // 0x488b50
-	void SetBool(const std::string& theKey, bool theValue);        // 0x488c80
-	void SetString(const std::string& theKey, const std::string& theValue);  // 0x488db0
-	void SetTable(const std::string& theKey, lua_State* L, int theIndex);    // 0x4892d0: a Lua table's entries
-	void Delete(const std::string& theKey);            // 0x48c030
-	// 0x48d130: a new timed-mode run: its TM_ keys back to their starts and those of the last run's progress deleted;
+	bool KeyExists(const std::string& theKey) const;  // 0x4790b0
+	const Value* GetValue(const std::string& theKey) const;  // NULL when there is none (0x478f40)
+	int GetInt(const std::string& theKey) const;       // 0x47ad30: a float truncates, others are 0
+	float GetFloat(const std::string& theKey) const;   // V1:0x48b420: an int converts, others are 0
+	bool GetBool(const std::string& theKey) const;     // 0x47aca0
+	std::string GetString(const std::string& theKey) const;  // V1:0x48b5a0: empty when it is not a string
+	void SetInt(const std::string& theKey, int theValue);          // V1:0x488a30
+	void SetFloat(const std::string& theKey, float theValue);      // V1:0x488b50
+	void SetBool(const std::string& theKey, bool theValue);        // 0x4782a0
+	void SetString(const std::string& theKey, const std::string& theValue);  // V1:0x488db0
+	void SetTable(const std::string& theKey, lua_State* L, int theIndex);    // V1:0x4892d0: a Lua table's entries
+	void Delete(const std::string& theKey);            // V1:0x48c030
+	// V1:0x48d130: a new timed-mode run: its TM_ keys back to their starts and those of the last run's progress deleted;
 	// the scripts are told (main.NewTimedModeStarted)
 	void ResetTimedMode();
 
-	// 0x489f10: users/<name>.bwa (and the registry's LastUser), unless mNoSave. False when it could not write.
+	// V1:0x489f10: users/<name>.bwa (and the registry's LastUser), unless mNoSave. False when it could not write.
 	bool Save();
-	// 0x48a390: reads users/<name>.bwa in place of the values. False when there is no file, or when it is from an
+	// V1:0x48a390: reads users/<name>.bwa in place of the values. False when there is no file, or when it is from an
 	// older format: that sets mOutOfDateReasons (the caller resets the profile). A current one gets the keys added since.
 	bool Load();
 
@@ -84,7 +84,7 @@ private:
 	void Set(const std::string& theKey, const Value& theValue);
 };
 
-// 0x48cec0 (part of LuaInterface::RegisterSexyFunctions): profile.GetName, Set, GetTableSize, Save, KeyExists,
+// V1:0x48cec0 (part of LuaInterface::RegisterSexyFunctions): profile.GetName, Set, GetTableSize, Save, KeyExists,
 // Get and Delete, on the app's current profile
 void RegisterProfileFunctions();
 

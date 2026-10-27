@@ -173,7 +173,7 @@ void FadeButton::DrawFade(Graphics* g)
 		g->PopState();
 }
 
-// the button's picture and label (the main part of 0x442340)
+// the button's picture and label (the main part of 0x4373b0)
 void FadeButton::DrawLook(Graphics* g)
 {
 	int aLabelX = 0;

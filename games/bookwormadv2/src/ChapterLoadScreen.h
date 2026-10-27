@@ -1,4 +1,4 @@
-// Sexy::ChapterLoadScreen (0xb4 bytes, constructor 0x42e780): the box over the closed curtain while a chapter's
+// Sexy::ChapterLoadScreen (0xb4 bytes, constructor V1:0x42e780): the box over the closed curtain while a chapter's
 // resources load (GameApp::StartLoadChapterResources), with one of the game's hints, a new one every half
 // second, and a red bar for the resources loaded so far (the app's mChapterLoadCount of mChapterLoadTotal).
 #pragma once
@@ -22,8 +22,8 @@ public:
 
 	explicit ChapterLoadScreen(GameApp* theApp);
 
-	void Update() override;           // 0x42ef60
-	void Draw(Graphics* g) override;  // 0x42f130
+	void Update() override;           // 0x4270d0
+	void Draw(Graphics* g) override;  // 0x4272a0
 };
 
 }  // namespace Sexy

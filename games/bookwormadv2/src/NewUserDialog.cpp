@@ -38,7 +38,7 @@ bool IsNameChar(char theChar, bool isTyped)
 
 }  // namespace
 
-// 0x482590: dialog 7, with OK ("CANCEL" too when it asks from the players' list), an edit box in the big font
+// V1:0x482590: dialog 7, with OK ("CANCEL" too when it asks from the players' list), an edit box in the big font
 // 189 pixels wide, theName in it and the new player's banner
 NewUserDialog::NewUserDialog(int theButtonMode, const std::string& theName)
 	: GameDialog(GameApp::DIALOG_NEW_USER, _S(""), _S(""), _S(""), theButtonMode), mEdit(nullptr), mPrevFocus(nullptr)
@@ -58,13 +58,13 @@ NewUserDialog::NewUserDialog(int theButtonMode, const std::string& theName)
 	mBannerY = 17;
 }
 
-// 0x482840: the edit box goes with it (the dialog only takes it out of the manager)
+// 0x472db0: the edit box goes with it (the dialog only takes it out of the manager)
 NewUserDialog::~NewUserDialog()
 {
 	delete mEdit;
 }
 
-// 0x482f00
+// V1:0x482f00
 std::string NewUserDialog::GetName() const
 {
 	return mEdit->mString;
@@ -72,7 +72,7 @@ std::string NewUserDialog::GetName() const
 
 void NewUserDialog::AddedToManager(WidgetManager* theWidgetManager)
 {
-	// 0x4828d0: the buttons go in as the GameDialog's, then the edit box, which takes the focus
+	// 0x472e40: the buttons go in as the GameDialog's, then the edit box, which takes the focus
 	GameDialog::AddedToManager(theWidgetManager);
 	theWidgetManager->AddWidget(mEdit);
 	mPrevFocus = theWidgetManager->mFocusWidget;
@@ -81,7 +81,7 @@ void NewUserDialog::AddedToManager(WidgetManager* theWidgetManager)
 
 void NewUserDialog::RemovedFromManager(WidgetManager* theWidgetManager)
 {
-	// 0x482940
+	// 0x472eb0
 	GameDialog::RemovedFromManager(theWidgetManager);
 	theWidgetManager->RemoveWidget(mEdit);
 	if (mPrevFocus != nullptr)
@@ -90,7 +90,7 @@ void NewUserDialog::RemovedFromManager(WidgetManager* theWidgetManager)
 
 void NewUserDialog::Resize(int theX, int theY, int theWidth, int theHeight)
 {
-	// 0x4829a0: the edit box in the middle, 175 down; the buttons a half of theirs lower than the GameDialog puts them
+	// 0x472f10: the edit box in the middle, 175 down; the buttons a half of theirs lower than the GameDialog puts them
 	GameDialog::Resize(theX, theY, theWidth, theHeight);
 	mEdit->Resize(mX + theWidth / 2 - mEdit->mMaxPixels / 2, mY + 175, mEdit->mMaxPixels,
 	              FONT_LARGE->GetHeight() + 4);
@@ -107,7 +107,7 @@ void NewUserDialog::Resize(int theX, int theY, int theWidth, int theHeight)
 
 void NewUserDialog::Draw(Graphics* g)
 {
-	// 0x482aa0: the greeting over the edit box, and the frame under it
+	// 0x473010: the greeting over the edit box, and the frame under it
 	GameDialog::Draw(g);
 	g->SetFont(FONT_LARGE);
 	g->SetColor(Color(128, 101, 39));
@@ -123,7 +123,7 @@ void NewUserDialog::Draw(Graphics* g)
 
 void NewUserDialog::ButtonDepress(int theId)
 {
-	// 0x482c00
+	// 0x473170
 	if (theId == mButton1->mId) {
 		const std::string& aName = mEdit->mString;
 		if (aName.empty()) {
@@ -146,13 +146,13 @@ void NewUserDialog::ButtonDepress(int theId)
 
 void NewUserDialog::EditWidgetText(int theId, const SexyString& theString)
 {
-	// 0x482ee0: Return in the box is OK
+	// 0x4734a0: Return in the box is OK
 	ButtonDepress(mButton1->mId);
 }
 
 bool NewUserDialog::AllowChar(int theId, SexyChar theChar)
 {
-	// 0x482f30: a character the font has, and one of a name's
+	// 0x4734f0: a character the font has, and one of a name's
 	if (mEdit->mFont == nullptr || mEdit->mFont->CharWidth(theChar) == 0)
 		return false;
 	return IsNameChar(theChar, true);
@@ -160,7 +160,7 @@ bool NewUserDialog::AllowChar(int theId, SexyChar theChar)
 
 bool NewUserDialog::AllowText(int theId, const SexyString& theText)
 {
-	// 0x4833c0: every character of a name's, and in the font
+	// 0x473980: every character of a name's, and in the font
 	for (size_t i = 0; i < theText.size(); i++) {
 		if (!IsNameChar(theText[i], false) || mEdit->mFont == nullptr || mEdit->mFont->CharWidth(theText[i]) == 0)
 			return false;

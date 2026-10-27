@@ -18,7 +18,7 @@ using namespace Sexy;
 
 void GameApp::ShowHallOfFame()
 {
-	// 0x450710
+	// V1:0x450710
 	mWidgetManager->AddWidget(mHallOfFame);
 	mHallOfFame->Resize(0, 0, mWidth, mHeight);
 	if (mCurtain != nullptr)
@@ -27,7 +27,7 @@ void GameApp::ShowHallOfFame()
 
 void GameApp::OpenHallOfFame()
 {
-	// 0x450760: the adventure's tab
+	// V1:0x450760: the adventure's tab
 	mHallOfFame = new HallOfFame(this, HallOfFame::MODE_ADVENTURE, false, false, std::string(), false);
 	ShowHallOfFame();
 	SetCursor(CURSOR_POINTER);
@@ -35,7 +35,7 @@ void GameApp::OpenHallOfFame()
 
 void GameApp::ShowArenaHallOfFame()
 {
-	// 0x450850: the way back to the main menu from a battle (as CurtainDone's), then the arena's tab
+	// V1:0x450850: the way back to the main menu from a battle (as CurtainDone's), then the arena's tab
 	KillDialog(1);
 	ReturnToChapterSelect(false, true, true, true);
 	mWidgetManager->RemoveWidget(mBookManager);
@@ -66,7 +66,7 @@ void GameApp::ShowArenaHallOfFame()
 
 void GameApp::DoHighScoreScreenFromMG(std::string theName)
 {
-	// 0x450aa0: the mini-games' first page; the board of the mini-game that was just played goes (it is kept until
+	// V1:0x450aa0: the mini-games' first page; the board of the mini-game that was just played goes (it is kept until
 	// the app is done with it)
 	mHallOfFame = new HallOfFame(this, HallOfFame::MODE_MINI_GAMES, true, false, theName, false);
 	ShowHallOfFame();
@@ -113,7 +113,7 @@ void GameApp::DoHighScoreScreenFromReplay()
 
 void GameApp::ShowEndOfGameHallOfFame()
 {
-	// 0x450c30: "Continue" in place of the main menu's button
+	// V1:0x450c30: "Continue" in place of the main menu's button
 	mHallOfFame = new HallOfFame(this, HallOfFame::MODE_ADVENTURE, false, false, std::string(), true);
 	ShowHallOfFame();
 }
@@ -125,7 +125,7 @@ static void EndOfGameHallOfFameCallback(void* theApp)
 
 void GameApp::DoEndGame()
 {
-	// 0x450c00: the end of the adventure: no music, and the hall of fame once the curtain is closed
+	// V1:0x450c00: the end of the adventure: no music, and the hall of fame once the curtain is closed
 	mNoMusic = true;
 	StartToMenuTransition();
 	mCurtainCallback = EndOfGameHallOfFameCallback;
@@ -134,7 +134,7 @@ void GameApp::DoEndGame()
 
 void GameApp::CloseHallOfFame()
 {
-	// 0x450bb0
+	// V1:0x450bb0
 	SafeDeleteWidget(mHallOfFame);
 	mWidgetManager->RemoveWidget(mHallOfFame);
 	mHallOfFame = nullptr;
@@ -144,7 +144,7 @@ void GameApp::CloseHallOfFame()
 
 static void EndOfGameCreditsCallback(void* theApp)
 {
-	// 0x451130: the credits come (0x450d80), with the finale of the end of the game (their +0x157, which also makes
+	// V1:0x451130: the credits come (V1:0x450d80), with the finale of the end of the game (their +0x157, which also makes
 	// them end on the main menu), and the hall of fame goes
 	GameApp* anApp = static_cast<GameApp*>(theApp);
 	anApp->ShowCredits();
@@ -155,7 +155,7 @@ static void EndOfGameCreditsCallback(void* theApp)
 
 void GameApp::StartEndOfGameCredits()
 {
-	// 0x451090
+	// V1:0x451090
 	DoFullCurtainTransition("");
 	mCurtainCallback = EndOfGameCreditsCallback;
 	mCurtainCallbackObject = this;

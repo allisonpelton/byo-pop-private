@@ -1,4 +1,4 @@
-// Sexy::Board (0x1d4 bytes, constructor 0x4168a0, destructor 0x416f40, vtable 0x7ab164; code 0x4161d0-0x41f0d0):
+// Sexy::Board (0x1d4 bytes, constructor V1:0x4168a0, destructor 0x4100c0, vtable 0x6f86d4; code 0x40f780-V1:0x41f0d0):
 // the battle's grid of letter tiles and the buttons under it, a LuaWidget whose Lua object (gBoard, scripts/board)
 // does the battle around it with the battle engine (gBattleEngine, the battle's rules in BattleEngine.lua) and the
 // tile engine (gTileEngine, the tiles' letters and looks in TileEngine.lua). The app makes it in StartBattle, a
@@ -86,119 +86,119 @@ public:
 	const char* LuaGetRegisteredName() override { return "Board"; }
 	static void RegisterLua();
 
-	// 0x4179a0: a battle's grid, its engines' scripts, and the letters (the first game's, a chapter's, or the
+	// V1:0x4179a0: a battle's grid, its engines' scripts, and the letters (the first game's, a chapter's, or the
 	// saved grid's)
 	void Init();
-	// 0x418120: a mini-game's grid of theCols x theRows at (x, y), theXGap and theYGap pixels between its tiles,
+	// V1:0x418120: a mini-game's grid of theCols x theRows at (x, y), theXGap and theYGap pixels between its tiles,
 	// its letters from theLetters (row by row) when not empty, else random ones; then the scripts' own
 	// InitMiniGame(theName) (the mini-game's class), which makes the mini-game and loads its resources
 	void InitMiniGame(const std::string& theName, int x, int y, int theXGap, int theYGap, int theCols, int theRows,
 	                  const std::string& theLetters, bool theNoTilesWhilePaused);
-	static void LoadScripts();  // 0x4185d0
+	static void LoadScripts();  // V1:0x4185d0
 
 	// Widget
-	void AddedToManager(WidgetManager* theWidgetManager) override;      // 0x41aba0
-	void RemovedFromManager(WidgetManager* theWidgetManager) override;  // 0x41ae30
-	void Update() override;                                             // 0x41bac0
-	void UpdateF(float theFrac) override;                               // 0x41c0d0
-	void Draw(Graphics* g) override;                                    // 0x41b2f0
-	void DrawOverlay(Graphics* g) override;                             // 0x41af90
-	void OrderInManagerChanged() override;                              // 0x41ef10
-	void Resize(int x, int y, int w, int h) override;                   // 0x41af60
-	void GotFocus() override;                                           // 0x41aac0
-	void LostFocus() override;                                          // 0x41ab30
-	void KeyChar(SexyChar theChar) override;                            // 0x41d030
-	void KeyDown(KeyCode theKey) override;                              // 0x41d020 (nothing)
-	void MouseMove(int x, int y) override;                              // 0x41c7e0
+	void AddedToManager(WidgetManager* theWidgetManager) override;      // 0x415540
+	void RemovedFromManager(WidgetManager* theWidgetManager) override;  // 0x4157d0
+	void Update() override;                                             // 0x416640
+	void UpdateF(float theFrac) override;                               // 0x416c70
+	void Draw(Graphics* g) override;                                    // 0x415c70
+	void DrawOverlay(Graphics* g) override;                             // 0x415930
+	void OrderInManagerChanged() override;                              // 0x41a010
+	void Resize(int x, int y, int w, int h) override;                   // 0x415900
+	void GotFocus() override;                                           // 0x415460
+	void LostFocus() override;                                          // 0x4154d0
+	void KeyChar(SexyChar theChar) override;                            // 0x417d70
+	void KeyDown(KeyCode theKey) override;                              // 0x4094a0 (nothing)
+	void MouseMove(int x, int y) override;                              // 0x4173a0
 	using LuaWidget::MouseDown;
 	using LuaWidget::MouseUp;
-	void MouseDown(int x, int y, int theClickCount) override;           // 0x41c430
-	void MouseUp(int x, int y, int theLastDownButtonId) override;       // 0x41c1f0
+	void MouseDown(int x, int y, int theClickCount) override;           // 0x416ff0
+	void MouseUp(int x, int y, int theLastDownButtonId) override;       // 0x416db0
 
 	// ButtonListener (LuaWidgetTplBase's, at +0xb0): the board's buttons
-	void ButtonPress(int theId, int theClickCount) override;  // 0x41c9a0
-	void ButtonDepress(int theId) override;                   // 0x41ca80
-	void ButtonMouseEnter(int theId) override;                // 0x41dda0
-	void ButtonMouseLeave(int theId) override;                // 0x41de40
+	void ButtonPress(int theId, int theClickCount) override;  // 0x417560
+	void ButtonDepress(int theId) override;                   // 0x417640
+	void ButtonMouseEnter(int theId) override;                // 0x418920
+	void ButtonMouseLeave(int theId) override;                // 0x4189c0
 
 	int GetGridWidth() const { return mGridWidth; }
 	int GetGridHeight() const { return mGridHeight; }
 	bool IsMiniGame() const { return mIsMiniGame; }
-	bool IsGridCell(int theCol, int theRow) const;   // 0x418dc0
-	Tile* GridGetTile(int theCol, int theRow);       // 0x418e10
-	// 0x418f00: the tiles around a cell (into theTiles); whether there are any
+	bool IsGridCell(int theCol, int theRow) const;   // V1:0x418dc0
+	Tile* GridGetTile(int theCol, int theRow);       // V1:0x418e10
+	// V1:0x418f00: the tiles around a cell (into theTiles); whether there are any
 	bool GetAdjacentTiles(int theCol, int theRow, std::list<Tile*>& theTiles);
-	// 0x4192f0: a new tile in a cell, above it to fall in (a battle's) or in it (a mini-game's)
+	// V1:0x4192f0: a new tile in a cell, above it to fall in (a battle's) or in it (a mini-game's)
 	Tile* AddTile(Tile* theTile, int theCol, int theRow, int theXGap = 0, int theYGap = 0);
-	// 0x419460: a tile to fall from one cell into another
+	// V1:0x419460: a tile to fall from one cell into another
 	void MoveTile(Tile* theTile, int theOldCol, int theOldRow, int theNewCol, int theNewRow);
 	// 0x4126b0 (the Lua method GridRemoveTile): the tile of a cell out of the grid (to the tile engine)
 	void RemoveTile(int theCol, int theRow);
 	// 0x412750 (the Lua method RemoveTile): the tile out of the board's list only; the script deletes it itself
 	void RemoveTileFromList(Tile* theTile) { mTiles.remove(theTile); }
-	void RehupMouse();                               // 0x41ec10
-	void TileDeleted(Tile* theTile);                 // 0x41ee90
+	void RehupMouse();                               // 0x419d60
+	void TileDeleted(Tile* theTile);                 // 0x419f90
 	void AddClone(Tile* theTile) { mClones.push_back(theTile); }
-	bool IsClonedTile(Tile* theTile);                // 0x4161f0
+	bool IsClonedTile(Tile* theTile);                // V1:0x4161f0
 
 	// the word
-	bool SelectTile(Tile* theTile);                  // 0x4195f0
-	void DeselectTile(Tile* theTile);                // 0x4199a0
-	void DeselectAllTiles();                         // 0x419e40
-	// 0x418fb0: the word's tiles slide to their places above the grid (theTile, theSelected: a mini-game's news)
+	bool SelectTile(Tile* theTile);                  // 0x412770
+	void DeselectTile(Tile* theTile);                // 0x414260
+	void DeselectAllTiles();                         // 0x414780
+	// V1:0x418fb0: the word's tiles slide to their places above the grid (theTile, theSelected: a mini-game's news)
 	void LayoutWord(Tile* theTile, bool theSelected);
-	static std::string GetWord(const std::list<Tile*>& theTiles);  // 0x418c70
-	// 0x41a4d0: a word of the list (and the easter egg of another PopCap game's name, unless theNoEgg)
+	static std::string GetWord(const std::list<Tile*>& theTiles);  // V1:0x418c70
+	// V1:0x41a4d0: a word of the list (and the easter egg of another PopCap game's name, unless theNoEgg)
 	// theFlags, when given, gets the word's Lex flags (0 for what is not a word)
 	bool IsValidWord(const std::string& theWord, bool theNoEgg, int* theFlags = nullptr);
 	// 0x41a1a0, 0x41a1d0 and 0x41a200: what the word can be (the scripts ask; the word must be in capitals)
 	bool IsNoun(const std::string& theWord);
 	bool IsVerb(const std::string& theWord);
 	bool IsAdjective(const std::string& theWord);
-	bool ValidateWord(const std::string& theWord) { return IsValidWord(theWord, false); }  // 0x41a5b0
-	void CheckIfWordStillValid();                    // 0x419840
-	void UpdateHilite(int x, int y);                 // 0x418ad0
+	bool ValidateWord(const std::string& theWord) { return IsValidWord(theWord, false); }  // V1:0x41a5b0
+	void CheckIfWordStillValid();                    // V1:0x419840
+	void UpdateHilite(int x, int y);                 // 0x411c30
 
 	// the buttons
-	void CreateButtons();                            // 0x4186e0
-	void LayoutButtons();                            // 0x4189e0
-	void SetAttackDisabled(bool isDisabled, bool keepLook);  // 0x41a070
-	void SetAttackBtnPos(int x, int y);              // 0x4189b0
-	void ShowImmuneAttack();                         // 0x41a3e0
-	void SetScrambleDisabled(bool isDisabled);       // 0x41a1d0
+	void CreateButtons();                            // V1:0x4186e0
+	void LayoutButtons();                            // 0x411b40
+	void SetAttackDisabled(bool isDisabled, bool keepLook);  // 0x414ad0
+	void SetAttackBtnPos(int x, int y);              // V1:0x4189b0
+	void ShowImmuneAttack();                         // V1:0x41a3e0
+	void SetScrambleDisabled(bool isDisabled);       // V1:0x41a1d0
 	void SetScrambleVisible(bool isVisible);         // 0x414d00 (Volume 2's: the button is not drawn)
 	void SetAttackVisible(bool isVisible);           // 0x414c30: the attack button is disabled and not drawn
-	void ScrambleUseNormalForDisabled(bool on);      // 0x41a2d0
-	bool Scramble();                                 // 0x41a620
-	void SubmitWord();                               // 0x41cb90
+	void ScrambleUseNormalForDisabled(bool on);      // V1:0x41a2d0
+	bool Scramble();                                 // V1:0x41a620
+	void SubmitWord();                               // V1:0x41cb90
 	// 0x4181c0, a Lua method too: the tiles fall into the gaps and new ones fill the grid; with theCreateBonus the
 	// battle engine hears of the new tiles (CreateBonusTiles), the word's submission says so, the fire tile's burn does not
 	void AddNewTiles(bool theCreateBonus);
-	void SetAttackImage(Image* theImage);            // 0x41de80 (ChangeAttackBtnImage)
-	void EnableAttackBtnPAM(bool on);                // 0x41a020: the attack button's glow plays (or not)
-	void DisableAttackPAM(bool isPlaying);           // 0x41ef30: the glow goes on or holds
+	void SetAttackImage(Image* theImage);            // V1:0x41de80 (ChangeAttackBtnImage)
+	void EnableAttackBtnPAM(bool on);                // V1:0x41a020: the attack button's glow plays (or not)
+	void DisableAttackPAM(bool isPlaying);           // V1:0x41ef30: the glow goes on or holds
 
-	void Pause(bool thePause, bool theNoBanner);     // 0x41a700
-	void DoLevelUp(bool on);                         // 0x4162e0: the battle engine's level-up overlay
-	void DoAltarScene(bool on) { mEndingChapter = on; }  // 0x413e90
-	void SetTMEnemyAttacking(bool on) { mTMEnemyAttacking = on; }  // 0x416320
+	void Pause(bool thePause, bool theNoBanner);     // 0x4150a0
+	void DoLevelUp(bool on);                         // V1:0x4162e0: the battle engine's level-up overlay
+	void DoAltarScene(bool on) { mEndingChapter = on; }  // V1:0x413e90
+	void SetTMEnemyAttacking(bool on) { mTMEnemyAttacking = on; }  // V1:0x416320
 	bool GetTMEnemyAttacking() { return mTMEnemyAttacking; }       // 0x40f8d0
 	bool IsScrambling() { return mScrambling; }                    // 0x415090
-	void DisableButtons();                           // 0x41e780: for an overlay
-	void RestoreButtons();                           // 0x41e900
-	bool IsPaused() const { return mPauseCount > 0; }  // 0x416260
-	void DoZoom(bool on);                            // 0x41ef60
-	bool DoingZoomEffect() const { return mZooming; }  // 0x4162b0
-	float GetZoomValue() const { return mZoom; }     // 0x4162c0
-	void SetZoomCoords(int x, int y) { mZoomX = x; mZoomY = y; }  // 0x41f070
-	void AddOverlayCallback(const std::string& theFunction);     // 0x41e9b0
-	void RemoveOverlayCallback(const std::string& theFunction);  // 0x41ea20
-	bool HasOverlays() const { return !mOverlayCallbacks.empty(); }  // 0x416270
-	bool CursorIsOverGrid();                         // 0x41eba0
-	void AllowTooltips(bool on);  // 0x41e750: off hides the app's tooltip under the mouse
-	void DrawArrowHintsAboveOverlay(bool on) { mDrawArrowHintsAboveOverlay = on; }  // 0x416310
-	void DisableAndHide();                           // 0x41f090
-	int GetWordTileSize();                           // 0x4162d0
+	void DisableButtons();                           // V1:0x41e780: for an overlay
+	void RestoreButtons();                           // V1:0x41e900
+	bool IsPaused() const { return mPauseCount > 0; }  // V1:0x416260
+	void DoZoom(bool on);                            // V1:0x41ef60
+	bool DoingZoomEffect() const { return mZooming; }  // V1:0x4162b0
+	float GetZoomValue() const { return mZoom; }     // V1:0x4162c0
+	void SetZoomCoords(int x, int y) { mZoomX = x; mZoomY = y; }  // V1:0x41f070
+	void AddOverlayCallback(const std::string& theFunction);     // V1:0x41e9b0
+	void RemoveOverlayCallback(const std::string& theFunction);  // V1:0x41ea20
+	bool HasOverlays() const { return !mOverlayCallbacks.empty(); }  // V1:0x416270
+	bool CursorIsOverGrid();                         // V1:0x41eba0
+	void AllowTooltips(bool on);  // V1:0x41e750: off hides the app's tooltip under the mouse
+	void DrawArrowHintsAboveOverlay(bool on) { mDrawArrowHintsAboveOverlay = on; }  // V1:0x416310
+	void DisableAndHide();                           // V1:0x41f090
+	int GetWordTileSize();                           // V1:0x4162d0
 
 private:
 	// the tutorial's arrows hear of a click (ArrowHintManager::Click), or hide while zooming (its mDontDraw)

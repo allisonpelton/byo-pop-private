@@ -30,7 +30,7 @@ using namespace LuaLib;
 
 namespace {
 
-// _ftol (0x765380): truncates; what does not fit is the smallest int, as the x87 gives it
+// _ftol (0x6b4a10): truncates; what does not fit is the smallest int, as the x87 gives it
 int ToInt(double theValue)
 {
 	if (theValue >= 2147483648.0 || theValue <= -2147483649.0 || theValue != theValue)

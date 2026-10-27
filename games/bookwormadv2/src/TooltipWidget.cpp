@@ -1,4 +1,4 @@
-// Sexy::TooltipWidget (0x4a1980-0x4a4130) and the app's tooltip methods (0x44bf00-0x44c590, GameApp members: they
+// Sexy::TooltipWidget (0x48b7e0-V1:0x4a4130) and the app's tooltip methods (V1:0x44bf00-V1:0x44c590, GameApp members: they
 // are the other half of how a tooltip shows).
 #include "TooltipWidget.h"
 
@@ -19,7 +19,7 @@ using namespace LuaLib;
 
 namespace {
 
-// 0x44f770: something is up that the tooltips keep out of: the board has overlays (Lua functions that draw over
+// 0x445660: something is up that the tooltips keep out of: the board has overlays (Lua functions that draw over
 // it) or the conversation panel is active
 bool OverlayUp()
 {
@@ -28,7 +28,7 @@ bool OverlayUp()
 	return gApp->mConversationPanel != nullptr && gApp->mConversationPanel->Active();
 }
 
-// 0x4a26a0, the raw Lua method: the activation region as four numbers (x, y, width, height)
+// V1:0x4a26a0, the raw Lua method: the activation region as four numbers (x, y, width, height)
 int LuaGetActivationRegion(TooltipWidget* theTooltip, lua_State* L)
 {
 	const Rect& aRegion = theTooltip->mActivationRegion;
@@ -49,7 +49,7 @@ TooltipWidget::TooltipWidget()
 	mMouseVisible = false;
 }
 
-// The original registered the class in the constructor (0x4a1cf0), every time
+// The original registered the class in the constructor (0x48bb20), every time
 void TooltipWidget::RegisterLua()
 {
 	static bool sRegistered = false;
@@ -85,7 +85,7 @@ void TooltipWidget::RegisterLua()
 		.Raw<&LuaGetActivationRegion>("GetActivationRegion");
 }
 
-// 0x4a2150: counts the delay up once it is shown (Show), then the time it stays
+// 0x48bf30: counts the delay up once it is shown (Show), then the time it stays
 void TooltipWidget::Update()
 {
 	if (mDisabled)
@@ -105,7 +105,7 @@ void TooltipWidget::Update()
 	}
 }
 
-// 0x4a21d0: a border, the box, and the lines in the font
+// 0x48bfb0: a border, the box, and the lines in the font
 void TooltipWidget::Draw(Graphics* g)
 {
 	if (OverlayUp() && !mAllowOverlayDisplay)
@@ -131,7 +131,7 @@ void TooltipWidget::Draw(Graphics* g)
 		g->DrawString(mLines[i], 3, (int)(mFont->GetAscent() * (i + 1) + 2 + i * 2));
 }
 
-// 0x4a2390 (vf 0xc8): the countdown to appearing starts, unless the player turned the tips off
+// 0x48c170 (vf 0xc8): the countdown to appearing starts, unless the player turned the tips off
 void TooltipWidget::MouseEnter()
 {
 	Profile* aProfile = gApp->mProfile;
@@ -143,7 +143,7 @@ void TooltipWidget::MouseEnter()
 	}
 }
 
-// 0x4a2410 (vf 0xcc)
+// 0x48c1f0 (vf 0xcc)
 void TooltipWidget::MouseLeave()
 {
 	if (mArmed) {
@@ -209,7 +209,7 @@ void TooltipWidget::SetFont(Font* theFont)
 	mHeight = CalcHeight();
 }
 
-// 0x4a2630: the box is kept inside the screen (right and bottom edges first, then the left and top)
+// 0x48c410: the box is kept inside the screen (right and bottom edges first, then the left and top)
 void TooltipWidget::SetXY(int x, int y)
 {
 	int aWidth = mWidth;
@@ -246,7 +246,7 @@ void TooltipWidget::SetTextColor(int r, int g, int b, int a)
 
 // ---- tooltips (GameApp, TooltipWidget.cpp) ----
 
-// 0x44bf00: a tooltip in front of everything, in the small font, black on pale yellow, appearing at once and
+// V1:0x44bf00: a tooltip in front of everything, in the small font, black on pale yellow, appearing at once and
 // staying until it is hidden. The scripts' MakeTooltip.
 TooltipWidget* GameApp::MakeTooltip()
 {
@@ -263,7 +263,7 @@ TooltipWidget* GameApp::MakeTooltip()
 	return aTooltip;
 }
 
-// 0x44c080: takes the tooltip away and deletes it; false when it is not one of the app's. The scripts'
+// V1:0x44c080: takes the tooltip away and deletes it; false when it is not one of the app's. The scripts'
 // RemoveTooltip.
 bool GameApp::RemoveTooltip(TooltipWidget* theTooltip)
 {
@@ -281,7 +281,7 @@ bool GameApp::RemoveTooltip(TooltipWidget* theTooltip)
 	return true;
 }
 
-// 0x44c1a0 (the book's returns from a mini-game and to the chapter select): every tooltip goes
+// V1:0x44c1a0 (the book's returns from a mini-game and to the chapter select): every tooltip goes
 void GameApp::RemoveAllTooltips()
 {
 	for (size_t i = 0; i < mTooltips.size(); i++) {
@@ -295,7 +295,7 @@ void GameApp::RemoveAllTooltips()
 	mDisabledTooltips.clear();
 }
 
-// 0x44c440: the mouse is at (x, y): the tooltip whose region it is in (and that is enabled) shows, the one that
+// 0x441800: the mouse is at (x, y): the tooltip whose region it is in (and that is enabled) shows, the one that
 // showed hides. A tooltip that touches one of the tutorial arrows' blocked rectangles stays out of it.
 void GameApp::UpdateTooltipHover(int x, int y)
 {
@@ -322,14 +322,14 @@ void GameApp::UpdateTooltipHover(int x, int y)
 	}
 }
 
-// 0x44c570: the tooltip showing is hidden (it stays the one under the mouse)
+// V1:0x44c570: the tooltip showing is hidden (it stays the one under the mouse)
 void GameApp::TurnOffTooltips()
 {
 	if (mHoverTooltip != nullptr)
 		mHoverTooltip->Hide();
 }
 
-// 0x44c590: false disables every enabled tooltip (the app remembers which) and hides the one showing; true
+// V1:0x44c590: false disables every enabled tooltip (the app remembers which) and hides the one showing; true
 // enables again those it disabled. The scripts' EnableTooltips.
 void GameApp::EnableTooltips(bool theEnable)
 {

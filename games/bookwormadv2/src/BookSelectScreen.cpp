@@ -220,7 +220,6 @@ void BookSelectScreen::Draw(Graphics* g)
 		g->SetColor(Color(95, 63, 2, mAlpha));
 		g->SetFont(FONT_MEDIUM);
 		g->WriteWordWrapped(Rect(275, 490, 250, 60), mText, -1, 0, nullptr, -1, nullptr);
-		g->PopState();  // port: the original pops once after both and leaves one state behind when both are drawn
 	}
 	if (mPrevAlpha > 0) {
 		g->PushState();
@@ -230,8 +229,10 @@ void BookSelectScreen::Draw(Graphics* g)
 		g->SetColor(Color(95, 63, 2, mPrevAlpha));
 		g->SetFont(FONT_MEDIUM);
 		g->WriteWordWrapped(Rect(275, 490, 250, 60), mPrevText, -1, 0, nullptr, -1, nullptr);
-		g->PopState();
 	}
+	// 0x424bdd: one pop for both texts, whether or not either was drawn: in a cross-fade the state of the first text
+	// (FONT_MEDIUM, its colour) is what the dim fill and the scripts' DrawToolTips start from
+	g->PopState();
 
 	// a message up: the screen goes dim under it
 	if (mApp->GetDialog(GameApp::DIALOG_OK) != nullptr) {
@@ -250,9 +251,9 @@ void BookSelectScreen::DrawOverlay(Graphics* g)
 
 void BookSelectScreen::KeyChar(SexyChar theChar)
 {
-	// port: the original also wanted no credits under the app's +0x8dc, and (when both the app's +0x94f and +0x878
-	// are set) nothing else in the way; the second pair belongs to a screen that is not ported
-	if (mApp->mCredits != nullptr)
+	// 0x424ea0: no credits (the app's +0x8dc), and no Enter while a chapter loads (+0x94f, mLoadingChapter, and +0x878,
+	// mChapterLoadScreen, both set)
+	if (mApp->mCredits != nullptr || (mApp->mLoadingChapter && mApp->mChapterLoadScreen != nullptr))
 		return;
 	if (!mApp->IsCurtainMoving() && mSelected != 0 && theChar == 13)
 		mApp->ButtonDepress(BUTTON_BEGIN);

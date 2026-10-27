@@ -1,11 +1,11 @@
-// Sexy::HallOfFame (0x14c bytes, constructor 0x45e840, vtables 0x7ae564 and 0x7ae684 (its ButtonListener part at
-// +0x88); code 0x45e840-0x466370): the screen of the best players. Every profile in users/*.bwa is loaded and
+// Sexy::HallOfFame (0x14c bytes, constructor V1:0x45e840, vtables 0x6fc75c and 0x6fc87c (its ButtonListener part at
+// +0x88); code V1:0x45e840-0x4721d0): the screen of the best players. Every profile in users/*.bwa is loaded and
 // ranked in three tabs: the adventure (the top ten words ever spelled, and the Lex power rating of the players),
 // the arena (the best timed runs and the most bonuses) and the mini-games (three games a page: each one's best
 // scores). The lists begin with ten entries made by the game's authors, which the players' own push down. The
 // player's own new entries are shown in a colour that cycles. Laid out from a data/hof_*.xml file (XLayout).
 //
-// Made by GameApp (0x450760 from the main menu, 0x450850 after a timed game, 0x450aa0 after a mini-game, 0x450c30
+// Made by GameApp (V1:0x450760 from the main menu, V1:0x450850 after a timed game, V1:0x450aa0 after a mini-game, V1:0x450c30
 // after the end of the game; GameAppHallOfFame.cpp).
 #pragma once
 
@@ -99,35 +99,35 @@ public:
 
 	// theMode: the tab to begin with. theName: the mini-game that was just played (or empty)
 	HallOfFame(GameApp* theApp, int theMode, bool theGameOver, bool theTimed, const std::string& theMiniGameName,
-	           bool theEndOfGame);  // 0x45e840
-	~HallOfFame() override;          // 0x45eb80 (0x45eba0)
+	           bool theEndOfGame);  // V1:0x45e840
+	~HallOfFame() override;          // 0x450f40 (0x450f60)
 
-	// 0x460550: the curtain over the screen is closed: the main menu comes back (after a timed game) and the
+	// V1:0x460550: the curtain over the screen is closed: the main menu comes back (after a timed game) and the
 	// screen goes
 	void CurtainClosed();
 
-	// vf70 in the original (0x466340; the curtain's callback is the thunk 0x477cd0, which calls it): once the
+	// vf70 in the original (0x459560; the curtain's callback is the thunk V1:0x477cd0, which calls it): once the
 	// curtain has closed over this screen, the mini-games' menu comes for the game just played and this goes
 	void ShowMiniGamesMenu();
 
 	// Widget
-	void Update() override;           // 0x460510
-	void Draw(Graphics* g) override;  // 0x45f9a0
+	void Update() override;           // 0x452b90
+	void Draw(Graphics* g) override;  // 0x451de0
 
 	// ButtonListener
-	void ButtonPress(int theId) override;    // 0x466370: the click
-	void ButtonDepress(int theId) override;  // 0x460580
+	void ButtonPress(int theId) override;    // 0x4721d0: the click
+	void ButtonDepress(int theId) override;  // 0x452c00
 
 private:
-	void SetTab(int theMode);   // 0x460950: the tab buttons look, and mMode
-	void LayOut();              // 0x45edc0: the layout of the tab, the buttons and the mini-games' banners
-	void LoadLists();           // 0x460b10: every profile loaded, the lists made
+	void SetTab(int theMode);   // V1:0x460950: the tab buttons look, and mMode
+	void LayOut();              // V1:0x45edc0: the layout of the tab, the buttons and the mini-games' banners
+	void LoadLists();           // V1:0x460b10: every profile loaded, the lists made
 	// the lists (each puts its rows into this screen's)
-	void MakeWordList(const std::vector<Profile*>& theProfiles);        // 0x460ea0: the top words
-	void MakePowerList(const std::vector<Profile*>& theProfiles);       // 0x4623f0: the Lex power ratings
-	void MakeTimeList(const std::vector<Profile*>& theProfiles);        // 0x4632a0: the best timed runs
-	void MakeBonusList(const std::vector<Profile*>& theProfiles);       // 0x4644d0: the most bonuses
-	void MakeMiniGameLists(const std::vector<Profile*>& theProfiles);   // 0x465290: the mini-games' best scores
+	void MakeWordList(const std::vector<Profile*>& theProfiles);        // V1:0x460ea0: the top words
+	void MakePowerList(const std::vector<Profile*>& theProfiles);       // V1:0x4623f0: the Lex power ratings
+	void MakeTimeList(const std::vector<Profile*>& theProfiles);        // V1:0x4632a0: the best timed runs
+	void MakeBonusList(const std::vector<Profile*>& theProfiles);       // V1:0x4644d0: the most bonuses
+	void MakeMiniGameLists(const std::vector<Profile*>& theProfiles);   // V1:0x465290: the mini-games' best scores
 };
 
 }  // namespace Sexy

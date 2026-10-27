@@ -27,19 +27,19 @@ namespace {
 // read and not as each credit begins.
 const bool kLoadAllAtOnce = false;
 
-// 0x434e20: whether an attribute's key (or an animation's label) is the name, in any case
+// 0x42c090: whether an attribute's key (or an animation's label) is the name, in any case
 bool NameIs(const std::string& theString, const char* theName)
 {
 	return sexystricmp(theString.c_str(), theName) == 0;
 }
 
-// 0x434ed0: the entries' order is that of their priorities
+// V1:0x434ed0: the entries' order is that of their priorities
 bool ByPriority(const std::pair<int, int>& theA, const std::pair<int, int>& theB)
 {
 	return theA.first < theB.first;
 }
 
-// 0x438f50: a tile of the thanks: where it is, between which y it bobs (the first is the highest), how fast it
+// V1:0x438f50: a tile of the thanks: where it is, between which y it bobs (the first is the highest), how fast it
 // moves, and its letter (the address of the original's text)
 struct TileDef {
 	float mX, mY, mTop, mBottom, mSpeed;
@@ -60,8 +60,8 @@ const TileDef kTileDefs[] = {
 
 }  // namespace
 
-// 0x434ef0: the tags the file has, the picture and the fonts of the screen, then the file; the band that shows the
-// credits opens from its middle (y 302), as Lex's music (song 0x4e) begins
+// 0x42c160: the tags the file has, the picture and the fonts of the screen, then the file; the band that shows the
+// credits opens from its middle (y 302)
 Credits::Credits()
 	: mCurSection(nullptr), mLex(nullptr), mSectionIndex(0), mNextAnimId(0), mFadeAlpha(0), mFadeStep(3),
 	  mClipY(302), mClipHeight(0), mState(STATE_NONE), mLexX(-120), mLexY(-150), mTileAlpha(0), mFinaleTime(0),
@@ -108,7 +108,7 @@ Credits::Credits()
 	MakeTiles();
 }
 
-// 0x435440
+// 0x42c6a0
 Credits::~Credits()
 {
 	gApp->mResourceManager->DeleteResources("Credits");
@@ -116,7 +116,7 @@ Credits::~Credits()
 	FreeAnims();
 }
 
-// 0x4355b0: every animation goes (the credits too, which are read again)
+// 0x42c810: every animation goes (the credits too, which are read again)
 void Credits::FreeAnims()
 {
 	size_t i = 0;
@@ -137,14 +137,14 @@ void Credits::FreeAnims()
 	gApp->ClearUpdateBacklog(false);
 }
 
-// 0x435b40: the credit that was showing is remembered
+// 0x42cee0: the credit that was showing is remembered
 void Credits::BeforeReload()
 {
 	mReloadSection = mSectionIndex;
 	FreeAnims();
 }
 
-// 0x434dc0 (0x435760): the credit that was showing again, loaded, and the credits begin to fade in
+// 0x42c030 (0x42c9f0): the credit that was showing again, loaded, and the credits begin to fade in
 void Credits::AfterReload()
 {
 	if ((size_t)mSectionIndex < mSections.size()) {
@@ -175,8 +175,8 @@ void Credits::PlaySectionLabels()
 		mCurSection->mMidAnim->PlayLabel(mCurSection->mFrame);
 }
 
-// port: the credit's animations loaded as it begins. The original had this in AfterReload (0x435876) and in Update
-// (0x437834).
+// port: the credit's animations loaded as it begins. The original had this in AfterReload (V1:0x435876) and in Update
+// (V1:0x437834).
 void Credits::LoadSectionAnims()
 {
 	if (!mCurSection->mPamFile.empty() && mCurSection->mAnim != nullptr) {
@@ -207,7 +207,7 @@ void Credits::LoadSectionAnims()
 	}
 }
 
-// 0x435b60: a new credit; the one that shows is the first
+// V1:0x435b60: a new credit; the one that shows is the first
 void Credits::StartCredit()
 {
 	mPriorities.clear();
@@ -216,7 +216,7 @@ void Credits::StartCredit()
 	mSectionIndex = 0;
 }
 
-// 0x435d10: the entries drawn in the order of their priorities (those that are the same in the order they came), and
+// V1:0x435d10: the entries drawn in the order of their priorities (those that are the same in the order they came), and
 // the columns centred
 void Credits::EndCredit()
 {
@@ -240,7 +240,7 @@ void Credits::EndCredit()
 	}
 }
 
-// 0x435ee0
+// V1:0x435ee0
 void Credits::ReadSettings(const AttributeList& theAttributes)
 {
 	Section& aSection = mSections.back();
@@ -286,7 +286,7 @@ void Credits::ReadSettings(const AttributeList& theAttributes)
 	}
 }
 
-// 0x436900: a name with its creature, in the credit being read (the order it is drawn in comes at EndCredit)
+// V1:0x436900: a name with its creature, in the credit being read (the order it is drawn in comes at EndCredit)
 void Credits::ReadEntry(const AttributeList& theAttributes)
 {
 	Section& aSection = mSections.back();
@@ -327,13 +327,13 @@ void Credits::ReadEntry(const AttributeList& theAttributes)
 	mPriorities.push_back(std::make_pair(aPriority, (int)aSection.mEntries.size() - 1));
 }
 
-// 0x436650: a column of the credit being read
+// V1:0x436650: a column of the credit being read
 void Credits::StartColumn()
 {
 	mSections.back().mColumns.push_back(Column());
 }
 
-// 0x436790: the height of the credit's columns (one line more than the names each, as the font's ascent and 5
+// V1:0x436790: the height of the credit's columns (one line more than the names each, as the font's ascent and 5
 // pixels), and how wide the column is
 void Credits::EndColumn()
 {
@@ -351,7 +351,7 @@ void Credits::EndColumn()
 	aColumn.mWidth = aWidth;
 }
 
-// 0x436520: a name of the column being read, the first value the tag has
+// V1:0x436520: a name of the column being read, the first value the tag has
 void Credits::ReadColumnEntry(const AttributeList& theAttributes)
 {
 	Column& aColumn = mSections.back().mColumns.back();
@@ -365,7 +365,7 @@ void Credits::ReadColumnEntry(const AttributeList& theAttributes)
 	}
 }
 
-// 0x438f50: the letters of the thanks (17 tiles in two rows)
+// V1:0x438f50: the letters of the thanks (17 tiles in two rows)
 void Credits::MakeTiles()
 {
 	mTiles.clear();
@@ -383,7 +383,7 @@ void Credits::MakeTiles()
 	}
 }
 
-// 0x438c30: each tile moves up or down and turns round at the end of its range
+// V1:0x438c30: each tile moves up or down and turns round at the end of its range
 void Credits::UpdateTiles()
 {
 	size_t i = 0;
@@ -406,7 +406,7 @@ void Credits::UpdateTiles()
 	}
 }
 
-// 0x438d40: the finale of the end of the game: Lex comes down, the tiles fade in and bob for 500 updates, Lex
+// 0x4306a0: the finale of the end of the game: Lex comes down, the tiles fade in and bob for 500 updates, Lex
 // attacks (his animation's "whitescreen" flashes the screen), and the curtain closes
 void Credits::UpdateFinale()
 {
@@ -446,7 +446,7 @@ void Credits::UpdateFinale()
 	}
 }
 
-// 0x436ec0
+// 0x42e640
 void Credits::Update()
 {
 	MarkDirtyFull();
@@ -688,7 +688,7 @@ void Credits::Update()
 	}
 }
 
-// 0x437c20: the animations of the credit that has begun
+// 0x42f4b0: the animations of the credit that has begun
 void Credits::UpdateF(float theFrac)
 {
 	if (mCurSection->mAnim != nullptr)
@@ -704,7 +704,7 @@ void Credits::UpdateF(float theFrac)
 	}
 }
 
-// 0x438810: the creatures that have begun, in the order of their priorities
+// 0x430180: the creatures that have begun, in the order of their priorities
 void Credits::DrawCreatures(Graphics* g)
 {
 	size_t i = 0;
@@ -720,7 +720,7 @@ void Credits::DrawCreatures(Graphics* g)
 	}
 }
 
-// 0x4388f0: the heading (over the width of the screen when the credit has columns, else on the left, above the
+// 0x430260: the heading (over the width of the screen when the credit has columns, else on the left, above the
 // names, one under the other), and the columns
 void Credits::DrawText(Graphics* g)
 {
@@ -762,7 +762,7 @@ void Credits::DrawText(Graphics* g)
 	}
 }
 
-// 0x438220
+// 0x42fb30
 void Credits::Draw(Graphics* g)
 {
 	g->SetColor(Color::Black);
@@ -850,7 +850,7 @@ void Credits::Draw(Graphics* g)
 	g->PopState();
 }
 
-// 0x437cc0: a click anywhere, but not of the middle button and not while the curtain moves, closes the screen
+// 0x42f570: a click anywhere, but not of the middle button and not while the curtain moves, closes the screen
 void Credits::MouseUp(int x, int y, int theLastDownButtonId)
 {
 	if (theLastDownButtonId != 3 && !gApp->IsCurtainMoving()) {
@@ -861,7 +861,7 @@ void Credits::MouseUp(int x, int y, int theLastDownButtonId)
 	}
 }
 
-// 0x437d90: an animation reached a frame that stops it: Lex giggles again, the background goes round, a creature
+// 0x42f650: an animation reached a frame that stops it: Lex giggles again, the background goes round, a creature
 // that was fighting goes back to idle (the last of them lets the names fly), a dead creature stays dead
 void Credits::PopAnimStopped(int theId)
 {
@@ -898,7 +898,7 @@ void Credits::PopAnimStopped(int theId)
 	}
 }
 
-// 0x437fe0: a command of an animation. A creature that hits ("causedamage") shakes the screen and lets its name
+// 0x42f8f0: a command of an animation. A creature that hits ("causedamage") shakes the screen and lets its name
 // fight; one that "slide"s moves away by the distance and at the speed the command gives ("<distance> <speed>");
 // Lex's "whitescreen" and "screenrumble" flash the screen.
 void Credits::PopAnimCommand(int theId, const std::string& theCommand, const std::string& theParam)

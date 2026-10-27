@@ -44,7 +44,7 @@ public:
 		REACTION_WELCOME = 7,  // Lex's welcome, when the curtain has opened over the menu
 	};
 
-	// The scroll that unrolls under a thing (0x34 bytes, constructor 0x478060): IMAGE_MM_SCROLL at its top and
+	// The scroll that unrolls under a thing (0x34 bytes, constructor V1:0x478060): IMAGE_MM_SCROLL at its top and
 	// its bottom, and between them the parchment with the thing's name and what it is, shown as far as the
 	// scroll has unrolled
 	class Tooltip {
@@ -73,10 +73,10 @@ public:
 		Tooltip(Image* theTitle, const std::string& theText, int theTitleY);
 		~Tooltip();
 
-		// 0x478280: under the mouse, kept on the screen
+		// 0x466280: under the mouse, kept on the screen
 		void SetPosition(int theX, int theY);
-		void Update();  // 0x478310
-		void Draw(Graphics* g);  // 0x478410
+		void Update();  // 0x466310
+		void Draw(Graphics* g);  // V1:0x478410
 	};
 
 	// A thing of the menu (Volume 2: 0x80 bytes). The adventure, the arena and the mini-games are animations
@@ -139,63 +139,63 @@ public:
 	bool mExpansionAvailable;                 // +0x12e, books beyond the first three (an expansion's; nothing draws it now)
 
 	MainMenu(GameApp* theApp, bool theFromTitle);
-	~MainMenu() override;  // 0x47a760
+	~MainMenu() override;  // 0x469710
 
-	// 0x479e80: the unlocked things and the scrolls again, from the profile
+	// V1:0x479e80: the unlocked things and the scrolls again, from the profile
 	void RefreshUnlocks();
-	// 0x479ce0: Lex's word about a thing (or his welcome, for -1 or REACTION_WELCOME), unless he is busy or a
+	// V1:0x479ce0: Lex's word about a thing (or his welcome, for -1 or REACTION_WELCOME), unless he is busy or a
 	// sample of his is still playing
 	void PlayReaction(int theItem);
-	// 0x479c80: rolls the scrolls up
+	// V1:0x479c80: rolls the scrolls up
 	void CloseTooltips();
-	// 0x47d670: whether to quit, Lex in tears behind the question (the app's DIALOG_REALLY_QUIT: its yes quits)
+	// V1:0x47d670: whether to quit, Lex in tears behind the question (the app's DIALOG_REALLY_QUIT: its yes quits)
 	void AskReallyQuit();
-	// 0x47c290: the arena's door, once it is open: the scripts' timed mode begins, and a new run goes to its book
+	// V1:0x47c290: the arena's door, once it is open: the scripts' timed mode begins, and a new run goes to its book
 	// (ResetTimedMode first) unless the profile has one in progress (TM_InGame), which the player is asked whether
 	// to go on with (dialog DIALOG_CONTINUE_GAME, answered in GameApp::ButtonDepress). The things of the menu are
 	// off meanwhile.
 	void StartArena();
-	// 0x47c170: the answer to that question. theContinue: the saved run (the book under the menu, then the curtain;
+	// V1:0x47c170: the answer to that question. theContinue: the saved run (the book under the menu, then the curtain;
 	// the new game's curtain when the run was at its checkpoint, which that one takes to the treasure screen);
 	// else a new run (ResetTimedMode, then the new game's curtain)
 	void ContinueArena(bool theContinue);
 
-	// 0x47c770: the players' dialog over the menu (MaxProfiles of the properties, 10, at most), filled
+	// V1:0x47c770: the players' dialog over the menu (MaxProfiles of the properties, 10, at most), filled
 	// by FillUserList
 	void ShowUserDialog();
-	// 0x47ca20: the dialog's players, one for each users/*.bwa (the first MaxProfiles of them), and the player
+	// V1:0x47ca20: the dialog's players, one for each users/*.bwa (the first MaxProfiles of them), and the player
 	// now playing first and chosen
 	void FillUserList();
-	// 0x47d200: whether theName is not any player's yet (capitals and small letters count the same); no for a
+	// V1:0x47d200: whether theName is not any player's yet (capitals and small letters count the same); no for a
 	// blank one
 	bool IsUserNameFree(const std::string& theName);
-	// 0x47d390 (called by GameApp::NewUserDialogDone with the name asked from the dialog's NEW): false and a message
+	// V1:0x47d390 (called by GameApp::NewUserDialogDone with the name asked from the dialog's NEW): false and a message
 	// when the name is taken, so the name dialog stays; else the dialog's list is made again, the players' dialog
 	// goes and a player who has not played begins the intro. A blank name (CANCEL) is nothing.
 	bool TakeNewUser(const std::string& theName);
-	// 0x47d940 (the app's LostFocus calls it): the menu is redrawn, and Lex goes idle unless he is doing one of the
+	// V1:0x47d940 (the app's LostFocus calls it): the menu is redrawn, and Lex goes idle unless he is doing one of the
 	// secret words' animations (his current label is one of the words, whatever the letters' case)
 	void AppLostFocus();
 
 	// Widget
-	void Update() override;                       // 0x47c5b0
-	void UpdateF(float theFrac) override;         // 0x47c560
-	void Draw(Graphics* g) override;              // 0x47aa70
-	void DrawOverlay(Graphics* g) override;       // 0x47af50
-	void KeyChar(SexyChar theChar) override;      // 0x47da70
-	void MouseMove(int x, int y) override;        // 0x47afe0
-	void MouseDown(int x, int y, int theClickCount) override;  // 0x47b350
-	void MouseUp(int x, int y, int theClickCount) override;    // 0x47b470
+	void Update() override;                       // 0x46c950
+	void UpdateF(float theFrac) override;         // 0x46c8a0
+	void Draw(Graphics* g) override;              // 0x46a260
+	void DrawOverlay(Graphics* g) override;       // 0x46a570
+	void KeyChar(SexyChar theChar) override;      // V1:0x47da70
+	void MouseMove(int x, int y) override;        // V1:0x47afe0
+	void MouseDown(int x, int y, int theClickCount) override;  // 0x46b240
+	void MouseUp(int x, int y, int theClickCount) override;    // 0x46b3b0
 
-	// ButtonListener: the link to change the player (0x47c720)
+	// ButtonListener: the link to change the player (0x46cae0)
 	void ButtonDepress(int theId) override;
 
 	// DialogListener: the players' dialog (OK takes the chosen player, CANCEL none, NEW asks a name, DELETE asks
-	// whether to delete) and the confirmation of a delete (0x47cd70)
+	// whether to delete) and the confirmation of a delete (0x46d130)
 	void DialogButtonDepress(int theDialogId, int theButtonId) override;
 
-	// PopAnimListener: Lex goes back to idling when a label is done (0x47a9e0), and plays the samples his
-	// animation asks for (0x47da10)
+	// PopAnimListener: Lex goes back to idling when a label is done (V1:0x47a9e0), and plays the samples his
+	// animation asks for (0x46de50)
 	void PopAnimStopped(int theId) override;
 	void PopAnimCommand(int theId, const std::string& theCommand, const std::string& theParam) override;
 
@@ -209,7 +209,7 @@ private:
 	void PlayAdventureLabel(const char* theSuffix);
 	// the click on the adventure (in MouseUp); theDisableAll: all the things go dark
 	void ClickAdventure(bool& theDisableAll);
-	// 0x47d510: a player who has not played yet starts the intro (and the menu is no longer from the title)
+	// V1:0x47d510: a player who has not played yet starts the intro (and the menu is no longer from the title)
 	bool StartIntroIfNew();
 };
 

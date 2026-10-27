@@ -18,7 +18,7 @@ using namespace LuaLib;
 
 TileEngine* Sexy::gTileEngine = nullptr;
 
-// The words a 4x4 grid must not spell (0x818978-0x818df4, made by 0x795240 in this order): game data, read from the
+// The words a 4x4 grid must not spell (0x818978-0x818df4, made by V1:0x795240 in this order): game data, read from the
 // exe by address
 static const unsigned int kAvoidedWordAddrs[] = {
     GTA(0x6ff530), GTA(0x6ff528), GTA(0x6ff520), GTA(0x6ff51c), GTA(0x6ff514), GTA(0x6ff50c), GTA(0x6ff504),
@@ -28,10 +28,10 @@ static const unsigned int kAvoidedWordAddrs[] = {
     GTA(0x6ff468), GTA(0x6ff460), GTA(0x6ff45c), GTA(0x6ff454), GTA(0x6ff450), GTA(0x6ff448), GTA(0x6ff440),
     GTA(0x6ff43c), GTA(0x6ff434), GTA(0x6ff42c), GTA(0x6ff424), GTA(0x6ff41c), GTA(0x6ff414)};
 
-// 0x7a8b98: the most copies of each letter 'A' to 'Z' that the board may hold
+// V1:0x7a8b98: the most copies of each letter 'A' to 'Z' that the board may hold
 static const int kMaxLetters[26] = {4, 3, 3, 4, 4, 3, 4, 3, 4, 2, 2, 4, 3, 4, 3, 4, 2, 4, 4, 4, 4, 3, 3, 2, 3, 2};
 
-// 0x7a8b28: the weight of each letter 'A' to 'Z' when a letter is chosen (English letter frequencies)
+// V1:0x7a8b28: the weight of each letter 'A' to 'Z' when a letter is chosen (English letter frequencies)
 static const int kLetterWeights[26] = {9420, 2200, 2000, 4200, 12700, 2000, 2500, 2000, 7330, 700, 700, 4000, 2300,
                                        6000, 7330, 2300, 600,  6900,  5600, 6000, 4400, 1600, 1500, 500, 2100, 500};
 
@@ -41,14 +41,14 @@ static bool IsVowelLetter(char c)
 	       c == 'U' || c == 'y' || c == 'Y';
 }
 
-// 0x49d460: a letter as a string of one character (a script's letters are strings)
+// 0x488d20: a letter as a string of one character (a script's letters are strings)
 static void PushLetter(char theLetter)
 {
 	char aString[2] = {theLetter, 0};
 	lua_pushstring(gLuaSupport->L, aString);
 }
 
-// 0x49c5f0: gTileEngine:TileXYChanged(tile, x, y), the tile engine's own call
+// 0x488380: gTileEngine:TileXYChanged(tile, x, y), the tile engine's own call
 static void TellXYChanged(TileEngine* theEngine, Tile* theTile)
 {
 	lua_State* L = gLuaSupport->L;
@@ -270,7 +270,7 @@ void TileEngine::StopMoving(Tile* theTile, bool theNotify)
 	theTile->mMoving = false;
 	if (theNotify) {
 		TellXYChanged(this, theTile);
-		// (0x49ce90) the second argument is whether it was the last tile that slid
+		// (V1:0x49ce90) the second argument is whether it was the last tile that slid
 		Tile::PushTile(theTile);
 		lua_pushboolean(gLuaSupport->L, mMovingCount <= 0);
 		CallLinkedMethod("TileStoppedMoving", 2);

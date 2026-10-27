@@ -13,7 +13,7 @@
 
 using namespace Sexy;
 
-// 0x47fd00: dialog 0x11 under the menu's banner, its buttons stacked from 80 down, 90 across and 250 wide, the
+// V1:0x47fd00: dialog 0x11 under the menu's banner, its buttons stacked from 80 down, 90 across and 250 wide, the
 // dialog 420 wide and as high as they make it, in the middle of the screen
 MenuDialog::MenuDialog(bool theHasBoard, bool theFromTreasure, bool theMiniGameFromMenu)
 	: GameDialog(GameApp::DIALOG_MENU, _S(""), _S(""), _S(""), BUTTONS_NONE), mHasBoard(theHasBoard),
@@ -59,7 +59,7 @@ MenuDialog::MenuDialog(bool theHasBoard, bool theFromTreasure, bool theMiniGameF
 	GameDialog::Resize(mApp->mWidth / 2 - 210, mApp->mHeight / 2 - aHeight / 2, 420, aHeight);
 }
 
-// 0x480180: the buttons are the dialog's widgets, and go with it
+// 0x46fca0: the buttons are the dialog's widgets, and go with it
 MenuDialog::~MenuDialog()
 {
 	RemoveAllWidgets(true, true);
@@ -67,13 +67,13 @@ MenuDialog::~MenuDialog()
 
 void MenuDialog::ButtonPress(int theId)
 {
-	// 0x480210
+	// 0x480930
 	mApp->PlaySample(SOUND_CLICK1);
 }
 
 void MenuDialog::ButtonDepress(int theId)
 {
-	// 0x480230. Any button but "Main Menu" over a battle ends the menu (so does Escape, as the way back), and the
+	// 0x46fd30. Any button but "Main Menu" over a battle ends the menu (so does Escape, as the way back), and the
 	// battle goes on; "Main Menu" over a battle asks first, with the menu staying under the question
 	if (!mHasBoard || theId != BUTTON_MAIN_MENU) {
 		if (theId != BUTTON_OPTIONS)

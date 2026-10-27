@@ -22,7 +22,7 @@ LuaInterface* Sexy::gLuaInterface = nullptr;
 
 // The functions read their arguments from the stack themselves, as the original's do
 
-// sexy.PrintConsole(text), 0x4c4540: to the debug console
+// sexy.PrintConsole(text), V1:0x4c4540: to the debug console
 static int PrintConsole(lua_State* L)
 {
 	const char* aText = lua_tostring(L, -1);
@@ -32,14 +32,14 @@ static int PrintConsole(lua_State* L)
 	return 1;
 }
 
-// sexy.NextRand(), 0x4c4640: the framework's random number
+// sexy.NextRand(), 0x4a4470: the framework's random number
 static int NextRand(lua_State* L)
 {
 	lua_pushint(L, Rand());
 	return 1;
 }
 
-// sexy.PlaySample(id[, pan]), 0x4c4670
+// sexy.PlaySample(id[, pan]), V1:0x4c4670
 static int PlaySample(lua_State* L)
 {
 	if (lua_gettop(L) == 1)
@@ -49,8 +49,8 @@ static int PlaySample(lua_State* L)
 	return 0;
 }
 
-// sexy.DebugDialog, sexy.DebugMsgBox (0x4c4700, 0x4c4970): the developers' message boxes, used by cheat.lua only.
-// sexy.PrintWarning, sexy.PrintError (0x4c4b00, 0x4c4c10): coloured lines on the debug console.
+// sexy.DebugDialog, sexy.DebugMsgBox (V1:0x4c4700, V1:0x4c4970): the developers' message boxes, used by cheat.lua only.
+// sexy.PrintWarning, sexy.PrintError (V1:0x4c4b00, V1:0x4c4c10): coloured lines on the debug console.
 static int DebugMessage(lua_State* L)
 {
 	const char* aText = lua_tostring(L, 1);
@@ -58,7 +58,7 @@ static int DebugMessage(lua_State* L)
 	return 0;
 }
 
-// sexy.GetOffsetRectFromImage(image), 0x4c4d50: the box around the image's white pixels (any alpha), as x, y,
+// sexy.GetOffsetRectFromImage(image), V1:0x4c4d50: the box around the image's white pixels (any alpha), as x, y,
 // width, height; the whole image when it has none
 static int GetOffsetRectFromImage(lua_State* L)
 {
@@ -101,7 +101,7 @@ static int GetOffsetRectFromImage(lua_State* L)
 	return 4;
 }
 
-// sexy.DoHandCursor(), sexy.DoPointerCursor() (0x4c4d30, 0x4c4d40)
+// sexy.DoHandCursor(), sexy.DoPointerCursor() (V1:0x4c4d30, V1:0x4c4d40)
 static int DoHandCursor(lua_State* L)
 {
 	gSexyAppBase->SetCursor(CURSOR_HAND);
@@ -114,14 +114,14 @@ static int DoPointerCursor(lua_State* L)
 	return 0;
 }
 
-// sexy.IncResLoadedCount(), 0x4c4d20: one more task for the loading bar
+// sexy.IncResLoadedCount(), V1:0x4c4d20: one more task for the loading bar
 static int IncResLoadedCount(lua_State* L)
 {
 	gSexyAppBase->mNumLoadingThreadTasks++;
 	return 0;
 }
 
-// sexy.GetFilesInDirectory(pattern), 0x4c4310: the names of the matching files, as results
+// sexy.GetFilesInDirectory(pattern), V1:0x4c4310: the names of the matching files, as results
 static int GetFilesInDirectory(lua_State* L)
 {
 	const char* aPattern = lua_tostring(L, 1);
@@ -131,7 +131,7 @@ static int GetFilesInDirectory(lua_State* L)
 	return (int)aFiles.size();
 }
 
-// sexy.StrLess(a, b), 0x4c2e30: JeffLib's natural order
+// sexy.StrLess(a, b), V1:0x4c2e30: JeffLib's natural order
 static int StrLess(lua_State* L)
 {
 	int aType = lua_type(L, 1);
@@ -146,7 +146,7 @@ static int StrLess(lua_State* L)
 	return 1;
 }
 
-// sexy.NumToCommaStr(n), 0x4c3030: "12,345" ("0" for 0; a negative number gives "")
+// sexy.NumToCommaStr(n), V1:0x4c3030: "12,345" ("0" for 0; a negative number gives "")
 static int NumToCommaStr(lua_State* L)
 {
 	int n = lua_toint(L, 1);
@@ -162,7 +162,7 @@ static int NumToCommaStr(lua_State* L)
 	return 1;
 }
 
-// perf.Start, perf.End (0x4c2dd0, 0x4c2de0): the developers' profiler, empty in the release
+// perf.Start, perf.End (0x4a2f80, 0x4a2f90): the developers' profiler, empty in the release
 static int PerfNothing(lua_State* L)
 {
 	return 0;
@@ -178,7 +178,7 @@ static int NumberArg(lua_State* L, int theIndex)
 	return (int)lua_tonumber(L, theIndex);
 }
 
-// sexy.LoadPAMFile(file, callback, id), 0x4c31f0
+// sexy.LoadPAMFile(file, callback, id), V1:0x4c31f0
 static int LoadPAMFile(lua_State* L)
 {
 	if (lua_gettop(L) != 3)
@@ -203,7 +203,7 @@ static int LoadPAMFile(lua_State* L)
 	return 0;
 }
 
-// sexy.ClonePAM(id, newId, callback), 0x4c34b0
+// sexy.ClonePAM(id, newId, callback), V1:0x4c34b0
 static int ClonePAM(lua_State* L)
 {
 	int anId = NumberArg(L, 1);
@@ -221,14 +221,14 @@ static int ClonePAM(lua_State* L)
 	return 0;
 }
 
-// sexy.UpdatePopAnim(id), 0x4c37a0
+// sexy.UpdatePopAnim(id), V1:0x4c37a0
 static int UpdatePopAnim(lua_State* L)
 {
 	gApp->mPopAnimManager->Update(L, NumberArg(L, 1));
 	return 0;
 }
 
-// sexy.DrawPopAnim(g, id, x, y), 0x4c3840
+// sexy.DrawPopAnim(g, id, x, y), V1:0x4c3840
 static int DrawPopAnim(lua_State* L)
 {
 	Graphics* g = (Graphics*)gLuaSupport->CheckObject(1, ClassOf<Graphics>::info);
@@ -239,7 +239,7 @@ static int DrawPopAnim(lua_State* L)
 	return 0;
 }
 
-// sexy.GetPopAnimFile(id), 0x4c3ac0
+// sexy.GetPopAnimFile(id), V1:0x4c3ac0
 static int GetPopAnimFile(lua_State* L)
 {
 	PopAnim* anAnim = gApp->mPopAnimManager->Get(NumberArg(L, 1));
@@ -247,7 +247,7 @@ static int GetPopAnimFile(lua_State* L)
 	return 1;
 }
 
-// sexy.PlayPopAnim(frame or label, id), 0x4c3ba0: whether it plays
+// sexy.PlayPopAnim(frame or label, id), V1:0x4c3ba0: whether it plays
 static int PlayPopAnim(lua_State* L)
 {
 	int anId = (int)lua_tonumber(L, 2);
@@ -265,7 +265,7 @@ static int PlayPopAnim(lua_State* L)
 	return 1;
 }
 
-// sexy.GetPopAnimLabelFrame(label, id), 0x4c3d10: -1 for a label it does not have
+// sexy.GetPopAnimLabelFrame(label, id), V1:0x4c3d10: -1 for a label it does not have
 static int GetPopAnimLabelFrame(lua_State* L)
 {
 	const char* aLabel = lua_tostring(L, 1);
@@ -277,7 +277,7 @@ static int GetPopAnimLabelFrame(lua_State* L)
 	return 1;
 }
 
-// sexy.ChangePopAnimCallback(id, callback), 0x4c3e00
+// sexy.ChangePopAnimCallback(id, callback), V1:0x4c3e00
 static int ChangePopAnimCallback(lua_State* L)
 {
 	int anId = NumberArg(L, 1);
@@ -288,7 +288,7 @@ static int ChangePopAnimCallback(lua_State* L)
 	return 0;
 }
 
-// sexy.ResetPopAnim(id), 0x4c3f70
+// sexy.ResetPopAnim(id), V1:0x4c3f70
 static int ResetPopAnim(lua_State* L)
 {
 	int anId = NumberArg(L, 1);
@@ -299,7 +299,7 @@ static int ResetPopAnim(lua_State* L)
 	return 0;
 }
 
-// sexy.SetPopAnimColor(id, {r, g, b, a}), 0x4c3fb0
+// sexy.SetPopAnimColor(id, {r, g, b, a}), V1:0x4c3fb0
 static int SetPopAnimColor(lua_State* L)
 {
 	int anId = (int)lua_tonumber(L, 1);
@@ -319,7 +319,7 @@ static int SetPopAnimColor(lua_State* L)
 	return 0;
 }
 
-// sexy.DeletePopAnim(id), 0x4c4270
+// sexy.DeletePopAnim(id), V1:0x4c4270
 static int DeletePopAnim(lua_State* L)
 {
 	gApp->mPopAnimManager->Delete(NumberArg(L, 1));

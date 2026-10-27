@@ -13,7 +13,7 @@ using namespace LuaLib;
 
 BattleEngine* Sexy::gBattleEngine = nullptr;
 
-// The i-th result of a call into Lua as a boolean (0x6c9880 and 0x6c94d0): anything else is reported and false
+// The i-th result of a call into Lua as a boolean (0x63bf70 and 0x63bcb0): anything else is reported and false
 static bool RetBool(const LuaClassRet& theRet, int i)
 {
 	if (i >= theRet.count || theRet.v[i].type != LuaClassRet::TBool) {
@@ -23,7 +23,7 @@ static bool RetBool(const LuaClassRet& theRet, int i)
 	return theRet.v[i].b;
 }
 
-// The three questions the script answers with (override, value), 0x414430, 0x4144e0 and 0x4145a0: an override
+// The three questions the script answers with (override, value), V1:0x414430, 0x40e0e0 and 0x40e1a0: an override
 // gives the value; otherwise the player may when the battle is idle and the value says so
 static bool AskScript(BattleEngine* theEngine, const char* theMethod)
 {
@@ -175,7 +175,7 @@ bool BattleEngine::SubmitTiles(std::list<Tile*>& theTiles)
 	}
 	lua_pop(L, 3);
 
-	// 0x415af0: SubmitTiles(number of tiles, word)
+	// V1:0x415af0: SubmitTiles(number of tiles, word)
 	lua_pushint(L, (int)theTiles.size());
 	lua_pushstring(L, aWord.c_str());
 	CallLinkedMethod("SubmitTiles", 2);

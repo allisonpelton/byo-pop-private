@@ -24,6 +24,14 @@ functions, 3.03 MB of code. Where things are (survey 3.3): the game's C++ at 0x4
 Against Volume 1 (masked instruction streams, `tools/funcmatch.py`): 4,771 of Volume 2's 16,502 decompiled functions
 have a counterpart there; of the 529 functions at 0x659000-0x680000, where PopLua is, 252 do.
 
+The port's source began as Volume 1's, so the address comments in `src/` began as Volume 1's too. A plain `0x4xxxxx` in a
+comment is now a Volume 2 address: carried over from Volume 1's by those pairs, the pairs of the vtable slots of classes both
+games have, and the call lists of paired functions (the ones checked against the decompilation agree), or written for
+Volume 2 in the first place. `V1:0x4xxxxx` is a Volume 1 address that has no counterpart that was found: do not look it up
+in Volume 2's export. `docs/symbols/` holds the names that came over the same way (`tools/decread.py` and `tools/asm.py`
+read them). A comment's address only says where to look in Volume 2's export; it does not promise that the function is a
+line-for-line copy of it (`docs/PORT_PLAN.md` says which parts were read against Volume 2's decompilation).
+
 Volume 2 drops Volume 1's `CursorWidget`, `TextWidget`, `MoreGamesAd`, `FModSoundInstance` and two JeffLib developer
 dialogs, and adds `BookSelectScreen`, `EncodingParser`, `SecretListWidget` and `WinInetHTTPTransfer`. Its music is 10
 OGG files (`music/`), so it needs no tracker module; its dictionary has an attribute file
@@ -96,7 +104,10 @@ the in-game Menu dialog with Options and Quit To Main Menu; the main menu (rebui
 animated portal, Lex and his bubble); the Options dialog and the Hall of Fame; and the portal's click, which takes a game
 saved in the prologue back into the battle; and the replay of a finished adventure (the "continue your current adventure?"
 dialog, `BookSelectScreen` with its three books, and the curtain's states 9, 10 and 12 up to the replay's chapter map and the
-Hall of Fame after it), tried with a profile set to a finished adventure. The music plays from the ten loose OGG files over the framework's music
+Hall of Fame after it), tried with a profile set to a finished adventure; with a treasure in its `Treasures` key the soak plays a replay
+through Chapters 1 to 5 of Book 0 with no script error, and after a quit in the middle of one the menu's "Continue your current
+adventure?" Yes brings it back where it was (a replay adds the saved treasures back to Lex, and the last one is the picture of the
+altar after a win: a profile with no `Treasures` key gives the scripts' own error there, `PORT_PLAN.md`). The music plays from the ten loose OGG files over the framework's music
 interface, by song id. Also Volume 2's own: the mini-games' menu (the buttons by what is unlocked, the "new" mark, the
 tooltips checkbox, the two ways in and out), the cut scene (a click skips to the end of the scene), the credits (with the
 midground animation and the finale's tiles) and the stats book (the tome of knowledge with its list of secrets, the media
@@ -113,7 +124,9 @@ error; Golden Coins and Word Up end in the Hall of Fame with their entry. The ar
 soak plays all 24 stages (the checkpoints' treasure rooms included) and beats Bigger Brother in 87,000 updates; the win
 dialog's Continue calls the scripts' callback, which opens the stats book (the "Game Over" page), and its Continue ends in the
 Hall of Fame's arena list with the run's entry. `tools/wasmrun.js` runs the web build under Node
-with the switches of a native run (the soak in the browser build: 485 words, and the whole arena, no script error). A saved arena run
+with the switches of a native run (the soak in the browser build: 485 words, and the whole arena, no script error). In the Browser
+pane the real install folder imports through the page (9,255 files) and plays from the New User dialog through the intro to the
+first battle and its first attack. A saved arena run
 comes back through the main menu's "Continue game?" question in the middle of a battle and in a checkpoint's treasure room (native). A crash of the native Windows
 build writes where it was to the log (`src/CrashLog.cpp`, for the soak's memory checks and the next bug).
 The cut scene player draws the bitmaps (JPEG and lossless) of Volume 2's five movies, so the comic panels of the intros and

@@ -158,20 +158,20 @@ void SortRows(std::vector<T>& theRows, Pr thePred)
 
 // ---- the lists' entries (one per ranked thing, ahead of the rows made from them) ----
 
-// 0x40 bytes (constructor 0x45e5e0)
+// 0x40 bytes (constructor 0x450a40)
 struct WordEntry {
 	std::string mName;   // +0x00
 	std::string mWord;   // +0x1c
 	int mValue;          // +0x38
 	bool mNew;           // +0x3c
 };
-// 0x24 bytes (0x45e690)
+// 0x24 bytes (V1:0x45e690)
 struct PowerEntry {
 	std::string mName;   // +0x00
 	int mPower;          // +0x1c
 	bool mChanged;       // +0x20
 };
-// 0x28 bytes (0x45e6f0): a timed run, a number of bonuses or a mini-game's score
+// 0x28 bytes (V1:0x45e6f0): a timed run, a number of bonuses or a mini-game's score
 struct RunEntry {
 	std::string mName;   // +0x00
 	int mFirst;          // +0x1c: the time, the experience or the words
@@ -179,11 +179,11 @@ struct RunEntry {
 	bool mNew;           // +0x24
 };
 
-// 0x45e670
+// V1:0x45e670
 bool WordBefore(const WordEntry& a, const WordEntry& b) { return a.mValue > b.mValue; }
-// 0x45e6d0
+// V1:0x45e6d0
 bool PowerBefore(const PowerEntry& a, const PowerEntry& b) { return a.mPower > b.mPower; }
-// 0x45e7a0: the higher stage; for the same, the name that sorts first
+// V1:0x45e7a0: the higher stage; for the same, the name that sorts first
 bool TimeBefore(const RunEntry& a, const RunEntry& b)
 {
 	if (b.mSecond < a.mSecond)
@@ -192,14 +192,14 @@ bool TimeBefore(const RunEntry& a, const RunEntry& b)
 		return false;
 	return JeffLib::StringLessNatural(a.mName, b.mName);
 }
-// 0x45e730: the experience; for the same, the bonuses
+// V1:0x45e730: the experience; for the same, the bonuses
 bool BonusBefore(const RunEntry& a, const RunEntry& b)
 {
 	if (a.mFirst != b.mFirst)
 		return a.mFirst > b.mFirst;
 	return a.mSecond > b.mSecond;
 }
-// 0x45e810: the score; for the same, the words
+// V1:0x45e810: the score; for the same, the words
 bool ScoreBefore(const RunEntry& a, const RunEntry& b)
 {
 	if (a.mSecond != b.mSecond)
@@ -207,7 +207,7 @@ bool ScoreBefore(const RunEntry& a, const RunEntry& b)
 	return a.mFirst > b.mFirst;
 }
 
-// 0x45e130: a name that fits theWidth in the bold medium font, else cut short with "..." after
+// V1:0x45e130: a name that fits theWidth in the bold medium font, else cut short with "..." after
 std::string FitText(const std::string& theText, int theWidth)
 {
 	Font* aFont = FONT_MEDIUM_BOLD;
@@ -226,7 +226,7 @@ std::string FitText(const std::string& theText, int theWidth)
 	return aResult + anEllipsis;
 }
 
-// 0x45e350: a time counted in hundredths of a second, as hours:minutes:seconds
+// V1:0x45e350: a time counted in hundredths of a second, as hours:minutes:seconds
 std::string FormatTime(int theTime)
 {
 	int aSeconds = (theTime / 100) % 60;
@@ -310,7 +310,7 @@ const Color kLabelColor(0, 160, 20);
 
 }  // namespace
 
-// 0x45e840: the layout is in data/hof_*.xml, by the tab (XLayout, 0x4c8970 with the app's resource lookups), the
+// V1:0x45e840: the layout is in data/hof_*.xml, by the tab (XLayout, V1:0x4c8970 with the app's resource lookups), the
 // resources of the group "HallOfFame" are loaded, and the lists made from every profile
 HallOfFame::HallOfFame(GameApp* theApp, int theMode, bool theGameOver, bool theTimed,
                        const std::string& theMiniGameName, bool theEndOfGame)
@@ -332,7 +332,7 @@ HallOfFame::HallOfFame(GameApp* theApp, int theMode, bool theGameOver, bool theT
 	SetTab(theMode);
 }
 
-// 0x45eba0: the buttons go with it, and the resources
+// 0x450f60: the buttons go with it, and the resources
 HallOfFame::~HallOfFame()
 {
 	RemoveAllWidgets(true, true);
@@ -340,7 +340,7 @@ HallOfFame::~HallOfFame()
 	delete mLayout;
 }
 
-// 0x460510: the layout's animations, and the colour of the player's own rows one step on
+// 0x452b90: the layout's animations, and the colour of the player's own rows one step on
 void HallOfFame::Update()
 {
 	mLayout->Update();
@@ -348,13 +348,13 @@ void HallOfFame::Update()
 	mCounter = (mCounter + 5) % 0xff;
 }
 
-// 0x466370
+// 0x4721d0
 void HallOfFame::ButtonPress(int theId)
 {
 	mApp->PlaySample(SOUND_CLICK2);
 }
 
-// 0x460950
+// V1:0x460950
 void HallOfFame::SetTab(int theMode)
 {
 	mMode = theMode;
@@ -378,7 +378,7 @@ void HallOfFame::SetTab(int theMode)
 		mPrevButton->SetVisible(false);
 }
 
-// 0x45edc0: the layout of the tab, then the buttons put where it says, and for the mini-games the page's
+// V1:0x45edc0: the layout of the tab, then the buttons put where it says, and for the mini-games the page's
 // banners given to the layout's places
 void HallOfFame::LayOut()
 {
@@ -468,7 +468,7 @@ void HallOfFame::LayOut()
 		mPrevButton->SetVisible(false);
 }
 
-// 0x460b10: every profile in users/*.bwa that loads, then the lists made from them
+// V1:0x460b10: every profile in users/*.bwa that loads, then the lists made from them
 void HallOfFame::LoadLists()
 {
 	std::vector<Profile*> aProfiles;
@@ -491,7 +491,7 @@ void HallOfFame::LoadLists()
 		delete aProfiles[i];
 }
 
-// 0x460ea0: the top words. Each profile's TopWordsEverSpelled (a list of word and value), each word once a profile,
+// V1:0x460ea0: the top words. Each profile's TopWordsEverSpelled (a list of word and value), each word once a profile,
 // ranked by value after the authors' ten. The player's own words that are new since the screen was last seen (the
 // profile's HOFNewTopWord1 to HOFNumNewTopWords, which this clears) are marked.
 void HallOfFame::MakeWordList(const std::vector<Profile*>& theProfiles)
@@ -566,7 +566,7 @@ void HallOfFame::MakeWordList(const std::vector<Profile*>& theProfiles)
 	}
 }
 
-// 0x4623f0: the Lex power ratings: 100 times the average length of the words a profile spelled (its
+// V1:0x4623f0: the Lex power ratings: 100 times the average length of the words a profile spelled (its
 // WordLengthsEverSpelled: a count for each length), and its experience level, less ten for each death. The
 // player's own is saved (HOFPower) and marked when it differs from the one the screen last showed.
 void HallOfFame::MakePowerList(const std::vector<Profile*>& theProfiles)
@@ -658,7 +658,7 @@ void HallOfFame::MakePowerList(const std::vector<Profile*>& theProfiles)
 	}
 }
 
-// 0x4632a0: the best timed runs: each profile's TM_Top10Times (a time and a stage), ranked by the stage reached
+// V1:0x4632a0: the best timed runs: each profile's TM_Top10Times (a time and a stage), ranked by the stage reached
 // after the authors' ten. The run the player just made (TM_Top10TimesMostRecentIndex, which this clears) is marked.
 void HallOfFame::MakeTimeList(const std::vector<Profile*>& theProfiles)
 {
@@ -723,7 +723,7 @@ void HallOfFame::MakeTimeList(const std::vector<Profile*>& theProfiles)
 	}
 }
 
-// 0x4644d0: the most bonuses: each profile's TM_Top10Bonuses (experience and bonuses), ranked by experience after
+// V1:0x4644d0: the most bonuses: each profile's TM_Top10Bonuses (experience and bonuses), ranked by experience after
 // the authors' ten. The one the player just made (TM_Top10BonusesMostRecentIndex, cleared) is marked.
 void HallOfFame::MakeBonusList(const std::vector<Profile*>& theProfiles)
 {
@@ -779,7 +779,7 @@ void HallOfFame::MakeBonusList(const std::vector<Profile*>& theProfiles)
 	}
 }
 
-// 0x465290: the mini-games' best scores. For each game of main.GetNumMiniGames: what the scripts say of how its
+// V1:0x465290: the mini-games' best scores. For each game of main.GetNumMiniGames: what the scripts say of how its
 // page looks (a banner, whether it keeps scores, its class), the authors' ten, and each profile's
 // Best<class>Score (a score and the words, by the index of the score); the player's latest
 // (MostRecent<class>ScoreIndex, cleared) is marked.
@@ -853,7 +853,7 @@ void HallOfFame::MakeMiniGameLists(const std::vector<Profile*>& theProfiles)
 	}
 }
 
-// 0x45f9a0: the backdrop and the layout's pictures, then the tab's lists, down from the panel's top left
+// 0x451de0: the backdrop and the layout's pictures, then the tab's lists, down from the panel's top left
 void HallOfFame::Draw(Graphics* g)
 {
 	Color aPulse((int)(mApp->HSLToRGB(mCounter, 255, 128) | 0xff000000));
@@ -941,13 +941,13 @@ void HallOfFame::Draw(Graphics* g)
 
 namespace {
 
-// 0x477cd0: the curtain's callback that lets an object (the hall of fame, here) act once the curtain has closed
+// V1:0x477cd0: the curtain's callback that lets an object (the hall of fame, here) act once the curtain has closed
 void ShowMiniGamesMenuCallback(void* theObject)
 {
 	static_cast<HallOfFame*>(theObject)->ShowMiniGamesMenu();
 }
 
-// 0x460550's, as the curtain's callback
+// V1:0x460550's, as the curtain's callback
 void CurtainClosedCallback(void* theObject)
 {
 	static_cast<HallOfFame*>(theObject)->CurtainClosed();
@@ -955,7 +955,7 @@ void CurtainClosedCallback(void* theObject)
 
 }  // namespace
 
-// 0x460550: the curtain over the screen is closed (after a timed game the main menu then comes); the screen goes
+// V1:0x460550: the curtain over the screen is closed (after a timed game the main menu then comes); the screen goes
 void HallOfFame::CurtainClosed()
 {
 	if (mFromArena)
@@ -963,7 +963,7 @@ void HallOfFame::CurtainClosed()
 	mApp->CloseHallOfFame();
 }
 
-// 0x466340: the mini-games' menu for the game just played, and this screen goes
+// 0x459560: the mini-games' menu for the game just played, and this screen goes
 void HallOfFame::ShowMiniGamesMenu()
 {
 	if (!mTimed && !mMiniGameName.empty()) {
@@ -972,7 +972,7 @@ void HallOfFame::ShowMiniGamesMenu()
 	}
 }
 
-// 0x460580: the buttons. The main menu's closes the curtain, and the main menu comes under the screen (or after
+// 0x452c00: the buttons. The main menu's closes the curtain, and the main menu comes under the screen (or after
 // the end of the adventure, the credits); "Play Again" starts again what was played; the tabs and the arrows
 // change the lists.
 void HallOfFame::ButtonDepress(int theId)

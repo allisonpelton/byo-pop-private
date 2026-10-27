@@ -1,5 +1,5 @@
-// Sexy::FlashWidget (the framework's, 0x527ec0-0x529000) together with the game's MyFlashWidget (0x4824d0, vtable
-// 0x7af71c): a widget that plays a Flash movie. The original hosted the Flash ActiveX control in it; the port plays
+// Sexy::FlashWidget (the framework's, 0x50f300-V1:0x529000) together with the game's MyFlashWidget (0x472a60, vtable
+// 0x6fdb8c): a widget that plays a Flash movie. The original hosted the Flash ActiveX control in it; the port plays
 // the movie with SwfMovie (swf/) into an image of the widget's size, one movie frame every 100 / frame rate
 // updates, so a test run plays the same frames every time.
 #pragma once
@@ -13,7 +13,7 @@ namespace Sexy {
 
 class MemoryImage;
 
-// The framework's FlashListener (vtable 0x7ac28c in the cut scene)
+// The framework's FlashListener (vtable 0x6fa20c in the cut scene)
 class FlashListener {
 public:
 	virtual ~FlashListener() {}
@@ -36,10 +36,10 @@ public:
 	FlashWidget(int theId, FlashListener* theListener);
 	~FlashWidget() override;
 
-	// 0x528240: loads the movie (a path in the game's folder) and plays it from its first frame, unless paused.
+	// V1:0x528240: loads the movie (a path in the game's folder) and plays it from its first frame, unless paused.
 	// False when it cannot be played; the widget then stays idle.
 	bool StartAnimation(const std::string& theFileName);
-	// 0x528400 / 0x528450: pauses count, the movie plays when none are left
+	// 0x50f750 / 0x50f7a0: pauses count, the movie plays when none are left
 	void Pause();
 	void Unpause();
 
@@ -48,9 +48,9 @@ public:
 	std::string GetCurrentLabel() const { return mMovie.GetCurrentLabel(); }
 	bool GotoLabel(const std::string& theLabel);
 
-	void Update() override;  // 0x528a50
-	void Draw(Graphics* g) override;  // 0x528be0
-	// MyFlashWidget's (0x482540): the mouse-ups go to the widget that shows the movie (the cut scene) too
+	void Update() override;  // 0x50fa10
+	void Draw(Graphics* g) override;  // 0x50fba0
+	// MyFlashWidget's (0x472ab0): the mouse-ups go to the widget that shows the movie (the cut scene) too
 	void MouseUp(int x, int y, int theBtnNum, int theClickCount) override;
 
 	void SwfCommand(const std::string& theCommand, const std::string& theArgs) override;

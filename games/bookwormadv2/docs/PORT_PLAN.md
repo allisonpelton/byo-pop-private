@@ -132,6 +132,26 @@ replay in progress (`ReplayInGame`) the "Continue your current adventure?" dialo
 `BookSelectScreen` (class at 0x423e50..0x425630, script `bookselectscreen.luc`). The profile's booleans read as false when
 the key is missing (0x47aca0 with its flag: the port's `ProfileBool`).
 
+Tried (native, `-fast`, the soak): a profile with `AdventureComplete` and a one-entry `Treasures` (`{{mScript="Breakfast",
+mEnabled=true}}`) plays the Adventure Replay entry, the book list, Book 0's replay through Chapters 1 to 5 (the chapter
+map's Enter, the bosses, the next chapter's curtain) with no script error in 46,000 updates. After a quit in the middle of
+it, the menu's Adventure Replay shows "Continue your current adventure?" and Yes brings the replay back in its chapter and
+battle (score and hearts as saved), and the soak plays on. A profile with `AdventureComplete` and no `Treasures` key gives
+`BattleEngine.lua:658: attempt to call a nil value` when the first battle is won, and the port is the same as the exe there:
+in a replay `main.luc` (L866-879) adds back the treasures of the key to Lex with `AddTreasure`, which sets `mLastTreasureBook`
+and `mLastTreasureNum`, and the win's altar picture (`OnPanComplete`, L658) is built from `IMAGE_TREASURE_<book>_<num>_SML`
+of the last one; `lex.luc` starts both at -1, and a replay does not award treasures (`BattleEngine.lua:1648` skips that for
+`gReplayMode`). A real finished adventure always has some.
+
+A lost adventure battle: the adventure's battles are turn by turn, so a bot that spells nothing (`nowords 1`) is never attacked
+and the game waits for it for ever (the arena's timer is what loses there). With `wordmax 3` (the soak spells words of at most
+three letters, so the enemy's attacks outlast Lex's) Lex dies in the replay's Chapter 5 battle at about update 22,000 and the
+scripts' death flow ends in the Hall of Fame's Adventure tab (Play Again, Main Menu), no script error. In a new adventure
+(profile with `CurrentBook` 4; the books are numbered 0, 4, 5 and 6, a profile at 1 gives BookManager's own "book doesn't exist"
+error) Chapter 1 plays through 60,000 updates with no script error and the chapter's battles come round again: the screenshots
+at 22,000, 32,000, 45,000 and 58,000 show the cow, the boss (Dish and Spoon), the moon and the cow, which is what a lost chapter
+that begins again looks like (the run did not print the loss itself). The death text and the gravestone were looked at in neither run.
+
 ## Bound methods of Volume 2's GameApp (the registrations of 0x43a850 against `GameAppLua.cpp`)
 
 All the methods that 0x43a850 registers by name are in now (`DoHighScoreScreenFromReplay` is 0x446860, which no script calls;
@@ -179,6 +199,11 @@ OptionsDialog 36%). The later compiler's register passing changes the bytes of n
 here does not mean "changed", and the survey's 28% identical / 19% near-identical figures need a looser comparison to
 reproduce. The same holds for `luaV_execute`: of its 45 handlers, 17 match Volume 1's text once names are masked and 28
 differ in the text; the two looked at (NEWTABLE and case 37) differ only in an inlined GC check and a shared label.
+Read against the port's `poplua/lvm.cpp` afterwards (the arithmetic handlers and SELFORGLOBAL): number op number first, then
+int op int, then the mixed operands (ints and numeric strings turned into numbers, else the metamethod helper and the
+"perform arithmetic on" error); DIV on ints is C's truncating division with "attempt to divide by zero"; MOD is ints only,
+with "non-integers" tested before "mod by zero"; SELFORGLOBAL marks the value a method when it is a Lua function whose
+prototype has the self flag. All the same as the port's. The other handlers are checked by the 462 scripts and the 150 dialect checks, not line by line.
 
 ## Size of the game region by class (bytes of code, thunks left out; `none` = methods the export assigns to no class)
 
@@ -211,8 +236,12 @@ export's class recovery is by RTTI only), `MainMenu` 24 KB, `GameApp` 20 KB, `Bo
 6. (done 2026-10-26) Web page (`web/page.js`): the markers, import folders, skip list (`images/upsell`) and prose are Volume 2's and
    the persist folder is `/bwa2persist`; the page's own pak reader (`web/modpanel.js`, run under Node) unpacks the game's
    `main.pak` to the 9,221 files of which the staged folder holds all but the 7 upsell pictures, byte for byte on a sample
-   of 1,281. Checked in the Browser pane (silent): the import card with Volume 2's text and no script error. An import of the
-   whole install folder in the pane has not been run (the pickers cannot be driven; shared page code, as for the other games).
+   of 1,281. Checked in the Browser pane (silent): the import card with Volume 2's text and no script error. The whole install
+   folder (55 files, 73 MB, copy of A:'s Steam folder served locally) went in through the page's zip picker (a zip built in the page
+   and set on `#pick-game-zip`, as for the other games): "Copied 9255 files", Play, the New User dialog, the intro with its bitmap
+   panels, the prologue's first battle and an attack on PLAY (the enemy lost a heart, new tiles dropped), the console clean but for the
+   site logo's two 404s (`logo.svg`, `logo-dark.svg`: the site's, not the port's). A page opened while another copy runs shows "Already
+   open" and the game behind it; the import made in that state is not kept, so close the other copy first.
 
 ## The word list's flags (2026-10-26), the start of the battle milestone
 

@@ -27,7 +27,7 @@ ArenaWinDialog::ArenaWinDialog(bool theFirstTime, const std::string& theCallback
 void ArenaWinDialog::SetStats(const std::string& theTime, const std::string& thePotions, const std::string& theWords,
                               const std::string& theLevel, const std::string& theAverageWordLength)
 {
-	// 0x4431a0
+	// 0x438020
 	mTime = theTime;
 	mPotions = thePotions;
 	mWords = theWords;
