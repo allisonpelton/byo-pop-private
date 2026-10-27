@@ -17,7 +17,8 @@
 #                their own rate, voices against the old stereo-float pipeline)
 #   unit-web     rulestest and modsettingstest under Node (needs build-web); paktest (the page's pak reader), with
 #                Bookworm Adventures' main.pak against assets/bookwormadv when both are there; profilestest (the page's
-#                settings and players code, web/settings.js and web/profiles.js, on a fake localStorage)
+#                settings and players code, web/settings.js and web/profiles.js, on a fake localStorage) and savestest (the
+#                save backup's zip, paths and merge, web/saves.js)
 #   verify       Bejeweled's headless verifier tests (games/bejeweled/tools/verify/run_tests.sh)
 #   modmenu      the mod menu's scripted runs, all games (tools/modmenutest/run_tests.sh all)
 #   livesplit    Bejeweled's, Big Money's and BookWorm's LiveSplit tests
@@ -248,11 +249,14 @@ suite_unit-web() {
 	fi
 	grep -q '^paktest: 0 failed' "$1.pak" || st=1
 	# the page's shared settings and players code (web/settings.js, web/profiles.js), on a fake localStorage
-	local d
+	local d e
 	"$NODE" tools/profilestest.js > "$1.pt" 2>&1 || st=1
 	d="$(lastof "$1.pt" 'profilestest:')"
-	cat "$1.mst" "$1.pak" "$1.pt" >> "$1"; rm -f "$1.mst" "$1.pak" "$1.pt"
-	SUMMARY="$a; $b; $c; $d"
+	# the save backup's zip, paths and merge (web/saves.js)
+	"$NODE" tools/savestest.js > "$1.sv" 2>&1 || st=1
+	e="$(lastof "$1.sv" 'savestest:')"
+	cat "$1.mst" "$1.pak" "$1.pt" "$1.sv" >> "$1"; rm -f "$1.mst" "$1.pak" "$1.pt" "$1.sv"
+	SUMMARY="$a; $b; $c; $d; $e"
 	return $st
 }
 

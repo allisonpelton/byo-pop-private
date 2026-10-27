@@ -144,6 +144,13 @@ h1 { margin: 0; font-size: 20px; font-weight: 600; }
 .pl-confirm ul { margin: 0 0 12px; padding-left: 18px; }
 .pl-results { gap: 4px; margin-bottom: 8px; font-size: 13px; }
 .pl-empty { color: var(--muted); }
+/* The save backup (web/saves.js) uses the players section's controls; its list and file field */
+.sv-list { margin: 0 0 12px; padding-left: 18px; font-size: 13px; }
+.sv-actions { margin-left: 0; align-items: center; gap: 10px 12px; margin-bottom: 8px; }
+.sv-actions label { font-weight: 600; }
+.sv-actions input[type=file] { font: inherit; color: var(--fg); max-width: 100%; }
+.sv-report { margin-bottom: 8px; }
+.sv-report h3 { margin-top: 12px; }
 .pl-count { color: var(--muted); font-size: 13px; }
 /* The site's settings (docs/WEB_PLAYER.md, "Site settings"): web/settings.js draws the controls and brings their style */
 #settings { margin-top: 40px; scroll-margin-top: 16px; }
@@ -176,6 +183,10 @@ footer a { color: var(--accent); }
     <h2 id="players-title">Players</h2>
     <div id="players-body"></div>
   </section>
+  <section id="saves" aria-labelledby="saves-title">
+    <h2 id="saves-title">Your saves</h2>
+    <div id="saves-body"></div>
+  </section>
   <section id="settings" aria-labelledby="settings-title">
     <h2 id="settings-title">Settings</h2>
     <div id="settings-controls"></div>
@@ -189,6 +200,7 @@ footer a { color: var(--accent); }
 <script src="settings.js"></script>
 <script src="profiles.js"></script>
 <script src="players.js"></script>
+<script src="saves.js"></script>
 <script>
 // The settings section: the controls are web/settings.js's, the same as in a game's Settings panel
 try { ByopopSettings.render(document.getElementById("settings-controls")); } catch (e) {}
@@ -198,6 +210,13 @@ try {
     return { id: t.getAttribute("data-game"), title: t.querySelector(".name").textContent };
   }));
 } catch (e) { document.getElementById("players-body").textContent = "The players are not available."; }
+// The saves section (web/saves.js): a backup and a restore of the saves, with each game's database, Web Lock and replays from its card
+try {
+  ByopopSaves.init(document.getElementById("saves-body"), Array.prototype.map.call(document.querySelectorAll("a.tile[data-game]"), function (t) {
+    return { id: t.getAttribute("data-game"), title: t.querySelector(".name").textContent, persist: t.getAttribute("data-persist"),
+      lock: t.getAttribute("data-lock") || "", replays: t.getAttribute("data-replays") === "1" };
+  }));
+} catch (e) { document.getElementById("saves-body").textContent = "The save backup is not available."; }
 </script>
 <script>
 // Which games have their files loaded, as a sign that the player owns them (docs/WEB_PLAYER.md, "The listing page"). A

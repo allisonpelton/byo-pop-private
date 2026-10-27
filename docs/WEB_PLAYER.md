@@ -210,7 +210,7 @@ links. `byopop_web_index()` in `cmake/ByopopWeb.cmake` makes it from `web/index.
 game has been added. Which games it shows is the `BYOPOP_WEB_FINISHED` list in that file: the coordinator adds a game
 there at its final merge, and a name in it with no web page stops the configure (unless the game's `BUILD_<TARGET>`
 option is off). Below the tiles it has the Players section (`#players`; "Player profiles", below), which `web/players.js` builds
-from the records in `web/profiles.js`, and the Settings section (`#settings`; "Site settings", below), which `web/settings.js`
+from the records in `web/profiles.js`, the Your saves section (`#saves`; "Save backup", below) and the Settings section (`#settings`; "Site settings", below), which `web/settings.js`
 draws; the build copies those files next to the pages (`BYOPOP_WEB_SHARED_JS` for the ones every page loads, `BYOPOP_WEB_INDEX_JS`
 for the listing page's own).
 
@@ -467,6 +467,60 @@ where it decides to show its new-player dialog.
 | Rocket Mania Deluxe | none | yes, starts with the last name | 150 px; any ASCII | the dialog's constructor |
 | Dynomite Deluxe | none | yes, starts with the last name | 20 characters and 115 px | the dialog's constructor (a second box names a saved game: it is not a player and is left alone) |
 | Bookworm Adventures Volume 2 | as Bookworm Adventures | no | as Bookworm Adventures | as Bookworm Adventures |
+
+### Save backup
+
+The listing page's **Your saves** section (`#saves`; `web/saves.js`, copied next to `index.html`) backs up the player's saves and
+restores them. The saves live in this browser only, and are lost when its data is cleared or the player uses another browser or
+device, so the page makes one .zip of them, in the page and with nothing uploaded, and reads one back.
+
+**Where a game's saves are.** The shell's folders (`web/shell.html`): a game's persist folder (`PAGE.persist` in
+`games/<game>/web/page.js`, the name of its IndexedDB database, made by Emscripten's IDBFS: one object store, `FILE_DATA`,
+keyed by path) holds `game/` (the imported files), `userdata/` (the game's saves, high scores, settings and registry),
+`mods/` and, for the games that keep replays (`replays: true`: Bejeweled, Big Money, BookWorm), `replays/`. A backup takes
+`userdata/` and `replays/`, and the game's own backup of `userdata/` in localStorage
+(`sexy-userdata-backup:<persist>/userdata`, `platform/WebPersist.cpp`), which can hold a save that never reached IndexedDB
+because the page closed first. It never takes `game/` (the files and the exe), the icons (they are in the ownership record, which
+is derived from the game's files) or the mods. `byopop_web_index()` puts each game's persist folder, Web Lock name and replays flag
+on its card (`data-persist`, `data-lock`, `data-replays`), read from its `page.js`, so nothing about a game is written into the page
+by hand.
+
+**Back up saves.** The page reads each game's database without making one (`indexedDB.databases()` first), and puts together the
+files as the game would have them at its next start: it does what `webpersist_restore` does with the localStorage item, so a file
+that the item has and is newer than the folder's (or that the folder lacks) is taken from the item, and a file that the item does
+not list and that is older than the item was deleted before it, and is left out (`merged()`; `tools/savestest.js` checks it). The
+backup is **one store-only zip** (no compression, no library: the page writes the headers and the CRC-32), named
+`byo-pop saves <YYYY-MM-DD>.zip` and given to the browser as a download:
+
+```
+byopop-saves.json            the manifest: {format: "byo-pop saves", version: 1, made, games: {...}, files: {path: ms}}
+byopop-settings.json         the item byopop-settings, as it was (when there is one)
+byopop-profiles.json         the item byopop-profiles, as it was (when there is one)
+<game>/userdata/<path>       a file of the save folder
+<game>/replays/<path>        a replay
+<game>/browser-backup.json   the game's localStorage backup item, as it was
+```
+
+Under the section the page says, for each game, what it took: the number and size of the save files, the replays, and whether
+files came from the game's own browser backup. A game whose page is open in another tab is flagged: what it has not saved yet may be
+missing from the backup until it is closed.
+
+**Restore saves.** A file field takes such a zip. The page reads it (checking every file's checksum), sorts its entries, and
+**refuses the whole zip** when one is outside a game's save folder (a path that is not `<listed game>/userdata/...`,
+`<listed game>/replays/...` or one of the names above; a path with `..`, `.`, an empty part, a backslash, a control character or
+more than 240 characters; a game that is not listed; a name twice), when it is not a backup made here (no manifest), is encrypted or
+zip64, or is damaged. A valid one is not written yet: the page shows, in the page and not in a browser dialog, for each game what the
+zip holds and how many of its files it would replace in this browser and how many it would add, that files that the zip does not
+have stay, that each game's own localStorage backup is removed (the restored files take its place, and a left one would delete the
+restored files at the game's next start), and that the site's settings and players are replaced. Only the **Restore** button writes.
+
+A restore never runs while a game page is open: each page holds a Web Lock (`PAGE.lock`) while it runs, and the page checks them with
+`navigator.locks.query()` when the zip is read and again at the button, and then holds every game's lock (`ifAvailable`) while it
+writes, so that no game page opens in between (a game page waits for its lock before it reads its storage). A browser without Web
+Locks cannot tell, so it backs up but does not restore. Each game's files are written in one IndexedDB transaction, so a game's
+folder is restored whole or not at all, with a directory entry for every missing parent (IDBFS needs them) and the file's own date
+from the manifest. The page then tells what it wrote and sends a `storage` event to its own sections so that the settings and players
+show the restored values.
 
 ## The site's logo and icons
 

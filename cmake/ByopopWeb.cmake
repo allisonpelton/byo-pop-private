@@ -33,8 +33,9 @@ set(BYOPOP_WEB_BRAND favicon.svg favicon.ico apple-touch-icon.png logo.svg logo-
 # players and what the games report of theirs ("Player profiles"); the listing page and the game pages load it too.
 # web/exeicon.js reads a game's icon out of its exe (the game pages load it). All three are copied next to the pages.
 set(BYOPOP_WEB_SHARED_JS settings.js profiles.js exeicon.js)
-# the listing page's own scripts: the Players section (web/players.js), copied next to index.html only
-set(BYOPOP_WEB_INDEX_JS players.js)
+# the listing page's own scripts: the Players section (web/players.js) and the save backup (web/saves.js), copied next to
+# index.html only
+set(BYOPOP_WEB_INDEX_JS players.js saves.js)
 # The listing page, build/web/index.html (made from web/index.html by byopop_web_index() at the end of this file): one
 # tile for each game in BYOPOP_WEB_FINISHED, in this order, with the game's TITLE and a badge. The list is the
 # coordinator's: the coordinator adds a game's target at that game's final merge. A game with a web page that is not
@@ -248,13 +249,20 @@ function(byopop_web_game target)
   # page's settings (games/<game>/web/page.js, "id" and "persist"): the folder is the name of the game's browser
   # database, where the listing page looks for game files that were imported before the page kept a record of them
   file(READ ${arg_PAGE}/page.js page_js)
-  foreach(field id persist)
+  foreach(field id persist lock)
     string(REGEX MATCH "\n[ \t]+${field}:[ \t]*\"([^\"]+)\"" ignored "${page_js}")
     if(NOT CMAKE_MATCH_1)
       message(FATAL_ERROR "byopop_web_game(${target}): ${arg_PAGE}/page.js has no ${field}: \"...\" in its PAGE")
     endif()
     set_property(GLOBAL PROPERTY BYOPOP_WEB_${field}_${target} "${CMAKE_MATCH_1}")
   endforeach()
+  # whether the game keeps replays (a folder of its own beside the user dir, which the save backup takes too): "replays: true"
+  string(REGEX MATCH "\n[ \t]+replays:[ \t]*true" has_replays "${page_js}")
+  if(has_replays)
+    set_property(GLOBAL PROPERTY BYOPOP_WEB_replays_${target} "1")
+  else()
+    set_property(GLOBAL PROPERTY BYOPOP_WEB_replays_${target} "")
+  endif()
   set_property(GLOBAL PROPERTY BYOPOP_WEB_TITLE_${target} "${arg_TITLE}")
   set(export_list ${BYOPOP_WEB_EXPORTED_FUNCTIONS} ${arg_EXPORTS})
   list(REMOVE_DUPLICATES export_list)
@@ -328,6 +336,13 @@ function(byopop_web_index)
     # its browser database (the persist folder), for the label under the name and its "?" (web/index.html)
     get_property(game_id GLOBAL PROPERTY BYOPOP_WEB_id_${target})
     get_property(game_persist GLOBAL PROPERTY BYOPOP_WEB_persist_${target})
+    # the game's Web Lock (its page holds it while it runs) and whether it keeps replays, for the save backup (web/saves.js)
+    get_property(game_lock GLOBAL PROPERTY BYOPOP_WEB_lock_${target})
+    get_property(game_replays GLOBAL PROPERTY BYOPOP_WEB_replays_${target})
+    set(replays_attr "")
+    if(game_replays)
+      set(replays_attr " data-replays=\"1\"")
+    endif()
     # where the game can still be bought (cmake/ByopopStores.cmake, the data of the game pages' buy note): a link for each
     # store, in the card but beside the game's own link, since a link cannot hold a link; none for a game with no store
     # (hidden: the listing page shows them for a game whose files were never loaded in this browser, web/index.html)
@@ -356,7 +371,7 @@ function(byopop_web_index)
       endif()
     endif()
     string(CONCAT tile "    <li class=\"game\" style=\"--tile: ${colour}\"><a class=\"tile\" href=\"${target}.html\" "
-      "data-game=\"${game_id}\" data-persist=\"${game_persist}\"><span class=\"badge\" aria-hidden=\"true\">${initials}</span>"
+      "data-game=\"${game_id}\" data-persist=\"${game_persist}\" data-lock=\"${game_lock}\"${replays_attr}><span class=\"badge\" aria-hidden=\"true\">${initials}</span>"
       "<span class=\"name\">${title}</span></a><div class=\"ownrow\"><span class=\"own\"></span></div>${buy_html}</li>")
     list(APPEND tiles "${tile}")
     math(EXPR count "${count} + 1")
