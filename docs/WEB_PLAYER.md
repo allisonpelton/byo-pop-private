@@ -618,6 +618,10 @@ saying so, the skip link and the status line on a game's page, outlines taken aw
 the page's colour tokens in both themes (the CSS of each page, with the game's own accent). `--selftest` runs it on pages with one fault each. The
 markup that scripts build (the Settings panel, the Mods panel, the Players section) is not in the files; in a browser the same checks run on the
 live page: `A11yCheck.checkHtml(document.documentElement.outerHTML)`, after loading the file. `tools/check.sh unit-web` runs it on `build/web`.
+Given a folder it checks only the site's own pages, and takes the list from the build, not from a list in the checker: `index.html`, every
+game page that `index.html` has a tile for (the tiles are made from `BYOPOP_WEB_FINISHED` by `byopop_web_index()`, so the checker reads their
+`href`s), and the copyright page each of those game pages links to. A build folder also holds test pages (`fwtest.html`, `smoke.html`), which
+are not part of the site and are not checked; naming a file checks it anyway.
 
 ## The site's logo and icons
 
