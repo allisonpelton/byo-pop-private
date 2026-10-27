@@ -194,6 +194,14 @@ same("the second folder wins", pf.take.map((f) => f.folder), [1]);
 pf = S.planFiles(table.games.dynomite, [files(["slot3.sav", "FOSSIL.HS", "SLOT.SAV"])]);
 same("Dynomite's saved games are numbered", pf.take.map((f) => f.to), ["FOSSIL.HS", "SLOT3.SAV"]);
 
+// ---------- nothing that the port's folder or registry file cannot hold ----------
+pf = S.planFiles(table.games.bookworm, [files(["players/../classic.dat", "players/./action.dat", "players/Ann/classic.dat"])]);
+same("a path that leaves the folder is left out", [pf.take.map((f) => f.to), pf.skipped.map((s) => s.rel)], [["players/Ann/classic.dat"], ["players/../classic.dat", "players/./action.dat"]]);
+check("a name with an equals sign, a control character or a leading bracket is not held", S.badName("HS:0x1=x") && S.badName("a\u0001b") && S.badName("[x") && S.badName(";x") && S.badName("Users\\a\nb") && !S.badName("Users\\Ann\\Alias") && !S.badName("Sound Volume"));
+const evil = "Windows Registry Editor Version 5.00" + NL + NL + "[HKEY_CURRENT_USER\\Software\\Pyrogon\\NingPo]" + NL + "\"HS:0x1=evil\"=hex:01" + NL + "\"HS:0x2\"=hex:02" + NL;
+const pe = S.planRegistry(table.games.ningpo, S.collect(table.games.ningpo, [S.parseReg(reg5(evil))]), "");
+same("a value whose name has an equals sign is left out", [pe.items.map((i) => i.path), pe.skipped.map((s) => s.path)], [["HS:0x2"], ["HS:0x1=evil"]]);
+
 // ---------- what the page shows ----------
 same("the commands for BookWorm", S.commands("bookworm").map((c) => c.text), [
   "reg export \"HKCU\\Software\\Classes\\VirtualStore\\MACHINE\\SOFTWARE\\WOW6432Node\\PopCap\\BookWorm\" bookworm-vs.reg /y",

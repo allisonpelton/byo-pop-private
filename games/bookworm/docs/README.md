@@ -71,7 +71,7 @@ tools/build.sh web                                     # build/web/bookworm.html
 - **Native.** `bookworm.exe` finds `assets/bookworm/` next to itself (or up to two levels up), or the retail
   install. `-gamedir=` overrides that. Saves go to `%APPDATA%\byo-pop\BookWorm Deluxe\`: the players'
   saved games (`players/<name>/classic.dat`, `action.dat`; with mods that change play, see Mods) and `registry.ini` for the original's
-  `HKLM\SOFTWARE\PopCap\BookWorm` values (player profiles, high scores, options).
+  `HKLM\SOFTWARE\PopCap\BookWorm` values (player profiles, high scores, options). `-importsaves[=<install folder>]` brings in the saves of the original game installed on this computer (`docs/WEB_PLAYER.md`, "Importing saves from an installed game").
 - **Web.** `bookworm.html`, every game's page (`web/shell.html`) with BookWorm's settings (`games/bookworm/web/page.js`),
   imports the player's game folder (or a .zip of it) into its own IndexedDB-backed folder `/bwpersist`, separate
   from the other games'. It saves as every game's page does: IDBFS syncs, a localStorage backup of the user files,

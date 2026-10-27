@@ -53,7 +53,7 @@ tools/build.sh web                                     # build/web/noahsark.html
 
 Native: `noahsark.exe` finds `assets/noahsark/` next to itself (or up to two levels up), or the retail install;
 `-gamedir=` overrides that. Saves go to `%APPDATA%\byo-pop\Noahs Ark Deluxe\`: `savegame.dat` for the game in
-progress, `hiscores.dat` (the original's layout) and `registry.ini` for the options. Web: `noahsark.html`, every game's
+progress, `hiscores.dat` (the original's layout) and `registry.ini` for the options. `-importsaves[=<install folder>]` brings in the saves of the original game installed on this computer (`docs/WEB_PLAYER.md`, "Importing saves from an installed game"). Web: `noahsark.html`, every game's
 page (`web/shell.html`) with this game's settings (`games/noahsark/web/page.js`), imports the player's game folder (or a
 .zip of it) into its own IndexedDB-backed folder `/napersist`, separate from the other games', and saves as the other pages do.
 

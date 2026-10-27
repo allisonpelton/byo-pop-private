@@ -210,9 +210,9 @@ links. `byopop_web_index()` in `cmake/ByopopWeb.cmake` makes it from `web/index.
 game has been added. Which games it shows is the `BYOPOP_WEB_FINISHED` list in that file: the coordinator adds a game
 there at its final merge, and a name in it with no web page stops the configure (unless the game's `BUILD_<TARGET>`
 option is off). Below the tiles it has the Players section (`#players`; "Player profiles", below), which `web/players.js` builds
-from the records in `web/profiles.js`, the Your saves section (`#saves`; "Save backup", below) and the Settings section (`#settings`; "Site settings", below), which `web/settings.js`
+from the records in `web/profiles.js`, the Your saves section (`#saves`; "Save backup" and "Importing saves from an installed game", below) and the Settings section (`#settings`; "Site settings", below), which `web/settings.js`
 draws; the build copies those files next to the pages (`BYOPOP_WEB_SHARED_JS` for the ones every page loads, `BYOPOP_WEB_INDEX_JS`
-for the listing page's own).
+for the listing page's own: `players.js`, `saves.js` and `saveimport.js`, with the table `platform/saveimport.json` written beside them as `saveimport-table.js`).
 
 At the foot of the page is a `<footer>`, at the page's width and in its muted colours, with the disclaimer, in the words of
 `web/copyright.html` and `web/terms.html` (an unofficial, non-commercial project, not affiliated with or endorsed by
@@ -551,6 +551,116 @@ Locks cannot tell, so it backs up but does not restore. Each game's files are wr
 folder is restored whole or not at all, with a directory entry for every missing parent (IDBFS needs them) and the file's own date
 from the manifest. The page then tells what it wrote and sends a `storage` event to its own sections so that the settings and players
 show the restored values.
+
+### Importing saves from an installed game
+
+A player who has played an original game on this computer can bring its saves, high scores, players and settings into the port, in the
+browser and natively. Both read one table, `platform/saveimport.json`, which says for each of the 18 games which registry values and
+which files of the original are the player's save and where each goes in the port. Nothing outside the table is ever taken: not a game's
+files, not an exe, not an installer value. The original's registry and folders are only read, never written.
+
+**Where the native saves go.** A native game keeps its user folder at `%APPDATA%\byo-pop\<Game Name>` (`SDL_GetPrefPath("byo-pop", "<Game
+Name>")` in each game's `main.cpp`; it was `wasm-bejeweled` until the project was renamed). There is no code that moves an old folder:
+rename `%APPDATA%\wasm-bejeweled` to `%APPDATA%\byo-pop` by hand. `-userdir=<dir>` names another folder, as it always did. The user folder
+holds `registry.ini` (the port's emulated registry), the saves, `mods.json` and the like. The web shell's `userdata/` folder is the same
+folder (`<persist>/userdata` in the game's IndexedDB), so a path below the user folder is the same on both.
+
+**Where an original keeps its data.** The older SexyAppFramework games write `HKEY_LOCAL_MACHINE\SOFTWARE\PopCap\<Game>`, which a 32-bit
+game on 64-bit Windows sees as `HKLM\SOFTWARE\WOW6432Node\PopCap\<Game>`; BookWorm keeps its players under the subkey `Users`. A game that
+was not run as administrator cannot write there, and Windows redirects the write to `HKCU\Software\Classes\VirtualStore\MACHINE\SOFTWARE\WOW6432Node\PopCap\<Game>`;
+the game then reads that copy in preference to the machine's key, value by value, so a merge takes the VirtualStore's value where both have
+one. Bookworm Adventures (both games) and Bejeweled use the user's key (`HKCU\Software\PopCap\WinBAD`), Word Harmony
+`HKCU\Software\GameHouse\WordHarmony` and Ning Po `HKCU\Software\Pyrogon\NingPo`. The files an older game writes are beside its exe (some in a
+`data` or `userdata` folder below it); in `C:\Program Files` Windows keeps them in a private copy, `%LOCALAPPDATA%\VirtualStore\Program Files
+(x86)\PopCap Games\<Game>` (or `Program Files\...`), which the game reads in preference to the install folder; a Steam install is writable,
+so its saves stay in the install folder. A game that sets an app data folder (Bookworm Adventures and Volume 2, `WinBAD`; Bejeweled and
+Alchemy, which make the folder) uses `C:\ProgramData\PopCap Games\<name>`.
+
+**The table.** `platform/saveimport.json` is plain JSON with one entry for each game id (the id of its `data-game` attribute on the listing
+page and the string its `main.cpp` passes to the helper). It is the only place that says what is imported; CMake turns the same file into
+`saveimport-table.js` for the listing page (`byopop_web_index()`) and into a header that `framework/CMakeLists.txt` compiles into every
+native game (`platform/SaveImport.cpp`), so the web and native imports cannot disagree. `tools/saveimporttest.js` checks it (every game, no
+path that leaves the user folder, no installer value among the values taken). An entry has:
+
+- `folder`, `steam`, `appdata`: the install folder's usual name (for the page's instructions), the Steam folder's name where the game is sold there, and the `C:\ProgramData\PopCap Games\` folder name where the game uses one. `note` is a line for the page.
+- `registry`: `key` (the port's `mRegKey`, so the port's registry key is `SOFTWARE\<key>`), `hives` (where the original may keep it, in the order of preference: `vs`, `hklm` and `hkcu`, above), `sets` (`base`: the framework's own options, `MusicVolume`, `SfxVolume`, `Muted`, `ScreenMode`, `CustomCursors`, `WaitForVSync`, `PreferredX` and `PreferredY`; `app`: `TimesPlayed` and `TimesExecuted`) and `values`, each `Name=type` with the type the port reads, `sz` (text), `dword` or `hex` (binary data). A name may have `*` (any characters inside one part) or `#` (digits) and may reach into subkeys with a backslash (`Users\*\Alias`). A value the table does not list is not taken; `skipValues` (and a game's own `skip`) say why a value that looks like a save is left out: the installer's values (`InstallPath`, `ReferId`, `DownloadId`, `RegisterLink`, `DontUpdate`, `NoPopLink`, `Variation` and the like), the original's running flag `InProgress`, its update-check time and hardware test, `TotalBooks` (worked out again at each start).
+- `files`: `from` (a path inside the folder that holds the saves, with `/`; `*` and `#` as above) and `to` (the path in the user folder; the captures of `from` fill the `*` and `#` of `to` in order), and what the file is. `skipFiles` are files that are found and left alone, with the reason (a layout the port does not read).
+
+The per-game table (generated from the file; the registry places are listed in the order the game would read them):
+
+| Game | Registry key (places, in the order the game would read them) and values | Files, in the original's folder, and what they become in the user folder | Left alone, with a reason in the table |
+| --- | --- | --- | --- |
+| Bejeweled Deluxe (`bejeweled`) | `PopCap\Bejeweled` (user, then VirtualStore, then machine): the framework's options and times played; `LastScoreName` | `userdata/savegame.dat` as `savegame.dat`, `userdata/hiscores.dat` as `hiscores.dat` |  |
+| Big Money Deluxe (`bigmoney`) | `PopCap\BigMoney` (VirtualStore, then machine, then user): the framework's options and times played; `LastScoreName`, `SkillLevel`, `GameType`, `DontShowHelp*` | `savegame.dat`, `hiscores.dat` |  |
+| BookWorm Deluxe (`bookworm`) | `PopCap\BookWorm` (VirtualStore, then machine, then user): the framework's options and times played; `Users\User`, `Users\*\Alias`, `Users\*\ShowHelp`, `Users\*\ShowHints`, `Users\*\ShowDefs`, `Users\*\TimesPlayed`, `Scores\Classic`, `Scores\Action`, `Scores\Best`, `Scores\Longest` | `players/*/classic.dat`, `players/*/action.dat` | `players/*/profile.dat`, `players/*/scores.dat` |
+| Noah's Ark (`noahsark`) | `PopCap\NoahsArk` (VirtualStore, then machine, then user): the framework's options and times played; `LastScoreName`, `ShowHints`, `ShowTutorial` | `hiscores.dat` | `data/savegame.dat` |
+| Seven Seas (`sevenseas`) | `PopCap\SevenSeas` (VirtualStore, then machine, then user): the framework's options and times played; `LastScoreName`, `BonusNag`, `WarnBlueNag`, `WarnGhostNag`, `WarnSerpNag`, `WarnWhirlNag` | `data/savegame.dat` as `savegame.dat`, `hiscores.dat` |  |
+| Atomica (`atomica`) | `PopCap\Atomica` (VirtualStore, then machine, then user): the framework's options and times played; `GameHints`, `ShowSymbols`, `ShowTips` | `HS.CFG`, `SAVEGAME.DAT` |  |
+| Mummy Maze Deluxe (`mummymaze`) | `PopCap\MummyMaze` (VirtualStore, then machine, then user): the framework's options and times played; `LastScoreName`, `Speed`, `Name`, `Clock`, `Ankh`, `TwoMummyNag`, `GateNag`, `TrapNag`, `RedNag`, `ScorpNag`, `DarkNag`, `AnkhNag` | `hiscores.dat`, `data/saves/classic.sav` as `classic.sav`, `data/saves/adv#.sav` as `adv#.sav` |  |
+| TipTop (`tiptop`) | none | `Preferences.dat`, `savegame.dat` |  |
+| Bookworm Adventures Deluxe (`bookwormadv`) | `PopCap\WinBAD` (user, then VirtualStore, then machine): the framework's options and times played; `LastUser`, `AppTime` | `users/*.bwa`, `users/data/*.dat` |  |
+| Ning Po Mahjong (`ningpo`) | `Pyrogon\NingPo` (user): `Layout`, `Tileset`, `Background`, `Autohint`, `Fullscreen`, `Sound Volume`, `Music Volume`, `HS:*` | none |  |
+| Pixelus Deluxe (`pixelus`) | `PopCap\Pixelus` (VirtualStore, then machine, then user): the framework's options and times played; `HintsDisabled` | `users/directory.txt`, `users/#`, `users/his#` |  |
+| Alchemy (`alchemy`) | `PopCap\Alchemy` (VirtualStore, then machine, then user): the framework's options and times played; `LastScoreName`, `LastInternetScoreName`, `SkillLevel`, `TimeTrial` | `userdata/hiscores.dat` as `hiscores.dat` | `userdata/savegame.dat` |
+| Word Harmony (`wordharmony`) | `GameHouse\WordHarmony` (user): `FullScreen`, `MusicEnabled`, `SoundEnabled`, `HighestPuzzleLevel`, `HighestActionLevel`, `HighestSolitaireLevel`, `ShowPuzzleHelp`, `ShowActionHelp`, `ShowSolitaireHelp`, `SaverEnabled`, `DefaultScoreName`, `PuzzleSavedGame`, `ActionSavedGame`, `SolitaireSavedGame`, `scores\*\scoreName#`, `scores\*\scoreValue#` | none |  |
+| Cosmic Bugs (`cosmicbugs`) | none | `cp.cfg`, `cb.dat` |  |
+| Water Bugs (`waterbugs`) | none | `cp.cfg`, `cb.dat` |  |
+| Rocket Mania Deluxe (`rocketmania`) | `PopCap\RocketMania` (VirtualStore, then machine, then user): the framework's options and times played; `LastScoreName`, `HintsDisabled`, `HintsDisabledFlag#` | `Players/hiscores.dat`, `Players/savea.dat`, `Players/saveb.dat`, `Players/savec.dat` |  |
+| Dynomite Deluxe (`dynomite`) | `PopCap\Dynomite` (VirtualStore, then machine, then user): the framework's options and times played; `LastScoreName`, `LockCursor`, `FossilGameType`, `SkillLevel`, `GameType`, `StompedLevel` | `STOMPED.HS`, `ENDLESS.HS`, `FOSSIL.HS`, `TIMETRIAL.HS`, `SLOT#.SAV` |  |
+| Bookworm Adventures Volume 2 (`bookwormadv2`) | `PopCap\WinBAD` (user, then VirtualStore, then machine): the framework's options and times played; `LastUser`, `AppTime` | `users/*.bwa`, `users/data/*.dat` |  |
+
+
+The framework's options (`base`) and the times played (`app`) are taken for every game that has a `registry` entry and derives from `SexyApp`; TipTop, Cosmic
+Bugs and Water Bugs keep no registry values the port reads, and Ning Po and Word Harmony (engine games) have only their own values. Bookworm Adventures and
+Volume 2 share the key `PopCap\WinBAD` and the folder `WinBAD`, so each imports what the other wrote there. What the table leaves out and why, game by game, is in
+its `skipFiles` and `skipValues`: Noah's Ark's `data\savegame.dat` (the port's file keeps its random number generator in another form, so the original's cannot be
+continued), Alchemy's `userdata\savegame.dat` (the port adds a version byte), the Steam edition of BookWorm's `players\<name>\profile.dat` and `scores.dat` (a later
+build than the 2004 one that the port follows; BookWorm's import takes the 2004 edition's registry players and `classic.dat` and `action.dat`), Pixelus's
+`levels\maxedscores.txt` (a game file), Bejeweled's mod saves and every file the port itself adds.
+
+**How a value becomes the port's.** The port's registry is `userdata/registry.ini`, an INI with a section for each key (`[SOFTWARE\PopCap\BigMoney]`) and a line
+for each value: `Name=sz:text` (a backslash, a line feed and a carriage return in the text are written `\\`, `\n` and `\r`), `Name=dword:123` (a signed decimal)
+or `Name=hex:0a1b` (lower-case, no commas). The conversion goes by the type the table names and the type the original stored: REG_SZ and REG_EXPAND_SZ are text,
+REG_DWORD is a number, REG_BINARY and REG_MULTI_SZ (BookWorm's score tables) are the same bytes as `hex:`; a value of another type than the table's, or a REG_QWORD,
+is left out with that said. The games' text is Windows-1252 (a .reg file is Unicode: a character the game's text does not have makes the value left out). The page and
+the native import write the file the way the port does (`SexyAppBase::GetRegistryText`: the keys in the order of its case-insensitive map, a blank line before each,
+the first comment line), so the port, when it saves, changes nothing in it; a value that exists already keeps the case of its name and is replaced in place.
+
+**On the web** (the listing page's Your saves section, `web/saveimport.js`, loaded with `saveimport-table.js`): "Import from an installed game" starts with a choice of
+game. The page then says, from the table, which folders hold the game's save files (the install folder, a Steam folder, the VirtualStore copy and the ProgramData
+folder, with the file paths the game keeps in them) and gives the exact `reg export` command for every place of the registry the game may use, each writing a
+.reg file and each with a Copy button (and Copy all commands): `reg export "HKCU\Software\Classes\VirtualStore\MACHINE\SOFTWARE\WOW6432Node\PopCap\BookWorm"
+bookworm-vs.reg /y`, `reg export "HKLM\SOFTWARE\WOW6432Node\PopCap\BookWorm" bookworm-hklm.reg /y` and `reg export "HKCU\Software\PopCap\BookWorm"
+bookworm-hkcu.reg /y`. They need no administrator rights and only read; a command that reports the key not found means the game did not use that place. (Checked on
+the development machine for every command of the table: the ones whose keys exist write their file, and the others say the key is not found.) The player then
+chooses the folder with the save files, a second folder if there is a VirtualStore copy (its files are used in preference to the first folder's), and the
+.reg files. The page reads the choices in the browser (a .reg file of version 5.00, in UTF-16 with a byte order mark, or REGEDIT4; string escapes, `dword:`,
+`hex:`, `hex(2)`, `hex(7)`, `hex(b)`, long hex values continued with a backslash, subkeys, `[-key]` and `"name"=-` deletions; a key of another game or another
+place than the game's is reported and left out), merges the VirtualStore over the machine's key over the user's (or the other way, as the table says) value by value,
+matches the values and the files against the table, and shows what would be added, replaced or left as it is, and what was left out and why, in the page. Only the
+Import button writes, after the player's yes in the page (an alertdialog; Esc cancels): the page checks with Web Locks that the game is not open (it refuses to
+import into a game that is, and in a browser without Web Locks), holds the game's lock while it writes, and writes in one IndexedDB transaction of the game's
+database (the same path as a restore: `writeFiles` in `web/saves.js`): the changed `registry.ini` and the files in `userdata/`, with each file's own date. The
+game's localStorage backup is first folded in (a file that only it had is written, one it had dropped is removed) and then removed, as a restore does, since a
+left one would overwrite the import at the game's next start. Controls are labelled, the status line is a live region, an error an alert, focus moves into the
+question and back; `tools/a11ycheck.js` checks the page, and the markup this script builds with `A11yCheck.checkHtml(document.documentElement.outerHTML)` in a browser.
+
+**Natively**, each game's `main.cpp` calls `Platform::RunSaveImportIfRequested` (`platform/SaveImport.h`) right after it knows its game folder and user folder. With
+`-importsaves` (or `-importsaves=<install folder>`; the default is the game folder the port found, which for a staged copy is not the original's install: give the
+folder) the import runs and the game exits without starting; without the option nothing changes, not even a log line. On Windows it reads the registry with
+the Win32 API, read only (`KEY_READ`): the real machine key in the 32-bit view (`KEY_WOW64_32KEY`), the VirtualStore copy and the user's key, merged as above, and the
+save files from the install folder, from `C:\ProgramData\PopCap Games\<name>` for a game that has one, and from the VirtualStore copy of the install folder
+(`%LOCALAPPDATA%\VirtualStore` plus the install path without its drive), the later folder winning, by the same table. It writes into the user folder; before it replaces
+anything it copies the files it will replace (`registry.ini` and any saved file that differs) to `<user dir>\before-import-<date>\` (a counter after the date if
+there is one already), and it writes `<user dir>\import-report.txt` (the same lines as the page's preview, and what it wrote), which it also prints. The exit code is 0
+(done, or nothing to import), 1 (a file could not be written, with the copy made first so nothing is lost) or 2 (the table has no entry for the game).
+Elsewhere than on Windows the option prints that it is not available and exits with 2. The web builds do not compile the call in. The helper does not check whether the
+port's game is running; import with it closed.
+
+**Tests.** `tools/saveimporttest.js` (in `tools/check.sh unit-web`) checks the table and the page's code: the .reg reader on both versions and every kind of value, the
+merge of the VirtualStore over the machine's key, the conversion and the registry file (a registry file of the port reads and writes back unchanged), the file patterns and
+the commands. The native import was run under `build/native/rundesk.exe` with a scratch `-userdir` against the development machine's own originals, and its
+`registry.ini` for Big Money compared byte for byte with the page's from the exported .reg files of the same keys: it is the same.
 
 ### Accessibility
 

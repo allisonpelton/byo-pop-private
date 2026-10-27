@@ -15,6 +15,11 @@ installed copy (for example from Steam):
   development, a staging script per game copies the needed folders into `assets/<game>/`.
 - **Web**: the page asks for the game folder (or a .zip of it) on first start and copies the files it
   needs into the browser's storage. Nothing is uploaded.
+- **Your saves**: a game started with `-importsaves` (or `-importsaves=<install folder>`) brings the saves, high scores,
+  players and settings of the original installed on this computer into its user folder (`%APPDATA%/byo-pop/<Game
+  Name>`), reads the original's registry and folders only and exits; the web listing page's "Your saves" section does
+  the same from `reg export` files and a folder you choose (`docs/WEB_PLAYER.md`, "Importing saves from an installed
+  game").
 - Mods that are built from game files (HD upscales, other games' audio) are generated locally by
   scripts and never committed. The decompiler output in `re/<game>/` is regenerated locally the same
   way.

@@ -444,6 +444,41 @@ std::string KindName(const std::string& k)
 	return "a kind of value the port does not read";
 }
 
+// Why the port's registry file could not hold a value of this name (a line "name=value" in a section), or null
+const char* BadName(const std::string& thePath)
+{
+	for (size_t i = 0; i < thePath.size(); i++)
+		if ((unsigned char) thePath[i] < 0x20)
+			return "its name has a control character, which the port's registry file cannot hold";
+	size_t anAt = thePath.rfind('\\');
+	std::string aLeaf = (anAt == std::string::npos) ? thePath : thePath.substr(anAt + 1);
+	if (aLeaf.find('=') != std::string::npos || (!aLeaf.empty() && (aLeaf[0] == '[' || aLeaf[0] == ';')))
+		return "its name has a character the port's registry file cannot hold";
+	return nullptr;
+}
+
+// A path inside the user folder: no empty, "." or ".." part and no backslash or control character
+bool SafeRel(const std::string& theRel)
+{
+	if (theRel.empty() || theRel.size() > 240 || theRel[0] == '/' || theRel[theRel.size() - 1] == '/')
+		return false;
+	for (size_t i = 0; i < theRel.size(); i++)
+		if (theRel[i] == '\\' || (unsigned char) theRel[i] < 0x20)
+			return false;
+	size_t aPos = 0;
+	while (true)
+	{
+		size_t aNext = theRel.find('/', aPos);
+		std::string aPart = theRel.substr(aPos, aNext == std::string::npos ? std::string::npos : aNext - aPos);
+		if (aPart.empty() || aPart == "." || aPart == "..")
+			return false;
+		if (aNext == std::string::npos)
+			break;
+		aPos = aNext + 1;
+	}
+	return true;
+}
+
 // the value in the port's form, or false with why
 bool Convert(const RegValue& v, const std::string& theType, std::string* theValue, std::string* theShown, std::string* theWhy)
 {
@@ -809,8 +844,11 @@ bool RunSaveImportIfRequested(int argc, char** argv, const char* theGameId, cons
 			}
 			RegItem item;
 			std::string aWhy;
-			if (!Convert(v, aRule->mType, &item.mValue, &item.mShown, &aWhy))
+			const char* aBad = BadName(v.mPath);
+			if (aBad != nullptr || !Convert(v, aRule->mType, &item.mValue, &item.mShown, &aWhy))
 			{
+				if (aBad != nullptr)
+					aWhy = aBad;
 				RegSkipped sk;
 				sk.mPath = v.mPath;
 				sk.mPlace = it->second.second;
@@ -876,6 +914,14 @@ bool RunSaveImportIfRequested(int argc, char** argv, const char* theGameId, cons
 					FileItem item;
 					item.mTo = FillTarget(aList[i]["to"].AsString(), aFound[k].mCaps);
 					item.mFrom = aFound[k].mRel;
+					if (!SafeRel(item.mTo))
+					{
+						FileSkipped sk;
+						sk.mRel = item.mFrom;
+						sk.mWhy = "its path is not one the port can keep in its folder";
+						aSkipMap[Lower(sk.mRel)] = sk;
+						continue;
+					}
 					item.mWhat = aList[i]["what"].AsString();
 					item.mSource = aFound[k].mFull;
 					item.mRoot = (int) ri;

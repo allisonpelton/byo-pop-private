@@ -319,13 +319,21 @@ var ByopopSaveImport = (function () {
         skipped.push({ path: v.path, hive: e.hive, why: why });
         return;
       }
-      var c = convert(v, rule.type);
+      var c = convert(v, rule.type), bad = badName(v.path);
+      if (bad) c = { skip: bad };
       if (c.skip) { skipped.push({ path: v.path, hive: e.hive, why: c.skip }); return; }
       var full = "SOFTWARE\\" + reg.key + "\\" + v.path, old = cur[lc(full)];
       items.push({ path: v.path, full: old ? old.full : full, hive: e.hive, value: c.value, shown: c.shown,
         status: !old ? "new" : old.value === c.value ? "same" : "changes", old: old ? old.value : null });
     });
     return { items: items, skipped: skipped, overridden: overridden, map: cur };
+  }
+  // Why the port's registry file could not hold a value of this name (it is a line "name=value" in a section), or null
+  function badName(path) {
+    var leaf = path.slice(path.lastIndexOf("\\") + 1);
+    if (/[\u0000-\u001f]/.test(path)) return "its name has a control character, which the port’s registry file cannot hold";
+    if (leaf.indexOf("=") >= 0 || leaf.charAt(0) === "[" || leaf.charAt(0) === ";") return "its name has a character the port’s registry file cannot hold";
+    return null;
   }
   // The registry file after the import
   function applyRegistry(plan) {
@@ -336,6 +344,12 @@ var ByopopSaveImport = (function () {
   }
 
   // ---------- files ----------
+  // A path inside the user folder: relative, no empty, "." or ".." part, no backslash or control character, not too long (as web/saves.js)
+  function safeRel(rel) {
+    if (typeof rel !== "string" || !rel || rel.length > 240) return false;
+    if (/[\\\u0000-\u001f]/.test(rel) || rel.charAt(0) === "/" || rel.charAt(rel.length - 1) === "/") return false;
+    return rel.split("/").every(function (p) { return p !== "" && p !== "." && p !== ".."; });
+  }
   // folders: [[{rel, size, m, read()}]] in order of preference (a later folder wins). Matches the table's file patterns.
   // {take: [{to, from, what, folder, size, read, m}], skipped: [{rel, why}], ignored: n (files of the folders that the table does not list)}
   function planFiles(game, folders) {
@@ -348,6 +362,7 @@ var ByopopSaveImport = (function () {
           if (!m) continue;
           matched = true;
           var to = fillTarget(rules.take[i].to, m.slice(1));
+          if (!safeRel(to)) { skipped.push({ rel: f.rel, why: "its path is not one the port can keep in its folder" }); continue; }
           take[lc(to)] = { to: to, from: f.rel, what: rules.take[i].what, folder: fi, size: f.size, read: f.read, m: f.m };
         }
         for (i = 0; i < rules.skip.length && !matched; i++) {
@@ -378,7 +393,7 @@ var ByopopSaveImport = (function () {
   }
 
   var core = { setTable: setTable, getTable: getTable, gameEntry: gameEntry, toAnsi: toAnsi, parseReg: parseReg, hiveOf: hiveOf, collect: collect, convert: convert,
-    parseIni: parseIni, writeIni: writeIni, planRegistry: planRegistry, applyRegistry: applyRegistry, planFiles: planFiles, commands: commands,
+    safeRel: safeRel, badName: badName, parseIni: parseIni, writeIni: writeIni, planRegistry: planRegistry, applyRegistry: applyRegistry, planFiles: planFiles, commands: commands,
     exportCommand: exportCommand, registryOf: registryOf, patternRe: patternRe, bytesToBinary: bytesToBinary, binaryToBytes: binaryToBytes, HIVE_NAMES: HIVE_NAMES };
   if (typeof document === "undefined") return core;
 
@@ -435,7 +450,11 @@ var ByopopSaveImport = (function () {
     copyStatus.setAttribute("aria-live", "polite");
     root.appendChild(copyStatus);
 
-    function resetPlan() { plan = null; box.hidden = true; box.textContent = ""; }
+    // the box is a dialog only while its question is shown (its name and text are made with it)
+    function resetPlan() {
+      plan = null; box.hidden = true; box.textContent = "";
+      ["role", "aria-labelledby", "aria-describedby"].forEach(function (a) { box.removeAttribute(a); });
+    }
 
     sel.addEventListener("change", function () {
       chosen = sel.value || null;
@@ -447,20 +466,19 @@ var ByopopSaveImport = (function () {
 
     function copyText(text, what) {
       function done(ok) { copyStatus.textContent = ok ? "Copied " + what + "." : "Could not copy; select the text and copy it."; }
+      // inside the click, the synchronous way first (it needs no permission); the clipboard API if that does not work
+      var prev = document.activeElement, ta = make("textarea"), ok = false;
+      ta.value = text; ta.setAttribute("readonly", ""); ta.setAttribute("aria-hidden", "true"); ta.style.position = "fixed"; ta.style.left = "-9999px";
+      document.body.appendChild(ta);
+      ta.select();
+      try { ok = document.execCommand("copy"); } catch (e) {}
+      ta.remove();
+      if (prev && prev.focus) prev.focus();
+      if (ok) { done(true); return; }
       try {
-        if (navigator.clipboard && navigator.clipboard.writeText) { navigator.clipboard.writeText(text).then(function () { done(true); }, function () { fallback(); }); return; }
+        if (navigator.clipboard && navigator.clipboard.writeText) { navigator.clipboard.writeText(text).then(function () { done(true); }, function () { done(false); }); return; }
       } catch (e) {}
-      fallback();
-      function fallback() {
-        var ta = make("textarea");
-        ta.value = text; ta.setAttribute("readonly", ""); ta.style.position = "fixed"; ta.style.left = "-9999px";
-        document.body.appendChild(ta);
-        ta.select();
-        var ok = false;
-        try { ok = document.execCommand("copy"); } catch (e) {}
-        ta.remove();
-        done(ok);
-      }
+      done(false);
     }
 
     function renderHelp() {
