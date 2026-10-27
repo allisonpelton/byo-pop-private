@@ -31,6 +31,7 @@ public:
 		BE_DYING = 7,
 		BE_END_CHAPTER = 8,
 		BE_MISC = 9,
+		BE_COMPANION = 10,  // the companion acts (Volume 2)
 	};
 
 	GameApp* mApp;                        // +0x28

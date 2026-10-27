@@ -537,7 +537,7 @@ int PopAnim::GetLabelFrame(const std::string& theLabel) const
 {
 	if (!mLoaded)
 		return -1;
-	std::map<std::string, int>::const_iterator anItr = mData->mMain.mLabels.find(theLabel);
+	std::map<std::string, int, StringLessNoCase>::const_iterator anItr = mData->mMain.mLabels.find(theLabel);
 	if (anItr == mData->mMain.mLabels.end())
 		return -1;
 	return anItr->second;
