@@ -231,7 +231,8 @@ its name, the colours and kinds of its first 256 eggs, and a grid as `EggGrid::L
 byte ends the pack, which then starts over at the skill's first puzzle with two shots a drop fewer. The fossil
 mode's fragments and museum are in Fossil.cpp and Museum.cpp. `EggGrid::CountRows` (0x415980) compares with "less
 or equal" (`testb $0x41`); with "less" the deepest row, where a fragment lies, was lost when the eggs were pushed
-down. Still to translate: the options dialog (0x42ee20), the saved games (slots 59 and 60 of the boards and of
-their parts, the save dialog 0x433910 and the load of SLOTn.SAV at 0x418fd0) and the tutorial (0x419040). App
+down. Translated since: the options dialog (0x42ee20), the saved games (slots 59 and 60 of the boards and of
+their parts, the save dialog 0x433910, the name dialog 0x420fb0 and the load of SLOTn.SAV at 0x418fd0) and the
+tutorial (0x419040); `README.md` says what is left out. App
 slot 51 is `DoDialog`, 53 `AddDialog`, 20 `SafeDeleteWidget`, 31 `Shutdown`; WidgetManager 0x47ec90 is
 `BringToBack`.
