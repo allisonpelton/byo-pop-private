@@ -20,8 +20,9 @@ static int Ftol(double theValue)
 }
 
 // 0x428780: the first board of the timed modes: every cell gets a new tile, again and again until no tiles connect the
-// left edge to the right one. (When the app's registered flag at app+0x549 is clear the original writes fixed tiles into
-// the first rows; the port is registered, so that part is left out.)
+// left edge to the right one. With the hints on (app+0x549, the Options hints checkbox, is clear) fixed tiles are written
+// over the generated ones in the last rows (two in the classic mode, three in the strategy mode) before each check, so the
+// first board is the same every time.
 void Board::F428780()
 {
 	int aLoops = 0;
@@ -50,6 +51,29 @@ void Board::F428780()
 				aPiece->m44 = aPiece->m4c = CellY(aRow);
 				aPiece->mType = 1;
 				aPiece->mMoving = false;
+			}
+		}
+		if (!mApp->mNoHints)
+		{
+			static const int sClassicKinds[12] = { 0, 0, 1, 1, 1, 1, 1, 1, 2, 0, 0, 0 };
+			static const int sClassicRotations[12] = { 1, 1, 3, 0, 2, 2, 1, 2, 2, 1, 1, 1 };
+			static const int sStrategyKinds[18] = { 1, 1, 1, 2, 0, 1, 0, 0, 1, 1, 1, 3, 1, 1, 2, 0, 0, 2 };
+			static const int sStrategyRotations[18] = { 3, 0, 3, 0, 2, 1, 1, 1, 3, 0, 2, 2, 1, 2, 2, 1, 1, 1 };
+			bool aClassic = mApp->mMode == 1;
+			const int* aKinds = aClassic ? sClassicKinds : sStrategyKinds;
+			const int* aRotations = aClassic ? sClassicRotations : sStrategyRotations;
+			int aFirstRow = aClassic ? 5 : 4;
+			for (int i = 0; i < (aClassic ? 2 : 3); i++)
+			{
+				for (int aColumn = 0; aColumn < mCols; aColumn++)
+				{
+					Piece* aPiece = mGrid[aFirstRow + i][aColumn];
+					if (aPiece != NULL)
+					{
+						aPiece->mKind = aKinds[i * 6 + aColumn];
+						aPiece->mRotation = aRotations[i * 6 + aColumn];
+					}
+				}
 			}
 		}
 		aLoops++;

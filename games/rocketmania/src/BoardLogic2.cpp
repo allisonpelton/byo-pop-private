@@ -464,7 +464,7 @@ void Board::SetupBoard(bool theKeep, bool theLoaded)
 		aPiece->mRow = (int) aRow;
 		aPiece->mX = (double) CellX(aPiece->mColumn);
 		aPiece->mY = (double) CellY(aPiece->mRow);
-		aPiece->mIndex2 = 0;
+		aPiece->mKind = 0;
 		aPiece->mType = 5;
 		mLeft[aRow] = aPiece;
 	}
@@ -484,8 +484,7 @@ void Board::SetupBoard(bool theKeep, bool theLoaded)
 		{
 			Piece* aPiece = new Piece(mUpdateCnt);
 			aPiece->mColumn = aColumn;
-			aPiece->mRow = 0;   // (the original stores the column at +0x54 and 0 at +0x50: a tile above the first row)
-			aPiece->mRow = -1;
+			aPiece->mRow = 0;
 			aPiece->mX = (double) CellX(aColumn);
 			aPiece->mY = (double) (CellY(0) - 0x4a);
 			aPiece->mKind = mGen->DrawKind();
@@ -493,7 +492,20 @@ void Board::SetupBoard(bool theKeep, bool theLoaded)
 			aPiece->mRotation = (int) (mRand->Next() & 3);
 			mTop[aColumn] = aPiece;
 		}
-		// the first top line of an unregistered game has fixed tiles (the app's flag at 0x549 is clear)
+		// with the hints on (the app's flag at 0x549, the Options hints checkbox, is clear) the first top line has fixed tiles
+		if (!mApp->mNoHints)
+		{
+			static const int sKinds[6] = { 0, 0, 2, 0, 2, 0 };
+			static const int sRotations[6] = { 1, 1, 1, 1, 2, 1 };
+			for (int aColumn = 0; aColumn < mCols; aColumn++)
+			{
+				if (mTop[aColumn] != NULL)
+				{
+					mTop[aColumn]->mKind = sKinds[aColumn];
+					mTop[aColumn]->mRotation = sRotations[aColumn];
+				}
+			}
+		}
 	}
 	else if (aMode == 1 || aMode == 2)
 	{
@@ -501,8 +513,6 @@ void Board::SetupBoard(bool theKeep, bool theLoaded)
 		for (int aColumn = 0; aColumn < mCols; aColumn++)
 		{
 			Piece* aPiece = new Piece(mUpdateCnt);
-			aPiece->mColumn = aColumn;
-			aPiece->mRow = -1;
 			aPiece->mX = (double) CellX(aColumn);
 			aPiece->mY = (double) (CellY(0) - 0x4a);
 			aPiece->mKind = mGen->DrawKind();
@@ -800,7 +810,7 @@ void Board::Launch()
 	else
 	{
 		m4da = false;
-		AddScore(500);
+		AddScore(0 < m4b0 ? 4000 : 2000);
 		m4b0 = 0xfa;
 		mApp->PlaySample(0x1d);
 		if (mApp->mMode == 2)
@@ -1434,7 +1444,7 @@ void Board::UpdatePieces()
 						Effect* anEffect = mEffects->Add(5, true);
 						anEffect->ma8 = 0;
 						anEffect->md0 = 0;
-						anEffect->m108 = 0.92;
+						anEffect->m108 = 0.86;
 						anEffect->mLife = 1;
 						anEffect->mc0 = 0;
 						anEffect->mX = aPiece->mX + 10.0;

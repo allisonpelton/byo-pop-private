@@ -191,8 +191,7 @@ void Board::Update()
 		aPoints->mPhase = (aPoints->mPhase + 7) % 0xff;
 		if (mUpdateCnt % 3 == 0 && 0 < aPoints->mTop && !aPoints->mStatic)
 		{
-			aPoints->mTop--;
-			aPoints->Position();
+			aPoints->Move(aPoints->mLeft, aPoints->mTop - 1);   // (nothing lowers mTop: the text jumps once and stays)
 		}
 		aPoints->mLife--;
 		if (aPoints->mLife < 1)
@@ -379,7 +378,7 @@ void Board::NextLevel()
 {
 	int aRank;
 	int aPointsToNext;
-	RankName(&aRank, &aPointsToNext);       // (0x428ca0 once more before the level number goes up; nothing uses it)
+	RankName(&aRank, &aPointsToNext);       // (0x428ca0 once more before the level number goes up: its results only go to a log call, 0x42d4d0, that is a bare return in the shipped game)
 	mLevel++;
 	RankName(&m88, &aPointsToNext);         // 0x428cf0
 	m368 = (int) SDL_GetTicks();

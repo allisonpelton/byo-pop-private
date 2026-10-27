@@ -63,7 +63,10 @@ levels). The port keeps them under the user folder as `Players/save?.dat`.
   pieces' generator `0x42a510` (0x74 bytes: tile distribution tables at 0x4e6800 and 0x4e6828, filled by 0x42a460 from the
   difficulty and level), a 0x14-byte fireworks manager (0x41a830) and an 0x18-byte object (0x413aa0), then runs the two
   setup functions 0x422120 (state reset per mode) and 0x422620 (the first board: fills the top and bottom rows and the
-  left column, for strategy and classic the rows made by 0x428780).
+  left column, for strategy and classic the rows made by 0x428780). With the hints on (app+0x549, the Options hints
+  checkbox, is clear) the opening board is the same every time: the arcade mode's first top line gets the kinds 0, 0, 2, 0, 2, 0
+  turned 1, 1, 1, 1, 2, 1; the classic mode's rows 5 and 6 and the strategy mode's rows 4 to 6 are written over the generated
+  tiles, in the loop of 0x428780 before each check of 0x428ae0, from fixed tables of the kind and the turn of each tile.
 - Draw (0x41f540, 9306 bytes) clips to x 176..640, shakes the whole screen with a random offset while board+0x4b4 > 0
   (the "earthquake"), draws the night sky (image 67, with the day sky 68 fading in over it as the dawn comes) at (63, 0), the sun (71) rising,
   the city (72) at (116, 317) and the ground (66) at (116, 382), the fireworks, the column picture (65) at (0, 0), the
@@ -112,8 +115,11 @@ with its helpers, Save/Load 0x41b430-0x41c830, the fireworks (Rocket 0x4172f0), 
 the game-to-menu return.
 
 Hidden arguments the decompiler drops (found with tools/callargs.py): 0x4259c0 AddScore(int), 0x423120 ComboSound(double x,
-double y). Guesses still to verify against the original at the first run: PlaySample ids against Res.h's SOUND_ enum, the
-float-up of Points, m84, DropTopTimed's use of m4c.
+double y). The values pushed at every AddScore call were checked against the disassembly (2026-10-26: a launch scores 2000, or
+4000 while m4b0 (250 after each such score) is above 0; the bonus messages of 5 to 9 launches score 1000, 2500, 10000, 25000 and 100000; a torch 300;
+a bonus tile BonusFor; a match 500; the coins of the buy-rockets screen their own points; each rocket of a launch 100 times
+its number). The floating texts do not rise: the board's update calls Move(x, y - 1) with the text's own y, which nothing
+lowers, so a text jumps once and stays (0x427451). m84 is 0 (DL at 0x42a77f). Guesses still to verify: DropTopTimed's use of m4c.
 
 ### Where the Board stands after the input work (2026-10-26, evening)
 

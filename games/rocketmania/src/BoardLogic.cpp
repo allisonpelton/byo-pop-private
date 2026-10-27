@@ -240,7 +240,7 @@ void PieceGenerator::ResetForLevel()
 	aBoard->m78 = aBoard->m74;
 	aBoard->m7c = aBoard->mRows;
 	aBoard->m80 = aBoard->mRows;
-	aBoard->m84 = false;   // the original stores whatever its last register held (0x42a770, DL)
+	aBoard->m84 = false;   // (the original stores DL, which 0x42a77f has set to 0)
 }
 
 // 0x42a890: the updates a tile takes to fall in arcade mode, at a level (shorter as the level grows)
@@ -330,7 +330,8 @@ void PieceGenerator::ShowBonus()
 			Points* aPoints = aBoard->AddText("", Board::CellX(3), 0x1e);
 			aPoints->SetBack(mApp->mImages[0x168 / 4], 0xff, sGreen[aTotal], 0xff);
 			aBoard->AddText(GT(sMessages[aTotal]), 0x181 + (aTotal == 5 ? 0 : 1), 0x23);
-			aBoard->AddScore(0);   // 0x4259c0 is called here; its argument is not recovered (see GAME_NOTES)
+			static const int sBonusPoints[5] = { 1000, 2500, 10000, 25000, 100000 };
+			aBoard->AddScore(sBonusPoints[aTotal - 5]);
 		}
 		break;
 	default:
@@ -473,7 +474,7 @@ void Points::Position()
 		return;
 	}
 	Resize(aX, mTop - mBackImage->GetHeight() / 2, mTextWidth, mBackImage->GetHeight());
-	mBaseline = mBackImage->GetHeight() / 4 + mFont->GetHeight() / 2;
+	mBaseline = mFont->GetAscent() / 4 + mBackImage->GetHeight() / 2;
 }
 
 // 0x42a2d0: the text with a black outline, in a colour that runs through the hues, fading out over its last 18 updates
@@ -741,7 +742,7 @@ int Board::BonusFor(int theIndex)
 void Board::SmokePuff(Piece* thePiece)
 {
 	Effect* anEffect = mEffects->Add(5, true);
-	anEffect->m108 = 0.93;
+	anEffect->m108 = 0.94;
 	anEffect->ma8 = 0;
 	anEffect->md0 = 0;
 	anEffect->mc0 = 0;
@@ -853,9 +854,9 @@ void Board::DestroySpecial(Piece* thePiece, bool theFlag)
 		}
 		else
 		{
-			AddScore(300);
+			int anAdded = AddScore(300);
 			char aBuf[64];
-			snprintf(aBuf, sizeof(aBuf), "+%d", 300);
+			snprintf(aBuf, sizeof(aBuf), "+%d", anAdded);
 			Points* aPoints = new Points(mApp, mApp->mFonts[FONT_DOMO14_BOLD], aBuf, Ftol((double) mX + thePiece->mX),
 				Ftol((double) mY + thePiece->mY), 100, 0);
 			mTexts.push_back(aPoints);
@@ -896,7 +897,7 @@ void Board::DestroySpecial(Piece* thePiece, bool theFlag)
 			thePiece->m40 = Ftol(thePiece->mX);
 			thePiece->m44 = Ftol(thePiece->mY);
 			thePiece->m4c = 0x28;
-			thePiece->m48 = CellX(3) - mApp->mImages[0x170 / 4]->GetWidth();
+			thePiece->m48 = CellX(3) - mApp->mImages[0x170 / 4]->GetWidth() / 2;
 			thePiece->m30 = 0;
 			thePiece->m38 = 0.02;
 			thePiece->mMoving = true;

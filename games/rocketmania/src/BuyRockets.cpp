@@ -250,8 +250,8 @@ void BuyRocketsWidget::Draw(Graphics* g)
 				{
 					double aFraction = (double) anItem->mTime * 0.01818181818181818;
 					double anEase = 1.0 - (1.0 - aFraction) * (1.0 - aFraction);
-					int aY = (int) ((double) (anItem->mEndY - anItem->mStartY) * anEase) + anItem->mStartY;
-					int aX = (int) ((double) (anItem->mEndX - anItem->mStartX) * aFraction) + anItem->mStartX;
+					int aY = (int) ((double) (anItem->mEndY - anItem->mStartY) * anEase + anItem->mStartY);
+					int aX = (int) ((double) (anItem->mEndX - anItem->mStartX) * aFraction + anItem->mStartX);
 					g->DrawImage(mApp->mImages[IMAGE_COINBRONZE], aX, aY);
 				}
 				if (COIN_FLIGHT < anItem->mTime)
@@ -279,8 +279,8 @@ void BuyRocketsWidget::Draw(Graphics* g)
 		{
 			double aFraction = (double) anItem->mTime * 0.01818181818181818;
 			double anEase = 1.0 - (1.0 - aFraction) * (1.0 - aFraction);
-			int aY = (int) ((double) (anItem->mEndY - anItem->mStartY) * anEase) + anItem->mStartY;
-			int aX = (int) ((double) (anItem->mEndX - anItem->mStartX) * aFraction) + anItem->mStartX;
+			int aY = (int) ((double) (anItem->mEndY - anItem->mStartY) * anEase + anItem->mStartY);
+			int aX = (int) ((double) (anItem->mEndX - anItem->mStartX) * aFraction + anItem->mStartX);
 			g->DrawImage(mApp->mImages[IMAGE_COINBRONZE], aX, aY);
 		}
 	}

@@ -132,8 +132,10 @@ public:
 	int			Upgrades(int theCoins, int theMode, int theIndex);   // 0x42ae10: how many launchers the coins upgrade (mode 0), or the launcher of the n-th upgrade (mode 1)
 };
 
-// 0x429ed0: the floating text (points, messages) made by the board; 0x98 bytes. It floats up one pixel every third
-// update while 'mStatic' is false, flashes between two colours and is removed when its life runs out.
+// 0x429ed0: the floating text (points, messages) made by the board; 0x98 bytes. While 'mStatic' is false the board moves
+// it every third update to the place (mLeft, mTop - 1); mTop is never lowered, so the text does not rise: it jumps once to
+// that place (the widget's left edge is then the centre x and its top is y - 1) and stays. It changes colour as the
+// phase moves and is removed when its life runs out.
 class Points : public Widget
 {
 public:
