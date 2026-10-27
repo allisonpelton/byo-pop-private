@@ -111,3 +111,20 @@
 0x4f9fd4    # DynomiteStomped: the game's end, the babies' label
 0x4f9fc4    # DynomiteStomped: the game's end, the rounds' label
 0x4f9fb4    # DynomiteStomped: the game's end, the final score's label
+0x4fc60c    # OptionsDialog: the credits link's label
+0x4fc6f4    # CreditsDialog: the roles, 6
+0x4fc6e4    # CreditsDialog
+0x4fc6d0    # CreditsDialog
+0x4fc6b8    # CreditsDialog
+0x4fc6a8    # CreditsDialog
+0x4fc694    # CreditsDialog
+0x4fc6d8    # CreditsDialog: the names, 4
+0x4fc6c0    # CreditsDialog
+0x4fc69c    # CreditsDialog
+0x4fc688    # CreditsDialog
+0x4fc67c    # CreditsDialog: the links' labels, 2
+0x4fc674    # CreditsDialog
+0x4fc728    # CreditsDialog: the links' addresses, 2
+0x4fc704    # CreditsDialog
+0x4fc4a8    # CreditsDialog: the header (the text itself, not a string id)
+0x4fc63c    # CreditsDialog: the footer (likewise)

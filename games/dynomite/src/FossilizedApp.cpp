@@ -5,9 +5,13 @@
 #include "DynomiteFossil.h"
 #include "DynomiteStomped.h"
 #include "DynomiteTimeTrial.h"
+#include "CreditsDialog.h"
 #include "EditWidget.h"
 #include "EnterNameDialog.h"
 #include "HighScores.h"
+#include "HighScoresDialog.h"
+#include "OptionsDialog.h"
+#include "Checkbox.h"
 #include "SideBar.h"
 #include "AngleTable.h"
 #include "InchySmall.h"
@@ -233,7 +237,36 @@ void FossilizedApp::ConfirmExit()
 // 0x418ba0: the options dialog (2)
 void FossilizedApp::ShowOptions()
 {
-	// TODO: OptionsDialog (0x42ee20, 0x154 bytes)
+	OptionsDialog* aDialog = new OptionsDialog(this);
+	aDialog->SetColor(0, Color(0xff, 0xff, 0xff));
+	aDialog->SetColor(1, Color(0xff, 0xff, 0xff));
+	aDialog->SetColor(3, Color(0xff, 0xff, 0xff));
+	aDialog->mContentInsets = Insets(0x26, 0x26, 0x26, 0x26);
+	aDialog->Resize(0xcd, 0x32, 0x17c, aDialog->GetPreferredHeight(0x17c));
+	AddDialog(2, aDialog);
+}
+
+// 0x418cd0: the options dialog's high scores (4)
+void FossilizedApp::ShowHighScores()
+{
+	HighScoresDialog* aDialog = new HighScoresDialog(this);
+	aDialog->Resize(0xb5, 0x32, 0x1ac, aDialog->GetPreferredHeight(0x1ac));
+	AddDialog(4, aDialog);
+}
+
+// 0x418d60: the options dialog's credits (22)
+void FossilizedApp::ShowCredits()
+{
+	CreditsDialog* aDialog = new CreditsDialog(this);
+	aDialog->Resize(0xdc, 0x3c, 0x15e, aDialog->GetPreferredHeight(0x1ac));
+	AddDialog(0x16, aDialog);
+}
+
+// 0x41e940: dialog 3, where the desktop allows only full screen
+void FossilizedApp::ShowNoWindowed()
+{
+	DoDialog(3, true, GetString("NO_WINDOWED"), GetString("WINDOWED_MODE_IS_ONLY_AVAILABLE_IF_YOUR_DESKTOP__"),
+		GetString("OK"), Dialog::BUTTONS_FOOTER);
 }
 
 // 0x419130: a picture of the screen for the save dialog, then the save dialog
@@ -410,8 +443,18 @@ void FossilizedApp::ButtonDepress(int theId)
 			ShowMainMenu();
 			return;
 		case 2:
-			// TODO: the options dialog's OK (windowed or full screen, the volumes), then dialog 2 goes and the board
-			// gets the focus; as in the original it runs on into dialog 3's
+		{
+			// the volumes are already set; then dialog 2 goes and the board gets the focus, and as in the original it
+			// runs on into dialog 3's
+			OptionsDialog* aDialog = (OptionsDialog*)GetDialog(2);
+			bool wantWindowed = !aDialog->mFullscreenCheckbox->IsChecked();
+			if (mIsWindowed != wantWindowed)
+				SwitchScreenMode(wantWindowed);
+			EnableCustomCursors(aDialog->mCustomCursorsCheckbox->IsChecked());
+			KillDialog(2);
+			if (mBoard != NULL)
+				mWidgetManager->SetFocus(mBoard);
+		}
 		case 3:
 			KillDialog(3);
 			return;
@@ -436,7 +479,7 @@ void FossilizedApp::ButtonDepress(int theId)
 			KillDialog(0xc);
 			return;
 		case 0xd:
-			// TODO: the fossil board's next puzzle (0x40a930) comes with DynomiteFossil
+			((DynomiteFossil*)mBoard)->NextRound();
 			return;
 		case 0xe:
 			// TODO: the registration dialog's OK (the port runs as a registered copy)

@@ -285,7 +285,10 @@ public:
 	void			ShowRegisterDialog(const char* theLines);	// 0x4185a0: dialog 14 (REGISTRATION)
 	void			ShowHighScoreDialog(HighScores* theHighScores);	// 0x418df0: dialog 6, the name for a high score
 	void			MenuButton();								// 0x41e770: the side bar's menu button
-	void			ShowOptions();								// 0x418ba0
+	void			ShowOptions();								// 0x418ba0: dialog 2
+	void			ShowHighScores();							// 0x418cd0: dialog 4, the options' high scores
+	void			ShowCredits();								// 0x418d60: dialog 22, the options' credits
+	void			ShowNoWindowed();							// 0x41e940: dialog 3, NO_WINDOWED
 	void			ConfirmExit();								// 0x41e590
 	void			SaveGame();									// 0x419130
 	void			StartTutorial();							// 0x419040
