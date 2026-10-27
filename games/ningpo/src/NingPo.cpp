@@ -7,6 +7,7 @@
 #include "PGControl.h"
 #ifdef __EMSCRIPTEN__
 #include "SiteProfiles.h"
+#include "WebSettings.h"
 #endif
 
 #include <cstdio>
@@ -1152,6 +1153,11 @@ void NingPo::loadSettings()
 			*aVolume = 1.0f;
 		if (!aRegistry->readData("Fullscreen", &mFullscreen, 4, &aSize))
 			mFullscreen = 0;
+#ifdef __EMSCRIPTEN__
+		// the site's "Full screen at start: Windowed" (framework/WebSettings.h): the game's own option, as its options screen sets it
+		if (Byopop::SiteWindowed())
+			mFullscreen = 0;
+#endif
 		aRegistry->close();
 	}
 	cycleBackground(0);
