@@ -23,6 +23,7 @@ struct SaveWriter
 	Buffer*		mBuffer;
 	template<class T> void	operator()(T& theValue) { mBuffer->WriteBytes((const unsigned char*) &theValue, (int) sizeof(T)); }
 	template<class T, int N> void	operator()(T (&theArray)[N]) { for (int i = 0; i < N; i++) (*this)(theArray[i]); }
+	void	Raw(void* theBytes, int theSize) { mBuffer->WriteBytes((const unsigned char*) theBytes, theSize); }
 };
 
 struct SaveReader
@@ -30,6 +31,7 @@ struct SaveReader
 	const Buffer*	mBuffer;
 	template<class T> void	operator()(T& theValue) { mBuffer->ReadBytes((unsigned char*) &theValue, (int) sizeof(T)); }
 	template<class T, int N> void	operator()(T (&theArray)[N]) { for (int i = 0; i < N; i++) (*this)(theArray[i]); }
+	void	Raw(void* theBytes, int theSize) { mBuffer->ReadBytes((unsigned char*) theBytes, theSize); }
 };
 
 // the number a piece is saved under (and the number that a reference to it holds)
@@ -217,11 +219,14 @@ void Board::Fields(Visitor& theVisitor)
 	theVisitor(m380);
 	theVisitor(m378);
 	theVisitor(m37c);
+	// (the originals' loop never moves its three addresses: thirty times it writes, and reads, the same four bytes at +0x3fc,
+	// the byte at +0x41a and the byte at +0x438, so the path flags m384, m3fc and m41a are not kept; a loaded game has them
+	// as a new board has them until the connection finder, which sets them afresh at every pass, runs)
 	for (int i = 0; i < 30; i++)
 	{
-		theVisitor(m384[i]);
-		theVisitor(m3fc[i]);
-		theVisitor(m41a[i]);
+		theVisitor.Raw(m3fc, 4);
+		theVisitor(m41a[0]);
+		theVisitor(m438);
 	}
 	theVisitor(m438);
 	theVisitor(m439);
