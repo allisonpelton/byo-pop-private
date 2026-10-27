@@ -14,8 +14,16 @@
 namespace Sexy {
 
 class Checkbox;
+class ButtonListener;
 class DialogButton;
 class Slider;
+
+// 0x49f2a0: a DialogButton of id 1 on IMAGE_DIALOG_BUTTON, one cel wide, with its label, in the game's look (0x49f610,
+// the default font)
+DialogButton* MakeDialogButton(ButtonListener* theListener, const std::string& theLabel);
+
+// 0x49f7b0: a checkbox of the given id on IMAGE_DIALOG_CHECKBOX (the left half the box unticked, the right half ticked)
+Checkbox* MakeCheckbox(int theId, CheckboxListener* theListener);
 
 class OptionsDialog : public GameDialog, public SliderListener, public CheckboxListener {
 public:

@@ -20,7 +20,7 @@ static const int kVersionMinor2 = 5;
 
 // The changes of the format, oldest first (the constructor's list, +0x24)
 static const Profile::FormatChange kFormatChanges[] = {
-	{0, 0, 2, GTA(0x6fe718)}, {0, 0, 3, GTA(0x6fe744)}, {0, 0, 4, GTA(0x6fe780)}, {0, 0, 5, GTA(0x7b0258)},
+	{0, 0, 2, GTA(0x6fe718)}, {0, 0, 3, GTA(0x6fe744)}, {0, 0, 4, GTA(0x6fe780)}, {0, 0, 5, GTA(0x6fe7c8)},
 	{0, 0, 6, GTA(0x6fe818)}, {0, 0, 7, GTA(0x6fe870)}, {0, 0, 8, GTA(0x6fe8a0)}, {0, 0, 9, GTA(0x6fe8d0)},
 	{0, 1, 0, GTA(0x6fe924)}, {0, 1, 1, GTA(0x6fe948)}, {0, 1, 2, GTA(0x6fe980)}, {0, 1, 3, GTA(0x6fe99c)},
 	{0, 1, 4, GTA(0x6fe9b4)}, {0, 1, 5, GTA(0x6fe9dc)},
@@ -37,7 +37,8 @@ static std::string ProfilePath(const std::string& theName)
 Profile::Profile(const std::string& theName, bool theNoSave)
 	: mName(theName), mNoSave(theNoSave)
 {
-	SetInt("CurrentBook", 1);
+	// 0x477140: the new profile's values, in the original's order (Volume 2's books are 4 to 6)
+	SetInt("CurrentBook", 4);
 	SetInt("CurrentChapter", 0);
 	SetInt("CurrentStage", 0);
 	SetInt("VersionMajor", kVersionMajor);
@@ -60,15 +61,31 @@ Profile::Profile(const std::string& theName, bool theNoSave)
 	SetBool("TM_InGame", false);
 	SetFloat("TM_OffenseBonusPct", 0.0f);
 	SetBool("AllowGoldBar", false);
-	SetBool("AllowXPBar", false);
+	SetBool("AllowXPBar", true);
 	SetBool("AllowHealthBar", true);
-	SetBool("AllowItems", false);
+	SetBool("AllowItems", true);
 	SetBool("AllowGems", false);
-	SetBool("HideLore", true);
+	SetBool("HideLore", false);
 	SetBool("HideTreasures", true);
+	SetBool("TutorialScrambleDone", false);
+	SetBool("TutorialComplete", false);
 	SetString("LastAppVersion", gApp->mProductVersion);
 	for (char aLetter = 'A'; aLetter <= 'Z'; aLetter++)
 		SetInt(StrFormat("NumLetter%c", aLetter), 0);
+	SetBool("AdventureComplete", false);
+	SetInt("ReplayCurrentBook", 4);
+	SetInt("ReplayCurrentChapter", 1);
+	SetInt("ReplayCurrentStage", 1);
+	SetInt("ReplayXPLevel", 0);
+	SetInt("ReplayXP", 0);
+	SetFloat("ReplayXPPercent", 0.0f);
+	SetInt("ReplayHealth", 3);
+	SetInt("ReplayMaxHealth", 3);
+	SetInt("ReplayDefense", 0);
+	SetFloat("ReplayOffenseBonusPct", 0.0f);
+	SetBool("ReplayInGame", false);
+	SetBool("ReplayNewGame", false);
+	SetInt("HatMode", 0);
 }
 
 bool Profile::KeyExists(const std::string& theKey) const

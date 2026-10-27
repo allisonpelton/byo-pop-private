@@ -1,11 +1,13 @@
 #include "CutScene.h"
 
 #include "CurtainTransition.h"
+#include "DialogButton.h"
 #include "Font.h"
 #include "GameApp.h"
 #include "GameText.h"
 #include "Graphics.h"
 #include "Image.h"
+#include "OptionsDialog.h"
 #include "PopLua.h"
 #include "Res.h"
 #include "WidgetManager.h"
@@ -20,6 +22,13 @@ CutScene::CutScene(GameApp* theApp) : mApp(theApp)
 	Resize(0, 0, mApp->mWidth, mApp->mHeight);
 	mFlash->Resize(mApp->mWidth / 2 - 320, mApp->mHeight / 2 - 240, 640, 480);
 	mFlash->SetVisible(false);
+	mSkipButton = MakeDialogButton(static_cast<ButtonListener*>(this), GT(0x6fa1f4));
+	AddWidget(mSkipButton);
+	int aWidth = IMAGE_DIALOG_BUTTON->GetCelWidth();
+	int aHeight = IMAGE_DIALOG_BUTTON->GetCelHeight();
+	mSkipButton->Resize(mWidth / 2 - aWidth / 2, mHeight - aHeight - 10, aWidth, aHeight);
+	mSkipButton->SetVisible(false);
+	mSkipButton->SetDisabled(true);
 	mWidgetFlagsMod.mAddFlags |= WIDGETFLAGS_MARK_DIRTY;
 }
 
@@ -37,6 +46,7 @@ void CutScene::Load(const std::string& theFileName, const std::string& theCallba
 
 void CutScene::End()
 {
+	mFlash->Pause();
 	mEnded = true;
 	mFlash->mRedraw = false;
 	mWidgetFlagsMod.mAddFlags |= ~WIDGETFLAGS_MARK_DIRTY;  // (as the original: |=, so it stays redrawn)
@@ -68,8 +78,15 @@ void CutScene::Skip()
 void CutScene::Update()
 {
 	Widget::Update();
-	if (!mSkipped && !mFlash->mVisible && mApp->mMainMenu == nullptr)
+	if (mSkipped)
+		return;
+	if (!mFlash->mVisible && mApp->mMainMenu == nullptr)
 		mFlash->SetVisible(true);
+	CurtainTransition* aCurtain = mApp->mCurtain;
+	if ((aCurtain == nullptr || (aCurtain->mDone && aCurtain->mDrawn)) && !mSkipButtonEnabled) {
+		mSkipButtonEnabled = true;
+		mSkipButton->SetDisabled(false);
+	}
 }
 
 void CutScene::Draw(Graphics* g)
@@ -87,8 +104,7 @@ void CutScene::Draw(Graphics* g)
 	g->DrawString(mCaption, mWidth / 2 - FONT_HUGE->StringWidth(mCaption) / 2 + 15, FONT_HUGE->GetAscent() + 5);
 	if (mCanSkip) {
 		g->SetFont(FONT_MEDIUM);
-		g->SetColor(Color(255, 0, 0));
-		g->WriteString(GT(0x6f9f58), 0, 585, mWidth, 0);  // "(Click anywhere to skip.)"
+		g->SetColor(Color(255, 0, 0));  // (the hint is no longer written)
 	}
 }
 
@@ -97,9 +113,19 @@ void CutScene::MouseUp(int x, int y, int theBtnNum, int theClickCount)
 	if (mSkipped || !mCanSkip || mEnded || mWaitingForCurtain || mApp->IsCurtainMoving() ||
 	    mApp->GetDialog(GameApp::DIALOG_SKIP_MOVIE) != nullptr)
 		return;
-	mFlash->Pause();
-	// "Are you sure?" / "Are you sure you want to skip the movie?"
-	mApp->DoConfirmDialog(GameApp::DIALOG_SKIP_MOVIE, GT(0x7ac278), GT(0x7ac24c), nullptr, "");
+	// the scene's number is the first character of the label the movie is at ("2start": 2)
+	std::string aScene = mFlash->GetCurrentLabel().substr(0, 1);
+	mFlash->GotoLabel(aScene + "end");
+}
+
+void CutScene::ButtonDepress(int theId)
+{
+	if (theId == 1) {
+		mSkipped = true;
+		mFlash->mState = FlashWidget::STATE_STOPPED;
+		End();
+		mSkipButton->SetDisabled(true);
+	}
 }
 
 void CutScene::FlashAnimEnded(int theId)

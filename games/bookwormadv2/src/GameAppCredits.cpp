@@ -60,7 +60,7 @@ void GameApp::ShowCredits()
 
 void GameApp::CloseCredits()
 {
-	// 0x450e90: the credits go; the main menu comes back after the end of the game
+	// 0x446ed0: the credits go; the main menu comes back after the end of the game
 	mCreditsCount--;
 	SafeDeleteWidget(mCredits);
 	mWidgetManager->RemoveWidget(mCredits);
@@ -73,19 +73,8 @@ void GameApp::CloseCredits()
 		mBookManager->mWidgetFlagsMod.mRemoveFlags &= ~kCoveredFlags;
 	if (mTreasureScreen != nullptr)
 		mTreasureScreen->mWidgetFlagsMod.mRemoveFlags &= ~kCoveredFlags;
-	if (mNoMusic && mConversationPanel != nullptr) {
-		// the end of the game (DoEndGame) cut the music: the conversation panel is shown again over the main menu,
-		// which has its song
-		mNoMusic = false;
-		mConversationPanel->Activate(false);
-		mWidgetManager->PutInfront(mConversationPanel, mMainMenu);
-		PlaySong(0x8c, 0.006f, true);
-		if (mCurtain != nullptr)
-			mWidgetManager->BringToFront(mCurtain);
-	} else if (mLastSongId != 0) {
-		// the song from before the credits (port: Volume 2's way of doing this has not been read yet)
-		PlaySong(mLastSongId, 0.006f, true);
-	}
+	// (Volume 2's 0x446ed0 has no song and no conversation panel here, and never clears the no-music flag that
+	// DoEndGame set; Volume 1's did both)
 	if (mHoverTooltip != nullptr)
 		mHoverTooltip->MouseLeave();
 }

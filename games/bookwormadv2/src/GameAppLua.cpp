@@ -226,6 +226,9 @@ void DoFullCurtainTransition(GameApp* app, std::string theCallback) { app->DoFul
 void DoCSToGameTransition(GameApp* app) { app->StartSavedGameTransition(); }
 void DoCSToMMTransition(GameApp* app) { app->StartToMenuTransition(); }
 void DoGameToMMTransition(GameApp* app) { app->StartGameToMenuTransition(); }
+void DoReplayToHOFTransition(GameApp* app) { app->StartReplayHallOfFameTransition(); }
+void DoCSToMiniMenuTransition(GameApp* app) { app->StartMiniGameMenuTransition(false); }
+void DoHighScoreScreenFromReplay(GameApp* app) { app->DoHighScoreScreenFromReplay(); }
 void HideBookManager(GameApp* app) { app->HideBookManager(); }
 
 // The mini-games (GameAppMiniGames.cpp)
@@ -358,7 +361,7 @@ int MakeGrayscale(GameApp* app, lua_State* L)  // 0x44ca70: MakeGrayscale(image)
 	return 0;
 }
 
-// 0x4445c0: DoGenericDialog(header, lines[, callback[, banner image]]): DoOkDialog
+// DoGenericDialog(header, lines[, callback[, banner image]]): DoOkDialog
 int DoGenericDialog(GameApp* app, lua_State* L)
 {
 	const char* aHeader = lua_tostring(L, 1);
@@ -368,8 +371,9 @@ int DoGenericDialog(GameApp* app, lua_State* L)
 		const char* aName = lua_tostring(L, 3);
 		aCallback = aName != nullptr ? aName : "";
 	}
+	// the scripts give the banner as a nil or a false when the dialog has none (the mini-games' welcomes)
 	Image* aBanner = nullptr;
-	if (lua_gettop(L) >= 4)
+	if (lua_gettop(L) >= 4 && !lua_isnil(L, 4) && !lua_isboolean(L, 4))
 		aBanner = ImageOf((LuaImage*)gLuaSupport->CheckObject(4, ClassOf<LuaImage>::info));
 	app->DoOkDialog(aHeader != nullptr ? aHeader : "", aLines != nullptr ? aLines : "", aCallback, aBanner);
 	return 0;
@@ -468,6 +472,9 @@ void GameApp::RegisterGameAppMethods()
 		.Function<&::DoCSToGameTransition>("DoCSToGameTransition")
 		.Function<&::DoCSToMMTransition>("DoCSToMMTransition")
 		.Function<&::DoGameToMMTransition>("DoGameToMMTransition")
+		.Function<&::DoReplayToHOFTransition>("DoReplayToHOFTransition")
+		.Function<&::DoCSToMiniMenuTransition>("DoCSToMiniMenuTransition")
+		.Function<&::DoHighScoreScreenFromReplay>("DoHighScoreScreenFromReplay")
 		.Function<&::HideBookManager>("HideBookManager")
 		.Function<&::StartMiniGame>("StartMiniGame")
 		.Function<&::ReturnToMMFromMiniGame>("ReturnToMMFromMiniGame")

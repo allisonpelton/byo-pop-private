@@ -4,7 +4,9 @@
 
 #include "BonusText.h"
 #include "Board.h"
+#include "Checkbox.h"
 #include "CurtainTransition.h"
+#include "FadeButton.h"
 #include "LuaLinkedClass.h"
 #include "MinigameMenu.h"
 #include "PopAnimManager.h"
@@ -29,9 +31,8 @@ void GameApp::StartMiniGame(std::string theName, int x, int y, int theXGap, int 
 	mBoard->InitMiniGame(theName, x, y, theXGap, theYGap, theCols, theRows, theLetters, theNoTilesWhilePaused);
 	mWidgetManager->SetFocus(mBoard);
 	// port: the original then freed the images' extra buffers (0x5492a0, the resource manager's 0x575cd0), as
-	// StartBattle did; the port's images keep none
-	if (!mNoMusic && mSongPlayer != nullptr)
-		mSongPlayer->PlaySong(0x96, 0.005f, true);  // the mini-games' song
+	// StartBattle did; the port's images keep none. (No song starts here in Volume 2: the scripts' minigame.luc plays
+	// its own)
 }
 
 void GameApp::ReturnToMMFromMiniGame()
@@ -68,9 +69,17 @@ void GameApp::UnlockedMiniGameComplete()
 
 void GameApp::ShowMiniGameMenu()
 {
-	// 0x44f9d0: the mini-games' menu, over the screens but under the curtain. Its buttons (MinigameMenu) close the
-	// whole curtain again and then start the mini-game picked, or bring the main menu back.
+	// 0x4458b0: the mini-games' menu, over the screens but under the curtain. Its buttons (MinigameMenu) close the
+	// whole curtain again and then start the mini-game picked, or bring the main menu back. Asked for by the chapter
+	// screen it has neither the main menu button nor the tooltips box.
 	mMiniGameMenu = new MinigameMenu(this);
+	mMiniGameMenu->mFromMainMenu = mMiniMenuFromMainMenu;
+	if (!mMiniMenuFromMainMenu) {
+		mMiniGameMenu->mMainMenuButton->SetDisabled(true);
+		mMiniGameMenu->mMainMenuButton->SetVisible(false);
+		mMiniGameMenu->mTipsBox->SetDisabled(true);
+		mMiniGameMenu->mTipsBox->SetVisible(false);
+	}
 	mWidgetManager->AddWidget(mMiniGameMenu);
 	if (mCurtain != nullptr)
 		mWidgetManager->BringToFront(mCurtain);

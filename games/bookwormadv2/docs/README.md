@@ -59,7 +59,7 @@ The staging unpacks `main.pak` (`tools/popcap_pak.py`, XOR 0xF7), copies `images
 `scripts/` (the loose `scripts/common`), names every file in lower case, and leaves out `images/upsell` (the buy
 screen's trailer). The game's 34 JPEG 2000 pictures are decoded at run time by the platform's OpenJPEG.
 
-The game's own exe target, `bookwormadv2`, is `-DBWA2_GAME=ON` until milestone 2 is done. Run it only under
+The game's own exe target, `bookwormadv2`, is part of every configure (it was behind `-DBWA2_GAME=ON` until 2026-10-26). Run it only under
 `build/native/rundesk.exe` (invisible, silent, low priority), e.g. with a `-script` that clicks and takes screenshots:
 `build/native/rundesk.exe $PWD/build/native/bookwormadv2.exe -gamedir=$PWD/assets/bookwormadv2 -userdir=<empty folder> -script=<file> -fast`.
 
@@ -89,17 +89,24 @@ later compiler), and its handlers have not been read case by case against `POPLU
 the real test of the VM.
 
 Milestone 2 (the title, menus, dialogs and cut scenes) is in place for a game that is not yet finished: 
-`bookwormadv2.exe` (`-DBWA2_GAME=ON`, off by default until the milestone is done) builds from `src/` reworked for Volume 2's
+`bookwormadv2.exe` builds from `src/` reworked for Volume 2's
 resource ids and classes, and runs headless under `-script`: the PopCap logo, the title with its curtain, the New User
 dialog and, after OK, the intro cut scene and the prologue battle of book 0, drawn by Volume 2's scripts (`PORT_PLAN.md`);
 the in-game Menu dialog with Options and Quit To Main Menu; the main menu (rebuilt from the original's: seven items, the
 animated portal, Lex and his bubble); the Options dialog and the Hall of Fame; and the portal's click, which takes a game
-saved in the prologue back into the battle. The music plays from the ten loose OGG files over the framework's music
-interface, by song id. Nothing of the battle has been played yet (no tile clicked). Not done: replaying a finished
-adventure (`BookSelectScreen` and three of the curtain's states), the dialogs of the trial's end
-and of a locked tome, the credits', mini-games' and stats book's song ids, and the arena's and user dialogs' comparison
-with the original. The cut scene player lacks the bitmap tags Volume 2's five movies use; PopAnim loads all 304
-animations but 41 pictures in 7 of them are not found.
+saved in the prologue back into the battle; and the replay of a finished adventure (the "continue your current adventure?"
+dialog, `BookSelectScreen` with its three books, and the curtain's states 9, 10 and 12 up to the replay's chapter map and the
+Hall of Fame after it), tried with a profile set to a finished adventure. The music plays from the ten loose OGG files over the framework's music
+interface, by song id. Also Volume 2's own: the mini-games' menu (the buttons by what is unlocked, the "new" mark, the
+tooltips checkbox, the two ways in and out), the cut scene (a click skips to the end of the scene), the credits (with the
+midground animation and the finale's tiles) and the stats book (the tome of knowledge with its list of secrets, the media
+player and the page after a timed game; the tome opens and its lists scroll and select, tried with a profile that has the
+tome unlocked, but it shows only the "????" lines of a game with nothing seen yet). The word list is Volume 2's too: each
+word has the noun, verb and adjective marks of `data/compressed_attribs.dat`, which the board hands the tile engine's script,
+and a new player's tutorial runs to its first attack (P, L, A, Y clicked, the "Click to attack!" hint, the attack and the
+"Well done!" panel). The rest of the battle has not been played. Not done: the cut scene player lacks the bitmap tags
+Volume 2's five movies use; PopAnim loads all 304 animations but 41 pictures in 7 of them are not found; the end of the
+game's credits (the finale) has not been run. (The trial wrapper's dialogs are left out on purpose.)
 
 ## Changes outside the Bookworm Adventures Volume 2 folder
 

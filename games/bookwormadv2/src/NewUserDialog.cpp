@@ -46,7 +46,7 @@ NewUserDialog::NewUserDialog(int theButtonMode, const std::string& theName)
 	if (mButton1 != nullptr)
 		mButton1->mLabel = GT(0x6fa51c);
 	if (theButtonMode == BUTTONS_OK_CANCEL && mButton2 != nullptr) {
-		mButton2->mLabel = GT(0x7af838);
+		mButton2->mLabel = GT(0x6fdca8);
 		mButton2->mDisabledRect = IMAGE_DIALOG_BUTTON->GetCelRect(4);
 	}
 	mEdit = new EditWidget(1, this);

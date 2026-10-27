@@ -70,7 +70,8 @@ public:
 		bool mDone = false;         // +0x8a: nothing more for it to do
 	};
 
-	// One credit (0xbc bytes)
+	// One credit (0xbc bytes in Volume 1, 0xf8 in Volume 2, which adds a midground animation: mMidAnim at +0x88 and
+	// mMidPamFile at +0xa8, the offsets below being Volume 1's; its "frame" is the background's)
 	struct Section {
 		std::vector<Column> mColumns;  // +0x04
 		std::vector<Entry> mEntries;   // +0x10
@@ -79,6 +80,8 @@ public:
 		PopAnim* mAnim = nullptr;      // +0x4c: the background animation
 		std::string mFrame;            // +0x50: the label of it that plays (and loops)
 		std::string mPamFile;          // +0x6c: "images/pam/<bgpam>.pam"
+		PopAnim* mMidAnim = nullptr;   // Volume 2: the midground animation (mgpam), drawn under mAnim
+		std::string mMidPamFile;       // Volume 2: "images/pam/<mgpam>.pam"
 		Image* mBgImage = nullptr;     // +0x88
 		int mColumnsX = 0;             // +0x8c: where the columns begin, to centre them
 		int mIdleCount = 0;            // +0x90: updates after all has faded in until the creatures attack
@@ -163,6 +166,7 @@ private:
 
 	void FreeAnims();    // 0x4355b0: the animations go, and the credits read
 	// port: the animations of the credit that begins loaded (0x435876 in AfterReload and 0x437834 in Update)
+	void PlaySectionLabels();
 	void LoadSectionAnims();
 
 	// The tags of the file

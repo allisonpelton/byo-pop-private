@@ -2,14 +2,19 @@
 
 #include <SDL.h>
 
+#include "Checkbox.h"
 #include "CurtainTransition.h"
 #include "FadeButton.h"
+#include "Font.h"
 #include "GameApp.h"
+#include "GameText.h"
 #include "Graphics.h"
 #include "Image.h"
 #include "LuaLinkedClass.h"
 #include "LuaResourceManager.h"
+#include "OptionsDialog.h"
 #include "PopLua.h"
+#include "Profile.h"
 #include "Res.h"
 #include "ResourceManager.h"
 #include "SharedImage.h"
@@ -24,15 +29,43 @@ namespace {
 // How much of the box each mini-game's button takes
 const int kButtonSpacing = 66;
 
+// Where the first button is, from the top of the box
+const int kFirstButtonY = 90;
+
+bool ProfileBool(GameApp* theApp, const char* theKey)
+{
+	return theApp->mProfile != nullptr && theApp->mProfile->GetBool(theKey);
+}
+
+int ProfileInt(GameApp* theApp, const char* theKey)
+{
+	return theApp->mProfile != nullptr ? theApp->mProfile->GetInt(theKey) : 0;
+}
+
+// Whether a mini-game is in the box (0x470120): all of them once the adventure is complete, else by the book the
+// player is in, the class MutaWords from the 6th, GoldenCoins from the 5th and any other from the 4th
+bool IsUnlocked(GameApp* theApp, const std::string& theClass)
+{
+	if (ProfileBool(theApp, "AdventureComplete"))
+		return true;
+	int aBook = ProfileInt(theApp, "CurrentBook");
+	if (aBook > 5 && theClass == "MutaWords")
+		return true;
+	if (aBook > 4 && theClass == "GoldenCoins")
+		return true;
+	return aBook > 3 && theClass != "MutaWords" && theClass != "GoldenCoins";
+}
+
 }  // namespace
 
-// 0x4805e0: the resources of the menu and of the mini-games' buttons, a button for each mini-game, the main menu
-// button, Lex and Moxie, and everything put in the layout's places
+// 0x470120: the resources of the menu and of the mini-games' buttons, a button for each mini-game the player has, the
+// main menu button, the tooltips box, Lex and Moxie, and everything put in the layout's places
 MinigameMenu::MinigameMenu(GameApp* theApp)
-	: mLayout(nullptr), mApp(theApp), mLex(nullptr), mMoxie(nullptr), mMainMenuButton(nullptr)
+	: mLayout(nullptr), mApp(theApp), mLex(nullptr), mMoxie(nullptr), mMainMenuButton(nullptr), mFromMainMenu(false),
+	  mTipsBox(nullptr)
 {
 	// port: the layout finds its pictures and fonts through the app's resource manager (XLayout.h); the original
-	// gave it three function pointers for that (0x4aebe0, 0x4b7a10, 0x4b7a20)
+	// gave it three function pointers for that (0x490190, 0x49ac60 twice)
 	mLayout = new XLayout();
 	mPriority = 3;
 
@@ -59,7 +92,8 @@ MinigameMenu::MinigameMenu(GameApp* theApp)
 	}
 	static_cast<LuaResourceManager*>(mApp->mResourceManager)->ExportToLua();
 
-	// a button for each mini-game, its id its number
+	// a button for each mini-game the player has, its id its place in the list (not its number: a mini-game he has
+	// not unlocked leaves no gap)
 	int aNumMiniGames = LuaLib::CallLua("main.GetNumMiniGames", 0).Int();
 	for (int i = 0; i < aNumMiniGames; i++) {
 		lua_pushint(L, i);
@@ -67,7 +101,11 @@ MinigameMenu::MinigameMenu(GameApp* theApp)
 		lua_pushint(L, i);
 		std::string anImageStr = LuaLib::CallLua("main.GetMiniGameImageStr", 1).String();
 
-		FadeButton* aButton = new FadeButton(i, static_cast<ButtonListener*>(this));
+		// port: the original made the button first and left it unused when the mini-game was not there to be picked
+		if (!IsUnlocked(mApp, aClass))
+			continue;
+
+		FadeButton* aButton = new FadeButton((int)mButtons.size(), static_cast<ButtonListener*>(this));
 		SharedImageRef anImage = mApp->mResourceManager->GetImage(anImageStr);
 		aButton->mButtonImage = anImage;
 		aButton->mHasAlpha = true;
@@ -83,16 +121,30 @@ MinigameMenu::MinigameMenu(GameApp* theApp)
 		mMiniGames.push_back(aMiniGame);
 	}
 
+	Resize(0, 0, mApp->mWidth, mApp->mHeight);
+
 	mMainMenuButton = new FadeButton(BUTTON_MAIN_MENU, static_cast<ButtonListener*>(this));
 	mMainMenuButton->mButtonImage = IMAGE_MINIMENU_BTN_MAINMENU;
 	mMainMenuButton->SetupImage(nullptr);
 	mMainMenuButton->Resize(mMainMenuButton->mButtonImage->GetCelRect(0));
 	AddWidget(mMainMenuButton);
 
-	Resize(0, 0, mApp->mWidth, mApp->mHeight);
+	// the box in the corner for the tooltips: ticked, and so in the profile, until the player has said otherwise
+	mTipsBox = MakeCheckbox(CHECKBOX_TIPS, static_cast<CheckboxListener*>(this));
+	mTipsBox->Move(745, 558);
+	mTipsBox->SetVisible(true);
+	mTipsBox->SetDisabled(false);
+	if (mApp->mProfile != nullptr && mApp->mProfile->KeyExists("ShowMGTips")) {
+		mTipsBox->mChecked = mApp->mProfile->GetBool("ShowMGTips");
+	} else {
+		mTipsBox->mChecked = true;
+		if (mApp->mProfile != nullptr)
+			mApp->mProfile->SetBool("ShowMGTips", true);
+	}
+	AddWidget(mTipsBox);
 
 	mLex = new PopAnim(-2, static_cast<PopAnimListener*>(this));
-	mLex->LoadAnimation("images/pam/lex.pam");
+	mLex->LoadAnimation("images/pam/Lex_normal.txt");
 	mMoxie = new PopAnim(-3, static_cast<PopAnimListener*>(this));
 	mMoxie->LoadAnimation("images/pam/moxie.pam");
 
@@ -111,7 +163,7 @@ MinigameMenu::MinigameMenu(GameApp* theApp)
 	};
 
 	// the box grows by a row of buttons for each mini-game and is put at (the app's height - its height + 18) / 2,
-	// at most 130 from the top, and its title, welcome and instructions go with it
+	// at most 130 from the top, and its title goes with it
 	XLayout* aBox = aFind("Box");
 	aBox->SetBoundsHeight(aBox->GetHeight() + (int)mButtons.size() * kButtonSpacing);
 	Rect aSrcRect = aBox->GetSrcRect();
@@ -125,10 +177,6 @@ MinigameMenu::MinigameMenu(GameApp* theApp)
 
 	XLayout* aTitle = aFind("Title");
 	aTitle->SetBoundsY(aTitle->GetY() + (aNewY - anOldY) + 5);
-	XLayout* aWelcome = aFind("Welcome");
-	aWelcome->SetBoundsY(aWelcome->GetY() + (aNewY - anOldY) + 13);
-	XLayout* anInstructions = aFind("Instructions");
-	anInstructions->SetBoundsY(anInstructions->GetY() + (aNewY - anOldY) + 13);
 
 	// the main menu button at the bottom of the box
 	int aMainMenuY = aBox->GetY() - 40;
@@ -140,7 +188,7 @@ MinigameMenu::MinigameMenu(GameApp* theApp)
 	for (size_t i = 0; i < mButtons.size(); i++) {
 		FadeButton* aButton = mButtons[i];
 		if (i == 0)
-			aY = aBox->GetY() + aNumMiniGames * 30 - 50;
+			aY = kFirstButtonY;
 		else
 			aY += kButtonSpacing;
 		int aCelWidth = aButton->mButtonImage->GetCelWidth();
@@ -157,7 +205,7 @@ MinigameMenu::MinigameMenu(GameApp* theApp)
 	mMoxie->PlayLabel("idle");
 }
 
-// 0x481670: the resources of the buttons and of the menu go, then the buttons, the layout and the animations
+// 0x4715f0: the resources of the buttons and of the menu go, then the buttons, the layout and the animations
 MinigameMenu::~MinigameMenu()
 {
 	for (size_t i = 0; i < mResGroups.size(); i++)
@@ -169,7 +217,7 @@ MinigameMenu::~MinigameMenu()
 	delete mMoxie;
 }
 
-// 0x4818c0: the layout's animations, and Lex and Moxie a frame on (they are not in the widget list)
+// 0x471850: the layout's animations, and Lex and Moxie a frame on (they are not in the widget list)
 void MinigameMenu::Update()
 {
 	Widget::Update();
@@ -178,7 +226,8 @@ void MinigameMenu::Update()
 	mMoxie->UpdateF(1.0f);
 }
 
-// 0x481900: the layout, then Lex and Moxie where it puts them
+// 0x4718a0: the layout, then Lex and Moxie where it puts them, and from the main menu the tooltips box's label on its
+// panel; the "new" marks come over everything (DrawOverlay)
 void MinigameMenu::Draw(Graphics* g)
 {
 	mLayout->Draw(g);
@@ -188,17 +237,50 @@ void MinigameMenu::Draw(Graphics* g)
 	g->Translate(mMoxie->mX, mMoxie->mY);
 	mMoxie->Draw(g);
 	g->Translate(-mMoxie->mX, -mMoxie->mY);
+
+	if (mFromMainMenu) {
+		g->SetFont(FONT_LARGE);
+		g->SetColor(Color(120, 50, 75));
+		g->DrawImage(IMAGE_MINIMENU_TIP_BG, mWidth - IMAGE_MINIMENU_TIP_BG->mWidth,
+		             mHeight - IMAGE_MINIMENU_TIP_BG->mHeight - 9);
+		std::string aLabel = GT(0x6fd8bc);
+		g->DrawString(aLabel, 737 - FONT_LARGE->StringWidth(aLabel), 578);
+	}
+	DeferOverlay(0);
 }
 
-// 0x481be0
+// 0x471a70: over the curtain's opening, the "new" mark on the mini-game that the player has just unlocked: WordUp in
+// the 4th book, GoldenCoins in the 5th and MutaWords in the 6th, none once the adventure is complete
+void MinigameMenu::DrawOverlay(Graphics* g)
+{
+	CurtainTransition* aCurtain = mApp->mCurtain;
+	if (aCurtain != nullptr && !(aCurtain->mDone && aCurtain->mDrawn))
+		return;
+	if (ProfileBool(mApp, "AdventureComplete"))
+		return;
+
+	const int aBook = ProfileInt(mApp, "CurrentBook");
+	const char* aNewClass = aBook == 4 ? "WordUp" : aBook == 5 ? "GoldenCoins" : aBook == 6 ? "MutaWords" : nullptr;
+	if (aNewClass == nullptr)
+		return;
+
+	for (size_t i = 0; i < mMiniGames.size(); i++) {
+		if (mMiniGames[i].mClass == aNewClass) {
+			Image* aMark = IMAGE_MINIMENU_NEW;
+			g->DrawImage(aMark, mButtons[i]->mX - aMark->mWidth / 2 + 5, mButtons[i]->mY - aMark->mHeight / 2 + 5);
+		}
+	}
+}
+
+// 0x4721d0
 void MinigameMenu::ButtonPress(int theId)
 {
 	mApp->PlaySample(SOUND_CLICK2);
 }
 
-// 0x4819a0: once the curtain is open, a button turns every button off and closes the whole curtain: the main menu
-// button's over the main menu (0x481e00), a mini-game's over the mini-game, which the curtain's callback then
-// starts (0x481cd0)
+// 0x471f70: once the curtain is open, a button turns every button off and closes the whole curtain: the main menu
+// button's over the main menu (0x4724d0), a mini-game's over the mini-game, which the curtain's callback then
+// starts (0x472330)
 void MinigameMenu::ButtonDepress(int theId)
 {
 	CurtainTransition* aCurtain = mApp->mCurtain;
@@ -216,15 +298,16 @@ void MinigameMenu::ButtonDepress(int theId)
 		mMainMenuButton->SetDisabled(true);
 		for (size_t i = 0; i < mButtons.size(); i++)
 			mButtons[i]->SetDisabled(true);
-		mApp->mMiniGameFromMenu = true;
+		mApp->mMiniGameFromMenu = mFromMainMenu;
 		mApp->mCurtainCallback = StartPickedMiniGame;
 		mApp->mCurtainCallbackObject = this;
-		mClass = mMiniGames[theId].mClass;
+		if (theId >= 0 && (size_t)theId < mMiniGames.size())
+			mClass = mMiniGames[theId].mClass;
 		mApp->DoFullCurtainTransition("");
 	}
 }
 
-// 0x481e00: the menu goes and the main menu (which has stayed under it) is back
+// 0x4724d0: the menu goes and the main menu (which has stayed under it) is back
 void MinigameMenu::ReturnToMainMenu(void* theMenu)
 {
 	MinigameMenu* aMenu = static_cast<MinigameMenu*>(theMenu);
@@ -236,31 +319,36 @@ void MinigameMenu::ReturnToMainMenu(void* theMenu)
 	anApp->ShowMainMenu(false, false);
 }
 
-// 0x481cd0: the main menu and the menu go, and the scripts start the mini-game picked
+// 0x472330: the main menu (if there is one) and the menu go, and the scripts start the mini-game picked, the
+// chapter screen's way or the main menu's (0x472530: the class as the script's argument)
 void MinigameMenu::StartPickedMiniGame(void* theMenu)
 {
 	MinigameMenu* aMenu = static_cast<MinigameMenu*>(theMenu);
 	GameApp* anApp = aMenu->mApp;
-	anApp->RemoveMainMenu();
+	const bool aFromMainMenu = aMenu->mFromMainMenu;
+	if (anApp->mMainMenu != nullptr)
+		anApp->RemoveMainMenu();
 	anApp->mWidgetManager->RemoveWidget(anApp->mMiniGameMenu);
 	anApp->SafeDeleteWidget(anApp->mMiniGameMenu);
 	anApp->mMiniGameMenu = nullptr;
-	// 0x481e70: the class as the script's argument
 	std::string aClass = aMenu->mClass;
 	lua_pushstring(anApp->mLua->L, aClass.c_str());
-	LuaLib::CallLua("main.StartMinigameFromMainMenu", 1);
+	LuaLib::CallLua(aFromMainMenu ? "main.StartMinigameFromMainMenu" : "main.StartMinigameFromCS", 1);
 }
 
-// 0x481c00: Lex or Moxie has played their label and idles again
+// 0x4721f0
+void MinigameMenu::CheckboxChecked(int theId, bool checked)
+{
+	if (theId == CHECKBOX_TIPS && mApp->mProfile != nullptr)
+		mApp->mProfile->SetBool("ShowMGTips", checked);
+	mApp->PlaySample(SOUND_CLICK2);
+}
+
+// 0x472250: Lex or Moxie has played their label and idles again
 void MinigameMenu::PopAnimStopped(int theId)
 {
 	if (theId == mLex->mId)
 		mLex->PlayLabel("idle");
 	else if (theId == mMoxie->mId)
 		mMoxie->PlayLabel("idle");
-}
-
-// 0x4805d0
-void MinigameMenu::PopAnimCommand(int theId, const std::string& theCommand, const std::string& theParam)
-{
 }

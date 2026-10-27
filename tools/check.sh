@@ -56,8 +56,10 @@
 #   bookwormadv2 Bookworm Adventures Volume 2: PopLua on the game's 462 scripts (bwa2_luarun): the compiler's
 #                dialect checks, every compiled script loaded and its main chunk run, and the 8 scripts/common
 #                sources recompiled instruction for instruction against their shipped chunks; fails on a bad exit
-#                status, a failed load or a count that is not the whole set (milestone 1; the game's own runs
-#                join it as the port grows)
+#                status, a failed load or a count that is not the whole set; the Flash player's self test and its
+#                five movies played to their end (bwa2_swftest); a new player's run from the title through the
+#                prologue's tutorial (PLAY spelled, then the attack) and the same profile's run to the main menu
+#                and the mini-games' menu (the game's own runs join it as the port grows; about 40 seconds)
 #   waterbugs    Water Bugs: the fonts and every animation the game ships loaded
 #                (waterbugs_banktest), a scripted game played headless (waterbugs_run: a beam across the first
 #                board, two state lines) and a rerun with the same screenshots, and the windowed exe twice with the
@@ -496,7 +498,7 @@ suite_bookwormadv() {
 }
 
 suite_bookwormadv2() {
-	local log="$1" b="$W/build/native/bwa2_luarun.exe" d l r p st
+	local log="$1" b="$W/build/native/bwa2_luarun.exe" d l r p st s f m
 	need_assets bookwormadv2 || return 1
 	[ -x "$b" ] || { SUMMARY="no $b (build first)"; return 1; }
 	# (each tool's own exit status, not tee's or tail's, is the substitution's: a crash after the last line still fails)
@@ -505,12 +507,61 @@ suite_bookwormadv2() {
 	l="$("$b" -gamedir=assets/bookwormadv2 -load 2>&1 | tee -a "$log" | tail -n 1; exit "${PIPESTATUS[0]}")" || st=1
 	r="$("$b" -gamedir=assets/bookwormadv2 -runall 2>&1 | tee -a "$log" | tail -n 1; exit "${PIPESTATUS[0]}")" || st=1
 	p="$(python games/bookwormadv2/tests/poplua/pairs.py "$b" assets/bookwormadv2 2>&1 | tee -a "$log" | tail -n 1; exit "${PIPESTATUS[0]}")" || st=1
-	SUMMARY="$d; $l; $r; $p"
+	# the Flash player: its self test (every line a PASS), then the game's movies to their end (the bitmap tags are
+	# not played yet, so "unsupported: none" is not asked of them)
+	s="$("$W/build/native/bwa2_swftest.exe" -selftest 2>&1 | tee -a "$log" | grep -c '^PASS'; exit "${PIPESTATUS[0]}")" || st=1
+	grep -q '^FAIL' "$log" && st=1
+	f="$("$W/build/native/bwa2_swftest.exe" 2>&1 | tee -a "$log" | grep -c 'done@'; exit "${PIPESTATUS[0]}")" || st=1
+	m="$(bookwormadv2_smoke "$log")"
+	SUMMARY="$d; $l; $r; $p; swf: $s checks, $f of 5 movies to their end; $m"
 	[ "$d" = "dialect: 150 checks passed" ] || st=1
 	[ "$l" = "loaded 462 of 462 scripts" ] || st=1
 	[ "$r" = "ran 462 of 462 scripts" ] || st=1
 	[ "$p" = "pairs: 8 of 8 identical" ] || st=1
+	[ "$s" -gt 0 ] && [ "$f" = 5 ] || st=1
+	[ "$m" = "new player: PLAY attacked; main menu, mini-games: ok" ] || st=1
 	return $st
+}
+
+bookwormadv2_smoke() {  # <log>: a new player (an empty user folder) through the tutorial's first attack, then its profile to the main menu and the mini-games' menu
+	local d="$W/$OUT/bookwormadv2/smoke" b="$W/build/native/bookwormadv2.exe" a="$W/assets/bookwormadv2" k t n
+	rm -rf "$d"; mkdir -p "$d/user"
+	# Run 1: the title, the new player's name (the default) and the intro's pages, the first battle's tutorial:
+	# P, L, A, Y, then the attack button; the board's word lookup answers from the script (IsNoun, IsVerb, ...)
+	{ printf '%s\n' "800 click 400 435"
+	  for k in $(seq 0 8); do printf '%s\n' "$((2700 + k * 100)) click 400 300"; done
+	  printf '%s\n' "4300 click 650 580" "4500 click 405 313" "4800 click 330 389" "5200 click 376 485" "5600 click 426 335" \
+		"6000 click 476 435" "6400 screenshot $d/word.png" "6600 click 400 568" "8500 screenshot $d/attack.png" \
+		'8600 lua print("SMOKE", gBoard:IsNoun("PLAY"), gBoard:IsVerb("PLAY"), gBoard:IsAdjective("PLAY"), gBoard:IsAdjective("RED"))' \
+		"11000 quit"; } > "$d/newuser.txt"
+	timeout 120 "$b" -gamedir="$a" -userdir="$d/user" -script="$d/newuser.txt" -fast > "$d/newuser.out" 2>&1
+	t=$?
+	cat "$d/newuser.out" >> "$1"
+	[ $t -eq 0 ] || { echo "new player: exit $t"; return; }
+	grep -qiE 'attempt to|stack traceback|FATAL|\.lua:[0-9]+:' "$d/newuser.out" && { echo "new player: a script failed"; return; }
+	grep -q "SMOKE.true.true.false.true" "$d/newuser.out" || { echo "new player: word flags wrong"; return; }
+	for n in word attack; do
+		[ "$(stat -c %s "$d/$n.png" 2>/dev/null || echo 0)" -gt 50000 ] || { echo "new player: no $n picture"; return; }
+	done
+	cmp -s "$d/word.png" "$d/attack.png" && { echo "new player: the attack changed nothing"; return; }
+	# Run 2: that profile again: its settings set so that the main menu comes up (the profile of a finished game),
+	# the player picked, the main menu, then the mini-games' menu
+	{ for k in $(seq 0 6); do
+		printf '%s\n' "$((600 + k * 200)) lua profile.Set(\"NeedsIntroTileHelp\", false); profile.Set(\"AdventureComplete\", true); profile.Set(\"InGame\", false); profile.Set(\"UnlockedMiniGames\", true); profile.Set(\"UnlockedBestiary\", true); profile.Set(\"CurrentBook\", 6)"
+	  done
+	  printf '%s\n' "4000 click 250 330" "5500 click 400 330" "5700 click 300 170" "5800 click 300 170" "6100 click 400 575" \
+		"8000 click 712 505" "8001 click 712 505" "8300 click 405 313" "11000 screenshot $d/menu.png" "11200 click 120 405" \
+		"13500 screenshot $d/minigames.png" "13600 quit"; } > "$d/menus.txt"
+	timeout 120 "$b" -gamedir="$a" -userdir="$d/user" -script="$d/menus.txt" -fast > "$d/menus.out" 2>&1
+	t=$?
+	cat "$d/menus.out" >> "$1"
+	[ $t -eq 0 ] || { echo "main menu: exit $t"; return; }
+	grep -qiE 'attempt to|stack traceback|FATAL|\.lua:[0-9]+:' "$d/menus.out" && { echo "main menu: a script failed"; return; }
+	for n in menu minigames; do
+		[ "$(stat -c %s "$d/$n.png" 2>/dev/null || echo 0)" -gt 50000 ] || { echo "main menu: no $n picture"; return; }
+	done
+	cmp -s "$d/menu.png" "$d/minigames.png" && { echo "main menu: the mini-games' menu did not open"; return; }
+	echo "new player: PLAY attacked; main menu, mini-games: ok"
 }
 
 bookwormadv_all() {  # <"loaded N of M ...">: true when all of at least one loaded

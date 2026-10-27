@@ -15,6 +15,7 @@
 #include <vector>
 
 #include "Color.h"
+#include "Common.h"
 #include "Rect.h"
 #include "SexyMatrix.h"
 #include "SharedImage.h"
@@ -53,7 +54,8 @@ struct PAFrame {
 // definition of the sprite that was put there (null for slots that only ever held images)
 struct PASpriteDef {
 	std::vector<PAFrame> mFrames;
-	std::map<std::string, int> mLabels;
+	// the scripts ask for "ESCAPE" where a .pam says "escape" (and the C++ for "idle"): a label's case does not matter
+	std::map<std::string, int, StringLessNoCase> mLabels;
 	std::vector<PASpriteDef*> mObjectDefs;
 };
 

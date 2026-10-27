@@ -73,9 +73,8 @@ target_link_libraries(bwa2_jefflib PUBLIC sexyframework)
 if(NOT MSVC)
   target_compile_options(bwa2_jefflib PRIVATE -Wall)
 endif()
-# The game itself is still Volume 1's src/ with the names changed (milestone 2 reworks it for Volume 2): off until then
-option(BWA2_GAME "Build the Bookworm Adventures Volume 2 game exe (milestone 2 on)" OFF)
-if(BWA2_GAME)
+# The game itself (src/ reworked for Volume 2; the battles are milestone 3, still in progress): always built, as the suite's
+# new-player run needs the exe
 add_executable(bookwormadv2 ${BWA2_SOURCES})
 target_include_directories(bookwormadv2 PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
 target_link_libraries(bookwormadv2 PRIVATE bwa2_luaapp bwa2_popanim bwa2_swf bwa2_jefflib sexyframework sexyopenmpt sexyopenjpeg)
@@ -89,7 +88,6 @@ else()
   add_custom_command(TARGET bookwormadv2 POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:SDL2::SDL2> ${PORT_RUNTIME_DLLS} $<TARGET_FILE_DIR:bookwormadv2>
     VERBATIM)
-endif()
 endif()
 
 # bwa2_swf: Sexy::SwfMovie, a small player for the Flash (.swf) movies of the story cutscenes (swf/), kept free of

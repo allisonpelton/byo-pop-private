@@ -285,21 +285,21 @@ struct DefaultPower {
 	int mPower;
 };
 const DefaultPower kDefaultPowers[10] = {
-	{GTA(0x6fc398), 600}, {GTA(0x6fc4f4), 550}, {GTA(0x7ae2e0), 500}, {GTA(0x6fc504), 450}, {GTA(0x7ae2ec), 400},
+	{GTA(0x6fc398), 600}, {GTA(0x6fc4f4), 550}, {GTA(0x6fc4fc), 500}, {GTA(0x6fc504), 450}, {GTA(0x6fc508), 400},
 	{GTA(0x6fc510), 350}, {GTA(0x6fc518), 300}, {GTA(0x6fc520), 200}, {GTA(0x6fc528), 100}, {GTA(0x6fc530), 0},
 };
 struct DefaultRun {
 	unsigned int mName;
 	int mFirst, mSecond;
 };
-const DefaultRun kDefaultTimes[10] = {  // the time, the stage
-	{GTA(0x6fc3c4), 120000, 11}, {GTA(0x6fc528), 102000, 10}, {GTA(0x6fc580), 88000, 9}, {GTA(0x6fc588), 72000, 8},
-	{GTA(0x6fc590), 60000, 7},   {GTA(0x6fc3d4), 39000, 5},   {GTA(0x6fc598), 30000, 4}, {GTA(0x6fc5a0), 21000, 3},
-	{GTA(0x6fc5a8), 12000, 2},   {GTA(0x7ae3a0), 6000, 1},
+const DefaultRun kDefaultTimes[10] = {  // the time, the stage (0x4566e0)
+	{GTA(0x6fc3c4), 120000, 2}, {GTA(0x6fc528), 102000, 1}, {GTA(0x6fc580), 89000, 2}, {GTA(0x6fc588), 72000, 1},
+	{GTA(0x6fc590), 60000, 2},  {GTA(0x6fc3d4), 39000, 1},  {GTA(0x6fc598), 30000, 2}, {GTA(0x6fc5a0), 21000, 1},
+	{GTA(0x6fc5a8), 12000, 2},  {GTA(0x6fc5b0), 6000, 1},
 };
 const DefaultRun kDefaultBonuses[10] = {  // the experience, the bonuses
-	{GTA(0x6fc668), 100, 5}, {GTA(0x7ae464), 90, 2}, {GTA(0x6fc67c), 80, 0}, {GTA(0x7ae478), 70, 1}, {GTA(0x6fc684), 60, 6},
-	{GTA(0x6fc68c), 50, 2},  {GTA(0x7ae490), 40, 1}, {GTA(0x6fc69c), 30, 0}, {GTA(0x7ae4a0), 20, 4}, {GTA(0x7ae4a8), 10, 3},
+	{GTA(0x6fc668), 100, 5}, {GTA(0x6fc674), 90, 2}, {GTA(0x6fc67c), 80, 0}, {GTA(0x6fc590), 70, 1}, {GTA(0x6fc684), 60, 6},
+	{GTA(0x6fc68c), 50, 2},  {GTA(0x6fc694), 40, 1}, {GTA(0x6fc69c), 30, 0}, {GTA(0x6fc6a4), 20, 4}, {GTA(0x6fc6ac), 10, 3},
 };
 
 // The cycling colour of the player's own new rows, and the other colours of the lists

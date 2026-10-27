@@ -46,6 +46,11 @@ public:
 	void Play();
 	void Stop();
 	void GotoFrame(int theFrame);  // and stays playing or stopped; the frame's actions run (and an FSCommand is told) at once
+	// The Flash control's TCurrentLabel and TGotoLabel on the root timeline: the label of the current frame or, when
+	// it has none, of the nearest labeled frame before it (empty before the first); and a jump to the frame that
+	// has a label, as GotoFrame does (false, and no jump, when no frame has it)
+	std::string GetCurrentLabel() const;
+	bool GotoLabel(const std::string& theLabel);
 
 	// One frame tick, as the Flash player does it: the root timeline (when playing) and every sprite instance (each
 	// one its own timeline, playing unless a Stop stopped it) advance one frame, the frame's tags are applied and its
@@ -65,8 +70,7 @@ public:
 	// call before gave (all of it for the first). False when nothing differs. For a host that uploads only that part.
 	bool GetDamage(int& theX, int& theY, int& theWidth, int& theHeight) const;
 
-	// What the file holds that is not played, by name (a tag, an action, a feature) with how often: empty for the
-	// game's four cutscenes
+	// What the file holds that is not played, by name (a tag, an action, a feature) with how often
 	const std::map<std::string, int>& GetUnsupported() const;
 
 	// The display list as text, one object a line, sprites with their own lists indented below them: for tests

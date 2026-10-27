@@ -50,8 +50,8 @@ bool TitleScreen::InitLoadingScreen()
 	mEatWidth = aTileWidth * 7;
 	mTileWidth = aTileWidth;
 	// "LOADING", a letter a tile
-	const SexyString* aLetters[7] = {&GT(0x6f7d28), &GT(0x7abfc4), &GT(0x6f7d50), &GT(0x6f7d34), &GT(0x6f7d24),
-	                                 &GT(0x6f7d40), &GT(0x7abfc8)};
+	const SexyString* aLetters[7] = {&GT(0x6f7d28), &GT(0x6f821c), &GT(0x6f7d50), &GT(0x6f7d34), &GT(0x6f7d24),
+	                                 &GT(0x6f7d40), &GT(0x6f8218)};
 	static const int kY[7] = {475, 469, 479, 473, 469, 460, 468};
 	for (int i = 0; i < 7; i++) {
 		MemoryImage* anImage = new MemoryImage(mApp);

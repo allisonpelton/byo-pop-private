@@ -270,6 +270,7 @@ MainMenu::MainMenu(GameApp* theApp, bool theFromTitle)
 	}
 	LoadPopAnims(true);
 	MakeTooltips(GT(0x6fcb40));
+	mApp->PlayMenuSong();  // (0x468d46: the song of the book on the map, with no look at the no-music flag)
 
 	// "(Click here to change users)" under the name
 	mChangeUserLink = new HyperlinkWidget(1, this);
@@ -743,8 +744,8 @@ void MainMenu::MouseDown(int x, int y, int theClickCount)
 
 // 0x46b688 (the click on the adventure, in MouseUp): how the adventure goes on. A game in progress (a mini-game
 // of the adventure's, the book, or the replay's) goes on; otherwise a new one begins. A completed adventure is
-// replayed, with the book to play picked: those branches (0x46b97c, the replay transition 0x4439b0 and the dialog
-// "Continue your current adventure?") are not ported yet.
+// replayed, with the book to play picked on the BookSelectScreen (the replay transition 0x4439b0), or asked about first
+// ("Continue your current adventure?") when a replay is in progress.
 void MainMenu::ClickAdventure(bool& theDisableAll)
 {
 	if (mApp->mProfile == nullptr)
@@ -757,18 +758,32 @@ void MainMenu::ClickAdventure(bool& theDisableAll)
 	                                   ProfileBool(mApp, "ReplayInGame"));
 	if (aSaved) {
 		// a game in progress: the book under the menu, then the scripts' StartGame once the curtain is closed
-		SetDisabled(true);
-		mApp->InitGameScreen(false);
-		mApp->mWidgetManager->BringToFront(this);
-		lua_pushboolean(mApp->mLua->L, 1);
-		mApp->mBookManager->CallLinkedMethod("InitSavedGame", 1);
-		mApp->StartSavedGameTransition();
+		mApp->ResumeSavedReplayGame();
 	} else if (!aComplete) {
 		SetDisabled(true);
 		mApp->StartNewGameTransition();
 	} else {
-		SDL_Log("MainMenu: replaying a completed adventure is not ported yet");
-		theDisableAll = false;
+		// a finished adventure plays again, in the replay mode: a replay in progress (ReplayInGame) is asked about
+		// (go on with it, or begin another), and so is one whose book is not done (it has chapters done, the book not
+		// complete); else the BookSelectScreen comes
+		lua_pushboolean(mApp->mLua->L, 1);
+		mApp->mLua->Call("main.SetReplayMode", 1, 0);
+		mApp->mReplayMode = true;
+		bool anAsk = ProfileBool(mApp, "ReplayInGame");
+		if (!anAsk) {
+			if (!mApp->mProfile->KeyExists("ReplayBookComplete"))
+				mApp->mProfile->SetBool("ReplayBookComplete", false);
+			SetDisabled(true);
+			anAsk = mApp->mProfile->KeyExists("ReplayCompletedChapters") && !ProfileBool(mApp, "ReplayBookComplete");
+		}
+		if (anAsk) {
+			mApp->DoConfirmDialog(GameApp::DIALOG_CONTINUE_ADVENTURE, GT(0x6fce68), GT(0x6fce44), nullptr, "");
+			GameDialog* aDialog = static_cast<GameDialog*>(mApp->GetDialog(GameApp::DIALOG_CONTINUE_ADVENTURE));
+			aDialog->SetBanner(nullptr, 0);
+			aDialog->mDialogHeader = GT(0x6fce68);
+			aDialog->mPriority = 2;
+		} else
+			mApp->StartReplayTransition();
 	}
 }
 
@@ -776,12 +791,6 @@ void MainMenu::ClickAdventure(bool& theDisableAll)
 static void OpenHallOfFameCallback(void* theApp)
 {
 	static_cast<GameApp*>(theApp)->OpenHallOfFame();
-}
-
-// The curtain's callback of the mini-games' menu (0x4458b0, the app's function that the original called with the app)
-static void ShowMiniGameMenuCallback(void* theApp)
-{
-	static_cast<GameApp*>(theApp)->ShowMiniGameMenu();
 }
 
 void MainMenu::MouseUp(int x, int y, int theClickCount)
@@ -826,10 +835,15 @@ void MainMenu::MouseUp(int x, int y, int theClickCount)
 			ClickAdventure(aDisableAll);
 			break;
 		case ITEM_ARENA:
-			// 0x46bf5x: only once the arena is unlocked and the player is in the second book or the first's sixth
-			// chapter. (The warning that an expansion pack's installing ends the arena's games in progress,
-			// TM_Invalidated, is not ported: nothing sets that key here.)
-			if (ProfileBool(mApp, "UnlockedArena")) {
+			// 0x46be19: a profile marked TM_Invalidated (nothing in Volume 2 sets it: an expansion pack's installing ended the
+			// arena's games in progress) is warned once. Else only once the arena is unlocked and the player is in the
+			// second book or the first's sixth chapter
+			if (ProfileBool(mApp, "TM_Invalidated")) {
+				mApp->mProfile->Delete("TM_Invalidated");
+				mApp->mProfile->Save();
+				mApp->DoOkDialog(GT(0x6fcf08), GT(0x6fce88), "", nullptr);
+				mApp->GetDialog(GameApp::DIALOG_OK)->mPriority = 2;
+			} else if (ProfileBool(mApp, "UnlockedArena")) {
 				if (mApp->mProfile->GetInt("CurrentBook") >= 2 || mApp->mProfile->GetInt("CurrentChapter") >= 6) {
 					SetDisabled(true);
 					StartArena();
@@ -848,24 +862,23 @@ void MainMenu::MouseUp(int x, int y, int theClickCount)
 			break;
 		case ITEM_MINI_GAMES:
 			// 0x46bcxx: only once the mini-games are unlocked: the menu goes dim, the whole curtain closes, and the
-			// mini-games' menu comes (GameApp::ShowMiniGameMenu). (0x443c20 also sets a flag of the app's, +0x95a,
-			// that nothing is known to read.)
+			// mini-games' menu comes (GameApp::StartMiniGameMenuTransition, 0x443c20)
 			if (ProfileBool(mApp, "UnlockedMiniGames")) {
 				SetDisabled(true);
-				mApp->DoFullCurtainTransition("");
-				mApp->mCurtainCallback = ShowMiniGameMenuCallback;
-				mApp->mCurtainCallbackObject = mApp;
+				mApp->StartMiniGameMenuTransition(true);
 				mFromTitle = false;
 			}
 			mApp->SetCursor(CURSOR_POINTER);
 			break;
 		case ITEM_TOME:
-			// 0x46c0xx: only once the tome is open: the whole curtain closes over the menu, then the tome comes (the
-			// original wrote out what AddStatsBook does for it). A closed one answers with a dialog whose texts
-			// are not known yet.
+			// 0x46c104: only once the tome is open: the whole curtain closes over the menu, then the tome comes (the
+			// original wrote out what AddStatsBook does for it). A closed one answers with a message
 			if (mTomeUnlocked) {
 				mApp->AddStatsBook(false, true, false);
 				CloseTooltips();
+			} else {
+				mApp->DoOkDialog(GT(0x6fcf10), GT(0x6fcb88), "", nullptr);
+				mApp->GetDialog(GameApp::DIALOG_OK)->mPriority = 2;
 			}
 			mApp->SetCursor(CURSOR_POINTER);
 			break;
