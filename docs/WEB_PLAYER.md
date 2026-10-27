@@ -214,6 +214,25 @@ from the records in `web/profiles.js`, the Your saves section (`#saves`; "Save b
 draws; the build copies those files next to the pages (`BYOPOP_WEB_SHARED_JS` for the ones every page loads, `BYOPOP_WEB_INDEX_JS`
 for the listing page's own: `players.js`, `saves.js` and `saveimport.js`, with the table `platform/saveimport.json` written beside them as `saveimport-table.js`).
 
+**Sorting.** Above the tiles is a "Sort by" choice (a `<fieldset>` with a `<legend>` and two radio buttons, **Name** and **Release
+date**), hidden until the page's script has run. Name is the page as built, the alphabetical order of the titles. Release date puts
+the oldest game first. The order comes from the game's row in the `BYOPOP_WEB_RELEASED` table of `cmake/ByopopWeb.cmake`
+(`<target>|<date>`, the date as YYYY, YYYY-MM or YYYY-MM-DD, with the source of each row in a comment above it), which is the
+first release of the Windows edition the site plays: the Deluxe download where there is one, and for a game that first came out
+under another publisher (Cosmic Bugs, Water Bugs, Word Harmony) the first release. `byopop_web_index()` writes it on the card as
+`data-released`, as given, next to `data-title`, and shows the year small under the name, which is part of the link's accessible
+name ("Bejeweled Deluxe, 2001, your copy"). A date that is less exact sorts later among the same year's or month's, so a game with
+only a year comes after the full dates of that year, then by name; a game without a row gets a configure warning, shows no year
+and goes last, and a row that is not a date stops the configure. Like the table of badges, the table is the coordinator's, who
+adds a game's row at its final merge together with its place in `BYOPOP_WEB_FINISHED`.
+
+Choosing a sort moves the cards' `<li>` elements (no CSS `order`), so the tab order and a screen reader's order are the order on
+screen, and the focus stays on the radio button that was chosen. A polite status line (`role="status"`, out of sight) says "Sorted
+by release date" or "Sorted by name", for the player's own choice only. The choice is kept in localStorage under
+`byopop-listing-sort` (`name` or `release`), read and written inside `try`, so that a browser without storage shows the page in name
+order; another tab that changes it changes this one. The Players and Your saves sections list the games in the built (name) order
+whatever the sort.
+
 At the foot of the page is a `<footer>`, at the page's width and in its muted colours, with the disclaimer, in the words of
 `web/copyright.html` and `web/terms.html` (an unofficial, non-commercial project, not affiliated with or endorsed by
 Electronic Arts or PopCap Games; it serves none of the games' files; the trademarks are their owners'; the site accepts no
@@ -222,8 +241,8 @@ opens normally, with no name or email beside it.
 
 **Which games are yours.** Under each game's name the card says, in words, whether the game's files are loaded in this
 browser, as a sign that the player owns the game: "Your copy" when they are, "Needs your files" when they are not, and
-"Files unknown" when the page cannot tell (below). The link's accessible name carries the same words ("Bejeweled Deluxe,
-your copy"). The page knows without starting any game, from a record that the game pages keep. The record is one
+"Files unknown" when the page cannot tell (below). The link's accessible name carries the same words, after the game's name
+and the year of its release ("Bejeweled Deluxe, 2001, your copy"). The page knows without starting any game, from a record that the game pages keep. The record is one
 localStorage item for the whole site, `byopop-game-files` (`ByopopGameFiles` in `web/settings.js`): a JSON object from a
 game's id to `{loaded, forgotten, missing}`, with dates as YYYY-MM-DD. `loaded` is when the game's files were last found,
 `forgotten` when the player used "Forget game files" on the game's page, and `missing` when a game page found the files
@@ -757,7 +776,7 @@ really losing the focus (another window, another tab), which is the game's behav
 **Live regions.** The status line is `role="status"`. The in-game mod menu reports the item that has the focus through
 `Module.onModMenuFocus(text)` (`framework/ModMenu.cpp`), which `web/modpanel.js` writes into a polite live region in the shell (`#menu-live`, there from the
 start so that a screen reader has it before the first change). The Mods panel's message line, the Game files panel's question (`role="alert"`),
-the import card's note and exit card's message, the Replays panel's line and the listing page's Players, Your saves and Settings lines are live too.
+the import card's note and exit card's message, the Replays panel's line and the listing page's Players, Your saves and Settings lines and its sort's status ("Sorted by release date") are live too.
 An error is an alert, announced at once, and the field it is about is `aria-invalid` and described by it (a rejected setting, a name the Players
 section would not take); the import card's error is an alert in the card's note, read with both buttons that pick the files. The import's
 progress bar is a `role="progressbar"` with a value (percent, and "12 of 117 files").

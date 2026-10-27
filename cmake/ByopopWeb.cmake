@@ -38,10 +38,11 @@ set(BYOPOP_WEB_SHARED_JS settings.js profiles.js exeicon.js)
 # next to index.html only
 set(BYOPOP_WEB_INDEX_JS players.js saves.js saveimport.js)
 # The listing page, build/web/index.html (made from web/index.html by byopop_web_index() at the end of this file): one
-# tile for each game in BYOPOP_WEB_FINISHED, in alphabetical order of TITLE (not this list's order), with a badge. The list is the
-# coordinator's: the coordinator adds a game's target at that game's final merge. A game with a web page that is not
-# in the list is not shown (fwtest and smoke are test pages and never are); a name in the list with no web page is a
-# configure error.
+# tile for each game in BYOPOP_WEB_FINISHED, in alphabetical order of TITLE (not this list's order; the page can sort by
+# release date instead), with a badge and the year of its release. The list is the coordinator's: the coordinator adds a
+# game's target at that game's final merge, and its release date (BYOPOP_WEB_RELEASED, below) at the same merge. A game
+# with a web page that is not in the list is not shown (fwtest and smoke are test pages and never are); a name in the
+# list with no web page is a configure error.
 set(BYOPOP_WEB_FINISHED bejeweled bigmoney bookworm noahsark sevenseas atomica mummymaze tiptop bookwormadv ningpo
   pixelus alchemy wordharmony cosmicbugs waterbugs rocketmania dynomite bookwormadv2)
 # A game's badge on the listing page, <target>|<initials>|<colour>: the initials in white on a rounded square of the
@@ -52,6 +53,61 @@ set(BYOPOP_WEB_BADGES
   "atomica|AT|#602395" "mummymaze|MM|#8c7021" "tiptop|TT|#954123" "bookwormadv|BA|#45801e" "ningpo|NP|#1f845f"
   "pixelus|PX|#952395" "alchemy|AL|#95236b" "wordharmony|WH|#232795" "cosmicbugs|CB|#412395" "waterbugs|WB|#236f95"
   "rocketmania|RM|#952723" "dynomite|DY|#78781c" "bookwormadv2|BA2|#637c1d")
+# When each finished game was first released, <target>|<date> with the date as YYYY, YYYY-MM or YYYY-MM-DD, as exact as the
+# sources allow (the user, 2026-10-27: the listing page can sort by release date, docs/WEB_PLAYER.md, "The listing page"). It is
+# the first release of the Windows edition that the site plays, the Deluxe download where there is one, not a web, Java or
+# phone version; a game that came out first under another publisher is dated by that first release. The tile shows the
+# year; the page sorts by the whole date, and a year alone sorts after the full dates of its year. Each row has its
+# source in the comment above it. A finished game without a row is a configure warning (it shows no year and sorts last);
+# a row that is not a date is a configure error. Researched 2026-10-27 from Wikipedia and VGTimes (a game database); MobyGames,
+# Giant Bomb, VideoGameGeek and PCGamingWiki refused automated requests and were not read directly, and the Internet
+# Archive's copies of popcap.com could not be fetched.
+set(BYOPOP_WEB_RELEASED
+  # Wikipedia, "Bejeweled (video game)": the retail Bejeweled Deluxe for Windows, May 30, 2001. High.
+  "bejeweled|2001-05-30"
+  # Only the year is firm: Wikipedia's list of PopCap games has 2002. Other databases disagree on the day: Dec 23, 2002 (LaunchBox,
+  # which is the Mac date elsewhere), April 2003 (VGTimes, USA PC) and Aug 30, 2006 (the Steam release). Low.
+  "bigmoney|2002"
+  # Wikipedia, "Bookworm (video game)": February 25, 2003. VGTimes has the USA PC edition on Feb 27, 2003. High.
+  "bookworm|2003-02-25"
+  # VGTimes (https://vgtimes.com/games/noahs-ark-deluxe/release-dates/): PC, October 15, 2002; Wikipedia's list and Lutris say 2002. Medium.
+  "noahsark|2002-10-15"
+  # VGTimes (https://vgtimes.com/games/seven-seas-deluxe/release-dates/): PC, October 16, 2001; Wikipedia's list says 2001. A
+  # database that gave Oct 10, 2000 is out of line with both. Medium.
+  "sevenseas|2001-10-16"
+  # VGTimes (https://vgtimes.com/games/atomica-deluxe/release-dates/): PC, August 14, 2002; Wikipedia's list says 2002. Medium.
+  "atomica|2002-08-14"
+  # VGTimes (https://vgtimes.com/games/mummy-maze-deluxe/release-dates/): PC, June 21, 2002; Giant Bomb has the same day; Wikipedia's list says 2002. Medium.
+  "mummymaze|2002-06-21"
+  # VGTimes (https://vgtimes.com/games/tiptop/release-dates/): PC, December 12, 2002; Wikipedia's list says 2002. Medium.
+  "tiptop|2002-12-12"
+  # Wikipedia, "Bookworm Adventures": Windows, November 28, 2006 (as packaged software; Steam followed on Jan 2, 2007). High.
+  "bookwormadv|2006-11-28"
+  # Only the year: Wikipedia's list says 2002 and so does MyAbandonware (Windows 2002, Mac 2003). No day found. Low.
+  "ningpo|2002"
+  # VGTimes (https://vgtimes.com/games/pixelus-deluxe/release-dates/): PC, July 15, 2004; Wikipedia's list says 2004. Medium.
+  "pixelus|2004-07-15"
+  # VGTimes (https://vgtimes.com/games/alchemy-deluxe/release-dates/): PC (USA), August 29, 2001; Giant Bomb has the same day; Wikipedia's list says 2001. High.
+  "alchemy|2001-08-29"
+  # VGTimes (https://vgtimes.com/games/word-harmony/release-dates/): PC, December 27, 2003, and LaunchBox, MyAbandonware and
+  # Wikipedia's list say 2003. Sprout Games made it; PopCap bought Sprout in 2005 and a PopCap edition (the Deluxe, the copyright
+  # notice of games/wordharmony) followed in 2006, so the edition the site plays is later than this date. Medium.
+  "wordharmony|2003-12-27"
+  # Wikipedia's list of PopCap games: 2004, as made by Retro64 and published by PopCap from 2007. VGTimes has PC, February 9,
+  # 2005, and a fan wiki November 11, 2004 (not read: it refused). The year of the first release; the PopCap edition is from 2007. Low.
+  "cosmicbugs|2004"
+  # VGTimes (https://vgtimes.com/games/water-bugs/release-dates/): PC, October 5, 2005 (another database says Oct 11); Wikipedia's
+  # list says 2005. As for Cosmic Bugs, the PopCap edition is later than the first release. Medium.
+  "waterbugs|2005-10-05"
+  # Wikipedia, "Rocket Mania!": August 15, 2003; VGTimes has PC (USA) on Aug 3, 2003, so only the month is firm. (VideoGameGeek
+  # has Apr 15, 2003 for the download, seen only in a search result; the 2006 dates are the Steam release.) Medium.
+  "rocketmania|2003-08"
+  # VideoGameGeek (seen only in a search result) and a Wikipedia mirror: January 25, 2002; VGTimes has the USA PC edition on
+  # Feb 25, 2002; Wikipedia's list says 2002 (the 2006 dates are the Steam release). Medium to low.
+  "dynomite|2002-01-25"
+  # Wikipedia, "Bookworm Adventures": the sequel, July 30, 2009 (PopCap's announcement, as Gamezebo reported it, gave July 30 as
+  # well). Other databases have June 3 and July 28; they are outliers. High.
+  "bookwormadv2|2009-07-30")
 get_filename_component(BYOPOP_WEB_INDEX "${CMAKE_CURRENT_LIST_DIR}/../web/index.html" ABSOLUTE)
 # Whether a game's page asks the player to agree to its terms (the terms card and its checkbox) before the game's
 # files are imported or loaded. OFF for now (the user, 2026-10-26), and the pages must not be deployed until it is
@@ -280,7 +336,9 @@ endfunction()
 
 # byopop_web_index(): writes the listing page, build/web/index.html, from web/index.html: for each target in
 # BYOPOP_WEB_FINISHED, a tile linking to <target>.html, with the TITLE the game gave byopop_web_game() and its badge
-# (BYOPOP_WEB_BADGES). It runs when the top-level CMakeLists.txt has added every game (cmake_language(DEFER), below).
+# (BYOPOP_WEB_BADGES), the year of its release and, on the card, its whole release date and title as data-released and
+# data-title, which the page's "Sort by" reads (BYOPOP_WEB_RELEASED; a game without a row gets a warning, no year and an
+# empty data-released). It runs when the top-level CMakeLists.txt has added every game (cmake_language(DEFER), below).
 # A game whose BUILD_<TARGET> option is OFF is left out; any other name in the list that has no web page is an error.
 function(byopop_web_index)
   set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${BYOPOP_WEB_INDEX})
@@ -343,6 +401,30 @@ function(byopop_web_index)
       string(REPLACE "<" "&lt;" ${field} "${${field}}")
       string(REPLACE ">" "&gt;" ${field} "${${field}}")
     endforeach()
+    # the game's first release (BYOPOP_WEB_RELEASED): the year goes on the tile, the date as given into data-released
+    set(released "")
+    foreach(row ${BYOPOP_WEB_RELEASED})
+      string(REPLACE "|" ";" fields "${row}")
+      list(LENGTH fields field_count)
+      if(NOT field_count EQUAL 2)
+        message(FATAL_ERROR "BYOPOP_WEB_RELEASED (cmake/ByopopWeb.cmake) has the row \"${row}\", which is not <target>|<date>")
+      endif()
+      list(GET fields 0 row_target)
+      if(row_target STREQUAL target)
+        list(GET fields 1 released)
+      endif()
+    endforeach()
+    set(year "")
+    if(released STREQUAL "")
+      message(WARNING "byo-pop: ${target} has no release date in BYOPOP_WEB_RELEASED (cmake/ByopopWeb.cmake): the listing page "
+        "shows no year for it and sorts it last")
+    elseif(NOT released MATCHES "^[0-9][0-9][0-9][0-9](-(0[1-9]|1[0-2])(-(0[1-9]|[12][0-9]|3[01]))?)?$")
+      message(FATAL_ERROR "BYOPOP_WEB_RELEASED (cmake/ByopopWeb.cmake) gives ${target} the date \"${released}\", "
+        "which is not YYYY, YYYY-MM or YYYY-MM-DD")
+    else()
+      string(SUBSTRING "${released}" 0 4 year)
+    endif()
+    string(REPLACE "\"" "&quot;" title_attr "${title}")
     # data-game and data-persist: the page's id for the game (the record of its files in localStorage, web/settings.js) and
     # its browser database (the persist folder), for the label under the name and its "?" (web/index.html)
     get_property(game_id GLOBAL PROPERTY BYOPOP_WEB_id_${target})
@@ -381,9 +463,18 @@ function(byopop_web_index)
         set(buy_html "<div class=\"buyrow\" hidden>${buy_html}</div>")
       endif()
     endif()
-    string(CONCAT tile "    <li class=\"game\" style=\"--tile: ${colour}\"><a class=\"tile\" href=\"${target}.html\" "
-      "data-game=\"${game_id}\" data-persist=\"${game_persist}\" data-lock=\"${game_lock}\"${replays_attr}><span class=\"badge\" aria-hidden=\"true\">${initials}</span>"
-      "<span class=\"name\">${title}</span></a><div class=\"ownrow\"><span class=\"own\" aria-hidden=\"true\"></span></div>${buy_html}</li>")
+    # the year under the name (a space between the two spans, so that the link's name reads "Bejeweled Deluxe 2001" even
+    # where the spans' text is joined), and the link's name with it, "Bejeweled Deluxe, 2001"; the page adds the files' state to it
+    set(year_html "")
+    set(label_attr "")
+    if(NOT year STREQUAL "")
+      set(year_html " <span class=\"year\">${year}</span>")
+      set(label_attr " aria-label=\"${title_attr}, ${year}\"")
+    endif()
+    string(CONCAT tile "    <li class=\"game\" style=\"--tile: ${colour}\" data-released=\"${released}\" data-title=\"${title_attr}\">"
+      "<a class=\"tile\" href=\"${target}.html\" data-game=\"${game_id}\" data-persist=\"${game_persist}\" data-lock=\"${game_lock}\"${replays_attr}${label_attr}>"
+      "<span class=\"badge\" aria-hidden=\"true\">${initials}</span>"
+      "<span class=\"name\">${title}</span>${year_html}</a><div class=\"ownrow\"><span class=\"own\" aria-hidden=\"true\"></span></div>${buy_html}</li>")
     list(APPEND tiles "${tile}")
     math(EXPR count "${count} + 1")
   endforeach()

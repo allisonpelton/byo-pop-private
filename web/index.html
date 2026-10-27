@@ -70,6 +70,17 @@ h1 { margin: 0; font-size: 20px; font-weight: 600; }
   color: #ffffff; font-size: 26px; font-weight: 700; letter-spacing: 0.02em;
 }
 .name { font-weight: 600; overflow-wrap: anywhere; }
+/* The year of the game's release, small under the name (cmake/ByopopWeb.cmake, BYOPOP_WEB_RELEASED); the gap above it is the tile's
+   10 px less 8 */
+.year { margin-top: -8px; font-size: 12px; color: var(--muted); }
+/* "Sort by" (docs/WEB_PLAYER.md, "The listing page"): a radio group above the games. The legend floats, so that it shares a line
+   with the choices; the labels are 32 px high, for a finger. Hidden until the page's script is there to sort. */
+.sortby { box-sizing: border-box; margin: 0 0 16px; padding: 0; border: 0; min-width: 0; }
+.sortby[hidden] { display: none; }
+.sortby legend { float: left; margin: 0 14px 0 0; padding: 0; font-weight: 600; line-height: 32px; }
+.sortby-opts { display: flex; flex-wrap: wrap; align-items: center; gap: 0 12px; min-height: 32px; }
+.sortby label { display: inline-flex; align-items: center; gap: 6px; min-height: 32px; padding: 0 4px; cursor: pointer; }
+.sortby input { width: 18px; height: 18px; margin: 0; accent-color: var(--accent); }
 /* A game whose files are loaded shows its own icon in place of the initials: the badge's size, with crisp pixels
    when it is enlarged (icons are kept at 64 px or less) */
 .badge.has-icon { background: none; box-shadow: none; }
@@ -200,6 +211,14 @@ footer a { color: var(--accent); }
   <h1 id="games-title">Games</h1>
 </header>
 <main>
+  <fieldset class="sortby" id="sortby" hidden>
+    <legend>Sort by</legend>
+    <div class="sortby-opts">
+      <label><input type="radio" name="sortby" value="name" checked> Name</label>
+      <label><input type="radio" name="sortby" value="release"> Release date</label>
+    </div>
+  </fieldset>
+  <p class="pl-sr" id="sortby-status" role="status"></p>
   <ul class="games" aria-labelledby="games-title">
 <!-- byopop:games -->
   </ul>
@@ -243,6 +262,70 @@ try {
       lock: t.getAttribute("data-lock") || "", replays: t.getAttribute("data-replays") === "1" };
   }));
 } catch (e) { document.getElementById("saves-body").textContent = "The save backup is not available."; }
+</script>
+<script>
+// "Sort by" (docs/WEB_PLAYER.md, "The listing page"): the games by name, as built (alphabetical order of the titles), or by release
+// date, oldest first. It moves the games' <li> elements, so the order for the keyboard and for a screen reader is the order on screen
+// (no CSS order). It runs after the Players and Saves sections took the games in the built order: they keep it. The choice is
+// remembered in localStorage (the page works without it).
+(function () {
+  var KEY = "byopop-listing-sort";  // "name" or "release"
+  var list = document.querySelector("ul.games"), box = document.getElementById("sortby"), status = document.getElementById("sortby-status");
+  if (!list || !box || !status) return;
+  var radios = Array.prototype.slice.call(box.querySelectorAll("input[name=sortby]"));
+  var SAID = { name: "Sorted by name", release: "Sorted by release date" };
+
+  // the date of data-released as [year, month, day], 0 for a part it does not give; null for no date or one that is not a date
+  function when(text) {
+    var m = /^(\d{4})(?:-(\d{2})(?:-(\d{2}))?)?$/.exec(text || "");
+    return m ? [+m[1], m[2] ? +m[2] : 0, m[3] ? +m[3] : 0] : null;
+  }
+  var cards = Array.prototype.slice.call(list.children).filter(function (e) { return e.tagName === "LI"; }).map(function (li, at) {
+    return { li: li, at: at, when: when(li.getAttribute("data-released")), title: (li.getAttribute("data-title") || "").toLowerCase() };
+  });
+  var byName = cards.slice();
+  // Oldest first. Inside a year, the dates with a month come before a year alone, by month; inside a month, the ones with a day
+  // come before a month alone, by day: the less exact a date, the later it sorts among the same year's or month's. No date goes
+  // last. Equals go by title, then as built.
+  var byRelease = cards.slice().sort(function (a, b) {
+    var x = a.when, y = b.when, keys = [];
+    if (x && !y) return -1;
+    if (y && !x) return 1;
+    if (x && y) keys = [x[0] - y[0], (x[1] ? 0 : 1) - (y[1] ? 0 : 1), x[1] - y[1], (x[2] ? 0 : 1) - (y[2] ? 0 : 1), x[2] - y[2]];
+    for (var i = 0; i < keys.length; i++) if (keys[i]) return keys[i];
+    return a.title < b.title ? -1 : a.title > b.title ? 1 : a.at - b.at;
+  });
+
+  // Puts the cards in this order, moving only those out of place, and keeps the focus where it was (a moved element that
+  // had it loses it)
+  function place(order) {
+    var had = document.activeElement;
+    order.forEach(function (card, at) {
+      if (list.children[at] !== card.li) list.insertBefore(card.li, list.children[at] || null);
+    });
+    if (had && had !== document.activeElement && document.body.contains(had)) { try { had.focus({ preventScroll: true }); } catch (e) {} }
+  }
+  function apply(mode, say) {
+    if (mode !== "release") mode = "name";
+    radios.forEach(function (r) { r.checked = r.value === mode; });
+    place(mode === "release" ? byRelease : byName);
+    if (say) status.textContent = SAID[mode];  // polite, and only for the player's own choice
+  }
+
+  var saved = null;
+  try { saved = localStorage.getItem(KEY); } catch (e) {}
+  box.hidden = false;
+  if (saved === "release") apply("release", false);
+  radios.forEach(function (r) {
+    r.addEventListener("change", function () {
+      if (!r.checked) return;
+      apply(r.value, true);
+      try { localStorage.setItem(KEY, r.value); } catch (e) {}
+    });
+  });
+  // the choice made in another tab
+  window.addEventListener("storage", function (ev) { if (ev.key === KEY || ev.key === null) apply(ev.newValue, false); });
+})();
 </script>
 <script>
 // Which games have their files loaded, as a sign that the player owns them (docs/WEB_PLAYER.md, "The listing page"). A
@@ -341,8 +424,11 @@ try {
     // "Files unknown".
     var buy = card.querySelector(".buyrow");
     if (buy) buy.hidden = info.state === "yes" || !!info.everLoaded || !!info.played;
-    // the link's accessible name: the game's name, then the same words ("Bejeweled Deluxe, your copy")
-    tile.setAttribute("aria-label", tile.querySelector(".name").textContent + ", " + WORDS[info.state].toLowerCase());
+    // the link's accessible name: the game's name, the year of its release when it has one, then the same words
+    // ("Bejeweled Deluxe, 2001, your copy")
+    var year = tile.querySelector(".year");
+    tile.setAttribute("aria-label", tile.querySelector(".name").textContent + (year ? ", " + year.textContent : "") + ", " +
+      WORDS[info.state].toLowerCase());
     var button = row.querySelector(".why"), pop = card.querySelector(".why-pop");
     if (info.state === "no" && info.played) {
       if (!button) {
