@@ -11,6 +11,7 @@
 //                   companion in the treasure room and goes on, and clicks the chapter map's Enter button (when the
 //                   board is hidden)
 //   nowords <0|1>  1: the soak spells no words (the rest of it goes on), so a battle is lost to the enemy; 0: it does again
+//   wordmax <n>    the words the soak and the word command spell are at most n letters (0: no limit), so the enemies hit harder than Lex's words
 //   pam <id>        logs where a script's animation is (playing, label, frame)
 //   state           logs the battle engine's state and the board's selected tiles
 //   widgets         logs the widget manager's widgets: class, rectangle, visibility, priority, focus
@@ -98,10 +99,11 @@ bool IsRuby(Tile* theTile)
 
 size_t UsedVirtualMemory();  // CrashLog.cpp
 
+static bool sSoakNoWords = false;  // the nowords command
+static int sSoakMaxWordLen = 0;    // the wordmax command: 0 is no limit
+
 // The treasure room's next click, "x y" (empty when there is none): a companion first, then the treasures, one
 // of the unselected each time round (one that does not take the click does not block the others)
-static bool sSoakNoWords = false;  // the nowords command
-
 static std::string PickTreasureClick()
 {
 	static const char kPick[] =
@@ -252,6 +254,10 @@ bool GameApp::HandleScriptCommand(const ScriptCommand& theCommand)
 		sSoakNoWords = atoi(theCommand.mArgs.c_str()) != 0;
 		return true;
 	}
+	if (theCommand.mCommand == "wordmax") {
+		sSoakMaxWordLen = atoi(theCommand.mArgs.c_str());
+		return true;
+	}
 	if (theCommand.mCommand == "pam") {
 		// where a script's animation is: pam <id> (the id is the animation's mAnimId)
 		PopAnim* anAnim = mPopAnimManager != nullptr ? mPopAnimManager->Get(atoi(theCommand.mArgs.c_str())) : nullptr;
@@ -359,6 +365,8 @@ bool GameApp::HandleScriptCommand(const ScriptCommand& theCommand)
 	std::vector<Tile*> aBestRubyOrder;
 	for (const std::pair<const std::string, int>& aEntry : mLex->mWords) {
 		const std::string& aWord = aEntry.first;
+		if (sSoakMaxWordLen > 0 && (int)aWord.size() > sSoakMaxWordLen)
+			continue;
 		if (aWord.size() > aBest.size() && aWord != anEgg && Spell(aWord, aTiles, anOrder)) {
 			if (aWantRuby && std::find_if(anOrder.begin(), anOrder.end(), IsRuby) == anOrder.end())
 				continue;
