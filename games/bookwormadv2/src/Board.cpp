@@ -841,7 +841,9 @@ void Board::Update()
 		gTileEngine->ChangeLetters(mTiles);
 		if (++mScrambleStep >= 14) {
 			mScrambling = false;
-			BattleCall("ScrambleComplete");
+			// a mini-game has no battle engine; the exe tests its global here (0x416640)
+			if (gBattleEngine)
+				BattleCall("ScrambleComplete");
 		}
 	}
 	if (!mNewTiles.empty()) {
