@@ -271,6 +271,9 @@ input[type=file] { display: none; }
   //               extension); the import looks for them, and the page asks for an import while one is missing
   //   markerText  the markers as the import's error names them ("images/gemsheet6 file")
   //   skip        patterns (relative paths) of install files that are not copied, beside the .sig files
+  //   importIcon  the game stores no exe (it is not in gameFiles), so the import reads the game's icon out of the exe in the picked
+  //               folder or .zip (the first .exe at its top, but an uninstaller or setup) and keeps only the icon, in the ownership
+  //               record: the exe itself is not stored. A game that stores its exe needs none: boot() reads it from the files.
   //   importHtml  the import card's text (HTML)
   //   modsIntro   the Mods panel's first paragraph
   //   seeds       ?seed=N is the game's -gameseed=N
@@ -477,6 +480,25 @@ input[type=file] { display: none; }
     });
     return best;
   }
+  // The icon that the import read out of the install's exe (importIcon), for boot() to keep with the record once the files are
+  // marked as there. The exe is not stored.
+  var importedIcon = "";
+  var SKIP_EXE = /^(popuninstall|uninstall[^\/]*|unins\d*|setup[^\/]*|dxsetup|[^\/]*redist[^\/]*|[^\/]*updater[^\/]*)\.exe$/i;
+  function iconFromImport(entries, root) {
+    importedIcon = "";
+    if (!PAGE.importIcon || !window.ByopopExeIcon || pagePlaceholders()) return Promise.resolve();
+    var exes = entries.filter(function (e) {
+      var rel = e.path.substring(0, root.length) === root ? e.path.substring(root.length) : "";
+      return /^[^\/]+\.exe$/i.test(rel) && !SKIP_EXE.test(rel);
+    }).slice(0, 4);
+    return exes.reduce(function (p, e) {
+      return p.then(function (url) {
+        if (url) return url;
+        return e.read().then(function (bytes) { return ByopopExeIcon.fromBytes(bytes); })
+          .then(function (icon) { return (icon && icon.dataUrl) || ""; }, function () { return ""; });
+      });
+    }, Promise.resolve("")).then(function (url) { importedIcon = url; }, function () {});
+  }
   function setTabIcon(url) {
     document.querySelectorAll('link[rel~="icon"]').forEach(function (l) { l.remove(); });
     var link = document.createElement("link");
@@ -488,6 +510,12 @@ input[type=file] { display: none; }
     try {
       var rec = ByopopGameFiles.all()[PAGE.id];
       if (rec && rec.icon) { setTabIcon(rec.icon); return; }
+      if (importedIcon) {  // read out of the exe at the import, which the game does not store
+        var url = importedIcon;
+        importedIcon = "";
+        if (ByopopGameFiles.setIcon(PAGE.id, url)) setTabIcon(url);
+        return;
+      }
       var name = mainExe();
       if (!name || !window.ByopopExeIcon) return;
       ByopopExeIcon.fromBytes(Module.FS.readFile(GAME + "/" + name)).then(function (icon) {
@@ -584,7 +612,7 @@ input[type=file] { display: none; }
       // boot() would otherwise show this card again, still saying "Copied", as if the page were stuck
       if (!hasGameFiles()) throw new Error("The files were copied, but the page cannot find the game's " + PAGE.markerText + " among them.");
       msg.textContent = "Copied " + wanted.length + " files.";
-      return true;
+      return iconFromImport(entries, root).then(function () { return true; });
     });
   }
 

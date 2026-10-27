@@ -294,7 +294,11 @@ cannot be decoded, the next). An image is a PNG, used as it is, or a DIB (a `BIT
 1-bit transparency mask under it, at 1, 4, 8, 24 or 32 bits per pixel, the palette up to 8) which is decoded to RGBA and
 drawn on a canvas; the result is a PNG data URL of at most 64 px a side and 16 KB (a larger icon is made smaller until it
 fits). An exe that is wrapped or damaged, or has no icon, gives nothing, and the badge stays; nothing in it throws. A game
-that does not store its exe (Bejeweled, Big Money and Alchemy import none) has no icon.
+that does not store its exe (Bejeweled, Big Money and Alchemy import none) says so in its `page.js` (`importIcon: true`): the
+import then reads the icon out of the exe in the picked folder or .zip, at the top of the install (the first `.exe` that is not an
+uninstaller or a setup, at most four tried), in `iconFromImport()` of `web/shell.html`, and keeps only the icon, in the ownership
+record, for `boot()` to put with the entry once the files are marked as there. The exe is read from the pick and is never
+stored, here or anywhere.
 
 The data URL is kept in the game's entry of the ownership record (`icon`), where the listing page reads it. The game page
 reads the exe in `boot()`, which follows an import and every start, when the entry has no icon yet, so the icon also
