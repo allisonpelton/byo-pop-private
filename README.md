@@ -27,7 +27,7 @@ installed copy (for example from Steam):
 
 | Game | Model | Status | On main since | Mods | Port work | Mod work | Other | Total |
 |---|---|---|---|---:|---:|---:|---:|---:|
-| [Bejeweled Deluxe](games/bejeweled/README.md) | Opus | Done, with graphics, sound, text and tunables mods and 18 stages of code mods (board shapes, gravity, replays, up to 12 gem colours, new gems) with curated modes | 2026-10-18 | 32 | $251 | $1,267 | $5 | $1,522 |
+| [Bejeweled Deluxe](games/bejeweled/README.md) | Opus | Done, with graphics, sound, text and tunables mods and 18 stages of code mods (board shapes, gravity, replays, up to 12 gem colours, new gems) with curated modes | 2026-10-18 | 32 | $251 | $1,268 | $11 | $1,530 |
 | [Big Money Deluxe](games/bigmoney/docs/README.md) | Opus | Done, with mods: replays, LiveSplit, a puzzle solver, board and money variants | 2026-10-18 | 11 | $263 | $129 | $8 | $400 |
 | [BookWorm Deluxe](games/bookworm/docs/README.md) | Opus | Done, with mods: undo, a word solver, replays, a daily board, a word journal, widescreen, LiveSplit, more word lists | 2026-10-19 | 18 | $369 | $149 | $12 | $531 |
 | [Noah's Ark Deluxe](games/noahsark/docs/README.md) | Sonnet | Done, with mods: undo, a move helper, tide speed, a daily board | 2026-10-25 | 4 | $62 | $5 | | $67 |
@@ -40,13 +40,14 @@ installed copy (for example from Steam):
 | [Pixelus Deluxe](games/pixelus/docs/README.md) | Sonnet | Done | 2026-10-26 | | $91 | | | $91 |
 | [Alchemy Deluxe](games/alchemy/docs/README.md) | Sonnet | Done | 2026-10-26 | | $70 | | | $70 |
 | [Word Harmony](games/wordharmony/docs/README.md) | Opus | Done, on Sprout's first-generation engine | 2026-10-26 | | $115 | | | $115 |
-| [Cosmic Bugs](games/cosmicbugs/docs/README.md) | Opus | Done, on Retro64's engine | 2026-10-26 | | $123 | | | $123 |
-| Rocket Mania Deluxe | Sonnet | Porting (begun 2026-10-26) | | | $16 | | | $16 |
-| Water Bugs | Sonnet | Porting on Cosmic Bugs' engine (begun 2026-10-26) | | | $20 | | | $20 |
-| Bookworm Adventures Volume 2 | Sonnet | Porting on Bookworm Adventures' engine; milestone 1 of 5 (the scripts run) ready | | | $4 | | | $4 |
-| Dynomite Deluxe, Mahjong Escape: Ancient Japan and Ancient China, Bonnie's Bookstore Deluxe, Venice Deluxe, Heavy Weapon Deluxe, Hammer Heads Deluxe, Bejeweled 2 Deluxe, AstroPop Deluxe | Opus or Sonnet | Waiting for a slot, in this order | | | under $1 each | | | |
-| Shared framework, tools and coordination | | | | | $367 | $154 | $188 | $709 |
-| **All** | | | | **65** | **$2,706** | **$1,707** | **$213** | **$4,625** |
+| [Cosmic Bugs](games/cosmicbugs/docs/README.md) | Opus | Done, on Retro64's engine | 2026-10-26 | | $125 | | | $125 |
+| [Water Bugs](games/waterbugs/docs/README.md) | Sonnet | Done, on Cosmic Bugs' engine | 2026-10-26 | | $45 | | | $45 |
+| [Rocket Mania Deluxe](games/rocketmania/docs/README.md) | Sonnet | Done | 2026-10-26 | | $134 | | | $134 |
+| [Dynomite Deluxe](games/dynomite/docs/README.md) | Opus | Done | 2026-10-26 | | $164 | | | $164 |
+| [Bookworm Adventures Volume 2](games/bookwormadv2/docs/README.md) | Sonnet | Done, on Bookworm Adventures' engine | 2026-10-26 | | $195 | | | $195 |
+| Bejeweled Twist, Mahjong Escape: Ancient Japan and Ancient China, Bonnie's Bookstore Deluxe, Venice Deluxe, Heavy Weapon Deluxe, Hammer Heads Deluxe, Bejeweled 2 Deluxe, AstroPop Deluxe | Opus or Sonnet | Waiting for a slot, in this order | | | under $1 each | | | |
+| Shared framework, tools and coordination | | | | | $373 | $156 | $191 | $720 |
+| **All** | | | | **65** | **$3,211** | **$1,709** | **$223** | **$5,143** |
 
 "Done" means the whole game plays natively and in the browser. The costs are what the work's tokens would cost at the
 API prices in [docs/TOKEN_ECONOMY.md](docs/TOKEN_ECONOMY.md), each model at its own; the subscription the work ran on
