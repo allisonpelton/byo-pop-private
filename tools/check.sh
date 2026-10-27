@@ -59,7 +59,8 @@
 #                status, a failed load or a count that is not the whole set; the Flash player's self test and its
 #                five movies played to their end (bwa2_swftest); a new player's run from the title through the
 #                prologue's tutorial (PLAY spelled, then the attack) and the same profile's run to the main menu
-#                and the mini-games' menu (the game's own runs join it as the port grows; about 40 seconds)
+#                and the mini-games' menu, and Golden Coins' first words (the game's own runs join it as the
+#                port grows; about 50 seconds)
 #   waterbugs    Water Bugs: the fonts and every animation the game ships loaded
 #                (waterbugs_banktest), a scripted game played headless (waterbugs_run: a beam across the first
 #                board, two state lines) and a rerun with the same screenshots, and the windowed exe twice with the
@@ -524,7 +525,7 @@ suite_bookwormadv2() {
 	[ "$r" = "ran 462 of 462 scripts" ] || st=1
 	[ "$p" = "pairs: 8 of 8 identical" ] || st=1
 	[ "$s" -gt 0 ] && [ "$f" = 5 ] || st=1
-	[ "$m" = "new player: PLAY attacked; main menu, mini-games: ok" ] || st=1
+	[ "$m" = "new player: PLAY attacked; main menu, mini-games: ok; a mini-game plays" ] || st=1
 	return $st
 }
 
@@ -566,7 +567,18 @@ bookwormadv2_smoke() {  # <log>: a new player (an empty user folder) through the
 		[ "$(stat -c %s "$d/$n.png" 2>/dev/null || echo 0)" -gt 50000 ] || { echo "main menu: no $n picture"; return; }
 	done
 	cmp -s "$d/menu.png" "$d/minigames.png" && { echo "main menu: the mini-games' menu did not open"; return; }
-	echo "new player: PLAY attacked; main menu, mini-games: ok"
+	# Run 3: the same route up to the mini-games' menu, then Golden Coins: its Welcome's OK and the test hook's bot
+	# for a few words (a mini-game has no battle engine, and its first scramble once crashed the board)
+	{ grep -vE ' (quit|screenshot)( |$)' "$d/menus.txt"
+	  printf '%s\n' '12500 lua main.StartMinigameFromMainMenu("GoldenCoins")' "15500 click 400 293" "16000 soak 19000" \
+		"19010 quit"; } > "$d/minigame.txt"
+	timeout 120 "$b" -gamedir="$a" -userdir="$d/user" -script="$d/minigame.txt" -fast > "$d/minigame.out" 2>&1
+	t=$?
+	cat "$d/minigame.out" >> "$1"
+	[ $t -eq 0 ] || { echo "mini-game: exit $t"; return; }
+	grep -qiE 'attempt to|stack traceback|FATAL|\.lua:[0-9]+:' "$d/minigame.out" && { echo "mini-game: a script failed"; return; }
+	[ "$(grep -cE 'script: word [A-Z]+ ' "$d/minigame.out")" -ge 2 ] || { echo "mini-game: the bot spelled no words"; return; }
+	echo "new player: PLAY attacked; main menu, mini-games: ok; a mini-game plays"
 }
 
 bookwormadv_all() {  # <"loaded N of M ...">: true when all of at least one loaded

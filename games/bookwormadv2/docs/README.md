@@ -108,6 +108,14 @@ and a new player's tutorial runs to its first attack (P, L, A, Y clicked, the "C
 word of the board, uses the tutorial's potions, ends a stunned turn, picks treasures and the companion, and clicks the chapter
 map's Enter) takes a new player from the prologue through the adventure's books (its bosses included) to the end of Chapter 10
 of Book 6 and back to the main menu (441 words in about 480,000 updates, no script error); it is not yet a check in the suite.
+The same bot plays the six mini-games (started with `main.StartMinigameFromMainMenu`) for 60,000 to 70,000 updates each, no script
+error; Golden Coins and Word Up end in the Hall of Fame with their entry. The arena plays too: with a profile at book 7 the
+soak plays all 24 stages (the checkpoints' treasure rooms included) and beats Bigger Brother in 87,000 updates; the win
+dialog's Continue calls the scripts' callback, which opens the stats book (the "Game Over" page), and its Continue ends in the
+Hall of Fame's arena list with the run's entry. `tools/wasmrun.js` runs the web build under Node
+with the switches of a native run (the soak in the browser build: 485 words, and the whole arena, no script error). A saved arena run
+comes back through the main menu's "Continue game?" question, in the middle of a battle or at a checkpoint (native). A crash of the native Windows
+build writes where it was to the log (`src/CrashLog.cpp`, for the soak's memory checks and the next bug).
 Not done: the cut scene player lacks the bitmap tags
 Volume 2's five movies use; PopAnim loads all 304 animations but 41 pictures in 7 of them are not found; the end of the
 game's credits (the finale) has not been run. (The trial wrapper's dialogs are left out on purpose.)
@@ -120,4 +128,4 @@ placeholder; its stores are checked at the web milestone), `.claude/launch.json`
 
 In `framework/`, for Volume 2's descriptors and files: `DescParser` (the original's escape rules for quotes and
 backslashes), `ImageFont` (the `LayerSetExInfo` and `LayerSetAlphaCorrection` commands), `PropertiesParser` and
-`XMLParser` (a byte order mark at the start of a file) and `ResourceManager` (a group is found by name without case).
+`XMLParser` (a byte order mark at the start of a file).

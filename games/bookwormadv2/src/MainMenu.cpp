@@ -912,7 +912,7 @@ void MainMenu::AskReallyQuit()
 
 void MainMenu::StartArena()
 {
-	// 0x47c290
+	// 0x46c5d0 (compared with the exe: the same steps)
 	lua_pushboolean(mApp->mLua->L, 1);
 	mApp->mLua->Call("main.SetTimedMode", 1, 0);
 	mApp->mTimedMode = true;
@@ -933,7 +933,7 @@ void MainMenu::StartArena()
 
 void MainMenu::ContinueArena(bool theContinue)
 {
-	// 0x47c170
+	// 0x46c4b0 (compared with the exe: the same steps)
 	if (theContinue) {
 		mApp->InitGameScreen(true);
 		BookManager* aBook = mApp->mBookManager;
@@ -959,7 +959,7 @@ void MainMenu::ButtonDepress(int theId)
 
 void MainMenu::ShowUserDialog()
 {
-	// 0x47c770
+	// 0x46cb30
 	JeffLib::UserSelectionDialog::Resources aResources;
 	aResources.mDialogImage = IMAGE_DIALOG;
 	aResources.mButtonImage = IMAGE_DIALOG_BUTTON;
@@ -998,7 +998,7 @@ void MainMenu::ShowUserDialog()
 
 void MainMenu::FillUserList()
 {
-	// 0x47ca20
+	// 0x46cde0
 	mUserDialog->ClearUsers();
 	// the players' files: users/<name>.bwa
 	std::vector<std::string> aFiles = JeffLib::GetFilesInDirectory("users/*.bwa");
@@ -1073,7 +1073,7 @@ bool MainMenu::StartIntroIfNew()
 
 void MainMenu::DialogButtonDepress(int theDialogId, int theButtonId)
 {
-	// 0x47cd70
+	// 0x46d130
 	if (theDialogId == GameApp::DIALOG_USER_SELECTION) {
 		JeffLib::UserSelectionDialog* aDialog = mUserDialog;
 		if (theButtonId == aDialog->mYesButton->mId || theButtonId == Dialog::ID_YES) {

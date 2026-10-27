@@ -13,7 +13,8 @@
 //   pam <id>        logs where a script's animation is (playing, label, frame)
 //   state           logs the battle engine's state and the board's selected tiles
 //   widgets         logs the widget manager's widgets: class, rectangle, visibility, priority, focus
-//   dismiss         presses Escape when a dialog is up, which the game's dialogs answer with their yes or ok (logs "script: dismiss: <what it did>")
+//   dismiss         presses Escape when a dialog is up, which the game's dialogs answer with their yes or ok; when the same
+//                   dialog is still there at the next dismiss, clicks its first button (logs "script: dismiss: <what it did>")
 //   lua <chunk>     runs the rest of the line as Lua (logs "script: lua: <error>" when it fails)
 //   spectrum        logs how many cells of the media player's spectrum are lit ("script: spectrum <n> lit")
 #include <SDL.h>
@@ -34,6 +35,7 @@
 #include "WidgetManager.h"
 #include "FadeButton.h"
 #include "GameApp.h"
+#include "GameDialog.h"
 #include "GameText.h"
 #include "Lex.h"
 #include "SongPlayer.h"
@@ -92,6 +94,37 @@ bool IsRuby(Tile* theTile)
 }
 
 }  // namespace
+
+size_t UsedVirtualMemory();  // CrashLog.cpp
+
+// The treasure room's next click, "x y" (empty when there is none): a companion first, then the treasures, one
+// of the unselected each time round (one that does not take the click does not block the others)
+static std::string PickTreasureClick()
+{
+	static const char kPick[] =
+	    "local comp, cands = false, {}\n"
+	    "for k, v in pairs(gTreasureScreen.mTreasures) do\n"
+	    "  if v.mSelected then\n"
+	    "    if v.mIsCompanion then comp = true end\n"
+	    "  else table.insert(cands, v) end\n"
+	    "end\n"
+	    "local want = {}\n"
+	    "for i = 1, table.getn(cands) do\n"
+	    "  if (cands[i].mIsCompanion and true or false) == (not comp) then table.insert(want, cands[i]) end\n"
+	    "end\n"
+	    "if table.getn(want) == 0 then return '' end\n"
+	    "gSoakPick = (gSoakPick or 0) + 1\n"
+	    "local v = want[math.mod(gSoakPick, table.getn(want)) + 1]\n"
+	    "return (v.mHX + 10) .. ' ' .. (v.mHY + 10)\n";
+	lua_State* L = LuaLib::gLuaSupport->L;
+	std::string aResult;
+	if (luaL_loadbuffer(L, kPick, sizeof(kPick) - 1, "=soakpick") != 0 || lua_pcall(L, 0, 1, 0) != 0)
+		SDL_Log("script: soak: treasure pick: %s", lua_tostring(L, -1));
+	else if (lua_isstring(L, -1))
+		aResult = lua_tostring(L, -1);
+	lua_pop(L, 1);
+	return aResult;
+}
 
 bool GameApp::HandleScriptCommand(const ScriptCommand& theCommand)
 {
@@ -155,6 +188,10 @@ bool GameApp::HandleScriptCommand(const ScriptCommand& theCommand)
 		if (aTick % 100 == 0)
 			SDL_Log("script: soak %d: heap %zu bytes", mUpdateCount, emscripten_get_heap_size());
 #endif
+#ifdef _WIN32
+		if (aTick % 100 == 0 && UsedVirtualMemory() != 0)
+			SDL_Log("script: soak %d: address space used %zu MB", mUpdateCount, UsedVirtualMemory() / (1024 * 1024));
+#endif
 		if (mBoard != nullptr && !mBoard->mIsMiniGame) {
 			static int sLogged = 0;
 			for (Tile* aTile : mBoard->mTiles)
@@ -165,22 +202,23 @@ bool GameApp::HandleScriptCommand(const ScriptCommand& theCommand)
 					        gBattleEngine != nullptr ? gBattleEngine->mState : -9);
 				}
 		}
-		static int sRoomStart = -1;  // the tick that the treasure room came up at
-		if (mTreasureScreen == nullptr || !mTreasureScreen->mVisible)
-			sRoomStart = -1;
 		if (!mDialogMap.empty())
 			AddScriptCommand(mUpdateCount + 1, "dismiss", "");
 		else if (mTreasureScreen != nullptr && mTreasureScreen->mVisible) {
-			// the treasure room: two treasures, the companion, then Continue (again and again)
-			static const char* sClicks[] = {"50 260", "110 260", "480 330", "400 570"};
-			if (sRoomStart < 0)
-				sRoomStart = aTick;
-			int aStep = (aTick - sRoomStart) / 4;
-			if ((aTick - sRoomStart) % 4 == 0) {
-				const char* aClick = sClicks[aStep < 4 ? aStep : 3];
-				SDL_Log("script: soak %d: treasure room: click %s", mUpdateCount, aClick);
+			// the treasure room: a companion and treasures until Continue is there, then Continue (again and again)
+			auto aFound = mTreasureScreen->mButtons.find(TreasureScreen::BUTTON_CONTINUE);
+			FadeButton* aContinue = aFound != mTreasureScreen->mButtons.end() ? aFound->second : nullptr;
+			std::string aClick = "400 570";
+			if (aContinue != nullptr && aContinue->mVisible && !aContinue->mDisabled)
+				SDL_Log("script: soak %d: treasure room: click %s (Continue)", mUpdateCount, aClick.c_str());
+			else if (aTick % 2 == 0) {
+				aClick = PickTreasureClick();
+				if (!aClick.empty())
+					SDL_Log("script: soak %d: treasure room: click %s", mUpdateCount, aClick.c_str());
+			} else
+				aClick.clear();
+			if (!aClick.empty())
 				AddScriptCommand(mUpdateCount + 1, "click", aClick);
-			}
 		}
 		else if (mBoard == nullptr || !mBoard->mVisible) {
 			if (aWordTurn)
@@ -227,7 +265,24 @@ bool GameApp::HandleScriptCommand(const ScriptCommand& theCommand)
 			SDL_Log("script: dismiss: no dialog");
 			return true;
 		}
-		SDL_Log("script: dismiss: Escape");
+		// Escape goes to the focused widget, which is not always the dialog (the arena's welcome over the treasure
+		// room): when the same dialog is still up at the next dismiss, click its first button
+		static Dialog* sLastDialog = nullptr;
+		static int sSameDialog = 0;
+		Dialog* aTop = mDialogList.empty() ? mDialogMap.begin()->second : mDialogList.back();
+		sSameDialog = (aTop == sLastDialog) ? sSameDialog + 1 : 0;
+		sLastDialog = aTop;
+		GameDialog* aGameDialog = dynamic_cast<GameDialog*>(aTop);
+		if (sSameDialog >= 1 && aGameDialog != nullptr && aGameDialog->mButton1 != nullptr) {
+			FadeButton* aButton = aGameDialog->mButton1;
+			// (the dialog's buttons are widgets of the manager, in screen coordinates)
+			std::string aClick = std::to_string(aButton->mX + aButton->mWidth / 2) + " " +
+			                     std::to_string(aButton->mY + aButton->mHeight / 2);
+			SDL_Log("script: dismiss: click %s (update %d)", aClick.c_str(), mUpdateCount);
+			AddScriptCommand(mUpdateCount + 1, "click", aClick);
+			return true;
+		}
+		SDL_Log("script: dismiss: Escape (update %d)", mUpdateCount);
 		AddScriptCommand(mUpdateCount + 1, "key", "ESCAPE");
 		return true;
 	}
