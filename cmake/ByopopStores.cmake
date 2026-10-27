@@ -45,3 +45,6 @@ set(BYOPOP_BUY_waterbugs 2026-10-26)
 # Bookworm Adventures Volume 2 (PopCap, 2009): a placeholder that only lets the web configure pass. Its stores are
 # checked at the web milestone, before a page is published.
 set(BYOPOP_BUY_bookwormadv2 2026-10-26)
+# Dynomite Deluxe (PopCap, 2003): a placeholder that only lets the web configure pass. Its stores are checked by the
+# coordinator before a page is published.
+set(BYOPOP_BUY_dynomite 2026-10-26)
