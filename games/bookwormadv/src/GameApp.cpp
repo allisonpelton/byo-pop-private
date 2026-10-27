@@ -1,4 +1,7 @@
 #include "GameApp.h"
+#ifdef __EMSCRIPTEN__
+#include "SiteProfiles.h"
+#endif
 
 #include <SDL.h>
 
@@ -781,6 +784,9 @@ bool GameApp::SelectUser(const std::string& theName)
 		return false;
 	}
 	RegistryWriteString("LastUser", mProfile->mName);
+#ifdef __EMSCRIPTEN__
+	SiteProfilesChanged(this);	// the web page's players (framework/WebProfiles.h): a player was chosen
+#endif
 	mUserUpdates = 0;
 	mBattleUpdates = 0;
 	mMiniGameUpdates = 0;
