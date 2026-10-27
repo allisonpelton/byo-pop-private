@@ -56,9 +56,10 @@ FossilizedApp::FossilizedApp()
 	mSideBar = NULL;
 	mIntroScreen = NULL;
 	mSavePic = NULL;
-	// port: the original leaves these to its allocation
-	mSaveMode[0] = 0;
-	mSaveName[0] = 0;
+	// port: the original leaves these to its allocation, a global object's zeroed storage; zeroed whole, so the
+	// bytes after the strings in a saved game are the same from run to run
+	memset(mSaveMode, 0, sizeof(mSaveMode));
+	memset(mSaveName, 0, sizeof(mSaveName));
 	mField1090 = 0;
 	mLockCursor = false;
 	mField4d8 = 0;

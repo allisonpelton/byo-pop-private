@@ -1,6 +1,7 @@
 #include "HighScores.h"
 #include "Font.h"
 #include "Graphics.h"
+#include "platform/UserFiles.h"
 #include "platform/VFS.h"
 #include <cstdio>
 #include <cstdlib>
@@ -136,6 +137,8 @@ void HighScores::Save()
 		fwrite(&mEntries[3], 1, sizeof(HighScoreEntry), aFile);
 		fwrite(&mEntries[4], 1, sizeof(HighScoreEntry), aFile);
 		fclose(aFile);
+		// port (web): the scores reach the browser's storage
+		Platform::UserDataChanged();
 	}
 	mDirty = false;
 }

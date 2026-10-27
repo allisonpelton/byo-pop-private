@@ -13,6 +13,9 @@ FirePrompt::FirePrompt(FossilizedApp* theApp, Dynomite* theBoard)
 {
 	mApp = theApp;
 	mBoard = theBoard;
+	// port: the original never sets it, only saves and loads it; zeroed, so a saved game's bytes are the same from
+	// run to run
+	mField0c = 0;
 	mAlpha = 0xff;
 	mFade = -1;
 	mOwnLine1 = "";

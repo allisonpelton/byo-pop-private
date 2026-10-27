@@ -10,6 +10,7 @@
 #include "Sprite.h"
 #include "Steggy.h"
 #include <cmath>
+#include <cstring>
 
 using namespace Sexy;
 
@@ -18,6 +19,9 @@ Launcher::Launcher(FossilizedApp* theApp, Dynomite* theBoard)
 {
 	mApp = theApp;
 	mBoard = theBoard;
+	// port: the original sets only the first two, and saves and loads all of it; zeroed, so a saved game's bytes are
+	// the same from run to run
+	memset(mField38, 0, sizeof(mField38));
 	mAngle = 0;
 	mLoaded = NULL;
 	mFlying = NULL;

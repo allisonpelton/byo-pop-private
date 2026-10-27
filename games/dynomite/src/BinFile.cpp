@@ -1,4 +1,5 @@
 #include "BinFile.h"
+#include "platform/UserFiles.h"
 #include "platform/VFS.h"
 #include <cstdio>
 #include <cstdlib>
@@ -89,6 +90,8 @@ void BinFile::Close()
 				if (!mData.empty())
 					fwrite(&mData[0], 1, mData.size(), aFile);
 				fclose(aFile);
+				// port (web): the saved game reaches the browser's storage
+				Platform::UserDataChanged();
 			}
 		}
 		else
