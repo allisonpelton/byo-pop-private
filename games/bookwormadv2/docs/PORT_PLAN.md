@@ -208,8 +208,11 @@ export's class recovery is by RTTI only), `MainMenu` 24 KB, `GameApp` 20 KB, `Bo
    those names (nothing is named like them in `images/pam/images`) and no script or data file names the seven animations
    (the scripts use `5papabear`, `5mamabear`, `9tweedledee`), so they are leftovers that the original never plays; not a
    fault of the port. (2026-10-26)
-6. Web page (`web/page.js`): markers, import folders (`music/`, `scripts/` are loose in Volume 2) and prose still say
-   Volume 1; its persist folder is already `/bwa2persist`.
+6. (done 2026-10-26) Web page (`web/page.js`): the markers, import folders, skip list (`images/upsell`) and prose are Volume 2's and
+   the persist folder is `/bwa2persist`; the page's own pak reader (`web/modpanel.js`, run under Node) unpacks the game's
+   `main.pak` to the 9,221 files of which the staged folder holds all but the 7 upsell pictures, byte for byte on a sample
+   of 1,281. Checked in the Browser pane (silent): the import card with Volume 2's text and no script error. An import of the
+   whole install folder in the pane has not been run (the pickers cannot be driven; shared page code, as for the other games).
 
 ## The word list's flags (2026-10-26), the start of the battle milestone
 
