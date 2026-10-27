@@ -3,9 +3,12 @@
 
 // The game's binary file (vtable 0x4fa3b4, 8 bytes; 0x414a00-0x414d00): an _open handle with reads and writes of
 // bytes, ints, floats and length-prefixed strings. It reads the puzzle packs (*.EGG). Port: the file is read whole
-// through the VFS, so that the web build finds it too; the writes come with the saved games.
+// through the VFS, so that the web build finds it too; the writes come with the saved games. The file the original
+// writes into the game's folder (STOMPED.TMP, Stomped's copy of its pack) is kept in memory instead.
 
 #include <cstdint>
+#include <map>
+#include <string>
 #include <vector>
 
 namespace Sexy
@@ -33,6 +36,10 @@ public:
 	int						Length();								// 0x414c60
 	int						Tell();									// 0x414cb0
 	void					Seek(long thePos);						// 0x414cc0
+
+	// port: the files kept in memory, which Open finds before the VFS
+	static std::map<std::string, std::vector<uint8_t> >	sMemoryFiles;
+	static void				SetMemoryFile(const char* theName, const std::vector<uint8_t>& theData);
 };
 
 }

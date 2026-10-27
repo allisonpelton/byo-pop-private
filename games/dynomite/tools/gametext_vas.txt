@@ -99,3 +99,15 @@
 0x4f8610    # DynomiteFossil: the panic levels (0x52b108), level 15 round 1
 0x4f8590    # DynomiteFossil: the panic levels (0x52b108), level 15 round 2
 0x4f8518    # DynomiteFossil: the panic levels (0x52b108), level 15 round 3
+0x4fa03c    # DynomiteStomped: the game's end, the combo names (slot 54), 0 and 1
+0x4fa034    # DynomiteStomped: the combo names, 2
+0x4fa02c    # DynomiteStomped: the combo names, 3
+0x4fa020    # DynomiteStomped: the combo names, 4
+0x4fa014    # DynomiteStomped: the combo names, 5
+0x4fa008    # DynomiteStomped: the combo names, 6
+0x4f9ffc    # DynomiteStomped: the combo names, 7
+0x4f9ff0    # DynomiteStomped: the combo names, 8
+0x4f9fe4    # DynomiteStomped: the game's end, the best combo's label
+0x4f9fd4    # DynomiteStomped: the game's end, the babies' label
+0x4f9fc4    # DynomiteStomped: the game's end, the rounds' label
+0x4f9fb4    # DynomiteStomped: the game's end, the final score's label

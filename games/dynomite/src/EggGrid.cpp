@@ -1,4 +1,5 @@
 #include "EggGrid.h"
+#include "BinFile.h"
 #include "Dynomite.h"
 #include "Effects.h"
 #include "FossilizedApp.h"
@@ -887,6 +888,65 @@ void EggGrid::Clear()
 	mEggCount = 0;
 	mField4691 = false;
 	ClearDynamite();
+}
+
+// 0x4171c0
+void EggGrid::Load(BinFile* theFile)
+{
+	mField46e5 = false;
+	mCeiling = theFile->ReadFloat();
+	theFile->Read(mCells, 6000);
+	mRows = theFile->ReadFloat();
+	mBottom = theFile->ReadInt();
+	mEggCount = theFile->ReadInt();
+	mMaxColor = theFile->ReadInt();
+	mPastLineFrames = theFile->ReadInt();
+	mWarning = theFile->ReadBool();
+	mWarningBlink = theFile->ReadInt();
+	mField4690 = theFile->ReadBool();
+	mField4691 = theFile->ReadBool();
+	mBabyEggsOn = theFile->ReadBool();
+	theFile->ReadInt();
+	mField46d0 = theFile->ReadBool();
+	mBreakPastLine = theFile->ReadBool();
+	mBlastX = theFile->ReadInt();	// one read of 8 bytes in the original
+	mBlastY = theFile->ReadInt();
+	mBlastCount = theFile->ReadInt();
+	mLoneEgg = theFile->ReadBool();
+	ClearDynamite();	// inline in the original
+	for (;;)
+	{
+		// port: a short file ends the list (the original reads its last cell again and again)
+		GridPoint aCell = { -1, -1 };
+		theFile->Read(&aCell, 8);
+		if ((aCell.mX == -1) && (aCell.mY == -1))
+			break;
+		GridPoint aPoint;
+		CellToPixel(aCell.mX, aCell.mY, &aPoint);
+		GridDynamite* aDynamite = new GridDynamite(this, aPoint.mX + 0x10, aPoint.mY);
+		mDynamites.Add(aDynamite);
+		mDynamite[aCell.mX][aCell.mY] = aDynamite;
+	}
+	GridCell* aColumn = &mCells[0][0];
+	int aCols = 0xf;
+	do
+	{
+		int aRow = 0;
+		GridCell* aCell = aColumn;
+		if (0.0f < mRows)
+		{
+			do
+			{
+				if ((aCell->mBits & 0xff) == 0x14)
+					aCell->mBits = (aCell->mBits & 0xffffff00) | (PickColor() & 0xff);
+				aRow++;
+				aCell++;
+			} while ((float) aRow < mRows);
+		}
+		aColumn += 100;
+		aCols--;
+	} while (aCols != 0);
+	CountRows();
 }
 
 // 0x418020: every row (and stick of dynamite, and baby egg) two rows down, and two new rows on top

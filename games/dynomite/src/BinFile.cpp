@@ -5,6 +5,8 @@
 
 using namespace Sexy;
 
+std::map<std::string, std::vector<uint8_t> > BinFile::sMemoryFiles;
+
 // 0x414a00
 BinFile::BinFile()
 {
@@ -23,6 +25,13 @@ void BinFile::Open(const char* theName, bool readOnly)
 {
 	mData.clear();
 	mPos = 0;
+	std::map<std::string, std::vector<uint8_t> >::iterator aFile = sMemoryFiles.find(theName);
+	if (aFile != sMemoryFiles.end())
+	{
+		mData = aFile->second;
+		mOpen = true;
+		return;
+	}
 	mOpen = Platform::VFS::Get().ReadAll(theName, mData);
 }
 
@@ -111,4 +120,9 @@ void BinFile::Seek(long thePos)
 	if (thePos < 0)
 		thePos = 0;
 	mPos = (size_t) thePos;
+}
+
+void BinFile::SetMemoryFile(const char* theName, const std::vector<uint8_t>& theData)
+{
+	sMemoryFiles[theName] = theData;
 }

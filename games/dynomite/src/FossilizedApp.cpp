@@ -3,6 +3,7 @@
 #include "Dynomite.h"
 #include "DynomitePanic.h"
 #include "DynomiteFossil.h"
+#include "DynomiteStomped.h"
 #include "DynomiteTimeTrial.h"
 #include "EditWidget.h"
 #include "EnterNameDialog.h"
@@ -262,9 +263,8 @@ void FossilizedApp::StartGame()
 	switch (mGameMode)
 	{
 	case 1:
-		// TODO: DynomiteStomped (0x40ea50, 0x62c bytes)
-		mSideBar->GameStarted();
-		return;
+		aBoard = new DynomiteStomped();
+		break;
 	case 2:
 		aBoard = new DynomitePanic();
 		break;

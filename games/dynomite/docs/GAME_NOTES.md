@@ -203,8 +203,8 @@ library's rand (CrtRand; whether the 2003 framework seeds it is not checked yet)
 edge (unless +0x46e5) or in row 90 or below, and draws the ceiling's foot and, when +0x46d0 is set, the ceiling.
 The next colour (0x4163e0) is one of those in the lowest six rows, by 50 tries of the app's second generator at
 +0xf9c (0x431d30, an additive lagged Fibonacci generator of 55 30-bit numbers, seeded by the board), else any
-colour up to the highest placed. Still to translate in the grid: the puzzle load 0x4171c0 (colour 20 becomes a
-picked colour) and the save and load (0x415f70, 0x416150). The launcher (Launcher.cpp; vtable 0x4f73ac has only
+colour up to the highest placed. The puzzle load 0x4171c0 makes colour 20 a picked colour. Still to translate in
+the grid: the save and load (0x415f70, 0x416150). The launcher (Launcher.cpp; vtable 0x4f73ac has only
 the destructor) holds the loaded egg at +0xc (Load 0x401210 makes one at (100, 100)) and fires it (0x4012a0:
 the board's +0x15c and +0x160 take its colour, the rubber-shot sound, a flying egg with the angle's unit vector
 as its step, and a recoil of 20 pixels the other way at +0x28/+0x2c); 0x4013f0 and 0x401470 move a point toward
@@ -221,10 +221,17 @@ draws the app's +0x18a4 picture on the landing cell), the draw 0x4033a0, and the
 board's remaining slots (Init 0x407ac0, Update, Draw 0x4044a0, the input slots), the sub-objects at +0x60
 (0x431fc0), +0x84 (0x437aa0) and +0x88 (0x438400), and DynomitePanic.
 
-Next, in this order: `StartGame` (0x418810: mode +0x108c makes DynomiteStomped
-0x40ea50 (0x62c bytes), DynomitePanic 0x40ca40 (0x274), DynomiteFossil 0x408e40 (0x328) or DynomiteTimeTrial
-0x411ff0 (0x254), resized to (150, 0, 490, 480), slot 46 `Init(app, level)` with +0x1084, or +0x1088 for the fossil
-mode), then the board (0x401000-0x408e40; 0x401000-0x404030 holds other classes), the modes, the app's
-ButtonPress/ButtonDepress (0x418e90, 0x4201b0), the dialogs (options 0x42ee20, save 0x433910, high scores), the saved games (0x418fd0 loads
-SLOTn.SAV), the tutorial (0x419040), the museum and the tutor. App slot 51 is `DoDialog`, 53 `AddDialog`, 20 `SafeDeleteWidget`,
-31 `Shutdown`; WidgetManager 0x47ec90 is `BringToBack`.
+The four modes are translated. `StartGame` (0x418810) makes DynomiteStomped (0x40ea50), DynomitePanic (0x40ca40),
+DynomiteFossil (0x408e40) or DynomiteTimeTrial (0x411ff0) for the mode at +0x108c, resizes it to (150, 0, 490, 480)
+and calls slot 46, `Init(app, level)`, with the skill at +0x1084, or the fossil kind at +0x1088 for the fossil mode.
+Stomped copies its pack to STOMPED.TMP in the game's folder and reads the puzzles from that copy; the port keeps the
+copy in memory (`BinFile::SetMemoryFile`). A pack starts with its name, the number of puzzles each skill skips and
+its picture; each puzzle is a true byte, the width, the launcher's place, the shots per drop, the baby eggs' chance,
+its name, the colours and kinds of its first 256 eggs, and a grid as `EggGrid::Load` (0x4171c0) reads it. A false
+byte ends the pack, which then starts over at the skill's first puzzle with two shots a drop fewer. The fossil
+mode's fragments and museum are in Fossil.cpp and Museum.cpp. `EggGrid::CountRows` (0x415980) compares with "less
+or equal" (`testb $0x41`); with "less" the deepest row, where a fragment lies, was lost when the eggs were pushed
+down. Still to translate: the options dialog (0x42ee20), the saved games (slots 59 and 60 of the boards and of
+their parts, the save dialog 0x433910 and the load of SLOTn.SAV at 0x418fd0) and the tutorial (0x419040). App
+slot 51 is `DoDialog`, 53 `AddDialog`, 20 `SafeDeleteWidget`, 31 `Shutdown`; WidgetManager 0x47ec90 is
+`BringToBack`.

@@ -10,6 +10,7 @@
 namespace Sexy
 {
 
+class BinFile;
 class Dynomite;
 class FossilizedApp;
 
@@ -148,6 +149,9 @@ public:
 	void				ClearDynamite();									// 0x416500
 	void				AddRow(int theRow);									// 0x416b00: random eggs across a row
 	void				Clear();											// 0x417190
+	// 0x4171c0: a Stomped puzzle's grid (or a saved game's): the cells, then the sticks of dynamite to (-1, -1);
+	// cells of colour 20 get a random colour
+	void				Load(BinFile* theFile);
 	void				PushDown();											// 0x418020: two new rows on top
 	void				BreakPastLine();									// 0x416e30
 	void				Update();											// 0x4174c0
