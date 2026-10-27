@@ -256,7 +256,12 @@ var ByopopPlayers = (function () {
       if (parts.length === 1 && parts[0] === "game") {
         modeNote.appendChild(document.createTextNode("No game uses these players yet: the setting “Player names” is “as the game does” for every game. "));
       } else {
-        modeNote.appendChild(document.createTextNode("Player names: " + parts.map(function (m) { return modes[m] + " game" + (modes[m] > 1 ? "s " : " ") + (MODE_WORDS[m] || m); }).join(", ") + ". "));
+        var VERBS = { game: ["asks as the original does", "ask as the original does"], fill: ["fills in the name", "fill in the name"],
+          create: ["uses the player", "use the player"] };
+        modeNote.appendChild(document.createTextNode("Player names: " + parts.map(function (m) {
+          var v = VERBS[m] || [m, m];
+          return (modes[m] === n ? "all " + n + " games " : modes[m] + " game" + (modes[m] > 1 ? "s " : " ")) + v[modes[m] > 1 ? 1 : 0];
+        }).join(", ") + ". "));
       }
       var a = make("a", "", "Change it under Settings");
       a.href = "#settings";

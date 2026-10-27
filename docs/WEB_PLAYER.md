@@ -412,7 +412,15 @@ players in its own words: its names, the current one, `Find` (the game's own nam
 name as its name box keeps it), `Create`, `Select`, and `Rename` and `Delete` where the game can. The framework does the rest:
 
 - `SiteStart(id, game)` at the point where the game would decide to ask for a new player (and where its fonts are ready, so
-  `Fit` knows the width): it applies the queued operations, makes and selects the site player under `create`, and reports.
+  `Fit` knows the width): it applies the queued operations, makes and selects the site player under `create`, and reports. For a
+  SexyAppFramework game the framework calls the start itself: `SexyAppBase::DoUpdateFrames` calls `Byopop::SiteLoaded` right after the
+  game's `LoadingThreadCompleted`, and the game's web-only file registers its start function in `Byopop::gSiteLoaded` with a static
+  initializer, so none of the game's own sources has a line for it. The engine games (TipTop, Ning Po, Word Harmony, Cosmic Bugs,
+  Water Bugs) call `SiteStart` from their own start (the end of `GameInit`; `NingPo::init` after `loadSettings`; `Game::configure`;
+  the end of `GameInit`).
+- `SiteScoreNames` is the whole hook of a game that keeps no players and only asks for a name at each high score: it lists the
+  last name the game remembers (the registry value `LastScoreName`, or nothing), renames it, and fits a name by typing it into a
+  box with the game's font and limits.
 - `SiteChanged(id, game)` wherever the game's list changes (a player made, renamed, deleted or chosen): it reports again.
 - `SiteType(id, editWidget)` right after a SexyAppFramework name box is made: under `fill` and `create` the site player's
   name is typed into the box through `EditWidget::KeyChar`, one character at a time, so the box's own rules (its characters, its
@@ -443,30 +451,52 @@ one step; skipped games are reported afterwards. It deletes a player inside the 
 each game, after an in-page confirmation that lists what will be lost. It uses real form controls with labels, and never
 `alert()`, `confirm()` or `prompt()`.
 
-**The survey.** All eighteen games were read for these facts: whether the game keeps players (create, select, rename,
-delete, and where each happens), whether it asks for a name at each score, the rules of its name boxes, and the point at start
-where it decides to show its new-player dialog.
+**The survey.** All eighteen games were read for these facts: whether the game keeps players (create, select, rename, delete, and where
+each happens), whether it asks for a name at each score, the rules of its name boxes, and where it decides at start to show its
+new-player dialog. "SiteStart" is where the game's hook runs the page's start: for a SexyAppFramework game it is the framework's
+`SexyAppBase::DoUpdateFrames`, right after the game's `LoadingThreadCompleted`, when its fonts are loaded and its saved options are
+read, and before its first frame that could ask for a name.
 
 | Game | Players | Name at each high score | Name rules | Where it decides to ask |
 | --- | --- | --- | --- | --- |
-| Bejeweled Deluxe | none | yes (record score dialog), starts with the last name | 104 px of the main font; ASCII 32 to 127; case kept | the dialog's constructor |
-| Big Money Deluxe | none | yes, starts with the last name | 140 px; ASCII 32 to 127; case kept | the dialog's constructor |
-| BookWorm Deluxe | up to 5, in the registry (`Users\<name>`): created by the new-player dialog (automatically when there is none, else from the player list), chosen in the list, deleted from the list (offered when there are exactly 5; the saved games stay on disk); no rename | no (the hall of fame uses the player) | letters and spaces only; 22 characters and 200 px of Verdana 12 bold; trimmed; unique ignoring case | `BWGameSelector::Update` when no player exists; the box starts with the Windows user name if it is letters and spaces |
-| Noah's Ark | none | yes, starts with the last name | 120 px; ASCII 32 to 126; case kept | the dialog's constructor |
-| Seven Seas | none | yes, starts with the last name | 104 px; ASCII 32 to 126; case kept | the dialog's constructor |
-| Atomica | none | yes (the monitor's box), starts empty | 20 characters; any ASCII | the dialog's constructor |
-| Mummy Maze Deluxe | 5 named adventure slots: created by the new-adventure dialog when a free slot is chosen, deleted from the delete dialog; no rename | yes in classic play, starts with the last name | adventure name 20 characters, any ASCII; score name 104 px | the new-adventure and score dialogs' constructors |
-| TipTop | none | yes (a text field), starts empty | 10 characters; printable bytes; case kept | where the score field is made (screen 0x38) |
-| Bookworm Adventures Deluxe | up to 10 (`MaxProfiles`), files `users/<name>.bwa`: created by the new-player dialog (the intro of a first game asks it, or "new" in the list), chosen and deleted in the list; no rename | no | letters, digits, space and `! @ # $ % & ( )`; 189 px of the large font; unique ignoring case | the first game's intro (`StartIntro` with no profile) |
-| Ning Po Mahjong | none | yes, starts with the account's name | 12 characters; the engine's text box | `NingPo::enterName` |
-| Pixelus Deluxe | any number, in `users/`: created by the new-player dialog (automatically when there is none, else from "Who are you?"), chosen, renamed and deleted in "Who are you?" | no | letters, digits and spaces; 28 characters and 150 px of Garamond 14; double and edge spaces dropped; unique ignoring case | `PixelusApp::PlayClicked`, after the loading screen |
-| Alchemy | none | yes, starts with the last name | 104 px; any ASCII | the dialog's constructor |
-| Word Harmony | none | yes, starts with the saved default name | 16 characters; keys 0x20 to 0x87 | `HighScoreEntryLayout::startEntry` |
-| Cosmic Bugs | 10 slots in `cb.dat` (the first holds the account's name, capitalised, on a first run): chosen, renamed and deleted from the menu; a free slot asks for a name | no (the records use the player's name) | the engine's text input: 12 characters in the menu | `LoadProfiles`, when the game starts |
-| Water Bugs | as Cosmic Bugs | no | as Cosmic Bugs | `LoadProfiles` |
-| Rocket Mania Deluxe | none | yes, starts with the last name | 150 px; any ASCII | the dialog's constructor |
-| Dynomite Deluxe | none | yes, starts with the last name | 20 characters and 115 px | the dialog's constructor (a second box names a saved game: it is not a player and is left alone) |
+| Bejeweled Deluxe | none | yes (RecordScoreDialog), starts with the last name (LastScoreName) | as many characters as fit 104 px of the main font; ASCII 32 to 127; case kept | the dialog's constructor |
+| Big Money Deluxe | none | yes, starts with the last name | 140 px of font 3; ASCII; case kept | the dialog's constructor |
+| BookWorm Deluxe | up to 5 in the registry (`Users\<name>`): the new-user dialog makes one (by itself when there is none, else from the list's "create" line), the list chooses and (offered with exactly 5) deletes, the saved games stay on disk; no rename | no (the hall of fame uses the player) | letters and spaces; 22 characters and 200 px of Verdana 12 bold; ends trimmed; unique ignoring case | `BWGameSelector::Update` when no player exists, the box starting with the Windows user name when it is letters and spaces |
+| Noah's Ark | none | yes, starts with the last name | 120 px; printable ASCII (32 to 126); case kept | the dialog's constructor |
+| Seven Seas | none | yes, starts with the last name | 104 px; printable ASCII; case kept | the dialog's constructor |
+| Atomica | none | yes (the monitor's name line), starts empty and is not remembered | 20 characters; ASCII | the dialog's constructor |
+| Mummy Maze Deluxe | five named saved adventures (`adv0.sav` to `adv4.sav`, each starting with its name): the new-adventure dialog names one when a free slot is chosen, the delete dialog removes one; no rename | yes in the classic modes, starts with the last name | an adventure's name: letters and digits only, 20 characters, unique ignoring case (the OK refuses others); the score box 104 px, ASCII | the new-adventure dialog when the Adventure menu has no saved adventure, and when a free slot is chosen |
+| TipTop | none | yes (a text field made at command 0x38), starts empty, not remembered | 10 characters; printable ASCII; case kept | where the field is made |
+| Bookworm Adventures Deluxe | up to `MaxProfiles` (10), in `users/<name>.bwa`: the new-player dialog makes one (the first game's intro asks, or "new" in the main menu's list), the list chooses and deletes; no rename | no | letters, digits, space and `! @ # $ % & ( )`; 189 px of the large font; unique ignoring case; the box starts with "Lex" | the first game's intro (`StartIntro` with no profile) |
+| Ning Po Mahjong | none | yes (`NingPo::enterName`), starts with the account's name, not remembered | 12 characters; printable ASCII | the best-time box |
+| Pixelus Deluxe | any number, in `users/<number>` (the names inside): the new-player dialog makes one (by itself when there is none), "Who are you?" chooses, renames and deletes | no | letters, digits and spaces; 28 characters and 150 px of Garamond 14; leading, double and trailing spaces dropped; unique ignoring case | `PixelusApp::PlayClicked`, when the main menu would ask |
+| Alchemy | none | yes (NameEntryDialog), starts with the last name | 104 px; ASCII; case kept | the dialog's constructor |
+| Word Harmony | none | yes (`HighScoreEntryLayout`), starts with the last name (DefaultScoreName) | 16 characters; keys 0x20 to 0x87 | `HighScoreEntryLayout::startEntry` |
+| Cosmic Bugs | ten slots in `cb.dat`: the menu chooses, renames and deletes (never the only player), a free slot asks for a name; the first run makes slot 1 after the account | yes at a new high score (a text input, starts empty) | the engine's text input: capitals; digits, letters, space and punctuation the font has; 12 characters for a player's name, 16 and 480 px for a high score | `LoadProfiles`, when the game starts |
+| Water Bugs | as Cosmic Bugs | as Cosmic Bugs | as Cosmic Bugs | `LoadProfiles` |
+| Rocket Mania Deluxe | none | yes, starts with the last name | 150 px; ASCII; case kept | the dialog's constructor |
+| Dynomite Deluxe | none | yes, starts with the last name | 20 characters and 115 px; ASCII | the dialog's constructor (a second box names a saved game: it is not a player, and is left alone) |
 | Bookworm Adventures Volume 2 | as Bookworm Adventures | no | as Bookworm Adventures | as Bookworm Adventures |
+
+**What each game does under each mode.** Under `game` every hook returns before it does anything: the game asks and fills as the
+original does, with no extra call and no random number drawn. Under `fill` and `create`, with a site player:
+
+| Game | name boxes | at start (`create`) | renames | deletes |
+| --- | --- | --- | --- | --- |
+| Bejeweled, Big Money, Alchemy, Noah's Ark, Seven Seas, Rocket Mania, Dynomite | the high-score box starts with the name, typed through the box's own font and limits | nothing to make: as `fill` | the remembered last name (LastScoreName) | not offered (no player) |
+| Atomica, TipTop, Ning Po | the high-score box starts with the name (its limit), instead of empty or the account's name | as `fill` | no name is remembered | not offered |
+| Word Harmony | the box starts with the name instead of the last name | as `fill` | the last name (Settings::mDefaultScoreName, saved) | not offered |
+| BookWorm | the new-user dialog's box (first run, and the list's "create") starts with the name, in place of the Windows user name | makes the player (`SaveUser`, the list, `SetCurrentUser`) or selects it, so no dialog; not when five players exist | a player of the new name with the old one's alias, options and saved games, then the old is deleted | `UserManager::DeleteUser` (saved games stay on disk) |
+| Pixelus | the new-user dialog's box starts with the name, tidied as `GetName` does | `AddUser` and `Save`, or `Select`, so the menu never asks | `RenameUser` (the player keeps its number and progress) | `DeleteUser` (file and best results); the current player stays |
+| Mummy Maze | the new-adventure box starts with the name in the form the game accepts (letters and digits), and the classic score box with it as typed | an adventure in a free slot (`CreateAdventure`) or the slot that has it | the name at the start of the adventure's file | the adventure's file |
+| Bookworm Adventures, Volume 2 | the new-player dialog's box starts with the name, in place of "Lex" | a profile (`new Profile`, `Save`) or `SelectUser`, so the intro does not ask | the profile written under the new name (`Profile::Save`), its data file moved, the old file removed | the player's file, as the main menu's list does |
+| Cosmic Bugs, Water Bugs | a free slot's and the rename's boxes, and the high-score box, start with the name; the first run's first player is named after it, not the account | a free slot (`Level_SetUserName`'s steps) or the slot that has it | the slot's name | the slot emptied as the menu's delete does; never the only player |
+
+A rename is applied with the game's own rules: the name goes through the box's `Fit` first (shortened or filtered), a name another
+player already has is skipped and reported ("Players are never merged"), and a rename whose name the rules changed says so. Under
+`create`, a player deleted from the Players section is made again at the next start if it is the site's current player: delete it
+under `fill`, or choose another current player first. Where a game's own rename or delete leaves part of a player behind (BookWorm's
+saved games, Cosmic Bugs' saved game and records), so does the page's: it calls what the game's dialog calls.
 
 ### Save backup
 
