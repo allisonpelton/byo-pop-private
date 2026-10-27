@@ -5,6 +5,9 @@
 #include "HDisplay.h"
 #include "HFileSystem.h"
 #include "PGControl.h"
+#ifdef __EMSCRIPTEN__
+#include "SiteProfiles.h"
+#endif
 
 #include <cstdio>
 #include <cstring>
@@ -222,6 +225,9 @@ bool NingPo::init(const char* theCmdLine, const char* theResourceDir)
 			{
 				createControls();
 				toTitle(false);
+#ifdef __EMSCRIPTEN__
+				SiteStart();	// the web page's players (framework/WebProfiles.h): how the site's names fit the best-time box
+#endif
 				return true;
 			}
 		}

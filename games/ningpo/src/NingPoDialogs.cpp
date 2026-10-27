@@ -10,6 +10,9 @@
 #include "HDisplay.h"
 #include "NingPo.h"
 #include "PGDialog.h"
+#ifdef __EMSCRIPTEN__
+#include "SiteProfiles.h"
+#endif
 
 namespace ningpo
 {
@@ -526,6 +529,14 @@ void NingPo::enterName(char* theName, int theSize)
 	anEdit.setFont(mFont);
 	anEdit.setMaxLength(0xc);
 	anEdit.setText(aUser.c_str());
+#ifdef __EMSCRIPTEN__
+	{
+		// the web page's player (framework/WebProfiles.h): under "fill" and "create" the box starts with the site's player
+		std::string aSite = SiteScoreName();
+		if (!aSite.empty())
+			anEdit.setText(aSite.c_str());
+	}
+#endif
 	aPos = {0x1e, 0xa4};
 	anEdit.setPosition(&aPos);
 	anEdit.mRect = {0x1e, 0xa4, 0x82, 0xb0};
