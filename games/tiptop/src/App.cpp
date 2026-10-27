@@ -9,6 +9,9 @@
 #include "Music.h"
 #include "Res.h"
 #include "SexyAppBase.h"
+#ifdef __EMSCRIPTEN__
+#include "SiteProfiles.h"
+#endif
 
 #include <cmath>
 #include <cstdio>
@@ -2181,6 +2184,9 @@ uint32_t Command(Handler* theSource, uint32_t theCommand)
 				aRect.h = 0x78;
 				gApp.mNameInput = NewHandler(TextInputProc, aLayer, &aRect, (uintptr_t)gScreenFont, 0xa000d);
 				gApp.mNameInput->mPass = 3;
+#ifdef __EMSCRIPTEN__
+				SiteFillScoreName(gApp.mNameInput);	// the web page's player (framework/WebProfiles.h), under "fill" and "create"
+#endif
 				aRect = At(gConfig.mHighscoresOkx, gConfig.mHighscoresOky);
 				aHandler = NewHandler(ButtonProc, aLayer, &aRect, 0x13, 0xc000000d);
 				aHandler->mPass = 3;

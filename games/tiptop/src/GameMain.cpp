@@ -8,6 +8,9 @@
 #include "Gui.h"
 #include "Music.h"
 #include "Res.h"
+#ifdef __EMSCRIPTEN__
+#include "SiteProfiles.h"
+#endif
 
 #include "compat2004/Compat2004.h"
 
@@ -315,6 +318,9 @@ bool GameInit()
 		lowos::MessageBox_(GTC(0x0046c3c0), GTC(0x0046c318));
 		exit(0);
 	}
+#ifdef __EMSCRIPTEN__
+	SiteStart();	// the web page's players (framework/WebProfiles.h): how the site's names fit the score's text field
+#endif
 	return true;
 }
 
