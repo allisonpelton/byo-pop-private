@@ -16,7 +16,8 @@
 #                (the music player's FFT against BASS 2.3's on the same tones); and soundtest (sounds kept as 16-bit at
 #                their own rate, voices against the old stereo-float pipeline)
 #   unit-web     rulestest and modsettingstest under Node (needs build-web); paktest (the page's pak reader), with
-#                Bookworm Adventures' main.pak against assets/bookwormadv when both are there
+#                Bookworm Adventures' main.pak against assets/bookwormadv when both are there; profilestest (the page's
+#                settings and players code, web/settings.js and web/profiles.js, on a fake localStorage)
 #   verify       Bejeweled's headless verifier tests (games/bejeweled/tools/verify/run_tests.sh)
 #   modmenu      the mod menu's scripted runs, all games (tools/modmenutest/run_tests.sh all)
 #   livesplit    Bejeweled's, Big Money's and BookWorm's LiveSplit tests
@@ -246,8 +247,12 @@ suite_unit-web() {
 		c="$(lastof "$1.pak" 'paktest: synthetic') (no BWA main.pak or assets/bookwormadv)"
 	fi
 	grep -q '^paktest: 0 failed' "$1.pak" || st=1
-	cat "$1.mst" "$1.pak" >> "$1"; rm -f "$1.mst" "$1.pak"
-	SUMMARY="$a; $b; $c"
+	# the page's shared settings and players code (web/settings.js, web/profiles.js), on a fake localStorage
+	local d
+	"$NODE" tools/profilestest.js > "$1.pt" 2>&1 || st=1
+	d="$(lastof "$1.pt" 'profilestest:')"
+	cat "$1.mst" "$1.pak" "$1.pt" >> "$1"; rm -f "$1.mst" "$1.pak" "$1.pt"
+	SUMMARY="$a; $b; $c; $d"
 	return $st
 }
 

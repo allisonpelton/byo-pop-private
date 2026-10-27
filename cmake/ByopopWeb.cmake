@@ -29,9 +29,10 @@ include(${CMAKE_CURRENT_LIST_DIR}/ByopopStores.cmake)
 # the site's logo and icons (web/brand; docs/WEB_PLAYER.md), copied next to the pages, which link them
 set(BYOPOP_WEB_BRAND favicon.svg favicon.ico apple-touch-icon.png logo.svg logo-dark.svg)
 # web/settings.js, the site's settings and the record of which games have their files (docs/WEB_PLAYER.md, "Site
-# settings", "The listing page"): one file that the listing page and every game page load. web/exeicon.js reads a game's icon
-# out of its exe (the game pages load it). Both are copied next to the pages.
-set(BYOPOP_WEB_SHARED_JS settings.js exeicon.js)
+# settings", "The listing page"): one file that the listing page and every game page load. web/profiles.js keeps the site's
+# players and what the games report of theirs ("Player profiles"); the listing page and the game pages load it too.
+# web/exeicon.js reads a game's icon out of its exe (the game pages load it). All three are copied next to the pages.
+set(BYOPOP_WEB_SHARED_JS settings.js profiles.js exeicon.js)
 # The listing page, build/web/index.html (made from web/index.html by byopop_web_index() at the end of this file): one
 # tile for each game in BYOPOP_WEB_FINISHED, in this order, with the game's TITLE and a badge. The list is the
 # coordinator's: the coordinator adds a game's target at that game's final merge. A game with a web page that is not

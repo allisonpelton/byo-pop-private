@@ -297,8 +297,18 @@ one line for each exe and writes no icon) and against synthetic exes made for ev
 Preferences that the player sets once and every game page applies when its game starts. They are edited in two places
 that draw the same controls from one file, `web/settings.js` (copied next to the pages and loaded by the listing page and
 by every game page): the Settings section at the foot of the listing page, and the **Settings** panel of a game's page
-(the bar's Settings button, a side panel like Mods and Game files). The settings are site-wide: the panel edits the same
-stored values as the listing page, and nothing is kept per game.
+(the bar's Settings button, a side panel like Mods and Game files). The listing page's section is site-wide. The panel
+starts with a choice, **All games** or **This game**: "All games" edits the same stored values as the listing page; "This
+game" edits values that only this game has (below), and every control then starts with "Same as all games (<the value it
+follows>)", which shows what the game inherits and removes the game's own value when chosen. In "All games" a setting that
+this game overrides says so under its control.
+
+Every setting can be set for one game. The item has one more field, `games`, an object from a game's id to that game's own
+values (`{"games": {"bejeweled": {"mute": "on"}}}`). A game uses its own value when it has one and the site-wide value
+otherwise (`ByopopSettings.get(name, gameId)`), and "game" is a value like any other (a game can be left as it is while all
+the others are muted). A game's own value is stored even when it equals the default, since it then overrides the site-wide
+one; removing it removes the field, and a game with none leaves no entry. Fields the code does not know are kept inside
+`games` too.
 
 They are one localStorage item, `byopop-settings`, a JSON object with one field per setting. A setting that is not in it
 has its default, and the default always leaves the game as it is: **"game" keeps the original's behaviour**, so a player
@@ -331,6 +341,8 @@ The settings, by their field in the item:
   Water Bugs and Ning Po keep their volume in an engine of their own, which SexyAppBase's volumes do not reach (and
   Cosmic Bugs and Water Bugs fix the output volume at the original's 60%), so the page leaves them out (the list in
   `web/shell.html`, or `PAGE.siteVolume` in a game's `page.js`) and the controls are off in their panels.
+- `profile` ("game", "fill" or "create"): what a game does with the site's current player (below, "Player profiles"). The
+  setting is applied when a game starts, and the panel says so.
 - `wakeLock` ("on" or "off", default off): keeps the screen awake while a game runs (`navigator.wakeLock`), taken after
   the game starts, released when it ends or the page is hidden, and taken again when the page is shown. A refusal or a
   browser without the API is fine.
@@ -345,6 +357,94 @@ The settings apply when a game starts. In a game's page, the Settings panel also
 and custom cursors (to the running game), the wake lock and pause when hidden; "ask before leaving" is read when the page
 is left, and the Sound button acts at once. "Start muted" and "full screen at start" only apply at the next start, and
 the panel says so. Choosing "game" again leaves the running game as it is.
+
+### Player profiles
+
+The player gives a name once, and the games use it: for the player a game keeps (its profile: the options and the progress
+that go with a name), and for the name it asks for at each high score. The site has its own list of players, which the player
+manages on the listing page (the **Players** section), and a setting, **Player names**, says what a game does with the one
+in use. Nothing is sent anywhere: the list is kept in this browser, and so is what each game reports of its own players.
+
+**The site's list** is the localStorage item `byopop-profiles`, `{profiles: [{id, name}], current: id}` (`ByopopProfiles` in
+`web/profiles.js`, loaded by the listing page and every game page). A name is trimmed, runs of blanks become one space, control
+characters go, and it is at most 32 characters; two players never have the same name whatever the case, since the games compare
+names without regard to case. The first player added is the one in use. Every read and write is in a try/catch: with storage
+blocked the page behaves as if there were no players and says a change was not kept.
+
+**The setting `profile`** (in `byopop-settings`, so it can be set for all games and for one game, "Site settings", above) has
+three values. `game`, the default, leaves the game as it is: it asks for a name as the original does, and no hook changes
+anything, so the unmodded game plays exactly as before, with no change in its random numbers or anything else. `fill`
+pre-fills the names the game asks for with the site player's name (a new player's name, a high score's name) and creates
+nothing. `create` does that and, at the start of a game that keeps players, selects the game's player of that name, making it if
+the game has none, by the same functions the game's new-player dialog uses, so the dialog never opens. A game without players
+treats `create` as `fill`. With no site player, all three behave as `game`.
+
+**A game pulls, the page never pushes.** A game's new-player dialog opens at start, before any message from the page could
+arrive, so the page cannot win a race against it. Each game asks at its own decision points, through
+`framework/WebProfiles.h` (web only; natively the header and its `.cpp` are empty): `SiteGet(id)` is an `EM_JS` call that
+returns the mode, the current site player's name, the site players' names and the operations waiting for the game, as JSON
+that `ByopopProfiles.forGame(id)` makes. Names cross as UTF-8 and become the game's text (Latin-1) at the border: what the
+game cannot show is left out. The game's part is small and in a file of its own (`games/<game>/src/SiteProfiles.cpp`, empty
+natively), plus one `#ifdef __EMSCRIPTEN__` line at each of its decision points. The file implements `SiteProfiles`, the game's
+players in its own words: its names, the current one, `Find` (the game's own name for the one it counts as the same), `Fit` (a
+name as its name box keeps it), `Create`, `Select`, and `Rename` and `Delete` where the game can. The framework does the rest:
+
+- `SiteStart(id, game)` at the point where the game would decide to ask for a new player (and where its fonts are ready, so
+  `Fit` knows the width): it applies the queued operations, makes and selects the site player under `create`, and reports.
+- `SiteChanged(id, game)` wherever the game's list changes (a player made, renamed, deleted or chosen): it reports again.
+- `SiteType(id, editWidget)` right after a SexyAppFramework name box is made: under `fill` and `create` the site player's
+  name is typed into the box through `EditWidget::KeyChar`, one character at a time, so the box's own rules (its characters, its
+  length, its width in the box's font, the game's `AllowChar`) keep or drop each character exactly as typing would, and the
+  box ends as the game's own `SetText` leaves it (the text selected). Under `game` it returns at once. Games with another
+  kind of box (TipTop, Word Harmony, Ning Po) ask `SiteNameFor(id)` and apply their own rules to the name.
+- `SiteFitTyped(...)` is the typing without a box on screen, for a game's `Fit`.
+
+**What a game reports** is the localStorage item `byopop-game-profiles`, `{<game>: {kind, names, current, fits, rules, max,
+canRename, canDelete, deletes, at, results}}`, written by `ByopopProfiles.report` whenever the game's list changes and at every
+start. `kind` is `profiles` for a game that keeps players and `scores` for one that only asks for a name at each high score
+(`names` is then the last name it remembers, for the games that remember one). `fits` maps each site player's name to the name
+the game's rules make of it (empty: nothing is left), which is how the Players section shows where a rule shortened or changed a
+name. `rules` is the game's name rules in words, `deletes` what the game's own delete removes.
+
+**Operations** from the Players section wait in `byopop-profile-ops`, `{<game>: [{id, op, ...}]}`, because a game that is not
+running cannot be reached: `rename` (`from`, `to`) and `delete` (`name`). The game applies them at its next start, in
+`SiteStart`, with the same functions its dialogs call, and its report names each by its `id` in `results` (`done` or
+`skipped`, with a note), which removes it from the queue and keeps the result with the game's record. A rename to a name the game
+already has is skipped and reported: two players' progress is never merged. A rename whose result differs from what was asked
+(the game's rules shortened it) says so. The Players section shows operations that have not been applied as pending, per game,
+until the game has started once.
+
+**The Players section** (listing page, `#players`) adds, renames and deletes the site's players and picks the one in use. For
+each player it lists the games that have one and the exact name each uses, with a flag where a game's rules shortened or
+changed it. It ticks any number of game players, across games and with different names, and renames them all to one name in
+one step; skipped games are reported afterwards. It deletes a player inside the games, which deletes that player's progress in
+each game, after an in-page confirmation that lists what will be lost. It uses real form controls with labels, and never
+`alert()`, `confirm()` or `prompt()`.
+
+**The survey.** All eighteen games were read for these facts: whether the game keeps players (create, select, rename,
+delete, and where each happens), whether it asks for a name at each score, the rules of its name boxes, and the point at start
+where it decides to show its new-player dialog.
+
+| Game | Players | Name at each high score | Name rules | Where it decides to ask |
+| --- | --- | --- | --- | --- |
+| Bejeweled Deluxe | none | yes (record score dialog), starts with the last name | 104 px of the main font; ASCII 32 to 127; case kept | the dialog's constructor |
+| Big Money Deluxe | none | yes, starts with the last name | 140 px; ASCII 32 to 127; case kept | the dialog's constructor |
+| BookWorm Deluxe | up to 5, in the registry (`Users\<name>`): created by the new-player dialog (automatically when there is none, else from the player list), chosen in the list, deleted from the list (offered when there are exactly 5; the saved games stay on disk); no rename | no (the hall of fame uses the player) | letters and spaces only; 22 characters and 200 px of Verdana 12 bold; trimmed; unique ignoring case | `BWGameSelector::Update` when no player exists; the box starts with the Windows user name if it is letters and spaces |
+| Noah's Ark | none | yes, starts with the last name | 120 px; ASCII 32 to 126; case kept | the dialog's constructor |
+| Seven Seas | none | yes, starts with the last name | 104 px; ASCII 32 to 126; case kept | the dialog's constructor |
+| Atomica | none | yes (the monitor's box), starts empty | 20 characters; any ASCII | the dialog's constructor |
+| Mummy Maze Deluxe | 5 named adventure slots: created by the new-adventure dialog when a free slot is chosen, deleted from the delete dialog; no rename | yes in classic play, starts with the last name | adventure name 20 characters, any ASCII; score name 104 px | the new-adventure and score dialogs' constructors |
+| TipTop | none | yes (a text field), starts empty | 10 characters; printable bytes; case kept | where the score field is made (screen 0x38) |
+| Bookworm Adventures Deluxe | up to 10 (`MaxProfiles`), files `users/<name>.bwa`: created by the new-player dialog (the intro of a first game asks it, or "new" in the list), chosen and deleted in the list; no rename | no | letters, digits, space and `! @ # $ % & ( )`; 189 px of the large font; unique ignoring case | the first game's intro (`StartIntro` with no profile) |
+| Ning Po Mahjong | none | yes, starts with the account's name | 12 characters; the engine's text box | `NingPo::enterName` |
+| Pixelus Deluxe | any number, in `users/`: created by the new-player dialog (automatically when there is none, else from "Who are you?"), chosen, renamed and deleted in "Who are you?" | no | letters, digits and spaces; 28 characters and 150 px of Garamond 14; double and edge spaces dropped; unique ignoring case | `PixelusApp::PlayClicked`, after the loading screen |
+| Alchemy | none | yes, starts with the last name | 104 px; any ASCII | the dialog's constructor |
+| Word Harmony | none | yes, starts with the saved default name | 16 characters; keys 0x20 to 0x87 | `HighScoreEntryLayout::startEntry` |
+| Cosmic Bugs | 10 slots in `cb.dat` (the first holds the account's name, capitalised, on a first run): chosen, renamed and deleted from the menu; a free slot asks for a name | no (the records use the player's name) | the engine's text input: 12 characters in the menu | `LoadProfiles`, when the game starts |
+| Water Bugs | as Cosmic Bugs | no | as Cosmic Bugs | `LoadProfiles` |
+| Rocket Mania Deluxe | none | yes, starts with the last name | 150 px; any ASCII | the dialog's constructor |
+| Dynomite Deluxe | none | yes, starts with the last name | 20 characters and 115 px | the dialog's constructor (a second box names a saved game: it is not a player and is left alone) |
+| Bookworm Adventures Volume 2 | as Bookworm Adventures | no | as Bookworm Adventures | as Bookworm Adventures |
 
 ## The site's logo and icons
 

@@ -246,6 +246,7 @@ input[type=file] { display: none; }
 <!-- byopop:footer -->
 
 <script src="settings.js"></script>
+<script src="profiles.js"></script>
 <script src="exeicon.js"></script>
 <script>
 (function () {
@@ -897,11 +898,17 @@ input[type=file] { display: none; }
   });
   // Settings: the site's settings (web/settings.js), drawn into the panel the first time it opens
   var settingsView = null;
+  // The line under "Player names": who the site's current player is (web/profiles.js)
+  function playerNote() {
+    var p = ByopopProfiles.current();
+    return p ? "The site’s player is " + p.name + "." : "The site has no player yet.";
+  }
   $("btn-settings").addEventListener("click", function () {
     if (!$("panel-settings").hidden) { closePanels(); return; }
     try {
       if (settingsView) settingsView.refresh();
-      else settingsView = ByopopSettings.render($("settings-body"), { live: true, volumes: siteVolumes(), onChange: applySettingNow });
+      else settingsView = ByopopSettings.render($("settings-body"), { live: true, volumes: siteVolumes(), onChange: applySettingNow,
+        gameId: PAGE.id, gameName: $("brand-name").textContent, playerNote: playerNote });
     } catch (e) {
       $("settings-body").textContent = "The settings are not available.";
     }
@@ -978,7 +985,8 @@ input[type=file] { display: none; }
   // The player sets them once, on the listing page or in the Settings panel, and every game page applies them when its
   // game starts; the panel also applies what can be applied at once to the running game. "game" and an unset setting
   // leave everything as the game has it; a page without settings.js, or with its storage blocked, is such a page.
-  function setting(name) { try { return ByopopSettings.get(name); } catch (e) { return null; } }
+  // The value this game uses: its own, else the site-wide one (web/settings.js)
+  function setting(name) { try { return ByopopSettings.get(name, PAGE.id); } catch (e) { return null; } }
 
   // The page's own mute: the platform's audio output (Platform::Mixer, byopop_audio_mute), below the game's volume and
   // mute options, which it neither changes nor saves. ?silent=1 stays silent whatever this says. "Start muted" sets it
