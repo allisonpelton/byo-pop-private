@@ -23,9 +23,15 @@ ROOT = os.path.normpath(os.path.join(HERE, "..", "..", ".."))
 CODE_RANGES = ((0x401000, 0x42f900),)
 # Extra texts that no function refers to by a plain address: the tables of string pointers in the data section (the tutorial
 # sidebar texts, the helper's speech bubbles, the help pages ...) lie between these addresses
-EXTRA = []
+EXTRA = [
+    0x4e4ff0, 0x4e5040, 0x4e5078,   # the singular counts on the end-of-level screen ("1 gem", "1 bomb", "1 coin"): Ghidra
+]                                   # leaves them as the tails of other strings
 POINTER_TABLES = (
     (0x4e44d0, 0x4e44ec),   # GameSelector's hint under the buttons (0x4059d0)
+    (0x4e4658, 0x4e468c),   # the names in the high score lists made new (0x4064e0), the first of two tables
+    (0x4e4690, 0x4e46d4),   # the second
+    (0x4e62e8, 0x4e6354),   # the rank names of the level-up dialog (0x428ca0)
+    (0x4e57b0, 0x4e5970),   # the eight lines of each hover tip, for arcade and classic and then for strategy (0x413c00)
 )
 # the read-only data where the strings are
 IMMEDIATE_STRINGS = (0x4e4000, 0x4e8000)
@@ -86,6 +92,16 @@ def main():
                 continue
             v = struct.unpack_from("<I", d, o)[0]
             if v in known:
+                rows.add(v)
+                continue
+            # Ghidra leaves some short strings (the default high score names) undefined: take a pointer to
+            # printable text in a table listed above as it is
+            try:
+                so = va_to_off(d, v)
+            except ValueError:
+                continue
+            t = d[so:d.index(b"\0", so)]
+            if len(t) >= 2 and all(0x20 <= c < 0x7f for c in t):
                 rows.add(v)
     # strings Ghidra did not define as strings (it merges or skips some): an address the code pushes or loads
     lo, hi = IMMEDIATE_STRINGS

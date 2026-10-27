@@ -7,6 +7,7 @@
 
 #include "Board.h"
 #include "RocketApp.h"
+#include "TalkingHead.h"
 #include "Buffer.h"
 #include "MTRand.h"
 
@@ -22,6 +23,7 @@ struct SaveWriter
 	Buffer*		mBuffer;
 	template<class T> void	operator()(T& theValue) { mBuffer->WriteBytes((const unsigned char*) &theValue, (int) sizeof(T)); }
 	template<class T, int N> void	operator()(T (&theArray)[N]) { for (int i = 0; i < N; i++) (*this)(theArray[i]); }
+	void	Raw(void* theBytes, int theSize) { mBuffer->WriteBytes((const unsigned char*) theBytes, theSize); }
 };
 
 struct SaveReader
@@ -29,6 +31,7 @@ struct SaveReader
 	const Buffer*	mBuffer;
 	template<class T> void	operator()(T& theValue) { mBuffer->ReadBytes((unsigned char*) &theValue, (int) sizeof(T)); }
 	template<class T, int N> void	operator()(T (&theArray)[N]) { for (int i = 0; i < N; i++) (*this)(theArray[i]); }
+	void	Raw(void* theBytes, int theSize) { mBuffer->ReadBytes((unsigned char*) theBytes, theSize); }
 };
 
 // the number a piece is saved under (and the number that a reference to it holds)
@@ -216,11 +219,14 @@ void Board::Fields(Visitor& theVisitor)
 	theVisitor(m380);
 	theVisitor(m378);
 	theVisitor(m37c);
+	// (the originals' loop never moves its three addresses: thirty times it writes, and reads, the same four bytes at +0x3fc,
+	// the byte at +0x41a and the byte at +0x438, so the path flags m384, m3fc and m41a are not kept; a loaded game has them
+	// as a new board has them until the connection finder, which sets them afresh at every pass, runs)
 	for (int i = 0; i < 30; i++)
 	{
-		theVisitor(m384[i]);
-		theVisitor(m3fc[i]);
-		theVisitor(m41a[i]);
+		theVisitor.Raw(m3fc, 4);
+		theVisitor(m41a[0]);
+		theVisitor(m438);
 	}
 	theVisitor(m438);
 	theVisitor(m439);
@@ -374,13 +380,26 @@ bool Board::Load()
 }
 
 // 0x41b7e0: what a loaded game was in the middle of (a screen of the end of a level, the buying of rockets) is flagged in
-// mFc, m100 and m104; the original puts those screens up again here. Not translated yet: the buy-rockets screen
-// (0x428620, BuyRocketsWidget 0x401010), the level-up question (0x4286b0) and the next level (0x428bc0); the flags are
-// cleared as the original clears them.
+// mFc, m100 and m104 and put up again here: the hint of a bonus item (m104 2) goes on to the buy-rockets screen, the level-up
+// screen (mFc) to the high scores after a game and to the question after a level, and the buy-rockets screen (m100) to
+// the next level.
 void Board::AfterLoad()
 {
 	m36c = 0;
+	if (m104 == 2)
+		ShowBuyRockets();
+	if (mFc == 1)
+	{
+		if (mState == 2)
+			mApp->ShowHighScores(0);
+		else
+			F4286b0();
+	}
+	if (m100 == 1)
+		NextLevel();
 	mFc = 0;
 	m100 = 0;
 	m104 = 0;
+	if (mState != 4)
+		mApp->mHead->GoToRest(true);
 }

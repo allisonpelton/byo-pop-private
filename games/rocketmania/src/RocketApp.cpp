@@ -3,6 +3,8 @@
 
 #include "RocketApp.h"
 #include "Screens.h"
+#include "TalkingHead.h"
+#include "Dialogs.h"
 #include "Board.h"
 #include "Dialog.h"
 #include "ButtonWidget.h"
@@ -80,11 +82,19 @@ RocketApp::RocketApp()
 		mRocketHues[i] = NULL;
 	mLoadingScreen = NULL;
 	mGameSelector = NULL;
+	mHintDialog = NULL;
 	mBoard = NULL;
+	mHead = NULL;
+	mBubble = NULL;
+	mWelcomed = false;
+	mFirstGameHint = false;
+	mHeadCountdown = 0;
 	mMode = 0;
 	mDifficulty = 0;
 	mNoPopLink = false;
 	mNoHints = false;
+	for (int i = 0; i < 8; i++)
+		mHintFlags[i] = false;
 	mIsRegistered = true;      // the Steam build plays as the registered game (properties/partner.xml: NoReg)
 }
 
@@ -92,6 +102,16 @@ RocketApp::~RocketApp()
 {
 	if (mBoard != NULL)
 		mWidgetManager->RemoveWidget((Widget*) mBoard);
+	if (mHead != NULL)
+	{
+		mWidgetManager->RemoveWidget(mHead);
+		delete mHead;
+	}
+	if (mBubble != NULL)
+	{
+		mWidgetManager->RemoveWidget(mBubble);
+		delete mBubble;
+	}
 	delete mBubbleFlipH;
 	delete mBubbleFlipV;
 	delete mCheckChecked;
@@ -223,6 +243,12 @@ void RocketApp::ButtonPress(int theId)
 
 // testhooks/Autoplay.cpp: plays a game with random clicks
 bool RocketAutoplay(RocketApp* theApp, const ScriptCommand& theCommand);
+bool RocketGameOver(RocketApp* theApp, const ScriptCommand& theCommand);
+bool RocketHint(RocketApp* theApp, const ScriptCommand& theCommand);
+bool RocketLevelUp(RocketApp* theApp, const ScriptCommand& theCommand);
+bool RocketEndLevel(RocketApp* theApp, const ScriptCommand& theCommand);
+bool RocketBuyRockets(RocketApp* theApp, const ScriptCommand& theCommand);
+bool RocketEffect(RocketApp* theApp, const ScriptCommand& theCommand);
 
 // port: the test scripts' "startgame" clicks the play link as soon as the loading screen shows it (the update at which
 // the loading ends depends on the machine); it asks again at the next update until then
@@ -230,6 +256,18 @@ bool RocketApp::HandleScriptCommand(const ScriptCommand& theCommand)
 {
 	if (theCommand.mCommand == "autoplay")
 		return RocketAutoplay(this, theCommand);
+	if (theCommand.mCommand == "gameover")
+		return RocketGameOver(this, theCommand);
+	if (theCommand.mCommand == "hint")
+		return RocketHint(this, theCommand);
+	if (theCommand.mCommand == "levelup")
+		return RocketLevelUp(this, theCommand);
+	if (theCommand.mCommand == "endlevel")
+		return RocketEndLevel(this, theCommand);
+	if (theCommand.mCommand == "buyrockets")
+		return RocketBuyRockets(this, theCommand);
+	if (theCommand.mCommand == "effect")
+		return RocketEffect(this, theCommand);
 	if (theCommand.mCommand != "startgame")
 		return SexyApp::HandleScriptCommand(theCommand);
 	if ((mLoadingScreen != NULL) && !mShutdown)
@@ -265,14 +303,37 @@ void RocketApp::ButtonDepress(int theId)
 			Shutdown();
 			break;
 		case DIALOG_HINT:
-			// (the original's hint dialog starts the game that waited for it: not translated yet)
+			// (the hint dialog's own button starts the game that waited for it)
 			KillDialog(DIALOG_HINT);
 			break;
 		case DIALOG_DIFFICULTY:
 			KillDialog(DIALOG_DIFFICULTY);
 			break;
+		case DIALOG_OPTIONS:
+		{
+			// the options' DONE button: the screen mode and the cursors (the checkboxes act on nothing before)
+			OptionsDialog* aDialog = (OptionsDialog*) GetDialog(DIALOG_OPTIONS);
+			bool aWantWindowed = !aDialog->mFullscreenCheckbox->IsChecked();
+			SwitchScreenMode(aWantWindowed, aDialog->m3DCheckbox->IsChecked());
+			EnableCustomCursors(aDialog->mCursorsCheckbox->IsChecked());
+			KillDialog(DIALOG_OPTIONS);
+			break;
+		}
+		case DIALOG_RECORD_SCORE:
+		{
+			// the record dialog's OK: the name goes into the lists (which are under it) and is kept for the next time
+			RecordScoreDialog* aDialog = (RecordScoreDialog*) GetDialog(DIALOG_RECORD_SCORE);
+			HighScoreDisplayDialog* aHighScores = (HighScoreDisplayDialog*) GetDialog(DIALOG_HIGH_SCORES);
+			if ((aDialog != NULL) && (aHighScores != NULL))
+			{
+				aHighScores->AddScore(aDialog->mEdit->mString);
+				mLastScoreName = aDialog->mEdit->mString;
+			}
+			KillDialog(DIALOG_RECORD_SCORE);
+			break;
+		}
 		default:
-			// (the options, high score, record and level dialogs: not translated yet)
+			// (the dialogs without a case: the buttons of the dialogs that have their own are handled by them)
 			KillDialog(anId - 2000);
 			break;
 		}
@@ -283,9 +344,7 @@ void RocketApp::ButtonDepress(int theId)
 	if (theId == 1)
 	{
 		if (mBoard != NULL && mBoard->mState == 0)
-		{
-			// (0x42de20: the options dialog is not translated yet)
-		}
+			ShowOptions(false);
 	}
 	else if (theId == 2)
 		QuitGame();
@@ -301,7 +360,7 @@ Dialog* RocketApp::NewDialog(int theDialogId, bool isModal, const SexyString& th
 	Dialog* aDialog = new Dialog2004(mImages[IMAGE_DIALOG], mImages[IMAGE_DIALOGBUTTON], theDialogId, isModal,
 		theDialogHeader, theDialogLines, theDialogFooter, theButtonMode);
 	aDialog->SetButtonFont(mFonts[FONT_VERDANA12_BOLD]);
-	aDialog->SetHeaderFont(mFonts[FONT_SHOWCARD22]);
+	aDialog->SetHeaderFont(mFonts[FONT_VERDANA18_BOLD]);
 	aDialog->SetLinesFont(mFonts[FONT_VERDANA12_BOLD]);
 	aDialog->SetColor(0, mDialogColors[0]);
 	aDialog->SetColor(1, mDialogColors[1]);
@@ -354,18 +413,101 @@ void RocketApp::ShowQuitDialog()
 		aDialog->Resize(mWidth / 2 - aDialog->mWidth / 2, mHeight / 2 - aDialog->mHeight / 2, aDialog->mWidth, aDialog->mHeight);
 }
 
-// 0x42dcc0 (not translated yet)
-void RocketApp::ShowHighScores(bool theFromMenu)
+// 0x42dcc0: the high scores over the whole window; theOpenedFrom is 0 after a game, 1 from the menu, 2 in a game and 3 from
+// the options
+void RocketApp::ShowHighScores(int theOpenedFrom)
 {
-	(void) theFromMenu;
-	SDL_Log("ShowHighScores: not translated yet");
+	HighScoreDisplayDialog* aDialog = new HighScoreDisplayDialog(this, theOpenedFrom);
+	aDialog->SetColor(0, Color(0xff, 0xff, 0xff));
+	aDialog->SetColor(1, Color(0, 0xff, 0));
+	aDialog->SetColor(3, Color(0, 0xff, 0));
+	aDialog->mContentInsets = Insets(0x24, 0x24, 0x24, 0x24);
+	aDialog->Resize(0, 0, mWidth, mHeight);
+	AddDialog(DIALOG_HIGH_SCORES, aDialog);
+	// the talking head steps aside (unless the list was opened in a game) and is brought in front of the dialog
+	if (theOpenedFrom != 2)
+		mHead->StepAside();
+	mWidgetManager->BringToFront(mHead);
 }
 
-// 0x42de20 (not translated yet)
+// 0x42df40: the dialog for the name of a score, in the middle of the window, with a fanfare
+void RocketApp::ShowRecordScore(const SexyString& theMessage)
+{
+	RecordScoreDialog* aDialog = new RecordScoreDialog(this, theMessage);
+	int aHeight = aDialog->GetPreferredHeight(0x13c);
+	aDialog->Resize(mWidth / 2 - 0x9e, mHeight / 2 - aHeight / 2, 0x13c, aHeight);
+	AddDialog(DIALOG_RECORD_SCORE, aDialog);
+	PlaySample(SOUND_TUBETRICKS_STING_ONE_V01);
+}
+
+// 0x42de20: the options dialog, in the middle of the screen; from the menu the talking head steps aside, in a game the
+// menu music plays
 void RocketApp::ShowOptions(bool theFromMenu)
 {
-	(void) theFromMenu;
-	SDL_Log("ShowOptions: not translated yet");
+	OptionsDialog* aDialog = new OptionsDialog(this, theFromMenu);
+	aDialog->SetColor(0, mDialogColors[0]);
+	aDialog->SetColor(1, mDialogColors[1]);
+	aDialog->SetColor(3, mDialogColors[2]);
+	int aHeight = aDialog->GetPreferredHeight(0x184);
+	aDialog->Resize(0x7e, 0xf0 - aHeight / 2, 0x184, aHeight);
+	AddDialog(DIALOG_OPTIONS, aDialog);
+	if (theFromMenu)
+		mHead->StepAside();
+	else
+		mMusicInterface->FadeIn(0, -1, 0.2, false);
+}
+
+// 0x42d760: the credits, near the top of the screen
+void RocketApp::ShowCredits()
+{
+	CreditsDialog* aDialog = new CreditsDialog(this);
+	aDialog->SetColor(0, mDialogColors[0]);
+	aDialog->SetColor(1, mDialogColors[1]);
+	aDialog->SetColor(3, mDialogColors[0]);
+	aDialog->Resize(0xc4, 0x10, 0x184, aDialog->GetPreferredHeight(0x184));
+	AddDialog(DIALOG_CREDITS, aDialog);
+}
+
+// 0x42e330: a dialog in the middle of the window
+void RocketApp::CenterDialog(Dialog* theDialog)
+{
+	if (theDialog != NULL)
+		theDialog->Resize(mWidth / 2 - theDialog->mWidth / 2, mHeight / 2 - theDialog->mHeight / 2, theDialog->mWidth,
+			theDialog->mHeight);
+}
+
+// 0x42f2b0: the framework's values, then the last name typed for a high score and the hints
+void RocketApp::WriteToRegistry()
+{
+	SexyApp::WriteToRegistry();
+	if (mLastScoreName.length() != 0)
+		RegistryWriteString("LastScoreName", mLastScoreName);
+	RegistryWriteBoolean("HintsDisabled", mNoHints);
+	for (int i = 0; i < 8; i++)
+	{
+		char aName[200];
+		snprintf(aName, sizeof(aName), "HintsDisabledFlag%d", i);
+		RegistryWriteBoolean(aName, mHintFlags[i]);
+	}
+}
+
+// 0x42f4b0
+void RocketApp::ReadFromRegistry()
+{
+	SexyApp::ReadFromRegistry();
+	std::string aName;
+	if (RegistryReadString("LastScoreName", &aName))
+		mLastScoreName = aName;
+	bool aFlag;
+	if (RegistryReadBoolean("HintsDisabled", &aFlag))
+		mNoHints = aFlag;
+	for (int i = 0; i < 8; i++)
+	{
+		char aKey[200];
+		snprintf(aKey, sizeof(aKey), "HintsDisabledFlag%d", i);
+		if (RegistryReadBoolean(aKey, &aFlag))
+			mHintFlags[i] = aFlag;
+	}
 }
 
 // 0x42d470
@@ -375,7 +517,21 @@ void RocketApp::LoadingScreenDone()
 	mWidgetManager->RemoveWidget(mLoadingScreen);
 	SafeDeleteWidget(mLoadingScreen);
 	mLoadingScreen = NULL;
+	CreateHead();
 	ShowGameSelector();
+}
+
+// 0x42d360: the talking head and its bubble join the app's widgets for the rest of the run (in front of the menu and the
+// board, which are added later and put behind them with BringToBack/BringToFront by the code that needs it)
+void RocketApp::CreateHead()
+{
+	mHead = new TalkingHead(this);
+	mHead->Resize(0, 0, mImages[IMAGE_BODY]->GetWidth() + 0x19, mImages[IMAGE_BODY]->GetHeight() + 0x28);
+	mHead->Move(-200, 0);
+	mWidgetManager->AddWidget(mHead);
+	mBubble = new SpeechBubble(this);
+	mWidgetManager->AddWidget(mBubble);
+	mBubble->SetVisible(false);
 }
 
 // 0x42e010: the menu replaces whatever was on screen (the game in progress is closed first)
@@ -388,6 +544,9 @@ void RocketApp::ShowGameSelector()
 		// a game in progress is saved (0x41b420: unless it is finished) before the board goes
 		if (mBoard->mState != 2)
 			mBoard->Save();
+		mHead->SetSlide(false);
+		mHead->Move(250, -300);
+		mBoard->mState = 3;
 		mWidgetManager->RemoveWidget((Widget*) mBoard);
 		mBoard = NULL;
 	}
@@ -475,19 +634,26 @@ bool RocketApp::ReadSavedGame(int theMode, int* theDifficulty, int* theScore, in
 	return true;
 }
 
-// 0x42d670 (not translated yet): no mode explanation opens
-bool RocketApp::ShowModeHint(int theHint, bool theForce)
+// 0x42d670: a hint opens (a mode's before its first game, a bonus item's the first time it turns up), unless hints are
+// switched off or this one was turned off with its checkbox; theContinuing is handed to StartBoard when the button is clicked
+bool RocketApp::ShowModeHint(int theHint, bool theContinuing)
 {
-	(void) theHint;
-	(void) theForce;
-	return false;
+	if (mNoHints || mHintFlags[theHint])
+		return false;
+
+	HintDialog* aDialog = new HintDialog(this, theHint, theContinuing);
+	AddDialog(DIALOG_HINT, aDialog);
+	aDialog->Layout(HintDialog::IsModeHint(theHint));
+	mHintDialog = aDialog;
+	return true;
 }
 
-// 0x42ea30: a game begins (or is continued): the board replaces the one in progress. Left out: the fade of the four
-// songs (app+0x2f4).
+// 0x42ea30: a game begins (or is continued): the board replaces the one in progress.
 void RocketApp::StartBoard(bool theContinuing)
 {
 	KillDialog(3);
+	for (int aSong = 0; aSong < 4; aSong++)
+		mMusicInterface->FadeOut(aSong, true, 0.005);
 	if (mBoard != NULL)
 	{
 		mWidgetManager->RemoveWidget(mBoard);
@@ -510,8 +676,8 @@ void RocketApp::StartBoard(bool theContinuing)
 	AddBoardButtons();
 	if (!theContinuing)
 	{
-		KillDialog(1);
 		DeleteSavedGame(mMode);
+		KillDialog(1);
 	}
 }
 
@@ -536,6 +702,13 @@ void RocketApp::AddBoardButtons()
 		mWidgetManager->AddWidget(aButton);
 		mBoardButtons.push_back(aButton);
 	}
+}
+
+// 0x42d270: the buttons are disabled while the board is paused
+void RocketApp::DisableBoardButtons(bool theDisabled)
+{
+	for (std::list<ButtonWidget*>::iterator anItr = mBoardButtons.begin(); anItr != mBoardButtons.end(); ++anItr)
+		(*anItr)->SetDisabled(theDisabled);
 }
 
 void RocketApp::RemoveBoardButtons()

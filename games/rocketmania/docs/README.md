@@ -6,13 +6,16 @@ game's pictures, sounds, music or texts, which come from your own copy of the ga
 
 ## Status (2026-10-26)
 
-Done and tested: the loading screen (with the pictures the original makes from its files: tinted pipe pieces, rocket
-hues, the talking head's frames, and the music joined from its segments), the menu with its hover hints, the difficulty
-and continue dialogs, the quit question, the saved-game check.
+The game is translated: the loading screen, the menu, every dialog the registered game shows (difficulty, continue, quit,
+options, credits, high scores, record score, hints, level up, the buy-rockets screen), the Board with its three modes
+(arcade, classic, strategy), its saved games, the fireworks and sparkles (`Effects.cpp`), the talking head with its hover
+tips (`TalkingHead.cpp`) and the classic mode's lanterns. It runs unmodified, with no mod hooks; mods come later through
+the standard mods. Left out on purpose: the shareware pieces (the trial clock 0x42f770 and the register dialogs 0x414790,
+0x415020, 0x4153b0), because the Steam copy is registered, and the partner and update links of the options dialog.
 
-Not done yet: the Board (the three game modes, 141 functions and 60 KB of the original's code, `GAME_NOTES.md` lists
-them), the high score, options, record-score, level-up, money, hint and credits dialogs, the fireworks and the talking
-head, saves, the autoplay test hooks, the web page. A new game currently logs `StartBoard` and stays in the menu.
+Still to do: a pass that compares each screen and rule with the original running (the fidelity pass), the web page's
+checks in a browser, and the stores line `BYOPOP_BUY_rocketmania` in `cmake/ByopopStores.cmake`, which the coordinator
+supplies.
 
 ## The binary
 
@@ -45,13 +48,29 @@ build/native/rundesk.exe build/native/rocketmania.exe
 tools/check.sh rocketmania
 ```
 
-runs `games/rocketmania/tools/menu_test.txt` (load, play link, menu, hover, difficulty dialog, new game) and fails on a bad
-exit status, a failed load, a missing screenshot, or screenshots that do not differ. Test scripts use the framework's
-`-script` commands plus `startgame` (clicks the play link once the loading screen shows it).
+runs `games/rocketmania/tools/menu_test.txt` (load, play link, menu, hover, difficulty dialog) and
+`games/rocketmania/tools/board_test.txt` (a game of each mode played by the autoplay hook) and fails on a bad exit status,
+a failed load, a missing screenshot, or screenshots that do not differ. Test scripts use the framework's `-script`
+commands plus `startgame` (clicks the play link once the loading screen shows it) and the commands of
+`src/testhooks/Autoplay.cpp`: `autoplay <mode> <difficulty> <updates>`, `gameover <mode> <score>`, `hint`, `levelup`,
+`endlevel`, `buyrockets <over> <level> <coins> <meter>` and `effect <kind> <x> <y> <life> [<layer>]`. A script that starts
+a game does it after the loading screen (update 5 `startgame`, the next command a few hundred updates later). To run a
+script invisibly and silently, `games/rocketmania/tools/run_script.sh <script> <user dir> [seconds]` starts it under
+`rundesk`; with `RM_BUILD=native-asan` it runs the AddressSanitizer build.
+
+An AddressSanitizer build (2026-10-26): `cmake -S . -B build/native-asan -G Ninja -DCMAKE_BUILD_TYPE=Debug
+-DCMAKE_TOOLCHAIN_FILE=cmake/llvm-mingw-i686.cmake -DSDL2_DIR=... "-DCMAKE_CXX_FLAGS=-fsanitize=address
+-fno-omit-frame-pointer -O1" "-DCMAKE_C_FLAGS=<the same>"`, then `cmake --build build/native-asan --target rocketmania` and
+copy `libclang_rt.asan_dynamic-i386.dll` (llvm-mingw's `i686-w64-mingw32/bin`) next to the exe; set `ASAN_SYMBOLIZER_PATH`
+to llvm-symbolizer for readable reports. A game of each mode (5000 updates each) and every scenario script (menu, dialogs,
+hints, level up, the end of a level with the dragon, buy rockets, effects, saves, the lanterns) ran with no report. The one
+report it gave was a test artifact: an `autoplay` command that started a new board while the level-up screen of the game
+before was still up (that screen keeps the old board's random generator); the test commands now close the dialogs first.
 
 ## Tools (`games/rocketmania/tools`)
 
 `decread.py` prints a function of the Ghidra export in a readable form, `strfind.py` finds strings and their users,
 `vtslots.py` and `ptrtable.py` read virtual tables and pointer tables from the game image, `gen_res.py` writes
-`Res.h/.cpp` from the resource table, and `make_gametext.py` writes the table of text addresses `GameTextTable.inc`.
+`Res.h/.cpp` from the resource table, `make_gametext.py` writes the table of text addresses `GameTextTable.inc`, and
+`make_headdata.py` writes `HeadData.inc` (the talking head's moods and the hover tips' places, numbers and addresses only).
 They read `re/rocketmania/` (git-ignored: Ghidra's export and the carved game image).

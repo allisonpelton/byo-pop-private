@@ -19,6 +19,7 @@
 #include "Widget.h"
 #include "ButtonListener.h"
 #include "Common.h"
+#include "Effects.h"
 #include <list>
 #include <string>
 #include <vector>
@@ -27,6 +28,8 @@ namespace Sexy
 {
 
 class RocketApp;
+class HoverTip;
+class WidgetManager;
 class MTRand;
 class Graphics;
 class Buffer;
@@ -74,7 +77,7 @@ struct Piece
 	Piece*		mHost;          // +0x90 the tile a special is attached to
 	bool		m94;            // +0x94 the piece is in the board's list of moving pieces
 	int			m98;            // +0x98
-	struct Effect*	mFlash;     // +0x9c an effect attached to it
+	Effect*		mFlash;     // +0x9c an effect attached to it
 	int			mIndex;         // +0xa0 the launcher's number, or other counters
 	int			mIndex2;        // +0xa4
 	int			ma8;            // +0xa8 (3 at the start: the hits a bomb takes)
@@ -82,39 +85,6 @@ struct Piece
 	int			mb0, mb4;       // +0xb0 where a moved tile came from
 	int			mLoadedSpecial, mLoadedHost;    // (port) the numbers of mSpecial and mHost that a save holds, until 0x41b690 resolves them
 	Piece(int theBorn);
-};
-
-// The fireworks objects of the original (class Rocket, 0x4172f0, 0x128 bytes; manager 0x41a830, made by 0x41a9c0): a
-// particle effect of one of about 24 kinds. The fields the Board sets are named by offset; the effect itself is not
-// translated yet (the Board creates them and nothing is drawn).
-struct Effect
-{
-	int			mKind;
-	bool		mFlag;
-	int			m40;                // +0x40
-	double		mX, mY;             // +0x48, +0x50
-	double		m78, m80;           // +0x78, +0x80
-	bool		m90;                // +0x90
-	int			ma8, mac;           // +0xa8
-	int			mc0;                // +0xc0
-	int			mLife;              // +0xc4 the number of updates it lasts
-	int			md0, md4;           // +0xd0
-	double		mf8;                // +0xf8
-	double		m108;               // +0x108
-	int			m110, m118;         // +0x110
-	Effect(int theKind, bool theFlag);
-};
-
-// The manager of the effects (0x41a830): an effect list.
-class EffectManager
-{
-public:
-	std::list<Effect*>	mEffects;
-	~EffectManager();
-	Effect*				Add(int theKind, bool theFlag);      // 0x41a9c0
-	void				Remove(Effect* theEffect);           // 0x41aa80
-	bool				Has(Effect* theEffect);              // 0x41ab40
-	void				Update();                            // 0x41ab70 (the effects are not translated yet)
 };
 
 // 0x42a510, 0x74 bytes: draws the next piece of the board by the tables at 0x4e6800/0x4e6828 and keeps the counts of the
@@ -159,10 +129,13 @@ public:
 	int			FullestMeter();                         // 0x42ada0
 	void		RaiseMeter(int theRow);                 // 0x42add0
 	bool		AllMetersFull();                        // 0x42adf0
+	int			Upgrades(int theCoins, int theMode, int theIndex);   // 0x42ae10: how many launchers the coins upgrade (mode 0), or the launcher of the n-th upgrade (mode 1)
 };
 
-// 0x429ed0: the floating text (points, messages) made by the board; 0x98 bytes. It floats up one pixel every third
-// update while 'mStatic' is false, flashes between two colours and is removed when its life runs out.
+// 0x429ed0: the floating text (points, messages) made by the board; 0x98 bytes. While 'mStatic' is false the board moves
+// it every third update to the place (mLeft, mTop - 1); mTop is never lowered, so the text does not rise: it jumps once to
+// that place (the widget's left edge is then the centre x and its top is y - 1) and stays. It changes colour as the
+// phase moves and is removed when its life runs out.
 class Points : public Widget
 {
 public:
@@ -191,6 +164,7 @@ public:
 	MTRand*			mRand;              // +0x110 (0x9c4 bytes in the original: the 2003 Mersenne twister)
 	PieceGenerator*	mGen;               // +0x4ec
 	EffectManager*	mEffects;           // +0x4f0
+	HoverTip*		mTip;               // +0x530 the tip that shows when the pointer rests on a part of the board
 	int				mCols;              // +0x4e4 6
 	int				mRows;              // +0x4e8 9
 
@@ -266,6 +240,8 @@ public:
 	// Widget
 	virtual void	Update() override;
 	virtual void	Draw(Graphics* g) override;
+	virtual void	RemovedFromManager(WidgetManager* theWidgetManager) override;   // 0x424260
+	virtual void	OrderInManagerChanged() override;                               // 0x424340
 	virtual void	ButtonDepress(int theId) override;
 	virtual void	KeyChar(SexyChar theChar) override;                     // 0x427a90
 	virtual void	MouseLeave() override;                                  // 0x4285b0
@@ -279,6 +255,12 @@ public:
 
 	// ---- drawing (BoardDraw.cpp)
 	void			DrawTile(Graphics* g, Piece* thePiece, int theHint);                // 0x41e770
+	void			DrawTilted(Graphics* g, Piece* thePiece);                           // 0x41e630
+	void			DrawTileOverlay(Graphics* g, Piece* thePiece, int theHint);         // 0x41e690
+	void			DrawNightBar(Graphics* g);                                          // 0x41f360
+	void			DrawLantern(Graphics* g, int theImage, int theIndex);              // 0x41f2e0
+	void			DrawLaunchNumber(Graphics* g, int theCount, int theRow, int theAlpha);   // 0x4290b0
+	void			DrawLaunchInProgress(Graphics* g);                                  // 0x429230
 	void			DrawTop(Graphics* g, Piece* thePiece);                              // 0x41e3e0
 	void			DrawSpare(Graphics* g, Piece* thePiece);                            // 0x41e530
 	void			DrawEdge(Graphics* g, Piece* thePiece, int theRow, int theColumn);  // 0x41ec20
@@ -365,7 +347,6 @@ public:
 	void			AddMover(Piece* thePiece);                              // 0x427f90
 	void			EraseMover(Piece* thePiece);                            // 0x427ff0
 	void			AddFlash(Piece* thePiece, int theKind);                 // 0x428100
-	// not translated yet
 	void			F428780();
 	bool			F428ae0();
 	void			RotatePiece(Piece* thePiece, bool theCounter);          // 0x428340
@@ -373,6 +354,11 @@ public:
 	void			F4282a0(int thePath);
 	void			F428ef0();
 	void			F428d10();
+	void			ShowBuyRockets();                                      // 0x428620
+	void			F4286b0();                                             // 0x4286b0: after the level-up screen, the question of the next level
+	SexyString		RankName(int* theRank, int* thePointsToNext);          // 0x428ca0: the rank of the score, how far the next one is
+	void			NextLevel();                                           // 0x428bc0: the level after the buy-rockets screen
+	void			ShowLevelUp(int theKind);                              // the level-up dialog (0x40c2c0) as the board opens it
 	void			F428de0(int theValue);
 	void			F421de0(int theKind);
 	void			F421f30(bool theFlag);

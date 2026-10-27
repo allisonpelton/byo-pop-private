@@ -7,7 +7,7 @@
 set -uo pipefail
 ROOT="$(cd "$(dirname "$0")/../../.." && pwd)"
 SCRIPT="$1"; USERDIR="$2"; LIMIT="${3:-120}"; shift 3 2>/dev/null || shift $#
-EXE_UNIX="$ROOT/build/native/rocketmania.exe"
+EXE_UNIX="$ROOT/build/${RM_BUILD:-native}/rocketmania.exe"   # RM_BUILD=native-asan runs the AddressSanitizer build
 EXE="$(cygpath -w "$EXE_UNIX" 2>/dev/null || echo "$EXE_UNIX")"
 grep -q "quit" "$SCRIPT" || { echo "run_script: $SCRIPT has no quit line" >&2; exit 2; }
 mkdir -p "$USERDIR"

@@ -3,6 +3,7 @@
 #include "Screens.h"
 #include "Dialogs.h"
 #include "RocketApp.h"
+#include "TalkingHead.h"
 #include "GameText.h"
 #include "Compat2004.h"
 #include "Graphics.h"
@@ -154,6 +155,7 @@ static DialogButton* MakeMenuButton(RocketApp* theApp, int theId, ButtonListener
 // 0x404e30
 GameSelector::GameSelector(RocketApp* theApp) :
 	mApp(theApp),
+	mEffects(NULL),
 	mAlpha(0xff),
 	mHint(0),
 	mDifficulty(-1),
@@ -171,13 +173,17 @@ GameSelector::GameSelector(RocketApp* theApp) :
 	mOptionsButton = MakeMenuButton(mApp, BUTTON_OPTIONS, this, GT(0x004e4644), aMenuColor, 0x15b);
 	mQuitButton = MakeMenuButton(mApp, BUTTON_QUIT, this, GT(0x004e463c), aMenuColor, 0x186);
 
-	// not ported: the firework rockets over the menu (RocketManager 0x41a830, one rocket made with 0x41a9c0(2, 1)) and the
-	// talking head (0x405950 puts it at 150, 65)
-	ResetHead();
+	// the leaves: one effect of kind 2 that makes leaves for ever (its life is -1)
+	mEffects = new EffectManager(mApp);
+	Effect* aLeaves = mEffects->Add(2, true);
+	aLeaves->mLife = -1;
+
+	HeadBesideMenu();
 }
 
 GameSelector::~GameSelector()
 {
+	delete mEffects;
 	for (int i = 0; i < 3; i++)
 		delete mModeButtons[i];
 	delete mHighScoresButton;
@@ -214,8 +220,24 @@ void GameSelector::Update()
 {
 	Widget::Update();
 
-	// not ported: the rockets' update, and at update 100 the talking head's welcome (0x416aa0 with text 0x3e on the
-	// first start, 0x39 after, and 0x416360 with 0x10 or 1)
+	mEffects->Update();     // 0x41ab70
+
+	// at update 100 the talking head welcomes the player: the first time in the run with the welcome line, later with the
+	// line about launching fireworks
+	if (mUpdateCnt == 100)
+	{
+		if (!mApp->mWelcomed)
+		{
+			mApp->mHead->Say(SOUND_VOICE_WELCOME_TO_ROCKET_MANIA_03);
+			mApp->mHead->SetMood(0x10);
+			mApp->mWelcomed = true;
+		}
+		else
+		{
+			mApp->mHead->Say(SOUND_VOICE_LET_S_LAUNCH_SOME_FIREWORKS_01);
+			mApp->mHead->SetMood(1);
+		}
+	}
 
 	if (mAlpha < 0xff)
 	{
@@ -273,7 +295,7 @@ void GameSelector::Draw(Graphics* g)
 		g->DrawString(aText, 0x140 - g->GetFont()->StringWidth(aText) / 2, 0x1cc);
 	}
 
-	// not ported: the rockets (0x41abb0)
+	mEffects->Draw(g, false);       // 0x41abb0: the leaves
 }
 
 // 0x406220
@@ -294,7 +316,7 @@ void GameSelector::ButtonDepress(int theId)
 		mApp->ShowQuitDialog();
 		break;
 	case BUTTON_HIGH_SCORES:
-		mApp->ShowHighScores(true);
+		mApp->ShowHighScores(1);
 		break;
 	case BUTTON_OPTIONS:
 		mApp->ShowOptions(true);
@@ -312,7 +334,7 @@ void GameSelector::ShowDifficultyDialog()
 	aDialog->mContentInsets = Insets(0x24, 0x24, 0x24, 0x24);
 	aDialog->Resize(5, (mHeight - 0x1a9) / 2, 0x1a4, 0x1a9);
 	mApp->AddDialog(DIALOG_DIFFICULTY, aDialog);
-	ResetHead();
+	HeadBesideDialog();
 }
 
 // 0x4060d0
@@ -325,7 +347,7 @@ void GameSelector::ShowContinueDialog()
 	aDialog->mContentInsets = Insets(0x24, 0x24, 0x24, 0x24);
 	aDialog->Resize(5, (mHeight - 0x1a9) / 2, 0x1a4, 0x1a9);
 	mApp->AddDialog(DIALOG_CONTINUE, aDialog);
-	ResetHead();
+	HeadBesideDialog();
 }
 
 // slot 44, 0x405ed0: the dialogs call this with the chosen mode and difficulty
@@ -356,8 +378,17 @@ void GameSelector::StartGame(bool theContinuing)
 	mOptionsButton->SetDisabled(true);
 }
 
-// 0x405950 and 0x405980: the talking head waits at (150, 65) on the menu and moves to (400, 75) while a dialog is up
-// (not ported)
-void GameSelector::ResetHead()
+// 0x405950: the talking head waits at (150, 65) beside the menu, without its shadow
+void GameSelector::HeadBesideMenu()
 {
+	mApp->mHead->Place(150, 65);
+	mApp->mHead->SetShadow(false);
+}
+
+// 0x405980: while a dialog is up it moves to (400, 75), in front of the dialog
+void GameSelector::HeadBesideDialog()
+{
+	mApp->mHead->Place(400, 75);
+	mApp->mHead->SetShadow(false);
+	mWidgetManager->BringToFront(mApp->mHead);
 }

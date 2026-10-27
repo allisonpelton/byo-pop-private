@@ -4,10 +4,12 @@
 
 #include "RocketApp.h"
 #include "Board.h"
+#include "Dialogs.h"
 #include "WidgetManager.h"
 
 #include <SDL.h>
 #include <cstdio>
+#include <vector>
 
 using namespace Sexy;
 
@@ -17,6 +19,18 @@ static int Next(int theRange)
 {
 	sSeed = sSeed * 1103515245u + 12345u;
 	return (int) ((sSeed >> 16) % (unsigned int) theRange);
+}
+
+// A test command that starts a game while a dialog of the game before it is still up (the level-up screen at the end of a
+// game keeps the old board's random generator) must close the dialogs first: the game itself only starts a board from the menu.
+static void StartTestBoard(RocketApp* theApp)
+{
+	std::vector<int> anIds;
+	for (DialogMap::iterator anItr = theApp->mDialogMap.begin(); anItr != theApp->mDialogMap.end(); ++anItr)
+		anIds.push_back(anItr->first);
+	for (size_t i = 0; i < anIds.size(); i++)
+		theApp->KillDialog(anIds[i]);
+	theApp->StartBoard(false);
 }
 
 // the cells whose piece does not know its place, and the pieces that stand in two cells
@@ -59,7 +73,7 @@ bool RocketAutoplay(RocketApp* theApp, const ScriptCommand& theCommand)
 		sSeed = 12345;
 		theApp->mMode = aMode;
 		theApp->mDifficulty = aDifficulty;
-		theApp->StartBoard(false);
+		StartTestBoard(theApp);
 	}
 	Board* aBoard = theApp->mBoard;
 	if (aBoard == NULL)
@@ -134,5 +148,161 @@ bool RocketAutoplay(RocketApp* theApp, const ScriptCommand& theCommand)
 		snprintf(anArgs, sizeof(anArgs), "%d %d %d %d", aMode, aDifficulty, aLeft - 1, aTotal);
 		theApp->AddScriptCommand(theApp->mUpdateCount + 1, "autoplay", anArgs);
 	}
+	return true;
+}
+
+// "hint <n>": opens that hint (a bonus item's hint needs a board: an arcade game starts first)
+bool RocketHint(RocketApp* theApp, const ScriptCommand& theCommand)
+{
+	int aHint = 0;
+	if ((sscanf(theCommand.mArgs.c_str(), "%d", &aHint) < 1) || (aHint < 0) || (aHint > 7))
+	{
+		SDL_Log("hint: bad arguments '%s'", theCommand.mArgs.c_str());
+		return true;
+	}
+	if ((aHint > 2) && (theApp->mBoard == NULL))
+	{
+		theApp->mMode = 0;
+		theApp->mDifficulty = 1;
+		StartTestBoard(theApp);
+	}
+	theApp->mNoHints = false;
+	theApp->mHintFlags[aHint] = false;
+	theApp->ShowModeHint(aHint, false);
+	return true;
+}
+
+// "gameover <mode> <score>": a game of that mode ends with that score: the high scores open the way they do after a game
+// (so that the dialog for a name comes up for a score that makes the lists)
+bool RocketGameOver(RocketApp* theApp, const ScriptCommand& theCommand)
+{
+	int aMode = 0, aScore = 0;
+	if (sscanf(theCommand.mArgs.c_str(), "%d %d", &aMode, &aScore) < 2)
+	{
+		SDL_Log("gameover: bad arguments '%s'", theCommand.mArgs.c_str());
+		return true;
+	}
+	theApp->mMode = aMode;
+	theApp->mDifficulty = 1;
+	StartTestBoard(theApp);
+	if (theApp->mBoard != NULL)
+		theApp->mBoard->mScore = aScore;
+	theApp->ShowHighScores(0);
+	return true;
+}
+
+// "endlevel <mode>": the first call starts a game of that mode; a later one ends its level at once: the head rides in on its
+// rocket (state 4), then the level-up screen follows
+bool RocketEndLevel(RocketApp* theApp, const ScriptCommand& theCommand)
+{
+	int aMode = 0;
+	if (sscanf(theCommand.mArgs.c_str(), "%d", &aMode) < 1)
+	{
+		SDL_Log("endlevel: bad arguments '%s'", theCommand.mArgs.c_str());
+		return true;
+	}
+	if (theApp->mBoard == NULL)
+	{
+		theApp->mMode = aMode;
+		theApp->mDifficulty = 1;
+		StartTestBoard(theApp);
+		return true;
+	}
+	theApp->mBoard->EndLevelA();
+	return true;
+}
+
+// "levelup <kind> <mode> <level> <score> [<page>]": a game of that mode, at that level and score, opens the level-up
+// screen (kind 4 after a level, 5 after a game) with some figures; page sets the page it starts at
+bool RocketLevelUp(RocketApp* theApp, const ScriptCommand& theCommand)
+{
+	int aKind = 4, aMode = 0, aLevel = 0, aScore = 0, aPage = 0;
+	if ((sscanf(theCommand.mArgs.c_str(), "%d %d %d %d %d", &aKind, &aMode, &aLevel, &aScore, &aPage) < 4) ||
+		((aKind != 4) && (aKind != 5)))
+	{
+		SDL_Log("levelup: bad arguments '%s'", theCommand.mArgs.c_str());
+		return true;
+	}
+	theApp->mMode = aMode;
+	theApp->mDifficulty = 1;
+	theApp->mNoHints = true;
+	StartTestBoard(theApp);
+	theApp->mNoHints = false;
+	Board* aBoard = theApp->mBoard;
+	if (aBoard == NULL)
+		return true;
+	aBoard->mLevel = aLevel;
+	aBoard->mScore = aScore;
+	aBoard->mC4 = 7;
+	aBoard->mC8 = 4;
+	aBoard->mCc = 3;
+	aBoard->mD0 = 1;
+	aBoard->mD4 = 2;
+	aBoard->mD8 = 1;
+	aBoard->mDc = 5;
+	aBoard->mState = (aKind == LevelUpDialog::KIND_LEVEL) ? 6 : 2;     // the board is not paused by the dialog then
+	aBoard->ShowLevelUp(aKind);
+	LevelUpDialog* aDialog = (LevelUpDialog*) theApp->GetDialog(DIALOG_LEVEL_UP);
+	if (aDialog != NULL)
+		aDialog->mPhase = aPage;
+	return true;
+}
+
+// "buyrockets <over> <level> <coins> <meter>": a game of the arcade mode at that level, with that many coins and every
+// launcher's meter at that value, puts up the buy-rockets screen (over 1: the game is over, so that the coins turn into points)
+bool RocketBuyRockets(RocketApp* theApp, const ScriptCommand& theCommand)
+{
+	int anOver = 0, aLevel = 0, aCoins = 0, aMeter = 0;
+	if (sscanf(theCommand.mArgs.c_str(), "%d %d %d %d", &anOver, &aLevel, &aCoins, &aMeter) < 4)
+	{
+		SDL_Log("buyrockets: bad arguments '%s'", theCommand.mArgs.c_str());
+		return true;
+	}
+	theApp->mMode = 0;
+	theApp->mDifficulty = 1;
+	StartTestBoard(theApp);
+	theApp->mNoHints = false;
+	Board* aBoard = theApp->mBoard;
+	if (aBoard == NULL)
+		return true;
+	aBoard->mLevel = aLevel;
+	aBoard->m8c[7] = aCoins;
+	for (int i = 0; i < 9; i++)
+		aBoard->mGen->mMeter[i] = aMeter;
+	if (anOver)
+		aBoard->F421de0(1);
+	else
+	{
+		aBoard->mState = 6;
+		aBoard->ShowBuyRockets();
+	}
+	return true;
+}
+
+// "effect <kind> <x> <y> <life> [<layer>]": adds an effect of that kind to the board's effects (starting a game of the arcade
+// mode first if there is no board) where the particles start at x y, that makes particles for that many updates
+bool RocketEffect(RocketApp* theApp, const ScriptCommand& theCommand)
+{
+	int aKind = 0, anX = 0, aY = 0, aLife = 1, aLayer = 0;
+	if (sscanf(theCommand.mArgs.c_str(), "%d %d %d %d %d", &aKind, &anX, &aY, &aLife, &aLayer) < 4)
+	{
+		SDL_Log("effect: bad arguments '%s'", theCommand.mArgs.c_str());
+		return true;
+	}
+	if (theApp->mBoard == NULL)
+	{
+		theApp->mMode = 0;
+		theApp->mDifficulty = 1;
+		StartTestBoard(theApp);
+	}
+	Board* aBoard = theApp->mBoard;
+	if (aBoard == NULL)
+		return true;
+	Effect* anEffect = aBoard->mEffects->Add(aKind, true);
+	anEffect->mX = (double) anX;
+	anEffect->mY = (double) aY;
+	anEffect->mLife = aLife;
+	anEffect->mc0 = 0;
+	anEffect->m90 = aLayer != 0;
 	return true;
 }

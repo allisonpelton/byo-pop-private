@@ -21,6 +21,8 @@ namespace Sexy
 {
 
 class Board;
+class TalkingHead;
+class SpeechBubble;
 class LoadingScreen;
 class GameSelector;
 class Image;
@@ -84,11 +86,19 @@ public:
 
 	LoadingScreen*			mLoadingScreen;         // app+0x870
 	GameSelector*			mGameSelector;          // app+0x890
+	Dialog*					mHintDialog;            // app+0x874 the hint dialog opened last (nothing reads it)
 	Board*					mBoard;                 // app+0x598 the game in progress, null in the menu
+	TalkingHead*			mHead;                  // app+0x59c the announcer, made when the loading screen is done (0x42d360)
+	SpeechBubble*			mBubble;                // app+0x5a0 its (always invisible) speech bubble
+	bool					mWelcomed;              // app+0x85c the head has welcomed the player in the menu (once per run)
+	bool					mFirstGameHint;         // app+0x85d the first game of the run has been started with the head's words
+	int						mHeadCountdown;         // app+0x860 updates until the head says its first lines in a game (0 none)
 	int						mMode;                  // app+0x530 the chosen game mode (0 arcade, 1 classic, 2 strategy)
 	int						mDifficulty;            // app+0x534 the chosen difficulty (1 easy, 2 medium, 3 hard)
 	bool					mNoPopLink;             // app+0x548 the "NoPopLink" property
 	bool					mNoHints;               // app+0x549 an option of the Options dialog (0x4130b0): no hint arrow, no talking head
+	bool					mHintFlags[8];          // app+0x54a to +0x551 the hints that were shown (kept as HintsDisabledFlag%d)
+	SexyString				mLastScoreName;         // app+0x538 the name typed for the last high score (kept as LastScoreName)
 
 public:
 	RocketApp();
@@ -108,6 +118,8 @@ public:
 	virtual void			ButtonPress(int theId) override;
 	virtual void			ButtonDepress(int theId) override;
 	virtual bool			HandleScriptCommand(const ScriptCommand& theCommand) override;
+	virtual void			WriteToRegistry() override;                 // 0x42f2b0
+	virtual void			ReadFromRegistry() override;                // 0x42f4b0
 
 	// Helpers of the module (RocketManiaGame addresses in RocketApp.cpp)
 	bool					LoadImage(int theImageId);
@@ -117,6 +129,7 @@ public:
 
 	// the loading screen's play link was clicked (the original's slot 62)
 	virtual void			LoadingScreenDone();
+	void					CreateHead();           // 0x42d360
 	void					ShowGameSelector();     // 0x42e010
 
 	// the game modes (0 arcade, 1 classic, 2 strategy) and difficulties (1 easy to 3 hard, 0 none) and their texts,
@@ -136,27 +149,37 @@ public:
 	bool					ReadSavedGame(int theMode, int* theDifficulty, int* theScore, int* theLevel);  // 0x4036f0
 
 	// the first-time explanation of a mode (0x42d670); true when it opened a dialog, which starts the game when closed
-	bool					ShowModeHint(int theHint, bool theForce);
+	bool					ShowModeHint(int theHint, bool theContinuing);
 	void					StartBoard(bool theContinuing); // 0x42ea30
 
-	// the menu's lower buttons (the dialogs are not translated yet, the quit question is)
+	// the menu's lower buttons
 	void					ShowQuitDialog();       // 0x42e390
 	void					AddBoardButtons();      // 0x42d1a0 the Pause, Options and Quit buttons beside the board
 	void					RemoveBoardButtons();
+	void					DisableBoardButtons(bool theDisabled);  // 0x42d270
 	void					ShowPauseDialog();      // 0x42d820
 	void					QuitGame();             // 0x42e530
 	std::list<ButtonWidget*>	mBoardButtons;      // app+0x87c
-	void					ShowHighScores(bool theFromMenu);   // 0x42dcc0
+	void					ShowHighScores(int theOpenedFrom);  // 0x42dcc0 (0 after a game, 1 from the menu, 2 in a game, 3 from the options)
+	void					ShowRecordScore(const SexyString& theMessage);  // 0x42df40
 	void					ShowOptions(bool theFromMenu);      // 0x42de20
+	void					CenterDialog(Dialog* theDialog);    // 0x42e330
+	void					ShowCredits();                      // 0x42d760
 };
 
 enum DialogId
 {
 	DIALOG_GAME_OVER = 0,
+	DIALOG_OPTIONS = 1,
+	DIALOG_RECORD_SCORE = 3,
 	DIALOG_QUIT = 5,
+	DIALOG_CREDITS = 7,
 	DIALOG_HINT = 0xb,
 	DIALOG_DIFFICULTY = 0xc,
+	DIALOG_LEVEL_UP = 0xd,
+	DIALOG_HIGH_SCORES = 0xe,
 	DIALOG_CONTINUE = 0xf,
+	DIALOG_MESSAGE = 0x10,
 	DIALOG_REGISTER_TO_LOAD = 0x11
 };
 

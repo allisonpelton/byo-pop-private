@@ -3,6 +3,8 @@
 
 #include "Board.h"
 #include "RocketApp.h"
+#include "TalkingHead.h"
+#include "MusicInterface.h"
 #include "Compat2004.h"
 #include "Graphics.h"
 #include "MTRand.h"
@@ -18,8 +20,9 @@ static int Ftol(double theValue)
 }
 
 // 0x428780: the first board of the timed modes: every cell gets a new tile, again and again until no tiles connect the
-// left edge to the right one. (When the app's registered flag at app+0x549 is clear the original writes fixed tiles into
-// the first rows; the port is registered, so that part is left out.)
+// left edge to the right one. With the hints on (app+0x549, the Options hints checkbox, is clear) fixed tiles are written
+// over the generated ones in the last rows (two in the classic mode, three in the strategy mode) before each check, so the
+// first board is the same every time.
 void Board::F428780()
 {
 	int aLoops = 0;
@@ -48,6 +51,29 @@ void Board::F428780()
 				aPiece->m44 = aPiece->m4c = CellY(aRow);
 				aPiece->mType = 1;
 				aPiece->mMoving = false;
+			}
+		}
+		if (!mApp->mNoHints)
+		{
+			static const int sClassicKinds[12] = { 0, 0, 1, 1, 1, 1, 1, 1, 2, 0, 0, 0 };
+			static const int sClassicRotations[12] = { 1, 1, 3, 0, 2, 2, 1, 2, 2, 1, 1, 1 };
+			static const int sStrategyKinds[18] = { 1, 1, 1, 2, 0, 1, 0, 0, 1, 1, 1, 3, 1, 1, 2, 0, 0, 2 };
+			static const int sStrategyRotations[18] = { 3, 0, 3, 0, 2, 1, 1, 1, 3, 0, 2, 2, 1, 2, 2, 1, 1, 1 };
+			bool aClassic = mApp->mMode == 1;
+			const int* aKinds = aClassic ? sClassicKinds : sStrategyKinds;
+			const int* aRotations = aClassic ? sClassicRotations : sStrategyRotations;
+			int aFirstRow = aClassic ? 5 : 4;
+			for (int i = 0; i < (aClassic ? 2 : 3); i++)
+			{
+				for (int aColumn = 0; aColumn < mCols; aColumn++)
+				{
+					Piece* aPiece = mGrid[aFirstRow + i][aColumn];
+					if (aPiece != NULL)
+					{
+						aPiece->mKind = aKinds[i * 6 + aColumn];
+						aPiece->mRotation = aRotations[i * 6 + aColumn];
+					}
+				}
 			}
 		}
 		aLoops++;
@@ -148,9 +174,8 @@ void Board::F428ef0()
 		m34c--;
 }
 
-// 0x421f30: pauses (theOn) or resumes. Left out: the original's test of a flag in the app's object at app+0x598 for a
-// game that is not running, the music fades (app+0x2f4), the talking head (0x416e50) and the app's call 0x42d270 that
-// tells it the pause state.
+// 0x421f30: pauses (theOn) or resumes; the head goes down into its hole for the pause and up again after it, and the app's
+// call 0x42d270 tells the buttons the pause state.
 void Board::F421f30(bool theOn)
 {
 	if (mState != 0 && mApp->mBoard->m100 == 0)
@@ -164,10 +189,20 @@ void Board::F421f30(bool theOn)
 	if (m350 < 1)
 	{
 		if (0 < anOld)
+		{
 			m368 = (int) SDL_GetTicks();
+			mApp->mMusicInterface->FadeIn(SONG_GAME, -1, 0.666, false);
+			mApp->mHead->StartSlide(true, 0);
+			mApp->DisableBoardButtons(false);
+		}
 	}
 	else if (anOld <= 0)
+	{
 		m360 = m360 + ((int) SDL_GetTicks() - m368) / 1000;
+		mApp->mMusicInterface->FadeOut(SONG_GAME, false, 0.008);
+		mApp->mHead->StartSlide(false, 0);
+		mApp->DisableBoardButtons(true);
+	}
 	MarkDirty();
 }
 
@@ -195,7 +230,7 @@ void Board::MouseMove(int x, int y)
 }
 
 // 0x4283e0. Arcade mode takes the tile under the pointer (a click at the top strip drops more tiles; the turn happens on
-// release); the other modes turn the tile at once. Left out: a click on the talking head (0x416a80).
+// release); the other modes turn the tile at once. A click at the lower left, where the head stands, fades its bubble.
 void Board::MouseDown(int x, int y, int theClickCount)
 {
 	if (theClickCount < 0)
@@ -233,6 +268,8 @@ void Board::MouseDown(int x, int y, int theClickCount)
 		if (aPiece != NULL && (aPiece->mType == 1 || (aPiece->mType == 4 && m2f4 == 0)))
 			RotatePiece(aPiece, 0 < theClickCount);
 	}
+	if (-1 < x && x < 0x88 && 0xf9 < y && y < 0x1dc)
+		mApp->mHead->HideBubble();
 }
 
 // 0x428520: arcade mode turns the tile that the pointer was pressed on when it is released on the same tile (unless it
