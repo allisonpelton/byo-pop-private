@@ -11,6 +11,7 @@
 #include "SexyAppBase.h"
 #ifdef __EMSCRIPTEN__
 #include "SiteProfiles.h"
+#include "WebSettings.h"
 #endif
 
 #include <cmath>
@@ -414,6 +415,11 @@ int App::Init()
 {
 	// the arrow keys repeat (0x4b, 0x4d and their extended codes)
 	uint32_t aRepeatMask[8] = {0, 0, 0x2800, 0, 0, 0, 0x2800, 0};
+#ifdef __EMSCRIPTEN__
+	// the site's "Full screen at start: Windowed" (framework/WebSettings.h): the game's own option, as its check box sets it
+	if (Byopop::SiteWindowed())
+		gFullScreen = 0;
+#endif
 	char aResult = lowos::InitScreen(1, OnActivate, OnClose, OnSwitch, OnRestore, GTC(0x0046ee40),
 		2 - (gFullScreen != 0), 3);
 	if (aResult == 0)
