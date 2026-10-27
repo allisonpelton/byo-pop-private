@@ -2,6 +2,7 @@
 
 #include <SDL.h>
 
+#include "BattleEngine.h"
 #include "BookManager.h"
 #include "CurtainTransition.h"
 #include "Font.h"
@@ -27,11 +28,6 @@ using namespace Sexy;
 namespace {
 
 const char* const kIdleLabel = "idle";
-
-// the secret words (and the names of the animations Lex does for them)
-const unsigned int kSecretWords[] = {GTA(0x6fc908), GTA(0x6fc8fc), GTA(0x6fc8f4), GTA(0x6fc8ec),
-                                     GTA(0x6fc8e0), GTA(0x6fc8d8), GTA(0x6fc8d0)};
-const int kNumSecretWords = (int)(sizeof(kSecretWords) / sizeof(kSecretWords[0]));
 
 // The words that can be typed on the menu (0x46deb0, in the order of its switch) and what each does: the animation Lex
 // plays for it (none for some), the text the scripts keep it by (main.SecretUnlocked) and the hat it puts on Lex
@@ -270,7 +266,7 @@ MainMenu::MainMenu(GameApp* theApp, bool theFromTitle)
 	}
 	LoadPopAnims(true);
 	MakeTooltips(GT(0x6fcb40));
-	mApp->PlayMenuSong();  // (0x468d46: the song of the book on the map, with no look at the no-music flag)
+	// (the constructor plays no music: ShowMainMenu does, 0x43e240, unless the no-music flag is set)
 
 	// "(Click here to change users)" under the name
 	mChangeUserLink = new HyperlinkWidget(1, this);
@@ -433,6 +429,7 @@ void MainMenu::RefreshUnlocks()
 	mExpansionAvailable = mAdventureAvailable && mApp->mTotalBooks > 3;
 	// (the tome's text is not the constructor's here, as in the original)
 	MakeTooltips(GT(0x6fcc70));
+	mApp->PlayMenuSong();  // 0x468d46: the song of the current player's book (1, 4 or 7), with no look at the no-music flag
 	LoadPopAnims(false);
 }
 
@@ -565,11 +562,13 @@ void MainMenu::KeyChar(SexyChar theChar)
 			if (mItems[anItem]->mPopAnim != nullptr)
 				mItems[anItem]->mPopAnim->PlayLabel("unlocked");
 	}
-	// port: the original also wanted no hall of fame (the app's +0x89c), nothing at the app's +0x8a0, +0x82c
-	// and +0x948, no conversation panel and no cheat console (none of them is ported yet), and the full game's
-	// marketing mode, which the port always is
-	if (mApp->mHallOfFame != nullptr || mDisabled || SDL_strcasecmp(mLex->mLabel.c_str(), kIdleLabel) != 0 ||
-	    mApp->GetDialogCount() != 0 || mApp->mBookScreen != nullptr)
+	// 0x46deb0: no hall of fame (the app's +0x8d8), no credits (+0x8dc), not disabled, Lex on "idle", no dialogs (+0x32c),
+	// no stats book (+0x868), no board (+0x984), no battle engine (gBattleEngine, 0x7870a4) and no conversation panel
+	// showing (0x446370)
+	if (mApp->mHallOfFame != nullptr || mApp->mCredits != nullptr || mDisabled ||
+	    SDL_strcasecmp(mLex->mLabel.c_str(), kIdleLabel) != 0 || mApp->GetDialogCount() != 0 ||
+	    mApp->mBookScreen != nullptr || mApp->mBoard != nullptr || gBattleEngine != nullptr ||
+	    mApp->ShowingConversationPanel())
 		return;
 	mTypedKeys += (char)theChar;
 	mTypedKeys = StringToUpper(mTypedKeys);
@@ -616,17 +615,18 @@ void MainMenu::KeyChar(SexyChar theChar)
 
 void MainMenu::AppLostFocus()
 {
-	// V1:0x47d940: redrawn; Lex idles, unless he is at one of the secret words' animations (the labels are the words)
+	// 0x46dd80: redrawn; Lex idles, unless he is at one of the typed words' animations (the labels are the words; the
+	// loop is over all ten words, the last three have no animation)
 	MarkDirtyFull();
 	bool aFound = false;
-	const unsigned int* aWord = kSecretWords;
+	const TypedWord* aWord = kTypedWords;
 	do {
 		if (aFound)
 			return;
-		if (SDL_strcasecmp(mLex->mLabel.c_str(), GT(*aWord).c_str()) == 0)
+		if (SDL_strcasecmp(mLex->mLabel.c_str(), GT(aWord->mWord).c_str()) == 0)
 			aFound = true;
 		aWord++;
-	} while (aWord < kSecretWords + kNumSecretWords);
+	} while (aWord < kTypedWords + kNumTypedWords);
 	if (!aFound)
 		mLex->PlayLabel(kIdleLabel);
 }

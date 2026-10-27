@@ -60,8 +60,8 @@ const TileDef kTileDefs[] = {
 
 }  // namespace
 
-// V1:0x434ef0: the tags the file has, the picture and the fonts of the screen, then the file; the band that shows the
-// credits opens from its middle (y 302), as Lex's music (song 0x4e) begins
+// 0x42c160: the tags the file has, the picture and the fonts of the screen, then the file; the band that shows the
+// credits opens from its middle (y 302)
 Credits::Credits()
 	: mCurSection(nullptr), mLex(nullptr), mSectionIndex(0), mNextAnimId(0), mFadeAlpha(0), mFadeStep(3),
 	  mClipY(302), mClipHeight(0), mState(STATE_NONE), mLexX(-120), mLexY(-150), mTileAlpha(0), mFinaleTime(0),
