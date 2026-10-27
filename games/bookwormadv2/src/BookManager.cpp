@@ -30,7 +30,7 @@ BookManager::~BookManager()
 	RemoveAllWidgets(true, true);
 }
 
-// The original registered the class in the constructor (0x42b6f0), every time
+// The original registered the class in the constructor (V1:0x42b6f0), every time
 void BookManager::RegisterLua()
 {
 	static bool sRegistered = false;

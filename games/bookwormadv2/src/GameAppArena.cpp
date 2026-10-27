@@ -14,7 +14,7 @@ using namespace Sexy;
 
 static void TimedModeTSTransitionCallback(void* theApp)
 {
-	// 0x451450: once the curtain is closed, the treasure screen as the checkpoint, over the hidden board
+	// V1:0x451450: once the curtain is closed, the treasure screen as the checkpoint, over the hidden board
 	GameApp* app = (GameApp*)theApp;
 	app->mTreasureScreen->SetVisible(true);
 	app->mTreasureScreen->SetDisabled(false);
@@ -30,7 +30,7 @@ static void TimedModeTSTransitionCallback(void* theApp)
 
 void GameApp::DoTimedModeTSTransition()
 {
-	// 0x4513b0
+	// V1:0x4513b0
 	DoFullCurtainTransition("");
 	mCurtainCallback = TimedModeTSTransitionCallback;
 	mCurtainCallbackObject = this;
@@ -38,7 +38,7 @@ void GameApp::DoTimedModeTSTransition()
 
 void GameApp::EnableBoardForTMCheckpointContinuation()
 {
-	// 0x4515a0: the board again, under the curtain, after the checkpoint
+	// V1:0x4515a0: the board again, under the curtain, after the checkpoint
 	mBoard->mVisible = true;
 	mBoard->mDisabled = false;
 	mWidgetManager->BringToFront(mBoard);
@@ -48,14 +48,14 @@ void GameApp::EnableBoardForTMCheckpointContinuation()
 
 void GameApp::DoArenaWinDialog(bool theFirstTime, const std::string& theCallback)
 {
-	// 0x4519e0: no pause or muting of the board, as DoOkDialog has
+	// V1:0x4519e0: no pause or muting of the board, as DoOkDialog has
 	AddDialog(new ArenaWinDialog(theFirstTime, theCallback));
 }
 
 void GameApp::SetArenaWinStats(const std::string& theTime, const std::string& thePotions, const std::string& theWords,
                                const std::string& theLevel, const std::string& theAverageWordLength)
 {
-	// 0x451a80
+	// V1:0x451a80
 	ArenaWinDialog* aDialog = dynamic_cast<ArenaWinDialog*>(GetDialog(DIALOG_ARENA_WIN));
 	// port: the original did not check for the dialog (the scripts call DoArenaWinDialog first)
 	if (aDialog != nullptr)

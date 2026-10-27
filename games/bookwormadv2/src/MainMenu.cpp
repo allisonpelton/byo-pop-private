@@ -616,7 +616,7 @@ void MainMenu::KeyChar(SexyChar theChar)
 
 void MainMenu::AppLostFocus()
 {
-	// 0x47d940: redrawn; Lex idles, unless he is at one of the secret words' animations (the labels are the words)
+	// V1:0x47d940: redrawn; Lex idles, unless he is at one of the secret words' animations (the labels are the words)
 	MarkDirtyFull();
 	bool aFound = false;
 	const unsigned int* aWord = kSecretWords;
@@ -1026,7 +1026,7 @@ void MainMenu::FillUserList()
 
 bool MainMenu::IsUserNameFree(const std::string& theName)
 {
-	// 0x47d200: the names are compared in capitals
+	// V1:0x47d200: the names are compared in capitals
 	if (theName.empty())
 		return false;
 	std::string aName = StringToUpper(theName);
@@ -1045,7 +1045,7 @@ bool MainMenu::IsUserNameFree(const std::string& theName)
 
 bool MainMenu::TakeNewUser(const std::string& theName)
 {
-	// 0x47d390
+	// V1:0x47d390
 	if (!theName.empty()) {
 		if (!IsUserNameFree(theName)) {
 			mApp->DoOkDialog(GT(0x6f701c), StrFormat(GT(0x6fd050).c_str(), theName.c_str()), "", nullptr);
@@ -1053,7 +1053,7 @@ bool MainMenu::TakeNewUser(const std::string& theName)
 		}
 		FillUserList();
 		mApp->KillDialog(GameApp::DIALOG_USER_SELECTION);
-		// (the original has 0x47d510 here in line)
+		// (the original has V1:0x47d510 here in line)
 		StartIntroIfNew();
 		mApp->ClearUpdateBacklog(false);
 	}
@@ -1062,7 +1062,7 @@ bool MainMenu::TakeNewUser(const std::string& theName)
 
 bool MainMenu::StartIntroIfNew()
 {
-	// 0x47d510
+	// V1:0x47d510
 	if (!mApp->HasPlayedGameBefore()) {
 		mFromTitle = false;
 		mApp->StartIntro(1);

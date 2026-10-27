@@ -33,7 +33,7 @@ Checkbox* Sexy::MakeCheckbox(int theId, CheckboxListener* theListener)
 
 namespace {
 
-// 0x4be680 (GameDialog::Layout's too, for the Dialog's own buttons, which the port makes FadeButtons): the game's
+// 0x49f610 (GameDialog::Layout's too, for the Dialog's own buttons, which the port makes FadeButtons): the game's
 // look for a DialogButton: label white and yellow while lit, a click moves it a pixel, the label two pixels up, the
 // cels of its picture side by side (normal, lit, pressed and, with a fourth, disabled)
 void SetupDialogButton(DialogButton* theButton, Font* theFont)
@@ -75,7 +75,7 @@ DialogButton* Sexy::MakeDialogButton(ButtonListener* theListener, const std::str
 	return aButton;
 }
 
-// 0x4842e0: dialog 1 with a footer button that continues the battle (or closes), and the controls, which show the
+// V1:0x4842e0: dialog 1 with a footer button that continues the battle (or closes), and the controls, which show the
 // app's settings
 OptionsDialog::OptionsDialog(bool theHasBoard)
 	: GameDialog(GameApp::DIALOG_OPTIONS, _S(""), _S(""), theHasBoard ? GT(0x6fdee0) : GT(0x6fd4ac),
@@ -107,7 +107,7 @@ OptionsDialog::OptionsDialog(bool theHasBoard)
 	mButton1->mLabelOffsetY = -2;
 }
 
-// 0x484780: the controls go with it (the dialog only takes them out of the manager)
+// 0x474750: the controls go with it (the dialog only takes them out of the manager)
 OptionsDialog::~OptionsDialog()
 {
 	delete mMusicSlider;
@@ -137,7 +137,7 @@ int OptionsDialog::ContentTop() const
 
 int OptionsDialog::GetPreferredHeight(int theWidth)
 {
-	// 0x484a80: room for the footer button's two rows and for each control that shows
+	// 0x474a50: room for the footer button's two rows and for each control that shows
 	mExtraHeight = IMAGE_DIALOG_BUTTON->mHeight * 2 + 40;
 	if (mMusicSlider->mVisible)
 		mExtraHeight += mMusicSlider->mHeight;
@@ -154,7 +154,7 @@ int OptionsDialog::GetPreferredHeight(int theWidth)
 
 void OptionsDialog::AddedToManager(WidgetManager* theWidgetManager)
 {
-	// 0x484b30: the buttons go in as the GameDialog's, then the controls
+	// 0x474b00: the buttons go in as the GameDialog's, then the controls
 	GameDialog::AddedToManager(theWidgetManager);
 	theWidgetManager->AddWidget(mMusicSlider);
 	theWidgetManager->AddWidget(mSoundSlider);
@@ -169,7 +169,7 @@ void OptionsDialog::AddedToManager(WidgetManager* theWidgetManager)
 
 void OptionsDialog::RemovedFromManager(WidgetManager* theWidgetManager)
 {
-	// 0x484bf0
+	// 0x474bc0
 	GameDialog::RemovedFromManager(theWidgetManager);
 	theWidgetManager->RemoveWidget(mMusicSlider);
 	theWidgetManager->RemoveWidget(mSoundSlider);
@@ -184,7 +184,7 @@ void OptionsDialog::RemovedFromManager(WidgetManager* theWidgetManager)
 
 void OptionsDialog::Resize(int theX, int theY, int theWidth, int theHeight)
 {
-	// 0x484890: the sliders at the top, the checkboxes in two columns under them (full screen and 3-D on the
+	// 0x474860: the sliders at the top, the checkboxes in two columns under them (full screen and 3-D on the
 	// left, cursors and letter values on the right, then the tooltips), then the Credits button and the footer
 	// button side by side
 	GameDialog::Resize(theX, theY, theWidth, theHeight);
@@ -209,7 +209,7 @@ void OptionsDialog::Resize(int theX, int theY, int theWidth, int theHeight)
 
 void OptionsDialog::Draw(Graphics* g)
 {
-	// 0x484cb0: the sliders' names and the checkboxes' between the two dividers
+	// 0x474c80: the sliders' names and the checkboxes' between the two dividers
 	GameDialog::Draw(g);
 	g->SetFont(FONT_LARGE);
 	g->SetColor(GetColor(COLOR_LINES));
@@ -225,7 +225,7 @@ void OptionsDialog::Draw(Graphics* g)
 	g->DrawImage(IMAGE_DIALOG_DIVIDER_BOT, 80, 325);
 }
 
-// 0x4be910: a checkbox's name to its right, in the font the graphics has, as wide as the name (a line)
+// 0x49f890: a checkbox's name to its right, in the font the graphics has, as wide as the name (a line)
 void OptionsDialog::DrawBoxLabel(Graphics* g, const SexyString& theLabel, Checkbox* theBox)
 {
 	if (!theBox->mVisible)
@@ -240,13 +240,13 @@ void OptionsDialog::DrawBoxLabel(Graphics* g, const SexyString& theLabel, Checkb
 
 void OptionsDialog::ButtonPress(int theId)
 {
-	// 0x4853b0
+	// 0x480930
 	mApp->PlaySample(SOUND_CLICK1);
 }
 
 void OptionsDialog::ButtonDepress(int theId)
 {
-	// 0x4853d0: the footer button is the Dialog's (it ends the options); the Credits button starts the credits
+	// 0x475380: the footer button is the Dialog's (it ends the options); the Credits button starts the credits
 	Dialog::ButtonDepress(theId);
 	if (mCreditsButton != nullptr && theId == mCreditsButton->mId) {
 		mCreditsButton->SetDisabled(true);
@@ -256,7 +256,7 @@ void OptionsDialog::ButtonDepress(int theId)
 
 void OptionsDialog::SliderVal(int theId, double theVal)
 {
-	// 0x485050: the volume follows the slider; the sound effects' slider plays a sample (unless it is being dragged)
+	// 0x475020: the volume follows the slider; the sound effects' slider plays a sample (unless it is being dragged)
 	if (theId == ID_MUSIC)
 		mApp->SetMusicVolume(theVal);
 	else if (theId == ID_SOUND) {
@@ -268,7 +268,7 @@ void OptionsDialog::SliderVal(int theId, double theVal)
 
 void OptionsDialog::CheckboxChecked(int theId, bool checked)
 {
-	// 0x4850c0
+	// 0x475090
 	switch (theId) {
 	case ID_FULLSCREEN:
 		if (mApp->mForceFullscreen && !checked) {

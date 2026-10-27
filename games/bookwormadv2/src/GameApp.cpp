@@ -38,7 +38,7 @@ using namespace Sexy;
 
 GameApp* Sexy::gApp = nullptr;
 
-// The game's resource manager (vtable 0x7b4dbc): a LuaResourceManager, its two overrides compiled copies of the
+// The game's resource manager (vtable 0x703474): a LuaResourceManager, its two overrides compiled copies of the
 // base's (the destructor and ResourceLoadedHook)
 class CustomResManager : public LuaResourceManager {
 public:
@@ -125,7 +125,7 @@ void GameApp::Init()
 
 	mTitleScreen = new TitleScreen(this);
 	if (!mTitleScreen->InitLoadingScreen()) {
-		// the original's message (GT 0x7acbc8) asked the player to reinstall the game
+		// the original's message (GT V1:0x7acbc8) asked the player to reinstall the game
 		Popup(GT(0x6fac00));
 		Shutdown();
 		return;
@@ -238,7 +238,7 @@ void StopUpdating(Widget* theWidget, bool isStopped)
 
 void GameApp::GotFocus()
 {
-	// 0x451230: the screens update again, unless the credits are up (they stopped the ones under them)
+	// V1:0x451230: the screens update again, unless the credits are up (they stopped the ones under them)
 	mCountsTime = true;
 	if (mCredits != nullptr)
 		StopUpdating(mCredits, false);
@@ -267,7 +267,7 @@ void GameApp::GotFocus()
 
 void GameApp::LostFocus()
 {
-	// 0x451160: the screens stop updating, unless the credits are up (they stopped the ones under them)
+	// V1:0x451160: the screens stop updating, unless the credits are up (they stopped the ones under them)
 	mCountsTime = false;
 	if (mCredits != nullptr)
 		StopUpdating(mCredits, true);
@@ -405,7 +405,7 @@ void GameApp::ButtonDepress(int theId)
 	int anId = theId % 10000;
 	if (anId >= 2000 && anId < 3000) {
 		int aDialogId = theId - 2000;
-		// 0x44adae: the battle's board takes the focus back first
+		// V1:0x44adae: the battle's board takes the focus back first
 		if (mBoard != nullptr)
 			mWidgetManager->SetFocus(mBoard);
 		// the pauses of the looping samples end: two for the ok and the question (both pause once more over a
@@ -468,7 +468,7 @@ void GameApp::ButtonDepress(int theId)
 				StartNewGameTransition();
 			break;
 		case DIALOG_TRIAL_COMPLETE:  // "buy now"
-			// port: the original asked the trial's window (0x44fdb0) and went on to its buy screen (0x451c20); the
+			// port: the original asked the trial's window (V1:0x44fdb0) and went on to its buy screen (V1:0x451c20); the
 			// port has no trial, so this dialog is never made
 			KillDialog(DIALOG_TRIAL_COMPLETE);
 			break;
@@ -479,7 +479,7 @@ void GameApp::ButtonDepress(int theId)
 		}
 	} else if (anId >= 3000 && anId < 4000) {
 		int aDialogId = theId - 3000;
-		// 0x44b20e: the battle's board takes the focus back first
+		// V1:0x44b20e: the battle's board takes the focus back first
 		if (mBoard != nullptr)
 			mWidgetManager->SetFocus(mBoard);
 		if (aDialogId == DIALOG_CONFIRM || aDialogId == DIALOG_OPTIONS || aDialogId == DIALOG_OK ||
@@ -497,7 +497,7 @@ void GameApp::ButtonDepress(int theId)
 			mProfile->ResetTimedMode();
 			StartNewGameTransition();
 		} else if (aDialogId == DIALOG_TRIAL_COMPLETE) {
-			// port: the original went back to the main menu unless the trial's window (0x44fdb0) said the game was
+			// port: the original went back to the main menu unless the trial's window (V1:0x44fdb0) said the game was
 			// bought; the port has none
 			StartToMenuTransition();
 		} else if (aDialogId == DIALOG_CONTINUE_ADVENTURE) {
@@ -705,7 +705,7 @@ void GameApp::LoadingThreadCompleted()
 	mConversationPanel->Resize(0, 0, mWidth, mHeight);
 	mConversationPanel->SetDisabled(true);
 	mConversationPanel->SetVisible(false);
-	// the tutorial's arrows (0x40b2c0), over the whole screen and linked to a Lua object of their own
+	// the tutorial's arrows (V1:0x40b2c0), over the whole screen and linked to a Lua object of their own
 	mArrowHintManager = new ArrowHintManager(this);
 	mWidgetManager->AddWidget(mArrowHintManager);
 	mArrowHintManager->Resize(0, 0, mWidth, mHeight);
@@ -854,7 +854,7 @@ void GameApp::ShowUnlockMessages()
 			mConversationPanel->Activate(false);
 			mWidgetManager->PutInfront(mConversationPanel, mMainMenu);
 			mConversationPanel->mOnInactive = [this]() {
-				// 0x44d340
+				// V1:0x44d340
 				if (mTitleToMainMenu) {
 					mTitleToMainMenu = false;
 					mMainMenu->PlayReaction(MainMenu::REACTION_WELCOME);
@@ -1049,7 +1049,7 @@ void GameApp::CurtainDone()
 		mFullCurtain = false;
 		if (mTitleToMainMenu && !ShowingConversationPanel()) {
 			mTitleToMainMenu = false;
-			mMainMenu->PlayReaction(MainMenu::REACTION_WELCOME);  // 0x44d340
+			mMainMenu->PlayReaction(MainMenu::REACTION_WELCOME);  // V1:0x44d340
 		}
 		break;
 
@@ -1601,12 +1601,12 @@ void GameApp::ReturnToChapterSelect(bool theLexWon, bool theFromOptions, bool th
 {
 	mProfile->Save();
 	if (mArrowHintManager != nullptr)
-		mArrowHintManager->DeleteAllArrowHints();  // 0x40beb0
+		mArrowHintManager->DeleteAllArrowHints();  // V1:0x40beb0
 	LuaLib::CallLua("PAMAnimator.CleanUp", 0);
 	FreeChapterResources();
 	mPopAnimManager->DeleteClones();
 	CleanSharedImages();
-	RemoveAllTooltips();  // 0x44c1a0
+	RemoveAllTooltips();  // V1:0x44c1a0
 	if (mBoard != nullptr) {
 		mWidgetManager->RemoveWidget(mBoard);
 		Unmute(true);
@@ -1875,6 +1875,6 @@ void GameApp::StartBattle()
 	}
 	mBoard->Init();
 	mWidgetManager->SetFocus(mBoard);
-	// port: the original then freed the images' extra buffers (0x5492a0, and the resource manager's 0x575cd0 for
+	// port: the original then freed the images' extra buffers (0x556410, and the resource manager's V1:0x575cd0 for
 	// every group); the port's images keep none
 }

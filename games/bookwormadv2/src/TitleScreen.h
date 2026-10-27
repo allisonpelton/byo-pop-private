@@ -1,5 +1,5 @@
-// Sexy::TitleScreen (0x15c bytes, constructor 0x49e1f0, vtable 0x7b1224; its PopAnimListener part at +0x88 has
-// the vtable 0x7b1340): the PopCap logo fading in and out, the curtain closing, then the loading screen: the
+// Sexy::TitleScreen (0x15c bytes, constructor V1:0x49e1f0, vtable 0x6ff98c; its PopAnimListener part at +0x88 has
+// the vtable 0x6ffaa8): the PopCap logo fading in and out, the curtain closing, then the loading screen: the
 // game's logo slides down while Lex eats the tiles of "LOADING" as the resources load, and walks off to the
 // right when they are done (then GameApp::TitleScreenDone).
 #pragma once
@@ -56,18 +56,18 @@ public:
 	explicit TitleScreen(GameApp* theApp);
 	~TitleScreen() override;
 
-	// 0x49e8c0: makes the tiles and loads Lex; false when his animation cannot be loaded
+	// V1:0x49e8c0: makes the tiles and loads Lex; false when his animation cannot be loaded
 	bool InitLoadingScreen();
 
-	void Update() override;           // 0x49ee70
-	void Draw(Graphics* g) override;  // 0x49f670
+	void Update() override;           // 0x48a150
+	void Draw(Graphics* g) override;  // 0x48a940
 
-	// PopAnimListener: Lex ate a tile (0x49f530)
+	// PopAnimListener: Lex ate a tile (0x48a800)
 	void PopAnimStopped(int theId) override;
 
 private:
-	void StartCurtain();    // 0x49f4c0
-	void CurtainClosed();   // 0x49f500, called by the app when the curtain is closed
+	void StartCurtain();    // V1:0x49f4c0
+	void CurtainClosed();   // V1:0x49f500, called by the app when the curtain is closed
 	static void CurtainClosedCallback(void* theTitleScreen);
 };
 

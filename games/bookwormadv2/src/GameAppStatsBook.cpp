@@ -23,7 +23,7 @@ static void ShowMediaPlayerCallback(void* theApp)
 
 void GameApp::AddStatsBook(bool theFromGame, bool theBestiary, bool theMediaPlayer)
 {
-	// 0x444150
+	// V1:0x444150
 	if (theFromGame || (!theBestiary && !theMediaPlayer)) {
 		// at once (port: the original's third flag is always off here)
 		StatsBook* aBook = new StatsBook(this, theFromGame, theBestiary, false);
@@ -48,7 +48,7 @@ void GameApp::AddStatsBook(bool theFromGame, bool theBestiary, bool theMediaPlay
 
 void GameApp::ShowTome()
 {
-	// 0x444310
+	// V1:0x444310
 	StatsBook* aBook = new StatsBook(this, false, true, false);
 	mBookScreen = aBook;
 	aBook->CreateLinkedObject(aBook);
@@ -58,7 +58,7 @@ void GameApp::ShowTome()
 
 void GameApp::ShowMediaPlayer()
 {
-	// 0x4443c0
+	// V1:0x4443c0
 	StatsBook* aBook = new StatsBook(this, false, false, true);
 	mBookScreen = aBook;
 	aBook->CreateLinkedObject(aBook);
@@ -68,7 +68,7 @@ void GameApp::ShowMediaPlayer()
 
 static void RemoveStatsBookCallback(void* theApp)
 {
-	// 0x444570: the curtain is closed
+	// V1:0x444570: the curtain is closed
 	GameApp* anApp = static_cast<GameApp*>(theApp);
 	anApp->mWidgetManager->RemoveWidget(anApp->mBookScreen);
 	anApp->SafeDeleteWidget(anApp->mBookScreen);
@@ -77,7 +77,7 @@ static void RemoveStatsBookCallback(void* theApp)
 
 void GameApp::RemoveStatsBook()
 {
-	// 0x444470
+	// 0x439220
 	StatsBook* aBook = static_cast<StatsBook*>(mBookScreen);
 	if (!aBook->mFromGame && (aBook->mBestiary || aBook->mMediaPlayer)) {
 		DoFullCurtainTransition("");

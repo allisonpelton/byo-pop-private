@@ -1,7 +1,7 @@
-// The tutorial's arrows: Sexy::ArrowHint (0x118 bytes, constructor 0x402b90, vtables 0x7a9aa0 and 0x7a9ac8; code
-// 0x4029e0-0x404ff0), Sexy::ArrowHintManager (0x100 bytes, constructor 0x40b2c0, vtable 0x7aa354; code
-// 0x40b230-0x40c200) and the manager's Sexy::MouseWidget (0x9c bytes, constructor 0x481f60, vtable 0x7af5fc; code
-// 0x481f60-0x482540).
+// The tutorial's arrows: Sexy::ArrowHint (0x118 bytes, constructor 0x402460, vtables 0x6f6eb8 and 0x6f6ee0; code
+// 0x629be0-0x4047a0), Sexy::ArrowHintManager (0x100 bytes, constructor V1:0x40b2c0, vtable 0x6f776c; code
+// V1:0x40b230-V1:0x40c200) and the manager's Sexy::MouseWidget (0x9c bytes, constructor V1:0x481f60, vtable 0x6fda6c; code
+// V1:0x481f60-0x472ab0).
 //
 // An ArrowHint is a bubble of text with an arrow that points at something of the screen. Its short text ("mouse
 // over for details...") grows into its lines when the mouse comes over it; its arrow glows with the pulse all the
@@ -71,50 +71,50 @@ public:
 	LuaFont* mLuaFont = nullptr;         // +0x114
 	int mState = STATE_SHOWING;          // the state machine's current state (+0x44 points at its State)
 
-	ArrowHint(ArrowHintManager* theManager, int theId);  // 0x402b90
-	~ArrowHint() override;                                // 0x403200
+	ArrowHint(ArrowHintManager* theManager, int theId);  // 0x402460
+	~ArrowHint() override;                                // 0x402ad0
 
-	const char* LuaGetRegisteredName() override { return "ArrowHint"; }  // 0x402a20
+	const char* LuaGetRegisteredName() override { return "ArrowHint"; }  // 0x402370
 	// The original registered the class in the constructor, every time
 	static void RegisterLua();
 
 	// ---- the manager's calls ----
-	// 0x4035f0: the current state's update, then the time running out; true when the hint is done (the manager
+	// V1:0x4035f0: the current state's update, then the time running out; true when the hint is done (the manager
 	// deletes it)
 	bool Update();
-	void Draw(Graphics* g);  // 0x4036c0 (every state's draw)
-	// 0x404300: a click at (x, y), theLeft for the left button. In STATE_SHOWING, the first hot spot it is in (the
+	void Draw(Graphics* g);  // V1:0x4036c0 (every state's draw)
+	// 0x403ba0: a click at (x, y), theLeft for the left button. In STATE_SHOWING, the first hot spot it is in (the
 	// bubble with the lines only while they are up) calls the callback and sends the hint to STATE_FADE_OUT.
 	// True when it did.
 	bool Click(int x, int y, bool theLeft);
-	// 0x404a20: the mouse is at (x, y): the lines come up while it is over the bubble (or an over spot) and go
+	// 0x4042c0: the mouse is at (x, y): the lines come up while it is over the bubble (or an over spot) and go
 	// again when it leaves. Returns mShowLong.
 	bool UpdateHover(int x, int y);
-	// 0x4044a0: (x, y) is over the bubble or its arrow (the manager's GetArrowHint)
+	// 0x403d40: (x, y) is over the bubble or its arrow (the manager's GetArrowHint)
 	bool HitTest(int x, int y);
-	// 0x4049a0: (x, y) is in one of the over spots
+	// 0x404240: (x, y) is in one of the over spots
 	bool InOverSpot(int x, int y);
-	// 0x404b90: where the arrow's picture is (mX, mY, and a cel's size)
+	// 0x404390: where the arrow's picture is (mX, mY, and a cel's size)
 	Rect GetArrowRect();
-	// 0x6acc40: to another state, when the machine allows that (0 to 1, 1 to 2, 1 to 3, 2 to 3); false when not
+	// 0x4ab120: to another state, when the machine allows that (0 to 1, 1 to 2, 1 to 3, 2 to 3); false when not
 	bool ChangeState(int theState);
 
 	// ---- the scripts' methods ----
-	void AddText(std::string theText);         // 0x403c60
-	void SetFont(LuaFont* theFont);            // 0x4033b0
-	void SetCallback(std::string theFunction)  { mCallback = theFunction; }  // 0x402a70
-	// 0x402a40: for every hint: the glow's brightness runs between theMin and theMax, theDelta each update, from theStart
+	void AddText(std::string theText);         // V1:0x403c60
+	void SetFont(LuaFont* theFont);            // V1:0x4033b0
+	void SetCallback(std::string theFunction)  { mCallback = theFunction; }  // V1:0x402a70
+	// V1:0x402a40: for every hint: the glow's brightness runs between theMin and theMax, theDelta each update, from theStart
 	void SetPulseValues(int theDelta, int theMin, int theMax, int theStart);
-	void SetDir(int theDir);                   // 0x404980: the arrow points that way
-	void SetHotSpot(int x, int y, int w, int h);   // 0x404250: (-1,-1,-1,-1): the bubble; (0,0,0,0): the screen
-	void AddOverSpot(int x, int y, int w, int h);  // 0x404d50
-	void SetExpirationTime(int theUpdates) { mExpiration = theUpdates; }  // 0x402ae0
-	void SetShortText(std::string theText);    // 0x403b80
-	int GetId() { return mId; }                // 0x402b60
-	void ClearText();                          // 0x404ad0: the lines and the short text
-	void DrawWhenDialogs(bool on) { mDrawWhenDialogs = on; }  // 0x402af0
-	void BlockMouseEvents();                   // 0x404c00
-	// 0x404580: theAnchorToTip false: the lines' bubble at (x, y); true: the arrow's tip at (x, y), the bubbles
+	void SetDir(int theDir);                   // V1:0x404980: the arrow points that way
+	void SetHotSpot(int x, int y, int w, int h);   // 0x403af0: (-1,-1,-1,-1): the bubble; (0,0,0,0): the screen
+	void AddOverSpot(int x, int y, int w, int h);  // 0x404550
+	void SetExpirationTime(int theUpdates) { mExpiration = theUpdates; }  // V1:0x402ae0
+	void SetShortText(std::string theText);    // V1:0x403b80
+	int GetId() { return mId; }                // V1:0x402b60
+	void ClearText();                          // V1:0x404ad0: the lines and the short text
+	void DrawWhenDialogs(bool on) { mDrawWhenDialogs = on; }  // V1:0x402af0
+	void BlockMouseEvents();                   // V1:0x404c00
+	// V1:0x404580: theAnchorToTip false: the lines' bubble at (x, y); true: the arrow's tip at (x, y), the bubbles
 	// placed beside it
 	void SetXY(int x, int y, bool theAnchorToTip);
 
@@ -128,11 +128,11 @@ public:
 	static int sFlashDelta;  // 0x8186b4
 
 private:
-	void SetState(int theState);  // 0x6acbb0: to a state, whatever the machine allows; calls its entry
+	void SetState(int theState);  // 0x4ab090: to a state, whatever the machine allows; calls its entry
 	void EnterState(int theState);
 	bool UpdateState();           // the current state's update (true: finished)
-	void FitToScreen();           // 0x4047d0: both bubbles kept on the 800 by 600 screen
-	// 0x408fc0: callback(theReason, id, hint, theLeft, theSpot)
+	void FitToScreen();           // 0x404070: both bubbles kept on the 800 by 600 screen
+	// 0x407180: callback(theReason, id, hint, theLeft, theSpot)
 	void CallCallback(int theReason, bool theLeft, int theSpot);
 };
 
@@ -143,18 +143,18 @@ public:
 	std::vector<Rect> mRects;    // +0x8c (vector at +0x88): the blocked rectangles
 	ArrowHintManager* mManager;  // +0x98
 
-	explicit MouseWidget(ArrowHintManager* theManager);  // 0x481f60 (no update, no draw, 800 by 600 at the manager's call)
-	// 0x482080: adds a rectangle unless it is there; true when it added it
+	explicit MouseWidget(ArrowHintManager* theManager);  // V1:0x481f60 (no update, no draw, 800 by 600 at the manager's call)
+	// V1:0x482080: adds a rectangle unless it is there; true when it added it
 	bool AddRect(const Rect& theRect);
-	// 0x482100: takes the first rectangle equal to theRect away
+	// V1:0x482100: takes the first rectangle equal to theRect away
 	void RemoveRect(const Rect& theRect);
-	// 0x4823a0: theRect overlaps one of the rectangles
+	// 0x4729b0: theRect overlaps one of the rectangles
 	bool IntersectsRects(const Rect& theRect) const;
 
 	using Widget::MouseDown;
-	void MouseDown(int x, int y, int theClickCount) override;  // 0x482200
-	void MouseMove(int x, int y) override;                     // 0x482260
-	bool IsPointVisible(int x, int y) override;                // 0x4822b0
+	void MouseDown(int x, int y, int theClickCount) override;  // 0x472810
+	void MouseMove(int x, int y) override;                     // 0x472870
+	bool IsPointVisible(int x, int y) override;                // 0x4728c0
 };
 
 class ArrowHintManager : public LuaWidget {
@@ -168,39 +168,39 @@ public:
 	bool mHintsDisabled = false;       // +0xf9: DisableArrowHints: no updates, clicks or mouse moves
 	MouseWidget* mMouseWidget;         // +0xfc
 
-	ArrowHintManager(GameApp* theApp);  // 0x40b2c0
-	~ArrowHintManager() override;       // 0x40b4c0
+	ArrowHintManager(GameApp* theApp);  // V1:0x40b2c0
+	~ArrowHintManager() override;       // 0x408070
 
-	const char* LuaGetRegisteredName() override { return "ArrowHintManager"; }  // 0x40b200
+	const char* LuaGetRegisteredName() override { return "ArrowHintManager"; }  // 0x407e10
 	// The original registered the class in the constructor, every time
 	static void RegisterLua();
 
-	// The board's call (0x40ba40; its +0xf8 is mDontDraw): a click at (x, y) with theClickCount (1 and 2 are the left
+	// The board's call (0x4085f0; its +0xf8 is mDontDraw): a click at (x, y) with theClickCount (1 and 2 are the left
 	// button), told to every hint
 	void Click(int x, int y, int theClickCount);
 
 	// ---- Widget ----
-	void AddedToManager(WidgetManager* theWidgetManager) override;      // 0x40b630: the mouse widget goes in too
-	void RemovedFromManager(WidgetManager* theWidgetManager) override;  // 0x40b600
-	void Update() override;                // 0x40b880: updates the hints, deletes those that are done
-	void Draw(Graphics* g) override;       // 0x40b7d0: asks for DrawOverlay, at mDrawPriority (not over the conversation panel)
-	void DrawOverlay(Graphics* g) override;  // 0x40b6f0: draws the hints (also called by the board)
-	void MouseMove(int x, int y) override;   // 0x40c070: the hints hear where the mouse is
+	void AddedToManager(WidgetManager* theWidgetManager) override;      // 0x4081e0: the mouse widget goes in too
+	void RemovedFromManager(WidgetManager* theWidgetManager) override;  // 0x4081b0
+	void Update() override;                // 0x408430: updates the hints, deletes those that are done
+	void Draw(Graphics* g) override;       // 0x408380: asks for DrawOverlay, at mDrawPriority (not over the conversation panel)
+	void DrawOverlay(Graphics* g) override;  // 0x4082a0: draws the hints (also called by the board)
+	void MouseMove(int x, int y) override;   // 0x408c70: the hints hear where the mouse is
 	using LuaWidget::MouseDown;
-	void MouseDown(int x, int y, int theClickCount) override;  // 0x40c030
-	bool IsPointVisible(int x, int y) override { return false; }  // 0x40b220
+	void MouseDown(int x, int y, int theClickCount) override;  // 0x408c30
+	bool IsPointVisible(int x, int y) override { return false; }  // 0x5576a0
 
 	// ---- the scripts' methods ----
-	// 0x40c110: a new hint with the number theId, unless there is one (null then); added to the list at the end
+	// 0x408d10: a new hint with the number theId, unless there is one (null then); added to the list at the end
 	// of a walk when it is made during one. theUnused is a boolean the scripts pass and the original ignores.
 	ArrowHint* AddArrowHint(int theId, bool theUnused);
-	void DeleteArrowHint(int theId);           // 0x40bc90 (an error message during a walk)
-	int GetArrowHint(int x, int y);            // 0x40bbe0: the number of the first hint (x, y) is over, -32767 for none
-	ArrowHint* GetArrowHintById(int theId);    // 0x40b660
-	void DeleteAllArrowHints();                // 0x40beb0
-	void DontDrawArrowHints(bool on) { mDontDraw = on; }         // 0x40b240
-	void DisableArrowHints(bool on) { mHintsDisabled = on; }     // 0x40b250
-	void SetDrawPriority(int thePriority) { mDrawPriority = thePriority; }  // 0x40b230
+	void DeleteArrowHint(int theId);           // V1:0x40bc90 (an error message during a walk)
+	int GetArrowHint(int x, int y);            // V1:0x40bbe0: the number of the first hint (x, y) is over, -32767 for none
+	ArrowHint* GetArrowHintById(int theId);    // 0x408210
+	void DeleteAllArrowHints();                // V1:0x40beb0
+	void DontDrawArrowHints(bool on) { mDontDraw = on; }         // V1:0x40b240
+	void DisableArrowHints(bool on) { mHintsDisabled = on; }     // V1:0x40b250
+	void SetDrawPriority(int thePriority) { mDrawPriority = thePriority; }  // V1:0x40b230
 
 	// True while the manager walks its hints (0x82592c): hints are then added to mPending and not deleted
 	static bool sWalking;

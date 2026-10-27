@@ -12,7 +12,7 @@ using namespace LuaLib;
 // dereferences the global without looking, as it only ever has tiles with an engine.
 
 // The Lua object's GetLetter gives a string; the scripts' cobj:GetLetter() gets the same back (the original's wrapper
-// pushed the char as a string of one character, 0x49cfb0)
+// pushed the char as a string of one character, 0x488b70)
 static std::string LuaGetLetter(Tile* theTile)
 {
 	char aLetter = theTile->GetLetter();

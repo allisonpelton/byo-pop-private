@@ -1,5 +1,5 @@
-// Sexy::Credits (0x158 bytes, constructor 0x434ef0; vtables 0x7abffc (its JeffLib::DataDrivenClass part, at +0),
-// 0x7ac00c (the Widget, at +0x60) and 0x7ac128 (the PopAnimListener, at +0xe8); code 0x434dc0-0x440e80): the
+// Sexy::Credits (0x158 bytes, constructor V1:0x434ef0; vtables 0x6f9fa0 (its JeffLib::DataDrivenClass part, at +0),
+// 0x6f9fb4 (the Widget, at +0x60) and 0x6fa0d0 (the PopAnimListener, at +0xe8); code 0x42c030-0x435e30): the
 // credits screen, which the options' Credits button shows and the end of the game ends with. It is read from
 // data/credits.xml, a list of credits. Each has its settings (a heading, the background: a PAM animation that
 // fades in over the black or a picture, how long to wait once everything has faded in, how fast it fades) and
@@ -16,7 +16,7 @@
 // game (mEndOfGame) Lex comes in first, a row of tiles thanks the player and Lex bows out in a flash of white
 // (UpdateFinale).
 //
-// Made and removed by GameApp (0x450d80 and 0x450e90, GameAppCredits.cpp).
+// Made and removed by GameApp (V1:0x450d80 and V1:0x450e90, GameAppCredits.cpp).
 //
 // port: the original read the XML with JeffLib::DataDrivenClass's loader (jefflib/DataDrivenClass.h) and so does
 // this; the reload hooks (slots 0 and 1) are ported, but nothing in the game calls them.
@@ -143,46 +143,46 @@ public:
 	bool mOpening;                      // +0x156: the band opens
 	bool mEndOfGame;                    // +0x157: the credits of the end of the game: with the finale, then the main menu
 
-	Credits();                          // 0x434ef0
-	~Credits() override;                // 0x435410 (0x435440)
+	Credits();                          // V1:0x434ef0
+	~Credits() override;                // 0x42c680 (0x42c6a0)
 
 	// DataDrivenClass: the data is read again (they run, in this order, around Load; nothing calls them)
-	void BeforeReload() override;       // 0x435b40
-	void AfterReload() override;        // 0x434dc0 (0x435760)
+	void BeforeReload() override;       // 0x42cee0
+	void AfterReload() override;        // 0x42c030 (0x42c9f0)
 
 	// Widget
-	void Update() override;                              // 0x436ec0
-	void UpdateF(float theFrac) override;                // 0x437c20
-	void Draw(Graphics* g) override;                     // 0x438220
+	void Update() override;                              // 0x42e640
+	void UpdateF(float theFrac) override;                // 0x42f4b0
+	void Draw(Graphics* g) override;                     // 0x42fb30
 	// a click anywhere (the middle button does nothing) ends the credits
-	void MouseUp(int x, int y, int theLastDownButtonId) override;  // 0x437cc0
+	void MouseUp(int x, int y, int theLastDownButtonId) override;  // 0x42f570
 
 	// PopAnimListener
-	void PopAnimStopped(int theId) override;             // 0x437d90
-	void PopAnimCommand(int theId, const std::string& theCommand, const std::string& theParam) override;  // 0x437fe0
+	void PopAnimStopped(int theId) override;             // 0x42f650
+	void PopAnimCommand(int theId, const std::string& theCommand, const std::string& theParam) override;  // 0x42f8f0
 
 private:
 	int mReloadSection;  // port: a global in the original (0x82594c): the credit that was showing when the data was reloaded
 
-	void FreeAnims();    // 0x4355b0: the animations go, and the credits read
-	// port: the animations of the credit that begins loaded (0x435876 in AfterReload and 0x437834 in Update)
+	void FreeAnims();    // 0x42c810: the animations go, and the credits read
+	// port: the animations of the credit that begins loaded (V1:0x435876 in AfterReload and V1:0x437834 in Update)
 	void PlaySectionLabels();
 	void LoadSectionAnims();
 
 	// The tags of the file
-	void StartCredit();                                       // 0x435b60: a new credit
-	void EndCredit();                                         // 0x435d10: its entries ordered, its columns centred
-	void ReadSettings(const AttributeList& theAttributes);    // 0x435ee0
-	void ReadEntry(const AttributeList& theAttributes);       // 0x436900: a name with its creature
-	void StartColumn();                                       // 0x436650
-	void EndColumn();                                         // 0x436790: its width and the height
-	void ReadColumnEntry(const AttributeList& theAttributes); // 0x436520: a name of the column
+	void StartCredit();                                       // V1:0x435b60: a new credit
+	void EndCredit();                                         // V1:0x435d10: its entries ordered, its columns centred
+	void ReadSettings(const AttributeList& theAttributes);    // V1:0x435ee0
+	void ReadEntry(const AttributeList& theAttributes);       // V1:0x436900: a name with its creature
+	void StartColumn();                                       // V1:0x436650
+	void EndColumn();                                         // V1:0x436790: its width and the height
+	void ReadColumnEntry(const AttributeList& theAttributes); // V1:0x436520: a name of the column
 
-	void DrawCreatures(Graphics* g);   // 0x438810: those that have come, by priority
-	void DrawText(Graphics* g);        // 0x4388f0: the heading, the names that fly and the columns
-	void UpdateTiles();                // 0x438c30: the tiles bob
-	void UpdateFinale();               // 0x438d40: Lex comes in at the end of the game
-	void MakeTiles();                  // 0x438f50: the letters of the thanks
+	void DrawCreatures(Graphics* g);   // 0x430180: those that have come, by priority
+	void DrawText(Graphics* g);        // 0x430260: the heading, the names that fly and the columns
+	void UpdateTiles();                // V1:0x438c30: the tiles bob
+	void UpdateFinale();               // 0x4306a0: Lex comes in at the end of the game
+	void MakeTiles();                  // V1:0x438f50: the letters of the thanks
 
 	Credits(const Credits&);
 	Credits& operator=(const Credits&);

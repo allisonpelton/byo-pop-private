@@ -24,6 +24,14 @@ functions, 3.03 MB of code. Where things are (survey 3.3): the game's C++ at 0x4
 Against Volume 1 (masked instruction streams, `tools/funcmatch.py`): 4,771 of Volume 2's 16,502 decompiled functions
 have a counterpart there; of the 529 functions at 0x659000-0x680000, where PopLua is, 252 do.
 
+The port's source began as Volume 1's, so the address comments in `src/` began as Volume 1's too. A plain `0x4xxxxx` in a
+comment is now a Volume 2 address: carried over from Volume 1's by those pairs, the pairs of the vtable slots of classes both
+games have, and the call lists of paired functions (the ones checked against the decompilation agree), or written for
+Volume 2 in the first place. `V1:0x4xxxxx` is a Volume 1 address that has no counterpart that was found: do not look it up
+in Volume 2's export. `docs/symbols/` holds the names that came over the same way (`tools/decread.py` and `tools/asm.py`
+read them). A comment's address only says where to look in Volume 2's export; it does not promise that the function is a
+line-for-line copy of it (`docs/PORT_PLAN.md` says which parts were read against Volume 2's decompilation).
+
 Volume 2 drops Volume 1's `CursorWidget`, `TextWidget`, `MoreGamesAd`, `FModSoundInstance` and two JeffLib developer
 dialogs, and adds `BookSelectScreen`, `EncodingParser`, `SecretListWidget` and `WinInetHTTPTransfer`. Its music is 10
 OGG files (`music/`), so it needs no tracker module; its dictionary has an attribute file

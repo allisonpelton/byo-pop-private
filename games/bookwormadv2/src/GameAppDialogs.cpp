@@ -27,7 +27,7 @@ using namespace Sexy;
 
 void GameApp::ShowGameMenu(bool theFromTreasure)
 {
-	// 0x4456a0: the tutorial's arrows hear a click where the mouse is, the battle holds (without its banner), the
+	// V1:0x4456a0: the tutorial's arrows hear a click where the mouse is, the battle holds (without its banner), the
 	// tooltip under the mouse goes, and the menu comes
 	if (mArrowHintManager != nullptr)
 		mArrowHintManager->Click(mWidgetManager->mLastMouseX, mWidgetManager->mLastMouseY, 1);
@@ -44,7 +44,7 @@ void GameApp::ShowGameMenu(bool theFromTreasure)
 
 void GameApp::ShowOptionsDialog()
 {
-	// 0x4455d0
+	// V1:0x4455d0
 	if (mBoard != nullptr) {
 		mBoard->Pause(true, true);
 		Unmute(true);
@@ -59,7 +59,7 @@ void GameApp::ShowOptionsDialog()
 
 void GameApp::CloseOptionsDialog(bool theApply)
 {
-	// 0x4457b0
+	// V1:0x4457b0
 	OptionsDialog* aDialog = static_cast<OptionsDialog*>(GetDialog(DIALOG_OPTIONS));
 	if (aDialog == nullptr)
 		return;
@@ -79,7 +79,7 @@ void GameApp::CloseOptionsDialog(bool theApply)
 
 void GameApp::SetShowTilePips(bool theShow)
 {
-	// 0x44f7e0
+	// 0x4456d0
 	mShowTilePips = theShow;
 	if (gTileEngine != nullptr) {
 		lua_pushboolean(mLua->L, theShow);
@@ -91,14 +91,14 @@ void GameApp::SetShowTilePips(bool theShow)
 
 void GameApp::StartTreasureToMenuTransition()
 {
-	// 0x44ded0: unlike StartToMenuTransition (0x44df10), the arrows stay (the treasure screen has none)
+	// V1:0x44ded0: unlike StartToMenuTransition (V1:0x44df10), the arrows stay (the treasure screen has none)
 	mTransitionState = TRANSITION_TO_MENU - 1;
 	DoCurtainTransition(true, "", -1);
 }
 
 void GameApp::ShowNewUserDialog(int theButtonMode)
 {
-	// 0x444b90: "Lex", or "Lex2", "Lex3", ... if the players' files have that name (the file names that begin with
+	// 0x439940: "Lex", or "Lex2", "Lex3", ... if the players' files have that name (the file names that begin with
 	// "Lex" are the ones to look through)
 	std::vector<std::string> aLexNames;
 	bool aHasLex = false;
@@ -135,7 +135,7 @@ void GameApp::ShowNewUserDialog(int theButtonMode)
 
 void GameApp::NewUserDialogDone()
 {
-	// 0x4450a0
+	// V1:0x4450a0
 	NewUserDialog* aDialog = static_cast<NewUserDialog*>(GetDialog(DIALOG_NEW_USER));
 	std::string aName = aDialog != nullptr ? aDialog->GetName() : std::string();
 	// with the main menu up (a player added from its list) the name must be free
@@ -145,7 +145,7 @@ void GameApp::NewUserDialogDone()
 			delete mProfile;
 			mProfile = new Profile(aName, false);
 		} else {
-			// the intro's, which was never saved, gets its name (0x443040) and is saved from now on
+			// the intro's, which was never saved, gets its name (V1:0x443040) and is saved from now on
 			mProfile->mName = aName;
 			mProfile->mNoSave = false;
 		}
@@ -177,7 +177,7 @@ void GameApp::NewUserDialogDone()
 
 void GameApp::DeleteUserData(const std::string& theName)
 {
-	// 0x4452d0: a new player starts without a saved game under that name
+	// V1:0x4452d0: a new player starts without a saved game under that name
 	EraseFile(GetAppDataFolder() + StrFormat("users/data/%s.dat", theName.c_str()));
 	// port: the original also erased the files that GetFilesInDirectory finds for "users/backup/<name> *.*", but
 	// handed EraseFile their bare names (no folder), so it erased nothing; that is left out

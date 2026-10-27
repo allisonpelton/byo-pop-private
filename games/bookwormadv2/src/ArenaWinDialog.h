@@ -24,7 +24,7 @@ public:
 	// theCallback: the scripts' function that DoArenaWinDialog was given
 	ArenaWinDialog(bool theFirstTime, const std::string& theCallback);  // 0x401060
 
-	// 0x4431a0 (not virtual): the five lines of the list
+	// 0x438020 (not virtual): the five lines of the list
 	void SetStats(const std::string& theTime, const std::string& thePotions, const std::string& theWords,
 	              const std::string& theLevel, const std::string& theAverageWordLength);
 

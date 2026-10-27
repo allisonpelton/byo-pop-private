@@ -1,4 +1,4 @@
-// Sexy::CurvedValue (0x30 bytes, no vtable; Step 0x4ba830, Value 0x4ba910): a value that goes from mStart to mEnd
+// Sexy::CurvedValue (0x30 bytes, no vtable; Step 0x49cfb0, Value 0x49d030): a value that goes from mStart to mEnd
 // along a curve while a time mT moves over a range. The tile's alpha and slide use one each, and the board's
 // effects do too. The caller moves mT (mT += step) and calls Step, which keeps mT in the range as the mode says
 // and tells whether the curve is still running; Value is the value at mT.
@@ -31,9 +31,9 @@ struct CurvedValue {
 	double mTEnd = 1.0;         // +0x20
 	double mT = 0.0;            // +0x28: now
 
-	// 0x4ba830: puts mT back in the range as the mode says; false once a MODE_ONCE curve has reached an end
+	// 0x49cfb0: puts mT back in the range as the mode says; false once a MODE_ONCE curve has reached an end
 	bool Step();
-	// 0x4ba910: the value at mT
+	// 0x49d030: the value at mT
 	double Value() const;
 };
 

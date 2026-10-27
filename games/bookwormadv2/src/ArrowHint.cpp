@@ -24,7 +24,7 @@ namespace {
 const int kScreenWidth = 800;
 const int kScreenHeight = 600;
 
-// 0x40b2a0: the click counts of the left button (a click and a double click)
+// 0x407e50: the click counts of the left button (a click and a double click)
 bool IsLeftClick(int theClickCount)
 {
 	return theClickCount == 1 || theClickCount == 2;
@@ -57,7 +57,7 @@ std::string StripColorTags(const std::string& theText)
 	return aResult;
 }
 
-// 0x6a7810 (AddText's call): cuts a text at its '#' marks into pieces, the pieces between a pair of marks being
+// V1:0x6a7810 (AddText's call): cuts a text at its '#' marks into pieces, the pieces between a pair of marks being
 // flagged. The piece after an odd last mark is dropped (and the result is false).
 bool SplitHighlights(const std::string& theText, std::vector<std::pair<std::string, bool> >& thePieces)
 {
@@ -140,7 +140,7 @@ ArrowHint::~ArrowHint()
 	}
 }
 
-// The original registered the class in the constructor (0x402b90), every time
+// The original registered the class in the constructor (0x402460), every time
 void ArrowHint::RegisterLua()
 {
 	static bool sRegistered = false;
@@ -166,7 +166,7 @@ void ArrowHint::RegisterLua()
 
 // ---- the state machine ----
 
-// 0x6acbb0: the state, with its entry function (0x4035b0, none, 0x4035d0, 0x403590)
+// 0x4ab090: the state, with its entry function (V1:0x4035b0, none, V1:0x4035d0, V1:0x403590)
 void ArrowHint::SetState(int theState)
 {
 	mState = theState;
@@ -176,17 +176,17 @@ void ArrowHint::SetState(int theState)
 void ArrowHint::EnterState(int theState)
 {
 	switch (theState) {
-	case STATE_FADE_IN:  // 0x4035b0
+	case STATE_FADE_IN:  // V1:0x4035b0
 		mActive = true;
 		mPulseCount = 0;
 		mAlpha = 0;
 		mAlphaDelta = 10;
 		break;
-	case STATE_SHOWING:  // 0x4035d0
+	case STATE_SHOWING:  // V1:0x4035d0
 		mActive = true;
 		mExpiration = 0;
 		break;
-	case STATE_FADE_OUT:  // 0x403590
+	case STATE_FADE_OUT:  // V1:0x403590
 		mActive = true;
 		mFadeDelta = -8;
 		mFadeAlpha = 255;
@@ -194,7 +194,7 @@ void ArrowHint::EnterState(int theState)
 	}
 }
 
-// 0x6acc40, with the machine's transitions (0 to 1, 1 to 2, 1 to 3 and 2 to 3)
+// 0x4ab120, with the machine's transitions (0 to 1, 1 to 2, 1 to 3 and 2 to 3)
 bool ArrowHint::ChangeState(int theState)
 {
 	bool anAllowed = (mState == STATE_FADE_IN && theState == STATE_PULSE_IN) ||
@@ -210,12 +210,12 @@ bool ArrowHint::ChangeState(int theState)
 bool ArrowHint::UpdateState()
 {
 	switch (mState) {
-	case STATE_FADE_IN:  // 0x403430
+	case STATE_FADE_IN:  // V1:0x403430
 		mAlpha += mAlphaDelta;
 		if (mAlpha >= 128)
 			ChangeState(STATE_PULSE_IN);
 		return false;
-	case STATE_PULSE_IN:  // 0x403460: the bubble runs between 128 and 255 twice
+	case STATE_PULSE_IN:  // V1:0x403460: the bubble runs between 128 and 255 twice
 		mAlpha += mAlphaDelta;
 		if (mAlphaDelta > 0) {
 			if (mAlpha >= 255) {
@@ -234,7 +234,7 @@ bool ArrowHint::UpdateState()
 			}
 		}
 		return false;
-	case STATE_SHOWING: {  // 0x4034d0: the shared pulse moves once an update, whichever hint asks first
+	case STATE_SHOWING: {  // V1:0x4034d0: the shared pulse moves once an update, whichever hint asks first
 		int anUpdate = gApp->mUpdateCount;
 		if (sPulseUpdate >= anUpdate)
 			return false;
@@ -260,7 +260,7 @@ bool ArrowHint::UpdateState()
 		sPulseUpdate = anUpdate;
 		return false;
 	}
-	case STATE_FADE_OUT:  // 0x4033f0: fades out where there is alpha blending, else it is gone at once
+	case STATE_FADE_OUT:  // V1:0x4033f0: fades out where there is alpha blending, else it is gone at once
 		mFadeAlpha += mFadeDelta;
 		if (mFadeAlpha > 0 && gApp->Is3DAccelerated())
 			return false;
@@ -373,7 +373,7 @@ Rect ArrowHint::GetArrowRect()
 	return Rect(mX, mY, anArrow->GetCelWidth(), anArrow->GetCelHeight());
 }
 
-// 0x4036c0: the bubble (a box of pictures) with a glow over it, its title picture, the short text in the pulse's
+// V1:0x4036c0: the bubble (a box of pictures) with a glow over it, its title picture, the short text in the pulse's
 // red with the hint to mouse over, or the lines; then the arrow with its glow
 void ArrowHint::Draw(Graphics* g)
 {
@@ -445,7 +445,7 @@ void ArrowHint::Draw(Graphics* g)
 
 // ---- the scripts' methods ----
 
-// 0x403c60: a line of text (^colour^ tags for the text between '#' marks), then both bubbles are fitted
+// V1:0x403c60: a line of text (^colour^ tags for the text between '#' marks), then both bubbles are fitted
 void ArrowHint::AddText(std::string theText)
 {
 	std::vector<std::pair<std::string, bool> > aPieces;
@@ -477,7 +477,7 @@ void ArrowHint::AddText(std::string theText)
 	FitToScreen();
 }
 
-// 0x4033b0
+// V1:0x4033b0
 void ArrowHint::SetFont(LuaFont* theFont)
 {
 	mLuaFont = theFont;
@@ -520,7 +520,7 @@ void ArrowHint::AddOverSpot(int x, int y, int w, int h)
 	mOverSpots.push_back(Rect(x, y, w, h));
 }
 
-// 0x403b80: the short text, and a bubble wide enough for it or for the hint to mouse over
+// V1:0x403b80: the short text, and a bubble wide enough for it or for the hint to mouse over
 void ArrowHint::SetShortText(std::string theText)
 {
 	mShortText = theText;
@@ -539,7 +539,7 @@ void ArrowHint::ClearText()
 	mShortText.clear();
 }
 
-// 0x404c00: the mouse widget blocks the clicks on the short bubble, the arrow, the lines' bubble and the over spots
+// V1:0x404c00: the mouse widget blocks the clicks on the short bubble, the arrow, the lines' bubble and the over spots
 void ArrowHint::BlockMouseEvents()
 {
 	MouseWidget* aMouseWidget = mManager->mMouseWidget;
@@ -555,7 +555,7 @@ void ArrowHint::BlockMouseEvents()
 	}
 }
 
-// 0x404580
+// V1:0x404580
 void ArrowHint::SetXY(int x, int y, bool theAnchorToTip)
 {
 	if (!theAnchorToTip) {
@@ -616,7 +616,7 @@ void ArrowHint::SetXY(int x, int y, bool theAnchorToTip)
 	FitToScreen();
 }
 
-// 0x4047d0: each bubble (with the arrow's room at its side, for a right or down arrow) kept on the screen; the
+// 0x404070: each bubble (with the arrow's room at its side, for a right or down arrow) kept on the screen; the
 // lines' bubble is at least as big as the short one
 void ArrowHint::FitToScreen()
 {
@@ -740,7 +740,7 @@ ArrowHintManager::~ArrowHintManager()
 	mMouseWidget = nullptr;
 }
 
-// The original registered the class in the constructor (0x40b2c0), every time
+// The original registered the class in the constructor (V1:0x40b2c0), every time
 void ArrowHintManager::RegisterLua()
 {
 	static bool sRegistered = false;
@@ -759,7 +759,7 @@ void ArrowHintManager::RegisterLua()
 		.Method<&ArrowHintManager::SetDrawPriority>("SetDrawPriority");
 }
 
-// 0x40b630 and 0x40b600: the mouse widget goes in and out of the widget manager with the manager
+// 0x4081e0 and 0x4081b0: the mouse widget goes in and out of the widget manager with the manager
 void ArrowHintManager::AddedToManager(WidgetManager* theWidgetManager)
 {
 	Widget::AddedToManager(theWidgetManager);

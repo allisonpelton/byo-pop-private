@@ -1,5 +1,5 @@
-// Sexy::ConversationPanel (0x218 bytes, constructor 0x42f740, vtable 0x7abc5c; code 0x42f370-0x433900): the
-// story's conversations. The scripts build one through the convpanel.* functions (registered by 0x4c01b0): a
+// Sexy::ConversationPanel (0x218 bytes, constructor V1:0x42f740, vtable 0x6f9c14; code 0x427430-V1:0x433900): the
+// story's conversations. The scripts build one through the convpanel.* functions (registered by V1:0x4c01b0): a
 // panel a speaker, each with a portrait (a JeffLib::Animator) that slides in from its side, a font, colours and
 // pages of text, then Activate it. A beam of light opens into the panel, the pages type themselves out letter by
 // letter (a click shows the page at once, the next click turns it), the speakers' portraits slide past each
@@ -38,7 +38,7 @@ public:
 		STATE_NEXT_PANEL,   // the portraits slide past each other, the inner colour fades to the next panel's
 	};
 
-	// a page of text (0x28 bytes, constructor 0x42f4f0)
+	// a page of text (0x28 bytes, constructor V1:0x42f4f0)
 	struct TextPage {
 		std::string mText;     // +0x00: word wrapped
 		int mLetters = 1;      // +0x1c: shown so far
@@ -46,7 +46,7 @@ public:
 		int mMaxWidth = 99999; // +0x24: the widest line (the text is centred in the text rect when narrower)
 	};
 
-	// a speaker's part (100 bytes, constructor 0x42f580, freed by 0x42f610)
+	// a speaker's part (100 bytes, constructor 0x4275c0, freed by 0x427650)
 	struct Panel {
 		Font* mFont = nullptr;                  // +0x00
 		JeffLib::Animator* mAnim = nullptr;     // +0x04: the portrait
@@ -104,44 +104,44 @@ public:
 	bool mSkipLetterCallback = false;       // +0x216: once, for a page replaced while typing
 
 	explicit ConversationPanel(GameApp* theApp);
-	~ConversationPanel() override;  // 0x42f9c0
+	~ConversationPanel() override;  // 0x4279a0
 
-	void SetDrawPriority(int thePriority);  // vf 0x128 (0x42fc10): the old one comes back when it goes off
-	// vf 0x118 (0x431760): a third of the screen high in its middle, a half-dark screen, the portrait on theSide
+	void SetDrawPriority(int thePriority);  // vf 0x128 (0x427bd0): the old one comes back when it goes off
+	// vf 0x118 (0x4297a0): a third of the screen high in its middle, a half-dark screen, the portrait on theSide
 	// (-1 left), five updates a letter, white text in theFont
 	void SetDefaults(int theSide, const Color& theInner, Image* thePortrait, Font* theFont, int theAnimDelay);
-	void SlidePortrait(int theSide);       // vf 0x11c (0x431950): the last panel's portrait slides in from theSide
-	void DontSlidePortrait(int theSide);   // vf 0x120 (0x431bc0): it stands there already
-	void SetTextRect(int theX, int theY, int theW, int theH);  // vf 0x124 (0x42fc30): the last panel's
-	void SetTextRectBeside(int theSide);   // vf 0x12c (0x431fe0): beside the portrait on theSide
-	void SetScreenColor(const Color& theColor) { mScreenColor = theColor; }  // vf 0x130 (0x42f370)
+	void SlidePortrait(int theSide);       // vf 0x11c (0x429990): the last panel's portrait slides in from theSide
+	void DontSlidePortrait(int theSide);   // vf 0x120 (0x429c00): it stands there already
+	void SetTextRect(int theX, int theY, int theW, int theH);  // vf 0x124 (0x427bf0): the last panel's
+	void SetTextRectBeside(int theSide);   // vf 0x12c (0x42a020): beside the portrait on theSide
+	void SetScreenColor(const Color& theColor) { mScreenColor = theColor; }  // vf 0x130 (0x427430)
 	void SetBeamColor(const Color& theColor) { mBeamColor = theColor; }      // vf 0x134
 	void SetOuterColor(const Color& theColor) { mOuterColor = theColor; }    // vf 0x138
 	void SetMiddleColor(const Color& theColor) { mMiddleColor = theColor; }  // vf 0x13c
-	void SetInnerColor(const Color& theColor);            // vf 0x140 (0x431e00): the last panel's
-	void SetContinueTextColor(const Color& theColor);     // vf 0x144 (0x432c40): the last panel's
-	void SetAllContinueTextColors(const Color& theColor); // vf 0x148 (0x432cb0)
-	void SetDimensions(int theX, int theY, int theW, int theH);  // vf 0x14c (0x4300e0)
-	void SetAnim(Image* theImage, int theDelay);          // vf 0x150 (0x42fca0): the last panel's portrait
-	void SetAnimXY(int theX, int theY);                   // vf 0x154 (0x42fec0)
-	// vf 0x158 (0x42ff20): the portrait in the middle of the panel's height and, when theAlignX, 20 pixels in
+	void SetInnerColor(const Color& theColor);            // vf 0x140 (0x429e40): the last panel's
+	void SetContinueTextColor(const Color& theColor);     // vf 0x144 (0x42ac70): the last panel's
+	void SetAllContinueTextColors(const Color& theColor); // vf 0x148 (0x42ace0)
+	void SetDimensions(int theX, int theY, int theW, int theH);  // vf 0x14c (0x4280a0)
+	void SetAnim(Image* theImage, int theDelay);          // vf 0x150 (0x427c60): the last panel's portrait
+	void SetAnimXY(int theX, int theY);                   // vf 0x154 (0x427e80)
+	// vf 0x158 (0x427ee0): the portrait in the middle of the panel's height and, when theAlignX, 20 pixels in
 	// from the panel's side theSide
 	void AlignAnim(int theSide, bool theAlignX);
-	void AddTextPage(const std::string& theText);         // vf 0x15c (0x430120): to the last panel, word wrapped
-	void SetLetterDelay(int theDelay);                    // vf 0x160 (0x431f80)
-	void SetFont(Font* theFont, const Color& theColor);   // vf 0x164 (0x431d50): the last panel's
-	void AddNewPanel();                                   // vf 0x168 (0x431e70): like the last one, no pages
-	void OffsetPanelY(int theOffset);                     // vf 0x16c (0x4334d0)
-	bool Active() const { return mState != STATE_OFF; }   // vf 0x170 (0x42f430)
-	// vf 0x174 (0x4316c0): shows it, takes the focus, starts the beam; thePauseBoard pauses a battle's board
+	void AddTextPage(const std::string& theText);         // vf 0x15c (0x4280e0): to the last panel, word wrapped
+	void SetLetterDelay(int theDelay);                    // vf 0x160 (0x429fc0)
+	void SetFont(Font* theFont, const Color& theColor);   // vf 0x164 (0x429d90): the last panel's
+	void AddNewPanel();                                   // vf 0x168 (0x429eb0): like the last one, no pages
+	void OffsetPanelY(int theOffset);                     // vf 0x16c (0x42b520)
+	bool Active() const { return mState != STATE_OFF; }   // vf 0x170 (0x4274f0)
+	// vf 0x174 (0x429700): shows it, takes the focus, starts the beam; thePauseBoard pauses a battle's board
 	void Activate(bool thePauseBoard);
-	void TriggersNewUserDialog();         // 0x4321b0: the last panel's last page asks a new player's name
-	void NextPanel();                     // 0x432210: the next panel, or the closing (the new player's name calls it)
-	void Deactivate();                    // 0x4320b0: off at once, without the callbacks
-	void ReplaceCurrentText(const std::string& theText);  // 0x432d20 (convpanel.DebugReplaceCurrentText)
+	void TriggersNewUserDialog();         // V1:0x4321b0: the last panel's last page asks a new player's name
+	void NextPanel();                     // V1:0x432210: the next panel, or the closing (the new player's name calls it)
+	void Deactivate();                    // V1:0x4320b0: off at once, without the callbacks
+	void ReplaceCurrentText(const std::string& theText);  // V1:0x432d20 (convpanel.DebugReplaceCurrentText)
 
-	void SetUpdateCallback(const std::string& theFunc) { mUpdateCallback = theFunc; }   // 0x4bfea0
-	void SetDrawCallback(const std::string& theFunc, bool theUnder)                     // 0x4c0060
+	void SetUpdateCallback(const std::string& theFunc) { mUpdateCallback = theFunc; }   // V1:0x4bfea0
+	void SetDrawCallback(const std::string& theFunc, bool theUnder)                     // V1:0x4c0060
 	{
 		mDrawCallback = theFunc;
 		mDrawCallbackUnder = theUnder;
@@ -149,25 +149,25 @@ public:
 
 	// Widget
 	using Widget::MouseDown;
-	void Update() override;                                       // 0x430890
-	void Draw(Graphics* g) override;                              // 0x430e30
-	void KeyDown(KeyCode theKey) override;                        // 0x432090: keys do nothing
-	void MouseMove(int x, int y) override;                        // 0x430870
-	void MouseDown(int x, int y, int theClickCount) override;     // 0x430730
+	void Update() override;                                       // 0x428860
+	void Draw(Graphics* g) override;                              // 0x428e20
+	void KeyDown(KeyCode theKey) override;                        // 0x42a0d0: keys do nothing
+	void MouseMove(int x, int y) override;                        // 0x428840
+	void MouseDown(int x, int y, int theClickCount) override;     // 0x428700
 
 private:
 	Panel* LastPanel() const { return mPanels.back(); }
 	Panel* CurPanel() const { return mPanels[mCurPanel]; }
-	bool SlideToTarget(Panel* thePanel);    // 0x430da0: 10 pixels; true when there
-	void RewrapPage();                      // 0x432530: the current page again, with the player's name
-	bool NextLetter();                      // 0x4331a0: true when the page is complete
+	bool SlideToTarget(Panel* thePanel);    // 0x428d90: 10 pixels; true when there
+	void RewrapPage();                      // 0x42a250: the current page again, with the player's name
+	bool NextLetter();                      // 0x42a550: true when the page is complete
 	void LayOutPage(Panel* thePanel, TextPage* thePage, const std::string& theText);
 	void CallDrawCallback(Graphics* g);
 	void ForgetCallbacks();
-	static std::string WordWrap(Font* theFont, std::string theText, int theWidth, bool theJoinLines);  // 0x432920
+	static std::string WordWrap(Font* theFont, std::string theText, int theWidth, bool theJoinLines);  // V1:0x432920
 };
 
-// convpanel.* (0x4c01b0): the scripts' side, on the app's panel
+// convpanel.* (V1:0x4c01b0): the scripts' side, on the app's panel
 void RegisterConvPanelFunctions();
 
 }  // namespace Sexy

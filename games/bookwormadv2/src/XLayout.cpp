@@ -17,7 +17,7 @@ using namespace Sexy;
 
 namespace {
 
-// 0x56cda0: a key or value in capitals
+// 0x531cd0: a key or value in capitals
 std::string Upper(const std::string& theString)
 {
 	return StringToUpper(theString);
@@ -38,13 +38,13 @@ Image* FindImage(const std::string& theName)
 
 }  // namespace
 
-// 0x4c8970: the root, which is its own parent
+// V1:0x4c8970: the root, which is its own parent
 XLayout::XLayout() : mParent(this)
 {
 	Clear();
 }
 
-// 0x4c8fa0: a child of theParent
+// 0x4a73b0: a child of theParent
 XLayout::XLayout(XLayout* theParent) : mParent(theParent)
 {
 	Clear();
@@ -56,7 +56,7 @@ XLayout::~XLayout()
 	Clear();
 }
 
-// 0x4c9270 (also slot 4): everything back as a new node has it
+// 0x4a7680 (also slot 4): everything back as a new node has it
 void XLayout::Clear()
 {
 	mHorizJust = -1;
@@ -82,7 +82,7 @@ void XLayout::Clear()
 
 XLayout* XLayout::FindNode(const std::string& theName)
 {
-	// 0x4c9690
+	// 0x4a7aa0
 	if (mName == theName)
 		return this;
 	for (size_t i = 0; i < mChildren.size(); i++) {
@@ -95,7 +95,7 @@ XLayout* XLayout::FindNode(const std::string& theName)
 
 int XLayout::ContentWidth() const
 {
-	// the box's width, or the picture's cel (0x4c8660 is the animation's)
+	// the box's width, or the picture's cel (V1:0x4c8660 is the animation's)
 	if (mSrcRect.mWidth >= 1)
 		return mSrcRect.mWidth;
 	return mImage->GetCelWidth();
@@ -118,7 +118,7 @@ int XLayout::TextHeight()
 
 void XLayout::Place()
 {
-	// 0x4cbc30: x, from the horizontal justification (-1: the bounds' x; 1: the far end; else the middle)
+	// 0x4aa280: x, from the horizontal justification (-1: the bounds' x; 1: the far end; else the middle)
 	if (mHorizJust == -1) {
 		mX = mBounds.mX;
 	} else if (mHorizJust == 1) {
@@ -180,49 +180,49 @@ void XLayout::Place()
 
 void XLayout::SetHorizJust(int theJust)
 {
-	// 0x4c8480
+	// 0x4a68c0
 	mHorizJust = theJust;
 	Place();
 }
 
 void XLayout::SetVertJust(int theJust)
 {
-	// 0x4c84a0
+	// 0x4a68e0
 	mVertJust = theJust;
 	Place();
 }
 
 void XLayout::SetBoundsX(int theX)
 {
-	// 0x4c84c0
+	// 0x4a6900
 	mBounds.mX = theX;
 	Place();
 }
 
 void XLayout::SetBoundsY(int theY)
 {
-	// 0x4c84d0
+	// 0x4a6910
 	mBounds.mY = theY;
 	Place();
 }
 
 void XLayout::SetBoundsHeight(int theHeight)
 {
-	// 0x4c8520
+	// 0x4a6960
 	mBounds.mHeight = theHeight;
 	Place();
 }
 
 void XLayout::SetBounds(int theX, int theY, int theWidth, int theHeight)
 {
-	// 0x4c8530
+	// 0x4a6970
 	mBounds = Rect(theX, theY, theWidth, theHeight);
 	Place();
 }
 
 void XLayout::SetText(const std::string& theText, int r, int g, int b, int a, Font* theFont)
 {
-	// 0x4c95e0
+	// 0x4a79f0
 	mContent = CONTENT_TEXT;
 	mText = theText;
 	mColor = Color(r, g, b, a);
@@ -233,7 +233,7 @@ void XLayout::SetText(const std::string& theText, int r, int g, int b, int a, Fo
 
 void XLayout::SetImage(Image* theImage, int theCel, const Rect& theSrcRect)
 {
-	// 0x4c9550 (port: no picture is nothing to draw)
+	// 0x4a7960 (port: no picture is nothing to draw)
 	if (theImage == nullptr) {
 		mContent = CONTENT_NONE;
 		mImage = nullptr;
@@ -251,7 +251,7 @@ void XLayout::SetImage(Image* theImage, int theCel, const Rect& theSrcRect)
 
 void XLayout::Align(XLayout* theWho, int theDirection, int theNudge)
 {
-	// 0x4cbf90: theWho's bounds
+	// 0x4aa670: theWho's bounds
 	Rect aWho = theWho->mBounds;
 	switch (theDirection) {
 	case ALIGN_LEFT:
@@ -293,7 +293,7 @@ void XLayout::Align(XLayout* theWho, int theDirection, int theNudge)
 
 void XLayout::Center(XLayout* theWho1, XLayout* theWho2, bool theHoriz)
 {
-	// 0x4cc130: in the gap between the two (the one that is further left or up is the first)
+	// 0x4aa810: in the gap between the two (the one that is further left or up is the first)
 	if (theHoriz) {
 		XLayout* aFirst = theWho1;
 		if (theWho2->GetX() <= theWho1->GetX())
@@ -317,7 +317,7 @@ void XLayout::Center(XLayout* theWho1, XLayout* theWho2, bool theHoriz)
 
 void XLayout::Update()
 {
-	// 0x4cc270: only the animations move (none are ported)
+	// 0x4aa950: only the animations move (none are ported)
 	if (!mUpdate)
 		return;
 	for (size_t i = 0; i < mChildren.size(); i++)
@@ -326,18 +326,18 @@ void XLayout::Update()
 
 void XLayout::Draw(Graphics* g)
 {
-	// 0x4cc2f0
+	// 0x4aa9d0
 	if (!mVisible)
 		return;
 	if (mDebug) {
-		// 0x4cc4c0: the bounds, outlined
+		// 0x4aaba0: the bounds, outlined
 		g->PushState();
 		g->SetColor(Color(255, 0, 255));
 		g->DrawRect(mBounds);
 		g->PopState();
 	}
 	if (mContent == CONTENT_IMAGE) {
-		// 0x4cc410
+		// 0x4aaaf0
 		if (mSrcRect.mWidth < 1) {
 			g->DrawImageCel(mImage, mX, mY, mCel);
 		} else {
@@ -381,7 +381,7 @@ std::vector<Attr> GetAttrs(XMLElement& theElement)
 
 int ParseDirection(const std::string& theValue)
 {
-	// 0x4c86a0
+	// V1:0x4c86a0
 	std::string aValue = Upper(theValue);
 	static const char* const kNames[] = {"LEFT", "RIGHT",  "TOP",     "BOTTOM",      "TOPLEFT",
 	                                     "TOPRIGHT", "BOTTOMLEFT", "BOTTOMRIGHT", "YCENTER", "XCENTER"};
@@ -396,7 +396,7 @@ int ParseDirection(const std::string& theValue)
 
 bool XLayout::Load(const std::string& theFileName)
 {
-	// 0x6b3820 and the tags' handlers (below): the elements in the order they come. Each Child is a node of its own
+	// 0x4b3d20 and the tags' handlers (below): the elements in the order they come. Each Child is a node of its own
 	// that the tags up to its end act on.
 	XMLParser aParser;
 	if (!aParser.OpenFile(theFileName)) {
@@ -429,7 +429,7 @@ bool XLayout::Load(const std::string& theFileName)
 				aDepth++;
 			}
 		} else if (aTag == "JUSTIFICATION") {
-			// 0x4c9890
+			// V1:0x4c9890
 			for (size_t i = 0; i < anAttrs.size(); i++) {
 				if (anAttrs[i].mKey == "HORIZ")
 					aCur->SetHorizJust(atol(anAttrs[i].mValue.c_str()));
@@ -437,7 +437,7 @@ bool XLayout::Load(const std::string& theFileName)
 					aCur->SetVertJust(atol(anAttrs[i].mValue.c_str()));
 			}
 		} else if (aTag == "BOUNDS") {
-			// 0x4c9a60: x and y from the parent's
+			// V1:0x4c9a60: x and y from the parent's
 			int x = 0, y = 0, w = 0, h = 0;
 			for (size_t i = 0; i < anAttrs.size(); i++) {
 				const std::string& aKey = anAttrs[i].mKey;
@@ -452,7 +452,7 @@ bool XLayout::Load(const std::string& theFileName)
 			}
 			aCur->SetBounds(x, y, w, h);
 		} else if (aTag == "CONTROL") {
-			// 0x4c9d50
+			// V1:0x4c9d50
 			for (size_t i = 0; i < anAttrs.size(); i++) {
 				const std::string& aKey = anAttrs[i].mKey;
 				if (aKey == "VISIBLE") {
@@ -471,7 +471,7 @@ bool XLayout::Load(const std::string& theFileName)
 				}
 			}
 		} else if (aTag == "DATA") {
-			// 0x4ca780: the first of TEXT, IMAGE and ANIM that the tag has decides what it is
+			// V1:0x4ca780: the first of TEXT, IMAGE and ANIM that the tag has decides what it is
 			int aKind = 0;
 			for (size_t i = 0; i < anAttrs.size() && aKind == 0; i++) {
 				if (anAttrs[i].mKey == "TEXT")
@@ -482,7 +482,7 @@ bool XLayout::Load(const std::string& theFileName)
 					aKind = CONTENT_ANIM;
 			}
 			if (aKind == CONTENT_TEXT) {
-				// 0x4ca9d0
+				// V1:0x4ca9d0
 				std::string aText;
 				int r = 0, g = 0, b = 0, a = 255;
 				Font* aFont = nullptr;
@@ -504,7 +504,7 @@ bool XLayout::Load(const std::string& theFileName)
 				}
 				aCur->SetText(aText, r, g, b, a, aFont);
 			} else if (aKind == CONTENT_IMAGE) {
-				// 0x4cad90
+				// V1:0x4cad90
 				Image* anImage = nullptr;
 				int aCel = 0, aBoxW = 0, aBoxH = 0;
 				for (size_t i = 0; i < anAttrs.size(); i++) {
@@ -528,7 +528,7 @@ bool XLayout::Load(const std::string& theFileName)
 						aCur->SetImage(anImage, aCel, Rect(0, 0, aBoxW, aBoxH));
 				}
 			} else if (aKind == CONTENT_ANIM) {
-				// port: the animation (0x4cb0f0) is not ported; no layout file has one
+				// port: the animation (V1:0x4cb0f0) is not ported; no layout file has one
 				SDL_Log("XLayout: %s: a Data tag with an animation is not ported yet", theFileName.c_str());
 				aCur->mContent = CONTENT_NONE;
 			} else {
@@ -536,7 +536,7 @@ bool XLayout::Load(const std::string& theFileName)
 			}
 			aCur->Place();
 		} else if (aTag == "ALIGN") {
-			// 0x4ca150
+			// V1:0x4ca150
 			int aDirection = ALIGN_LEFT;
 			int aNudge = 0;
 			XLayout* aWho = nullptr;
@@ -554,7 +554,7 @@ bool XLayout::Load(const std::string& theFileName)
 			else
 				aCur->Align(aWho, aDirection, aNudge);
 		} else if (aTag == "CENTER") {
-			// 0x4ca410
+			// V1:0x4ca410
 			bool aHoriz = false;
 			XLayout* aWho1 = nullptr;
 			XLayout* aWho2 = nullptr;

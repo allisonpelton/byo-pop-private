@@ -174,7 +174,7 @@ void Board::InitMiniGame(const std::string& theName, int x, int y, int theXGap, 
 				aTile->SetLetter(StrFormat("%c", theLetters[mGridWidth * aRow + aCol]));
 		}
 	}
-	// 0x426230: the scripts' Board:InitMiniGame(theName) makes the mini-game (gMiniGame) and loads its resources
+	// V1:0x426230: the scripts' Board:InitMiniGame(theName) makes the mini-game (gMiniGame) and loads its resources
 	lua_pushstring(LS(), theName.c_str());
 	CallLinkedMethod("InitMiniGame", 1);
 	mApp->ClearUpdateBacklog(false);
@@ -266,7 +266,7 @@ void Board::RemoveTile(int theCol, int theRow)
 	Tile* aTile = GridGetTile(theCol, theRow);
 	mGridCells[theRow][theCol] = false;
 	mTiles.remove(aTile);
-	gTileEngine->RemoveTile(aTile);  // 0x4990e0
+	gTileEngine->RemoveTile(aTile);  // 0x484ca0
 }
 
 bool Board::IsClonedTile(Tile* theTile)
@@ -289,7 +289,7 @@ void Board::TileDeleted(Tile* theTile)
 	}
 }
 
-// the topmost tile of theTiles under (x, y) (0x418d20)
+// the topmost tile of theTiles under (x, y) (0x411e80)
 static Tile* FindTileAt(std::list<Tile*>& theTiles, int x, int y)
 {
 	for (auto it = theTiles.rbegin(); it != theTiles.rend(); ++it)
@@ -370,7 +370,7 @@ bool Board::IsValidWord(const std::string& theWord, bool theNoEgg, int* theFlags
 }
 
 // the word's state after a change: the attack button lit for a word the enemy is not immune to (the tail of
-// 0x4195f0, 0x4199a0 and 0x419840)
+// 0x412770, 0x414260 and V1:0x419840)
 static int EnemyImmunity()
 {
 	return BattleCall("GetEnemyWordLengthImmunity").Int();
@@ -941,7 +941,7 @@ void Board::Draw(Graphics* g)
 	if (LOADING_CHAPTER() || !mVisible)
 		return;
 	if (!mIsMiniGame) {
-		// port: the zoom effect (a transform of the 3D card's, 0x41b35b-0x41b442) is not drawn
+		// port: the zoom effect (a transform of the 3D card's, V1:0x41b35b-V1:0x41b442) is not drawn
 		g->DrawImage(IMAGE_COMBAT_UI_BOTTOM2, 0, mHeight - IMAGE_COMBAT_UI_BOTTOM2->GetHeight());
 		if (gTileEngine->mBoard != nullptr)
 			gTileEngine->Draw(mNewTiles, g, false, false);
@@ -1009,7 +1009,7 @@ static LuaClassRet BattleCallInts(const char* theMethod, int theCount, int a, in
 	return gBattleEngine->CallLinkedMethod(theMethod, theCount);
 }
 
-// whether (x, y) is over the grid, with a margin of 15 (0x41eba0's test)
+// whether (x, y) is over the grid, with a margin of 15 (V1:0x41eba0's test)
 static bool OverGrid(const Board* theBoard, int x, int y)
 {
 	return x >= theBoard->mGridX - 15 && x <= theBoard->mGridWidth * 50 + 15 + theBoard->mGridX &&

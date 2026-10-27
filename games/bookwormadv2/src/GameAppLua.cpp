@@ -1,4 +1,4 @@
-// The scripts' GameApp class (registered by GameApp::Init, 0x445a50): 73 methods. The ones the port has not got
+// The scripts' GameApp class (registered by GameApp::Init, V1:0x445a50): 73 methods. The ones the port has not got
 // to yet log their name the first time a script calls them and return nothing.
 #include <SDL.h>
 
@@ -53,27 +53,27 @@ void RegisterNotPorted(Class<GameApp>& theClass, std::integer_sequence<int, N...
 
 // ---- the ported methods ----
 
-int GetUpdateCount(GameApp* app) { return app->mUpdateCount; }        // 0x442e60
-void SetUpdateCount(GameApp* app, int n) { app->mUpdateCount = n; }   // 0x442e50
-int GetWidth(GameApp* app) { return app->mWidth; }                    // 0x442e80
-void SetWidth(GameApp* app, int n) { app->mWidth = n; }               // 0x442e70
-int GetHeight(GameApp* app) { return app->mHeight; }                  // 0x442ea0
-void SetHeight(GameApp* app, int n) { app->mHeight = n; }             // 0x442e90
-bool HasDialogs(GameApp* app) { return app->GetDialogCount() > 0; }   // 0x402b80
+int GetUpdateCount(GameApp* app) { return app->mUpdateCount; }        // V1:0x442e60
+void SetUpdateCount(GameApp* app, int n) { app->mUpdateCount = n; }   // V1:0x442e50
+int GetWidth(GameApp* app) { return app->mWidth; }                    // V1:0x442e80
+void SetWidth(GameApp* app, int n) { app->mWidth = n; }               // V1:0x442e70
+int GetHeight(GameApp* app) { return app->mHeight; }                  // V1:0x442ea0
+void SetHeight(GameApp* app, int n) { app->mHeight = n; }             // V1:0x442e90
+bool HasDialogs(GameApp* app) { return app->GetDialogCount() > 0; }   // V1:0x402b80
 bool HasPlayedGameBefore(GameApp* app) { return app->HasPlayedGameBefore(); }
-void ClearUpdateBacklog(GameApp* app) { app->ClearUpdateBacklog(false); }  // 0x442eb0
-// 0x442ec0: the original's two vsync flags; the port's display has neither
+void ClearUpdateBacklog(GameApp* app) { app->ClearUpdateBacklog(false); }  // V1:0x442eb0
+// V1:0x442ec0: the original's two vsync flags; the port's display has neither
 bool SmoothScrolling(GameApp* app) { return false; }
-// 0x429cc0 (+0x91d): the trial's lockout does not exist in the port yet
+// V1:0x429cc0 (+0x91d): the trial's lockout does not exist in the port yet
 bool QueuedHydraLockout(GameApp* app) { return false; }
-bool ShowingStatsBook(GameApp* app) { return app->mBookScreen != nullptr; }  // 0x416380
-void AddStatsBook(GameApp* app, bool theFromGame, bool theBestiary, bool theMediaPlayer)  // 0x444150
+bool ShowingStatsBook(GameApp* app) { return app->mBookScreen != nullptr; }  // V1:0x416380
+void AddStatsBook(GameApp* app, bool theFromGame, bool theBestiary, bool theMediaPlayer)  // V1:0x444150
 {
 	app->AddStatsBook(theFromGame, theBestiary, theMediaPlayer);
 }
-bool ShowingConversationPanel(GameApp* app) { return app->ShowingConversationPanel(); }  // 0x450460
+bool ShowingConversationPanel(GameApp* app) { return app->ShowingConversationPanel(); }  // V1:0x450460
 
-// 0x44f880: the profile's EnablePips when it has one, else the app's own flag
+// V1:0x44f880: the profile's EnablePips when it has one, else the app's own flag
 bool CanShowTilePips(GameApp* app)
 {
 	if (app->mProfile != nullptr && app->mProfile->KeyExists("EnablePips"))
@@ -83,36 +83,36 @@ bool CanShowTilePips(GameApp* app)
 
 // ---- the sounds ----
 
-void PlayDelayedSample(GameApp* app, int theId, int theDelay, int thePitch)  // 0x44f580
+void PlayDelayedSample(GameApp* app, int theId, int theDelay, int thePitch)  // V1:0x44f580
 {
 	app->mSoundPlayer->PlayDelayedSample(theId, theDelay, thePitch);
 }
 
-void PlaySampleMinTime(GameApp* app, int theId, int theMinUpdates)  // 0x44f5e0
+void PlaySampleMinTime(GameApp* app, int theId, int theMinUpdates)  // V1:0x44f5e0
 {
 	app->mSoundPlayer->PlaySampleMinTime(theId, theMinUpdates);
 }
 
-void PlayChainedSample(GameApp* app, int theId, int theNextId, int theDelay, int thePitch)  // 0x44f620
+void PlayChainedSample(GameApp* app, int theId, int theNextId, int theDelay, int thePitch)  // V1:0x44f620
 {
 	app->mSoundPlayer->PlayChainedSample(theId, theNextId, theDelay, thePitch);
 }
 
-void LoopSample(GameApp* app, int theId) { app->mSoundPlayer->LoopSample(theId); }  // 0x44f650
-void StopSample(GameApp* app, int theId) { app->mSoundPlayer->StopSample(theId); }  // 0x44f660
+void LoopSample(GameApp* app, int theId) { app->mSoundPlayer->LoopSample(theId); }  // V1:0x44f650
+void StopSample(GameApp* app, int theId) { app->mSoundPlayer->StopSample(theId); }  // V1:0x44f660
 
-void FadeOutSample(GameApp* app, int theId, float theFade)  // 0x44f670
+void FadeOutSample(GameApp* app, int theId, float theFade)  // V1:0x44f670
 {
 	app->mSoundPlayer->FadeOutSample(theId, theFade);
 }
 
-// 0x44f690: not within the last 5 updates
+// V1:0x44f690: not within the last 5 updates
 void PlayPitchShiftedSample(GameApp* app, int theId, int thePitch)
 {
 	app->mSoundPlayer->PlayPitchShiftedSample(theId, thePitch, 5);
 }
 
-// 0x44f6b0. port: an id outside the cached samples does nothing (the original indexed past the array)
+// V1:0x44f6b0. port: an id outside the cached samples does nothing (the original indexed past the array)
 void SetSampleVolume(GameApp* app, int theId, double theVolume)
 {
 	if (theId < 0 || theId >= JeffLib::SoundPlayer::MAX_SAMPLES)
@@ -121,7 +121,7 @@ void SetSampleVolume(GameApp* app, int theId, double theVolume)
 		anInstance->SetVolume(theVolume);
 }
 
-// 0x44f6e0. port: an id outside the cached samples does nothing
+// V1:0x44f6e0. port: an id outside the cached samples does nothing
 void IncSampleVolume(GameApp* app, int theId, double theVolume)
 {
 	if (theId < 0 || theId >= JeffLib::SoundPlayer::MAX_SAMPLES)
@@ -130,12 +130,12 @@ void IncSampleVolume(GameApp* app, int theId, double theVolume)
 		anInstance->SetVolume(anInstance->GetVolume() + theVolume);
 }
 
-void PlayCachedSample(GameApp* app, int theId, int thePan, int theMinUpdates)  // 0x44f720
+void PlayCachedSample(GameApp* app, int theId, int thePan, int theMinUpdates)  // V1:0x44f720
 {
 	app->mSoundPlayer->PlayCachedSample(theId, thePan, theMinUpdates);
 }
 
-// 0x44f740. port: an id outside the cached samples does nothing
+// V1:0x44f740. port: an id outside the cached samples does nothing
 void ReleaseCachedSample(GameApp* app, int theId)
 {
 	if (theId < 0 || theId >= JeffLib::SoundPlayer::MAX_SAMPLES)
@@ -167,14 +167,14 @@ void UnloadMusic(GameApp* app, int theSongId)
 	app->UnloadMusic(theSongId);
 }
 
-// 0x44f440: the music interface's vf 0x58. port: the song player's queue
+// V1:0x44f440: the music interface's vf 0x58. port: the song player's queue
 void PlaySongWhenDone(GameApp* app, int theOrder, float theSpeed, int theAtOrder, int theAtRow)
 {
 	if (app->mSongPlayer != nullptr)
 		app->mSongPlayer->PlaySongWhenDone(theOrder, theSpeed, theAtOrder, theAtRow);
 }
 
-// 0x44f540: a curtain that has not finished
+// 0x445420: a curtain that has not finished
 bool DoingCurtainTransition(GameApp* app)
 {
 	CurtainTransition* aCurtain = app->mCurtain;
@@ -183,26 +183,26 @@ bool DoingCurtainTransition(GameApp* app)
 	return !(aCurtain->mDone && aCurtain->mDrawn);
 }
 
-void StartBattle(GameApp* app) { app->StartBattle(); }  // 0x44b620
+void StartBattle(GameApp* app) { app->StartBattle(); }  // V1:0x44b620
 
-bool IsResGroupLoaded(GameApp* app, std::string theGroup)  // 0x44cb30
+bool IsResGroupLoaded(GameApp* app, std::string theGroup)  // V1:0x44cb30
 {
 	return app->mResourceManager->IsGroupLoaded(theGroup);
 }
 
-bool LoadResGroup(GameApp* app, std::string theGroup)  // 0x44cb60
+bool LoadResGroup(GameApp* app, std::string theGroup)  // V1:0x44cb60
 {
 	bool aLoaded = app->mResourceManager->LoadResources(theGroup);
 	app->ClearUpdateBacklog(false);
 	return aLoaded;
 }
 
-std::string GetResGroupError(GameApp* app)  // 0x44cc70
+std::string GetResGroupError(GameApp* app)  // V1:0x44cc70
 {
 	return app->mResourceManager->GetErrorText();
 }
 
-void UnloadResGroup(GameApp* app, std::string theGroup)  // 0x44cca0
+void UnloadResGroup(GameApp* app, std::string theGroup)  // V1:0x44cca0
 {
 	app->mResourceManager->DeleteResources(theGroup);
 }
@@ -258,24 +258,24 @@ void AddBonusText(GameApp* app, std::string theText, float x, float y, float the
 }
 void UpdateBonusText(GameApp* app) { app->UpdateBonusText(); }
 void RemoveAllBonusText(GameApp* app) { app->RemoveAllBonusText(); }
-// 0x44f010: empty in the released game (no script calls it)
+// V1:0x44f010: empty in the released game (no script calls it)
 int WriteStat(GameApp*, lua_State*)
 {
 	return 0;
 }
 
-// 0x44fc20: DrawBonusText(g)
+// V1:0x44fc20: DrawBonusText(g)
 int DrawBonusText(GameApp* app, lua_State* L)
 {
 	app->DrawBonusText((Graphics*)gLuaSupport->CheckObject(1, ClassOf<Graphics>::info));
 	return 0;
 }
 
-// 0x451c80: whether the trial's lockout follows the hydra's conversation (a distribution of the trial, not
+// V1:0x451c80: whether the trial's lockout follows the hydra's conversation (a distribution of the trial, not
 // registered, past the first book's seventh chapter). port: the port plays as registered, so never
 bool ShouldDoHydraLockout(GameApp* app) { return false; }
-// 0x451e30: the conversation panel comes up again, and the warp-in sound plays once it is off (the lockout's
-// callback 0x451eb0 instead, in the trial)
+// V1:0x451e30: the conversation panel comes up again, and the warp-in sound plays once it is off (the lockout's
+// callback V1:0x451eb0 instead, in the trial)
 void DoAfterHydraConvPanel(GameApp* app)
 {
 	app->mConversationPanel->Activate(true);
@@ -283,13 +283,13 @@ void DoAfterHydraConvPanel(GameApp* app)
 		app->mConversationPanel->mInactiveCallback = "Book.PlayWarpInSound";
 }
 
-// 0x44c390: a message box with the title "ERROR"
+// V1:0x44c390: a message box with the title "ERROR"
 void DoErrorDialog(GameApp* app, std::string theText)
 {
 	app->MsgBox(theText, GT(0x6f701c), MB_ICONERROR);
 }
 
-// 0x444b30: the confirm dialog (DIALOG_CONFIRM), with theHeader in place of its banner unless theBanner
+// V1:0x444b30: the confirm dialog (DIALOG_CONFIRM), with theHeader in place of its banner unless theBanner
 void DoYesNoDialog(GameApp* app, std::string theHeader, std::string theLines, std::string theCallback, bool theBanner)
 {
 	GameDialog* aDialog = app->DoConfirmDialog(-1, theHeader, theLines, nullptr, theCallback);
@@ -299,7 +299,7 @@ void DoYesNoDialog(GameApp* app, std::string theHeader, std::string theLines, st
 	}
 }
 
-// 0x44f900: the height of theText wrapped at theWidth in theFont
+// V1:0x44f900: the height of theText wrapped at theWidth in theFont
 int GetWordWrappedHeight(GameApp* app, std::string theText, int theWidth, int theLineSpacing, LuaFont* theFont)
 {
 	Graphics g;
@@ -319,7 +319,7 @@ int PixelGrey(ulong thePixel)
 	return (int)std::nearbyint(aGrey);
 }
 
-// 0x44c730: the grey, with red +0x36 and green +0x26 (at most 255)
+// V1:0x44c730: the grey, with red +0x36 and green +0x26 (at most 255)
 void SepiaFilter(MemoryImage* theImage)
 {
 	ulong* aBits = theImage->GetBits();
@@ -333,7 +333,7 @@ void SepiaFilter(MemoryImage* theImage)
 	theImage->BitsChanged();
 }
 
-// 0x44c950
+// V1:0x44c950
 void GrayscaleFilter(MemoryImage* theImage)
 {
 	ulong* aBits = theImage->GetBits();
@@ -345,7 +345,7 @@ void GrayscaleFilter(MemoryImage* theImage)
 	theImage->BitsChanged();
 }
 
-int MakeSepia(GameApp* app, lua_State* L)  // 0x44c890: MakeSepia(image)
+int MakeSepia(GameApp* app, lua_State* L)  // V1:0x44c890: MakeSepia(image)
 {
 	LuaImage* anImage = (LuaImage*)gLuaSupport->CheckObject(1, ClassOf<LuaImage>::info);
 	if (anImage != nullptr)
@@ -353,7 +353,7 @@ int MakeSepia(GameApp* app, lua_State* L)  // 0x44c890: MakeSepia(image)
 	return 0;
 }
 
-int MakeGrayscale(GameApp* app, lua_State* L)  // 0x44ca70: MakeGrayscale(image)
+int MakeGrayscale(GameApp* app, lua_State* L)  // V1:0x44ca70: MakeGrayscale(image)
 {
 	LuaImage* anImage = (LuaImage*)gLuaSupport->CheckObject(1, ClassOf<LuaImage>::info);
 	if (anImage != nullptr)
@@ -379,7 +379,7 @@ int DoGenericDialog(GameApp* app, lua_State* L)
 	return 0;
 }
 
-// 0x6a7810: theText's parts between the '#' marks, which are red, and outside them (empty parts left out);
+// V1:0x6a7810: theText's parts between the '#' marks, which are red, and outside them (empty parts left out);
 // false for a '#' without its pair
 bool SplitRedParts(const std::string& theText, std::vector<std::pair<std::string, bool>>& theParts)
 {
@@ -400,7 +400,7 @@ bool SplitRedParts(const std::string& theText, std::vector<std::pair<std::string
 	return true;
 }
 
-// 0x44f020: BreakupString(text): its parts, as a table from 0 of {mStr = part, mRed = red}
+// V1:0x44f020: BreakupString(text): its parts, as a table from 0 of {mStr = part, mRed = red}
 int BreakupString(GameApp* app, lua_State* L)
 {
 	const char* aText = lua_tostring(L, 1);

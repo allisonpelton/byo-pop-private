@@ -211,7 +211,7 @@ static std::string ReplaceAll(const std::string& theText, const std::string& the
 	return aResult;
 }
 
-// "%name" in a page becomes the player's name (0x6a7610 replaces every one)
+// "%name" in a page becomes the player's name (V1:0x6a7610 replaces every one)
 static std::string WithPlayerName(GameApp* theApp, const std::string& theText)
 {
 	std::string aName = theApp->mProfile != nullptr ? theApp->mProfile->mName : "";
@@ -241,7 +241,7 @@ void ConversationPanel::LayOutPage(Panel* thePanel, TextPage* thePage, const std
 void ConversationPanel::AddTextPage(const std::string& theText)
 {
 	std::string aText = WithPlayerName(mApp, theText);
-	// port: the original also split the text into a list it never used (0x6a7810)
+	// port: the original also split the text into a list it never used (V1:0x6a7810)
 	TextPage* aPage = new TextPage();
 	aPage->mText = aText;
 	Panel* p = LastPanel();
@@ -511,7 +511,7 @@ bool ConversationPanel::NextLetter()
 	return aDone;
 }
 
-// 0x4bec10: each part 4 nearer the target's; true when they are equal
+// 0x49fad0: each part 4 nearer the target's; true when they are equal
 static bool StepColor(Color& theColor, const Color& theTarget)
 {
 	int* aParts[4] = {&theColor.mRed, &theColor.mGreen, &theColor.mBlue, &theColor.mAlpha};
@@ -789,7 +789,7 @@ void ConversationPanel::MouseDown(int x, int y, int theClickCount)
 		CallForBool(mStartedCallback);
 }
 
-// ---- convpanel.*: the C functions (0x4c0b60-0x4c2b20), all on the app's panel ----
+// ---- convpanel.*: the C functions (V1:0x4c0b60-0x4a2e80), all on the app's panel ----
 
 namespace {
 
@@ -803,7 +803,7 @@ int IntArg(lua_State* L, int theIndex)
 	return (int)luaL_checknumber(L, theIndex);
 }
 
-// {r, g, b, a} at theIndex (0x4c5590 reads each part; a missing one is 0)
+// {r, g, b, a} at theIndex (V1:0x4c5590 reads each part; a missing one is 0)
 Color ColorArg(lua_State* L, int theIndex)
 {
 	luaL_checktype(L, theIndex, LUA_TTABLE);
@@ -834,13 +834,13 @@ std::string StringArg(lua_State* L, int theIndex)
 	return s != nullptr ? s : "";
 }
 
-int AddNewPanel(lua_State* L)  // 0x4c2070
+int AddNewPanel(lua_State* L)  // V1:0x4c2070
 {
 	Panel()->AddNewPanel();
 	return 0;
 }
 
-// convpanel.Activate([pauseBoard = true]), 0x4c0be0: then the curtain stays on top (0x450d20) and the cursor is
+// convpanel.Activate([pauseBoard = true]), V1:0x4c0be0: then the curtain stays on top (V1:0x450d20) and the cursor is
 // the arrow
 int Activate(lua_State* L)
 {
@@ -851,7 +851,7 @@ int Activate(lua_State* L)
 	return 0;
 }
 
-int SetAnim(lua_State* L)  // 0x4c0c60: image[, delay]
+int SetAnim(lua_State* L)  // V1:0x4c0c60: image[, delay]
 {
 	Image* anImage = ImageArg(L, 1);
 	int aDelay = lua_gettop(L) == 2 ? (int)lua_tonumber(L, 2) : 0;
@@ -859,27 +859,27 @@ int SetAnim(lua_State* L)  // 0x4c0c60: image[, delay]
 	return 0;
 }
 
-int SetAnimXY(lua_State* L)  // 0x4c0db0
+int SetAnimXY(lua_State* L)  // V1:0x4c0db0
 {
 	int y = IntArg(L, 2);
 	Panel()->SetAnimXY(IntArg(L, 1), y);
 	return 0;
 }
 
-int AlignAnim(lua_State* L)  // 0x4c0ed0: side, alignX
+int AlignAnim(lua_State* L)  // V1:0x4c0ed0: side, alignX
 {
 	Panel()->AlignAnim((int)lua_tonumber(L, 1), lua_toboolean(L, 2) != 0);
 	return 0;
 }
 
-int SetDimensions(lua_State* L)  // 0x4c0f40
+int SetDimensions(lua_State* L)  // V1:0x4c0f40
 {
 	int h = IntArg(L, 4), w = IntArg(L, 3), y = IntArg(L, 2);
 	Panel()->SetDimensions(IntArg(L, 1), y, w, h);
 	return 0;
 }
 
-int SetDefaults(lua_State* L)  // 0x4c1160: side, {inner colour}, portrait, font[, portrait delay]
+int SetDefaults(lua_State* L)  // V1:0x4c1160: side, {inner colour}, portrait, font[, portrait delay]
 {
 	int aSide = (int)lua_tonumber(L, 1);
 	Color anInner = ColorArg(L, 2);
@@ -890,49 +890,49 @@ int SetDefaults(lua_State* L)  // 0x4c1160: side, {inner colour}, portrait, font
 	return 0;
 }
 
-int SetScreenColor(lua_State* L)  // 0x4c1490
+int SetScreenColor(lua_State* L)  // V1:0x4c1490
 {
 	Panel()->SetScreenColor(ColorArg(L, 1));
 	return 0;
 }
 
-int SetBeamColor(lua_State* L)  // 0x4c15e0
+int SetBeamColor(lua_State* L)  // V1:0x4c15e0
 {
 	Panel()->SetBeamColor(ColorArg(L, 1));
 	return 0;
 }
 
-int SetOuterColor(lua_State* L)  // 0x4c1730
+int SetOuterColor(lua_State* L)  // V1:0x4c1730
 {
 	Panel()->SetOuterColor(ColorArg(L, 1));
 	return 0;
 }
 
-int SetMiddleColor(lua_State* L)  // 0x4c1880
+int SetMiddleColor(lua_State* L)  // V1:0x4c1880
 {
 	Panel()->SetMiddleColor(ColorArg(L, 1));
 	return 0;
 }
 
-int SetInnerColor(lua_State* L)  // 0x4c19d0
+int SetInnerColor(lua_State* L)  // V1:0x4c19d0
 {
 	Panel()->SetInnerColor(ColorArg(L, 1));
 	return 0;
 }
 
-int SetContinueTextColor(lua_State* L)  // 0x4c1b20
+int SetContinueTextColor(lua_State* L)  // V1:0x4c1b20
 {
 	Panel()->SetContinueTextColor(ColorArg(L, 1));
 	return 0;
 }
 
-int AddTextPage(lua_State* L)  // 0x4c1c70
+int AddTextPage(lua_State* L)  // V1:0x4c1c70
 {
 	Panel()->AddTextPage(StringArg(L, 1));
 	return 0;
 }
 
-// convpanel.SetTextRect(x, y, w, h) or (side), 0x4c1d20: beside the portrait on that side
+// convpanel.SetTextRect(x, y, w, h) or (side), V1:0x4c1d20: beside the portrait on that side
 int SetTextRect(lua_State* L)
 {
 	if (lua_gettop(L) > 1)
@@ -943,13 +943,13 @@ int SetTextRect(lua_State* L)
 	return 0;
 }
 
-int New(lua_State* L)  // 0x4c1e00
+int New(lua_State* L)  // V1:0x4c1e00
 {
 	gApp->NewConversationPanel();
 	return 0;
 }
 
-int SetFont(lua_State* L)  // 0x4c1e20: font, {colour}
+int SetFont(lua_State* L)  // V1:0x4c1e20: font, {colour}
 {
 	Font* aFont = FontArg(L, 1);
 	if (aFont == nullptr)
@@ -958,31 +958,31 @@ int SetFont(lua_State* L)  // 0x4c1e20: font, {colour}
 	return 0;
 }
 
-int SlidePortrait(lua_State* L)  // 0x4c1ff0
+int SlidePortrait(lua_State* L)  // V1:0x4c1ff0
 {
 	Panel()->SlidePortrait((int)lua_tonumber(L, 1));
 	return 0;
 }
 
-int DontSlidePortrait(lua_State* L)  // 0x4c2030
+int DontSlidePortrait(lua_State* L)  // V1:0x4c2030
 {
 	Panel()->DontSlidePortrait((int)lua_tonumber(L, 1));
 	return 0;
 }
 
-int TriggersNewUserDialog(lua_State* L)  // 0x4c2090
+int TriggersNewUserDialog(lua_State* L)  // V1:0x4c2090
 {
 	Panel()->TriggersNewUserDialog();
 	return 0;
 }
 
-int Active(lua_State* L)  // 0x4c2a00
+int Active(lua_State* L)  // V1:0x4c2a00
 {
 	lua_pushboolean(L, Panel() != nullptr && Panel()->Active());
 	return 1;
 }
 
-// the callback setters (0x4c20b0-0x4c28e0): the function's path
+// the callback setters (V1:0x4c20b0-V1:0x4c28e0): the function's path
 int SetUpdateCallback(lua_State* L)
 {
 	Panel()->SetUpdateCallback(StringArg(L, 1));
@@ -1032,19 +1032,19 @@ int SetGenericCompletionCallback(lua_State* L)
 	return 0;
 }
 
-int SetDrawPriority(lua_State* L)  // 0x4c0b60
+int SetDrawPriority(lua_State* L)  // V1:0x4c0b60
 {
 	Panel()->SetDrawPriority((int)lua_tonumber(L, 1));
 	return 0;
 }
 
-int OffsetPanelY(lua_State* L)  // 0x4c0ba0
+int OffsetPanelY(lua_State* L)  // V1:0x4c0ba0
 {
 	Panel()->OffsetPanelY((int)lua_tonumber(L, 1));
 	return 0;
 }
 
-int DebugReplaceCurrentText(lua_State* L)  // 0x4c2a80
+int DebugReplaceCurrentText(lua_State* L)  // V1:0x4c2a80
 {
 	Panel()->ReplaceCurrentText(StringArg(L, 1));
 	return 0;
