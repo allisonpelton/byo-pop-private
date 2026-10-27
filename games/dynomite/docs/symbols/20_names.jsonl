@@ -1,0 +1,4 @@
+{"addr": "00489100", "name": "Sexy::SexyApp::GetString", "comment": "the text of a properties id (properties/default.xml)"}
+{"addr": "00419ad0", "name": "FossilizedApp::GetImage", "comment": "loads images\\<name> (and its _ alpha), counts a loading step"}
+{"addr": "00478110", "name": "Sexy::ImageFont::ImageFont", "comment": "ImageFont(app, descriptor file)"}
+{"addr": "00438b20", "name": "TitleScreen::TitleScreen", "comment": "0xa8 bytes"}

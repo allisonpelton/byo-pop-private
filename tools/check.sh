@@ -67,9 +67,13 @@
 #   rocketmania  Rocket Mania Deluxe: the loading screen, the menu, a hover hint, the difficulty dialog and a new game
 #                started from a script (games/rocketmania/tools/menu_test.txt), four screenshots that must differ (under a
 #                minute)
+#   dynomite     Dynomite Deluxe: a scripted Stomped Puzzle (dynomite_run: five shots and the board's state, then the
+#                save dialog's first slot and the name's Save) and a rerun with the same screens and the same saved
+#                game but for its tick counts, and that saved game continued from the main menu with the board as it
+#                was saved (dynomite_load) (under a minute)
 #   oracle       Bejeweled's oracle three ways (compare.sh --variants default,forcevariant,novariants); over
 #                ten minutes, so never in a subagent; refuses to start while another oracle runs
-# Sets: quick = build unit; games = bookworm bigmoney noahsark atomica alchemy sevenseas pixelus bookwormadv bookwormadv2 tiptop mummymaze ningpo wordharmony cosmicbugs waterbugs rocketmania; all = every suite, builds first.
+# Sets: quick = build unit; games = bookworm bigmoney noahsark atomica alchemy sevenseas pixelus bookwormadv bookwormadv2 tiptop mummymaze ningpo wordharmony cosmicbugs waterbugs rocketmania dynomite; all = every suite, builds first.
 #
 # Prints "PASS <suite> (<seconds>s): <summary>" or "FAIL <suite> (<seconds>s): <summary> -> <log>" for each,
 # then "check: N passed, M failed". Exits 0 only when all passed. Logs: build/logs/check/<suite>.txt (and
@@ -110,6 +114,7 @@ CB_BANKS="82 animations, 9 missing, 0 failed; 8 fonts, 0 failed"
 CB_GAME="17000 ms: score 526, lives 6, board 0, filled 426 of 85%; 28000 ms: score 729, lives 6, board 0, filled 629 of 85%"
 WB_BANKS="77 animations, 10 missing, 0 failed; 7 fonts, 3 empty as in the game, 0 failed"
 WB_GAME="20000 ms: score 0, lives 6, board 0, filled 0 of 85%; 32000 ms: score 494, lives 6, board 0, filled 494 of 85%"
+DY_GAME="board mode 0 score 10 eggs 12 cells ec5704d5"
 
 set -u
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -122,9 +127,9 @@ while [ $# -gt 0 ]; do
 		--out=*) OUT="${1#--out=}"; shift ;;
 		-h|--help) sed -n '2,/^BW_CLASSIC/p' "$0" | sed '$d' | sed 's/^# \{0,1\}//'; exit 0 ;;
 		quick) SUITES+=(build unit); shift ;;
-		games) SUITES+=(bookworm bigmoney noahsark atomica alchemy sevenseas pixelus bookwormadv bookwormadv2 tiptop mummymaze ningpo wordharmony cosmicbugs waterbugs rocketmania); shift ;;
-		all) SUITES+=(build build-web build-nov unit unit-web verify modmenu livesplit bookworm bigmoney noahsark atomica alchemy sevenseas pixelus bookwormadv bookwormadv2 tiptop mummymaze ningpo wordharmony cosmicbugs waterbugs rocketmania oracle); shift ;;
-		build|build-web|build-nov|unit|unit-web|verify|modmenu|livesplit|bookworm|bigmoney|noahsark|atomica|alchemy|sevenseas|pixelus|bookwormadv|bookwormadv2|tiptop|mummymaze|ningpo|wordharmony|cosmicbugs|waterbugs|rocketmania|oracle) SUITES+=("$1"); shift ;;
+		games) SUITES+=(bookworm bigmoney noahsark atomica alchemy sevenseas pixelus bookwormadv bookwormadv2 tiptop mummymaze ningpo wordharmony cosmicbugs waterbugs rocketmania dynomite); shift ;;
+		all) SUITES+=(build build-web build-nov unit unit-web verify modmenu livesplit bookworm bigmoney noahsark atomica alchemy sevenseas pixelus bookwormadv bookwormadv2 tiptop mummymaze ningpo wordharmony cosmicbugs waterbugs rocketmania dynomite oracle); shift ;;
+		build|build-web|build-nov|unit|unit-web|verify|modmenu|livesplit|bookworm|bigmoney|noahsark|atomica|alchemy|sevenseas|pixelus|bookwormadv|bookwormadv2|tiptop|mummymaze|ningpo|wordharmony|cosmicbugs|waterbugs|rocketmania|dynomite|oracle) SUITES+=("$1"); shift ;;
 		*) echo "check.sh: unknown suite '$1' (tools/check.sh --help)" >&2; exit 2 ;;
 	esac
 done
@@ -923,6 +928,67 @@ suite_waterbugs() {
 		[ "$w" = "$w2" ]; then w="window the same, twice"; else w="WINDOW DIFFERS ('$w')"; st=1; fi
 	SUMMARY="$b; $g; $r; $w"
 	[ $st -eq 0 ] || SUMMARY="$SUMMARY (expected '$WB_BANKS', '$WB_GAME')"
+	return $st
+}
+
+# Dynomite's settings as a run of the game leaves them (no game data), so every run starts from the same ones
+dynomite_user() {  # <user dir>
+	mkdir -p "$1"
+	printf '%s\n' '[SOFTWARE\PopCap\Dynomite]' CustomCursors=dword:0 InProgress=dword:0 MusicVolume=dword:50 Muted=dword:0 \
+		PreferredX=dword:-1 PreferredY=dword:-1 ScreenMode=dword:1 SfxVolume=dword:85 TimesExecuted=dword:5 \
+		TimesPlayed=dword:0 WaitForVSync=dword:0 > "$1/registry.ini"
+}
+
+dynomite_exe() {  # <dir>: the game with <dir>/script.txt and <dir>/user; prints its "board" lines
+	local e=0 l u
+	u="$(cygpath -ma "$1")"
+	timeout 300 "$W/build/native/dynomite.exe" -gamedir=assets/dynomite -userdir="$u/user" -fast -seed=2 \
+		-script="$u/script.txt" > "$1/stdout.txt" 2> "$1/stderr.txt" || e=$?
+	l="$(cat "$1/stdout.txt" "$1/stderr.txt" | tr -d '\r' | sed -n 's/^INFO: script: //p' | grep '^board' | paste -sd ';' - | sed 's/;/; /g')"
+	[ $e -eq 0 ] || l="$l; EXIT $e"
+	echo "$l"
+}
+
+dynomite_run() {  # <name>: Stomped Puzzle, five shots, the board, then saved into the first slot; prints the board
+	local d="$OUT/dynomite/$1" u
+	rm -rf "$d"; dynomite_user "$d/user"
+	u="$(cygpath -ma "$d")"
+	# the title, New Game, Stomped Puzzle and OK, Easy and OK; the shots; the side bar's Save, the first slot, Save,
+	# and the name's Save (an update is 10 ms)
+	printf '%s\n' "600 click 320 450" "910 click 486 213" "970 click 465 230" "1030 move 488 432" "1040 click 488 432" \
+		"1100 click 465 162" "1150 move 488 432" "1160 click 488 432" "1700 click 260 140" "1745 click 297 140" \
+		"1790 click 334 140" "1835 click 371 140" "1880 click 408 140" "2095 board" "2100 screenshot $u/board.png" \
+		"2110 move 45 297" "2120 click 45 297" "2205 move 284 207" "2210 click 284 207" "2265 move 354 399" \
+		"2270 click 354 399" "2355 move 357 361" "2360 click 357 361" "2450 screenshot $u/saved.png" "2460 quit" > "$d/script.txt"
+	dynomite_exe "$d"
+}
+
+dynomite_load() {  # <name> <run>: the run's saved game continued from the main menu; prints the board
+	local d="$OUT/dynomite/$1" u
+	rm -rf "$d"; mkdir -p "$d"; cp -r "$OUT/dynomite/$2/user" "$d/user"
+	u="$(cygpath -ma "$d")"
+	# the title, Continue Game and Next, the first saved game and Let's Play
+	printf '%s\n' "600 click 320 450" "910 move 487 286" "920 click 487 286" "960 move 491 434" "970 click 491 434" \
+		"1005 move 380 175" "1010 click 380 175" "1065 move 491 434" "1070 click 491 434" "1110 board" \
+		"1120 screenshot $u/loaded.png" "1130 quit" > "$d/script.txt"
+	dynomite_exe "$d"
+}
+
+suite_dynomite() {
+	local st=0 g r l c="$OUT/dynomite" t
+	need_assets dynomite || return 1
+	g="$(dynomite_run game)"; r="$(dynomite_run game2)"; l="$(dynomite_load load game)"
+	{ echo "game: $g"; echo "rerun: $r"; echo "load: $l"; } > "$1"
+	[ "$g" = "$DY_GAME" ] || st=1
+	# a saved game's only bytes that change from run to run: the tick counts at the start of its board (0x3868)
+	if [ -f "$c/game/user/SLOT0.SAV" ]; then
+		t="$(cmp -l "$c/game/user/SLOT0.SAV" "$c/game2/user/SLOT0.SAV" 2>&1 | awk '$1 < 14441 || $1 > 14448' | head -n 3)"
+	else t="no SLOT0.SAV"; fi
+	if diff -q "$c/game/board.png" "$c/game2/board.png" >> "$1" 2>&1 && diff -q "$c/game/saved.png" "$c/game2/saved.png" >> "$1" 2>&1 &&
+		[ "$g" = "$r" ] && [ -z "$t" ]; then r="rerun identical"; else r="RERUN DIFFERS${t:+ ($t)}"; st=1; fi
+	if [ "$l" = "$g" ]; then l="loads as saved"; else l="LOAD DIFFERS ('$l')"; st=1; fi
+	SUMMARY="$g; $r; $l"
+	[ $st -eq 0 ] || SUMMARY="$SUMMARY (expected '$DY_GAME')"
 	return $st
 }
 

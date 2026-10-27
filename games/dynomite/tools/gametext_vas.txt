@@ -1,0 +1,237 @@
+# The addresses of the hard-coded texts the port reads from Dynomite.exe (GT(0x...)); make_gametext.py turns this list
+# into src/GameTextTable.inc. Addresses only, never the texts.
+0x4f7594    # the board's pause text (slot 48)
+0x4f75a4    # the game's end: the rank's label (slot 54)
+0x4f75b4    # the game's end: the time's label (slot 54)
+0x4f99f0    # DynomiteFossil's high-score title
+0x4f9cc4    # DynomitePanic's high-score title
+0x4f9e48    # DynomiteStomped's high-score title
+0x4fa0e4    # DynomiteTimeTrial's high-score title
+0x4fa068    # DynomiteTimeTrial: a high score in the unregistered version (the register dialog's lines)
+0x4fc3a0    # RexAttack: the heading over the fossil challenge's end
+0x4f84c0    # DynomiteFossil: the strategic levels (0x52b1c0), level 1 round 1
+0x4f8470    # DynomiteFossil: the strategic levels (0x52b1c0), level 1 round 2
+0x4f8428    # DynomiteFossil: the strategic levels (0x52b1c0), level 1 round 3
+0x4f83d0    # DynomiteFossil: the strategic levels (0x52b1c0), level 2 round 1
+0x4f8380    # DynomiteFossil: the strategic levels (0x52b1c0), level 2 round 2
+0x4f8330    # DynomiteFossil: the strategic levels (0x52b1c0), level 2 round 3
+0x4f82d0    # DynomiteFossil: the strategic levels (0x52b1c0), level 3 round 1
+0x4f8280    # DynomiteFossil: the strategic levels (0x52b1c0), level 3 round 2
+0x4f8230    # DynomiteFossil: the strategic levels (0x52b1c0), level 3 round 3
+0x4f81d8    # DynomiteFossil: the strategic levels (0x52b1c0), level 4 round 1
+0x4f8180    # DynomiteFossil: the strategic levels (0x52b1c0), level 4 round 2
+0x4f8130    # DynomiteFossil: the strategic levels (0x52b1c0), level 4 round 3
+0x4f80e0    # DynomiteFossil: the strategic levels (0x52b1c0), level 5 round 1
+0x4f8098    # DynomiteFossil: the strategic levels (0x52b1c0), level 5 round 2
+0x4f8050    # DynomiteFossil: the strategic levels (0x52b1c0), level 5 round 3
+0x4f7ff8    # DynomiteFossil: the strategic levels (0x52b1c0), level 6 round 1
+0x4f7fa8    # DynomiteFossil: the strategic levels (0x52b1c0), level 6 round 2
+0x4f7f50    # DynomiteFossil: the strategic levels (0x52b1c0), level 6 round 3
+0x4f7ef8    # DynomiteFossil: the strategic levels (0x52b1c0), level 7 round 1
+0x4f7ea0    # DynomiteFossil: the strategic levels (0x52b1c0), level 7 round 2
+0x4f7e48    # DynomiteFossil: the strategic levels (0x52b1c0), level 7 round 3
+0x4f7df0    # DynomiteFossil: the strategic levels (0x52b1c0), level 8 round 1
+0x4f7d98    # DynomiteFossil: the strategic levels (0x52b1c0), level 8 round 2
+0x4f7d40    # DynomiteFossil: the strategic levels (0x52b1c0), level 8 round 3
+0x4f7ce8    # DynomiteFossil: the strategic levels (0x52b1c0), level 9 round 1
+0x4f7c88    # DynomiteFossil: the strategic levels (0x52b1c0), level 9 round 2
+0x4f7c28    # DynomiteFossil: the strategic levels (0x52b1c0), level 9 round 3
+0x4f7bd0    # DynomiteFossil: the strategic levels (0x52b1c0), level 10 round 1
+0x4f7b78    # DynomiteFossil: the strategic levels (0x52b1c0), level 10 round 2
+0x4f7b20    # DynomiteFossil: the strategic levels (0x52b1c0), level 10 round 3
+0x4f7ac8    # DynomiteFossil: the strategic levels (0x52b1c0), level 11 round 1
+0x4f7a70    # DynomiteFossil: the strategic levels (0x52b1c0), level 11 round 2
+0x4f7a18    # DynomiteFossil: the strategic levels (0x52b1c0), level 11 round 3
+0x4f79c8    # DynomiteFossil: the strategic levels (0x52b1c0), level 12 round 1
+0x4f7970    # DynomiteFossil: the strategic levels (0x52b1c0), level 12 round 2
+0x4f7928    # DynomiteFossil: the strategic levels (0x52b1c0), level 12 round 3
+0x4f78d0    # DynomiteFossil: the strategic levels (0x52b1c0), level 13 round 1
+0x4f7878    # DynomiteFossil: the strategic levels (0x52b1c0), level 13 round 2
+0x4f7820    # DynomiteFossil: the strategic levels (0x52b1c0), level 13 round 3
+0x4f77c8    # DynomiteFossil: the strategic levels (0x52b1c0), level 14 round 1
+0x4f7770    # DynomiteFossil: the strategic levels (0x52b1c0), level 14 round 2
+0x4f7718    # DynomiteFossil: the strategic levels (0x52b1c0), level 14 round 3
+0x4f76c0    # DynomiteFossil: the strategic levels (0x52b1c0), level 15 round 1
+0x4f7660    # DynomiteFossil: the strategic levels (0x52b1c0), level 15 round 2
+0x4f7600    # DynomiteFossil: the strategic levels (0x52b1c0), level 15 round 3
+0x4f9970    # DynomiteFossil: the panic levels (0x52b108), level 1 round 1
+0x4f9900    # DynomiteFossil: the panic levels (0x52b108), level 1 round 2
+0x4f9898    # DynomiteFossil: the panic levels (0x52b108), level 1 round 3
+0x4f9820    # DynomiteFossil: the panic levels (0x52b108), level 2 round 1
+0x4f97b0    # DynomiteFossil: the panic levels (0x52b108), level 2 round 2
+0x4f9738    # DynomiteFossil: the panic levels (0x52b108), level 2 round 3
+0x4f96b8    # DynomiteFossil: the panic levels (0x52b108), level 3 round 1
+0x4f9648    # DynomiteFossil: the panic levels (0x52b108), level 3 round 2
+0x4f95d8    # DynomiteFossil: the panic levels (0x52b108), level 3 round 3
+0x4f9560    # DynomiteFossil: the panic levels (0x52b108), level 4 round 1
+0x4f94e8    # DynomiteFossil: the panic levels (0x52b108), level 4 round 2
+0x4f9478    # DynomiteFossil: the panic levels (0x52b108), level 4 round 3
+0x4f93f8    # DynomiteFossil: the panic levels (0x52b108), level 5 round 1
+0x4f9390    # DynomiteFossil: the panic levels (0x52b108), level 5 round 2
+0x4f9328    # DynomiteFossil: the panic levels (0x52b108), level 5 round 3
+0x4f92b0    # DynomiteFossil: the panic levels (0x52b108), level 6 round 1
+0x4f9240    # DynomiteFossil: the panic levels (0x52b108), level 6 round 2
+0x4f91c8    # DynomiteFossil: the panic levels (0x52b108), level 6 round 3
+0x4f9150    # DynomiteFossil: the panic levels (0x52b108), level 7 round 1
+0x4f90d8    # DynomiteFossil: the panic levels (0x52b108), level 7 round 2
+0x4f9060    # DynomiteFossil: the panic levels (0x52b108), level 7 round 3
+0x4f8fe8    # DynomiteFossil: the panic levels (0x52b108), level 8 round 1
+0x4f8f70    # DynomiteFossil: the panic levels (0x52b108), level 8 round 2
+0x4f8ef8    # DynomiteFossil: the panic levels (0x52b108), level 8 round 3
+0x4f8e80    # DynomiteFossil: the panic levels (0x52b108), level 9 round 1
+0x4f8e00    # DynomiteFossil: the panic levels (0x52b108), level 9 round 2
+0x4f8d80    # DynomiteFossil: the panic levels (0x52b108), level 9 round 3
+0x4f8d08    # DynomiteFossil: the panic levels (0x52b108), level 10 round 1
+0x4f8c90    # DynomiteFossil: the panic levels (0x52b108), level 10 round 2
+0x4f8c18    # DynomiteFossil: the panic levels (0x52b108), level 10 round 3
+0x4f8ba0    # DynomiteFossil: the panic levels (0x52b108), level 11 round 1
+0x4f8b28    # DynomiteFossil: the panic levels (0x52b108), level 11 round 2
+0x4f8ab0    # DynomiteFossil: the panic levels (0x52b108), level 11 round 3
+0x4f8a40    # DynomiteFossil: the panic levels (0x52b108), level 12 round 1
+0x4f89c8    # DynomiteFossil: the panic levels (0x52b108), level 12 round 2
+0x4f8958    # DynomiteFossil: the panic levels (0x52b108), level 12 round 3
+0x4f88e0    # DynomiteFossil: the panic levels (0x52b108), level 13 round 1
+0x4f8868    # DynomiteFossil: the panic levels (0x52b108), level 13 round 2
+0x4f87f0    # DynomiteFossil: the panic levels (0x52b108), level 13 round 3
+0x4f8778    # DynomiteFossil: the panic levels (0x52b108), level 14 round 1
+0x4f8700    # DynomiteFossil: the panic levels (0x52b108), level 14 round 2
+0x4f8688    # DynomiteFossil: the panic levels (0x52b108), level 14 round 3
+0x4f8610    # DynomiteFossil: the panic levels (0x52b108), level 15 round 1
+0x4f8590    # DynomiteFossil: the panic levels (0x52b108), level 15 round 2
+0x4f8518    # DynomiteFossil: the panic levels (0x52b108), level 15 round 3
+0x4fa03c    # DynomiteStomped: the game's end, the combo names (slot 54), 0 and 1
+0x4fa034    # DynomiteStomped: the combo names, 2
+0x4fa02c    # DynomiteStomped: the combo names, 3
+0x4fa020    # DynomiteStomped: the combo names, 4
+0x4fa014    # DynomiteStomped: the combo names, 5
+0x4fa008    # DynomiteStomped: the combo names, 6
+0x4f9ffc    # DynomiteStomped: the combo names, 7
+0x4f9ff0    # DynomiteStomped: the combo names, 8
+0x4f9fe4    # DynomiteStomped: the game's end, the best combo's label
+0x4f9fd4    # DynomiteStomped: the game's end, the babies' label
+0x4f9fc4    # DynomiteStomped: the game's end, the rounds' label
+0x4f9fb4    # DynomiteStomped: the game's end, the final score's label
+0x4fc60c    # OptionsDialog: the credits link's label
+0x4fc6f4    # CreditsDialog: the roles, 6
+0x4fc6e4    # CreditsDialog
+0x4fc6d0    # CreditsDialog
+0x4fc6b8    # CreditsDialog
+0x4fc6a8    # CreditsDialog
+0x4fc694    # CreditsDialog
+0x4fc6d8    # CreditsDialog: the names, 4
+0x4fc6c0    # CreditsDialog
+0x4fc69c    # CreditsDialog
+0x4fc688    # CreditsDialog
+0x4fc67c    # CreditsDialog: the links' labels, 2
+0x4fc674    # CreditsDialog
+0x4fc728    # CreditsDialog: the links' addresses, 2
+0x4fc704    # CreditsDialog
+0x4fc4a8    # CreditsDialog: the header (the text itself, not a string id)
+0x4fc63c    # CreditsDialog: the footer (likewise)
+0x4ff578    # Tutorial: step 0x01's text id
+0x4ff530    # Tutorial: step 0x02's text id
+0x4ff498    # Tutorial: step 0x03's text id
+0x4ff448    # Tutorial: step 0x04's text id
+0x4ff3f8    # Tutorial: step 0x05's text id
+0x4ff3b0    # Tutorial: step 0x06's text id
+0x4ff378    # Tutorial: step 0x07's text id
+0x4ff34c    # Tutorial: step 0x08's text id
+0x4ff300    # Tutorial: step 0x09's text id
+0x4ff2cc    # Tutorial: step 0x0a's text id
+0x4ff278    # Tutorial: step 0x0b's text id
+0x4ff228    # Tutorial: step 0x0c's text id
+0x4ff180    # Tutorial: step 0x0d's text id
+0x4ff120    # Tutorial: step 0x0e's text id
+0x4ff0d0    # Tutorial: step 0x0f's text id
+0x4ff088    # Tutorial: step 0x10's text id
+0x4ff000    # Tutorial: step 0x11's text id
+0x4fef90    # Tutorial: step 0x12's text id
+0x4fef30    # Tutorial: step 0x13's text id
+0x4feef8    # Tutorial: step 0x14's text id
+0x4feeb8    # Tutorial: step 0x15's text id
+0x4fee58    # Tutorial: step 0x16's text id
+0x4fede0    # Tutorial: step 0x17's text id
+0x4fed70    # Tutorial: step 0x18's text id
+0x4fed18    # Tutorial: step 0x19's text id
+0x4fec90    # Tutorial: step 0x1a's text id
+0x4fec50    # Tutorial: step 0x1b's text id
+0x4febb8    # Tutorial: step 0x1c's text id
+0x4feb68    # Tutorial: step 0x1d's text id
+0x4feb10    # Tutorial: step 0x1e's text id
+0x4feaa0    # Tutorial: step 0x1f's text id
+0x4fea28    # Tutorial: step 0x20's text id
+0x4fe9b0    # Tutorial: step 0x21's text id
+0x4fe978    # Tutorial: step 0x22's text id
+0x4fe930    # Tutorial: step 0x23's text id
+0x4fe904    # Tutorial: step 0x24's text id
+0x4fe8a0    # Tutorial: step 0x25's text id
+0x4fe818    # Tutorial: step 0x26's text id
+0x4fe7ec    # Tutorial: step 0x27's text id
+0x4fe7a0    # Tutorial: step 0x28's text id
+0x4fe760    # Tutorial: step 0x29's text id
+0x4fe6f8    # Tutorial: step 0x2a's text id
+0x4fe690    # Tutorial: step 0x2b's text id
+0x4fe620    # Tutorial: step 0x2c's text id
+0x4fe618    # Tutorial: step 0x2e's text id
+0x4fe5a8    # Tutorial: step 0x2f's text id
+0x4fe550    # Tutorial: step 0x30's text id
+0x4fe4b0    # Tutorial: step 0x31's text id
+0x4fe408    # Tutorial: step 0x33's text id
+0x4fe3e4    # Tutorial: step 0x34's text id
+0x4fe368    # Tutorial: step 0x35's text id
+0x4fe338    # Tutorial: step 0x36's text id
+0x4fe2a0    # Tutorial: step 0x37's text id
+0x4fe26c    # Tutorial: step 0x38's text id
+0x4fe220    # Tutorial: step 0x39's text id
+0x4fe20c    # Tutorial: step 0x3a's text id
+0x4fe1b0    # Tutorial: step 0x3b's text id
+0x4fe118    # Tutorial: step 0x3c's text id
+0x4fe0a8    # Tutorial: step 0x3d's text id
+0x4fe068    # Tutorial: step 0x3e's text id
+0x4fdfe0    # Tutorial: step 0x3f's text id
+0x4fdf90    # Tutorial: step 0x40's text id
+0x4fdf30    # Tutorial: step 0x41's text id
+0x4fdf00    # Tutorial: step 0x43's text id
+0x4fdeb0    # Tutorial: step 0x44's text id
+0x4fde40    # Tutorial: step 0x45's text id
+0x4fddf0    # Tutorial: step 0x46's text id
+0x4fdd68    # Tutorial: step 0x47's text id
+0x4fdd38    # Tutorial: step 0x48's text id
+0x4fdd20    # Tutorial: step 0x49's text id
+0x4fdcfc    # Tutorial: step 0x4a's text id
+0x4fdcb0    # Tutorial: step 0x4b's text id
+0x4fdc78    # Tutorial: step 0x4c's text id
+0x4fdc00    # Tutorial: step 0x4d's text id
+0x4fdbc4    # Tutorial: step 0x4e's text id
+0x4fdb8c    # Tutorial: step 0x50's text id
+0x4fdb30    # Tutorial: step 0x51's text id
+0x4fdb1c    # Tutorial: step 0x52's text id
+0x4fdac8    # Tutorial: step 0x53's text id
+0x4fda80    # Tutorial: step 0x54's text id
+0x4fda44    # Tutorial: step 0x55's text id
+0x4fd9d8    # Tutorial: step 0x56's text id
+0x4fd970    # Tutorial: step 0x57's text id
+0x4fd958    # Tutorial: step 0x58's text id
+0x4fd8b8    # Tutorial: step 0x59's text id
+0x4fd828    # Tutorial: step 0x5a's text id
+0x4fd7c8    # Tutorial: step 0x5b's text id
+0x4fd750    # Tutorial: step 0x5c's text id
+0x4fd710    # Tutorial: step 0x5d's text id
+0x4fd6e8    # Tutorial: step 0x5e's text id
+0x4fd688    # Tutorial: step 0x5f's text id
+0x4fd628    # Tutorial: step 0x60's text id
+0x4fd5c0    # Tutorial: step 0x61's text id
+0x4fd54c    # Tutorial: step 0x62's text id
+0x4fd570    # Tutorial: step 0x62 (the museum still open)'s text id
+0x4fd524    # Tutorial: step 0x64's text id
+0x4fd4a8    # Tutorial: step 0x65's text id
+0x4fd430    # Tutorial: step 0x66's text id
+0x4fd3c8    # Tutorial: step 0x67's text id
+0x4fd370    # Tutorial: step 0x68's text id
+0x4fd360    # Tutorial: step 0x69's text id
+0x4fd318    # Tutorial: step 0x6a's text id
+0x4fd2a0    # Tutorial: step 0x6b's text id
+0x4fd220    # Tutorial: step 0x6c's text id
+0x4fd1d0    # Tutorial: step 0x6d's text id
+0x4fd194    # Tutorial: step 0x6e's text id
+0x4fcb00    # SaveGameDialog: an empty slot's mode and name
