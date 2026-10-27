@@ -2984,6 +2984,17 @@ would have to match the game exactly. The improvements serve survive as well, si
 whether a trial board keeps the game's RNG state. The result may still be a floor: a fair bot that passes 7 million
 in a third or half of its games.
 
+**A TAS of Timed mode to level 5 (planned, on hold (the user, 2026-10-27)).** The user wants a tool-assisted run of
+Timed mode that reaches level 5 as fast as possible. The plan is to play many games, over seeds and move choices, and
+keep the one that gets to level 5 in the fewest moves. The cascades have to be timed as well, since in a real-time
+run a move's cost is the updates its swap, fall and cascades take, not one move each. The search would rank lines by
+the updates to level 5, with the move count as a tie-break. Most of the pieces exist. Survive's trials keep the game's
+RNG state, so they know the falling gems, and a TAS may use that. A trial already runs the board to its first settle,
+and timing a line means running it through every cascade instead. `--record` writes a replay that verifies, and the
+replay can be made into a video as the next paragraph describes. What is left is a search that scores by updates and
+looks several moves ahead, and finding out how far a start can be chosen: the seed of a fresh game, or only what a
+player can do in the game.
+
 **Videos of a replay.** The native game watches the replay under rundesk with `-fast`. A `-script` takes a
 screenshot every 2 updates, which gives 50 frames a second. `-audiocapture=<file.wav>` (`testhooks/AudioCapture.h`)
 writes the sound alongside. It mixes 1/100 s per update, so the sound keeps time with the screenshots however
