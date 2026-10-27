@@ -69,7 +69,9 @@ void HostSetMessageFunc(MessageFunc theFunc)
 	gMessageFunc = theFunc;
 }
 
-// WM_ACTIVATEAPP (0x42ebf7)
+// WM_ACTIVATEAPP (0x42ebf7). The activate callback is told 1 when the window was deactivated and 0 when it was
+// activated (0x42ed73 pushes 1 on wParam == 0, 0x42edde pushes 0 otherwise): it pauses the game and the music, and
+// hides the board, while it is 1.
 void HostSetActive(bool isActive)
 {
 	if (gActive == isActive)
@@ -78,7 +80,7 @@ void HostSetActive(bool isActive)
 	if (gScreenInited && gActivate != nullptr && !gInCallback)
 	{
 		gInCallback = true;
-		gActivate(isActive ? 1 : 0);
+		gActivate(isActive ? 0 : 1);
 		gInCallback = false;
 	}
 }

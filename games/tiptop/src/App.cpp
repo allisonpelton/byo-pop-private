@@ -349,18 +349,18 @@ static void OnClose()
 		Command(nullptr, 0x18);
 }
 
-// 0x41b2da: the window activated or deactivated
-static void OnActivate(char isActive)
+// 0x41b2da: the window deactivated (isInactive 1: pauses the game and the music, flag 2) or activated (0)
+static void OnActivate(char isInactive)
 {
-	SetPause(isActive, 0);
-	PauseMusic(isActive);
-	if (isActive == 0)
+	SetPause(isInactive, 0);
+	PauseMusic(isInactive);
+	if (isInactive == 0)
 		gPauseFlags = gPauseFlags & 0xfd;
 	else
 		gPauseFlags = gPauseFlags | 2;
 	App::UpdatePause();
 	gSkipMouseDown = 1;
-	if ((gRestoreFullScreen != 0) && (isActive == 0))
+	if ((gRestoreFullScreen != 0) && (isInactive == 0))
 	{
 		gRestoreFullScreen = 0;
 		App::ToggleFullScreen(1);
