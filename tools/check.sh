@@ -513,11 +513,10 @@ suite_bookwormadv2() {
 	l="$("$b" -gamedir=assets/bookwormadv2 -load 2>&1 | tee -a "$log" | tail -n 1; exit "${PIPESTATUS[0]}")" || st=1
 	r="$("$b" -gamedir=assets/bookwormadv2 -runall 2>&1 | tee -a "$log" | tail -n 1; exit "${PIPESTATUS[0]}")" || st=1
 	p="$(python games/bookwormadv2/tests/poplua/pairs.py "$b" assets/bookwormadv2 2>&1 | tee -a "$log" | tail -n 1; exit "${PIPESTATUS[0]}")" || st=1
-	# the Flash player: its self test (every line a PASS), then the game's movies to their end (the bitmap tags are
-	# not played yet, so "unsupported: none" is not asked of them)
+	# the Flash player: its self test (every line a PASS), then the game's movies to their end with nothing skipped
 	s="$("$W/build/native/bwa2_swftest.exe" -selftest 2>&1 | tee -a "$log" | grep -c '^PASS'; exit "${PIPESTATUS[0]}")" || st=1
 	grep -q '^FAIL' "$log" && st=1
-	f="$("$W/build/native/bwa2_swftest.exe" 2>&1 | tee -a "$log" | grep -c 'done@'; exit "${PIPESTATUS[0]}")" || st=1
+	f="$("$W/build/native/bwa2_swftest.exe" 2>&1 | tee -a "$log" | grep -c 'done@.*unsupported: none'; exit "${PIPESTATUS[0]}")" || st=1
 	m="$(bookwormadv2_smoke "$log")"
 	SUMMARY="$d; $l; $r; $p; swf: $s checks, $f of 5 movies to their end; $m"
 	[ "$d" = "dialect: 150 checks passed" ] || st=1

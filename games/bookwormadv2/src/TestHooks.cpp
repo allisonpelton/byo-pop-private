@@ -10,6 +10,7 @@
 //                   for one), clicks the middle of the screen (treasure and win screens), picks two treasures and the
 //                   companion in the treasure room and goes on, and clicks the chapter map's Enter button (when the
 //                   board is hidden)
+//   nowords <0|1>  1: the soak spells no words (the rest of it goes on), so a battle is lost to the enemy; 0: it does again
 //   pam <id>        logs where a script's animation is (playing, label, frame)
 //   state           logs the battle engine's state and the board's selected tiles
 //   widgets         logs the widget manager's widgets: class, rectangle, visibility, priority, focus
@@ -99,6 +100,8 @@ size_t UsedVirtualMemory();  // CrashLog.cpp
 
 // The treasure room's next click, "x y" (empty when there is none): a companion first, then the treasures, one
 // of the unselected each time round (one that does not take the click does not block the others)
+static bool sSoakNoWords = false;  // the nowords command
+
 static std::string PickTreasureClick()
 {
 	static const char kPick[] =
@@ -234,7 +237,7 @@ bool GameApp::HandleScriptCommand(const ScriptCommand& theCommand)
 		}
 		else if (ShowingConversationPanel() || !aWordTurn)
 			AddScriptCommand(mUpdateCount + 1, "click", "400 290");
-		else if (mBoard != nullptr) {
+		else if (mBoard != nullptr && !sSoakNoWords) {
 			if (mProfile != nullptr && mProfile->GetBool("TutorialNeedsPower")) {
 				// the first battle's potion tutorial locks the grid until a potion is used
 				AddScriptCommand(mUpdateCount + 1, "click", "68 330");
@@ -243,6 +246,10 @@ bool GameApp::HandleScriptCommand(const ScriptCommand& theCommand)
 			}
 			AddScriptCommand(mUpdateCount + 20, "word", "attack preferruby");
 		}
+		return true;
+	}
+	if (theCommand.mCommand == "nowords") {
+		sSoakNoWords = atoi(theCommand.mArgs.c_str()) != 0;
 		return true;
 	}
 	if (theCommand.mCommand == "pam") {

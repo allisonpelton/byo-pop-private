@@ -199,13 +199,20 @@ export's class recovery is by RTTI only), `MainMenu` 24 KB, `GameApp` 20 KB, `Bo
    passing); until it works, the 233 bound methods have to be read from `fnfind.py -s <method name>` on the
    `MethodWrapper` RTTI names, or the scripts' calls compared with `src/GameAppLua.cpp`'s table (a script calling an
    unbound method is a runtime error with its name).
-4. Cut scenes: `swf/` lacks bitmap fills and the tags Volume 2's five movies use (DefineBits, JPEGTables, DefineBitsJPEG2/3,
-   DefineBitsLossless/2, bitmap fills); `bwa2_swftest` lists them per movie as "unsupported".
-5. PopAnim: all 304 `.pam` files load (versions 1: 36, 2: 2, 3: 266) but `bwa2_pamtest` reports 41 pictures not found in
-   7 files; whether version 3's records are read as the original reads them has to be checked against the PopAnim
-   loader at 0x510c00 before the battles.
-6. Web page (`web/page.js`): markers, import folders (`music/`, `scripts/` are loose in Volume 2) and prose still say
-   Volume 1; its persist folder is already `/bwa2persist`.
+4. (done 2026-10-26) Cut scenes: `swf/` reads the bitmap tags Volume 2's five movies use (DefineBits with JPEGTables,
+   DefineBitsJPEG2/3, DefineBitsLossless/2, decoded with stb_image) and draws repeating, clipped, smoothed and plain bitmap
+   fills (`SwfRaster::SampleBitmap`); a bitmap id of 65535 is no fill. `bwa2_swftest` plays all five with nothing skipped
+   (DefineFontName is ignored), and its -verify finds the incremental drawing the same as the whole-frame one.
+5. PopAnim: all 304 `.pam` files load (versions 1: 36, 2: 2, 3: 266). `bwa2_pamtest` reports 41 pictures not found in 7 files
+   (2plaguedpork, 5mommabear, 5poppabear, 7smokedragon, 9tweedee, drfrank, hephaestus): the game's folder has no pictures of
+   those names (nothing is named like them in `images/pam/images`) and no script or data file names the seven animations
+   (the scripts use `5papabear`, `5mamabear`, `9tweedledee`), so they are leftovers that the original never plays; not a
+   fault of the port. (2026-10-26)
+6. (done 2026-10-26) Web page (`web/page.js`): the markers, import folders, skip list (`images/upsell`) and prose are Volume 2's and
+   the persist folder is `/bwa2persist`; the page's own pak reader (`web/modpanel.js`, run under Node) unpacks the game's
+   `main.pak` to the 9,221 files of which the staged folder holds all but the 7 upsell pictures, byte for byte on a sample
+   of 1,281. Checked in the Browser pane (silent): the import card with Volume 2's text and no script error. An import of the
+   whole install folder in the pane has not been run (the pickers cannot be driven; shared page code, as for the other games).
 
 ## The word list's flags (2026-10-26), the start of the battle milestone
 

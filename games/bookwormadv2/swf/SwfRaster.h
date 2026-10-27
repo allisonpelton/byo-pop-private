@@ -81,13 +81,17 @@ private:
 		int mDir;                    // 1 when the edge went down the page, -1 when up
 	};
 	struct Paint {
-		int mKind = 0;  // 0 solid, 1 linear gradient, 2 radial gradient
+		int mKind = 0;  // 0 solid, 1 linear gradient, 2 radial gradient, 3 bitmap
 		int mR = 0, mG = 0, mB = 0, mA = 255;
 		uint32_t mArgb = 0;
 		float mPR = 0, mPG = 0, mPB = 0, mPA = 0;  // the solid color times its alpha, for the partial pixels
 		float mIA = 0, mIB = 0, mIC = 0, mID = 0, mITX = 0, mITY = 0;  // pixel center to gradient square
 		const uint32_t* mLut = nullptr;  // 256 colors, 0xAARRGGBB, not premultiplied
 		bool mOpaqueLut = false;
+		// a bitmap: mIA to mITY then take a pixel center to the bitmap's own pixels
+		const SwfBitmap* mBitmap = nullptr;
+		bool mRepeat = false, mSmooth = false, mHasCX = false;
+		float mCXMul[4] = {1, 1, 1, 1}, mCXAdd[4] = {0, 0, 0, 0};
 	};
 	struct Layer {
 		std::vector<Edge> mEdges;
@@ -142,6 +146,7 @@ private:
 	void EmitRun(Layer& theLayer, int theY, int theStart, int theEnd, float theCoverage);
 	void EmitPartial(Layer& theLayer, int theY, int theX, float theCoverage);
 	void EmitGradient(Layer& theLayer, uint32_t* theRow, int theY, int theX0, int theX1);
+	static void SampleBitmap(const Paint& thePaint, float theX, float theY, int& theR, int& theG, int& theB, int& theA);
 	void PutPixel(Layer& theLayer, uint32_t* theRow, int theX, int theR, int theG, int theB, int theA, float theCoverage);
 	void FlushRow(int theY);
 

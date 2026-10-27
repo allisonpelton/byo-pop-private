@@ -51,12 +51,22 @@ struct SwfGradStop {
 	SwfColor mColor;
 };
 
-// A fill style: solid (0x00), linear gradient (0x10) or radial gradient (0x12). The gradient matrix maps the
-// gradient square, -16384 to 16384 in both directions, onto the shape.
+// A bitmap of a movie (DefineBits, DefineBitsJPEG2 and 3, DefineBitsLossless and 2), decoded: its pixels are 0xAARRGGBB
+// with the color already multiplied by the alpha
+struct SwfBitmap {
+	int mWidth = 0, mHeight = 0;
+	std::vector<uint32_t> mPixels;
+};
+
+// A fill style: solid (0x00), linear gradient (0x10), radial gradient (0x12) or a bitmap (0x40 repeating, 0x41 clipped,
+// 0x42 repeating and not smoothed, 0x43 clipped and not smoothed). The gradient matrix maps the gradient square,
+// -16384 to 16384 in both directions, onto the shape; a bitmap's matrix maps the bitmap's pixels (twips of the shape's
+// space, so a scale of 20 is a pixel for a pixel) and a clipped bitmap shows its edge pixels beyond it.
 struct SwfFillStyle {
 	int mType = 0;
 	SwfColor mColor;
 	SwfMatrix mMatrix;
+	std::shared_ptr<const SwfBitmap> mBitmap;  // the bitmap of a bitmap fill
 	std::vector<SwfGradStop> mStops;
 	uint64_t mStopsHash = 0;  // of a gradient's type and stops, which tells the same colors apart wherever they are
 };
@@ -199,6 +209,8 @@ struct SwfData {
 	SwfColor mBackground;
 	SwfTimelineDef mRoot;
 	std::unordered_map<int, std::unique_ptr<SwfCharacter>> mChars;
+	std::unordered_map<int, std::shared_ptr<const SwfBitmap>> mBitmaps;  // by the id of the tag that defined them
+	std::vector<uint8_t> mJpegTables;  // the JPEGTables tag, which the DefineBits tags' JPEG data lacks
 	std::map<std::string, int> mUnsupported;  // tags, actions and features skipped, each with how often
 
 	const SwfCharacter* Find(int theId) const

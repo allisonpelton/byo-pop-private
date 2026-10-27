@@ -295,6 +295,33 @@ bool SwfRaster::SetFillPaint(Layer& theLayer, const SwfFillStyle& theStyle, cons
 {
 	if (theStyle.mType == 0 || mMaskTarget != nullptr)
 		return SetSolidPaint(theLayer, theStyle.mColor, theCX);
+	if (theStyle.mType >= 0x40) {
+		// a bitmap: the fill's matrix takes its pixels to the shape, so the inverse of that and the shape's own takes a
+		// pixel of the target to the bitmap's
+		if (theStyle.mBitmap == nullptr)
+			return false;
+		SwfMatrix aBitmapToDevice = SwfMatrix::Concat(theMatrix, theStyle.mMatrix);
+		SwfMatrix aBack;
+		if (!aBitmapToDevice.Invert(aBack))
+			return false;
+		Paint& p = theLayer.mPaint;
+		p.mKind = 3;
+		p.mIA = aBack.a;
+		p.mIB = aBack.b;
+		p.mIC = aBack.c;
+		p.mID = aBack.d;
+		p.mITX = aBack.tx;
+		p.mITY = aBack.ty;
+		p.mBitmap = theStyle.mBitmap.get();
+		p.mRepeat = (theStyle.mType & 1) == 0;
+		p.mSmooth = (theStyle.mType & 2) == 0;
+		p.mHasCX = !theCX.IsIdentity();
+		for (int i = 0; i < 4; i++) {
+			p.mCXMul[i] = theCX.mMul[i];
+			p.mCXAdd[i] = theCX.mAdd[i];
+		}
+		return true;
+	}
 	if (theStyle.mStops.empty())
 		return false;
 
@@ -1030,12 +1057,104 @@ void SwfRaster::EmitPartial(Layer& theLayer, int theY, int theX, float theCovera
 	EmitRun(theLayer, theY, theX, theX + 1, theCoverage);
 }
 
-// A stretch of a gradient that is all covered and not clipped
+// The color of a bitmap fill at a pixel center of the target (straight, not multiplied by its alpha): the nearest pixel
+// of the bitmap or, smoothed, the four around the point in the proportions that it lies between them; beyond the edges
+// the bitmap repeats, or its edge pixels go on
+void SwfRaster::SampleBitmap(const Paint& thePaint, float theX, float theY, int& theR, int& theG, int& theB, int& theA)
+{
+	const SwfBitmap& aBitmap = *thePaint.mBitmap;
+	const int W = aBitmap.mWidth, H = aBitmap.mHeight;
+	float u = thePaint.mIA * theX + thePaint.mIC * theY + thePaint.mITX;
+	float v = thePaint.mIB * theX + thePaint.mID * theY + thePaint.mITY;
+	u = std::min(1e7f, std::max(-1e7f, u));
+	v = std::min(1e7f, std::max(-1e7f, v));
+	float aR, aG, aB, aA;  // multiplied by the alpha
+	if (!thePaint.mSmooth) {
+		int x = (int)floorf(u), y = (int)floorf(v);
+		if (thePaint.mRepeat) {
+			x %= W;
+			y %= H;
+			x += x < 0 ? W : 0;
+			y += y < 0 ? H : 0;
+		}
+		else {
+			x = x < 0 ? 0 : (x >= W ? W - 1 : x);
+			y = y < 0 ? 0 : (y >= H ? H - 1 : y);
+		}
+		uint32_t c = aBitmap.mPixels[(size_t)y * W + x];
+		aA = (float)(c >> 24);
+		aR = (float)((c >> 16) & 255);
+		aG = (float)((c >> 8) & 255);
+		aB = (float)(c & 255);
+	}
+	else {
+		float fx = u - 0.5f, fy = v - 0.5f;
+		float aFloorX = floorf(fx), aFloorY = floorf(fy);
+		float tx = fx - aFloorX, ty = fy - aFloorY;
+		int x[2] = {(int)aFloorX, (int)aFloorX + 1}, y[2] = {(int)aFloorY, (int)aFloorY + 1};
+		for (int i = 0; i < 2; i++) {
+			if (thePaint.mRepeat) {
+				x[i] %= W;
+				y[i] %= H;
+				x[i] += x[i] < 0 ? W : 0;
+				y[i] += y[i] < 0 ? H : 0;
+			}
+			else {
+				x[i] = x[i] < 0 ? 0 : (x[i] >= W ? W - 1 : x[i]);
+				y[i] = y[i] < 0 ? 0 : (y[i] >= H ? H - 1 : y[i]);
+			}
+		}
+		const float aWeights[4] = {(1 - tx) * (1 - ty), tx * (1 - ty), (1 - tx) * ty, tx * ty};
+		const uint32_t aTexels[4] = {aBitmap.mPixels[(size_t)y[0] * W + x[0]], aBitmap.mPixels[(size_t)y[0] * W + x[1]],
+		                             aBitmap.mPixels[(size_t)y[1] * W + x[0]], aBitmap.mPixels[(size_t)y[1] * W + x[1]]};
+		aR = aG = aB = aA = 0;
+		for (int i = 0; i < 4; i++) {
+			aA += aWeights[i] * (float)(aTexels[i] >> 24);
+			aR += aWeights[i] * (float)((aTexels[i] >> 16) & 255);
+			aG += aWeights[i] * (float)((aTexels[i] >> 8) & 255);
+			aB += aWeights[i] * (float)(aTexels[i] & 255);
+		}
+	}
+	if (aA < 0.5f) {
+		theR = theG = theB = theA = 0;
+		return;
+	}
+	if (aA < 254.5f) {
+		float anUnmultiply = 255.0f / aA;
+		aR = std::min(255.0f, aR * anUnmultiply);
+		aG = std::min(255.0f, aG * anUnmultiply);
+		aB = std::min(255.0f, aB * anUnmultiply);
+	}
+	if (thePaint.mHasCX) {
+		theR = ClampByte(aR * thePaint.mCXMul[0] + thePaint.mCXAdd[0]);
+		theG = ClampByte(aG * thePaint.mCXMul[1] + thePaint.mCXAdd[1]);
+		theB = ClampByte(aB * thePaint.mCXMul[2] + thePaint.mCXAdd[2]);
+		theA = ClampByte(aA * thePaint.mCXMul[3] + thePaint.mCXAdd[3]);
+	}
+	else {
+		theR = (int)(aR + 0.5f);
+		theG = (int)(aG + 0.5f);
+		theB = (int)(aB + 0.5f);
+		theA = (int)(aA + 0.5f);
+	}
+}
+
+// A stretch of a gradient or bitmap that is all covered and not clipped
 void SwfRaster::EmitGradient(Layer& theLayer, uint32_t* theRow, int theY, int theX0, int theX1)
 {
 	const Paint& p = theLayer.mPaint;
 	float X = (float)theX0 + 0.5f, Y = (float)theY + 0.5f;
-	if (p.mKind == 1) {
+	if (p.mKind == 3) {
+		for (int x = theX0; x < theX1; x++) {
+			int r, g, b, a;
+			SampleBitmap(p, (float)x + 0.5f, Y, r, g, b, a);
+			if (a >= 255)
+				theRow[x] = 0xFF000000u | (r << 16) | (g << 8) | b;
+			else if (a != 0)
+				theRow[x] = Blend(theRow[x], r, g, b, a + (a >> 7));
+		}
+	}
+	else if (p.mKind == 1) {
 		float u = (p.mIA * X + p.mIC * Y + p.mITX + 16384.0f) * (1.0f / 128.0f);
 		float du = p.mIA * (1.0f / 128.0f);
 		for (int x = theX0; x < theX1; x++, u += du) {
@@ -1129,6 +1248,11 @@ void SwfRaster::EmitRun(Layer& theLayer, int theY, int theStart, int theEnd, flo
 			g = p.mG;
 			b = p.mB;
 			a = p.mA;
+		}
+		else if (p.mKind == 3) {
+			SampleBitmap(p, (float)x + 0.5f, Y, r, g, b, a);
+			if (a == 0)
+				continue;
 		}
 		else {
 			float X = (float)x + 0.5f;
