@@ -26,6 +26,10 @@
 #include <cstdio>
 #include <cstring>
 
+#ifdef __EMSCRIPTEN__
+#include "SiteProfiles.h"
+#endif
+
 using namespace Sexy;
 
 RocketApp* Sexy::gApp = NULL;
@@ -328,6 +332,9 @@ void RocketApp::ButtonDepress(int theId)
 			{
 				aHighScores->AddScore(aDialog->mEdit->mString);
 				mLastScoreName = aDialog->mEdit->mString;
+#ifdef __EMSCRIPTEN__
+				SiteScoresChanged(this);
+#endif
 			}
 			KillDialog(DIALOG_RECORD_SCORE);
 			break;

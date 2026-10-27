@@ -16,6 +16,10 @@
 #include <cstdio>
 #include <ctime>
 
+#ifdef __EMSCRIPTEN__
+#include "WebProfiles.h"
+#endif
+
 using namespace Sexy;
 
 // the game's dialog buttons: the Showcard font, the label of the given text
@@ -1023,6 +1027,10 @@ RecordScoreDialog::RecordScoreDialog(RocketApp* theApp, const SexyString& theMes
 	mEdit->SetColors(aEditColors, 5);
 	mEdit->mMaxPixels = 150;
 	mEdit->SetText(mApp->mLastScoreName);
+#ifdef __EMSCRIPTEN__
+	// the web page's player (framework/WebProfiles.h): under "fill" and "create" the box starts with the site's player
+	Byopop::SiteType("rocketmania", mEdit, false);
+#endif
 }
 
 // 0x414300
