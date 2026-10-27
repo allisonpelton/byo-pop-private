@@ -9,15 +9,20 @@
 // volumes. It is the page's one call for them, repeated until the game is up (it returns 0 until the app has
 // finished SexyAppBase::Init, which has read the game's saved options, so the setting wins over what the game
 // saved), and it does what the game's options dialog does, through the same functions. A value of -1 leaves the
-// game's own option alone.
+// game's own option alone. A game with a sound engine of its own (TipTop, Ning Po, Word Harmony) registers the function
+// that sets its volumes (framework/WebSettings.h), which is called in place of SetMusicVolume and SetSfxVolume.
 
 #ifdef __EMSCRIPTEN__
 #include "SexyAppBase.h"
+#include "WebSettings.h"
 #include "../platform/Audio.h"
 
 #include <emscripten.h>
 
 using namespace Sexy;
+
+// A game with a volume engine of its own sets this (framework/WebSettings.h)
+Byopop::SiteVolumeFn Byopop::gSiteVolume = NULL;
 
 extern "C"
 {
@@ -46,6 +51,14 @@ EMSCRIPTEN_KEEPALIVE int byopop_site_apply(int theCursors, int theMusic, int the
 
 	if (theCursors >= 0)
 		anApp->EnableCustomCursors(theCursors != 0);
+	if (Byopop::gSiteVolume != NULL)
+	{
+		// the game's own volumes (it has its own sound engine): it says when it can take them
+		if (((theMusic >= 0) || (theSfx >= 0)) &&
+			!Byopop::gSiteVolume(theMusic > 100 ? 100 : theMusic, theSfx > 100 ? 100 : theSfx))
+			return 0;
+		return 1;
+	}
 	if (theMusic >= 0)
 		anApp->SetMusicVolume((theMusic > 100 ? 100 : theMusic) / 100.0);
 	if (theSfx >= 0)

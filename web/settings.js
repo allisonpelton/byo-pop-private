@@ -119,7 +119,7 @@ var ByopopSettings = (function () {
   // ---------- the controls ----------
   // What the player sees, in the order it is shown. start: the setting is applied when a game starts, and a game that
   // is running keeps what it started with (the panel in a game's page says so). volume: the game's own volume option,
-  // which the games with an engine of their own do not take unless their port says so (render's option volumes).
+  // which Cosmic Bugs and Water Bugs do not have (render's option volumes).
   var GAME_OR = [["game", "As the game is"]];
   var FIELDS = [
     { group: "Players" },
@@ -324,7 +324,9 @@ var ByopopSettings = (function () {
       if (!f.options) { c.select.removeAttribute("id"); (c.number || c.checkbox).id = id; c.select.setAttribute("aria-label", f.label); }
       if (f.volume && opts.volumes === false) {
         ctl.querySelectorAll("select,input").forEach(function (e) { e.disabled = true; });
-        hint.textContent = "This game does not take this setting yet.";
+        hint.textContent = "This game has no volume option, so it does not take this setting.";
+      } else if (f.volume && !opts.live) {
+        hint.textContent += " Cosmic Bugs and Water Bugs have no volume option and ignore it.";
       } else if (f.start && opts.live) {
         hint.appendChild(make("span", "bps-start", "Applies the next time the game starts."));
       }

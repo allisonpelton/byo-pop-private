@@ -348,9 +348,16 @@ The settings, by their field in the item:
   every 100 ms until it returns 1. Only SexyAppFramework games have the option; for the others it does nothing and
   raises no error. "game" leaves the game's own option alone.
 - `musicVolume` and `sfxVolume` ("game" or 0 to 100): the game's own music and sound volume options
-  (`SetMusicVolume`, `SetSfxVolume`, through the same export and call as the cursors). TipTop, Word Harmony, Cosmic Bugs,
-  Water Bugs and Ning Po keep their volume in an engine of their own, which SexyAppBase's volumes do not reach (and
-  Cosmic Bugs and Water Bugs fix the output volume at the original's 60%), so the page leaves them out (the list in
+  (`SetMusicVolume`, `SetSfxVolume`, through the same export and call as the cursors). TipTop, Ning Po and Word Harmony keep
+  their volume in an engine of their own, which SexyAppBase's volumes do not reach. Each has a web-only file that registers a
+  function (`Byopop::gSiteVolume`, `framework/WebSettings.h`), which `byopop_site_apply` calls in place of `SetMusicVolume` and
+  `SetSfxVolume`, and which returns 0 until the game's own start has read its saved volumes, so that the site's value wins:
+  TipTop sets its `gSoundVolume` (0 to 0xffff, as the options' slider does) and its music table (`BuildMusicVolumes`, 0 to
+  0x100); Ning Po its two settings (`mSoundSetting`, `mMusicSetting`, 0 to 1, as its sliders do; the playing music takes the
+  music one once `init()` is done, and only when the site set one); Word Harmony its two category volumes (0 the sound, 1 the
+  music): `Game::applyVolumes` sets a category to 1 when its options box is ticked, and under a site volume to the site's level
+  instead (`SiteCategoryLevel`), so the box still turns it off. A level of 100 is the game's full volume. Cosmic Bugs and Water
+  Bugs have no volume option and fix the output volume at the original's 60%, so the page leaves them out (the list in
   `web/shell.html`, or `PAGE.siteVolume` in a game's `page.js`) and the controls are off in their panels.
 - `profile` ("game", "fill" or "create"): what a game does with the site's current player (below, "Player profiles"). The
   setting is applied when a game starts, and the panel says so.
