@@ -244,7 +244,8 @@ input[type=file] { display: none; }
   //   persist     the browser storage folder (IDBFS names its IndexedDB database after it): the game's files, saves
   //               and mods. Never changed once players have saves there: they would be left behind.
   //   lock        the Web Lock that lets one page at a time run the game; never changed either
-  //   gameDirs    the folders of the install that are copied (and that make a folder of files a mod)
+  //   gameDirs    the folders of the install that are copied (and that make a folder of files a mod), in lower case: the
+  //               import matches them in any case and stores them in lower case
   //   gameFiles   files at the top of the install that are copied too, in lower case (BookWorm: its word lists)
   //   paks        PopCap paks at the top of the install, in lower case (["main.pak"]): the import unpacks each into the
   //               game's folder instead of copying it, as native staging does, and its files count as the install's
@@ -506,8 +507,13 @@ input[type=file] { display: none; }
       if (e.path.substring(0, root.length) !== root) return;
       var rel = W.fs.safeRel(e.path.substring(root.length));
       if (!rel || /\.sig$/i.test(rel) || skip.some(function (re) { return re.test(rel); })) return;
-      if (GAME_DIRS.indexOf(rel.split("/")[0].toLowerCase()) >= 0 || GAME_FILES.indexOf(rel.toLowerCase()) >= 0)
-        wanted.push({ rel: rel, read: e.read });
+      var top = rel.split("/")[0];
+      if (GAME_DIRS.indexOf(top.toLowerCase()) >= 0) {
+        // The game's folders are stored in lower case, as PAGE.gameDirs names them: hasGameFiles and the Game files
+        // count look for them that way, and a Steam install's "Images" or "Stomped" would never be found. (The game
+        // itself finds files in any case: VFS::FindCaseInsensitive.)
+        wanted.push({ rel: top.toLowerCase() + rel.substring(top.length), read: e.read });
+      } else if (GAME_FILES.indexOf(rel.toLowerCase()) >= 0) wanted.push({ rel: rel, read: e.read });
     });
     var done = 0, bar = $("import-progress");
     msg.textContent = "Copying " + wanted.length + " files…";
@@ -520,6 +526,8 @@ input[type=file] { display: none; }
         });
       });
     }, Promise.resolve()).then(W.sync).then(function () {
+      // boot() would otherwise show this card again, still saying "Copied", as if the page were stuck
+      if (!hasGameFiles()) throw new Error("The files were copied, but the page cannot find the game's " + PAGE.markerText + " among them.");
       msg.textContent = "Copied " + wanted.length + " files.";
       return true;
     });
