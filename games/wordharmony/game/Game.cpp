@@ -263,10 +263,18 @@ void Game::applyVolumes()
 		if (!mSettings.isSoundEnabled())
 			aSystem->setCategoryVolume(0, 0.0f);
 		else
+#ifdef __EMSCRIPTEN__
+			aSystem->setCategoryVolume(0, SiteCategoryLevel(0));	// the web page's volume setting (framework/WebSettings.h); 1 without one
+#else
 			aSystem->setCategoryVolume(0, 1.0f);
+#endif
 		if (mSettings.isMusicEnabled())
 		{
+#ifdef __EMSCRIPTEN__
+			aSystem->setCategoryVolume(1, SiteCategoryLevel(1));
+#else
 			aSystem->setCategoryVolume(1, 1.0f);
+#endif
 			return;
 		}
 		aSystem->setCategoryVolume(1, 0.0f);
