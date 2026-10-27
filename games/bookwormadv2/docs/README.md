@@ -59,7 +59,7 @@ The staging unpacks `main.pak` (`tools/popcap_pak.py`, XOR 0xF7), copies `images
 `scripts/` (the loose `scripts/common`), names every file in lower case, and leaves out `images/upsell` (the buy
 screen's trailer). The game's 34 JPEG 2000 pictures are decoded at run time by the platform's OpenJPEG.
 
-The game's own exe target, `bookwormadv2`, is `-DBWA2_GAME=ON` until milestone 2 is done. Run it only under
+The game's own exe target, `bookwormadv2`, is part of every configure (it was behind `-DBWA2_GAME=ON` until 2026-10-26). Run it only under
 `build/native/rundesk.exe` (invisible, silent, low priority), e.g. with a `-script` that clicks and takes screenshots:
 `build/native/rundesk.exe $PWD/build/native/bookwormadv2.exe -gamedir=$PWD/assets/bookwormadv2 -userdir=<empty folder> -script=<file> -fast`.
 
@@ -89,7 +89,7 @@ later compiler), and its handlers have not been read case by case against `POPLU
 the real test of the VM.
 
 Milestone 2 (the title, menus, dialogs and cut scenes) is in place for a game that is not yet finished: 
-`bookwormadv2.exe` (`-DBWA2_GAME=ON`, off by default until the milestone is done) builds from `src/` reworked for Volume 2's
+`bookwormadv2.exe` builds from `src/` reworked for Volume 2's
 resource ids and classes, and runs headless under `-script`: the PopCap logo, the title with its curtain, the New User
 dialog and, after OK, the intro cut scene and the prologue battle of book 0, drawn by Volume 2's scripts (`PORT_PLAN.md`);
 the in-game Menu dialog with Options and Quit To Main Menu; the main menu (rebuilt from the original's: seven items, the

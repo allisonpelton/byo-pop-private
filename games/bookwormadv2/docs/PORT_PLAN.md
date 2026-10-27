@@ -4,7 +4,7 @@ Written 2026-10-26 at the end of milestone 1, from what was measured on the Ghid
 
 ## What was found while trying Volume 1's game code on Volume 2's files
 
-`-DBWA2_GAME=ON` builds `bookwormadv2.exe` from `src/`, which is still Volume 1's code. Running it on the staged
+The build (no option needed since 2026-10-26) makes `bookwormadv2.exe` from `src/`, which was still Volume 1's code then. Running it on the staged
 files got this far, each step a fix that is now in the tree:
 
 1. It stopped at once, silently: `main.cpp` looked for `bookwormadventures.exe` (Volume 2's is `BookwormAdventuresVol2.exe`)
@@ -218,7 +218,14 @@ them in a `std::map`; `Board::IsValidWord` gives its callers the flags, and 0x48
 (or under 3 letters) has flags 0. The board's `IsNoun`, `IsVerb` and `IsAdjective` (0x41a1a0, 0x41a1d0, 0x41a200) take the word in
 capitals. The suite's new-player run (`tools/check.sh bookwormadv2`) goes through the tutorial to its first attack.
 
-Volume 2's Board registers more Lua methods than the port's, which still has Volume 1's list (0x40f970 against `Board::RegisterLua`:
-`GridRemoveTile`, `AddNewTiles`, `SetAttackVisible`, `GetTMEnemyAttacking`, `IsScrambling`, `GetTileBelow` and `GetTopTiles` are not
-registered; `ChangeAttackBtnImage`, `GetRandomizedTiles` and `GetRandomizedAdjacentTiles` are, as Volume 1's); the battle milestone
-fills them in.
+Volume 2's Board registers seven Lua methods that Volume 1's does not (0x40f970 against `Board::RegisterLua`), and the port has them
+now: `GridRemoveTile` (0x4126b0, the grid's cell), `RemoveTile` (0x412750, the board's list only), `AddNewTiles` with its
+bonus flag (the push of new tiles and `CreateBonusTiles` only when it is true; `SubmitWord` passes true), `SetAttackVisible`,
+`GetTMEnemyAttacking`, `IsScrambling`, `GetTileBelow` (0x419550) and `GetTopTiles` (0x418ae0, with `GetRandomizedTiles` (0x418df0) on
+one shared loop). `SetScrambleVisible` only stops the button's drawing, as in the exe. `BE_COMPANION` (10) is a battle state of
+Volume 2 (chapter 3's end calls it); a PopAnim's labels are compared without case (the PAMs' are lower case, the scripts pass
+capitals), `popanim/PopAnimData.h`.
+
+The test hook's `soak <update>` plays the battles by itself (words from the board, potions when the tutorial asks for one, the
+stunned panel, the treasure room, the chapter map's Enter) and was the way the battle milestone was shaken down: from a new
+player through the prologue, chapters 1 to 8 and Skeletrox's boss fight, 219 words in 340,000 updates with no script error.
