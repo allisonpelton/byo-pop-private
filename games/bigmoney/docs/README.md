@@ -75,7 +75,7 @@ tools/build.sh web                             # build/web/bigmoney.html/.js/.wa
 
 - **Native.** `bigmoney.exe` finds `assets/bigmoney/` next to itself (or up to two levels up), or the
   Steam install. `-gamedir=` overrides that.
-- Saves go to `%APPDATA%\wasm-bejeweled\Big Money Deluxe\`: `savegame.dat`, `hiscores.dat`, and
+- Saves go to `%APPDATA%\byo-pop\Big Money Deluxe\`: `savegame.dat`, `hiscores.dat`, and
   `registry.ini` for the original's `HKCU\Software\PopCap\BigMoney` values.
 - **Web.** `bigmoney.html` imports the player's game folder (or a .zip of it) into its own
   IndexedDB-backed folder `/bmpersist`, separate from Bejeweled's `/persist`. It saves the same way as

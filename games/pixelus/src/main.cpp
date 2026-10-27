@@ -109,7 +109,7 @@ int main(int argc, char** argv)
 		gameDir = FindGameDir();
 	if (userDir.empty())
 	{
-		char* pref = SDL_GetPrefPath("wasm-bejeweled", "Pixelus Deluxe");
+		char* pref = SDL_GetPrefPath("byo-pop", "Pixelus Deluxe");
 		userDir = pref ? pref : "userdata";
 		SDL_free(pref);
 		while (!userDir.empty() && (userDir.back() == '/' || userDir.back() == '\\'))

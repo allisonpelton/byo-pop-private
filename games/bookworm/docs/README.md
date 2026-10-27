@@ -69,7 +69,7 @@ tools/build.sh web                                     # build/web/bookworm.html
 ```
 
 - **Native.** `bookworm.exe` finds `assets/bookworm/` next to itself (or up to two levels up), or the retail
-  install. `-gamedir=` overrides that. Saves go to `%APPDATA%\wasm-bejeweled\BookWorm Deluxe\`: the players'
+  install. `-gamedir=` overrides that. Saves go to `%APPDATA%\byo-pop\BookWorm Deluxe\`: the players'
   saved games (`players/<name>/classic.dat`, `action.dat`; with mods that change play, see Mods) and `registry.ini` for the original's
   `HKLM\SOFTWARE\PopCap\BookWorm` values (player profiles, high scores, options).
 - **Web.** `bookworm.html`, every game's page (`web/shell.html`) with BookWorm's settings (`games/bookworm/web/page.js`),

@@ -47,7 +47,7 @@ same order as the original's functions (the level generator's placement loops ke
 The original writes `data\savegame.dat` next to the exe (version 1: the internet score check's two strings, then the
 board's fields in a fixed order) and `hiscores.dat` (the best score of the day, then the five best; each a name, a score and
 a check value `score ^ 0x42beef` with every character multiplied by 0x11 xored in). The port writes the same fields in
-the same order into the user folder (`%APPDATA%\wasm-bejeweled\Seven Seas Deluxe\`, `/sspersist` in the browser); the
+the same order into the user folder (`%APPDATA%\byo-pop\Seven Seas Deluxe\`, `/sspersist` in the browser); the
 score check's strings are empty. Options and the nag flags (`BonusNag`, `WarnBlueNag`, `WarnGhostNag`, `WarnSerpNag`,
 `WarnWhirlNag`, `LastScoreName`) are in the registry file (`PopCap\SevenSeas`).
 

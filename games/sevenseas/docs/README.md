@@ -54,7 +54,7 @@ tools/build.sh web                                       # build/web/sevenseas.h
 ```
 
 Native: `sevenseas.exe` finds `assets/sevenseas/` next to itself (or up to two levels up), or the retail install;
-`-gamedir=` overrides that. Saves go to `%APPDATA%\wasm-bejeweled\Seven Seas Deluxe\`: `savegame.dat` for the game in
+`-gamedir=` overrides that. Saves go to `%APPDATA%\byo-pop\Seven Seas Deluxe\`: `savegame.dat` for the game in
 progress, `hiscores.dat` (the original's layout and check values) and `registry.ini` for the options. Web:
 `sevenseas.html`, the shared page (`web/shell.html`) with this game's settings (`games/sevenseas/web/page.js`), imports
 the player's game folder (or a .zip of it) into its own IndexedDB-backed folder `/sspersist`.

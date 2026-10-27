@@ -103,7 +103,7 @@ int main(int argc, char** argv)
 	if (gameDir.empty())
 		gameDir = FindGameDir();
 	if (userDir.empty()) {
-		char* pref = SDL_GetPrefPath("wasm-bejeweled", "Bookworm Adventures Deluxe");
+		char* pref = SDL_GetPrefPath("byo-pop", "Bookworm Adventures Deluxe");
 		userDir = pref ? pref : "userdata";
 		SDL_free(pref);
 		while (!userDir.empty() && (userDir.back() == '/' || userDir.back() == '\\'))
