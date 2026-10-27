@@ -46,8 +46,12 @@ set(BYOPOP_BUY_waterbugs 2026-10-26)
 # available on the Steam store; EA's library does not list it, Amazon has only an old disc, and GameHouse, iWin, Big Fish
 # Games and Pogo showed no page for it (their search pages render with JavaScript, so a listing could have been missed).
 set(BYOPOP_BUY_rocketmania 2026-10-26)
-# Bookworm Adventures Volume 2 (PopCap, 2009): a placeholder that only lets the web configure pass. Its stores are
-# checked at the web milestone, before a page is published.
+# Checked 2026-10-26: Bookworm Adventures Volume 2 (PopCap, 2009; Steam app 3630) has no Steam page any more (it
+# redirects to the store front and the store API knows no such app) and is not in Steam's store search; it is not on
+# EA's PopCap games page and EA has no game page for it; iWin's search finds none, Pogo has only the original Bookworm,
+# and Amazon's download code is unavailable (the rest are old discs). Like Volume 1 it was delisted in 2016. GameHouse
+# and Big Fish Games render their search only with JavaScript and EA's library search showed no results, so those three
+# were not checked.
 set(BYOPOP_BUY_bookwormadv2 2026-10-26)
 # Checked 2026-10-26: Dynomite Deluxe (PopCap) is on sale on Steam (app 3380, published by EA). EA's store sells a
 # "Dynomite!" (dated 2002) whose page does not confirm it is the Deluxe game, so it is left out; GameHouse, Big Fish
