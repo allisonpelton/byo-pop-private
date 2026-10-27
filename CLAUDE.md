@@ -164,6 +164,8 @@ Git and publishing:
     features from other games so that they can be recombined in new ways, and it is fine if a player can combine them
     into something close to another game's mode; a curated mod itself is never just that mode. Bejeweled 2's
     Twilight alone in Bejeweled is not interesting, but with other tunables it can be.
+- **Effort (the user, 2026-10-27, a trial):** game sessions run at medium effort to save usage; the coordinator sets
+  it on every session it starts.
 - **Model selection (the user's rule, decided after the Sonnet trial on 2026-10-25):** a game whose port can
   largely copy another game's (the same framework generation and engine: Noah's Ark's for Seven Seas and Atomica,
   BookWorm's for Pixelus and Typer Shark, Big Money's for Hammer Heads, Bejeweled's for Bejeweled 2, a sequel after
