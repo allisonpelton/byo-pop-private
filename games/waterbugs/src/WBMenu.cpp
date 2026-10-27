@@ -12,6 +12,10 @@
 #include <new>
 #include <vector>
 
+#ifdef __EMSCRIPTEN__
+#include "SiteProfiles.h"
+#endif
+
 namespace wb
 {
 
@@ -717,6 +721,10 @@ int MenuItem_Update(MenuItem* theItem)
 					theItem->hot = 0;
 					gProfile = atol(theItem->name);
 					Menu_ShowRequester(gLevels.current->menus.current, 2, Localize(GT(0x4596dc)), nullptr);
+#ifdef __EMSCRIPTEN__
+					// the web page's player (framework/WebProfiles.h): under "fill" and "create" the box starts with it
+					SiteFillName(&gLevels.current->menus.current->requesters.current->entry->input);
+#endif
 				}
 				else if (gProfile == atol(theItem->name))
 				{
@@ -738,6 +746,9 @@ int MenuItem_Update(MenuItem* theItem)
 				Menu_ShowRequester(gLevels.current->menus.current, 2, Localize(GT(0x4596c4)), nullptr);
 				TextInput_SetText(&gLevels.current->menus.current->requesters.current->entry->input,
 					gProfiles[gProfile].name);
+#ifdef __EMSCRIPTEN__
+				SiteFillName(&gLevels.current->menus.current->requesters.current->entry->input);	// as above
+#endif
 				break;
 			case 0x1d:
 				Level_SetUserName(

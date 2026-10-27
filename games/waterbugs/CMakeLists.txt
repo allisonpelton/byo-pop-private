@@ -6,7 +6,9 @@
 file(GLOB WATERBUGS_ENGINE_SOURCES CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/engine/*.cpp)
 file(GLOB WATERBUGS_SOURCES CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp)
 # The host (the app and main) goes in the exe; the headless runner has a host of its own
-list(FILTER WATERBUGS_SOURCES EXCLUDE REGEX "/(WaterBugsApp|main)\\.cpp$")
+# (SiteProfiles.cpp, the web page's players in framework/WebProfiles.h, is for the web exe only: it needs the framework, which
+# this library does not link)
+list(FILTER WATERBUGS_SOURCES EXCLUDE REGEX "/(WaterBugsApp|main|SiteProfiles)\\.cpp$")
 
 add_library(waterbugsengine STATIC ${WATERBUGS_ENGINE_SOURCES})
 target_include_directories(waterbugsengine PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/engine)
@@ -30,6 +32,7 @@ if(NOT MSVC)
   target_compile_options(waterbugs PRIVATE -Wall)
 endif()
 if(EMSCRIPTEN)
+  target_sources(waterbugs PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src/SiteProfiles.cpp)
   byopop_web_game(waterbugs TITLE "Water Bugs"
     COPYRIGHT "Water Bugs © 2007 PopCap Games, Inc. All rights reserved. Water Bugs was developed by Retro64, Inc."
     LICENSES libopenmpt)
