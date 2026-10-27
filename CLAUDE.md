@@ -129,6 +129,17 @@ Git and publishing:
   29 standard mods in `docs/MOD_ROADMAP.md` ("Standard mods for every game"): the session makes each one that fits its
   game and says in the game's README why it skipped any. Games that already have mods (Bejeweled, Big Money, BookWorm,
   Noah's Ark) make none of these either until the user says every decomp runs in the browser to their satisfaction.
+- **Done means identical (the user, 2026-10-27):** "A game is done when it plays identically to the original in the
+  browser and natively." No port is hurried to get through the list. A port's own suite matching its earlier output
+  proves nothing about the original, and the hidden, silent pane never changes focus or plays music: before its final
+  merge, a session compares its game with the original exe screen by screen (the original run under rundesk at the
+  same points; every screen, dialog and text, music and sounds by their state, losing and regaining the focus),
+  natively and in the web build, and fixes every difference. Every game is tested as Bejeweled is: its deviations
+  listed in its notes, each without a visible effect; every RNG draw kept in its order; a frozen baseline of the port
+  with a regression check that proves later fixes and mods leave unmodded play unchanged. Every memory leak of the
+  original is fixed: memory the original still uses after "leaking" it (Bejeweled's FillBoard orphans) is freed after
+  its last possible use. The 18 games merged by 2026-10-27 are not done until they pass this; from the weekly reset
+  (2026-11-01) they come first, and no new port starts until all 18 are done.
 - **No references (the user, 2026-10-26):** no port reads another project's decompilation, reimplementation, mod
   kit, class layouts or address maps (Thunderball, haggle, WinFish, CircleShootApp, PvZ-Portable, the Pizza Frenzy
   decompilation and the like); work from our own Ghidra export. PopCap's released SexyAppFramework source, the open
