@@ -7,6 +7,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <algorithm>
+#ifdef __EMSCRIPTEN__
+#include "SiteProfiles.h"
+#endif
 
 using namespace Sexy;
 
@@ -314,4 +317,7 @@ void UserDirectory::Save()
 		aDirectory.WriteLine(aLine);
 	}
 	mApp->WriteBufferToFile("users/directory.txt", &aDirectory);
+#ifdef __EMSCRIPTEN__
+	SiteProfilesChanged(mApp);	// the web page's players (framework/WebProfiles.h): every change of the list ends here
+#endif
 }
