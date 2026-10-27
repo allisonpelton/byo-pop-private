@@ -203,9 +203,11 @@ export's class recovery is by RTTI only), `MainMenu` 24 KB, `GameApp` 20 KB, `Bo
    DefineBitsJPEG2/3, DefineBitsLossless/2, decoded with stb_image) and draws repeating, clipped, smoothed and plain bitmap
    fills (`SwfRaster::SampleBitmap`); a bitmap id of 65535 is no fill. `bwa2_swftest` plays all five with nothing skipped
    (DefineFontName is ignored), and its -verify finds the incremental drawing the same as the whole-frame one.
-5. PopAnim: all 304 `.pam` files load (versions 1: 36, 2: 2, 3: 266) but `bwa2_pamtest` reports 41 pictures not found in
-   7 files; whether version 3's records are read as the original reads them has to be checked against the PopAnim
-   loader at 0x510c00 before the battles.
+5. PopAnim: all 304 `.pam` files load (versions 1: 36, 2: 2, 3: 266). `bwa2_pamtest` reports 41 pictures not found in 7 files
+   (2plaguedpork, 5mommabear, 5poppabear, 7smokedragon, 9tweedee, drfrank, hephaestus): the game's folder has no pictures of
+   those names (nothing is named like them in `images/pam/images`) and no script or data file names the seven animations
+   (the scripts use `5papabear`, `5mamabear`, `9tweedledee`), so they are leftovers that the original never plays; not a
+   fault of the port. (2026-10-26)
 6. Web page (`web/page.js`): markers, import folders (`music/`, `scripts/` are loose in Volume 2) and prose still say
    Volume 1; its persist folder is already `/bwa2persist`.
 

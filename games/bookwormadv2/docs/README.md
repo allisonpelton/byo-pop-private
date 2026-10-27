@@ -114,11 +114,11 @@ soak plays all 24 stages (the checkpoints' treasure rooms included) and beats Bi
 dialog's Continue calls the scripts' callback, which opens the stats book (the "Game Over" page), and its Continue ends in the
 Hall of Fame's arena list with the run's entry. `tools/wasmrun.js` runs the web build under Node
 with the switches of a native run (the soak in the browser build: 485 words, and the whole arena, no script error). A saved arena run
-comes back through the main menu's "Continue game?" question, in the middle of a battle or at a checkpoint (native). A crash of the native Windows
+comes back through the main menu's "Continue game?" question in the middle of a battle (native; a save at a checkpoint's treasure room has not been tried). A crash of the native Windows
 build writes where it was to the log (`src/CrashLog.cpp`, for the soak's memory checks and the next bug).
 The cut scene player draws the bitmaps (JPEG and lossless) of Volume 2's five movies, so the comic panels of the intros and
-the ending show their art. Not done: PopAnim loads all 304 animations but 41 pictures in 7 of them are not found; the end of
-the game's credits (the finale) has not been run. (The trial wrapper's dialogs are left out on purpose.)
+the ending show their art. PopAnim loads all 304 animations; the 41 pictures that are not found belong to seven animations that no script plays and
+whose pictures the game's folder lacks (`PORT_PLAN.md`). The end-of-game credits run from the Hall of Fame's Continue (`lua gCApp:DoEndGame()` from the main menu, 31,000 updates): every section, then the finale ("Thanks for playing!" in bobbing tiles, Lex, the flash) and back to the main menu. (The trial wrapper's dialogs are left out on purpose.)
 
 ## Changes outside the Bookworm Adventures Volume 2 folder
 
