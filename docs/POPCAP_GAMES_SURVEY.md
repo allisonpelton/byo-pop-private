@@ -1337,6 +1337,27 @@ OpenInsaniquarium, a clean-room reimplementation; the framework's own 1.3 source
 **Decision (the user, 2026-10-25):** the other studios' games come at the very end, after every PopCap game, and World
 of Goo is wanted among them. Which of the others to port is decided then; each needs the user's own copy.
 
+**Unity games wanted too (the user, 2026-10-27):** Steven Universe: Save the Light, Steven Universe: Unleash the Light
+and OK K.O.! Let's Play Heroes, all three of them Cartoon Network games. They come at the end with the other studios' games. The
+user's Steam copies are Unity Mono builds, with the game's own code in `Assembly-CSharp.dll` and no IL2CPP.
+
+| Game | Year | Developer | Unity | Install | Notes |
+|---|---|---|---|---|---|
+| Steven Universe: Save the Light | 2017 | Grumpyface Studios | 2018.1.0f2, 32-bit | 4.9 GB | 3D; Steamworks.NET |
+| Steven Universe: Unleash the Light | 2019 | Grumpyface Studios | 2020.3.12f1, 64-bit | 1.7 GB | 3D; Steamworks.NET |
+| OK K.O.! Let's Play Heroes | 2018 | Capybara Games | 5.6.1f1, 64-bit | 5.7 GB | FMOD Studio, InControl |
+
+The Bejeweled method does not fit them: their code calls the Unity engine for everything, and the framework covers
+none of it. The user doesn't want the engine decompiled ("I'd just love to play them in my browser and make modding
+easier"), so the plan has two parts. Modding uses BepInEx with Harmony patches on the native game, the usual way to
+mod Unity Mono games. Browser play comes from a local WebGL rebuild of the player's own copy: its assets are ripped
+into a Unity project, the decompiled scripts are added, and the project is built for WebGL in the matching editor.
+Such a build holds the publisher's assets and code, so it stays private and never goes on the website.
+
+Unleash the Light is the best first try: it is on 2020.3 LTS and uses no FMOD. The weak points are shaders recovered
+from a build, the WebGL memory limit and FMOD's web libraries. Every tool (AssetRipper, Unity Hub and the editor, a
+.NET decompiler) is a download that needs the user's OK, and the user accepts Unity's license themselves.
+
 ## Appendix E: other projects and modding communities (2026-10-26)
 
 Checked on 2026-10-26 for the publishing rules in section 4 (a research pass; the Peggle Nights, Zuma Deluxe and
