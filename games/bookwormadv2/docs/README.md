@@ -116,9 +116,9 @@ Hall of Fame's arena list with the run's entry. `tools/wasmrun.js` runs the web 
 with the switches of a native run (the soak in the browser build: 485 words, and the whole arena, no script error). A saved arena run
 comes back through the main menu's "Continue game?" question, in the middle of a battle or at a checkpoint (native). A crash of the native Windows
 build writes where it was to the log (`src/CrashLog.cpp`, for the soak's memory checks and the next bug).
-Not done: the cut scene player lacks the bitmap tags
-Volume 2's five movies use; PopAnim loads all 304 animations but 41 pictures in 7 of them are not found; the end of the
-game's credits (the finale) has not been run. (The trial wrapper's dialogs are left out on purpose.)
+The cut scene player draws the bitmaps (JPEG and lossless) of Volume 2's five movies, so the comic panels of the intros and
+the ending show their art. Not done: PopAnim loads all 304 animations but 41 pictures in 7 of them are not found; the end of
+the game's credits (the finale) has not been run. (The trial wrapper's dialogs are left out on purpose.)
 
 ## Changes outside the Bookworm Adventures Volume 2 folder
 

@@ -199,8 +199,10 @@ export's class recovery is by RTTI only), `MainMenu` 24 KB, `GameApp` 20 KB, `Bo
    passing); until it works, the 233 bound methods have to be read from `fnfind.py -s <method name>` on the
    `MethodWrapper` RTTI names, or the scripts' calls compared with `src/GameAppLua.cpp`'s table (a script calling an
    unbound method is a runtime error with its name).
-4. Cut scenes: `swf/` lacks bitmap fills and the tags Volume 2's five movies use (DefineBits, JPEGTables, DefineBitsJPEG2/3,
-   DefineBitsLossless/2, bitmap fills); `bwa2_swftest` lists them per movie as "unsupported".
+4. (done 2026-10-26) Cut scenes: `swf/` reads the bitmap tags Volume 2's five movies use (DefineBits with JPEGTables,
+   DefineBitsJPEG2/3, DefineBitsLossless/2, decoded with stb_image) and draws repeating, clipped, smoothed and plain bitmap
+   fills (`SwfRaster::SampleBitmap`); a bitmap id of 65535 is no fill. `bwa2_swftest` plays all five with nothing skipped
+   (DefineFontName is ignored), and its -verify finds the incremental drawing the same as the whole-frame one.
 5. PopAnim: all 304 `.pam` files load (versions 1: 36, 2: 2, 3: 266) but `bwa2_pamtest` reports 41 pictures not found in
    7 files; whether version 3's records are read as the original reads them has to be checked against the PopAnim
    loader at 0x510c00 before the battles.
