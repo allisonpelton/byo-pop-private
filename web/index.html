@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>byo-pop games</title>
+<link rel="icon" href="favicon.ico" sizes="16x16 32x32 48x48">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<style>
+/* The list of the finished games (docs/WEB_PLAYER.md, "The listing page"). byopop_web_index() in
+   cmake/ByopopWeb.cmake puts one tile per game at the byopop:games marker. A tile's icon is a badge drawn here: the
+   game's initials on a colour of its own (the table in cmake/ByopopWeb.cmake); it never uses the games' art. The
+   colour tokens are the game pages' (web/shell.html). */
+:root {
+  --bg: #eceaf2;
+  --panel: #ffffff;
+  --fg: #1d1a29;
+  --muted: #5d5872;
+  --line: #d6d2e3;
+  --accent: #6b3fd1;
+  --font-ui: "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+  --radius: 10px;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #14111d; --panel: #1f1a2c; --fg: #ece8f6; --muted: #a59fbb; --line: #3a3350; --accent: #a383ff;
+    color-scheme: dark;
+  }
+}
+body { margin: 0; background: var(--bg); color: var(--fg); font: 14px/1.5 var(--font-ui); }
+main {
+  max-width: 960px; margin: 0 auto; padding-block: 24px 32px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+header { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; margin-bottom: 24px; }
+header img { display: block; }
+.logo-dark { display: none; }
+@media (prefers-color-scheme: dark) {
+  .logo-light { display: none; }
+  .logo-dark { display: block; }
+}
+h1 { margin: 0; font-size: 20px; font-weight: 600; }
+.games {
+  list-style: none; margin: 0; padding: 0;
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(128px, 1fr)); gap: 16px;
+}
+.games li { display: flex; }
+.tile {
+  flex: 1; box-sizing: border-box; display: flex; flex-direction: column; align-items: center; gap: 10px;
+  padding: 16px 8px 12px; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
+  color: inherit; text-decoration: none; text-align: center;
+}
+.tile:hover { border-color: var(--accent); }
+.tile:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.badge {
+  display: flex; align-items: center; justify-content: center; flex: none; width: 72px; height: 72px;
+  border-radius: 16px; background: var(--tile); box-shadow: inset 0 -4px 0 rgba(0, 0, 0, 0.18);
+  color: #ffffff; font-size: 26px; font-weight: 700; letter-spacing: 0.02em;
+}
+.name { font-weight: 600; overflow-wrap: anywhere; }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <img class="logo-light" src="logo.svg" alt="byo-pop" width="120" height="28">
+    <img class="logo-dark" src="logo-dark.svg" alt="" width="120" height="28">
+    <h1>Games</h1>
+  </header>
+  <ul class="games">
+<!-- byopop:games -->
+  </ul>
+</main>
+<script>
+// A page opened with ?silent=1 (automated tests in a browser pane, CLAUDE.md) opens its games silent too
+try {
+  if (new URLSearchParams(location.search).get("silent") === "1") {
+    for (const a of document.querySelectorAll("a.tile")) a.search = "?silent=1";
+  }
+} catch (e) {}
+</script>
+</body>
+</html>

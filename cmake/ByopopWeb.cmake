@@ -7,7 +7,8 @@
 # page.js (its settings: storage folder, lock, game files, texts; the list is in web/shell.html), and optionally
 # page.css (its colours and brand mark) and page.html (its own panels). TITLE is the game's name on the page.
 # TITLE, COPYRIGHT and LICENSES make the game's copyright page, linked from its page's footer; see
-# byopop_web_shell() below.
+# byopop_web_shell() below. TITLE is also the game's name on the listing page (build/web/index.html) when the game is
+# in BYOPOP_WEB_FINISHED, below.
 # EXPORTS adds a game's own functions to the exported list (Bejeweled: _fflush, for its Node test runner).
 # The page runs the game with callMain() (INVOKE_RUN=0) and calls the C functions of platform/WebApi.cpp and
 # framework/ModMenu.cpp with ccall. Those live in the sexyframework static library, where EMSCRIPTEN_KEEPALIVE
@@ -26,6 +27,22 @@ get_filename_component(BYOPOP_WEB_FOOTER_CSS "${CMAKE_CURRENT_LIST_DIR}/../web/f
 include(${CMAKE_CURRENT_LIST_DIR}/ByopopStores.cmake)
 # the site's logo and icons (web/brand; docs/WEB_PLAYER.md), copied next to the pages, which link them
 set(BYOPOP_WEB_BRAND favicon.svg favicon.ico apple-touch-icon.png logo.svg logo-dark.svg)
+# The listing page, build/web/index.html (made from web/index.html by byopop_web_index() at the end of this file): one
+# tile for each game in BYOPOP_WEB_FINISHED, in this order, with the game's TITLE and a badge. The list is the
+# coordinator's: the coordinator adds a game's target at that game's final merge. A game with a web page that is not
+# in the list is not shown (fwtest and smoke are test pages and never are); a name in the list with no web page is a
+# configure error.
+set(BYOPOP_WEB_FINISHED bejeweled bigmoney bookworm noahsark sevenseas atomica mummymaze tiptop bookwormadv ningpo
+  pixelus alchemy wordharmony cosmicbugs waterbugs rocketmania dynomite bookwormadv2)
+# A game's badge on the listing page, <target>|<initials>|<colour>: the initials in white on a rounded square of the
+# colour. Original to byo-pop, never the games' art. The colours keep white text above a 4.5 contrast ratio. A game
+# without a row here gets the initials of its TITLE and the accent colour.
+set(BYOPOP_WEB_BADGES
+  "bejeweled|BJ|#95233d" "bigmoney|BM|#1f8438" "bookworm|BW|#955c23" "noahsark|NA|#234995" "sevenseas|7S|#1e8080"
+  "atomica|AT|#602395" "mummymaze|MM|#8c7021" "tiptop|TT|#954123" "bookwormadv|BA|#45801e" "ningpo|NP|#1f845f"
+  "pixelus|PX|#952395" "alchemy|AL|#95236b" "wordharmony|WH|#232795" "cosmicbugs|CB|#412395" "waterbugs|WB|#236f95"
+  "rocketmania|RM|#952723" "dynomite|DY|#78781c" "bookwormadv2|BA2|#637c1d")
+get_filename_component(BYOPOP_WEB_INDEX "${CMAKE_CURRENT_LIST_DIR}/../web/index.html" ABSOLUTE)
 # Whether a game's page asks the player to agree to its terms (the terms card and its checkbox) before the game's
 # files are imported or loaded. OFF for now (the user, 2026-10-26), and the pages must not be deployed until it is
 # ON again (docs/WEB_PLAYER.md, "The terms"). The copyright page shows the terms either way. A plain variable, not
@@ -216,6 +233,8 @@ function(byopop_web_game target)
     set(arg_PAGE ${CMAKE_CURRENT_SOURCE_DIR}/web)
   endif()
   byopop_web_shell(page ${target} ${arg_PAGE} TITLE "${arg_TITLE}" COPYRIGHT "${arg_COPYRIGHT}" LICENSES ${arg_LICENSES})
+  # the listing page (byopop_web_index() below) reads the game's name from here
+  set_property(GLOBAL PROPERTY BYOPOP_WEB_TITLE_${target} "${arg_TITLE}")
   set(export_list ${BYOPOP_WEB_EXPORTED_FUNCTIONS} ${arg_EXPORTS})
   list(REMOVE_DUPLICATES export_list)
   list(JOIN export_list "','" exports)
@@ -228,3 +247,79 @@ function(byopop_web_game target)
     "-sEXPORTED_RUNTIME_METHODS=['${methods}']"
     "-sEXPORTED_FUNCTIONS=['${exports}']" "-lidbfs.js")
 endfunction()
+
+# byopop_web_index(): writes the listing page, build/web/index.html, from web/index.html: for each target in
+# BYOPOP_WEB_FINISHED, a tile linking to <target>.html, with the TITLE the game gave byopop_web_game() and its badge
+# (BYOPOP_WEB_BADGES). It runs when the top-level CMakeLists.txt has added every game (cmake_language(DEFER), below).
+# A game whose BUILD_<TARGET> option is OFF is left out; any other name in the list that has no web page is an error.
+function(byopop_web_index)
+  set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${BYOPOP_WEB_INDEX})
+  file(READ ${BYOPOP_WEB_INDEX} page)
+  set(marker "<!-- byopop:games -->")
+  string(FIND "${page}" "${marker}" first)
+  string(FIND "${page}" "${marker}" last REVERSE)
+  if(first EQUAL -1 OR NOT first EQUAL last)
+    message(FATAL_ERROR "${BYOPOP_WEB_INDEX} needs one \"${marker}\"")
+  endif()
+  set(tiles "")
+  set(count 0)
+  foreach(target ${BYOPOP_WEB_FINISHED})
+    get_property(has_title GLOBAL PROPERTY BYOPOP_WEB_TITLE_${target} SET)
+    if(NOT has_title)
+      string(TOUPPER ${target} upper)
+      if(DEFINED BUILD_${upper} AND NOT BUILD_${upper})
+        message(STATUS "byo-pop: ${target} is off (BUILD_${upper}), so the listing page leaves it out")
+        continue()
+      endif()
+      message(FATAL_ERROR "BYOPOP_WEB_FINISHED (cmake/ByopopWeb.cmake) names ${target}, which has no web page: "
+        "no byopop_web_game(${target} ...) was configured")
+    endif()
+    get_property(title GLOBAL PROPERTY BYOPOP_WEB_TITLE_${target})
+    set(initials "")
+    set(colour "#6b3fd1")
+    set(found OFF)
+    foreach(badge ${BYOPOP_WEB_BADGES})
+      string(REPLACE "|" ";" fields "${badge}")
+      list(GET fields 0 badge_target)
+      if(badge_target STREQUAL target)
+        list(GET fields 1 initials)
+        list(GET fields 2 colour)
+        set(found ON)
+      endif()
+    endforeach()
+    if(NOT found)
+      # no row in the table: the first letters of the TITLE's words, without "Deluxe"
+      string(REPLACE " " ";" words "${title}")
+      list(REMOVE_ITEM words Deluxe)
+      foreach(word ${words})
+        string(SUBSTRING "${word}" 0 1 letter)
+        string(TOUPPER "${letter}" letter)
+        string(APPEND initials "${letter}")
+      endforeach()
+      message(STATUS "byo-pop: ${target} has no badge in BYOPOP_WEB_BADGES (cmake/ByopopWeb.cmake): using \"${initials}\"")
+    endif()
+    foreach(field title initials)
+      string(REPLACE "&" "&amp;" ${field} "${${field}}")
+      string(REPLACE "<" "&lt;" ${field} "${${field}}")
+      string(REPLACE ">" "&gt;" ${field} "${${field}}")
+    endforeach()
+    string(CONCAT tile "    <li><a class=\"tile\" href=\"${target}.html\" style=\"--tile: ${colour}\">"
+      "<span class=\"badge\" aria-hidden=\"true\">${initials}</span><span class=\"name\">${title}</span></a></li>")
+    list(APPEND tiles "${tile}")
+    math(EXPR count "${count} + 1")
+  endforeach()
+  # (one line for each tile; a title with a semicolon would break the list, and none has one)
+  list(JOIN tiles "\n" tiles)
+  string(REPLACE "${marker}" "${tiles}" page "${page}")
+  # (the logo and icons are copied by byopop_web_shell(); this keeps the page whole if no game is listed)
+  foreach(name ${BYOPOP_WEB_BRAND})
+    configure_file(${BYOPOP_WEB_BRAND_DIR}/${name} ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${name} COPYONLY)
+  endforeach()
+  byopop_write_if_changed(${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/index.html "${page}")
+  message(STATUS "byo-pop: the listing page shows ${count} games")
+endfunction()
+if(EMSCRIPTEN)
+  # (a deferred call runs at the end of this directory, the top level, after every game's byopop_web_game())
+  get_filename_component(BYOPOP_WEB_BRAND_DIR "${CMAKE_CURRENT_LIST_DIR}/../web/brand" ABSOLUTE)
+  cmake_language(DEFER CALL byopop_web_index)
+endif()
