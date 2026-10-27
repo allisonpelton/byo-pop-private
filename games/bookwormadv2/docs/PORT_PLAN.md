@@ -179,6 +179,11 @@ OptionsDialog 36%). The later compiler's register passing changes the bytes of n
 here does not mean "changed", and the survey's 28% identical / 19% near-identical figures need a looser comparison to
 reproduce. The same holds for `luaV_execute`: of its 45 handlers, 17 match Volume 1's text once names are masked and 28
 differ in the text; the two looked at (NEWTABLE and case 37) differ only in an inlined GC check and a shared label.
+Read against the port's `poplua/lvm.cpp` afterwards (the arithmetic handlers and SELFORGLOBAL): number op number first, then
+int op int, then the mixed operands (ints and numeric strings turned into numbers, else the metamethod helper and the
+"perform arithmetic on" error); DIV on ints is C's truncating division with "attempt to divide by zero"; MOD is ints only,
+with "non-integers" tested before "mod by zero"; SELFORGLOBAL marks the value a method when it is a Lua function whose
+prototype has the self flag. All the same as the port's. The other handlers are checked by the 462 scripts and the 150 dialect checks, not line by line.
 
 ## Size of the game region by class (bytes of code, thunks left out; `none` = methods the export assigns to no class)
 
@@ -211,8 +216,12 @@ export's class recovery is by RTTI only), `MainMenu` 24 KB, `GameApp` 20 KB, `Bo
 6. (done 2026-10-26) Web page (`web/page.js`): the markers, import folders, skip list (`images/upsell`) and prose are Volume 2's and
    the persist folder is `/bwa2persist`; the page's own pak reader (`web/modpanel.js`, run under Node) unpacks the game's
    `main.pak` to the 9,221 files of which the staged folder holds all but the 7 upsell pictures, byte for byte on a sample
-   of 1,281. Checked in the Browser pane (silent): the import card with Volume 2's text and no script error. An import of the
-   whole install folder in the pane has not been run (the pickers cannot be driven; shared page code, as for the other games).
+   of 1,281. Checked in the Browser pane (silent): the import card with Volume 2's text and no script error. The whole install
+   folder (55 files, 73 MB, copy of A:'s Steam folder served locally) went in through the page's zip picker (a zip built in the page
+   and set on `#pick-game-zip`, as for the other games): "Copied 9255 files", Play, the New User dialog, the intro with its bitmap
+   panels, the prologue's first battle and an attack on PLAY (the enemy lost a heart, new tiles dropped), the console clean but for the
+   site logo's two 404s (`logo.svg`, `logo-dark.svg`: the site's, not the port's). A page opened while another copy runs shows "Already
+   open" and the game behind it; the import made in that state is not kept, so close the other copy first.
 
 ## The word list's flags (2026-10-26), the start of the battle milestone
 

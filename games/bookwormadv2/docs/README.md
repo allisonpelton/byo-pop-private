@@ -121,7 +121,9 @@ error; Golden Coins and Word Up end in the Hall of Fame with their entry. The ar
 soak plays all 24 stages (the checkpoints' treasure rooms included) and beats Bigger Brother in 87,000 updates; the win
 dialog's Continue calls the scripts' callback, which opens the stats book (the "Game Over" page), and its Continue ends in the
 Hall of Fame's arena list with the run's entry. `tools/wasmrun.js` runs the web build under Node
-with the switches of a native run (the soak in the browser build: 485 words, and the whole arena, no script error). A saved arena run
+with the switches of a native run (the soak in the browser build: 485 words, and the whole arena, no script error). In the Browser
+pane the real install folder imports through the page (9,255 files) and plays from the New User dialog through the intro to the
+first battle and its first attack. A saved arena run
 comes back through the main menu's "Continue game?" question in the middle of a battle and in a checkpoint's treasure room (native). A crash of the native Windows
 build writes where it was to the log (`src/CrashLog.cpp`, for the soak's memory checks and the next bug).
 The cut scene player draws the bitmaps (JPEG and lossless) of Volume 2's five movies, so the comic panels of the intros and
