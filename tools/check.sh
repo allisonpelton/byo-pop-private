@@ -17,8 +17,10 @@
 #                their own rate, voices against the old stereo-float pipeline)
 #   unit-web     rulestest and modsettingstest under Node (needs build-web); paktest (the page's pak reader), with
 #                Bookworm Adventures' main.pak against assets/bookwormadv when both are there; profilestest (the page's
-#                settings and players code, web/settings.js and web/profiles.js, on a fake localStorage) and savestest (the
-#                save backup's zip, paths and merge, web/saves.js)
+#                settings and players code, web/settings.js and web/profiles.js, on a fake localStorage), savestest (the
+#                save backup's zip, paths and merge, web/saves.js) and a11ycheck (tools/a11ycheck.js: every built page's
+#                landmarks, headings, names, references, live regions and contrast). The build folder is build/web;
+#                BYOPOP_WEB_DIR=build/web-test names another
 #   verify       Bejeweled's headless verifier tests (games/bejeweled/tools/verify/run_tests.sh)
 #   modmenu      the mod menu's scripted runs, all games (tools/modmenutest/run_tests.sh all)
 #   livesplit    Bejeweled's, Big Money's and BookWorm's LiveSplit tests
@@ -232,10 +234,10 @@ suite_unit() {
 
 suite_unit-web() {
 	[ -n "$NODE" ] || { SUMMARY="no node.exe under EMSDK_ROOT"; return 1; }
-	local st=0 a b
-	(cd build/web && "$NODE" rulestest.js) > "$1" 2>&1 || st=1
+	local st=0 a b web="${BYOPOP_WEB_DIR:-build/web}"
+	(cd "$web" && "$NODE" rulestest.js) > "$1" 2>&1 || st=1
 	a="$(lastof "$1" 'checks')"
-	(cd build/web && "$NODE" modsettingstest.js) > "$1.mst" 2>&1 || st=1
+	(cd "$web" && "$NODE" modsettingstest.js) > "$1.mst" 2>&1 || st=1
 	b="$(lastof "$1.mst" 'checks')"
 	# the page's pak reader (web/modpanel.js); with Bookworm Adventures installed and staged, its main.pak against the
 	# staged files (BWA_PAK names another copy)
@@ -249,14 +251,18 @@ suite_unit-web() {
 	fi
 	grep -q '^paktest: 0 failed' "$1.pak" || st=1
 	# the page's shared settings and players code (web/settings.js, web/profiles.js), on a fake localStorage
-	local d e
+	local d e f
 	"$NODE" tools/profilestest.js > "$1.pt" 2>&1 || st=1
 	d="$(lastof "$1.pt" 'profilestest:')"
 	# the save backup's zip, paths and merge (web/saves.js)
 	"$NODE" tools/savestest.js > "$1.sv" 2>&1 || st=1
 	e="$(lastof "$1.sv" 'savestest:')"
-	cat "$1.mst" "$1.pak" "$1.pt" "$1.sv" >> "$1"; rm -f "$1.mst" "$1.pak" "$1.pt" "$1.sv"
-	SUMMARY="$a; $b; $c; $d; $e"
+	# the built pages' accessibility (tools/a11ycheck.js): one line per page in the log
+	"$NODE" tools/a11ycheck.js --selftest > "$1.a11y" 2>&1 || st=1
+	"$NODE" tools/a11ycheck.js "$web" >> "$1.a11y" 2>&1 || st=1
+	f="$(lastof "$1.a11y" 'a11ycheck:')"
+	cat "$1.mst" "$1.pak" "$1.pt" "$1.sv" "$1.a11y" >> "$1"; rm -f "$1.mst" "$1.pak" "$1.pt" "$1.sv" "$1.a11y"
+	SUMMARY="$a; $b; $c; $d; $e; $f"
 	return $st
 }
 

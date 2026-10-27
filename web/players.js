@@ -40,8 +40,13 @@ var ByopopPlayers = (function () {
     var status = make("p", "pl-status");
     status.setAttribute("role", "status");
     status.setAttribute("aria-live", "polite");
+    // an error is its own line, an alert (announced at once), and the field it is about is described by it
+    var alertEl = make("p", "pl-status pl-error pl-alert");
+    alertEl.id = nextId("pl-alert");
+    alertEl.setAttribute("role", "alert");
     root.appendChild(about);
     root.appendChild(status);
+    root.appendChild(alertEl);
 
     // ----- your players -----
     var h3a = make("h3", "", "Your players");
@@ -86,6 +91,7 @@ var ByopopPlayers = (function () {
     var confirmBox = make("div", "pl-confirm");
     confirmBox.setAttribute("role", "alertdialog");
     confirmBox.setAttribute("aria-labelledby", "pl-confirm-title");
+    confirmBox.setAttribute("aria-describedby", "pl-confirm-desc");
     confirmBox.hidden = true;
     var resultsTitle = make("h3", "", "What the games did");
     var resultsList = make("ul", "pl-results");
@@ -94,10 +100,29 @@ var ByopopPlayers = (function () {
     root.appendChild(h3b); root.appendChild(gamesAbout); root.appendChild(gameList); root.appendChild(bulk);
     root.appendChild(confirmBox); root.appendChild(resultsTitle); root.appendChild(resultsList); root.appendChild(resultsClear);
 
-    function say(text, isError, undo) {
+    var tied = null;  // the field that the error on show is about
+    function untie() {
+      if (!tied) return;
+      tied.removeAttribute("aria-invalid");
+      tied.removeAttribute("aria-describedby");
+      tied = null;
+    }
+    // field: the input an error is about (it is marked invalid and described by the alert until it is changed)
+    function say(text, isError, undo, field) {
+      untie();
       message = { text: text, error: !!isError, undo: undo || null };
       status.textContent = "";
-      status.className = "pl-status" + (isError ? " pl-error" : "");
+      alertEl.textContent = "";
+      if (isError) {
+        alertEl.textContent = text;
+        if (field) {
+          tied = field;
+          field.setAttribute("aria-invalid", "true");
+          field.setAttribute("aria-describedby", alertEl.id);
+          field.addEventListener("input", untie, { once: true });
+        }
+        return;
+      }
       status.appendChild(document.createTextNode(text));
       if (undo) {
         status.appendChild(document.createTextNode(" "));
@@ -144,6 +169,11 @@ var ByopopPlayers = (function () {
       return tr;
     }
     function capital(t) { return t.charAt(0).toUpperCase() + t.slice(1); }
+    // a list that is drawn again loses the focus: give it back to a player's Rename button
+    function focusRename(id) {
+      var b = siteList.querySelector('button[data-rename="' + id + '"]');
+      if (b) b.focus();
+    }
 
     function renderSite() {
       var all = ByopopProfiles.list(), cur = ByopopProfiles.current(), recs = ByopopProfiles.games();
@@ -174,6 +204,7 @@ var ByopopPlayers = (function () {
         var rn = make("button", "", "Rename");
         rn.type = "button";
         rn.setAttribute("aria-label", "Rename " + p.name);
+        rn.setAttribute("data-rename", p.id);
         rn.addEventListener("click", function () { renaming = p.id; renderSite(); var f = siteList.querySelector(".pl-rename input"); if (f) f.focus(); });
         var inGames = make("button", "", "Delete in the games…");
         inGames.type = "button";
@@ -201,8 +232,10 @@ var ByopopPlayers = (function () {
             if (back.ok && wasCurrent) ByopopProfiles.setCurrent(back.profile.id);
             say(p.name + " is back.");
             renderAll();
+            addInput.focus();
           });
           renderAll();
+          (siteList.querySelector("input[type=radio]") || addInput).focus();
         });
         actions.appendChild(rn); actions.appendChild(inGames); actions.appendChild(rm);
         head.appendChild(actions);
@@ -216,14 +249,15 @@ var ByopopPlayers = (function () {
           input.type = "text"; input.id = iid; input.value = p.name; input.maxLength = ByopopProfiles.NAME_MAX; input.autocomplete = "off";
           var save = make("button", "", "Save"); save.type = "submit";
           var cancel = make("button", "", "Cancel"); cancel.type = "button";
-          cancel.addEventListener("click", function () { renaming = null; renderSite(); });
+          cancel.addEventListener("click", function () { renaming = null; renderSite(); focusRename(p.id); });
           form.addEventListener("submit", function (ev) {
             ev.preventDefault();
             var r = ByopopProfiles.rename(p.id, input.value);
-            if (!r.ok) { say(r.error, true); return; }
+            if (!r.ok) { say(r.error, true, null, input); input.focus(); return; }
             renaming = null;
             say("Renamed to " + r.profile.name + " here. The games keep the names they have until you rename them under Players in the games.");
             renderAll();
+            focusRename(p.id);
           });
           form.appendChild(l2); form.appendChild(input); form.appendChild(save); form.appendChild(cancel);
           li.appendChild(form);
@@ -272,7 +306,7 @@ var ByopopPlayers = (function () {
     addForm.addEventListener("submit", function (ev) {
       ev.preventDefault();
       var r = ByopopProfiles.add(addInput.value);
-      if (!r.ok) { say(r.error, true); addInput.focus(); return; }
+      if (!r.ok) { say(r.error, true, null, addInput); addInput.focus(); return; }
       addInput.value = "";
       say(r.profile.name + " was added." + (ByopopProfiles.current() && ByopopProfiles.current().id === r.profile.id ? " It is the player in use." : ""));
       renderAll();
@@ -372,7 +406,7 @@ var ByopopPlayers = (function () {
       ev.preventDefault();
       var items = tickedItems(), to = ByopopProfiles.clean(bulkInput.value);
       if (!items.length) { say("Tick the players to rename first.", true); return; }
-      if (!to) { say("Type the new name first.", true); bulkInput.focus(); return; }
+      if (!to) { say("Type the new name first.", true, null, bulkInput); bulkInput.focus(); return; }
       var queued = 0, games_ = {};
       items.forEach(function (it) {
         if (ByopopProfiles.queue(it.game, { op: "rename", from: it.name, to: to })) { queued++; games_[it.game] = true; }
@@ -394,7 +428,14 @@ var ByopopPlayers = (function () {
       askDelete(items);
     });
     // The in-page confirmation: what will be lost, game by game, and the player's yes
+    var confirmReturn = null;  // what had the focus when the question came up
+    function returnFocus() {
+      var r = confirmReturn;
+      confirmReturn = null;
+      if (r && r.isConnected) r.focus(); else bulkDelete.focus();
+    }
     function askDelete(items) {
+      confirmReturn = document.activeElement;
       confirming = { items: items };
       renderConfirm();
       var t = confirmBox.querySelector("button.pl-danger");
@@ -409,8 +450,10 @@ var ByopopPlayers = (function () {
       var h = make("h4", "", "Delete these players in the games?");
       h.id = "pl-confirm-title";
       confirmBox.appendChild(h);
-      confirmBox.appendChild(make("p", "", "This deletes each player and what the game keeps for it, the way the game’s own delete does. " +
-        "It cannot be undone. Each game does it the next time it starts."));
+      var desc = make("p", "", "This deletes each player and what the game keeps for it, the way the game’s own delete does. " +
+        "It cannot be undone. Each game does it the next time it starts.");
+      desc.id = "pl-confirm-desc";
+      confirmBox.appendChild(desc);
       var ul = make("ul");
       confirming.items.forEach(function (it) {
         var rec = recs[it.game] || {};
@@ -430,15 +473,16 @@ var ByopopPlayers = (function () {
         ticked = {};
         say(queued ? "Queued " + queued + " delete" + (queued > 1 ? "s" : "") + ". Each game does it the next time it starts." : "This browser would not keep the changes.", !queued);
         renderAll();
+        returnFocus();
       });
       var no = make("button", "", "Keep them");
       no.type = "button";
-      no.addEventListener("click", function () { confirming = null; renderConfirm(); say("Nothing was deleted."); });
+      no.addEventListener("click", function () { confirming = null; renderConfirm(); say("Nothing was deleted."); returnFocus(); });
       row.appendChild(yes); row.appendChild(no);
       confirmBox.appendChild(row);
     }
     confirmBox.addEventListener("keydown", function (ev) {
-      if (ev.key === "Escape") { confirming = null; renderConfirm(); say("Nothing was deleted."); bulkDelete.focus(); }
+      if (ev.key === "Escape") { confirming = null; renderConfirm(); say("Nothing was deleted."); returnFocus(); }
     });
 
     // ---------- what the games did ----------

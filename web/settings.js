@@ -171,6 +171,8 @@ var ByopopSettings = (function () {
     ".bps-row [disabled] { opacity: 0.5; }\n" +
     ".bps-msg { min-height: 1.5em; }\n" +
     ".bps-msg.bps-error { color: #b3261e; }\n" +
+    ".bps-msg.bps-error:empty { display: none; }\n" +
+    ".bps-sr { position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }\n" +
     "@media (prefers-color-scheme: dark) { .bps-msg.bps-error { color: #ff8a80; } }\n" +
     "@media (max-width: 520px) { .bps-row { grid-template-columns: minmax(0, 1fr); } .bps-ctl { grid-column: 1; grid-row: auto; justify-content: flex-start; } }\n";
   var idCount = 0;
@@ -220,7 +222,27 @@ var ByopopSettings = (function () {
     var controls = {};
     var msg = make("p", "bps-msg");
     msg.setAttribute("role", "status");
-    function say(text, isError) { msg.textContent = text; msg.className = "bps-msg" + (isError ? " bps-error" : ""); }
+    var err = make("p", "bps-msg bps-error"), errId = "bps-err-" + (++idCount);
+    err.id = errId;
+    err.setAttribute("role", "alert");
+    var tied = null;  // the control that the error is about: it is described by the error until the next change
+    function untie() {
+      if (!tied) return;
+      var d = (tied.getAttribute("aria-describedby") || "").split(" ").filter(function (x) { return x && x !== errId; });
+      if (d.length) tied.setAttribute("aria-describedby", d.join(" ")); else tied.removeAttribute("aria-describedby");
+      tied = null;
+    }
+    function say(text, isError, control) {
+      untie();
+      if (isError) {
+        msg.textContent = "";
+        err.textContent = text;
+        if (control) { tied = control; control.setAttribute("aria-describedby", (control.getAttribute("aria-describedby") || "") + " " + errId); }
+      } else {
+        err.textContent = "";
+        msg.textContent = text;
+      }
+    }
 
     var scopeBox = null, scopeNote = null;
     if (gameId) {
@@ -273,13 +295,17 @@ var ByopopSettings = (function () {
       // in the all-games view, say that this game has a value of its own
       if (c.own) c.own.textContent = (scope === "all" && own !== null) ? "This game has its own: " + words(f, own) + "." : "";
     }
+    // the control the player used for a setting: the one that is showing
+    function usedControl(c) {
+      return [c.checkbox, c.number, c.select].filter(function (e) { return e && !e.hidden; })[0] || c.select;
+    }
     function applyChange(name, stored) {
       var ok = (scope === "game") ? set(name, stored, gameId) : set(name, stored);
       if (ok) {
         say("Saved.", false);
         if (opts.onChange) { try { opts.onChange(name, get(name, gameId || undefined)); } catch (e) {} }
       } else {
-        say("This browser would not keep the setting (a level is 0 to 100, or its storage is blocked).", true);
+        say("This browser would not keep the setting (a level is 0 to 100, or its storage is blocked).", true, usedControl(controls[name]));
       }
       show(name);  // what is kept: a level is rounded, a bad one is not stored
     }
@@ -289,6 +315,7 @@ var ByopopSettings = (function () {
       var label = make("label", "", f.label);
       label.htmlFor = id;
       var hint = make("p", "bps-hint", f.hint);
+      hint.id = id + "-hint";
       var c = { field: f, select: null, number: null, checkbox: null, own: null };
       var ctl = make("div", "bps-ctl");
       // a select: a choice, and in "This game" every setting (its first option is "Same as all games")
@@ -332,6 +359,7 @@ var ByopopSettings = (function () {
       }
       if (gameId) { c.own = make("span", "bps-own"); hint.appendChild(c.own); }
       controls[f.name] = c;
+      [c.select, c.number, c.checkbox].forEach(function (e) { if (e) e.setAttribute("aria-describedby", hint.id); });
       c.select.addEventListener("change", function () {
         var v = c.select.value;
         if (scope === "game") {
@@ -359,12 +387,14 @@ var ByopopSettings = (function () {
         link.href = "./#players";
         link.target = "_blank";
         link.rel = "noopener";
+        link.appendChild(make("span", "bps-sr", " (opens in a new tab)"));
         note.appendChild(link);
         row.appendChild(note);
         c.note = note;
       }
     });
     container.appendChild(msg);
+    container.appendChild(err);
     function refresh() {
       Object.keys(controls).forEach(show);
       if (scopeNote) {

@@ -552,6 +552,73 @@ folder is restored whole or not at all, with a directory entry for every missing
 from the manifest. The page then tells what it wrote and sends a `storage` event to its own sections so that the settings and players
 show the restored values.
 
+### Accessibility
+
+The pages are built to be used from the keyboard and with a screen reader (the design is `docs/MOD_MENU_DESIGN.md`, 5.6). Every page has
+`<html lang="en">`, one `<h1>` and no skipped heading level. A game's page has a banner (`<header>`, the bar: the logo link to the listing,
+the game's name as the `<h1>`, the status line and the buttons), one `<main>` (the stage, with the canvas and the cards), an `<aside>` for each
+panel, named by its own `<h2>` (`aria-labelledby`), and the footer. The listing page has a banner with its `<h1>`, a `<main>` with the games as
+a real `<ul>` and the Players, Your saves and Settings sections (each `aria-labelledby` its heading), and the footer. The copyright pages have a
+banner and a `<main>`. Buttons and links are real ones: the buttons that open a file picker are `<button data-pick="...">` that click a hidden
+`<input type="file">`, not labels. Choices that go together are a `<fieldset>` with a `<legend>`, every control has a visible `<label>` or an
+`aria-label`, and help text is linked with `aria-describedby` (each setting's hint, the import card's note, the canvas's hint).
+
+**The keyboard.** The first thing on a game's page to take the focus is the link "Skip to game", which shows while it has the focus and moves
+it to the canvas while a game runs, else to the card that is up. The focus order then follows the page: the logo link, the bar's buttons, the
+canvas (only while a game runs: before that and after it closes it is out of the tab order and `aria-hidden`), the open card's buttons, the
+panels, the footer link. The focus ring is a 2 px `:focus-visible` outline in the accent colour on every control; the canvas has a white ring
+inside the stage and an accent ring around it, so one of them shows over any picture. A panel's button has `aria-expanded` and `aria-controls`
+(the Mods button has neither while a game runs, when it opens the game's own mod menu instead, and says so with `aria-describedby`), the Sound button
+is `aria-pressed` (pressed: the sound is on). Opening a panel moves the focus into it. **Esc** closes it from wherever the focus is on the
+page, and so does **Close**, and with the keyboard the focus goes back to the button that opened the panel (or to the canvas when the game's
+menu opened it); with the mouse, closing goes back to the game, as before. Esc on the import card is its Cancel. The cards are dialogs
+(`role="dialog"`, named by their heading and described by their text): a card that comes up takes the focus (the Play and Choose folder buttons, else
+the card), "Already open" and the terms card are `aria-modal`, the others are not, because the bar stays usable behind them.
+
+**How the game gets keys, and how to leave it.** SDL's Emscripten backend listens for keys on the whole window unless it is given an element, and
+then it takes every key typed anywhere on the page, Tab among them, and calls `preventDefault` on it. The build sets no hint for it, so the shell
+gives it one: `Module.preRun` puts `SDL_EMSCRIPTEN_KEYBOARD_ELEMENT=#canvas` in `ENV`, which SDL reads through `SDL_GetHint` before the game starts
+(`JSEvents.eventHandlers` then lists keydown, keyup and keypress on the canvas, not on the window). The game therefore gets keys only while its
+canvas has the focus, which a click or Tab gives it; while it has it, every key goes to the game exactly as before, Tab, Backspace, the arrows and
+the function keys included. A listener on the window, added before SDL's, stops keys typed elsewhere from reaching SDL should a build ever
+listen on the window again.
+
+Tab cannot be the way out: the framework uses it (a dialog's fields, `Widget::KeyDown`), BookWorm's mod "solver" asks for a hint with it and
+TipTop moves its focus with Tab and Shift+Tab. No game uses **F6**, which in browsers and Windows applications is the key that moves between
+regions, so F6 takes the focus from the canvas to the next control on the page (the footer link, or the open panel) and Shift+F6 to the one before it
+(the Fullscreen button), as Tab and Shift+Tab would; the game never sees either key. The canvas is named "<game>, game" (`role="application"`,
+so that a screen reader passes its keys on) and described by "Keys go to the game. F6 moves on to the next control, Shift+F6 to the one before.",
+which is also shown on the stage while the keyboard has put the focus there, until the first key goes to the game. Keys held when the focus leaves
+the canvas are let go in the game (a keyup is sent for each), as SDL only does that when the whole window loses the focus. F2 is the game's key to
+open its mod menu: typed on the bar, or with nothing focused, it is passed on to the canvas, and typed in a panel it closes the panel, as before.
+
+Moving the focus from the canvas to a control on the page does not count as the game losing the app's focus. SDL and the framework
+(`EmscriptenFocusCallback`) take the focus from the window's `focus` and `blur` events, which an element's focus change does not raise, so
+the game neither mutes nor pauses, and the framework's "mute on lost focus" and Bejeweled's pause on a lost focus stay for the window
+really losing the focus (another window, another tab), which is the game's behaviour and is not changed.
+
+**Live regions.** The status line is `role="status"`. The in-game mod menu reports the item that has the focus through
+`Module.onModMenuFocus(text)` (`framework/ModMenu.cpp`), which `web/modpanel.js` writes into a polite live region in the shell (`#menu-live`, there from the
+start so that a screen reader has it before the first change). The Mods panel's message line, the Game files panel's question (`role="alert"`),
+the import card's note and exit card's message, the Replays panel's line and the listing page's Players, Your saves and Settings lines are live too.
+An error is an alert, announced at once, and the field it is about is `aria-invalid` and described by it (a rejected setting, a name the Players
+section would not take); the import card's error is an alert in the card's note, read with both buttons that pick the files. The import's
+progress bar is a `role="progressbar"` with a value (percent, and "12 of 117 files").
+
+**Colour and motion.** Both themes pass WCAG AA for text (4.5:1) on every surface the page puts text on, and the focus ring against the page
+(3:1): the light theme's `--ok` and `--warn` and the accents of five games (Atomica, Rocket Mania, TipTop, Dynomite, BookWorm) were darkened a little
+for that. State is never colour alone: the mod tags say "On" and "Off", badges are words, errors say what happened. The page's one animation (the
+import bar's slide) and every transition stop under `prefers-reduced-motion: reduce`; nothing blinks or moves by itself.
+
+**The checker.** `tools/a11ycheck.js` reads the built pages with no browser (`node tools/a11ycheck.js build/web`, or `BYOPOP_WEB_DIR` for another
+folder) and checks the language, title and viewport, the headings, the landmarks and their names, duplicate ids, every id that an `aria-*`
+attribute or a `<label for>` names, the accessible name of every control, dialog and progress bar, `aria-label`s that drop the visible words,
+clickable `<div>`s, tab indexes, focusable things inside `aria-hidden`, legal ARIA values, lists, fieldsets, links that open a new tab without
+saying so, the skip link and the status line on a game's page, outlines taken away, motion without a reduced-motion rule, and the contrast of
+the page's colour tokens in both themes (the CSS of each page, with the game's own accent). `--selftest` runs it on pages with one fault each. The
+markup that scripts build (the Settings panel, the Mods panel, the Players section) is not in the files; in a browser the same checks run on the
+live page: `A11yCheck.checkHtml(document.documentElement.outerHTML)`, after loading the file. `tools/check.sh unit-web` runs it on `build/web`.
+
 ## The site's logo and icons
 
 `web/brand` holds byo-pop's logo and icons. `byopop_web_game()` copies them next to the pages (`build/web`), and

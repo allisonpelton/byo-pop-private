@@ -340,8 +340,20 @@ var ByopopSaves = (function () {
     var status = make("p", "pl-status");
     status.setAttribute("role", "status");
     status.setAttribute("aria-live", "polite");
+    // an error is its own line, an alert (announced at once)
+    var alertEl = make("p", "pl-status pl-error pl-alert");
+    alertEl.id = "sv-alert";
+    alertEl.setAttribute("role", "alert");
     root.appendChild(status);
-    function say(text, isError) { status.textContent = text; status.className = "pl-status" + (isError ? " pl-error" : ""); }
+    root.appendChild(alertEl);
+    // an error is read with the two controls it can be about, until the next message
+    function say(text, isError) {
+      status.textContent = isError ? "" : text;
+      alertEl.textContent = isError ? text : "";
+      [backupButton, pick].forEach(function (c) {
+        if (isError) c.setAttribute("aria-describedby", alertEl.id); else c.removeAttribute("aria-describedby");
+      });
+    }
 
     var listTitle = make("h3", "", "In this browser");
     var list = make("ul", "sv-list");
@@ -358,6 +370,7 @@ var ByopopSaves = (function () {
     var confirmBox = make("div", "pl-confirm sv-confirm");
     confirmBox.setAttribute("role", "alertdialog");
     confirmBox.setAttribute("aria-labelledby", "sv-confirm-title");
+    confirmBox.setAttribute("aria-describedby", "sv-confirm-desc");
     confirmBox.hidden = true;
     root.appendChild(listTitle); root.appendChild(list); root.appendChild(row); root.appendChild(report); root.appendChild(confirmBox);
 
@@ -527,8 +540,10 @@ var ByopopSaves = (function () {
       var h = make("h4", "", "Restore these saves?");
       h.id = "sv-confirm-title";
       confirmBox.appendChild(h);
-      confirmBox.appendChild(make("p", "", "This replaces the files below in this browser with the backup’s. Files in this browser that the backup does not have stay as they are. " +
-        "Each game’s own browser backup is removed, since the restored files take its place; the game makes a new one."));
+      var desc = make("p", "", "This replaces the files below in this browser with the backup’s. Files in this browser that the backup does not have stay as they are. " +
+        "Each game’s own browser backup is removed, since the restored files take its place; the game makes a new one.");
+      desc.id = "sv-confirm-desc";
+      confirmBox.appendChild(desc);
       var ul = make("ul", "sv-list");
       plan.rows.forEach(function (r) {
         var g = byId[r.id], pg = plan.p.perGame[r.id], li = make("li");
@@ -600,7 +615,11 @@ var ByopopSaves = (function () {
         say("The saves were restored. A game reads them the next time it starts.");
         try { window.dispatchEvent(new StorageEvent("storage", { key: null })); } catch (e) {}
         return renderList();
-      }).catch(function (e) { say("Nothing more was restored: " + (e && e.message ? e.message : e), true); renderList(); }).then(function () { setBusy(false); });
+      }).catch(function (e) { say("Nothing more was restored: " + (e && e.message ? e.message : e), true); renderList(); }).then(function () {
+        setBusy(false);
+        // the question that had the focus is gone
+        if (document.activeElement === document.body || !document.activeElement) backupButton.focus();
+      });
     }
 
     renderList();

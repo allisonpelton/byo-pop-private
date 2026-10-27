@@ -296,10 +296,17 @@ Module["byopop"] = (function () {
       style.textContent = STYLE;
       document.head.appendChild(style);
     }
-    // The in-game menu's focus for screen readers (Module.onModMenuFocus)
-    this.live = el("div", "mp-sr");
+    // The in-game menu's focus for screen readers (Module.onModMenuFocus): a polite live region, the page's own (options.live,
+    // there from the start, which is how a live region is announced reliably) or one made here
+    this.live = options.live;
+    if (!this.live) {
+      this.live = el("div", "mp-sr");
+      document.body.appendChild(this.live);
+    }
+    this.live.setAttribute("role", "status");
     this.live.setAttribute("aria-live", "polite");
-    document.body.appendChild(this.live);
+    this.live.setAttribute("aria-atomic", "true");
+    this.liveText = "";
 
     var root = this.root = el("div", "mp-panel");
     root.tabIndex = -1;  // keeps the focus (and so the keys) in the panel when a control it was on is redrawn
@@ -380,6 +387,14 @@ Module["byopop"] = (function () {
     return r === null ? "the game stopped" : r;
   };
   ModPanel.prototype.say = function (text) { this.message = text; this.msg.textContent = text; };
+  // What the in-game menu's focus is on, to the live region. The same words twice in a row (a setting changed back to
+  // where it was) are told apart by a no-break space, as a region that gets the same text again announces nothing.
+  ModPanel.prototype.announce = function (text) {
+    text = String(text);
+    if (text === this.liveText) text += "\u00a0";
+    this.liveText = text;
+    this.live.textContent = text;
+  };
 
   // The removal queue: [{dir, id, wasEnabled}] of folders the running game uses, deleted at the next start
   ModPanel.prototype.queueKey = function () { return "byopop-pending-remove:" + this.o.game; };
@@ -416,7 +431,7 @@ Module["byopop"] = (function () {
     // panel is closed
     M["onModsChanged"] = function () { self.stale = true; self.refresh(); };
     M["onModPanel"] = function () { if (o.show) o.show(); };
-    M["onModMenuFocus"] = function (text) { self.live.textContent = text; };
+    M["onModMenuFocus"] = function (text) { self.announce(text); };
     this.refresh();
     if (removed.length || staged.length) sync();
   };

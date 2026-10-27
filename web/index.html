@@ -30,12 +30,19 @@
   }
 }
 body { margin: 0; background: var(--bg); color: var(--fg); font: 14px/1.5 var(--font-ui); }
-main {
-  max-width: 960px; margin: 0 auto; padding-block: 24px 32px;
+/* The focus ring is always visible for the keyboard (docs/WEB_PLAYER.md, "Accessibility"). Nothing here moves by itself, and a player
+   who asks for no motion gets none */
+a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; }
+}
+main, .site-header {
+  max-width: 960px; margin: 0 auto;
   padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
 }
-header { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; margin-bottom: 24px; }
-header img { display: block; }
+main { padding-block: 0 32px; }
+.site-header { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; padding-block: 24px; }
+.site-header img { display: block; }
 .logo-dark { display: none; }
 @media (prefers-color-scheme: dark) {
   .logo-light { display: none; }
@@ -97,6 +104,7 @@ h1 { margin: 0; font-size: 20px; font-weight: 600; }
 .pl-about, .pl-hint, .pl-muted { color: var(--muted); font-size: 13px; }
 #players p, #saves p { margin: 0 0 8px; }
 .pl-status { min-height: 1.5em; font-size: 13px; }
+.pl-status.pl-alert:empty { display: none; }
 .pl-status.pl-error, .pl-error { color: #b3261e; }
 @media (prefers-color-scheme: dark) { .pl-status.pl-error, .pl-error { color: #ff8a80; } }
 .pl-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
@@ -170,13 +178,13 @@ footer a { color: var(--accent); }
 </style>
 </head>
 <body>
+<header class="site-header">
+  <img class="logo-light" src="logo.svg" alt="byo-pop" width="120" height="28">
+  <img class="logo-dark" src="logo-dark.svg" alt="" width="120" height="28">
+  <h1 id="games-title">Games</h1>
+</header>
 <main>
-  <header>
-    <img class="logo-light" src="logo.svg" alt="byo-pop" width="120" height="28">
-    <img class="logo-dark" src="logo-dark.svg" alt="" width="120" height="28">
-    <h1>Games</h1>
-  </header>
-  <ul class="games">
+  <ul class="games" aria-labelledby="games-title">
 <!-- byopop:games -->
   </ul>
   <section id="players" aria-labelledby="players-title">
