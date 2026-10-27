@@ -27,6 +27,10 @@
 #include <cstdlib>
 #include <cstring>
 
+#ifdef __EMSCRIPTEN__
+#include "SiteProfiles.h"
+#endif
+
 using namespace Sexy;
 
 #include "Tables.inc"
@@ -133,6 +137,9 @@ bool MummyApp::AdventureName(int theSlot, SexyString& theName)
 void MummyApp::DeleteAdventure(int theSlot)
 {
 	Platform::RemoveUserFile(AdventureFileName(theSlot));
+#ifdef __EMSCRIPTEN__
+	SiteProfilesChanged(this);	// the web page's players (framework/WebProfiles.h): an adventure was deleted
+#endif
 	ShowAdventureSlots();
 }
 
@@ -155,6 +162,9 @@ void MummyApp::CreateAdventure(int theSlot, const SexyString& theName)
 	mTotalTime = 0;
 	mDeaths = 0;
 	Platform::WriteUserFileAtomic(AdventureFileName(theSlot), aData);
+#ifdef __EMSCRIPTEN__
+	SiteProfilesChanged(this);	// the web page's players (framework/WebProfiles.h): an adventure was made
+#endif
 }
 
 // ---------------------------------------------------------------------------------------------------------
