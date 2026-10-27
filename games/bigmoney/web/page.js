@@ -17,6 +17,8 @@
       "images/coins.gif, or images/coins@2x.png for an HD version), plus an optional mod.json.",
     // ?seed=N: the seed of every new game until one is played on it (its first valid click or its game over;
     // games/bigmoney/src/ModRules.h)
+    // the game stores no exe: the import reads its icon out of the install's exe (web/shell.html, importIcon)
+    importIcon: true,
     seeds: true,
     // games/bigmoney/src/Replay.h
     replays: true,
