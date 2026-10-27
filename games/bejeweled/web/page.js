@@ -16,6 +16,8 @@
       "images/gemsheet6.png, or images/gemsheet6@2x.png for an HD version), plus an optional mod.json.",
     // ?seed=N: the seed of every new game until one is played on it (its first match or its game over;
     // games/bejeweled/docs/CODE_MODS_DESIGN.md 4.10)
+    // the game stores no exe: the import reads its icon out of the install's exe (web/shell.html, importIcon)
+    importIcon: true,
     seeds: true,
     // finished replays (features.replays), and watching one: ?replay=<name> (games/bejeweled/src/WatchController.h)
     replays: true,
