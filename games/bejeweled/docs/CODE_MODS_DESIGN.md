@@ -2984,8 +2984,8 @@ would have to match the game exactly. The improvements serve survive as well, si
 whether a trial board keeps the game's RNG state. The result may still be a floor: a fair bot that passes 7 million
 in a third or half of its games.
 
-**A TAS of Timed mode to level 5 (planned, on hold (the user, 2026-10-27)).** The user wants a tool-assisted run of
-Timed mode that reaches level 5 as fast as possible. The plan is to play many games, over seeds and move choices, and
+**TAS runs to level 5 (planned, on hold (the user, 2026-10-27)).** The user wants two tool-assisted runs that reach
+level 5 as fast as possible, one in Normal mode and one in Timed mode. The plan is to play many games, over seeds and move choices, and
 keep the one that gets to level 5 in the fewest moves. The cascades have to be timed as well, since in a real-time
 run a move's cost is the updates its swap, fall and cascades take, not one move each. The search would rank lines by
 the updates to level 5, with the move count as a tie-break. Most of the pieces exist. Survive's trials keep the game's
