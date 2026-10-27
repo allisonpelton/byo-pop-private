@@ -42,42 +42,90 @@ function same(name, a, b) { check(name, JSON.stringify(a) === JSON.stringify(b),
   check("profile bad value", S.set("profile", "yes") === false);
   check("profile create", S.set("profile", "create") && S.get("profile") === "create");
   check("profile default removes the field", S.set("profile", "game") && !("byopop-settings" in data));
-  same("level default", S.get("musicVolume"), "game");
-  check("level 40.4 rounds", S.set("musicVolume", "40.4") && S.get("musicVolume") === 40);
-  check("level 101 refused", S.set("musicVolume", 101) === false && S.get("musicVolume") === 40);
+  same("volume off by default", S.get("startVolume"), "off");
+  same("level default", [S.get("startMusic"), S.get("startSound")], [50, 50]);
+  check("level 40.4 rounds", S.set("startMusic", "40.4") && S.get("startMusic") === 40);
+  check("level 101 refused", S.set("startMusic", 101) === false && S.get("startMusic") === 40);
+  check("a level is not 'game'", S.set("startMusic", "game") === false && S.set("startSound", "") === false);
+  check("level 0 is a level", S.set("startSound", 0) && S.get("startSound") === 0);
+  check("the default level removes the field", S.set("startMusic", 50) && S.set("startSound", 50) && !("byopop-settings" in data), data);
+  check("volume switch", S.set("startVolume", "on") && S.get("startVolume") === "on" && S.set("startVolume", "loud") === false);
+  same("fullscreen choices", ["game", "on", "off"].map((v) => S.set("fullscreen", v) && S.get("fullscreen")), ["game", "on", "off"]);
+  same("cursors choices", ["on", "off", "game"].map((v) => S.set("cursors", v) && S.get("cursors")), ["on", "off", "game"]);
   check("unknown setting", S.set("nonsense", "on") === false && S.get("nonsense") === null);
 }
 
 // ---------- settings: per game ----------
 {
   const { S, data } = load();
-  S.set("mute", "on");
-  same("a game without its own value follows the site", S.get("mute", "pixelus"), "on");
-  check("game's own value", S.set("mute", "game", "pixelus"));
-  same("the game's own default wins over the site's", S.get("mute", "pixelus"), "game");
-  same("the site is unchanged", S.get("mute"), "on");
-  same("another game follows the site", S.get("mute", "bejeweled"), "on");
-  same("override()", S.override("mute", "pixelus"), "game");
-  same("override() of a game without one", S.override("mute", "bejeweled"), null);
-  S.set("musicVolume", 30, "pixelus");
-  same("level override", S.get("musicVolume", "pixelus"), 30);
-  S.set("musicVolume", "game", "pixelus");
-  same("level override of 'game'", S.get("musicVolume", "pixelus"), "game");
-  same("overrides()", S.overrides("pixelus").sort(), ["musicVolume", "mute"]);
-  check("bad game id refused", S.set("mute", "on", "../x") === false && S.set("mute", "on", "") === false);
-  check("bad game value refused", S.set("mute", "loud", "pixelus") === false);
-  check("a site-wide write keeps the games", (S.set("fullscreen", "on"), S.get("mute", "pixelus") === "game"));
-  check("null removes", S.set("mute", null, "pixelus") && S.override("mute", "pixelus") === null);
-  S.set("musicVolume", null, "pixelus");
+  S.set("fullscreen", "on");
+  same("a game without its own value follows the site", S.get("fullscreen", "pixelus"), "on");
+  check("game's own value", S.set("fullscreen", "game", "pixelus"));
+  same("the game's own default wins over the site's", S.get("fullscreen", "pixelus"), "game");
+  same("the site is unchanged", S.get("fullscreen"), "on");
+  same("another game follows the site", S.get("fullscreen", "bejeweled"), "on");
+  same("override()", S.override("fullscreen", "pixelus"), "game");
+  same("override() of a game without one", S.override("fullscreen", "bejeweled"), null);
+  S.set("startMusic", 30, "pixelus");
+  same("level override", S.get("startMusic", "pixelus"), 30);
+  same("the other level follows the site", S.get("startSound", "pixelus"), 50);
+  check("level override refuses 'game'", S.set("startMusic", "game", "pixelus") === false && S.get("startMusic", "pixelus") === 30);
+  same("overrides()", S.overrides("pixelus").sort(), ["fullscreen", "startMusic"]);
+  check("bad game id refused", S.set("fullscreen", "on", "../x") === false && S.set("fullscreen", "on", "") === false);
+  check("bad game value refused", S.set("fullscreen", "loud", "pixelus") === false);
+  check("a site-wide write keeps the games", (S.set("cursors", "on"), S.get("fullscreen", "pixelus") === "game"));
+  check("null removes", S.set("fullscreen", null, "pixelus") && S.override("fullscreen", "pixelus") === null);
+  S.set("startMusic", null, "pixelus");
   check("an empty game leaves no field", !("games" in JSON.parse(data["byopop-settings"])), data["byopop-settings"]);
   const all = S.all("pixelus");
-  same("all() with a game", [all.mute, all.fullscreen], ["on", "on"]);
+  same("all() with a game", [all.fullscreen, all.cursors], ["on", "on"]);
   // fields of the item this file does not know are kept
-  data["byopop-settings"] = JSON.stringify({ mute: "on", future: 7, games: { bejeweled: { mute: "off", junk: 1 } } });
+  data["byopop-settings"] = JSON.stringify({ fullscreen: "on", future: 7, games: { bejeweled: { fullscreen: "off", junk: 1 } } });
   S.set("wakeLock", "on");
   const kept = JSON.parse(data["byopop-settings"]);
   check("unknown fields kept", kept.future === 7 && kept.games.bejeweled.junk === 1 && kept.wakeLock === "on", kept);
-  same("invalid stored game values are ignored", S.get("mute", "bejeweled"), "off");
+  same("a stored game value is read", S.get("fullscreen", "bejeweled"), "off");
+  data["byopop-settings"] = JSON.stringify({ fullscreen: "sideways", startMusic: "loud", games: { bejeweled: { fullscreen: "huge", startSound: 700 } } });
+  same("invalid stored values are ignored", [S.get("fullscreen"), S.get("startMusic"), S.get("fullscreen", "bejeweled"), S.get("startSound", "bejeweled")], ["game", 50, "game", 50]);
+}
+
+// ---------- the old volume settings (mute, musicVolume, sfxVolume) become the starting volume ----------
+{
+  const old = (o) => { const d = load(); d.data["byopop-settings"] = JSON.stringify(o); return d; };
+  const vol = (S, g) => [S.get("startVolume", g), S.get("startMusic", g), S.get("startSound", g)];
+  const stored = (d) => JSON.parse(d.data["byopop-settings"] || "{}");
+  let t = old({ mute: "on", fullscreen: "on" });
+  same("mute becomes the volume at 0 and 0", vol(t.S), ["on", 0, 0]);
+  same("the old fields are removed from the item", Object.keys(stored(t)).sort(), ["fullscreen", "startMusic", "startSound", "startVolume"]);
+  t = old({ musicVolume: 30, sfxVolume: 80 });
+  same("volumes become the volume at those levels", vol(t.S), ["on", 30, 80]);
+  same("and nothing old is left", Object.keys(stored(t)).sort(), ["startMusic", "startSound", "startVolume"]);
+  t = old({ musicVolume: 30, sfxVolume: "game" });
+  same("a level left to the game becomes 50", vol(t.S), ["on", 30, 50]);
+  t = old({ sfxVolume: "0" });
+  same("a stored 0 is a level", vol(t.S), ["on", 50, 0]);
+  t = old({ mute: "on", musicVolume: 60, sfxVolume: 60 });
+  same("mute wins over volumes", vol(t.S), ["on", 0, 0]);
+  t = old({ mute: "game", musicVolume: "game", sfxVolume: "game", wakeLock: "on" });
+  same("settings left to the game leave no volume", [vol(t.S), stored(t)], [["off", 50, 50], { wakeLock: "on" }]);
+  t = old({ mute: "yes", musicVolume: 999 });
+  same("invalid old values are dropped", [vol(t.S), "byopop-settings" in t.data], [["off", 50, 50], false]);
+  t = old({ mute: "on", games: { pixelus: { mute: "game" }, bejeweled: { musicVolume: 20 }, other: { fullscreen: "on", mute: "on" } } });
+  same("a game left alone while the site is muted keeps its own off", [vol(t.S, "pixelus"), t.S.override("startVolume", "pixelus")], [["off", 0, 0], "off"]);
+  same("a game with a level still follows the site's mute", vol(t.S, "bejeweled"), ["on", 0, 0]);
+  same("a game's other settings stay", [t.S.get("fullscreen", "other"), vol(t.S, "other")], ["on", ["on", 0, 0]]);
+  check("no old field is left in any game", !/"mute"|musicVolume|sfxVolume/.test(t.data["byopop-settings"]), t.data["byopop-settings"]);
+  t = old({ musicVolume: 30, games: { pixelus: { mute: "on" }, bejeweled: { sfxVolume: 10 } } });
+  same("a game's own mute is its own volume", vol(t.S, "pixelus"), ["on", 0, 0]);
+  same("a game's own level falls back on the site's other", vol(t.S, "bejeweled"), ["on", 30, 10]);
+  same("the site's own", vol(t.S), ["on", 30, 50]);
+  // read again: nothing more to migrate
+  const before = t.data["byopop-settings"];
+  t.S.get("startVolume");
+  check("migrating twice changes nothing", t.data["byopop-settings"] === before);
+  // the migration is read-only when the new fields are there
+  t = old({ startVolume: "on", startMusic: 10, startSound: 20 });
+  same("new fields are read as they are", vol(t.S), ["on", 10, 20]);
 }
 
 // ---------- the site's players ----------
@@ -151,8 +199,8 @@ function same(name, a, b) { check(name, JSON.stringify(a) === JSON.stringify(b),
 // ---------- blocked storage ----------
 {
   const { S, P, G } = load(true);
-  same("settings read with blocked storage", S.get("mute"), "game");
-  check("settings write says no", S.set("mute", "on") === false);
+  same("settings read with blocked storage", [S.get("fullscreen"), S.get("startVolume"), S.get("startMusic")], ["game", "off", 50]);
+  check("settings write says no", S.set("fullscreen", "on") === false);
   check("players: add says no", P.add("Alice").ok === false);
   same("players: empty", P.list(), []);
   check("report says no", P.report("pixelus", { names: [] }) === false);

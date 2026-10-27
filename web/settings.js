@@ -1,31 +1,38 @@
 // The site's settings: what the player sets once and every game page applies (docs/WEB_PLAYER.md, "Site settings").
 // The listing page's Settings section (web/index.html) and the Settings panel of every game page (web/shell.html) both load
 // this file: it holds the key, the names and the defaults, and it builds the controls (ByopopSettings.render), so the two
-// places are one copy of the code and edit the same stored settings.
+// places are one copy of the code and edit the same stored settings. They are site-wide overrides of the games' own options.
 //
 // They are one localStorage item, "byopop-settings", a JSON object with one field per setting. A setting that is not
-// in it has its default, and its default leaves everything as the game has it, so a player who never opens the
-// settings sees the games exactly as they are. Storage may be blocked (a private window, the site's data refused):
+// in it has its default, and its default leaves everything as the game has it ("Game default"), so a player who never
+// opens the settings sees the games exactly as they are. Storage may be blocked (a private window, the site's data refused):
 // every read and write is guarded, a read then gives the defaults and a write says it did not happen.
 //
-// A choice setting is "game" (leave it to the game, the default), "on" or "off". A level setting is "game" or a whole
-// number from 0 to 100. A switch is a page feature the originals do not have and is "off" by default.
+// A choice setting is "game" (Game default, the default), "on" or "off". A level setting is a whole number from 0 to 100. A
+// switch is "off" by default: a page feature the originals do not have, or the starting volume below.
+//
+// The starting volume is three settings: the switch startVolume and the two levels startMusic and startSound (50 until the
+// player moves them). With the switch on, every game starts at those two volumes (docs/WEB_PLAYER.md). Until 2026-10-27 the
+// volume was "mute" (a choice) and "musicVolume" and "sfxVolume" (a level or "game"); a stored item that still has them is
+// migrated when it is read (migrate): mute "on" becomes the switch on with both levels 0, volumes become the switch on with
+// those levels (50 for the one that was left to the game), and the old fields are removed, in the item and in each game's own
+// values.
 //
 // Every setting can also be set for one game: the field "games" of the same item holds an object from a game's id to
-// the settings of that game ({"games": {"bejeweled": {"mute": "on"}}}). A game's own value wins over the site-wide one, and
+// the settings of that game ({"games": {"bejeweled": {"fullscreen": "off"}}}). A game's own value wins over the site-wide one, and
 // a game without one has the site-wide value: get(name, gameId) is the value the game uses. The listing page's Settings
-// section is site-wide; the game pages' Settings panel edits either (its "All games" / "This game" choice).
+// section is site-wide; the game pages' Settings panel edits either (its "All games (site-wide)" / "This game only" choice).
 var ByopopSettings = (function () {
   "use strict";
   var KEY = "byopop-settings";
   var CHOICE = ["game", "on", "off"], SWITCH = ["off", "on"];
   // name -> its values (a level: null) and its default
   var DEFS = {
-    mute: { values: CHOICE, def: "game" },          // on: the game starts muted
-    fullscreen: { values: CHOICE, def: "game" },    // on: Play asks for full screen
+    fullscreen: { values: CHOICE, def: "game" },    // on: Play asks for full screen; off: the game stays windowed
     cursors: { values: CHOICE, def: "game" },       // on or off: the game's custom cursors, whatever it saved
-    musicVolume: { values: null, def: "game" },     // a level: the game's music volume
-    sfxVolume: { values: null, def: "game" },       // a level: the game's sound volume
+    startVolume: { values: SWITCH, def: "off" },    // on: every game starts at the two volumes below
+    startMusic: { values: null, def: 50 },          // a level: the music volume a game starts at
+    startSound: { values: null, def: 50 },          // a level: the sound volume a game starts at
     wakeLock: { values: SWITCH, def: "off" },       // on: the screen stays awake while a game runs
     confirmLeave: { values: SWITCH, def: "off" },   // on: ask before leaving the page while a game runs
     pauseHidden: { values: SWITCH, def: "off" },    // on: a hidden tab pauses the game
@@ -34,22 +41,56 @@ var ByopopSettings = (function () {
 
   function store() { try { return window.localStorage || null; } catch (e) { return null; } }
   function plain(o) { return !!o && typeof o === "object" && !Array.isArray(o); }
-  // the stored object (also any fields this file does not know, which are kept when it writes), or {}
+  function has(o, k) { return Object.prototype.hasOwnProperty.call(o, k); }
+  // a whole number 0..100 (a number or a string of one, rounded), else null
+  function level(value) {
+    var n = (typeof value === "string" && value.trim() !== "") ? Number(value) : value;
+    return (typeof n === "number" && isFinite(n) && n >= 0 && n <= 100) ? Math.round(n) : null;
+  }
+
+  // The fields of the old volume settings (mute, musicVolume, sfxVolume) become the starting volume (see the top). base is the
+  // site-wide object's old values, which a game's own object falls back on for what it lacks. Returns true when it changed o.
+  var OLD_KEYS = ["mute", "musicVolume", "sfxVolume"];
+  function hasOld(o) { return plain(o) && OLD_KEYS.some(function (k) { return has(o, k); }); }
+  function migrate(o) {
+    var games = plain(o.games) ? o.games : {};
+    var ids = Object.keys(games).filter(function (id) { return hasOld(games[id]); });
+    if (!hasOld(o) && !ids.length) return false;
+    var base = { mute: o.mute, music: o.musicVolume, sfx: o.sfxVolume };
+    function convert(t, isGame) {
+      var mute = has(t, "mute") ? t.mute : base.mute;
+      var music = level(has(t, "musicVolume") ? t.musicVolume : base.music);
+      var sfx = level(has(t, "sfxVolume") ? t.sfxVolume : base.sfx);
+      delete t.mute; delete t.musicVolume; delete t.sfxVolume;
+      if (mute === "on") { t.startVolume = "on"; t.startMusic = 0; t.startSound = 0; }
+      else if (music !== null || sfx !== null) {
+        t.startVolume = "on";
+        t.startMusic = music === null ? DEFS.startMusic.def : music;
+        t.startSound = sfx === null ? DEFS.startSound.def : sfx;
+      } else if (isGame && o.startVolume === "on") t.startVolume = "off";  // this game was left to itself while the others were set
+    }
+    convert(o, false);
+    ids.forEach(function (id) { convert(games[id], true); });
+    return true;
+  }
+
+  // the stored object (also any fields this file does not know, which are kept when it writes), or {}; an old one is
+  // migrated and written back
   function readAll() {
     try {
       var s = store();
       var o = s ? JSON.parse(s.getItem(KEY) || "{}") : {};
-      return plain(o) ? o : {};
+      if (!plain(o)) return {};
+      if (migrate(o)) write(o);
+      return o;
     } catch (e) { return {}; }
   }
-  // value if it is one of the setting's, else null (a level: a whole number 0..100, or "game")
+  // value if it is one of the setting's, else null (a level: a whole number 0..100)
   function valid(name, value) {
     var d = DEFS.hasOwnProperty(name) ? DEFS[name] : null;
     if (!d) return null;
     if (d.values) return d.values.indexOf(value) >= 0 ? value : null;
-    if (value === "game") return value;
-    var n = (typeof value === "string" && value.trim() !== "") ? Number(value) : value;
-    return (typeof n === "number" && isFinite(n) && n >= 0 && n <= 100) ? Math.round(n) : null;
+    return level(value);
   }
   function validId(gameId) { return typeof gameId === "string" && /^[a-z0-9_-]{1,40}$/.test(gameId); }
   // This game's own value of a setting, or null when it has none (the site-wide value then applies)
@@ -118,32 +159,32 @@ var ByopopSettings = (function () {
 
   // ---------- the controls ----------
   // What the player sees, in the order it is shown. start: the setting is applied when a game starts, and a game that
-  // is running keeps what it started with (the panel in a game's page says so). volume: the game's own volume option,
-  // which Cosmic Bugs and Water Bugs do not have (render's option volumes).
-  var GAME_OR = [["game", "As the game is"]];
+  // is running keeps what it started with (the panel in a game's page says so). kind "volume": the starting volume's three
+  // settings in one row (a switch, with a "?" that explains it, and two sliders).
+  var GAME_DEFAULT = "Game default";
   var FIELDS = [
     { group: "Players" },
-    { name: "profile", label: "Player names", options: [["game", "As the game does"], ["fill", "Fill in the name"], ["create", "Use the player"]], start: true,
-      hint: "The player is chosen on the games page. “Fill in” starts a game’s name boxes (a new player, a high score) " +
-        "with the player’s name and creates nothing. “Use the player” also makes the player’s profile in a game " +
-        "that has profiles, if it has none of that name, and selects it when the game starts, so the game does not ask." },
+    { name: "profile", label: "Player names", options: [["game", GAME_DEFAULT], ["fill", "Fill in the name"], ["create", "Use the player"]], start: true,
+      hint: "Puts your name into the games, so you don’t type it again. Fill in the name: name boxes (a new player, a high score) " +
+        "start with your name. Use the player: games that keep players also make yours and choose it, so they don’t ask. " +
+        "Choose who you are under Players." },
     { group: "Sound" },
-    { name: "mute", label: "Start muted", options: GAME_OR.concat([["on", "Muted"]]), start: true,
-      hint: "A game’s page has a Sound button that turns the sound back on." },
-    { name: "musicVolume", label: "Music volume", level: true, volume: true,
-      hint: "0 to 100; empty leaves the game’s own. Sets the game’s own music volume option." },
-    { name: "sfxVolume", label: "Sound volume", level: true, volume: true,
-      hint: "0 to 100; empty leaves the game’s own. Sets the game’s own sound volume option." },
+    { name: "startVolume", kind: "volume", label: "Set the starting volume",
+      hint: "Every game starts at the music and sound volumes you choose.",
+      help: "Most games start with music and sound on, so a game can be loud before you can reach its options. This sets the " +
+        "volume every game starts at, 0 for silence. You can still change it in the game." },
     { group: "Display" },
-    { name: "fullscreen", label: "Full screen at start", options: GAME_OR.concat([["on", "Full screen"]]), start: true,
-      hint: "Asked for when you press Play, as browsers allow it only after a click." },
-    { name: "cursors", label: "Custom cursors", options: GAME_OR.concat([["on", "On"], ["off", "Off"]]),
-      hint: "Sets the game’s own custom cursors option, for the games that have one." },
+    { name: "fullscreen", label: "Full screen at start", options: [["game", GAME_DEFAULT], ["on", "Full screen"], ["off", "Windowed"]], start: true,
+      hint: "Some games start in full screen. Windowed keeps them in the page; Full screen fills the screen when you press Play." },
+    { name: "cursors", label: "Custom cursors", options: [["game", GAME_DEFAULT], ["on", "When available"], ["off", "Never"]],
+      hint: "Many games draw their own mouse pointer. When available turns it on in every game that has one; Never keeps your usual pointer." },
     { group: "Page" },
-    { name: "wakeLock", label: "Keep the screen awake while a game runs", hint: "Off by default. A browser may refuse." },
-    { name: "confirmLeave", label: "Ask before leaving a page while a game runs", hint: "Off by default." },
+    { name: "wakeLock", label: "Keep the screen awake while a game runs",
+      hint: "Stops the screen dimming or locking while a game is running. Some browsers don’t allow it." },
+    { name: "confirmLeave", label: "Ask before leaving a page while a game runs",
+      hint: "Asks before you close or leave a page while a game is running, so a stray click doesn’t end your game." },
     { name: "pauseHidden", label: "Pause when the tab is hidden",
-      hint: "Off by default, as the original games keep running in a window you cannot see. When on, a hidden tab stops the game and its sound until you come back." }
+      hint: "Stops the game and its sound while you’re on another tab. The original games keep running in the background, so this starts off." }
   ];
   var STYLE =
     ".bps { display: grid; gap: 8px; }\n" +
@@ -162,19 +203,34 @@ var ByopopSettings = (function () {
     ".bps-row .bps-own { display: block; color: var(--accent); }\n" +
     ".bps-hint a { color: var(--accent); font-weight: 600; }\n" +
     ".bps-ctl { grid-column: 2; grid-row: 1 / span 2; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; justify-content: flex-end; min-width: 0; }\n" +
-    ".bps-ctl select, .bps-ctl input[type=number] { font: inherit; color: var(--fg);\n" +
+    ".bps-ctl select, .bps-level input[type=number] { font: inherit; color: var(--fg);\n" +
     "  background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 5px 8px; min-width: 0; max-width: 100%; }\n" +
     ".bps-ctl select { max-width: min(14em, 100%); }\n" +
-    ".bps-ctl input[type=number] { width: 6.5em; }\n" +
     ".bps-ctl input[type=checkbox] { width: 18px; height: 18px; accent-color: var(--accent); margin: 0; }\n" +
-    ".bps-ctl select:focus-visible, .bps-ctl input:focus-visible, .bps-scope input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }\n" +
+    ".bps-ctl select:focus-visible, .bps-ctl input:focus-visible, .bps-scope input:focus-visible, .bps-level input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }\n" +
     ".bps-row [disabled] { opacity: 0.5; }\n" +
+    // the starting volume's row: the label with its "?", the explanation, and the two sliders
+    ".bps-vol .bps-ctl { grid-row: 1; }\n" +
+    ".bps-labline { display: flex; align-items: center; gap: 8px; min-width: 0; }\n" +
+    ".bps-help { flex: none; width: 26px; height: 26px; padding: 0; border-radius: 50%; border: 1px solid var(--line);\n" +
+    "  background: var(--bg); color: var(--fg); font: inherit; font-size: 13px; font-weight: 700; line-height: 1; cursor: pointer; }\n" +
+    ".bps-help:hover { border-color: var(--accent); }\n" +
+    ".bps-help:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }\n" +
+    ".bps-help[aria-expanded=true] { background: var(--accent); border-color: var(--accent); color: var(--panel); }\n" +
+    ".bps-row .bps-pop { grid-column: 1 / -1; margin: 4px 0 2px; padding: 8px 12px; background: var(--bg); color: var(--fg);\n" +
+    "  border: 1px solid var(--accent); border-radius: 8px; font-size: 13px; }\n" +
+    ".bps-row .bps-pop[hidden] { display: none; }\n" +
+    ".bps-levels { grid-column: 1 / -1; display: grid; gap: 8px; margin: 6px 0 0; padding: 0; border: 0; min-width: 0; }\n" +
+    ".bps-levels[hidden] { display: none; }\n" +
+    ".bps-level { display: grid; grid-template-columns: 3.6em minmax(0, 1fr) 5.2em; gap: 10px; align-items: center; }\n" +
+    ".bps-level input[type=range] { width: 100%; min-width: 0; margin: 0; accent-color: var(--accent); }\n" +
+    ".bps-level input[type=number] { width: 100%; box-sizing: border-box; }\n" +
     ".bps-msg { min-height: 1.5em; }\n" +
     ".bps-msg.bps-error { color: #b3261e; }\n" +
     ".bps-msg.bps-error:empty { display: none; }\n" +
     ".bps-sr { position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }\n" +
     "@media (prefers-color-scheme: dark) { .bps-msg.bps-error { color: #ff8a80; } }\n" +
-    "@media (max-width: 520px) { .bps-row { grid-template-columns: minmax(0, 1fr); } .bps-ctl { grid-column: 1; grid-row: auto; justify-content: flex-start; } }\n";
+    "@media (max-width: 520px) { .bps-row { grid-template-columns: minmax(0, 1fr); } .bps-ctl, .bps-vol .bps-ctl { grid-column: 1; grid-row: auto; justify-content: flex-start; } }\n";
   var idCount = 0;
 
   function make(tag, className, text) {
@@ -183,23 +239,64 @@ var ByopopSettings = (function () {
     if (text) e.textContent = text;
     return e;
   }
-  // the words for a value of a field ("muted", "60", "the game's own")
+  // the words for a value of a field ("Windowed", "On")
   function words(f, value) {
     if (f.options) {
-      for (var i = 0; i < f.options.length; i++) if (f.options[i][0] === value) return lowerFirst(f.options[i][1]);
+      for (var i = 0; i < f.options.length; i++) if (f.options[i][0] === value) return f.options[i][1];
       return String(value);
     }
-    if (f.level) return value === "game" ? "the game’s own" : String(value);
-    return value === "on" ? "on" : "off";
+    return value === "on" ? "On" : "Off";
   }
-  function lowerFirst(t) { return /^[A-Z][a-z]/.test(t) ? t.charAt(0).toLowerCase() + t.slice(1) : t; }
+  // the starting volume in words: for a game (its own, else the site's), or the site-wide one
+  function volumeWords(gameId) {
+    var on = gameId ? get("startVolume", gameId) : globalValue("startVolume");
+    if (on !== "on") return GAME_DEFAULT;
+    return "Music " + (gameId ? get("startMusic", gameId) : globalValue("startMusic")) + ", Sound " +
+      (gameId ? get("startSound", gameId) : globalValue("startSound"));
+  }
+
+  // The "?" button and the explanation it shows (WCAG 1.4.13): a real button, aria-expanded and aria-controls, and the
+  // explanation is also the description of the control it belongs to. It shows while the pointer is over the button or the
+  // text, while the button has the focus, and after a click (a second click closes it, and so does Esc or a click elsewhere,
+  // which a touch screen needs). A pointer that moves from the button to the text has a moment to get there.
+  function wireHelp(button, pop, around) {
+    var pinned = false, over = false, focused = false, dismissed = false, timer = 0;
+    function sync() {
+      var shown = !dismissed && (pinned || over || focused);
+      pop.hidden = !shown;
+      button.setAttribute("aria-expanded", shown ? "true" : "false");
+    }
+    function touch(ev) { return !!ev && (ev.pointerType === "touch"); }
+    function enter(ev) { if (touch(ev)) return; clearTimeout(timer); over = true; dismissed = false; sync(); }
+    function leave(ev) { if (touch(ev)) return; clearTimeout(timer); timer = setTimeout(function () { over = false; sync(); }, 250); }
+    var enterName = window.PointerEvent ? "pointerenter" : "mouseenter", leaveName = window.PointerEvent ? "pointerleave" : "mouseleave";
+    [button, pop].forEach(function (e) { e.addEventListener(enterName, enter); e.addEventListener(leaveName, leave); });
+    button.addEventListener("focus", function () { focused = true; dismissed = false; sync(); });
+    button.addEventListener("blur", function () { focused = false; sync(); });
+    button.addEventListener("click", function () {
+      if (pinned) { pinned = false; dismissed = true; } else { pinned = true; dismissed = false; }
+      sync();
+    });
+    // Esc closes it from the button or from inside the text, and says it took the key (a panel around it stays open)
+    around.addEventListener("keydown", function (ev) {
+      if (ev.key !== "Escape" || pop.hidden) return;
+      pinned = false; dismissed = true; sync();
+      ev.preventDefault();
+      if (pop.contains(document.activeElement)) button.focus();
+    });
+    document.addEventListener("click", function (ev) {
+      if (!pinned || button.contains(ev.target) || pop.contains(ev.target)) return;
+      pinned = false; sync();
+    });
+    sync();
+  }
 
   // Builds the settings into container (and replaces what it held). The controls save as they change.
   //   live        the container is in a game's page: a setting that only applies when a game starts says so
-  //   volumes     false: this game takes no volume setting (it has an engine of its own): those controls are off
-  //   gameId      the container is in this game's page (or edits this game): it gets the choice between "All games" and
-  //               "This game", and in "This game" every control starts with "Same as all games" and the value it inherits
-  //   gameName    the game's name for that choice
+  //   gameId      the container is in this game's page (or edits this game): it gets the choice between "All games (site-wide)"
+  //               and "This game only", and in "This game only" every control starts with "Same as all games" and the value it
+  //               inherits
+  //   gameName    the game's name, for the note under that choice
   //   onChange    onChange(name, value) after a setting was saved: value is the one the game uses now (the game's page
   //               applies it to the running game)
   //   playerNote  a function that returns the line shown under the "Player names" control (the current site player)
@@ -216,9 +313,9 @@ var ByopopSettings = (function () {
     }
     container.textContent = "";
     container.classList.add("bps");
-    container.appendChild(make("p", "bps-about", "Kept in this browser and used by every game. “As the game is” " +
-      "leaves a setting to the game, which then plays as the original does." +
-      (opts.live ? "" : " A game applies the settings when it starts. Each game’s own page can also set them for that game alone.")));
+    container.appendChild(make("p", "bps-about", "These override each game’s own options in every game on this site. " +
+      GAME_DEFAULT + " leaves a game as it is. Kept in this browser." +
+      (opts.live ? "" : " A game applies them when it starts. Each game’s own page can also set them for that game alone.")));
     var controls = {};
     var msg = make("p", "bps-msg");
     msg.setAttribute("role", "status");
@@ -244,12 +341,12 @@ var ByopopSettings = (function () {
       }
     }
 
-    var scopeBox = null, scopeNote = null;
+    var scopeNote = null;
     if (gameId) {
       var fs = make("fieldset", "bps-scope");
       fs.appendChild(make("legend", "", "Change the settings for"));
       var scopeName = "bps-scope-" + (++idCount);
-      [["all", "All games"], ["game", "This game" + (opts.gameName ? " (" + opts.gameName + ")" : "")]].forEach(function (s) {
+      [["all", "All games (site-wide)"], ["game", "This game only"]].forEach(function (s) {
         var label = make("label"), radio = make("input");
         radio.type = "radio"; radio.name = scopeName; radio.value = s[0]; radio.checked = s[0] === "all";
         radio.addEventListener("change", function () { if (radio.checked) { scope = s[0]; refresh(); } });
@@ -257,7 +354,6 @@ var ByopopSettings = (function () {
         label.appendChild(document.createTextNode(s[1]));
         fs.appendChild(label);
       });
-      scopeBox = fs;
       container.appendChild(fs);
       scopeNote = make("p", "bps-hint");
       container.appendChild(scopeNote);
@@ -266,6 +362,7 @@ var ByopopSettings = (function () {
     // The effective value of a setting under the scope being edited, and what each control shows
     function show(name) {
       var c = controls[name], f = c.field;
+      if (c.kind === "volume") { showVolume(c); return; }
       var own = gameId ? override(name, gameId) : null, inherited = globalValue(name);
       if (scope === "game") {
         c.select.hidden = false;
@@ -273,108 +370,182 @@ var ByopopSettings = (function () {
         // the first option says what "same as all games" means now
         c.select.options[0].textContent = "Same as all games (" + words(f, inherited) + ")";
         c.select.options[0].hidden = c.select.options[0].disabled = false;
-        if (f.level) {
-          c.select.value = own === null ? "inherit" : (own === "game" ? "game" : "level");
-          c.number.hidden = typeof own !== "number";
-          c.number.value = typeof own === "number" ? own : "";
-        } else {
-          c.select.value = own === null ? "inherit" : own;
-        }
+        c.select.value = own === null ? "inherit" : own;
+      } else if (f.options) {
+        c.select.hidden = false;
+        c.select.options[0].hidden = c.select.options[0].disabled = true;  // there is nothing to inherit from
+        c.select.value = inherited;
+        if (c.select.value !== inherited) c.select.value = "game";
       } else {
-        if (f.options) {
-          c.select.hidden = false;
-          c.select.options[0].hidden = c.select.options[0].disabled = true;  // there is nothing to inherit from
-          c.select.value = inherited;
-          if (c.select.value !== inherited) c.select.value = "game";  // "off" for a setting with only two choices
-        } else {
-          if (c.select) c.select.hidden = true;
-          if (f.level) { c.number.hidden = false; c.number.value = inherited === "game" ? "" : inherited; }
-          else { c.checkbox.hidden = false; c.checkbox.checked = inherited === "on"; }
-        }
+        c.select.hidden = true;
+        c.checkbox.hidden = false;
+        c.checkbox.checked = inherited === "on";
       }
       // in the all-games view, say that this game has a value of its own
       if (c.own) c.own.textContent = (scope === "all" && own !== null) ? "This game has its own: " + words(f, own) + "." : "";
     }
+    // the starting volume: a switch in the all-games view, a choice in this game's own; the sliders show with it on
+    function showVolume(c) {
+      var own = gameId ? override("startVolume", gameId) : null, inherited = globalValue("startVolume");
+      var gameScope = scope === "game", on, music, sound;
+      if (gameScope) {
+        c.select.hidden = false; c.checkbox.hidden = true;
+        c.select.options[0].textContent = "Same as all games (" + volumeWords(null) + ")";
+        c.select.value = own === null ? "inherit" : own;
+        c.label.htmlFor = c.select.id;
+        on = own === "on";
+        music = get("startMusic", gameId); sound = get("startSound", gameId);
+      } else {
+        c.select.hidden = true; c.checkbox.hidden = false;
+        c.checkbox.checked = inherited === "on";
+        c.label.htmlFor = c.checkbox.id;
+        on = inherited === "on";
+        music = globalValue("startMusic"); sound = globalValue("startSound");
+      }
+      c.group.hidden = !on;
+      c.levels.startMusic.range.value = c.levels.startMusic.number.value = music;
+      c.levels.startSound.range.value = c.levels.startSound.number.value = sound;
+      if (c.own) c.own.textContent = (scope === "all" && own !== null) ? "This game has its own: " + volumeWords(gameId) + "." : "";
+    }
     // the control the player used for a setting: the one that is showing
     function usedControl(c) {
-      return [c.checkbox, c.number, c.select].filter(function (e) { return e && !e.hidden; })[0] || c.select;
+      return [c.checkbox, c.select].filter(function (e) { return e && !e.hidden; })[0] || c.select;
     }
-    function applyChange(name, stored) {
-      var ok = (scope === "game") ? set(name, stored, gameId) : set(name, stored);
+    function ownerOf(name) { return (name === "startMusic" || name === "startSound") ? "startVolume" : name; }
+    // after a write: say so, tell the page, and show what is kept (a level is rounded, a bad one is not stored)
+    function saved(name, ok, control) {
       if (ok) {
         say("Saved.", false);
         if (opts.onChange) { try { opts.onChange(name, get(name, gameId || undefined)); } catch (e) {} }
       } else {
-        say("This browser would not keep the setting (a level is 0 to 100, or its storage is blocked).", true, usedControl(controls[name]));
+        say("This browser would not keep the setting (a level is 0 to 100, or its storage is blocked).", true, control);
       }
-      show(name);  // what is kept: a level is rounded, a bad one is not stored
+      show(ownerOf(name));
     }
+    function applyChange(name, stored, control) {
+      saved(name, (scope === "game") ? set(name, stored, gameId) : set(name, stored), control);
+    }
+
+    function buildVolume(f) {
+      var row = make("div", "bps-row bps-vol"), id = "bps-" + (++idCount) + "-" + f.name;
+      var c = { field: f, kind: "volume", select: null, checkbox: null, own: null, levels: {}, group: null, label: null };
+      var hint = make("p", "bps-hint", f.hint);
+      hint.id = id + "-hint";
+      var popId = id + "-help", pop = make("p", "bps-pop", f.help);
+      pop.id = popId;
+      pop.hidden = true;
+      var describedBy = hint.id + " " + popId;
+      c.label = make("label", "", f.label);
+      var help = make("button", "bps-help", "?");
+      help.type = "button";
+      help.setAttribute("aria-label", "What is “" + f.label + "” for?");
+      help.setAttribute("aria-expanded", "false");
+      help.setAttribute("aria-controls", popId);
+      var line = make("div", "bps-labline");
+      line.appendChild(c.label);
+      line.appendChild(help);
+      var ctl = make("div", "bps-ctl");
+      c.checkbox = make("input");
+      c.checkbox.type = "checkbox";
+      c.checkbox.id = id + "-box";
+      c.checkbox.setAttribute("aria-label", f.label);
+      c.select = make("select");
+      c.select.id = id + "-select";
+      c.select.setAttribute("aria-label", f.label);
+      [["inherit", ""], ["off", GAME_DEFAULT], ["on", f.label]].forEach(function (o) {
+        var op = make("option", "", o[1]);
+        op.value = o[0];
+        c.select.appendChild(op);
+      });
+      [c.checkbox, c.select].forEach(function (e) { e.setAttribute("aria-describedby", describedBy); e.setAttribute("data-setting", f.name); });
+      ctl.appendChild(c.checkbox);
+      ctl.appendChild(c.select);
+      // the two sliders, each with the number it stands for (the number can also be typed)
+      c.group = make("fieldset", "bps-levels");
+      c.group.appendChild(make("legend", "bps-sr", "Starting volumes, 0 to 100"));
+      [["startMusic", "Music"], ["startSound", "Sound"]].forEach(function (L) {
+        var lid = id + "-" + L[0], item = make("div", "bps-level");
+        var lab = make("label", "", L[1]);
+        lab.htmlFor = lid;
+        var range = make("input");
+        range.type = "range"; range.min = "0"; range.max = "100"; range.step = "1"; range.id = lid;
+        var num = make("input");
+        num.type = "number"; num.min = "0"; num.max = "100"; num.step = "1";
+        num.setAttribute("aria-label", L[1] + " volume, 0 to 100");
+        [range, num].forEach(function (e) { e.setAttribute("aria-describedby", hint.id); e.setAttribute("data-setting", L[0]); });
+        // dragging only shows the number; the level is kept (and given to a running game) when the slider is let go, or a key moves it
+        range.addEventListener("input", function () { num.value = range.value; });
+        range.addEventListener("change", function () { applyChange(L[0], range.value, range); });
+        num.addEventListener("change", function () { applyChange(L[0], num.value, num); });
+        item.appendChild(lab); item.appendChild(range); item.appendChild(num);
+        c.group.appendChild(item);
+        c.levels[L[0]] = { range: range, number: num };
+      });
+      if (gameId) { c.own = make("span", "bps-own"); hint.appendChild(c.own); }
+      c.checkbox.addEventListener("change", function () {
+        applyChange("startVolume", c.checkbox.checked ? "on" : "off", c.checkbox);
+      });
+      // in this game's own view the switch is a choice: following the site, leaving the game as it is, or its own volumes
+      // (which start at what it follows now)
+      c.select.addEventListener("change", function () {
+        var v = c.select.value;
+        if (v === "on") {
+          set("startMusic", globalValue("startMusic"), gameId);
+          set("startSound", globalValue("startSound"), gameId);
+        } else {
+          set("startMusic", null, gameId);
+          set("startSound", null, gameId);
+        }
+        saved("startVolume", set("startVolume", v === "inherit" ? null : v, gameId), c.select);
+      });
+      row.appendChild(line); row.appendChild(ctl); row.appendChild(pop); row.appendChild(hint); row.appendChild(c.group);
+      wireHelp(help, pop, row);
+      controls[f.name] = c;
+      container.appendChild(row);
+    }
+
     FIELDS.forEach(function (f) {
       if (f.group) { container.appendChild(make("h3", "bps-group", f.group)); return; }
+      if (f.kind === "volume") { buildVolume(f); return; }
       var row = make("div", "bps-row"), id = "bps-" + (++idCount) + "-" + f.name;
       var label = make("label", "", f.label);
       label.htmlFor = id;
       var hint = make("p", "bps-hint", f.hint);
       hint.id = id + "-hint";
-      var c = { field: f, select: null, number: null, checkbox: null, own: null };
+      var c = { field: f, select: null, checkbox: null, own: null };
       var ctl = make("div", "bps-ctl");
-      // a select: a choice, and in "This game" every setting (its first option is "Same as all games")
+      // a select: a choice, and in "This game only" every setting (its first option is "Same as all games")
       c.select = make("select");
       c.select.id = id;
       var inherit = make("option"); inherit.value = "inherit";
       c.select.appendChild(inherit);
       if (f.options) {
         f.options.forEach(function (o) { var op = make("option", "", o[1]); op.value = o[0]; c.select.appendChild(op); });
-      } else if (f.level) {
-        [["game", "As the game is"], ["level", "A level:"]].forEach(function (o) { var op = make("option", "", o[1]); op.value = o[0]; c.select.appendChild(op); });
       } else {
         [["on", "On"], ["off", "Off"]].forEach(function (o) { var op = make("option", "", o[1]); op.value = o[0]; c.select.appendChild(op); });
       }
       c.select.setAttribute("data-setting", f.name);
       ctl.appendChild(c.select);
-      if (f.level) {
-        c.number = make("input");
-        c.number.type = "number"; c.number.min = "0"; c.number.max = "100"; c.number.step = "1";
-        c.number.placeholder = "game’s own";
-        c.number.setAttribute("aria-label", f.label + " (0 to 100)");
-        c.number.setAttribute("data-setting", f.name);
-        ctl.appendChild(c.number);
-      } else if (!f.options) {
+      if (!f.options) {
         c.checkbox = make("input");
         c.checkbox.type = "checkbox";
         c.checkbox.setAttribute("aria-label", f.label);
         c.checkbox.setAttribute("data-setting", f.name);
         ctl.appendChild(c.checkbox);
+        // the control that carries the label's id: the one that is visible (the select is hidden in the all-games view,
+        // where the checkbox takes its place), so the label always names a control the player can reach
+        c.select.removeAttribute("id"); c.checkbox.id = id; c.select.setAttribute("aria-label", f.label);
       }
-      // the control that carries the label's id: the one that is visible (the select is hidden when a checkbox or a number
-      // takes its place), so the label always names a control the player can reach
-      if (!f.options) { c.select.removeAttribute("id"); (c.number || c.checkbox).id = id; c.select.setAttribute("aria-label", f.label); }
-      if (f.volume && opts.volumes === false) {
-        ctl.querySelectorAll("select,input").forEach(function (e) { e.disabled = true; });
-        hint.textContent = "This game has no volume option, so it does not take this setting.";
-      } else if (f.volume && !opts.live) {
-        hint.textContent += " Cosmic Bugs and Water Bugs have no volume option and ignore it.";
-      } else if (f.start && opts.live) {
-        hint.appendChild(make("span", "bps-start", "Applies the next time the game starts."));
-      }
+      if (f.start && opts.live) hint.appendChild(make("span", "bps-start", "Applies the next time the game starts."));
       if (gameId) { c.own = make("span", "bps-own"); hint.appendChild(c.own); }
       controls[f.name] = c;
-      [c.select, c.number, c.checkbox].forEach(function (e) { if (e) e.setAttribute("aria-describedby", hint.id); });
+      [c.select, c.checkbox].forEach(function (e) { if (e) e.setAttribute("aria-describedby", hint.id); });
       c.select.addEventListener("change", function () {
         var v = c.select.value;
-        if (scope === "game") {
-          if (v === "inherit") applyChange(f.name, null);
-          else if (f.level && v === "level") {
-            var g = globalValue(f.name);
-            applyChange(f.name, typeof g === "number" ? g : 100);
-          } else applyChange(f.name, v);
-        } else applyChange(f.name, v);
-      });
-      if (c.number) c.number.addEventListener("change", function () {
-        applyChange(f.name, c.number.value === "" ? "game" : c.number.value);
+        applyChange(f.name, (scope === "game" && v === "inherit") ? null : v, c.select);
       });
       if (c.checkbox) c.checkbox.addEventListener("change", function () {
-        applyChange(f.name, c.checkbox.checked ? "on" : "off");
+        applyChange(f.name, c.checkbox.checked ? "on" : "off", c.checkbox);
       });
       row.appendChild(label); row.appendChild(ctl); row.appendChild(hint);
       container.appendChild(row);
@@ -395,13 +566,17 @@ var ByopopSettings = (function () {
     });
     container.appendChild(msg);
     container.appendChild(err);
+    // how many settings this game has a value of its own for (the starting volume is one)
+    function ownCount() {
+      return overrides(gameId).filter(function (n) { return n !== "startMusic" && n !== "startSound"; }).length;
+    }
     function refresh() {
       Object.keys(controls).forEach(show);
       if (scopeNote) {
-        var n = overrides(gameId).length;
+        var n = ownCount();
         scopeNote.textContent = scope === "game"
-          ? "These values are for this game alone. “Same as all games” follows the site-wide value."
-          : (n ? "This game has its own value for " + n + " setting" + (n > 1 ? "s" : "") + "; they are marked below." : "");
+          ? "These values are for " + (opts.gameName || "this game") + " only. “Same as all games” follows the site-wide value."
+          : (n ? "This game has its own value for " + n + " setting" + (n > 1 ? "s; they are" : "; it is") + " marked below." : "");
       }
       if (opts.playerNote && controls.profile && controls.profile.note) {
         try { controls.profile.note.firstChild.textContent = opts.playerNote() || ""; } catch (e) {}

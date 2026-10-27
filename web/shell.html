@@ -269,7 +269,7 @@ input[type=file] { display: none; }  /* the buttons that open the file pickers a
 </aside>
 
 <aside class="panel" id="panel-settings" hidden aria-labelledby="panel-settings-title" tabindex="-1">
-  <header><h2 id="panel-settings-title">Settings</h2><button type="button" data-close>Close</button></header>
+  <header><h2 id="panel-settings-title">Settings: site-wide overrides</h2><button type="button" data-close>Close</button></header>
   <div class="body" id="settings-body"></div>
 </aside>
 
@@ -733,10 +733,12 @@ input[type=file] { display: none; }  /* the buttons that open the file pickers a
   function startGame(isAutostart, noMods) {
     if (started || !hasAgreed()) return;
     started = true;
-    // The site setting "full screen at start": asked for first, while the click that pressed Play still counts (browsers
-    // allow it only from one). The restart of the game's own menu has no click, so it does not ask.
-    if (isAutostart !== true && setting("fullscreen") === "on") goFullscreen();
-    applyStartMute();
+    // The site setting "full screen at start": "Full screen" is asked for first, while the click that pressed Play still counts
+    // (browsers allow it only from one; the restart of the game's own menu has no click, so it does not ask). "Windowed" is
+    // told to the games (byopop_site_windowed, below), whose own full screen option then starts off.
+    var screenAtStart = setting("fullscreen");
+    if (isAutostart !== true && screenAtStart === "on") goFullscreen();
+    holdForVolume();
     closePanels("quiet");
     $("start-overlay").hidden = true;
     var enabled = panel.enabledCount();
@@ -750,13 +752,14 @@ input[type=file] { display: none; }  /* the buttons that open the file pickers a
     };
     if (PAGE.start) PAGE.start(run);
     Module.silentAudio = pageSilent();
+    audioCall("byopop_site_windowed", [screenAtStart === "off" ? 1 : 0]);
     setStatus(modsText + seedText + run.status + (pagePlaceholders() ? " · placeholders" : "") +
       (Module.silentAudio ? " · silent" : (isAutostart === true ? " · sound after a click or key" : "")));
     // Only a start with mods can be one a mod stops: without any, nothing is noted (no write)
     if (!noMods && enabled > 0) session.markStarting();
     Module.callMain(run.args.concat(noMods ? ["-nomods"] : []).concat(pagePlaceholders() ? ["-placeholders"] : []));
     cursorTimer = setInterval(pollCursor, 100);
-    applySiteOptions(true, true, true);
+    applySiteOptions(true, true);
     acquireWake();
     syncPause();
     syncCanvas();
@@ -821,7 +824,7 @@ input[type=file] { display: none; }  /* the buttons that open the file pickers a
     setPageCursor('url("' + out.toDataURL("image/png") + '") ' + hotX + " " + hotY + ", auto");
   }
   function boot() {
-    applyStartMute();
+    holdForVolume();
     var W = web();
     if (!session) session = new W.Session(PAGE.id);
     if (!panel) {
@@ -1024,7 +1027,7 @@ input[type=file] { display: none; }  /* the buttons that open the file pickers a
     if (!$("panel-settings").hidden) { closePanels(closeHow(e)); return; }
     try {
       if (settingsView) settingsView.refresh();
-      else settingsView = ByopopSettings.render($("settings-body"), { live: true, volumes: siteVolumes(), onChange: applySettingNow,
+      else settingsView = ByopopSettings.render($("settings-body"), { live: true, onChange: applySettingNow,
         gameId: PAGE.id, gameName: $("brand-name").textContent, playerNote: playerNote });
     } catch (e) {
       $("settings-body").textContent = "The settings are not available.";
@@ -1234,9 +1237,10 @@ input[type=file] { display: none; }  /* the buttons that open the file pickers a
   function setting(name) { try { return ByopopSettings.get(name, PAGE.id); } catch (e) { return null; } }
 
   // The page's own mute: the platform's audio output (Platform::Mixer, byopop_audio_mute), below the game's volume and
-  // mute options, which it neither changes nor saves. ?silent=1 stays silent whatever this says. "Start muted" sets it
-  // when the page opens and again when the game starts, unless the Sound button has been used since.
-  var soundTouched = false;
+  // mute options, which it neither changes nor saves. ?silent=1 stays silent whatever this says. The site's starting volume
+  // holds it from the page's opening until the volumes are applied (holdForVolume, releaseHold), so that nothing plays at the
+  // game's own volume first; the Sound button, once used, has the last word.
+  var soundTouched = false, volumeHold = false;
   function audioCall(name, args) {
     try { return Module.ccall(name, "number", args.map(function () { return "number"; }), args); } catch (e) { return undefined; }
   }
@@ -1247,7 +1251,6 @@ input[type=file] { display: none; }  /* the buttons that open the file pickers a
     $("btn-sound").setAttribute("aria-pressed", muted ? "false" : "true");
   }
   function setPageMuted(muted) { audioCall("byopop_audio_mute", [muted ? 1 : 0]); showSound(); }
-  function applyStartMute() { if (!soundTouched && setting("mute") === "on") setPageMuted(true); }
   $("btn-sound").addEventListener("click", function (e) {
     soundTouched = true;
     setPageMuted(audioCall("byopop_audio_muted", []) !== 1);
@@ -1256,35 +1259,62 @@ input[type=file] { display: none; }  /* the buttons that open the file pickers a
     if (e.detail > 0) focusGame();
   });
 
+  // The site's starting volume ("Set the starting volume"): the music and sound levels this game starts at, or null when it
+  // is left as it is (Game default)
+  function startVolume() {
+    if (setting("startVolume") !== "on") return null;
+    var m = setting("startMusic"), f = setting("startSound");
+    return { music: typeof m === "number" ? m : 50, sfx: typeof f === "number" ? f : 50 };
+  }
+  // The hold: the page's mute is on from the page's opening (and again at Play, for a start that came with no page of its
+  // own) until the volumes are applied; then it is lifted, unless the Sound button has been used since.
+  function holdForVolume() {
+    if (soundTouched || !startVolume()) return;
+    volumeHold = true;
+    // (again at Play: the page's first call may have come before the module could take it)
+    if (audioCall("byopop_audio_muted", []) !== 1) setPageMuted(true);
+  }
+  function releaseHold() {
+    if (!volumeHold) return;
+    volumeHold = false;
+    if (!soundTouched) setPageMuted(false);
+  }
+
   // The game's own options that a setting sets (framework/WebSettings.cpp, byopop_site_apply): custom cursors, and the music
   // and sound volumes. The call returns 0 until the game has finished starting, which is after it has read its saved
   // options, so the setting wins over them; it is repeated until then. TipTop, Ning Po and Word Harmony have a volume engine of
   // their own, which SexyAppBase's volumes do not reach: their ports register a function that sets theirs (framework/WebSettings.h),
   // which byopop_site_apply calls instead. Cosmic Bugs and Water Bugs have no volume option, and fix the output volume at the
-  // original's 60%, so they are left out of the volumes (page.js may say PAGE.siteVolume). A setting that is "game" asks for nothing.
-  var OWN_VOLUME_ENGINE = ["cosmicbugs", "waterbugs"];
-  function siteVolumes() { return (PAGE.siteVolume !== undefined) ? !!PAGE.siteVolume : OWN_VOLUME_ENGINE.indexOf(PAGE.id) < 0; }
-  function applySiteOptions(cursors, music, sfx) {
-    var c = cursors ? setting("cursors") : null, m = music ? setting("musicVolume") : null, f = sfx ? setting("sfxVolume") : null;
-    var volumes = siteVolumes();
-    var args = [c === "on" ? 1 : c === "off" ? 0 : -1,
-      (volumes && typeof m === "number") ? m : -1, (volumes && typeof f === "number") ? f : -1];
-    if (args.every(function (v) { return v < 0; })) return;
+  // original's 60%: the starting volume goes to the mixer's music and sound gains instead (byopop_mixer_gain), at once (page.js
+  // may say PAGE.mixerVolume). A setting that is "game" asks for nothing. The hold on the page's mute ends when the volumes
+  // are applied, or when the game does not start in a minute.
+  var MIXER_VOLUME = ["cosmicbugs", "waterbugs"];
+  function mixerVolume() { return (PAGE.mixerVolume !== undefined) ? !!PAGE.mixerVolume : MIXER_VOLUME.indexOf(PAGE.id) >= 0; }
+  function applySiteOptions(cursors, volume) {
+    var c = cursors ? setting("cursors") : null, v = volume ? startVolume() : null;
+    if (v && mixerVolume()) {
+      audioCall("byopop_mixer_gain", [v.music, v.sfx]);
+      v = null;
+    }
+    var args = [c === "on" ? 1 : c === "off" ? 0 : -1, v ? v.music : -1, v ? v.sfx : -1];
+    if (args.every(function (n) { return n < 0; })) { if (volume) releaseHold(); return; }
     var tries = 0;
     (function attempt() {
       if (exited) return;
       var r = audioCall("byopop_site_apply", args);
-      if (r === 1 || r === undefined) return;  // applied, or this build has no such call
-      if (++tries < 600) setTimeout(attempt, 100);
+      if (r === 1 || r === undefined) { if (volume) releaseHold(); return; }  // applied, or this build has no such call
+      if (++tries < 600) setTimeout(attempt, 100); else if (volume) releaseHold();
     })();
   }
-  // The Settings panel changed one: what can be applied at once is applied to the running game. Start muted and full
-  // screen wait for the next start (the panel says so); "game" leaves the running game as it is.
+  // The Settings panel changed one: what can be applied at once is applied to the running game. Full screen at start and the
+  // player names wait for the next start (the panel says so); "game" leaves the running game as it is. Before the game starts,
+  // the starting volume holds the page's mute (or lets it go).
   function applySettingNow(name, value) {
-    if (name === "mute") { if (!started) applyStartMute(); }
-    else if (name === "cursors") { if (gameRunning()) applySiteOptions(true, false, false); }
-    else if (name === "musicVolume") { if (gameRunning()) applySiteOptions(false, true, false); }
-    else if (name === "sfxVolume") { if (gameRunning()) applySiteOptions(false, false, true); }
+    if (name === "startVolume" || name === "startMusic" || name === "startSound") {
+      if (gameRunning()) applySiteOptions(false, true);
+      else if (!started) { if (startVolume()) holdForVolume(); else releaseHold(); }
+    }
+    else if (name === "cursors") { if (gameRunning()) applySiteOptions(true, false); }
     else if (name === "wakeLock") { if (value === "on") acquireWake(); else releaseWake(); }
     else if (name === "pauseHidden") syncPause();
     // confirmLeave is read when the page is left

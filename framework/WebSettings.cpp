@@ -1,5 +1,10 @@
 // port: the calls the web page makes for the site's settings (docs/WEB_PLAYER.md, "Site settings"; web/settings.js,
-// web/shell.html). Web only; natively this file is empty. Two groups:
+// web/shell.html). Web only; natively this file is empty. The calls:
+//
+// byopop_site_windowed() tells the games the player chose "Windowed" for the site's "Full screen at start" (SiteWindowed, framework/WebSettings.h).
+//
+// byopop_mixer_gain() sets the page's starting volume for the games with no volume option of their own (Cosmic Bugs, Water Bugs), on the
+// mixer's music and sound master gains (platform/Audio.h, SetSiteGains).
 //
 // The page's mute, byopop_audio_mute() and byopop_audio_muted(), act on the platform's audio output
 // (Platform::Mixer::SetPageMute): below every game's own volume, mute and options, so they change and save none of
@@ -24,8 +29,33 @@ using namespace Sexy;
 // A game with a volume engine of its own sets this (framework/WebSettings.h)
 Byopop::SiteVolumeFn Byopop::gSiteVolume = NULL;
 
+static bool sSiteWindowed = false;
+
+bool Byopop::SiteWindowed()
+{
+	return sSiteWindowed;
+}
+
 extern "C"
 {
+
+// 1 when the site's "Full screen at start" is "Windowed": called before the game starts (SiteWindowed)
+EMSCRIPTEN_KEEPALIVE void byopop_site_windowed(int theWindowed)
+{
+	sSiteWindowed = theWindowed != 0;
+}
+
+// The starting volume of a game that has no volume option of its own: a level from 0 to 100 for the music and for the sounds
+// (100 is the game's own volume), through the mixer's gains; a level below 0 leaves that one as it is. Works at any time after the
+// module has loaded, also before the game starts. Returns the master gains in effect (the game's times the page's), in percent, as
+// music * 1000 + sound, which the page's tests read (-1, -1 only reads them).
+EMSCRIPTEN_KEEPALIVE int byopop_mixer_gain(int theMusic, int theSfx)
+{
+	Platform::Mixer& aMixer = Platform::Mixer::Get();
+	aMixer.SetSiteGains(theMusic < 0 ? aMixer.GetSiteMusicGain() : (theMusic > 100 ? 100 : theMusic) / 100.0f,
+		theSfx < 0 ? aMixer.GetSiteSfxGain() : (theSfx > 100 ? 100 : theSfx) / 100.0f);
+	return (int)(aMixer.GetMusicMasterGain() * 100.0f + 0.5f) * 1000 + (int)(aMixer.GetSfxMasterGain() * 100.0f + 0.5f);
+}
 
 // 1 mutes the page's sound, 0 brings it back; works at any time after the module has loaded
 EMSCRIPTEN_KEEPALIVE void byopop_audio_mute(int theMuted)

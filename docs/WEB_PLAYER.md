@@ -309,76 +309,123 @@ one line for each exe and writes no icon) and against synthetic exes made for ev
 
 ### Site settings
 
-Preferences that the player sets once and every game page applies when its game starts. They are edited in two places
-that draw the same controls from one file, `web/settings.js` (copied next to the pages and loaded by the listing page and
-by every game page): the Settings section at the foot of the listing page, and the **Settings** panel of a game's page
-(the bar's Settings button, a side panel like Mods and Game files). The listing page's section is site-wide. The panel
-starts with a choice, **All games** or **This game**: "All games" edits the same stored values as the listing page; "This
-game" edits values that only this game has (below), and every control then starts with "Same as all games (<the value it
-follows>)", which shows what the game inherits and removes the game's own value when chosen. In "All games" a setting that
-this game overrides says so under its control.
+Site-wide overrides of the games' own options, which the player sets once and every game page applies when its game starts.
+**Game default** leaves an option to the game, and it is what every setting starts as, so a player who never opens the settings
+sees every game as it is. They are edited in two places that draw the same controls from one file, `web/settings.js` (copied
+next to the pages and loaded by the listing page and by every game page): the **Settings: site-wide overrides** section at the
+foot of the listing page, and the **Settings** panel of a game's page (the bar's Settings button, a side panel like Mods and
+Game files; its heading says the same). Both begin with "These override each game's own options in every game on this site.
+Game default leaves a game as it is." The listing page's section is site-wide. The panel starts with a choice, **All games
+(site-wide)** or **This game only**: "All games" edits the same stored values as the listing page; "This game only" edits values
+that only this game has (below), and every control then starts with "Same as all games (<the value it follows>)", for example
+"Same as all games (Game default)", which shows what the game inherits and removes the game's own value when chosen. In "All
+games" a setting that this game overrides says so under its control.
 
 Every setting can be set for one game. The item has one more field, `games`, an object from a game's id to that game's own
-values (`{"games": {"bejeweled": {"mute": "on"}}}`). A game uses its own value when it has one and the site-wide value
+values (`{"games": {"bejeweled": {"fullscreen": "off"}}}`). A game uses its own value when it has one and the site-wide value
 otherwise (`ByopopSettings.get(name, gameId)`), and "game" is a value like any other (a game can be left as it is while all
-the others are muted). A game's own value is stored even when it equals the default, since it then overrides the site-wide
+the others are set). A game's own value is stored even when it equals the default, since it then overrides the site-wide
 one; removing it removes the field, and a game with none leaves no entry. Fields the code does not know are kept inside
 `games` too.
 
 They are one localStorage item, `byopop-settings`, a JSON object with one field per setting. A setting that is not in it
-has its default, and the default always leaves the game as it is: **"game" keeps the original's behaviour**, so a player
-who never opens the settings sees every game exactly as before, and the unmodded games stay identical to their
-originals. A choice is `"game"` (the default), `"on"` or `"off"`; a volume is `"game"` or a whole number from 0 to 100;
-a page feature that the originals lack is `"on"` or `"off"` and is `"off"` by default. Setting a default removes the
-field. Fields that `settings.js` does not know are kept when it writes. Every read and write is in a try/catch: with
-storage blocked the pages behave as if nothing was set, and the controls say a setting was not kept.
+has its default, and the default always leaves the game as it is: **"game" keeps the original's behaviour**, so the unmodded
+games stay identical to their originals. A choice is `"game"` (the default), `"on"` or `"off"`; a level is a whole number from
+0 to 100; a switch is `"on"` or `"off"` and is `"off"` by default. Setting a default removes the field. Fields that `settings.js`
+does not know are kept when it writes. Every read and write is in a try/catch: with storage blocked the pages behave as if
+nothing was set, and the controls say a setting was not kept.
 
-The settings, by their field in the item:
+The settings, by their field in the item, with the wording of their controls (each has a short hint under it that says what
+it is for, in `FIELDS` in `web/settings.js`):
 
-- `mute` ("game" or "on"): "on" starts the game muted. The page's mute is the platform's audio output
-  (`Platform::Mixer::SetPageMute`, the exports `byopop_audio_mute` and `byopop_audio_muted` in
-  `framework/WebSettings.cpp`): the mixer goes on mixing, as with `?silent=1`, and the device gets silence. It sits below
-  every game's volume, mute and options, so it changes and saves none of them, and it reaches every game that plays
-  through the mixer, the SexyAppFramework ones and the engine ones (TipTop, Word Harmony, Cosmic Bugs, Water Bugs) alike.
-  The bar's **Sound** button turns it off and on in any case; the setting sets it when the page opens (so the button
-  shows it before Play) and again when the game starts, unless the button has been used since. `?silent=1` stays silent
-  whatever the settings say.
-- `fullscreen` ("game" or "on"): "on" asks for full screen when the player presses Play, by the same path as the
-  Fullscreen button (browsers allow it only from a click, so the restart of the game's own menu, which has no click,
-  does not ask, and a browser may refuse).
-- `cursors` ("game", "on" or "off"): "on" or "off" calls the game's `EnableCustomCursors(true/false)`. The export
-  `byopop_site_apply(cursors, music, sfx)` does it and the volumes below; it returns 0 until `SexyAppBase::Init` has
+- `startVolume` (a switch), `startMusic` and `startSound` (levels, 50 until moved): **Set the starting volume**, a checkbox
+  with a "?" button beside it, and when it is ticked two sliders, **Music** and **Sound**, each from 0 to 100 with its number
+  beside it (a real `<input type="range">` and a number box that follow each other; the level is kept when the slider is let
+  go). In "This game only" the checkbox is a choice, "Same as all games (...)", "Game default" or "Set the starting volume",
+  and the sliders are the game's own levels. The "?" is a real button with `aria-expanded` and `aria-controls`; the explanation
+  shows while the pointer is over the button or the text, while the button has the focus, and after a click (a second click, Esc or
+  a click elsewhere closes it; a pointer has a moment to move from the button to the text; Esc does not close the panel around it),
+  and it is also the description of the checkbox (`aria-describedby`): "Most games start with music and sound on, so a game
+  can be loud before you can reach its options. This sets the volume every game starts at, 0 for silence. You can still change it
+  in the game." It replaces the earlier "Start muted", "Music volume" and "Sound volume" (below, "The old volume
+  settings"). What it does is in "The starting volume", below.
+- `fullscreen` ("game", "on" or "off"): **Full screen at start**, with the choices **Game default**, **Full screen** and
+  **Windowed**. "Full screen" asks for full screen when the player presses Play, by the same path as the Fullscreen button
+  (browsers allow it only from a click, so the restart of the game's own menu, which has no click, does not ask, and a browser
+  may refuse). "Windowed" keeps the game in the page (below, "Windowed").
+- `cursors` ("game", "on" or "off"): **Custom cursors**, with the choices **Game default**, **When available** (`"on"`) and
+  **Never** (`"off"`). "On" or "off" calls the game's `EnableCustomCursors(true/false)`. The export
+  `byopop_site_apply(cursors, music, sfx)` does it and the volumes; it returns 0 until `SexyAppBase::Init` has
   finished, which is after the game has read its saved options, so the setting wins over them, and the page calls it again
   every 100 ms until it returns 1. Only SexyAppFramework games have the option; for the others it does nothing and
-  raises no error. "game" leaves the game's own option alone.
-- `musicVolume` and `sfxVolume` ("game" or 0 to 100): the game's own music and sound volume options
-  (`SetMusicVolume`, `SetSfxVolume`, through the same export and call as the cursors). TipTop, Ning Po and Word Harmony keep
-  their volume in an engine of their own, which SexyAppBase's volumes do not reach. Each has a web-only file that registers a
-  function (`Byopop::gSiteVolume`, `framework/WebSettings.h`), which `byopop_site_apply` calls in place of `SetMusicVolume` and
-  `SetSfxVolume`, and which returns 0 until the game's own start has read its saved volumes, so that the site's value wins:
-  TipTop sets its `gSoundVolume` (0 to 0xffff, as the options' slider does) and its music table (`BuildMusicVolumes`, 0 to
-  0x100); Ning Po its two settings (`mSoundSetting`, `mMusicSetting`, 0 to 1, as its sliders do; the playing music takes the
-  music one once `init()` is done, and only when the site set one); Word Harmony its two category volumes (0 the sound, 1 the
-  music): `Game::applyVolumes` sets a category to 1 when its options box is ticked, and under a site volume to the site's level
-  instead (`SiteCategoryLevel`), so the box still turns it off. A level of 100 is the game's full volume. Cosmic Bugs and Water
-  Bugs have no volume option and fix the output volume at the original's 60%, so the page leaves them out (the list in
-  `web/shell.html`, or `PAGE.siteVolume` in a game's `page.js`) and the controls are off in their panels.
-- `profile` ("game", "fill" or "create"): what a game does with the site's current player (below, "Player profiles"). The
-  setting is applied when a game starts, and the panel says so.
-- `wakeLock` ("on" or "off", default off): keeps the screen awake while a game runs (`navigator.wakeLock`), taken after
+  raises no error. "Game default" leaves the game's own option alone.
+- `profile` ("game", "fill" or "create"): **Player names**, with the choices Game default, **Fill in the name** and **Use the
+  player**: what a game does with the site's current player (below, "Player profiles"). The setting is applied when a game
+  starts, and the panel says so.
+- `wakeLock` ("on" or "off", default off): **Keep the screen awake while a game runs** (`navigator.wakeLock`), taken after
   the game starts, released when it ends or the page is hidden, and taken again when the page is shown. A refusal or a
   browser without the API is fine.
-- `confirmLeave` ("on" or "off", default off): asks before leaving the page while a game runs (`beforeunload`). A
+- `confirmLeave` ("on" or "off", default off): **Ask before leaving a page while a game runs** (`beforeunload`). A
   closed game's page, and the reloads after a close, do not ask.
-- `pauseHidden` ("on" or "off", default off): when on and `document.hidden`, the page stops the game's main loop and
-  suspends the audio context, and resumes both when the tab is shown. Off must stay as it was, since the originals keep
-  running in a window you cannot see. The Browser pane can be hidden while `document.hidden` stays false, so this does not
-  touch the hidden-pane tests; test it by overriding `document.hidden` and dispatching `visibilitychange`.
+- `pauseHidden` ("on" or "off", default off): **Pause when the tab is hidden**: when on and `document.hidden`, the page stops
+  the game's main loop and suspends the audio context, and resumes both when the tab is shown. Off must stay as it was, since
+  the originals keep running in a window you cannot see. The Browser pane can be hidden while `document.hidden` stays false, so
+  this does not touch the hidden-pane tests; test it by overriding `document.hidden` and dispatching `visibilitychange`.
 
-The settings apply when a game starts. In a game's page, the Settings panel also applies at once what can be: the volumes
-and custom cursors (to the running game), the wake lock and pause when hidden; "ask before leaving" is read when the page
-is left, and the Sound button acts at once. "Start muted" and "full screen at start" only apply at the next start, and
-the panel says so. Choosing "game" again leaves the running game as it is.
+**The starting volume.** Most of the games start with music and sound on, and the only way to avoid that used to be the speakers,
+so the setting says what volume every game starts at, 0 for silence, music and sound each. The page's mute
+(`Platform::Mixer::SetPageMute`, the exports `byopop_audio_mute` and `byopop_audio_muted` in `framework/WebSettings.cpp`) is the
+platform's audio output: the mixer goes on mixing, as with `?silent=1`, and the device gets silence. It sits below every game's
+volume, mute and options, so it changes and saves none of them, and it reaches every game that plays through the mixer, the
+SexyAppFramework ones and the engine ones alike. With the starting volume on the page holds that mute from the moment it opens
+until the volumes have been applied, so that nothing plays at the game's own volume first, and then lets it go (the bar's
+**Sound** button shows "off" meanwhile; if the button is used in the meantime, the player's choice stays). The hold also ends when the game has not finished starting a minute after Play. The **Sound** button is the page's own mute, separate from this setting, and
+acts at once in any case. `?silent=1` stays silent whatever the settings say. How the levels reach a game depends on its sound:
+
+- The SexyAppFramework games take them through `byopop_site_apply`, as the game's own music and sound volume options do
+  (`SetMusicVolume(level / 100)`, `SetSfxVolume(level / 100)`), so a level of 100 is the game's full volume. The call returns 0
+  until the game's own start has read its saved options, so that the site's value wins; the game then saves the volume as
+  its own, as it would if the player had moved its slider.
+- TipTop, Ning Po and Word Harmony keep their volume in an engine of their own, which SexyAppBase's volumes do not reach.
+  Each has a web-only file that registers a function (`Byopop::gSiteVolume`, `framework/WebSettings.h`), which
+  `byopop_site_apply` calls in place of `SetMusicVolume` and `SetSfxVolume`, and which returns 0 until the game's own start has
+  read its saved volumes: TipTop sets its `gSoundVolume` (0 to 0xffff, as the options' slider does) and its music table
+  (`BuildMusicVolumes`, 0 to 0x100); Ning Po its two settings (`mSoundSetting`, `mMusicSetting`, 0 to 1, as its sliders do;
+  the playing music takes the music one once `init()` is done); Word Harmony its two category volumes (0 the sound, 1 the
+  music): `Game::applyVolumes` sets a category to 1 when its options box is ticked, and under a site volume to the site's level
+  instead (`SiteCategoryLevel`), so the box still turns it off.
+- Cosmic Bugs and Water Bugs have no volume option and fix the output volume at the original's 60%, so the page sets the
+  mixer's music and sound master gains instead (`Platform::Mixer`, `SetMusicMasterGain` and `SetSfxMasterGain`, through
+  `SetSiteGains` and the export `byopop_mixer_gain`), at once when the game starts. The games set the music gain themselves
+  at each level, so the page's level is kept apart (web only, in `platform/Audio.h`) and multiplies what the game sets; a level of
+  100 leaves their volume as it is and 0 is silence (the list is `MIXER_VOLUME` in `web/shell.html`, or `PAGE.mixerVolume` in a
+  game's `page.js`).
+
+**Windowed.** SexyAppBase always starts the web build windowed (`SexyAppBase.cpp`, window creation: browsers enter full screen
+only from a click), so the SexyAppFramework games, which keep their screen mode in `mIsWindowed`, never start in full screen
+and need nothing. The games whose own option can say full screen are Word Harmony (the registry value `FullScreen`, which
+defaults to 1: at its start it asks the page's stage for full screen, which a browser grants only soon after a click),
+Cosmic Bugs and Water Bugs (`cp.cfg`'s `fullscreen`, which defaults to 1: the web build keeps them in the page whatever the
+option says, but their options menu says full screen), and TipTop and Ning Po (default windowed; they ask for full screen when
+their saved option says so). With "Windowed" the page calls `byopop_site_windowed(1)` before the game starts, and each of them
+reads `Byopop::SiteWindowed()` where it reads that option and starts with the option off: Word Harmony's host reads
+`FullScreen` as 0, TipTop sets `gFullScreen` before `InitScreen`, Ning Po sets `mFullscreen` after reading its settings, and
+Cosmic Bugs and Water Bugs call `Screen_SetFullscreen(0)` after `LoadConfig`, as their options menu does. The game saves the
+option as it would if the player had set it, so a later "Game default" starts windowed too. "Game default" and "Full screen" call
+nothing.
+
+The settings apply when a game starts. In a game's page, the Settings panel also applies at once what can be: the starting
+volume and custom cursors (to the running game), the wake lock and pause when hidden; "ask before leaving" is read when the
+page is left, and the Sound button acts at once. "Full screen at start" and "Player names" only apply at the next start, and
+the panel says so. Choosing "Game default" again leaves the running game as it is.
+
+**The old volume settings.** Until 2026-10-27 the volume was three settings: `mute` ("game" or "on"; "Start muted"), and
+`musicVolume` and `sfxVolume` ("game" or 0 to 100). `settings.js` migrates a stored item that still has them when it reads it,
+and writes the item back without them: `mute: "on"` becomes the starting volume on with music and sound at 0; stored volumes
+become the starting volume on at those levels (50 for the one that was left to the game); both together give 0 and 0, since the
+mute is what the player asked for first. The same goes for each game's own values in `games` (a game's missing values fall back on
+the site's old ones; a game that was left to itself while the site's were set gets its own "off"). Settings left to the game
+leave nothing. `tools/profilestest.js` checks it.
 
 ### Player profiles
 

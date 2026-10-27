@@ -18,6 +18,12 @@ namespace Byopop
 typedef int (*SiteVolumeFn)(int theMusic, int theSfx);
 extern SiteVolumeFn gSiteVolume;
 
+// True when the site's "Full screen at start" is "Windowed" (web/settings.js; byopop_site_windowed, set by the page before the game
+// starts). A game whose own option can be full screen reads it where it reads that option, and starts with the option off, as
+// the player would set it in the game's options: Word Harmony ("FullScreen"), TipTop (gFullScreen), Ning Po ("Fullscreen"), Cosmic Bugs
+// and Water Bugs (Screen_SetFullscreen). The SexyAppFramework games need nothing: SexyAppBase always starts the web build windowed.
+bool SiteWindowed();
+
 }
 
 #endif

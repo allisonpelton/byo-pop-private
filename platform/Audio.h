@@ -102,8 +102,29 @@ public:
 	// at the mixer's rate. False for a song that is not playing.
 	bool GetSongFFT(int theSong, float* theOut, int theSamples);
 
+#ifdef __EMSCRIPTEN__
+	// On the web the page's starting volume (web/settings.js, docs/WEB_PLAYER.md, "Site settings") reaches a game with no
+	// volume option of its own (Cosmic Bugs, Water Bugs) through these two gains. The game sets them itself (its music
+	// volume at each level), so the page's level is kept apart and multiplies what the game sets: SetSiteGains is the
+	// page's, 1 leaves the game's gains as they are.
+	void SetMusicMasterGain(float theGain) { mMusicAsked = theGain; mMusicMaster = theGain * mSiteMusic; }
+	void SetSfxMasterGain(float theGain) { mSfxAsked = theGain; mSfxMaster = theGain * mSiteSfx; }
+	void SetSiteGains(float theMusic, float theSfx)
+	{
+		mSiteMusic = theMusic;
+		mSiteSfx = theSfx;
+		SetMusicMasterGain(mMusicAsked);
+		SetSfxMasterGain(mSfxAsked);
+	}
+	float GetSiteMusicGain() const { return mSiteMusic; }
+	float GetSiteSfxGain() const { return mSiteSfx; }
+	// the gains in effect (the game's times the page's), which the page's tests read
+	float GetMusicMasterGain() const { return mMusicMaster; }
+	float GetSfxMasterGain() const { return mSfxMaster; }
+#else
 	void SetMusicMasterGain(float theGain) { mMusicMaster = theGain; }
 	void SetSfxMasterGain(float theGain) { mSfxMaster = theGain; }
+#endif
 
 #ifdef __EMSCRIPTEN__
 	// The web page's own mute (its sound button and the site setting "start muted", docs/WEB_PLAYER.md): like
@@ -136,6 +157,8 @@ private:
 	bool mSilent = false;  // web test runs (web/shell.html ?silent=1): mix as usual, output silence
 #ifdef __EMSCRIPTEN__
 	std::atomic<bool> mPageMuted{false};  // the web page's mute (SetPageMute): likewise
+	float mMusicAsked = 1.0f, mSfxAsked = 1.0f;  // the gains the game last set (SetMusicMasterGain, SetSfxMasterGain)
+	float mSiteMusic = 1.0f, mSiteSfx = 1.0f;    // the page's starting volume for a game with no volume option (SetSiteGains)
 #endif
 	bool mOffline = false; // InitOffline: voices without a device
 	std::vector<std::unique_ptr<Voice>> mVoices;
