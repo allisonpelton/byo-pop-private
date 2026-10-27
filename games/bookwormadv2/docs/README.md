@@ -104,7 +104,10 @@ the in-game Menu dialog with Options and Quit To Main Menu; the main menu (rebui
 animated portal, Lex and his bubble); the Options dialog and the Hall of Fame; and the portal's click, which takes a game
 saved in the prologue back into the battle; and the replay of a finished adventure (the "continue your current adventure?"
 dialog, `BookSelectScreen` with its three books, and the curtain's states 9, 10 and 12 up to the replay's chapter map and the
-Hall of Fame after it), tried with a profile set to a finished adventure. The music plays from the ten loose OGG files over the framework's music
+Hall of Fame after it), tried with a profile set to a finished adventure; with a treasure in its `Treasures` key the soak plays a replay
+through Chapters 1 to 5 of Book 0 with no script error, and after a quit in the middle of one the menu's "Continue your current
+adventure?" Yes brings it back where it was (a replay adds the saved treasures back to Lex, and the last one is the picture of the
+altar after a win: a profile with no `Treasures` key gives the scripts' own error there, `PORT_PLAN.md`). The music plays from the ten loose OGG files over the framework's music
 interface, by song id. Also Volume 2's own: the mini-games' menu (the buttons by what is unlocked, the "new" mark, the
 tooltips checkbox, the two ways in and out), the cut scene (a click skips to the end of the scene), the credits (with the
 midground animation and the finale's tiles) and the stats book (the tome of knowledge with its list of secrets, the media

@@ -132,6 +132,17 @@ replay in progress (`ReplayInGame`) the "Continue your current adventure?" dialo
 `BookSelectScreen` (class at 0x423e50..0x425630, script `bookselectscreen.luc`). The profile's booleans read as false when
 the key is missing (0x47aca0 with its flag: the port's `ProfileBool`).
 
+Tried (native, `-fast`, the soak): a profile with `AdventureComplete` and a one-entry `Treasures` (`{{mScript="Breakfast",
+mEnabled=true}}`) plays the Adventure Replay entry, the book list, Book 0's replay through Chapters 1 to 5 (the chapter
+map's Enter, the bosses, the next chapter's curtain) with no script error in 46,000 updates. After a quit in the middle of
+it, the menu's Adventure Replay shows "Continue your current adventure?" and Yes brings the replay back in its chapter and
+battle (score and hearts as saved), and the soak plays on. A profile with `AdventureComplete` and no `Treasures` key gives
+`BattleEngine.lua:658: attempt to call a nil value` when the first battle is won, and the port is the same as the exe there:
+in a replay `main.luc` (L866-879) adds back the treasures of the key to Lex with `AddTreasure`, which sets `mLastTreasureBook`
+and `mLastTreasureNum`, and the win's altar picture (`OnPanComplete`, L658) is built from `IMAGE_TREASURE_<book>_<num>_SML`
+of the last one; `lex.luc` starts both at -1, and a replay does not award treasures (`BattleEngine.lua:1648` skips that for
+`gReplayMode`). A real finished adventure always has some.
+
 ## Bound methods of Volume 2's GameApp (the registrations of 0x43a850 against `GameAppLua.cpp`)
 
 All the methods that 0x43a850 registers by name are in now (`DoHighScoreScreenFromReplay` is 0x446860, which no script calls;
