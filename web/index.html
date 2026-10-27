@@ -90,12 +90,68 @@ h1 { margin: 0; font-size: 20px; font-weight: 600; }
 .why-pop :last-child { margin-bottom: 0; }
 .why-pop ul { padding-left: 18px; }
 .why-pop a { color: var(--accent); font-weight: 600; }
+/* The players (docs/WEB_PLAYER.md, "Player profiles"): web/players.js builds the section's insides */
+#players, #saves { margin-top: 40px; scroll-margin-top: 16px; }
+#players h2, #saves h2 { margin: 0 0 8px; font-size: 18px; font-weight: 600; }
+#players h3, #saves h3 { margin: 24px 0 8px; font-size: 15px; font-weight: 600; }
+.pl-about, .pl-hint, .pl-muted { color: var(--muted); font-size: 13px; }
+#players p, #saves p { margin: 0 0 8px; }
+.pl-status { min-height: 1.5em; font-size: 13px; }
+.pl-status.pl-error, .pl-error { color: #b3261e; }
+@media (prefers-color-scheme: dark) { .pl-status.pl-error, .pl-error { color: #ff8a80; } }
+.pl-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.pl-use, .pl-game { margin: 0 0 12px; padding: 0; border: 0; min-width: 0; }
+.pl-game { padding: 10px 14px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel); }
+.pl-game legend { padding: 0 6px; font-weight: 600; }
+.pl-cards, .pl-names, .pl-results { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.pl-names { gap: 4px; }
+.pl-card { padding: 10px 14px; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); }
+.pl-head { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 12px; }
+.pl-current { display: flex; align-items: center; gap: 8px; cursor: pointer; font-weight: 600; min-width: 0; overflow-wrap: anywhere; }
+.pl-current input, .pl-names input { accent-color: var(--accent); width: 18px; height: 18px; margin: 0; }
+.pl-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-left: auto; }
+#players button, #saves button {
+  font: inherit; color: var(--fg); background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 5px 12px; cursor: pointer;
+}
+#players button:hover, #saves button:hover { border-color: var(--accent); }
+#players button:focus-visible, #saves button:focus-visible, #players input:focus-visible, #saves input:focus-visible,
+#players summary:focus-visible, #saves summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+#players button[disabled], #saves button[disabled] { opacity: 0.5; cursor: default; }
+#players button.pl-link { border: 0; background: none; color: var(--accent); padding: 0 2px; text-decoration: underline; font-size: inherit; }
+#players button.pl-danger, #saves button.pl-danger { border-color: #b3261e; color: #b3261e; }
+@media (prefers-color-scheme: dark) { #players button.pl-danger, #saves button.pl-danger { border-color: #ff8a80; color: #ff8a80; } }
+.pl-badge { font-size: 12px; font-weight: 600; color: var(--accent); border: 1px solid var(--accent); border-radius: 99px; padding: 0 8px; }
+.pl-form { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 8px 0; }
+.pl-form label { font-weight: 600; }
+.pl-form input[type=text] {
+  font: inherit; color: var(--fg); background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 5px 8px; min-width: 12em; max-width: 100%;
+}
+.pl-details { margin-top: 8px; }
+.pl-details summary { cursor: pointer; color: var(--muted); font-size: 13px; }
+.pl-table { width: 100%; border-collapse: collapse; margin-top: 6px; font-size: 13px; }
+.pl-table th, .pl-table td { text-align: left; padding: 5px 8px; border-top: 1px solid var(--line); vertical-align: top; }
+.pl-table thead th { color: var(--muted); font-weight: 600; border-top: 0; }
+.pl-table tbody th { font-weight: 600; white-space: nowrap; }
+@media (max-width: 640px) { .pl-table, .pl-table tbody, .pl-table tr, .pl-table th, .pl-table td { display: block; } .pl-table thead { display: none; }
+  .pl-table tr { border-top: 1px solid var(--line); padding: 4px 0; } .pl-table th, .pl-table td { border-top: 0; padding: 1px 8px; } }
+.pl-flag { color: var(--muted); }
+.pl-names li { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+.pl-names label { cursor: pointer; overflow-wrap: anywhere; }
+.pl-pending, .pl-pending-tag { font-size: 13px; color: var(--accent); }
+.pl-confirm { margin: 12px 0; padding: 14px 16px; background: var(--panel); border: 2px solid #b3261e; border-radius: var(--radius); }
+@media (prefers-color-scheme: dark) { .pl-confirm { border-color: #ff8a80; } }
+.pl-confirm h4 { margin: 0 0 8px; font-size: 15px; }
+.pl-confirm ul { margin: 0 0 12px; padding-left: 18px; }
+.pl-results { gap: 4px; margin-bottom: 8px; font-size: 13px; }
+.pl-empty { color: var(--muted); }
+.pl-count { color: var(--muted); font-size: 13px; }
 /* The site's settings (docs/WEB_PLAYER.md, "Site settings"): web/settings.js draws the controls and brings their style */
 #settings { margin-top: 40px; scroll-margin-top: 16px; }
 #settings h2 { margin: 0 0 8px; font-size: 18px; font-weight: 600; }
 /* The foot of the page: the disclaimer and the credit, at the page's width, in the muted colour of both themes */
 /* Where a game can still be bought: a link for each store, beside the game's own link in the card (cmake/ByopopStores.cmake) */
 .buyrow { display: flex; flex-wrap: wrap; justify-content: center; gap: 2px 10px; padding: 0 8px 12px; font-size: 12px; }
+.buyrow[hidden] { display: none; }
 .buyrow a { color: var(--accent); }
 .buyrow a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 2px; }
 footer {
@@ -116,6 +172,10 @@ footer a { color: var(--accent); }
   <ul class="games">
 <!-- byopop:games -->
   </ul>
+  <section id="players" aria-labelledby="players-title">
+    <h2 id="players-title">Players</h2>
+    <div id="players-body"></div>
+  </section>
   <section id="settings" aria-labelledby="settings-title">
     <h2 id="settings-title">Settings</h2>
     <div id="settings-controls"></div>
@@ -127,9 +187,17 @@ footer a { color: var(--accent); }
   <p>Project by <a href="https://technocra.cy/">technocra.cy</a></p>
 </footer>
 <script src="settings.js"></script>
+<script src="profiles.js"></script>
+<script src="players.js"></script>
 <script>
 // The settings section: the controls are web/settings.js's, the same as in a game's Settings panel
 try { ByopopSettings.render(document.getElementById("settings-controls")); } catch (e) {}
+// The players section (web/players.js): the games are the tiles, in their order
+try {
+  ByopopPlayers.init(document.getElementById("players-body"), Array.prototype.map.call(document.querySelectorAll("a.tile[data-game]"), function (t) {
+    return { id: t.getAttribute("data-game"), title: t.querySelector(".name").textContent };
+  }));
+} catch (e) { document.getElementById("players-body").textContent = "The players are not available."; }
 </script>
 <script>
 // Which games have their files loaded, as a sign that the player owns them (docs/WEB_PLAYER.md, "The listing page"). A
@@ -222,6 +290,12 @@ try { ByopopSettings.render(document.getElementById("settings-controls")); } cat
     }
     label.textContent = WORDS[info.state];
     label.className = "own own-" + info.state;
+    // Where to buy (docs/WEB_PLAYER.md, "The listing page"): not shown to a player whose files for the game are loaded, were
+    // loaded and forgotten or lost since (the record says so), or who has played it here: the links would suggest that the page
+    // is used for copies it was not given by a purchase. They are shown for "Needs your files" without such a past, and for
+    // "Files unknown".
+    var buy = card.querySelector(".buyrow");
+    if (buy) buy.hidden = info.state === "yes" || !!info.everLoaded || !!info.played;
     // the link's accessible name: the game's name, then the same words ("Bejeweled Deluxe, your copy")
     tile.setAttribute("aria-label", tile.querySelector(".name").textContent + ", " + WORDS[info.state].toLowerCase());
     var button = row.querySelector(".why"), pop = card.querySelector(".why-pop");
@@ -309,6 +383,7 @@ try { ByopopSettings.render(document.getElementById("settings-controls")); } cat
           var id = tile.getAttribute("data-game"), persist = tile.getAttribute("data-persist"), rec = record[id] || null;
           var listed = names !== null && names.indexOf(persist) >= 0;
           var info = { state: "unknown", played: false, loaded: rec && rec.loaded, forgotten: rec && rec.forgotten, saves: hasBackup(persist),
+            everLoaded: ByopopGameFiles.everLoaded(rec),
             icon: (rec && ByopopGameFiles.present(rec) && rec.icon) || "" };
           if (rec && ByopopGameFiles.present(rec) && (names === null || listed)) {
             // the record says the files are there, and the database that holds them is

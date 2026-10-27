@@ -138,6 +138,7 @@ function same(name, a, b) { check(name, JSON.stringify(a) === JSON.stringify(b),
   check("results survive a later report", P.games().pixelus.results.length === 2);
   check("a bad game id is refused", P.report("../evil", { names: [] }) === false);
   check("an op that was cancelled is gone", (P.cancel("bookworm", id3), P.ops("bookworm").length === 0));
+  check("clearResults forgets the results and keeps the names", P.clearResults() && P.games().pixelus.results.length === 0 && P.games().pixelus.names.length === 1);
 
   const r = { names: ["alice", "Bobby", "Zed"], fits: { Alice: "Alice", Bob: "Bobby", Zed: "" } };
   same("match, other case", P.match(r, "Alice"), { name: "alice", exact: false });

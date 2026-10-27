@@ -33,6 +33,8 @@ set(BYOPOP_WEB_BRAND favicon.svg favicon.ico apple-touch-icon.png logo.svg logo-
 # players and what the games report of theirs ("Player profiles"); the listing page and the game pages load it too.
 # web/exeicon.js reads a game's icon out of its exe (the game pages load it). All three are copied next to the pages.
 set(BYOPOP_WEB_SHARED_JS settings.js profiles.js exeicon.js)
+# the listing page's own scripts: the Players section (web/players.js), copied next to index.html only
+set(BYOPOP_WEB_INDEX_JS players.js)
 # The listing page, build/web/index.html (made from web/index.html by byopop_web_index() at the end of this file): one
 # tile for each game in BYOPOP_WEB_FINISHED, in this order, with the game's TITLE and a badge. The list is the
 # coordinator's: the coordinator adds a game's target at that game's final merge. A game with a web page that is not
@@ -328,6 +330,7 @@ function(byopop_web_index)
     get_property(game_persist GLOBAL PROPERTY BYOPOP_WEB_persist_${target})
     # where the game can still be bought (cmake/ByopopStores.cmake, the data of the game pages' buy note): a link for each
     # store, in the card but beside the game's own link, since a link cannot hold a link; none for a game with no store
+    # (hidden: the listing page shows them for a game whose files were never loaded in this browser, web/index.html)
     set(buy_html "")
     if(DEFINED BYOPOP_BUY_${target})
       set(buy ${BYOPOP_BUY_${target}})
@@ -349,7 +352,7 @@ function(byopop_web_index)
         string(APPEND buy_html "<a href=\"${url}\" rel=\"noopener\" aria-label=\"Buy ${title} on ${on}\">Buy on ${on}</a>")
       endwhile()
       if(NOT buy_html STREQUAL "")
-        set(buy_html "<div class=\"buyrow\">${buy_html}</div>")
+        set(buy_html "<div class=\"buyrow\" hidden>${buy_html}</div>")
       endif()
     endif()
     string(CONCAT tile "    <li class=\"game\" style=\"--tile: ${colour}\"><a class=\"tile\" href=\"${target}.html\" "
@@ -365,7 +368,7 @@ function(byopop_web_index)
   foreach(name ${BYOPOP_WEB_BRAND})
     configure_file(${BYOPOP_WEB_BRAND_DIR}/${name} ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${name} COPYONLY)
   endforeach()
-  foreach(name ${BYOPOP_WEB_SHARED_JS})
+  foreach(name ${BYOPOP_WEB_SHARED_JS} ${BYOPOP_WEB_INDEX_JS})
     configure_file(${BYOPOP_WEB_BRAND_DIR}/../${name} ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${name} COPYONLY)
   endforeach()
   byopop_write_if_changed(${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/index.html "${page}")

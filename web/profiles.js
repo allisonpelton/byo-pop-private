@@ -191,6 +191,13 @@ var ByopopProfiles = (function () {
     return ok;
   }
 
+  // Forgets the results the games kept of the operations (the Players section's "Clear this list")
+  function clearResults() {
+    var all = games();
+    Object.keys(all).forEach(function (id) { all[id].results = []; });
+    return writeJson(GAME_KEY, all);
+  }
+
   // ---------- what the page asks of a game, and the game of the page ----------
   // The mode of the setting "profile" for this game, the current site player's name (empty with none), the site players' names
   // and the operations waiting for the game. This is what a game asks for at its decision points.
@@ -237,5 +244,5 @@ var ByopopProfiles = (function () {
 
   return { KEY: KEY, GAME_KEY: GAME_KEY, OPS_KEY: OPS_KEY, NAME_MAX: NAME_MAX, clean: clean, list: list, current: current, find: find,
     add: add, rename: rename, remove: remove, setCurrent: setCurrent, games: games, allOps: allOps, ops: ops, report: report,
-    forGame: forGame, queue: queue, cancel: cancel, match: match };
+    forGame: forGame, queue: queue, cancel: cancel, match: match, clearResults: clearResults };
 })();

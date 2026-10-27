@@ -209,8 +209,10 @@ drawn by the page, never from the game's files) linking to its page; opened with
 links. `byopop_web_index()` in `cmake/ByopopWeb.cmake` makes it from `web/index.html` at configure time, after every
 game has been added. Which games it shows is the `BYOPOP_WEB_FINISHED` list in that file: the coordinator adds a game
 there at its final merge, and a name in it with no web page stops the configure (unless the game's `BUILD_<TARGET>`
-option is off). Below the tiles it has the Settings section (`#settings`; "Site settings", below), which `web/settings.js`
-draws; the build copies that file next to the pages.
+option is off). Below the tiles it has the Players section (`#players`; "Player profiles", below), which `web/players.js` builds
+from the records in `web/profiles.js`, and the Settings section (`#settings`; "Site settings", below), which `web/settings.js`
+draws; the build copies those files next to the pages (`BYOPOP_WEB_SHARED_JS` for the ones every page loads, `BYOPOP_WEB_INDEX_JS`
+for the listing page's own).
 
 At the foot of the page is a `<footer>`, at the page's width and in its muted colours, with the disclaimer, in the words of
 `web/copyright.html` and `web/terms.html` (an unofficial, non-commercial project, not affiliated with or endorsed by
@@ -270,6 +272,15 @@ game ("Buy Big Money Deluxe on Steam"). `byopop_web_index()` writes them at buil
 buy note, `BYOPOP_BUY_<target>` in `cmake/ByopopStores.cmake` (a check date, then each store's name and page), so the two
 cannot disagree; a game with no store shows nothing. The links are in the same list item as the game's link but not inside
 it, in a `.buyrow` beside it, as a link cannot hold a link.
+
+The links are hidden once the player has loaded files for the game, because they would otherwise suggest that the page is
+used for copies that were not bought. The rule, in `show()` of `web/index.html`: they are hidden when the game's state is
+"Your copy", when its record says the files were ever loaded (`ByopopGameFiles.everLoaded`: a `loaded` date, whether the files
+are there now or were forgotten (`forgotten`) or lost (`missing`) since), and when the game was played here before (the "?" case:
+saves or a database with entries but no record). They are shown for "Needs your files" without such a past, and for "Files
+unknown". `byopop_web_index()` writes each `.buyrow` with the `hidden` attribute, so that a player who owns the game never sees
+the links flash before the check has run. The game pages' terms card (off for now) and the copyright pages keep their buy
+note: they are not the card that suggests where to get the game.
 
 **The game's own icon.** Once a game's files are loaded, its card shows the game's icon in place of the initials badge
 (an `<img alt="">`, since the card has the name, at the badge's size and with `image-rendering: pixelated` so that a small
