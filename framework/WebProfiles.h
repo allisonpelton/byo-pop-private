@@ -28,6 +28,7 @@ namespace Sexy
 {
 class EditWidget;
 class Font;
+class SexyAppBase;
 }
 
 namespace Byopop
@@ -94,6 +95,48 @@ public:
 	// (empty when none), Create and Select are not used, and "create" does what "fill" does
 	virtual bool IsScores() { return false; }
 };
+
+// The players of a SexyAppFramework game that has none and only asks for a name at each high score, in a box with limits
+// (RecordScoreDialog and its like), remembering the last name in the registry value "LastScoreName" and in the app's
+// string theLast. Names() is that name, Rename sets it, and Fit types a name into a box with the game's font and limits, so a
+// game's whole hook is the construction of one of these.
+class SiteScoreNames : public SiteProfiles
+{
+public:
+	// theFont: the box's font (NULL before it is loaded), theMaxChars and theMaxPixels as the box has them (-1: none),
+	// theListener the box's own EditListener when it filters characters, theRules the rules in words. theLast NULL for a game
+	// that does not remember the name (nothing to rename).
+	SiteScoreNames(Sexy::SexyAppBase* theApp, std::string* theLast, Sexy::Font* theFont, int theMaxChars, int theMaxPixels,
+		const char* theRules, Sexy::EditListener* theListener = NULL);
+
+	virtual std::vector<std::string> Names();
+	virtual std::string Current() { return ""; }
+	virtual std::string Find(const std::string& theName);
+	virtual std::string Fit(const std::string& theName);
+	virtual bool Create(const std::string& theName, std::string* theWhy) { return false; }
+	virtual bool Select(const std::string& theName) { return false; }
+	virtual bool CanRename() { return mLast != NULL; }
+	virtual bool Rename(const std::string& theFrom, const std::string& theTo, std::string* theWhy);
+	virtual const char* Rules() { return mRules; }
+	virtual bool IsScores() { return true; }
+
+private:
+	Sexy::SexyAppBase*		mApp;
+	std::string*			mLast;
+	Sexy::Font*				mFont;
+	int						mMaxChars;
+	int						mMaxPixels;
+	const char*				mRules;
+	Sexy::EditListener*		mListener;
+};
+
+// The framework calls this when a SexyAppFramework game has finished loading (SexyAppBase::DoUpdateFrames, right after the
+// game's LoadingThreadCompleted, so its fonts and images are there and its registry has been read): the decision point at
+// start of every such game. A game's web-only file sets it (a static initializer) to its start function, so that the game's own
+// sources need no line for it. Without one, nothing happens.
+typedef void (*SiteLoadedFn)(Sexy::SexyAppBase* theApp);
+extern SiteLoadedFn gSiteLoaded;
+void SiteLoaded(Sexy::SexyAppBase* theApp);
 
 // Asks the page about the game with this id (the id of its page.js, "pixelus"): its mode, the site player and the queued
 // operations. With no page (a Node run) or no answer: the mode "game".

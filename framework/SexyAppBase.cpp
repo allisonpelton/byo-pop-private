@@ -42,6 +42,7 @@
 #ifdef __EMSCRIPTEN__
 #include <emscripten.h>
 #include <emscripten/html5.h>
+#include "WebProfiles.h"
 #endif
 
 using namespace Sexy;
@@ -1413,6 +1414,7 @@ bool SexyAppBase::DoUpdateFrames()
 		Platform::ReportMissing();
 #ifdef __EMSCRIPTEN__
 		sexyapp_notify_loaded();
+		Byopop::SiteLoaded(this);	// the page's players (framework/WebProfiles.h): the game's start point, if it has one
 #endif
 	}
 

@@ -5,9 +5,11 @@
 #include "WebProfiles.h"
 #include "EditWidget.h"
 #include "Font.h"
+#include "SexyAppBase.h"
 #include "../platform/Json.h"
 
 #include <emscripten.h>
+#include <ctype.h>
 #include <stdlib.h>
 
 using namespace Sexy;
@@ -207,6 +209,61 @@ void Report(const char* theGameId, SiteProfiles& theGame, const SiteInfo& theInf
 	byopop_site_report(theGameId, aReport.Dump(0).c_str());
 }
 
+}
+
+SiteScoreNames::SiteScoreNames(SexyAppBase* theApp, std::string* theLast, Font* theFont, int theMaxChars, int theMaxPixels,
+	const char* theRules, EditListener* theListener) :
+	mApp(theApp), mLast(theLast), mFont(theFont), mMaxChars(theMaxChars), mMaxPixels(theMaxPixels), mRules(theRules),
+	mListener(theListener)
+{
+}
+
+std::vector<std::string> SiteScoreNames::Names()
+{
+	std::vector<std::string> aNames;
+	if ((mLast != NULL) && !mLast->empty())
+		aNames.push_back(*mLast);
+	return aNames;
+}
+
+static bool SameName(const std::string& a, const std::string& b)
+{
+	if (a.size() != b.size())
+		return false;
+	for (size_t i = 0; i < a.size(); i++)
+		if (tolower((unsigned char) a[i]) != tolower((unsigned char) b[i]))
+			return false;
+	return true;
+}
+
+std::string SiteScoreNames::Find(const std::string& theName)
+{
+	return ((mLast != NULL) && !mLast->empty() && SameName(*mLast, theName)) ? *mLast : std::string();
+}
+
+std::string SiteScoreNames::Fit(const std::string& theName)
+{
+	return SiteFitTyped(theName, mFont, mMaxChars, mMaxPixels, mListener);
+}
+
+bool SiteScoreNames::Rename(const std::string& theFrom, const std::string& theTo, std::string* theWhy)
+{
+	if (mLast == NULL)
+	{
+		*theWhy = "This game does not remember the name.";
+		return false;
+	}
+	*mLast = theTo;
+	mApp->RegistryWriteString("LastScoreName", theTo);
+	return true;
+}
+
+SiteLoadedFn gSiteLoaded = NULL;
+
+void SiteLoaded(SexyAppBase* theApp)
+{
+	if (gSiteLoaded != NULL)
+		gSiteLoaded(theApp);
 }
 
 SiteInfo SiteGet(const char* theGameId)
