@@ -127,7 +127,7 @@ public:
 #endif
 
 #ifdef __EMSCRIPTEN__
-	// The web page's own mute (its sound button and the site setting "start muted", docs/WEB_PLAYER.md): like
+	// The web page's own mute (its sound button, and the hold while the starting volume is applied, docs/WEB_PLAYER.md): like
 	// ?silent=1, the mixer goes on mixing, so that playback timing is as it was, and the device gets silence. It is
 	// below every game's volume, mute and options (so it changes and saves none of them), and it reaches every game
 	// that plays through the mixer, SexyAppFramework or not.
