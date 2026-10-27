@@ -210,6 +210,9 @@ bool NingPo::init(const char* theCmdLine, const char* theResourceDir)
 	if (openResourceFile(aPath))
 	{
 		loadSettings();
+#ifdef __EMSCRIPTEN__
+		SiteStart();	// the web page's players and volumes (framework/WebProfiles.h): the settings are read, before the splash waits for a click
+#endif
 		// the cvar c_soundDriver chose DirectSound (port: the platform's mixer either way)
 		if (initDevices(mFullscreen != 0, 0x280, 0x1e0, 2, 0x10, 0x5622))
 		{
@@ -226,7 +229,7 @@ bool NingPo::init(const char* theCmdLine, const char* theResourceDir)
 				createControls();
 				toTitle(false);
 #ifdef __EMSCRIPTEN__
-				SiteStart();	// the web page's players (framework/WebProfiles.h): how the site's names fit the best-time box
+				SiteReady();	// the web page's volumes (framework/WebSettings.h): the music is there to take its volume
 #endif
 				return true;
 			}
