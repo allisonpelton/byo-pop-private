@@ -42,12 +42,13 @@ int ToInt(double theValue)
 
 // ---- CustomListWidget ----
 
-// 0x495100
-CustomListWidget::CustomListWidget(ListListener* theListener) : ListWidget(1, FONT_LARGE, theListener)
+// 0x481650
+CustomListWidget::CustomListWidget(ListListener* theListener, bool theFromGame)
+	: ListWidget(1, FONT_LARGE, theListener), mFromGame(theFromGame)
 {
 }
 
-// 0x4952a0: ListWidget::Draw without its background and outline, the lines' colours the book's, and the bars of
+// 0x481840: ListWidget::Draw without its background and outline, the lines' colours the book's, and the bars of
 // light, the second texts and the mark added
 void CustomListWidget::Draw(Graphics* g)
 {
@@ -110,18 +111,28 @@ void CustomListWidget::Draw(Graphics* g)
 			break;
 		}
 		int aTextY = mFont->GetAscent() + aDrawY + anItemOffset;
-		aClipG.DrawString(aLine, aFontX, aTextY);
-		if (!mSecondary.empty()) {
-			const std::string& aSecond = mSecondary[aLine];
-			if (!aSecond.empty()) {
-				// right-aligned, to the clip's height past the line's start (as the original wrote it)
-				aClipG.DrawString(aSecond, aClipG.mClipRect.mHeight + aFontX - mFont->StringWidth(aSecond), aTextY);
-			}
+		// the second text of the line (the book's, if a timed game has just ended, else the new area's), right-aligned
+		// to the clip's height past the line's start (as the original wrote it). It is drawn first, from the whole line
+		const std::map<std::string, std::string>& aSeconds = mFromGame ? mSecondary : mNewArea;
+		if (!aSeconds.empty()) {
+			// (the original's map[] adds the line with an empty text when it is not there; the picture is the same)
+			std::map<std::string, std::string>::const_iterator aSecondIt = aSeconds.find(aLine);
+			if (aSecondIt != aSeconds.end() && !aSecondIt->second.empty())
+				aClipG.DrawString(aSecondIt->second, aClipG.mClipRect.mHeight + aFontX - mFont->StringWidth(aSecondIt->second),
+				                  aTextY);
 		}
+		// what follows the line's first "(" is not shown (nor the space before it), and a line still longer than 19
+		// letters is cut to 18 with dots after them
+		size_t aParen = aLine.find('(');
+		if (aParen != std::string::npos)
+			aLine = aLine.substr(0, aParen - 1);
+		if (aLine.size() > 19)
+			aLine = aLine.substr(0, 18) + "...";
+		aClipG.DrawString(aLine, aFontX, aTextY);
 	}
 }
 
-// 0x495760: the book hears the wheel first
+// 0x481e40: the book hears the wheel first
 void CustomListWidget::MouseWheel(int theDelta)
 {
 	if (mOwner != nullptr)
@@ -129,7 +140,7 @@ void CustomListWidget::MouseWheel(int theDelta)
 	ListWidget::MouseWheel(theDelta);
 }
 
-// 0x495790: only inside its rectangle
+// 0x481e70: only inside its rectangle
 void CustomListWidget::MouseDown(int x, int y, int theBtnNum, int theClickCount)
 {
 	if (x >= mHitRect.mX && x < mHitRect.mX + mHitRect.mWidth && y >= mHitRect.mY &&
@@ -137,8 +148,65 @@ void CustomListWidget::MouseDown(int x, int y, int theBtnNum, int theClickCount)
 		ListWidget::MouseDown(x, y, theBtnNum, theClickCount);
 }
 
-// 0x4936f0
+// 0x47f430
 bool CustomListWidget::IsPointVisible(int x, int y)
+{
+	return x >= mHitRect.mX && x < mHitRect.mX + mHitRect.mWidth && y >= mHitRect.mY &&
+	       y < mHitRect.mY + mHitRect.mHeight;
+}
+
+
+// ---- SecretListWidget ----
+
+// 0x481ec0: no outline, 37 pixels for a line (the book sets both), the font the book's other list has
+SecretListWidget::SecretListWidget(ListListener* theListener) : ListWidget(2, FONT_LARGE, theListener)
+{
+}
+
+// 0x481fa0: a tray for each line, with a name on it once the secret is found ("???" is a secret that is not)
+void SecretListWidget::Draw(Graphics* g)
+{
+	Graphics aClipG(*g);
+	aClipG.ClipRect(4, 4, mWidth, mHeight - 8);
+	aClipG.SetFont(mFont);
+
+	int aFirstLine = ToInt(mPosition);
+	int aLastLine = std::min((int)mLines.size() - 1, aFirstLine + ToInt(mPageSize) + 1);
+	int anItemHeight = mItemHeight != -1 ? mItemHeight : mFont->GetHeight();
+
+	for (int i = aFirstLine; i <= aLastLine; i++) {
+		if (i < 0)
+			break;
+		int aDrawY = ToInt((i - mPosition) * anItemHeight) + 2;
+		if (mLines[i] == "???") {
+			aClipG.DrawImage(IMAGE_SB_SECRET_TRAY1, -2, aDrawY + 2);
+		} else {
+			aClipG.DrawImage(IMAGE_SB_SECRET_TRAY2, -2, aDrawY + 2);
+			aClipG.SetFont(FONT_MEDIUM);
+			aClipG.SetColor(Color::Black);
+			// (the height is the large font's, as the original wrote it)
+			aClipG.WriteString(mLines[i], 15, FONT_LARGE->GetHeight() + aDrawY, -1, -1, true, 0, -1, -1);
+		}
+	}
+}
+
+// 0x482330: the book hears the wheel first
+void SecretListWidget::MouseWheel(int theDelta)
+{
+	if (mOwner != nullptr)
+		mOwner->MouseWheel(theDelta);
+	ListWidget::MouseWheel(theDelta);
+}
+
+// 0x482360: the list's own, then the plain arrow in place of the hand
+void SecretListWidget::MouseMove(int x, int y)
+{
+	ListWidget::MouseMove(x, y);
+	mWidgetManager->mApp->SetCursor(CURSOR_POINTER);
+}
+
+// 0x47f480
+bool SecretListWidget::IsPointVisible(int x, int y)
 {
 	return x >= mHitRect.mX && x < mHitRect.mX + mHitRect.mWidth && y >= mHitRect.mY &&
 	       y < mHitRect.mY + mHitRect.mHeight;
@@ -146,7 +214,7 @@ bool CustomListWidget::IsPointVisible(int x, int y)
 
 // ---- StatsBook ----
 
-// 0x495b30...: the class and its 15 methods, registered by the constructor each time in the original
+// the class and its 19 methods, registered by the constructor each time in the original
 void StatsBook::RegisterLua()
 {
 	static bool sRegistered = false;
@@ -160,6 +228,8 @@ void StatsBook::RegisterLua()
 		.Method<&StatsBook::ClearList>("ClearList")
 		.Method<&StatsBook::SelectIndex>("SelectIndex")
 		.Method<&StatsBook::AddSecondaryLine>("AddSecondaryLine")
+		.Method<&StatsBook::AddNewAreaLine>("AddNewAreaLine")
+		.Method<&StatsBook::AddSecretLine>("AddSecretLine")
 		.Method<&StatsBook::Bounce>("Bounce")
 		.Method<&StatsBook::SetIconIndex>("SetIconIndex")
 		.Method<&StatsBook::IsBouncing>("IsBouncing")
@@ -169,14 +239,17 @@ void StatsBook::RegisterLua()
 		.Method<&StatsBook::PlaySWF>("PlaySWF")
 		.Method<&StatsBook::PlayMusic>("PlayMusic")
 		.Method<&StatsBook::HideArrowButtons>("HideArrowButtons")
-		.Method<&StatsBook::SetRedString>("SetRedString");
+		.Method<&StatsBook::SetRedString>("SetRedString")
+		.Method<&StatsBook::Rehup>("Rehup")
+		.Method<&StatsBook::ReloadSecrets>("ReloadSecrets");
 }
 
-// 0x493830: the widgets, then the group "StatsBook" of resources
+// 0x47f5a0: the widgets, then the group "StatsBook" of resources
 StatsBook::StatsBook(GameApp* theApp, bool theFromGame, bool theBestiary, bool theMediaPlayer)
 	: mApp(theApp), mLayout(nullptr), mContinueButton(nullptr), mList(nullptr), mSlider(nullptr), mScrollUp(nullptr),
 	  mScrollDown(nullptr), mFlash(nullptr), mScreenImage(nullptr), mFromGame(theFromGame),
-	  mBestiary(theBestiary), mMediaPlayer(theMediaPlayer)
+	  mBestiary(theBestiary), mMediaPlayer(theMediaPlayer), mSecretList(nullptr), mSecretSlider(nullptr),
+	  mSecretScrollUp(nullptr), mSecretScrollDown(nullptr)
 {
 	RegisterLua();
 	// the movie's place on the screen (a MyFlashWidget, which the book draws itself)
@@ -187,7 +260,7 @@ StatsBook::StatsBook(GameApp* theApp, bool theFromGame, bool theBestiary, bool t
 	mLayout = new XLayout();
 	Resize(0, 0, mApp->mWidth, mApp->mHeight);
 
-	mList = new CustomListWidget(static_cast<ListListener*>(this));
+	mList = new CustomListWidget(static_cast<ListListener*>(this), mFromGame);
 	mList->mDrawOutline = false;
 	mList->mItemHeight = 20;
 	mList->mOwner = this;
@@ -226,11 +299,32 @@ StatsBook::StatsBook(GameApp* theApp, bool theFromGame, bool theBestiary, bool t
 	mScrollDown->SetupImage(IMAGE_SB_SCROLL_DOWN);
 	AddWidget(mScrollUp);
 	AddWidget(mScrollDown);
-	if (mFromGame && !mBestiary && !mMediaPlayer)
-		mList->mUnused138 = true;
+
+	// the tome's list of secrets, with its own slider (id 2) and arrows (12 and 13, hidden: nothing shows them)
+	mSecretList = new SecretListWidget(static_cast<ListListener*>(this));
+	mSecretList->mDrawOutline = false;
+	mSecretList->mItemHeight = 37;
+	mSecretList->mOwner = this;
+	mSecretList->ShowFinger(false);
+	AddWidget(mSecretList);
+
+	mSecretSlider = new Slider(IMAGE_SLIDER_TRACK_VERT, IMAGE_SLIDER_THUMB, 2, static_cast<SliderListener*>(this));
+	mSecretSlider->mHorizontal = false;
+	AddWidget(mSecretSlider);
+
+	mSecretScrollUp = new FadeButton(12, static_cast<ButtonListener*>(this));
+	mSecretScrollUp->SetupImage(IMAGE_SB_SCROLL_UP);
+	mSecretScrollDown = new FadeButton(13, static_cast<ButtonListener*>(this));
+	mSecretScrollDown->SetupImage(IMAGE_SB_SCROLL_DOWN);
+	mSecretScrollUp->SetDisabled(true);
+	mSecretScrollUp->SetVisible(false);
+	mSecretScrollDown->SetDisabled(true);
+	mSecretScrollDown->SetVisible(false);
+	AddWidget(mSecretScrollUp);
+	AddWidget(mSecretScrollDown);
 }
 
-// 0x493fa0: the movie goes, then the scripts' Destructor (unless the app is shutting down), the widgets, the
+// 0x47ff80: the movie goes, then the scripts' Destructor (unless the app is shutting down), the widgets, the
 // layout and the resources
 StatsBook::~StatsBook()
 {
@@ -243,17 +337,18 @@ StatsBook::~StatsBook()
 	delete mScreenImage;
 }
 
-// 0x4942f0
+// 0x480320
 void StatsBook::SetLayoutFile(const std::string& theFile)
 {
 	mLayout->Clear();
 	mLayout->Load(theFile);
-	PositionWidgets();
+	Rehup();
 }
 
-// 0x494540: the continue button where the layout's node of that name is, the list in its node (the whole list takes
-// the mouse), the slider beside the list between the two arrows
-void StatsBook::PositionWidgets()
+// 0x480530: the continue button where the layout's node of that name is, the list in its node (the whole list takes
+// the mouse), the slider beside the list between the two arrows; in the tome the list of secrets, its slider and its
+// arrows the same way (the slider touches the list, not five pixels from it)
+void StatsBook::Rehup()
 {
 	XLayout* aNode = mLayout->FindNode("Continue Button");
 	if (aNode == nullptr || mLayout->FindNode("List") == nullptr) {
@@ -270,6 +365,20 @@ void StatsBook::PositionWidgets()
 	mSlider->SetValue(0.0);
 	mScrollUp->Move(mSlider->mX, mSlider->mY - anArrowHeight);
 	mScrollDown->Move(mSlider->mX, mSlider->mHeight + mSlider->mY);
+	if (!mBestiary)
+		return;
+	aNode = mLayout->FindNode("Secret List");
+	if (aNode == nullptr) {
+		SDL_Log("StatsBook: the layout has no \"Secret List\"");
+		return;
+	}
+	mSecretList->Resize(aNode->GetX(), aNode->GetY(), aNode->GetWidth(), aNode->GetHeight());
+	mSecretList->mHitRect = Rect(0, 0, mSecretList->mWidth, mSecretList->mHeight - 5);
+	mSecretSlider->Resize(mSecretList->mX + mSecretList->mWidth, anArrowHeight + mSecretList->mY,
+	                      IMAGE_SLIDER_TRACK_VERT->GetWidth(), mSecretList->mHeight - anArrowHeight * 2);
+	mSecretSlider->SetValue(0.0);
+	mSecretScrollUp->Move(mSecretSlider->mX, mSecretSlider->mY - anArrowHeight);
+	mSecretScrollDown->Move(mSecretSlider->mX, mSecretSlider->mHeight + mSecretSlider->mY);
 }
 
 // the slider and the arrow buttons: there, and used, or hidden and not
@@ -282,14 +391,14 @@ void StatsBook::ShowArrows(bool theShow)
 	mScrollDown->SetDisabled(!theShow);
 }
 
-// 0x4941f0: a long list has the slider and arrows
+// 0x480220: a long list has the slider and arrows
 void StatsBook::AddLine(const std::string& theLine, bool theAlphabetical)
 {
 	mList->AddLine(theLine, theAlphabetical);
-	ShowArrows(mList->mLines.size() > 14);
+	ShowArrows(mList->mLines.size() > 12);
 }
 
-// 0x494420
+// 0x480410
 void StatsBook::ClearList()
 {
 	mList->RemoveAll();
@@ -300,7 +409,7 @@ void StatsBook::ClearList()
 	mScrollDown->SetDisabled(true);
 }
 
-// 0x494100
+// 0x4800e0
 void StatsBook::HideArrowButtons()
 {
 	mScrollUp->SetVisible(false);
@@ -309,26 +418,47 @@ void StatsBook::HideArrowButtons()
 	mScrollDown->SetDisabled(true);
 }
 
-// 0x4937c0
+// 0x47f510
 void StatsBook::AddSecondaryLine(const std::string& theLine, const std::string& theText)
 {
 	mList->mSecondary[theLine] = theText;
 }
 
-// 0x494170
+// 0x47f540
+void StatsBook::AddNewAreaLine(const std::string& theLine, const std::string& theText)
+{
+	mList->mNewArea[theLine] = theText;
+}
+
+// 0x47f570
+void StatsBook::AddSecretLine(const std::string& theLine)
+{
+	mSecretList->AddLine(theLine, false);
+}
+
+// 0x481610: the secrets go, and the scripts put them back
+void StatsBook::ReloadSecrets()
+{
+	mSecretList->RemoveAll();
+	CallLinkedMethod("RehupSecretList", 0);
+}
+
+// 0x480150: both sliders to the top, and their lists
 void StatsBook::ResetSlider()
 {
 	mSlider->SetValue(0.0);
 	mList->ScrollPosition(mSlider->mId, 0.0);
+	mSecretSlider->SetValue(0.0);
+	mSecretList->ScrollPosition(mSecretSlider->mId, 0.0);
 }
 
-// 0x4949b0: as a click on the line
+// 0x480b60: as a click on the line
 void StatsBook::SelectIndex(int theIdx)
 {
 	ListClicked(mList->mId, theIdx, 1);
 }
 
-// 0x4941c0: back above the screen, falling at 20 pixels an update
+// 0x4801f0: back above the screen, falling at 20 pixels an update
 void StatsBook::Bounce()
 {
 	mBounceSpeed = 20.0f;
@@ -336,7 +466,7 @@ void StatsBook::Bounce()
 	Move(mX, -mHeight);
 }
 
-// 0x494490: not while it drops in or the curtain moves; the line is selected, and the scripts told unless it was
+// 0x480480: not while it drops in or the curtain moves; the line is selected, and the scripts told unless it was
 // the selected one already (the media player plays a song again)
 void StatsBook::ListClicked(int theId, int theIdx, int theClickCount)
 {
@@ -350,7 +480,7 @@ void StatsBook::ListClicked(int theId, int theIdx, int theClickCount)
 	CallLinkedMethod("ListClicked", 1);
 }
 
-// 0x495820: a movie (a .swf) on the screen
+// 0x481500: a movie (a .swf) on the screen
 void StatsBook::PlaySWF(const std::string& theFile)
 {
 	delete mFlash;
@@ -362,18 +492,16 @@ void StatsBook::PlaySWF(const std::string& theFile)
 	mPlayingMovie = true;
 }
 
-// 0x495910: a song, brought in softly
+// 0x4815e0: that a song plays (the song the scripts give it is not started here; Volume 1's book started it)
 void StatsBook::PlayMusic(int theSong)
 {
 	if (!mPlayingMusic)
 		mCountdown = 100;
-	if (mApp->mSongPlayer != nullptr)
-		mApp->mSongPlayer->PlaySong(theSong, 0.005f, true);
-	mPlayingMusic = true;
 	mPlayingMovie = false;
+	mPlayingMusic = true;
 }
 
-// 0x495090: the scripts are told how the book is opened
+// 0x481450: the scripts are told how the book is opened
 void StatsBook::AddedToManager(WidgetManager* theWidgetManager)
 {
 	LuaWidget::AddedToManager(theWidgetManager);
@@ -386,7 +514,7 @@ void StatsBook::AddedToManager(WidgetManager* theWidgetManager)
 	mApp->ClearUpdateBacklog(false);
 }
 
-// 0x494a10: the music's spectrum, the drop, the movie, and the scripts' Update
+// 0x480b90: the music's spectrum, the drop, the movie, and the scripts' Update
 void StatsBook::Update()
 {
 	MarkDirty();
@@ -445,7 +573,7 @@ void StatsBook::Update()
 	CallLinkedMethod("Update", 0);
 }
 
-// 0x494cc0: the layout, the media player's screen (the movie, or what the song shows), then the scripts' Draw (with
+// 0x480e40: the layout, the media player's screen (the movie, or what the song shows), then the scripts' Draw (with
 // the graphics and the selected line)
 void StatsBook::Draw(Graphics* g)
 {
@@ -471,7 +599,7 @@ void StatsBook::Draw(Graphics* g)
 	mGraphics = nullptr;
 }
 
-// 0x4943e0
+// 0x4803d0
 void StatsBook::MouseMove(int x, int y)
 {
 	if (mBouncing)
@@ -482,7 +610,7 @@ void StatsBook::MouseMove(int x, int y)
 	CallLinkedMethod("MouseMove", 2);
 }
 
-// 0x494340: the scripts hear it; a click on the media player's screen changes what the song shows on it
+// 0x480350: the scripts hear it; a click on the media player's screen changes what the song shows on it
 void StatsBook::MouseDown(int x, int y, int theClickCount)
 {
 	if (mBouncing)
@@ -496,7 +624,8 @@ void StatsBook::MouseDown(int x, int y, int theClickCount)
 		mScreenMode = mScreenMode == 0 ? 1 : 0;
 }
 
-// 0x494f30: on the list (and its slider) a long list scrolls a line a notch
+// 0x4811d0: on a list (and its slider) a long list scrolls a line a notch; the first list from 15 lines, the secrets
+// from 5
 void StatsBook::MouseWheel(int theDelta)
 {
 	int aMouseX = mWidgetManager->mLastMouseX;
@@ -515,16 +644,32 @@ void StatsBook::MouseWheel(int theDelta)
 			mSlider->SetValue(mSlider->mVal + aStep);
 		SliderVal(mSlider->mId, mSlider->mVal);
 	}
+	if (mSecretList->mLines.size() > 4 && aMouseX >= mSecretList->mX &&
+	    aMouseX <= mSecretSlider->mWidth + mSecretSlider->mX && aMouseY >= mSecretList->mY &&
+	    aMouseY <= mSecretList->mHeight + mSecretList->mY &&
+	    (int)mSecretList->mLines.size() - mSecretList->mHeight / mSecretList->mItemHeight > 0) {
+		int aSteps = (int)mSecretList->mLines.size() - 4;
+		double aSize = (double)aSteps;
+		if (aSteps < 0)
+			aSize += 4294967296.0;
+		double aStep = 1.0 / aSize;
+		if (theDelta > 0)
+			mSecretSlider->SetValue(mSecretSlider->mVal - aStep);
+		else if (theDelta < 0)
+			mSecretSlider->SetValue(mSecretSlider->mVal + aStep);
+		SliderVal(mSecretSlider->mId, mSecretSlider->mVal);
+	}
 }
 
-// 0x4947c0
+// 0x480930
 void StatsBook::ButtonPress(int theId, int theClickCount)
 {
 	mApp->PlaySample(SOUND_CLICK1);
 }
 
-// 0x4947e0: "Continue" (the whole curtain closes, then the arena's hall of fame after a timed game; for the tome and
-// the media player the book goes and the main menu's song comes back), the arrows move the slider a step
+// 0x480950: "Continue" (the whole curtain closes, then the arena's hall of fame after a timed game; for the tome and
+// the media player the book goes), the arrows move their slider a step (0.05 of the first list's, 0.075 of the
+// secrets')
 void StatsBook::ButtonDepress(int theId)
 {
 	if (mBouncing)
@@ -542,44 +687,68 @@ void StatsBook::ButtonDepress(int theId)
 		mApp->RemoveStatsBook();
 		if (mApp->mMainMenu != nullptr)
 			mApp->mWidgetManager->SetFocus(reinterpret_cast<Widget*>(mApp->mMainMenu));
-		if (mMediaPlayer) {
+		if (mMediaPlayer && mFlash != nullptr)
 			mFlash->Pause();
-			if (mApp->mSongPlayer != nullptr)
-				mApp->mSongPlayer->PlaySong(0x8c, 0.005f, true);  // the main menu's song
-		}
 		return;
 	}
-	if (theId == mScrollUp->mId)
+	if (theId == mScrollUp->mId) {
 		mSlider->SetValue(mSlider->mVal - 0.05);
-	else if (theId == mScrollDown->mId)
+		SliderVal(mSlider->mId, mSlider->mVal);
+	} else if (theId == mScrollDown->mId) {
 		mSlider->SetValue(mSlider->mVal + 0.05);
-	else
-		return;
-	SliderVal(mSlider->mId, mSlider->mVal);
+		SliderVal(mSlider->mId, mSlider->mVal);
+	} else if (theId == mSecretScrollUp->mId) {
+		mSecretSlider->SetValue(mSecretSlider->mVal - 0.075);
+		SliderVal(mSecretSlider->mId, mSecretSlider->mVal);
+	} else if (theId == mSecretScrollDown->mId) {
+		mSecretSlider->SetValue(mSecretSlider->mVal + 0.075);
+		SliderVal(mSecretSlider->mId, mSecretSlider->mVal);
+	}
 }
 
-// 0x494df0: the slider's place (0 to 1) is the list's first line, of those that do not fit
+// 0x480f70: a slider's place (0 to 1) is its list's first line, of those that do not fit (12 lines fit the first
+// list for this, 4 the secrets)
 void StatsBook::SliderVal(int theId, double theVal)
 {
-	int aLines = (int)mList->mLines.size() - 14;
-	double aSize = (double)aLines;
-	if (aLines < 0)
-		aSize += 4294967296.0;
-	ScrollList(ToInt(theVal * aSize));
+	if (theId == 1) {
+		int aLines = (int)mList->mLines.size() - 12;
+		double aSize = (double)aLines;
+		if (aLines < 0)
+			aSize += 4294967296.0;
+		ScrollList(1, ToInt(theVal * aSize));
+	} else if (theId == 2) {
+		int aLines = (int)mSecretList->mLines.size() - 4;
+		double aSize = (double)aLines;
+		if (aLines < 0)
+			aSize += 4294967296.0;
+		ScrollList(2, ToInt(theVal * aSize));
+	}
 }
 
-// 0x494e60: the first line shown, kept to what the list can show; the line under the mouse stays under it
-void StatsBook::ScrollList(int thePosition)
+// 0x481050: the first line shown, kept to what the list can show; in the first list the line under the mouse stays
+// under it
+void StatsBook::ScrollList(int theId, int thePosition)
 {
-	int aLast = (int)mList->mLines.size() - mList->mHeight / mList->mItemHeight;
-	if (aLast < 0)
-		aLast = 0;
-	if (thePosition > aLast)
-		thePosition = aLast;
-	if (thePosition < 0)
-		thePosition = 0;
-	int anOld = ToInt(mList->mPosition);
-	mList->ScrollPosition(mSlider->mId, (double)thePosition);
-	if (mList->mHiliteIdx != -1)
-		mList->mHiliteIdx = ToInt((mList->mPosition - anOld) + mList->mHiliteIdx);
+	if (theId == 1) {
+		int aLast = (int)mList->mLines.size() - mList->mHeight / mList->mItemHeight;
+		if (aLast < 0)
+			aLast = 0;
+		if (thePosition > aLast)
+			thePosition = aLast;
+		if (thePosition < 0)
+			thePosition = 0;
+		int anOld = ToInt(mList->mPosition);
+		mList->ScrollPosition(mSlider->mId, (double)thePosition);
+		if (mList->mHiliteIdx != -1)
+			mList->mHiliteIdx = ToInt((mList->mPosition - anOld) + mList->mHiliteIdx);
+	} else if (theId == 2) {
+		int aLast = (int)mSecretList->mLines.size() - mSecretList->mHeight / mSecretList->mItemHeight;
+		if (aLast < 0)
+			aLast = 0;
+		if (thePosition > aLast)
+			thePosition = aLast;
+		if (thePosition < 0)
+			thePosition = 0;
+		mSecretList->ScrollPosition(mSecretSlider->mId, (double)thePosition);
+	}
 }

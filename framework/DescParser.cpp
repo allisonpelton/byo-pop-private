@@ -41,20 +41,38 @@ std::string DescParser::Unquote(const std::string& theQuotedString)
 	{
 		char aQuoteChar = theQuotedString[0];
 		std::string aLiteralString;
-		bool lastWasQuote = false;
-					
-		for (ulong i = 0; i < theQuotedString.length(); i++)
+
+		// port: as in Bookworm Adventures Volume 2's exe (it sets the format the later descriptors use): the quotes
+		// at both ends are not part of the text, a doubled quote inside is one quote, and a backslash makes the next
+		// character literal (ParseToList keeps the backslash for this). Before, the closing quote counted as the
+		// second of a pair after an escaped quote, which only worked by luck, and a quote written '\'' came out as
+		// two characters.
+		bool lastWasQuote = true;
+		bool escaped = false;
+
+		for (ulong i = 1; i + 1 < theQuotedString.length(); i++)
 		{
-			if (theQuotedString[i] == aQuoteChar)
+			char aChar = theQuotedString[i];
+
+			if (escaped)
+			{
+				aLiteralString += aChar;
+				escaped = false;
+			}
+			else if (aChar == aQuoteChar)
 			{
 				if (lastWasQuote)
 					aLiteralString += aQuoteChar;
-				
+
 				lastWasQuote = true;
 			}
 			else
 			{
-				aLiteralString += theQuotedString[i];
+				if (aChar == '\\')
+					escaped = true;
+				else
+					aLiteralString += aChar;
+
 				lastWasQuote = false;
 			}
 		}
@@ -305,13 +323,16 @@ bool DescParser::ParseToList(const std::string& theString, ListDataElement* theL
 	while (*theStringPos < (int) theString.length())
 	{
 		bool addSingleChar = false;
+		bool addBackslash = false;
 		char aChar = theString[(*theStringPos)++];
 
 		bool isSeperator = (aChar == ' ') || (aChar == '\t') || (aChar == '\n') || (aChar == ',');
 		
 		if (escaped)
 		{
+			// port: the backslash stays in the text for Unquote, as in Bookworm Adventures Volume 2's exe
 			addSingleChar = true;
+			addBackslash = true;
 			escaped = false;
 		}
 		else
@@ -373,6 +394,9 @@ bool DescParser::ParseToList(const std::string& theString, ListDataElement* theL
 				aCurSingleDataElement = new SingleDataElement();
 				theList->mElementVector.push_back(aCurSingleDataElement);
 			}
+
+			if (addBackslash)
+				aCurSingleDataElement->mString += '\\';
 
 			aCurSingleDataElement->mString += aChar;
 		}

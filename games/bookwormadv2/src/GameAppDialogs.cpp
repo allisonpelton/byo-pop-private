@@ -107,15 +107,15 @@ void GameApp::ShowNewUserDialog(int theButtonMode)
 		if (aPos == std::string::npos)
 			continue;
 		std::string aName = aFile.substr(0, aPos);
-		if (SDL_strcasecmp(aName.c_str(), GT(0x7ac5d4).c_str()) == 0)
+		if (SDL_strcasecmp(aName.c_str(), GT(0x6fa550).c_str()) == 0)
 			aHasLex = true;
-		if (SDL_strcasecmp(aName.substr(0, 3).c_str(), GT(0x7ac5d4).c_str()) == 0)
+		if (SDL_strcasecmp(aName.substr(0, 3).c_str(), GT(0x6fa550).c_str()) == 0)
 			aLexNames.push_back(aName);
 	}
-	std::string aDefaultName = GT(0x7ac5d4);
+	std::string aDefaultName = GT(0x6fa550);
 	if (aHasLex) {
 		for (int aNumber = 2;; aNumber++) {
-			aDefaultName = StrFormat(GT(0x7ac5d8).c_str(), aNumber);
+			aDefaultName = StrFormat(GT(0x6fa554).c_str(), aNumber);
 			bool aTaken = false;
 			for (const std::string& aLexName : aLexNames) {
 				if (SDL_strcasecmp(aLexName.c_str(), aDefaultName.c_str()) == 0) {

@@ -256,7 +256,13 @@ bool PropertiesParser::ParsePropertiesBuffer(const Buffer& theBuffer)
 	// here we disable converting from UTF-8, and alway load file as plain ANSI
 	std::string aString;
 	aString.insert(aString.begin(), (char*)theBuffer.GetDataPtr(), (char*)theBuffer.GetDataPtr() + theBuffer.GetDataLen());
-	mXMLParser->SetStringSource(aString); 
+
+	// port: a UTF-8 byte order mark is not text (Bookworm Adventures Volume 2's partner.xml has one; the original
+	// strips it in its EncodingParser): left in, it reached the parser as "Element Not Expected"
+	if ((aString.length() >= 3) && ((uchar) aString[0] == 0xEF) && ((uchar) aString[1] == 0xBB) && ((uchar) aString[2] == 0xBF))
+		aString.erase(0, 3);
+
+	mXMLParser->SetStringSource(aString);
 
 	return DoParseProperties();
 }

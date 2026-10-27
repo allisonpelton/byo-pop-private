@@ -20,13 +20,13 @@ MenuDialog::MenuDialog(bool theHasBoard, bool theFromTreasure, bool theMiniGameF
 	  mFromTreasure(theFromTreasure)
 {
 	SexyString aLabels[NUM_BUTTONS];
-	aLabels[BUTTON_OPTIONS] = GT(0x7af07c);
+	aLabels[BUTTON_OPTIONS] = GT(0x6fd484);
 	if (theHasBoard)
-		aLabels[BUTTON_MAIN_MENU] = theMiniGameFromMenu ? GT(0x7af04c) : GT(0x7af05c);
+		aLabels[BUTTON_MAIN_MENU] = theMiniGameFromMenu ? GT(0x6fd454) : GT(0x6fd464);
 	else
-		aLabels[BUTTON_MAIN_MENU] = GT(0x7af070);
-	aLabels[BUTTON_ABANDON] = GT(0x7af084);
-	aLabels[BUTTON_RETURN] = theHasBoard ? GT(0x7af094) : GT(0x7af0a4);
+		aLabels[BUTTON_MAIN_MENU] = GT(0x6fd478);
+	aLabels[BUTTON_ABANDON] = GT(0x6fd48c);
+	aLabels[BUTTON_RETURN] = theHasBoard ? GT(0x6fd49c) : GT(0x6fd4ac);
 
 	Board* aBoard = mApp->mBoard;
 	int aHeight = 140;
@@ -95,11 +95,11 @@ void MenuDialog::ButtonDepress(int theId)
 		}
 		// the question (its yes comes back here as ANSWER_QUIT_YES)
 		if (mApp->mMiniGameFromMenu)
-			mApp->DoConfirmDialog(-1, GT(0x7af118), GT(0x7af0b0), this, "");
+			mApp->DoConfirmDialog(-1, GT(0x6fd520), GT(0x6fd4b8), this, "");
 		else
-			mApp->DoConfirmDialog(-1, GT(0x7af118), GT(0x7af140), this, "gBookManager:AboutToReturnToMM");
+			mApp->DoConfirmDialog(-1, GT(0x6fd520), GT(0x6fd548), this, "gBookManager:AboutToReturnToMM");
 	} else if (theId == BUTTON_ABANDON) {
-		mApp->DoConfirmDialog(-1, GT(0x7af230), GT(0x7af1a8), nullptr, "gMiniGame:AbandonMiniGame");
+		mApp->DoConfirmDialog(-1, GT(0x6fd638), GT(0x6fd5b0), nullptr, "gMiniGame:AbandonMiniGame");
 	} else if (theId == ANSWER_QUIT_YES) {
 		if (!mApp->mMiniGameFromMenu) {
 			if (gBattleEngine != nullptr)

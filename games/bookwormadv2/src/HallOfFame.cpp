@@ -276,30 +276,30 @@ struct DefaultWord {
 	int mValue;
 };
 const DefaultWord kDefaultWords[10] = {
-	{GTA(0x7ae1f4), GTA(0x7ae1ec), 6}, {GTA(0x7ae208), GTA(0x7ae200), 5}, {GTA(0x7ae218), GTA(0x7ae210), 5}, {GTA(0x7ae228), GTA(0x7ae220), 5},
-	{GTA(0x7ae238), GTA(0x7ae230), 5}, {GTA(0x7ae248), GTA(0x7ae240), 5}, {GTA(0x7ae258), GTA(0x7ae250), 5}, {GTA(0x7ae268), GTA(0x7ae260), 4},
-	{GTA(0x7ae274), GTA(0x7ae270), 3}, {GTA(0x7ae280), GTA(0x7ae27c), 3},
+	{GTA(0x6fc418), GTA(0x6fc410), 6}, {GTA(0x6fc42c), GTA(0x6fc424), 5}, {GTA(0x6fc43c), GTA(0x6fc434), 5}, {GTA(0x6fc44c), GTA(0x6fc444), 5},
+	{GTA(0x6fc45c), GTA(0x6fc454), 5}, {GTA(0x6fc46c), GTA(0x6fc464), 5}, {GTA(0x6fc47c), GTA(0x6fc474), 5}, {GTA(0x6fc48c), GTA(0x6fc484), 4},
+	{GTA(0x6fc498), GTA(0x6fc494), 3}, {GTA(0x6fc4a4), GTA(0x6fc4a0), 3},
 };
 struct DefaultPower {
 	unsigned int mName;
 	int mPower;
 };
 const DefaultPower kDefaultPowers[10] = {
-	{GTA(0x7ae2d0), 600}, {GTA(0x7ae2d8), 550}, {GTA(0x7ae2e0), 500}, {GTA(0x7ae2e8), 450}, {GTA(0x7ae2ec), 400},
-	{GTA(0x7ae2f4), 350}, {GTA(0x7ae2fc), 300}, {GTA(0x7ae304), 200}, {GTA(0x7ae30c), 100}, {GTA(0x7ae314), 0},
+	{GTA(0x6fc398), 600}, {GTA(0x6fc4f4), 550}, {GTA(0x6fc4fc), 500}, {GTA(0x6fc504), 450}, {GTA(0x6fc508), 400},
+	{GTA(0x6fc510), 350}, {GTA(0x6fc518), 300}, {GTA(0x6fc520), 200}, {GTA(0x6fc528), 100}, {GTA(0x6fc530), 0},
 };
 struct DefaultRun {
 	unsigned int mName;
 	int mFirst, mSecond;
 };
-const DefaultRun kDefaultTimes[10] = {  // the time, the stage
-	{GTA(0x7ae364), 120000, 11}, {GTA(0x7ae30c), 102000, 10}, {GTA(0x7ae36c), 88000, 9}, {GTA(0x7ae374), 72000, 8},
-	{GTA(0x7ae37c), 60000, 7},   {GTA(0x7ae384), 39000, 5},   {GTA(0x7ae388), 30000, 4}, {GTA(0x7ae390), 21000, 3},
-	{GTA(0x7ae398), 12000, 2},   {GTA(0x7ae3a0), 6000, 1},
+const DefaultRun kDefaultTimes[10] = {  // the time, the stage (0x4566e0)
+	{GTA(0x6fc3c4), 120000, 2}, {GTA(0x6fc528), 102000, 1}, {GTA(0x6fc580), 89000, 2}, {GTA(0x6fc588), 72000, 1},
+	{GTA(0x6fc590), 60000, 2},  {GTA(0x6fc3d4), 39000, 1},  {GTA(0x6fc598), 30000, 2}, {GTA(0x6fc5a0), 21000, 1},
+	{GTA(0x6fc5a8), 12000, 2},  {GTA(0x6fc5b0), 6000, 1},
 };
 const DefaultRun kDefaultBonuses[10] = {  // the experience, the bonuses
-	{GTA(0x7ae458), 100, 5}, {GTA(0x7ae464), 90, 2}, {GTA(0x7ae470), 80, 0}, {GTA(0x7ae478), 70, 1}, {GTA(0x7ae480), 60, 6},
-	{GTA(0x7ae488), 50, 2},  {GTA(0x7ae490), 40, 1}, {GTA(0x7ae498), 30, 0}, {GTA(0x7ae4a0), 20, 4}, {GTA(0x7ae4a8), 10, 3},
+	{GTA(0x6fc668), 100, 5}, {GTA(0x6fc674), 90, 2}, {GTA(0x6fc67c), 80, 0}, {GTA(0x6fc590), 70, 1}, {GTA(0x6fc684), 60, 6},
+	{GTA(0x6fc68c), 50, 2},  {GTA(0x6fc694), 40, 1}, {GTA(0x6fc69c), 30, 0}, {GTA(0x6fc6a4), 20, 4}, {GTA(0x6fc6ac), 10, 3},
 };
 
 // The cycling colour of the player's own new rows, and the other colours of the lists
@@ -803,7 +803,7 @@ void HallOfFame::MakeMiniGameLists(const std::vector<Profile*>& theProfiles)
 		std::vector<RunEntry> aList;
 		int aScore = 100;
 		for (int i = 0; aScore < 1100; i++, aScore += 100) {
-			RunEntry anEntry = {GT(0x7ae518), i / 2 + 1, aScoreAndWords ? aScore : 0, false};
+			RunEntry anEntry = {GT(0x6fc71c), i / 2 + 1, aScoreAndWords ? aScore : 0, false};
 			aList.push_back(anEntry);
 		}
 		for (size_t aProfileNum = 0; aProfileNum < theProfiles.size(); aProfileNum++) {
@@ -922,9 +922,9 @@ void HallOfFame::Draw(Graphics* g)
 			int aNodeX = aNode->GetX();
 			int aNodeY = aNode->GetY();
 			g->SetColor(kLabelColor);
-			g->DrawString(GT(0x7ae1dc), aNodeX + 0xb9, aNodeY + 0x41);
+			g->DrawString(GT(0x6fc384), aNodeX + 0xb9, aNodeY + 0x41);
 			if (aMiniGame.mScoreAndWords)
-				g->DrawString(GT(0x7ae1e4), aNodeX + 0x87, aNodeY + 0x41);
+				g->DrawString(GT(0x6fc38c), aNodeX + 0x87, aNodeY + 0x41);
 			for (size_t i = 0; i < aRows.size(); i++) {
 				const ScoreRow& aRow = aRows[i];
 				int aRowY = (int)i * 25;

@@ -114,9 +114,9 @@ bool Sexy::LoadGameTexts()
 	std::map<unsigned int, SexyString>& aTexts = Texts();
 	aTexts.clear();
 
-	// The original's executable (version 2.52, 2003-03-28) or a copy of it
+	// The original's executable (version 1.0.4.8465) or a copy of it
 	std::vector<uint8_t> aData;
-	bool aRead = Platform::VFS::Get().ReadAll("bookwormadventures.exe", aData) && !aData.empty();
+	bool aRead = Platform::VFS::Get().ReadAll("bookwormadventuresvol2.exe", aData) && !aData.empty();
 
 	int aMatched = 0;
 	int aMismatched = 0;
@@ -143,15 +143,15 @@ bool Sexy::LoadGameTexts()
 		}
 		else
 		{
-			SDL_Log("GameText: BookwormAdventures.exe is not a PE executable");
+			SDL_Log("GameText: BookwormAdventuresVol2.exe is not a PE executable");
 		}
 	}
 	else
 	{
-		SDL_Log("GameText: BookwormAdventures.exe not found in the game folder; the game's texts are read from it");
+		SDL_Log("GameText: BookwormAdventuresVol2.exe not found in the game folder; the game's texts are read from it");
 	}
 	if (aMismatched > 0)
-		SDL_Log("GameText: %d of %d texts do not match this executable (Bookworm Adventures Deluxe expected)", aMismatched,
+		SDL_Log("GameText: %d of %d texts do not match this executable (Bookworm Adventures Volume 2 expected)", aMismatched,
 			NUM_GAME_TEXTS);
 
 	// Overrides from string properties (the game's properties, mods)

@@ -81,6 +81,36 @@ void GameApp::DoHighScoreScreenFromMG(std::string theName)
 	SetCursor(CURSOR_POINTER);
 }
 
+// 0x446860: state 12's closed-curtain case at once (the book's removals, the Hall of Fame) but the replay flag stays as it
+// is, and the curtain opens over it
+void GameApp::DoHighScoreScreenFromReplay()
+{
+	KillDialog(DIALOG_OPTIONS);
+	mWidgetManager->RemoveWidget(mBookManager);
+	if (mTreasureScreen != nullptr)
+		mWidgetManager->RemoveWidget(mTreasureScreen);
+	SafeDeleteWidget(mTreasureScreen);
+	if (mBookScreen != nullptr)
+		RemoveStatsBook();
+	RemoveBookManager();
+	mTreasureScreen = nullptr;
+	RemoveBoard();
+	if (mTimedMode) {
+		mTimedMode = false;
+		lua_pushboolean(mLua->L, 0);
+		mLua->Call("main.SetTimedMode", 1, 0);
+	}
+	ClearUpdateBacklog(false);
+	HallOfFame* aHall = new HallOfFame(this, HallOfFame::MODE_ADVENTURE, true, false, std::string(), false);
+	mHallOfFame = aHall;
+	aHall->mFromArena = true;
+	ShowHallOfFame();
+	SetCursor(CURSOR_POINTER);
+	DoCurtainTransition(false, "", 999999);
+	mWidgetManager->BringToBack(mHallOfFame);
+	mWidgetManager->BringToFront(mCurtain);
+}
+
 void GameApp::ShowEndOfGameHallOfFame()
 {
 	// 0x450c30: "Continue" in place of the main menu's button

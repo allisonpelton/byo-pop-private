@@ -53,6 +53,14 @@ void FlashWidget::Unpause()
 		mState = STATE_PLAYING;
 }
 
+bool FlashWidget::GotoLabel(const std::string& theLabel)
+{
+	if (!mMovie.GotoLabel(theLabel))
+		return false;
+	mImageStale = true;
+	return true;
+}
+
 void FlashWidget::Update()
 {
 	// port: MyFlashWidget's Update (0x482520) left this out while the app's +0x32c was set, and the framework's

@@ -1,9 +1,11 @@
-// Sexy::MainMenu (0x130 bytes, constructor 0x4785a0, vtable 0x7aeefc; its ButtonListener part at +0x88,
-// DialogListener at +0x8c, PopAnimListener at +0x90): the library hall where Lex waits by his book. Each of the
-// menu's things (the adventure door, the arena, the hall of fame, the mini-games, the tome, the film reel, the
-// options and quit signs) lights up under the mouse, with a scroll that unrolls below it saying what it is, and
-// Lex says a word about it. The player's name is on the plaque; a link under it changes the player: the players'
-// dialog (JeffLib::UserSelectionDialog), where one picks, adds or deletes a player.
+// Sexy::MainMenu (Volume 2: constructor 0x466420; ButtonListener at +0x88, DialogListener at +0x8c, PopAnimListener
+// at +0x90): the library hall where Lex waits by his book. Each of
+// the menu's things (the adventure door, the arena, the hall of fame, the mini-games, the tome, the options and
+// quit signs) lights up under the mouse, with a scroll that unrolls below it saying what it is, and Lex says a word
+// about it. The adventure, the arena and the mini-games are animations (images/pam/mm_*.pam, with a label for each
+// state); the others are pictures of two cels, the second lit. The player's name is on the plaque; a link under it
+// changes the player: the players' dialog (JeffLib::UserSelectionDialog), where one picks, adds or deletes a
+// player. (The addresses below are Volume 1's, from which this class was made, unless they say Volume 2.)
 #pragma once
 
 #include <map>
@@ -38,9 +40,8 @@ public:
 		ITEM_HALL_OF_FAME = 4,
 		ITEM_MINI_GAMES = 5,
 		ITEM_TOME = 6,
-		ITEM_FILM_REEL = 7,  // the cut scenes and songs, once the player has the media player
-		NUM_ITEMS = 8,
-		REACTION_WELCOME = 8,  // Lex's welcome, when the curtain has opened over the menu
+		NUM_ITEMS = 7,  // (Volume 1 had a film reel, the 8th)
+		REACTION_WELCOME = 7,  // Lex's welcome, when the curtain has opened over the menu
 	};
 
 	// The scroll that unrolls under a thing (0x34 bytes, constructor 0x478060): IMAGE_MM_SCROLL at its top and
@@ -78,30 +79,37 @@ public:
 		void Draw(Graphics* g);  // 0x478410
 	};
 
-	// A thing of the menu (0x64 bytes): its picture lit up, drawn over the hall where it is
+	// A thing of the menu (Volume 2: 0x80 bytes). The adventure, the arena and the mini-games are animations
+	// (mPopAnim, the mouse is over them within mPopRect); the others pictures (mImage, two cels: the second is lit),
+	// the quit sign and the hall of fame's within the opaque pixels of a mask.
 	struct MenuItem {
-		Image* mOverImage = nullptr;    // +0x00
-		Image* mNormalImage = nullptr;  // +0x04, its name, drawn on it while lit (some have none)
-		Rect mRect;                     // +0x08, where the lit picture goes
-		Rect mSrcRect;                  // +0x18, all of it
-		Rect mHitRect;                  // +0x28, where the mouse is over it (within the picture's opaque pixels)
-		Tooltip* mTooltip = nullptr;    // +0x38
-		Image* mReelImage = nullptr;    // +0x3c, the film reel's, drawn under it
-		Image* mReelDownImage = nullptr;  // +0x40 (nothing draws it)
-		int mFade = 0;                  // +0x44, the lit picture's alpha
-		int mFadeDelta = 0;             // +0x48
-		int mFadeTarget = 0;            // +0x4c
-		int mPulse = 0;                 // +0x50, 1 or -1 while it glows on its own (the adventure, when it can go on)
-		bool mPressed = false;          // +0x54
-		bool mDisabled = false;         // +0x55
-		bool mHovered = false;          // +0x56
-		bool mVisible = true;           // +0x57
-		const unsigned long* mBits = nullptr;  // +0x58, the lit picture's pixels, for the hit test
-		int mWidth = 0;                 // +0x5c
-		int mHeight = 0;                // +0x60
+		PopAnim* mPopAnim = nullptr;    // +0x00, owned
+		Rect mPopRect;                  // +0x04, where the mouse is over the animation
+		Image* mImage = nullptr;        // +0x18, the picture (its size sets the sizes below, also of the animations')
+		Image* mMask = nullptr;         // +0x1c, the picture's mask: a pixel counts when it is 0xffffffff
+		Rect mRect;                     // +0x20, where the picture goes
+		Rect mSrcRect;                  // +0x30, all of one cel
+		Rect mHitRect;                  // +0x40, where the mouse is over it (within the mask)
+		Tooltip* mTooltip = nullptr;    // +0x50
+		int mReserved54 = 0;            // +0x54
+		int mReserved58 = 0;            // +0x58
+		int mFade = 0;                  // +0x5c, a glow nothing draws in Volume 2
+		int mFadeDelta = 0;             // +0x60
+		int mFadeTarget = 0;            // +0x64
+		int mPulse = 0;                 // +0x68, 1 or -1 while it glows on its own (the adventure, when it can go on)
+		bool mPressed = false;          // +0x6c
+		bool mDisabled = false;         // +0x6d
+		bool mHovered = false;          // +0x6e
+		bool mVisible = true;           // +0x6f
+		bool mHasMask = false;          // +0x70
+		const unsigned long* mBits = nullptr;  // +0x74, the mask's pixels, got again at every update
+		int mWidth = 0;                 // +0x78, the mask's size
+		int mHeight = 0;                // +0x7c
 
-		// 0x478560: whether a point is on the lit picture's opaque pixels
+		// 0x4663e0: whether a point is within the mask's white (true for a thing with no mask)
 		bool HitTest(int theX, int theY) const;
+		// the mask's pixels and size again (at every update)
+		void UpdateMask();
 	};
 
 	// What Lex says about a thing: a sample and a label of his animation (the map's values at +0xe8)
@@ -117,7 +125,7 @@ public:
 	JeffLib::UserSelectionDialog* mUserDialog = nullptr;  // +0xe4: the players' dialog while it is up
 	std::map<int, Reaction> mReactions;       // +0xe8, by item (and REACTION_WELCOME)
 	PopAnim* mLex;                            // +0xf4, images/pam/mmlex.pam
-	int mHoverUpdate[NUM_ITEMS];              // +0xf8, the update a thing was last hovered at (nothing reads it)
+	int mHoverUpdate[NUM_ITEMS];              // +0xf8 (Volume 2: 7 of them), the update a thing was last hovered at (nothing reads it)
 	int mLogoX;                               // +0x118
 	int mLogoY;                               // +0x11c, slides up from where the title screen left it
 	int mLogoTimer;                           // +0x120, counts down once the logo is up (nothing reads it)
@@ -128,7 +136,7 @@ public:
 	bool mMiniGamesUnlocked;                  // +0x12b
 	bool mTomeUnlocked;                       // +0x12c, the profile's UnlockedBestiary
 	bool mReallyQuit;                         // +0x12d, asking whether to quit (Lex cries)
-	bool mExpansionAvailable;                 // +0x12e, books beyond the first three (an expansion's)
+	bool mExpansionAvailable;                 // +0x12e, books beyond the first three (an expansion's; nothing draws it now)
 
 	MainMenu(GameApp* theApp, bool theFromTitle);
 	~MainMenu() override;  // 0x47a760
@@ -193,6 +201,14 @@ public:
 
 private:
 	void MakeTooltips(const std::string& theTomeText);
+	// Volume 2 (the end of the constructor, and 0x468f23 in RefreshUnlocks): the three animations, the adventure's
+	// the replay's once the adventure is completed, with the label each one starts on
+	void LoadPopAnims(bool theFromConstructor);
+	// the label of the adventure's animation for the book now played ("book4", "book5" or "book6" and theSuffix,
+	// " idle" or " mouseover")
+	void PlayAdventureLabel(const char* theSuffix);
+	// the click on the adventure (in MouseUp); theDisableAll: all the things go dark
+	void ClickAdventure(bool& theDisableAll);
 	// 0x47d510: a player who has not played yet starts the intro (and the menu is no longer from the title)
 	bool StartIntroIfNew();
 };

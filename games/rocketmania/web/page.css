@@ -1,0 +1,5 @@
+/* Rocket Mania Deluxe's look on the shared page (web/shell.html): rocket orange, a little rocket for the brand mark */
+:root { --accent: #c4501b; --rocket: #d8362a; }  /* rocket orange */
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --accent: #f0a070; } }
+:root[data-theme="dark"] { --accent: #f0a070; }
+.brand .mark { width: 8px; height: 16px; background: var(--rocket); border-radius: 4px 4px 1px 1px; }

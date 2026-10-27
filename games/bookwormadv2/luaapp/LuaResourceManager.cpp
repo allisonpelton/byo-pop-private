@@ -68,7 +68,9 @@ void LuaResourceManager::DeleteResources(const std::string& theGroup)
 		for (ResMap* aMap : {&mImageMap, &mSoundMap, &mFontMap})
 			for (auto& anEntry : *aMap) {
 				BaseRes* aRes = anEntry.second;
-				if (!theGroup.empty() && strcasecmp(aRes->mResGroup.c_str(), theGroup.c_str()) != 0)
+				// the exe (0x61ae80) compares the group's name with case, an empty name too (the base class, which runs
+				// next, deletes every resource for an empty name; this loop only forgets those whose group is empty)
+				if (aRes->mResGroup != theGroup)
 					continue;
 				mLoaded.erase(aRes);
 				lua_pushnil(mLua->L);

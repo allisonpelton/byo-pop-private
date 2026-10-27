@@ -47,15 +47,15 @@ struct TileDef {
 };
 
 const TileDef kTileDefs[] = {
-	{230, 240, 220, 240, -0.5f, GTA(0x7aa900)},   {282, 220, 220, 240, 0.45f, GTA(0x7abfbc)},
-	{334, 240, 220, 240, -0.6f, GTA(0x7aa924)},   {386, 220, 220, 240, 0.55f, GTA(0x7aa914)},
-	{438, 240, 220, 240, -0.4f, GTA(0x7abfc0)},   {490, 220, 220, 240, 0.52f, GTA(0x7aa92c)},
-	{570, 240, 220, 240, -0.35f, GTA(0x7aa928)},  {622, 220, 220, 240, 0.5f, GTA(0x7abfc4)},
-	{674, 240, 220, 240, -0.45f, GTA(0x7aa910)},  {260, 320, 300, 320, -0.6f, GTA(0x7aa91c)},
-	{312, 300, 300, 320, 0.4f, GTA(0x7aa8fc)},    {364, 320, 300, 320, -0.55f, GTA(0x7aa924)},
-	{416, 300, 300, 320, 0.35f, GTA(0x7aa904)},   {468, 320, 300, 320, -0.48f, GTA(0x7aa8f8)},
-	{520, 300, 300, 320, 0.58f, GTA(0x7aa914)},   {572, 320, 300, 320, -0.37f, GTA(0x7abfc8)},
-	{652, 300, 300, 320, 0.53f, GTA(0x7abfcc)},
+	{230, 240, 220, 240, -0.5f, GTA(0x6f7d2c)},   {282, 220, 220, 240, 0.45f, GTA(0x6f820c)},
+	{334, 240, 220, 240, -0.6f, GTA(0x6f7d50)},   {386, 220, 220, 240, 0.55f, GTA(0x6f7d40)},
+	{438, 240, 220, 240, -0.4f, GTA(0x6f8200)},   {490, 220, 220, 240, 0.52f, GTA(0x6f7d58)},
+	{570, 240, 220, 240, -0.35f, GTA(0x6f7d54)},  {622, 220, 220, 240, 0.5f, GTA(0x6f821c)},
+	{674, 240, 220, 240, -0.45f, GTA(0x6f7d3c)},  {260, 320, 300, 320, -0.6f, GTA(0x6f7d48)},
+	{312, 300, 300, 320, 0.4f, GTA(0x6f7d28)},    {364, 320, 300, 320, -0.55f, GTA(0x6f7d50)},
+	{416, 300, 300, 320, 0.35f, GTA(0x6f7d30)},   {468, 320, 300, 320, -0.48f, GTA(0x6f7d24)},
+	{520, 300, 300, 320, 0.58f, GTA(0x6f7d40)},   {572, 320, 300, 320, -0.37f, GTA(0x6f8218)},
+	{652, 300, 300, 320, 0.53f, GTA(0x6f9f7c)},
 };
 
 }  // namespace
@@ -103,10 +103,7 @@ Credits::Credits()
 	mLexX = -120;
 	mLexY = -150;
 	mState = STATE_NONE;
-	if (mCurSection->mAnim != nullptr)
-		mCurSection->mAnim->PlayLabel(mCurSection->mFrame);
-	if (gApp->mSongPlayer != nullptr)
-		gApp->mSongPlayer->PlaySong(0x4e, 0.005f, true);
+	PlaySectionLabels();
 	gApp->SetCursor(CURSOR_POINTER);
 	MakeTiles();
 }
@@ -125,6 +122,7 @@ void Credits::FreeAnims()
 	size_t i = 0;
 	while (i < mSections.size()) {
 		delete mSections[i].mAnim;
+		delete mSections[i].mMidAnim;
 		size_t j = 0;
 		while (j < mSections[i].mEntries.size()) {
 			delete mSections[i].mEntries[j].mAnim;
@@ -159,8 +157,7 @@ void Credits::AfterReload()
 	}
 	if (!kLoadAllAtOnce)
 		LoadSectionAnims();
-	if (mCurSection->mAnim != nullptr)
-		mCurSection->mAnim->PlayLabel(mCurSection->mFrame);
+	PlaySectionLabels();
 	mFadeAlpha = 0;
 	mFading = false;
 	mOpening = true;
@@ -169,15 +166,31 @@ void Credits::AfterReload()
 	gApp->ClearUpdateBacklog(false);
 }
 
+// The credit's animations play its frame (the background's and the midground's)
+void Credits::PlaySectionLabels()
+{
+	if (mCurSection->mAnim != nullptr)
+		mCurSection->mAnim->PlayLabel(mCurSection->mFrame);
+	if (mCurSection->mMidAnim != nullptr)
+		mCurSection->mMidAnim->PlayLabel(mCurSection->mFrame);
+}
+
 // port: the credit's animations loaded as it begins. The original had this in AfterReload (0x435876) and in Update
 // (0x437834).
 void Credits::LoadSectionAnims()
 {
 	if (!mCurSection->mPamFile.empty() && mCurSection->mAnim != nullptr) {
 		if (!mCurSection->mAnim->LoadAnimation(mCurSection->mPamFile)) {
-			gApp->MsgBox(GT(0x7abe1c) + mCurSection->mPamFile, GT(0x7a9c04), 0);
+			gApp->MsgBox(GT(0x6f9dd4) + mCurSection->mPamFile, GT(0x6f701c), 0);
 			delete mCurSection->mAnim;
 			mCurSection->mAnim = nullptr;
+		}
+	}
+	if (!mCurSection->mMidPamFile.empty() && mCurSection->mMidAnim != nullptr) {
+		if (!mCurSection->mMidAnim->LoadAnimation(mCurSection->mMidPamFile)) {
+			gApp->MsgBox(GT(0x6f9dd4) + mCurSection->mMidPamFile, GT(0x6f701c), 0);
+			delete mCurSection->mMidAnim;
+			mCurSection->mMidAnim = nullptr;
 		}
 	}
 	size_t i = 0;
@@ -185,7 +198,7 @@ void Credits::LoadSectionAnims()
 		Entry& anEntry = mCurSection->mEntries[i];
 		if (!anEntry.mPamFile.empty() && anEntry.mAnim != nullptr) {
 			if (!anEntry.mAnim->LoadAnimation(anEntry.mPamFile)) {
-				gApp->MsgBox(GT(0x7abe3c) + anEntry.mPamFile, GT(0x7a9c04), 0);
+				gApp->MsgBox(GT(0x6f9df4) + anEntry.mPamFile, GT(0x6f701c), 0);
 				delete anEntry.mAnim;
 				anEntry.mAnim = nullptr;
 			}
@@ -242,9 +255,17 @@ void Credits::ReadSettings(const AttributeList& theAttributes)
 			aSection.mPamFile = "images/pam/" + aValue + ".pam";
 			// only the first credit is loaded now
 			if ((kLoadAllAtOnce || mSections.size() == 1) && !aSection.mAnim->LoadAnimation(aSection.mPamFile)) {
-				gApp->MsgBox(GT(0x7abe1c) + aSection.mPamFile, GT(0x7a9c04), 0);
+				gApp->MsgBox(GT(0x6f9dd4) + aSection.mPamFile, GT(0x6f701c), 0);
 				delete aSection.mAnim;
 				aSection.mAnim = nullptr;
+			}
+		} else if (NameIs(aKey, "mgpam")) {
+			aSection.mMidAnim = new PopAnim(mNextAnimId++, this);
+			aSection.mMidPamFile = "images/pam/" + aValue + ".pam";
+			if ((kLoadAllAtOnce || mSections.size() == 1) && !aSection.mMidAnim->LoadAnimation(aSection.mMidPamFile)) {
+				gApp->MsgBox(GT(0x6f9dd4) + aSection.mMidPamFile, GT(0x6f701c), 0);
+				delete aSection.mMidAnim;
+				aSection.mMidAnim = nullptr;
 			}
 		} else if (NameIs(aKey, "idlecount")) {
 			aSection.mIdleCount = atol(aValue.c_str());
@@ -259,7 +280,7 @@ void Credits::ReadSettings(const AttributeList& theAttributes)
 		} else if (NameIs(aKey, "bgimage")) {
 			aSection.mBgImage = gApp->GetImage(aValue, true);
 			if (aSection.mBgImage == nullptr)
-				gApp->MsgBox(GT(0x7abebc) + aValue, GT(0x7abeb4), 0);
+				gApp->MsgBox(GT(0x6f9e7c) + aValue, GT(0x6f9e74), 0);
 		}
 		i++;
 	}
@@ -293,7 +314,7 @@ void Credits::ReadEntry(const AttributeList& theAttributes)
 			anEntry.mAnim = new PopAnim(mNextAnimId++, this);
 			anEntry.mPamFile = "images/pam/" + aValue + ".pam";
 			if ((kLoadAllAtOnce || mSections.size() == 1) && !anEntry.mAnim->LoadAnimation(anEntry.mPamFile)) {
-				gApp->MsgBox(GT(0x7abe1c) + anEntry.mPamFile, GT(0x7a9c04), 0);
+				gApp->MsgBox(GT(0x6f9dd4) + anEntry.mPamFile, GT(0x6f701c), 0);
 				delete anEntry.mAnim;
 				anEntry.mAnim = nullptr;
 			}
@@ -456,6 +477,8 @@ void Credits::Update()
 			mFadeAlpha = 255;
 			delete mCurSection->mAnim;
 			mCurSection->mAnim = nullptr;
+			delete mCurSection->mMidAnim;
+			mCurSection->mMidAnim = nullptr;
 			size_t i = 0;
 			while (i < mCurSection->mEntries.size()) {
 				delete mCurSection->mEntries[i].mAnim;
@@ -467,8 +490,7 @@ void Credits::Update()
 				mCurSection = &mSections[mSectionIndex];
 				if (!kLoadAllAtOnce)
 					LoadSectionAnims();
-				if (mCurSection->mAnim != nullptr)
-					mCurSection->mAnim->PlayLabel(mCurSection->mFrame);
+				PlaySectionLabels();
 				return;
 			}
 			if (mEndOfGame && mState == STATE_NONE) {
@@ -476,7 +498,7 @@ void Credits::Update()
 				mState = STATE_LEX_COMES;
 				mLex = new PopAnim(mNextAnimId++, this);
 				if (!mLex->LoadAnimation("images/pam/lex.pam")) {
-					gApp->MsgBox(GT(0x7abf38), GT(0x7abeb4), 0);
+					gApp->MsgBox(GT(0x6f9ef8), GT(0x6f9e74), 0);
 					delete mLex;
 					mLex = nullptr;  // port: the original went on to play the animation it had just deleted
 					mEndOfGame = false;
@@ -671,6 +693,8 @@ void Credits::UpdateF(float theFrac)
 {
 	if (mCurSection->mAnim != nullptr)
 		mCurSection->mAnim->UpdateF(theFrac);
+	if (mCurSection->mMidAnim != nullptr)
+		mCurSection->mMidAnim->UpdateF(theFrac);
 	size_t i = 0;
 	while (i < mCurSection->mEntries.size()) {
 		Entry& anEntry = mCurSection->mEntries[i];
@@ -746,7 +770,7 @@ void Credits::Draw(Graphics* g)
 	g->DrawImage(IMAGE_BANNER_CREDITS, (mWidth - IMAGE_BANNER_CREDITS->GetWidth()) / 2, 112);
 	g->SetFont(FONT_MEDIUM_BOLD);
 	g->SetColor(Color(89, 0, 0));
-	g->WriteWordWrapped(Rect(0, 429, mWidth, 200), GT(0x7abf98), -1, 0, nullptr, -1);
+	g->WriteWordWrapped(Rect(0, 429, mWidth, 200), GT(0x6f9f58), -1, 0, nullptr, -1);
 
 	// the band the credit shows in
 	g->PushState();
@@ -758,12 +782,18 @@ void Credits::Draw(Graphics* g)
 		g->SetColor(Color(255, 255, 255, mCurSection->mAlpha));
 	}
 	if (mState == STATE_NONE) {
+		// the picture, the midground animation over it and the background animation over that (0x42fb30)
+		if (mCurSection->mBgImage != nullptr)
+			g->DrawImage(mCurSection->mBgImage, 0, mCurSection->mY);
+		if (mCurSection->mMidAnim != nullptr) {
+			g->Translate(0, mCurSection->mY);
+			mCurSection->mMidAnim->Draw(g);
+			g->Translate(0, -mCurSection->mY);
+		}
 		if (mCurSection->mAnim != nullptr) {
 			g->Translate(0, mCurSection->mY);
 			mCurSection->mAnim->Draw(g);
 			g->Translate(0, -mCurSection->mY);
-		} else if (mCurSection->mBgImage != nullptr) {
-			g->DrawImage(mCurSection->mBgImage, 0, mCurSection->mY);
 		}
 	} else {
 		g->DrawImage(IMAGE_CREDITS_GRASS, 0, 195);
@@ -841,6 +871,10 @@ void Credits::PopAnimStopped(int theId)
 	}
 	if (mCurSection->mAnim != nullptr && theId == mCurSection->mAnim->mId) {
 		mCurSection->mAnim->PlayLabel(mCurSection->mFrame);
+		return;
+	}
+	if (mCurSection->mMidAnim != nullptr && theId == mCurSection->mMidAnim->mId) {
+		mCurSection->mMidAnim->PlayLabel(mCurSection->mFrame);
 		return;
 	}
 	size_t i = 0;

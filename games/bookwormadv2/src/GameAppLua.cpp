@@ -146,11 +146,25 @@ void ReleaseCachedSample(GameApp* app, int theId)
 	}
 }
 
-// 0x44f410: the music interface's vf 0x54. port: the song player does what the original's interface added
-void PlaySong(GameApp* app, int theOrder, float theSpeed, bool theLoop)
+// Volume 2's: (song id, fade speed, loop, a flag the port ignores; see GameApp::PlaySong)
+void PlaySong(GameApp* app, int theSongId, float theSpeed, bool theLoop, bool)
 {
-	if (app->mSongPlayer != nullptr)
-		app->mSongPlayer->PlaySong(theOrder, theSpeed, theLoop);
+	app->PlaySong(theSongId, theSpeed, theLoop);
+}
+
+void LoadMusic(GameApp* app, int theSongId, std::string theName)
+{
+	app->LoadMusic(theSongId, theName);
+}
+
+void PlayMusic(GameApp* app, int theSongId, int theOffset, bool theFadeOthers)
+{
+	app->PlayMusic(theSongId, theOffset, theFadeOthers);
+}
+
+void UnloadMusic(GameApp* app, int theSongId)
+{
+	app->UnloadMusic(theSongId);
 }
 
 // 0x44f440: the music interface's vf 0x58. port: the song player's queue
@@ -212,6 +226,9 @@ void DoFullCurtainTransition(GameApp* app, std::string theCallback) { app->DoFul
 void DoCSToGameTransition(GameApp* app) { app->StartSavedGameTransition(); }
 void DoCSToMMTransition(GameApp* app) { app->StartToMenuTransition(); }
 void DoGameToMMTransition(GameApp* app) { app->StartGameToMenuTransition(); }
+void DoReplayToHOFTransition(GameApp* app) { app->StartReplayHallOfFameTransition(); }
+void DoCSToMiniMenuTransition(GameApp* app) { app->StartMiniGameMenuTransition(false); }
+void DoHighScoreScreenFromReplay(GameApp* app) { app->DoHighScoreScreenFromReplay(); }
 void HideBookManager(GameApp* app) { app->HideBookManager(); }
 
 // The mini-games (GameAppMiniGames.cpp)
@@ -269,7 +286,7 @@ void DoAfterHydraConvPanel(GameApp* app)
 // 0x44c390: a message box with the title "ERROR"
 void DoErrorDialog(GameApp* app, std::string theText)
 {
-	app->MsgBox(theText, GT(0x7a9c04), MB_ICONERROR);
+	app->MsgBox(theText, GT(0x6f701c), MB_ICONERROR);
 }
 
 // 0x444b30: the confirm dialog (DIALOG_CONFIRM), with theHeader in place of its banner unless theBanner
@@ -344,7 +361,7 @@ int MakeGrayscale(GameApp* app, lua_State* L)  // 0x44ca70: MakeGrayscale(image)
 	return 0;
 }
 
-// 0x4445c0: DoGenericDialog(header, lines[, callback[, banner image]]): DoOkDialog
+// DoGenericDialog(header, lines[, callback[, banner image]]): DoOkDialog
 int DoGenericDialog(GameApp* app, lua_State* L)
 {
 	const char* aHeader = lua_tostring(L, 1);
@@ -354,8 +371,9 @@ int DoGenericDialog(GameApp* app, lua_State* L)
 		const char* aName = lua_tostring(L, 3);
 		aCallback = aName != nullptr ? aName : "";
 	}
+	// the scripts give the banner as a nil or a false when the dialog has none (the mini-games' welcomes)
 	Image* aBanner = nullptr;
-	if (lua_gettop(L) >= 4)
+	if (lua_gettop(L) >= 4 && !lua_isnil(L, 4) && !lua_isboolean(L, 4))
 		aBanner = ImageOf((LuaImage*)gLuaSupport->CheckObject(4, ClassOf<LuaImage>::info));
 	app->DoOkDialog(aHeader != nullptr ? aHeader : "", aLines != nullptr ? aLines : "", aCallback, aBanner);
 	return 0;
@@ -437,6 +455,9 @@ void GameApp::RegisterGameAppMethods()
 		.Function<&::PlayCachedSample>("PlayCachedSample")
 		.Function<&::ReleaseCachedSample>("ReleaseCachedSample")
 		.Function<&::PlaySong>("PlaySong")
+		.Function<&::LoadMusic>("LoadMusic")
+		.Function<&::PlayMusic>("PlayMusic")
+		.Function<&::UnloadMusic>("UnloadMusic")
 		.Function<&::PlaySongWhenDone>("PlaySongWhenDone")
 		.Function<&::DoingCurtainTransition>("DoingCurtainTransition")
 		.Function<&::IsResGroupLoaded>("IsResGroupLoaded")
@@ -451,6 +472,9 @@ void GameApp::RegisterGameAppMethods()
 		.Function<&::DoCSToGameTransition>("DoCSToGameTransition")
 		.Function<&::DoCSToMMTransition>("DoCSToMMTransition")
 		.Function<&::DoGameToMMTransition>("DoGameToMMTransition")
+		.Function<&::DoReplayToHOFTransition>("DoReplayToHOFTransition")
+		.Function<&::DoCSToMiniMenuTransition>("DoCSToMiniMenuTransition")
+		.Function<&::DoHighScoreScreenFromReplay>("DoHighScoreScreenFromReplay")
 		.Function<&::HideBookManager>("HideBookManager")
 		.Function<&::StartMiniGame>("StartMiniGame")
 		.Function<&::ReturnToMMFromMiniGame>("ReturnToMMFromMiniGame")

@@ -108,8 +108,9 @@ every kind, the game's end with a new high score, and switching the screen mode 
 
 ## Mods
 
-None (the user's rule: no mods before every PopCap game works in the browser). `MOD_IDEAS.md` lists the ones worth
-making.
+None: the port is the original game, unmodified, and adds nothing for later mods. The mod phase waits until every
+PopCap game works in the browser; `MOD_IDEAS.md` maps the 29 standard mods of `docs/MOD_ROADMAP.md` onto the game and
+says why any is skipped.
 
 ## Changes outside the Water Bugs folders
 

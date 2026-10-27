@@ -110,6 +110,7 @@ FontLayer::FontLayer(FontData* theFontData)
 	mColorAdd = Color(0, 0, 0, 0);
 	mLineSpacingOffset = 0;
 	mBaseOrder = 0;
+	mAlphaCorrection = false;
 }
 
 FontLayer::FontLayer(const FontLayer& theFontLayer) :	
@@ -130,7 +131,8 @@ FontLayer::FontLayer(const FontLayer& theFontLayer) :
 	mColorMult(theFontLayer.mColorMult),
 	mColorAdd(theFontLayer.mColorAdd),
 	mLineSpacingOffset(theFontLayer.mLineSpacingOffset),
-	mBaseOrder(theFontLayer.mBaseOrder)
+	mBaseOrder(theFontLayer.mBaseOrder),
+	mAlphaCorrection(theFontLayer.mAlphaCorrection)
 {
 	ulong i;
 
@@ -954,6 +956,47 @@ bool FontData::HandleCommand(const ListDataElement& theParams)
 				else
 					invalidParamFormat = true;						
 			}
+			else
+				invalidParamFormat = true;
+		}
+		else
+			invalidNumParams = true;
+	}
+	// port: two commands of the later descriptor format (Bookworm Adventures Volume 2's fonts use both). The original
+	// keeps the ExInfo pairs on the layer (the font builder's "sfb." settings) and a flag, "alpha correction", that its
+	// glyph drawing routine adds to a glyph's alpha before a 256-entry table; the pairs are checked and dropped here and
+	// the flag is kept but not used yet.
+	else if (stricmp(aCmd.c_str(), "LayerSetExInfo") == 0)
+	{
+		if (theParams.mElementVector.size() == 4)
+		{
+			FontLayer* aLayer;
+			StringVector aKeysVector;
+			StringVector aValuesVector;
+
+			if ((DataToLayer(theParams.mElementVector[1], &aLayer)) && 
+				(DataToStringVector(theParams.mElementVector[2], &aKeysVector)) && 
+				(DataToStringVector(theParams.mElementVector[3], &aValuesVector)))
+			{
+				if (aKeysVector.size() != aValuesVector.size())
+					sizeMismatch = true;
+			}
+			else
+				invalidParamFormat = true;
+		}
+		else
+			invalidNumParams = true;
+	}
+	else if (stricmp(aCmd.c_str(), "LayerSetAlphaCorrection") == 0)
+	{
+		if (theParams.mElementVector.size() == 3)
+		{
+			FontLayer* aLayer;
+			int anAlphaCorrection;
+
+			if ((DataToLayer(theParams.mElementVector[1], &aLayer)) && 
+				(DataToInt(theParams.mElementVector[2], &anAlphaCorrection)))
+				aLayer->mAlphaCorrection = (anAlphaCorrection != 0);
 			else
 				invalidParamFormat = true;
 		}

@@ -716,7 +716,7 @@ void ConversationPanel::Draw(Graphics* g)
 				g->SetColor(p->mContinueColor);
 				g->SetFont(FONT_SMALL);
 				// "(Click anywhere to continue.)"
-				g->WriteString(GT(0x7abc2c), aRect.mX, FONT_SMALL->GetAscent() + mPanelH + mPanelY - 62, aRect.mWidth, 0,
+				g->WriteString(GT(0x6f9be4), aRect.mX, FONT_SMALL->GetAscent() + mPanelH + mPanelY - 62, aRect.mWidth, 0,
 							   true, 0, -1, -1);
 			}
 		}

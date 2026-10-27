@@ -687,6 +687,27 @@ void SwfMovie::GotoFrame(int theFrame)
 	I.TellListener(mListener);
 }
 
+std::string SwfMovie::GetCurrentLabel() const
+{
+	const std::vector<SwfFrame>& aFrames = mImpl->mData.mRoot.mFrames;
+	for (int i = std::min(GetCurrentFrame(), (int)aFrames.size() - 1); i >= 0; i--)
+		if (!aFrames[i].mLabel.empty())
+			return aFrames[i].mLabel;
+	return std::string();
+}
+
+bool SwfMovie::GotoLabel(const std::string& theLabel)
+{
+	const std::vector<SwfFrame>& aFrames = mImpl->mData.mRoot.mFrames;
+	for (size_t i = 0; i < aFrames.size(); i++) {
+		if (aFrames[i].mLabel == theLabel) {
+			GotoFrame((int)i);
+			return true;
+		}
+	}
+	return false;
+}
+
 void SwfMovie::NextFrame()
 {
 	Impl& I = *mImpl;

@@ -7,6 +7,7 @@
 #include "GameApp.h"
 #include "GameText.h"
 #include "Graphics.h"
+#include "Lex.h"
 #include "LuaBind.h"
 #include "LuaWidgetTpl.h"
 #include "Profile.h"
@@ -20,12 +21,12 @@ TileEngine* Sexy::gTileEngine = nullptr;
 // The words a 4x4 grid must not spell (0x818978-0x818df4, made by 0x795240 in this order): game data, read from the
 // exe by address
 static const unsigned int kAvoidedWordAddrs[] = {
-    GTA(0x7b0df0), GTA(0x7b0de8), GTA(0x7b0de0), GTA(0x7b0ddc), GTA(0x7b0dd4), GTA(0x7b0dcc), GTA(0x7b0dc4),
-    GTA(0x7b0dbc), GTA(0x7b0db4), GTA(0x7b0dac), GTA(0x7b0da4), GTA(0x7b0da0), GTA(0x7b0d98), GTA(0x7b0d90),
-    GTA(0x7b0d8c), GTA(0x7b0d84), GTA(0x7b0d7c), GTA(0x7b0d74), GTA(0x7b0d6c), GTA(0x7b0d68), GTA(0x7b0d60),
-    GTA(0x7b0d58), GTA(0x7b0d50), GTA(0x7b0d48), GTA(0x7b0d44), GTA(0x7b0d3c), GTA(0x7b0d34), GTA(0x7b0d2c),
-    GTA(0x7b0d28), GTA(0x7b0d20), GTA(0x7b0d1c), GTA(0x7b0d14), GTA(0x7b0d10), GTA(0x7b0d08), GTA(0x7b0d00),
-    GTA(0x7b0cfc), GTA(0x7b0cf4), GTA(0x7b0cec), GTA(0x7b0ce4), GTA(0x7b0cdc), GTA(0x7b0cd4)};
+    GTA(0x6ff530), GTA(0x6ff528), GTA(0x6ff520), GTA(0x6ff51c), GTA(0x6ff514), GTA(0x6ff50c), GTA(0x6ff504),
+    GTA(0x6ff4fc), GTA(0x6ff4f4), GTA(0x6ff4ec), GTA(0x6ff4e4), GTA(0x6ff4e0), GTA(0x6ff4d8), GTA(0x6ff4d0),
+    GTA(0x6ff4cc), GTA(0x6ff4c4), GTA(0x6ff4bc), GTA(0x6ff4b4), GTA(0x6ff4ac), GTA(0x6ff4a8), GTA(0x6ff4a0),
+    GTA(0x6ff498), GTA(0x6ff490), GTA(0x6ff488), GTA(0x6ff484), GTA(0x6ff47c), GTA(0x6ff474), GTA(0x6ff46c),
+    GTA(0x6ff468), GTA(0x6ff460), GTA(0x6ff45c), GTA(0x6ff454), GTA(0x6ff450), GTA(0x6ff448), GTA(0x6ff440),
+    GTA(0x6ff43c), GTA(0x6ff434), GTA(0x6ff42c), GTA(0x6ff424), GTA(0x6ff41c), GTA(0x6ff414)};
 
 // 0x7a8b98: the most copies of each letter 'A' to 'Z' that the board may hold
 static const int kMaxLetters[26] = {4, 3, 3, 4, 4, 3, 4, 3, 4, 2, 2, 4, 3, 4, 3, 4, 2, 4, 4, 4, 4, 3, 3, 2, 3, 2};
@@ -279,14 +280,17 @@ void TileEngine::StopMoving(Tile* theTile, bool theNotify)
 		mBoard->RehupMouse();
 }
 
-void TileEngine::ValidWordSpelled(std::list<Tile*>& theTiles, bool theIsValid)
+void TileEngine::ValidWordSpelled(std::list<Tile*>& theTiles, bool theIsValid, int theFlags)
 {
 	lua_State* L = gLuaSupport->L;
 	lua_pushboolean(L, theIsValid);
 	lua_pushint(L, (int)theTiles.size());
+	lua_pushboolean(L, (theFlags & Lex::FLAG_NOUN) == Lex::FLAG_NOUN);
+	lua_pushboolean(L, (theFlags & Lex::FLAG_ADJECTIVE) == Lex::FLAG_ADJECTIVE);
+	lua_pushboolean(L, (theFlags & Lex::FLAG_VERB) == Lex::FLAG_VERB);
 	for (Tile* aTile : theTiles)
 		Tile::PushTile(aTile);
-	gLuaSupport->Call("gTileEngine:ValidWordSpelled", (int)theTiles.size() + 2, 0);
+	gLuaSupport->Call("gTileEngine:ValidWordSpelled", (int)theTiles.size() + 5, 0);
 }
 
 bool TileEngine::IsLetterAllowed(const std::vector<std::string>& thePatterns, char theLetter, int theVowels,
@@ -423,7 +427,7 @@ char TileEngine::GenerateLetter(bool theReplacing)
 	// the profile counts the letters chosen (in the battles, not the mini-games)
 	Profile* aProfile = gApp->mProfile;
 	if (aProfile != nullptr && !aBoard->mIsMiniGame) {
-		std::string aKey = StrFormat(GT(0x7b0180).c_str(), aLetter);
+		std::string aKey = StrFormat(GT(0x6fe6e8).c_str(), aLetter);
 		int aCount = aProfile->KeyExists(aKey) ? aProfile->GetInt(aKey) : 0;
 		aProfile->SetInt(aKey, aCount + 1);
 	}

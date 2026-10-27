@@ -46,64 +46,6 @@ static LuaClassRet BattleCall(const char* theMethod)
 	return gBattleEngine->CallLinkedMethod(theMethod, 0);
 }
 
-// ---- the AstroPop flash ----
-
-void Board::Flash::Start()
-{
-	mActive = false;
-	mDone = false;
-	mAlphaDelta = 16;
-	mAlpha = 0;
-	mY = gSexyAppBase->mHeight;
-	mHue = 0;
-}
-
-void Board::Flash::Update()
-{
-	if (mDone || !mActive)
-		return;
-	mY -= 4;
-	mHue = (mHue + 4) & 0xff;
-	mAlpha += mAlphaDelta;
-	if (mAlpha >= 256 || mAlpha < 0) {
-		mAlpha = mAlpha >= 256 ? 255 : 0;
-		mAlphaDelta = -mAlphaDelta;
-	}
-	// done once the ships and their jets are above the screen
-	if (mY <= -(IMAGE_GS_SHIP1_WARPJET->GetHeight() + IMAGE_GS_SHIP1->GetHeight())) {
-		mDone = true;
-		mActive = false;
-	}
-}
-
-void Board::Flash::Draw(Graphics* g)
-{
-	if (mDone || !mActive)
-		return;
-	// the screen in a colour that cycles, then the four ships of AstroPop flying up with their jets
-	Color aColor((int)(gApp->HSLToRGB(mHue, 255, 128) | 0xff000000));
-	aColor.mAlpha = 128;
-	g->SetColor(aColor);
-	g->FillRect(0, 0, gApp->mWidth, gApp->mHeight);
-	if (gBoard->mZooming)
-		return;
-	g->DrawImage(IMAGE_GS_GO, (gApp->mWidth - IMAGE_GS_GO->GetWidth()) / 2,
-	             (gApp->mHeight - IMAGE_GS_GO->GetHeight()) / 2);
-	static const int kShipX[4] = {243, 343, 443, 543};
-	Image* const aShips[4] = {IMAGE_GS_SHIP1, IMAGE_GS_SHIP2, IMAGE_GS_SHIP3, IMAGE_GS_SHIP4};
-	for (int i = 0; i < 4; i++)
-		g->DrawImageCel(aShips[i], kShipX[i], mY, 2);
-	g->SetDrawMode(Graphics::DRAWMODE_ADDITIVE);
-	for (int i = 0; i < 4; i++)
-		g->DrawImageCel(IMAGE_GS_SHIP1_WARPJET, kShipX[i] - 5, mY - 55, 8);
-	g->SetColorizeImages(true);
-	g->SetColor(Color(mAlpha, mAlpha, mAlpha));
-	for (int i = 0; i < 4; i++)
-		g->DrawImageCel(IMAGE_GS_SHIP1_WARPJET, kShipX[i] - 5, mY - 55, 8);
-	g->SetColorizeImages(false);
-	g->SetDrawMode(Graphics::DRAWMODE_NORMAL);
-}
-
 // ---- construction ----
 
 Board::Board(GameApp* theApp, bool theIsMiniGame) : mIsMiniGame(theIsMiniGame), mApp(theApp)
@@ -111,8 +53,6 @@ Board::Board(GameApp* theApp, bool theIsMiniGame) : mIsMiniGame(theIsMiniGame), 
 	// port: the original sets gBoard before its members are made
 	RegisterLua();
 	gBoard = this;
-	mFlash = new Flash();
-	mFlash->mY = gSexyAppBase->mHeight;
 	if (!theIsMiniGame)
 		new BattleEngine(this, theApp);  // gBattleEngine
 	else
@@ -128,7 +68,6 @@ Board::Board(GameApp* theApp, bool theIsMiniGame) : mIsMiniGame(theIsMiniGame), 
 Board::~Board()
 {
 	CallLinkedMethod("Destructor", 0);
-	delete mFlash;
 	for (int i = 0; i < mMuteCount; i++)
 		mApp->Unmute(true);
 	RemoveAllWidgets(true, true);
@@ -183,9 +122,9 @@ void Board::Init()
 
 	// the first game's grid: the tutorial's letters
 	static const unsigned int kFirstGrid[16] = {
-	    GTA(0x7aa92c), GTA(0x7aa928), GTA(0x7aa924), GTA(0x7aa920), GTA(0x7aa91c), GTA(0x7aa928),
-	    GTA(0x7aa918), GTA(0x7aa914), GTA(0x7aa910), GTA(0x7aa90c), GTA(0x7aa908), GTA(0x7aa904),
-	    GTA(0x7aa900), GTA(0x7aa8fc), GTA(0x7aa8f8), GTA(0x7aa92c)};
+	    GTA(0x6f7d58), GTA(0x6f7d54), GTA(0x6f7d50), GTA(0x6f7d4c), GTA(0x6f7d48), GTA(0x6f7d54),
+	    GTA(0x6f7d44), GTA(0x6f7d40), GTA(0x6f7d3c), GTA(0x6f7d38), GTA(0x6f7d34), GTA(0x6f7d30),
+	    GTA(0x6f7d2c), GTA(0x6f7d28), GTA(0x6f7d24), GTA(0x6f7d58)};
 	for (int aRow = 0; aRow < mGridHeight; aRow++) {
 		for (int aCol = 0; aCol < mGridWidth; aCol++) {
 			Tile* aTile = AddTile(gTileEngine->CreateTile(false, true, true), aCol, aRow);
@@ -201,8 +140,10 @@ void Board::Init()
 		lua_pushboolean(LS(), true);
 		gTileEngine->CallLinkedMethod("SaveGridState", 1);
 	} else {
-		// (the original asks first whether a game is in progress, and restores the grid either way)
-		if (mApp->mProfile->KeyExists(mApp->mTimedMode ? "TM_GridState" : "GridState"))
+		// a saved grid (the timed mode's, the replay's or the adventure's keys) is restored; the original asks the
+		// in-progress flag of the same three first, but both its branches end in the same test of the grid's key
+		const char* aGridKey = mApp->mTimedMode ? "TM_GridState" : mApp->mReplayMode ? "ReplayGridState" : "GridState";
+		if (mApp->mProfile->KeyExists(aGridKey))
 			gTileEngine->CallLinkedMethod("RestoreGridState", 0);
 	}
 	mRestoringGrid = false;
@@ -405,23 +346,26 @@ std::string Board::GetWord(const std::list<Tile*>& theTiles)
 	for (Tile* aTile : theTiles) {
 		char c = aTile->GetLetter();
 		if (c == 'Q')
-			aWord.append(GT(0x7aacdc));  // its tile is "Qu"
+			aWord.append(GT(0x6f81ac));  // its tile is "Qu"
 		else
 			aWord.append(1, c);
 	}
 	return aWord;
 }
 
-bool Board::IsValidWord(const std::string& theWord, bool theNoEgg)
+bool Board::IsValidWord(const std::string& theWord, bool theNoEgg, int* theFlags)
 {
-	if (theWord.size() <= 2 || !mApp->mLex->IsWord(theWord))
+	if (theFlags != nullptr)
+		*theFlags = 0;
+	if (theWord.size() <= 2)
 		return false;
-	if (theWord == GT(0x7aad5c) && !mApp->mMiniGameFromMenu && !mFlash->mActive && !theNoEgg) {
-		mApp->PlaySample(SOUND_SLOWDOWN);
-		BattleCall("SpelledAstroPop");
-		mFlash->Start();
-		mFlash->mActive = true;
-	}
+	bool aFound;
+	int aFlags = mApp->mLex->GetFlags(theWord, &aFound);
+	if (!aFound)
+		return false;
+	if (theFlags != nullptr)
+		*theFlags = aFlags;
+	// port: Volume 2 has no AstroPop egg (the rainbow Flash and its test of the word are gone from its Board)
 	return true;
 }
 
@@ -432,16 +376,32 @@ static int EnemyImmunity()
 	return BattleCall("GetEnemyWordLengthImmunity").Int();
 }
 
+bool Board::IsNoun(const std::string& theWord)
+{
+	return (mApp->mLex->GetFlags(theWord) & Lex::FLAG_NOUN) == Lex::FLAG_NOUN;
+}
+
+bool Board::IsVerb(const std::string& theWord)
+{
+	return (mApp->mLex->GetFlags(theWord) & Lex::FLAG_VERB) == Lex::FLAG_VERB;
+}
+
+bool Board::IsAdjective(const std::string& theWord)
+{
+	return (mApp->mLex->GetFlags(theWord) & Lex::FLAG_ADJECTIVE) == Lex::FLAG_ADJECTIVE;
+}
+
 void Board::CheckIfWordStillValid()
 {
 	std::string aWord = GetWord(mSelected);
-	if (!IsValidWord(aWord, false)) {
-		gTileEngine->ValidWordSpelled(mSelected, false);
+	int aFlags;
+	if (!IsValidWord(aWord, false, &aFlags)) {
+		gTileEngine->ValidWordSpelled(mSelected, false, 0);
 		SetAttackDisabled(true, false);
 		mButtons[BUTTON_ATTACK]->mGlow = false;
 	} else if ((int)aWord.size() > EnemyImmunity()) {
 		SetAttackDisabled(false, false);
-		gTileEngine->ValidWordSpelled(mSelected, true);
+		gTileEngine->ValidWordSpelled(mSelected, true, aFlags);
 	} else {
 		ShowImmuneAttack();
 	}
@@ -497,12 +457,13 @@ void Board::DeselectTile(Tile* theTile)
 	if (!mIsMiniGame) {
 		mString130.clear();
 		std::string aWord = GetWord(mSelected);
-		if (!IsValidWord(aWord, false)) {
-			gTileEngine->ValidWordSpelled(mSelected, false);
+		int aFlags;
+		if (!IsValidWord(aWord, false, &aFlags)) {
+			gTileEngine->ValidWordSpelled(mSelected, false, 0);
 			SetAttackDisabled(true, false);
 			mButtons[BUTTON_ATTACK]->mGlow = false;
 		} else if ((int)aWord.size() > EnemyImmunity()) {
-			gTileEngine->ValidWordSpelled(mSelected, true);
+			gTileEngine->ValidWordSpelled(mSelected, true, aFlags);
 			SetAttackDisabled(false, false);
 		} else {
 			ShowImmuneAttack();
@@ -534,7 +495,7 @@ void Board::DeselectAllTiles()
 	}
 	mSelected.clear();
 	mString130.clear();
-	gTileEngine->ValidWordSpelled(mSelected, false);
+	gTileEngine->ValidWordSpelled(mSelected, false, 0);
 	gTileEngine->CallLinkedMethod("DeselectedAllTiles", 0);
 	if (!mIsMiniGame && !BattleCall("GridHasOverlay").Bool())
 		SetAttackDisabled(true, false);
@@ -700,9 +661,17 @@ void Board::SetScrambleDisabled(bool isDisabled)
 
 void Board::SetScrambleVisible(bool isVisible)
 {
+	// Volume 2's (0x414d00) only stops the button from being drawn
 	auto it = mButtons.find(BUTTON_SCRAMBLE);
 	if (it != mButtons.end())
-		it->second->SetVisible(isVisible);
+		it->second->mBtnNoDraw = !isVisible;
+}
+
+void Board::SetAttackVisible(bool isVisible)
+{
+	FadeButton* aButton = mButtons[BUTTON_ATTACK];
+	aButton->SetDisabled(!isVisible);
+	aButton->mBtnNoDraw = !isVisible;
 }
 
 void Board::ScrambleUseNormalForDisabled(bool on)
@@ -853,8 +822,6 @@ void Board::Update()
 		}
 		return;
 	}
-	if (mFlash->mActive)
-		mFlash->Update();
 	gTileEngine->DeleteAllTiles();
 	if (!mIsMiniGame) {
 		if (!mLevelupOverlay && !mEndingChapter)
@@ -1012,7 +979,7 @@ void Board::Draw(Graphics* g)
 		for (int i = 0; i < (int)mButtons.size(); i++)
 			mButtons[i]->DrawFade(g);
 	}
-	if ((mPauseCount > 0 || mLevelupOverlay || HasOverlays() || mFlash->mActive) && !mApp->mQuitting)
+	if ((mPauseCount > 0 || mLevelupOverlay || HasOverlays()) && !mApp->mQuitting)
 		DeferOverlay(10000);  // port: 0 in the original when SexyAppBase's +0x32c is set (nothing in the game sets it)
 	if (mShowBeatdownMultiplier) {
 		float aMultiplier = 0;
@@ -1020,7 +987,7 @@ void Board::Draw(Graphics* g)
 			aMultiplier = mApp->mProfile->GetFloat("BeatdownMultiplier");
 		g->SetFont(FONT_LARGE);
 		g->SetColor(Color::White);
-		g->DrawString(StrFormat(GTC(0x7aae94), (double)aMultiplier), 750, 550);
+		g->DrawString(StrFormat(GTC(0x6f83c4), (double)aMultiplier), 750, 550);
 	}
 }
 
@@ -1055,7 +1022,7 @@ void Board::SubmitWord()
 	if (!mLevelupOverlay) {
 		if (mImmuneLook && !mIsMiniGame) {
 			// the enemy is immune to words this short
-			mApp->DoOkDialog(GT(0x7ab038), StrFormat(GTC(0x7ab004), EnemyImmunity()), "", nullptr);
+			mApp->DoOkDialog(GT(0x6f8598), StrFormat(GTC(0x6f85a0), EnemyImmunity()), "", nullptr);
 			BattleCall("ClickedImmuneButton");
 			RehupMouse();
 			return;
@@ -1088,7 +1055,7 @@ void Board::SubmitWord()
 			mApp->mProfile->SetBool("NeedValidIdleTip", false);
 			lua_pushstring(LS(), aWord.c_str());
 			gTileEngine->CallLinkedMethod("SubmitPressed", 1);
-			Refill();
+			AddNewTiles(true);
 		} else if (gTileEngine->mMovingCount <= 0 && !mButtons[BUTTON_ATTACK]->mDisabled) {
 			mApp->PlaySample(SOUND_SUBMIT_FAILED);
 		}
@@ -1096,7 +1063,7 @@ void Board::SubmitWord()
 	RehupMouse();
 }
 
-void Board::Refill()
+void Board::AddNewTiles(bool theCreateBonus)
 {
 	if (mTiles.size() >= (size_t)(mGridHeight * mGridWidth))
 		return;
@@ -1158,40 +1125,11 @@ void Board::Refill()
 		}
 	}
 
-	Profile* aProfile = mApp->mProfile;
-	if (aProfile->GetInt(mApp->mTimedMode ? "TM_CurrentChapter" : "CurrentChapter") < 4 &&
-	    aProfile->GetInt(mApp->mTimedMode ? "TM_CurrentBook" : "CurrentBook") == 1) {
-		// the first chapters always have an A and an E
-		int anEs = 0;
-		int anAs = 0;
-		for (int aRow = 0; aRow < mGridHeight; aRow++) {
-			for (int aCol = 0; aCol < mGridWidth; aCol++) {
-				if (!IsGridCell(aCol, aRow) || !mGridCells[aRow][aCol])
-					continue;
-				char aLetter = GridGetTile(aCol, aRow)->GetLetter();
-				if (aLetter == 'E')
-					anEs++;
-				else if (aLetter == 'A')
-					anAs++;
-			}
-		}
-		for (Tile* aTile : aNewTiles) {
-			char aLetter = aTile->GetLetter();
-			if (aLetter == 'A' || aLetter == 'E')
-				continue;
-			if (anEs == 0) {
-				aTile->SetLetter("E");
-				anEs = 1;
-			} else if (anAs == 0) {
-				aTile->SetLetter("A");
-				anAs = 1;
-			}
-		}
+	if (theCreateBonus) {
+		for (Tile* aTile : aNewTiles)
+			Tile::PushTile(aTile);
+		CallLua("gBattleEngine:CreateBonusTiles", (int)aNewTiles.size());
 	}
-
-	for (Tile* aTile : aNewTiles)
-		Tile::PushTile(aTile);
-	CallLua("gBattleEngine:CreateBonusTiles", (int)aNewTiles.size());
 }
 
 // ---- input ----
@@ -1552,8 +1490,8 @@ void Board::AddedToManager(WidgetManager* theWidgetManager)
 	mTooltip->SetTextColor(Color(0, 0, 0));
 	mTooltip->SetDisplayDelay(100);
 	mTooltip->SetDisplayTime(500);
-	mTooltip->AddText(GT(0x7aad78));
-	mTooltip->AddText(GT(0x7aad94));
+	mTooltip->AddText(GT(0x6f825c));
+	mTooltip->AddText(GT(0x6f8278));
 	mTooltip->SetXY(mButtons[BUTTON_ATTACK]->mX + 20, mButtons[BUTTON_ATTACK]->mY);
 	mWidgetManager->SetFocus(this);
 	if (mApp->mArrowHintManager != nullptr)
@@ -1570,7 +1508,7 @@ void Board::DrawOverlay(Graphics* g)
 		mApp->mArrowHintManager->DrawOverlay(g);
 	if (mLevelupOverlay && !mIsMiniGame)
 		DrawLua(g, "gBattleEngine:DrawLevelupOverlay");
-	if (mPauseCount > 0 && !mApp->ShowingConversationPanel() && mApp->mBookScreen == nullptr && !mFlash->mActive &&
+	if (mPauseCount > 0 && !mApp->ShowingConversationPanel() && mApp->mBookScreen == nullptr &&
 	    mApp->GetDialog(GameApp::DIALOG_ARENA_WIN) == nullptr) {
 		g->SetColor(Color(0, 0, 0, 140));
 		g->FillRect(0, 0, mWidth, mHeight);
@@ -1578,22 +1516,21 @@ void Board::DrawOverlay(Graphics* g)
 			g->DrawImage(IMAGE_PAUSED_BANNER, (mWidth - IMAGE_PAUSED_BANNER->GetWidth()) / 2,
 			             (mHeight - IMAGE_PAUSED_BANNER->GetHeight()) / 2);
 	}
-	if (mFlash->mActive)
-		mFlash->Draw(g);
 }
 
 // ---- the scripts' Board class ----
 
 namespace {
 
-// the grid's tiles in a random order (only the unselected ones when the argument is true)
-int GetRandomizedTiles(Board* theBoard, lua_State* L)  // 0x41df60
+// the grid's tiles in a random order, those of the top row only if theTopRow (only the unselected ones when the
+// argument is true)
+int PushRandomTiles(Board* theBoard, lua_State* L, bool theTopRow)
 {
 	bool anUnselected = lua_gettop(L) == 1 && lua_toboolean(L, 1);
 	std::vector<Tile*> aTiles(theBoard->mTiles.begin(), theBoard->mTiles.end());
 	std::vector<int> anIndices;
 	for (int i = 0; i < (int)aTiles.size(); i++)
-		if (!anUnselected || !aTiles[i]->mSelected)
+		if ((!theTopRow || aTiles[i]->mRow == 0) && (!anUnselected || !aTiles[i]->mSelected))
 			anIndices.push_back(i);
 	int aCount = 0;
 	while (!anIndices.empty()) {
@@ -1605,9 +1542,41 @@ int GetRandomizedTiles(Board* theBoard, lua_State* L)  // 0x41df60
 	return aCount;
 }
 
+int GetRandomizedTiles(Board* theBoard, lua_State* L)  // 0x418df0
+{
+	return PushRandomTiles(theBoard, L, false);
+}
+
+// the tiles of the grid's top row, in a random order
+int GetTopTiles(Board* theBoard, lua_State* L)  // 0x418ae0
+{
+	return PushRandomTiles(theBoard, L, true);
+}
+
+// the tile under a tile, unless it is selected (pushed, else nothing)
+int GetTileBelow(Board* theBoard, lua_State* L)  // 0x419550
+{
+	if (lua_gettop(L) < 1)
+		luaL_error(L, "1 parameter expected");
+	Tile* aTile = (Tile*)gLuaSupport->CheckObject(1, ClassOf<Tile>::info);
+	if (aTile == nullptr)
+		luaL_typerror(L, 1, "Tile");
+	std::list<Tile*> aTiles;
+	Tile* aBelow = nullptr;
+	if (theBoard->GetAdjacentTiles(aTile->mCol, aTile->mRow, aTiles)) {
+		for (Tile* anAdjacent : aTiles)
+			if (!anAdjacent->mSelected && anAdjacent->mRow == aTile->mRow + 1 && anAdjacent->mCol == aTile->mCol)
+				aBelow = anAdjacent;
+	}
+	if (aBelow == nullptr)
+		return 0;
+	Tile::PushTile(aBelow);
+	return 1;
+}
+
 // the unselected tiles around a tile, in a random order; in the timed mode a selected tile's are the tiles before
 // and after it in the word
-int GetRandomizedAdjacentTiles(Board* theBoard, lua_State* L)  // 0x41e260
+int GetRandomizedAdjacentTiles(Board* theBoard, lua_State* L)  // 0x419150
 {
 	if (lua_gettop(L) < 1)
 		luaL_error(L, "1 parameter expected");
@@ -1640,7 +1609,7 @@ int GetRandomizedAdjacentTiles(Board* theBoard, lua_State* L)  // 0x41e260
 }
 
 // the attack button's picture: a LuaImage, or its own with no argument
-int ChangeAttackBtnImage(Board* theBoard, lua_State* L)  // 0x41e660
+int ChangeAttackBtnImage(Board* theBoard, lua_State* L)  // 0x4197a0
 {
 	Image* anImage = IMAGE_BUTTON_ATTACK;
 	if (lua_gettop(L) == 1)
@@ -1662,6 +1631,10 @@ void Board::RegisterLua()
 		.Method<&Board::Pause>("Pause")
 		.Method<&Board::IsPaused>("IsPaused")
 		.Method<&Board::DeselectAllTiles>("DeselectAllTiles")
+		.Method<&Board::RemoveTile>("GridRemoveTile")
+		.Method<&Board::RemoveTileFromList>("RemoveTile")
+		.Method<&Board::AddNewTiles>("AddNewTiles")
+		.Method<&Board::SetAttackVisible>("SetAttackVisible")
 		.Method<&Board::GridGetTile>("GridGetTile")
 		.Method<&Board::SetAttackDisabled>("SetAttackDisabled")
 		.Method<&Board::SetAttackBtnPos>("SetAttackBtnPos")
@@ -1683,8 +1656,13 @@ void Board::RegisterLua()
 		.Method<&Board::DisableAndHide>("DisableAndHide")
 		.Method<&Board::CheckIfWordStillValid>("CheckIfWordStillValid")
 		.Method<&Board::SetTMEnemyAttacking>("SetTMEnemyAttacking")
+		.Method<&Board::GetTMEnemyAttacking>("GetTMEnemyAttacking")
+		.Method<&Board::IsScrambling>("IsScrambling")
 		.Method<&Board::GetWordTileSize>("GetWordTileSize")
 		.Method<&Board::Scramble>("Scramble")
+		.Method<&Board::IsNoun>("IsNoun")
+		.Method<&Board::IsVerb>("IsVerb")
+		.Method<&Board::IsAdjective>("IsAdjective")
 		.Method<&Board::DoingZoomEffect>("DoingZoomEffect")
 		.Method<&Board::DoZoom>("DoZoom")
 		.Method<&Board::GetZoomValue>("GetZoomValue")
@@ -1692,7 +1670,9 @@ void Board::RegisterLua()
 		.Method<&Board::DisableAttackPAM>("DisableAttackPAM")
 		.Raw<&ChangeAttackBtnImage>("ChangeAttackBtnImage")
 		.Raw<&GetRandomizedTiles>("GetRandomizedTiles")
-		.Raw<&GetRandomizedAdjacentTiles>("GetRandomizedAdjacentTiles");
+		.Raw<&GetRandomizedAdjacentTiles>("GetRandomizedAdjacentTiles")
+		.Raw<&GetTileBelow>("GetTileBelow")
+		.Raw<&GetTopTiles>("GetTopTiles");
 }
 
 // ---- the tutorial's arrows ----

@@ -52,6 +52,7 @@ BattleEngine::BattleEngine(Board* theBoard, GameApp* theApp) : mApp(theApp), mBo
 	mEnums["BE_DYING"] = BE_DYING;
 	mEnums["BE_END_CHAPTER"] = BE_END_CHAPTER;
 	mEnums["BE_MISC"] = BE_MISC;
+	mEnums["BE_COMPANION"] = BE_COMPANION;
 }
 
 BattleEngine::~BattleEngine()

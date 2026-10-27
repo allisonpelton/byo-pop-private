@@ -4,6 +4,7 @@
 
 #include "Board.h"
 #include "BookManager.h"
+#include "BookSelectScreen.h"
 #include "ChapterLoadScreen.h"
 #include "ConversationPanel.h"
 #include "Credits.h"
@@ -13,6 +14,7 @@
 #include "FlashWidget.h"
 #include "GameDialog.h"
 #include "GameText.h"
+#include "HallOfFame.h"
 #include "Lex.h"
 #include "LuaInterface.h"
 #include "LuaResourceManager.h"
@@ -50,7 +52,7 @@ GameApp::GameApp()
 	mProductVersion = "1.0";
 	mRegKey = "PopCap\\WinBAD";
 	// port: the original's title was the properties' Title (InitPropertiesHook) and the version
-	mTitle = "Bookworm Adventures Deluxe";
+	mTitle = "Bookworm Adventures Volume 2";
 	mWidth = 800;
 	mHeight = 600;
 	mAutoStartLoadingThread = false;  // the title screen starts it once the curtain is closed
@@ -96,15 +98,15 @@ void GameApp::Init()
 	LoadResourceManifest();
 	LoadGameTexts();
 	mNumLoadingThreadTasks = mResourceManager->GetNumResources("CommonGame") + 1;
-	if (mMusicInterface != nullptr) {
-		mSongPlayer = new JeffLib::SongPlayer(mMusicInterface);
-		mSongPlayer->LoadSong("sounds/music.mo3", 12.0);
-		// the media player's spectrum: 320 x 240. port: cleared (the original's is not until a song plays)
-		mSongPlayer->mSpectrumWidth = 320;
-		mSongPlayer->mSpectrumHeight = 240;
-		delete[] mSongPlayer->mSpectrum;
-		mSongPlayer->mSpectrum = new unsigned char[320 * 240]();
-	}
+
+	// the songs of the three books' maps and fights, which the scripts play by number (their MUSIC_ constants). The
+	// original names "chinese_level" for 5 and "scifi_level" for 8 a second time (the boss songs are loaded by the
+	// scripts for the chapters, ids x01), and the port keeps that
+	static const char* const kBookSongs[9] = {"fairy_tale_map", "fairy_tale_level", "fairy_tale_boss",
+	                                          "chinese_map",    "chinese_level",    "chinese_level",
+	                                          "scifi_map",      "scifi_level",      "scifi_level"};
+	for (int i = 0; i < 9; i++)
+		LoadMusic(i, kBookSongs[i]);
 
 	if (!mResourceManager->LoadResources("TitleAndMM"))
 		ShowResourceError(true);
@@ -124,7 +126,7 @@ void GameApp::Init()
 	mTitleScreen = new TitleScreen(this);
 	if (!mTitleScreen->InitLoadingScreen()) {
 		// the original's message (GT 0x7acbc8) asked the player to reinstall the game
-		Popup(GT(0x7acbc8));
+		Popup(GT(0x6fac00));
 		Shutdown();
 		return;
 	}
@@ -363,7 +365,7 @@ GameDialog* GameApp::DoOkDialog(const SexyString& theHeader, const SexyString& t
 	}
 	mDialogCallback = theCallback;
 	GameDialog* aDialog = static_cast<GameDialog*>(
-		DoDialog(DIALOG_OK, true, theHeader, theLines, GT(0x7ac5a0), Dialog::BUTTONS_FOOTER));
+		DoDialog(DIALOG_OK, true, theHeader, theLines, GT(0x6fa51c), Dialog::BUTTONS_FOOTER));
 	Unmute(true);
 	mSoundPlayer->PauseLooping(true);
 	aDialog->SetHeaderFont(FONT_LARGE_OUTLINE);
@@ -461,6 +463,13 @@ void GameApp::ButtonDepress(int theId)
 		case DIALOG_ARENA_WIN:  // its Continue (the original has no case of its own, but kills the dialog)
 			KillDialog(DIALOG_ARENA_WIN);
 			break;
+		case DIALOG_CONTINUE_ADVENTURE:  // the replay in progress goes on, or a new one begins (case 0x7ea in 0x43f840)
+			KillDialog(DIALOG_CONTINUE_ADVENTURE);
+			if (mProfile->GetBool("ReplayInGame"))
+				ResumeSavedReplayGame();
+			else
+				StartNewGameTransition();
+			break;
 		case DIALOG_TRIAL_COMPLETE:  // "buy now"
 			// port: the original asked the trial's window (0x44fdb0) and went on to its buy screen (0x451c20); the
 			// port has no trial, so this dialog is never made
@@ -494,6 +503,10 @@ void GameApp::ButtonDepress(int theId)
 			// port: the original went back to the main menu unless the trial's window (0x44fdb0) said the game was
 			// bought; the port has none
 			StartToMenuTransition();
+		} else if (aDialogId == DIALOG_CONTINUE_ADVENTURE) {
+			// a new replay: the BookSelectScreen (the original killed the dialog first, and again below)
+			KillDialog(DIALOG_CONTINUE_ADVENTURE);
+			StartReplayTransition();
 		} else if (aDialogId != DIALOG_CONFIRM && aDialogId != DIALOG_OK)
 			SDL_Log("GameApp: the answer %d to dialog %d is not ported yet", theId, aDialogId);
 		KillDialog(aDialogId);
@@ -513,9 +526,11 @@ void GameApp::ButtonDepress(int theId)
 		case BookManager::BUTTON_BACK:
 			if (mBookManager != nullptr && !mQueuedHydraLockout && mBookManager->mState == BookManager::STATE_NORMAL)
 				StartToMenuTransition();
+			else if (mBookSelectScreen != nullptr)  // the replay's book list: back to the main menu
+				StartToMenuTransition();
 			break;
-		case BookManager::BUTTON_CONTINUE:
-			if (!mQueuedHydraLockout && mBookManager->mState == BookManager::STATE_NORMAL &&
+		case BookManager::BUTTON_CONTINUE:  // (the BookSelectScreen's options button has this id too)
+			if (mBookManager != nullptr && !mQueuedHydraLockout && mBookManager->mState == BookManager::STATE_NORMAL &&
 			    mBookManager->IsContinueEnabled() && mBookManager->CallLinkedMethod("CanClickContinue", 0).Bool()) {
 				// the tutorial's arrows hear a click at the corner (the whole-screen hot spot) and go
 				if (mArrowHintManager != nullptr) {
@@ -524,12 +539,16 @@ void GameApp::ButtonDepress(int theId)
 				}
 				mBookManager->CallLinkedMethod("ContinueButtonPressed", 0);
 				mBookManager->DisableContinueButton();
-			}
+			} else if (mBookSelectScreen != nullptr && !mQueuedHydraLockout)
+				ShowGameMenu(false);
 			break;
-		case BookManager::BUTTON_OPTIONS:
+		case BookManager::BUTTON_OPTIONS:  // (the BookSelectScreen's begin button has this id too)
 		case TreasureScreen::BUTTON_OPTIONS:
-			if (!mQueuedHydraLockout)
-				ShowGameMenu(theId == TreasureScreen::BUTTON_OPTIONS);
+			if (mBookManager != nullptr || theId == TreasureScreen::BUTTON_OPTIONS) {
+				if (!mQueuedHydraLockout)
+					ShowGameMenu(theId == TreasureScreen::BUTTON_OPTIONS);
+			} else if (mBookSelectScreen != nullptr)
+				StartReplayOfSelectedBook();
 			break;
 		case TreasureScreen::BUTTON_BACK:
 			if (mQueuedHydraLockout)
@@ -626,9 +645,9 @@ bool GameApp::LoadingStep(unsigned int theDeadline)
 		}
 		case LOADING_LEX:
 			mLex = new Lex(false);
-			if (!mLex->Load("data/defs.bin", "data/compressed.txt")) {
+			if (!mLex->Load("data/compressed_attribs.dat", "data/compressed.txt")) {
 				// the original: "ERROR: " and the product name, then it quit at once
-				Popup("Could not read the word list (data/compressed.txt).");
+				Popup("Could not read the word list (data/compressed.txt and data/compressed_attribs.dat).");
 				mLoadingFailed = true;
 				Shutdown();
 				mLoadingPhase = LOADING_DONE;
@@ -665,7 +684,7 @@ void GameApp::LoadingThreadCompleted()
 	mTitleScreen->mLoaded = true;
 	// the profiles that do not load are deleted, and the player is told
 	if (!CheckProfiles() && !mProfileErrors.empty()) {
-		DoOkDialog(GT(0x7a9c04), StrFormat(GT(0x7acdc0).c_str(), mProfileErrors.c_str()), "", nullptr);
+		DoOkDialog(GT(0x6f701c), StrFormat(GT(0x6fae30).c_str(), mProfileErrors.c_str()), "", nullptr);
 		// wide enough for what failed, and put back in the middle
 		GameDialog* aDialog = static_cast<GameDialog*>(GetDialog(DIALOG_OK));
 		aDialog->mWidth = 600;
@@ -729,8 +748,9 @@ bool GameApp::HasPlayedGameBefore()
 		return false;
 	if (mTimedMode)
 		return true;
+	// (Volume 2's first book is 4, where Volume 1's was 1: 0x43dda0 tests CurrentBook against 4)
 	return !(mProfile->GetBool("NeedsIntroTileHelp") && mProfile->GetInt("CurrentChapter") < 2 &&
-	         mProfile->GetInt("CurrentStage") < 2 && mProfile->GetInt("CurrentBook") < 2);
+	         mProfile->GetInt("CurrentStage") < 2 && mProfile->GetInt("CurrentBook") <= 4);
 }
 
 bool GameApp::CheckProfiles()
@@ -752,7 +772,7 @@ bool GameApp::CheckProfiles()
 			continue;
 		// "Profile for <name>: <why>", and its files go
 		anAllLoaded = false;
-		mProfileErrors += StrFormat(GT(0x7acd44).c_str(), aName.c_str(), aProfile.mOutOfDateReasons.c_str());
+		mProfileErrors += StrFormat(GT(0x6fadb0).c_str(), aName.c_str(), aProfile.mOutOfDateReasons.c_str());
 		if (aHasLastUser && StringToLower(aName) == StringToLower(aLastUser))
 			RegistryEraseValue("LastUser");
 		EraseFile(aUsers + "/" + aFile);
@@ -775,9 +795,9 @@ bool GameApp::SelectUser(const std::string& theName)
 		// a profile that is out of date says why in a message box (the app's vf 0x78, MsgBox), any other that does not
 		// load in the error dialog
 		if (aReasons.empty())
-			DoOkDialog(GT(0x7a9c04), StrFormat(GT(0x7acec8).c_str(), theName.c_str()), "", nullptr);
+			DoOkDialog(GT(0x6f701c), StrFormat(GT(0x6faf38).c_str(), theName.c_str()), "", nullptr);
 		else
-			MsgBox(StrFormat(GT(0x7acf08).c_str(), aReasons.c_str()), GT(0x7acef4), 0);
+			MsgBox(StrFormat(GT(0x6faf78).c_str(), aReasons.c_str()), GT(0x6faf64), 0);
 		return false;
 	}
 	RegistryWriteString("LastUser", mProfile->mName);
@@ -804,23 +824,25 @@ void GameApp::ShowMainMenu(bool theFromTitle, bool theToBack)
 		mWidgetManager->BringToFront(mHallOfFame);
 	if (mCurtain != nullptr)
 		mWidgetManager->BringToFront(mCurtain);
-	if (!mNoMusic && mSongPlayer != nullptr)
-		mSongPlayer->PlaySong(0x8c, 0.005f, true);  // the main menu's song
+	if (!mNoMusic) {
+		PlayMenuSong();
+		if (!theFromTitle)
+			UnloadChapterMusic();
+	}
 	mWidgetManager->SetFocus(mMainMenu);
 	ClearUpdateBacklog(false);
 }
 
 void GameApp::ShowUnlockMessages()
 {
-	// 0x449660
+	// 0x43e440
 	auto aNeeds = [this](const char* theKey) {
 		return mProfile != nullptr && mProfile->KeyExists(theKey) && mProfile->GetBool(theKey);
 	};
 	bool aBestiary = aNeeds("NeedsBestiaryDialog");
 	bool aMiniGames = aNeeds("NeedsMiniGamesDialog");
 	bool aArena = aNeeds("NeedsArenaDialog");
-	bool aExpansionBoss = aNeeds("NeedsExpansionBossDialog");
-	bool aMediaPlayer = aNeeds("NeedsMPDialog");
+	// (the original reads "NeedsMPDialog" too and does nothing with it; Volume 1's expansion's bosses have no page)
 
 	// Lex speaks from a new panel, one page after another
 	auto aNewPanel = [this]() {
@@ -847,19 +869,15 @@ void GameApp::ShowUnlockMessages()
 	if (aBestiary) {
 		// the tome, and what else came with it
 		aNewPanel();
-		mConversationPanel->AddTextPage(GT(0x7ad090));
-		mConversationPanel->AddTextPage(GT(0x7ad0e0));
+		mConversationPanel->AddTextPage(GT(0x6fb0b0));
+		mConversationPanel->AddTextPage(GT(0x6fb100));
 		if (aMiniGames) {
-			mConversationPanel->AddTextPage(GT(0x7ad128));
+			mConversationPanel->AddTextPage(GT(0x6fb148));
 			mProfile->SetBool("NeedsMiniGamesDialog", false);
 		}
 		if (aArena) {
-			mConversationPanel->AddTextPage(aMiniGames ? GT(0x7ad170) : GT(0x7ad1c0));
+			mConversationPanel->AddTextPage(aMiniGames ? GT(0x6fb190) : GT(0x6fb1e0));
 			mProfile->SetBool("NeedsArenaDialog", false);
-		}
-		if (aExpansionBoss) {
-			mConversationPanel->AddTextPage(!aMiniGames && !aArena ? GT(0x7ad254) : GT(0x7ad210));
-			mProfile->SetBool("NeedsExpansionBossDialog", false);
 		}
 		aShowPanel();
 		mProfile->SetBool("NeedsBestiaryDialog", false);
@@ -868,47 +886,23 @@ void GameApp::ShowUnlockMessages()
 	}
 	if (aMiniGames) {
 		aNewPanel();
-		mConversationPanel->AddTextPage(GT(0x7ad290));
-		mConversationPanel->AddTextPage(GT(0x7ad2e0));
+		mConversationPanel->AddTextPage(GT(0x6fb230));
+		mConversationPanel->AddTextPage(GT(0x6fb280));
 		if (aArena) {
-			mConversationPanel->AddTextPage(GT(0x7ad1c0));
+			mConversationPanel->AddTextPage(GT(0x6fb1e0));
 			mProfile->SetBool("NeedsArenaDialog", false);
-		}
-		if (aExpansionBoss) {
-			mConversationPanel->AddTextPage(aArena ? GT(0x7ad210) : GT(0x7ad254));
-			mProfile->SetBool("NeedsExpansionBossDialog", false);
 		}
 		aShowPanel();
 		mProfile->SetBool("NeedsMiniGamesDialog", false);
 		mProfile->Save();
 		return;
 	}
-
-	// the arena, the expansion's bosses or the film reel: one of them
-	const char* aKey;
-	if (aArena) {
-		aNewPanel();
-		mConversationPanel->AddTextPage(GT(0x7ad308));
-		mConversationPanel->AddTextPage(GT(0x7ad360));
-		if (aExpansionBoss) {
-			mConversationPanel->AddTextPage(GT(0x7ad254));
-			mProfile->SetBool("NeedsExpansionBossDialog", false);
-		}
-		aKey = "NeedsArenaDialog";
-	} else if (aExpansionBoss) {
-		aNewPanel();
-		mConversationPanel->AddTextPage(GT(0x7ad3c0));
-		mConversationPanel->AddTextPage(GT(0x7ad3f4));
-		aKey = "NeedsExpansionBossDialog";
-	} else {
-		if (!aMediaPlayer)
-			return;
-		aNewPanel();
-		mConversationPanel->AddTextPage(GT(0x7ad420));
-		mConversationPanel->AddTextPage(GT(0x7ad470));
-		aKey = "NeedsMPDialog";
-	}
-	mProfile->SetBool(aKey, false);
+	if (!aArena)
+		return;
+	aNewPanel();
+	mConversationPanel->AddTextPage(GT(0x6fb2a8));
+	mConversationPanel->AddTextPage(GT(0x6fb300));
+	mProfile->SetBool("NeedsArenaDialog", false);
 	aShowPanel();
 	mProfile->Save();
 }
@@ -922,16 +916,16 @@ void GameApp::StartIntro(int theMode)
 		aNewPlayer = true;
 	}
 	InitGameScreen(false);
-	lua_pushint(mLua->L, 1);
+	lua_pushint(mLua->L, 0);  // port: Volume 2 selects book 0 (0x43de80), where Volume 1 selected book 1; it has no book 1 to 3
 	lua_pushboolean(mLua->L, 1);
 	lua_pushboolean(mLua->L, 1);
 	mBookManager->CallLinkedMethod("SelectBookNumber", 3);
 	HideBookManager();
 	if (aNewPlayer)
 		mPlayIntro = true;
-	if (!mNoMusic && mSongPlayer != nullptr)
-		mSongPlayer->PlaySong(0x1b, 0.005f, true);  // the intro's song
-	PlayCutScene("images/cutscenes/intro.swf", "gBookManager:StartGame", GT(0x7acfdc), true, false);
+	if (!mNoMusic)
+		PlaySong(0x8c, 0.006f, true);  // the intro's song (0x43df46; nothing loads song 140, so it is silent)
+	PlayCutScene("images/cutscenes/intro.swf", "gBookManager:StartGame", GT(0x6fb018), true, false);
 	if (mCurtain != nullptr)
 		mWidgetManager->BringToFront(mCurtain);
 }
@@ -1071,6 +1065,14 @@ void GameApp::CurtainDone()
 		if (mHallOfFame != nullptr)
 			CloseHallOfFame();
 		int aBook = mTimedMode ? -1 : mProfile->GetInt("CurrentBook");
+		if (mProfile->GetBool("AdventureComplete") && !mTimedMode) {
+			// a finished adventure plays again: the book the replay is in
+			aBook = mProfile->GetInt("ReplayCurrentBook");
+			lua_pushboolean(mLua->L, 1);
+			mLua->Call("main.SetReplayMode", 1, 0);
+			mLua->Call("main.SetScoreFile", 0, 0);
+			mReplayMode = true;
+		}
 		InitGameScreen(mTimedMode);
 		if (mNukeProfile) {
 			mLua->Call("_NukeProfile", 0, 0);
@@ -1090,7 +1092,7 @@ void GameApp::CurtainDone()
 				mTreasureScreen->CallLinkedMethod("InitTimedModeCheckpoint", 0);
 			} else {
 				// a new run: what the arena is, under the arena's banner
-				DoOkDialog(_S(""), GT(0x7ad7d8), "", IMAGE_TM_INTRO_TITLE);
+				DoOkDialog(_S(""), GT(0x6fb8d0), "", IMAGE_TM_INTRO_TITLE);
 				GameDialog* aDialog = static_cast<GameDialog*>(GetDialog(DIALOG_OK));
 				aDialog->SetLinesFont(FONT_LARGE);
 				aDialog->mSpaceAfterHeader += 0x14;
@@ -1101,6 +1103,88 @@ void GameApp::CurtainDone()
 				aDialog->Resize((mWidth - aWidth) / 2, (mHeight - aDialog->mHeight) / 2, aWidth, aDialog->mHeight);
 			}
 		}
+		mCurtain->StartOpening();
+		mWidgetManager->BringToFront(mCurtain);
+		ClearUpdateBacklog(true);
+		return;
+	}
+
+	case TRANSITION_REPLAY:
+		// the curtain has closed over the main menu: the list of the books to replay comes in its place
+		if (!aClosed)
+			break;
+		mBookSelectScreen = new BookSelectScreen(this);
+		mBookSelectScreen->CreateLinkedObject(mBookSelectScreen);
+		mWidgetManager->AddWidget(mBookSelectScreen);
+		mWidgetManager->BringToBack(mBookSelectScreen);
+		RemoveMainMenu();
+		if (mHallOfFame != nullptr) {
+			mWidgetManager->RemoveWidget(mHallOfFame);
+			SafeDeleteWidget(mHallOfFame);
+			mHallOfFame = nullptr;
+		}
+		mWidgetManager->SetFocus(mBookSelectScreen);
+		mCurtain->StartOpening();
+		mWidgetManager->BringToFront(mCurtain);
+		ClearUpdateBacklog(true);
+		return;
+
+	case TRANSITION_REPLAY_BOOK: {
+		// the book is picked (ReplayCurrentBook): as the new game's, with the replay's profile keys
+		if (mShutdown)
+			return;
+		if (!aClosed)
+			break;
+		RemoveBookSelectScreen();
+		int aBook = mProfile->GetInt("ReplayCurrentBook");
+		lua_pushboolean(mLua->L, 1);
+		mLua->Call("main.SetReplayMode", 1, 0);
+		mLua->Call("main.SetScoreFile", 0, 0);
+		mReplayMode = true;
+		InitGameScreen(mTimedMode);
+		if (mNukeProfile) {
+			mLua->Call("_NukeProfile", 0, 0);
+			mNukeProfile = false;
+		}
+		lua_pushint(mLua->L, aBook);
+		lua_pushboolean(mLua->L, 1);
+		lua_pushboolean(mLua->L, 1);
+		mBookManager->CallLinkedMethod("SelectBookNumber", 3);
+		mBookManager->CallLinkedMethod("DoArrowHints", 0);
+		mBookManager->CallLinkedMethod("MMToCSTransitionComplete", 0);
+		mCurtain->StartOpening();
+		mWidgetManager->BringToFront(mCurtain);
+		ClearUpdateBacklog(true);
+		return;
+	}
+
+	case TRANSITION_REPLAY_HOF: {
+		// from a replay's chapter map to the Hall of Fame: the book goes (as in the way back to the menu), the replay ends
+		if (!aClosed)
+			break;
+		KillDialog(DIALOG_OPTIONS);
+		mWidgetManager->RemoveWidget(mBookManager);
+		if (mTreasureScreen != nullptr)
+			mWidgetManager->RemoveWidget(mTreasureScreen);
+		SafeDeleteWidget(mTreasureScreen);
+		if (mBookScreen != nullptr)
+			RemoveStatsBook();
+		RemoveBookManager();
+		mTreasureScreen = nullptr;
+		RemoveBoard();
+		if (mTimedMode) {
+			mTimedMode = false;
+			lua_pushboolean(mLua->L, 0);
+			mLua->Call("main.SetTimedMode", 1, 0);
+		}
+		lua_pushboolean(mLua->L, 0);
+		mLua->Call("main.SetReplayMode", 1, 0);
+		mReplayMode = false;
+		HallOfFame* aHall = new HallOfFame(this, HallOfFame::MODE_ADVENTURE, true, false, std::string(), false);
+		mHallOfFame = aHall;
+		aHall->mFromArena = true;
+		ShowHallOfFame();
+		SetCursor(CURSOR_POINTER);
 		mCurtain->StartOpening();
 		mWidgetManager->BringToFront(mCurtain);
 		ClearUpdateBacklog(true);
@@ -1133,9 +1217,13 @@ void GameApp::CurtainDone()
 		SafeDeleteWidget(mTreasureScreen);
 		RemoveBookManager();
 		RemoveBoard();
+		RemoveBookSelectScreen();
 		mTimedMode = false;
 		lua_pushboolean(mLua->L, 0);
 		mLua->Call("main.SetTimedMode", 1, 0);
+		mReplayMode = false;
+		lua_pushboolean(mLua->L, 0);
+		mLua->Call("main.SetReplayMode", 1, 0);
 		mTreasureScreen = nullptr;
 		ShowMainMenu(false, false);
 		if (!CallCurtainCallback())
@@ -1163,6 +1251,11 @@ void GameApp::CurtainDone()
 			mTimedMode = false;
 			lua_pushboolean(mLua->L, 0);
 			mLua->Call("main.SetTimedMode", 1, 0);
+		}
+		if (mReplayMode) {
+			mReplayMode = false;
+			lua_pushboolean(mLua->L, 0);
+			mLua->Call("main.SetReplayMode", 1, 0);
 		}
 		ShowMainMenu(false, false);
 		if (!CallCurtainCallback())
@@ -1217,6 +1310,112 @@ void GameApp::StartNewGameTransition()
 	DoCurtainTransition(true, "", -1);
 }
 
+void GameApp::StartReplayTransition()
+{
+	// as StartNewGameTransition, which also forgets the profile's nuking (mNukeProfile)
+	mTransitionState = TRANSITION_REPLAY;
+	if (mMainMenu != nullptr)
+		mMainMenu->mFromTitle = false;
+	DoCurtainTransition(true, "", -1);
+}
+
+void GameApp::StartReplayBookTransition()
+{
+	mTransitionState = TRANSITION_REPLAY_BOOK;
+	DoCurtainTransition(true, "", -1);
+}
+
+void GameApp::StartReplayHallOfFameTransition()
+{
+	mTransitionState = TRANSITION_REPLAY_HOF;
+	DoCurtainTransition(true, "", -1);
+}
+
+void GameApp::RemoveBookSelectScreen()
+{
+	if (mBookSelectScreen == nullptr)
+		return;
+	mWidgetManager->RemoveWidget(mBookSelectScreen);
+	SafeDeleteWidget(mBookSelectScreen);
+	mBookSelectScreen = nullptr;
+}
+
+void GameApp::ResumeSavedReplayGame()
+{
+	// the saved game's way (MainMenu::ClickAdventure): the book under the main menu, then the scripts' StartGame
+	mMainMenu->SetDisabled(true);
+	InitGameScreen(false);
+	mWidgetManager->BringToFront(mMainMenu);
+	lua_pushboolean(mLua->L, 1);
+	mBookManager->CallLinkedMethod("InitSavedGame", 1);
+	StartSavedGameTransition();
+}
+
+void GameApp::StartReplayOfSelectedBook()
+{
+	// the book picked, or the first (4) when none is
+	int aBook = mBookSelectScreen->mSelected > 0 ? mBookSelectScreen->mSelected : 4;
+	mProfile->SetInt("ReplayCurrentBook", aBook);
+	mProfile->SetBool("ReplayBookComplete", false);
+	mProfile->SetInt("ReplayCurrentChapter", 1);
+	mProfile->SetInt("ReplayCurrentStage", 1);
+	mProfile->SetBool("ReplayInGame", false);
+	mProfile->SetInt("ReplayHighScore", 0);
+	mProfile->SetInt("ReplayChapterPoints", 0);
+	mProfile->SetBool("ReplayNewGame", true);
+	mProfile->SetBool("ReplayLexDied", false);
+	mProfile->SetBool("ReplayInMiniGame", false);
+	mProfile->SetBool("MiniGamePrompting", false);
+	mProfile->SetInt("ReplayTotalLettersSpelled", 0);
+	mProfile->SetInt("ReplayTotalWordsSpelled", 0);
+	mProfile->SetInt("ReplayTotalDeaths", 0);
+	mProfile->SetInt("ReplayTotalKills", 0);
+	mProfile->SetInt("ReplayNumOneWordKills", 0);
+	mProfile->SetInt("ReplayNumTwoWordKills", 0);
+	mProfile->SetInt("ReplayNumThreeWordKills", 0);
+	mProfile->SetInt("ReplayNumGems", 0);
+	mProfile->SetInt("ReplayNumOverkills", 0);
+	mProfile->SetInt("BeatdownMultiplier", 0);
+	mProfile->Delete("ReplayCompletedChapters");
+	mProfile->Delete("ReplayEnabledMiniGames");
+	mProfile->Delete("ReplayGridState");
+	mProfile->Delete("ReplayWordLengthsSpelled");
+	mProfile->Delete("ReplayChapterTopWords");
+	mProfile->Delete("ReplayTopWords");
+	mProfile->Delete("ReplayItems");
+	mProfile->Delete("ReplayChapterTrophies");
+	mProfile->Delete("ReplayTotalChapterLettersSpelled");
+	mProfile->Delete("ReplayTotalChapterWordsSpelled");
+	// the character as it was when the book was first begun: its level, experience, health and defense
+	int aXPLevel = 0;
+	int aXP = 0;
+	int aHealth = 3;
+	int aDefense = 0;
+	float anOffenseBonus = 0.0f;
+	if (aBook == 5) {
+		aXPLevel = 10;
+		aXP = 0x497;
+		aHealth = 7;
+		aDefense = 3;
+		anOffenseBonus = 1.1638610363006592f;  // 0x715e54
+	} else if (aBook == 6) {
+		aXPLevel = 20;
+		aXP = 0x5bb3;
+		aHealth = 10;
+		aDefense = 6;
+		anOffenseBonus = 2.474869966506958f;  // 0x715e50
+	}
+	mProfile->SetInt("ReplayXPLevel", aXPLevel);
+	mProfile->SetInt("ReplayXP", aXP);
+	mProfile->SetFloat("ReplayXPPercent", 0.0f);
+	mProfile->SetInt("ReplayHealth", aHealth);
+	mProfile->SetInt("ReplayMaxHealth", aHealth);
+	mProfile->SetInt("ReplayDefense", aDefense);
+	mProfile->SetInt("ReplayDefenseLevel", aDefense);
+	mProfile->SetFloat("ReplayOffenseBonusPct", anOffenseBonus);
+	StartReplayBookTransition();
+}
+
 void GameApp::StartSavedGameTransition()
 {
 	mTransitionState = TRANSITION_SAVED_GAME;
@@ -1253,6 +1452,20 @@ void GameApp::StartTreasureTransition()
 {
 	mTransitionState = TRANSITION_TREASURE;
 	DoCurtainTransition(true, "gTreasureScreen:ContinueButtonPressed", -1);
+}
+
+// The curtain's callback of the mini-games' menu (0x4458b0, the app's function that the original called with the app)
+static void ShowMiniGameMenuCallback(void* theApp)
+{
+	static_cast<GameApp*>(theApp)->ShowMiniGameMenu();
+}
+
+void GameApp::StartMiniGameMenuTransition(bool theFromMainMenu)
+{
+	DoFullCurtainTransition("");
+	mCurtainCallback = ShowMiniGameMenuCallback;
+	mCurtainCallbackObject = this;
+	mMiniMenuFromMainMenu = theFromMainMenu;
 }
 
 // gName = gLinkedObjectTable[cobj]: the scripts' global of a screen's Lua object
@@ -1312,6 +1525,58 @@ void GameApp::RemoveBookManager()
 	mBookManager->CallLinkedMethod("Destructor", 0);
 	SafeDeleteWidget(mBookManager);
 	mBookManager = nullptr;
+}
+
+// 0x4448c0: the file is music/<name>.ogg (the scripts name a song "<book>_level", "<book>_map", "<book>_boss")
+void GameApp::LoadMusic(int theSongId, const std::string& theName)
+{
+	if (mMusicInterface != nullptr)
+		mMusicInterface->LoadMusic(theSongId, "music\\" + theName + ".ogg");
+}
+
+// 0x445290: a song that is not playing yet, the others faded out first when asked
+void GameApp::PlayMusic(int theSongId, int theOffset, bool theFadeOthers)
+{
+	if (mMusicInterface == nullptr || mMusicInterface->IsPlaying(theSongId))
+		return;
+	if (theFadeOthers)
+		mMusicInterface->FadeOutAll(true, 0.006);
+	mMusicInterface->PlayMusic(theSongId, theOffset, false);
+	mLastSongId = theSongId;
+}
+
+void GameApp::PlayMenuSong()
+{
+	int aBook = mProfile != nullptr ? mProfile->GetInt("CurrentBook") : 0;
+	PlayMusic(aBook < 5 ? 1 : aBook == 5 ? 4 : 7, 0, true);
+}
+
+void GameApp::UnloadChapterMusic()
+{
+	if (mMusicInterface == nullptr)
+		return;
+	for (int i = 400; i < 700; i++) {
+		if (i % 100 < 2 && !mMusicInterface->IsPlaying(i))
+			mMusicInterface->UnloadMusic(i);
+	}
+}
+
+// 0x4452f0: not while it plays
+void GameApp::UnloadMusic(int theSongId)
+{
+	if (mMusicInterface != nullptr && !mMusicInterface->IsPlaying(theSongId))
+		mMusicInterface->UnloadMusic(theSongId);
+}
+
+// 0x43df46 (inlined into the intro's start): the other songs fade out by theFadeSpeed, then the song starts
+// (port: the scripts' PlaySong has a fourth flag the inlined copies cannot show; not found yet)
+void GameApp::PlaySong(int theSongId, float theFadeSpeed, bool theLoop)
+{
+	if (mMusicInterface == nullptr || mMusicInterface->IsPlaying(theSongId))
+		return;
+	mMusicInterface->FadeOutAll(true, theFadeSpeed);
+	mMusicInterface->PlayMusic(theSongId, 0, !theLoop);
+	mLastSongId = theSongId;
 }
 
 void GameApp::HideBookManager()

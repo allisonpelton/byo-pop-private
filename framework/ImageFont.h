@@ -48,6 +48,7 @@ public:
 	int						mDefaultHeight; // Max height of font character image rects	
 	int						mLineSpacingOffset; // This plus height should get added between lines
 	int						mBaseOrder;
+	bool					mAlphaCorrection;	// port: parsed (LayerSetAlphaCorrection), not used by the drawing yet
 
 public:
 	FontLayer(FontData* theFontData);
