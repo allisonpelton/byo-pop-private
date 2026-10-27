@@ -1,0 +1,36 @@
+// port: alchemy's part of the site's players on the web page (SiteProfiles.h; framework/WebProfiles.h). Web only.
+
+#ifdef __EMSCRIPTEN__
+#include "SiteProfiles.h"
+#include "AlchemyApp.h"
+#include "Dialogs.h"
+#include "ImageFont.h"
+#include "WebProfiles.h"
+
+using namespace Sexy;
+
+// The score box as the game's dialog makes it: its font and limits (As many characters as fit 104 pixels of the dialog font; ASCII, case kept)
+static Byopop::SiteScoreNames Scores(AlchemyApp* theApp)
+{
+	return Byopop::SiteScoreNames(theApp, &theApp->mLastScoreName, theApp->mFont1, -1, 0x68,
+		"As many characters as fit 104 pixels of the dialog font; ASCII, case kept", NULL);
+}
+
+static void Start(SexyAppBase* theApp)
+{
+	Byopop::SiteScoreNames aScores = Scores((AlchemyApp*) theApp);
+	Byopop::SiteStart("alchemy", aScores);
+}
+
+// the framework's start point, when the game has loaded (framework/WebProfiles.h)
+static struct Register
+{
+	Register() { Byopop::gSiteLoaded = Start; }
+} sRegister;
+
+void Sexy::SiteScoresChanged(AlchemyApp* theApp)
+{
+	Byopop::SiteScoreNames aScores = Scores(theApp);
+	Byopop::SiteChanged("alchemy", aScores);
+}
+#endif

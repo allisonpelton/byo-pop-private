@@ -10,6 +10,10 @@
 
 #include <stdio.h>
 
+#ifdef __EMSCRIPTEN__
+#include "WebProfiles.h"
+#endif
+
 using namespace Sexy;
 
 // the colours of the name box (0x510158: background and outline are clear, the frame comes from the picture)
@@ -289,6 +293,10 @@ NameEntryDialog::NameEntryDialog(AlchemyApp* theApp, const SexyString& theLines)
 	mEdit->SetColors(kNameEditColors, 5);
 	mEdit->mMaxPixels = 0x68;
 	mEdit->SetText(mApp->mLastScoreName);
+#ifdef __EMSCRIPTEN__
+	// the web page's player (framework/WebProfiles.h): under "fill" and "create" the box starts with the site's player
+	Byopop::SiteType("alchemy", mEdit, false);
+#endif
 }
 
 // 0x40ea5d
