@@ -6,6 +6,9 @@
 #include "ImageFont.h"
 #include "EditWidget.h"
 #include "WidgetManager.h"
+#ifdef __EMSCRIPTEN__
+#include "WebProfiles.h"
+#endif
 
 using namespace Sexy;
 
@@ -79,6 +82,10 @@ RecordScoreDialog::RecordScoreDialog(WinDMApp* theApp, const SexyString& theLine
 	mNameWidget->SetColors(gRecordScoreEditColors, 5);
 	mNameWidget->mMaxPixels = NAME_MAX_PIXELS;
 	mNameWidget->SetText(mApp->mLastScoreName, true);
+#ifdef __EMSCRIPTEN__
+	// the web page's player (framework/WebProfiles.h): under "fill" and "create" the box starts with the site's player
+	Byopop::SiteType("bejeweled", mNameWidget, true);
+#endif
 }
 
 // 0x4d2b34
