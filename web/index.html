@@ -123,7 +123,7 @@ h1 { margin: 0; font-size: 20px; font-weight: 600; }
 }
 #players button:hover, #saves button:hover { border-color: var(--accent); }
 #players button:focus-visible, #saves button:focus-visible, #players input:focus-visible, #saves input:focus-visible,
-#players summary:focus-visible, #saves summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+#players summary:focus-visible, #saves summary:focus-visible, #saves select:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 #players button[disabled], #saves button[disabled] { opacity: 0.5; cursor: default; }
 #players button.pl-link { border: 0; background: none; color: var(--accent); padding: 0 2px; text-decoration: underline; font-size: inherit; }
 #players button.pl-danger, #saves button.pl-danger { border-color: #b3261e; color: #b3261e; }
@@ -160,6 +160,22 @@ h1 { margin: 0; font-size: 20px; font-weight: 600; }
 .sv-report { margin-bottom: 8px; }
 .sv-report h3 { margin-top: 12px; }
 .pl-count { color: var(--muted); font-size: 13px; }
+/* The import from an installed game (web/saveimport.js) */
+#saves select { font: inherit; color: var(--fg); background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 5px 8px; max-width: 100%; }
+.si-help h4 { margin: 12px 0 8px; font-size: 14px; font-weight: 600; }
+.si-help, .si-pickers { margin: 8px 0; }
+.si-help p, .si-help li { font-size: 13px; }
+.si-help code, .si-confirm code { font-size: 12px; overflow-wrap: anywhere; }
+.si-step { font-weight: 600; margin-top: 14px; }
+.si-cmd { display: flex; gap: 8px; align-items: flex-start; margin: 0 0 8px; }
+.si-pre { flex: 1; min-width: 0; margin: 0; padding: 6px 10px; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; white-space: pre-wrap; overflow-wrap: anywhere; }
+.si-fields { border: 1px solid var(--line); border-radius: var(--radius); padding: 10px 14px; margin: 12px 0; min-width: 0; }
+.si-fields legend { font-weight: 600; padding: 0 6px; }
+.si-row { display: grid; gap: 4px; margin-bottom: 10px; }
+.si-row label { font-weight: 600; }
+.si-row input[type=file] { font: inherit; color: var(--fg); max-width: 100%; }
+.si-sub { margin: 12px 0 4px; font-size: 13px; font-weight: 600; }
+.si-confirm li { overflow-wrap: anywhere; }
 /* The site's settings (docs/WEB_PLAYER.md, "Site settings"): web/settings.js draws the controls and brings their style */
 #settings { margin-top: 40px; scroll-margin-top: 16px; }
 #settings h2 { margin: 0 0 8px; font-size: 18px; font-weight: 600; }
@@ -208,6 +224,8 @@ footer a { color: var(--accent); }
 <script src="settings.js"></script>
 <script src="profiles.js"></script>
 <script src="players.js"></script>
+<script src="saveimport-table.js"></script>
+<script src="saveimport.js"></script>
 <script src="saves.js"></script>
 <script>
 // The settings section: the controls are web/settings.js's, the same as in a game's Settings panel

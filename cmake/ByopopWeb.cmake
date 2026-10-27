@@ -33,9 +33,10 @@ set(BYOPOP_WEB_BRAND favicon.svg favicon.ico apple-touch-icon.png logo.svg logo-
 # players and what the games report of theirs ("Player profiles"); the listing page and the game pages load it too.
 # web/exeicon.js reads a game's icon out of its exe (the game pages load it). All three are copied next to the pages.
 set(BYOPOP_WEB_SHARED_JS settings.js profiles.js exeicon.js)
-# the listing page's own scripts: the Players section (web/players.js) and the save backup (web/saves.js), copied next to
-# index.html only
-set(BYOPOP_WEB_INDEX_JS players.js saves.js)
+# the listing page's own scripts: the Players section (web/players.js), the save backup (web/saves.js) and the import of
+# saves from an installed game (web/saveimport.js, with the table platform/saveimport.json as saveimport-table.js), copied
+# next to index.html only
+set(BYOPOP_WEB_INDEX_JS players.js saves.js saveimport.js)
 # The listing page, build/web/index.html (made from web/index.html by byopop_web_index() at the end of this file): one
 # tile for each game in BYOPOP_WEB_FINISHED, in this order, with the game's TITLE and a badge. The list is the
 # coordinator's: the coordinator adds a game's target at that game's final merge. A game with a web page that is not
@@ -386,6 +387,13 @@ function(byopop_web_index)
   foreach(name ${BYOPOP_WEB_SHARED_JS} ${BYOPOP_WEB_INDEX_JS})
     configure_file(${BYOPOP_WEB_BRAND_DIR}/../${name} ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${name} COPYONLY)
   endforeach()
+  # the table of what is imported from an installed game (platform/saveimport.json, docs/WEB_PLAYER.md, "Importing saves from an
+  # installed game"): the native games compile the same file in (framework/CMakeLists.txt)
+  get_filename_component(saveimport_json "${BYOPOP_WEB_BRAND_DIR}/../../platform/saveimport.json" ABSOLUTE)
+  set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${saveimport_json})
+  file(READ ${saveimport_json} saveimport_text)
+  byopop_write_if_changed(${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/saveimport-table.js "var ByopopSaveTable = ${saveimport_text};
+")
   byopop_write_if_changed(${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/index.html "${page}")
   message(STATUS "byo-pop: the listing page shows ${count} games")
 endfunction()

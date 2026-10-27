@@ -8,6 +8,7 @@
 // framework's test hooks -seed=N, -script=<file>, -fast and -trace (see SexyAppBase.h).
 
 #include "WaterBugsApp.h"
+#include "platform/SaveImport.h"
 #include "platform/VFS.h"
 #include "platform/WebPersist.h"
 #include "platform/openmpt/OpenMPTPlayer.h"
@@ -99,6 +100,16 @@ int main(int argc, char** argv)
 		SDL_free(pref);
 		while (!userDir.empty() && (userDir.back() == '/' || userDir.back() == '\\'))
 			userDir.pop_back();
+	}
+#endif
+
+#ifndef __EMSCRIPTEN__
+	// -importsaves[=<install folder>]: brings the saves, high scores and settings of the original game installed on this computer into the
+	// user dir (platform/SaveImport.h), then exits without starting the game. Without it nothing changes.
+	{
+		int anImportResult = 0;
+		if (Platform::RunSaveImportIfRequested(argc, argv, "waterbugs", gameDir, userDir, &anImportResult))
+			return anImportResult;
 	}
 #endif
 

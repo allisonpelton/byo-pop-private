@@ -287,6 +287,8 @@ var ByopopSaves = (function () {
             store.put({ timestamp: new Date(files[rel].m || Date.now()), mode: FILE_MODE, contents: files[rel].bytes }, key);
             written++;
           });
+          // (the import removes files that the game's own browser backup had dropped: {remove: {userdata: [rel, ...]}})
+          ((folders.remove && folders.remove[folder]) || []).forEach(function (rel) { store.delete(root + "/" + rel); });
         });
         tx.oncomplete = function () { db.close(); resolve(written); };
         tx.onerror = tx.onabort = function () { try { db.close(); } catch (e) {} reject(tx.error || new Error("The browser would not keep the files.")); };
@@ -333,6 +335,7 @@ var ByopopSaves = (function () {
     games.forEach(function (g) { byId[g.id] = g; });
     var plan = null;      // a zip read for a restore, waiting for the player's yes
     var busy = false;
+    var errorControls = [];   // the controls that an error is read with (the import's, web/saveimport.js, join them)
     root.textContent = "";
     root.appendChild(make("p", "pl-about", "Your saves, high scores and game settings are kept in this browser, and are lost if its data is cleared or you use " +
       "another browser or device. A backup is one .zip, made here, with each game’s saves, the site’s settings and players, and never a game’s " +
@@ -346,11 +349,11 @@ var ByopopSaves = (function () {
     alertEl.setAttribute("role", "alert");
     root.appendChild(status);
     root.appendChild(alertEl);
-    // an error is read with the two controls it can be about, until the next message
+    // an error is read with the controls it can be about, until the next message
     function say(text, isError) {
       status.textContent = isError ? "" : text;
       alertEl.textContent = isError ? text : "";
-      [backupButton, pick].forEach(function (c) {
+      errorControls.forEach(function (c) {
         if (isError) c.setAttribute("aria-describedby", alertEl.id); else c.removeAttribute("aria-describedby");
       });
     }
@@ -371,7 +374,10 @@ var ByopopSaves = (function () {
     confirmBox.hidden = true;
     root.appendChild(listTitle); root.appendChild(list); root.appendChild(row); root.appendChild(report); root.appendChild(confirmBox);
 
-    function setBusy(b) { busy = b; backupButton.disabled = b; pick.disabled = b; }
+    errorControls.push(backupButton, pick);
+    // the import (web/saveimport.js) is told to stand still too while anything runs
+    var busyHooks = [];
+    function setBusy(b) { busy = b; backupButton.disabled = b; pick.disabled = b; busyHooks.forEach(function (h) { h(b); }); }
 
     function renderList() {
       return databases().then(function (names) {
@@ -624,6 +630,19 @@ var ByopopSaves = (function () {
     }
 
     renderList();
+    // "Import from an installed game": its own file, which needs the helpers above
+    if (typeof ByopopSaveImport !== "undefined" && ByopopSaveImport.init) {
+      try {
+        ByopopSaveImport.init(root, games, {
+          say: say, isBusy: function () { return busy; }, setBusy: setBusy, refresh: renderList, size: size,
+          databases: databases, openExisting: openExisting, readFolder: readFolder, writeFiles: writeFiles, merged: merged,
+          lsGet: lsGet, lsSet: lsSet, backupKey: backupKey, withLocks: withLocks,
+          openGames: function () { return openGames(games); },
+          addControls: function (list) { list.forEach(function (c) { errorControls.push(c); }); },
+          onBusy: function (h) { busyHooks.push(h); }
+        });
+      } catch (e) { root.appendChild(make("p", "pl-error", "The import from an installed game is not available.")); }
+    }
     document.addEventListener("visibilitychange", function () { if (!document.hidden && !busy) renderList(); });
     window.addEventListener("pageshow", function () { if (!busy) renderList(); });
     window.addEventListener("storage", function (ev) { if (!busy && (ev.key === null || /^sexy-userdata-backup:/.test(ev.key || ""))) renderList(); });

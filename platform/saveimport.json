@@ -1,0 +1,213 @@
+{
+  "format": "byo-pop save import table",
+  "version": 1,
+  "doc": "The one source of truth for importing the player's saves from an installed original game (docs/WEB_PLAYER.md, 'Importing saves from an installed game'). The web listing page (web/saveimport.js, with this table as saveimport-table.js) and the native games (platform/SaveImport.cpp, with this table compiled in) both read it. Nothing outside this table is ever taken. A value or file pattern matches without regard to case; '*' stands for any characters inside one path part, '#' for digits. Registry value paths are relative to the game's key and use backslashes; file paths use slashes and are relative to the folder that holds the saves.",
+  "hives": {
+    "vs": "HKEY_CURRENT_USER\\Software\\Classes\\VirtualStore\\MACHINE\\SOFTWARE\\<WOW6432Node\\><key>: where Windows redirects the writes of a game that was not run as administrator",
+    "hklm": "HKEY_LOCAL_MACHINE\\SOFTWARE\\<WOW6432Node\\><key>: the 32-bit view that a 32-bit original uses",
+    "hkcu": "HKEY_CURRENT_USER\\Software\\<key>"
+  },
+  "valueSets": {
+    "base": ["MusicVolume=dword", "SfxVolume=dword", "Muted=dword", "ScreenMode=dword", "CustomCursors=dword", "WaitForVSync=dword", "PreferredX=dword", "PreferredY=dword"],
+    "app": ["TimesPlayed=dword", "TimesExecuted=dword"]
+  },
+  "skipValues": {
+    "InstallPath": "an installer or registration value, not a save",
+    "FullInstallPath": "an installer or registration value, not a save",
+    "RegisterLink": "an installer or registration value, not a save",
+    "RegisterURL": "an installer or registration value, not a save",
+    "PopCapURL": "an installer or registration value, not a save",
+    "ReferId": "an installer or registration value, not a save",
+    "DownloadId": "an installer or registration value, not a save",
+    "DontUpdate": "an installer or registration value, not a save",
+    "NoPopLink": "an installer or registration value, not a save",
+    "Variation": "an installer or registration value, not a save",
+    "PurchaseId": "an installer or registration value, not a save",
+    "RegCode": "an installer or registration value, not a save",
+    "RegName": "an installer or registration value, not a save",
+    "InstallTag": "an installer or registration value, not a save",
+    "InstallFlags": "an installer or registration value, not a save",
+    "InstallCheck": "an installer or registration value, not a save",
+    "PartnerName": "an installer or registration value, not a save",
+    "RegistryDataLocation": "an installer or registration value, not a save",
+    "InProgress": "the running flag of the original; the port sets its own",
+    "LastVerCheckQueryTime": "the original's update-check time, which the port does not use",
+    "ITSuccess": "the original's Internet test result, which the port does not use",
+    "test": "the original's registry write test",
+    "Test3D\\*": "the original's graphics hardware test",
+    "TotalBooks": "worked out again from the game's scripts at each start",
+    "LastRanVersion": "the version of the original; the port writes its own"
+  },
+  "games": {
+    "bejeweled": {
+      "folder": "Bejeweled Deluxe", "steam": "Bejeweled Deluxe", "appdata": "Bejeweled",
+      "registry": { "key": "PopCap\\Bejeweled", "hives": ["hkcu", "vs", "hklm"], "sets": ["base", "app"], "values": ["LastScoreName=sz"] },
+      "files": [
+        { "from": "userdata/savegame.dat", "to": "savegame.dat", "what": "the game in progress" },
+        { "from": "userdata/hiscores.dat", "to": "hiscores.dat", "what": "the high scores" }
+      ]
+    },
+    "bigmoney": {
+      "folder": "Big Money Deluxe", "steam": "Big Money Deluxe",
+      "registry": { "key": "PopCap\\BigMoney", "hives": ["vs", "hklm", "hkcu"], "sets": ["base", "app"],
+        "values": ["LastScoreName=sz", "SkillLevel=dword", "GameType=dword", "DontShowHelp*=dword"] },
+      "files": [
+        { "from": "savegame.dat", "to": "savegame.dat", "what": "the game in progress" },
+        { "from": "hiscores.dat", "to": "hiscores.dat", "what": "the high scores" }
+      ]
+    },
+    "bookworm": {
+      "folder": "BookWorm Deluxe", "steam": "BookWorm Deluxe",
+      "note": "The port follows the 2004 edition of BookWorm Deluxe (the one that keeps its players under the registry key Users). The Steam edition is a later build that keeps each player in players\\<name>\\profile.dat and scores.dat; the port does not read those.",
+      "registry": { "key": "PopCap\\BookWorm", "hives": ["vs", "hklm", "hkcu"], "sets": ["base", "app"],
+        "values": ["Users\\User=sz", "Users\\*\\Alias=sz", "Users\\*\\ShowHelp=dword", "Users\\*\\ShowHints=dword", "Users\\*\\ShowDefs=dword", "Users\\*\\TimesPlayed=dword",
+          "Scores\\Classic=hex", "Scores\\Action=hex", "Scores\\Best=hex", "Scores\\Longest=hex"] },
+      "files": [
+        { "from": "players/*/classic.dat", "to": "players/*/classic.dat", "what": "a player's classic game in progress" },
+        { "from": "players/*/action.dat", "to": "players/*/action.dat", "what": "a player's action game in progress" }
+      ],
+      "skipFiles": [
+        { "from": "players/*/profile.dat", "why": "the Steam edition's player file, in a layout the port does not read" },
+        { "from": "players/*/scores.dat", "why": "the Steam edition's scores file, in a layout the port does not read" }
+      ]
+    },
+    "noahsark": {
+      "folder": "Noah's Ark Deluxe",
+      "registry": { "key": "PopCap\\NoahsArk", "hives": ["vs", "hklm", "hkcu"], "sets": ["base", "app"],
+        "values": ["LastScoreName=sz", "ShowHints=dword", "ShowTutorial=dword"] },
+      "files": [
+        { "from": "hiscores.dat", "to": "hiscores.dat", "what": "the high scores" }
+      ],
+      "skipFiles": [
+        { "from": "data/savegame.dat", "why": "the port keeps the game in progress in another layout (its random number generator is not the original's), so the original's file cannot be continued" }
+      ]
+    },
+    "sevenseas": {
+      "folder": "Seven Seas Deluxe",
+      "registry": { "key": "PopCap\\SevenSeas", "hives": ["vs", "hklm", "hkcu"], "sets": ["base", "app"],
+        "values": ["LastScoreName=sz", "BonusNag=dword", "WarnBlueNag=dword", "WarnGhostNag=dword", "WarnSerpNag=dword", "WarnWhirlNag=dword"] },
+      "files": [
+        { "from": "data/savegame.dat", "to": "savegame.dat", "what": "the game in progress" },
+        { "from": "hiscores.dat", "to": "hiscores.dat", "what": "the high scores" }
+      ]
+    },
+    "atomica": {
+      "folder": "Atomica Deluxe",
+      "registry": { "key": "PopCap\\Atomica", "hives": ["vs", "hklm", "hkcu"], "sets": ["base", "app"],
+        "values": ["GameHints=hex", "ShowSymbols=dword", "ShowTips=dword"] },
+      "files": [
+        { "from": "HS.CFG", "to": "HS.CFG", "what": "the high scores" },
+        { "from": "SAVEGAME.DAT", "to": "SAVEGAME.DAT", "what": "the game in progress" }
+      ]
+    },
+    "mummymaze": {
+      "folder": "Mummy Maze Deluxe",
+      "registry": { "key": "PopCap\\MummyMaze", "hives": ["vs", "hklm", "hkcu"], "sets": ["base", "app"],
+        "values": ["LastScoreName=sz", "Speed=dword", "Name=dword", "Clock=dword", "Ankh=dword", "TwoMummyNag=dword", "GateNag=dword", "TrapNag=dword",
+          "RedNag=dword", "ScorpNag=dword", "DarkNag=dword", "AnkhNag=dword"] },
+      "files": [
+        { "from": "hiscores.dat", "to": "hiscores.dat", "what": "the high scores" },
+        { "from": "data/saves/classic.sav", "to": "classic.sav", "what": "the classic game in progress" },
+        { "from": "data/saves/adv#.sav", "to": "adv#.sav", "what": "an adventure" }
+      ]
+    },
+    "tiptop": {
+      "folder": "TipTop Deluxe",
+      "note": "TipTop keeps nothing in the registry that the port uses.",
+      "files": [
+        { "from": "Preferences.dat", "to": "Preferences.dat", "what": "the high scores and the settings" },
+        { "from": "savegame.dat", "to": "savegame.dat", "what": "the game in progress" }
+      ]
+    },
+    "bookwormadv": {
+      "folder": "Bookworm Adventures Deluxe", "appdata": "WinBAD",
+      "registry": { "key": "PopCap\\WinBAD", "hives": ["hkcu", "vs", "hklm"], "sets": ["base", "app"],
+        "values": ["LastUser=sz", "AppTime=dword"] },
+      "files": [
+        { "from": "users/*.bwa", "to": "users/*.bwa", "what": "a player" },
+        { "from": "users/data/*.dat", "to": "users/data/*.dat", "what": "a player's data" }
+      ]
+    },
+    "ningpo": {
+      "folder": "NingPo MahJong Deluxe",
+      "registry": { "key": "Pyrogon\\NingPo", "hives": ["hkcu"], "sets": [],
+        "values": ["Layout=hex", "Tileset=hex", "Background=hex", "Autohint=hex", "Fullscreen=hex", "Sound Volume=hex", "Music Volume=hex", "HS:*=hex"] }
+    },
+    "pixelus": {
+      "folder": "Pixelus Deluxe",
+      "registry": { "key": "PopCap\\Pixelus", "hives": ["vs", "hklm", "hkcu"], "sets": ["base", "app"], "values": ["HintsDisabled=dword"] },
+      "files": [
+        { "from": "users/directory.txt", "to": "users/directory.txt", "what": "the list of players" },
+        { "from": "users/#", "to": "users/#", "what": "a player" },
+        { "from": "users/his#", "to": "users/his#", "what": "a player's results" }
+      ]
+    },
+    "alchemy": {
+      "folder": "Alchemy Deluxe", "appdata": "Alchemy",
+      "registry": { "key": "PopCap\\Alchemy", "hives": ["vs", "hklm", "hkcu"], "sets": ["base", "app"],
+        "values": ["LastScoreName=sz", "LastInternetScoreName=sz", "SkillLevel=dword", "TimeTrial=dword"] },
+      "files": [
+        { "from": "userdata/hiscores.dat", "to": "hiscores.dat", "what": "the high scores" }
+      ],
+      "skipFiles": [
+        { "from": "userdata/savegame.dat", "why": "the port keeps the game in progress in another layout (it adds a version byte), so the original's file cannot be continued" }
+      ]
+    },
+    "wordharmony": {
+      "folder": "WordHarmony",
+      "registry": { "key": "GameHouse\\WordHarmony", "hives": ["hkcu"], "sets": [],
+        "values": ["FullScreen=dword", "MusicEnabled=dword", "SoundEnabled=dword", "HighestPuzzleLevel=dword", "HighestActionLevel=dword", "HighestSolitaireLevel=dword",
+          "ShowPuzzleHelp=dword", "ShowActionHelp=dword", "ShowSolitaireHelp=dword", "SaverEnabled=dword", "DefaultScoreName=sz",
+          "PuzzleSavedGame=sz", "ActionSavedGame=sz", "SolitaireSavedGame=sz", "scores\\*\\scoreName#=sz", "scores\\*\\scoreValue#=dword"],
+        "skip": { "ShowLink": "a promotional link of the original", "VisitURL": "a promotional link of the original", "ILink": "a promotional link of the original" } }
+    },
+    "cosmicbugs": {
+      "folder": "Cosmic Bugs",
+      "note": "Cosmic Bugs keeps nothing in the registry that the port uses.",
+      "files": [
+        { "from": "cp.cfg", "to": "cp.cfg", "what": "the settings" },
+        { "from": "cb.dat", "to": "cb.dat", "what": "the players and high scores" }
+      ]
+    },
+    "waterbugs": {
+      "folder": "Water Bugs",
+      "note": "Water Bugs keeps nothing in the registry that the port uses.",
+      "files": [
+        { "from": "cp.cfg", "to": "cp.cfg", "what": "the settings" },
+        { "from": "cb.dat", "to": "cb.dat", "what": "the players and high scores" }
+      ]
+    },
+    "rocketmania": {
+      "folder": "Rocket Mania Deluxe", "steam": "Rocket Mania Deluxe",
+      "registry": { "key": "PopCap\\RocketMania", "hives": ["vs", "hklm", "hkcu"], "sets": ["base", "app"],
+        "values": ["LastScoreName=sz", "HintsDisabled=dword", "HintsDisabledFlag#=dword"] },
+      "files": [
+        { "from": "Players/hiscores.dat", "to": "Players/hiscores.dat", "what": "the high scores" },
+        { "from": "Players/savea.dat", "to": "Players/savea.dat", "what": "the classic game in progress" },
+        { "from": "Players/saveb.dat", "to": "Players/saveb.dat", "what": "the arcade game in progress" },
+        { "from": "Players/savec.dat", "to": "Players/savec.dat", "what": "the strategy game in progress" }
+      ]
+    },
+    "dynomite": {
+      "folder": "Dynomite Deluxe", "steam": "Dynomite Deluxe",
+      "registry": { "key": "PopCap\\Dynomite", "hives": ["vs", "hklm", "hkcu"], "sets": ["base", "app"],
+        "values": ["LastScoreName=sz", "LockCursor=dword", "FossilGameType=dword", "SkillLevel=dword", "GameType=dword", "StompedLevel=dword"] },
+      "files": [
+        { "from": "STOMPED.HS", "to": "STOMPED.HS", "what": "the Stomped high scores" },
+        { "from": "ENDLESS.HS", "to": "ENDLESS.HS", "what": "the Endless high scores" },
+        { "from": "FOSSIL.HS", "to": "FOSSIL.HS", "what": "the Fossil high scores" },
+        { "from": "TIMETRIAL.HS", "to": "TIMETRIAL.HS", "what": "the Time Trial high scores" },
+        { "from": "SLOT#.SAV", "to": "SLOT#.SAV", "what": "a saved game" }
+      ]
+    },
+    "bookwormadv2": {
+      "folder": "Bookworm Adventures Volume 2", "steam": "Bookworm Adventures Volume 2", "appdata": "WinBAD",
+      "registry": { "key": "PopCap\\WinBAD", "hives": ["hkcu", "vs", "hklm"], "sets": ["base", "app"],
+        "values": ["LastUser=sz", "AppTime=dword"] },
+      "files": [
+        { "from": "users/*.bwa", "to": "users/*.bwa", "what": "a player" },
+        { "from": "users/data/*.dat", "to": "users/data/*.dat", "what": "a player's data" }
+      ]
+    }
+  }
+}
