@@ -7,6 +7,10 @@
 #include "EditWidget.h"
 #include "WidgetManager.h"
 
+#ifdef __EMSCRIPTEN__
+#include "WebProfiles.h"
+#endif
+
 using namespace Sexy;
 
 // 0x417730
@@ -83,6 +87,10 @@ RecordScoreDialog::RecordScoreDialog(WinBMApp* theApp, const std::string& theLin
 	mNameWidget->SetColors(gRecordScoreEditColors, 5);
 	mNameWidget->mMaxPixels = NAME_MAX_PIXELS;
 	mNameWidget->SetText(mApp->mLastScoreName, true);
+#ifdef __EMSCRIPTEN__
+	// the web page's player (framework/WebProfiles.h): under "fill" and "create" the box starts with the site's player
+	Byopop::SiteType("bigmoney", mNameWidget, true);
+#endif
 }
 
 // 0x417d00

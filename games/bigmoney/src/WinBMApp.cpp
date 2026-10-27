@@ -33,6 +33,10 @@
 
 #include <algorithm>
 
+#ifdef __EMSCRIPTEN__
+#include "SiteProfiles.h"
+#endif
+
 using namespace Sexy;
 
 // The highlighted-coin colour (Init): every colour channel c -> min(255, c * 280 / 255 + 48), alpha kept
@@ -1078,6 +1082,9 @@ void WinBMApp::ButtonDepress(int theId)
 				{
 					mBoard->mHighScoreWidget->AddHighScore(aName); // no NULL checks, as the original
 					mLastScoreName = aRecordDialog->mNameWidget->mString;
+#ifdef __EMSCRIPTEN__
+					SiteScoresChanged(this);
+#endif
 					KillDialog(DIALOG_RECORD_SCORE);
 				}
 			}
