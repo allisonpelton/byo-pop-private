@@ -38,7 +38,7 @@ set(BYOPOP_WEB_SHARED_JS settings.js profiles.js exeicon.js)
 # next to index.html only
 set(BYOPOP_WEB_INDEX_JS players.js saves.js saveimport.js)
 # The listing page, build/web/index.html (made from web/index.html by byopop_web_index() at the end of this file): one
-# tile for each game in BYOPOP_WEB_FINISHED, in this order, with the game's TITLE and a badge. The list is the
+# tile for each game in BYOPOP_WEB_FINISHED, in alphabetical order of TITLE (not this list's order), with a badge. The list is the
 # coordinator's: the coordinator adds a game's target at that game's final merge. A game with a web page that is not
 # in the list is not shown (fwtest and smoke are test pages and never are); a name in the list with no web page is a
 # configure error.
@@ -293,7 +293,17 @@ function(byopop_web_index)
   endif()
   set(tiles "")
   set(count 0)
+  # the tiles go in alphabetical order of the games' titles, ignoring case (the user, 2026-10-27); a game with no
+  # web page has no title, sorts first and is dealt with below
+  set(ordered "")
   foreach(target ${BYOPOP_WEB_FINISHED})
+    get_property(title GLOBAL PROPERTY BYOPOP_WEB_TITLE_${target})
+    string(TOLOWER "${title}" key)
+    list(APPEND ordered "${key}|${target}")
+  endforeach()
+  list(SORT ordered)
+  list(TRANSFORM ordered REPLACE "^.*\\|" "")
+  foreach(target ${ordered})
     get_property(has_title GLOBAL PROPERTY BYOPOP_WEB_TITLE_${target} SET)
     if(NOT has_title)
       string(TOUPPER ${target} upper)
