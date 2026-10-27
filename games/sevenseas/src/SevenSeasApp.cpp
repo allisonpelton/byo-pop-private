@@ -25,6 +25,10 @@
 #include <cstring>
 #include <sstream>
 
+#ifdef __EMSCRIPTEN__
+#include "SiteProfiles.h"
+#endif
+
 using namespace Sexy;
 
 SevenSeasApp* Sexy::gApp = NULL;
@@ -971,6 +975,9 @@ void SevenSeasApp::ButtonDepress(int theId)
 				if (mHighScoreWidget != NULL)
 					mHighScoreWidget->AddScore(aName);
 				mLastScoreName = aName;
+#ifdef __EMSCRIPTEN__
+				SiteScoresChanged(this);
+#endif
 			}
 			KillDialog(DIALOG_RECORD_SCORE);
 			break;

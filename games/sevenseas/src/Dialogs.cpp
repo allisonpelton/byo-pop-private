@@ -14,6 +14,10 @@
 #include <algorithm>
 #include <cstdio>
 
+#ifdef __EMSCRIPTEN__
+#include "WebProfiles.h"
+#endif
+
 using namespace Sexy;
 
 // 0x428360 (Widget slot 31): a line of text centred in a widget of the given width, in the current font
@@ -282,6 +286,10 @@ RecordScoreDialog::RecordScoreDialog(SevenSeasApp* theApp, const SexyString& the
 	mNameEdit->SetColors(sEditColors, 5);
 	mNameEdit->mMaxPixels = 0x68;
 	mNameEdit->SetText(mApp->mLastScoreName);
+#ifdef __EMSCRIPTEN__
+	// the web page's player (framework/WebProfiles.h): under "fill" and "create" the box starts with the site's player
+	Byopop::SiteType("sevenseas", mNameEdit, false);
+#endif
 }
 
 RecordScoreDialog::~RecordScoreDialog()
