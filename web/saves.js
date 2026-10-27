@@ -368,9 +368,6 @@ var ByopopSaves = (function () {
     row.appendChild(backupButton); row.appendChild(pickLabel); row.appendChild(pick);
     var report = make("div", "sv-report");
     var confirmBox = make("div", "pl-confirm sv-confirm");
-    confirmBox.setAttribute("role", "alertdialog");
-    confirmBox.setAttribute("aria-labelledby", "sv-confirm-title");
-    confirmBox.setAttribute("aria-describedby", "sv-confirm-desc");
     confirmBox.hidden = true;
     root.appendChild(listTitle); root.appendChild(list); root.appendChild(row); root.appendChild(report); root.appendChild(confirmBox);
 
@@ -537,6 +534,10 @@ var ByopopSaves = (function () {
     function showConfirm() {
       confirmBox.textContent = "";
       confirmBox.hidden = false;
+      // a dialog once its question is up: its name and text are made here (the box stays in the page, hidden, afterwards)
+      confirmBox.setAttribute("role", "alertdialog");
+      confirmBox.setAttribute("aria-labelledby", "sv-confirm-title");
+      confirmBox.setAttribute("aria-describedby", "sv-confirm-desc");
       var h = make("h4", "", "Restore these saves?");
       h.id = "sv-confirm-title";
       confirmBox.appendChild(h);

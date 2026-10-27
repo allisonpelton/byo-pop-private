@@ -89,9 +89,6 @@ var ByopopPlayers = (function () {
     bulk.appendChild(bulkLabel); bulk.appendChild(bulkInput); bulk.appendChild(bulkRename); bulk.appendChild(bulkDelete);
     bulk.appendChild(tickAll); bulk.appendChild(tickNone); bulk.appendChild(bulkCount);
     var confirmBox = make("div", "pl-confirm");
-    confirmBox.setAttribute("role", "alertdialog");
-    confirmBox.setAttribute("aria-labelledby", "pl-confirm-title");
-    confirmBox.setAttribute("aria-describedby", "pl-confirm-desc");
     confirmBox.hidden = true;
     var resultsTitle = make("h3", "", "What the games did");
     var resultsList = make("ul", "pl-results");
@@ -444,9 +441,14 @@ var ByopopPlayers = (function () {
     }
     function renderConfirm() {
       confirmBox.textContent = "";
+      // a dialog only while the question is up: its name and text are made with it
+      ["role", "aria-labelledby", "aria-describedby"].forEach(function (a) { confirmBox.removeAttribute(a); });
       if (!confirming) { confirmBox.hidden = true; return; }
       var recs = ByopopProfiles.games();
       confirmBox.hidden = false;
+      confirmBox.setAttribute("role", "alertdialog");
+      confirmBox.setAttribute("aria-labelledby", "pl-confirm-title");
+      confirmBox.setAttribute("aria-describedby", "pl-confirm-desc");
       var h = make("h4", "", "Delete these players in the games?");
       h.id = "pl-confirm-title";
       confirmBox.appendChild(h);

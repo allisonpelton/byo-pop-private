@@ -441,6 +441,7 @@ input[type=file] { display: none; }  /* the buttons that open the file pickers a
     closePanels("quiet");
     syncCanvas();
     ["import-overlay", "start-overlay", "busy-overlay"].forEach(function (id) { $(id).hidden = true; });
+    syncModal();
     $("exit-title").textContent = "The game stopped";
     $("exit-msg").textContent = "Something went wrong" + (what ? " (" + String(what).substring(0, 200) + ")" : "") + ". " +
       (hasMods ? "If a mod caused it, play once without mods, then turn that mod off in the mod menu (F2) or remove it under Mods."
@@ -461,6 +462,7 @@ input[type=file] { display: none; }  /* the buttons that open the file pickers a
     return new Promise(function (resolve) {
       var hold = function () {
         $("busy-overlay").hidden = true;
+        syncModal();
         resolve();
         return new Promise(function () {});
       };
@@ -468,6 +470,7 @@ input[type=file] { display: none; }  /* the buttons that open the file pickers a
         if (lock) return hold();
         setStatus("Already open");
         $("busy-overlay").hidden = false;
+        syncModal();
         focusCard("busy-card");
         navigator.locks.request(PAGE.lock, hold);
       }).catch(function () { resolve(); });
@@ -699,6 +702,7 @@ input[type=file] { display: none; }  /* the buttons that open the file pickers a
     $("btn-terms").disabled = true;
     $("terms-overlay").hidden = false;
     setStatus("Terms to agree to");
+    syncModal();
     focusCard("terms-card");
   }
   $("terms-agree").addEventListener("change", function (ev) { $("btn-terms").disabled = !ev.target.checked; });
@@ -707,6 +711,7 @@ input[type=file] { display: none; }  /* the buttons that open the file pickers a
     termsAgreed = true;
     try { localStorage.setItem(TERMS_KEY, TERMS_VERSION); } catch (e) {}
     $("terms-overlay").hidden = true;
+    syncModal();
     boot();
   });
 
@@ -1113,6 +1118,16 @@ input[type=file] { display: none; }  /* the buttons that open the file pickers a
     }
   }
   function focusGame() { if (gameRunning()) $("canvas").focus(); }
+  // The two cards that are aria-modal (the terms, and "Already open": nothing can be played in this page until they are done) make
+  // the rest of the page inert while they are up, so that the focus stays in the card and a screen reader reads only it. The
+  // other cards leave the bar usable, and are not modal.
+  function syncModal() {
+    var on = !$("terms-overlay").hidden || !$("busy-overlay").hidden;
+    Array.prototype.forEach.call(document.body.children, function (e) {
+      if (e.id === "main" || /^(SCRIPT|STYLE)$/.test(e.tagName)) return;
+      if (on) e.setAttribute("inert", ""); else e.removeAttribute("inert");
+    });
+  }
   // A card that has just come up takes the focus, so that a keyboard or screen reader player finds it: its button when it
   // has an obvious one, else the card, which reads its name and text
   function focusCard(cardId, buttonId) {
