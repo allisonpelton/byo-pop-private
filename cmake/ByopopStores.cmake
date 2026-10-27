@@ -49,6 +49,8 @@ set(BYOPOP_BUY_rocketmania 2026-10-26)
 # Bookworm Adventures Volume 2 (PopCap, 2009): a placeholder that only lets the web configure pass. Its stores are
 # checked at the web milestone, before a page is published.
 set(BYOPOP_BUY_bookwormadv2 2026-10-26)
-# Dynomite Deluxe (PopCap, 2003): a placeholder that only lets the web configure pass. Its stores are checked by the
-# coordinator before a page is published.
-set(BYOPOP_BUY_dynomite 2026-10-26)
+# Checked 2026-10-26: Dynomite Deluxe (PopCap) is on sale on Steam (app 3380, published by EA). EA's store sells a
+# "Dynomite!" (dated 2002) whose page does not confirm it is the Deluxe game, so it is left out; GameHouse, Big Fish
+# Games, iWin and Pogo showed no page for it, and Amazon only an unrelated Android app.
+set(BYOPOP_BUY_dynomite 2026-10-26
+  Steam "https://store.steampowered.com/app/3380/Dynomite_Deluxe/")
