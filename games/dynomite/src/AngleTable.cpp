@@ -63,3 +63,11 @@ bool AngleTable::Intersect(const float* theLine1, const float* theLine2, float* 
 		return true;
 	return false;
 }
+
+// 0x42be00
+void AngleTable::Normalize(double* theOut, int theX, int theY)
+{
+	double aScale = 1.0 / sqrt((double) (theX * theX + theY * theY));
+	theOut[0] = (double) theX * aScale;
+	theOut[1] = (double) theY * aScale;
+}

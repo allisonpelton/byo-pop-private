@@ -21,6 +21,8 @@ public:
 	// 0x42bcd0: where the lines through theLine1's and theLine2's two points (x1, y1, x2, y2) cross, and whether
 	// the crossing is within both
 	static bool			Intersect(const float* theLine1, const float* theLine2, float* thePoint);
+	// 0x42be00: (theX, theY) scaled to length 1, into theOut[0] and theOut[1] (the tutorial's arrows)
+	void				Normalize(double* theOut, int theX, int theY);
 };
 
 }

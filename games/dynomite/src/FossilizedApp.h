@@ -23,6 +23,7 @@ class AngleTable;
 class IntroScreen;
 class SideBar;
 class TitleScreen;
+class Tutorial;
 
 class FossilizedApp : public SexyApp
 {
@@ -242,7 +243,7 @@ public:
 	int          mField4d8;                               // +0x4d8 the framework's: games that lasted a minute (the trial's screens compare it)
 	bool         mLockCursor;                             // +0x1095 registry LockCursor: the board keeps the cursor in a window
 	std::string  mLastScoreName;                          // +0x1098 registry LastScoreName: the name last given a high score
-	Widget*      mField10bc;                              // +0x10bc a widget the main menu takes down
+	Tutorial*    mTutor;                                  // +0x10bc the tutorial (StartTutorial), taken down by the main menu
 	char         mPackFile[0x100];                        // +0x1118 the Stomped Puzzle pack (DEFAULT.EGG, STOMPED\...)
 	unsigned int mPuzzleSkills;                           // +0x1218 the skills the pack has (bits 1, 2, 4), -1 all
 	SideBar*     mSideBar;                                // +0x19e4
@@ -295,6 +296,7 @@ public:
 	void			LoadSavedGame(const char* theFile);			// 0x418fd0
 	void			TitleScreenDone();							// 0x419250: the play link
 	void			PumpLoading();								// port: the loading runs in the main thread
+	virtual bool	HandleScriptCommand(const ScriptCommand& theCommand) override;	// port: TestHooks.cpp
 };
 
 }

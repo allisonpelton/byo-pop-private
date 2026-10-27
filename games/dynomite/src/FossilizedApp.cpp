@@ -17,6 +17,7 @@
 #include "InchySmall.h"
 #include "IntroScreen.h"
 #include "TitleScreen.h"
+#include "Tutorial.h"
 #include "compat2004/Compat2004.h"
 #include "DDImage.h"
 #include "Dialog.h"
@@ -47,7 +48,7 @@ FossilizedApp::FossilizedApp()
 	mFossilKind = 0;
 	mGameMode = 2;
 	mInTutorial = false;
-	mField10bc = NULL;
+	mTutor = NULL;
 	mSideBar = NULL;
 	mIntroScreen = NULL;
 	// port: the original leaves these to its allocation
@@ -175,11 +176,11 @@ void FossilizedApp::ShowMainMenu()
 		SafeDeleteWidget(mBoard);
 		mBoard = NULL;
 	}
-	if (mField10bc != NULL)
+	if (mTutor != NULL)
 	{
-		mWidgetManager->RemoveWidget(mField10bc);
-		SafeDeleteWidget(mField10bc);
-		mField10bc = NULL;
+		mWidgetManager->RemoveWidget(mTutor);
+		SafeDeleteWidget(mTutor);
+		mTutor = NULL;
 	}
 	mSideBar->DisableGameButtons();
 	mSideBar->SetPauseState(0);
@@ -515,7 +516,20 @@ void FossilizedApp::ButtonDepress(int theId)
 // 0x419040
 void FossilizedApp::StartTutorial()
 {
-	// TODO: the tutorial
+	if (mTutor != NULL)
+	{
+		mWidgetManager->RemoveWidget(mTutor);
+		SafeDeleteWidget(mTutor);
+		mTutor = NULL;
+	}
+	if (mBoard != NULL)
+	{
+		mWidgetManager->RemoveWidget(mBoard);
+		SafeDeleteWidget(mBoard);
+	}
+	mTutor = new Tutorial(this);
+	mTutor->Start();
+	mWidgetManager->AddWidget(mTutor);
 }
 
 // 0x418fd0
