@@ -104,7 +104,11 @@ player and the page after a timed game; the tome opens and its lists scroll and 
 tome unlocked, but it shows only the "????" lines of a game with nothing seen yet). The word list is Volume 2's too: each
 word has the noun, verb and adjective marks of `data/compressed_attribs.dat`, which the board hands the tile engine's script,
 and a new player's tutorial runs to its first attack (P, L, A, Y clicked, the "Click to attack!" hint, the attack and the
-"Well done!" panel). The rest of the battle has not been played. Not done: the cut scene player lacks the bitmap tags
+"Well done!" panel). The battles (milestone 3) play natively: the test hook's `soak <update>` (a bot that spells the longest
+word of the board, uses the tutorial's potions, ends a stunned turn, picks treasures and the companion, and clicks the chapter
+map's Enter) takes a new player from the prologue through the adventure's books (its bosses included) to the end of Chapter 10
+of Book 6 and back to the main menu (441 words in about 480,000 updates, no script error); it is not yet a check in the suite.
+Not done: the cut scene player lacks the bitmap tags
 Volume 2's five movies use; PopAnim loads all 304 animations but 41 pictures in 7 of them are not found; the end of the
 game's credits (the finale) has not been run. (The trial wrapper's dialogs are left out on purpose.)
 
