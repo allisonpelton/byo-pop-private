@@ -158,7 +158,7 @@ Platform::JsonValue Apply(SiteProfiles& theGame, const SiteOp& theOp)
 			return Result(theOp, false, "This game cannot rename a player.");
 		std::string aTo = theGame.Fit(theOp.mTo);
 		if (aTo.empty())
-			return Result(theOp, false, "The game\xe2\x80\x99s name rules leave nothing of \"" + theOp.mTo + "\".");
+			return Result(theOp, false, "The game's name rules leave nothing of \"" + theOp.mTo + "\".");
 		std::string anExisting = theGame.Find(aTo);
 		if (!anExisting.empty() && (anExisting != aFrom))
 			return Result(theOp, false, "The game already has a player called \"" + anExisting + "\". Players are never merged.");
@@ -167,7 +167,7 @@ Platform::JsonValue Apply(SiteProfiles& theGame, const SiteOp& theOp)
 		std::string aWhy;
 		if (!theGame.Rename(aFrom, aTo, &aWhy))
 			return Result(theOp, false, aWhy.empty() ? std::string("The game would not rename the player.") : aWhy);
-		return Result(theOp, true, (aTo != theOp.mTo) ? "Renamed to \"" + aTo + "\": the game\xe2\x80\x99s name rules changed the name." : "");
+		return Result(theOp, true, (aTo != theOp.mTo) ? "Renamed to \"" + aTo + "\": the game's name rules changed the name." : "");
 	}
 	if (theOp.mOp == "delete")
 	{
