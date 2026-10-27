@@ -143,6 +143,15 @@ and `mLastTreasureNum`, and the win's altar picture (`OnPanComplete`, L658) is b
 of the last one; `lex.luc` starts both at -1, and a replay does not award treasures (`BattleEngine.lua:1648` skips that for
 `gReplayMode`). A real finished adventure always has some.
 
+A lost adventure battle: the adventure's battles are turn by turn, so a bot that spells nothing (`nowords 1`) is never attacked
+and the game waits for it for ever (the arena's timer is what loses there). With `wordmax 3` (the soak spells words of at most
+three letters, so the enemy's attacks outlast Lex's) Lex dies in the replay's Chapter 5 battle at about update 22,000 and the
+scripts' death flow ends in the Hall of Fame's Adventure tab (Play Again, Main Menu), no script error. In a new adventure
+(profile with `CurrentBook` 4; the books are numbered 0, 4, 5 and 6, a profile at 1 gives BookManager's own "book doesn't exist"
+error) Chapter 1 plays through 60,000 updates with no script error and the chapter's battles come round again: the screenshots
+at 22,000, 32,000, 45,000 and 58,000 show the cow, the boss (Dish and Spoon), the moon and the cow, which is what a lost chapter
+that begins again looks like (the run did not print the loss itself). The death text and the gravestone were looked at in neither run.
+
 ## Bound methods of Volume 2's GameApp (the registrations of 0x43a850 against `GameAppLua.cpp`)
 
 All the methods that 0x43a850 registers by name are in now (`DoHighScoreScreenFromReplay` is 0x446860, which no script calls;
