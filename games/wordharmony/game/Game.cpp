@@ -10,6 +10,9 @@
 #include "SavedGame.h"
 #include "Screens.h"
 #include "Selector.h"
+#ifdef __EMSCRIPTEN__
+#include "SiteProfiles.h"
+#endif
 #include "Sound.h"
 #include "SoundBank.h"
 #include "Stream.h"
@@ -117,6 +120,9 @@ void Game::configure(AppConfig& theConfig)
 	theConfig.mUnknown9C = false;
 	sInstance = this;
 	readCommandLine();
+#ifdef __EMSCRIPTEN__
+	SiteStart(this);	// the web page's players (framework/WebProfiles.h): the last high-score name, and what the page queued for it
+#endif
 	// As the screen saver (/s or /c) the original makes the registry's SaverInstallPath (under HKEY_LOCAL_MACHINE)
 	// the current directory, and throws when the key or the path is missing; the host finds the game's files itself
 	theConfig.mUseFiles = false;
@@ -1828,7 +1834,15 @@ void Game::update(UpdateInfo& theInfo)
 			int aRank = (int)aTable->findRank((unsigned int)mScore);
 			if (aRank < 10 && 0 < mScore)
 			{
+#ifdef __EMSCRIPTEN__
+				{
+					// the web page's player (framework/WebProfiles.h): under "fill" and "create" the box starts with the site's player
+					std::string aSite = SiteScoreName();
+					mHighScoreEntry->startEntry(aSite.empty() ? mSettings.mDefaultScoreName : aSite, mScore);
+				}
+#else
 				mHighScoreEntry->startEntry(mSettings.mDefaultScoreName, mScore);
+#endif
 				mShowNext = mHighScoreEntry;
 			}
 			else
