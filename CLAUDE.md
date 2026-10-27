@@ -70,12 +70,10 @@ re-reads the whole context, so what costs is context times calls, and a cache th
   log file and print a summary line.
 - Test with `tools/check.sh <suite>...` (`--help` lists them): one line per suite, logs in files.
 - Give an agent the files and sections it needs, so it need not read the design docs to find them.
-- **Weekly cap (the user, 2026-10-26):** when the account's weekly usage (all models) reaches 85%, game sessions stop.
-  Check it with `mcp__ccd_session_mgmt__get_usage` (load it with ToolSearch) before each new step and at each commit.
-  At 85% a game session commits what is verified on its branch, sends the coordinator one line on where it stands,
-  and ends its turn without starting the next step. The coordinator then sends no "Begin" and spends the rest only on
-  the local test site: `build/web` built from `main`, with every finished game importing and playable, so the user can
-  test without usage and keeps what remains for other tasks.
+- **Weekly cap (the user, 2026-10-26):** when the account's weekly usage (all models) reaches 85%, the coordinator
+  starts no new game session and sends no "Begin"; it checks with `mcp__ccd_session_mgmt__get_usage` before each one.
+  Game sessions already running carry on and do not watch the usage. The coordinator keeps merging their milestones
+  and keeps the local test site ready: `build/web` built from `main`, with every finished game importing and playable.
 
 ## Sessions, ownership and git (the user's rules)
 
