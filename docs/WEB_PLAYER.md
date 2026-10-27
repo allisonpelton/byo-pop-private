@@ -132,6 +132,14 @@ The shell holds:
 - the panels' containers, which `web/modpanel.js` fills.
 - a `<!-- byopop:footer -->` line, where the build puts the shared footer.
 
+**The game's cursor on the page.** A SexyAppFramework game hides the browser's cursor over the canvas and draws its
+own image cursor into the frame; so that the rest of the page does not fall back to the browser's arrow, the shell
+polls `byopop_cursor()` every 100 ms (`framework/WebCursor.cpp`, read-only: 0 for the browser's cursor, otherwise a
+number that changes with the image, which `byopop_cursor_copy()` then puts in `Module.byopopCursor` as RGBA with its
+hotspot). The image is drawn at the size the game's cursor has on screen, at most 128 px, and set as the CSS cursor
+of everything but the canvas (`.game-cursor` on `<html>`); it is the game's pointer while the mouse is outside the
+canvas, and nothing is set when the game's custom cursors are off or a game has no cursor images.
+
 **The footer** is the same on every game's page: one link, which opens the game's copyright page
 (`<game>-copyright.html`, next to the game) in a new tab. The markup is `web/footer.html` and its style
 `web/footer.css`.

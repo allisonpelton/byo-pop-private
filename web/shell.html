@@ -84,6 +84,9 @@ button[disabled] { opacity: 0.5; cursor: default; }
   width: min(100%, calc((100vh - 90px) * var(--aspect-w, 1.3333))); box-shadow: 0 10px 40px rgba(0, 0, 0, 0.35); border-radius: 4px; overflow: hidden;
 }
 canvas#canvas { display: block; width: 100%; height: 100%; outline: none; image-rendering: auto; }
+/* The game's own cursor on the whole page but its canvas, which draws that cursor itself (pollCursor, below): set while
+   the game shows a custom cursor, so that this rule wins over the buttons' pointer */
+:root.game-cursor, :root.game-cursor :not(canvas) { cursor: var(--game-cursor) !important; }
 .overlay {
   position: absolute; inset: 0; display: grid; place-items: center; padding: 16px;
   background: color-mix(in srgb, var(--bg) 88%, transparent);
@@ -599,7 +602,66 @@ input[type=file] { display: none; }
     // Only a start with mods can be one a mod stops: without any, nothing is noted (no write)
     if (!noMods && enabled > 0) session.markStarting();
     Module.callMain(run.args.concat(noMods ? ["-nomods"] : []).concat(pagePlaceholders() ? ["-placeholders"] : []));
+    cursorTimer = setInterval(pollCursor, 100);
     $("canvas").focus();
+  }
+  // ---------- the game's cursor on the page ----------
+  // A SexyAppFramework game hides the browser's cursor over the canvas and draws its image cursor into the frame. The
+  // rest of the page shows that image too (framework/WebCursor.cpp): polled every 100 ms, as the browser pane gets no
+  // animation frames while it is hidden, drawn at the size the game's cursor has on screen (never past the 128 px that
+  // browsers accept) and set as the CSS cursor of everything but the canvas. A game that shows no custom cursor leaves
+  // the page's own, and so does one whose build has no such calls: the polling stops at the first failed call.
+  var cursorTimer = 0, cursorId = 0, cursorKey = "", cursorSource = null, cursorOnPage = false;
+  function setPageCursor(value) {
+    if (!value && !cursorOnPage) return;
+    cursorOnPage = !!value;
+    var root = document.documentElement;
+    if (value) root.style.setProperty("--game-cursor", value); else root.style.removeProperty("--game-cursor");
+    root.classList.toggle("game-cursor", !!value);
+  }
+  function pollCursor() {
+    var id = 0, stop = exited;
+    if (!stop) {
+      try { id = Module.ccall("byopop_cursor", "number", [], []) | 0; }
+      catch (e) { stop = true; }
+    }
+    if (!id) {
+      cursorId = 0; cursorKey = ""; cursorSource = null;
+      setPageCursor("");
+      if (stop) { clearInterval(cursorTimer); cursorTimer = 0; }
+      return;
+    }
+    if (id !== cursorId) {
+      cursorId = id; cursorKey = ""; cursorSource = null;
+      Module.byopopCursor = null;
+      Module.ccall("byopop_cursor_copy", "number", [], []);
+      var c = Module.byopopCursor;
+      if (c && c.rgba && c.rgba.length === c.width * c.height * 4) {
+        var source = document.createElement("canvas");
+        source.width = c.width; source.height = c.height;
+        source.getContext("2d").putImageData(new ImageData(new Uint8ClampedArray(c.rgba.buffer, c.rgba.byteOffset, c.rgba.length), c.width, c.height), 0, 0);
+        cursorSource = { image: source, width: c.width, height: c.height, hotX: c.hotX, hotY: c.hotY, screenWidth: c.screenWidth, screenHeight: c.screenHeight };
+      }
+    }
+    var s = cursorSource;
+    if (!s) { setPageCursor(""); return; }
+    var cv = $("canvas");
+    var scale = Math.min(cv.clientWidth / s.screenWidth, cv.clientHeight / s.screenHeight);
+    if (!(scale > 0)) scale = 1;
+    var largest = Math.max(s.width, s.height) * scale;
+    if (largest > 128) scale *= 128 / largest;
+    var w = Math.max(1, Math.round(s.width * scale)), h = Math.max(1, Math.round(s.height * scale));
+    var key = id + ":" + w + "x" + h;
+    if (key === cursorKey) return;
+    cursorKey = key;
+    var out = document.createElement("canvas");
+    out.width = w; out.height = h;
+    var g = out.getContext("2d");
+    g.imageSmoothingEnabled = Math.abs(scale - Math.round(scale)) > 0.01;  // the game scales like this: nearest for whole factors
+    g.drawImage(s.image, 0, 0, w, h);
+    var hotX = Math.min(w - 1, Math.max(0, Math.round(s.hotX * w / s.width)));
+    var hotY = Math.min(h - 1, Math.max(0, Math.round(s.hotY * h / s.height)));
+    setPageCursor('url("' + out.toDataURL("image/png") + '") ' + hotX + " " + hotY + ", auto");
   }
   function boot() {
     var W = web();

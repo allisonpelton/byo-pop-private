@@ -10,14 +10,14 @@
 # byopop_web_shell() below. TITLE is also the game's name on the listing page (build/web/index.html) when the game is
 # in BYOPOP_WEB_FINISHED, below.
 # EXPORTS adds a game's own functions to the exported list (Bejeweled: _fflush, for its Node test runner).
-# The page runs the game with callMain() (INVOKE_RUN=0) and calls the C functions of platform/WebApi.cpp and
-# framework/ModMenu.cpp with ccall. Those live in the sexyframework static library, where EMSCRIPTEN_KEEPALIVE
+# The page runs the game with callMain() (INVOKE_RUN=0) and calls the C functions of platform/WebApi.cpp,
+# framework/ModMenu.cpp and framework/WebCursor.cpp with ccall. Those live in the sexyframework static library, where EMSCRIPTEN_KEEPALIVE
 # alone would not link them: EXPORTED_FUNCTIONS names them, which pulls them in. That list replaces
 # Emscripten's default, so it names _main too.
 # web/modpanel.js (the Mods panel, the rescue and restart bookkeeping, the page's file helpers: Module.byopop) is
 # appended to the game's JS with --post-js, so every game's page has the same one without a file of its own.
 set(BYOPOP_WEB_EXPORTED_FUNCTIONS _main _byopop_userdata_restore _byopop_mods_open _byopop_mods_state
-  _byopop_mods_edit _byopop_mods_rescan _byopop_menu _byopop_restart)
+  _byopop_mods_edit _byopop_mods_rescan _byopop_menu _byopop_restart _byopop_cursor _byopop_cursor_copy)
 set(BYOPOP_WEB_RUNTIME_METHODS FS callMain ccall)
 get_filename_component(BYOPOP_WEB_SHELL "${CMAKE_CURRENT_LIST_DIR}/../web/shell.html" ABSOLUTE)
 get_filename_component(BYOPOP_WEB_POST_JS "${CMAKE_CURRENT_LIST_DIR}/../web/modpanel.js" ABSOLUTE)
