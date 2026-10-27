@@ -661,9 +661,17 @@ void Board::SetScrambleDisabled(bool isDisabled)
 
 void Board::SetScrambleVisible(bool isVisible)
 {
+	// Volume 2's (0x414d00) only stops the button from being drawn
 	auto it = mButtons.find(BUTTON_SCRAMBLE);
 	if (it != mButtons.end())
-		it->second->SetVisible(isVisible);
+		it->second->mBtnNoDraw = !isVisible;
+}
+
+void Board::SetAttackVisible(bool isVisible)
+{
+	FadeButton* aButton = mButtons[BUTTON_ATTACK];
+	aButton->SetDisabled(!isVisible);
+	aButton->mBtnNoDraw = !isVisible;
 }
 
 void Board::ScrambleUseNormalForDisabled(bool on)
@@ -1047,7 +1055,7 @@ void Board::SubmitWord()
 			mApp->mProfile->SetBool("NeedValidIdleTip", false);
 			lua_pushstring(LS(), aWord.c_str());
 			gTileEngine->CallLinkedMethod("SubmitPressed", 1);
-			Refill();
+			AddNewTiles(true);
 		} else if (gTileEngine->mMovingCount <= 0 && !mButtons[BUTTON_ATTACK]->mDisabled) {
 			mApp->PlaySample(SOUND_SUBMIT_FAILED);
 		}
@@ -1055,7 +1063,7 @@ void Board::SubmitWord()
 	RehupMouse();
 }
 
-void Board::Refill()
+void Board::AddNewTiles(bool theCreateBonus)
 {
 	if (mTiles.size() >= (size_t)(mGridHeight * mGridWidth))
 		return;
@@ -1117,9 +1125,11 @@ void Board::Refill()
 		}
 	}
 
-	for (Tile* aTile : aNewTiles)
-		Tile::PushTile(aTile);
-	CallLua("gBattleEngine:CreateBonusTiles", (int)aNewTiles.size());
+	if (theCreateBonus) {
+		for (Tile* aTile : aNewTiles)
+			Tile::PushTile(aTile);
+		CallLua("gBattleEngine:CreateBonusTiles", (int)aNewTiles.size());
+	}
 }
 
 // ---- input ----
@@ -1512,14 +1522,15 @@ void Board::DrawOverlay(Graphics* g)
 
 namespace {
 
-// the grid's tiles in a random order (only the unselected ones when the argument is true)
-int GetRandomizedTiles(Board* theBoard, lua_State* L)  // 0x41df60
+// the grid's tiles in a random order, those of the top row only if theTopRow (only the unselected ones when the
+// argument is true)
+int PushRandomTiles(Board* theBoard, lua_State* L, bool theTopRow)
 {
 	bool anUnselected = lua_gettop(L) == 1 && lua_toboolean(L, 1);
 	std::vector<Tile*> aTiles(theBoard->mTiles.begin(), theBoard->mTiles.end());
 	std::vector<int> anIndices;
 	for (int i = 0; i < (int)aTiles.size(); i++)
-		if (!anUnselected || !aTiles[i]->mSelected)
+		if ((!theTopRow || aTiles[i]->mRow == 0) && (!anUnselected || !aTiles[i]->mSelected))
 			anIndices.push_back(i);
 	int aCount = 0;
 	while (!anIndices.empty()) {
@@ -1531,9 +1542,41 @@ int GetRandomizedTiles(Board* theBoard, lua_State* L)  // 0x41df60
 	return aCount;
 }
 
+int GetRandomizedTiles(Board* theBoard, lua_State* L)  // 0x418df0
+{
+	return PushRandomTiles(theBoard, L, false);
+}
+
+// the tiles of the grid's top row, in a random order
+int GetTopTiles(Board* theBoard, lua_State* L)  // 0x418ae0
+{
+	return PushRandomTiles(theBoard, L, true);
+}
+
+// the tile under a tile, unless it is selected (pushed, else nothing)
+int GetTileBelow(Board* theBoard, lua_State* L)  // 0x419550
+{
+	if (lua_gettop(L) < 1)
+		luaL_error(L, "1 parameter expected");
+	Tile* aTile = (Tile*)gLuaSupport->CheckObject(1, ClassOf<Tile>::info);
+	if (aTile == nullptr)
+		luaL_typerror(L, 1, "Tile");
+	std::list<Tile*> aTiles;
+	Tile* aBelow = nullptr;
+	if (theBoard->GetAdjacentTiles(aTile->mCol, aTile->mRow, aTiles)) {
+		for (Tile* anAdjacent : aTiles)
+			if (!anAdjacent->mSelected && anAdjacent->mRow == aTile->mRow + 1 && anAdjacent->mCol == aTile->mCol)
+				aBelow = anAdjacent;
+	}
+	if (aBelow == nullptr)
+		return 0;
+	Tile::PushTile(aBelow);
+	return 1;
+}
+
 // the unselected tiles around a tile, in a random order; in the timed mode a selected tile's are the tiles before
 // and after it in the word
-int GetRandomizedAdjacentTiles(Board* theBoard, lua_State* L)  // 0x41e260
+int GetRandomizedAdjacentTiles(Board* theBoard, lua_State* L)  // 0x419150
 {
 	if (lua_gettop(L) < 1)
 		luaL_error(L, "1 parameter expected");
@@ -1566,7 +1609,7 @@ int GetRandomizedAdjacentTiles(Board* theBoard, lua_State* L)  // 0x41e260
 }
 
 // the attack button's picture: a LuaImage, or its own with no argument
-int ChangeAttackBtnImage(Board* theBoard, lua_State* L)  // 0x41e660
+int ChangeAttackBtnImage(Board* theBoard, lua_State* L)  // 0x4197a0
 {
 	Image* anImage = IMAGE_BUTTON_ATTACK;
 	if (lua_gettop(L) == 1)
@@ -1588,6 +1631,10 @@ void Board::RegisterLua()
 		.Method<&Board::Pause>("Pause")
 		.Method<&Board::IsPaused>("IsPaused")
 		.Method<&Board::DeselectAllTiles>("DeselectAllTiles")
+		.Method<&Board::RemoveTile>("GridRemoveTile")
+		.Method<&Board::RemoveTileFromList>("RemoveTile")
+		.Method<&Board::AddNewTiles>("AddNewTiles")
+		.Method<&Board::SetAttackVisible>("SetAttackVisible")
 		.Method<&Board::GridGetTile>("GridGetTile")
 		.Method<&Board::SetAttackDisabled>("SetAttackDisabled")
 		.Method<&Board::SetAttackBtnPos>("SetAttackBtnPos")
@@ -1609,6 +1656,8 @@ void Board::RegisterLua()
 		.Method<&Board::DisableAndHide>("DisableAndHide")
 		.Method<&Board::CheckIfWordStillValid>("CheckIfWordStillValid")
 		.Method<&Board::SetTMEnemyAttacking>("SetTMEnemyAttacking")
+		.Method<&Board::GetTMEnemyAttacking>("GetTMEnemyAttacking")
+		.Method<&Board::IsScrambling>("IsScrambling")
 		.Method<&Board::GetWordTileSize>("GetWordTileSize")
 		.Method<&Board::Scramble>("Scramble")
 		.Method<&Board::IsNoun>("IsNoun")
@@ -1621,7 +1670,9 @@ void Board::RegisterLua()
 		.Method<&Board::DisableAttackPAM>("DisableAttackPAM")
 		.Raw<&ChangeAttackBtnImage>("ChangeAttackBtnImage")
 		.Raw<&GetRandomizedTiles>("GetRandomizedTiles")
-		.Raw<&GetRandomizedAdjacentTiles>("GetRandomizedAdjacentTiles");
+		.Raw<&GetRandomizedAdjacentTiles>("GetRandomizedAdjacentTiles")
+		.Raw<&GetTileBelow>("GetTileBelow")
+		.Raw<&GetTopTiles>("GetTopTiles");
 }
 
 // ---- the tutorial's arrows ----

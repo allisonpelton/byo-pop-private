@@ -132,8 +132,10 @@ public:
 	Tile* AddTile(Tile* theTile, int theCol, int theRow, int theXGap = 0, int theYGap = 0);
 	// 0x419460: a tile to fall from one cell into another
 	void MoveTile(Tile* theTile, int theOldCol, int theOldRow, int theNewCol, int theNewRow);
-	// 0x419560: the tile of a cell out of the grid (to the tile engine)
+	// 0x4126b0 (the Lua method GridRemoveTile): the tile of a cell out of the grid (to the tile engine)
 	void RemoveTile(int theCol, int theRow);
+	// 0x412750 (the Lua method RemoveTile): the tile out of the board's list only; the script deletes it itself
+	void RemoveTileFromList(Tile* theTile) { mTiles.remove(theTile); }
 	void RehupMouse();                               // 0x41ec10
 	void TileDeleted(Tile* theTile);                 // 0x41ee90
 	void AddClone(Tile* theTile) { mClones.push_back(theTile); }
@@ -164,12 +166,14 @@ public:
 	void SetAttackBtnPos(int x, int y);              // 0x4189b0
 	void ShowImmuneAttack();                         // 0x41a3e0
 	void SetScrambleDisabled(bool isDisabled);       // 0x41a1d0
-	void SetScrambleVisible(bool isVisible);         // 0x41a260
+	void SetScrambleVisible(bool isVisible);         // 0x414d00 (Volume 2's: the button is not drawn)
+	void SetAttackVisible(bool isVisible);           // 0x414c30: the attack button is disabled and not drawn
 	void ScrambleUseNormalForDisabled(bool on);      // 0x41a2d0
 	bool Scramble();                                 // 0x41a620
 	void SubmitWord();                               // 0x41cb90
-	// 0x41d3a0: the tiles fall into the word's gaps and new ones fill the grid
-	void Refill();
+	// 0x4181c0, a Lua method too: the tiles fall into the gaps and new ones fill the grid; with theCreateBonus the
+	// battle engine hears of the new tiles (CreateBonusTiles), the word's submission says so, the fire tile's burn does not
+	void AddNewTiles(bool theCreateBonus);
 	void SetAttackImage(Image* theImage);            // 0x41de80 (ChangeAttackBtnImage)
 	void EnableAttackBtnPAM(bool on);                // 0x41a020: the attack button's glow plays (or not)
 	void DisableAttackPAM(bool isPlaying);           // 0x41ef30: the glow goes on or holds
@@ -178,6 +182,8 @@ public:
 	void DoLevelUp(bool on);                         // 0x4162e0: the battle engine's level-up overlay
 	void DoAltarScene(bool on) { mEndingChapter = on; }  // 0x413e90
 	void SetTMEnemyAttacking(bool on) { mTMEnemyAttacking = on; }  // 0x416320
+	bool GetTMEnemyAttacking() { return mTMEnemyAttacking; }       // 0x40f8d0
+	bool IsScrambling() { return mScrambling; }                    // 0x415090
 	void DisableButtons();                           // 0x41e780: for an overlay
 	void RestoreButtons();                           // 0x41e900
 	bool IsPaused() const { return mPauseCount > 0; }  // 0x416260
