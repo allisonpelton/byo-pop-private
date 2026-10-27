@@ -3,6 +3,8 @@
 # Game files copied from the user's own installs (assets/<game>/) - never commit or redistribute
 /assets/
 /build*/
+# The user's notes from playing the games, with screenshots of the games (never commit)
+/testnotes/
 /dist/
 *.pyc
 __pycache__/
