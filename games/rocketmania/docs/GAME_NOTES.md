@@ -185,10 +185,13 @@ a save of the original loads (the random state apart, which the original wrote w
 Players/savea.dat (classic), saveb.dat (arcade) and savec.dat (strategy) in the user folder. A game in progress is saved
 when the player goes back to the menu (0x42e010) and when the app shuts down (0x42f730, the port's ShutdownHook) unless
 its state is 2 (finished); a new game deletes the mode's save (0x42ea30, 0x41d380) and CONTINUE SAVED GAME (0x403380) makes
-the board, loads the save into it and deletes the file. Not translated: what a game saved in the middle of a level's end
-(mFc, m100, m104) shows again after loading (0x41b7e0 calls the buy-rockets screen 0x428620, the question 0x4286b0 and the
-next level 0x428bc0), so those flags are cleared and the game goes on from its state. Checked by saving a game, going to the
-menu and continuing it: the board, score, level and difficulty come back pixel for pixel.
+the board, loads the save into it and deletes the file. What a game saved in the middle of a level's end (mFc, m100, m104)
+shows again after loading (AfterLoad, 0x41b7e0: the buy-rockets screen 0x428620, the question 0x4286b0 and the next level
+0x428bc0). One quirk of the originals is kept: the loop that should save the three per-path arrays (+0x384, +0x3fc, +0x41a:
+which edges a lit path touches) never moves its three addresses, so it writes, and reads, the same four bytes at +0x3fc and
+the bytes at +0x41a and +0x438 thirty times; a loaded game has the arrays as a new board has them until the next pass of the
+connection finder (0x426370) sets them afresh. Checked by saving a game, going to the menu and continuing it: the board,
+score, level and difficulty come back pixel for pixel.
 
 Options dialog (read 2026-10-26, not translated yet): OptionsDialog (ctor 0x411ba0, opened by 0x42de20 with a flag for
 "from the menu") derives from MoneyDialog (0x4118d0: the dialog on a black fill of the window minus 8 pixels, Dialog::Draw on
