@@ -3,7 +3,7 @@
 
 // The board's grid of eggs at +0x8c (vtable 0x4fa408, 0x46e8 bytes; 0x415770-0x418460; docs/GAME_NOTES.md
 // section 4): a hex grid of 33-pixel cells, 15 columns of 100 rows, the odd rows shifted right by 16, under a
-// ceiling that comes down. Work in progress: the functions not translated yet are TODO.
+// ceiling that comes down.
 
 #include "PtrList.h"
 

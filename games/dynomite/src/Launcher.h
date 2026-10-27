@@ -2,7 +2,7 @@
 #define __LAUNCHER_H__
 
 // The board's launcher at +0x5c (vtable 0x4f73ac, only its destructor; 0xab0 bytes; 0x401050-0x4034b0): the
-// slingshot that holds the loaded egg and fires it. Work in progress: the functions not translated yet are TODO.
+// slingshot that holds the loaded egg and fires it.
 
 #include "MTRand.h"
 #include "Point.h"

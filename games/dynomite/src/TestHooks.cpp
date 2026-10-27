@@ -7,12 +7,16 @@
 //   board      logs the board: "script: board mode <game type> score <score> eggs <egg count> cells <hash>", the
 //              hash an FNV-1a of the grid's cells ("script: board none" without a board), so a test can check
 //              that a saved game loads as it was saved
+//   combo <n>  has Inchy call out a chain of level n (1 combo ... 7 dynomite combo; 0 clears his bubble), as the
+//              board's Chain does a match later; logs "script: combo <n>" ("script: combo none" without the side bar)
 #include <SDL.h>
+#include <cstdlib>
 
 #include "CellButton.h"
 #include "Dynomite.h"
 #include "EggGrid.h"
 #include "FossilizedApp.h"
+#include "InchySmall.h"
 #include "SideBar.h"
 #include "Tutorial.h"
 
@@ -55,6 +59,17 @@ bool FossilizedApp::HandleScriptCommand(const ScriptCommand& theCommand)
 			aHash = (aHash ^ aBytes[i]) * 16777619u;
 		SDL_Log("script: board mode %d score %d eggs %d cells %08x", mBoard->mGameType,
 			(mSideBar != NULL) ? mSideBar->mScore : -1, mBoard->mGrid->mEggCount, aHash);
+		return true;
+	}
+	if (theCommand.mCommand == "combo")
+	{
+		if ((mSideBar == NULL) || (mSideBar->mInchy == NULL))
+		{
+			SDL_Log("script: combo none");
+			return true;
+		}
+		mSideBar->mInchy->Combo(1, atoi(theCommand.mArgs.c_str()));
+		SDL_Log("script: combo %s", theCommand.mArgs.c_str());
 		return true;
 	}
 	return SexyAppBase::HandleScriptCommand(theCommand);

@@ -791,7 +791,7 @@ void Dynomite::Chain(int x, int y, bool isMatch)
 	{
 		if (mField148 == false)
 			return;
-		mApp->mSideBar->mInchy->SayChain(0x32, mChain);
+		mApp->mSideBar->mInchy->Combo(0x32, mChain);
 		int aChain = mChain + 1;
 		mChain = aChain;
 		if (mLongestChain < aChain)
