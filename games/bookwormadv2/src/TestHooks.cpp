@@ -17,6 +17,9 @@
 //   lua <chunk>     runs the rest of the line as Lua (logs "script: lua: <error>" when it fails)
 //   spectrum        logs how many cells of the media player's spectrum are lit ("script: spectrum <n> lit")
 #include <SDL.h>
+#ifdef __EMSCRIPTEN__
+#include <emscripten/heap.h>
+#endif
 
 #include <algorithm>
 #include <cstdlib>
@@ -148,6 +151,10 @@ bool GameApp::HandleScriptCommand(const ScriptCommand& theCommand)
 			return true;
 		AddScriptCommand(mUpdateCount + 100, "soak", StrFormat("%d %d", anEnd, aTick + 1));
 		bool aWordTurn = aTick % 2 == 0;
+#ifdef __EMSCRIPTEN__
+		if (aTick % 100 == 0)
+			SDL_Log("script: soak %d: heap %zu bytes", mUpdateCount, emscripten_get_heap_size());
+#endif
 		if (mBoard != nullptr && !mBoard->mIsMiniGame) {
 			static int sLogged = 0;
 			for (Tile* aTile : mBoard->mTiles)

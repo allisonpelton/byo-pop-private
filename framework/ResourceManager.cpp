@@ -1,6 +1,5 @@
 
 #include "ResourceManager.h"
-#include <cctype>
 #include "XMLParser.h"
 #include "SoundManager.h"
 #include "DDImage.h"
@@ -12,18 +11,6 @@
 #include "PerfTimer.h"
 
 using namespace Sexy;
-
-// port: a resource's group is found by name without regard to case, as the resource group list is (a game's scripts
-// may spell a group's name otherwise than its resources file does)
-static bool SameGroup(const std::string &theGroupA, const std::string &theGroupB)
-{
-	if (theGroupA.size() != theGroupB.size())
-		return false;
-	for (size_t i = 0; i < theGroupA.size(); i++)
-		if (tolower((unsigned char)theGroupA[i]) != tolower((unsigned char)theGroupB[i]))
-			return false;
-	return true;
-}
 
 // port: texture format hints from D3DInterface.h, stored in MemoryImage::mD3DFlags
 enum D3DImageFlags 
@@ -110,7 +97,7 @@ void ResourceManager::DeleteResources(ResMap &theMap, const std::string &theGrou
 {
 	for (ResMap::iterator anItr = theMap.begin(); anItr != theMap.end(); ++anItr)
 	{
-		if (theGroup.empty() || SameGroup(anItr->second->mResGroup, theGroup))
+		if (theGroup.empty() || anItr->second->mResGroup==theGroup)
 			anItr->second->DeleteResource();
 	}
 }
@@ -131,7 +118,7 @@ void ResourceManager::DeleteExtraImageBuffers(const std::string &theGroup)
 {
 	for (ResMap::iterator anItr = mImageMap.begin(); anItr != mImageMap.end(); ++anItr)
 	{
-		if (theGroup.empty() || SameGroup(anItr->second->mResGroup, theGroup))
+		if (theGroup.empty() || anItr->second->mResGroup==theGroup)
 		{
 			ImageRes *aRes = (ImageRes*)anItr->second;
 			MemoryImage *anImage = (MemoryImage*)aRes->mImage;
@@ -1095,7 +1082,7 @@ int	ResourceManager::GetNumResources(const std::string &theGroup, ResMap &theMap
 	for (ResMap::iterator anItr = theMap.begin(); anItr != theMap.end(); ++anItr)
 	{
 		BaseRes *aRes = anItr->second;
-		if (SameGroup(aRes->mResGroup, theGroup) && !aRes->mFromProgram)
+		if (aRes->mResGroup==theGroup && !aRes->mFromProgram)
 			++aCount;
 	}
 
