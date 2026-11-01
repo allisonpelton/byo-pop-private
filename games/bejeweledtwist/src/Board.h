@@ -96,7 +96,7 @@ public:
 	int mRows = 0;                     // +0x1330
 	int mCols = 0;                     // +0x1334
 	Piece** mGrid = nullptr;           // +0x1338: mRows x mCols, row by row
-	// +0x149c: objects of a class at 0x71eb9e (not yet ported); ClearBoard deletes them
+	// +0x149c: the electro gems' strikes (the class at 0x71eb9e, not yet ported); ClearBoard deletes them
 	std::vector<void*> mUnknown149C;
 	std::vector<Piece*> mBombList;     // +0x14bc: bombs about to go off, drawn over the board (Piece::DrawFront)
 	std::map<int, Piece*> mPieceMap;   // +0x1364: the pieces by id (0x6b8c20 adds, 0x6b677b drops)
@@ -785,6 +785,7 @@ public:
 	bool UpdateUnknown2170();                     // 0x6af0e2
 	void CheckSettled();                          // 0x6c7659
 	bool SettlePieces();                          // 0x6c812f: true once every gem is at rest
+	void UpdateStrikes();                         // 0x6c87d2: the electro gems' strikes (+0x149c)
 	void FallPieces();                            // 0x6cf84a
 	static void UpdateCell(Cell& theCell);        // 0x6a3904
 	bool DropPieces();                            // 0x6a5512: true if a column has a gap
@@ -811,7 +812,7 @@ public:
 	// port: the piece the dialog at +0x2584 points at, once it is ported
 	int GetPointedPieceId() { return -1; }
 	Piece* GetPieceAtXY(int theX, int theY);     // 0x6a4121
-	void PieceArrived(Piece* thePiece);          // 0x6c0ccf: a piece that flew to its place (Piece::Update)
+	void BreakPiece(Piece* thePiece);            // 0x6c0ccf: a gem breaks up, in a match or blown up
 	bool GetUnknown23F5() { return mUnknown23F5; }     // 0x6a639a
 	int GetBoardX() { return mBoardX; }                // 0x6a47d9
 	int GetColX(int theCol) { return GetBoardX() + gGemWidth * theCol; }  // 0x6a4819

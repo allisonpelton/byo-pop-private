@@ -1082,9 +1082,7 @@ void Board::UpdateGame()
 			mUnknown2224 = 0.2f;
 	}
 	if (!mUnknown149C.empty() || aCount38 != 0) {
-		// port: 0x6c87d2 clears the matched gems (their points, sparks and the cascades); it comes with the matching
-		// and draws from Rand
-		NotPorted("Board::UpdateGame: the matches (0x6c87d2)");
+		UpdateStrikes();
 	}
 	if (mUnknown14AC.empty())
 		mUnknown3905 = false;
@@ -2152,5 +2150,22 @@ void Board::RetargetTravellers()
 	if (!mUnknown26B0.empty()) {
 		// port: each traveller's new target (0x6a3447 picks a cell) comes with the travellers
 		NotPorted("Board::RetargetTravellers (0x6a9f1d)");
+	}
+}
+
+void Board::UpdateStrikes()
+{
+	// The original asks the app whether it is 3D accelerated, for the strikes' effects
+	SettlePieces();
+	UpdateUnknown1660();
+	if (mUnknown149C.empty()) {
+		mUnknown21DA = true;
+		mUnknown15C = 0;
+	}
+	if (!mUnknown149C.empty()) {
+		// port: the electro gems' strikes (objects of the class at 0x71eb9e: a row, a column or a star of lightning
+		// that spreads a cell an update, SOUND_ELECTRO_EXPLODE, sparks drawn from RandSigned) come with the electro
+		// gems going off (0x6c1857), which make them
+		NotPorted("Board::UpdateStrikes: the electro gems' strikes");
 	}
 }

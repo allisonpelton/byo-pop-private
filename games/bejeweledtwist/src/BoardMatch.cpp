@@ -307,14 +307,14 @@ int Board::FindMatches(unsigned int theFlags)
 			if (aMatch.mKind == 4 && aReal) {
 				// The square: its corners fly into the middle gem, which turns
 				if (aCentre->mPendingKind == 0)
-					PieceArrived(aCentre);
+					BreakPiece(aCentre);
 				Make6Gem(aCentre, 0.25f);
 				aCentre->mPendingDY = 0;
 				aCentre->mPendingDX = 0;
 				for (unsigned int i = 0; i < aMatch.mIds.size(); i++) {
 					Piece* aGem = GetPieceById(aMatch.mIds[i]);
 					if (aGem != nullptr && !aGem->mUnknown51D) {
-						PieceArrived(aGem);
+						BreakPiece(aGem);
 						if (aGem->mPendingKind == 0) {
 							if (aGem->mUnknown538 == 0) {
 								aGem->mPendingDX = (float)(((double)aCentre->mX - (double)aGem->mX) / 25.0);
@@ -506,7 +506,7 @@ next_match:
 					aPiece->mPendingKind != 0) {
 					MakePowerGem(aPiece, 0.0f);
 				} else {
-					PieceArrived(aPiece);
+					BreakPiece(aPiece);
 					if (aPiece->IsFlagSet(Piece::FLAG_FRUIT))
 						continue;
 					aPiece->mBreaking = false;
@@ -547,7 +547,7 @@ next_match:
 									anOther->mPendingDY = (float)(((double)aY - (double)anOther->mY) / 25.0);
 									anOther->mPendingTime = 0.25f;
 									aPiece->mUnknown4FC = 0;
-									PieceArrived(anOther);
+									BreakPiece(anOther);
 								}
 							}
 							break;
@@ -562,7 +562,7 @@ next_match:
 			Piece* aPiece = GetPieceAt(aRow, aCol);
 			if (aPiece != nullptr && aPiece->mUnknown10C != 0) {
 				aPiece->mUnknown51D = false;
-				PieceArrived(aPiece);
+				BreakPiece(aPiece);
 			}
 		}
 	}
@@ -783,7 +783,7 @@ void Board::MakeMatchSpecial(MatchInfo& theMatch, std::vector<Piece*>& theReset,
 						Piece* aGem = GetPieceById(theMatch.mIds[i]);
 						if (aGem == nullptr || aGem->mUnknown51D)
 							continue;
-						PieceArrived(aGem);
+						BreakPiece(aGem);
 						if (!aGem->IsSpecial()) {
 							if (aGem == aPiece || aGem->mPendingKind != 0) {
 								theReset.push_back(aGem);
@@ -810,7 +810,7 @@ void Board::MakeMatchSpecial(MatchInfo& theMatch, std::vector<Piece*>& theReset,
 					Piece* aGem = GetPieceById(theMatch.mIds[i]);
 					if (aGem == nullptr || aGem->mUnknown51D)
 						continue;
-					PieceArrived(aGem);
+					BreakPiece(aGem);
 					if (!aGem->IsSpecial()) {
 						if (aGem == aPiece || aGem->mPendingKind != 0) {
 							theReset.push_back(aGem);
@@ -833,7 +833,7 @@ void Board::MakeMatchSpecial(MatchInfo& theMatch, std::vector<Piece*>& theReset,
 			aPiece->mUnknown538 = theElectro ? 8 : 16;
 		}
 	} else {
-		PieceArrived(aPiece);
+		BreakPiece(aPiece);
 	}
 	if (aPiece != nullptr) {
 		theReset.push_back(aChosen);
@@ -1003,4 +1003,83 @@ void Board::Refill()
 	else if (mUnknown15C < 1)
 		mUnknown15C = 0;
 	CheckCombos();
+}
+
+void Board::BreakPiece(Piece* thePiece)
+{
+	thePiece->mUnknown10C = 0;
+	mUnknown2228 = 0.5f <= mUnknown2228 ? mUnknown2228 : 0.5f;
+	if (!mUnknown218C && thePiece->mColor < 7)
+		mUnknown218C = true;
+	if (thePiece->mUnknown2F5) {
+		thePiece->mUnknown2F5 = false;
+		return;
+	}
+	if (0 < mUnknown1508) {
+		// The cell glows in the gem's colour, brighter down a cascade
+		int aColor = thePiece->mColor;
+		int anAlpha = mUnknown1508 * 0x55;
+		// (the original's table has black and two whites after the seven colours)
+		Color aTint = aColor < 7 ? gGemColors[aColor] : (aColor == 7 ? Color(0, 0, 0) : Color(255, 255, 255));
+		aTint.mAlpha = anAlpha < 0x100 ? anAlpha : 0xff;
+		mCells[mCols * thePiece->mRow + thePiece->mCol].mColor = aTint;
+	}
+	if (thePiece->mBreaking)
+		return;
+	thePiece->mBreaking = true;
+	ShowCountPopup();
+	if (thePiece->IsFlagSet(Piece::FLAG_BOMB)) {
+		// port: a bomb in a match is defused (stat 0x47 unless +0x116, 0x6c03a4, its count cleared, the flag off); it
+		// comes with the bombs
+		NotPorted("Board::BreakPiece: a bomb");
+	}
+	if (thePiece->mUnknown51D) {
+		thePiece->mBreaking = false;
+		return;
+	}
+	int aColor = thePiece->mColor;
+	if (-1 < aColor && aColor < 7)
+		AddStat(aColor + 0x4b, 1);
+	if (mUnknown15C < 1 && !IsBusy()) {
+		mUnknown21DA = true;
+		mUnknown15C = 0;
+	}
+	if (thePiece->IsFlagSet(Piece::FLAG_1)) {
+		AddStat(0x46, 1);
+		if (thePiece->mPendingKind == 0)
+			thePiece->mScale288 = 0.0f;
+		if (thePiece->mBreaking)
+			thePiece->mScale288 = 0.75f;
+	} else if (thePiece->IsFlagSet(Piece::FLAG_6) && !thePiece->mUnknown51D) {
+		// port: a hypercube's blast (stat 0x42, 50 sparks each of two kinds, 0x6baa5a, 75 points) comes with the
+		// special gems; it draws from Rand
+		NotPorted("Board::BreakPiece: a hypercube");
+	} else if (thePiece->IsFlagSet(Piece::FLAG_COAL) && !thePiece->mUnknown51D) {
+		// port: coal breaking (stat 0x4a, 0x6c03a4 with 1) comes with the coal
+		NotPorted("Board::BreakPiece: coal");
+	} else if (thePiece->IsFlagSet(Piece::FLAG_ELECTRO) && !thePiece->mUnknown51D) {
+		// port: an electro gem going off (its strike at +0x149c, 150 points, SOUND_WILDCARD_DESTROYED and
+		// SOUND_FLAMELIGHTNING) comes with the electro gems
+		NotPorted("Board::BreakPiece: an electro gem");
+		return;
+	} else if (thePiece->IsFlagSet(Piece::FLAG_POWER)) {
+		// port: a power gem's blast (stat 0x40, 50 points, 0x6b8c49, 0x729363) comes with the special gems
+		NotPorted("Board::BreakPiece: a power gem");
+	} else if (thePiece->IsFlagSet(Piece::FLAG_LOCKED)) {
+		// port: a gem lock breaking (0x72952f) comes with the gem locks
+		NotPorted("Board::BreakPiece: a gem lock");
+	} else if (thePiece->IsFlagSet(Piece::FLAG_FRUIT)) {
+		// port: the fruit gem (its sound, the dance's curves and +0x265c) comes with the fruit gem
+		NotPorted("Board::BreakPiece: a fruit gem");
+		thePiece->mBreaking = false;
+		return;
+	} else if (thePiece->IsFlagSet(Piece::FLAG_DEVIL)) {
+		// port: a doom gem breaking (stat 0x44, 0x6c03a4) comes with the doom gems
+		NotPorted("Board::BreakPiece: a doom gem");
+		thePiece->mBlasted = true;
+	}
+	if (!thePiece->mUnknown116)
+		mUnknown1E8++;
+	else
+		thePiece->mBlasted = true;
 }

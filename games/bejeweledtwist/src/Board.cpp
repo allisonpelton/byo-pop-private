@@ -929,12 +929,6 @@ Piece* Board::GetPieceAtXY(int theX, int theY)
 	return nullptr;
 }
 
-void Board::PieceArrived(Piece* thePiece)
-{
-	(void)thePiece;
-	NotPorted("Board::PieceArrived (0x6c0ccf)");
-}
-
 int Board::GetPan(int theX)
 {
 	int aWidth = GetColX(mCols - 1) + (gGemWidth - GetColX(0));

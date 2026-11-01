@@ -1436,7 +1436,7 @@ void Piece::Update()
 				mPendingDY = 0.0f;
 				mPendingDX = 0.0f;
 				mUnknown536 = false;
-				gBoard->PieceArrived(this);
+				gBoard->BreakPiece(this);
 			}
 		}
 	}
