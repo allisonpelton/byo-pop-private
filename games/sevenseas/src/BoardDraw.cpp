@@ -791,17 +791,17 @@ void Board::DrawBonus(Graphics* g)
 	g->SetColor(Color(0xff, 0xff, 0));
 	if (mBonusState == 1)
 	{
-		WriteCenteredLine(g, mHeight - 0x32, GT(0x004a2f70));
+		WriteCenteredLine(g, 0x1f, GT(0x004a2f70));
 		WriteCenteredLine(g, mHeight - 0x1e, GT(0x004a2f50));
 	}
 	else if (mBonusState == 2)
 	{
-		WriteCenteredLine(g, mHeight - 0x32, GT(0x004a2f64));
+		WriteCenteredLine(g, 0x1f, GT(0x004a2f64));
 		WriteCenteredLine(g, mHeight - 0x1e, GT(0x004a2f50));
 	}
 	else if (mShovelX == -1)
 	{
-		WriteCenteredLine(g, mHeight - 0x32, GT(0x004a3070));
+		WriteCenteredLine(g, 0x1f, GT(0x004a3070));
 		WriteCenteredLine(g, mHeight - 0x1e, GT(0x004a305c));
 	}
 	else
@@ -813,14 +813,14 @@ void Board::DrawBonus(Graphics* g)
 		{
 			if (aDist < 3)
 			{
-				WriteCenteredLine(g, mHeight - 0x32, GT(0x004a3028));
+				WriteCenteredLine(g, 0x1f, GT(0x004a3028));
 				WriteCenteredLine(g, mHeight - 0x1e, GT(0x004a3014));
 			}
 			else
 			{
 				int aDX = mTreasureX - mShovelX;
 				int aDY = mTreasureY - mShovelY;
-				WriteCenteredLine(g, mHeight - 0x32, GT(0x004a3004));
+				WriteCenteredLine(g, 0x1f, GT(0x004a3004));
 				unsigned int aText;
 				if (abs(aDX) < abs(aDY))
 					aText = (aDY < 0) ? 0x004a2fdc : 0x004a2fcc;      // to the north / to the south
@@ -835,7 +835,7 @@ void Board::DrawBonus(Graphics* g)
 		}
 		else
 		{
-			WriteCenteredLine(g, mHeight - 0x32, GT(0x004a304c));
+			WriteCenteredLine(g, 0x1f, GT(0x004a304c));
 			WriteCenteredLine(g, mHeight - 0x1e, GT(0x004a303c));
 		}
 	}
