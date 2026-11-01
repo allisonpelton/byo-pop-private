@@ -4,6 +4,26 @@ Gameplay mod ideas to implement once the decompiled game and the mod menu are fu
 a hook in the translated `Board` code; the translation keeps the original behaviour as the default and
 reads these parameters from mod tunables instead of hard-coding them.
 
+## Kinds of mod
+
+Moved here from CLAUDE.md on 2026-11-01, word for word; CLAUDE.md keeps the rule's first sentence.
+
+- **Mods (the user, 2026-10-26):** code that makes a game moddable makes things configurable (rules, settings and
+  their ranges in `mod.json` and the mod menu); it never just overwrites the original, which plays unchanged with
+  no mod on. Every mod is data: a feature's code lives in the port, and a mod's `features` or `rules` turns it on.
+  So each feature the port adds also ships a mod that turns it on. There are three kinds of mod:
+  - An **example** mod has `example` in its name (`example-flame-gems`, `example-twist`). It shows how a single
+    feature can be configured, for playing with its settings and finding which features work well together. It
+    starts off (`"defaultEnabled": false`).
+  - A **feature** mod gives the player one feature under its own name (BookWorm's `widescreen` or `undo`). Its
+    settings are in the mod menu.
+  - A **curated** mod gives the player a tuned experience, much like a fan game: features, settings and art
+    chosen to play well together. It never copies a game mode from another game (the user, 2026-10-26): it always
+    has a twist of its own that makes a player want to pick it over the game it draws on. A port may implement
+    features from other games so that they can be recombined in new ways, and it is fine if a player can combine them
+    into something close to another game's mode; a curated mod itself is never just that mode. Bejeweled 2's
+    Twilight alone in Bejeweled is not interesting, but with other tunables it can be.
+
 | Idea | What it needs in the engine |
 |---|---|
 | Allow invalid moves | Swap rule flag: keep a swap that makes no match instead of swapping back (and decide whether it counts as a move / costs time). |
