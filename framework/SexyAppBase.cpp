@@ -3191,6 +3191,12 @@ void SexyAppBase::RunScript()
 			SaveScreenshot(aCommand.mArgs);
 		else if ((aName == "screenshotfull") && (!aCommand.mArgs.empty()))
 			SaveScreenshot(aCommand.mArgs, true);
+		else if ((aName == "focus") && ((aCommand.mArgs == "lose") || (aCommand.mArgs == "regain")))
+		{
+			// as the window's focus event does (WM_ACTIVATEAPP), like origrun's "focus lose" and "focus regain"
+			mActive = aCommand.mArgs == "regain";
+			RehupFocus();
+		}
 		else if (aName == "quit")
 			Shutdown();
 		else if (!HandleScriptCommand(aCommand))
