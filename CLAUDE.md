@@ -31,7 +31,10 @@ the same machine. A plain run opens a window, raises it over whatever the user i
   Core Audio watch; rundesk silences only SDL). Its byte-patch list (git-ignored) pins a copy's random seed to the
   port's and skips trial screens, and its update-timed shots and bursts capture both sides at the same game update
   (`at`, `burst ... update`); a worktree stages copies under a short path with `--stage-root`. Its `hw*` input commands
-  are unconfirmed (ORIGRUN.md, gaps). It does not redirect the registry or saves. It cannot stop a message
+  are unconfirmed (ORIGRUN.md, gaps). It does not redirect the registry or saves, and it need not: "You can mess with
+  the registry entries for PopCap games all you like. I promise." (the user, 2026-11-01), so a run may set, change or
+  delete any PopCap game's own registry values (Is3D, screen mode, the 3D test's results) without restoring them; the
+  rest of the registry stays untouched. It cannot stop a message
   box's own sound or a MessageBeep, and it has no guard against URL or program launches, so a script never clicks a
   link, "Buy" or "More Games" button. When a run really needs real sound, the user turns the speakers off for a short
   stretch or overnight.
