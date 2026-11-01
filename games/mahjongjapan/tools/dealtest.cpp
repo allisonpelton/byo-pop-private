@@ -305,10 +305,12 @@ static int Solve(int theId, bool theDeal, unsigned int theSeed, int thePercent)
 			}
 		theX = theY = -1;
 	};
-	// The tips that come 1 s after a move (Board::UpdateMoves, 0x40d560): both key tiles free (1), a flower or a
-	// season free (7); "tip <id> <moves before it>" on stderr, for the script to click the tip away
+	// The tips that come after a move (Board::UpdateMoves, 0x40d560, and CheckStuck, 0x40dfd0): both key tiles
+	// free (1), a flower or a season free (7), no pair free (5); "tip <id> <moves before it>" on stderr, for the
+	// script to click the tip away
 	bool aKeysTipped = false;
 	bool aFlowersTipped = false;
+	bool aStuckTipped = false;
 	int aMoveCount = 0;
 	auto aTips = [&]() {
 		if (!aKeysTipped && aLayout.CountFree2b() == 2)
@@ -320,6 +322,14 @@ static int Solve(int theId, bool theDeal, unsigned int theSeed, int thePercent)
 		{
 			aFlowersTipped = true;
 			fprintf(stderr, "tip 7 %d\n", aMoveCount);
+		}
+		// No free pair left but a special move (Board::CheckStuck, 0x40dfd0): tip 5, once a level
+		int aPairs, aLeft, aKinds;
+		aLayout.CountMoves(&aPairs, &aLeft, &aKinds);
+		if (!aStuckTipped && aPairs < 1 && aLeft != 0 && 0 < aMoveCount)
+		{
+			aStuckTipped = true;
+			fprintf(stderr, "tip 5 %d\n", aMoveCount);
 		}
 	};
 	aLayout.UpdateFree();
