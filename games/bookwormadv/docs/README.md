@@ -139,6 +139,9 @@ the Submit! picture (`ChangeAttackBtnImage`), and the port's `SetAttackDisabled`
 size from the Attack picture; the original's (0x41a070, 0x41a3e0) take it from the picture the button has (+0xb0). Fixed
 (2026-11-01).
 
+A hint's lines (Letter Rip's tutorial, any hint with its lines up) stood 19 pixels apart; the original's ArrowHint::Draw
+(0x4036c0) steps them by the font's ascent (14), not its height (0x403953). Fixed (2026-11-01).
+
 ### Timing in the pilot
 
 Both sides are scripted by the game's update count (`tools/pilot/gen.py`). The port runs a script line "N ..." at the start
@@ -175,11 +178,14 @@ which blinks 150 updates on and 50 off from the Yes click: the shot fell exactly
 lands a few updates apart from run to run (a burst of the original turned the text off at update 5383 in one run, and
 the screens run still showed it at 5385, where the port turns it off). The shot now comes 100 updates after the click.
 
-The original under origrun never shows a hover. On mouse messages it asks where the real cursor is (GetCursorPos and
-WindowFromPoint, in SexyAppBase's message handling, 0x547ea0), and on rundesk's desktop that is never over its window, so it
-takes the mouse as gone (the check is near 0x548635). The port lights a button under the resting mouse, as the original
-does with a real cursor: Link n' Spell's YES (the mouse left there by the menu's click) and the tome's scroll arrow. These
-two are listed as "origrun can't show hover", not masked.
+The original under origrun showed no hover. On mouse messages it asks where the real cursor is (ClientToScreen,
+GetCursorPos and WindowFromPoint, in SexyAppBase's message handling, 0x547ea0, from 0x548635), and rundesk's desktop has no
+cursor at all (GetCursorPos fails), so it took the mouse as gone and sent the widgets a mouse exit. With the user's leave to
+patch the test copies (2026-11-01), the pilot's `seedpatch.py` makes that test answer "inside" in the staged copy
+(0x5486b7; the cursor's own position is read only on the "outside" path, and origrun's mouse never leaves the window). It is
+a change to the test harness's copy of the original, never to an install and never to the port, and it is the one patch
+besides the seeds. With it the original lights Link n' Spell's YES and the tome's scroll arrow as the port does: both
+pairs are now faint only.
 
 The pilot's third part (`tools/pilot/screens.txt`, 2026-11-01): the tome and its list scrolled, and each mini-game from its
 welcome to its menu and the quit (Word Master with a guess, Letter Rip into its tutorial, Link n' Spell losing and regaining

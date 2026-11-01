@@ -408,7 +408,7 @@ void ArrowHint::Draw(Graphics* g)
 		for (size_t i = 0; i < mLines.size(); i++) {
 			g->WriteString(mLines[i], aRect->mX + aPad, aRect->mY + aY, mRectLong.mWidth - aPad * 2, 0, true, 0, -1,
 			               -1);
-			aY += mFont->GetHeight();
+			aY += mFont->GetAscent();  // the ascent, not the height (0x403953)
 		}
 	} else {
 		g->SetColor(Color(sPulse, 0, 0, anAlpha));
