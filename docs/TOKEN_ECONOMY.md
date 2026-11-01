@@ -300,3 +300,22 @@ system prompt, CLAUDE.md, skills: a game session's own count on 2026-11-01), and
 session restarts at about 110K. Compacting at about 250K would bring the average call from about 234K to about 170K:
 roughly 10% per call after the extra compactions, before any reading again, which grows as compactions come more
 often. 400K stays unless usage gets tight.
+
+## Calls (measured 2026-11-01)
+
+The game sessions' 33,775 main-session calls from 2026-10-25 to 2026-11-01: 89% made exactly one tool call and 8% two
+or more. About 41% of all calls were a single read or search (a `sed -n` range, grep, `cat`, Read), and 79% of those
+came right after another read (59% in runs of three or more). Edits and scripts were about 23% of calls, game and tool
+runs 7%, builds and suites 5.5%, git 1.5%; calls right after a failed tool call and calls that woke a session (a
+notification or a message) were about 1% each. Batching the reads a session already knows it needs costs nothing
+extra, since the same text enters the context either way, and if a third to a half of the reads in runs were batched,
+about 11-16% of the calls would go. CLAUDE.md asks for it from 2026-11-01, as a trial: measure the same mix again
+once sessions started after that date have done a week of work.
+
+Edits: 6,126 file edits in the same calls. Inline Python failed 8% of the time (2,202 edits), heredocs into a file 8%
+(353), `sed -i` 4% (827), the Edit tool 1% (1,276) and Write none (1,468); a failure is an error result or a failure in
+the output, such as an `assert count == 1` that stopped a replacement. Against the Edit tool's rates that is about 200
+retries and 150 more checking reads, about 1% of the calls. What the count cannot see is a silent fault: Git Bash
+heredocs collapse doubled backslashes. Sessions seldom use the Edit tool because it needs a Read of the file first and
+they read with `sed -n`, and because the auto mode's own instructions suggest sed, heredocs and short scripts for small
+edits. The user decided against a rule for it (2026-11-01): it would not be followed consistently.

@@ -85,6 +85,10 @@ re-reads the whole context, so what costs is context times calls, and a cache th
   those, in the background, and waits for the notification instead of polling.
 - Read narrowly: grep, then the range you need; the section of a doc, not the doc. Send long output to a
   log file and print a summary line.
+- **Batch reads (the user, 2026-11-01, a trial).** Most calls are a single read, often several in a row
+  (`docs/TOKEN_ECONOMY.md`, "Calls"). When you already know the next few things you need (a function and its caller, a
+  header and its .cpp, the export and the port side by side), get them in one call: several tool calls in one message,
+  or one Bash command with the reads separated by `echo ---`.
 - Test with `tools/check.sh <suite>...` (`--help` lists them): one line per suite, logs in files.
 - Give an agent the files and sections it needs, so it need not read the design docs to find them.
 - **Weekly cap (the user, 2026-10-26):** when the account's weekly usage (all models) reaches 85%, the coordinator
