@@ -291,3 +291,5 @@ Each is a change without a visible effect in play.
   deleting it; the port deletes it.
 - The points' smoke (SmokeTraveller): the board's destructor frees its list (+0x2170) without deleting the smoke
   still on its way; the port deletes it there, without the points or the sparks its own destructor would add.
+- The shockwaves (+0x1660): the board's destructor frees their list without deleting them either; the port deletes
+  them there.

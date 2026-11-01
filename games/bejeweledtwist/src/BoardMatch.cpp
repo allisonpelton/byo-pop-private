@@ -4,6 +4,7 @@
 #include "GameText.h"
 #include "GoodTube.h"
 #include "Piece.h"
+#include "Shockwave.h"
 #include "Traveller.h"
 #include "Profile.h"
 #include "Res.h"
@@ -380,10 +381,44 @@ int Board::FindMatches(unsigned int theFlags)
 			if (aCentre == nullptr)
 				goto next_match;
 			if (aReal) {
-				// port: the match's shockwave (a MatchShockwave, 0x74bcf3, at the gem's middle, its strength by the
-				// cascade (0x749617), pushing the gems round the match (0x74c89a)) goes into +0x1660; it comes with the
-				// shockwaves
-				NotPorted("Board::FindMatches: the shockwave");
+				// The match's shockwave, as strong as the cascade, pushes the gems round the match away from it
+				MatchShockwave* aWave = new MatchShockwave(Ftol((double)(gGemWidth / 2) + (double)aCentre->mX),
+					Ftol((double)(gGemHeight / 2) + (double)aCentre->mY));
+				aWave->SetStrength((float)mUnknown1508);
+				mUnknown1660.push_back(aWave);
+				if (aMatch.mKind == 1) {
+					if (GetPieceAt(aRow, aCol - 1) != nullptr)
+						aWave->AddPush(aRow, aCol - 1, -1, 0);
+					int anEnd = aMatch.mCount + aCol;
+					if (GetPieceAt(aRow, anEnd) != nullptr)
+						aWave->AddPush(aRow, anEnd, 1, 0);
+					int aCell = aCol;
+					if (aCell < aMatch.mCount + aCol) {
+						do {
+							if (GetPieceAt(aRow - 1, aCell) != nullptr)
+								aWave->AddPush(aRow - 1, aCell, 0, -1);
+							if (GetPieceAt(aRow + 1, aCell) != nullptr)
+								aWave->AddPush(aRow + 1, aCell, 0, 1);
+							aCell++;
+						} while (aCell < aMatch.mCount + aCol);
+					}
+				} else if (aMatch.mKind == 2) {
+					if (GetPieceAt(aRow - 1, aCol) != nullptr)
+						aWave->AddPush(aRow - 1, aCol, 0, -1);
+					int anEnd = aMatch.mCount + aRow;
+					if (GetPieceAt(anEnd, aCol) != nullptr)
+						aWave->AddPush(anEnd, aCol, 0, 1);
+					int aCell = aRow;
+					if (aCell < aMatch.mCount + aRow) {
+						do {
+							if (GetPieceAt(aCell, aCol - 1) != nullptr)
+								aWave->AddPush(aCell, aCol - 1, -1, 0);
+							if (GetPieceAt(aCell, aCol + 1) != nullptr)
+								aWave->AddPush(aCell, aCol + 1, 1, 0);
+							aCell++;
+						} while (aCell < aMatch.mCount + aRow);
+					}
+				}
 			}
 			if (aMatch.mKind == 4 && aReal) {
 				// The square: its corners fly into the middle gem, which turns

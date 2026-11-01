@@ -9,6 +9,7 @@
 #include "Hyperspace.h"
 #include "MemoryImage.h"
 #include "Piece.h"
+#include "Shockwave.h"
 #include "Traveller.h"
 #include "Profile.h"
 #include "PropertiesParser.h"
@@ -598,6 +599,10 @@ Board::~Board()
 		delete aTraveller;
 	}
 	mUnknown2170.clear();
+	// The same holds for the shockwaves
+	for (Shockwave* aWave : mUnknown1660)
+		delete aWave;
+	mUnknown1660.clear();
 	delete[] mUnknown1370;
 	delete[] mUnknown135C;
 	delete[] mCells;

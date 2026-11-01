@@ -37,7 +37,7 @@ set(BJT_SOURCES
   src/TwistEditWidget.cpp src/TwistDialog.cpp src/UnderDialogWidget.cpp
   src/Piece.cpp src/Board.cpp src/BoardUpdate.cpp src/BoardFill.cpp src/BoardTurn.cpp src/BoardMatch.cpp
   src/BoardTwist.cpp src/GoodTube.cpp
-  src/Traveller.cpp)
+  src/Traveller.cpp src/Shockwave.cpp)
 add_executable(bejeweledtwist ${BJT_SOURCES})
 target_include_directories(bejeweledtwist PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
 target_link_libraries(bejeweledtwist PRIVATE bjt_engine bjt_popanim sexyframework sexyopenmpt sexyopenjpeg)

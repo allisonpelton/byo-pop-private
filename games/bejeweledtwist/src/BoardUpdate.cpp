@@ -11,6 +11,7 @@
 #include "GraphicsRecorder.h"
 #include "MusicInterface.h"
 #include "Piece.h"
+#include "Shockwave.h"
 #include "Traveller.h"
 #include "Profile.h"
 #include "Res.h"
@@ -1779,9 +1780,20 @@ bool Board::UpdateUnknown1660()
 			aPiece->mShakeX = 0;
 		}
 	}
+	unsigned int i = 0;
 	if (!mUnknown1660.empty()) {
-		// port: the objects at +0x1660 (they shake the gems) are not ported yet
-		NotPorted("Board::UpdateUnknown1660: the objects");
+		do {
+			Shockwave* aWave = mUnknown1660[i];
+			aWave->Update();
+			if (aWave->mDone) {
+				// The last takes its place, and waits an update (the original goes on to the index after)
+				delete aWave;
+				mUnknown1660[i] = mUnknown1660[mUnknown1660.size() - 1];
+				if (!mUnknown1660.empty())
+					mUnknown1660.pop_back();
+			}
+			i++;
+		} while (i < mUnknown1660.size());
 	}
 	return !mUnknown1660.empty();
 }
