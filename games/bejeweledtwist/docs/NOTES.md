@@ -294,6 +294,16 @@ special gem it was. With Direct3D the souls also move through the hyperspace's 3
 The app's command line (0x76350c) takes -autoplay[=classic|zen|blitz], which plays games on its own; its other test
 switches (screen and art sizes, -skipmenu, Direct3D, seed recording) are not ported.
 
+The tube (GoodTube, 0x770 bytes, 0x701efb-0x70c8b5) is drawn whole in 2D: its glow, the fill with its bubbles and
+specks, the level's arc of lights and multiplier bulbs, the score's ticker, the twist door and the menu button. Its
+head holds the player's rank badge (Sexy::RankBadge, 0x158 bytes, +0x32c), which draws the badge at 0.4 scale while
+the tube is shown and keeps a hover and click state for its tooltip; a burst of sparks leaves it while +0x2a4 is above
+0. Still missing: the board's menu behind the button (0x6a6983), the challenges' goal and bracket, the bonus
+challenge's hint wave, the glass breaking (0x70c7ec) and the tube's text popups (+0x1cc, +0x1d0). In a first shot
+of classic play the tube matches the original except for the badge, which the port draws a little softer, as the
+framework's stretched DrawImage filters where the original's 2D stretch looks sharper; the identical-play pass looks
+at that stretch for every scaled image.
+
 Comparing with the original in origrun's sandbox: the sandbox has no cursor, and the original's framework reads the
 real one (GetCursorPos) after posted input. So its widget manager's last mouse point (+0xe0, +0xe4) turns into the
 window's offset from the screen's corner, (-67, -90), rather than the last click. FinishLevelUp (0x6bab49) hands that
