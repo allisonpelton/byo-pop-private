@@ -2874,9 +2874,7 @@ void Board::UpdateGameOver()
 		if (1.0f < aZoom)
 			return;
 		mApp->ShowHyperspace();
-		// port: space's end-of-game transition (0x714883: transition 13, the board drawn into it) comes with the
-		// jumps
-		NotPorted("Board::UpdateGameOver: the hyperspace (0x714883)");
+		mApp->mHyperspace->StartEndGame();
 		mGoodTube->mVisible = false;
 		mUnknown3924 = 0;
 		mUnknown3460 = 8.0f;
