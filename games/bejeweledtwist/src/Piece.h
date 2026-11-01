@@ -95,7 +95,7 @@ public:
 	float mUnknownD4 = 0;              // +0xd4 (saved as a whole number)
 	float mUnknownD8 = 0;              // +0xd8
 	float mUnknownDC = 0;              // +0xdc
-	float mUnknownE0 = 0;              // +0xe0
+	int mUnknownE0 = 0;                // +0xe0: 120 for a new fruit (MakeFruitGem)
 	float mUnknownE4 = -1.0f;          // +0xe4
 	float mUnknownE8 = 0;              // +0xe8
 	bool mUnknownEC = false;           // +0xec

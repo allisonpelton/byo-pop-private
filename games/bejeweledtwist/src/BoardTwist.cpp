@@ -183,10 +183,12 @@ void Board::MouseDown(int x, int y, int theBtnNum, int theClickCount)
 			return;
 	}
 	if (mUnknown2584 != nullptr) {
-		// port: the dialog at +0x2584 (its +0x210, and its kind at +0x16c: 13, or 5 with +0x2400 set) can keep the
-		// click from the board; it comes with the board's dialogs
-		NotPorted("Board::MouseDown: the +0x2584 dialog");
-		return;
+		// (not while the tutorial waits on its dialog or its seconds, or on a forced move with no square to make it)
+		if (mUnknown2584->mUnknown210)
+			return;
+		int aState = mUnknown2584->mState;
+		if (aState == Tutorial::STATE_SECONDS || (aState == Tutorial::STATE_MOVE && mUnknown2400 == -1))
+			return;
 	}
 	if (mApp->mOptionsDialog != nullptr)
 		return;
@@ -271,12 +273,8 @@ void Board::StartTwist(bool theInstant, int theX, int theY)
 		return;
 	if (mUnknown2630 != 0 && (mUnknown266A || mUnknown2669))
 		return;
-	if (mUnknown2584 != nullptr) {
-		// port: the dialog at +0x2584 lets the twist go ahead only once its +0x21d is set; it comes with the board's
-		// dialogs
-		NotPorted("Board::StartTwist: the +0x2584 dialog");
+	if (mUnknown2584 != nullptr && !mUnknown2584->mMovesAllowed)
 		return;
-	}
 	mUnknown1390 = false;
 	mUnknown3904 = false;
 	if (mUnknown830.GetOutVal() != 0.0) {
@@ -463,7 +461,7 @@ bool Board::StartPieceMove(Piece* thePiece, int theDCol, int theDRow)
 	if (aCol < 0 || mCols <= aCol || aRow < 0 || mRows <= aRow)
 		return false;
 	mUnknown1558 = true;
-	thePiece->mUnknownE0 = 0.0f;
+	thePiece->mUnknownE0 = 0;
 	thePiece->mUnknownB0 = true;
 	int aToX = GetColX(thePiece->mCol + theDCol);
 	int aToY = GetRowY(thePiece->mRow + theDRow);
@@ -484,10 +482,8 @@ bool Board::StartPieceMove(Piece* thePiece, int theDCol, int theDRow)
 
 void Board::FinishTwist(bool theStop)
 {
-	if (mUnknown2584 != nullptr) {
-		// port: the dialog at +0x2584 follows its piece (0x750b67); it comes with the board's dialogs
-		NotPorted("Board::FinishTwist: the +0x2584 dialog");
-	}
+	if (mUnknown2584 != nullptr)
+		mUnknown2584->PointAtNothing();
 	std::vector<Piece*> aTurned;
 	Piece** aCell = mGrid;
 	for (int aRow = 0; aRow < mRows; aRow++) {

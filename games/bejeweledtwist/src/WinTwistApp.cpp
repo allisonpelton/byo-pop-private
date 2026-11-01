@@ -853,6 +853,32 @@ bool WinTwistApp::HandleScriptCommand(const ScriptCommand& theCommand)
 	return false;
 }
 
+void WinTwistApp::HandleCmdLineParam(const std::string& theParamName, const std::string& theParamValue)
+{
+	static const char* const kTestSwitches[] = {"-widescreen", "-4x3", "-artres600", "-artres768", "-artres1200",
+		"-skipmenu", "-nod3d9", "-noacceleration", "-record", "-playback"};
+	for (const char* aSwitch : kTestSwitches) {
+		if (theParamName == aSwitch) {
+			// port: the original's screen size, art size, Direct3D and seed recording switches are not ported
+			NotPorted("WinTwistApp::HandleCmdLineParam: a test switch");
+			return;
+		}
+	}
+	if (theParamName != "-autoplay") {
+		SexyApp::HandleCmdLineParam(theParamName, theParamValue);
+		return;
+	}
+	mAutoPlayMode = 1;
+	if (theParamValue.empty())
+		return;
+	if (theParamValue == "classic")
+		mAutoPlayMode = 1;
+	if (theParamValue == "zen")
+		mAutoPlayMode = 4;
+	if (theParamValue == "blitz")
+		mAutoPlayMode = 3;
+}
+
 void WinTwistApp::DeleteSave(int theMode, int theChallenge)
 {
 	if (theMode != 5 && theMode != 4)
@@ -975,9 +1001,14 @@ void WinTwistApp::DialogButtonDepress(int theDialogId, int theButtonId)
 		DialogThirdButtonDepress(0xb);
 		return;
 	case 0x28:
-		// The original looks the dialog up and drops it; unless Cancel, it clears the profile's +0x1b0 and calls
-		// 0x734087 and 0x6c78a5, which come with the board
+		// The original looks the dialog up and drops it; unless Cancel, the profile's +0x1b0 is cleared and the
+		// board's tip closed
 		GetDialog(0x28);
+		if (theButtonId != Dialog::ID_CANCEL) {
+			mProfile->mUnknown1B0 = false;
+			mProfile->Save();
+			mBoard->CloseTip();
+		}
 		KillDialog(0x28);
 		return;
 	case 0x2d:

@@ -89,6 +89,32 @@ void Board::Make6Gem(Piece* thePiece, float theDelay)
 		SetStat(0x25, mUnknown158);
 }
 
+void Board::MakeFruitGem(Piece* thePiece)
+{
+	if (thePiece == nullptr)
+		return;
+	if (thePiece->IsFlagSet(9) || thePiece->IsFlagSet(2))
+		BreakSpecial(thePiece, false);
+	thePiece->ClearSpecial();
+	thePiece->SetFlag(0, true);
+	thePiece->mUnknown29C = 0;
+	thePiece->mBombCount = 0;
+	thePiece->mBlasted = false;
+	if (6 < thePiece->mColor || thePiece->mColor < 0)
+		thePiece->mColor = Rand85B970() % 7;
+	if (!mUnknown37F8) {
+		thePiece->mScale288 = 0;
+		thePiece->mUnknownE0 = 120;
+		if (!IsBusy()) {
+			AddStat(0x18, 1);
+			thePiece->mDevilGlow = 1.0f;  // 0x6a4f56
+			thePiece->mJustMade = 5;
+			mApp->PlaySample(SOUND_FRUIT_APPEARS);
+		}
+	}
+	mUnknown21DA = true;
+}
+
 void Board::ClearHitCounts()
 {
 	int aLeft = mCols * mRows;

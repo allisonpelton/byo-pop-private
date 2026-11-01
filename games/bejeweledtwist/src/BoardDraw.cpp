@@ -15,6 +15,7 @@
 #include "Res.h"
 #include "SexyMatrix.h"
 #include "Shockwave.h"
+#include "GemSoul.h"
 #include "Traveller.h"
 #include "TwistUtil.h"
 #include "WinTwistApp.h"
@@ -467,20 +468,61 @@ void Board::DrawPieces(Graphics* g, Graphics& theLightG, bool is3D)
 	mBombList.clear();
 	g->SetDrawMode(Graphics::DRAWMODE_NORMAL);
 	// (the hyperspace's +0x158, set only with Direct3D, would hide the travellers)
-	if (!mUnknown26B0.empty()) {
-		// port: the travellers' drawing (their slot 1) comes with the travellers
-		NotPorted("Board::DrawPieces: the travellers");
-	}
+	for (GemSoul* aSoul : mUnknown26B0)
+		aSoul->Draw(g);
 	for (Shockwave* aWave : mUnknown1660)
 		aWave->Draw(g);
-	if (mUnknown23F5) {
-		// port: the tutorial's pointer (0x6aa3bc) comes with the tutorial
-		NotPorted("Board::DrawPieces: the tutorial's pointer (0x6aa3bc)");
-	}
+	if (GetUnknown23F5())
+		DrawTutorialCursor(g);
 	if (mGameMode == MODE_PUZZLE && mUnknown20D0 && 0.0f < mUnknown20CC && !mUnknown1324)
 		DrawSelector(g, true);
 	if (mUnknown21A8 != nullptr)
 		mUnknown21A8->Draw(g);
+}
+
+void Board::DrawTutorialCursor(Graphics* g)
+{
+	g->SetColorizeImages(true);
+	if (GetUnknown23F5() && -1 < mUnknown2400) {
+		// The square of the forced move: "click here" pulsing, fading to "click now"
+		int aX = GetColX(mUnknown2400) + gGemWidth;
+		int aY = GetRowY(mUnknown2404) + gGemHeight;
+		if (0.0f < mUnknown23F8) {
+			Image* anImage = IMAGE_CURSOR_CLICKHERE;
+			float aPhase = (float)((double)(float)(mUpdateCnt % 150) * 3.141592653589793 / 150.0);
+			float aSin = std::sin(aPhase);
+			g->SetColor(Color(255, 255, 255, Ftol(((double)aSin * 100.0 + 128.0) * (double)mUnknown23F8)));
+			g->DrawImage(anImage, aX - anImage->mWidth / 2, aY - anImage->mHeight / 2);
+		}
+		if (mUnknown23F8 < 1.0f) {
+			Image* anImage = IMAGE_CURSOR_CLICKNOW;
+			g->SetColor(Color(255, 255, 255, Ftol((1.0 - (double)mUnknown23F8) * 255.0)));
+			g->DrawImage(anImage, aX - anImage->mWidth / 2, aY - anImage->mHeight / 2);
+		}
+	}
+	if (mUnknown20D0 && 0.0f < mUnknown23FC) {
+		// Four arrows around the cursor, pointing in and bobbing
+		float aCenterX = (float)(mUnknown1C00 + gGemWidth);
+		float aRadius = (float)((double)IMAGE_CURSOR_CLICKNOW->mWidth * 0.27);
+		const float anAngles[4] = {0.0f, 1.5707964f, 3.1415927f, 4.712389f};
+		float aCenterY = (float)(mUnknown1C04 + gGemHeight);
+		for (int i = 0; i < 4; i++) {
+			float anAngle = anAngles[i];
+			float aBob = std::cos((float)((double)mUnknown1C18 * 0.035));
+			float aBobScale = (float)((double)gApp->mScale * 36.0);
+			float anOffset = -aBob * aBobScale;
+			g->SetColor(Color(255, 255, 255, Ftol((double)mUnknown23FC * 255.0)));
+			float aSin = std::sin(anAngle);
+			float aSide = (float)((double)anAngle + 1.5707963705062866);
+			float aSideSin = std::sin(aSide);
+			float aCos = std::cos(anAngle);
+			float aSideCos = std::cos(aSide);
+			float aDrawY = (float)((double)aSin * (double)aRadius + (double)aCenterY + (double)aSideSin * (double)anOffset);
+			float aDrawX = (float)((double)aCos * (double)aRadius + (double)aCenterX + (double)aSideCos * (double)anOffset);
+			DrawImageCentered(g, IMAGE_TUTORIAL_ARROW, aDrawX, aDrawY,
+				(double)anAngle * -1.0 - (double)6.2831855f * 0.25, 0.45f, 0.45f);
+		}
+	}
 }
 
 // 0x6a5c60: a light at (theX, theY) of size theSize and fall-off theFalloff adds to the gems near it (to all of them

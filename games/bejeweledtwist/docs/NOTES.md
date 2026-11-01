@@ -276,6 +276,30 @@ does; its registry preset goes under the Steam key. During a 2D jump Hyperspace 
 while the VizManager is hidden (0x711b65, the old picture for the first half, faded in by +0x1570), and at the end of
 one the old picture at +0x12b0's alpha (0x70f836), or space fading out over the board.
 
+The tips and the basics tutorial (Tutorial, 0x220 bytes, 0x750a5a-0x7540ad) run lines of properties	utorial.txt
+from a label named after the tip (ShowNextTip, 0x6bbc58, reads the file once into board +0x254c). A tip waits in
++0x256c by its kind until the board is still; its Tutorial goes into the board's dialog queue and sits at +0x2584 until
+its dialog is clicked away, when 0x6c78a5 (Board::CloseTip) marks the tip seen in the profile and, for the basics
+(kind 14), resets the score and the tube. While it runs, the board's hints, clicks and twists ask its state (+0x16c),
+its "dialog up" flag (+0x210) and whether moves are allowed (+0x21d); 0x6aa3bc draws the forced move's "click here" and
+the arrows around the cursor. A few commands still reach parts of the board not yet ported (the fruit award and the
+replay of the tip from its saved board).
+
+The end of a level: LevelComplete (0x6b3634) fades the music, shows the LevelUpShow ("LEVEL n COMPLETE", 0x2c8 bytes,
+0x71cc30, at +0x26ac) and starts the hyperspace's transition 8. Meanwhile UpdateJump (in UpdateGame's busy branch,
+while +0x2108 > 0) breaks the board up row by row; each gem left in a row becomes a GemSoul (0x8f8 bytes, 0x70188f),
+which swirls over the board with its gem shrinking inside it. On the new board each soul is sent to a plain gem
+(RetargetTravellers, 0x6a9f1d, or the copy at the end of UpdateGame's shake), and where it lands that gem becomes the
+special gem it was. With Direct3D the souls also move through the hyperspace's 3D space; only the 2D path is ported.
+The app's command line (0x76350c) takes -autoplay[=classic|zen|blitz], which plays games on its own; its other test
+switches (screen and art sizes, -skipmenu, Direct3D, seed recording) are not ported.
+
+Comparing with the original in origrun's sandbox: the sandbox has no cursor, and the original's framework reads the
+real one (GetCursorPos) after posted input. So its widget manager's last mouse point (+0xe0, +0xe4) turns into the
+window's offset from the screen's corner, (-67, -90), rather than the last click. FinishLevelUp (0x6bab49) hands that
+point to the board, so in the sandbox the board takes the mouse as off the grid and draws no twist selector; on a real
+desktop, as in the port, the selector sits under the mouse. Shots of the first tip differ by that selector alone.
+
 ## Deviations
 
 Each is a change without a visible effect in play.
@@ -332,3 +356,6 @@ Each is a change without a visible effect in play.
 - Web only: an image drawn stretched (the framework's 2D software DrawImage into a rectangle of another size) can
   land half a pixel apart from the native build, which rounds its edges in x87 precision as the original does, while
   wasm computes them in doubles. It belongs to the framework's 2D path, whose work is queued after Twist.
+- The level-up show (LevelUpShow) never deletes its effects manager in the original; the port deletes it with the show.
+- A gem soul's gem (GemSoul +0x67c): at its 80th update the original clears the gem's +0x535 without checking that the
+  gem is still there (it is deleted when it blasts); the port checks.

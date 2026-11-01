@@ -32,12 +32,13 @@ endif()
 set(BJT_SOURCES
   src/main.cpp src/WinTwistApp.cpp src/CustomResourceManager.cpp src/Res.cpp src/GameText.cpp
   src/TwistWidget.cpp src/TwistButton.cpp src/TwistCheckbox.cpp src/TwistSlider.cpp src/CustomBassMusicInterface.cpp src/TwistUtil.cpp src/GraphicsRecorder.cpp src/PlayButton.cpp
-  src/EffectsManager.cpp src/Logo.cpp src/LoaderScreen.cpp src/Hyperspace.cpp src/VizManager.cpp src/WheelSpin.cpp src/ColorCycle.cpp
+  src/EffectsManager.cpp src/Logo.cpp src/LoaderScreen.cpp src/Hyperspace.cpp src/VizManager.cpp
+  src/Tutorial.cpp src/WheelSpin.cpp src/ColorCycle.cpp
   src/MenuButtonWidget.cpp src/Gates.cpp src/Profile.cpp src/MenuPanels.cpp src/Menu.cpp src/Ranks.cpp
   src/TwistEditWidget.cpp src/TwistDialog.cpp src/UnderDialogWidget.cpp
   src/Piece.cpp src/Board.cpp src/BoardUpdate.cpp src/BoardFill.cpp src/BoardTurn.cpp src/BoardMatch.cpp
   src/BoardTwist.cpp src/GoodTube.cpp
-  src/Traveller.cpp src/Shockwave.cpp src/SpeedText.cpp src/RankBonusWidget.cpp src/AwardTelly.cpp src/Mandala.cpp src/ModeButton.cpp src/Points.cpp src/BoardDraw.cpp
+  src/Traveller.cpp src/GemSoul.cpp src/LevelUpShow.cpp src/Shockwave.cpp src/SpeedText.cpp src/RankBonusWidget.cpp src/AwardTelly.cpp src/Mandala.cpp src/ModeButton.cpp src/Points.cpp src/BoardDraw.cpp
   src/FlyingText.cpp src/GameOverShow.cpp)
 add_executable(bejeweledtwist ${BJT_SOURCES})
 target_include_directories(bejeweledtwist PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)

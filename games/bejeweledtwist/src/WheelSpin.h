@@ -134,7 +134,7 @@ public:
 	void UpdateState();
 	void MakeCache();    // 0x75a02d: the screen behind the wheel into mCache
 	// 0x7607d9: the screen darkened (theDark of 1) but for a hole about theX, theY, smaller as theSize grows
-	void DrawHole(Graphics* g, int theX, int theY, float theDark, float theSize);
+	static void DrawHole(Graphics* g, int theX, int theY, float theDark, float theSize);
 };
 
 extern WheelSpin* gWheelSpin;  // 0x921688: the wheel while it is up

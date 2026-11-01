@@ -8,6 +8,7 @@
 #include "Graphics.h"
 #include "Hyperspace.h"
 #include "Image.h"
+#include "LevelUpShow.h"
 #include "Profile.h"
 #include "Ranks.h"
 #include "Res.h"
@@ -289,10 +290,11 @@ void RankBonusWidget::Update()
 			aScale = 1.0;
 		mScale = (float)aScale;
 	} else {
-		// port: the board's +0x26ac is the LevelUpShow (0x71cc30); its zoom (+0x1e0) times 1.05, at most 1, sets
-		// mScale here. It comes with the level's end (0x6a66d5)
-		NotPorted("RankBonusWidget::Update: the LevelUpShow's zoom");
-		mScale = 1.0f;
+		// The level's end: the LevelUpShow's zoom
+		double aScale = static_cast<LevelUpShow*>(gBoard->mUnknown26AC)->mScaleCurve.GetOutVal() * 1.0499999523162842;
+		if (1.0 < aScale)
+			aScale = 1.0;
+		mScale = (float)aScale;
 	}
 	if (mState < 5) {
 		float aFade = (float)((double)mFadeIn + 0.019999999552965164);

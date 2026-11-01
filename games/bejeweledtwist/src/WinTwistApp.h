@@ -152,6 +152,8 @@ public:
 	void DialogThirdButtonDepress(int theDialogId) override;  // 0x75f94f
 	// port (tests): newgame <mode>, a new game of that mode at once, as the mode menu would start it
 	bool HandleScriptCommand(const ScriptCommand& theCommand) override;
+	// 0x76350c: -autoplay[=classic|zen|blitz], and the original's other test switches
+	void HandleCmdLineParam(const std::string& theParamName, const std::string& theParamValue) override;
 	void PlaySample(int theSoundNum) override;  // 0x7675d8
 	void PlayVoice(int theSoundId, bool theInterrupt);  // 0x767584 (slot 108): one at a time in mUnmanagedSound
 	using SexyApp::PlaySample;

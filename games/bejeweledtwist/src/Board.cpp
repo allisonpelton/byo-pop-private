@@ -13,6 +13,7 @@
 #include "Piece.h"
 #include "Points.h"
 #include "Shockwave.h"
+#include "GemSoul.h"
 #include "Traveller.h"
 #include "Profile.h"
 #include "RankBonusWidget.h"
@@ -410,8 +411,8 @@ void Board::NewLevel()
 	std::memset(mUnknown2234, 0, sizeof(mUnknown2234));
 	SetStat(0x24, mUnknown158);
 	mUnknown2234[0x24] = mUnknown158;
-	// port: unless the dialog at +0x2584 is up with +0x214 at 14 (it comes with its dialog)
-	if (mUnknown2584 == nullptr) {
+	// (not while the basics tutorial is up)
+	if (mUnknown2584 == nullptr || mUnknown2584->mKind != 0xe) {
 		if (mLevelUpPoints.GetCount() < 500)
 			mUnknown204 = 500;
 		else
@@ -616,6 +617,9 @@ Board::~Board()
 	for (Shockwave* aWave : mUnknown1660)
 		delete aWave;
 	mUnknown1660.clear();
+	for (GemSoul* aSoul : mUnknown26B0)
+		delete aSoul;
+	mUnknown26B0.clear();
 	for (FlyingText* aText : mFlyingTexts)
 		delete aText;
 	mFlyingTexts.clear();
@@ -657,10 +661,9 @@ void Board::RemovedFromManager(WidgetManager* theWidgetManager)
 		}
 		mApp->mMusicInterface->ResumeAllMusic();
 	}
-	if (mUnknown2584 != nullptr) {
-		// port: a dialog of kind 14 at +0x2584 ends the profile's tutorial (0x7344c1) and sets +0x37c4; it comes with
-		// the dialog
-		NotPorted("Board::RemovedFromManager: the +0x2584 dialog");
+	if (mUnknown2584 != nullptr && mUnknown2584->mKind == 0xe) {
+		mApp->mProfile->MarkTutorialDone();
+		mUnknown37C4 = true;
 	}
 	if (mUnknown1474 != nullptr) {
 		mWidgetManager->RemoveWidget(mUnknown1474);
@@ -896,15 +899,12 @@ void Board::StartLevel()
 	mUnknown13B0.SetInVal(0);
 	ReadConfig(true);
 	if (!gApp->mProfile->GetFlag1E4(0xe) && mGameMode != MODE_BLITZ && mGameMode != MODE_CHALLENGE) {
-		// port: the hint request 0x6b98f8(0xe, 0) and the tutorial's dialog 0x6bbc58 ("basics") come with the
-		// tutorial; neither draws from Rand
-		NotPorted("Board::StartLevel: the basics tutorial");
+		QueueTip(0xe, nullptr);
+		ShowNextTip();
 		mUnknown37B0 = false;
 		mUnknown37B1 = false;
-		if (mApp->mUnknownF85) {
-			// port: 0x7540ad, the tutorial's board, which draws from Rand
-			NotPorted("Board::StartLevel: the tutorial's board");
-		}
+		if (mApp->mUnknownF85)
+			mUnknown2584->Preload();
 	} else if (mGameMode != MODE_ZEN) {
 		if (mGameMode == MODE_PUZZLE) {
 			mUnknown2042 = false;
@@ -1200,8 +1200,8 @@ bool Board::LoadGame(Buffer& theBuffer)
 		NotPorted("Board::LoadGame: ending the hyperspace");
 	}
 	UpdateProgress(true);
-	for (TwistWidget* aTraveller : mUnknown26B0)
-		delete aTraveller;
+	for (GemSoul* aSoul : mUnknown26B0)
+		delete aSoul;
 	mUnknown26B0.clear();
 	mUnknown34F0.SetConstant(0);
 	mUnknown37FC = 0;

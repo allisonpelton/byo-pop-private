@@ -118,7 +118,10 @@ void Menu::AddedToManager(WidgetManager* theWidgetManager)
 	float aScale = (float)mApp->mArtRes / 1200.0f;
 	int aWidth = mApp->mWidth;
 	if (mApp->mAutoPlayMode >= 0) {
-		// -autoplay (not ported): app +0x1048 = 1, and 0x7344c1 unless the profile's flag 14 is set
+		// -autoplay starts its game a second from now, with the basics tutorial taken as done
+		mApp->mAutoPlayDelay = 1.0f;
+		if (!mApp->mProfile->GetFlag1E4(0xe))
+			mApp->mProfile->MarkTutorialDone();
 	}
 	theWidgetManager->AddWidget(mFXManager);
 

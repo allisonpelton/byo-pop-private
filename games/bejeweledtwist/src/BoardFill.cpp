@@ -5,6 +5,7 @@
 #include "Piece.h"
 #include "Profile.h"
 #include "Res.h"
+#include "TwistDialog.h"
 #include "TwistUtil.h"
 #include "WinTwistApp.h"
 #include "X86Math.h"
@@ -308,9 +309,9 @@ void Board::EvaluateCursor(MatchInfo* theInfo)
 	if (!mUnknown1559 || 2 <= mUnknown158 || !mUnknown25A4 || mUnknown21D8 || !mApp->mShowHints)
 		return;
 	if (mUnknown2584 != nullptr) {
-		// port: the dialog's +0x16c (0, 2 and 12 let the hint show) comes with the dialog
-		NotPorted("Board::EvaluateCursor: the +0x2584 dialog");
-		return;
+		int aState = mUnknown2584->mState;
+		if (aState != Tutorial::STATE_NONE && aState != Tutorial::STATE_MATCHES && aState != Tutorial::STATE_LEVELUP)
+			return;
 	}
 	if (-1 < mUnknown2400) {
 		if (mUnknown2400 != GetColAt(mUnknown1C00))
@@ -376,10 +377,9 @@ bool Board::FindMove(int* theRow, int* theCol, bool theAny)
 	int aCursorY = mUnknown1C04;
 	*theCol = -1;
 	*theRow = -1;
-	if (mUnknown2584 != nullptr) {
-		// port: the dialog's widget at +0x174 starts the search two rows below its bottom; it comes with the dialog
-		NotPorted("Board::FindMove: the +0x2584 dialog");
-	}
+	// (below the tutorial's dialog)
+	if (mUnknown2584 != nullptr && mUnknown2584->mDialog != nullptr)
+		aRow = GetRowAt(mUnknown2584->mDialog->mY + mUnknown2584->mDialog->mHeight) + 2;
 	for (;;) {
 		if (mRows - 1 <= aRow || aBombFound) {
 			MoveCursor(GetRowAt(aCursorY), GetColAt(aCursorX), true, nullptr);

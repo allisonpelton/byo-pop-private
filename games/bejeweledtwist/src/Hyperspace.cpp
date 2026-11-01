@@ -3,6 +3,7 @@
 
 #include "Board.h"
 #include "GameText.h"
+#include "GemSoul.h"
 #include "Graphics.h"
 #include "Profile.h"
 #include "Res.h"
@@ -81,9 +82,14 @@ void Hyperspace::Update()
 			// The trial's limit (SOUND_TRIALLIMIT and its dialog, 0x73a458) after transition 14: left out, the copy
 			// is registered
 		}
-		if (mState == 7 && !gBoard->mUnknown26B0.empty()) {
-			// port: the travellers' +0x684 fades by 0.03 each update; it comes with the travellers
-			NotPorted("Hyperspace::Update: the travellers' fade");
+		if (mState == 7) {
+			// The souls fade out
+			for (GemSoul* aSoul : gBoard->mUnknown26B0) {
+				double aBright = (double)aSoul->mUnknown684 - 0.029999999329447746;
+				if (!(0.0 < aBright || 0.0 == aBright))
+					aBright = 0.0;
+				aSoul->mUnknown684 = (float)aBright;
+			}
 		}
 		mUnknown258.IncInVal();
 		gApp->mBoard->SetUnknown3924((float)mUnknown258.GetOutVal());

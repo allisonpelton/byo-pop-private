@@ -4,6 +4,7 @@
 #pragma once
 
 #include "TwistWidget.h"
+#include "Tutorial.h"
 #include "X86Math.h"
 #include "WinTwistApp.h"
 
@@ -30,6 +31,7 @@ class TextImage;
 class Traveller;
 class PointsManager;
 class FlyingText;
+class GemSoul;
 class Shockwave;
 class SoundInstance;
 class WinTwistApp;
@@ -133,8 +135,8 @@ public:
 	bool mDebugPieces = false;         // +0x21db: each piece shows its row and column
 	float mUnknown23EC = 0;            // +0x23ec
 	bool mUnknown23F5 = false;         // +0x23f5
-	// +0x2584: a dialog (0x220 bytes, made by 0x75122f) that can point at a piece (its +0x1a4); it comes with the board
-	Widget* mUnknown2584 = nullptr;
+	// +0x2584: the tutorial being run (Tutorial.h), which can point at a piece (its +0x1a4)
+	Tutorial* mUnknown2584 = nullptr;
 	bool mUnknown25A4 = false;         // +0x25a4
 	float mUnknown268C = 1.0f;         // +0x268c
 	float mShakeX = 0;                 // +0x2690
@@ -248,7 +250,7 @@ public:
 	float mUnknown142C = 0;                 // +0x142c
 	std::deque<TwistWidget*> mUnknown23DC;  // +0x23dc: the dialogs waiting to come up (0x6a6e36 its size)
 	std::vector<FlyingText*> mFlyingTexts;  // +0x1f98: the praise and other words over the board (0x6a6d18 its size)
-	std::vector<TwistWidget*> mUnknown26B0;  // +0x26b0: the travellers (0x70188f; 0x6a6eaa its size)
+	std::vector<GemSoul*> mUnknown26B0;     // +0x26b0: the souls of the last level's special gems (0x6a6eaa its size)
 	// +0x1650: lights over the gems (0x2c bytes each), added by UpdateGame
 	struct Light {
 		float mX = 0;
@@ -353,6 +355,7 @@ public:
 	double mUnknown1618 = 0;                // +0x1618
 	double mUnknown1620 = 0;                // +0x1620
 	double mUnknown1628 = 0;                // +0x1628
+	bool mUnknown1638 = false;              // +0x1638
 	bool mUnknown1644 = false;              // +0x1644
 	int mUnknown1670 = 0;                   // +0x1670
 	int mUnknown1BEC = 0;                   // +0x1bec
@@ -488,6 +491,7 @@ public:
 	int mUnknown2404 = -10000;              // +0x2404
 	std::vector<int> mUnknown2408[20];      // +0x2408: the tutorial's gems for each column, the next at the back
 	int mUnknown2548 = -1;                  // +0x2548
+	Buffer mUnknown254C;                    // +0x254c: the tutorial script's lines (properties/tutorial.txt, read by ShowNextTip)
 	std::map<int, int> mUnknown256C;        // +0x256c: the tips waiting for their dialog, by kind, with a gem's id
 	int mUnknown2578 = 0;                   // +0x2578
 	int mUnknown257C = 0;                   // +0x257c
@@ -522,8 +526,9 @@ public:
 	bool mUnknown2698 = true;               // +0x2698
 	int mUnknown269C = 0;                   // +0x269c
 	TwistWidget* mUnknown26A0 = nullptr;                   // +0x26a0
-	int mUnknown26A8 = 0;                   // +0x26a8
-	TwistWidget* mUnknown26AC = nullptr;                   // +0x26ac
+	float mUnknown26A4 = 0;                 // +0x26a4: 0.01 when a soul leaves (UpdateJump)
+	int mUnknown26A8 = 0;                   // +0x26a8: the jump between levels (UpdateJump): 1 the show, 2 the rows, 4, 0
+	TwistWidget* mUnknown26AC = nullptr;                   // +0x26ac: the LevelUpShow (ShowLevelUp)
 	int mUnknown26C0 = 0;                   // +0x26c0: the row falling off next (end state 3)
 	float mUnknown26C4 = 0;                 // +0x26c4: the end states' wait
 	int mUnknown26C8 = 0;                   // +0x26c8: the end of the game's state (UpdateGameOver), 1 from EndGame
@@ -770,6 +775,7 @@ public:
 	void MakePowerGem(Piece* thePiece, float theDelay);    // 0x6a5019
 	void MakeElectroGem(Piece* thePiece, float theDelay);  // 0x6a4ef8
 	void Make6Gem(Piece* thePiece, float theDelay);        // 0x6a4f72
+	void MakeFruitGem(Piece* thePiece);          // 0x6c23bd
 	void ClearHitCounts();                       // 0x6a4560
 	void ClearSparkStarts();                     // 0x6a5f12
 	void StartSparks(Piece* thePiece);           // 0x6a453b
@@ -809,6 +815,9 @@ public:
 	void QueueTip(int theKind, Piece* thePiece);  // 0x6b98f8: a tip waits for its dialog (+0x256c)
 	bool CheckTips();                             // 0x6bc129: tips for the special gems on the board
 	void ShowNextTip();                           // 0x6bbc58
+	// 0x6c986a: the tube beside the board shown (the grid slides over to make room) or hidden (the grid in the middle)
+	void ShowTube(bool theShow, bool theInstant);
+	void CloseTip();                              // 0x6c78a5: the tip's dialog is done (marked seen; the basics end)
 	bool DropFlaggedGems();                      // 0x6bb7e3: the lowest FLAG_1 gem of each column sinks a row
 	void EndTurn();                               // 0x6be49c
 	void UpdateRecords();                         // 0x6bcd96: the game's best move, cascade and score
@@ -818,6 +827,10 @@ public:
 	void ShowPraise(int theLevel);                // 0x6ba73a: 0 to 5, from "Good" up
 	void PlayGameMusic();                         // 0x6a6a8b
 	void LevelComplete();                         // 0x6b3634
+	void ShowLevelUp();                           // 0x6a66d5: the LevelUpShow, with its voice
+	void UpdateJump();                            // UpdateGame's part (0x6d090f) while +0x2108 runs: the level's end
+	void ClearShockwaves();                       // 0x6b02ea
+	void EndJump(bool theUnused);                 // 0x6baaa7: the board after the jump between levels
 	bool UpdateUnknown1660();                     // 0x6af497
 	bool UpdateUnknown2170();                     // 0x6af0e2
 	void CheckSettled();                          // 0x6c7659
@@ -844,6 +857,8 @@ public:
 	void DrawBoard(Graphics* g, bool theToImage, bool theSkipPieces);
 	void DrawGrid(Graphics* g, float theArtScale);  // 0x6caa13's grid
 	void DrawPieces(Graphics* g, Graphics& theLightG, bool is3D);  // 0x6caa13's gems
+	// 0x6aa3bc: in a tip, the forced move's "click here" and the arrows around the cursor
+	void DrawTutorialCursor(Graphics* g);
 	void DrawSelector(Graphics* g, bool theRing);  // 0x6aa6d1: the twist cursor, its ring or its spiral
 	void AddLight(float theX, float theY, float theSize, float theFalloff, float theStrength, Piece* theSkip,
 		bool theSkipFlag4);                         // 0x6a5c60
@@ -869,7 +884,7 @@ public:
 	// 0x6a32ca
 	bool IsBusy() { return 0.0f < mUnknown2108 || 0 < mUnknown20DC || 0.0f < mUnknown380C; }
 	// port: the piece the dialog at +0x2584 points at, once it is ported
-	int GetPointedPieceId() { return -1; }
+	int GetPointedPieceId() { return mUnknown2584 != nullptr ? mUnknown2584->mPointedPieceId : -1; }
 	Piece* GetPieceAtXY(int theX, int theY);     // 0x6a4121
 	static int GetLevelSteps(int theLevel);      // 0x70205f: the chain steps a multiplier level takes
 	int GetLevelFor(int* theLeft);               // 0x6a4383: the level +0x224's steps reach, and the steps over

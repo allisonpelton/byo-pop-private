@@ -68,10 +68,8 @@ void Board::SettleTurn()
 	if (!mUnknown214) {
 		if (mUnknown265C != 4) {
 			bool aFirst = mUnknown1390;
-			if (mUnknown2584 != nullptr) {
-				// port: the dialog's 0x750b8c (its +0x21c set when its +0x16c is 5) comes with the dialog
-				NotPorted("Board::SettleTurn: the +0x2584 dialog");
-			}
+			if (mUnknown2584 != nullptr)
+				mUnknown2584->MoveDone();
 			EndTurn();
 			if (!aFirst && !mUnknown21A2) {
 				mUnknown1FB8++;
@@ -103,9 +101,143 @@ void Board::ShowNextTip()
 {
 	if (mUnknown265C == 4 || mUnknown248 != 0.0f || mUnknown256C.empty() || mUnknown23F5)
 		return;
-	// port: 0x6bbc58 puts up the first waiting tip ("flamegem" and the rest) pointing at its gem, or with -autoplay
-	// marks it seen (0x7338b6); it comes with the tips' dialog
-	NotPorted("Board::ShowNextTip (0x6bbc58)");
+	// The first waiting tip, by its kind, and the gem it points at
+	std::map<int, int>::iterator aTip = mUnknown256C.begin();
+	int aKind = aTip->first;
+	int anId = aTip->second;
+	mUnknown256C.erase(aTip);
+	if (0 <= mApp->mAutoPlayMode) {
+		// -autoplay sees every tip at once
+		mApp->mProfile->SetFlag1E4(aKind, true);
+		return;
+	}
+	Piece* aPiece = GetPieceById(anId);
+
+	// The script that teaches the kind (the names are the labels in properties/tutorial.txt)
+	std::string aName;
+	switch (aKind) {
+	case 0: aName = "flamegem"; break;
+	case 1: aName = "lightninggem"; break;
+	case 3: aName = "skullintro"; break;
+	case 4: aName = "lockintro"; break;
+	case 5: aName = "devilintro"; break;
+	case 6: aName = "fruitintro"; break;
+	case 7: aName = "coal"; break;
+	case 8: aName = "timefreeze"; break;
+	case 9: aName = "bombgem"; break;
+	case 0xb: aName = "wheel"; break;
+	case 0xc: aName = "chains2x"; break;
+	case 0xd: aName = "chains3x"; break;
+	case 0xe: aName = "basics"; break;
+	case 0x12: aName = "supernova"; break;
+	default: break;
+	}
+	if (aName.empty() || (aPiece == nullptr && anId != 0))
+		return;
+
+	mUnknown34E8 = aKind;
+	mUnknown23F5 = true;
+	// (the original prints "[RUNNING SCRIPT" and the name with OutputDebugString)
+	if (mUnknown254C.GetDataLen() == 0) {
+		// The script's lines, a line each (blank lines skipped, and a last line without an end of line)
+		Buffer aFile;
+		if (gApp->ReadBufferFromFile("properties/tutorial.txt", &aFile, true)) {
+			SexyString aLine;
+			for (unsigned char aChar : aFile.mData) {
+				if (aChar == '\n' || aChar == '\r') {
+					aLine = Trim(aLine);  // 0x45d880
+					if (!aLine.empty())
+						mUnknown254C.WriteString(aLine);
+					aLine.clear();
+				} else {
+					aLine += (SexyChar)aChar;
+				}
+			}
+		}
+	}
+	mUnknown254C.SeekFront();
+	mUnknown2584 = new Tutorial(this, aPiece, aName.c_str(), &mUnknown254C);
+	mUnknown2584->Resize(0, 0, mWidth, mHeight);
+	mUnknown2584->mKind = aKind;
+	mUnknown23DC.push_back(mUnknown2584);
+}
+
+void Board::ShowTube(bool theShow, bool theInstant)
+{
+	if (theShow) {
+		mGoodTube->UpdateImages();
+		if (!mUnknown2041) {
+			mUnknown25A6 = true;
+			if (mUnknown21D9) {
+				mUnknown21D9 = false;
+				LoadGame(mSaveBuffer);
+			}
+		}
+		int aSpace = gBoard->mWidth - GetBoardWidth();
+		int aHeight = mGoodTube->GetTubeHeight();
+		int aWidth = mGoodTube->GetTubeWidth();
+		aSpace -= gBoard->mGoodTube->GetTubeWidth();
+		mGoodTube->Resize(Ftol((double)(aSpace / 3) - (double)mUnknown20E0), 0, aWidth, aHeight);
+	}
+	mUnknown2041 = theShow;
+	if (theShow) {
+		mGoodTube->mVisible = true;
+		if (theInstant)
+			mGoodTube->mX = 0;
+		else
+			StartUnknown3880();
+	} else {
+		mGoodTube->mVisible = false;
+		if (theInstant)
+			mGoodTube->mX = mApp->mWidth / 2 - GetImageOffsetX(0x3d6);
+	}
+}
+
+void Board::CloseTip()
+{
+	Tutorial* aTip = mUnknown2584;
+	if (aTip != nullptr) {
+		if (aTip->mMarkSeen)
+			mApp->mProfile->SetFlag1E4(aTip->mKind, true);
+		if (mUnknown2584->mKind == 0xe) {
+			mUnknown3904 = false;
+			if (gApp->mUnknownF85) {
+				mApp->EraseFile(mApp->GetSaveName(mGameMode, mUnknown2674));
+				mUnknown36B0 = true;
+			} else {
+				mGoodTube->SetShown(true);
+				mGoodTube->SetUnknown14D(true);
+				mUnknown14F8 = 0;
+				mUnknown168 = 0;
+				mUnknown818 = 0;
+				mUnknown224 = 0;
+				SetLevelSteps(0);
+			}
+			mUnknown3918 = mApp->mProfile->mFlags1E0;
+			mUnknown3914 = mApp->mProfile->mFlags1E4;
+			mApp->mProfile->mRank = 0;
+			mApp->mProfile->Save();
+		}
+		// (the board's dialog queue deletes it)
+		mUnknown2584 = nullptr;
+	}
+	mUnknown145C = 1.0f;
+	mUnknown21A0 = false;
+	mUnknown1C88 = 1.0f;
+	mUnknown1C90 = false;
+	mUnknown1C8C = 1.0f;
+	mApp->mWidgetManager->SetFocus(this);
+	if (mUnknown23F5 && ((mUnknown3914 >> 0xe) & 1) == 0) {
+		mApp->mProfile->SetFlag1E4(0xe, true);
+		// 0x75fc8a
+		if (mApp->mBoard == nullptr || !mApp->mBoard->mUnknown37C4)
+			std::memset(mApp->mUnknownC74, 0, sizeof(mApp->mUnknownC74));
+		std::memset(mUnknown2234, 0, sizeof(mUnknown2234));  // 0x6a69f0
+		ReadConfig(true);
+		gApp->mProfile->Save();
+	}
+	mUnknown3914 = mApp->mProfile->mFlags1E4;
+	mUnknown23F5 = false;
 }
 
 bool Board::CheckTips()

@@ -7,9 +7,11 @@
 #include "CustomBassMusicInterface.h"
 #include "EffectsManager.h"
 #include "FlyingText.h"
+#include "GemSoul.h"
 #include "GameOverShow.h"
 #include "GoodTube.h"
 #include "Hyperspace.h"
+#include "LevelUpShow.h"
 #include "GraphicsRecorder.h"
 #include "MusicInterface.h"
 #include "Piece.h"
@@ -220,10 +222,7 @@ void Board::Update()
 			mUnknown1F84 = -1;
 		}
 	}
-	// port: the dialog at +0x2584 is not ported; while there is one, its +0x174 is taken as set
-	if (mUnknown2584 != nullptr)
-		NotPorted("Board::Update: the +0x2584 dialog");
-	if (mUnknown2584 == nullptr) {
+	if (mUnknown2584 == nullptr || mUnknown2584->mDialog == nullptr) {
 		if (0 < mUnknown257C) {
 			mUnknown257C--;
 			if (mUnknown257C == 0)
@@ -467,8 +466,8 @@ void Board::UpdateGame()
 	TwistWidget* aDialog = mUnknown2208;
 	if (aDialog != nullptr && aDialog->mClicked) {
 		if (aDialog == mUnknown2584) {
-			// port: 0x6c78a5 and the tutorial's dialog 0x6bbc58 come with the tutorial
-			NotPorted("Board::UpdateGame: the tutorial's dialog closing");
+			CloseTip();
+			ShowNextTip();
 		} else if (aDialog == mUnknown26D0) {
 			mUnknown26D0 = nullptr;
 		} else if (aDialog == mUnknown3808) {
@@ -678,8 +677,47 @@ void Board::UpdateGame()
 	} else {
 		mUnknown37F4 = 0.1f;
 		mUnknown25A4 = false;
-		// port: the travellers (+0x26b0: fruit, angels, smoke and the like, 0x70188f) come with the features
-		NotPorted("Board::UpdateGame: the travellers");
+		// The souls of the last level's special gems; each one back at its cell makes that gem special again
+		bool aLanded = false;
+		for (unsigned i = 0; i < mUnknown26B0.size(); i++) {
+			GemSoul* aSoul = mUnknown26B0[i];
+			if (mHyperspace != nullptr && (mHyperspace->mState == 6 || mHyperspace->mFlag15C))
+				break;
+			aSoul->Update();
+			if (!aSoul->mUnknown73C)
+				continue;
+			int aY = Ftol((double)aSoul->mY);
+			Piece* aPiece = GetPieceAtXY(Ftol((double)aSoul->mX), aY);
+			if (aPiece != nullptr) {
+				bool aQuiet = mUnknown37F8;
+				mUnknown37F8 = true;
+				if (aSoul->mType & (1 << 3)) {
+					MakeElectroGem(aPiece, 0.0f);
+				} else if (aSoul->mType & (1 << 6)) {
+					Make6Gem(aPiece, 0.0f);
+				} else if (aSoul->mType & (1 << 4)) {
+					MakePowerGem(aPiece, 0.0f);
+				} else if (aSoul->mType & (1 << 0)) {
+					MakeFruitGem(aPiece);
+					aPiece->mColor = aSoul->mColor;
+				} else if (aSoul->mType & (1 << 7)) {
+					// port: 0x6a4fc0 comes with the gems of flag 7 (no soul is made from one)
+					NotPorted("Board::UpdateGame: a soul's 0x6a4fc0");
+				}
+				if (1 < mUpdateCnt - mUnknown37FC) {
+					mApp->PlaySample(SOUND_GEMSOUL_LANDS3);
+					mUnknown37FC = mUpdateCnt;
+				}
+				aPiece->mFlags = aSoul->mType;
+				aLanded = aSoul->mFirst;
+				mUnknown37F8 = aQuiet;
+			}
+			delete aSoul;
+			mUnknown26B0.erase(mUnknown26B0.begin() + i);
+			i--;
+		}
+		if (aLanded)
+			mApp->PlaySample(SOUND_GEMSOUL_LANDS3);
 	}
 	if (IsBusy()) {
 		mUnknown25A4 = false;
@@ -691,8 +729,7 @@ void Board::UpdateGame()
 		}
 		if (0.0f < mUnknown2108) {
 			mUnknown25A4 = false;
-			// port: the jump between levels (+0x26a8's states, the travellers and 0x6c812f) comes with the jumps
-			NotPorted("Board::UpdateGame: the jump between levels");
+			UpdateJump();
 		}
 	}
 	if (mUnknown1C38 < 1.0f)
@@ -998,10 +1035,36 @@ void Board::UpdateGame()
 				LayoutTube();
 				mGoodTube->mVisible = true;
 			}
-			RandSigned();
-			if (!mUnknown26B0.empty()) {
-				// port: the travellers' new targets draw from Rand once per traveller (0x6a3447)
-				NotPorted("Board::UpdateGame: the travellers' targets");
+			// The souls pick their gems of the new board (as RetargetTravellers, in one pass), each starting its swirl
+			// a step round from the last
+			float anAngle = (float)((double)RandSigned() * 3.1415927410125732);
+			float aStep = (float)((double)6.2831854820251465f / (double)(unsigned)mUnknown26B0.size());
+			for (unsigned i = 0; i < mUnknown26B0.size(); i++) {
+				GemSoul* aSoul = mUnknown26B0[i];
+				int aCells = mRows * mCols;
+				int aCell = Rand85B970() % aCells;
+				for (int n = 0; n < aCells; n++) {
+					Piece* aPiece = mGrid[aCell];
+					if (aPiece != nullptr && aPiece->mFlags == 0) {
+						bool aTaken = false;
+						for (unsigned j = 0; j < mUnknown26B0.size(); j++) {
+							if (mUnknown26B0[j]->mState == 2 && mUnknown26B0[j]->mUnknown680 == aPiece) {
+								aTaken = true;
+								break;
+							}
+						}
+						if (!aTaken && (!(aSoul->mType & (1 << 0)) || aPiece->mColor == aSoul->mColor)) {
+							aSoul->SetTarget(aPiece);
+							aSoul->mAngle = anAngle;
+							aSoul->mUnknown8F4 = true;
+							break;
+						}
+					}
+					aCell++;
+					if (aCell == aCells)
+						aCell = 0;
+					anAngle = aStep + anAngle;
+				}
 			}
 		}
 	}
@@ -1249,10 +1312,9 @@ void Board::UpdateGame()
 	if (mUnknown25A4 && !mFrozen) {
 		mUnknown25A8++;
 		bool aTutorialBusy = false;
-		if (mUnknown2584 != nullptr) {
-			// port: the tutorial's dialog holds the hints back while its +0x174 is set; it comes with the tutorial
-			NotPorted("Board::UpdateGame: the tutorial's +0x174");
-		}
+		// (the tutorial's dialog holds the hints back)
+		if (mUnknown2584 != nullptr && mUnknown2584->mDialog != nullptr)
+			aTutorialBusy = true;
 		if (!mApp->mShowHints || mUnknown25C8 != 0 || mGameMode == MODE_CHALLENGE || -1 < mUnknown2400 ||
 			aTutorialBusy) {
 			UpdateHint();
@@ -1370,8 +1432,17 @@ ticked:
 			return;
 		if (mUnknown1570 == 0 && !IsBusy() && !mUnknown2629 && !mUnknown37C4 &&
 			(mUnknown2208 == nullptr || !mUnknown2208->mMouseVisible) && mUpdateCnt % 15 == 0) {
-			// port: -autoplay's next move (0x6c14fc finds one, else Rand picks a cell) comes with the move search
-			NotPorted("Board::UpdateGame: -autoplay's move");
+			// -autoplay's next move: a click at the corner the move turns about, or a random one
+			int aRow;
+			int aCol;
+			FindMove(&aRow, &aCol, false);
+			if (aRow == -1 || aCol == -1) {
+				aRow = (int)Rand() % mRows;
+				aCol = (int)Rand() % mCols;
+			}
+			mUnknown15BC = GetColX(aCol) + gGemWidth;
+			mUnknown15C0 = GetRowY(aRow) + gGemHeight;
+			mUnknown15C4 = mUpdateCnt;
 		}
 	}
 	// A click queued by -autoplay
@@ -1406,8 +1477,9 @@ void Board::UpdateCell(Cell& theCell)
 	int aLeft = theCell.mColor.mAlpha - 3;
 	theCell.mColor.mAlpha = aLeft < 0 ? 0 : aLeft;
 	if (gBoard->mUnknown2584 != nullptr) {
-		// port: the tutorial's dialog clears +0x34 unless its state (+0x16c) is 0, 2 or 12; it comes with the tutorial
-		NotPorted("Board::UpdateCell: the tutorial's state");
+		int aState = gBoard->mUnknown2584->mState;
+		if (aState != Tutorial::STATE_NONE && aState != Tutorial::STATE_MATCHES && aState != Tutorial::STATE_LEVELUP)
+			theCell.mUnknown34 = false;
 	}
 	if (!theCell.mUnknown34) {
 		float aFade = (float)((double)theCell.mUnknown3C - (double)0.04f);
@@ -1739,10 +1811,8 @@ void Board::UpdateLevelUp()
 					NextLevelMusic();
 				}
 				mUnknown1390 = true;
-				if (!mUnknown21A2 && GetUnknown23F5() && mUnknown2584 != nullptr) {
-					// port: 0x7540ad, the tutorial's next board, comes with the tutorial; it draws from Rand
-					NotPorted("Board::UpdateLevelUp: the tutorial (0x7540ad)");
-				}
+				if (!mUnknown21A2 && GetUnknown23F5() && mUnknown2584 != nullptr)
+					mUnknown2584->Preload();
 				NewLevel();
 				FillInBlanks(false);
 				if (mGameMode == MODE_BLITZ) {
@@ -1817,9 +1887,216 @@ void Board::PlayGameMusic()
 
 void Board::LevelComplete()
 {
-	// port: 0x6b3634, the level's end and the jump into space (+0x2108, the hyperspace's 0x7181b3), comes with the
-	// jumps; it draws nothing from Rand itself
-	NotPorted("Board::LevelComplete (0x6b3634)");
+	if (IsBusy())
+		return;
+	mApp->FadeOutMusic();
+	if (mUnknown158 == 0) {
+		for (int aRow = 0; aRow < mRows; aRow++) {
+			for (int aCol = 0; aCol < mCols; aCol++) {
+				Piece* aPiece = GetPieceAt(aRow, aCol);
+				if (aPiece != nullptr)
+					aPiece->ClearSpecial();
+			}
+		}
+	}
+	if (mGameMode == MODE_ZEN) {
+		// Zen has no jump: the next look, and the next level after a wait
+		mApp->mVizManager->NewLevel();
+		if (0 < mUnknown158) {
+			ShowLevelUp();
+			mUnknown269C = GetBonusLevel(mUnknown158);
+			ShowRankBonus(mUnknown269C);
+		}
+		mUnknown380C = mApp->mVizManager->m2D ? 3.5f : 11.0f;
+		mUnknown3880.SetCurve(GTS(0x7dc580));
+		return;
+	}
+	mUnknown26A4 = 0;
+	mUnknown1EC = mUnknown1E8;
+	mUnknown1F4 = mUnknown1F0;
+	mUnknown1508 = 0;
+	mUnknown262A = false;
+	mUnknown26C0 = 0;
+	mUnknown1C90 = true;
+	int aSize = mRows;
+	if (mRows <= mCols)
+		aSize = mCols;
+	mUnknown1630 = 0;
+	mUnknown2598 = 1.0f;
+	mUnknown1634 = aSize / 2;
+	mUnknown2108 = 7.9f;
+	mUnknown26A8 = 1;
+	mUnknown23F4 = mUnknown23F5;
+	if (0 < mUnknown158) {
+		ShowLevelUp();
+		if (!mUnknown23F4)
+			ShowRankBonus(mUnknown269C);
+	}
+	TakeHyperspace(nullptr);
+	// The trial's jump (14) ends the game after level 10 of classic or 15 of zen; the copy is registered
+	int aTransition = 8;
+	if (((10 <= mUnknown158 && mGameMode == MODE_CLASSIC) || (15 <= mUnknown158 && mGameMode == MODE_ZEN)) &&
+		!mApp->mRegistered)
+		aTransition = 14;
+	mHyperspace->SetTransition(aTransition);
+	mUnknown20C8 = 1.0f;
+	int aLeft = mCols * mRows;
+	Piece** aCell = mGrid;
+	while (aLeft != 0) {
+		Piece* aPiece = *aCell;
+		aLeft--;
+		aCell++;
+		if (aPiece != nullptr) {
+			if (aPiece->mUnknownB0) {
+				aPiece->mUnknownB0 = false;
+				aPiece->mX = (float)aPiece->mUnknownA0;
+				aPiece->mY = (float)aPiece->mUnknownA4;
+			}
+			if (aPiece->mBreaking || (aPiece->IsFlagSet(0) && mUnknown2138))
+				aPiece->mBlasted = true;
+			if (mUnknown1C7B && (aPiece->IsFlagSet(1) || aPiece->IsFlagSet(2)))
+				aPiece->mUnknown88 = 1;
+		}
+	}
+}
+
+void Board::UpdateJump()
+{
+	// The level's end (LevelComplete sets mUnknown26A8 to 1): the "level complete" show (1) or none (2), then the rows
+	// break up one by one as the hyperspace runs, every gem left becoming a soul; then (4, 0) the next level
+	if (mUnknown26A8 == 0) {
+		if (mUnknown2208 == nullptr) {
+			mUnknown2108 = (float)((double)mUnknown2108 - 0.01);
+			for (unsigned i = 0; i < mUnknown26B0.size(); i++) {
+				mUnknown26B0[i]->mRectY = Ftol((double)mHeight * 0.30000001192092896);
+				mUnknown26B0[i]->mRectHeight = Ftol((double)mHeight * 0.5);
+			}
+			ClearShockwaves();
+			EndJump(true);
+		}
+		SettlePieces();
+		return;
+	}
+	if (mUnknown26A8 == 1) {
+		if (mUnknown26AC == nullptr) {
+			mUnknown26A8 = 2;
+		} else {
+			int aShown = mUnknown26AC->mUpdateCnt;
+			if ((350 <= aShown && !mUnknown23F4) || (200 <= aShown && mUnknown23F4)) {
+				mApp->PlaySample(SOUND_WHIRLPOOL1);
+				mUnknown26A8 = 4;
+			}
+		}
+	} else if (mUnknown26A8 != 2) {
+		if (mUnknown26A8 == 4)
+			mUnknown26A8 = 0;
+		SettlePieces();
+		return;
+	}
+	// The row breaking up now
+	int aRow = (mHyperspace->mUpdateCnt - 120) / 12;
+	if (mUnknown23F4)
+		aRow = (mHyperspace->mUpdateCnt - 45) / 12;
+	if (aRow == mRows) {
+		mUnknown26A8 = 0;
+		SettlePieces();
+		return;
+	}
+	bool aSounded = false;
+	for (int aCol = 0; aCol < mCols; aCol++) {
+		Piece* aPiece = GetPieceAt(aRow, aCol);
+		if (aPiece == nullptr)
+			continue;
+		aPiece->mUnknown538 = 0;
+		if (aPiece->IsFlagSet(4) || aPiece->IsFlagSet(0) || aPiece->IsFlagSet(3) || aPiece->IsFlagSet(6))
+			continue;
+		if (aPiece->IsFlagSet(2) || aPiece->IsFlagSet(1) || aPiece->IsFlagSet(8) || aPiece->IsFlagSet(9)) {
+			float aY = (float)(gGemHeight / 2) + aPiece->mY;
+			float aX = (float)(gGemWidth / 2) + aPiece->mX;
+			BlowUpPiece(aPiece, aX, aY, true, false);
+		} else if (!aPiece->mBreaking) {
+			if (!aSounded) {
+				aSounded = true;
+				mApp->PlaySample(SOUND_ROWBLOW);
+			}
+			aPiece->mBreaking = true;
+			if (aPiece->IsFlagSet(10))
+				aPiece->mBreakFrame = 40;
+		}
+	}
+	// One gem of the row that is not breaking leaves as a soul (the row from 120 updates on, also after the show)
+	int aSoulRow = (mHyperspace->mUpdateCnt - 120) / 12;
+	for (int aCol = 0; aCol < mCols; aCol++) {
+		Piece* aPiece = GetPieceAt(aSoulRow, aCol);
+		if (aPiece == nullptr || aPiece->mBreaking)
+			continue;
+		GemSoul* aSoul = new GemSoul(aPiece->mFlags);
+		float aX = (float)(gGemWidth / 2) + aPiece->mX;
+		aSoul->mX = aX;
+		aSoul->mTargetX = aX;
+		float aY = (float)(gGemHeight / 2) + aPiece->mY;
+		aSoul->mY = aY;
+		aSoul->mTargetY = aY;
+		aSoul->mColor = aPiece->mColor;
+		aSoul->mPiece = aPiece;
+		aSoul->mRectX = Ftol((double)mWidth * 0.44999998807907104);
+		aSoul->mRectY = Ftol((double)mHeight * 0.20000000298023224);
+		aSoul->mRectWidth = Ftol((double)mWidth * 0.10000000149011612);
+		aSoul->mRectHeight = Ftol((double)mHeight * 0.009999999776482582);
+		aSoul->mFirst = mUnknown26B0.empty();
+		mUnknown26B0.push_back(aSoul);
+		aSoul->Update();
+		mGrid[mCols * aSoulRow + aCol] = nullptr;
+		float aLeft = 0.33f;
+		if (0.33f < mUnknown2108)
+			aLeft = mUnknown2108;
+		mUnknown2108 = aLeft;
+		mUnknown26A4 = 0.01f;
+		break;
+	}
+	SettlePieces();
+}
+
+void Board::ClearShockwaves()
+{
+	for (unsigned i = 0; i < mUnknown1660.size(); i++)
+		delete mUnknown1660[i];
+	mUnknown1660.clear();
+}
+
+void Board::EndJump(bool theUnused)
+{
+	(void)theUnused;
+	if (mUnknown2629) {
+		mWidgetFlagsMod.mRemoveFlags &= ~WIDGETFLAGS_ALLOW_MOUSE;
+		mUnknown2629 = false;
+	}
+	// (the original asks the app whether it draws with Direct3D, 0x4a7900, and keeps nothing of it)
+	mUnknown37B0 = true;
+	mUnknown37B1 = true;
+	ClearSparkStarts();
+	mUnknown2108 = 0;
+	mApp->mProfile->mUnknown164 |= 1 << 0;  // 0x733774
+	mUnknown1618 = 0;
+	mUnknown1614 = 0;
+	mUnknown1638 = false;
+	mUnknown1430 = nullptr;
+	mUnknown1478 = true;
+	mUnknown1620 = 0;
+	mUnknown1628 = 0;
+	mApp->ClearUpdateBacklog(false);
+	mUnknown1504 = 0;
+	mUnknown1544 = 0;
+	mUnknown200 = 0;
+}
+
+void Board::ShowLevelUp()
+{
+	mApp->PlayVoice(SOUND_VOICE_LEVELCOMPLETE, false);
+	LevelUpShow* aShow = new LevelUpShow(this);
+	mUnknown26AC = aShow;
+	aShow->mZOrder = mGoodTube->mZOrder;
+	mApp->mWidgetManager->AddWidget(mUnknown26AC);
 }
 
 bool Board::UpdateUnknown1660()
@@ -2423,10 +2700,38 @@ void Board::ApplyUnknown3924()
 
 void Board::RetargetTravellers()
 {
+	// Each soul picks a plain gem of the new board, from a random cell on, that no other soul goes to; a fruit's
+	// soul looks for one of its colour first
 	RandSigned();
-	if (!mUnknown26B0.empty()) {
-		// port: each traveller's new target (0x6a3447 picks a cell) comes with the travellers
-		NotPorted("Board::RetargetTravellers (0x6a9f1d)");
+	for (unsigned i = 0; i < mUnknown26B0.size(); i++) {
+		GemSoul* aSoul = mUnknown26B0[i];
+		int aCells = mRows * mCols;
+		int aCell = Rand85B970() % aCells;
+		bool aFound = false;
+		for (int aPass = 0; aPass < 2 && !aFound; aPass++) {
+			for (int n = 0; n < aCells; n++) {
+				Piece* aPiece = mGrid[aCell];
+				if (aPiece != nullptr && aPiece->mFlags == 0) {
+					bool aTaken = false;
+					for (unsigned j = 0; j < mUnknown26B0.size(); j++) {
+						if (mUnknown26B0[j]->mState == 2 && mUnknown26B0[j]->mUnknown680 == aPiece) {
+							aTaken = true;
+							break;
+						}
+					}
+					if (!aTaken && (!(aSoul->mType & (1 << 0)) || aPiece->mColor == aSoul->mColor || aPass == 1)) {
+						aSoul->SetTarget(aPiece);
+						aSoul->mUnknown8F4 = true;
+						aSoul->mUnknown660 = (float)((double)i * 0.05);
+						aFound = true;
+						break;
+					}
+				}
+				aCell++;
+				if (aCell == aCells)
+					aCell = 0;
+			}
+		}
 	}
 }
 
