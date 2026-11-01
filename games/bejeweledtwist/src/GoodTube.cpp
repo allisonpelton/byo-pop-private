@@ -235,3 +235,28 @@ void GoodTube::SetLevelShown(int theLevel)
 	mUnknown27C = theLevel;
 	mUnknown280 = theLevel;
 }
+
+void GoodTube::GetStepPoint(int* thePoint, int theStep, bool theCentre)
+{
+	// The first light of each level (0x84f028 in the exe): IMAGE_INGAMEUI_ARC_4_FILL_1 for the first, then 8, 12 and 16
+	static const int kFirstLight[11] = {IMAGE_INGAMEUI_BONUS_BLUE_LIT_ID, IMAGE_INGAMEUI_ARC_4_FILL_1_ID,
+		IMAGE_INGAMEUI_ARC_8_FILL_1_ID, IMAGE_INGAMEUI_ARC_12_FILL_1_ID, IMAGE_INGAMEUI_ARC_16_FILL_1_ID,
+		IMAGE_INGAMEUI_ARC_16_FILL_1_ID, IMAGE_INGAMEUI_ARC_16_FILL_1_ID, IMAGE_INGAMEUI_ARC_16_FILL_1_ID,
+		IMAGE_INGAMEUI_ARC_16_FILL_1_ID, IMAGE_INGAMEUI_ARC_16_FILL_1_ID, IMAGE_INGAMEUI_ARC_16_FILL_1_ID};
+	int aLevel = mUnknown27C;
+	int aSteps = Board::GetLevelSteps(aLevel);
+	int aStep = theStep % aSteps;
+	int aLast = Board::GetLevelSteps(aLevel) - 1;
+	if (aLast < aStep)
+		aStep = aLast;
+	int anId = kFirstLight[aLevel] + aStep;
+	Image* anImage = GetImageById(anId);
+	int aX = Ftol((double)gApp->mScale * (double)GetImageOffsetX(anId));
+	int aY = Ftol((double)gApp->mScale * (double)GetImageOffsetY(anId));
+	if (theCentre) {
+		aX += anImage->mWidth / 2;
+		aY += anImage->mHeight / 2;
+	}
+	thePoint[0] = aX;
+	thePoint[1] = aY;
+}

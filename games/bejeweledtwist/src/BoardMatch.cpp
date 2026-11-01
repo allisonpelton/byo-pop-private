@@ -4,6 +4,7 @@
 #include "GameText.h"
 #include "GoodTube.h"
 #include "Piece.h"
+#include "Traveller.h"
 #include "Profile.h"
 #include "Res.h"
 #include "TwistUtil.h"
@@ -182,9 +183,15 @@ Piece* Board::AddPoints(int theX, int theY, int thePoints, const Color& theColor
 		if (theFirst)
 			AddChainStep();
 	} else {
-		// port: the points fly to the tube (a 0x98-byte traveller, 0x750185, into +0x2170, aimed by 0x70205f and
-		// 0x703334); they reach the score on arrival; it comes with the travellers
-		NotPorted("Board::AddPoints: the points to the tube");
+		// The points go to the tube as smoke, to the next light of its level; they reach the score on arrival
+		int aSteps = mGoodTube->mUnknown274;
+		int aDiv = GetLevelSteps(mGoodTube->mUnknown27C);
+		int aPoint[2];
+		mGoodTube->GetStepPoint(aPoint, ((int)mUnknown2170.size() + aSteps) % aDiv, true);
+		SmokeTraveller* aSmoke = new SmokeTraveller(theColor, theX, theY, mGoodTube->mX + aPoint[0],
+			mGoodTube->mY + aPoint[1], aTotal, false);
+		aSmoke->mBurst = true;
+		mUnknown2170.push_back(aSmoke);
 	}
 	std::map<int, int>::iterator anIt = mUnknown37B8.find(theSerial);
 	int aKind = anIt != mUnknown37B8.end() ? anIt->second : 0;

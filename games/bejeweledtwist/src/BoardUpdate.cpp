@@ -11,6 +11,7 @@
 #include "GraphicsRecorder.h"
 #include "MusicInterface.h"
 #include "Piece.h"
+#include "Traveller.h"
 #include "Profile.h"
 #include "Res.h"
 #include "SoundInstance.h"
@@ -1787,9 +1788,18 @@ bool Board::UpdateUnknown1660()
 
 bool Board::UpdateUnknown2170()
 {
+	unsigned int i = 0;
 	if (!mUnknown2170.empty()) {
-		// port: the objects at +0x2170 are not ported yet
-		NotPorted("Board::UpdateUnknown2170: the objects");
+		do {
+			Traveller* aTraveller = mUnknown2170[i];
+			aTraveller->Update();
+			if (aTraveller->mDone) {
+				// (the next one waits an update: the original goes on to the index after)
+				mUnknown2170.erase(mUnknown2170.begin() + i);
+				delete aTraveller;
+			}
+			i++;
+		} while (i < mUnknown2170.size());
 	}
 	int aLeft = mCols * mRows;
 	int aGrowing = 0;

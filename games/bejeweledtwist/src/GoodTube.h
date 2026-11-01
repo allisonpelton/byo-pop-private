@@ -102,6 +102,8 @@ public:
 	void MarkLevelChange() { mUnknown29C = 1.0f; mUnknown1C8 = 1.0f; }  // 0x702a88
 	void SetLevelSteps(int theSteps);              // 0x7033d4
 	void SetLevelShown(int theLevel);              // 0x703431
+	// 0x703334: where the level's light theStep is (its image's offset, its centre with theCentre)
+	void GetStepPoint(int* thePoint, int theStep, bool theCentre);
 };
 
 }  // namespace Sexy

@@ -9,6 +9,7 @@
 #include "Hyperspace.h"
 #include "MemoryImage.h"
 #include "Piece.h"
+#include "Traveller.h"
 #include "Profile.h"
 #include "PropertiesParser.h"
 #include "Res.h"
@@ -588,6 +589,15 @@ void Board::LoadConfig()
 Board::~Board()
 {
 	// port: the rest of the destructor comes with the board's update
+	// The original frees the list of smoke without deleting the smoke; the port deletes it, without its points or sparks
+	for (Traveller* aTraveller : mUnknown2170) {
+		if (SmokeTraveller* aSmoke = dynamic_cast<SmokeTraveller*>(aTraveller)) {
+			aSmoke->mNoPoints = true;
+			aSmoke->mBurst = false;
+		}
+		delete aTraveller;
+	}
+	mUnknown2170.clear();
 	delete[] mUnknown1370;
 	delete[] mUnknown135C;
 	delete[] mCells;

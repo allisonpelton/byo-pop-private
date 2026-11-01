@@ -26,6 +26,7 @@ class Font;
 class Image;
 class MemoryImage;
 class Piece;
+class Traveller;
 class SoundInstance;
 class WinTwistApp;
 
@@ -249,7 +250,7 @@ public:
 	};
 	std::vector<Light> mUnknown1650;
 	std::vector<void*> mUnknown1660;        // +0x1660: objects that shake the gems (not yet ported)
-	std::vector<void*> mUnknown2170;        // +0x2170: objects updated by 0x6af0e2 (not yet ported)
+	std::vector<Traveller*> mUnknown2170;   // +0x2170: the points' smoke on its way to the tube (0x6af0e2)
 	int mUnknown203C = 0;                   // +0x203c: the puzzle fill's wait
 	// +0x21e4: objects of a class with its update at 0x6f465f (not yet ported)
 	std::vector<void*> mUnknown21E4;

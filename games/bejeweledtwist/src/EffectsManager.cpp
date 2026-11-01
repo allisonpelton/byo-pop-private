@@ -37,7 +37,8 @@ Effect::Effect(int theType) : mType(theType)
 	switch (mType) {
 	case 0:
 		break;
-	case 11:  // the gates' sparks (type 12, which shares this, comes with the board)
+	case 11:  // the gates' sparks
+	case 12:  // the sparks where the points' smoke reaches the tube (0x74f457)
 		mGravity = (float)(gApp->mScale * 0.004999999888241291);
 		mDX = (float)(RandSigned() * gApp->mScale);
 		mDY = (float)(RandSigned() * gApp->mScale);
@@ -140,6 +141,15 @@ void EffectsManager::Update()
 			if (anEffect->mScale > 0.85f)
 				anEffect->mScale = 0.85f;
 			break;
+		case 12: {
+			anEffect->mDY = anEffect->mGravity + anEffect->mDY;
+			// With Direct3D the angle also turns by mDY * 0.02
+			float aScale = (float)((double)anEffect->mScale + 0.05);
+			anEffect->mScale = aScale;
+			if (0.5f < aScale)
+				anEffect->mScale = 0.5f;
+			break;
+		}
 		default:
 			LogUnportedType("Update", aType);
 			break;
@@ -215,6 +225,15 @@ void EffectsManager::DrawEffects(Graphics* g, bool theOverlay)
 			g->SetColor(aColor);
 			float aScale = (float)std::pow((double)anOpacity, (double)0.65f) * anEffect->mScale;  // 0x670a26
 			DrawImageCentered(g, IMAGE_GATEPARTICLE, anEffect->mX, anEffect->mY, (double)anEffect->mAngle, aScale,
+				aScale);
+			break;
+		}
+		case 12: {
+			g->SetDrawMode(Graphics::DRAWMODE_ADDITIVE);
+			g->SetColorizeImages(true);
+			g->SetColor(Color(255, 255, 255, Ftol(anOpacity * 255.0)));
+			float aScale = anEffect->mScale * anOpacity;
+			DrawImageCentered(g, IMAGE_GEM_FRUIT_SPARK, anEffect->mX, anEffect->mY, (double)anEffect->mAngle, aScale,
 				aScale);
 			break;
 		}
