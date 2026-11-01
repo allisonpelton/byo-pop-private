@@ -544,8 +544,9 @@ leaves nothing in the window for PrintWindow. For it a held shot can read the fr
 bitsAt,pitchAt,w,h,bpp` names two globals holding the pixel pointer and the pitch (5-6-5 at 16 bpp, 8-8-8 at 32);
 `--surface <addr>` names an Image-like header instead (pixel pointer at +0, width at +4, height at +8, pitch at +0x1c,
 bpp at +0x44, then the masks, bit counts and shifts). A surface shot needs a gate, and is refused without one:
-`--surface-eip lo,hi` is the game's draw code, and the shot waits (the game running) until the held thread is neither
-in it nor has a return address into it in the top 4 KB of its stack; `--surface-gate <addr>` is an int that must read 0
+`--surface-eip lo,hi[,lo,hi...]` lists every function of the game that writes the locked screen (all it runs between
+its lock and unlock), and the shot waits (the game running) until the held thread is in none of them and has no return
+address into one anywhere in its stack (to the end of the stack's region, at most 64 KB; an unreadable page closes the gate); `--surface-gate <addr>` is an int that must read 0
 (a draw list's count). The pixels and `--sample a,b` values are read under the hold, the game is let go, and then the
 PNG is written. The header is refused unless the pitch is at most 16384 and no more than 64 bytes over a row.
 
