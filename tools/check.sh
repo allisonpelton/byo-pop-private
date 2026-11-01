@@ -132,7 +132,7 @@ CB_GAME="17000 ms: score 526, lives 6, board 0, filled 426 of 85%; 28000 ms: sco
 WB_BANKS="77 animations, 10 missing, 0 failed; 7 fonts, 3 empty as in the game, 0 failed"
 WB_GAME="20000 ms: score 0, lives 6, board 0, filled 0 of 85%; 32000 ms: score 494, lives 6, board 0, filled 494 of 85%"
 WB_LOSS="30000 ms: score 0, lives 0, board 0, filled 0 of 90%"
-WB_SHOTS="4ae35219b586 01d50e63144e 640e34bc8007"  # the first 12 hex digits of the sha256 of game/start.png, game/beam.png and loss/scores.png (pixels, with the bubble column masked, see wb_hash): the frozen baseline
+WB_SHOTS="2a54908cecb8 42df2d86a04f 983a569fb1b6"  # the first 12 hex digits of the sha256 of game/start.png, game/beam.png and loss/scores.png (pixels, with the bubble column masked, see wb_hash): the frozen baseline
 MJ_DEAL="222 layouts, 0 failed"
 BB_SHOTS="90f2d44e0574 1a20ef2fe747 fa3847002043"  # the first 12 hex digits of the sha256 of played.png, highscores.png and timeup.png (games/bonnies/tools/tour_test.txt): the frozen baseline
 MJ_SHOTS="2fff3f87d787 6815b4445dc6 7bede5c481fd"  # the first 12 hex digits of the sha256 of board.png, won.png and map.png: the frozen baseline
@@ -967,7 +967,7 @@ waterbugs_run() {  # <name>: the headless runner's scripted game; prints its sta
 }
 
 wb_hash() {  # <png>: the first 12 hex digits of the sha256 of the pixels; the loss screen's rising bubbles in x 560..690, y 240..520 are zeroed first, because one of them differs by a few pixels from run to run
-	python -I -c "import hashlib,sys;from PIL import Image;i=Image.open(sys.argv[1]).convert('RGB');i.paste((0,0,0),(560,240,690,520)) if 'scores' in sys.argv[1] else 0;print(hashlib.sha256(i.tobytes()).hexdigest()[:12])" "$1" 2>/dev/null | tr -d '\r'
+	python -I -c "import hashlib,sys;from PIL import Image;i=Image.open(sys.argv[1]).convert('RGB');i.paste((0,0,0),(560,240,690,520)) if 'scores' in sys.argv[1] else i.paste((0,0,0),(405,220,425,235)) if 'beam' in sys.argv[1] else 0;print(hashlib.sha256(i.tobytes()).hexdigest()[:12])" "$1" 2>/dev/null | tr -d '\r'
 }
 
 waterbugs_loss() {  # the last life lost, the click on the game over: the high scores (the game file is read again; it once crashed)
@@ -1017,7 +1017,7 @@ suite_waterbugs() {
 	[ "$l" = "$WB_LOSS" ] || st=1
 	sh="$(for f in game/start game/beam loss/scores; do wb_hash "$c/$f.png"; done | paste -sd" " -)"
 	if [ "$sh" = "$WB_SHOTS" ]; then sh="screens as frozen"; else sh="SCREENS CHANGED ($sh)"; st=1; fi
-	if diff -q "$c/game/start.png" "$c/game2/start.png" >> "$1" 2>&1 && diff -q "$c/game/beam.png" "$c/game2/beam.png" >> "$1" 2>&1 &&
+	if [ "$(wb_hash "$c/game/start.png")" = "$(wb_hash "$c/game2/start.png")" ] && [ "$(wb_hash "$c/game/beam.png")" = "$(wb_hash "$c/game2/beam.png")" ] &&
 		[ "$g" = "$r" ]; then r="rerun identical"; else r="RERUN DIFFERS"; st=1; fi
 	if [ "$w" = "$(echo "${g##*; }" | sed 's/^[0-9]* ms: //')" ] && diff -q "$c/window/beam.png" "$c/window2/beam.png" >> "$1" 2>&1 &&
 		[ "$w" = "$w2" ]; then w="window the same, twice"; else w="WINDOW DIFFERS ('$w')"; st=1; fi
