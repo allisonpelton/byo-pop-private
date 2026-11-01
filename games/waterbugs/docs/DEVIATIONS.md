@@ -101,3 +101,11 @@ The sign's translucent fringe (2026-11-01): Screen_Redraw drew every menu's imag
 The text and dialog screens (2026-11-01): the main menu, both Help pages (Instructions and Power-Ups), the Hall of Fame (while it fades in and fully shown), Change User with its name-entry dialog and Options match the original with 0 differing pixels at the original's own update counters (replayed input, a fresh profile, 1 ms frames), except 3 pixels of at most 9 in the sign's bubble on one Change User shot. Options matches only with fullscreen="1" in cp.cfg: the original's default is full screen, while the test runner writes a windowed cp.cfg when none exists (harness choice, not the game). The Quit button leaves the game at once in both, with no requester.
 
 The web build (2026-11-01): the rebuilt page (`?silent=1`) loads its wasm and shows its start page with no console errors. With the game's install folder zipped and set on the page's zip input from script (189 files copied), the page started the game and drew the main menu and the Options screen with the same texts as the original ("Video: Fullscreen" and the rest); a click-through of further screens was not finished (an import panel of the page stayed in front), so no web screen is compared pixel by pixel; the web build runs the same game code as the native build that was compared.
+
+## Oddities (not chased)
+
+Pipe-end glints (2026-11-01). On about 20 of the later-level shots, the sparkles at the pipe ends differ slightly from the original's (tint and position, tens of pixels per shot; the frames around them are identical). They are not particles (no ParticleSystem_Add call falls in the window) and the cause was not found after a long look. To see them: replay one of the original runs under origrun with the run's own input counters (`docs/ORIGRUN.md`, `re` scratch scripts) and compare with `tools/shotdiff`. Matching them would need values measured from runs, so they stay as they are.
+
+The logo panel's strip at x 766, y 531..560 differs by the order of two draw-list entries at the same depth (an address tie-break in the original); one fill cell differs by one update in one run (z24000). Neither has a visible effect.
+
+The sound of the original could not be recorded (its audio library does not reach the sandbox's audio stand-in), so sound is compared by call counts only (see above).
