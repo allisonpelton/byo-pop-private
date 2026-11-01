@@ -41,8 +41,10 @@ The web build ran the same four parts in the Browser pane, and its pictures were
 
 Not compared yet:
 
-- **Sound and music.** origrun gives the original a silent DirectSound stand-in, and Bookworm Adventures does not play
-  through DirectSound anyway, so its sound has no recording yet.
+- **Sound and music.** The original plays its music through BASS 2.3 and its sounds through DirectSound. Both are now
+  logged in the sandbox: `tools/bassproxy` logs the BASS calls, and origrun's DirectSound stand-in logs each buffer with
+  the sound a duplicate copies. The port's side waits for a shared sound log in the framework, which has been specified
+  to the coordinator; then the two logs are compared by order and state.
 - **3D mode on.** The original under origrun falls back to 2D on this machine; `--3d on` works only with a GPU wrapper,
   which is never used in captured copies.
 - **The question at exit after 3D was switched on during a session** ("Hardware Acceleration Confirmation").
