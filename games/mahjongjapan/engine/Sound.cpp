@@ -6,10 +6,15 @@
 #include "platform/openmpt/OpenMPTPlayer.h"
 
 #include <algorithm>
+#include <cstdarg>
+#include <cstdio>
+#include <cstdlib>
 #include <cstring>
 
 namespace jb
 {
+
+static void SoundLog(const char* theFormat, ...);
 
 // The music as BASS played it: libopenmpt's player, with the channel's volume (and its slides) and the MUSICPOS
 // sync of SetMusicLoop applied as it renders. Changed only between Mixer::Lock and Unlock.
@@ -99,6 +104,7 @@ public:
 				// 0x4372b0: the sync's row a multiple of the step jumps to the order, and the sync is removed
 				if (mSyncSet && aRow % mSyncRowStep == 0)
 				{
+					SoundLog("music position %d", mSyncOrder);
 					mSyncSet = false;
 					SetPosition(mSyncOrder, 0);
 				}
@@ -117,6 +123,42 @@ public:
 static float Gain(int theVolume)
 {
 	return theVolume / 100.0f;
+}
+
+// A record of what the sound plays, for comparing with the original's BASS calls (tools/soundlog.py): written only
+// when the environment's MJ_SOUNDLOG names a file
+static void SoundLog(const char* theFormat, ...)
+{
+	static FILE* aFile = nullptr;
+	static bool isOpen = false;
+	if (!isOpen)
+	{
+		isOpen = true;
+		const char* aPath = getenv("MJ_SOUNDLOG");
+		if (aPath != nullptr && aPath[0] != 0)
+			aFile = fopen(aPath, "w");
+	}
+	if (aFile == nullptr)
+		return;
+	fprintf(aFile, "%u ", GetHost()->TickCount());
+	va_list anArgs;
+	va_start(anArgs, theFormat);
+	vfprintf(aFile, theFormat, anArgs);
+	va_end(anArgs);
+	fputc('\n', aFile);
+	fflush(aFile);
+}
+
+static uint32_t Crc32(const uint8_t* theData, uint32_t theSize)
+{
+	uint32_t aCrc = 0xffffffff;
+	for (uint32_t i = 0; i < theSize; i++)
+	{
+		aCrc ^= theData[i];
+		for (int k = 0; k < 8; k++)
+			aCrc = (aCrc >> 1) ^ (0xedb88320 & (0 - (aCrc & 1)));
+	}
+	return ~aCrc;
 }
 
 // 0x436860 (BASS_SampleFree, BASS_MusicFree)
@@ -177,6 +219,7 @@ void Sound::Load(int theId, bool theLoop)
 	std::shared_ptr<Platform::SoundData> aSound = Platform::Mixer::Get().LoadSoundData(aFile, "WAVE");
 	if (aSound == nullptr)
 		return;
+	SoundLog("load %d %08x %d", theId, Crc32(aData, aSize), theLoop ? 1 : 0);
 	Sample* aSample = new Sample();
 	aSample->mData = aSound;
 	aSample->mLoop = theLoop;
@@ -202,6 +245,7 @@ void Sound::Play(int theId)
 		aMixer.StopVoice(aVoices.front());
 		aVoices.erase(aVoices.begin());
 	}
+	SoundLog("play %d %d", theId, mVolume);
 	int aVoice = aMixer.StartVoice(aSample->mData, Gain(mVolume), Gain(mVolume), 1.0, aSample->mLoop);
 	if (aVoice > 0)
 	{
@@ -220,6 +264,7 @@ void Sound::Stop(int theId)
 	if (anIt == mSamples.end())
 		return;
 	Sample* aSample = anIt->second;
+	SoundLog("stop %d", theId);
 	for (int aVoice : aSample->mVoices)
 		Platform::Mixer::Get().StopVoice(aVoice);
 	aSample->mVoices.clear();
@@ -274,6 +319,7 @@ void Sound::SetVolume(int theVolume)
 	if (!mInitialized)
 		return;
 	mVolume = theVolume;
+	SoundLog("volume %d", theVolume);
 	for (auto& anEntry : mSamples)
 	{
 		Sample* aSample = anEntry.second;
@@ -298,6 +344,7 @@ void Sound::Pause(bool thePause, bool theLoopingOnly, int theExcept)
 			{
 				if (aSample->mLast != 0 && LastState(aSample) == 3)
 				{
+					SoundLog("resume %d", anEntry.first);
 					PauseVoice(aSample->mLast, false);
 					aSample->mLastPaused = false;
 					aSample->mPaused = false;
@@ -305,6 +352,7 @@ void Sound::Pause(bool thePause, bool theLoopingOnly, int theExcept)
 			}
 			else if (aSample->mLast != 0 && LastState(aSample) == 1)
 			{
+				SoundLog("pause %d", anEntry.first);
 				PauseVoice(aSample->mLast, true);
 				aSample->mLastPaused = true;
 				aSample->mPaused = true;
@@ -325,12 +373,14 @@ void Sound::PauseSamples(bool thePause)
 		{
 			if (LastState(aSample) == 1)
 			{
+				SoundLog("pause %d", anEntry.first);
 				PauseVoice(aSample->mLast, true);
 				aSample->mLastPaused = true;
 			}
 		}
 		else if (LastState(aSample) == 3)
 		{
+			SoundLog("resume %d", anEntry.first);
 			PauseVoice(aSample->mLast, false);
 			aSample->mLastPaused = false;
 		}
@@ -351,6 +401,7 @@ void Sound::LoadMusic(int theId)
 	std::unique_ptr<Platform::ModulePlayer> anInner = Platform::CreateOpenMPTModule(aFile, aMixer.GetRate());
 	if (anInner == nullptr)
 		return;
+	SoundLog("music load %d %08x", theId, Crc32(aData, aSize < 0x8000 ? aSize : 0x8000));
 	MusicPlayer* aPlayer = new MusicPlayer(std::move(anInner), aMixer.GetRate());
 	aPlayer->SetGain(Gain(mMusicVolume));
 	int aSong = aMixer.AddSong(std::unique_ptr<Platform::ModulePlayer>(aPlayer));
@@ -381,6 +432,7 @@ void Sound::PlayMusic(int theId, bool theRestart, int theFadeMs, int theOrder)
 	if (aMusic == nullptr)
 		return;
 	Platform::Mixer& aMixer = Platform::Mixer::Get();
+	SoundLog("music play %d fade %d order %d", theId, theFadeMs, theOrder);
 	mMusic = aMusic;
 	aMixer.Lock();
 	aMusic->mPlayer->SetGain(theFadeMs == 0 ? Gain(mMusicVolume) : 0.0f);
@@ -403,6 +455,7 @@ void Sound::SetMusicLoop(int theRowStep, int theOrder)
 	if (mMusic == nullptr)
 		return;
 	Platform::Mixer& aMixer = Platform::Mixer::Get();
+	SoundLog("music loop %d %d", theRowStep, theOrder);
 	aMixer.Lock();
 	mMusic->mPlayer->mSyncSet = true;
 	mMusic->mPlayer->mSyncRowStep = (theRowStep & 0xffff) == 0 ? 1 : (theRowStep & 0xffff);
@@ -416,6 +469,7 @@ void Sound::StopMusic()
 	if (!mInitialized || mMusic == nullptr)
 		return;
 	Platform::Mixer& aMixer = Platform::Mixer::Get();
+	SoundLog("music stop");
 	aMixer.Lock();
 	mMusic->mPlayer->mSyncSet = false;
 	aMixer.Unlock();
@@ -433,12 +487,14 @@ void Sound::PauseMusic(bool thePause)
 	{
 		if (!aMixer.IsSongPlaying(mMusic->mSong))
 		{
+			SoundLog("music resume");
 			aMixer.PauseSong(mMusic->mSong, false);
 			mMusicPaused = false;
 		}
 	}
 	else if (aMixer.IsSongPlaying(mMusic->mSong))
 	{
+		SoundLog("music pause");
 		aMixer.PauseSong(mMusic->mSong, true);
 		mMusicPaused = true;
 	}
@@ -450,6 +506,7 @@ void Sound::SetMusicVolume(int theVolume)
 	if (!mInitialized)
 		return;
 	mMusicVolume = theVolume;
+	SoundLog("music volume %d", theVolume);
 	Platform::Mixer& aMixer = Platform::Mixer::Get();
 	aMixer.Lock();
 	for (auto& anEntry : mMusics)
@@ -463,6 +520,7 @@ void Sound::SlideMusic(int thePercent, int theMs)
 	if (!mInitialized || mMusic == nullptr)
 		return;
 	int aVolume = MulDiv(mMusicVolume, thePercent, 100);
+	SoundLog("music slide %d %d", aVolume, theMs);
 	Platform::Mixer& aMixer = Platform::Mixer::Get();
 	aMixer.Lock();
 	mMusic->mPlayer->Slide(Gain(aVolume), theMs);
@@ -480,7 +538,10 @@ void Sound::Activate(bool theActive)
 		if (!mInactive)
 		{
 			if (mMusic != nullptr && !mMusicPaused)
+			{
+				SoundLog("music pause");
 				aMixer.PauseSong(mMusic->mSong, true);
+			}
 			PauseSamples(true);
 			mInactive = true;
 		}
@@ -488,7 +549,10 @@ void Sound::Activate(bool theActive)
 	else if (mInactive)
 	{
 		if (mMusic != nullptr && !mMusicPaused)
+		{
+			SoundLog("music resume");
 			aMixer.PauseSong(mMusic->mSong, false);
+		}
 		PauseSamples(false);
 		mInactive = false;
 	}
