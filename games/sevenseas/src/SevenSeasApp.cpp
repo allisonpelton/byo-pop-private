@@ -723,16 +723,16 @@ void SevenSeasApp::EndTutorial()
 	KillDialog(DIALOG_OPTIONS);
 	KillDialog(DIALOG_HIGH_SCORES);
 	KillDialog(DIALOG_REGISTER);
-	if (HasSavedGame() && !mTutorial)
+	if (HasSavedGame())
 	{
-		RemoveIntro();
-		mTalkWidget->mMode = -1;
 		ShowContinueDialog();
 	}
 	else
 	{
 		RemoveIntro();
-		mTalkWidget->mMode = -1;
+		mTalkWidget->mMode = 0;
+		mTalking = false;
+		mTalkWidget->SetVisible(false);
 		StartGame();
 	}
 }
@@ -825,7 +825,7 @@ void SevenSeasApp::ShowOptions()
 // 0x41d570
 void SevenSeasApp::ShowQuitDialog()
 {
-	DoDialog(DIALOG_QUIT, true, GT(0x004a62dc), GT(0x004a39f4), GT(0x004a62dc), Dialog::BUTTONS_YES_NO);
+	DoDialog(DIALOG_QUIT, true, GT(0x004a62dc), GT(0x004a62e4), "", Dialog::BUTTONS_YES_NO);
 }
 
 // 0x41d360
@@ -837,13 +837,13 @@ void SevenSeasApp::ShowNewGameDialog()
 		ShowIntro();
 		return;
 	}
-	DoDialog(DIALOG_NEW_GAME, true, GT(0x004a3a3c), GT(0x004a3a08), GT(0x004a62dc), Dialog::BUTTONS_YES_NO);
+	DoDialog(DIALOG_NEW_GAME, true, GT(0x004a62a0), GT(0x004a62ac), "", Dialog::BUTTONS_YES_NO);
 }
 
 // 0x41f0c0
 void SevenSeasApp::ShowContinueDialog()
 {
-	DoDialog(DIALOG_CONTINUE, true, GT(0x004a3aa4), GT(0x004a3a60), GT(0x004a62dc), Dialog::BUTTONS_YES_NO);
+	DoDialog(DIALOG_CONTINUE, true, GT(0x004a63cc), GT(0x004a63d8), "", Dialog::BUTTONS_YES_NO);
 }
 
 // 0x421590
