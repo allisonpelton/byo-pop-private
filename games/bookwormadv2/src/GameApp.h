@@ -171,6 +171,7 @@ public:
 	const char* LuaGetRegisteredName() override { return "GameApp"; }
 
 	void Init() override;                   // V1:0x445a50
+	MusicInterface* CreateMusicInterface() override;  // 0x445370
 	void LoadingThreadProc() override;      // V1:0x4473e0
 	void LoadingThreadCompleted() override; // V1:0x4481a0
 	bool UpdateAppStep(bool* updated) override;
