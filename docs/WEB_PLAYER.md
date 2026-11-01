@@ -464,7 +464,11 @@ adds its tag, and the chat keeps no list of its own); a game the table lacks has
 width it has without it, else below it (the class `chat-below` on the root element), so the canvas and its scaling are never
 changed by the chat; `Module.onGameScreen` asks the chat to work that out again when a game changes the stage's shape; the
 "Show chat" setting above turns it on and off live; and the terms card and the "Already open" card make it inert like the rest
-of the page.
+of the page. Below the stage the page is taller than the window, and the player must land on the game, scrolled to the top: the
+page sets `history.scrollRestoration` to `manual` (else a reload, as Play again and a restart from the mod menu do, puts the page back
+where it was scrolled to, the chat in view), and Home, End, PageUp and PageDown typed on the canvas are cancelled for the browser, which
+would scroll the page to the chat with them (SDL cancels the arrows, Tab, Backspace, the function keys, Ctrl keys and Space, not
+these); the game still gets them. Nothing on the page moves the focus into the chat by itself.
 
 ### Player profiles
 
@@ -506,7 +510,8 @@ name as its name box keeps it), `Create`, `Select`, and `Rename` and `Delete` wh
   the end of `GameInit`).
 - `SiteScoreNames` is the whole hook of a game that keeps no players and only asks for a name at each high score: it lists the
   last name the game remembers (the registry value `LastScoreName`, or nothing), renames it, and fits a name by typing it into a
-  box with the game's font and limits.
+  box with the game's font and limits. A game that remembers no last name (TipTop) lists the names in its high-score tables
+  instead, leaving out the table it starts with, and calls `SiteScoresChanged` when a name enters a table (a6547b9).
 - `SiteChanged(id, game)` wherever the game's list changes (a player made, renamed, deleted or chosen): it reports again.
 - `SiteType(id, editWidget)` right after a SexyAppFramework name box is made: under `fill` and `create` the site player's
   name is typed into the box through `EditWidget::KeyChar`, one character at a time, so the box's own rules (its characters, its

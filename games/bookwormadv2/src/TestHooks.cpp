@@ -12,6 +12,11 @@
 //                   board is hidden)
 //   nowords <0|1>  1: the soak spells no words (the rest of it goes on), so a battle is lost to the enemy; 0: it does again
 //   wordmax <n>    the words the soak and the word command spell are at most n letters (0: no limit), so the enemies hit harder than Lex's words
+//   battle <book> [<stage>]  from the main menu (it waits for it) starts a new adventure of the book (4, 5 or 6: the profile's
+//                   CurrentBook is set, AdventureComplete, InGame and the tile help off), goes on to the stage
+//                   (the enemy of the chapter, 1 for the first, one more than the enemies is the boss) once the board shows,
+//                   clicking the chapter map's Enter until it does; logs "script: battle: ..." at each step. A soak after it plays the battle
+//                   (wordmax 3 lets the enemy attack)
 //   pam <id>        logs where a script's animation is (playing, label, frame)
 //   state           logs the battle engine's state and the board's selected tiles
 //   widgets         logs the widget manager's widgets: class, rectangle, visibility, priority, focus
@@ -248,6 +253,49 @@ bool GameApp::HandleScriptCommand(const ScriptCommand& theCommand)
 			}
 			AddScriptCommand(mUpdateCount + 20, "word", "attack preferruby");
 		}
+		return true;
+	}
+	if (theCommand.mCommand == "battle") {
+		// battle <book> <stage> [<phase>]: see the header
+		int aBook = atoi(theCommand.mArgs.c_str());
+		size_t aSpace = theCommand.mArgs.find(' ');
+		int aStage = aSpace == std::string::npos ? 1 : atoi(theCommand.mArgs.c_str() + aSpace + 1);
+		size_t aSpace2 = aSpace == std::string::npos ? aSpace : theCommand.mArgs.find(' ', aSpace + 1);
+		int aPhase = aSpace2 == std::string::npos ? 0 : atoi(theCommand.mArgs.c_str() + aSpace2 + 1);
+		std::string aNext = StrFormat("%d %d %d", aBook, aStage, aPhase);
+		if (aPhase == 0) {
+			if (mMainMenu == nullptr || IsCurtainMoving() || !mDialogMap.empty() || mProfile == nullptr) {
+				AddScriptCommand(mUpdateCount + 20, "battle", aNext);
+				return true;
+			}
+			mProfile->SetBool("NeedsIntroTileHelp", false);
+			mProfile->SetBool("AdventureComplete", false);
+			mProfile->SetBool("InGame", false);
+			mProfile->SetInt("CurrentBook", aBook);
+			SDL_Log("script: battle: book %d, stage %d: new game", aBook, aStage);
+			StartNewGameTransition();
+			AddScriptCommand(mUpdateCount + 20, "battle", StrFormat("%d %d 1", aBook, aStage));
+			return true;
+		}
+		if (mBoard != nullptr && mBoard->mVisible) {
+			SDL_Log("script: battle: the board shows");
+			if (aStage != 1 && gBattleEngine != nullptr) {
+				// the first enemy is in: the engine goes on to the stage's, as if the ones before had been beaten
+				AddScriptCommand(mUpdateCount + 60, "lua",
+				                 StrFormat("gBattleEngine.mWinner = gBattleEngine.mPlayerPtr; gBattleEngine.mLoser = gBattleEngine.mEnemyPtr; gBattleEngine.mStageNum = %d; "
+				                           "gBattleEngine:SetupNextStage()",
+				                           aStage - 1));
+				SDL_Log("script: battle: on to stage %d", aStage);
+			}
+			return true;
+		}
+		if (aPhase > 400) {
+			SDL_Log("script: battle: gave up");
+			return true;
+		}
+		if (mMainMenu == nullptr && !IsCurtainMoving() && mDialogMap.empty() && aPhase % 5 == 2)
+			AddScriptCommand(mUpdateCount + 1, "click", "400 575");  // the chapter map's Enter button
+		AddScriptCommand(mUpdateCount + 20, "battle", StrFormat("%d %d %d", aBook, aStage, aPhase + 1));
 		return true;
 	}
 	if (theCommand.mCommand == "nowords") {

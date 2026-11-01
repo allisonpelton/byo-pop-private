@@ -25,19 +25,34 @@ namespace
 // Allocated up front, so the audio thread never allocates; the song sounds up to 116 at once (musicwav counts them),
 // most of them notes fading out
 const int MAX_VOICES = 256;
-// The synth's own level: at the default music volume (192) the song's mean is about -24 dB and its peak -5 dB, below
-// the sounds (peaks at 0 dB, means of -12 to -18 dB), and at full volume its peak stays under 0 dB
-const float GAIN_DB = 0.0f;
+// The synth's own level: at the default music volume (192) the song's mean is about -21 dB and its peak -3 dB, a little
+// below the sounds (peaks at 0 dB, means of -12 to -18 dB), and at full volume its peak stays under 0 dB
+const float GAIN_DB = -1.0f;
 
 tsf* gSynth = nullptr;
 int gRate = 0;
 int gSong = 0;
+uint8_t gChannelVolume[16];      // CC 7
+uint8_t gChannelExpression[16];  // CC 11
 
-// The channels as a General MIDI synth starts them: program 0, and channel 10 on the drum kits
+// The volume of a channel as the GS synth behind the MIDI mapper makes it, 40 log10 of each of CC 7 and CC 11 over 127 in
+// decibels (a square law, where TinySoundFont's own is a cube, much quieter at the song's channel volumes of 60 to 100)
+void SetChannelVolume(int theChannel)
+{
+	float aLevel = (gChannelVolume[theChannel] / 127.0f) * (gChannelExpression[theChannel] / 127.0f);
+	tsf_channel_set_volume(gSynth, theChannel, aLevel * aLevel);
+}
+
+// The channels as a General MIDI synth starts them: program 0, channel 10 on the drum kits, volume 100
 void ResetChannels()
 {
 	for (int c = 15; c >= 0; c--)
+	{
 		tsf_channel_set_presetnumber(gSynth, c, 0, c == 9);
+		gChannelVolume[c] = 100;
+		gChannelExpression[c] = 127;
+		SetChannelVolume(c);
+	}
 }
 
 // The sequencer's MIDI output (Music.h)
@@ -56,7 +71,16 @@ void SynthMessage(uint32_t theMessage)
 		tsf_channel_note_on(gSynth, aChannel, aData1, aData2 / 127.0f);  // velocity 0 is a note off
 		break;
 	case 0xb0:
-		tsf_channel_midi_control(gSynth, aChannel, aData1, aData2);
+		if (aData1 == 7)
+			gChannelVolume[aChannel] = (uint8_t)aData2;
+		else if (aData1 == 11)
+			gChannelExpression[aChannel] = (uint8_t)aData2;
+		else
+			tsf_channel_midi_control(gSynth, aChannel, aData1, aData2);
+		if (aData1 == 121)
+			gChannelExpression[aChannel] = 127;  // reset all controllers: the expression, not the volume
+		if (aData1 == 7 || aData1 == 11 || aData1 == 121)
+			SetChannelVolume(aChannel);
 		break;
 	case 0xc0:
 		tsf_channel_set_presetnumber(gSynth, aChannel, aData1, aChannel == 9);

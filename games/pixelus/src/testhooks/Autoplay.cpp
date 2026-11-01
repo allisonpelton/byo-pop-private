@@ -76,6 +76,8 @@ void PixelusApp::HandleCmdLineParam(const std::string& theParamName, const std::
 		mAutoplayLog = theParamValue;
 	else if (theParamName == "-autoplayshots")
 		mAutoplayShots = theParamValue;
+	else if (theParamName == "-autoplayshow")
+		mAutoplayShow = theParamValue;
 	else
 		NcApp::HandleCmdLineParam(theParamName, theParamValue);
 }
@@ -104,7 +106,7 @@ void Shot(PixelusApp* theApp, AutoplayState* s, int theKind, const char* theName
 	theApp->AutoplayShot(theApp->mAutoplayShots + "-" + theName + ".png");
 }
 
-enum { SHOT_MENU, SHOT_ISLAND, SHOT_TEMPLE, SHOT_BOARD, SHOT_BOARD_END, SHOT_COMPLETED, SHOT_COMPLETED_2, SHOT_SWEEP };
+enum { SHOT_MENU, SHOT_ISLAND, SHOT_TEMPLE, SHOT_BOARD, SHOT_BOARD_END, SHOT_COMPLETED, SHOT_COMPLETED_2, SHOT_SWEEP, SHOT_PLAY };
 
 // the first temple that is open and has a puzzle without a result; -1 when there is none
 int FindTemple(PixelusApp* theApp, UserProfile* theUser)
@@ -192,6 +194,33 @@ void PixelusApp::AutoplayUpdate()
 			return;
 		if (++s->mScreenTicks < 150)
 			return;
+		if (!mAutoplayShow.empty())
+		{
+			// the board of one puzzle, with a record set first when the value has moves and a time
+			std::vector<std::string> aParts;
+			size_t aStart = 0;
+			for (size_t aPos; (aPos = mAutoplayShow.find(':', aStart)) != std::string::npos; aStart = aPos + 1)
+				aParts.push_back(mAutoplayShow.substr(aStart, aPos - aStart));
+			aParts.push_back(mAutoplayShow.substr(aStart));
+			const LevelData::Level* aLevel = aParts.size() >= 2 ? mLevelData->GetLevel(aParts[0]) : NULL;
+			int anIndex = aParts.size() >= 2 ? atoi(aParts[1].c_str()) : -1;
+			if (aLevel == NULL || anIndex < 0 || anIndex >= (int) aLevel->mPuzzles.size())
+			{
+				Log(s, "-autoplayshow: no such puzzle");
+				Shutdown();
+				return;
+			}
+			if (aParts.size() >= 4)
+				aUser->SetRecord(aLevel->mPuzzles[anIndex].mUuid, 1, atoi(aParts[2].c_str()), atoi(aParts[3].c_str()));
+			Log(s, "show %s %d", aParts[0].c_str(), anIndex);
+			s->mScreenTicks = 0;
+			mWidgetManager->RemoveWidget(mMainMenu);
+			SafeDeleteWidget(mMainMenu);
+			mMainMenu = NULL;
+			ShowBoard(aParts[0], anIndex);
+			s->mWait = 20;
+			return;
+		}
 		Shot(this, s, SHOT_MENU, "menu");
 		Log(s, "play");
 		s->mScreenTicks = 0;
@@ -240,6 +269,16 @@ void PixelusApp::AutoplayUpdate()
 		return;
 	}
 
+	if (mBoard != NULL && !mAutoplayShow.empty())
+	{
+		if (++s->mScreenTicks == 250)
+		{
+			AutoplayShot(mAutoplayShots + "-show.png");
+			Shutdown();
+		}
+		return;
+	}
+
 	if (mBoard != NULL)
 	{
 		Board* b = mBoard;
@@ -283,6 +322,8 @@ void PixelusApp::AutoplayUpdate()
 			b->DoPull();
 		else
 			b->DoThrow();
+		if (!b->mTutorial && s->mMoveIndex == 3)
+			Shot(this, s, SHOT_PLAY, "play");
 		if (s->mMoveIndex == (int) s->mSolution.size() - 1)
 			Shot(this, s, SHOT_BOARD_END, "board-end");
 		s->mWait = 4;

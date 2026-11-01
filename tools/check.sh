@@ -14,7 +14,8 @@
 #                rules for .jp2 files, synthetic and damaged files), skipped without assets/bookwormadv/images;
 #                songpostest on Bejeweled's and BookWorm's modules (skipped without their assets); spectrumtest
 #                (the music player's FFT against BASS 2.3's on the same tones); and soundtest (sounds kept as 16-bit at
-#                their own rate, voices against the old stereo-float pipeline)
+#                their own rate, voices against the old stereo-float pipeline); and shotdiff's selftest (tools/shotdiff:
+#                the screenshot comparison on synthetic pictures, its pages and its marks server)
 #   unit-web     rulestest and modsettingstest under Node (needs build-web); paktest (the page's pak reader), with
 #                Bookworm Adventures' main.pak against assets/bookwormadv when both are there; profilestest (the page's
 #                settings and players code, web/settings.js and web/profiles.js, on a fake localStorage), savestest (the
@@ -126,7 +127,7 @@ CB_GAME="17000 ms: score 526, lives 6, board 0, filled 426 of 85%; 28000 ms: sco
 WB_BANKS="77 animations, 10 missing, 0 failed; 7 fonts, 3 empty as in the game, 0 failed"
 WB_GAME="20000 ms: score 0, lives 6, board 0, filled 0 of 85%; 32000 ms: score 494, lives 6, board 0, filled 494 of 85%"
 WB_LOSS="30000 ms: score 0, lives 0, board 0, filled 0 of 90%"
-WB_SHOTS="8f3a2bdb9844 3a9d053f4769 32ee6fa1c989"  # the first 12 hex digits of the sha256 of game/start.png, game/beam.png and loss/scores.png: the frozen baseline
+WB_SHOTS="4ae35219b586 01d50e63144e 640e34bc8007"  # the first 12 hex digits of the sha256 of game/start.png, game/beam.png and loss/scores.png (pixels, with the bubble column masked, see wb_hash): the frozen baseline
 MJ_DEAL="222 layouts, 0 failed"
 MJ_SHOTS="2fff3f87d787 a93a20246e78 7bede5c481fd"  # the first 12 hex digits of the sha256 of board.png, won.png and map.png: the frozen baseline
 DY_GAME="board mode 0 score 10 eggs 12 cells ec5704d5"
@@ -192,7 +193,7 @@ suite_build-web() { build_suite web "$1"; }
 suite_build-nov() { build_suite novariants "$1"; }
 
 suite_unit() {
-	local st=0 a b c d e f g h
+	local st=0 a b c d e f g h i
 	(cd build/native && timeout 120 ./rulestest.exe) > "$1" 2>&1 || st=1
 	a="$(lastof "$1" 'checks')"
 	(cd build/native && timeout 120 ./modsettingstest.exe) > "$1.mst" 2>&1 || st=1
@@ -236,9 +237,12 @@ suite_unit() {
 	# Mixer's sounds: 16-bit at their own rate, resampled by the voices; needs no game files
 	(cd build/native && timeout 60 ./soundtest.exe) > "$1.snd" 2>&1 || st=1
 	h="$(lastof "$1.snd" 'sound: [0-9]+ checks, [0-9]+ failed')"
-	cat "$1.mst" "$1.fw" "$1.ph" "$1.jp2" "$1.sp" "$1.fft" "$1.snd" >> "$1"
-	rm -f "$1.mst" "$1.fw" "$1.ph" "$1.jp2" "$1.sp" "$1.fft" "$1.snd"
-	SUMMARY="$a; $b; $c; $d; $e; $f; $g; $h"
+	# tools/shotdiff: the screenshot comparison on synthetic pictures (statuses, boxes, alignment, pages, the marks server)
+	timeout 120 python tools/shotdiff/selftest.py > "$1.sdf" 2>&1 || st=1
+	i="$(lastof "$1.sdf" 'shotdiff: [0-9]+ checks, [0-9]+ failed')"
+	cat "$1.mst" "$1.fw" "$1.ph" "$1.jp2" "$1.sp" "$1.fft" "$1.snd" "$1.sdf" >> "$1"
+	rm -f "$1.mst" "$1.fw" "$1.ph" "$1.jp2" "$1.sp" "$1.fft" "$1.snd" "$1.sdf"
+	SUMMARY="$a; $b; $c; $d; $e; $f; $g; $h; $i"
 	return $st
 }
 
@@ -501,6 +505,16 @@ mummymaze_game() {  # <name> <bot arguments>...: a bot game; prints the last res
 	grep -E '^(game over|victory|tutorial done|stalled|cap reached)' "$d/log.txt" 2>/dev/null | tail -n 1
 }
 
+mummymaze_resume() {  # a game saved before its clock starts, then continued: the time of the level must be small (a negative saved time once came out near 2^32 / 100 s)
+	local d="$OUT/mummymaze/resume" t
+	rm -rf "$d"; mkdir -p "$d"
+	timeout 300 "$W/build/native/mummymaze.exe" -userdir="$d/user" -fast -seed=1 -autoplay=3 -autoplaygames=1 -autoplaysave=3 -autoplaycap=3000 -autoplaylog="$d/log1.txt" > "$d/stdout1.txt" 2> "$d/stderr1.txt"
+	timeout 300 "$W/build/native/mummymaze.exe" -userdir="$d/user" -fast -seed=1 -autoplay=3 -autoplaygames=1 -autoplaylevels=1 -autoplaycontinue -autoplaycap=60000 -autoplaylog="$d/log2.txt" > "$d/stdout2.txt" 2> "$d/stderr2.txt"
+	t="$(grep -m1 'level time' "$d/log2.txt" | awk '{print $3}')"
+	MM_RESUME="resume: level time ${t:-none}"
+	[ -n "$t" ] && [ "$t" -gt -1000 ] && [ "$t" -lt 1000 ]
+}
+
 suite_mummymaze() {
 	local st=0 a b c t r v
 	need_assets mummymaze || return 1
@@ -516,8 +530,9 @@ suite_mummymaze() {
 	[ "$c" = "$MM_FULL" ] || st=1
 	[ "$t" = "$MM_TUTORIAL" ] || st=1
 	[ "$v" = "$MM_ADVENTURE" ] || st=1
+	mummymaze_resume || st=1
 	if diff -rq "$OUT/mummymaze/classic/shots" "$OUT/mummymaze/classic2/shots" >> "$1" 2>&1 && cmp -s "$OUT/mummymaze/classic/log.txt" "$OUT/mummymaze/classic2/log.txt" && [ "$a" = "$r" ]; then r="rerun identical"; else r="RERUN DIFFERS"; st=1; fi
-	SUMMARY="classic ${a#game over: }; tips ${b#game over: }; full ${c}; adventure ${v}; ${t}; $r"
+	SUMMARY="classic ${a#game over: }; tips ${b#game over: }; full ${c}; adventure ${v}; ${t}; $MM_RESUME; $r"
 	[ $st -eq 0 ] || SUMMARY="$SUMMARY (expected classic '$MM_CLASSIC', tips '$MM_TIPS', full '$MM_FULL', tutorial '$MM_TUTORIAL', adventure '$MM_ADVENTURE')"
 	return $st
 }
@@ -945,13 +960,17 @@ waterbugs_run() {  # <name>: the headless runner's scripted game; prints its sta
 	echo "$l"
 }
 
+wb_hash() {  # <png>: the first 12 hex digits of the sha256 of the pixels; the loss screen's rising bubbles in x 560..690, y 240..520 are zeroed first, because one of them differs by a few pixels from run to run
+	python -I -c "import hashlib,sys;from PIL import Image;i=Image.open(sys.argv[1]).convert('RGB');i.paste((0,0,0),(560,240,690,520)) if 'scores' in sys.argv[1] else 0;print(hashlib.sha256(i.tobytes()).hexdigest()[:12])" "$1" 2>/dev/null | tr -d '\r'
+}
+
 waterbugs_loss() {  # the last life lost, the click on the game over: the high scores (the game file is read again; it once crashed)
 	local d="$OUT/waterbugs/loss" e=0 l
 	rm -rf "$d"; mkdir -p "$d"
-	printf '%s
-' "3000 click 400 303" "8000 click 75 260" "14000 click 400 465" "20000 lives 1" "21000 die" "24000 click 400 300" 		"30000 state" "30000 shot scores" "30010 end" > "$d/script.txt"
+	printf '%s\n' "3000 click 400 303" "8000 click 75 260" "14000 click 400 465" "20000 lives 1" "21000 die" "24000 click 400 300" \
+		"30000 state" "30000 shot scores" "30010 end" > "$d/script.txt"
 	timeout 300 build/native/waterbugs_run.exe assets/waterbugs "$d" "$d/script.txt" > "$d/stdout.txt" 2> "$d/stderr.txt" || e=$?
-	l="$(grep -E '^[0-9]+ ms: score' "$d/stdout.txt" | tr -d '')"
+	l="$(grep -E '^[0-9]+ ms: score' "$d/stdout.txt" | tr -d '\r')"
 	[ -f "$d/scores.png" ] || l="$l; NO SCREENSHOT"
 	[ $e -eq 0 ] || l="$l; EXIT $e"
 	echo "$l"
@@ -990,7 +1009,7 @@ suite_waterbugs() {
 	[ "$b" = "$WB_BANKS" ] || st=1
 	[ "$g" = "$WB_GAME" ] || st=1
 	[ "$l" = "$WB_LOSS" ] || st=1
-	sh="$(for f in game/start game/beam loss/scores; do sha256sum "$c/$f.png" 2>/dev/null | cut -c1-12; done | paste -sd" " -)"
+	sh="$(for f in game/start game/beam loss/scores; do wb_hash "$c/$f.png"; done | paste -sd" " -)"
 	if [ "$sh" = "$WB_SHOTS" ]; then sh="screens as frozen"; else sh="SCREENS CHANGED ($sh)"; st=1; fi
 	if diff -q "$c/game/start.png" "$c/game2/start.png" >> "$1" 2>&1 && diff -q "$c/game/beam.png" "$c/game2/beam.png" >> "$1" 2>&1 &&
 		[ "$g" = "$r" ]; then r="rerun identical"; else r="RERUN DIFFERS"; st=1; fi

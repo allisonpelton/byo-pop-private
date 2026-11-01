@@ -371,6 +371,9 @@ input[type=file] { display: none; }  /* the buttons that open the file pickers a
   var GAME_FILES = PAGE.gameFiles || [];
   var PAKS = PAGE.paks || [];
   function $(id) { return document.getElementById(id); }
+  // The page lands on the game, scrolled to the top, whatever way it is reached. With the chat below the stage the page is taller than
+  // the window, and a reload (Play again, a restart from the mod menu) would put it back where it was scrolled to: the chat in view.
+  try { history.scrollRestoration = "manual"; } catch (e) {}
   var statusEl = $("status");
   var statusText = "";
   // ?placeholders=1 (-placeholders, platform/Placeholders.h): stand-ins for missing game files, for testing copies
@@ -1223,6 +1226,9 @@ input[type=file] { display: none; }  /* the buttons that open the file pickers a
     var next = stops[(i + (backwards ? stops.length - 1 : 1)) % stops.length];
     if (next && next !== $("canvas")) next.focus(); else $("canvas").blur();
   }
+  // SDL cancels the browser's action for the arrows, Tab, Backspace, the function keys and Ctrl keys, and for Space as text, but not for
+  // these: with the chat below the stage the page is taller than the window, and the browser would scroll it to the chat
+  var PAGE_SCROLL_KEYS = ["Home", "End", "PageUp", "PageDown"];
   function onGameKey(e) {
     if (e.target !== $("canvas")) return;
     if (e.type === "keydown") {
@@ -1231,6 +1237,7 @@ input[type=file] { display: none; }  /* the buttons that open the file pickers a
         leaveGame(e.shiftKey);
         return;
       }
+      if (PAGE_SCROLL_KEYS.indexOf(e.key) >= 0 && !e.altKey && !e.metaKey) e.preventDefault();  // the game still gets the key
       heldKeys[e.code] = { key: e.key, code: e.code, keyCode: e.keyCode, location: e.location };
       $("canvas-hint").classList.remove("show");
     } else {

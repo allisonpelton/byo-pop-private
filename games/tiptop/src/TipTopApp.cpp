@@ -4,6 +4,7 @@
 #include "Game.h"
 #include "Lowos.h"
 #include "MusicSynth.h"
+#include "platform/Audio.h"
 #include "Graphics.h"
 #include "MemoryImage.h"
 #include "WidgetManager.h"
@@ -249,6 +250,15 @@ void TipTopApp::SwitchScreenMode(bool wantWindowed, bool is3d, bool force)
 	}
 	if (wantWindowed != mIsWindowed)
 		lowos::HostRequestScreenSwitch();
+}
+
+// TipTop's music has its own volume (the options' slider, BuildMusicVolumes, in the channels' CC 7). The framework's music
+// volume, which it scales for BASS (0.85 of 40 out of 100), would turn the synth down by another 9 dB in the mixer, so only its
+// muting reaches the mixer.
+void TipTopApp::SetMusicVolume(double theVolume)
+{
+	mMusicVolume = theVolume;
+	Platform::Mixer::Get().SetMusicMasterGain((mMuteCount > 0) ? 0.0f : 1.0f);
 }
 
 // the command line: -autoplay=<seed> -autoplaymode=regular|strategy|speed -autoplaygames=N -autoplaycap=N

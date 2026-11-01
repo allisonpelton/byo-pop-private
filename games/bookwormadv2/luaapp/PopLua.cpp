@@ -44,9 +44,23 @@ static uint32_t ToColorBits(lua_State* L, int idx)
 	return (uint32_t)(int64_t)lua_tonumber(L, idx);
 }
 
-// 0x66fe40
+// 0x6154c0: a table's int fields r, g, b and a (a missing or non-number one is 0: common.lua's Color(r, g, b, a) makes
+// such a table), else the packed number
 static Color ToColor(lua_State* L, int idx)
 {
+	if (lua_type(L, idx) == LUA_TTABLE) {
+		if (idx < 0)
+			idx = lua_gettop(L) + idx + 1;
+		int aField[4];
+		static const char* const aKeys[4] = {"r", "g", "b", "a"};
+		for (int i = 0; i < 4; i++) {
+			lua_pushstring(L, aKeys[i]);
+			lua_gettable(L, idx);
+			aField[i] = lua_isnumber(L, -1) ? (int)lua_toint(L, -1) : 0;
+			lua_pop(L, 1);
+		}
+		return Color(aField[0], aField[1], aField[2], aField[3]);
+	}
 	uint32_t c = ToColorBits(L, idx);
 	return Color((c >> 16) & 0xff, (c >> 8) & 0xff, c & 0xff, (c >> 24) & 0xff);
 }

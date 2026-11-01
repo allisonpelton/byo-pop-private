@@ -63,8 +63,10 @@ bool FlashWidget::GotoLabel(const std::string& theLabel)
 
 void FlashWidget::Update()
 {
-	// port: MyFlashWidget's Update (0x472a90) left this out while the app's +0x32c was set, and the framework's
-	// paused the movie while the app was not active; neither is ported
+	// 0x472a90 (MyFlashWidget's Update): nothing while the app has a dialog up (its +0x32c, the size of the dialog map);
+	// the framework's own paused the movie while the app was not active, which is not ported
+	if (gSexyAppBase != nullptr && gSexyAppBase->GetDialogCount() > 0)
+		return;
 	Widget::Update();
 	if (mState == STATE_PLAYING) {
 		mFrameTime += (int)(mMovie.GetFrameRate() + 0.5f);

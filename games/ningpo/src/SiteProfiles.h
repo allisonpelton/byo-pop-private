@@ -16,6 +16,11 @@ namespace ningpo
 // click) the page is told how the site's players' names fit the box, and its volumes may be set (NingPo's two settings).
 void SiteStart();
 
+// The names the page knows are the ones in the best times (Ning Po remembers no name of its own), but for the starting
+// entries. They are reported again once loadBestTimes has read them, and whenever the best times are saved (a new best
+// time, Clear).
+void SiteScoresChanged();
+
 // The end of init(): the playing music takes the volume the site set
 void SiteReady();
 
