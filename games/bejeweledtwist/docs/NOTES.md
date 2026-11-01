@@ -270,6 +270,11 @@ Each is a change without a visible effect in play.
 - DoDialog over a dialog of the same id: the original shrinks and deletes the old one but leaves it among the app's
   dialogs, where AddDialog would then find it deleted. The port takes it out too. No dialog of the game is ever asked
   for twice.
+- A saved game's music position (board +0x3928): leaving a game, the original stores BASS's position in the song
+  playing (0x6ee282) when none is stored yet; it goes into the save, and the music never reads it back (PlayMusic drops
+  it). The port keeps 0 there, so its saves differ from the original's in those eight bytes. A save of the original's
+  loads and saves again byte for byte otherwise.
+- The board's floating words (+0x1f98, FlyingText) left when the board goes are deleted with it.
 - The high scores panel's view-replay buttons: the original deletes the ones it added to the panel (with the panel's
   children) but not the ones it kept without adding (a best move without a replay). The port deletes them all.
 - Two reads through null in the board's fill are guarded: turning a 2x2 with a gap in it (allowed by +0x2054) reads

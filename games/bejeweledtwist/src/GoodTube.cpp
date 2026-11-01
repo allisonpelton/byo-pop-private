@@ -260,3 +260,16 @@ void GoodTube::GetStepPoint(int* thePoint, int theStep, bool theCentre)
 	thePoint[0] = aX;
 	thePoint[1] = aY;
 }
+
+void GoodTube::ResetBonus()
+{
+	mUnknown3B0 = 0;
+	for (unsigned int i = 0; i < mUnknown3D0.size(); i++) {
+		mUnknown3D0[i] = 0;
+		mUnknown3E0[i] = 0;
+	}
+	mUnknown3B4 = 0;
+	mUnknown3F0 = 1.0f;
+	mUnknown3B8 = 0;
+	mUnknown3C4 = 0;
+}

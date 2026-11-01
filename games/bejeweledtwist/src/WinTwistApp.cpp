@@ -263,9 +263,21 @@ void WinTwistApp::Shutdown()
 {
 	if (mShutdown)
 		return;
-	// port: the original first ends a background thread (+0x8e0), adds the session's minutes to the time played
-	// (+0x75c; the "MaxTime" property chooses the clock), drops the widget at +0xf24 and a game that may go (0x6a4065);
-	// they come with the board
+	// port: the original first ends a background thread (+0x8e0) and adds the session's minutes to the time played
+	// (+0x75c; the "MaxTime" property chooses the clock); they come with the stats
+	if (mUnknownF24 != nullptr) {
+		if (mBoard != nullptr && mBoard->mUnknown2208 == mUnknownF24)
+			mBoard->mUnknown2208 = nullptr;
+		mWidgetManager->RemoveWidget(mUnknownF24);
+		delete mUnknownF24;
+		mUnknownF24 = nullptr;
+	}
+	// A game that may be saved goes now, which saves it (Board::RemovedFromManager)
+	if (mBoard != nullptr && mBoard->CanSaveOnQuit()) {
+		mWidgetManager->RemoveWidget(mBoard);
+		delete mBoard;
+		mBoard = nullptr;
+	}
 	mWidgetManager->RemoveWidget(mWindowedButton);
 	mProfile->Save();
 	SexyApp::Shutdown();
@@ -764,6 +776,11 @@ bool WinTwistApp::HandleScriptCommand(const ScriptCommand& theCommand)
 {
 	if (theCommand.mCommand == "newgame") {
 		NewGame(std::atoi(theCommand.mArgs.c_str()), true, 0);
+		return true;
+	}
+	// "loadgame <mode>" goes on with the mode's saved game, as the main menu's buttons do when one exists
+	if (theCommand.mCommand == "loadgame") {
+		NewGame(std::atoi(theCommand.mArgs.c_str()), false, 0);
 		return true;
 	}
 	return false;

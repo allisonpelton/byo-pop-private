@@ -640,6 +640,70 @@ void Board::AddedToManager(WidgetManager* theWidgetManager)
 	}
 }
 
+void Board::RemovedFromManager(WidgetManager* theWidgetManager)
+{
+	if (mApp->mMusicInterface != nullptr) {
+		if (mUnknown3928 == 0 && mUnknown392C == 0) {
+			// port: the original keeps BASS's position in the music playing (0x6ee282) here; nothing reads it back
+			// (PlayMusic drops it), so the port keeps 0
+		}
+		mApp->mMusicInterface->ResumeAllMusic();
+	}
+	if (mUnknown2584 != nullptr) {
+		// port: a dialog of kind 14 at +0x2584 ends the profile's tutorial (0x7344c1) and sets +0x37c4; it comes with
+		// the dialog
+		NotPorted("Board::RemovedFromManager: the +0x2584 dialog");
+	}
+	if (mUnknown1474 != nullptr) {
+		mWidgetManager->RemoveWidget(mUnknown1474);
+		delete mUnknown1474;
+	}
+	if (mUnknown37C4) {
+		// (the original also clears a flag of the app's +0x4bc object)
+	}
+	if (mGameMode == MODE_CHALLENGE)
+		NotPorted("Board::RemovedFromManager: the challenge's end");
+	if (!mUnknown37C4 && !mUnknown1390) {
+		if (mUnknown36B0) {
+			// the game is over: its save goes
+			if ((unsigned int)mGameMode < 4)
+				mApp->EraseFile(mApp->GetSaveName(mGameMode, mUnknown2674));  // 0x763a85
+		} else {
+			Buffer aBuffer;
+			// a game left in the middle of a move goes back to the level's start (or the replay's)
+			if (mUnknown2629)
+				LoadGame(mUnknown23B4);
+			else if (((!mUnknown25A5 || mUnknown160 != 0) && mSaveBuffer.GetDataLen() != 0) || IsBusy())
+				LoadGame(mSaveBuffer);
+			SaveGame(&aBuffer, true);
+			if (0 < mUnknown158 && !IsTimed())
+				mApp->WriteBufferToFile(mApp->GetSaveName(mGameMode, mUnknown2674), &aBuffer);
+		}
+	}
+	if (mGrid != nullptr) {
+		ClearBoard();
+		delete[] mGrid;
+		mGrid = nullptr;
+	}
+	if (mUnknown1488 != 0)
+		NotPorted("Board::RemovedFromManager: +0x1488");  // 0x6a404e
+	mApp->SetCursor(CURSOR_POINTER);
+	TwistWidget::RemovedFromManager(theWidgetManager);
+	if (mUnknown139C != nullptr)
+		theWidgetManager->RemoveWidget(mUnknown139C);
+	if (mHyperspace != nullptr)
+		mApp->mWidgetManager->RemoveWidget(mHyperspace);
+	mApp->mWidgetManager->RemoveWidget(mFXManager);
+	RemoveWidget(mGoodTube);
+	RemoveWidget(mPointsManager);
+	if (mUnknown26A0 != nullptr) {
+		mApp->mWidgetManager->RemoveWidget(mUnknown26A0);
+		mUnknown26A0 = nullptr;
+	}
+	mApp->mWidgetManager->RemoveWidget(mUnknown2208);
+	// (and the puzzle's panel, +0x23d4, which comes with the puzzles)
+}
+
 void Board::StartGame()
 {
 	if (!mApp->mPlayPressed) {
@@ -812,14 +876,281 @@ bool Board::ReadSaveHeader(Buffer& theBuffer, int* theVersion, int* theMode, int
 	return 0x3b < aVersion;
 }
 
+namespace {
+
+// 0x74f20a: a LevelValue as a five-byte string, its value and +0x50
+std::string LevelValueBytes(const LevelValue& theValue)
+{
+	std::string aBytes(5, '\0');
+	std::memcpy(&aBytes[0], &theValue.mValue, 4);
+	aBytes[4] = (char)theValue.mUnknown50;
+	return aBytes;
+}
+
+// 0x6b0785: four bytes of the board as a string
+std::string FourBytes(const void* theData)
+{
+	std::string aBytes(4, '\0');
+	std::memcpy(&aBytes[0], theData, 4);
+	return aBytes;
+}
+
+// 0x456570: the generator's state as a 2500-byte string, the index of its next word and then its 624 words
+std::string RandStateBytes(const MTRand& theRand)
+{
+	uint32_t aState[MTRAND_N];
+	int anIndex = 0;
+	theRand.GetState(aState, &anIndex);
+	std::string aBytes(4 + 4 * MTRAND_N, '\0');
+	std::memcpy(&aBytes[0], &anIndex, 4);
+	std::memcpy(&aBytes[4], aState, 4 * MTRAND_N);
+	return aBytes;
+}
+
+// 0x74eaed: a LevelValue from its five-byte string; it keeps that value from then on
+void ReadLevelValueBytes(LevelValue* theValue, const std::string& theBytes)
+{
+	theValue->mUnknown51 = true;
+	if (theBytes.size() < 5)
+		return;  // (a damaged save: the original copies whatever lies past the string)
+	std::memcpy(&theValue->mValue, theBytes.data(), 4);
+	theValue->mUnknown50 = theBytes[4] != 0;
+}
+
+// 0x6ace0a: four bytes of the board from a string
+void ReadFourBytes(void* theData, const std::string& theBytes)
+{
+	if (theBytes.size() < 4)
+		return;  // (likewise)
+	std::memcpy(theData, theBytes.data(), 4);
+}
+
+}  // namespace
+
 bool Board::LoadGame(Buffer& theBuffer)
 {
+	int anOldLevel = mUnknown158;
 	int aVersion = 0;
 	if (!ReadSaveHeader(theBuffer, &aVersion, &mGameMode, &mModeFlags, &mUnknown154, &mUnknown158))
 		return false;
-	// port: the rest of 0x6c8e99 (the board, its pieces and the level values) comes with the saving of a game
-	NotPorted("Board::LoadGame");
-	return false;
+	ClearBoard();
+	LoadConfig();
+	mUnknown1C40 = false;
+	mUnknown1C42 = false;
+	mUnknown15C = theBuffer.ReadLong();
+	mUnknown160 = theBuffer.ReadLong();
+	mUnknown164 = theBuffer.ReadBoolean();
+	mUnknown168 = theBuffer.ReadLong();
+	mUnknown14F8 = mUnknown168;
+	mUnknown1E8 = theBuffer.ReadLong();
+	mUnknown1EC = theBuffer.ReadLong();
+	// 0x75fc8a
+	if (mApp->mBoard == nullptr || !mApp->mBoard->mUnknown37C4)
+		std::memset(mApp->mUnknownC74, 0, sizeof(mApp->mUnknownC74));
+	std::memset(mUnknown2234, 0, sizeof(mUnknown2234));  // 0x6a69f0
+	int aStatCount;
+	if (aVersion == 0x3a)
+		aStatCount = 0x66;
+	else
+		aStatCount = theBuffer.ReadShort();
+	// (only version 0x3a, which ReadSaveHeader refuses, has more than 84; the original writes those past the app's)
+	for (int i = 0; i < aStatCount; i++) {
+		int aStat = theBuffer.ReadLong();
+		if (i < 0x54)
+			mApp->mUnknownC74[i] = aStat;
+	}
+	for (int i = 0; i < aStatCount; i++) {
+		int aStat = theBuffer.ReadLong();
+		if (i < 0x54)
+			mUnknown2234[i] = aStat;
+	}
+	mUnknown208 = theBuffer.ReadLong();
+	mUnknown200 = theBuffer.ReadLong();
+	mUnknown204 = theBuffer.ReadLong();
+	mUnknown214 = theBuffer.ReadBoolean();
+	mUnknown218 = theBuffer.ReadShort();
+	mUnknown224 = theBuffer.ReadLong();
+	// 0x6aefc8: the level's record
+	mUnknown228[0] = theBuffer.ReadLong();
+	mUnknown228[1] = theBuffer.ReadLong();
+	mUnknown230 = (float)std::atof(theBuffer.ReadString().c_str());
+	mUnknown234 = theBuffer.ReadLong();
+	mUnknown238 = theBuffer.ReadLong();
+	mUnknown23C = theBuffer.ReadLong();
+	mUnknown244 = theBuffer.ReadLong();
+	mUnknown240 = theBuffer.ReadLong();
+	mUpdateCnt = theBuffer.ReadLong();
+	mUnknown1FB8 = theBuffer.ReadLong();
+	mUnknown1FC4 = theBuffer.ReadLong();
+	mUnknown1454 = (float)((double)theBuffer.ReadLong() / 10000.0);
+	mUnknown1458 = (float)((double)theBuffer.ReadLong() / 10000.0);
+	mUnknown1464 = theBuffer.ReadLong();
+	mUnknown1468 = theBuffer.ReadLong();
+	mSparkBlock = theBuffer.ReadShort();
+	// 0x6b13b8: the pieces, numbered afresh from 1
+	int aRows = theBuffer.ReadLong();
+	int aCols = theBuffer.ReadLong();
+	AllocGrid(aRows, aCols);
+	gNextPieceId = 1;
+	for (int aRow = 0; aRow < mRows; aRow++) {
+		for (int aCol = 0; aCol < mCols; aCol++) {
+			Piece* aPiece = new Piece();
+			aPiece->Load(&theBuffer);
+			aPiece->mRow = aRow;
+			aPiece->mCol = aCol;
+			aPiece->mX = (float)GetColX(aCol);
+			aPiece->mY = (float)GetRowY(aRow);
+			if (aPiece->mColor == -1) {
+				delete aPiece;
+				aPiece = nullptr;
+			}
+			mGrid[mCols * aRow + aCol] = aPiece;
+			mCells[mCols * aRow + aCol].mUnknown0 = theBuffer.ReadBoolean();  // 0x6a38ee
+		}
+	}
+	// 0x456330: a state of any other size leaves the generator as it was (the original asserts)
+	std::string aRandState = theBuffer.ReadString();
+	if (aRandState.size() == 4 + 4 * MTRAND_N) {
+		uint32_t aState[MTRAND_N];
+		int anIndex;
+		std::memcpy(&anIndex, &aRandState[0], 4);
+		std::memcpy(aState, &aRandState[4], 4 * MTRAND_N);
+		gUnknown85B970.SetState(aState, anIndex);
+	}
+	ReadLevelValueBytes(&mLockGem, theBuffer.ReadString());
+	ReadLevelValueBytes(&mSkulls, theBuffer.ReadString());
+	ReadLevelValueBytes(&mCounter, theBuffer.ReadString());
+	ReadLevelValueBytes(&mBadGemsOnBoardMax, theBuffer.ReadString());
+	ReadLevelValueBytes(&mUnknown1E00, theBuffer.ReadString());
+	ReadLevelValueBytes(&mLevelUpPoints, theBuffer.ReadString());
+	ReadLevelValueBytes(&mCoalGem, theBuffer.ReadString());
+	mUnknown21D0 = theBuffer.ReadShort();
+	mUnknown21F8 = theBuffer.ReadLong();
+	mUnknown1F6C = theBuffer.ReadBoolean();
+	mUnknown1F70 = theBuffer.ReadShort();
+	gNextPieceId = theBuffer.ReadLong();
+	mUnknown21DA = theBuffer.ReadBoolean();
+	mUnknown2041 = theBuffer.ReadBoolean();
+	mUnknown14F4 = theBuffer.ReadLong();
+	mUnknown14FC = theBuffer.ReadLong();
+	mUnknown21C = theBuffer.ReadLong();
+	mUnknown21DC = theBuffer.ReadLong();
+	mUnknown21E0 = theBuffer.ReadLong();
+	mBonusColors.clear();
+	int aColorCount = theBuffer.ReadShort();
+	for (int i = aColorCount; i != 0; i--)
+		mBonusColors.push_back(theBuffer.ReadShort());
+	if (aColorCount == 0)
+		mGoodTube->mUnknown330 = 0;
+	mGoodTube->ResetBonus();
+	mGoodTube->mUnknown3FC = 0;
+	mGoodTube->mUnknown3F8 = 0;
+	mUnknown2658 = theBuffer.ReadLong();
+	mUnknown2660 = theBuffer.ReadShort();
+	mUnknown2644 = theBuffer.ReadLong();
+	mUnknown2640 = theBuffer.ReadLong();
+	mGoodTube->mUnknown3A8 = mUnknown2660;
+	if (aVersion < 0x39)
+		mUnknown265C = 0;
+	else
+		mUnknown265C = theBuffer.ReadByte();
+	mGoodTube->mUnknown5F0.SetConstant(mUnknown265C == 3 ? 1.0 : 0.0);
+	mUnknown220 = (float)((double)theBuffer.ReadLong() / 10000.0);
+	mUnknown3458 = theBuffer.ReadLong();
+	mUnknown818 = theBuffer.ReadLong();
+	if (theBuffer.ReadBoolean()) {
+		for (WinTwistApp::UnknownFA0& aSlot : mApp->mUnknownFA0) {  // 0x6a3156
+			aSlot.mUnknown20 = theBuffer.ReadShort();
+			aSlot.mUnknown24 = theBuffer.ReadShort();
+			aSlot.mUnknown28 = theBuffer.ReadLong();
+			aSlot.mBuffer.Clear();
+			ByteVector aBytes;
+			theBuffer.ReadBuffer(&aBytes);
+			aSlot.mBuffer.WriteBytes(aBytes.empty() ? nullptr : &aBytes[0], (int)aBytes.size());
+		}
+	}
+	if (0x33 < aVersion && theBuffer.ReadBoolean()) {
+		int aPuzzle = theBuffer.ReadShort();
+		int aPuzzle2 = theBuffer.ReadShort();
+		int aPuzzle3 = theBuffer.ReadShort();
+		(void)aPuzzle;
+		(void)aPuzzle2;
+		(void)aPuzzle3;
+		if (mGameMode == MODE_CHALLENGE) {
+			// port: the challenge's puzzle panel (0x6d8cc2, 0x6c7c7b and its +0xb8) comes with the challenges
+			NotPorted("Board::LoadGame: the challenge's panel");
+		}
+		if (0x36 < aVersion) {
+			mUnknown2638 = theBuffer.ReadLong();
+			mUnknown2634 = theBuffer.ReadLong();
+		}
+	}
+	if (0x34 < aVersion) {
+		mUnknown1F64 = theBuffer.ReadLong();
+		mUnknown1F68 = theBuffer.ReadLong();
+	}
+	if (0x35 < aVersion) {
+		mUnknown3908 = theBuffer.ReadLong();
+		mUnknown390C = theBuffer.ReadLong();
+		mUnknown3910 = theBuffer.ReadLong();
+	}
+	if (0x37 < aVersion)
+		mUnknown1F0 = theBuffer.ReadLong();
+	if (0x39 < aVersion) {
+		ReadFourBytes(&mUnknown3918, theBuffer.ReadString());  // 0x6ace0a
+		ReadFourBytes(&mUnknown3914, theBuffer.ReadString());
+	}
+	if (0x3c < aVersion) {
+		theBuffer.ReadBytes((uchar*)&mUnknown3928, 4);
+		theBuffer.ReadBytes((uchar*)&mUnknown392C, 4);
+	}
+	if (aVersion < 0x3e)
+		mUnknown1FC = mApp->mUnknownC74[(0xd70 - 0xc74) / 4] + mApp->mUnknownC74[(0xd6c - 0xc74) / 4];
+	else
+		mUnknown1FC = theBuffer.ReadLong();
+	mUnknown1FC0 = mUnknown1FB8 - 1;
+	mUnknown1FBC = mUnknown1FB8 - 1;
+	if (mGoodTube != nullptr)
+		SetLevelSteps(mUnknown224);
+	SetScore(mUnknown168, true);
+	mGoodTube->mUnknown29C = 0;
+	mGoodTube->mUnknown1D8 = 0;
+	mGoodTube->mUnknown1E0 = 0;
+	mGoodTube->mUnknown278 = (float)mGoodTube->mUnknown274;
+	mGoodTube->SetLevel(mUnknown158);
+	mUnknown20B8 = 0;
+	mUnknown25B4 = 0;
+	mUnknown21A2 = true;
+	mUnknown814 = 0;
+	mUnknown2598 = 1.0f;
+	mUnknown2594 = 1.0f;
+	mUnknown2590 = GetGridRight();
+	mUnknown259C = 1.0f;
+	// (the original logs "Load game ENDS" to the debugger)
+	if (mHyperspace == nullptr) {
+		if (mUnknown158 < anOldLevel) {
+			// port: a game loaded at a lower level than the board's sets the VizManager's background through a
+			// hyperspace made for it (0x70e623 with the level one down); it comes with the VizManager
+			NotPorted("Board::LoadGame: the background of a lower level");
+			mGoodTube->SetLevel(mUnknown158);
+		}
+	} else {
+		// port: a hyperspace still running ends at once (its widget removed, the VizManager's background set); it
+		// comes with the VizManager
+		NotPorted("Board::LoadGame: ending the hyperspace");
+	}
+	UpdateProgress(true);
+	for (TwistWidget* aTraveller : mUnknown26B0)
+		delete aTraveller;
+	mUnknown26B0.clear();
+	mUnknown34F0.SetConstant(0);
+	mUnknown37FC = 0;
+	mUnknown26A8 = 0;
+	// 0x6b02ea
+	for (Shockwave* aWave : mUnknown1660)
+		delete aWave;
+	mUnknown1660.clear();
+	return true;
 }
 
 void Board::SetScore(int theScore, bool theUnknown14F8)
@@ -984,39 +1315,6 @@ void Board::PlayPieceSound(Piece* thePiece, int theSoundId, float thePitch, floa
 	if (!mUnknown37F8)
 		mApp->PlaySoundEx(theSoundId, GetPan(Ftol(thePiece->mX)), thePitch, theVolume, theTrack, true);
 }
-
-namespace {
-
-// 0x74f20a: a LevelValue as a five-byte string, its value and +0x50
-std::string LevelValueBytes(const LevelValue& theValue)
-{
-	std::string aBytes(5, '\0');
-	std::memcpy(&aBytes[0], &theValue.mValue, 4);
-	aBytes[4] = (char)theValue.mUnknown50;
-	return aBytes;
-}
-
-// 0x6b0785: four bytes of the board as a string
-std::string FourBytes(const void* theData)
-{
-	std::string aBytes(4, '\0');
-	std::memcpy(&aBytes[0], theData, 4);
-	return aBytes;
-}
-
-// 0x456570: the generator's state as a 2500-byte string, the index of its next word and then its 624 words
-std::string RandStateBytes(const MTRand& theRand)
-{
-	uint32_t aState[MTRAND_N];
-	int anIndex = 0;
-	theRand.GetState(aState, &anIndex);
-	std::string aBytes(4 + 4 * MTRAND_N, '\0');
-	std::memcpy(&aBytes[0], &anIndex, 4);
-	std::memcpy(&aBytes[4], aState, 4 * MTRAND_N);
-	return aBytes;
-}
-
-}  // namespace
 
 void Board::SaveGame(Buffer* theBuffer, bool theReplays)
 {

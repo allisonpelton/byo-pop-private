@@ -804,6 +804,8 @@ public:
 	bool CountDownCounters();
 	void NextLevelMusic();                       // 0x6a496b: the next of the game's tunes
 	void AddedToManager(WidgetManager* theWidgetManager) override;  // 0x6b8aa2
+	// 0x6ca084: saves the game (back at the level's start if a move is under way) unless it is over
+	void RemovedFromManager(WidgetManager* theWidgetManager) override;
 	void DrawAll(ModalFlags* theFlags, Graphics* g) override;  // 0x6aac5e
 	void Draw(Graphics* g) override;                 // 0x6cc7ed
 	void DrawBoardBack(Graphics* g);                 // 0x6cc5a3: the 2D board and the space behind it
@@ -832,6 +834,8 @@ public:
 	void AddPieceId(int theId, Piece* thePiece); // 0x6b8c20
 	void RemovePieceId(int theId);               // 0x6b677b
 	bool IsSparkBlocked() { return mSparkBlock > 0; }  // 0x6a62d0
+	// 0x6a4065: not a challenge, nor at the game's end (+0x160 6 and 7), nor with +0x1390
+	bool CanSaveOnQuit() { return !mUnknown1390 && mUnknown160 != 6 && mUnknown160 != 7 && mGameMode != MODE_CHALLENGE; }
 	// 0x6a32ca
 	bool IsBusy() { return 0.0f < mUnknown2108 || 0 < mUnknown20DC || 0.0f < mUnknown380C; }
 	// port: the piece the dialog at +0x2584 points at, once it is ported

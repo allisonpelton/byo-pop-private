@@ -59,7 +59,13 @@ public:
 	int mUnknown3A8 = 0;                 // +0x3a8
 	int mUnknown3B0 = 0;                 // +0x3b0
 	float mUnknown3B4 = 0;               // +0x3b4
+	float mUnknown3B8 = 0;               // +0x3b8
+	float mUnknown3C4 = 0;               // +0x3c4
+	std::vector<float> mUnknown3D0;      // +0x3d0 (0x6d7130 its size)
+	std::vector<float> mUnknown3E0;      // +0x3e0: as long as +0x3d0
 	float mUnknown3F0 = 0;               // +0x3f0: the same
+	float mUnknown3F8 = 0;               // +0x3f8
+	int mUnknown3FC = 0;                 // +0x3fc
 	CurvedVal mUnknown338;               // +0x338
 	CurvedVal mUnknown400;               // +0x400: set going by 0x707329
 	ColorCycle mColorCycle;              // +0x470: white, blitz's colours by the time left (0x70c8b6)
@@ -101,6 +107,7 @@ public:
 	void UpdateFill(bool theAtOnce);               // 0x702c1b: the fill eases to the progress unless theAtOnce
 	void MarkLevelChange() { mUnknown29C = 1.0f; mUnknown1C8 = 1.0f; }  // 0x702a88
 	void SetLevelSteps(int theSteps);              // 0x7033d4
+	void ResetBonus();                             // 0x7035dc: a loaded game's bonus challenge starts afresh
 	void SetLevelShown(int theLevel);              // 0x703431
 	// 0x703334: where the level's light theStep is (its image's offset, its centre with theCentre)
 	void GetStepPoint(int* thePoint, int theStep, bool theCentre);
