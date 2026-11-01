@@ -82,7 +82,7 @@ two later than the screen it holds, so one shot off by one update is not a fault
 A second run (a fresh profile: the original keeps its saves, and with a level reached it opens the starting-level
 screen where a new player gets the crash site, so its saved profile is removed before each run) played 100000 updates of
 clicks spread over the board: six levels, all six lives lost, the game over and the hall of fame. Replayed in the port by
-the updates that read each click, 31 of 50 shots are identical, 14 more differ by 12 to 237 pixels, and five by 595 to
+the updates that read each click, 27 of 47 shots are identical, 15 more differ by 3 to 237 pixels, and five by 595 to
 1035. Every screen from the game over to the end of the hall of fame is identical. What still differs is small white
 and lilac glints (a few dozen pixels each) near pipe ends and powerups on the later levels, in different places in the
 two games; the sparks the port makes through its particle systems are not in that window, so they are another object's
