@@ -16,6 +16,12 @@
 # which pulls them in. That list replaces Emscripten's default, so it names _main too.
 # web/modpanel.js (the Mods panel, the rescue and restart bookkeeping, the page's file helpers: Module.byopop) is
 # appended to the game's JS with --post-js, so every game's page has the same one without a file of its own.
+# wasm-opt, which emcc runs when it links a game, uses every core by default, and a build is not under rundesk's low
+# priority: one link took the user's machine to 100% (2026-11-01). BINARYEN_CORES caps its threads, so a link takes at
+# most 4 of the machine's 20.
+if(EMSCRIPTEN)
+  set_property(GLOBAL PROPERTY RULE_LAUNCH_LINK "${CMAKE_COMMAND} -E env BINARYEN_CORES=4")
+endif()
 set(BYOPOP_WEB_EXPORTED_FUNCTIONS _main _byopop_userdata_restore _byopop_mods_open _byopop_mods_state
   _byopop_mods_edit _byopop_mods_rescan _byopop_menu _byopop_restart _byopop_cursor _byopop_cursor_copy
   _byopop_audio_mute _byopop_audio_muted _byopop_site_apply _byopop_site_windowed _byopop_mixer_gain)

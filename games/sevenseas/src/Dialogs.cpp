@@ -488,6 +488,8 @@ NagDialog::NagDialog(SevenSeasApp* theApp, int theDialogId, int theWhich) :
 	SetButtonFont(mApp->mFonts[FONT_MT11]);
 	SetHeaderFont(mApp->mFonts[FONT_FONT1]);
 	SetLinesFont(mApp->mFonts[FONT_MT11]);
+	// measured against the original: the button's label is the dialog's gold
+	SetColor(COLOR_BUTTON_TEXT, Color(0xe0, 0xb7, 0x28));
 	mContentInsets = Insets(0x26, 0x26, 0x26, 0x26);
 	mCheckbox = new Checkbox(mApp->mImages[IMAGE_UNCHECKED], mApp->mImages[IMAGE_CHECKED], 0, this);
 	mCheckbox->SetChecked(false, false);

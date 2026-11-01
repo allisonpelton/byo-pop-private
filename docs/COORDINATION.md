@@ -65,7 +65,8 @@ CLAUDE.md was "larger than I typically like"). CLAUDE.md keeps the rules every s
 - **No new identical-play passes until Twist is done (the user, 2026-11-01):** asked when Twist was a little over half
   ported (they had hoped for more than 70%): "Multiple can run at once, just no more until Twist finishes." The passes
   already running carry on side by side. No other game's pass starts, even when one of them finishes, until Bejeweled
-  Twist's port is done.
+  Twist's port is done, 3D mode included: when Twist estimated 6 to 10 days for 3D, the user chose to wait for all of
+  it rather than start after the 2D game ("Wait for all", 2026-11-01).
 - **Order of the work on the merged games (the user, 2026-11-01):** "once all issues I mentioned are fixed, move on down
   through the game list. Once all games are done, then we can do code quality/readability, and finally figure out what
   code does not need to be present in the decomps (mostly registration, but other things are likely to turn up as
