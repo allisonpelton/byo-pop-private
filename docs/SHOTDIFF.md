@@ -92,15 +92,16 @@ wide (the hall of fame's time, 14:50 against 14:40), and a sharp striped sprite 
 
 The same difference often shows in many shots: a locked book on every menu screen, the background behind every battle
 shot. Each would be a box of its own pair, and the first page of boxes was the same thing over and over. So the visible boxes
-of the stills are grouped into review items. Two boxes of different pairs are the same item when their rectangles overlap by
-at least half (intersection over union, `SAME_OVERLAP`) and, over both rectangles together, the two originals agree visibly
-and so do the two ports (the visible rule above), or, when something else in the area moves from shot to shot (an
-animated enemy in front of a background that differs), the visibly different pixels of the two pairs lie at least half in
-the same places and the two ports agree visibly on at least three quarters of those. A dimmed screen (a dialog, the focus
-lost) looks different, so its boxes stay items of their own. An item is shown once, by its largest box, with "seen in N shots", links
+of the stills are grouped into review items. Two boxes are the same item when they meet and at least half
+(`SAME_OVERLAP`) of the visibly different pixels of the smaller differ visibly at the same place (or a pixel away) in the
+other's pair. Where the differing pixels lie decides, not how bright they are (the user, 2026-11-01): a difference behind a
+dimmed screen (a dialog, the focus lost, an intro's fade), in front of a sprite that moves, or split into two boxes in one
+shot is still the same item. A box joins an item when it is the same as any box already in it. An item is shown once, by its largest box, with "seen in N shots", links
 to the other shots and their crops in a collapsed list; a mark on it marks them all. Items seen in the most shots come
 first, then the largest. `summary.json` has `items` (each with its `name`, `count`, the pair and box it is shown by, and
-`seen`, the others), every grouped box has `item`, and the counts give `items`, `items_repeated` and `visible_boxes`. Clips,
+`seen`, the others), every grouped box has `item`, and the counts give `items`, `items_repeated` and `visible_boxes`. "Seen in N shots"
+counts shots, not boxes. The differing stills are shown whole in a collapsed list after the review area, out of the queue,
+since every box there is an item above; a link to one opens the list. Clips,
 and stills whose sizes differ, are reviewed whole after the items, as before.
 
 ## The differing-pixels picture
@@ -142,7 +143,7 @@ writes a run (`shotdiff.py --index-only` rebuilds it alone). A run's page shows 
 reviewed whole (stills of another size, clips); for each item the crop of its box (larger than the box, with its size and how
 many of its pixels differ: original, port, differing pixels), the other shots it is seen in, then the whole pictures of the
 shot it is shown by (original, port, the port with the boxes outlined, the differing pixels; a click shows one at full size,
-and 1 to 4 switch between them). After them every differing still is shown whole, with links to its items. Buttons mark an
+and 1 to 4 switch between them). After them, collapsed, every differing still is shown whole, with links to its items. Buttons mark an
 item Issue, Not sure or Fine, and there is a note field; marks are kept by item name (the pair, the box's place and size), and
 a new run carries over the marks of items it still has. Keys: `j` and `k` move between items, `i`, `u` and `f` mark Issue,
 Not sure and Fine, `n` writes a note, `z` shows the full size. Opened as a plain file, the page

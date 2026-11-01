@@ -315,6 +315,8 @@ def test_files(tmp):
 	check("page: an item's crop comes before the full pictures", 0 < art.index('class="crops"') < art.index('class="shots"'))
 	check("page: the whole shots follow the items, linked to them", page.index('id="p-item1"') < page.index('id="s-rect"')
 		  and 'href="#p-item1"' in page)
+	check("page: the whole shots are collapsed, out of the review queue", '<details id="shots">' in page
+		  and page.index('<details id="shots">') < page.index('id="s-rect"'))
 	check("page: the differing-pixels picture", 'img/rect.pixels.png' in page and os.path.isfile(os.path.join(out, "img", "rect.pixels.png")))
 	check("page: Issue, Not sure and Fine", all(t in page for t in ("data-mark=\"issue\"", "data-mark=\"unsure\"", "data-mark=\"fine\"", "Not sure")))
 	check("page: a box states its size and differing pixels", "20×10 px at (30, 40)" in page and "200 of 200 px differ" in page)
@@ -364,7 +366,7 @@ def test_files(tmp):
 
 
 def test_items(tmp):
-	"""The same difference in several shots is one review item; a different one, or the same place over other content, is not."""
+	"""The same difference in several shots is one review item, dimmed or over other content too; a difference elsewhere is not."""
 	a, other = base(), base(2)
 	orig, port = os.path.join(tmp, "iorig"), os.path.join(tmp, "iport")
 	for n in ("menu_a", "menu_b", "menu_c"):
@@ -372,23 +374,27 @@ def test_items(tmp):
 	write_png(os.path.join(port, "menu_a.png"), change(a, 30, 40, 20, 10))
 	write_png(os.path.join(port, "menu_b.png"), change(a, 30, 40, 20, 10))
 	write_png(os.path.join(port, "menu_c.png"), change(change(a, 30, 40, 20, 10), 100, 70, 20, 20))
-	write_png(os.path.join(orig, "other.png"), other)
+	write_png(os.path.join(orig, "other.png"), other)  # other content, the same difference, dimmed (a dialog over it)
 	write_png(os.path.join(port, "other.png"), change(other, 30, 40, 20, 10))
+	write_png(os.path.join(orig, "dim.png"), (other // 2).astype(np.uint8))
+	write_png(os.path.join(port, "dim.png"), (change(other, 30, 40, 20, 10) // 2).astype(np.uint8))
+	write_png(os.path.join(orig, "else.png"), a)
+	write_png(os.path.join(port, "else.png"), change(a, 120, 90, 15, 15))
 	root = os.path.join(tmp, "ireview")
 	out = os.path.join(root, "demo", "items")
 	os.makedirs(out)
 	s = sd.run_compare(orig, port, out, "demo", "items", {"client": [W, H]}, None, sd.Options(), root=root)
 	its = s["items"]
-	check("items: one difference in three shots is one item, first", [(it["count"], it["w"], it["h"]) for it in its] ==
-		  [(3, 20, 10), (1, 20, 20), (1, 20, 10)] and sorted([its[0]["pair"]] + [o["pair"] for o in its[0]["seen"]]) ==
-		  ["menu_a.png", "menu_b.png", "menu_c.png"], [(it["name"], it["count"]) for it in its])
-	check("items: the same place over other content is another item", its[2]["pair"] == "other.png", its[2]["name"])
-	check("items: counted", s["counts"]["items"] == 3 and s["counts"]["items_repeated"] == 1 and s["counts"]["visible_boxes"] == 5, s["counts"])
+	check("items: one difference in five shots (over other content, dimmed) is one item, first",
+		  [(it["count"], it["w"], it["h"]) for it in its] == [(5, 20, 10), (1, 20, 20), (1, 15, 15)]
+		  and sorted([its[0]["pair"]] + [o["pair"] for o in its[0]["seen"]]) ==
+		  ["dim.png", "menu_a.png", "menu_b.png", "menu_c.png", "other.png"], [(it["name"], it["count"]) for it in its])
+	check("items: counted", s["counts"]["items"] == 3 and s["counts"]["items_repeated"] == 1 and s["counts"]["visible_boxes"] == 7, s["counts"])
 	st = {p["name"]: p for p in s["pairs"]}
 	check("items: each box knows its item", sorted(b["item"] for b in st["menu_c.png"]["boxes"]) == [1, 2]
-		  and st["other.png"]["boxes"][0]["item"] == 3)
+		  and st["dim.png"]["boxes"][0]["item"] == 1 and st["else.png"]["boxes"][0]["item"] == 3)
 	page = open(os.path.join(out, "index.html"), encoding="utf-8").read()
-	check("items: the page says how often, and links the other shots", "seen in 3 shots" in page and 'href="#s-menu_b"' in page
+	check("items: the page says how often, and links the other shots", "seen in 5 shots" in page and 'href="#s-menu_b"' in page
 		  and "A mark here marks them all" in page)
 	check("items: what is marked is the item", sd.review_names(s) == [it["name"] for it in its])
 	# the same difference behind a sprite that moves from shot to shot (drawn the same on both sides): still one item

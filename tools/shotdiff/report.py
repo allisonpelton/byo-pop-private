@@ -401,16 +401,16 @@ def render(summary, has_index=False):
 		b.append("<h2 style=\"margin-top:16px\">To review: %s%s</h2>" % (
 			plural(len(items), "item"), ", then %s" % plural(len(whole), "pair") if whole else ""))
 		b.append("<p class=\"muted\">An item is one difference, shown where it is largest; the same difference in other shots "
-				 "(the same place, looking the same on both sides) is the same item, so %s seen in more than one shot. Items seen most "
-				 "often come first, then the largest. Each box shows the original, the port and the differing pixels; the whole shots "
-				 "follow the items.</p>" % ("%s is" % plural(rep, "item") if rep == 1 else "%s are" % plural(rep, "item")))
+				 "(its differing pixels in the same place, dimmed or not) is the same item, so %s seen in more than one shot. Items "
+				 "seen most often come first, then the largest. Each box shows the original, the port and the differing pixels; the "
+				 "whole shots are in a collapsed list after the items.</p>" % ("%s is" % plural(rep, "item") if rep == 1 else "%s are" % plural(rep, "item")))
 		b.extend(item_html(i, it, by_name) for i, it in enumerate(items))
 		b.extend(clip_html(i, p) if p["kind"] == "clip" else pair_html(i, p) for i, p in enumerate(whole, len(items)))
 	else:
 		b.append("<p>No pair differs.</p>")
 	if stills:
-		b.append("<h2 style=\"margin-top:24px\">The differing shots (%d)</h2>" % len(stills))
-		b.extend(shot_html(p) for p in stills)
+		b.append("<details id=\"shots\"><summary>The differing shots, whole (%d): not for marking, every box there is an item above</summary>%s</details>" % (
+			len(stills), "".join(shot_html(p) for p in stills)))
 	b.append(faint_section(s))
 	if errors:
 		b.append("<details open><summary>Could not be compared (%d)</summary><ul>%s</ul></details>" % (
