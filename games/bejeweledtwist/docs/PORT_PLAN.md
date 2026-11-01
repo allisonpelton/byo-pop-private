@@ -66,3 +66,20 @@ through SDL/WebGL in `framework/`, a shared change agreed with the coordinator f
 5. 3D mode: the meshes, the sidebar, Hyperspace, the planets, the visualizers.
 6. Done means identical: the deviations listed, a frozen baseline with a regression check, every leak of the original
    fixed, and a screen-by-screen comparison with the original, natively and in the browser.
+
+## Which copy's files
+
+`main.pak` is the same in both copies, as are 41 other files; they differ in `properties/` (the coordinator's comparison,
+2026-10-31). The Steam copy's `resources.xml` (2018-06-23) moves the 47 Zen visualizer drops (`zendrop*`) from
+`images\1200\NonResize\visualizers\` to `images\NonResize\visualizers\`, changes four sound volumes (chainx1,
+challengecompleted, gem_countdown, trans_engineignition) and the flags of two images; its `partner.xml` names Steam as
+the partner, drops registration and sets the marketing mode `LevelLock` (empty in retail). The retail `compat.cfg` is
+the original (the Steam one has a local edit), and the retail folder's WineD3D wrapper DLLs and `crash.txt` are not
+part of the game.
+
+The staging script takes the retail copy first, so the port follows the retail properties for now: they belong to the
+image being decompiled. In the retail `resources.xml` every path resolves in `main.pak` except the 47 zendrop ones,
+which are only in `images\NonResize\visualizers\`. Whether the retail game finds them anyway depends on how
+CustomResourceManager rewrites the art folders (to be read); in 2D mode the visualizers are off, so it matters from
+milestone 5. Before the final comparison the port must decide which copy's properties it matches (the one the user
+plays), since `LevelLock` and the volumes change what a player sees and hears.
