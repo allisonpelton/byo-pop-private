@@ -170,3 +170,9 @@ Continue, now and then. Everything else of the Continue, the level-complete scre
 lc7300 are pixel-identical).
 
 The bonus screen's first message line ("Try to find the", "The Treasure is", "You Win!" and the like) is drawn at the top of the board (y 31), only the second line at the bottom (height - 0x1e); the port had both at the bottom. The Treasure Island nag's button label is the dialog's gold. Where the treasure lies (and so the direction text after a dig) differs between the original and the port in the comparison run: the original's draw count before the bonus level varies from run to run (see the new ship's cell above), so it is not compared.
+
+## 7. Oddities (what the original does that the port does not copy)
+
+Each is described in section 6 and in IDENTICAL_PLAY.md: the new ship's cell after a sinking (the original's own draw count varies
+between runs), the gun smoke on the loaded ships of a continued game (uninitialised timers), and the treasure's cell on the bonus
+level (random, same variation).

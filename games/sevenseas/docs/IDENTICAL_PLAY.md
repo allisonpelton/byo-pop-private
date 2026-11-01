@@ -1,0 +1,52 @@
+# Seven Seas Deluxe: the identical-play pass
+
+This is the report of the pass that compares the port with the original exe, screen by screen. It is in progress: the sections
+at the end say what is still to be compared.
+
+## What was compared and how
+
+The original (WinSS.exe, version 1.13) was run only through `tools/origrun` in the Windows Sandbox, under rundesk, from a copy.
+A script clicked through the same scenario in the original and in the port, and both took screenshots at the same game update.
+The original's main loop counts the updates since the last draw, which origrun reads so that a shot lands on the update it asks
+for, and each click is held until the original is between updates, so the port's script puts the click on the update that read
+it. `tools/shotdiff` then compared the pictures; every box it flagged was looked at and judged here.
+
+The scenarios were the static screens (title, menu, quit and options dialogs, help screen, the first board with arrows under the
+mouse), a six-move sailing game with kills, a sinking and the new ship, and games started from the original's own saved game:
+Continue, the level-complete screen, the next level, and the bonus level (Treasure Island) with its nag and a dig. Saves were
+made by editing the original's savegame.dat, which the original accepts.
+
+## Changes the pass made
+
+| Difference | Cause in the original | The port now | Commit |
+| --- | --- | --- | --- |
+| Hovered dialog button labels changed colour | the original keeps its labels the dialog's gold under the mouse; the help buttons are gold and turn black only when hovered | the same | cffedc0, 9631054 |
+| Options dialog labels | the original's four extra buttons are gold | gold | 41820b3 |
+| Screenshots offset | the original's window has a title bar | shotdiff crops 26 pixels (comparison setting) | 9631054 |
+| After Continue some squares took no clicks and showed no arrows (the user's "controls fail at random times") | case 0xf of 0x421a10 hides the pirate's talk widget, a 200 x 200 box that otherwise takes the clicks | Continue hides it the same way | 05bd59d |
+| Bonus screen: the first line of every message ("Try to find the", "The Treasure is", "You Win!") was at the bottom | the original draws the first line at the top of the board (y 31) and only the second at height - 0x1e | the same | 2dd815a |
+| Treasure Island nag: button label white | the dialog's gold | gold | 2dd815a |
+
+## Oddities skipped
+
+**The new ship's cell after a sinking.** The original places it with random draws, and the number of draws before the placement
+varies from run to run: the same script and seed gave cell (2,2) in one run and (1,9) in another. The port's cell is one of the
+original's. It can be seen by running the six-move scenario twice and looking at the shots after the sinking.
+
+**Gun smoke on the ships of a continued game.** The original's loader does not set the nine gun-smoke timers of a ship, so a
+blast or two shows in the diagonal cells a second after Continue (about 60 updates, and again at about 250), depending on what
+the heap held. The port starts them at none. See it by continuing a saved game and taking shots for the first four seconds.
+
+**The treasure's cell on the bonus level.** Where the chest and graves lie follows from the random draws, whose count varies as
+above, so the direction text after a dig differs between runs of the original as well. The layout and the logic of the dig are the
+same; only the random placement was not comparable.
+
+## Deviations that remain
+
+The help buttons' pressed look (the original gives a button a copy of an all-black image, the port draws the flat black plate; the
+result is the same), the Register button (taken out) and Is3D (the 2003 exe has no 3D mode, so there is nothing to compare; the
+two renderers of the port differ by at most 3 of 255). See GAME_NOTES, section 5.
+
+## Still to compare
+
+The bonus level's win and lose screens, the map screen, and the game-over and high-score screens.
