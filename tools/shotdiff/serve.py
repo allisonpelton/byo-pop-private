@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Serve build/shotreview/ at http://127.0.0.1:18767/ and save the review pages' marks (docs/SHOTDIFF.md).
+"""Serve build/shotreview/ at http://127.0.0.1:18770/ and save the review pages' marks (docs/SHOTDIFF.md).
 
-    python tools/shotdiff/serve.py [--port 18767] [--root build/shotreview]
+    python tools/shotdiff/serve.py [--port 18770] [--root build/shotreview]
 
 The root page lists every game's latest run. A page POSTs its marks to marks.json beside itself
 (<game>/<run>/marks.json), which this server writes; nothing else can be written. It listens on the loopback address only
@@ -19,7 +19,7 @@ import urllib.parse
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(os.path.dirname(HERE))
 DEFAULT_ROOT = os.path.join(ROOT, "build", "shotreview")
-DEFAULT_PORT = 18767
+DEFAULT_PORT = 18770
 MARKS_PATH = re.compile(r"^/([A-Za-z0-9._-]+)/([A-Za-z0-9._-]+)/marks\.json$")
 MAX_BODY = 1 << 20
 

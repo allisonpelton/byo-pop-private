@@ -81,8 +81,7 @@ frames are not. A clip takes the same marks as a still.
 ## The page and the marks
 
 `python tools/shotdiff/serve.py` (the `shotreview` entry of `.claude/launch.json`) serves `build/shotreview/` at
-`http://127.0.0.1:18767/` and saves the marks the pages post to `marks.json` beside each run's page. Port 18767 is also
-the `bigmoney-web` entry's, so start only one. The root page lists every game with its latest run: pairs, matching, differing,
+`http://127.0.0.1:18770/` and saves the marks the pages post to `marks.json` beside each run's page. The root page lists every game with its latest run: pairs, matching, differing,
 already marked, not yet marked, with the games that still have unmarked differences first; it is rebuilt each time shotdiff
 writes a run (`shotdiff.py --index-only` rebuilds it alone). A run's page shows the differing pairs largest first and the
 clips after them; for each pair the crops of its boxes (larger than the box, with its size and how many of its pixels differ),

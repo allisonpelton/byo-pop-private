@@ -150,7 +150,11 @@ Git and publishing:
   proves nothing about the original, and the hidden, silent pane never changes focus or plays music: before its final
   merge, a session compares its game with the original exe screen by screen (the original run under rundesk at the
   same points; every screen, dialog and text, music and sounds by their state, losing and regaining the focus),
-  natively and in the web build, and fixes every difference. Every game is tested as Bejeweled is: its deviations
+  natively and in the web build, and fixes every difference. The screenshots are compared by `tools/shotdiff`
+  (`docs/SHOTDIFF.md`), not by eye: a session reads its summary, looks only at the crops of the boxes it flags, and
+  leaves what needs a person's judgement on the user's review page without waiting for it. Whether every game uses the
+  review page waits on the user's verdict on a one-game pilot (Bookworm Adventures, 2026-11-01). Every game is tested as
+  Bejeweled is: its deviations
   listed in its notes, each without a visible effect; every RNG draw kept in its order; a frozen baseline of the port
   with a regression check that proves later fixes and mods leave unmodded play unchanged. Every memory leak of the
   original is fixed: memory the original still uses after "leaking" it (Bejeweled's FillBoard orphans) is freed after
