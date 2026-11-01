@@ -59,7 +59,7 @@ public:
 
 	int mFreeNow;    // +0x00
 	int mNextSweep;  // +0x04
-	int mNoSharing;  // +0x08 (never set)
+	int mNoSharing;  // +0x08: each getImage loads its own (the menu sets it around its books)
 };
 
 extern Resources* gResources;  // 0x480b1c

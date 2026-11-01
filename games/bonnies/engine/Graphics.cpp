@@ -633,9 +633,9 @@ void Graphics::present(int theCount, const float* theRects)
 	float aRate = 80.0f;
 	if (gFullScreen == 0)
 		aRate = 30.0f;
-	if (gPlatform->slot17() != 0)
+	if (gPlatform->isIdle() != 0)
 		aRate = 0.75f;
-	int aLimit = gPlatform->mField18;
+	int aLimit = gPlatform->mFrameLimit;
 	if (aLimit != 0 && !((double)aRate < (double)aLimit))
 		aRate = (float)aLimit;
 	float aFrameTime = (float)(1000.0 / aRate);

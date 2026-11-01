@@ -70,6 +70,7 @@ extern int gWidth;           // 0x480b80
 extern int gHeight;          // 0x480f98
 extern float gInvWidth;      // 0x480b78
 extern float gInvHeight;     // 0x480f94
+extern Str gMatteName;       // 0x4818ec: a matte to use instead of <name>_Matte.png (the menu's books)
 extern int gClipX0;          // 0x480f9c
 extern int gClipY0;          // 0x480b7c
 extern int gClipX1;          // 0x480f88

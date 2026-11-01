@@ -17,7 +17,7 @@ namespace bonnies
 Platform* gPlatform = nullptr;
 int gQuit = 0;
 uint32_t gLastActiveTime = 0;
-PortalConfig gPortalConfig;
+PortalConfig* gPortalConfig;
 
 namespace
 {
@@ -312,6 +312,11 @@ PortalConfig::~PortalConfig()
 {
 }
 
+// 0x41f560
+void PortalConfig::unload()
+{
+}
+
 // 0x420870
 int readConfigValue(const Str& theText, int* thePos, const Str& theKey, Str* theValue, int* theBool)
 {
@@ -445,13 +450,13 @@ void Platform::init(int theWidth, int theHeight, int theFullScreen)
 	gPlatform = this;
 	mField38 = 0;
 	gQuit = 0;
-	mField0C = 0;
-	mField14 = 0;
-	mField10 = 0;
-	mField04 = 0;
-	mField08 = 0;
-	mField18 = 0;
-	mField2C = 0;
+	mShowFPS = 0;
+	mFullRedraw = 0;
+	mFlashRects = 0;
+	mDebugTexts = 0;
+	mDebugScreens = 0;
+	mFrameLimit = 0;
+	mSkipDraws = 0;
 	mField1C = 1;
 	mActiveTime = host()->getTicks();
 	mInactiveTime = 0;
@@ -600,14 +605,15 @@ void Platform::getWindowPos2(int* theX, int* theY)
 }
 
 // 0x42a4d0
-int Platform::slot17()
+int Platform::isIdle()
 {
 	return 0;
 }
 
 // 0x421800
-void Platform::slot18()
+void Platform::menuCommand(int theCommand)
 {
+	(void)theCommand;
 }
 
 // 0x42a4d0

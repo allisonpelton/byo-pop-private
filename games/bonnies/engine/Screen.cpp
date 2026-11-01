@@ -45,7 +45,7 @@ void Screen::draw()
 		drawBevel(mX, mY, mWidth, mHeight, mColor, mColor, 1, 2.0f, 0.0f);
 	for (Widget* aWidget = mHead; aWidget != nullptr; aWidget = aWidget->mNext)
 		aWidget->draw();
-	if (gPlatform->mField08 != 0)
+	if (gPlatform->mDebugScreens != 0)
 		drawRect(mX, mY, mWidth, mHeight, 0xff7fffff, 1);
 }
 

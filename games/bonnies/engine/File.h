@@ -24,6 +24,8 @@ int fileOpen(const Str& thePath, bool theWrite, bool theAppend);
 void fileClose(int theHandle);
 // 0x429a70: _read; the number of bytes read
 int fileRead(int theHandle, void* theBuffer, unsigned int theCount);
+// _write, which the game also calls itself (zeros in its saves)
+int crtWrite(int theHandle, const void* theBuffer, unsigned int theCount);
 // 0x429ae0: up to theMax bytes as a string (to the first zero byte)
 Str fileReadText(int theHandle, unsigned int theMax);
 // 0x429db0, 0x429df0, 0x42a340: an int and a byte

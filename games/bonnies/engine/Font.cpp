@@ -333,7 +333,7 @@ float Font::drawText(const Str& theText, float theX, float theY, float theW, flo
 			aY = (float)((double)aLineHeight + aY);
 		} while (--aLines != 0);
 	}
-	if (gPlatform->mField04 != 0)
+	if (gPlatform->mDebugTexts != 0)
 		drawRect(theX, theY, theW, theH, 0xff00ffff, 1);
 	if (gPlatform->mField1C != 0 && !aShimmered && (theFlags & 0xe00) != 0)
 		gPlatform->mField1C = 0;

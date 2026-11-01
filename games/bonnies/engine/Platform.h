@@ -46,27 +46,27 @@ public:
 	// slots 15, 16, 0x401050: where the window goes
 	virtual void getWindowPos(int* theX, int* theY);
 	virtual void getWindowPos2(int* theX, int* theY);
-	// slot 17, 0x42a4d0
-	virtual int slot17();
-	// slot 18, 0x421800
-	virtual void slot18();
+	// slot 17, 0x42a4d0: whether the app idles (the frame rate drops to 0.75 a second)
+	virtual int isIdle();
+	// slot 18, 0x421800: a command of the window menu (which the port has not: see ENGINE.md)
+	virtual void menuCommand(int theCommand);
 	// slot 19, 0x42a4d0 (the app's: whether a modal screen is up)
 	virtual int isModal();
 	// slots 20, 21, 0x41f560: around a screen's push
 	virtual void beginScreen();
 	virtual void endScreen();
 
-	int mField04;           // +0x04
-	int mField08;           // +0x08
-	int mField0C;           // +0x0c
-	int mField10;           // +0x10
-	int mField14;           // +0x14
-	int mField18;           // +0x18
+	int mDebugTexts;        // +0x04: text boxes drawn
+	int mDebugScreens;      // +0x08: screen rectangles drawn
+	int mShowFPS;           // +0x0c: the frame rate shown
+	int mFlashRects;        // +0x10: the redrawn rectangles outlined
+	int mFullRedraw;        // +0x14: the whole screen redrawn each frame
+	int mFrameLimit;        // +0x18: frames a second at most (0 none)
 	int mField1C;           // +0x1c (1)
 	int mDesktopWidth;      // +0x20
 	int mDesktopHeight;     // +0x24
 	int mDesktopBits;       // +0x28
-	int mField2C;           // +0x2c
+	int mSkipDraws;         // +0x2c: frames not drawn
 	uint32_t mActiveTime;   // +0x30: the last update while active
 	uint32_t mInactiveTime; // +0x34: the last update while inactive
 	int mField38;           // +0x38
@@ -125,16 +125,19 @@ void waitUntil(int theTime, int theInactive);
 extern uint32_t gLastActiveTime;
 void noteActiveTime();
 
-// Portal.cfg (0x420830-0x420da0, the object 0x480b08): the distributor's settings
-class PortalConfig
+// Portal.cfg (0x420830-0x420da0, the vtable 0x458be4; main makes it, 0x480b08 points to it): the distributor's
+// settings
+class PortalConfig final
 {
 public:
 	// 0x420830
 	PortalConfig();
-	// 0x420860
-	virtual ~PortalConfig();
-	// 0x420ad0: reads Data/Portal.cfg
-	void load();
+	// 0x420860 (not virtual)
+	~PortalConfig();
+	// slot 0, 0x420ad0: reads Data/Portal.cfg
+	virtual void load();
+	// slot 1, 0x41f560: nothing (called before it is deleted)
+	virtual void unload();
 
 	int mStartFullScreen;      // +0x04
 	int mQuote;                // +0x08 (1)
@@ -142,7 +145,7 @@ public:
 	Str mBuyNowURL;            // +0x10
 };
 
-extern PortalConfig gPortalConfig;  // 0x480b08
+extern PortalConfig* gPortalConfig;  // 0x480b08
 
 // 0x420870: reads "theKey = value" at thePos of theText: the value (up to a control character) and whether it is true
 // (it does not start with 0, F or N)
