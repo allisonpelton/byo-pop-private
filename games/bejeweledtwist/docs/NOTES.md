@@ -226,6 +226,29 @@ Game texts: the original's wide texts (L"...", such as the tooltips and the dial
 gametext.py lists them as GAMETEXTW (length in bytes) and GameText.cpp converts them. Before this, every wide text
 was read as its first letter.
 
+## The board (being ported)
+
+`Sexy::Board` (0x6a3d7b-0x6d6899, about 200 KB of code in 1,470 functions with its templates; constructor 0x6c4df9,
+destructor 0x6befa1) is about 0x3940 bytes. Its bases are a TwistWidget, a ButtonListener (+0x148), a
+TwistDialogListener (+0x14c) and a PopAnimListener (+0x150). Its arguments are the app (+0x954), the game mode
+(+0x20c: 1 classic, 2 zen, 3 blitz, 5 challenge), flags (+0x210: 8 for a replay) and +0x2674.
+
+Its vtable (0x7dd0d4, 71 slots) overrides AddedToManager (20, 0x6b8aa2), RemovedFromManager (21, 0x6ca084), Update
+(22, 0x6d6899, which calls the 24 KB 0x6d090f), Draw (26, 0x6cc7ed), DrawAll (27, 0x6aac5e), SetVisible (31,
+0x6a3d7b), Resize (40, 0x6a5b53), DrawOverlay (44, 0x6b4a39, 7 KB), GotFocus and LostFocus (45 and 46), KeyChar (47,
+0x6b3217), KeyDown (48, 0x6ca439), MouseMove (52), MouseDown (53, 0x6c7232), MouseUp (56) and two others (58, 59),
+and adds slot 70 (0x6bdbd9).
+
+The constructor makes a GoodTube (0x770 bytes, 0x707b7f: the progress tube beside the board), three
+EffectsManagers (+0x1648, +0x164c, +0x21b8), a PointsManager (0x158 bytes, +0x21fc) and a 42x42 MemoryImage, reads
+properties\tips.txt, and fills a 7x7 table of each cell's angle and distance from the middle (+0x1674, 0x1c bytes a
+cell). The game's other classes come with it: Piece (0x729b41-0x72fc8e), Points, the shockwaves and travellers,
+Mandala, LevelUpShow, GameOverShow, SpeedText, OrbitText, FlyingText, GemSoul, Tutorial, EndStats, WheelSpin,
+FruitAwardScreen, RankBonusWidget, AwardTelly, PuzzleUI, ReloadDisplay and ReplayWidget.
+
+The order of the work: Piece and the grid, then the board's update, input and drawing for classic mode, then the
+other modes, the shows and the end of a game.
+
 ## Deviations
 
 Each is a change without a visible effect in play.
