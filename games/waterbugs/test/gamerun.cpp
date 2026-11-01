@@ -271,6 +271,8 @@ int main(int argc, char** argv)
 				wb::gLives = e.a;  // a test shortcut: the lives left, to reach the game over
 			else if (e.what == "score")
 				wb::gScore = e.a;  // a test shortcut: a score for the high-score entry
+			else if (e.what == "reached")
+				wb::gProfiles[wb::gProfile].levelReached = e.a;  // a test shortcut: levels finished, so a game can be resumed
 			else if (e.what == "die" && wb::gLevels.current != nullptr && wb::gLevels.current->shooters.current != nullptr)
 			{
 				// a test shortcut: an enemy's hit on the ship (Beam_UpdateRider's), to reach the game over

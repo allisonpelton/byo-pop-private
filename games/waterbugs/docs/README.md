@@ -106,6 +106,10 @@ Not yet tested: the options, the Hall of Fame and the credits, the player reques
 the later levels' tables (levels 4 on, whose enemy kinds and tints come from `Level_EnemyCounts`), the power-ups of
 every kind, the game's end with a new high score, and switching the screen mode natively.
 
+## Deviations
+
+`DEVIATIONS.md` lists where the port is not a line-for-line translation of the exe, and why none shows.
+
 ## Mods
 
 None: the port is the original game, unmodified, and adds nothing for later mods. The mod phase waits until every

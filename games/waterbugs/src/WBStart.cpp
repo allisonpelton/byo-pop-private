@@ -8,6 +8,7 @@
 #include "R64Sys.h"
 
 #include <cstdio>
+#include <cstdlib>
 #include <cstring>
 
 namespace wb
@@ -154,7 +155,7 @@ void DrawLoadingScreen()
 }
 
 // The levels are numbered in the file's order (a skipped one shares the next one's number); random_levels makes
-// "number" of them. The file's buffer stays (as the original's does).
+// "number" of them.
 // 0x41eeb0
 void LoadGameFile()
 {
@@ -239,6 +240,8 @@ void LoadGameFile()
 	}
 	if (gLevels.current != nullptr)
 		gLevels.current = gLevels.head;
+	// (the original never frees the file's buffer, and nothing keeps a pointer into it: every board file read leaked it)
+	std::free((void*)aData);
 }
 
 void GameStart()
@@ -370,8 +373,8 @@ const char* Localize(const char* theText)
 	{
 		XmlTag aTag;
 		size_t aSize;
-		const char* p = (const char*)ReadWholeFile("wanims\\local.xml", &aSize);
-		p = Xml_NextTag(p, &aTag);
+		const char* aData = (const char*)ReadWholeFile("wanims\\local.xml", &aSize);
+		const char* p = Xml_NextTag(aData, &aTag);
 		while (std::strcmp(aTag.name, "/localization") != 0)
 		{
 			if (std::strcmp(aTag.name, "string") == 0)
@@ -382,6 +385,7 @@ const char* Localize(const char* theText)
 			}
 			p = Xml_NextTag(p, &aTag);
 		}
+		std::free((void*)aData);  // (the original leaks it)
 	}
 	for (LocalString* aString = gLocalStrings.head; aString != nullptr; aString = aString->next)
 	{
