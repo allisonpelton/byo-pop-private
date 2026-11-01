@@ -21,11 +21,14 @@ the same machine. A plain run opens a window, raises it over whatever the user i
   build under Node (`node games/bejeweled/tools/verify/wasmrun.js game build/web/bejeweled.js ...`) open no
   window, play no sound and open no URL, so they need no rundesk; a web build under Node still counts as a
   game process below.
-- **Never run an original game exe (the user's copy, unwrapped or not) by itself, not even under rundesk.** rundesk
-  silences only SDL, so an original plays its sounds on the user's speakers, and it writes its saves into the user's real
-  registry keys and save folders. Originals run only through the coordinator's harness for them (`tools/origrun`, being
-  built from 2026-10-31), which runs a copy with its sound, registry and save files redirected; until it lands, compare
-  with the original by its decompilation only.
+- **Originals (the user, 2026-10-31):** "You are welcome to run the originals with sound on and mess with my save data"
+  (the saves they care about are backed up). An original still runs invisibly, under rundesk, from a copy under build/;
+  its install folder is never written to or run in place. It counts as a game process like any other. Many copies are
+  not activated (the retail CD is in storage, or activation no longer works on Windows 11): patch the copy as needed,
+  keep how it is done in private blocks, and put the patching tools in `.publishignore`. Use `tools/origrun`
+  (`docs/ORIGRUN.md`, being built) for screen captures, scripted input and focus changes once it lands. Prefer its
+  silent sound stand-ins: rundesk silences only SDL, and the user turns the speakers off for short stretches or
+  overnight when a run really needs real sound.
 - Open the web builds in the Browser pane only with `?silent=1`, e.g.
   `http://127.0.0.1:18766/bejeweled.html?silent=1`: the pane may be hidden, and without it the game plays
   its music and sounds on the user's speakers. The status line ends in "silent" when it is on. The terms card
@@ -79,6 +82,9 @@ re-reads the whole context, so what costs is context times calls, and a cache th
   starts no new game session and sends no "Begin"; it checks with `mcp__ccd_session_mgmt__get_usage` before each one.
   Game sessions already running carry on and do not watch the usage. The coordinator keeps merging their milestones
   and keeps the local test site ready: `build/web` built from `main`, with every finished game importing and playable.
+  For the week of 2026-11-01 to 2026-11-08 the cap is 80% (the user): what remains goes to bugs that make games harder
+  to test (like Seven Seas' tutorial that would not go away) and to site work. Site work runs alongside the game
+  sessions (the user, 2026-11-01).
 
 ## Sessions, ownership and git (the user's rules)
 
@@ -147,10 +153,14 @@ Git and publishing:
   original is fixed: memory the original still uses after "leaking" it (Bejeweled's FillBoard orphans) is freed after
   its last possible use. The 18 games merged by 2026-10-27 are not done until they pass this; from the weekly reset
   (2026-11-01) they come first, and no new port starts until all 18 are done.
-- **Before the website is ready (the user, 2026-10-30):** every port takes out all of its registration code (trial, nag
-  and unlock paths: "It is misleading and adds unnecessary bloat") and gets a readability pass to the project's code
-  standards (`docs/CODE_STANDARDS.md`, written and approved by the user first). A game does both after its identical-play
-  work, so its regression check proves that play is unchanged.
+- **Order of the work on the merged games (the user, 2026-11-01):** "once all issues I mentioned are fixed, move on down
+  through the game list. Once all games are done, then we can do code quality/readability, and finally figure out what
+  code does not need to be present in the decomps (mostly registration, but other things are likely to turn up as
+  well)." So first every fault the user reported, in every game, and anything that makes a game hard to test; then the
+  identical-play pass above, game by game; once every game is done, a readability pass to the project's code standards
+  (`docs/CODE_STANDARDS.md`, written and approved by the user first); last, taking out code the ports do not need, such
+  as all registration code (trial, nag and unlock paths: "It is misleading and adds unnecessary bloat"). The game's
+  regression check proves each step leaves play unchanged. All of it comes before the website is ready.
 - **No references (the user, 2026-10-26):** no port reads another project's decompilation, reimplementation, mod
   kit, class layouts or address maps (Thunderball, haggle, WinFish, CircleShootApp, PvZ-Portable, the Pizza Frenzy
   decompilation and the like); work from our own Ghidra export. PopCap's released SexyAppFramework source, the open
