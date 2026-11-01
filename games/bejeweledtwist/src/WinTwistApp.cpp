@@ -2,6 +2,7 @@
 #include "WinTwistApp.h"
 
 #include "CustomResourceManager.h"
+#include "Buffer.h"
 #include "ButtonWidget.h"
 #include "EffectsManager.h"
 #include "GameText.h"
@@ -124,6 +125,11 @@ void WinTwistApp::Init()
 	LoadProperties("properties/config.xml", true, false);
 	LoadResourceManifest();
 	LoadGameTexts();
+	// port: the original reads the scores before the properties; their defaults need the game's texts here
+	LoadScores();
+	// 0x4a3c20: properties\default.xml, the texts of the high scores' stats page and others (the original reads
+	// properties\music.xml just before it, 0x763ca4: it comes with the music)
+	LoadProperties();
 	mRanks = new Ranks();
 
 	// The player who played last, or else the first one whose profile loads
@@ -465,6 +471,57 @@ void WinTwistApp::UpdateFrames()
 			mUnderDialog->mUpdateCnt = 100;
 		} else {
 			mUnderDialog->MarkDirty();
+		}
+	}
+}
+
+int WinTwistApp::ScoreList(int theGameMode)
+{
+	int aList = 0;
+	if (theGameMode != 1)
+		aList = (theGameMode == 3) * 2 - 1;
+	return aList;
+}
+
+void WinTwistApp::LoadScores()
+{
+	Buffer aBuffer;  // the original also holds the app's critical section while it reads
+	mScoresLoaded = false;
+	std::string aPath = GetAppDataFolder() + "users\\scores.dat";
+	if (ReadBufferFromFile(aPath, &aBuffer, false) && aBuffer.ReadLong() == 9) {
+		for (int i = 0; i < 20; i++) {
+			mHighScores[i].mName = WStringToSexyString(aBuffer.ReadUTF8String());
+			mHighScores[i].mLevel = aBuffer.ReadLong();
+			mHighScores[i].mScore = aBuffer.ReadLong();
+		}
+	} else {
+		SetDefaultScores();
+		SaveScores();
+	}
+	mScoresLoaded = true;
+}
+
+void WinTwistApp::SaveScores()
+{
+	Buffer aBuffer;
+	aBuffer.WriteLong(9);
+	for (int i = 0; i < 20; i++) {
+		aBuffer.WriteUTF8String(SexyStringToWString(mHighScores[i].mName));
+		aBuffer.WriteLong(mHighScores[i].mLevel);
+		aBuffer.WriteLong(mHighScores[i].mScore);
+	}
+	WriteBufferToFile(GetAppDataFolder() + "users\\scores.dat", &aBuffer);
+}
+
+void WinTwistApp::SetDefaultScores()
+{
+	// Both lists take the same ten levels; the names and scores run on through the two
+	int i = 0;
+	for (int aList = 0; aList < 2; aList++) {
+		for (int aRow = 0; aRow < 10; aRow++, i++) {
+			mHighScores[i].mLevel = GameInt(GTB(0x850ea0, 40) + aRow * 4);
+			mHighScores[i].mName = GT(GameInt(GTP(0x850e50, 20) + i * 4));
+			mHighScores[i].mScore = GameInt(GTB(0x850e00, 80) + i * 4);
 		}
 	}
 }

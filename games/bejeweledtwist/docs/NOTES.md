@@ -127,8 +127,9 @@ loader is still up (the loader shuts them itself).
 Ported: StartMainMenu, ShowMainMenu (without the board), the Gates, MenuButtonWidget, the Menu and its colour
 cycles (ColorCycle, 0x6e6e1b-0x6e70ad, four of red, yellow, green and cyan a quarter apart), the windowed-mode
 button, the profiles' files (Profile), the ranks' names (Ranks), the profiles panel (ProfilePanel), the new player
-panel (NewUserPanel, menu +0x3d4, 0x699924-0x69ab42) and the game's dialogs (TwistDialog). Not yet: the high scores,
-help and options panels, the challenges, the end of game stats (EndStats), the registration widget, the gem
+panel (NewUserPanel, menu +0x3d4, 0x699924-0x69ab42), the game's dialogs (TwistDialog), the high scores and the
+high scores panel (HighScoresPanel; without the new score going into its list, the board behind it and the replays,
+which come with the end of a game). Not yet: the help and options panels, the challenges, the end of game stats (EndStats), the registration widget, the gem
 prerender, the app's music, and starting a game.
 
 The ranks (app +0xf58, 0x739af7) come from properties\ranks.txt, one name per line in its first comma-separated field
@@ -160,6 +161,22 @@ it. Behind the dialogs (and the options) the app fades in a whole-screen layer (
 copy of the screen instead. The app's own dialog answers (0x7633ea) kill the dialog; the options' (3, 4) and the
 board's (0xb, 0x28) come with them.
 
+The high scores (app +0x970, 20 of 0x24 bytes: name, level, score) are two top tens, classic (game mode 1) and the
+other timeless mode (3); ScoreList (0x75fada) maps a mode to its list. They are in users\scores.dat (version 9:
+a long version, then each row's UTF-8 name, level and score as longs; LoadScores 0x764ea9, SaveScores 0x76387e). A
+new install's rows (0x7637ee) come from three tables in the exe: name pointers at 0x850e50, scores at 0x850e00 and
+levels at 0x850ea0. GameText reads such tables too: GTB(address, length) for numbers, GTP(address, count) for text
+pointers (their texts are listed as well), read with GameInt.
+
+The high scores panel fades the old category out (+0x2d0, 0.05 an update) when a gate button picks a new one, then
+shows its rows one by one, one each three updates, each with a glow that fades by 0.04 an update. Each row's name
+runs through the rainbow (a ColorCycle brightened by half, a twentieth apart each row and starting where the update
+count is in 400); the score is drawn right to left a character at a time, centred in cells of 22 (12 for a comma).
+The stats page (any category but 1 and 3) has eight lines, from properties\default.xml where the game has an id
+for them (HIGH_SCORES_POINTS) and from the exe's texts otherwise, with a view-replay button beside each of the three
+best moves whose replay the profile keeps (profile +0xa0, 3 of 0x2c bytes, ordered by the table at 0x84e550). The
+original reads properties\default.xml in Init (0x4a3c20); the port did not until this panel needed it.
+
 Game texts: the original's wide texts (L"...", such as the tooltips and the dialog texts) are UTF-16 in the exe;
 gametext.py lists them as GAMETEXTW (length in bytes) and GameText.cpp converts them. Before this, every wide text
 was read as its first letter.
@@ -175,3 +192,5 @@ Each is a change without a visible effect in play.
 - DoDialog over a dialog of the same id: the original shrinks and deletes the old one but leaves it among the app's
   dialogs, where AddDialog would then find it deleted. The port takes it out too. No dialog of the game is ever asked
   for twice.
+- The high scores panel's view-replay buttons: the original deletes the ones it added to the panel (with the panel's
+  children) but not the ones it kept without adding (a best move without a replay). The port deletes them all.

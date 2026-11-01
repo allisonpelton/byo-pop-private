@@ -48,6 +48,14 @@ public:
 	Gates* mGates = nullptr;            // +0xc70: the main menu's gates
 	Profile* mProfile = nullptr;        // +0x7ec: the players
 	Ranks* mRanks = nullptr;            // +0xf58: the ranks' names
+	// The two top tens (classic and the other timeless mode: ScoreList), users\scores.dat
+	struct HighScore {
+		SexyString mName;
+		int mLevel = 0;
+		int mScore = 0;
+	};
+	HighScore mHighScores[20];          // +0x970: 0x24 each, ten a list
+	bool mScoresLoaded = false;         // +0x50c: off while LoadScores reads them
 	ButtonWidget* mWindowedButton = nullptr;  // +0x91c: top right, switches to a window (hidden in one)
 	Image* mFruitImage = nullptr;       // +0x904: the fruit pictures the menu chose (comes with the board)
 	Rect mFruitRect;                    // +0x908: its first cel
@@ -93,6 +101,11 @@ public:
 	void PlaySample(int theSoundNum) override;  // 0x7675d8
 	using SexyApp::PlaySample;
 
+	// 0x75fada: the score list of a game mode (0 for mode 1, 1 for mode 3), -1 for a mode without one
+	static int ScoreList(int theGameMode);
+	void LoadScores();          // 0x764ea9
+	void SaveScores();          // 0x76387e
+	void SetDefaultScores();    // 0x7637ee: the lists a new install starts with, from the exe's tables
 	// 0x76657b (slot 110): the loading is done, the main menu comes up
 	virtual void StartMainMenu();
 	// 0x765e04: back to the main menu, with the stats of the game just played, or with the challenges

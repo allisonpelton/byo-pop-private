@@ -1,7 +1,7 @@
 // The main menu's panels: the screens the menu pans to (MenuPanel, vtable 0x7d9d1c, a TwistWidget with only its own
 // destructor 0x69a667), the challenge menu and the end-of-game stats.
 //
-// port: the profile panel and the new player panel are ported; the others are not yet. Each of those has the fields
+// port: the high scores, profile and new player panels are ported; the others are not yet. Each of those has the fields
 // and methods the menu uses, with the original's offsets and addresses; a method not yet ported does nothing (and says
 // so once in the log). They come in their own stages.
 #pragma once
@@ -12,9 +12,13 @@
 #include "TwistDialogListener.h"
 #include "TwistWidget.h"
 
+#include <vector>
+
 namespace Sexy {
 
 class EditListener;
+class EffectsManager;
+class Image;
 class ListWidget;
 class Menu;
 class TwistButton;
@@ -26,18 +30,88 @@ public:
 	~MenuPanel() override;  // 0x69a667
 };
 
-// Sexy::HighScoresPanel (0x350 bytes; 0x694076-0x696a02, menu +0x2dc): below the gates
-class HighScoresPanel : public MenuPanel {
+// Sexy::HighScoresPanel (0x350 bytes; 0x694076-0x697d5b, menu +0x2dc): below the gates. It shows one of the two top
+// tens (classic, or the other timeless mode: WinTwistApp::ScoreList) or, for any other category, the player's stats
+// with a button to view each of the best moves' replays. A new category fades the old one out, then shows its rows
+// one by one. After a game the bar with the replay and quit buttons rises under it (ShowBar), and a new high score
+// goes into its list (mState 1 to 3).
+class HighScoresPanel : public MenuPanel, public ButtonListener {
 public:
-	int mUnknown140 = 0;     // +0x140
-	bool mUnknown2C8 = false;  // +0x2c8
-	int mCategory = -1;      // +0x344: the list shown (the gates' buttons pick it)
+	// The buttons' ids: the bar's two, then the three view-replay buttons of the stats page
+	enum { BUTTON_QUIT = 0, BUTTON_REPLAY = 1, BUTTON_VIEW_REPLAY = 2 };
+
+	// A row of a list (0x30 bytes), copied from the app's high scores
+	struct Row {
+		bool mUnknown0 = false;   // +0x00
+		float mUnknown4 = 1.0f;   // +0x04
+		float mUnknown8 = 0;      // +0x08
+		SexyString mName;         // +0x0c
+		int mLevel = 0;           // +0x28
+		int mScore = 0;           // +0x2c
+	};
+
+	Menu* mMenu;                       // +0x14c
+	Image* mDialogImage;               // +0x150: IMAGE_MAINMENU_SCORESDIALOG
+	float mRevealTimer = 0;            // +0x154: the next row shows when it runs out
+	bool mMouseDown = false;           // +0x158: between a press and its release (not read)
+	int mState = 0;                    // +0x15c: 0 shown; 1 to 3 a new score goes into its list
+	float mStateTimer = 0;             // +0x160
+	float mUnknown164 = 5.0f;          // +0x164
+	WinTwistApp* mApp;                 // +0x170
+	int mShown = -99;                  // +0x174: the category shown (mCategory, once the old one has faded out)
+	bool mUnknown178 = false;          // +0x178
+	CurvedVal mRowSlide;               // +0x180: the rows make room for the new score
+	int mNewRow = -1;                  // +0x1f0: the new score's row, -1 none
+	int mUnknown1F4 = 0;               // +0x1f4
+	int mUnknown1F8 = -1;              // +0x1f8
+	Color mLastRowColor;               // +0x1fc: the tenth row's name colour, for the name that falls off the list
+	int mRevealed = -1;                // +0x20c: the rows up to this one show
+	float mFlash = 0;                  // +0x210: the glow of the row that just showed
+	float mUnknown214 = 0;             // +0x214
+	float mUnknown218 = 0;             // +0x218
+	std::vector<Row> mRows[2];         // +0x21c: the two lists
+	std::vector<TwistButton*> mReplayButtons;  // +0x23c: the stats page's
+	EffectsManager* mFXManager;        // +0x24c
+	TwistWidget* mBar;                 // +0x250: IMAGE_MAINMENU_SCORESDIALOGBAR, with the replay and quit buttons
+	CurvedVal mBarSlide;               // +0x258: the bar rises from below the screen
+	bool mHide = false;                // +0x2c8: mAlpha falls to 0, else rises to 1
+	CurvedVal mFade;                   // +0x2d0: the rows' alpha while a category fades out
+	bool mFading = false;              // +0x340: mFade runs
+	int mCategory = -99;               // +0x344: the category to show (the gates' buttons pick it)
+	float mVoiceDelay = 0;             // +0x348: the new high score's voice when it runs out
+	bool mBarPressed = false;          // +0x34c: a bar button was pressed
 
 	explicit HighScoresPanel(Menu* theMenu);  // 0x697d5b
+	~HighScoresPanel() override;              // 0x695ae6
+
+	void AddedToManager(WidgetManager* theWidgetManager) override;      // 0x695937
+	void RemovedFromManager(WidgetManager* theWidgetManager) override;  // 0x694076
+	void Update() override;                                             // 0x695b8d
+	void Draw(Graphics* g) override;                                    // 0x696a02
+	void MouseDown(int x, int y, int theBtnNum, int theClickCount) override;  // 0x694196
+	void MouseUp(int x, int y, int theClickCount) override;                   // 0x6941a0
+	using Widget::MouseDown;
+	using Widget::MouseUp;
+
+	void ButtonPress(int theId, int theClickCount) override;  // 0x69415c
+	using ButtonListener::ButtonPress;
+	void ButtonDepress(int theId) override;                   // 0x695124
+
 	void SetCategory(int theCategory, bool theNow);  // 0x69599c
-	void Refresh();          // 0x695a77: the lists again, for a new player
-	void Unknown694BD3();    // 0x694bd3
-	void Unknown695966();    // 0x695966
+	void Refresh();          // 0x695a77: the top ten of classic again, for a new player
+	void ShowBar();          // 0x694bd3: the bar rises under the panel (after a game)
+	void HideBar();          // 0x694da4
+	void ShowAll();          // 0x695966: every row at once, without the fade
+	void StartFade();        // 0x694b5e
+	void ShowCategory();     // 0x695890: mShown becomes mCategory
+	void MakeReplayButtons();  // 0x69570d
+	void ResetNewRow();      // 0x6941aa
+
+	float GetRowHeight();    // 0x6940a3
+	int GetRowY(int theRow); // 0x6940c6
+	int GetNameX();          // 0x6940fd
+	int GetScoreRight();     // 0x694113
+	int GetLevelRight();     // 0x694135
 };
 
 // Sexy::HelpPanel (400 bytes; 0x6981b0-0x6984b0, menu +0x2e0): below and to the right

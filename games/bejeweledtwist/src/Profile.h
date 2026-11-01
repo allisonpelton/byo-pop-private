@@ -16,12 +16,12 @@ namespace Sexy {
 
 class Profile {
 public:
-	// A game in progress (0x2c bytes)
+	// The replay of a best move (0x2c bytes; HighScoresPanel::ButtonDepress plays it)
 	struct SavedGame {
 		Buffer mData;      // +0x00
 		int mUnknown20;    // +0x20: saved as a short
 		int mUnknown24;    // +0x24: saved as a short
-		int mUnknown28;    // +0x28
+		int mBest;         // +0x28: the best move's score, gems or cascade (the high scores' stats page)
 
 		void Read(const Buffer& theBuffer);   // 0x6a3156
 		void Write(Buffer& theBuffer) const;  // 0x6a3192
@@ -38,19 +38,19 @@ public:
 	int mUnknown78 = 0;               // +0x78
 	std::vector<bool> mBools80;       // +0x80
 	int mUnknown8C = 0;               // +0x8c
-	int mUnknown90 = 0;               // +0x90
+	int mBestChain = 0;               // +0x90: the stats page's best chain
 	int mUnknown94 = 0;               // +0x94
 	int mUnknown98 = 0;               // +0x98
 	bool mCustomCursors = false;      // +0x9c: the app's custom cursors (SetCustomCursorsEnabled)
-	SavedGame mSavedGames[3];         // +0xa0
+	SavedGame mSavedGames[3];         // +0xa0: the replays of the best moves (the stats page's buttons)
 	int mUnknown124 = 0;              // +0x124
 	int mUnknown128[6] = {};          // +0x128
 	int mUnknown140[6] = {};          // +0x140
-	int mUnknown158 = 0;              // +0x158
-	int mUnknown15C = 0;              // +0x15c
+	int mTotalPoints = 0;             // +0x158: every game's points (the stats page)
+	int mGemsCleared = 0;             // +0x15c
 	int mUnknown160 = 0;              // +0x160
 	int mUnknown164 = 0;              // +0x164
-	int mUnknown168 = 0;              // +0x168
+	int mGamesPlayed = 0;             // +0x168
 	int mUnknown16C = 0;              // +0x16c
 	unsigned char mBits170[0x40] = {};  // +0x170: 512 flags, the first in each byte's top bit
 	bool mUnknown1B0 = false;         // +0x1b0

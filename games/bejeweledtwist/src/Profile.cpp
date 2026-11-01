@@ -48,7 +48,7 @@ void Profile::SavedGame::Read(const Buffer& theBuffer)
 {
 	mUnknown20 = theBuffer.ReadShort();
 	mUnknown24 = theBuffer.ReadShort();
-	mUnknown28 = theBuffer.ReadLong();
+	mBest = theBuffer.ReadLong();
 	ByteVector aData;
 	theBuffer.ReadBuffer(&aData);
 	mData.SetData(aData);
@@ -58,7 +58,7 @@ void Profile::SavedGame::Write(Buffer& theBuffer) const
 {
 	theBuffer.WriteShort((short)mUnknown20);
 	theBuffer.WriteShort((short)mUnknown24);
-	theBuffer.WriteLong(mUnknown28);
+	theBuffer.WriteLong(mBest);
 	theBuffer.WriteBuffer(mData.mData);
 }
 
@@ -67,7 +67,7 @@ Profile::Profile()
 	for (SavedGame& aGame : mSavedGames) {
 		aGame.mUnknown20 = 0;
 		aGame.mUnknown24 = 0;
-		aGame.mUnknown28 = 0;
+		aGame.mBest = 0;
 	}
 }
 
@@ -150,7 +150,7 @@ bool Profile::Load(const SexyString& theName)
 	mUnknown8C = aBuffer.ReadLong();
 	if (aVersion < 0x34)
 		aBuffer.ReadLong();
-	mUnknown90 = aBuffer.ReadLong();
+	mBestChain = aBuffer.ReadLong();
 	if (aVersion < 0x34) {
 		aBuffer.ReadLong();
 		aBuffer.ReadLong();
@@ -159,17 +159,17 @@ bool Profile::Load(const SexyString& theName)
 	mUnknown98 = aBuffer.ReadLong();
 	mUnknown164 = aBuffer.ReadLong();
 	mUnknown124 = aBuffer.ReadLong();
-	mUnknown158 = aBuffer.ReadLong();
+	mTotalPoints = aBuffer.ReadLong();
 	mUnknown58 = aBuffer.ReadLong();
 	for (int i = 0; i < 6; i++) {
 		mUnknown128[i] = aBuffer.ReadLong();
 		mUnknown5C[i] = aBuffer.ReadLong();
 	}
-	mUnknown158 = aBuffer.ReadLong();
-	mUnknown15C = aBuffer.ReadLong();
+	mTotalPoints = aBuffer.ReadLong();
+	mGemsCleared = aBuffer.ReadLong();
 	ReadFlags(aBuffer, aVersion, &mFlags1E0);
 	aBuffer.ReadBytes(mBits170, 0x40);
-	mUnknown168 = aBuffer.ReadLong();
+	mGamesPlayed = aBuffer.ReadLong();
 	mUnknown16C = aBuffer.ReadLong();
 	mUnknown1B0 = aBuffer.ReadByte() != 0;
 	ReadFlags(aBuffer, aVersion, &mFlags1E4);
@@ -220,22 +220,22 @@ void Profile::Save()
 	aBuffer.WriteLong(mUnknown74);
 	aBuffer.WriteLong(mUnknown78);
 	aBuffer.WriteLong(mUnknown8C);
-	aBuffer.WriteLong(mUnknown90);
+	aBuffer.WriteLong(mBestChain);
 	aBuffer.WriteLong(mUnknown94);
 	aBuffer.WriteLong(mUnknown98);
 	aBuffer.WriteLong(mUnknown164);
 	aBuffer.WriteLong(mUnknown124);
-	aBuffer.WriteLong(mUnknown158);
+	aBuffer.WriteLong(mTotalPoints);
 	aBuffer.WriteLong(mUnknown58);
 	for (int i = 0; i < 6; i++) {
 		aBuffer.WriteLong(mUnknown128[i]);
 		aBuffer.WriteLong(mUnknown5C[i]);
 	}
-	aBuffer.WriteLong(mUnknown158);
-	aBuffer.WriteLong(mUnknown15C);
+	aBuffer.WriteLong(mTotalPoints);
+	aBuffer.WriteLong(mGemsCleared);
 	WriteFlags(aBuffer, mFlags1E0);
 	aBuffer.WriteBytes(mBits170, 0x40);
-	aBuffer.WriteLong(mUnknown168);
+	aBuffer.WriteLong(mGamesPlayed);
 	aBuffer.WriteLong(mUnknown16C);
 	aBuffer.WriteByte(mUnknown1B0);
 	WriteFlags(aBuffer, mFlags1E4);
@@ -314,7 +314,7 @@ bool Profile::Create(const SexyString& theName)
 	mUnknown78 = 0;
 	mBools80.clear();
 	mUnknown8C = 0;
-	mUnknown90 = 0;
+	mBestChain = 0;
 	mUnknown94 = 0;
 	mUnknown98 = 0;
 	mCustomCursors = gApp->mCustomCursorsEnabled;
@@ -323,14 +323,14 @@ bool Profile::Create(const SexyString& theName)
 		mUnknown5C[i] = 0;
 		mUnknown140[i] = 0;
 	}
-	mUnknown158 = 0;
-	mUnknown15C = 0;
+	mTotalPoints = 0;
+	mGemsCleared = 0;
 	mUnknown160 = 0;
 	mUnknown124 = 0;
 	mUnknown164 = 0;
 	mUnknown58 = 0;
 	mFlags1E0 = 0;
-	mUnknown168 = 0;
+	mGamesPlayed = 0;
 	memset(mBits170, 0, sizeof(mBits170));
 	mUnknown16C = 2;
 	mUnknown1B0 = true;
@@ -345,7 +345,7 @@ bool Profile::Create(const SexyString& theName)
 	for (SavedGame& aGame : mSavedGames) {
 		aGame.mUnknown20 = -1;
 		aGame.mUnknown24 = -1;
-		aGame.mUnknown28 = 0;
+		aGame.mBest = 0;
 		aGame.mData.Clear();
 	}
 	mFlags1E8 |= 1u << 1;

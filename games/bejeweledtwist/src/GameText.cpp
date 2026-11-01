@@ -19,19 +19,28 @@ struct GameTextEntry
 	uint32_t	mLength;
 	uint32_t	mHash;
 	bool		mWide;		// UTF-16 (the original's L"..." texts); mLength counts bytes
+	bool		mData;		// bytes of data (GTB, GTP), not a text
 };
 
 const GameTextEntry gGameTextEntries[] =
 {
-#define GAMETEXT(theVA, theLength, theHash) {theVA, theLength, theHash, false},
-#define GAMETEXTW(theVA, theLength, theHash) {theVA, theLength, theHash, true},
+#define GAMETEXT(theVA, theLength, theHash) {theVA, theLength, theHash, false, false},
+#define GAMETEXTW(theVA, theLength, theHash) {theVA, theLength, theHash, true, false},
+#define GAMEDATA(theVA, theLength, theHash) {theVA, theLength, theHash, false, true},
 #include "GameTextTable.inc"
+#undef GAMEDATA
 #undef GAMETEXTW
 #undef GAMETEXT
-	{0, 0, 0, false}
+	{0, 0, 0, false, false}
 };
 
 const int NUM_GAME_TEXTS = (int) (sizeof(gGameTextEntries) / sizeof(gGameTextEntries[0])) - 1;
+
+std::map<unsigned int, std::string>& Blocks()
+{
+	static std::map<unsigned int, std::string> sBlocks;
+	return sBlocks;
+}
 
 std::map<unsigned int, SexyString>& Texts()
 {
@@ -116,6 +125,7 @@ bool Sexy::LoadGameTexts()
 {
 	std::map<unsigned int, SexyString>& aTexts = Texts();
 	aTexts.clear();
+	Blocks().clear();
 
 	// The original's executable (version 1.0.3.7482) or a copy of it
 	std::vector<uint8_t> aData;
@@ -132,6 +142,20 @@ bool Sexy::LoadGameTexts()
 			{
 				const GameTextEntry& e = gGameTextEntries[anId];
 				size_t anOffset = anImage.Offset(e.mVA);
+				if (e.mData)
+				{
+					if ((anOffset != 0) && (anOffset + e.mLength <= aData.size()) &&
+						(TextHash((const char*) &aData[anOffset], e.mLength) == e.mHash))
+					{
+						Blocks()[e.mVA].assign((const char*) &aData[anOffset], e.mLength);
+						aMatched++;
+					}
+					else
+					{
+						aMismatched++;
+					}
+					continue;
+				}
 				size_t anEnd = anOffset + e.mLength + (e.mWide ? 1 : 0);
 				if ((anOffset != 0) && (anEnd < aData.size()) && (aData[anOffset + e.mLength] == 0) &&
 					(!e.mWide || aData[anEnd] == 0) &&
@@ -196,4 +220,18 @@ const std::string& Sexy::GameTextA(unsigned int theVA)
 	if (anItr == sNarrow.end())
 		anItr = sNarrow.emplace(theVA, SexyStringToStringFast(GameText(theVA))).first;
 	return anItr->second;
+}
+
+int Sexy::GameInt(unsigned int theVA)
+{
+	std::map<unsigned int, std::string>& aBlocks = Blocks();
+	std::map<unsigned int, std::string>::const_iterator anItr = aBlocks.upper_bound(theVA);
+	if (anItr == aBlocks.begin())
+		return 0;
+	--anItr;
+	size_t anOffset = theVA - anItr->first;
+	if (anOffset + 4 > anItr->second.size())
+		return 0;
+	const unsigned char* p = (const unsigned char*) anItr->second.data() + anOffset;
+	return (int) (p[0] | (p[1] << 8) | (p[2] << 16) | ((unsigned int) p[3] << 24));
 }

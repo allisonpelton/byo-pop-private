@@ -27,5 +27,11 @@ const std::string& GameTextA(unsigned int theVA);
 #define GTS(theVA) (::Sexy::GameTextA(theVA))
 // A text's address kept in a table, for GT later (gametext.py finds these too)
 #define GTA(theVA) (theVA)
+// theLength bytes of data at theVA (numbers in a table), read with GameInt; the address itself
+#define GTB(theVA, theLength) (theVA)
+// A table of theCount pointers to texts at theVA: GameInt(theVA + 4 * i) is the i-th text's address, for GT
+#define GTP(theVA, theCount) (theVA)
+// The 32-bit number the original keeps at theVA, inside a GTB or GTP block; 0 outside them
+int GameInt(unsigned int theVA);
 
 }  // namespace Sexy

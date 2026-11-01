@@ -218,13 +218,13 @@ void Menu::Update()
 			mApp->mWidgetManager->AddWidget(aGates);
 		ShowScores(true);
 		mHighScoresPanel->SetCategory(mApp->mLastGameMode, true);
-		mHighScoresPanel->Unknown694BD3();
-		mHighScoresPanel->mUnknown140 = 0;
+		mHighScoresPanel->ShowBar();
+		mHighScoresPanel->mAlpha = 0;
 		if (mUnknown408 < 0)
-			mHighScoresPanel->Unknown695966();
+			mHighScoresPanel->ShowAll();
 		else
 			SDL_Log("Menu 0x69aabc is not ported yet");  // the new high score's entry (comes with the scores)
-		mHighScoresPanel->mUnknown2C8 = false;
+		mHighScoresPanel->mHide = false;
 	}
 
 	for (int i = 0; i < 4; i++)
@@ -654,7 +654,7 @@ void Menu::ShowScores(bool theNow)
 	SetPan(0, -mApp->mHeight, theNow);
 	if (!theNow)
 		mApp->mHyperspace->SetTransition(2);
-	mHighScoresPanel->mUnknown2C8 = false;
+	mHighScoresPanel->mHide = false;
 	mPanel = PANEL_SCORES;
 	AddWidget(mHighScoresPanel);
 }
