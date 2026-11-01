@@ -134,6 +134,11 @@ The hall of fame's arena list showed 0:14:40 for the authors' run to the ninth s
 port's table of the ten default runs had 88000 hundredths of a second for it, the original's (0x4632a0, MakeTimeList) 89000.
 Fixed (2026-11-01); the other nine, and the ten default bonus runs, match.
 
+The mini-games showed an empty plate where the original has its greyed Submit! button. The scripts give the attack button
+the Submit! picture (`ChangeAttackBtnImage`), and the port's `SetAttackDisabled` and `ShowImmuneAttack` then took the cels'
+size from the Attack picture; the original's (0x41a070, 0x41a3e0) take it from the picture the button has (+0xb0). Fixed
+(2026-11-01).
+
 ### Timing in the pilot
 
 Both sides are scripted by the game's update count (`tools/pilot/gen.py`). The port runs a script line "N ..." at the start
@@ -160,6 +165,22 @@ attacks clip, the Enter! transition, the credits' shake, and the Attack button's
 with the last letter's click). The title clip's frames 18 to 30 are the
 original's loading screen, shown for as long as its loading thread takes; the port loads in slices of 20 ms between frames,
 so it shows it for a different time. That runs on the wall clock on both sides and is not compared.
+
+How often each side draws matters as much. Under rundesk the port's scripted run manages about 85 updates and 37 draws a
+second (its log's counts), so it catches up with updates it does not draw, and a wait for a draw (the curtain; Letter Rip's
+tutorial pause, whose "PAUSED" text then blinks 150 updates on and 50 off) ends later. Drawn at every update (lag.py's
+runs), the port matches the original exactly at the same update: Letter Rip's pause text and the credits' shake, 0 pixels
+each. A framework option to draw every update in scripted runs is asked of the coordinator (2026-11-01).
+
+The original under origrun never shows a hover. On mouse messages it asks where the real cursor is (GetCursorPos and
+WindowFromPoint, in SexyAppBase's message handling, 0x547ea0), and on rundesk's desktop that is never over its window, so it
+takes the mouse as gone. The port lights a button under the resting mouse, as the original does with a real cursor: Link n'
+Spell's YES (the mouse left there by the menu's click) and the tome's scroll arrow. Noted for origrun (2026-11-01).
+
+The pilot's third part (`tools/pilot/screens.txt`, 2026-11-01): the tome and its list scrolled, and each mini-game from its
+welcome to its menu and the quit (Word Master with a guess, Letter Rip into its tutorial, Link n' Spell losing and regaining
+the focus). Besides the fault above and the items here, what differs is the animations' sampling and timing (Lex, Moxie,
+the Submit! button's glow).
 
 ## Mods
 
