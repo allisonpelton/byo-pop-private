@@ -7,7 +7,7 @@
 // ported. All derive from the 2003 dialog (an app ButtonListener, buttons mId + 2000 / + 3000: Dialog2004).
 
 #include "Compat2004.h"
-#include "DialogButton.h"
+#include "Button2003.h"
 #include "Checkbox.h"
 #include "CheckboxListener.h"
 #include "EditWidget.h"
@@ -21,6 +21,20 @@ namespace Sexy
 
 class SevenSeasApp;
 class HighScoreWidget;
+
+// 0x425540: the app's ordinary dialog (SevenSeasApp::NewDialog, 0x41d1f0): the 2003 dialog with the skull on its top edge
+class GameDialog : public Dialog2004
+{
+public:
+	SevenSeasApp*		mApp;                   // +0xd4
+
+public:
+	GameDialog(SevenSeasApp* theApp, int theId, bool isModal, const SexyString& theHeader, const SexyString& theLines,
+		const SexyString& theFooter, int theButtonMode);
+
+	virtual void		Draw(Graphics* g) override;
+	virtual void		MouseMove(int x, int y) override;
+};
 
 // 0x418760: volume, full screen, custom cursors, and the way to the help, the scores and the site
 class OptionsDialog : public Dialog2004, public SliderListener, public CheckboxListener
@@ -44,6 +58,7 @@ public:
 	virtual void		RemovedFromManager(WidgetManager* theWidgetManager) override;
 	virtual void		Resize(int theX, int theY, int theWidth, int theHeight) override;
 	virtual int			GetPreferredHeight(int theWidth) override;
+	virtual void		MouseMove(int x, int y) override;
 	virtual void		Draw(Graphics* g) override;
 	virtual void		ButtonDepress(int theId) override;
 	virtual void		SliderVal(int theId, double theVal) override;
@@ -60,6 +75,7 @@ public:
 	NextLevelDialog(SevenSeasApp* theApp);
 
 	virtual int			GetPreferredHeight(int theWidth) override;
+	virtual void		MouseMove(int x, int y) override;
 	virtual void		Draw(Graphics* g) override;
 };
 
@@ -116,6 +132,7 @@ public:
 	virtual void		RemovedFromManager(WidgetManager* theWidgetManager) override;
 	virtual void		Resize(int theX, int theY, int theWidth, int theHeight) override;
 	virtual int			GetPreferredHeight(int theWidth) override;
+	virtual void		MouseMove(int x, int y) override;
 	virtual void		Draw(Graphics* g) override;
 	using Widget::Resize;
 };

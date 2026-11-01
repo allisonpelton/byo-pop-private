@@ -11,6 +11,9 @@ screen, drives scripted input, and changes the focus on command. It can patch th
 the RNG seed or skip a trial), and it can time a capture or an input to the game's own update counter so
 frame-rate variation drops out of a comparison.
 
+**Captures are taken only inside Windows Sandbox** (`--sandbox`; see "Windows Sandbox"). On the host, origrun takes
+no shot of any kind: three captures there showed the user's own screen ("The host-capture ban").
+
 The user's position (2026-10-31): "You are welcome to run the originals with sound on and mess with my save
 data" (their saves are backed up). So silence and leaving the registry untouched are conveniences, not gates:
 origrun prefers them, and the user turns the speakers off for a run that needs real sound.
@@ -28,7 +31,8 @@ Builds, 32-bit (the originals are 32-bit), with llvm-mingw's i686 target under `
 - `origrun.exe` — the host: copies the game, launches it under rundesk, drives it, captures, watches audio.
 - `dsound.dll` — the DirectSound sound stand-in placed beside the copy (silence + a log, optionally WAVs).
 
-`build/native/rundesk.exe` must exist (`cmake --build build/native --target rundesk`).
+A run on the host needs `build/native/rundesk.exe` (`cmake --build build/native --target rundesk`). A `--sandbox`
+run needs the Windows Sandbox feature and its `wsb` command (Windows 11 24H2 or later), and no rundesk.
 
 ## Use
 
@@ -43,7 +47,11 @@ you first carved out of a wrapper; see below). Captures land in `build/origrun/<
 
 Options:
 
-- `--run <id>` — the run folder name under `build/origrun/` (default: the game name).
+- `--run <id>` — the run folder name under `build/origrun/` (default: the game name). One plain folder name:
+  letters, digits and `- _ . +` only, no `..`, not starting or ending with a dot, at most 64 characters; anything else
+  is refused, since a sandbox maps the folder read-write. Each run takes `<run>/run.lock`, opened with no sharing,
+  before it writes anything in the folder, so a second origrun with the same `--run` is refused ("another origrun is
+  using the run folder") instead of staging over the first; Windows lets the lock go when origrun ends.
 - `--sound stub` (default) — the silent stand-in that accepts every call and logs it.
 - `--sound nodriver` — the stand-in reports no sound device (`DSERR_NODRIVER`); use for a game's very first run.
 - `--sound wav` — silent stand-in that also records to `snd/` what the game writes to its DirectSound buffers.
@@ -55,7 +63,15 @@ Options:
 - `--stage-root <dir>` — put the **game copy** under `<dir>\<run>\game` instead of under the run folder (shots and
   logs stay under `build/origrun/<run>`). A worktree's `build/origrun` path is long, and some launchers (Bookworm
   Adventures) exit at once when their folder sits that deep; a worktree session stages the copy under a short path,
-  e.g. `--stage-root C:\byo-og` or main's `build/origrun`.
+  e.g. `--stage-root C:\byo-og` or main's `build/origrun`. Not with `--sandbox`, where the copy's path inside is
+  always the short `C:\run\game`.
+- `--sandbox` — run the game inside a fresh Windows Sandbox instead of under rundesk, the only way to take shots
+  (see "Windows Sandbox"). `--sandbox-vgpu` gives the sandbox the host's GPU, for 3D; without it the sandbox renders
+  in software. `--sandbox-wait <sec>` is how long a run waits in the queue while another run's sandbox is up
+  (default 600). `--sandbox-probe` starts a sandbox with no game, in which origrun writes what it finds (the sandbox
+  check, sessions, display, DirectDraw, folders, network) to `build/origrun/sandbox-probe/probe.txt`.
+- `--reg <file.reg>` — registry presets for a game run with `--sandbox`, imported inside before the game starts,
+  where the game looks for them (see "Saves and the registry"). Refused on the host and with `--sandbox-probe`.
 - `--counter <expr>` / `--flips <expr>` / `--update-ms <ms>` — the game's update counter, for update-timed
   capture and input (see "Timing to the game's updates"). Usually set once in the per-game config instead.
 - `--patches <file>` — a patch list to apply to the copy (see "Patching the copy"). Defaults to
@@ -64,9 +80,20 @@ Options:
   and other random content match the port it is compared with.
 - `--3d on|off` — the game's own Hardware Acceleration setting for this run, and a check, read from the game's
   memory, that it really ran in that mode; a run that ends up in the other mode fails with exit code 3 (see
-  "Hardware acceleration (3D mode)"). With `--exe`, give `--game` too so origrun finds the game's row.
+  "Hardware acceleration (3D mode)"). With `--exe` alone, origrun takes the key and flag from the games.tsv row
+  whose exe name is the same.
 - `--3d-key <HKCU key>` / `--3d-flag <expr>` — the registry key and 3D-flag address when games.tsv has none, or
   to override it.
+- `--dgvoodoo <dir|env>` — put dgVoodoo2 (a DirectDraw and Direct3D 7 implementation over Direct3D 11) into the
+  staged copy for this run, from `<dir>`, or from the folder in the environment variable `ORIGRUN_DGVOODOO` when the
+  word is `env`. On the host, `--3d on` uses `ORIGRUN_DGVOODOO` by itself when it is set. Needed for any 3D run on
+  rundesk's desktop, and it also gets the full-screen games past "Screen Setup Failed" there (see "Hardware
+  acceleration (3D mode)"). Like every host run, a host run with it takes no shot.
+
+A run on the host that would take a shot (a script with `shot`, `waitshot`, `record`, `burst` or `at <N>
+shot|burst`, a script origrun cannot read, or no script at all, since such a run takes a title shot) is refused
+before anything is copied; `--copy-only` is not refused. `--in-sandbox <dir>` is origrun's own mode inside the
+sandbox and refuses to run anywhere else.
 
 ## Script commands
 
@@ -98,7 +125,9 @@ so a dialog button is hit as well as a game that hit-tests in its own window.
 - `hwmove <x> <y>` / `hwclick <x> <y>` / `hwrclick <x> <y>` / `hwkey <vk>` — input through the desktop
   (`SetCursorPos` + `SendInput`) instead of a posted window message, for a game that reads the mouse with
   DirectInput or `GetCursorPos` and so ignores posted clicks (TipTop). Plain `click`/`key` still post messages,
-  which drive the SAF/LOWOS message path.
+  which drive the SAF/LOWOS message path. **Only inside Windows Sandbox** (`--sandbox`), as shots are: on the host
+  these calls reach the user's own input desktop, whatever desktop the game is on. A host run whose script has any
+  of them is refused at the start, and each one is refused (logged) should it run on the host anyway.
 - `at <N> <command...>` — when the update counter reaches `N`, hold the game's window thread, run the command
   (`shot`, `click`/`rclick`/`key`/`text`/`move`/`focus`, or `burst`), then resume it. Lands on the exact update
   (the counter is polled every ~1 ms against ~10 ms updates), so the original and the port can be captured at
@@ -120,24 +149,35 @@ coordinates that land on Play.
 1. **A copy, never the install.** The host copies the game's folder into `build/origrun/<run>/game` and runs
    that; the install folder is only read. `--exe` runs a copy you placed. Checked: the launched path is always
    under `build/`, printed in the log; the install is opened read-only for the copy.
-2. **Invisible.** The game runs under `build/native/rundesk.exe`, on the private `bejeweled-test` desktop at
-   below-normal priority; nothing is shown and focus is never taken from the user. Checked: the host never
-   shows a window; it drives and captures the game by attaching a worker thread to that desktop
-   (`SetThreadDesktop`), which is also required for the window handles there to be usable.
+2. **Invisible.** On the host the game runs under `build/native/rundesk.exe`, on the private `bejeweled-test`
+   desktop at below-normal priority; nothing is shown and focus is never taken from the user. Checked: the host
+   never shows a window; it drives the game by attaching a worker thread to that desktop (`SetThreadDesktop`), which
+   is also required for the window handles there to be usable. With `--sandbox` the game runs inside the sandbox,
+   whose window origrun never opens; a guard stops the sandbox at once if one appears (see "Windows Sandbox").
 3. **Silent by default.** The `dsound.dll` stand-in beside the copy makes `IDirectSound`/`IDirectSoundBuffer`
    objects that accept every call and never open a device, so DirectSound and anything on top of it (BASS uses
    DirectSound) stays silent. As a second check the host watches Windows Core Audio: if a session appears for
    the game it mutes it and says so in the run result. A game that plays through another path (winmm `waveOut`
    / `PlaySound`, or FMOD on its own output) is not silenced by the dsound stand-in yet (see Gaps); the audio
    watch still mutes and reports it, and for such a run the user turns the speakers off.
-4. **Screens.** `shot`/`waitshot`/`record`/`burst` capture the window with `PrintWindow` (a window-DC or
-   desktop-DC blit as a fallback) and write a PNG. This works for windowed games (the SAF games run windowed by
-   default) and for windowed DirectDraw once it has drawn (`waitshot` re-grabs while the client area is flat). A
-   game that takes the screen full-screen through DirectDraw cannot open its mode on the headless desktop and
-   never draws — see Gaps.
+4. **Screens, only inside Windows Sandbox.** `shot`/`waitshot`/`record`/`burst` capture the window with
+   `PrintWindow`, or a blit of the window's own DC where `PrintWindow` fails or comes out flat, and write a PNG.
+   Nothing ever reads the screen. origrun captures only when it has found for itself that it runs inside Windows
+   Sandbox (see "Windows Sandbox", "How origrun knows it is in the sandbox"), where the only display is the
+   sandbox's own, and there it captures whatever the game has loaded, GPU APIs included. On the host every capture
+   is refused, asked when each capture starts, before a window-DC read that follows a `PrintWindow`, and once more
+   before the pixels are saved, and a run that would take one is refused before it starts ("The host-capture
+   ban"). The log still names the GPU modules the game has loaded (`dxgi`, `d3d8`, `d3d9`, `d3d10*`, `d3d11`,
+   `d3d12`, `opengl32` or `vulkan-1`, read from outside with `EnumProcessModulesEx`) when its window comes up. A
+   window not drawn yet comes out flat, and `waitshot` re-grabs while the client area is flat. A game that takes
+   the screen full-screen through DirectDraw cannot open its mode on rundesk's headless desktop and never draws;
+   whether it can on the sandbox's desktop is untested (see Gaps).
 5. **Scripted input and focus.** Proven end to end: clicks, typed text and `focus lose`/`regain` all register
    (a test window showed the click count rise, the text appear, and the active flag and colour change with the
-   focus), and on a real game the trial dialog's Play button is clicked and the game starts.
+   focus), and on a real game the trial dialog's Play button is clicked and the game starts. rundesk's desktop is
+   shared by every session's test runs, so another game's window can lie over a click point; a click goes only to
+   a window of the game's own process (before 2026-11-01 it went to whatever window lay there, so clicks were lost
+   to other sessions' games; the log names the first few such cases).
 6. **Message boxes are logged and answered.** A separate worker thread, attached to the game's desktop, watches
    for standard dialog windows (class `#32770`) belonging to the game's process. Each is logged with its
    caption, text, button labels and the run time, then answered: with the button a `msgbox` rule names, else
@@ -147,9 +187,208 @@ coordinates that land on Play.
    — both logged, and the program then exited, which proves the clicks landed. See the gaps below for what this
    cannot do (it sees a box only once it is already on screen).
 
-Registry and save redirection is **not** implemented (the user allowed the originals to use their real registry
-and saves). A run therefore writes the game's settings and trial state to the real registry and save folders,
-which the user permitted.
+Registry and save redirection is **not** implemented on the host (the user allowed the originals to use their real
+registry and saves). A host run therefore writes the game's settings and trial state to the real registry and save
+folders, which the user permitted. A `--sandbox` run keeps all of that inside the sandbox, where it vanishes with it.
+
+## Windows Sandbox
+
+### The host-capture ban
+
+origrun takes no shot on the host, of any kind and of any game (2026-11-01, after the third case). Three captures on
+the host returned the user's own screen instead of the game. On 2026-10-31 a window-DC blit of Water Bugs, drawn
+through dgVoodoo2's Direct3D 11, showed it; on 2026-11-01 at 01:13 a flat `waitshot` of Bonnie's Bookstore, from a
+build that still fell back to the screen DC, showed the user's browser bookmarks bar; and at 01:19 every
+`PrintWindow` shot of Mahjong Escape: Ancient Japan, run with 3D on through dgVoodoo2, showed another program on the
+user's screen. Those shots were deleted. Windows 11's own DirectDraw loads `dxgi.dll` (Noah's Ark and Ning Po in
+software mode, found the same day), so no rule about GPU modules could keep the DirectDraw originals safe either.
+A host run is therefore scripted input without shots, and every capture comes from inside Windows Sandbox, where a
+capture can only ever see the sandbox's own display. A shot that shows anything but the game's own window is deleted
+at once, unopened where possible, and reported to the coordinator.
+
+### Setup
+
+Windows Sandbox is an optional Windows feature ("Windows Sandbox" under Windows Features, or `Enable-WindowsOptionalFeature
+-Online -FeatureName Containers-DisposableClientVM` from an elevated shell, then a restart). It needs Windows 11 Pro
+or Enterprise with virtualization on. The feature itself brings only `WindowsSandbox.exe` and its client; the `wsb`
+command comes with the Store package `MicrosoftWindows.WindowsSandbox`, which the built-in app downloads the first
+time it is opened (Windows 11 24H2 and later). The user did that on 2026-11-01 (version 0.8.107.0); origrun itself
+downloads nothing. origrun finds `wsb.exe` in System32 (through `Sysnative`, since origrun is 32-bit) or as the app
+alias under the user's `WindowsApps` folder, where it is here, and fails cleanly when neither is there. The first `wsb`
+call of a while starts the package's broker, `WindowsSandboxServer.exe`, in the user's session; it is no sandbox, it
+ends by itself after a while, and origrun leaves it alone.
+
+    origrun --game <name> --script <file.txt> --sandbox [--sandbox-vgpu] [options]
+
+### What a run does
+
+On the host, origrun stages the run under `build/origrun/<run>/` as before: the copy in `game/`, patched, with the
+sound stand-in and any `--dgvoodoo` wrapper; the script as `script.txt`; the run's settings in `sandbox-run.txt`;
+and the configuration it hands `wsb` in `sandbox.wsb`. It then takes the machine's sandbox lock, starts a sandbox
+with `wsb start --id <guid> --config <the XML>`, and runs `C:\origrun\origrun.exe --in-sandbox C:\run` inside it with
+`wsb exec -r System`, retrying while the sandbox boots until origrun inside writes `sandbox-started.txt` (or
+`sandbox-done.txt`, which a run refused inside writes alone). It refuses to start while `wsb list` shows a sandbox
+or a Windows Sandbox process runs (`WindowsSandbox.exe`, `WindowsSandboxClient.exe` or
+`WindowsSandboxRemoteSession.exe`, by exact name; the broker is none), the user's own say, so the only sandbox it
+ever stops is the one it started, and only through `wsb stop --id`. It waits for `sandbox-done.txt` (the inside
+run's exit code) for the run's timeout plus 60 s, then stops the sandbox with `wsb stop`, checks with `wsb list`
+that it is gone (stopping it once more if it is still listed after 10 s), releases the lock, and copies the inside
+run's RESULT lines into its own log. Ctrl+C and a crash of origrun stop the sandbox too; a killed origrun cannot,
+which "When origrun is killed" below covers. `wsb`'s own output goes to `logs/wsb.txt`, the inside run's log to
+`logs/origrun-sandbox.log`, and the shots to `shots/`, all in the run folder on the host.
+
+Inside, origrun puts the files staged under `<run>/sandbox-files/C/` onto the sandbox's `C:` (saves, below),
+imports the registry presets (`--reg`, below), sets the game's 3D setting for `--3d`, and runs the game in a job of its own at below-normal priority, on the sandbox's
+own desktop (`WinSta0\Default`), without rundesk's hidden one. `wsb exec -r System` starts origrun in session 0, and a
+sandbox started without `connect` has no other session a game could use (below), so the game runs in session 0 as
+SYSTEM. There the input desktop is `Winlogon`, and DirectDraw sets a display mode only on the input desktop, so origrun
+first makes `Default` the input desktop (`SwitchDesktop`, inside the sandbox only). Should a sandbox ever have a user
+session (WDAGUtilityAccount logged on), origrun runs itself again in that session as that user, with the user's
+environment, and the game with it. The log lists the sessions it found and which it used.
+
+### Headless: what Microsoft documents
+
+The `wsb` reference on Microsoft Learn (`windows-sandbox-cli`) says `wsb start` "creates and launches a new sandbox"
+and returns its id, and `wsb connect` opens "a new window with a remote desktop session". It does not say whether
+`start` alone shows a window, but `wsb stop` "also closes the window that shows the sandbox desktop", which would
+be the one `connect` opened. For `wsb exec`, a command run as the logged-on user needs an active user session, made
+with `connect` beforehand, and fails without one; run as System, it runs in the system context with no such
+condition. `exec` has no process input or output and returns the command's exit code. The `.wsb` file's
+`LogonCommand` runs after the sandbox logs on, which again needs a user session. So origrun never runs `connect` or
+uses `LogonCommand`, and starts its run with `exec -r System`.
+
+**Tested on 2026-11-01** (two `--sandbox-probe` runs). `wsb start` accepted the whole configuration below and
+returned in 1.3-1.5 s (a sandbox is cloned from a VM Windows keeps ready, `vmmemCmZygote`), with no window or
+dialog on the user's desktop. Its new processes on the host were a VM worker (`vmwp.exe`) and
+`vmmemWindowsSandbox`. The first `wsb exec -r System` ran at once: the marker its command writes appeared 1.7-1.9 s
+after the start began, and origrun was running inside 0.3 s later. The sandbox then has no user session and no
+console session at all: only session 0 and a listening remote-desktop session with no user. `wsb stop` took about
+0.5 s, and 0.4 s later `wsb list` showed nothing and both processes were gone.
+
+A guard thread looks, every 100 ms from before `wsb start` to after the stop, for a visible window on the desktop
+the user sees of a Windows Sandbox process (the three names above), of the broker `WindowsSandboxServer.exe` or of
+`vmconnect.exe`, matched by exact name, never by a part of one (another product's "sandbox", Sandboxie say, is not
+Windows Sandbox). When it finds one, it stops this run's sandbox with `wsb stop --id`, which closes the sandbox's
+windows; it never ends a process itself, so a window that is not this sandbox's costs only this run. The run logs
+"STOP: a sandbox window was on the user's desktop" and exits with code 4. It has never fired. Every run ends with
+"RESULT: no sandbox window showed on the user's desktop" or the STOP line.
+
+### When origrun is killed
+
+A killed origrun (`TerminateProcess`, as a task stop does) runs no handler, so it cannot stop its sandbox. Two
+things stop it instead. The lock names the sandbox: just before `wsb start`, the run writes `sandbox=<id>` into
+the lock's text, and it takes the line out only once `wsb list` confirms the stop. The next run that takes the lock
+and finds such a line waits for the run that wrote it to end, if it still runs, stops that sandbox with
+`wsb stop --id`, and goes on only once `wsb list` shows none. And the sandbox shuts itself down: the origrun that
+`wsb exec` starts inside arms a power-off (`InitiateShutdown`) at the run's timeout plus 90 s, and again 30 s after
+it writes `sandbox-done.txt`; a host that stops the sandbox first makes it moot. It arms it only inside, after the
+sandbox check passed, as SYSTEM, run from `C:\origrun`. A probe arms the 30 s one.
+
+**Tested on 2026-11-01** with probes. Killed 0.6 s into `wsb start`, origrun left no sandbox: the start never
+finished, and `wsb list` was empty. Killed as soon as `wsb start` returned, before anything ran inside, it left a
+sandbox that only the lock knew of; the next run logged "the lock names the sandbox ...", stopped it and ran its
+own probe. Killed as soon as origrun inside had started, it left a sandbox that powered itself off: `wsb list` was
+empty 32 s after the kill. The lock's line from that run was cleared by the next run (its `wsb stop` found the id
+gone). A game run with both timers armed launched and ran as before (Ning Po, below).
+
+### What the sandbox offers a game (found 2026-11-01)
+
+The display is 1024x768 at 32 bpp, with 18 modes, of which none is 16 bpp (800x600 only at 32 bpp). Without
+`--sandbox-vgpu` DirectDraw has no hardware layer (no video memory, no 3D), and it loads `dxgi.dll` there too. With
+the input desktop as session 0 has it (`Winlogon`), every `SetDisplayMode` fails (`E_NOTIMPL`); after `SwitchDesktop`
+to `Default`, exclusive full-screen 800x600x32 works with a flipping primary surface, while 16 bpp modes stay
+unsupported. A game that asks for 16 bpp full screen may still get it through Windows' compatibility shims, which
+apply inside the sandbox as on any Windows; Water Bugs and Cosmic Bugs will tell.
+
+**The first game in the sandbox: Ning Po (2026-11-01)**, unpatched, no wrapper, one `waitshot`. `wsb start` took
+8.2 s this time (a fresh template VM, it seems), origrun ran inside 2.5 s later, and the whole run, from the start
+to nothing left on the host, took 18 s. The game ran in session 0 as SYSTEM on `WinSta0\Default`, made the input
+desktop, windowed as it starts by default; its window came up a second after the launch with `dxgi.dll` loaded,
+and the log said so ("GPU modules: dxgi.dll; inside Windows Sandbox, so shots are taken"). `waitshot` re-grabbed
+three times while the window was still flat, then `PrintWindow` gave the game's own window (its title bar and the
+first frame of its loading screen). The stand-in's "DirectSoundCreate failed" box came up and was answered, as on
+the host. No audio session of the game appeared inside, and none of the sandbox on the host. The guard saw no
+window on the user's desktop, and `wsb stop` (2 s) left nothing. Whether Ning Po could go full screen there was
+not tried (that is its Options dialog); the probe says 32 bpp full-screen modes work and 16 bpp ones do not. A
+second run the same day, with the shutdown timers armed and `--reg` presets, gave the same shot: `wsb start` took
+1.1 s, the game's window was up 0.5 s after origrun started inside, and nothing was left 5 s after the start began.
+
+### The configuration, and why
+
+`Networking` is disabled, so a game cannot reach the internet or the user's network (no "More Games" page, no
+update check, no Steam). `ClipboardRedirection`, `PrinterRedirection`, `AudioInput` and `VideoInput` are disabled,
+so nothing crosses through the clipboard, a printer, the microphone or a camera. `ProtectedClient` is enabled, which
+runs the sandbox's remote-desktop client in an AppContainer, in case a client is ever started. `vGPU` is disabled by
+default, so the sandbox renders in software (WARP) and shares nothing of the host's GPU driver; `--sandbox-vgpu`
+enables it for a 3D run (Microsoft notes that a shared GPU widens what the sandbox can reach of the host).
+
+There are exactly two mapped folders: the run folder, read-write, as `C:\run`, and origrun's binaries
+(`build/origrun-bin`), read-only, as `C:\origrun`. Never the install folder, the user's profile or the repository:
+the copy is already in the run folder. Before it writes `sandbox.wsb`, origrun resolves both to their final paths
+(`GetFinalPathNameByHandle`, so a junction or link shows where it leads) and refuses the run unless the run folder
+sits directly under the repository's `build\origrun` and the binaries' folder ends in `\build\origrun-bin`, both on
+a local drive; the configuration names those final paths, so what is mapped is what was checked. A path that does
+not fit the configuration, escaped, refuses the run too, rather than being cut short.
+
+### The lock: one sandbox on the machine
+
+Every session's origrun opens the same lock file, `byo-pop\sandbox.lock` in the user's local application data
+folder (as Windows reports it, `%LOCALAPPDATA%`), with no sharing, before it starts a sandbox. While another run holds
+it, a run waits in the queue (logged, up to `--sandbox-wait`, default 600 s) and gives up after that. Windows closes
+the handle when origrun ends, however it ends, so the lock cannot be left behind. Its text is `key=value` lines: the
+holder's `pid`, `run`, `since` and `dir`, and while its sandbox may be up, `sandbox=<id>` (see "When origrun is
+killed"). A sandbox run counts as one game process for the machine's limit of 3, while it waits in the queue as
+well. The run folder has its own lock besides, `<run>/run.lock` (see `--run`).
+
+### How origrun knows it is in the sandbox
+
+`--in-sandbox` and every capture depend on a check origrun makes for itself, which no option or environment variable
+sets. All three must hold. The firmware reports a Hyper-V virtual machine: SMBIOS's system structure, read with
+`GetSystemFirmwareTable`, gives the manufacturer "Microsoft Corporation" and the product "Virtual Machine" (this
+host's board reports MSI and MS-7D25). The local account `WDAGUtilityAccount`, the sandbox's own user, is enabled
+(the host has the account, disabled). And origrun's own token is SYSTEM or `WDAGUtilityAccount`. On the host the
+check fails and logs its three values; inside, the log's first line gives them. Inside it reads "SMBIOS Microsoft
+Corporation / Virtual Machine, WDAGUtilityAccount enabled, running as SYSTEM" (2026-11-01).
+
+### What is and is not isolated
+
+The sandbox is a fresh virtual machine with its own kernel, display, file system, registry and user, and it vanishes
+when stopped. What crosses to the host: the run folder, which the game and origrun can write and whose contents
+stay (it lies under `build/`, git-ignored); the binaries, read-only (a write to `C:\origrun` is denied); with
+`--sandbox-vgpu`, the GPU; and the host's CPU and memory. The sandbox has no network adapter at all. Sound: the
+sandbox has no client, and so no remote-desktop audio path to the host; a run watches the host's audio sessions for
+any of a Windows Sandbox process and logs the loudest peak ("RESULT: no audio session of the sandbox appeared on the
+host" in both probes). The sound stand-in and the audio watch work inside as on the host.
+
+### Saves and the registry
+
+Saves, settings and trial state live inside the sandbox and vanish with it, so every run starts as a first run.
+A run that needs a save stages it first: files inside the game's folder go into the copy (`game/`), and files
+elsewhere go under `<run>/sandbox-files/C/` at their path on `C:` (for example
+`sandbox-files/C/ProgramData/<game>/userdata/...`), which origrun copies onto `C:` before the game starts.
+
+The registry starts as a fresh Windows has it. Inside, origrun and the game both run as SYSTEM, so the game's
+HKCU is SYSTEM's own hive (`HKEY_USERS\S-1-5-18`), not the user's, and UAC never virtualizes SYSTEM: a game that
+writes under HKLM writes HKLM itself, not the per-user `Software\Classes\VirtualStore\MACHINE\...` copy where the
+host keeps its values. origrun follows the game. Its own reads and writes of a games.tsv key (`--3d`, the cached
+`Test3D` results) open HKCU as the game does, and a key under `Software\Classes\VirtualStore\MACHINE\` at its HKLM
+path, all through the 32-bit view the 32-bit games use (`HKLM\SOFTWARE\X` is then kept in
+`HKLM\SOFTWARE\WOW6432Node\X`). In a user session the game would be virtualized as on the host, and nothing is moved.
+
+**Presets: `--reg <file.reg>`.** A run that needs values in place (a setting, a registration, a high-score table)
+gives them as a `.reg` file, for instance one exported with regedit from the host. The host copies it to
+`<run>/sandbox-files/registry.reg` (a session may also put a file there itself, and it is then imported the same
+way). Inside, the origrun that launches the game, before the `--3d` setting and the launch: moves every key under
+`HKEY_CURRENT_USER\Software\Classes\VirtualStore\MACHINE\` to `HKEY_LOCAL_MACHINE\` (dropping a
+`SOFTWARE\WOW6432Node` level, which the 32-bit view adds back), keeps HKCU keys as they are, writes the result to
+`logs/registry-imported.reg` in the file's own encoding (UTF-16 or UTF-8 with a BOM, or ANSI), imports it with
+`reg import /reg:32`, and logs reg's exit code and how many of the keys exist afterwards ("2 of the 2 keys are
+there now"). **Reads: after the run** origrun exports, as the game left them, `HKCU\Software\PopCap`,
+`HKLM\SOFTWARE\PopCap` (32-bit view) and every other key the presets named, each to
+`logs/registry-after-<n>.reg`, and logs which file holds which key. The exports name keys as the 32-bit view shows
+them (`HKEY_LOCAL_MACHINE\SOFTWARE\PopCap`, without `WOW6432Node`). reg's own output is in `logs/reg.txt`.
+**Tested on 2026-11-01** with a UTF-16 file holding one VirtualStore key and one HKCU key under `PopCap`: both were
+imported (one moved to HKLM), both were there before the launch, and both came back in the two exports.
 
 ## Recording sound (`--sound wav`)
 
@@ -175,6 +414,18 @@ on an unactivated copy, done to a file on disk, not injected into a running proc
 - **pinning the RNG seed**, so a run gives the same boards and other random content as the port it is compared
   with. The `{seed}` token in a patch stands for `--seed`'s value as four little-endian bytes;
 - **any patch a session needs for a clean comparison**, such as one that lets the copy skip its trial prompt.
+- **hover** (approved by the user on 2026-11-01, for test copies only): rundesk's desktop has no cursor to read, so
+  a game that asks `GetCursorPos` where the mouse is never sees it over a button, and the patch makes it read the
+  posted message's own coordinates instead.
+
+<!-- private -->
+The hover patch, as found on Bookworm Adventures: SexyAppBase's handler for a deferred message (FUN_00547ea0 in its
+export) takes `WM_MOUSEMOVE` at 0x548635 by asking `GetCursorPos` for the point and `WindowFromPoint` for the window
+under it, then tests the point against the client rectangle. On rundesk's desktop `GetCursorPos` fails with
+`ERROR_ACCESS_DENIED` and leaves the point unset, so the test never passes and no button lights. The patch makes
+that path take the point from the message's own `lParam` (already copied to a local, local_44). The game session
+that knows the code supplies the exact bytes in its `patches/<game>.txt` (kind `test`); origrun knows none of them.
+<!-- /private -->
 
 origrun does not know or generate any of these bytes. A game session that knows its own code supplies the exact
 expected and replacement bytes. **No keygens**: patch the check in the copy, or set the registry values the game
@@ -213,11 +464,31 @@ pointer's global and `mUpdateCount` (each session supplies its own; the offset i
 thread, runs the command and resumes; `burst <name> <count> update <k>` captures every `k` updates the same way.
 
 **Precision (measured on Noah's Ark):** `at` lands on the exact update — `at 1500/1700/1900` each fired with the
-counter reading exactly that value — because the ~1 ms poll is far finer than the ~10 ms update. The held capture
-uses the window-DC blit, not `PrintWindow` (which would deadlock on the suspended thread); with `flips` set it
-first waits for the next present so the frame shown is update `N`, not `N-1` (capped so a static screen, which
-presents nothing new, does not stall). SexyAppBase's catch-up can still double or skip an update under load; a
-per-game patch could force one update per frame if a game ever needs it (not needed so far).
+counter reading exactly that value — because the ~1 ms poll is far finer than the ~10 ms update. The hold is kept
+as short as it can be, because the game's clock runs on while it is held, and on resume the game catches up on
+updates it never draws. Input under `at` is posted with no gaps between its messages (the queue keeps their order,
+and the game reads every pending message before its next update), so a held click holds the game for about
+0.04 ms; a held shot resumes the game as soon as the pixels are grabbed, before the PNG is made and written (about
+3-5 ms held). The log gives each hold ("at click: the game was held 0.04 ms"; per burst, the average and longest
+hold and how many frames were held past their update).
+
+The held capture uses the window-DC blit, not `PrintWindow` (which never returns while the window's thread is
+suspended), and like every capture it is taken only inside Windows Sandbox (guarantee 4); on the host it is refused
+before the game is held. The held shots measured below on Bookworm Adventures were taken on the host before the ban
+and can be repeated only with `--sandbox`. Input under `at` is still held on the host. A hold begins only once the suspension has taken effect (`GetThreadContext` returns after it has), and
+if origrun crashes while it holds the game, it resumes the game first. A
+SexyAppBase game counts update `N` at its start and draws after it, so a shot held as soon as the counter reads `N`
+races that draw and mostly gets update `N-1`'s frame. Without `flips`, a held shot therefore waits for update `N+1`
+to begin, when update `N`'s frame is on screen; with `flips` set it instead waits for the next present (capped so a
+static screen, which presents nothing new, does not stall). SexyAppBase's catch-up can still double or skip an
+update under load; a per-game patch could force one update per frame if a game ever needs it (not needed so far).
+
+**Measured on Bookworm Adventures (2026-11-01)**, the pilot's battle against the port, update by update with the
+pilot's `lag.py` measure: the attack's moving frames match the port at the same update (22 of 25 frames, the rest
+one update off, in two runs), where before they ran one or two updates behind, jittering by one. After the battle's
+load the original's frames match the port's of 4-5 updates earlier: a long load makes the game catch up on updates
+without drawing, and its curtain opens only once drawn, so this depends on the load's time on the machine, not on
+origrun's holds (3-5 ms per burst frame). Only freezing the game's clock across the load would remove it.
 
 ## Hardware acceleration (3D mode)
 
@@ -256,35 +527,68 @@ the window of a flip-model swap chain correctly. A blit-model window came out bl
 that `at` and update-timed bursts use, for both models. So on the user's own desktop the originals most likely do run
 in 3D. It is origrun's hidden desktop that keeps them in software.
 
-**Captures of a GPU-drawn window are not safe, and origrun refuses them (2026-11-01).** Twice on 2026-11-01, a
-capture of a game drawing through Direct3D 11 (dgVoodoo2 in the copy) returned what was on the user's own screen
-instead of the game. Once it was the window-DC blit, and once PrintWindow itself, in Mahjong Escape: Ancient Japan.
-Since then, origrun refuses every shot of a game that has loaded DXGI, Direct3D 8 to 12, OpenGL or Vulkan, and every
-later shot of that run, and its log names the module. Until a capture method is proven safe and the coordinator says
-so, never put dgVoodoo2, cnc-ddraw or any other GPU wrapper into a copy that origrun captures. A shot that shows
-anything but the game's own window is deleted at once, unopened where possible, and reported to the coordinator.
+**Captures of a GPU-drawn window were not safe on the host (2026-11-01).** Twice on 2026-11-01 a capture of a game
+drawing through Direct3D 11 (dgVoodoo2 in the copy) returned what was on the user's own screen, once through the
+window-DC blit and once through PrintWindow itself, and Windows 11's own DirectDraw loads DXGI as well: Noah's Ark
+and Ning Po, run with no wrapper in software DirectDraw, had `dxgi.dll` loaded by the time their window came up, and
+Noah's Ark later `d3d11.dll` and `D3D10Warp.dll`, where a plain GDI test window loads none of them. origrun therefore
+takes no shot on the host at all ("The host-capture ban"). Inside Windows Sandbox the game may load what it likes and
+is captured. On the sandbox's own desktop the hidden-desktop limit above may not apply, so a 3D run there needs no
+wrapper: `--sandbox --sandbox-vgpu --3d on`, untested so far.
 
-The way to a 3D run was meant to be a DirectDraw and Direct3D 7 implementation over Direct3D 11, placed beside the staged copy
-(never the install) and presenting flip-model, such as dgVoodoo2. Its official source is its author's GitHub
-releases page, `github.com/dege-diosg/dgVoodoo2/releases`. Version 2.87.6 is `dgVoodoo2_87_6.zip` at 9,244,362 bytes
-(2026-10-25); version 2.87.5 is 9,268,078 bytes (2026-09-15). Its `DDraw.dll` and `D3DImm.dll` (the `MS\x86` folder)
-and a `dgVoodoo.conf` would go into the copy. Version 2.87.5 was downloaded with the user's OK on 2026-11-01, but
-the warning above stands: no capture run uses it.
+**dgVoodoo2 runs the 3D mode on rundesk's desktop.** It implements DirectDraw and
+Direct3D 7 over Direct3D 11 and presents flip-model. Its official source is its author's GitHub releases page,
+`github.com/dege-diosg/dgVoodoo2/releases`; version 2.87.5 (`dgVoodoo2_87_5.zip`, 9,268,078 bytes, SHA-256
+`5ffde6927f7355ca3fdd5d785b581256a8e6539fa13e395a891ade6ba1040850`) was downloaded with the user's OK and unpacked
+on this machine in `E:/retools/dgVoodoo2_87_5`, the folder to give `--dgvoodoo` or `ORIGRUN_DGVOODOO`. **dgVoodoo2 is
+freeware that may not be redistributed**: its files are never committed or copied into the repository, and origrun
+copies them only into a staged copy under `build/` or `--stage-root`.
 
-Still unknown until it is tried:
-- whether it keeps presenting while the window is occluded;
-- that `at` captures need a path other than the window DC for flip-model content;
-- how far its Direct3D 11 rendering of Direct3D 7 differs from a native driver's (a comparison notes it).
+`--dgvoodoo` copies `DDraw.dll` and `D3DImm.dll` (from the folder's `MS\x86`, or the folder itself) into the copy
+and writes a `dgVoodoo.conf` of origrun's own beside them: output through Direct3D 11 at feature level 11_0, not
+full-screen (`FullScreenMode = false`, `AppControlledScreenMode = false`, so a game that asks for the screen gets a
+window), flip-model presentation (`PresentationModel = flip_discard`), no watermark and no splash
+(`dgVoodooWatermark`, `WatermarkDisplayDuration`, the Glide `3DfxWatermark` and `3DfxSplashScreen`; DirectX has no
+splash of its own), the mouse not captured, Alt+Enter not toggling the screen mode. It refuses to write into the
+install folder (or anything under `Program Files` or `steamapps`) and never overwrites a DLL the copy already
+has. A marker file in the copy (`origrun-wrapper.txt`) lists each file it placed with its size and SHA-256, each
+line written only once its file is in place; a placement that fails takes back what it wrote. The next run deletes
+those files first, each only while its size and hash still match, and only when its full long path and its final
+path (junctions resolved) lie under `build\` or `--stage-root`. origrun deletes nothing anywhere else, and places
+the wrapper only where it may take it out again. A file that changed or cannot be deleted stays in the copy and in
+the marker, and the run stops, since a wrapper must not carry over into a run that did not ask for it: delete it by
+hand or stage a fresh copy. So a run without `--dgvoodoo` runs the game on Windows' own DirectDraw again.
 
-The same layer may also give the full-screen DirectDraw games (Water Bugs, Cosmic Bugs) a screen they can open on
-the hidden desktop, since it can force a window.
+On the host a run with `--dgvoodoo` takes no shot, like every host run; it serves runs that need no picture, such
+as the 3D-mode check below. Inside the sandbox a copy with the wrapper is captured like any other.
+
+**3D mode proven on Bookworm Adventures (2026-10-31).** With `--3d on` and dgVoodoo2, the game reports 3D on from
+about 2 s after launch to the end of a one-minute battle and ends "RESULT: 3D on, as asked", so the wrapper keeps
+presenting while rundesk's window counts as occluded.
+
+Before the ban, the pilot's battle (`games/bookwormadv/tools/pilot`: the map, the entry transition, the battle
+intro, the word RAIN and its attack) was compared through shotdiff with the port, 3D on against the port with
+`Is3D=1`, 3D off against the port with `Is3D=0`. The midground island (the pale land on the right, behind the enemy)
+is drawn by both sides in 3D and by neither in software, as the game's 3D-only path says. In 3D, five of the six
+stills differ only faintly (0.1–1.3% of the pixels); the sixth, after the attacks, differs at the enemy spearman's
+animation (1.1%). In software the stills differ by 0.2–1.4%: the same spearman, and the Attack button's sparkles at
+other positions. Both clips line up in time (offset 0, no drift, no stalls); the attack clip flags the moving sprites
+in 8 of 12 frames in 3D and 12 of 12 in software, and the entry transition's fourth frame differs by 48% in both modes
+alike, so that is the transition's timing, not the renderer. ArrowHint's fade and the Board's zoom are not reached by
+this battle (they come from the tutorial scripts) and are untested. How far dgVoodoo2's Direct3D 11 rendering differs
+from a native Direct3D 7 driver cannot be measured here, since no native driver runs on the hidden desktop; on this
+battle it is as close to the port as software mode is.
+
+Also before the ban, Water Bugs and Cosmic Bugs, run with `--dgvoodoo` (no `--3d`; they have no 3D mode),
+reached their title menus: the game's full-screen request becomes a borderless window the size of the desktop
+(3840×2160 here) with its 800×600 picture stretched over it.
 
 Bookworm Adventures in software mode is proven: `--3d off` ends "RESULT: 3D off, as asked". Its main menu at update
 1600 was compared through shotdiff with the port run on SDL's software renderer (`SDL_RENDER_DRIVER=software`). For
 now the port ignores `Is3D`, and its `Is3DAccelerated()` follows SDL's renderer; the Bookworm Adventures session is
 making it honour the setting. The menu has no 3D-only effect: the port's two renderers differ there in 0.2% of the
-pixels, faintly. Its 3D-only code paths (ArrowHint's fade, the Board's zoom, TileEngine) are all in battle. With
-`--3d on` the original reaches no 3D at all, as above.
+pixels, faintly. Its 3D-only code paths (ArrowHint's fade, the Board's zoom, TileEngine) are all in battle. Without
+dgVoodoo2, `--3d on` reaches no 3D at all, as above.
 
 ## Per-game status
 
@@ -298,28 +602,30 @@ mode, and what `--3d` reaches (see "Hardware acceleration (3D mode)"). Only Book
 key and 3D-flag address in games.tsv so far; each session adds its own game's.
 
 Round 2 (2026-10-31) added update-timed capture, bursts, the copy patch list, and fixes below; the table is
-updated for it.
+updated for it. The Capture column records what was taken on the host before 2026-11-01. Since then origrun takes no
+shot on the host at all, and captures come only from runs inside Windows Sandbox (`--sandbox`), of which none has
+run yet; the column will be redone from those (see "Windows Sandbox").
 
 | Game | Source | Reached under origrun | Capture | 3D | Audio seen | Notes |
 |------|--------|-----------------------|---------|----|------------|-------|
-| alchemy | local install | trial, then into the game past Play | yes | has one; on expected to fall back as Bookworm Adventures does | muted a session | some sound is not via DirectSound |
+| alchemy | local install | trial, then into the game past Play | yes | has one; on needs `--dgvoodoo` (untried) | muted a session | some sound is not via DirectSound |
 | atomica | local install | FATAL ERROR at startup, then exits | — | none | none | FMOD fails to load `sounds\capclick` (Ogg); not the stand-in or display — the Atomica session's to fix |
 | mummymaze | local install | title after a slow (~45 s) start | yes, 646×509 | none | none | window is late to appear |
 | noahsark | local install | own title screen | yes, 646×509 | none | none | update counter proven here (`[0x4d125c]+0x368`); `at` lands on the exact update |
 | sevenseas | local install | own title screen | yes, 646×509 | none | none | |
-| pixelus | local install | trial screen (not clicked through yet) | yes | has one; on expected to fall back as Bookworm Adventures does | none | games.tsv's Pixelus.exe (~256 KB) is a smaller build than the port's decompiled exe — its counter offsets do not apply to it |
+| pixelus | local install | trial screen (not clicked through yet) | yes | has one; on needs `--dgvoodoo` (untried) | none | games.tsv's Pixelus.exe (~256 KB) is a smaller build than the port's decompiled exe — its counter offsets do not apply to it |
 | tiptop | local install | trial, plays | yes | none | none | DirectInput: posted clicks are ignored; the `hw*` commands are unconfirmed (see the gaps) |
 | wordharmony | local install | trial (60 min), Play present | yes | none | none | |
-| bookwormadv | local install | in-game Updates dialog | yes, 806×629 | **off proven**; on falls back to software (no DirectDraw hardware on the hidden desktop) | muted a session | its sound is not via DirectSound (BWA audio work); stage under a short `--stage-root` (long worktree path makes its launcher exit) |
-| ningpo | local install | main window | **yes** (after init) | none | none | windowed DirectDraw; `waitshot`'s flat-retry now captures real content once it has drawn |
-| waterbugs | local install | window, then "Screen Setup Failed" | window only | none | none | full-screen DirectDraw: the headless desktop cannot open its 800×600 mode, so it never reaches the game |
-| cosmicbugs | local install | window, then "Screen Setup Failed" | window only | none | none | same as Water Bugs |
-| dynomite | Steam copy | **title and on** | **yes** | has one; on expected to fall back as Bookworm Adventures does | none | fixed: `Steam.dll` is now auto-copied from the Steam library root into the copy |
-| bejeweled | wrapped launcher | **title, prepared copy runs** | **yes** | has one; on expected to fall back as Bookworm Adventures does | none | prepared as the private notes below say, run via an absolute `--exe` |
-| bigmoney | wrapped launcher | prepares cleanly | — | has one; on expected to fall back as Bookworm Adventures does | — | prepare as Bejeweled (not launched yet) |
-| bookworm | wrapped Steam exe | prepares cleanly | — | has one; on expected to fall back as Bookworm Adventures does | — | prepare as Bejeweled (not launched yet) |
-| rocketmania | Steam copy | not run | — | has one; on expected to fall back as Bookworm Adventures does | — | Steam copy: `Steam.dll` is auto-copied now, as for Dynomite |
-| bookwormadv2 | Steam copy | not run | — | has one; on expected to fall back as Bookworm Adventures does | — | not wrapped; `Steam.dll` auto-copied now |
+| bookwormadv | local install | in-game Updates dialog | yes, 806×629 | **off and on proven** (on with `--dgvoodoo`) | muted a session | its sound is not via DirectSound (BWA audio work); stage under a short `--stage-root` (long worktree path makes its launcher exit) |
+| ningpo | local install | main window | **yes** (after init); **in the sandbox too** (2026-11-01) | none | none | windowed DirectDraw; `waitshot`'s flat-retry now captures real content once it has drawn |
+| waterbugs | local install | window, then "Screen Setup Failed"; **title menu with `--dgvoodoo`** | window only; with `--dgvoodoo` the title, 3840×2160 stretched | none | none | full-screen DirectDraw: the headless desktop cannot open its 800×600 mode; dgVoodoo2 gives it a desktop-sized window |
+| cosmicbugs | local install | window, then "Screen Setup Failed"; **title menu with `--dgvoodoo`** | window only; with `--dgvoodoo` the title, 3840×2160 stretched | none | none | same as Water Bugs |
+| dynomite | Steam copy | **title and on** | **yes** | has one; on needs `--dgvoodoo` (untried) | none | fixed: `Steam.dll` is now auto-copied from the Steam library root into the copy |
+| bejeweled | wrapped launcher | **title, prepared copy runs** | **yes** | has one; on needs `--dgvoodoo` (untried) | none | prepared as the private notes below say, run via an absolute `--exe` |
+| bigmoney | wrapped launcher | prepares cleanly | — | has one; on needs `--dgvoodoo` (untried) | — | prepare as Bejeweled (not launched yet) |
+| bookworm | wrapped Steam exe | prepares cleanly | — | has one; on needs `--dgvoodoo` (untried) | — | prepare as Bejeweled (not launched yet) |
+| rocketmania | Steam copy | not run | — | has one; on needs `--dgvoodoo` (untried) | — | Steam copy: `Steam.dll` is auto-copied now, as for Dynomite |
+| bookwormadv2 | Steam copy | not run | — | has one; on needs `--dgvoodoo` (untried) | — | not wrapped; `Steam.dll` auto-copied now |
 
 The install paths are in `tools/origrun/games.tsv`, kept out of any publish (`.publishignore`).
 
@@ -359,26 +665,37 @@ user:
 
 Other gaps:
 
-- **No 3D mode on the hidden desktop**: legacy DirectDraw has no hardware there, so every original with a 3D mode
-  falls back to software under origrun. Reaching it needs a DirectDraw and Direct3D 7 layer over Direct3D 11 in
-  the copy, which waits on the user's OK to download (see "Hardware acceleration (3D mode)"). With one, `at` and
-  update-timed bursts also need a capture that does not use the window DC.
+- **Windows Sandbox: one game so far.** The empty sandbox, a windowed DirectDraw game (Ning Po, captured), the
+  stop of a killed run's sandbox and registry presets are proven (see "Windows Sandbox"). Still to test, by the game
+  sessions once this is merged: whether Water Bugs and Cosmic Bugs open their full-screen mode there; whether
+  Bookworm Adventures reaches 3D with `--sandbox-vgpu` and no wrapper; whether a game that plays sound past the
+  stand-in reaches the host's speakers; and a game whose own settings live under HKLM (VirtualStore on the host),
+  read and written there as SYSTEM.
+- **3D on the host needs dgVoodoo2**: legacy DirectDraw has no hardware on the hidden desktop, so an original with
+  a 3D mode runs in 3D there only with `--dgvoodoo` (see "Hardware acceleration (3D mode)"). Proven on Bookworm
+  Adventures only; each session adds its game's registry key and 3D flag to games.tsv. Host runs take no shot.
+- **Registry presets only inside**: `--reg` imports a `.reg` file into a sandbox run (see "Saves and the
+  registry"); a host run has no such option and writes only the `--3d` setting, which it puts back afterwards.
 
 - **Windowed DirectDraw now captures** (Ning Po): a window is often flat only because it has not drawn its first
   frame, so `waitshot`/`capture_ready` re-grab while flat and get real content once it appears. **Full-screen
   DirectDraw still does not** (Water Bugs, Cosmic Bugs): on the headless private desktop the game cannot open its
   800×600 exclusive mode ("Screen Setup Failed") and never reaches its content. The least-invasive paths
-  (PrintWindow, window/desktop-DC blit) can't help because the game refuses to run without the screen, and
+  (PrintWindow, a window-DC blit) can't help because the game refuses to run without the screen, and
   Windows.Graphics.Capture needs a displayed window and DWM, which the private desktop has not. Reaching them
   needs the game forced into a windowed mode (toggle not yet found) or a **ddraw stand-in** that reports a
   display and copies the primary surface (the documented last resort; built like the dsound stand-in, not yet
-  written).
+  written). **Update 2026-11-01:** `--dgvoodoo` forces the window and both reach their title menus, in a
+  desktop-sized window with the picture stretched (see "Hardware acceleration (3D mode)"). The sandbox's own desktop
+  may let them open their mode unaided; untested.
 - **DirectInput games** (TipTop): the `hw*` commands (`SetCursorPos` + `SendInput`) are **unconfirmed**. Windows
   documents both calls as working only from the input desktop, which the private desktop is not, so they may fail
   silently there. TipTop's trial screen changed right after an `hwclick`, but no control run (the same script
   without the click) has ruled out chance, or the user's own clicks reaching the game through DirectInput. Before
   relying on them: log `SendInput`'s and `SetCursorPos`'s results, make a control run, and never switch the driver
-  thread to the input desktop, which would move the user's cursor and click on their screen. The in-process
+  thread to the input desktop, which would move the user's cursor and click on their screen. Since 2026-11-01 they
+  run only inside Windows Sandbox, where the input desktop is the sandbox's own (`Default`, after origrun's
+  `SwitchDesktop`); there they are untested too. The in-process
   import-patch route stays **dropped** (it was stopped by a permission check in round 1; see the hard rule).
 - **Atomica won't start**: it shows "FATAL ERROR — Failed to load sound: sounds\capclick" and exits before any
   window, with the dsound stub, with `nodriver`, and with real audio alike. The Ogg and `fmod.dll` are present,

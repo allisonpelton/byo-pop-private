@@ -242,7 +242,7 @@ void Board::UpdateMove()
 	}
 
 	int aState = mState;
-	if (((aState == STATE_IDLE) || (aState == STATE_BLINK)) && !mLevelOver && (mApp->mTrialWidget == NULL))
+	if (((aState == STATE_IDLE) || (aState == STATE_BLINK)) && !mLevelOver && (mApp->mDemoWidget == NULL))
 	{
 		int aDX = 0;
 		int aDY = 0;

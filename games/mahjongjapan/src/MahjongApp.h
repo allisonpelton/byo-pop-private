@@ -77,6 +77,8 @@ public:
 	void GotFocus() override;
 	void LostFocus() override;
 	void SwitchScreenMode(bool wantWindowed, bool is3d, bool force = false) override;
+	void ReadFromRegistry() override;
+	void WriteToRegistry() override;
 	using SexyAppBase::SwitchScreenMode;
 
 	// The manager's frame, when it is due; the game's end once the manager stopped
