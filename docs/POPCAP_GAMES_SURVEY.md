@@ -1358,6 +1358,14 @@ Unleash the Light is the best first try: it is on 2020.3 LTS and uses no FMOD. T
 from a build, the WebGL memory limit and FMOD's web libraries. Every tool (AssetRipper, Unity Hub and the editor, a
 .NET decompiler) is a download that needs the user's OK, and the user accepts Unity's license themselves.
 
+**Glass Tower, last of all (the user, 2026-11-01):** a discontinued Android game. The user's copy is an APK in their
+Downloads folder (version 1.0.10, 40.7 MB), and it won't run on modern Android, such as the user's phone. The user would
+like native, browser and Android versions. The APK holds a Java shell with 2016-era ad and Play services libraries,
+plus the game itself as a 5.9 MB native library, built only for the old 32-bit `armeabi` ABI. That ABI is the likely
+reason it won't install on current phones. Its levels are XML files with PNG maps. So the Ghidra route fits, on ARM
+code instead of x86. The ad and Play services code is left out. An Android build would be a new target for the
+project.
+
 ## Appendix E: other projects and modding communities (2026-10-26)
 
 Checked on 2026-10-26 for the publishing rules in section 4 (a research pass; the Peggle Nights, Zuma Deluxe and
