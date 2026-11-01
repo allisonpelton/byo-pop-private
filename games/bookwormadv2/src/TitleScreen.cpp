@@ -57,7 +57,7 @@ bool TitleScreen::InitLoadingScreen()
 		MemoryImage* anImage = new MemoryImage(mApp);
 		anImage->Create(mTileWidth, IMAGE_TS_TILE->mHeight);
 		Graphics g(anImage);
-		g.SetColor(Color::Black);
+		g.SetColor(Color::White);
 		g.SetFont(FONT_TILE);
 		const SexyString& aLetter = *aLetters[i];
 		int aStringWidth = g.GetFont()->StringWidth(aLetter);

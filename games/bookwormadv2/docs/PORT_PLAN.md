@@ -280,3 +280,9 @@ streams: no amplify is called, unlike Volume 1's modules). `Board::Draw` defers 
 (0x416509: +0x32c, the dialog map's size), 10000 otherwise, and `MyFlashWidget::Update` (0x472a90) does nothing while one is up.
 Not needed: PopAnim labels (0x531cd0 upper-cases them as Volume 1's does; the port's map is case-insensitive) and the chapter cheer
 (the shared sound manager fix came with the merge of main).
+
+The "LOADING" tile letters: the exe sets the graphics colour to 0x7875d0 (white) before it draws the tile and the letter into the
+tile's image (0x489e1d) and nothing recolours the image when it is drawn (the title's Draw colourizes only the logos), so
+`TitleScreen.cpp` uses white. Test hook `battle <book> [<stage>]` (TestHooks.cpp header): from the main menu it starts a new
+adventure of the book and, once the board shows, has the engine go on to the stage's enemy (`SetupNextStage` with `mStageNum`, `mWinner`
+and `mLoser` set), so a battle with a chosen enemy is about 2,500 updates after the menu instead of 17,000.
