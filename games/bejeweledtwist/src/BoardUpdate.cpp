@@ -270,13 +270,6 @@ void Board::SetCursor(int theRow, int theCol)
 	mUnknown1C0C = aSize;
 }
 
-void Board::MoveCursor(int theRow, int theCol, bool theQuiet, void* theUnknown)
-{
-	// port: 0x6bd9ac and the moves it looks for (0x6bd872) come with the matching; its trail draws from Rand
-	NotPorted("Board::MoveCursor");
-	SetCursor(theRow, theCol);
-}
-
 void Board::StartUnknown3880()
 {
 	mUnknown3880.SetCurve(GTS(0x7dcd08));
@@ -1425,14 +1418,6 @@ bool Board::DropPieces()
 		} while (aCol < mCols);
 	}
 	return aGap;
-}
-
-bool Board::FillInBlanks(bool theUnknown)
-{
-	// port: 0x6c42e3 fills the gaps with new gems (0x6c25a4, which draws from Rand) and saves the game; it comes with
-	// the matching
-	NotPorted("Board::FillInBlanks");
-	return false;
 }
 
 bool Board::CanMove(Piece* thePiece)

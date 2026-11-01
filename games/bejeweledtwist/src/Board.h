@@ -58,7 +58,27 @@ struct LevelValue {
 	int GetValue();                  // 0x74e9e8: mValueBase, mValueChange, mValueMin, mValueMax
 	void Restart() { mValue = GetCount(); mUnknown50 = false; }  // 0x74eac6
 	void RestartAtLevel();           // 0x74ead6: Restart when mFirstLevel is the board's level
+	bool Roll();                     // 0x74eb38: one turn down; whether it comes now, by chance (Rand85B970)
+	bool ShouldAppear();             // 0x74ec45: from mFirstLevel on, whether it comes now
 };
+
+// A match, or the match a turn would make (0x6b97b6 makes one, 0x6afdee resets it)
+struct MatchInfo {
+	int mKind = 0;                  // +0x0: 4 for the square
+	int mRow = -1;                  // +0x4
+	int mCol = -1;                  // +0x8
+	int mCount = 0;                 // +0xc: its gems
+	bool mUnknown10 = true;         // +0x10
+	int mUnknown14 = -1;            // +0x14
+	std::vector<int> mIds;          // +0x18: its gems' ids
+	int mSerial = 0;                // +0x28: from gMatchInfoCount
+	int mUnknown2C = 0;             // +0x2c
+	bool mUnknown30 = false;        // +0x30
+
+	MatchInfo();
+	void Reset();
+};
+extern int gMatchInfoCount;  // 0x84e890
 
 class Board : public TwistWidget {
 public:
@@ -153,7 +173,7 @@ public:
 	int mUnknown131C = -1;                  // +0x131c
 	int mUnknown132C = 1;                   // +0x132c
 	// +0x135c: a value per cell (AllocGrid)
-	int* mUnknown135C = nullptr;
+	Piece** mUnknown135C = nullptr;  // the grid kept while a turn is tried (0x6a3b00 and 0x6a3b26)
 	// +0x1360: a record per cell (0x44 bytes, 0x6a38a7), row by row
 	struct Cell {
 		bool mUnknown0 = false;
@@ -389,6 +409,7 @@ public:
 	int mUnknown2110 = 0;                   // +0x2110
 	int mUnknown2114 = 0;                   // +0x2114
 	float mUnknown2118 = 3.0f;              // +0x2118
+	std::vector<std::pair<int, int>> mUnknown2120;  // +0x2120: the cursor's cells that cannot turn (row, column)
 	bool mUnknown2130 = false;              // +0x2130
 	float mUnknown2150 = 0;                   // +0x2150
 	int mUnknown2154 = 0;                   // +0x2154
@@ -431,6 +452,7 @@ public:
 	float mUnknown23FC = 0;                 // +0x23fc: the cursor's glow
 	int mUnknown2400 = -10000;              // +0x2400
 	int mUnknown2404 = -10000;              // +0x2404
+	std::vector<int> mUnknown2408[20];      // +0x2408: the tutorial's gems for each column, the next at the back
 	int mUnknown2548 = -1;                  // +0x2548
 	int mUnknown2578 = 0;                   // +0x2578
 	int mUnknown257C = 0;                   // +0x257c
@@ -555,6 +577,8 @@ public:
 	Image* mGridBarBot = nullptr;           // +0x258c
 	int mUnknown25AC = 0;                   // +0x25ac
 	int mUnknown25B4 = 0;                   // +0x25b4
+	std::vector<int> mUnknown25B8;          // +0x25b8: the gems of the move FindMove found
+	MatchInfo mUnknown25E0;                 // +0x25e0: FindMove's match for each cell
 	int mUnknown2644 = 0;                   // +0x2644
 	int mBonusChallengeMinGems = 0;         // +0x266c
 	int mUnknown2674 = 0;                   // +0x2674: the challenge's number (mode 2)
@@ -657,7 +681,22 @@ public:
 	int GetColAt(int theX);                      // 0x6a4849: -1 off the grid
 	void SetCursor(int theRow, int theCol);      // 0x6a9d2d: the selection's rectangle, two gems square
 	// 0x6bd9ac: the cursor to theRow, theCol, with its sound, trail and the moves it shows
-	void MoveCursor(int theRow, int theCol, bool theQuiet, void* theUnknown);
+	void MoveCursor(int theRow, int theCol, bool theQuiet, MatchInfo* theInfo);
+	void EvaluateCursor(MatchInfo* theInfo);     // 0x6bd872: +0x1c40 a match, +0x1c41 the turn blocked
+	void ClearCellHints();                       // 0x6a4764
+	bool TestTwist(bool theTest, MatchInfo* theInfo);  // 0x6bb619: whether turning the cursor's 2x2 matches
+	bool CannotTwist(bool theCheck);             // 0x6bb4b5: the cursor's 2x2 cannot turn (its cells in +0x2120)
+	bool MatchAt(int theCol, int theRow, MatchInfo* theInfo);  // 0x6ba1b2
+	bool MatchAny(MatchInfo* theInfo);           // 0x6ba4ab
+	void SaveGrid();                             // 0x6a3b00
+	void RestoreGrid();                          // 0x6a3b26
+	bool FindMove(int* theRow, int* theCol, bool theAny);  // 0x6c14fc
+	int FillPieces(bool theAtOnce);              // 0x6c25a4: new gems for the gaps; returns how many
+	bool CanAddCounter();                        // 0x6a63c5
+	bool HasChallengeFlag(int theFlag);          // the challenge's flags (+0x2630's +0x80) in a challenge
+	void MakeCounter(Piece* thePiece);           // 0x6a50a9: a bomb with the level's counter
+	void MakeCoal(Piece* thePiece);              // 0x6a5074
+	void SaveGame(Buffer* theBuffer, bool theUnknown);  // 0x6b0d91
 	void StartUnknown3880();                     // 0x6b681d
 	void StartUnknown34F0();                     // 0x6b8bca: a turn ends
 	void AddStat(int theStat, int theDelta);     // 0x6a450f: the game's stat and the app's copy (unless +0x37c4)
@@ -687,7 +726,7 @@ public:
 	void FallPieces();                            // 0x6cf84a
 	static void UpdateCell(Cell& theCell);        // 0x6a3904
 	bool DropPieces();                            // 0x6a5512: true if a column has a gap
-	bool FillInBlanks(bool theUnknown);           // 0x6c42e3
+	int FillInBlanks(bool theAtOnce);             // 0x6c42e3: returns how many gems are new
 	bool CanMove(Piece* thePiece);                // 0x6a50e8
 	void LayoutTube();                            // 0x6b3da8
 	bool CountDownCounters();

@@ -340,8 +340,8 @@ void Board::AllocGrid(int theRows, int theCols)
 	mCols = theCols;
 	mGrid = new Piece*[theRows * theCols];
 	std::memset(mGrid, 0, mCols * mRows * sizeof(Piece*));
-	mUnknown135C = new int[mCols * mRows];
-	std::memset(mUnknown135C, 0, mCols * mRows * sizeof(int));
+	mUnknown135C = new Piece*[mCols * mRows];
+	std::memset(mUnknown135C, 0, mCols * mRows * sizeof(Piece*));
 	MakeCells();
 }
 
@@ -938,4 +938,12 @@ void Board::PlayPieceSound(Piece* thePiece, int theSoundId, float thePitch, floa
 {
 	if (!mUnknown37F8)
 		mApp->PlaySoundEx(theSoundId, GetPan(Ftol(thePiece->mX)), thePitch, theVolume, theTrack, true);
+}
+
+void Board::SaveGame(Buffer* theBuffer, bool theUnknown)
+{
+	// port: 0x6b0d91 writes the game into theBuffer; it comes with the saved games and draws nothing from Rand
+	(void)theBuffer;
+	(void)theUnknown;
+	NotPorted("Board::SaveGame (0x6b0d91)");
 }

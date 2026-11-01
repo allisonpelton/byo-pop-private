@@ -272,6 +272,9 @@ Each is a change without a visible effect in play.
   for twice.
 - The high scores panel's view-replay buttons: the original deletes the ones it added to the panel (with the panel's
   children) but not the ones it kept without adding (a best move without a replay). The port deletes them all.
+- Two reads through null in the board's fill are guarded: turning a 2x2 with a gap in it (allowed by +0x2054) reads
+  the gap's flags (0x6bb619), and filling at once while +0x2108 holds a gap open sets the gap's height (0x6c25a4). The
+  original would crash on either; the port skips the gap. Whether play can reach either is not yet known.
 - The options panel: the original never deletes the resolutions' three radio buttons or the restart (help) button;
   the port deletes them with the panel.
 - The music: the original prints the track, state and tempo to the debugger when it plays one and when the tempo
