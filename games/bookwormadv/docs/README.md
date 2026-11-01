@@ -214,10 +214,16 @@ welcome to its menu and the quit (Word Master with a guess, Letter Rip into its 
 the focus). Besides the fault above and the items here, what differs is the animations' sampling and timing (Lex, Moxie,
 the Submit! button's glow).
 
-The fourth part (`tools/pilot/win.txt`): the first battle won with THOUGH after battle.txt's RAIN, the enemy's defeat,
+The fourth part (`tools/pilot/win.txt`): the first battle won with DRAWING after battle.txt's RAIN, the enemy's defeat,
 Cassandra's three lines, the walk to the next battle and its start with its hint. Its talk matches exactly; the walk and
 the next battle's hint match the port's picture of one update earlier (lag.py: 40 and 0 pixels left, the 40 in the
 sprites), and the rest is the enemies' sampling and the Attack button's sparkle, both above.
+
+Once the port held its chapter load as long as the original's (`-chapterloadupdates`, above), its first battle got the
+original's board (UAEN / GNOH / AIJW / RGRE by rows), not the one the battle and win scripts were written for: their
+clicks spelled UEJG, no word, and the win part no longer won. Both scripts now spell RAIN on that board, and the win part
+DRAWING on the board after it (2026-11-01). The board stays the same while the original's load lasts 50 to 99 updates
+(one hint draw); the loads measured so far ran 52 to 85.
 
 The web build ran the same four parts' scripts (2026-11-01): the page was given `-script`, `-seed=12345` and `-drawevery`
 from the Browser pane (by wrapping `Module.callMain` before Play; the page itself has no such option), with the pilot's
@@ -228,6 +234,21 @@ three web runs, the main menu's library glow after the quit dialog was in step w
 run with a shot every 10 updates); in the other two it was three updates ahead of it, from somewhere after the media player.
 The glow pulses by the update count (MainMenu::Update), so something before it depends on the wall clock in the
 browser; not found yet (the media player's music and the pane's focus are the candidates).
+
+## Oddities
+
+The original's own run-to-run variation, which the port does not copy in normal play (`CLAUDE.md`, "Oddities are not
+chased").
+
+How long the loading screens stay up. The original loads at startup and before each chapter on a thread, so the
+screens last as long as the machine takes: 134 to 263 updates for the startup load and 52 to 85 for the first chapter
+in the pilot's sandbox runs. The chapter's screen draws a hint, one `Rand()`, every 50 updates, so a load of 100 updates
+or more gives the next battle another board. The port loads in 20 ms slices between frames and shows the screens for its
+own time. To see it: origrun's `--watch "[[0x8259e4]+0x83c]+0xb0"` (the chapter screen's timer) or `"[0x8259e4]+0x919"`
+(the startup load's end), as `tools/pilot/run.sh` does. Copying it would mean loading at the original thread's speed,
+which no fixed number of updates gives. The test options `-chapterloadupdates=N,...` and `-startloadupdates=N` hold the
+port's loads for the counts measured in a run, so that the pilot's runs agree; normal play never uses them. Within a
+held load the loading bar (chapters) and Lex's place (startup) still move at their own pace on each side.
 
 ## Mods
 
