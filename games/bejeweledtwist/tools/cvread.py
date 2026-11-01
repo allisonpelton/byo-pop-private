@@ -36,6 +36,10 @@ def main():
         if op == 'mov' and mm:
             regs[mm.group(1)] = regs.get(mm.group(2), mm.group(2))
             continue
+        mm = re.match(r'(%s), (0x[0-9a-f]+)$' % REG, args)
+        if op == 'add' and mm:
+            regs[mm.group(1)] = '%s+%s' % (regs.get(mm.group(1), mm.group(1)), mm.group(2))
+            continue
         mm = re.match(r'(%s), dword ptr \[(%s) \+ (0x[0-9a-f]+)\]' % (REG, REG), args)
         if op == 'mov' and mm:
             base = regs.get(mm.group(2), mm.group(2))

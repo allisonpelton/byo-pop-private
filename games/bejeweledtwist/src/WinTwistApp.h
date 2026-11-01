@@ -9,6 +9,9 @@
 namespace Sexy {
 
 class CustomResourceManager;
+class EffectsManager;
+class LoaderScreen;
+class PlayButton;
 class SoundInstance;
 class Widget;
 
@@ -26,7 +29,13 @@ public:
 	bool mTubeLoaded = false;           // +0xf8c: the Tube group (0x763092)
 	bool mLoadingThreadDone = false;    // +0x7f1: LoadingThreadProc loaded everything
 	int mLoadMode = 0;                  // +0xf18: 1 skips the Sounds group, 2 loads only it (never set: always 0)
-	Widget* mLoaderScreen = nullptr;    // +0x860
+	bool mFlag764 = false;              // +0x764: set by the loader while mFlag784 is (meaning not yet known)
+	bool mFlag784 = false;              // +0x784: (meaning not yet known; the loader's other buttons depend on it)
+	Widget* mBoard = nullptr;           // +0x7e4: the board while a game is on (comes with the board)
+	LoaderScreen* mLoaderScreen = nullptr;  // +0x860
+	Widget* mMainMenu = nullptr;        // +0x864 (comes with the main menu)
+	bool mPlaySamples = true;           // +0xf74: PlaySample plays (always on so far)
+	EffectsManager* mFXManager = nullptr;  // +0xf78: the effects over the whole screen
 	bool mSoundsOff = false;            // +0x928: no sound effects (set elsewhere, not yet read)
 	SoundInstance* mUnmanagedSound = nullptr;  // +0x938: a tracked sound whose volume UpdateFrames leaves alone
 	double mSfxVolumeScale = 1.0;       // +0x948: applied to the tracked sounds
@@ -42,6 +51,13 @@ public:
 	void Init() override;               // 0x7652cc
 	void LoadingThreadProc() override;  // 0x76497d
 	void UpdateFrames() override;       // 0x765f8d
+	void PlaySample(int theSoundNum) override;  // 0x7675d8
+	using SexyApp::PlaySample;
+
+	// 0x76657b (slot 110): the loading is done, the main menu comes up (comes with the main menu)
+	virtual void StartMainMenu();
+	// The main menu's spiral button (main menu +0x2e4)
+	PlayButton* GetMainMenuPlayButton();
 
 	// 0x760659: 2D mode, the art at 600 and the screen at 800x600 in 16 bits
 	void Use2DMode();

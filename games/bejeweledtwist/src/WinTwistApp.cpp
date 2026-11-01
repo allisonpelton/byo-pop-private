@@ -2,8 +2,12 @@
 #include "WinTwistApp.h"
 
 #include "CustomResourceManager.h"
+#include "EffectsManager.h"
 #include "GameText.h"
+#include "GraphicsRecorder.h"
+#include "LoaderScreen.h"
 #include "Res.h"
+#include "PlayButton.h"
 #include "SoundInstance.h"
 #include "SoundManager.h"
 #include "Widget.h"
@@ -47,6 +51,7 @@ WinTwistApp::WinTwistApp()
 
 	delete mResourceManager;
 	mResourceManager = new CustomResourceManager(this);
+	gGraphicsRecorder = new GraphicsRecorder();
 
 	// port: the framework draws in software, so the game runs as the original does without Direct3D (0x7606de)
 	Use2DMode();
@@ -58,6 +63,12 @@ WinTwistApp::~WinTwistApp()
 		mWidgetManager->RemoveWidget(mLoaderScreen);
 		delete mLoaderScreen;
 	}
+	if (mFXManager != nullptr) {
+		mWidgetManager->RemoveWidget(mFXManager);
+		delete mFXManager;
+	}
+	delete gGraphicsRecorder;
+	gGraphicsRecorder = nullptr;
 	gApp = nullptr;
 }
 
@@ -97,6 +108,35 @@ void WinTwistApp::Init()
 	SetCursorImage(0, IMAGE_CURSOR_POINTER);
 	SetCursorImage(1, IMAGE_CURSOR_HAND);
 	SetCursorImage(2, IMAGE_CURSOR_DRAGGING);
+
+	mFXManager = new EffectsManager();
+	mFXManager->Resize(0, 0, mWidth, mHeight);
+	mWidgetManager->AddWidget(mFXManager);
+	// The original sets up the music visualiser (+0xc6c, z order -100) and loads the 3D models of space here; with
+	// -record or -playback it seeds both random number generators from the recording
+	if (!mUseSexyCache) {
+		// The Hyperspace background (0x75f588) goes up first: comes next
+		mLoaderScreen = new LoaderScreen(this);
+		mLoaderScreen->Resize(0, 0, mWidth, mHeight);
+		mLoaderScreen->mZOrder = 1000;
+		mWidgetManager->AddWidget(mLoaderScreen);
+	}
+}
+
+void WinTwistApp::PlaySample(int theSoundNum)
+{
+	if (mPlaySamples)
+		PlaySoundEx(theSoundNum, 0, 0, 0, true, true);
+}
+
+void WinTwistApp::StartMainMenu()
+{
+	SDL_Log("WinTwistApp: the main menu is not ported yet");
+}
+
+PlayButton* WinTwistApp::GetMainMenuPlayButton()
+{
+	return nullptr;
 }
 
 bool WinTwistApp::LoadTubeResources()
@@ -205,5 +245,11 @@ void WinTwistApp::UpdateFrames()
 			if (aSound.mInstance->GetVolume() != aVolume)
 				aSound.mInstance->SetVolume(aVolume);
 		}
+	}
+	if (mLoaderScreen != nullptr && mLoaderScreen->mFinished) {
+		mWidgetManager->RemoveWidget(mLoaderScreen);
+		SafeDeleteWidget(mLoaderScreen);
+		mLoaderScreen = nullptr;
+		mResourceManager->DeleteResources("LoadScreen");
 	}
 }
