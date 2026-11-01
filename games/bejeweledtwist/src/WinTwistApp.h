@@ -84,6 +84,7 @@ public:
 	int mUnknownF68 = 0;                // +0xf68: the board sets -1 (but not for a replay)
 	int mUnknownF6C = 0;                // +0xf6c
 	int mUnknownF70 = 0;                // +0xf70
+	int mUnknown780 = 0;                // +0x780: counts the board's updates
 	int mUnknownC74[84] = {};           // +0xc74: cleared by a new board (0x75fc8a) unless the old one has +0x37c4
 	// +0x758 (the framework's): the copy is registered, set from the wrapper and a "NoReg" file; the user's copies
 	// are full versions

@@ -102,6 +102,7 @@ public:
 	int mUnknown104 = 0;               // +0x104
 	int mUnknown108 = 0;               // +0x108
 	int mUnknown110 = 0;               // +0x110
+	bool mUnknown114 = false;          // +0x114: moved down by DropPieces
 	bool mBlasted = false;             // +0x115: a power gem that has gone off (0x729363)
 	bool mUnknown116 = false;          // +0x116 (saved)
 	int mUnknown118 = 0;               // +0x118

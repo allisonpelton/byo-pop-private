@@ -3,6 +3,7 @@
 #include "Board.h"
 
 #include "GameText.h"
+#include "EffectsManager.h"
 #include "GoodTube.h"
 #include "Hyperspace.h"
 #include "GraphicsRecorder.h"
@@ -694,6 +695,385 @@ void Board::UpdateGame()
 		if (aDone)
 			mUnknown1378 = (mUnknown1378 != 0) * 2 + 1;
 	}
+	// port: the dialog numbered 28 is not yet known
+	if (mApp->GetDialog(28) != nullptr) {
+		MarkDirty();
+		return;
+	}
+	if (mUnknown1570 == mUnknown1574 && 0 < mUnknown1574) {
+		if (mPieceAlpha == 0.0f)
+			return;
+		float aFade = (float)((double)mPieceAlpha - (double)0.05f);
+		mUnknown1644 = mApp->mDialogMap.size() == 0;
+		mPieceAlpha = 0.0f < aFade ? aFade : 0.0f;
+		MarkDirty();
+		return;
+	}
+	mFXManager2->Update();
+	if (!IsBusy() && mUnknown160 == 0) {
+		if (mGameMode == MODE_CHALLENGE) {
+			// port: the challenge's timer (0x6bedd8) comes with the challenges
+			NotPorted("Board::UpdateGame: the challenge's timer (0x6bedd8)");
+		} else if (mGameMode == MODE_BLITZ && !IsBusy() && mUnknown2584 == nullptr) {
+			// Blitz's clock, in hundredths
+			if (!mUnknown25A6 && -1 < mUnknown3458)
+				mUnknown3458--;
+			int aSeconds = mUnknown3458 / 100;
+			if ((mUnknown3458 + 1) % 100 == 0) {
+				if (aSeconds < 1) {
+					if (!mUnknown37C4) {
+						mUnknown20D0 = false;
+						aSeconds = 0;
+						mUnknown3458 = 0;
+						mApp->mUnknownC74[35] = 30000 / 100; // 0x6a697d
+						if (!mUnknown21D8 && !mUnknown21DA && !mUnknown21D9 && mUnknown25A4 && mUnknown149C.empty() &&
+							mUnknown248 == 0.0f && mUnknown14F8 == mUnknown168 && mUnknown14AC.empty() &&
+							mUnknown267C == nullptr) {
+							// port: the end of the game (0x6b2c50) comes with it
+							NotPorted("Board::UpdateGame: blitz's end (0x6b2c50)");
+						}
+					} else if (!mUnknown21D8 && !mUnknown21DA && !mUnknown21D9 && mUnknown25A4) {
+						mUnknown3920 = true;
+					}
+				} else {
+					// port: blitz's last seconds (0x6bea4b) come with blitz
+					NotPorted("Board::UpdateGame: blitz's last seconds (0x6bea4b)");
+				}
+			}
+			mGoodTube->SetTime(aSeconds * 100, true);
+		}
+	}
+	if (0.0 < mUnknown1618) {
+		float aLeft = (float)((double)mUnknown1614 - (double)0.1f);
+		mUnknown1614 = aLeft;
+		if (aLeft < 0.0f)
+			mUnknown1614 = (float)((double)mUnknown1614 + 5.0);
+		mUnknown1628 = mUnknown1628 + (double)0.0005f;
+		mUnknown1620 = mUnknown1620 - mUnknown1628;
+		MarkDirty();
+	}
+	if (mUpdateCnt % 16 == 0) {
+		mUnknown1FF8++;
+		if (mUnknown1FF8 == 8)
+			mUnknown1FF8 = 0;
+	}
+	mApp->mUnknown780++;
+	if (mPieceAlpha < 1.0f) {
+		float aFade = (float)((double)mPieceAlpha + (double)0.05f);
+		mPieceAlpha = 1.0f <= aFade ? 1.0f : aFade;
+		MarkDirty();
+	}
+	if (0 < mUnknown15D4) {
+		mUnknown15D4--;
+		if (mUnknown15D4 == 0)
+			mGoodTube->mWidgetFlagsMod.mAddFlags &= ~WIDGETFLAGS_ALLOW_MOUSE;
+	}
+	Widget::Update();
+	mUnknown1470++;
+	if (mUnknown160 == 7)
+		MarkDirty();
+	if (mUpdateCnt == 2)
+		mApp->ClearUpdateBacklog(false);
+	if (mUnknown15C == 0) {
+		mUnknown14F4++;
+		if (mUnknown2016 && (mUnknown1C6D || (mUnknown2008 != 0 && --mUnknown2008 == 0))) {
+			mUnknown2008 = 0;
+			// port: 0x6cf3fd, the matches after a move, comes with the matching; it draws from Rand
+			NotPorted("Board::UpdateGame: the matches after a move (0x6cf3fd)");
+		}
+	}
+	if (mUnknown1430 != nullptr && mUpdateCnt % 8 == 0) {
+		MarkDirty();
+		mUnknown1434++;
+	}
+	int aCount38 = 0;
+	int aRemoved = 0;
+	if (mUnknown160 == 0) {
+		mUnknown1F74 = 0;
+		mUnknown1F78 = 0;
+		mUnknown1F7C = 0;
+		for (int aRow = 0; aRow < mRows; aRow++) {
+			for (int aCol = 0; aCol < mCols; aCol++) {
+				Piece* aPiece = GetPieceAt(aRow, aCol);
+				if (aPiece != nullptr) {
+					if (aPiece->IsFlagSet(4))
+						mUnknown1F74++;
+					if (aPiece->IsFlagSet(3))
+						mUnknown1F7C++;
+					if (aPiece->IsFlagSet(9))
+						mUnknown1F78++;
+				}
+			}
+		}
+		for (int aRow = 0; aRow < mRows; aRow++) {
+			for (int aCol = 0; aCol < mCols; aCol++) {
+				Piece* aPiece = GetPieceAt(aRow, aCol);
+				Cell& aCell = mCells[mCols * aRow + aCol];
+				aCell.mUnknown10 = false;
+				UpdateCell(aCell);
+				if (aPiece == nullptr)
+					continue;
+				if (!aPiece->mBlasted) {
+					if (aPiece->mUnknown38)
+						aCount38++;
+					if (aPiece->mUnknown14 == 0.0f && aPiece->mUnknown535) {
+						int anUnderRow = GetRowAt(Ftol(aPiece->mY));
+						int anUnderCol = GetColAt(Ftol(aPiece->mX));
+						if (-1 < anUnderRow && anUnderRow < mRows && -1 < anUnderCol && anUnderCol < mCols) {
+							Cell& anUnder = mCells[anUnderRow * mCols + anUnderCol];
+							Light aLight;
+							if (aPiece->IsFlagSet(3) && Rand() % 2 == 0) {
+								aLight.mPieceId = -1;
+								anUnder.mUnknown28 = 1.0f;
+								aLight.mUnknown18 = true;
+								anUnder.mUnknown24 = 0;
+								float aRadius = (float)((double)gGemWidth * (double)0.4f);
+								float anAngle = (float)((double)RandSigned() * (double)3.14159265f);
+								float aCos = cosf(anAngle);
+								aLight.mX = (float)((double)(gGemWidth / 2) + (double)aPiece->mX + (double)aCos * (double)aRadius);
+								float aSin = sinf(anAngle);
+								aLight.mY = (float)((double)(gGemHeight / 2) + (double)aPiece->mY + (double)aRadius * (double)aSin);
+								aLight.mUnknown10 = 0;
+								aLight.mUnknown14 = 1.0f;
+								aLight.mUnknown8 = 8.0f;
+								aLight.mUnknownC = 28.0f;
+								aLight.mUnknown1C = 0.1f;
+								aLight.mUnknown20 = 0.1f;
+								aLight.mPiece = Rand() % 8 != 0 ? aPiece : nullptr;
+								if (aLight.mPiece == nullptr)
+									aLight.mUnknown14 = 0.25f;
+								mUnknown1650.push_back(aLight);
+							}
+							if (aPiece->IsFlagSet(4)) {
+								if (Rand() % 3 == 0) {
+									aLight.mUnknown18 = true;
+									anUnder.mUnknown24 = 1.0f;
+									float anAngle = (float)((double)RandSigned() * (double)3.14159265f);
+									aLight.mPieceId = aPiece->mId;
+									float aCos = cosf(anAngle);
+									aLight.mX = (float)((double)gGemWidth * (double)aCos * 0.25 + (double)(gGemWidth / 2));
+									float aSin = sinf(anAngle);
+									aLight.mY = (float)(((double)aSin - (double)0.1f) * (double)gGemHeight * (double)0.35f +
+														(double)(gGemHeight / 2));
+									aLight.mUnknown10 = 0;
+									aLight.mUnknown14 = 0.4f;
+									aLight.mUnknown8 = 9.0f;
+									aLight.mUnknownC = 28.0f;
+									aLight.mPiece = Rand() % 8 != 0 ? aPiece : nullptr;
+									if (aLight.mPiece == nullptr)
+										aLight.mUnknown14 = 0.15f;
+									aLight.mUnknown1C = 0.06f;
+									aLight.mUnknown20 = 0.06f;
+									mUnknown1650.push_back(aLight);
+								}
+							} else if (aPiece->IsFlagSet(6)) {
+								anUnder.mUnknown24 = -1.0f;
+							}
+						}
+					}
+					if (!aPiece->mBlasted) {
+						aPiece->Update();
+						continue;
+					}
+				}
+				// A gem that has gone off leaves the grid, or turns into what it is to become
+				aPiece->mCol = aCol;
+				aPiece->mRow = aRow;
+				if (aPiece->mUnknown538 != 0) {
+					Piece* aNew = new Piece();
+					aNew->mPendingKind = aPiece->mUnknown538;
+					aPiece->mPendingKind = 0;
+					aNew->mPendingTime = 0.0001f;
+					aNew->Update();
+					aNew->mUnknown51D = true;
+					aNew->mRow = aPiece->mRow;
+					aNew->mCol = aPiece->mCol;
+					aNew->mX = aPiece->mX;
+					aNew->mY = aPiece->mY;
+					aNew->mColor = aPiece->mColor;
+					RemovePiece(aPiece, true);
+					mGrid[mCols * aNew->mRow + aNew->mCol] = aNew;
+				} else {
+					RemovePiece(aPiece, true);
+					if (mUnknown15C < 1 && !IsBusy())
+						mUnknown21DA = true;
+					aRemoved++;
+				}
+			}
+		}
+		if (!mUnknown21E4.empty()) {
+			mUnknown25A4 = false;
+			// port: the objects at +0x21e4 (0x6f465f) are not ported yet
+			NotPorted("Board::UpdateGame: the objects at +0x21e4");
+		}
+		if (aRemoved != 0 && DropPieces())
+			FillInBlanks(false);
+		for (int aCol = 0; aCol < mCols; aCol++) {
+			float aStep = (float)((double)gApp->mScale * 0.375);
+			float aLift = aStep + mUnknown133C[aCol];
+			mUnknown133C[aCol] = aLift <= 0.0f ? aLift : 0.0f;
+		}
+	}
+	// The cells under the cursor's corners
+	int aCursorX = mUnknown1C00;
+	int aCursorY = mUnknown1C04;
+	Piece* aCorners[4];
+	aCorners[0] = GetPieceAtXY(aCursorX, aCursorY);
+	aCorners[1] = GetPieceAtXY(aCursorX + gGemWidth, aCursorY);
+	aCorners[2] = GetPieceAtXY(aCursorX, aCursorY + gGemWidth);
+	aCorners[3] = GetPieceAtXY(aCursorX + gGemWidth, aCursorY + gGemHeight);
+	for (int i = 0; i < 4; i++) {
+		Piece* aPiece = aCorners[i];
+		if (!CanMove(aPiece) && aPiece != nullptr)
+			mCells[aPiece->mRow * mCols + aPiece->mCol].mUnknown10 = true;
+	}
+	if (mUnknown15C == 0) {
+		float aShine = (float)((double)mShineAmount + (double)0.025f);
+		mShineAmount = aShine;
+		if (1.0f < aShine)
+			mShineAmount = 1.0f;
+	}
+	mShineAmount = mUnknown3924 * mShineAmount;
+	float aGlow = (float)((double)mUnknown20CC - (double)0.01f);
+	mUnknown20CC = aGlow;
+	if (aGlow < 0.0f)
+		mUnknown20CC = 0;
+	LayoutTube();
+	if (!IsBusy() && mUnknown1474 == nullptr && 0.0f < mShakeX) {
+		double aStep = (double)mShakeX * (double)0.1f;
+		double aMax = (double)mWidth * (double)0.015f;
+		float aLeft = mShakeX - (float)(aStep <= aMax ? aStep : aMax);
+		mShakeX = aLeft;
+		if (aLeft < 2.0f) {
+			mShakeX = 0;
+			if (mUnknown2041 && !mGoodTube->mVisible) {
+				StartUnknown3880();
+				LayoutTube();
+				mGoodTube->mVisible = true;
+			}
+			RandSigned();
+			if (!mUnknown26B0.empty()) {
+				// port: the travellers' new targets draw from Rand once per traveller (0x6a3447)
+				NotPorted("Board::UpdateGame: the travellers' targets");
+			}
+		}
+	}
 	// port: the rest of 0x6d090f comes next
 	NotPorted("Board::UpdateGame: the rest");
+}
+
+void Board::UpdateCell(Cell& theCell)
+{
+	if (0.0f < theCell.mUnknown4) {
+		float aFade = (float)((double)theCell.mUnknown4 - (double)0.01f);
+		theCell.mUnknown4 = aFade;
+		if (aFade < 0.0f)
+			theCell.mUnknown4 = 0;
+	}
+	if (0.0f < theCell.mUnknown28) {
+		float aFade = (float)((double)theCell.mUnknown28 - (double)0.01f);
+		theCell.mUnknown28 = aFade < 0.0f ? 0.0f : aFade;
+	}
+	if (0.0f < theCell.mUnknown24) {
+		float aFade = (float)((double)theCell.mUnknown24 - (double)0.01f);
+		theCell.mUnknown24 = aFade < 0.0f ? 0.0f : aFade;
+	} else if (theCell.mUnknown24 < 0.0f) {
+		float aFade = (float)((double)theCell.mUnknown24 + (double)0.01f);
+		theCell.mUnknown24 = 0.0f < aFade ? 0.0f : aFade;
+	}
+	int aLeft = theCell.mColor.mAlpha - 3;
+	theCell.mColor.mAlpha = aLeft < 0 ? 0 : aLeft;
+	if (gBoard->mUnknown2584 != nullptr) {
+		// port: the tutorial's dialog clears +0x34 unless its state (+0x16c) is 0, 2 or 12; it comes with the tutorial
+		NotPorted("Board::UpdateCell: the tutorial's state");
+	}
+	if (!theCell.mUnknown34) {
+		float aFade = (float)((double)theCell.mUnknown3C - (double)0.04f);
+		theCell.mUnknown3C = aFade < 0.0f ? 0.0f : aFade;
+	} else {
+		float aFade = (float)((double)theCell.mUnknown3C + (double)0.02f);
+		theCell.mUnknown3C = 1.0f < aFade ? 1.0f : aFade;
+	}
+	if (theCell.mUnknown3C == 0.0f)
+		theCell.mUnknown38 = 0;
+	else
+		theCell.mUnknown38++;
+	if (theCell.mUnknown40 != 0.0f) {
+		float aNext = (float)((double)theCell.mUnknown40 + (double)0.006f);
+		theCell.mUnknown40 = aNext;
+		if (1.0f < aNext)
+			theCell.mUnknown40 = 0;
+	}
+}
+
+bool Board::DropPieces()
+{
+	if (mUnknown1C90)
+		return false;
+	bool aGap = false;
+	int aCol = 0;
+	if (0 < mCols) {
+		do {
+			int aBelow = mRows;
+			int aRow = aBelow;
+			while (aRow = aRow - 1, -1 < aRow) {
+				Piece* aPiece = GetPieceAt(aRow, aCol);
+				if (aPiece == nullptr) {
+					aGap = true;
+				} else {
+					aPiece->mUnknown114 = false;
+					int aTo = aRow;
+					int aNext = aBelow;
+					if (aBelow < mRows) {
+						do {
+							if (GetPieceAt(aNext, aCol) != nullptr)
+								break;
+							aTo++;
+							aNext++;
+						} while (aNext < mRows);
+						if (aTo != aRow) {
+							mGrid[mCols * aRow + aCol] = nullptr;
+							aPiece->mRow = aTo;
+							aPiece->mUnknown114 = true;
+							mGrid[mCols * aTo + aCol] = aPiece;
+							if (mUnknown210C)
+								aPiece->mY = (float)GetRowY(aPiece->mRow);
+							aGap = true;
+						}
+					}
+				}
+				aBelow--;
+			}
+			aCol++;
+		} while (aCol < mCols);
+	}
+	return aGap;
+}
+
+bool Board::FillInBlanks(bool theUnknown)
+{
+	// port: 0x6c42e3 fills the gaps with new gems (0x6c25a4, which draws from Rand) and saves the game; it comes with
+	// the matching
+	NotPorted("Board::FillInBlanks");
+	return false;
+}
+
+bool Board::CanMove(Piece* thePiece)
+{
+	if (thePiece == nullptr)
+		return false;
+	bool aLocked = thePiece->IsFlagSet(8) || thePiece->IsFlagSet(2);
+	if (thePiece->IsFlagSet(9) && !mUnknown1C6C)
+		aLocked = true;
+	if (thePiece->IsFlagSet(1) && !mUnknown1C78)
+		aLocked = true;
+	if (thePiece->IsFlagSet(5))
+		aLocked = true;
+	return !aLocked;
+}
+
+void Board::LayoutTube()
+{
+	// port: the tube's layout (0x6b3da8) comes with the tube; it draws nothing from Rand
+	NotPorted("Board::LayoutTube");
 }

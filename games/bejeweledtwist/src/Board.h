@@ -132,7 +132,7 @@ public:
 	int mUnknown204 = 1;                    // +0x204
 	int mUnknown218 = 0;                    // +0x218
 	int mUnknown224 = 0;                    // +0x224
-	int mUnknown248 = 0;                    // +0x248
+	float mUnknown248 = 0;                  // +0x248
 	int mUnknown250 = -1;                   // +0x250
 	int mUnknown254 = -1;                   // +0x254
 	int mUnknown258 = -1;                   // +0x258
@@ -201,6 +201,23 @@ public:
 	std::deque<TwistWidget*> mUnknown23DC;  // +0x23dc: the dialogs waiting to come up (0x6a6e36 its size)
 	std::vector<TwistWidget*> mUnknown1F98;  // +0x1f98: the hints' widgets (0x6a6d18 its size)
 	std::vector<TwistWidget*> mUnknown26B0;  // +0x26b0: the travellers (0x70188f; 0x6a6eaa its size)
+	// +0x1650: lights over the gems (0x2c bytes each), added by UpdateGame
+	struct Light {
+		float mX = 0;
+		float mY = 0;
+		float mUnknown8 = 0;
+		float mUnknownC = 0;
+		float mUnknown10 = 0;
+		float mUnknown14 = 0;
+		bool mUnknown18 = false;
+		float mUnknown1C = 0;
+		float mUnknown20 = 0;
+		Piece* mPiece = nullptr;  // +0x24: the gem it follows, or none
+		int mPieceId = -1;        // +0x28
+	};
+	std::vector<Light> mUnknown1650;
+	// +0x21e4: objects of a class with its update at 0x6f465f (not yet ported)
+	std::vector<void*> mUnknown21E4;
 	std::vector<Piece*> mUnknown20F4;       // +0x20f4: pieces off the grid (SnapPiecesX moves them too)
 	Piece* mUnknown1430 = nullptr;          // +0x1430: a piece RemovePiece forgets
 	int mUnknown1434 = 0;                   // +0x1434
@@ -272,6 +289,7 @@ public:
 	bool mUnknown15FD = false;              // +0x15fd
 	int mUnknown1604 = 0;                   // +0x1604
 	int mUnknown1610 = 0;                   // +0x1610
+	float mUnknown1614 = 0;                 // +0x1614
 	double mUnknown1618 = 0;                // +0x1618
 	double mUnknown1620 = 0;                // +0x1620
 	double mUnknown1628 = 0;                // +0x1628
@@ -487,7 +505,7 @@ public:
 	bool mUnknown214 = false;               // +0x214
 	float mUnknown220 = 1.0f;               // +0x220
 	int mUnknown1328 = 0;                   // +0x1328: how many of the player's +0x80 flags are set
-	int mUnknown133C[8] = {};               // +0x133c
+	float mUnknown133C[8] = {};               // +0x133c
 	Font* mUnknown1578 = nullptr;           // +0x1578
 	Font* mUnknown157C = nullptr;           // +0x157c
 	int mUnknown1584 = 0;                   // +0x1584
@@ -627,6 +645,11 @@ public:
 	void AddStat(int theStat, int theDelta);     // 0x6a450f: the game's stat and the app's copy (unless +0x37c4)
 	void EaseCursor();                           // 0x6a4674: the cursor drawn eases to the cursor
 	// 0x6bd338: the bombs' and devil gems' counters show their warnings; true when the game ends on one at zero
+	static void UpdateCell(Cell& theCell);        // 0x6a3904
+	bool DropPieces();                            // 0x6a5512: true if a column has a gap
+	bool FillInBlanks(bool theUnknown);           // 0x6c42e3
+	bool CanMove(Piece* thePiece);                // 0x6a50e8
+	void LayoutTube();                            // 0x6b3da8
 	bool CountDownCounters();
 	void NextLevelMusic();                       // 0x6a496b: the next of the game's tunes
 	void Update() override;                      // 0x6d6899: the game's updates for this frame, at its speed
