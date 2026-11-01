@@ -57,6 +57,11 @@ def box_tuple(b):
 	return (b["x"], b["y"], b["w"], b["h"])
 
 
+def allb(r):
+	"""A result's boxes, visible and faint."""
+	return r["boxes"] + r["faint_boxes"]
+
+
 def cmp(a, b, ign=(), **kw):
 	return sd.compare_arrays(a, b, sd.Options(**kw), list(ign))
 
@@ -71,7 +76,7 @@ def test_compare():
 	check("tolerance: a difference of exactly 8 matches", cmp(a, b)["status"] == "match")
 	b[10:20, 10:20, 0] += 1
 	r = cmp(a, b)
-	check("tolerance: 9 differs", r["status"] == "differ" and [box_tuple(x) for x in r["boxes"]] == [(10, 10, 10, 10)], r)
+	check("tolerance: 9 differs, faintly", r["status"] == "faint" and r["boxes"] == [] and [box_tuple(x) for x in r["faint_boxes"]] == [(10, 10, 10, 10)], r)
 	check("tolerance: option raises it", cmp(a, b, tolerance=9)["status"] == "match")
 	check("allow: a few pixels may differ", cmp(a, change(a, 5, 5, 2, 2), allow=4)["status"] == "match")
 
@@ -89,19 +94,19 @@ def test_compare():
 	r = cmp(a, change(change(a, 10, 10, 8, 8), 60, 10, 8, 8), merge=60)
 	check("--merge: a larger gap merges", len(r["boxes"]) == 1)
 	r = cmp(a, change(a, 0, 0, 3, 3))
-	check("corner at the origin: exact box", [box_tuple(x) for x in r["boxes"]] == [(0, 0, 3, 3)], r["boxes"])
+	check("corner at the origin: exact box", [box_tuple(x) for x in allb(r)] == [(0, 0, 3, 3)], allb(r))
 	r = cmp(a, change(a, W - 3, H - 2, 3, 2))
-	check("corner at the far edge: exact box", [box_tuple(x) for x in r["boxes"]] == [(W - 3, H - 2, 3, 2)], r["boxes"])
+	check("corner at the far edge: exact box", [box_tuple(x) for x in allb(r)] == [(W - 3, H - 2, 3, 2)], allb(r))
 	r = cmp(a, change(a, 70, 60, 1, 1))
-	check("one pixel: a 1x1 box", [box_tuple(x) for x in r["boxes"]] == [(70, 60, 1, 1)] and r["status"] == "differ", r["boxes"])
+	check("one pixel: a faint 1x1 box", [box_tuple(x) for x in r["faint_boxes"]] == [(70, 60, 1, 1)] and r["status"] == "faint", allb(r))
 
 	b = a.copy()
 	for gx in range(8):
 		for gy in range(6):
 			b[gy * 20 + 5, gx * 20 + 5] = (b[gy * 20 + 5, gx * 20 + 5].astype(int) + 100) % 256
 	r = cmp(a, b, merge=2)
-	check("many scattered pixels: boxes capped", 1 <= len(r["boxes"]) <= 12 and r["diff_pixels"] == 48, len(r["boxes"]))
-	check("many scattered pixels: nothing lost", sum(x["pixels"] for x in r["boxes"]) >= 48)
+	check("many scattered pixels: boxes capped", 1 <= len(allb(r)) <= 12 and r["diff_pixels"] == 48, len(allb(r)))
+	check("many scattered pixels: nothing lost", sum(x["pixels"] for x in allb(r)) >= 48)
 
 	# boxes: 8-connected, and the numbering follows size
 	m = np.zeros((20, 20), bool)
@@ -110,6 +115,47 @@ def test_compare():
 	bx = sd.find_boxes(m, np.where(m, 50, 0).astype(np.int16), sd.Options(dilate=0, merge=0))
 	check("find_boxes: diagonal pixels are one piece, ordered by size",
 		  [box_tuple(x) for x in bx] == [(10, 10, 4, 1), (3, 3, 2, 2)] and [x["n"] for x in bx] == [1, 2], bx)
+
+
+def scene(draw_fn, ss=4):
+	"""A smooth picture (a soft gradient), drawn on by draw_fn(ImageDraw, scale) at ss times the size and scaled down:
+	antialiased like a game's sprites and text."""
+	from PIL import ImageDraw
+	g = np.linspace(60, 180, W * ss, dtype=np.uint8)
+	big = Image.fromarray(np.stack([np.tile(g, (H * ss, 1))] * 3, axis=2))
+	draw_fn(ImageDraw.Draw(big), ss)
+	return np.array(big.resize((W, H), Image.BOX))
+
+
+def glyph(ch, x, y, k=3):
+	"""A glyph of the default bitmap font, k times its size (strokes k px wide, like a game's text), black on the scene."""
+	from PIL import ImageDraw, ImageFont
+	t = Image.new("L", (12, 14), 0)
+	ImageDraw.Draw(t).text((1, 1), ch, fill=255, font=ImageFont.load_default())
+	t = t.resize((12 * k, 14 * k), Image.NEAREST)
+	a = scene(lambda d, ss: None)
+	m = np.asarray(t) > 0
+	a[y:y + 14 * k, x:x + 12 * k][m] = (20, 20, 20)
+	return a
+
+
+def test_visible():
+	def disc(ss):
+		return scene(lambda d, k: d.ellipse((40 * k, 40 * k, 80 * k - 1, 80 * k - 1), fill=(240, 220, 40)), ss)
+	a, b = disc(4), disc(3)
+	r = cmp(a, b, max_shift=0)
+	check("antialiased edge (one disc, sampled 4x4 and 3x3): differs, but only faintly", r["status"] == "faint" and r["boxes"] == []
+		  and r["faint_boxes"] and r["diff_pixels"] > 0, (r["status"], r["diff_pixels"], [box_tuple(x) for x in r["boxes"]]))
+	r = cmp(glyph("8", 40, 40), glyph("3", 40, 40), max_shift=0)
+	check("a changed glyph (8 against 3) is visible", r["status"] == "differ" and len(r["boxes"]) == 1
+		  and r["boxes"][0]["visible_pixels"] >= sd.VISIBLE_MIN, [(box_tuple(x), x["visible_pixels"]) for x in r["boxes"]])
+	a = scene(lambda d, ss: None)
+	b = scene(lambda d, ss: d.rectangle((90 * ss, 30 * ss, 104 * ss - 1, 46 * ss - 1), fill=(200, 40, 40)))
+	r = cmp(a, b, max_shift=0)
+	check("a missing sprite is visible, its box around the sprite", r["status"] == "differ"
+		  and [box_tuple(x) for x in r["boxes"]] == [(90, 30, 14, 16)], [box_tuple(x) for x in r["boxes"]])
+	r = cmp(a, a.copy())
+	check("visible: identical pictures have no boxes of either kind", r["status"] == "match" and allb(r) == [])
 
 
 def test_alignment():
@@ -142,7 +188,7 @@ def test_ignore():
 	check("ignored: the area leaves the denominator", r["compared_pixels"] == W * H - 40 * 30)
 	r = cmp(a, b, [(30, 40, 20, 5)])
 	check("ignored: a change half inside leaves the rest", [box_tuple(x) for x in r["boxes"]] == [(30, 45, 20, 5)], r["boxes"])
-	r = cmp(a, change(a, 100, 10, 5, 5), [(30, 40, 20, 5)])
+	r = cmp(a, change(a, 100, 10, 8, 8), [(30, 40, 20, 5)])
 	check("ignored: elsewhere still differs", r["status"] == "differ")
 
 
@@ -449,6 +495,7 @@ def test_misc():
 
 def main():
 	test_compare()
+	test_visible()
 	test_alignment()
 	test_ignore()
 	test_misc()

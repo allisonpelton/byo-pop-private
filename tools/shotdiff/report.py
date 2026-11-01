@@ -78,6 +78,34 @@ def box_overlay(cls, r, size, label=None):
 		"<i>%s</i>" % label if label is not None else "")
 
 
+def faint_section(s):
+	"""The faint differences: collapsed, after everything to review, with each box's measurements."""
+	rows = []
+	for p in s["pairs"]:
+		fb = p.get("faint_boxes") or []
+		frames = p.get("faint_frames") or []
+		if p.get("kind") == "clip" and frames:
+			rows.append("<tr><td><code>%s</code></td><td colspan=\"5\">%s agree with the original only faintly: %s</td></tr>" % (
+				esc(p["name"]), plural(len(frames), "frame"), esc(", ".join(str(f) for f in frames[:40]) + (", ..." if len(frames) > 40 else ""))))
+		for b in fb:
+			rows.append("<tr><td><code>%s</code></td><td>%s at (%d, %d)</td><td class=\"n\">%s</td><td class=\"n\">%d</td>"
+						"<td class=\"n\">%s</td><td class=\"n\">%d</td></tr>" % (
+							esc(p["name"]), sized((0, 0, b["w"], b["h"])), b["x"], b["y"], "{:,}".format(b["pixels"]), b["max_delta"],
+							"{:,}".format(b.get("strong_pixels", 0)), b.get("visible_pixels", 0)))
+	if not rows:
+		return ""
+	v = s.get("visible", {})
+	return ("<details id=\"faint\"><summary>Faint differences (%s, not for review)</summary><p class=\"muted\">Pixels that differ but that no "
+			"one can see: after a %s blur of both pictures they differ by less than %d%s, or too few of "
+			"them do (under %d in a box). Antialiased edges and sub-pixel sampling end up here. They are kept so a session can still "
+			"look at every difference.</p><table class=\"games\"><thead><tr><th>Pair</th><th>Box</th><th class=\"n\">Differing px</th>"
+			"<th class=\"n\">Largest channel difference</th><th class=\"n\">px off by %d or more</th><th class=\"n\">Visible px</th></tr></thead>"
+			"<tbody>%s</tbody></table></details>") % (
+				plural(sum(len(p.get("faint_boxes") or []) for p in s["pairs"]), "box", "boxes"), esc(v.get("blur", "3x3 box")),
+				v.get("delta", 32), " against the port shifted up to %d px" % v["shift"] if v.get("shift") else "", v.get("min_pixels", 32), 32,
+				"".join(rows))
+
+
 def pair_html(i, p):
 	size = p["size"]
 	boxes = p["boxes"]
@@ -85,7 +113,9 @@ def pair_html(i, p):
 	if p.get("size_mismatch"):
 		meta.append("not compared")
 	else:
-		meta.append(plural(len(boxes), "box", "boxes"))
+		meta.append(plural(len(boxes), "visible box", "visible boxes"))
+		if p.get("faint_boxes"):
+			meta.append("%s listed at the end" % plural(len(p["faint_boxes"]), "faint box", "faint boxes"))
 		meta.append("%s of %s px differ" % ("{:,}".format(p["diff_pixels"]), "{:,}".format(p["compared_pixels"])))
 	meta.append("%d×%d" % (size[0], size[1]))
 	if p["shift"] != [0, 0]:
@@ -237,14 +267,19 @@ def render(summary, has_index=False):
 	if has_index:
 		b.append("<p><a href=\"../../index.html\">&larr; All games</a></p>")
 	b.append("<h1>%s / %s</h1>" % (esc(s["game"]), esc(s["run"])))
-	line = "%s%s: %d matching, %d differing" % (plural(c["pairs"], "pair"), " (%s)" % plural(c["clips"], "clip") if c.get("clips") else "",
-											  c["matching"], c["differing"])
+	line = "%s%s: %d matching, %d differing visibly, %d only faintly" % (
+		plural(c["pairs"], "pair"), " (%s)" % plural(c["clips"], "clip") if c.get("clips") else "", c["matching"], c["differing"], c.get("faint", 0))
 	if c["errors"]:
 		line += ", %s could not be compared" % plural(c["errors"], "pair")
 	if c["orig_only"] or c["port_only"]:
 		line += "; unpaired: %d only in the original, %d only in the port" % (c["orig_only"], c["port_only"])
 	b.append("<p class=\"big\">%s</p>" % esc(line))
 	settings = ["A pixel differs when a colour channel differs by more than %d." % s["tolerance"]]
+	if s.get("visible"):
+		v = s["visible"]
+		settings.append("Only visible differences are for review: a box needs %d or more pixels that still differ by %d after a %s blur "
+						"of both pictures%s; the rest are faint, listed at the end." % (
+							v["min_pixels"], v["delta"], v["blur"], ", against the port shifted up to %d px" % v["shift"] if v["shift"] else ""))
 	if s.get("align"):
 		settings.append("The port is compared at a fixed offset of (%d, %d) px." % tuple(s["align"]))
 	elif s["max_shift"] > 0:
@@ -274,6 +309,7 @@ def render(summary, has_index=False):
 		b.extend(clip_html(i, p) if p["kind"] == "clip" else pair_html(i, p) for i, p in enumerate(differing))
 	else:
 		b.append("<p>No pair differs.</p>")
+	b.append(faint_section(s))
 	if errors:
 		b.append("<details open><summary>Could not be compared (%d)</summary><ul>%s</ul></details>" % (
 			len(errors), "".join("<li><code>%s</code>: %s</li>" % (esc(p["name"]), esc(p.get("note", ""))) for p in errors)))

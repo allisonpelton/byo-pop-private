@@ -18,6 +18,8 @@ game's client area first (the config's "crop", or origrun's window frame when th
 to the original, the differing pixels are grouped into boxes, and a page, summary.json and a crop per box are written under
 build/shotreview/<game>/<run>/. Nothing is hidden except what an ignore rectangle of the config covers, and a pair
 matches only when no pixel differs by more than the tolerance (--allow raises that to a few pixels, and says so).
+A box is visible or faint (docs/SHOTDIFF.md, "Visible and faint"): faint boxes, differences no one can see (antialiased
+edges, sub-pixel sampling), stay in summary.json with their measurements and go in a collapsed list at the page's end.
 
 The config (all keys optional):
     {"client": [640, 480],
@@ -63,6 +65,13 @@ OUTLINE, HALO = (255, 26, 217), (255, 255, 255)
 CROP_SCALE = 2  # a crop shows its pictures enlarged this much, nearest-neighbour
 CROP_SMALL = (320, 240)  # a region up to this size is enlarged; a larger one is shown 1:1
 CROP_MAX_HALF = (640, 480)  # and one beyond this is scaled down to fit
+# Visible and faint (docs/SHOTDIFF.md, "Visible and faint"): a pixel is visibly different when, after a 3x3 box blur of
+# both pictures, it still differs by VISIBLE_DELTA or more in some channel; a box is visible when it holds at least
+# VISIBLE_MIN such pixels. Measured on the Bookworm Adventures pilot (2026-11-01): antialiased and sub-pixel-sampled
+# sprite edges left 0-21 such pixels a box, a changed digit of thin text 158. VISIBLE_SHIFT > 0 would also forgive edges
+# moved that many pixels, but a one-pixel allowance also forgave that digit (13 left, against 10-11 for edge noise).
+VISIBLE_DELTA, VISIBLE_SHIFT, VISIBLE_MIN = 32, 0, 32
+STRONG_DELTA = 32  # a box's measurements count its raw pixels off by this much or more
 
 
 class Options:
@@ -382,6 +391,90 @@ def merge_boxes(boxes, gap):
 	return boxes
 
 
+def blur3(a):
+	"""A 3x3 box blur of an RGB picture (edges repeated), as int32."""
+	h, w = a.shape[:2]
+	p = np.pad(a.astype(np.int32), ((1, 1), (1, 1), (0, 0)), mode="edge")
+	acc = np.zeros((h, w, a.shape[2]), np.int32)
+	for dy in range(3):
+		for dx in range(3):
+			acc += p[dy:dy + h, dx:dx + w]
+	return acc // 9
+
+
+def visible_delta(a, b):
+	"""Per pixel, the largest channel difference between the blurred pictures, at the port position within VISIBLE_SHIFT
+	pixels that agrees best: what is left of a difference once antialiasing and one-pixel edge shifts are absorbed."""
+	ab, bb = blur3(a), blur3(b)
+	h, w = ab.shape[:2]
+	r = VISIBLE_SHIFT
+	bp = np.pad(bb, ((r, r), (r, r), (0, 0)), mode="edge")
+	best = None
+	for dy in range(-r, r + 1):
+		for dx in range(-r, r + 1):
+			d = np.abs(ab - bp[r + dy:r + dy + h, r + dx:r + dx + w]).max(axis=2)
+			best = d if best is None else np.minimum(best, d)
+	return best.astype(np.int16)
+
+
+def visible_and_faint(mask, dmax, vis, opts):
+	"""Split a pair's differing pixels into visible boxes (around the visibly different pixels, each holding at least
+	VISIBLE_MIN of them) and faint boxes (the differing pixels outside those), each with its measurements. A visible box
+	is grown over the differing pieces it touches, so it outlines the whole change, not only its visibly different core."""
+	vis = vis & mask
+	seeds = [b for b in find_boxes(vis, dmax, opts) if b["pixels"] >= VISIBLE_MIN]
+	grown = []
+	if seeds:
+		pieces = components(mask)
+		for b in seeds:
+			x0, y0, x1, y1 = b["x"], b["y"], b["x"] + b["w"], b["y"] + b["h"]
+			for c in pieces:
+				if c[0] < b["x"] + b["w"] and b["x"] < c[2] and c[1] < b["y"] + b["h"] and b["y"] < c[3]:
+					x0, y0, x1, y1 = min(x0, c[0]), min(y0, c[1]), max(x1, c[2]), max(y1, c[3])
+			grown.append([x0, y0, x1, y1])
+		grown = merge_boxes(grown, 0)
+	vbox = [{"x": x0, "y": y0, "w": x1 - x0, "h": y1 - y0} for x0, y0, x1, y1 in grown]
+	covered = np.zeros(mask.shape, bool)
+	for b in vbox:
+		covered[b["y"]:b["y"] + b["h"], b["x"]:b["x"] + b["w"]] = True
+	fbox = find_boxes(mask & ~covered, dmax, opts)
+	for b in vbox + fbox:
+		sl = (slice(b["y"], b["y"] + b["h"]), slice(b["x"], b["x"] + b["w"]))
+		sub = mask[sl]
+		b["visible_pixels"] = int(vis[sl].sum())
+		b["pixels"] = int(sub.sum())
+		b["max_delta"] = int(dmax[sl][sub].max()) if sub.any() else 0
+		b["strong_pixels"] = int((dmax[sl][sub] >= STRONG_DELTA).sum())
+	for b in fbox:
+		b["faint"] = True
+	vbox.sort(key=lambda b: (-b["pixels"], b["y"], b["x"]))
+	for i, b in enumerate(vbox, 1):
+		b["n"] = i
+	return vbox, fbox
+
+
+def visible_boxes_in(m):
+	"""How many boxes, grouped as find_boxes groups them, hold at least VISIBLE_MIN of m's pixels."""
+	o = Options()
+	r = o.dilate
+	comps = components(dilate(np.pad(m, r), r))
+	boxes = merge_boxes([[c[0], c[1], c[2] - 2 * r, c[3] - 2 * r] for c in comps], o.merge)
+	return sum(1 for x0, y0, x1, y1 in boxes if int(m[y0:y1, x0:x1].sum()) >= VISIBLE_MIN)
+
+
+def has_visible(a, b, shift=(0, 0), ign=None):
+	"""Whether the original a and the port b (at the offset) differ visibly anywhere: a clip frame matches without it."""
+	dx, dy = shift
+	h, w = a.shape[:2]
+	x0, y0, x1, y1 = overlap(w, h, dx, dy)
+	if x1 <= x0 or y1 <= y0:
+		return True
+	vis = visible_delta(a[y0:y1, x0:x1], b[y0 + dy:y1 + dy, x0 + dx:x1 + dx]) >= VISIBLE_DELTA
+	if ign is not None:
+		vis &= ~ign[y0:y1, x0:x1]
+	return int(vis.sum()) >= VISIBLE_MIN and visible_boxes_in(vis) > 0
+
+
 def find_boxes(mask, dmax, opts):
 	"""Boxes around the differing pixels: dilate, label the connected pieces, merge the near ones."""
 	if not mask.any():
@@ -446,6 +539,7 @@ def compare_arrays(a, b, opts, ignore_rects=()):
 	aligned = align_port(b, dx, dy)
 	mask = np.zeros((h, w), bool)
 	dmax = np.zeros((h, w), np.int16)
+	vis = np.zeros((h, w), bool)
 	valid = 0
 	if x1 > x0 and y1 > y0:
 		delta = np.abs(a[y0:y1, x0:x1].astype(np.int16) - aligned[y0:y1, x0:x1].astype(np.int16)).max(axis=2)
@@ -453,13 +547,19 @@ def compare_arrays(a, b, opts, ignore_rects=()):
 		dmax[y0:y1, x0:x1] = delta
 		valid = delta.size - int(ign[y0:y1, x0:x1].sum())
 	count = int(mask.sum())
+	boxes, faint = [], []
+	if count > opts.allow:
+		vis[y0:y1, x0:x1] = (visible_delta(a[y0:y1, x0:x1], aligned[y0:y1, x0:x1]) >= VISIBLE_DELTA) & ~ign[y0:y1, x0:x1]
+		boxes, faint = visible_and_faint(mask, dmax, vis, opts)
 	return {
-		"status": "match" if count <= opts.allow else "differ",
+		"status": "differ" if boxes else ("faint" if faint else "match"),
 		"diff_pixels": count,
+		"visible_pixels": int(sum(b["visible_pixels"] for b in boxes)),
 		"compared_pixels": valid,
 		"diff_pct": round(100.0 * count / valid, 4) if valid else 0.0,
 		"shift": [dx, dy],
-		"boxes": find_boxes(mask, dmax, opts) if count > opts.allow else [],
+		"boxes": boxes,
+		"faint_boxes": faint,
 		"aligned": aligned,
 	}
 
@@ -639,7 +739,7 @@ def run_compare(orig_dir, port_dir, out_dir, game, run, cfg=None, mapping=None, 
 		try:
 			res, a, b = compare_pair(opath, ppath, cfg, opts, name)
 		except Exception as e:  # one unreadable picture must not stop the run
-			res = {"name": name, "status": "error", "diff_pct": 0.0, "diff_pixels": 0, "boxes": [], "shift": [0, 0],
+			res = {"name": name, "status": "error", "diff_pct": 0.0, "diff_pixels": 0, "boxes": [], "faint_boxes": [], "shift": [0, 0],
 				   "ignored": [], "note": "%s: %s" % (type(e).__name__, e)}
 			a = b = None
 		res.update(id=pid, orig=display_path(opath), port=display_path(ppath), port_name=pname)
@@ -669,12 +769,15 @@ def run_compare(orig_dir, port_dir, out_dir, game, run, cfg=None, mapping=None, 
 		results.append(res)
 	for r in results:
 		r.setdefault("kind", "still")
+		r.setdefault("faint_boxes", [])
 	results.sort(key=lambda r: (r["status"] != "differ", r["kind"] == "clip", -r["diff_pct"], -r["diff_pixels"], r["name"]))
 	counts = {
 		"pairs": len(results),
 		"clips": len(clips),
 		"matching": sum(r["status"] == "match" for r in results),
 		"differing": sum(r["status"] == "differ" for r in results),
+		"faint": sum(r["status"] == "faint" for r in results),
+		"faint_boxes": sum(len(r["faint_boxes"]) for r in results),
 		"errors": sum(r["status"] == "error" for r in results),
 		"shifted": sum(r["shift"] != [0, 0] for r in results),
 		"orig_only": len(orig_only),
@@ -683,7 +786,8 @@ def run_compare(orig_dir, port_dir, out_dir, game, run, cfg=None, mapping=None, 
 	summary = {
 		"game": game, "run": run, "generated": datetime.datetime.now().astimezone().isoformat(timespec="seconds"),
 		"orig_dir": display_path(orig_dir), "port_dir": display_path(port_dir), "dir": display_path(out_dir),
-		"tolerance": opts.tolerance, "max_shift": opts.max_shift, "align": list(opts.align) if opts.align else None,
+		"tolerance": opts.tolerance, "max_shift": opts.max_shift,
+		"visible": {"delta": VISIBLE_DELTA, "shift": VISIBLE_SHIFT, "min_pixels": VISIBLE_MIN, "blur": "3x3 box"}, "align": list(opts.align) if opts.align else None,
 		"allow": opts.allow,
 		"ignore": [{"rect": list(e["rect"]), "label": e["label"], "pairs": e["pairs"]} for e in ignore_list(cfg)],
 		"counts": counts, "pairs": results, "orig_only": orig_only, "port_only": port_only, "warnings": warnings,
@@ -708,8 +812,9 @@ def summary_line(s):
 		extra += ", %d errors" % c["errors"]
 	if c["orig_only"] or c["port_only"]:
 		extra += ", unpaired: %d original-only, %d port-only" % (c["orig_only"], c["port_only"])
-	return "shotdiff %s/%s: %d pairs%s, %d matching, %d differing%s -> %s" % (
-		s["game"], s["run"], c["pairs"], " (%d clips)" % c["clips"] if c.get("clips") else "", c["matching"], c["differing"], extra, s["page"])
+	return "shotdiff %s/%s: %d pairs%s, %d matching, %d differing, %d only faintly%s -> %s" % (
+		s["game"], s["run"], c["pairs"], " (%d clips)" % c["clips"] if c.get("clips") else "", c["matching"], c["differing"],
+		c.get("faint", 0), extra, s["page"])
 
 
 def main(argv=None):
