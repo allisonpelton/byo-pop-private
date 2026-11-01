@@ -62,6 +62,9 @@ CLAUDE.md was "larger than I typically like"). CLAUDE.md keeps the rules every s
   that means only Mahjong Escape: Ancient China, which is Ancient Japan's code with other resources. Ancient Japan's
   own session ports it once Ancient Japan plays identically, so it copies the finished engine instead of one that is
   still changing (the user, 2026-11-01).
+- **No more identical-play sessions in parallel (the user, 2026-11-01):** asked when Twist was a little over half
+  ported (they had hoped for more than 70%), the user said no more sessions in parallel. The identical-play passes
+  already running carry on, and no other game's pass starts beside them for now.
 - **Order of the work on the merged games (the user, 2026-11-01):** "once all issues I mentioned are fixed, move on down
   through the game list. Once all games are done, then we can do code quality/readability, and finally figure out what
   code does not need to be present in the decomps (mostly registration, but other things are likely to turn up as
