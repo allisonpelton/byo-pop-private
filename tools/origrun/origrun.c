@@ -20,6 +20,9 @@
 //      from its memory, and puts its Is3D setting and cached Direct3D test results back afterwards; --3d on|off
 //      sets the setting for the run and fails the run (exit code 3) when the game ends up in the other mode.
 //
+// Captures are taken only inside Windows Sandbox (--sandbox; docs/ORIGRUN.md, "Windows Sandbox"): there a capture can
+// see only the sandbox's own display. A run on the host is scripted input without shots.
+//
 // Build: tools/origrun/build.sh (llvm-mingw i686). Written from the public Win32 API; no other project's
 // DirectDraw or DirectSound wrapper was read.
 
@@ -33,6 +36,10 @@
 #define PSAPI_VERSION 2   // EnumProcessModulesEx and GetModuleBaseNameA from kernel32 (K32...), no psapi.lib
 #include <psapi.h>
 #include <shlobj.h>
+#include <knownfolders.h>
+#include <lm.h>
+#include <wtsapi32.h>
+#include <userenv.h>
 #include <bcrypt.h>
 #include <mmdeviceapi.h>
 #include <audiopolicy.h>
@@ -167,6 +174,12 @@ static volatile LONG gMode3dLast = -1;     // the last mode read before quit: 1 
 static volatile LONG gMode3dFlips = 0;     // how often it changed after the first reading
 // --stage-root, if given: with <repo>\build, the only places origrun ever deletes a file (path_deletable).
 static char   gStageRoot[MAX_PATH] = "";
+// Set only by detect_windows_sandbox(), from what the machine itself reports: no option or environment variable sets
+// it. Inside Windows Sandbox a capture can see nothing but the sandbox's own display, so shots are taken there and
+// nowhere else (capture_refused).
+static int    gInSandbox = 0;
+static int    gAsSystem = 0;   // inside the sandbox, origrun runs as SYSTEM (wsb exec -r System)
+static char   gDeskName[64] = "bejeweled-test";   // rundesk's hidden desktop; "Default" inside the sandbox
 
 // Is this pid one of our copied game's processes? (image path under gGameDir)
 static int is_our_pid(DWORD pid)
@@ -523,9 +536,9 @@ static int attach_desktop(void)
 {
 	// rundesk creates the desktop a moment after we launch it, so poll for it (up to ~15s).
 	for (int waited=0; waited<15000 && !gStop; waited+=200) {
-		gDesk = OpenDesktopA("bejeweled-test", 0, FALSE,
+		gDesk = OpenDesktopA(gDeskName, 0, FALSE,
 			DESKTOP_ENUMERATE|DESKTOP_READOBJECTS|DESKTOP_WRITEOBJECTS|DESKTOP_CREATEWINDOW|DESKTOP_HOOKCONTROL|STANDARD_RIGHTS_REQUIRED);
-		if (!gDesk) gDesk = OpenDesktopA("bejeweled-test", 0, FALSE, DESKTOP_ENUMERATE|DESKTOP_READOBJECTS|DESKTOP_WRITEOBJECTS);
+		if (!gDesk) gDesk = OpenDesktopA(gDeskName, 0, FALSE, DESKTOP_ENUMERATE|DESKTOP_READOBJECTS|DESKTOP_WRITEOBJECTS);
 		if (gDesk) break;
 		Sleep(200);
 	}
@@ -536,7 +549,7 @@ static int attach_desktop(void)
 
 static HWND resolve_window(DWORD pid, DWORD* outPid)
 {
-	HDESK d = gDesk ? gDesk : OpenDesktopA("bejeweled-test", 0, FALSE, DESKTOP_ENUMERATE|DESKTOP_READOBJECTS);
+	HDESK d = gDesk ? gDesk : OpenDesktopA(gDeskName, 0, FALSE, DESKTOP_ENUMERATE|DESKTOP_READOBJECTS);
 	if (!d) return NULL;
 	FindCtx c; ZeroMemory(&c,sizeof(c)); c.pidWanted=pid;
 	EnumDesktopWindows(d, enum_cb, (LPARAM)&c);
@@ -557,7 +570,7 @@ static BOOL CALLBACK dump_cb(HWND hwnd, LPARAM lp)
 }
 static void dump_desktop(void)
 {
-	HDESK d=OpenDesktopA("bejeweled-test",0,FALSE,DESKTOP_ENUMERATE|DESKTOP_READOBJECTS);
+	HDESK d=OpenDesktopA(gDeskName,0,FALSE,DESKTOP_ENUMERATE|DESKTOP_READOBJECTS);
 	if(!d){ logline("  (cannot open desktop to dump)"); return; }
 	logline("desktop windows:"); EnumDesktopWindows(d,dump_cb,0); CloseDesktop(d);
 }
@@ -587,13 +600,9 @@ static int region_flat(const unsigned char* px, int w, int x0, int y0, int x1, i
 	return 1;
 }
 
-// A game that has loaded a GPU API (DXGI, Direct3D 8 to 12, OpenGL or Vulkan, often through a wrapper such as
-// dgVoodoo2 or cnc-ddraw) is never captured. On rundesk's desktop such a window's pixels need not be the game's:
-// its window DC, and even PrintWindow, have returned what was on the user's own screen (twice on 2026-11-01). The
-// first such shot is refused and logged, and so is every later shot of the run (gCaptureRefused). The module list is
-// read from outside the game (EnumProcessModulesEx), so the check is safe while the game's thread is held.
-// Returns 1 and the modules' names when one is loaded, -1 when the list cannot be read, 0 when none is. A graphics
-// wrapper in the copy (--dgvoodoo's, or one a session put there) sets gCaptureRefused before the game starts.
+// Which GPU APIs the game has loaded (DXGI, Direct3D 8 to 12, OpenGL or Vulkan), read from outside the game
+// (EnumProcessModulesEx), for the log. Returns 1 and the modules' names when one is loaded, -1 when the list cannot
+// be read, 0 when none is.
 static int gCaptureRefused = 0;
 static int is_gpu_module(const char* base)
 {
@@ -625,20 +634,17 @@ static int process_uses_gpu_api(DWORD pid, char* which, int whichLen)
 	return found;
 }
 // The rule every capture follows, before it reads the window and again after: 1 (logged) when the shot is refused.
+// On the host a capture can show the user's own screen: through the screen DC, the window DC and PrintWindow alike
+// (three times by 2026-11-01). So origrun takes no shot of any kind there, and only inside Windows Sandbox, where
+// the only display is the sandbox's own, does it capture at all.
 static int capture_refused(HWND hwnd, const char* name)
 {
-	if (gCaptureRefused) { logline("shot %s refused: this run takes no shots (see above)", name); return 1; }
-	DWORD gpid=0; GetWindowThreadProcessId(hwnd,&gpid);
-	char gpu[MAX_PATH]="";
-	int g = gpid ? process_uses_gpu_api(gpid,gpu,sizeof(gpu)) : -1;
-	if (g>0) {
-		gCaptureRefused=1;
-		logline("shot %s refused, and every later shot of this run: the game has loaded %s, and a window drawn "
-			"through a GPU API can show the user's own screen", name, gpu);
-		return 1;
-	}
-	if (g<0) { logline("shot %s refused: the game's module list could not be read", name); return 1; }
-	return 0;
+	if (gInSandbox) return 0;
+	if (!gCaptureRefused) logline("shot %s refused, and every later shot of this run: origrun takes no shot on the host, "
+		"only inside Windows Sandbox (--sandbox)", name);
+	else logline("shot %s refused (no shots on the host)", name);
+	gCaptureRefused=1;
+	return 1;
 }
 
 // allowPrint==0 skips PrintWindow (which sends WM_PRINT to the game's window thread): a capture taken while
@@ -703,7 +709,7 @@ static int capture_ex2(HWND hwnd, const char* name, int allowPrint, HANDLE* held
 	if (cx0<0) cx0=0; if (cy0<0) cy0=0; if (cx1>w) cx1=w; if (cy1>h) cy1=h;
 
 	// What reads the window: PrintWindow (GDI and DWM-redirected content), then a blit of the window's own DC, which
-	// legacy DirectDraw windows need. Never the screen, and nothing at all of a game that has loaded a GPU module:
+	// legacy DirectDraw windows need. Never the screen, and nothing at all outside Windows Sandbox:
 	// capture_refused is asked when the capture starts, again right before a window-DC read that follows a
 	// PrintWindow, and once more after the read, before anything is saved.
 	const char* how="printwindow";
@@ -782,7 +788,7 @@ static int wait_counter(uint32_t target, int timeout_ms)
 // Capture the game while its window thread is held, so the frame cannot change under the grab. If gFlipsExpr is
 // set, first let the game present the frame that reflects the current update (wait for one more flip), so the
 // shot is update N rather than possibly N-1.
-// A game that has loaded a GPU module is refused before it is ever held (capture_refused).
+// Outside Windows Sandbox the shot is refused before the game is ever held (capture_refused).
 static int capture_held(const char* name)
 {
 	gLastHeldMs=0; gHeldAt=0;   // a shot that is not held, or not taken, reports no hold of an earlier one
@@ -827,7 +833,7 @@ static void do_burst(const char* name, int count, int interval_ms, int byUpdates
 		if (byUpdates) { if (wait_counter(start + (uint32_t)i*k, 4000)<0){ logline("burst %s: counter unreadable, stopping",name); break; } cap0=qpc_ms(); ok=capture_held(leaf); holdSum+=gLastHeldMs; if (gLastHeldMs>holdMax) holdMax=gLastHeldMs;
 			{ int d=(int)(gHeldAt-(start+(uint32_t)i*k)) - (gFlipsExpr[0]?0:1); if (gHeldAt && d>0){ late++; if(d>lateMax) lateMax=d; } } }
 		else { HWND hw=resolve_window(0,NULL); if(!hw){ logline("burst %s: no window, stopping at %d",name,i); break; } cap0=qpc_ms(); ok=capture(hw,leaf); }
-		if (gCaptureRefused) { logline("burst %s: captures refused (a GPU API), stopping at %d",name,i); break; }
+		if (gCaptureRefused) { logline("burst %s: captures refused (no shots on the host), stopping at %d",name,i); break; }
 		double dt=qpc_ms()-cap0;   // the capture itself, not any wait before it
 		if (ok){ taken++; capSum+=dt; if(dt>capMax)capMax=dt; }
 		if (!byUpdates) { double rest=interval_ms-(qpc_ms()-frameStart); if (rest>1) Sleep((DWORD)rest); }
@@ -1231,8 +1237,12 @@ static const char* hkcu_sub(const char* sub)
 }
 static HKEY open_game_key(const char* sub)
 {
-	HKEY k=NULL;
-	if (RegCreateKeyExA(HKEY_CURRENT_USER,hkcu_sub(sub),0,NULL,0,KEY_QUERY_VALUE|KEY_SET_VALUE,NULL,&k,NULL)!=ERROR_SUCCESS) return NULL;
+	HKEY k=NULL, root=HKEY_CURRENT_USER; const char* p=hkcu_sub(sub);
+	// Inside the sandbox origrun and the game run as SYSTEM, which UAC never virtualizes: a game that keeps its
+	// settings under HKLM writes there itself, not to the per-user VirtualStore copy games.tsv names for the host.
+	static const char kVs[]="Software\\Classes\\VirtualStore\\MACHINE\\";
+	if (gInSandbox && gAsSystem && _strnicmp(p,kVs,sizeof(kVs)-1)==0) { root=HKEY_LOCAL_MACHINE; p+=sizeof(kVs)-1; }
+	if (RegCreateKeyExA(root,p,0,NULL,0,KEY_QUERY_VALUE|KEY_SET_VALUE,NULL,&k,NULL)!=ERROR_SUCCESS) return NULL;
 	return k;
 }
 
@@ -1509,8 +1519,7 @@ static int place_wrapper(const char* dir, const char* installDir)
 			return 0;
 		}
 	}
-	logline("placed dgVoodoo2 in the copy: %s, %s (from %s) and origrun's dgVoodoo.conf (windowed, flip model, no watermark); no shots this run", dlls[0], dlls[1], dir);
-	gCaptureRefused=1;
+	logline("placed dgVoodoo2 in the copy: %s, %s (from %s) and origrun's dgVoodoo.conf (windowed, flip model, no watermark)", dlls[0], dlls[1], dir);
 	return 1;
 }
 
@@ -1550,9 +1559,8 @@ static DWORD WINAPI driver_thread(LPVOID p)
 	if (pid) {
 		gGamePidHint=pid;
 		char gpu[MAX_PATH]; int g=process_uses_gpu_api(pid,gpu,sizeof(gpu));
-		if (g>0) { gCaptureRefused=1; logline("game window first seen: pid=%lu; the game has loaded %s, so origrun takes no shot this run", pid, gpu); }
-		else if (gCaptureRefused) logline("game window first seen: pid=%lu; a graphics wrapper is in the copy, so origrun takes no shot this run", pid);
-		else logline("game window first seen: pid=%lu; %s; asked again before every capture", pid, g<0 ? "its module list could not be read yet" : "no GPU module loaded");
+		logline("game window first seen: pid=%lu; GPU modules: %s; %s", pid, g>0 ? gpu : (g<0 ? "(list not readable)" : "none"),
+			gInSandbox ? "inside Windows Sandbox, so shots are taken" : "on the host, so no shot is taken");
 	}
 	else logline("no window in the first 20s; proceeding anyway (the script polls for it)");
 	if (GetEnvironmentVariableA("ORIGRUN_MONITOR",NULL,0) || getenv("ORIGRUN_MONITOR")) {
@@ -1567,12 +1575,604 @@ static DWORD WINAPI driver_thread(LPVOID p)
 
 static const char* lookup_game(const char* name, const char* byExe, char* srcDir, char* exeLeaf, char* regKey, char* flag3d);
 
+// --------------------------------------------------------------------------------------------- launching
+
+typedef struct { HANDLE proc, thread, job; } Launched;
+// rundesk given: the host's way, the game on rundesk's hidden desktop (rundesk's job ends it). rundesk NULL: inside
+// the sandbox, the game on the sandbox's own WinSta0\Default, in a job of origrun's that ends it and its children.
+static int launch_game(const char* rundesk, Launched* L)
+{
+	ZeroMemory(L,sizeof(*L));
+	STARTUPINFOA si; ZeroMemory(&si,sizeof(si)); si.cb=sizeof(si);
+	PROCESS_INFORMATION pi; ZeroMemory(&pi,sizeof(pi));
+	char cmd[MAX_PATH*2];
+	if (rundesk) {
+		wsprintfA(cmd,"\"%s\" \"%s\"",rundesk,gExePath);
+		logline("launching under rundesk: %s",gExePath);
+		if (!CreateProcessA(NULL,cmd,NULL,NULL,FALSE,0,NULL,gGameDir,&si,&pi))
+			{ logline("CreateProcess(rundesk) failed (err %lu)",GetLastError()); return 0; }
+	} else {
+		char cwd[MAX_PATH]; lstrcpynA(cwd,gExePath,MAX_PATH); char* e=strrchr(cwd,'\\'); if(e)*e=0;
+		L->job=CreateJobObjectA(NULL,NULL);
+		if (L->job) {
+			JOBOBJECT_EXTENDED_LIMIT_INFORMATION li; ZeroMemory(&li,sizeof(li));
+			li.BasicLimitInformation.LimitFlags=JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE;
+			SetInformationJobObject(L->job,JobObjectExtendedLimitInformation,&li,sizeof(li));
+		}
+		si.lpDesktop=(LPSTR)"WinSta0\\Default";
+		wsprintfA(cmd,"\"%s\"",gExePath);
+		logline("launching on the sandbox's own desktop (WinSta0\\Default): %s",gExePath);
+		if (!CreateProcessA(NULL,cmd,NULL,NULL,FALSE,CREATE_SUSPENDED|BELOW_NORMAL_PRIORITY_CLASS,NULL,cwd,&si,&pi))
+			{ logline("CreateProcess failed (err %lu)",GetLastError()); if (L->job) CloseHandle(L->job); L->job=NULL; return 0; }
+		if (L->job && !AssignProcessToJobObject(L->job,pi.hProcess)) logline("warning: the game is not in origrun's job (err %lu)",GetLastError());
+		ResumeThread(pi.hThread);
+	}
+	L->proc=pi.hProcess; L->thread=pi.hThread;
+	return 1;
+}
+// 1 when the timeout came first. With a job, the run lasts until every process in it has ended (a launcher's game too).
+static int wait_game(Launched* L, int timeout)
+{
+	if (!L->job) return WaitForSingleObject(L->proc,(DWORD)timeout*1000)==WAIT_TIMEOUT;
+	DWORD t0=GetTickCount();
+	for (;;) {
+		JOBOBJECT_BASIC_ACCOUNTING_INFORMATION ai;
+		if (QueryInformationJobObject(L->job,JobObjectBasicAccountingInformation,&ai,sizeof(ai),NULL) && ai.ActiveProcesses==0) return 0;
+		if (GetTickCount()-t0 >= (DWORD)timeout*1000) return 1;
+		Sleep(200);
+	}
+}
+static void end_game(Launched* L)
+{
+	if (L->job) TerminateJobObject(L->job,1);
+	else TerminateProcess(L->proc,1);   // only our rundesk child; its job kill-on-close ends the game
+	WaitForSingleObject(L->proc,5000);
+}
+static void close_game(Launched* L){ if(L->thread) CloseHandle(L->thread); if(L->proc) CloseHandle(L->proc); if(L->job) CloseHandle(L->job); }
+
+// Drive and watch a launched game to its end: the script, message boxes, audio, the 3D flag, the timeout; then the
+// game's 3D setting back, and the results. Host runs and runs inside the sandbox share it.
+static int watch_run(Launched* L, const char* script, int timeout, const char* key3d, int hadPrev3d, DWORD prev3d,
+	RegVals* prevTest3dP, const char* logs, const char* logpath)
+{
+	if (script) load_msgbox_rules(script);   // register dialog answers before any dialog can appear
+	HANDLE ath=CreateThread(NULL,0,audio_thread,NULL,0,NULL);
+	DriverArg da; ZeroMemory(&da,sizeof(da)); if(script) lstrcpynA(da.script,script,MAX_PATH);
+	HANDLE dth=CreateThread(NULL,0,driver_thread,&da,0,NULL);
+	HANDLE gth=CreateThread(NULL,0,dialog_thread,NULL,0,NULL);   // log/answer message boxes on the game desktop
+	HANDLE mth=gMode3dExpr[0] ? CreateThread(NULL,0,mode3d_thread,NULL,0,NULL) : NULL;   // the game's 3D mode
+
+	// Wait for the game (rundesk returns when the whole job ends; inside the sandbox, origrun's own job), or hit the
+	// timeout.
+	if (wait_game(L,timeout)) {
+		logline("timeout (%ds) -- ending the run (the job kills the game and its children)",timeout);
+		end_game(L);
+	} else logline("game exited");
+
+	InterlockedExchange(&gStop,1);
+	WaitForSingleObject(dth,3000);
+	WaitForSingleObject(gth,3000);
+	WaitForSingleObject(ath,3000);
+	if (mth) WaitForSingleObject(mth,3000);
+	close_game(L);
+
+	// What the game left in its setting (it writes Is3D at exit, and turns it off after a fallback), then the earlier
+	// value and test results back.
+	if (key3d[0]) {
+		DWORD after=0; int hasAfter=reg_get_is3d(key3d,&after);
+		if (hasAfter!=hadPrev3d || (hasAfter && after!=prev3d) || gMode3dWant>=0) {
+			char was[32]; if (hasAfter) wsprintfA(was,"%lu",after); else lstrcpyA(was,"unset");
+			if (reg_set_is3d(key3d,hadPrev3d,prev3d)) {
+				if (hadPrev3d) logline("3D: the game left %s=%s; restored %s=%lu", kIs3DValue, was, kIs3DValue, prev3d);
+				else logline("3D: the game left %s=%s; removed it again (it was unset)", kIs3DValue, was);
+			}
+			else logline("WARNING: could not restore HKCU\\%s\\%s (err %lu)", key3d, kIs3DValue, GetLastError());
+		}
+		restore_test3d(key3d,prevTest3dP);
+	}
+
+	logline("done. captures in %s, logs in %s", gShotDir, logs);
+	logline(gAudioSeen ? "RESULT: an audio session appeared and was muted (see warning above)."
+	                   : "RESULT: no audio session from the game was seen.");
+	int rc=0;
+	if (gMode3dExpr[0]) {
+		LONG m=gMode3dLast;
+		const char* flips = gMode3dFlips ? " (it changed during the run; see the 3D mode lines above)" : "";
+		if (gMode3dWant>=0) {
+			if (m<0) { logline("RESULT: 3D CHECK FAILED: asked for 3D %s, but the game's 3D flag (%s) was never read", gMode3dWant?"on":"off", gMode3dExpr); rc=3; }
+			else if (m!=gMode3dWant) { logline("RESULT: 3D MISMATCH: asked for 3D %s, but the game ran with 3D %s%s", gMode3dWant?"on":"off", m?"on":"off", flips); rc=3; }
+			else logline("RESULT: 3D %s, as asked%s", m?"on":"off", flips);
+		} else if (m>=0) logline("RESULT: 3D %s (no --3d: the game's own setting)%s", m?"on":"off", flips);
+		if (rc) fprintf(stderr,"origrun: the game did not run in the 3D mode asked for (see %s)\n", logpath);
+	}
+	return rc;
+}
+
+// ------------------------------------------------------------------------------------------ Windows Sandbox
+
+// SMBIOS's system manufacturer and product (structure type 1), as the firmware gives them to the kernel.
+static void smbios_string(const BYTE* str, const BYTE* end, int idx, char* out, int cap)
+{
+	out[0]=0; if (idx<=0) return;
+	const BYTE* q=str;
+	for (int i=1; q<end && *q; i++) {
+		const BYTE* z=q; while (z<end && *z) z++;
+		if (i==idx) { int n=(int)(z-q); if (n>=cap) n=cap-1; memcpy(out,q,n); out[n]=0; return; }
+		q=z+1;
+	}
+}
+static int smbios_system(char* manu, char* prod, int cap)
+{
+	manu[0]=prod[0]=0;
+	UINT n=GetSystemFirmwareTable('RSMB',0,NULL,0); if (n<8) return 0;
+	BYTE* b=(BYTE*)malloc(n); if (!b) return 0;
+	if (GetSystemFirmwareTable('RSMB',0,b,n)!=n) { free(b); return 0; }
+	DWORD len=*(DWORD*)(b+4); const BYTE* d=b+8; const BYTE* end=d+len; if (end>b+n) end=b+n;
+	int ok=0;
+	while (d+4<=end) {
+		BYTE type=d[0], hl=d[1]; if (hl<4 || d+hl>end) break;
+		const BYTE* str=d+hl;
+		if (type==1 && hl>=6) { smbios_string(str,end,d[4],manu,cap); smbios_string(str,end,d[5],prod,cap); ok=1; break; }
+		const BYTE* q=str; while (q+1<end && !(q[0]==0 && q[1]==0)) q++;
+		d=q+2;
+		if (type==127) break;
+	}
+	free(b);
+	return ok;
+}
+// Is this Windows Sandbox? Three things a run on the host cannot fake by an option or an environment variable must
+// all hold: the firmware reports a Hyper-V virtual machine (SMBIOS "Microsoft Corporation" / "Virtual Machine"; the
+// host here is a physical MSI board), the local account WDAGUtilityAccount, the sandbox's own user (disabled on the
+// host), is enabled, and origrun runs as that account or as SYSTEM (what "wsb exec -r System" gives), by its token.
+static int detect_windows_sandbox(char* why, int cap)
+{
+	char manu[128], prod[128];
+	int fw = smbios_system(manu,prod,sizeof(manu));
+	int vm = fw && !strcmp(manu,"Microsoft Corporation") && !strcmp(prod,"Virtual Machine");
+	int wdag=0; USER_INFO_1* ui=NULL;
+	if (NetUserGetInfo(NULL,L"WDAGUtilityAccount",1,(LPBYTE*)&ui)==NERR_Success && ui) { wdag = !(ui->usri1_flags & UF_ACCOUNTDISABLE); NetApiBufferFree(ui); }
+	char user[128]="?"; int userOk=0;
+	HANDLE tok=NULL;
+	if (OpenProcessToken(GetCurrentProcess(),TOKEN_QUERY,&tok)) {
+		BYTE buf[256]; DWORD n=0;
+		if (GetTokenInformation(tok,TokenUser,buf,sizeof(buf),&n)) {
+			PSID sid=((TOKEN_USER*)buf)->User.Sid;
+			char name[128], dom[128]; DWORD nn=sizeof(name), dn=sizeof(dom); SID_NAME_USE use;
+			if (IsWellKnownSid(sid,WinLocalSystemSid)) { lstrcpyA(user,"SYSTEM"); userOk=1; gAsSystem=1; }
+			else if (LookupAccountSidA(NULL,sid,name,&nn,dom,&dn,&use)) { lstrcpynA(user,name,sizeof(user)); userOk=ieq(name,"WDAGUtilityAccount"); }
+		}
+		CloseHandle(tok);
+	}
+	_snprintf(why,cap-1,"SMBIOS %s / %s, WDAGUtilityAccount %s, running as %s",
+		fw?manu:"(unreadable)", fw?prod:"(unreadable)", wdag?"enabled":"disabled or absent", user);
+	why[cap-1]=0;
+	return vm && wdag && userOk;
+}
+
+// One sandbox at a time on the whole machine: every session's origrun opens the same lock file, under the user's
+// local application data folder as Windows reports it (not %LOCALAPPDATA%, which a shell can change), with no
+// sharing. Windows closes the handle when origrun ends, however it ends, so the lock is never left behind.
+static HANDLE acquire_sandbox_lock(int waitSec, const char* run)
+{
+	PWSTR la=NULL;
+	if (SHGetKnownFolderPath(&FOLDERID_LocalAppData,0,NULL,&la)!=S_OK || !la) { logline("--sandbox: no local application data folder"); return INVALID_HANDLE_VALUE; }
+	WCHAR dir[MAX_PATH], path[MAX_PATH];
+	_snwprintf(dir,MAX_PATH-1,L"%s\\byo-pop",la); dir[MAX_PATH-1]=0;
+	CoTaskMemFree(la);
+	CreateDirectoryW(dir,NULL);
+	_snwprintf(path,MAX_PATH-1,L"%s\\sandbox.lock",dir); path[MAX_PATH-1]=0;
+	for (int waited=0;; waited++) {
+		HANDLE h=CreateFileW(path,GENERIC_READ|GENERIC_WRITE,0,NULL,OPEN_ALWAYS,FILE_ATTRIBUTE_NORMAL,NULL);
+		if (h!=INVALID_HANDLE_VALUE) {
+			char info[512]; SYSTEMTIME st; GetLocalTime(&st);
+			int n=_snprintf(info,sizeof(info)-1,"pid %lu, run %s, since %02d:%02d:%02d, %s\r\n",GetCurrentProcessId(),run,st.wHour,st.wMinute,st.wSecond,gRunDir);
+			DWORD wr=0; SetFilePointer(h,0,NULL,FILE_BEGIN); SetEndOfFile(h); if (n>0) WriteFile(h,info,(DWORD)n,&wr,NULL);
+			logline("holding the Windows Sandbox lock %ls%s", path, waited?" (after waiting)":"");
+			return h;
+		}
+		DWORD e=GetLastError();
+		if (e!=ERROR_SHARING_VIOLATION && e!=ERROR_LOCK_VIOLATION) { logline("--sandbox: cannot open the lock %ls (err %lu)", path, e); return INVALID_HANDLE_VALUE; }
+		if (waited==0) logline("another run holds the Windows Sandbox lock %ls; queued, waiting up to %d s", path, waitSec);
+		else if (waited%60==0) logline("  still waiting for the sandbox lock (%d s)", waited);
+		if (waited>=waitSec) { logline("--sandbox: the lock was not free within %d s; giving up", waitSec); return INVALID_HANDLE_VALUE; }
+		Sleep(1000);
+	}
+}
+
+static char gWsbPath[MAX_PATH] = "";
+static char gWsbLog[MAX_PATH] = "";
+static char gSandboxId[64] = "";
+// wsb.exe is 64-bit and origrun 32-bit: System32 is reached as Sysnative, and Windows 11 may also give the command
+// as an app execution alias under the user's WindowsApps folder.
+static int find_wsb(void)
+{
+	char p[MAX_PATH]; char win[MAX_PATH]; GetWindowsDirectoryA(win,MAX_PATH);
+	wsprintfA(p,"%s\\Sysnative\\wsb.exe",win);
+	if (GetFileAttributesA(p)==INVALID_FILE_ATTRIBUTES) wsprintfA(p,"%s\\System32\\wsb.exe",win);
+	if (GetFileAttributesA(p)==INVALID_FILE_ATTRIBUTES) {
+		PWSTR la=NULL; p[0]=0;
+		if (SHGetKnownFolderPath(&FOLDERID_LocalAppData,0,NULL,&la)==S_OK && la) {
+			WideCharToMultiByte(CP_ACP,0,la,-1,p,MAX_PATH-40,NULL,NULL); CoTaskMemFree(la);
+			lstrcatA(p,"\\Microsoft\\WindowsApps\\wsb.exe");
+		}
+		if (!p[0] || GetFileAttributesA(p)==INVALID_FILE_ATTRIBUTES) return 0;
+	}
+	lstrcpynA(gWsbPath,p,MAX_PATH);
+	logline("wsb: %s", gWsbPath);
+	return 1;
+}
+// Run wsb.exe with no console window, its output appended to gWsbLog. wait=0 returns the process in *proc.
+static int run_wsb(const char* args, int wait, DWORD waitMs, DWORD* exitCode, HANDLE* proc)
+{
+	static char cmd[16384];
+	_snprintf(cmd,sizeof(cmd)-1,"\"%s\" %s",gWsbPath,args); cmd[sizeof(cmd)-1]=0;
+	SECURITY_ATTRIBUTES sa={sizeof(sa),NULL,TRUE};
+	HANDLE out=CreateFileA(gWsbLog,FILE_APPEND_DATA,FILE_SHARE_READ|FILE_SHARE_WRITE,&sa,OPEN_ALWAYS,FILE_ATTRIBUTE_NORMAL,NULL);
+	if (out!=INVALID_HANDLE_VALUE) { char hdr[256]; int n=_snprintf(hdr,sizeof(hdr)-1,"---- wsb %.200s\r\n",args); DWORD wr=0; if (n>0) WriteFile(out,hdr,(DWORD)n,&wr,NULL); }
+	STARTUPINFOA si; ZeroMemory(&si,sizeof(si)); si.cb=sizeof(si);
+	si.dwFlags=STARTF_USESTDHANDLES|STARTF_USESHOWWINDOW; si.wShowWindow=SW_HIDE;
+	si.hStdInput=NULL; si.hStdOutput=out; si.hStdError=out;
+	PROCESS_INFORMATION pi; ZeroMemory(&pi,sizeof(pi));
+	BOOL ok=CreateProcessA(NULL,cmd,NULL,NULL,TRUE,CREATE_NO_WINDOW,NULL,NULL,&si,&pi);
+	DWORD err=GetLastError();
+	if (out!=INVALID_HANDLE_VALUE) CloseHandle(out);
+	if (!ok) { logline("could not run wsb %.80s (err %lu)", args, err); return 0; }
+	CloseHandle(pi.hThread);
+	if (!wait) { *proc=pi.hProcess; return 1; }
+	DWORD w=WaitForSingleObject(pi.hProcess,waitMs);
+	if (w==WAIT_TIMEOUT) { logline("wsb %.40s did not finish within %lu s", args, waitMs/1000); TerminateProcess(pi.hProcess,1); }
+	DWORD ec=1; GetExitCodeProcess(pi.hProcess,&ec); if (exitCode) *exitCode=ec;
+	CloseHandle(pi.hProcess);
+	return w!=WAIT_TIMEOUT;
+}
+static void stop_sandbox(const char* why)
+{
+	if (!gSandboxId[0] || !gWsbPath[0]) return;
+	char a[128]; wsprintfA(a,"stop --id %s",gSandboxId);
+	logline("stopping the sandbox %s (%s)", gSandboxId, why);
+	DWORD ec=0; run_wsb(a,1,60000,&ec,NULL);
+	if (ec) logline("wsb stop exited %lu (see %s)", ec, gWsbLog);
+	gSandboxId[0]=0;
+}
+static BOOL WINAPI sandbox_ctrl(DWORD type){ stop_sandbox("origrun was interrupted"); return FALSE; }
+// The id "wsb start" printed (the last GUID after its "---- wsb start" header in gWsbLog), if any.
+static int started_id(char* id, int cap)
+{
+	FILE* f=fopen(gWsbLog,"r"); if (!f) return 0;
+	static char text[65536]; size_t n=fread(text,1,sizeof(text)-1,f); fclose(f); text[n]=0;
+	char* q=NULL; for (char* h=text; (h=strstr(h,"---- wsb start"))!=NULL; h++) q=h;
+	if (!q) return 0;
+	int found=0;
+	for (; *q; q++) {
+		int ok=1; static const int dash[]={8,13,18,23};
+		for (int i=0;i<36 && ok;i++) {
+			char c=q[i];
+			int isDash = (i==dash[0]||i==dash[1]||i==dash[2]||i==dash[3]);
+			if (isDash ? c!='-' : !((c>='0'&&c<='9')||(c>='a'&&c<='f')||(c>='A'&&c<='F'))) ok=0;
+		}
+		if (ok) { lstrcpynA(id,q,37<cap?37:cap); found=1; q+=35; }
+	}
+	return found;
+}
+
+// The sandbox must never show a window on the user's desktop. Docs say "wsb connect" is what opens one; this check
+// watches for any visible window of a Windows Sandbox process (or vmconnect) on the desktop the user sees, and the
+// run stops the sandbox at once if one appears.
+typedef struct { int found; char what[300]; } SbWin;
+static BOOL CALLBACK sbwin_cb(HWND h, LPARAM lp)
+{
+	SbWin* c=(SbWin*)lp;
+	if (!IsWindowVisible(h)) return TRUE;
+	DWORD pid=0; GetWindowThreadProcessId(h,&pid);
+	HANDLE p=OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION,FALSE,pid); if (!p) return TRUE;
+	char path[MAX_PATH]; DWORD n=MAX_PATH; int ok=QueryFullProcessImageNameA(p,0,path,&n); CloseHandle(p);
+	if (!ok) return TRUE;
+	const char* leaf=strrchr(path,'\\'); leaf=leaf?leaf+1:path;
+	if (istr_has(leaf,"sandbox") || ieq(leaf,"vmconnect.exe")) {
+		char t[128]=""; GetWindowTextA(h,t,sizeof(t));
+		_snprintf(c->what,sizeof(c->what)-1,"%s (pid %lu): '%s'",leaf,pid,t); c->found=1; return FALSE;
+	}
+	return TRUE;
+}
+static int sandbox_window_shown(char* what, int cap)
+{
+	SbWin c; ZeroMemory(&c,sizeof(c));
+	HDESK d=OpenInputDesktop(0,FALSE,DESKTOP_READOBJECTS|DESKTOP_ENUMERATE);
+	if (d) { EnumDesktopWindows(d,sbwin_cb,(LPARAM)&c); CloseDesktop(d); }
+	if (!c.found) { d=OpenDesktopA("Default",0,FALSE,DESKTOP_READOBJECTS|DESKTOP_ENUMERATE); if (d) { EnumDesktopWindows(d,sbwin_cb,(LPARAM)&c); CloseDesktop(d); } }
+	if (c.found) lstrcpynA(what,c.what,cap);
+	return c.found;
+}
+
+static void xml_escape(const char* in, char* out, int cap)
+{
+	int o=0;
+	for (; *in && o<cap-7; in++) {
+		const char* r=NULL;
+		switch (*in) { case '&': r="&amp;"; break; case '<': r="&lt;"; break; case '>': r="&gt;"; break; case '"': r="&quot;"; break; case '\'': r="&apos;"; break; }
+		if (r) { lstrcpyA(out+o,r); o+=lstrlenA(r); } else out[o++]=*in;
+	}
+	out[o]=0;
+}
+static int read_marker_rc(const char* path, int* rc)
+{
+	FILE* f=fopen(path,"r"); if (!f) return 0;
+	char ln[128]=""; int got = fgets(ln,sizeof(ln),f)!=NULL; fclose(f);
+	if (!got) return 0;
+	const char* q=strstr(ln,"rc="); *rc = q ? atoi(q+3) : 1;
+	return 1;
+}
+
+// --sandbox, on the host: the copy, the script and origrun's binaries are staged; the run happens inside a fresh
+// Windows Sandbox that sees only the run folder (read-write, as C:\run) and origrun's binaries (read-only, as
+// C:\origrun), and the shots and the sandbox's log land in the run folder.
+static int sandbox_host_run(const char* selfDir, const char* script, int timeout, const char* sound, const char* key3d,
+	int vgpu, int waitSec)
+{
+	size_t rl=strlen(gRunDir);
+	if (_strnicmp(gExePath,gRunDir,rl)!=0 || gExePath[rl]!='\\') { logline("--sandbox: the exe %s is not inside the run folder %s", gExePath, gRunDir); return 2; }
+	const char* exeRel=gExePath+rl+1;
+	char logs[MAX_PATH]; joinp(logs,gRunDir,"logs"); joinp(gWsbLog,logs,"wsb.txt");
+
+	// What the run inside needs: sandbox-run.txt, read by "origrun --in-sandbox C:\run".
+	char p[MAX_PATH];
+	if (script) { joinp(p,gRunDir,"script.txt"); if (!CopyFileA(script,p,FALSE)) { logline("--sandbox: cannot copy the script %s (err %lu)", script, GetLastError()); return 2; } }
+	joinp(p,gRunDir,"sandbox-run.txt");
+	FILE* rf=fopen(p,"w"); if (!rf) { logline("--sandbox: cannot write %s", p); return 2; }
+	fprintf(rf,"exe=%s\ntimeout=%d\nsound=%s\nupdate_ms=%d\n", exeRel, timeout, sound, gUpdateMs);
+	if (script) fprintf(rf,"script=script.txt\n");
+	if (gCounterExpr[0]) fprintf(rf,"counter=%s\n",gCounterExpr);
+	if (gFlipsExpr[0]) fprintf(rf,"flips=%s\n",gFlipsExpr);
+	if (gMode3dWant>=0) fprintf(rf,"3d=%s\n",gMode3dWant?"on":"off");
+	if (key3d && key3d[0]) fprintf(rf,"key3d=%s\n",key3d);
+	if (gMode3dExpr[0]) fprintf(rf,"flag3d=%s\n",gMode3dExpr);
+	fclose(rf);
+	const char* markers[2]={"sandbox-started.txt","sandbox-done.txt"};
+	for (int i=0;i<2;i++) { joinp(p,gRunDir,markers[i]); if (GetFileAttributesA(p)!=INVALID_FILE_ATTRIBUTES && !delete_guarded(p)) { logline("--sandbox: cannot clear %s", p); return 2; } }
+
+	// The configuration: no network, clipboard, printers, microphone or camera; the RDP client in AppContainer
+	// isolation; software rendering unless --sandbox-vgpu; and only the two folders.
+	char runX[MAX_PATH*2], binX[MAX_PATH*2]; xml_escape(gRunDir,runX,sizeof(runX)); xml_escape(selfDir,binX,sizeof(binX));
+	static char cfg[4096];
+	_snprintf(cfg,sizeof(cfg)-1,
+		"<Configuration><vGPU>%s</vGPU><Networking>Disable</Networking>"
+		"<MappedFolders>"
+		"<MappedFolder><HostFolder>%s</HostFolder><SandboxFolder>C:\\run</SandboxFolder><ReadOnly>false</ReadOnly></MappedFolder>"
+		"<MappedFolder><HostFolder>%s</HostFolder><SandboxFolder>C:\\origrun</SandboxFolder><ReadOnly>true</ReadOnly></MappedFolder>"
+		"</MappedFolders>"
+		"<AudioInput>Disable</AudioInput><VideoInput>Disable</VideoInput><ProtectedClient>Enable</ProtectedClient>"
+		"<PrinterRedirection>Disable</PrinterRedirection><ClipboardRedirection>Disable</ClipboardRedirection>"
+		"</Configuration>", vgpu?"Enable":"Disable", runX, binX);
+	cfg[sizeof(cfg)-1]=0;
+	joinp(p,gRunDir,"sandbox.wsb");
+	FILE* wf=fopen(p,"w"); if (wf) { fputs(cfg,wf); fputs("\n",wf); fclose(wf); }
+	logline("sandbox configuration in %s: vGPU %s, networking, clipboard, printers, audio and video input off, protected client on; "
+		"maps %s (read-write, C:\\run) and %s (read-only, C:\\origrun)", p, vgpu?"on":"off", gRunDir, selfDir);
+
+	const char* run=strrchr(gRunDir,'\\'); run=run?run+1:gRunDir;
+	HANDLE lock=acquire_sandbox_lock(waitSec, run);
+	if (lock==INVALID_HANDLE_VALUE) return 2;
+	if (!find_wsb()) {
+		logline("--sandbox: wsb.exe is not on this machine: the Windows Sandbox feature (Windows 11 24H2 or later) is not enabled");
+		gWsbPath[0]=0; CloseHandle(lock); logline("released the Windows Sandbox lock"); return 2;
+	}
+
+	int rc=2; char what[300]; HANDLE ex=NULL;
+	char started[MAX_PATH], done[MAX_PATH]; joinp(started,gRunDir,markers[0]); joinp(done,gRunDir,markers[1]);
+	GUID g; WCHAR gw[64]; char ga[64];
+	CoCreateGuid(&g); StringFromGUID2(&g,gw,64); WideCharToMultiByte(CP_ACP,0,gw+1,-1,ga,sizeof(ga),NULL,NULL);
+	{ char* br=strchr(ga,'}'); if (br) *br=0; }
+	lstrcpynA(gSandboxId,ga,sizeof(gSandboxId));   // set before start, so any later exit stops it
+	SetConsoleCtrlHandler(sandbox_ctrl,TRUE);
+	static char args[8192];
+	_snprintf(args,sizeof(args)-1,"start --id %s --config \"%s\"",gSandboxId,cfg); args[sizeof(args)-1]=0;
+	logline("starting Windows Sandbox %s (no client window: origrun never runs wsb connect)", gSandboxId);
+	{
+		HANDLE sp=NULL; DWORD ec=1, t0=GetTickCount();
+		if (!run_wsb(args,0,0,NULL,&sp)) goto out;
+		while (WaitForSingleObject(sp,250)==WAIT_TIMEOUT) {   // watched for a window all the while
+			if (sandbox_window_shown(what,sizeof(what))) { logline("STOP: a sandbox window is on the user's desktop: %s", what); rc=4; CloseHandle(sp); goto out; }
+			if (GetTickCount()-t0 > 180000) { logline("wsb start did not finish within 180 s"); TerminateProcess(sp,1); WaitForSingleObject(sp,5000); CloseHandle(sp); goto out; }
+		}
+		GetExitCodeProcess(sp,&ec); CloseHandle(sp);
+		if (ec!=0) { logline("wsb start failed (exit %lu; see %s)", ec, gWsbLog); goto out; }
+		char id[64];
+		if (started_id(id,sizeof(id)) && !ieq(id,gSandboxId)) { logline("wsb start gave the sandbox the id %s (asked for %s)", id, gSandboxId); lstrcpynA(gSandboxId,id,sizeof(gSandboxId)); }
+		logline("the sandbox %s is up after %lu ms", gSandboxId, GetTickCount()-t0);
+	}
+	if (sandbox_window_shown(what,sizeof(what))) { logline("STOP: a sandbox window is on the user's desktop: %s", what); rc=4; goto out; }
+
+	// Run origrun inside as SYSTEM: "wsb exec -r ExistingLogin" needs a user session, which only "wsb connect" (a
+	// window) makes. exec is retried while the sandbox is still booting, until origrun inside says it has started.
+	_snprintf(args,sizeof(args)-1,"exec --id %s -c \"C:\\origrun\\origrun.exe --in-sandbox C:\\run\" -r System -d C:\\run",gSandboxId);
+	{
+		DWORD t0=GetTickCount(); int up=0;
+		while (!up && GetTickCount()-t0 < 120000) {
+			if (!run_wsb(args,0,0,NULL,&ex)) goto out;
+			for (;;) {
+				if (GetFileAttributesA(started)!=INVALID_FILE_ATTRIBUTES) { up=1; break; }
+				if (sandbox_window_shown(what,sizeof(what))) { logline("STOP: a sandbox window is on the user's desktop: %s", what); rc=4; goto out; }
+				if (GetTickCount()-t0 >= 120000) break;
+				if (WaitForSingleObject(ex,250)==WAIT_OBJECT_0) {
+					if (GetFileAttributesA(started)!=INVALID_FILE_ATTRIBUTES) { up=1; break; }
+					DWORD xc=0; GetExitCodeProcess(ex,&xc); CloseHandle(ex); ex=NULL;
+					logline("wsb exec returned %lu before origrun started inside; the sandbox may still be booting, retrying", xc);
+					Sleep(3000); break;
+				}
+			}
+		}
+		if (!up) { logline("origrun did not start inside the sandbox within 120 s (see %s)", gWsbLog); goto out; }
+		logline("origrun runs inside the sandbox; its log is %s\\logs\\origrun-sandbox.log", gRunDir);
+		DWORD t1=GetTickCount(), limit=(DWORD)(timeout+60)*1000;
+		while (GetFileAttributesA(done)==INVALID_FILE_ATTRIBUTES) {
+			if (GetTickCount()-t1 > limit) { logline("no done marker within %lu s; stopping the sandbox", limit/1000); goto out; }
+			if (sandbox_window_shown(what,sizeof(what))) { logline("STOP: a sandbox window is on the user's desktop: %s", what); rc=4; goto out; }
+			Sleep(250);
+		}
+		Sleep(300);   // let the marker's writer close it
+		if (!read_marker_rc(done,&rc)) rc=2;
+		logline("the run inside the sandbox ended with code %d", rc);
+	}
+out:
+	{
+		char id[64]; lstrcpynA(id,gSandboxId,sizeof(id));
+		stop_sandbox(rc==4 ? "a window showed" : "the run is over");
+		if (ex) {   // wsb exec ends with the sandbox; never leave it behind
+			if (WaitForSingleObject(ex,10000)==WAIT_TIMEOUT) { logline("wsb exec still ran after the stop; ending it"); TerminateProcess(ex,1); WaitForSingleObject(ex,5000); }
+			CloseHandle(ex); ex=NULL;
+		}
+		if (id[0] && run_wsb("list",1,30000,NULL,NULL)) {
+			FILE* lf=fopen(gWsbLog,"r"); int still=0; char ln[512];
+			if (lf) { int after=0; while (fgets(ln,sizeof(ln),lf)) { if (strstr(ln,"---- wsb list")) after=1, still=0; else if (after && istr_has(ln,id)) still=1; } fclose(lf); }
+			if (still) logline("WARNING: wsb list still shows the sandbox %s after stop", id);
+		}
+	}
+	SetConsoleCtrlHandler(sandbox_ctrl,FALSE);
+	CloseHandle(lock);   // the next queued run may start its sandbox
+	logline("released the Windows Sandbox lock");
+	{   // the inside run's verdicts, for this log
+		char ip[MAX_PATH]; wsprintfA(ip,"%s\\origrun-sandbox.log",logs);
+		FILE* f=fopen(ip,"r"); char ln[1024];
+		if (f) { while (fgets(ln,sizeof(ln),f)) if (strstr(ln,"RESULT") || strstr(ln,"refused") || strstr(ln,"crashed")) { char* e=strpbrk(ln,"\r\n"); if(e)*e=0; logline("  inside: %s", ln); } fclose(f); }
+	}
+	return rc;
+}
+
+// wsb exec -r System starts origrun in session 0, where nothing is ever on a display. If the sandbox has a user
+// session (WDAGUtilityAccount logged on), origrun runs itself again there, as that user, and the game with it;
+// otherwise the run stays in session 0. 1 and the inner run's code when it ran in a user session.
+static int run_in_user_session(const char* dir, int timeout, int* rc)
+{
+	DWORD me=0; if (!ProcessIdToSessionId(GetCurrentProcessId(),&me) || me!=0) return 0;
+	WTS_SESSION_INFOA* si=NULL; DWORD n=0; HANDLE tok=NULL; DWORD sid=0;
+	if (!WTSEnumerateSessionsA(WTS_CURRENT_SERVER_HANDLE,0,1,&si,&n)) { logline("sessions: cannot list them (err %lu)", GetLastError()); return 0; }
+	for (DWORD i=0;i<n;i++) {
+		HANDLE t=NULL; int ok = si[i].SessionId!=0 && WTSQueryUserToken(si[i].SessionId,&t);
+		DWORD err = ok ? 0 : GetLastError();
+		logline("session %lu ('%s', state %d): %s", si[i].SessionId, si[i].pWinStationName?si[i].pWinStationName:"", (int)si[i].State,
+			si[i].SessionId==0 ? "services" : ok ? "a user is logged on" : (err==ERROR_NO_TOKEN ? "no user logged on" : "no token"));
+		if (ok && !tok) { tok=t; sid=si[i].SessionId; } else if (ok) CloseHandle(t);
+	}
+	WTSFreeMemory(si);
+	if (!tok) { logline("no user session in the sandbox: the game runs in session 0, as SYSTEM"); return 0; }
+	char self[MAX_PATH]; GetModuleFileNameA(NULL,self,MAX_PATH);
+	char cmd[MAX_PATH*3]; wsprintfA(cmd,"\"%s\" --in-sandbox \"%s\" --in-session",self,dir);
+	void* env=NULL; CreateEnvironmentBlock(&env,tok,FALSE);
+	STARTUPINFOA st; ZeroMemory(&st,sizeof(st)); st.cb=sizeof(st); st.lpDesktop=(LPSTR)"WinSta0\\Default";
+	PROCESS_INFORMATION pi; ZeroMemory(&pi,sizeof(pi));
+	HANDLE job=CreateJobObjectA(NULL,NULL);
+	if (job) { JOBOBJECT_EXTENDED_LIMIT_INFORMATION li; ZeroMemory(&li,sizeof(li)); li.BasicLimitInformation.LimitFlags=JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE; SetInformationJobObject(job,JobObjectExtendedLimitInformation,&li,sizeof(li)); }
+	if (gLogFile) fflush(gLogFile);
+	BOOL ok=CreateProcessAsUserA(tok,NULL,cmd,NULL,NULL,FALSE,CREATE_SUSPENDED|CREATE_NO_WINDOW|(env?CREATE_UNICODE_ENVIRONMENT:0),env,dir,&st,&pi);
+	DWORD err=GetLastError();
+	if (env) DestroyEnvironmentBlock(env);
+	CloseHandle(tok);
+	if (!ok) { logline("could not start origrun in session %lu (err %lu): the game runs in session 0, as SYSTEM", sid, err); if (job) CloseHandle(job); return 0; }
+	if (job) AssignProcessToJobObject(job,pi.hProcess);
+	logline("running the game in session %lu, as its user (origrun pid %lu there; its lines follow)", sid, pi.dwProcessId);
+	ResumeThread(pi.hThread);
+	DWORD w=WaitForSingleObject(pi.hProcess,(DWORD)(timeout+30)*1000);
+	if (w==WAIT_TIMEOUT) { logline("origrun in session %lu did not end in time; ending it", sid); if (job) TerminateJobObject(job,1); else TerminateProcess(pi.hProcess,1); WaitForSingleObject(pi.hProcess,5000); }
+	DWORD ec=2; GetExitCodeProcess(pi.hProcess,&ec);
+	CloseHandle(pi.hThread); CloseHandle(pi.hProcess); if (job) CloseHandle(job);
+	*rc = w==WAIT_TIMEOUT ? 2 : (int)ec;
+	return 1;
+}
+
+// --in-sandbox <dir>: origrun inside Windows Sandbox (started there by --sandbox through wsb exec). It runs only when
+// it finds for itself that it is in the sandbox, reads the run from <dir>\sandbox-run.txt, puts the files the run
+// staged under <dir>\sandbox-files\C onto the sandbox's C:, runs the game on the sandbox's own desktop and writes
+// <dir>\sandbox-done.txt at the end.
+static int main_in_sandbox(const char* dir, int inSession)
+{
+	char why[300];
+	gInSandbox = detect_windows_sandbox(why,sizeof(why));
+	if (!gInSandbox) { fprintf(stderr,"origrun --in-sandbox: this is not Windows Sandbox (%s); refusing to run\n", why); return 2; }
+	if (!inSession) {   // the one started by the host (the one --in-session is its own child, in a user session)
+		HANDLE once=CreateMutexA(NULL,TRUE,"Global\\byo-pop-origrun-in-sandbox");
+		if (once && GetLastError()==ERROR_ALREADY_EXISTS) { fprintf(stderr,"origrun --in-sandbox: another origrun already runs in this sandbox\n"); return 2; }
+	}
+	lstrcpynA(gRunDir,dir,MAX_PATH);
+	joinp(gShotDir,gRunDir,"shots"); mkdirs(gShotDir);
+	char logs[MAX_PATH]; joinp(logs,gRunDir,"logs"); mkdirs(logs);
+	InitializeCriticalSection(&gLogLock); gLogLockInit=1;
+	char logpath[MAX_PATH]; joinp(logpath,logs,"origrun-sandbox.log"); gLogFile=fopen(logpath,inSession?"a":"w");
+	if (!inSession) { char mk[MAX_PATH]; joinp(mk,gRunDir,"sandbox-started.txt"); FILE* f=fopen(mk,"w"); if (f) { fprintf(f,"started\n"); fclose(f); } }
+	{ DWORD ss=0; ProcessIdToSessionId(GetCurrentProcessId(),&ss); logline("inside Windows Sandbox, session %lu: %s", ss, why); }
+	int rc=2;   // from here on, every way out of the first origrun writes the done marker the host waits for
+
+	char exeRel[MAX_PATH]="", scriptRel[MAX_PATH]="", sound[32]="stub", key3d[256]="";
+	int timeout=120;
+	{
+		char rp[MAX_PATH]; joinp(rp,gRunDir,"sandbox-run.txt");
+		FILE* f=fopen(rp,"r"); char ln[512];
+		if (!f) { logline("no %s", rp); goto done; }
+		while (fgets(ln,sizeof(ln),f)) {
+			char* e=strpbrk(ln,"\r\n"); if(e)*e=0;
+			char* eq=strchr(ln,'='); if (!eq) continue; *eq=0; const char* v=eq+1;
+			if (ieq(ln,"exe")) lstrcpynA(exeRel,v,MAX_PATH);
+			else if (ieq(ln,"script")) lstrcpynA(scriptRel,v,MAX_PATH);
+			else if (ieq(ln,"timeout")) timeout=atoi(v);
+			else if (ieq(ln,"sound")) lstrcpynA(sound,v,sizeof(sound));
+			else if (ieq(ln,"update_ms")) gUpdateMs=atoi(v)>0?atoi(v):10;
+			else if (ieq(ln,"counter")) lstrcpynA(gCounterExpr,v,256);
+			else if (ieq(ln,"flips")) lstrcpynA(gFlipsExpr,v,256);
+			else if (ieq(ln,"3d")) gMode3dWant = ieq(v,"on") ? 1 : 0;
+			else if (ieq(ln,"key3d")) lstrcpynA(key3d,v,256);
+			else if (ieq(ln,"flag3d")) lstrcpynA(gMode3dExpr,v,256);
+		}
+		fclose(f);
+	}
+	if (!exeRel[0] || strstr(exeRel,"..") || exeRel[0]=='\\' || strchr(exeRel,':')) { logline("bad exe in sandbox-run.txt: '%s'", exeRel); goto done; }
+	if (timeout>240) timeout=240;
+	joinp(gExePath,gRunDir,exeRel);
+	joinp(gGameDir,gRunDir,"game");
+	char script[MAX_PATH]=""; if (scriptRel[0]) joinp(script,gRunDir,scriptRel);
+
+	// Saves and other files a run needs outside the game's folder (C:\ProgramData\..., say) are staged by the host
+	// under <run>\sandbox-files\C\ and copied onto C: here. They, the registry and everything else the game writes
+	// outside C:\run vanish with the sandbox.
+	if (!inSession) {
+		char sf[MAX_PATH]; wsprintfA(sf,"%s\\sandbox-files\\C",gRunDir);
+		if (GetFileAttributesA(sf)!=INVALID_FILE_ATTRIBUTES) { logline("copying %s onto C:", sf); copy_tree(sf,"C:"); }
+		if (run_in_user_session(gRunDir,timeout,&rc)) { logline("origrun in the user session ended with code %d", rc); goto done; }
+	}
+
+	// wsb exec runs origrun as SYSTEM; the game goes on the interactive window station's desktop, WinSta0\Default.
+	{
+		HWINSTA ws=OpenWindowStationA("WinSta0",FALSE,MAXIMUM_ALLOWED);
+		if (ws && SetProcessWindowStation(ws)) logline("using window station WinSta0");
+		else logline("warning: cannot use window station WinSta0 (err %lu)", GetLastError());
+		lstrcpyA(gDeskName,"Default");
+	}
+	SetEnvironmentVariableA("ORIGRUN_DIR",gRunDir);
+	SetEnvironmentVariableA("ORIGRUN_SOUND", ieq(sound,"real") ? "real" : sound);
+
+	DWORD prev3d=0; int hadPrev3d=0; static RegVals prevTest3d;
+	if (key3d[0]) { hadPrev3d = reg_get_is3d(key3d,&prev3d); read_test3d(key3d,&prevTest3d); }
+	if (gMode3dWant>=0 && key3d[0]) {
+		if (!reg_set_is3d(key3d,1,(DWORD)gMode3dWant)) logline("--3d: could not write %s\\%s (err %lu)",key3d,kIs3DValue,GetLastError());
+		else logline("--3d %s: set %s=%d inside the sandbox", gMode3dWant?"on":"off", kIs3DValue, gMode3dWant);
+	}
+	if (gCounterExpr[0]) logline("update counter: %s (one update = %d ms)%s%s", gCounterExpr, gUpdateMs, gFlipsExpr[0]?", flips=":"", gFlipsExpr);
+
+	{
+		Launched L;
+		if (launch_game(NULL,&L)) rc=watch_run(&L, script[0]?script:NULL, timeout, key3d, hadPrev3d, prev3d, &prevTest3d, logs, logpath);
+	}
+done:
+	if (inSession) return rc;   // the origrun in session 0 writes the done marker
+	{ char dn[MAX_PATH]; joinp(dn,gRunDir,"sandbox-done.txt"); FILE* f=fopen(dn,"w"); if (f) { fprintf(f,"rc=%d\n",rc); fclose(f); } }
+	return rc;
+}
+
 // A crash of origrun itself leaves the game running on rundesk's desktop with nothing to stop it, so say where it
 // happened (module and offset, for addr2line) before the process goes.
 static LONG WINAPI crash_filter(EXCEPTION_POINTERS* ep)
 {
 	HANDLE held=(HANDLE)InterlockedExchangePointer(&gHeldThread,NULL);   // first of all, let a held game run on
 	if (held) ResumeThread(held);
+	stop_sandbox("origrun crashed");   // and never leave a sandbox running
 	void* a=ep->ExceptionRecord->ExceptionAddress; HMODULE m=NULL; char mod[MAX_PATH]="?";
 	if (GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS|GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,(LPCSTR)a,&m)) GetModuleFileNameA(m,mod,MAX_PATH);
 	logline("origrun crashed: exception 0x%08lx at %p (%s+0x%lx), thread %lu; the game may still be running", ep->ExceptionRecord->ExceptionCode, a, mod, (unsigned long)((char*)a-(char*)m), GetCurrentThreadId());
@@ -1589,6 +2189,7 @@ int main(int argc, char** argv)
 	const char* patches=NULL; const char* counter=NULL; const char* flips=NULL;
 	int haveSeed=0; uint32_t seed=0; int updateMs=0; int noPatch=0; const char* stageRoot=NULL;
 	const char* key3dArg=NULL; const char* flag3dArg=NULL; const char* dgvArg=NULL;
+	int sandboxHost=0, sandboxVgpu=0, sandboxWait=600, inSession=0; const char* inSandboxDir=NULL;
 
 	for (int i=1;i<argc;i++) {
 		if (ieq(argv[i],"--game")&&i+1<argc) game=argv[++i];
@@ -1614,10 +2215,22 @@ int main(int argc, char** argv)
 		else if (ieq(argv[i],"--3d-key")&&i+1<argc) key3dArg=argv[++i];
 		else if (ieq(argv[i],"--3d-flag")&&i+1<argc) flag3dArg=argv[++i];
 		else if (ieq(argv[i],"--dgvoodoo")&&i+1<argc) dgvArg=argv[++i];
+		else if (ieq(argv[i],"--sandbox")) sandboxHost=1;
+		else if (ieq(argv[i],"--sandbox-vgpu")) sandboxVgpu=1;
+		else if (ieq(argv[i],"--sandbox-wait")&&i+1<argc) sandboxWait=atoi(argv[++i]);
+		else if (ieq(argv[i],"--in-sandbox")&&i+1<argc) inSandboxDir=argv[++i];
+		else if (ieq(argv[i],"--in-session")) inSession=1;
 		else { fprintf(stderr,"unknown or incomplete option: %s\n",argv[i]); return 2; }
 	}
+	if (inSandboxDir) return main_in_sandbox(inSandboxDir, inSession);   // everything else comes from the run folder
 	if (!game && !exe) die("need --game <name> or --exe <path>");
 	if (timeout>240) timeout=240;   // the machine rule: nothing longer than about 4 minutes
+	if (!sandboxHost && !copyOnly && script_takes_shots(script)) {
+		fprintf(stderr, "origrun: refusing to start: this run takes shots, and origrun takes no shot on the host (a capture "
+			"there can show the user's own screen). Run it with --sandbox, or with a script that takes none.\n");
+		return 2;
+	}
+	if (sandboxHost && stageRoot) { fprintf(stderr, "origrun: --sandbox stages the copy in the run folder; drop --stage-root (inside the sandbox the path is short)\n"); return 2; }
 
 	// where the tool and rundesk live (origrun.exe sits in build/origrun-bin/)
 	char selfDir[MAX_PATH]; GetModuleFileNameA(NULL,selfDir,MAX_PATH);
@@ -1627,7 +2240,7 @@ int main(int argc, char** argv)
 	GetFullPathNameA(repoRaw, MAX_PATH, repo, NULL);           // canonicalize (drop the ..\..)
 	lstrcpynA(gRepo, repo, MAX_PATH);
 	char rundesk[MAX_PATH]; wsprintfA(rundesk,"%s\\build\\native\\rundesk.exe",repo);
-	if (GetFileAttributesA(rundesk)==INVALID_FILE_ATTRIBUTES)
+	if (!sandboxHost && GetFileAttributesA(rundesk)==INVALID_FILE_ATTRIBUTES)
 		{ logline("rundesk not found at %s -- build it: cmake --build build/native --target rundesk", rundesk); return 2; }
 
 	if (!run) run = game ? game : "run";
@@ -1750,13 +2363,10 @@ int main(int argc, char** argv)
 	{
 		const char* env=getenv("ORIGRUN_DGVOODOO"); const char* wrapDir=dgvArg;
 		if (wrapDir && ieq(wrapDir,"env")) { wrapDir=env; if (!wrapDir||!*wrapDir) { logline("--dgvoodoo env: ORIGRUN_DGVOODOO is not set"); return 2; } }
-		if (!wrapDir && gMode3dWant==1 && env && *env) { wrapDir=env; logline("--3d on: using dgVoodoo2 from ORIGRUN_DGVOODOO (%s)", env); }
-		if (wrapDir && script_takes_shots(script)) {
-			logline("--dgvoodoo: refusing to start: this run takes shots, and no capture of a game drawing through a GPU wrapper is safe (its window can show the user's own screen). Run it with a script that takes none.");
-			return 2;
-		}
+		if (!wrapDir && gMode3dWant==1 && env && *env && !sandboxHost) { wrapDir=env; logline("--3d on: using dgVoodoo2 from ORIGRUN_DGVOODOO (%s)", env); }
 		if (wrapDir) { if (!place_wrapper(wrapDir, srcDir)) return 2; }
-		else if (gMode3dWant==1) logline("note: --3d on without --dgvoodoo: legacy DirectDraw has no hardware on rundesk's desktop, so the game will fall back to software");
+		else if (gMode3dWant==1 && !sandboxHost) logline("note: --3d on without --dgvoodoo: legacy DirectDraw has no hardware on rundesk's desktop, so the game will fall back to software");
+		else if (gMode3dWant==1) logline("--3d on: inside the sandbox the game runs on the sandbox's own desktop, without a wrapper%s", sandboxVgpu ? ", with the host's GPU (--sandbox-vgpu)" : "; without --sandbox-vgpu it has only software rendering (WARP)");
 	}
 
 	// Place the sound stand-in beside the copied exe (unless real sound was asked for).
@@ -1768,6 +2378,9 @@ int main(int argc, char** argv)
 		if (CopyFileA(src,dst,FALSE)) logline("placed sound stand-in: %s",dst);
 		else logline("warning: could not place dsound stand-in from %s (err %lu) -- sound may play",src,GetLastError());
 	} else logline("--sound real: no stand-in placed; the game will use the real audio device");
+
+	// --sandbox: everything is staged; the run itself, its registry and its shots happen inside Windows Sandbox.
+	if (sandboxHost) return sandbox_host_run(selfDir, script, timeout, sound, key3d, sandboxVgpu, sandboxWait);
 
 	// Environment the stand-in reads, inherited through rundesk.
 	SetEnvironmentVariableA("ORIGRUN_DIR",gRunDir);
@@ -1784,75 +2397,11 @@ int main(int argc, char** argv)
 		logline("--3d %s: set HKCU\\%s\\%s=%d for this run (it was %s)", gMode3dWant?"on":"off", key3d, kIs3DValue, gMode3dWant, was);
 	}
 
-	// Any graphics wrapper in the copy, whoever put it there, refuses every shot of the run (see capture_refused).
-	if (!gCaptureRefused) {
-		static const char* const kWrapperDlls[]={"ddraw.dll","d3dimm.dll","d3d8.dll","d3d9.dll","d3d11.dll","dxgi.dll","opengl32.dll"};
-		for (int i=0;i<(int)(sizeof(kWrapperDlls)/sizeof(kWrapperDlls[0]));i++) {
-			char wp[MAX_PATH]; joinp(wp,gGameDir,kWrapperDlls[i]);
-			if (file_exists(wp)) { gCaptureRefused=1; logline("%s is in the copy: origrun takes no shot this run (a GPU wrapper's window can show the user's own screen)", kWrapperDlls[i]); break; }
-		}
-	}
 
 	// Launch: rundesk.exe "<copied exe>"   (CWD = game folder, so the game finds its data)
-	char cmd[MAX_PATH*2]; wsprintfA(cmd,"\"%s\" \"%s\"",rundesk,gExePath);
-	STARTUPINFOA si; ZeroMemory(&si,sizeof(si)); si.cb=sizeof(si);
-	PROCESS_INFORMATION pi; ZeroMemory(&pi,sizeof(pi));
-	logline("launching under rundesk: %s",gExePath);
-	if (!CreateProcessA(NULL,cmd,NULL,NULL,FALSE,0,NULL,gGameDir,&si,&pi))
-		{ logline("CreateProcess(rundesk) failed (err %lu)",GetLastError()); return 2; }
-
-	if (script) load_msgbox_rules(script);   // register dialog answers before any dialog can appear
-	HANDLE ath=CreateThread(NULL,0,audio_thread,NULL,0,NULL);
-	DriverArg da; ZeroMemory(&da,sizeof(da)); if(script) lstrcpynA(da.script,script,MAX_PATH);
-	HANDLE dth=CreateThread(NULL,0,driver_thread,&da,0,NULL);
-	HANDLE gth=CreateThread(NULL,0,dialog_thread,NULL,0,NULL);   // log/answer message boxes on the game desktop
-	HANDLE mth=gMode3dExpr[0] ? CreateThread(NULL,0,mode3d_thread,NULL,0,NULL) : NULL;   // the game's 3D mode
-
-	// Wait for the game (rundesk returns when the whole job ends), or hit the timeout.
-	DWORD w=WaitForSingleObject(pi.hProcess, (DWORD)timeout*1000);
-	if (w==WAIT_TIMEOUT) {
-		logline("timeout (%ds) -- ending the run (rundesk's job kills the game and its children)",timeout);
-		TerminateProcess(pi.hProcess,1);   // only our rundesk child; its job kill-on-close ends the game
-		WaitForSingleObject(pi.hProcess,5000);
-	} else logline("game exited");
-
-	InterlockedExchange(&gStop,1);
-	WaitForSingleObject(dth,3000);
-	WaitForSingleObject(gth,3000);
-	WaitForSingleObject(ath,3000);
-	if (mth) WaitForSingleObject(mth,3000);
-	CloseHandle(pi.hThread); CloseHandle(pi.hProcess);
-
-	// What the game left in its setting (it writes Is3D at exit, and turns it off after a fallback), then the earlier
-	// value and test results back.
-	if (key3d[0]) {
-		DWORD after=0; int hasAfter=reg_get_is3d(key3d,&after);
-		if (hasAfter!=hadPrev3d || (hasAfter && after!=prev3d) || gMode3dWant>=0) {
-			char was[32]; if (hasAfter) wsprintfA(was,"%lu",after); else lstrcpyA(was,"unset");
-			if (reg_set_is3d(key3d,hadPrev3d,prev3d)) {
-				if (hadPrev3d) logline("3D: the game left %s=%s; restored %s=%lu", kIs3DValue, was, kIs3DValue, prev3d);
-				else logline("3D: the game left %s=%s; removed it again (it was unset)", kIs3DValue, was);
-			}
-			else logline("WARNING: could not restore HKCU\\%s\\%s (err %lu)", key3d, kIs3DValue, GetLastError());
-		}
-		restore_test3d(key3d,&prevTest3d);
-	}
-
-	logline("done. captures in %s, logs in %s", gShotDir, logs);
-	logline(gAudioSeen ? "RESULT: an audio session appeared and was muted (see warning above)."
-	                   : "RESULT: no audio session from the game was seen.");
-	int rc=0;
-	if (gMode3dExpr[0]) {
-		LONG m=gMode3dLast;
-		const char* flips = gMode3dFlips ? " (it changed during the run; see the 3D mode lines above)" : "";
-		if (gMode3dWant>=0) {
-			if (m<0) { logline("RESULT: 3D CHECK FAILED: asked for 3D %s, but the game's 3D flag (%s) was never read", gMode3dWant?"on":"off", gMode3dExpr); rc=3; }
-			else if (m!=gMode3dWant) { logline("RESULT: 3D MISMATCH: asked for 3D %s, but the game ran with 3D %s%s", gMode3dWant?"on":"off", m?"on":"off", flips); rc=3; }
-			else logline("RESULT: 3D %s, as asked%s", m?"on":"off", flips);
-		} else if (m>=0) logline("RESULT: 3D %s (no --3d: the game's own setting)%s", m?"on":"off", flips);
-		if (rc) fprintf(stderr,"origrun: the game did not run in the 3D mode asked for (see %s)\n", logpath);
-	}
-	return rc;
+	Launched L;
+	if (!launch_game(rundesk,&L)) return 2;
+	return watch_run(&L, script, timeout, key3d, hadPrev3d, prev3d, &prevTest3d, logs, logpath);
 }
 
 // ------------------------------------------------------------------------------------- games.tsv lookup
