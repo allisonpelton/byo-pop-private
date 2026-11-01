@@ -15,6 +15,7 @@
 #include "X86Math.h"
 
 #include <cmath>
+#include <cstdlib>
 #include <cstring>
 #include <ctime>
 
@@ -263,10 +264,93 @@ void Board::ReadConfig(bool theResize)
 
 void Board::ResizeBoard(int theRows, int theCols)
 {
-	(void)theRows;
-	(void)theCols;
-	// port: comes with the grid (0x6afe3a, 0x6b0886, 0x6a3ea2, 0x6bf659)
-	NotPorted("Board::ResizeBoard (0x6c427e)");
+	if (theRows == 0)
+		theRows = mRows;
+	if (theCols == 0)
+		theCols = mCols;
+	mUnknown2204 = 0;
+	mUnknown2180 = 0;
+	mUnknown2184 = 0;
+	mUnknown16C = 0;
+	mUnknown14FC = 0;
+	ClearBoard();
+	AllocGrid(theRows, theCols);
+	MakeCells();
+	NewLevel();
+}
+
+void Board::ClearBoard()
+{
+	if (!mUnknown149C.empty()) {
+		// port: these objects come with the matching code (their destructor is 0x71eb9e)
+		NotPorted("Board::ClearBoard's +0x149c objects (0x71eb9e)");
+	}
+	mUnknown149C.clear();  // 0x6af6b6
+	for (size_t i = 0; i < mUnknown14AC.size(); i++)
+		std::free(mUnknown14AC[i]);
+	mUnknown14AC.clear();  // 0x6af6f1
+	mUnknown1430 = nullptr;
+	if (mUnknown21D9) {
+		mUnknown21D9 = false;
+		mUnknown15C = 0;
+	}
+	if (mGrid != nullptr) {
+		for (int aRow = 0; aRow < mRows; aRow++) {
+			for (int aCol = 0; aCol < mCols; aCol++) {
+				Piece* aPiece = GetPieceAt(aRow, aCol);
+				if (aPiece != nullptr)
+					RemovePiece(aPiece, true);
+			}
+		}
+		// The original says "Piecemap still has pieces after ClearBoard()" in its debug output when mPieceMap is not
+		// empty here
+	}
+}
+
+void Board::AllocGrid(int theRows, int theCols)
+{
+	if (mGrid != nullptr) {
+		ClearBoard();
+		delete[] mGrid;
+	}
+	delete[] mUnknown135C;
+	mRows = theRows;
+	mCols = theCols;
+	mGrid = new Piece*[theRows * theCols];
+	std::memset(mGrid, 0, mCols * mRows * sizeof(Piece*));
+	mUnknown135C = new int[mCols * mRows];
+	std::memset(mUnknown135C, 0, mCols * mRows * sizeof(int));
+	MakeCells();
+}
+
+void Board::MakeCells()
+{
+	delete[] mCells;
+	int aCount = mRows * mCols;
+	mCells = new Cell[aCount];
+	for (int aRow = 0; aRow < mRows; aRow++) {
+		for (int aCol = 0; aCol < mCols; aCol++) {
+			mCells[mCols * aRow + aCol].mRow = aRow;
+			mCells[mCols * aRow + aCol].mCol = aCol;
+		}
+	}
+}
+
+void Board::RemovePiece(Piece* thePiece, bool theDelete)
+{
+	if (thePiece == nullptr)
+		return;
+	if (thePiece == mUnknown1430)
+		mUnknown1430 = nullptr;
+	mGrid[mCols * thePiece->mRow + thePiece->mCol] = nullptr;
+	if (theDelete)
+		delete thePiece;  // 0x6a54ac
+}
+
+void Board::NewLevel()
+{
+	// port: comes next (0x6bf659: the level's backdrop, its targets and the tube)
+	NotPorted("Board::NewLevel (0x6bf659)");
 }
 
 // 0x6b2b77: properties\config.xml, then the mode's own file over it (casual 0, normal 1, blitz 3, zen 4)
@@ -294,6 +378,9 @@ Board::~Board()
 {
 	// port: the rest of the destructor comes with the board's update
 	delete[] mUnknown1370;
+	delete[] mUnknown135C;
+	delete[] mCells;
+	delete[] mGrid;
 	if (gBoard == this)
 		gBoard = nullptr;
 }

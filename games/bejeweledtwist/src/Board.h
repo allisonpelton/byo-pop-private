@@ -65,7 +65,8 @@ public:
 	int mRows = 0;                     // +0x1330
 	int mCols = 0;                     // +0x1334
 	Piece** mGrid = nullptr;           // +0x1338: mRows x mCols, row by row
-	std::vector<Piece*> mUnknown149C;  // +0x149c
+	// +0x149c: objects of a class at 0x71eb9e (not yet ported); ClearBoard deletes them
+	std::vector<void*> mUnknown149C;
 	std::vector<Piece*> mBombList;     // +0x14bc: bombs about to go off, drawn over the board (Piece::DrawFront)
 	std::map<int, Piece*> mPieceMap;   // +0x1364: the pieces by id (0x6b8c20 adds, 0x6b677b drops)
 	float mShineAmount = 1.0f;            // +0x163c
@@ -138,8 +139,26 @@ public:
 	int mUnknown8BC = 0;                    // +0x8bc
 	int mUnknown131C = -1;                  // +0x131c
 	int mUnknown132C = 1;                   // +0x132c
-	int mUnknown135C = 0;                   // +0x135c
-	int mUnknown1360 = 0;                   // +0x1360
+	// +0x135c: a value per cell (AllocGrid)
+	int* mUnknown135C = nullptr;
+	// +0x1360: a record per cell (0x44 bytes, 0x6a38a7), row by row
+	struct Cell {
+		bool mUnknown0 = false;
+		float mUnknown4 = 0;
+		int mRow = 0;              // +0x8
+		int mCol = 0;              // +0xc
+		bool mUnknown10 = false;
+		Color mColor = Color(0, 0, 0, 0);  // +0x14: Color() with its alpha then cleared
+		float mUnknown24 = 0;
+		float mUnknown28 = 0;
+		bool mUnknown2C = false;
+		int mUnknown30 = 0;        // not set by the constructor
+		bool mUnknown34 = false;
+		int mUnknown38 = 0;
+		float mUnknown3C = 0;
+		float mUnknown40 = 0;
+	};
+	Cell* mCells = nullptr;
 	int* mUnknown1370 = nullptr;            // +0x1370: a value per column (ReadConfig)
 	bool mUnknown1374 = false;              // +0x1374
 	int mUnknown1378 = 3;                   // +0x1378
@@ -162,7 +181,7 @@ public:
 	bool mUnknown13A8 = true;               // +0x13a8
 	bool mUnknown1420 = false;              // +0x1420
 	int mUnknown1424 = 0;                   // +0x1424
-	int mUnknown1430 = 0;                   // +0x1430
+	Piece* mUnknown1430 = nullptr;          // +0x1430: a piece RemovePiece forgets
 	int mUnknown1434 = 0;                   // +0x1434
 	bool mUnknown1438 = false;              // +0x1438
 	int mUnknown143C = 0;                   // +0x143c
@@ -511,6 +530,10 @@ public:
 	int mTimeFreezeMatchCount = 0;          // +0x21b4
 	int mBonusChallengeMaxGems = 0;         // +0x2670
 	int mMaxLocksOnScreen = 0;              // +0x3800
+	std::vector<void*> mUnknown14AC;        // +0x14ac: malloc'd blocks ClearBoard frees (not yet known)
+	int mUnknown2180 = 0;                   // +0x2180
+	int mUnknown2184 = 0;                   // +0x2184
+	int mUnknown2204 = 0;                   // +0x2204
 	std::vector<SexyString> mTips;          // +0x81c: properties\tips.txt, a line each
 
 	Board(WinTwistApp* theApp, int theMode, int theFlags, int theUnknown);  // 0x6c4df9
@@ -521,6 +544,11 @@ public:
 	// grid when its size changed
 	void ReadConfig(bool theResize);
 	void ResizeBoard(int theRows, int theCols);  // 0x6c427e
+	void ClearBoard();                           // 0x6afe3a
+	void AllocGrid(int theRows, int theCols);    // 0x6b0886
+	void MakeCells();                            // 0x6a3ea2
+	void RemovePiece(Piece* thePiece, bool theDelete);  // 0x6aa076
+	void NewLevel();                             // 0x6bf659
 
 	Piece* GetPieceAt(int theRow, int theCol);   // 0x6a40c7
 	Piece* GetPieceById(int theId);              // 0x6aff38
