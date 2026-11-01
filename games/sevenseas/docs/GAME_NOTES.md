@@ -142,7 +142,9 @@ shot lands exactly on the update it says. `--input-eip 430ba0,430d40` (the updat
 between updates, and the log's "input at counter N" is the update that read it: the port's script puts the click's move, down and
 up on that update and nothing else is guessed (origrun posts all three back to back in the sandbox). With that, the pirate's start
 delay and every board state of the map scenario (six moves, kills, the sinking) match the original update for update; 25 of the 84
-shots match exactly and 39 more differ only faintly (the corner whirls by at most 8 of 255). What still differs is one random
-choice: the cell `PlaceShip` (0x409e90, same code as the decompilation) gives the new ship after the sinking, so the random
-draws between the game's start and the sinking are not the same in number in the two (every earlier draw agrees, since the
-enemies, whirls and waves all do). Not found by counting the `rand()` sites per function (the same ones exist in the port).
+shots match exactly and 39 more differ only faintly (the corner whirls by at most 8 of 255). The new ship's cell after the sinking is not a fault of the port: it was (2,2) in one original run and (1,9) in a second
+run of the same script and seed (shots at every update from 5726), and (1,9) is the port's cell. Logging every `CrtRand` draw
+of the port with its caller showed the same sites as the decompilation (two per update for the waves, one per enemy move for the
+whirls, two per `PlaceShip` attempt), and `PlaceShip` tries (5,2), rejected by the ship next to it, then (1,9). So the original's
+draw count between its start and the placement varies a little from run to run (something timed, not found), and an exact match
+of the placement cannot be had; the corner whirls and waves are insensitive to the shift (the waves clamp their speed).
