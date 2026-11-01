@@ -65,9 +65,9 @@ set(BYOPOP_WEB_BADGES
 set(BYOPOP_WEB_RELEASED
   # Wikipedia, "Bejeweled (video game)": the retail Bejeweled Deluxe for Windows, May 30, 2001. High.
   "bejeweled|2001-05-30"
-  # Only the year is firm: Wikipedia's list of PopCap games has 2002. Other databases disagree on the day: Dec 23, 2002 (LaunchBox,
-  # which is the Mac date elsewhere), April 2003 (VGTimes, USA PC) and Aug 30, 2006 (the Steam release). Low.
-  "bigmoney|2002"
+  # The user, 2026-10-30: June 4, 2002. (Other databases disagree: Dec 23, 2002 on LaunchBox, the Mac date elsewhere, April 2003
+  # on VGTimes for the USA PC edition, Aug 30, 2006 for the Steam release; Wikipedia's list of PopCap games has 2002.)
+  "bigmoney|2002-06-04"
   # Wikipedia, "Bookworm (video game)": February 25, 2003. VGTimes has the USA PC edition on Feb 27, 2003. High.
   "bookworm|2003-02-25"
   # VGTimes (https://vgtimes.com/games/noahs-ark-deluxe/release-dates/): PC, October 15, 2002; Wikipedia's list and Lutris say 2002. Medium.
@@ -83,8 +83,8 @@ set(BYOPOP_WEB_RELEASED
   "tiptop|2002-12-12"
   # Wikipedia, "Bookworm Adventures": Windows, November 28, 2006 (as packaged software; Steam followed on Jan 2, 2007). High.
   "bookwormadv|2006-11-28"
-  # Only the year: Wikipedia's list says 2002 and so does MyAbandonware (Windows 2002, Mac 2003). No day found. Low.
-  "ningpo|2002"
+  # The user, 2026-10-30: July 26, 2002. (Wikipedia's list and MyAbandonware have only the year: Windows 2002, Mac 2003.)
+  "ningpo|2002-07-26"
   # VGTimes (https://vgtimes.com/games/pixelus-deluxe/release-dates/): PC, July 15, 2004; Wikipedia's list says 2004. Medium.
   "pixelus|2004-07-15"
   # VGTimes (https://vgtimes.com/games/alchemy-deluxe/release-dates/): PC (USA), August 29, 2001; Giant Bomb has the same day; Wikipedia's list says 2001. High.
@@ -93,15 +93,15 @@ set(BYOPOP_WEB_RELEASED
   # Wikipedia's list say 2003. Sprout Games made it; PopCap bought Sprout in 2005 and a PopCap edition (the Deluxe, the copyright
   # notice of games/wordharmony) followed in 2006, so the edition the site plays is later than this date. Medium.
   "wordharmony|2003-12-27"
-  # Wikipedia's list of PopCap games: 2004, as made by Retro64 and published by PopCap from 2007. VGTimes has PC, February 9,
-  # 2005, and a fan wiki November 11, 2004 (not read: it refused). The year of the first release; the PopCap edition is from 2007. Low.
-  "cosmicbugs|2004"
+  # The user, 2026-10-30: November 11, 2004, the first release (a fan wiki's date). Wikipedia's list of PopCap games has 2004, as
+  # made by Retro64 and published by PopCap from 2007; VGTimes has PC, February 9, 2005. The PopCap edition is from 2007.
+  "cosmicbugs|2004-11-11"
   # VGTimes (https://vgtimes.com/games/water-bugs/release-dates/): PC, October 5, 2005 (another database says Oct 11); Wikipedia's
   # list says 2005. As for Cosmic Bugs, the PopCap edition is later than the first release. Medium.
   "waterbugs|2005-10-05"
-  # Wikipedia, "Rocket Mania!": August 15, 2003; VGTimes has PC (USA) on Aug 3, 2003, so only the month is firm. (VideoGameGeek
-  # has Apr 15, 2003 for the download, seen only in a search result; the 2006 dates are the Steam release.) Medium.
-  "rocketmania|2003-08"
+  # Wikipedia, "Rocket Mania!", and the user (2026-10-30): August 15, 2003. (VGTimes has PC (USA) on Aug 3, 2003; VideoGameGeek
+  # has Apr 15, 2003 for the download, seen only in a search result; the 2006 dates are the Steam release.)
+  "rocketmania|2003-08-15"
   # VideoGameGeek (seen only in a search result) and a Wikipedia mirror: January 25, 2002; VGTimes has the USA PC edition on
   # Feb 25, 2002; Wikipedia's list says 2002 (the 2006 dates are the Steam release). Medium to low.
   "dynomite|2002-01-25"
