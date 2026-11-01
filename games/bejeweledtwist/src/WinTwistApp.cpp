@@ -1,6 +1,7 @@
 // Sexy::WinTwistApp (WinTwistApp.h).
 #include "WinTwistApp.h"
 
+#include "CustomBassMusicInterface.h"
 #include "CustomResourceManager.h"
 #include "Buffer.h"
 #include "ButtonWidget.h"
@@ -129,8 +130,8 @@ void WinTwistApp::Init()
 	LoadGameTexts();
 	// port: the original reads the scores before the properties; their defaults need the game's texts here
 	LoadScores();
-	// 0x4a3c20: properties\default.xml, the texts of the high scores' stats page and others (the original reads
-	// properties\music.xml just before it, 0x763ca4: it comes with the music)
+	LoadMusic();
+	// 0x4a3c20: properties\default.xml, the texts of the high scores' stats page and others
 	LoadProperties();
 	mRanks = new Ranks();
 
@@ -146,8 +147,10 @@ void WinTwistApp::Init()
 	}
 	// port: 0x764814 would then read PopCap's beta dump for the player (NOTES.md)
 
-	// Without SexyCache's pictures the loader screen comes up, with its music (0x75fc23(0xca))
+	// Without SexyCache's pictures the loader screen comes up, with its music
 	mUseSexyCache = false;
+	if (!mUseSexyCache)
+		PlayMusic(202, true, false, 0, 0);
 	if (!mUseSexyCache && !mInitialLoadDone)
 		mResourceManager->LoadResources("LoadScreen");
 	mInitialLoadDone = true;
@@ -531,6 +534,22 @@ void WinTwistApp::UpdateFrames()
 		mLoaderScreen = nullptr;
 		mResourceManager->DeleteResources("LoadScreen");
 	}
+	// The track waiting for the music to fade out: song 0's volume tells, whichever song is playing
+	if (mPendingMusic != -1 && mTwistMusic != nullptr) {
+		auto it = mTwistMusic->mSongs.find(0);
+		if (it != mTwistMusic->mSongs.end() && it->second.mVolume == 0.0) {
+			if (mPendingMusicDelay < 1) {
+				it->second.mVolume = 1.0;
+				if (mTwistMusic->mCurTrack == 305)
+					mTwistMusic->ResetChannels();
+				mTwistMusic->PlayTrack(mPendingMusic, false);
+				// With the board, track 305 then sets the turn-based challenge's channels and tempo (0x6b2fda)
+				mPendingMusic = -1;
+			} else {
+				mPendingMusicDelay--;
+			}
+		}
+	}
 	// The screen darkens behind the dialogs and the options (and a paused board, which comes with the board)
 	if (mDialogMap.size() == 0 && mUnknownF44 == nullptr && mOptionsDialog == nullptr && mBoard == nullptr) {
 		float aDim = (float)(mDialogDim - 0.03);
@@ -690,4 +709,99 @@ void WinTwistApp::DialogButtonDepress(int theDialogId, int theButtonId)
 void WinTwistApp::DialogThirdButtonDepress(int theDialogId)
 {
 	KillDialog(theDialogId);
+}
+
+MusicInterface* WinTwistApp::CreateMusicInterface()
+{
+	// port: the original keeps its one CustomBassMusicInterface in a static
+	if (mNoSoundNeeded)
+		return new MusicInterface;
+	mTwistMusic = new CustomBassMusicInterface();
+	return mTwistMusic;
+}
+
+void WinTwistApp::LoadMusic()
+{
+	LoadProperties("properties/music.xml", true, false);
+	if (mTwistMusic == nullptr || !mTwistMusic->LoadMusic(0, "music/bejewel twist 06.10.mo3"))
+		return;
+	// The game's tunes, as many as have an offset
+	mNumIngameTracks = 0;
+	int i = 0;
+	std::string aName = StrFormat("MUSIC_INGAME%d_OFFSET", 0);
+	while (true) {
+		int anOffset = GetInteger(aName, -1);
+		CustomBassMusicInterface::Track* aTrack;
+		if (anOffset == -1 || (aTrack = mTwistMusic->AddTrack(0, i + 100, 0)) == nullptr)
+			break;
+		aTrack->mOffset = anOffset;
+		aName = StrFormat("MUSIC_INGAME%d_TEMPO_NORMAL", i);
+		aTrack->mTempo[0] = GetInteger(aName, 0);
+		aName = StrFormat("MUSIC_INGAME%d_TEMPO_DANGER", i);
+		aTrack->mTempo[1] = GetInteger(aName, 0);
+		// The first four channels play only in danger
+		for (int aChannel = 0; aChannel < 4; aChannel++)
+			if (aChannel < (int)aTrack->mChannels.size())
+				aTrack->mChannels[aChannel].mTarget[0] = 0;
+		mNumIngameTracks++;
+		i++;
+		aName = StrFormat("MUSIC_INGAME%d_OFFSET", i);
+	}
+	struct { int mTrackId; const char* mTempo; const char* mOffset; } aTracks[] = {
+		{200, "MUSICTEMPO_WIN", "MUSICOFFSET_WIN"},
+		{201, "MUSICTEMPO_LOSE", "MUSICOFFSET_LOSE"},
+		{0, "MUSICTEMPO_MAIN_MENU", "MUSICOFFSET_MAIN_MENU"},
+		{202, "MUSICTEMPO_LOADING", "MUSICOFFSET_LOADING"},
+		{203, "MUSICTEMPO_WHEELINTRO", "MUSICOFFSET_WHEELINTRO"},
+		{204, "MUSICTEMPO_WHEELSCORE", "MUSICOFFSET_WHEELSCORE"},
+		{205, "MUSICTEMPO_TROPHYROOM", "MUSICOFFSET_TROPHYROOM"},
+	};
+	for (auto& anEntry : aTracks) {
+		CustomBassMusicInterface::Track* aTrack =
+			mTwistMusic->AddTrack(0, anEntry.mTrackId, GetInteger(anEntry.mTempo));
+		if (aTrack != nullptr)
+			aTrack->mOffset = GetInteger(anEntry.mOffset);
+	}
+	// Blitz's song: its tracks (0x7f3cfc) and their offsets (0x850ec8)
+	mTwistMusic->LoadMusic(1, "music/BejeweledTwist24.mo3");
+	static const int kBlitzTracks[] = {300, 301, 302, 303, 304, 305, 306, 307, 308, -1};
+	static const char* const kBlitzOffsets[] = {"MUSIC_OFFSET_BLITZ", "MUSIC_OFFSET_BLITZWIN_MODERATE",
+		"MUSIC_OFFSET_BLITZWIN_GOOD", "MUSIC_OFFSET_BLITZWIN_EXCELLENT", "MUSIC_OFFSET_CHALLENGE_MENU",
+		"MUSIC_OFFSET_CHALLENGE_TURNBASED", "MUSIC_OFFSET_CHALLENGE_UNTIMED", "MUSIC_OFFSET_MEGA_FRUIT_BONUS",
+		"MUSIC_OFFSET_SUPERSPEED_BLITZ"};
+	i = 0;
+	do {
+		CustomBassMusicInterface::Track* aTrack =
+			mTwistMusic->AddTrack(1, kBlitzTracks[i], GetInteger("MUSICTEMPO_BLITZ"));
+		if (aTrack != nullptr)
+			aTrack->mOffset = GetInteger(kBlitzOffsets[i]);
+		i++;
+	} while (kBlitzTracks[i] > -1);
+}
+
+void WinTwistApp::PlayMusic(int theTrackId, bool noLoop, bool theFade, int theExtra1, int theExtra2)
+{
+	if (mTwistMusic == nullptr || mPendingMusic == theTrackId || mTwistMusic->mCurTrack == theTrackId)
+		return;
+	if (!theFade || mTwistMusic->mCurTrack == -1) {
+		if (mTwistMusic->mCurTrack == 305)
+			mTwistMusic->ResetChannels(-1);
+		mTwistMusic->PlayTrack(theTrackId, noLoop);
+		mPendingMusic = -1;
+	} else {
+		FadeOutMusic();
+		mPendingMusic = theTrackId;
+	}
+}
+
+int WinTwistApp::GetCurrentMusic()
+{
+	if (mMusicInterface != nullptr)
+		return mTwistMusic != nullptr ? mTwistMusic->mCurTrack : -1;
+	return 0;
+}
+
+void WinTwistApp::FadeOutMusic()
+{
+	mMusicInterface->FadeOutAll(true, 0.004);
 }

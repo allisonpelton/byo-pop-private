@@ -11,6 +11,7 @@
 namespace Sexy {
 
 class ButtonWidget;
+class CustomBassMusicInterface;
 class CustomResourceManager;
 class EffectsManager;
 class Gates;
@@ -43,6 +44,12 @@ public:
 	bool mFlag764 = false;              // +0x764: set by the loader while mFlag784 is (meaning not yet known)
 	bool mFlag784 = false;              // +0x784: (meaning not yet known; the loader's other buttons depend on it)
 	Widget* mBoard = nullptr;           // +0x7e4: the board while a game is on (comes with the board)
+	int mPendingMusic = -1;             // +0x8e4: the track to play once the music has faded out, -1 none
+	int mPendingMusicDelay = 0;         // +0x8e8: frames to wait after that (never set: always 0)
+	int mNumIngameTracks = 0;           // +0x92c: the game's tunes, tracks 100 on (properties\music.xml)
+	// port: mMusicInterface as the game's music (the original casts it, whatever CreateMusicInterface made); null
+	// without sound, when the music calls do nothing
+	CustomBassMusicInterface* mTwistMusic = nullptr;
 	LoaderScreen* mLoaderScreen = nullptr;  // +0x860
 	Menu* mMainMenu = nullptr;          // +0x864
 	Gates* mGates = nullptr;            // +0xc70: the main menu's gates
@@ -89,6 +96,7 @@ public:
 	void Init() override;               // 0x7652cc
 	void LoadingThreadProc() override;  // 0x76497d
 	void UpdateFrames() override;       // 0x765f8d
+	MusicInterface* CreateMusicInterface() override;  // 0x75f98a
 	void Shutdown() override;           // 0x762a0d
 	void WriteToRegistry() override;    // 0x762b40
 	void ReadFromRegistry() override;   // 0x762da8
@@ -111,6 +119,13 @@ public:
 	void LoadScores();          // 0x764ea9
 	void SaveScores();          // 0x76387e
 	void SetDefaultScores();    // 0x7637ee: the lists a new install starts with, from the exe's tables
+	// 0x763ca4: properties\music.xml and both songs, with their tracks
+	void LoadMusic();
+	// 0x75fc23: plays a track, after the music fades out with theFade (unless none is playing); theExtra1 and 2 are
+	// BASS's two extra play arguments, which the port leaves out
+	void PlayMusic(int theTrackId, bool noLoop, bool theFade, int theExtra1, int theExtra2);
+	int GetCurrentMusic();      // 0x75fc12: the track playing, -1 none
+	void FadeOutMusic();        // 0x75fbf9
 	// 0x76657b (slot 110): the loading is done, the main menu comes up
 	virtual void StartMainMenu();
 	// 0x765e04: back to the main menu, with the stats of the game just played, or with the challenges

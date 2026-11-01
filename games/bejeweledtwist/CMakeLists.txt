@@ -31,7 +31,7 @@ endif()
 # finds assets/bejeweledtwist/ by itself.
 set(BJT_SOURCES
   src/main.cpp src/WinTwistApp.cpp src/CustomResourceManager.cpp src/Res.cpp src/GameText.cpp
-  src/TwistWidget.cpp src/TwistButton.cpp src/TwistCheckbox.cpp src/TwistSlider.cpp src/TwistUtil.cpp src/GraphicsRecorder.cpp src/PlayButton.cpp
+  src/TwistWidget.cpp src/TwistButton.cpp src/TwistCheckbox.cpp src/TwistSlider.cpp src/CustomBassMusicInterface.cpp src/TwistUtil.cpp src/GraphicsRecorder.cpp src/PlayButton.cpp
   src/EffectsManager.cpp src/Logo.cpp src/LoaderScreen.cpp src/Hyperspace.cpp src/ColorCycle.cpp
   src/MenuButtonWidget.cpp src/Gates.cpp src/Profile.cpp src/MenuPanels.cpp src/Menu.cpp src/Ranks.cpp
   src/TwistEditWidget.cpp src/TwistDialog.cpp src/UnderDialogWidget.cpp)

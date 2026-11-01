@@ -708,7 +708,7 @@ void Menu::PlayMusic(int theMusic)
 {
 	if (theMusic != -1)
 		mMusic = theMusic;
-	// WinTwistApp::PlayMusic(mMusic, true, true, 0, 0) comes with the music
+	mApp->PlayMusic(mMusic, true, true, 0, 0);
 }
 
 void Menu::StartGame(int theMode)

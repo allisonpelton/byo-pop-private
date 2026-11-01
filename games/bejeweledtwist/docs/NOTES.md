@@ -42,6 +42,28 @@ there). Its vtable follows 1.3's at least to slot 49 (`Init`); WinTwistApp's ove
 - `-record`/`-playback` (0x76350c) record and replay input to `recording.dat`: useful for comparing the port with the
   original later.
 
+## The music
+
+- Two MO3 modules, each holding many tunes from their own orders: song 0 `music\bejewel twist 06.10.mo3` (37
+  channels, 165 BPM) and song 1 `music\BejeweledTwist24.mo3` (Blitz's, 18 channels, 133 BPM).
+  `CustomBassMusicInterface` (vtable 0x7e1c5c) adds tracks to the framework's BASS music: a track has its song, the
+  order it starts at, a tempo for each of two states (0 normal, 1 danger: interface +0x18, set by the board) and a
+  volume per channel per state. Playing a track (0x6edc8a, slot 21) sets every channel to 0, then the state's tempo
+  and the channels' volumes, then plays the song from the track's order; Update (0x6edfbd) sets the tempo when the
+  state's changes and steps every channel's volume by 1 a frame towards its state's, times a factor (+0x2c, 1).
+- 0x763ca4, in Init just before properties\default.xml, reads properties\music.xml and makes the tracks: 100 on for
+  the game's tunes (`MUSIC_INGAME<n>_OFFSET`, `_TEMPO_NORMAL`, `_TEMPO_DANGER`; channels 0 to 3 silent in the normal
+  state), 0 the main menu, 200 win, 201 lose, 202 loading, 203 and 204 the wheel, 205 the trophy room, and Blitz's
+  300 to 308 (0x7f3cfc, their offsets named at 0x850ec8) on song 1. `WinTwistApp::PlayMusic` (0x75fc23) plays one at
+  once or fades the music out first; UpdateFrames starts the waiting track once song 0's volume is 0. Leaving track
+  305 (the turn-based challenge's) puts its channels back.
+- BASS 2.2 (the game's bass.dll, version 0x00020002), measured on a copy with its "no sound" device: the channel
+  volume attribute (`0x100 + n`) reads 100 for each channel until set and -1 past the last, and keeps to 0..100; the
+  BPM attribute (3) keeps to 1..255. The framework's `GetMusicChannelVolume` and `SetMusicTempo` follow it, and
+  libopenmpt counts the same channels.
+- The tracks play without BASS's loop flag. The main menu's (orders 54 and 55) loops by its own jump; the loading
+  screen's (order 70) plays about seven seconds and ends. Both are to be checked against the original's music.
+
 ## The loader screen
 
 LoaderScreen (0x668 bytes; Widget + ButtonListener at +0x88): `mPlayButton` +0x8c (PlayButton, 0x2e0 bytes, a
@@ -219,3 +241,8 @@ Each is a change without a visible effect in play.
   children) but not the ones it kept without adding (a best move without a replay). The port deletes them all.
 - The options panel: the original never deletes the resolutions' three radio buttons or the restart (help) button;
   the port deletes them with the panel.
+- The music: the original prints the track, state and tempo to the debugger when it plays one and when the tempo
+  changes; the port does not. It keeps its CustomBassMusicInterface in a static and frees its tracks' memory only on
+  exit; the port's is the app's music interface, deleted with the app with its tracks. BASS's two extra play
+  arguments (Blitz passes the board's +0x3928 and +0x392c) are left out until the board shows what they do. Without
+  sound the original's PlayMusic reads past a plain MusicInterface; the port does nothing.
