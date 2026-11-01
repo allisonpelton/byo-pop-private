@@ -230,16 +230,16 @@ updated for it.
 | noahsark | local install | own title screen | yes, 646×509 | none | update counter proven here (`[0x4d125c]+0x368`); `at` lands on the exact update |
 | sevenseas | local install | own title screen | yes, 646×509 | none | |
 | pixelus | local install | trial screen (not clicked through yet) | yes | none | games.tsv's Pixelus.exe (~256 KB) is a smaller build than the port's decompiled exe — its counter offsets do not apply to it |
-| tiptop | local install | trial, plays | yes | none | DirectInput: use the `hw*` commands (`hwclick` dismissed its trial); posted clicks still ignored |
+| tiptop | local install | trial, plays | yes | none | DirectInput: posted clicks are ignored; the `hw*` commands are unconfirmed (see the gaps) |
 | wordharmony | local install | trial (60 min), Play present | yes | none | |
 | bookwormadv | local install | in-game Updates dialog | yes, 806×629 | muted a session | its sound is not via DirectSound (BWA audio work); stage under a short `--stage-root` (long worktree path makes its launcher exit) |
 | ningpo | local install | main window | **yes** (after init) | none | windowed DirectDraw; `waitshot`'s flat-retry now captures real content once it has drawn |
 | waterbugs | local install | window, then "Screen Setup Failed" | window only | none | full-screen DirectDraw: the headless desktop cannot open its 800×600 mode, so it never reaches the game |
 | cosmicbugs | local install | window, then "Screen Setup Failed" | window only | none | same as Water Bugs |
 | dynomite | Steam copy | **title and on** | **yes** | none | fixed: `Steam.dll` is now auto-copied from the Steam library root into the copy |
-| bejeweled | wrapped launcher | **title, carved exe runs** | **yes** | none | real PE carved from `WinBej.exe` with the extract tool, run via `--exe` |
-| bigmoney | wrapped launcher | real exe carves cleanly | — | — | `WinBM.exe` carves (1.25 MB PE); prepare and run as Bejeweled (not launched this round) |
-| bookworm | wrapped Steam exe | real exe carves cleanly | — | — | `Bookworm.exe` (CDProtect) carves (1.77 MB PE); prepare as Bejeweled |
+| bejeweled | wrapped launcher | **title, prepared copy runs** | **yes** | none | prepared as the private notes below say, run via an absolute `--exe` |
+| bigmoney | wrapped launcher | prepares cleanly | — | — | prepare as Bejeweled (not launched yet) |
+| bookworm | wrapped Steam exe | prepares cleanly | — | — | prepare as Bejeweled (not launched yet) |
 | rocketmania | Steam copy | not run | — | — | Steam copy: `Steam.dll` is auto-copied now, as for Dynomite |
 | bookwormadv2 | Steam copy | not run | — | — | not wrapped; `Steam.dll` auto-copied now |
 
@@ -290,10 +290,13 @@ Other gaps:
   needs the game forced into a windowed mode (toggle not yet found) or a **ddraw stand-in** that reports a
   display and copies the primary surface (the documented last resort; built like the dsound stand-in, not yet
   written).
-- **DirectInput games** (TipTop): the `hw*` commands (`SetCursorPos` + `SendInput` on the game's desktop) now
-  drive them — `hwclick` dismissed TipTop's trial screen. The in-process import-patch route is **dropped** (it
-  was stopped by a permission check in round 1; see the hard rule). Still to confirm: whether cursor **position**
-  injection (not just the button) reaches a game that draws its own cursor; a control run would make it certain.
+- **DirectInput games** (TipTop): the `hw*` commands (`SetCursorPos` + `SendInput`) are **unconfirmed**. Windows
+  documents both calls as working only from the input desktop, which the private desktop is not, so they may fail
+  silently there. TipTop's trial screen changed right after an `hwclick`, but no control run (the same script
+  without the click) has ruled out chance, or the user's own clicks reaching the game through DirectInput. Before
+  relying on them: log `SendInput`'s and `SetCursorPos`'s results, make a control run, and never switch the driver
+  thread to the input desktop, which would move the user's cursor and click on their screen. The in-process
+  import-patch route stays **dropped** (it was stopped by a permission check in round 1; see the hard rule).
 - **Atomica won't start**: it shows "FATAL ERROR — Failed to load sound: sounds\capclick" and exits before any
   window, with the dsound stub, with `nodriver`, and with real audio alike. The Ogg and `fmod.dll` are present,
   so it is FMOD's init/decode of this copy on Windows 11 (or a game-data path) — the Atomica session's to fix;
