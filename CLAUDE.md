@@ -125,10 +125,12 @@ Git and publishing:
   the user's approval, and no further game gets mods until every PopCap game works in the browser (Noah's Ark's
   mods were the one exception, part of the Sonnet trial).
 - **Port first, unmodified (the user, 2026-10-26):** a port is the original game, unmodified and working like its exe;
-  it adds nothing for later mods, not even hooks. Every addition waits for the game's mod phase, which goes through the
-  29 standard mods in `docs/MOD_ROADMAP.md` ("Standard mods for every game"): the session makes each one that fits its
-  game and says in the game's README why it skipped any. Games that already have mods (Bejeweled, Big Money, BookWorm,
-  Noah's Ark) make none of these either until the user says every decomp runs in the browser to their satisfaction.
+  it adds nothing for later mods, not even hooks (the site's own hooks for player names and settings are the exception).
+- **No new mods unless requested (the user, 2026-10-30):** "no new mods for anything unless someone requests it." There
+  is no mod phase that goes through a list: the 29 standard mods in `docs/MOD_ROADMAP.md` and each game's listed ideas
+  become the first entries of a feedback page the website will have for each game, where players suggest mods and vote
+  on them, and the user decides which to make. Fixes and suggestions for the mods that already exist are noted (the user's
+  `testnotes/TEST_NOTES.md`) and wait until every decompilation is finished.
 - **Done means identical (the user, 2026-10-27):** "A game is done when it plays identically to the original in the
   browser and natively." No port is hurried to get through the list. A port's own suite matching its earlier output
   proves nothing about the original, and the hidden, silent pane never changes focus or plays music: before its final
@@ -140,6 +142,10 @@ Git and publishing:
   original is fixed: memory the original still uses after "leaking" it (Bejeweled's FillBoard orphans) is freed after
   its last possible use. The 18 games merged by 2026-10-27 are not done until they pass this; from the weekly reset
   (2026-11-01) they come first, and no new port starts until all 18 are done.
+- **Before the website is ready (the user, 2026-10-30):** every port takes out all of its registration code (trial, nag
+  and unlock paths: "It is misleading and adds unnecessary bloat") and gets a readability pass to the project's code
+  standards (`docs/CODE_STANDARDS.md`, written and approved by the user first). A game does both after its identical-play
+  work, so its regression check proves that play is unchanged.
 - **No references (the user, 2026-10-26):** no port reads another project's decompilation, reimplementation, mod
   kit, class layouts or address maps (Thunderball, haggle, WinFish, CircleShootApp, PvZ-Portable, the Pizza Frenzy
   decompilation and the like); work from our own Ghidra export. PopCap's released SexyAppFramework source, the open
