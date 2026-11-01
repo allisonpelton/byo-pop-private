@@ -250,3 +250,9 @@ option(BUILD_DYNOMITE "Build the Dynomite Deluxe port" ON)
 if(BUILD_DYNOMITE AND EXISTS ${PROJECT_SOURCE_DIR}/games/dynomite/CMakeLists.txt)
   add_subdirectory(games/dynomite)
 endif()
+# Mahjong Escape: Ancient Japan: JollyBear's engine (games/mahjongjapan/engine) under the framework's app host;
+# optional while it is new
+option(BUILD_MAHJONGJAPAN "Build the Mahjong Escape: Ancient Japan port" ON)
+if(BUILD_MAHJONGJAPAN AND EXISTS ${PROJECT_SOURCE_DIR}/games/mahjongjapan/CMakeLists.txt)
+  add_subdirectory(games/mahjongjapan)
+endif()

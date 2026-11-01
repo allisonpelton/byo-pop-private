@@ -120,6 +120,12 @@
       "runtimeExecutable": "python",
       "runtimeArgs": ["tools/shotdiff/serve.py"],
       "port": 18770
+    },
+    {
+      "name": "mahjongjapan-web",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-m", "http.server", "18790", "--bind", "127.0.0.1", "--directory", "build/web"],
+      "port": 18790
     }
   ]
 }
