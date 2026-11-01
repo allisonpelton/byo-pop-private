@@ -41,6 +41,8 @@ public:
 	~CustomBassMusicInterface() override;              // 0x6eebec
 
 	bool LoadMusic(int theSongId, const std::string& theFileName) override;  // 0x6edeb5 (slot 1)
+	// 0x6edb3c: the music's state (0 normal, 1 danger), logged when it changes
+	void SetState(int theState);
 	void StopAllMusic() override;                      // 0x6ed1ed (slot 6)
 	void Update() override;                            // 0x6edfbd (slot 19)
 	// 0x6edc8a (slot 21): plays a track from its order at its state's tempo, its channels at their targets (BASS's

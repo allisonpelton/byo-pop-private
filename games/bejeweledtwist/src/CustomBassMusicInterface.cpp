@@ -15,6 +15,13 @@ CustomBassMusicInterface::~CustomBassMusicInterface()
 		delete aPair.second;
 }
 
+void CustomBassMusicInterface::SetState(int theState)
+{
+	// The original says "song state = %d" with OutputDebugString when it changes
+	if (theState != mState)
+		mState = theState;
+}
+
 bool CustomBassMusicInterface::LoadMusic(int theSongId, const std::string& theFileName)
 {
 	if (!SDLMusicInterface::LoadMusic(theSongId, theFileName))

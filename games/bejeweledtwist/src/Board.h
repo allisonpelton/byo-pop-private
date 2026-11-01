@@ -6,13 +6,18 @@
 #include "TwistWidget.h"
 #include "WinTwistApp.h"
 
+#include "MTRand.h"
+#include "Rect.h"
+
 #include <map>
 #include <vector>
 
 namespace Sexy {
 
 class EffectsManager;
+class Font;
 class Image;
+class MemoryImage;
 class Piece;
 class WinTwistApp;
 
@@ -52,7 +57,7 @@ public:
 	std::vector<Piece*> mUnknown149C;  // +0x149c
 	std::vector<Piece*> mBombList;     // +0x14bc: bombs about to go off, drawn over the board (Piece::DrawFront)
 	std::map<int, Piece*> mPieceMap;   // +0x1364: the pieces by id (0x6b8c20 adds, 0x6b677b drops)
-	float mShineAmount = 0;            // +0x163c
+	float mShineAmount = 1.0f;            // +0x163c
 	float mPieceAlpha = 1.0f;          // +0x1640
 	EffectsManager* mFXManager = nullptr;  // +0x1648
 	EffectsManager* mFXManager2 = nullptr; // +0x164c
@@ -67,7 +72,7 @@ public:
 	int mUnknown20DC = 0;              // +0x20dc
 	float mUnknown2108 = 0;            // +0x2108
 	int mSparkBlock = 0;               // +0x21ac: no sparks while above 0
-	float mUnknown21B0 = 1.0f;         // +0x21b0
+	float mUnknown21B0 = 0;         // +0x21b0
 	bool mDebugPieces = false;         // +0x21db: each piece shows its row and column
 	float mUnknown23EC = 0;            // +0x23ec
 	bool mUnknown23F5 = false;         // +0x23f5
@@ -83,9 +88,392 @@ public:
 	float mUnknown380C = 0;            // +0x380c
 	float mUnknown3924 = 1.0f;         // +0x3924
 	int mBoardX = 0;                   // +0x3474: the grid's left edge
+	// The rest of the fields the constructor (0x6c4df9) sets, named by their offset until their use is known
+	int mUnknown15C = 0;                    // +0x15c
+	int mUnknown160 = 0;                    // +0x160
+	int mUnknown168 = 0;                    // +0x168
+	int mUnknown16C = 0;                    // +0x16c
+	int mUnknown170 = 0;                    // +0x170
+	int mUnknown1E8 = 0;                    // +0x1e8
+	int mUnknown1EC = 0;                    // +0x1ec
+	int mUnknown1F0 = 0;                    // +0x1f0
+	int mUnknown1F4 = 0;                    // +0x1f4
+	int mUnknown1F8 = 0;                    // +0x1f8
+	int mUnknown1FC = 0;                    // +0x1fc
+	int mUnknown200 = 0;                    // +0x200
+	int mUnknown204 = 1;                    // +0x204
+	int mUnknown218 = 0;                    // +0x218
+	int mUnknown224 = 0;                    // +0x224
+	int mUnknown248 = 0;                    // +0x248
+	int mUnknown250 = -1;                   // +0x250
+	int mUnknown254 = -1;                   // +0x254
+	int mUnknown258 = -1;                   // +0x258
+	int mUnknown420 = 0;                    // +0x420
+	bool mUnknown6CC = false;               // +0x6cc
+	int mUnknown6D0 = 0;                    // +0x6d0
+	int mUnknown70C = 0;                    // +0x70c
+	int mUnknown710 = 0;                    // +0x710
+	int mUnknown814 = 0;                    // +0x814
+	int mUnknown818 = 0;                    // +0x818
+	int mUnknown82C = 0;                    // +0x82c
+	int mUnknown8BC = 0;                    // +0x8bc
+	int mUnknown131C = -1;                  // +0x131c
+	int mUnknown132C = 1;                   // +0x132c
+	int mUnknown135C = 0;                   // +0x135c
+	int mUnknown1360 = 0;                   // +0x1360
+	int mUnknown1370 = 0;                   // +0x1370
+	bool mUnknown1374 = false;              // +0x1374
+	int mUnknown1378 = 3;                   // +0x1378
+	bool mUnknown137C = false;              // +0x137c
+	bool mUnknown137D = false; // +0x137d
+	bool mUnknown137F = false;              // +0x137f
+	bool mUnknown1380 = false;              // +0x1380
+	bool mUnknown1381 = false;              // +0x1381
+	bool mUnknown1382 = false;              // +0x1382
+	bool mUnknown1383 = false;              // +0x1383
+	bool mUnknown1384 = false;              // +0x1384
+	int mUnknown1388 = 0;                   // +0x1388
+	int mUnknown138C = 0;                   // +0x138c
+	bool mUnknown1390 = true;               // +0x1390
+	int mUnknown1394 = 0;                   // +0x1394
+	bool mUnknown1398 = false;              // +0x1398
+	int mUnknown139C = 0;                   // +0x139c
+	int mUnknown13A0 = 0;                   // +0x13a0
+	int mUnknown13A4 = 0;                   // +0x13a4
+	bool mUnknown13A8 = true;               // +0x13a8
+	bool mUnknown1420 = false;              // +0x1420
+	int mUnknown1424 = 0;                   // +0x1424
+	int mUnknown1430 = 0;                   // +0x1430
+	int mUnknown1434 = 0;                   // +0x1434
+	bool mUnknown1438 = false;              // +0x1438
+	int mUnknown143C = 0;                   // +0x143c
+	int mUnknown1440 = 1;                   // +0x1440
+	int mUnknown1444 = -1;                  // +0x1444
+	int mUnknown1448 = -1;                  // +0x1448
+	int mUnknown144C = -1;                  // +0x144c
+	float mUnknown1450 = 1.0f;              // +0x1450
+	int mUnknown1454 = 0;                   // +0x1454
+	float mUnknown145C = 1.0f;              // +0x145c
+	int mUnknown1460 = 0;                   // +0x1460
+	int mUnknown146C = 0;                   // +0x146c
+	int mUnknown1470 = 0;                   // +0x1470
+	int mUnknown1474 = 0;                   // +0x1474
+	bool mUnknown1478 = false;              // +0x1478
+	int mUnknown1488 = 0;                   // +0x1488
+	int mUnknown14DC = 0;                   // +0x14dc
+	int mUnknown14E0 = 0;                   // +0x14e0
+	int mUnknown14E4 = 0;                   // +0x14e4
+	int mUnknown14E8 = 0;                   // +0x14e8
+	int mUnknown14EC = 0;                   // +0x14ec
+	int mUnknown14F0 = 0;                   // +0x14f0
+	int mUnknown14F4 = 0;                   // +0x14f4
+	int mUnknown14F8 = 0;                   // +0x14f8
+	int mUnknown14FC = 0;                   // +0x14fc
+	int mUnknown1500 = 0;                   // +0x1500
+	int mUnknown1504 = 0;                   // +0x1504
+	int mUnknown1508 = 0;                   // +0x1508
+	bool mUnknown150C = true;               // +0x150c
+	int mUnknown1510 = 0;                   // +0x1510
+	int mUnknown1514 = 0;                   // +0x1514
+	int mUnknown1518 = 0;                   // +0x1518
+	int mUnknown151C = 0;                   // +0x151c
+	int mUnknown1520 = 0;                   // +0x1520
+	int mUnknown1524 = 0;                   // +0x1524
+	bool mUnknown152C = false;              // +0x152c
+	int mUnknown1530 = 0;                   // +0x1530
+	int mUnknown1534 = 0;                   // +0x1534
+	int mUnknown1538 = 0;                   // +0x1538
+	int mUnknown153C = 0;                   // +0x153c
+	int mUnknown1540 = 0;                   // +0x1540
+	int mUnknown1544 = 0;                   // +0x1544
+	int mUnknown1548 = 0;                   // +0x1548
+	double mUnknown1550 = 0;                // +0x1550
+	bool mUnknown1558 = true;               // +0x1558
+	bool mUnknown1559 = true;               // +0x1559
+	bool mUnknown155A = false;              // +0x155a
+	int mUnknown155C = -1;                  // +0x155c
+	int mUnknown1560 = -1;                  // +0x1560
+	int mUnknown1564 = -1;                  // +0x1564
+	int mUnknown1568 = -1;                  // +0x1568
+	bool mUnknown156C = false;              // +0x156c
+	int mUnknown1570 = 0;                   // +0x1570
+	int mUnknown1574 = 0;                   // +0x1574
+	int mUnknown1580 = 0;                   // +0x1580
+	bool mUnknown15A8 = false;              // +0x15a8
+	int mUnknown15AC = 23;                  // +0x15ac
+	bool mUnknown15B0 = false;              // +0x15b0
+	int mUnknown15C4 = 0;                   // +0x15c4
+	bool mUnknown15D0 = false;              // +0x15d0
+	int mUnknown15D4 = 0;                   // +0x15d4
+	bool mUnknown15D8 = false;              // +0x15d8
+	int mUnknown15DC = 0;                   // +0x15dc
+	bool mUnknown15EC = false;              // +0x15ec
+	int mUnknown15F4 = 0;                   // +0x15f4
+	bool mUnknown15FC = true;               // +0x15fc
+	bool mUnknown15FD = false;              // +0x15fd
+	int mUnknown1604 = 0;                   // +0x1604
+	int mUnknown1610 = 0;                   // +0x1610
+	double mUnknown1618 = 0;                // +0x1618
+	double mUnknown1620 = 0;                // +0x1620
+	double mUnknown1628 = 0;                // +0x1628
+	bool mUnknown1644 = false;              // +0x1644
+	int mUnknown1670 = 0;                   // +0x1670
+	int mUnknown1BEC = 0;                   // +0x1bec
+	bool mUnknown1BF0 = false;              // +0x1bf0
+	bool mUnknown1BF1 = false;              // +0x1bf1
+	int mUnknown1BF4 = 7;                   // +0x1bf4
+	int mUnknown1C00 = 0;                   // +0x1c00
+	int mUnknown1C04 = 0;                   // +0x1c04
+	int mUnknown1C08 = 0;                   // +0x1c08
+	int mUnknown1C0C = 0;                   // +0x1c0c
+	int mUnknown1C10 = 0;                   // +0x1c10
+	int mUnknown1C14 = 0;                   // +0x1c14
+	int mUnknown1C18 = 0;                   // +0x1c18
+	int mUnknown1C1C = 0;                   // +0x1c1c
+	int mUnknown1C20 = 0;                   // +0x1c20
+	int mUnknown1C24 = 0;                   // +0x1c24
+	int mUnknown1C28 = 0;                   // +0x1c28
+	int mUnknown1C34 = 0;                   // +0x1c34
+	float mUnknown1C38 = 1.0f;              // +0x1c38
+	int mUnknown1C3C = 0;                   // +0x1c3c
+	bool mUnknown1C40 = false;              // +0x1c40
+	bool mUnknown1C41 = true;               // +0x1c41
+	bool mUnknown1C42 = false;              // +0x1c42
+	int mUnknown1C48 = 0;                   // +0x1c48
+	int mUnknown1C4C = 0;                   // +0x1c4c
+	int mUnknown1C50 = 0;                   // +0x1c50
+	int mUnknown1C64 = -1;                  // +0x1c64
+	int mUnknown1C74 = 0;                   // +0x1c74
+	int mUnknown1C84 = 0;                   // +0x1c84
+	float mUnknown1C88 = 1.0f;              // +0x1c88
+	float mUnknown1C8C = 1.0f;              // +0x1c8c
+	bool mUnknown1C90 = false;              // +0x1c90
+	bool mUnknown1C98 = false;              // +0x1c98
+	int mUnknown1F64 = 0;                   // +0x1f64
+	int mUnknown1F68 = 0;                   // +0x1f68
+	int mUnknown1F74 = 0;                   // +0x1f74
+	int mUnknown1F7C = 0;                   // +0x1f7c
+	int mUnknown1F80 = -1;                  // +0x1f80
+	int mUnknown1F84 = -1;                  // +0x1f84
+	int mUnknown1FA8 = 0;                   // +0x1fa8
+	int mUnknown1FAC = 0;                   // +0x1fac
+	int mUnknown1FB0 = 0;                   // +0x1fb0
+	int mUnknown1FB8 = 0;                   // +0x1fb8
+	int mUnknown1FC4 = 0;                   // +0x1fc4
+	int mUnknown1FC8 = 0;                   // +0x1fc8
+	bool mUnknown1FF4 = false;              // +0x1ff4
+	bool mUnknown1FF5 = false;              // +0x1ff5
+	int mUnknown1FF8 = 0;                   // +0x1ff8
+	int mUnknown1FFC = 0;                   // +0x1ffc
+	int mUnknown2000 = 0;                   // +0x2000
+	bool mUnknown2004 = false;              // +0x2004
+	int mUnknown2008 = 0;                   // +0x2008
+	int mUnknown200C = 0;                   // +0x200c
+	int mUnknown2010 = 0;                   // +0x2010
+	bool mUnknown2014 = false;              // +0x2014
+	bool mUnknown2015 = false;              // +0x2015
+	bool mUnknown2016 = false;              // +0x2016
+	int mUnknown201C = -1;                  // +0x201c
+	int mUnknown2020 = -1;                  // +0x2020
+	bool mUnknown2030 = false;              // +0x2030
+	int mUnknown2034 = 0;                   // +0x2034
+	bool mUnknown2040 = true;               // +0x2040
+	bool mUnknown2041 = true;               // +0x2041
+	bool mUnknown2042 = true;               // +0x2042
+	bool mUnknown2043 = true;               // +0x2043
+	bool mUnknown2054 = false;              // +0x2054
+	int mUnknown2058[24] = {};              // +0x2058
+	int mUnknown20B8 = 0;                   // +0x20b8
+	int mUnknown20BC = -1;                  // +0x20bc
+	int mUnknown20C0 = 0;                   // +0x20c0
+	int mUnknown20C4 = 0;                   // +0x20c4
+	int mUnknown20C8 = 0;                   // +0x20c8
+	int mUnknown20CC = 0;                   // +0x20cc
+	bool mUnknown20D0 = true;               // +0x20d0
+	int mUnknown20D4 = 0;                   // +0x20d4
+	bool mUnknown20D8 = false;              // +0x20d8
+	int mUnknown20E4 = 0;                   // +0x20e4
+	float mUnknown20E8 = 0.1f;              // +0x20e8
+	int mUnknown20EC = 0;                   // +0x20ec
+	bool mUnknown210C = false;              // +0x210c
+	int mUnknown2110 = 0;                   // +0x2110
+	int mUnknown2114 = 0;                   // +0x2114
+	float mUnknown2118 = 3.0f;              // +0x2118
+	bool mUnknown2130 = false;              // +0x2130
+	int mUnknown2150 = 0;                   // +0x2150
+	int mUnknown2154 = 0;                   // +0x2154
+	int mUnknown2158 = 0;                   // +0x2158
+	int mUnknown215C = -1;                  // +0x215c
+	int mUnknown2160 = 1;                   // +0x2160
+	int mUnknown2164 = 0;                   // +0x2164
+	int mUnknown2168 = 0;                   // +0x2168
+	bool mUnknown216C = false;              // +0x216c
+	int mUnknown2188 = 0;                   // +0x2188
+	bool mUnknown2199 = false;              // +0x2199
+	int mUnknown219C = 0;                   // +0x219c
+	bool mUnknown21A0 = false;              // +0x21a0
+	bool mUnknown21A2 = false;              // +0x21a2
+	bool mUnknown21A3 = false;              // +0x21a3
+	int mUnknown21A8 = 0;                   // +0x21a8
+	int mUnknown21C4[2] = {};               // +0x21c4
+	int mUnknown21CC = 0;                   // +0x21cc
+	int mUnknown21D0 = 1;                   // +0x21d0
+	int mUnknown21D4 = 1;                   // +0x21d4
+	bool mUnknown21D8 = false;              // +0x21d8
+	bool mUnknown21D9 = false;              // +0x21d9
+	bool mUnknown21DA = false;              // +0x21da
+	int mUnknown21DC = 0;                   // +0x21dc
+	int mUnknown21F4 = -1;                  // +0x21f4
+	bool mUnknown2200 = false;              // +0x2200
+	int mUnknown2208 = 0;                   // +0x2208
+	int mUnknown2228 = 0;                   // +0x2228
+	int mUnknown222C = 0;                   // +0x222c
+	int mUnknown2234[84] = {};              // +0x2234
+	int mUnknown23A4 = -1;                  // +0x23a4
+	int mUnknown23A8 = -1;                  // +0x23a8
+	int mUnknown23AC = 0;                   // +0x23ac
+	int mUnknown23B0 = 0;                   // +0x23b0
+	int mUnknown23D4 = 0;                   // +0x23d4
+	float mUnknown23F0 = 0.01f;             // +0x23f0
+	bool mUnknown23F4 = false;              // +0x23f4
+	int mUnknown23F8 = 0;                   // +0x23f8
+	int mUnknown23FC = 0;                   // +0x23fc
+	int mUnknown2400 = -10000;              // +0x2400
+	int mUnknown2404 = -10000;              // +0x2404
+	int mUnknown2548 = -1;                  // +0x2548
+	int mUnknown2578 = 0;                   // +0x2578
+	int mUnknown257C = 0;                   // +0x257c
+	int mUnknown2580 = 1;                   // +0x2580
+	bool mUnknown25A5 = false;              // +0x25a5
+	bool mUnknown25A6 = false;              // +0x25a6
+	int mUnknown25A8 = 0;                   // +0x25a8
+	int mUnknown25C8 = 0;                   // +0x25c8
+	int mUnknown25CC = 0;                   // +0x25cc
+	int mUnknown25D0 = 0;                   // +0x25d0
+	int mUnknown2624 = 0;                   // +0x2624
+	bool mUnknown2628 = false;              // +0x2628
+	bool mUnknown2629 = false;              // +0x2629
+	bool mUnknown262A = false;              // +0x262a
+	int mUnknown262C = -1;                  // +0x262c
+	int mUnknown2630 = 0;                   // +0x2630
+	int mUnknown2634 = 0;                   // +0x2634
+	int mUnknown2638 = 0;                   // +0x2638
+	int mUnknown263C = 0;                   // +0x263c
+	int mUnknown2640 = 0;                   // +0x2640
+	int mUnknown265C = 0;                   // +0x265c
+	int mUnknown2660 = 0;                   // +0x2660
+	int mUnknown2664 = 0;                   // +0x2664
+	bool mUnknown2669 = false;              // +0x2669
+	bool mUnknown266A = false;              // +0x266a
+	int mUnknown2678 = 0;                   // +0x2678
+	int mUnknown267C = 0;                   // +0x267c
+	int mUnknown2680 = 0;                   // +0x2680
+	bool mUnknown2698 = true;               // +0x2698
+	int mUnknown269C = 0;                   // +0x269c
+	int mUnknown26A0 = 0;                   // +0x26a0
+	int mUnknown26A8 = 0;                   // +0x26a8
+	int mUnknown26AC = 0;                   // +0x26ac
+	int mUnknown26CC = 0;                   // +0x26cc
+	int mUnknown26D0 = 0;                   // +0x26d0
+	int mUnknown3444 = 0;                   // +0x3444
+	int mUnknown3448 = 0;                   // +0x3448
+	int mUnknown344C = 0;                   // +0x344c
+	int mUnknown3450 = 0;                   // +0x3450
+	int mUnknown3454 = 0;                   // +0x3454
+	int mUnknown345C = 0;                   // +0x345c
+	float mUnknown3460 = 8.0f;              // +0x3460
+	int mUnknown3464[2] = {};               // +0x3464
+	int mUnknown3470 = 0;                   // +0x3470
+	int mUnknown34E8 = 0;                   // +0x34e8
+	int mUnknown34EC = 0;                   // +0x34ec
+	int mUnknown3560[84] = {};              // +0x3560
+	bool mUnknown36B0 = false;              // +0x36b0
+	bool mUnknown36B1 = true;               // +0x36b1
+	int mUnknown36B4 = 0;                   // +0x36b4
+	int mUnknown36B8 = 0;                   // +0x36b8
+	int mUnknown37A0 = 0;                   // +0x37a0
+	int mUnknown37A4 = 0;                   // +0x37a4
+	int mUnknown37A8 = 0;                   // +0x37a8
+	int mUnknown37AC = 0;                   // +0x37ac
+	bool mUnknown37B0 = true; // +0x37b0
+	bool mUnknown37B1 = true; // +0x37b1
+	int mUnknown37B4 = 15;                  // +0x37b4
+	int mUnknown37C8 = 0;                   // +0x37c8
+	int mUnknown37EC = 0;                   // +0x37ec
+	int mUnknown37F0 = 0;                   // +0x37f0
+	int mUnknown37F4 = 0;                   // +0x37f4
+	int mUnknown37FC = 0;                   // +0x37fc
+	int mUnknown3808 = 0;                   // +0x3808
+	int mUnknown38F0 = 0;                   // +0x38f0
+	int mUnknown38F4 = 0;                   // +0x38f4
+	int mUnknown38F8 = 0;                   // +0x38f8
+	int mUnknown38FC = 0;                   // +0x38fc
+	int mUnknown3900 = 0;                   // +0x3900
+	bool mUnknown3905 = false;              // +0x3905
+	int mUnknown3908 = 0;                   // +0x3908
+	int mUnknown390C = 0;                   // +0x390c
+	int mUnknown3910 = 0;                   // +0x3910
+	int mUnknown3914 = 0;                   // +0x3914
+	int mUnknown3918 = 0;                   // +0x3918
+	int mUnknown391C = 0;                   // +0x391c
+	bool mUnknown3920 = false;              // +0x3920
+	bool mUnknown3921 = false;              // +0x3921
+	int mUnknown3928 = 0;                   // +0x3928
+	int mUnknown392C = 0;                   // +0x392c
+	bool mUnknown3930 = false;              // +0x3930
+	int mUnknown3934 = 0;                   // +0x3934
+	// The fields the constructor sets from other values
+	int mUnknown154 = 0;                    // +0x154
+	bool mUnknown214 = false;               // +0x214
+	float mUnknown220 = 1.0f;               // +0x220
+	int mUnknown1328 = 0;                   // +0x1328: how many of the player's +0x80 flags are set
+	int mUnknown133C[8] = {};               // +0x133c
+	Font* mUnknown1578 = nullptr;           // +0x1578
+	Font* mUnknown157C = nullptr;           // +0x157c
+	int mUnknown1584 = 0;                   // +0x1584
+	int mUnknown1588 = 0;                   // +0x1588
+	MemoryImage* mUnknown15F0 = nullptr;    // +0x15f0: 42x42
+	// +0x1674: a 7x7 table over a cell, 14 apart from 0 to 84
+	struct CellPoint {
+		float mX, mY;      // +0x0, +0x4
+		float mU, mV;      // +0x8: mX / 84 / 40, +0xc: mY / 84
+		float mAngle;      // +0x10: from the middle (42, 42), plus 6.28318
+		float mDist;       // +0x14: from the middle
+		float mUnknown18;  // +0x18: 1
+	};
+	CellPoint mCellPoints[49] = {};
+	float mUnknown1C2C = 0;                 // +0x1c2c: the app's middle
+	float mUnknown1C30 = 0;                 // +0x1c30
+	Rect mUnknown1F88;                      // +0x1f88
+	int mUnknown1FBC = 0;                   // +0x1fbc
+	int mUnknown1FC0 = 0;                   // +0x1fc0
+	float mUnknown20E0 = 0;                 // +0x20e0
+	void* mUnknown211C = nullptr;           // +0x211c: a 0x10-byte object holding the app (0x74c8c8)
+	int mUnknown2190 = 0;                   // +0x2190
+	Widget* mGoodTube = nullptr;            // +0x2194: the tube at the side (0x770 bytes, 0x707b7f)
+	EffectsManager* mFXManager3 = nullptr;  // +0x21b8
+	float mUnknown21BC = 0;                 // +0x21bc
+	float mUnknown21C0 = 0;                 // +0x21c0
+	int mUnknown21E0 = 0;                   // +0x21e0: 1 to 5, mostly 2
+	Widget* mPointsManager = nullptr;       // +0x21fc: the points that float up (0x158 bytes, 0x7329b7)
+	float mUnknown2224 = 0;                 // +0x2224
+	float mUnknown23D8 = 0;                 // +0x23d8
+	Image* mGridBarTop = nullptr;           // +0x2588
+	Image* mGridBarBot = nullptr;           // +0x258c
+	int mUnknown25AC = 0;                   // +0x25ac
+	int mUnknown25B4 = 0;                   // +0x25b4
+	int mUnknown2644 = 0;                   // +0x2644
+	int mUnknown266C = 0;                   // +0x266c
+	int mUnknown2674 = 0;                   // +0x2674: the constructor's last argument
+	int mUnknown3458 = 0;                   // +0x3458: blitz's 30000
+	std::map<int, int> mUnknown37B8;        // +0x37b8
+	MTRand mRand;                           // +0x958: seeded from Rand()
+	std::vector<SexyString> mTips;          // +0x81c: properties\tips.txt, a line each
 
-	Board();
+	Board(WinTwistApp* theApp, int theMode, int theFlags, int theUnknown);  // 0x6c4df9
 	~Board() override;
+
+	void LoadConfig();                           // 0x6b2b77
 
 	Piece* GetPieceAt(int theRow, int theCol);   // 0x6a40c7
 	Piece* GetPieceById(int theId);              // 0x6aff38

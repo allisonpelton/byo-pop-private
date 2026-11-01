@@ -1,10 +1,22 @@
 // Sexy::Board (0x6a3d7b-0x6d6899): being ported, see Board.h.
 #include "Board.h"
 
+#include "Buffer.h"
+#include "CustomBassMusicInterface.h"
+#include "EffectsManager.h"
+#include "MemoryImage.h"
 #include "Piece.h"
+#include "Profile.h"
+#include "PropertiesParser.h"
+#include "Res.h"
 #include "TwistUtil.h"
 #include "WinTwistApp.h"
+#include "WidgetManager.h"
 #include "X86Math.h"
+
+#include <cmath>
+#include <cstring>
+#include <ctime>
 
 using namespace Sexy;
 
@@ -13,10 +25,208 @@ Board* Sexy::gBoard = nullptr;
 Color Sexy::gGemColors[7] = {Color(255, 32, 32), Color(255, 255, 255), Color(0, 255, 0), Color(255, 255, 0),
 	Color(255, 0, 255), Color(255, 128, 0), Color(0, 128, 255)};
 
-Board::Board()
+namespace {
+
+// 0x85c378: the colours the constructor copies into gGemColors
+const Color kGemColorTable[7] = {Color(255, 32, 32), Color(255, 255, 255), Color(0, 255, 0), Color(255, 255, 0),
+	Color(255, 0, 255), Color(255, 128, 0), Color(0, 128, 255)};
+
+// 0x85a9d0 (0x18 bytes) and 0x85aef0: globals the constructor clears (their use not yet known)
+int gUnknown85A9D0[6] = {};
+int gUnknown85AEF0 = 0;
+
+}  // namespace
+
+// The plain fields come from their declarations' defaults; this keeps the order of everything else
+Board::Board(WinTwistApp* theApp, int theMode, int theFlags, int theUnknown)
 {
-	// port: the constructor (0x6c4df9) comes with the board's update
-	NotPorted("Board::Board (0x6c4df9)");
+	mApp = theApp;
+	// port: the original starts a CSV header in a stats buffer at app+0x1024 when it is empty (0x6b2880); the
+	// buffer is never written out, so it is left out
+	mName = "BOARD";
+	if (theFlags != 8) {
+		mApp->mUnknownF68 = -1;
+		mApp->mUnknownF6C = 0;
+		mApp->mUnknownF70 = 0;
+	}
+	mUnknown2674 = theUnknown;
+	Profile* aProfile = mApp->mProfile;
+	if ((theMode == 2 || theMode == 3) && (!aProfile->GetFlag1E4(14) || aProfile->mRank == -1))
+		aProfile->MarkTutorialDone();
+	for (int anId = -101; anId >= -104; anId--)
+		mUnknown37B8[anId] = anId;  // 0x6b8c49
+	gBoard = this;
+	SRand((unsigned int)time(nullptr));
+	gUnknown85AEF0 = 0;
+	mUnknown3924 = mApp->mUnknownF85 ? 0.0f : 1.0f;
+	mUnknown1F88 = Rect(0, 0, 0, 0);
+	// 0x6a634f
+	mUnknown25B4 = 0;
+	mUnknown25AC = mUnknown25A8;
+	std::memset(gUnknown85A9D0, 0, sizeof(gUnknown85A9D0));
+	// 0x6ab455
+	int aCount = 0;
+	for (size_t i = 0; i < aProfile->mBools80.size(); i++) {
+		if (aProfile->mBools80[i])
+			aCount++;
+	}
+	mUnknown1328 = aCount;
+	static const int kRolls[25] = {1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 4, 4, 4, 5};
+	mUnknown21E0 = kRolls[Rand() % 25];
+	if (gApp->mProfile->mGamesPlayed == 0)
+		mUnknown21E0 = 3;
+	mZOrder = -5;
+	mWidth = mApp->mWidth;
+	mHeight = mApp->mHeight;
+	mShineImage = IMAGE_GEM_LIGHTING;
+	mGridBarTop = IMAGE_INGAMEUI_GRIDBAR_TOP;
+	mGridBarBot = IMAGE_INGAMEUI_GRIDBAR_BOT;
+	// port: the 0x10-byte object (0x74c8c8) comes with its first use
+	NotPorted("Board's +0x211c object (0x74c8c8)");
+	// 0x75fc8a
+	if (mApp->mBoard == nullptr || !mApp->mBoard->mUnknown37C4)
+		std::memset(mApp->mUnknownC74, 0, sizeof(mApp->mUnknownC74));
+	std::memset(mUnknown2234, 0, sizeof(mUnknown2234));  // 0x6a69f0
+	std::memset(mUnknown3560, 0, sizeof(mUnknown3560));
+	mGameMode = theMode;
+	mModeFlags = theFlags;
+	LoadConfig();
+	if ((theFlags & 8) == 0)
+		mApp->mLastGameMode = mGameMode;
+	mUnknown1FBC = mUnknown1FB8;
+	mUnknown1FC0 = mUnknown1FB8;
+	mUnknown2190 = mUnknown1FBC;
+	for (int i = 0; i < 7; i++)
+		gGemColors[i] = kGemColorTable[i];
+	mRand.SRand(Rand());
+
+	// The points of a cell, row by row
+	CellPoint* aPoint = mCellPoints;
+	int aRow = 0;
+	do {
+		float aY = (float)(aRow / 6);
+		float aV = (float)((double)aY / 84.0);
+		float aDY = (float)((double)aY - 42.0);
+		double aDY2 = (double)(aDY * aDY);
+		int aCol = 0;
+		do {
+			float aX = (float)(aCol / 6);
+			aPoint->mX = aX;
+			aPoint->mY = aY;
+			aPoint->mU = (float)((double)aX / 84.0 / 40.0);
+			aPoint->mV = aV;
+			float aDX = (float)((double)aX - 42.0);
+			float anAngle = (float)std::atan2((double)aDY, (double)aDX);
+			aPoint->mAngle = (float)((double)anAngle + 6.28318);
+			float aDist2 = (float)((double)(aDX * aDX) + aDY2);
+			aCol += 84;
+			aPoint->mDist = std::sqrt(aDist2);
+			aPoint->mUnknown18 = 1.0f;
+			aPoint++;
+		} while (aCol < 588);
+		aRow += 84;
+	} while (aRow < 588);
+
+	mUnknown1C2C = (float)(mWidth / 2);
+	mUnknown1C30 = (float)(mHeight / 2);
+	mUnknown1578 = FONT_SCORE;
+	mUnknown157C = FONT_SCORE;
+	mUnknown15F0 = new MemoryImage(mApp);
+	mUnknown15F0->Create(42, 42);
+	mUnknown15F0->SetImageMode(true, true);
+	mUnknown1584 = mUnknown1588;
+	mUnknown20E0 = (float)(mApp->mWidth / 2 - GetImageOffsetX(0x3d6));
+	if (mModeFlags == 8)
+		mUnknown20E0 = (float)((double)mUnknown20E0 * 0.75);
+	if (mApp->mTwistMusic != nullptr)
+		mApp->mTwistMusic->SetState(0);
+
+	// port: the tube (0x707b7f) and its settings (0x702ad3(1), 0x702ac3(1), 0x702b87(0), 0x702bae(0), 0x702bbe(1);
+	// zen 0x702ac3(0), 0x702b87(4), 0x702bbe(2), 0x70371c(1); blitz 0x70c8b6(green, 1), 0x702bae(1)) come with it
+	NotPorted("Board's GoodTube (0x707b7f)");
+	if (theMode == 2)
+		mUnknown158 = 1;
+
+	// port: the first manager's Direct3D height image (0x6f5ea6, +0xb6 and +0xa1) is left out
+	mFXManager = new EffectsManager();
+	mFXManager2 = new EffectsManager();
+	mFXManager3 = new EffectsManager();
+	// port: the points manager (0x7329b7) comes with its first use
+	NotPorted("Board's PointsManager (0x7329b7)");
+	mApp->mWidgetManager->SetFocus(this);
+	mUnknown21B0 = 0.0f;
+	mUnknown21BC = 0.0f;
+	mUnknown21C0 = 0.0f;
+	mUnknown37B1 = true;
+	mUnknown37B0 = true;
+	mUnknown37B4 = 15;
+	switch (mGameMode) {
+	case 2:
+		mUnknown154 = 1;
+		mUnknown37B0 = false;
+		mUnknown37B1 = false;
+		break;
+	case 3:
+		mUnknown154 = 0;
+		mUnknown3458 = 30000;  // 0x6a697d
+		mUnknown137D = true;
+		break;
+	case 5:
+		if (mUnknown158 == 0)
+			mUnknown158 = 1;
+		break;
+	default:
+		mUnknown154 = 0;
+		break;
+	}
+	mUnknown2224 = 0.0f;
+	mUnknown23D4 = 0;
+	mUnknown23D8 = 0.0f;
+	// 0x6a3fff
+	mUnknown214 = false;
+	mUnknown220 = 1.0f;
+	mUnknown2644 = mUnknown266C;
+	mBoardX = mApp->mWidth;
+
+	// The tips, a line each (blank lines skipped, and a last line without an end of line)
+	Buffer aBuffer;
+	if (gApp->ReadBufferFromFile("properties/tips.txt", &aBuffer, true)) {
+		SexyString aLine;
+		for (unsigned char aChar : aBuffer.mData) {
+			if (aChar == '\n' || aChar == '\r') {
+				aLine = Trim(aLine);  // 0x45d880
+				if (!aLine.empty())
+					mTips.push_back(aLine);
+				aLine.clear();
+			} else {
+				aLine += (SexyChar)aChar;
+			}
+		}
+	}
+	mUnknown150C = true;
+	mUnknown1559 = true;
+	std::memset(mUnknown133C, 0, sizeof(mUnknown133C));
+}
+
+// 0x6b2b77: properties\config.xml, then the mode's own file over it (casual 0, normal 1, blitz 3, zen 4)
+void Board::LoadConfig()
+{
+	std::string aName = "properties/config";
+	if (mGameMode == 0)
+		aName += "_casual";
+	else if (mGameMode == 1)
+		aName += "_normal";
+	else if (mGameMode == 3)
+		aName += "_blitz";
+	else if (mGameMode == 4)
+		aName += "_zen";
+	aName += ".xml";
+	{
+		PropertiesParser aParser(mApp);
+		aParser.ParsePropertiesFile("properties/config.xml");
+	}
+	PropertiesParser aParser(mApp);
+	aParser.ParsePropertiesFile(aName);
 }
 
 Board::~Board()

@@ -78,6 +78,10 @@ public:
 	bool mResumeGame = false;           // +0x930: a saved game is resumed at once (-resume; comes with the board)
 	bool mPlayPressed = false;          // +0xf60: the menu's play button was pressed: resume the last game
 	int mLastGameMode = 0;              // +0xf64: the high scores to show after a game
+	int mUnknownF68 = 0;                // +0xf68: the board sets -1 (but not for a replay)
+	int mUnknownF6C = 0;                // +0xf6c
+	int mUnknownF70 = 0;                // +0xf70
+	int mUnknownC74[84] = {};           // +0xc74: cleared by a new board (0x75fc8a) unless the old one has +0x37c4
 	bool mUnknownF85 = false;           // +0xf85: StartMainMenu starts a classic game at once
 	int mAutoPlayMode = -1;             // +0x1044: -autoplay's game (1 classic, 3 blitz, 4 the other), -1 none
 	float mAutoPlayDelay = 0;           // +0x1048: -autoplay starts its game when this falls to 0
