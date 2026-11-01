@@ -93,6 +93,7 @@ static std::vector<Move> gMoves;
 // The search gives up after gLimit positions and starts again with equally ranked moves in another order
 static long gNodes = 0;
 static long gLimit = 400000;
+static int gTries = 60;  // MJ_SOLVE_LIMIT and MJ_SOLVE_TRIES set both (for a stage that needs many short restarts)
 static bool gGaveUp = false;
 static std::mt19937 gOrder;
 static bool gShuffle = false;
@@ -289,8 +290,16 @@ static int Solve(int theId, bool theDeal, unsigned int theSeed, int thePercent)
 		if (aTile->mKind == 0)
 			aBlank++;
 	fprintf(stderr, "%d tiles, %d without a kind\n", (int)gTiles.size(), aBlank);
+	if (getenv("MJ_SOLVE_KINDS"))
+	{
+		fprintf(stderr, "kinds set by the layout:");
+		for (Tile* aTile : gTiles)
+			if (aTile->mKind != 0)
+				fprintf(stderr, " %#x", aTile->mKind);
+		fprintf(stderr, "\n");
+	}
 	int anOffX = ((aLeft - aRight) + 800) / 2 - aLeft;
-	int anOffY = (((aTop - aBottom) + 0x1c4) / 2 - aTop) + -5;
+	int anOffY = ((aTop - aBottom) + 0x1c4) / 2 - aTop;   // Board::Measure's, China's without the -5
 	aLayout.UpdateFree();
 	if (theDeal)
 	{
@@ -304,7 +313,7 @@ static int Solve(int theId, bool theDeal, unsigned int theSeed, int thePercent)
 	for (Tile* aTile : gTiles)
 		aKinds.push_back(aTile->mKind);
 	bool aSolved = SolveFrom(aLayout);
-	for (int aTry = 1; !aSolved && gGaveUp && aTry < 60; aTry++)
+	for (int aTry = 1; !aSolved && gGaveUp && aTry < gTries; aTry++)
 	{
 		gDead.clear();
 		gNodes = 0;
@@ -395,6 +404,10 @@ extern "C" int SDL_main(int argc, char** argv)
 	bool aSolve = argc > 3 && std::string(argv[2]) == "--solve";
 	int aPercent = argc > 2 ? atoi(argv[2]) : 50;
 	unsigned int aSeed = argc > 3 ? (unsigned int)atoi(argv[3]) : 1;
+	if (const char* aLimit = getenv("MJ_SOLVE_LIMIT"))
+		gLimit = atol(aLimit);
+	if (const char* aTries = getenv("MJ_SOLVE_TRIES"))
+		gTries = atoi(aTries);
 	TestHost aHost;
 	if (!aHost.mDll.Open(aFolder + "/Resource.dll"))
 	{

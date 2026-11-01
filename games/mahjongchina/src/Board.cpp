@@ -178,12 +178,12 @@ void Board::Init()
 	jb::LoadSound(0x15b, true);
 	jb::LoadSound(0x15c, true);
 	jb::LoadSound(0x17a, true);
+	jb::LoadSound(0x17b, false);  // China loads 0x17b and 0x15e in their places (Japan last)
 	jb::LoadSound(0x15d, false);
+	jb::LoadSound(0x15e, false);
 	jb::LoadSound(0x15f, false);
 	jb::LoadSound(0x179, false);
 	jb::LoadSound(0x178, true);
-	jb::LoadSound(0x17b, false);
-	jb::LoadSound(0x15e, false);
 	mFont = jb::GetDllFont(0xd9, 0xd8, -1);
 	RegUpdate(true);
 	RegClick(true);
@@ -491,7 +491,8 @@ void Board::Measure()
 		aTile = mLayout.Next();
 	}
 	mOffX = ((aLeft - aRight) + 800) / 2 - aLeft;
-	mOffY = (((aTop - aBottom) + 0x1c4) / 2 - aTop) + -5;
+	// China drops Japan's -5 here (China 0x40b650)
+	mOffY = ((aTop - aBottom) + 0x1c4) / 2 - aTop;
 }
 
 // 0x40b780

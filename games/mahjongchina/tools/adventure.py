@@ -1,5 +1,7 @@
 """Writes a -script for a whole escape adventure from a new player, from the solver's files.
 python adventure.py <solver dir with s<n>.txt/e<n>.txt> <out dir> <last stage> [extra.txt]
+MJ_ADV_FIRST=<n> starts at stage n from a saved player whose progress is n - 1 (resign.py --progress), with no name
+to type: the solver finds no solution for stage 11, so the adventure is played as stages 1-10 and 12-52.
 extra.txt lines: "<stage> <after move|start|end> <update offset> <command...>" add clicks (tips found by looking)."""
 import sys, os
 sol, out, last = sys.argv[1], sys.argv[2], int(sys.argv[3])
@@ -9,10 +11,15 @@ if len(sys.argv) > 4:
         p = l.split(None, 3)
         if len(p) == 4 and not l.startswith('#'):
             extra.setdefault((int(p[0]), p[1]), []).append((int(p[2]), p[3].strip()))
-START_TIP = {1: (400, 407, 0), 2: (312, 433, 0), 3: (409, 314, 300), 6: (412, 315, 300), 10: (392, 341, 300)}
-TIMED_TIP = {1: (403, 330), 7: (566, 440), 5: (400, 245)}  # ids 1 and 7 come only on stages 1 and 2
-lines = ["1400 click 400 270", "1720 char T", "1725 char e", "1730 char s", "1735 char t", "1760 key RETURN"]
+# China's tips: the OK of each, at its box's place (GameDialogs.cpp's gTipPos) plus the box's own offset
+START_TIP = {1: (400, 407, 0), 2: (312, 433, 0), 4: (192, 314, 300), 8: (327, 255, 300), 13: (392, 341, 300)}
+TIMED_TIP = {1: (187, 330), 7: (566, 440), 5: (400, 245)}  # ids 1 and 7 come only on stages 1 and 2
+lines = ["1400 click 400 262", "1720 char T", "1725 char e", "1730 char s", "1735 char t", "1760 key RETURN"]
+first = int(os.environ.get("MJ_ADV_FIRST", "1"))
 t = 2600
+if first > 1:
+    lines = ["1400 click 400 262"]
+    t = 2100
 def emit(cmd):
     lines.append(f"{t} {cmd}")
 def extras(stage, where):
@@ -20,9 +27,11 @@ def extras(stage, where):
     for off, cmd in extra.get((stage, where), []):
         t += off
         emit(cmd)
-for st in range(1, last + 1):
-    emit("click 715 573")  # the map's PLAY
+for st in range(first, last + 1):
+    emit("click 725 565")  # the map's PLAY
     t += 400
+    if os.environ.get("MJ_ADV_SHOTS"):
+        t += 800; emit(f"screenshot {out}/start{st:02d}.png"); t += 100
     if st in START_TIP:
         x, y, d = START_TIP[st]
         t += d; emit("click %d %d" % (x, y)); t += 200
