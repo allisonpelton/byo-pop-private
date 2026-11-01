@@ -1173,6 +1173,102 @@ void Board::UpdateGame()
 		if (mUnknown265C == 4)
 			mUnknown25A4 = false;
 	}
+	if (mUnknown160 == 2) {
+		if (mUpdateCnt % 2 == 0) {
+			// port: state 2 puts the gems of +0x148c back on the board one by one, picked by Rand, each with a glow
+			// (IMAGE_INGAMEUI_GRIDSQUAREGLOW); it comes with the puzzles' undo
+			NotPorted("Board::UpdateGame: state 2");
+		}
+	} else if (mUnknown160 == 1) {
+		// port: state 1 plays the recorded board back (gGraphicsRecorder's frames, +0x3448 counting down, the
+		// generator at +0x2a80 seeded from the update count); it comes with the recorder's frames
+		mUnknown25A4 = false;
+		NotPorted("Board::UpdateGame: state 1, the playback");
+	} else if (mUnknown2629) {
+		mUnknown2A80.SRand(mUpdateCnt / 7);
+	}
+	if (mUnknown160 != 1 && mUnknown2108 == 0.0f && mUnknown20DC == 0 && mUnknown1378 == 1) {
+		// The recorder keeps the board's frames while it moves, up to 500 of them
+		if (!mUnknown25A4 && mUnknown3444 < 500) {
+			mUnknown3444++;
+			int aFrame = mUnknown3444;
+			int aGap = aFrame - gGraphicsRecorder->GetLastFrame();
+			bool aRecord = true;
+			if (aGap < 10 && 19 < aFrame && (49 < aFrame || aGap < 5))
+				aRecord = false;
+			gGraphicsRecorder->mRecording = aRecord;
+			gGraphicsRecorder->mFrame = mUnknown3444;
+		}
+		gGraphicsRecorder->mSkipDraw = false;
+	}
+	if (mUnknown25A4 && !mFrozen) {
+		mUnknown25A8++;
+		bool aTutorialBusy = false;
+		if (mUnknown2584 != nullptr) {
+			// port: the tutorial's dialog holds the hints back while its +0x174 is set; it comes with the tutorial
+			NotPorted("Board::UpdateGame: the tutorial's +0x174");
+		}
+		if (!mApp->mShowHints || mUnknown25C8 != 0 || mGameMode == MODE_CHALLENGE || -1 < mUnknown2400 ||
+			aTutorialBusy) {
+			UpdateHint();
+		} else {
+			// With the hints on, a hint once the player has waited long enough
+			mUnknown25D0 = (float)((double)mUnknown25D0 + (double)0.01f);
+			float aWait;
+			if ((unsigned int)gApp->mProfile->mGamesPlayed <= 1 && mUnknown158 <= 1)
+				aWait = 5.0f;
+			else
+				aWait = 15.0f;
+			int aLimit = Ftol(aWait);
+			if (mUnknown2004)
+				aLimit = 3;
+			if ((float)aLimit <= mUnknown25D0) {
+				ShowHint();
+				mUnknown25D0 = 0;
+			}
+		}
+	}
+	int anUpdateCnt = mUpdateCnt;
+	if (!mUnknown36B0 && mUnknown160 == 0 && !IsBusy() && mUnknown2584 == nullptr &&
+		(mGameMode != MODE_CHALLENGE || !mUnknown2669)) {
+		// The seconds of play, for the stats
+		mUnknown14E4 += anUpdateCnt - mUnknown14E0;
+		if (1000 / gApp->mFrameTime <= mUnknown14E4) {
+			if (mGameMode == MODE_CHALLENGE && mUnknown2630 != 0) {
+				// port: a timed challenge (its +0x80 flag 2) runs out through 0x6b3432; it comes with the challenges
+				NotPorted("Board::UpdateGame: the challenge's time");
+			}
+			AddStat(35, 1);
+			mUnknown14E4 = mUnknown14E4 % (1000 / gApp->mFrameTime);
+		}
+	}
+	mUnknown14E0 = anUpdateCnt;
+	if (mUnknown23F5) {
+		// The tutorial's arrow fades in while the cursor is off its cell
+		int aCol = GetColAt(mUnknown1C00);
+		int aRow = GetRowAt(mUnknown1C04);
+		if (mUnknown2400 == aCol && mUnknown2404 == aRow) {
+			double aNext = (double)mUnknown23F8 - 0.075;
+			mUnknown23F8 = (float)(0.0 < aNext ? aNext : 0.0);
+		} else {
+			double aNext = (double)mUnknown23F8 + 0.075;
+			mUnknown23F8 = (float)(aNext < 1.0 ? aNext : 1.0);
+		}
+	}
+	if (0 < mUnknown1F94) {
+		int aNext = mUnknown1F94 - 1;
+		mUnknown1F94 = aNext < 0 ? 0 : aNext;
+	}
+	if (mShakeX == 0.0f && mUnknown3880.GetOutVal() == 0.0 && mUnknown2584 == nullptr) {
+		// The tip slides in, waits, and slides back
+		mUnknown830.IncInVal();
+		if (0.0f < mUnknown8BC) {
+			float aLeft = (float)((double)mUnknown8BC - (double)0.01f);
+			mUnknown8BC = aLeft;
+			if (!(0.0f < aLeft))
+				mUnknown830.mIncRate = mUnknown830.mIncRate * -1.0;
+		}
+	}
 	// port: the rest of 0x6d090f comes next
 	NotPorted("Board::UpdateGame: the rest");
 }
@@ -1914,4 +2010,18 @@ void Board::UpdateUnknown248()
 		// draws from Rand
 		NotPorted("Board::UpdateUnknown248 (0x6c4466)");
 	}
+}
+
+void Board::UpdateHint()
+{
+	if (mUnknown25C8 != 0) {
+		// port: 0x6aff84, the hint's sparkles round the gems (+0x25c8 1 to 3), comes with the hints; it draws from Rand
+		NotPorted("Board::UpdateHint (0x6aff84)");
+	}
+}
+
+void Board::ShowHint()
+{
+	// port: 0x6c32cf finds a move (0x6c14fc) and shows it; it comes with the hints
+	NotPorted("Board::ShowHint (0x6c32cf)");
 }

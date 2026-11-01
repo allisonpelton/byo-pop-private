@@ -149,7 +149,7 @@ public:
 	CurvedVal mUnknown830;                  // +0x830: the tip's slide
 	SexyString mUnknown8A0;                 // +0x8a0: the tip's text
 	float mUnknown8C0 = 0;                  // +0x8c0: the tip's x
-	int mUnknown8BC = 0;                    // +0x8bc
+	float mUnknown8BC = 0;                  // +0x8bc: the tip's wait before it slides back
 	int mUnknown131C = -1;                  // +0x131c
 	int mUnknown132C = 1;                   // +0x132c
 	// +0x135c: a value per cell (AllocGrid)
@@ -425,7 +425,7 @@ public:
 	int mUnknown23D4 = 0;                   // +0x23d4
 	float mUnknown23F0 = 0.01f;             // +0x23f0
 	bool mUnknown23F4 = false;              // +0x23f4
-	int mUnknown23F8 = 0;                   // +0x23f8
+	float mUnknown23F8 = 0;                 // +0x23f8: the tutorial arrow's fade
 	int mUnknown23FC = 0;                   // +0x23fc
 	int mUnknown2400 = -10000;              // +0x2400
 	int mUnknown2404 = -10000;              // +0x2404
@@ -438,7 +438,7 @@ public:
 	int mUnknown25A8 = 0;                   // +0x25a8
 	int mUnknown25C8 = 0;                   // +0x25c8
 	int mUnknown25CC = 0;                   // +0x25cc
-	int mUnknown25D0 = 0;                   // +0x25d0
+	float mUnknown25D0 = 0;                 // +0x25d0: the wait for a hint, in seconds
 	Widget* mUnknown2624 = nullptr;         // +0x2624: a widget with a state at +0x160 (not yet known)
 	bool mUnknown2628 = false;              // +0x2628
 	bool mUnknown2629 = false;              // +0x2629
@@ -559,6 +559,8 @@ public:
 	int mUnknown3458 = 0;                   // +0x3458: blitz's 30000
 	std::map<int, int> mUnknown37B8;        // +0x37b8
 	MTRand mRand;                           // +0x958: seeded from Rand()
+	MTRand mUnknown2A80;                    // +0x2a80: seeded from the update count while +0x2629 is set
+	int mUnknown1F94 = 0;                   // +0x1f94: counts down to 0
 	// Read by ReadConfig (0x6c6469)
 	int mUnknown1BFC = 0;                   // +0x1bfc
 	bool mUnknown1BF8 = false;              // +0x1bf8
@@ -665,6 +667,8 @@ public:
 	int GetGridRight();                          // 0x6a49a3
 	float GetGridMidY();                         // 0x6a49cf
 	void UpdateUnknown248();                     // 0x6c4466
+	void UpdateHint();                           // 0x6aff84
+	void ShowHint();                             // 0x6c32cf
 	void FinishLevelUp();                         // 0x6bab49: the change between levels is over
 	void StartLevelIntro();                       // 0x6c2f69: the new level's intro
 	void PlayGameMusic();                         // 0x6a6a8b

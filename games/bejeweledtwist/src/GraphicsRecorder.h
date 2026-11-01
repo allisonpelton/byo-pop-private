@@ -14,8 +14,13 @@ class Transform;
 
 class GraphicsRecorder {
 public:
+	int mFrame = 0;           // +0x04: the board's frame the draws belong to (0x70cf00)
 	bool mSkipDraw = false;   // +0x08: record without drawing
 	bool mRecording = false;  // +0x09
+
+	// 0x70d694: the frame of the last recorded draw, -1 with none
+	// port: the list of draws comes with the board's playback; until then nothing is recorded
+	int GetLastFrame() { return -1; }
 
 	void DrawImage(Graphics* g, Image* theImage, int theX, int theY);                                  // 0x70db43
 	void DrawImageF(Graphics* g, Image* theImage, float theX, float theY);                             // 0x70dae6
