@@ -35,8 +35,9 @@ Builds, 32-bit (the originals are 32-bit), with llvm-mingw's i686 target under `
     origrun --game <name> --script <file.txt> [options]
     origrun --exe "<path to an already-placed copy>" --script <file.txt> [options]
 
-`--game <name>` looks the install up in `tools/origrun/games.tsv` (name, install folder, exe leaf) and copies
-it into `build/origrun/<run>/game`. `--exe` runs a copy you placed yourself (used for a game whose real exe
+`--game <name>` looks the install up in `tools/origrun/games.tsv` (name, install folder, exe leaf, and optionally
+the game's registry key and 3D-flag address, for `--3d`) and copies it into `build/origrun/<run>/game`. The
+repository's table is read first; a copy beside `origrun.exe` is only a fallback. `--exe` runs a copy you placed yourself (used for a game whose real exe
 you first carved out of a wrapper; see below). Captures land in `build/origrun/<run>/shots`, logs in
 `.../logs`, recorded WAVs in `.../snd`.
 
@@ -61,6 +62,11 @@ Options:
   `tools/origrun/patches/<game>.txt` if present. `--no-patches` runs the copy unpatched.
 - `--seed <N>` — a value substituted for the `{seed}` token in a patch, to pin the original's RNG so its boards
   and other random content match the port it is compared with.
+- `--3d on|off` — the game's own Hardware Acceleration setting for this run, and a check, read from the game's
+  memory, that it really ran in that mode; a run that ends up in the other mode fails with exit code 3 (see
+  "Hardware acceleration (3D mode)"). With `--exe`, give `--game` too so origrun finds the game's row.
+- `--3d-key <HKCU key>` / `--3d-flag <expr>` — the registry key and 3D-flag address when games.tsv has none, or
+  to override it.
 
 ## Script commands
 
@@ -202,7 +208,8 @@ game session gives in the per-game config:
 
 `[0xPTR]+0xOFF` reads the pointer at `PTR` then the int `OFF` bytes into it — for a SexyAppBase game, the app
 pointer's global and `mUpdateCount` (each session supplies its own; the offset is in its `re/<game>/`). A plain
-`0xADDR` reads the int at that address. Then `at <N> <command>` waits for the counter, suspends the window
+`0xADDR` reads the int at that address. Brackets nest, so `[[0x8259e4]+0x36c]+0x38` follows two pointers (the
+3D flag below), and an offset may also be subtracted. Then `at <N> <command>` waits for the counter, suspends the window
 thread, runs the command and resumes; `burst <name> <count> update <k>` captures every `k` updates the same way.
 
 **Precision (measured on Noah's Ark):** `at` lands on the exact update — `at 1500/1700/1900` each fired with the
@@ -212,6 +219,64 @@ first waits for the next present so the frame shown is update `N`, not `N-1` (ca
 presents nothing new, does not stall). SexyAppBase's catch-up can still double or skip an update under load; a
 per-game patch could force one update per frame if a game ever needs it (not needed so far).
 
+## Hardware acceleration (3D mode)
+
+A SexyAppBase game with a 3D mode (the Options dialog's Hardware Acceleration checkbox) keeps the player's choice in
+the registry value `Is3D`, a DWORD under the game's own key. At start, MakeWindow reads it and DDInterface::Init runs
+the Direct3D test (D3DTester, whose results are cached in the key's `Test3D` subkey), then in 3D creates its draw
+surface in video memory for Direct3D 7. When that fails, the game carries on in software for the session and saves
+`Is3D=0` at exit. Which mode the game is really in is `mDDInterface->mIs3D`, which is what `Is3DAccelerated()` returns
+and what the game's own code branches on.
+
+games.tsv's optional columns 4 and 5 give the game's registry key (under HKCU) and the address of that flag, in the
+counter's address syntax, read as one byte (Bookworm Adventures: `Software\PopCap\WinBAD` and
+`[[0x8259e4]+0x36c]+0x38`, the app global, `mDDInterface`, `mIs3D`). When both are known, origrun polls the flag
+every 100 ms while the game's window is up, logs the first reading and every change ("3D mode: the game reports ON
+(Direct3D)" or "OFF (software)"), and ends with a "RESULT: 3D on/off" line. It also snapshots `Is3D` and the
+`Test3D` values before every run and puts them back after it, with or without `--3d`: on rundesk's desktop the game
+falls back to software and saves `Is3D=0`, and a test that re-runs there caches a failure, and either would keep 3D
+off in the user's own play. `--3d on|off` writes `Is3D` for the run. The verdict uses the last reading taken before
+`quit` (a value read while the game tears its DDInterface down does not count); a run whose mode differs from the
+one asked for, or whose flag was never read, logs "RESULT: 3D MISMATCH" or "3D CHECK FAILED" and exits with code 3.
+The older games keep their settings under `HKLM\SOFTWARE\PopCap\<Game>`; run unelevated, as here, the game reads and
+writes Windows' per-user copy of that key instead, `Software\Classes\VirtualStore\MACHINE\SOFTWARE\WOW6432Node\PopCap\<Game>`
+under HKCU, so that is the key to name in games.tsv. If a run is ever elevated, the game reads HKLM itself and the
+memory check reports the mismatch.
+
+**3D mode cannot run on rundesk's desktop (found 2026-10-31).** With `Is3D=1`, Bookworm Adventures' cached test
+results say the card passed (no failure, no warning), so its test is not the problem. But DDInterface::Init fails
+with "CreateSurface Windowed DrawSurface: DDERR_NODIRECTDRAWHW" (read from the game's memory), and the game runs in
+software and saves `Is3D=0`. A small probe making the same DirectDraw calls shows why. On the private desktop
+DirectDraw has no hardware layer at all (its HAL caps are bare and report no video memory), and the 3D surface fails
+the same way. On the session's own desktop the same calls get the full HAL, the 3D surface and a Direct3D 7 HAL
+device. Windows gives legacy DirectDraw hardware only to the input desktop, which a hidden desktop never is. Direct3D 9
+is no better there: its HAL device fails with D3DERR_NOTAVAILABLE. Direct3D 11 does get a hardware device (feature
+level 11_0; Present reports the window occluded but still presents). The window of a flip-model swap chain is
+captured correctly by PrintWindow with full content (what `shot` and `waitshot` use). A blit-model one comes out
+blank, and so does the window-DC blit that `at` and update-timed bursts use for both models. So on the user's own
+desktop the originals most likely do run in 3D. It is origrun's hidden desktop that keeps them in software.
+
+The way to a 3D run is a DirectDraw and Direct3D 7 implementation over Direct3D 11, placed beside the staged copy
+(never the install) and presenting flip-model, such as dgVoodoo2. Its official source is its author's GitHub
+releases page, `github.com/dege-diosg/dgVoodoo2/releases`. Version 2.87.6 is `dgVoodoo2_87_6.zip` at 9,244,362 bytes
+(2026-10-25); version 2.87.5 is 9,268,078 bytes (2026-09-15). Its `DDraw.dll` and `D3DImm.dll` (the `MS\x86` folder)
+and a `dgVoodoo.conf` would go into the copy. **Not downloaded: it waits on the user's OK.**
+
+Still unknown until it is tried:
+- whether it keeps presenting while the window is occluded;
+- that `at` captures need a path other than the window DC for flip-model content;
+- how far its Direct3D 11 rendering of Direct3D 7 differs from a native driver's (a comparison notes it).
+
+The same layer may also give the full-screen DirectDraw games (Water Bugs, Cosmic Bugs) a screen they can open on
+the hidden desktop, since it can force a window.
+
+Bookworm Adventures in software mode is proven: `--3d off` ends "RESULT: 3D off, as asked". Its main menu at update
+1600 was compared through shotdiff with the port run on SDL's software renderer (`SDL_RENDER_DRIVER=software`). For
+now the port ignores `Is3D`, and its `Is3DAccelerated()` follows SDL's renderer; the Bookworm Adventures session is
+making it honour the setting. The menu has no 3D-only effect: the port's two renderers differ there in 0.2% of the
+pixels, faintly. Its 3D-only code paths (ArrowHint's fade, the Board's zoom, TileEngine) are all in battle. With
+`--3d on` the original reaches no 3D at all, as above.
+
 ## Per-game status
 
 The 18 games of `BYOPOP_WEB_FINISHED`, as of the first runs on 2026-10-31. "Trial" means the copy shows
@@ -219,29 +284,33 @@ PopCap's trial screen first; its **Play** button is clicked through with `clickr
 while plays/time remain). Captures are the main window's client size. These are first findings, not a finished
 comparison; the per-game session does the screen-by-screen pass.
 
+The 3D column says whether the game itself (its real exe, not the launcher that wraps it) has SexyApp's Direct3D 7
+mode, and what `--3d` reaches (see "Hardware acceleration (3D mode)"). Only Bookworm Adventures has its registry
+key and 3D-flag address in games.tsv so far; each session adds its own game's.
+
 Round 2 (2026-10-31) added update-timed capture, bursts, the copy patch list, and fixes below; the table is
 updated for it.
 
-| Game | Source | Reached under origrun | Capture | Audio seen | Notes |
-|------|--------|-----------------------|---------|------------|-------|
-| alchemy | local install | trial, then into the game past Play | yes | muted a session | some sound is not via DirectSound |
-| atomica | local install | FATAL ERROR at startup, then exits | — | none | FMOD fails to load `sounds\capclick` (Ogg); not the stand-in or display — the Atomica session's to fix |
-| mummymaze | local install | title after a slow (~45 s) start | yes, 646×509 | none | window is late to appear |
-| noahsark | local install | own title screen | yes, 646×509 | none | update counter proven here (`[0x4d125c]+0x368`); `at` lands on the exact update |
-| sevenseas | local install | own title screen | yes, 646×509 | none | |
-| pixelus | local install | trial screen (not clicked through yet) | yes | none | games.tsv's Pixelus.exe (~256 KB) is a smaller build than the port's decompiled exe — its counter offsets do not apply to it |
-| tiptop | local install | trial, plays | yes | none | DirectInput: posted clicks are ignored; the `hw*` commands are unconfirmed (see the gaps) |
-| wordharmony | local install | trial (60 min), Play present | yes | none | |
-| bookwormadv | local install | in-game Updates dialog | yes, 806×629 | muted a session | its sound is not via DirectSound (BWA audio work); stage under a short `--stage-root` (long worktree path makes its launcher exit) |
-| ningpo | local install | main window | **yes** (after init) | none | windowed DirectDraw; `waitshot`'s flat-retry now captures real content once it has drawn |
-| waterbugs | local install | window, then "Screen Setup Failed" | window only | none | full-screen DirectDraw: the headless desktop cannot open its 800×600 mode, so it never reaches the game |
-| cosmicbugs | local install | window, then "Screen Setup Failed" | window only | none | same as Water Bugs |
-| dynomite | Steam copy | **title and on** | **yes** | none | fixed: `Steam.dll` is now auto-copied from the Steam library root into the copy |
-| bejeweled | wrapped launcher | **title, prepared copy runs** | **yes** | none | prepared as the private notes below say, run via an absolute `--exe` |
-| bigmoney | wrapped launcher | prepares cleanly | — | — | prepare as Bejeweled (not launched yet) |
-| bookworm | wrapped Steam exe | prepares cleanly | — | — | prepare as Bejeweled (not launched yet) |
-| rocketmania | Steam copy | not run | — | — | Steam copy: `Steam.dll` is auto-copied now, as for Dynomite |
-| bookwormadv2 | Steam copy | not run | — | — | not wrapped; `Steam.dll` auto-copied now |
+| Game | Source | Reached under origrun | Capture | 3D | Audio seen | Notes |
+|------|--------|-----------------------|---------|----|------------|-------|
+| alchemy | local install | trial, then into the game past Play | yes | has one; on expected to fall back as Bookworm Adventures does | muted a session | some sound is not via DirectSound |
+| atomica | local install | FATAL ERROR at startup, then exits | — | none | none | FMOD fails to load `sounds\capclick` (Ogg); not the stand-in or display — the Atomica session's to fix |
+| mummymaze | local install | title after a slow (~45 s) start | yes, 646×509 | none | none | window is late to appear |
+| noahsark | local install | own title screen | yes, 646×509 | none | none | update counter proven here (`[0x4d125c]+0x368`); `at` lands on the exact update |
+| sevenseas | local install | own title screen | yes, 646×509 | none | none | |
+| pixelus | local install | trial screen (not clicked through yet) | yes | has one; on expected to fall back as Bookworm Adventures does | none | games.tsv's Pixelus.exe (~256 KB) is a smaller build than the port's decompiled exe — its counter offsets do not apply to it |
+| tiptop | local install | trial, plays | yes | none | none | DirectInput: posted clicks are ignored; the `hw*` commands are unconfirmed (see the gaps) |
+| wordharmony | local install | trial (60 min), Play present | yes | none | none | |
+| bookwormadv | local install | in-game Updates dialog | yes, 806×629 | **off proven**; on falls back to software (no DirectDraw hardware on the hidden desktop) | muted a session | its sound is not via DirectSound (BWA audio work); stage under a short `--stage-root` (long worktree path makes its launcher exit) |
+| ningpo | local install | main window | **yes** (after init) | none | none | windowed DirectDraw; `waitshot`'s flat-retry now captures real content once it has drawn |
+| waterbugs | local install | window, then "Screen Setup Failed" | window only | none | none | full-screen DirectDraw: the headless desktop cannot open its 800×600 mode, so it never reaches the game |
+| cosmicbugs | local install | window, then "Screen Setup Failed" | window only | none | none | same as Water Bugs |
+| dynomite | Steam copy | **title and on** | **yes** | has one; on expected to fall back as Bookworm Adventures does | none | fixed: `Steam.dll` is now auto-copied from the Steam library root into the copy |
+| bejeweled | wrapped launcher | **title, prepared copy runs** | **yes** | has one; on expected to fall back as Bookworm Adventures does | none | prepared as the private notes below say, run via an absolute `--exe` |
+| bigmoney | wrapped launcher | prepares cleanly | — | has one; on expected to fall back as Bookworm Adventures does | — | prepare as Bejeweled (not launched yet) |
+| bookworm | wrapped Steam exe | prepares cleanly | — | has one; on expected to fall back as Bookworm Adventures does | — | prepare as Bejeweled (not launched yet) |
+| rocketmania | Steam copy | not run | — | has one; on expected to fall back as Bookworm Adventures does | — | Steam copy: `Steam.dll` is auto-copied now, as for Dynomite |
+| bookwormadv2 | Steam copy | not run | — | has one; on expected to fall back as Bookworm Adventures does | — | not wrapped; `Steam.dll` auto-copied now |
 
 The install paths are in `tools/origrun/games.tsv`, kept out of any publish (`.publishignore`).
 
@@ -280,6 +349,11 @@ user:
   Games" button**; click only Play and the game's own controls.
 
 Other gaps:
+
+- **No 3D mode on the hidden desktop**: legacy DirectDraw has no hardware there, so every original with a 3D mode
+  falls back to software under origrun. Reaching it needs a DirectDraw and Direct3D 7 layer over Direct3D 11 in
+  the copy, which waits on the user's OK to download (see "Hardware acceleration (3D mode)"). With one, `at` and
+  update-timed bursts also need a capture that does not use the window DC.
 
 - **Windowed DirectDraw now captures** (Ning Po): a window is often flat only because it has not drawn its first
   frame, so `waitshot`/`capture_ready` re-grab while flat and get real content once it appears. **Full-screen
