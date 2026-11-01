@@ -1,0 +1,62 @@
+# Winning the first battle: RAIN as in battle.txt, then THOUGH, the enemy's defeat, Cassandra's talk, the walk to
+# the next battle and its start with the hint. Profile Tester (pilot start state), the seeded board as in battle.txt.
+at 16000
+click 230 300            # the library: Adventure
+wait 4000
+click 400 575            # Enter!
+wait 2500
+wait 3000
+click 400 150
+wait 4000
+click 400 150
+wait 4000
+click 400 150
+wait 4000
+click 400 150
+wait 4000
+click 325 345            # R  (the seeded board: RUAE / NGNO / HAIJ / WREI)
+wait 400
+click 425 345            # A
+wait 400
+click 425 445            # I
+wait 400
+click 325 395            # N
+wait 800
+click 400 567            # Attack: Lex attacks, then the enemy answers
+wait 6000
+wait 1000
+wait 3000
+wait 3000
+shot board_after_rain
+click 425 395            # T  (BUHE / EGTO / HANJ / W.E.)
+wait 400
+click 425 345            # H
+wait 400
+click 475 395            # O
+wait 400
+click 375 345            # U
+wait 400
+click 375 395            # G
+wait 400
+click 325 445            # H
+wait 800
+shot word_though
+click 400 567            # Attack
+wait 7000
+shot won_talk_1
+click 400 150
+wait 3500
+shot won_talk_2
+click 400 150
+wait 3500
+shot won_talk_3
+click 400 150
+wait 3500
+shot walk
+click 400 150
+wait 3500
+shot next_battle_hint
+click 400 150
+wait 3500
+shot next_battle
+quit

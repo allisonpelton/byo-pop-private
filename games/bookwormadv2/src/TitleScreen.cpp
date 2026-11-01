@@ -13,7 +13,7 @@ using namespace Sexy;
 
 TitleScreen::TitleScreen(GameApp* theApp)
 {
-	mFadeColor = Color::White;  // port: the fader (0x489400) started from its own default
+	mFadeColor = Color::Black;  // 0x489400: the fader starts from 0x7875e0, which the static initialiser at 0x6e34f0 makes Color(0, 0, 0)
 	mApp = theApp;
 	mState = STATE_POPCAP_LOGO;
 	mTimer = 0;
@@ -57,7 +57,7 @@ bool TitleScreen::InitLoadingScreen()
 		MemoryImage* anImage = new MemoryImage(mApp);
 		anImage->Create(mTileWidth, IMAGE_TS_TILE->mHeight);
 		Graphics g(anImage);
-		g.SetColor(Color::Black);
+		g.SetColor(Color::White);
 		g.SetFont(FONT_TILE);
 		const SexyString& aLetter = *aLetters[i];
 		int aStringWidth = g.GetFont()->StringWidth(aLetter);
@@ -148,7 +148,7 @@ void TitleScreen::Update()
 		mPopCapLogoAlpha = 0;
 		// (with partner logos: STATE_PARTNER_LOGOS, fading their background in from the properties'
 		// PartnerBGRed, PartnerBGGreen and PartnerBGBlue)
-		mFadeColor = Color::White;
+		mFadeColor = Color::Black;
 		mState = STATE_CURTAIN;
 		StartCurtain();
 	}
@@ -157,7 +157,7 @@ void TitleScreen::Update()
 void TitleScreen::Draw(Graphics* g)
 {
 	if (mState == STATE_POPCAP_LOGO) {
-		g->SetColor(Color::White);
+		g->SetColor(Color::Black);
 		g->FillRect(0, 0, mWidth, mHeight);
 		g->PushState();
 		if (mPopCapLogoAlpha != 255) {

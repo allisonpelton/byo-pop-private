@@ -126,6 +126,7 @@ public:
 	int						mAutoplayCap;
 	std::string				mAutoplayLog;
 	std::string				mAutoplayShots;
+	std::string				mAutoplayShow;          // -autoplayshow=<level>:<puzzle>[:<moves>:<ms>]: open that puzzle (with that record), photograph it, quit
 	struct AutoplayState*	mAutoplayState;
 	void					AutoplayUpdate();
 	void					AutoplayShot(const std::string& theFileName) { SaveScreenshot(theFileName); }

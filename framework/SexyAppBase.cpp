@@ -495,6 +495,7 @@ SexyAppBase::SexyAppBase()
 	mForcedRenderScale = 0;
 	mDrawingLogicalShot = false;
 	mTraceMode = false;
+	mDrawEvery = false;
 	mFastClock = 0;
 	mLastFastDrawUpdate = 0;
 	mScriptPos = 0;
@@ -2393,7 +2394,8 @@ bool SexyAppBase::Process(bool allowSleep)
 
 		if (mUpdateAppState == UPDATESTATE_PROCESS_1)
 		{
-			if ((++mNonDrawCount < (int) ceil(10*mUpdateMultiplier)) || (!mLoaded))
+			// port: with -drawevery an update that has not been drawn yet is drawn before the next one
+			if (((++mNonDrawCount < (int) ceil(10*mUpdateMultiplier)) || (!mLoaded)) && ((!mDrawEvery) || (!mHasPendingDraw)))
 			{
 				if (mUpdateFTimeAcc >= aFrameFTime)
 				{
@@ -2445,7 +2447,7 @@ bool SexyAppBase::Process(bool allowSleep)
 			mNonDrawCount = 0;
 
 			// port: with -fast only every FAST_DRAW_INTERVAL-th update is drawn (and the first frame)
-			if ((mHasPendingDraw) && ((!mFastMode) || (mDrawCount == 0) || (mUpdateCount - mLastFastDrawUpdate >= FAST_DRAW_INTERVAL)))
+			if ((mHasPendingDraw) && ((!mFastMode) || (mDrawEvery) || (mDrawCount == 0) || (mUpdateCount - mLastFastDrawUpdate >= FAST_DRAW_INTERVAL)))
 			{
 				DrawDirtyStuff();
 				mLastFastDrawUpdate = mUpdateCount;
@@ -3048,6 +3050,8 @@ void SexyAppBase::HandleCmdLineParam(const std::string& theParamName, const std:
 		mFastMode = true;
 	else if (theParamName == "-trace")
 		mTraceMode = true;
+	else if (theParamName == "-drawevery")
+		mDrawEvery = true;
 	else if (theParamName == "-renderscale")
 		mForcedRenderScale = atoi(theParamValue.c_str());
 	// port: stand-ins for missing game files (platform/Placeholders.h)
@@ -3202,6 +3206,15 @@ void SexyAppBase::RunScript()
 			SaveScreenshot(aCommand.mArgs);
 		else if ((aName == "screenshotfull") && (!aCommand.mArgs.empty()))
 			SaveScreenshot(aCommand.mArgs, true);
+		else if ((aName == "focus") && ((aCommand.mArgs == "lose") || (aCommand.mArgs == "regain")))
+		{
+			// as the window's focus event does (WM_ACTIVATEAPP), like origrun's "focus lose" and "focus regain"
+			mActive = aCommand.mArgs == "regain";
+			RehupFocus();
+
+			if ((mActive) && (!mIsWindowed))
+				mWidgetManager->MarkAllDirty();
+		}
 		else if (aName == "quit")
 			Shutdown();
 		else if (!HandleScriptCommand(aCommand))

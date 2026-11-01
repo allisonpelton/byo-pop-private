@@ -220,6 +220,21 @@ std::string PuzzleCompletedScreen::FormatTime(int theMilliseconds, int theMode)
 	char aBuffer[64];
 	int aMinutes = theMilliseconds / 60000;
 	int aSeconds = (theMilliseconds % 60000) / 1000;
+	if (theMode == 0)
+	{
+		snprintf(aBuffer, sizeof(aBuffer), "%d'%02d\"%d", aMinutes, aSeconds, (theMilliseconds % 1000) / 100);
+		return aBuffer;
+	}
+	if (theMode == 1)
+	{
+		snprintf(aBuffer, sizeof(aBuffer), "%d'%02d\"%02d", aMinutes, aSeconds, (theMilliseconds % 1000) / 10);
+		return aBuffer;
+	}
+	if (theMode == 2)
+	{
+		snprintf(aBuffer, sizeof(aBuffer), "%dm %02ds", aMinutes, aSeconds);
+		return aBuffer;
+	}
 	if (theMode == 3)
 	{
 		if (aMinutes < 1)

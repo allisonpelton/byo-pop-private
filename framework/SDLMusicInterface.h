@@ -21,7 +21,6 @@ public:
 		double mVolume = 0.0;
 		double mVolumeCap = 1.0;
 		double mVolumeAdd = 0.0;
-		double mAmplifyGain = 1.0;  // from SetMusicAmplify; 1 until it is called
 		bool mStopOnFade = false;
 	};
 

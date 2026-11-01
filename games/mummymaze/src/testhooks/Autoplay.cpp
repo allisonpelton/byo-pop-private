@@ -10,6 +10,7 @@
 //   -autoplaygames=N         play N games, then quit
 //   -autoplaylevels=N        levels played in a game before the bot gives up with Abandon Hope (default 3)
 //   -autoplaystart=P,C       the first game starts at pyramid P (0 to 14), chamber C (0 to 14)
+//   -autoplaysave=N          save the classic game N updates into its first board (before the clock starts), then quit
 //   -autoplaycontinue        answer the Continue question with yes (a classic.sav in the user folder is loaded)
 //   -autoplaycap=N           quit after N updates in any case
 //   -autoplaylog=<file>      the log
@@ -55,6 +56,7 @@ struct AutoplayState
 	int					mLastKey;           // the last key pressed
 	unsigned int		mTutorialShots;     // the tutorial steps that were photographed
 	bool				mTutorial;          // the tutorial is being played
+	int					mSaveAt;            // save and quit when the board is this many updates old (0: never)
 	bool				mContinue;          // the Continue question is answered with yes
 	bool				mAdventure;         // an adventure is being played
 	bool				mMapShot;           // the world map was photographed
@@ -75,7 +77,7 @@ struct AutoplayState
 	FILE*				mLog;
 
 	AutoplayState() : mSeed(1), mTick(0), mLastAction(0), mGames(0), mWait(0), mLevels(0), mLevelsPerGame(3), mStartPyramid(0),
-		mStartChamber(0), mHeldKey(0), mLastKey(0), mTutorialShots(0), mTutorial(false), mContinue(false), mAdventure(false), mMapShot(false), mDiverged(false), mReplan(false), mReplans(0), mPlanned(false), mUseSolver(true), mRandomMoves(0), mPathIndex(0),
+		mStartChamber(0), mHeldKey(0), mLastKey(0), mTutorialShots(0), mTutorial(false), mSaveAt(0), mContinue(false), mAdventure(false), mMapShot(false), mDiverged(false), mReplan(false), mReplans(0), mPlanned(false), mUseSolver(true), mRandomMoves(0), mPathIndex(0),
 		mGameOverLogged(false), mGivenUp(false), mOptionsStage(0), mDialogShots(0), mDialogSeen(0), mShotWait(0), mLog(NULL) {}
 
 	int Rand(int theRange)
@@ -113,6 +115,8 @@ void MummyApp::HandleAutoplayParam(const std::string& theParamName, const std::s
 		mAutoplayState->mSeed = (unsigned int) atoi(theParamValue.c_str());
 	else if (theParamName == "-autoplaylevels")
 		mAutoplayState->mLevelsPerGame = atoi(theParamValue.c_str());
+	else if (theParamName == "-autoplaysave")
+		mAutoplayState->mSaveAt = atoi(theParamValue.c_str());
 	else if (theParamName == "-autoplaycontinue")
 		mAutoplayState->mContinue = true;
 	else if (theParamName == "-autoplaystart")
@@ -128,6 +132,14 @@ void MummyApp::AutoplayUpdate()
 	if (s->mLog == NULL && !mAutoplayLog.empty())
 		s->mLog = fopen(mAutoplayLog.c_str(), "w");
 	s->mTick++;
+	if (s->mSaveAt > 0 && mBoard != NULL && mBoard->mUpdateCnt >= s->mSaveAt)
+	{
+		Board* b = mBoard;
+		Log(s, "saved: %d updates in, time base %d, saved %d", (int) b->mUpdateCnt, (int) b->mTimeBase, (int) (b->mUpdateCnt - b->mTimeBase));
+		b->SaveClassic();
+		Shutdown();
+		return;
+	}
 	if (s->mTick >= mAutoplayCap)
 	{
 		Log(s, "cap reached at update %d", s->mTick);
@@ -348,6 +360,7 @@ void MummyApp::AutoplayUpdate()
 			s->mShotWait = 2;
 			SaveScreenshot(StrFormat("%s-chamberdone%d.png", mAutoplayShots.c_str(), s->mGames));
 		}
+		Log(s, "level time %d seconds, total %.0f", mLevelComplete->mSeconds, mTotalTime);
 		if (mGameMode == MODE_ADVENTURE)
 			Log(s, "chamber done: pyramid %d chamber %d", mAdvPyramid, mAdvChamber);
 		else

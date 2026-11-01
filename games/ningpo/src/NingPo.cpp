@@ -225,6 +225,9 @@ bool NingPo::init(const char* theCmdLine, const char* theResourceDir)
 			bool aLoaded = loadAssets();
 			mFont = mDisplay->createFont(getSprite(SPRITE_FONT), 8, 0xc);
 			loadBestTimes(false);
+#ifdef __EMSCRIPTEN__
+			SiteScoresChanged();	// the web page's players (SiteProfiles.h): the names in the best times
+#endif
 			if (aLoaded && startup())
 			{
 				createControls();
@@ -1244,6 +1247,9 @@ void NingPo::saveBestTimes()
 		aLayout++;
 	} while (aLayout < NUM_LAYOUTS);
 	aRegistry->close();
+#ifdef __EMSCRIPTEN__
+	SiteScoresChanged();	// the web page's players (SiteProfiles.h): a new best time, or a layout cleared
+#endif
 }
 
 // 0x408010: the best times from the registry; with theReset (and for a time that is not there) the defaults

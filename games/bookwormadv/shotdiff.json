@@ -1,0 +1,5 @@
+{"client": [800, 600],
+ "orig": {"crop": [3, 26, 800, 600],
+          "reason": "origrun captures the original inside Windows Sandbox (tools/pilot/run.sh), whose window is 806x629 with the client area at (3,26)"},
+ "ignore": [{"rect": [418, 200, 276, 140], "pairs": "media_*",
+             "label": "the media player's spectrum: the original's is black under origrun's silent dsound stand-in, which hands the game no samples to analyse"}]}

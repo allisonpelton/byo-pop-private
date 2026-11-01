@@ -116,6 +116,30 @@
       "port": 18782
     },
     {
+      "name": "bonnies-web",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-m", "http.server", "18787", "--bind", "127.0.0.1", "--directory", "build/web"],
+      "port": 18787
+    },
+    {
+      "name": "shotreview",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["tools/shotdiff/serve.py"],
+      "port": 18770
+    },
+    {
+      "name": "mahjongjapan-web",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-m", "http.server", "18790", "--bind", "127.0.0.1", "--directory", "build/web"],
+      "port": 18790
+    },
+    {
+      "name": "mahjongchina-web",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-m", "http.server", "18793", "--bind", "127.0.0.1", "--directory", "build/web"],
+      "port": 18793
+    },
+    {
       "name": "bejeweledtwist-web",
       "runtimeExecutable": "python",
       "runtimeArgs": ["-m", "http.server", "18794", "--bind", "127.0.0.1", "--directory", "build/web"],

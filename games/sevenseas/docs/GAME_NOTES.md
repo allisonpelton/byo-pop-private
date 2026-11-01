@@ -87,6 +87,20 @@ high-score screen (0x40ff70). The sidebar's four buttons are made at run time fr
 (`SevenSeasApp::TitleScreenDone`): undo (id 10), options (12), new game (14), quit (16). Dialogs: options (0x418760, the
 sliders and check boxes), next level (0x417a30, "Next rank at ..."), record score (0x419f40), the bonus-screen note
 (0x40c7d0) and the warning dialog (0x4262c0), both with a "do not show again" check box that is stored in the registry.
+The beginner's demo (`DemoWidget`, 0x4132b0, `Demo.cpp`) is shown by `StartGame` (0x41eef0) when the difficulty is the first and
+no tutorial is on: a board that plays itself for nine parts (the fade in, four captioned lessons, the fade out) with a fake
+cursor, and a "Click Here to Start!" button that removes it (`RemoveDemo`, 0x41f300) and starts the game. Its random draws
+(`CrtRand`) come in the original's order. Its button is drawn by the 2003 `DrawImageBox` (`Button2003.h`, 0x42beb0): the
+pieces are cut at width/3 and height/3, so a picture that is not a multiple of three (the 98 x 50 wooden button) shows
+different rows at the bottom and right than in the later framework. The demo's captions are two tables of pointers
+(0x4a39f0, 0x4a3a10) that no code refers to by address, so `make_gametext.py` lists them by hand.
+
+The help screen (`HelpWidget`, 0x40d330, `Help.cpp`; Options -> Help) is a board-sized picture: the sea, the four corner
+whirlpools, one ship of each kind on its heading with the eight arrows around the player's ship and two red crosses three
+cells to either side, a block of tutorial-font lines, and two black buttons (play the tutorial: `EndTutorial` with the
+tutorial on; return to game: `CloseHelp`). While it is up, `TalkWidget::Draw` draws nothing (its test is the help widget at
++0x43c, not the map's at +0x438). The black plate of the buttons is the colors of a plain `ButtonWidget` all black.
+
 
 The game-over screen (`HighScoreWidget`, constructor 0x40ff70, 467 x 480 at x 0xad) does nothing but load `hiscores.dat`
 (0x410550: the best score of the day and the five best, each with a name, a score and a check value) when it is made.
@@ -106,3 +120,14 @@ limit of 104 pixels (`+0x8c`), not a number of characters. The dialog draws the 
 `editbox` (96 x 32) as a left cap, a right cap and the middle slice repeated under a clip, in a rectangle 4 pixels larger than
 the widget on each side. The flash after an extra life (`Board::Draw`, 0x406400) draws the large ship (image 37), while
 the side panel's lives are the small icon (image 31).
+
+## 5. Deviations from the original (each without a visible effect)
+
+- **Help buttons' pressed look (0x40d330).** The original gives each help button `mDownImage` = `CopyImage(IMAGE_DBUTTONBLACK)`; the port
+  sets none and draws the black plate with the framework's flat path (`COLOR_BKG` black). `DBUTTONBLACK` is all black, so a pressed
+  button shows black text, offset by 1, over all black either way. To confirm with shotdiff once captures of the original work again.
+- **No Register button.** The options dialog's Register button is hidden (registration is taken out by the user's rule).
+- **Options dialog's four extra buttons' label colour** is gold, and a hovered label stays gold (captured in the Windows Sandbox,
+  2026-11-01, `build/ss-cmp/o`: the original's Help label under the mouse matches the port). The Yes and No labels do not
+  change under the mouse either (`qh`), nor do the help screen's two labels (`hh`), although the decompilation reads colour 1
+  while the mouse is over a button (+0x1f); a pressed button is not captured yet (origrun cannot hold a button down).

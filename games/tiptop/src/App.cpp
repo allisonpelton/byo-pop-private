@@ -1959,6 +1959,9 @@ uint32_t Command(Handler* theSource, uint32_t theCommand)
 				break;
 			}
 		}
+#ifdef __EMSCRIPTEN__
+		SiteScoresChanged();	// the web page's players (SiteProfiles.h): the name is in the table now
+#endif
 		FreeLayer(theSource->mLayer);
 		break;
 	case 0xe:
@@ -1981,6 +1984,9 @@ uint32_t Command(Handler* theSource, uint32_t theCommand)
 	case 0x13:
 		FreeLayer(theSource->mLayer);
 		ResetHighScores();
+#ifdef __EMSCRIPTEN__
+		SiteScoresChanged();	// the web page's players (SiteProfiles.h): the tables are empty
+#endif
 		break;
 	case 0x14:
 		gApp.SetScreen(SCREEN_NEWGAME);
@@ -3583,9 +3589,10 @@ uint32_t PopImageProc(uint32_t theMsg, uintptr_t theA, uintptr_t theB, Handler* 
 }
 
 // 0x424421: the end of a bonus round: its image pops up while combo stars burst over the board (2.5 s), then a big
-// star and the bonus's points at the image; at 5 s it sends command 0x3a. Create: a = the image.
+// star and the bonus's points at the image; at 5 s it sends command 0x3a. The image is 0x63, "Bonus Complete!".
 uint32_t BonusEndProc(uint32_t theMsg, uintptr_t theA, uintptr_t theB, Handler* theHandler)
 {
+	(void)theA;
 	(void)theB;
 	uintptr_t* aSlots = theHandler->u.mSlots;
 	uint8_t aMsg = (uint8_t)theMsg;
@@ -3595,7 +3602,7 @@ uint32_t BonusEndProc(uint32_t theMsg, uintptr_t theA, uintptr_t theB, Handler* 
 		aSlots[1] = 0;
 		aSlots[2] = 0;
 		gBusy = gBusy + 1;
-		Handler* anImage = NewHandler(PopImageProc, theHandler->mLayer, &theHandler->mRect, theA, 0x80000000);
+		Handler* anImage = NewHandler(PopImageProc, theHandler->mLayer, &theHandler->mRect, 0x63, 0x80000000);
 		anImage->mPass = 2;
 	}
 	else if (aMsg == MSG_DESTROY)

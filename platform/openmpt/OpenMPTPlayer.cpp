@@ -141,6 +141,19 @@ bool IsMO3(const std::vector<uint8_t>& theFile)
 	return theFile.size() > 4 && !memcmp(theFile.data(), "MO3", 3);
 }
 
+// An OXM: an XM whose samples are Ogg Vorbis streams (FMOD 3's "Ogg XM", Bonnie's Bookstore), which libxmp-lite cannot
+// read: the XM header and an Ogg page among the samples
+bool IsOXM(const std::vector<uint8_t>& theFile)
+{
+	static const char kHeader[] = "Extended Module: ";
+	if (theFile.size() < 0x150 || memcmp(theFile.data(), kHeader, sizeof(kHeader) - 1) != 0)
+		return false;
+	for (size_t i = 0x150; i + 4 <= theFile.size(); i++)
+		if (!memcmp(theFile.data() + i, "OggS", 4))
+			return true;
+	return false;
+}
+
 void LogError(int theError, const char* theMessage)
 {
 	SDL_Log("libopenmpt: error %d: %s", theError, theMessage ? theMessage : "");
@@ -164,6 +177,11 @@ std::unique_ptr<ModulePlayer> CreateModule(const std::vector<uint8_t>& theFile, 
 
 }
 
+std::unique_ptr<ModulePlayer> CreateOpenMPTModule(const std::vector<uint8_t>& theFile, int theRate)
+{
+	return CreateModule(theFile, theRate);
+}
+
 void RegisterOpenMPTModules()
 {
 	static bool sRegistered = false;
@@ -171,6 +189,15 @@ void RegisterOpenMPTModules()
 		return;
 	sRegistered = true;
 	Mixer::RegisterModuleFormat(IsMO3, CreateModule);
+}
+
+void RegisterOpenMPTOggXM()
+{
+	static bool sRegistered = false;
+	if (sRegistered)
+		return;
+	sRegistered = true;
+	Mixer::RegisterModuleFormat(IsOXM, CreateModule);
 }
 
 }

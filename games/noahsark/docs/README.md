@@ -72,6 +72,11 @@ game-over line of each run) are in `tools/check.sh`. `-script=<file>` drives the
 build with AddressSanitizer (llvm-mingw has the i386 runtime) is the way to find heap errors: configure a second build
 folder with `-fsanitize=address -g` and run the bot in it.
 
+The bot's log has a "pair joined at update N" line whenever animals start to walk. `tools/run_walk_shots.sh <dir> [N]`
+takes screenshots of the first walking pair of the action bot (seed 1) a few updates apart, to compare two builds.
+The rain animates on every frame, so whole-picture diffs always differ; compare the board region (x 178 to 628, y 16 to
+466), where only the animals and the flood move. The game's drawing is not changed for this.
+
 ## Mods
 
 Four mods are in `games/noahsark/mods/` (the shared mod system, docs/MOD_MENU.md; F2 opens the mod menu in the game):

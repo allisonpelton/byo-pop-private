@@ -464,7 +464,11 @@ adds its tag, and the chat keeps no list of its own); a game the table lacks has
 width it has without it, else below it (the class `chat-below` on the root element), so the canvas and its scaling are never
 changed by the chat; `Module.onGameScreen` asks the chat to work that out again when a game changes the stage's shape; the
 "Show chat" setting above turns it on and off live; and the terms card and the "Already open" card make it inert like the rest
-of the page.
+of the page. Below the stage the page is taller than the window, and the player must land on the game, scrolled to the top: the
+page sets `history.scrollRestoration` to `manual` (else a reload, as Play again and a restart from the mod menu do, puts the page back
+where it was scrolled to, the chat in view), and Home, End, PageUp and PageDown typed on the canvas are cancelled for the browser, which
+would scroll the page to the chat with them (SDL cancels the arrows, Tab, Backspace, the function keys, Ctrl keys and Space, not
+these); the game still gets them. Nothing on the page moves the focus into the chat by itself.
 
 ### Player profiles
 
@@ -506,7 +510,8 @@ name as its name box keeps it), `Create`, `Select`, and `Rename` and `Delete` wh
   the end of `GameInit`).
 - `SiteScoreNames` is the whole hook of a game that keeps no players and only asks for a name at each high score: it lists the
   last name the game remembers (the registry value `LastScoreName`, or nothing), renames it, and fits a name by typing it into a
-  box with the game's font and limits.
+  box with the game's font and limits. A game that remembers no last name (TipTop) lists the names in its high-score tables
+  instead, leaving out the table it starts with, and calls `SiteScoresChanged` when a name enters a table (a6547b9).
 - `SiteChanged(id, game)` wherever the game's list changes (a player made, renamed, deleted or chosen): it reports again.
 - `SiteType(id, editWidget)` right after a SexyAppFramework name box is made: under `fill` and `create` the site player's
   name is typed into the box through `EditWidget::KeyChar`, one character at a time, so the box's own rules (its characters, its
@@ -641,7 +646,7 @@ show the restored values.
 ### Importing saves from an installed game
 
 A player who has played an original game on this computer can bring its saves, high scores, players and settings into the port, in the
-browser and natively. Both read one table, `platform/saveimport.json`, which says for each of the 18 games which registry values and
+browser and natively. Both read one table, `platform/saveimport.json`, which says for each game which registry values and
 which files of the original are the player's save and where each goes in the port. Nothing outside the table is ever taken: not a game's
 files, not an exe, not an installer value. The original's registry and folders are only read, never written.
 
@@ -660,7 +665,9 @@ one. Bookworm Adventures (both games) and Bejeweled use the user's key (`HKCU\So
 `data` or `userdata` folder below it); in `C:\Program Files` Windows keeps them in a private copy, `%LOCALAPPDATA%\VirtualStore\Program Files
 (x86)\PopCap Games\<Game>` (or `Program Files\...`), which the game reads in preference to the install folder; a Steam install is writable,
 so its saves stay in the install folder. A game that sets an app data folder (Bookworm Adventures and Volume 2, `WinBAD`; Bejeweled and
-Alchemy, which make the folder) uses `C:\ProgramData\PopCap Games\<name>`.
+Alchemy, which make the folder) uses `C:\ProgramData\PopCap Games\<name>`. Mahjong Escape: Ancient Japan (JollyBear's engine) keeps its
+settings in `HKCU\Software\JollyBear\Mahjong Escape Ancient Japan` and its players and saved games in
+`%LOCALAPPDATA%\JollyBear\Mahjong Escape Ancient Japan`, which the native import does not search yet: the page's note asks for that folder.
 
 **The table.** `platform/saveimport.json` is plain JSON with one entry for each game id (the id of its `data-game` attribute on the listing
 page and the string its `main.cpp` passes to the helper). It is the only place that says what is imported; CMake turns the same file into
@@ -694,10 +701,12 @@ The per-game table (generated from the file; the registry places are listed in t
 | Rocket Mania Deluxe (`rocketmania`) | `PopCap\RocketMania` (VirtualStore, then machine, then user): the framework's options and times played; `LastScoreName`, `HintsDisabled`, `HintsDisabledFlag#` | `Players/hiscores.dat`, `Players/savea.dat`, `Players/saveb.dat`, `Players/savec.dat` |  |
 | Dynomite Deluxe (`dynomite`) | `PopCap\Dynomite` (VirtualStore, then machine, then user): the framework's options and times played; `LastScoreName`, `LockCursor`, `FossilGameType`, `SkillLevel`, `GameType`, `StompedLevel` | `STOMPED.HS`, `ENDLESS.HS`, `FOSSIL.HS`, `TIMETRIAL.HS`, `SLOT#.SAV` |  |
 | Bookworm Adventures Volume 2 (`bookwormadv2`) | `PopCap\WinBAD` (user, then VirtualStore, then machine): the framework's options and times played; `LastUser`, `AppTime` | `users/*.bwa`, `users/data/*.dat` |  |
+| Mahjong Escape: Ancient Japan (`mahjongjapan`) | `JollyBear\Mahjong Escape Ancient Japan` (user): `SoundsOn`, `SoundsVolume`, `MusicOn`, `MusicVolume`, `FullScreen`, `WideScreen`, `HardwareAcceleration` | `list.usr`, `#.usr`, `#_#.sav`, `#_#_D.sav` (in `%LOCALAPPDATA%\JollyBear\Mahjong Escape Ancient Japan`) |  |
+| Bonnie's Bookstore Deluxe (`bonnies`) | none | `SavedGames/General_Preferences.cfg`, `SavedGames/*.GAM`, `Data/HighScores.dat` |  |
 
 
 The framework's options (`base`) and the times played (`app`) are taken for every game that has a `registry` entry and derives from `SexyApp`; TipTop, Cosmic
-Bugs and Water Bugs keep no registry values the port reads, and Ning Po and Word Harmony (engine games) have only their own values. Bookworm Adventures and
+Bugs, Water Bugs and Bonnie's Bookstore (an SDL game that keeps its saves beside its exe) keep no registry values the port reads, and Ning Po and Word Harmony (engine games) have only their own values. Bookworm Adventures and
 Volume 2 share the key `PopCap\WinBAD` and the folder `WinBAD`, so each imports what the other wrote there. What the table leaves out and why, game by game, is in
 its `skipFiles` and `skipValues`: Noah's Ark's `data\savegame.dat` (the port's file keeps its random number generator in another form, so the original's cannot be
 continued), Alchemy's `userdata\savegame.dat` (the port adds a version byte), the Steam edition of BookWorm's `players\<name>\profile.dat` and `scores.dat` (a later

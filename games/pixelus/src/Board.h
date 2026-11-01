@@ -82,6 +82,7 @@ public:
 	bool			mPauseStarted;		// +0x1a2 the game went from running to paused (0x403010); only then does the pause screen come in
 	int				mDoneTimer;			// +0xe0 the countdown to the puzzle-completed screen, DONE_DELAY once it has started
 	bool			mCompleted;			// the puzzle-completed screen has been asked for
+	bool			mMaxedAtStart;		// +0x1a0 the player's record for this puzzle was already as good as the world record (set when it loads)
 	bool			mFinishSounded;		// the sting of a finished puzzle has played and the music fades
 	int				mIdleTicks;			// +0x4c with no click (the original nags after 4500)
 	int				mMusicDelay;		// +0x78 -1 until the puzzle has been on for a moment, then counts down to the in-game music

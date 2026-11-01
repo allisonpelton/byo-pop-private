@@ -10,7 +10,7 @@
 
 #include "Widget.h"
 #include "ButtonListener.h"
-#include "DialogButton.h"
+#include "Button2003.h"
 #include <list>
 #include <string>
 #include <vector>

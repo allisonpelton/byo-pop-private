@@ -347,7 +347,21 @@ bool Profile::Save()
 	return gApp->WriteBufferToFile(ProfilePath(mName), &aBuffer);
 }
 
-bool Profile::Load()
+// The cheat console's hooks Load calls (0x48a6ee, 0x48af3e): the global function with the key (if any) and the
+// app's profile's name. They act on the app's profile through profile.*, whichever profile is being read.
+static void CallLoadHook(const char* theFunction, const std::string* theKey)
+{
+	lua_State* L = LuaLib::gLuaSupport->L;
+	int aCount = 1;
+	if (theKey != nullptr) {
+		lua_pushstring(L, theKey->c_str());
+		aCount++;
+	}
+	lua_pushstring(L, gApp->mProfile->mName.c_str());
+	LuaLib::CallLua(theFunction, aCount);
+}
+
+bool Profile::Load(bool theQuiet)
 {
 	Buffer aBuffer;
 	if (!gApp->ReadBufferFromFile(ProfilePath(mName), &aBuffer))
@@ -361,9 +375,10 @@ bool Profile::Load()
 		for (const char* aSkipped : kNotLoaded)
 			if (aKey == aSkipped)
 				aLoad = false;
-		// port: the original then called the cheat console's _debug_profile_loaded_value (cheats are off)
 		if (aLoad)
 			mValues[aKey] = aValue;
+		if (gApp->mProfile != nullptr && !theQuiet)
+			CallLoadHook("_debug_profile_loaded_value", &aKey);
 	}
 
 	int aMajor = GetInt("VersionMajor");
@@ -405,7 +420,8 @@ bool Profile::Load()
 		SetBool("AllowXPBar", true);
 		Delete("NeedsXPBar");
 	}
-	// port: the original then called the cheat console's _debug_profile_done_loading
+	if (gApp->mProfile != nullptr && !theQuiet)
+		CallLoadHook("_debug_profile_done_loading", nullptr);
 	return true;
 }
 

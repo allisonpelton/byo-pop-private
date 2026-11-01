@@ -15,7 +15,8 @@
 #                songpostest on Bejeweled's, BookWorm's and Bejeweled Twist's modules, with the MO3s' tempo and
 #                channel volumes (skipped without their assets); spectrumtest
 #                (the music player's FFT against BASS 2.3's on the same tones); and soundtest (sounds kept as 16-bit at
-#                their own rate, voices against the old stereo-float pipeline)
+#                their own rate, voices against the old stereo-float pipeline); and shotdiff's selftest (tools/shotdiff:
+#                the screenshot comparison on synthetic pictures, its pages and its marks server)
 #   unit-web     rulestest and modsettingstest under Node (needs build-web); paktest (the page's pak reader), with
 #                Bookworm Adventures' main.pak against assets/bookwormadv when both are there; profilestest (the page's
 #                settings and players code, web/settings.js and web/profiles.js, on a fake localStorage), savestest (the
@@ -80,9 +81,21 @@
 #                save dialog's first slot and the name's Save) and a rerun with the same screens and the same saved
 #                game but for its tick counts, and that saved game continued from the main menu with the board as it
 #                was saved (dynomite_load) (under a minute)
+#   bonnies      Bonnie's Bookstore Deluxe: a tour from a script (games/bonnies/tools/tour_test.txt): a new player,
+#                the classic game's tutorial words, the game's options, high scores, credits and help, the main menu's
+#                options, an action game paused by a focus loss and played until its time is up, and Quit; a rerun
+#                with the same screens and saves, which are the frozen baseline's (and build/baseline-bonnies/
+#                bonnies.exe's, when there is one) (under a minute)
+#   mahjongjapan Mahjong Escape: Ancient Japan: every layout loaded and dealt (mahjongjapan_dealtest), and a scripted
+#                escape stage from a new player (the name, the map, stage 1 won with the solver's clicks, the level's
+#                end and the map again) twice with the same screens, which are the frozen baseline's (under a minute)
+#   mahjongchina Mahjong Escape: Ancient China: every layout loaded and dealt (mahjongchina_dealtest), and a scripted
+#                Dynasty Adventure stage from a new player (the name, the map, stage 1 won with the solver's clicks, the
+#                level's end and the map again) twice with the same screens, which are the frozen baseline's (under a
+#                minute)
 #   oracle       Bejeweled's oracle three ways (compare.sh --variants default,forcevariant,novariants); over
 #                ten minutes, so never in a subagent; refuses to start while another oracle runs
-# Sets: quick = build unit; games = bookworm bigmoney noahsark atomica alchemy sevenseas pixelus bookwormadv bookwormadv2 tiptop mummymaze ningpo wordharmony cosmicbugs waterbugs rocketmania dynomite; all = every suite, builds first.
+# Sets: quick = build unit; games = bookworm bigmoney noahsark atomica alchemy sevenseas pixelus bookwormadv bookwormadv2 tiptop mummymaze ningpo wordharmony cosmicbugs waterbugs rocketmania dynomite mahjongjapan mahjongchina bonnies; all = every suite, builds first.
 #
 # Prints "PASS <suite> (<seconds>s): <summary>" or "FAIL <suite> (<seconds>s): <summary> -> <log>" for each,
 # then "check: N passed, M failed". Exits 0 only when all passed. Logs: build/logs/check/<suite>.txt (and
@@ -102,9 +115,9 @@ AT_ACTION="update 20000: score 2480 level 3 moves 680 atoms 66"
 AL_STRATEGIC="game 1 over at update 12206: score 7432 pieces 830 forged 29 boards 3"
 AL_TIMETRIAL="game 1 over at update 14641: score 15942 pieces 903 forged 87 boards 3"
 AL_TUTORIAL="tutorial button 1 at update 231"
-SS_BEGINNER="game 2 over at update 5042: score 320 level 4 moves 25"
-SS_BONUS="game 1 over at update 2090: score 420 level 13 moves 13"
-SS_LATE="game 1 over at update 2131: score 370 level 22 moves 17"
+SS_BEGINNER="game 2 over at update 5868: score 380 level 4 moves 20"
+SS_BONUS="game 1 over at update 2746: score 680 level 14 moves 20"
+SS_LATE="game 1 over at update 1852: score 140 level 21 moves 13"
 PX_GRID="gridtest: 213 level files, 211 solutions, 211 solved, 0 without a level file"
 PX_START="done: 25 puzzles"
 PX_FULL="done: no temple left, 210 puzzles, log 2edb2003"
@@ -124,7 +137,12 @@ CB_GAME="17000 ms: score 526, lives 6, board 0, filled 426 of 85%; 28000 ms: sco
 WB_BANKS="77 animations, 10 missing, 0 failed; 7 fonts, 3 empty as in the game, 0 failed"
 WB_GAME="20000 ms: score 0, lives 6, board 0, filled 0 of 85%; 32000 ms: score 494, lives 6, board 0, filled 494 of 85%"
 WB_LOSS="30000 ms: score 0, lives 0, board 0, filled 0 of 90%"
-WB_SHOTS="8f3a2bdb9844 3a9d053f4769 32ee6fa1c989"  # the first 12 hex digits of the sha256 of game/start.png, game/beam.png and loss/scores.png: the frozen baseline
+WB_SHOTS="2a54908cecb8 42df2d86a04f 983a569fb1b6"  # the first 12 hex digits of the sha256 of game/start.png, game/beam.png and loss/scores.png (pixels, with the bubble column masked, see wb_hash): the frozen baseline
+MJ_DEAL="222 layouts, 0 failed"
+BB_SHOTS="90f2d44e0574 1a20ef2fe747 fa3847002043"  # the first 12 hex digits of the sha256 of played.png, highscores.png and timeup.png (games/bonnies/tools/tour_test.txt): the frozen baseline
+MJ_SHOTS="2fff3f87d787 6815b4445dc6 7bede5c481fd"  # the first 12 hex digits of the sha256 of board.png, won.png and map.png: the frozen baseline
+MJC_DEAL="178 layouts, 0 failed"
+MJC_SHOTS="4c18c17f02f2 b63352c04770 7a72965e0cee"  # the first 12 hex digits of the sha256 of board.png, won.png and map.png: the frozen baseline
 DY_GAME="board mode 0 score 10 eggs 12 cells ec5704d5"
 
 set -u
@@ -138,9 +156,9 @@ while [ $# -gt 0 ]; do
 		--out=*) OUT="${1#--out=}"; shift ;;
 		-h|--help) sed -n '2,/^BW_CLASSIC/p' "$0" | sed '$d' | sed 's/^# \{0,1\}//'; exit 0 ;;
 		quick) SUITES+=(build unit); shift ;;
-		games) SUITES+=(bookworm bigmoney noahsark atomica alchemy sevenseas pixelus bookwormadv bookwormadv2 tiptop mummymaze ningpo wordharmony cosmicbugs waterbugs rocketmania dynomite); shift ;;
-		all) SUITES+=(build build-web build-nov unit unit-web verify modmenu livesplit bookworm bigmoney noahsark atomica alchemy sevenseas pixelus bookwormadv bookwormadv2 tiptop mummymaze ningpo wordharmony cosmicbugs waterbugs rocketmania dynomite oracle); shift ;;
-		build|build-web|build-nov|unit|unit-web|verify|modmenu|livesplit|bookworm|bigmoney|noahsark|atomica|alchemy|sevenseas|pixelus|bookwormadv|bookwormadv2|tiptop|mummymaze|ningpo|wordharmony|cosmicbugs|waterbugs|rocketmania|dynomite|oracle) SUITES+=("$1"); shift ;;
+		games) SUITES+=(bookworm bigmoney noahsark atomica alchemy sevenseas pixelus bookwormadv bookwormadv2 tiptop mummymaze ningpo wordharmony cosmicbugs waterbugs rocketmania dynomite mahjongjapan mahjongchina bonnies); shift ;;
+		all) SUITES+=(build build-web build-nov unit unit-web verify modmenu livesplit bookworm bigmoney noahsark atomica alchemy sevenseas pixelus bookwormadv bookwormadv2 tiptop mummymaze ningpo wordharmony cosmicbugs waterbugs rocketmania dynomite mahjongjapan mahjongchina bonnies oracle); shift ;;
+		build|build-web|build-nov|unit|unit-web|verify|modmenu|livesplit|bookworm|bigmoney|noahsark|atomica|alchemy|sevenseas|pixelus|bookwormadv|bookwormadv2|tiptop|mummymaze|ningpo|wordharmony|cosmicbugs|waterbugs|rocketmania|dynomite|mahjongjapan|mahjongchina|bonnies|oracle) SUITES+=("$1"); shift ;;
 		*) echo "check.sh: unknown suite '$1' (tools/check.sh --help)" >&2; exit 2 ;;
 	esac
 done
@@ -188,7 +206,7 @@ suite_build-web() { build_suite web "$1"; }
 suite_build-nov() { build_suite novariants "$1"; }
 
 suite_unit() {
-	local st=0 a b c d e f g h
+	local st=0 a b c d e f g h i
 	(cd build/native && timeout 120 ./rulestest.exe) > "$1" 2>&1 || st=1
 	a="$(lastof "$1" 'checks')"
 	(cd build/native && timeout 120 ./modsettingstest.exe) > "$1.mst" 2>&1 || st=1
@@ -239,9 +257,12 @@ suite_unit() {
 	# Mixer's sounds: 16-bit at their own rate, resampled by the voices; needs no game files
 	(cd build/native && timeout 60 ./soundtest.exe) > "$1.snd" 2>&1 || st=1
 	h="$(lastof "$1.snd" 'sound: [0-9]+ checks, [0-9]+ failed')"
-	cat "$1.mst" "$1.fw" "$1.ph" "$1.jp2" "$1.sp" "$1.fft" "$1.snd" >> "$1"
-	rm -f "$1.mst" "$1.fw" "$1.ph" "$1.jp2" "$1.sp" "$1.fft" "$1.snd"
-	SUMMARY="$a; $b; $c; $d; $e; $f; $g; $h"
+	# tools/shotdiff: the screenshot comparison on synthetic pictures (statuses, boxes, alignment, pages, the marks server)
+	timeout 120 python tools/shotdiff/selftest.py > "$1.sdf" 2>&1 || st=1
+	i="$(lastof "$1.sdf" 'shotdiff: [0-9]+ checks, [0-9]+ failed')"
+	cat "$1.mst" "$1.fw" "$1.ph" "$1.jp2" "$1.sp" "$1.fft" "$1.snd" "$1.sdf" >> "$1"
+	rm -f "$1.mst" "$1.fw" "$1.ph" "$1.jp2" "$1.sp" "$1.fft" "$1.snd" "$1.sdf"
+	SUMMARY="$a; $b; $c; $d; $e; $f; $g; $h; $i"
 	return $st
 }
 
@@ -504,6 +525,16 @@ mummymaze_game() {  # <name> <bot arguments>...: a bot game; prints the last res
 	grep -E '^(game over|victory|tutorial done|stalled|cap reached)' "$d/log.txt" 2>/dev/null | tail -n 1
 }
 
+mummymaze_resume() {  # a game saved before its clock starts, then continued: the time of the level must be small (a negative saved time once came out near 2^32 / 100 s)
+	local d="$OUT/mummymaze/resume" t
+	rm -rf "$d"; mkdir -p "$d"
+	timeout 300 "$W/build/native/mummymaze.exe" -userdir="$d/user" -fast -seed=1 -autoplay=3 -autoplaygames=1 -autoplaysave=3 -autoplaycap=3000 -autoplaylog="$d/log1.txt" > "$d/stdout1.txt" 2> "$d/stderr1.txt"
+	timeout 300 "$W/build/native/mummymaze.exe" -userdir="$d/user" -fast -seed=1 -autoplay=3 -autoplaygames=1 -autoplaylevels=1 -autoplaycontinue -autoplaycap=60000 -autoplaylog="$d/log2.txt" > "$d/stdout2.txt" 2> "$d/stderr2.txt"
+	t="$(grep -m1 'level time' "$d/log2.txt" | awk '{print $3}')"
+	MM_RESUME="resume: level time ${t:-none}"
+	[ -n "$t" ] && [ "$t" -gt -1000 ] && [ "$t" -lt 1000 ]
+}
+
 suite_mummymaze() {
 	local st=0 a b c t r v
 	need_assets mummymaze || return 1
@@ -519,8 +550,9 @@ suite_mummymaze() {
 	[ "$c" = "$MM_FULL" ] || st=1
 	[ "$t" = "$MM_TUTORIAL" ] || st=1
 	[ "$v" = "$MM_ADVENTURE" ] || st=1
+	mummymaze_resume || st=1
 	if diff -rq "$OUT/mummymaze/classic/shots" "$OUT/mummymaze/classic2/shots" >> "$1" 2>&1 && cmp -s "$OUT/mummymaze/classic/log.txt" "$OUT/mummymaze/classic2/log.txt" && [ "$a" = "$r" ]; then r="rerun identical"; else r="RERUN DIFFERS"; st=1; fi
-	SUMMARY="classic ${a#game over: }; tips ${b#game over: }; full ${c}; adventure ${v}; ${t}; $r"
+	SUMMARY="classic ${a#game over: }; tips ${b#game over: }; full ${c}; adventure ${v}; ${t}; $MM_RESUME; $r"
 	[ $st -eq 0 ] || SUMMARY="$SUMMARY (expected classic '$MM_CLASSIC', tips '$MM_TIPS', full '$MM_FULL', tutorial '$MM_TUTORIAL', adventure '$MM_ADVENTURE')"
 	return $st
 }
@@ -948,13 +980,17 @@ waterbugs_run() {  # <name>: the headless runner's scripted game; prints its sta
 	echo "$l"
 }
 
+wb_hash() {  # <png>: the first 12 hex digits of the sha256 of the pixels; the loss screen's rising bubbles in x 560..690, y 240..520 are zeroed first, because one of them differs by a few pixels from run to run
+	python -I -c "import hashlib,sys;from PIL import Image;i=Image.open(sys.argv[1]).convert('RGB');i.paste((0,0,0),(560,240,690,520)) if 'scores' in sys.argv[1] else i.paste((0,0,0),(405,220,425,235)) if 'beam' in sys.argv[1] else 0;print(hashlib.sha256(i.tobytes()).hexdigest()[:12])" "$1" 2>/dev/null | tr -d '\r'
+}
+
 waterbugs_loss() {  # the last life lost, the click on the game over: the high scores (the game file is read again; it once crashed)
 	local d="$OUT/waterbugs/loss" e=0 l
 	rm -rf "$d"; mkdir -p "$d"
-	printf '%s
-' "3000 click 400 303" "8000 click 75 260" "14000 click 400 465" "20000 lives 1" "21000 die" "24000 click 400 300" 		"30000 state" "30000 shot scores" "30010 end" > "$d/script.txt"
+	printf '%s\n' "3000 click 400 303" "8000 click 75 260" "14000 click 400 465" "20000 lives 1" "21000 die" "24000 click 400 300" \
+		"30000 state" "30000 shot scores" "30010 end" > "$d/script.txt"
 	timeout 300 build/native/waterbugs_run.exe assets/waterbugs "$d" "$d/script.txt" > "$d/stdout.txt" 2> "$d/stderr.txt" || e=$?
-	l="$(grep -E '^[0-9]+ ms: score' "$d/stdout.txt" | tr -d '')"
+	l="$(grep -E '^[0-9]+ ms: score' "$d/stdout.txt" | tr -d '\r')"
 	[ -f "$d/scores.png" ] || l="$l; NO SCREENSHOT"
 	[ $e -eq 0 ] || l="$l; EXIT $e"
 	echo "$l"
@@ -993,9 +1029,9 @@ suite_waterbugs() {
 	[ "$b" = "$WB_BANKS" ] || st=1
 	[ "$g" = "$WB_GAME" ] || st=1
 	[ "$l" = "$WB_LOSS" ] || st=1
-	sh="$(for f in game/start game/beam loss/scores; do sha256sum "$c/$f.png" 2>/dev/null | cut -c1-12; done | paste -sd" " -)"
+	sh="$(for f in game/start game/beam loss/scores; do wb_hash "$c/$f.png"; done | paste -sd" " -)"
 	if [ "$sh" = "$WB_SHOTS" ]; then sh="screens as frozen"; else sh="SCREENS CHANGED ($sh)"; st=1; fi
-	if diff -q "$c/game/start.png" "$c/game2/start.png" >> "$1" 2>&1 && diff -q "$c/game/beam.png" "$c/game2/beam.png" >> "$1" 2>&1 &&
+	if [ "$(wb_hash "$c/game/start.png")" = "$(wb_hash "$c/game2/start.png")" ] && [ "$(wb_hash "$c/game/beam.png")" = "$(wb_hash "$c/game2/beam.png")" ] &&
 		[ "$g" = "$r" ]; then r="rerun identical"; else r="RERUN DIFFERS"; st=1; fi
 	if [ "$w" = "$(echo "${g##*; }" | sed 's/^[0-9]* ms: //')" ] && diff -q "$c/window/beam.png" "$c/window2/beam.png" >> "$1" 2>&1 &&
 		[ "$w" = "$w2" ]; then w="window the same, twice"; else w="WINDOW DIFFERS ('$w')"; st=1; fi
@@ -1062,6 +1098,129 @@ suite_dynomite() {
 	if [ "$l" = "$g" ]; then l="loads as saved"; else l="LOAD DIFFERS ('$l')"; st=1; fi
 	SUMMARY="$g; $r; $l"
 	[ $st -eq 0 ] || SUMMARY="$SUMMARY (expected '$DY_GAME')"
+	return $st
+}
+
+bonnies_run() {  # <name> [<exe>]: games/bonnies/tools/tour_test.txt into $OUT/bonnies/<name>; prints the exit status
+	local d="$OUT/bonnies/$1" e=0
+	rm -rf "$d"; mkdir -p "$d/user"
+	sed "s|@DIR@|$d|" games/bonnies/tools/tour_test.txt > "$d/script.txt"
+	timeout 300 "${2:-$W/build/native/bonnies.exe}" -gamedir=assets/bonnies -userdir="$d/user" -fast -seed=1 \
+		-script="$d/script.txt" > "$d/stdout.txt" 2>&1 || e=$?
+	echo "$e"
+}
+
+BB_SHOTS_ALL="logo menu name difficulty story board tutorial word played cake tale gameoptions highscores credits help1 help2 help3 mainmenu options action actionword paused resumed timeup endmenu"
+
+bonnies_same() {  # <a> <b>: whether two runs gave the same screens and the same saved files
+	local f
+	for f in $BB_SHOTS_ALL; do cmp -s "$1/$f.png" "$2/$f.png" || return 1; done
+	diff -rq "$1/user" "$2/user" > /dev/null
+}
+
+suite_bonnies() {
+	local d="$OUT/bonnies" e f sh r bl="" base="$W/build/baseline-bonnies/bonnies.exe"
+	need_assets bonnies || return 1
+	e="$(bonnies_run game)"
+	cat "$d/game/stdout.txt" > "$1"
+	[ "$e" -eq 0 ] || { SUMMARY="the exe exited with status $e"; return 1; }
+	grep -q "Resource Loading Time" "$1" || { SUMMARY="the game did not finish loading"; return 1; }
+	for f in $BB_SHOTS_ALL; do
+		[ -s "$d/game/$f.png" ] || { SUMMARY="no screenshot $f.png"; return 1; }
+	done
+	cmp -s "$d/game/menu.png" "$d/game/name.png" && { SUMMARY="Classic Game opened no name dialog"; return 1; }
+	cmp -s "$d/game/tutorial.png" "$d/game/word.png" && { SUMMARY="the clicks chose no letters"; return 1; }
+	cmp -s "$d/game/word.png" "$d/game/played.png" && { SUMMARY="Submit played no word"; return 1; }
+	[ -s "$d/game/user/SavedGames/te.GAM" ] || { SUMMARY="the new player's te.GAM was not saved"; return 1; }
+	# the main menu's Quit ends the game before the script's own quit at update 70000
+	grep -q "Update Count = 6[0-9]\{4\}," "$1" || { SUMMARY="the main menu's Quit did not end the game"; return 1; }
+	# the rerun, and the frozen baseline (build/baseline-bonnies/bonnies.exe, a copy of the port made when it was last
+	# checked against the original) when there is one, at the same time
+	bonnies_run rerun > "$d/rerun.status" &
+	[ -f "$base" ] && bonnies_run base "$base" > "$d/base.status" &
+	wait
+	cat "$d/rerun/stdout.txt" >> "$1"
+	[ "$(cat "$d/rerun.status")" = 0 ] || { SUMMARY="the rerun exited with status $(cat "$d/rerun.status")"; return 1; }
+	bonnies_same "$d/game" "$d/rerun" || { SUMMARY="the rerun's screens or saves differ"; return 1; }
+	sh="$(for f in played highscores timeup; do sha256sum "$d/game/$f.png" | cut -c1-12; done | paste -sd" " -)"
+	[ "$sh" = "$BB_SHOTS" ] || { SUMMARY="SCREENS CHANGED ($sh; frozen $BB_SHOTS)"; return 1; }
+	if [ -f "$base" ]; then
+		bonnies_same "$d/game" "$d/base" || { SUMMARY="the frozen baseline's screens or saves differ"; return 1; }
+		bl="; baseline identical"
+	fi
+	SUMMARY="the tour (classic tutorial, options, high scores, credits, help, an action game paused by a focus loss and played to its end, Quit); rerun identical; screens as frozen$bl"
+	return 0
+}
+
+mahjongjapan_run() {  # <name>: a new player, escape stage 1 won with the solver's clicks; prints the moves and the shots
+	local d="$OUT/mahjongjapan/$1" t=3400 x1 y1 x2 y2 n=0
+	rm -rf "$d"; mkdir -p "$d/shots" "$d/user"
+	# Emperor's Adventure, the name "Test", the map's PLAY, the How To Play tip's OK; the solver's pairs; the Magic
+	# Gold Tiles tip's OK, the level's end and its OK, the map. No click reaches a link.
+	{
+		printf '%s\n' "1400 click 400 270" "1720 char T" "1725 char e" "1730 char s" "1735 char t" "1760 key RETURN" \
+			"2600 click 715 573" "3000 click 400 407" "3300 screenshot $d/shots/board.png"
+		while read -r x1 y1 x2 y2; do
+			echo "$t click $x1 $y1"; echo "$((t + 60)) click $x2 $y2"; t=$((t + 180)); n=$((n + 1))
+		done < "$OUT/mahjongjapan/sol385.txt"
+		printf '%s\n' "$((t + 400)) click 403 330" "$((t + 2400)) screenshot $d/shots/won.png" "$((t + 2600)) click 397 400" \
+			"$((t + 5600)) screenshot $d/shots/map.png" "$((t + 5700)) quit"
+	} > "$d/script.txt"
+	timeout 300 "$W/build/native/mahjongjapan.exe" -gamedir=assets/mahjongjapan -userdir="$d/user" -fast -script="$d/script.txt" \
+		> "$d/stdout.txt" 2> "$d/stderr.txt"
+	echo "$n pairs; $(ls "$d/shots" | wc -l) shots; player files: $(ls "$d/user" | grep -c '\.usr$')"
+}
+
+suite_mahjongjapan() {
+	local st=0 dl g r sh c="$OUT/mahjongjapan"
+	need_assets mahjongjapan || return 1
+	mkdir -p "$c"
+	dl="$(timeout 120 build/native/mahjongjapan_dealtest.exe assets/mahjongjapan 2>&1 | tail -n 1 | tr -d '\r' | sed 's/, slowest.*//')"
+	[ "$dl" = "$MJ_DEAL" ] || st=1
+	timeout 120 build/native/mahjongjapan_dealtest.exe assets/mahjongjapan --solve 385 > "$c/sol385.txt" 2> "$c/solve.txt" || st=1
+	g="$(mahjongjapan_run game)"; r="$(mahjongjapan_run game2)"
+	{ echo "deal: $dl"; echo "game: $g"; echo "rerun: $r"; } > "$1"
+	sh="$(for f in board won map; do sha256sum "$c/game/shots/$f.png" 2>/dev/null | cut -c1-12; done | paste -sd" " -)"
+	if [ "$sh" = "$MJ_SHOTS" ]; then sh="screens as frozen"; else sh="SCREENS CHANGED ($sh)"; st=1; fi
+	if diff -rq "$c/game/shots" "$c/game2/shots" >> "$1" 2>&1 && [ "$g" = "$r" ]; then r="rerun identical"; else r="RERUN DIFFERS"; st=1; fi
+	SUMMARY="$dl; $g; $r; $sh"
+	[ $st -eq 0 ] || SUMMARY="$SUMMARY (expected '$MJ_DEAL')"
+	return $st
+}
+
+mahjongchina_run() {  # <name>: a new player, Dynasty Adventure stage 1 won with the solver's clicks; prints the moves and the shots
+	local d="$OUT/mahjongchina/$1" t=3400 x1 y1 x2 y2 n=0
+	rm -rf "$d"; mkdir -p "$d/shots" "$d/user"
+	# Dynasty Adventure, the name "Test", the map's PLAY, the How To Play tip's OK; the solver's pairs; the Magic
+	# Gold Tiles tip's OK (its box is at the left), the level's end and its OK, the map. No click reaches a link.
+	{
+		printf '%s\n' "1400 click 400 262" "1720 char T" "1725 char e" "1730 char s" "1735 char t" "1760 key RETURN" \
+			"2600 click 725 565" "3000 click 400 407" "3300 screenshot $d/shots/board.png"
+		while read -r x1 y1 x2 y2; do
+			echo "$t click $x1 $y1"; echo "$((t + 60)) click $x2 $y2"; t=$((t + 180)); n=$((n + 1))
+		done < "$OUT/mahjongchina/sol1.txt"
+		printf '%s\n' "$((t + 400)) click 187 330" "$((t + 2400)) screenshot $d/shots/won.png" "$((t + 2600)) click 397 400" \
+			"$((t + 5600)) screenshot $d/shots/map.png" "$((t + 5700)) quit"
+	} > "$d/script.txt"
+	timeout 300 "$W/build/native/mahjongchina.exe" -gamedir=assets/mahjongchina -userdir="$d/user" -fast -script="$d/script.txt" \
+		> "$d/stdout.txt" 2> "$d/stderr.txt"
+	echo "$n pairs; $(ls "$d/shots" | wc -l) shots; player files: $(ls "$d/user" | grep -c '\.usr$')"
+}
+
+suite_mahjongchina() {
+	local st=0 dl g r sh c="$OUT/mahjongchina"
+	need_assets mahjongchina || return 1
+	mkdir -p "$c"
+	dl="$(timeout 120 build/native/mahjongchina_dealtest.exe assets/mahjongchina 2>&1 | tail -n 1 | tr -d '\r' | sed 's/, slowest.*//')"
+	[ "$dl" = "$MJC_DEAL" ] || st=1
+	timeout 120 build/native/mahjongchina_dealtest.exe assets/mahjongchina --stage 1 > "$c/sol1.txt" 2> "$c/solve.txt" || st=1
+	g="$(mahjongchina_run game)"; r="$(mahjongchina_run game2)"
+	{ echo "deal: $dl"; echo "game: $g"; echo "rerun: $r"; } > "$1"
+	sh="$(for f in board won map; do sha256sum "$c/game/shots/$f.png" 2>/dev/null | cut -c1-12; done | paste -sd" " -)"
+	if [ "$sh" = "$MJC_SHOTS" ]; then sh="screens as frozen"; else sh="SCREENS CHANGED ($sh)"; st=1; fi
+	if diff -rq "$c/game/shots" "$c/game2/shots" >> "$1" 2>&1 && [ "$g" = "$r" ]; then r="rerun identical"; else r="RERUN DIFFERS"; st=1; fi
+	SUMMARY="$dl; $g; $r; $sh"
+	[ $st -eq 0 ] || SUMMARY="$SUMMARY (expected '$MJC_DEAL')"
 	return $st
 }
 

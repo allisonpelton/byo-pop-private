@@ -5,7 +5,7 @@
 #include "SevenSeasApp.h"
 #include "Res.h"
 #include "Compat2004.h"
-#include "DialogButton.h"
+#include "Button2003.h"
 #include "GameText.h"
 #include "ImageFont.h"
 #include "WidgetManager.h"
@@ -63,7 +63,7 @@ void Board::MouseDown(int x, int y, int theClickCount)
 			mTutorialStep = mTutorialStep + 1;
 			if (mTutorialStep != 0xe)
 				return;
-			mStartLink = new DialogButton(mApp->mImages[IMAGE_DBUTTONWOOD], 1, this);
+			mStartLink = new DialogButton2003(mApp->mImages[IMAGE_DBUTTONWOOD], 1, this);
 			mStartLink->Resize(mX + 0x37, mHeight - 0x53 + mY, mWidth - 0x7a, 0x22);
 			mStartLink->SetFont(mApp->mFonts[FONT_MT11]);
 			mStartLink->mLabel = GT(0x004a3084);
@@ -245,6 +245,7 @@ void Board::MouseMove(int x, int y)
 	Widget::MouseMove(x, y);
 	mMouseX = x;
 	mMouseY = y;
+	mApp->FollowMouse(mX + x, mY + y);
 	if (!mApp->mTutorial)
 	{
 		int aCellX = PixelToCellX(x);

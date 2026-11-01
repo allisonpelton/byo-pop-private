@@ -70,8 +70,20 @@ public:
 		return ok;
 	}
 
+	// WB_USER: the Windows user's name, which the game greets with (the original run in the sandbox reads "SYSTEM")
+	void UserName(char* theName, int theSize) override
+	{
+		const char* aName = std::getenv("WB_USER");
+		if (theSize > 0)
+			std::snprintf(theName, (size_t)theSize, "%s", aName != nullptr ? aName : "");
+	}
+
+	// WB_NOWARP: the game's own cursor moves are ignored, as in the sandbox where the original's SetCursorPos has no
+	// effect and the pointer stays where the harness put it
 	void SetMousePos(int x, int y) override
 	{
+		if (std::getenv("WB_NOWARP") != nullptr)
+			return;
 		mMouseX = x;
 		mMouseY = y;
 	}
@@ -244,10 +256,14 @@ int main(int argc, char** argv)
 	wb::GameStart();
 	size_t aNext = 0;
 	bool aRunning = true;
+	bool aByFrame = std::getenv("WB_BY_FRAME") != nullptr;
 	int aFrames = 0;
 	while (aRunning)
 	{
-		while (aNext < anEvents.size() && anEvents[aNext].time <= (int)gHost.mTime)
+		// (WB_BY_FRAME: the script's times are the game's update counter, not the clock: the original's captures are
+		// taken at a counter value)
+		int aNow = aByFrame ? wb::gFrame : (int)gHost.mTime;
+		while (aNext < anEvents.size() && anEvents[aNext].time <= aNow)
 		{
 			const Event& e = anEvents[aNext++];
 			if (e.what == "move")
@@ -266,6 +282,10 @@ int main(int argc, char** argv)
 				wb::Level* aLevel = wb::gLevels.current;
 				std::printf("%u ms: score %d, lives %d, board %d, filled %d of %d%%\n", gHost.mTime, wb::gScore, wb::gLives,
 					wb::gLevelInSet, aLevel != nullptr ? aLevel->filledCells : -1, aLevel != nullptr ? aLevel->fillQuota : -1);
+				std::printf("frame %d, %d random draws, seed 0x%x\n", wb::gFrame, wb::gRandCalls, (unsigned)wb::RandValue());  // the update counter (0x460a1c), for lining up with the original
+					wb::Shooter* aShip = aLevel != nullptr ? aLevel->shooters.current : nullptr;
+					if (aShip != nullptr)
+						std::printf("ship %d,%d state %d age %d mouse %d,%d\n", (int)aShip->x, (int)aShip->y, aShip->state, (int)aShip->age, wb::gMouseX, wb::gMouseY);
 			}
 			else if (e.what == "lives")
 				wb::gLives = e.a;  // a test shortcut: the lives left, to reach the game over
@@ -290,7 +310,12 @@ int main(int argc, char** argv)
 			break;
 		}
 		aFrames++;
-		gHost.mTime += 10;
+		// (a frame is 10 ms, shortened to reach an event that falls inside it: the game steps a millisecond at a time)
+		uint32_t aStep = 10;
+		int aAfter = aByFrame ? wb::gFrame : (int)gHost.mTime;   // (the frame just run has moved the counter on)
+		if (aNext < anEvents.size() && anEvents[aNext].time > aAfter && anEvents[aNext].time < aAfter + 10)
+			aStep = (uint32_t)(anEvents[aNext].time - aAfter);
+		gHost.mTime += aStep;
 	}
 	wb::GameEnd();
 	Sound_Shutdown();

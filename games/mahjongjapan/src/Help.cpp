@@ -1,0 +1,387 @@
+#include "Help.h"
+
+#include "Font.h"
+#include "JBBase.h"
+#include "Manager.h"
+
+namespace mahjongjapan
+{
+
+// 0x40eac0
+void HelpExample::Init()
+{
+	mPointsText = jb::LoadDllString(0x5e);
+	mTimeText = jb::LoadDllString(0x67);
+	int aPos = 0;
+	std::string aText = jb::LoadDllString(0x69);
+	std::string* aName = mNames1;
+	int i = 4;
+	do
+	{
+		*aName = jb::Tokenize(aText, 9, aPos);
+		aName = aName + 1;
+		i = i - 1;
+	} while (i != 0);
+	aPos = 0;
+	aText = jb::LoadDllString(0x5d);
+	aName = mNames2;
+	i = 4;
+	do
+	{
+		*aName = jb::Tokenize(aText, 9, aPos);
+		aName = aName + 1;
+		i = i - 1;
+	} while (i != 0);
+	mFont = jb::GetDllFont(0x133, 0x132, -1);
+}
+
+// 0x40ebf0 (the points example draws text 0x5e in three places and 0x67 in one, as the original does)
+void HelpExample::Draw()
+{
+	switch (mExample)
+	{
+	case 1:
+	case 4:
+		DrawImage(0xf, 0xb, mExample == 1 ? 0x166 : 0x167, nullptr, true, 100, 100, 0xff);
+		mFont->DrawRight(this, 0x23, 0x76, mPointsText.c_str(), 100, 100, 0xff);
+		mFont->DrawLeft(this, 0xa0, 0x75, mPointsText.c_str(), -1, 100, 100, 0xff);
+		mFont->DrawRight(this, 0x87, 0x19, mTimeText.c_str(), 100, 100, 0xff);
+		mFont->DrawLeft(this, 0xfa, 0x32, mPointsText.c_str(), -1, 100, 100, 0xff);
+		return;
+	case 2:
+	case 5:
+		DrawTile(0, 0, 0x23);
+		mFont->DrawCentred(this, 0, 0x4b, mNames1[0].c_str(), 0x30, 100, 100, 0xff);
+		DrawTile(0x50, 0, 0x24);
+		mFont->DrawCentred(this, 0x50, 0x4b, mNames1[1].c_str(), 0x30, 100, 100, 0xff);
+		DrawTile(0xa0, 0, 0x25);
+		mFont->DrawCentred(this, 0xa0, 0x4b, mNames1[2].c_str(), 0x30, 100, 100, 0xff);
+		DrawTile(0xf0, 0, 0x26);
+		mFont->DrawCentred(this, 0xf0, 0x4b, mNames1[3].c_str(), 0x30, 100, 100, 0xff);
+		DrawTile(0, 0x55, 0x27);
+		mFont->DrawCentred(this, 0, 0xa0, mNames2[0].c_str(), 0x30, 100, 100, 0xff);
+		DrawTile(0x50, 0x55, 0x28);
+		mFont->DrawCentred(this, 0x50, 0xa0, mNames2[1].c_str(), 0x30, 100, 100, 0xff);
+		DrawTile(0xa0, 0x55, 0x29);
+		mFont->DrawCentred(this, 0xa0, 0xa0, mNames2[2].c_str(), 0x30, 100, 100, 0xff);
+		DrawTile(0xf0, 0x55, 0x2a);
+		mFont->DrawCentred(this, 0xf0, 0xa0, mNames2[3].c_str(), 0x30, 100, 100, 0xff);
+		return;
+	case 3:
+		DrawSpecial(-5, -0x3f, 0x2b);
+		DrawSpecial(-0x2f, -0x3f, 0x2b);
+		return;
+	case 6:
+		DrawSpecial(-5, -0x21, 0x2b);
+		DrawSpecial(-0x2f, -0x21, 0x2b);
+		DrawSpecial(-5, 0x48, 0x2c);
+		DrawSpecial(-0x2f, 0x48, 0x2d);
+		return;
+	case 7:
+		DrawSpecial(-0x2a, -0x49, 0x2f);
+		DrawSpecial(-0x2a, 0x2a, 0x2e);
+	}
+}
+
+// 0x40ef30
+void HelpExample::DrawSpecial(int theX, int theY, int theKind)
+{
+	jb::Rect aRect;
+	aRect.left = 0;
+	if (theKind == 0x2b)
+		aRect.left = 1;
+	else if (0x2b < theKind)
+		aRect.left = theKind - 0x2a;
+	aRect.left = aRect.left * 0x30;
+	aRect.right = aRect.left + 0x30;
+	aRect.top = 0;
+	aRect.bottom = 0x3a;
+	DrawImageKeyed(theX, theY, 0x66, 0xff00ff, &aRect, true, 100, 100, 0xff);
+}
+
+// 0x40efa0
+void HelpExample::DrawTile(int theX, int theY, int theKind)
+{
+	jb::Rect aRect;
+	aRect.left = 0;
+	aRect.top = 0;
+	aRect.right = 0x30;
+	aRect.bottom = 0x3a;
+	DrawImageKeyed(theX, theY, 0x66, 0xff00ff, &aRect, true, 100, 100, 0xff);
+	aRect.left = ((theKind - 1) % 6) * 0x26;
+	aRect.right = aRect.left + 0x26;
+	aRect.top = ((theKind - 1) / 6) * 0x30;
+	aRect.bottom = aRect.top + 0x30;
+	DrawImage(theX + 7, theY + 3, mTiles, &aRect, true, 100, 100, 0xff);
+}
+
+// 0x40e150
+void HelpFree::Create()
+{
+	int aLeft[] = {3, 3, 3, 0};
+	int aRight[] = {3, 3, 3, 0};
+	int aTop[] = {2, 2, 3, 3, 0};
+	int aBottom[] = {3, 2, 2, 3, 0};
+	SetCorners(0, 1, 1, 0);
+	SetEdges(aLeft, aRight, aTop, aBottom);
+	DialogButton* anOk = new DialogButton(1);
+	Add(anOk, 200, 0x14a);
+	anOk->SetText(0x43);
+	mPrevious = new jb::Button(0x162, 4, false);
+	Add(mPrevious, 0x32, 0x147);
+	mPrevious->SetEnabled(false);
+	mNext = new jb::Button(0x163, 4, false);
+	Add(mNext, 0x17c, 0x147);
+	mExample = new HelpExample(0xd7);
+	Add(mExample, 0x61, 0x9b);
+	ShowPage();
+}
+
+// 0x40e330
+bool HelpFree::OnCommand(int theCmd)
+{
+	if (theCmd == 1)
+		jb::gManager->Pop(true, 1);
+	else if (theCmd == 0x162)
+	{
+		if (0 < mPage)
+		{
+			mPage = mPage - 1;
+			ShowPage();
+			return true;
+		}
+	}
+	else
+	{
+		if (theCmd - 0x163 != 0)
+			return false;
+		if (mPage < 4)
+		{
+			mPage = mPage + 1;
+			ShowPage();
+			return true;
+		}
+	}
+	return true;
+}
+
+// 0x40e390
+void HelpFree::ShowPage()
+{
+	ClearTexts();
+	switch (mPage)
+	{
+	case 0:
+		SetTitle(0x45);
+		AddText(0x44, 1, 0x32, 0x50, false, nullptr, 0);
+		mExample->mExample = 1;
+		break;
+	case 1:
+		SetTitle(0x5c);
+		AddText(0x5b, 1, 0x28, 0x50, false, nullptr, 0);
+		mExample->mExample = 2;
+		break;
+	case 2:
+		SetTitle(0x49);
+		AddText(0x48, 1, 0x2d, 0x55, false, nullptr, 0);
+		mExample->mExample = 0;
+		break;
+	case 3:
+		SetTitle(0x47);
+		AddText(0x46, 1, 0x2d, 0x55, false, nullptr, 0);
+		mExample->mExample = 0;
+		break;
+	case 4:
+		SetTitle(0x4b);
+		AddText(0x4a, 1, 0x32, 0x55, false, nullptr, 0);
+		mExample->mExample = 0;
+	}
+	mPrevious->SetEnabled(mPage != 0);
+	mNext->SetEnabled(mPage != 4);
+}
+
+// 0x40e520
+void HelpEscape::Create()
+{
+	int aLeft[] = {3, 3, 3, 0};
+	int aRight[] = {3, 3, 3, 0};
+	int aTop[] = {2, 2, 3, 3, 0};
+	int aBottom[] = {3, 2, 2, 3, 0};
+	SetCorners(0, 1, 1, 0);
+	SetEdges(aLeft, aRight, aTop, aBottom);
+	DialogButton* anOk = new DialogButton(1);
+	Add(anOk, 200, 0x14a);
+	anOk->SetText(0x4c);
+	mPrevious = new jb::Button(0x162, 4, false);
+	Add(mPrevious, 0x32, 0x147);
+	mPrevious->SetEnabled(false);
+	mNext = new jb::Button(0x163, 4, false);
+	Add(mNext, 0x17c, 0x147);
+	mExample = new HelpExample(0x65);
+	Add(mExample, 0x61, 0x9b);
+	ShowPage();
+}
+
+// 0x40e700
+bool HelpEscape::OnCommand(int theCmd)
+{
+	if (theCmd == 1)
+		jb::gManager->Pop(true, 1);
+	else if (theCmd == 0x162)
+	{
+		if (0 < mPage)
+		{
+			mPage = mPage - 1;
+			ShowPage();
+			return true;
+		}
+	}
+	else
+	{
+		if (theCmd - 0x163 != 0)
+			return false;
+		if (mPage < 5)
+		{
+			mPage = mPage + 1;
+			ShowPage();
+			return true;
+		}
+	}
+	return true;
+}
+
+// 0x40e760
+void HelpEscape::ShowPage()
+{
+	ClearTexts();
+	switch (mPage)
+	{
+	case 0:
+		SetTitle(0x56);
+		AddText(0x54, 1, 0xa0, 0x5f, false, nullptr, 0);
+		AddText(0x55, 1, 0x32, 0xd2, false, nullptr, 0);
+		mExample->mExample = 3;
+		break;
+	case 1:
+		SetTitle(0x5a);
+		AddText(0x59, 1, 0x32, 0x50, false, nullptr, 0);
+		mExample->mExample = 4;
+		break;
+	case 2:
+		SetTitle(0x5c);
+		AddText(0x5b, 1, 0x28, 0x50, false, nullptr, 0);
+		mExample->mExample = 5;
+		break;
+	case 3:
+		SetTitle(0x53);
+		AddText(0x4d, 1, 0x32, 0x55, false, nullptr, 0);
+		AddText(0x4e, 1, 0x9b, 0x87, false, nullptr, 0);
+		AddText(0x4f, 1, 0x9b, 0xf0, false, nullptr, 0);
+		mExample->mExample = 6;
+		break;
+	case 4:
+		SetTitle(0x53);
+		AddText(0x50, 1, 0x7d, 0x5f, false, nullptr, 0);
+		AddText(0x51, 1, 0x7d, 0xd2, false, nullptr, 0);
+		AddText(0x52, 1, 0x37, 0x136, false, nullptr, 0);
+		mExample->mExample = 7;
+		break;
+	case 5:
+		SetTitle(0x58);
+		AddText(0x57, 1, 0x32, 100, false, nullptr, 0);
+		mExample->mExample = 0;
+	}
+	mPrevious->SetEnabled(mPage != 0);
+	mNext->SetEnabled(mPage != 5);
+}
+
+// 0x40f450
+void HelpPicture::Draw()
+{
+	if (mPicture == 1)
+		DrawImage(9, 1, 0x164, nullptr, true, 100, 100, 0xff);
+	else if (mPicture == 2)
+		DrawImage(0, 0, 0x165, nullptr, true, 100, 100, 0xff);
+}
+
+// 0x40f0b0
+void HelpMenu::Create()
+{
+	int aLeft[] = {2, 3, 3, 0};
+	int aRight[] = {3, 2, 3, 0};
+	int aTop[] = {2, 2, 3, 3, 0};
+	int aBottom[] = {3, 2, 2, 3, 0};
+	SetCorners(0, 1, 1, 0);
+	SetEdges(aLeft, aRight, aTop, aBottom);
+	DialogButton* anOk = new DialogButton(1);
+	Add(anOk, 200, 0x134);
+	anOk->SetText(0x61);
+	mPrevious = new jb::Button(0x162, 4, false);
+	Add(mPrevious, 0x32, 0x131);
+	mPrevious->SetEnabled(false);
+	mNext = new jb::Button(0x163, 4, false);
+	Add(mNext, 0x17c, 0x131);
+	mPicture = new HelpPicture();
+	Add(mPicture, 0x96, 0xaa);
+	ShowPage();
+}
+
+// 0x40f290
+bool HelpMenu::OnCommand(int theCmd)
+{
+	if (theCmd == 1)
+		jb::gManager->Pop(true, 1);
+	else if (theCmd == 0x162)
+	{
+		if (0 < mPage)
+		{
+			mPage = mPage - 1;
+			ShowPage();
+			return true;
+		}
+	}
+	else
+	{
+		if (theCmd - 0x163 != 0)
+			return false;
+		if (mPage < 3)
+		{
+			mPage = mPage + 1;
+			ShowPage();
+			return true;
+		}
+	}
+	return true;
+}
+
+// 0x40f2f0
+void HelpMenu::ShowPage()
+{
+	ClearTexts();
+	switch (mPage)
+	{
+	case 0:
+		SetTitle(99);
+		AddText(0x62, 0, 0x28, 0x50, false, nullptr, 0);
+		mPicture->mPicture = 1;
+		break;
+	case 1:
+		SetTitle(0x60);
+		AddText(0x5f, 0, 0x28, 0x50, false, nullptr, 0);
+		mPicture->mPicture = 2;
+		break;
+	case 2:
+		SetTitle(0x66);
+		AddText(100, 1, 0x32, 0x55, false, nullptr, 0);
+		mPicture->mPicture = 0;
+		break;
+	case 3:
+		SetTitle(0x66);
+		AddText(0x65, 1, 0x32, 0x55, false, nullptr, 0);
+		mPicture->mPicture = 0;
+	}
+	mPrevious->SetEnabled(mPage != 0);
+	mNext->SetEnabled(mPage != 3);
+}
+
+} // namespace mahjongjapan

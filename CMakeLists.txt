@@ -250,6 +250,24 @@ option(BUILD_DYNOMITE "Build the Dynomite Deluxe port" ON)
 if(BUILD_DYNOMITE AND EXISTS ${PROJECT_SOURCE_DIR}/games/dynomite/CMakeLists.txt)
   add_subdirectory(games/dynomite)
 endif()
+# Bonnie's Bookstore Deluxe: its own SDL 1.2 engine (games/bonnies/engine) under the framework's app host; optional
+# while it is new; the build skips it if its folder is missing
+option(BUILD_BONNIES "Build the Bonnie's Bookstore Deluxe port" ON)
+if(BUILD_BONNIES AND EXISTS ${PROJECT_SOURCE_DIR}/games/bonnies/CMakeLists.txt)
+  add_subdirectory(games/bonnies)
+endif()
+# Mahjong Escape: Ancient Japan: JollyBear's engine (games/mahjongjapan/engine) under the framework's app host;
+# optional while it is new
+option(BUILD_MAHJONGJAPAN "Build the Mahjong Escape: Ancient Japan port" ON)
+if(BUILD_MAHJONGJAPAN AND EXISTS ${PROJECT_SOURCE_DIR}/games/mahjongjapan/CMakeLists.txt)
+  add_subdirectory(games/mahjongjapan)
+endif()
+# Mahjong Escape: Ancient China: Ancient Japan's port (games/mahjongchina/engine is a copy of its engine) with China's
+# differences; optional while it is new
+option(BUILD_MAHJONGCHINA "Build the Mahjong Escape: Ancient China port" ON)
+if(BUILD_MAHJONGCHINA AND EXISTS ${PROJECT_SOURCE_DIR}/games/mahjongchina/CMakeLists.txt)
+  add_subdirectory(games/mahjongchina)
+endif()
 # Bejeweled Twist: optional while it is new; the build skips it if its folder is missing
 option(BUILD_BEJEWELEDTWIST "Build the Bejeweled Twist port" ON)
 if(BUILD_BEJEWELEDTWIST AND EXISTS ${PROJECT_SOURCE_DIR}/games/bejeweledtwist/CMakeLists.txt)

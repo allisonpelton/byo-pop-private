@@ -102,6 +102,9 @@ public:
 	void StopSong(int theSong);
 	void PauseSong(int theSong, bool thePaused);
 	void SetSongGain(int theSong, float theGain);
+	// A module's amplify, as BASS applies it: to what it plays and to its FFT (BASS_DATA_FFT scales with it). A
+	// stream ignores it.
+	void SetSongAmplify(int theSong, float theGain);
 	bool IsSongPlaying(int theSong);
 	// The order and row a playing module has been rendered up to (libxmp's frame info, or a ModulePlayer's
 	// GetPosition). False for a song that is not playing, and for Ogg and WAV tracks.

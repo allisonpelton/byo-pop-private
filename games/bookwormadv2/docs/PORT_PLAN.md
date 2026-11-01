@@ -265,3 +265,24 @@ capitals), `popanim/PopAnimData.h`.
 The test hook's `soak <update>` plays the battles by itself (words from the board, potions when the tutorial asks for one, the
 stunned panel, the treasure room, the chapter map's Enter) and was the way the battle milestone was shaken down: from a new
 player through the prologue, chapters 1 to 8 and Skeletrox's boss fight, 219 words in 340,000 updates with no script error.
+
+## Faults carried over from Bookworm Adventures (2026-10-31)
+
+Each was checked against Volume 2's own exe first (`games/bookwormadv/docs/FIXES_FOR_VOLUME2.md` lists them). The colour helper
+`ToColor` (0x6154c0) reads a table's int fields `r`, `g`, `b` and `a` (a missing one is 0) and the port read only a packed number, so
+every `Color(r, g, b, a)` of common.lua came out transparent black: the enemies' attack and lore texts of the right-hand panel,
+among others, were invisible (fixed in `luaapp/PopLua.cpp`). `BreakupString` (0x444e70) keys its table by PopLua ints (tag 4), the
+port by numbers (`lua_pushint` now). The title's fader (0x489400) and the curtain's fill and text take 0x7875e0, which the
+initialiser at 0x6e34f0 makes black (0x7875d0, white, comes from 0x6e3510): the five Whites of `TitleScreen.cpp` and
+`CurtainTransition.cpp` are Black. `GameApp::CreateMusicInterface` (0x445370) makes the BASS interface whose SetVolume (0x567760) puts
+the music at volume * 100 with the game's bass.dll 2.3, so the override sets `mMaxMusicVolume` to 100 (the music's songs are OGG
+streams: no amplify is called, unlike Volume 1's modules). `Board::Draw` defers its shade at 0 under the dialogs while the app has one
+(0x416509: +0x32c, the dialog map's size), 10000 otherwise, and `MyFlashWidget::Update` (0x472a90) does nothing while one is up.
+Not needed: PopAnim labels (0x531cd0 upper-cases them as Volume 1's does; the port's map is case-insensitive) and the chapter cheer
+(the shared sound manager fix came with the merge of main).
+
+The "LOADING" tile letters: the exe sets the graphics colour to 0x7875d0 (white) before it draws the tile and the letter into the
+tile's image (0x489e1d) and nothing recolours the image when it is drawn (the title's Draw colourizes only the logos), so
+`TitleScreen.cpp` uses white. Test hook `battle <book> [<stage>]` (TestHooks.cpp header): from the main menu it starts a new
+adventure of the book and, once the board shows, has the engine go on to the stage's enemy (`SetupNextStage` with `mStageNum`, `mWinner`
+and `mLoser` set), so a battle with a chosen enemy is about 2,500 updates after the menu instead of 17,000.

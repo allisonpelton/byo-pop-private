@@ -64,17 +64,20 @@ void ParseHex3(const char* theText, int* a, int* b, int* c)
 	*c = (int)v;
 }
 
-// Schrage's step with the original's constants (q = 2), in 32-bit wrapping arithmetic
+int gRandCalls = 0;   // (the port's: how many draws so far, for lining the port up with the original)
+
+// 0x420770: Schrage's step with the original's constants (q = 2), in 32-bit wrapping arithmetic. The seed is divided
+// unsigned (a div, not an idiv), so a seed with the top bit set gives a different step than the signed one would.
 void Rand()
 {
-	gRandSeed = (int32_t)((uint32_t)(gRandSeed % kRandQ) * (uint32_t)kRandA -
-		(uint32_t)(gRandSeed / kRandQ) * (uint32_t)kRandR);
+	gRandCalls++;
+	uint32_t aSeed = (uint32_t)gRandSeed;
+	gRandSeed = (int32_t)((aSeed % (uint32_t)kRandQ) * (uint32_t)kRandA - (aSeed / (uint32_t)kRandQ) * (uint32_t)kRandR);
 }
 
 void SeedRand(int theSeed)
 {
-	gRandSeed = theSeed;
-}
+	gRandSeed = theSeed;}
 
 uint32_t RandMod(uint32_t theRange)
 {

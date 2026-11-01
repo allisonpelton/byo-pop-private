@@ -1,0 +1,56 @@
+{"addr": "0042f6f6", "name": "FMUSIC_LoadSong", "sig": "void * __stdcall FMUSIC_LoadSong(char * name)"}
+{"addr": "0042f6fc", "name": "FSOUND_Init", "sig": "char __stdcall FSOUND_Init(int mixrate, int maxchannels, uint flags)"}
+{"addr": "0042f702", "name": "FSOUND_SetOutput", "sig": "char __stdcall FSOUND_SetOutput(int outputtype)"}
+{"addr": "0042f708", "name": "FSOUND_Sample_Free", "sig": "void __stdcall FSOUND_Sample_Free(void * sptr)"}
+{"addr": "0042f70e", "name": "FSOUND_SetPaused", "sig": "char __stdcall FSOUND_SetPaused(int channel, char paused)"}
+{"addr": "0042f714", "name": "FSOUND_SetVolume", "sig": "char __stdcall FSOUND_SetVolume(int channel, int vol)"}
+{"addr": "0042f71a", "name": "FSOUND_SetFrequency", "sig": "char __stdcall FSOUND_SetFrequency(int channel, int freq)"}
+{"addr": "0042f720", "name": "FSOUND_GetFrequency", "sig": "int __stdcall FSOUND_GetFrequency(int channel)"}
+{"addr": "0042f726", "name": "FSOUND_PlaySoundEx", "sig": "int __stdcall FSOUND_PlaySoundEx(int channel, void * sptr, void * dsp, char startpaused)"}
+{"addr": "0042f72c", "name": "FSOUND_StopSound", "sig": "char __stdcall FSOUND_StopSound(int channel)"}
+{"addr": "0042f732", "name": "FMUSIC_SetMasterVolume", "sig": "char __stdcall FMUSIC_SetMasterVolume(void * mod, int volume)"}
+{"addr": "0042f738", "name": "FMUSIC_SetOrder", "sig": "char __stdcall FMUSIC_SetOrder(void * mod, int order)"}
+{"addr": "0042f73e", "name": "FMUSIC_IsPlaying", "sig": "char __stdcall FMUSIC_IsPlaying(void * mod)"}
+{"addr": "0042f744", "name": "FSOUND_IsPlaying", "sig": "char __stdcall FSOUND_IsPlaying(int channel)"}
+{"addr": "0042f74a", "name": "FMUSIC_FreeSong", "sig": "char __stdcall FMUSIC_FreeSong(void * mod)"}
+{"addr": "0042f750", "name": "FMUSIC_StopSong", "sig": "char __stdcall FMUSIC_StopSong(void * mod)"}
+{"addr": "0042f756", "name": "FMUSIC_SetPaused", "sig": "char __stdcall FMUSIC_SetPaused(void * mod, char pause)"}
+{"addr": "0042f75c", "name": "FMUSIC_GetOrder", "sig": "int __stdcall FMUSIC_GetOrder(void * mod)"}
+{"addr": "0042f762", "name": "FSOUND_Close", "sig": "void __stdcall FSOUND_Close(void)"}
+{"addr": "0042f768", "name": "FSOUND_Sample_Load", "sig": "void * __stdcall FSOUND_Sample_Load(int index, char * name, uint mode, int offset, int length)"}
+{"addr": "0042f76e", "name": "FMUSIC_PlaySong", "sig": "char __stdcall FMUSIC_PlaySong(void * mod)"}
+{"addr": "0042f774", "name": "SDL_GetWMInfo", "sig": "int __cdecl SDL_GetWMInfo(void * info)"}
+{"addr": "0042f77a", "name": "SDL_GetAppState", "sig": "byte __cdecl SDL_GetAppState(void)"}
+{"addr": "0042f780", "name": "SDL_GetTicks", "sig": "uint __cdecl SDL_GetTicks(void)"}
+{"addr": "0042f786", "name": "SDL_PollEvent", "sig": "int __cdecl SDL_PollEvent(void * event)"}
+{"addr": "0042f78c", "name": "SDL_PumpEvents", "sig": "void __cdecl SDL_PumpEvents(void)"}
+{"addr": "0042f792", "name": "SDL_RWFromMem", "sig": "void * __cdecl SDL_RWFromMem(void * mem, int size)"}
+{"addr": "0042f798", "name": "SDL_RWFromFile", "sig": "void * __cdecl SDL_RWFromFile(char * file, char * mode)"}
+{"addr": "0042f79e", "name": "SDL_FreeSurface", "sig": "void __cdecl SDL_FreeSurface(void * surface)"}
+{"addr": "0042f7a4", "name": "SDL_Quit", "sig": "void __cdecl SDL_Quit(void)"}
+{"addr": "0042f7aa", "name": "SDL_WM_SetCaption", "sig": "void __cdecl SDL_WM_SetCaption(char * title, char * icon)"}
+{"addr": "0042f7b0", "name": "SDL_WM_SetIcon", "sig": "void __cdecl SDL_WM_SetIcon(void * icon, byte * mask)"}
+{"addr": "0042f7b6", "name": "SDL_SetColorKey", "sig": "int __cdecl SDL_SetColorKey(void * surface, uint flag, uint key)"}
+{"addr": "0042f7bc", "name": "SDL_MapRGB", "sig": "uint __cdecl SDL_MapRGB(void * format, byte r, byte g, byte b)"}
+{"addr": "0042f7c2", "name": "SDL_FreeCursor", "sig": "void __cdecl SDL_FreeCursor(void * cursor)"}
+{"addr": "0042f7c8", "name": "SDL_CreateCursor", "sig": "void * __cdecl SDL_CreateCursor(byte * data, byte * mask, int w, int h, int hot_x, int hot_y)"}
+{"addr": "0042f7ce", "name": "SDL_SetCursor", "sig": "void __cdecl SDL_SetCursor(void * cursor)"}
+{"addr": "0042f7d4", "name": "SDL_WM_IconifyWindow", "sig": "int __cdecl SDL_WM_IconifyWindow(void)"}
+{"addr": "0042f7da", "name": "SDL_ShowCursor", "sig": "int __cdecl SDL_ShowCursor(int toggle)"}
+{"addr": "0042f7e0", "name": "SDL_CreateRGBSurface", "sig": "void * __cdecl SDL_CreateRGBSurface(uint flags, int width, int height, int depth, uint Rmask, uint Gmask, uint Bmask, uint Amask)"}
+{"addr": "0042f7e6", "name": "SDL_UpdateRect", "sig": "void __cdecl SDL_UpdateRect(void * screen, int x, int y, uint w, uint h)"}
+{"addr": "0042f7ec", "name": "SDL_UpdateRects", "sig": "void __cdecl SDL_UpdateRects(void * screen, int numrects, void * rects)"}
+{"addr": "0042f7f2", "name": "SDL_UnlockSurface", "sig": "void __cdecl SDL_UnlockSurface(void * surface)"}
+{"addr": "0042f7f8", "name": "SDL_LockSurface", "sig": "int __cdecl SDL_LockSurface(void * surface)"}
+{"addr": "0042f7fe", "name": "SDL_SetVideoMode", "sig": "void * __cdecl SDL_SetVideoMode(int width, int height, int bpp, uint flags)"}
+{"addr": "0042f804", "name": "SDL_GetError", "sig": "char * __cdecl SDL_GetError(void)"}
+{"addr": "0042f80a", "name": "SDL_Init", "sig": "int __cdecl SDL_Init(uint flags)"}
+{"addr": "0042f810", "name": "SDL_EnableKeyRepeat", "sig": "int __cdecl SDL_EnableKeyRepeat(int delay, int interval)"}
+{"addr": "0042f816", "name": "SDL_EnableUNICODE", "sig": "int __cdecl SDL_EnableUNICODE(int enable)"}
+{"addr": "0042f81c", "name": "SDL_EventState", "sig": "byte __cdecl SDL_EventState(byte type, int state)"}
+{"addr": "0042f822", "name": "SDL_GetMouseState", "sig": "byte __cdecl SDL_GetMouseState(int * x, int * y)"}
+{"addr": "0042f828", "name": "SDL_GetKeyState", "sig": "byte * __cdecl SDL_GetKeyState(int * numkeys)"}
+{"addr": "0042f82e", "name": "IMG_LoadTyped_RW", "sig": "void * __cdecl IMG_LoadTyped_RW(void * src, int freesrc, char * type)"}
+{"addr": "0041f570", "name": "operator_new", "sig": "void * __cdecl operator_new(uint size)"}
+{"addr": "0041f590", "name": "operator_delete", "sig": "void __cdecl operator_delete(void * p)"}
+{"addr": "0042ff08", "name": "__ftol", "sig": "int __cdecl __ftol(void)"}

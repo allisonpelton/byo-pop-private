@@ -197,7 +197,7 @@ bool MummyApp::LoadClassic()
 					aExcluded = true;
 		} while (aExcluded);
 	}
-	mElapsedBase = (DWORD) aTime;
+	mElapsedBase = aTime;	// signed, as the original's int: a save made before the clock started holds a negative number
 	mGameMode = aMode;
 	return true;
 }
