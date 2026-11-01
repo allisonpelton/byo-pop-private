@@ -5,6 +5,7 @@
 #include "CustomBassMusicInterface.h"
 #include "EffectsManager.h"
 #include "FlyingText.h"
+#include "GameOverShow.h"
 #include "GameText.h"
 #include "GoodTube.h"
 #include "Hyperspace.h"
@@ -595,6 +596,9 @@ Board::~Board()
 {
 	// port: the rest of the destructor comes with the board's update
 	// The original frees the list of smoke without deleting the smoke; the port deletes it, without its points or sparks
+	// The original never deletes blitz's final score
+	delete mUnknown3464;
+	delete mUnknown3468;
 	for (Traveller* aTraveller : mUnknown2170) {
 		if (SmokeTraveller* aSmoke = dynamic_cast<SmokeTraveller*>(aTraveller)) {
 			aSmoke->mNoPoints = true;
@@ -703,6 +707,58 @@ void Board::RemovedFromManager(WidgetManager* theWidgetManager)
 	}
 	mApp->mWidgetManager->RemoveWidget(mUnknown2208);
 	// (and the puzzle's panel, +0x23d4, which comes with the puzzles)
+}
+
+void Board::EndGame(bool theNuke)
+{
+	if (mUnknown36B0)
+		return;
+	if (!theNuke)
+		mUnknown26CC = nullptr;
+	mUnknown36B0 = true;
+	mUnknown36B1 = theNuke;
+	mApp->mUnknownF68 = mApp->CheckForHighScore(mGameMode, mApp->mProfile->mName, mUnknown158, mUnknown168);
+	mApp->mUnknownF6C = mUnknown168;
+	mApp->mUnknownF70 = mUnknown158;
+	mApp->mProfile->mGamesPlayed++;
+	mApp->mProfile->mUnknown140[mGameMode]++;
+	if (mUnknown1488 != 0)
+		NotPorted("Board::EndGame: +0x1488");  // 0x6a404e
+	mApp->PlayVoice(SOUND_VOICE_GAMEOVER, false);
+	mUnknown1430 = nullptr;
+	mUnknown1438 = false;
+	mApp->KillDialog(40);
+	if (mApp->mTwistMusic != nullptr)
+		mApp->mTwistMusic->SetState(0);
+	mUnknown160 = 7;
+	mUnknown26C8 = 1;
+	mUnknown14EC = (int)((unsigned int)(mUpdateCnt - mUnknown14DC) / 100) + mUnknown14E8;
+	mApp->mUnknown75C++;
+	mUnknown20D0 = false;
+	mUnknown1FFC = 0x41;
+	if (mGameMode != MODE_BLITZ || mUnknown36B1) {
+		if (mApp->mMusicInterface != nullptr) {
+			mApp->mMusicInterface->StopAllMusic();
+			mApp->PlayMusic(200 + (mUnknown36B1 ? 1 : 0), false, false, 0, 0);
+		}
+		if (mUnknown36B1) {
+			// The board blows up
+			mApp->PlaySample(mUnknown3930 ? SOUND_DOOMGEMGAMEOVER : SOUND_ENDFINAL6B);
+			mUnknown27B8.SetCurve(GTS(0x7dc490));
+			mUnknown2828.SetCurve(GTS(0x7dc464), &mUnknown27B8);
+			mUnknown26D8.SetCurve(GTS(0x7dc448), &mUnknown27B8);
+			mUnknown2748.SetCurve(GTS(0x7dc42c), &mUnknown27B8);
+			mUnknown2908.SetCurve(GTS(0x7dc40c), &mUnknown27B8);
+			mUnknown2978.SetCurve(GTS(0x7dc3ec), &mUnknown27B8);
+			if (mUnknown26CC != nullptr)
+				mUnknown26CC->mUnknown2F6 = false;
+			mWidgetFlagsMod.mRemoveFlags |= WIDGETFLAGS_ALLOW_MOUSE;
+			return;
+		}
+	}
+	mUnknown26D0 = new GameOverShow(this);
+	AddWidget(mUnknown26D0);
+	mWidgetFlagsMod.mRemoveFlags |= WIDGETFLAGS_ALLOW_MOUSE;
 }
 
 void Board::StartGame()

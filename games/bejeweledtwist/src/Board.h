@@ -26,6 +26,7 @@ class Font;
 class Image;
 class MemoryImage;
 class Piece;
+class TextImage;
 class Traveller;
 class PointsManager;
 class FlyingText;
@@ -231,6 +232,13 @@ public:
 	CurvedVal mUnknown3880;                 // +0x3880: set by 0x6b681d
 	CurvedVal mUnknown34F0;                 // +0x34f0: set when a turn ends (0x6b8bca)
 	CurvedVal mUnknown13B0;                 // +0x13b0: set to 0 by StartLevel
+	// +0x27b8 and the five linked to it: the nuke at the end of a game (EndGame)
+	CurvedVal mUnknown27B8;                 // +0x27b8
+	CurvedVal mUnknown2828;                 // +0x2828
+	CurvedVal mUnknown26D8;                 // +0x26d8
+	CurvedVal mUnknown2748;                 // +0x2748
+	CurvedVal mUnknown2908;                 // +0x2908
+	CurvedVal mUnknown2978;                 // +0x2978
 	bool mUnknown1420 = false;              // +0x1420
 	float mUnknown1424 = 0;                 // +0x1424: the glint's run, 0 to 1
 	float mUnknown1428 = 0;                 // +0x1428
@@ -513,7 +521,10 @@ public:
 	TwistWidget* mUnknown26A0 = nullptr;                   // +0x26a0
 	int mUnknown26A8 = 0;                   // +0x26a8
 	TwistWidget* mUnknown26AC = nullptr;                   // +0x26ac
-	int mUnknown26CC = 0;                   // +0x26cc
+	int mUnknown26C0 = 0;                   // +0x26c0: the row falling off next (end state 3)
+	float mUnknown26C4 = 0;                 // +0x26c4: the end states' wait
+	int mUnknown26C8 = 0;                   // +0x26c8: the end of the game's state (UpdateGameOver), 1 from EndGame
+	Piece* mUnknown26CC = nullptr;          // +0x26cc: the gem that ended the game (a counter at zero)
 	TwistWidget* mUnknown26D0 = nullptr;                   // +0x26d0
 	int mUnknown3444 = 0;                   // +0x3444
 	int mUnknown3448 = 0;                   // +0x3448
@@ -522,8 +533,10 @@ public:
 	float mUnknown3454 = 0;                   // +0x3454
 	float mUnknown345C = 0;                 // +0x345c
 	float mUnknown3460 = 8.0f;              // +0x3460
-	int mUnknown3464[2] = {};               // +0x3464
-	int mUnknown3470 = 0;                   // +0x3470
+	TextImage* mUnknown3464 = nullptr;      // +0x3464: blitz's FINAL SCORE (SetEndState 4)
+	TextImage* mUnknown3468 = nullptr;      // +0x3468: and its score
+	float mUnknown346C = 0;                 // +0x346c: their fade (end states 4 to 8)
+	float mUnknown3470 = 0;                 // +0x3470: end state 4's wait
 	int mUnknown34E8 = 0;                   // +0x34e8
 	int mUnknown34EC = 0;                   // +0x34ec
 	int mUnknown3560[84] = {};              // +0x3560
@@ -858,6 +871,13 @@ public:
 	void LiftColumn(Piece* thePiece, float theStrength);
 	void SetOffPowerGem(Piece* thePiece);         // 0x6c6d68
 	void BurstAt(int theX, int theY, int theRange);    // 0x6baed1
+	// 0x6b2c50: the game is over; theNuke when a counter reached zero (the board blows up), else GAME OVER shows
+	void EndGame(bool theNuke);
+	void GetCenter(int* theX, int* theY);  // 0x6a48c9: the grid's middle (the board's, while +0x2041 is off)
+	void SetEndState(int theState);        // 0x6b2708
+	// 0x6d045b: the board after the game, state by state (+0x26c8): the rows fall off (3), blitz's final score
+	// (4 to 8), then back to the menu (9)
+	void UpdateGameOver();
 	void BreakSpecial(Piece* thePiece, bool theFlag);  // 0x6c03a4
 	void BurstGems(int theX, int theY, int theRange);  // 0x6bac72
 	// 0x6a4b7c: the gems above and around thePiece jump away from it

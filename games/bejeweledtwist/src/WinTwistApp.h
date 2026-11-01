@@ -85,6 +85,7 @@ public:
 	int mUnknownF68 = 0;                // +0xf68: the board sets -1 (but not for a replay)
 	int mUnknownF6C = 0;                // +0xf6c
 	int mUnknownF70 = 0;                // +0xf70
+	int mUnknown75C = 0;                // +0x75c: counts the games ended
 	int mUnknown780 = 0;                // +0x780: counts the board's updates
 	int mUnknownC74[84] = {};           // +0xc74: cleared by a new board (0x75fc8a) unless the old one has +0x37c4
 	// +0x758 (the framework's): the copy is registered, set from the wrapper and a "NoReg" file; the user's copies
@@ -150,6 +151,9 @@ public:
 
 	// 0x75fada: the score list of a game mode (0 for mode 1, 1 for mode 3), -1 for a mode without one
 	static int ScoreList(int theGameMode);
+	// 0x7619f1: theScore's place in theGameMode's top ten (-1: none, or a mode without one), into +0xf68; the menu
+	// (made if need be) keeps it for the scores it shows next
+	int CheckForHighScore(int theGameMode, SexyString theName, int theLevel, int theScore);
 	void LoadScores();          // 0x764ea9
 	void SaveScores();          // 0x76387e
 	void SetDefaultScores();    // 0x7637ee: the lists a new install starts with, from the exe's tables
@@ -174,6 +178,7 @@ public:
 	void ShowHyperspace();      // 0x75f588: the space behind every screen, made if need be
 	void CreateGates();         // 0x75ec15
 	void CreateMainMenu();      // 0x75ecb8
+	void DeleteBoard();         // 0x75ebe3
 	void PlaceWindowedButton(); // 0x75e966
 	// 0x763b19: a main menu button of theImage's cels, theCover over it while it is shut, listening to the app
 	MenuButtonWidget* MakeMenuButton(Image* theImage, Image* theCover, int theId, int theX, int theY,

@@ -653,7 +653,7 @@ void Board::DrawOverlay(Graphics* g)
 	g->SetDrawMode(Graphics::DRAWMODE_NORMAL);
 	for (Shockwave* aWave : mUnknown1660)  // 0x6a9b85
 		aWave->Draw(g);
-	if (mUnknown26CC != 0)
+	if (mUnknown26CC != nullptr)
 		NotPorted("Board::DrawOverlay: the nuke (+0x26cc)");
 	if (mUnknown34F0.GetOutVal() != 0.0 && mUnknown1574 == 0) {
 		// "GO", fading in over the curve's first half

@@ -59,6 +59,9 @@ public:
 	int mPanel = PANEL_MAIN;           // +0x3d8
 	EndStats* mEndStats = nullptr;     // +0x3dc: the stats after a game
 	EffectsManager* mFXManager;        // +0x3e0: just behind the menu
+	SexyString mUnknown3E4;            // +0x3e4: the new high score's name
+	int mUnknown400 = 0;               // +0x400: its level
+	int mUnknown404 = 0;               // +0x404: its score
 	int mUnknown408 = -1;              // +0x408: the high score just made (-1: none)
 	bool mPanning = false;             // +0x40c: the menu is not where its pan ends
 	CurvedVal mZoom;                   // +0x410: Direct3D only (DrawAll's zoom)
@@ -94,6 +97,8 @@ public:
 	void ShowMain(bool theNow);                    // 0x69b36c
 	void ShowProfiles();                           // 0x69afc5
 	void ShowScores(bool theNow);                  // 0x69b093
+	// 0x69aef5: the high score just made, for the scores shown next
+	void SetNewHighScore(int thePlace, SexyString theName, int theLevel, int theScore);
 	void ShowHelp(bool theNow);                    // 0x69b20d
 	void ShowEndStats();                           // 0x699e17
 	void ShowChallenges(bool theNow);              // 0x699eea

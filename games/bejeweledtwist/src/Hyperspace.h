@@ -19,6 +19,7 @@ public:
 	int mTransition = 0;         // +0x150: the jump SetTransition last set up
 	bool mFlag155 = false;       // +0x155
 	bool mIs3D = false;          // +0x156: drawn with Direct3D
+	bool mFlag158 = false;       // +0x158
 	bool mFlag159 = true;        // +0x159
 	bool mFlag15A = false;       // +0x15a: set when a board takes it (0x6a5fa3)
 	bool mFlag15B = true;        // +0x15b: the jump's first half is still to come (transition 8)

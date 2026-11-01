@@ -7,6 +7,7 @@
 #include "CustomBassMusicInterface.h"
 #include "EffectsManager.h"
 #include "FlyingText.h"
+#include "GameOverShow.h"
 #include "GoodTube.h"
 #include "Hyperspace.h"
 #include "GraphicsRecorder.h"
@@ -16,6 +17,7 @@
 #include "Shockwave.h"
 #include "Traveller.h"
 #include "Profile.h"
+#include "Ranks.h"
 #include "Res.h"
 #include "SoundInstance.h"
 #include "SoundManager.h"
@@ -375,12 +377,27 @@ bool Board::CountDownCounters()
 			PlayPieceSound(aWarn, SOUND_COUNTER_WARNING, (float)((double)(5 - aWarn->mBombCount) - 3.0), 0, true);
 		}
 		if (aLowest != nullptr && mUnknown262C == 0 && !mUnknown21A3) {
-			// A counter is at zero: in a challenge, blitz or for a devil gem the game ends (0x6b2c50), else the bomb
-			// goes off (0x6bd0d9)
-			// port: both come with the end of the game
-			NotPorted("Board::CountDownCounters: a counter at zero");
-			if (!mUnknown37C4)
+			// A counter is at zero: in a challenge, blitz or for a devil gem the game ends, else the wheel comes up
+			if (!mUnknown37C4) {
+				if (mGameMode != MODE_CHALLENGE && mGameMode != MODE_BLITZ && !aLowest->IsFlagSet(Piece::FLAG_DEVIL)) {
+					// port: the second chance's wheel (0x6bd0d9) comes with it
+					NotPorted("Board::CountDownCounters: the wheel (0x6bd0d9)");
+					return true;
+				}
+				if (mGameMode == MODE_CHALLENGE) {
+					// port: the challenge's own end (app +0xf5c, 0x6db273) comes with the challenges; until then
+					// the game ends
+					NotPorted("Board::CountDownCounters: a challenge's counter (0x6db273)");
+				}
+				mUnknown1FB8--;
+				AddStat(0x21, -1);
+				aLowest->mDevilGlow = 0;
+				aLowest->mJustMade = 0;
+				mUnknown26CC = aLowest;
+				mUnknown3930 = aLowest->IsFlagSet(Piece::FLAG_DEVIL);
+				EndGame(true);
 				return true;
+			}
 			if (mGameMode == MODE_CHALLENGE || mGameMode == MODE_BLITZ || aLowest->IsFlagSet(Piece::FLAG_DEVIL))
 				mUnknown3920 = true;
 			else
@@ -760,8 +777,7 @@ void Board::UpdateGame()
 						if (!mUnknown21D8 && !mUnknown21DA && !mUnknown21D9 && mUnknown25A4 && mUnknown149C.empty() &&
 							mUnknown248 == 0.0f && mUnknown14F8 == mUnknown168 && mUnknown14AC.empty() &&
 							mUnknown267C == nullptr) {
-							// port: the end of the game (0x6b2c50) comes with it
-							NotPorted("Board::UpdateGame: blitz's end (0x6b2c50)");
+							EndGame(false);
 						}
 					} else if (!mUnknown21D8 && !mUnknown21DA && !mUnknown21D9 && mUnknown25A4) {
 						mUnknown3920 = true;
@@ -1067,9 +1083,14 @@ void Board::UpdateGame()
 		break;
 	}
 	case 7:
-		// port: the level-up's blast (+0x27b8's curve, the gems blown off from +0x26cc, 0x6a3b4c) and 0x6d045b come
-		// with the jumps; both draw from Rand
-		NotPorted("Board::UpdateGame: the level-up's blast");
+		// The game is over
+		if (!mUnknown36B1) {
+			UpdateGameOver();
+		} else {
+			// port: the nuke (+0x27b8's curve, the gems blown off from +0x26cc, 0x6a3b4c) draws from Rand; it comes
+			// next
+			NotPorted("Board::UpdateGame: the nuke");
+		}
 		break;
 	case 8:
 		mUnknown203C--;
@@ -2424,5 +2445,178 @@ void Board::UpdateStrikes()
 		// that spreads a cell an update, SOUND_ELECTRO_EXPLODE, sparks drawn from RandSigned) come with the electro
 		// gems going off (0x6c1857), which make them
 		NotPorted("Board::UpdateStrikes: the electro gems' strikes");
+	}
+}
+
+void Board::GetCenter(int* theX, int* theY)
+{
+	if (theX != nullptr) {
+		if (!mUnknown2041)
+			*theX = mWidth / 2;
+		else
+			*theX = (GetColX(mCols - 1) + gGemWidth - GetColX(0)) / 2 + GetColX(0);
+	}
+	if (theY != nullptr)
+		*theY = (GetRowY(mRows - 1) + gGemHeight - GetRowY(0)) / 2 + GetRowY(0);
+}
+
+void Board::SetEndState(int theState)
+{
+	if (theState == 1 || theState == 9) {
+		mUnknown26C4 = 0;
+	} else if (theState == 3) {
+		mUnknown26C0 = 0;
+		mUnknown20E4 = 0;
+		mUnknown26C4 = 1.0f;
+	} else if (theState == 4) {
+		// blitz's FINAL SCORE and the score under it
+		mUnknown3470 = 2.0f;
+		mApp->PlaySample(SOUND_TALLY_ZOOMIN);
+		mUnknown3464 = new TextImage(FONT_INCREDIBLE, mApp->GetString(GTS(0x7dc338), GT(0x7dc320)), 0, 0, -1, 0,
+			nullptr);
+		mUnknown3468 = new TextImage(FONT_INCREDIBLE, CommaSeperate(mUnknown168), 0, 0, -1, 0, nullptr);
+		mUnknown3460 = 8.0f;
+		mUnknown346C = 1.0f;
+	}
+	mUnknown26C8 = theState;
+}
+
+void Board::UpdateGameOver()
+{
+	if (mUnknown36B1) {
+		// (the nuke's shake: a draw from Rand and a cosine nothing keeps)
+		mUnknown1FFC++;
+		if (0x46 < mUnknown1FFC)
+			mUnknown2000++;
+		if (mUnknown2000 < 1 || 199 < mUnknown2000)
+			return;
+		Rand();
+		cosf((float)((double)mUnknown2000 * 0.031415926707925035));
+		return;
+	}
+	mUnknown1514 = 0x32;
+	FallPieces();
+	switch (mUnknown26C8) {
+	case 1:
+		SetEndState(3);
+		break;
+	case 3: {
+		// The rows fall off the board one by one, from the top
+		float aDelay = (float)((double)mUnknown26C4 - 0.009999999776482582);
+		mUnknown26C4 = aDelay;
+		if (0.0f < aDelay)
+			return;
+		std::vector<Piece*> aRow;
+		for (int aCol = 0; aCol < mCols; aCol++) {
+			Piece* aPiece = GetPieceAt(mUnknown26C0, aCol);
+			if (aPiece != nullptr)
+				aRow.push_back(aPiece);
+		}
+		int aMidX;
+		int aMidY;
+		GetCenter(&aMidX, &aMidY);
+		for (unsigned int i = 0; i < aRow.size(); i++) {
+			Piece* aPiece = aRow[i];
+			aPiece->mUnknown534 = true;
+			float aRand = fabsf(RandSigned());
+			aPiece->mUnknown34 = (float)((double)-aRand * (double)gGemHeight * 0.019999999552965164);
+			aRand = fabsf(RandSigned());
+			aPiece->mPendingDX = (float)(((double)aPiece->mX - (double)aMidX) * (double)aRand * 0.02500000037252903);
+		}
+		mUnknown26C0++;
+		if (mUnknown26C0 < mRows + 5) {
+			mUnknown26C4 = 0.2f;
+		} else if (mGameMode == MODE_BLITZ) {
+			SetEndState(4);
+			unsigned int aTrack = (unsigned int)mUnknown168 / 40000;
+			if (2 < aTrack)
+				aTrack = 2;
+			mApp->PlayMusic(301 + aTrack, true, true, 0, 0);  // 0x84ea68
+		} else {
+			SetEndState(9);
+			mUnknown26C4 = 1.25f;
+		}
+		break;
+	}
+	case 4: {
+		float aDelay = (float)((double)mUnknown3470 - 0.009999999776482582);
+		mUnknown3470 = aDelay;
+		if (!(0.0f < aDelay))
+			mUnknown26C8 = 5;
+		break;
+	}
+	case 5: {
+		float aZoom = (float)((double)mUnknown3460 - 0.10000000149011612);
+		mUnknown3460 = aZoom;
+		if (1.0f < aZoom)
+			return;
+		mApp->ShowHyperspace();
+		// port: space's end-of-game transition (0x714883: transition 13, the board drawn into it) comes with the
+		// jumps
+		NotPorted("Board::UpdateGameOver: the hyperspace (0x714883)");
+		mGoodTube->mVisible = false;
+		mUnknown3924 = 0;
+		mUnknown3460 = 8.0f;
+		mApp->PlaySample(SOUND_TALLY_ZOOMIN);
+		mUnknown26C8++;
+		break;
+	}
+	case 6: {
+		float aZoom = (float)((double)mUnknown3460 - 0.10000000149011612);
+		mUnknown3460 = aZoom;
+		if (1.0f < aZoom)
+			return;
+		mUnknown3460 = 1.0f;
+		if (mApp->mProfile->mRank < (int)mApp->mRanks->mRanks.size()) {
+			// The rank's bonus: the score to the power 0.6, a hundredth of it
+			float aScore = (float)(unsigned int)mUnknown168;
+			int aBonus = Ftol((double)(float)std::pow((double)aScore, (double)0.6f) / 100.0);  // 0x670a49
+			mUnknown269C = aBonus;
+			if (aBonus != 0) {
+				// port: the RankBonusWidget (0x6ab269, into +0x26a0) comes with the ranks
+				NotPorted("Board::UpdateGameOver: the rank's bonus (0x6ab269)");
+			}
+		}
+		mUnknown26C4 = 2.0f;
+		mUnknown26C8++;
+		break;
+	}
+	case 7:
+		if (0.0f < mUnknown26C4)
+			mUnknown26C4 = (float)((double)mUnknown26C4 - 0.009999999776482582);
+		else
+			mUnknown26C8++;
+		break;
+	case 8: {
+		float aFade = (float)((double)mUnknown346C - 0.019999999552965164);
+		mUnknown346C = aFade;
+		bool aDone = false;
+		if (!(0.0f < aFade)) {
+			mUnknown346C = 0;
+			aDone = true;
+		}
+		if (mUnknown26A0 == nullptr || mUnknown26A0->mClicked) {
+			// (the original removes and deletes it when there is none too)
+			if (mUnknown26A0 != nullptr)
+				mApp->mWidgetManager->RemoveWidget(mUnknown26A0);
+			mApp->SafeDeleteWidget(mUnknown26A0);
+			mUnknown26A0 = nullptr;
+		}
+		if (aDone && mUnknown26A0 == nullptr)
+			SetEndState(9);
+		break;
+	}
+	case 9: {
+		float aDelay = (float)((double)mUnknown26C4 - 0.009999999776482582);
+		mUnknown26C4 = aDelay;
+		if (!(0.0f < aDelay) && mUnknown2208 == nullptr && mUnknown23DC.empty()) {
+			mUnknown26C8 = 0;
+			if (mUnknown2630 == 0)
+				mUnknown1FF5 = true;
+			else
+				mUnknown34EC = 1;
+		}
+		break;
+	}
 	}
 }

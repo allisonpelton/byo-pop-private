@@ -643,6 +643,25 @@ void WinTwistApp::UpdateFrames()
 		mLoaderScreen = nullptr;
 		mResourceManager->DeleteResources("LoadScreen");
 	}
+	// The board's game is over: back to the main menu, with the game's stats when it ended (not when it was left)
+	if (mBoard != nullptr && mBoard->mUnknown1FF5) {
+		bool anEnded = mBoard->mUnknown36B0;
+		Hyperspace* aSpace = mBoard->mHyperspace;
+		if (aSpace != nullptr) {
+			mHyperspace = aSpace;
+			aSpace->mState = 0;
+			aSpace->mFlag155 = false;
+			aSpace->mIs3D = false;
+			aSpace->mFlag158 = false;
+			mBoard->mHyperspace = nullptr;
+		}
+		DeleteBoard();
+		if (mLastGameMode != 2)
+			ShowMainMenu(anEnded, false, 0);
+		mGates->Update();
+		mMainMenu->Update();
+		mWidgetManager->SetFocus(mMainMenu);
+	}
 	// The track waiting for the music to fade out: song 0's volume tells, whichever song is playing
 	if (mPendingMusic != -1 && mTwistMusic != nullptr) {
 		auto it = mTwistMusic->mSongs.find(0);
@@ -696,6 +715,30 @@ int WinTwistApp::ScoreList(int theGameMode)
 	return aList;
 }
 
+int WinTwistApp::CheckForHighScore(int theGameMode, SexyString theName, int theLevel, int theScore)
+{
+	int aPlace = -1;
+	unsigned int aList = (unsigned int)ScoreList(theGameMode);
+	if (aList < 2) {
+		HighScore* aScore = &mHighScores[aList * 10 + 9];
+		int i = 9;
+		do {
+			int aNext = i;
+			if (theScore <= aScore->mScore)
+				break;
+			aScore--;
+			i = aNext - 1;
+			aPlace = aNext;
+		} while (-1 < i);
+		if (mMainMenu == nullptr)
+			CreateMainMenu();
+		// (and a line for the debugger with the mode, place, name, level and score)
+		mMainMenu->SetNewHighScore(aPlace, theName, theLevel, theScore);
+	}
+	mUnknownF68 = aPlace;
+	return aPlace;
+}
+
 void WinTwistApp::LoadScores()
 {
 	Buffer aBuffer;  // the original also holds the app's critical section while it reads
@@ -734,6 +777,15 @@ std::string WinTwistApp::GetSaveName(int theMode, int theChallenge)
 		aSuffix = "_puzzle";
 	}
 	return Profile::GetUserFolder(mProfile->mName) + "\\savegame" + aSuffix + ".dat";
+}
+
+void WinTwistApp::DeleteBoard()
+{
+	if (mBoard != nullptr) {
+		mWidgetManager->RemoveWidget(mBoard);
+		SafeDeleteWidget(mBoard);
+		mBoard = nullptr;
+	}
 }
 
 void WinTwistApp::NewGame(int theMode, bool thePlayPressed, int theChallenge)

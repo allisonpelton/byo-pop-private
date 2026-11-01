@@ -638,6 +638,14 @@ void Menu::ShowProfiles()
 	mPanel = PANEL_PROFILE;
 }
 
+void Menu::SetNewHighScore(int thePlace, SexyString theName, int theLevel, int theScore)
+{
+	mUnknown3E4 = theName;
+	mUnknown400 = theLevel;
+	mUnknown404 = theScore;
+	mUnknown408 = thePlace;
+}
+
 void Menu::ShowScores(bool theNow)
 {
 	RemoveWidget(mHighScoresPanel);

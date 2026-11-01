@@ -219,8 +219,8 @@ bool Board::DropFlaggedGems()
 					} else {
 						if ((double)GetRowY(mRows - 1) > (double)aPiece->mY)
 							break;
-						// port: at the bottom row the game ends (0x6b2c50); it comes with the end of the game
-						NotPorted("Board::DropFlaggedGems: the end of the game (0x6b2c50)");
+						// At the bottom row the game ends and the board blows up
+						EndGame(true);
 					}
 					aPiece->mBlasted = true;
 					aPiece->mUnknown116 = true;
