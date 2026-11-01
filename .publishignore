@@ -22,3 +22,5 @@ games/zuma*
 # Bejeweled's Steven Universe gems: fan art of Cartoon Network's designs, never redistributed (the user, 2026-10-25),
 # so the generator stays out of the public snapshot too.
 games/bejeweled/tools/make_su_gems_mod.py
+# Bejeweled's comparison runner: its --prepare carves the game out of the protected launcher (2026-11-01)
+games/bejeweled/tools/origcmp/orig.sh
