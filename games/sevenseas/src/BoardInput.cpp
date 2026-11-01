@@ -245,6 +245,7 @@ void Board::MouseMove(int x, int y)
 	Widget::MouseMove(x, y);
 	mMouseX = x;
 	mMouseY = y;
+	mApp->FollowMouse(mX + x, mY + y);
 	if (!mApp->mTutorial)
 	{
 		int aCellX = PixelToCellX(x);

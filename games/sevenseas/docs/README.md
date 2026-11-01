@@ -87,10 +87,10 @@ Not done or approximate:
 - Options → Help (0x40d330, the "return to game" help pages) does nothing; the registration and "submit to the Internet
   High Score List" dialogs, the trial's loading delay and the shareware counters are not ported (the port plays as the
   registered game). The internet score check's object (the +0x6c field of the board) is not either.
-- The pirate's mouth (`TalkWidget`) moves through random frames while a line plays; the original has a table of frames and
-  times per line. The skull's pupils follow the mouse with an estimated formula, and the text lines of the bonus screen's
-  messages are placed by estimate. Nothing could be run to compare with the original, so these are the places where the port
-  may differ on screen.
+- The text lines of the bonus screen's messages are placed by estimate. The pirate's mouth follows the original's table of
+  frames and times per line, and the skull's pupils follow the mouse by the original's formula (kept by `SidePanel::MouseMove`,
+  which nine widgets call with the position they get); both match the original in `origrun` runs, up to a difference of
+  one or two updates that the run's timing allows.
 - The high-score screen (0x40ff70 constructor, 0x412af0 update, 0x411260 draw, 0x412cc0 insert) follows the original's
   positions, colours and the slide-in from the top, and says "You got ... place" in the name dialog after it (0x410ae0).
   The original's second button, "Submit to Internet High Score List", and the timer that re-enables it are not ported.

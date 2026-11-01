@@ -255,9 +255,11 @@ void IntroWidget::Resize(int theX, int theY, int theWidth, int theHeight)
 void IntroWidget::Update()
 {
 	Widget::Update();
-	if (mApp->mAutoplay && (mUpdateCnt == 0x3c))
+	// the pirate welcomes the player: the first time the menu shows after the program starts
+	if (mApp->mFlag4c4 && (mUpdateCnt == 0x3c))
 	{
-		// the bot plays the beginner game without the tutorial
+		mApp->PlaySample(0xf);
+		mApp->mTalkWidget->SetMouth(0);
 	}
 	if ((mUpdateCnt > 0x3c) && !mApp->mTalkWidget->mTalkingNow)
 	{
@@ -275,7 +277,14 @@ void IntroWidget::Update()
 	mTutorialButton->SetDisabled(true);
 }
 
-// 0x416df0
+// 0x40f750: the mouse position goes to the side panel too
+void IntroWidget::MouseMove(int x, int y)
+{
+	Widget::MouseMove(x, y);
+	mApp->FollowMouse(mX + x, y);
+}
+
+// 0x416df0: the hint is told by the button's clip flag (+0x19, set in every widget), so the hint is always shown
 void IntroWidget::Draw(Graphics* g)
 {
 	Image** anImages = mApp->mImages;
@@ -296,7 +305,7 @@ void IntroWidget::Draw(Graphics* g)
 	}
 	g->SetFont(mApp->mFonts[FONT_MT11]);
 	g->SetColor(Color(0xff, 0xff, 0));
-	if (!mTutorialButton->mIsOver)
+	if (!mTutorialButton->mClip)
 	{
 		SexyString aText = GT(0x004a3bf8);
 		g->DrawString(aText, 0x12a - g->GetFont()->StringWidth(aText) / 2, 0x71);
@@ -306,7 +315,7 @@ void IntroWidget::Draw(Graphics* g)
 		SexyString aText = GT(0x004a3c38);
 		g->DrawString(aText, 0x12a - g->GetFont()->StringWidth(aText) / 2, 0x61);
 		aText = GT(0x004a3c18);
-		g->DrawString(aText, 0x12a - g->GetFont()->StringWidth(aText) / 2, 0x71);
+		g->DrawString(aText, 0x12a - g->GetFont()->StringWidth(aText) / 2, 0x75);
 	}
 }
 
@@ -411,6 +420,13 @@ void MapWidget::Resize(int theX, int theY, int theWidth, int theHeight)
 	mNextButton->Resize((mWidth - aW) / 2 + 10 + mX, mHeight - aH, aW, aH);
 }
 
+// 0x40f750: the mouse position goes to the side panel too
+void MapWidget::MouseMove(int x, int y)
+{
+	Widget::MouseMove(x, y);
+	mApp->FollowMouse(mX + x, y);
+}
+
 // 0x4177d0
 void MapWidget::Draw(Graphics* g)
 {
@@ -461,6 +477,8 @@ void MapWidget::ButtonDepress(int theId)
 SidePanel::SidePanel(SevenSeasApp* theApp) :
 	mApp(theApp),
 	mShownScore(0),
+	mMouseX(0),
+	mMouseY(0),
 	mPupilX(0x15),
 	mPupilY(0x33),
 	mTargetX(0x15),
@@ -509,13 +527,10 @@ void SidePanel::Update()
 			MarkDirty();
 		}
 	}
-	// port: the original takes the pupils' target from the mouse with two floating-point expressions (not
-	// recovered); the pupils move a little toward the mouse
-	// (a test run's pupils look straight ahead: a stray real mouse position must not change its screenshots)
-	int aDX = (mWidgetManager != NULL && !mApp->mScriptedInput ? mWidgetManager->mLastMouseX : 0x55) - 0x55;
-	int aDY = (mWidgetManager != NULL && !mApp->mScriptedInput ? mWidgetManager->mLastMouseY : 0x158) - 0x158;
-	mTargetX = 0x15 + std::max(-6, std::min(6, aDX / 40));
-	mTargetY = 0x33 + std::max(-5, std::min(5, aDY / 40));
+	// the target is the mouse position (kept by MouseMove) scaled to the skull's eye room: x over 640 times 12, y over
+	// the panel's height times 14, both cut at the decimal point
+	mTargetX = (int) (mMouseX * 0.0015625 * 12.0 + 21.0);
+	mTargetY = (int) ((double) mMouseY / mHeight * 14.0 + 51.0);
 	if (mPupilX > mTargetX)
 		mPupilX = mPupilX - 1;
 	if (mPupilX < mTargetX)
@@ -524,6 +539,15 @@ void SidePanel::Update()
 		mPupilY = mPupilY - 1;
 	if (mPupilY < mTargetY)
 		mPupilY = mPupilY + 1;
+}
+
+// 0x41bba0
+void SidePanel::MouseMove(int x, int y)
+{
+	Widget::MouseMove(x, y);
+	mMouseX = x;
+	mMouseY = y;
+	mApp->SetCursor(0);
 }
 
 // 0x41b5a0
@@ -682,8 +706,8 @@ void TalkWidget::Draw(Graphics* g)
 			g->SetColorizeImages(true);
 			g->SetColor(Color(0xff, 0xff, 0xff, (int) (mProgress * 255.0)));
 		}
-		int aX = -(int) (sin(mBobX) * 2.0) + 4;
-		int aY = -(int) (sin(mBobY) * 2.0);
+		int aX = -(int) (sin(mBobX) * -4.0) + 4;
+		int aY = -(int) (sin(mBobY) * -8.0);
 		Image** anImages = mApp->mImages;
 		g->DrawImage(anImages[IMAGE_PIRATEHEAD], aX, aY + 8);
 		int aMouth = 0;
@@ -705,10 +729,11 @@ void TalkWidget::Draw(Graphics* g)
 	}
 }
 
-// 0x419ed0: the cursor of the game follows the mouse over every widget
+// 0x419ed0
 void TalkWidget::MouseMove(int x, int y)
 {
 	Widget::MouseMove(x, y);
+	mApp->FollowMouse(mX + x, mY + y);
 }
 
 // ---------------------------------------------------------------------------------------------------------
@@ -872,6 +897,13 @@ static void DrawTotalsLine(Graphics* g, int theDX, int theY, const SexyString& t
 {
 	g->DrawString(theLabel, 0x91 + 0x10 + theDX, theY + 0x44);
 	g->DrawString(theValue, (0x125 - g->GetFont()->StringWidth(theValue)) + 0x91 - 0x10 + theDX, theY + 0x44);
+}
+
+// 0x40f750: the mouse position goes to the side panel too
+void HighScoreWidget::MouseMove(int x, int y)
+{
+	Widget::MouseMove(x, y);
+	mApp->FollowMouse(mX + x, y);
 }
 
 // 0x411260: the frame, the totals of the game (each line is drawn 25 times, black around the gold or yellow one,

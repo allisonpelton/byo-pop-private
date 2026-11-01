@@ -44,6 +44,7 @@ public:
 	virtual void		RemovedFromManager(WidgetManager* theWidgetManager) override;
 	virtual void		Resize(int theX, int theY, int theWidth, int theHeight) override;
 	virtual int			GetPreferredHeight(int theWidth) override;
+	virtual void		MouseMove(int x, int y) override;
 	virtual void		Draw(Graphics* g) override;
 	virtual void		ButtonDepress(int theId) override;
 	virtual void		SliderVal(int theId, double theVal) override;
@@ -60,6 +61,7 @@ public:
 	NextLevelDialog(SevenSeasApp* theApp);
 
 	virtual int			GetPreferredHeight(int theWidth) override;
+	virtual void		MouseMove(int x, int y) override;
 	virtual void		Draw(Graphics* g) override;
 };
 
@@ -116,6 +118,7 @@ public:
 	virtual void		RemovedFromManager(WidgetManager* theWidgetManager) override;
 	virtual void		Resize(int theX, int theY, int theWidth, int theHeight) override;
 	virtual int			GetPreferredHeight(int theWidth) override;
+	virtual void		MouseMove(int x, int y) override;
 	virtual void		Draw(Graphics* g) override;
 	using Widget::Resize;
 };

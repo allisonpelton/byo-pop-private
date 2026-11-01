@@ -45,7 +45,7 @@ SevenSeasApp::SevenSeasApp()
 {
 	gApp = this;
 	mProdName = "SevenSeas";
-	mProductVersion = "1.1";
+	mProductVersion = "1.13";
 	mTitle = "Seven Seas Deluxe " + mProductVersion;
 	mRegKey = "PopCap\\SevenSeas";
 	mWidth = GAME_WIDTH;
@@ -73,7 +73,7 @@ SevenSeasApp::SevenSeasApp()
 	mTutorial = true;
 	mDifficulty = 1;
 	mGamesPlayed = 0;
-	mFlag4c4 = false;
+	mFlag4c4 = true;
 	mTalking = false;
 	mTalkWidget = NULL;
 	mBonusNag = true;
@@ -551,13 +551,13 @@ void SevenSeasApp::StopTalk()
 }
 
 // 0x41d750: a picture button; the copies of the pictures belong to the button
-ButtonWidget* SevenSeasApp::AddButton(int theId, const Rect& theRect, Image* theImage, Image* theDownImage)
+ButtonWidget* SevenSeasApp::AddButton(int theId, const Rect& theRect, Image* theImage, Image* theOverImage, Image* theDownImage)
 {
 	ButtonWidget* aButton = new ButtonWidget(theId, this);
 	aButton->Resize(theRect);
 	aButton->mDoFinger = true;
 	aButton->mButtonImage = CopyImage(theImage);
-	aButton->mOverImage = aButton->mButtonImage;
+	aButton->mOverImage = CopyImage(theOverImage);
 	aButton->mDownImage = theDownImage != NULL ? CopyImage(theDownImage) : NULL;
 	aButton->mMouseInsets = Insets(-1, -1, -1, -1);
 	mWidgetManager->AddWidget(aButton);
@@ -635,8 +635,7 @@ void SevenSeasApp::TitleScreenDone()
 	mUndoButton = aButtons[0];
 	mOptionsButton = aButtons[1];
 	mNewGameButton = aButtons[2];
-	mQuitButton = AddButton(BUTTON_QUIT, Rect(0x134, 0x1aa, 0xc8, 0x35), mImages[IMAGE_QUITTOWINDOWSLIT], mImages[IMAGE_QUITTOWINDOWSUNLIT]);
-	mQuitButton->mDownImage = NULL;
+	mQuitButton = AddButton(BUTTON_QUIT, Rect(0x134, 0x1aa, 0xc8, 0x35), mImages[IMAGE_QUITTOWINDOWSUNLIT], mImages[IMAGE_QUITTOWINDOWSLIT], NULL);
 
 	// the pirate's head (visible once it speaks)
 	mTalkWidget = new TalkWidget(this);
@@ -1051,4 +1050,11 @@ void SevenSeasApp::ButtonDepress(int theId)
 		ShowQuitDialog();
 		break;
 	}
+}
+
+// the widgets forward their mouse position to the panel (the panel is not there before the first board)
+void SevenSeasApp::FollowMouse(int x, int y)
+{
+	if (mSidePanel != NULL)
+		mSidePanel->MouseMove(x, y);
 }

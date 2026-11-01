@@ -67,6 +67,7 @@ public:
 	virtual void		RemovedFromManager(WidgetManager* theWidgetManager) override;
 	virtual void		Resize(int theX, int theY, int theWidth, int theHeight) override;
 	virtual void		Update() override;
+	virtual void		MouseMove(int x, int y) override;
 	virtual void		Draw(Graphics* g) override;
 	virtual void		ButtonDepress(int theId) override;
 	using Widget::Resize;
@@ -90,6 +91,7 @@ public:
 	virtual void		AddedToManager(WidgetManager* theWidgetManager) override;
 	virtual void		RemovedFromManager(WidgetManager* theWidgetManager) override;
 	virtual void		Resize(int theX, int theY, int theWidth, int theHeight) override;
+	virtual void		MouseMove(int x, int y) override;
 	virtual void		Draw(Graphics* g) override;
 	virtual void		ButtonDepress(int theId) override;
 	using Widget::Resize;
@@ -102,6 +104,8 @@ class SidePanel : public Widget
 public:
 	SevenSeasApp*		mApp;                   // +0x58
 	int					mShownScore;            // +0x5c counts up to the board's score
+	int					mMouseX;                // +0x60 the last mouse position over the panel
+	int					mMouseY;                // +0x64
 	int					mPupilX;                // +0x68
 	int					mPupilY;                // +0x6c
 	int					mTargetX;               // +0x70
@@ -111,6 +115,7 @@ public:
 	SidePanel(SevenSeasApp* theApp);
 
 	virtual void		Update() override;
+	virtual void		MouseMove(int x, int y) override;
 	virtual void		Draw(Graphics* g) override;
 };
 
@@ -162,6 +167,7 @@ public:
 	virtual void		RemovedFromManager(WidgetManager* theWidgetManager) override;
 	virtual void		Resize(int theX, int theY, int theWidth, int theHeight) override;
 	virtual void		Update() override;
+	virtual void		MouseMove(int x, int y) override;
 	virtual void		Draw(Graphics* g) override;
 	virtual void		ButtonDepress(int theId) override;
 	using Widget::Resize;

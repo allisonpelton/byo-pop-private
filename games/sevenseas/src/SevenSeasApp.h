@@ -92,6 +92,9 @@ public:
 
 	Image**					mImages;            // +0x400 new Image*[88] (NUM_IMAGES), loaded by Init
 	ImageFont*				mFonts[NUM_FONTS];  // +0x404 ..
+	// the widgets that tell the side panel where the mouse is (its pupils follow it)
+	void					FollowMouse(int x, int y);
+
 	SidePanel*				mSidePanel;         // +0x440
 	TitleScreen*			mTitleScreen;       // +0x424
 	IntroWidget*			mIntroWidget;       // +0x428 the difficulty menu
@@ -111,7 +114,7 @@ public:
 	bool					mTutorial;          // +0x494 the tutorial game is on
 	int						mDifficulty;        // +0x498 1 beginner, 2 normal, 3 expert
 	int						mGamesPlayed;       // +0x3cc
-	bool					mFlag4c4;           // +0x4c4 cleared when a game starts
+	bool					mFlag4c4;           // +0x4c4 the pirate's welcome (the heading and the spoken line at the first menu) until a game starts
 	bool					mTalking;           // +0x4f0 the pirate is talking
 	TalkWidget*				mTalkWidget;        // +0x4ec the pirate head at the left
 	bool					mBonusNag;          // +0x4f1 registry BonusNag
@@ -157,7 +160,7 @@ public:
 	bool					LoadImage(int theImageId);
 	void					LoadAnims();
 	AnimDef*				GetAnimDef(const std::string& theName);
-	ButtonWidget*			AddButton(int theId, const Rect& theRect, Image* theImage, Image* theDownImage);
+	ButtonWidget*			AddButton(int theId, const Rect& theRect, Image* theImage, Image* theOverImage, Image* theDownImage);
 	DialogButton*			AddDialogButton(int theId, const Rect& theRect, Image* theImage);
 	void					TitleScreenDone();
 	void					ShowIntro();

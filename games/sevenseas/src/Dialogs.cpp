@@ -137,6 +137,13 @@ int OptionsDialog::GetPreferredHeight(int theWidth)
 	return 0x16b;
 }
 
+// 0x419970: the mouse position goes to the side panel too
+void OptionsDialog::MouseMove(int x, int y)
+{
+	Dialog2004::MouseMove(x, y);
+	mApp->FollowMouse(mX + x, y);
+}
+
 // 0x4192e0
 void OptionsDialog::Draw(Graphics* g)
 {
@@ -204,6 +211,13 @@ int NextLevelDialog::GetPreferredHeight(int theWidth)
 {
 	(void) theWidth;
 	return 0x140;
+}
+
+// 0x425680: the mouse position goes to the side panel too
+void NextLevelDialog::MouseMove(int x, int y)
+{
+	Dialog2004::MouseMove(x, y);
+	mApp->FollowMouse(mX + x, y);
 }
 
 // 0x417ca0
@@ -471,6 +485,13 @@ int NagDialog::GetPreferredHeight(int theWidth)
 {
 	(void) theWidth;
 	return (mWhich < 0) ? 0x1ae : 0x136;   // 0x40cb20 (the bonus screen's) and 0x426630 (the warnings')
+}
+
+// 0x40d2b0: the mouse position goes to the side panel too
+void NagDialog::MouseMove(int x, int y)
+{
+	Dialog2004::MouseMove(x, y);
+	mApp->FollowMouse(mX + x, mY + y);
 }
 
 // 0x40cbe0 / 0x4266f0: the framed box, the title in white (the warnings: BEWARE!) and the text in gold, every line
