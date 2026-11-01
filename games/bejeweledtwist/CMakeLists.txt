@@ -45,7 +45,10 @@ target_link_libraries(bejeweledtwist PRIVATE bjt_engine bjt_popanim sexyframewor
 if(NOT MSVC)
   target_compile_options(bejeweledtwist PRIVATE -Wall -Wno-overloaded-virtual)
 endif()
-if(NOT EMSCRIPTEN)
+if(EMSCRIPTEN)
+  byopop_web_game(bejeweledtwist TITLE "Bejeweled Twist"
+    COPYRIGHT "Bejeweled Twist © 2008 PopCap Games, Inc. All rights reserved. Bejeweled is a registered trademark of PopCap Games, Inc." LICENSES libopenmpt openjpeg)
+else()
   add_custom_command(TARGET bejeweledtwist POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:SDL2::SDL2> ${PORT_RUNTIME_DLLS} $<TARGET_FILE_DIR:bejeweledtwist>
     VERBATIM)

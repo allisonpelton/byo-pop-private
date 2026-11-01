@@ -84,14 +84,16 @@ struct PEImage
 		uint32_t mRawSize;
 		uint32_t mRawPtr;
 	};
+	size_t mBase = 0;
 	uint32_t mImageBase = 0;
 	std::vector<Section> mSections;
 
-	bool Parse(const std::vector<uint8_t>& theData)
+	bool Parse(const std::vector<uint8_t>& theData, size_t theBase)
 	{
-		if (theData.size() < 0x40 || theData[0] != 'M' || theData[1] != 'Z')
+		mBase = theBase;
+		if (theBase + 0x40 > theData.size() || theData[theBase] != 'M' || theData[theBase + 1] != 'Z')
 			return false;
-		size_t aPE = ReadU32(theData, 0x3c);
+		size_t aPE = theBase + ReadU32(theData, theBase + 0x3c);
 		if (aPE + 0xf8 > theData.size() || memcmp(&theData[aPE], "PE\0\0", 4) != 0)
 			return false;
 		int aNumSections = ReadU16(theData, aPE + 6);
@@ -114,7 +116,7 @@ struct PEImage
 	{
 		for (const Section& s : mSections)
 			if ((theVA >= s.mVA) && (theVA < s.mVA + s.mRawSize))
-				return s.mRawPtr + (theVA - s.mVA);
+				return mBase + s.mRawPtr + (theVA - s.mVA);
 		return 0;
 	}
 };
@@ -135,8 +137,27 @@ bool Sexy::LoadGameTexts()
 	int aMismatched = 0;
 	if (aRead)
 	{
+		// The install's exe is a launcher with the game's image appended after a marker (the retail copy's CD check, the
+		// Steam copy's wrapper); a staged copy is the image itself
+		size_t aBase = 0;
+		for (const char* aMarker : {"!popcapcdprotect!", "!popcapdrmprotect!"})
+		{
+			size_t aMarkerLen = strlen(aMarker);
+			for (size_t i = 0; i + aMarkerLen < aData.size(); i++)
+			{
+				if ((aData[i] == '!') && (memcmp(&aData[i], aMarker, aMarkerLen) == 0))
+				{
+					aBase = i + aMarkerLen;
+					while ((aBase + 1 < aData.size()) && !((aData[aBase] == 'M') && (aData[aBase + 1] == 'Z')))
+						aBase++;
+					break;
+				}
+			}
+			if (aBase != 0)
+				break;
+		}
 		PEImage anImage;
-		if (anImage.Parse(aData))
+		if (anImage.Parse(aData, aBase))
 		{
 			for (int anId = 0; anId < NUM_GAME_TEXTS; anId++)
 			{

@@ -39,6 +39,13 @@ void Board::MouseWheel(int theDelta)
 {
 }
 
+void Board::WarpToCursor()
+{
+	// SetCursorPos: the original's ClientToScreen of the cursor's middle (+0x1c00 and its size +0x1c08)
+	if (mUnknown1430 != nullptr)
+		mApp->WarpMouse(mUnknown1C08 / 2 + mUnknown1C00, mUnknown1C0C / 2 + mUnknown1C04);
+}
+
 void Board::KeyDown(KeyCode theKey)
 {
 	if (mApp->mDialogMap.size() != 0)
@@ -88,8 +95,7 @@ void Board::KeyDown(KeyCode theKey)
 					aY = aRow + 1;
 				}
 				MoveCursor(aY, aCol, false, nullptr);
-				// port: 0x6a45da then moves the mouse pointer to the cursor (SetCursorPos) while +0x1430 holds a
-				// piece; the port leaves the pointer where it is (docs/NOTES.md, Deviations)
+				WarpToCursor();
 				goto done;
 			}
 		}
