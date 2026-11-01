@@ -90,6 +90,11 @@ extern std::string gCompany, gProductKey, gTitle, gExeName, gExeFolder, gUserFol
 // 0x527ae2 HardwareAcceleration, 0x5d8e30 full screen, 0x5d8e31 WideScreen)
 extern bool gSoundsOn, gMusicOn, gHardwareAccel, gFullScreen, gWideScreen;
 extern int gSoundsVolume, gMusicVolume;
+// 0x5d8e32: the desktop is wide enough for the wide screen (its width over 4 above its height over 3, plus 15%)
+extern bool gWideAvailable;
+// 0x5d8e18: the display runs on Direct3D, when the display's 3D test passed (0x432d4f) and HardwareAcceleration is
+// on. The port has no such test: the setting's value, as on a machine where the test passes.
+inline bool IsAccelerated() { return gHardwareAccel; }
 
 // 0x4249e0: the exe's folder; 0x429e20, 0x429e40: the data folders
 inline const std::string& GetExeFolder() { return gExeFolder; }

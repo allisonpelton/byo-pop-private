@@ -38,7 +38,9 @@ public:
 	// SHGetFolderPathA's folder for a CSIDL (with the company and product appended, and a backslash at the end),
 	// or the exe's folder
 	virtual std::string FolderPath(int theCsidl) = 0;
-	virtual std::string ExeFolder() = 0;  // with a separator at the end (Splash appends "SplashLogo")
+	virtual std::string ExeFolder() = 0;
+	// GetSystemMetrics(SM_CXSCREEN, SM_CYSCREEN), or -ScreenWidth and -ScreenHeight (0x426480): the desktop's size
+	virtual void ScreenSize(int& theWidth, int& theHeight) { theWidth = 800; theHeight = 600; }  // with a separator at the end (Splash appends "SplashLogo")
 	// ShellExecuteA "open"; never in a test run
 	virtual void OpenUrl(const char* theUrl) = 0;
 	// MessageBoxA (0x4308f0, 0x430940): the answer (IDOK 1, IDYES 6, IDNO 7)

@@ -12,6 +12,7 @@ namespace jb
 
 App* gApp = nullptr;
 std::string gCompany, gProductKey, gTitle, gExeName, gExeFolder, gUserFolder, gCommonFolder;
+bool gWideAvailable = false;
 bool gSoundsOn = true, gMusicOn = true, gHardwareAccel = false, gFullScreen = false, gWideScreen = false;
 int gSoundsVolume = 100, gMusicVolume = 50;
 
@@ -215,6 +216,10 @@ bool App::Init()
 		gMusicVolume = 0;
 	else if (100 < gMusicVolume)
 		gMusicVolume = 100;
+	int aScreenWidth;
+	int aScreenHeight;
+	GetHost()->ScreenSize(aScreenWidth, aScreenHeight);
+	gWideAvailable = ((aScreenHeight / 3) * 0x73) / 100 < aScreenWidth / 4;
 	gWideScreen = RegGetBool(nullptr, "WideScreen", false);
 	bool aFullScreen = RegGetBool(nullptr, "FullScreen", true);
 	if (HasCmdFlag("-no3d"))
