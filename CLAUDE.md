@@ -157,9 +157,12 @@ Git and publishing:
   merge, a session compares its game with the original exe screen by screen (the original run under rundesk at the
   same points; every screen, dialog and text, music and sounds by their state, losing and regaining the focus),
   natively and in the web build, and fixes every difference. The screenshots are compared by `tools/shotdiff`
-  (`docs/SHOTDIFF.md`), not by eye: a session reads its summary, looks only at the crops of the boxes it flags, and
-  leaves what needs a person's judgement on the user's review page without waiting for it. Whether every game uses the
-  review page waits on the user's verdict on a one-game pilot (Bookworm Adventures, 2026-11-01). Every game is tested as
+  (`docs/SHOTDIFF.md`), not by eye: a session reads its summary and looks only at the crops of the boxes it flags. The
+  pilot on Bookworm Adventures settled who judges them (the user, 2026-11-01: "Basically everything appears to be a
+  timing difference, so this tool still isn't usable"; then "Yes, switch"). The session judges every flagged difference
+  itself and fixes or explains each one, timing included: it lines up the input with the game's updates, or masks
+  animation that runs on its own clock and lists each mask with its reason. The user's review page holds only what a
+  session truly cannot judge, and the user sees it only once it holds every game. Every game is tested as
   Bejeweled is: its deviations
   listed in its notes, each without a visible effect; every RNG draw kept in its order; a frozen baseline of the port
   with a regression check that proves later fixes and mods leave unmodded play unchanged. Every memory leak of the
