@@ -188,7 +188,9 @@ void GameApp::HandleCmdLineParam(const std::string& theParamName, const std::str
 				mChapterLoadUpdates.push_back(atoi(theParamValue.substr(aPos, aComma - aPos).c_str()));
 			aPos = aComma + 1;
 		}
-	} else
+	} else if (theParamName == "-startloadupdates")
+		mStartLoadWanted = theParamValue.empty() ? -1 : atoi(theParamValue.c_str());
+	else
 		LuaApp::HandleCmdLineParam(theParamName, theParamValue);
 }
 
@@ -210,7 +212,14 @@ bool GameApp::UpdateAppStep(bool* updated)
 	// The loading thread's next 20 ms of work, between the frames (StartLoading); with -fast all of it at once,
 	// so that a test run reaches the menu at the same update on any machine
 	if (mLoadingPhase != LOADING_IDLE && mLoadingPhase != LOADING_DONE && mDrawCount > 0) {
-		if (LoadingStep(mFastMode ? 0 : SDL_GetTicks() + 20)) {
+		bool aDone;
+		if (mStartLoadWanted >= 0) {
+			int anElapsed = mUpdateCount - mStartLoadStart + 1;
+			int aLimit = anElapsed >= mStartLoadWanted ? -1 : mNumLoadingThreadTasks * anElapsed / mStartLoadWanted;
+			aDone = LoadingStep(0, aLimit);  // under the limit the last task (the Lex) never runs
+		} else
+			aDone = LoadingStep(mFastMode ? 0 : SDL_GetTicks() + 20);
+		if (aDone) {
 			mLoadingThreadRunning = false;
 			mLoadingThreadCompleted = true;  // DoUpdateFrames calls LoadingThreadCompleted
 		}
@@ -592,6 +601,7 @@ void GameApp::StartLoading()
 	// the framework runs LoadingThreadProc in one go while this is false
 	mLoadingThreadRunning = true;
 	mLoadingPhase = LOADING_COMMON;
+	mStartLoadStart = mUpdateCount;
 	mLoadingGroup = 0;
 	mLoadingGroupStarted = false;
 }
@@ -624,7 +634,7 @@ void GameApp::LoadingFailed()
 	mLoadingPhase = LOADING_DONE;
 }
 
-bool GameApp::LoadingStep(unsigned int theDeadline)
+bool GameApp::LoadingStep(unsigned int theDeadline, int theTaskLimit)
 {
 	auto aTimeLeft = [theDeadline]() { return theDeadline == 0 || !SDL_TICKS_PASSED(SDL_GetTicks(), theDeadline); };
 	while (mLoadingPhase != LOADING_DONE) {
@@ -633,6 +643,8 @@ bool GameApp::LoadingStep(unsigned int theDeadline)
 			break;
 		}
 		if (!aTimeLeft())
+			return false;
+		if (theTaskLimit >= 0 && mCompletedLoadingThreadTasks >= theTaskLimit)
 			return false;
 		switch (mLoadingPhase) {
 		case LOADING_COMMON:

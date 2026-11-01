@@ -167,7 +167,7 @@ does not draw. origrun's own fix for this is under way (2026-11-01). Until then 
 attacks clip, the Enter! transition, the credits' shake, and the Attack button's sparkle in word_rain (an effect that starts
 with the last letter's click). The title clip's frames 18 to 30 are the
 original's loading screen, shown for as long as its loading thread takes; the port loads in slices of 20 ms between frames,
-so it shows it for a different time. That runs on the wall clock on both sides and is not compared.
+so it shows it for a different time (until `-startloadupdates`, below).
 
 How often each side draws matters as much. Under rundesk the port's scripted run manages about 85 updates and 37 draws a
 second (its log's counts), so it catches up with updates it does not draw, and a wait for a draw (the curtain) ends
@@ -189,6 +189,16 @@ frame of the Enter! transition, before and after the load, matches the original'
 identical port frames that includes the original's update, by `landed.tsv`). What still differs is the loading bar's
 fill while it is up, 238 to 656 pixels in three frames: the original's thread fills it fast at first and then stalls,
 at a pace no update count gives. That is timing, the bar's box masked during a chapter load.
+
+The startup load did the same to everything after the title: the original ran about 190 updates behind the port from
+its menu on. Its loading thread ran from update 406, where StartLoadingThread (0x549480) sets the app's +0x4f9, to 546,
+where LoadingThreadCompleted sets the app's +0x919 (the thread's own +0x4fa in the same update): 140 updates in the
+sandbox. `run.sh` watches both bytes, `loads.py --start` gives the count, and the port's `-startloadupdates=N` completes
+its load N updates after StartLoading, its tasks spread evenly over them. With it the title clip matches at lag 0 from
+the loading screen's frame 18 on, through the menu (each frame's run of identical port updates includes the original's).
+Frames 20 to 26 differ, 69 to 683 pixels at a quarter of the size: Lex eats across the screen as far as the load has
+got, at the original thread's pace, so his place is timing too and is masked while the title loads. There is no draw
+from the RNG in the title's load.
 
 The original under origrun showed no hover. On mouse messages it asks where the real cursor is (ClientToScreen,
 GetCursorPos and WindowFromPoint, in SexyAppBase's message handling, 0x547ea0, from 0x548635), and rundesk's desktop has no

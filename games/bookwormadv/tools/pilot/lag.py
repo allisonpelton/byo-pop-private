@@ -3,8 +3,10 @@
 Which update of the port each of the original's pictures shows. The port runs the pilot's script (gen.py's, made by
 run.sh) up to the picture, taking a screenshot at every update from 30 before it to 30 after (to 30 after its last frame
 for a clip), under rundesk; each of the original's pictures is then matched with the port's screenshots over the region
-(the whole screen by default), blurred as shotdiff blurs, and the best two are printed with how many pixels still differ
-visibly. A lag of 0 means the port drew the same picture at the same update; a best match far above 0 pixels means the
+(the whole screen by default), blurred as shotdiff blurs, and the run of port updates that match best is printed with how
+many pixels still differ visibly (a still picture matches many). Against more than 300 port screenshots (a long clip)
+the pictures are compared at a quarter of their size, or the matching would take many minutes. A lag of 0 means the
+port drew the same picture at the same update; a best match far above 0 pixels means the
 difference is not timing at all. The original's pictures come from build/scratch/pilot/orig, as run.sh left them.
 """
 import os
@@ -37,17 +39,25 @@ def main():
     open(os.path.join(d, "script.txt"), "w").write("\n".join(lines) + "\n")
     lf = os.path.join(P, steps + ".loads")  # the original's chapter loads, in updates (run.sh)
     loads = open(lf).read().strip() if os.path.exists(lf) else ""
+    sf = os.path.join(P, steps + ".startload")  # and the startup load's
+    startload = open(sf).read().strip() if os.path.exists(sf) else ""
     user = os.path.join(d, "user")
     subprocess.run(["bash", os.path.join(T, "reset.sh"), user], check=True, stdout=subprocess.DEVNULL)
     with open(os.path.join(d, "stdout.txt"), "w") as out:
         subprocess.run([os.path.join(W, "build", "native", "rundesk.exe"), os.path.join(W, "build", "native", "bookwormadv.exe"),
-                        "-userdir=" + user, "-seed=12345", "-drawevery", "-chapterloadupdates=" + loads, "-script=" + os.path.join(d, "script.txt")],
+                        "-userdir=" + user, "-seed=12345", "-drawevery", "-chapterloadupdates=" + loads, "-startloadupdates=" + startload, "-script=" + os.path.join(d, "script.txt")],
                        stdout=out, stderr=subprocess.STDOUT, timeout=280)
 
-    def pic(im):
-        return np.asarray(im.convert("RGB").crop(box).filter(ImageFilter.BoxBlur(1))).astype(int)
+    small = last - first > 300
 
-    port = {u - 1: pic(Image.open(os.path.join(d, "%d.png" % u))) for u in range(first, last + 1)}  # u shows u-1
+    def pic(im):
+        im = im.convert("RGB").crop(box).filter(ImageFilter.BoxBlur(1))
+        if small:
+            im = im.resize((im.width // 4, im.height // 4), Image.BILINEAR)
+        return np.asarray(im).astype(np.int16)
+
+    keys = list(range(first - 1, last))  # the port's screenshot u shows update u-1
+    stack = np.stack([pic(Image.open(os.path.join(d, "%d.png" % (k + 1)))) for k in keys])
     src = os.path.join(P, "orig", name)
     origs = ([os.path.join(src, f) for f in sorted(os.listdir(src)) if f.endswith(".png")] if os.path.isdir(src)
              else [src + ".png"])
@@ -58,9 +68,9 @@ def main():
         if im.size != (800, 600):
             im = im.crop((3, 26, 803, 626))  # the original's window frame inside Windows Sandbox (806x629)
         o = pic(im)
-        diffs = {k: int((np.abs(o - v).max(2) >= 32).sum()) for k, v in port.items()}
-        low = min(diffs.values())
-        ties = [k for k in sorted(diffs) if diffs[k] == low]  # a still picture matches a run of updates
+        diff = (np.abs(stack - o).max(3) >= 32).sum((1, 2))
+        low = int(diff.min())
+        ties = [keys[i] for i in np.nonzero(diff == low)[0]]  # a still picture matches a run of updates
         # the update the original's shot really showed (landed.tsv, from origrun), else the one it was taken at
         at = landed.get(name + "/" + os.path.splitext(os.path.basename(f))[0], landed.get(name, u - 1))
         print("%s at update %d: port updates %d-%d (lag %+d to %+d), %d pixels" % (

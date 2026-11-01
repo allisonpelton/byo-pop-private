@@ -379,7 +379,7 @@ private:
 	bool mLoadingGroupStarted = false;
 
 	// One step of the loading thread's work, until theDeadline (SDL ticks; 0: all of it). True when done.
-	bool LoadingStep(unsigned int theDeadline);
+	bool LoadingStep(unsigned int theDeadline, int theTaskLimit = -1);
 	void LoadingFailed();
 	// the scripts' function of dialog 0 or 18, told the answer (then forgotten)
 	void CallDialogCallback(bool theAnswer);
@@ -398,12 +398,16 @@ private:
 	bool mChapterLoadDone = false;
 	bool mChapterLoadFailed = false;
 	// port: test hook -chapterloadupdates=N,N,...: the k-th chapter load's screen stays up for exactly N updates (its
-	// resources loaded in the first), so that a test run takes the updates the original took, and the hint draws its
+	// resources loaded evenly over them), so that a test run takes the updates the original took, and the hint draws its
 	// screen makes every 50 of them (the pilot measures them in the original with origrun's --watch)
 	std::vector<int> mChapterLoadUpdates;
 	size_t mChapterLoadNum = 0;    // chapter loads started
 	int mChapterLoadWanted = -1;   // this load's N, or -1
 	int mChapterLoadStart = 0;     // mUpdateCount when its screen went up
+	// port: test hook -startloadupdates=N: the startup load (StartLoading) completes N updates after it starts, its
+	// tasks done evenly over them, as the original's loading thread took N in the run measured (the pilot's --watch)
+	int mStartLoadWanted = -1;
+	int mStartLoadStart = 0;
 	std::string mChapterLoadError;
 	// ReturnToChapterSelect's: the groups of mChapterResources deleted, its animations too
 	void FreeChapterResources();
