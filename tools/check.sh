@@ -943,10 +943,10 @@ waterbugs_run() {  # <name>: the headless runner's scripted game; prints its sta
 waterbugs_loss() {  # the last life lost, the click on the game over: the high scores (the game file is read again; it once crashed)
 	local d="$OUT/waterbugs/loss" e=0 l
 	rm -rf "$d"; mkdir -p "$d"
-	printf '%s
-' "3000 click 400 303" "8000 click 75 260" "14000 click 400 465" "20000 lives 1" "21000 die" "24000 click 400 300" 		"30000 state" "30000 shot scores" "30010 end" > "$d/script.txt"
+	printf '%s\n' "3000 click 400 303" "8000 click 75 260" "14000 click 400 465" "20000 lives 1" "21000 die" "24000 click 400 300" \
+		"30000 state" "30000 shot scores" "30010 end" > "$d/script.txt"
 	timeout 300 build/native/waterbugs_run.exe assets/waterbugs "$d" "$d/script.txt" > "$d/stdout.txt" 2> "$d/stderr.txt" || e=$?
-	l="$(grep -E '^[0-9]+ ms: score' "$d/stdout.txt" | tr -d '')"
+	l="$(grep -E '^[0-9]+ ms: score' "$d/stdout.txt" | tr -d '\r')"
 	[ -f "$d/scores.png" ] || l="$l; NO SCREENSHOT"
 	[ $e -eq 0 ] || l="$l; EXIT $e"
 	echo "$l"
