@@ -3196,6 +3196,9 @@ void SexyAppBase::RunScript()
 			// as the window's focus event does (WM_ACTIVATEAPP), like origrun's "focus lose" and "focus regain"
 			mActive = aCommand.mArgs == "regain";
 			RehupFocus();
+
+			if ((mActive) && (!mIsWindowed))
+				mWidgetManager->MarkAllDirty();
 		}
 		else if (aName == "quit")
 			Shutdown();
