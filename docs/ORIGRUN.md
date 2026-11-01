@@ -251,16 +251,25 @@ DirectDraw has no hardware layer at all (its HAL caps are bare and report no vid
 the same way. On the session's own desktop the same calls get the full HAL, the 3D surface and a Direct3D 7 HAL
 device. Windows gives legacy DirectDraw hardware only to the input desktop, which a hidden desktop never is. Direct3D 9
 is no better there: its HAL device fails with D3DERR_NOTAVAILABLE. Direct3D 11 does get a hardware device (feature
-level 11_0; Present reports the window occluded but still presents). The window of a flip-model swap chain is
-captured correctly by PrintWindow with full content (what `shot` and `waitshot` use). A blit-model one comes out
-blank, and so does the window-DC blit that `at` and update-timed bursts use for both models. So on the user's own
-desktop the originals most likely do run in 3D. It is origrun's hidden desktop that keeps them in software.
+level 11_0; Present reports the window occluded but still presents). A first test found that PrintWindow captured
+the window of a flip-model swap chain correctly. A blit-model window came out blank, and so did the window-DC blit
+that `at` and update-timed bursts use, for both models. So on the user's own desktop the originals most likely do run
+in 3D. It is origrun's hidden desktop that keeps them in software.
 
-The way to a 3D run is a DirectDraw and Direct3D 7 implementation over Direct3D 11, placed beside the staged copy
+**Captures of a GPU-drawn window are not safe, and origrun refuses them (2026-11-01).** Twice on 2026-11-01, a
+capture of a game drawing through Direct3D 11 (dgVoodoo2 in the copy) returned what was on the user's own screen
+instead of the game. Once it was the window-DC blit, and once PrintWindow itself, in Mahjong Escape: Ancient Japan.
+Since then, origrun refuses every shot of a game that has loaded DXGI, Direct3D 8 to 12, OpenGL or Vulkan, and every
+later shot of that run, and its log names the module. Until a capture method is proven safe and the coordinator says
+so, never put dgVoodoo2, cnc-ddraw or any other GPU wrapper into a copy that origrun captures. A shot that shows
+anything but the game's own window is deleted at once, unopened where possible, and reported to the coordinator.
+
+The way to a 3D run was meant to be a DirectDraw and Direct3D 7 implementation over Direct3D 11, placed beside the staged copy
 (never the install) and presenting flip-model, such as dgVoodoo2. Its official source is its author's GitHub
 releases page, `github.com/dege-diosg/dgVoodoo2/releases`. Version 2.87.6 is `dgVoodoo2_87_6.zip` at 9,244,362 bytes
 (2026-10-25); version 2.87.5 is 9,268,078 bytes (2026-09-15). Its `DDraw.dll` and `D3DImm.dll` (the `MS\x86` folder)
-and a `dgVoodoo.conf` would go into the copy. **Not downloaded: it waits on the user's OK.**
+and a `dgVoodoo.conf` would go into the copy. Version 2.87.5 was downloaded with the user's OK on 2026-11-01, but
+the warning above stands: no capture run uses it.
 
 Still unknown until it is tried:
 - whether it keeps presenting while the window is occluded;
