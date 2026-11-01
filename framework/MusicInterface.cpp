@@ -77,6 +77,19 @@ bool MusicInterface::IsPlaying(int theSongId)
 	return false;
 }
 
+int MusicInterface::GetMusicTempo(int theSongId)
+{
+	return 0;
+}
+
+void MusicInterface::SetMusicTempo(int theSongId, int theBPM)
+{
+}
+
+void MusicInterface::SetMusicChannelVolume(int theSongId, int theChannel, int theVolume)
+{
+}
+
 bool MusicInterface::GetMusicFFT(int theSongId, float* theOut, int theSamples)
 {
 	return false;

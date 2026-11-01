@@ -940,6 +940,35 @@ bool Mixer::GetSongPosition(int theSong, int& theOrder, int& theRow)
 	return known;
 }
 
+int Mixer::GetSongTempo(int theSong)
+{
+	int aTempo = 0;
+	Lock();
+	SONG_FOR_HANDLE(theSong);
+	if (s && s->mModule)
+		aTempo = s->mModule->GetTempo();
+	Unlock();
+	return aTempo;
+}
+
+void Mixer::SetSongTempo(int theSong, int theBPM)
+{
+	Lock();
+	SONG_FOR_HANDLE(theSong);
+	if (s && s->mModule)
+		s->mModule->SetTempo(theBPM);
+	Unlock();
+}
+
+void Mixer::SetSongChannelVolume(int theSong, int theChannel, int theVolume)
+{
+	Lock();
+	SONG_FOR_HANDLE(theSong);
+	if (s && s->mModule)
+		s->mModule->SetChannelVolume(theChannel, theVolume);
+	Unlock();
+}
+
 bool Mixer::GetSongFFT(int theSong, float* theOut, int theSamples)
 {
 	const int n = theSamples;
