@@ -95,3 +95,5 @@ sounds could not be recorded and compared by state. The focus loss and regain we
 and `focus regain`): its update counter kept running while the focus was lost (23165, 23411 and 24200 at three shots
 taken while it was lost), so the game does not pause, and only the music pauses; the port does the same (`Sys_Activate`
 pauses the music and stops the sounds, and the frame loop does not look at the focus).
+
+The sign's translucent fringe (2026-11-01): Screen_Redraw drew every menu's images onto the level background again on each call, which piled up the sign's translucent edge. The original walks the menu list from the current menu to the end and then resets current to the head; the port now does the same, and the main menu and the Help screen match the original in every pixel (0 differing, was 1568 in the sign region).
