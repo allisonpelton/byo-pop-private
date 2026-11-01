@@ -131,3 +131,32 @@ the side panel's lives are the small icon (image 31).
   2026-11-01, `build/ss-cmp/o`: the original's Help label under the mouse matches the port). The Yes and No labels do not
   change under the mouse either (`qh`), nor do the help screen's two labels (`hh`), although the decompilation reads colour 1
   while the mouse is over a button (+0x1f); a pressed button is not captured yet (origrun cannot hold a button down).
+
+## 6. Comparison with the original, state of 2026-11-01 (sandbox captures)
+
+Static screens match pixel for pixel (title, menu, quit and options dialogs, help screen, the first board and the arrows under the
+mouse). The map scenario (six sailing moves, a sinking and the new ship, 84 shots) shows the same board, ships, kills and score
+texts in every shot. The 2003 exe has no `mHasPendingDraw` or `mUpdateAppState`, but its main loop (0x431c70) counts the updates
+since the last draw at app+0x364, which origrun takes for both (`--pending-draw` and `--update-state` `[0x4e21bc]+0x364`), so a
+shot lands exactly on the update it says. `--input-eip 430ba0,430d40` (the update, vf05) holds each click until the game is
+between updates, and the log's "input at counter N" is the update that read it: the port's script puts the click's move, down and
+up on that update and nothing else is guessed (origrun posts all three back to back in the sandbox). With that, the pirate's start
+delay and every board state of the map scenario (six moves, kills, the sinking) match the original update for update; 25 of the 84
+shots match exactly and 39 more differ only faintly (the corner whirls by at most 8 of 255). The new ship's cell after the sinking is not a fault of the port: it was (2,2) in one original run and (1,9) in a second
+run of the same script and seed (shots at every update from 5726), and (1,9) is the port's cell. Logging every `CrtRand` draw
+of the port with its caller showed the same sites as the decompilation (two per update for the waves, one per enemy move for the
+whirls, two per `PlaceShip` attempt), and `PlaceShip` tries (5,2), rejected by the ship next to it, then (1,9). So the original's
+draw count between its start and the placement varies a little from run to run (something timed, not found), and an exact match
+of the placement cannot be had; the corner whirls and waves are insensitive to the shift (the waves clamp their speed).
+
+**Is3D.** The 2003 exe has no Direct3D mode at all (its export has no D3D or DirectDraw 7 calls beyond the plain surface), so
+there is no Is3D=0 original to compare with and no Hardware Acceleration checkbox to port. The port's framework picks its
+renderer by what SDL gives: the same script (the first moves of the map scenario, seed 7) drawn by the accelerated renderer and
+by `SDL_RENDER_DRIVER=software` differs in 16813 pixels of a shot by at most 3 of 255, never more, so either mode is as
+close to the original's software drawing as the other.
+
+**Continue (fixed 2026-11-01).** After "Continue" the port left the pirate's talk widget visible, a 200 x 200 box at (142, 10) over the
+board that took the clicks (and hover) of every cell under it, so moves failed on some squares and showed no arrows there until a
+new game: the original's case 0xf of 0x421a10 sets its mode to 0, clears the talking flag and hides it, as a new game does. The
+likely cause of the reported "controls fail at random times". Found by loading the original's own savegame.dat (its format is the
+port's; the file the original writes at exit) and clicking a cell under the box.
