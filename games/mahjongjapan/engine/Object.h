@@ -333,6 +333,10 @@ public:
 };
 
 // A check box (vtable 0x51dfbc): a button whose frames are unchecked, then checked, with its label at the right
+// 0x424b40: CheckBox's label, set only through Button's fields; the game sets the radio toggles' labels with it too
+void SetCheckLabel(Button* theButton, int theStringId, int theFontImage, int theFontText, int theX, int theY,
+	int theDisabledAlpha);
+
 class CheckBox : public Button
 {
 public:
@@ -349,8 +353,14 @@ public:
 	void DrawPressed() override;   // 0x424c20
 	void DrawDisabled() override;  // 0x424c30
 
+	// 0x41eae0, 0x41ebf0 (Toggle's, the same field)
+	bool IsChecked() const { return mChecked; }
+	void SetChecked(bool theOn) { mChecked = theOn; }
 	// 0x424b40: a string of Resource.dll, in a font of Resource.dll
-	void SetLabel(int theStringId, int theFontImage, int theFontText, int theX, int theY, int theDisabledAlpha);
+	void SetLabel(int theStringId, int theFontImage, int theFontText, int theX, int theY, int theDisabledAlpha)
+	{
+		SetCheckLabel(this, theStringId, theFontImage, theFontText, theX, theY, theDisabledAlpha);
+	}
 	// 0x424c90: frame theFrame of the image, with the label
 	void DrawFrame(int theFrame);
 };

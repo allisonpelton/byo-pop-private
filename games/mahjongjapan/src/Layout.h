@@ -25,7 +25,9 @@ public:
 	bool mPreset = false;  // +0x14 the layout gave the kind
 	int mTaken = 0;        // +0x18 0 on the board, else the move it went at
 	Tile* mWildLink = nullptr;  // +0x1c the tile that turns wild (0x2f) when this one has gone (0x414fd0)
-	jb::Rect mRect = {-1, -1, -1, -1};  // +0x20 where it is drawn
+	jb::Rect mRect = {-1, -1, -1, -1};  // +0x20 where it is drawn (a shuffle moves left and top off the board)
+	int mFromX = 0;        // +0x30 where it flies in from (0x40b780); the original leaves it unset until then
+	int mFromY = 0;        // +0x34
 	bool mFree = false;    // +0x38 it can be taken (0x414c20); the original leaves it unset until the first test
 	bool mFlag39 = false;  // +0x39
 	int m3c = 0;           // +0x3c

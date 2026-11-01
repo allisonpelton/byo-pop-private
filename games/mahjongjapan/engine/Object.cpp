@@ -1177,13 +1177,14 @@ CheckBox::CheckBox(int theImage, int theFrames) : Button(theImage, theFrames, fa
 }
 
 // 0x424b40
-void CheckBox::SetLabel(int theStringId, int theFontImage, int theFontText, int theX, int theY, int theDisabledAlpha)
+void SetCheckLabel(Button* theButton, int theStringId, int theFontImage, int theFontText, int theX, int theY,
+	int theDisabledAlpha)
 {
-	mLabel = LoadDllString(theStringId);
-	mFont = GetDllFont(theFontImage, theFontText, -1);
-	mLabelX = theX;
-	mLabelY = theY;
-	mDisabledAlpha = theDisabledAlpha;
+	theButton->mLabel = LoadDllString(theStringId);
+	theButton->mFont = GetDllFont(theFontImage, theFontText, -1);
+	theButton->mLabelX = theX;
+	theButton->mLabelY = theY;
+	theButton->mDisabledAlpha = theDisabledAlpha;
 }
 
 // 0x424b90

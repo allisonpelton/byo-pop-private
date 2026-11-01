@@ -18,6 +18,7 @@ class Stream;
 class Streamable
 {
 public:
+	virtual ~Streamable() {}
 	virtual void Serialize(Stream& theStream) = 0;
 };
 

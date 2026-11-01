@@ -34,6 +34,9 @@ int MulDiv(int a, int b, int c);
 // The C runtime's generator (srand 0x417d95, rand 0x417d9f)
 void CrtSrand(unsigned int theSeed);
 int CrtRand();
+// GetFileAttributesA(...) != -1 and DeleteFileA, on the host's files
+bool FileExists(const char* thePath);
+void RemoveFile(const char* thePath);
 // GetTickCount, timeGetTime (the host's millisecond clock)
 uint32_t TickCount();
 

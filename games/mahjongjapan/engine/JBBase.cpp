@@ -336,4 +336,18 @@ int StrICmp(const char* a, const char* b)
 	}
 }
 
+bool FileExists(const char* thePath)
+{
+	FILE* aFile = fopen(thePath, "rb");
+	if (aFile == nullptr)
+		return false;
+	fclose(aFile);
+	return true;
+}
+
+void RemoveFile(const char* thePath)
+{
+	remove(thePath);
+}
+
 } // namespace jb
