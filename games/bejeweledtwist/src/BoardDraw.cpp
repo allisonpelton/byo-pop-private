@@ -2,8 +2,10 @@
 // Piece): with Direct3D the original clears the screen first, draws the board through a transform and a 3D back.
 #include "Board.h"
 
+#include "ColorCycle.h"
 #include "EffectsManager.h"
 #include "FlyingText.h"
+#include "GameOverShow.h"
 #include "Font.h"
 #include "GameText.h"
 #include "Graphics.h"
@@ -647,8 +649,55 @@ void Board::DrawOverlay(Graphics* g)
 	g->Translate(Ftol(mShakeX), Ftol(mShakeY));
 	DrawCounters(g);
 	g->Translate(-Ftol(mShakeX), -Ftol(mShakeY));
-	if (mUnknown36B0 && mGameMode == 3)
-		NotPorted("Board::DrawOverlay: the mode's bars (+0x26c8)");
+	if (mUnknown36B0 && mGameMode == MODE_BLITZ && 4 < mUnknown26C8) {
+		// Blitz's FINAL SCORE (end state 5) and then its score (6) zoom in with a rainbow trail behind them: copies
+		// from each one's lowest scale up to its current one, the one at 1 drawn plainly
+		float aTo[2] = {1.0f, 1.0f};
+		float aFrom[2] = {1.0f, 1.0f};
+		if (mUnknown26C8 == 5) {
+			aTo[0] = mUnknown3460;
+			float aLow = mUnknown3460 - 2.0f;
+			if (aLow < 1.0f)
+				aLow = 1.0f;
+			aFrom[0] = aLow;
+			aFrom[1] = -1.0f;
+			aTo[1] = -1.0f;
+		} else if (mUnknown26C8 == 6) {
+			aTo[1] = mUnknown3460;
+		}
+		g->SetColorizeImages(true);
+		ColorCycle aCycle;
+		int i = 0;
+		do {
+			aCycle.SetPosition((float)((double)mUpdateCnt * 0.001));
+			float aScale = aFrom[i];
+			if (0.0f <= aScale) {
+				while (aScale <= aTo[i]) {
+					Color aColor = aCycle.mColor;
+					if (aScale == 1.0f) {
+						g->SetDrawMode(Graphics::DRAWMODE_NORMAL);
+						aColor.mAlpha = Ftol((double)mUnknown346C * 255.0);
+					} else {
+						g->SetDrawMode(Graphics::DRAWMODE_ADDITIVE);
+						aColor.mAlpha = 16;
+					}
+					g->SetColor(aColor);
+					Image* anImage = i == 0 ? (Image*)mUnknown3464 : (Image*)mUnknown3468;
+					int aY = Ftol((double)mHeight * 0.4000000059604645);
+					float aRise = (float)((double)aScale * (double)(float)mHeight * 0.009999999776482582);
+					if (i == 0)
+						aRise = -aRise;
+					else
+						aY = Ftol((double)mHeight * 0.20000000298023224 + (double)aY);
+					DrawImageScaledCentered(g, anImage, (float)(mWidth / 2),
+						(float)(((double)aScale - 1.0) * (double)aRise + (double)aY), aScale, aScale);
+					aScale = (float)((double)(mApp->Is3DAccelerated() ? 0.1f : 0.5f) + (double)aScale);
+					aCycle.Update();
+				}
+			}
+			i++;
+		} while (i < 2);
+	}
 	if (mUnknown6CC && !mApp->mUnknownF85 && !mUnknown37C4 && !mUnknown2629)
 		NotPorted("Board::DrawOverlay: the tooltip (+0x6cc)");
 	if (mUnknown160 == 1 || mUnknown2629)
