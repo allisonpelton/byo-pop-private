@@ -48,8 +48,13 @@ if [ "$which" != port ]; then
 	cp "$P/backup/users/Allison.bwa" "$P/portuser0/users/Tester.bwa" "$U/"
 	python "$T/inireg.py" "$P/portuser0/registry.ini" "$P/start.reg"
 	"$W/build/native/rundesk.exe" "$W/build/origrun-bin/origrun.exe" --sandbox --exe "$(cygpath -w "$GEXE")" --run "$run" --script "$(cygpath -w "$P/scripts/$name.orig.txt")" \
-		--reg "$(cygpath -w "$P/start.reg")" --3d off --3d-key "Software\PopCap\WinBAD" --3d-flag "[[0x8259e4]+0x36c]+0x38" --counter "[0x8259e4]+0x484" --pending-draw "[0x8259e4]+0x45a" --update-state "[0x8259e4]+0x488" --draw-empty "[0x8259e4]+0x459" --update-ms 10 --timeout 240 > "$P/$name.orig.log" 2>&1
+		--reg "$(cygpath -w "$P/start.reg")" --3d off --3d-key "Software\PopCap\WinBAD" --3d-flag "[[0x8259e4]+0x36c]+0x38" --counter "[0x8259e4]+0x484" --pending-draw "[0x8259e4]+0x45a" --update-state "[0x8259e4]+0x488" --draw-empty "[0x8259e4]+0x459" --watch "[[0x8259e4]+0x83c]+0xb0" --update-ms 10 --timeout 240 > "$P/$name.orig.log" 2>&1
 	grep -i "RESULT\|timeout\|error\|msgbox\|dialog" "$P/$name.orig.log" | tail -5
+	# How many updates each chapter load's screen stayed up in the original, for the port's -chapterloadupdates: the
+	# original loads on a thread, so the load's length in updates, and with it the hint draws (one Rand() every 50
+	# updates), follow the machine's speed. origrun watches the screen's mTimer (app+0x83c, +0xb0); loads.py counts.
+	python "$T/loads.py" "$W/build/origrun/$run/logs/origrun-sandbox.log" > "$P/$name.loads"
+	echo "chapter loads (updates): $(cat "$P/$name.loads")"
 	S=$W/build/origrun/$run/shots
 	python - "$S" "$P/orig" "$T/$name.txt" <<'EOF'
 import os, shutil, sys, json
@@ -80,7 +85,7 @@ fi
 if [ "$which" != orig ]; then
 	d=$P/portrun/$name; mkdir -p "$d"
 	bash "$T/reset.sh" "$d/user"
-	timeout 280 "$W/build/native/rundesk.exe" "$W/build/native/bookwormadv.exe" -userdir="$d/user" -seed=$SEED -drawevery \
+	timeout 280 "$W/build/native/rundesk.exe" "$W/build/native/bookwormadv.exe" -userdir="$d/user" -seed=$SEED -drawevery -chapterloadupdates=$(cat "$P/$name.loads" 2>/dev/null) \
 		-script="$P/scripts/$name.port.txt" > "$d/stdout.txt" 2>&1
 	echo "port exit $?"; grep "script\|FATAL" "$d/stdout.txt" | tail -5
 	python - "$P/port" "$T/$name.txt" <<'EOF'

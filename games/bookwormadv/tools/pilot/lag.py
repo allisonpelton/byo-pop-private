@@ -35,11 +35,13 @@ def main():
     lines += ["%d screenshot %s/%d.png" % (u, d.replace("\\", "/"), u) for u in range(first, last + 1)]
     lines.append("%d quit" % (last + 5))
     open(os.path.join(d, "script.txt"), "w").write("\n".join(lines) + "\n")
+    lf = os.path.join(P, steps + ".loads")  # the original's chapter loads, in updates (run.sh)
+    loads = open(lf).read().strip() if os.path.exists(lf) else ""
     user = os.path.join(d, "user")
     subprocess.run(["bash", os.path.join(T, "reset.sh"), user], check=True, stdout=subprocess.DEVNULL)
     with open(os.path.join(d, "stdout.txt"), "w") as out:
         subprocess.run([os.path.join(W, "build", "native", "rundesk.exe"), os.path.join(W, "build", "native", "bookwormadv.exe"),
-                        "-userdir=" + user, "-seed=12345", "-drawevery", "-script=" + os.path.join(d, "script.txt")],
+                        "-userdir=" + user, "-seed=12345", "-drawevery", "-chapterloadupdates=" + loads, "-script=" + os.path.join(d, "script.txt")],
                        stdout=out, stderr=subprocess.STDOUT, timeout=280)
 
     def pic(im):
@@ -49,14 +51,20 @@ def main():
     src = os.path.join(P, "orig", name)
     origs = ([os.path.join(src, f) for f in sorted(os.listdir(src)) if f.endswith(".png")] if os.path.isdir(src)
              else [src + ".png"])
+    lt = os.path.join(W, "build", "origrun", "pilot-" + steps, "shots", "landed.tsv")
+    landed = {l.split("	")[0]: int(l.split("	")[1]) for l in open(lt).read().splitlines()} if os.path.exists(lt) else {}
     for f, u in zip(origs, shot):
         im = Image.open(f)
         if im.size != (800, 600):
             im = im.crop((3, 26, 803, 626))  # the original's window frame inside Windows Sandbox (806x629)
         o = pic(im)
-        best = sorted((int((np.abs(o - v).max(2) >= 32).sum()), k) for k, v in port.items())[:2]
-        print("%s at update %d: port update %d (lag %+d), %d pixels; next %d, %d pixels" % (
-            os.path.basename(f), u - 1, best[0][1], best[0][1] - (u - 1), best[0][0], best[1][1], best[1][0]))
+        diffs = {k: int((np.abs(o - v).max(2) >= 32).sum()) for k, v in port.items()}
+        low = min(diffs.values())
+        ties = [k for k in sorted(diffs) if diffs[k] == low]  # a still picture matches a run of updates
+        # the update the original's shot really showed (landed.tsv, from origrun), else the one it was taken at
+        at = landed.get(name + "/" + os.path.splitext(os.path.basename(f))[0], landed.get(name, u - 1))
+        print("%s at update %d: port updates %d-%d (lag %+d to %+d), %d pixels" % (
+            os.path.basename(f), at, ties[0], ties[-1], ties[0] - at, ties[-1] - at, low))
 
 
 if __name__ == "__main__":

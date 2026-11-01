@@ -153,7 +153,7 @@ What remains is the original running one or two updates behind the port after a 
 and it varies by an update from frame to frame. `tools/pilot/lag.py` measures it by matching each of the original's pictures
 with a port screenshot taken at every update. In the attacks clip every original frame matches a port update with 14 to 216
 pixels left on a half-size picture of the battle (the Trojan Spearman's sampling, above), one update behind and jittering by one. In the Enter! transition every
-original frame is a port frame exactly (0 pixels), two updates behind until the chapter loads and 10 to 12 behind after it:
+original frame is a port frame exactly (0 pixels), two updates behind until the chapter loads and 10 to 12 behind after it (before `-chapterloadupdates`, below):
 the curtain finishes only once it has been drawn at its last frame (`mDrawn`, set in its Draw, 0x4413b0, and read in its
 Update, 0x4411d0), so every screen behind a curtain begins at an update that depends on how often the game draws, on both
 sides. In the credits the first name shakes (`Rand() % 5` each update after a creature's `causedamage`): in the pilot's run
@@ -177,6 +177,18 @@ shot exactly one update earlier (0 pixels over the names), and Letter Rip's tuto
 which blinks 150 updates on and 50 off from the Yes click: the shot fell exactly on that edge, and the original's click
 lands a few updates apart from run to run (a burst of the original turned the text off at update 5383 in one run, and
 the screens run still showed it at 5385, where the port turns it off). The shot now comes 100 updates after the click.
+
+The chapter load decided the battle's board (2026-11-01). ChapterLoadScreen's Update (its timer at +0xb0, from 50) draws
+a new hint with `Rand()` every 50 updates, and the original loads the chapter on a thread, so how many updates the screen
+stays up, and so how many draws it makes, follows the machine: 61 and 69 updates in two sandbox runs, one hint draw
+more than the port's native load of about 3 updates, which shifted every later draw and gave the battle another board.
+`run.sh` now has origrun watch that timer (`--watch "[[0x8259e4]+0x83c]+0xb0"`), and `tools/pilot/loads.py` counts each
+load's updates from the log. The port takes them with the test option `-chapterloadupdates=N,...`, which holds the
+n-th chapter load's screen for N updates and spreads the loading evenly over them. With it the boards agree and every
+frame of the Enter! transition, before and after the load, matches the original's at lag 0 (each within a run of
+identical port frames that includes the original's update, by `landed.tsv`). What still differs is the loading bar's
+fill while it is up, 238 to 656 pixels in three frames: the original's thread fills it fast at first and then stalls,
+at a pace no update count gives. That is timing, the bar's box masked during a chapter load.
 
 The original under origrun showed no hover. On mouse messages it asks where the real cursor is (ClientToScreen,
 GetCursorPos and WindowFromPoint, in SexyAppBase's message handling, 0x547ea0, from 0x548635), and rundesk's desktop has no
