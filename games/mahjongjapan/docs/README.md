@@ -85,7 +85,9 @@ dialog, the map, the board, the tips, the tray, the score and the level's end. T
 and tiles caught in flight. Those runs stopped when the project moved the originals into Windows Sandbox (2026-11-01).
 A native run that started in full screen with
 "Wide Screen" on reached stage 1's board as the windowed runs do (`DEVIATIONS.md` has how full screen is shown).
-Not yet tested: the comparison beyond stage 1, and the whole adventure in the web build.
+The web build played the same 60-stage script under Node (`games/bejeweled/tools/verify/wasmrun.js game`), and
+its 121 screenshots were identical to the native run's. Not yet tested: the comparison with the original beyond
+stage 1.
 
 ## Mods
 
