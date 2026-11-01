@@ -416,8 +416,7 @@ void Board::UpdateGame()
 					StartUnknown3880();
 					mUnknown380C = 0;
 					mUnknown37F4 = 1.5f;
-					// port: 0x6c2f69, the new level's intro, draws from Rand through the tutorial
-					NotPorted("Board::UpdateGame: the new level's intro (0x6c2f69)");
+					StartLevelIntro();
 					NextLevelMusic();
 				}
 			} else if (mUnknown1474 == nullptr) {
@@ -1320,11 +1319,150 @@ void Board::UpdateCellPoints()
 
 void Board::UpdateLevelUp()
 {
-	if (mUnknown20DC != 0) {
-		// port: 0x6c6905, the board's change between levels (its tiles, the level's text and the next level's start),
-		// comes with the jumps; it draws from Rand
-		NotPorted("Board::UpdateLevelUp (0x6c6905)");
+	if (mUnknown20DC == 0)
+		return;
+	mUnknown37F4 = 0.15f;
+	mUnknown20CC = 0;
+	float aShine = (float)((double)mShineAmount - (double)0.015f);
+	mShineAmount = aShine;
+	if (aShine < 0.0f)
+		mShineAmount = 0;
+	int aCells = mCols * mRows;
+	if (mUnknown20DC < 2) {
+		// The tiles turn over in rings from the middle out
+		float aLeft = (float)((double)mUnknown1630 - (double)0.01f);
+		mUnknown1630 = aLeft;
+		if (aLeft <= 0.0f) {
+			mUnknown1634--;
+			int aCol = 0;
+			int aDCol = mCols / 2;
+			int aDRow0 = mRows / 2;
+			if (0 < mCols) {
+				do {
+					int aRow = 0;
+					if (0 < mRows) {
+						int aDRow = aDRow0;
+						do {
+							Cell& aCell = mCells[mCols * aRow + aCol];
+							if (!aCell.mUnknown2C) {
+								float aDist = sqrtf((float)(aDCol * aDCol + aDRow * aDRow));
+								if ((float)mUnknown1634 <= aDist) {
+									aCell.mUnknown2C = true;
+									aCell.mUnknown30 = 1.0f;
+								}
+							}
+							aRow++;
+							aDRow--;
+						} while (aRow < mRows);
+					}
+					aCol++;
+					mUnknown1630 = 0.3f;
+					aDCol--;
+				} while (aCol < mCols);
+			}
+		}
+		Cell* aCell = mCells;
+		while (aCells != 0) {
+			Cell* aThis = aCell;
+			aCells--;
+			aCell++;
+			if (aThis->mUnknown2C && 0.0f < aThis->mUnknown30)
+				aThis->mUnknown30 = (float)((double)aThis->mUnknown30 - (double)0.03f);
+		}
+		if (0.0f < mUnknown2224) {
+			float aFade = (float)((double)mUnknown2224 - (double)0.015f);
+			mUnknown2224 = aFade;
+			if (aFade <= 0.0f)
+				mUnknown2224 = 0;
+		}
 	}
+	if (mUnknown20DC == 2) {
+		if (mHyperspace != nullptr) {
+			if (mHyperspace->mClicked) {
+				// The jump is over: the next level's board
+				if (!mUnknown23F5 && !mUnknown2041) {
+					mUnknown2041 = true;
+					RemoveWidget(mGoodTube);
+					AddWidget(mGoodTube);
+				}
+				mUnknown158++;
+				if (mUnknown158 == 0 && mUnknown2584 == nullptr)
+					mUnknown158 = 1;
+				StartLevelIntro();
+				// The original writes "LEVEL++" to the debugger here
+				mGoodTube->SetLevel(mUnknown158);
+				if (mGameMode == MODE_BLITZ) {
+					if (mApp->mMusicInterface != nullptr)
+						mApp->mMusicInterface->FadeOutAll(true, 0.004);
+				} else if (mGameMode == MODE_ZEN) {
+					NextLevelMusic();
+				}
+				mUnknown1390 = true;
+				if (!mUnknown21A2 && GetUnknown23F5() && mUnknown2584 != nullptr) {
+					// port: 0x7540ad, the tutorial's next board, comes with the tutorial; it draws from Rand
+					NotPorted("Board::UpdateLevelUp: the tutorial (0x7540ad)");
+				}
+				NewLevel();
+				FillInBlanks(false);
+				if (mGameMode == MODE_BLITZ) {
+					if (mApp->mPlayPressed) {
+						mGoodTube->StartUnknown4AC(false, false);
+						mUnknown160 = 3;
+					}
+					mGoodTube->SetUnknown4A8(mApp->mPlayPressed);
+				}
+				ResetLevelValues();
+			}
+			if (mHyperspace->mClicked) {
+				mApp->mWidgetManager->RemoveWidget(mHyperspace);
+				mApp->SafeDeleteWidget(mHyperspace);
+				mHyperspace = nullptr;
+				mUnknown20DC = 3;
+				mUnknown2040 = true;
+				if (gApp->mProfile->GetFlag1E4(14)) {
+					mUnknown150C = true;
+					if (mGameMode != MODE_ZEN && (mGameMode < 2 || 3 < mGameMode)) {
+						// The next tip, which slides in from the right
+						mUnknown82C = gApp->mProfile->mUnknown1F0;
+						gApp->mProfile->mUnknown1F0++;
+						int aTip = mUnknown82C;
+						if (aTip < (int)mTips.size()) {
+							mUnknown8A0 = mTips[aTip];
+							mUnknown830.SetCurve(GTS(0x7dd59c));
+							mUnknown8C0 = (float)mApp->mWidth;
+						}
+					}
+				} else {
+					mUnknown150C = false;
+				}
+				// 0x6a3e70: waits for the app's saving thread (+0x7e8) to finish; the port saves at once
+			}
+		}
+	} else if (mUnknown20DC == 3) {
+		FinishLevelUp();
+	}
+	MarkDirty();
+}
+
+void Board::FinishLevelUp()
+{
+	mApp->Is3DAccelerated();
+	mShineAmount = 1.0f;
+	mUnknown20DC = 0;
+	mUnknown15FC = true;
+	// The original gathers each row's columns into a vector it then frees, and asks each gem for flags 4 and 3 without
+	// using the answers; neither has any effect
+	mUnknown1618 = 0;
+	mUnknown1398 = true;
+	mUnknown1620 = 0;
+	mUnknown1628 = 0;
+	if (!mUnknown21A2)
+		MakeCells();
+	if (!GetUnknown23F5() && mGameMode != 5)
+		mUnknown2041 = true;
+	mUnknown2042 = true;
+	mUnknown2043 = true;
+	MouseMove(mApp->mWidgetManager->mLastMouseX, mApp->mWidgetManager->mLastMouseY);
 }
 
 void Board::PlayGameMusic()
@@ -1644,4 +1782,11 @@ void Board::FallPieces()
 	else if (aWasMoving)
 		gSettleCount++;
 	MarkDirty();
+}
+
+void Board::StartLevelIntro()
+{
+	// port: 0x6c2f69, the new level's intro (the first move's search 0x6c14fc, the challenge's text and the counts of
+	// locked gems), comes next; it draws from Rand through the tutorial
+	NotPorted("Board::StartLevelIntro (0x6c2f69)");
 }

@@ -27,6 +27,12 @@ using namespace Sexy;
 
 Board* Sexy::gBoard = nullptr;
 int Sexy::gSettleCount = 0;
+MTRand Sexy::gUnknown85B970;
+
+int Sexy::Rand85B970()
+{
+	return (int)gUnknown85B970.Next();
+}
 // port: the constructor's copy comes with it; until then the table is set here
 Color Sexy::gGemColors[7] = {Color(255, 32, 32), Color(255, 255, 255), Color(0, 255, 0), Color(255, 255, 0),
 	Color(255, 0, 255), Color(255, 128, 0), Color(0, 128, 255)};
@@ -62,7 +68,7 @@ Board::Board(WinTwistApp* theApp, int theMode, int theFlags, int theUnknown)
 	for (int anId = -101; anId >= -104; anId--)
 		mUnknown37B8[anId] = anId;  // 0x6b8c49
 	gBoard = this;
-	SRand((unsigned int)time(nullptr));
+	gUnknown85B970.SRand((unsigned int)time(nullptr));
 	gUnknown85AEF0 = 0;
 	mUnknown3924 = mApp->mUnknownF85 ? 0.0f : 1.0f;
 	mUnknown1F88 = Rect(0, 0, 0, 0);

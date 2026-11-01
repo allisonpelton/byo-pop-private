@@ -144,7 +144,10 @@ public:
 	int mUnknown710 = 0;                    // +0x710
 	int mUnknown814 = 0;                    // +0x814
 	int mUnknown818 = 0;                    // +0x818
-	int mUnknown82C = 0;                    // +0x82c
+	int mUnknown82C = 0;                    // +0x82c: the tip shown, from the profile's count
+	CurvedVal mUnknown830;                  // +0x830: the tip's slide
+	SexyString mUnknown8A0;                 // +0x8a0: the tip's text
+	float mUnknown8C0 = 0;                  // +0x8c0: the tip's x
 	int mUnknown8BC = 0;                    // +0x8bc
 	int mUnknown131C = -1;                  // +0x131c
 	int mUnknown132C = 1;                   // +0x132c
@@ -161,7 +164,7 @@ public:
 		float mUnknown24 = 0;
 		float mUnknown28 = 0;
 		bool mUnknown2C = false;
-		int mUnknown30 = 0;        // not set by the constructor
+		float mUnknown30;          // +0x30: not set by the constructor; the tile's turn, 1 down to 0 (UpdateLevelUp)
 		bool mUnknown34 = false;
 		int mUnknown38 = 0;
 		float mUnknown3C = 0;
@@ -484,6 +487,8 @@ public:
 	int mUnknown37EC = 0;                   // +0x37ec
 	int mUnknown37F0 = 0;                   // +0x37f0
 	float mUnknown37F4 = 0;                   // +0x37f4
+	float mUnknown1630 = 0;                   // +0x1630: the wait to the next ring of tiles
+	int mUnknown1634 = 0;                     // +0x1634: the ring's distance from the middle
 	int mUnknown37FC = 0;                   // +0x37fc
 	TwistWidget* mUnknown3808 = nullptr;                   // +0x3808
 	int mUnknown38F0 = 0;                   // +0x38f0
@@ -652,6 +657,8 @@ public:
 	void UpdateGlows();                           // 0x6b094e
 	void UpdateCellPoints();                      // 0x6a5809: the cells' wobble
 	void UpdateLevelUp();                         // 0x6c6905
+	void FinishLevelUp();                         // 0x6bab49: the change between levels is over
+	void StartLevelIntro();                       // 0x6c2f69: the new level's intro
 	void PlayGameMusic();                         // 0x6a6a8b
 	void LevelComplete();                         // 0x6b3634
 	bool UpdateUnknown1660();                     // 0x6af497
@@ -696,6 +703,8 @@ public:
 // DAT_0085aef4: the board while there is one
 extern Board* gBoard;
 extern int gSettleCount;  // 0x84e88c: how often the board has come to rest
+extern MTRand gUnknown85B970;  // 0x85b970: a generator of its own, seeded from the time by each new board
+int Rand85B970();  // 0x6a3447
 // 0x85af08: each colour's tint, copied by the board's constructor from the table at 0x85c378 (and Color(0, 0, 0),
 // then two whites, after it)
 extern Color gGemColors[7];
