@@ -1,8 +1,9 @@
 # Mahjong Escape: Ancient Japan: where the port differs from the original
 
 The port is the original game, unmodified. This list holds every place where its code does something other than
-what `MahjongEscapeAJ.exe` does, and why. None of them has an effect a player can see. A comment at each place in
-the code names the original's address, so a grep for the address finds both sides.
+what `MahjongEscapeAJ.exe` does, and why. None of them has an effect a player can see, except the shape of full screen
+on a graphics driver set to stretch ("The device"). A comment at each place in the code names the original's address,
+so a grep for the address finds both sides.
 
 ## The device
 
@@ -19,6 +20,14 @@ host writes the setting off before the game reads it, as the framework starts ev
 The page's full screen button and the options switch it afterwards. Third, the accelerated display's software cursor is the host's cursor
 (0x42a820). Fourth, `GetTimeFormatA` and `GetNumberFormatA` (0x423450, 0x4232d0) become fixed formats: "H:mm:ss" with
 ':' and thousands grouped by three with ','. Those are the formats of an English Windows, where the game was made.
+
+Full screen keeps the desktop's resolution and shows the 800x600 screen at its own 4:3 shape, scaled and centred,
+because the framework presents every game that way. The original does this only with "Wide Screen" checked on a
+desktop at least 15% wider than 4:3 (or with `-Widescreen`, or with `-ScreenWidth` and `-ScreenHeight`, read at 0x426060). It sets
+the screen's rect at 0x432000 and maps the mouse back at 0x42cb90. Without that, the original switches the display to
+800x600 (0x432f50), and then the graphics driver's scaling decides the picture. Most drivers keep the shape, which
+looks the same as the port; a driver set to stretch fills a wide screen. The port keeps the setting, shows its
+checkbox when the original would (0x5d8e32, from the desktop's size) and saves it, but never changes the display mode.
 
 ## Memory the original leaks
 
