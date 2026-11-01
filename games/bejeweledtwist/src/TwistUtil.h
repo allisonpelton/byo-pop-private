@@ -1,11 +1,15 @@
-// The game's small helpers (0x756e97-0x757751): a signed random number and the ways it draws an image about a point.
-// They draw through gGraphicsRecorder.
+// The game's small helpers (0x756e97-0x757a41): a signed random number, the ways it draws an image about a point (through
+// gGraphicsRecorder) and the colour of a font's layer.
 #pragma once
 
+#include "Color.h"
 #include "Rect.h"
+
+#include <string>
 
 namespace Sexy {
 
+class Font;
 class Graphics;
 class Image;
 
@@ -34,5 +38,12 @@ void DrawImageCentered(Graphics* g, Image* theImage, const Rect& theSrcRect, flo
 // 0x7575c2: the same with the whole image
 void DrawImageCentered(Graphics* g, Image* theImage, float theX, float theY, double theRot, float theScaleX,
 	float theScaleY);
+
+// 0x7578ff: the colour of an ImageFont's layer, counted in the font's order (nothing if it has fewer)
+void SetFontLayerColor(Font* theFont, int theLayer, const Color& theColor);
+// 0x75796a: the colour of an ImageFont's layer, counted in the font's order (no colour at all if it has fewer)
+Color GetFontLayerColor(Font* theFont, int theLayer);
+// 0x757784: the colour of the font's layer named theName (case ignored), among the layers it draws
+void SetFontLayerColor(Font* theFont, const std::string& theName, const Color& theColor);
 
 }  // namespace Sexy

@@ -126,15 +126,52 @@ loader is still up (the loader shuts them itself).
 
 Ported: StartMainMenu, ShowMainMenu (without the board), the Gates, MenuButtonWidget, the Menu and its colour
 cycles (ColorCycle, 0x6e6e1b-0x6e70ad, four of red, yellow, green and cyan a quarter apart), the windowed-mode
-button, and the profiles' files (Profile). Not yet: the panels (MenuPanels.h has their fields and the methods the
-menu calls, which do nothing yet), the new player panel (menu +0x3d4, class NewUserPanel 0x699924-0x69ab42), the end
-of game stats (EndStats), the registration widget, the gem prerender, the app's music, and starting a game.
+button, the profiles' files (Profile), the ranks' names (Ranks), the profiles panel (ProfilePanel), the new player
+panel (NewUserPanel, menu +0x3d4, 0x699924-0x69ab42) and the game's dialogs (TwistDialog). Not yet: the high scores,
+help and options panels, the challenges, the end of game stats (EndStats), the registration widget, the gem
+prerender, the app's music, and starting a game.
 
-Open question for the profiles: the user's own users\users.dat (written 2020) stores "Allison" with a length of 4
-where WriteUTF8String (0x460fb0) writes the character count, 7; the exe's ReadUTF8String (0x461580) would then read
-"Alli". The retail exe the port follows may not be the one that wrote the file (the Steam exe differs); check with
-the original before the profile panel is ported. The port reads it as the retail exe does, and so finds no player.
+The ranks (app +0xf58, 0x739af7) come from properties\ranks.txt, one name per line in its first comma-separated field
+(quotes kept through commas, then dropped). Their points are not in the file: 0, 15, then 30 more, then 25 more each
+step than the step before. A player's rank (profile +0x1ec) is -1 until the tutorial is done ("Trainee", a game text).
+
+The new player panel's edit box is the exe's own EditWidget build (0x134 bytes), which has four more ints than the
+framework's: the clip inset (+0xc8, 4), the text's x (+0xcc, 4), the cursor's x offset (+0xd0) and the selection's
+extra width (+0xd4). Only Draw reads them; TwistEditWidget is the framework's EditWidget with that Draw.
+
+The by-name font layer colour (0x757784) looks the name up in the font's layer map, then sets the colour of every
+drawn layer made from that layer; the by-number one (0x7578ff) and its getter (0x75796a) count the font's layers.
+
+users\users.dat: the framework's ReadUTF8String did not move past the characters it read, so every name after the
+first read as junk; the exe's (0x461580) does, and the shared fix makes the framework's do the same. The user's own
+file (written 2020) stores "Allison" with a length of 4 where WriteUTF8String (0x460fb0) writes the character count,
+7; it comes from another build, and the retail exe reads it as the port now does.
+
+The dialogs. Every dialog is a TwistDialog (0x218 bytes, made by the app's NewDialog 0x75fa42, placed by its DoDialog
+0x75f2db: as wide as its buttons need and half the screen at least, its middle a little above the screen's). Its
+buttons come from mTwistButtonMode's bits (1 OK, 2 Cancel, 4 a third, id 1011), not the framework's button modes:
+the game's yes/no dialogs pass 3. It tells its own listener (+0x150, a TwistDialogListener, the app unless the caller
+sets it), and only once: a pressed button turns its mouse off. Escape answers Cancel, Return answers OK (twice, from
+KeyDown and KeyChar, as in the original). It pops up from 0.4 with SOUND_BUBBLEPOP, and the app's KillDialog
+(0x75fab7) only starts it shrinking; it leaves the app's dialogs when it is gone. The size change is drawn with
+Direct3D only, so in 2D it shows at once and goes ten updates after its button. GotFocus shows it and LostFocus hides
+it. Behind the dialogs (and the options) the app fades in a whole-screen layer (UnderDialogWidget, app +0xf7c, by
++0xf90: 0.04 an update in, 0.03 out) that darkens the screen by up to 160/255; with Direct3D it is a blurred, rippling
+copy of the screen instead. The app's own dialog answers (0x7633ea) kill the dialog; the options' (3, 4) and the
+board's (0xb, 0x28) come with them.
 
 Game texts: the original's wide texts (L"...", such as the tooltips and the dialog texts) are UTF-16 in the exe;
 gametext.py lists them as GAMETEXTW (length in bytes) and GameText.cpp converts them. Before this, every wide text
 was read as its first letter.
+
+## Deviations
+
+Each is a change without a visible effect in play.
+
+- PopCap's beta dump: after loading the players, the original reads a text file at a path on PopCap's own network
+  (0x761f11) into a buffer (app +0x1024) when it exists (0x764814). It never exists outside PopCap; the port leaves it
+  out.
+- The layer behind the dialogs (UnderDialogWidget) is never deleted by the original; the port deletes it with the app.
+- DoDialog over a dialog of the same id: the original shrinks and deletes the old one but leaves it among the app's
+  dialogs, where AddDialog would then find it deleted. The port takes it out too. No dialog of the game is ever asked
+  for twice.

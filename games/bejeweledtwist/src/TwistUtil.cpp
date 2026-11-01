@@ -4,6 +4,7 @@
 #include "Common.h"
 #include "GraphicsRecorder.h"
 #include "Image.h"
+#include "ImageFont.h"
 #include "SexyMatrix.h"
 #include "X86Math.h"
 
@@ -74,4 +75,50 @@ void Sexy::DrawImageCentered(Graphics* g, Image* theImage, float theX, float the
 {
 	DrawImageCentered(g, theImage, Rect(0, 0, theImage->mWidth, theImage->mHeight), theX, theY, theRot, theScaleX,
 		theScaleY);
+}
+
+void Sexy::SetFontLayerColor(Font* theFont, int theLayer, const Color& theColor)
+{
+	ImageFont* aFont = dynamic_cast<ImageFont*>(theFont);
+	if (aFont == nullptr)
+		return;
+	int i = 0;
+	for (FontLayer& aLayer : aFont->mFontData->mFontLayerList) {
+		if (i == theLayer) {
+			aLayer.mColorMult = theColor;
+			return;
+		}
+		i++;
+	}
+}
+
+Color Sexy::GetFontLayerColor(Font* theFont, int theLayer)
+{
+	// port: the original reads the layer list of any font as an ImageFont's; the game asks only ImageFonts
+	ImageFont* aFont = dynamic_cast<ImageFont*>(theFont);
+	if (aFont == nullptr)
+		return Color(0, 0, 0, 0);
+	int i = 0;
+	for (FontLayer& aLayer : aFont->mFontData->mFontLayerList) {
+		if (i == theLayer)
+			return aLayer.mColorMult;
+		i++;
+	}
+	return Color(0, 0, 0, 0);
+}
+
+void Sexy::SetFontLayerColor(Font* theFont, const std::string& theName, const Color& theColor)
+{
+	ImageFont* aFont = dynamic_cast<ImageFont*>(theFont);
+	if (aFont == nullptr)
+		return;
+	// The original compares the name of each layer the font draws; the framework keeps the names only in its map
+	for (ActiveFontLayer& anActive : aFont->mActiveLayerList) {
+		for (auto& anEntry : aFont->mFontData->mFontLayerMap) {
+			if (anEntry.second == anActive.mBaseFontLayer && _stricmp(anEntry.first.c_str(), theName.c_str()) == 0) {
+				anActive.mBaseFontLayer->mColorMult = theColor;
+				return;
+			}
+		}
+	}
 }

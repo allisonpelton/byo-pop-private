@@ -231,7 +231,7 @@ void Gates::Update()
 			}
 		}
 	} else {
-		mProfileButton->SetGlowOn(aMenu->mUnknown3D4 == 0 && !aMenu->mNoProfile &&
+		mProfileButton->SetGlowOn(aMenu->mNewUserPanel == nullptr && !aMenu->mNoProfile &&
 			(aMenu->mPanel == 0 || aMenu->mPanel == 1));
 		if (mLogo != nullptr && mLogo->mAlpha < 1.0f && !mOpen) {
 			mLogo->mAlpha = (float)(mLogo->mAlpha + 0.009999999776482582);
@@ -368,18 +368,18 @@ void Gates::SetOpen(bool theOpen, bool theNow)
 	mPos.SetInVal(0);
 	if (!theOpen) {
 		mSpeed = 1.0f;
-		mPos.SetCurve(GTS(0x7e2f00));
-		mSlide.SetCurve(GTS(0x7e2ee8), &mPos);
-		mSparks.SetCurve(GTS(0x7e2ec8), &mPos);
-		mOuterGlow.SetCurve(GTS(0x7e2eb0), &mPos);
-		mInnerGlow.SetCurve(GTS(0x7e2e98), &mPos);
-		mFadeLogo = false;
-	} else {
 		mPos.SetCurve(GTS(0x7e2e78));
 		mSlide.SetCurve(GTS(0x7e2e64), &mPos);
 		mSparks.SetCurve(GTS(0x7e2e50), &mPos);
 		mOuterGlow.SetCurve(GTS(0x7e2e34), &mPos);
 		mInnerGlow.SetCurve(GTS(0x7e2e1c), &mPos);
+		mFadeLogo = false;
+	} else {
+		mPos.SetCurve(GTS(0x7e2f00));
+		mSlide.SetCurve(GTS(0x7e2ee8), &mPos);
+		mSparks.SetCurve(GTS(0x7e2ec8), &mPos);
+		mOuterGlow.SetCurve(GTS(0x7e2eb0), &mPos);
+		mInnerGlow.SetCurve(GTS(0x7e2e98), &mPos);
 		if (!theNow)
 			mFadeLogo = true;
 	}

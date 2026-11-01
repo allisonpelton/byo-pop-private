@@ -12,10 +12,13 @@
 #include "Menu.h"
 #include "MenuButtonWidget.h"
 #include "Profile.h"
+#include "Ranks.h"
 #include "Res.h"
 #include "PlayButton.h"
 #include "SoundInstance.h"
 #include "SoundManager.h"
+#include "TwistDialog.h"
+#include "UnderDialogWidget.h"
 #include "Widget.h"
 #include "WidgetManager.h"
 
@@ -82,7 +85,13 @@ WinTwistApp::~WinTwistApp()
 		mWidgetManager->RemoveWidget(mWindowedButton);
 		delete mWindowedButton;
 	}
+	if (mUnderDialog != nullptr) {
+		// port: the original never deletes it
+		mWidgetManager->RemoveWidget(mUnderDialog);
+		delete mUnderDialog;
+	}
 	delete mProfile;
+	delete mRanks;
 	if (mHyperspace != nullptr) {
 		mWidgetManager->RemoveWidget(mHyperspace);
 		delete mHyperspace;
@@ -115,6 +124,7 @@ void WinTwistApp::Init()
 	LoadProperties("properties/config.xml", true, false);
 	LoadResourceManifest();
 	LoadGameTexts();
+	mRanks = new Ranks();
 
 	// The player who played last, or else the first one whose profile loads
 	SexyString aLastName;
@@ -126,7 +136,7 @@ void WinTwistApp::Init()
 			RegistryWriteString("LastProfileName", SexyStringToString(aLastName));
 		}
 	}
-	// 0x764814 then reads a text file of the player's into app +0x1024 (its use is not yet known)
+	// port: 0x764814 would then read PopCap's beta dump for the player (NOTES.md)
 
 	// Without SexyCache's pictures the loader screen comes up, with its music (0x75fc23(0xca))
 	mUseSexyCache = false;
@@ -157,6 +167,12 @@ void WinTwistApp::Init()
 		mLoaderScreen->mZOrder = 1000;
 		mWidgetManager->AddWidget(mLoaderScreen);
 	}
+	// The layer behind the dialogs (the original makes its Direct3D textures here too, which 2D never uses)
+	mUnderDialog = new UnderDialogWidget();
+	mUnderDialog->Resize(0, 0, mWidth, mHeight);
+	mUnderDialog->mZOrder = 0;
+	mWidgetManager->AddWidget(mUnderDialog);
+	mUnderDialog->SetVisible(false);
 }
 
 void WinTwistApp::PlaySample(int theSoundNum)
@@ -424,4 +440,107 @@ void WinTwistApp::UpdateFrames()
 		mLoaderScreen = nullptr;
 		mResourceManager->DeleteResources("LoadScreen");
 	}
+	// The screen darkens behind the dialogs and the options (and a paused board, which comes with the board)
+	if (mDialogMap.size() == 0 && mUnknownF44 == nullptr && mOptionsDialog == nullptr && mBoard == nullptr) {
+		float aDim = (float)(mDialogDim - 0.03);
+		if (aDim < 0.0f)
+			aDim = 0.0f;
+		mDialogDim = aDim;
+		if (aDim == 0.0f && mUnderDialog->mVisible)
+			mUnderDialog->SetVisible(false);
+	} else if (mDialogDim < 1.0f) {
+		float aDim = (float)(mDialogDim + 0.04);
+		if (aDim > 1.0f)
+			aDim = 1.0f;
+		mDialogDim = aDim;
+		if (!mUnderDialog->mVisible) {
+			if (mDialogMap.size() != 0) {
+				mWidgetManager->PutBehind(mUnderDialog, mDialogList.back());
+			} else if (mOptionsDialog != nullptr || mUnknownF44 != nullptr) {
+				mWidgetManager->PutBehind(mUnderDialog, mOptionsDialog != nullptr ? mOptionsDialog : mUnknownF44);
+			}
+			if (mFXManager != nullptr)
+				mWidgetManager->PutBehind(mFXManager, mUnderDialog);
+			mUnderDialog->SetVisible(true);
+			mUnderDialog->mUpdateCnt = 100;
+		} else {
+			mUnderDialog->MarkDirty();
+		}
+	}
+}
+
+Dialog* WinTwistApp::NewDialog(int theDialogId, bool isModal, const SexyString& theDialogHeader,
+	const SexyString& theDialogLines, const SexyString& theDialogFooter, int theButtonMode)
+{
+	TwistDialog* aDialog = new TwistDialog(IMAGE_SIZEABLEDIALOG, IMAGE_SIZEABLEBUTTON, theDialogId, isModal,
+		theDialogHeader, theDialogLines, theDialogFooter, theButtonMode);
+	aDialog->mTwistListener = this;
+	aDialog->PopUp();
+	return aDialog;
+}
+
+Dialog* WinTwistApp::DoDialog(int theDialogId, bool isModal, const SexyString& theDialogHeader,
+	const SexyString& theDialogLines, const SexyString& theDialogFooter, int theButtonMode)
+{
+	Dialog* anOldDialog = GetDialog(theDialogId);
+	if (anOldDialog != nullptr) {
+		KillDialog(theDialogId);
+		anOldDialog->mParent->RemoveWidget(anOldDialog);
+		SafeDeleteWidget(anOldDialog);
+		// port: the original leaves the old dialog among the app's dialogs, where AddDialog would find it deleted;
+		// no dialog of the game is ever asked for twice
+		mDialogMap.erase(theDialogId);
+		mDialogList.remove(anOldDialog);
+	}
+	TwistDialog* aDialog = static_cast<TwistDialog*>(
+		NewDialog(theDialogId, isModal, theDialogHeader, theDialogLines, theDialogFooter, theButtonMode));
+	double aHalf = mWidth * 0.5;
+	int aPreferred = aDialog->GetPreferredWidth();
+	aDialog->mWidth = (int)((double)aPreferred <= aHalf ? aHalf : (double)aPreferred);
+	int aHeight = aDialog->GetPreferredHeight(aDialog->mWidth);
+	aDialog->mHeight = aHeight;
+	if (mOptionsDialog != nullptr)
+		aDialog->mZOrder = mOptionsDialog->mZOrder + 1;
+	aDialog->mX = mWidth / 2 - aDialog->mWidth / 2;
+	aDialog->mY = (int)((double)(mHeight / 2) - aHeight * (double)0.55f);
+	AddDialog(theDialogId, aDialog);
+	return aDialog;
+}
+
+bool WinTwistApp::KillDialog(int theDialogId)
+{
+	Dialog* aDialog = GetDialog(theDialogId);
+	if (aDialog != nullptr)
+		static_cast<TwistDialog*>(aDialog)->Close();
+	return aDialog != nullptr;
+}
+
+void WinTwistApp::DialogButtonDepress(int theDialogId, int theButtonId)
+{
+	switch (theDialogId) {
+	case 3:
+		// The options' dialog (0x7632f7, FinishOptionsDialog) comes with the options
+		return;
+	case 4:
+		// The options' answer (0x6a028b, when not Cancel) comes with the options
+		break;
+	case 0xb:
+		// The board's question (on OK, by the game's mode: 0x6c9987 or 0x6c7a75; then 0x6af2be) comes with the board
+		DialogThirdButtonDepress(0xb);
+		return;
+	case 0x28:
+		// The original looks the dialog up and drops it; unless Cancel, it clears the profile's +0x1b0 and calls
+		// 0x734087 and 0x6c78a5, which come with the board
+		GetDialog(0x28);
+		KillDialog(0x28);
+		return;
+	case 0x2d:
+		return;
+	}
+	KillDialog(theDialogId);
+}
+
+void WinTwistApp::DialogThirdButtonDepress(int theDialogId)
+{
+	KillDialog(theDialogId);
 }

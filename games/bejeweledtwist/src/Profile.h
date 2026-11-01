@@ -60,7 +60,7 @@ public:
 	unsigned int mFlags1E0 = 0;       // +0x1e0
 	unsigned int mFlags1E4 = 0;       // +0x1e4
 	unsigned int mFlags1E8 = 0;       // +0x1e8
-	int mUnknown1EC = 0;              // +0x1ec
+	int mRank = 0;                    // +0x1ec: the rank (Ranks.h; -1 a new player's)
 	int mUnknown1F0 = 0;              // +0x1f0
 	std::vector<int> mInts1F4;        // +0x1f4: saved as shorts
 	std::vector<int> mInts204;        // +0x204: as many as mInts1F4
@@ -79,11 +79,14 @@ public:
 	bool Select(const SexyString& theName);         // 0x7354f8: saves the current player, then loads theName
 	bool SelectAny();                               // 0x7359c0: the first player that loads
 	// 0x73561d: a new player of that name (or, if the name is taken, the game's "same name" dialog)
-	void Create(const SexyString& theName);
+	bool Create(const SexyString& theName);        // false when the name is taken
 	bool AddName(const SexyString& theName);        // 0x734f91: false when the name is already in the list
 	bool RemoveName(const SexyString& theName);     // 0x73485a
 	void Delete(const SexyString& theName);         // 0x7348ec: the player and their folder
 	void ClearMap();                                // 0x734a73
+	SexyString GetName(int theIdx) const;           // 0x73447c: the list's name theIdx ("" out of range)
+	// 0x7344c1: the tutorial taken as done, at the first rank (for a player made after the tutorial's player)
+	void MarkTutorialDone();
 
 	static std::string GetUserFolder(const SexyString& theName);  // 0x73400c: "<app data>users\<file name>"
 

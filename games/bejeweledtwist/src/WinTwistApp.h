@@ -4,6 +4,7 @@
 
 #include "Rect.h"
 #include "SexyApp.h"
+#include "TwistDialogListener.h"
 
 #include <vector>
 
@@ -20,10 +21,12 @@ class Menu;
 class MenuButtonWidget;
 class PlayButton;
 class Profile;
+class Ranks;
 class SoundInstance;
+class UnderDialogWidget;
 class Widget;
 
-class WinTwistApp : public SexyApp {
+class WinTwistApp : public SexyApp, public TwistDialogListener {
 public:
 	// The three sizes of the game's art (images\1200\, images\768\, images\600\): the height of the screen it was
 	// drawn for. 2D mode always uses 600 at 800x600.
@@ -44,6 +47,7 @@ public:
 	Menu* mMainMenu = nullptr;          // +0x864
 	Gates* mGates = nullptr;            // +0xc70: the main menu's gates
 	Profile* mProfile = nullptr;        // +0x7ec: the players
+	Ranks* mRanks = nullptr;            // +0xf58: the ranks' names
 	ButtonWidget* mWindowedButton = nullptr;  // +0x91c: top right, switches to a window (hidden in one)
 	Image* mFruitImage = nullptr;       // +0x904: the fruit pictures the menu chose (comes with the board)
 	Rect mFruitRect;                    // +0x908: its first cel
@@ -56,6 +60,10 @@ public:
 	bool mPlaySamples = true;           // +0xf74: PlaySample plays (always on so far)
 	Hyperspace* mHyperspace = nullptr;  // +0xf20: the space behind every screen
 	EffectsManager* mFXManager = nullptr;  // +0xf78: the effects over the whole screen
+	UnderDialogWidget* mUnderDialog = nullptr;  // +0xf7c: darkens the screen behind the dialogs
+	float mDialogDim = 0;               // +0xf90: how dark mUnderDialog is, 0 to 1
+	Widget* mOptionsDialog = nullptr;   // +0xf40: the options while they are up (comes with the options)
+	Widget* mUnknownF44 = nullptr;      // +0xf44: another widget the screen darkens behind (not yet known)
 	bool mSoundsOff = false;            // +0x928: no sound effects (set elsewhere, not yet read)
 	SoundInstance* mUnmanagedSound = nullptr;  // +0x938: a tracked sound whose volume UpdateFrames leaves alone
 	double mSfxVolumeScale = 1.0;       // +0x948: applied to the tracked sounds
@@ -71,6 +79,17 @@ public:
 	void Init() override;               // 0x7652cc
 	void LoadingThreadProc() override;  // 0x76497d
 	void UpdateFrames() override;       // 0x765f8d
+	// 0x75fa42: every dialog is a TwistDialog that pops up, heard by the app
+	Dialog* NewDialog(int theDialogId, bool isModal, const SexyString& theDialogHeader,
+		const SexyString& theDialogLines, const SexyString& theDialogFooter, int theButtonMode) override;
+	// 0x75f2db: as wide as its buttons need (half the screen at least), a little above the middle
+	Dialog* DoDialog(int theDialogId, bool isModal, const SexyString& theDialogHeader,
+		const SexyString& theDialogLines, const SexyString& theDialogFooter, int theButtonMode) override;
+	// 0x75fab7: the dialog shrinks away first; it leaves the app's dialogs once it is gone (TwistDialog::Update)
+	bool KillDialog(int theDialogId) override;
+	using SexyApp::KillDialog;
+	void DialogButtonDepress(int theDialogId, int theButtonId) override;  // 0x7633ea (also 0x767579)
+	void DialogThirdButtonDepress(int theDialogId) override;  // 0x75f94f
 	void PlaySample(int theSoundNum) override;  // 0x7675d8
 	using SexyApp::PlaySample;
 

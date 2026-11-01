@@ -178,7 +178,7 @@ bool Profile::Load(const SexyString& theName)
 	mUnknown1DC = aBuffer.ReadLong();
 	mUnknown1B1 = aBuffer.ReadByte() != 0;
 	ReadFlags(aBuffer, aVersion, &mFlags1E8);
-	mUnknown1EC = aBuffer.ReadLong();
+	mRank = aBuffer.ReadLong();
 	mBools80.clear();
 	int aCount = aBuffer.ReadShort();
 	for (int i = aCount; i > 0; i--)
@@ -244,7 +244,7 @@ void Profile::Save()
 	aBuffer.WriteLong(mUnknown1DC);
 	aBuffer.WriteByte(mUnknown1B1);
 	WriteFlags(aBuffer, mFlags1E8);
-	aBuffer.WriteLong(mUnknown1EC);
+	aBuffer.WriteLong(mRank);
 	aBuffer.WriteShort((short)mBools80.size());
 	for (unsigned int i = 0; i < mBools80.size(); i++)
 		aBuffer.WriteBoolean(mBools80[i]);
@@ -283,7 +283,7 @@ bool Profile::SelectAny()
 	return false;
 }
 
-void Profile::Create(const SexyString& theName)
+bool Profile::Create(const SexyString& theName)
 {
 	if (!AddName(theName)) {
 		SexyString aTaken = theName;
@@ -294,7 +294,7 @@ void Profile::Create(const SexyString& theName)
 			}
 		}
 		gApp->DoDialog(0x21, true, GT(0x7e9d14), GT(0x7e9d28) + aTaken, _S(""), 1);
-		return;
+		return false;
 	}
 	Deltree(GetUserFolder(theName));
 	Save();
@@ -338,7 +338,7 @@ void Profile::Create(const SexyString& theName)
 	mFlags1E4 = 0;
 	for (int i = 0; i < 10; i++)
 		mUnknown1B4[i] = 0;
-	mUnknown1EC = -1;
+	mRank = -1;
 	mUnknown1DC = 0;
 	mFlags1E8 = 0;
 	mUnknown218 = 0;
@@ -350,6 +350,7 @@ void Profile::Create(const SexyString& theName)
 	}
 	mFlags1E8 |= 1u << 1;
 	mFlags1E8 |= 1u << 4;
+	return true;
 }
 
 bool Profile::AddName(const SexyString& theName)
@@ -410,4 +411,20 @@ bool Profile::GetBit170(int theBit) const
 void Profile::SetBit170(int theBit)
 {
 	mBits170[theBit / 8] |= (unsigned char)(0x80 >> (theBit & 7));
+}
+
+SexyString Profile::GetName(int theIdx) const
+{
+	if (theIdx > -1 && theIdx < (int)mNames.size())
+		return mNames[theIdx];
+	return _S("");
+}
+
+void Profile::MarkTutorialDone()
+{
+	SetFlag1E4(14, true);
+	SetFlag1E0(4, true);
+	SetFlag1E0(3, true);
+	mRank = 0;
+	Save();
 }

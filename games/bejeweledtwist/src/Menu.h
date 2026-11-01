@@ -19,6 +19,7 @@ class EffectsManager;
 class EndStats;
 class HelpPanel;
 class HighScoresPanel;
+class NewUserPanel;
 class OptionsPanel;
 class PlayButton;
 class ProfilePanel;
@@ -54,7 +55,7 @@ public:
 	float mGatesShut = 1.0f;           // +0x3c8: rises to 1 while the gates are shut, falls while they are open
 	float mNoBoard = 1.0f;             // +0x3cc: rises to 1 while there is no board, falls while there is
 	bool mNoProfile = true;            // +0x3d0: no player yet, or the tutorial's
-	Widget* mUnknown3D4 = nullptr;     // +0x3d4: the new player panel while it is up (comes with it)
+	NewUserPanel* mNewUserPanel = nullptr;  // +0x3d4: while it is up
 	int mPanel = PANEL_MAIN;           // +0x3d8
 	EndStats* mEndStats = nullptr;     // +0x3dc: the stats after a game
 	EffectsManager* mFXManager;        // +0x3e0: just behind the menu
@@ -86,7 +87,7 @@ public:
 	using ButtonListener::ButtonPress;
 	bool AllowChar(int theId, SexyChar theChar) override;     // 0x699dc6
 	bool AllowText(int theId, const SexyString& theText) override;  // 0x69a881
-	// 0x69baaf (EditWidgetText): the new player panel's name; comes with that panel
+	void EditWidgetText(int theId, const SexyString& theString) override;  // 0x69baaf: the new player's name
 
 	void SetPan(int theX, int theY, bool theNow);  // 0x69af49
 	void SetState(int theState);                   // 0x69b50a
@@ -99,6 +100,8 @@ public:
 	void FlipProfileButton(bool theFlipped);       // 0x699b93
 	void PlayMusic(int theMusic);                  // 0x699b45: -1 the one playing last
 	void StartGame(int theMode);                   // 0x69ba8a
+	void ShowNewUser();                            // 0x69bc9b: the new player panel, unless it is up
+	void RefreshPlayer();                          // 0x699f60: the scores and challenges for a new player
 };
 
 }  // namespace Sexy

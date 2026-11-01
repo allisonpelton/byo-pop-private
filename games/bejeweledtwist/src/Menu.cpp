@@ -14,6 +14,8 @@
 #include "MenuPanels.h"
 #include "PlayButton.h"
 #include "Profile.h"
+#include "TwistDialog.h"
+#include "TwistEditWidget.h"
 #include "Res.h"
 #include "SoundInstance.h"
 #include "WidgetManager.h"
@@ -59,7 +61,7 @@ Menu::Menu(WinTwistApp* theApp)
 	mFXManager->mZOrder = mZOrder - 1;
 	mChallengeMenu = new ChallengeMenu();
 	mAutoPlayGames = 0;
-	mUnknown3D4 = nullptr;
+	mNewUserPanel = nullptr;
 	mEndStats = nullptr;
 
 	// The loader screen's spiral button stays: it becomes the menu's
@@ -89,7 +91,7 @@ Menu::~Menu()
 	delete mHighScoresPanel;
 	delete mHelpPanel;
 	delete mOptionsPanel;
-	delete mUnknown3D4;
+	delete mNewUserPanel;
 	if (mEndStats != nullptr) {
 		mApp->mWidgetManager->RemoveWidget(mEndStats);
 		delete mEndStats;
@@ -462,12 +464,20 @@ void Menu::ButtonDepress(int theId)
 		} else {
 			SexyString aLines = mApp->GetString(GTS(0x7da198), GT(0x7da158));
 			SexyString aHeader = mApp->GetString(GTS(0x7da148), GT(0x7da12c));
-			Dialog* aDialog = mApp->DoDialog(2, true, aHeader, aLines, _S(""), Dialog::BUTTONS_YES_NO);
-			aDialog->mDialogListener = static_cast<TwistDialogListener*>(this);
+			TwistDialog* aDialog = static_cast<TwistDialog*>(mApp->DoDialog(2, true, aHeader, aLines, _S(""),
+				TwistDialog::BUTTON_MODE_YES | TwistDialog::BUTTON_MODE_NO));
+			aDialog->mTwistListener = this;
 		}
-	} else if (theId == 100 || theId == 101) {
-		// The new player panel's OK (100: its name to EditWidgetText) and cancel (101: the panel goes, when there
-		// is a player to go back to): they come with that panel
+	} else if (theId == NewUserPanel::BUTTON_OK) {
+		if (mNewUserPanel != nullptr && mNewUserPanel->mEditWidget != nullptr) {
+			SexyString aName = mNewUserPanel->mEditWidget->mString;
+			if (!aName.empty())
+				static_cast<EditListener*>(this)->EditWidgetText(0, aName);
+		}
+	} else if (theId == NewUserPanel::BUTTON_CANCEL && !mApp->mProfile->mName.empty()) {
+		RemoveWidget(mNewUserPanel);
+		mApp->SafeDeleteWidget(mNewUserPanel);
+		mNewUserPanel = nullptr;
 	}
 	mPanning = mX != mPanX || mY != mPanY;
 }
@@ -488,6 +498,64 @@ bool Menu::AllowText(int, const SexyString& theText)
 	if (theText.size() != 0 && theText[0] == ' ')
 		return false;
 	return true;
+}
+
+void Menu::EditWidgetText(int, const SexyString& theString)
+{
+	SexyString aName = Trim(theString);
+	if (aName.empty())
+		return;
+	if (mProfilePanel != nullptr)
+		mProfilePanel->mRefresh = true;
+	mApp->mWidgetManager->SetFocus(this);
+	Profile* aProfile = mApp->mProfile;
+	SexyString anOldName = aProfile->mName;
+	// port: the original first writes and clears its beta dump (0x7648d2, 0x75e95b; NOTES.md)
+	if (!aProfile->Create(aName)) {
+		// The name is taken (Create says so in a dialog): back to the player there was
+		aProfile->Select(anOldName);
+		return;
+	}
+	if (anOldName == GT(0x7da070))
+		aProfile->MarkTutorialDone();
+	aProfile->Save();
+	aProfile->SaveUsers();
+	if (mX == -mApp->mWidth && mY == -mApp->mHeight) {
+		// On the main screen the spiral button comes in, and the panel goes a half again as fast
+		mPlayButton->mImageAppear.SetCurve(GTS(0x7da090));
+		mPlayButton->mAppear.SetConstant(1.0);
+		mNewUserPanel->mSlide.mIncRate *= 1.5;
+		mApp->PlaySample(SOUND_MENU_BUTTON_CLICK);
+	} else {
+		static_cast<ButtonListener*>(this)->ButtonDepress(1);
+	}
+	mApp->mGates->SetButtonsOn(true);
+	mNewUserPanel->Hide();
+	mNewUserPanel = nullptr;
+}
+
+void Menu::ShowNewUser()
+{
+	if (mNewUserPanel != nullptr)
+		return;
+	mNewUserPanel = new NewUserPanel(this, this, !mNoProfile);
+	int aWidth = GetImageById(mNewUserPanel->mUnknownB0)->mWidth;
+	mNewUserPanel->Resize((mApp->mWidth * 3) / 2 - aWidth / 2, Ftol((double)mHeight * 0.699999988079071), aWidth,
+		mNewUserPanel->mHeight);
+	mApp->mGates->mProfileButton->SetGlowOn(false);
+	AddWidget(mNewUserPanel);
+	if (mPanel != PANEL_PROFILE) {
+		// Away from the profiles it drops in from above, and nothing else takes the mouse
+		mNewUserPanel->mSlide.SetCurve(GTS(0x7da0bc));
+		mNewUserPanel->mY = Ftol((double)mNewUserPanel->mY - (double)mApp->mHeight * 0.5);
+		mWidgetManager->AddBaseModal(mNewUserPanel);
+	}
+}
+
+void Menu::RefreshPlayer()
+{
+	mHighScoresPanel->Refresh();
+	mChallengeMenu->Unknown6E0DDB(false, true);
 }
 
 void Menu::SetPan(int theX, int theY, bool theNow)
