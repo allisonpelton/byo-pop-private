@@ -6,6 +6,7 @@
 #include "TwistWidget.h"
 #include "WinTwistApp.h"
 
+#include "CurvedVal.h"
 #include "MTRand.h"
 #include "Rect.h"
 
@@ -50,6 +51,8 @@ struct LevelValue {
 	void Read(const char* theName);  // 0x74ec7d
 	int GetCount();                  // 0x74ea57: mBase, mChange, mMin, mMax
 	int GetValue();                  // 0x74e9e8: mValueBase, mValueChange, mValueMin, mValueMax
+	void Restart() { mValue = GetCount(); mUnknown50 = false; }  // 0x74eac6
+	void RestartAtLevel();           // 0x74ead6: Restart when mFirstLevel is the board's level
 };
 
 class Board : public TwistWidget {
@@ -294,7 +297,7 @@ public:
 	int mUnknown1F7C = 0;                   // +0x1f7c
 	int mUnknown1F80 = -1;                  // +0x1f80
 	int mUnknown1F84 = -1;                  // +0x1f84
-	int mUnknown1FA8 = 0;                   // +0x1fa8
+	Image* mBackdrop = nullptr;             // +0x1fa8: imagesackdrops	wist-back<n>.png, which the game does not have
 	int mUnknown1FAC = 0;                   // +0x1fac
 	int mUnknown1FB0 = 0;                   // +0x1fb0
 	int mUnknown1FB8 = 0;                   // +0x1fb8
@@ -389,7 +392,7 @@ public:
 	int mUnknown25C8 = 0;                   // +0x25c8
 	int mUnknown25CC = 0;                   // +0x25cc
 	int mUnknown25D0 = 0;                   // +0x25d0
-	int mUnknown2624 = 0;                   // +0x2624
+	Widget* mUnknown2624 = nullptr;         // +0x2624: a widget with a state at +0x160 (not yet known)
 	bool mUnknown2628 = false;              // +0x2628
 	bool mUnknown2629 = false;              // +0x2629
 	bool mUnknown262A = false;              // +0x262a
@@ -535,6 +538,26 @@ public:
 	int mUnknown2180 = 0;                   // +0x2180
 	int mUnknown2184 = 0;                   // +0x2184
 	int mUnknown2204 = 0;                   // +0x2204
+	// Set by NewLevel (0x6bf659) and the level's progress
+	bool mUnknown164 = false;               // +0x164
+	int mUnknown208 = 0;                    // +0x208
+	int mUnknown228[8] = {};                // +0x228..+0x244
+	int mUnknown1C44 = 0;                   // +0x1c44
+	bool mUnknown1F6C = false;              // +0x1f6c
+	int mUnknown1F70 = 0;                   // +0x1f70: the level modulo 7
+	int mUnknown20F0 = 0;                   // +0x20f0
+	float mUnknown2134 = 1.0f;              // +0x2134
+	bool mUnknown21A1 = false;              // +0x21a1: past the first level
+	int mUnknown21F8 = 0;                   // +0x21f8: 100 at a level's start (0x6a3ff4)
+	bool mUnknown2201 = false;              // +0x2201
+	int mUnknown2590 = 0;                   // +0x2590: the grid's width and a quarter of a cell (0x6a49a3)
+	float mUnknown2594 = 1.0f;              // +0x2594
+	float mUnknown2598 = 1.0f;              // +0x2598
+	float mUnknown259C = 1.0f;              // +0x259c
+	std::vector<int> mBonusColors;          // +0x2648: the bonus challenge's colours (0x6bbfe4)
+	int mUnknown2658 = 0;                   // +0x2658: the bonus challenge's points
+	bool mUnknown2668 = false;              // +0x2668
+	CurvedVal mUnknown178;                  // +0x178: classic's progress curve (UpdateProgress)
 	std::vector<SexyString> mTips;          // +0x81c: properties\tips.txt, a line each
 
 	Board(WinTwistApp* theApp, int theMode, int theFlags, int theUnknown);  // 0x6c4df9
@@ -550,6 +573,14 @@ public:
 	void MakeCells();                            // 0x6a3ea2
 	void RemovePiece(Piece* thePiece, bool theDelete);  // 0x6aa076
 	void NewLevel();                             // 0x6bf659
+	void SetStat(int theStat, int theValue);     // 0x6a44e5: the game's stat and the app's copy (unless +0x37c4)
+	void ResetLevelValues();                     // 0x6a3f77: the level values that start at this level
+	void UpdateTubeProgress(bool theAtOnce);     // 0x6a434d
+	// 0x6bd78e: the tube, whether the level is done and classic's curve; theNoCheck skips 0x6bbbc2
+	void UpdateProgress(bool theNoCheck);
+	bool CheckLevelDone();                       // 0x6ab195
+	int GetBonusLevel(int theLevel) { return mGameMode == 4 ? mUnknown204 / 2000 : theLevel; }  // 0x6a6618
+	void StartBonusChallenge(int theExcludeColor);  // 0x6bbfe4: the colours of the next bonus challenge
 
 	Piece* GetPieceAt(int theRow, int theCol);   // 0x6a40c7
 	Piece* GetPieceById(int theId);              // 0x6aff38

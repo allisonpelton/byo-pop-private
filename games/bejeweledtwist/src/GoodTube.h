@@ -36,15 +36,22 @@ public:
 	Image* mFillImage2 = nullptr;        // +0x188
 	float mUnknown194 = 0;               // +0x194
 	float mUnknown198 = 0;               // +0x198
+	float mProgress = 0;                 // +0x19c: how full, 0 to 1
 	std::vector<Bubble*> mBubbles;       // +0x1a0
+	int mFillBottom = 0;                 // +0x268: where the fill starts
+	int mFillTop = 0;                    // +0x26c: where a full tube's fill ends
 	int mLevel = 0;                      // +0x288 (0x702aa6)
 	float mUnknown2D0 = 0;               // +0x2d0
 	float mUnknown2E0 = 0;               // +0x2e0: a random 0 to 1
+	int mUnknown300 = 0;                 // +0x300: the fill is drawn full while above 0
 	float mUnknown308 = 1.0f;            // +0x308
+	int mUnknown3A8 = 0;                 // +0x3a8
 	CurvedVal mUnknown338;               // +0x338
 	bool mUnknown4A8 = false;            // +0x4a8 (0x702bce)
+	int mUnknown4B8 = 0;                 // +0x4b8: blitz's time, of mUnknown4BC
 	int mUnknown4BC = 0;                 // +0x4bc (0x702b6a): blitz's 30000
 	bool mChallenge = false;             // +0x4c4 (0x70371c)
+	CurvedVal mUnknown5F0;               // +0x5f0: set by the board's bonus challenge (0x6bbfe4)
 
 	explicit GoodTube(Board* theBoard);  // 0x707b7f
 	~GoodTube() override;
@@ -61,6 +68,8 @@ public:
 	void UpdateImages();                           // 0x7030ec
 	int GetGlassTop();                             // 0x702921
 	int GetBottomTop();                            // 0x70295d
+	void SetProgress(float theProgress, bool theAtOnce);  // 0x703731
+	void UpdateFill(bool theAtOnce);               // 0x702c1b: the fill eases to the progress unless theAtOnce
 };
 
 }  // namespace Sexy

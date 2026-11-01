@@ -1,6 +1,7 @@
 // Sexy::GoodTube (0x702736-0x70a9bb): being ported, see GoodTube.h.
 #include "GoodTube.h"
 
+#include "Board.h"
 #include "GameText.h"
 #include "Res.h"
 #include "TwistUtil.h"
@@ -87,4 +88,38 @@ int GoodTube::GetBottomTop()
 	float aScale = (float)((double)gApp->mArtRes / 1200.0);
 	int aTop = Ftol((double)GetImageOffsetY(GetIdByImage(mBottomImage)) * (double)aScale);
 	return Ftol((double)aTop + (double)mUnknown2D0);
+}
+
+void GoodTube::SetProgress(float theProgress, bool theAtOnce)
+{
+	if (1.0f < theProgress)
+		theProgress = 1.0f;
+	mProgress = theProgress;
+	UpdateFill(theAtOnce);
+}
+
+void GoodTube::UpdateFill(bool theAtOnce)
+{
+	if (mUnknown15C == 1) {
+		// Blitz: the time left
+		float aProgress;
+		if (mUnknown4BC == 0)
+			aProgress = 0.0f;
+		else
+			aProgress = (float)mUnknown4B8 / (float)mUnknown4BC;
+		mProgress = aProgress;
+	}
+	int aMargin = Ftol((double)gApp->mScale * 35.0);
+	mFillTop = GetGlassTop() + aMargin;
+	int aBottom = Ftol((double)gApp->mScale * 5.0) + GetBottomTop();
+	mFillBottom = aBottom;
+	int aHeight = Ftol((double)(aBottom - mFillTop) * (double)mProgress);
+	if (0 < mUnknown300)
+		aHeight = 0;
+	float aTop = (float)(aBottom - aHeight);
+	mUnknown198 = aTop;
+	if (mBoard->mUnknown200C == 0 && !theAtOnce)
+		mUnknown194 = (float)(((double)aTop - (double)mUnknown194) / 30.0 + (double)mUnknown194);
+	else
+		mUnknown194 = aTop;
 }

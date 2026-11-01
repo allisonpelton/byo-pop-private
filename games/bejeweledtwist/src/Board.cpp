@@ -4,6 +4,7 @@
 #include "Buffer.h"
 #include "CustomBassMusicInterface.h"
 #include "EffectsManager.h"
+#include "GameText.h"
 #include "GoodTube.h"
 #include "MemoryImage.h"
 #include "Piece.h"
@@ -16,6 +17,7 @@
 #include "X86Math.h"
 
 #include <cmath>
+#include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include <ctime>
@@ -361,8 +363,191 @@ void Board::RemovePiece(Piece* thePiece, bool theDelete)
 
 void Board::NewLevel()
 {
-	// port: comes next (0x6bf659: the level's backdrop, its targets and the tube)
-	NotPorted("Board::NewLevel (0x6bf659)");
+	mUnknown3904 = false;
+	mUnknown1EC = mUnknown1E8;
+	mUnknown1508 = 0;
+	mUnknown262A = false;
+	mUnknown1C90 = false;
+	mUnknown1F70 = mUnknown158 % 7;
+	// 0x6a634f
+	mUnknown25B4 = 0;
+	mUnknown25AC = mUnknown25A8;
+	mUnknown21A3 = false;
+	delete mBackdrop;
+	mBackdrop = nullptr;
+	// 0x6f3869: images\<art size>\backdrops\twist-back<n>.png; none of the twelve is in the game's files, so the
+	// original's load always fails and the backdrop's settings (+0x15fc, the image's +0x92, +0x44 and its slots 20
+	// and 32) are never made
+	char aPath[64];
+	std::snprintf(aPath, sizeof(aPath), "images/%d/backdrops/twist-back%d.png", mApp->mArtRes, mUnknown158 % 12 + 1);
+	if (mApp->FileExists(aPath))
+		NotPorted("Board::NewLevel's backdrop (0x6bf659)");
+	mUnknown2134 = 1.0f;
+	mUnknown1C44 = 0;
+	mUnknown20F0 = 0;
+	mShineAmount = 1.0f;
+	if (0 < mUnknown158 && mGameMode != 5 && !GetUnknown23F5())
+		mUnknown2041 = true;
+	std::memset(mUnknown2234, 0, sizeof(mUnknown2234));
+	SetStat(0x24, mUnknown158);
+	mUnknown2234[0x24] = mUnknown158;
+	// port: unless the dialog at +0x2584 is up with +0x214 at 14 (it comes with its dialog)
+	if (mUnknown2584 == nullptr) {
+		if (mLevelUpPoints.GetCount() < 500)
+			mUnknown204 = 500;
+		else
+			mUnknown204 = mLevelUpPoints.GetCount();
+	}
+	int aMode = mGameMode;
+	if (aMode == 4 && 100000 <= mUnknown204)
+		mUnknown204 = 100000;
+	if (!mUnknown21A2) {
+		mUnknown14F4 = 0;
+		mUnknown1F6C = false;
+		mUnknown2201 = true;
+		mUnknown208 = mUnknown168;
+		mUnknown200 = 0;
+		if (aMode != 2 && aMode != 3)
+			mGoodTube->SetProgress(0.0f, true);
+		mUnknown214 = false;
+		mUnknown164 = false;
+		std::memset(mUnknown228, 0, sizeof(mUnknown228));
+		mUnknown1EC = 0;
+		mUnknown1E8 = 0;
+		mUnknown21F8 = 100;  // 0x6a3ff4
+		// 0x6a3e81: the tube's level (0x703431(+0x21d0)) once it is ported
+		if (mGoodTube != nullptr && mUnknown2041)
+			NotPorted("GoodTube 0x703431 (the level shown)");
+		ResetLevelValues();
+		mLockGem.Restart();
+		mCounter.Restart();
+		mSkulls.Restart();  // 0x6a4043
+		// 0x6a49a3
+		mUnknown2590 = Ftol((double)gGemWidth * (double)0.24f + (double)(mCols * gGemWidth));
+	}
+	if (mGameMode != 2)
+		UpdateProgress(false);
+	mUnknown2598 = 1.0f;
+	mUnknown2594 = 1.0f;
+	mUnknown259C = 1.0f;
+	if (1 < mUnknown158)
+		mUnknown21A1 = true;
+	if (mUnknown23F5) {
+		// 0x75fc8a
+		if (mApp->mBoard == nullptr || !mApp->mBoard->mUnknown37C4)
+			std::memset(mApp->mUnknownC74, 0, sizeof(mApp->mUnknownC74));
+	}
+	mUnknown2644 = mBonusChallengeMinGems;
+	mUnknown2668 = true;
+	if (mGameMode != 2 && (mGameMode == 3 || 1 < mUnknown158) && mBonusColors.empty())
+		StartBonusChallenge(-1);
+}
+
+void Board::SetStat(int theStat, int theValue)
+{
+	mUnknown2234[theStat] = theValue;
+	if (!mUnknown37C4)
+		mApp->mUnknownC74[theStat] = theValue;
+}
+
+void Board::ResetLevelValues()
+{
+	if (mGameMode == 4 || mGameMode == 5)
+		mCounter.mFirstChangeLevel = mUnknown158 + 10;
+	else
+		mCounter.RestartAtLevel();
+	mLockGem.RestartAtLevel();
+	mSkulls.RestartAtLevel();
+	mBadGemsOnBoardMax.RestartAtLevel();
+	mCoalGem.RestartAtLevel();
+	mDevil.RestartAtLevel();
+	if (mGameMode != 5)
+		mLevelUpPoints.RestartAtLevel();
+}
+
+void Board::UpdateTubeProgress(bool theAtOnce)
+{
+	if (mGoodTube->mUnknown15C == 0)
+		mGoodTube->SetProgress((float)mUnknown200 / (float)mUnknown204, theAtOnce);
+}
+
+void Board::UpdateProgress(bool theNoCheck)
+{
+	UpdateTubeProgress(theNoCheck);
+	CheckLevelDone();
+	if (mGameMode == 1) {
+		float aFrac = (float)mUnknown200 / (float)mUnknown204;
+		if (!mUnknown178.IsInitialized())
+			mUnknown178.SetCurve(GTS(0x7dcf78));
+		mUnknown178.SetInVal((double)aFrac);
+		mLockGem.mUnknown48 = mUnknown178.GetOutVal();
+		mCounter.mUnknown48 = mUnknown178.GetOutVal();
+	}
+	if (!theNoCheck)
+		NotPorted("Board 0x6bbbc2 (after the progress)");
+}
+
+bool Board::CheckLevelDone()
+{
+	if (mUnknown37C4 || mGameMode == 2 || mGameMode == 3)
+		return false;
+	if (!mUnknown21A3) {
+		if (mUnknown200 < mUnknown204)
+			return false;
+		if (mUnknown2624 != nullptr) {
+			// port: sets the widget's +0x160 to 3 and +0x14c off, and +0x2628, once it is known
+			NotPorted("Board::CheckLevelDone's +0x2624 widget");
+		}
+		mUnknown21A3 = true;
+		bool aBonus = !(mGameMode == 0 || mGameMode == 5);
+		if (mUnknown23F5)
+			aBonus = false;
+		if (aBonus && 0 < mUnknown158 && !mUnknown21A2)
+			mUnknown269C = GetBonusLevel(mUnknown158);
+	}
+	return true;
+}
+
+void Board::StartBonusChallenge(int theExcludeColor)
+{
+	int aMin = mBonusChallengeMinGems;
+	int aMax = mUnknown158 / 3 + aMin;
+	if (mBonusChallengeMaxGems < aMax)
+		aMax = mBonusChallengeMaxGems;
+	int aRoll = Rand();
+	int aPoints = mUnknown2640 * 100;
+	mUnknown2644 = aRoll % (aMax - aMin + 1) + aMin;
+	if (mUnknown2644 == mBonusChallengeMinGems)
+		aPoints += 1000;
+	else if (mUnknown2644 - mBonusChallengeMinGems == 1)
+		aPoints += 2500;
+	else
+		aPoints += 5000;
+	mUnknown2660 = 0;
+	mBonusColors.clear();
+	mUnknown2658 = aPoints;
+	unsigned int i = 0;
+	if (mUnknown2644 != 0) {
+		do {
+			int aColor;
+			for (;;) {
+				aColor = Rand() % 7;
+				if (i < 2 && aColor == theExcludeColor)
+					continue;
+				if (!mBonusColors.empty() && aColor == mBonusColors.back())
+					continue;
+				break;
+			}
+			mBonusColors.push_back(aColor);
+			i++;
+		} while (i < (unsigned int)mUnknown2644);
+	}
+	if (mUnknown265C == 1) {
+		mGoodTube->mUnknown3A8 = 0;
+		mUnknown2664 = -1;
+		mUnknown265C = 3;
+		mGoodTube->mUnknown5F0.SetCurve(GTS(0x7dcf14));
+	}
 }
 
 // 0x6b2b77: properties\config.xml, then the mode's own file over it (casual 0, normal 1, blitz 3, zen 4)
@@ -445,11 +630,14 @@ void LevelValue::Read(const char* theName)
 	mTurnsBetweenChange = gApp->GetInteger(aName + "TurnsBetweenChange", 0);
 	mUnknown40 = 1.0;
 	mUnknown48 = 1.0;
-	if (!mUnknown51) {
-		// 0x74eac6
-		mValue = GetCount();
-		mUnknown50 = false;
-	}
+	if (!mUnknown51)
+		Restart();
+}
+
+void LevelValue::RestartAtLevel()
+{
+	if (mFirstLevel == gBoard->mUnknown158)
+		Restart();
 }
 
 int LevelValue::GetCount()
