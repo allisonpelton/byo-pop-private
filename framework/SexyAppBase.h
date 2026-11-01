@@ -668,6 +668,9 @@ public:
 	// True in a test run (rundesk, the oracle, a -script run or a test bot): a restart does not start the game
 	// again (TakeRelaunch), and MsgBox and Popup only log their message, since nobody could answer them
 	bool IsTestRun();
+	// port: moves the mouse pointer to a point of the game (the originals' SetCursorPos). It does nothing in a test run
+	// (IsTestRun: a hidden desktop's warp could move the user's real pointer) and on the web (a page cannot move it).
+	void WarpMouse(int theX, int theY);
 };
 
 extern SexyAppBase* gSexyAppBase;

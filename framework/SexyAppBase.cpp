@@ -1713,6 +1713,21 @@ void SexyAppBase::TranslateMouse(int theWindowX, int theWindowY, int* theX, int*
 	}
 }
 
+void SexyAppBase::WarpMouse(int theX, int theY)
+{
+#ifdef __EMSCRIPTEN__
+	(void) theX;
+	(void) theY;
+#else
+	if (IsTestRun() || (mHWnd == NULL) || (mDDInterface == NULL))
+		return;
+	int aWindowX;
+	int aWindowY;
+	mDDInterface->LogicalToWindow(theX, theY, &aWindowX, &aWindowY);
+	SDL_WarpMouseInWindow(mHWnd, aWindowX, aWindowY);
+#endif
+}
+
 void SexyAppBase::MouseMoveTo(int theX, int theY)
 {
 	mLastMouseX = theX;
