@@ -30,7 +30,10 @@ def main():
         orig.append("at %d %s" % (max(ms // 10, 1), cmd))
 
     def pat(ms, cmd):
-        port.append("%d %s" % (max(ms // 10, 1), cmd))
+        # one update later than the original's: the port runs a script line "N ..." at the start of update N, before
+        # the widgets update (a screenshot shows update N-1, a click comes before update N), while origrun's `at N`
+        # holds the original after update N (its shot shows update N, its click is handled before update N+1)
+        port.append("%d %s" % (max(ms // 10, 1) + 1, cmd))
 
     def frames(name, dur, interval):
         nonlocal t

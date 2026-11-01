@@ -118,7 +118,7 @@ void NewUserDialog::Draw(Graphics* g)
 	aFrame.mY += -7 - mY;
 	aFrame.mWidth = mEdit->mMaxPixels + 23;
 	aFrame.mHeight = 44;
-	g->DrawImage(IMAGE_DIALOG_USER_ENTRY, aFrame, Rect(0, 0, IMAGE_DIALOG_USER_ENTRY->mWidth, IMAGE_DIALOG_USER_ENTRY->mHeight));
+	g->DrawImageBox(aFrame, IMAGE_DIALOG_USER_ENTRY);
 }
 
 void NewUserDialog::ButtonDepress(int theId)

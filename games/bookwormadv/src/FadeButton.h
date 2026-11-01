@@ -25,7 +25,7 @@ public:
 	int mFade = 255;                 // +0x124, the new look's alpha over the old
 	bool mClicked = false;           // +0x128, let go of while the mouse was on it (until it comes back)
 	bool mGlow = false;              // +0x12a, glows on its own (additively, between mGlowMin and mGlowMax)
-	bool mStretch = false;           // +0x12b, the cel drawn stretched to the button's size
+	bool mStretch = false;           // +0x12b, the cel drawn as a box to the button's size (DrawImageBox: corners a third of the cel, the edges and middle tiled)
 	bool mHideMouseWhenDisabled = false;  // +0x12c
 	bool mEffectOff = true;          // +0x12d: the animation neither plays nor shows
 	int mGlowAlpha = 0;              // +0x130
@@ -82,7 +82,7 @@ public:
 	// its label while it is on
 	void PopAnimStopped(int theId) override;
 
-	// ButtonWidget: 0x442b10, stretched when mStretch
+	// ButtonWidget: 0x442b10, as a box (DrawImageBox, 0x4f5ca0) when mStretch
 	void DrawButtonImage(Graphics* g, Image* theImage, const Rect& theRect, int x, int y) override;
 
 private:
