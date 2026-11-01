@@ -1337,6 +1337,17 @@ OpenInsaniquarium, a clean-room reimplementation; the framework's own 1.3 source
 **Decision (the user, 2026-10-25):** the other studios' games come at the very end, after every PopCap game, and World
 of Goo is wanted among them. Which of the others to port is decided then; each needs the user's own copy.
 
+**Octogeddon, first of the other studios' games (the user, 2026-11-01):** "Spiritually, it's a PopCap game." It is by
+All Yes Good (developer and publisher), and the user's Steam copy is app 525620 (705 MB). It doesn't use PopCap's
+framework, so it is not on this appendix's shared engines:
+- **Exe:** a 4.8 MB 32-bit `octogeddon.exe` on Direct3D 9, DirectSound and XInput, with `steam_api.dll`.
+- **Framework:** the studio's own C++ framework (`AppLib`, with `AnimLib`, `Json` and `Pak`).
+- **Class names:** MSVC RTTI names 447 classes, the game's own among them, so the names come free.
+- **Data:** one 700 MB archive, `data.ayg`, whose header starts "AYGP".
+
+The Ghidra route fits, with SDL in place of Direct3D 9 and DirectSound, as in the other ports. Placing it first among
+these games, ahead of World of Goo, follows the user's remark; they may move it.
+
 **Unity games wanted too (the user, 2026-10-27):** Steven Universe: Save the Light, Steven Universe: Unleash the Light
 and OK K.O.! Let's Play Heroes, all three of them Cartoon Network games. They come at the end with the other studios' games. The
 user's Steam copies are Unity Mono builds, with the game's own code in `Assembly-CSharp.dll` and no IL2CPP.
