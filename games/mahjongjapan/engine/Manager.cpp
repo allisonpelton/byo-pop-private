@@ -668,20 +668,6 @@ void Manager::Activate(bool theActive)
 }
 
 // 0x42bc60
-void Manager::Char(int theChar, int theRepeat, int theScan)
-{
-	ListNode* aNode = mChars;
-	while (aNode != nullptr)
-	{
-		Object* anObject = (Object*)aNode->mObj;
-		aNode = aNode->mNext;
-		if (anObject->DispatchChar(theChar, theRepeat, theScan))
-			break;
-	}
-	Draw();
-}
-
-// 0x42bcb0
 void Manager::Key(int theKey, int theRepeat, int theScan)
 {
 	ListNode* aNode = mKeys;
@@ -689,9 +675,23 @@ void Manager::Key(int theKey, int theRepeat, int theScan)
 	{
 		Object* anObject = (Object*)aNode->mObj;
 		aNode = aNode->mNext;
-		anObject->DispatchKey(theKey, theRepeat, theScan);
+		if (anObject->DispatchKey(theKey, theRepeat, theScan))
+			break;
 	}
-	if (theKey == 9)
+	Draw();
+}
+
+// 0x42bcb0
+void Manager::Char(int theChar, int theRepeat, int theScan)
+{
+	ListNode* aNode = mChars;
+	while (aNode != nullptr)
+	{
+		Object* anObject = (Object*)aNode->mObj;
+		aNode = aNode->mNext;
+		anObject->DispatchChar(theChar, theRepeat, theScan);
+	}
+	if (theChar == 9)
 	{
 		Layer* aTop = mLayers.back();
 		if ((GetHost()->InputFlags() & 4) != 0)

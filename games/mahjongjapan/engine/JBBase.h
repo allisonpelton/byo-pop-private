@@ -56,6 +56,14 @@ int FindOneOf(const std::string& theText, int theStart, const char* theSet);
 // 0x4234c0, 0x423510
 void TrimRight(std::string& theText);
 void TrimLeft(std::string& theText);
+// 0x422cb0, 0x422ce0: CString::Mid (the start and count clamped to the text)
+std::string Mid(const std::string& theText, int theFirst);
+std::string Mid(const std::string& theText, int theFirst, int theCount);
+// 0x423700: CString::Delete (the original copied past the end for a count beyond it; the callers never pass one)
+void Delete(std::string& theText, int theIndex, int theCount);
+// 0x423660, 0x423760: CString::Insert
+void Insert(std::string& theText, int theIndex, char theChar);
+void Insert(std::string& theText, int theIndex, const char* theInsert);
 
 // ShellExecuteA "open" (the app provides it; it never opens a page in a test run)
 void OpenUrl(const char* theUrl);

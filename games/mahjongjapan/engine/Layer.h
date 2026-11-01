@@ -47,7 +47,7 @@ public:
 	virtual void OnRemove() {}                     // +0x18 deleted from the stack, or the app shuts down
 	virtual void OnEntered() {}                    // +0x1c the fade to it reached black
 	virtual void OnShown() {}                      // +0x20 the fade to it ended
-	virtual void Slot24() {}                       // +0x24
+	virtual void OnTextEnter() {}                  // +0x24 Enter in a text edit (0x428060)
 
 	// 0x420950: the objects' trees, deleted
 	void DestroyObjects();

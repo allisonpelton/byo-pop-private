@@ -87,8 +87,8 @@ public:
 	bool mLayerCmdReg = false;         // +0x81 the layer's command listeners (+0x4c)
 	bool mClickReg = false;            // +0x82 the manager's click list (+0x4c)
 	bool mMoveReg = false;             // +0x83 the manager's move list (+0x50)
-	bool mCharReg = false;             // +0x84 the manager's character list (+0x54)
-	bool mKeyReg = false;              // +0x85 the manager's key list (+0x58)
+	bool mKeyReg = false;              // +0x84 the manager's key list (+0x54)
+	bool mCharReg = false;             // +0x85 the manager's character list (+0x58)
 	bool mUpdateReg = false;           // +0x86 the manager's updaters (+0x5c)
 	bool mIgnoreWhenDisabled = true;   // +0x87
 	bool mUserFlag = false;            // +0x88
@@ -113,8 +113,8 @@ public:
 	virtual void OnDragEnd(int theFlags, int theX, int theY) {}                      // +0x30
 	virtual void OnDrag(int theFlags, int theX, int theY) {}                         // +0x34
 	virtual void OnHover(bool theIn, int theFlags) {}                                // +0x38 (0x4204b0)
-	virtual bool OnChar(int theChar, int theRepeat, int theScan) { return false; }   // +0x3c
-	virtual void OnKeyDown(int theKey, int theRepeat, int theScan) {}                // +0x40
+	virtual bool OnKeyDown(int theKey, int theRepeat, int theScan) { return false; }  // +0x3c WM_KEYDOWN
+	virtual void OnChar(int theChar, int theRepeat, int theScan) {}                   // +0x40 WM_CHAR
 	virtual bool Update() { return false; }                               // +0x44 (0x4204c0) true: redraw
 	virtual bool OnTimer(int theId, int theIndex) { return false; }       // +0x48 (0x4204d0) false: stop it
 	virtual void OnVisibleChanged() {}                                    // +0x4c
@@ -175,8 +175,8 @@ public:
 	void RegLayerCmd(bool theOn);
 	void RegClick(bool theOn);
 	void RegMove(bool theOn);
-	void RegChar(bool theOn);
 	void RegKey(bool theOn);
+	void RegChar(bool theOn);
 	void RegUpdate(bool theOn);
 	// 0x41fee0: the position on the screen
 	void GetScreenPos(int* thePos);
@@ -217,8 +217,8 @@ public:
 	// 0x420570, 0x4205a0, 0x4205d0, 0x420600: the virtuals, only while the object takes input
 	bool DispatchCommand(int theCmd);
 	void DispatchHover(bool theIn, int theFlags);
-	bool DispatchChar(int theChar, int theRepeat, int theScan);
-	void DispatchKey(int theKey, int theRepeat, int theScan);
+	bool DispatchKey(int theKey, int theRepeat, int theScan);
+	void DispatchChar(int theChar, int theRepeat, int theScan);
 	// 0x420630
 	void GetPos(int* thePos) const { thePos[0] = mX; thePos[1] = mY; }
 	// 0x4206c0

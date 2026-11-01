@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """Find the vtables of MahjongEscapeAJ.exe and the virtual functions Ghidra's analysis missed.
 
-Ning Po is C++ (Pyrogon's framework and the game on it) without RTTI, so Ghidra finds no vtables, and a virtual
+Mahjong Escape is C++ (Jolly Bear's engine and the game on it) without RTTI, so Ghidra finds no vtables, and a virtual
 function that is only ever called through its vtable is never disassembled. A vtable is a run of at least two
-pointers into the program's own code (0x401000-0x418000 and 0x422b10-0x429000, the game and the framework; the
+pointers into the program's own code (0x401000-0x447000, the game, the C runtime and the engine; the
 libraries are C) in .rdata, the first of them referenced from the code (a constructor stores it in the object).
 
     python games/mahjongjapan/tools/vtables.py [--exe re/mahjongjapan/bin/MahjongEscapeAJ.exe] [--functions re/mahjongjapan/gh/functions.jsonl]

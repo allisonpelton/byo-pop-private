@@ -65,8 +65,8 @@ void Object::DestroyTree()
 	RegLayerCmd(false);
 	RegClick(false);
 	RegMove(false);
-	RegChar(false);
 	RegKey(false);
+	RegChar(false);
 	RegUpdate(false);
 	while (mTimers != nullptr)
 	{
@@ -514,21 +514,6 @@ void Object::RegMove(bool theOn)
 }
 
 // 0x41fe30
-void Object::RegChar(bool theOn)
-{
-	if (mCharReg != theOn)
-	{
-		mCharReg = theOn;
-		if (theOn)
-		{
-			mManager->AddChar(this);
-			return;
-		}
-		mManager->RemoveChar(this);
-	}
-}
-
-// 0x41fe60
 void Object::RegKey(bool theOn)
 {
 	if (mKeyReg != theOn)
@@ -540,6 +525,21 @@ void Object::RegKey(bool theOn)
 			return;
 		}
 		mManager->RemoveKey(this);
+	}
+}
+
+// 0x41fe60
+void Object::RegChar(bool theOn)
+{
+	if (mCharReg != theOn)
+	{
+		mCharReg = theOn;
+		if (theOn)
+		{
+			mManager->AddChar(this);
+			return;
+		}
+		mManager->RemoveChar(this);
 	}
 }
 
@@ -756,18 +756,18 @@ void Object::DispatchHover(bool theIn, int theFlags)
 }
 
 // 0x4205d0
-bool Object::DispatchChar(int theChar, int theRepeat, int theScan)
+bool Object::DispatchKey(int theKey, int theRepeat, int theScan)
 {
 	if (TakesInput())
-		return OnChar(theChar, theRepeat, theScan);
+		return OnKeyDown(theKey, theRepeat, theScan);
 	return false;
 }
 
 // 0x420600
-void Object::DispatchKey(int theKey, int theRepeat, int theScan)
+void Object::DispatchChar(int theChar, int theRepeat, int theScan)
 {
 	if (TakesInput())
-		OnKeyDown(theKey, theRepeat, theScan);
+		OnChar(theChar, theRepeat, theScan);
 }
 
 // 0x4206c0

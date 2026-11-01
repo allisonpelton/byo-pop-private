@@ -12,8 +12,8 @@ the Ghidra pass.
 |---|---|
 | 0x401000-0x417680 | The game (about 89 KB, 609 functions). |
 | 0x417680-0x41e1c5 | The C runtime (unaligned functions): `operator delete` 0x417680, `srand` 0x417d95, `rand` 0x417d9f (MSVC's LCG), `fopen` 0x417be7, `fclose` 0x417b1a, the entry 0x417dbd. |
-| 0x41e240-0x42cdb0 | Jolly Bear's engine above the device: the object tree, layers, the manager, fonts, files, settings, the app. |
-| 0x42cdb0-0x431a70 | Engine classes that sit on the device: the image (0x42cdb0), the font's character map (0x42efc0), the CRC32 (0x42f610), the logo screen (0x42f650), the window (0x42f990, procedure 0x42ff30), the slider (0x4309f0) and the crash handler (0x430b50-0x4319e0, not ported). |
+| 0x41e240-0x42cdb0 | Jolly Bear's engine above the device: the object tree, layers, the manager, fonts, files, settings, the app, and the widgets: the slider bar 0x426910 (vtable 0x51e298), the list box 0x426ac0 (0x51e2f4) and the text edit 0x427920 (0x51e350), which gets WM_KEYDOWN at +0x3c and WM_CHAR at +0x40. |
+| 0x42cdb0-0x431a70 | Engine classes that sit on the device: the image (0x42cdb0), the font's character map (0x42efc0), the CRC32 (0x42f610), the logo screen (0x42f650), the window (0x42f990, procedure 0x42ff30), the slider bar's thumb (0x4309f0) and the crash handler (0x430b50-0x4319e0, not ported). |
 | 0x431a70-0x438000 | The device: the display (DirectDraw/Direct3D 7, the image and font caches) and the sound object (BASS). The port replaces it with the platform (see "The device boundary"). |
 | 0x438000-0x447000 | libjpeg (the "JPEGMEM" source manager) and the PNG decoder. Not ported: stb_image decodes both. |
 | 0x447000-0x514000 | A large float-heavy library reached only through the CPU dispatch table 0x527fc8 (13 stubs at 0x42fd00-0x42fdc0, chosen by a CPUID check at 0x42fdd0/0x42fe30): software blitters in generic, MMX and SSE variants. Not ported. |
@@ -168,8 +168,8 @@ Input arrives from the window procedure: mouse move 0x42b3b0 (a drag first, then
 `PtInRect(object+0x18)` and 0x420520 "enabled"; enter and leave go through 0x42b5c0 to 0x4205a0; the hovered object's
 +0x64 is the cursor), left down 0x42b620 (message 0x201 to the click list or to the captured object +0x30), left
 double 0x42b6e0 (0x203, else as a click), left up 0x42b840 (0x202; ends a drag), right down 0x42b910 (0x204), right
-double 0x42b9b0 (0x206), right up 0x42ba70 (0x205), character 0x42bc60 (the +0x54 list until one takes it), key
-0x42bcb0 (all of +0x58; TAB moves the top layer's focus, 0x421160 forward and 0x4211f0 back with Shift) and
+double 0x42b9b0 (0x206), right up 0x42ba70 (0x205), key down 0x42bc60 (WM_KEYDOWN to the +0x54 list until one takes it),
+character 0x42bcb0 (WM_CHAR to all of +0x58; TAB moves the top layer's focus, 0x421160 forward and 0x4211f0 back with Shift) and
 activation 0x42bb90. A drag starts with 0x42b7a0(object, flags, clamp rect): flag 1 moves the object inside the
 rect (0x42bb10), flag 2 sends it the moves. 0x42cb90 maps a stretched window back to 800x600.
 

@@ -204,6 +204,63 @@ void TrimLeft(std::string& theText)
 	theText.erase(0, i);
 }
 
+// 0x422cb0
+std::string Mid(const std::string& theText, int theFirst)
+{
+	return Mid(theText, theFirst, (int)theText.size() - theFirst);
+}
+
+// 0x422ce0
+std::string Mid(const std::string& theText, int theFirst, int theCount)
+{
+	if (theFirst < 0)
+		theFirst = 0;
+	if (theCount < 0)
+		theCount = 0;
+	int aLength = (int)theText.size();
+	if (aLength < theFirst + theCount)
+		theCount = aLength - theFirst;
+	if (aLength < theFirst)
+		theCount = 0;
+	if (theCount == 0)
+		return std::string();
+	return theText.substr((size_t)theFirst, (size_t)theCount);
+}
+
+// 0x423700
+void Delete(std::string& theText, int theIndex, int theCount)
+{
+	if (theIndex < 0)
+		theIndex = 0;
+	int aLength = (int)theText.size();
+	if (0 < theCount && theIndex < aLength)
+		theText.erase((size_t)theIndex, (size_t)theCount);
+}
+
+// 0x423660
+void Insert(std::string& theText, int theIndex, char theChar)
+{
+	if (theIndex < 0)
+		theIndex = 0;
+	if ((int)theText.size() < theIndex)
+		theIndex = (int)theText.size();
+	theText.insert((size_t)theIndex, 1, theChar);
+}
+
+// 0x423760
+void Insert(std::string& theText, int theIndex, const char* theInsert)
+{
+	if (theIndex < 0)
+		theIndex = 0;
+	int aCount = theInsert == nullptr ? 0 : (int)strlen(theInsert);
+	if (0 < aCount)
+	{
+		if ((int)theText.size() < theIndex)
+			theIndex = (int)theText.size();
+		theText.insert((size_t)theIndex, theInsert, (size_t)aCount);
+	}
+}
+
 int StrICmp(const char* a, const char* b)
 {
 	while (true)

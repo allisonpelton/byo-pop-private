@@ -44,8 +44,8 @@ public:
 	ListNode* mHovers = nullptr;     // +0x48
 	ListNode* mClicks = nullptr;     // +0x4c
 	ListNode* mMoves = nullptr;      // +0x50
-	ListNode* mChars = nullptr;      // +0x54
-	ListNode* mKeys = nullptr;       // +0x58
+	ListNode* mKeys = nullptr;       // +0x54 WM_KEYDOWN, until one takes it
+	ListNode* mChars = nullptr;      // +0x58 WM_CHAR, to all
 	ListNode* mUpdaters = nullptr;   // +0x5c
 	ListNode* mAnimators = nullptr;  // +0x60 darkening layers
 	ListNode* mTransitions = nullptr;  // +0x64 layers fading in or out
@@ -88,10 +88,10 @@ public:
 	void RemoveClick(Object* theObject) { ListRemove(mClicks, theObject); }
 	void AddMove(Object* theObject) { ListAdd(mMoves, theObject); }
 	void RemoveMove(Object* theObject) { ListRemove(mMoves, theObject); }
-	void AddChar(Object* theObject) { ListAdd(mChars, theObject); }
-	void RemoveChar(Object* theObject) { ListRemove(mChars, theObject); }
 	void AddKey(Object* theObject) { ListAdd(mKeys, theObject); }
 	void RemoveKey(Object* theObject) { ListRemove(mKeys, theObject); }
+	void AddChar(Object* theObject) { ListAdd(mChars, theObject); }
+	void RemoveChar(Object* theObject) { ListRemove(mChars, theObject); }
 	void AddUpdater(Object* theObject) { ListAdd(mUpdaters, theObject); }
 	void RemoveUpdater(Object* theObject) { ListRemove(mUpdaters, theObject); }
 	// 0x42c060
@@ -153,8 +153,8 @@ public:
 	// 0x42bc50
 	void RedoHover() { mRedoHover = true; }
 	// 0x42bc60, 0x42bcb0
-	void Char(int theChar, int theRepeat, int theScan);
 	void Key(int theKey, int theRepeat, int theScan);
+	void Char(int theChar, int theRepeat, int theScan);
 	// 0x42bd30
 	int GetClock() const { return mClock; }
 	// 0x42bd40: WM_TIMER

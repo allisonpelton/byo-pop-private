@@ -4,8 +4,6 @@
 // The engine's widgets (0x426910..0x428dc0, and the slider 0x4309f0..0x430b50): the slider bar (0x426910, vtable
 // 0x51e298) with its thumb (0x4309f0, vtable 0x51e5dc), the list box (0x426ac0, vtable 0x51e2f4) and the text edit
 // (0x427920, vtable 0x51e350).
-//
-// The text edit is not translated yet: only the layers' focus call is declared for it (Widgets.cpp).
 
 #include "Object.h"
 
@@ -144,7 +142,90 @@ public:
 	int GetData(int theIndex) const { return mItems[theIndex]->mData; }
 };
 
-// 0x4287a0: the text edit's focus on or off (the layers' focus lists hold text edits only)
+// 0x427920: a line of text typed in, with a caret, a selection (from the anchor to the cursor), the clipboard and one
+// level of undo. A layer's focus list holds text edits; Enter goes to the layer (+0x24), and every change to OnChanged.
+class TextEdit : public Object
+{
+public:
+	int mTextY = 0;                  // +0x90
+	int mDisabledAlpha = 0xff;       // +0x94
+	bool mFramed = false;            // +0x98
+	Rect mFrame;                     // +0x9c
+	uint32_t mSelColour = 0xff0033;  // +0xac
+	uint32_t mFrameColour3 = 0;      // +0xb0
+	uint32_t mFrameColour1 = 0;      // +0xb4
+	uint32_t mFrameColour2 = 0;      // +0xb8
+	int mWidth;                      // +0xbc
+	int mHeight;                     // +0xc0
+	int mMaxLength;                  // +0xc4
+	Font* mFont = nullptr;           // +0xc8
+	bool mUnderline;                 // +0xcc
+	int mBlinkPeriod = 0;            // +0xd0 in updates
+	int mBlinkCount = 0;             // +0xd4
+	bool mCaretOn = false;           // +0xd8
+	std::string mText;               // +0xdc
+	std::string mUndoText;           // +0xe4
+	bool mFocused = false;           // +0xec
+	int mCursor = 0;                 // +0xf0
+	int mAnchor = -1;                // +0xf4 -1: no selection
+	int mScroll = 0;                 // +0xf8 the first character shown
+	int mUndoKind = -1;              // +0xfc 0 moved, 1 deleted, 2 typed, 3 pasted (-1 after an undo)
+	int mUndoPos = 0;                // +0x100
+	int mUndoInserted = 0;           // +0x104
+	int mUndoDeleted = 0;            // +0x108
+	bool mNoWidthCheck = false;      // +0x10c the text may grow past mWidth
+
+	// 0x427920
+	TextEdit(int theWidth, int theHeight, int theMaxLength, bool theUnderline);
+	// 0x427a20, 0x427a40
+	~TextEdit() override {}
+
+	void Draw() override;                                              // 0x427b60
+	void Init() override;                                              // 0x427fa0
+	bool OnLButtonDown(int theFlags, int theX, int theY) override;     // 0x428490
+	bool OnLButtonDblClk(int theFlags, int theX, int theY) override;   // 0x428550
+	void OnDragEnd(int theFlags, int theX, int theY) override;         // 0x428500
+	void OnDrag(int theFlags, int theX, int theY) override;            // 0x428510
+	bool OnKeyDown(int theKey, int theRepeat, int theScan) override;   // 0x428210
+	void OnChar(int theChar, int theRepeat, int theScan) override;     // 0x428060
+	bool Update() override;                                            // 0x428010 the caret blinks
+	virtual void OnChanged(const char* theText) {}                     // +0x58 (0x428dc0)
+
+	// 0x427ab0
+	std::string GetText() const { return mText; }
+	// 0x427ae0
+	void SetSelColour(uint32_t theColour) { mSelColour = theColour; }
+	// 0x427af0
+	void SetFrame(uint32_t theColour1, uint32_t theColour2, uint32_t theColour3);
+	// 0x427b20
+	void SetFont(int theFontImage, int theFontText, int theTextY, int theDisabledAlpha);
+	// 0x4287a0: on, the whole text is selected
+	void SetFocus(bool theFocus);
+
+	// 0x4285d0, 0x428640
+	int WordEnd(int thePos);
+	int WordStart(int thePos);
+	// 0x4286b0: the character position at theX
+	int HitTest(int theX);
+	// 0x4287f0
+	bool DeleteSelection();
+	// 0x428840
+	bool Copy();
+	// 0x4288e0
+	void RecordUndo(int theKind, int theArg);
+	// 0x428a40
+	void Undo();
+	// 0x428b00
+	void Changed();
+	// 0x428b30
+	bool Cut();
+	// 0x428b70
+	bool Paste();
+	// 0x428c90: theText may replace the selection (the length, and the width unless mNoWidthCheck)
+	bool Fits(const std::string& theText);
+};
+
+// 0x4287a0 through a layer's focus list (it holds text edits only)
 void SetObjectFocus(Object* theObject, bool theFocus);
 
 } // namespace jb
