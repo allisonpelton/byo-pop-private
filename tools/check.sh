@@ -491,6 +491,16 @@ mummymaze_game() {  # <name> <bot arguments>...: a bot game; prints the last res
 	grep -E '^(game over|victory|tutorial done|stalled|cap reached)' "$d/log.txt" 2>/dev/null | tail -n 1
 }
 
+mummymaze_resume() {  # a game saved before its clock starts, then continued: the time of the level must be small (a negative saved time once came out near 2^32 / 100 s)
+	local d="$OUT/mummymaze/resume" t
+	rm -rf "$d"; mkdir -p "$d"
+	timeout 300 "$W/build/native/mummymaze.exe" -userdir="$d/user" -fast -seed=1 -autoplay=3 -autoplaygames=1 -autoplaysave=3 -autoplaycap=3000 -autoplaylog="$d/log1.txt" > "$d/stdout1.txt" 2> "$d/stderr1.txt"
+	timeout 300 "$W/build/native/mummymaze.exe" -userdir="$d/user" -fast -seed=1 -autoplay=3 -autoplaygames=1 -autoplaylevels=1 -autoplaycontinue -autoplaycap=60000 -autoplaylog="$d/log2.txt" > "$d/stdout2.txt" 2> "$d/stderr2.txt"
+	t="$(grep -m1 'level time' "$d/log2.txt" | awk '{print $3}')"
+	MM_RESUME="resume: level time ${t:-none}"
+	[ -n "$t" ] && [ "$t" -gt -1000 ] && [ "$t" -lt 1000 ]
+}
+
 suite_mummymaze() {
 	local st=0 a b c t r v
 	need_assets mummymaze || return 1
@@ -506,8 +516,9 @@ suite_mummymaze() {
 	[ "$c" = "$MM_FULL" ] || st=1
 	[ "$t" = "$MM_TUTORIAL" ] || st=1
 	[ "$v" = "$MM_ADVENTURE" ] || st=1
+	mummymaze_resume || st=1
 	if diff -rq "$OUT/mummymaze/classic/shots" "$OUT/mummymaze/classic2/shots" >> "$1" 2>&1 && cmp -s "$OUT/mummymaze/classic/log.txt" "$OUT/mummymaze/classic2/log.txt" && [ "$a" = "$r" ]; then r="rerun identical"; else r="RERUN DIFFERS"; st=1; fi
-	SUMMARY="classic ${a#game over: }; tips ${b#game over: }; full ${c}; adventure ${v}; ${t}; $r"
+	SUMMARY="classic ${a#game over: }; tips ${b#game over: }; full ${c}; adventure ${v}; ${t}; $MM_RESUME; $r"
 	[ $st -eq 0 ] || SUMMARY="$SUMMARY (expected classic '$MM_CLASSIC', tips '$MM_TIPS', full '$MM_FULL', tutorial '$MM_TUTORIAL', adventure '$MM_ADVENTURE')"
 	return $st
 }
