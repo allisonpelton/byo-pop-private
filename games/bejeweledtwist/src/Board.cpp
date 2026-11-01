@@ -792,8 +792,9 @@ void Board::StartLevel()
 			mUnknown2042 = true;
 		}
 	}
-	// port: SaveGame (0x6b0d91) into mSaveBuffer and the tube's layout (0x6b3da8) come next; neither draws from Rand
-	NotPorted("Board::StartLevel: SaveGame and the tube's layout");
+	// (onto whatever mSaveBuffer holds: StartLevel does not clear it)
+	SaveGame(&mSaveBuffer, false);
+	LayoutTube();
 }
 
 bool Board::ReadSaveHeader(Buffer& theBuffer, int* theVersion, int* theMode, int* theFlags, int* theUnknown154,
@@ -984,10 +985,155 @@ void Board::PlayPieceSound(Piece* thePiece, int theSoundId, float thePitch, floa
 		mApp->PlaySoundEx(theSoundId, GetPan(Ftol(thePiece->mX)), thePitch, theVolume, theTrack, true);
 }
 
-void Board::SaveGame(Buffer* theBuffer, bool theUnknown)
+namespace {
+
+// 0x74f20a: a LevelValue as a five-byte string, its value and +0x50
+std::string LevelValueBytes(const LevelValue& theValue)
 {
-	// port: 0x6b0d91 writes the game into theBuffer; it comes with the saved games and draws nothing from Rand
-	(void)theBuffer;
-	(void)theUnknown;
-	NotPorted("Board::SaveGame (0x6b0d91)");
+	std::string aBytes(5, '\0');
+	std::memcpy(&aBytes[0], &theValue.mValue, 4);
+	aBytes[4] = (char)theValue.mUnknown50;
+	return aBytes;
+}
+
+// 0x6b0785: four bytes of the board as a string
+std::string FourBytes(const void* theData)
+{
+	std::string aBytes(4, '\0');
+	std::memcpy(&aBytes[0], theData, 4);
+	return aBytes;
+}
+
+// 0x456570: the generator's state as a 2500-byte string, the index of its next word and then its 624 words
+std::string RandStateBytes(const MTRand& theRand)
+{
+	uint32_t aState[MTRAND_N];
+	int anIndex = 0;
+	theRand.GetState(aState, &anIndex);
+	std::string aBytes(4 + 4 * MTRAND_N, '\0');
+	std::memcpy(&aBytes[0], &anIndex, 4);
+	std::memcpy(&aBytes[4], aState, 4 * MTRAND_N);
+	return aBytes;
+}
+
+}  // namespace
+
+void Board::SaveGame(Buffer* theBuffer, bool theReplays)
+{
+	// (the original logs "SaveGame starts" to the debugger)
+	theBuffer->WriteLong(0x3e);
+	theBuffer->WriteLong(mGameMode);
+	theBuffer->WriteLong(mModeFlags);
+	theBuffer->WriteByte((uchar)mUnknown154);
+	theBuffer->WriteLong(mUnknown158);
+	theBuffer->WriteLong(mUnknown15C);
+	theBuffer->WriteLong(mUnknown160);
+	theBuffer->WriteBoolean(mUnknown164);
+	theBuffer->WriteLong(mUnknown168);
+	theBuffer->WriteLong(mUnknown1E8);
+	theBuffer->WriteLong(mUnknown1EC);
+	theBuffer->WriteShort(0x54);
+	for (int i = 0; i < 0x54; i++)
+		theBuffer->WriteLong(mApp->mUnknownC74[i]);
+	for (int i = 0; i < 0x54; i++)
+		theBuffer->WriteLong(mUnknown2234[i]);
+	theBuffer->WriteLong(mUnknown208);
+	theBuffer->WriteLong(mUnknown200);
+	theBuffer->WriteLong(mUnknown204);
+	theBuffer->WriteBoolean(mUnknown214);
+	theBuffer->WriteShort((short)mUnknown218);
+	theBuffer->WriteLong(mUnknown224);
+	// 0x6af04f: the level's record
+	theBuffer->WriteLong(mUnknown228[0]);
+	theBuffer->WriteLong(mUnknown228[1]);
+	theBuffer->WriteString(StrFormat(GTC(0x7dc1e0), (double)mUnknown230));
+	theBuffer->WriteLong(mUnknown234);
+	theBuffer->WriteLong(mUnknown238);
+	theBuffer->WriteLong(mUnknown23C);
+	theBuffer->WriteLong(mUnknown244);
+	theBuffer->WriteLong(mUnknown240);
+	theBuffer->WriteLong(mUpdateCnt);
+	theBuffer->WriteLong(mUnknown1FB8);
+	theBuffer->WriteLong(mUnknown1FC4);
+	theBuffer->WriteLong(Ftol((double)mUnknown1454 * 10000.0));
+	theBuffer->WriteLong(Ftol((double)mUnknown1458 * 10000.0));
+	theBuffer->WriteLong(mUnknown1464);
+	theBuffer->WriteLong(mUnknown1468);
+	theBuffer->WriteShort((short)mSparkBlock);
+	// 0x6a6584: the pieces, each cell's piece (or -1) and its +0x0
+	theBuffer->WriteLong(mRows);
+	theBuffer->WriteLong(mCols);
+	for (int aRow = 0; aRow < mRows; aRow++) {
+		for (int aCol = 0; aCol < mCols; aCol++) {
+			Piece* aPiece = GetPieceAt(aRow, aCol);
+			if (aPiece == nullptr)
+				theBuffer->WriteShort(-1);
+			else
+				aPiece->Save(theBuffer);
+			theBuffer->WriteBoolean(mCells[mCols * aRow + aCol].mUnknown0);
+		}
+	}
+	theBuffer->WriteString(RandStateBytes(gUnknown85B970));
+	theBuffer->WriteString(LevelValueBytes(mLockGem));
+	theBuffer->WriteString(LevelValueBytes(mSkulls));
+	theBuffer->WriteString(LevelValueBytes(mCounter));
+	theBuffer->WriteString(LevelValueBytes(mBadGemsOnBoardMax));
+	theBuffer->WriteString(LevelValueBytes(mUnknown1E00));
+	theBuffer->WriteString(LevelValueBytes(mLevelUpPoints));
+	theBuffer->WriteString(LevelValueBytes(mCoalGem));  // (mDevil is not saved)
+	theBuffer->WriteShort((short)mUnknown21D0);
+	theBuffer->WriteLong(mUnknown21F8);
+	theBuffer->WriteBoolean(mUnknown1F6C);
+	theBuffer->WriteShort((short)mUnknown1F70);
+	theBuffer->WriteLong(gNextPieceId);
+	theBuffer->WriteBoolean(mUnknown21DA);
+	theBuffer->WriteBoolean(mUnknown2041);
+	theBuffer->WriteLong(mUnknown14F4);
+	theBuffer->WriteLong(mUnknown14FC);
+	theBuffer->WriteLong(mUnknown21C);
+	theBuffer->WriteLong(mUnknown21DC);
+	theBuffer->WriteLong(mUnknown21E0);
+	int aCount = (int)mBonusColors.size();
+	theBuffer->WriteShort((short)aCount);
+	for (int i = 0; i < aCount; i++)
+		theBuffer->WriteShort((short)mBonusColors[i]);
+	theBuffer->WriteLong(mUnknown2658);
+	theBuffer->WriteShort((short)mUnknown2660);
+	theBuffer->WriteLong(mUnknown2644);
+	theBuffer->WriteLong(mUnknown2640);
+	theBuffer->WriteByte((uchar)mUnknown265C);
+	theBuffer->WriteLong(Ftol((double)mUnknown220 * 10000.0));
+	theBuffer->WriteLong(mUnknown3458);
+	theBuffer->WriteLong(mUnknown818);
+	if (!theReplays) {
+		theBuffer->WriteBoolean(false);
+	} else {
+		theBuffer->WriteBoolean(true);
+		for (WinTwistApp::UnknownFA0& aSlot : mApp->mUnknownFA0) {  // 0x6a3192
+			theBuffer->WriteShort((short)aSlot.mUnknown20);
+			theBuffer->WriteShort((short)aSlot.mUnknown24);
+			theBuffer->WriteLong(aSlot.mUnknown28);
+			theBuffer->WriteBuffer(aSlot.mBuffer.mData);
+		}
+	}
+	if (mUnknown2630 == 0) {
+		theBuffer->WriteBoolean(false);
+	} else {
+		// port: the puzzle's panel (+0x2630: its +0x8c, +0x90 and +0xb8, then +0x2638 and +0x2634) comes with the
+		// puzzles
+		NotPorted("Board::SaveGame: the puzzle's panel");
+		theBuffer->WriteBoolean(false);
+	}
+	theBuffer->WriteLong(mUnknown1F64);
+	theBuffer->WriteLong(mUnknown1F68);
+	theBuffer->WriteLong(mUnknown3908);
+	theBuffer->WriteLong(mUnknown390C);
+	theBuffer->WriteLong(mUnknown3910);
+	theBuffer->WriteLong(mUnknown1F0);
+	theBuffer->WriteString(FourBytes(&mUnknown3918));
+	theBuffer->WriteString(FourBytes(&mUnknown3914));
+	theBuffer->WriteBytes((const uchar*)&mUnknown3928, 4);
+	theBuffer->WriteBytes((const uchar*)&mUnknown392C, 4);
+	theBuffer->WriteLong(mUnknown1FC);
+	// (and "SaveGame ENDS")
 }

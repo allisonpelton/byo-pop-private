@@ -221,4 +221,6 @@ private:
 	void AddBreakDust(Effect* theEffect);
 };
 
+
+extern int gNextPieceId;  // 0x84f674: the next piece's id (-1 stops the count; saved with the game)
 }

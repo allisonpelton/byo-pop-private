@@ -736,10 +736,10 @@ void WinTwistApp::NewGame(int theMode, bool thePlayPressed, int theChallenge)
 	FadeOutMusic();
 	// port: the VizManager (app +0xc6c: slot 31 with true, AddWidget, +0x1a0 = 1.0, +0x1b8 = false) comes later;
 	// it is not ported yet
-	for (UnknownFC0& aSlot : mUnknownFC0) {
-		aSlot.mUnknown0 = -1;
-		aSlot.mUnknown4 = -1;
-		aSlot.mUnknown8 = 0;
+	for (UnknownFA0& aSlot : mUnknownFA0) {
+		aSlot.mUnknown20 = -1;
+		aSlot.mUnknown24 = -1;
+		aSlot.mUnknown28 = 0;
 		aSlot.mBuffer.Clear();
 	}
 	mBoard = new Board(this, theMode, 0, theChallenge);

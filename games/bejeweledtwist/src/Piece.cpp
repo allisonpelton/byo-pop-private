@@ -21,10 +21,9 @@
 
 using namespace Sexy;
 
-namespace {
+int Sexy::gNextPieceId = 0;
 
-// 0x84f674: the next piece's id (-1 stops the count)
-int gNextPieceId = 0;
+namespace {
 
 // 0x84f678
 const float kTwoPi = 6.2831855f;

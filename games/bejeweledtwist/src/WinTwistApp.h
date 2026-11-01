@@ -90,14 +90,14 @@ public:
 	// +0x758 (the framework's): the copy is registered, set from the wrapper and a "NoReg" file; the user's copies
 	// are full versions
 	bool mRegistered = true;
-	// +0xfc0: three of them, cleared by every new game (0x760492)
-	struct UnknownFC0 {
-		int mUnknown0 = -1;
-		int mUnknown4 = -1;
-		int mUnknown8 = 0;
-		Buffer mBuffer;  // +0xc
+	// +0xfa0: three of them (0x2c bytes each), cleared by every new game (0x760492), saved with the game (0x6a3192)
+	struct UnknownFA0 {
+		Buffer mBuffer;
+		int mUnknown20 = -1;  // +0x20 (saved as a short)
+		int mUnknown24 = -1;  // +0x24 (saved as a short)
+		int mUnknown28 = 0;   // +0x28
 	};
-	UnknownFC0 mUnknownFC0[3];
+	UnknownFA0 mUnknownFA0[3];
 	bool mUnknownF85 = false;           // +0xf85: StartMainMenu starts a classic game at once
 	int mAutoPlayMode = -1;             // +0x1044: -autoplay's game (1 classic, 3 blitz, 4 zen), -1 none
 	float mAutoPlayDelay = 0;           // +0x1048: -autoplay starts its game when this falls to 0

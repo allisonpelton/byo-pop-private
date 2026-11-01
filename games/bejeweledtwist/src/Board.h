@@ -160,6 +160,7 @@ public:
 	int mUnknown200 = 0;                    // +0x200
 	int mUnknown204 = 1;                    // +0x204
 	int mUnknown218 = 0;                    // +0x218
+	int mUnknown21C = 0;                    // +0x21c: only saved and loaded
 	int mUnknown224 = 0;                    // +0x224
 	int mUnknown234 = 0;                    // +0x234: the most moves in a level
 	float mUnknown248 = 0;                  // +0x248
@@ -271,6 +272,8 @@ public:
 	float mUnknown1458 = 0;                 // +0x1458: the twist's step, in degrees an update
 	float mUnknown145C = 1.0f;              // +0x145c
 	int mUnknown1460 = 0;                   // +0x1460
+	int mUnknown1464 = 0;                   // +0x1464: only saved and loaded
+	int mUnknown1468 = 0;                   // +0x1468: only saved and loaded
 	int mUnknown146C = 0;                   // +0x146c
 	int mUnknown1470 = 0;                   // +0x1470
 	TwistWidget* mUnknown1474 = nullptr;    // +0x1474: the trial's limit dialog (0x73a458), never in a full version
@@ -737,7 +740,7 @@ public:
 	bool HasChallengeFlag(int theFlag);          // the challenge's flags (+0x2630's +0x80) in a challenge
 	void MakeCounter(Piece* thePiece);           // 0x6a50a9: a bomb with the level's counter
 	void MakeCoal(Piece* thePiece);              // 0x6a5074
-	void SaveGame(Buffer* theBuffer, bool theUnknown);  // 0x6b0d91
+	void SaveGame(Buffer* theBuffer, bool theReplays);  // 0x6b0d91: theReplays adds the app's three at +0xfa0
 	int FindMatches(unsigned int theFlags);      // 0x6cd468: bit 1 for tips, bit 2 for real; returns the matches
 	int FinishMatches(std::vector<MatchInfo>& theMatches, std::set<int>& theTipGems);
 	void MakeMatchSpecial(MatchInfo& theMatch, std::vector<Piece*>& theReset, bool thePower, bool theElectro);
