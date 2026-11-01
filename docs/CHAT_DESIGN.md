@@ -1,8 +1,9 @@
 # The chat
 
 The site has one chat room for every game, beside the game on its page. It is plain text and IRC style, with no pictures, no
-embeds, no markup, no reactions and no clickable links, because anything richer needs storage for other people's files and the
-site does not want to hold much of its players' data (the user, 2026-10-30). Today the room is a test: its messages are made up
+embeds, no markup, no reactions and no links in what people write (the one link is the tag of the game a message was sent from,
+made by the site and not by the sender), because anything richer needs storage for other people's files and the site does not want
+to hold much of its players' data (the user, 2026-10-30). Today the room is a test: its messages are made up
 and live in the visitor's browser, and the page makes no network request for it. This file says how the panel and its source
 work, and what a server built only on Cloudflare could look like when the website is launched.
 
@@ -25,13 +26,37 @@ game changes the stage's shape. Checked in the Browser pane at 1920 by 1080, 136
 768 by 1024 and 360 by 640, and at the last with a widescreen game's shape: the stage has the same size with the chat as with
 the chat hidden.
 
-A message is `{id, t, user, text}` and a line reads `HH:MM <username> text`, the time in the viewer's local time with the full
-date and time (`2026-10-30 09:05:07 UTC-6`) as the hover text of the time, and a day separator between days. A message goes in
+A message is `{id, t, user, text}`, with `{game, tag, gameTitle}` besides when it was sent from a game's page, and a line reads
+`HH:MM [BW] <username> text`, the time in the viewer's local time with the full date and time (`2026-10-30 09:05:07 UTC-6`) as
+the hover text of the time, and a day separator between days. A message goes in
 with `textContent` and text nodes only: markup, `javascript:` and URLs all stay text, and `tools/chattest.js` checks the rows
 against a DOM that throws on `innerHTML`, and the file for any way of writing markup or reaching the network. Text is one line
 of at most 500 characters: a newline or tab, the characters that hide or reorder text (zero width, bidirectional overrides) and
 the Unicode line breaks become spaces, and Enter sends. A send is limited to one a second, once in the panel and once in the
 source, as a server would do its own.
+
+**The game tag.** The `[BW]` before a username is the initials of the game the speaker is playing, so that a room for every game
+is not a Tower of Babel (the user's wish). It is the one link in the chat. The link goes to the game's page and opens in the
+same tab (clicking the tag of the page's own game reloads it; that tag has `aria-current="page"`); the full title of the game is
+its hover text; and its name for a screen reader is that title and the initials, "Bookworm Deluxe (BW)", because a link's name
+has to hold the words it shows. The brackets are for the eye. The tag is drawn as the listing page's badge is, white initials
+on the badge's colour, and every colour in `BYOPOP_WEB_BADGES` keeps white text above 4.5 to 1, which `tools/chattest.js` checks
+against the table itself, so a tag reads in both themes; in the dark theme it has a faint inner outline so that its edge shows.
+
+The panel keeps no list of games. `cmake/ByopopWeb.cmake` writes `chat-games.js` beside the pages (`byopop_web_index()`, the
+function that writes the listing page), from the same `BYOPOP_WEB_BADGES` and the same titles as the listing page's tiles and in
+their order: `var ByopopGames = [{id, page, tag, title, colour}, ...]`, with `id` the page's own game id (`PAGE.id`), `page` the
+file name of the game's page, `tag` the badge's initials and `title` the game's name. Every game page loads it before `chat.js`
+and hands it to `mount()` with its own game id; `chattest` compares the file with the badge table and with the tiles of
+`index.html` when a web build is there. The panel draws every tag from that table by the message's game id, and from nothing
+else: the address, the words and the colour come from the table, the page name has to be a file name beside the page's own
+(`javascript:`, a folder, a query or an address leaves the entry out), and the colour has to be `#rrggbb`. What a message says
+about its own tag or title is never drawn, so a stored or received message cannot make up a tag or a link. A message from a
+game the table does not know, such as one stored before tags existed or from a game the site has dropped, shows no tag and no
+link, and a page whose game is not on the listing page sends its id without a tag. A message records the game it was sent from
+as three fields: `game` (the page's id), and `tag` and `gameTitle` (the initials and the name as they were when it was sent,
+for whoever reads the records; a source puts them on from its table). Fields that are not well formed are dropped from a
+stored message and the message is kept.
 
 A username follows Discord's current rules: 2 to 32 characters, lowercase Latin letters, digits, underscore and period, and
 never two periods in a row (a period may begin or end a name). Discord's help article "New Usernames & Display Names" says so,
@@ -48,7 +73,8 @@ changing:
     connect()                 Promise of {user: {name, signedIn}, room, note, canRename, testData}
     history(limit, before)    Promise of the newest `limit` messages (before: null), or the `limit` before the message
                               with id `before`; oldest first; fewer than `limit` means that is the start
-    send(text)                Promise of the stored message, or an Error with .code: empty, long, rate (and .waitMs), name, offline
+    send(text)                Promise of the stored message, or an Error with .code: empty, long, rate (and .waitMs), name, offline;
+                              the message carries the game of the page that sent it (game, tag, gameTitle)
     onMessage(fn)             a message from anyone, the sender's own included, as a server echoes it; returns a way to stop
     onError(fn)               {code, message, fatal}; returns a way to stop
     setUsername(name)         only a source with canRename: the local one (a server takes the name from the account)
@@ -61,9 +87,11 @@ bottom, else offering "New messages below". A collapsed panel counts what came i
 
 The local source, `localSource()`, is test data from top to bottom and marked so in the code. It makes 34 messages for each of
 the four days before today and the part of today's that is past, from twelve invented usernames and 48 lines of talk about playing
-in general terms (none quotes a game); the same ones every load, made from a fixed random sequence and never stored. The
-messages the viewer sends, and the ones the source "receives" now and then (one every 20 to 60 seconds, from the invented users),
-are stored in `byopop-chat-test-messages`, newest 300, checked again as they come back in because the stored item is the
+in general terms (none quotes a game); the same ones every load, made from a fixed random sequence and never stored. Each
+message is from a game of the table: most of a user's lines from the game that user mostly plays, the rest from any, so the room
+shows a spread of games (the seed has none when there is no table). The
+messages the viewer sends (from the page's own game), and the ones the source "receives" now and then (one every 20 to 60
+seconds, from the invented users and a game of the table), are stored in `byopop-chat-test-messages`, newest 300, checked again as they come back in because the stored item is the
 viewer's to edit. Two pages of the site share that item through the `storage` event, so a message sent in one game's tab shows in
 another's: one room for every game. With storage blocked the messages last until the page closes, and the panel says so.
 
@@ -116,8 +144,10 @@ from holding a connection.
 
 The rate limits that count are in the object. It is single-threaded, so its counters are exact: one message a second and about
 twenty a minute for each user id, at most three sockets for each user, a text of at most 500 characters and a frame of at most a
-couple of kilobytes checked before it is parsed, the username checked against the rules above, and a socket closed with code 1008
-on abuse. Cloudflare's rate-limiting binding is the wrong tool for this: its limits are per Cloudflare location, "approximate" and
+couple of kilobytes checked before it is parsed, the username checked against the rules above, the game id checked against the
+site's table of games (the build writes the table as `chat-games.js`, and the Worker bundles a copy; it takes the initials and the
+title from it, never from the client, and stores an id that is not in the table as none), and a socket closed with code 1008 on
+abuse. Cloudflare's rate-limiting binding is the wrong tool for this: its limits are per Cloudflare location, "approximate" and
 "eventually consistent", with a period of only 10 or 60 seconds, and the documentation itself recommends a Durable Object for a
 strict limit. It still suits the Worker's own unauthenticated routes, such as the sign-in callback.
 
@@ -127,11 +157,12 @@ user read and not write; `ban <id>` refuses the upgrade and closes the user's so
 Bans and mutes hold the id and an expiry, nothing else. A player can ask to delete their own messages, which is a delete of
 every row with their id.
 
-About each user the server holds: their messages (id, Discord user id, the username at the time, text and time), kept for the
+About each user the server holds: their messages (id, Discord user id, the username at the time, text, time and the id of the
+game they were sent from, which is what the tag shows), kept for the
 newest 1,000 messages or 14 days, whichever is fewer, pruned by the alarm once a day; a row for a mute or a ban while it lasts; and
 a session cookie that lives in the browser, not on the server, for 30 days. It holds no email (the scope does not give it), no
 avatar, no token (revoked at once), no IP address (the code never records one; Cloudflare handles the request as it does for any
-site, and Discord sees the visitor only when they sign in), no user table, and nothing of the player's games. When a user's last
+site, and Discord sees the visitor only when they sign in), no user table, and nothing of the player's games beyond the id of the game a message was typed in: no files, saves, scores or progress. When a user's last
 message ages out, nothing about them remains.
 
 The cost at small scale, by Cloudflare's pages as they stood on 2026-10-31 (the Durable Objects pricing page says it was last updated on 18

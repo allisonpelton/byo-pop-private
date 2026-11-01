@@ -455,7 +455,11 @@ leave nothing. `tools/profilestest.js` checks it.
 Every game's page has one chat, the same room on all of them, in the `<aside id="chat">` that `web/shell.html` puts after the stage
 and `web/chat.js` fills. For now it is a test: the messages are made up, the ones a player sends stay in this browser, and the
 page makes no network request for it. `docs/CHAT_DESIGN.md` says how the panel and its source work, how it is laid out, and what a
-server made only of Cloudflare's services could look like. The part that touches the shell is small: the page's body is a
+server made only of Cloudflare's services could look like. A line reads `HH:MM [BW] <username> text`: the tag is the initials of the
+game the message was sent from, a link to that game's page with the game's full title as its hover text. The shell hands the chat
+its own game id (`PAGE.id`) and the table of the site's games, `chat-games.js`, which `byopop_web_index()` in
+`cmake/ByopopWeb.cmake` writes beside the pages from `BYOPOP_WEB_BADGES` and the listing page's titles (so a new game's badge row
+adds its tag, and the chat keeps no list of its own); a game the table lacks has no tag. The part that touches the shell is small: the page's body is a
 `.workspace` row holding the `<main>` (the stage) and the chat, and the chat goes beside the stage only when the stage keeps the
 width it has without it, else below it (the class `chat-below` on the root element), so the canvas and its scaling are never
 changed by the chat; `Module.onGameScreen` asks the chat to work that out again when a game changes the stage's shape; the
