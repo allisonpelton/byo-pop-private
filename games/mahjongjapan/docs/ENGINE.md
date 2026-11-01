@@ -13,7 +13,8 @@ the Ghidra pass.
 | 0x401000-0x417680 | The game (about 89 KB, 609 functions). |
 | 0x417680-0x41e1c5 | The C runtime (unaligned functions): `operator delete` 0x417680, `srand` 0x417d95, `rand` 0x417d9f (MSVC's LCG), `fopen` 0x417be7, `fclose` 0x417b1a, the entry 0x417dbd. |
 | 0x41e240-0x42cdb0 | Jolly Bear's engine above the device: the object tree, layers, the manager, fonts, files, settings, the app. |
-| 0x42cdb0-0x438000 | The device: DirectDraw/Direct3D 7 surfaces and textures, image loading, blitters, cursors, BASS sound and music. The port replaces this layer with the platform (see "The device boundary"). |
+| 0x42cdb0-0x431a70 | Engine classes that sit on the device: the image (0x42cdb0), the font's character map (0x42efc0), the CRC32 (0x42f610), the logo screen (0x42f650), the window (0x42f990, procedure 0x42ff30), the slider (0x4309f0) and the crash handler (0x430b50-0x4319e0, not ported). |
+| 0x431a70-0x438000 | The device: the display (DirectDraw/Direct3D 7, the image and font caches) and the sound object (BASS). The port replaces it with the platform (see "The device boundary"). |
 | 0x438000-0x447000 | libjpeg (the "JPEGMEM" source manager) and the PNG decoder. Not ported: stb_image decodes both. |
 | 0x447000-0x514000 | A large float-heavy library reached only through the CPU dispatch table 0x527fc8 (13 stubs at 0x42fd00-0x42fdc0, chosen by a CPUID check at 0x42fdd0/0x42fe30): software blitters in generic, MMX and SSE variants. Not ported. |
 | 0x514000-0x51c000 | More C runtime and STL. |
@@ -120,25 +121,101 @@ buffer, with a running checksum (0x42f5e0) over every byte; writes bytes 0x424ec
 **TextResource** (0x425430, vtable 0x51e064): a TXT resource as lines (0x425470 load as ANSI 1 or UTF-16 2; 0x425510
 next line).
 
-## Not yet mapped
+## The app
 
-The app class (vtable 0x51e3c4, constructor 0x4290c0(string ids 0x40, 0x41); the game's app 0x425e90 derives from
-it), the settings (0x426060 reads SoundsOn, SoundsVolume, MusicOn, MusicVolume, FullScreen, WideScreen,
-ActivateLinks... from the registry under Software\JollyBear), the manager (0x42a0d0 and the 0x42a350-0x42c300
-family: per-frame loop, input dispatch, the image table, the cursor 0x42c8f0/0x42c9a0 with frames of image 0x46-0x4a),
-the window classes 0x51e298/0x51e2f4/0x51e350 (23 entries), and the device below 0x42cdb0.
+The app class (vtable 0x51e3c4, constructor 0x4290c0 with the string ids 0x40 and 0x41) holds the instance (+4), the
+command line (+0xc), the window class name (+0x18), the window object (+0x2c), `Resource.dll` (+0x30) and the
+manager (+0x34, embedded). The game's app 0x425e90 (vtable 0x51e270) derives from it. Its `Init` 0x426060 takes a
+mutex, reads the settings from the registry under `HKCU\Software\JollyBear\<game>` (SoundsOn 0x527ae0, SoundsVolume
+0x5d8e28 default 100, MusicOn 0x527ae1, MusicVolume 0x5d8e2c default 50, WideScreen, FullScreen,
+HardwareAcceleration; ActivateLinks from HKLM), loads `Resource.dll` (string 0x4a), starts the manager (0x42a5f0) and
+pushes the first layer. `Save` 0x4266c0 writes the settings back. The registry helpers are 0x4291b0 (get int),
+0x429230 (get string), 0x429360 (set int), 0x4293c0 (set or delete a string) and 0x429470 (get bool); the game key is
+the app name with everything but letters, digits and spaces removed (0x429ac0). The folders (0x429800) are the
+per-user application data folder (CSIDL 0x1c, else 0x1a) and the shared one (0x23, else 0x2e, else 0x1a), each with
+`\JollyBear\<game>\` appended; command-line arguments are read by 0x429b90 (a number) and 0x429ca0 (a flag).
+
+## The manager
+
+The manager (constructor 0x42a0d0, vtable 0x51e3d8) is embedded in the app at +0x34. It owns the display (+4,
+0x431a70), the window (+0x28), the frame period in milliseconds (+8) and the sound object (+0xb0, 0x436620).
+
+Objects register in linked lists of nodes {object, next, prev} (node add 0x420710): +0x48 hover (removed by
+0x42a360), +0x4c click (0x42a3b0), +0x50 move targets (0x42a400/0x42a410), +0x54 character listeners
+(0x42a460/0x42a470), +0x58 key listeners (0x42a4c0/0x42a4d0), +0x5c per-frame updaters (0x42a520/0x42a530; each gets
+`Update(clock)` 0x420240), +0x60 animators (0x42c060; stepped by 0x420d10 with dt/3) and +0x64 layers in transition
+(stepped by 0x420d80 with dt*3/5).
+
+The layer stack is a vector at +0x3c/+0x40/+0x44, top last. 0x42a9f0 pushes a layer (optionally animating it in),
+0x42b0d0 replaces the top one, 0x42ac60 pops (0x42acb0 deleting at once, 0x42adb0 animating out), 0x42b2d0 deletes one
+layer and 0x42b340 clears the stack. A screen change with a fade is 0x42ae80(new layer): state +0xc8 goes 1 (fade
+out: alpha +0xcc from 255 down by dt/3), 3 (0x42aed0 clears the stack and pushes the layer held at +0xd0), 2 (fade in
+up to 255; +0xd4 skips the first frame) and back to 0 in 0x42b0b0, which calls the new top layer's vt+0x20 ("shown").
+
+The frame (0x42bd40) runs on the window's WM_TIMER (window vt+0x44, 0x42fc60) while the app is active (+0xd), not
+paused (+0xc) and not suspended (+0xe): the game clock +0xa4 is now minus the start time +0x18 (0x42c140 adds paused
+time to the start), `Update` 0x42be10 gets the clock and the real dt since the last frame, then the frame draws
+(0x42a820) and sleeps until base +0xa8 plus count +0xac times the period. `Update` runs the fade state machine, the
+animators, the transitions and the updaters, each list stopping when a layer was deleted (0x5d8e9d).
+
+Drawing (0x42a820) happens only when the screen was invalidated (0x527ba0, set by 0x42a7f0): every layer from the
+topmost opaque one (0x420a40) up draws itself (0x420cb0), the fade is a black fill (0x42c830) or an alpha fill
+(0x42c810 with 255 minus +0xcc), and the display presents (0x432a00). With the hardware cursor off the frame draws
+the software cursor (0x42c9a0: images 0x46, 0x47, 0x48, 0x49, 0x4a with hot spots (9,1), (1,1), (6,14), (9,1), (1,1)).
+0x42c8f0 picks the cursor: 0 arrow, 1 hand, 2 and 3 the game's own, 4 wait.
+
+Input arrives from the window procedure: mouse move 0x42b3b0 (a drag first, then the hover list by
+`PtInRect(object+0x18)` and 0x420520 "enabled"; enter and leave go through 0x42b5c0 to 0x4205a0; the hovered object's
++0x64 is the cursor), left down 0x42b620 (message 0x201 to the click list or to the captured object +0x30), left
+double 0x42b6e0 (0x203, else as a click), left up 0x42b840 (0x202; ends a drag), right down 0x42b910 (0x204), right
+double 0x42b9b0 (0x206), right up 0x42ba70 (0x205), character 0x42bc60 (the +0x54 list until one takes it), key
+0x42bcb0 (all of +0x58; TAB moves the top layer's focus, 0x421160 forward and 0x4211f0 back with Shift) and
+activation 0x42bb90. A drag starts with 0x42b7a0(object, flags, clamp rect): flag 1 moves the object inside the
+rect (0x42bb10), flag 2 sends it the moves. 0x42cb90 maps a stretched window back to 800x600.
+
+The manager's forwards to the device are 0x42c370-0x42c530 (sound) and 0x42c6b0-0x42c870 (display), listed below.
+The clipboard is 0x42c550 (get) and 0x42c5c0 (set); 0x42c660 reads the mouse buttons, Shift and Ctrl.
+
+## Engine classes on the device
+
+**Image** (0x42cdb0, vtable 0x51e3fc over 0x51e410, 0x38 bytes): +4 width, +8 height, +0xc pixels (rows bottom-up,
+as a DIB), +0x10 owns the pixels, +0x14 pitch, +0x18 bits (24 or 32), +0x1c colour key, +0x20 keyed, +0x21 prepared,
++0x24 texture tiles, +0x28/+0x2c a 32-bit copy, +0x34 the display that tracks it. 0x42cfc0(id, module) loads a
+resource of type BITMAP, then "JPG", "TGA", "PNG" (0x42d080 decodes: BMP in place 0x42d110, JPEG to BGR 0x42d160,
+TGA raw or RLE 0x42d320, PNG 0x42d580); 0x42d670 loads a file by extension; 0x42ecd0 from `Resource.dll`. The blit
+0x42dae0(x, y, source rect, x scale %, y scale %, alpha) goes to the software path 0x42dcd0, clipped to 800x600,
+scaling through a temporary buffer (0x42cec0). Fills are 0x42dff0(rect, colour) and 0x42e120(rect, alpha, colour).
+0x42eb60 makes a blank 32-bit image, 0x42ebb0 fills it and 0x42ed70 saves it as a BMP.
+
+**Character map** (0x42efc0, vtable 0x51e444): ranges of {first character, count, offsets, widths, kerning lists};
+0x42f0f0 parses a "first,width,width,..." line, 0x42f2e0 a kerning line, 0x42f4b0 looks a character up, 0x42f580
+tests it. **CRC32** 0x42f610 (table 0x527bc4), used by the checksummed files.
+
+**Logo screen** (0x42f650, vtable 0x51e448): draws images 0x4f, 0x4d, 0x50, 0x37, 0x51, 0x4e and 0x3a, waits 2000 ms
+(+0x90) and then starts the game (the app's vt+0x1c) or, when +0x9c is set, fades to layer 0x425320.
+
+**Window** (0x42f990, vtable 0x51e4a0 over 0x4306c0, 0x51e568): the window procedure 0x42ff30 dispatches the
+messages to its virtuals (WM_TIMER +0x44, mouse +0x24-+0x3c, keys +0x18/+0x20, activation +0x40). **Slider**
+(0x4309f0, vtable 0x51e5dc, a Button): a thumb dragged between +0xe4 and +0xe8 that reports 0-100 (0x430ab0,
+0x430b00).
 
 ## The device boundary
 
-The engine and the game call these device functions and nothing else below 0x42cdb0 (the port implements them on
-the platform): the image table (0x432430 get by id, 0x4326e0 load by id/type/module, 0x433aa0 size), blits
-(0x4338c0, 0x433900 tinted, 0x433870 to a rect), fills (0x42dff0 solid, 0x42e120 alpha), the font tables
-(0x42efc0, 0x42f0f0, 0x42f2e0, 0x42f4b0, 0x42f580), the checksum (0x42f5e0, 0x42f610), the cursor (0x430990,
-0x434e60, 0x434f00), the window (0x4308f0, 0x430940, 0x4309f0, 0x430b00), the screen (0x431a70, 0x432000,
-0x432350, 0x4328f0, 0x432a00, 0x432a30, 0x432be0, 0x432e90, 0x433380, 0x433490, 0x4334b0, 0x433530, 0x433740,
-0x4337a0, 0x433810, 0x434dc0), and the sound object at manager+0xb0 (0x436620 init, 0x436b20, 0x436b50, 0x436b70
-play, 0x436d50, 0x436de0, 0x436e50, 0x436ec0 sound volume, 0x436f60, 0x437010, 0x4371a0, 0x437300, 0x4373a0,
-0x437400 music volume, 0x437470, 0x4374b0).
+The port implements these on the platform; nothing else below 0x431a70 is called from above.
 
-The screen is 800x600 (0x42cb10 tests the cursor against it; 0x42cb90 maps a stretched or widescreen window back to
-it).
+The display (0x431a70, vtable 0x51e674) caches images by id in a map at +0xbc and fonts at +0xcc: 0x432430 gets an
+image by id (loading it from the given module, `Resource.dll` by default), 0x433380 loads one from a file under an id,
+0x433490 preloads, 0x4334b0 frees, 0x433530 creates a blank 32-bit image it tracks (+0xe0), 0x433740 and 0x4337a0 make
+untracked images from `Resource.dll` (the second with a colour key), 0x433810 stops tracking. The draws are 0x433870
+(by id), 0x4338c0 (an image) and 0x433900 (an image with a colour key), all as (x, y, image, source rect or null,
+x scale %, y scale %, alpha 0-255, out rect) through 0x433940; 0x433aa0 returns an image's size and format. 0x4326e0
+gets a font by id. The rest is DirectDraw: mode set 0x432000, windowed or full screen 0x432360, begin 0x4328f0,
+present 0x432a00 and 0x432a30, the cursor's saved background 0x434e60/0x434f00.
+
+The sound object (0x436620, vtable 0x51e680) wraps BASS (`BASS_Init` 44100 Hz in 0x436b20). Sounds are WAVE
+resources of `Resource.dll` kept by id in a map at +4: 0x436b70 loads one (looping or not), 0x436d50 plays it at the
+sound volume +0x14 unless muted (+0x30), 0x436de0 stops it, 0x436e50 stops all but one, 0x436ec0 sets the volume,
+0x436f60 pauses or resumes them (all or only the looping ones, except one). Music (MO3) is kept at +0x20: 0x437010
+loads it, 0x4371a0 plays it (restart flag, fade-in time), 0x437300 sets a loop point through a BASS sync, 0x437360
+stops, 0x4373a0 pauses, 0x437400 sets the music volume +0x18, 0x437470 slides it, and 0x4374b0 pauses everything
+while the app is inactive.
