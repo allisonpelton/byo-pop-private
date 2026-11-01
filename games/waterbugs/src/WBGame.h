@@ -323,6 +323,7 @@ void Rand();                                                               // 0x
 void SeedRand(int theSeed);                                                // 0x4207a0
 uint32_t RandMod(uint32_t theRange);                                       // 0x4207b0
 int RandRange(int theLow, int theHigh);                                    // 0x4207c0
+extern int gRandCalls;                                                     // the port's count of draws, for tests
 int RandValue();                                                           // the generator's state
 float Dist3(const float* a, const float* b);                               // 0x4207e0
 float SegmentDist3(const float* p, const float* a, const float* b);        // 0x420840

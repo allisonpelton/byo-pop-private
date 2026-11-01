@@ -141,7 +141,8 @@ so a dialog button is hit as well as a game that hit-tests in its own window.
   DirectInput or `GetCursorPos` and so ignores posted clicks (TipTop). Plain `click`/`key` still post messages,
   which drive the SAF/LOWOS message path. **Only inside Windows Sandbox** (`--sandbox`), as shots are: on the host
   these calls reach the user's own input desktop, whatever desktop the game is on. A host run whose script has any
-  of them is refused at the start, and each one is refused (logged) should it run on the host anyway.
+  of them is refused at the start, and each one is refused (logged) should it run on the host anyway. In the
+  sandbox `hwmove` lights no hover on a SAF game (Seven Seas, 2026-11-01): use a posted `move` for hover there.
 - `at <N> <command...>` — when the update counter reaches `N`, hold the game's window thread, run the command
   (`shot`, `click`/`rclick`/`key`/`text`/`move`/`focus`, or `burst`), then resume it. Lands on the exact update
   (the counter is polled every ~1 ms against ~10 ms updates), so the original and the port can be captured at
@@ -545,6 +546,18 @@ shot is listed in `shots/landed.tsv` with its name, its update and how sure that
 "drawn-unless-skipped", "or-earlier", or "held" for the host's held shots from before the ban). Each run starts the file afresh, so the port can take its own
 shot at the update the original's landed on.
 
+A game that draws straight to a locked screen, or whose window a wrapper such as cnc-ddraw presents through Direct3D,
+leaves nothing in the window for PrintWindow. For it a held shot can read the frame from the game's memory instead
+("surface-read (sandbox)", landed.tsv says "or-earlier (surface)"). All addresses are hex. `--surface-screen
+bitsAt,pitchAt,w,h,bpp` names two globals holding the pixel pointer and the pitch (5-6-5 at 16 bpp, 8-8-8 at 32);
+`--surface <addr>` names an Image-like header instead (pixel pointer at +0, width at +4, height at +8, pitch at +0x1c,
+bpp at +0x44, then the masks, bit counts and shifts). A surface shot needs a gate, and is refused without one:
+`--surface-eip lo,hi[,lo,hi...]` lists every function of the game that writes the locked screen (all it runs between
+its lock and unlock), and the shot waits (the game running) until the held thread is in none of them and has no return
+address into one anywhere in its stack (to the end of the stack's region, at most 64 KB; an unreadable page closes the gate); `--surface-gate <addr>` is an int that must read 0
+(a draw list's count). The pixels and `--sample a,b` values are read under the hold, the game is let go, and then the
+PNG is written. The header is refused unless the pitch is at most 16384 and no more than 64 bytes over a row.
+
 A burst still waits for each frame's update. When a capture (`PrintWindow` and writing the PNG, about 35 ms for Bookworm
 Adventures) takes longer than the burst's spacing, its frames land after their updates, and `landed.tsv` gives each
 frame's real update.
@@ -703,6 +716,7 @@ run yet; the column will be redone from those (see "Windows Sandbox").
 | bigmoney | wrapped launcher | prepares cleanly | — | has one; on needs `--dgvoodoo` (untried) | — | prepare as Bejeweled (not launched yet) |
 | bookworm | wrapped Steam exe | prepares cleanly | — | has one; on needs `--dgvoodoo` (untried) | — | prepare as Bejeweled (not launched yet) |
 | rocketmania | Steam copy | not run | — | has one; on needs `--dgvoodoo` (untried) | — | Steam copy: `Steam.dll` is auto-copied now, as for Dynomite |
+| mahjongjapan | local install | **whole stages to the ending, in the sandbox** (2026-11-01) | **yes**, 806×629 in the sandbox | has one; off (`HardwareAcceleration=0` by `--reg`) | none | JollyBear engine, windowed DirectDraw (`FullScreen=0` by `--reg`). Posted clicks need a `move` 150 ms before. Its players live in `%LOCALAPPDATA%\JollyBear\Mahjong Escape Ancient Japan`, which inside is SYSTEM's, through the 32-bit view: stage them under `sandbox-files/C/Windows/System32/config/systemprofile/AppData/Local/...`, re-signed for `C:\run\game\` (a player's checksum covers the exe's folder). The game reads the cursor with `GetCursorPos` for its hover, which posted input does not move, and `hwmove` did not light a button either in session 0 |
 | bookwormadv2 | Steam copy | not run | — | has one; on needs `--dgvoodoo` (untried) | — | not wrapped; `Steam.dll` auto-copied now |
 
 The install paths are in `tools/origrun/games.tsv`, kept out of any publish (`.publishignore`).

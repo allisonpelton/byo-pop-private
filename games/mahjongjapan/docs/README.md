@@ -82,12 +82,37 @@ natively, every stage won.
 
 The original exe, run under origrun in software mode, matched the port screen for screen through stage 1: the name
 dialog, the map, the board, the tips, the tray, the score and the level's end. The only differences were the clock
-and tiles caught in flight. Those runs stopped when the project moved the originals into Windows Sandbox (2026-11-01).
+and tiles caught in flight. In Windows Sandbox (`origrun --sandbox`, 2026-11-01) stage 1 matched again, and so did
+stages 2, 3, 6, 7, 10, 13, 19, 25, 31, 37, 43, 49, 55 and 60 with the ending, each played from the port's player saved
+before it (re-signed for the sandbox's folder: the checksum covers the exe's folder, `DEVIATIONS.md`). The maps, the
+boards and the screens after each level were identical to the pixel. What differed was the clock (the original plays
+on the wall clock, slower), animation on its own clock (the tiles a tip lights, the arrow under the free-tiles tip,
+the map's marker, the ending's next line) and the PAUSE button lit under the mouse on the port: the original tests
+the hover with `GetCursorPos` (0x42a820), and origrun's posted clicks do not move the sandbox's cursor.
 A native run that started in full screen with
 "Wide Screen" on reached stage 1's board as the windowed runs do (`DEVIATIONS.md` has how full screen is shown).
 The web build played the same 60-stage script under Node (`games/bejeweled/tools/verify/wasmrun.js game`), and
-its 121 screenshots were identical to the native run's. Not yet tested: the comparison with the original beyond
-stage 1.
+its 121 screenshots were identical to the native run's.
+
+A tour from a saved player (the main menu, the options, the four pages of instructions, the player list, the classic
+layouts, a classic game with its tip, losing and regaining the focus, pause and the in-game menu) matched the original
+in the sandbox. What differed was the menu's swinging lanterns, the classic deal and the layouts' previews (seeded from
+the clock, as in the original) and the counts that follow the deal. The web build under Node took the same 18 shots
+identical to the native ones.
+
+The sound is compared by what plays, not by the audio. origrun's DirectSound stand-in hears nothing of this game:
+the packed `bass.dll` loads DirectSound for itself. Instead `tools/bassproxy/` (built with llvm-mingw's
+`i686-w64-mingw32-clang -shared bassproxy.c bassproxy.def -o bass.dll`) goes beside a copy of the exe (`origrun
+--copy-only`, the real BASS renamed `bass_real.dll`) and logs every BASS call to `basslog.txt`. Windows Sandbox has no
+sound device, so the proxy gives `BASS_Init` BASS's "no sound" device, which plays the music but loads no sample; it
+answers for the samples itself, as playing until stopped. The port writes the same events to the file named by the
+environment's `MJ_SOUNDLOG`, and `tools/soundlog.py <basslog.txt> <port log>` matches the two by the CRC of each
+sound's data and lines them up. On 2026-11-01 the tour above (78 events) and stages 2, 6, 10 and 60 with the ending
+(166 to 402 events each) played the same sounds and music in the same order: the same samples at the same volume,
+the music's loads, fades (1100 ms), stops, pauses with the focus and the in-game pause, and its jumps to an order
+(the sync of 0x437300, which in a real-time run of the port came 46 to 330 ms after it was set, against 239 to 416 ms
+in the original: the next row of the step). The only other differences were samples the proxy kept "playing" after
+they had ended, which the game then paused and resumed.
 
 ## Mods
 

@@ -339,6 +339,8 @@ public:
 	//                                          hovered gem's crossfade from the 1x pixels, as in 1x
 	//                                          rendering, see CreateCrossfadeImage)
 	//                     screenshotfull <png> the same at the render target's size (shows HD art)
+	//                     focus lose|regain    the window loses or regains the focus, as its focus
+	//                                          event does (mute, LostFocus/GotFocus), like origrun's
 	//                     quit                 Shutdown()
 	//                     modmenu <what> ...   the mod menu (framework/ModMenu.h; a mod id with spaces in
 	//                                          "..."): open, close, page <mod> | list, enable <mod> 0|1,
