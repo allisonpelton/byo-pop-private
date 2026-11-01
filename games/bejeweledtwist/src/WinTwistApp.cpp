@@ -29,6 +29,7 @@
 #include "TwistDialog.h"
 #include "TwistUtil.h"
 #include "UnderDialogWidget.h"
+#include "VizManager.h"
 #include "Widget.h"
 #include "WidgetManager.h"
 #include "X86Math.h"
@@ -79,6 +80,8 @@ WinTwistApp::WinTwistApp()
 	delete mResourceManager;
 	mResourceManager = new CustomResourceManager(this);
 	gGraphicsRecorder = new GraphicsRecorder();
+	// 0x7606de's neighbour: made here in the original too (0x7597cc), set up by Init
+	mVizManager = new VizManager(this);
 
 	// port: the framework draws in software, so the game runs as the original does without Direct3D (0x7606de)
 	Use2DMode();
@@ -118,6 +121,10 @@ WinTwistApp::~WinTwistApp()
 		mWidgetManager->RemoveWidget(mFXManager);
 		delete mFXManager;
 	}
+	if (mVizManager != nullptr) {
+		mWidgetManager->RemoveWidget(mVizManager);
+		delete mVizManager;
+	}
 	delete gGraphicsRecorder;
 	gGraphicsRecorder = nullptr;
 	gApp = nullptr;
@@ -156,7 +163,8 @@ void WinTwistApp::Init()
 		return;
 	// 0x7653a1: unless partner.xml's MarketingMode is "LevelLock" (Steam's copy), +0x759 and +0x758 are set: a full
 	// version whose Blitz is earned by play. With LevelLock +0x758 is the wrapper's check (0x73321a) and the mode
-	// select opens Blitz at once for a registered copy; the port counts as registered
+	// select opens Blitz at once for a registered copy; the port counts as registered. (The retail exe rejects Steam's
+	// partner.xml by its signature; the user's Steam copy skips that check, so its game reads LevelLock.)
 	mUnknown759 = GetString("MarketingMode", _S("")) != _S("LevelLock");
 	LoadProperties("properties/config.xml", true, false);
 	LoadResourceManifest();
@@ -203,8 +211,10 @@ void WinTwistApp::Init()
 	mFXManager = new EffectsManager();
 	mFXManager->Resize(0, 0, mWidth, mHeight);
 	mWidgetManager->AddWidget(mFXManager);
-	// The original sets up the music visualiser (+0xc6c, z order -100) and loads the 3D models of space here; with
-	// -record or -playback it seeds both random number generators from the recording
+	// The VizManager's place (the original loads the 3D models of space here too; with -record or -playback it seeds
+	// both random number generators from the recording)
+	mVizManager->mZOrder = -100;
+	mVizManager->Resize(0, 0, mWidth, mHeight);
 	if (!mUseSexyCache) {
 		ShowHyperspace();
 		mLoaderScreen = new LoaderScreen(this);
@@ -243,8 +253,7 @@ void WinTwistApp::ShowHyperspace()
 	if (mHyperspace == nullptr)
 		mHyperspace = new Hyperspace();
 	mHyperspace->Resize(0, 0, mWidth, mHeight);
-	// The music visualiser's z order (-100) less one; the port has no visualiser yet
-	mHyperspace->mZOrder = -101;
+	mHyperspace->mZOrder = mVizManager->mZOrder - 1;
 	mHyperspace->SetTransition(0);
 	mWidgetManager->AddWidget(mHyperspace);
 }
@@ -252,8 +261,7 @@ void WinTwistApp::ShowHyperspace()
 void WinTwistApp::CreateGates()
 {
 	mGates = new Gates();
-	// The music visualiser's z order (-100) plus 15
-	mGates->mZOrder = -100 + 15;
+	mGates->mZOrder = mVizManager->mZOrder + 15;
 	mGates->Resize(mWidth / 2 - mGates->mWidth / 2, mHeight / 2 - mGates->mHeight / 2, mGates->mWidth,
 		mGates->mHeight);
 	mGates->SetOpen(true, true);
@@ -353,10 +361,10 @@ void WinTwistApp::WriteToRegistry()
 		RegistryWriteString("LastProfileName", SexyStringToString(mProfile->mName));
 	// port: HighResolution (+0x818), AlwaysUpdate (+0x81a) and ArtRes (when the options changed it, +0xf35) keep
 	// the art's size, which the port always chooses as 2D mode does; ModeSeconds0 to 3 (+0x7d4) come with the board
-	// and VizSpeed with the visualizer
 	RegistryWriteBoolean("CustomCursors", mCustomCursorsEnabled);
 	RegistryWriteBoolean("ShowHints", mShowHints);
 	RegistryWriteBoolean("DoViz", mDoViz);
+	RegistryWriteInteger("VizSpeed", Ftol(mVizManager->mUnknown1B0 * 100.0));
 }
 
 void WinTwistApp::ReadFromRegistry()
@@ -683,8 +691,9 @@ void WinTwistApp::UpdateFrames()
 			}
 		}
 	}
-	// The screen darkens behind the dialogs and the options (and a paused board, which comes with the board)
-	if (mDialogMap.size() == 0 && mUnknownF44 == nullptr && mOptionsDialog == nullptr && mBoard == nullptr) {
+	// The screen darkens behind the dialogs and the options, and while the board is paused for the player to see
+	if (mDialogMap.size() == 0 && mUnknownF44 == nullptr && mOptionsDialog == nullptr &&
+		(mBoard == nullptr || mBoard->mUnknown1574 == 0)) {
 		float aDim = (float)(mDialogDim - 0.03);
 		if (aDim < 0.0f)
 			aDim = 0.0f;
@@ -803,8 +812,10 @@ void WinTwistApp::NewGame(int theMode, bool thePlayPressed, int theChallenge)
 		SafeDeleteWidget(mBoard);
 	}
 	FadeOutMusic();
-	// port: the VizManager (app +0xc6c: slot 31 with true, AddWidget, +0x1a0 = 1.0, +0x1b8 = false) comes later;
-	// it is not ported yet
+	mVizManager->SetVisible(true);
+	mWidgetManager->AddWidget(mVizManager);
+	mVizManager->mSpeed = 1.0;
+	mVizManager->mPaused = false;
 	for (UnknownFA0& aSlot : mUnknownFA0) {
 		aSlot.mUnknown20 = -1;
 		aSlot.mUnknown24 = -1;
@@ -813,8 +824,7 @@ void WinTwistApp::NewGame(int theMode, bool thePlayPressed, int theChallenge)
 	}
 	mBoard = new Board(this, theMode, 0, theChallenge);
 	mBoard->StartGame();
-	// port: over the VizManager's z order + 10, once it is ported
-	mBoard->mZOrder = 10;
+	mBoard->mZOrder = mVizManager->mZOrder + 10;
 	mWidgetManager->AddWidget(mBoard);
 	mBoard->Resize(0, 0, mWidth, mHeight);
 	if (mHyperspace == nullptr) {
@@ -824,7 +834,7 @@ void WinTwistApp::NewGame(int theMode, bool thePlayPressed, int theChallenge)
 		mBoard->TakeHyperspace(mHyperspace);
 		mHyperspace = nullptr;
 	} else {
-		// port: the VizManager is hidden (slot 31 with false), once it is ported
+		mVizManager->SetVisible(false);
 	}
 	mBoard->StartLevel();
 }

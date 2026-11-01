@@ -15,6 +15,7 @@
 #include "TwistButton.h"
 #include "TwistUtil.h"
 #include "WidgetManager.h"
+#include "VizManager.h"
 #include "WinTwistApp.h"
 #include "X86Math.h"
 
@@ -772,7 +773,7 @@ void WheelSpin::MakeCache()
 	aG.SetFastStretch(true);
 	aG.SetLinearBlend(false);
 	aG.PushState();
-	// (the music visualiser, app +0xc6c, would draw first; the port has none)
+	gApp->mVizManager->Draw(&aG);
 	ModalFlags aFlags;
 	mWidgetManager->InitModalFlags(&aFlags);
 	gApp->mBoard->DrawAll(&aFlags, &aG);

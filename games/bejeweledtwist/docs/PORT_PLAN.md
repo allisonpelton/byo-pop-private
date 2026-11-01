@@ -77,9 +77,13 @@ the partner, drops registration and sets the marketing mode `LevelLock` (empty i
 the original (the Steam one has a local edit), and the retail folder's WineD3D wrapper DLLs and `crash.txt` are not
 part of the game.
 
-The staging script takes the retail copy first, so the port follows the retail properties for now: they belong to the
-image being decompiled. In the retail `resources.xml` every path resolves in `main.pak` except the 47 zendrop ones,
-which are only in `images\NonResize\visualizers\`. Whether the retail game finds them anyway depends on how
-CustomResourceManager rewrites the art folders (to be read); in 2D mode the visualizers are off, so it matters from
-milestone 5. Before the final comparison the port must decide which copy's properties it matches (the one the user
-plays), since `LevelLock` and the volumes change what a player sees and hears.
+In the retail `resources.xml` every path resolves in `main.pak` except the 47 zendrop ones, which are only in
+`images\NonResize\visualizers\`. CustomResourceManager (0x6f3b75) turns `images\1200\` into `images\600\` and nothing
+looks further, so the retail game cannot load them: the image comes back null and Viz2D's first draw of it fails. A
+retail copy patched so that the first Classic game takes the level's picture instead of the tutorial's quits at that
+moment under origrun (2026-11-01); unpatched, by the code, that comes at the second level of Classic or Zen.
+
+So the port matches the copy the user plays, the Steam one: the staging script takes `properties/` from the Steam copy
+when there is one and everything else (the exe image, `main.pak`, music, meshes) from the first install it finds, and
+origrun's copy of the original (`build/origrun/bjt/game`) carries the Steam `properties/` too. With them comes
+`LevelLock` (Blitz open at once, the port counting as registered) and Steam's four sound volumes.

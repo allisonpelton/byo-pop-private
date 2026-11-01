@@ -17,6 +17,11 @@ BejeweledTwist.exe is read for data only (the game's texts, by address), never r
 CDProtect launcher with the game appended; the Steam copy's is the 2008 DRM wrapper. Both inner images are carved out
 (tools/extract_game_exe.py) and staged as bejeweledtwist.exe. Not copied: compat.cfg (FEAST's GPU rules, which the
 port does not need), bass.dll, j2k-codec.dll, the uninstaller, readme, licence, install logs and *.sig files.
+
+properties/ comes from the Steam copy when there is one, whatever install the rest comes from: the port matches the
+copy the user plays (docs/PORT_PLAN.md, "Which copy's files"). The retail resources.xml names the 47 Zen visualizer
+drops by paths main.pak does not have (images/1200/NonResize/...), so the retail game quits when it first needs one;
+Steam's resources.xml names them where they are.
 """
 import argparse
 import os
@@ -34,6 +39,7 @@ DEFAULT_INSTALLS = [
     r"C:\Program Files (x86)\Steam\steamapps\common\Bejeweled Twist",
 ]
 EXE = "BejeweledTwist.exe"
+STEAM_INSTALLS = DEFAULT_INSTALLS[1:]
 LOOSE_DIRS = ["properties", "music"]
 REQUIRED = ["bejeweledtwist.exe", "properties/resources.xml", "properties/config.xml", "crystal1.p3d",
             "music/bejeweledtwist24.mo3"]
@@ -80,12 +86,14 @@ def main():
     for name, offset, size in popcap_pak.read_records(pak, 0xF7):
         write(out, name, bytes(x ^ 0xF7 for x in pak[offset:offset + size]))
         count += 1
+    props = next((c for c in STEAM_INSTALLS if os.path.isfile(os.path.join(c, "properties", "resources.xml"))), src)
     for d in LOOSE_DIRS:
-        for root, _, files in os.walk(os.path.join(src, d)):
+        base = props if d == "properties" else src
+        for root, _, files in os.walk(os.path.join(base, d)):
             for f in files:
                 if f.lower().endswith(".sig"):
                     continue
-                rel = os.path.relpath(os.path.join(root, f), src)
+                rel = os.path.relpath(os.path.join(root, f), base)
                 write(out, rel, open(os.path.join(root, f), "rb").read())
                 count += 1
     for f in os.listdir(src):
@@ -98,7 +106,7 @@ def main():
     missing = [r for r in REQUIRED if not os.path.isfile(os.path.join(out, r))]
     if missing:
         sys.exit(f"Staged {count} files but required files are missing: {missing}")
-    print(f"Staged {count} files from {src} -> {out}")
+    print(f"Staged {count} files from {src} (properties from {props}) -> {out}")
 
 
 if __name__ == "__main__":

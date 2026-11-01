@@ -33,6 +33,8 @@ public:
 	int mWorld = 4;              // +0xc5c: the level's world (0x7181b3 picks it by level)
 	CurvedVal mFlash;            // +0x1320: the white flash of a jump
 	double mWarmUp = 0;          // +0x1078: rises to 1 while idle
+	Image* mUnknown160 = nullptr;  // +0x160: the old level's picture during a 2D jump (the VizManager's)
+	int mUnknown164 = -1;        // +0x164: its id
 
 	Hyperspace();                // 0x714f98
 	~Hyperspace() override;      // 0x714e6e
@@ -44,6 +46,13 @@ public:
 
 	// 0x7181b3: sets up the jump theTransition (0 none) and the level's world
 	void SetTransition(int theTransition);
+	// 0x70e623: the VizManager's picture (and 3D visualizer) for the board's game and level
+	void ChooseViz(bool theDraw);
+	// 0x711b65: the tunnel of a jump; in 2D, while the VizManager is hidden, the level's picture (mUnknown160 for the
+	// first half) faded in by mUnknown1570 and centred at the art's width
+	void DrawTunnel(Graphics* g);
+	// 0x70f836: the old level's picture (mUnknown160) at mUnknown12B0's alpha, at the end of a jump
+	void DrawOldPicture(Graphics* g);
 };
 
 }  // namespace Sexy

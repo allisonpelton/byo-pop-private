@@ -24,6 +24,7 @@
 #include "SoundInstance.h"
 #include "SoundManager.h"
 #include "TwistUtil.h"
+#include "VizManager.h"
 #include "WinTwistApp.h"
 #include "WidgetManager.h"
 #include "X86Math.h"
@@ -436,7 +437,7 @@ void Board::UpdateGame()
 				(aRankBonus == nullptr || aRankBonus->mState == 2 || aRankBonus->mState == 5)) {
 				if (aLeft <= 0.0f) {
 					// The trial's limit (the copy is always registered) is left out
-					// port: the VizManager's next look (0x757ff5) once it is ported
+					mApp->mVizManager->NextLook();
 					mUnknown158++;
 					NewLevel();
 					mUnknown3810.SetCurve(GTS(0x7df2f0));
@@ -2783,7 +2784,7 @@ void Board::UpdateNuke()
 				mApp->ShowHyperspace();
 				mApp->mHyperspace->mLevel = 0;
 			}
-			// (and the app's VizManager, +0xc6c, is hidden: it is not ported yet)
+			mApp->mVizManager->SetVisible(false);
 			mUnknown2043 = false;
 			mUnknown2041 = false;
 			mGoodTube->SetVisible(false);
@@ -2804,7 +2805,7 @@ void Board::Pause(bool theShow)
 	if (mUnknown1570 == 0) {
 		mUnknown14E8 += (int)((unsigned int)(mUpdateCnt - mUnknown14DC) / 100);
 		MarkDirty();
-		// (the original also sets the music visualiser's +0x1b8, app +0xc6c, which the port has not)
+		mApp->mVizManager->mPaused = true;
 		mGoodTube->mWidgetFlagsMod.mRemoveFlags |= WIDGETFLAGS_ALLOW_MOUSE;
 		if (mApp->mTwistMusic != nullptr && (mApp->mTwistMusic->mCurTrack == 300 || mApp->mTwistMusic->mCurTrack == 308))
 			mApp->mTwistMusic->PauseAllMusic();
@@ -2838,7 +2839,8 @@ void Board::Unpause(bool theShow)
 				mApp->mTwistMusic->ResumeAllMusic();
 			mUnknown14DC = mUpdateCnt;
 			mUnknown15D4 = 1;
-			// (and unless +0x160 is 7 clears the visualiser's +0x1b8)
+			if (mUnknown160 != 7)
+				mApp->mVizManager->mPaused = false;
 		}
 	}
 	// The original says "Unpause(): mPauseCount=%d" with OutputDebugString

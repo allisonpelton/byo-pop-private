@@ -20,6 +20,7 @@
 #include "PropertiesParser.h"
 #include "Res.h"
 #include "TwistUtil.h"
+#include "VizManager.h"
 #include "WinTwistApp.h"
 #include "WidgetManager.h"
 #include "X86Math.h"
@@ -860,14 +861,14 @@ void Board::TakeHyperspace(Hyperspace* theHyperspace)
 	}
 	if (theHyperspace == nullptr) {
 		mHyperspace = new Hyperspace();
-		// port: its z order is the VizManager's (app +0xc6c) + 1 once the VizManager is ported
+		mHyperspace->mZOrder = mApp->mVizManager->mZOrder + 1;
 		mApp->mWidgetManager->AddWidget(mHyperspace);
 		mHyperspace->mTransition = 8;
 		mHyperspace->mState = 1;
 		mUnknown21A2 = false;
 		// port: the tube's effects manager (+0x28c) is cleared, once it is ported
 	} else {
-		// port: the VizManager (app +0xc6c) is hidden here (slot 31 with false) once it is ported
+		mApp->mVizManager->SetVisible(false);
 		mHyperspace = theHyperspace;
 		mApp->mWidgetManager->AddWidget(theHyperspace);
 		mHyperspace->mFlag15A = true;

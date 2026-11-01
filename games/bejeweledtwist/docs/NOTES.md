@@ -259,6 +259,23 @@ images and an electro arc takes 2 to 6 segments instead of 3 or 4.
 The order of the work: Piece and the grid, then the board's update, input and drawing for classic mode, then the
 other modes, the shows and the end of a game.
 
+The background behind a game is the VizManager (0x1e8 bytes, a TwistWidget, app +0xc6c, z order -100; the board sits
+at its z order + 10, the hyperspace + 1 or - 1, the Gates + 15). It runs one Visualizer (0x24 bytes, vtable 0x7d804c)
+at +0x1a0 of its updates per update. With Direct3D and the options' visualizers box it picks one of 24 animated ones
+by the game's mode (Hyperspace 0x70e623, 0x7593ea); in 2D it shows Viz2D, the level's picture: IMAGE_ZENDROP1 to 47
+(by the level, +0x194, modulo 47), or IMAGE_VIRTUTORIAL for a player's first classic game, faded over the old one on a
+new level by the curve at 0x7f2ccc. While the board stands still the picture is drawn only around it (0x67fdb6). The
+port has the 2D path only. Which copies earn Blitz by play: Init (0x7653a1) sets +0x759 unless partner.xml's
+MarketingMode is LevelLock, and the mode select opens Blitz at once only for a registered LevelLock copy.
+
+The port stages Steam's `properties/` (PORT_PLAN.md, "Which copy's files"): the retail resources.xml names the zendrops
+by paths no copy has, and the retail game quits on the first one it needs. So the port reads LevelLock, Steam's
+registry key (`Steam\BejeweledTwist`) and its sound volumes. For the comparisons, origrun's copy of the original carries
+the same `properties/` and the patch that skips the properties-signature check (0x4a39c7), as the user's Steam exe
+does; its registry preset goes under the Steam key. During a 2D jump Hyperspace draws the level's picture over space
+while the VizManager is hidden (0x711b65, the old picture for the first half, faded in by +0x1570), and at the end of
+one the old picture at +0x12b0's alpha (0x70f836), or space fading out over the board.
+
 ## Deviations
 
 Each is a change without a visible effect in play.
@@ -309,3 +326,6 @@ Each is a change without a visible effect in play.
 - The mode select (Mandala, 0x721d5c) deletes its effects manager while the manager is still one of its children;
   the port takes it out first. The zen jump's choice also goes into PopCap's debug text (app +0x1024, see the beta
   dump above) as a line with the portal, level, rank and play time; the port leaves the line out.
+- Loading a visualizer's picture (0x748f54) also files it under its id for GetIdByImage; nothing asks that of these
+  pictures, and Res.cpp keeps that table to itself, so the port leaves the filing out.
+- The pictures are JPEG 2000 files; the port's decoder (OpenJPEG) gives colours within 2 of the original's.
