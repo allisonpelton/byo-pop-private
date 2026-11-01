@@ -795,21 +795,30 @@ void BonniesWidget::Draw(Graphics* g)
 	g->DrawImage(mScreenImage, 0, 0);
 }
 
-// SDL_EnableUNICODE: the character goes with its key's key-down, which the framework sent just before
+// SDL_EnableUNICODE: the character goes with its key's key-down, which the framework sent just before; a character
+// without one (a script's "char") comes as a key of its own
 void BonniesWidget::KeyChar(SexyChar theChar)
 {
 	int aChar = (int)(unsigned)theChar;
 	if (aChar == 0)
 		return;
-	for (auto anIt = gHost.mEvents.rbegin(); anIt != gHost.mEvents.rend(); ++anIt)
+	if (!gHost.mEvents.empty())
 	{
-		if (anIt->mType == bonnies::SDL_KEYDOWN)
+		bonnies::HostEvent& aLast = gHost.mEvents.back();
+		if (aLast.mType == bonnies::SDL_KEYDOWN && (aLast.mUnicode == 0 || aLast.mUnicode == aChar))
 		{
-			if (anIt->mUnicode == 0)
-				anIt->mUnicode = aChar;
+			aLast.mUnicode = aChar;
 			return;
 		}
 	}
+	bonnies::HostEvent anEvent;
+	anEvent.mType = bonnies::SDL_KEYDOWN;
+	anEvent.mSym = aChar < 0x80 ? (aChar >= 'A' && aChar <= 'Z' ? aChar - 'A' + 'a' : aChar) : 0;
+	anEvent.mUnicode = aChar;
+	gHost.post(anEvent);
+	anEvent.mType = bonnies::SDL_KEYUP;
+	anEvent.mUnicode = 0;
+	gHost.post(anEvent);
 }
 
 void BonniesWidget::KeyDown(KeyCode theKey)
