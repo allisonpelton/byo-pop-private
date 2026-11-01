@@ -52,7 +52,7 @@ def main():
     for f, u in zip(origs, shot):
         im = Image.open(f)
         if im.size != (800, 600):
-            im = im.crop((3, 32, 803, 632))  # the original's window frame (run.sh)
+            im = im.crop((3, 26, 803, 626))  # the original's window frame inside Windows Sandbox (806x629)
         o = pic(im)
         best = sorted((int((np.abs(o - v).max(2) >= 32).sum()), k) for k, v in port.items())[:2]
         print("%s at update %d: port update %d (lag %+d), %d pixels; next %d, %d pixels" % (
