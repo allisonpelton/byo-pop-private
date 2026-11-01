@@ -4,6 +4,8 @@
 #include "CustomResourceManager.h"
 #include "GameText.h"
 #include "Res.h"
+#include "SoundInstance.h"
+#include "SoundManager.h"
 #include "Widget.h"
 #include "WidgetManager.h"
 
@@ -162,7 +164,46 @@ void WinTwistApp::LoadingThreadProc()
 	mLoadingFailed = true;
 }
 
+SoundInstance* WinTwistApp::PlaySoundEx(int theSoundId, int thePan, float thePitch, float theVolume, bool theTrack,
+	bool theScaleVolume)
+{
+	// The board's pause and its pitch changes (board +0x210c, +0x1380, +0x1c8c) come with the board
+	if ((!mLoadingThreadCompleted && mUseSexyCache) || mSoundManager == nullptr || !mHasFocus || mSoundsOff)
+		return nullptr;
+	if (theVolume == 0.0f)
+		theVolume = 1.0f;
+	SoundInstance* anInstance = mSoundManager->GetSoundInstance(theSoundId);
+	if (anInstance == nullptr)
+		return nullptr;
+	if (thePitch != 0.0f)
+		anInstance->AdjustPitch(thePitch);
+	if (thePan != 0)
+		anInstance->SetPan(thePan);
+	if (theTrack)
+		mTrackedSounds.push_back({anInstance, (double)theVolume});
+	if (theScaleVolume)
+		theVolume = theVolume * (float)mSfxVolumeScale;
+	anInstance->SetVolume(theVolume);
+	anInstance->Play(false, false);
+	return anInstance;
+}
+
 void WinTwistApp::UpdateFrames()
 {
 	SexyApp::UpdateFrames();
+	// The tracked sounds: the ended ones are released, the others follow mSfxVolumeScale
+	for (size_t i = 0; i < mTrackedSounds.size(); i++) {
+		TrackedSound& aSound = mTrackedSounds[i];
+		if (!aSound.mInstance->IsPlaying()) {
+			aSound.mInstance->Release();
+			if (aSound.mInstance == mUnmanagedSound)
+				mUnmanagedSound = nullptr;
+			mTrackedSounds.erase(mTrackedSounds.begin() + i);
+			i--;
+		} else if (aSound.mInstance != mUnmanagedSound) {
+			double aVolume = mSfxVolumeScale * aSound.mVolume;
+			if (aSound.mInstance->GetVolume() != aVolume)
+				aSound.mInstance->SetVolume(aVolume);
+		}
+	}
 }

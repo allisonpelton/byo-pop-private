@@ -21,7 +21,7 @@ endif()
 # finds assets/bejeweledtwist/ by itself.
 set(BJT_SOURCES
   src/main.cpp src/WinTwistApp.cpp src/CustomResourceManager.cpp src/Res.cpp src/GameText.cpp
-  src/TwistWidget.cpp)
+  src/TwistWidget.cpp src/TwistButton.cpp)
 add_executable(bejeweledtwist ${BJT_SOURCES})
 target_include_directories(bejeweledtwist PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
 target_link_libraries(bejeweledtwist PRIVATE bjt_engine sexyframework sexyopenmpt sexyopenjpeg)

@@ -4,9 +4,12 @@
 
 #include "SexyApp.h"
 
+#include <vector>
+
 namespace Sexy {
 
 class CustomResourceManager;
+class SoundInstance;
 class Widget;
 
 class WinTwistApp : public SexyApp {
@@ -24,6 +27,14 @@ public:
 	bool mLoadingThreadDone = false;    // +0x7f1: LoadingThreadProc loaded everything
 	int mLoadMode = 0;                  // +0xf18: 1 skips the Sounds group, 2 loads only it (never set: always 0)
 	Widget* mLoaderScreen = nullptr;    // +0x860
+	bool mSoundsOff = false;            // +0x928: no sound effects (set elsewhere, not yet read)
+	SoundInstance* mUnmanagedSound = nullptr;  // +0x938: a tracked sound whose volume UpdateFrames leaves alone
+	double mSfxVolumeScale = 1.0;       // +0x948: applied to the tracked sounds
+	struct TrackedSound {
+		SoundInstance* mInstance;
+		double mVolume;
+	};
+	std::vector<TrackedSound> mTrackedSounds;  // +0x960: sounds UpdateFrames keeps at mSfxVolumeScale until they end
 
 	WinTwistApp();                      // 0x766ce7
 	~WinTwistApp() override;            // 0x768c34
@@ -34,6 +45,10 @@ public:
 
 	// 0x760659: 2D mode, the art at 600 and the screen at 800x600 in 16 bits
 	void Use2DMode();
+	// 0x766974: plays a sound unless sounds are off, the app has no focus or the board is paused; theTrack keeps it
+	// in mTrackedSounds, theScaleVolume multiplies its volume by mSfxVolumeScale
+	SoundInstance* PlaySoundEx(int theSoundId, int thePan, float thePitch, float theVolume, bool theTrack,
+		bool theScaleVolume);
 	// 0x763092: loads the Tube group (the sidebar's tube) and extracts it
 	bool LoadTubeResources();
 };
