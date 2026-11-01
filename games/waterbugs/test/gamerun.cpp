@@ -70,6 +70,14 @@ public:
 		return ok;
 	}
 
+	// WB_USER: the Windows user's name, which the game greets with (the original run in the sandbox reads "SYSTEM")
+	void UserName(char* theName, int theSize) override
+	{
+		const char* aName = std::getenv("WB_USER");
+		if (theSize > 0)
+			std::snprintf(theName, (size_t)theSize, "%s", aName != nullptr ? aName : "");
+	}
+
 	void SetMousePos(int x, int y) override
 	{
 		mMouseX = x;
@@ -270,7 +278,7 @@ int main(int argc, char** argv)
 				wb::Level* aLevel = wb::gLevels.current;
 				std::printf("%u ms: score %d, lives %d, board %d, filled %d of %d%%\n", gHost.mTime, wb::gScore, wb::gLives,
 					wb::gLevelInSet, aLevel != nullptr ? aLevel->filledCells : -1, aLevel != nullptr ? aLevel->fillQuota : -1);
-				std::printf("frame %d\n", wb::gFrame);  // the update counter (0x460a1c), for lining up with the original
+				std::printf("frame %d, %d random draws, seed 0x%x\n", wb::gFrame, wb::gRandCalls, (unsigned)wb::RandValue());  // the update counter (0x460a1c), for lining up with the original
 			}
 			else if (e.what == "lives")
 				wb::gLives = e.a;  // a test shortcut: the lives left, to reach the game over
