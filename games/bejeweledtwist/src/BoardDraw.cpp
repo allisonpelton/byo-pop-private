@@ -6,6 +6,7 @@
 #include "GameText.h"
 #include "Graphics.h"
 #include "Hyperspace.h"
+#include "Piece.h"
 #include "Res.h"
 #include "TwistUtil.h"
 #include "WinTwistApp.h"
@@ -176,10 +177,144 @@ void Board::DrawStrikes(Graphics* g)
 	}
 }
 
-void Board::DrawBoard(Graphics* g, bool theUnknown, bool theUnknown2)
+void Board::DrawBoard(Graphics* g, bool theToImage, bool theSkipPieces)
+{
+	float anArtScale = (float)((double)mApp->mArtRes / 1200.0);
+	bool is3D = mApp->Is3DAccelerated();
+	// A copy of the graphics, additive and colourised, for the gems' light (the grid draws on g itself)
+	Graphics aG(*g);
+	aG.SetDrawMode(Graphics::DRAWMODE_ADDITIVE);
+	aG.SetColorizeImages(true);
+	if (!theToImage && 0.0f < mUnknown3924 && 0.001f < mUnknown20E8)
+		DrawGrid(g, anArtScale);
+	if (!theSkipPieces)
+		DrawPieces(g, aG, is3D);
+	if (mUnknown2030) {
+		g->SetFont(FONT_DEBUG);
+		g->SetColor(Color(255, 255, 255));
+		g->DrawString(GT(0x7dd660), 0, 30);
+	}
+}
+
+// 0x6caa13's first part: the grid's squares, their glow under a gem that waits, the cursor and the bars above and
+// below the grid
+void Board::DrawGrid(Graphics* g, float theArtScale)
+{
+	g->SetColorizeImages(mUnknown3924 < 1.0f);
+	// (the original takes the sine of the update count's place in a 150-update cycle here and drops it)
+	Color aColor(255, 255, 255, Ftol((double)mUnknown3924 * 255.0));
+	g->SetColor(aColor);
+	int aRow = 0;
+	if (0 < mRows) {
+		do {
+			int aY = GetRowY(aRow);
+			int aCol = 0;
+			if (0 < mCols) {
+				do {
+					int aX = GetColX(aCol);
+					Cell& aCell = mCells[mCols * aRow + aCol];
+					Piece* aPiece = GetPieceAt(aRow, aCol);
+					g->DrawImage((aCol + aRow) & 1 ? IMAGE_INGAMEUI_GRIDSQUARE2 : IMAGE_INGAMEUI_GRIDSQUARE, aX, aY);
+					if (!IsBusy() && aPiece != nullptr && (float)aY == aPiece->mY) {
+						// The glow: the cell's own pulse, the cell's flash, and a locked gem's red
+						float aGlow = 0;
+						aColor = Color(255, 255, 255);
+						if (aCell.mUnknown3C != 0.0f) {
+							float aSin = std::sin((float)((double)aCell.mUnknown38 * 0.07500000298023224 -
+								1.5707963705062866));
+							aGlow = (float)(((double)aSin + 1.0) * 0.15000000596046448 + 0.30000001192092896) *
+								aCell.mUnknown3C;
+						}
+						if (aCell.mUnknown40 != 0.0f) {
+							float aT = aCell.mUnknown40;
+							float aScale = 1.0f;
+							float aNear = (1.0f - aT) * 4.0f <= aT * 4.0f ? 1.0f - aT : aT;
+							if (aNear * 4.0f <= 1.0f)
+								aScale = (1.0f - aT) * 4.0f <= aT * 4.0f ? (1.0f - aT) * 4.0f : aT * 4.0f;
+							float anAngle = (float)((double)aT * 3.1415927410125732 * 2.0 * 3.0 - 1.5707963705062866);
+							double aFlash = ((double)std::sin(anAngle) + 1.0) * 0.10000000149011612 + 0.2;
+							if ((double)aGlow <= aFlash * (double)aScale)
+								aGlow = (float)(aFlash * (double)aScale);
+						}
+						if (aPiece->mUnknown4FC == 1) {
+							int aTick = aPiece->mLockTick;
+							float anAngle = (float)((double)aTick * 0.11999999731779099);
+							float aRed = 0;
+							if (anAngle < 18.849556f) {
+								float aSin = std::sin(anAngle);
+								aRed = (float)((double)(0.0 <= (double)aSin ? std::sin(anAngle) : 0.0f) * 0.5);
+							} else if (200 < aTick) {
+								float aBeat = (float)((double)((aTick - 200) % 100) * 0.10000000149011612);
+								if ((double)aBeat < 3.1415927410125732)
+									aRed = (float)((double)std::sin(aBeat) * 0.25);
+							}
+							if (aGlow < aRed) {
+								aGlow = aRed;
+								aColor = Color(255, 40, 40);
+							}
+						}
+						if (0.0f < aGlow && mUnknown20D0) {
+							aColor.mAlpha = Ftol((double)aGlow * 255.0);
+							g->SetColorizeImages(true);
+							g->SetColor(aColor);
+							g->DrawImage(IMAGE_INGAMEUI_GRIDSQUAREGLOW, aX, aY);
+							g->SetColorizeImages(false);
+						}
+					}
+					aCol++;
+				} while (aCol < mCols);
+			}
+			aRow++;
+		} while (aRow < mRows);
+	}
+	g->SetColorizeImages(false);
+	if (0 <= mUnknown2404) {
+		Image* aCursor = IMAGE_CURSOR_BWCURSOR;
+		g->DrawImage(aCursor, GetColX(mUnknown2400) + gGemWidth - aCursor->mWidth / 2,
+			GetRowY(mUnknown2404) + gGemHeight - aCursor->mHeight / 2);
+	}
+	// (with a debug flag nothing sets, the board takes the mouse's place from Windows each draw and moves to it)
+	if (-1 < mApp->mAutoPlayMode && mUnknown2208 == nullptr)
+		mUnknown20D0 = true;
+	if (mUnknown20D0 && !mUnknown2030 && (mGameMode != MODE_PUZZLE || !mUnknown1324) &&
+		(mUnknown2584 == nullptr || !mUnknown2584->mMouseVisible))
+		DrawSelector(g, false);
+	// The bars above and below the grid, stretched to its width, each with its glow
+	g->SetColorizeImages(true);
+	int aHalfHeight = (gBoard->mRows * gGemHeight) / 2;
+	Image* aBar = mGridBarTop;
+	int aBarHeight = aBar->mHeight;
+	float aHalfBar = (float)(aBarHeight / 2);
+	int aTopY = Ftol((float)(GetRowY(0) + aHalfHeight) - GetGridMidY() - aHalfBar);
+	int aBotY = Ftol((double)((float)(GetRowY(0) + aHalfHeight) + GetGridMidY() - aHalfBar) +
+		(double)theArtScale * 10.0);
+	int aX = GetColX(0) + ((gBoard->mCols * gGemWidth) / 2 - mUnknown2590 / 2) + 2;
+	g->SetColor(Color(255, 255, 255, Ftol((double)mUnknown3924 * 255.0)));
+	g->DrawImage(aBar, aX, aTopY, mUnknown2590, aBarHeight);
+	if (0.0f < mUnknown2598) {
+		g->SetColor(Color(255, 255, 255, Ftol((double)mUnknown2598 * 255.0 * (double)mUnknown3924)));
+		g->DrawImage(IMAGE_INGAMEUI_GRIDBAR_TOPGLOW, aX, aTopY, mUnknown2590, aBarHeight);
+	}
+	aBar = mGridBarBot;
+	g->SetColor(Color(255, 255, 255, Ftol((double)mUnknown259C * 255.0 * (double)mUnknown3924)));
+	g->DrawImage(aBar, aX, aBotY, mUnknown2590, aBarHeight);
+	if (0.0f < mUnknown2598) {
+		g->SetColor(Color(255, 255, 255, Ftol((double)mUnknown2598 * 255.0 * (double)mUnknown3924)));
+		g->DrawImage(IMAGE_INGAMEUI_GRIDBAR_BOTGLOW, aX, aBotY, mUnknown2590, aBarHeight);
+	}
+}
+
+void Board::DrawPieces(Graphics* g, Graphics& theLightG, bool is3D)
+{
+	(void)g;
+	(void)theLightG;
+	(void)is3D;
+	NotPorted("Board::DrawPieces (0x6caa13's gems)");
+}
+
+void Board::DrawSelector(Graphics* g, bool theUnknown)
 {
 	(void)g;
 	(void)theUnknown;
-	(void)theUnknown2;
-	NotPorted("Board::DrawBoard (0x6caa13)");
+	NotPorted("Board::DrawSelector (0x6aa6d1)");
 }
