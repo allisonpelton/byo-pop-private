@@ -120,3 +120,12 @@ limit of 104 pixels (`+0x8c`), not a number of characters. The dialog draws the 
 `editbox` (96 x 32) as a left cap, a right cap and the middle slice repeated under a clip, in a rectangle 4 pixels larger than
 the widget on each side. The flash after an extra life (`Board::Draw`, 0x406400) draws the large ship (image 37), while
 the side panel's lives are the small icon (image 31).
+
+## 5. Deviations from the original (each without a visible effect)
+
+- **Help buttons' pressed look (0x40d330).** The original gives each help button `mDownImage` = `CopyImage(IMAGE_DBUTTONBLACK)`; the port
+  sets none and draws the black plate with the framework's flat path (`COLOR_BKG` black). `DBUTTONBLACK` is all black, so a pressed
+  button shows black text, offset by 1, over all black either way. To confirm with shotdiff once captures of the original work again.
+- **No Register button.** The options dialog's Register button is hidden (registration is taken out by the user's rule).
+- **Options dialog's four extra buttons' label colour** is gold from a pixel measurement; the original may draw white tinted over the
+  font's own colours. Open until compared with shotdiff.
