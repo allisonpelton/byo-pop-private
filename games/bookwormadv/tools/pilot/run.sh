@@ -68,7 +68,7 @@ fi
 if [ "$which" != orig ]; then
 	d=$P/portrun/$name; mkdir -p "$d"
 	bash "$T/reset.sh" "$d/user"
-	timeout 280 "$W/build/native/rundesk.exe" "$W/build/native/bookwormadv.exe" -userdir="$d/user" -seed=$SEED \
+	timeout 280 "$W/build/native/rundesk.exe" "$W/build/native/bookwormadv.exe" -userdir="$d/user" -seed=$SEED -drawevery \
 		-script="$P/scripts/$name.port.txt" > "$d/stdout.txt" 2>&1
 	echo "port exit $?"; grep "script\|FATAL" "$d/stdout.txt" | tail -5
 	python - "$P/port" "$T/$name.txt" <<'EOF'

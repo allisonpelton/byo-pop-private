@@ -160,22 +160,26 @@ draws agree, and the difference is when the credits began.
 
 Part of the lag looks like origrun's: a click is posted while the original's window thread is suspended, with 60 ms of sleeps
 (`post_click`), and a held capture takes its own time, so the original's clock runs on and it catches up with updates it
-does not draw. Asked of the coordinator (2026-11-01). Until then these items are timing, each with its lag measured: the
+does not draw. origrun's own fix for this is under way (2026-11-01). Until then these items are timing, each with its lag measured: the
 attacks clip, the Enter! transition, the credits' shake, and the Attack button's sparkle in word_rain (an effect that starts
 with the last letter's click). The title clip's frames 18 to 30 are the
 original's loading screen, shown for as long as its loading thread takes; the port loads in slices of 20 ms between frames,
 so it shows it for a different time. That runs on the wall clock on both sides and is not compared.
 
 How often each side draws matters as much. Under rundesk the port's scripted run manages about 85 updates and 37 draws a
-second (its log's counts), so it catches up with updates it does not draw, and a wait for a draw (the curtain; Letter Rip's
-tutorial pause, whose "PAUSED" text then blinks 150 updates on and 50 off) ends later. Drawn at every update (lag.py's
-runs), the port matches the original exactly at the same update: Letter Rip's pause text and the credits' shake, 0 pixels
-each. A framework option to draw every update in scripted runs is asked of the coordinator (2026-11-01).
+second (its log's counts), so it catches up with updates it does not draw, and a wait for a draw (the curtain) ends
+later. So the pilot runs the port with `-drawevery` (the framework's test switch: an update that has not been drawn is
+drawn before the next one runs, off by default), and lag.py does too. With it the credits' shake matches the original's
+shot exactly one update earlier (0 pixels over the names), and Letter Rip's tutorial matches but for its "PAUSED" text,
+which blinks 150 updates on and 50 off from the Yes click: the shot fell exactly on that edge, and the original's click
+lands a few updates apart from run to run (a burst of the original turned the text off at update 5383 in one run, and
+the screens run still showed it at 5385, where the port turns it off). The shot now comes 100 updates after the click.
 
 The original under origrun never shows a hover. On mouse messages it asks where the real cursor is (GetCursorPos and
 WindowFromPoint, in SexyAppBase's message handling, 0x547ea0), and on rundesk's desktop that is never over its window, so it
-takes the mouse as gone. The port lights a button under the resting mouse, as the original does with a real cursor: Link n'
-Spell's YES (the mouse left there by the menu's click) and the tome's scroll arrow. Noted for origrun (2026-11-01).
+takes the mouse as gone (the check is near 0x548635). The port lights a button under the resting mouse, as the original
+does with a real cursor: Link n' Spell's YES (the mouse left there by the menu's click) and the tome's scroll arrow. These
+two are listed as "origrun can't show hover", not masked.
 
 The pilot's third part (`tools/pilot/screens.txt`, 2026-11-01): the tome and its list scrolled, and each mini-game from its
 welcome to its menu and the quit (Word Master with a guess, Letter Rip into its tutorial, Link n' Spell losing and regaining

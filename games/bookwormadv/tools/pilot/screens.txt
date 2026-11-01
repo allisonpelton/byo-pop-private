@@ -46,7 +46,7 @@ click 393 346            # Letter Rip
 wait 3000
 shot letter_rip
 click 330 406            # Yes: the tooltips
-wait 1500
+wait 1000                # the PAUSED text blinks 150 updates on, 50 off: not on its edge
 shot letter_rip_tips
 click 400 200            # the tutorial's pause: click to continue
 wait 1500

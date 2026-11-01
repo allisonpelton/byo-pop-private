@@ -39,7 +39,7 @@ def main():
     subprocess.run(["bash", os.path.join(T, "reset.sh"), user], check=True, stdout=subprocess.DEVNULL)
     with open(os.path.join(d, "stdout.txt"), "w") as out:
         subprocess.run([os.path.join(W, "build", "native", "rundesk.exe"), os.path.join(W, "build", "native", "bookwormadv.exe"),
-                        "-userdir=" + user, "-seed=12345", "-script=" + os.path.join(d, "script.txt")],
+                        "-userdir=" + user, "-seed=12345", "-drawevery", "-script=" + os.path.join(d, "script.txt")],
                        stdout=out, stderr=subprocess.STDOUT, timeout=280)
 
     def pic(im):
