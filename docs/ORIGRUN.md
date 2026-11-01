@@ -127,7 +127,8 @@ so a dialog button is hit as well as a game that hit-tests in its own window.
   DirectInput or `GetCursorPos` and so ignores posted clicks (TipTop). Plain `click`/`key` still post messages,
   which drive the SAF/LOWOS message path. **Only inside Windows Sandbox** (`--sandbox`), as shots are: on the host
   these calls reach the user's own input desktop, whatever desktop the game is on. A host run whose script has any
-  of them is refused at the start, and each one is refused (logged) should it run on the host anyway.
+  of them is refused at the start, and each one is refused (logged) should it run on the host anyway. In the
+  sandbox `hwmove` lights no hover on a SAF game (Seven Seas, 2026-11-01): use a posted `move` for hover there.
 - `at <N> <command...>` — when the update counter reaches `N`, hold the game's window thread, run the command
   (`shot`, `click`/`rclick`/`key`/`text`/`move`/`focus`, or `burst`), then resume it. Lands on the exact update
   (the counter is polled every ~1 ms against ~10 ms updates), so the original and the port can be captured at
