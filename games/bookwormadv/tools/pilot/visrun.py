@@ -12,8 +12,9 @@ backed up into <shots dir>\\..\\backup, the pilot's start state goes in (build/s
 The script's commands are done as origrun does them: "at N <cmd>" waits for the game's update counter (app+0x484) to
 reach N, holds the game (its threads suspended), posts the input (move, click, focus lose/regain) and lets it go, so
 the input is read in update N+1. A shot waits until the game has drawn its last update (mHasPendingDraw, app+0x45a, is
-clear), holds it, and copies the window's client area from the screen. The window is kept topmost, and a shot is
-refused while any other visible window overlaps it, so nothing but the game's own pixels is ever copied. Each shot is
+clear), holds it, and has the window draw itself into a picture. The window is kept topmost, and a shot is
+refused while any other visible window overlaps it. The picture comes from the window itself (PrintWindow), never from
+the screen, so nothing but the game's own pixels is ever copied. Each shot is
 written as origrun's are, the client area at (3, 26) of an 806x629 picture, and listed in landed.tsv with its update.
 """
 import ctypes
@@ -53,6 +54,8 @@ g32.GetDIBits.argtypes = [wt.HDC, wt.HBITMAP, ctypes.c_uint, ctypes.c_uint, ctyp
 g32.DeleteObject.argtypes = [wt.HGDIOBJ]
 g32.DeleteDC.argtypes = [wt.HDC]
 u32.ReleaseDC.argtypes = [wt.HWND, wt.HDC]
+u32.PostMessageW.argtypes = [wt.HWND, ctypes.c_uint, wt.WPARAM, wt.LPARAM]
+u32.PrintWindow.argtypes = [wt.HWND, wt.HDC, ctypes.c_uint]
 u32.GetWindow.restype = wt.HWND
 u32.SetWindowPos.argtypes = [wt.HWND, wt.HWND, ctypes.c_int, ctypes.c_int, ctypes.c_int, ctypes.c_int, ctypes.c_uint]
 
@@ -164,13 +167,31 @@ def overlapped(hw):
     return None
 
 
-def grab(hw):
-    x, y, w, h = client_rect(hw)
+def grab(hw, g):
+    """The game's window as the window itself renders it (PrintWindow, PW_RENDERFULLCONTENT), never the screen: a copy of
+    the screen once showed the user's own windows, at the start, before the game's window was on screen. PrintWindow
+    needs the game's thread to answer, so, as origrun does, it is called from a helper thread and the game released just
+    after: the picture shows the held update (rarely the next one, if the helper is late). Returns None if PrintWindow
+    fails or does not return within 3 s."""
+    r = wt.RECT()
+    u32.GetWindowRect(hw, ctypes.byref(r))
+    w, h = r.right - r.left, r.bottom - r.top
+    cx, cy, cw, ch = client_rect(hw)
     sdc = u32.GetDC(None)
     mdc = g32.CreateCompatibleDC(sdc)
     bmp = g32.CreateCompatibleBitmap(sdc, w, h)
+    u32.ReleaseDC(None, sdc)
     old = g32.SelectObject(mdc, bmp)
-    g32.BitBlt(mdc, 0, 0, w, h, sdc, x, y, 0x00CC0020)
+    done = []
+    t = threading.Thread(target=lambda: done.append(u32.PrintWindow(hw, mdc, 2)), daemon=True)
+    t.start()
+    t0 = time.perf_counter()
+    while time.perf_counter() - t0 < 0.0005:
+        pass
+    g.release()
+    t.join(3)
+    if t.is_alive() or not done or not done[0]:
+        return None   # a PrintWindow that is late is left to finish; its DC is not freed
     buf = ctypes.create_string_buffer(w * h * 4)
 
     class BMI(ctypes.Structure):
@@ -185,8 +206,8 @@ def grab(hw):
     g32.SelectObject(mdc, old)
     g32.DeleteObject(bmp)
     g32.DeleteDC(mdc)
-    u32.ReleaseDC(None, sdc)
-    im = Image.frombuffer('RGBA', (w, h), buf, 'raw', 'BGRA', 0, 1).convert('RGB').crop((0, 0, 800, 600))
+    ox, oy = cx - r.left, cy - r.top
+    im = Image.frombuffer('RGBA', (w, h), buf, 'raw', 'BGRA', 0, 1).convert('RGB').crop((ox, oy, ox + 800, oy + 600))
     canvas = Image.new('RGB', (806, 629))
     canvas.paste(im, (3, 26))
     return canvas
@@ -214,6 +235,14 @@ def post_input(g, cmd, args):
             u32.PostMessageW(hw, 0x001C, 0, 0)
             u32.PostMessageW(hw, 0x0006, 0, 0)
             u32.PostMessageW(hw, 0x0008, 0, 0)
+    elif cmd == 'key':
+        vk = int(args[0])
+        sc = u32.MapVirtualKeyW(vk, 0)
+        u32.PostMessageW(hw, 0x0100, vk, 1 | (sc << 16))
+        u32.PostMessageW(hw, 0x0101, vk, 1 | (sc << 16) | (1 << 30) | (1 << 31))
+    elif cmd == 'text':
+        for ch in ' '.join(args):
+            u32.PostMessageW(hw, 0x0102, ord(ch), 1)
     else:
         raise SystemExit('visrun: cannot do %s' % cmd)
 
@@ -247,11 +276,11 @@ def shot(g, out, name, landed, log):
     else:
         print('shot %s refused: no drawn update in 200 ms' % name, file=log, flush=True)
         return
-    try:
-        c = g.counter()
-        im = grab(hw)
-    finally:
-        g.release()
+    c = g.counter()
+    im = grab(hw, g)   # releases the game
+    if im is None:
+        print('shot %s refused: PrintWindow failed or did not return' % name, file=log, flush=True)
+        return
     path = os.path.join(out, name + '.png')
     os.makedirs(os.path.dirname(path), exist_ok=True)
     im.save(path)

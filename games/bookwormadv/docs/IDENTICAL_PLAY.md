@@ -5,7 +5,7 @@ details of each finding are in `README.md` ("Deviations from the original", "Fau
 pilot" and "Oddities"); this page gathers them for the user.
 
 The pass is not finished. Its game-side work is done. The transformed sprites wait on the framework's 2D software path,
-and the sound outside the menus, 3D mode outside the first battle and one web timing item have not been checked against
+and the sound outside the menus and one web timing item have not been checked against
 the original. They are described below, and this page will be brought up to date once they are done.
 
 ## What was compared, and how
@@ -55,7 +55,6 @@ is released at a slightly different moment, which changes nothing audible.
 Not compared yet:
 
 - **Sound in the battle, the screens and the won battle.** The same comparison, still to run.
-- **3D mode in the menus, the screens and the won battle.** Only the first battle was compared in 3D (below).
 - **The question at exit after 3D was switched on during a session** ("Hardware Acceleration Confirmation").
 
 ### 3D mode
@@ -69,20 +68,31 @@ window (2026-11-01).
 `tools/pilot/visrun.py` runs one of the pilot's scripts that way. It backs up the game's registry key and users folder,
 puts in the pilot's start state with `Is3D` 1, and restores both afterwards. It drives the game as origrun does, by
 its update counter, holding the game while it posts input or takes a shot, and it keeps the window on top and refuses a
-shot while any other window overlaps it, so it copies only the game's own pixels. It also logs any step where the game
-was not the foreground window (none was). The copy must sit at a short path: the game builds its file paths in a
-256-byte buffer and dies at start under a worktree's path. The port ran the same script in 3D mode with the same load
-lengths (the original's loads were far shorter on the desktop than in the sandbox: 15 updates for the chapter, 44 for
+shot while any other window overlaps it. The picture comes from the window itself (PrintWindow, called while the game
+is released, as origrun does), never from the screen. An earlier version copied the screen, and in the menus run its
+first frame, taken before the game's window was on screen, held the user's own windows; that picture was deleted, the
+copy changed, and the menus part run again. visrun also logs any step where the game was not the foreground window. In
+the screens and won-battle runs it never was (Windows does not hand a new program the focus while the user is busy), and
+it made no difference to any picture. The copy must sit at a short path: the game builds its file paths in a 256-byte
+buffer and dies at start under a worktree's path. The port ran the same scripts in 3D mode with the same load lengths
+(the original's loads were far shorter on the desktop than in the sandbox: 4 to 15 updates for a chapter, 44 to 48 for
 startup).
 
-The first battle matches. Both sides draw the midground island behind the enemy, deal the same board, and of the
+All four parts were compared in 3D. The first battle matches. Both sides draw the midground island behind the enemy, deal the same board, and of the
 twelve stills nine differ only faintly. The transformed sprites that differ in 2D (the enemies, the intro's spear, the
 map's rays) match in 3D, since both sides draw them through a 3D renderer.
 What shotdiff still flagged is timing, which `lag.py` (now with `PILOT3D=on`) confirmed. The first is the Trojan
 Spearman's idle pose in the focus-regained shot and in seven frames of the attacks clip. The second is Lex's blink in
 one frame. The third is the map's rays in the Enter! transition. Each of the original's pictures matches a port update
 within one to four updates of its own exactly, but for the window's rounded corners on the user's desktop. That is the
-same spread as the original's click timing in the sandbox runs. Nothing in 3D mode needed a fix.
+same spread as the original's click timing in the sandbox runs.
+
+The won battle's eight stills differ only faintly. Of the screens' seventeen, one is flagged: the Submit! button's
+sparkle in Word Master, which matches the port one update earlier. The menus' title clip matches at lag 0 but for
+Lex's place while the startup load runs, as in 2D. Both credits shots match the port one to six updates later (the
+credits' shake and the fire bowl). The media player's spectrum is the one real difference, and it is not the port's: on
+the desktop the original played real sound and drew its spectrum, while the port ran under rundesk's silent driver, and
+the 2D comparison masks it for the same reason. Nothing in 3D mode needed a fix.
 
 ## Changes the pass made
 
