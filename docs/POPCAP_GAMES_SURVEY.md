@@ -1366,6 +1366,12 @@ reason it won't install on current phones. Its levels are XML files with PNG map
 code instead of x86. The ad and Play services code is left out. An Android build would be a new target for the
 project.
 
+**The Tasty Planet series, after Glass Tower (the user, 2026-11-01):** Dingo Games' series. The user doesn't own every
+game yet and is waiting for the series to go on sale again; each port needs the user's own copy. So far, Tasty Planet
+Forever is installed from Steam (app 946010, 78 MB). It is a 4.4 MB native exe, `tastyplanet4.exe`, on SDL2 and
+SDL2_mixer, with `steam_api.dll`, its data in `assets/`. A native SDL2 game suits the Ghidra route, and the port can
+keep SDL2 itself. Which games make up the series, and the order to port them in, is settled when it is their turn.
+
 ## Appendix E: other projects and modding communities (2026-10-26)
 
 Checked on 2026-10-26 for the publishing rules in section 4 (a research pass; the Peggle Nights, Zuma Deluxe and
