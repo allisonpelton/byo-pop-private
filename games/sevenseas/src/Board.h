@@ -170,6 +170,7 @@ public:
 	int					mBonusTick2;        // +0xaf0
 	int					mTutorialStep;      // +0x95000
 	DialogButton*		mStartLink;         // +0x95004
+	bool				mKeyTap[0xFF];      // port: a key pressed since the last poll (a tap that came and went between two updates)
 	int					mUnused_95008;      // +0x95008
 	bool				mTutorialShown;     // +0x9500c
 	int					mHintTimer;         // +0x68 counts down after "Cannot Undo" (the text that shows)
@@ -186,6 +187,7 @@ public:
 	virtual void		Update() override;
 	virtual void		Draw(Graphics* g) override;
 	virtual void		MouseMove(int x, int y) override;
+	virtual void		KeyDown(KeyCode theKey) override;
 	virtual void		MouseDown(int x, int y, int theClickCount) override;
 	virtual void		MouseUp(int x, int y) override;
 	virtual void		ButtonDepress(int theId) override;
@@ -226,6 +228,7 @@ public:
 
 	// updating
 	void				UpdateMove();                               // 0x4035d0
+	void				GetKeys(bool* theKeys);
 	void				UpdateShots();                              // 0x403e80
 	void				UpdateAnims();                              // 0x404430
 	void				FirePlayerShots();                          // 0x4044d0

@@ -99,9 +99,9 @@ AT_ACTION="update 20000: score 2480 level 3 moves 680 atoms 66"
 AL_STRATEGIC="game 1 over at update 12206: score 7432 pieces 830 forged 29 boards 3"
 AL_TIMETRIAL="game 1 over at update 14641: score 15942 pieces 903 forged 87 boards 3"
 AL_TUTORIAL="tutorial button 1 at update 231"
-SS_BEGINNER="game 2 over at update 5308: score 165 level 2 moves 23"
-SS_BONUS="game 1 over at update 2286: score 330 level 12 moves 15"
-SS_LATE="game 1 over at update 2285: score 390 level 22 moves 13"
+SS_BEGINNER="game 2 over at update 5042: score 320 level 4 moves 25"
+SS_BONUS="game 1 over at update 2090: score 420 level 13 moves 13"
+SS_LATE="game 1 over at update 2131: score 370 level 22 moves 17"
 PX_GRID="gridtest: 213 level files, 211 solutions, 211 solved, 0 without a level file"
 PX_START="done: 25 puzzles"
 PX_FULL="done: no temple left, 210 puzzles, log 2edb2003"
@@ -417,9 +417,9 @@ suite_alchemy() {
 }
 
 sevenseas_game() {  # <name> <seed> <difficulty> <start level> <games>: a bot game; prints the last "game N over" line
-	local d="$OUT/sevenseas/$1"
+	local d="$OUT/sevenseas/$1" exe="${SS_EXE:-$W/build/native/sevenseas.exe}"
 	rm -rf "$d"; mkdir -p "$d/shots"
-	timeout 600 "$W/build/native/sevenseas.exe" -userdir="$d/user" -fast -seed="$2" -autoplay="$2" -autoplaydiff="$3" -autoplaylevel="$4" \
+	timeout 600 "$exe" -userdir="$d/user" -fast -seed="$2" -autoplay="$2" -autoplaydiff="$3" -autoplaylevel="$4" \
 		-autoplaygames="$5" -autoplaycap=60000 -autoplaylog="$d/log.txt" -autoplayshots="$d/shots/s" > "$d/stdout.txt" 2> "$d/stderr.txt"
 	grep -E '^game [0-9]+ over' "$d/log.txt" 2>/dev/null | tail -n 1
 }
@@ -434,6 +434,18 @@ suite_sevenseas() {
 	[ "$b" = "$SS_BONUS" ] || st=1
 	[ "$c" = "$SS_LATE" ] || st=1
 	if diff -rq "$OUT/sevenseas/beginner/shots" "$OUT/sevenseas/beginner2/shots" >> "$1" 2>&1 && [ "$a" = "$r" ]; then r="rerun identical"; else r="RERUN DIFFERS"; st=1; fi
+	# the frozen baseline (build/baseline-sevenseas/sevenseas.exe, a copy of the port made when it was last checked
+	# against the original): the same three games must give the same lines and the same screenshots
+	local base="$W/build/baseline-sevenseas/sevenseas.exe" bl=""
+	if [ -f "$base" ]; then
+		SS_EXE="$base" sevenseas_game base-beginner 1 1 0 2 > /dev/null; SS_EXE="$base" sevenseas_game base-bonus 2 2 10 1 > /dev/null
+		SS_EXE="$base" sevenseas_game base-late 3 3 21 1 > /dev/null
+		bl="baseline identical"
+		for k in beginner bonus late; do
+			diff -q "$OUT/sevenseas/$k/log.txt" "$OUT/sevenseas/base-$k/log.txt" >> "$1" 2>&1 && diff -rq "$OUT/sevenseas/$k/shots" "$OUT/sevenseas/base-$k/shots" >> "$1" 2>&1 || { bl="BASELINE DIFFERS ($k)"; st=1; }
+		done
+		r="$r; $bl"
+	fi
 	SUMMARY="beginner ${a#game }; bonus ${b#game }; late ${c#game }; $r"
 	[ $st -eq 0 ] || SUMMARY="$SUMMARY (expected beginner '$SS_BEGINNER', bonus '$SS_BONUS', late '$SS_LATE')"
 	return $st
