@@ -138,12 +138,11 @@ Static screens match pixel for pixel (title, menu, quit and options dialogs, hel
 mouse). The map scenario (six sailing moves, a sinking and the new ship, 84 shots) shows the same board, ships, kills and score
 texts in every shot. The 2003 exe has no `mHasPendingDraw` or `mUpdateAppState`, but its main loop (0x431c70) counts the updates
 since the last draw at app+0x364, which origrun takes for both (`--pending-draw` and `--update-state` `[0x4e21bc]+0x364`), so a
-shot lands exactly on the update it says. With the click's move, down and up all in one update of the port (origrun posts them back
-to back in the sandbox) and the port's script at the update after the original's, 59 of the 84 shots match and 20 more differ
-faintly (the whirls by at most 8 of 255, a score digit one step apart on a half-update phase). Watching the board's state in the
-original (`--watch '[[0x4e21bc]+0x434]+0x138'`) shows every state change of the port 3 updates after the original's with the older
-click timing (move, down 3 and up 7 updates apart), and on the same update with the corrected one. What is not settled: the pirate's
-delay before the game starts (a random one of three spoken lines) and the new ship's cell after the sinking depend on the update a
-click lands on in the port, and the original lands the same click on N or N+1 at random, so an exact run needs the port's click on
-the update the original's log says plus one; some runs then still choose another line. The random draws that sit between the title
-click and the game start (the pirate's blink among them) are the place to look.
+shot lands exactly on the update it says. `--input-eip 430ba0,430d40` (the update, vf05) holds each click until the game is
+between updates, and the log's "input at counter N" is the update that read it: the port's script puts the click's move, down and
+up on that update and nothing else is guessed (origrun posts all three back to back in the sandbox). With that, the pirate's start
+delay and every board state of the map scenario (six moves, kills, the sinking) match the original update for update; 25 of the 84
+shots match exactly and 39 more differ only faintly (the corner whirls by at most 8 of 255). What still differs is one random
+choice: the cell `PlaceShip` (0x409e90, same code as the decompilation) gives the new ship after the sinking, so the random
+draws between the game's start and the sinking are not the same in number in the two (every earlier draw agrees, since the
+enemies, whirls and waves all do). Not found by counting the `rand()` sites per function (the same ones exist in the port).
