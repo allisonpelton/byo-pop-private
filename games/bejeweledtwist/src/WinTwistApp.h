@@ -217,6 +217,10 @@ public:
 	// 0x7632f7: the options close: their settings are applied (the resolution with theResolution); over the menu
 	// the panel stays, over a game the dialog zooms out
 	void FinishOptionsDialog(bool theResolution);
+	// 0x75f6fc: the options come up over the game (if they are not up), as a base modal
+	void ShowOptionsDialog();
+	// 0x75f82d: the help comes up over the game (if it is not up), as a base modal
+	void ShowHelpDialog();
 	using SexyAppBase::RehupFocus;
 	// 0x766974: plays a sound unless sounds are off, the app has no focus or the board is paused; theTrack keeps it
 	// in mTrackedSounds, theScaleVolume multiplies its volume by mSfxVolumeScale

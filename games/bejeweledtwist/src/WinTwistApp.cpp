@@ -423,6 +423,46 @@ void WinTwistApp::FinishOptionsDialog(bool theResolution)
 	mOptionsDialog = nullptr;
 }
 
+void WinTwistApp::ShowOptionsDialog()
+{
+	// 0x75f6fc
+	if (mOptionsDialog != nullptr)
+		return;
+	float aScale = (float)((double)mArtRes / 1200.0);
+	OptionsPanel* aPanel = new OptionsPanel(this);
+	mOptionsDialog = aPanel;
+	int aWidth = GetImageById(aPanel->mUnknownB0)->mWidth;
+	int aHeight = GetImageById(aPanel->mUnknownB0)->mHeight;
+	int aY = Ftol((double)GetImageOffsetY(aPanel->mUnknownB0) * (double)aScale);
+	aPanel->Resize(mWidth / 2 - aWidth / 2, aY, aWidth, aHeight);
+	aPanel->mZOrder = mBoard == nullptr ? 10 : mBoard->mZOrder + 1;
+	if (aPanel->mZOrder < 11)
+		aPanel->mZOrder = 10;
+	aPanel->mFlushOverlays = true;
+	mWidgetManager->AddWidget(aPanel);
+	mWidgetManager->AddBaseModal(aPanel);
+	mWidgetManager->SetFocus(aPanel);
+}
+
+void WinTwistApp::ShowHelpDialog()
+{
+	// 0x75f82d
+	if (mUnknownF44 != nullptr)
+		return;
+	HelpPanel* aPanel = new HelpPanel(this);
+	mUnknownF44 = aPanel;
+	int aWidth = Ftol((double)mScale * 1000.0);
+	int aY = Ftol((double)mScale * 100.0);
+	aPanel->Resize(mWidth / 2 - aWidth / 2, aY, aWidth, GetImageById(aPanel->mUnknownB0)->mHeight);
+	aPanel->mZOrder = mBoard == nullptr ? 10 : mBoard->mZOrder + 1;
+	if (aPanel->mZOrder < 11)
+		aPanel->mZOrder = 10;
+	aPanel->mFlushOverlays = true;
+	mWidgetManager->AddWidget(aPanel);
+	mWidgetManager->AddBaseModal(aPanel);
+	mWidgetManager->SetFocus(aPanel);
+}
+
 void WinTwistApp::PlaceWindowedButton()
 {
 	if (mWindowedButton == nullptr)
@@ -997,7 +1037,15 @@ void WinTwistApp::DialogButtonDepress(int theDialogId, int theButtonId)
 		break;
 	}
 	case 0xb:
-		// The board's question (on OK, by the game's mode: 0x6c9987 or 0x6c7a75; then 0x6af2be) comes with the board
+		// The restart question: on OK the game restarts, by its mode; blitz's clock goes on (0x6af2be)
+		if (theButtonId == 1000) {
+			if (mBoard->mGameMode == 2)
+				NotPorted("restarting a challenge (0x6c9987)");
+			else if (mBoard->mGameMode == 3)
+				NotPorted("restarting blitz (0x6c7a75)");
+		}
+		if (mBoard->mGameMode == 3)
+			mBoard->Unpause(true);
 		DialogThirdButtonDepress(0xb);
 		return;
 	case 0x28:

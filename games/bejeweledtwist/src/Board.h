@@ -89,7 +89,7 @@ struct MatchInfo {
 extern int gMatchInfoCount;  // 0x84e890
 extern int gSparkDelay;      // 0x85aef8: the delay FindMatches gives a gem's sparks (0x6a453b)
 
-class Board : public TwistWidget {
+class Board : public TwistWidget, public TwistDialogListener {  // the dialog listener is at +0x14c
 public:
 	// The game modes (+0x20c)
 	enum { MODE_CASUAL = 0, MODE_CLASSIC = 1, MODE_CHALLENGE = 2, MODE_BLITZ = 3, MODE_ZEN = 4, MODE_PUZZLE = 5 };
@@ -818,6 +818,9 @@ public:
 	// 0x6c986a: the tube beside the board shown (the grid slides over to make room) or hidden (the grid in the middle)
 	void ShowTube(bool theShow, bool theInstant);
 	void CloseTip();                              // 0x6c78a5: the tip's dialog is done (marked seen; the basics end)
+	void ShowMenu();                              // 0x6a6983: the options come up over the game
+	void AskQuit();                               // 0x6b38f3: dialog 1, by the game mode, heard by this board
+	void DialogButtonDepress(int theDialogId, int theButtonId) override;  // 0x6c8632: dialogs 1 and 0x28
 	bool DropFlaggedGems();                      // 0x6bb7e3: the lowest FLAG_1 gem of each column sinks a row
 	void EndTurn();                               // 0x6be49c
 	void UpdateRecords();                         // 0x6bcd96: the game's best move, cascade and score

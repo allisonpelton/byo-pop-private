@@ -574,8 +574,8 @@ void GoodTube::ButtonDepress(int theId)
 	}
 	gApp->PlaySoundEx(SOUND_BUTTONPRESS2, 0, 5.0f, 0.0f, true, true);
 	if (theId == 0) {
-		// 0x6a6983: the board's dialog goes (+0x138c) and the menu comes up (0x75f6fc)
-		NotPorted("GoodTube::ButtonDepress: the board's menu (0x6a6983)");
+		// 0x6a6983: the menu comes up over the board
+		aBoard->ShowMenu();
 	}
 }
 

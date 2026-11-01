@@ -9,6 +9,7 @@
 #include "Profile.h"
 #include "Res.h"
 #include "SoundInstance.h"
+#include "TwistDialog.h"
 #include "TwistUtil.h"
 #include "WinTwistApp.h"
 #include "WidgetManager.h"
@@ -626,4 +627,102 @@ void Board::ShowPraise(int theLevel)
 	aText->mQueued = false;
 	mFlyingTexts.push_back(aText);
 	// (the original also notes the update count for each praise, 0x85a9d0, which nothing reads)
+}
+
+void Board::ShowMenu()
+{
+	// 0x6a6983
+	if (mUnknown138C != 0) {
+		// port: the original deletes the object at +0x138c here (virtual slot 1) and clears it; nothing sets it in
+		// the port
+		mUnknown138C = 0;
+	}
+	mApp->ShowOptionsDialog();
+}
+
+void Board::AskQuit()
+{
+	// 0x6b38f3: the quit question, by the game's mode; the board hears the answer
+	SexyString aHeader;
+	SexyString aLines;
+	if (mGameMode == MODE_CHALLENGE) {
+		if (!IsTimed()) {
+			aHeader = mApp->GetString(GTS(0x7dc6a0), GT(0x7dc680));
+			aLines = mApp->GetString(GTS(0x7dc638), GT(0x7dc5a8));
+		} else {
+			aHeader = mApp->GetString(GTS(0x7dc794), GT(0x7dc788));
+			aLines = mApp->GetString(GTS(0x7dc740), GT(0x7dc6b0));
+		}
+	} else if (mGameMode == MODE_BLITZ) {
+		aHeader = mApp->GetString(GTS(0x7da148), GT(0x7da12c));
+		aLines = mApp->GetString(GTS(0x7dc820), GT(0x7dc7a0));
+	} else if (mGameMode == MODE_ZEN) {
+		aHeader = mApp->GetString(GTS(0x7dc93c), GT(0x7dc920));
+		aLines = mApp->GetString(GTS(0x7dc8e0), GT(0x7dc860));
+	} else {
+		aHeader = mApp->GetString(GTS(0x7da148), GT(0x7da12c));
+		aLines = mApp->GetString(GTS(0x7dc9c8), GT(0x7dc950));
+	}
+	TwistDialog* aDialog = new TwistDialog(IMAGE_SIZEABLEDIALOG, IMAGE_SIZEABLEBUTTON, 1, true, aHeader, aLines,
+		GT(0x80d9a4), 3);
+	aDialog->mTwistListener = this;
+	double aMinWidth = (double)gGemWidth * 6.75;
+	double aWidth = (double)aDialog->GetPreferredWidth() <= aMinWidth ? aMinWidth : (double)aDialog->GetPreferredWidth();
+	aDialog->mWidth = Ftol(aWidth);
+	aDialog->mHeight = aDialog->GetPreferredHeight(aDialog->mWidth);
+	aDialog->mZOrder = 200;
+	mApp->AddDialog(aDialog);
+	aDialog->mX = mWidth / 2 - aDialog->mWidth / 2;
+	aDialog->mY = mHeight / 2 - aDialog->mHeight / 2;
+	aDialog->mYesButton->mLabel = mApp->GetString(GTS(0x812e14), GT(0x7db674));
+	aDialog->mNoButton->mLabel = mApp->GetString(GTS(0x812e10), GT(0x7db66c));
+}
+
+void Board::DialogButtonDepress(int theDialogId, int theButtonId)
+{
+	// 0x6c8632
+	if (theDialogId == 1) {
+		mApp->KillDialog(1);
+		if (!mApp->mLoadingThreadCompleted) {
+			if (mUnknown2584 != nullptr)  // (the original does not look)
+				mUnknown2584->mState = 0x10;
+		} else {
+			Tutorial* aTip = mUnknown2584;
+			if (aTip != nullptr) {
+				if (mUnknown2208 == aTip)
+					mUnknown2208 = nullptr;
+				if (aTip->mKind == 0xe) {
+					mApp->mProfile->MarkTutorialDone();
+					mUnknown3918 = mApp->mProfile->mFlags1E0;
+					mUnknown3914 = mApp->mProfile->mFlags1E4;
+				}
+				aTip->mWidgetManager->RemoveWidget(aTip);
+				mUnknown830.SetInVal(0.0);
+				mApp->SafeDeleteWidget(aTip);
+				mUnknown2584 = nullptr;
+			}
+			if (theButtonId == 1000) {
+				if (mApp->mOptionsDialog != nullptr)
+					mApp->FinishOptionsDialog(false);
+				if (mGameMode == MODE_ZEN)
+					UpdateStats();
+				mUnknown34EC = 1;
+				if (mApp->mMusicInterface != nullptr) {
+					// port: the original keeps BASS's position in the music playing (0x6ee282) here (+0x37dc); nothing
+					// reads it back, so the port keeps 0 (as in RemovedFromManager)
+				}
+			}
+		}
+	} else if (theDialogId == 0x28) {
+		if (theButtonId == 4) {
+			ShowMenu();
+		} else if (theButtonId == 0x3e9) {
+			if (!mUnknown23F5) {
+				mApp->mProfile->mUnknown1B1 = false;
+				mApp->mProfile->Save();
+			} else {
+				CloseTip();
+			}
+		}
+	}
 }

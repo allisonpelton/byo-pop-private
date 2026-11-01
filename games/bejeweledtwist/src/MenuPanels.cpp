@@ -1237,9 +1237,39 @@ OptionsPanel::OptionsPanel(WinTwistApp* theApp)
 		mQuitButton = nullptr;
 		mReturnButton = nullptr;
 	} else {
-		// port: over a game the panel has the return, quit (challenge) and restart (help) buttons by the game's mode,
-		// and it zooms in (0x7d9bc0); they come with the board
-		NotPorted("OptionsPanel over a game (0x69e4c5)");
+		// Over a game: the return, quit (challenge) and restart (help) buttons by the game's mode
+		Image* anImage = IMAGE_MAINMENU_OPTIONSRETURNBUTTON;
+		mReturnButton = new TwistButton(BUTTON_RETURN, anImage, this);
+		mReturnButton->SetFont(FONT_DIALOG_BUTTONS);
+		aPlace(mReturnButton, IMAGE_MAINMENU_OPTIONSRETURNBUTTON_ID, anImage->GetCelWidth(), anImage->GetCelHeight());
+
+		bool aChallenge = theApp->mBoard->mGameMode == 2;
+		mQuitButton = new TwistButton(BUTTON_QUIT,
+			aChallenge ? IMAGE_MAINMENU_OPTIONSCHALLENGEBUTTON : IMAGE_MAINMENU_OPTIONSQUITBUTTON, this);
+		mQuitButton->SetFont(FONT_DIALOG_BUTTONS);
+		anImage = IMAGE_MAINMENU_OPTIONSQUITBUTTON;
+		aPlace(mQuitButton, IMAGE_MAINMENU_OPTIONSQUITBUTTON_ID, anImage->GetCelWidth(), anImage->GetCelHeight());
+
+		int aMode = theApp->mBoard->mGameMode;
+		int aRestartPlace;
+		if (aMode == 2) {
+			anImage = IMAGE_MAINMENU_OPTIONSRESTARTBUTTON;
+			mRestartButton = new TwistButton(BUTTON_RESTART, anImage, this);
+			aRestartPlace = IMAGE_MAINMENU_OPTIONSRESTARTBUTTON_ID;
+		} else if (aMode == 3) {
+			anImage = IMAGE_MAINMENU_OPTIONSRESTARTBLITZBUTTON;
+			mRestartButton = new TwistButton(BUTTON_RESTART, anImage, this);
+			aRestartPlace = IMAGE_MAINMENU_OPTIONSRESTARTBLITZBUTTON_ID;
+		} else {
+			anImage = IMAGE_MAINMENU_OPTIONSHELPBUTTON;
+			mRestartButton = new TwistButton(BUTTON_HELP, anImage, this);
+			aRestartPlace = IMAGE_MAINMENU_OPTIONSRESTARTBUTTON_ID;
+		}
+		aPlace(mRestartButton, aRestartPlace, anImage->GetCelWidth(), anImage->GetCelHeight());
+
+		// it zooms in
+		mZooming = true;
+		mZoom.SetCurve(GTS(0x7d9bc0));
 	}
 
 	TwistSlider* aSlider = new TwistSlider(GetImageById(IMAGE_MAINMENU_SLIDERBARBASEMUSIC_ID),
@@ -1563,15 +1593,40 @@ void OptionsPanel::ButtonDepress(int theId)
 	if (theId == BUTTON_RETURN) {
 		mApp->FinishOptionsDialog(true);
 	} else if (theId == BUTTON_QUIT) {
-		// port: the game's quit question (0x6b38f3), then FinishOptionsDialog(false); they come with the board
-		NotPorted("OptionsPanel's quit (0x6b38f3)");
+		// 0x6b38f3: the game's quit question, then FinishOptionsDialog(false)
+		mApp->mBoard->AskQuit();
+		mApp->FinishOptionsDialog(false);
 	} else if (theId == BUTTON_RESTART) {
-		// port: the restart question (dialog 0xb, by the game's mode); it comes with the board
-		NotPorted("OptionsPanel's restart (0x69fc10)");
+		// The restart question (dialog 0xb), by the game's mode
+		SexyString aHeader;
+		SexyString aLines;
+		if (mApp->mBoard->mGameMode == 3) {
+			aHeader = mApp->GetString(GTS(0x7db6fc));
+			aLines = mApp->GetString(GTS(0x7db6d8));
+		} else {
+			aHeader = mApp->GetString(GTS(0x7db6b0));
+			aLines = mApp->GetString(GTS(0x7db688));
+		}
+		TwistDialog* aDialog = new TwistDialog(IMAGE_SIZEABLEDIALOG, IMAGE_SIZEABLEBUTTON, 0xb, true, aHeader, aLines,
+			GT(0x80d9a4), 3);
+		aDialog->mTwistListener = mApp;
+		double aMinWidth = (double)gGemWidth * 6.75;
+		double aWidth = (double)aDialog->GetPreferredWidth() <= aMinWidth ? aMinWidth : (double)aDialog->GetPreferredWidth();
+		aDialog->mWidth = Ftol(aWidth);
+		aDialog->mHeight = aDialog->GetPreferredHeight(aDialog->mWidth);
+		aDialog->mZOrder = 200;
+		mApp->AddDialog(aDialog);
+		aDialog->mX = mApp->mWidth / 2 - aDialog->mWidth / 2;
+		aDialog->mY = mApp->mHeight / 2 - aDialog->mHeight / 2;
+		aDialog->mYesButton->mLabel = mApp->GetString(GTS(0x812e14), GT(0x7db674));
+		aDialog->mNoButton->mLabel = mApp->GetString(GTS(0x812e10), GT(0x7db66c));
+		mApp->FinishOptionsDialog(false);
 	} else if (theId == BUTTON_HELP) {
-		// port: the panel zooms out (0x7db720) and the help comes up over the game (0x75f82d); they come with the
-		// board
-		NotPorted("OptionsPanel's help (0x69fc10)");
+		// the panel zooms out, and the help comes up over the game
+		mZooming = true;
+		mZoom.SetCurve(GTS(0x7db720));
+		mApp->ShowHelpDialog();
+		mApp->ClearUpdateBacklog(false);
 	}
 }
 
