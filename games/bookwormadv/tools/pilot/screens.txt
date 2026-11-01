@@ -1,0 +1,77 @@
+# The identical-play pass, part 3: the tome and the mini-games (run.sh screens)
+at 16000
+click 400 540            # the book under Lex: the tome
+wait 2500
+shot tome
+click 376 374            # the list's down arrow
+wait 1000
+shot tome_scrolled
+click 400 572            # Main Menu
+wait 2500
+click 115 400            # the tent: the mini-games
+wait 2500
+click 393 280            # Word Master
+wait 3000
+shot word_master
+wait 3000
+click 320 436            # Yes: the tooltips
+wait 1500
+shot word_master_tips
+click 551 512            # W (after the S it gives: SWORD)
+wait 400
+click 147 512            # O
+wait 400
+click 298 512            # R
+wait 400
+click 248 462            # D
+wait 800
+shot word_master_typed
+key 13 Return
+wait 3000
+shot word_master_guessed
+click 660 584            # Menu
+wait 1500
+shot word_master_menu
+click 404 312            # Quit Mini-game
+wait 2500
+shot word_master_quit
+click 330 400            # Yes
+wait 2500
+shot word_master_left
+click 230 556            # the hall of fame's Main Menu
+wait 2500
+click 115 400            # the tent
+wait 2500
+click 393 346            # Letter Rip
+wait 3000
+shot letter_rip
+click 330 406            # Yes: the tooltips
+wait 1500
+shot letter_rip_tips
+click 400 200            # the tutorial's pause: click to continue
+wait 1500
+shot letter_rip_playing
+click 660 584            # Menu
+wait 1500
+click 404 312            # Quit Mini-game
+wait 1500
+click 330 400            # Yes
+wait 2500
+shot letter_rip_left
+click 230 556            # Main Menu
+wait 2500
+click 115 400            # the tent
+wait 2500
+click 393 412            # Link n' Spell
+wait 3000
+shot link_n_spell
+click 330 406            # Yes: the tooltips
+wait 1500
+shot link_n_spell_tips
+focus lose
+wait 1500
+shot link_n_spell_focus_lost
+focus regain
+wait 1500
+shot link_n_spell_focus_regained
+quit

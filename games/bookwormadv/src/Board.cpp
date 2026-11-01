@@ -647,8 +647,9 @@ void Board::SetAttackDisabled(bool isDisabled, bool keepLook)
 		return;
 	bool wasImmune = mImmuneLook;
 	mImmuneLook = false;
-	int w = IMAGE_BUTTON_ATTACK->GetCelWidth();
-	int h = IMAGE_BUTTON_ATTACK->GetCelHeight();
+	// the cels of the picture the button has (a mini-game's Submit!, not only Attack)
+	int w = aButton->mButtonImage->GetCelWidth();
+	int h = aButton->mButtonImage->GetCelHeight();
 	aButton->mNormalRect = Rect(0, 0, w, h);
 	aButton->mOverRect = Rect(w, 0, w, h);
 	aButton->mDownRect = Rect(w * 2, 0, w, h);
@@ -672,8 +673,8 @@ void Board::ShowImmuneAttack()
 	if (mTMEnemyAttacking)
 		return;
 	aButton->SetDisabled(false);
-	int w = IMAGE_BUTTON_ATTACK->GetCelWidth();
-	int h = IMAGE_BUTTON_ATTACK->GetCelHeight();
+	int w = aButton->mButtonImage->GetCelWidth();
+	int h = aButton->mButtonImage->GetCelHeight();
 	Rect aRect(w * 4, 0, w, h);
 	aButton->mNormalRect = aRect;
 	aButton->mOverRect = aRect;
