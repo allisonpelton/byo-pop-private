@@ -92,8 +92,13 @@ the hover with `GetCursorPos` (0x42a820), and origrun's posted clicks do not mov
 A native run that started in full screen with
 "Wide Screen" on reached stage 1's board as the windowed runs do (`DEVIATIONS.md` has how full screen is shown).
 The web build played the same 60-stage script under Node (`games/bejeweled/tools/verify/wasmrun.js game`), and
-its 121 screenshots were identical to the native run's. Not yet compared with the original: the classic game, the
-menus and dialogs outside the adventure, losing and regaining the focus, and the sound.
+its 121 screenshots were identical to the native run's.
+
+A tour from a saved player (the main menu, the options, the four pages of instructions, the player list, the classic
+layouts, a classic game with its tip, losing and regaining the focus, pause and the in-game menu) matched the original
+in the sandbox. What differed was the menu's swinging lanterns, the classic deal and the layouts' previews (seeded from
+the clock, as in the original) and the counts that follow the deal. The web build under Node took the same 18 shots
+identical to the native ones. Not yet compared with the original: the sound and the music.
 
 ## Mods
 
