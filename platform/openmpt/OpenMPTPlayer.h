@@ -14,6 +14,10 @@ namespace Platform
 // Registers libopenmpt with Platform::Mixer for MO3 files ("MO3" magic).
 void RegisterOpenMPTModules();
 
+// Registers libopenmpt for OXM files (XM modules with Ogg Vorbis samples, which libxmp-lite cannot read). Plain XM
+// files stay on libxmp-lite.
+void RegisterOpenMPTOggXM();
+
 }
 
 #endif
