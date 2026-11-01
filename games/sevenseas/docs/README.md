@@ -82,7 +82,7 @@ monster) with their warnings, whirlpools, the bonus screens (digging for treasur
 undo, game over, the high-score list with its name entry, and save and Continue.
 
 Not done or approximate:
-- Options → Help (0x40d330, the "return to game" help pages) does nothing; the registration and "submit to the Internet
+- The registration and "submit to the Internet
   High Score List" dialogs, the trial's loading delay and the shareware counters are not ported (the port plays as the
   registered game). The internet score check's object (the +0x6c field of the board) is not either.
 - The text lines of the bonus screen's messages are placed by estimate. The pirate's mouth follows the original's table of

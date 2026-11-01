@@ -183,6 +183,7 @@ public:
 	void					ShowWarning(int theWhich);
 	void					ShowMap();
 	void					ShowHelp();
+	void					CloseHelp();
 	void					SetMusicOrder(int theOrder, bool theFade);
 	void					StartTalk();
 	void					StopTalk();

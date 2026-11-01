@@ -95,6 +95,12 @@ pieces are cut at width/3 and height/3, so a picture that is not a multiple of t
 different rows at the bottom and right than in the later framework. The demo's captions are two tables of pointers
 (0x4a39f0, 0x4a3a10) that no code refers to by address, so `make_gametext.py` lists them by hand.
 
+The help screen (`HelpWidget`, 0x40d330, `Help.cpp`; Options -> Help) is a board-sized picture: the sea, the four corner
+whirlpools, one ship of each kind on its heading with the eight arrows around the player's ship and two red crosses three
+cells to either side, a block of tutorial-font lines, and two black buttons (play the tutorial: `EndTutorial` with the
+tutorial on; return to game: `CloseHelp`). While it is up, `TalkWidget::Draw` draws nothing (its test is the help widget at
++0x43c, not the map's at +0x438). The black plate of the buttons is the colors of a plain `ButtonWidget` all black.
+
 
 The game-over screen (`HighScoreWidget`, constructor 0x40ff70, 467 x 480 at x 0xad) does nothing but load `hiscores.dat`
 (0x410550: the best score of the day and the five best, each with a name, a score and a check value) when it is made.

@@ -6,6 +6,7 @@
 #include "Screens.h"
 #include "Demo.h"
 #include "Dialogs.h"
+#include "Help.h"
 #include "GameText.h"
 #include "Compat2004.h"
 #include "Dialog.h"
@@ -707,6 +708,7 @@ void SevenSeasApp::EndTutorial()
 		SafeDeleteWidget(mHighScoreWidget);
 		mHighScoreWidget = NULL;
 	}
+	CloseHelp();
 	if (mDemoWidget != NULL)
 	{
 		mWidgetManager->RemoveWidget(mDemoWidget);
@@ -939,6 +941,20 @@ void SevenSeasApp::ShowMap()
 
 void SevenSeasApp::ShowHelp()
 {
+	mHelpWidget = new HelpWidget(this);
+	mHelpWidget->Resize(0xad, 0, 0x1d3, 0x1e0);
+	mWidgetManager->AddWidget(mHelpWidget);
+}
+
+// 0x41ed30
+void SevenSeasApp::CloseHelp()
+{
+	if (mHelpWidget != NULL)
+	{
+		mWidgetManager->RemoveWidget(mHelpWidget);
+		SafeDeleteWidget(mHelpWidget);
+		mHelpWidget = NULL;
+	}
 }
 
 // 0x41ac10 / 0x41ac40: the saved game is data/savegame.dat in the original, savegame.dat in the user folder here

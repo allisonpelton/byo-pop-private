@@ -699,7 +699,7 @@ void TalkWidget::Update()
 // 0x419ac0
 void TalkWidget::Draw(Graphics* g)
 {
-	if ((0.001 <= mProgress) && (mApp->mMapWidget == NULL))
+	if ((0.001 <= mProgress) && (mApp->mHelpWidget == NULL))
 	{
 		if (mProgress < 1.0)
 		{
