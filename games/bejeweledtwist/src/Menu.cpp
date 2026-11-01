@@ -248,17 +248,17 @@ void Menu::Update()
 			mPlayButton->mVisible = false;
 		}
 	} else if (!mStart.IncInVal()) {
-		// The game starts: the resumed one (0x76046d) when the play button was pressed, else a new one of
-		// mGameMode (classic for none)
+		// The play button opens the mode select (0x76046d); otherwise a new game of mGameMode starts (classic for
+		// none)
 		if (mApp->mPlayPressed && mGameMode == -1) {
-			SDL_Log("WinTwistApp 0x76046d (resume the game) is not ported yet");
+			mApp->OpenModeSelect();
 			mState = 4;
 			return;
 		}
 		mApp->NewGame(mGameMode == -1 ? 1 : mGameMode, true, 0);
 		return;
 	} else {
-		mStart.SetConstant(mPlayButton->mImageAppear.GetOutVal());
+		mPlayButton->mImageAppear.SetConstant(mStart.GetOutVal());
 	}
 
 	if (!mPan.HasBeenTriggered() && !mPan.IncInVal()) {
@@ -705,6 +705,12 @@ void Menu::ShowChallenges(bool theNow)
 	mApp->mWidgetManager->RemoveWidget(mChallengeMenu);
 	mApp->mWidgetManager->AddWidget(mChallengeMenu);
 	mChallengeMenu->Show(theNow ? 4 : 1, false);
+}
+
+void Menu::HideChallenges()
+{
+	mApp->mWidgetManager->RemoveWidget(mChallengeMenu);
+	mChallengeMenu->mVisible = false;
 }
 
 void Menu::FlipProfileButton(bool theFlipped)

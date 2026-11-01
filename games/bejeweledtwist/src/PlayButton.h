@@ -22,7 +22,7 @@ public:
 
 	int mButtonId;                   // +0x160: the constructor's arguments again
 	Image* mImage;                   // +0x164: drawn on top, cels 0 and 2
-	ButtonListener* mButtonListener; // +0x168
+	ButtonListener* mListener;       // +0x168: a copy; clicks go to ButtonWidget::mButtonListener
 	float mRotation = 0;             // +0x16c: the spiral's turn
 	float mSpinSpeed = 1.0f;         // +0x170: the sparkles' speed, eased towards 1
 	CurvedVal mAlpha;                // +0x178: the whole button's opacity

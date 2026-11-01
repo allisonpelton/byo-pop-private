@@ -306,3 +306,6 @@ Each is a change without a visible effect in play.
 - A shard's cel (effect type 16) comes from the manager's update count times the effect's address, in the original
   and the port alike; the port's addresses differ, so the shards turn through other shapes. Purely visual, and it draws
   no random number.
+- The mode select (Mandala, 0x721d5c) deletes its effects manager while the manager is still one of its children;
+  the port takes it out first. The zen jump's choice also goes into PopCap's debug text (app +0x1024, see the beta
+  dump above) as a line with the portal, level, rank and play time; the port leaves the line out.

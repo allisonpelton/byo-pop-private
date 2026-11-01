@@ -102,6 +102,7 @@ public:
 	void ShowHelp(bool theNow);                    // 0x69b20d
 	void ShowEndStats();                           // 0x699e17
 	void ShowChallenges(bool theNow);              // 0x699eea
+	void HideChallenges();                         // 0x699f3a
 	void FlipProfileButton(bool theFlipped);       // 0x699b93
 	void PlayMusic(int theMusic);                  // 0x699b45: -1 the one playing last
 	void StartGame(int theMode);                   // 0x69ba8a

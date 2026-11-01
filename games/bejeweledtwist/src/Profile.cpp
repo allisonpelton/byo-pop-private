@@ -403,6 +403,13 @@ void Profile::SetFlag1E4(int theBit, bool on)
 	mFlags1E4 = on ? (mFlags1E4 | aBit) : (mFlags1E4 & ~aBit);
 }
 
+bool Profile::IsModeUnlocked(int theMode) const
+{
+	if (!gApp->mRegistered && theMode == 3)
+		return false;
+	return (mFlags1E8 & (1u << (theMode & 31))) != 0;
+}
+
 bool Profile::GetBit170(int theBit) const
 {
 	return (mBits170[theBit / 8] & (0x80 >> (theBit & 7))) != 0;

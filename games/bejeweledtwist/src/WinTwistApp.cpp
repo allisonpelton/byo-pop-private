@@ -15,6 +15,7 @@
 #include "Graphics.h"
 #include "MemoryImage.h"
 #include "LoaderScreen.h"
+#include "Mandala.h"
 #include "Menu.h"
 #include "MenuButtonWidget.h"
 #include "MenuPanels.h"
@@ -836,6 +837,31 @@ bool WinTwistApp::HandleScriptCommand(const ScriptCommand& theCommand)
 		return true;
 	}
 	return false;
+}
+
+void WinTwistApp::DeleteSave(int theMode, int theChallenge)
+{
+	if (theMode != 5 && theMode != 4)
+		EraseFile(GetSaveName(theMode, theChallenge));
+}
+
+void WinTwistApp::ShowModeSelect(int theMode)
+{
+	Mandala* aMandala = new Mandala(theMode);
+	int aWidth = Ftol((double)mScale * 1920.0);
+	int aHeight = Ftol((double)mScale * 1200.0);
+	aMandala->Resize(mWidth / 2 - aWidth / 2, mHeight / 2 - aHeight / 2, aWidth, aHeight);
+	mWidgetManager->AddWidget(aMandala);
+	mUnknownF24 = aMandala;
+	mWidgetManager->PutBehind(aMandala, mMainMenu);
+}
+
+void WinTwistApp::OpenModeSelect()
+{
+	// (the original asks the profile about the modes 1 to 5 first and drops the answers)
+	for (int i = 1; i < 6; i++)
+		mProfile->IsModeUnlocked(i);
+	ShowModeSelect(0);
 }
 
 bool WinTwistApp::SaveExists(int theMode, int theChallenge)

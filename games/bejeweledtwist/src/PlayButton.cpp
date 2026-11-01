@@ -18,7 +18,7 @@ PlayButton::PlayButton(int theId, Image* theImage, ButtonListener* theListener) 
 {
 	mButtonId = theId;
 	mImage = theImage;
-	mButtonListener = theListener;
+	mListener = theListener;
 }
 
 PlayButton::~PlayButton()

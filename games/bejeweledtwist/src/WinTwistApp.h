@@ -95,6 +95,7 @@ public:
 	// +0x758 (the framework's): the copy is registered, set from the wrapper and a "NoReg" file; the user's copies
 	// are full versions
 	bool mRegistered = true;
+	bool mUnknown759 = false;           // +0x759 (the framework's, next to mRegistered)
 	// +0xfa0: three of them (0x2c bytes each), cleared by every new game (0x760492), saved with the game (0x6a3192)
 	struct UnknownFA0 {
 		Buffer mBuffer;
@@ -166,6 +167,10 @@ public:
 	// 0x760492: a new board of theMode over the menu, afresh with thePlayPressed (see mPlayPressed)
 	void NewGame(int theMode, bool thePlayPressed, int theChallenge);
 	bool SaveExists(int theMode, int theChallenge);  // 0x763ace: never in blitz
+	void DeleteSave(int theMode, int theChallenge);  // 0x763a85: never zen's or a puzzle's
+	// 0x75eacd: the mode select (Mandala) over the screen, in app +0xf24; theMode 0 from the menu, 1 or 2 the zen jump
+	void ShowModeSelect(int theMode);
+	void OpenModeSelect();      // 0x76046d: the menu's play button
 	// 0x763ca4: properties\music.xml and both songs, with their tracks
 	void LoadMusic();
 	void MakeGemImages();               // 0x7620a1

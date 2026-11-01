@@ -95,6 +95,9 @@ public:
 	bool GetFlag1E4(int theBit) const { return (mFlags1E4 & (1u << (theBit & 31))) != 0; }  // 0x733897
 	void SetFlag1E4(int theBit, bool on);           // 0x7338b6
 	bool GetBit170(int theBit) const;               // 0x733838
+	// 0x73378b: the mode is open to the player (mFlags1E8's bit); blitz never in an unregistered copy
+	bool IsModeUnlocked(int theMode) const;
+	void UnlockMode(int theMode) { mFlags1E8 |= 1u << (theMode & 31); }  // 0x7337c2
 	void SetBit170(int theBit);                     // 0x73386e
 };
 
