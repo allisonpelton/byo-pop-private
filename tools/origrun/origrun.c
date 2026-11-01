@@ -471,18 +471,20 @@ static int rpm_buf(DWORD_PTR addr, void* out, size_t n)
 }
 static char gSamples[256] = "";   // --sample a,b: addresses (ints) whose values are logged with each surface shot
 static uint32_t gEipRange[16]; static int gEipN=0;   // --surface-eip lo,hi[,lo,hi...]: the game's code that writes the locked screen (pairs [lo, hi))
-static int in_eip_ranges(uint32_t v){ for (int i=0;i+1<gEipN;i+=2) if (v>=gEipRange[i] && v<gEipRange[i+1]) return 1; return 0; }
-static void parse_eip_ranges(const char* v){ gEipN=0; char b[256]; lstrcpynA(b,v,256); for (char* t=strtok(b,","); t && gEipN<16; t=strtok(NULL,",")) gEipRange[gEipN++]=(uint32_t)strtoul(t,NULL,16); gEipN&=~1; }
+static uint32_t gInRange[16]; static int gInN=0;   // --input-eip lo,hi[,...]: the game's code that reads input and steps (a posted click is read at the next frame, so input is posted only while the thread is outside it)
+static int in_ranges(const uint32_t* R,int N,uint32_t v){ for (int i=0;i+1<N;i+=2) if (v>=R[i] && v<R[i+1]) return 1; return 0; }
+static int parse_ranges(const char* v,uint32_t* R){ int n=0; char b[256]; lstrcpynA(b,v,256); for (char* t=strtok(b,","); t && n<16; t=strtok(NULL,",")) R[n++]=(uint32_t)strtoul(t,NULL,16); return n&~1; }
+static void parse_eip_ranges(const char* v){ gEipN=parse_ranges(v,gEipRange); }
 // Whether the held thread is outside the game's drawing. --surface-eip lo,hi is the game's draw code (Water Bugs:
 // GameDraw, 0x40d070,0x40d0d7): the thread must not stand in it, and no return address into it may be on the stack
 // (a few KB from Esp), which would mean it is inside something GameDraw called (a DirectDraw vtable call, a GDI blit).
 // --surface-gate <addr> is an int that must read 0. A shot needs at least one of the two; a thread whose context could
 // not be read (gHoldEip 0) is never outside.
-static int surface_gate_open(void)
+static int thread_clear(const uint32_t* R,int N)
 {
 	if (!gHoldEip) return 0;
-	if (gEipN) {
-		if (in_eip_ranges(gHoldEip)) return 0;
+	if (N) {
+		if (in_ranges(R,N,gHoldEip)) return 0;
 		// every return address on the stack, page by page from Esp to the end of its region (at most 64 KB)
 		MEMORY_BASIC_INFORMATION mbi; EnterCriticalSection(&gRpmLock);
 		int bad = !gGameProc || !VirtualQueryEx(gGameProc,(LPCVOID)(DWORD_PTR)gHoldEsp,&mbi,sizeof(mbi));
@@ -495,13 +497,18 @@ static int surface_gate_open(void)
 				DWORD_PTR next=(at|0xfff)+1; if (next>end) next=end;
 				uint32_t stk[1024]; size_t n=next-at;
 				if (!rpm_buf(at,stk,n)) { static LONG lg=0; if (InterlockedIncrement(&lg)<=3) logline("surface gate: the stack page at 0x%08X (%u bytes) could not be read (err %lu)",(unsigned)at,(unsigned)n,GetLastError()); bad=1; break; }   // a page that cannot be read: the scan is incomplete, so the gate is closed
-				for (size_t i=0;i<n/4;i++) if (in_eip_ranges(stk[i])) { static LONG logged=0; if (InterlockedIncrement(&logged)<=3) logline("surface gate: a return address 0x%08X on the stack, %u bytes above Esp 0x%08X (eip 0x%08X)", stk[i], (unsigned)(at-gHoldEsp+i*4), (unsigned)gHoldEsp, (unsigned)gHoldEip); bad=1; break; }
+				for (size_t i=0;i<n/4;i++) if (in_ranges(R,N,stk[i])) { static LONG logged=0; if (InterlockedIncrement(&logged)<=3) logline("surface gate: a return address 0x%08X on the stack, %u bytes above Esp 0x%08X (eip 0x%08X)", stk[i], (unsigned)(at-gHoldEsp+i*4), (unsigned)gHoldEsp, (unsigned)gHoldEip); bad=1; break; }
 				at=next;
 			}
 		}
 		LeaveCriticalSection(&gRpmLock);
 		if (bad) return 0;
 	}
+	return 1;
+}
+static int surface_gate_open(void)
+{
+	if (!thread_clear(gEipRange,gEipN)) return 0;
 	if (gSurfaceGate) {
 		uint32_t v=1; EnterCriticalSection(&gRpmLock); int ok=rpm_u32((DWORD_PTR)gSurfaceGate,&v); LeaveCriticalSection(&gRpmLock);
 		return ok && v==0;
@@ -1146,6 +1153,7 @@ static void do_burst(const char* name, int count, int interval_ms, int byUpdates
 // Run one timed inner command (the tail of "at N ...") while the window thread is held. Capture/clicks/keys
 // are posted; the thread is resumed right after. burst manages its own per-frame holds, so it is run unheld.
 static LPARAM xy(int,int);
+static HWND child_at(HWND,int,int,POINT*);
 static void post_click(HWND,int,int,int);
 static void post_key(HWND,int);
 static void post_text(HWND,const char*);
@@ -1167,6 +1175,17 @@ static void exec_at(const char* inner)
 	HWND hw=resolve_window(0,NULL); if(!hw){ logline("at: no window for '%s'",inner); return; }
 	HANDLE th=open_window_thread(hw,THREAD_SUSPEND_RESUME|THREAD_GET_CONTEXT);
 	if (th && !hold_begin(th)) { CloseHandle(th); th=NULL; }
+	if (th && gInN) {   // hold only while the thread is outside the code that reads input and steps updates: the posted input is then read at the next frame start, before any update
+		double w0=qpc_ms(); int tries=0;
+		while (!thread_clear(gInRange,gInN) && !gStop) {
+			hold_end(th); tries++;
+			if (qpc_ms()-w0>3000) { logline("at %s: the thread stayed inside the update code for 3 s (%d holds): posting anyway", cmd, tries); break; }
+			uint32_t c0=0,c1=0; read_counter(gCounterExpr,&c0); double w1=qpc_ms();
+			do { Sleep(1); c1=c0; read_counter(gCounterExpr,&c1); } while (c1==c0 && qpc_ms()-w1<100 && !gStop);
+			if (!hold_begin(th)) { CloseHandle(th); th=NULL; break; }
+		}
+		if (th) { uint32_t c=0; if (read_counter(gCounterExpr,&c)) logline("at %s: input at counter %u (%d holds)", cmd, c, tries+1); }
+	}
 	gInputHeld = (th!=NULL);
 	if (ieq(cmd,"click")){ int x,y; if(sscanf(rest,"%d %d",&x,&y)==2) post_click(hw,x,y,0); }
 	else if (ieq(cmd,"rclick")){ int x,y; if(sscanf(rest,"%d %d",&x,&y)==2) post_click(hw,x,y,1); }
@@ -1174,6 +1193,10 @@ static void exec_at(const char* inner)
 	else if (ieq(cmd,"text")){ post_text(hw,rest); }
 	else if (ieq(cmd,"move")){ int x,y; if(sscanf(rest,"%d %d",&x,&y)==2) PostMessageA(hw,WM_MOUSEMOVE,0,xy(x,y)); }
 	else if (ieq(cmd,"focus")){ post_focus(hw, ieq(rest,"regain")); }
+	else if (ieq(cmd,"down")||ieq(cmd,"up")){   // one button edge, so that a click can span updates (a down and up read in one update are lost)
+		int x=0,y=0,n=sscanf(rest,"%d %d",&x,&y); POINT cp; HWND t=child_at(hw,x,y,&cp); LPARAM lp=xy(cp.x,cp.y);
+		if (ieq(cmd,"down")) { if (n==2) PostMessageA(t,WM_MOUSEMOVE,0,lp); PostMessageA(t,WM_LBUTTONDOWN,MK_LBUTTON,lp); } else PostMessageA(t,WM_LBUTTONUP,0,lp);
+	}
 	else logline("at: cannot do '%s' at an update",cmd);
 	gInputHeld = 0;
 	if (th){ hold_end(th); CloseHandle(th); logline("at %s: the game was held %.2f ms", cmd, gLastHeldMs); }
@@ -2617,6 +2640,7 @@ static int sandbox_host_run(const char* selfDir, const char* script, int timeout
 	if (gFlipsExpr[0]) fprintf(rf,"flips=%s\n",gFlipsExpr);
 	if (gPendingExpr[0]) fprintf(rf,"pending=%s\n",gPendingExpr);
 	if (gSamples[0]) fprintf(rf,"sample=%s\n",gSamples);
+	if (gInN) { fprintf(rf,"inputeip="); for (int i=0;i<gInN;i++) fprintf(rf,"%s%X",i?",":"",gInRange[i]); fprintf(rf,"\n"); }
 	if (gEipN) { fprintf(rf,"surfaceeip="); for (int i=0;i<gEipN;i++) fprintf(rf,"%s%X",i?",":"",gEipRange[i]); fprintf(rf,"\n"); }
 	if (gScrBitsAt) fprintf(rf,"surfacescreen=0x%X,0x%X,%u,%u,%u\n",gScrBitsAt,gScrPitchAt,gScrW,gScrH,gScrBpp);
 	if (gSurfaceAddr) fprintf(rf,"surface=0x%X\n",gSurfaceAddr);
@@ -3057,6 +3081,7 @@ static int main_in_sandbox(const char* dir, int inSession, int probe)
 			else if (ieq(ln,"flips")) lstrcpynA(gFlipsExpr,v,256);
 			else if (ieq(ln,"pending")) lstrcpynA(gPendingExpr,v,256);
 			else if (ieq(ln,"sample")) lstrcpynA(gSamples,v,256);
+			else if (ieq(ln,"inputeip")) gInN=parse_ranges(v,gInRange);
 			else if (ieq(ln,"surfaceeip")) parse_eip_ranges(v);
 			else if (ieq(ln,"surfacescreen")) sscanf(v,"%x,%x,%u,%u,%u",(int*)&gScrBitsAt,(int*)&gScrPitchAt,&gScrW,&gScrH,&gScrBpp);
 			else if (ieq(ln,"surface")) gSurfaceAddr=(uint32_t)strtoul(v,NULL,16);
@@ -3183,6 +3208,7 @@ int main(int argc, char** argv)
 		else if (ieq(argv[i],"--pending-draw")&&i+1<argc) pending=argv[++i];
 		else if (ieq(argv[i],"--surface")&&i+1<argc) gSurfaceAddr=(uint32_t)strtoul(argv[++i],NULL,16);
 		else if (ieq(argv[i],"--surface-screen")&&i+1<argc) sscanf(argv[++i],"%x,%x,%u,%u,%u",(int*)&gScrBitsAt,(int*)&gScrPitchAt,&gScrW,&gScrH,&gScrBpp);
+		else if (ieq(argv[i],"--input-eip")&&i+1<argc) gInN=parse_ranges(argv[++i],gInRange);
 		else if (ieq(argv[i],"--sample")&&i+1<argc) lstrcpynA(gSamples,argv[++i],256);
 		else if (ieq(argv[i],"--surface-eip")&&i+1<argc) parse_eip_ranges(argv[++i]);
 		else if (ieq(argv[i],"--surface-gate")&&i+1<argc) gSurfaceGate=(uint32_t)strtoul(argv[++i],NULL,16);

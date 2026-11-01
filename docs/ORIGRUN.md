@@ -550,6 +550,17 @@ address into one anywhere in its stack (to the end of the stack's region, at mos
 (a draw list's count). The pixels and `--sample a,b` values are read under the hold, the game is let go, and then the
 PNG is written. The header is refused unless the pitch is at most 16384 and no more than 64 bytes over a row.
 
+**Input in the sandbox.** The sandbox has no real cursor: `GetCursorPos` reads 0,0 whatever `SetCursorPos` or hardware
+input did, so a game that polls the cursor sees nothing. `at <counter> move x y` posts the window messages
+(`WM_MOUSEMOVE`), and `at <counter> down x y` / `at <counter> up x y` post `WM_LBUTTONDOWN` / `WM_LBUTTONUP`; a game
+that reads the cursor with `GetCursorPos` needs a private patch that takes the position from `WM_MOUSEMOVE` (Water Bugs
+has one, `mouse` lines in its patch list). Send the down and the up in separate updates (40 or more apart): a down and
+up read in one update are lost. `--input-eip lo,hi[,lo,hi...]` (config key `inputeip`) holds an input command until the
+game thread is outside the listed ranges (Water Bugs: 41f467,41f511, between the message pump and the end of the update
+loop), and the log line `at <cmd>: input at counter N (k holds)` gives the update that read it, which is the number to
+replay in the port. The game's own `SetCursorPos` calls have no effect there, so a port run replaying them needs its
+cursor warps off (Water Bugs's runner: `WB_NOWARP=1`).
+
 A burst still waits for each frame's update. When a capture (`PrintWindow` and writing the PNG, about 35 ms for Bookworm
 Adventures) takes longer than the burst's spacing, its frames land after their updates, and `landed.tsv` gives each
 frame's real update.
