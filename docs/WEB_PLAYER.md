@@ -646,7 +646,7 @@ show the restored values.
 ### Importing saves from an installed game
 
 A player who has played an original game on this computer can bring its saves, high scores, players and settings into the port, in the
-browser and natively. Both read one table, `platform/saveimport.json`, which says for each of the 18 games which registry values and
+browser and natively. Both read one table, `platform/saveimport.json`, which says for each game which registry values and
 which files of the original are the player's save and where each goes in the port. Nothing outside the table is ever taken: not a game's
 files, not an exe, not an installer value. The original's registry and folders are only read, never written.
 
@@ -665,7 +665,9 @@ one. Bookworm Adventures (both games) and Bejeweled use the user's key (`HKCU\So
 `data` or `userdata` folder below it); in `C:\Program Files` Windows keeps them in a private copy, `%LOCALAPPDATA%\VirtualStore\Program Files
 (x86)\PopCap Games\<Game>` (or `Program Files\...`), which the game reads in preference to the install folder; a Steam install is writable,
 so its saves stay in the install folder. A game that sets an app data folder (Bookworm Adventures and Volume 2, `WinBAD`; Bejeweled and
-Alchemy, which make the folder) uses `C:\ProgramData\PopCap Games\<name>`.
+Alchemy, which make the folder) uses `C:\ProgramData\PopCap Games\<name>`. Mahjong Escape: Ancient Japan (JollyBear's engine) keeps its
+settings in `HKCU\Software\JollyBear\Mahjong Escape Ancient Japan` and its players and saved games in
+`%LOCALAPPDATA%\JollyBear\Mahjong Escape Ancient Japan`, which the native import does not search yet: the page's note asks for that folder.
 
 **The table.** `platform/saveimport.json` is plain JSON with one entry for each game id (the id of its `data-game` attribute on the listing
 page and the string its `main.cpp` passes to the helper). It is the only place that says what is imported; CMake turns the same file into
@@ -699,6 +701,7 @@ The per-game table (generated from the file; the registry places are listed in t
 | Rocket Mania Deluxe (`rocketmania`) | `PopCap\RocketMania` (VirtualStore, then machine, then user): the framework's options and times played; `LastScoreName`, `HintsDisabled`, `HintsDisabledFlag#` | `Players/hiscores.dat`, `Players/savea.dat`, `Players/saveb.dat`, `Players/savec.dat` |  |
 | Dynomite Deluxe (`dynomite`) | `PopCap\Dynomite` (VirtualStore, then machine, then user): the framework's options and times played; `LastScoreName`, `LockCursor`, `FossilGameType`, `SkillLevel`, `GameType`, `StompedLevel` | `STOMPED.HS`, `ENDLESS.HS`, `FOSSIL.HS`, `TIMETRIAL.HS`, `SLOT#.SAV` |  |
 | Bookworm Adventures Volume 2 (`bookwormadv2`) | `PopCap\WinBAD` (user, then VirtualStore, then machine): the framework's options and times played; `LastUser`, `AppTime` | `users/*.bwa`, `users/data/*.dat` |  |
+| Mahjong Escape: Ancient Japan (`mahjongjapan`) | `JollyBear\Mahjong Escape Ancient Japan` (user): `SoundsOn`, `SoundsVolume`, `MusicOn`, `MusicVolume`, `FullScreen`, `WideScreen`, `HardwareAcceleration` | `list.usr`, `#.usr`, `#_#.sav`, `#_#_D.sav` (in `%LOCALAPPDATA%\JollyBear\Mahjong Escape Ancient Japan`) |  |
 
 
 The framework's options (`base`) and the times played (`app`) are taken for every game that has a `registry` entry and derives from `SexyApp`; TipTop, Cosmic

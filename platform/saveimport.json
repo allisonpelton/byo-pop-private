@@ -208,6 +208,19 @@
         { "from": "users/*.bwa", "to": "users/*.bwa", "what": "a player" },
         { "from": "users/data/*.dat", "to": "users/data/*.dat", "what": "a player's data" }
       ]
+    },
+    "mahjongjapan": {
+      "folder": "Mahjong Escape Ancient Japan",
+      "note": "Mahjong Escape: Ancient Japan keeps its players in its own folder, %LOCALAPPDATA%\\JollyBear\\Mahjong Escape Ancient Japan, not beside the game: choose that folder.",
+      "registry": { "key": "JollyBear\\Mahjong Escape Ancient Japan", "hives": ["hkcu"], "sets": [],
+        "values": ["SoundsOn=dword", "SoundsVolume=dword", "MusicOn=dword", "MusicVolume=dword", "FullScreen=dword", "WideScreen=dword", "HardwareAcceleration=dword"],
+        "skip": { "UseRegistryDefaults": "an installer value, not a save", "ActivateLinks": "an installer value, not a save", "PartnerURL": "a promotional link of the original" } },
+      "files": [
+        { "from": "list.usr", "to": "list.usr", "what": "the list of players" },
+        { "from": "#.usr", "to": "#.usr", "what": "a player, with their settings and progress" },
+        { "from": "#_#.sav", "to": "#_#.sav", "what": "a player's classic game in progress" },
+        { "from": "#_#_D.sav", "to": "#_#_D.sav", "what": "a player's adventure stage in progress" }
+      ]
     }
   }
 }
