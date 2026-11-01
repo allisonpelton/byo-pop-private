@@ -152,6 +152,7 @@ typedef struct MyBuf {
 	DWORD  pcmBytes;
 	FILE*  wav;          // streaming WAV, lazily opened
 	DWORD  wavBytes;
+	unsigned long long hash; // hash of the last write that filled the whole buffer from 0 (0 if none)
 } MyBuf;
 
 static const IDirectSoundBuffer8Vtbl gBufVtbl;
@@ -238,7 +239,9 @@ static HRESULT STDMETHODCALLTYPE Buf_Unlock(IDirectSoundBuffer8* This, LPVOID p1
 	MyBuf* b = (MyBuf*)This;
 	if (b->lockmem && n1) {
 		DWORD n = n1 < b->locklen ? n1 : b->locklen;
-		logf("buffer %d data   off=%lu bytes=%lu  hash=%016llx", b->id, b->lockoff, n, (unsigned long long)fnv1a(b->lockmem, n));
+		unsigned long long h = fnv1a(b->lockmem, n);
+		logf("buffer %d data   off=%lu bytes=%lu  hash=%016llx", b->id, b->lockoff, n, h);
+		if (b->lockoff == 0 && n >= b->bytes && b->bytes) b->hash = h;
 		if (gWav) {
 			// Keep a copy of the full buffer (static one-shots are written whole on Play).
 			if (b->lockoff == 0 && n >= b->bytes && b->bytes) {
@@ -313,7 +316,21 @@ static HRESULT STDMETHODCALLTYPE DS_CreateSoundBuffer(IDirectSound8* This, LPCDS
 static HRESULT STDMETHODCALLTYPE DS_GetCaps(IDirectSound8* This, LPDSCAPS c)
 { if (c) { DWORD sz=c->dwSize; ZeroMemory(c,sz); c->dwSize=sz; c->dwFlags=DSCAPS_PRIMARYSTEREO|DSCAPS_PRIMARY16BIT|DSCAPS_CONTINUOUSRATE; c->dwMinSecondarySampleRate=100; c->dwMaxSecondarySampleRate=200000; c->dwFreeHwMixingAllBuffers=32; } return DS_OK; }
 static HRESULT STDMETHODCALLTYPE DS_DuplicateSoundBuffer(IDirectSound8* This, LPDIRECTSOUNDBUFFER o, LPDIRECTSOUNDBUFFER* pp)
-{ if (!pp) return E_POINTER; *pp = (LPDIRECTSOUNDBUFFER)NewBuf(NULL); return DS_OK; }
+{
+	// A duplicate shares its source's data, so the log names the source and the hash of its data: that is how a
+	// played duplicate is matched to the sound it holds.
+	if (!pp) return E_POINTER;
+	MyBuf* s = (MyBuf*)o;
+	MyBuf* b = NewBuf(NULL);
+	if (s) {
+		b->bytes = s->bytes; b->wfx = s->wfx; b->freq = s->freq; b->hash = s->hash;
+		b->byterate = s->byterate; b->streaming = s->streaming;
+		if (s->pcm && s->pcmBytes) { b->pcm = malloc(s->pcmBytes); if (b->pcm) { memcpy(b->pcm, s->pcm, s->pcmBytes); b->pcmBytes = s->pcmBytes; } }
+		logf("buffer %d duplicate of %d  hash=%016llx", b->id, s->id, s->hash);
+	}
+	*pp = (LPDIRECTSOUNDBUFFER)b;
+	return DS_OK;
+}
 static HRESULT STDMETHODCALLTYPE DS_SetCooperativeLevel(IDirectSound8* This, HWND h, DWORD lvl) { return DS_OK; }
 static HRESULT STDMETHODCALLTYPE DS_Compact(IDirectSound8* This) { return DS_OK; }
 static HRESULT STDMETHODCALLTYPE DS_GetSpeakerConfig(IDirectSound8* This, LPDWORD c) { if (c) *c=DSSPEAKER_STEREO; return DS_OK; }
