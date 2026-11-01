@@ -114,6 +114,12 @@
       "runtimeExecutable": "python",
       "runtimeArgs": ["-m", "http.server", "18782", "--bind", "127.0.0.1", "--directory", "build/web"],
       "port": 18782
+    },
+    {
+      "name": "shotreview",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["tools/shotdiff/serve.py"],
+      "port": 18767
     }
   ]
 }

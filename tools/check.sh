@@ -14,7 +14,8 @@
 #                rules for .jp2 files, synthetic and damaged files), skipped without assets/bookwormadv/images;
 #                songpostest on Bejeweled's and BookWorm's modules (skipped without their assets); spectrumtest
 #                (the music player's FFT against BASS 2.3's on the same tones); and soundtest (sounds kept as 16-bit at
-#                their own rate, voices against the old stereo-float pipeline)
+#                their own rate, voices against the old stereo-float pipeline); and shotdiff's selftest (tools/shotdiff:
+#                the screenshot comparison on synthetic pictures, its pages and its marks server)
 #   unit-web     rulestest and modsettingstest under Node (needs build-web); paktest (the page's pak reader), with
 #                Bookworm Adventures' main.pak against assets/bookwormadv when both are there; profilestest (the page's
 #                settings and players code, web/settings.js and web/profiles.js, on a fake localStorage), savestest (the
@@ -187,7 +188,7 @@ suite_build-web() { build_suite web "$1"; }
 suite_build-nov() { build_suite novariants "$1"; }
 
 suite_unit() {
-	local st=0 a b c d e f g h
+	local st=0 a b c d e f g h i
 	(cd build/native && timeout 120 ./rulestest.exe) > "$1" 2>&1 || st=1
 	a="$(lastof "$1" 'checks')"
 	(cd build/native && timeout 120 ./modsettingstest.exe) > "$1.mst" 2>&1 || st=1
@@ -231,9 +232,12 @@ suite_unit() {
 	# Mixer's sounds: 16-bit at their own rate, resampled by the voices; needs no game files
 	(cd build/native && timeout 60 ./soundtest.exe) > "$1.snd" 2>&1 || st=1
 	h="$(lastof "$1.snd" 'sound: [0-9]+ checks, [0-9]+ failed')"
-	cat "$1.mst" "$1.fw" "$1.ph" "$1.jp2" "$1.sp" "$1.fft" "$1.snd" >> "$1"
-	rm -f "$1.mst" "$1.fw" "$1.ph" "$1.jp2" "$1.sp" "$1.fft" "$1.snd"
-	SUMMARY="$a; $b; $c; $d; $e; $f; $g; $h"
+	# tools/shotdiff: the screenshot comparison on synthetic pictures (statuses, boxes, alignment, pages, the marks server)
+	timeout 120 python tools/shotdiff/selftest.py > "$1.sdf" 2>&1 || st=1
+	i="$(lastof "$1.sdf" 'shotdiff: [0-9]+ checks, [0-9]+ failed')"
+	cat "$1.mst" "$1.fw" "$1.ph" "$1.jp2" "$1.sp" "$1.fft" "$1.snd" "$1.sdf" >> "$1"
+	rm -f "$1.mst" "$1.fw" "$1.ph" "$1.jp2" "$1.sp" "$1.fft" "$1.snd" "$1.sdf"
+	SUMMARY="$a; $b; $c; $d; $e; $f; $g; $h; $i"
 	return $st
 }
 
