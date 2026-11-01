@@ -52,9 +52,9 @@ These were found in this pass with the help of the names (each one was then chec
 
 ## What is still to look at
 
-- `SSApp::ConfirmSkillChange(int)` and `ChangeSkillLevel(int)`, `IntroScreen::SetSkillLevel(int)`: a question that comes up when
-  the difficulty is changed during a game. The port's menu has no such question yet; check the Windows exe's version of it
-  (the strings near "Are you sure you want to end the current game?") and port it if it has one.
+- `SSApp::ConfirmSkillChange(int)` and `ChangeSkillLevel(int)`, `IntroScreen::SetSkillLevel(int)`: checked in the Windows exe, which has
+  no such question. Its only use of the "end the current game" text is the New Game dialog (0x41f8b0), so this is a Mac difference and
+  the port, which follows `WinSS.exe`, has nothing to add.
 - `SSApp::EnforceCursor`, `DoColorDepthExplination` (a message on 16-bit colour screens: not applicable to the port).
 - `SSApp::GiveHelp(string, string, string)`: the tutorial's help boxes by a key; the port's tutorial boxes match the original
   screen by screen (`build/shotreview/sevenseas/t*`), so nothing known is missing.
