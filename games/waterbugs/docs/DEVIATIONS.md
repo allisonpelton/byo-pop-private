@@ -57,3 +57,20 @@ read by eye against the exe and not yet by a run. One real difference was found 
 width and height were drawn from 3 to 10 and 2 to 6 where the exe draws 2 to 10 and 1 to 6, so random boards
 differed. The frozen baseline of the port is in `tools/check.sh waterbugs` (the state lines and the hashes of three
 screens: the board's start, after a beam, the high scores after a lost last life).
+
+
+## Compared with the original running (2026-11-01, in progress)
+
+The original runs under `tools/origrun --sandbox` with the screen read from the game's memory at a given update, its
+mouse input replayed in the port by the update that read it (`WB_NOWARP=1`: the sandbox's cursor cannot be moved, so the
+game's own cursor warps are ignored in both). The title screen matches pixel for pixel at three updates. The random
+seed matched the original's at every draw count checked until the world map (after the title's click: 6133 draws in the
+original, 6124 to 6154 in the port within the same few updates). The Rand function divided the seed signed where the
+exe's `div` is unsigned; the port's seed sequence diverged from the original's once a seed had its top bit set, which
+changed boards' bubbles and the beam's fill. Fixed (12d8077): both now agree draw by draw.
+
+What still differs is tied to the frames, not the updates: the port's test runner draws a frame every 10 ms of game time,
+while the original's real frames are as long as the machine makes them. The world map's water (and the bubbles that
+follow it) steps once per drawn frame, so its phase differs by up to a frame's updates; shifting the port's shot by up
+to ten updates brings the world map to 88 differing pixels. Those and the other per-frame effects are masked or
+phase-matched in the comparison until a frame's length can be fixed in both.
