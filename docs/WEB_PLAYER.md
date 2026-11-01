@@ -646,7 +646,7 @@ show the restored values.
 ### Importing saves from an installed game
 
 A player who has played an original game on this computer can bring its saves, high scores, players and settings into the port, in the
-browser and natively. Both read one table, `platform/saveimport.json`, which says for each of the 18 games which registry values and
+browser and natively. Both read one table, `platform/saveimport.json`, which says for each game which registry values and
 which files of the original are the player's save and where each goes in the port. Nothing outside the table is ever taken: not a game's
 files, not an exe, not an installer value. The original's registry and folders are only read, never written.
 
@@ -699,10 +699,11 @@ The per-game table (generated from the file; the registry places are listed in t
 | Rocket Mania Deluxe (`rocketmania`) | `PopCap\RocketMania` (VirtualStore, then machine, then user): the framework's options and times played; `LastScoreName`, `HintsDisabled`, `HintsDisabledFlag#` | `Players/hiscores.dat`, `Players/savea.dat`, `Players/saveb.dat`, `Players/savec.dat` |  |
 | Dynomite Deluxe (`dynomite`) | `PopCap\Dynomite` (VirtualStore, then machine, then user): the framework's options and times played; `LastScoreName`, `LockCursor`, `FossilGameType`, `SkillLevel`, `GameType`, `StompedLevel` | `STOMPED.HS`, `ENDLESS.HS`, `FOSSIL.HS`, `TIMETRIAL.HS`, `SLOT#.SAV` |  |
 | Bookworm Adventures Volume 2 (`bookwormadv2`) | `PopCap\WinBAD` (user, then VirtualStore, then machine): the framework's options and times played; `LastUser`, `AppTime` | `users/*.bwa`, `users/data/*.dat` |  |
+| Bonnie's Bookstore Deluxe (`bonnies`) | none | `SavedGames/General_Preferences.cfg`, `SavedGames/*.GAM`, `Data/HighScores.dat` |  |
 
 
 The framework's options (`base`) and the times played (`app`) are taken for every game that has a `registry` entry and derives from `SexyApp`; TipTop, Cosmic
-Bugs and Water Bugs keep no registry values the port reads, and Ning Po and Word Harmony (engine games) have only their own values. Bookworm Adventures and
+Bugs, Water Bugs and Bonnie's Bookstore (an SDL game that keeps its saves beside its exe) keep no registry values the port reads, and Ning Po and Word Harmony (engine games) have only their own values. Bookworm Adventures and
 Volume 2 share the key `PopCap\WinBAD` and the folder `WinBAD`, so each imports what the other wrote there. What the table leaves out and why, game by game, is in
 its `skipFiles` and `skipValues`: Noah's Ark's `data\savegame.dat` (the port's file keeps its random number generator in another form, so the original's cannot be
 continued), Alchemy's `userdata\savegame.dat` (the port adds a version byte), the Steam edition of BookWorm's `players\<name>\profile.dat` and `scores.dat` (a later
