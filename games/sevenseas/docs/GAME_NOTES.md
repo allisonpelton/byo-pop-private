@@ -160,3 +160,11 @@ board that took the clicks (and hover) of every cell under it, so moves failed o
 new game: the original's case 0xf of 0x421a10 sets its mode to 0, clears the talking flag and hides it, as a new game does. The
 likely cause of the reported "controls fail at random times". Found by loading the original's own savegame.dat (its format is the
 port's; the file the original writes at exit) and clicking a cell under the box.
+
+**Continue: gun smoke on the loaded ships (not emulated).** The original's saved-game loader fills a ship's position, heading and
+type but not its nine gun-smoke timers (`mTrail`), which keep what the heap had there. In the sandbox the two ships showed
+cannon blasts in the diagonal cells (lower left, upper right) 60 updates after the board came up, and one of them again at
+update ~250: a timer that counts down from a large leftover value shows its blast once it falls below 14. The port starts them
+at -1 (no smoke). The leftovers differ with the heap, so there is nothing to copy; the effect is a second of smoke on a
+Continue, now and then. Everything else of the Continue, the level-complete screen and the next level matches (shots lc7000 and
+lc7300 are pixel-identical).
