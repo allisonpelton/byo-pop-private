@@ -61,8 +61,8 @@ public:
 	char GetByte();
 	// 0x424fd0, 0x425050: the characters and a 0; read up to the 0 (the two copies do the same)
 	void String(std::string& theText);
-	// 0x4250d0
-	void Char(char& theValue);
+	// 0x4250d0: 8 bits, sign-extended when read
+	void Char(int& theValue);
 	// 0x425100: 16 bits, sign-extended when read
 	void Short(int& theValue);
 	// 0x425160: 16 bits, read without the sign

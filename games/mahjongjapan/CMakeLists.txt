@@ -24,6 +24,12 @@ if(NOT MSVC)
   target_compile_options(mahjongjapangame PRIVATE -Wall -Wno-unused-private-field)
 endif()
 
+# The layouts and the deal, checked without a window (tools/dealtest.cpp)
+if(NOT EMSCRIPTEN)
+  add_executable(mahjongjapan_dealtest ${CMAKE_CURRENT_SOURCE_DIR}/tools/dealtest.cpp)
+  target_link_libraries(mahjongjapan_dealtest PRIVATE mahjongjapangame)
+endif()
+
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/src/MahjongApp.cpp)
   add_executable(mahjongjapan ${MAHJONGJAPAN_HOST_SOURCES})
   target_link_libraries(mahjongjapan PRIVATE mahjongjapangame mahjongjapanengine sexyframework sexyopenmpt stb)

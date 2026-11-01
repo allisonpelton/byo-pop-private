@@ -177,7 +177,7 @@ void Stream::String(std::string& theText)
 }
 
 // 0x4250d0
-void Stream::Char(char& theValue)
+void Stream::Char(int& theValue)
 {
 	if (mMode == 1)
 	{
@@ -185,7 +185,7 @@ void Stream::Char(char& theValue)
 		return;
 	}
 	if (mMode == 2)
-		theValue = GetByte();
+		theValue = (signed char)GetByte();
 }
 
 // 0x425100
