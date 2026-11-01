@@ -9,7 +9,9 @@
 // every read and write is guarded, a read then gives the defaults and a write says it did not happen.
 //
 // A choice setting is "game" (Game default, the default), "on" or "off". A level setting is a whole number from 0 to 100. A
-// switch is "off" by default: a page feature the originals do not have, or the starting volume below.
+// switch is "off" by default: a page feature the originals do not have, or the starting volume below. The one exception is
+// showChat, a switch that is "on" by default: the site's chat (web/chat.js) is part of the page, not of any game, and the switch
+// only hides it.
 //
 // The starting volume is three settings: the switch startVolume and the two levels startMusic and startSound (50 until the
 // player moves them). With the switch on, every game starts at those two volumes (docs/WEB_PLAYER.md). Until 2026-10-27 the
@@ -36,6 +38,7 @@ var ByopopSettings = (function () {
     wakeLock: { values: SWITCH, def: "off" },       // on: the screen stays awake while a game runs
     confirmLeave: { values: SWITCH, def: "off" },   // on: ask before leaving the page while a game runs
     pauseHidden: { values: SWITCH, def: "off" },    // on: a hidden tab pauses the game
+    showChat: { values: SWITCH, def: "on" },        // off: the chat beside the game is not drawn (web/chat.js)
     profile: { values: ["game", "fill", "create"], def: "game" }  // fill: names start with the site's player; create: and the player is made and chosen
   };
 
@@ -184,7 +187,10 @@ var ByopopSettings = (function () {
     { name: "confirmLeave", label: "Ask before leaving a page while a game runs",
       hint: "Asks before you close or leave a page while a game is running, so a stray click doesn’t end your game." },
     { name: "pauseHidden", label: "Pause when the tab is hidden",
-      hint: "Stops the game and its sound while you’re on another tab. The original games keep running in the background, so this starts off." }
+      hint: "Stops the game and its sound while you’re on another tab. The original games keep running in the background, so this starts off." },
+    { name: "showChat", label: "Show chat",
+      hint: "Shows the chat beside the game on a game’s page, or below it on a narrow screen. Turn it off to hide it. For now it is a test: " +
+        "the messages are made up and stay in this browser." }
   ];
   var STYLE =
     ".bps { display: grid; gap: 8px; }\n" +

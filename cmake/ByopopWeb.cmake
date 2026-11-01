@@ -31,8 +31,12 @@ set(BYOPOP_WEB_BRAND favicon.svg favicon.ico apple-touch-icon.png logo.svg logo-
 # web/settings.js, the site's settings and the record of which games have their files (docs/WEB_PLAYER.md, "Site
 # settings", "The listing page"): one file that the listing page and every game page load. web/profiles.js keeps the site's
 # players and what the games report of theirs ("Player profiles"); the listing page and the game pages load it too.
-# web/exeicon.js reads a game's icon out of its exe (the game pages load it). All three are copied next to the pages.
-set(BYOPOP_WEB_SHARED_JS settings.js profiles.js exeicon.js)
+# web/exeicon.js reads a game's icon out of its exe (the game pages load it). web/chat.js is the chat beside the game
+# (docs/CHAT_DESIGN.md). All four are copied next to the pages. chat-games.js, the chat's table of the site's games (the id
+# of each game's page, its page's file name, its badge's initials and colour and its title), is written beside them by
+# byopop_web_index() from the same BYOPOP_WEB_BADGES and the same titles as the listing page's tiles, so the chat keeps no list of
+# games of its own.
+set(BYOPOP_WEB_SHARED_JS settings.js profiles.js exeicon.js chat.js)
 # the listing page's own scripts: the Players section (web/players.js), the save backup (web/saves.js) and the import of
 # saves from an installed game (web/saveimport.js, with the table platform/saveimport.json as saveimport-table.js), copied
 # next to index.html only
@@ -46,8 +50,9 @@ set(BYOPOP_WEB_INDEX_JS players.js saves.js saveimport.js)
 set(BYOPOP_WEB_FINISHED bejeweled bigmoney bookworm noahsark sevenseas atomica mummymaze tiptop bookwormadv ningpo
   pixelus alchemy wordharmony cosmicbugs waterbugs rocketmania dynomite bookwormadv2)
 # A game's badge on the listing page, <target>|<initials>|<colour>: the initials in white on a rounded square of the
-# colour. Original to byo-pop, never the games' art. The colours keep white text above a 4.5 contrast ratio. A game
-# without a row here gets the initials of its TITLE and the accent colour.
+# colour. Original to byo-pop, never the games' art. The colours keep white text above a 4.5 contrast ratio (the chat's game
+# tags, "[BW]" before a username, use the same row and colour: tools/chattest.js checks the ratio and that the initials are
+# unique, 1 to 4 letters or digits). A game without a row here gets the initials of its TITLE and the accent colour.
 set(BYOPOP_WEB_BADGES
   "bejeweled|BJ|#95233d" "bigmoney|BM|#1f8438" "bookworm|BW|#955c23" "noahsark|NA|#234995" "sevenseas|7S|#1e8080"
   "atomica|AT|#602395" "mummymaze|MM|#8c7021" "tiptop|TT|#954123" "bookwormadv|BA|#45801e" "ningpo|NP|#1f845f"
@@ -350,6 +355,8 @@ function(byopop_web_index)
     message(FATAL_ERROR "${BYOPOP_WEB_INDEX} needs one \"${marker}\"")
   endif()
   set(tiles "")
+  set(chat_games "")
+  set(chat_separator "")
   set(count 0)
   # the tiles go in alphabetical order of the games' titles, ignoring case (the user, 2026-10-27); a game with no
   # web page has no title, sorts first and is dealt with below
@@ -373,6 +380,10 @@ function(byopop_web_index)
         "no byopop_web_game(${target} ...) was configured")
     endif()
     get_property(title GLOBAL PROPERTY BYOPOP_WEB_TITLE_${target})
+    # the title as plain text, for the chat's table (the page's own copy is HTML-escaped below): backslash and quote escaped
+    set(chat_title "${title}")
+    string(REPLACE "\\" "\\\\" chat_title "${chat_title}")
+    string(REPLACE "\"" "\\\"" chat_title "${chat_title}")
     set(initials "")
     set(colour "#6b3fd1")
     set(found OFF)
@@ -396,6 +407,7 @@ function(byopop_web_index)
       endforeach()
       message(STATUS "byo-pop: ${target} has no badge in BYOPOP_WEB_BADGES (cmake/ByopopWeb.cmake): using \"${initials}\"")
     endif()
+    set(chat_initials "${initials}")
     foreach(field title initials)
       string(REPLACE "&" "&amp;" ${field} "${${field}}")
       string(REPLACE "<" "&lt;" ${field} "${${field}}")
@@ -429,6 +441,10 @@ function(byopop_web_index)
     # its browser database (the persist folder), for the label under the name and its "?" (web/index.html)
     get_property(game_id GLOBAL PROPERTY BYOPOP_WEB_id_${target})
     get_property(game_persist GLOBAL PROPERTY BYOPOP_WEB_persist_${target})
+    # the chat's table: one entry for each game on the listing page, in the tiles' order (the game's id is the page's PAGE.id)
+    string(APPEND chat_games "${chat_separator}  {\"id\": \"${game_id}\", \"page\": \"${target}.html\", \"tag\": \"${chat_initials}\", "
+      "\"title\": \"${chat_title}\", \"colour\": \"${colour}\"}")
+    set(chat_separator ",\n")
     # the game's Web Lock (its page holds it while it runs) and whether it keeps replays, for the save backup (web/saves.js)
     get_property(game_lock GLOBAL PROPERTY BYOPOP_WEB_lock_${target})
     get_property(game_replays GLOBAL PROPERTY BYOPOP_WEB_replays_${target})
@@ -496,6 +512,8 @@ function(byopop_web_index)
   byopop_write_if_changed(${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/saveimport-table.js "var ByopopSaveTable = ${saveimport_text};
 ")
   byopop_write_if_changed(${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/index.html "${page}")
+  # the chat's table of games (web/chat.js, docs/CHAT_DESIGN.md), loaded by every game page before chat.js
+  byopop_write_if_changed(${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/chat-games.js "var ByopopGames = [\n${chat_games}\n];\n")
   message(STATUS "byo-pop: the listing page shows ${count} games")
 endfunction()
 if(EMSCRIPTEN)
