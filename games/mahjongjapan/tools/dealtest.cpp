@@ -134,6 +134,49 @@ static void Undo(Layout& theLayout, Move& theMove)
 	theLayout.UpdateFree();
 }
 
+// A point of theTile that the hit test (Layout::HitTest, 0x414750) gives to it, in board coordinates; a tile can be
+// visible (IsVisible) by a sliver the hit test gives to a tile drawn later
+static bool ClickPoint(Layout& theLayout, Tile* theTile, int& theX, int& theY)
+{
+	for (int y = theTile->mRect.top + 26; y < theTile->mRect.bottom; y += 3)
+		for (int x = theTile->mRect.left + 24; x < theTile->mRect.right; x += 3)
+		{
+			int z = -1, tx, ty;
+			if (theLayout.HitTest(x, y, &z, &tx, &ty) == theTile)
+			{
+				theX = x;
+				theY = y;
+				return true;
+			}
+		}
+	for (int y = theTile->mRect.top; y < theTile->mRect.bottom; y++)
+		for (int x = theTile->mRect.left; x < theTile->mRect.right; x++)
+		{
+			int z = -1, tx, ty;
+			if (theLayout.HitTest(x, y, &z, &tx, &ty) == theTile)
+			{
+				theX = x;
+				theY = y;
+				return true;
+			}
+		}
+	return false;
+}
+
+// A free tile can lie under a tile two levels up with nothing between them (Layout::IsFree, 0x414c20, looks one
+// level up), and then no click reaches it
+static bool CanClick(Layout& theLayout, Tile* theTile)
+{
+	bool aHigher = false;
+	for (Tile* aTile : gTiles)
+		if (aTile->mTaken == 0 && theTile->mZ + 1 < aTile->mZ && aTile->mRect.left < theTile->mRect.right &&
+			theTile->mRect.left < aTile->mRect.right && aTile->mRect.top < theTile->mRect.bottom &&
+			theTile->mRect.top < aTile->mRect.bottom)
+			aHigher = true;
+	int x, y;
+	return !aHigher || ClickPoint(theLayout, theTile, x, y);
+}
+
 static bool SolveFrom(Layout& theLayout)
 {
 	if (!gMoves.empty() && gMoves.back().mFirst->mKind == 0x2b)
@@ -156,7 +199,7 @@ static bool SolveFrom(Layout& theLayout)
 			continue;
 		if (aTile->mKind == 0x2b)
 			aKeys.push_back(aTile);
-		if (aTile->mFree)
+		if (aTile->mFree && CanClick(theLayout, aTile))
 			aFree.push_back(aTile);
 	}
 	std::vector<std::pair<int, Move>> aMoves;
@@ -191,7 +234,8 @@ static bool SolveFrom(Layout& theLayout)
 			continue;
 		for (Tile* b : gTiles)
 		{
-			if (b->mTaken != 0 || b == a || !theLayout.IsVisible(b))
+			int bx, by;
+			if (b->mTaken != 0 || b == a || !theLayout.IsVisible(b) || !ClickPoint(theLayout, b, bx, by))
 				continue;
 			if (a->mKind == 0x2c ? b->mKind == 0x2d : b->mKind < 0x2b)
 				anAdd(a, b);
@@ -280,30 +324,19 @@ static int Solve(int theId, bool theDeal, unsigned int theSeed, int thePercent)
 		gTiles[i]->mKind = aKinds[i];
 	}
 	// A point of each tile that the hit test gives to it, with the tiles taken before it gone
+	int aMoveCount = 0;
 	auto aPoint = [&](Tile* theTile, int& theX, int& theY) {
-		for (int y = theTile->mRect.top + 26; y < theTile->mRect.bottom; y += 3)
-			for (int x = theTile->mRect.left + 24; x < theTile->mRect.right; x += 3)
-			{
-				int z = -1, tx, ty;
-				if (aLayout.HitTest(x, y, &z, &tx, &ty) == theTile)
-				{
-					theX = x + anOffX;
-					theY = y + anOffY + 0x42;
-					return;
-				}
-			}
-		for (int y = theTile->mRect.top; y < theTile->mRect.bottom; y += 2)
-			for (int x = theTile->mRect.left; x < theTile->mRect.right; x += 2)
-			{
-				int z = -1, tx, ty;
-				if (aLayout.HitTest(x, y, &z, &tx, &ty) == theTile)
-				{
-					theX = x + anOffX;
-					theY = y + anOffY + 0x42;
-					return;
-				}
-			}
-		theX = theY = -1;
+		if (ClickPoint(aLayout, theTile, theX, theY))
+		{
+			theX = theX + anOffX;
+			theY = theY + anOffY + 0x42;
+		}
+		else
+		{
+			theX = theY = -1;
+			fprintf(stderr, "unclickable %d: tile %d,%d,%d kind 0x%x free %d taken %d\n", aMoveCount, theTile->mX,
+				theTile->mY, theTile->mZ, theTile->mKind, theTile->mFree, theTile->mTaken);
+		}
 	};
 	// The tips that come after a move (Board::UpdateMoves, 0x40d560, and CheckStuck, 0x40dfd0): both key tiles
 	// free (1), a flower or a season free (7), no pair free (5); "tip <id> <moves before it>" on stderr, for the
@@ -311,7 +344,6 @@ static int Solve(int theId, bool theDeal, unsigned int theSeed, int thePercent)
 	bool aKeysTipped = false;
 	bool aFlowersTipped = false;
 	bool aStuckTipped = false;
-	int aMoveCount = 0;
 	auto aTips = [&]() {
 		if (!aKeysTipped && aLayout.CountFree2b() == 2)
 		{
