@@ -2108,3 +2108,40 @@ void Board::ShowStatsBar()
 	// it comes with the level's end
 	NotPorted("Board::ShowStatsBar (0x6ab48d)");
 }
+
+void Board::SetUnknown3924(float theValue)
+{
+	float aWas = mUnknown3924;
+	mUnknown3924 = theValue;
+	if (aWas == 0.0f && 0.0f < theValue) {
+		for (int aRow = 0; aRow < mRows; aRow++) {
+			for (int aCol = 0; aCol < mCols; aCol++) {
+				Piece* aPiece = GetPieceAt(aRow, aCol);
+				if (aPiece != nullptr)
+					aPiece->mUnknown535 = true;
+			}
+		}
+		if (mGameMode == MODE_CLASSIC)
+			NextLevelMusic();
+	}
+}
+
+void Board::ApplyUnknown3924()
+{
+	for (int aRow = 0; aRow < mRows; aRow++) {
+		for (int aCol = 0; aCol < mCols; aCol++) {
+			Piece* aPiece = GetPieceAt(aRow, aCol);
+			if (aPiece != nullptr)
+				aPiece->mAlpha = mUnknown3924;
+		}
+	}
+}
+
+void Board::RetargetTravellers()
+{
+	RandSigned();
+	if (!mUnknown26B0.empty()) {
+		// port: each traveller's new target (0x6a3447 picks a cell) comes with the travellers
+		NotPorted("Board::RetargetTravellers (0x6a9f1d)");
+	}
+}

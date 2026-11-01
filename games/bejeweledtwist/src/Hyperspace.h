@@ -21,6 +21,13 @@ public:
 	bool mIs3D = false;          // +0x156: drawn with Direct3D
 	bool mFlag159 = true;        // +0x159
 	bool mFlag15A = false;       // +0x15a: set when a board takes it (0x6a5fa3)
+	bool mFlag15B = true;        // +0x15b: the jump's first half is still to come (transition 8)
+	bool mFlag15C = false;       // +0x15c: set while Update skipped the jump
+	bool mFlag15E = false;       // +0x15e: holds the jump (set from outside, not yet known)
+	CurvedVal mUnknown258;       // +0x258: the board's brightness through a jump (Board 0x6a6a07)
+	int mUnknownC58 = 0;         // +0xc58: the trial's limit after transition 14 (left out)
+	CurvedVal mUnknown12B0;      // +0x12b0: the board's brightness while state 11 (transition 12) runs
+	CurvedVal mUnknown1570;      // +0x1570: the jump's length
 	int mWorld = 4;              // +0xc5c: the level's world (0x7181b3 picks it by level)
 	CurvedVal mFlash;            // +0x1320: the white flash of a jump
 	double mWarmUp = 0;          // +0x1078: rises to 1 while idle

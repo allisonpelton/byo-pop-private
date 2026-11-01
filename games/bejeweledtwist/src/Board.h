@@ -673,6 +673,9 @@ public:
 	void ShowHint();                             // 0x6c32cf
 	void UpdateToolTips();                       // part of 0x6d090f
 	void ShowStatsBar();                         // 0x6ab48d
+	void SetUnknown3924(float theValue);         // 0x6a6a07: the board's brightness; rising from 0 it shows the gems
+	void ApplyUnknown3924();                     // 0x6a69a8: every gem's alpha to it
+	void RetargetTravellers();                   // 0x6a9f1d
 	void FinishLevelUp();                         // 0x6bab49: the change between levels is over
 	void StartLevelIntro();                       // 0x6c2f69: the new level's intro
 	void PlayGameMusic();                         // 0x6a6a8b
