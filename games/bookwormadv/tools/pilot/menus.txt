@@ -1,0 +1,68 @@
+# The menus: the logo and title (a clip), the main menu, focus, the players, the hall of fame, the mini-games,
+# the media player with its spectrum, the quit dialog, and last options and credits (whatever a click does to the
+# credits cannot put the rest out of step). Profile Tester (the pilot start state, with cheat.lua's _DefaultMP list).
+title 12000 200
+at 16000
+shot menu
+focus lose
+wait 1500
+shot menu_focus_lost
+focus regain
+wait 1500
+shot menu_focus_regained
+click 400 209            # change users
+wait 1500
+shot players
+click 314 416            # New
+wait 1500
+shot new_player
+text Pilot
+wait 500
+shot new_player_typed
+click 506 434            # the New User dialog's Cancel
+wait 1000
+click 482 464            # the player list's Cancel
+wait 1500
+click 675 420            # the trophies: the Hall of Fame
+wait 2500
+shot hall_adventure
+click 406 122            # Arena
+wait 1500
+shot hall_arena
+click 620 122            # Mini-Games
+wait 1500
+shot hall_minigames
+click 404 554            # Main Menu
+wait 2500
+click 115 400            # the tent: the mini-games
+wait 2500
+shot minigames
+click 396 494            # Main Menu
+wait 2500
+click 555 540            # the film reels: the media player, playing the menu's theme with its spectrum
+wait 2500
+shot media_player
+clip media_spectrum 2000 100
+click 138 371            # Credits Theme
+wait 2500
+shot media_credits_theme
+click 400 572            # Main Menu
+wait 2500
+click 700 540            # the boot: Quit
+wait 1500
+shot quit_dialog
+click 500 476            # Play!: back to the menu
+wait 2000
+shot menu_after_quit_dialog
+click 100 540            # the toolbox: Options
+wait 1500
+shot options
+click 295 458            # Credits
+wait 2500
+shot credits_1
+wait 5000
+shot credits_2
+click 400 300            # a click ends the credits
+wait 2500
+shot menu_after_credits
+quit
