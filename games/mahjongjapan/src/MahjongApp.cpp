@@ -371,7 +371,8 @@ MahjongApp::MahjongApp()
 	gApp = this;
 	mProdName = "Mahjong Escape Ancient Japan";
 	mTitle = "Mahjong Escape: Ancient Japan";
-	mRegKey = "JollyBear\\MahjongEscapeAncientJapan";
+	// the original's key: Software\JollyBear\ and the title with only its letters, digits and spaces (0x429ac0)
+	mRegKey = "JollyBear\\Mahjong Escape Ancient Japan";
 	mWidth = 800;
 	mHeight = 600;
 	// the frame's pacing (25 ms, jb::Host::Sleep) is checked every 5 ms
@@ -439,6 +440,17 @@ void MahjongApp::Shutdown()
 		mGame->Exit();
 	}
 	SexyAppBase::Shutdown();
+}
+
+// The engine keeps its own settings in the key (0x426060 reads them, 0x4266c0 writes them at the exit). The framework's
+// options would share it, and its MusicVolume, written after the engine's, would undo a change made in the options.
+void MahjongApp::ReadFromRegistry()
+{
+	mReadFromRegistry = true;
+}
+
+void MahjongApp::WriteToRegistry()
+{
 }
 
 void MahjongApp::RunFrame()

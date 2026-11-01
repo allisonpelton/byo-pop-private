@@ -47,7 +47,7 @@ ids.forEach((id) => {
   });
   if (g.registry) {
     const r = S.registryOf(g);
-    check(id + " has a registry key", /^[A-Za-z]+\\[A-Za-z0-9]+$/.test(g.registry.key), g.registry.key);
+    check(id + " has a registry key", /^[A-Za-z]+\\[A-Za-z0-9]+( [A-Za-z0-9]+)*$/.test(g.registry.key), g.registry.key);
     check(id + " hives are known", g.registry.hives.length > 0 && g.registry.hives.every((h) => h === "vs" || h === "hklm" || h === "hkcu"));
     check(id + " values have types", r.rules.every((x) => x.type === "sz" || x.type === "dword" || x.type === "hex"), r.rules.map((x) => x.name + "=" + x.type));
     // no installer value is a value the port takes
