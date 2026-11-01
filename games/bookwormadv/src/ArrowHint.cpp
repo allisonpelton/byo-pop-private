@@ -262,7 +262,7 @@ bool ArrowHint::UpdateState()
 	}
 	case STATE_FADE_OUT:  // 0x4033f0: fades out where there is alpha blending, else it is gone at once
 		mFadeAlpha += mFadeDelta;
-		if (mFadeAlpha > 0 && gApp->Is3DAccelerated())
+		if (mFadeAlpha > 0 && gApp->Is3DMode())
 			return false;
 		mFadeAlpha = 0;
 		return true;

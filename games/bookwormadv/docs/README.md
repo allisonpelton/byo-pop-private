@@ -100,9 +100,9 @@ about 2.5 in the boxes measured, and under the blur no box kept more than 21 pix
 sampling has not been compared with the original's rasterizer line by line yet; a box that turns visible would be a fault to
 fix there.
 
-### Faults the pilot found, not fixed yet
+### Faults the pilot found
 
-These wait until the user has seen the review page (2026-11-01).
+The first waits until the user has seen the review page (2026-11-01).
 
 The tome stays locked on the port's main menu (the pilot's item seen in 9 shots). The original's profile load (0x48a390)
 calls the Lua functions `_debug_profile_loaded_value` (per value) and `_debug_profile_done_loading` (at the end) whenever the
@@ -110,11 +110,14 @@ app's flag at +0x950 is set, with no cheat check; cheat.lua's `_debug_profile_do
 profile past the first book, so the original's menu shows the tome unlocked for the pilot's Tester. The port's
 `Profile.cpp` skips both calls ("cheats are off").
 
-The battles show a hill behind the enemy in the port only (the item seen in 5 shots, and the dimmed intro and focus-lost
-shots). arena.lua draws the midground animation (`images/pam/MG<book>-<chapter>.pam`, the island) only when
-`gCApp:Is3DAccelerated()`; otherwise the cached background and foreground alone. The port's framework reports 3D whenever
-its SDL renderer is accelerated and ignores the registry's `Is3D` (the user's is 0), so it always takes the 3D path; the
-original honours `Is3D`, and under origrun on this machine it also turns `Is3D` back to 0 when given 1 and draws in software.
+The battles showed a hill behind the enemy in the port only (the item seen in 5 shots). arena.lua draws the midground
+animation (`images/pam/MG<book>-<chapter>.pam`, the island) only when `gCApp:Is3DAccelerated()`, and the port reported 3D
+whenever its SDL renderer was accelerated, ignoring the registry's `Is3D` (the user's is 0). Fixed (2026-11-01): the game's
+3D mode is `LuaApp::Is3DMode()`, read from and written to `Is3D` as the original does (on when the value is missing, as when
+the original's 3D test passes), set by the Options dialog's box, and what the scripts and the game's C++ ask. With `Is3D` 0
+the pilot's battle shows no island, like the original. Under origrun on this machine the original turns `Is3D` 1 back to 0
+and draws in software; origrun is getting a 3D-mode option. Not done: the original's question at exit after 3D was switched
+on during a session ("Hardware Acceleration Confirmation", 0x53c120).
 
 ## Mods
 

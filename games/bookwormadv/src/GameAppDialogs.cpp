@@ -71,6 +71,7 @@ void GameApp::CloseOptionsDialog(bool theApply)
 		bool a3D = aDialog->m3DBox->IsChecked();
 		if (mProfile != nullptr)
 			mProfile->SetBool("DisableTips", aDialog->mNoTooltipsBox->IsChecked());
+		Set3DMode(a3D);
 		SwitchScreenMode(aWindowed, a3D, false);
 		EnableCustomCursors(aDialog->mCursorsBox->IsChecked());
 		ClearUpdateBacklog(false);
