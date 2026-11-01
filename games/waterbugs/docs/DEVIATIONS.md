@@ -46,3 +46,14 @@ The original shares green's store with an object that has no colour: the port gi
 
 None of the above has been checked against the original exe running (`tools/origrun` is to make that possible). The
 screens, texts, music and sounds, and the loss and regain of the window's focus, are still to be compared one by one.
+
+## The order of the random draws
+
+Checked on 2026-10-31 by comparing, for each of the 42 functions of the exe that call `RandRange`, the sequence of the
+calls' ranges with the port's functions. 34 have a port function with the same sequence; the other eight are the same
+draws through a loop or a helper (the original writes a loop out twice or three times, or draws inline what the port
+does in `Sweeper_Spark` and the power-up's sparks), except `Emitter_Update` (0x40b940), whose many branches were
+read by eye against the exe and not yet by a run. One real difference was found and fixed: a random board's half
+width and height were drawn from 3 to 10 and 2 to 6 where the exe draws 2 to 10 and 1 to 6, so random boards
+differed. The frozen baseline of the port is in `tools/check.sh waterbugs` (the state lines and the hashes of three
+screens: the board's start, after a beam, the high scores after a lost last life).
