@@ -223,9 +223,9 @@ void LoadGameFile()
 		}
 		else if (std::strcmp(aTag.name, "next_file") == 0)
 		{
-			// (the original's next file after main is bugs, whatever main names)
+			// (the last level file names the main file of the retail game; the next one is the first file again)
 			std::strcpy(gGameFile, Xml_GetString(&aTag, "name"));
-			if (std::strcmp(gGameFile, "wanims\\main.eco") == 0)
+			if (std::strcmp(gGameFile, "animations\\main.eco") == 0)
 				std::strcpy(gGameFile, "wanims\\water_bugs.eco");
 		}
 		else if (std::strcmp(aTag.name, "level_set") == 0)
