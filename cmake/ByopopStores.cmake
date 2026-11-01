@@ -70,3 +70,8 @@ set(BYOPOP_BUY_mahjongchina 2026-11-01)
 # Checked 2026-11-01: Bonnie's Bookstore Deluxe (New Crayon Games, published by PopCap) is not in Steam's store search
 # ("bonnie's bookstore": no results) and not on EA's PopCap page; other stores were not checked.
 set(BYOPOP_BUY_bonnies 2026-11-01)
+# Checked 2026-11-01: Steam sells Bejeweled Twist (app 3560, as in the user's own library) and the EA app sells it (its
+# page on ea.com); other stores were not checked.
+set(BYOPOP_BUY_bejeweledtwist 2026-11-01
+  Steam "https://store.steampowered.com/app/3560/"
+  "EA app" "https://www.ea.com/games/bejeweled/bejeweled-twist")
