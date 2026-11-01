@@ -235,6 +235,21 @@ run with a shot every 10 updates); in the other two it was three updates ahead o
 The glow pulses by the update count (MainMenu::Update), so something before it depends on the wall clock in the
 browser; not found yet (the media player's music and the pane's focus are the candidates).
 
+## Oddities
+
+The original's own run-to-run variation, which the port does not copy in normal play (`CLAUDE.md`, "Oddities are not
+chased").
+
+How long the loading screens stay up. The original loads at startup and before each chapter on a thread, so the
+screens last as long as the machine takes: 134 to 263 updates for the startup load and 52 to 85 for the first chapter
+in the pilot's sandbox runs. The chapter's screen draws a hint, one `Rand()`, every 50 updates, so a load of 100 updates
+or more gives the next battle another board. The port loads in 20 ms slices between frames and shows the screens for its
+own time. To see it: origrun's `--watch "[[0x8259e4]+0x83c]+0xb0"` (the chapter screen's timer) or `"[0x8259e4]+0x919"`
+(the startup load's end), as `tools/pilot/run.sh` does. Copying it would mean loading at the original thread's speed,
+which no fixed number of updates gives. The test options `-chapterloadupdates=N,...` and `-startloadupdates=N` hold the
+port's loads for the counts measured in a run, so that the pilot's runs agree; normal play never uses them. Within a
+held load the loading bar (chapters) and Lex's place (startup) still move at their own pace on each side.
+
 ## Mods
 
 None (the user's rule: no mods before every PopCap game works in the browser). `MOD_IDEAS.md` lists the ones worth
