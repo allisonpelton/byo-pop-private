@@ -28,7 +28,10 @@ the same machine. A plain run opens a window, raises it over whatever the user i
   keep how it is done in private blocks, and put the patching tools in `.publishignore`. Run originals through
   `tools/origrun` (`docs/ORIGRUN.md`; its status table says what works for each game). It captures windowed games, plays
   scripted input and focus changes, logs and answers message boxes, and is silent by default (a dsound stand-in and a
-  Core Audio watch; rundesk silences only SDL). It does not redirect the registry or saves. It cannot stop a message
+  Core Audio watch; rundesk silences only SDL). Its byte-patch list (git-ignored) pins a copy's random seed to the
+  port's and skips trial screens, and its update-timed shots and bursts capture both sides at the same game update
+  (`at`, `burst ... update`); a worktree stages copies under a short path with `--stage-root`. Its `hw*` input commands
+  are unconfirmed (ORIGRUN.md, gaps). It does not redirect the registry or saves. It cannot stop a message
   box's own sound or a MessageBeep, and it has no guard against URL or program launches, so a script never clicks a
   link, "Buy" or "More Games" button. When a run really needs real sound, the user turns the speakers off for a short
   stretch or overnight.
@@ -170,7 +173,8 @@ Git and publishing:
   regression check proves each step leaves play unchanged. All of it comes before the website is ready. So does one more
   step once every decompilation is done (the user, 2026-11-01): each game ported only from its Steam copy is compared
   with its version on the PopCap Game Collection disc (the user's ISO in their Downloads folder), and its build must
-  work with that version's files too.
+  work with that version's files too. Planned alongside the website (the user, 2026-11-01): an installer that puts a
+  native port beside its Steam original, started by a launch option, SMAPI-style (`docs/STEAM_LAUNCH.md`).
 - **No references (the user, 2026-10-26):** no port reads another project's decompilation, reimplementation, mod
   kit, class layouts or address maps (Thunderball, haggle, WinFish, CircleShootApp, PvZ-Portable, the Pizza Frenzy
   decompilation and the like); work from our own Ghidra export. PopCap's released SexyAppFramework source, the open
