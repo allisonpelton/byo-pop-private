@@ -30,6 +30,8 @@
 #ifndef PW_RENDERFULLCONTENT
 #define PW_RENDERFULLCONTENT 0x00000002
 #endif
+#define PSAPI_VERSION 2   // EnumProcessModulesEx and GetModuleBaseNameA from kernel32 (K32...), no psapi.lib
+#include <psapi.h>
 #include <shlobj.h>
 #include <mmdeviceapi.h>
 #include <audiopolicy.h>
@@ -578,12 +580,54 @@ static int region_flat(const unsigned char* px, int w, int x0, int y0, int x1, i
 	return 1;
 }
 
+// A game that has loaded a GPU API (DXGI, Direct3D 8 to 12, OpenGL or Vulkan, often through a wrapper such as
+// dgVoodoo2 or cnc-ddraw) is never captured. On rundesk's desktop such a window's pixels need not be the game's:
+// its window DC, and even PrintWindow, have returned what was on the user's own screen (twice on 2026-11-01). The
+// first such shot is refused and logged, and so is every later shot of the run (gCaptureRefused). The module list is
+// read from outside the game (EnumProcessModulesEx), so the check is safe while the game's thread is held.
+// Returns 1 and the module's name when one is loaded, -1 when the list cannot be read, 0 when none is.
+static int gCaptureRefused = 0;
+static int process_uses_gpu_api(DWORD pid, char* which, int whichLen)
+{
+	static const char* const kGpu[] = { "dxgi.dll", "d3d8.dll", "d3d9.dll", "d3d10.dll", "d3d10_1.dll",
+		"d3d10core.dll", "d3d11.dll", "d3d12.dll", "opengl32.dll", "vulkan-1.dll" };
+	HANDLE p = OpenProcess(PROCESS_QUERY_INFORMATION|PROCESS_VM_READ, FALSE, pid);
+	if (!p) return -1;
+	static HMODULE mods[1024]; DWORD need=0; int found=-1;
+	for (int tries=0; tries<5 && found<0; tries++) {   // the list can be mid-change while the game loads a DLL
+		if (!EnumProcessModulesEx(p, mods, sizeof(mods), &need, LIST_MODULES_ALL)) { Sleep(10); continue; }
+		found=0;
+		DWORD n = need/sizeof(HMODULE); if (n > 1024) n = 1024;
+		for (DWORD i=0; i<n && !found; i++) {
+			char base[MAX_PATH];
+			if (!GetModuleBaseNameA(p, mods[i], base, sizeof(base))) continue;
+			for (size_t j=0; j<sizeof(kGpu)/sizeof(kGpu[0]); j++)
+				if (lstrcmpiA(base,kGpu[j])==0) { lstrcpynA(which,base,whichLen); found=1; break; }
+		}
+	}
+	CloseHandle(p);
+	return found;
+}
+
 // allowPrint==0 skips PrintWindow (which sends WM_PRINT to the game's window thread): a capture taken while
 // that thread is held by SuspendThread (the "at" path) must not message it, or it would deadlock. The window-DC
-// and screen-DC blits read the window's pixels without messaging the game, so they are safe while it is held.
+// blit reads the window's pixels without messaging the game, so it is safe while the thread is held.
 static int capture_ex(HWND hwnd, const char* name, int allowPrint)
 {
 	RECT r; if (!hwnd || !GetWindowRect(hwnd,&r)) return 0;   // window gone; caller may retry
+	if (gCaptureRefused) return 0;
+	{
+		DWORD gpid=0; GetWindowThreadProcessId(hwnd,&gpid);
+		char gpu[MAX_PATH]="";
+		int g = process_uses_gpu_api(gpid,gpu,sizeof(gpu));
+		if (g>0) {
+			gCaptureRefused=1;
+			logline("shot %s refused, and every later shot of this run: the game has loaded %s, and a window drawn "
+				"through a GPU API can show the user's own screen", name, gpu);
+			return 0;
+		}
+		if (g<0) { logline("shot %s refused: the game's module list could not be read", name); return 0; }
+	}
 	int w=r.right-r.left, h=r.bottom-r.top;
 	if (w<=0||h<=0) return 0;
 	HDC screen=GetDC(NULL); HDC mem=CreateCompatibleDC(screen);
@@ -603,17 +647,15 @@ static int capture_ex(HWND hwnd, const char* name, int allowPrint)
 	int cx0=o.x-r.left, cy0=o.y-r.top, cx1=cx0+cr.right, cy1=cy0+cr.bottom;
 	if (cx0<0) cx0=0; if (cy0<0) cy0=0; if (cx1>w) cx1=w; if (cy1>h) cy1=h;
 
-	// Try, in order: PrintWindow (GDI and DWM-redirected content), a blit of the window DC, a blit of the
-	// desktop's screen DC at the window's rectangle (this thread is attached to the game's desktop).
+	// Try, in order: PrintWindow (GDI and DWM-redirected content), then a blit of the window DC. There is no
+	// screen-DC fallback: a blit of the desktop at the window's rectangle can return what is on the user's own
+	// screen (a flip-model window's DC once did), so a window neither path reaches stays flat.
 	const char* how="printwindow";
 	BOOL ok = allowPrint ? PrintWindow(hwnd, mem, PW_RENDERFULLCONTENT) : FALSE;
 	if (!allowPrint || !ok || region_flat(px,w,cx0,cy0,cx1,cy1)) {
 		HDC wdc=GetWindowDC(hwnd);
 		if (wdc){ BitBlt(mem,0,0,w,h,wdc,0,0,SRCCOPY); ReleaseDC(hwnd,wdc); how="windowdc"; }
-		if (region_flat(px,w,cx0,cy0,cx1,cy1)) {
-			BitBlt(mem,0,0,w,h,screen,r.left,r.top,SRCCOPY); how="screendc";
-			if (region_flat(px,w,cx0,cy0,cx1,cy1)) how="flat (DirectDraw/Direct3D content not reachable by GDI)";
-		}
+		if (region_flat(px,w,cx0,cy0,cx1,cy1)) how="flat (DirectDraw/Direct3D content not reachable by GDI)";
 	}
 	int flat = region_flat(px,w,cx0,cy0,cx1,cy1);
 
@@ -638,6 +680,7 @@ static int capture_ready(const char* name, int timeout_ms)
 	for (;;) {
 		HWND hwnd = resolve_window(0,NULL);
 		if (hwnd) { last=capture(hwnd, name); if (last==1) return 1; }   // non-flat: done
+		if (gCaptureRefused) return 0;
 		if (waited >= timeout_ms || gStop) {
 			if (last==2) logline("shot %s: content stayed flat for %dms (DirectDraw not reachable by GDI, or a solid screen)",name,timeout_ms);
 			else if (!last) logline("shot %s skipped (no window within %dms)",name,timeout_ms);
@@ -703,6 +746,7 @@ static void do_burst(const char* name, int count, int interval_ms, int byUpdates
 		int ok; double cap0;
 		if (byUpdates) { if (wait_counter(start + (uint32_t)i*k, 4000)<0){ logline("burst %s: counter unreadable, stopping",name); break; } cap0=qpc_ms(); ok=capture_held(leaf); }
 		else { HWND hw=resolve_window(0,NULL); if(!hw){ logline("burst %s: no window, stopping at %d",name,i); break; } cap0=qpc_ms(); ok=capture(hw,leaf); }
+		if (gCaptureRefused) { logline("burst %s: captures refused (a GPU API), stopping at %d",name,i); break; }
 		double dt=qpc_ms()-cap0;   // the capture itself, not any wait before it
 		if (ok){ taken++; capSum+=dt; if(dt>capMax)capMax=dt; }
 		if (!byUpdates) { double rest=interval_ms-(qpc_ms()-frameStart); if (rest>1) Sleep((DWORD)rest); }

@@ -1,0 +1,28 @@
+# Bonnie's Bookstore check (tools/check.sh bonnies): the logos, the menu, a new player, the difficulty, the story and the
+# first board with its tutorial, then one word played. Run with -fast -seed=1; @DIR@ is the output folder.
+400 screenshot @DIR@/logo.png
+1200 screenshot @DIR@/menu.png
+1210 click 180 306
+1400 screenshot @DIR@/name.png
+1450 char t
+1460 char e
+1500 key RETURN
+1750 screenshot @DIR@/difficulty.png
+1800 click 460 280
+2150 screenshot @DIR@/story.png
+2200 click 745 565
+2550 click 745 565
+2900 click 745 565
+3250 click 745 565
+3600 click 745 565
+4000 screenshot @DIR@/board.png
+4100 click 400 300
+4400 screenshot @DIR@/tutorial.png
+4500 click 575 190
+4520 click 620 205
+4540 click 665 230
+4560 click 665 275
+4700 screenshot @DIR@/word.png
+4710 click 450 557
+5200 screenshot @DIR@/played.png
+5300 quit

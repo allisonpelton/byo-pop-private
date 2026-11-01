@@ -67,3 +67,6 @@ set(BYOPOP_BUY_dynomite 2026-11-01
 # the automated visit, so those last three were not checked.
 set(BYOPOP_BUY_mahjongjapan 2026-11-01)
 set(BYOPOP_BUY_mahjongchina 2026-11-01)
+# Checked 2026-11-01: Bonnie's Bookstore Deluxe (New Crayon Games, published by PopCap) is not in Steam's store search
+# ("bonnie's bookstore": no results) and not on EA's PopCap page; other stores were not checked.
+set(BYOPOP_BUY_bonnies 2026-11-01)
