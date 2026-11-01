@@ -1,0 +1,11 @@
+// the C runtime and the inlined std::string helpers (VC8)
+{"addr":"00438850","name":"std::string::_Tidy"}
+{"addr":"00438d40","name":"std::wstring::_Tidy"}
+{"addr":"004387e0","name":"std::string::string_cstr"}
+{"addr":"0043fa60","name":"std::string::assign_n"}
+{"addr":"0077e35c","name":"_invalid_parameter_noinfo"}
+{"addr":"0077dfe0","name":"_ftol2"}
+{"addr":"0073e93c","name":"GetImageThrow"}
+{"addr":"0073ea05","name":"GetFontThrow"}
+{"addr":"0073ea76","name":"GetSoundThrow"}
+{"addr":"00e13bc0","name":"gD3DInterface"}

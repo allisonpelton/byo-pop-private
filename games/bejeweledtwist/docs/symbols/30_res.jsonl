@@ -1,0 +1,1083 @@
+// the resource globals, named by their ids (tools/ressyms.py)
+{"addr": "0085daa8", "name": "IMAGE_PLANET_GEM_FALL"}
+{"addr": "0085daac", "name": "IMAGE_SIZEABLEBUTTON"}
+{"addr": "0085dab0", "name": "IMAGE_MAINMENU_QUITBUTTON"}
+{"addr": "0085dab4", "name": "IMAGE_INGAMEUI_ARC_4_FILL_1"}
+{"addr": "0085dab8", "name": "FONT_DIALOG_HEADER", "comment": "font index 786"}
+{"addr": "0085dabc", "name": "FONT_768_HUMANST521BT40", "comment": "font index 25"}
+{"addr": "0085dac0", "name": "IMAGE_ELECTROTEX"}
+{"addr": "0085dac4", "name": "IMAGE_BADGES_50"}
+{"addr": "0085dac8", "name": "IMAGE_BADGES_01"}
+{"addr": "0085dacc", "name": "SOUND_LIGHTBAR_BLINK", "comment": "sound index 911"}
+{"addr": "0085dad0", "name": "SOUND_GEM_FRUIT_DESTROYED", "comment": "sound index 905"}
+{"addr": "0085dad4", "name": "IMAGE_HOWTOPLAY_TWISTPAM_BLITZ"}
+{"addr": "0085dad8", "name": "IMAGE_HOWTOPLAY_LOCK_PULSE"}
+{"addr": "0085dadc", "name": "SOUND_ELECTROGEM_CREATED", "comment": "sound index 862"}
+{"addr": "0085dae0", "name": "SOUND_CHAINPARTICLE1", "comment": "sound index 891"}
+{"addr": "0085dae4", "name": "IMAGE_TRIALDIALOG_DIALOG"}
+{"addr": "0085dae8", "name": "IMAGE_MAINMENU_SLIDERTHUMBSOUNDS"}
+{"addr": "0085daec", "name": "IMAGE_MAINMENU_OPTIONSRESTARTBLITZBUTTON"}
+{"addr": "0085daf0", "name": "IMAGE_CURSOR_YELLOW4"}
+{"addr": "0085daf4", "name": "IMAGE_GEMLOCK_THINLINK1"}
+{"addr": "0085daf8", "name": "IMAGE_MENU_TUNNEL"}
+{"addr": "0085dafc", "name": "IMAGE_HOWTOPLAY_NEXTBUTTON"}
+{"addr": "0085db00", "name": "IMAGE_HOWTOPLAY_ARC1GLOW"}
+{"addr": "0085db04", "name": "SOUND_TUTORIALCOMPLETE", "comment": "sound index 937"}
+{"addr": "0085db08", "name": "SOUND_TRIALLIMIT", "comment": "sound index 934"}
+{"addr": "0085db0c", "name": "IMAGE_GEMLOCK_THINLINK10"}
+{"addr": "0085db14", "name": "IMAGE_FIRESTAR"}
+{"addr": "0085db18", "name": "IMAGE_INGAMEUI_ARC_16_FILL_16"}
+{"addr": "0085db1c", "name": "IMAGE_HOWTOPLAY_PARTICLESPARKLE"}
+{"addr": "0085db20", "name": "IMAGE_HOWTOPLAY_NUM5GLOW"}
+{"addr": "0085db24", "name": "IMAGE_FRUITBLAST_INNERRING"}
+{"addr": "0085db28", "name": "IMAGE_CHALLENGEUI_TITLES_GEM_FALL"}
+{"addr": "0085db2c", "name": "IMAGE_MAINMENU_INNERSPIRAL"}
+{"addr": "0085db30", "name": "SOUND_ZENSTART", "comment": "sound index 971"}
+{"addr": "0085db34", "name": "IMAGE_MAINMENU_REPLAYDIALOG"}
+{"addr": "0085db38", "name": "IMAGE_GEMLOCK_FATLINK8"}
+{"addr": "0085db3c", "name": "IMAGE_ELEMENTALS_OUTER_FRUIT"}
+{"addr": "0085db40", "name": "IMAGE_ELEMENTALS_BEAM_FRUIT_MED"}
+{"addr": "0085db44", "name": "IMAGE_ECLIPSE_SUN"}
+{"addr": "0085db48", "name": "IMAGE_GEAR_BLUR"}
+{"addr": "0085db4c", "name": "IMAGE_TUBESPARKLES"}
+{"addr": "0085db50", "name": "IMAGE_HOWTOPLAY_GEM_ORANGE"}
+{"addr": "0085db54", "name": "FONT_600_BEACHHOUSE86", "comment": "font index 2"}
+{"addr": "0085db58", "name": "IMAGE_PLAYMENU_CHALLENGEBUB100"}
+{"addr": "0085db5c", "name": "IMAGE_INGAMEUI_BONUS_YELLOW_UNLIT"}
+{"addr": "0085db60", "name": "IMAGE_INGAMEUI_ARC_MAX_FILL_2"}
+{"addr": "0085db64", "name": "IMAGE_GEM_LOCK_LINK2"}
+{"addr": "0085db68", "name": "IMAGE_PLAYMENU_LVLTAGCLASSIC"}
+{"addr": "0085db6c", "name": "IMAGE_DEFUSER_CLICKTOSTOP"}
+{"addr": "0085db70", "name": "IMAGE_ZENDROP28"}
+{"addr": "0085db74", "name": "IMAGE_SPEEDBONUS_OUTLINE"}
+{"addr": "0085db78", "name": "IMAGE_PLAYMENU_ZENMOON"}
+{"addr": "0085db7c", "name": "IMAGE_PHOTONARMS"}
+{"addr": "0085db80", "name": "IMAGE_INGAMEUI_06"}
+{"addr": "0085db84", "name": "IMAGE_HOWTOPLAY_PHOTON1"}
+{"addr": "0085db88", "name": "IMAGE_HOWTOPLAY_ARC3"}
+{"addr": "0085db8c", "name": "IMAGE_BOOM_NOVA"}
+{"addr": "0085db90", "name": "SOUND_VOICE_INCREDIBLE", "comment": "sound index 953"}
+{"addr": "0085db94", "name": "IMAGE_CLOUD_ENIGMA"}
+{"addr": "0085db98", "name": "IMAGE_INGAMEUI_ARC_8_FILL_4"}
+{"addr": "0085db9c", "name": "FONT_TUBE_TEXT", "comment": "font index 780"}
+{"addr": "0085dba0", "name": "IMAGE_CURSOR_POINTER"}
+{"addr": "0085dba4", "name": "SOUND_CHALLENGECOMPLETED", "comment": "sound index 856"}
+{"addr": "0085dba8", "name": "IMAGE_PLANET_CHAIN_GANG"}
+{"addr": "0085dbac", "name": "IMAGE_SIZEABLEDIALOG"}
+{"addr": "0085dbb0", "name": "IMAGE_DEFUSER_RIGHTARM"}
+{"addr": "0085dbb4", "name": "IMAGE_DEFUSER_LIGHTBEAM_LEFT"}
+{"addr": "0085dbb8", "name": "IMAGE_LOADINGSCREEN_LOADING"}
+{"addr": "0085dbbc", "name": "IMAGE_ZENDROP36"}
+{"addr": "0085dbc0", "name": "SOUND_TRANS_SPACENOISE", "comment": "sound index 931"}
+{"addr": "0085dbc4", "name": "IMAGE_CLOUD_FIRESTORM"}
+{"addr": "0085dbc8", "name": "IMAGE_HOWTOPLAY_LOCK_GLOW"}
+{"addr": "0085dbcc", "name": "IMAGE_FRUITS"}
+{"addr": "0085dbd0", "name": "IMAGE_BADGES_55"}
+{"addr": "0085dbd4", "name": "FONT_DIALOG_TEXT_GLOW", "comment": "font index 798"}
+{"addr": "0085dbdc", "name": "IMAGE_STATIC_SPACE"}
+{"addr": "0085dbe0", "name": "IMAGE_PLAYMENU_CHALLENGEPORTAL"}
+{"addr": "0085dbe4", "name": "IMAGE_MOONMETER_FILLBAR"}
+{"addr": "0085dbe8", "name": "IMAGE_GEM_SHOCKWAVE_0"}
+{"addr": "0085dbec", "name": "SOUND_DOORLOCK3", "comment": "sound index 900"}
+{"addr": "0085dbf0", "name": "IMAGE_ELEMENTALS_INNER_FRUIT"}
+{"addr": "0085dbf4", "name": "IMAGE_ELEMENTALS_BEAM_FIRE_LRG"}
+{"addr": "0085dbf8", "name": "IMAGE_DEFUSER_SKULLPIE"}
+{"addr": "0085dbfc", "name": "IMAGE_ZENDROP23"}
+{"addr": "0085dc00", "name": "SOUND_VOICE_AWESOME", "comment": "sound index 940"}
+{"addr": "0085dc04", "name": "IMAGE_MAINMENU_UI_MERGED"}
+{"addr": "0085dc08", "name": "IMAGE_MAINMENU_SCORESBTN_PERSONALSTATS"}
+{"addr": "0085dc0c", "name": "IMAGE_MAINMENU_PLAYBUTTON"}
+{"addr": "0085dc10", "name": "IMAGE_MAINMENU_OPTIONDIALOGBARLRG"}
+{"addr": "0085dc14", "name": "IMAGE_HOWTOPLAY_GEM_PURPLE"}
+{"addr": "0085dc18", "name": "IMAGE_DOORS_MAIN_TOP"}
+{"addr": "0085dc1c", "name": "IMAGE_AZTEC_BG"}
+{"addr": "0085dc20", "name": "SOUND_VOICE_CHALLENGECOMPLETE", "comment": "sound index 944"}
+{"addr": "0085dc24", "name": "IMAGE_CLOUD_SURVIVOR"}
+{"addr": "0085dc28", "name": "IMAGE_INGAMEUI_ARC_12_FILL_10"}
+{"addr": "0085dc2c", "name": "IMAGE_BURNNOVA"}
+{"addr": "0085dc30", "name": "SOUND_VOICE_GOODBYE", "comment": "sound index 952"}
+{"addr": "0085dc34", "name": "IMAGE_PLANET_ENIGMA"}
+{"addr": "0085dc38", "name": "IMAGE_PLAYMENU_CONNECTORRIGHT"}
+{"addr": "0085dc3c", "name": "IMAGE_MEGAFRUIT_BRACKET"}
+{"addr": "0085dc40", "name": "IMAGE_INGAMEUI_ARC_16_FILL_9"}
+{"addr": "0085dc44", "name": "IMAGE_GEMLOCK_FRONTFACE"}
+{"addr": "0085dc48", "name": "IMAGE_CURSOR_DRAGGING"}
+{"addr": "0085dc4c", "name": "IMAGE_INGAMEUI_80"}
+{"addr": "0085dc50", "name": "IMAGE_HOWTOPLAY_X2FILL"}
+{"addr": "0085dc54", "name": "IMAGE_YINYANG4Z"}
+{"addr": "0085dc58", "name": "IMAGE_RAINBOWCASE1"}
+{"addr": "0085dc5c", "name": "IMAGE_CHALLENGEUI_TITLES_VOLTAGE"}
+{"addr": "0085dc60", "name": "FONT_600_HUMANST521BT40", "comment": "font index 12"}
+{"addr": "0085dc64", "name": "IMAGE_MAINMENU_SCORESBTN_SPEEDSCORES"}
+{"addr": "0085dc68", "name": "IMAGE_INGAMEUI_70"}
+{"addr": "0085dc6c", "name": "IMAGE_HOWTOPLAY_NUM3GLOW"}
+{"addr": "0085dc70", "name": "IMAGE_INGAMEUI_TOP_LIGHTGLOW"}
+{"addr": "0085dc74", "name": "IMAGE_REPLAY"}
+{"addr": "0085dc78", "name": "IMAGE_INGAMEUI_ARC_8_FILL_1"}
+{"addr": "0085dc7c", "name": "IMAGE_INGAMEUI_ARC_16_FILL_6"}
+{"addr": "0085dc80", "name": "IMAGE_HOWTOPLAY_GEM_BLUE"}
+{"addr": "0085dc84", "name": "IMAGE_POINTY3"}
+{"addr": "0085dc88", "name": "FONT_FLOATERS", "comment": "font index 999"}
+{"addr": "0085dc8c", "name": "SOUND_BOMB_EXPLODE", "comment": "sound index 853"}
+{"addr": "0085dc90", "name": "IMAGE_INGAMEUI_MULTIBULBS"}
+{"addr": "0085dc94", "name": "IMAGE_CLOUD3"}
+{"addr": "0085dc98", "name": "IMAGE_INGAMEUI_GRIDBAR_TOPGLOW"}
+{"addr": "0085dc9c", "name": "IMAGE_INGAMEUI_ARC_12_FILL_3"}
+{"addr": "0085dca0", "name": "IMAGE_CURSOR_YELLOW20"}
+{"addr": "0085dca4", "name": "IMAGE_LOADINGSCREEN_FILL"}
+{"addr": "0085dca8", "name": "FONT_CONTINUUMBOLD47", "comment": "font index 34"}
+{"addr": "0085dcac", "name": "IMAGE_MOONMETER_EMPTYBAR"}
+{"addr": "0085dcb0", "name": "IMAGE_GEMLOCK_FATLINK5"}
+{"addr": "0085dcb4", "name": "IMAGE_GEMLOCK_FATLINK12"}
+{"addr": "0085dcb8", "name": "IMAGE_DEFUSER_ALERTTRIMTEXTURE"}
+{"addr": "0085dcbc", "name": "IMAGE_ZENDROP9"}
+{"addr": "0085dcc0", "name": "IMAGE_CRAZY_BG"}
+{"addr": "0085dcc4", "name": "IMAGE_RANKBAR_LEVELUP"}
+{"addr": "0085dcc8", "name": "IMAGE_INGAMEUI_BONUS_WHITE_LIT"}
+{"addr": "0085dccc", "name": "IMAGE_INGAMEUI_85"}
+{"addr": "0085dcd0", "name": "IMAGE_HOWTOPLAY_CURSORLIGHTS"}
+{"addr": "0085dcd4", "name": "IMAGE_CAMEOS_SPLORK"}
+{"addr": "0085dcd8", "name": "SOUND_MOUSEOVER3", "comment": "sound index 917"}
+{"addr": "0085dcdc", "name": "IMAGE_TUTORIAL_ARROW"}
+{"addr": "0085dce0", "name": "IMAGE_BOMBGLOWS_GLOW"}
+{"addr": "0085dce4", "name": "FONT_HUMANST12BOLD", "comment": "font index 41"}
+{"addr": "0085dce8", "name": "IMAGE_TRIALBADGE_TRIALBADGE"}
+{"addr": "0085dcec", "name": "IMAGE_INGAMEUI_TOOLTIPBUTTON"}
+{"addr": "0085dcf0", "name": "IMAGE_LOGOTM"}
+{"addr": "0085dcf4", "name": "IMAGE_INGAMEUI_REPLAYPODBUTTON"}
+{"addr": "0085dcf8", "name": "IMAGE_HOWTOPLAY_GEM_YELLOW"}
+{"addr": "0085dcfc", "name": "IMAGE_GRITTYBLURRY"}
+{"addr": "0085dd00", "name": "IMAGE_SPARKLET_BIG"}
+{"addr": "0085dd04", "name": "FONT_SCOREGLOW", "comment": "font index 998"}
+{"addr": "0085dd08", "name": "IMAGE_TRIALDIALOG_GLOW"}
+{"addr": "0085dd0c", "name": "IMAGE_SM_SHARDS"}
+{"addr": "0085dd10", "name": "SOUND_MULTIPLIER_UP2_4", "comment": "sound index 922"}
+{"addr": "0085dd14", "name": "SOUND_BLITZ_COUNTUP", "comment": "sound index 887"}
+{"addr": "0085dd18", "name": "IMAGE_RANKBAR_STAR"}
+{"addr": "0085dd1c", "name": "IMAGE_PLAYMENU_CHALLENGEBUTTON"}
+{"addr": "0085dd20", "name": "IMAGE_HOWTOPLAY_LIGHTNINGFAKE2"}
+{"addr": "0085dd24", "name": "IMAGE_MAINMENU_OUTERRINGINNERGLOW"}
+{"addr": "0085dd28", "name": "IMAGE_MAINMENU_NEWUSERDIALOG"}
+{"addr": "0085dd2c", "name": "IMAGE_MAINMENU_DELETEBUTTON"}
+{"addr": "0085dd30", "name": "IMAGE_INGAMEUI_BONUS_PURPLE_UNLIT"}
+{"addr": "0085dd34", "name": "IMAGE_INGAMEUI_ARC_MAX_FILL_13"}
+{"addr": "0085dd38", "name": "IMAGE_GEMLOCK_FATLINK11"}
+{"addr": "0085dd3c", "name": "IMAGE_FRUITBLAST_FILLCIRCLE"}
+{"addr": "0085dd40", "name": "IMAGE_DOORS_MAIN_BOTTOM"}
+{"addr": "0085dd44", "name": "IMAGE_INGAMEUI_TUBE_BOTTOM"}
+{"addr": "0085dd48", "name": "IMAGE_MAINMENU_SLIDERBARFILLMUSIC"}
+{"addr": "0085dd4c", "name": "IMAGE_INGAMEUI_GRIDSQUARE2"}
+{"addr": "0085dd50", "name": "IMAGE_HOWTOPLAY_CURSORSPIRALGLOW"}
+{"addr": "0085dd54", "name": "IMAGE_LOADINGSCREEN_GLOWARC"}
+{"addr": "0085dd58", "name": "IMAGE_BLOBDRIFT_BG"}
+{"addr": "0085dd5c", "name": "IMAGE_GRAVITY_EDGETEXTURE"}
+{"addr": "0085dd60", "name": "SOUND_COMBO_5", "comment": "sound index 773"}
+{"addr": "0085dd64", "name": "IMAGE_RANKBAR_RANKUP"}
+{"addr": "0085dd68", "name": "IMAGE_INGAMEUI_GRIDBAR_BOTGLOW"}
+{"addr": "0085dd6c", "name": "FONT_CONTBOLD19", "comment": "font index 29"}
+{"addr": "0085dd70", "name": "IMAGE_TRIALDIALOG_BULLETGREEN"}
+{"addr": "0085dd74", "name": "IMAGE_MODEUNLOCK_BLITZ"}
+{"addr": "0085dd78", "name": "IMAGE_GEMLOCK_LOCK"}
+{"addr": "0085dd7c", "name": "IMAGE_GEMLOCK_FATLINK2"}
+{"addr": "0085dd80", "name": "IMAGE_DEFUSER_DANGERRING_TOP"}
+{"addr": "0085dd84", "name": "IMAGE_ZENDROP31"}
+{"addr": "0085dd88", "name": "IMAGE_TADPOLE_BG"}
+{"addr": "0085dd8c", "name": "SOUND_COAL_BLASTED", "comment": "sound index 895"}
+{"addr": "0085dd90", "name": "IMAGE_BOOM_BOARD"}
+{"addr": "0085dd94", "name": "SOUND_GEM_LOCK_BREAK", "comment": "sound index 866"}
+{"addr": "0085dd98", "name": "IMAGE_BOOM_FGRIDBAR_TOP"}
+{"addr": "0085dd9c", "name": "FONT_DEBUG", "comment": "font index 800"}
+{"addr": "0085dda0", "name": "SOUND_X_WIN2", "comment": "sound index 970"}
+{"addr": "0085dda4", "name": "SOUND_VOICE_ANEWHIGHSCORE", "comment": "sound index 939"}
+{"addr": "0085dda8", "name": "SOUND_TRANS_ENGINEIGNITION", "comment": "sound index 882"}
+{"addr": "0085ddac", "name": "IMAGE_ELEMENTALS_SHEEN_FIRE"}
+{"addr": "0085ddb0", "name": "IMAGE_ZENDROP19"}
+{"addr": "0085ddb4", "name": "SOUND_DOOMGEM_COUNTDOWN", "comment": "sound index 897"}
+{"addr": "0085ddb8", "name": "IMAGE_SPARKLET_FAT"}
+{"addr": "0085ddbc", "name": "IMAGE_INGAMEUI_ARC_MAX_FILL_16"}
+{"addr": "0085ddc0", "name": "IMAGE_GEMLOCK_THINLINK5"}
+{"addr": "0085ddc4", "name": "SOUND_GAMEUNLOCKED", "comment": "sound index 904"}
+{"addr": "0085ddc8", "name": "SOUND_FLAMELIGHTNING", "comment": "sound index 902"}
+{"addr": "0085ddcc", "name": "IMAGE_STARBAR_STARS_STARSHADOW"}
+{"addr": "0085ddd0", "name": "IMAGE_SPARKLE_FAT"}
+{"addr": "0085ddd4", "name": "IMAGE_HOWTOPLAY_BOMB_2RED"}
+{"addr": "0085ddd8", "name": "IMAGE_ZENDROP10"}
+{"addr": "0085dddc", "name": "IMAGE_RANKBAR_SCREEN"}
+{"addr": "0085dde0", "name": "IMAGE_INGAMEUI_GRIDBAR_BOT"}
+{"addr": "0085dde4", "name": "IMAGE_CHALLENGEUI_TITLES_FIRESTORM"}
+{"addr": "0085dde8", "name": "FONT_600_HUMANST521BT30", "comment": "font index 11"}
+{"addr": "0085ddec", "name": "SOUND_VOICE_GO", "comment": "sound index 950"}
+{"addr": "0085ddf0", "name": "IMAGE_GOOD"}
+{"addr": "0085ddf4", "name": "IMAGE_BADGES_20"}
+{"addr": "0085ddf8", "name": "IMAGE_PLAYMENU_DIALOGLEFT"}
+{"addr": "0085ddfc", "name": "IMAGE_PLANET7"}
+{"addr": "0085de00", "name": "IMAGE_GEMLOCK_BOLTBL"}
+{"addr": "0085de04", "name": "IMAGE_CURSOR_YELLOW13"}
+{"addr": "0085de08", "name": "IMAGE_DOOMLOCK"}
+{"addr": "0085de0c", "name": "IMAGE_COMET_TAIL"}
+{"addr": "0085de10", "name": "IMAGE_CAMEOS_CHUZZLE"}
+{"addr": "0085de14", "name": "IMAGE_LOADINGSCREEN_GLOWBAR4"}
+{"addr": "0085de18", "name": "SOUND_VOICE_CLASSIC", "comment": "sound index 946"}
+{"addr": "0085de1c", "name": "SOUND_CLICK", "comment": "sound index 893"}
+{"addr": "0085de20", "name": "IMAGE_FRUIT_SHOCKWAVE"}
+{"addr": "0085de24", "name": "FONT_DIALOG_TEXT", "comment": "font index 794"}
+{"addr": "0085de28", "name": "FONT_CONTBOLD15", "comment": "font index 28"}
+{"addr": "0085de2c", "name": "IMAGE_INGAMEUI_TUBE_GLASS"}
+{"addr": "0085de30", "name": "SOUND_VOICE_NEWCHALLENGEUNLOCKED", "comment": "sound index 955"}
+{"addr": "0085de34", "name": "IMAGE_MAINMENU_SLIDERBARBASEMUSIC"}
+{"addr": "0085de38", "name": "IMAGE_ELEMENTALS_INNER_ICE"}
+{"addr": "0085de3c", "name": "IMAGE_COAL"}
+{"addr": "0085de40", "name": "IMAGE_BADGES_90"}
+{"addr": "0085de44", "name": "IMAGE_GLASSPLASMA_FALLBACK"}
+{"addr": "0085de48", "name": "SOUND_MULTIPLIER_UP2_2", "comment": "sound index 920"}
+{"addr": "0085de4c", "name": "IMAGE_RANKBAR_BUTTONFLASH"}
+{"addr": "0085de50", "name": "IMAGE_INGAMEUI_BONUS_GREEN_UNLIT"}
+{"addr": "0085de54", "name": "IMAGE_CURSOR_YELLOW18"}
+{"addr": "0085de58", "name": "IMAGE_CURSOR_SPIRAL1"}
+{"addr": "0085de5c", "name": "IMAGE_PLAYMENU_CLASSICBUTTON"}
+{"addr": "0085de60", "name": "IMAGE_PLAYMENU_CLASSICBUB"}
+{"addr": "0085de64", "name": "IMAGE_INGAMEUI_BONUS_HILIGHTBAR"}
+{"addr": "0085de68", "name": "IMAGE_DOORS_CHALLENGE_CLOSED"}
+{"addr": "0085de6c", "name": "FONT_768_HUMANST521BT25", "comment": "font index 23"}
+{"addr": "0085de70", "name": "IMAGE_INGAMEUI_ARC_16_SLOT"}
+{"addr": "0085de74", "name": "IMAGE_DOORS_CHALLENGE_BOTTOM"}
+{"addr": "0085de7c", "name": "FONT_768_CONTBOLD25SCORE", "comment": "font index 16"}
+{"addr": "0085de80", "name": "IMAGE_ZENDROP43"}
+{"addr": "0085de84", "name": "IMAGE_HOWTOPLAY_FILLTUBE_TOPGLOW"}
+{"addr": "0085de88", "name": "IMAGE_CURSOR_YELLOW16"}
+{"addr": "0085de8c", "name": "FONT_HUMANST19", "comment": "font index 40"}
+{"addr": "0085de90", "name": "IMAGE_ZENDROP8"}
+{"addr": "0085de94", "name": "SOUND_ZENTRANSITION2", "comment": "sound index 973"}
+{"addr": "0085de98", "name": "SOUND_REWIND", "comment": "sound index 873"}
+{"addr": "0085de9c", "name": "IMAGE_ELECTROTEX_CENTER"}
+{"addr": "0085dea0", "name": "IMAGE_SPARKLET"}
+{"addr": "0085dea4", "name": "IMAGE_REDLOCK"}
+{"addr": "0085dea8", "name": "IMAGE_MAINMENU_MOREGAMEBUTTON"}
+{"addr": "0085deac", "name": "IMAGE_FINALSTATSUI_BAR2"}
+{"addr": "0085deb0", "name": "FONT_POPUP_COUNT", "comment": "font index 782"}
+{"addr": "0085deb4", "name": "IMAGE_PLANET_COAL_MINE"}
+{"addr": "0085deb8", "name": "IMAGE_MAINMENU_SCORES_TITLE_EXTREME"}
+{"addr": "0085debc", "name": "IMAGE_INGAMEUI_ARC_MAX_FILL_11"}
+{"addr": "0085dec0", "name": "IMAGE_GEMSHARD"}
+{"addr": "0085dec4", "name": "IMAGE_CURSOR_YELLOW24"}
+{"addr": "0085dec8", "name": "FONT_HUMANST521BT30", "comment": "font index 44"}
+{"addr": "0085decc", "name": "SOUND_START_ROTATE", "comment": "sound index 767"}
+{"addr": "0085ded0", "name": "IMAGE_HOWTOPLAY_ARC4"}
+{"addr": "0085ded4", "name": "IMAGE_CHALLENGEUI_TITLES_ENIGMA"}
+{"addr": "0085dedc", "name": "FONT_600_HUMANST521BT25", "comment": "font index 10"}
+{"addr": "0085dee0", "name": "IMAGE_SM_SHARDS_OUTLINE"}
+{"addr": "0085dee4", "name": "IMAGE_MAINMENU_SCORES_LABEL_LEVEL"}
+{"addr": "0085dee8", "name": "IMAGE_HOWTOPLAY_NUM1GLOW"}
+{"addr": "0085deec", "name": "SOUND_VOICE_THREEMINUTES", "comment": "sound index 959"}
+{"addr": "0085def0", "name": "IMAGE_MAINMENU_UI_TOP1_GLOW"}
+{"addr": "0085def4", "name": "IMAGE_GEM_SHOCKWAVE_6"}
+{"addr": "0085def8", "name": "IMAGE_FX_STEAM"}
+{"addr": "0085defc", "name": "IMAGE_ZENDROP30"}
+{"addr": "0085df00", "name": "SOUND_VOICE_UNBELIEVABLE", "comment": "sound index 961"}
+{"addr": "0085df04", "name": "SOUND_SKULL_ADDED", "comment": "sound index 928"}
+{"addr": "0085df08", "name": "IMAGE_MENU_BUTTONCOVER1"}
+{"addr": "0085df0c", "name": "IMAGE_INGAMEUI_ARC_8_FILL_3"}
+{"addr": "0085df10", "name": "IMAGE_CHALLENGEUI_TITLES_STRATAMAX"}
+{"addr": "0085df14", "name": "IMAGE_CHALLENGEUI_PLANETRING"}
+{"addr": "0085df18", "name": "IMAGE_BOOM_FGRIDBAR_BOT"}
+{"addr": "0085df1c", "name": "FONT_768_CONTINUUMBOLD47", "comment": "font index 19"}
+{"addr": "0085df20", "name": "IMAGE_CHALLENGE_BUTTON"}
+{"addr": "0085df24", "name": "IMAGE_INGAMEUI_RING_OUTERGLOW"}
+{"addr": "0085df28", "name": "SOUND_SPINNER_UNLOCK", "comment": "sound index 929"}
+{"addr": "0085df2c", "name": "IMAGE_HOWTOPLAY_ARC4GLOW"}
+{"addr": "0085df30", "name": "IMAGE_BADGES_25"}
+{"addr": "0085df34", "name": "SOUND_SPEEDBONUS", "comment": "sound index 877"}
+{"addr": "0085df38", "name": "IMAGE_HOWTOPLAY_LIGHTNINGFAKE3"}
+{"addr": "0085df3c", "name": "IMAGE_ECLIPSE_FLARE2"}
+{"addr": "0085df40", "name": "IMAGE_CURSOR_YELLOW9"}
+{"addr": "0085df44", "name": "IMAGE_CHALLENGEUI_TITLES_CHAIN_GANG"}
+{"addr": "0085df4c", "name": "SOUND_GEM_COUNTDOWN", "comment": "sound index 864"}
+{"addr": "0085df50", "name": "IMAGE_ELEMENTALS_OUTER_LIGHTNING"}
+{"addr": "0085df54", "name": "IMAGE_DEFUSER_ALERTRING"}
+{"addr": "0085df58", "name": "FONT_HUMANST521BT25", "comment": "font index 43"}
+{"addr": "0085df5c", "name": "IMAGE_INGAMEUI_GRIDBAR_TOP"}
+{"addr": "0085df60", "name": "IMAGE_INGAMEUI_ARC_16_FILL_8"}
+{"addr": "0085df64", "name": "IMAGE_HOWTOPLAY_ARC2"}
+{"addr": "0085df68", "name": "IMAGE_MAINMENU_SPIRALBUTTON"}
+{"addr": "0085df70", "name": "IMAGE_POINTY2"}
+{"addr": "0085df74", "name": "IMAGE_MAINMENU_RADIOBUTTONCUSTOMCURSORS"}
+{"addr": "0085df78", "name": "IMAGE_CURSOR_CLICKHERE"}
+{"addr": "0085df7c", "name": "FONT_DSCRYSTAL127", "comment": "font index 36"}
+{"addr": "0085df80", "name": "FONT_600_CONTINUUMBOLD20", "comment": "font index 4"}
+{"addr": "0085df84", "name": "IMAGE_MODEUNLOCK_CHALLENGE"}
+{"addr": "0085df88", "name": "SOUND_POWERGEM_CREATED", "comment": "sound index 871"}
+{"addr": "0085df8c", "name": "IMAGE_PLAYMENU_SEAMGLOW2"}
+{"addr": "0085df90", "name": "IMAGE_INGAMEUI_95"}
+{"addr": "0085df94", "name": "IMAGE_HOWTOPLAY_FILLTUBE_TOP"}
+{"addr": "0085df98", "name": "IMAGE_SPACE_THREAD"}
+{"addr": "0085df9c", "name": "IMAGE_MAINMENU_SCORES_TOP10"}
+{"addr": "0085dfa0", "name": "IMAGE_INGAMEUI_ARC_16_FILL_5"}
+{"addr": "0085dfa4", "name": "IMAGE_HOWTOPLAY_TWISTPAM_ZEN"}
+{"addr": "0085dfa8", "name": "IMAGE_GEM_SHOCKWAVE_3"}
+{"addr": "0085dfac", "name": "IMAGE_GEMLOCK_FATLINK7"}
+{"addr": "0085dfb0", "name": "IMAGE_DEFUSER_LIGHTBEAM_RIGHT"}
+{"addr": "0085dfb4", "name": "IMAGE_BADGES_30"}
+{"addr": "0085dfb8", "name": "FONT_CONTINUUMBOLD20", "comment": "font index 32"}
+{"addr": "0085dfbc", "name": "IMAGE_STARBAR_STARS_GOLDSTARS"}
+{"addr": "0085dfc0", "name": "IMAGE_MAINMENU_SCORES_TITLE_STATS"}
+{"addr": "0085dfc4", "name": "IMAGE_INGAMEUI_BONUS_ORANGE_UNLIT"}
+{"addr": "0085dfc8", "name": "IMAGE_INGAMEUI_ARC_16_FILL_14"}
+{"addr": "0085dfcc", "name": "IMAGE_ELEMENTALS_BEAM_FIRE_SML"}
+{"addr": "0085dfd0", "name": "IMAGE_PLANET1"}
+{"addr": "0085dfd4", "name": "IMAGE_MAINMENU_PROFILEBUTTON"}
+{"addr": "0085dfd8", "name": "IMAGE_HOWTOPLAY_COAL_OVERLAY"}
+{"addr": "0085dfdc", "name": "IMAGE_ELEMENTALS_BEAM_ICE_SML"}
+{"addr": "0085dfe0", "name": "IMAGE_CURSOR_YELLOW3"}
+{"addr": "0085dfe4", "name": "SOUND_VOICE_BLITZ", "comment": "sound index 941"}
+{"addr": "0085dfe8", "name": "IMAGE_PLAYMENU_CHALLENGEBUB"}
+{"addr": "0085dfec", "name": "IMAGE_HOWTOPLAY_NUM5"}
+{"addr": "0085dff0", "name": "IMAGE_HOWTOPLAY_COAL_NOVA"}
+{"addr": "0085dff4", "name": "IMAGE_HOWTOPLAY_BOMB_2"}
+{"addr": "0085dff8", "name": "IMAGE_GEMLOCK_FATLINK9"}
+{"addr": "0085dffc", "name": "IMAGE_DEFUSER_LIGHTBASE_LEFT_COPY"}
+{"addr": "0085e000", "name": "SOUND_REPLAY_POPUP", "comment": "sound index 872"}
+{"addr": "0085e004", "name": "IMAGE_INGAMEUI_ARC_16_FILL_2"}
+{"addr": "0085e00c", "name": "IMAGE_PLAYMENU_BLITZCLOCKTICKS"}
+{"addr": "0085e010", "name": "IMAGE_FINALSTATSUI_CONNECTORSHORT"}
+{"addr": "0085e014", "name": "IMAGE_FINALSTATSUI_CONNECTORLONG"}
+{"addr": "0085e018", "name": "IMAGE_BADGES_04"}
+{"addr": "0085e01c", "name": "FONT_768_BEACHHOUSE86", "comment": "font index 13"}
+{"addr": "0085e020", "name": "IMAGE_HOWTOPLAY_HELPDIALOGBARLRG"}
+{"addr": "0085e024", "name": "IMAGE_DOORS_SUBMENU_BOTTOM"}
+{"addr": "0085e028", "name": "IMAGE_BEJTWISTLOGO"}
+{"addr": "0085e02c", "name": "SOUND_GEM_LOCK_START", "comment": "sound index 906"}
+{"addr": "0085e030", "name": "IMAGE_RANKBAR_RIGHTPILLAR"}
+{"addr": "0085e034", "name": "IMAGE_HOWTOPLAY_XGLOW"}
+{"addr": "0085e038", "name": "IMAGE_HOWTOPLAY_LIGHTNINGFAKE5"}
+{"addr": "0085e03c", "name": "IMAGE_EDIT_BOX"}
+{"addr": "0085e040", "name": "IMAGE_BADGES_03"}
+{"addr": "0085e044", "name": "IMAGE_SUBATOMIC_BLUR"}
+{"addr": "0085e048", "name": "IMAGE_PLAYMENU_CHALLENGEGEAR3"}
+{"addr": "0085e04c", "name": "IMAGE_BADGES_07"}
+{"addr": "0085e050", "name": "FONT_600_CONTBOLD25SCORE", "comment": "font index 15"}
+{"addr": "0085e054", "name": "IMAGE_INGAMEUI_TUBE_BOTTOM_INNERGLOW"}
+{"addr": "0085e058", "name": "IMAGE_SKULLICON_SMALL"}
+{"addr": "0085e05c", "name": "IMAGE_INGAMEUI_15"}
+{"addr": "0085e060", "name": "IMAGE_HOWTOPLAY_GEM_RED"}
+{"addr": "0085e064", "name": "IMAGE_EXCELLENT"}
+{"addr": "0085e068", "name": "IMAGE_CLOUD2"}
+{"addr": "0085e06c", "name": "SOUND_TRANS_ARRIVAL", "comment": "sound index 930"}
+{"addr": "0085e070", "name": "SOUND_ELECTRO_START1", "comment": "sound index 861"}
+{"addr": "0085e074", "name": "IMAGE_UNBELIEVABLE"}
+{"addr": "0085e078", "name": "IMAGE_PLAYMENU_ZENPORTAL"}
+{"addr": "0085e07c", "name": "IMAGE_MAINMENU_PROFILEDIALOG"}
+{"addr": "0085e080", "name": "IMAGE_INGAMEUI_ARC_12_FILL_4"}
+{"addr": "0085e084", "name": "IMAGE_GLASS_SHARD1"}
+{"addr": "0085e088", "name": "IMAGE_GEMLOCK_THINLINK7"}
+{"addr": "0085e08c", "name": "IMAGE_DOORS_BONUS_BOTTOM"}
+{"addr": "0085e090", "name": "SOUND_X_SPINNERAPPEARS1", "comment": "sound index 851"}
+{"addr": "0085e094", "name": "IMAGE_CURSOR_YELLOW23"}
+{"addr": "0085e098", "name": "SOUND_VOICE_THREE", "comment": "sound index 843"}
+{"addr": "0085e09c", "name": "SOUND_VOICE_ONE", "comment": "sound index 841"}
+{"addr": "0085e0a0", "name": "SOUND_TEMP_TIMPANI", "comment": "sound index 881"}
+{"addr": "0085e0a4", "name": "IMAGE_STARBAR_BARS_GOLD_BAR"}
+{"addr": "0085e0a8", "name": "IMAGE_SMOKE"}
+{"addr": "0085e0ac", "name": "IMAGE_CURSOR_YELLOW11"}
+{"addr": "0085e0b0", "name": "IMAGE_ROCKS"}
+{"addr": "0085e0b4", "name": "IMAGE_MOLECULE_BG"}
+{"addr": "0085e0b8", "name": "IMAGE_SPARKLE"}
+{"addr": "0085e0bc", "name": "IMAGE_PLANET3"}
+{"addr": "0085e0c0", "name": "IMAGE_MAINMENU_REPLAYBUTTON2"}
+{"addr": "0085e0c4", "name": "IMAGE_HOWTOPLAY_COAL300"}
+{"addr": "0085e0c8", "name": "IMAGE_ECLIPSE_TITLE_GLOW"}
+{"addr": "0085e0cc", "name": "IMAGE_JELLYBLOB_BG"}
+{"addr": "0085e0d0", "name": "IMAGE_SNACKERS"}
+{"addr": "0085e0d4", "name": "FONT_600_DSCRYSTAL127", "comment": "font index 8"}
+{"addr": "0085e0dc", "name": "IMAGE_BORDERED_SQUARE"}
+{"addr": "0085e0e0", "name": "IMAGE_STARBAR_BARS_BLUEBAR"}
+{"addr": "0085e0e4", "name": "IMAGE_SHADER_TEST"}
+{"addr": "0085e0e8", "name": "IMAGE_RANKBAR_HOTNSEXY"}
+{"addr": "0085e0ec", "name": "IMAGE_DOORS_SUBMENU_TOP"}
+{"addr": "0085e0f0", "name": "SOUND_GEM_COUNTDOWN_DESTROYED", "comment": "sound index 865"}
+{"addr": "0085e0f4", "name": "IMAGE_CLOUD_STRATAMAX"}
+{"addr": "0085e0f8", "name": "IMAGE_CLOUD_BONANZA"}
+{"addr": "0085e0fc", "name": "SOUND_COMBO_1", "comment": "sound index 769"}
+{"addr": "0085e100", "name": "IMAGE_PLAYMENU_CHALLENGEGEAR"}
+{"addr": "0085e104", "name": "IMAGE_ELEMENTALS_CORE_FIRE"}
+{"addr": "0085e108", "name": "IMAGE_CURSOR_CLICKNOW"}
+{"addr": "0085e10c", "name": "IMAGE_CHALLENGEUI_TITLES_PRESERVER"}
+{"addr": "0085e110", "name": "IMAGE_ZENDROP47"}
+{"addr": "0085e114", "name": "IMAGE_GEM_FIRE_SPARKS"}
+{"addr": "0085e118", "name": "IMAGE_DOOMLOCK_GLOW"}
+{"addr": "0085e11c", "name": "IMAGE_CURSOR_YELLOW14"}
+{"addr": "0085e120", "name": "IMAGE_CAMEOS_SNACKERS"}
+{"addr": "0085e124", "name": "IMAGE_JELLYTRAIL_TEXTURE"}
+{"addr": "0085e128", "name": "SOUND_MULTIPLIER_UP2_1", "comment": "sound index 919"}
+{"addr": "0085e12c", "name": "IMAGE_ELEMENTALS_PARTICLE_ICE"}
+{"addr": "0085e130", "name": "IMAGE_INGAMEUI_07"}
+{"addr": "0085e134", "name": "FONT_768_HUMANST521BT30", "comment": "font index 24"}
+{"addr": "0085e138", "name": "IMAGE_HOWTOPLAY_HELPDIALOG"}
+{"addr": "0085e13c", "name": "IMAGE_BADGES_60"}
+{"addr": "0085e140", "name": "SOUND_WHIRLPOOL1", "comment": "sound index 964"}
+{"addr": "0085e144", "name": "SOUND_GOODLOOP", "comment": "sound index 908"}
+{"addr": "0085e148", "name": "IMAGE_COMET_HEAD"}
+{"addr": "0085e14c", "name": "FONT_INGAME", "comment": "font index 791"}
+{"addr": "0085e150", "name": "IMAGE_TRIALDIALOG_BULLETRED"}
+{"addr": "0085e154", "name": "IMAGE_HOWTOPLAY_COAL600"}
+{"addr": "0085e158", "name": "FONT_HUMANST521BT40", "comment": "font index 45"}
+{"addr": "0085e15c", "name": "IMAGE_MAINMENU_OPTIONSCHALLENGEBUTTON"}
+{"addr": "0085e160", "name": "IMAGE_INGAMEUI_ARC_8_FILL_7"}
+{"addr": "0085e164", "name": "IMAGE_INGAMEUI_00"}
+{"addr": "0085e168", "name": "FONT_BEACHHOUSE86", "comment": "font index 26"}
+{"addr": "0085e16c", "name": "SOUND_VOICE_GAMEOVER", "comment": "sound index 949"}
+{"addr": "0085e170", "name": "SOUND_FRUIT_APPEARS", "comment": "sound index 863"}
+{"addr": "0085e174", "name": "IMAGE_CLOUD_PRESERVER"}
+{"addr": "0085e178", "name": "IMAGE_MAINMENU_OPTIONSRETURNBUTTON"}
+{"addr": "0085e17c", "name": "IMAGE_INGAMEUI_TOOLTIPARROW"}
+{"addr": "0085e180", "name": "IMAGE_INGAMEUI_BONUS_RED_LIT"}
+{"addr": "0085e184", "name": "IMAGE_GEM_SHOCKWAVE_1"}
+{"addr": "0085e188", "name": "IMAGE_BADGES_45"}
+{"addr": "0085e18c", "name": "FONT_600_FRESHBOT2220", "comment": "font index 9"}
+{"addr": "0085e190", "name": "IMAGE_ZENDROP16"}
+{"addr": "0085e194", "name": "IMAGE_RAINBOWCASE2"}
+{"addr": "0085e198", "name": "IMAGE_INGAMEUI_01"}
+{"addr": "0085e19c", "name": "IMAGE_CURSOR_SPIRAL2"}
+{"addr": "0085e1a0", "name": "IMAGE_BADGES_65"}
+{"addr": "0085e1a4", "name": "FONT_HUMANST12", "comment": "font index 39"}
+{"addr": "0085e1a8", "name": "IMAGE_ZENDROP40"}
+{"addr": "0085e1ac", "name": "IMAGE_ZENDROP29"}
+{"addr": "0085e1b0", "name": "IMAGE_PLAYMENU_BLITZBUB"}
+{"addr": "0085e1b4", "name": "IMAGE_BADGES_08"}
+{"addr": "0085e1b8", "name": "IMAGE_INGAMEUI_ARC_MAX_FILL_6"}
+{"addr": "0085e1bc", "name": "IMAGE_DEVILGEM_GLOW"}
+{"addr": "0085e1c4", "name": "IMAGE_YINYANG6Z"}
+{"addr": "0085e1c8", "name": "SOUND_VOICE_THIRTYSECONDS", "comment": "sound index 958"}
+{"addr": "0085e1cc", "name": "IMAGE_ELEMENTALS_BEAM_FRUIT_SML"}
+{"addr": "0085e1d0", "name": "IMAGE_GEM_FRUIT_SPARK"}
+{"addr": "0085e1d4", "name": "IMAGE_INGAMEUI_RING_INNERGLOW"}
+{"addr": "0085e1d8", "name": "SOUND_FRUITBONUSCOUNT", "comment": "sound index 903"}
+{"addr": "0085e1dc", "name": "IMAGE_MAINMENU_OKBUTTON"}
+{"addr": "0085e1e0", "name": "IMAGE_GIGASPEED"}
+{"addr": "0085e1e4", "name": "IMAGE_GEM_GLOWS"}
+{"addr": "0085e1e8", "name": "IMAGE_COUNTDOWNSHARDS"}
+{"addr": "0085e1ec", "name": "SOUND_VOICE_TWOMINUTES", "comment": "sound index 960"}
+{"addr": "0085e1f0", "name": "IMAGE_PLAYMENU_CHALLENGEGEAR2"}
+{"addr": "0085e1f4", "name": "IMAGE_MAINMENU_SCORES_TITLE_ACTION"}
+{"addr": "0085e1f8", "name": "IMAGE_INGAMEUI_ARC_4_FILL_4"}
+{"addr": "0085e1fc", "name": "IMAGE_FRUITBLAST_FRUITGLOWS"}
+{"addr": "0085e200", "name": "FONT_600_BOMBPOP3", "comment": "font index 3"}
+{"addr": "0085e204", "name": "IMAGE_ZENDROP20"}
+{"addr": "0085e208", "name": "IMAGE_INGAMEUI_TUBE_FILL_TEXTURE1"}
+{"addr": "0085e20c", "name": "IMAGE_INGAMEUI_REPLAYPOD"}
+{"addr": "0085e210", "name": "IMAGE_INGAMEUI_ARC_MAX_FILL_5"}
+{"addr": "0085e214", "name": "IMAGE_ECLIPSE_TITLE"}
+{"addr": "0085e218", "name": "IMAGE_GEMLOCK_THINLINK6"}
+{"addr": "0085e21c", "name": "IMAGE_GEMLOCK_BOLTBR"}
+{"addr": "0085e220", "name": "SOUND_DOOMGEMGAMEOVER", "comment": "sound index 858"}
+{"addr": "0085e224", "name": "SOUND_BONUSLASER", "comment": "sound index 888"}
+{"addr": "0085e228", "name": "IMAGE_MAINMENU_OPTIONSHELPBUTTON"}
+{"addr": "0085e22c", "name": "IMAGE_INGAMEUI_MULTIBULB_GLOW"}
+{"addr": "0085e230", "name": "IMAGE_EMBER"}
+{"addr": "0085e234", "name": "IMAGE_DEVILGEM"}
+{"addr": "0085e238", "name": "IMAGE_MAINMENU_SCORESBUTTON"}
+{"addr": "0085e23c", "name": "IMAGE_CAMEOS_LEX"}
+{"addr": "0085e240", "name": "IMAGE_LOADER_POPCAP"}
+{"addr": "0085e244", "name": "IMAGE_YINYANG2Z"}
+{"addr": "0085e248", "name": "IMAGE_POINTY"}
+{"addr": "0085e24c", "name": "IMAGE_MODEUNLOCK_STRIPE"}
+{"addr": "0085e250", "name": "IMAGE_INGAMEUI_BONUS_BLUE_UNLIT"}
+{"addr": "0085e254", "name": "IMAGE_HOWTOPLAY_NUM4GLOW"}
+{"addr": "0085e258", "name": "IMAGE_DEFUSER_LIGHTBASE_LEFT"}
+{"addr": "0085e25c", "name": "IMAGE_BOOM_FTUBE"}
+{"addr": "0085e260", "name": "FONT_768_FRESHBOT2220", "comment": "font index 22"}
+{"addr": "0085e264", "name": "SOUND_TRANS_ENGINELOOP1", "comment": "sound index 883"}
+{"addr": "0085e268", "name": "SOUND_MULTIPLIER_DOWN", "comment": "sound index 918"}
+{"addr": "0085e26c", "name": "IMAGE_INGAMEUI_ARC_12_FILL_7"}
+{"addr": "0085e270", "name": "IMAGE_FINALSTATSUI_BAR4"}
+{"addr": "0085e274", "name": "IMAGE_CURSOR_MULTIBULBS"}
+{"addr": "0085e278", "name": "IMAGE_DEFUSER_SELECTOVERLAY"}
+{"addr": "0085e27c", "name": "FONT_CONTINUUMBOLD38", "comment": "font index 33"}
+{"addr": "0085e280", "name": "FONT_768_BOMBPOP3", "comment": "font index 14"}
+{"addr": "0085e284", "name": "IMAGE_INGAMEUI_ARC_8_FILL_8"}
+{"addr": "0085e288", "name": "IMAGE_INGAMEUI_60"}
+{"addr": "0085e28c", "name": "IMAGE_CHALLENGEUI_TITLES_SURVIVOR"}
+{"addr": "0085e290", "name": "IMAGE_PLAYMENU_ZENBUB"}
+{"addr": "0085e294", "name": "IMAGE_PLAYMENU_BLITZLONGARM"}
+{"addr": "0085e298", "name": "IMAGE_COAL_BREAK"}
+{"addr": "0085e29c", "name": "SOUND_SPINSEQUENCER1", "comment": "sound index 878"}
+{"addr": "0085e2a0", "name": "IMAGE_ECLIPSE_DANCE2"}
+{"addr": "0085e2a4", "name": "IMAGE_CURSOR_YELLOW21"}
+{"addr": "0085e2a8", "name": "IMAGE_CHALLENGEUI_TITLES_CHAIN_REACTION"}
+{"addr": "0085e2ac", "name": "IMAGE_BUCKYTRIFACE"}
+{"addr": "0085e2b0", "name": "IMAGE_CAMEOS_ZUMA"}
+{"addr": "0085e2b4", "name": "FONT_PLANET_TEXT", "comment": "font index 788"}
+{"addr": "0085e2b8", "name": "FONT_HUMANST9BOLD", "comment": "font index 46"}
+{"addr": "0085e2bc", "name": "SOUND_ZENTRANSITION1", "comment": "sound index 972"}
+{"addr": "0085e2c0", "name": "SOUND_RESHUFFLE1", "comment": "sound index 925"}
+{"addr": "0085e2c4", "name": "IMAGE_CURSOR_YELLOW8"}
+{"addr": "0085e2c8", "name": "IMAGE_ZENDROP37"}
+{"addr": "0085e2cc", "name": "SOUND_TRANS_PREIGNITION", "comment": "sound index 884"}
+{"addr": "0085e2d0", "name": "IMAGE_CURSOR_YELLOW17"}
+{"addr": "0085e2d4", "name": "IMAGE_BOMBGEMS"}
+{"addr": "0085e2d8", "name": "IMAGE_BADGES_02"}
+{"addr": "0085e2dc", "name": "FONT_FRUIT_AWARD", "comment": "font index 777"}
+{"addr": "0085e2e0", "name": "IMAGE_SHIPTHRUSTPARTICLE"}
+{"addr": "0085e2e4", "name": "IMAGE_INGAMEUI_BONUS_YELLOW_LIT"}
+{"addr": "0085e2e8", "name": "IMAGE_ELEMENTALS_SHEEN_ICE"}
+{"addr": "0085e2ec", "name": "IMAGE_DRIP"}
+{"addr": "0085e2f0", "name": "IMAGE_BLAST_DARKBG"}
+{"addr": "0085e2f4", "name": "IMAGE_VIRTUTORIAL"}
+{"addr": "0085e2f8", "name": "SOUND_TROPHY_AWARDED", "comment": "sound index 936"}
+{"addr": "0085e2fc", "name": "IMAGE_PLAYMENU_PERCENTTAGCHALLENGE"}
+{"addr": "0085e300", "name": "IMAGE_INGAMEUI_BONUS_ORANGE_LIT"}
+{"addr": "0085e304", "name": "IMAGE_INGAMEUI_09"}
+{"addr": "0085e308", "name": "FONT_RANK_DIALOG", "comment": "font index 793"}
+{"addr": "0085e310", "name": "IMAGE_ZENDROP35"}
+{"addr": "0085e314", "name": "IMAGE_CRAZY_BG2"}
+{"addr": "0085e318", "name": "SOUND_COMBO_2", "comment": "sound index 770"}
+{"addr": "0085e31c", "name": "IMAGE_HOWTOPLAY_NUM2GLOW"}
+{"addr": "0085e320", "name": "IMAGE_DEFUSER_LEFTARM"}
+{"addr": "0085e324", "name": "IMAGE_MAINMENU_RADIOBUTTONLOW"}
+{"addr": "0085e328", "name": "IMAGE_BLACKHALO_2"}
+{"addr": "0085e32c", "name": "FONT_SCORE", "comment": "font index 997"}
+{"addr": "0085e330", "name": "IMAGE_SPEEDBONUS"}
+{"addr": "0085e334", "name": "IMAGE_PLAYMENU_SEAMGLOW"}
+{"addr": "0085e338", "name": "IMAGE_ANGRYBOMB"}
+{"addr": "0085e33c", "name": "FONT_600_CONTINUUMBOLD120", "comment": "font index 7"}
+{"addr": "0085e340", "name": "IMAGE_CLOUD_DETONATOR"}
+{"addr": "0085e344", "name": "IMAGE_PLAYMENU_BLITZBUTTON"}
+{"addr": "0085e348", "name": "IMAGE_HOWTOPLAY_PREVBUTTON"}
+{"addr": "0085e34c", "name": "IMAGE_ELEMENTALS_BEAM_ICE_MED"}
+{"addr": "0085e350", "name": "IMAGE_ELEMENTALS_BEAM_ICE_LRG"}
+{"addr": "0085e354", "name": "FONT_DIALOG_BUTTONS", "comment": "font index 802"}
+{"addr": "0085e358", "name": "IMAGE_ZENDROP21"}
+{"addr": "0085e35c", "name": "SOUND_ZENTRANSITION3", "comment": "sound index 974"}
+{"addr": "0085e360", "name": "SOUND_COMBO_4", "comment": "sound index 772"}
+{"addr": "0085e364", "name": "IMAGE_HYPERSPEED"}
+{"addr": "0085e368", "name": "IMAGE_CURSOR_YELLOW2"}
+{"addr": "0085e36c", "name": "IMAGE_LOADINGSCREEN_GLOWBAR"}
+{"addr": "0085e370", "name": "IMAGE_WINDOWEDBUTTON"}
+{"addr": "0085e374", "name": "IMAGE_MODEUNLOCK_SHEEN"}
+{"addr": "0085e378", "name": "IMAGE_MAINMENU_UI_BOTTOM2"}
+{"addr": "0085e37c", "name": "FONT_HUMANST9", "comment": "font index 38"}
+{"addr": "0085e380", "name": "IMAGE_HOWTOPLAY_TUTORIALARROWGLOW"}
+{"addr": "0085e384", "name": "FONT_INCREDIBLE", "comment": "font index 789"}
+{"addr": "0085e38c", "name": "FONT_600_CONTINUUMBOLD38", "comment": "font index 5"}
+{"addr": "0085e390", "name": "IMAGE_ZENDROP22"}
+{"addr": "0085e394", "name": "IMAGE_INGAMEUI_ARC_8_FILL_2"}
+{"addr": "0085e398", "name": "IMAGE_INGAMEUI_08"}
+{"addr": "0085e39c", "name": "IMAGE_GEM_LIGHTNING_CRACKLE"}
+{"addr": "0085e3a0", "name": "FONT_768_DSCRYSTAL127", "comment": "font index 21"}
+{"addr": "0085e3a4", "name": "IMAGE_INGAMEUI_TUBE_FILL_PARTICLE"}
+{"addr": "0085e3a8", "name": "IMAGE_INGAMEUI_ARC_16_FILL_12"}
+{"addr": "0085e3ac", "name": "IMAGE_HOWTOPLAY_TWISTPAM_RANKS"}
+{"addr": "0085e3b0", "name": "IMAGE_HOWTOPLAY_FRUIT_GEM"}
+{"addr": "0085e3b4", "name": "IMAGE_COALNOVA"}
+{"addr": "0085e3b8", "name": "IMAGE_SPLASH"}
+{"addr": "0085e3bc", "name": "IMAGE_HOWTOPLAY_GEM_ORANGE_SHIMMER"}
+{"addr": "0085e3c0", "name": "IMAGE_GEM_FIRE_SMOKE"}
+{"addr": "0085e3c4", "name": "IMAGE_LOADINGSCREEN_FILLEDGE"}
+{"addr": "0085e3c8", "name": "FONT_600_CONTINUUMBOLD47", "comment": "font index 6"}
+{"addr": "0085e3cc", "name": "IMAGE_PLAYMENU_LVLTAGBLITZ"}
+{"addr": "0085e3d0", "name": "IMAGE_INGAMEUI_ARC_MAX_FILL_9"}
+{"addr": "0085e3d4", "name": "SOUND_TRIALUNLOCK", "comment": "sound index 935"}
+{"addr": "0085e3d8", "name": "IMAGE_INGAMEUI_ARC_12_SLOT"}
+{"addr": "0085e3dc", "name": "FONT_TOOLTIP", "comment": "font index 790"}
+{"addr": "0085e3e0", "name": "IMAGE_ZENDROP7"}
+{"addr": "0085e3e4", "name": "IMAGE_CLOUD1"}
+{"addr": "0085e3e8", "name": "IMAGE_CLOUD_GEM_FALL"}
+{"addr": "0085e3ec", "name": "SOUND_TUTORIAL_MATCH", "comment": "sound index 768"}
+{"addr": "0085e3f0", "name": "IMAGE_RANKBAR_CHALLENGECOMPLETE"}
+{"addr": "0085e3f4", "name": "IMAGE_HOWTOPLAY_COAL"}
+{"addr": "0085e3f8", "name": "IMAGE_CURSOR_SPIRAL5"}
+{"addr": "0085e3fc", "name": "IMAGE_GEAR"}
+{"addr": "0085e400", "name": "IMAGE_MEGAFRUIT_RAINBOW"}
+{"addr": "0085e404", "name": "IMAGE_INGAMEUI_10"}
+{"addr": "0085e408", "name": "IMAGE_BOOM_CRATER"}
+{"addr": "0085e40c", "name": "IMAGE_LOADINGSCREEN_GLASS"}
+{"addr": "0085e410", "name": "IMAGE_RANKBAR_CONTINUEBUTTON"}
+{"addr": "0085e414", "name": "IMAGE_FRUITBLAST_ARC"}
+{"addr": "0085e418", "name": "SOUND_SOULIFY", "comment": "sound index 876"}
+{"addr": "0085e41c", "name": "IMAGE_INGAMEUI_ARC_MAX_FILL_4"}
+{"addr": "0085e420", "name": "IMAGE_GEMLOCK_THINLINK4"}
+{"addr": "0085e424", "name": "IMAGE_PLANET_MOON"}
+{"addr": "0085e428", "name": "IMAGE_MAINMENU_OPTIONSQUITBUTTON"}
+{"addr": "0085e42c", "name": "IMAGE_MAINMENU_SCORESDIALOG"}
+{"addr": "0085e430", "name": "IMAGE_MAINMENU_CONTINUEBTN"}
+{"addr": "0085e434", "name": "IMAGE_HOWTOPLAY_BOMB_3RED"}
+{"addr": "0085e438", "name": "IMAGE_SUBATOMIC_BG"}
+{"addr": "0085e43c", "name": "IMAGE_FLUFFYSTARS"}
+{"addr": "0085e440", "name": "IMAGE_INGAMEUI_GRIDSQUARE"}
+{"addr": "0085e444", "name": "IMAGE_HOWTOPLAY_TWISTPAM_SPINNER_SML"}
+{"addr": "0085e448", "name": "IMAGE_CLOUD_TEXTURE"}
+{"addr": "0085e44c", "name": "IMAGE_RAINDROPS_BG"}
+{"addr": "0085e450", "name": "IMAGE_FINALSTATSUI_CONNECTORTRIPLE"}
+{"addr": "0085e454", "name": "IMAGE_HOWTOPLAY_X2"}
+{"addr": "0085e458", "name": "IMAGE_HOWTOPLAY_CURSORRING"}
+{"addr": "0085e45c", "name": "IMAGE_FRUITBLAST_ARC_HIGHLIGHTS"}
+{"addr": "0085e460", "name": "IMAGE_CURSOR_SPIRAL3"}
+{"addr": "0085e464", "name": "SOUND_X_WHEELSPIN2", "comment": "sound index 968"}
+{"addr": "0085e468", "name": "IMAGE_PLANET_INFERNO"}
+{"addr": "0085e46c", "name": "IMAGE_MAINMENU_RADIOBUTTONHIGH"}
+{"addr": "0085e470", "name": "IMAGE_INGAMEUI_ARC_16_FILL_15"}
+{"addr": "0085e474", "name": "IMAGE_INGAMEUI_ARC_12_FILL_11"}
+{"addr": "0085e478", "name": "IMAGE_INGAMEUI_35"}
+{"addr": "0085e47c", "name": "IMAGE_HOWTOPLAY_HELPBACKBUTTON"}
+{"addr": "0085e480", "name": "IMAGE_GEMLOCK_BACKFACE"}
+{"addr": "0085e484", "name": "FONT_TUTORIAL", "comment": "font index 781"}
+{"addr": "0085e488", "name": "IMAGE_PLAYMENU_LOCKED"}
+{"addr": "0085e48c", "name": "IMAGE_INGAMEUI_ARC_16_FILL_7"}
+{"addr": "0085e490", "name": "IMAGE_INGAMEUI_02"}
+{"addr": "0085e494", "name": "IMAGE_HOWTOPLAY_X1"}
+{"addr": "0085e498", "name": "IMAGE_HOWTOPLAY_SPINARROW"}
+{"addr": "0085e49c", "name": "IMAGE_HOWTOPLAY_SCORE_0"}
+{"addr": "0085e4a0", "name": "IMAGE_INGAMEUI_TWISTDOORANIM"}
+{"addr": "0085e4a4", "name": "IMAGE_MAINMENU_UI_BOTTOM2_GLOW"}
+{"addr": "0085e4a8", "name": "IMAGE_MAINMENU_HELPBUTTON"}
+{"addr": "0085e4ac", "name": "IMAGE_HEATWAVE"}
+{"addr": "0085e4b0", "name": "IMAGE_SLIPSTREAM_POINTY"}
+{"addr": "0085e4b4", "name": "IMAGE_GRAVITY_SPIRALTEXTURE"}
+{"addr": "0085e4b8", "name": "IMAGE_GRAVITYFIELD_BG"}
+{"addr": "0085e4bc", "name": "SOUND_VOICE_GOOD", "comment": "sound index 951"}
+{"addr": "0085e4c0", "name": "SOUND_MENU_BUTTON_CLICK", "comment": "sound index 913"}
+{"addr": "0085e4c4", "name": "IMAGE_CURSOR_YELLOW22"}
+{"addr": "0085e4c8", "name": "SOUND_VOICE_NINE", "comment": "sound index 849"}
+{"addr": "0085e4cc", "name": "IMAGE_HOWTOPLAY_FLAMEFAKE"}
+{"addr": "0085e4d0", "name": "IMAGE_CURSOR_BWCURSOR"}
+{"addr": "0085e4d4", "name": "IMAGE_CHALLENGEICONS"}
+{"addr": "0085e4d8", "name": "SOUND_X_WHEELSPIN", "comment": "sound index 967"}
+{"addr": "0085e4dc", "name": "IMAGE_INGAMEUI_BONUS_PURPLE_LIT"}
+{"addr": "0085e4e0", "name": "IMAGE_ZENGYRO_EDGETEXTURE"}
+{"addr": "0085e4e4", "name": "SOUND_LOCK1", "comment": "sound index 912"}
+{"addr": "0085e4e8", "name": "IMAGE_MODEUNLOCK_CLOUD2"}
+{"addr": "0085e4ec", "name": "IMAGE_INGAMEUI_ARC_MAX_SLOT"}
+{"addr": "0085e4f0", "name": "IMAGE_GEMLOCK_BOLTTL"}
+{"addr": "0085e4f4", "name": "IMAGE_SPACETHREADS_BG"}
+{"addr": "0085e4f8", "name": "IMAGE_MAGICSNAKE_BG"}
+{"addr": "0085e4fc", "name": "SOUND_TRIALCLICK", "comment": "sound index 933"}
+{"addr": "0085e500", "name": "IMAGE_INGAMEUI_ARC_12_FILL_1"}
+{"addr": "0085e504", "name": "IMAGE_HOWTOPLAY_GRIDSQUARE"}
+{"addr": "0085e508", "name": "IMAGE_BADGES_06"}
+{"addr": "0085e50c", "name": "IMAGE_AURA_SPARK"}
+{"addr": "0085e510", "name": "IMAGE_GEARS_BG"}
+{"addr": "0085e514", "name": "IMAGE_INGAMEUI_TUBE_FILL_GOLD"}
+{"addr": "0085e518", "name": "IMAGE_MAINMENU_UI_BOTTOM1_GLOW"}
+{"addr": "0085e51c", "name": "IMAGE_HOWTOPLAY_NUM4"}
+{"addr": "0085e520", "name": "IMAGE_ELEMENTALS_SHEEN_FRUIT"}
+{"addr": "0085e524", "name": "IMAGE_ELEMENTALS_PARTICLE_FIRE"}
+{"addr": "0085e528", "name": "IMAGE_ELEMENTALS_BEAM_LIGHTNING_MED"}
+{"addr": "0085e52c", "name": "IMAGE_BADGES_10"}
+{"addr": "0085e530", "name": "SOUND_INNERLOCK2", "comment": "sound index 910"}
+{"addr": "0085e534", "name": "IMAGE_MAINMENU_SCORESDIALOGBAR"}
+{"addr": "0085e538", "name": "IMAGE_HOWTOPLAY_ARC1"}
+{"addr": "0085e53c", "name": "SOUND_COMBO_3", "comment": "sound index 771"}
+{"addr": "0085e540", "name": "IMAGE_MAINMENU_HELPNEXTBUTTON"}
+{"addr": "0085e544", "name": "IMAGE_ZENDROP15"}
+{"addr": "0085e548", "name": "SOUND_BUTTONPRESS1", "comment": "sound index 889"}
+{"addr": "0085e54c", "name": "IMAGE_ELEMENTALS_PARTICLE_FRUIT"}
+{"addr": "0085e550", "name": "IMAGE_ELEMENTALS_OUTER_ICE"}
+{"addr": "0085e554", "name": "IMAGE_DOORS_PROFILE_TOP"}
+{"addr": "0085e558", "name": "IMAGE_YINYANG3Z"}
+{"addr": "0085e55c", "name": "IMAGE_INGAMEUI_RING_BACK"}
+{"addr": "0085e560", "name": "SOUND_VOICE_SPECTACULAR", "comment": "sound index 957"}
+{"addr": "0085e564", "name": "IMAGE_INGAMEUI_ARC_MAX_FILL_8"}
+{"addr": "0085e568", "name": "IMAGE_HOWTOPLAY_NUM1"}
+{"addr": "0085e56c", "name": "IMAGE_HOWTOPLAY_LIGHTNINGFAKE1"}
+{"addr": "0085e570", "name": "IMAGE_ZENDROP38"}
+{"addr": "0085e574", "name": "IMAGE_GEMLOCK_THINLINK2"}
+{"addr": "0085e578", "name": "IMAGE_COREWARP_BG"}
+{"addr": "0085e57c", "name": "IMAGE_INGAMEUI_RING_FRONT_TIMER"}
+{"addr": "0085e580", "name": "IMAGE_FINALSTATSUI_CONTINUEBTN"}
+{"addr": "0085e584", "name": "IMAGE_AWESOME"}
+{"addr": "0085e588", "name": "IMAGE_PLANET_VOLTAGE"}
+{"addr": "0085e58c", "name": "IMAGE_MAINMENU_SLIDERTHUMBMUSIC"}
+{"addr": "0085e590", "name": "IMAGE_GO"}
+{"addr": "0085e594", "name": "IMAGE_GEMLOCK_FATLINK6"}
+{"addr": "0085e598", "name": "IMAGE_MAGICSNAKE_FRAGMENT"}
+{"addr": "0085e59c", "name": "IMAGE_INGAMEUI_TUBE_TOP"}
+{"addr": "0085e5a0", "name": "IMAGE_PLAYMENU_ZENYIN"}
+{"addr": "0085e5a4", "name": "IMAGE_HOWTOPLAY_LOCK_FRONT"}
+{"addr": "0085e5a8", "name": "IMAGE_HOWTOPLAY_GEM_BLUE_PULSE"}
+{"addr": "0085e5ac", "name": "IMAGE_GEMLOCK_FATLINK10"}
+{"addr": "0085e5b0", "name": "IMAGE_ELEMENTALS_INNER_FIRE"}
+{"addr": "0085e5b4", "name": "IMAGE_BADGES_80"}
+{"addr": "0085e5b8", "name": "IMAGE_BADGES_05"}
+{"addr": "0085e5bc", "name": "IMAGE_PULSERING"}
+{"addr": "0085e5c0", "name": "SOUND_VOICE_ONEMINUTE", "comment": "sound index 956"}
+{"addr": "0085e5c4", "name": "SOUND_SCREENPRINT", "comment": "sound index 926"}
+{"addr": "0085e5c8", "name": "IMAGE_INGAMEUI_ARC_12_FILL_8"}
+{"addr": "0085e5cc", "name": "IMAGE_GEM_SHOCKWAVE_4"}
+{"addr": "0085e5d0", "name": "IMAGE_CURSOR_YELLOW1"}
+{"addr": "0085e5d4", "name": "IMAGE_INGAMEUI_RING_FRONT"}
+{"addr": "0085e5d8", "name": "SOUND_VOICE_WELCOMETOBEJEWELEDTWIST", "comment": "sound index 962"}
+{"addr": "0085e5dc", "name": "IMAGE_TRIALBADGE_PULSE"}
+{"addr": "0085e5e0", "name": "IMAGE_SPECTACULAR"}
+{"addr": "0085e5e4", "name": "IMAGE_INGAMEUI_75"}
+{"addr": "0085e5e8", "name": "IMAGE_HOWTOPLAY_NUM3"}
+{"addr": "0085e5ec", "name": "IMAGE_GEMLOCK_FATLINK1"}
+{"addr": "0085e5f0", "name": "IMAGE_FINALSTATSUI_DIALOGBOX"}
+{"addr": "0085e5f4", "name": "IMAGE_INGAMEUI_TWISTDOOR"}
+{"addr": "0085e5f8", "name": "IMAGE_INGAMEUI_MENUBUTTON"}
+{"addr": "0085e5fc", "name": "SOUND_VOICE_CHALLENGE", "comment": "sound index 943"}
+{"addr": "0085e600", "name": "IMAGE_INGAMEUI_GRIDSQUAREGLOW"}
+{"addr": "0085e604", "name": "IMAGE_INGAMEUI_ARC_8_FILL_5"}
+{"addr": "0085e608", "name": "IMAGE_PLANET_STRATAMAX"}
+{"addr": "0085e60c", "name": "IMAGE_MAINMENU_SCORES_TITLE_BLITZ"}
+{"addr": "0085e610", "name": "FONT_LEVEL_NUMBER", "comment": "font index 797"}
+{"addr": "0085e614", "name": "IMAGE_YINYANG7Z"}
+{"addr": "0085e618", "name": "IMAGE_DOORS_BONUS_TOP"}
+{"addr": "0085e61c", "name": "IMAGE_INGAMEUI_ARC_12_FILL_5"}
+{"addr": "0085e620", "name": "IMAGE_ANGRYPARTICLE"}
+{"addr": "0085e624", "name": "IMAGE_ZENDROP33"}
+{"addr": "0085e628", "name": "SOUND_VOICE_CHOOSEYOURGAME", "comment": "sound index 945"}
+{"addr": "0085e62c", "name": "IMAGE_PLANET5"}
+{"addr": "0085e630", "name": "IMAGE_GEMLOCK_FATLINK4"}
+{"addr": "0085e634", "name": "FONT_COUNTER", "comment": "font index 799"}
+{"addr": "0085e638", "name": "IMAGE_AIR_STREAM"}
+{"addr": "0085e63c", "name": "IMAGE_MAINMENU_SCORES_LABEL_PLAYER"}
+{"addr": "0085e640", "name": "IMAGE_MAINMENU_RADIOBUTTONHINTS"}
+{"addr": "0085e644", "name": "IMAGE_HOWTOPLAY_MAXFILL"}
+{"addr": "0085e648", "name": "IMAGE_GEMLOCK_THINLINK3"}
+{"addr": "0085e64c", "name": "SOUND_GEM_HIT", "comment": "sound index 776"}
+{"addr": "0085e650", "name": "IMAGE_LEVELCOMPLETE_LEVEL"}
+{"addr": "0085e654", "name": "IMAGE_LEVELCOMPLETE_COMPLETE"}
+{"addr": "0085e658", "name": "IMAGE_GIGASPEED_OUTLINE"}
+{"addr": "0085e65c", "name": "IMAGE_FINALSTATSUI_VIEWREPLAYBTN"}
+{"addr": "0085e660", "name": "IMAGE_ELEMENTALS_SHEEN_LIGHTNING"}
+{"addr": "0085e664", "name": "IMAGE_FRACTAL_BLUR"}
+{"addr": "0085e668", "name": "SOUND_TALLY_ZOOMIN", "comment": "sound index 880"}
+{"addr": "0085e66c", "name": "IMAGE_CLOUD_CHAIN_GANG"}
+{"addr": "0085e670", "name": "IMAGE_INGAMEUI_50"}
+{"addr": "0085e674", "name": "IMAGE_ZENDROP24"}
+{"addr": "0085e678", "name": "IMAGE_AZTEC_STRIP"}
+{"addr": "0085e67c", "name": "SOUND_GEM_SHATTERS", "comment": "sound index 868"}
+{"addr": "0085e680", "name": "IMAGE_INGAMEUI_BONUS_GREEN_LIT"}
+{"addr": "0085e684", "name": "IMAGE_INGAMEUI_03"}
+{"addr": "0085e688", "name": "IMAGE_LOADINGSCREEN_GLOWBAR2"}
+{"addr": "0085e68c", "name": "IMAGE_ZENDROP32"}
+{"addr": "0085e690", "name": "IMAGE_PLANET_ARSENAL"}
+{"addr": "0085e694", "name": "FONT_MENU_TINY", "comment": "font index 778"}
+{"addr": "0085e698", "name": "IMAGE_PLAYMENU_CONNECTORLEFT"}
+{"addr": "0085e69c", "name": "IMAGE_PLAYMENU_BLITZPORTAL"}
+{"addr": "0085e6a0", "name": "IMAGE_HOWTOPLAY_FILLTUBE"}
+{"addr": "0085e6a4", "name": "IMAGE_ZENDROP46"}
+{"addr": "0085e6a8", "name": "IMAGE_GEM_LIGHTING"}
+{"addr": "0085e6ac", "name": "IMAGE_DEFUSER_GLASSPIE"}
+{"addr": "0085e6b0", "name": "IMAGE_MAINMENU_RADIOBUTTONHWA"}
+{"addr": "0085e6b4", "name": "IMAGE_GEM_SHOCKWAVE_2"}
+{"addr": "0085e6b8", "name": "IMAGE_BEJTWISTLOGO_NORMAL"}
+{"addr": "0085e6bc", "name": "FONT_HIGH_SCORE_GLOW", "comment": "font index 74"}
+{"addr": "0085e6c0", "name": "IMAGE_ZENDROP13"}
+{"addr": "0085e6c4", "name": "SOUND_BADLOOP", "comment": "sound index 886"}
+{"addr": "0085e6c8", "name": "IMAGE_MOONMETER_LOCK"}
+{"addr": "0085e6cc", "name": "IMAGE_INGAMEUI_BONUS_RED_UNLIT"}
+{"addr": "0085e6d0", "name": "IMAGE_INGAMEUI_45"}
+{"addr": "0085e6d4", "name": "IMAGE_HOWTOPLAY_ARC2GLOW"}
+{"addr": "0085e6d8", "name": "IMAGE_FINALSTATSUI_VIEWREPLAYBTN3"}
+{"addr": "0085e6dc", "name": "IMAGE_CHALLENGEUI_TITLES_ARSENAL"}
+{"addr": "0085e6e0", "name": "SOUND_ENDFINAL6B", "comment": "sound index 850"}
+{"addr": "0085e6e4", "name": "IMAGE_YINYANG5Z"}
+{"addr": "0085e6e8", "name": "SOUND_VOICE_TWO", "comment": "sound index 842"}
+{"addr": "0085e6ec", "name": "SOUND_COMBO_6", "comment": "sound index 774"}
+{"addr": "0085e6f0", "name": "IMAGE_MAINMENU_HELPPREVIOUSBUTTON"}
+{"addr": "0085e6f4", "name": "IMAGE_INGAMEUI_BONUS_BLUE_LIT"}
+{"addr": "0085e6f8", "name": "IMAGE_INGAMEUI_ARC_MAX_FILL_3"}
+{"addr": "0085e6fc", "name": "IMAGE_ELEMENTALS_OUTER_FIRE"}
+{"addr": "0085e700", "name": "IMAGE_CURSOR_YELLOW19"}
+{"addr": "0085e704", "name": "IMAGE_FRACTAL_BG"}
+{"addr": "0085e708", "name": "SOUND_CHALLENGE_UNLOCK", "comment": "sound index 892"}
+{"addr": "0085e70c", "name": "IMAGE_ELEMENTALS_BEAM_FIRE_MED"}
+{"addr": "0085e710", "name": "IMAGE_CHALLENGEUI_TITLES_DETONATOR"}
+{"addr": "0085e718", "name": "IMAGE_MAINMENU_SCORES_TITLE_CLASSIC"}
+{"addr": "0085e71c", "name": "IMAGE_INGAMEUI_ARC_16_FILL_4"}
+{"addr": "0085e720", "name": "IMAGE_HOWTOPLAY_BOMB_1RED"}
+{"addr": "0085e724", "name": "IMAGE_FINALSTATSUI_BAR3"}
+{"addr": "0085e728", "name": "IMAGE_BADGES_00"}
+{"addr": "0085e72c", "name": "FONT_BOMBPOP3", "comment": "font index 27"}
+{"addr": "0085e730", "name": "IMAGE_HEAT_DISTORTION"}
+{"addr": "0085e734", "name": "IMAGE_FINALSTATSUI_BAR1"}
+{"addr": "0085e738", "name": "IMAGE_CURSOR_YELLOW12"}
+{"addr": "0085e73c", "name": "IMAGE_HOWTOPLAY_BOMB_1"}
+{"addr": "0085e740", "name": "IMAGE_BADGES_40"}
+{"addr": "0085e744", "name": "IMAGE_INGAMEUI_ARC_4_FILL_3"}
+{"addr": "0085e748", "name": "IMAGE_INGAMEUI_55"}
+{"addr": "0085e74c", "name": "IMAGE_HOWTOPLAY_TWISTPAM_CHALLENGE"}
+{"addr": "0085e750", "name": "IMAGE_COREWARP_BLUR"}
+{"addr": "0085e754", "name": "IMAGE_INGAMEUI_ARC_16_FILL_1"}
+{"addr": "0085e758", "name": "IMAGE_ELEMENTALS_CORE_LIGHTNING"}
+{"addr": "0085e760", "name": "SOUND_MOUSEOVER1", "comment": "sound index 915"}
+{"addr": "0085e764", "name": "IMAGE_MAINMENU_BACKBUTTON_ORANGE"}
+{"addr": "0085e768", "name": "FONT_CONTBOLD25SCORE", "comment": "font index 31"}
+{"addr": "0085e76c", "name": "IMAGE_ZENDROP27"}
+{"addr": "0085e770", "name": "SOUND_GEM_PRELOCK", "comment": "sound index 907"}
+{"addr": "0085e774", "name": "IMAGE_PLAYSUBMENU_DOOR"}
+{"addr": "0085e778", "name": "IMAGE_HOWTOPLAY_BACKGROUND"}
+{"addr": "0085e77c", "name": "IMAGE_CURSOR_YELLOW7"}
+{"addr": "0085e780", "name": "IMAGE_CHALLENGEUI_TITLES_ECLIPSE"}
+{"addr": "0085e784", "name": "SOUND_X_LOSE", "comment": "sound index 966"}
+{"addr": "0085e788", "name": "IMAGE_CLOUD_COAL_MINE"}
+{"addr": "0085e78c", "name": "IMAGE_MAINMENU_RADIOBUTTONMEDIUM"}
+{"addr": "0085e790", "name": "IMAGE_BADGES_75"}
+{"addr": "0085e794", "name": "IMAGE_ZENDROP41"}
+{"addr": "0085e798", "name": "IMAGE_ZENDROP14"}
+{"addr": "0085e79c", "name": "IMAGE_INGAMEUI_TOOLTIPDIALOG"}
+{"addr": "0085e7a0", "name": "IMAGE_INGAMEUI_REPLAYPOD_GLOW"}
+{"addr": "0085e7a4", "name": "IMAGE_INGAMEUI_ARC_GLOW"}
+{"addr": "0085e7a8", "name": "IMAGE_ZENDROP44"}
+{"addr": "0085e7ac", "name": "IMAGE_ZENDROP2"}
+{"addr": "0085e7b0", "name": "IMAGE_HOWTOPLAY_COALVEINS"}
+{"addr": "0085e7b4", "name": "IMAGE_INGAMEUI_BONUS_HEADER"}
+{"addr": "0085e7b8", "name": "IMAGE_INGAMEUI_65"}
+{"addr": "0085e7bc", "name": "IMAGE_INGAMEUI_TUBE_TOP_CHALLENGE"}
+{"addr": "0085e7c0", "name": "SOUND_SIREN", "comment": "sound index 875"}
+{"addr": "0085e7c4", "name": "IMAGE_CLOUD_ARSENAL"}
+{"addr": "0085e7c8", "name": "IMAGE_TRIALDIALOG_UNLOCKBUTTON"}
+{"addr": "0085e7cc", "name": "IMAGE_GEMS"}
+{"addr": "0085e7d4", "name": "IMAGE_ZENDROP5"}
+{"addr": "0085e7d8", "name": "IMAGE_PLANET_FIRESTORM"}
+{"addr": "0085e7dc", "name": "IMAGE_INGAMEUI_100"}
+{"addr": "0085e7e0", "name": "IMAGE_MOONMETER_BARGLOW"}
+{"addr": "0085e7e4", "name": "IMAGE_INGAMEUI_ARC_MAX_FILL_14"}
+{"addr": "0085e7e8", "name": "IMAGE_ZENDROP42"}
+{"addr": "0085e7ec", "name": "IMAGE_PLAYMENU_ZENJUMPDIALOG"}
+{"addr": "0085e7f0", "name": "IMAGE_HOWTOPLAY_LIGHTNINGFAKE6"}
+{"addr": "0085e7f4", "name": "IMAGE_ELEMENTALS_BEAM_FRUIT_LRG"}
+{"addr": "0085e7f8", "name": "IMAGE_LOADINGSCREEN_DEVICE"}
+{"addr": "0085e7fc", "name": "IMAGE_ZENDROP17"}
+{"addr": "0085e800", "name": "SOUND_PURR", "comment": "sound index 840"}
+{"addr": "0085e804", "name": "IMAGE_ECLIPSE_RING"}
+{"addr": "0085e808", "name": "IMAGE_BADGES_85"}
+{"addr": "0085e80c", "name": "SOUND_VOICE_FOURMINUTES", "comment": "sound index 948"}
+{"addr": "0085e810", "name": "IMAGE_MAINMENU_RADIOBUTTONFULLSCREEN"}
+{"addr": "0085e814", "name": "IMAGE_INGAMEUI_ARC_16_FILL_11"}
+{"addr": "0085e818", "name": "IMAGE_INGAMEUI_30"}
+{"addr": "0085e81c", "name": "IMAGE_PLANET_BONANZA"}
+{"addr": "0085e820", "name": "IMAGE_CLOUD_SPECTRUM"}
+{"addr": "0085e824", "name": "IMAGE_MAINMENU_SLIDERBARFILLSOUNDS"}
+{"addr": "0085e828", "name": "SOUND_GEM_LOCK_END", "comment": "sound index 867"}
+{"addr": "0085e82c", "name": "IMAGE_SPARK_BUBBLE"}
+{"addr": "0085e830", "name": "FONT_HUMANST19BOLD", "comment": "font index 42"}
+{"addr": "0085e834", "name": "IMAGE_HOWTOPLAY_GEM_GREEN"}
+{"addr": "0085e838", "name": "IMAGE_ECLIPSE_PARTICLE"}
+{"addr": "0085e83c", "name": "IMAGE_BADGES_15"}
+{"addr": "0085e840", "name": "SOUND_VOICE_SIX", "comment": "sound index 846"}
+{"addr": "0085e844", "name": "SOUND_BADMOVE", "comment": "sound index 854"}
+{"addr": "0085e850", "name": "IMAGE_PLAYMENU_CLASSICPORTAL"}
+{"addr": "0085e858", "name": "IMAGE_CURSOR_HAND"}
+{"addr": "0085e85c", "name": "IMAGE_ZENDROP1"}
+{"addr": "0085e860", "name": "IMAGE_ZENDROP11"}
+{"addr": "0085e864", "name": "IMAGE_INGAMEUI_TWISTDOORGLOW"}
+{"addr": "0085e868", "name": "SOUND_MOUSEOVER2", "comment": "sound index 916"}
+{"addr": "0085e86c", "name": "IMAGE_PLAYMENU_LVLTAGZEN"}
+{"addr": "0085e870", "name": "IMAGE_GEMLOCK_BOLTTR"}
+{"addr": "0085e874", "name": "FONT_HUGE", "comment": "font index 779"}
+{"addr": "0085e878", "name": "IMAGE_INGAMEUI_TUBE_FILL_TEXTURE2"}
+{"addr": "0085e87c", "name": "IMAGE_INGAMEUI_20"}
+{"addr": "0085e880", "name": "IMAGE_GEM_LOCK_LINKS_GLOW"}
+{"addr": "0085e884", "name": "IMAGE_SHIPTHRUSTGLOW"}
+{"addr": "0085e888", "name": "IMAGE_ZENDROP25"}
+{"addr": "0085e88c", "name": "IMAGE_ELEMENTALS_INNER_LIGHTNING"}
+{"addr": "0085e890", "name": "IMAGE_DOORS_PROFILE_BOTTOM"}
+{"addr": "0085e894", "name": "IMAGE_CHALLENGEUI_TITLES_COAL_MINE"}
+{"addr": "0085e898", "name": "SOUND_PREBLAST", "comment": "sound index 923"}
+{"addr": "0085e89c", "name": "SOUND_BUTTONPRESS2", "comment": "sound index 890"}
+{"addr": "0085e8a0", "name": "IMAGE_HOWTOPLAY_CURTAIN"}
+{"addr": "0085e8a4", "name": "IMAGE_CURSOR_YELLOW15"}
+{"addr": "0085e8a8", "name": "SOUND_SELECT", "comment": "sound index 766"}
+{"addr": "0085e8ac", "name": "IMAGE_MAINMENU_UI_TOP2_GLOW"}
+{"addr": "0085e8b0", "name": "IMAGE_GEMLOCK_THINLINK9"}
+{"addr": "0085e8b4", "name": "IMAGE_FINALSTATSUI_REPLAY"}
+{"addr": "0085e8b8", "name": "IMAGE_CURSOR_YELLOW5"}
+{"addr": "0085e8bc", "name": "IMAGE_ZENDROP39"}
+{"addr": "0085e8c0", "name": "IMAGE_CLOUD_VOLTAGE"}
+{"addr": "0085e8c4", "name": "IMAGE_TRIALDIALOG_MAYBELATERBUTTON"}
+{"addr": "0085e8c8", "name": "IMAGE_DEFUSER_SKULLICON_SMALL"}
+{"addr": "0085e8cc", "name": "FONT_TIP", "comment": "font index 784"}
+{"addr": "0085e8d0", "name": "SOUND_VOICE_LEVELCOMPLETE", "comment": "sound index 954"}
+{"addr": "0085e8d4", "name": "IMAGE_MOONMETER_GLOWNUMBERS"}
+{"addr": "0085e8d8", "name": "IMAGE_HYPERSPEED_OUTLINE"}
+{"addr": "0085e8dc", "name": "IMAGE_ELEMENTALS_BEAM_LIGHTNING_SML"}
+{"addr": "0085e8e0", "name": "IMAGE_DEFUSER_SKULLOVERLAY"}
+{"addr": "0085e8e4", "name": "IMAGE_ZENDROP26"}
+{"addr": "0085e8e8", "name": "SOUND_VOICE_BOMBDISARMED", "comment": "sound index 942"}
+{"addr": "0085e8ec", "name": "IMAGE_MOONMETER_GREYNUMBERS"}
+{"addr": "0085e8f0", "name": "IMAGE_INGAMEUI_ARC_8_SLOT"}
+{"addr": "0085e8f4", "name": "IMAGE_HOWTOPLAY_LOCK_BACK"}
+{"addr": "0085e8fc", "name": "FONT_FRESHBOT2220", "comment": "font index 37"}
+{"addr": "0085e900", "name": "IMAGE_ECLIPSE_FLARE1"}
+{"addr": "0085e904", "name": "IMAGE_BOOM_NUKE"}
+{"addr": "0085e908", "name": "SOUND_X_WIN", "comment": "sound index 969"}
+{"addr": "0085e90c", "name": "IMAGE_ZENDROP45"}
+{"addr": "0085e910", "name": "IMAGE_ZENDROP18"}
+{"addr": "0085e914", "name": "SOUND_GEMSOUL_LANDS3", "comment": "sound index 869"}
+{"addr": "0085e918", "name": "SOUND_ECLIPSEINTRO1", "comment": "sound index 901"}
+{"addr": "0085e91c", "name": "IMAGE_INGAMEUI_25"}
+{"addr": "0085e920", "name": "SOUND_DOOMGEM_APPEARS", "comment": "sound index 896"}
+{"addr": "0085e924", "name": "IMAGE_PLANET_SURVIVOR"}
+{"addr": "0085e928", "name": "IMAGE_CLOUD_INFERNO"}
+{"addr": "0085e92c", "name": "IMAGE_PLANET2"}
+{"addr": "0085e930", "name": "IMAGE_MAINMENU_REPLAYBUTTON"}
+{"addr": "0085e934", "name": "IMAGE_INGAMEUI_ARC_16_FILL_10"}
+{"addr": "0085e938", "name": "IMAGE_HOWTOPLAY_PARTICLE_FLAME"}
+{"addr": "0085e93c", "name": "IMAGE_HOWTOPLAY_BOMB_BODY"}
+{"addr": "0085e940", "name": "IMAGE_HOWTOPLAY_BOMB_3"}
+{"addr": "0085e944", "name": "IMAGE_CHALLENGEUI_TITLES_BONANZA"}
+{"addr": "0085e948", "name": "IMAGE_BOMBGLOWS_DANGERGLOW"}
+{"addr": "0085e94c", "name": "IMAGE_STARRY"}
+{"addr": "0085e950", "name": "IMAGE_MOONMETER_LAYER_1"}
+{"addr": "0085e954", "name": "IMAGE_MAINMENU_SLIDERBARBASESOUNDS"}
+{"addr": "0085e958", "name": "IMAGE_INGAMEUI_ARC_MAX_FILL_15"}
+{"addr": "0085e95c", "name": "IMAGE_INGAMEUI_ARC_4_FILL_2"}
+{"addr": "0085e960", "name": "IMAGE_INGAMEUI_05"}
+{"addr": "0085e964", "name": "IMAGE_INCREDIBLE"}
+{"addr": "0085e968", "name": "IMAGE_HOWTOPLAY_TUTORIALARROW"}
+{"addr": "0085e96c", "name": "IMAGE_GEM_LOCK_LINK1"}
+{"addr": "0085e970", "name": "FONT_HUMANSTBOLD19", "comment": "font index 47"}
+{"addr": "0085e974", "name": "SOUND_VOICE_FIVE", "comment": "sound index 845"}
+{"addr": "0085e978", "name": "IMAGE_STARBAR_STARS_BLUESTARS"}
+{"addr": "0085e97c", "name": "FONT_768_CONTINUUMBOLD120", "comment": "font index 20"}
+{"addr": "0085e980", "name": "IMAGE_MAINMENU_SCORES_LABEL_SCORE"}
+{"addr": "0085e984", "name": "IMAGE_BADGES_35"}
+{"addr": "0085e98c", "name": "IMAGE_INGAMEUI_BOT_LIGHTGLOW"}
+{"addr": "0085e990", "name": "SOUND_VOICE_FOUR", "comment": "sound index 844"}
+{"addr": "0085e994", "name": "SOUND_RANK_COMPLETION", "comment": "sound index 924"}
+{"addr": "0085e998", "name": "SOUND_CHAINX1", "comment": "sound index 855"}
+{"addr": "0085e99c", "name": "IMAGE_TRIALVERSION_CHALLENGE"}
+{"addr": "0085e9a0", "name": "IMAGE_PLAYMENU_DIALOGRIGHT"}
+{"addr": "0085e9a4", "name": "IMAGE_GEM_SHOCKWAVE_5"}
+{"addr": "0085e9a8", "name": "IMAGE_HOWTOPLAY_GEM_WHITE"}
+{"addr": "0085e9ac", "name": "IMAGE_FINALSTATSUI_VIEWREPLAYBTN2"}
+{"addr": "0085e9b0", "name": "IMAGE_MAINMENU_OPTIONSBUTTON"}
+{"addr": "0085e9b4", "name": "FONT_768_CONTINUUMBOLD20", "comment": "font index 17"}
+{"addr": "0085e9b8", "name": "IMAGE_INGAMEUI_04"}
+{"addr": "0085e9bc", "name": "IMAGE_ECLIPSE_MOON"}
+{"addr": "0085e9c0", "name": "SOUND_TRANSFER", "comment": "sound index 932"}
+{"addr": "0085e9c4", "name": "SOUND_MENU_SLIDE", "comment": "sound index 914"}
+{"addr": "0085e9c8", "name": "IMAGE_MODEUNLOCK_CLOUD1"}
+{"addr": "0085e9cc", "name": "IMAGE_INGAMEUI_ARC_8_FILL_6"}
+{"addr": "0085e9d0", "name": "IMAGE_ZENDROP4"}
+{"addr": "0085e9d4", "name": "SOUND_STEAMLOCK1", "comment": "sound index 852"}
+{"addr": "0085e9d8", "name": "FONT_DIALOG_CHECKBOX", "comment": "font index 783"}
+{"addr": "0085e9dc", "name": "FONT_CONTBOLD30", "comment": "font index 30"}
+{"addr": "0085e9e0", "name": "SOUND_VOICE_EXCELLENT", "comment": "sound index 947"}
+{"addr": "0085e9e4", "name": "SOUND_BUBBLEPOP", "comment": "sound index 765"}
+{"addr": "0085e9e8", "name": "IMAGE_INGAMEUI_CHALLENGECOMPLETE"}
+{"addr": "0085e9ec", "name": "IMAGE_INGAMEUI_40"}
+{"addr": "0085e9f0", "name": "IMAGE_ELEMENTALS_CORE_ICE"}
+{"addr": "0085e9f4", "name": "SOUND_VOICE_EIGHT", "comment": "sound index 848"}
+{"addr": "0085e9f8", "name": "SOUND_INNERLOCK1", "comment": "sound index 909"}
+{"addr": "0085e9fc", "name": "IMAGE_MAINMENU_SCORESBTN_CLASSICSCORES"}
+{"addr": "0085ea00", "name": "IMAGE_INGAMEUI_LEVEL"}
+{"addr": "0085ea04", "name": "IMAGE_HOWTOPLAY_GRIDSQUARE2"}
+{"addr": "0085ea08", "name": "IMAGE_GEMOUTLINES"}
+{"addr": "0085ea0c", "name": "FONT_CONTINUUMBOLD120", "comment": "font index 35"}
+{"addr": "0085ea10", "name": "IMAGE_HOWTOPLAY_PHOTON2"}
+{"addr": "0085ea14", "name": "IMAGE_DEFUSER_LIGHTBASE_RIGHT"}
+{"addr": "0085ea18", "name": "IMAGE_ECLIPSE_DANCE1"}
+{"addr": "0085ea1c", "name": "IMAGE_BADGES_95"}
+{"addr": "0085ea20", "name": "IMAGE_BADGES_09"}
+{"addr": "0085ea24", "name": "IMAGE_LOADINGSCREEN_GLOWBAR3"}
+{"addr": "0085ea28", "name": "IMAGE_INGAMEUI_ARC_MAX_FILL_10"}
+{"addr": "0085ea2c", "name": "IMAGE_INGAMEUI_ARC_4_SLOT"}
+{"addr": "0085ea30", "name": "IMAGE_GEMLOCK_THINLINK8"}
+{"addr": "0085ea34", "name": "IMAGE_DOORS_CHALLENGE_ANIM"}
+{"addr": "0085ea38", "name": "FONT_WARNING", "comment": "font index 795"}
+{"addr": "0085ea3c", "name": "FONT_SCOREGLOW_SMALL", "comment": "font index 796"}
+{"addr": "0085ea40", "name": "IMAGE_SLIPSTREAM_BG"}
+{"addr": "0085ea44", "name": "IMAGE_PLAYMENU_ZENBUTTON"}
+{"addr": "0085ea48", "name": "IMAGE_PLANET4"}
+{"addr": "0085ea4c", "name": "IMAGE_INGAMEUI_ARC_12_FILL_2"}
+{"addr": "0085ea50", "name": "IMAGE_HOWTOPLAY_TWISTPAM_BONUS"}
+{"addr": "0085ea54", "name": "IMAGE_HOWTOPLAY_FLAMEFAKE2"}
+{"addr": "0085ea58", "name": "IMAGE_BIGSTAR"}
+{"addr": "0085ea5c", "name": "SOUND_DOUBLESET", "comment": "sound index 859"}
+{"addr": "0085ea60", "name": "IMAGE_MAINMENU_RADIOBUTTONVISUALIZERS"}
+{"addr": "0085ea64", "name": "IMAGE_HOWTOPLAY_LIGHTNINGFAKE4"}
+{"addr": "0085ea68", "name": "IMAGE_HOWTOPLAY_CURSORSPIRAL"}
+{"addr": "0085ea6c", "name": "SOUND_MULTIPLIER_UP2_3", "comment": "sound index 921"}
+{"addr": "0085ea70", "name": "IMAGE_GEMLOCK_FATLINK3"}
+{"addr": "0085ea74", "name": "FONT_HUGE_OUTLINE", "comment": "font index 785"}
+{"addr": "0085ea78", "name": "IMAGE_GLASSPLASMA_FRAGMENT"}
+{"addr": "0085ea7c", "name": "SOUND_SUPERGEM_CREATE", "comment": "sound index 879"}
+{"addr": "0085ea80", "name": "SOUND_DOORLOCK2", "comment": "sound index 899"}
+{"addr": "0085ea84", "name": "IMAGE_TEX_WARPCONE"}
+{"addr": "0085ea88", "name": "IMAGE_MAINMENU_OPTIONDIALOGBAR"}
+{"addr": "0085ea8c", "name": "IMAGE_CURSOR_YELLOW6"}
+{"addr": "0085ea90", "name": "IMAGE_LOADINGSCREEN_FILLADD"}
+{"addr": "0085ea94", "name": "IMAGE_INGAMEUI_ARC_MAX_FILL_7"}
+{"addr": "0085ea98", "name": "IMAGE_HOWTOPLAY_NUM2"}
+{"addr": "0085ea9c", "name": "IMAGE_HOWTOPLAY_BOMB_STEAM"}
+{"addr": "0085eaa0", "name": "IMAGE_PLANET6"}
+{"addr": "0085eaa4", "name": "IMAGE_MAINMENU_OPTIONSDIALOG"}
+{"addr": "0085eaa8", "name": "IMAGE_HOWTOPLAY_GEM_BLUE_SHIMMER"}
+{"addr": "0085eaac", "name": "IMAGE_FRUITNOVA"}
+{"addr": "0085eab0", "name": "IMAGE_TRIALDIALOG_BULLETPURPLE"}
+{"addr": "0085eab4", "name": "IMAGE_TRANSPARENT_HOLE"}
+{"addr": "0085eab8", "name": "IMAGE_INGAMEUI_ARC_16_FILL_13"}
+{"addr": "0085eabc", "name": "IMAGE_HOWTOPLAY_MULTIPULSE"}
+{"addr": "0085eac0", "name": "IMAGE_DEFUSER_BOTTOMARM"}
+{"addr": "0085eac4", "name": "IMAGE_MAINMENU_OUTERRING"}
+{"addr": "0085eac8", "name": "SOUND_SIXMATCH", "comment": "sound index 927"}
+{"addr": "0085eacc", "name": "SOUND_ELECTRO_EXPLODE", "comment": "sound index 860"}
+{"addr": "0085ead0", "name": "SOUND_COMBO_7", "comment": "sound index 775"}
+{"addr": "0085ead4", "name": "IMAGE_PLAYMENU_BLITZSHORTARM"}
+{"addr": "0085ead8", "name": "IMAGE_CURSOR_SPIRAL6"}
+{"addr": "0085eadc", "name": "IMAGE_BLOB_BLUR"}
+{"addr": "0085eae0", "name": "SOUND_VOICE_SEVEN", "comment": "sound index 847"}
+{"addr": "0085eae4", "name": "IMAGE_TRIALBADGE_UNLOCKBUTTON"}
+{"addr": "0085eae8", "name": "IMAGE_PLAYMENU_MMGRAPHIC"}
+{"addr": "0085eaec", "name": "IMAGE_MENU_BUTTONCOVER2"}
+{"addr": "0085eaf0", "name": "IMAGE_HOWTOPLAY_FRUIT_PULSE"}
+{"addr": "0085eaf4", "name": "IMAGE_DOORS_CHALLENGE_TOP"}
+{"addr": "0085eaf8", "name": "IMAGE_BADGES_100"}
+{"addr": "0085eafc", "name": "FONT_SCORE_SMALL", "comment": "font index 801"}
+{"addr": "0085eb00", "name": "IMAGE_ZENDROP34"}
+{"addr": "0085eb04", "name": "SOUND_TUTORIAL_SNAP", "comment": "sound index 885"}
+{"addr": "0085eb08", "name": "IMAGE_MAINMENU_UI_TOP2"}
+{"addr": "0085eb0c", "name": "IMAGE_CURSOR_YELLOW10"}
+{"addr": "0085eb10", "name": "IMAGE_MAINMENU_INNERRINGINNERGLOW"}
+{"addr": "0085eb14", "name": "IMAGE_PLANET"}
+{"addr": "0085eb18", "name": "IMAGE_ZENDROP12"}
+{"addr": "0085eb1c", "name": "IMAGE_LIGHTNING"}
+{"addr": "0085eb20", "name": "IMAGE_INGAMEUI_ARC_12_FILL_9"}
+{"addr": "0085eb24", "name": "FONT_768_CONTINUUMBOLD38", "comment": "font index 18"}
+{"addr": "0085eb28", "name": "IMAGE_CUBEMAP_6X1_VIZBUCKYSHARDS_CUBE"}
+{"addr": "0085eb2c", "name": "IMAGE_MAINMENU_OPTIONSRESTARTBUTTON"}
+{"addr": "0085eb30", "name": "IMAGE_INGAMEUI_ARC_MAX_FILL_1"}
+{"addr": "0085eb34", "name": "IMAGE_FRUITBLAST_OUTERRING"}
+{"addr": "0085eb38", "name": "IMAGE_CHALLENGEUI_TITLES_SPECTRUM"}
+{"addr": "0085eb3c", "name": "IMAGE_GATEPARTICLE"}
+{"addr": "0085eb40", "name": "SOUND_ROWBLOW", "comment": "sound index 874"}
+{"addr": "0085eb44", "name": "SOUND_COUNTER_WARNING", "comment": "sound index 857"}
+{"addr": "0085eb48", "name": "SOUND_CLICK_DIALOG", "comment": "sound index 894"}
+{"addr": "0085eb4c", "name": "IMAGE_INGAMEUI_BONUS_WHITE_UNLIT"}
+{"addr": "0085eb50", "name": "FONT_HIGH_SCORE", "comment": "font index 792"}
+{"addr": "0085eb54", "name": "IMAGE_INGAMEUI_ARC_12_FILL_6"}
+{"addr": "0085eb58", "name": "IMAGE_HOWTOPLAY_COALSPARKLE"}
+{"addr": "0085eb5c", "name": "IMAGE_HOWTOPLAY_ARC3GLOW"}
+{"addr": "0085eb60", "name": "IMAGE_DEFUSER_SKULLICON_LARGE"}
+{"addr": "0085eb64", "name": "IMAGE_CURSOR_SPIRAL4"}
+{"addr": "0085eb68", "name": "IMAGE_ZENDROP3"}
+{"addr": "0085eb6c", "name": "SOUND_GEODE", "comment": "sound index 870"}
+{"addr": "0085eb70", "name": "IMAGE_PLANET_DETONATOR"}
+{"addr": "0085eb74", "name": "IMAGE_INGAMEUI_ARC_12_FILL_12"}
+{"addr": "0085eb78", "name": "IMAGE_CURSOR_RING"}
+{"addr": "0085eb7c", "name": "IMAGE_BADGES_70"}
+{"addr": "0085eb80", "name": "IMAGE_ZENDROP6"}
+{"addr": "0085eb84", "name": "SOUND_VOICE_ZEN", "comment": "sound index 963"}
+{"addr": "0085eb88", "name": "IMAGE_INGAMEUI_ARC_MAX_FILL_12"}
+{"addr": "0085eb8c", "name": "IMAGE_CURSOR_MULTIPULSE"}
+{"addr": "0085eb90", "name": "FONT_TOOLTIP_BOLD", "comment": "font index 787"}
+{"addr": "0085eb98", "name": "IMAGE_YINYANG_BLACKTOALPHAZERO"}
+{"addr": "0085eb9c", "name": "IMAGE_TRIALDIALOG_BULLETBLUE"}
+{"addr": "0085eba0", "name": "SOUND_DOOMGEM_DESTROYED", "comment": "sound index 898"}
+{"addr": "0085eba4", "name": "IMAGE_PLANET_SPECTRUM"}
+{"addr": "0085eba8", "name": "IMAGE_PLANET_PRESERVER"}
+{"addr": "0085ebac", "name": "IMAGE_FIREPARTICLE"}
+{"addr": "0085ebb0", "name": "IMAGE_ELEMENTALS_PARTICLE_LIGHTNING"}
+{"addr": "0085ebb4", "name": "IMAGE_ELEMENTALS_BEAM_LIGHTNING_LRG"}
+{"addr": "0085ebb8", "name": "IMAGE_RANKBAR_LEFTPILLAR"}
+{"addr": "0085ebbc", "name": "IMAGE_MAINMENU_INNERRING"}
+{"addr": "0085ebc0", "name": "IMAGE_SHARD1"}
+{"addr": "0085ebc4", "name": "IMAGE_MAINMENU_CANCELBUTTON"}
+{"addr": "0085ebc8", "name": "IMAGE_INGAMEUI_ARC_16_FILL_3"}
+{"addr": "0085ebcc", "name": "IMAGE_INGAMEUI_90"}
+{"addr": "0085ebd0", "name": "SOUND_WILDCARD_DESTROYED", "comment": "sound index 965"}
+{"addr": "0085ebd4", "name": "SOUND_TYPEWRITER1", "comment": "sound index 938"}
+{"addr": "0085ebd8", "name": "IMAGE_MAINMENU_CREATEBUTTON"}
+{"addr": "0085ebdc", "name": "IMAGE_CHALLENGEMODETITLE"}

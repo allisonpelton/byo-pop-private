@@ -55,7 +55,7 @@ def comp(t):
 
 
 STRLEN = re.compile(r'(\w+) = ([\w.\[\]*()+ ]+?);\n\s*do \{\n\s*(\w+) = \*\1;\n\s*\1 = \1 \+ 1;\n\s*\} while \(\3 != '
-                    r"'\\0'\);\n(\s*)FUN_00401e00\(\2,\(int\)\1 - \(int\)\(\2 \+ 1\)\);")
+                    r"'\\0'\);\n(\s*)FUN_0043fa60\(\2,\(int\)\1 - \(int\)\(\2 \+ 1\)\);")
 
 
 def compact(t):
@@ -63,17 +63,17 @@ def compact(t):
     release when the buffer is on the heap), the exception-state stores, the stack cookie and the checked
     iterators' _invalid_parameter_noinfo calls (-r keeps them)."""
     t = '\n'.join(ln for ln in t.split('\n') if not decl.match(ln))
-    t = STRLEN.sub(lambda m: m.group(4) + 'FUN_00401e00(' + m.group(2) + ');', t)
+    t = STRLEN.sub(lambda m: m.group(4) + 'FUN_0043fa60(' + m.group(2) + ');', t)
     t = re.sub(r'\n\s*(\w+) = 0;\n\s*(\w+) = \(void \*\)\(\(uint\)\2 & 0xffffff00\);', '', t)
     t = re.sub(r'\n\s*(\w+) = \(void \*\)\(\(uint\)\1 & 0xffffff00\);', '', t)
     t = re.sub(r'\n\s*if \((0xf|0x7) < \w+\) \{\n\s*(_free|operator_delete)\([^;]*\);\n\s*\}', '', t)
-    t = re.sub(r'\n\s*if \([^{}\n]*\) \{\n\s*FUN_007341dd\(\);\n\s*\}', '', t)
-    t = re.sub(r'\n\s*FUN_007341dd\([^;]*\);', '', t)
+    t = re.sub(r'\n\s*if \([^{}\n]*\) \{\n\s*FUN_0077e35c\(\);\n\s*\}', '', t)
+    t = re.sub(r'\n\s*FUN_0077e35c\([^;]*\);', '', t)
     eh = set(re.findall(r'\b(\w+)\._0_1_ = ', t)) | set(re.findall(r'\b(\w+) = CONCAT31\(\1\._1_3_', t))
     for v in eh:
         t = re.sub(r'\n\s*' + v + r'(\._0_1_)? = (0x)?[0-9a-f]+;', '', t)
         t = re.sub(r'\n\s*' + v + r' = CONCAT31\(' + v + r'\._1_3_,[^;]*\);', '', t)
-    t = re.sub(r'\n[^\n]*DAT_008140e8 \^[^\n]*', '', t)
+    t = re.sub(r'\n[^\n]*DAT_00851b10 \^[^\n]*', '', t)
     t = re.sub(r'\n\s*__security_check_cookie\([^;]*\);', '', t)
     t = re.sub(r'\n\s*local_\w+ = 0xf;', '', t)  # a std::string's capacity
     # locals only ever stored constants (the exception state, string sizes): dead stores

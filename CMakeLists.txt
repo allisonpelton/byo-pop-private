@@ -250,3 +250,8 @@ option(BUILD_DYNOMITE "Build the Dynomite Deluxe port" ON)
 if(BUILD_DYNOMITE AND EXISTS ${PROJECT_SOURCE_DIR}/games/dynomite/CMakeLists.txt)
   add_subdirectory(games/dynomite)
 endif()
+# Bejeweled Twist: optional while it is new; the build skips it if its folder is missing
+option(BUILD_BEJEWELEDTWIST "Build the Bejeweled Twist port" ON)
+if(BUILD_BEJEWELEDTWIST AND EXISTS ${PROJECT_SOURCE_DIR}/games/bejeweledtwist/CMakeLists.txt)
+  add_subdirectory(games/bejeweledtwist)
+endif()
