@@ -64,7 +64,8 @@ Options:
 - `--sandbox` — run the game inside a fresh Windows Sandbox instead of under rundesk, the only way to take shots
   (see "Windows Sandbox"). `--sandbox-vgpu` gives the sandbox the host's GPU, for 3D; without it the sandbox renders
   in software. `--sandbox-wait <sec>` is how long a run waits in the queue while another run's sandbox is up
-  (default 600).
+  (default 600). `--sandbox-probe` starts a sandbox with no game, in which origrun writes what it finds (the sandbox
+  check, sessions, display, DirectDraw, folders, network) to `build/origrun/sandbox-probe/probe.txt`.
 - `--counter <expr>` / `--flips <expr>` / `--update-ms <ms>` — the game's update counter, for update-timed
   capture and input (see "Timing to the game's updates"). Usually set once in the per-game config instead.
 - `--patches <file>` — a patch list to apply to the copy (see "Patching the copy"). Defaults to
@@ -201,9 +202,13 @@ at once, unopened where possible, and reported to the coordinator.
 
 Windows Sandbox is an optional Windows feature ("Windows Sandbox" under Windows Features, or `Enable-WindowsOptionalFeature
 -Online -FeatureName Containers-DisposableClientVM` from an elevated shell, then a restart). It needs Windows 11 Pro
-or Enterprise with virtualization on; its `wsb` command comes with Windows 11 24H2 and later. Nothing is downloaded.
-origrun finds `wsb.exe` in System32 (through `Sysnative`, since origrun is 32-bit) or as the app alias under the
-user's `WindowsApps` folder, and fails cleanly when neither is there.
+or Enterprise with virtualization on. The feature itself brings only `WindowsSandbox.exe` and its client; the `wsb`
+command comes with the Store package `MicrosoftWindows.WindowsSandbox`, which the built-in app downloads the first
+time it is opened (Windows 11 24H2 and later). The user did that on 2026-11-01 (version 0.8.107.0); origrun itself
+downloads nothing. origrun finds `wsb.exe` in System32 (through `Sysnative`, since origrun is 32-bit) or as the app
+alias under the user's `WindowsApps` folder, where it is here, and fails cleanly when neither is there. The first `wsb`
+call of a while starts the package's broker, `WindowsSandboxServer.exe`, in the user's session; it is no sandbox, it
+ends by itself after a while, and origrun leaves it alone.
 
     origrun --game <name> --script <file.txt> --sandbox [--sandbox-vgpu] [options]
 
@@ -213,7 +218,9 @@ On the host, origrun stages the run under `build/origrun/<run>/` as before: the 
 sound stand-in and any `--dgvoodoo` wrapper; the script as `script.txt`; the run's settings in `sandbox-run.txt`;
 and the configuration it hands `wsb` in `sandbox.wsb`. It then takes the machine's sandbox lock, starts a sandbox
 with `wsb start --id <guid> --config <the XML>`, and runs `C:\origrun\origrun.exe --in-sandbox C:\run` inside it with
-`wsb exec -r System`, retrying while the sandbox boots until origrun inside writes `sandbox-started.txt`. It waits
+`wsb exec -r System`, retrying while the sandbox boots until origrun inside writes `sandbox-started.txt`. It refuses
+to start while `wsb list` shows a sandbox or any Windows Sandbox process other than the broker runs (the user's own,
+say), so everything it ends is its own. It waits
 for `sandbox-done.txt` (the inside run's exit code) for the run's timeout plus 60 s, then stops the sandbox with
 `wsb stop`, checks with `wsb list` that it is gone, releases the lock, and copies the inside run's RESULT lines into
 its own log. Every exit after the start stops the sandbox, Ctrl+C and a crash of origrun included. `wsb`'s own
@@ -222,11 +229,12 @@ the run folder on the host.
 
 Inside, origrun puts the files staged under `<run>/sandbox-files/C/` onto the sandbox's `C:` (saves, below), sets
 the game's 3D setting for `--3d`, and runs the game in a job of its own at below-normal priority, on the sandbox's
-own desktop (`WinSta0\Default`), without rundesk's hidden one, so a full-screen DirectDraw game may get its mode and a
-3D game its hardware there. `wsb exec -r System` starts origrun in session 0, which has no display a user would see.
-When the sandbox has a user session (WDAGUtilityAccount logged on), origrun runs itself again in that session as
-that user, with the user's environment, and the game with it; otherwise the game runs in session 0 as SYSTEM. The log
-lists the sessions it found and which it used.
+own desktop (`WinSta0\Default`), without rundesk's hidden one. `wsb exec -r System` starts origrun in session 0, and a
+sandbox started without `connect` has no other session a game could use (below), so the game runs in session 0 as
+SYSTEM. There the input desktop is `Winlogon`, and DirectDraw sets a display mode only on the input desktop, so origrun
+first makes `Default` the input desktop (`SwitchDesktop`, inside the sandbox only). Should a sandbox ever have a user
+session (WDAGUtilityAccount logged on), origrun runs itself again in that session as that user, with the user's
+environment, and the game with it. The log lists the sessions it found and which it used.
 
 ### Headless: what Microsoft documents
 
@@ -239,10 +247,28 @@ condition. `exec` has no process input or output and returns the command's exit 
 `LogonCommand` runs after the sandbox logs on, which again needs a user session. So origrun never runs `connect` or
 uses `LogonCommand`, and starts its run with `exec -r System`.
 
-Whether `start` really shows no window is untested. A guard looks, every 250 ms from the start to the stop, for a
-visible window of a process whose name contains "sandbox" (or `vmconnect.exe`) on the desktop the user sees; when
-it finds one, the run logs "STOP: a sandbox window is on the user's desktop", stops the sandbox at once and exits
-with code 4.
+**Tested on 2026-11-01** (two `--sandbox-probe` runs). `wsb start` accepted the whole configuration below and
+returned in 1.3-1.5 s (a sandbox is cloned from a VM Windows keeps ready, `vmmemCmZygote`), with no window or
+dialog on the user's desktop. Its new processes on the host were a VM worker (`vmwp.exe`) and
+`vmmemWindowsSandbox`. The first `wsb exec -r System` ran at once: the marker its command writes appeared 1.7-1.9 s
+after the start began, and origrun was running inside 0.3 s later. The sandbox then has no user session and no
+console session at all: only session 0 and a listening remote-desktop session with no user. `wsb stop` took about
+0.5 s, and 0.4 s later `wsb list` showed nothing and both processes were gone.
+
+A guard thread looks, every 100 ms from before `wsb start` to after the stop, for a visible window of a process
+whose name contains "sandbox" (or `vmconnect.exe`) on the desktop the user sees. When it finds one, it ends every
+sandbox process started since the launch, which closes the window; the run logs "STOP: a sandbox window was on the
+user's desktop", stops the sandbox and exits with code 4. It has never fired. Every run ends with "RESULT: no
+sandbox window showed on the user's desktop" or the STOP line.
+
+### What the sandbox offers a game (found 2026-11-01)
+
+The display is 1024x768 at 32 bpp, with 18 modes, of which none is 16 bpp (800x600 only at 32 bpp). Without
+`--sandbox-vgpu` DirectDraw has no hardware layer (no video memory, no 3D), and it loads `dxgi.dll` there too. With
+the input desktop as session 0 has it (`Winlogon`), every `SetDisplayMode` fails (`E_NOTIMPL`); after `SwitchDesktop`
+to `Default`, exclusive full-screen 800x600x32 works with a flipping primary surface, while 16 bpp modes stay
+unsupported. A game that asks for 16 bpp full screen may still get it through Windows' compatibility shims, which
+apply inside the sandbox as on any Windows; Water Bugs and Cosmic Bugs will tell.
 
 ### The configuration, and why
 
@@ -273,15 +299,18 @@ sets. All three must hold. The firmware reports a Hyper-V virtual machine: SMBIO
 `GetSystemFirmwareTable`, gives the manufacturer "Microsoft Corporation" and the product "Virtual Machine" (this
 host's board reports MSI and MS-7D25). The local account `WDAGUtilityAccount`, the sandbox's own user, is enabled
 (the host has the account, disabled). And origrun's own token is SYSTEM or `WDAGUtilityAccount`. On the host the
-check fails and logs its three values; inside, the log's first line gives them. The values inside are untested.
+check fails and logs its three values; inside, the log's first line gives them. Inside it reads "SMBIOS Microsoft
+Corporation / Virtual Machine, WDAGUtilityAccount enabled, running as SYSTEM" (2026-11-01).
 
 ### What is and is not isolated
 
 The sandbox is a fresh virtual machine with its own kernel, display, file system, registry and user, and it vanishes
 when stopped. What crosses to the host: the run folder, which the game and origrun can write and whose contents
-stay (it lies under `build/`, git-ignored); the binaries, read-only; with `--sandbox-vgpu`, the GPU; and the host's
-CPU and memory. Whether sound reaches the host's speakers with no client connected is untested; the sound
-stand-in and the audio watch work inside as on the host.
+stay (it lies under `build/`, git-ignored); the binaries, read-only (a write to `C:\origrun` is denied); with
+`--sandbox-vgpu`, the GPU; and the host's CPU and memory. The sandbox has no network adapter at all. Sound: the
+sandbox has no client, and so no remote-desktop audio path to the host; a run watches the host's audio sessions for
+any of a Windows Sandbox process and logs the loudest peak ("RESULT: no audio session of the sandbox appeared on the
+host" in both probes). The sound stand-in and the audio watch work inside as on the host.
 
 ### Saves and the registry
 
@@ -568,13 +597,10 @@ user:
 
 Other gaps:
 
-- **Windows Sandbox is written but untested**: the feature is not enabled on this machine yet. To test once it is,
-  in this order: that `wsb start` shows no window (the guard stops the run if it does); that `wsb exec -r System`
-  starts origrun before any user session exists, and what sessions the sandbox has; that the sandbox check passes
-  inside (its three values in the log); that the run folder maps read-write with `ProtectedClient` on; that a game
-  draws and is captured on the sandbox's desktop, in session 0 as SYSTEM or in a user session; whether Water Bugs
-  and Cosmic Bugs open their full-screen mode there; whether Bookworm Adventures reaches 3D with `--sandbox-vgpu`
-  and no wrapper; whether any sound reaches the host; and the VirtualStore-to-HKLM key for SYSTEM.
+- **Windows Sandbox: no game run yet.** The empty sandbox is proven (see "Windows Sandbox"). Still to test: that a
+  game draws and is captured on the sandbox's desktop in session 0 as SYSTEM; whether Water Bugs and Cosmic Bugs open
+  their full-screen mode there; whether Bookworm Adventures reaches 3D with `--sandbox-vgpu` and no wrapper; whether
+  a game's sound reaches the host; and the VirtualStore-to-HKLM key for SYSTEM.
 - **3D on the host needs dgVoodoo2**: legacy DirectDraw has no hardware on the hidden desktop, so an original with
   a 3D mode runs in 3D there only with `--dgvoodoo` (see "Hardware acceleration (3D mode)"). Proven on Bookworm
   Adventures only; each session adds its game's registry key and 3D flag to games.tsv. Host runs take no shot.
