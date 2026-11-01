@@ -12,8 +12,12 @@ namespace tiptop
 struct Handler;
 
 // TipTop keeps no players: it asks for a name at each high score (a text field of 10 characters, which starts empty) and does not
-// remember it. At the end of GameInit the page is told how the site's players' names fit that field.
+// remember it. The names it reports are the ones in its high score tables, but for the configuration's starting entries, which
+// SiteKeepStartingScores copies before Preferences.dat replaces them. At the end of GameInit the page is told those names and how
+// the site's players' names fit that field, and again whenever the tables change (SiteScoresChanged: a high score, Clear).
+void SiteKeepStartingScores();
 void SiteStart();
+void SiteScoresChanged();
 
 // Under "fill" and "create" the high score's text field starts with the site's player: its characters are typed into the field
 // (the way keys reach it) as it is made

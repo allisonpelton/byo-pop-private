@@ -288,6 +288,9 @@ void ResetHighScores()
 // 0x412b90: the preferences, the app and the board's copy of the configuration
 static bool InitApp()
 {
+#ifdef __EMSCRIPTEN__
+	SiteKeepStartingScores();	// the web page's players (SiteProfiles.h): the configuration's high scores, not a player's
+#endif
 	LoadPrefs();
 	int aResult = gApp.Init();
 	if (aResult != 0)
