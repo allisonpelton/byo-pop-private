@@ -64,9 +64,15 @@ Options:
   and other random content match the port it is compared with.
 - `--3d on|off` — the game's own Hardware Acceleration setting for this run, and a check, read from the game's
   memory, that it really ran in that mode; a run that ends up in the other mode fails with exit code 3 (see
-  "Hardware acceleration (3D mode)"). With `--exe`, give `--game` too so origrun finds the game's row.
+  "Hardware acceleration (3D mode)"). With `--exe` alone, origrun takes the key and flag from the games.tsv row
+  whose exe name is the same.
 - `--3d-key <HKCU key>` / `--3d-flag <expr>` — the registry key and 3D-flag address when games.tsv has none, or
   to override it.
+- `--dgvoodoo <dir|env>` — put dgVoodoo2 (a DirectDraw and Direct3D 7 implementation over Direct3D 11) into the
+  staged copy for this run, from `<dir>`, or from the folder in the environment variable `ORIGRUN_DGVOODOO` when the
+  word is `env`. `--3d on` uses `ORIGRUN_DGVOODOO` by itself when it is set. Needed for any 3D run, and it also gets
+  the full-screen games past "Screen Setup Failed" (see "Hardware acceleration (3D mode)"). **It refuses to start a
+  run that takes shots**: no capture of a game drawing through a GPU wrapper is safe.
 
 ## Script commands
 
@@ -130,14 +136,28 @@ coordinates that land on Play.
    the game it mutes it and says so in the run result. A game that plays through another path (winmm `waveOut`
    / `PlaySound`, or FMOD on its own output) is not silenced by the dsound stand-in yet (see Gaps); the audio
    watch still mutes and reports it, and for such a run the user turns the speakers off.
-4. **Screens.** `shot`/`waitshot`/`record`/`burst` capture the window with `PrintWindow` (a window-DC or
-   desktop-DC blit as a fallback) and write a PNG. This works for windowed games (the SAF games run windowed by
-   default) and for windowed DirectDraw once it has drawn (`waitshot` re-grabs while the client area is flat). A
-   game that takes the screen full-screen through DirectDraw cannot open its mode on the headless desktop and
-   never draws — see Gaps.
+4. **Screens.** `shot`/`waitshot`/`record`/`burst` capture the window with `PrintWindow`, or a blit of the
+   window's own DC where `PrintWindow` fails or comes out flat, and write a PNG. Nothing ever reads the screen, and
+   **nothing at all is captured of a game that has loaded a GPU API**: `dxgi`, `d3d8`, `d3d9`, `d3d10*`, `d3d11`,
+   `d3d12`, `opengl32` or `vulkan-1`. origrun reads the game's module list from outside (`EnumProcessModulesEx`)
+   when its window comes up and logs what it finds, asks again when each capture starts, right before a window-DC
+   read that follows a `PrintWindow`, and once more before the pixels are saved. The first refusal names the
+   module, and every later shot of the run is refused too; a module list it cannot read refuses that shot. A
+   graphics wrapper in the copy (any `ddraw.dll`, `d3dimm.dll`, `d3d8.dll`, `d3d9.dll`, `d3d11.dll`, `dxgi.dll` or
+   `opengl32.dll` there, whether `--dgvoodoo` put it there or a session did, as with cnc-ddraw) refuses every shot
+   of the run before the game starts. The reason: on rundesk's desktop a window drawn through a GPU API showed
+   **the user's own screen**, through the window DC (Water Bugs under dgVoodoo2, 2026-10-31) and through
+   `PrintWindow` (Mahjong Escape: Ancient Japan under dgVoodoo2, 2026-11-01); those shots were deleted. **Windows
+   11's own DirectDraw loads `dxgi.dll`**, so this refuses the DirectDraw originals too (see "Hardware
+   acceleration (3D mode)"). A window not drawn yet comes out flat, and `waitshot` re-grabs while the client area
+   is flat. A game that takes the screen full-screen through DirectDraw cannot open its mode on the headless
+   desktop and never draws — see Gaps.
 5. **Scripted input and focus.** Proven end to end: clicks, typed text and `focus lose`/`regain` all register
    (a test window showed the click count rise, the text appear, and the active flag and colour change with the
-   focus), and on a real game the trial dialog's Play button is clicked and the game starts.
+   focus), and on a real game the trial dialog's Play button is clicked and the game starts. rundesk's desktop is
+   shared by every session's test runs, so another game's window can lie over a click point; a click goes only to
+   a window of the game's own process (before 2026-11-01 it went to whatever window lay there, so clicks were lost
+   to other sessions' games; the log names the first few such cases).
 6. **Message boxes are logged and answered.** A separate worker thread, attached to the game's desktop, watches
    for standard dialog windows (class `#32770`) belonging to the game's process. Each is logged with its
    caption, text, button labels and the run time, then answered: with the button a `msgbox` rule names, else
@@ -175,6 +195,18 @@ on an unactivated copy, done to a file on disk, not injected into a running proc
 - **pinning the RNG seed**, so a run gives the same boards and other random content as the port it is compared
   with. The `{seed}` token in a patch stands for `--seed`'s value as four little-endian bytes;
 - **any patch a session needs for a clean comparison**, such as one that lets the copy skip its trial prompt.
+- **hover** (approved by the user on 2026-11-01, for test copies only): rundesk's desktop has no cursor to read, so
+  a game that asks `GetCursorPos` where the mouse is never sees it over a button, and the patch makes it read the
+  posted message's own coordinates instead.
+
+<!-- private -->
+The hover patch, as found on Bookworm Adventures: SexyAppBase's handler for a deferred message (FUN_00547ea0 in its
+export) takes `WM_MOUSEMOVE` at 0x548635 by asking `GetCursorPos` for the point and `WindowFromPoint` for the window
+under it, then tests the point against the client rectangle. On rundesk's desktop `GetCursorPos` fails with
+`ERROR_ACCESS_DENIED` and leaves the point unset, so the test never passes and no button lights. The patch makes
+that path take the point from the message's own `lParam` (already copied to a local, local_44). The game session
+that knows the code supplies the exact bytes in its `patches/<game>.txt` (kind `test`); origrun knows none of them.
+<!-- /private -->
 
 origrun does not know or generate any of these bytes. A game session that knows its own code supplies the exact
 expected and replacement bytes. **No keygens**: patch the check in the copy, or set the registry values the game
@@ -213,11 +245,32 @@ pointer's global and `mUpdateCount` (each session supplies its own; the offset i
 thread, runs the command and resumes; `burst <name> <count> update <k>` captures every `k` updates the same way.
 
 **Precision (measured on Noah's Ark):** `at` lands on the exact update — `at 1500/1700/1900` each fired with the
-counter reading exactly that value — because the ~1 ms poll is far finer than the ~10 ms update. The held capture
-uses the window-DC blit, not `PrintWindow` (which would deadlock on the suspended thread); with `flips` set it
-first waits for the next present so the frame shown is update `N`, not `N-1` (capped so a static screen, which
-presents nothing new, does not stall). SexyAppBase's catch-up can still double or skip an update under load; a
-per-game patch could force one update per frame if a game ever needs it (not needed so far).
+counter reading exactly that value — because the ~1 ms poll is far finer than the ~10 ms update. The hold is kept
+as short as it can be, because the game's clock runs on while it is held, and on resume the game catches up on
+updates it never draws. Input under `at` is posted with no gaps between its messages (the queue keeps their order,
+and the game reads every pending message before its next update), so a held click holds the game for about
+0.04 ms; a held shot resumes the game as soon as the pixels are grabbed, before the PNG is made and written (about
+3-5 ms held). The log gives each hold ("at click: the game was held 0.04 ms"; per burst, the average and longest
+hold and how many frames were held past their update).
+
+The held capture uses the window-DC blit, not `PrintWindow` (which never returns while the window's thread is
+suspended), and like every capture it is refused for a game that has loaded a GPU API (guarantee 4); the module list
+is read before the game is held and again while it is. Since Windows 11's DirectDraw loads `dxgi.dll`, the held shots
+measured below on Bookworm Adventures were taken before this rule and cannot be repeated now. Input under `at` is
+still held. A hold begins only once the suspension has taken effect (`GetThreadContext` returns after it has), and
+if origrun crashes while it holds the game, it resumes the game first. A
+SexyAppBase game counts update `N` at its start and draws after it, so a shot held as soon as the counter reads `N`
+races that draw and mostly gets update `N-1`'s frame. Without `flips`, a held shot therefore waits for update `N+1`
+to begin, when update `N`'s frame is on screen; with `flips` set it instead waits for the next present (capped so a
+static screen, which presents nothing new, does not stall). SexyAppBase's catch-up can still double or skip an
+update under load; a per-game patch could force one update per frame if a game ever needs it (not needed so far).
+
+**Measured on Bookworm Adventures (2026-11-01)**, the pilot's battle against the port, update by update with the
+pilot's `lag.py` measure: the attack's moving frames match the port at the same update (22 of 25 frames, the rest
+one update off, in two runs), where before they ran one or two updates behind, jittering by one. After the battle's
+load the original's frames match the port's of 4-5 updates earlier: a long load makes the game catch up on updates
+without drawing, and its curtain opens only once drawn, so this depends on the load's time on the machine, not on
+origrun's holds (3-5 ms per burst frame). Only freezing the game's clock across the load would remove it.
 
 ## Hardware acceleration (3D mode)
 
@@ -264,27 +317,66 @@ later shot of that run, and its log names the module. Until a capture method is 
 so, never put dgVoodoo2, cnc-ddraw or any other GPU wrapper into a copy that origrun captures. A shot that shows
 anything but the game's own window is deleted at once, unopened where possible, and reported to the coordinator.
 
-The way to a 3D run was meant to be a DirectDraw and Direct3D 7 implementation over Direct3D 11, placed beside the staged copy
-(never the install) and presenting flip-model, such as dgVoodoo2. Its official source is its author's GitHub
-releases page, `github.com/dege-diosg/dgVoodoo2/releases`. Version 2.87.6 is `dgVoodoo2_87_6.zip` at 9,244,362 bytes
-(2026-10-25); version 2.87.5 is 9,268,078 bytes (2026-09-15). Its `DDraw.dll` and `D3DImm.dll` (the `MS\x86` folder)
-and a `dgVoodoo.conf` would go into the copy. Version 2.87.5 was downloaded with the user's OK on 2026-11-01, but
-the warning above stands: no capture run uses it.
+**Windows 11's own DirectDraw loads DXGI (found 2026-11-01).** Noah's Ark and Ning Po, run with no wrapper in the
+copy and so in software DirectDraw, as every original runs on rundesk's desktop, had `dxgi.dll` loaded by the time
+their window came up; Noah's Ark later also had `d3d11.dll` and `D3D10Warp.dll`. A plain GDI test window run the
+same way loads none of them, so it is DirectDraw that brings them in. origrun therefore refuses every shot of these
+games, and very likely of every DirectDraw original, until the coordinator decides what is safe to capture.
 
-Still unknown until it is tried:
-- whether it keeps presenting while the window is occluded;
-- that `at` captures need a path other than the window DC for flip-model content;
-- how far its Direct3D 11 rendering of Direct3D 7 differs from a native driver's (a comparison notes it).
+**dgVoodoo2 runs the 3D mode there, but no run that takes shots may use it.** It implements DirectDraw and
+Direct3D 7 over Direct3D 11 and presents flip-model. Its official source is its author's GitHub releases page,
+`github.com/dege-diosg/dgVoodoo2/releases`; version 2.87.5 (`dgVoodoo2_87_5.zip`, 9,268,078 bytes, SHA-256
+`5ffde6927f7355ca3fdd5d785b581256a8e6539fa13e395a891ade6ba1040850`) was downloaded with the user's OK and unpacked
+on this machine in `E:/retools/dgVoodoo2_87_5`, the folder to give `--dgvoodoo` or `ORIGRUN_DGVOODOO`. **dgVoodoo2 is
+freeware that may not be redistributed**: its files are never committed or copied into the repository, and origrun
+copies them only into a staged copy under `build/` or `--stage-root`.
 
-The same layer may also give the full-screen DirectDraw games (Water Bugs, Cosmic Bugs) a screen they can open on
-the hidden desktop, since it can force a window.
+`--dgvoodoo` copies `DDraw.dll` and `D3DImm.dll` (from the folder's `MS\x86`, or the folder itself) into the copy
+and writes a `dgVoodoo.conf` of origrun's own beside them: output through Direct3D 11 at feature level 11_0, not
+full-screen (`FullScreenMode = false`, `AppControlledScreenMode = false`, so a game that asks for the screen gets a
+window), flip-model presentation (`PresentationModel = flip_discard`), no watermark and no splash
+(`dgVoodooWatermark`, `WatermarkDisplayDuration`, the Glide `3DfxWatermark` and `3DfxSplashScreen`; DirectX has no
+splash of its own), the mouse not captured, Alt+Enter not toggling the screen mode. It refuses to write into the
+install folder (or anything under `Program Files` or `steamapps`) and never overwrites a DLL the copy already
+has. A marker file in the copy (`origrun-wrapper.txt`) lists each file it placed with its size and SHA-256, each
+line written only once its file is in place; a placement that fails takes back what it wrote. The next run deletes
+those files first, each only while its size and hash still match, and only when its full long path and its final
+path (junctions resolved) lie under `build\` or `--stage-root`. origrun deletes nothing anywhere else, and places
+the wrapper only where it may take it out again. A file that changed or cannot be deleted stays in the copy and in
+the marker, and the run stops, since a wrapper must not carry over into a run that did not ask for it: delete it by
+hand or stage a fresh copy. So a run without `--dgvoodoo` runs the game on Windows' own DirectDraw again.
+
+**`--dgvoodoo` refuses to start a run that takes shots**: a script with `shot`, `waitshot`, `record`, `burst` or
+`at <N> shot|burst`, a script it cannot read, or no script at all (such a run takes a title shot). It serves runs
+that need no picture, such as the 3D-mode check below.
+
+**3D mode proven on Bookworm Adventures (2026-10-31).** With `--3d on` and dgVoodoo2, the game reports 3D on from
+about 2 s after launch to the end of a one-minute battle and ends "RESULT: 3D on, as asked", so the wrapper keeps
+presenting while rundesk's window counts as occluded.
+
+Before the refusal, the pilot's battle (`games/bookwormadv/tools/pilot`: the map, the entry transition, the battle
+intro, the word RAIN and its attack) was compared through shotdiff with the port, 3D on against the port with
+`Is3D=1`, 3D off against the port with `Is3D=0`. The midground island (the pale land on the right, behind the enemy)
+is drawn by both sides in 3D and by neither in software, as the game's 3D-only path says. In 3D, five of the six
+stills differ only faintly (0.1–1.3% of the pixels); the sixth, after the attacks, differs at the enemy spearman's
+animation (1.1%). In software the stills differ by 0.2–1.4%: the same spearman, and the Attack button's sparkles at
+other positions. Both clips line up in time (offset 0, no drift, no stalls); the attack clip flags the moving sprites
+in 8 of 12 frames in 3D and 12 of 12 in software, and the entry transition's fourth frame differs by 48% in both modes
+alike, so that is the transition's timing, not the renderer. ArrowHint's fade and the Board's zoom are not reached by
+this battle (they come from the tutorial scripts) and are untested. How far dgVoodoo2's Direct3D 11 rendering differs
+from a native Direct3D 7 driver cannot be measured here, since no native driver runs on the hidden desktop; on this
+battle it is as close to the port as software mode is.
+
+Also before the refusal, Water Bugs and Cosmic Bugs, run with `--dgvoodoo` (no `--3d`; they have no 3D mode),
+reached their title menus: the game's full-screen request becomes a borderless window the size of the desktop
+(3840×2160 here) with its 800×600 picture stretched over it.
 
 Bookworm Adventures in software mode is proven: `--3d off` ends "RESULT: 3D off, as asked". Its main menu at update
 1600 was compared through shotdiff with the port run on SDL's software renderer (`SDL_RENDER_DRIVER=software`). For
 now the port ignores `Is3D`, and its `Is3DAccelerated()` follows SDL's renderer; the Bookworm Adventures session is
 making it honour the setting. The menu has no 3D-only effect: the port's two renderers differ there in 0.2% of the
-pixels, faintly. Its 3D-only code paths (ArrowHint's fade, the Board's zoom, TileEngine) are all in battle. With
-`--3d on` the original reaches no 3D at all, as above.
+pixels, faintly. Its 3D-only code paths (ArrowHint's fade, the Board's zoom, TileEngine) are all in battle. Without
+dgVoodoo2, `--3d on` reaches no 3D at all, as above.
 
 ## Per-game status
 
@@ -298,28 +390,30 @@ mode, and what `--3d` reaches (see "Hardware acceleration (3D mode)"). Only Book
 key and 3D-flag address in games.tsv so far; each session adds its own game's.
 
 Round 2 (2026-10-31) added update-timed capture, bursts, the copy patch list, and fixes below; the table is
-updated for it.
+updated for it. The Capture column records what was taken before 2026-11-01: since then origrun takes no shot of a
+game that has loaded a GPU API, and on Windows 11 that includes the DirectDraw originals (see "Hardware acceleration
+(3D mode)").
 
 | Game | Source | Reached under origrun | Capture | 3D | Audio seen | Notes |
 |------|--------|-----------------------|---------|----|------------|-------|
-| alchemy | local install | trial, then into the game past Play | yes | has one; on expected to fall back as Bookworm Adventures does | muted a session | some sound is not via DirectSound |
+| alchemy | local install | trial, then into the game past Play | yes | has one; on needs `--dgvoodoo` (untried) | muted a session | some sound is not via DirectSound |
 | atomica | local install | FATAL ERROR at startup, then exits | — | none | none | FMOD fails to load `sounds\capclick` (Ogg); not the stand-in or display — the Atomica session's to fix |
 | mummymaze | local install | title after a slow (~45 s) start | yes, 646×509 | none | none | window is late to appear |
 | noahsark | local install | own title screen | yes, 646×509 | none | none | update counter proven here (`[0x4d125c]+0x368`); `at` lands on the exact update |
 | sevenseas | local install | own title screen | yes, 646×509 | none | none | |
-| pixelus | local install | trial screen (not clicked through yet) | yes | has one; on expected to fall back as Bookworm Adventures does | none | games.tsv's Pixelus.exe (~256 KB) is a smaller build than the port's decompiled exe — its counter offsets do not apply to it |
+| pixelus | local install | trial screen (not clicked through yet) | yes | has one; on needs `--dgvoodoo` (untried) | none | games.tsv's Pixelus.exe (~256 KB) is a smaller build than the port's decompiled exe — its counter offsets do not apply to it |
 | tiptop | local install | trial, plays | yes | none | none | DirectInput: posted clicks are ignored; the `hw*` commands are unconfirmed (see the gaps) |
 | wordharmony | local install | trial (60 min), Play present | yes | none | none | |
-| bookwormadv | local install | in-game Updates dialog | yes, 806×629 | **off proven**; on falls back to software (no DirectDraw hardware on the hidden desktop) | muted a session | its sound is not via DirectSound (BWA audio work); stage under a short `--stage-root` (long worktree path makes its launcher exit) |
+| bookwormadv | local install | in-game Updates dialog | yes, 806×629 | **off and on proven** (on with `--dgvoodoo`) | muted a session | its sound is not via DirectSound (BWA audio work); stage under a short `--stage-root` (long worktree path makes its launcher exit) |
 | ningpo | local install | main window | **yes** (after init) | none | none | windowed DirectDraw; `waitshot`'s flat-retry now captures real content once it has drawn |
-| waterbugs | local install | window, then "Screen Setup Failed" | window only | none | none | full-screen DirectDraw: the headless desktop cannot open its 800×600 mode, so it never reaches the game |
-| cosmicbugs | local install | window, then "Screen Setup Failed" | window only | none | none | same as Water Bugs |
-| dynomite | Steam copy | **title and on** | **yes** | has one; on expected to fall back as Bookworm Adventures does | none | fixed: `Steam.dll` is now auto-copied from the Steam library root into the copy |
-| bejeweled | wrapped launcher | **title, prepared copy runs** | **yes** | has one; on expected to fall back as Bookworm Adventures does | none | prepared as the private notes below say, run via an absolute `--exe` |
-| bigmoney | wrapped launcher | prepares cleanly | — | has one; on expected to fall back as Bookworm Adventures does | — | prepare as Bejeweled (not launched yet) |
-| bookworm | wrapped Steam exe | prepares cleanly | — | has one; on expected to fall back as Bookworm Adventures does | — | prepare as Bejeweled (not launched yet) |
-| rocketmania | Steam copy | not run | — | has one; on expected to fall back as Bookworm Adventures does | — | Steam copy: `Steam.dll` is auto-copied now, as for Dynomite |
-| bookwormadv2 | Steam copy | not run | — | has one; on expected to fall back as Bookworm Adventures does | — | not wrapped; `Steam.dll` auto-copied now |
+| waterbugs | local install | window, then "Screen Setup Failed"; **title menu with `--dgvoodoo`** | window only; with `--dgvoodoo` the title, 3840×2160 stretched | none | none | full-screen DirectDraw: the headless desktop cannot open its 800×600 mode; dgVoodoo2 gives it a desktop-sized window |
+| cosmicbugs | local install | window, then "Screen Setup Failed"; **title menu with `--dgvoodoo`** | window only; with `--dgvoodoo` the title, 3840×2160 stretched | none | none | same as Water Bugs |
+| dynomite | Steam copy | **title and on** | **yes** | has one; on needs `--dgvoodoo` (untried) | none | fixed: `Steam.dll` is now auto-copied from the Steam library root into the copy |
+| bejeweled | wrapped launcher | **title, prepared copy runs** | **yes** | has one; on needs `--dgvoodoo` (untried) | none | prepared as the private notes below say, run via an absolute `--exe` |
+| bigmoney | wrapped launcher | prepares cleanly | — | has one; on needs `--dgvoodoo` (untried) | — | prepare as Bejeweled (not launched yet) |
+| bookworm | wrapped Steam exe | prepares cleanly | — | has one; on needs `--dgvoodoo` (untried) | — | prepare as Bejeweled (not launched yet) |
+| rocketmania | Steam copy | not run | — | has one; on needs `--dgvoodoo` (untried) | — | Steam copy: `Steam.dll` is auto-copied now, as for Dynomite |
+| bookwormadv2 | Steam copy | not run | — | has one; on needs `--dgvoodoo` (untried) | — | not wrapped; `Steam.dll` auto-copied now |
 
 The install paths are in `tools/origrun/games.tsv`, kept out of any publish (`.publishignore`).
 
@@ -359,20 +453,24 @@ user:
 
 Other gaps:
 
-- **No 3D mode on the hidden desktop**: legacy DirectDraw has no hardware there, so every original with a 3D mode
-  falls back to software under origrun. Reaching it needs a DirectDraw and Direct3D 7 layer over Direct3D 11 in
-  the copy, which waits on the user's OK to download (see "Hardware acceleration (3D mode)"). With one, `at` and
-  update-timed bursts also need a capture that does not use the window DC.
+- **3D needs dgVoodoo2**: legacy DirectDraw has no hardware on the hidden desktop, so an original with a 3D mode
+  runs in 3D only with `--dgvoodoo` (see "Hardware acceleration (3D mode)"). Proven on Bookworm Adventures only;
+  each session adds its game's registry key and 3D flag to games.tsv. With the wrapper no shot is taken, and
+  `--dgvoodoo` refuses to start a run that takes one.
+- **No shots of DirectDraw originals for now**: Windows 11's DirectDraw loads `dxgi.dll` (Noah's Ark, Ning Po), and
+  origrun refuses every capture of a game with a GPU API loaded (guarantee 4). Which captures are safe is the
+  coordinator's to decide.
 
 - **Windowed DirectDraw now captures** (Ning Po): a window is often flat only because it has not drawn its first
   frame, so `waitshot`/`capture_ready` re-grab while flat and get real content once it appears. **Full-screen
   DirectDraw still does not** (Water Bugs, Cosmic Bugs): on the headless private desktop the game cannot open its
   800×600 exclusive mode ("Screen Setup Failed") and never reaches its content. The least-invasive paths
-  (PrintWindow, window/desktop-DC blit) can't help because the game refuses to run without the screen, and
+  (PrintWindow, a window-DC blit) can't help because the game refuses to run without the screen, and
   Windows.Graphics.Capture needs a displayed window and DWM, which the private desktop has not. Reaching them
   needs the game forced into a windowed mode (toggle not yet found) or a **ddraw stand-in** that reports a
   display and copies the primary surface (the documented last resort; built like the dsound stand-in, not yet
-  written).
+  written). **Update 2026-11-01:** `--dgvoodoo` forces the window and both reach their title menus, in a
+  desktop-sized window with the picture stretched (see "Hardware acceleration (3D mode)").
 - **DirectInput games** (TipTop): the `hw*` commands (`SetCursorPos` + `SendInput`) are **unconfirmed**. Windows
   documents both calls as working only from the input desktop, which the private desktop is not, so they may fail
   silently there. TipTop's trial screen changed right after an `hwclick`, but no control run (the same script

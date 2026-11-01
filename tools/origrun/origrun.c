@@ -33,6 +33,7 @@
 #define PSAPI_VERSION 2   // EnumProcessModulesEx and GetModuleBaseNameA from kernel32 (K32...), no psapi.lib
 #include <psapi.h>
 #include <shlobj.h>
+#include <bcrypt.h>
 #include <mmdeviceapi.h>
 #include <audiopolicy.h>
 #include <audioclient.h>
@@ -164,6 +165,8 @@ static int    gMode3dWant = -1;
 static volatile LONG gMode3dFrozen = 0;
 static volatile LONG gMode3dLast = -1;     // the last mode read before quit: 1 on, 0 off, -1 never read
 static volatile LONG gMode3dFlips = 0;     // how often it changed after the first reading
+// --stage-root, if given: with <repo>\build, the only places origrun ever deletes a file (path_deletable).
+static char   gStageRoot[MAX_PATH] = "";
 
 // Is this pid one of our copied game's processes? (image path under gGameDir)
 static int is_our_pid(DWORD pid)
@@ -459,12 +462,16 @@ static int png_write(const char* path, const unsigned char* rgb, int w, int h)
 	// Raw image data: one filter byte (0) per scanline + RGB bytes.
 	size_t raw_len = (size_t)(w*3+1)*h;
 	unsigned char* raw = (unsigned char*)malloc(raw_len);
+	if (!raw) { fclose(f); return 0; }
 	size_t o=0;
 	for (int y=0;y<h;y++){ raw[o++]=0; memcpy(raw+o, rgb+(size_t)y*w*3, (size_t)w*3); o+=(size_t)w*3; }
 
 	// zlib stream: 2-byte header, stored DEFLATE blocks, Adler-32.
-	size_t zcap = raw_len + raw_len/65535 + 64;
+	// 2-byte header, a 5-byte header per stored block of up to 65535 bytes, the data, a 4-byte Adler-32. (It once
+	// reserved one byte per block: a 818x647 window ran 43 bytes past the end and crashed origrun mid-shot.)
+	size_t zcap = 2 + 5*(raw_len/65535 + 1) + raw_len + 4;
 	unsigned char* z = (unsigned char*)malloc(zcap);
+	if (!z) { free(raw); fclose(f); return 0; }
 	size_t zo=0; z[zo++]=0x78; z[zo++]=0x01;
 	size_t p=0;
 	while (p < raw_len) {
@@ -585,12 +592,20 @@ static int region_flat(const unsigned char* px, int w, int x0, int y0, int x1, i
 // its window DC, and even PrintWindow, have returned what was on the user's own screen (twice on 2026-11-01). The
 // first such shot is refused and logged, and so is every later shot of the run (gCaptureRefused). The module list is
 // read from outside the game (EnumProcessModulesEx), so the check is safe while the game's thread is held.
-// Returns 1 and the module's name when one is loaded, -1 when the list cannot be read, 0 when none is.
+// Returns 1 and the modules' names when one is loaded, -1 when the list cannot be read, 0 when none is. A graphics
+// wrapper in the copy (--dgvoodoo's, or one a session put there) sets gCaptureRefused before the game starts.
 static int gCaptureRefused = 0;
+static int is_gpu_module(const char* base)
+{
+	static const char* const kGpu[] = { "dxgi.dll", "d3d8.dll", "d3d9.dll", "d3d11.dll", "d3d12.dll", "opengl32.dll",
+		"vulkan-1.dll" };
+	for (size_t j=0; j<sizeof(kGpu)/sizeof(kGpu[0]); j++) if (lstrcmpiA(base,kGpu[j])==0) return 1;
+	size_t n=strlen(base);   // d3d10*: d3d10.dll, d3d10_1.dll, d3d10core.dll, D3D10Warp.dll and the like
+	return n>=9 && _strnicmp(base,"d3d10",5)==0 && lstrcmpiA(base+n-4,".dll")==0;
+}
 static int process_uses_gpu_api(DWORD pid, char* which, int whichLen)
 {
-	static const char* const kGpu[] = { "dxgi.dll", "d3d8.dll", "d3d9.dll", "d3d10.dll", "d3d10_1.dll",
-		"d3d10core.dll", "d3d11.dll", "d3d12.dll", "opengl32.dll", "vulkan-1.dll" };
+	which[0]=0;
 	HANDLE p = OpenProcess(PROCESS_QUERY_INFORMATION|PROCESS_VM_READ, FALSE, pid);
 	if (!p) return -1;
 	static HMODULE mods[1024]; DWORD need=0; int found=-1;
@@ -598,45 +613,85 @@ static int process_uses_gpu_api(DWORD pid, char* which, int whichLen)
 		if (!EnumProcessModulesEx(p, mods, sizeof(mods), &need, LIST_MODULES_ALL)) { Sleep(10); continue; }
 		found=0;
 		DWORD n = need/sizeof(HMODULE); if (n > 1024) n = 1024;
-		for (DWORD i=0; i<n && !found; i++) {
+		for (DWORD i=0; i<n; i++) {
 			char base[MAX_PATH];
-			if (!GetModuleBaseNameA(p, mods[i], base, sizeof(base))) continue;
-			for (size_t j=0; j<sizeof(kGpu)/sizeof(kGpu[0]); j++)
-				if (lstrcmpiA(base,kGpu[j])==0) { lstrcpynA(which,base,whichLen); found=1; break; }
+			if (!GetModuleBaseNameA(p, mods[i], base, sizeof(base)) || !is_gpu_module(base)) continue;
+			if (found && lstrlenA(which)+2<whichLen) lstrcatA(which,", ");
+			if (lstrlenA(which)+lstrlenA(base)<whichLen) lstrcatA(which,base);
+			found=1;
 		}
 	}
 	CloseHandle(p);
 	return found;
 }
+// The rule every capture follows, before it reads the window and again after: 1 (logged) when the shot is refused.
+static int capture_refused(HWND hwnd, const char* name)
+{
+	if (gCaptureRefused) { logline("shot %s refused: this run takes no shots (see above)", name); return 1; }
+	DWORD gpid=0; GetWindowThreadProcessId(hwnd,&gpid);
+	char gpu[MAX_PATH]="";
+	int g = gpid ? process_uses_gpu_api(gpid,gpu,sizeof(gpu)) : -1;
+	if (g>0) {
+		gCaptureRefused=1;
+		logline("shot %s refused, and every later shot of this run: the game has loaded %s, and a window drawn "
+			"through a GPU API can show the user's own screen", name, gpu);
+		return 1;
+	}
+	if (g<0) { logline("shot %s refused: the game's module list could not be read", name); return 1; }
+	return 0;
+}
 
 // allowPrint==0 skips PrintWindow (which sends WM_PRINT to the game's window thread): a capture taken while
 // that thread is held by SuspendThread (the "at" path) must not message it, or it would deadlock. The window-DC
 // blit reads the window's pixels without messaging the game, so it is safe while the thread is held.
-static int capture_ex(HWND hwnd, const char* name, int allowPrint)
+// held: a game thread the caller suspended for this shot. It is resumed as soon as the pixels are in memory (or on
+// any early return), so converting and writing the PNG does not stretch the hold: every millisecond the game is held
+// its clock runs on, and on resume it catches up on updates it never draws.
+static double qpc_ms(void){ LARGE_INTEGER c,f; QueryPerformanceCounter(&c); QueryPerformanceFrequency(&f); return (double)c.QuadPart*1000.0/(double)f.QuadPart; }
+// How long the game was last held (from SuspendThread to ResumeThread), for the log: the game's clock runs on for
+// all of it.
+static double gHoldT0 = 0, gLastHeldMs = 0;
+static uint32_t gHeldAt = 0;   // the update counter read while the last held shot was held
+// The game's window thread while origrun holds it, so that crash_filter can resume it before anything else.
+static PVOID volatile gHeldThread = NULL;
+// Returns 1 once the thread is really stopped. SuspendThread only asks for the suspension; GetThreadContext returns
+// only after it has taken effect, so no frame or counter is read while the thread may still be running on.
+static int hold_begin(HANDLE th)
 {
-	RECT r; if (!hwnd || !GetWindowRect(hwnd,&r)) return 0;   // window gone; caller may retry
-	if (gCaptureRefused) return 0;
-	{
-		DWORD gpid=0; GetWindowThreadProcessId(hwnd,&gpid);
-		char gpu[MAX_PATH]="";
-		int g = process_uses_gpu_api(gpid,gpu,sizeof(gpu));
-		if (g>0) {
-			gCaptureRefused=1;
-			logline("shot %s refused, and every later shot of this run: the game has loaded %s, and a window drawn "
-				"through a GPU API can show the user's own screen", name, gpu);
-			return 0;
-		}
-		if (g<0) { logline("shot %s refused: the game's module list could not be read", name); return 0; }
-	}
+	if (!th) return 0;
+	gHoldT0=qpc_ms();
+	if (SuspendThread(th)==(DWORD)-1) { logline("hold: SuspendThread failed (err %lu); not held", GetLastError()); return 0; }
+	InterlockedExchangePointer(&gHeldThread, th);
+	CONTEXT c; ZeroMemory(&c,sizeof(c)); c.ContextFlags=CONTEXT_CONTROL;
+	if (!GetThreadContext(th,&c)) { static LONG warned=0; if (!InterlockedExchange(&warned,1)) logline("hold: GetThreadContext failed (err %lu), so the suspension may not have taken effect when the hold is used", GetLastError()); }
+	return 1;
+}
+static void hold_end(HANDLE th)
+{
+	if (!th) return;
+	if (InterlockedCompareExchangePointer(&gHeldThread, NULL, th) == th) ResumeThread(th);   // crash_filter may have resumed it already
+	gLastHeldMs=qpc_ms()-gHoldT0;
+}
+static void release_held(HANDLE* held){ if (held && *held){ hold_end(*held); *held=NULL; } }
+
+static int capture_ex2(HWND hwnd, const char* name, int allowPrint, HANDLE* held)
+{
+	RECT r; if (!hwnd || !GetWindowRect(hwnd,&r)) { release_held(held); return 0; }   // window gone; caller may retry
+	if (capture_refused(hwnd,name)) { release_held(held); return 0; }
 	int w=r.right-r.left, h=r.bottom-r.top;
-	if (w<=0||h<=0) return 0;
-	HDC screen=GetDC(NULL); HDC mem=CreateCompatibleDC(screen);
+	if (w<=0||h<=0) { release_held(held); return 0; }
+	HDC mem=CreateCompatibleDC(NULL);   // never a DC of the screen
 	BITMAPINFO bi; ZeroMemory(&bi,sizeof(bi));
 	bi.bmiHeader.biSize=sizeof(BITMAPINFOHEADER);
 	bi.bmiHeader.biWidth=w; bi.bmiHeader.biHeight=-h;   // top-down
 	bi.bmiHeader.biPlanes=1; bi.bmiHeader.biBitCount=32; bi.bmiHeader.biCompression=BI_RGB;
 	void* bits=NULL;
 	HBITMAP dib=CreateDIBSection(mem,&bi,DIB_RGB_COLORS,&bits,NULL,0);
+	if (!dib || !bits) {
+		release_held(held);
+		logline("shot %s: no bitmap for a %dx%d window (err %lu)", name, w, h, GetLastError());
+		if (dib) DeleteObject(dib); DeleteDC(mem); return 0;
+	}
 	HGDIOBJ old=SelectObject(mem,dib);
 
 	unsigned char* px=(unsigned char*)bits;
@@ -647,27 +702,37 @@ static int capture_ex(HWND hwnd, const char* name, int allowPrint)
 	int cx0=o.x-r.left, cy0=o.y-r.top, cx1=cx0+cr.right, cy1=cy0+cr.bottom;
 	if (cx0<0) cx0=0; if (cy0<0) cy0=0; if (cx1>w) cx1=w; if (cy1>h) cy1=h;
 
-	// Try, in order: PrintWindow (GDI and DWM-redirected content), then a blit of the window DC. There is no
-	// screen-DC fallback: a blit of the desktop at the window's rectangle can return what is on the user's own
-	// screen (a flip-model window's DC once did), so a window neither path reaches stays flat.
+	// What reads the window: PrintWindow (GDI and DWM-redirected content), then a blit of the window's own DC, which
+	// legacy DirectDraw windows need. Never the screen, and nothing at all of a game that has loaded a GPU module:
+	// capture_refused is asked when the capture starts, again right before a window-DC read that follows a
+	// PrintWindow, and once more after the read, before anything is saved.
 	const char* how="printwindow";
 	BOOL ok = allowPrint ? PrintWindow(hwnd, mem, PW_RENDERFULLCONTENT) : FALSE;
+	if (allowPrint && !ok) how="printwindow failed";
+	int refused=0;
 	if (!allowPrint || !ok || region_flat(px,w,cx0,cy0,cx1,cy1)) {
-		HDC wdc=GetWindowDC(hwnd);
-		if (wdc){ BitBlt(mem,0,0,w,h,wdc,0,0,SRCCOPY); ReleaseDC(hwnd,wdc); how="windowdc"; }
-		if (region_flat(px,w,cx0,cy0,cx1,cy1)) how="flat (DirectDraw/Direct3D content not reachable by GDI)";
+		if (allowPrint) refused=capture_refused(hwnd,name);   // the game may have loaded one since the start
+		if (!refused) {
+			HDC wdc=GetWindowDC(hwnd);
+			if (wdc){ BitBlt(mem,0,0,w,h,wdc,0,0,SRCCOPY); ReleaseDC(hwnd,wdc); how="windowdc"; }
+		}
 	}
+	release_held(held);   // the pixels are in memory: the game may run on
+	if (refused || capture_refused(hwnd,name)) { SelectObject(mem,old); DeleteObject(dib); DeleteDC(mem); return 0; }
 	int flat = region_flat(px,w,cx0,cy0,cx1,cy1);
+	if (flat) how="flat (DirectDraw/Direct3D content not reachable by GDI)";
 
 	unsigned char* rgb=(unsigned char*)malloc((size_t)w*h*3);
+	if (!rgb) { logline("shot %s: out of memory for %dx%d", name, w, h); SelectObject(mem,old); DeleteObject(dib); DeleteDC(mem); return 0; }
 	for (int i=0;i<w*h;i++){ rgb[i*3+0]=px[i*4+2]; rgb[i*3+1]=px[i*4+1]; rgb[i*3+2]=px[i*4+0]; }
 	char path[MAX_PATH]; wsprintfA(path,"%s\\%s.png",gShotDir,name);
 	int wrote=png_write(path,rgb,w,h);
 	free(rgb);
-	SelectObject(mem,old); DeleteObject(dib); DeleteDC(mem); ReleaseDC(NULL,screen);
+	SelectObject(mem,old); DeleteObject(dib); DeleteDC(mem);
 	logline("shot %s -> %s (%dx%d) [%s]", name, path, w, h, how);
 	return wrote ? (flat ? 2 : 1) : 0;   // 2 = written but flat (a DirectDraw screen, or not drawn yet)
 }
+static int capture_ex(HWND hwnd, const char* name, int allowPrint){ return capture_ex2(hwnd,name,allowPrint,NULL); }
 static int capture(HWND hwnd, const char* name){ return capture_ex(hwnd,name,1); }
 
 // Poll up to timeout_ms for any visible game window, then capture it. If the grab is flat (often a window that
@@ -692,7 +757,6 @@ static int capture_ready(const char* name, int timeout_ms)
 
 // ---------------------------------------------------------------------------------- bursts, clips, "at N"
 
-static double qpc_ms(void){ LARGE_INTEGER c,f; QueryPerformanceCounter(&c); QueryPerformanceFrequency(&f); return (double)c.QuadPart*1000.0/(double)f.QuadPart; }
 
 static void write_clip_json(const char* dir, int interval_ms)
 {
@@ -718,14 +782,30 @@ static int wait_counter(uint32_t target, int timeout_ms)
 // Capture the game while its window thread is held, so the frame cannot change under the grab. If gFlipsExpr is
 // set, first let the game present the frame that reflects the current update (wait for one more flip), so the
 // shot is update N rather than possibly N-1.
+// A game that has loaded a GPU module is refused before it is ever held (capture_refused).
 static int capture_held(const char* name)
 {
+	gLastHeldMs=0; gHeldAt=0;   // a shot that is not held, or not taken, reports no hold of an earlier one
 	HWND hw=resolve_window(0,NULL); if(!hw){ logline("at: no window for '%s'",name); return 0; }
+	if (capture_refused(hw,name)) return 0;
 	if (gFlipsExpr[0]) { uint32_t f0; if (read_counter(gFlipsExpr,&f0)) { uint32_t f=f0; int w=0; while(f<=f0 && w<100 && !gStop){ Sleep(1); read_counter(gFlipsExpr,&f); w++; } } }  // a static screen presents nothing new, so cap the wait
-	HANDLE th=open_window_thread(hw,THREAD_SUSPEND_RESUME);
-	if (th) SuspendThread(th);
-	int ok=capture_ex(hw,name,0);   // no PrintWindow while the thread is held
-	if (th){ ResumeThread(th); CloseHandle(th); }
+	// Without a flips counter, hold at the start of the next update: the counter goes to N at the start of update N,
+	// and the game draws after the update, so a hold taken as soon as the counter reads N races that draw and mostly
+	// catches update N-1's frame (measured on Bookworm Adventures: one update behind the port, jittering by one). Once
+	// the counter reads N+1, update N's frame is on screen (unless the game skipped that draw to catch up).
+	if (!gFlipsExpr[0] && gCounterExpr[0]) { uint32_t c; if (read_counter(gCounterExpr,&c)) wait_counter(c+1, 200); }
+	// The counter race: the game can begin another update between the counter reaching N+1 above and the hold taking
+	// effect, so the frame held may be a later update's than the one waited for. That is harmless: gHeldAt is read
+	// once the thread has really stopped (hold_begin's GetThreadContext), so it names the update actually held, the
+	// counter is one aligned 32-bit value that ReadProcessMemory never reads half-written, and a burst counts and
+	// reports every frame held past its update (none of 85 on Bookworm Adventures, 2026-11-01).
+	HANDLE th=open_window_thread(hw,THREAD_SUSPEND_RESUME|THREAD_GET_CONTEXT);
+	if (th && !hold_begin(th)) { CloseHandle(th); th=NULL; }
+	if (th) read_counter(gCounterExpr,&gHeldAt);
+	HANDLE held=th;
+	int ok=capture_ex2(hw,name,0,&held);   // no PrintWindow while held: the window DC, asked again first; resumes after the grab
+	release_held(&held);
+	if (th) CloseHandle(th);
 	return ok;
 }
 
@@ -738,13 +818,14 @@ static void do_burst(const char* name, int count, int interval_ms, int byUpdates
 	char dir[MAX_PATH]; wsprintfA(dir,"%s\\%s",gShotDir,name); mkdirs(dir);
 	uint32_t start=0;
 	if (byUpdates) { if (!read_counter(gCounterExpr,&start)) { logline("burst %s: no update counter configured; use an interval instead",name); return; } }
-	double capSum=0, capMax=0; int taken=0;
+	double capSum=0, capMax=0, holdSum=0, holdMax=0; int taken=0, late=0, lateMax=0;
 	double t0=qpc_ms();
 	for (int i=0;i<count && !gStop;i++) {
 		char leaf[320]; wsprintfA(leaf,"%s/%04d",name,i);   // written under shots/<name>/
 		double frameStart=qpc_ms();
 		int ok; double cap0;
-		if (byUpdates) { if (wait_counter(start + (uint32_t)i*k, 4000)<0){ logline("burst %s: counter unreadable, stopping",name); break; } cap0=qpc_ms(); ok=capture_held(leaf); }
+		if (byUpdates) { if (wait_counter(start + (uint32_t)i*k, 4000)<0){ logline("burst %s: counter unreadable, stopping",name); break; } cap0=qpc_ms(); ok=capture_held(leaf); holdSum+=gLastHeldMs; if (gLastHeldMs>holdMax) holdMax=gLastHeldMs;
+			{ int d=(int)(gHeldAt-(start+(uint32_t)i*k)) - (gFlipsExpr[0]?0:1); if (gHeldAt && d>0){ late++; if(d>lateMax) lateMax=d; } } }
 		else { HWND hw=resolve_window(0,NULL); if(!hw){ logline("burst %s: no window, stopping at %d",name,i); break; } cap0=qpc_ms(); ok=capture(hw,leaf); }
 		if (gCaptureRefused) { logline("burst %s: captures refused (a GPU API), stopping at %d",name,i); break; }
 		double dt=qpc_ms()-cap0;   // the capture itself, not any wait before it
@@ -755,6 +836,7 @@ static void do_burst(const char* name, int count, int interval_ms, int byUpdates
 	write_clip_json(dir, clipMs);
 	logline("burst %s: %d frames in %s (clip interval %d ms); capture avg %.1f ms, max %.1f ms over %.0f ms wall",
 		name, taken, dir, clipMs, taken?capSum/taken:0.0, capMax, qpc_ms()-t0);
+	if (byUpdates && holdMax>0) logline("  the game was held avg %.2f ms, max %.2f ms per frame; %d frames held past their update (by up to %d)", taken?holdSum/taken:0.0, holdMax, late, lateMax);
 	if (!byUpdates && capMax > interval_ms*0.5)
 		logline("  note: a capture took up to %.1f ms of the %d ms interval, so the original's timing is disturbed during the burst; use 'burst %s %d update <k>' for exact spacing",capMax,interval_ms,name,count);
 }
@@ -767,15 +849,23 @@ static void post_key(HWND,int);
 static void post_text(HWND,const char*);
 static void post_focus(HWND,int);
 static int  parse_vk(const char*);
+// Set while exec_at holds the game: input is posted without the sleeps between its messages. Those sleeps only
+// space messages for a running game; a held one reads every queued message, in order, before its next update
+// (UpdateAppStep), and each millisecond of hold is time its clock runs on. A held click now holds the game for
+// about 0.04 ms instead of 60.
+static int gInputHeld = 0;
+static void input_gap(DWORD ms){ if (!gInputHeld) Sleep(ms); }
 static void exec_at(const char* inner)
 {
 	char cmd[32]={0}; int off=0; sscanf(inner,"%31s%n",cmd,&off); const char* rest=inner+off; while(*rest==' ')rest++;
-	if (ieq(cmd,"shot")){ char n[256]="shot"; sscanf(rest,"%255s",n); capture_held(n); return; }
+	if (ieq(cmd,"shot")){ char n[256]="shot"; sscanf(rest,"%255s",n); capture_held(n); if (gLastHeldMs>0) logline("at shot %s: the game was held %.2f ms", n, gLastHeldMs); return; }
 	if (ieq(cmd,"burst")){ char n[256]="burst"; int c=10,k=1; char kw[16]=""; int iv=100;
 		if (sscanf(rest,"%255s %d %15s %d",n,&c,kw,&iv)>=2) { if (ieq(kw,"update")) do_burst(n,c,0,1,iv>0?iv:1); else do_burst(n,c,iv>0?iv:atoi(kw),0,0); }
 		return; }
 	HWND hw=resolve_window(0,NULL); if(!hw){ logline("at: no window for '%s'",inner); return; }
-	HANDLE th=open_window_thread(hw,THREAD_SUSPEND_RESUME); if(th) SuspendThread(th);
+	HANDLE th=open_window_thread(hw,THREAD_SUSPEND_RESUME|THREAD_GET_CONTEXT);
+	if (th && !hold_begin(th)) { CloseHandle(th); th=NULL; }
+	gInputHeld = (th!=NULL);
 	if (ieq(cmd,"click")){ int x,y; if(sscanf(rest,"%d %d",&x,&y)==2) post_click(hw,x,y,0); }
 	else if (ieq(cmd,"rclick")){ int x,y; if(sscanf(rest,"%d %d",&x,&y)==2) post_click(hw,x,y,1); }
 	else if (ieq(cmd,"key")){ char v[32]; if(sscanf(rest,"%31s",v)==1) post_key(hw,parse_vk(v)); }
@@ -783,7 +873,8 @@ static void exec_at(const char* inner)
 	else if (ieq(cmd,"move")){ int x,y; if(sscanf(rest,"%d %d",&x,&y)==2) PostMessageA(hw,WM_MOUSEMOVE,0,xy(x,y)); }
 	else if (ieq(cmd,"focus")){ post_focus(hw, ieq(rest,"regain")); }
 	else logline("at: cannot do '%s' at an update",cmd);
-	if (th){ ResumeThread(th); CloseHandle(th); }
+	gInputHeld = 0;
+	if (th){ hold_end(th); CloseHandle(th); logline("at %s: the game was held %.2f ms", cmd, gLastHeldMs); }
 }
 
 // ----------------------------------------------------------------------------------------- input posting
@@ -793,10 +884,30 @@ static LPARAM xy(int x,int y){ return (LPARAM)((y<<16)|(x&0xffff)); }
 // Map a point given in the top window's client coords to the deepest child window under it, returning that
 // window and the point in its own client coords. This lets a click land on a dialog's child button control
 // (the PopCap trial dialog's "Play") as well as on a game that draws and hit-tests in its own window.
+// rundesk's desktop is shared by every session's test runs, so the window at the point may be another game's
+// (found 2026-11-01: Bookworm Adventures' letter clicks went to a window lying over its board). A window of another
+// process never gets the click: the search then stays inside the game's own window, and its descent stops at any
+// child window that belongs to another process.
 static HWND child_at(HWND top, int x, int y, POINT* outClient)
 {
 	POINT pt={x,y}; ClientToScreen(top,&pt);
-	HWND tgt=WindowFromPoint(pt); if(!tgt) tgt=top;
+	HWND tgt=WindowFromPoint(pt);
+	DWORD topPid=0, tgtPid=0; GetWindowThreadProcessId(top,&topPid);
+	if (tgt) GetWindowThreadProcessId(tgt,&tgtPid);
+	if (!tgt || tgtPid!=topPid) {
+		static LONG foreign=0;
+		if (tgt && InterlockedIncrement(&foreign)<=3)
+			logline("a window of another process (pid %lu) lies over the click point %d,%d on the shared desktop; the click goes to the game's own window", tgtPid, x, y);
+		tgt=top;
+		for (int depth=0; depth<16; depth++) {
+			POINT c=pt; ScreenToClient(tgt,&c);
+			HWND ch=ChildWindowFromPointEx(tgt,c,CWP_SKIPINVISIBLE|CWP_SKIPDISABLED|CWP_SKIPTRANSPARENT);
+			if (!ch || ch==tgt) break;
+			DWORD chPid=0; GetWindowThreadProcessId(ch,&chPid);
+			if (chPid!=topPid) break;   // a child window of another process: the click stays on its parent
+			tgt=ch;
+		}
+	}
 	POINT cp=pt; ScreenToClient(tgt,&cp);
 	*outClient=cp; return tgt;
 }
@@ -804,18 +915,18 @@ static HWND child_at(HWND top, int x, int y, POINT* outClient)
 static void post_click(HWND hwnd,int x,int y,int right)
 {
 	POINT cp; HWND t=child_at(hwnd,x,y,&cp); LPARAM lp=xy(cp.x,cp.y);
-	PostMessageA(t, WM_MOUSEMOVE, 0, lp); Sleep(20);
-	if (right){ PostMessageA(t,WM_RBUTTONDOWN,MK_RBUTTON,lp); Sleep(40); PostMessageA(t,WM_RBUTTONUP,0,lp); }
-	else      { PostMessageA(t,WM_LBUTTONDOWN,MK_LBUTTON,lp); Sleep(40); PostMessageA(t,WM_LBUTTONUP,0,lp); }
+	PostMessageA(t, WM_MOUSEMOVE, 0, lp); input_gap(20);
+	if (right){ PostMessageA(t,WM_RBUTTONDOWN,MK_RBUTTON,lp); input_gap(40); PostMessageA(t,WM_RBUTTONUP,0,lp); }
+	else      { PostMessageA(t,WM_LBUTTONDOWN,MK_LBUTTON,lp); input_gap(40); PostMessageA(t,WM_LBUTTONUP,0,lp); }
 }
 static void post_key(HWND hwnd,int vk)
 {
 	UINT sc=MapVirtualKeyA(vk,MAPVK_VK_TO_VSC);
 	LPARAM down=(LPARAM)(1|(sc<<16));
 	LPARAM up=(LPARAM)(1|(sc<<16)|(1u<<30)|(1u<<31));
-	PostMessageA(hwnd,WM_KEYDOWN,vk,down); Sleep(20); PostMessageA(hwnd,WM_KEYUP,vk,up);
+	PostMessageA(hwnd,WM_KEYDOWN,vk,down); input_gap(20); PostMessageA(hwnd,WM_KEYUP,vk,up);
 }
-static void post_text(HWND hwnd,const char* s){ for(;*s;s++){ PostMessageA(hwnd,WM_CHAR,(unsigned char)*s,1); Sleep(10);} }
+static void post_text(HWND hwnd,const char* s){ for(;*s;s++){ PostMessageA(hwnd,WM_CHAR,(unsigned char)*s,1); input_gap(10);} }
 static void post_focus(HWND hwnd,int regain)
 {
 	if (regain){
@@ -876,6 +987,23 @@ static void load_msgbox_rules(const char* scriptPath)
 		LONG k=gMsgboxN; if (k<MAX_MSGBOX){ lstrcpynA(gMsgbox[k].button,btn,32); lstrcpynA(gMsgbox[k].text,txt,128); gMsgboxN=k+1; logline("msgbox rule: click '%s' when a dialog says ~'%s'",btn,txt); }
 	}
 	fclose(f);
+}
+
+// Does the script capture anything (shot, waitshot, record, burst, or "at <N> shot|burst")? A script that cannot be
+// read counts as one that does; a run without a script takes a title shot.
+static int script_takes_shots(const char* scriptPath)
+{
+	if (!scriptPath || !scriptPath[0]) return 1;
+	FILE* f=fopen(scriptPath,"r"); if(!f) return 1;
+	char line[1024]; int shots=0;
+	while (!shots && fgets(line,sizeof(line),f)) {
+		char c1[32]={0}, c2[32]={0}, c3[32]={0};
+		int n=sscanf(line,"%31s %31s %31s",c1,c2,c3);
+		if (n>=1 && (ieq(c1,"shot")||ieq(c1,"waitshot")||ieq(c1,"record")||ieq(c1,"burst"))) shots=1;
+		if (n>=3 && ieq(c1,"at") && (ieq(c3,"shot")||ieq(c3,"burst"))) shots=1;
+	}
+	fclose(f);
+	return shots;
 }
 
 static void run_script(DWORD pid, const char* scriptPath)
@@ -1167,6 +1295,225 @@ static int reg_set_is3d(const char* sub, int isSet, DWORD v)
 	RegCloseKey(k); return r==ERROR_SUCCESS || (!isSet && r==ERROR_FILE_NOT_FOUND);
 }
 
+// --dgvoodoo <dir>: rundesk's desktop gives legacy DirectDraw no hardware, so a game's 3D mode needs a DirectDraw and
+// Direct3D 7 implementation over Direct3D 11 in its copy: dgVoodoo2's DDraw.dll and D3DImm.dll (from <dir>\MS\x86 or
+// <dir>), read from wherever the user keeps them and never copied into the repository, plus a dgVoodoo.conf origrun
+// writes. The files placed are listed in origrun-wrapper.txt in the copy, and every run removes a previous run's, so
+// a wrapper never carries over into a run that did not ask for it.
+static const char* kWrapMarker = "origrun-wrapper.txt";
+static const char* kDgvConf =
+	"; Written by origrun for this staged copy (docs/ORIGRUN.md, \"Hardware acceleration\"): dgVoodoo2 in a window\r\n"
+	"; on rundesk's hidden desktop, flip-model presentation, no watermark, the mouse never\r\n"
+	"; captured, the screen saver left alone.\r\n"
+	"Version = 0x287\r\n\r\n"
+	"[General]\r\nOutputAPI = d3d11_fl11_0\r\nFullScreenMode = false\r\nScalingMode = unspecified\r\n"
+	"KeepWindowAspectRatio = true\r\nCaptureMouse = false\r\nCenterAppWindow = false\r\nDisableScreenSaver = false\r\n\r\n"
+	"[GeneralExt]\r\nPresentationModel = flip_discard\r\nWatermarkDisplayDuration = 0\r\nFreeMouse = true\r\n\r\n"
+	"[Glide]\r\n3DfxWatermark = false\r\n3DfxSplashScreen = false\r\n\r\n"
+	"[DirectX]\r\nDisableAndPassThru = false\r\nAppControlledScreenMode = false\r\nDisableAltEnterToToggleScreenMode = true\r\n"
+	"dgVoodooWatermark = false\r\n";
+
+// Deletes go only where origrun stages copies. A path may be deleted only when its full long path and its final path
+// (junctions and links resolved) are both under <repo>\build\ or under --stage-root, resolved the same way.
+static int full_long_w(const char* in, WCHAR* out, DWORD cap)
+{
+	WCHAR w[MAX_PATH], full[MAX_PATH];
+	if (!MultiByteToWideChar(CP_ACP,0,in,-1,w,MAX_PATH)) return 0;
+	DWORD n=GetFullPathNameW(w,MAX_PATH,full,NULL); if (!n || n>=MAX_PATH) return 0;
+	n=GetLongPathNameW(full,out,cap); if (!n || n>=cap) return 0;   // the path must exist
+	n=lstrlenW(out); while (n>3 && out[n-1]==L'\\') out[--n]=0;
+	return 1;
+}
+static int final_w(const char* in, WCHAR* out, DWORD cap)
+{
+	HANDLE h=CreateFileA(in,0,FILE_SHARE_READ|FILE_SHARE_WRITE|FILE_SHARE_DELETE,NULL,OPEN_EXISTING,FILE_FLAG_BACKUP_SEMANTICS,NULL);
+	if (h==INVALID_HANDLE_VALUE) return 0;
+	DWORD n=GetFinalPathNameByHandleW(h,out,cap,FILE_NAME_NORMALIZED); CloseHandle(h);
+	if (!n || n>=cap) return 0;
+	while (n>3 && out[n-1]==L'\\') out[--n]=0;
+	return 1;
+}
+static int under_w(const WCHAR* p, const WCHAR* root)
+{
+	int n=lstrlenW(root);
+	return n>0 && lstrlenW(p)>n+1 && p[n]==L'\\' && CompareStringOrdinal(p,n,root,n,TRUE)==CSTR_EQUAL;
+}
+static int path_deletable(const char* path)
+{
+	char roots[2][MAX_PATH]; int nr=0;
+	joinp(roots[nr++],gRepo,"build");
+	if (gStageRoot[0]) lstrcpynA(roots[nr++],gStageRoot,MAX_PATH);
+	WCHAR pl[MAX_PATH], pf[MAX_PATH+8], rl[MAX_PATH], rf[MAX_PATH+8];
+	if (!full_long_w(path,pl,MAX_PATH) || !final_w(path,pf,MAX_PATH+8)) return 0;
+	for (int i=0;i<nr;i++)
+		if (full_long_w(roots[i],rl,MAX_PATH) && final_w(roots[i],rf,MAX_PATH+8) && under_w(pl,rl) && under_w(pf,rf)) return 1;
+	return 0;
+}
+static int delete_guarded(const char* path)
+{
+	if (!path_deletable(path)) { logline("not deleting %s: it is not under build\\ or --stage-root", path); SetLastError(ERROR_ACCESS_DENIED); return 0; }
+	return DeleteFileA(path);
+}
+
+// A file's size and SHA-256 (64 hex digits). 0 if it cannot be read whole.
+static int file_sig(const char* path, unsigned long long* size, char hex[65])
+{
+	HANDLE f=CreateFileA(path,GENERIC_READ,FILE_SHARE_READ,NULL,OPEN_EXISTING,FILE_ATTRIBUTE_NORMAL,NULL);
+	if (f==INVALID_HANDLE_VALUE) return 0;
+	LARGE_INTEGER sz; int ok=GetFileSizeEx(f,&sz)!=0;
+	BCRYPT_ALG_HANDLE alg=NULL; BCRYPT_HASH_HANDLE hh=NULL;
+	if (ok) ok = BCRYPT_SUCCESS(BCryptOpenAlgorithmProvider(&alg,BCRYPT_SHA256_ALGORITHM,NULL,0));
+	if (ok) ok = BCRYPT_SUCCESS(BCryptCreateHash(alg,&hh,NULL,0,NULL,0,0));
+	unsigned long long total=0;
+	while (ok) {
+		unsigned char buf[16384]; DWORD n=0;
+		if (!ReadFile(f,buf,sizeof(buf),&n,NULL)) { ok=0; break; }
+		if (!n) break;
+		total+=n;
+		if (!BCRYPT_SUCCESS(BCryptHashData(hh,buf,n,0))) ok=0;
+	}
+	unsigned char d[32];
+	if (ok) ok = BCRYPT_SUCCESS(BCryptFinishHash(hh,d,32,0)) && total==(unsigned long long)sz.QuadPart;
+	if (ok) { for (int i=0;i<32;i++) wsprintfA(hex+i*2,"%02x",d[i]); hex[64]=0; *size=total; }
+	if (hh) BCryptDestroyHash(hh);
+	if (alg) BCryptCloseAlgorithmProvider(alg,0);
+	CloseHandle(f);
+	return ok;
+}
+
+// The marker lists each file origrun placed, one line each: "<size> <sha256> <name>". A line is added only once its
+// file is in place, and a file is deleted only while its size and hash still match its line.
+typedef struct { unsigned long long size; char hash[65]; char name[MAX_PATH]; char raw[MAX_PATH+96]; int parsed; } WrapEntry;
+static int write_marker(const WrapEntry* e, int n)
+{
+	char mk[MAX_PATH]; joinp(mk,gGameDir,kWrapMarker);
+	if (!n) return GetFileAttributesA(mk)==INVALID_FILE_ATTRIBUTES || delete_guarded(mk);
+	FILE* m=fopen(mk,"wb"); if (!m) return 0;
+	int ok=1;
+	for (int i=0;i<n;i++) {
+		if (e[i].parsed) { if (fprintf(m,"%llu %s %s\r\n",e[i].size,e[i].hash,e[i].name)<0) ok=0; }
+		else if (fprintf(m,"%s\r\n",e[i].raw)<0) ok=0;
+	}
+	if (fclose(m)) ok=0;
+	return ok;
+}
+// Delete the files of a failed placement (each only while it matches its line), and leave the marker listing what is
+// left. 0 if anything is left.
+static int rollback_wrapper(WrapEntry* e, int n)
+{
+	WrapEntry left[4]; int nl=0;
+	for (int i=0;i<n;i++) {
+		char p[MAX_PATH]; joinp(p,gGameDir,e[i].name);
+		unsigned long long sz; char hx[65];
+		if (file_sig(p,&sz,hx) && sz==e[i].size && !lstrcmpiA(hx,e[i].hash) && delete_guarded(p)) continue;
+		if (GetFileAttributesA(p)==INVALID_FILE_ATTRIBUTES) continue;
+		logline("--dgvoodoo: could not take %s back out of the copy (err %lu)", p, GetLastError());
+		if (nl<4) left[nl++]=e[i];
+	}
+	if (!write_marker(left,nl)) logline("--dgvoodoo: could not rewrite %s\\%s", gGameDir, kWrapMarker);
+	return nl==0;
+}
+
+// Take out the wrapper an earlier run placed. 0 stops the run: a file of it that could not be deleted, or that changed
+// since it was placed (its size or SHA-256 differ, or its line records neither), stays in the copy and in the marker,
+// and a wrapper must never carry over into a run that did not ask for it.
+static int remove_wrapper(void)
+{
+	char mk[MAX_PATH]; joinp(mk,gGameDir,kWrapMarker);
+	FILE* f=fopen(mk,"rb"); if(!f) return 1;
+	if (!path_deletable(mk)) {
+		fclose(f);
+		logline("%s is not under build\\ or --stage-root, so origrun deletes nothing there; stopping the run", mk);
+		return 0;
+	}
+	WrapEntry e[16]; int n=0; char ln[MAX_PATH+96];
+	while (fgets(ln,sizeof(ln),f)) {
+		char* q=strpbrk(ln,"\r\n"); if(q)*q=0;
+		if (!ln[0]) continue;
+		if (n>=16) { fclose(f); logline("%s has more lines than origrun ever writes; deleting nothing; stopping the run", mk); return 0; }
+		WrapEntry* x=&e[n++]; ZeroMemory(x,sizeof(*x)); lstrcpynA(x->raw,ln,sizeof(x->raw));
+		int off=0;
+		if (sscanf(ln,"%llu %64s %n",&x->size,x->hash,&off)==2 && off>0 && lstrlenA(x->hash)==64 && ln[off]) {
+			lstrcpynA(x->name,ln+off,MAX_PATH);
+			x->parsed = !strpbrk(x->name,"\\/:") && lstrcmpA(x->name,".") && lstrcmpA(x->name,"..");
+		}
+	}
+	fclose(f);
+	WrapEntry left[16]; int nl=0, removed=0;
+	for (int i=0;i<n;i++) {
+		if (!e[i].parsed) { logline("wrapper marker line '%s' records no size and hash; nothing deleted for it", e[i].raw); left[nl++]=e[i]; continue; }
+		char p[MAX_PATH]; joinp(p,gGameDir,e[i].name);
+		if (GetFileAttributesA(p)==INVALID_FILE_ATTRIBUTES) continue;   // already gone
+		unsigned long long sz; char hx[65];
+		if (!file_sig(p,&sz,hx) || sz!=e[i].size || lstrcmpiA(hx,e[i].hash)) {
+			logline("%s changed since origrun placed it (its size or SHA-256 differ); left in place", p);
+			left[nl++]=e[i]; continue;
+		}
+		if (!delete_guarded(p)) { logline("deleting %s failed (err %lu)", p, GetLastError()); left[nl++]=e[i]; continue; }
+		removed++;
+	}
+	if (nl) {
+		if (!write_marker(left,nl)) logline("could not rewrite %s", mk);
+		logline("removed %d of the previous run's wrapper files; %d stay in the copy (listed in %s). Stopping the run: "
+			"a wrapper must not carry over into a run that did not ask for it. Delete them by hand, or stage a fresh copy.", removed, nl, mk);
+		return 0;
+	}
+	if (!delete_guarded(mk)) { logline("deleting %s failed (err %lu); stopping the run", mk, GetLastError()); return 0; }
+	logline("removed the previous run's wrapper from the copy (%d files)", removed);
+	return 1;
+}
+static int place_wrapper(const char* dir, const char* installDir)
+{
+	// only ever into a staged copy: never an install folder, and only where a rollback may delete
+	if ((installDir && installDir[0] && !lstrcmpiA(gGameDir,installDir)) || istr_has(gGameDir,"\\Program Files") || istr_has(gGameDir,"\\steamapps\\")) {
+		logline("--dgvoodoo: %s looks like an install folder, not a staged copy; refusing to place the wrapper", gGameDir); return 0; }
+	if (!path_deletable(gGameDir)) {
+		logline("--dgvoodoo: %s is not under build\\ or --stage-root; refusing to place the wrapper", gGameDir); return 0; }
+	static const char* dlls[] = { "DDraw.dll", "D3DImm.dll" };
+	char src[2][MAX_PATH];
+	for (int i=0;i<2;i++) {
+		wsprintfA(src[i],"%s\\MS\\x86\\%s",dir,dlls[i]);
+		if (!file_exists(src[i])) wsprintfA(src[i],"%s\\%s",dir,dlls[i]);
+		if (!file_exists(src[i])) { logline("--dgvoodoo: %s not found under %s (MS\\x86 or the folder itself)", dlls[i], dir); return 0; }
+	}
+	const char* placed[3] = { dlls[0], dlls[1], "dgVoodoo.conf" };
+	for (int i=0;i<3;i++) { char d[MAX_PATH]; joinp(d,gGameDir,placed[i]);
+		if (file_exists(d)) { logline("--dgvoodoo: the copy already has its own %s; refusing to overwrite it", placed[i]); return 0; } }
+	WrapEntry ent[3]; int n=0;
+	for (int i=0;i<3;i++) {
+		char d[MAX_PATH]; joinp(d,gGameDir,placed[i]);
+		int created=0, ok;
+		if (i<2) {
+			ok = CopyFileA(src[i],d,TRUE);   // never over an existing file
+			DWORD err=GetLastError();
+			created = ok || (err!=ERROR_FILE_EXISTS && err!=ERROR_ALREADY_EXISTS);   // a failed copy may leave a part
+			if (!ok) logline("--dgvoodoo: copying %s failed (err %lu)", src[i], err);
+		} else {
+			HANDLE h=CreateFileA(d,GENERIC_WRITE,0,NULL,CREATE_NEW,FILE_ATTRIBUTE_NORMAL,NULL);
+			ok = h!=INVALID_HANDLE_VALUE; created=ok;
+			if (ok) { DWORD len=(DWORD)strlen(kDgvConf), wr=0; ok = WriteFile(h,kDgvConf,len,&wr,NULL) && wr==len; CloseHandle(h); }
+			if (!ok) logline("--dgvoodoo: writing %s failed (err %lu)", d, GetLastError());
+		}
+		if (ok) {
+			ZeroMemory(&ent[n],sizeof(ent[n]));
+			ok = file_sig(d,&ent[n].size,ent[n].hash);
+			if (ok) { lstrcpynA(ent[n].name,placed[i],MAX_PATH); ent[n].parsed=1; n++; created=0;   // now recorded: rolled back by its line
+				ok = write_marker(ent,n);
+				if (!ok) logline("--dgvoodoo: cannot write %s\\%s", gGameDir, kWrapMarker); }
+			else logline("--dgvoodoo: cannot read back %s", d);
+		}
+		if (!ok) {
+			if (created && GetFileAttributesA(d)!=INVALID_FILE_ATTRIBUTES && !delete_guarded(d))
+				logline("--dgvoodoo: could not delete the partly placed %s (err %lu)", d, GetLastError());
+			if (!rollback_wrapper(ent,n)) logline("--dgvoodoo: the wrapper could not be taken back out; the next run stops until it is");
+			return 0;
+		}
+	}
+	logline("placed dgVoodoo2 in the copy: %s, %s (from %s) and origrun's dgVoodoo.conf (windowed, flip model, no watermark); no shots this run", dlls[0], dlls[1], dir);
+	gCaptureRefused=1;
+	return 1;
+}
+
 // Polls the game's 3D flag every 100 ms while its window is up, logging the first reading and every change, until
 // "quit" freezes the verdict or the run ends.
 static DWORD WINAPI mode3d_thread(LPVOID p)
@@ -1200,7 +1547,13 @@ static DWORD WINAPI driver_thread(LPVOID p)
 	// Informational only: the game's window can be delayed (activation phone-home) or flaky under load, so we
 	// never bail on this -- the script's own waitshot/record commands poll for the window.
 	DWORD pid=find_game_pid(20000);
-	if (pid) { gGamePidHint=pid; logline("game window first seen: pid=%lu", pid); }
+	if (pid) {
+		gGamePidHint=pid;
+		char gpu[MAX_PATH]; int g=process_uses_gpu_api(pid,gpu,sizeof(gpu));
+		if (g>0) { gCaptureRefused=1; logline("game window first seen: pid=%lu; the game has loaded %s, so origrun takes no shot this run", pid, gpu); }
+		else if (gCaptureRefused) logline("game window first seen: pid=%lu; a graphics wrapper is in the copy, so origrun takes no shot this run", pid);
+		else logline("game window first seen: pid=%lu; %s; asked again before every capture", pid, g<0 ? "its module list could not be read yet" : "no GPU module loaded");
+	}
 	else logline("no window in the first 20s; proceeding anyway (the script polls for it)");
 	if (GetEnvironmentVariableA("ORIGRUN_MONITOR",NULL,0) || getenv("ORIGRUN_MONITOR")) {
 		for (int t=0;t<30 && !gStop;t++){ DWORD rp=0; HWND rw=resolve_window(0,&rp); logline("--- t+%dms  resolve_window -> hwnd=%p pid=%lu ---",t*1000,(void*)rw,rp); dump_desktop(); Sleep(1000); }
@@ -1212,17 +1565,30 @@ static DWORD WINAPI driver_thread(LPVOID p)
 
 // ------------------------------------------------------------------------------------------------- main
 
-static const char* lookup_game(const char* name, char* srcDir, char* exeLeaf, char* regKey, char* flag3d);
+static const char* lookup_game(const char* name, const char* byExe, char* srcDir, char* exeLeaf, char* regKey, char* flag3d);
+
+// A crash of origrun itself leaves the game running on rundesk's desktop with nothing to stop it, so say where it
+// happened (module and offset, for addr2line) before the process goes.
+static LONG WINAPI crash_filter(EXCEPTION_POINTERS* ep)
+{
+	HANDLE held=(HANDLE)InterlockedExchangePointer(&gHeldThread,NULL);   // first of all, let a held game run on
+	if (held) ResumeThread(held);
+	void* a=ep->ExceptionRecord->ExceptionAddress; HMODULE m=NULL; char mod[MAX_PATH]="?";
+	if (GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS|GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,(LPCSTR)a,&m)) GetModuleFileNameA(m,mod,MAX_PATH);
+	logline("origrun crashed: exception 0x%08lx at %p (%s+0x%lx), thread %lu; the game may still be running", ep->ExceptionRecord->ExceptionCode, a, mod, (unsigned long)((char*)a-(char*)m), GetCurrentThreadId());
+	return EXCEPTION_CONTINUE_SEARCH;
+}
 
 int main(int argc, char** argv)
 {
 	crc_init();
+	SetUnhandledExceptionFilter(crash_filter);
 	InitializeCriticalSection(&gRpmLock);
 	const char* game=NULL; const char* exe=NULL; const char* script=NULL;
 	const char* run=NULL; const char* sound="stub"; int timeout=120; int fresh=0; int copyOnly=0;
 	const char* patches=NULL; const char* counter=NULL; const char* flips=NULL;
 	int haveSeed=0; uint32_t seed=0; int updateMs=0; int noPatch=0; const char* stageRoot=NULL;
-	const char* key3dArg=NULL; const char* flag3dArg=NULL;
+	const char* key3dArg=NULL; const char* flag3dArg=NULL; const char* dgvArg=NULL;
 
 	for (int i=1;i<argc;i++) {
 		if (ieq(argv[i],"--game")&&i+1<argc) game=argv[++i];
@@ -1247,6 +1613,7 @@ int main(int argc, char** argv)
 		}
 		else if (ieq(argv[i],"--3d-key")&&i+1<argc) key3dArg=argv[++i];
 		else if (ieq(argv[i],"--3d-flag")&&i+1<argc) flag3dArg=argv[++i];
+		else if (ieq(argv[i],"--dgvoodoo")&&i+1<argc) dgvArg=argv[++i];
 		else { fprintf(stderr,"unknown or incomplete option: %s\n",argv[i]); return 2; }
 	}
 	if (!game && !exe) die("need --game <name> or --exe <path>");
@@ -1271,13 +1638,14 @@ int main(int argc, char** argv)
 	// exit at once when their folder sits that deep, so a worktree session stages the copy under, e.g., main's
 	// build/origrun or a short drive-root folder.
 	if (stageRoot && stageRoot[0]) { char sr[MAX_PATH]; lstrcpynA(sr,stageRoot,MAX_PATH); for(char* q=sr;*q;q++) if(*q=='/')*q='\\';
+		lstrcpynA(gStageRoot,sr,MAX_PATH);
 		wsprintfA(gGameDir,"%s\\%s\\game",sr,run); }
 	else joinp(gGameDir,gRunDir,"game");
 
 	// Resolve source and exe.
 	char srcDir[MAX_PATH]={0}, exeLeaf[MAX_PATH]={0}, tsvKey3d[256]={0}, tsvFlag3d[256]={0};
 	if (game) {
-		if (!lookup_game(game,srcDir,exeLeaf,tsvKey3d,tsvFlag3d)) { logline("unknown game '%s' -- add it to tools/origrun/games.tsv or use --exe",game); return 2; }
+		if (!lookup_game(game,NULL,srcDir,exeLeaf,tsvKey3d,tsvFlag3d)) { logline("unknown game '%s' -- add it to tools/origrun/games.tsv or use --exe",game); return 2; }
 		if (GetFileAttributesA(srcDir)==INVALID_FILE_ATTRIBUTES) { logline("source folder not found: %s",srcDir); return 2; }
 	}
 
@@ -1320,6 +1688,13 @@ int main(int argc, char** argv)
 	// --3d: the game's registry key and where it keeps its 3D flag (games.tsv's columns 4 and 5, or the options).
 	// The flag is polled whenever it is known, so every run logs the mode the game used; --3d also sets the mode.
 	static char key3d[256]="";
+	if (!game && exe && !(key3dArg && flag3dArg)) {
+		// --exe alone (a copy staged by hand): the games.tsv row with the same exe name gives the 3D columns.
+		const char* leaf=strrchr(exe,'\\'); const char* leaf2=strrchr(exe,'/'); if (leaf2>leaf) leaf=leaf2; leaf=leaf?leaf+1:exe;
+		char sd[MAX_PATH]={0}, el[MAX_PATH]={0};
+		const char* row=lookup_game(NULL,leaf,sd,el,tsvKey3d,tsvFlag3d);
+		if (row && (tsvKey3d[0]||tsvFlag3d[0])) logline("--exe %s: games.tsv row '%s' has this exe name; using its 3D key and flag", leaf, row);
+	}
 	if (key3dArg) lstrcpynA(key3d,key3dArg,256); else lstrcpynA(key3d,tsvKey3d,256);
 	if (flag3dArg) lstrcpynA(gMode3dExpr,flag3dArg,256); else lstrcpynA(gMode3dExpr,tsvFlag3d,256);
 	if (gMode3dWant>=0 && (!key3d[0] || !gMode3dExpr[0])) {
@@ -1368,6 +1743,22 @@ int main(int argc, char** argv)
 		if (listPath[0] && !apply_patches(listPath, haveSeed, seed)) return 2;
 	} else logline("--no-patches: the copy runs unpatched");
 
+	// The DirectDraw/Direct3D 7 wrapper: a previous run's never carries over. --dgvoodoo <dir> places it ("env" reads
+	// the folder from ORIGRUN_DGVOODOO), and --3d on places it from ORIGRUN_DGVOODOO when that is set, since 3D cannot
+	// run on rundesk's desktop without it.
+	if (!remove_wrapper()) return 2;
+	{
+		const char* env=getenv("ORIGRUN_DGVOODOO"); const char* wrapDir=dgvArg;
+		if (wrapDir && ieq(wrapDir,"env")) { wrapDir=env; if (!wrapDir||!*wrapDir) { logline("--dgvoodoo env: ORIGRUN_DGVOODOO is not set"); return 2; } }
+		if (!wrapDir && gMode3dWant==1 && env && *env) { wrapDir=env; logline("--3d on: using dgVoodoo2 from ORIGRUN_DGVOODOO (%s)", env); }
+		if (wrapDir && script_takes_shots(script)) {
+			logline("--dgvoodoo: refusing to start: this run takes shots, and no capture of a game drawing through a GPU wrapper is safe (its window can show the user's own screen). Run it with a script that takes none.");
+			return 2;
+		}
+		if (wrapDir) { if (!place_wrapper(wrapDir, srcDir)) return 2; }
+		else if (gMode3dWant==1) logline("note: --3d on without --dgvoodoo: legacy DirectDraw has no hardware on rundesk's desktop, so the game will fall back to software");
+	}
+
 	// Place the sound stand-in beside the copied exe (unless real sound was asked for).
 	int wantSilent = !ieq(sound,"real");
 	if (wantSilent) {
@@ -1391,6 +1782,15 @@ int main(int argc, char** argv)
 		if (!reg_set_is3d(key3d,1,(DWORD)gMode3dWant)) { logline("--3d: could not write HKCU\\%s\\%s (err %lu)",key3d,kIs3DValue,GetLastError()); return 2; }
 		char was[32]; if (hadPrev3d) wsprintfA(was,"%lu",prev3d); else lstrcpyA(was,"unset");
 		logline("--3d %s: set HKCU\\%s\\%s=%d for this run (it was %s)", gMode3dWant?"on":"off", key3d, kIs3DValue, gMode3dWant, was);
+	}
+
+	// Any graphics wrapper in the copy, whoever put it there, refuses every shot of the run (see capture_refused).
+	if (!gCaptureRefused) {
+		static const char* const kWrapperDlls[]={"ddraw.dll","d3dimm.dll","d3d8.dll","d3d9.dll","d3d11.dll","dxgi.dll","opengl32.dll"};
+		for (int i=0;i<(int)(sizeof(kWrapperDlls)/sizeof(kWrapperDlls[0]));i++) {
+			char wp[MAX_PATH]; joinp(wp,gGameDir,kWrapperDlls[i]);
+			if (file_exists(wp)) { gCaptureRefused=1; logline("%s is in the copy: origrun takes no shot this run (a GPU wrapper's window can show the user's own screen)", kWrapperDlls[i]); break; }
+		}
 	}
 
 	// Launch: rundesk.exe "<copied exe>"   (CWD = game folder, so the game finds its data)
@@ -1459,8 +1859,10 @@ int main(int argc, char** argv)
 
 // name <TAB> source-folder <TAB> exe-leaf    (lines starting with # ignored). Read beside origrun.exe or
 // at tools/origrun/games.tsv in the repo.
-static const char* lookup_game(const char* name, char* srcDir, char* exeLeaf, char* regKey, char* flag3d)
+// Finds a games.tsv row by its name, or (name NULL) by its exe file name, and returns the row's name.
+static const char* lookup_game(const char* name, const char* byExe, char* srcDir, char* exeLeaf, char* regKey, char* flag3d)
 {
+	static char rowName[64];
 	char selfDir[MAX_PATH]; GetModuleFileNameA(NULL,selfDir,MAX_PATH);
 	char* s=strrchr(selfDir,'\\'); if(s)*s=0;
 	// The repository's table first: a copy beside origrun.exe (an older habit) goes stale when its columns change.
@@ -1478,11 +1880,11 @@ static const char* lookup_game(const char* name, char* srcDir, char* exeLeaf, ch
 		char* t3=strchr(t2+1,'\t'); if(t3) *t3=0;
 		char* t4=t3?strchr(t3+1,'\t'):NULL; if(t4) *t4=0;
 		char* t5=t4?strchr(t4+1,'\t'):NULL; if(t5) *t5=0;
-		if (ieq(line,name)) {
+		if (name ? ieq(line,name) : ieq(t2+1,byExe)) {
 			lstrcpynA(srcDir,t1+1,MAX_PATH); lstrcpynA(exeLeaf,t2+1,MAX_PATH);
 			if (t3 && strcmp(t3+1,"-")) lstrcpynA(regKey,t3+1,256);
 			if (t4 && strcmp(t4+1,"-")) lstrcpynA(flag3d,t4+1,256);
-			ret="ok"; break;
+			lstrcpynA(rowName,line,sizeof(rowName)); ret=rowName; break;
 		}
 	}
 	fclose(f);
