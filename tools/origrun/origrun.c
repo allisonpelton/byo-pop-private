@@ -173,6 +173,10 @@ static char   gStateExpr[256] = "";
 // presenting (SexyAppBase's mLastDrawWasEmpty: nothing was dirty, or the draw throttle that runs while loading), so
 // the frame on screen is an older one and the shot says "or an earlier one".
 static char   gEmptyExpr[256] = "";
+// --watch <expr> (up to 4): values of the game's memory logged at each change with the update counter, polled every
+// millisecond (watch_thread), to measure how many updates something takes in the original (a loading screen, say).
+static char   gWatchExpr[4][256];
+static int    gWatchN = 0;
 static int    gUpdateMs = 10;        // SexyAppBase runs 100 updates/s
 
 // --3d on|off: the game's own Hardware Acceleration setting for the run, and the check that the game really ran in
@@ -394,25 +398,36 @@ static HANDLE gGameProc = NULL;      // PROCESS_VM_READ|PROCESS_QUERY_INFORMATIO
 static DWORD  gGameProcPid = 0;
 static HWND resolve_window(DWORD pid, DWORD* outPid);
 
+// The process rpm_u32 reads: its pid and handle are kept, and looked up again every 100 ms, or 10 ms after the handle
+// was lost. Not at every read: a window enumeration costs about a millisecond on the sandbox's desktop, and a --watch
+// reads every millisecond, through pointers.
+static DWORD gRpmLookupAt=0; static int gRpmLooked=0, gRpmFresh=0;
+static void rpm_open(DWORD pid)
+{
+	if (!pid || pid==gGameProcPid) return;
+	if (gGameProc) { CloseHandle(gGameProc); gGameProc=NULL; }
+	gGameProc=OpenProcess(PROCESS_VM_READ|PROCESS_QUERY_INFORMATION,FALSE,pid); gGameProcPid=pid;   // the surface gate's VirtualQueryEx needs the query right
+	if (gGameProc) {
+		unsigned char mz[2]={0,0}; SIZE_T g=0; BOOL ok=ReadProcessMemory(gGameProc,(LPCVOID)0x400000,mz,2,&g);
+		logline("reading the game's memory (pid %lu); image base reads %s (%02X %02X)", pid, (ok&&g==2)?"ok":"FAILED", mz[0], mz[1]);
+	} else logline("OpenProcess(PROCESS_VM_READ|PROCESS_QUERY_INFORMATION, pid %lu) failed (err %lu)", pid, GetLastError());
+}
 static int rpm_u32(DWORD_PTR addr, uint32_t* out)
 {
-	// Resolve the pid of the current top-level window each time: a SexyApp game can relaunch itself at start
-	// (a display-mode switch), so the first window's pid goes stale and the counter lives in the new process.
-	DWORD pid=0; resolve_window(0,&pid); if (!pid) pid=gGamePidHint;
-	if (pid && pid!=gGameProcPid) {
-		if (gGameProc) { CloseHandle(gGameProc); gGameProc=NULL; }
-		gGameProc=OpenProcess(PROCESS_VM_READ|PROCESS_QUERY_INFORMATION,FALSE,pid); gGameProcPid=pid;
-		if (gGameProc) {
-			unsigned char mz[2]={0,0}; SIZE_T g=0; BOOL ok=ReadProcessMemory(gGameProc,(LPCVOID)0x400000,mz,2,&g);
-			logline("reading the game's memory (pid %lu); image base reads %s (%02X %02X)", pid, (ok&&g==2)?"ok":"FAILED", mz[0], mz[1]);
-		} else logline("OpenProcess(PROCESS_VM_READ|PROCESS_QUERY_INFORMATION, pid %lu) failed (err %lu)", pid, GetLastError());
+	// A SexyApp game can relaunch itself at start (a display-mode switch), so the first window's pid goes stale and
+	// the counter lives in the new process: hence the lookups (and rpm_follow_window).
+	DWORD now=GetTickCount();
+	if (!gRpmLooked || now-gRpmLookupAt >= (gRpmFresh ? 100u : 10u)) {
+		DWORD pid=0; resolve_window(0,&pid); if (!pid) pid=gGamePidHint;
+		gRpmLookupAt=now; gRpmLooked=1; gRpmFresh=1;
+		rpm_open(pid);
 	}
 	if (!gGameProc) return 0;
 	SIZE_T got=0;
 	if (ReadProcessMemory(gGameProc,(LPCVOID)addr,out,4,&got) && got==4) return 1;
 	DWORD e=GetLastError();
 	static int warned=0; if (!warned) { warned=1; logline("ReadProcessMemory @0x%08lX failed (err %lu) -- check the counter address", (unsigned long)addr, e); }
-	if (e!=ERROR_PARTIAL_COPY) { CloseHandle(gGameProc); gGameProc=NULL; gGameProcPid=0; }   // real loss of the process
+	if (e!=ERROR_PARTIAL_COPY) { CloseHandle(gGameProc); gGameProc=NULL; gGameProcPid=0; gRpmFresh=0; }   // the process is gone: look again soon
 	return 0;
 }
 // An address expression: a hex number, or "[e]" (the pointer stored at address e), followed by any number of
@@ -448,6 +463,16 @@ static int read_counter(const char* expr, uint32_t* out)
 	int ok = eval_addr(&s,&addr) && rpm_u32((DWORD_PTR)addr,out);
 	LeaveCriticalSection(&gRpmLock);
 	return ok;
+}
+
+// A held shot reads the process of the window it holds: right after a relaunch or a launcher's hand-off the kept
+// handle can still be the old process's, alive for up to 100 ms more.
+static void rpm_follow_window(HWND hw)
+{
+	DWORD pid=0; GetWindowThreadProcessId(hw,&pid);
+	EnterCriticalSection(&gRpmLock);
+	if (pid && pid!=gGameProcPid) { rpm_open(pid); gRpmLookupAt=GetTickCount(); gRpmLooked=1; gRpmFresh=1; }
+	LeaveCriticalSection(&gRpmLock);
 }
 
 // --surface <addr>: the address of an Image-like header in the game (the pointer to the pixels at +0, the width at +4,
@@ -655,14 +680,16 @@ typedef struct { DWORD pidWanted; HWND found; DWORD foundPid; long bestArea; } F
 static BOOL CALLBACK enum_cb(HWND hwnd, LPARAM lp)
 {
 	FindCtx* c = (FindCtx*)lp;
-	DWORD pid=0; GetWindowThreadProcessId(hwnd, &pid);
-	if (c->pidWanted) { if (pid != c->pidWanted) return TRUE; }
-	else if (!is_our_pid(pid)) return TRUE;
+	// the cheap tests first: is_our_pid opens the process, and the sandbox's desktop has the whole Explorer shell
 	if (!IsWindowVisible(hwnd)) return TRUE;
 	if (GetWindow(hwnd, GW_OWNER) != NULL) return TRUE;   // top-level only
 	RECT r; GetWindowRect(hwnd, &r);
 	long area = (long)(r.right-r.left) * (r.bottom-r.top);
 	if ((r.right-r.left) < 64 || (r.bottom-r.top) < 64) return TRUE;
+	if (area <= c->bestArea) return TRUE;
+	DWORD pid=0; GetWindowThreadProcessId(hwnd, &pid);
+	if (c->pidWanted) { if (pid != c->pidWanted) return TRUE; }
+	else if (!is_our_pid(pid)) return TRUE;
 	if (area > c->bestArea) { c->bestArea = area; c->found = hwnd; c->foundPid = pid; }
 	return TRUE;   // keep scanning for the largest
 }
@@ -1051,6 +1078,7 @@ static int capture_held(const char* name)
 			if (th && !hold_begin(th)) { CloseHandle(th); th=NULL; }
 			if (!th) { logline("shot %s refused: the game's window thread could not be held", name); return 0; }
 			holds++;
+			rpm_follow_window(hw);
 			HANDLE held=th;
 			uint32_t c=0; int ok=read_counter(gCounterExpr,&c), shown=1;
 			if (ok && exact) { rf=0; shown=drawn_now(&rf); ok=!rf; }
@@ -1101,7 +1129,7 @@ static int capture_held(const char* name)
 	// reports every frame held past its update (none of 85 on Bookworm Adventures, 2026-11-01).
 	HANDLE th=open_window_thread(hw,THREAD_SUSPEND_RESUME|THREAD_GET_CONTEXT);
 	if (th && !hold_begin(th)) { CloseHandle(th); th=NULL; }
-	if (th) read_counter(gCounterExpr,&gHeldAt);
+	if (th) { rpm_follow_window(hw); read_counter(gCounterExpr,&gHeldAt); }
 	HANDLE held=th;
 	int ok=capture_ex2(hw,name,0,&held,0);   // no PrintWindow while held: the window DC, asked again first; resumes after the grab
 	release_held(&held);
@@ -1649,6 +1677,12 @@ static void restore_test3d(const char* sub, const RegVals* before)
 {
 	RegVals now; read_test3d(sub,&now);
 	if (same_test3d(before,&now)) return;
+	// what the game wrote, so a run can preset it (--reg) and the game skips its Direct3D test next time
+	for (int i=0;i<now.n;i++) {
+		char hex[3*64+1]=""; DWORD m=now.v[i].len<64?now.v[i].len:64;
+		for (DWORD b=0;b<m;b++) wsprintfA(hex+3*b,"%02x%s",now.v[i].data[b],b+1<m?",":"");
+		logline("3D: the game's Test3D value %s (type %lu): %s", now.v[i].name, now.v[i].type, hex);
+	}
 	char base[600], path[620]; HKEY root=game_key(sub,base,sizeof(base)); wsprintfA(path,"%s\\Test3D",base);
 	RegDeleteKeyExA(root,path,KEY_WOW64_32KEY,0);
 	if (before->n>=0) {
@@ -1916,6 +1950,35 @@ static DWORD WINAPI mode3d_thread(LPVOID p)
 	return 0;
 }
 
+// Logs each change of a --watch value ("watch 1: 48 -> 47 at update 2150"; "-" while it cannot be read, as through a
+// null pointer), at most 4000 lines per watch. Polls every millisecond under timeBeginPeriod(1): Sleep in origrun's
+// process otherwise rounds up to the 15.6 ms timer tick, which would miss values that change every update.
+static DWORD WINAPI watch_thread(LPVOID p)
+{
+	for (int w=0; !gDesk && !gStop && w<30000; w+=50) Sleep(50);
+	timeBeginPeriod(1);
+	char last[4][16]; int lines[4]={0};
+	for (int i=0;i<gWatchN;i++) lstrcpyA(last[i],"?");
+	while (!gStop) {
+		{   // a read fails ("-") while there is no game process
+			for (int i=0;i<gWatchN;i++) {
+				uint32_t v=0; char now[16];
+				if (read_counter(gWatchExpr[i],&v)) wsprintfA(now,"%lu",(unsigned long)v); else lstrcpyA(now,"-");
+				if (lstrcmpA(now,last[i]) && lines[i]<4000) {
+					uint32_t c=0; int hc = gCounterExpr[0] && read_counter(gCounterExpr,&c);
+					if (hc) logline("watch %d: %s -> %s at update %lu", i+1, last[i], now, (unsigned long)c);
+					else logline("watch %d: %s -> %s", i+1, last[i], now);
+					if (++lines[i]==4000) logline("watch %d: 4000 changes logged; no more", i+1);
+				}
+				lstrcpyA(last[i],now);
+			}
+		}
+		Sleep(1);
+	}
+	timeEndPeriod(1);
+	return 0;
+}
+
 // ----------------------------------------------------------------------------------------------- driver
 
 typedef struct { char script[MAX_PATH]; } DriverArg;
@@ -2011,6 +2074,7 @@ static int watch_run(Launched* L, const char* script, int timeout, const char* k
 	HANDLE dth=CreateThread(NULL,0,driver_thread,&da,0,NULL);
 	HANDLE gth=CreateThread(NULL,0,dialog_thread,NULL,0,NULL);   // log/answer message boxes on the game desktop
 	HANDLE mth=gMode3dExpr[0] ? CreateThread(NULL,0,mode3d_thread,NULL,0,NULL) : NULL;   // the game's 3D mode
+	HANDLE wth=gWatchN ? CreateThread(NULL,0,watch_thread,NULL,0,NULL) : NULL;   // --watch
 
 	// Wait for the game (rundesk returns when the whole job ends; inside the sandbox, origrun's own job), or hit the
 	// timeout.
@@ -2024,6 +2088,7 @@ static int watch_run(Launched* L, const char* script, int timeout, const char* k
 	WaitForSingleObject(gth,3000);
 	WaitForSingleObject(ath,3000);
 	if (mth) WaitForSingleObject(mth,3000);
+	if (wth) WaitForSingleObject(wth,3000);
 	close_game(L);
 
 	// What the game left in its setting (it writes Is3D at exit, and turns it off after a fallback), then the earlier
@@ -2623,6 +2688,7 @@ static int sandbox_host_run(const char* selfDir, const char* script, int timeout
 	if (gSurfaceGate) fprintf(rf,"surfacegate=0x%X\n",gSurfaceGate);
 	if (gStateExpr[0]) fprintf(rf,"state=%s\n",gStateExpr);
 	if (gEmptyExpr[0]) fprintf(rf,"empty=%s\n",gEmptyExpr);
+	for (int i=0;i<gWatchN;i++) fprintf(rf,"watch=%s\n",gWatchExpr[i]);
 	if (gMode3dWant>=0) fprintf(rf,"3d=%s\n",gMode3dWant?"on":"off");
 	if (key3d && key3d[0]) fprintf(rf,"key3d=%s\n",key3d);
 	if (gMode3dExpr[0]) fprintf(rf,"flag3d=%s\n",gMode3dExpr);
@@ -3063,6 +3129,7 @@ static int main_in_sandbox(const char* dir, int inSession, int probe)
 			else if (ieq(ln,"surfacegate")) gSurfaceGate=(uint32_t)strtoul(v,NULL,16);
 			else if (ieq(ln,"state")) lstrcpynA(gStateExpr,v,256);
 			else if (ieq(ln,"empty")) lstrcpynA(gEmptyExpr,v,256);
+			else if (ieq(ln,"watch") && gWatchN<4) lstrcpynA(gWatchExpr[gWatchN++],v,256);
 			else if (ieq(ln,"3d")) gMode3dWant = ieq(v,"on") ? 1 : 0;
 			else if (ieq(ln,"key3d")) lstrcpynA(key3d,v,256);
 			else if (ieq(ln,"flag3d")) lstrcpynA(gMode3dExpr,v,256);
@@ -3188,6 +3255,7 @@ int main(int argc, char** argv)
 		else if (ieq(argv[i],"--surface-gate")&&i+1<argc) gSurfaceGate=(uint32_t)strtoul(argv[++i],NULL,16);
 		else if (ieq(argv[i],"--update-state")&&i+1<argc) ustate=argv[++i];
 		else if (ieq(argv[i],"--draw-empty")&&i+1<argc) dempty=argv[++i];
+		else if (ieq(argv[i],"--watch")&&i+1<argc) { if (gWatchN<4) lstrcpynA(gWatchExpr[gWatchN++],argv[++i],256); else { fprintf(stderr,"origrun: at most 4 --watch\n"); return 2; } }
 		else if (ieq(argv[i],"--update-ms")&&i+1<argc) updateMs=atoi(argv[++i]);
 		else if (ieq(argv[i],"--copy-only")) copyOnly=1;
 		else if (ieq(argv[i],"--fresh")) fresh=1;

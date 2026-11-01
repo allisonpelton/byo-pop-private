@@ -79,6 +79,14 @@ Options:
   exactly the update it is labelled with. `mLastDrawWasEmpty` (one byte) is optional and tells a skipped draw apart.
   In the per-game config these are `pending_draw=`, `update_state=` and `draw_empty=`. Giving only one of the first
   two logs a warning. See "Timing to the game's updates".
+- `--watch <expr>` — a value in the game's memory (read as 32 bits), logged at each change with the update counter:
+  "watch 1: 48 -> 47 at update 2150", and "-" while it cannot be read (through a null pointer, say). Up to four, each
+  polled every millisecond and logging at most 4000 changes. It measures how many updates something lasts in the
+  original, such as a loading screen whose length follows the machine's speed (Bookworm Adventures' pilot watches its
+  chapter load screen's timer and hands the count to the port). Measure with the update numbers, not by counting
+  changes: after a held shot the game runs its catch-up updates back to back, faster than a poll, so a value can skip.
+  The game's process is looked up again every 100 ms (and soon after a failed read), not at every read: on the
+  sandbox's desktop a window enumeration costs about a millisecond.
 - `--patches <file>` — a patch list to apply to the copy (see "Patching the copy"). Defaults to
   `tools/origrun/patches/<game>.txt` if present. `--no-patches` runs the copy unpatched.
 - `--seed <N>` — a value substituted for the `{seed}` token in a patch, to pin the original's RNG so its boards
@@ -587,7 +595,7 @@ counter's address syntax, read as one byte (Bookworm Adventures: `Software\PopCa
 `[[0x8259e4]+0x36c]+0x38`, the app global, `mDDInterface`, `mIs3D`). When both are known, origrun polls the flag
 every 100 ms while the game's window is up, logs the first reading and every change ("3D mode: the game reports ON
 (Direct3D)" or "OFF (software)"), and ends with a "RESULT: 3D on/off" line. It also snapshots `Is3D` and the
-`Test3D` values before every run and puts them back after it, with or without `--3d`: on rundesk's desktop the game
+`Test3D` values before every run (logging each one the game left, as hex) and puts them back after it, with or without `--3d`: on rundesk's desktop the game
 falls back to software and saves `Is3D=0`, and a test that re-runs there caches a failure, and either would keep 3D
 off in the user's own play. `--3d on|off` writes `Is3D` for the run. The verdict uses the last reading taken before
 `quit` (a value read while the game tears its DDInterface down does not count); a run whose mode differs from the
