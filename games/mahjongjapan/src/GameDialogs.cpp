@@ -503,8 +503,8 @@ void TipBox::Create()
 	int aRight[] = {2, 2, 0, 0, 0};
 	int aTop[] = {2, 2, 3, 0, 0};
 	int aBottom[] = {3, 2, 2, 0, 0};
-	int anX;
-	int aY;
+	int anX = 0;  // the ids are 0-8: the original never leaves these unset
+	int aY = 0;
 	switch (mId)
 	{
 	case 0:
