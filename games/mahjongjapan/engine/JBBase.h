@@ -64,6 +64,14 @@ void Delete(std::string& theText, int theIndex, int theCount);
 // 0x423660, 0x423760: CString::Insert
 void Insert(std::string& theText, int theIndex, char theChar);
 void Insert(std::string& theText, int theIndex, const char* theInsert);
+// 0x4231d0: CString::Format
+std::string Format(const char* theFormat, ...);
+// 0x423260: the format is the Resource.dll string theId
+std::string FormatDll(int theId, ...);
+// 0x423450, 0x4233d0: GetTimeFormatA "H:mm:ss" of theSeconds (the port always uses ':')
+std::string FormatTime(int theSeconds);
+// 0x4232d0: GetNumberFormatA with the locale's grouping and no decimals (the port groups by threes with ',')
+std::string FormatNumber(int theNumber);
 
 // ShellExecuteA "open" (the app provides it; it never opens a page in a test run)
 void OpenUrl(const char* theUrl);

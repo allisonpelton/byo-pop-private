@@ -1,5 +1,7 @@
 #include "JBBase.h"
 
+#include <cstdarg>
+#include <cstdio>
 #include <cstdlib>
 #include <cstring>
 
@@ -245,6 +247,63 @@ void Insert(std::string& theText, int theIndex, char theChar)
 	if ((int)theText.size() < theIndex)
 		theIndex = (int)theText.size();
 	theText.insert((size_t)theIndex, 1, theChar);
+}
+
+// 0x4231d0
+static std::string FormatList(const char* theFormat, va_list theArgs)
+{
+	va_list aCopy;
+	va_copy(aCopy, theArgs);
+	int aLength = vsnprintf(nullptr, 0, theFormat, aCopy);
+	va_end(aCopy);
+	if (aLength <= 0)
+		return std::string();
+	std::string aText((size_t)aLength, '\0');
+	vsnprintf(&aText[0], (size_t)aLength + 1, theFormat, theArgs);
+	return aText;
+}
+
+std::string Format(const char* theFormat, ...)
+{
+	va_list anArgs;
+	va_start(anArgs, theFormat);
+	std::string aText = FormatList(theFormat, anArgs);
+	va_end(anArgs);
+	return aText;
+}
+
+// 0x423260
+std::string FormatDll(int theId, ...)
+{
+	std::string aFormat = LoadDllString(theId);
+	va_list anArgs;
+	va_start(anArgs, theId);
+	std::string aText = FormatList(aFormat.c_str(), anArgs);
+	va_end(anArgs);
+	return aText;
+}
+
+// 0x423450: hours, minutes, seconds
+std::string FormatTime(int theSeconds)
+{
+	return Format("%d:%02d:%02d", theSeconds / 3600, (theSeconds % 3600) / 60, (theSeconds % 3600) % 60);
+}
+
+// 0x4232d0
+std::string FormatNumber(int theNumber)
+{
+	std::string aDigits = Format("%d", theNumber < 0 ? -theNumber : theNumber);
+	std::string aText;
+	int aCount = (int)aDigits.size();
+	for (int i = 0; i < aCount; i++)
+	{
+		if (i != 0 && (aCount - i) % 3 == 0)
+			aText += ',';
+		aText += aDigits[i];
+	}
+	if (theNumber < 0)
+		aText = "-" + aText;
+	return aText;
 }
 
 // 0x423760
