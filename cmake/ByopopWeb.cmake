@@ -31,8 +31,9 @@ set(BYOPOP_WEB_BRAND favicon.svg favicon.ico apple-touch-icon.png logo.svg logo-
 # web/settings.js, the site's settings and the record of which games have their files (docs/WEB_PLAYER.md, "Site
 # settings", "The listing page"): one file that the listing page and every game page load. web/profiles.js keeps the site's
 # players and what the games report of theirs ("Player profiles"); the listing page and the game pages load it too.
-# web/exeicon.js reads a game's icon out of its exe (the game pages load it). All three are copied next to the pages.
-set(BYOPOP_WEB_SHARED_JS settings.js profiles.js exeicon.js)
+# web/exeicon.js reads a game's icon out of its exe (the game pages load it). web/chat.js is the chat beside the game
+# (docs/CHAT_DESIGN.md). All four are copied next to the pages.
+set(BYOPOP_WEB_SHARED_JS settings.js profiles.js exeicon.js chat.js)
 # the listing page's own scripts: the Players section (web/players.js), the save backup (web/saves.js) and the import of
 # saves from an installed game (web/saveimport.js, with the table platform/saveimport.json as saveimport-table.js), copied
 # next to index.html only
