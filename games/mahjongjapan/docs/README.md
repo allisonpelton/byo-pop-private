@@ -98,7 +98,21 @@ A tour from a saved player (the main menu, the options, the four pages of instru
 layouts, a classic game with its tip, losing and regaining the focus, pause and the in-game menu) matched the original
 in the sandbox. What differed was the menu's swinging lanterns, the classic deal and the layouts' previews (seeded from
 the clock, as in the original) and the counts that follow the deal. The web build under Node took the same 18 shots
-identical to the native ones. Not yet compared with the original: the sound and the music.
+identical to the native ones.
+
+The sound is compared by what plays, not by the audio. origrun's DirectSound stand-in hears nothing of this game:
+the packed `bass.dll` loads DirectSound for itself. Instead `tools/bassproxy/` (built with llvm-mingw's
+`i686-w64-mingw32-clang -shared bassproxy.c bassproxy.def -o bass.dll`) goes beside a copy of the exe (`origrun
+--copy-only`, the real BASS renamed `bass_real.dll`) and logs every BASS call to `basslog.txt`. Windows Sandbox has no
+sound device, so the proxy gives `BASS_Init` BASS's "no sound" device, which plays the music but loads no sample; it
+answers for the samples itself, as playing until stopped. The port writes the same events to the file named by the
+environment's `MJ_SOUNDLOG`, and `tools/soundlog.py <basslog.txt> <port log>` matches the two by the CRC of each
+sound's data and lines them up. On 2026-11-01 the tour above (78 events) and stages 2, 6, 10 and 60 with the ending
+(166 to 402 events each) played the same sounds and music in the same order: the same samples at the same volume,
+the music's loads, fades (1100 ms), stops, pauses with the focus and the in-game pause, and its jumps to an order
+(the sync of 0x437300, which in a real-time run of the port came 46 to 330 ms after it was set, against 239 to 416 ms
+in the original: the next row of the step). The only other differences were samples the proxy kept "playing" after
+they had ended, which the game then paused and resumed.
 
 ## Mods
 
