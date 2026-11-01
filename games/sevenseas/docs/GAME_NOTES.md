@@ -131,3 +131,15 @@ the side panel's lives are the small icon (image 31).
   2026-11-01, `build/ss-cmp/o`: the original's Help label under the mouse matches the port). The Yes and No labels do not
   change under the mouse either (`qh`), nor do the help screen's two labels (`hh`), although the decompilation reads colour 1
   while the mouse is over a button (+0x1f); a pressed button is not captured yet (origrun cannot hold a button down).
+
+## 6. Comparison with the original, state of 2026-11-01 (sandbox captures)
+
+Static screens match pixel for pixel (title, menu, quit and options dialogs, help screen, the first board and the arrows under the
+mouse). The map scenario (six sailing moves, a sinking and the new ship, 84 shots) shows the same board, the same ships, kills and
+score texts in every shot; what differs is timing. A shot in the sandbox lands on "update N or an earlier one" (the 2003 exe has no
+`mHasPendingDraw` or `mUpdateAppState` to give origrun, so its shots are never exact), and the best port frame for a shot lies
+5 to 11 updates after N. That jitter explains the corner whirls (a step every 4 updates; at the best frame they differ by at most 8
+of 255), the score's count-up (17 against 19 in a few shots) and the sprites caught mid-move. After the player's ship sinks,
+`PlaceShip` (0x409e90, checked against the decompilation) puts the new one one cell apart from the original's: the random draws
+(the pirate's blink, the whirls, the enemies) fall in another order when a click lands an update earlier or later, so the new
+cell differs. To settle it the scenario needs a click that lands on the same update in both runs.
