@@ -23,11 +23,11 @@ public:
 	};
 
 	bool mShown = false;                 // +0x14c: passed on to +0x32c's +0x54 and +0x55 (0x702ad3)
-	bool mUnknown14D = false;            // +0x14d: the level's number changes with a sound (0x702ac3, 0x703431)
+	bool mUnknown14D = false;            // +0x14d: a new level's number comes with a sound; off in a challenge (0x702ac3)
 	Board* mBoard = nullptr;             // +0x154
-	int mUnknown158 = 0;                 // +0x158: 4 in zen (0x702b87)
+	int mUnknown158 = 0;                 // +0x158: 4 in a challenge (0x702b87)
 	int mUnknown15C = 0;                 // +0x15c: 1 in blitz (0x702bae)
-	int mUnknown160 = 0;                 // +0x160: 1, 2 in zen (0x702bbe)
+	int mUnknown160 = 0;                 // +0x160: 1, 2 in a challenge (0x702bbe)
 	int mUnknown16C = 0;                 // +0x16c: the glass's height over the bottom (0x7030ec)
 	Image* mTopImage = nullptr;          // +0x178: the challenge's top in a challenge
 	Image* mBottomImage = nullptr;       // +0x17c

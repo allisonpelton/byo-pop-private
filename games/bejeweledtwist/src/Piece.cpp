@@ -404,7 +404,7 @@ void Piece::Draw(Graphics* g, bool theForce)
 			DrawBack(g);
 		return;
 	}
-	if (aBoard->mGameMode == Board::MODE_CHALLENGE && aBoard->mPuzzleImage != nullptr)
+	if (aBoard->mGameMode == Board::MODE_PUZZLE && aBoard->mPuzzleImage != nullptr)
 		return;
 
 	bool isDevil = IsFlagSet(FLAG_DEVIL);
@@ -531,7 +531,7 @@ void Piece::Draw(Graphics* g, bool theForce)
 							aScale = 1.0f;
 					}
 					g->SetDrawMode(Graphics::DRAWMODE_NORMAL);
-					if (aBoard->mGameMode == Board::MODE_CHALLENGE && !isCoal) {
+					if (aBoard->mGameMode == Board::MODE_PUZZLE && !isCoal) {
 						aSrcY = 0;
 						aSrcX = 0;
 						aColor = gGemColors[mColor];
@@ -690,8 +690,8 @@ void Piece::Draw(Graphics* g, bool theForce)
 void Piece::DrawBack(Graphics* g)
 {
 	Board* aBoard = gApp->mBoard;
-	if (gBoard->mGameMode == Board::MODE_CHALLENGE && gBoard->mPuzzleImage != nullptr) {
-		// A challenge's picture: the piece shows the part of it its id was cut for, lit (by the board's +0x2038) while
+	if (gBoard->mGameMode == Board::MODE_PUZZLE && gBoard->mPuzzleImage != nullptr) {
+		// The puzzle's picture: the piece shows the part of it its id was cut for, lit (by the board's +0x2038) while
 		// it is back in that place
 		Image* aPuzzle = aBoard->mPuzzleImage;
 		int aCellWidth = aPuzzle->mWidth / aBoard->mCols;
@@ -843,7 +843,7 @@ void Piece::DrawFront(Graphics* g)
 					int aHeight = gGemHeight;
 					float aX = (float)(mShakeX + mX + (gGemWidth / 2));
 					float aY = (float)(mShakeY + mY + (gGemHeight / 2));
-					if (gBoard->mGameMode == Board::MODE_CHALLENGE) {
+					if (gBoard->mGameMode == Board::MODE_PUZZLE) {
 						aShineImage = nullptr;
 					} else {
 						if (!IsFlagSet(FLAG_1))
@@ -1126,7 +1126,7 @@ void Piece::DrawFront(Graphics* g)
 
 	// The shockwave of the gem's colour, shrinking from four times its size as +0x2e4 falls (half that without
 	// Direct3D)
-	if ((gBoard->mGameMode != Board::MODE_CHALLENGE || !gBoard->mUnknown1324) && 0.0f < mDevilGlow &&
+	if ((gBoard->mGameMode != Board::MODE_PUZZLE || !gBoard->mUnknown1324) && 0.0f < mDevilGlow &&
 		!IsFlagSet(FLAG_DEVIL)) {
 		g->SetColorizeImages(true);
 		Image* aWave = GetImageById(IMAGE_GEM_SHOCKWAVE_0_ID + mColor);

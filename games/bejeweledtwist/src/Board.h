@@ -58,13 +58,13 @@ struct LevelValue {
 class Board : public TwistWidget {
 public:
 	// The game modes (+0x20c)
-	enum { MODE_CLASSIC = 1, MODE_ZEN = 2, MODE_BLITZ = 3, MODE_CHALLENGE = 5 };
+	enum { MODE_CASUAL = 0, MODE_CLASSIC = 1, MODE_CHALLENGE = 2, MODE_BLITZ = 3, MODE_ZEN = 4, MODE_PUZZLE = 5 };
 
 	int mUnknown158 = 0;               // +0x158: the level (LevelValue)
 	int mGameMode = 0;                 // +0x20c
 	int mModeFlags = 0;                // +0x210: 8 for a replay
 	WinTwistApp* mApp = nullptr;       // +0x954
-	Image* mPuzzleImage = nullptr;     // +0x1320: a challenge's picture, cut into the gems
+	Image* mPuzzleImage = nullptr;     // +0x1320: the puzzle's picture (mode 5), cut into the gems
 	bool mUnknown1324 = false;         // +0x1324
 	int mRows = 0;                     // +0x1330
 	int mCols = 0;                     // +0x1334
@@ -506,7 +506,7 @@ public:
 	int mUnknown25B4 = 0;                   // +0x25b4
 	int mUnknown2644 = 0;                   // +0x2644
 	int mBonusChallengeMinGems = 0;         // +0x266c
-	int mUnknown2674 = 0;                   // +0x2674: the constructor's last argument
+	int mUnknown2674 = 0;                   // +0x2674: the challenge's number (mode 2)
 	int mUnknown3458 = 0;                   // +0x3458: blitz's 30000
 	std::map<int, int> mUnknown37B8;        // +0x37b8
 	MTRand mRand;                           // +0x958: seeded from Rand()

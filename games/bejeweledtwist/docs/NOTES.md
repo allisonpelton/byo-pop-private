@@ -231,8 +231,8 @@ was read as its first letter.
 `Sexy::Board` (0x6a3d7b-0x6d6899, about 200 KB of code in 1,470 functions with its templates; constructor 0x6c4df9,
 destructor 0x6befa1) is about 0x3940 bytes. Its bases are a TwistWidget, a ButtonListener (+0x148), a
 TwistDialogListener (+0x14c) and a PopAnimListener (+0x150). Its arguments are the app (+0x954), the game mode
-(+0x20c: 1 classic, 2 zen, 3 blitz, 5 challenge; but LoadConfig, 0x6b2b77, reads config_casual for 0, _normal for 1,
-_blitz for 3 and _zen for 4, so which mode 2 and 4 are is still to be checked against the menu), flags (+0x210: 8 for a replay) and +0x2674.
+(+0x20c: 0 casual, 1 classic, 2 a challenge, 3 blitz, 4 zen, 5 puzzle, as the saved games' names (0x763964) and the
+config files (0x6b2b77) show), flags (+0x210: 8 for a replay) and the challenge's number (+0x2674).
 
 Its vtable (0x7dd0d4, 71 slots) overrides AddedToManager (20, 0x6b8aa2), RemovedFromManager (21, 0x6ca084), Update
 (22, 0x6d6899, which calls the 24 KB 0x6d090f), Draw (26, 0x6cc7ed), DrawAll (27, 0x6aac5e), SetVisible (31,
