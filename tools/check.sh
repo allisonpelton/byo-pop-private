@@ -120,6 +120,7 @@ CB_BANKS="82 animations, 9 missing, 0 failed; 8 fonts, 0 failed"
 CB_GAME="17000 ms: score 526, lives 6, board 0, filled 426 of 85%; 28000 ms: score 729, lives 6, board 0, filled 629 of 85%"
 WB_BANKS="77 animations, 10 missing, 0 failed; 7 fonts, 3 empty as in the game, 0 failed"
 WB_GAME="20000 ms: score 0, lives 6, board 0, filled 0 of 85%; 32000 ms: score 494, lives 6, board 0, filled 494 of 85%"
+WB_LOSS="30000 ms: score 0, lives 0, board 0, filled 0 of 90%"
 DY_GAME="board mode 0 score 10 eggs 12 cells ec5704d5"
 
 set -u
@@ -921,6 +922,18 @@ waterbugs_run() {  # <name>: the headless runner's scripted game; prints its sta
 	echo "$l"
 }
 
+waterbugs_loss() {  # the last life lost, the click on the game over: the high scores (the game file is read again; it once crashed)
+	local d="$OUT/waterbugs/loss" e=0 l
+	rm -rf "$d"; mkdir -p "$d"
+	printf '%s
+' "3000 click 400 303" "8000 click 75 260" "14000 click 400 465" "20000 lives 1" "21000 die" "24000 click 400 300" 		"30000 state" "30000 shot scores" "30010 end" > "$d/script.txt"
+	timeout 300 build/native/waterbugs_run.exe assets/waterbugs "$d" "$d/script.txt" > "$d/stdout.txt" 2> "$d/stderr.txt" || e=$?
+	l="$(grep -E '^[0-9]+ ms: score' "$d/stdout.txt" | tr -d '')"
+	[ -f "$d/scores.png" ] || l="$l; NO SCREENSHOT"
+	[ $e -eq 0 ] || l="$l; EXIT $e"
+	echo "$l"
+}
+
 waterbugs_window() {  # <name>: the windowed exe with the runner's left clicks; prints its state after the beam
 	local d="$OUT/waterbugs/$1" e=0 l u
 	rm -rf "$d"; mkdir -p "$d/user"
@@ -937,7 +950,7 @@ waterbugs_window() {  # <name>: the windowed exe with the runner's left clicks; 
 }
 
 suite_waterbugs() {
-	local st=0 b g r w w2 c="$OUT/waterbugs" ea=0 ef=0
+	local st=0 b g r w w2 l c="$OUT/waterbugs" ea=0 ef=0
 	need_assets waterbugs || return 1
 	mkdir -p "$c/banks"
 	# Every animation the game file names and every font, each listing kept (the game file names ten files the game does not ship)
@@ -949,15 +962,17 @@ suite_waterbugs() {
 	# The windowed exe's -fast clock does not step 10 ms on every update, so its animations' phases are not the
 	# runner's: its state after the beam is, and its screen is its rerun's
 	w="$(waterbugs_window window)"; w2="$(waterbugs_window window2)"
+	l="$(waterbugs_loss)"
 	{ echo "banks: $b"; echo "game: $g"; echo "rerun: $r"; echo "window: $w"; echo "window rerun: $w2"; } > "$1"
 	[ "$b" = "$WB_BANKS" ] || st=1
 	[ "$g" = "$WB_GAME" ] || st=1
+	[ "$l" = "$WB_LOSS" ] || st=1
 	if diff -q "$c/game/start.png" "$c/game2/start.png" >> "$1" 2>&1 && diff -q "$c/game/beam.png" "$c/game2/beam.png" >> "$1" 2>&1 &&
 		[ "$g" = "$r" ]; then r="rerun identical"; else r="RERUN DIFFERS"; st=1; fi
 	if [ "$w" = "$(echo "${g##*; }" | sed 's/^[0-9]* ms: //')" ] && diff -q "$c/window/beam.png" "$c/window2/beam.png" >> "$1" 2>&1 &&
 		[ "$w" = "$w2" ]; then w="window the same, twice"; else w="WINDOW DIFFERS ('$w')"; st=1; fi
-	SUMMARY="$b; $g; $r; $w"
-	[ $st -eq 0 ] || SUMMARY="$SUMMARY (expected '$WB_BANKS', '$WB_GAME')"
+	SUMMARY="$b; $g; $r; $w; loss: $l"
+	[ $st -eq 0 ] || SUMMARY="$SUMMARY (expected '$WB_BANKS', '$WB_GAME', '$WB_LOSS')"
 	return $st
 }
 
