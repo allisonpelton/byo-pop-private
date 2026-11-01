@@ -125,13 +125,13 @@ Every call re-reads the whole context, so what costs is context times calls, and
   kept in its order; a frozen baseline of the port with a regression check that proves later fixes and mods leave
   unmodded play unchanged. Every memory leak of the original is fixed: memory the original still uses after
   "leaking" it (Bejeweled's FillBoard orphans) is freed after its last possible use.
-- **Two phases: plays identical, then looks identical (the user, 2026-11-01).** The first phase is the game's logic: with
-  the same input, a series of games plays out the same in the original and the port (the same boards and random draws,
-  moves, scores, levels, timers and endings). Check it by the game's state (origrun's `--watch` values at an update, the
-  port's own logs) more than by pictures. When a series of games plays out the same, the first phase is done. The second
-  phase is everything else in the bullet above: screen by screen with shotdiff, sound, focus and the web build. A
-  graphics fault noticed during the first phase may be fixed then. Passes already running do both phases; every other
-  game gets the first phase only, until every game plays identical (`docs/COORDINATION.md`).
+- **Two phases: plays identical, then looks identical (the user, 2026-11-01).** The first phase is the game's logic:
+  with the same input, a series of games plays out the same in the original and the port (the same boards and random
+  draws, moves, scores, levels, timers and endings). Check it by the game's state (origrun's `--watch` values at an
+  update, the port's own logs) more than by pictures. When a series of games plays out the same, the first phase is
+  done. The second phase is everything else in the bullet above: screen by screen with shotdiff, sound, focus and the
+  web build. A graphics fault noticed during the first phase may be fixed then. Passes already running do both phases;
+  every other game gets the first phase only, until every game plays identical (`docs/COORDINATION.md`).
 - **Oddities are not chased (the user, 2026-11-01):** "If the original game behaves weirdly, I don't *necessarily* want
   to preserve that", and no session should spin its wheels on something obscure. A fix is the original's own logic,
   found in our export and kept small and plain. When a difference would need silly code (values measured from runs,
