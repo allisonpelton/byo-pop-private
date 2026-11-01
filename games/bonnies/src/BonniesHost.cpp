@@ -1032,8 +1032,12 @@ void BonniesHostApp::SwitchScreenMode(bool wantWindowed, bool is3d, bool force)
 	SexyAppBase::SwitchScreenMode(wantWindowed, is3d, force);
 }
 
+// On the web the page's own button makes the game full screen: a browser enters it only on the player's click
 void BonniesHostApp::SetGameFullscreen(bool theFullscreen)
 {
+#ifdef __EMSCRIPTEN__
+	return;
+#endif
 	if (theFullscreen != mIsWindowed)
 		return;
 	mApplyingGameMode = true;
