@@ -3,8 +3,12 @@
 #ifdef __EMSCRIPTEN__
 #include "SiteProfiles.h"
 #include "NingPo.h"
+#include "GameText.h"
 #include "WebProfiles.h"
 #include "WebSettings.h"
+
+#include <cctype>
+#include <cstring>
 
 using namespace ningpo;
 
@@ -13,11 +17,71 @@ static const int kMaxChars = 12;
 
 static bool sStarted = false, sReady = false, sMusicSet = false;
 
+static bool SameName(const std::string& a, const std::string& b)
+{
+	if (a.size() != b.size())
+		return false;
+	for (size_t i = 0; i < a.size(); i++)
+		if (tolower((unsigned char) a[i]) != tolower((unsigned char) b[i]))
+			return false;
+	return true;
+}
+
+// Ning Po remembers no name, so the names it knows are the ones in its best times (all 18 layouts), but for the starting
+// entries: the default names and the cleared ones (resetBestTimes, loadBestTimes) all have 144 tiles left at 99:59
+class NingPoScoreNames : public Byopop::SiteScoreNames
+{
+public:
+	NingPoScoreNames() : Byopop::SiteScoreNames(NULL, NULL, NULL, kMaxChars, -1, "Up to 12 characters; ASCII, case kept") {}
+
+	virtual std::vector<std::string> Names()
+	{
+		std::vector<std::string> aNames;
+		NingPo* anApp = GetNingPo();
+		if (anApp == NULL)
+			return aNames;
+		for (int aLayout = 0; aLayout < NUM_LAYOUTS; aLayout++)
+			for (int aRank = 0; aRank < NUM_BEST_TIMES; aRank++)
+			{
+				const BestTime& aTime = anApp->mBestTimes[aLayout][aRank];
+				if ((aTime.mTilesLeft == 0x90) && (aTime.mTime == 5999) && (aTime.mRawTime == 5999))
+					continue;
+				std::string aName(aTime.mName, strnlen(aTime.mName, sizeof(aTime.mName)));
+				if (aName.empty() || (aName == GT(0x467a24)))
+					continue;
+				bool isNew = true;
+				for (size_t n = 0; n < aNames.size(); n++)
+					if (SameName(aNames[n], aName))
+						isNew = false;
+				if (isNew)
+					aNames.push_back(aName);
+			}
+		return aNames;
+	}
+
+	virtual std::string Find(const std::string& theName)
+	{
+		std::vector<std::string> aNames = Names();
+		for (size_t n = 0; n < aNames.size(); n++)
+			if (SameName(aNames[n], theName))
+				return aNames[n];
+		return "";
+	}
+};
+
 void ningpo::SiteStart()
 {
-	Byopop::SiteScoreNames aScores(NULL, NULL, NULL, kMaxChars, -1, "Up to 12 characters; ASCII, case kept");
+	NingPoScoreNames aScores;
 	Byopop::SiteStart("ningpo", aScores);
 	sStarted = true;
+}
+
+void ningpo::SiteScoresChanged()
+{
+	if (!sStarted)
+		return;
+	NingPoScoreNames aScores;
+	Byopop::SiteChanged("ningpo", aScores);
 }
 
 // The site's volumes (framework/WebSettings.h): the options' two settings, 0 to 1, as their sliders set them (SoundSlider and
