@@ -13,8 +13,13 @@ class Font;
 class Graphics;
 class Image;
 
+// port: logs once that theWhat is not ported yet
+void NotPorted(const char* theWhat);
+
 // 0x756e97: one Rand() draw as a number from -1 to 1 in steps of 1/500000
 float RandSigned();
+// 0x756ec2: one Rand() draw as a number from 0 to 1 in steps of 1/1000000
+float RandFloat();
 
 // How DrawImageScaledCentered places the image against theX, theY
 enum {

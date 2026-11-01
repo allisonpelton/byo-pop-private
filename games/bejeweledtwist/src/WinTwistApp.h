@@ -10,6 +10,7 @@
 
 namespace Sexy {
 
+class Board;
 class ButtonWidget;
 class CustomBassMusicInterface;
 class CustomResourceManager;
@@ -17,6 +18,7 @@ class EffectsManager;
 class Gates;
 class Hyperspace;
 class Image;
+class MemoryImage;
 class LoaderScreen;
 class Menu;
 class MenuButtonWidget;
@@ -43,7 +45,14 @@ public:
 	int mLoadMode = 0;                  // +0xf18: 1 skips the Sounds group, 2 loads only it (never set: always 0)
 	bool mFlag764 = false;              // +0x764: set by the loader while mFlag784 is (meaning not yet known)
 	bool mFlag784 = false;              // +0x784: (meaning not yet known; the loader's other buttons depend on it)
-	Widget* mBoard = nullptr;           // +0x7e4: the board while a game is on (comes with the board)
+	Board* mBoard = nullptr;            // +0x7e4: the board while a game is on
+	unsigned int mUnknownCF8 = 0;       // +0xcf8: a count of games (LevelValue)
+	// +0x7f4: each colour's gem drawn ahead at 7 sizes, from 1.375 times a cell (size 0) down to 0.625 in eighths
+	// (size 3 is the cell), centred in 1.5 cells; a gem breaking up shrinks through them. +0x7f8: each colour's bomb
+	// at half size. Made by MakeGemImages, null until then.
+	MemoryImage* mGemImages[7][7] = {};
+	MemoryImage* mBombImages[7] = {};
+	bool mGemImagesMade = false;        // port: the original tests +0x7f4 for null
 	int mPendingMusic = -1;             // +0x8e4: the track to play once the music has faded out, -1 none
 	int mPendingMusicDelay = 0;         // +0x8e8: frames to wait after that (never set: always 0)
 	int mNumIngameTracks = 0;           // +0x92c: the game's tunes, tracks 100 on (properties\music.xml)
@@ -121,6 +130,8 @@ public:
 	void SetDefaultScores();    // 0x7637ee: the lists a new install starts with, from the exe's tables
 	// 0x763ca4: properties\music.xml and both songs, with their tracks
 	void LoadMusic();
+	void MakeGemImages();               // 0x7620a1
+	void FreeGemImages();               // 0x762342 (the part that frees them)
 	// 0x75fc23: plays a track, after the music fades out with theFade (unless none is playing); theExtra1 and 2 are
 	// BASS's two extra play arguments, which the port leaves out
 	void PlayMusic(int theTrackId, bool noLoop, bool theFade, int theExtra1, int theExtra2);
@@ -142,6 +153,8 @@ public:
 
 	// 0x760659: 2D mode, the art at 600 and the screen at 800x600 in 16 bits
 	void Use2DMode();
+	// 0x75fcd7: gGemWidth and gGemHeight for the art's size (64, 82 or 128)
+	void SetGemSize();
 	// port: the game's own question "is Direct3D on" (the base's answers whether SDL's renderer is accelerated). The
 	// port draws as the original does without Direct3D, so the game always hears no.
 	bool Is3DAccelerated() { return false; }
@@ -166,5 +179,8 @@ public:
 };
 
 extern WinTwistApp* gApp;  // 0xe0b698
+// 0x84e884, 0x84e888: a gem's cell on the board, set by the art's size (WinTwistApp::SetGemSize)
+extern int gGemWidth;
+extern int gGemHeight;
 
 }  // namespace Sexy

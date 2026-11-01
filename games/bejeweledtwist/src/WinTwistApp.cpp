@@ -3,6 +3,7 @@
 
 #include "CustomBassMusicInterface.h"
 #include "CustomResourceManager.h"
+#include "Board.h"
 #include "Buffer.h"
 #include "ButtonWidget.h"
 #include "EffectsManager.h"
@@ -10,6 +11,8 @@
 #include "Gates.h"
 #include "GraphicsRecorder.h"
 #include "Hyperspace.h"
+#include "Graphics.h"
+#include "MemoryImage.h"
 #include "LoaderScreen.h"
 #include "Menu.h"
 #include "MenuButtonWidget.h"
@@ -25,12 +28,15 @@
 #include "UnderDialogWidget.h"
 #include "Widget.h"
 #include "WidgetManager.h"
+#include "X86Math.h"
 
 #include <SDL.h>
 
 using namespace Sexy;
 
 WinTwistApp* Sexy::gApp = nullptr;
+int Sexy::gGemWidth = 82;
+int Sexy::gGemHeight = 82;
 
 namespace {
 
@@ -94,6 +100,7 @@ WinTwistApp::~WinTwistApp()
 		mWidgetManager->RemoveWidget(mUnderDialog);
 		delete mUnderDialog;
 	}
+	FreeGemImages();
 	delete mProfile;
 	delete mRanks;
 	if (mHyperspace != nullptr) {
@@ -118,6 +125,21 @@ void WinTwistApp::Use2DMode()
 	mWidth = 800;
 	mHeight = 600;
 	mWindowAspect.Set(4, 3);
+	SetGemSize();
+}
+
+void WinTwistApp::SetGemSize()
+{
+	if (mArtRes == ART_RES_600) {
+		gGemWidth = 64;
+		gGemHeight = 64;
+	} else if (mArtRes == ART_RES_768) {
+		gGemWidth = 82;
+		gGemHeight = 82;
+	} else if (mArtRes == ART_RES_1200) {
+		gGemWidth = 128;
+		gGemHeight = gGemWidth;
+	}
 }
 
 void WinTwistApp::Init()
@@ -129,6 +151,7 @@ void WinTwistApp::Init()
 	LoadResourceManifest();
 	LoadGameTexts();
 	// port: the original reads the scores before the properties; their defaults need the game's texts here
+	SetGemSize();
 	LoadScores();
 	LoadMusic();
 	// 0x4a3c20: properties\default.xml, the texts of the high scores' stats page and others
@@ -228,6 +251,62 @@ void WinTwistApp::Shutdown()
 	mWidgetManager->RemoveWidget(mWindowedButton);
 	mProfile->Save();
 	SexyApp::Shutdown();
+}
+
+void WinTwistApp::MakeGemImages()
+{
+	SetGemSize();
+	if (mGemImagesMade)
+		return;
+	mGemImagesMade = true;
+	int aColor = 0;
+	do {
+		int aSize = 0;
+		do {
+			MemoryImage* anImage = new MemoryImage(this);
+			anImage->Create(Ftol((double)gGemWidth * 1.5), Ftol((double)gGemHeight * 1.5));
+			anImage->mPurgeBits = true;
+			anImage->SetImageMode(true, true);
+			anImage->mFilePath = "!prog";
+			double aScale = 1.5 - ((double)aSize + 1.0) * 0.125;
+			int aWidth = Ftol((double)gGemWidth * aScale) | 1;
+			int aHeight = Ftol(aScale * (double)gGemHeight) | 1;
+			Graphics g(anImage);
+			Rect aRect(Ftol(((double)gGemWidth * 1.5 - aWidth) * 0.5), Ftol(((double)gGemHeight * 1.5 - aHeight) * 0.5),
+				aWidth, aHeight);
+			g.DrawImageCel(IMAGE_GEMS, aRect, aColor);
+			mGemImages[aColor][aSize] = anImage;
+			aSize++;
+		} while (aSize < 7);
+		MemoryImage* anImage = new MemoryImage(this);
+		anImage->Create(IMAGE_BOMBGEMS->GetCelWidth() / 2, IMAGE_BOMBGEMS->GetCelHeight() / 2);
+		anImage->SetImageMode(true, true);
+		anImage->mFilePath = "!prog";
+		Graphics g(anImage);
+		Rect aRect(0, 0, IMAGE_BOMBGEMS->GetCelWidth() / 2, IMAGE_BOMBGEMS->GetCelHeight() / 2);
+		g.DrawImageCel(IMAGE_BOMBGEMS, aRect, aColor);
+		mBombImages[aColor] = anImage;
+		mCompletedLoadingThreadTasks++;
+		aColor++;
+	} while (aColor < 7);
+}
+
+void WinTwistApp::FreeGemImages()
+{
+	// port: the original also leaks the eight arrays that held the images (NOTES.md, "Deviations")
+	if (!mGemImagesMade)
+		return;
+	for (int aColor = 0; aColor < 7; aColor++) {
+		for (int aSize = 0; aSize < 7; aSize++) {
+			delete mGemImages[aColor][aSize];
+			mGemImages[aColor][aSize] = nullptr;
+		}
+	}
+	for (int aColor = 0; aColor < 7; aColor++) {
+		delete mBombImages[aColor];
+		mBombImages[aColor] = nullptr;
+	}
+	mGemImagesMade = false;
 }
 
 void WinTwistApp::WriteToRegistry()
@@ -368,7 +447,7 @@ void WinTwistApp::StartMainMenu()
 		mWindowedButton->mDownRect = IMAGE_WINDOWEDBUTTON->GetCelRect(2);
 	}
 	PlaceWindowedButton();
-	// 0x7620a1: the gems drawn ahead into app +0x7f4/+0x7f8 come with the board
+	MakeGemImages();
 	if (!mResumeGame)
 		ShowMainMenu(false, false, 0);
 	mGates->Update();

@@ -38,13 +38,6 @@ using namespace Sexy;
 
 namespace {
 
-void NotPorted(const char* theWhat)
-{
-	static std::set<std::string> sSaid;
-	if (sSaid.insert(theWhat).second)
-		SDL_Log("%s is not ported yet", theWhat);
-}
-
 // A button of a panel at its place in resources.xml, against the panel's picture
 void PlaceButton(ButtonWidget* theButton, int theDialogId, float theScale)
 {

@@ -39,6 +39,18 @@ void GraphicsRecorder::DrawImage(Graphics* g, Image* theImage, const Rect& theDe
 		g->DrawImage(theImage, theDestRect, theSrcRect);
 }
 
+void GraphicsRecorder::DrawImageCel(Graphics* g, Image* theImage, int theX, int theY, int theCel)
+{
+	if (!mSkipDraw)
+		g->DrawImageCel(theImage, theX, theY, theCel);
+}
+
+void GraphicsRecorder::DrawImageCel(Graphics* g, Image* theImage, const Rect& theDestRect, int theCel)
+{
+	if (!mSkipDraw)
+		g->DrawImageCel(theImage, theDestRect, theCel);
+}
+
 void GraphicsRecorder::DrawImageTransform(Graphics* g, Image* theImage, const Transform& theTransform,
 	const Rect& theSrcRect, float theX, float theY, bool theUseFloat)
 {

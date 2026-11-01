@@ -246,6 +246,14 @@ cell). The game's other classes come with it: Piece (0x729b41-0x72fc8e), Points,
 Mandala, LevelUpShow, GameOverShow, SpeedText, OrbitText, FlyingText, GemSoul, Tutorial, EndStats, WheelSpin,
 FruitAwardScreen, RankBonusWidget, AwardTelly, PuzzleUI, ReloadDisplay and ReplayWidget.
 
+A piece (`Piece`, 0x53c bytes, no RTTI) is ported whole: its drawing (0x729b41 and its back and front, 0x72af5c and
+0x72fc8e), its update (0x72c67b: locks, the flight to a new place, coal's embers, the power, electro, fruit, type 6 and
+7 and devil gems' effects, an electro gem's arcs, the growth of a new gem, a bomb's counter and the break-up) and
+the counter's image (0x72bab1). The port splits the update's longest parts into helpers (UpdatePowerSparks,
+UpdateDevilSmoke, UpdateElectro, AddBreakDust) and keeps their draws in order. Its +0x528 is only ever copied or
+cleared, so the calls through it are left out. Only the 2D paths are ported: with Direct3D some effects draw other
+images and an electro arc takes 2 to 6 segments instead of 3 or 4.
+
 The order of the work: Piece and the grid, then the board's update, input and drawing for classic mode, then the
 other modes, the shows and the end of a game.
 
@@ -269,3 +277,9 @@ Each is a change without a visible effect in play.
   exit; the port's is the app's music interface, deleted with the app with its tracks. BASS's two extra play
   arguments (Blitz passes the board's +0x3928 and +0x392c) are left out until the board shows what they do. Without
   sound the original's PlayMusic reads past a plain MusicInterface; the port does nothing.
+- The gems drawn ahead (WinTwistApp::MakeGemImages): the original frees the images but never the eight arrays of
+  pointers that held them; the port keeps them in the app.
+- A piece's row and column (Piece::DrawFront): the original draws them over each piece while the board's +0x21db
+  is set, which nothing ever sets; the port leaves the labels out.
+- A devil gem's spark (Piece::AddSpark): the original makes the effect and then returns null without adding or
+  deleting it; the port deletes it.

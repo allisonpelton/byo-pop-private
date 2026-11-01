@@ -22,6 +22,8 @@ public:
 	void DrawImage(Graphics* g, Image* theImage, int theX, int theY, int theWidth, int theHeight);     // 0x70dbaf
 	void DrawImage(Graphics* g, Image* theImage, int theX, int theY, const Rect& theSrcRect);          // 0x70dc33
 	void DrawImage(Graphics* g, Image* theImage, const Rect& theDestRect, const Rect& theSrcRect);     // 0x70dcac
+	void DrawImageCel(Graphics* g, Image* theImage, int theX, int theY, int theCel);                    // 0x70dd43
+	void DrawImageCel(Graphics* g, Image* theImage, const Rect& theDestRect, int theCel);               // 0x70ddb8
 	// 0x70dfad: Graphics::DrawImageTransform (theUseFloat: DrawImageTransformF)
 	void DrawImageTransform(Graphics* g, Image* theImage, const Transform& theTransform, const Rect& theSrcRect,
 		float theX, float theY, bool theUseFloat);

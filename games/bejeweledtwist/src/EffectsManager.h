@@ -54,6 +54,9 @@ public:
 	bool mIsCyclingColor = false; // +0x90: the hue turns
 	int mCurHue = 0;              // +0x94
 	bool mIsAdditive = false;     // +0x98
+	float mUnknown9C = 0;         // +0x9c (set by the board's sparks; meaning comes with their types)
+	float mUnknownA0 = 0;         // +0xa0
+	float mUnknownA4 = 0;         // +0xa4
 	int mFlags = 0;               // +0xb0
 	bool mDeleteMe = false;       // +0xb4
 	EffectsManager* mFXManager = nullptr;  // +0xb8

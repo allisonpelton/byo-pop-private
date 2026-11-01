@@ -8,11 +8,27 @@
 #include "SexyMatrix.h"
 #include "X86Math.h"
 
+#include <SDL.h>
+
+#include <set>
+
 using namespace Sexy;
+
+void Sexy::NotPorted(const char* theWhat)
+{
+	static std::set<std::string> sSaid;
+	if (sSaid.insert(theWhat).second)
+		SDL_Log("%s is not ported yet", theWhat);
+}
 
 float Sexy::RandSigned()
 {
 	return (float)((Rand() % 1000000 - 500000) / 500000.0);
+}
+
+float Sexy::RandFloat()
+{
+	return (float)((Rand() % 1000000) / 1000000.0);
 }
 
 void Sexy::DrawImageScaledCentered(Graphics* g, Image* theImage, float theX, float theY, int theAlign,
