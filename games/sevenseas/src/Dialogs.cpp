@@ -424,7 +424,7 @@ HighScoreDialog::HighScoreDialog(SevenSeasApp* theApp) :
 	Use2003Buttons(this, theApp->mImages[IMAGE_OPTIONSBUTTON]);
 	mScores = new HighScoreWidget(theApp);
 	SetButtonFont(mApp->mFonts[FONT_MT11]);
-	SetHeaderFont(mApp->mFonts[FONT_FONT1]);
+	SetHeaderFont(mApp->mFonts[FONT_MT22]);
 	SetLinesFont(mApp->mFonts[FONT_MT11]);
 	mContentInsets = Insets(0x26, 0x26, 0x26, 0x26);
 	SetColor(COLOR_BUTTON_TEXT, Color(0xe0, 0xb7, 0x28));
