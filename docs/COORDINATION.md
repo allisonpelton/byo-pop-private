@@ -54,6 +54,12 @@ CLAUDE.md was "larger than I typically like"). CLAUDE.md keeps the rules every s
 - **The merged games first (the user, 2026-10-27):** the 18 games merged by 2026-10-27 are not done until they pass
   the identical-play comparison (CLAUDE.md, "Done means identical"); from the weekly reset (2026-11-01) they come
   first, and no new port starts until all 18 are done.
+- **Triage and new ports (the user, 2026-11-01):** "If we have to triage, Twist before identical gameplay on existing
+  decomps. No new decomps until all existing ones play identically, except ~trivial ones (the other Mahjong game is the
+  only one, I'm guessing)." So when usage runs short, Bejeweled Twist's port comes before the identical-play passes.
+  The existing decompilations are every game ported so far, Bonnie's Bookstore and Mahjong Escape: Ancient Japan
+  included. No new port starts until all of them play identically. The one exception is a near-trivial port: so far
+  that means only Mahjong Escape: Ancient China, which is Ancient Japan's code with other resources.
 - **Order of the work on the merged games (the user, 2026-11-01):** "once all issues I mentioned are fixed, move on down
   through the game list. Once all games are done, then we can do code quality/readability, and finally figure out what
   code does not need to be present in the decomps (mostly registration, but other things are likely to turn up as
