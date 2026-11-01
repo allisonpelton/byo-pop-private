@@ -59,9 +59,8 @@ HelpWidget::HelpWidget(SevenSeasApp* theApp) :
 		aButton->SetFont(mApp->mFonts[FONT_TUT]);
 		aButton->mLabel = GT(aLabels[i]);
 		aButton->SetColor(ButtonWidget::COLOR_LABEL, Color(0xff, 0xe4, 0x37));
-		// only COLOR_LABEL is set; the hovered and pressed label keeps ButtonWidget's default, which is black (the pressed
-		// button is the all-black DBUTTONBLACK in the original, the same as the plate here)
-		aButton->SetColor(ButtonWidget::COLOR_LABEL_HILITE, Color(0, 0, 0));
+		// a capture of the original with the mouse over the button shows the label still gold (not the framework's black)
+		aButton->SetColor(ButtonWidget::COLOR_LABEL_HILITE, Color(0xff, 0xe4, 0x37));
 		// the button is a black plate (the original's picture for it is all black)
 		aButton->SetColor(ButtonWidget::COLOR_DARK_OUTLINE, Color(0, 0, 0));
 		aButton->SetColor(ButtonWidget::COLOR_LIGHT_OUTLINE, Color(0, 0, 0));
