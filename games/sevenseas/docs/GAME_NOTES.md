@@ -135,11 +135,15 @@ the side panel's lives are the small icon (image 31).
 ## 6. Comparison with the original, state of 2026-11-01 (sandbox captures)
 
 Static screens match pixel for pixel (title, menu, quit and options dialogs, help screen, the first board and the arrows under the
-mouse). The map scenario (six sailing moves, a sinking and the new ship, 84 shots) shows the same board, the same ships, kills and
-score texts in every shot; what differs is timing. A shot in the sandbox lands on "update N or an earlier one" (the 2003 exe has no
-`mHasPendingDraw` or `mUpdateAppState` to give origrun, so its shots are never exact), and the best port frame for a shot lies
-5 to 11 updates after N. That jitter explains the corner whirls (a step every 4 updates; at the best frame they differ by at most 8
-of 255), the score's count-up (17 against 19 in a few shots) and the sprites caught mid-move. After the player's ship sinks,
-`PlaceShip` (0x409e90, checked against the decompilation) puts the new one one cell apart from the original's: the random draws
-(the pirate's blink, the whirls, the enemies) fall in another order when a click lands an update earlier or later, so the new
-cell differs. To settle it the scenario needs a click that lands on the same update in both runs.
+mouse). The map scenario (six sailing moves, a sinking and the new ship, 84 shots) shows the same board, ships, kills and score
+texts in every shot. The 2003 exe has no `mHasPendingDraw` or `mUpdateAppState`, but its main loop (0x431c70) counts the updates
+since the last draw at app+0x364, which origrun takes for both (`--pending-draw` and `--update-state` `[0x4e21bc]+0x364`), so a
+shot lands exactly on the update it says. With the click's move, down and up all in one update of the port (origrun posts them back
+to back in the sandbox) and the port's script at the update after the original's, 59 of the 84 shots match and 20 more differ
+faintly (the whirls by at most 8 of 255, a score digit one step apart on a half-update phase). Watching the board's state in the
+original (`--watch '[[0x4e21bc]+0x434]+0x138'`) shows every state change of the port 3 updates after the original's with the older
+click timing (move, down 3 and up 7 updates apart), and on the same update with the corrected one. What is not settled: the pirate's
+delay before the game starts (a random one of three spoken lines) and the new ship's cell after the sinking depend on the update a
+click lands on in the port, and the original lands the same click on N or N+1 at random, so an exact run needs the port's click on
+the update the original's log says plus one; some runs then still choose another line. The random draws that sit between the title
+click and the game start (the pirate's blink among them) are the place to look.
