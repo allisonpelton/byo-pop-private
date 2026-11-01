@@ -310,10 +310,12 @@ int main(int argc, char** argv)
 			break;
 		}
 		aFrames++;
-		// (a frame is 10 ms, shortened to reach an event that falls inside it: the game steps a millisecond at a time)
-		uint32_t aStep = 10;
+		// (a frame is WB_FRAME_MS ms, 10 unless set: the original under origrun runs about a millisecond a frame. It is
+		// shortened to reach an event that falls inside it: the game steps a millisecond at a time)
+		static const uint32_t aFrameMs = std::getenv("WB_FRAME_MS") != nullptr ? (uint32_t)std::atoi(std::getenv("WB_FRAME_MS")) : 10;
+		uint32_t aStep = aFrameMs;
 		int aAfter = aByFrame ? wb::gFrame : (int)gHost.mTime;   // (the frame just run has moved the counter on)
-		if (aNext < anEvents.size() && anEvents[aNext].time > aAfter && anEvents[aNext].time < aAfter + 10)
+		if (aNext < anEvents.size() && anEvents[aNext].time > aAfter && anEvents[aNext].time < aAfter + (int)aFrameMs)
 			aStep = (uint32_t)(anEvents[aNext].time - aAfter);
 		gHost.mTime += aStep;
 	}
