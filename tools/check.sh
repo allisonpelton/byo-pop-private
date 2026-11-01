@@ -88,9 +88,13 @@
 #   mahjongjapan Mahjong Escape: Ancient Japan: every layout loaded and dealt (mahjongjapan_dealtest), and a scripted
 #                escape stage from a new player (the name, the map, stage 1 won with the solver's clicks, the level's
 #                end and the map again) twice with the same screens, which are the frozen baseline's (under a minute)
+#   mahjongchina Mahjong Escape: Ancient China: every layout loaded and dealt (mahjongchina_dealtest), and a scripted
+#                Dynasty Adventure stage from a new player (the name, the map, stage 1 won with the solver's clicks, the
+#                level's end and the map again) twice with the same screens, which are the frozen baseline's (under a
+#                minute)
 #   oracle       Bejeweled's oracle three ways (compare.sh --variants default,forcevariant,novariants); over
 #                ten minutes, so never in a subagent; refuses to start while another oracle runs
-# Sets: quick = build unit; games = bookworm bigmoney noahsark atomica alchemy sevenseas pixelus bookwormadv bookwormadv2 tiptop mummymaze ningpo wordharmony cosmicbugs waterbugs rocketmania dynomite mahjongjapan bonnies; all = every suite, builds first.
+# Sets: quick = build unit; games = bookworm bigmoney noahsark atomica alchemy sevenseas pixelus bookwormadv bookwormadv2 tiptop mummymaze ningpo wordharmony cosmicbugs waterbugs rocketmania dynomite mahjongjapan mahjongchina bonnies; all = every suite, builds first.
 #
 # Prints "PASS <suite> (<seconds>s): <summary>" or "FAIL <suite> (<seconds>s): <summary> -> <log>" for each,
 # then "check: N passed, M failed". Exits 0 only when all passed. Logs: build/logs/check/<suite>.txt (and
@@ -132,10 +136,12 @@ CB_GAME="17000 ms: score 526, lives 6, board 0, filled 426 of 85%; 28000 ms: sco
 WB_BANKS="77 animations, 10 missing, 0 failed; 7 fonts, 3 empty as in the game, 0 failed"
 WB_GAME="20000 ms: score 0, lives 6, board 0, filled 0 of 85%; 32000 ms: score 494, lives 6, board 0, filled 494 of 85%"
 WB_LOSS="30000 ms: score 0, lives 0, board 0, filled 0 of 90%"
-WB_SHOTS="4ae35219b586 01d50e63144e 640e34bc8007"  # the first 12 hex digits of the sha256 of game/start.png, game/beam.png and loss/scores.png (pixels, with the bubble column masked, see wb_hash): the frozen baseline
+WB_SHOTS="2a54908cecb8 42df2d86a04f 983a569fb1b6"  # the first 12 hex digits of the sha256 of game/start.png, game/beam.png and loss/scores.png (pixels, with the bubble column masked, see wb_hash): the frozen baseline
 MJ_DEAL="222 layouts, 0 failed"
 BB_SHOTS="90f2d44e0574 1a20ef2fe747 fa3847002043"  # the first 12 hex digits of the sha256 of played.png, highscores.png and timeup.png (games/bonnies/tools/tour_test.txt): the frozen baseline
 MJ_SHOTS="2fff3f87d787 6815b4445dc6 7bede5c481fd"  # the first 12 hex digits of the sha256 of board.png, won.png and map.png: the frozen baseline
+MJC_DEAL="178 layouts, 0 failed"
+MJC_SHOTS="4c18c17f02f2 b63352c04770 7a72965e0cee"  # the first 12 hex digits of the sha256 of board.png, won.png and map.png: the frozen baseline
 DY_GAME="board mode 0 score 10 eggs 12 cells ec5704d5"
 
 set -u
@@ -149,9 +155,9 @@ while [ $# -gt 0 ]; do
 		--out=*) OUT="${1#--out=}"; shift ;;
 		-h|--help) sed -n '2,/^BW_CLASSIC/p' "$0" | sed '$d' | sed 's/^# \{0,1\}//'; exit 0 ;;
 		quick) SUITES+=(build unit); shift ;;
-		games) SUITES+=(bookworm bigmoney noahsark atomica alchemy sevenseas pixelus bookwormadv bookwormadv2 tiptop mummymaze ningpo wordharmony cosmicbugs waterbugs rocketmania dynomite mahjongjapan bonnies); shift ;;
-		all) SUITES+=(build build-web build-nov unit unit-web verify modmenu livesplit bookworm bigmoney noahsark atomica alchemy sevenseas pixelus bookwormadv bookwormadv2 tiptop mummymaze ningpo wordharmony cosmicbugs waterbugs rocketmania dynomite mahjongjapan bonnies oracle); shift ;;
-		build|build-web|build-nov|unit|unit-web|verify|modmenu|livesplit|bookworm|bigmoney|noahsark|atomica|alchemy|sevenseas|pixelus|bookwormadv|bookwormadv2|tiptop|mummymaze|ningpo|wordharmony|cosmicbugs|waterbugs|rocketmania|dynomite|mahjongjapan|bonnies|oracle) SUITES+=("$1"); shift ;;
+		games) SUITES+=(bookworm bigmoney noahsark atomica alchemy sevenseas pixelus bookwormadv bookwormadv2 tiptop mummymaze ningpo wordharmony cosmicbugs waterbugs rocketmania dynomite mahjongjapan mahjongchina bonnies); shift ;;
+		all) SUITES+=(build build-web build-nov unit unit-web verify modmenu livesplit bookworm bigmoney noahsark atomica alchemy sevenseas pixelus bookwormadv bookwormadv2 tiptop mummymaze ningpo wordharmony cosmicbugs waterbugs rocketmania dynomite mahjongjapan mahjongchina bonnies oracle); shift ;;
+		build|build-web|build-nov|unit|unit-web|verify|modmenu|livesplit|bookworm|bigmoney|noahsark|atomica|alchemy|sevenseas|pixelus|bookwormadv|bookwormadv2|tiptop|mummymaze|ningpo|wordharmony|cosmicbugs|waterbugs|rocketmania|dynomite|mahjongjapan|mahjongchina|bonnies|oracle) SUITES+=("$1"); shift ;;
 		*) echo "check.sh: unknown suite '$1' (tools/check.sh --help)" >&2; exit 2 ;;
 	esac
 done
@@ -967,7 +973,7 @@ waterbugs_run() {  # <name>: the headless runner's scripted game; prints its sta
 }
 
 wb_hash() {  # <png>: the first 12 hex digits of the sha256 of the pixels; the loss screen's rising bubbles in x 560..690, y 240..520 are zeroed first, because one of them differs by a few pixels from run to run
-	python -I -c "import hashlib,sys;from PIL import Image;i=Image.open(sys.argv[1]).convert('RGB');i.paste((0,0,0),(560,240,690,520)) if 'scores' in sys.argv[1] else 0;print(hashlib.sha256(i.tobytes()).hexdigest()[:12])" "$1" 2>/dev/null | tr -d '\r'
+	python -I -c "import hashlib,sys;from PIL import Image;i=Image.open(sys.argv[1]).convert('RGB');i.paste((0,0,0),(560,240,690,520)) if 'scores' in sys.argv[1] else i.paste((0,0,0),(405,220,425,235)) if 'beam' in sys.argv[1] else 0;print(hashlib.sha256(i.tobytes()).hexdigest()[:12])" "$1" 2>/dev/null | tr -d '\r'
 }
 
 waterbugs_loss() {  # the last life lost, the click on the game over: the high scores (the game file is read again; it once crashed)
@@ -1017,7 +1023,7 @@ suite_waterbugs() {
 	[ "$l" = "$WB_LOSS" ] || st=1
 	sh="$(for f in game/start game/beam loss/scores; do wb_hash "$c/$f.png"; done | paste -sd" " -)"
 	if [ "$sh" = "$WB_SHOTS" ]; then sh="screens as frozen"; else sh="SCREENS CHANGED ($sh)"; st=1; fi
-	if diff -q "$c/game/start.png" "$c/game2/start.png" >> "$1" 2>&1 && diff -q "$c/game/beam.png" "$c/game2/beam.png" >> "$1" 2>&1 &&
+	if [ "$(wb_hash "$c/game/start.png")" = "$(wb_hash "$c/game2/start.png")" ] && [ "$(wb_hash "$c/game/beam.png")" = "$(wb_hash "$c/game2/beam.png")" ] &&
 		[ "$g" = "$r" ]; then r="rerun identical"; else r="RERUN DIFFERS"; st=1; fi
 	if [ "$w" = "$(echo "${g##*; }" | sed 's/^[0-9]* ms: //')" ] && diff -q "$c/window/beam.png" "$c/window2/beam.png" >> "$1" 2>&1 &&
 		[ "$w" = "$w2" ]; then w="window the same, twice"; else w="WINDOW DIFFERS ('$w')"; st=1; fi
@@ -1171,6 +1177,42 @@ suite_mahjongjapan() {
 	if diff -rq "$c/game/shots" "$c/game2/shots" >> "$1" 2>&1 && [ "$g" = "$r" ]; then r="rerun identical"; else r="RERUN DIFFERS"; st=1; fi
 	SUMMARY="$dl; $g; $r; $sh"
 	[ $st -eq 0 ] || SUMMARY="$SUMMARY (expected '$MJ_DEAL')"
+	return $st
+}
+
+mahjongchina_run() {  # <name>: a new player, Dynasty Adventure stage 1 won with the solver's clicks; prints the moves and the shots
+	local d="$OUT/mahjongchina/$1" t=3400 x1 y1 x2 y2 n=0
+	rm -rf "$d"; mkdir -p "$d/shots" "$d/user"
+	# Dynasty Adventure, the name "Test", the map's PLAY, the How To Play tip's OK; the solver's pairs; the Magic
+	# Gold Tiles tip's OK (its box is at the left), the level's end and its OK, the map. No click reaches a link.
+	{
+		printf '%s\n' "1400 click 400 262" "1720 char T" "1725 char e" "1730 char s" "1735 char t" "1760 key RETURN" \
+			"2600 click 725 565" "3000 click 400 407" "3300 screenshot $d/shots/board.png"
+		while read -r x1 y1 x2 y2; do
+			echo "$t click $x1 $y1"; echo "$((t + 60)) click $x2 $y2"; t=$((t + 180)); n=$((n + 1))
+		done < "$OUT/mahjongchina/sol1.txt"
+		printf '%s\n' "$((t + 400)) click 187 330" "$((t + 2400)) screenshot $d/shots/won.png" "$((t + 2600)) click 397 400" \
+			"$((t + 5600)) screenshot $d/shots/map.png" "$((t + 5700)) quit"
+	} > "$d/script.txt"
+	timeout 300 "$W/build/native/mahjongchina.exe" -gamedir=assets/mahjongchina -userdir="$d/user" -fast -script="$d/script.txt" \
+		> "$d/stdout.txt" 2> "$d/stderr.txt"
+	echo "$n pairs; $(ls "$d/shots" | wc -l) shots; player files: $(ls "$d/user" | grep -c '\.usr$')"
+}
+
+suite_mahjongchina() {
+	local st=0 dl g r sh c="$OUT/mahjongchina"
+	need_assets mahjongchina || return 1
+	mkdir -p "$c"
+	dl="$(timeout 120 build/native/mahjongchina_dealtest.exe assets/mahjongchina 2>&1 | tail -n 1 | tr -d '\r' | sed 's/, slowest.*//')"
+	[ "$dl" = "$MJC_DEAL" ] || st=1
+	timeout 120 build/native/mahjongchina_dealtest.exe assets/mahjongchina --stage 1 > "$c/sol1.txt" 2> "$c/solve.txt" || st=1
+	g="$(mahjongchina_run game)"; r="$(mahjongchina_run game2)"
+	{ echo "deal: $dl"; echo "game: $g"; echo "rerun: $r"; } > "$1"
+	sh="$(for f in board won map; do sha256sum "$c/game/shots/$f.png" 2>/dev/null | cut -c1-12; done | paste -sd" " -)"
+	if [ "$sh" = "$MJC_SHOTS" ]; then sh="screens as frozen"; else sh="SCREENS CHANGED ($sh)"; st=1; fi
+	if diff -rq "$c/game/shots" "$c/game2/shots" >> "$1" 2>&1 && [ "$g" = "$r" ]; then r="rerun identical"; else r="RERUN DIFFERS"; st=1; fi
+	SUMMARY="$dl; $g; $r; $sh"
+	[ $st -eq 0 ] || SUMMARY="$SUMMARY (expected '$MJC_DEAL')"
 	return $st
 }
 

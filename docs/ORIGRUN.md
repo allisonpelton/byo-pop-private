@@ -79,6 +79,14 @@ Options:
   exactly the update it is labelled with. `mLastDrawWasEmpty` (one byte) is optional and tells a skipped draw apart.
   In the per-game config these are `pending_draw=`, `update_state=` and `draw_empty=`. Giving only one of the first
   two logs a warning. See "Timing to the game's updates".
+- `--watch <expr>` — a value in the game's memory (read as 32 bits), logged at each change with the update counter:
+  "watch 1: 48 -> 47 at update 2150", and "-" while it cannot be read (through a null pointer, say). Up to four, each
+  polled every millisecond and logging at most 4000 changes. It measures how many updates something lasts in the
+  original, such as a loading screen whose length follows the machine's speed (Bookworm Adventures' pilot watches its
+  chapter load screen's timer and hands the count to the port). Measure with the update numbers, not by counting
+  changes: after a held shot the game runs its catch-up updates back to back, faster than a poll, so a value can skip.
+  The game's process is looked up again every 100 ms (and soon after a failed read), not at every read: on the
+  sandbox's desktop a window enumeration costs about a millisecond.
 - `--patches <file>` — a patch list to apply to the copy (see "Patching the copy"). Defaults to
   `tools/origrun/patches/<game>.txt` if present. `--no-patches` runs the copy unpatched.
 - `--seed <N>` — a value substituted for the `{seed}` token in a patch, to pin the original's RNG so its boards
@@ -538,6 +546,18 @@ shot is listed in `shots/landed.tsv` with its name, its update and how sure that
 "drawn-unless-skipped", "or-earlier", or "held" for the host's held shots from before the ban). Each run starts the file afresh, so the port can take its own
 shot at the update the original's landed on.
 
+A game that draws straight to a locked screen, or whose window a wrapper such as cnc-ddraw presents through Direct3D,
+leaves nothing in the window for PrintWindow. For it a held shot can read the frame from the game's memory instead
+("surface-read (sandbox)", landed.tsv says "or-earlier (surface)"). All addresses are hex. `--surface-screen
+bitsAt,pitchAt,w,h,bpp` names two globals holding the pixel pointer and the pitch (5-6-5 at 16 bpp, 8-8-8 at 32);
+`--surface <addr>` names an Image-like header instead (pixel pointer at +0, width at +4, height at +8, pitch at +0x1c,
+bpp at +0x44, then the masks, bit counts and shifts). A surface shot needs a gate, and is refused without one:
+`--surface-eip lo,hi[,lo,hi...]` lists every function of the game that writes the locked screen (all it runs between
+its lock and unlock), and the shot waits (the game running) until the held thread is in none of them and has no return
+address into one anywhere in its stack (to the end of the stack's region, at most 64 KB; an unreadable page closes the gate); `--surface-gate <addr>` is an int that must read 0
+(a draw list's count). The pixels and `--sample a,b` values are read under the hold, the game is let go, and then the
+PNG is written. The header is refused unless the pitch is at most 16384 and no more than 64 bytes over a row.
+
 A burst still waits for each frame's update. When a capture (`PrintWindow` and writing the PNG, about 35 ms for Bookworm
 Adventures) takes longer than the burst's spacing, its frames land after their updates, and `landed.tsv` gives each
 frame's real update.
@@ -575,7 +595,7 @@ counter's address syntax, read as one byte (Bookworm Adventures: `Software\PopCa
 `[[0x8259e4]+0x36c]+0x38`, the app global, `mDDInterface`, `mIs3D`). When both are known, origrun polls the flag
 every 100 ms while the game's window is up, logs the first reading and every change ("3D mode: the game reports ON
 (Direct3D)" or "OFF (software)"), and ends with a "RESULT: 3D on/off" line. It also snapshots `Is3D` and the
-`Test3D` values before every run and puts them back after it, with or without `--3d`: on rundesk's desktop the game
+`Test3D` values before every run (logging each one the game left, as hex) and puts them back after it, with or without `--3d`: on rundesk's desktop the game
 falls back to software and saves `Is3D=0`, and a test that re-runs there caches a failure, and either would keep 3D
 off in the user's own play. `--3d on|off` writes `Is3D` for the run. The verdict uses the last reading taken before
 `quit` (a value read while the game tears its DDInterface down does not count); a run whose mode differs from the
@@ -697,6 +717,7 @@ run yet; the column will be redone from those (see "Windows Sandbox").
 | bookworm | wrapped Steam exe | prepares cleanly | — | has one; on needs `--dgvoodoo` (untried) | — | prepare as Bejeweled (not launched yet) |
 | rocketmania | Steam copy | not run | — | has one; on needs `--dgvoodoo` (untried) | — | Steam copy: `Steam.dll` is auto-copied now, as for Dynomite |
 | mahjongjapan | local install | **whole stages to the ending, in the sandbox** (2026-11-01) | **yes**, 806×629 in the sandbox | has one; off (`HardwareAcceleration=0` by `--reg`) | none | JollyBear engine, windowed DirectDraw (`FullScreen=0` by `--reg`). Posted clicks need a `move` 150 ms before. Its players live in `%LOCALAPPDATA%\JollyBear\Mahjong Escape Ancient Japan`, which inside is SYSTEM's, through the 32-bit view: stage them under `sandbox-files/C/Windows/System32/config/systemprofile/AppData/Local/...`, re-signed for `C:\run\game\` (a player's checksum covers the exe's folder). The game reads the cursor with `GetCursorPos` for its hover, which posted input does not move, and `hwmove` did not light a button either in session 0 |
+| mahjongchina | local install | **whole stages and the ending, in the sandbox** (2026-11-01) | **yes**, with `games/mahjongchina/tools/ddrawcap` beside the copy: without it every sandbox shot is black (China's window class has a black background brush, which the sandbox paints over the software display's output) | has one; off (`HardwareAcceleration=0` by `--reg`) | none | As mahjongjapan, and `games/mahjongchina/tools/sandbox_run.sh` does it all (the copy, ddrawcap, the BASS proxy, the registry and the re-signed players). Its players live in `%LOCALAPPDATA%\JollyBear\Mahjong Escape` (no "Ancient China"), staged the same way. Never click the PopCap and SpinTop logos at the menu's bottom corners: they are links |
 | bookwormadv2 | Steam copy | not run | — | has one; on needs `--dgvoodoo` (untried) | — | not wrapped; `Steam.dll` auto-copied now |
 
 The install paths are in `tools/origrun/games.tsv`, kept out of any publish (`.publishignore`).

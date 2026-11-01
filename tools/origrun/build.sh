@@ -26,7 +26,7 @@ echo "building dsound.dll ..."
 
 echo "building origrun.exe ..."
 "$CC" $CFLAGS -o "$out/origrun.exe" "$here/origrun.c" \
-  -lole32 -loleaut32 -luuid -lgdi32 -luser32 -ladvapi32 -lshell32 -lbcrypt -lnetapi32 -lwtsapi32 -luserenv -liphlpapi
+  -lole32 -loleaut32 -luuid -lwinmm -lgdi32 -luser32 -ladvapi32 -lshell32 -lbcrypt -lnetapi32 -lwtsapi32 -luserenv -liphlpapi
 
 cp -f "$here/games.tsv" "$out/games.tsv"
 echo "built:"

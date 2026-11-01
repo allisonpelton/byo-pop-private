@@ -132,6 +132,12 @@
       "runtimeExecutable": "python",
       "runtimeArgs": ["-m", "http.server", "18790", "--bind", "127.0.0.1", "--directory", "build/web"],
       "port": 18790
+    },
+    {
+      "name": "mahjongchina-web",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-m", "http.server", "18793", "--bind", "127.0.0.1", "--directory", "build/web"],
+      "port": 18793
     }
   ]
 }

@@ -175,16 +175,51 @@ void GameApp::Init()
 	CreateLinkedObject(this);
 }
 
+void GameApp::HandleCmdLineParam(const std::string& theParamName, const std::string& theParamValue)
+{
+	if (theParamName == "-chapterloadupdates") {
+		mChapterLoadUpdates.clear();
+		size_t aPos = 0;
+		while (aPos <= theParamValue.size()) {
+			size_t aComma = theParamValue.find(',', aPos);
+			if (aComma == std::string::npos)
+				aComma = theParamValue.size();
+			if (aComma > aPos)
+				mChapterLoadUpdates.push_back(atoi(theParamValue.substr(aPos, aComma - aPos).c_str()));
+			aPos = aComma + 1;
+		}
+	} else if (theParamName == "-startloadupdates")
+		mStartLoadWanted = theParamValue.empty() ? -1 : atoi(theParamValue.c_str());
+	else
+		LuaApp::HandleCmdLineParam(theParamName, theParamValue);
+}
+
 bool GameApp::UpdateAppStep(bool* updated)
 {
 	// A chapter's resources load between the frames while its loading screen is up (StartLoadChapterResources);
 	// with -fast all of them at once
-	if (mChapterLoadScreen != nullptr && !mChapterLoadDone)
-		mChapterLoadDone = LoadChapterResources(mFastMode ? 0 : SDL_GetTicks() + 20);
+	if (mChapterLoadScreen != nullptr && !mChapterLoadDone) {
+		if (mChapterLoadWanted >= 0) {
+			// -chapterloadupdates: the load spread evenly over the original's measured updates, so that the bar fills
+			// as its loading thread fills it (at that thread's own pace, which no update count can give exactly)
+			int anElapsed = mUpdateCount - mChapterLoadStart + 1;
+			int aLimit = anElapsed >= mChapterLoadWanted ? -1 : mChapterLoadTotal * anElapsed / mChapterLoadWanted;
+			mChapterLoadDone = LoadChapterResources(0, aLimit) && (mChapterLoadFailed || anElapsed > mChapterLoadWanted);
+		}
+		else
+			mChapterLoadDone = LoadChapterResources(mFastMode ? 0 : SDL_GetTicks() + 20);
+	}
 	// The loading thread's next 20 ms of work, between the frames (StartLoading); with -fast all of it at once,
 	// so that a test run reaches the menu at the same update on any machine
 	if (mLoadingPhase != LOADING_IDLE && mLoadingPhase != LOADING_DONE && mDrawCount > 0) {
-		if (LoadingStep(mFastMode ? 0 : SDL_GetTicks() + 20)) {
+		bool aDone;
+		if (mStartLoadWanted >= 0) {
+			int anElapsed = mUpdateCount - mStartLoadStart + 1;
+			int aLimit = anElapsed >= mStartLoadWanted ? -1 : mNumLoadingThreadTasks * anElapsed / mStartLoadWanted;
+			aDone = LoadingStep(0, aLimit);  // under the limit the last task (the Lex) never runs
+		} else
+			aDone = LoadingStep(mFastMode ? 0 : SDL_GetTicks() + 20);
+		if (aDone) {
 			mLoadingThreadRunning = false;
 			mLoadingThreadCompleted = true;  // DoUpdateFrames calls LoadingThreadCompleted
 		}
@@ -566,6 +601,7 @@ void GameApp::StartLoading()
 	// the framework runs LoadingThreadProc in one go while this is false
 	mLoadingThreadRunning = true;
 	mLoadingPhase = LOADING_COMMON;
+	mStartLoadStart = mUpdateCount;
 	mLoadingGroup = 0;
 	mLoadingGroupStarted = false;
 }
@@ -598,7 +634,7 @@ void GameApp::LoadingFailed()
 	mLoadingPhase = LOADING_DONE;
 }
 
-bool GameApp::LoadingStep(unsigned int theDeadline)
+bool GameApp::LoadingStep(unsigned int theDeadline, int theTaskLimit)
 {
 	auto aTimeLeft = [theDeadline]() { return theDeadline == 0 || !SDL_TICKS_PASSED(SDL_GetTicks(), theDeadline); };
 	while (mLoadingPhase != LOADING_DONE) {
@@ -607,6 +643,8 @@ bool GameApp::LoadingStep(unsigned int theDeadline)
 			break;
 		}
 		if (!aTimeLeft())
+			return false;
+		if (theTaskLimit >= 0 && mCompletedLoadingThreadTasks >= theTaskLimit)
 			return false;
 		switch (mLoadingPhase) {
 		case LOADING_COMMON:
@@ -1458,6 +1496,9 @@ int GameApp::StartLoadChapterResources(lua_State* L)
 	LoadChapterResources(0);
 #else
 	mChapterLoadScreen = new ChapterLoadScreen(this);
+	mChapterLoadWanted = mChapterLoadNum < mChapterLoadUpdates.size() ? mChapterLoadUpdates[mChapterLoadNum] : -1;
+	mChapterLoadNum++;
+	mChapterLoadStart = mUpdateCount;
 	mWidgetManager->AddWidget(mChapterLoadScreen);
 	mWidgetManager->BringToFront(mChapterLoadScreen);
 	if (mCurtain != nullptr) {
@@ -1486,11 +1527,13 @@ int GameApp::StartLoadChapterResources(lua_State* L)
 	return 1;
 }
 
-bool GameApp::LoadChapterResources(unsigned int theDeadline)
+bool GameApp::LoadChapterResources(unsigned int theDeadline, int theCountLimit)
 {
 	while (mChapterLoadIndex < mChapterResources.size()) {
 		if (mShutdown)
 			return true;
+		if (theCountLimit >= 0 && mChapterLoadCount >= theCountLimit)
+			return false;
 		const ChapterResource& aResource = mChapterResources[mChapterLoadIndex];
 		if (aResource.mType == CHAPTER_RES_GROUP) {
 			if (!mChapterLoadGroupStarted) {
@@ -1510,6 +1553,8 @@ bool GameApp::LoadChapterResources(unsigned int theDeadline)
 				if (mChapterLoadScreen != nullptr)
 					mChapterLoadScreen->MarkDirtyFull();
 				if (theDeadline != 0 && SDL_TICKS_PASSED(SDL_GetTicks(), theDeadline))
+					return false;
+				if (theCountLimit >= 0 && mChapterLoadCount >= theCountLimit)
 					return false;
 			}
 			mChapterLoadGroupStarted = false;
