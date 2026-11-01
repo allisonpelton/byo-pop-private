@@ -14,6 +14,7 @@
 
 #include <deque>
 #include <map>
+#include <set>
 #include <vector>
 
 namespace Sexy {
@@ -69,7 +70,7 @@ struct MatchInfo {
 	int mCol = -1;                  // +0x8
 	int mCount = 0;                 // +0xc: its gems
 	bool mUnknown10 = true;         // +0x10
-	int mUnknown14 = -1;            // +0x14
+	int mColor = -1;                // +0x14
 	std::vector<int> mIds;          // +0x18: its gems' ids
 	int mSerial = 0;                // +0x28: from gMatchInfoCount
 	int mUnknown2C = 0;             // +0x2c
@@ -79,6 +80,7 @@ struct MatchInfo {
 	void Reset();
 };
 extern int gMatchInfoCount;  // 0x84e890
+extern int gSparkDelay;      // 0x85aef8: the delay FindMatches gives a gem's sparks (0x6a453b)
 
 class Board : public TwistWidget {
 public:
@@ -372,6 +374,9 @@ public:
 	int mUnknown1FB8 = 0;                   // +0x1fb8
 	int mUnknown1FC4 = 0;                   // +0x1fc4
 	int mUnknown1FC8 = 0;                   // +0x1fc8
+	int mUnknown1FE8 = 0;                   // +0x1fe8: the matched gems' mean x (FindMatches)
+	int mUnknown1FEC = 0;                   // +0x1fec: and y
+	int mUnknown1FF0 = 0;                   // +0x1ff0: their count
 	bool mUnknown1FF4 = false;              // +0x1ff4
 	bool mUnknown1FF5 = false;              // +0x1ff5
 	int mUnknown1FF8 = 0;                   // +0x1ff8
@@ -439,7 +444,7 @@ public:
 	int mUnknown21F4 = -1;                  // +0x21f4
 	bool mUnknown2200 = false;              // +0x2200
 	TwistWidget* mUnknown2208 = nullptr;    // +0x2208: the dialog over the board (from the queue at +0x23dc)
-	int mUnknown2228 = 0;                   // +0x2228
+	float mUnknown2228 = 0;                 // +0x2228: 0.5 with each chain
 	int mUnknown222C = 0;                   // +0x222c
 	int mUnknown2234[84] = {};              // +0x2234
 	Buffer mSaveBuffer;                     // +0x2384: the game as StartLevel saved it (0x6b0d91)
@@ -582,6 +587,7 @@ public:
 	int mUnknown25B4 = 0;                   // +0x25b4
 	std::vector<int> mUnknown25B8;          // +0x25b8: the gems of the move FindMove found
 	MatchInfo mUnknown25E0;                 // +0x25e0: FindMove's match for each cell
+	std::vector<MatchInfo> mUnknown2614;    // +0x2614: the matches made
 	int mUnknown2644 = 0;                   // +0x2644
 	int mBonusChallengeMinGems = 0;         // +0x266c
 	int mUnknown2674 = 0;                   // +0x2674: the challenge's number (mode 2)
@@ -611,6 +617,7 @@ public:
 	bool mUnknown1FB4 = false;              // +0x1fb4
 	int mBonusRoundLevelGap = 0;            // +0x2104
 	bool mUnknown2138 = false;              // +0x2138
+	std::vector<int> mUnknown2140;          // +0x2140: cleared by FindMatches
 	int mTimeFreezeMatchCount = 0;          // +0x21b4
 	int mBonusChallengeMaxGems = 0;         // +0x2670
 	int mMaxLocksOnScreen = 0;              // +0x3800
@@ -621,7 +628,8 @@ public:
 	// Set by NewLevel (0x6bf659) and the level's progress
 	bool mUnknown164 = false;               // +0x164
 	int mUnknown208 = 0;                    // +0x208
-	int mUnknown228[8] = {};                // +0x228..+0x244
+	int mUnknown228[7] = {};                // +0x228: [0] the level's longest chain
+	int mUnknown244 = 0;                    // +0x244: the chains made
 	int mUnknown1C44 = 0;                   // +0x1c44
 	bool mUnknown1F6C = false;              // +0x1f6c
 	int mUnknown1F70 = 0;                   // +0x1f70: the level modulo 7
@@ -700,6 +708,23 @@ public:
 	void MakeCounter(Piece* thePiece);           // 0x6a50a9: a bomb with the level's counter
 	void MakeCoal(Piece* thePiece);              // 0x6a5074
 	void SaveGame(Buffer* theBuffer, bool theUnknown);  // 0x6b0d91
+	int FindMatches(unsigned int theFlags);      // 0x6cd468: bit 1 for tips, bit 2 for real; returns the matches
+	int FinishMatches(std::vector<MatchInfo>& theMatches, std::set<int>& theTipGems);
+	void MakeMatchSpecial(MatchInfo& theMatch, std::vector<Piece*>& theReset, bool thePower, bool theElectro);
+	void MakePowerGem(Piece* thePiece, float theDelay);    // 0x6a5019
+	void MakeElectroGem(Piece* thePiece, float theDelay);  // 0x6a4ef8
+	void Make6Gem(Piece* thePiece, float theDelay);        // 0x6a4f72
+	void ClearHitCounts();                       // 0x6a4560
+	void ClearSparkStarts();                     // 0x6a5f12
+	void StartSparks(Piece* thePiece);           // 0x6a453b
+	// 0x6bf983: the points of a match, popped up at theX, theY in theColor
+	Piece* AddPoints(int theX, int theY, int thePoints, const Color& theColor, int theSerial, bool theUnknown1,
+		bool theUnknown2, bool theFirst, bool theUnknown3);
+	void ShowCountPopup();                       // 0x6b3ffc
+	void ResetFruitCount();                      // 0x6b3615
+	void MatchAfterMove();                       // 0x6cf3fd: the matches once the gems have moved, and the chain
+	void PlayChainSound(int theChain);           // 0x6a674d
+	void Refill();                               // 0x6c755e: once the matched gems have gone
 	void StartUnknown3880();                     // 0x6b681d
 	void StartUnknown34F0();                     // 0x6b8bca: a turn ends
 	void AddStat(int theStat, int theDelta);     // 0x6a450f: the game's stat and the app's copy (unless +0x37c4)

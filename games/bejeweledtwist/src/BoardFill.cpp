@@ -27,7 +27,7 @@ void MatchInfo::Reset()
 {
 	mCol = -1;
 	mRow = -1;
-	mUnknown14 = -1;
+	mColor = -1;
 	mKind = 0;
 	mCount = 0;
 	mUnknown10 = true;

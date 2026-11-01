@@ -47,6 +47,7 @@ public:
 	bool mFlag764 = false;              // +0x764: set by the loader while mFlag784 is (meaning not yet known)
 	bool mFlag784 = false;              // +0x784: (meaning not yet known; the loader's other buttons depend on it)
 	Board* mBoard = nullptr;            // +0x7e4: the board while a game is on
+	bool mUnknown8D8 = false;           // +0x8d8: cleared with the dialog 40
 	unsigned int mUnknownCF8 = 0;       // +0xcf8: a count of games (LevelValue)
 	// +0x7f4: each colour's gem drawn ahead at 7 sizes, from 1.375 times a cell (size 0) down to 0.625 in eighths
 	// (size 3 is the cell), centred in 1.5 cells; a gem breaking up shrinks through them. +0x7f8: each colour's bomb
@@ -203,6 +204,8 @@ public:
 	// in mTrackedSounds, theScaleVolume multiplies its volume by mSfxVolumeScale
 	SoundInstance* PlaySoundEx(int theSoundId, int thePan, float thePitch, float theVolume, bool theTrack,
 		bool theScaleVolume);
+	// 0x767601 (slot 109): PlaySoundEx panned by theX across the window
+	void PlaySoundAt(int theSoundId, int theX, float thePitch, float theVolume);
 	// 0x763092: loads the Tube group (the sidebar's tube) and extracts it
 	bool LoadTubeResources();
 };

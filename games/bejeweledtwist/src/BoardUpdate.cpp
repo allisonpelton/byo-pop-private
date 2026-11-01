@@ -773,8 +773,7 @@ void Board::UpdateGame()
 		mUnknown14F4++;
 		if (mUnknown2016 && (mUnknown1C6D || (mUnknown2008 != 0 && --mUnknown2008 == 0))) {
 			mUnknown2008 = 0;
-			// port: 0x6cf3fd, the matches after a move, comes with the matching; it draws from Rand
-			NotPorted("Board::UpdateGame: the matches after a move (0x6cf3fd)");
+			MatchAfterMove();
 		}
 	}
 	if (mUnknown1430 != nullptr && mUpdateCnt % 8 == 0) {
@@ -1818,8 +1817,7 @@ void Board::CheckSettled()
 				NotPorted("Board::CheckSettled: a traveller (0x6ba5b4)");
 			}
 		} else {
-			// port: 0x6c755e, the board's refill once the gems have gone, comes with the matching; it draws from Rand
-			NotPorted("Board::CheckSettled: the refill (0x6c755e)");
+			Refill();
 		}
 	}
 }
@@ -2025,8 +2023,7 @@ void Board::FallPieces()
 			}
 		}
 		mUnknown2199 = false;
-		// port: 0x6cf3fd, the matches once the board has settled, comes with the matching; it draws from Rand
-		NotPorted("Board::FallPieces: the matches (0x6cf3fd)");
+		MatchAfterMove();
 	}
 	bool aWasMoving = mUnknown21D8;
 	mUnknown21D8 = !aStill;

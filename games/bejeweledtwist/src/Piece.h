@@ -101,6 +101,7 @@ public:
 	int mBombCount = 0;                // +0x100: a bomb's counter (saved)
 	int mUnknown104 = 0;               // +0x104
 	int mUnknown108 = 0;               // +0x108
+	int mUnknown10C = 0;               // +0x10c: the matches the gem is in (FindMatches)
 	int mUnknown110 = 0;               // +0x110
 	bool mUnknown114 = false;          // +0x114: moved down by DropPieces
 	bool mBlasted = false;             // +0x115: a power gem that has gone off (0x729363)

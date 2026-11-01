@@ -240,15 +240,7 @@ void Board::EndTurn()
 		if (mUnknown1FB8 != mUnknown1FC4)
 			mUnknown1FC4 = mUnknown1FB8;
 	}
-	if (mUnknown2664 == mUnknown2660 || (mUnknown2660 == 0 && mUnknown2664 != -1)) {
-		// 0x6b35b1: the fruit's count starts again; a fruit dance that has begun (3) moves on to its end
-		mUnknown2660 = 0;
-		mUnknown2664 = 0;
-		if (mUnknown265C == 3) {
-			mUnknown265C = 5;
-			mGoodTube->mUnknown5F0.SetCurve(GTS(0x7dc558));
-		}
-	}
+	ResetFruitCount();
 	if (mUnknown2668) {
 		// port: 0x6b3432 checks the challenge's goal; it comes with the challenges
 		NotPorted("Board::EndTurn: the challenge's goal (0x6b3432)");

@@ -976,3 +976,10 @@ void WinTwistApp::FadeOutMusic()
 {
 	mMusicInterface->FadeOutAll(true, 0.004);
 }
+
+void WinTwistApp::PlaySoundAt(int theSoundId, int theX, float thePitch, float theVolume)
+{
+	int aHalf = mWidth / 2;
+	PlaySoundEx(theSoundId, Ftol((double)((float)(theX - aHalf) / (float)aHalf) * 800.0), thePitch, theVolume, true,
+		true);
+}
