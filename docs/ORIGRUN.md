@@ -538,6 +538,17 @@ shot is listed in `shots/landed.tsv` with its name, its update and how sure that
 "drawn-unless-skipped", "or-earlier", or "held" for the host's held shots from before the ban). Each run starts the file afresh, so the port can take its own
 shot at the update the original's landed on.
 
+A game that draws straight to a locked screen, or whose window a wrapper such as cnc-ddraw presents through Direct3D,
+leaves nothing in the window for PrintWindow. For it a held shot can read the frame from the game's memory instead
+("surface-read (sandbox)", landed.tsv says "or-earlier (surface)"). All addresses are hex. `--surface-screen
+bitsAt,pitchAt,w,h,bpp` names two globals holding the pixel pointer and the pitch (5-6-5 at 16 bpp, 8-8-8 at 32);
+`--surface <addr>` names an Image-like header instead (pixel pointer at +0, width at +4, height at +8, pitch at +0x1c,
+bpp at +0x44, then the masks, bit counts and shifts). A surface shot needs a gate, and is refused without one:
+`--surface-eip lo,hi` is the game's draw code, and the shot waits (the game running) until the held thread is neither
+in it nor has a return address into it in the top 4 KB of its stack; `--surface-gate <addr>` is an int that must read 0
+(a draw list's count). The pixels and `--sample a,b` values are read under the hold, the game is let go, and then the
+PNG is written. The header is refused unless the pitch is at most 16384 and no more than 64 bytes over a row.
+
 A burst still waits for each frame's update. When a capture (`PrintWindow` and writing the PNG, about 35 ms for Bookworm
 Adventures) takes longer than the burst's spacing, its frames land after their updates, and `landed.tsv` gives each
 frame's real update.
