@@ -329,3 +329,6 @@ Each is a change without a visible effect in play.
 - Loading a visualizer's picture (0x748f54) also files it under its id for GetIdByImage; nothing asks that of these
   pictures, and Res.cpp keeps that table to itself, so the port leaves the filing out.
 - The pictures are JPEG 2000 files; the port's decoder (OpenJPEG) gives colours within 2 of the original's.
+- Web only: an image drawn stretched (the framework's 2D software DrawImage into a rectangle of another size) can
+  land half a pixel apart from the native build, which rounds its edges in x87 precision as the original does, while
+  wasm computes them in doubles. It belongs to the framework's 2D path, whose work is queued after Twist.
