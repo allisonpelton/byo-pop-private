@@ -455,11 +455,14 @@ int crtRand()
 	return (int)(gRandSeed >> 16 & 0x7fff);
 }
 
+// The port's test hook (-seed=N, src/main.cpp): the seed taken instead of the time
+unsigned long gTestSeed = 0;
+
 // 0x41f4e0
 void seedRandom(unsigned long theSeed)
 {
 	if (theSeed == 0)
-		theSeed = (unsigned long)std::time(nullptr);
+		theSeed = gTestSeed != 0 ? gTestSeed : (unsigned long)std::time(nullptr);
 	crtSrand((unsigned int)theSeed);
 }
 

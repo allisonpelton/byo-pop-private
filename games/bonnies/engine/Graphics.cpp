@@ -36,11 +36,11 @@ Str gCaption;
 Str gIconPath;
 const char* const* gArrowCursor = nullptr;
 const char* const* gHandCursor = nullptr;
+Str gMatteName;      // 0x4818ec: a matte to use instead of <name>_Matte.png (empty)
 
 namespace
 {
 const char* const kExtensions[2] = {".png", ".jpg"};  // 0x4818dc
-Str gMatteName;      // 0x4818ec: a matte to use instead of <name>_Matte.png (empty)
 bool gHaveScreen = false;  // 0x4818ac: the screen surface
 
 // The cursors made so far (0x480b28: ten pairs of the art and its cursor, the latest first)

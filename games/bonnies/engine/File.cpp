@@ -79,20 +79,6 @@ int crtRead(int theHandle, void* theBuffer, unsigned int theCount)
 	return (int)aCount;
 }
 
-int crtWrite(int theHandle, const void* theBuffer, unsigned int theCount)
-{
-	std::map<int, OpenFile>::iterator anIt = gFiles.find(theHandle);
-	if (anIt == gFiles.end())
-		return -1;
-	OpenFile& aFile = anIt->second;
-	if (aFile.mPos + theCount > aFile.mData.size())
-		aFile.mData.resize(aFile.mPos + theCount);
-	if (theCount > 0)
-		std::memcpy(aFile.mData.data() + aFile.mPos, theBuffer, theCount);
-	aFile.mPos += theCount;
-	return (int)theCount;
-}
-
 void crtSeek(int theHandle, long theOffset, int theOrigin)
 {
 	std::map<int, OpenFile>::iterator anIt = gFiles.find(theHandle);
@@ -114,6 +100,20 @@ void crtClose(int theHandle)
 		host()->writeUserFile(anIt->second.mPath, anIt->second.mData);
 	gFiles.erase(anIt);
 }
+}
+
+int crtWrite(int theHandle, const void* theBuffer, unsigned int theCount)
+{
+	std::map<int, OpenFile>::iterator anIt = gFiles.find(theHandle);
+	if (anIt == gFiles.end())
+		return -1;
+	OpenFile& aFile = anIt->second;
+	if (aFile.mPos + theCount > aFile.mData.size())
+		aFile.mData.resize(aFile.mPos + theCount);
+	if (theCount > 0)
+		std::memcpy(aFile.mData.data() + aFile.mPos, theBuffer, theCount);
+	aFile.mPos += theCount;
+	return (int)theCount;
 }
 
 // 0x429a70
