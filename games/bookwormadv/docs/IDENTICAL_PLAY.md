@@ -5,8 +5,8 @@ details of each finding are in `README.md` ("Deviations from the original", "Fau
 pilot" and "Oddities"); this page gathers them for the user.
 
 The pass is not finished. Its game-side work is done. The transformed sprites wait on the framework's 2D software path,
-and sound, 3D mode and one web timing item have not been checked against the original. Both are described below, and
-this page will be brought up to date once they are done.
+and the sound outside the menus, 3D mode outside the first battle and one web timing item have not been checked against
+the original. They are described below, and this page will be brought up to date once they are done.
 
 ## What was compared, and how
 
@@ -55,14 +55,34 @@ is released at a slightly different moment, which changes nothing audible.
 Not compared yet:
 
 - **Sound in the battle, the screens and the won battle.** The same comparison, still to run.
-- **3D mode on.** The original runs in 3D only on the user's visible desktop (tried with the user's leave on
-  2026-11-01: no wrapper, its Direct3D test passed and its 3D flag stayed on). Inside Windows Sandbox it cannot: the
-  game runs in a session with no display, or, with the sandbox's user logged on, on a remote display adapter whose
-  Direct3D 7 device fails, and dgVoodoo2 either crashes or falls back (`docs/ORIGRUN.md`). On the host no shot is
-  taken (the host-capture ban), so the port's 3D mode is not yet compared picture by picture. What it would need is a
-  capture of the game's window on the visible desktop. A port run in 3D draws the midground island behind the enemy,
-  as arena.lua asks when `Is3DAccelerated()` is true, and a different board from its 2D runs.
+- **3D mode in the menus, the screens and the won battle.** Only the first battle was compared in 3D (below).
 - **The question at exit after 3D was switched on during a session** ("Hardware Acceleration Confirmation").
+
+### 3D mode
+
+The original runs in 3D only on the user's visible desktop. Inside Windows Sandbox it cannot: the game runs in a
+session with no display, or, with the sandbox's user logged on, on a remote display adapter whose Direct3D 7 device
+fails, and dgVoodoo2 either crashes or falls back (`docs/ORIGRUN.md`). On the visible desktop it needs no wrapper: its
+Direct3D test passes and its 3D flag stays on. The user allowed runs there with sound, and shots of the game's own
+window (2026-11-01).
+
+`tools/pilot/visrun.py` runs one of the pilot's scripts that way. It backs up the game's registry key and users folder,
+puts in the pilot's start state with `Is3D` 1, and restores both afterwards. It drives the game as origrun does, by
+its update counter, holding the game while it posts input or takes a shot, and it keeps the window on top and refuses a
+shot while any other window overlaps it, so it copies only the game's own pixels. It also logs any step where the game
+was not the foreground window (none was). The copy must sit at a short path: the game builds its file paths in a
+256-byte buffer and dies at start under a worktree's path. The port ran the same script in 3D mode with the same load
+lengths (the original's loads were far shorter on the desktop than in the sandbox: 15 updates for the chapter, 44 for
+startup).
+
+The first battle matches. Both sides draw the midground island behind the enemy, deal the same board, and of the
+twelve stills nine differ only faintly. The transformed sprites that differ in 2D (the enemies, the intro's spear, the
+map's rays) match in 3D, since both sides draw them through a 3D renderer.
+What shotdiff still flagged is timing, which `lag.py` (now with `PILOT3D=on`) confirmed. The first is the Trojan
+Spearman's idle pose in the focus-regained shot and in seven frames of the attacks clip. The second is Lex's blink in
+one frame. The third is the map's rays in the Enter! transition. Each of the original's pictures matches a port update
+within one to four updates of its own exactly, but for the window's rounded corners on the user's desktop. That is the
+same spread as the original's click timing in the sandbox runs. Nothing in 3D mode needed a fix.
 
 ## Changes the pass made
 
