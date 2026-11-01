@@ -28,6 +28,7 @@ made by editing the original's savegame.dat, which the original accepts.
 | Treasure Island nag: button label white | the dialog's gold | gold | 2dd815a |
 | The map (after level 10) never moved on: no dotted route, no second X | the map's Update counts the widget's updates and lights one more dot every 50 (0x417960) | the same | d7d0f2a |
 | The map's "Click to continue" glowed | the original's button has no component image and shows its unlit picture, the lit one under the mouse | the same | d7d0f2a |
+| At game over the pirate vanished from the high-score list | 0x420430 brings the talking pirate in front of the list (it does not stop him) | the same | GOCOMMIT |
 
 ## Oddities skipped
 
@@ -38,6 +39,10 @@ original's. It can be seen by running the six-move scenario twice and looking at
 **Gun smoke on the ships of a continued game.** The original's loader does not set the nine gun-smoke timers of a ship, so a
 blast or two shows in the diagonal cells a second after Continue (about 60 updates, and again at about 250), depending on what
 the heap held. The port starts them at none. See it by continuing a saved game and taking shots for the first four seconds.
+
+**The game-time on the high-score screen.** The original shows the seconds since its stored start tick, which came from the machine's tick counter in the run that wrote the save, so a loaded game shows 0:12 in the original and 2:41 in the port when the same save is loaded in a different session. It depends on the machine's uptime; see it by loading a save and losing at once.
+
+**The pirate's mouth.** In a few shots the mouth differs by a few pixels while he talks; the steps follow the sample being played, which the silent runs do not time like the original.
 
 **The treasure's cell on the bonus level.** Where the chest and graves lie follows from the random draws, whose count varies as
 above, so the direction text after a dig differs between runs of the original as well. The layout and the logic of the dig are the
@@ -51,4 +56,4 @@ two renderers of the port differ by at most 3 of 255). See GAME_NOTES, section 5
 
 ## Still to compare
 
-The bonus level's win and lose screens, and the game-over and high-score screens.
+The bonus level's win and lose screens, and the high-score list after a loss was compared; the name entry and what follows are not and high-score screens.
