@@ -4,6 +4,7 @@
 #include "LevelData.h"
 #include "ProgressManager.h"
 #include "UserDirectory.h"
+#include "PuzzleCompleted.h"
 #include "GameText.h"
 #include "Res.h"
 #include "Graphics.h"
@@ -59,6 +60,7 @@ Board::Board(PixelusApp* theApp, const std::string& theLevelName, int thePuzzleI
 	mDoneTimer = 0;
 	mCompleted = false;
 	mFinishSounded = false;
+	mMaxedAtStart = false;
 	mIdleTicks = 0;
 	mMusicDelay = -1;
 	mErrorTicks = 0;
@@ -172,6 +174,12 @@ bool Board::LoadPuzzle()
 	mCompleted = false;
 	mFinishSounded = false;
 	mDoneTimer = 0;
+	{
+		// 0x409880: a puzzle whose record already matches the best known solution shows the time instead of the records
+		UserProfile* aUser = mApp->mUserDirectory->GetCurrent();
+		const PuzzleRecord* aRecord = aUser != NULL ? aUser->GetRecord(mUuid) : NULL;
+		mMaxedAtStart = !mTutorial && aRecord != NULL && aRecord->mMoves <= mApp->mProgress->GetBestMoves(mUuid);
+	}
 	return true;
 }
 
@@ -1177,26 +1185,41 @@ void Board::DrawSidebar(Graphics* g)
 	if (mTutorial)
 		return;
 
+	// 0x404be0: the move count and the records sit in the dark panel of the sidebar; a puzzle that was already maxed
+	// when it loaded (+0x1a0) shifts them up by 0x2e and shows the time below
+	UserProfile* aUser = mApp->mUserDirectory->GetCurrent();
+	const PuzzleRecord* aRecord = aUser != NULL ? aUser->GetRecord(mUuid) : NULL;
+	int aShift = mMaxedAtStart ? -0x2e : 0;
 	char aText[32];
 	g->SetColor(Color(255, 255, 255));
 	sprintf(aText, "%d", mGrid->mMoveCount);
 	g->SetFont(mApp->mFonts[FONT_VERDANA18BOLD]);
-	g->DrawString(aText, 0x52 - g->StringWidth(aText) / 2, 0xee);
+	g->DrawString(aText, 0x52 - g->StringWidth(aText) / 2, 0xe0 + aShift + (aRecord != NULL ? 0 : 7));
 
-	UserProfile* aUser = mApp->mUserDirectory->GetCurrent();
-	const PuzzleRecord* aRecord = aUser != NULL ? aUser->GetRecord(mUuid) : NULL;
 	g->SetFont(mApp->mFonts[FONT_ARIAL10]);
-	int aY = 0x12c;
 	if (aRecord != NULL)
 	{
-		g->DrawImage(mApp->mImages[IMAGE_PERSONALBEST], 0x1e, aY);
+		g->DrawImage(mApp->mImages[IMAGE_PERSONALBEST], 0x23, 0xe8 + aShift);
 		sprintf(aText, "%d", aRecord->mMoves);
-		g->DrawString(aText, 0x82 - g->StringWidth(aText), aY + 9);
-		aY += 14;
+		g->DrawString(aText, 0x82 - g->StringWidth(aText), 0xf0 + aShift);
 	}
-	g->DrawImage(mApp->mImages[IMAGE_WORLDRECORD], 0x1e, aY);
+	g->DrawImage(mApp->mImages[IMAGE_WORLDRECORD], 0x23, 0xf8 + aShift);
 	sprintf(aText, "%d", mApp->mProgress->GetBestMoves(mUuid));
-	g->DrawString(aText, 0x82 - g->StringWidth(aText), aY + 9);
+	g->DrawString(aText, 0x82 - g->StringWidth(aText), 0x100 + aShift);
+
+	if (mMaxedAtStart)
+	{
+		std::string aTime = PuzzleCompletedScreen::FormatTime(mGrid->mTime, 2);
+		g->SetFont(mApp->mFonts[FONT_VERDANA18BOLD]);
+		int aBase = 0x108 + (aRecord != NULL ? 0 : 7);
+		g->DrawString(aTime, 0x52 - g->StringWidth(aTime) / 2, aBase);
+		if (aRecord != NULL)
+		{
+			std::string aBest = "Best : " + PuzzleCompletedScreen::FormatTime(aRecord->mMoves2, 2);
+			g->SetFont(mApp->mFonts[FONT_ARIAL10]);
+			g->DrawString(aBest, 0x52 - g->StringWidth(aBest) / 2, 0x11c);
+		}
+	}
 }
 
 // 0x404be0

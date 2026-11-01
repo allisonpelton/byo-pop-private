@@ -104,7 +104,7 @@ void Shot(PixelusApp* theApp, AutoplayState* s, int theKind, const char* theName
 	theApp->AutoplayShot(theApp->mAutoplayShots + "-" + theName + ".png");
 }
 
-enum { SHOT_MENU, SHOT_ISLAND, SHOT_TEMPLE, SHOT_BOARD, SHOT_BOARD_END, SHOT_COMPLETED, SHOT_COMPLETED_2, SHOT_SWEEP };
+enum { SHOT_MENU, SHOT_ISLAND, SHOT_TEMPLE, SHOT_BOARD, SHOT_BOARD_END, SHOT_COMPLETED, SHOT_COMPLETED_2, SHOT_SWEEP, SHOT_PLAY };
 
 // the first temple that is open and has a puzzle without a result; -1 when there is none
 int FindTemple(PixelusApp* theApp, UserProfile* theUser)
@@ -283,6 +283,8 @@ void PixelusApp::AutoplayUpdate()
 			b->DoPull();
 		else
 			b->DoThrow();
+		if (!b->mTutorial && s->mMoveIndex == 3)
+			Shot(this, s, SHOT_PLAY, "play");
 		if (s->mMoveIndex == (int) s->mSolution.size() - 1)
 			Shot(this, s, SHOT_BOARD_END, "board-end");
 		s->mWait = 4;
