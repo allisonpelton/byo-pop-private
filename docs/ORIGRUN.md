@@ -626,6 +626,7 @@ run yet; the column will be redone from those (see "Windows Sandbox").
 | bookworm | wrapped Steam exe | prepares cleanly | — | has one; on needs `--dgvoodoo` (untried) | — | prepare as Bejeweled (not launched yet) |
 | rocketmania | Steam copy | not run | — | has one; on needs `--dgvoodoo` (untried) | — | Steam copy: `Steam.dll` is auto-copied now, as for Dynomite |
 | bookwormadv2 | Steam copy | not run | — | has one; on needs `--dgvoodoo` (untried) | — | not wrapped; `Steam.dll` auto-copied now |
+| bonnies | installer copy | **in the sandbox (2026-11-01): menus, the classic and action games, help, options** | **yes, in the sandbox**, 806×629 (`shot`, `waitshot`) | none (SDL 1.2) | none (FMOD 3 through the stand-in) | SDL 1.2 windowed, GDI; `focus lose`/`regain` pause and resume the game as on the user's desktop; the RNG seed is pinned by `games/bonnies/tools/origrun/patches.txt` (`--patches`, `--seed 1`); no registry, the saves beside the exe |
 
 The install paths are in `tools/origrun/games.tsv`, kept out of any publish (`.publishignore`).
 
