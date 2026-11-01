@@ -28,13 +28,15 @@ if [ "$which" != port ]; then
 	bash "$T/reset.sh"
 	# the same seeds on both sides: the copy's clock reads in SexyAppBase::Init become constants (seedpatch.py)
 	python "$T/seedpatch.py" "$(cygpath -u "$EXE")" $SEED | tee "$P/$name.seedpatch.log"
+	# The script is timed to the original's own updates (gen.py): SexyAppBase's mUpdateCount, at +0x484 in the app
+	# (0x442e60 reads it), whose pointer is the global at 0x8259e4.
 	run=pilot-$name
 	rm -rf "${W:?}/build/origrun/$run"
 	# The copy runs DPI-aware: the original is not, so on a scaled display (this machine's is 125%) Windows stretches
 	# its window and origrun's PrintWindow(PW_RENDERFULLCONTENT) returns that stretched picture scaled back down,
 	# blurring every edge. Marked aware, the capture is the game's own 800x600 frame (in a taller frame: 3, 32).
 	__COMPAT_LAYER="HighDpiAware${__COMPAT_LAYER:+ $__COMPAT_LAYER}" "$W/build/origrun-bin/origrun.exe" --exe "$EXE" --run "$run" --script "$(cygpath -w "$P/scripts/$name.orig.txt")" \
-		--timeout 240 > "$P/$name.orig.log" 2>&1
+		--counter "[0x8259e4]+0x484" --update-ms 10 --timeout 240 > "$P/$name.orig.log" 2>&1
 	grep -i "RESULT\|timeout\|error\|msgbox\|dialog" "$P/$name.orig.log" | tail -5
 	S=$W/build/origrun/$run/shots
 	python - "$S" "$P/orig" "$T/$name.txt" <<'EOF'
@@ -46,6 +48,9 @@ for line in open(steps):
     if w and w[0] == "title": clips["title"] = int(w[2])
     if w and w[0] == "clip": clips[w[1]] = int(w[3])
 for f in sorted(os.listdir(src)):
+    if os.path.isdir(os.path.join(src, f)):   # a burst: numbered frames and its clip.json already
+        shutil.copytree(os.path.join(src, f), os.path.join(dst, f), dirs_exist_ok=True)
+        continue
     stem = f[:-4]
     if stem == "_window": continue
     base, _, num = stem.rpartition("_")
@@ -55,7 +60,8 @@ for f in sorted(os.listdir(src)):
     else:
         shutil.copy(os.path.join(src, f), os.path.join(dst, f))
 for c, iv in clips.items():
-    json.dump({"interval_ms": iv}, open(os.path.join(dst, c, "clip.json"), "w"))
+    if os.path.isdir(os.path.join(dst, c)):
+        json.dump({"interval_ms": iv}, open(os.path.join(dst, c, "clip.json"), "w"))
 EOF
 fi
 
