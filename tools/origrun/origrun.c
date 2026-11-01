@@ -450,6 +450,64 @@ static int read_counter(const char* expr, uint32_t* out)
 	return ok;
 }
 
+// --surface <addr>: the address of an Image-like header in the game (the pointer to the pixels at +0, the width at +4,
+// the height at +8, the pitch in bytes at +0x1c, and the pixel format at +0x44: bits per pixel, then the red, green and
+// blue masks, bit counts and shifts), the frame the game composes before it presents it. --surface-gate <addr> is an
+// int that must read 0 (Water Bugs' draw list count: the frame is not half drawn). Read while the window thread is held,
+// so the shot is a frame the game finished drawing, with no window, PrintWindow or DC involved (a wrapper that presents
+// through Direct3D leaves nothing in the window to copy). Sandbox only, like every held shot.
+static DWORD gHoldEip = 0;   // where the held thread stopped (hold_begin)
+static uint32_t gSurfaceAddr = 0, gSurfaceGate = 0;
+// --surface-screen bitsAt,pitchAt,w,h,bpp: instead of an Image header, a game that draws on a locked screen keeps its
+// pixel pointer and pitch in two globals (bitsAt, pitchAt: the addresses holding them); the format is 5-6-5 for 16 bpp
+// and 8-8-8 for 32.
+static uint32_t gScrBitsAt=0, gScrPitchAt=0, gScrW=0, gScrH=0, gScrBpp=0;
+static int png_write(const char* path, const unsigned char* rgb, int w, int h);
+static int rpm_buf(DWORD_PTR addr, void* out, size_t n)
+{
+	if (!gGameProc) return 0;
+	SIZE_T got=0;
+	return ReadProcessMemory(gGameProc,(LPCVOID)addr,out,n,&got) && got==n;
+}
+static char gSamples[256] = "";   // --sample a,b: addresses (ints) whose values are logged with each surface shot
+static uint32_t gEipLo=0, gEipHi=0;   // --surface-eip lo,hi: a hold counts only when the thread stopped outside [lo, hi) (the game's own drawing code)
+static int surface_gate_open(void)
+{
+	if (gEipHi && gHoldEip>=gEipLo && gHoldEip<gEipHi) return 0;
+	if (!gSurfaceGate) return 1;
+	uint32_t v=1; EnterCriticalSection(&gRpmLock); int ok=rpm_u32((DWORD_PTR)gSurfaceGate,&v); LeaveCriticalSection(&gRpmLock);
+	return ok && v==0;
+}
+static int surface_shot(const char* name)
+{
+	uint32_t hd[0x44/4+13]; int ok;
+	EnterCriticalSection(&gRpmLock);
+	if (gScrBitsAt) {
+		ok = rpm_buf(gScrBitsAt,&hd[0],4) && rpm_buf(gScrPitchAt,&hd[0x1c/4],4);
+		hd[1]=gScrW; hd[2]=gScrH; hd[0x44/4]=gScrBpp;
+		if (gScrBpp==16) { hd[0x48/4]=0xf800; hd[0x4c/4]=5; hd[0x50/4]=11; hd[0x58/4]=0x7e0; hd[0x5c/4]=6; hd[0x60/4]=5; hd[0x68/4]=0x1f; hd[0x6c/4]=5; hd[0x70/4]=0; }
+		else { hd[0x48/4]=0xff0000; hd[0x4c/4]=8; hd[0x50/4]=16; hd[0x58/4]=0xff00; hd[0x5c/4]=8; hd[0x60/4]=8; hd[0x68/4]=0xff; hd[0x6c/4]=8; hd[0x70/4]=0; }
+	} else ok=rpm_buf(gSurfaceAddr,hd,sizeof(hd));
+	if (!ok) { LeaveCriticalSection(&gRpmLock); logline("shot %s refused: the surface header at 0x%08X could not be read", name, gSurfaceAddr); return 0; }
+	uint32_t bits=hd[0], w=hd[1], h=hd[2], pitch=hd[0x1c/4];
+	uint32_t bpp=hd[0x44/4], rm=hd[0x48/4], rbits=hd[0x4c/4], rsh=hd[0x50/4], gm=hd[0x58/4], gbits=hd[0x5c/4], gsh=hd[0x60/4], bm=hd[0x68/4], bbits=hd[0x6c/4], bsh=hd[0x70/4];
+	if (!bits || w<1 || h<1 || w>4096 || h>4096 || pitch<w*(bpp/8) || (bpp!=16 && bpp!=32)) {
+		LeaveCriticalSection(&gRpmLock);
+		logline("shot %s refused: the surface header reads bits 0x%08X, %ux%u, pitch %u, %u bpp", name, bits, w, h, pitch, bpp); return 0; }
+	unsigned char* raw=(unsigned char*)malloc((size_t)pitch*h); unsigned char* rgb=(unsigned char*)malloc((size_t)w*h*3);
+	if (!raw||!rgb || !rpm_buf(bits,raw,(size_t)pitch*h)) { LeaveCriticalSection(&gRpmLock); free(raw); free(rgb); logline("shot %s refused: the surface's pixels could not be read", name); return 0; }
+	LeaveCriticalSection(&gRpmLock);
+	for (uint32_t y=0;y<h;y++) for (uint32_t x=0;x<w;x++) {
+		uint32_t v = bpp==16 ? ((unsigned short*)(raw+(size_t)y*pitch))[x] : ((uint32_t*)(raw+(size_t)y*pitch))[x];
+		uint32_t r=((v&rm)>>rsh)<<(8-rbits), g=((v&gm)>>gsh)<<(8-gbits), b=((v&bm)>>bsh)<<(8-bbits);
+		unsigned char* o=rgb+((size_t)y*w+x)*3; o[0]=(unsigned char)r; o[1]=(unsigned char)g; o[2]=(unsigned char)b;
+	}
+	char path[MAX_PATH]; wsprintfA(path,"%s\\%s.png",gShotDir,name);
+	int wrote=png_write(path,rgb,(int)w,(int)h); free(raw); free(rgb);
+	logline("shot %s -> %s (%ux%u) [surface-read (sandbox)]", name, path, w, h);
+	return wrote?1:0;
+}
+
 // Whether the game, as read now, shows the update its counter holds: nothing waits to be drawn and no update runs.
 static int drawn_now(int* readFail)
 {
@@ -708,7 +766,9 @@ static int hold_begin(HANDLE th)
 	if (SuspendThread(th)==(DWORD)-1) { logline("hold: SuspendThread failed (err %lu); not held", GetLastError()); return 0; }
 	InterlockedExchangePointer(&gHeldThread, th);
 	CONTEXT c; ZeroMemory(&c,sizeof(c)); c.ContextFlags=CONTEXT_CONTROL;
-	if (!GetThreadContext(th,&c)) { static LONG warned=0; if (!InterlockedExchange(&warned,1)) logline("hold: GetThreadContext failed (err %lu), so the suspension may not have taken effect when the hold is used", GetLastError()); }
+	gHoldEip=0;
+	if (GetThreadContext(th,&c)) gHoldEip=(DWORD)c.Eip;
+	if (!gHoldEip) { static LONG warned=0; if (!InterlockedExchange(&warned,1)) logline("hold: GetThreadContext failed (err %lu), so the suspension may not have taken effect when the hold is used", GetLastError()); }
 	return 1;
 }
 static void hold_end(HANDLE th)
@@ -945,6 +1005,19 @@ static int capture_held(const char* name)
 				return 0;
 			}
 			if (!shown) { release_held(&held); CloseHandle(th); continue; }   // the game moved on in between: look again
+			if (gSurfaceAddr || gScrBitsAt) {
+				if (!surface_gate_open()) {   // the frame is half drawn: let the game on and look again
+					release_held(&held); CloseHandle(th);
+					if (qpc_ms()-t0>2000) { logline("shot %s refused: the surface's gate did not open for 2 s (%d holds)", name, holds); return 0; }
+					continue;
+				}
+				gBracketAt=c; gBracketSure="or-earlier (surface)";
+				int r=surface_shot(name);
+				if (gSamples[0]) { char pb[256]; lstrcpynA(pb,gSamples,256); char* tk=strtok(pb,","); while (tk) { uint32_t pv=0; uint32_t pa=(uint32_t)strtoul(tk,NULL,0); EnterCriticalSection(&gRpmLock); int pk=rpm_u32((DWORD_PTR)pa,&pv); LeaveCriticalSection(&gRpmLock); logline("shot %s: sample 0x%X = 0x%X%s",name,pa,pv,pk?"":" (unreadable)"); tk=strtok(NULL,","); } }
+				release_held(&held); CloseHandle(th);
+				if (r) { logline("shot %s: surface-read (sandbox): the counter read %u while held", name, c); note_landed(name,c,"or-earlier"); }
+				return r;
+			}
 			int empty = exact ? draw_was_empty() : -1;
 			const char* sure = !exact ? "or-earlier" : empty==1 ? "or-earlier" : empty==0 ? "drawn" : "drawn-unless-skipped";
 			gBracketSure=sure;
@@ -2485,6 +2558,11 @@ static int sandbox_host_run(const char* selfDir, const char* script, int timeout
 	if (gCounterExpr[0]) fprintf(rf,"counter=%s\n",gCounterExpr);
 	if (gFlipsExpr[0]) fprintf(rf,"flips=%s\n",gFlipsExpr);
 	if (gPendingExpr[0]) fprintf(rf,"pending=%s\n",gPendingExpr);
+	if (gSamples[0]) fprintf(rf,"sample=%s\n",gSamples);
+	if (gEipHi) fprintf(rf,"surfaceeip=0x%X,0x%X\n",gEipLo,gEipHi);
+	if (gScrBitsAt) fprintf(rf,"surfacescreen=0x%X,0x%X,%u,%u,%u\n",gScrBitsAt,gScrPitchAt,gScrW,gScrH,gScrBpp);
+	if (gSurfaceAddr) fprintf(rf,"surface=0x%X\n",gSurfaceAddr);
+	if (gSurfaceGate) fprintf(rf,"surfacegate=0x%X\n",gSurfaceGate);
 	if (gStateExpr[0]) fprintf(rf,"state=%s\n",gStateExpr);
 	if (gEmptyExpr[0]) fprintf(rf,"empty=%s\n",gEmptyExpr);
 	if (gMode3dWant>=0) fprintf(rf,"3d=%s\n",gMode3dWant?"on":"off");
@@ -2920,6 +2998,11 @@ static int main_in_sandbox(const char* dir, int inSession, int probe)
 			else if (ieq(ln,"counter")) lstrcpynA(gCounterExpr,v,256);
 			else if (ieq(ln,"flips")) lstrcpynA(gFlipsExpr,v,256);
 			else if (ieq(ln,"pending")) lstrcpynA(gPendingExpr,v,256);
+			else if (ieq(ln,"sample")) lstrcpynA(gSamples,v,256);
+			else if (ieq(ln,"surfaceeip")) sscanf(v,"%i,%i",(int*)&gEipLo,(int*)&gEipHi);
+			else if (ieq(ln,"surfacescreen")) sscanf(v,"%i,%i,%u,%u,%u",(int*)&gScrBitsAt,(int*)&gScrPitchAt,&gScrW,&gScrH,&gScrBpp);
+			else if (ieq(ln,"surface")) gSurfaceAddr=(uint32_t)strtoul(v,NULL,0);
+			else if (ieq(ln,"surfacegate")) gSurfaceGate=(uint32_t)strtoul(v,NULL,0);
 			else if (ieq(ln,"state")) lstrcpynA(gStateExpr,v,256);
 			else if (ieq(ln,"empty")) lstrcpynA(gEmptyExpr,v,256);
 			else if (ieq(ln,"3d")) gMode3dWant = ieq(v,"on") ? 1 : 0;
@@ -3040,6 +3123,11 @@ int main(int argc, char** argv)
 		else if (ieq(argv[i],"--counter")&&i+1<argc) counter=argv[++i];
 		else if (ieq(argv[i],"--flips")&&i+1<argc) flips=argv[++i];
 		else if (ieq(argv[i],"--pending-draw")&&i+1<argc) pending=argv[++i];
+		else if (ieq(argv[i],"--surface")&&i+1<argc) gSurfaceAddr=(uint32_t)strtoul(argv[++i],NULL,0);
+		else if (ieq(argv[i],"--surface-screen")&&i+1<argc) sscanf(argv[++i],"%i,%i,%u,%u,%u",(int*)&gScrBitsAt,(int*)&gScrPitchAt,&gScrW,&gScrH,&gScrBpp);
+		else if (ieq(argv[i],"--sample")&&i+1<argc) lstrcpynA(gSamples,argv[++i],256);
+		else if (ieq(argv[i],"--surface-eip")&&i+1<argc) sscanf(argv[++i],"%i,%i",(int*)&gEipLo,(int*)&gEipHi);
+		else if (ieq(argv[i],"--surface-gate")&&i+1<argc) gSurfaceGate=(uint32_t)strtoul(argv[++i],NULL,0);
 		else if (ieq(argv[i],"--update-state")&&i+1<argc) ustate=argv[++i];
 		else if (ieq(argv[i],"--draw-empty")&&i+1<argc) dempty=argv[++i];
 		else if (ieq(argv[i],"--update-ms")&&i+1<argc) updateMs=atoi(argv[++i]);
